@@ -1,0 +1,13 @@
+- name: ensure /srv/kubernetes directory
+  file:
+    path: /srv/kubernetes
+    owner: root
+    state: directory
+    mode: 0600
+- name: download and unpack crypto assets
+  command: /bin/bash -c "gsutil cp 'gs://mikedanese-k8s-kube-deploy-k-0/crypto/{{ item }}' - | sudo tar xfv - -C /srv/kubernetes"
+  with_items:
+  - root.tar
+  - apiserver.tar
+  - kubelet.tar
+

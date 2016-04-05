@@ -1,0 +1,6 @@
+- file:
+    path: /srv/kubernetes
+    owner: root
+    state: directory
+    mode: 0600
+- command: /bin/bash -c "gsutil cp 'gs://mikedanese-k8s-kube-deploy-k-0/crypto/kubelet.tar' - | sudo tar xfv - -C /srv/kubernetes"

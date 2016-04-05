@@ -1,0 +1,11 @@
+- name: ensure /etc/kubernetes/manifests directory
+  file:
+    path: /etc/kubernetes/manifests
+    owner: root
+    state: directory
+    mode: 0755
+- name: write effective config
+  jsonnet:
+    src: effective_config.jsonnet
+    dest: /etc/kubernetes/effective_config.json
+    mode: 0644

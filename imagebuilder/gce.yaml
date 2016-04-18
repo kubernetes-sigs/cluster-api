@@ -1,0 +1,7 @@
+Cloud: gce
+
+# GCE Project that you want to use
+Project: <project-name>
+
+# GCS bucket where the image should be uploaded
+GCSDestination: gs://<bucket-name>/

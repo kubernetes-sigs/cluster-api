@@ -1,0 +1,9 @@
+#! /bin/bash
+
+set -o errexit
+set -o pipefail
+set -o nounset
+
+shopt -s globstar
+
+ls **/*.jsonnet | xargs -I {} jsonnet fmt -i -n 2 {}

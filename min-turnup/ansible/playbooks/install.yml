@@ -1,0 +1,10 @@
+- hosts: node
+  roles:
+  - node
+  vars_files:
+  - config.json
+- hosts: master
+  roles:
+  - master
+  vars_files:
+  - config.json

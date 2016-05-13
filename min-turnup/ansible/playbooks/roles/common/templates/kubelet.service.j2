@@ -1,0 +1,43 @@
+[Unit]
+Description=Kubernetes Kubelet Server
+Documentation=https://github.com/kubernetes/kubernetes
+
+[Service]
+ExecStartPre=/bin/mkdir -p /var/lib/kubelet
+ExecStartPre=/bin/mount --bind /var/lib/kubelet /var/lib/kubelet
+ExecStartPre=/bin/mount --make-shared /var/lib/kubelet
+ExecStart=/usr/bin/docker run \
+        --net=host \
+        --pid=host \
+        --privileged \
+        -v /sys:/sys:ro \
+        -v /var/run:/var/run:rw \
+        -v /var/lib/docker/:/var/lib/docker:rw \
+        -v /var/lib/kubelet/:/var/lib/kubelet:shared \
+        -v /srv/kubernetes:/srv/kubernetes:ro \
+        -v /etc/kubernetes/manifests:/etc/kubernetes/manifests:ro \
+        {{ cluster['docker_registry'] }}/hyperkube-amd64:{{ cluster['kubernetes_version'] }} \
+        /hyperkube kubelet \
+            --address=0.0.0.0 \
+            --allow-privileged=true \
+            --cloud-provider={{ cloud_provider }} \
+            --enable-server \
+{% if role == "master" %}
+            --api-servers=http://localhost:8080 \
+{% elif role == "node" %}
+            --enable-debugging-handlers \
+            --api-servers=https://{{ master_ip }} \
+            --hairpin-mode=promiscuous-bridge \
+            --kubeconfig=/srv/kubernetes/kubeconfig.json \
+            --network-plugin=kubenet \
+            --reconcile-cidr \
+{% endif %}
+            --config=/etc/kubernetes/manifests \
+            --cluster-dns=10.0.0.10 \
+            --cluster-domain=cluster.local \
+            --v=2
+Restart=always
+KillMode=process
+
+[Install]
+WantedBy=multi-user.target

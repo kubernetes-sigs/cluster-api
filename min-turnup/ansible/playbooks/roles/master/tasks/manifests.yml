@@ -1,0 +1,10 @@
+- name: master manfiests
+  jsonnet:
+    src: "{{ item }}.jsonnet"
+    dest: "/etc/kubernetes/manifests/{{ item }}.json"
+    mode: 0644
+  with_items:
+  - etcd
+  - kube-scheduler
+  - kube-apiserver
+  - kube-controller-manager

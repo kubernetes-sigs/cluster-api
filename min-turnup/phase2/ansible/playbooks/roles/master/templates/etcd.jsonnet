@@ -26,7 +26,7 @@ function(cfg)
                 --addr 127.0.0.1:2379 \
                 --bind-addr 127.0.0.1:2379 \
                 --data-dir /var/etcd/data
-            |||
+            |||,
           ],
           livenessProbe: {
             httpGet: {

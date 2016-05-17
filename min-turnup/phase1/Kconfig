@@ -1,0 +1,20 @@
+
+menu "Phase 1: Cluster Resource Provisioning"
+
+config phase1.num_nodes
+	int "number of nodes"
+	help
+	  The number of nodes you would like to provision.
+
+config phase1.cloud_provider
+	string "cloud provider"
+	help
+	  The cloud provider you would like to deploy to.
+
+	  Valid options are (gce).
+
+if phase1.cloud_provider = "gce"
+	source "phase1/gce/Kconfig"
+endif
+
+endmenu

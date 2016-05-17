@@ -1,0 +1,4 @@
+
+mainmenu "Example config"
+
+source "phase1/Kconfig"

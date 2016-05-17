@@ -1,0 +1,8 @@
+menu "GCE configuration"
+
+config phase1.gce.os_image
+	string "OS image for nodes"
+	help
+	  The OS image you would like to use
+
+endmenu

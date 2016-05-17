@@ -15,7 +15,7 @@ function(cfg)
       containers: [
         {
           name: "kube-controller-manager",
-          image: "%(docker_registry)s/kube-controller-manager:%(kubernetes_version)s" % cfg.cluster,
+          image: "%(docker_registry)s/kube-controller-manager:%(kubernetes_version)s" % cfg.phase2,
           resources: {
             requests: {
               cpu: "200m",

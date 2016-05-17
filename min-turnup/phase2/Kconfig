@@ -1,9 +1,16 @@
 
 menu "Phase 2: Node Bootstrapping"
 
-config phase2.systemd
-	bool "Use systemd"
+config phase2.docker_registry
+	string "docker registry"
+	default "gcr.io/google-containers"
 	help
-	  Should the installation use systemd to register the kubelet's init unit
+	  The docker registry to pull cluster components from.
+
+config phase2.kubernetes_version
+	string "kubernetes version"
+	default "v1.2.4"
+	help
+	  The version of Kubernetes to deploy.
 
 endmenu

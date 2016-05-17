@@ -1,9 +1,9 @@
 FROM debian:jessie
 
-RUN apt-get update && apt-get install -y git python-dev python-setuptools build-essential curl vim jq
+RUN apt-get update && apt-get install -y git python-dev python-setuptools build-essential curl vim jq libffi-dev libssl-dev
 
 RUN easy_install pip
-RUN pip install paramiko PyYAML Jinja2 httplib2 six
+RUN pip install paramiko PyYAML Jinja2 httplib2 six pycrypto
 
 RUN git clone git://github.com/ansible/ansible.git --recursive /opt/ansible
 ENV ANSIBLE_LIBRARY /opt/ansible_modules

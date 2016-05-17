@@ -2,7 +2,7 @@
 SHELL=/bin/bash
 .SHELLFLAGS="-O extglob -o errexit -o pipefail -o nounset -c"
 
-.PHONY: config phase1 phase1.5 phase2 phase3
+.PHONY: config echo-config
 
 
 # sorry windows and non amd64
@@ -14,20 +14,25 @@ ifeq ($(UNAME_S),Darwin)
 	OS = darwin
 endif
 
-CONF_TOOL = ".tmp/conf"
 CONF_TOOL_VERSION = 4.6
 
 default:
 	$(MAKE) config
 
-$(CONF_TOOL):
-	mkdir -p .tmp
-	curl -sSL --fail -o $(CONF_TOOL) \
-		"https://storage.googleapis.com/public-mikedanese-k8s/kconfig/$(CONF_TOOL_VERSION)/$(OS)/conf"
-	chmod +x $(CONF_TOOL)
+.tmp/conf:
+	mkdir -p .tmp; curl -sSL --fail -o "$@" \
+		"https://storage.googleapis.com/public-mikedanese-k8s/kconfig/$(CONF_TOOL_VERSION)/$(OS)/conf"; \
+	chmod +x "$@"
 
-config: $(CONF_TOOL)
-	CONFIG_="" $(CONF_TOOL) Kconfig
+config: .tmp/conf
+	git update-index --assume-unchanged .config
+	CONFIG_="" .tmp/conf Kconfig
+
+.config: config
+
+echo-config:
+	util/conig_to_json .config
+
 
 clean:
 	rm -rf .tmp

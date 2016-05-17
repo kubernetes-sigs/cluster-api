@@ -1,4 +1,8 @@
 
-mainmenu "Example config"
+mainmenu "Kubernetes Minimal Turnup Configuration"
 
 source "phase1/Kconfig"
+source "phase1b/Kconfig"
+source "phase2/Kconfig"
+source "phase3/Kconfig"
+

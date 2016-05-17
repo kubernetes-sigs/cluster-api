@@ -1,0 +1,9 @@
+
+menu "Phase 2: Node Bootstrapping"
+
+config phase2.systemd
+	bool "Use systemd"
+	help
+	  Should the installation use systemd to register the kubelet's init unit
+
+endmenu

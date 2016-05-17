@@ -1,0 +1,9 @@
+
+menu "Phase 3: Deploying Addons"
+
+config phase3.dashboard
+	bool "Run the dashboard?"
+	help
+	  Should we deploy the kubernetes dashboard?
+
+endmenu

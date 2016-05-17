@@ -1,0 +1,36 @@
+#! /bin/bash
+
+set -o errexit
+set -o pipefail
+set -o nounset
+
+usage() {
+  cat <<EOF >&2
+$0: <.config-file-path>
+EOF
+}
+
+if [[ "$#" != 1 ]]; then
+  usage
+  exit 1
+fi
+
+KCONFIG="$1"
+OUT="{}"
+
+while read line; do
+  field=$(echo "${line}" \
+    | cut -f1 -d"=")
+  value=$(echo "${line}" \
+    | cut -f2 -d"=" \
+    | sed \
+      -e 's/^y$/true/' \
+      -e 's/^n$/false/')
+  OUT=$(
+    echo "${OUT}" |
+      jq ".${field}=${value}"
+  )
+done < <(cat "${KCONFIG}" \
+  | sed -r -e '/^(\s*#.*)?$/d')
+
+echo "${OUT}"

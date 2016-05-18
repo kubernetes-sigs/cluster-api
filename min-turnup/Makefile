@@ -15,6 +15,7 @@ ifeq ($(UNAME_S),Darwin)
 endif
 
 CONF_TOOL_VERSION = 4.6
+KCONFIG_FILES = $(shell find . -name 'Kconfig')
 
 default:
 	$(MAKE) config
@@ -24,14 +25,25 @@ default:
 		"https://storage.googleapis.com/public-mikedanese-k8s/kconfig/$(CONF_TOOL_VERSION)/$(OS)/conf"; \
 	chmod +x "$@"
 
+.tmp/mconf:
+	mkdir -p .tmp; curl -sSL --fail -o "$@" \
+		"https://storage.googleapis.com/public-mikedanese-k8s/kconfig/$(CONF_TOOL_VERSION)/$(OS)/mconf"; \
+	chmod +x "$@"
+
 config: .tmp/conf
-	git update-index --assume-unchanged .config
 	CONFIG_="" .tmp/conf Kconfig
 
-.config: config
+menuconfig: .tmp/mconf
+	CONFIG_="" .tmp/mconf Kconfig
 
-echo-config:
-	util/conig_to_json .config
+.config: .tmp/conf $(KCONFIG_FILES)
+	$(MAKE) config
+
+.config.json: .config
+	util/conig_to_json $< > $@
+
+echo-config: .config.json
+	cat $<
 
 
 clean:

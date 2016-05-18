@@ -15,7 +15,7 @@ function(cfg)
       containers: [
         {
           name: "kube-apiserver",
-          image: "%(docker_registry)s/kube-apiserver:%(kubernetes_version)s" % cfg.cluster,
+          image: "%(docker_registry)s/kube-apiserver:%(kubernetes_version)s" % cfg.phase2,
           resources: {
             requests: {
               cpu: "250m",

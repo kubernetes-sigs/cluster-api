@@ -16,11 +16,11 @@ ExecStart=/usr/bin/docker run \
         -v /var/lib/kubelet/:/var/lib/kubelet:shared \
         -v /srv/kubernetes:/srv/kubernetes:ro \
         -v /etc/kubernetes/manifests:/etc/kubernetes/manifests:ro \
-        {{ cluster['docker_registry'] }}/hyperkube-amd64:{{ cluster['kubernetes_version'] }} \
+        {{ phase2['docker_registry'] }}/hyperkube-amd64:{{ phase2['kubernetes_version'] }} \
         /hyperkube kubelet \
             --address=0.0.0.0 \
             --allow-privileged=true \
-            --cloud-provider={{ cloud_provider }} \
+            --cloud-provider={{ phase1['cloud_provider'] }} \
             --enable-server \
 {% if role == "master" %}
             --api-servers=http://localhost:8080 \

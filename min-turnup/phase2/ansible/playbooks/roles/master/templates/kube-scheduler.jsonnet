@@ -15,7 +15,7 @@ function(cfg)
       containers: [
         {
           name: "kube-scheduler",
-          image: "%(docker_registry)s/kube-scheduler:%(kubernetes_version)s" % cfg.cluster,
+          image: "%(docker_registry)s/kube-scheduler:%(kubernetes_version)s" % cfg.phase2,
           resources: {
             requests: {
               cpu: "100m",

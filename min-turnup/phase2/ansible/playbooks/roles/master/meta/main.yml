@@ -1,3 +1,2 @@
 dependencies:
   - { role: init }
-  - { role: common }

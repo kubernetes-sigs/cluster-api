@@ -19,6 +19,13 @@ curl -H 'Metadata-Flavor:Google' \
   "metadata/computeMetadata/v1/instance/attributes/k8s-config" \
   -o /etc/kubernetes/k8s_config.json
 
+#TODO: restrict by role
+mkdir -p /srv/kubernetes
+for bundle in root kubelet apiserver; do
+  gsutil cp "gs://mikedanese-k8s-kube-deploy-k-0/crypto/${bundle}.tar" - \
+    | sudo tar xv -C /srv/kubernetes
+done;
+
 curl -sSL https://get.docker.com/ | sh
 apt-get install bzip2
 systemctl start docker || true

@@ -5,6 +5,7 @@
   - config.json
 - hosts: master
   roles:
+  - node
   - master
   vars_files:
   - config.json

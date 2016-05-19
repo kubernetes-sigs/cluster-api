@@ -30,11 +30,11 @@ function(cfg)
                 --cluster-name=k-1 \
                 --cluster-cidr=10.244.0.0/16 \
                 --allocate-node-cidrs=true \
-                --cloud-provider=gce \
+                --cloud-provider=%(cloud_provider)s \
                 --service-account-private-key-file=/srv/kubernetes/apiserver-key.pem \
                 --root-ca-file=/srv/kubernetes/ca.pem \
                 --v=2
-            |||,
+            ||| % cfg.phase1,
           ],
           livenessProbe: {
             httpGet: {

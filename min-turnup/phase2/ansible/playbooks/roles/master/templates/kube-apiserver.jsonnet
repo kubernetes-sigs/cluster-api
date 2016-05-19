@@ -28,7 +28,7 @@ function(cfg)
               /usr/local/bin/kube-apiserver \
                 --address=127.0.0.1 \
                 --etcd-servers=http://127.0.0.1:2379 \
-                --cloud-provider=gce \
+                --cloud-provider=%(cloud_provider)s \
                 --admission-control=NamespaceLifecycle,LimitRanger,ServiceAccount,PersistentVolumeLabel,ResourceQuota \
                 --service-cluster-ip-range=10.0.0.0/16 \
                 --client-ca-file=/srv/kubernetes/ca.pem \
@@ -37,7 +37,7 @@ function(cfg)
                 --secure-port=443 \
                 --allow-privileged \
                 --v=4
-            |||,
+            ||| % cfg.phase1,
             # --basic-auth-file=/srv/kubernetes/basic_auth.csv \
             # --token-auth-file=/srv/kubernetes/known_tokens.csv \
           ],

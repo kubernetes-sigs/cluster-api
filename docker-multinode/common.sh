@@ -35,6 +35,8 @@ kube::multinode::main(){
   CURRENT_PLATFORM=$(kube::helpers::host_platform)
   ARCH=${ARCH:-${CURRENT_PLATFORM##*/}}
 
+  NET_INTERFACE=${NET_INTERFACE:-eth0}
+
   # Constants
   TIMEOUT_FOR_SERVICES=20
   BOOTSTRAP_DOCKER_SOCK="unix:///var/run/docker-bootstrap.sock"
@@ -80,6 +82,7 @@ kube::multinode::check_params() {
   kube::log::status "RESTART_POLICY is set to: ${RESTART_POLICY}"
   kube::log::status "MASTER_IP is set to: ${MASTER_IP}"
   kube::log::status "ARCH is set to: ${ARCH}"
+  kube::log::status "NET_INTERFACE is set to: ${NET_INTERFACE}"
   kube::log::status "--------------------------------------------"
 }
 
@@ -184,7 +187,8 @@ kube::multinode::start_flannel() {
     gcr.io/google_containers/flannel-${ARCH}:${FLANNEL_VERSION} \
     /opt/bin/flanneld \
       --etcd-endpoints=http://${MASTER_IP}:4001 \
-      --ip-masq="${FLANNEL_IPMASQ}"
+      --ip-masq="${FLANNEL_IPMASQ}" \
+      --iface="${NET_INTERFACE}"
 
   # Wait for the flannel subnet.env file to be created instead of a timeout. This is faster and more reliable
   local SECONDS=0
@@ -327,7 +331,7 @@ kube::multinode::start_k8s_master() {
       --cluster-dns=${DNS_SERVER_IP} \
       --cluster-domain=${DNS_DOMAIN} \
       --containerized \
-      --hostname-override=$(ip -o -4 addr list eth0 | awk '{print $4}' | cut -d/ -f1) \
+      --hostname-override=$(ip -o -4 addr list ${NET_INTERFACE} | awk '{print $4}' | cut -d/ -f1) \
       --v=2
 }
 
@@ -351,7 +355,7 @@ kube::multinode::start_k8s_worker() {
       --cluster-dns=${DNS_SERVER_IP} \
       --cluster-domain=${DNS_DOMAIN} \
       --containerized \
-      --hostname-override=$(ip -o -4 addr list eth0 | awk '{print $4}' | cut -d/ -f1) \
+      --hostname-override=$(ip -o -4 addr list ${NET_INTERFACE} | awk '{print $4}' | cut -d/ -f1) \
       --v=2
 }
 

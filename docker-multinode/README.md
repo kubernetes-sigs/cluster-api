@@ -63,7 +63,7 @@ $ ./master.sh
 
 `Master done!`
 
-See [here](docker-multinode/master.md) for detailed instructions explanation.
+See [here](master.md) for detailed instructions explanation.
 
 ## Adding a worker node
 

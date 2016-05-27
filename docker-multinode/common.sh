@@ -43,9 +43,8 @@ kube::multinode::main(){
   KUBELET_MOUNTS="\
     -v /sys:/sys:ro \
     -v /var/run:/var/run:rw \
-    -v /:/rootfs:ro \
     -v /var/lib/docker:/var/lib/docker:rw \
-    -v /var/lib/kubelet:/var/lib/kubelet:rw \
+    -v /var/lib/kubelet:/var/lib/kubelet:shared \
     -v /var/log/containers:/var/log/containers:rw"
 
   # Paths
@@ -53,6 +52,13 @@ kube::multinode::main(){
 
   # Trap errors
   kube::log::install_errexit
+}
+
+# Make shared kubelet directory
+kube::multinode::make_shared_kubelet_dir() {
+    mkdir -p /var/lib/kubelet
+    mount --bind /var/lib/kubelet /var/lib/kubelet
+    mount --make-shared /var/lib/kubelet
 }
 
 # Ensure everything is OK, docker is running and we're root
@@ -247,7 +253,6 @@ kube::multinode::restart_docker(){
         kube::helpers::file_replace_line ${DOCKER_CONF} \ # Replace content in this file
           "--bip" \ # Find a line with this content...
           "OPTIONS=\"\$OPTIONS --mtu=${FLANNEL_MTU} --bip=${FLANNEL_SUBNET}\"" # ...and replace the found line with this line
-
         ifconfig docker0 down
         brctl delbr docker0 
         systemctl restart docker
@@ -306,7 +311,7 @@ kube::multinode::restart_docker_systemd(){
   # Finds "--mtu=????" and replaces with "--mtu=${FLANNEL_MTU}"
   # Also finds "--bip=??.??.??.??" and replaces with "--bip=${FLANNEL_SUBNET}"
   sed -e "s@$(grep -o -- "--mtu=[[:graph:]]*" $DOCKER_CONF)@--mtu=${FLANNEL_MTU}@g;s@$(grep -o -- "--bip=[[:graph:]]*" $DOCKER_CONF)@--bip=${FLANNEL_SUBNET}@g" -i $DOCKER_CONF
-
+  sed -i.bak 's/^\(MountFlags=\).*/\1shared/' $DOCKER_CONF
   systemctl daemon-reload
   systemctl restart docker
 }
@@ -315,6 +320,8 @@ kube::multinode::restart_docker_systemd(){
 kube::multinode::start_k8s_master() {
   
   kube::log::status "Launching Kubernetes master components..."
+
+  kube::multinode::make_shared_kubelet_dir
 
   # TODO: Get rid of --hostname-override
   docker run -d \
@@ -330,7 +337,6 @@ kube::multinode::start_k8s_master() {
       --config=/etc/kubernetes/manifests-multi \
       --cluster-dns=${DNS_SERVER_IP} \
       --cluster-domain=${DNS_DOMAIN} \
-      --containerized \
       --hostname-override=$(ip -o -4 addr list ${NET_INTERFACE} | awk '{print $4}' | cut -d/ -f1) \
       --v=2
 }
@@ -339,6 +345,8 @@ kube::multinode::start_k8s_master() {
 kube::multinode::start_k8s_worker() {
   
   kube::log::status "Launching Kubernetes worker components..."
+
+  kube::multinode::make_shared_kubelet_dir
 
   # TODO: Use secure port for communication
   # TODO: Get rid of --hostname-override
@@ -354,7 +362,6 @@ kube::multinode::start_k8s_worker() {
       --api-servers=http://${MASTER_IP}:8080 \
       --cluster-dns=${DNS_SERVER_IP} \
       --cluster-domain=${DNS_DOMAIN} \
-      --containerized \
       --hostname-override=$(ip -o -4 addr list ${NET_INTERFACE} | awk '{print $4}' | cut -d/ -f1) \
       --v=2
 }

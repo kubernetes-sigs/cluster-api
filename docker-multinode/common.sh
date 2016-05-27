@@ -35,7 +35,7 @@ kube::multinode::main(){
   CURRENT_PLATFORM=$(kube::helpers::host_platform)
   ARCH=${ARCH:-${CURRENT_PLATFORM##*/}}
 
-  NET_INTERFACE=${NET_INTERFACE:-eth0}
+  NET_INTERFACE=${NET_INTERFACE:-$(ip -o -4 route show to default | awk '{print $5}')}
 
   # Constants
   TIMEOUT_FOR_SERVICES=20

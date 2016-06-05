@@ -294,7 +294,7 @@ kube::multinode::restart_docker(){
 # Replace --mtu and --bip in systemd's docker.service file and restart
 kube::multinode::restart_docker_systemd(){
 
-  DOCKER_CONF="/lib/systemd/system/docker.service"
+  DOCKER_CONF=$(systemctl cat docker | head -1 | awk '{print $2}')
 
   # This expression checks if the "--mtu" and "--bip" options are there
   # If they aren't, they are inserted at the end of the docker command

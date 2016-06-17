@@ -30,12 +30,13 @@ kube::multinode::main(){
   DNS_DOMAIN=${DNS_DOMAIN:-"cluster.local"}
   DNS_SERVER_IP=${DNS_SERVER_IP:-"10.0.0.10"}
 
-  RESTART_POLICY=${RESTART_POLICY:-"on-failure"}
+  RESTART_POLICY=${RESTART_POLICY:-"unless-stopped"}
 
   CURRENT_PLATFORM=$(kube::helpers::host_platform)
   ARCH=${ARCH:-${CURRENT_PLATFORM##*/}}
 
-  NET_INTERFACE=${NET_INTERFACE:-$(ip -o -4 route show to default | awk '{print $5}')}
+  DEFAULT_NET_INTERFACE=$(ip -o -4 route show to default | awk '{print $5}')
+  NET_INTERFACE=${NET_INTERFACE:-${DEFAULT_NET_INTERFACE}}
 
   # Constants
   TIMEOUT_FOR_SERVICES=20
@@ -75,6 +76,8 @@ kube::multinode::check_params() {
     kube::log::error >&2 "Please run as root"
     exit 1
   fi
+
+  kube::helpers::parse_version ${K8S_VERSION}
 
   # Output the value of the variables
   kube::log::status "K8S_VERSION is set to: ${K8S_VERSION}"
@@ -215,6 +218,8 @@ kube::multinode::start_flannel() {
 
 # Configure docker net settings, then restart it
 kube::multinode::restart_docker(){
+
+  kube::log::status "Restarting main docker daemon..."
 
   case "${lsb_dist}" in
     amzn)
@@ -358,7 +363,7 @@ kube::multinode::start_k8s_worker() {
     ${KUBELET_MOUNTS} \
     gcr.io/google_containers/hyperkube-${ARCH}:${K8S_VERSION} \
     /hyperkube kubelet \
-      --allow-privileged=true \
+      --allow-privileged \
       --api-servers=http://${MASTER_IP}:8080 \
       --cluster-dns=${DNS_SERVER_IP} \
       --cluster-domain=${DNS_DOMAIN} \
@@ -369,17 +374,25 @@ kube::multinode::start_k8s_worker() {
 # Start kube-proxy in a container, for a worker node
 kube::multinode::start_k8s_worker_proxy() {
 
-  kube::log::status "Launching kube-proxy..."
+  # Some quite complex version checking here...
+  # If the version is under v1.3.0-alpha.5, kube-proxy is run manually in this script
+  # In v1.3.0-alpha.5 and above, kube-proxy is run in a DaemonSet 
+  if [[ $((VERSION_MINOR < 3)) == 1 || \
+        $((VERSION_MINOR <= 3)) == 1 && \
+        $(echo ${VERSION_EXTRA}) != "" && \
+        ${VERSION_PRERELEASE} == "alpha" && \
+        $((VERSION_PRERELEASE_REV < 5)) == 1 ]]; then
 
-  # TODO: Run kube-proxy in a DaemonSet
-  docker run -d \
-    --net=host \
-    --privileged \
-    --restart=${RESTART_POLICY} \
-    gcr.io/google_containers/hyperkube-${ARCH}:${K8S_VERSION} \
-    /hyperkube proxy \
-        --master=http://${MASTER_IP}:8080 \
-        --v=2
+    kube::log::status "Launching kube-proxy..."
+    docker run -d \
+      --net=host \
+      --privileged \
+      --restart=${RESTART_POLICY} \
+      gcr.io/google_containers/hyperkube-${ARCH}:${K8S_VERSION} \
+      /hyperkube proxy \
+          --master=http://${MASTER_IP}:8080 \
+          --v=2
+  fi
 }
 
 # Turndown the local cluster
@@ -416,6 +429,17 @@ kube::multinode::turndown(){
     docker rm -f $(docker ps | grep gcr.io/google_containers/pause | awk '{print $1}')
   fi
 
+  if [[ $(docker ps -q | wc -l) != 0 ]]; then
+    read -p "Should we stop the other containers that are running too? [Y/n] " stop_containers
+
+    case $stop_containers in
+      [n|N]*)
+        ;; # Do nothing
+      *)
+        docker kill $(docker ps -q)
+    esac
+  fi
+
   if [[ -d /var/lib/kubelet ]]; then
     read -p "Do you want to clean /var/lib/kubelet? [Y/n] " clean_kubelet_dir
 
@@ -423,7 +447,7 @@ kube::multinode::turndown(){
       [n|N]*)
         ;; # Do nothing
       *)
-        # umount if there's mounts bound in /var/lib/kubelet
+        # umount if there are mounts in /var/lib/kubelet
         if [[ ! -z $(mount | grep /var/lib/kubelet | awk '{print $3}') ]]; then
           umount $(mount | grep /var/lib/kubelet | awk '{print $3}')
         fi
@@ -508,6 +532,21 @@ kube::helpers::host_platform() {
       exit 1;;
   esac
   echo "${host_os}/${host_arch}"
+}
+
+kube::helpers::parse_version() {
+  local -r version_regex="^v(0|[1-9][0-9]*)\\.(0|[1-9][0-9]*)\\.(0|[1-9][0-9]*)(-(beta|alpha)\\.(0|[1-9][0-9]*))?$"
+  local -r version="${1-}"
+  [[ "${version}" =~ ${version_regex} ]] || {
+    kube::log::error "Invalid release version: '${version}', must match regex ${version_regex}"
+    return 1
+  }
+  VERSION_MAJOR="${BASH_REMATCH[1]}"
+  VERSION_MINOR="${BASH_REMATCH[2]}"
+  VERSION_PATCH="${BASH_REMATCH[3]}"
+  VERSION_EXTRA="${BASH_REMATCH[4]}"
+  VERSION_PRERELEASE="${BASH_REMATCH[5]}"
+  VERSION_PRERELEASE_REV="${BASH_REMATCH[6]}"
 }
 
 # Print a status line. Formatted to show up in a stream of output.
@@ -598,3 +637,4 @@ kube::log::error() {
     echo "    $message" >&2
   done
 }
+

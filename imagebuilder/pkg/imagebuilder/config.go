@@ -23,7 +23,6 @@ func (c*Config) InitDefaults() {
 	c.SSHPublicKey = "~/.ssh/id_rsa.pub"
 	c.SSHPrivateKey = "~/.ssh/id_rsa"
 
-	c.TemplatePath = "bootstrapvz-template.yml"
 	c.SetupCommands = []string{
 		"sudo apt-get update",
 		"sudo apt-get install --yes git python debootstrap python-pip kpartx parted",

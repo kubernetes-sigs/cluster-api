@@ -14,7 +14,6 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-
 // TODO: We should replace most of this code with a fast-install manifest
 // This would also allow more customization, and get rid of half of this code
 // BUT... there's a circular dependency in the PRs here... :-)
@@ -27,13 +26,13 @@ import (
 
 	"golang.org/x/crypto/ssh"
 
+	"crypto/md5"
+	"encoding/hex"
 	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/ec2"
 	"github.com/golang/glog"
-	"crypto/md5"
-	"encoding/hex"
-	"github.com/aws/aws-sdk-go/aws/awserr"
 )
 
 const tagRoleKey = "k8s.io/role/imagebuilder"
@@ -60,7 +59,7 @@ func (i *AWSInstance) DialSSH(config *ssh.ClientConfig) (*ssh.Client, error) {
 
 	for {
 		// TODO: Timeout, check error code
-		sshClient, err := ssh.Dial("tcp", publicIP + ":22", config)
+		sshClient, err := ssh.Dial("tcp", publicIP+":22", config)
 		if err != nil {
 			glog.Warningf("error connecting to SSH on server %q: %v", publicIP, err)
 			time.Sleep(5 * time.Second)
@@ -94,19 +93,19 @@ func (i *AWSInstance) WaitPublicIP() (string, error) {
 type AWSCloud struct {
 	config *AWSConfig
 
-	ec2    *ec2.EC2
+	ec2 *ec2.EC2
 }
 
 var _ Cloud = &AWSCloud{}
 
 func NewAWSCloud(ec2 *ec2.EC2, config *AWSConfig) *AWSCloud {
 	return &AWSCloud{
-		ec2: ec2,
+		ec2:    ec2,
 		config: config,
 	}
 }
 
-func (a*AWSCloud) GetExtraEnv() (map[string]string, error) {
+func (a *AWSCloud) GetExtraEnv() (map[string]string, error) {
 	credentials := a.ec2.Config.Credentials
 	if credentials == nil {
 		return nil, fmt.Errorf("unable to determine EC2 credentials")
@@ -191,8 +190,6 @@ func (a *AWSCloud) GetInstance() (Instance, error) {
 	return nil, nil
 }
 
-
-
 // findSubnet returns a subnet tagged with our role tag, if one exists
 func (c *AWSCloud) findSubnet() (*ec2.Subnet, error) {
 	request := &ec2.DescribeSubnetsInput{}
@@ -215,7 +212,6 @@ func (c *AWSCloud) findSubnet() (*ec2.Subnet, error) {
 
 	return nil, nil
 }
-
 
 // findSecurityGroup returns a security group tagged with our role tag, if one exists
 func (c *AWSCloud) findSecurityGroup(vpcID string) (*ec2.SecurityGroup, error) {
@@ -243,8 +239,6 @@ func (c *AWSCloud) findSecurityGroup(vpcID string) (*ec2.SecurityGroup, error) {
 
 	return nil, nil
 }
-
-
 
 // describeSubnet returns a subnet with the specified id, if it exists
 func (c *AWSCloud) describeSubnet(subnetID string) (*ec2.Subnet, error) {
@@ -279,7 +273,7 @@ func (a *AWSCloud) TagResource(resourceId string, tags ...*ec2.Tag) error {
 	return err
 }
 
-func (c*AWSCloud) findSSHKey(name string) (*ec2.KeyPairInfo, error) {
+func (c *AWSCloud) findSSHKey(name string) (*ec2.KeyPairInfo, error) {
 	request := &ec2.DescribeKeyPairsInput{
 		KeyNames: []*string{&name},
 	}
@@ -306,7 +300,7 @@ func (c*AWSCloud) findSSHKey(name string) (*ec2.KeyPairInfo, error) {
 
 	return k, nil
 }
-func (c*AWSCloud) ensureSSHKey() (string, error) {
+func (c *AWSCloud) ensureSSHKey() (string, error) {
 	publicKey, err := ReadFile(c.config.SSHPublicKey)
 	if err != nil {
 		return "", err
@@ -340,7 +334,6 @@ func (c*AWSCloud) ensureSSHKey() (string, error) {
 
 	return *response.KeyName, nil
 }
-
 
 // CreateInstance creates an instance for building an image instance
 func (c *AWSCloud) CreateInstance() (Instance, error) {
@@ -462,8 +455,8 @@ func (a *AWSCloud) FindImage(imageName string) (Image, error) {
 	}
 
 	return &AWSImage{
-		ec2:   a.ec2,
-		region: a.config.Region,
+		ec2:     a.ec2,
+		region:  a.config.Region,
 		image:   image,
 		imageID: imageID,
 	}, nil
@@ -500,8 +493,8 @@ func findAWSImage(client *ec2.EC2, imageName string) (*ec2.Image, error) {
 
 // AWSImage represents an AMI on AWS
 type AWSImage struct {
-	ec2     *ec2.EC2
-	region  string
+	ec2    *ec2.EC2
+	region string
 	//cloud   *AWSCloud
 	image   *ec2.Image
 	imageID string
@@ -522,7 +515,7 @@ func (i *AWSImage) EnsurePublic() error {
 	return i.ensurePublic()
 }
 
-func (i*AWSImage) waitStatusAvailable() error {
+func (i *AWSImage) waitStatusAvailable() error {
 	imageID := i.imageID
 
 	for {
@@ -556,7 +549,7 @@ func (i*AWSImage) waitStatusAvailable() error {
 	}
 }
 
-func (i*AWSImage) ensurePublic() error {
+func (i *AWSImage) ensurePublic() error {
 	err := i.waitStatusAvailable()
 	if err != nil {
 		return err
@@ -605,8 +598,8 @@ func (i *AWSImage) ReplicateImage(makePublic bool) (map[string]Image, error) {
 		}
 		targetEC2 := ec2.New(session.New(), &aws.Config{Region: &regionName})
 		imagesByRegion[regionName] = &AWSImage{
-			ec2: targetEC2,
-			region: regionName,
+			ec2:     targetEC2,
+			region:  regionName,
 			imageID: imageID,
 		}
 	}

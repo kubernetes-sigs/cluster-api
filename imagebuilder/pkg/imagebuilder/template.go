@@ -1,9 +1,9 @@
 package imagebuilder
 
 import (
+	"bytes"
 	"fmt"
 	"text/template"
-	"bytes"
 )
 
 // ExpandTemplate executes a golang template

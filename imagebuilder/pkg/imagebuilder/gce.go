@@ -17,12 +17,12 @@ limitations under the License.
 package imagebuilder
 
 import (
-	"google.golang.org/api/compute/v1"
 	"fmt"
 	"github.com/golang/glog"
 	"golang.org/x/crypto/ssh"
-	"time"
+	"google.golang.org/api/compute/v1"
 	"google.golang.org/api/googleapi"
+	"time"
 )
 
 // TODO: We should replace most of this code with a fast-install manifest
@@ -51,7 +51,7 @@ func (i *GCEInstance) DialSSH(config *ssh.ClientConfig) (*ssh.Client, error) {
 
 	for {
 		// TODO: Timeout, check error code
-		sshClient, err := ssh.Dial("tcp", publicIP + ":22", config)
+		sshClient, err := ssh.Dial("tcp", publicIP+":22", config)
 		if err != nil {
 			glog.Warningf("error connecting to SSH on server %q: %v", publicIP, err)
 			time.Sleep(5 * time.Second)
@@ -87,7 +87,7 @@ func (i *GCEInstance) WaitPublicIP() (string, error) {
 
 // GCECloud is a helper type for talking to an GCE acccount
 type GCECloud struct {
-	config        *GCEConfig
+	config *GCEConfig
 
 	computeClient *compute.Service
 }
@@ -97,11 +97,11 @@ var _ Cloud = &GCECloud{}
 func NewGCECloud(computeClient *compute.Service, config *GCEConfig) *GCECloud {
 	return &GCECloud{
 		computeClient: computeClient,
-		config: config,
+		config:        config,
 	}
 }
 
-func (a*GCECloud) GetExtraEnv() (map[string]string, error) {
+func (a *GCECloud) GetExtraEnv() (map[string]string, error) {
 	// No extra env needed on GCE
 	env := make(map[string]string)
 	return env, nil
@@ -153,9 +153,9 @@ func (c *GCECloud) GetInstance() (Instance, error) {
 	if instance != nil {
 		glog.Infof("Found existing instance: %q", instance.Name)
 		return &GCEInstance{
-			cloud:      c,
-			instance:   instance,
-			name: instance.Name,
+			cloud:    c,
+			instance: instance,
+			name:     instance.Name,
 		}, nil
 	}
 
@@ -174,7 +174,7 @@ func (c *GCECloud) CreateInstance() (Instance, error) {
 	disks = append(disks, &compute.AttachedDisk{
 		InitializeParams: &compute.AttachedDiskInitializeParams{
 			SourceImage: c.config.Image,
-			DiskType: "zones/" + zone + "/diskTypes/pd-ssd",
+			DiskType:    "zones/" + zone + "/diskTypes/pd-ssd",
 		},
 		Boot:       true,
 		DeviceName: "disk-0",
@@ -194,7 +194,7 @@ func (c *GCECloud) CreateInstance() (Instance, error) {
 		sshKey := "admin:" + string(publicKey)
 
 		metadata.Items = append(metadata.Items, &compute.MetadataItems{
-			Key: "ssh-keys",
+			Key:   "ssh-keys",
 			Value: &sshKey,
 		})
 	}
@@ -216,9 +216,9 @@ func (c *GCECloud) CreateInstance() (Instance, error) {
 				},
 			},
 		},
-		MachineType:        machineType,
-		Disks: disks,
-		Metadata: metadata,
+		MachineType: machineType,
+		Disks:       disks,
+		Metadata:    metadata,
 		ServiceAccounts: []*compute.ServiceAccount{
 			{
 				Email:  "default",
@@ -232,7 +232,7 @@ func (c *GCECloud) CreateInstance() (Instance, error) {
 	}
 	return &GCEInstance{
 		cloud: c,
-		name: name,
+		name:  name,
 	}, nil
 }
 
@@ -248,8 +248,8 @@ func (c *GCECloud) FindImage(imageName string) (Image, error) {
 	}
 
 	return &GCEImage{
-		computeClient:   c.computeClient,
-		name: imageName,
+		computeClient: c.computeClient,
+		name:          imageName,
 		//image:   image,
 	}, nil
 }

@@ -65,7 +65,7 @@ func (t *BootstrapVzTemplate) BuildImageName() (string, error) {
 
 	replacer := func(path string) string {
 		// Remove { and }
-		path = path[1 : len(path) - 1]
+		path = path[1 : len(path)-1]
 
 		if path == "" {
 			return ""

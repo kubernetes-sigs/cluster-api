@@ -24,20 +24,20 @@ import (
 
 	"golang.org/x/crypto/ssh"
 
-	"github.com/ghodss/yaml"
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/ec2"
+	"github.com/ghodss/yaml"
 	"github.com/golang/glog"
-	"k8s.io/kube-deploy/imagebuilder/pkg/imagebuilder"
-	"io/ioutil"
-	"path"
 	"golang.org/x/net/context"
 	"golang.org/x/oauth2/google"
 	"google.golang.org/api/compute/v1"
-	"strings"
 	"google.golang.org/api/storage/v1"
+	"io/ioutil"
+	"k8s.io/kube-deploy/imagebuilder/pkg/imagebuilder"
 	"net/url"
+	"path"
+	"strings"
 )
 
 var flagConfig = flag.String("config", "", "Config file to load")
@@ -90,7 +90,7 @@ func main() {
 	}
 
 	var cloud imagebuilder.Cloud
-	switch (config.Cloud) {
+	switch config.Cloud {
 	case "aws":
 		awsConfig, awsCloud, err := initAWS()
 		if err != nil {
@@ -98,7 +98,6 @@ func main() {
 		}
 		templateContext = awsConfig
 		cloud = awsCloud
-
 
 	case "gce":
 		if *flagPublish {
@@ -111,7 +110,6 @@ func main() {
 		}
 		templateContext = gceConfig
 		cloud = gceCloud
-
 
 	case "":
 		glog.Exitf("Cloud not set")

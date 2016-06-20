@@ -1,4 +1,5 @@
 Cloud: gce
+TemplatePath: templates/1.3.yml
 
 # GCE Project that you want to use
 Project: <project-name>

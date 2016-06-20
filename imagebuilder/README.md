@@ -3,6 +3,8 @@ ImageBuilder
 
 ImageBuilder is a tool for building an optimized k8s images, currently only supporting AWS.
 
+Please also see the README in templates for documentation as to the motivation for building a custom image.
+
 It is a wrapper around bootstrap-vz (the tool used to build official Debian cloud images).  
 It adds functionality to spin up an instance for building the image, and publishing the image to all regions.
 
@@ -14,7 +16,8 @@ Each of these stages can be controlled through flags
 
 ## AWS
 
-* `export AWS_PROFILE=...` if you are not using the default profile
+* `export AWS_PROFILE=...` if you are not using the default profile.
+ (or generate a new account & use `export AWS_ACCESS_KEY_ID` and `export AWS_SECRET_ACCESS_KEY`)
 * Create a VPC (with a subnet) and tag the subnet with `k8s.io/role/imagebuilder=1`
 * Create a security group in the VPC, allowing port 22, and tag with `k8s.io/role/imagebuilder=1`
 
@@ -66,3 +69,4 @@ and may be useful for debugging or publishing a lot of images:
 * `--replicate=true/false` controls whether we copy the image to all regions
 
 * `--config=<configpath>` lets you configure most options
+

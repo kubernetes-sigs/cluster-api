@@ -1,10 +1,10 @@
 package imagebuilder
 
 import (
-	"fmt"
-	"path"
 	"bytes"
+	"fmt"
 	"math/rand"
+	"path"
 )
 
 type Builder struct {
@@ -15,11 +15,11 @@ type Builder struct {
 func NewBuilder(config *Config, ssh *SSH) *Builder {
 	return &Builder{
 		config: config,
-		ssh: ssh,
+		ssh:    ssh,
 	}
 }
 
-func (b*Builder) RunSetupCommands() error {
+func (b *Builder) RunSetupCommands() error {
 	for _, c := range b.config.SetupCommands {
 		if err := b.ssh.Exec(c); err != nil {
 			return err
@@ -29,7 +29,7 @@ func (b*Builder) RunSetupCommands() error {
 	return nil
 }
 
-func (b*Builder)  BuildImage(template []byte, extraEnv map[string]string) error {
+func (b *Builder) BuildImage(template []byte, extraEnv map[string]string) error {
 	tmpdir := fmt.Sprintf("/tmp/imagebuilder-%d", rand.Int63())
 	err := b.ssh.SCPMkdir(tmpdir, 0755)
 	if err != nil {
@@ -44,12 +44,12 @@ func (b*Builder)  BuildImage(template []byte, extraEnv map[string]string) error 
 	}
 
 	//err = ssh.Exec("git clone https://github.com/andsens/bootstrap-vz.git " + tmpdir + "/bootstrap-vz")
-	err = b.ssh.Exec("git clone " + b.config.BootstrapVZRepo  + " -b " + b.config.BootstrapVZBranch + " " + tmpdir + "/bootstrap-vz")
+	err = b.ssh.Exec("git clone " + b.config.BootstrapVZRepo + " -b " + b.config.BootstrapVZBranch + " " + tmpdir + "/bootstrap-vz")
 	if err != nil {
 		return err
 	}
 
-	err = b.ssh.SCPPut(tmpdir + "/template.yml", len(template), bytes.NewReader(template), 0644)
+	err = b.ssh.SCPPut(tmpdir+"/template.yml", len(template), bytes.NewReader(template), 0644)
 	if err != nil {
 		return err
 	}
@@ -69,4 +69,3 @@ func (b*Builder)  BuildImage(template []byte, extraEnv map[string]string) error 
 	// TODO: Capture debug output file?
 	return nil
 }
-

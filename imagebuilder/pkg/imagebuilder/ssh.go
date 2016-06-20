@@ -14,7 +14,6 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-
 // TODO: This probably should be moved to / shared with nodeup, because then it would allow action on a remote target
 
 package imagebuilder

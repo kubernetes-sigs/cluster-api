@@ -3,8 +3,8 @@ package imagebuilder
 import (
 	"fmt"
 	"io/ioutil"
-	"strings"
 	"os"
+	"strings"
 )
 
 // ReadFile reads the whole file using ioutil.ReadFile, but does path expansion first

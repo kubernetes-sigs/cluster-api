@@ -1,2 +1,0 @@
-function(cfg)
-  cfg

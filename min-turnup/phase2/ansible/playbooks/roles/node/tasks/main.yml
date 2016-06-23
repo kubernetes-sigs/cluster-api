@@ -1,4 +1,0 @@
-- include: kubeconfig.yml
-- include: etc.yml
-- include: kubelet.yml
-- include: kubectl.yml

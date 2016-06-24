@@ -1,1 +1,0 @@
-# Bootstrap the nodes

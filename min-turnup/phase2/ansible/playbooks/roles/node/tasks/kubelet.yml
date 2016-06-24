@@ -1,7 +1,0 @@
-- template:
-    src: kubelet.service.j2
-    dest: /etc/systemd/system/kubelet.service
-- command: systemctl --system daemon-reload
-- service:
-    name: kubelet
-    state: started

@@ -28,13 +28,13 @@ spec:
             memory: 50Mi
         command:
         - /usr/local/bin/etcd
-        - -data-dir
+        - --data-dir
         - /var/etcd/data
-        - -listen-client-urls
+        - --listen-client-urls
         - http://127.0.0.1:2379,http://127.0.0.1:4001
-        - -advertise-client-urls
+        - --advertise-client-urls
         - http://127.0.0.1:2379,http://127.0.0.1:4001
-        - -initial-cluster-token
+        - --initial-cluster-token
         - skydns-etcd
         volumeMounts:
         - name: etcd-storage
@@ -47,7 +47,7 @@ spec:
             memory: 50Mi
         args:
         # command = "/kube2sky"
-        - -domain=DNS_DOMAIN
+        - --domain=DNS_DOMAIN
       - name: skydns
         image: gcr.io/google_containers/skydns-ARCH:1.0
         resources:

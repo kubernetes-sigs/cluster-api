@@ -1,4 +1,0 @@
-KubeDNS:
-  Replicas: 1
-  ServerIP: {{ WellKnownServiceIP 10 }}
-  Domain: {{ .ClusterDNSDomain }}

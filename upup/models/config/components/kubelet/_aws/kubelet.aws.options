@@ -1,3 +1,0 @@
-Kubelet:
-  CloudProvider: aws
-  CgroupRoot: docker

@@ -24,13 +24,19 @@ This pattern is necessary because the `flannel` daemon is responsible for settin
 all of the Docker containers created by Kubernetes. To achieve this, it must run outside of the _main_ Docker daemon. However,
 it is still useful to use containers for deployment and management, so we create a simpler _bootstrap_ daemon to achieve this.
 
+### Versions supported
+
+v1.2.x and v1.3.x are supported versions for this deployment.
+v1.3.0 alphas and betas might work, but be sure you know what you're doing if you're trying them out.
 
 ### Multi-arch solution
 
 Yeah, it's true. You may run this deployment setup seamlessly on `amd64`, `arm`, `arm64` and `ppc64le` hosts.
 See this tracking issue for more details: https://github.com/kubernetes/kubernetes/issues/17981
 
-(Small note: arm is available with `v1.3.0-alpha.2+`. arm64 and ppc64le are available with `v1.3.0-alpha.3+`. Also ppc64le encountered problems in `v1.3.0-alpha.5+`, so ppc64le has only `v1.3.0-alpha.(3|4)` images pushed)
+v1.3.0 ships with support for amd64, arm and arm64. ppc64le isn't supported, due to a bug in the Go runtime, `hyperkube` (only!) isn't built for the stable v1.3.0 release, and therefore this guide can't run it. But you may still run Kubernetes on ppc64le via custom deployments.
+
+hyperkube was pushed for ppc64le at versions `v1.3.0-alpha.3` and `v1.3.0-alpha.4`, feel free to try them out, but there might be some unexpected bugs.
 
 ### Options/configuration
 
@@ -43,8 +49,6 @@ The scripts will output something like this when starting:
 +++ [0611 12:50:12] FLANNEL_IPMASQ is set to: true
 +++ [0611 12:50:12] FLANNEL_NETWORK is set to: 10.1.0.0/16
 +++ [0611 12:50:12] FLANNEL_BACKEND is set to: udp
-+++ [0611 12:50:12] DNS_DOMAIN is set to: cluster.local
-+++ [0611 12:50:12] DNS_SERVER_IP is set to: 10.0.0.10
 +++ [0611 12:50:12] RESTART_POLICY is set to: unless-stopped
 +++ [0611 12:50:12] MASTER_IP is set to: 192.168.1.50
 +++ [0611 12:50:12] ARCH is set to: amd64
@@ -88,4 +92,23 @@ Then, the main docker daemon is restarted and lastly `kubelet` is launched as a 
 
 ## Addons
 
-kube-dns and the dashboard are deployed automatically with `v1.3.0-alpha.5` and over
+kube-dns and the dashboard are deployed automatically with v1.3.0
+
+### Deploy DNS manually for v1.2.x
+
+Just specify the architecture, and deploy via these commands:
+
+```console
+# Possible options: amd64, arm, arm64 and ppc64le
+$ export ARCH=amd64
+
+# If the kube-system namespace isn't already created, create it
+$ kubectl get ns
+$ kubectl create namespace kube-system
+
+$ sed -e "s/ARCH/${ARCH}/g;" skydns.yaml | kubectl create -f -
+```
+
+### Test if DNS works
+
+Follow [this link](https://releases.k8s.io/release-1.2/cluster/addons/dns#how-do-i-test-if-it-is-working) to check it out.

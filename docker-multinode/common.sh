@@ -27,9 +27,6 @@ kube::multinode::main(){
   FLANNEL_BACKEND=${FLANNEL_BACKEND:-"udp"}
   FLANNEL_NETWORK=${FLANNEL_NETWORK:-"10.1.0.0/16"}
 
-  DNS_DOMAIN=${DNS_DOMAIN:-"cluster.local"}
-  DNS_SERVER_IP=${DNS_SERVER_IP:-"10.0.0.10"}
-
   RESTART_POLICY=${RESTART_POLICY:-"unless-stopped"}
 
   CURRENT_PLATFORM=$(kube::helpers::host_platform)
@@ -42,7 +39,7 @@ kube::multinode::main(){
   TIMEOUT_FOR_SERVICES=20
   BOOTSTRAP_DOCKER_SOCK="unix:///var/run/docker-bootstrap.sock"
   KUBELET_MOUNTS="\
-    -v /sys:/sys:ro \
+    -v /sys:/sys:rw \
     -v /var/run:/var/run:rw \
     -v /var/lib/docker:/var/lib/docker:rw \
     -v /var/lib/kubelet:/var/lib/kubelet:shared \
@@ -86,8 +83,6 @@ kube::multinode::check_params() {
   kube::log::status "FLANNEL_IPMASQ is set to: ${FLANNEL_IPMASQ}"
   kube::log::status "FLANNEL_NETWORK is set to: ${FLANNEL_NETWORK}"
   kube::log::status "FLANNEL_BACKEND is set to: ${FLANNEL_BACKEND}"
-  kube::log::status "DNS_DOMAIN is set to: ${DNS_DOMAIN}"
-  kube::log::status "DNS_SERVER_IP is set to: ${DNS_SERVER_IP}"
   kube::log::status "RESTART_POLICY is set to: ${RESTART_POLICY}"
   kube::log::status "MASTER_IP is set to: ${MASTER_IP}"
   kube::log::status "ARCH is set to: ${ARCH}"
@@ -116,11 +111,11 @@ kube::multinode::detect_lsb() {
 
   case "${lsb_dist}" in
       amzn|centos|debian|ubuntu|systemd)
-          ;;
+        ;;
       *)
-          kube::log::error "Error: We currently only support ubuntu|debian|amzn|centos|systemd."
-          exit 1
-          ;;
+        kube::log::error "Error: We currently only support ubuntu|debian|amzn|centos|systemd."
+        exit 1
+        ;;
   esac
 
   kube::log::status "Detected OS: ${lsb_dist}"
@@ -169,7 +164,15 @@ kube::multinode::start_etcd() {
       --data-dir=/var/etcd/data
 
   # Wait for etcd to come up
-  sleep 5
+  local SECONDS=0
+  while [[ $(curl -fs http://localhost:4001/v2/machines 2>&1 1>/dev/null; echo $?) != 0 ]]; do
+    ((SECONDS++))
+    if [[ ${SECONDS} == ${TIMEOUT_FOR_SERVICES} ]]; then
+      kube::log::error "etcd failed to start. Exiting..."
+      exit
+    fi
+    sleep 1
+  done
 
   # Set flannel net config
   docker -H ${BOOTSTRAP_DOCKER_SOCK} run \
@@ -224,6 +227,7 @@ kube::multinode::restart_docker(){
   case "${lsb_dist}" in
     amzn)
       DOCKER_CONF="/etc/sysconfig/docker"
+      kube::helpers::backup_file ${DOCKER_CONF}
 
       if ! kube::helpers::command_exists ifconfig; then
         yum -y -q install net-tools
@@ -232,12 +236,14 @@ kube::multinode::restart_docker(){
         yum -y -q install bridge-utils
       fi
 
-      kube::helpers::file_replace_line ${DOCKER_CONF} `# Replace content in this file` \
-        "--bip" `# Find a line with this content...` \
-        "OPTIONS=\"\$OPTIONS --mtu=${FLANNEL_MTU} --bip=${FLANNEL_SUBNET}\"" `# ...and replace the found line with this line`
+      # Is there an uncommented OPTIONS line at all?
+      if [[ -z $(grep "OPTIONS" ${DOCKER_CONF} | grep -v "#") ]]; then
+        echo "OPTIONS=\"--mtu=${FLANNEL_MTU} --bip=${FLANNEL_SUBNET}\"" >> ${DOCKER_CONF}
+      else
+        kube::helpers::replace_mtu_bip ${DOCKER_CONF} "OPTIONS"
+      fi
 
       ifconfig docker0 down
-      
       brctl delbr docker0 
       service docker restart
       ;;
@@ -254,10 +260,15 @@ kube::multinode::restart_docker(){
         kube::multinode::restart_docker_systemd
       else
         DOCKER_CONF="/etc/sysconfig/docker"
+        kube::helpers::backup_file ${DOCKER_CONF}
 
-        kube::helpers::file_replace_line ${DOCKER_CONF} `# Replace content in this file` \
-          "--bip" `# Find a line with this content...` \
-          "OPTIONS=\"\$OPTIONS --mtu=${FLANNEL_MTU} --bip=${FLANNEL_SUBNET}\"" `# ...and replace the found line with this line`
+        # Is there an uncommented OPTIONS line at all?
+        if [[ -z $(grep "OPTIONS" ${DOCKER_CONF} | grep -v "#") ]]; then
+          echo "OPTIONS=\"--mtu=${FLANNEL_MTU} --bip=${FLANNEL_SUBNET}\"" >> ${DOCKER_CONF}
+        else
+          kube::helpers::replace_mtu_bip ${DOCKER_CONF} "OPTIONS"
+        fi
+
         ifconfig docker0 down
         brctl delbr docker0 
         systemctl restart docker
@@ -273,15 +284,19 @@ kube::multinode::restart_docker(){
         kube::multinode::restart_docker_systemd
       else
         DOCKER_CONF="/etc/default/docker"
+        kube::helpers::backup_file ${DOCKER_CONF}
         
-        kube::helpers::file_replace_line ${DOCKER_CONF} `# Replace content in this file` \
-          "--bip" `# Find a line with this content...` \
-          "OPTIONS=\"\$OPTIONS --mtu=${FLANNEL_MTU} --bip=${FLANNEL_SUBNET}\"" `# ...and replace the found line with this line`
+        # Is there an uncommented DOCKER_OPTS line at all?
+        if [[ -z $(grep "DOCKER_OPTS" $DOCKER_CONF | grep -v "#") ]]; then
+          echo "DOCKER_OPTS=\"--mtu=${FLANNEL_MTU} --bip=${FLANNEL_SUBNET}\"" >> ${DOCKER_CONF}
+        else
+          kube::helpers::replace_mtu_bip ${DOCKER_CONF} "DOCKER_OPTS"
+        fi
 
         ifconfig docker0 down
         brctl delbr docker0 
         service docker stop
-        while [[ $(ps aux | grep /usr/bin/docker | grep -v grep | wc -l) -gt 0 ]]; do
+        while [[ $(ps aux | grep $(which docker) | grep -v grep | wc -l) -gt 0 ]]; do
             kube::log::status "Waiting for docker to terminate"
             sleep 1
         done
@@ -300,23 +315,13 @@ kube::multinode::restart_docker(){
 kube::multinode::restart_docker_systemd(){
 
   DOCKER_CONF=$(systemctl cat docker | head -1 | awk '{print $2}')
-
-  # This expression checks if the "--mtu" and "--bip" options are there
-  # If they aren't, they are inserted at the end of the docker command
-  if [[ -z $(grep -- "--mtu=" $DOCKER_CONF) ]]; then
-    sed -e "s@$(grep "/usr/bin/docker" $DOCKER_CONF)@$(grep "/usr/bin/docker" $DOCKER_CONF) --mtu=${FLANNEL_MTU}@g" -i $DOCKER_CONF
-  fi
-  if [[ -z $(grep -- "--bip=" $DOCKER_CONF) ]]; then
-    sed -e "s@$(grep "/usr/bin/docker" $DOCKER_CONF)@$(grep "/usr/bin/docker" $DOCKER_CONF) --bip=${FLANNEL_SUBNET}@g" -i $DOCKER_CONF
-  fi
+  kube::helpers::backup_file ${DOCKER_CONF}
+  kube::helpers::replace_mtu_bip ${DOCKER_CONF} $(which docker)
 
   ifconfig docker0 down
   brctl delbr docker0
 
-  # Finds "--mtu=????" and replaces with "--mtu=${FLANNEL_MTU}"
-  # Also finds "--bip=??.??.??.??" and replaces with "--bip=${FLANNEL_SUBNET}"
-  sed -e "s@$(grep -o -- "--mtu=[[:graph:]]*" $DOCKER_CONF)@--mtu=${FLANNEL_MTU}@g;s@$(grep -o -- "--bip=[[:graph:]]*" $DOCKER_CONF)@--bip=${FLANNEL_SUBNET}@g" -i $DOCKER_CONF
-  sed -i.bak 's/^\(MountFlags=\).*/\1shared/' $DOCKER_CONF
+  sed -i.bak 's/^\(MountFlags=\).*/\1shared/' ${DOCKER_CONF}
   systemctl daemon-reload
   systemctl restart docker
 }
@@ -340,8 +345,8 @@ kube::multinode::start_k8s_master() {
       --allow-privileged \
       --api-servers=http://localhost:8080 \
       --config=/etc/kubernetes/manifests-multi \
-      --cluster-dns=${DNS_SERVER_IP} \
-      --cluster-domain=${DNS_DOMAIN} \
+      --cluster-dns=10.0.0.10 \
+      --cluster-domain=cluster.local \
       --hostname-override=$(ip -o -4 addr list ${NET_INTERFACE} | awk '{print $4}' | cut -d/ -f1) \
       --v=2
 }
@@ -365,8 +370,8 @@ kube::multinode::start_k8s_worker() {
     /hyperkube kubelet \
       --allow-privileged \
       --api-servers=http://${MASTER_IP}:8080 \
-      --cluster-dns=${DNS_SERVER_IP} \
-      --cluster-domain=${DNS_DOMAIN} \
+      --cluster-dns=10.0.0.10 \
+      --cluster-domain=cluster.local \
       --hostname-override=$(ip -o -4 addr list ${NET_INTERFACE} | awk '{print $4}' | cut -d/ -f1) \
       --v=2
 }
@@ -377,22 +382,22 @@ kube::multinode::start_k8s_worker_proxy() {
   # Some quite complex version checking here...
   # If the version is under v1.3.0-alpha.5, kube-proxy is run manually in this script
   # In v1.3.0-alpha.5 and above, kube-proxy is run in a DaemonSet 
-  if [[ $((VERSION_MINOR < 3)) == 1 || \
-        $((VERSION_MINOR <= 3)) == 1 && \
-        $(echo ${VERSION_EXTRA}) != "" && \
-        ${VERSION_PRERELEASE} == "alpha" && \
-        $((VERSION_PRERELEASE_REV < 5)) == 1 ]]; then
+  # This has been uncommented for now, since the DaemonSet was inactivated in the stable v1.3 release
+  #if [[ $((VERSION_MINOR < 3)) == 1 || \
+  #      $((VERSION_MINOR <= 3)) == 1 && \
+  #      $(echo ${VERSION_EXTRA}) != "" && \
+  #      ${VERSION_PRERELEASE} == "alpha" && \
+  #      $((VERSION_PRERELEASE_REV < 5)) == 1 ]]; then
 
-    kube::log::status "Launching kube-proxy..."
-    docker run -d \
-      --net=host \
-      --privileged \
-      --restart=${RESTART_POLICY} \
-      gcr.io/google_containers/hyperkube-${ARCH}:${K8S_VERSION} \
-      /hyperkube proxy \
-          --master=http://${MASTER_IP}:8080 \
-          --v=2
-  fi
+  kube::log::status "Launching kube-proxy..."
+  docker run -d \
+    --net=host \
+    --privileged \
+    --restart=${RESTART_POLICY} \
+    gcr.io/google_containers/hyperkube-${ARCH}:${K8S_VERSION} \
+    /hyperkube proxy \
+        --master=http://${MASTER_IP}:8080 \
+        --v=2
 }
 
 # Turndown the local cluster
@@ -433,10 +438,11 @@ kube::multinode::turndown(){
     read -p "Should we stop the other containers that are running too? [Y/n] " stop_containers
 
     case $stop_containers in
-      [n|N]*)
+      [nN]*)
         ;; # Do nothing
       *)
         docker kill $(docker ps -q)
+        ;;
     esac
   fi
 
@@ -444,16 +450,22 @@ kube::multinode::turndown(){
     read -p "Do you want to clean /var/lib/kubelet? [Y/n] " clean_kubelet_dir
 
     case $clean_kubelet_dir in
-      [n|N]*)
+      [nN]*)
         ;; # Do nothing
       *)
         # umount if there are mounts in /var/lib/kubelet
         if [[ ! -z $(mount | grep /var/lib/kubelet | awk '{print $3}') ]]; then
-          umount $(mount | grep /var/lib/kubelet | awk '{print $3}')
+
+          # The umount command may be a little bit subborn sometimes, so run the commands twice to ensure the mounts are gone
+          mount | grep /var/lib/kubelet/* | awk '{print $3}' | xargs umount 1>/dev/null 2>/dev/null
+          mount | grep /var/lib/kubelet/* | awk '{print $3}' | xargs umount 1>/dev/null 2>/dev/null
+          umount /var/lib/kubelet 1>/dev/null 2>/dev/null
+          umount /var/lib/kubelet 1>/dev/null 2>/dev/null
         fi
 
         # Delete the directory
         rm -rf /var/lib/kubelet
+        ;;
     esac
   fi
 }
@@ -474,6 +486,28 @@ kube::helpers::file_replace_line(){
   else
     sed -i "/$2/c\\$3" $1
   fi
+}
+
+kube::helpers::replace_mtu_bip(){
+  local DOCKER_CONF=$1
+  local SEARCH_FOR=$2
+
+  # Assuming is a $SEARCH_FOR statement already, and we should append the options if they do not exist
+  if [[ -z $(grep -- "--mtu=" $DOCKER_CONF) ]]; then
+    sed -e "s@$(grep "$SEARCH_FOR" $DOCKER_CONF)@$(grep "$SEARCH_FOR" $DOCKER_CONF) --mtu=${FLANNEL_MTU}@g" -i $DOCKER_CONF
+  fi
+  if [[ -z $(grep -- "--bip=" $DOCKER_CONF) ]]; then
+    sed -e "s@$(grep "$SEARCH_FOR" $DOCKER_CONF)@$(grep "$SEARCH_FOR" $DOCKER_CONF) --bip=${FLANNEL_SUBNET}@g" -i $DOCKER_CONF
+  fi
+
+  # Finds "--mtu=????" and replaces with "--mtu=${FLANNEL_MTU}"
+  # Also finds "--bip=??.??.??.??" and replaces with "--bip=${FLANNEL_SUBNET}"
+  sed -e "s@$(grep -o -- "--mtu=[[:graph:]]*" $DOCKER_CONF)@--mtu=${FLANNEL_MTU}@g;s@$(grep -o -- "--bip=[[:graph:]]*" $DOCKER_CONF)@--bip=${FLANNEL_SUBNET}@g" -i $DOCKER_CONF
+}
+
+kube::helpers::backup_file(){
+  # Backup the current file
+  cp -f ${1} ${1}.backup
 }
 
 # Check if a process is running

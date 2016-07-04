@@ -24,7 +24,7 @@ Each of these stages can be controlled through flags
 Then:
 
 ```
-go install k8s.io/kube-deploy/imagebuilder
+go get k8s.io/kube-deploy/imagebuilder
 ```
 
 Run the image builder:
@@ -44,7 +44,7 @@ as specified in the template) and this is the easier way to retrieve the image.
 Then:
 
 ```
-go install k8s.io/kube-deploy/imagebuilder
+go get k8s.io/kube-deploy/imagebuilder
 ```
 
 Run the image builder:

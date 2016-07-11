@@ -481,7 +481,7 @@ kube::helpers::command_exists() {
 # Usage: kube::helpers::file_replace_line {path_to_file} {value_to_search_for} {replace_that_line_with_this_content}
 # Finds a line in a file and replaces the line with the third argument
 kube::helpers::file_replace_line(){
-  if [[ -z $(grep "$2" $1) ]]; then
+  if [[ -z $(grep -e "$2" $1) ]]; then
     echo "$3" >> $1
   else
     sed -i "/$2/c\\$3" $1

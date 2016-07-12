@@ -153,10 +153,11 @@ kube::multinode::bootstrap_daemon() {
 kube::multinode::start_etcd() {
 
   kube::log::status "Launching etcd..."
-  
+
   docker -H ${BOOTSTRAP_DOCKER_SOCK} run -d \
     --restart=${RESTART_POLICY} \
     --net=host \
+    -v /var/lib/kubelet/etcd:/var/etcd \
     gcr.io/google_containers/etcd-${ARCH}:${ETCD_VERSION} \
     /usr/local/bin/etcd \
       --listen-client-urls=http://127.0.0.1:4001,http://${MASTER_IP}:4001 \
@@ -244,7 +245,7 @@ kube::multinode::restart_docker(){
       fi
 
       ifconfig docker0 down
-      brctl delbr docker0 
+      brctl delbr docker0
       service docker restart
       ;;
     centos)
@@ -254,7 +255,7 @@ kube::multinode::restart_docker(){
       if ! kube::helpers::command_exists brctl; then
         yum -y -q install bridge-utils
       fi
-      
+
       # Newer centos releases uses systemd. Handle that
       if kube::helpers::command_exists systemctl; then
         kube::multinode::restart_docker_systemd
@@ -270,13 +271,13 @@ kube::multinode::restart_docker(){
         fi
 
         ifconfig docker0 down
-        brctl delbr docker0 
+        brctl delbr docker0
         systemctl restart docker
       fi
       ;;
     ubuntu|debian)
       if ! kube::helpers::command_exists brctl; then
-        apt-get install -y bridge-utils 
+        apt-get install -y bridge-utils
       fi
 
       # Newer ubuntu and debian releases uses systemd. Handle that
@@ -285,7 +286,7 @@ kube::multinode::restart_docker(){
       else
         DOCKER_CONF="/etc/default/docker"
         kube::helpers::backup_file ${DOCKER_CONF}
-        
+
         # Is there an uncommented DOCKER_OPTS line at all?
         if [[ -z $(grep "DOCKER_OPTS" $DOCKER_CONF | grep -v "#") ]]; then
           echo "DOCKER_OPTS=\"--mtu=${FLANNEL_MTU} --bip=${FLANNEL_SUBNET}\"" >> ${DOCKER_CONF}
@@ -294,7 +295,7 @@ kube::multinode::restart_docker(){
         fi
 
         ifconfig docker0 down
-        brctl delbr docker0 
+        brctl delbr docker0
         service docker stop
         while [[ $(ps aux | grep $(which docker) | grep -v grep | wc -l) -gt 0 ]]; do
             kube::log::status "Waiting for docker to terminate"
@@ -328,7 +329,7 @@ kube::multinode::restart_docker_systemd(){
 
 # Start kubelet first and then the master components as pods
 kube::multinode::start_k8s_master() {
-  
+
   kube::log::status "Launching Kubernetes master components..."
 
   kube::multinode::make_shared_kubelet_dir
@@ -353,7 +354,7 @@ kube::multinode::start_k8s_master() {
 
 # Start kubelet in a container, for a worker node
 kube::multinode::start_k8s_worker() {
-  
+
   kube::log::status "Launching Kubernetes worker components..."
 
   kube::multinode::make_shared_kubelet_dir
@@ -381,7 +382,7 @@ kube::multinode::start_k8s_worker_proxy() {
 
   # Some quite complex version checking here...
   # If the version is under v1.3.0-alpha.5, kube-proxy is run manually in this script
-  # In v1.3.0-alpha.5 and above, kube-proxy is run in a DaemonSet 
+  # In v1.3.0-alpha.5 and above, kube-proxy is run in a DaemonSet
   # This has been uncommented for now, since the DaemonSet was inactivated in the stable v1.3 release
   #if [[ $((VERSION_MINOR < 3)) == 1 || \
   #      $((VERSION_MINOR <= 3)) == 1 && \
@@ -419,7 +420,7 @@ kube::multinode::turndown(){
   fi
 
   if [[ $(kube::helpers::is_running /hyperkube) == "true" ]]; then
-    
+
     kube::log::status "Killing hyperkube containers..."
 
     # Kill all hyperkube docker images
@@ -427,7 +428,7 @@ kube::multinode::turndown(){
   fi
 
   if [[ $(kube::helpers::is_running /pause) == "true" ]]; then
-    
+
     kube::log::status "Killing pause containers..."
 
     # Kill all pause docker images
@@ -561,7 +562,7 @@ kube::helpers::host_platform() {
       host_arch=arm;;
     ppc64le*)
       host_arch=ppc64le;;
-    *)  
+    *)
       kube::log::error "Unsupported host arch. Must be x86_64, arm, arm64 or ppc64le."
       exit 1;;
   esac
@@ -671,4 +672,3 @@ kube::log::error() {
     echo "    $message" >&2
   done
 }
-

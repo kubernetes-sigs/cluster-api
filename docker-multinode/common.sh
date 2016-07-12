@@ -239,7 +239,7 @@ kube::multinode::restart_docker(){
 
       # Is there an uncommented OPTIONS line at all?
       if [[ -z $(grep "OPTIONS" ${DOCKER_CONF} | grep -v "#") ]]; then
-        echo "OPTIONS=\"--mtu=${FLANNEL_MTU} --bip=${FLANNEL_SUBNET}\"" >> ${DOCKER_CONF}
+        echo "OPTIONS=\"--mtu=${FLANNEL_MTU} --bip=${FLANNEL_SUBNET} \"" >> ${DOCKER_CONF}
       else
         kube::helpers::replace_mtu_bip ${DOCKER_CONF} "OPTIONS"
       fi
@@ -265,7 +265,7 @@ kube::multinode::restart_docker(){
 
         # Is there an uncommented OPTIONS line at all?
         if [[ -z $(grep "OPTIONS" ${DOCKER_CONF} | grep -v "#") ]]; then
-          echo "OPTIONS=\"--mtu=${FLANNEL_MTU} --bip=${FLANNEL_SUBNET}\"" >> ${DOCKER_CONF}
+          echo "OPTIONS=\"--mtu=${FLANNEL_MTU} --bip=${FLANNEL_SUBNET} \"" >> ${DOCKER_CONF}
         else
           kube::helpers::replace_mtu_bip ${DOCKER_CONF} "OPTIONS"
         fi
@@ -289,7 +289,7 @@ kube::multinode::restart_docker(){
 
         # Is there an uncommented DOCKER_OPTS line at all?
         if [[ -z $(grep "DOCKER_OPTS" $DOCKER_CONF | grep -v "#") ]]; then
-          echo "DOCKER_OPTS=\"--mtu=${FLANNEL_MTU} --bip=${FLANNEL_SUBNET}\"" >> ${DOCKER_CONF}
+          echo "DOCKER_OPTS=\"--mtu=${FLANNEL_MTU} --bip=${FLANNEL_SUBNET} \"" >> ${DOCKER_CONF}
         else
           kube::helpers::replace_mtu_bip ${DOCKER_CONF} "DOCKER_OPTS"
         fi
@@ -503,6 +503,8 @@ kube::helpers::replace_mtu_bip(){
 
   # Finds "--mtu=????" and replaces with "--mtu=${FLANNEL_MTU}"
   # Also finds "--bip=??.??.??.??" and replaces with "--bip=${FLANNEL_SUBNET}"
+  # NOTE: This method replaces a whole 'mtu' or 'bip' expression. If it ends with a punctuation mark it will be truncated.
+  # Please add additional space before the punctuation mark to prevent this. For example: "--mtu=${FLANNEL_MTU} --bip=${FLANNEL_SUBNET} ".
   sed -e "s@$(grep -o -- "--mtu=[[:graph:]]*" $DOCKER_CONF)@--mtu=${FLANNEL_MTU}@g;s@$(grep -o -- "--bip=[[:graph:]]*" $DOCKER_CONF)@--bip=${FLANNEL_SUBNET}@g" -i $DOCKER_CONF
 }
 

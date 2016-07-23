@@ -35,8 +35,9 @@ kube::multinode::main(){
   DEFAULT_NET_INTERFACE=$(ip -o -4 route show to default | awk '{print $5}')
   NET_INTERFACE=${NET_INTERFACE:-${DEFAULT_NET_INTERFACE}}
 
+  TIMEOUT_FOR_SERVICES=${TIMEOUT_FOR_SERVICES:-20}
+
   # Constants
-  TIMEOUT_FOR_SERVICES=20
   BOOTSTRAP_DOCKER_SOCK="unix:///var/run/docker-bootstrap.sock"
   KUBELET_MOUNTS="\
     -v /sys:/sys:rw \
@@ -109,6 +110,10 @@ kube::multinode::detect_lsb() {
 
   lsb_dist="$(echo ${lsb_dist} | tr '[:upper:]' '[:lower:]')"
 
+  if [[ "raspbian" == "${lsb_dist}" ]]; then
+      lsb_dist='debian'
+  fi
+
   case "${lsb_dist}" in
       amzn|centos|debian|ubuntu|systemd)
         ;;
@@ -143,7 +148,7 @@ kube::multinode::bootstrap_daemon() {
     ((SECONDS++))
     if [[ ${SECONDS} == ${TIMEOUT_FOR_SERVICES} ]]; then
       kube::log::error "docker bootstrap failed to start. Exiting..."
-      exit
+      exit 1
     fi
     sleep 1
   done
@@ -170,7 +175,7 @@ kube::multinode::start_etcd() {
     ((SECONDS++))
     if [[ ${SECONDS} == ${TIMEOUT_FOR_SERVICES} ]]; then
       kube::log::error "etcd failed to start. Exiting..."
-      exit
+      exit 1
     fi
     sleep 1
   done
@@ -209,7 +214,7 @@ kube::multinode::start_flannel() {
     ((SECONDS++))
     if [[ ${SECONDS} == ${TIMEOUT_FOR_SERVICES} ]]; then
       kube::log::error "flannel failed to start. Exiting..."
-      exit
+      exit 1
     fi
     sleep 1
   done

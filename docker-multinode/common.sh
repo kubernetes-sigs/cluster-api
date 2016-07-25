@@ -16,6 +16,9 @@
 
 # Utility functions for Kubernetes in docker setup
 
+source $(dirname "${BASH_SOURCE}")/cni-plugin.sh
+source $(dirname "${BASH_SOURCE}")/docker-bootstrap.sh
+
 kube::multinode::main(){
   LATEST_STABLE_K8S_VERSION=$(kube::helpers::curl "https://storage.googleapis.com/kubernetes-release/release/stable.txt")
   K8S_VERSION=${K8S_VERSION:-${LATEST_STABLE_K8S_VERSION}}
@@ -36,18 +39,30 @@ kube::multinode::main(){
   NET_INTERFACE=${NET_INTERFACE:-${DEFAULT_NET_INTERFACE}}
 
   TIMEOUT_FOR_SERVICES=${TIMEOUT_FOR_SERVICES:-20}
+  USE_CNI=${USE_CNI:-"false"}
+  CNI_ARGS=""
 
   # Constants
   BOOTSTRAP_DOCKER_SOCK="unix:///var/run/docker-bootstrap.sock"
+  BOOTSTRAP_DOCKER_PARAM="-H ${BOOTSTRAP_DOCKER_SOCK}"
   KUBELET_MOUNTS="\
     -v /sys:/sys:rw \
     -v /var/run:/var/run:rw \
+    -v /run:/run:rw \
     -v /var/lib/docker:/var/lib/docker:rw \
     -v /var/lib/kubelet:/var/lib/kubelet:shared \
     -v /var/log/containers:/var/log/containers:rw"
 
   # Paths
-  FLANNEL_SUBNET_TMPDIR=$(mktemp -d)
+  FLANNEL_SUBNET_DIR=${FLANNEL_SUBNET_DIR:-/run/flannel}
+
+  if [[ ${USE_CNI} == true ]]; then
+
+    BOOTSTRAP_DOCKER_PARAM=""
+    CNI_ARGS="\
+      --network-plugin=cni \
+      --network-plugin-dir=/etc/cni/net.d"
+  fi
 
   # Trap errors
   kube::log::install_errexit
@@ -88,70 +103,8 @@ kube::multinode::check_params() {
   kube::log::status "MASTER_IP is set to: ${MASTER_IP}"
   kube::log::status "ARCH is set to: ${ARCH}"
   kube::log::status "NET_INTERFACE is set to: ${NET_INTERFACE}"
+  kube::log::status "USE_CNI is set to: ${USE_CNI}"
   kube::log::status "--------------------------------------------"
-}
-
-# Detect the OS distro, we support ubuntu, debian, mint, centos, fedora and systemd dist
-kube::multinode::detect_lsb() {
-
-  if kube::helpers::command_exists lsb_release; then
-    lsb_dist="$(lsb_release -si)"
-  elif [[ -r /etc/lsb-release ]]; then
-    lsb_dist="$(. /etc/lsb-release && echo "$DISTRIB_ID")"
-  elif [[ -r /etc/debian_version ]]; then
-    lsb_dist='debian'
-  elif [[ -r /etc/fedora-release ]]; then
-    lsb_dist='fedora'
-  elif [[ -r /etc/os-release ]]; then
-    lsb_dist="$(. /etc/os-release && echo "$ID")"
-  elif kube::helpers::command_exists systemctl; then
-    lsb_dist='systemd'
-  fi
-
-  lsb_dist="$(echo ${lsb_dist} | tr '[:upper:]' '[:lower:]')"
-
-  if [[ "raspbian" == "${lsb_dist}" ]]; then
-      lsb_dist='debian'
-  fi
-
-  case "${lsb_dist}" in
-      amzn|centos|debian|ubuntu|systemd)
-        ;;
-      *)
-        kube::log::error "Error: We currently only support ubuntu|debian|amzn|centos|systemd."
-        exit 1
-        ;;
-  esac
-
-  kube::log::status "Detected OS: ${lsb_dist}"
-}
-
-# Start a docker bootstrap for running etcd and flannel
-kube::multinode::bootstrap_daemon() {
-
-  kube::log::status "Launching docker bootstrap..."
-
-  docker daemon \
-    -H ${BOOTSTRAP_DOCKER_SOCK} \
-    -p /var/run/docker-bootstrap.pid \
-    --iptables=false \
-    --ip-masq=false \
-    --bridge=none \
-    --graph=/var/lib/docker-bootstrap \
-    --exec-root=/var/run/docker-bootstrap \
-      2> /var/log/docker-bootstrap.log \
-      1> /dev/null &
-
-  # Wait for docker bootstrap to start by "docker ps"-ing every second
-  local SECONDS=0
-  while [[ $(docker -H ${BOOTSTRAP_DOCKER_SOCK} ps 2>&1 1>/dev/null; echo $?) != 0 ]]; do
-    ((SECONDS++))
-    if [[ ${SECONDS} == ${TIMEOUT_FOR_SERVICES} ]]; then
-      kube::log::error "docker bootstrap failed to start. Exiting..."
-      exit 1
-    fi
-    sleep 1
-  done
 }
 
 # Start etcd on the master node
@@ -159,7 +112,7 @@ kube::multinode::start_etcd() {
 
   kube::log::status "Launching etcd..."
 
-  docker -H ${BOOTSTRAP_DOCKER_SOCK} run -d \
+  docker ${BOOTSTRAP_DOCKER_PARAM} run -d \
     --restart=${RESTART_POLICY} \
     --net=host \
     -v /var/lib/kubelet/etcd:/var/etcd \
@@ -181,7 +134,7 @@ kube::multinode::start_etcd() {
   done
 
   # Set flannel net config
-  docker -H ${BOOTSTRAP_DOCKER_SOCK} run \
+  docker ${BOOTSTRAP_DOCKER_PARAM} run \
       --net=host \
       gcr.io/google_containers/etcd-${ARCH}:${ETCD_VERSION} \
       etcdctl \
@@ -196,12 +149,12 @@ kube::multinode::start_flannel() {
 
   kube::log::status "Launching flannel..."
 
-  docker -H ${BOOTSTRAP_DOCKER_SOCK} run -d \
+  docker ${BOOTSTRAP_DOCKER_PARAM} run -d \
     --restart=${RESTART_POLICY} \
     --net=host \
     --privileged \
     -v /dev/net:/dev/net \
-    -v ${FLANNEL_SUBNET_TMPDIR}:/run/flannel \
+    -v ${FLANNEL_SUBNET_DIR}:${FLANNEL_SUBNET_DIR} \
     gcr.io/google_containers/flannel-${ARCH}:${FLANNEL_VERSION} \
     /opt/bin/flanneld \
       --etcd-endpoints=http://${MASTER_IP}:4001 \
@@ -210,7 +163,7 @@ kube::multinode::start_flannel() {
 
   # Wait for the flannel subnet.env file to be created instead of a timeout. This is faster and more reliable
   local SECONDS=0
-  while [[ ! -f ${FLANNEL_SUBNET_TMPDIR}/subnet.env ]]; do
+  while [[ ! -f ${FLANNEL_SUBNET_DIR}/subnet.env ]]; do
     ((SECONDS++))
     if [[ ${SECONDS} == ${TIMEOUT_FOR_SERVICES} ]]; then
       kube::log::error "flannel failed to start. Exiting..."
@@ -219,122 +172,14 @@ kube::multinode::start_flannel() {
     sleep 1
   done
 
-  source ${FLANNEL_SUBNET_TMPDIR}/subnet.env
+  source ${FLANNEL_SUBNET_DIR}/subnet.env
 
   kube::log::status "FLANNEL_SUBNET is set to: ${FLANNEL_SUBNET}"
   kube::log::status "FLANNEL_MTU is set to: ${FLANNEL_MTU}"
 }
 
-# Configure docker net settings, then restart it
-kube::multinode::restart_docker(){
-
-  kube::log::status "Restarting main docker daemon..."
-
-  case "${lsb_dist}" in
-    amzn)
-      DOCKER_CONF="/etc/sysconfig/docker"
-      kube::helpers::backup_file ${DOCKER_CONF}
-
-      if ! kube::helpers::command_exists ifconfig; then
-        yum -y -q install net-tools
-      fi
-      if ! kube::helpers::command_exists brctl; then
-        yum -y -q install bridge-utils
-      fi
-
-      # Is there an uncommented OPTIONS line at all?
-      if [[ -z $(grep "OPTIONS" ${DOCKER_CONF} | grep -v "#") ]]; then
-        echo "OPTIONS=\"--mtu=${FLANNEL_MTU} --bip=${FLANNEL_SUBNET} \"" >> ${DOCKER_CONF}
-      else
-        kube::helpers::replace_mtu_bip ${DOCKER_CONF} "OPTIONS"
-      fi
-
-      ifconfig docker0 down
-      brctl delbr docker0
-      service docker restart
-      ;;
-    centos)
-      if ! kube::helpers::command_exists ifconfig; then
-        yum -y -q install net-tools
-      fi
-      if ! kube::helpers::command_exists brctl; then
-        yum -y -q install bridge-utils
-      fi
-
-      # Newer centos releases uses systemd. Handle that
-      if kube::helpers::command_exists systemctl; then
-        kube::multinode::restart_docker_systemd
-      else
-        DOCKER_CONF="/etc/sysconfig/docker"
-        kube::helpers::backup_file ${DOCKER_CONF}
-
-        # Is there an uncommented OPTIONS line at all?
-        if [[ -z $(grep "OPTIONS" ${DOCKER_CONF} | grep -v "#") ]]; then
-          echo "OPTIONS=\"--mtu=${FLANNEL_MTU} --bip=${FLANNEL_SUBNET} \"" >> ${DOCKER_CONF}
-        else
-          kube::helpers::replace_mtu_bip ${DOCKER_CONF} "OPTIONS"
-        fi
-
-        ifconfig docker0 down
-        brctl delbr docker0
-        systemctl restart docker
-      fi
-      ;;
-    ubuntu|debian)
-      if ! kube::helpers::command_exists brctl; then
-        apt-get install -y bridge-utils
-      fi
-
-      # Newer ubuntu and debian releases uses systemd. Handle that
-      if kube::helpers::command_exists systemctl; then
-        kube::multinode::restart_docker_systemd
-      else
-        DOCKER_CONF="/etc/default/docker"
-        kube::helpers::backup_file ${DOCKER_CONF}
-
-        # Is there an uncommented DOCKER_OPTS line at all?
-        if [[ -z $(grep "DOCKER_OPTS" $DOCKER_CONF | grep -v "#") ]]; then
-          echo "DOCKER_OPTS=\"--mtu=${FLANNEL_MTU} --bip=${FLANNEL_SUBNET} \"" >> ${DOCKER_CONF}
-        else
-          kube::helpers::replace_mtu_bip ${DOCKER_CONF} "DOCKER_OPTS"
-        fi
-
-        ifconfig docker0 down
-        brctl delbr docker0
-        service docker stop
-        while [[ $(ps aux | grep $(which docker) | grep -v grep | wc -l) -gt 0 ]]; do
-            kube::log::status "Waiting for docker to terminate"
-            sleep 1
-        done
-        service docker start
-      fi
-      ;;
-    systemd)
-      kube::multinode::restart_docker_systemd
-      ;;
-  esac
-
-  kube::log::status "Restarted docker with the new flannel settings"
-}
-
-# Replace --mtu and --bip in systemd's docker.service file and restart
-kube::multinode::restart_docker_systemd(){
-
-  DOCKER_CONF=$(systemctl cat docker | head -1 | awk '{print $2}')
-  kube::helpers::backup_file ${DOCKER_CONF}
-  kube::helpers::replace_mtu_bip ${DOCKER_CONF} $(which docker)
-
-  ifconfig docker0 down
-  brctl delbr docker0
-
-  sed -i.bak 's/^\(MountFlags=\).*/\1shared/' ${DOCKER_CONF}
-  systemctl daemon-reload
-  systemctl restart docker
-}
-
 # Start kubelet first and then the master components as pods
 kube::multinode::start_k8s_master() {
-
   kube::log::status "Launching Kubernetes master components..."
 
   kube::multinode::make_shared_kubelet_dir
@@ -353,13 +198,13 @@ kube::multinode::start_k8s_master() {
       --config=/etc/kubernetes/manifests-multi \
       --cluster-dns=10.0.0.10 \
       --cluster-domain=cluster.local \
+      ${CNI_ARGS} \
       --hostname-override=$(ip -o -4 addr list ${NET_INTERFACE} | awk '{print $4}' | cut -d/ -f1) \
       --v=2
 }
 
 # Start kubelet in a container, for a worker node
 kube::multinode::start_k8s_worker() {
-
   kube::log::status "Launching Kubernetes worker components..."
 
   kube::multinode::make_shared_kubelet_dir
@@ -378,6 +223,7 @@ kube::multinode::start_k8s_worker() {
       --api-servers=http://${MASTER_IP}:8080 \
       --cluster-dns=10.0.0.10 \
       --cluster-domain=cluster.local \
+      ${CNI_ARGS} \
       --hostname-override=$(ip -o -4 addr list ${NET_INTERFACE} | awk '{print $4}' | cut -d/ -f1) \
       --v=2
 }
@@ -474,8 +320,33 @@ kube::multinode::turndown(){
         ;;
     esac
   fi
+
+  # Remove cni0 bridge
+  if [[ ! -z $(ifconfig | grep "cni0") ]]; then
+    ifconfig cni0 down
+    brctl delbr cni0
+  fi
 }
 
+# Install network utils: ifconfig, brctl
+kube::multinode::install_network_utils() {
+    if kube::helpers::command_exists yum; then
+
+      if ! kube::helpers::command_exists ifconfig; then
+        yum -y -q install net-tools
+      fi
+      if ! kube::helpers::command_exists brctl; then
+        yum -y -q install bridge-utils
+      fi
+
+    elif kube::helpers::command_exists apt-get; then
+
+      if ! kube::helpers::command_exists brctl; then
+        apt-get install -y bridge-utils
+      fi
+
+    fi
+}
 
 ## Helpers
 
@@ -492,25 +363,6 @@ kube::helpers::file_replace_line(){
   else
     sed -i "/$2/c\\$3" $1
   fi
-}
-
-kube::helpers::replace_mtu_bip(){
-  local DOCKER_CONF=$1
-  local SEARCH_FOR=$2
-
-  # Assuming is a $SEARCH_FOR statement already, and we should append the options if they do not exist
-  if [[ -z $(grep -- "--mtu=" $DOCKER_CONF) ]]; then
-    sed -e "s@$(grep "$SEARCH_FOR" $DOCKER_CONF)@$(grep "$SEARCH_FOR" $DOCKER_CONF) --mtu=${FLANNEL_MTU}@g" -i $DOCKER_CONF
-  fi
-  if [[ -z $(grep -- "--bip=" $DOCKER_CONF) ]]; then
-    sed -e "s@$(grep "$SEARCH_FOR" $DOCKER_CONF)@$(grep "$SEARCH_FOR" $DOCKER_CONF) --bip=${FLANNEL_SUBNET}@g" -i $DOCKER_CONF
-  fi
-
-  # Finds "--mtu=????" and replaces with "--mtu=${FLANNEL_MTU}"
-  # Also finds "--bip=??.??.??.??" and replaces with "--bip=${FLANNEL_SUBNET}"
-  # NOTE: This method replaces a whole 'mtu' or 'bip' expression. If it ends with a punctuation mark it will be truncated.
-  # Please add additional space before the punctuation mark to prevent this. For example: "--mtu=${FLANNEL_MTU} --bip=${FLANNEL_SUBNET} ".
-  sed -e "s@$(grep -o -- "--mtu=[[:graph:]]*" $DOCKER_CONF)@--mtu=${FLANNEL_MTU}@g;s@$(grep -o -- "--bip=[[:graph:]]*" $DOCKER_CONF)@--bip=${FLANNEL_SUBNET}@g" -i $DOCKER_CONF
 }
 
 kube::helpers::backup_file(){

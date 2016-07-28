@@ -26,17 +26,27 @@ kube::multinode::main
 
 kube::multinode::check_params
 
-kube::multinode::detect_lsb
+kube::multinode::install_network_utils
 
 kube::multinode::turndown
 
-kube::multinode::bootstrap_daemon
+if [[ ${USE_CNI} = "true" ]]; then
+  kube::cni::ensure_docker_settings
 
-kube::multinode::start_etcd
+  kube::multinode::start_etcd
 
-kube::multinode::start_flannel
+  kube::multinode::start_flannel
+else
+  kube::bootstrap::detect_lsb
 
-kube::multinode::restart_docker
+  kube::bootstrap::bootstrap_daemon
+
+  kube::multinode::start_etcd
+
+  kube::multinode::start_flannel
+
+  kube::bootstrap::restart_docker
+fi
 
 kube::multinode::start_k8s_master
 

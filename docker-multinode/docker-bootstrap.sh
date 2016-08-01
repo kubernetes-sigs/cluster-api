@@ -37,8 +37,7 @@ kube::bootstrap::bootstrap_daemon() {
   while [[ $(docker -H ${BOOTSTRAP_DOCKER_SOCK} ps 2>&1 1>/dev/null; echo $?) != 0 ]]; do
     ((SECONDS++))
     if [[ ${SECONDS} == ${TIMEOUT_FOR_SERVICES} ]]; then
-      kube::log::error "docker bootstrap failed to start. Exiting..."
-      exit
+      kube::log::fatal "docker bootstrap failed to start. Exiting..."
     fi
     sleep 1
   done
@@ -156,9 +155,7 @@ kube::bootstrap::detect_lsb() {
       amzn|centos|debian|ubuntu|systemd)
         ;;
       *)
-        kube::log::error "Error: We currently only support ubuntu|debian|amzn|centos|systemd."
-        exit 1
-        ;;
+        kube::log::fatal "Error: docker-bootstrap currently only supports ubuntu|debian|amzn|centos|systemd.";;
   esac
 
   kube::log::status "Detected OS: ${lsb_dist}"

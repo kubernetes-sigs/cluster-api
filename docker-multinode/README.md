@@ -90,6 +90,13 @@ $ ./worker.sh
 First, the `bootstrap` docker daemon is started, then `flannel` is started as a container in the bootstrap daemon, in order to set up the overlay network.
 Then, the main docker daemon is restarted and lastly `kubelet` is launched as a container in the main docker daemon.
 
+## Get kubectl
+
+```
+curl -sSL https://storage.googleapis.com/kubernetes-release/release/v[KUBECTL_VERSION]/bin/linux/amd64/kubectl > /usr/local/bin/kubectl
+chmod +x /usr/local/bin/kubectl
+```
+
 ## Addons
 
 kube-dns and the dashboard are deployed automatically with v1.3.0

@@ -15,7 +15,6 @@
 # limitations under the License.
 
 # Utility functions for Kubernetes in docker setup and for cni network plugin.
-
 kube::cni::ensure_docker_settings(){
 
   if kube::helpers::command_exists systemctl; then
@@ -31,9 +30,15 @@ kube::cni::ensure_docker_settings(){
 
     # If we can find MountFlags but not MountFlags=shared, set MountFlags to shared
     if [[ ! -z $(grep "MountFlags" ${DOCKER_CONF}) && -z $(grep "MountFlags=shared" ${DOCKER_CONF}) ]]; then
-      sed -i.bak 's/^\(MountFlags=\).*/\1shared/' ${DOCKER_CONF}
+
+      # Make a dropin file for shared mounts, as /usr/lib isn't always writeable
+      cat > /etc/systemd/system/docker.service.d/shared-mounts.conf <<EOF
+[Service]
+MountFlags=
+MountFlags=shared
+EOF
       restart=true
-      kube::log::status "The MountFlags set for shared"
+      kube::log::status "systemd MountFlags option is now set to shared"
     fi
 
     # Check if restart needed

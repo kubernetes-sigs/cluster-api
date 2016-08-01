@@ -31,7 +31,7 @@ kube::multinode::install_network_utils
 
 kube::multinode::turndown
 
-if [[ ${USE_CNI} = "true" ]]; then
+if [[ ${USE_CNI} == "true" ]]; then
   kube::cni::ensure_docker_settings
 
   kube::multinode::start_flannel

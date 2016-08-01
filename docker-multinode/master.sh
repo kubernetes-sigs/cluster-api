@@ -17,20 +17,18 @@
 # Source common.sh
 source $(dirname "${BASH_SOURCE}")/common.sh
 
-# Let MASTER_IP default to the current IP when starting a master
-if [[ -z ${MASTER_IP} ]]; then
-  MASTER_IP=$(hostname -I | awk '{print $1}')
-fi
+# Set MASTER_IP to localhost when deploying a master
+MASTER_IP=localhost
 
 kube::multinode::main
 
-kube::multinode::check_params
+kube::multinode::log_variables
 
 kube::multinode::install_network_utils
 
 kube::multinode::turndown
 
-if [[ ${USE_CNI} = "true" ]]; then
+if [[ ${USE_CNI} == "true" ]]; then
   kube::cni::ensure_docker_settings
 
   kube::multinode::start_etcd
@@ -50,4 +48,4 @@ fi
 
 kube::multinode::start_k8s_master
 
-kube::log::status "Done. It will take some minutes before apiserver is up though"
+kube::log::status "Done. It may take about a minute before apiserver is up."

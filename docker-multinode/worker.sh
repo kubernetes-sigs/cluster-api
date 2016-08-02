@@ -25,7 +25,7 @@ fi
 
 kube::multinode::main
 
-kube::multinode::check_params
+kube::multinode::log_variables
 
 kube::multinode::install_network_utils
 

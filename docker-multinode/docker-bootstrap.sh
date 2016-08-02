@@ -48,71 +48,44 @@ kube::bootstrap::restart_docker(){
 
   kube::log::status "Restarting main docker daemon..."
 
-  case "${lsb_dist}" in
-    amzn)
-      DOCKER_CONF="/etc/sysconfig/docker"
-      kube::helpers::backup_file ${DOCKER_CONF}
+  if kube::helpers::command_exists systemctl; then
+    kube::bootstrap::restart_docker_systemd
+  elif kube::helpers::command_exists yum; then
+    DOCKER_CONF="/etc/sysconfig/docker"
+    kube::helpers::backup_file ${DOCKER_CONF}
 
-      # Is there an uncommented OPTIONS line at all?
-      if [[ -z $(grep "OPTIONS" ${DOCKER_CONF} | grep -v "#") ]]; then
-        echo "OPTIONS=\"--mtu=${FLANNEL_MTU} --bip=${FLANNEL_SUBNET} \"" >> ${DOCKER_CONF}
-      else
-        kube::helpers::replace_mtu_bip ${DOCKER_CONF} "OPTIONS"
-      fi
+    # Is there an uncommented OPTIONS line at all?
+    if [[ -z $(grep "OPTIONS" ${DOCKER_CONF} | grep -v "#") ]]; then
+      echo "OPTIONS=\"--mtu=${FLANNEL_MTU} --bip=${FLANNEL_SUBNET} \"" >> ${DOCKER_CONF}
+    else
+      kube::helpers::replace_mtu_bip ${DOCKER_CONF} "OPTIONS"
+    fi
 
-      ifconfig docker0 down
-      brctl delbr docker0 
-      service docker restart
-      ;;
-    centos)
-      # Newer centos releases uses systemd. Handle that
-      if kube::helpers::command_exists systemctl; then
-        kube::bootstrap::restart_docker_systemd
-      else
-        DOCKER_CONF="/etc/sysconfig/docker"
-        kube::helpers::backup_file ${DOCKER_CONF}
-
-        # Is there an uncommented OPTIONS line at all?
-        if [[ -z $(grep "OPTIONS" ${DOCKER_CONF} | grep -v "#") ]]; then
-          echo "OPTIONS=\"--mtu=${FLANNEL_MTU} --bip=${FLANNEL_SUBNET} \"" >> ${DOCKER_CONF}
-        else
-          kube::helpers::replace_mtu_bip ${DOCKER_CONF} "OPTIONS"
-        fi
-
-        ifconfig docker0 down
-        brctl delbr docker0 
-        systemctl restart docker
-      fi
-      ;;
-    ubuntu|debian)
-      # Newer ubuntu and debian releases uses systemd. Handle that
-      if kube::helpers::command_exists systemctl; then
-        kube::bootstrap::restart_docker_systemd
-      else
-        DOCKER_CONF="/etc/default/docker"
-        kube::helpers::backup_file ${DOCKER_CONF}
+    ifconfig docker0 down
+    brctl delbr docker0
+    systemctl restart docker
+  elif kube::helpers::command_exists apt-get; then
+    DOCKER_CONF="/etc/default/docker"
+    kube::helpers::backup_file ${DOCKER_CONF}
         
-        # Is there an uncommented DOCKER_OPTS line at all?
-        if [[ -z $(grep "DOCKER_OPTS" $DOCKER_CONF | grep -v "#") ]]; then
-          echo "DOCKER_OPTS=\"--mtu=${FLANNEL_MTU} --bip=${FLANNEL_SUBNET} \"" >> ${DOCKER_CONF}
-        else
-          kube::helpers::replace_mtu_bip ${DOCKER_CONF} "DOCKER_OPTS"
-        fi
+    # Is there an uncommented DOCKER_OPTS line at all?
+    if [[ -z $(grep "DOCKER_OPTS" $DOCKER_CONF | grep -v "#") ]]; then
+      echo "DOCKER_OPTS=\"--mtu=${FLANNEL_MTU} --bip=${FLANNEL_SUBNET} \"" >> ${DOCKER_CONF}
+    else
+      kube::helpers::replace_mtu_bip ${DOCKER_CONF} "DOCKER_OPTS"
+    fi
 
-        ifconfig docker0 down
-        brctl delbr docker0 
-        service docker stop
-        while [[ $(ps aux | grep $(which docker) | grep -v grep | wc -l) -gt 0 ]]; do
-            kube::log::status "Waiting for docker to terminate"
-            sleep 1
-        done
-        service docker start
-      fi
-      ;;
-    systemd)
-      kube::bootstrap::restart_docker_systemd
-      ;;
-  esac
+    ifconfig docker0 down
+    brctl delbr docker0
+    service docker stop
+    while [[ $(ps aux | grep $(which docker) | grep -v grep | wc -l) -gt 0 ]]; do
+      kube::log::status "Waiting for docker to terminate"
+      sleep 1
+    done
+    service docker start
+  else
+    kube::log::fatal "Error: docker-bootstrap currently only supports ubuntu|debian|amzn|centos|systemd."
+  fi
 
   kube::log::status "Restarted docker with the new flannel settings"
 }
@@ -130,35 +103,6 @@ kube::bootstrap::restart_docker_systemd(){
   sed -i.bak 's/^\(MountFlags=\).*/\1shared/' ${DOCKER_CONF}
   systemctl daemon-reload
   systemctl restart docker
-}
-
-# Detect the OS distro, we support ubuntu, debian, mint, centos, fedora and systemd dist
-kube::bootstrap::detect_lsb() {
-
-  if kube::helpers::command_exists lsb_release; then
-    lsb_dist="$(lsb_release -si)"
-  elif [[ -r /etc/lsb-release ]]; then
-    lsb_dist="$(. /etc/lsb-release && echo "$DISTRIB_ID")"
-  elif [[ -r /etc/debian_version ]]; then
-    lsb_dist='debian'
-  elif [[ -r /etc/fedora-release ]]; then
-    lsb_dist='fedora'
-  elif [[ -r /etc/os-release ]]; then
-    lsb_dist="$(. /etc/os-release && echo "$ID")"
-  elif kube::helpers::command_exists systemctl; then
-    lsb_dist='systemd'
-  fi
-
-  lsb_dist="$(echo ${lsb_dist} | tr '[:upper:]' '[:lower:]')"
-
-  case "${lsb_dist}" in
-      amzn|centos|debian|ubuntu|systemd)
-        ;;
-      *)
-        kube::log::fatal "Error: docker-bootstrap currently only supports ubuntu|debian|amzn|centos|systemd.";;
-  esac
-
-  kube::log::status "Detected OS: ${lsb_dist}"
 }
 
 kube::helpers::replace_mtu_bip(){

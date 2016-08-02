@@ -36,8 +36,6 @@ if [[ ${USE_CNI} == "true" ]]; then
 
   kube::multinode::start_flannel
 else
-  kube::bootstrap::detect_lsb
-
   kube::bootstrap::bootstrap_daemon
 
   kube::multinode::start_flannel

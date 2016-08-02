@@ -32,6 +32,7 @@ kube::cni::ensure_docker_settings(){
     if [[ ! -z $(grep "MountFlags" ${DOCKER_CONF}) && -z $(grep "MountFlags=shared" ${DOCKER_CONF}) ]]; then
 
       # Make a dropin file for shared mounts, as /usr/lib isn't always writeable
+      mkdir -p /etc/systemd/system/docker.service.d
       cat > /etc/systemd/system/docker.service.d/shared-mounts.conf <<EOF
 [Service]
 MountFlags=

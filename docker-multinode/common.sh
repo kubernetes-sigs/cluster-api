@@ -263,11 +263,11 @@ kube::multinode::turndown(){
 
   kube::log::status "Killing all kubernetes containers..."
 
-  if [[ $(docker ps | grep "k8s_" | awk '{print $1}' | wc -l) != 0 ]]; then
-    docker rm -f $(docker ps | grep "k8s_" | awk '{print $1}')
-  fi
   if [[ $(docker ps | grep "kube_" | awk '{print $1}' | wc -l) != 0 ]]; then
     docker rm -f $(docker ps | grep "kube_" | awk '{print $1}')
+  fi
+  if [[ $(docker ps | grep "k8s_" | awk '{print $1}' | wc -l) != 0 ]]; then
+    docker rm -f $(docker ps | grep "k8s_" | awk '{print $1}')
   fi
 
   if [[ -d /var/lib/kubelet ]]; then

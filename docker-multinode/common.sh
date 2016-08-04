@@ -294,29 +294,14 @@ kube::multinode::turndown(){
   fi
 
   # Remove cni0 bridge
-  if [[ ! -z $(ifconfig | grep "cni0") ]]; then
-    ifconfig cni0 down
-    brctl delbr cni0
-  fi
+  kube::multinode::delete_bridge cni0
 }
 
-# Install network utils: ifconfig, brctl
-kube::multinode::install_network_utils() {
-    if kube::helpers::command_exists yum; then
-
-      if ! kube::helpers::command_exists ifconfig; then
-        yum -y -q install net-tools
-      fi
-      if ! kube::helpers::command_exists brctl; then
-        yum -y -q install bridge-utils
-      fi
-
-    elif kube::helpers::command_exists apt-get; then
-
-      if ! kube::helpers::command_exists brctl; then
-        apt-get install -y bridge-utils
-      fi
-    fi
+kube::multinode::delete_bridge() {
+  if [[ ! -z $(ip link | grep "$1") ]]; then
+    ip link set $1 down
+    ip link del $1
+  fi
 }
 
 # Make shared kubelet directory
@@ -331,7 +316,6 @@ kube::multinode::make_shared_kubelet_dir() {
     kube::log::status "Mounted /var/lib/kubelet with shared propagnation"
   fi
 }
-
 
 # Check if a command is valid
 kube::helpers::command_exists() {

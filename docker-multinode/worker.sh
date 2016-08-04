@@ -27,8 +27,6 @@ kube::multinode::main
 
 kube::multinode::log_variables
 
-kube::multinode::install_network_utils
-
 kube::multinode::turndown
 
 if [[ ${USE_CNI} == "true" ]]; then

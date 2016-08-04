@@ -61,8 +61,7 @@ kube::bootstrap::restart_docker(){
       kube::helpers::replace_mtu_bip ${DOCKER_CONF} "OPTIONS"
     fi
 
-    ifconfig docker0 down
-    brctl delbr docker0
+    kube::multinode::delete_bridge docker0
     systemctl restart docker
   elif kube::helpers::command_exists apt-get; then
     DOCKER_CONF="/etc/default/docker"
@@ -75,8 +74,7 @@ kube::bootstrap::restart_docker(){
       kube::helpers::replace_mtu_bip ${DOCKER_CONF} "DOCKER_OPTS"
     fi
 
-    ifconfig docker0 down
-    brctl delbr docker0
+    kube::multinode::delete_bridge docker0
     service docker stop
     while [[ $(ps aux | grep $(which docker) | grep -v grep | wc -l) -gt 0 ]]; do
       kube::log::status "Waiting for docker to terminate"
@@ -97,8 +95,7 @@ kube::bootstrap::restart_docker_systemd(){
   kube::helpers::backup_file ${DOCKER_CONF}
   kube::helpers::replace_mtu_bip ${DOCKER_CONF} $(which docker)
 
-  ifconfig docker0 down
-  brctl delbr docker0
+  kube::multinode::delete_bridge docker0
 
   sed -i.bak 's/^\(MountFlags=\).*/\1shared/' ${DOCKER_CONF}
   systemctl daemon-reload

@@ -14,24 +14,28 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# Utility functions for Kubernetes in docker setup
-
 source $(dirname "${BASH_SOURCE}")/cni-plugin.sh
 source $(dirname "${BASH_SOURCE}")/docker-bootstrap.sh
 
 kube::multinode::main(){
-
-  # Make sure docker daemon is running
-  if [[ $(docker ps 2>&1 1>/dev/null; echo $?) != 0 ]]; then
-    kube::log::fatal "Docker is not running on this machine!"
-  fi
 
   # Require root
   if [[ "$(id -u)" != "0" ]]; then
     kube::log::fatal "Please run as root"
   fi
 
-  LATEST_STABLE_K8S_VERSION=$(kube::helpers::curl "https://storage.googleapis.com/kubernetes-release/release/stable.txt")
+  for tool in curl ip docker; do
+    if [[ ! -f $(which ${tool} 2>&1) ]]; then
+      kube::log::fatal "The binary ${tool} is required. Install it."
+    fi
+  done
+
+  # Make sure docker daemon is running
+  if [[ $(docker ps 2>&1 1>/dev/null; echo $?) != 0 ]]; then
+    kube::log::fatal "Docker is not running on this machine!"
+  fi
+
+  LATEST_STABLE_K8S_VERSION=$(curl -sSL "https://storage.googleapis.com/kubernetes-release/release/stable.txt")
   K8S_VERSION=${K8S_VERSION:-${LATEST_STABLE_K8S_VERSION}}
 
   # TODO: Update to 3.0.3
@@ -47,10 +51,7 @@ kube::multinode::main(){
   CURRENT_PLATFORM=$(kube::helpers::host_platform)
   ARCH=${ARCH:-${CURRENT_PLATFORM##*/}}
 
-  DEFAULT_NET_INTERFACE=$(ip -o -4 route show to default | awk '{print $5}' | head -1)
-  NET_INTERFACE=${NET_INTERFACE:-${DEFAULT_NET_INTERFACE}}
-
-  DEFAULT_IP_ADDRESS=$(ip -o -4 addr list ${NET_INTERFACE} | awk '{print $4}' | cut -d/ -f1 | head -1)
+  DEFAULT_IP_ADDRESS=$(ip -o -4 addr list $(ip -o -4 route show to default | awk '{print $5}' | head -1) | awk '{print $4}' | cut -d/ -f1 | head -1)
   IP_ADDRESS=${IP_ADDRESS:-${DEFAULT_IP_ADDRESS}}
 
   TIMEOUT_FOR_SERVICES=${TIMEOUT_FOR_SERVICES:-20}
@@ -97,7 +98,6 @@ kube::multinode::log_variables() {
   kube::log::status "RESTART_POLICY is set to: ${RESTART_POLICY}"
   kube::log::status "MASTER_IP is set to: ${MASTER_IP}"
   kube::log::status "ARCH is set to: ${ARCH}"
-  kube::log::status "NET_INTERFACE is set to: ${NET_INTERFACE}"
   kube::log::status "IP_ADDRESS is set to: ${IP_ADDRESS}"
   kube::log::status "USE_CNI is set to: ${USE_CNI}"
   kube::log::status "--------------------------------------------"
@@ -123,7 +123,7 @@ kube::multinode::start_etcd() {
 
   # Wait for etcd to come up
   local SECONDS=0
-  while [[ $(kube::helpers::curl http://localhost:2379/v2/machines 2>&1 1>/dev/null; echo $?) != 0 ]]; do
+  while [[ $(curl -fsSL http://localhost:2379/health 2>&1 1>/dev/null; echo $?) != 0 ]]; do
     ((SECONDS++))
     if [[ ${SECONDS} == ${TIMEOUT_FOR_SERVICES} ]]; then
       kube::log::fatal "etcd failed to start. Exiting..."
@@ -132,23 +132,16 @@ kube::multinode::start_etcd() {
   done
 
   sleep 2
-
-  # Set flannel net config
-  docker ${BOOTSTRAP_DOCKER_PARAM} run \
-      --rm \
-      --net=host \
-      gcr.io/google_containers/etcd-${ARCH}:${ETCD_VERSION} \
-      etcdctl \
-      set /coreos.com/network/config \
-          "{ \"Network\": \"${FLANNEL_NETWORK}\", \"Backend\": {\"Type\": \"${FLANNEL_BACKEND}\"}}"
-
-  sleep 2
 }
 
 # Start flannel in docker bootstrap, both for master and worker
 kube::multinode::start_flannel() {
 
   kube::log::status "Launching flannel..."
+
+  # Set flannel net config
+  curl -sSL http://localhost:2379/v2/keys/coreos.com/network/config -XPUT \
+    -d value="{ \"Network\": \"${FLANNEL_NETWORK}\", \"Backend\": {\"Type\": \"${FLANNEL_BACKEND}\"}}"
 
   docker ${BOOTSTRAP_DOCKER_PARAM} run -d \
     --name kube_flannel_$(kube::helpers::small_sha) \
@@ -161,7 +154,7 @@ kube::multinode::start_flannel() {
     /opt/bin/flanneld \
       --etcd-endpoints=http://${MASTER_IP}:2379 \
       --ip-masq="${FLANNEL_IPMASQ}" \
-      --iface="${NET_INTERFACE}"
+      --iface="${IP_ADDRESS}"
 
   # Wait for the flannel subnet.env file to be created instead of a timeout. This is faster and more reliable
   local SECONDS=0
@@ -248,17 +241,14 @@ kube::multinode::start_k8s_worker_proxy() {
 kube::multinode::turndown(){
 
   # Check if docker bootstrap is running
-  if [[ ! -z $(ps aux | grep "${BOOTSTRAP_DOCKER_SOCK}" | grep -v "grep") ]]; then
+  DOCKER_BOOTSTRAP_PID=$(ps aux | grep ${BOOTSTRAP_DOCKER_SOCK} | grep -v "grep" | awk '{print $2}')
+  if [[ ! -z ${DOCKER_BOOTSTRAP_PID} ]]; then
 
     kube::log::status "Killing docker bootstrap..."
 
-    # Kill all docker bootstrap's containers
-    if [[ $(docker -H ${BOOTSTRAP_DOCKER_SOCK} ps -q | wc -l) != 0 ]]; then
-      docker -H ${BOOTSTRAP_DOCKER_SOCK} rm -f $(docker -H ${BOOTSTRAP_DOCKER_SOCK} ps -q)
-    fi
-
-    # Kill bootstrap docker itself
-    kill $(ps aux | grep ${BOOTSTRAP_DOCKER_SOCK} | grep -v grep | awk '{print $2}')
+    # Kill the bootstrap docker daemon and it's containers
+    docker -H ${BOOTSTRAP_DOCKER_SOCK} rm -f $(docker -H ${BOOTSTRAP_DOCKER_SOCK} ps -q) >/dev/null 2>/dev/null
+    kill ${DOCKER_BOOTSTRAP_PID}
   fi
 
   kube::log::status "Killing all kubernetes containers..."
@@ -280,7 +270,7 @@ kube::multinode::turndown(){
         # umount if there are mounts in /var/lib/kubelet
         if [[ ! -z $(mount | grep "/var/lib/kubelet" | awk '{print $3}') ]]; then
 
-          # The umount command may be a little bit subborn sometimes, so run the commands twice to ensure the mounts are gone
+          # The umount command may be a little bit stubborn sometimes, so run the commands twice to ensure the mounts are gone
           mount | grep "/var/lib/kubelet/*" | awk '{print $3}' | xargs umount 1>/dev/null 2>/dev/null
           mount | grep "/var/lib/kubelet/*" | awk '{print $3}' | xargs umount 1>/dev/null 2>/dev/null
           umount /var/lib/kubelet 1>/dev/null 2>/dev/null
@@ -332,21 +322,7 @@ kube::helpers::small_sha(){
   date | md5sum | cut -c-5
 }
 
-# Wraps curl or wget in a helper function.
-# Output is redirected to stdout
-kube::helpers::curl(){
-  if [[ $(which curl 2>&1) ]]; then
-    curl -sSL $1
-  elif [[ $(which wget 2>&1) ]]; then
-    wget -qO- $1
-  else
-    kube::log::fatal "Couldn't find curl or wget. Exiting..."
-  fi
-}
-
-# This figures out the host platform without relying on golang. We need this as
-# we don't want a golang install to be a prerequisite to building yet we need
-# this info to figure out where the final binaries are placed.
+# Get the architecture for the current machine
 kube::helpers::host_platform() {
   local host_os
   local host_arch

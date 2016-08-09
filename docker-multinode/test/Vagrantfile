@@ -1,0 +1,67 @@
+# Copyright 2016 The Kubernetes Authors All rights reserved.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+def configure_vm(vm, **opts)
+
+    vm.box = opts.fetch(:box, "bento/ubuntu-16.04")
+    vm.network :private_network, ip: opts[:private_ip]
+
+    vm.provider "virtualbox" do |vb|
+      vb.memory = 4096
+      vb.cpus = 2
+    end
+    
+    # Disable default share, because we dont use it
+    vm.synced_folder ".", "/vagrant", disabled: true
+end
+
+
+def apply_ansible(vm, playbook)
+    vm.provision :ansible do |ansible|
+        ansible.host_key_checking = false
+        ansible.playbook = playbook
+        ansible.verbose = "v"
+    end
+end
+
+
+Vagrant.configure(2) do |config|
+    # ---------------------------------------------------------------------------------------------
+    #
+    # Definition of the VM for running kubernetes master.
+    #
+    config.vm.define "master" do |master|
+        configure_vm(master.vm, private_ip: "10.9.8.7")
+        apply_ansible(master.vm, "ansible-master.yaml")
+    end
+
+
+    # ---------------------------------------------------------------------------------------------
+    #
+    # Definition of the VM for running kubernetes node.
+    #
+    config.vm.define "node" do |node|
+        configure_vm(node.vm, private_ip: "10.9.8.6")
+        apply_ansible(node.vm, "ansible-node.yaml")
+    end
+
+    # ---------------------------------------------------------------------------------------------
+    #
+    # Definition of the VM for running tests.
+    #
+    config.vm.define "tests" do |node|
+        configure_vm(node.vm, private_ip: "10.9.8.5")
+        apply_ansible(node.vm, "ansible-test.yaml")
+    end
+end

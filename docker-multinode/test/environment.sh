@@ -1,3 +1,5 @@
+#!/bin/bash
+
 # Copyright 2016 The Kubernetes Authors All rights reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -12,9 +14,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
----
-
-go_tarball: "go1.6.1.linux-amd64.tar.gz"
-go_location: "https://storage.googleapis.com/golang/{{ go_tarball }}"
-k8s_repo: https://github.com/kubernetes/kubernetes.git
-k8s_branch: master
+export MASTER_IP=10.9.8.7
+export K8S_VERSION=
+export USE_CNI=false

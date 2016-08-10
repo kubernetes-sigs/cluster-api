@@ -24,17 +24,12 @@ def configure_vm(vm, **opts)
     
     # Disable default share, because we dont use it
     vm.synced_folder ".", "/vagrant", disabled: true
+    
+    vm.provision "file", source: "util.sh", destination: "util.sh"
+    vm.provision "file", source: "cluster.sh", destination: "cluster.sh"
+    vm.provision "file", source: "conformance-tests.sh", destination: "conformance-tests.sh"
+    vm.provision "file", source: "environment.sh", destination: "environment.sh"
 end
-
-
-def apply_ansible(vm, playbook)
-    vm.provision :ansible do |ansible|
-        ansible.host_key_checking = false
-        ansible.playbook = playbook
-        ansible.verbose = "v"
-    end
-end
-
 
 Vagrant.configure(2) do |config|
     # ---------------------------------------------------------------------------------------------
@@ -43,7 +38,7 @@ Vagrant.configure(2) do |config|
     #
     config.vm.define "master" do |master|
         configure_vm(master.vm, private_ip: "10.9.8.7")
-        apply_ansible(master.vm, "ansible-master.yaml")
+        master.vm.provision "shell", inline: "IP_ADDRESS=10.9.8.7 ./cluster.sh master"
     end
 
 
@@ -53,15 +48,15 @@ Vagrant.configure(2) do |config|
     #
     config.vm.define "node" do |node|
         configure_vm(node.vm, private_ip: "10.9.8.6")
-        apply_ansible(node.vm, "ansible-node.yaml")
+        node.vm.provision "shell", inline: "IP_ADDRESS=10.9.8.6 ./cluster.sh worker"
     end
 
     # ---------------------------------------------------------------------------------------------
     #
     # Definition of the VM for running tests.
     #
-    config.vm.define "tests" do |node|
-        configure_vm(node.vm, private_ip: "10.9.8.5")
-        apply_ansible(node.vm, "ansible-test.yaml")
+    config.vm.define "tests" do |tests|
+        configure_vm(tests.vm, private_ip: "10.9.8.5")
+        tests.vm.provision "shell", inline: "./conformance-tests.sh"
     end
 end

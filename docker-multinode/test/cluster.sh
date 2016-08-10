@@ -1,3 +1,5 @@
+#!/bin/bash
+
 # Copyright 2016 The Kubernetes Authors All rights reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -12,7 +14,18 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
----
+# exit on any error
+set -e
 
-- name: start master
-  command: /home/vagrant/kube-deploy/docker-multinode/master.sh
+ROLE=$1
+
+source $(dirname "${BASH_SOURCE}")/environment.sh
+source $(dirname "${BASH_SOURCE}")/util.sh
+
+install_minimal_dependencies
+
+install_docker
+
+clone_kube_deploy
+
+/home/vagrant/kube-deploy/docker-multinode/${ROLE}.sh

@@ -65,7 +65,7 @@ Clone the `kube-deploy` repo, and run [master.sh](master.sh) on the master machi
 
 ```console
 $ git clone https://github.com/kubernetes/kube-deploy
-$ cd docker-multinode
+$ cd kube-deploy/docker-multinode
 $ ./master.sh
 ```
 
@@ -82,7 +82,7 @@ Clone the `kube-deploy` repo, and run [worker.sh](worker.sh) on the worker machi
 
 ```console
 $ git clone https://github.com/kubernetes/kube-deploy
-$ cd docker-multinode
+$ cd kube-deploy/docker-multinode
 $ export MASTER_IP=${SOME_IP}
 $ ./worker.sh
 ```

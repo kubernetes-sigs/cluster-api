@@ -138,9 +138,11 @@ kube::multinode::start_flannel() {
 
   kube::log::status "Launching flannel..."
 
-  # Set flannel net config
-  curl -sSL http://localhost:2379/v2/keys/coreos.com/network/config -XPUT \
-    -d value="{ \"Network\": \"${FLANNEL_NETWORK}\", \"Backend\": {\"Type\": \"${FLANNEL_BACKEND}\"}}"
+  # Set flannel net config (when running on master)
+  if [[ "${MASTER_IP}" == "localhost" ]]; then
+    curl -sSL http://localhost:2379/v2/keys/coreos.com/network/config -XPUT \
+      -d value="{ \"Network\": \"${FLANNEL_NETWORK}\", \"Backend\": {\"Type\": \"${FLANNEL_BACKEND}\"}}"
+  fi
 
   docker ${BOOTSTRAP_DOCKER_PARAM} run -d \
     --name kube_flannel_$(kube::helpers::small_sha) \

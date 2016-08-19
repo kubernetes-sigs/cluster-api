@@ -1,6 +1,0 @@
----
-
-master_ip: 10.9.8.7
-node_ip: 10.9.8.6
-use_cni: false
-k8s_version: ""

@@ -1,3 +1,5 @@
+#!/bin/bash
+
 # Copyright 2016 The Kubernetes Authors All rights reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -12,15 +14,16 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
----
-- hosts: all
-  sudo: yes
-  roles:
-    - common
-    - master
-    
-  environment:
-    MASTER_IP: "{{ master_ip }}"
-    IP_ADDRESS: "{{ master_ip }}"
-    USE_CNI: "{{ use_cni }}"
-    K8S_VERSION: "{{ k8s_version }}"
+# exit on any error
+set -e
+
+source $(dirname "${BASH_SOURCE}")/environment.sh
+source $(dirname "${BASH_SOURCE}")/util.sh
+
+install_minimal_dependencies
+
+install_go
+
+clone_k8s
+
+start_tests

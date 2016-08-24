@@ -38,7 +38,14 @@ kube::multinode::main(){
   LATEST_STABLE_K8S_VERSION=$(curl -sSL "https://storage.googleapis.com/kubernetes-release/release/stable.txt")
   K8S_VERSION=${K8S_VERSION:-${LATEST_STABLE_K8S_VERSION}}
 
-  ETCD_VERSION=${ETCD_VERSION:-"3.0.4"}
+  CURRENT_PLATFORM=$(kube::helpers::host_platform)
+  ARCH=${ARCH:-${CURRENT_PLATFORM##*/}}
+
+  if [[ ${ARCH} == "arm" ]]; then
+    ETCD_VERSION=${ETCD_VERSION:-"2.2.5"}
+  else
+    ETCD_VERSION=${ETCD_VERSION:-"3.0.4"}
+  fi
 
   FLANNEL_VERSION=${FLANNEL_VERSION:-"v0.6.1"}
   FLANNEL_IPMASQ=${FLANNEL_IPMASQ:-"true"}
@@ -46,9 +53,6 @@ kube::multinode::main(){
   FLANNEL_NETWORK=${FLANNEL_NETWORK:-"10.1.0.0/16"}
 
   RESTART_POLICY=${RESTART_POLICY:-"unless-stopped"}
-
-  CURRENT_PLATFORM=$(kube::helpers::host_platform)
-  ARCH=${ARCH:-${CURRENT_PLATFORM##*/}}
 
   DEFAULT_IP_ADDRESS=$(ip -o -4 addr list $(ip -o -4 route show to default | awk '{print $5}' | head -1) | awk '{print $4}' | cut -d/ -f1 | head -1)
   IP_ADDRESS=${IP_ADDRESS:-${DEFAULT_IP_ADDRESS}}

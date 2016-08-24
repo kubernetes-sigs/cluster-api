@@ -29,6 +29,17 @@ vagrant up node
 vagrant up tests
 ```
 
+### Libvirt provider
+
+Test cluster can be started with libvirt provider. Go to [vagrant-libvirt-installation](https://github.com/vagrant-libvirt/vagrant-libvirt#installation)
+for further instruction.
+
+```
+vagrant up master --provider=libvirt
+vagrant up node --provider=libvirt
+vagrant up tests --provider=libvirt
+```
+
 ## Getting tests result
 
 When all VMs are up and running you can check e2e tests result. Logs are stored in file

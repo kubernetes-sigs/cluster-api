@@ -63,6 +63,8 @@ start_tests() {
   export KUBERNETES_CONFORMANCE_TEST=y
 
   # Compile minimal number of packages to run tests
+  apt-get update
+  apt-get install -y make gcc
   cd ${K8S_LOCATION_PATH}
   go get -u github.com/jteeuwen/go-bindata/go-bindata
   make all WHAT=cmd/kubectl

@@ -14,14 +14,19 @@
 
 def configure_vm(vm, **opts)
 
-    vm.box = opts.fetch(:box, "bento/ubuntu-16.04")
+    vm.box = opts.fetch(:box, "yk0/ubuntu-xenial")
     vm.network :private_network, ip: opts[:private_ip]
 
-    vm.provider "virtualbox" do |vb|
+    vm.provider :libvirt do |vb|
       vb.memory = 4096
       vb.cpus = 2
     end
-    
+
+    vm.provider :virtualbox do |vb|
+      vb.memory = 4096
+      vb.cpus = 2
+    end
+
     # Disable default share, because we dont use it
     vm.synced_folder ".", "/vagrant", disabled: true
     

@@ -43,14 +43,16 @@ clone_k8s() {
   K8S_VERSION=${K8S_VERSION:-${LATEST_STABLE_K8S_VERSION}}
   git clone https://github.com/kubernetes/kubernetes.git
   cd ${K8S_LOCATION_PATH}
-  git checkout -b ${K8S_VERSION}
+  git checkout -b ${K8S_VERSION} ${K8S_VERSION}
 }
 
 # Install and configure Go
 install_go() {
-  curl -L https://storage.googleapis.com/golang/go1.6.3.linux-amd64.tar.gz -o /tmp/go1.6.3.linux-amd64.tar.gz
-  tar -C /usr/local -xzf /tmp/go1.6.3.linux-amd64.tar.gz
-  rm /tmp/go1.6.3.linux-amd64.tar.gz
+  local go_tarball=go1.6.3.linux-amd64.tar.gz
+
+  curl -L https://storage.googleapis.com/golang/${go_tarball} -o /tmp/${go_tarball}
+  tar -C /usr/local -xzf /tmp/${go_tarball}
+  rm /tmp/${go_tarball}
   export PATH=$PATH:/usr/local/go/bin
   export GOPATH=$HOME/go
   export PATH=$GOPATH/bin:$PATH
@@ -64,7 +66,7 @@ start_tests() {
 
   # Compile minimal number of packages to run tests
   apt-get update
-  apt-get install -y make gcc
+  apt-get install -y build-essential
   cd ${K8S_LOCATION_PATH}
   go get -u github.com/jteeuwen/go-bindata/go-bindata
   make all WHAT=cmd/kubectl

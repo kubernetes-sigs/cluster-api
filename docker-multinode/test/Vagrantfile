@@ -34,6 +34,7 @@ def configure_vm(vm, **opts)
     vm.provision "file", source: "cluster.sh", destination: "cluster.sh"
     vm.provision "file", source: "conformance-tests.sh", destination: "conformance-tests.sh"
     vm.provision "file", source: "environment.sh", destination: "environment.sh"
+    vm.provision "file", source: "kubeconfig.yaml", destination: "kubeconfig.yaml"
 end
 
 Vagrant.configure(2) do |config|

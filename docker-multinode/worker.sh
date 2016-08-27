@@ -43,6 +43,13 @@ fi
 
 kube::multinode::start_k8s_worker
 
-kube::multinode::start_k8s_worker_proxy
+# If under v1.4.0-alpha.3, run the proxy
+if [[ $((VERSION_MINOR < 4)) == 1 || \
+      ($((VERSION_MINOR <= 4)) == 1 && \
+      ${VERSION_PRERELEASE} == "alpha" && \
+      $((VERSION_PRERELEASE_REV < 3)) == 1) ]]; then
+
+	kube::multinode::start_k8s_worker_proxy
+fi
 
 kube::log::status "Done. After about a minute the node should be ready."

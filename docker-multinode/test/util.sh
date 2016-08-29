@@ -43,14 +43,16 @@ clone_k8s() {
   K8S_VERSION=${K8S_VERSION:-${LATEST_STABLE_K8S_VERSION}}
   git clone https://github.com/kubernetes/kubernetes.git
   cd ${K8S_LOCATION_PATH}
-  git checkout -b ${K8S_VERSION}
+  git checkout ${K8S_VERSION}
 }
 
 # Install and configure Go
 install_go() {
-  curl -L https://storage.googleapis.com/golang/go1.6.3.linux-amd64.tar.gz -o /tmp/go1.6.3.linux-amd64.tar.gz
-  tar -C /usr/local -xzf /tmp/go1.6.3.linux-amd64.tar.gz
-  rm /tmp/go1.6.3.linux-amd64.tar.gz
+  local go_tarball=go1.6.3.linux-amd64.tar.gz
+
+  curl -L https://storage.googleapis.com/golang/${go_tarball} -o /tmp/${go_tarball}
+  tar -C /usr/local -xzf /tmp/${go_tarball}
+  rm /tmp/${go_tarball}
   export PATH=$PATH:/usr/local/go/bin
   export GOPATH=$HOME/go
   export PATH=$GOPATH/bin:$PATH
@@ -61,21 +63,21 @@ start_tests() {
   export KUBERNETES_PROVIDER=skeleton
   export GINKGO_PARALLEL=y
   export KUBERNETES_CONFORMANCE_TEST=y
+  export KUBECONFIG=/home/vagrant/kubeconfig.yaml
 
   # Compile minimal number of packages to run tests
   apt-get update
-  apt-get install -y make gcc
+  apt-get install -y build-essential
   cd ${K8S_LOCATION_PATH}
   go get -u github.com/jteeuwen/go-bindata/go-bindata
   make all WHAT=cmd/kubectl
   make all WHAT=vendor/github.com/onsi/ginkgo/ginkgo
   make all WHAT=test/e2e/e2e.test
 
-  # Configure kube config
-  cluster/kubectl.sh config set-cluster local --server=https://${MASTER_IP}:6443 --insecure-skip-tls-verify=true
-  cluster/kubectl.sh config set-credentials local --username=admin --password=admin
-  cluster/kubectl.sh config set-context local --cluster=local --user=local
-  cluster/kubectl.sh config use-context local
+  # Set zones for nodes.
+  # Some tests should spread the pods of a service across zones.
+  cluster/kubectl.sh label nodes 10.9.8.6 failure-domain.beta.kubernetes.io/zone=first
+  cluster/kubectl.sh label nodes 10.9.8.7 failure-domain.beta.kubernetes.io/zone=second
 
   # Run tests in parallel mode and detach the process.
   nohup go run hack/e2e.go --v --test -check_version_skew=false --test_args="--ginkgo.skip=\[Serial\]|\[Flaky\]|\[Feature:.+\]" > /home/vagrant/e2e.txt &

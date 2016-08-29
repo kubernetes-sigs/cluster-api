@@ -179,6 +179,7 @@ kube::multinode::start_flannel() {
 
 # Start kubelet first and then the master components as pods
 kube::multinode::start_k8s_master() {
+  kube::multinode::create_kubeconfig
   kube::log::status "Launching Kubernetes master components..."
 
   kube::multinode::make_shared_kubelet_dir
@@ -204,6 +205,7 @@ kube::multinode::start_k8s_master() {
 
 # Start kubelet in a container, for a worker node
 kube::multinode::start_k8s_worker() {
+  kube::multinode::create_kubeconfig
   kube::log::status "Launching Kubernetes worker components..."
 
   kube::multinode::make_shared_kubelet_dir
@@ -288,7 +290,8 @@ kube::multinode::turndown(){
     esac
   fi
 
-  # Remove cni0 bridge
+  # Remove cni0 bridge if K8S_VERSION = v1.4.0-alpha.2
+  # With versions above that, it's not required. TODO: Remove this later
   kube::multinode::delete_bridge cni0
 }
 
@@ -310,6 +313,12 @@ kube::multinode::make_shared_kubelet_dir() {
 
     kube::log::status "Mounted /var/lib/kubelet with shared propagnation"
   fi
+}
+
+kube::multinode::create_kubeconfig(){
+  # Create a kubeconfig.yaml file for the proxy daemonset
+  mkdir -p /var/lib/kubelet/kubeconfig
+  sed -e "s|MASTER_IP|${MASTER_IP}|g" kubeconfig.yaml > /var/lib/kubelet/kubeconfig/kubeconfig.yaml
 }
 
 # Check if a command is valid

@@ -61,16 +61,27 @@ kube::multinode::main(){
   USE_CNI=${USE_CNI:-"false"}
   CNI_ARGS=""
 
-  # Constants
   BOOTSTRAP_DOCKER_SOCK="unix:///var/run/docker-bootstrap.sock"
   BOOTSTRAP_DOCKER_PARAM="-H ${BOOTSTRAP_DOCKER_SOCK}"
   ETCD_NET_PARAM="--net host"
+
+  if [[ ${USE_CONTAINERIZED} == "true" ]]; then
+    ROOTFS_MOUNT="-v /:/rootfs:ro"
+    KUBELET_MOUNT="-v /var/lib/kubelet:/var/lib/kubelet:slave"
+    CONTAINERIZED_FLAG="--containerized"
+  else
+    ROOTFS_MOUNT=""
+    KUBELET_MOUNT="-v /var/lib/kubelet:/var/lib/kubelet:shared"
+    CONTAINERIZED_FLAG=""
+  fi
+
   KUBELET_MOUNTS="\
+    ${ROOTFS_MOUNT} \
     -v /sys:/sys:rw \
     -v /var/run:/var/run:rw \
     -v /run:/run:rw \
     -v /var/lib/docker:/var/lib/docker:rw \
-    -v /var/lib/kubelet:/var/lib/kubelet:shared \
+    ${KUBELET_MOUNT} \
     -v /var/log/containers:/var/log/containers:rw"
 
   # Paths
@@ -103,6 +114,7 @@ kube::multinode::log_variables() {
   kube::log::status "ARCH is set to: ${ARCH}"
   kube::log::status "IP_ADDRESS is set to: ${IP_ADDRESS}"
   kube::log::status "USE_CNI is set to: ${USE_CNI}"
+  kube::log::status "USE_CONTAINERIZED is set to: ${USE_CONTAINERIZED}"
   kube::log::status "--------------------------------------------"
 }
 
@@ -199,6 +211,7 @@ kube::multinode::start_k8s_master() {
       --cluster-dns=10.0.0.10 \
       --cluster-domain=cluster.local \
       ${CNI_ARGS} \
+      ${CONTAINERIZED_FLAG} \
       --hostname-override=${IP_ADDRESS} \
       --v=2
 }
@@ -225,6 +238,7 @@ kube::multinode::start_k8s_worker() {
       --cluster-dns=10.0.0.10 \
       --cluster-domain=cluster.local \
       ${CNI_ARGS} \
+      ${CONTAINERIZED_FLAG} \
       --hostname-override=${IP_ADDRESS} \
       --v=2
 }

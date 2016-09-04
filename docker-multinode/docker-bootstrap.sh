@@ -95,9 +95,12 @@ kube::bootstrap::restart_docker_systemd(){
   kube::helpers::backup_file ${DOCKER_CONF}
   kube::helpers::replace_mtu_bip ${DOCKER_CONF} $(which docker)
 
+  # The docker0 bridge HAVE TO be deleted in between
+  kube::multinode::delete_bridge docker0
   kube::multinode::delete_bridge docker0
 
   sed -i.bak 's/^\(MountFlags=\).*/\1shared/' ${DOCKER_CONF}
+  systemctl daemon-reload
   systemctl daemon-reload
   systemctl restart docker
 }

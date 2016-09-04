@@ -14,8 +14,9 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-source $(dirname "${BASH_SOURCE}")/cni-plugin.sh
-source $(dirname "${BASH_SOURCE}")/docker-bootstrap.sh
+cd "$(dirname "${BASH_SOURCE}")"
+source cni-plugin.sh
+source docker-bootstrap.sh
 
 kube::multinode::main(){
 
@@ -59,6 +60,7 @@ kube::multinode::main(){
 
   TIMEOUT_FOR_SERVICES=${TIMEOUT_FOR_SERVICES:-20}
   USE_CNI=${USE_CNI:-"false"}
+  USE_CONTAINERIZED=${USE_CONTAINERIZED:-"false"}
   CNI_ARGS=""
 
   BOOTSTRAP_DOCKER_SOCK="unix:///var/run/docker-bootstrap.sock"
@@ -159,6 +161,9 @@ kube::multinode::start_flannel() {
     curl -sSL http://localhost:2379/v2/keys/coreos.com/network/config -XPUT \
       -d value="{ \"Network\": \"${FLANNEL_NETWORK}\", \"Backend\": {\"Type\": \"${FLANNEL_BACKEND}\"}}"
   fi
+
+  # Make sure that a subnet file doesn't already exist
+  rm -f ${FLANNEL_SUBNET_DIR}/subnet.env
 
   docker ${BOOTSTRAP_DOCKER_PARAM} run -d \
     --name kube_flannel_$(kube::helpers::small_sha) \

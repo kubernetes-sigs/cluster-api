@@ -18,5 +18,9 @@ type Instance interface {
 
 type Image interface {
 	EnsurePublic() error
+
+	// Adds the specified tags to the image
+	AddTags(tags map[string]string) error
+
 	ReplicateImage(makePublic bool) (map[string]Image, error)
 }

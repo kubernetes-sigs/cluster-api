@@ -515,6 +515,26 @@ func (i *AWSImage) EnsurePublic() error {
 	return i.ensurePublic()
 }
 
+// AddTags adds the specified tags on the image
+func (i *AWSImage) AddTags(tags map[string]string) error {
+	request := &ec2.CreateTagsInput{}
+	request.Resources = append(request.Resources, aws.String(i.imageID))
+	for k, v := range tags {
+		request.Tags = append(request.Tags, &ec2.Tag{
+			Key:   aws.String(k),
+			Value: aws.String(v),
+		})
+	}
+
+	glog.V(2).Infof("AWS CreateTags on image %v", i.imageID)
+	_, err := i.ec2.CreateTags(request)
+	if err != nil {
+		return fmt.Errorf("error tagging image %q: %v", i.imageID, err)
+	}
+
+	return err
+}
+
 func (i *AWSImage) waitStatusAvailable() error {
 	imageID := i.imageID
 

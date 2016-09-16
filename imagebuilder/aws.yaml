@@ -3,3 +3,4 @@ TemplatePath: templates/1.4.yml
 Tags:
   k8s.io/kernel: "4.4"
   k8s.io/version: "1.4"
+  k8s.io/family: "default"

@@ -249,7 +249,7 @@ func main() {
 		}
 
 		{
-			t := time.Now().UTC().Format(time.RFC3339)
+			t := time.Now().UTC().Format("20060102150405")
 			tags["k8s.io/build"] = t
 		}
 

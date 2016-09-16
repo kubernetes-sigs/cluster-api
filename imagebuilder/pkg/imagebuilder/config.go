@@ -21,8 +21,6 @@ type Config struct {
 }
 
 func (c *Config) InitDefaults() {
-	// At least until https://github.com/andsens/bootstrap-vz/pull/316 merges
-	// Maybe we should have our own fork anyway though
 	c.BootstrapVZRepo = "https://github.com/justinsb/bootstrap-vz.git"
 	c.BootstrapVZBranch = "master"
 

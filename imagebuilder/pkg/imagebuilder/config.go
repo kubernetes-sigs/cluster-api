@@ -11,6 +11,9 @@ type Config struct {
 	SSHUsername   string
 	SSHPublicKey  string
 	SSHPrivateKey string
+
+	// Tags to add to the image
+	Tags map[string]string
 }
 
 func (c *Config) InitDefaults() {

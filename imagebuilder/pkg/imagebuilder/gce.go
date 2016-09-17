@@ -291,7 +291,12 @@ func (i *GCEImage) EnsurePublic() error {
 	return fmt.Errorf("GCE does not currently support public images")
 }
 
-// ReplicateImage copies the image to all accessable GCE regions
+// AddTags adds the specified tags on the image
+func (i *GCEImage) AddTags(tags map[string]string) error {
+	return fmt.Errorf("Tagging of GCE images not yet implemented")
+}
+
+// ReplicateImage copies the image to all accessible GCE regions
 func (i *GCEImage) ReplicateImage(makePublic bool) (map[string]Image, error) {
 	if makePublic {
 		return nil, fmt.Errorf("GCE does not currently support public images")

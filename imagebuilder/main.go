@@ -52,6 +52,7 @@ var flagConfig = flag.String("config", "", "Config file to load")
 
 var flagUp = flag.Bool("up", true, "Set to create instance (if not found)")
 var flagBuild = flag.Bool("build", true, "Set to build image")
+var flagTag = flag.Bool("tag", true, "Set to tag image")
 var flagPublish = flag.Bool("publish", true, "Set to publish image")
 var flagReplicate = flag.Bool("replicate", true, "Set to copy the image to all regions")
 var flagDown = flag.Bool("down", true, "Set to shut down instance (if found)")
@@ -232,6 +233,31 @@ func main() {
 		if image == nil {
 			glog.Fatalf("image not found after build: %q", imageName)
 		}
+	}
+
+	if *flagTag {
+		if image == nil {
+			glog.Fatalf("image not found: %q", imageName)
+		}
+
+		glog.Infof("Tagging image %q", image)
+
+		tags := make(map[string]string)
+		for k, v := range config.Tags {
+			tags[k] = v
+		}
+
+		{
+			t := time.Now().UTC().Format(time.RFC3339)
+			tags["k8s.io/build"] = t
+		}
+
+		err = image.AddTags(tags)
+		if err != nil {
+			glog.Fatalf("error tagging image %q: %v", imageName, err)
+		}
+
+		glog.Infof("Tagged image %q", image)
 	}
 
 	if *flagPublish {

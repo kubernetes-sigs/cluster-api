@@ -36,6 +36,7 @@ import (
 	"io/ioutil"
 	"k8s.io/kube-deploy/imagebuilder/pkg/imagebuilder"
 	"net/url"
+	"os"
 	"path"
 	"strings"
 )
@@ -305,8 +306,12 @@ func main() {
 }
 
 func initAWS() (*imagebuilder.AWSConfig, *imagebuilder.AWSCloud, error) {
+	region := os.Getenv("AWS_REGION")
+	if region == "" {
+		region = os.Getenv("AWS_DEFAULT_REGION")
+	}
 	awsConfig := &imagebuilder.AWSConfig{}
-	awsConfig.InitDefaults()
+	awsConfig.InitDefaults(region)
 	err := loadConfig(awsConfig, *flagConfig)
 	if err != nil {
 		glog.Exitf("Error loading AWS config: %v", err)

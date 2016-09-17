@@ -1,5 +1,9 @@
 package imagebuilder
 
+import (
+	"github.com/golang/glog"
+)
+
 type Config struct {
 	Cloud         string
 	TemplatePath  string
@@ -44,12 +48,46 @@ type AWSConfig struct {
 	SecurityGroupID string
 }
 
-func (c *AWSConfig) InitDefaults() {
+func (c *AWSConfig) InitDefaults(region string) {
 	c.Config.InitDefaults()
-	c.Region = "us-east-1"
-	// Debian 8.4 us-east-1 from https://wiki.debian.org/Cloud/AmazonEC2Image/Jessie
-	c.ImageID = "ami-c8bda8a2"
 	c.InstanceType = "m3.medium"
+
+	if region == "" {
+		region = "us-east-1"
+	}
+
+	c.Region = region
+	switch c.Region {
+	case "cn-north-1":
+		glog.Infof("Detected cn-north-1 region")
+		// A slightly older image, but the newest one we have
+		c.ImageID = "ami-da69a1b7"
+
+	// Debian 8.4 images from https://wiki.debian.org/Cloud/AmazonEC2Image/Jessie
+	case "ap-northeast-1":
+		c.ImageID = "ami-d7d4c5b9"
+	case "ap-northeast-2":
+		c.ImageID = "ami-9a03caf4"
+	case "ap-southeast-1":
+		c.ImageID = "ami-73974210"
+	case "ap-southeast-2":
+		c.ImageID = "ami-09daf96a"
+	case "eu-central-1":
+		c.ImageID = "ami-ccc021a3"
+	case "eu-west-1":
+		c.ImageID = "ami-e079f893"
+	case "sa-east-1":
+		c.ImageID = "ami-d3ae21bf"
+	case "us-east-1":
+		c.ImageID = "ami-c8bda8a2"
+	case "us-west-1":
+		c.ImageID = "ami-45374b25"
+	case "us-west-2":
+		c.ImageID = "ami-98e114f8"
+
+	default:
+		glog.Warningf("Building in unknown region %q - will require specifying an image, may not work correctly")
+	}
 }
 
 type GCEConfig struct {

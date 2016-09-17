@@ -178,6 +178,23 @@ func (a *AWSCloud) GetInstance() (Instance, error) {
 				panic("Found instance with empty instance ID")
 			}
 
+			if instance.State == nil {
+				glog.Warningf("Ignoring instance with nil state: %q", instanceID)
+			}
+
+			state := aws.StringValue(instance.State.Name)
+			switch state {
+			case ec2.InstanceStateNameShuttingDown, ec2.InstanceStateNameTerminated, ec2.InstanceStateNameStopping, ec2.InstanceStateNameStopped:
+				glog.Infof("Ignoring instance %q in state %q", instanceID, state)
+				continue
+
+			case ec2.InstanceStateNamePending, ec2.InstanceStateNameRunning:
+				glog.V(2).Infof("Instance %q is in state %q", instanceID, state)
+
+			default:
+				glog.Warningf("Found instance %q in unknown state %q", instanceID, state)
+			}
+
 			glog.Infof("Found existing instance: %q", instanceID)
 			return &AWSInstance{
 				cloud:      a,

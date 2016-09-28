@@ -184,26 +184,28 @@ func main() {
 			User: config.SSHUsername,
 		}
 
-		if config.SSHPrivateKey == "" {
-			glog.Fatalf("SSHPublicKey is required")
-			// We used to allow the SSH agent, but probably more trouble than it is worth?
-			//sshAgent, err := net.Dial("unix", os.Getenv("SSH_AUTH_SOCK"))
-			//if err != nil {
-			//	glog.Fatalf("error connecting to SSH agent: %v", err)
-			//}
-			//
-			//sshConfig.Auth = append(sshConfig.Auth, ssh.PublicKeysCallback(agent.NewClient(sshAgent).Signers))
-		} else {
-			keyBytes, err := imagebuilder.ReadFile(config.SSHPrivateKey)
-			if err != nil {
-				glog.Exitf("error loading SSH private key: %v", err)
-			}
-			key, err := ssh.ParsePrivateKey(keyBytes)
-			if err != nil {
-				glog.Exitf("error parsing SSH private key: %v", err)
-			}
+		if !*flagLocalhost {
+			if config.SSHPrivateKey == "" {
+				glog.Fatalf("SSHPublicKey is required")
+				// We used to allow the SSH agent, but probably more trouble than it is worth?
+				//sshAgent, err := net.Dial("unix", os.Getenv("SSH_AUTH_SOCK"))
+				//if err != nil {
+				//	glog.Fatalf("error connecting to SSH agent: %v", err)
+				//}
+				//
+				//sshConfig.Auth = append(sshConfig.Auth, ssh.PublicKeysCallback(agent.NewClient(sshAgent).Signers))
+			} else {
+				keyBytes, err := imagebuilder.ReadFile(config.SSHPrivateKey)
+				if err != nil {
+					glog.Exitf("error loading SSH private key: %v", err)
+				}
+				key, err := ssh.ParsePrivateKey(keyBytes)
+				if err != nil {
+					glog.Exitf("error parsing SSH private key: %v", err)
+				}
 
-			sshConfig.Auth = append(sshConfig.Auth, ssh.PublicKeys(key))
+				sshConfig.Auth = append(sshConfig.Auth, ssh.PublicKeys(key))
+			}
 		}
 		x, err := instance.DialSSH(sshConfig)
 		if err != nil {

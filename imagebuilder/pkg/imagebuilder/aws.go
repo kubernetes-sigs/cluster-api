@@ -352,6 +352,7 @@ func (c *AWSCloud) findSSHKey(name string) (*ec2.KeyPairInfo, error) {
 
 	return k, nil
 }
+
 func (c *AWSCloud) ensureSSHKey() (string, error) {
 	publicKey, err := ReadFile(c.config.SSHPublicKey)
 	if err != nil {

@@ -35,6 +35,7 @@ import (
 	"google.golang.org/api/storage/v1"
 	"io/ioutil"
 	"k8s.io/kube-deploy/imagebuilder/pkg/imagebuilder"
+	"k8s.io/kube-deploy/imagebuilder/pkg/imagebuilder/executor"
 	"net/url"
 	"os"
 	"path"
@@ -57,6 +58,8 @@ var flagTag = flag.Bool("tag", true, "Set to tag image")
 var flagPublish = flag.Bool("publish", true, "Set to publish image")
 var flagReplicate = flag.Bool("replicate", true, "Set to copy the image to all regions")
 var flagDown = flag.Bool("down", true, "Set to shut down instance (if found)")
+
+var flagLocalhost = flag.Bool("localhost", false, "Set to use local machine for execution")
 
 func loadConfig(dest interface{}, src string) error {
 	data, err := ioutil.ReadFile(src)
@@ -94,7 +97,7 @@ func main() {
 	var cloud imagebuilder.Cloud
 	switch config.Cloud {
 	case "aws":
-		awsConfig, awsCloud, err := initAWS()
+		awsConfig, awsCloud, err := initAWS(*flagLocalhost)
 		if err != nil {
 			glog.Exitf("%v", err)
 		}
@@ -202,13 +205,13 @@ func main() {
 
 			sshConfig.Auth = append(sshConfig.Auth, ssh.PublicKeys(key))
 		}
-		sshClient, err := instance.DialSSH(sshConfig)
+		x, err := instance.DialSSH(sshConfig)
 		if err != nil {
 			glog.Fatalf("error SSHing to instance: %v", err)
 		}
-		defer sshClient.Close()
+		defer x.Close()
 
-		sshHelper := imagebuilder.NewSSH(sshClient)
+		sshHelper := executor.NewTarget(x)
 
 		builder := imagebuilder.NewBuilder(config, sshHelper)
 		err = builder.RunSetupCommands()
@@ -305,7 +308,7 @@ func main() {
 	}
 }
 
-func initAWS() (*imagebuilder.AWSConfig, *imagebuilder.AWSCloud, error) {
+func initAWS(useLocalhost bool) (*imagebuilder.AWSConfig, *imagebuilder.AWSCloud, error) {
 	region := os.Getenv("AWS_REGION")
 	if region == "" {
 		region = os.Getenv("AWS_DEFAULT_REGION")
@@ -322,7 +325,7 @@ func initAWS() (*imagebuilder.AWSConfig, *imagebuilder.AWSCloud, error) {
 	}
 
 	ec2Client := ec2.New(session.New(), &aws.Config{Region: &awsConfig.Region})
-	awsCloud := imagebuilder.NewAWSCloud(ec2Client, awsConfig)
+	awsCloud := imagebuilder.NewAWSCloud(ec2Client, awsConfig, useLocalhost)
 
 	return awsConfig, awsCloud, nil
 }

@@ -22,6 +22,7 @@ import (
 	"golang.org/x/crypto/ssh"
 	"google.golang.org/api/compute/v1"
 	"google.golang.org/api/googleapi"
+	"k8s.io/kube-deploy/imagebuilder/pkg/imagebuilder/executor"
 	"time"
 )
 
@@ -43,7 +44,7 @@ func (i *GCEInstance) Shutdown() error {
 }
 
 // DialSSH establishes an SSH client connection to the instance
-func (i *GCEInstance) DialSSH(config *ssh.ClientConfig) (*ssh.Client, error) {
+func (i *GCEInstance) DialSSH(config *ssh.ClientConfig) (executor.Executor, error) {
 	publicIP, err := i.WaitPublicIP()
 	if err != nil {
 		return nil, err
@@ -59,7 +60,7 @@ func (i *GCEInstance) DialSSH(config *ssh.ClientConfig) (*ssh.Client, error) {
 			//	return nil, fmt.Errorf("error connecting to SSH on server %q", publicIP)
 		}
 
-		return sshClient, nil
+		return executor.NewSSH(sshClient), nil
 	}
 }
 

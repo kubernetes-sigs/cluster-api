@@ -33,6 +33,7 @@ import (
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/ec2"
 	"github.com/golang/glog"
+	"k8s.io/kube-deploy/imagebuilder/pkg/imagebuilder/executor"
 )
 
 const tagRoleKey = "k8s.io/role/imagebuilder"
@@ -44,6 +45,8 @@ type AWSInstance struct {
 	instance   *ec2.Instance
 }
 
+var _ Instance = &AWSInstance{}
+
 // Shutdown terminates the running instance
 func (i *AWSInstance) Shutdown() error {
 	glog.Infof("Terminating instance %q", i.instanceID)
@@ -51,7 +54,7 @@ func (i *AWSInstance) Shutdown() error {
 }
 
 // DialSSH establishes an SSH client connection to the instance
-func (i *AWSInstance) DialSSH(config *ssh.ClientConfig) (*ssh.Client, error) {
+func (i *AWSInstance) DialSSH(config *ssh.ClientConfig) (executor.Executor, error) {
 	publicIP, err := i.WaitPublicIP()
 	if err != nil {
 		return nil, err
@@ -67,7 +70,7 @@ func (i *AWSInstance) DialSSH(config *ssh.ClientConfig) (*ssh.Client, error) {
 			//	return nil, fmt.Errorf("error connecting to SSH on server %q", publicIP)
 		}
 
-		return sshClient, nil
+		return executor.NewSSH(sshClient), nil
 	}
 }
 
@@ -89,23 +92,47 @@ func (i *AWSInstance) WaitPublicIP() (string, error) {
 	}
 }
 
+type LocalhostInstance struct {
+	cloud Cloud
+}
+
+// Shutdown terminates the running instance
+func (i *LocalhostInstance) Shutdown() error {
+	glog.Infof("Skipping termination of localhost")
+	return nil
+}
+
+// DialSSH establishes an SSH client connection to the instance
+func (i *LocalhostInstance) DialSSH(config *ssh.ClientConfig) (executor.Executor, error) {
+	return &executor.LocalhostExecutor{}, nil
+}
+
 // AWSCloud is a helper type for talking to an AWS acccount
 type AWSCloud struct {
 	config *AWSConfig
 
 	ec2 *ec2.EC2
+
+	useLocalhost bool
 }
 
 var _ Cloud = &AWSCloud{}
 
-func NewAWSCloud(ec2 *ec2.EC2, config *AWSConfig) *AWSCloud {
+func NewAWSCloud(ec2 *ec2.EC2, config *AWSConfig, useLocalhost bool) *AWSCloud {
 	return &AWSCloud{
-		ec2:    ec2,
-		config: config,
+		ec2:          ec2,
+		config:       config,
+		useLocalhost: useLocalhost,
 	}
 }
 
 func (a *AWSCloud) GetExtraEnv() (map[string]string, error) {
+	env := make(map[string]string)
+
+	if a.useLocalhost {
+		return env, nil
+	}
+
 	credentials := a.ec2.Config.Credentials
 	if credentials == nil {
 		return nil, fmt.Errorf("unable to determine EC2 credentials")
@@ -116,7 +143,6 @@ func (a *AWSCloud) GetExtraEnv() (map[string]string, error) {
 		return nil, fmt.Errorf("error fetching EC2 credentials: %v", err)
 	}
 
-	env := make(map[string]string)
 	env["AWS_ACCESS_KEY"] = creds.AccessKeyID
 	env["AWS_SECRET_KEY"] = creds.SecretAccessKey
 
@@ -147,6 +173,11 @@ func (a *AWSCloud) describeInstance(instanceID string) (*ec2.Instance, error) {
 
 // TerminateInstance terminates the specified instance
 func (a *AWSCloud) TerminateInstance(instanceID string) error {
+	if a.useLocalhost {
+		glog.Infof("Skipping termination as locahost")
+		return nil
+	}
+
 	request := &ec2.TerminateInstancesInput{}
 	request.InstanceIds = []*string{&instanceID}
 
@@ -157,6 +188,10 @@ func (a *AWSCloud) TerminateInstance(instanceID string) error {
 
 // GetInstance returns the AWS instance matching our tags, or nil if not found
 func (a *AWSCloud) GetInstance() (Instance, error) {
+	if a.useLocalhost {
+		return &LocalhostInstance{}, nil
+	}
+
 	request := &ec2.DescribeInstancesInput{}
 	request.Filters = []*ec2.Filter{
 		{
@@ -354,6 +389,10 @@ func (c *AWSCloud) ensureSSHKey() (string, error) {
 
 // CreateInstance creates an instance for building an image instance
 func (c *AWSCloud) CreateInstance() (Instance, error) {
+	if c.useLocalhost {
+		return &LocalhostInstance{cloud: c}, nil
+	}
+
 	var err error
 	sshKeyName := c.config.SSHKeyName
 	if sshKeyName == "" {

@@ -2,12 +2,13 @@ package imagebuilder
 
 import (
 	"github.com/golang/glog"
+	"strings"
 )
 
 type Config struct {
 	Cloud         string
 	TemplatePath  string
-	SetupCommands []string
+	SetupCommands [][]string
 
 	BootstrapVZRepo   string
 	BootstrapVZBranch string
@@ -28,10 +29,13 @@ func (c *Config) InitDefaults() {
 	c.SSHPublicKey = "~/.ssh/id_rsa.pub"
 	c.SSHPrivateKey = "~/.ssh/id_rsa"
 
-	c.SetupCommands = []string{
+	setupCommands := []string{
 		"sudo apt-get update",
 		"sudo apt-get install --yes git python debootstrap python-pip kpartx parted",
 		"sudo pip install termcolor jsonschema fysom docopt pyyaml boto",
+	}
+	for _, cmd := range setupCommands {
+		c.SetupCommands = append(c.SetupCommands, strings.Split(cmd, " "))
 	}
 }
 

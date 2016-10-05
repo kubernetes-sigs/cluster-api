@@ -2,12 +2,13 @@ package imagebuilder
 
 import (
 	"github.com/golang/glog"
+	"strings"
 )
 
 type Config struct {
 	Cloud         string
 	TemplatePath  string
-	SetupCommands []string
+	SetupCommands [][]string
 
 	BootstrapVZRepo   string
 	BootstrapVZBranch string
@@ -21,8 +22,6 @@ type Config struct {
 }
 
 func (c *Config) InitDefaults() {
-	// At least until https://github.com/andsens/bootstrap-vz/pull/316 merges
-	// Maybe we should have our own fork anyway though
 	c.BootstrapVZRepo = "https://github.com/justinsb/bootstrap-vz.git"
 	c.BootstrapVZBranch = "master"
 
@@ -30,10 +29,13 @@ func (c *Config) InitDefaults() {
 	c.SSHPublicKey = "~/.ssh/id_rsa.pub"
 	c.SSHPrivateKey = "~/.ssh/id_rsa"
 
-	c.SetupCommands = []string{
+	setupCommands := []string{
 		"sudo apt-get update",
 		"sudo apt-get install --yes git python debootstrap python-pip kpartx parted",
 		"sudo pip install termcolor jsonschema fysom docopt pyyaml boto",
+	}
+	for _, cmd := range setupCommands {
+		c.SetupCommands = append(c.SetupCommands, strings.Split(cmd, " "))
 	}
 }
 

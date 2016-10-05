@@ -3,25 +3,26 @@ package imagebuilder
 import (
 	"bytes"
 	"fmt"
+	"k8s.io/kube-deploy/imagebuilder/pkg/imagebuilder/executor"
 	"math/rand"
 	"path"
 )
 
 type Builder struct {
 	config *Config
-	ssh    *SSH
+	target *executor.Target
 }
 
-func NewBuilder(config *Config, ssh *SSH) *Builder {
+func NewBuilder(config *Config, target *executor.Target) *Builder {
 	return &Builder{
 		config: config,
-		ssh:    ssh,
+		target: target,
 	}
 }
 
 func (b *Builder) RunSetupCommands() error {
 	for _, c := range b.config.SetupCommands {
-		if err := b.ssh.Exec(c); err != nil {
+		if err := b.target.Exec(c...); err != nil {
 			return err
 		}
 	}
@@ -31,31 +32,31 @@ func (b *Builder) RunSetupCommands() error {
 
 func (b *Builder) BuildImage(template []byte, extraEnv map[string]string) error {
 	tmpdir := fmt.Sprintf("/tmp/imagebuilder-%d", rand.Int63())
-	err := b.ssh.SCPMkdir(tmpdir, 0755)
+	err := b.target.Mkdir(tmpdir, 0755)
 	if err != nil {
 		return err
 	}
-	defer b.ssh.Exec("rm -rf " + tmpdir)
+	defer b.target.Exec("rm", "-rf", tmpdir)
 
 	logdir := path.Join(tmpdir, "logs")
-	err = b.ssh.SCPMkdir(logdir, 0755)
+	err = b.target.Mkdir(logdir, 0755)
 	if err != nil {
 		return err
 	}
 
 	//err = ssh.Exec("git clone https://github.com/andsens/bootstrap-vz.git " + tmpdir + "/bootstrap-vz")
-	err = b.ssh.Exec("git clone " + b.config.BootstrapVZRepo + " -b " + b.config.BootstrapVZBranch + " " + tmpdir + "/bootstrap-vz")
+	err = b.target.Exec("git", "clone", b.config.BootstrapVZRepo, "-b", b.config.BootstrapVZBranch, tmpdir+"/bootstrap-vz")
 	if err != nil {
 		return err
 	}
 
-	err = b.ssh.SCPPut(tmpdir+"/template.yml", len(template), bytes.NewReader(template), 0644)
+	err = b.target.Put(tmpdir+"/template.yml", len(template), bytes.NewReader(template), 0644)
 	if err != nil {
 		return err
 	}
 
 	// TODO: Create dir for logs, log to that dir using --log, collect logs from that dir
-	cmd := b.ssh.Command(fmt.Sprintf("./bootstrap-vz/bootstrap-vz --debug --log %q ./template.yml", logdir))
+	cmd := b.target.Command("./bootstrap-vz/bootstrap-vz", "--debug", "--log", logdir, "./template.yml")
 	cmd.Cwd = tmpdir
 	for k, v := range extraEnv {
 		cmd.Env[k] = v

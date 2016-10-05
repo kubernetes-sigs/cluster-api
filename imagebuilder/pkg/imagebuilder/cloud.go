@@ -1,6 +1,9 @@
 package imagebuilder
 
-import "golang.org/x/crypto/ssh"
+import (
+	"golang.org/x/crypto/ssh"
+	"k8s.io/kube-deploy/imagebuilder/pkg/imagebuilder/executor"
+)
 
 type Cloud interface {
 	GetInstance() (Instance, error)
@@ -12,7 +15,7 @@ type Cloud interface {
 }
 
 type Instance interface {
-	DialSSH(config *ssh.ClientConfig) (*ssh.Client, error)
+	DialSSH(config *ssh.ClientConfig) (executor.Executor, error)
 	Shutdown() error
 }
 

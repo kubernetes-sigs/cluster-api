@@ -21,6 +21,7 @@ Each of these stages can be controlled through flags
 * Create a VPC (with a subnet) and tag the subnet with `k8s.io/role/imagebuilder=1`
 * Create a security group in the VPC, allowing port 22, and tag with `k8s.io/role/imagebuilder=1`
 
+```
 VPC_ID=`aws ec2 create-vpc --cidr-block 172.20.0.0/16 --query Vpc.VpcId --output text`
 aws ec2 create-tags --resources ${VPC_ID} --tags Key=k8s.io/role/imagebuilder,Value=1
 
@@ -43,6 +44,7 @@ aws ec2 associate-route-table --route-table-id ${RT_ID} --subnet-id ${SUBNET_ID}
 aws ec2 create-route --route-table-id ${RT_ID} --destination-cidr-block 0.0.0.0/0 --gateway-id ${IGW_ID}
 
 aws ec2 authorize-security-group-ingress  --group-id ${SG_ID} --protocol tcp --port 22 --cidr 0.0.0.0/0
+```
 
 Then:
 

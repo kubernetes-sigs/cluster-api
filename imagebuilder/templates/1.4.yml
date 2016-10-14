@@ -136,7 +136,7 @@ plugins:
        - [ 'rm', '{root}/tmp/kopeio.gpg.key' ]
        - [ 'chroot', '{root}', '/bin/sh', '-c', 'echo "deb http://dist.kope.io/apt jessie main" > /etc/apt/sources.list.d/kopeio.list' ]
        - [ 'chroot', '{root}', 'apt-get', 'update' ]
-       - [ 'chroot', '{root}', 'apt-get', 'install', '--yes', 'linux-image-k8s' ]
+       - [ 'chroot', '{root}', 'apt-get', 'install', '--yes', 'linux-image-k8s', 'linux-headers-k8s' ]
 
        # Remove dkms ixgbevf driver
        - [ 'chroot', '{root}', 'dkms', 'remove', 'ixgbevf/2.16.1', '--all' ]
@@ -149,11 +149,11 @@ plugins:
        - [ 'chroot', '{root}', '/bin/sh', '-c', 'echo "APT::Periodic::Unattended-Upgrade \"0\"; " >> /etc/apt/apt.conf.d/20auto-upgrades' ]
        # - [ 'chroot', '{root}', 'apt-get', 'remove', '--yes', 'unattended-upgrades' ]
 
-       # Remove dkms & other unneeded packages
-       # TODO: running kernel removal needs removing-running-kernel preseed
+	   #  # TODO: running kernel removal needs removing-running-kernel preseed
        # https://apt-browse.org/browse/debian/jessie/main/i386/linux-image-3.16.0-4-586/3.16.7-ckt25-2/debian/prerm
        # - [ 'chroot', '{root}', 'apt-get', 'remove', '--yes', 'linux-image-3.16.0-4-amd64', 'linux-headers-3.16.0-4-common' ]
-       - [ 'chroot', '{root}', 'apt-get', 'remove', '--yes', '--purge', 'dkms' ]
+       #  dkms is required to run a privileged container from sysdigcloud that loads a kernel probe
+	   # - [ 'chroot', '{root}', 'apt-get', 'remove', '--yes', '--purge', 'dkms' ]
        - [ 'chroot', '{root}', 'apt-get', 'remove', '--yes', 'linux-headers-3.16.0-4-common' ]
        - [ 'chroot', '{root}', 'apt-get', 'remove', '--yes', 'libgcc-4.8-dev', 'gcc-4.8', 'cpp', 'cpp-4.9' ]
 

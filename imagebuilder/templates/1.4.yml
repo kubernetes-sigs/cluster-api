@@ -136,7 +136,7 @@ plugins:
        - [ 'rm', '{root}/tmp/kopeio.gpg.key' ]
        - [ 'chroot', '{root}', '/bin/sh', '-c', 'echo "deb http://dist.kope.io/apt jessie main" > /etc/apt/sources.list.d/kopeio.list' ]
        - [ 'chroot', '{root}', 'apt-get', 'update' ]
-       - [ 'chroot', '{root}', 'apt-get', 'install', '--yes', 'linux-image-k8s' ]
+       - [ 'chroot', '{root}', 'apt-get', 'install', '--yes', 'linux-image-k8s', 'linux-headers-k8s' ]
 
        # Remove dkms ixgbevf driver
        - [ 'chroot', '{root}', 'dkms', 'remove', 'ixgbevf/2.16.1', '--all' ]

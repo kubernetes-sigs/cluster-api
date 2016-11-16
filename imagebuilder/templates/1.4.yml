@@ -80,6 +80,11 @@ packages:
     - sysvinit
     - systemd
     - systemd-sysv
+    - htop
+    - tcpdump
+    - iotop
+    - ethtool
+    - sysstat
 
     # these packages are included in the official image, but we remove them
     # awscli : we install from pip instead

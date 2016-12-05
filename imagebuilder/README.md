@@ -20,6 +20,7 @@ Each of these stages can be controlled through flags
  (or generate a new account & use `export AWS_ACCESS_KEY_ID` and `export AWS_SECRET_ACCESS_KEY`)
 * Create a VPC (with a subnet) and tag the subnet with `k8s.io/role/imagebuilder=1`
 * Create a security group in the VPC, allowing port 22, and tag with `k8s.io/role/imagebuilder=1`
+* The following commands are scripted in hack/setup-aws.sh
 
 ```
 VPC_ID=`aws ec2 create-vpc --cidr-block 172.20.0.0/16 --query Vpc.VpcId --output text`

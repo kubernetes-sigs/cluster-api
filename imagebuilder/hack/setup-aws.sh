@@ -30,8 +30,9 @@ aws ec2 authorize-security-group-ingress  --group-id ${SG_ID} --protocol tcp --p
 
 IMGBUILDER_DIRECTORY="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 
-cd ../$IMGBUILDER_DIRECTORY
+cd $IMGBUILDER_DIRECTORY/..
 
+export AWS_REGION=$(aws configure get region)
 imagebuilder --config aws.yaml --v=8
 
 echo We are done, and there be dragons!

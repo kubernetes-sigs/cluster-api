@@ -1,6 +1,6 @@
 Cloud: aws
-TemplatePath: templates/1.7.yml
+TemplatePath: templates/1.6.yml
 Tags:
   k8s.io/kernel: "4.4"
-  k8s.io/version: "1.7"
+  k8s.io/version: "1.6"
   k8s.io/family: "default"

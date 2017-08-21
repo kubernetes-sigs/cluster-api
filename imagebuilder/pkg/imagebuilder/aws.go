@@ -143,8 +143,8 @@ func (a *AWSCloud) GetExtraEnv() (map[string]string, error) {
 		return nil, fmt.Errorf("error fetching EC2 credentials: %v", err)
 	}
 
-	env["AWS_ACCESS_KEY"] = creds.AccessKeyID
-	env["AWS_SECRET_KEY"] = creds.SecretAccessKey
+	env["AWS_ACCESS_KEY_ID"] = creds.AccessKeyID
+	env["AWS_SECRET_ACCESS_KEY"] = creds.SecretAccessKey
 
 	return env, nil
 }

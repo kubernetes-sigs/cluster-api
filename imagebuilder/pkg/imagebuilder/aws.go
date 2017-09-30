@@ -511,11 +511,26 @@ func (a *AWSCloud) FindImage(imageName string) (Image, error) {
 		return nil, fmt.Errorf("found image with empty ImageId: %q", imageName)
 	}
 
+	if len(image.BlockDeviceMappings) == 0 {
+		return nil, fmt.Errorf("found no matching snapshots for image: %q", imageName)
+	}
+
+	if len(image.BlockDeviceMappings) != 1 {
+		// Image names are unique per user...
+		return nil, fmt.Errorf("found multiple matching snapshots for image: %q", imageName)
+	}
+
+	snapshotID := aws.StringValue(image.BlockDeviceMappings[0].Ebs.SnapshotId)
+	if snapshotID == "" {
+		return nil, fmt.Errorf("found image with empty SnapshotId: %q", imageName)
+	}
+
 	return &AWSImage{
 		ec2:     a.ec2,
 		region:  a.config.Region,
 		image:   image,
 		imageID: imageID,
+		snapshotID: snapshotID,
 	}, nil
 }
 
@@ -555,6 +570,7 @@ type AWSImage struct {
 	//cloud   *AWSCloud
 	image   *ec2.Image
 	imageID string
+	snapshotID string
 }
 
 // ID returns the AWS identifier for the image
@@ -645,6 +661,21 @@ func (i *AWSImage) ensurePublic() error {
 	_, err = i.ec2.ModifyImageAttribute(request)
 	if err != nil {
 		return fmt.Errorf("error making image public %q: %v", i.imageID, err)
+	}
+
+	request2 := &ec2.ModifySnapshotAttributeInput{
+	    Attribute: aws.String("createVolumePermission"),
+	    GroupNames: []*string{
+	        aws.String("all"),
+	    },
+	    OperationType: aws.String("add"),
+	    SnapshotId:    aws.String(i.snapshotID),
+	}
+
+	glog.V(2).Infof("AWS ModifySnapshotAttribute Snapshot=%q, CreateVolumePermission All", i.snapshotID)
+	_, err = i.ec2.ModifySnapshotAttribute(request2)
+	if err != nil {
+		return fmt.Errorf("error making snapshot public %q: %v", i.snapshotID, err)
 	}
 
 	return err

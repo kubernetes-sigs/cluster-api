@@ -145,6 +145,7 @@ func (a *AWSCloud) GetExtraEnv() (map[string]string, error) {
 
 	env["AWS_ACCESS_KEY_ID"] = creds.AccessKeyID
 	env["AWS_SECRET_ACCESS_KEY"] = creds.SecretAccessKey
+	env["AWS_SESSION_TOKEN"] = creds.SessionToken
 
 	return env, nil
 }

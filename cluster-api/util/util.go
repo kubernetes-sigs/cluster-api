@@ -31,10 +31,6 @@ import (
 	"k8s.io/kube-deploy/cluster-api/client"
 )
 
-const (
-	TypeMaster = "Master"
-)
-
 func Contains(a string, list []string) bool {
 	for _, b := range list {
 		if b == a {
@@ -44,8 +40,17 @@ func Contains(a string, list []string) bool {
 	return false
 }
 
+func RoleContains(a clusterv1.MachineRole, list []clusterv1.MachineRole) bool {
+	for _, b := range list {
+		if b == a {
+			return true
+		}
+	}
+	return false
+}
+
 func IsMaster(machine *clusterv1.Machine) bool {
-	return Contains(TypeMaster, machine.Spec.Roles)
+	return RoleContains(clusterv1.MasterRole, machine.Spec.Roles)
 }
 
 func IsNodeReady(node *v1.Node) bool {

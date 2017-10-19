@@ -173,6 +173,12 @@ type MachineSpec struct {
 	// +optional
 	metav1.ObjectMeta `json:"metadata,omitempty"`
 
+	// The full, authoritative list of taints to apply to the corresponding
+	// Node. This list will overwrite any modifications made to the Node on
+	// an ongoing basis.
+	// +optional
+	Taints []corev1.Taint `json:"taints,omitempty"`
+
 	// Provider-specific serialized configuration to use during node
 	// creation. It is recommended that providers maintain their own
 	// versioned API types that should be serialized/deserialized from this
@@ -180,20 +186,15 @@ type MachineSpec struct {
 	// +optional
 	ProviderConfig string `json:"providerConfig"`
 
-	// A list consisting of "Master" and/or "Node".
-	//
-	//                 +-----------------------+------------------------+
-	//                 | Master present        | Master absent          |
-	// +---------------+-----------------------+------------------------|
-	// | Node present: | Install control plane | Join the cluster as    |
-	// |               | and be schedulable    | just a node            |
-	// |---------------+-----------------------+------------------------|
-	// | Node absent:  | Install control plane | Invalid configuration  |
-	// |               | and be unscheduleable |                        |
-	// +---------------+-----------------------+------------------------+
-	Roles []string `json:"roles,omitempty"`
+	// A list of roles for this Machine to use.
+	Roles []MachineRole `json:"roles,omitempty"`
 
-	// Versions of key software to use.
+	// Versions of key software to use. This field is optional at cluster
+	// creation time, and omitting the field indicates that the cluster
+	// installation tool should select defaults for the user. These
+	// defaults may differ based on the cluster installer, but the tool
+	// should populate the values it uses when persisting Machine objects.
+	// A Machine spec missing this field at runtime is invalid.
 	// +optional
 	Versions MachineVersionInfo `json:"versions,omitempty"`
 
@@ -206,6 +207,32 @@ type MachineSpec struct {
 	ConfigSource *corev1.NodeConfigSource `json:"configSource,omitempty"`
 }
 
+// The MachineRole indicates the purpose of the Machine, and will determine
+// what software and configuration will be used when provisioning and managing
+// the Machine. A single Machine may have more than one role, and the list and
+// definitions of supported roles is expected to evolve over time.
+//
+// Currently, only two roles are supported: Master and Node. In the future, we
+// expect user needs to drive the evolution and granularity of these roles,
+// with new additions accommodating common cluster patterns, like dedicated
+// etcd Machines.
+//
+//                 +-----------------------+------------------------+
+//                 | Master present        | Master absent          |
+// +---------------+-----------------------+------------------------|
+// | Node present: | Install control plane | Join the cluster as    |
+// |               | and be schedulable    | just a node            |
+// |---------------+-----------------------+------------------------|
+// | Node absent:  | Install control plane | Invalid configuration  |
+// |               | and be unscheduleable |                        |
+// +---------------+-----------------------+------------------------+
+type MachineRole string
+
+const (
+	MasterRole MachineRole = "Master"
+	NodeRole   MachineRole = "Node"
+)
+
 type MachineStatus struct {
 	// If the corresponding Node exists, this will point to its object.
 	// +optional
@@ -215,20 +242,43 @@ type MachineStatus struct {
 	// +optional
 	LastUpdated metav1.Time `json:"lastUpdated,omitempty"`
 
-	// Indicates whether or not the Machine is fully reconciled. When a
-	// controller observes that the spec has changed and no longer matches
-	// reality, it should update Ready to false before reconciling the
-	// state, and then set back to true when the state matches the spec.
-	Ready bool `json:"ready"`
+	// The current versions of software on the corresponding Node (if it
+	// exists). This is provided for a few reasons:
+	//
+	// 1) It is more convenient than checking the NodeRef, traversing it to
+	//    the Node, and finding the appropriate field in Node.Status.NodeInfo
+	//    (which uses different field names and formatting).
+	// 2) It removes some of the dependency on the structure of the Node,
+	//    so that if the structure of Node.Status.NodeInfo changes, only
+	//    machine controllers need to be updated, rather than every client
+	//    of the Machines API.
+	// 3) There is no other way simple way to check the ControlPlane
+	//    version. A client would have to connect directly to the apiserver
+	//    running on the target node in order to find out its version.
+	// +optional
+	Versions *MachineVersionInfo `json:"versions,omitempty"`
 
-	// If set, indicates that there is a problem reconciling state, and
-	// will be set to a token value suitable for machine interpretation.
+	// In the event that there is a terminal problem reconciling the
+	// Machine, both ErrorReason and ErrorMessage will be set. ErrorReason
+	// will be populated with a succinct value suitable for machine
+	// interpretation, while ErrorMessage will contain a more verbose
+	// string suitable for logging and human consumption.
+	//
+	// These fields should not be set for transitive errors that a
+	// controller faces that are expected to be fixed automatically over
+	// time (like service outages), but instead indicate that something is
+	// fundamentally wrong with the Machine's spec or the configuration of
+	// the controller, and that manual intervention is required. Examples
+	// of terminal errors would be invalid combinations of settings in the
+	// spec, values that are unsupported by the controller, or the
+	// responsible controller itself being critically misconfigured.
+	//
+	// Any transient errors that occur during the reconcilation of Machines
+	// can be added as events to the Machine object and/or logged in the
+	// controller's output.
 	// +optional
 	ErrorReason *MachineStatusError `json:"errorReason,omitempty"`
-
 	// +optional
-	// If set, indicates that there is a problem reconciling state, and
-	// will be set to a human readable string to indicate the problem.
 	ErrorMessage *string `json:"errorMessage,omitempty"`
 }
 
@@ -281,7 +331,8 @@ type MachineVersionInfo struct {
 	// Semantic version of the Kubernetes control plane to
 	// run. This should only be populated when the machine is a
 	// master.
-	ControlPlane string `json:"controlPlane"`
+	// +optional
+	ControlPlane string `json:"controlPlane,omitempty"`
 
 	// Name/version of container runtime
 	ContainerRuntime ContainerRuntimeInfo `json:"containerRuntime"`

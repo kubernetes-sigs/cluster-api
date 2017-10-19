@@ -1,0 +1,7 @@
+name: test1
+spec:
+  cloud: google
+  project: kumaraji-gke-dev
+  ssh:
+    publicKeyPath: ~/.ssh/id_rsa.pub
+    user: ubuntu

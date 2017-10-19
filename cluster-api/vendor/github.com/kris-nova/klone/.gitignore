@@ -1,0 +1,4 @@
+/bin/*
+!/bin/README.md
+hack/version
+hack/auth

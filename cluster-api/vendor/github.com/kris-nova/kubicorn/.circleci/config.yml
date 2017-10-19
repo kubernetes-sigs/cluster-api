@@ -1,0 +1,23 @@
+version: 2
+jobs:
+  build:
+    docker:
+      # CircleCI Go images available at: https://hub.docker.com/r/circleci/golang/
+      - image: circleci/golang:1.8
+
+    working_directory: /go/src/github.com/kris-nova/kubicorn
+
+    steps:
+      - checkout
+      - run:
+          name: Check headers
+          command: make check-headers
+      - run:
+          name: Check go files
+          command: make check-code
+      - run:
+          name: Compile
+          command: make compile
+      - run:
+          name: CI
+          command: make ci

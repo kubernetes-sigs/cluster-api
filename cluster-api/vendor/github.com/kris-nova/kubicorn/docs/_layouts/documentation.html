@@ -1,0 +1,131 @@
+---
+layout: default
+---
+
+{% comment %}
+<article class="post">
+
+  <div class="post-content">
+    {{ content }}
+  </div>
+
+</article>
+{% endcomment %}
+
+<!-- 
+         d8b      888          888                       
+         Y8P      888          888                       
+                  888          888                       
+.d8888b  888  .d88888  .d88b.  88888b.   8888b.  888d888 
+88K      888 d88" 888 d8P  Y8b 888 "88b     "88b 888P"   
+"Y8888b. 888 888  888 88888888 888  888 .d888888 888     
+     X88 888 Y88b 888 Y8b.     888 d88P 888  888 888     
+ 88888P' 888  "Y88888  "Y8888  88888P"  "Y888888 888     
+-->
+
+<div class="row">
+    <div class="col-sm-4 mb-5">
+        <h5 class="mb-3">Documentation</h5>
+        {% assign docs = site.documentation | sort: 'title' %}
+
+        <div class="sidebar mb-2 mt-4">
+            <h6 class="mb-3">General</h6>
+
+            {% for cookie in docs %} {% if cookie.doctype == "general" %}
+            <a href="{{ cookie.url | relative_url }}">
+                <p class="mb-2">{{ cookie.title }}</p>
+            </a>
+            {% endif %} {% endfor %}
+        </div>
+
+        <div class="sidebar mb-2 mt-4">
+            <h6 class="mb-3">AWS</h6>
+            {% for cookie in docs %} {% if cookie.doctype == "aws" %}
+            <a href="{{ cookie.url | relative_url }}">
+                <p class="mb-2">{{ cookie.title }}</p>
+            </a>
+            {% endif %} {% endfor %}
+        </div>
+
+        <div class="sidebar mb-2 mt-4">
+            <h6 class="mb-3">Azure</h6>
+            {% for cookie in docs %} {% if cookie.doctype == "azure" %}
+            <a href="{{ cookie.url | relative_url }}">
+                <p class="mb-2">{{ cookie.title }}</p>
+            </a>
+            {% endif %} {% endfor %}
+        </div>
+
+        <div class="sidebar mb-2 mt-4">
+                <h6 class="mb-3">Digital Ocean</h6>
+                {% for cookie in docs %} {% if cookie.doctype == "do" %}
+                <a href="{{ cookie.url | relative_url }}">
+                    <p class="mb-2">{{ cookie.title }}</p>
+                </a>
+                {% endif %} {% endfor %}
+            </div>
+
+        <div class="sidebar mb-2 mt-4">
+                <h6 class="mb-3">Google</h6>
+                {% for cookie in docs %} {% if cookie.doctype == "google" %}
+                <a href="{{ cookie.url | relative_url }}">
+                    <p class="mb-2">{{ cookie.title }}</p>
+                </a>
+                {% endif %} {% endfor %}
+            </div>
+
+    </div>
+    <!-- 
+                               888    
+                               888    
+                               888    
+    88888b.   .d88b.  .d8888b  888888 
+    888 "88b d88""88b 88K      888    
+    888  888 888  888 "Y8888b. 888    
+    888 d88P Y88..88P      X88 Y88b.  
+    88888P"   "Y88P"   88888P'  "Y888 
+    888                               
+    888                               
+    888                               
+     -->
+    <div class="col-sm-8">
+        <!-- <figure class="figure">
+                <img src="https://placebear.com/g/1200/720" class="img-fluid" alt="Responsive image">
+
+                <figcaption class="figure-caption text-left"><small><i>Image copyright 2007 ® Fancy Photographer</i></small></figcaption>
+            </figure> -->
+        <h1>{{ page.title | escape }}</h1>
+
+        <p class="figure-caption text-left"><i>
+            {% assign date_format = site.minima.date_format | default: "%B %-d, %Y" %}
+            {{ page.date | date: date_format }}</i></p>
+
+        {{ content }}
+
+        <div class="social-media mt-4 mb-5">
+            <h6 class="text-center">Share it:</h6>
+            <p class="text-center" style="font-size: 2rem;">
+                <a href="https://twitter.com/intent/tweet?text={{ page.title }}&url={{ site.url }}{{ page.url }}&via={{ site.twitter_username }}&related={{ site.twitter_username }}" rel="nofollow" target="_blank" title="Share on Twitter"><i aria-hidden="true" class="fa fa-twitter-square"></i></a>
+                <a href="https://facebook.com/sharer/sharer.php?u={{ site.url }}{{ page.url }}" rel="nofollow" target="_blank" title="Share on Facebook"><i aria-hidden="true" class="fa fa-facebook-square"></i></a>
+                <a href="https://plus.google.com/share?url={{ site.url }}{{ page.url }}" rel="nofollow" target="_blank" title="Share on Google+"><i aria-hidden="true" class="fa fa-google-plus-square"></i></a>
+                <a href="http://www.linkedin.com/shareArticle?mini=true&url={{ site.url }}{{ page.url }}&title={{ page.title }}" rel="nofollow" target="_blank" title="Share on LinkedIn"><i aria-hidden="true" class="fa fa-linkedin-square"></i></a>
+                <a href="http://www.reddit.com/submit?url={{ site.url }}{{ page.url }}&title={{ page.title }}" rel="nofollow" target="_blank" title="Share on Reddit"><i aria-hidden="true" class="fa fa-reddit-square"></i></a>
+            </p>
+        </div>
+
+        <!-- <div class="row author-section mb-5">
+            <div class="col-4 col-lg-2">
+                <img src="https://placebear.com/g/200/200" class="img-fluid" alt="Responsive image">
+            </div>
+            <div class="col align-self-center">
+                <a href="">
+                    <h6>Author J. Writer</h6>
+                </a>
+                <p><small>Dr. Writer is the bearer of many writings about bears, beers, and the second ammendment. As of late he's also been writing about kittins, the jerk.</small></p>
+
+            </div>
+        </div> -->
+
+    </div>
+</div>
+    

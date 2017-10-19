@@ -1,0 +1,222 @@
+// @charset "utf-8";
+
+// // Define defaults for each variable.
+
+// $base-font-family: "Helvetica Neue", Helvetica, Arial, sans-serif !default;
+// $base-font-size:   16px !default;
+// $base-font-weight: 400 !default;
+// $small-font-size:  $base-font-size * 0.875 !default;
+// $base-line-height: 1.5 !default;
+
+// $spacing-unit:     30px !default;
+
+// $text-color:       #111 !default;
+// $background-color: #fdfdfd !default;
+// $brand-color:      #2a7ae2 !default;
+
+// $grey-color:       #828282 !default;
+// $grey-color-light: lighten($grey-color, 40%) !default;
+// $grey-color-dark:  darken($grey-color, 25%) !default;
+
+// // Width of the content area
+// $content-width:    800px !default;
+
+// $on-palm:          600px !default;
+// $on-laptop:        800px !default;
+
+// // Use media queries like this:
+// // @include media-query($on-palm) {
+// //   .wrapper {
+// //     padding-right: $spacing-unit / 2;
+// //     padding-left: $spacing-unit / 2;
+// //   }
+// // }
+// @mixin media-query($device) {
+//   @media screen and (max-width: $device) {
+//     @content;
+//   }
+// }
+
+// @mixin relative-font-size($ratio) {
+//   font-size: $base-font-size * $ratio;
+// }
+
+// // Import partials.
+// @import
+//   "minima/base",
+//   "minima/layout",
+//   "minima/syntax-highlighting"
+// ;
+
+body, 
+#accordion .collapse, 
+#accordion .show, 
+#accordion .collapsing {
+    background-color: rgba(227, 219, 221, 0.16);
+}
+
+body { 
+    margin-top: 6rem;
+    min-height: 100vh;
+}
+
+.navbar {
+    background-color: #ece6e7; //rgba(227, 219, 221, 0.61); //87f3c9
+}
+
+.light-bg {
+    background-color: #ece6e7; // rgba(227, 219, 221, 0.61);
+    border-radius: 0.5rem;
+}
+
+.font-awesome .fa {
+    font-size: 4rem;
+    color: white;
+
+
+    margin-top: auto;
+    margin-bottom: auto;
+}
+
+.balls {
+    border-radius: 100%;
+    width: 7rem;
+    height: 7rem;
+}
+
+.fabulous-red {
+    background-color: #ffb7b8;
+}
+
+.fabulous-orange {
+    background-color: #fee2b5;
+}
+
+.fabulous-lime {
+    background-color: #d5f3b3;
+}
+
+.fabulous-green {
+    background-color: #87f3c9;
+}
+
+.fabulous-purple {
+    background-color: #c1b9f5;
+}
+
+.aaaaa {
+    margin-top: auto;
+    margin-bottom: auto;
+}
+
+
+.different li {
+    margin-top: 1.5rem;
+}
+
+ol.carousel-indicators li,
+ol.carousel-indicators li.active {
+    float: left;
+    width: 33%;
+    height: 10px;
+    margin-top: 2rem;
+    border-radius: 0;
+    border: 1;
+  background: #fee2b5;
+}
+
+ol.carousel-indicators li.active {
+  background: #ffb7b8;
+}
+
+.carousel-control-prev,
+.carousel-control-next {
+    color: #fee2b5;
+}
+
+.carousel-inner {
+    border: 1px;
+    border-color: black;
+}
+ 
+/* .carousel-control-next-icon {
+    background-image : url("data:image/svg+xml;charset=utf8,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='%23ff0000' viewBox='0 0 8 8'%3E%3Cpath d='M1.5 0l-1.5 1.5 2.5 2.5-2.5 2.5 1.5 1.5 4-4-4-4z'/%3E%3C/svg%3E")
+    color: black;
+} */
+
+/* .carousel-control-next-icon, .carousel-control-prev-icon {
+        display: inline-block;
+        width: 20px;
+        height: 20px;
+        background: transparent no-repeat center center;
+        -webkit-background-size: 100% 100%;
+        background-size: 100% 100%;
+    } */
+
+/* .carousel-control-next-icon {
+        background-image: url(data:image/svg+xml;charset=utf8,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='%23ff0000' f…%3Cpath d='M1.5 0l-1.5 1.5 2.5 2.5-9.5 2.5 1.5 1.5 4-4-4-4z'/%3E%3C/svg%3E);
+    } */
+
+.carousel-item.active,
+.carousel-item-next,
+.carousel-item-prev {
+    display: block;
+}
+
+.navbar a:link .fa,
+.navbar a:visited .fa,
+.navbar a:active .fa {
+    color: rgba(0, 0, 0, 0.5);
+}
+
+.navbar a:hover .fa {
+    color: rgba(0, 0, 0, 1);
+}
+
+.social-media-footer {
+    border-bottom-left-radius: 0;
+    border-bottom-right-radius: 0;
+}
+
+.social-media-footer .fa {
+    font-size: 2rem;
+}
+
+.social-media-footer a:link .fa,
+.social-media-footer a:visited .fa,
+.social-media-footer a:active .fa {
+    color: rgba(0, 0, 0, 0.5);
+}
+
+.social-media-footer a:hover .fa {
+    color: rgba(0, 0, 0, 1);
+}
+
+h1, h2, h3, h4, h5, h6,
+display-1, display-2, display-3, display-4 {
+    /* font-family: Source Sans Pro; */
+    font-family: Roboto Slab;
+}
+
+p, li, .navbar, .text-muted {
+    font-family: Open Sans;
+}
+
+code {
+    font-family: Fira Mono;
+}
+
+.sidebar h6 {
+    margin-bottom: 1.5rem;
+}
+
+.sidebar {
+    margin-right: 2rem;
+}
+
+.anchor::before {
+  content: "";
+  display: block;
+  height: 2rem; 
+  margin: -2rem 0 0;
+}

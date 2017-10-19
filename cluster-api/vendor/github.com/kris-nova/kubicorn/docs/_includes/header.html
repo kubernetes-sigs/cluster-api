@@ -1,0 +1,80 @@
+{% comment %}
+          {% for path in page_paths %}
+            {% assign my_page = site.pages | where: "path", path | first %}
+            {% if my_page.title %}
+            <a class="page-link" href="{{ my_page.url | relative_url }}">{{ my_page.title | escape }}</a>
+            {% endif %}
+          {% endfor %}
+        </div>
+      </nav>
+    {% endif %}
+{% endcomment %}
+
+<!-- 
+                           888                       
+                           888                       
+                           888                       
+88888b.   8888b.  888  888 88888b.   8888b.  888d888 
+888 "88b     "88b 888  888 888 "88b     "88b 888P"   
+888  888 .d888888 Y88  88P 888  888 .d888888 888     
+888  888 888  888  Y8bd8P  888 d88P 888  888 888     
+888  888 "Y888888   Y88P   88888P"  "Y888888 888
+-->
+
+  <!-- navbar-expand-lg -->
+
+  <nav class="navbar fixed-top navbar-toggleable-md navbar-light">
+
+      {% assign default_paths = site.pages | map: "path" %}
+      {% assign page_paths = site.header_pages | default: default_paths %}
+      <button class="navbar-toggler navbar-toggler-right" type="button" data-toggle="collapse" data-target="#navbarSupportedContent" aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation"><span class="navbar-toggler-icon"></span></button>
+
+    <a class="navbar-brand" href="{{ "/" | relative_url }}"><code>kubicorn</code></a>
+    <!-- <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarSupportedContent" aria-controls="navbarSupportedContent"
+        aria-expanded="false" aria-label="Toggle navigation">
+        <span class="navbar-toggler-icon"></span>
+      </button> -->
+
+    <div class="collapse navbar-collapse" id="navbarSupportedContent">
+      <ul class="navbar-nav ml-auto">
+        <!-- <li class="nav-item dropdown">
+          <a class="nav-link dropdown-toggle" href="#" id="navbarDropdownMenuLink" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">Documentation</a>
+          <div class="dropdown-menu" aria-labelledby="navbarDropdownMenuLink">
+              {% assign docs = site.documentation | sort: 'title' %}
+              {% for cookie in docs %}
+            <a class="dropdown-item" href="{{ cookie.url }}">{{ cookie.title }}</a>
+            {% endfor %}
+          </div>
+        </li> -->
+        <li class="nav-item">
+          <a class="nav-link" href="{{ "/#core" | relative_url }}">Core Values</a>
+        </li>
+        <li class="nav-item">
+          <a class="nav-link" href="{{ "/#concepts" | relative_url }}">Concepts</a>
+        </li>
+        <li class="nav-item">
+          <a class="nav-link" href="{{ "/#different" | relative_url }}">Differential</a>
+        </li>
+        <li class="nav-item">
+            <a class="nav-link" href="{{ "/#friends" | relative_url }}">Friends</a>
+          </li>
+        <li class="nav-item">
+            <a class="nav-link" href="{{ "/#installing" | relative_url }}">Installing</a>
+          </li>
+          <li class="nav-item">
+              <a class="nav-link" href="{{ "/documentation/readme.html" | relative_url }}">Documentation</a>
+            </li>
+      </ul>
+
+     
+
+      <a class="nav-link px-1" href="https://twitter.com/kubicornk8s"><i aria-hidden="true" class="fa fa-twitter"></i></a>&nbsp;&nbsp;
+      <a class="nav-link px-1" href="https://github.com/kris-nova/kubicorn/"><i aria-hidden="true" class="fa fa-github"></i></a>&nbsp;&nbsp;
+       <a class="nav-link px-1" href="https://invite.slack.golangbridge.org/"><i aria-hidden="true" class="fa fa-slack"></i></a>&nbsp;&nbsp;
+      <!--<a class="nav-link px-1" href=""><i aria-hidden="true" class="fa fa-stack-overflow"></i></a>&nbsp;&nbsp;
+      <a class="nav-link px-1" href=""><i aria-hidden="true" class="fa fa-envelope"></i></a>&nbsp;&nbsp; -->
+      
+    </div>
+  </nav>
+
+  <div class="container">

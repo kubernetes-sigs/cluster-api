@@ -1,0 +1,424 @@
+<!DOCTYPE html>
+<html lang="en">
+
+  <head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+  <!-- <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0-beta/css/bootstrap.min.css" integrity="sha384-/Y6pD6FV/Vv2HJnA6t+vslU6fwYXjCFtcEpHbNJ0lyAFsXTsjBbfaDjzALeQsN6M"
+    crossorigin="anonymous"> -->
+    <title>Who is a Maintainer?</title>
+    <meta name="description" content="From Wikipedia - Maintainer is usually one or more people who build source code into a binary package for distribution, commit patches, or organize code in a...">
+  <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0-alpha.6/css/bootstrap.min.css" integrity="sha384-rwoIResjU2yc3z8GV/NPeZWAv56rSmLldC3R/AZzGRnGxQQKnKkoFVhFQhNUwEyJ"
+    crossorigin="anonymous">
+    <link rel="stylesheet" href="/assets/main.css">
+    <link rel="canonical" href="http://localhost:4000/documentation/maintainers.html">
+    <link rel="alternate" type="application/rss+xml" title="kubicorn - Building Simple Kubernetes Infrastructure" href="/feed.xml">
+  <link href="https://maxcdn.bootstrapcdn.com/font-awesome/4.6.3/css/font-awesome.min.css" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css?family=Roboto+Slab|Open+Sans|Fira+Mono" rel="stylesheet">
+  
+  <link rel="apple-touch-icon" sizes="57x57" href="/assets/favicon/apple-icon-57x57.png">
+  <link rel="apple-touch-icon" sizes="60x60" href="/assets/favicon/apple-icon-60x60.png">
+  <link rel="apple-touch-icon" sizes="72x72" href="/assets/favicon/apple-icon-72x72.png">
+  <link rel="apple-touch-icon" sizes="76x76" href="/assets/favicon/apple-icon-76x76.png">
+  <link rel="apple-touch-icon" sizes="114x114" href="/assets/favicon/apple-icon-114x114.png">
+  <link rel="apple-touch-icon" sizes="120x120" href="/assets/favicon/apple-icon-120x120.png">
+  <link rel="apple-touch-icon" sizes="144x144" href="/assets/favicon/apple-icon-144x144.png">
+  <link rel="apple-touch-icon" sizes="152x152" href="/assets/favicon/apple-icon-152x152.png">
+  <link rel="apple-touch-icon" sizes="180x180" href="/assets/favicon/apple-icon-180x180.png">
+  <link rel="icon" type="image/png" sizes="192x192"  href="/assets/favicon/android-icon-192x192.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/assets/favicon/favicon-32x32.png">
+  <link rel="icon" type="image/png" sizes="96x96" href="/assets/favicon/favicon-96x96.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/assets/favicon/favicon-16x16.png">
+  <link rel="manifest" href="/assets/favicon/manifest.json">
+  <meta name="msapplication-TileColor" content="#ffffff">
+  <meta name="msapplication-TileImage" content="/assets/favicon/ms-icon-144x144.png">
+  <meta name="theme-color" content="#ffffff">
+</head>
+
+  <body>
+
+    
+
+<!-- 
+                           888                       
+                           888                       
+                           888                       
+88888b.   8888b.  888  888 88888b.   8888b.  888d888 
+888 "88b     "88b 888  888 888 "88b     "88b 888P"   
+888  888 .d888888 Y88  88P 888  888 .d888888 888     
+888  888 888  888  Y8bd8P  888 d88P 888  888 888     
+888  888 "Y888888   Y88P   88888P"  "Y888888 888
+-->
+
+  <!-- navbar-expand-lg -->
+
+  <nav class="navbar fixed-top navbar-toggleable-md navbar-light">
+
+      
+      
+      <button class="navbar-toggler navbar-toggler-right" type="button" data-toggle="collapse" data-target="#navbarSupportedContent" aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation"><span class="navbar-toggler-icon"></span></button>
+
+    <a class="navbar-brand" href="/"><code>kubicorn</code></a>
+    <!-- <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarSupportedContent" aria-controls="navbarSupportedContent"
+        aria-expanded="false" aria-label="Toggle navigation">
+        <span class="navbar-toggler-icon"></span>
+      </button> -->
+
+    <div class="collapse navbar-collapse" id="navbarSupportedContent">
+      <ul class="navbar-nav ml-auto">
+        <!-- <li class="nav-item dropdown">
+          <a class="nav-link dropdown-toggle" href="#" id="navbarDropdownMenuLink" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">Documentation</a>
+          <div class="dropdown-menu" aria-labelledby="navbarDropdownMenuLink">
+              
+              
+            <a class="dropdown-item" href="/documentation/semver.html">Backwards compatibility promise</a>
+            
+            <a class="dropdown-item" href="/documentation/build.html">Building Kubicorn</a>
+            
+            <a class="dropdown-item" href="/documentation/exit_codes.html">Exit Codes</a>
+            
+            <a class="dropdown-item" href="/documentation/friends.html">Friends of `kubicorn`</a>
+            
+            <a class="dropdown-item" href="/documentation/envar.html">Global Environmental Variables list</a>
+            
+            <a class="dropdown-item" href="/documentation/install.html">Installing Kubicorn</a>
+            
+            <a class="dropdown-item" href="/documentation/issue_template.html">Issue Template</a>
+            
+            <a class="dropdown-item" href="/documentation/readme.html">Kubicorn Documentation</a>
+            
+            <a class="dropdown-item" href="/documentation/project-walkthrough.html">Project Walkthrough</a>
+            
+            <a class="dropdown-item" href="/documentation/aws-walkthrough.html">Setting up Kubernetes in AWS</a>
+            
+            <a class="dropdown-item" href="/documentation/azure-walkthrough.html">Setting up Kubernetes in Azure</a>
+            
+            <a class="dropdown-item" href="/documentation/do-walkthrough.html">Setting up Kubernetes in DigitalOcean with TLS secured private VPN mesh</a>
+            
+            <a class="dropdown-item" href="/documentation/google-walkthrough.html">Setting up Kubernetes in Google with TLS secured private VPN mesh</a>
+            
+            <a class="dropdown-item" href="/documentation/twitter.html">Twitter</a>
+            
+            <a class="dropdown-item" href="/documentation/make.html">Using `Makefile`</a>
+            
+            <a class="dropdown-item" href="/documentation/maintainers.html">Who is a Maintainer?</a>
+            
+          </div>
+        </li> -->
+        <li class="nav-item">
+          <a class="nav-link" href="/#core">Core Values</a>
+        </li>
+        <li class="nav-item">
+          <a class="nav-link" href="/#concepts">Concepts</a>
+        </li>
+        <li class="nav-item">
+          <a class="nav-link" href="/#different">Differential</a>
+        </li>
+        <li class="nav-item">
+            <a class="nav-link" href="/#friends">Friends</a>
+          </li>
+        <li class="nav-item">
+            <a class="nav-link" href="/#installing">Installing</a>
+          </li>
+          <li class="nav-item">
+              <a class="nav-link" href="/documentation/readme.html">Documentation</a>
+            </li>
+      </ul>
+
+     
+
+      <a class="nav-link px-1" href="https://twitter.com/kubicornk8s"><i aria-hidden="true" class="fa fa-twitter"></i></a>&nbsp;&nbsp;
+      <a class="nav-link px-1" href="https://github.com/kris-nova/kubicorn/"><i aria-hidden="true" class="fa fa-github"></i></a>&nbsp;&nbsp;
+       <a class="nav-link px-1" href="https://invite.slack.golangbridge.org/"><i aria-hidden="true" class="fa fa-slack"></i></a>&nbsp;&nbsp;
+      <!--<a class="nav-link px-1" href=""><i aria-hidden="true" class="fa fa-stack-overflow"></i></a>&nbsp;&nbsp;
+      <a class="nav-link px-1" href=""><i aria-hidden="true" class="fa fa-envelope"></i></a>&nbsp;&nbsp; -->
+      
+    </div>
+  </nav>
+
+  <div class="container">
+
+
+    <main class="page-content" aria-label="Content">
+      <div class="wrapper">
+        
+
+<!-- 
+         d8b      888          888                       
+         Y8P      888          888                       
+                  888          888                       
+.d8888b  888  .d88888  .d88b.  88888b.   8888b.  888d888 
+88K      888 d88" 888 d8P  Y8b 888 "88b     "88b 888P"   
+"Y8888b. 888 888  888 88888888 888  888 .d888888 888     
+     X88 888 Y88b 888 Y8b.     888 d88P 888  888 888     
+ 88888P' 888  "Y88888  "Y8888  88888P"  "Y888888 888     
+-->
+
+<div class="row">
+    <div class="col-sm-4 mb-5">
+        <h5 class="mb-3">Documentation</h5>
+        
+
+        <div class="sidebar mb-2 mt-4">
+            <h6 class="mb-3">General</h6>
+
+             
+            <a href="/documentation/semver.html">
+                <p class="mb-2">Backwards compatibility promise</p>
+            </a>
+              
+            <a href="/documentation/build.html">
+                <p class="mb-2">Building Kubicorn</p>
+            </a>
+              
+            <a href="/documentation/exit_codes.html">
+                <p class="mb-2">Exit Codes</p>
+            </a>
+              
+            <a href="/documentation/friends.html">
+                <p class="mb-2">Friends of `kubicorn`</p>
+            </a>
+              
+            <a href="/documentation/envar.html">
+                <p class="mb-2">Global Environmental Variables list</p>
+            </a>
+              
+            <a href="/documentation/install.html">
+                <p class="mb-2">Installing Kubicorn</p>
+            </a>
+              
+            <a href="/documentation/issue_template.html">
+                <p class="mb-2">Issue Template</p>
+            </a>
+              
+            <a href="/documentation/readme.html">
+                <p class="mb-2">Kubicorn Documentation</p>
+            </a>
+              
+            <a href="/documentation/project-walkthrough.html">
+                <p class="mb-2">Project Walkthrough</p>
+            </a>
+                      
+            <a href="/documentation/twitter.html">
+                <p class="mb-2">Twitter</p>
+            </a>
+              
+            <a href="/documentation/make.html">
+                <p class="mb-2">Using `Makefile`</p>
+            </a>
+              
+            <a href="/documentation/maintainers.html">
+                <p class="mb-2">Who is a Maintainer?</p>
+            </a>
+             
+        </div>
+
+        <div class="sidebar mb-2 mt-4">
+            <h6 class="mb-3">AWS</h6>
+                               
+            <a href="/documentation/aws-walkthrough.html">
+                <p class="mb-2">Setting up Kubernetes in AWS</p>
+            </a>
+                         
+        </div>
+
+        <div class="sidebar mb-2 mt-4">
+            <h6 class="mb-3">Azure</h6>
+                                 
+            <a href="/documentation/azure-walkthrough.html">
+                <p class="mb-2">Setting up Kubernetes in Azure</p>
+            </a>
+                       
+        </div>
+
+        <div class="sidebar mb-2 mt-4">
+                <h6 class="mb-3">Digital Ocean</h6>
+                                       
+                <a href="/documentation/do-walkthrough.html">
+                    <p class="mb-2">Setting up Kubernetes in DigitalOcean with TLS secured private VPN mesh</p>
+                </a>
+                         
+            </div>
+
+        <div class="sidebar mb-2 mt-4">
+                <h6 class="mb-3">Google</h6>
+                                         
+                <a href="/documentation/google-walkthrough.html">
+                    <p class="mb-2">Setting up Kubernetes in Google with TLS secured private VPN mesh</p>
+                </a>
+                       
+            </div>
+
+    </div>
+    <!-- 
+                               888    
+                               888    
+                               888    
+    88888b.   .d88b.  .d8888b  888888 
+    888 "88b d88""88b 88K      888    
+    888  888 888  888 "Y8888b. 888    
+    888 d88P Y88..88P      X88 Y88b.  
+    88888P"   "Y88P"   88888P'  "Y888 
+    888                               
+    888                               
+    888                               
+     -->
+    <div class="col-sm-8">
+        <!-- <figure class="figure">
+                <img src="https://placebear.com/g/1200/720" class="img-fluid" alt="Responsive image">
+
+                <figcaption class="figure-caption text-left"><small><i>Image copyright 2007 ® Fancy Photographer</i></small></figcaption>
+            </figure> -->
+        <h1>Who is a Maintainer?</h1>
+
+        <p class="figure-caption text-left"><i>
+            
+            August 14, 2017</i></p>
+
+        <blockquote>
+  <p>From Wikipedia - Maintainer is usually one or more people who build source code into a binary package for distribution, commit patches, or organize code in a source repository</p>
+</blockquote>
+
+<p><code class="highlighter-rouge">kubicorn</code> is a small team currently, things are evolving at a very fast pace. We need more people, who can really help grow the community and help get the project production ready. If you are new to opensource, just introduce yourself to the community and get started. For <code class="highlighter-rouge">kubicorn</code> it can be any person who is willing to take these responsibilities.</p>
+
+<h2 id="easy-to-say-hard-to-do-lets-break-down-tasks-for-a-maintainer">Easy to say, hard to do, lets break down tasks for a maintainer:</h2>
+
+<ul>
+  <li>Strive towards getting <code class="highlighter-rouge">kubicorn</code> to be production ready.</li>
+  <li>Work with community to:
+    <ul>
+      <li>keep the code base stable</li>
+      <li>code reviews</li>
+      <li>bug triage</li>
+      <li>releases</li>
+      <li>resolve conflicts</li>
+      <li>research what’s best for the community.</li>
+    </ul>
+  </li>
+  <li>Work with other maintainers to keep the project growing and stable.</li>
+  <li>Avoid having too many API changes, if necessary it should fullfil <a href="https://github.com/kris-nova/kubicorn/blob/master/docs/SEMVER.md#backwards-compatibility-promise">backwards-compatibility-promise</a></li>
+  <li>Don’t say Yes unless you are 99.999% (there is nothing 100%).</li>
+  <li>Remember, you are not alone, there are people to help you as well.</li>
+  <li>Take a break, whenever you need.</li>
+</ul>
+
+<h2 id="criteria-for-code-merge">Criteria for code merge:</h2>
+<ul>
+  <li>Maintainer(s) of the repo can merge code, with atleast 2 LGTM.</li>
+  <li>This is mostly Golang code. If golint, gofmt is not done - DON’T merge, follow guidelines here <a href="https://github.com/golang/go/wiki/CodeReviewComments">CodeReviewComments</a></li>
+  <li>Look for unit-tests, it is important (try not to merge with TODO unit-test, that just means forget about it).</li>
+  <li>Ofcourse the builds have to be passing.</li>
+</ul>
+
+<h3 id="current-maintainers">Current Maintainers:</h3>
+<ul>
+  <li><a href="https://github.com/kris-nova">Kris Nova</a></li>
+  <li><a href="https://github.com/xmudrii">Marko Mudrinić</a></li>
+  <li><a href="https://github.com/prateekgogia">Prateek Gogia</a></li>
+  <li><a href="https://github.com/roberthbailey">Robert Bailey</a></li>
+</ul>
+
+
+        <div class="social-media mt-4 mb-5">
+            <h6 class="text-center">Share it:</h6>
+            <p class="text-center" style="font-size: 2rem;">
+                <a href="https://twitter.com/intent/tweet?text=Who is a Maintainer?&url=http://localhost:4000/documentation/maintainers.html&via=kubicornk8s&related=kubicornk8s" rel="nofollow" target="_blank" title="Share on Twitter"><i aria-hidden="true" class="fa fa-twitter-square"></i></a>
+                <a href="https://facebook.com/sharer/sharer.php?u=http://localhost:4000/documentation/maintainers.html" rel="nofollow" target="_blank" title="Share on Facebook"><i aria-hidden="true" class="fa fa-facebook-square"></i></a>
+                <a href="https://plus.google.com/share?url=http://localhost:4000/documentation/maintainers.html" rel="nofollow" target="_blank" title="Share on Google+"><i aria-hidden="true" class="fa fa-google-plus-square"></i></a>
+                <a href="http://www.linkedin.com/shareArticle?mini=true&url=http://localhost:4000/documentation/maintainers.html&title=Who is a Maintainer?" rel="nofollow" target="_blank" title="Share on LinkedIn"><i aria-hidden="true" class="fa fa-linkedin-square"></i></a>
+                <a href="http://www.reddit.com/submit?url=http://localhost:4000/documentation/maintainers.html&title=Who is a Maintainer?" rel="nofollow" target="_blank" title="Share on Reddit"><i aria-hidden="true" class="fa fa-reddit-square"></i></a>
+            </p>
+        </div>
+
+        <!-- <div class="row author-section mb-5">
+            <div class="col-4 col-lg-2">
+                <img src="https://placebear.com/g/200/200" class="img-fluid" alt="Responsive image">
+            </div>
+            <div class="col align-self-center">
+                <a href="">
+                    <h6>Author J. Writer</h6>
+                </a>
+                <p><small>Dr. Writer is the bearer of many writings about bears, beers, and the second ammendment. As of late he's also been writing about kittins, the jerk.</small></p>
+
+            </div>
+        </div> -->
+
+    </div>
+</div>
+    
+
+      </div>
+    </main>
+
+    <!-- 
+ .d888                  888                    
+d88P"                   888                    
+888                     888                    
+888888 .d88b.   .d88b.  888888 .d88b.  888d888 
+888   d88""88b d88""88b 888   d8P  Y8b 888P"   
+888   888  888 888  888 888   88888888 888     
+888   Y88..88P Y88..88P Y88b. Y8b.     888     
+888    "Y88P"   "Y88P"   "Y888 "Y8888  888     
+-->
+<div class="row light-bg py-3 px-3 mb-0 social-media-footer">
+  <div class="col-md-4 text-center d-flex align-items-start justify-content-center">
+    <div>
+      <h3 class="mb-3 mt-3">Community</h3>
+      <p><a href="https://github.com/kris-nova/kubicorn/blob/master/CODE_OF_CONDUCT.md">Code of Conduct</a></p>
+      <p><a href="https://github.com/kris-nova/kubicorn/blob/master/CONTRIBUTING.md">Contributing Guidelines</a></p>
+      <p><a href="https://github.com/kris-nova/kubicorn/blob/master/AUTHORS">Authors</a></p>
+    </div>
+  </div>
+  <div class="col-md-4 text-center d-flex align-items-start justify-content-center">
+    <div>
+      <h3 class="mb-3 mt-3">Join us!</h3>
+      <a class=" px-1" href="https://twitter.com/kubicornk8s"><i aria-hidden="true" class="fa fa-twitter"></i></a>&nbsp;&nbsp;
+      <a class=" px-1" href="https://github.com/kris-nova/kubicorn/"><i aria-hidden="true" class="fa fa-github"></i></a>&nbsp;&nbsp;
+      <a class=" px-1" href="https://invite.slack.golangbridge.org/"><i aria-hidden="true" class="fa fa-slack"></i></a>&nbsp;&nbsp;
+      <!-- <a class=" px-1" href=""><i aria-hidden="true" class="fa fa-stack-overflow"></i></a>&nbsp;&nbsp;
+      <a class=" px-1" href=""><i aria-hidden="true" class="fa fa-envelope"></i></a>&nbsp;&nbsp;   -->
+    </div>
+  </div>
+  <div class="col-md-4 text-center d-flex align-items-start justify-content-center">
+    <div>
+      <h3 class="mb-3 mt-3"><code>kubicorn</code></h3>
+      <p class="small">© 2017 The Kubicorn Authors</p>
+    </div>
+  </div>
+</div>
+
+  <!-- 
+                          d8b          888             
+                          Y8P          888             
+                                       888             
+.d8888b   .d8888b 888d888 888 88888b.  888888 .d8888b  
+88K      d88P"    888P"   888 888 "88b 888    88K      
+"Y8888b. 888      888     888 888  888 888    "Y8888b. 
+     X88 Y88b.    888     888 888 d88P Y88b.       X88 
+ 88888P'  "Y8888P 888     888 88888P"   "Y888  88888P' 
+                              888                      
+                              888                      
+                              888                      
+-->
+</div>
+<!-- <script src="https://code.jquery.com/jquery-3.2.1.slim.min.js" integrity="sha384-KJ3o2DKtIkvYIK3UENzmM7KCkRr/rE9/Qpg6aAZGJwFDMVNA/GpGFF93hXpG5KkN"
+  crossorigin="anonymous"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.11.0/umd/popper.min.js" integrity="sha384-b/U6ypiBEHpOf/4+1nzFpr53nxSS+GLCkfwBdFNTxtclqqenISfwAzpKaMNFNmj4"
+  crossorigin="anonymous"></script>
+<script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0-beta/js/bootstrap.min.js" integrity="sha384-h0AbiXch4ZDo7tp9hKZ4TsHbi047NrKGLO3SEJAg45jXxnGIfYzk4Si90RDIqNm1"
+  crossorigin="anonymous"></script> -->
+<script src="https://code.jquery.com/jquery-3.1.1.slim.min.js" integrity="sha384-A7FZj7v+d/sdmMqp/nOQwliLvUsJfDHW+k9Omg/a/EheAdgtzNs3hpfag6Ed950n"
+  crossorigin="anonymous"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/tether/1.4.0/js/tether.min.js" integrity="sha384-DztdAPBWPRXSA/3eYEEUWrWCy7G5KFbe8fFjk5JAIxUYHKkDx6Qin1DkWx51bBrb"
+  crossorigin="anonymous"></script>
+<script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0-alpha.6/js/bootstrap.min.js" integrity="sha384-vBWWzlZJ8ea9aCX4pEW3rVHjgjt7zpkNpZk+02D9phzyeVkE+jo0ieGizqPLForn"
+  crossorigin="anonymous"></script>
+  <script>
+      $('.nav-item').click(function(){
+        $('.navbar-collapse').collapse('hide');
+      });
+    </script>
+
+  </body>
+
+</html>

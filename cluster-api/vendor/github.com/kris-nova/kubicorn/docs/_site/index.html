@@ -1,0 +1,763 @@
+<!DOCTYPE html>
+<html lang="en">
+
+  <head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+  <!-- <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0-beta/css/bootstrap.min.css" integrity="sha384-/Y6pD6FV/Vv2HJnA6t+vslU6fwYXjCFtcEpHbNJ0lyAFsXTsjBbfaDjzALeQsN6M"
+    crossorigin="anonymous"> -->
+    <title>kubicorn - Building Simple Kubernetes Infrastructure</title>
+    <meta name="description" content="Create, manage, snapshot, and scale Kubernetes infrastructure in the public cloud.">
+  <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0-alpha.6/css/bootstrap.min.css" integrity="sha384-rwoIResjU2yc3z8GV/NPeZWAv56rSmLldC3R/AZzGRnGxQQKnKkoFVhFQhNUwEyJ"
+    crossorigin="anonymous">
+    <link rel="stylesheet" href="/assets/main.css">
+    <link rel="canonical" href="http://localhost:4000/">
+    <link rel="alternate" type="application/rss+xml" title="kubicorn - Building Simple Kubernetes Infrastructure" href="/feed.xml">
+  <link href="https://maxcdn.bootstrapcdn.com/font-awesome/4.6.3/css/font-awesome.min.css" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css?family=Roboto+Slab|Open+Sans|Fira+Mono" rel="stylesheet">
+  
+  <link rel="apple-touch-icon" sizes="57x57" href="/assets/favicon/apple-icon-57x57.png">
+  <link rel="apple-touch-icon" sizes="60x60" href="/assets/favicon/apple-icon-60x60.png">
+  <link rel="apple-touch-icon" sizes="72x72" href="/assets/favicon/apple-icon-72x72.png">
+  <link rel="apple-touch-icon" sizes="76x76" href="/assets/favicon/apple-icon-76x76.png">
+  <link rel="apple-touch-icon" sizes="114x114" href="/assets/favicon/apple-icon-114x114.png">
+  <link rel="apple-touch-icon" sizes="120x120" href="/assets/favicon/apple-icon-120x120.png">
+  <link rel="apple-touch-icon" sizes="144x144" href="/assets/favicon/apple-icon-144x144.png">
+  <link rel="apple-touch-icon" sizes="152x152" href="/assets/favicon/apple-icon-152x152.png">
+  <link rel="apple-touch-icon" sizes="180x180" href="/assets/favicon/apple-icon-180x180.png">
+  <link rel="icon" type="image/png" sizes="192x192"  href="/assets/favicon/android-icon-192x192.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/assets/favicon/favicon-32x32.png">
+  <link rel="icon" type="image/png" sizes="96x96" href="/assets/favicon/favicon-96x96.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/assets/favicon/favicon-16x16.png">
+  <link rel="manifest" href="/assets/favicon/manifest.json">
+  <meta name="msapplication-TileColor" content="#ffffff">
+  <meta name="msapplication-TileImage" content="/assets/favicon/ms-icon-144x144.png">
+  <meta name="theme-color" content="#ffffff">
+</head>
+
+  <body>
+
+    
+
+<!-- 
+                           888                       
+                           888                       
+                           888                       
+88888b.   8888b.  888  888 88888b.   8888b.  888d888 
+888 "88b     "88b 888  888 888 "88b     "88b 888P"   
+888  888 .d888888 Y88  88P 888  888 .d888888 888     
+888  888 888  888  Y8bd8P  888 d88P 888  888 888     
+888  888 "Y888888   Y88P   88888P"  "Y888888 888
+-->
+
+  <!-- navbar-expand-lg -->
+
+  <nav class="navbar fixed-top navbar-toggleable-md navbar-light">
+
+      
+      
+      <button class="navbar-toggler navbar-toggler-right" type="button" data-toggle="collapse" data-target="#navbarSupportedContent" aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation"><span class="navbar-toggler-icon"></span></button>
+
+    <a class="navbar-brand" href="/"><code>kubicorn</code></a>
+    <!-- <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarSupportedContent" aria-controls="navbarSupportedContent"
+        aria-expanded="false" aria-label="Toggle navigation">
+        <span class="navbar-toggler-icon"></span>
+      </button> -->
+
+    <div class="collapse navbar-collapse" id="navbarSupportedContent">
+      <ul class="navbar-nav ml-auto">
+        <!-- <li class="nav-item dropdown">
+          <a class="nav-link dropdown-toggle" href="#" id="navbarDropdownMenuLink" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">Documentation</a>
+          <div class="dropdown-menu" aria-labelledby="navbarDropdownMenuLink">
+              
+              
+            <a class="dropdown-item" href="/documentation/semver.html">Backwards compatibility promise</a>
+            
+            <a class="dropdown-item" href="/documentation/build.html">Building Kubicorn</a>
+            
+            <a class="dropdown-item" href="/documentation/exit_codes.html">Exit Codes</a>
+            
+            <a class="dropdown-item" href="/documentation/friends.html">Friends of `kubicorn`</a>
+            
+            <a class="dropdown-item" href="/documentation/envar.html">Global Environmental Variables list</a>
+            
+            <a class="dropdown-item" href="/documentation/install.html">Installing Kubicorn</a>
+            
+            <a class="dropdown-item" href="/documentation/issue_template.html">Issue Template</a>
+            
+            <a class="dropdown-item" href="/documentation/readme.html">Kubicorn Documentation</a>
+            
+            <a class="dropdown-item" href="/documentation/project-walkthrough.html">Project Walkthrough</a>
+            
+            <a class="dropdown-item" href="/documentation/aws-walkthrough.html">Setting up Kubernetes in AWS</a>
+            
+            <a class="dropdown-item" href="/documentation/azure-walkthrough.html">Setting up Kubernetes in Azure</a>
+            
+            <a class="dropdown-item" href="/documentation/do-walkthrough.html">Setting up Kubernetes in DigitalOcean with TLS secured private VPN mesh</a>
+            
+            <a class="dropdown-item" href="/documentation/google-walkthrough.html">Setting up Kubernetes in Google with TLS secured private VPN mesh</a>
+            
+            <a class="dropdown-item" href="/documentation/twitter.html">Twitter</a>
+            
+            <a class="dropdown-item" href="/documentation/make.html">Using `Makefile`</a>
+            
+            <a class="dropdown-item" href="/documentation/maintainers.html">Who is a Maintainer?</a>
+            
+          </div>
+        </li> -->
+        <li class="nav-item">
+          <a class="nav-link" href="/#core">Core Values</a>
+        </li>
+        <li class="nav-item">
+          <a class="nav-link" href="/#concepts">Concepts</a>
+        </li>
+        <li class="nav-item">
+          <a class="nav-link" href="/#different">Differential</a>
+        </li>
+        <li class="nav-item">
+            <a class="nav-link" href="/#friends">Friends</a>
+          </li>
+        <li class="nav-item">
+            <a class="nav-link" href="/#installing">Installing</a>
+          </li>
+          <li class="nav-item">
+              <a class="nav-link" href="/documentation/readme.html">Documentation</a>
+            </li>
+      </ul>
+
+     
+
+      <a class="nav-link px-1" href="https://twitter.com/kubicornk8s"><i aria-hidden="true" class="fa fa-twitter"></i></a>&nbsp;&nbsp;
+      <a class="nav-link px-1" href="https://github.com/kris-nova/kubicorn/"><i aria-hidden="true" class="fa fa-github"></i></a>&nbsp;&nbsp;
+       <a class="nav-link px-1" href="https://invite.slack.golangbridge.org/"><i aria-hidden="true" class="fa fa-slack"></i></a>&nbsp;&nbsp;
+      <!--<a class="nav-link px-1" href=""><i aria-hidden="true" class="fa fa-stack-overflow"></i></a>&nbsp;&nbsp;
+      <a class="nav-link px-1" href=""><i aria-hidden="true" class="fa fa-envelope"></i></a>&nbsp;&nbsp; -->
+      
+    </div>
+  </nav>
+
+  <div class="container">
+
+
+    <main class="page-content" aria-label="Content">
+      <div class="wrapper">
+        
+
+
+
+
+<!-- 
+888                            
+888                            
+888                            
+888  .d88b.   .d88b.   .d88b.  
+888 d88""88b d88P"88b d88""88b 
+888 888  888 888  888 888  888 
+888 Y88..88P Y88b 888 Y88..88P 
+888  "Y88P"   "Y88888  "Y88P"  
+                  888          
+             Y8b d88P          
+              "Y88P"           
+-->
+
+<div class="row mb-5">
+  <div class="col-md-4 my-auto">
+    <a name="home"><img src="https://github.com/kris-nova/kubicorn/raw/master/docs/img/kubicorn-trans.png" width="100%"></a>
+  </div>
+  <div class="col">
+
+    <!-- <h1 class="display-1">kubicorn</h1> -->
+
+    <h1 class="mb-3">Create, manage, snapshot, and scale Kubernetes infrastructure in the public cloud.</h1>
+
+    <p><code>kubicorn</code> is an <strong>unofficial</strong> project that solves the Kubernetes infrastructure problem and
+      gives users a rich golang library to work with infrastructure.</p>
+
+    <p><code>kubicorn</code> is a project that helps a user manage cloud infrastructure for Kubernetes. With <code>kubicorn</code>      a user can create new clusters, modify and scale them, and take a snapshot of their cluster at any time.</p>
+
+    <p><strong>NOTE:</strong> This is a work-in-progress, we do not consider it production ready. We're working hard towards the <code>v1.0.0</code> release and we're expecting it in the upcoming months.
+      Use at your own risk and if you're as excited about it as we are, maybe you want to join us on the <code>#kubicorn</code> channel in the <a href="https://invite.slack.golangbridge.org/">Gophers Slack community.</a></p>
+  </div>
+</div>
+
+<!-- 
+                                                        888                            
+                                                        888                            
+                                                        888                            
+ .d8888b .d88b.  888d888 .d88b.       888  888  8888b.  888 888  888  .d88b.  .d8888b  
+d88P"   d88""88b 888P"  d8P  Y8b      888  888     "88b 888 888  888 d8P  Y8b 88K      
+888     888  888 888    88888888      Y88  88P .d888888 888 888  888 88888888 "Y8888b. 
+Y88b.   Y88..88P 888    Y8b.           Y8bd8P  888  888 888 Y88b 888 Y8b.          X88 
+ "Y8888P "Y88P"  888     "Y8888         Y88P   "Y888888 888  "Y88888  "Y8888   88888P' 
+-->
+<div class="light-bg py-3 px-5 mb-5">
+  <a name="core" class="anchor">
+    <h1 class="mb-3 mt-3 text-center">Core Values</h1>
+  </a>
+
+  <div class="row mb-5">
+    <div class="font-awesome col-md-3 col-lg-2 my-3">
+      <div class="balls d-flex mx-auto fabulous-red ">
+        <div class="mx-auto my-auto align-self-center">
+          <i aria-hidden="true" class="fa fa-users text-center"></i></span>
+        </div>
+      </div>
+    </div>
+
+    <div class="col d-flex my-auto flex-column mx-3">
+      <h3>Community first.</h3>
+
+      <p class="mb-0">This is a community driven project. We love you, and respect you. We are here to help you learn, help you grow, and
+        help you succeed. If you have an idea, please share it.</h3>
+    </div>
+  </div>
+
+  <div class="row mb-5">
+
+    <div class="font-awesome col-md-3 my-3 hidden-md-up">
+      <div class="balls d-flex mx-auto fabulous-orange">
+        <div class="mx-auto my-auto align-self-center">
+          <i aria-hidden="true" class="fa fa-child text-center"></i></span>
+        </div>
+      </div>
+    </div>
+
+    <div class="col d-flex my-auto flex-column mx-3">
+      <h3>Developer empathy.</h3>
+
+      <p class="mb-0">We are all software engineers, and we all work in many different code bases. We want the code to be stable, and approachable.
+        We strive for clean and simple software, and we encourage refactoring and fixing technical debt.</p>
+    </div>
+
+    <div class="font-awesome col-md-3 my-3 hidden-sm-down">
+      <div class="balls d-flex mx-auto fabulous-orange">
+        <div class="mx-auto my-auto align-self-center">
+          <i aria-hidden="true" class="fa fa-child text-center"></i></span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="row mb-5">
+
+    <div class="font-awesome col-md-3 my-3">
+      <div class="balls d-flex mx-auto fabulous-lime">
+        <div class="mx-auto my-auto align-self-center">
+          <i aria-hidden="true" class="fa fa-cogs text-center"></i></span>
+        </div>
+      </div>
+    </div>
+
+    <div class="col d-flex my-auto flex-column mx-3">
+      <h3>Operational empathy.</h3>
+
+      <p class="mb-0">We want our tool to work, and work well. If an operator is running <code>kubicorn</code> it should feel comfortable and make sense
+        to them. We want operators to feel empowered.</p>
+    </div>
+  </div>
+
+  <div class="row mb-5">
+
+    <div class="font-awesome col-md-3 my-3 hidden-md-up">
+      <div class="balls d-flex mx-auto fabulous-orange">
+        <div class="mx-auto my-auto align-self-center">
+          <i aria-hidden="true" class="fa fa-server text-center"></i></span>
+        </div>
+      </div>
+    </div>
+
+    <div class="col d-flex my-auto flex-column mx-3">
+      <h3>Infrastructure as software.</h3>
+
+      <p class="mb-0">We believe that the oh-so important layer of infrastructure should be represented as software (not as code!). We hope
+        that our project demonstrates this idea, so the community can begin thinking in the way of the new paradigm.</p>
+    </div>
+
+    <div class="font-awesome col-md-3 my-3 hidden-sm-down">
+      <div class="balls d-flex mx-auto fabulous-green">
+        <div class="mx-auto my-auto align-self-center">
+          <i aria-hidden="true" class="fa fa-server text-center"></i></span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="row mb-5">
+    <div class="font-awesome col-md-3 my-3">
+      <div class="balls d-flex mx-auto fabulous-purple">
+        <div class="mx-auto my-auto align-self-center">
+          <i aria-hidden="true" class="fa fa-cloud text-center"></i></span>
+        </div>
+      </div>
+    </div>
+
+    <div class="col d-flex my-auto flex-column mx-3">
+      <h3>Rainbows and Unicorns</h3>
+
+      <p class="mb-0">We believe that sharing is important, and encouraging our peers is even more important. Part of contributing to <code>kubicorn</code>
+        means respecting, encouraging, and welcoming others to the project.</p>
+    </div>
+  </div>
+</div>
+<!-- 
+                                                    888             
+                                                    888             
+                                                    888             
+ .d8888b .d88b.  88888b.   .d8888b .d88b.  88888b.  888888 .d8888b  
+d88P"   d88""88b 888 "88b d88P"   d8P  Y8b 888 "88b 888    88K      
+888     888  888 888  888 888     88888888 888  888 888    "Y8888b. 
+Y88b.   Y88..88P 888  888 Y88b.   Y8b.     888 d88P Y88b.       X88 
+ "Y8888P "Y88P"  888  888  "Y8888P "Y8888  88888P"   "Y888  88888P' 
+                                           888                      
+                                           888                      
+                                           888                      
+-->
+
+<div class="">
+
+  <a name="concepts" class="anchor">
+    <h1 class="my-5 text-center">Concepts</h1>
+  </a>
+
+  <div class="row">
+    <div class="col">
+      <h3 class="text-center">Create</h3>
+      <p><code>kubicorn</code> lets a user create a Kubernetes cluster in a cloud of their choice.</p>
+    </div>
+    <div class="col">
+      <h3 class="text-center">Apply</h3>
+      <p>Define what you want, then apply it. That simple.</p>
+    </div>
+  </div>
+
+  <div class="row">
+    <div class="col">
+      <h3 class="text-center">Adopt</h3>
+      <p><code>kubicorn</code> can adopt any Kubernetes cluster at any time.</p>
+    </div>
+    <div class="col">
+      <h3 class="text-center">Scale</h3>
+      <p><code>kubicorn</code> is powered by a state enforcement pattern. A user defines the intended state of Kubernetes infrastructure,
+        and <code>kubicorn</code> can enforce the intended state.</p>
+    </div>
+  </div>
+
+  <div class="row mb-5">
+    <div class="col">
+      <h3 class="text-center">Snapshot</h3>
+      <p><code>kubicorn</code> allows a user to take a snapshot of a Kubernetes cluster, and run the image in any cloud at any
+        time. A snapshot is compressed file that will represent intended infrastructure <strong>and</strong> intended application
+        definitions. Take a snap, save a snap, deploy a snap.</p>
+    </div>
+    <div class="col">
+      <h3 class="text-center">Enforce</h3>
+      <p><code>kubicorn</code> is built as a library and a framework. Thus allowing it to be easily vendored into operator and
+        controller patterns to enforce intended state of infrastructure.</p>
+    </div>
+  </div>
+
+</div>
+<!-- 
+     888 d8b  .d888  .d888                                  888    
+     888 Y8P d88P"  d88P"                                   888    
+     888     888    888                                     888    
+ .d88888 888 888888 888888 .d88b.  888d888 .d88b.  88888b.  888888 
+d88" 888 888 888    888   d8P  Y8b 888P"  d8P  Y8b 888 "88b 888    
+888  888 888 888    888   88888888 888    88888888 888  888 888    
+Y88b 888 888 888    888   Y8b.     888    Y8b.     888  888 Y88b.  
+ "Y88888 888 888    888    "Y8888  888     "Y8888  888  888  "Y888 
+-->
+<div class="pb-3 different light-bg pb-5 px-5 mb-5">
+  <a name="different" class="anchor">
+    <h1 class="mb-5 pt-5 text-center">How is <code>Kubicorn</code> different?</h1>
+  </a>
+
+  <ol class="mb-0">
+    <li>We use <code>kubeadm</code> to bootstrap our clusters.</li>
+    <li>We strive for developer empathy, and clean and simple code.</li>
+    <li>We strive for operational empathy, and clean and simple user experience.</li>
+    <li>We start with <code>struct</code> literals for profiles, and then marshal into an object.</li>
+    <li>We offer the tooling as a library, more than a command line tool.</li>
+    <li>We are atomic, and will un-do any work if there is an error.</li>
+    <li>We run on many operating systems.</li>
+    <li>We allow users to define their own arbitrary bootstrap logic.</li>
+    <li>We have no guarantee that anything works, ever, use at your own risk.</li>
+    <li>We have no dependency on DNS.</li>
+    <li>We believe in snapshots, and that a user should be able to capture a cluster, and move it.</li>
+  </ol>
+</div>
+
+<!--
+ .d888         d8b                        888          
+d88P"          Y8P                        888          
+888                                       888          
+888888 888d888 888  .d88b.  88888b.   .d88888 .d8888b  
+888    888P"   888 d8P  Y8b 888 "88b d88" 888 88K      
+888    888     888 88888888 888  888 888  888 "Y8888b. 
+888    888     888 Y8b.     888  888 Y88b 888      X88 
+888    888     888  "Y8888  888  888  "Y88888  88888P' 
+-->
+<a name="friends" class="anchor">
+  <h1 class="my-5 text-center">Friends of <code>kubicorn</code></h1>
+</a>
+<div id="accordion" role="tablist" aria-multiselectable="true">
+
+  
+  
+    
+    
+    
+  <div class="card">
+    <div class="card-header" role="tab" id="headingark">
+      <h5 class="mb-0">
+        <a data-toggle="collapse" data-parent="#accordion" href="#collapseark" aria-expanded="true" aria-controls="collapseark">
+          Ark
+        </a>
+      </h5>
+    </div>
+    <div id="collapseark" class="collapse show" role="tabpanel" aria-labelledby="headingark">
+      <div class="card-block">
+        <div class="row">
+          <div class="col-4 col-lg-2">
+            <img src="/img/ark.png" class="img-fluid" alt="Ark">
+          </div>
+          <div class="col align-self-center">
+              <h5>Ark</h5>
+              <p>Thanks to the fantastic works from our friends at Heptio, we can easily help you snapshot and recreate your entire <code class="highlighter-rouge">kubernetes</code> platform using Heptio’s <a href="https://github.com/heptio/ark">Ark</a>.</p>
+
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  
+    
+    
+    
+  <div class="card">
+    <div class="card-header" role="tab" id="headingcalico">
+      <h5 class="mb-0">
+        <a data-toggle="collapse" data-parent="#accordion" href="#collapsecalico" aria-expanded="true" aria-controls="collapsecalico">
+          Calico
+        </a>
+      </h5>
+    </div>
+    <div id="collapsecalico" class="collapse " role="tabpanel" aria-labelledby="headingcalico">
+      <div class="card-block">
+        <div class="row">
+          <div class="col-4 col-lg-2">
+            <img src="/img/calico.png" class="img-fluid" alt="Calico">
+          </div>
+          <div class="col align-self-center">
+              <h5>Calico</h5>
+              <p>We use <a href="https://www.projectcalico.org">Project Calico</a> to make <strong>CNI</strong> problems go away! Thanks to our friends at Tigera, we now can help you get kubernetes up and running in no time using a rock solid CNI provider.</p>
+
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  
+    
+    
+    
+  <div class="card">
+    <div class="card-header" role="tab" id="headingweave">
+      <h5 class="mb-0">
+        <a data-toggle="collapse" data-parent="#accordion" href="#collapseweave" aria-expanded="true" aria-controls="collapseweave">
+          Weave
+        </a>
+      </h5>
+    </div>
+    <div id="collapseweave" class="collapse " role="tabpanel" aria-labelledby="headingweave">
+      <div class="card-block">
+        <div class="row">
+          <div class="col-4 col-lg-2">
+            <img src="/img/weave.png" class="img-fluid" alt="Weave">
+          </div>
+          <div class="col align-self-center">
+              <h5>Weave</h5>
+              <p>We use <a href="https://www.weave.works/oss/net">Weavenet</a> to help control our clusters! Thanks to our friends at Weave we now offer a great experience for networking in different clouds, and a seamless user experience.</p>
+
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  
+
+<!-- 
+     888                   .d8888b.                    
+     888                  d88P  Y88b                   
+     888                  Y88b. d88P                   
+ .d88888  .d88b.   .d8888b "Y88888"   .d88b.  88888b.  
+d88" 888 d88""88b d88P"   .d8P""Y8b. d88""88b 888 "88b 
+888  888 888  888 888     888    888 888  888 888  888 
+Y88b 888 Y88..88P Y88b.   Y88b  d88P Y88..88P 888  888 
+ "Y88888  "Y88P"   "Y8888P "Y8888P"   "Y88P"  888  888 
+-->
+<div class="mb-5 mx-5">
+
+  <h1 class="my-5 text-center">Documentation</h1>
+
+  
+
+  <div class="row sidebar mb-2 mt-4">
+    <div class="col col-sm-3">
+      <p class="mb-3"><strong>General</strong></p>
+    </div>
+    <div class="col">
+       
+      <a href="/documentation/semver.html">
+        <p class="mb-2">Backwards compatibility promise</p>
+      </a>
+        
+      <a href="/documentation/build.html">
+        <p class="mb-2">Building Kubicorn</p>
+      </a>
+        
+      <a href="/documentation/exit_codes.html">
+        <p class="mb-2">Exit Codes</p>
+      </a>
+        
+      <a href="/documentation/friends.html">
+        <p class="mb-2">Friends of `kubicorn`</p>
+      </a>
+        
+      <a href="/documentation/envar.html">
+        <p class="mb-2">Global Environmental Variables list</p>
+      </a>
+        
+      <a href="/documentation/install.html">
+        <p class="mb-2">Installing Kubicorn</p>
+      </a>
+        
+      <a href="/documentation/issue_template.html">
+        <p class="mb-2">Issue Template</p>
+      </a>
+        
+      <a href="/documentation/readme.html">
+        <p class="mb-2">Kubicorn Documentation</p>
+      </a>
+        
+      <a href="/documentation/project-walkthrough.html">
+        <p class="mb-2">Project Walkthrough</p>
+      </a>
+                
+      <a href="/documentation/twitter.html">
+        <p class="mb-2">Twitter</p>
+      </a>
+        
+      <a href="/documentation/make.html">
+        <p class="mb-2">Using `Makefile`</p>
+      </a>
+        
+      <a href="/documentation/maintainers.html">
+        <p class="mb-2">Who is a Maintainer?</p>
+      </a>
+       
+    </div>
+  </div>
+
+  <div class="row sidebar mb-2 mt-4">
+      <div class="col col-sm-3">
+        <p class="mb-3"><strong>AWS</strong></p>
+      </div>
+      <div class="col">
+                           
+        <a href="/documentation/aws-walkthrough.html">
+          <p class="mb-2">Setting up Kubernetes in AWS</p>
+        </a>
+                     
+      </div>
+    </div>
+
+    <div class="row sidebar mb-2 mt-4">
+        <div class="col col-sm-3">
+          <p class="mb-3"><strong>Azure</strong></p>
+        </div>
+        <div class="col">
+                               
+          <a href="/documentation/azure-walkthrough.html">
+            <p class="mb-2">Setting up Kubernetes in Azure</p>
+          </a>
+                     
+        </div>
+      </div>
+
+      <div class="row sidebar mb-2 mt-4">
+          <div class="col col-sm-3">
+            <p class="mb-3"><strong>Digital Ocean</strong></p>
+          </div>
+          <div class="col">
+                                   
+            <a href="/documentation/do-walkthrough.html">
+              <p class="mb-2">Setting up Kubernetes in DigitalOcean with TLS secured private VPN mesh</p>
+            </a>
+                     
+          </div>
+        </div>
+
+        <div class="row sidebar mb-2 mt-4">
+            <div class="col col-sm-3">
+              <p class="mb-3"><strong>Google</strong></p>
+            </div>
+            <div class="col">
+                                       
+              <a href="/documentation/google-walkthrough.html">
+                <p class="mb-2">Setting up Kubernetes in Google with TLS secured private VPN mesh</p>
+              </a>
+                     
+            </div>
+          </div>
+  <!--
+    <dl class="row">
+      <dt class="col-sm-4">
+        <p><span class="lead"><a href="docs/INSTALL.md">Install</a></span>
+      </dt>
+      <dd class="col-sm-8">
+        <span class="text-muted"><span class="text-muted">Install guide for Kubicorn CLI</span></p>
+      </dd>
+      <dt class="col-sm-4">
+        <p><span class="lead"><a href="docs/envar.md">Environmental Variables</a></span>
+      </dt>
+      <dd class="col-sm-8">
+        <span class="text-muted">Master list of supported environmental variables</span></p>
+      </dd>
+      <dt class="col-sm-4">
+        <p><span class="lead"><a href="https://nivenly.com/kubicorn">Kops vs Kubicorn</a></span>            
+      </dt>
+      <dd class="col-sm-8">
+        <span class="text-muted">Blog about kubicorn with comparison table</span></p>
+      </dd>
+      <dt class="col-sm-4">
+        <p><span class="lead"><a href="docs/aws/walkthrough.md">AWS Walkthrough</a></span>
+      </dt>
+      <dd class="col-sm-8">
+        <span class="text-muted">A walkthrough guide on install Kubernetes 1.7 in AWS</span></p>
+      </dd>
+      <dt class="col-sm-4">
+        <p><span class="lead"><a href="docs/do/walkthrough.md">DigitalOcean Walkthrough</a></span>
+      </dt>
+      <dd class="col-sm-8">
+        <span class="text-muted">A walkthrough guide on install Kubernetes 1.7 in D.O.</span></p>          
+      </dd>
+      <dt class="col-sm-4">
+        <p><span class="lead"><a href="docs/google/walkthrough.md">Google Cloud engine  Walkthrough</a></span>
+      </dt>
+      <dd class="col-sm-8">
+        <span class="text-muted">A walkthrough guide on install Kubernetes 1.7 in GCE</span></p>
+      </dd>
+      <dt class="col-sm-4">
+        <p><span class="lead"><a href="https://www.useloom.com/share/a0afd5034e654b0b8d6785a5fa8ec754">AWS Video</a></span>            
+      </dt>
+      <dd class="col-sm-8">
+        <span class="text-muted">A step by step video of using Kubicorn in AWS</a></span>
+      </dd>
+      <dt class="col-sm-4">
+        <p><span class="lead"><a href="https://youtu.be/2DmUG0RgS70?list=PLaR6Rq6Z4IqfwXtKT7KeARRvxdvyLqG72">Tech N Talk Deep Dive</a></span>            
+      </dt>
+      <dd class="col-sm-8">
+        <span class="text-muted"> A technical deep dive courtesy of RedHat</span></p>
+      </dd>
+    </dl>
+-->
+</div>
+<!-- 
+d8b                   888             888 888 d8b                   
+Y8P                   888             888 888 Y8P                   
+                      888             888 888                       
+888 88888b.  .d8888b  888888  8888b.  888 888 888 88888b.   .d88b.  
+888 888 "88b 88K      888        "88b 888 888 888 888 "88b d88P"88b 
+888 888  888 "Y8888b. 888    .d888888 888 888 888 888  888 888  888 
+888 888  888      X88 Y88b.  888  888 888 888 888 888  888 Y88b 888 
+888 888  888  88888P'  "Y888 "Y888888 888 888 888 888  888  "Y88888 
+                                                                888 
+                                                           Y8b d88P 
+                                                            "Y88P"  
+-->
+<div class="mb-5">
+  <a name="installing" class="anchor">
+    <h1 class="mb-3 mt-3 text-center">Installing</h1>
+  </a>
+
+  <p><code>$ go get github.com/kris-nova/kubicorn</code></p>
+
+  <p>..or read the <a href="documentation/install.html">Install Guide</a>.</p>
+</div>
+
+      </div>
+    </main>
+
+    <!-- 
+ .d888                  888                    
+d88P"                   888                    
+888                     888                    
+888888 .d88b.   .d88b.  888888 .d88b.  888d888 
+888   d88""88b d88""88b 888   d8P  Y8b 888P"   
+888   888  888 888  888 888   88888888 888     
+888   Y88..88P Y88..88P Y88b. Y8b.     888     
+888    "Y88P"   "Y88P"   "Y888 "Y8888  888     
+-->
+<div class="row light-bg py-3 px-3 mb-0 social-media-footer">
+  <div class="col-md-4 text-center d-flex align-items-start justify-content-center">
+    <div>
+      <h3 class="mb-3 mt-3">Community</h3>
+      <p><a href="https://github.com/kris-nova/kubicorn/blob/master/CODE_OF_CONDUCT.md">Code of Conduct</a></p>
+      <p><a href="https://github.com/kris-nova/kubicorn/blob/master/CONTRIBUTING.md">Contributing Guidelines</a></p>
+      <p><a href="https://github.com/kris-nova/kubicorn/blob/master/AUTHORS">Authors</a></p>
+    </div>
+  </div>
+  <div class="col-md-4 text-center d-flex align-items-start justify-content-center">
+    <div>
+      <h3 class="mb-3 mt-3">Join us!</h3>
+      <a class=" px-1" href="https://twitter.com/kubicornk8s"><i aria-hidden="true" class="fa fa-twitter"></i></a>&nbsp;&nbsp;
+      <a class=" px-1" href="https://github.com/kris-nova/kubicorn/"><i aria-hidden="true" class="fa fa-github"></i></a>&nbsp;&nbsp;
+      <a class=" px-1" href="https://invite.slack.golangbridge.org/"><i aria-hidden="true" class="fa fa-slack"></i></a>&nbsp;&nbsp;
+      <!-- <a class=" px-1" href=""><i aria-hidden="true" class="fa fa-stack-overflow"></i></a>&nbsp;&nbsp;
+      <a class=" px-1" href=""><i aria-hidden="true" class="fa fa-envelope"></i></a>&nbsp;&nbsp;   -->
+    </div>
+  </div>
+  <div class="col-md-4 text-center d-flex align-items-start justify-content-center">
+    <div>
+      <h3 class="mb-3 mt-3"><code>kubicorn</code></h3>
+      <p class="small">© 2017 The Kubicorn Authors</p>
+    </div>
+  </div>
+</div>
+
+  <!-- 
+                          d8b          888             
+                          Y8P          888             
+                                       888             
+.d8888b   .d8888b 888d888 888 88888b.  888888 .d8888b  
+88K      d88P"    888P"   888 888 "88b 888    88K      
+"Y8888b. 888      888     888 888  888 888    "Y8888b. 
+     X88 Y88b.    888     888 888 d88P Y88b.       X88 
+ 88888P'  "Y8888P 888     888 88888P"   "Y888  88888P' 
+                              888                      
+                              888                      
+                              888                      
+-->
+</div>
+<!-- <script src="https://code.jquery.com/jquery-3.2.1.slim.min.js" integrity="sha384-KJ3o2DKtIkvYIK3UENzmM7KCkRr/rE9/Qpg6aAZGJwFDMVNA/GpGFF93hXpG5KkN"
+  crossorigin="anonymous"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.11.0/umd/popper.min.js" integrity="sha384-b/U6ypiBEHpOf/4+1nzFpr53nxSS+GLCkfwBdFNTxtclqqenISfwAzpKaMNFNmj4"
+  crossorigin="anonymous"></script>
+<script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0-beta/js/bootstrap.min.js" integrity="sha384-h0AbiXch4ZDo7tp9hKZ4TsHbi047NrKGLO3SEJAg45jXxnGIfYzk4Si90RDIqNm1"
+  crossorigin="anonymous"></script> -->
+<script src="https://code.jquery.com/jquery-3.1.1.slim.min.js" integrity="sha384-A7FZj7v+d/sdmMqp/nOQwliLvUsJfDHW+k9Omg/a/EheAdgtzNs3hpfag6Ed950n"
+  crossorigin="anonymous"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/tether/1.4.0/js/tether.min.js" integrity="sha384-DztdAPBWPRXSA/3eYEEUWrWCy7G5KFbe8fFjk5JAIxUYHKkDx6Qin1DkWx51bBrb"
+  crossorigin="anonymous"></script>
+<script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0-alpha.6/js/bootstrap.min.js" integrity="sha384-vBWWzlZJ8ea9aCX4pEW3rVHjgjt7zpkNpZk+02D9phzyeVkE+jo0ieGizqPLForn"
+  crossorigin="anonymous"></script>
+  <script>
+      $('.nav-item').click(function(){
+        $('.navbar-collapse').collapse('hide');
+      });
+    </script>
+
+  </body>
+
+</html>

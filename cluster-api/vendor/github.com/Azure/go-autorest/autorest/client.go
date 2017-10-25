@@ -175,6 +175,7 @@ func NewClientWithUserAgent(ua string) Client {
 		RetryDuration:   30 * time.Second,
 		UserAgent:       defaultUserAgent,
 	}
+	c.Sender = c.sender()
 	c.AddToUserAgent(ua)
 	return c
 }
@@ -202,9 +203,9 @@ func (c Client) Do(r *http.Request) (*http.Response, error) {
 	if err != nil {
 		return nil, NewErrorWithError(err, "autorest/Client", "Do", nil, "Preparing request failed")
 	}
+
 	resp, err := SendWithSender(c.sender(), r)
-	Respond(resp,
-		c.ByInspecting())
+	Respond(resp, c.ByInspecting())
 	return resp, err
 }
 

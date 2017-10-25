@@ -51,16 +51,19 @@ type Handler struct {
 	signalReceived int
 	// Timer to handle timeout correctly
 	timer *time.Timer
+	// exitOnTimeout will determine if we should exit on a timeout or not
+	exitOnTimeout bool
 }
 
 // NewSignalHandler creates a new Handler using given properties.
-func NewSignalHandler(timeoutSeconds int) *Handler {
+func NewSignalHandler(timeoutSeconds int, exitOnTimeout bool) *Handler {
 	signals := make(chan os.Signal)
 	signal.Notify(signals, os.Interrupt, os.Kill)
 	return &Handler{
 		timeoutSeconds: timeoutSeconds,
 		signals:        signals,
 		signalReceived: 0,
+		exitOnTimeout:  exitOnTimeout,
 	}
 }
 
@@ -88,6 +91,7 @@ func (h *Handler) Register() {
 						continue
 					}
 					h.signalReceived = signalTerminate
+					logger.Critical("Termination received. Force closing kubicorn!")
 					debug.PrintStack()
 					os.Exit(130)
 					break
@@ -96,14 +100,22 @@ func (h *Handler) Register() {
 					break
 				case s == syscall.SIGTERM:
 					h.signalReceived = signalTerminate
+					logger.Critical("Termination received. Force closing kubicorn!")
 					os.Exit(3)
 					break
 				}
 			case <-h.timer.C:
-				os.Exit(4)
+				if h.exitOnTimeout {
+					logger.Critical("Timeout for signal handler expired: exit [4]")
+					os.Exit(4)
+				} else {
+					logger.Debug("Bypassing exit with expired timer..")
+				}
 				break
 			}
 		}
 
 	}()
 }
+
+

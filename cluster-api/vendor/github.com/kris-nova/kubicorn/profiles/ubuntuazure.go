@@ -29,7 +29,10 @@ func NewUbuntuAzureCluster(name string) *cluster.Cluster {
 		Location: "eastus",
 		SSH: &cluster.SSH{
 			PublicKeyPath: "~/.ssh/id_rsa.pub",
-			User:          "root",
+			User:          "kubicorn",
+		},
+		Network: &cluster.Network{
+			CIDR: "10.0.0.0/16",
 		},
 		KubernetesAPI: &cluster.KubernetesAPI{
 			Port: "443",
@@ -44,39 +47,19 @@ func NewUbuntuAzureCluster(name string) *cluster.Cluster {
 				Type:             cluster.ServerPoolTypeMaster,
 				Name:             fmt.Sprintf("%s-master", name),
 				MaxCount:         1,
-				Image:            "UbuntuServer",
-				Size:             "Standard_DS3_v2 ",
-				BootstrapScripts: []string{},
-				Firewalls: []*cluster.Firewall{
+				Image:            "UbuntuServer 16.04.0-LTS",
+				Size:             "Standard_D4",
+				BootstrapScripts: []string{"azure_k8s_ubuntu_16.04_master.sh"},
+				Subnets: []*cluster.Subnet{
 					{
-						Name: fmt.Sprintf("%s-master", name),
-						IngressRules: []*cluster.IngressRule{
-							{
-								IngressToPort:   "22",
-								IngressSource:   "0.0.0.0/0",
-								IngressProtocol: "tcp",
-							},
-							{
-								IngressToPort:   "443",
-								IngressSource:   "0.0.0.0/0",
-								IngressProtocol: "tcp",
-							},
-							{
-								IngressToPort:   "1194",
-								IngressSource:   "0.0.0.0/0",
-								IngressProtocol: "udp",
-							},
-						},
-						EgressRules: []*cluster.EgressRule{
-							{
-								EgressToPort:      "all", // By default all egress from VM
-								EgressDestination: "0.0.0.0/0",
-								EgressProtocol:    "tcp",
-							},
-							{
-								EgressToPort:      "all", // By default all egress from VM
-								EgressDestination: "0.0.0.0/0",
-								EgressProtocol:    "udp",
+						Name: fmt.Sprintf("%s-master-0", name),
+						CIDR: "10.0.1.0/24",
+						LoadBalancer: &cluster.LoadBalancer{
+							InboundRules: []*cluster.InboundRule{
+								{
+									ListenPort: 22,
+									TargetPort: 22,
+								},
 							},
 						},
 					},
@@ -86,34 +69,19 @@ func NewUbuntuAzureCluster(name string) *cluster.Cluster {
 				Type:             cluster.ServerPoolTypeNode,
 				Name:             fmt.Sprintf("%s-node", name),
 				MaxCount:         1,
-				Image:            "UbuntuServer",
-				Size:             "Standard_DS3_v2 ",
-				BootstrapScripts: []string{},
-				Firewalls: []*cluster.Firewall{
+				Image:            "UbuntuServer 16.04.0-LTS",
+				Size:             "Standard_D4",
+				BootstrapScripts: []string{"azure_k8s_ubuntu_16.04_node.sh"},
+				Subnets: []*cluster.Subnet{
 					{
-						Name: fmt.Sprintf("%s-node", name),
-						IngressRules: []*cluster.IngressRule{
-							{
-								IngressToPort:   "22",
-								IngressSource:   "0.0.0.0/0",
-								IngressProtocol: "tcp",
-							},
-							{
-								IngressToPort:   "1194",
-								IngressSource:   "0.0.0.0/0",
-								IngressProtocol: "udp",
-							},
-						},
-						EgressRules: []*cluster.EgressRule{
-							{
-								EgressToPort:      "all", // By default all egress from VM
-								EgressDestination: "0.0.0.0/0",
-								EgressProtocol:    "tcp",
-							},
-							{
-								EgressToPort:      "all", // By default all egress from VM
-								EgressDestination: "0.0.0.0/0",
-								EgressProtocol:    "udp",
+						Name: fmt.Sprintf("%s-node-0", name),
+						CIDR: "10.0.100.0/24",
+						LoadBalancer: &cluster.LoadBalancer{
+							InboundRules: []*cluster.InboundRule{
+								{
+									ListenPort: 22,
+									TargetPort: 22,
+								},
 							},
 						},
 					},

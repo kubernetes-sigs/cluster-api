@@ -49,6 +49,7 @@ func GetConfig(existing *cluster.Cluster) error {
 	sshConfig := &ssh.ClientConfig{
 		User:            user,
 		HostKeyCallback: ssh.InsecureIgnoreHostKey(),
+		Timeout:         time.Duration(time.Second * 3),
 	}
 	remotePath := ""
 	if user == "root" {

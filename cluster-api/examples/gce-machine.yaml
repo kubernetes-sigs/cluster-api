@@ -1,0 +1,13 @@
+apiVersion: "cluster-api.k8s.io/v1alpha1"
+kind: Machine
+metadata:
+  generateName: gce-machine-
+spec:
+  providerConfig: blahblahblah
+  versions:
+    kubelet: 1.7.4
+    containerRuntime:
+      name: docker
+      version: 1.12.0
+  roles:
+  - Node

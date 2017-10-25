@@ -152,7 +152,7 @@ func (r *VMScaleSet) Apply(actual, expected cloud.Resource, immutable *cluster.C
 					StorageProfile: &compute.VirtualMachineScaleSetStorageProfile{
 						OsDisk: &compute.VirtualMachineScaleSetOSDisk{
 							OsType:       compute.Linux,
-							CreateOption: compute.FromImage,
+							CreateOption: compute.DiskCreateOptionTypesFromImage,
 							VhdContainers: &[]string{
 								vhdcontainername,
 							},

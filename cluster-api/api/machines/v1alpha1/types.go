@@ -1,10 +1,12 @@
-package machines
+package v1alpha1
 
 import (
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/kubernetes/pkg/api"
 )
+
+const MachineResourcePlural = "machines"
 
 // Machine represents a single Node that should exist (whether it does or
 // not yet). In this model, there is no grouping of nodes to scale with a
@@ -27,12 +29,14 @@ import (
 // It is recommended, but not required, that provider-specific controllers add
 // finalizers to Machine objects so that they can be triggered on deletion to
 // release the necessary external resources, reporting any errors encountered.
-type Machine struct {
-	metav1.TypeMeta
-	metav1.ObjectMeta
 
-	Spec   MachineSpec
-	Status MachineStatus
+// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
+type Machine struct {
+	metav1.TypeMeta   `json:",inline"`
+	metav1.ObjectMeta `json:"metadata"`
+
+	Spec   MachineSpec `json:"spec"`
+	Status MachineStatus `json:"status,omitempty"`
 }
 
 type MachineSpec struct {
@@ -40,14 +44,14 @@ type MachineSpec struct {
 	// indicate what labels, annotations, name prefix, etc., should be used
 	// when creating the Node.
 	// +optional
-	metav1.ObjectMeta
+	metav1.ObjectMeta `json:"metadata,omitempty"`
 
 	// Provider-specific serialized configuration to use during node
 	// creation. It is recommended that providers maintain their own
 	// versioned API types that should be serialized/deserialized from this
 	// field, akin to component config.
 	// +optional
-	ProviderConfig string
+	ProviderConfig string `json:"providerConfig"`
 
 	// A list consisting of "Master" and/or "Node".
 	//
@@ -60,11 +64,11 @@ type MachineSpec struct {
 	// | Node absent:  | Install control plane | Invalid configuration  |
 	// |               | and be unscheduleable |                        |
 	// +---------------+-----------------------+------------------------+
-	Roles []string
+	Roles []string `json:"roles,omitempty"`
 
 	// Versions of key software to use.
 	// +optional
-	Versions MachineVersionInfo
+	Versions MachineVersionInfo `json:"versions,omitempty"`
 
 	// To populate in the associated Node for dynamic kubelet config. This
 	// field already exists in Node, so any updates to it in the Machine
@@ -72,33 +76,33 @@ type MachineSpec struct {
 	// status. The rest of dynamic kubelet config support should then work
 	// as-is.
 	// +optional
-	ConfigSource *corev1.NodeConfigSource
+	ConfigSource *corev1.NodeConfigSource `json:"configSource,omitempty"`
 }
 
 type MachineStatus struct {
 	// If the corresponding Node exists, this will point to its object.
 	// +optional
-	NodeRef *api.ObjectReference
+	NodeRef *api.ObjectReference `json:"nodeRef,omitempty"`
 
 	// When was this status last observed
 	// +optional
-	LastUpdated metav1.Time
+	LastUpdated metav1.Time `json:"lastUpdated,omitempty"`
 
 	// Indicates whether or not the Machine is fully reconciled. When a
 	// controller observes that the spec has changed and no longer matches
 	// reality, it should update Ready to false before reconciling the
 	// state, and then set back to true when the state matches the spec.
-	Ready bool
+	Ready bool `json:"ready"`
 
 	// If set, indicates that there is a problem reconciling state, and
 	// will be set to a token value suitable for machine interpretation.
 	// +optional
-	ErrorReason *MachineStatusError
+	ErrorReason *MachineStatusError `json:"errorReason,omitempty"`
 
 	// +optional
 	// If set, indicates that there is a problem reconciling state, and
 	// will be set to a human readable string to indicate the problem.
-	ErrorMessage *string
+	ErrorMessage *string `json:"errorMessage,omitempty"`
 }
 
 type MachineStatusError string
@@ -145,16 +149,23 @@ const (
 
 type MachineVersionInfo struct {
 	// Semantic version of kubelet to run
-	Kubelet string
+	Kubelet string `json:"kubelet"`
 
 	// Name/version of container runtime
-	ContainerRuntime ContainerRuntimeInfo
+	ContainerRuntime ContainerRuntimeInfo `json:"containerRuntime"`
 }
 
 type ContainerRuntimeInfo struct {
 	// docker, rkt, containerd, ...
-	Name string
+	Name string `json:"name"`
 
 	// Semantic version of the container runtime to use
-	Version string
+	Version string `json:"version"`
+}
+
+// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
+type MachineList struct {
+        metav1.TypeMeta `json:",inline"`
+        metav1.ListMeta `json:"metadata"`
+        Items           []Machine `json:"items"`
 }

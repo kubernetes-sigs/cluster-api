@@ -26,4 +26,5 @@ type Subnet struct {
 	Location          string `json:"location,omitempty"`
 	Zone              string `json:"zone,omitempty"`
 	Name              string `json:"name,omitempty"`
+	LoadBalancer      *LoadBalancer `json:"loadBalancer,omitempty"`
 }

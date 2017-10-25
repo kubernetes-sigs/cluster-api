@@ -1,5 +1,10 @@
 # CHANGELOG
 
+
+## v9.1.1
+
+- Fixes a bug regarding the cookie jar on `autorest.Client.Sender`.
+
 ## v9.1.0
 
 ### New Features

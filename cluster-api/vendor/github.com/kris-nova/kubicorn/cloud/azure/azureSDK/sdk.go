@@ -18,19 +18,26 @@ import (
 	"fmt"
 	"os"
 
+	"github.com/Azure/azure-sdk-for-go/arm/compute"
 	"github.com/Azure/azure-sdk-for-go/arm/examples/helpers"
 	"github.com/Azure/azure-sdk-for-go/arm/network"
 	"github.com/Azure/azure-sdk-for-go/arm/resources/resources"
+	storageAccount "github.com/Azure/azure-sdk-for-go/arm/storage"
 	"github.com/Azure/go-autorest/autorest"
 	"github.com/Azure/go-autorest/autorest/adal"
 	"github.com/Azure/go-autorest/autorest/azure"
+	//"github.com/Azure/azure-sdk-for-go/storage"
 )
 
 type Sdk struct {
 	ServicePrincipal *ServicePrincipal
 	Network          *network.ManagementClient
 	Vnet             *network.VirtualNetworksClient
+	Compute          *compute.VirtualMachineScaleSetsClient
 	ResourceGroup    *resources.GroupsClient
+	LoadBalancer     *network.LoadBalancersClient
+	PublicIP         *network.PublicIPAddressesClient
+	StorageAccount   *storageAccount.AccountsClient
 }
 
 type ServicePrincipal struct {
@@ -102,6 +109,30 @@ func NewSdk() (*Sdk, error) {
 	vnetClient := network.NewVirtualNetworksClient(sdk.ServicePrincipal.SubscriptionID)
 	vnetClient.Authorizer = autorest.NewBearerAuthorizer(sdk.ServicePrincipal.AuthenticatedToken)
 	sdk.Vnet = &vnetClient
+
+	//------------------------
+	// Compute
+	computeClient := compute.NewVirtualMachineScaleSetsClient(sdk.ServicePrincipal.SubscriptionID)
+	computeClient.Authorizer = autorest.NewBearerAuthorizer(sdk.ServicePrincipal.AuthenticatedToken)
+	sdk.Compute = &computeClient
+
+	//------------------------
+	// LoadBalancer
+	loadBalancerClient := network.NewLoadBalancersClient(sdk.ServicePrincipal.SubscriptionID)
+	loadBalancerClient.Authorizer = autorest.NewBearerAuthorizer(sdk.ServicePrincipal.AuthenticatedToken)
+	sdk.LoadBalancer = &loadBalancerClient
+
+	//------------------------
+	// PublicIP
+	publicIPClient := network.NewPublicIPAddressesClient(sdk.ServicePrincipal.SubscriptionID)
+	publicIPClient.Authorizer = autorest.NewBearerAuthorizer(sdk.ServicePrincipal.AuthenticatedToken)
+	sdk.PublicIP = &publicIPClient
+
+	//------------------------
+	// StorageAccount
+	storageAccountClient := storageAccount.NewAccountsClient(sdk.ServicePrincipal.SubscriptionID)
+	storageAccountClient.Authorizer = autorest.NewBearerAuthorizer(sdk.ServicePrincipal.AuthenticatedToken)
+	sdk.StorageAccount = &storageAccountClient
 
 	return sdk, nil
 }

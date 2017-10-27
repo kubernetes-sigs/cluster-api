@@ -3,14 +3,16 @@ package cmd
 import (
 	"fmt"
 	"github.com/ghodss/yaml"
-	"github.com/kris-nova/kubicorn/apis/cluster"
 	"github.com/kris-nova/kubicorn/cutil/logger"
-	"github.com/kris-nova/kubicorn/profiles"
 	"github.com/spf13/cobra"
 	"io/ioutil"
 	"k8s.io/kube-deploy/cluster-api/api"
+	"k8s.io/kube-deploy/cluster-api/api/machines/v1alpha1"
 	"os"
 	"os/exec"
+	"crypto/md5"
+	"golang.org/x/crypto/ssh"
+	"strings"
 )
 
 var RootCmd = &cobra.Command{
@@ -39,41 +41,52 @@ func Execute() {
 	}
 }
 
-func convertToKubecornCluster(cluster *api.Cluster) *cluster.Cluster {
-	newCluster := profileMapIndexed[cluster.Spec.Cloud](cluster.Name)
-	newCluster.Name = cluster.Name
-	newCluster.CloudId = cluster.Spec.Project
-	newCluster.SSH.User = cluster.Spec.SSH.User
-	newCluster.SSH.PublicKeyPath = cluster.Spec.SSH.PublicKeyPath
-	return newCluster
-}
-
-func readAndValidateYaml(file string) (*api.Cluster, error) {
+func parseClusterYaml(file string) (*api.Cluster, error) {
 	bytes, err := ioutil.ReadFile(file)
 	if err != nil {
 		return nil, err
 	}
 
-	clusterSpec := &api.Cluster{}
-	err = yaml.Unmarshal(bytes, clusterSpec)
+	cluster := &api.Cluster{}
+	err = yaml.Unmarshal(bytes, cluster)
 	if err != nil {
 		return nil, err
 	}
 
-	if _, ok := profileMapIndexed[clusterSpec.Spec.Cloud]; !ok {
-		return nil, fmt.Errorf("invalid cloud option [%s]", clusterSpec.Spec.Cloud)
-	}
-	if clusterSpec.Spec.Cloud == cluster.CloudGoogle && clusterSpec.Spec.Project == "" {
-		return nil, fmt.Errorf("CloudID is required for google cloud. Please set it to your project ID")
-	}
-	return clusterSpec, nil
+	return cluster, nil
 }
 
-type profileFunc func(name string) *cluster.Cluster
 
-var profileMapIndexed = map[string]profileFunc{
-	"azure":        profiles.NewUbuntuAzureCluster,
-	"azure-ubuntu": profiles.NewUbuntuAzureCluster,
-	"google":       profiles.NewUbuntuGoogleComputeCluster,
-	"gcp":          profiles.NewUbuntuGoogleComputeCluster,
+func parseMachinesYaml(file string) ([]v1alpha1.Machine, error) {
+	bytes, err := ioutil.ReadFile(file)
+	if err != nil {
+		return nil, err
+	}
+
+	machines := &v1alpha1.MachineList{}
+	err = yaml.Unmarshal(bytes, &machines)
+	if err != nil {
+		return nil, err
+	}
+	return machines.Items, nil
+}
+
+// copied form github.com/kris-nova/kubicorn/cutil/initapi/ssh.go
+func publicKeyFingerprint(in []byte) (string) {
+	pk, _, _, _, err := ssh.ParseAuthorizedKey(in)
+	if err != nil {
+		fmt.Println(err)
+		os.Exit(-1)
+	}
+
+	return fingerprint(pk)
+}
+
+func fingerprint(key ssh.PublicKey) string {
+	sum := md5.Sum(key.Marshal())
+	parts := make([]string, len(sum))
+	for i := 0; i < len(sum); i++ {
+		parts[i] = fmt.Sprintf("%0.2x", sum[i])
+	}
+	return strings.Join(parts, ":")
 }

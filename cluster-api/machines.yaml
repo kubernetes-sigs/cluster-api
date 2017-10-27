@@ -1,0 +1,43 @@
+items:
+- apiVersion: "cluster-api.k8s.io/v1alpha1"
+  kind: Machine
+  metadata:
+    generateName: gce-master-
+  spec:
+    providerConfig: >
+      {
+        "apiVersion": "gceproviderconfig/v1alpha1",
+        "kind": "GCEProviderConfig",
+        "project": "beacham-gke-dev",
+        "zone": "us-central1-f",
+        "machineType": "n1-standard-1",
+        "image": "projects/ubuntu-os-cloud/global/images/family/ubuntu-1604-lts"
+      }
+    versions:
+      kubelet: 1.7.4
+      containerRuntime:
+        name: docker
+        version: 1.12.0
+    roles:
+    - Master
+- apiVersion: "cluster-api.k8s.io/v1alpha1"
+  kind: Machine
+  metadata:
+    generateName: gce-node-
+  spec:
+    providerConfig: >
+      {
+        "apiVersion": "gceproviderconfig/v1alpha1",
+        "kind": "GCEProviderConfig",
+        "project": "beacham-gke-dev",
+        "zone": "us-central1-f",
+        "machineType": "n1-standard-1",
+        "image": "projects/ubuntu-os-cloud/global/images/family/ubuntu-1604-lts"
+      }
+    versions:
+      kubelet: 1.7.4
+      containerRuntime:
+        name: docker
+        version: 1.12.0
+    roles:
+    - Node

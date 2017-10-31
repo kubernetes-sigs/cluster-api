@@ -14,25 +14,25 @@ import (
 )
 
 const (
-	machinesCRDGroup   = "cluster-api.k8s.io"
-	machinesCRDPlural  = "machines"
-	machinesCRDVersion = "v1alpha1"
-	machinesCRDName    = machinesCRDPlural + "." + machinesCRDGroup
+	MachinesCRDGroup   = "cluster-api.k8s.io"
+	MachinesCRDPlural  = "machines"
+	MachinesCRDVersion = "v1alpha1"
+	MachinesCRDName    = MachinesCRDPlural + "." + MachinesCRDGroup
 )
 
-var SchemeGroupVersion = schema.GroupVersion{Group: machinesCRDGroup, Version: machinesCRDVersion}
+var SchemeGroupVersion = schema.GroupVersion{Group: MachinesCRDGroup, Version: MachinesCRDVersion}
 
 func CreateMachinesCRD(clientset apiextensionsclient.Interface) (*extensionsv1.CustomResourceDefinition, error) {
 	crd := &extensionsv1.CustomResourceDefinition{
 		ObjectMeta: metav1.ObjectMeta{
-			Name: machinesCRDName,
+			Name: MachinesCRDName,
 		},
 		Spec: extensionsv1.CustomResourceDefinitionSpec{
-			Group:   machinesCRDGroup,
+			Group:   MachinesCRDGroup,
 			Version: SchemeGroupVersion.Version,
 			Scope:   extensionsv1.ClusterScoped,
 			Names: extensionsv1.CustomResourceDefinitionNames{
-				Plural: machinesCRDPlural,
+				Plural: MachinesCRDPlural,
 				Kind:   reflect.TypeOf(Machine{}).Name(),
 			},
 		},
@@ -44,7 +44,7 @@ func CreateMachinesCRD(clientset apiextensionsclient.Interface) (*extensionsv1.C
 
 	// wait for CRD being established
 	err = wait.Poll(500*time.Millisecond, 60*time.Second, func() (bool, error) {
-		crd, err = clientset.ApiextensionsV1beta1().CustomResourceDefinitions().Get(machinesCRDName, metav1.GetOptions{})
+		crd, err = clientset.ApiextensionsV1beta1().CustomResourceDefinitions().Get(MachinesCRDName, metav1.GetOptions{})
 		if err != nil {
 			return false, err
 		}
@@ -63,7 +63,7 @@ func CreateMachinesCRD(clientset apiextensionsclient.Interface) (*extensionsv1.C
 		return false, err
 	})
 	if err != nil {
-		deleteErr := clientset.ApiextensionsV1beta1().CustomResourceDefinitions().Delete(machinesCRDName, nil)
+		deleteErr := clientset.ApiextensionsV1beta1().CustomResourceDefinitions().Delete(MachinesCRDName, nil)
 		if deleteErr != nil {
 			return nil, errors.NewAggregate([]error{err, deleteErr})
 		}

@@ -20,12 +20,12 @@ func main() {
 	c := &controller{}
 	var err error
 
-	c.gce, err = New()
+	c.kube, _, err = restClient()
 	if err != nil {
 		panic(err.Error())
 	}
 
-	c.kube, _, err = restClient()
+	c.gce, err = New(c.kube)
 	if err != nil {
 		panic(err.Error())
 	}

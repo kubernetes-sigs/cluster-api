@@ -2,12 +2,14 @@ package main
 
 import (
 	"fmt"
+	"strings"
 
 	"golang.org/x/net/context"
 	"golang.org/x/oauth2/google"
 	"google.golang.org/api/compute/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/serializer"
+	"k8s.io/client-go/rest"
 	machinesv1 "k8s.io/kube-deploy/cluster-api/api/machines/v1alpha1"
 	gceconfig "k8s.io/kube-deploy/cluster-api/examples/gce-machines-controller/apis/gceproviderconfig"
 	gceconfigv1 "k8s.io/kube-deploy/cluster-api/examples/gce-machines-controller/apis/gceproviderconfig/v1alpha1"
@@ -17,9 +19,10 @@ type GCEClient struct {
 	service      *compute.Service
 	scheme       *runtime.Scheme
 	codecFactory *serializer.CodecFactory
+	kube         *rest.RESTClient
 }
 
-func New() (*GCEClient, error) {
+func New(kube *rest.RESTClient) (*GCEClient, error) {
 	client, err := google.DefaultClient(context.TODO(), compute.ComputeScope)
 	if err != nil {
 		return nil, err
@@ -39,11 +42,35 @@ func New() (*GCEClient, error) {
 		service:      service,
 		scheme:       scheme,
 		codecFactory: codecFactory,
+		kube:         kube,
 	}, nil
 }
 
 func (gce *GCEClient) CreateVM(machine *machinesv1.Machine) error {
-	config, err := gce.providerconfig(machine)
+	if err := gce.validateConfig(machine); err != nil {
+		errorReason := machinesv1.InvalidConfigurationMachineError
+		errorMessage := fmt.Sprintf("Invalid configuration: %v", err)
+
+		update := machine.DeepCopy()
+		update.Status.ErrorReason = &errorReason
+		update.Status.ErrorMessage = &errorMessage
+
+		kerr := gce.kube.Put().
+			Name(update.ObjectMeta.Name).
+			Resource(machinesv1.MachineResourcePlural).
+			Body(update).
+			Do().
+			Error()
+		if kerr != nil {
+			fmt.Printf("error updating machine status: %v\n", kerr)
+		} else {
+			fmt.Printf("updated machine status\n")
+		}
+
+		return err
+	}
+
+	config, err := gce.providerConfig(machine)
 	if err != nil {
 		return err
 	}
@@ -77,7 +104,7 @@ func (gce *GCEClient) CreateVM(machine *machinesv1.Machine) error {
 		Metadata: &compute.Metadata{
 			Items: []*compute.MetadataItems{
 				&compute.MetadataItems{
-					Key: "startup-script",
+					Key:   "startup-script",
 					Value: &startupScript,
 				},
 			},
@@ -87,7 +114,7 @@ func (gce *GCEClient) CreateVM(machine *machinesv1.Machine) error {
 }
 
 func (gce *GCEClient) DeleteVM(machine *machinesv1.Machine) error {
-	config, err := gce.providerconfig(machine)
+	config, err := gce.providerConfig(machine)
 	if err != nil {
 		return err
 	}
@@ -96,7 +123,14 @@ func (gce *GCEClient) DeleteVM(machine *machinesv1.Machine) error {
 	return err
 }
 
-func (gce *GCEClient) providerconfig(machine *machinesv1.Machine) (*gceconfig.GCEProviderConfig, error) {
+func (gce *GCEClient) validateConfig(machine *machinesv1.Machine) error {
+	if !strings.HasPrefix(machine.Spec.Versions.Kubelet, "1.8.") {
+		return fmt.Errorf("unsupported kubelet version: %v", machine.Spec.Versions.Kubelet)
+	}
+	return nil
+}
+
+func (gce *GCEClient) providerConfig(machine *machinesv1.Machine) (*gceconfig.GCEProviderConfig, error) {
 	obj, gvk, err := gce.codecFactory.UniversalDecoder().Decode([]byte(machine.Spec.ProviderConfig), nil, nil)
 	if err != nil {
 		return nil, fmt.Errorf("decoding failure: %v", err)

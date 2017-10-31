@@ -3,14 +3,21 @@ package controller
 import (
 	"github.com/golang/glog"
 
-	"k8s.io/kube-deploy/cluster-api/api"
 	machinesv1 "k8s.io/kube-deploy/cluster-api/api/machines/v1alpha1"
 	"k8s.io/kube-deploy/cluster-api/machinecontroller/cloud"
+	"k8s.io/kube-deploy/cluster-api/machinecontroller/cloud/google"
+	"fmt"
 )
 
-func newMachineActuator(_ *api.Cluster) cloud.MachineActuator {
-	// TODO: Based on the cluster, choose and return the right cloud.
-	return &loggingMachineActuator{}
+func newMachineActuator(cloud string) (cloud.MachineActuator, error) {
+	switch cloud {
+	case "google":
+		return google.NewMachineActuator()
+	case "test":
+		return &loggingMachineActuator{}, nil
+	default:
+		return nil, fmt.Errorf("Not recognized cloud provider: %s\n", cloud)
+	}
 }
 
 // An actuator that just logs instead of doing anything.

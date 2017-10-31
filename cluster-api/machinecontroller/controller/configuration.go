@@ -6,7 +6,7 @@ import (
 
 type Configuration struct {
 	Kubeconfig string
-	Clusterconfig string
+	Cloud string
 }
 
 func NewConfiguration() *Configuration {
@@ -15,5 +15,5 @@ func NewConfiguration() *Configuration {
 
 func (c *Configuration) AddFlags(fs *pflag.FlagSet) {
 	fs.StringVar(&c.Kubeconfig, "kubeconfig", c.Kubeconfig, "Path to kubeconfig file with authorization and master location information.")
-	fs.StringVar(&c.Clusterconfig, "clusterconfig", c.Clusterconfig, "Path to cluster yaml file.")
+	fs.StringVar(&c.Cloud, "cloud", c.Cloud, "Cloud provider (google/azure).")
 }

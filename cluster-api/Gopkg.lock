@@ -362,6 +362,12 @@
 
 [[projects]]
   branch = "master"
+  name = "k8s.io/apiserver"
+  packages = ["pkg/util/flag","pkg/util/logs"]
+  revision = "7001bc4df8883d4a0ec84cd4b2117655a0009b6c"
+
+[[projects]]
+  branch = "master"
   name = "k8s.io/client-go"
   packages = ["discovery","kubernetes/scheme","pkg/version","plugin/pkg/client/auth","plugin/pkg/client/auth/azure","plugin/pkg/client/auth/gcp","plugin/pkg/client/auth/oidc","plugin/pkg/client/auth/openstack","rest","rest/watch","third_party/forked/golang/template","tools/auth","tools/cache","tools/clientcmd","tools/clientcmd/api","tools/clientcmd/api/latest","tools/clientcmd/api/v1","tools/metrics","tools/pager","transport","util/buffer","util/cert","util/flowcontrol","util/homedir","util/integer","util/jsonpath"]
   revision = "271cb504b63ed762a3aea146bd842015da5a79c4"
@@ -381,6 +387,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "a8b29338e2f5ded42477fc625649908a77213a3ac9875d6c6a1b68a2cd3fa7db"
+  inputs-digest = "06c207742e10454c2d37e48f8634e85960edb14eb6db356f43dc7ebc72656ff2"
   solver-name = "gps-cdcl"
   solver-version = 1

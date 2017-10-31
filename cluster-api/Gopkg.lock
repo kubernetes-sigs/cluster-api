@@ -147,6 +147,12 @@
 
 [[projects]]
   branch = "master"
+  name = "github.com/gophercloud/gophercloud"
+  packages = [".","openstack","openstack/identity/v2/tenants","openstack/identity/v2/tokens","openstack/identity/v3/tokens","openstack/utils","pagination"]
+  revision = "93c69ad0c04df408bcce4695b08d47fab4006bf1"
+
+[[projects]]
+  branch = "master"
   name = "github.com/gregjones/httpcache"
   packages = [".","diskcache"]
   revision = "c1f8028e62adb3d518b823a2f8e6a95c38bdd3aa"
@@ -357,7 +363,7 @@
 [[projects]]
   branch = "master"
   name = "k8s.io/client-go"
-  packages = ["discovery","kubernetes/scheme","pkg/version","plugin/pkg/client/auth/gcp","rest","rest/watch","third_party/forked/golang/template","tools/auth","tools/cache","tools/clientcmd","tools/clientcmd/api","tools/clientcmd/api/latest","tools/clientcmd/api/v1","tools/metrics","tools/pager","transport","util/buffer","util/cert","util/flowcontrol","util/homedir","util/integer","util/jsonpath"]
+  packages = ["discovery","kubernetes/scheme","pkg/version","plugin/pkg/client/auth","plugin/pkg/client/auth/azure","plugin/pkg/client/auth/gcp","plugin/pkg/client/auth/oidc","plugin/pkg/client/auth/openstack","rest","rest/watch","third_party/forked/golang/template","tools/auth","tools/cache","tools/clientcmd","tools/clientcmd/api","tools/clientcmd/api/latest","tools/clientcmd/api/v1","tools/metrics","tools/pager","transport","util/buffer","util/cert","util/flowcontrol","util/homedir","util/integer","util/jsonpath"]
   revision = "271cb504b63ed762a3aea146bd842015da5a79c4"
 
 [[projects]]
@@ -367,14 +373,14 @@
   revision = "61b46af70dfed79c6d24530cd23b41440a7f22a5"
 
 [[projects]]
+  branch = "release-1.8"
   name = "k8s.io/kubernetes"
   packages = ["pkg/api"]
-  revision = "bdaeafa71f6c7c04636251031f93464384d54963"
-  version = "v1.8.2"
+  revision = "fdbe902b70dcd95f7fbdddc36f79b635d12bcd93"
 
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "049c290a520dcbe6f051b4a9474f20e2ece2ff6b60c2e2d3a0ff379a71a65d5c"
+  inputs-digest = "a8b29338e2f5ded42477fc625649908a77213a3ac9875d6c6a1b68a2cd3fa7db"
   solver-name = "gps-cdcl"
   solver-version = 1

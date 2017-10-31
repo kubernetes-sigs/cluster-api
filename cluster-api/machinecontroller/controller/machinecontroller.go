@@ -2,9 +2,7 @@ package controller
 
 import (
 	"context"
-	"io/ioutil"
 
-	"github.com/ghodss/yaml"
 	"github.com/golang/glog"
 
 	apiv1 "k8s.io/api/core/v1"
@@ -12,7 +10,6 @@ import (
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/cache"
 
-	"k8s.io/kube-deploy/cluster-api/api"
 	machinesv1 "k8s.io/kube-deploy/cluster-api/api/machines/v1alpha1"
 	"k8s.io/kube-deploy/cluster-api/machinecontroller/cloud"
 )
@@ -29,13 +26,11 @@ func NewMachineController(config *Configuration) *MachineController{
 		glog.Fatalf("error creating rest client: %v", err)
 	}
 
-	// TODO: read cluster config from CRD when it is available
-	apiCluster, err := readAndValidateClusterYaml(config.Clusterconfig)
+	// Determine cloud type from cluster CRD when available
+	actuator, err := newMachineActuator(config.Cloud)
 	if err != nil {
-		glog.Fatalf("error reading cluster yaml: %v", err)
+		glog.Fatalf("error creating machine actuator: %v", err)
 	}
-
-	actuator := newMachineActuator(apiCluster)
 
 	return &MachineController{
 			config:config,
@@ -102,19 +97,5 @@ func (c *MachineController) onDelete(obj interface{}) {
 	if err != nil {
 		glog.Errorf("delete machine %s failed: %v", machine.ObjectMeta.Name, err)
 	}
-}
-
-func readAndValidateClusterYaml(file string) (*api.Cluster, error) {
-	bytes, err := ioutil.ReadFile(file)
-	if err != nil {
-		return nil, err
-	}
-
-	clusterSpec := &api.Cluster{}
-	err = yaml.Unmarshal(bytes, clusterSpec)
-	if err != nil {
-		return nil, err
-	}
-	return clusterSpec, nil
 }
 

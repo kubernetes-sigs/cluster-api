@@ -48,11 +48,11 @@ func (gce *GCEClient) CreateVM(machine *machinesv1.Machine) error {
 		return err
 	}
 
-	// TODO: still need to specify startup script to actually install/run Kubernetes
+	startupScript := nodeStartupTemplate
+
 	_, err = gce.service.Instances.Insert(config.Project, config.Zone, &compute.Instance{
 		Name:        machine.ObjectMeta.Name,
 		MachineType: fmt.Sprintf("zones/%s/machineTypes/%s", config.Zone, config.MachineType),
-		Zone:        config.Zone,
 		NetworkInterfaces: []*compute.NetworkInterface{
 			{
 				Network: "global/networks/default",
@@ -71,6 +71,14 @@ func (gce *GCEClient) CreateVM(machine *machinesv1.Machine) error {
 				InitializeParams: &compute.AttachedDiskInitializeParams{
 					SourceImage: config.Image,
 					DiskSizeGb:  10,
+				},
+			},
+		},
+		Metadata: &compute.Metadata{
+			Items: []*compute.MetadataItems{
+				&compute.MetadataItems{
+					Key: "startup-script",
+					Value: &startupScript,
 				},
 			},
 		},

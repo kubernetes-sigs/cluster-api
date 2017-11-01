@@ -15,97 +15,98 @@ limitations under the License.
 */
 
 // Package cluster contains types to represent Kubernetes cluster configuration.
-package cluster // import "k8s.io/kube-deploy/cluster-api/cluster"
+package v1alpha1 // import "k8s.io/kube-deploy/cluster-api/api/cluster/v1alpha1"
 
 import metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 // Cluster is an API object representing a cluster's control-plane
 // configuration and status.
+// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
 type Cluster struct {
-	metav1.ObjectMeta
-	metav1.TypeMeta
+	metav1.ObjectMeta `json:"metadata"`
+	metav1.TypeMeta   `json:",inline"`
 
-	Spec   ClusterSpec
-	Status ClusterStatus
+	Spec   ClusterSpec   `json:"spec"`
+	Status ClusterStatus `json:"status,omitempty"`
 }
 
 type ClusterSpec struct {
 	// Nominal version of Kubernetes control-plane to run.
-	KubernetesVersion KubernetesVersionInfo
+	KubernetesVersion KubernetesVersionInfo `json:"kubernetesVersion"`
 
 	// Basic API configuration
-	APIConfig APIServerConfig
+	APIConfig APIServerConfig `json:"apiConfig"`
 
 	// Cluster network configuration
-	ClusterNetwork ClusterNetworkingConfig
+	ClusterNetwork ClusterNetworkingConfig `json:"clusterNetwork"`
 
 	// Provider-specific serialized configuration to use during
 	// cluster creation. It is recommended that providers maintain
 	// their own versioned API types that should be
 	// serialized/deserialized from this field.
-	ProviderConfig string
+	ProviderConfig string `json:"providerConfig"`
 }
 
 type APIServerConfig struct {
 	// The address for the API server to advertise.
-	AdvertiseAddress string
+	AdvertiseAddress string `json:"advertiseAddress"`
 
 	// The port on which the API server binds.
-	Port uint32
+	Port uint32 `json:"port"`
 
 	// Extra Subject Alternative Names for the API server's serving cert.
-	ExtraSANs []string
+	ExtraSANs []string `json:"extraSANs"`
 }
 
 type ClusterNetworkingConfig struct {
 	// The subnet from which service VIPs are allocated.
-	ServiceSubnet string
+	ServiceSubnet string `json:"serviceSubnet"`
 
 	// The subnet from which POD networks are allocated.
-	PodSubnet string
+	PodSubnet string `json:"podSubnet"`
 
 	// Domain name for services.
-	DNSDomain string
+	DNSDomain string `json:"dnsDomain"`
 }
 
 type KubernetesVersionInfo struct {
 	// Semantic version of Kubernetes to run.
-	Version string
+	Version string `json:"version"`
 }
 
 type ClusterStatus struct {
 	// APIEndpoint represents the endpoint to communicate with the IP.
-	APIEndpoint APIEndpoint
+	APIEndpoint APIEndpoint `json:"apiEndpoint"`
 
 	// A simple boolean to indicate whether the control plane was
 	// successfully created.
-	Ready bool
+	Ready bool `json:"ready"`
 
 	// If set, indicates that there is a problem reconciling the
 	// state, and will be set to a token value suitable for
 	// programmatic interpretation.
-	ErrorReason ClusterStatusError
+	ErrorReason ClusterStatusError `json:"errorReason"`
 
 	// If set, indicates that there is a problem reconciling the
 	// state, and will be set to a descriptive error message.
-	ErrorMessage string
+	ErrorMessage string `json:"errorMessage"`
 
 	// Provider-specific serialized status to use during cluster
 	// creation. It is recommended that providers maintain their
 	// own versioned API types that should be
 	// serialized/deserialized from this field.
-	ProviderStatus string
+	ProviderStatus string `json:"providerStatus"`
 }
 
 type APIEndpoint struct {
 	// The hostname on which the API server is serving.
-	Host string
+	Host string `json:"host"`
 
 	// The port on which the API server is serving.
-	Port int
+	Port int `json:"port"`
 
 	// The serving certificate for the API server.
-	Cert []byte
+	Cert []byte `json:"cert"`
 }
 
 //
@@ -133,3 +134,12 @@ const (
 	// when trying to delete the cluster.
 	DeleteClusterError ClusterStatusError = "DeleteError"
 )
+
+// This is needed to be able to list objects, even if we only expect one to be
+// found at a time.
+// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
+type ClusterList struct {
+	metav1.TypeMeta `json:",inline"`
+	metav1.ListMeta `json:"metadata"`
+	Items           []Cluster `json:"items"`
+}

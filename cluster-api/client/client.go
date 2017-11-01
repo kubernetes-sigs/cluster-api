@@ -10,6 +10,7 @@ import (
 type ClusterAPIV1Alpha1Interface interface {
 	RESTClient() rest.Interface
 	MachinesGetter
+	ClustersGetter
 }
 
 type ClusterAPIV1Alpha1Client struct {
@@ -18,6 +19,10 @@ type ClusterAPIV1Alpha1Client struct {
 
 func (c *ClusterAPIV1Alpha1Client) Machines() MachinesInterface {
 	return newMachines(c)
+}
+
+func (c *ClusterAPIV1Alpha1Client) Clusters() ClustersInterface {
+	return newClusters(c)
 }
 
 // RESTClient returns a RESTClient that is used to communicate

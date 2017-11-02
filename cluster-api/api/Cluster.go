@@ -1,8 +1,9 @@
 package api
 
+import metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+
 type Cluster struct {
-	Name   string `json:"name"` // This will be in ObjectMeta
-	//metav1.ObjectMeta
+	metav1.ObjectMeta
 	Spec   ClusterSpec `json:"spec"`
 	//Status ClusterStatus
 }
@@ -15,7 +16,6 @@ type ClusterSpec struct {
 }
 
 type SSHConfig struct {
-	//Name          string // e.g. id_rsa
 	PublicKeyPath string `json:"publicKeyPath"`
 	User      string `json:"user"`
 }

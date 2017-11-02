@@ -1,6 +1,21 @@
 package google
 
-// TODO: actually init or join the cluster, templatize token, etc.
+import (
+	"fmt"
+	"strings"
+)
+
+func sanitizeMasterIP(ip string) string {
+	s := strings.TrimPrefix(ip, "https://")
+	parts := strings.Split(s, ":")
+	return parts[0]
+}
+
+
+func nodeStartupScript(kubeadmToken	string, masterIP string) string {
+	mip := sanitizeMasterIP(masterIP)
+	return fmt.Sprintf(nodeStartupTemplate, kubeadmToken, mip)
+}
 
 const nodeStartupTemplate = `
 #!/bin/bash
@@ -9,6 +24,9 @@ set -e
 set -x
 
 (
+TOKEN=%s
+MASTER=%s
+
 apt-get update
 apt-get install -y apt-transport-https
 apt-key adv --keyserver hkp://keyserver.ubuntu.com --recv-keys F76221572C52609D
@@ -30,10 +48,13 @@ EOF
 apt-get update
 apt-get install -y kubelet kubeadm kubectl kubernetes-cni
 
+kubeadm join --token "${TOKEN}" "${MASTER}:443" --skip-preflight-checks
+
 echo done.
 ) 2>&1 | tee /var/log/startup.log
 `
 
+// TODO: actually init the cluster, templatize token, etc.
 const masterStartupTemplate = `
 #!/bin/bash
 

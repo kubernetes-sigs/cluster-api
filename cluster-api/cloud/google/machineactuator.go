@@ -18,9 +18,11 @@ type GCEClient struct {
 	service      *compute.Service
 	scheme       *runtime.Scheme
 	codecFactory *serializer.CodecFactory
+	kubeadmToken string
+	masterIP     string
 }
 
-func NewMachineActuator() (*GCEClient, error) {
+func NewMachineActuator(kubeadmToken string, masterIP string) (*GCEClient, error) {
 	// The default GCP client expects the environment variable
 	// GOOGLE_APPLICATION_CREDENTIALS to point to a file with service credentials.
 	client, err := google.DefaultClient(context.TODO(), compute.ComputeScope)
@@ -42,6 +44,8 @@ func NewMachineActuator() (*GCEClient, error) {
 		service:      service,
 		scheme:       scheme,
 		codecFactory: codecFactory,
+		kubeadmToken: kubeadmToken,
+		masterIP: masterIP,
 	}, nil
 }
 
@@ -51,7 +55,7 @@ func (gce *GCEClient) Create(machine *machinesv1.Machine) error {
 		return err
 	}
 
-	startupScript := nodeStartupTemplate
+	startupScript := nodeStartupScript(gce.kubeadmToken, gce.masterIP)
 
 	op, err := gce.service.Instances.Insert(config.Project, config.Zone, &compute.Instance{
 		Name:        machine.ObjectMeta.Name,

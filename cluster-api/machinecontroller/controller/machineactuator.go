@@ -9,10 +9,10 @@ import (
 	"k8s.io/kube-deploy/cluster-api/cloud/google"
 )
 
-func newMachineActuator(cloud string) (cloud.MachineActuator, error) {
+func newMachineActuator(cloud string, kubeadmToken string, masterIP string) (cloud.MachineActuator, error) {
 	switch cloud {
 	case "google":
-		return google.NewMachineActuator()
+		return google.NewMachineActuator(kubeadmToken, masterIP)
 	case "test":
 		return &loggingMachineActuator{}, nil
 	default:

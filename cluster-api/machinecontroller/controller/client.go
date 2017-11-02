@@ -34,3 +34,13 @@ func restClient(kubeconfigpath string) (*rest.RESTClient, *runtime.Scheme, error
 
 	return client, scheme, nil
 }
+
+func host(kubeconfigpath string) (string, error) {
+	cfg, err := clientcmd.BuildConfigFromFlags("", kubeconfigpath)
+	if err != nil {
+		return "", err
+	}
+
+	config := *cfg
+	return config.Host, nil
+}

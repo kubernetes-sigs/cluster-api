@@ -11,7 +11,7 @@ import (
 	"k8s.io/client-go/tools/cache"
 
 	machinesv1 "k8s.io/kube-deploy/cluster-api/api/machines/v1alpha1"
-	"k8s.io/kube-deploy/cluster-api/machinecontroller/cloud"
+	"k8s.io/kube-deploy/cluster-api/cloud"
 )
 
 type MachineController struct {

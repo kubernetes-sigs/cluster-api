@@ -9,8 +9,8 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/serializer"
 	machinesv1 "k8s.io/kube-deploy/cluster-api/api/machines/v1alpha1"
-	gceconfig "k8s.io/kube-deploy/cluster-api/machinecontroller/cloud/google/gceproviderconfig"
-	gceconfigv1 "k8s.io/kube-deploy/cluster-api/machinecontroller/cloud/google/gceproviderconfig/v1alpha1"
+	gceconfig "k8s.io/kube-deploy/cluster-api/cloud/google/gceproviderconfig"
+	gceconfigv1 "k8s.io/kube-deploy/cluster-api/cloud/google/gceproviderconfig/v1alpha1"
 	"path"
 )
 

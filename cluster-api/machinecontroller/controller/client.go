@@ -2,6 +2,7 @@ package controller
 
 import (
 	_ "k8s.io/client-go/plugin/pkg/client/auth"
+	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/clientcmd"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -33,6 +34,31 @@ func restClient(kubeconfigpath string) (*rest.RESTClient, *runtime.Scheme, error
 	}
 
 	return client, scheme, nil
+}
+
+func kubeClientSet(kubeconfigpath string) (*kubernetes.Clientset, error) {
+	cfg, err := clientcmd.BuildConfigFromFlags("", kubeconfigpath)
+	if err != nil {
+		return nil, err
+	}
+
+	scheme := runtime.NewScheme()
+	if err := machinesv1.AddToScheme(scheme); err != nil {
+		return nil, err
+	}
+
+	config := *cfg
+	config.GroupVersion = &machinesv1.SchemeGroupVersion
+	config.APIPath = "/apis"
+	config.ContentType = runtime.ContentTypeJSON
+	config.NegotiatedSerializer = serializer.DirectCodecFactory{CodecFactory: serializer.NewCodecFactory(scheme)}
+
+	client, err := kubernetes.NewForConfig(&config)
+	if err != nil {
+		return nil, err
+	}
+
+	return client, nil
 }
 
 func host(kubeconfigpath string) (string, error) {

@@ -7,7 +7,9 @@ import (
 	"github.com/golang/glog"
 
 	apiv1 "k8s.io/api/core/v1"
+	meta_v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/fields"
+	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/cache"
 
@@ -18,6 +20,7 @@ import (
 type MachineController struct {
 	config     *Configuration
 	restClient *rest.RESTClient
+	kubeClientSet *kubernetes.Clientset
 	actuator cloud.MachineActuator
 }
 
@@ -25,6 +28,11 @@ func NewMachineController(config *Configuration) *MachineController{
 	restClient, _, err := restClient(config.Kubeconfig)
 	if err != nil {
 		glog.Fatalf("error creating rest client: %v", err)
+	}
+
+	kubeClientSet, err := kubeClientSet(config.Kubeconfig)
+	if err != nil {
+		glog.Fatalf("error creating kube client set: %v", err)
 	}
 
 	masterIP, err := host(config.Kubeconfig)
@@ -41,6 +49,7 @@ func NewMachineController(config *Configuration) *MachineController{
 	return &MachineController{
 			config:config,
 			restClient:restClient,
+		kubeClientSet:kubeClientSet,
 		actuator:actuator,
 		}
 }
@@ -133,6 +142,6 @@ func (c *MachineController) create(machine *machinesv1.Machine) error {
 func (c *MachineController) delete(machine *machinesv1.Machine) error {
 	//TODO: check if the actual machine does not exist
 	//TODO: delink node from machine CRD
-	//TODO: remove (and possibly drain) node
+	c.kubeClientSet.Core().Nodes().Delete(machine.ObjectMeta.Name, &meta_v1.DeleteOptions{})
 	return c.actuator.Delete(machine)
 }

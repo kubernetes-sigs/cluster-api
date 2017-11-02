@@ -4,9 +4,9 @@ import (
 	"github.com/golang/glog"
 
 	machinesv1 "k8s.io/kube-deploy/cluster-api/api/machines/v1alpha1"
-	"k8s.io/kube-deploy/cluster-api/machinecontroller/cloud"
-	"k8s.io/kube-deploy/cluster-api/machinecontroller/cloud/google"
+	"k8s.io/kube-deploy/cluster-api/cloud"
 	"fmt"
+	"k8s.io/kube-deploy/cluster-api/cloud/google"
 )
 
 func newMachineActuator(cloud string) (cloud.MachineActuator, error) {

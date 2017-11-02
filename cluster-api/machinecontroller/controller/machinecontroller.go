@@ -2,6 +2,7 @@ package controller
 
 import (
 	"context"
+    "reflect"
 
 	"github.com/golang/glog"
 
@@ -86,8 +87,12 @@ func (c *MachineController) onUpdate(oldObj, newObj interface{}) {
 	glog.Infof("object updated: %s\n", oldMachine.ObjectMeta.Name)
 	glog.Infof("  old k8s version: %s, new: %s\n", oldMachine.Spec.Versions.Kubelet, newMachine.Spec.Versions.Kubelet)
 
-	//TODO: Only trigger delete and recreate if the change to the object warrants such.
-	// eg. linking and unlinking a node to the machine object does not warrant a re-create
+	if !c.requiresUpdate(newMachine, oldMachine){
+		glog.Infof("machine %s change does not require any update action to be taken.", oldMachine.ObjectMeta.Name)
+		return
+	}
+
+	glog.Infof("re-creating machine %s for update.", oldMachine.ObjectMeta.Name)
 	err := c.delete(oldMachine)
 	if err != nil {
 		glog.Errorf("delete machine %s for update failed: %v", oldMachine.ObjectMeta.Name, err)
@@ -108,6 +113,15 @@ func (c *MachineController) onDelete(obj interface{}) {
 	}
 }
 
+// The two machines differ in a way that requires an update
+func (c *MachineController) requiresUpdate(a *machinesv1.Machine, b *machinesv1.Machine) bool {
+	// Do not want status changes. Do want changes that impact machine provisioning
+	return !reflect.DeepEqual(a.Spec.ObjectMeta, b.Spec.ObjectMeta) ||
+		   !reflect.DeepEqual(a.Spec.ProviderConfig,b.Spec.ProviderConfig) ||
+	       !reflect.DeepEqual(a.Spec.Roles, b.Spec.Roles) ||
+	       !reflect.DeepEqual(a.Spec.Versions, b.Spec.Versions) ||
+	       	a.ObjectMeta.Name != b.ObjectMeta.Name
+}
 
 func (c *MachineController) create(machine *machinesv1.Machine) error {
 	//TODO: check if the actual machine does not already exist

@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"os"
+	goflag "flag"
 
 	"github.com/spf13/pflag"
 
@@ -17,6 +18,10 @@ func main() {
 	c.AddFlags(pflag.CommandLine)
 
 	flag.InitFlags()
+	pflag.Parse()
+	// Suppress warning
+	// https://github.com/kubernetes/kubernetes/issues/17162
+	goflag.CommandLine.Parse([]string{})
 	logs.InitLogs()
 	defer logs.FlushLogs()
 

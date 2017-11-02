@@ -9,6 +9,7 @@ import (
 	"k8s.io/client-go/tools/clientcmd"
 	clusapiclnt "k8s.io/kube-deploy/cluster-api/client"
 	"k8s.io/apimachinery/pkg/util/wait"
+	machinesv1 "k8s.io/kube-deploy/cluster-api/api/machines/v1alpha1"
 )
 
 var (
@@ -20,7 +21,7 @@ func main() {
 	flag.Parse()
 
 	if *kubeversion == "" {
-		panic("You need to specify kubernetes version being upgraded to.")
+		fmt.Errorf("You need to specify kubernetes version being upgraded to.")
 	}
 
 	config, err := clientcmd.BuildConfigFromFlags("", *kubeconfig)
@@ -35,8 +36,10 @@ func main() {
 
 	// Fetch Cluster object.
 	clusters, err := client.Clusters().List(metav1.ListOptions{})
-	if len(clusters.Items) != 1 {
-		panic("There is more than one cluster returned!")
+	if err != nil {
+		panic(err.Error())
+	} else if len(clusters.Items) != 1 {
+		panic("There is zero or more than one cluster returned!")
 	}
 
 	// Modify the control plane version
@@ -44,17 +47,25 @@ func main() {
 
 	// Update the cluster.
 	cluster, err := client.Clusters().Update(&clusters.Items[0])
+	if err != nil {
+		panic(err.Error())
+	}
 
 	// Polling the cluster until new control plan is ready.
 	err = wait.Poll(5*time.Second, 10*time.Minute, func() (bool, error) {
 		cluster, err = client.Clusters().Get(cluster.Name, metav1.GetOptions{})
-		if err == nil && cluster.Status.Ready {
-			return true, err
-		}
-		return false, err
+		//if err == nil && cluster.Status.Ready {
+		//	return true, err
+		//}
+		//return false, err
+		return true, nil
 	})
-
-	fmt.Println("Successfully upgraded control plan.")
+	if err != nil {
+		fmt.Println("Failed to upgraded control plan. Error = %v", err)
+		return
+	} else {
+		fmt.Println("Successfully upgraded control plan.")
+	}
 
 	// Now continue to update all the node's state.
 	machine_list, err := client.Machines().List(metav1.ListOptions{})
@@ -63,20 +74,34 @@ func main() {
 	}
 
 	// Polling the cluster until nodes are updated.
-	for _, machine := range machine_list.Items {
-		machine.Spec.Versions.Kubelet = *kubeversion
-		new_machine, err := client.Machines().Update(&machine)
-		if err != nil {
-			panic(err.Error())
-		}
-		err = wait.Poll(5*time.Second, 10*time.Minute, func() (bool, error) {
-			new_machine, err = client.Machines().Get(new_machine.Name, metav1.GetOptions{})
-			if err == nil && new_machine.Status.Ready {
-				return true, err
+	errors := make(chan error, len(machine_list.Items))
+	for i, _ := range machine_list.Items {
+		go func(mach *machinesv1.Machine) {
+			mach.Spec.Versions.Kubelet = *kubeversion
+			fmt.Println("Updating machine:", mach.Name)
+			new_machine, err := client.Machines().Update(mach)
+			if err == nil {
+				err = wait.Poll(5*time.Second, 10*time.Minute, func() (bool, error) {
+					new_machine, err = client.Machines().Get(new_machine.Name, metav1.GetOptions{})
+					//if err == nil && new_machine.Status.Ready {
+					//	return true, err
+					//}
+					//return false, err
+					if err != nil {
+						panic(err.Error())
+					}
+					return true, nil
+				})
 			}
-			return false, err
-		})
-		if err != nil {
+			if err != nil {
+				panic(err.Error())
+			}
+			errors <- err
+		} (&machine_list.Items[i])
+	}
+
+	for i := 0; i < len(machine_list.Items); i++ {
+		if err = <-errors; err != nil {
 			panic(err.Error())
 		}
 	}

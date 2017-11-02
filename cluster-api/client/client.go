@@ -5,6 +5,8 @@ import (
 	"k8s.io/apimachinery/pkg/runtime/serializer"
 	rest "k8s.io/client-go/rest"
 	machinesv1 "k8s.io/kube-deploy/cluster-api/api/machines/v1alpha1"
+	clustersv1 "k8s.io/kube-deploy/cluster-api/api/cluster/v1alpha1"
+	scheme "k8s.io/client-go/kubernetes/scheme"
 )
 
 type ClusterAPIV1Alpha1Interface interface {
@@ -59,8 +61,11 @@ func New(c rest.Interface) *ClusterAPIV1Alpha1Client {
 }
 
 func setConfigDefaults(config *rest.Config) error {
-	scheme := runtime.NewScheme()
-	if err := machinesv1.AddToScheme(scheme); err != nil {
+	global_scheme := scheme.Scheme
+	if err := machinesv1.AddToScheme(global_scheme); err != nil {
+		return err
+	}
+	if err := clustersv1.AddToScheme(global_scheme); err != nil {
 		return err
 	}
 
@@ -68,7 +73,7 @@ func setConfigDefaults(config *rest.Config) error {
 	config.GroupVersion = &gv
 	config.APIPath = "/apis"
 	config.ContentType = runtime.ContentTypeJSON
-	config.NegotiatedSerializer = serializer.DirectCodecFactory{CodecFactory: serializer.NewCodecFactory(scheme)}
+	config.NegotiatedSerializer = serializer.DirectCodecFactory{CodecFactory: serializer.NewCodecFactory(global_scheme)}
 
 	if config.UserAgent == "" {
 		config.UserAgent = rest.DefaultKubernetesUserAgent()

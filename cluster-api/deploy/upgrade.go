@@ -1,10 +1,8 @@
-package main
+package deploy
 
 import (
-	"flag"
-	"fmt"
 	"time"
-	_ "k8s.io/client-go/plugin/pkg/client/auth/gcp"
+
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/tools/clientcmd"
 	clusapiclnt "k8s.io/kube-deploy/cluster-api/client"
@@ -12,38 +10,27 @@ import (
 	machinesv1 "k8s.io/kube-deploy/cluster-api/api/machines/v1alpha1"
 )
 
-var (
-	kubeconfig = flag.String("kubeconfig", "", "path to kubeconfig file")
-	kubeversion = flag.String("version", "", "The kubernetes version to be upgraded to")
-)
-
-func main() {
-	flag.Parse()
-
-	if *kubeversion == "" {
-		fmt.Errorf("You need to specify kubernetes version being upgraded to.")
-	}
-
-	config, err := clientcmd.BuildConfigFromFlags("", *kubeconfig)
+func UpgradeCluster(kubeversion string, kubeconfig string) error {
+	config, err := clientcmd.BuildConfigFromFlags("", kubeconfig)
 	if err != nil {
-		panic(err.Error())
+		return err
 	}
 
 	client, err := clusapiclnt.NewForConfig(config)
 	if err != nil {
-		panic(err.Error())
+		return err
 	}
 
 	// Fetch Cluster object.
 	clusters, err := client.Clusters().List(metav1.ListOptions{})
 	if err != nil {
-		panic(err.Error())
+		return err
 	} else if len(clusters.Items) != 1 {
 		panic("There is zero or more than one cluster returned!")
 	}
 
 	// Modify the control plane version
-	clusters.Items[0].Spec.KubernetesVersion.Version = *kubeversion
+	clusters.Items[0].Spec.KubernetesVersion.Version = kubeversion
 
 	// Update the cluster.
 	cluster, err := client.Clusters().Update(&clusters.Items[0])
@@ -61,24 +48,20 @@ func main() {
 		return true, nil
 	})
 	if err != nil {
-		fmt.Println("Failed to upgraded control plan. Error = %v", err)
-		return
-	} else {
-		fmt.Println("Successfully upgraded control plan.")
+		return err
 	}
 
 	// Now continue to update all the node's state.
 	machine_list, err := client.Machines().List(metav1.ListOptions{})
 	if err != nil {
-		panic(err.Error())
+		return err
 	}
 
 	// Polling the cluster until nodes are updated.
 	errors := make(chan error, len(machine_list.Items))
 	for i, _ := range machine_list.Items {
 		go func(mach *machinesv1.Machine) {
-			mach.Spec.Versions.Kubelet = *kubeversion
-			fmt.Println("Updating machine:", mach.Name)
+			mach.Spec.Versions.Kubelet = kubeversion
 			new_machine, err := client.Machines().Update(mach)
 			if err == nil {
 				err = wait.Poll(5*time.Second, 10*time.Minute, func() (bool, error) {
@@ -88,13 +71,10 @@ func main() {
 					//}
 					//return false, err
 					if err != nil {
-						panic(err.Error())
+						return false, err
 					}
 					return true, nil
 				})
-			}
-			if err != nil {
-				panic(err.Error())
 			}
 			errors <- err
 		} (&machine_list.Items[i])
@@ -102,9 +82,9 @@ func main() {
 
 	for i := 0; i < len(machine_list.Items); i++ {
 		if err = <-errors; err != nil {
-			panic(err.Error())
+			return err
 		}
 	}
-
-	fmt.Println("Successfully upgraded the cluster to version: ", *kubeversion)
+	return nil
 }
+

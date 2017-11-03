@@ -17,7 +17,7 @@ import (
 
 var RootCmd = &cobra.Command{
 	Use:   "cluster-api",
-	Short: "Simple kubernetes cluster management",
+	Short: "cluster management",
 	Long:  `Simple kubernetes cluster management`,
 	Run: func(cmd *cobra.Command, args []string) {
 		// Do Stuff Here
@@ -25,7 +25,11 @@ var RootCmd = &cobra.Command{
 	},
 }
 
+// Kubernetes cluster config file.
+var KubeConfig string;
+
 func init() {
+	RootCmd.PersistentFlags().StringVarP(&KubeConfig, "kubecofig", "k", "", "location for the kubernetes config file")
 	logger.Level = 4
 }
 

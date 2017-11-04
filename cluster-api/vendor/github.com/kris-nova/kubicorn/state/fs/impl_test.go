@@ -22,7 +22,7 @@ import (
 
 	"github.com/ghodss/yaml"
 	"github.com/kris-nova/kubicorn/apis/cluster"
-	"github.com/kris-nova/kubicorn/profiles"
+	"github.com/kris-nova/kubicorn/profiles/amazon"
 	"github.com/kris-nova/kubicorn/state"
 )
 
@@ -30,7 +30,7 @@ func TestStateFileSystem(t *testing.T) {
 	testFilePath := ".test"
 	clusterName := "fstest"
 
-	c := profiles.NewUbuntuAmazonCluster(clusterName)
+	c := amazon.NewUbuntuCluster(clusterName)
 	o := &FileSystemStoreOptions{
 		BasePath:    testFilePath,
 		ClusterName: c.Name,

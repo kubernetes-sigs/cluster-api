@@ -9,7 +9,7 @@
 
 [[projects]]
   name = "github.com/Azure/azure-sdk-for-go"
-  packages = ["arm/compute","arm/examples/helpers","arm/network","arm/resources/resources","arm/storage","storage"]
+  packages = ["arm/examples/helpers","arm/network","arm/resources/resources"]
   revision = "57db66900881e9fd21fd041a9d013514700ecab3"
   version = "v10.3.0-beta"
 
@@ -200,12 +200,6 @@
   revision = "22f089b9c4056cf774ebd695b687d469f2ad4650"
 
 [[projects]]
-  name = "github.com/satori/uuid"
-  packages = ["."]
-  revision = "879c5887cd475cd7864858769793b2ceb0d44feb"
-  version = "v1.1.0"
-
-[[projects]]
   branch = "master"
   name = "github.com/pkg/term"
   packages = ["termios"]
@@ -299,6 +293,5 @@
   analyzer-name = "dep"
   analyzer-version = 1
   inputs-digest = "db0a043f0beb8cda90ececf5c1cc539a559fd4a951e1c9388d9102f17a330fb8"
-  inputs-digest = "1fe8fa2b2a21e7a7593b8b7eb63519c389daa31499026532de95eb21f5845c22"
   solver-name = "gps-cdcl"
   solver-version = 1

@@ -45,15 +45,12 @@ func NewRetrier(retries, sleepSeconds int, retryable Retryable) *Retrier {
 	}
 }
 
-// Retryable can be used to get the retryable implementation
-func (r *Retrier) Retryable() Retryable {
-	return r.retryable
-}
-
 // RunRetry runs a retryable function.
 func (r *Retrier) RunRetry() error {
 	// Start signal handler.
-	sigHandler := signals.GlobalSignalHandler()
+	sigHandler := signals.NewSignalHandler(10)
+	go sigHandler.Register()
+
 	finish := make(chan bool, 1)
 	go func() {
 		select {

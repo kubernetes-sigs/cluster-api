@@ -14,7 +14,9 @@
 
 package main
 
-import "github.com/kris-nova/kubicorn/cmd"
+import (
+	"github.com/kris-nova/kubicorn/cmd"
+)
 
 func main() {
 	cmd.Execute()

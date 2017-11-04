@@ -2,6 +2,7 @@ package deploy
 
 import (
 	"github.com/kris-nova/kubicorn/cutil/initapi"
+	"github.com/kris-nova/kubicorn/cutil/agent"
 	"github.com/kris-nova/kubicorn/cutil"
 	"fmt"
 	"github.com/kris-nova/kubicorn/cutil/logger"
@@ -11,7 +12,7 @@ import (
 	"k8s.io/kube-deploy/cluster-api/api"
 	"k8s.io/kube-deploy/cluster-api/api/machines/v1alpha1"
 
-	"github.com/kris-nova/kubicorn/profiles"
+	"github.com/kris-nova/kubicorn/profiles/azure"
 	"github.com/kris-nova/kubicorn/cutil/kubeadm"
 	"github.com/kris-nova/kubicorn/cutil/task"
 )
@@ -55,7 +56,8 @@ func CreateCluster(c *api.Cluster, machines []v1alpha1.Machine) error {
 		return fmt.Errorf("Unable to get master IP: %v", err)
 	}
 
-	if err = kubeconfig.RetryGetConfig(newCluster); err != nil {
+	agent := agent.NewAgent()
+	if err = kubeconfig.RetryGetConfig(newCluster, agent); err != nil {
 		return fmt.Errorf("Unable to write kubeconfig: %v", err)
 	}
 
@@ -124,7 +126,7 @@ func convertToKubecornCluster(cluster *api.Cluster) (*cluster.Cluster, error) {
 type profileFunc func(name string) *cluster.Cluster
 
 var profileMapIndexed = map[string]profileFunc{
-	"azure":        profiles.NewUbuntuAzureCluster,
+	"azure":        azure.NewUbuntuCluster,
 	"google":       NewUbuntuGoogleComputeCluster,
 	"gcp":          NewUbuntuGoogleComputeCluster,
 }

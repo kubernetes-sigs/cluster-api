@@ -58,6 +58,11 @@ $ ls -al ~/.ssh/id_rsa.pub
 -rw-------@ 1 mhausenblas  staff   754B 20 Mar 04:03 /Users/mhausenblas/.ssh/id_rsa.pub
 ```
 
+Finally, it is necessary to create a firewall rule for allowing ingress traffic to the API server, that is esposed by default on tcp:443 in above profile.
+You can use [this guide to create firewall rules](https://cloud.google.com/compute/docs/vpc/using-firewalls); in production systems,
+it is reccomanded to restrict such firewall rule, limiting the target systems e.g. using network tags, and limiting as well
+the range of allowed source systems.
+
 #### Applying
 
 With the access set up, we can now apply the resources we defined in the first step. 

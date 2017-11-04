@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package profiles
+package amazon
 
 import (
 	"fmt"
@@ -22,7 +22,8 @@ import (
 	"github.com/kris-nova/kubicorn/cutil/uuid"
 )
 
-func NewCentosAmazonCluster(name string) *cluster.Cluster {
+// NewCentosCluster creates a simple CentOS Amazon cluster
+func NewCentosCluster(name string) *cluster.Cluster {
 	return &cluster.Cluster{
 		Name:     name,
 		Cloud:    cluster.CloudAmazon,
@@ -57,9 +58,9 @@ func NewCentosAmazonCluster(name string) *cluster.Cluster {
 				},
 				Subnets: []*cluster.Subnet{
 					{
-						Name:     fmt.Sprintf("%s.master", name),
-						CIDR:     "10.0.0.0/24",
-						Location: "us-west-2a",
+						Name: fmt.Sprintf("%s.master", name),
+						CIDR: "10.0.0.0/24",
+						Zone: "us-west-2a",
 					},
 				},
 
@@ -101,9 +102,9 @@ func NewCentosAmazonCluster(name string) *cluster.Cluster {
 				},
 				Subnets: []*cluster.Subnet{
 					{
-						Name:     fmt.Sprintf("%s.node", name),
-						CIDR:     "10.0.100.0/24",
-						Location: "us-west-2b",
+						Name: fmt.Sprintf("%s.node", name),
+						CIDR: "10.0.100.0/24",
+						Zone: "us-west-2b",
 					},
 				},
 				Firewalls: []*cluster.Firewall{

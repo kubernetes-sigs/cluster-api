@@ -18,12 +18,12 @@ import (
 	"github.com/kris-nova/kubicorn/cutil"
 	"github.com/kris-nova/kubicorn/cutil/initapi"
 	"github.com/kris-nova/kubicorn/cutil/logger"
-	"github.com/kris-nova/kubicorn/profiles"
+	"github.com/kris-nova/kubicorn/profiles/googlecompute"
 )
 
 func main() {
 	logger.Level = 4
-	cluster := profiles.NewUbuntuGoogleComputeCluster("myCluster")
+	cluster := googlecompute.NewUbuntuCluster("myCluster")
 	cluster, err := initapi.InitCluster(cluster)
 	if err != nil {
 		panic(err.Error())

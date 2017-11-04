@@ -24,7 +24,10 @@ import (
 	"github.com/kris-nova/kubicorn/apis/cluster"
 	"github.com/kris-nova/kubicorn/cutil/logger"
 	"github.com/kris-nova/kubicorn/cutil/namer"
-	"github.com/kris-nova/kubicorn/profiles"
+	"github.com/kris-nova/kubicorn/profiles/amazon"
+	"github.com/kris-nova/kubicorn/profiles/azure"
+	"github.com/kris-nova/kubicorn/profiles/digitalocean"
+	"github.com/kris-nova/kubicorn/profiles/googlecompute"
 	"github.com/kris-nova/kubicorn/state"
 	"github.com/kris-nova/kubicorn/state/fs"
 	"github.com/kris-nova/kubicorn/state/jsonfs"
@@ -95,47 +98,47 @@ type profileMap struct {
 
 var profileMapIndexed = map[string]profileMap{
 	"azure": {
-		profileFunc: profiles.NewUbuntuAzureCluster,
+		profileFunc: azure.NewUbuntuCluster,
 		description: "Ubuntu on Azure",
 	},
 	"azure-ubuntu": {
-		profileFunc: profiles.NewUbuntuAzureCluster,
+		profileFunc: azure.NewUbuntuCluster,
 		description: "Ubuntu on Azure",
 	},
 	"amazon": {
-		profileFunc: profiles.NewUbuntuAmazonCluster,
+		profileFunc: amazon.NewUbuntuCluster,
 		description: "Ubuntu on Amazon",
 	},
 	"aws": {
-		profileFunc: profiles.NewUbuntuAmazonCluster,
+		profileFunc: amazon.NewUbuntuCluster,
 		description: "Ubuntu on Amazon",
 	},
 	"do": {
-		profileFunc: profiles.NewUbuntuDigitalOceanCluster,
+		profileFunc: digitalocean.NewUbuntuCluster,
 		description: "Ubuntu on DigitalOcean",
 	},
 	"google": {
-		profileFunc: profiles.NewUbuntuGoogleComputeCluster,
+		profileFunc: googlecompute.NewUbuntuCluster,
 		description: "Ubuntu on Google Compute",
 	},
 	"digitalocean": {
-		profileFunc: profiles.NewUbuntuDigitalOceanCluster,
+		profileFunc: digitalocean.NewUbuntuCluster,
 		description: "Ubuntu on DigitalOcean",
 	},
 	"do-ubuntu": {
-		profileFunc: profiles.NewUbuntuDigitalOceanCluster,
+		profileFunc: digitalocean.NewUbuntuCluster,
 		description: "Ubuntu on DigitalOcean",
 	},
 	"aws-ubuntu": {
-		profileFunc: profiles.NewUbuntuAmazonCluster,
+		profileFunc: amazon.NewUbuntuCluster,
 		description: "Ubuntu on Amazon",
 	},
 	"do-centos": {
-		profileFunc: profiles.NewCentosDigitalOceanCluster,
+		profileFunc: digitalocean.NewCentosCluster,
 		description: "CentOS on DigitalOcean",
 	},
 	"aws-centos": {
-		profileFunc: profiles.NewCentosAmazonCluster,
+		profileFunc: amazon.NewCentosCluster,
 		description: "CentOS on Amazon",
 	},
 }

@@ -17,25 +17,20 @@ package kubeconfig
 import (
 	"fmt"
 	"io/ioutil"
-	"net"
 	"os"
-	"strings"
-	"syscall"
 	"time"
 
 	"github.com/kris-nova/kubicorn/apis/cluster"
+	"github.com/kris-nova/kubicorn/cutil/agent"
 	"github.com/kris-nova/kubicorn/cutil/local"
 	"github.com/kris-nova/kubicorn/cutil/logger"
 	"github.com/pkg/sftp"
 	"golang.org/x/crypto/ssh"
-	"golang.org/x/crypto/ssh/agent"
-	"golang.org/x/crypto/ssh/terminal"
 )
 
-func GetConfig(existing *cluster.Cluster) error {
+func GetConfig(existing *cluster.Cluster, sshAgent *agent.Keyring) error {
 	user := existing.SSH.User
 	pubKeyPath := local.Expand(existing.SSH.PublicKeyPath)
-	privKeyPath := strings.Replace(pubKeyPath, ".pub", "", 1)
 	if existing.SSH.Port == "" {
 		existing.SSH.Port = "22"
 	}
@@ -49,7 +44,6 @@ func GetConfig(existing *cluster.Cluster) error {
 	sshConfig := &ssh.ClientConfig{
 		User:            user,
 		HostKeyCallback: ssh.InsecureIgnoreHostKey(),
-		Timeout:         time.Duration(time.Second * 3),
 	}
 	remotePath := ""
 	if user == "root" {
@@ -58,19 +52,17 @@ func GetConfig(existing *cluster.Cluster) error {
 		remotePath = fmt.Sprintf("/home/%s/.kube/config", user)
 	}
 
-	agent := sshAgent()
-	if agent != nil && os.Getenv("KUBICORN_FORCE_DISABLE_SSH_AGENT") == "" {
-		sshConfig.Auth = append(sshConfig.Auth, agent)
-	} else {
-		pemBytes, err := ioutil.ReadFile(privKeyPath)
-		if err != nil {
+	// Check for key
+	if err := sshAgent.CheckKey(pubKeyPath); err != nil {
+		if keyring, err := sshAgent.AddKey(pubKeyPath); err != nil {
 			return err
+		} else {
+			sshAgent = keyring
 		}
-		signer, err := getSigner(pemBytes)
-		if err != nil {
-			return err
-		}
-		sshConfig.Auth = append(sshConfig.Auth, ssh.PublicKeys(signer))
+	}
+
+	if sshAgent != nil && os.Getenv("KUBICORN_FORCE_DISABLE_SSH_AGENT") == "" {
+		sshConfig.Auth = append(sshConfig.Auth, sshAgent.GetAgent())
 	}
 
 	sshConfig.SetDefaults()
@@ -122,9 +114,9 @@ const (
 	RetrySleepSeconds = 5
 )
 
-func RetryGetConfig(existing *cluster.Cluster) error {
+func RetryGetConfig(existing *cluster.Cluster, sshAgent *agent.Keyring) error {
 	for i := 0; i <= RetryAttempts; i++ {
-		err := GetConfig(existing)
+		err := GetConfig(existing, sshAgent)
 		if err != nil {
 			logger.Debug("Waiting for Kubernetes to come up.. [%v]", err)
 			time.Sleep(time.Duration(RetrySleepSeconds) * time.Second)
@@ -133,35 +125,6 @@ func RetryGetConfig(existing *cluster.Cluster) error {
 		return nil
 	}
 	return fmt.Errorf("Timedout writing kubeconfig")
-}
-
-func getSigner(pemBytes []byte) (ssh.Signer, error) {
-	signerwithoutpassphrase, err := ssh.ParsePrivateKey(pemBytes)
-	if err != nil {
-		logger.Debug(err.Error())
-		fmt.Print("SSH Key Passphrase [none]: ")
-		passPhrase, err := terminal.ReadPassword(int(syscall.Stdin))
-		fmt.Println("")
-		if err != nil {
-			return nil, err
-		}
-		signerwithpassphrase, err := ssh.ParsePrivateKeyWithPassphrase(pemBytes, passPhrase)
-		if err != nil {
-			return nil, err
-		}
-
-		return signerwithpassphrase, err
-	}
-
-	return signerwithoutpassphrase, err
-}
-
-func sshAgent() ssh.AuthMethod {
-	sshAgent, err := net.Dial("unix", os.Getenv("SSH_AUTH_SOCK"))
-	if err == nil {
-		return ssh.PublicKeysCallback(agent.NewClient(sshAgent).Signers)
-	}
-	return nil
 }
 
 func getKubeConfigPath(path string) (string, error) {

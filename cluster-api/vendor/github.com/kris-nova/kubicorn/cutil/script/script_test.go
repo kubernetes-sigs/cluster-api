@@ -21,7 +21,7 @@ import (
 	"testing"
 
 	"github.com/kris-nova/kubicorn/apis/cluster"
-	"github.com/kris-nova/kubicorn/profiles"
+	"github.com/kris-nova/kubicorn/profiles/amazon"
 )
 
 func TestBuildBootstrapScriptHappy(t *testing.T) {
@@ -53,7 +53,7 @@ func TestBuildBootstrapSetupScript(t *testing.T) {
 cat <<"EOF" > ./test.json`
 	expectedEnd := "\nEOF\n"
 
-	c := profiles.NewCentosAmazonCluster("bootstrap-setup-script-test")
+	c := amazon.NewCentosCluster("bootstrap-setup-script-test")
 	os.Remove(dir + "/" + fileName)
 	os.Remove("test.sh")
 	script, err := buildBootstrapSetupScript(c, dir, fileName)

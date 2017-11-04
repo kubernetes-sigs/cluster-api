@@ -73,6 +73,7 @@ func (r *Subnet) Actual(immutable *cluster.Cluster) (*cluster.Cluster, cloud.Res
 		}
 	} else {
 		newResource.CIDR = r.ClusterSubnet.CIDR
+		newResource.Zone = r.ClusterSubnet.Zone
 	}
 
 	newCluster := r.immutableRender(newResource, immutable)
@@ -94,6 +95,7 @@ func (r *Subnet) Expected(immutable *cluster.Cluster) (*cluster.Cluster, cloud.R
 		VpcID: immutable.Network.Identifier,
 		Zone:  r.ClusterSubnet.Zone,
 	}
+
 	newCluster := r.immutableRender(newResource, immutable)
 	return newCluster, newResource, nil
 }
@@ -107,6 +109,7 @@ func (r *Subnet) Apply(actual, expected cloud.Resource, immutable *cluster.Clust
 	if isEqual {
 		return immutable, applyResource, nil
 	}
+
 	input := &ec2.CreateSubnetInput{
 		CidrBlock:        &expected.(*Subnet).CIDR,
 		VpcId:            &immutable.Network.Identifier,

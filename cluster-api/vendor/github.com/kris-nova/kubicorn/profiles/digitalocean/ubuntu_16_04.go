@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package profiles
+package digitalocean
 
 import (
 	"fmt"
@@ -21,8 +21,8 @@ import (
 	"github.com/kris-nova/kubicorn/cutil/kubeadm"
 )
 
-// NewUbuntuDigitalOceanCluster creates a basic Digitalocean cluster profile, to bootstrap Kubernetes.
-func NewUbuntuDigitalOceanCluster(name string) *cluster.Cluster {
+// NewUbuntuCluster creates a basic Digitalocean cluster profile, to bootstrap Kubernetes.
+func NewUbuntuCluster(name string) *cluster.Cluster {
 	return &cluster.Cluster{
 		Name:     name,
 		Cloud:    cluster.CloudDigitalOcean,

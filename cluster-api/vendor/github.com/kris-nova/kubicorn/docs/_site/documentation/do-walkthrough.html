@@ -290,6 +290,10 @@ The cluster will be running over DigitalOcean private networking on an encrypted
 For this, you need to select a certain profile. Of course, once you’re more familiar with <code class="highlighter-rouge">kubicorn</code>, you can go ahead and extend existing profiles or create new ones.
 In the following we’ll be using an existing profile called <code class="highlighter-rouge">do</code>, which is a profile for a cluster in DigitalOcean.</p>
 
+<p>Now that you've set up kubicorn, you can follow the steps below to create your first Kubernetes cluster with kubicorn on
+  Digital Ocean. If you prefer a video demonstration, you can watch this instead: <a href="https://asciinema.org/a/7JKtK7RSNSjznOYpX1rOprRRq"
+    target="_blank"><img src="https://asciinema.org/a/7JKtK7RSNSjznOYpX1rOprRRq.png" /></a></p>
+
 <h4 id="creating">Creating</h4>
 
 <p>Now execute the following command:</p>
@@ -339,7 +343,7 @@ This actually creates resources in DigitalOcean. Up to now we’ve only been wor
 
 <p>Now <code class="highlighter-rouge">kubicorn</code> will reconcile your intended state against the actual state in the cloud, thus creating a Kubernetes cluster.
 A <code class="highlighter-rouge">kubectl</code> configuration file (kubeconfig) will be created or appended for the cluster on your local filesystem.
-You can now <code class="highlighter-rouge">kubectl get nodes</code> and verify that Kubernetes 1.7.0 is now running.
+You can now <code class="highlighter-rouge">kubectl get nodes</code> and verify that Kubernetes is now running.
 You can also <code class="highlighter-rouge">ssh</code> into your instances using the example command found in the output from <code class="highlighter-rouge">kubicorn</code></p>
 
 <h4 id="deleting">Deleting</h4>

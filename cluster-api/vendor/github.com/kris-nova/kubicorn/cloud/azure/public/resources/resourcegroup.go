@@ -15,6 +15,8 @@
 package resources
 
 import (
+	"fmt"
+
 	"github.com/Azure/azure-sdk-for-go/arm/resources/resources"
 	"github.com/kris-nova/kubicorn/apis/cluster"
 	"github.com/kris-nova/kubicorn/cloud"
@@ -88,11 +90,11 @@ func (r *ResourceGroup) Apply(actual, expected cloud.Resource, immutable *cluste
 	if err != nil {
 		return nil, nil, err
 	}
-	logger.Info("Created or found resource group [%s]", *group.Name)
+	logger.Info("Created resource group [%s]", *group.Name)
+
 	newResource := &ResourceGroup{
 		Shared: Shared{
-			Identifier: *group.ID,
-			Name:       *group.Name,
+			Name: *group.Name,
 		},
 		Location: *group.Location,
 	}
@@ -103,6 +105,10 @@ func (r *ResourceGroup) Apply(actual, expected cloud.Resource, immutable *cluste
 func (r *ResourceGroup) Delete(actual cloud.Resource, immutable *cluster.Cluster) (*cluster.Cluster, cloud.Resource, error) {
 	logger.Debug("resourcegroup.Delete")
 	deleteResource := actual.(*ResourceGroup)
+	if deleteResource.Identifier == "" {
+		return nil, nil, fmt.Errorf("Unable to delete VPC resource without ID [%s]", deleteResource.Name)
+	}
+
 	autorestChan, errorChan := Sdk.ResourceGroup.Delete(immutable.ClusterName, make(chan struct{}))
 	select {
 	case <-autorestChan:

@@ -19,7 +19,7 @@ import (
 	"github.com/kris-nova/charlie/network"
 	"github.com/kris-nova/kubicorn/apis/cluster"
 	"github.com/kris-nova/kubicorn/cutil/logger"
-	"github.com/kris-nova/kubicorn/profiles"
+	profile "github.com/kris-nova/kubicorn/profiles/amazon"
 	"github.com/kris-nova/kubicorn/test"
 	"os"
 	"testing"
@@ -40,7 +40,7 @@ func TestMain(m *testing.M) {
 	//	}
 	//}()
 	test.InitRsaTravis()
-	testCluster = profiles.NewUbuntuAmazonCluster("ubuntu-test")
+	testCluster = profile.NewUbuntuCluster("ubuntu-test")
 	testCluster, err = test.Create(testCluster)
 	if err != nil {
 		fmt.Printf("Unable to create Amazon test cluster: %v\n", err)

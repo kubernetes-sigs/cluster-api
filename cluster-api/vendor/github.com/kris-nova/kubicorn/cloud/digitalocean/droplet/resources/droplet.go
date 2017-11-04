@@ -25,6 +25,7 @@ import (
 	"github.com/kris-nova/klone/pkg/local"
 	"github.com/kris-nova/kubicorn/apis/cluster"
 	"github.com/kris-nova/kubicorn/cloud"
+	"github.com/kris-nova/kubicorn/cutil/agent"
 	"github.com/kris-nova/kubicorn/cutil/compare"
 	"github.com/kris-nova/kubicorn/cutil/defaults"
 	"github.com/kris-nova/kubicorn/cutil/logger"
@@ -119,6 +120,8 @@ func (r *Droplet) Apply(actual, expected cloud.Resource, immutable *cluster.Clus
 		return immutable, applyResource, nil
 	}
 
+	agent := agent.NewAgent()
+
 	//masterIpPrivate := ""
 	masterIPPublic := ""
 	if r.ServerPool.Type == cluster.ServerPoolTypeNode {
@@ -161,7 +164,7 @@ func (r *Droplet) Apply(actual, expected cloud.Resource, immutable *cluster.Clus
 			logger.Info("Setting up VPN on Droplets... this could take a little bit longer...")
 			pubPath := local.Expand(immutable.SSH.PublicKeyPath)
 			privPath := strings.Replace(pubPath, ".pub", "", 1)
-			scp := scp.NewSecureCopier(immutable.SSH.User, masterIPPublic, "22", privPath)
+			scp := scp.NewSecureCopier(immutable.SSH.User, masterIPPublic, "22", privPath, agent)
 			masterVpnIP, err := scp.ReadBytes("/tmp/.ip")
 			if err != nil {
 				logger.Debug("Hanging for VPN IP.. /tmp/.ip (%v)", err)

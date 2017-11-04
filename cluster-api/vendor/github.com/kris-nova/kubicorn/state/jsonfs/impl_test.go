@@ -22,14 +22,14 @@ import (
 	"testing"
 
 	"github.com/kris-nova/kubicorn/apis/cluster"
-	"github.com/kris-nova/kubicorn/profiles"
+	"github.com/kris-nova/kubicorn/profiles/amazon"
 	"github.com/kris-nova/kubicorn/state"
 )
 
 func TestJsonFileSystem(t *testing.T) {
 	testFilePath := ".test/"
 	clusterName := "jsonfs-test"
-	c := profiles.NewUbuntuAmazonCluster(clusterName)
+	c := amazon.NewUbuntuCluster(clusterName)
 	o := &JSONFileSystemStoreOptions{
 		BasePath:    testFilePath,
 		ClusterName: c.Name,

@@ -17,16 +17,12 @@ package scp
 import (
 	"fmt"
 	"io/ioutil"
-	"net"
-	"os"
-	"syscall"
 	"time"
 
+	"github.com/kris-nova/kubicorn/cutil/agent"
 	"github.com/kris-nova/kubicorn/cutil/logger"
 	"github.com/pkg/sftp"
 	"golang.org/x/crypto/ssh"
-	"golang.org/x/crypto/ssh/agent"
-	"golang.org/x/crypto/ssh/terminal"
 )
 
 type SecureCopier struct {
@@ -34,14 +30,16 @@ type SecureCopier struct {
 	RemoteAddress  string
 	RemotePort     string
 	PrivateKeyPath string
+	SSHAgent       *agent.Keyring
 }
 
-func NewSecureCopier(remoteUser, remoteAddress, remotePort, privateKeyPath string) *SecureCopier {
+func NewSecureCopier(remoteUser, remoteAddress, remotePort, privateKeyPath string, sshAgent *agent.Keyring) *SecureCopier {
 	return &SecureCopier{
 		RemoteUser:     remoteUser,
 		RemoteAddress:  remoteAddress,
 		RemotePort:     remotePort,
 		PrivateKeyPath: privateKeyPath,
+		SSHAgent:       sshAgent,
 	}
 }
 
@@ -52,20 +50,16 @@ func (s *SecureCopier) ReadBytes(remotePath string) ([]byte, error) {
 		Timeout:         time.Duration(3 * time.Second),
 	}
 
-	agent := sshAgent()
-	if agent != nil {
-		sshConfig.Auth = append(sshConfig.Auth, agent)
-	} else {
-		pemBytes, err := ioutil.ReadFile(s.PrivateKeyPath)
-		if err != nil {
+	// Check for key
+	if err := s.SSHAgent.CheckKey(s.PrivateKeyPath + ".pub"); err != nil {
+		if keyring, err := s.SSHAgent.AddKey(s.PrivateKeyPath + ".pub"); err != nil {
 			return nil, err
+		} else {
+			s.SSHAgent = keyring
 		}
-		signer, err := getSigner(pemBytes)
-		if err != nil {
-			return nil, err
-		}
-		sshConfig.Auth = append(sshConfig.Auth, ssh.PublicKeys(signer))
 	}
+
+	sshConfig.Auth = append(sshConfig.Auth, s.SSHAgent.GetAgent())
 
 	sshConfig.SetDefaults()
 	conn, err := ssh.Dial("tcp", fmt.Sprintf("%s:%s", s.RemoteAddress, s.RemotePort), sshConfig)
@@ -92,33 +86,5 @@ func (s *SecureCopier) ReadBytes(remotePath string) ([]byte, error) {
 
 func (s *SecureCopier) Write(localPath, remotePath string) error {
 	logger.Critical("Write not yet implemented!")
-	return nil
-}
-
-func getSigner(pemBytes []byte) (ssh.Signer, error) {
-	signerwithoutpassphrase, err := ssh.ParsePrivateKey(pemBytes)
-	if err != nil {
-		logger.Warning(err.Error())
-		fmt.Print("SSH Key Passphrase [none]: ")
-		fmt.Println("")
-		passPhrase, err := terminal.ReadPassword(int(syscall.Stdin))
-		if err != nil {
-			return nil, err
-		}
-		signerwithpassphrase, err := ssh.ParsePrivateKeyWithPassphrase(pemBytes, passPhrase)
-		if err != nil {
-			return nil, err
-		}
-
-		return signerwithpassphrase, err
-	}
-
-	return signerwithoutpassphrase, err
-}
-
-func sshAgent() ssh.AuthMethod {
-	if sshAgent, err := net.Dial("unix", os.Getenv("SSH_AUTH_SOCK")); err == nil {
-		return ssh.PublicKeysCallback(agent.NewClient(sshAgent).Signers)
-	}
 	return nil
 }

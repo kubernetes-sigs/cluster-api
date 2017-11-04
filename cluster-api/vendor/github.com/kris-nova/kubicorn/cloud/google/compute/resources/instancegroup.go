@@ -201,12 +201,20 @@ func (r *InstanceGroup) Apply(actual, expected cloud.Resource, immutable *cluste
 	}
 
 	tags := []string{}
-	if immutable.KubernetesAPI.Port == "443" {
-		tags = append(tags, "https-server")
+	if r.ServerPool.Type == cluster.ServerPoolTypeMaster {
+		if immutable.KubernetesAPI.Port == "443" {
+			tags = append(tags, "https-server")
+		}
+
+		if immutable.KubernetesAPI.Port == "80" {
+			tags = append(tags, "http-server")
+		}
+
+		tags = append(tags, "kubicorn-master")
 	}
 
-	if immutable.KubernetesAPI.Port == "80" {
-		tags = append(tags, "http-server")
+	if r.ServerPool.Type == cluster.ServerPoolTypeNode {
+		tags = append(tags, "kubicorn-node")
 	}
 
 	prefix := "https://www.googleapis.com/compute/v1/projects/" + immutable.CloudId

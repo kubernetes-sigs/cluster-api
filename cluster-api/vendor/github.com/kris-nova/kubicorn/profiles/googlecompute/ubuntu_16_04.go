@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package profiles
+package googlecompute
 
 import (
 	"fmt"
@@ -21,8 +21,8 @@ import (
 	"github.com/kris-nova/kubicorn/cutil/kubeadm"
 )
 
-// NewUbuntuGoogleComputeCluster creates a basic Ubuntu Google Compute cluster.
-func NewUbuntuGoogleComputeCluster(name string) *cluster.Cluster {
+// NewUbuntuCluster creates a basic Ubuntu Google Compute cluster.
+func NewUbuntuCluster(name string) *cluster.Cluster {
 	return &cluster.Cluster{
 		Name:     name,
 		CloudId:  "example-id",

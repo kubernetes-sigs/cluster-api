@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package profiles
+package digitalocean
 
 import (
 	"fmt"
@@ -21,8 +21,8 @@ import (
 	"github.com/kris-nova/kubicorn/cutil/kubeadm"
 )
 
-// NewCentosDigitalOceanCluster creates a basic CentOS DigitalOcean cluster.
-func NewCentosDigitalOceanCluster(name string) *cluster.Cluster {
+// NewCentosCluster creates a basic CentOS DigitalOcean cluster.
+func NewCentosCluster(name string) *cluster.Cluster {
 	return &cluster.Cluster{
 		Name:     name,
 		Cloud:    cluster.CloudDigitalOcean,

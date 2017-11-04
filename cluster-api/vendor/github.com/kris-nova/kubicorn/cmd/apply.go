@@ -21,6 +21,7 @@ import (
 	"strings"
 
 	"github.com/kris-nova/kubicorn/cutil"
+	"github.com/kris-nova/kubicorn/cutil/agent"
 	"github.com/kris-nova/kubicorn/cutil/initapi"
 	"github.com/kris-nova/kubicorn/cutil/kubeconfig"
 	"github.com/kris-nova/kubicorn/cutil/logger"
@@ -74,6 +75,9 @@ func ApplyCmd() *cobra.Command {
 }
 
 func RunApply(options *ApplyOptions) error {
+
+	// Ensure we have SSH agent
+	agent := agent.NewAgent()
 
 	// Ensure we have a name
 	name := options.Name
@@ -161,7 +165,7 @@ func RunApply(options *ApplyOptions) error {
 
 	logger.Info("Updating state store for cluster [%s]", options.Name)
 
-	err = kubeconfig.RetryGetConfig(newCluster)
+	err = kubeconfig.RetryGetConfig(newCluster, agent)
 	if err != nil {
 		return fmt.Errorf("Unable to write kubeconfig: %v", err)
 	}

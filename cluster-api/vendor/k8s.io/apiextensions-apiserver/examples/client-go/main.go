@@ -26,6 +26,7 @@ import (
 	apiextensionsclient "k8s.io/apiextensions-apiserver/pkg/client/clientset/clientset"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/clientcmd"
 
 	// Uncomment the following line to load the gcp plugin (only required to authenticate against GKE clusters).
@@ -37,12 +38,11 @@ import (
 )
 
 func main() {
-	masterURL := flag.String("master", "", "The address of the Kubernetes API server. Overrides any value in kubeconfig. Only required if out-of-cluster.")
 	kubeconfig := flag.String("kubeconfig", "", "Path to a kube config. Only required if out-of-cluster.")
 	flag.Parse()
 
-	// Create the client config. Use masterURL and kubeconfig if given, otherwise assume in-cluster.
-	config, err := clientcmd.BuildConfigFromFlags(*masterURL, *kubeconfig)
+	// Create the client config. Use kubeconfig if given, otherwise assume in-cluster.
+	config, err := buildConfig(*kubeconfig)
 	if err != nil {
 		panic(err)
 	}
@@ -120,4 +120,11 @@ func main() {
 		panic(err)
 	}
 	fmt.Printf("LIST: %#v\n", exampleList)
+}
+
+func buildConfig(kubeconfig string) (*rest.Config, error) {
+	if kubeconfig != "" {
+		return clientcmd.BuildConfigFromFlags("", kubeconfig)
+	}
+	return rest.InClusterConfig()
 }

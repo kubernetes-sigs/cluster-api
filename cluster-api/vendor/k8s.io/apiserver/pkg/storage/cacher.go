@@ -54,6 +54,8 @@ type CacherConfig struct {
 	// An underlying storage.Versioner.
 	Versioner Versioner
 
+	Copier runtime.ObjectCopier
+
 	// The Cache will be caching objects of a given Type and assumes that they
 	// are all stored under ResourcePrefix directory in the underlying database.
 	Type           interface{}
@@ -159,6 +161,8 @@ type Cacher struct {
 	// Underlying storage.Interface.
 	storage Interface
 
+	copier runtime.ObjectCopier
+
 	// Expected type of objects in the underlying cache.
 	objectType reflect.Type
 
@@ -208,6 +212,7 @@ func NewCacherFromConfig(config CacherConfig) *Cacher {
 	cacher := &Cacher{
 		ready:       newReady(),
 		storage:     config.Storage,
+		copier:      config.Copier,
 		objectType:  reflect.TypeOf(config.Type),
 		watchCache:  watchCache,
 		reflector:   cache.NewNamedReflector(reflectorName, listerWatcher, config.Type, watchCache, 0),
@@ -338,7 +343,7 @@ func (c *Cacher) Watch(ctx context.Context, key string, resourceVersion string, 
 	c.Lock()
 	defer c.Unlock()
 	forget := forgetWatcher(c, c.watcherIdx, triggerValue, triggerSupported)
-	watcher := newCacheWatcher(watchRV, chanSize, initEvents, watchFilterFunction(key, pred), forget)
+	watcher := newCacheWatcher(c.copier, watchRV, chanSize, initEvents, watchFilterFunction(key, pred), forget)
 
 	c.watchers.addWatcher(watcher, c.watcherIdx, triggerValue, triggerSupported)
 	c.watcherIdx++
@@ -468,15 +473,10 @@ func (c *Cacher) GetToList(ctx context.Context, key string, resourceVersion stri
 // Implements storage.Interface.
 func (c *Cacher) List(ctx context.Context, key string, resourceVersion string, pred SelectionPredicate, listObj runtime.Object) error {
 	pagingEnabled := utilfeature.DefaultFeatureGate.Enabled(features.APIListChunking)
-	hasContinuation := pagingEnabled && len(pred.Continue) > 0
-	hasLimit := pagingEnabled && pred.Limit > 0 && resourceVersion != "0"
-	if resourceVersion == "" || hasContinuation || hasLimit {
+	if resourceVersion == "" || (pagingEnabled && (len(pred.Continue) > 0 || pred.Limit > 0)) {
 		// If resourceVersion is not specified, serve it from underlying
-		// storage (for backward compatibility). If a continuation is
+		// storage (for backward compatibility). If a continuation or limit is
 		// requested, serve it from the underlying storage as well.
-		// Limits are only sent to storage when resourceVersion is non-zero
-		// since the watch cache isn't able to perform continuations, and
-		// limits are ignored when resource version is zero.
 		return c.storage.List(ctx, key, resourceVersion, pred, listObj)
 	}
 
@@ -778,6 +778,7 @@ func (c *errWatcher) Stop() {
 // cacherWatch implements watch.Interface
 type cacheWatcher struct {
 	sync.Mutex
+	copier  runtime.ObjectCopier
 	input   chan *watchCacheEvent
 	result  chan watch.Event
 	done    chan struct{}
@@ -786,8 +787,9 @@ type cacheWatcher struct {
 	forget  func(bool)
 }
 
-func newCacheWatcher(resourceVersion uint64, chanSize int, initEvents []*watchCacheEvent, filter watchFilterFunc, forget func(bool)) *cacheWatcher {
+func newCacheWatcher(copier runtime.ObjectCopier, resourceVersion uint64, chanSize int, initEvents []*watchCacheEvent, filter watchFilterFunc, forget func(bool)) *cacheWatcher {
 	watcher := &cacheWatcher{
+		copier:  copier,
 		input:   make(chan *watchCacheEvent, chanSize),
 		result:  make(chan watch.Event, chanSize),
 		done:    make(chan struct{}),

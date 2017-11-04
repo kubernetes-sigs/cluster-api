@@ -41,6 +41,7 @@ func NewREST(scheme *runtime.Scheme, optsGetter generic.RESTOptionsGetter) *REST
 	strategy := NewStrategy(scheme)
 
 	store := &genericregistry.Store{
+		Copier:                   scheme,
 		NewFunc:                  func() runtime.Object { return &apiextensions.CustomResourceDefinition{} },
 		NewListFunc:              func() runtime.Object { return &apiextensions.CustomResourceDefinitionList{} },
 		PredicateFunc:            MatchCustomResourceDefinition,

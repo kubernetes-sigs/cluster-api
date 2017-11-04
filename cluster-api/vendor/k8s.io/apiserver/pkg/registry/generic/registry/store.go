@@ -76,6 +76,9 @@ type GenericStore interface {
 //
 // TODO: make the default exposed methods exactly match a generic RESTStorage
 type Store struct {
+	// Copier is used to make some storage caching decorators work
+	Copier runtime.ObjectCopier
+
 	// NewFunc returns a new instance of the type this registry returns for a
 	// GET of a single object, e.g.:
 	//
@@ -1328,6 +1331,7 @@ func (e *Store) CompleteWithOptions(options *generic.StoreOptions) error {
 
 	if e.Storage == nil {
 		e.Storage, e.DestroyFunc = opts.Decorator(
+			e.Copier,
 			opts.StorageConfig,
 			e.NewFunc(),
 			prefix,

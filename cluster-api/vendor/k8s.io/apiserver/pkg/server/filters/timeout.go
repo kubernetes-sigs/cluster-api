@@ -22,6 +22,7 @@ import (
 	"fmt"
 	"net"
 	"net/http"
+	"strings"
 	"sync"
 	"time"
 
@@ -54,8 +55,20 @@ func WithTimeoutForNonLongRunningRequests(handler http.Handler, requestContextMa
 		if longRunning(req, requestInfo) {
 			return nil, nil, nil
 		}
+		now := time.Now()
 		metricFn := func() {
-			metrics.Record(req, requestInfo, "", http.StatusGatewayTimeout, 0, 0)
+			scope := "cluster"
+			if requestInfo.Namespace != "" {
+				scope = "namespace"
+			}
+			if requestInfo.Name != "" {
+				scope = "resource"
+			}
+			if requestInfo.IsResourceRequest {
+				metrics.MonitorRequest(req, strings.ToUpper(requestInfo.Verb), requestInfo.Resource, requestInfo.Subresource, "", scope, http.StatusGatewayTimeout, 0, now)
+			} else {
+				metrics.MonitorRequest(req, strings.ToUpper(requestInfo.Verb), "", requestInfo.Path, "", scope, http.StatusGatewayTimeout, 0, now)
+			}
 		}
 		return time.After(timeout), metricFn, apierrors.NewTimeoutError(fmt.Sprintf("request did not complete within %s", timeout), 0)
 	}

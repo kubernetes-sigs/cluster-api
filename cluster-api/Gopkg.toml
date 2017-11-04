@@ -34,5 +34,25 @@
   version = "1.0.0"
 
 [[constraint]]
-  name = "k8s.io/kubernetes"
+  name = "k8s.io/api"
+  branch = "release-1.8"
+
+[[constraint]]
+  name = "k8s.io/apiextensions-apiserver"
+  branch = "release-1.8"
+
+[[constraint]]
+  name = "k8s.io/apimachinery"
+  branch = "release-1.8"
+
+[[constraint]]
+  name = "k8s.io/apiserver"
+  branch = "release-1.8"
+
+[[constraint]]
+  name = "k8s.io/client-go"
+  branch = "release-5.0"
+
+[[constraint]]
+  name = "k8s.io/kube-openapi"
   branch = "release-1.8"

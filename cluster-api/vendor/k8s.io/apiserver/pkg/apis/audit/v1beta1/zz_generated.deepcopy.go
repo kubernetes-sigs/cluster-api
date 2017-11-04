@@ -126,8 +126,6 @@ func (in *Event) DeepCopyInto(out *Event) {
 			(*in).DeepCopyInto(*out)
 		}
 	}
-	in.RequestReceivedTimestamp.DeepCopyInto(&out.RequestReceivedTimestamp)
-	in.StageTimestamp.DeepCopyInto(&out.StageTimestamp)
 	return
 }
 

@@ -11,7 +11,6 @@ go_library(
         "interface.go",
         "poddisruptionbudget.go",
     ],
-    importpath = "k8s.io/client-go/informers/policy/v1beta1",
     deps = [
         "//vendor/k8s.io/api/policy/v1beta1:go_default_library",
         "//vendor/k8s.io/apimachinery/pkg/apis/meta/v1:go_default_library",

@@ -1,5 +1,5 @@
 items:
-- apiVersion: "cluster-api.k8s.io/v1alpha1"
+- apiVersion: "cluster.k8s.io/v1alpha1"
   kind: Machine
   metadata:
     name: gce-master-1
@@ -24,7 +24,7 @@ items:
         version: 1.12.0
     roles:
     - Master
-- apiVersion: "cluster-api.k8s.io/v1alpha1"
+- apiVersion: "cluster.k8s.io/v1alpha1"
   kind: Machine
   metadata:
     generateName: gce-node-

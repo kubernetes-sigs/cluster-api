@@ -1,4 +1,4 @@
-apiVersion: "cluster-api.k8s.io/v1alpha1"
+apiVersion: "cluster.k8s.io/v1alpha1"
 kind: Machine
 metadata:
   generateName: gce-machine-

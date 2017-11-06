@@ -1,6 +1,7 @@
 package deploy
 
 import (
+	"fmt"
 	"time"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -26,7 +27,7 @@ func UpgradeCluster(kubeversion string, kubeconfig string) error {
 	if err != nil {
 		return err
 	} else if len(clusters.Items) != 1 {
-		panic("There is zero or more than one cluster returned!")
+		return fmt.Errorf("There is zero or more than one cluster returned!")
 	}
 
 	// Modify the control plane version
@@ -35,7 +36,7 @@ func UpgradeCluster(kubeversion string, kubeconfig string) error {
 	// Update the cluster.
 	cluster, err := client.Clusters().Update(&clusters.Items[0])
 	if err != nil {
-		panic(err.Error())
+		return err
 	}
 
 	// Polling the cluster until new control plan is ready.

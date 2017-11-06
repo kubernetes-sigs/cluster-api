@@ -1,3 +1,5 @@
+Note that cluster-api effort is still in the prototype stage. All the code here is for experimental and demo-purpose, and under rapid change.
+
 ### How to build
 
 ```bash

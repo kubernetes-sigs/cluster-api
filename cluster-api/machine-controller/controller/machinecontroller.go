@@ -18,7 +18,7 @@ package controller
 
 import (
 	"context"
-    "reflect"
+	"reflect"
 
 	"github.com/golang/glog"
 
@@ -34,13 +34,13 @@ import (
 )
 
 type MachineController struct {
-	config     *Configuration
-	restClient *rest.RESTClient
+	config        *Configuration
+	restClient    *rest.RESTClient
 	kubeClientSet *kubernetes.Clientset
-	actuator cloud.MachineActuator
+	actuator      cloud.MachineActuator
 }
 
-func NewMachineController(config *Configuration) *MachineController{
+func NewMachineController(config *Configuration) *MachineController {
 	restClient, _, err := restClient(config.Kubeconfig)
 	if err != nil {
 		glog.Fatalf("error creating rest client: %v", err)
@@ -63,14 +63,14 @@ func NewMachineController(config *Configuration) *MachineController{
 	}
 
 	return &MachineController{
-			config:config,
-			restClient:restClient,
-		kubeClientSet:kubeClientSet,
-		actuator:actuator,
-		}
+		config:        config,
+		restClient:    restClient,
+		kubeClientSet: kubeClientSet,
+		actuator:      actuator,
+	}
 }
 
-func (c *MachineController) Run () error {
+func (c *MachineController) Run() error {
 	glog.Infof("Running ...")
 
 	// Run leader election
@@ -99,6 +99,11 @@ func (c *MachineController) run(ctx context.Context) error {
 func (c *MachineController) onAdd(obj interface{}) {
 	machine := obj.(*machinesv1.Machine)
 	glog.Infof("object created: %s\n", machine.ObjectMeta.Name)
+
+	if ignored(machine) {
+		return
+	}
+
 	err := c.create(machine)
 	if err != nil {
 		glog.Errorf("create machine %s failed: %v", machine.ObjectMeta.Name, err)
@@ -112,7 +117,11 @@ func (c *MachineController) onUpdate(oldObj, newObj interface{}) {
 	glog.Infof("object updated: %s\n", oldMachine.ObjectMeta.Name)
 	glog.Infof("  old k8s version: %s, new: %s\n", oldMachine.Spec.Versions.Kubelet, newMachine.Spec.Versions.Kubelet)
 
-	if !c.requiresUpdate(newMachine, oldMachine){
+	if ignored(newMachine) {
+		return
+	}
+
+	if !c.requiresUpdate(newMachine, oldMachine) {
 		glog.Infof("machine %s change does not require any update action to be taken.", oldMachine.ObjectMeta.Name)
 		return
 	}
@@ -132,20 +141,35 @@ func (c *MachineController) onUpdate(oldObj, newObj interface{}) {
 func (c *MachineController) onDelete(obj interface{}) {
 	machine := obj.(*machinesv1.Machine)
 	glog.Infof("object deleted: %s\n", machine.ObjectMeta.Name)
+
+	if ignored(machine) {
+		return
+	}
+
 	err := c.delete(machine)
 	if err != nil {
 		glog.Errorf("delete machine %s failed: %v", machine.ObjectMeta.Name, err)
 	}
 }
 
+func ignored(machine *machinesv1.Machine) bool {
+	for _, role := range(machine.Spec.Roles) {
+		if role == "Master" {
+			glog.Infof("Ignoring master machine\n")
+			return true
+		}
+	}
+	return false
+}
+
 // The two machines differ in a way that requires an update
 func (c *MachineController) requiresUpdate(a *machinesv1.Machine, b *machinesv1.Machine) bool {
 	// Do not want status changes. Do want changes that impact machine provisioning
 	return !reflect.DeepEqual(a.Spec.ObjectMeta, b.Spec.ObjectMeta) ||
-		   !reflect.DeepEqual(a.Spec.ProviderConfig,b.Spec.ProviderConfig) ||
-	       !reflect.DeepEqual(a.Spec.Roles, b.Spec.Roles) ||
-	       !reflect.DeepEqual(a.Spec.Versions, b.Spec.Versions) ||
-	       	a.ObjectMeta.Name != b.ObjectMeta.Name
+		!reflect.DeepEqual(a.Spec.ProviderConfig, b.Spec.ProviderConfig) ||
+		!reflect.DeepEqual(a.Spec.Roles, b.Spec.Roles) ||
+		!reflect.DeepEqual(a.Spec.Versions, b.Spec.Versions) ||
+		a.ObjectMeta.Name != b.ObjectMeta.Name
 }
 
 func (c *MachineController) create(machine *machinesv1.Machine) error {

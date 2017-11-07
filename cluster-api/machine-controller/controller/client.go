@@ -17,12 +17,12 @@ limitations under the License.
 package controller
 
 import (
-	_ "k8s.io/client-go/plugin/pkg/client/auth"
-	"k8s.io/client-go/kubernetes"
-	"k8s.io/client-go/rest"
-	"k8s.io/client-go/tools/clientcmd"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/serializer"
+	"k8s.io/client-go/kubernetes"
+	_ "k8s.io/client-go/plugin/pkg/client/auth"
+	"k8s.io/client-go/rest"
+	"k8s.io/client-go/tools/clientcmd"
 
 	machinesv1 "k8s.io/kube-deploy/cluster-api/api/machines/v1alpha1"
 )

@@ -17,9 +17,9 @@ limitations under the License.
 package main
 
 import (
+	goflag "flag"
 	"fmt"
 	"os"
-	goflag "flag"
 
 	"github.com/spf13/pflag"
 

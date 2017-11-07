@@ -1,17 +1,17 @@
 package cmd
 
 import (
-
 	"github.com/kris-nova/kubicorn/cutil/logger"
 	"github.com/spf13/cobra"
-	"os"
-	_ "k8s.io/kube-deploy/cluster-api/deploy"
 	"k8s.io/kube-deploy/cluster-api/deploy"
+	_ "k8s.io/kube-deploy/cluster-api/deploy"
+	"os"
 )
 
 type CreateOptions struct {
-	Cluster string
-	Machine string
+	Cluster                 string
+	Machine                 string
+	EnableMachineController bool
 }
 
 var co = &CreateOptions{}
@@ -52,7 +52,7 @@ func RunCreate(co *CreateOptions) error {
 
 	//logger.Info("Parsing done [%s]", machines)
 
-	if err = deploy.CreateCluster(cluster, machines); err != nil {
+	if err = deploy.CreateCluster(cluster, machines, co.EnableMachineController); err != nil {
 		return err
 	}
 	return nil
@@ -61,6 +61,7 @@ func RunCreate(co *CreateOptions) error {
 func init() {
 	createCmd.Flags().StringVarP(&co.Cluster, "cluster", "c", "", "cluster yaml file")
 	createCmd.Flags().StringVarP(&co.Machine, "machines", "m", "", "machine yaml file")
+	createCmd.Flags().BoolVarP(&co.EnableMachineController, "enable-machine-controller", "e", false, "whether or not to start the machine controller")
 
 	RootCmd.AddCommand(createCmd)
 }

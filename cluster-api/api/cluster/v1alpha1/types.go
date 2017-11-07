@@ -14,13 +14,17 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-// Package cluster contains types to represent Kubernetes cluster configuration.
+// Package v1alpha1 contains types to represent Kubernetes cluster configuration.
 package v1alpha1 // import "k8s.io/kube-deploy/cluster-api/api/cluster/v1alpha1"
 
 import metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
-// Cluster is an API object representing a cluster's control-plane
-// configuration and status.
+// deepcopy-gen can be installed with:
+// go get k8s.io/gengo/examples/deepcopy-gen
+//go:generate deepcopy-gen -i . -O zz_generated.deepcopy
+
+// Cluster is an API object representing cluster-wide configuration
+// parameters and status.
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
 type Cluster struct {
 	metav1.ObjectMeta `json:"metadata"`
@@ -31,12 +35,6 @@ type Cluster struct {
 }
 
 type ClusterSpec struct {
-	// Nominal version of Kubernetes control-plane to run.
-	KubernetesVersion KubernetesVersionInfo `json:"kubernetesVersion"`
-
-	// Basic API configuration
-	APIConfig APIServerConfig `json:"apiConfig"`
-
 	// Cluster network configuration
 	ClusterNetwork ClusterNetworkingConfig `json:"clusterNetwork"`
 
@@ -47,40 +45,23 @@ type ClusterSpec struct {
 	ProviderConfig string `json:"providerConfig"`
 }
 
-type APIServerConfig struct {
-	// The address for the API server to advertise.
-	AdvertiseAddress string `json:"advertiseAddress"`
-
-	// The port on which the API server binds.
-	Port uint32 `json:"port"`
-
-	// Extra Subject Alternative Names for the API server's serving cert.
-	ExtraSANs []string `json:"extraSANs"`
-}
-
+// ClusterNetworkingConfig specifies the different networking
+// parameters for a cluster.
 type ClusterNetworkingConfig struct {
-	// The subnet from which service VIPs are allocated.
+	// The subnet CIDR from which service VIPs are allocated.
 	ServiceSubnet string `json:"serviceSubnet"`
 
-	// The subnet from which POD networks are allocated.
+	// The subnet CIDR from which POD networks are allocated.
 	PodSubnet string `json:"podSubnet"`
 
 	// Domain name for services.
 	DNSDomain string `json:"dnsDomain"`
 }
 
-type KubernetesVersionInfo struct {
-	// Semantic version of Kubernetes to run.
-	Version string `json:"version"`
-}
-
+// ClusterStatus represents the current status of the cluster.
 type ClusterStatus struct {
 	// APIEndpoint represents the endpoint to communicate with the IP.
-	APIEndpoint APIEndpoint `json:"apiEndpoint"`
-
-	// A simple boolean to indicate whether the control plane was
-	// successfully created.
-	Ready bool `json:"ready"`
+	APIEndpoints []APIEndpoint `json:"apiEndpoints"`
 
 	// If set, indicates that there is a problem reconciling the
 	// state, and will be set to a token value suitable for
@@ -98,18 +79,15 @@ type ClusterStatus struct {
 	ProviderStatus string `json:"providerStatus"`
 }
 
+// APIEndpoint represents a reachable Kubernetes API endpoint.
 type APIEndpoint struct {
 	// The hostname on which the API server is serving.
 	Host string `json:"host"`
 
 	// The port on which the API server is serving.
 	Port int `json:"port"`
-
-	// The serving certificate for the API server.
-	Cert []byte `json:"cert"`
 }
 
-//
 type ClusterStatusError string
 
 const (
@@ -120,7 +98,7 @@ const (
 	// UnsupportedChangeClusterError indicates that the cluster
 	// spec has been updated in an unsupported way. That cannot be
 	// reconciled.
-	UnsupportedChangeClusterError ClusterStatusError = "UnsupportedChanged"
+	UnsupportedChangeClusterError ClusterStatusError = "UnsupportedChange"
 
 	// CreateClusterError indicates that an error was encountered
 	// when trying to create the cluster.

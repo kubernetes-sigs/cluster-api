@@ -1,14 +1,13 @@
 package deploy
 
 import (
-	"fmt"
 	"time"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/client-go/tools/clientcmd"
-	clusapiclnt "k8s.io/kube-deploy/cluster-api/client"
 	"k8s.io/apimachinery/pkg/util/wait"
+	"k8s.io/client-go/tools/clientcmd"
 	machinesv1 "k8s.io/kube-deploy/cluster-api/api/machines/v1alpha1"
+	clusapiclnt "k8s.io/kube-deploy/cluster-api/client"
 )
 
 func UpgradeCluster(kubeversion string, kubeconfig string) error {
@@ -18,36 +17,6 @@ func UpgradeCluster(kubeversion string, kubeconfig string) error {
 	}
 
 	client, err := clusapiclnt.NewForConfig(config)
-	if err != nil {
-		return err
-	}
-
-	// Fetch Cluster object.
-	clusters, err := client.Clusters().List(metav1.ListOptions{})
-	if err != nil {
-		return err
-	} else if len(clusters.Items) != 1 {
-		return fmt.Errorf("There is zero or more than one cluster returned!")
-	}
-
-	// Modify the control plane version
-	clusters.Items[0].Spec.KubernetesVersion.Version = kubeversion
-
-	// Update the cluster.
-	cluster, err := client.Clusters().Update(&clusters.Items[0])
-	if err != nil {
-		return err
-	}
-
-	// Polling the cluster until new control plan is ready.
-	err = wait.Poll(5*time.Second, 10*time.Minute, func() (bool, error) {
-		cluster, err = client.Clusters().Get(cluster.Name, metav1.GetOptions{})
-		//if err == nil && cluster.Status.Ready {
-		//	return true, err
-		//}
-		//return false, err
-		return true, nil
-	})
 	if err != nil {
 		return err
 	}
@@ -63,6 +32,11 @@ func UpgradeCluster(kubeversion string, kubeconfig string) error {
 	for i, _ := range machine_list.Items {
 		go func(mach *machinesv1.Machine) {
 			mach.Spec.Versions.Kubelet = kubeversion
+			for _, role := range mach.Spec.Roles {
+				if role == "master" {
+					mach.Spec.Versions.ControlPlane = kubeversion
+				}
+			}
 			new_machine, err := client.Machines().Update(mach)
 			if err == nil {
 				err = wait.Poll(5*time.Second, 10*time.Minute, func() (bool, error) {
@@ -78,7 +52,7 @@ func UpgradeCluster(kubeversion string, kubeconfig string) error {
 				})
 			}
 			errors <- err
-		} (&machine_list.Items[i])
+		}(&machine_list.Items[i])
 	}
 
 	for i := 0; i < len(machine_list.Items); i++ {
@@ -88,4 +62,3 @@ func UpgradeCluster(kubeversion string, kubeconfig string) error {
 	}
 	return nil
 }
-

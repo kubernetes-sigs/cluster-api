@@ -21,8 +21,8 @@ import (
 )
 
 type Configuration struct {
-	Kubeconfig string
-	Cloud string
+	Kubeconfig   string
+	Cloud        string
 	KubeadmToken string
 }
 

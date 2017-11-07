@@ -3,6 +3,8 @@ items:
   kind: Machine
   metadata:
     generateName: gce-master-
+    labels:
+      set: master
   spec:
     providerConfig: >
       {
@@ -24,6 +26,8 @@ items:
   kind: Machine
   metadata:
     generateName: gce-node-
+    labels:
+      set: node
   spec:
     providerConfig: >
       {

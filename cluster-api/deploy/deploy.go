@@ -70,7 +70,8 @@ func CreateCluster(c *api.Cluster, machines []v1alpha1.Machine, enableMachineCon
 		if err = google.CreateMachineControllerServiceAccount(c.Spec.Project); err != nil {
 			return err
 		}
-		if err = google.CreateMachineControllerPod(); err != nil {
+		token := cluster.Values.ItemMap["INJECTEDTOKEN"]
+		if err = google.CreateMachineControllerPod(token); err != nil {
 			return err
 		}
 	}

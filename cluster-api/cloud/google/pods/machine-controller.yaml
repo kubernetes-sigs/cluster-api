@@ -4,14 +4,14 @@ metadata:
   annotations:
     scheduler.alpha.kubernetes.io/critical-pod: ""
   labels:
-    component: machinecontroller
+    component: machine-controller
     tier: control-plane
-  name: machinecontroller
+  name: machine-controller
   namespace: kube-system
 spec:
   containers:
-    - name: machinecontroller
-      image: gcr.io/k8s-cluster-api/machinecontroller:0.1-alpha
+    - name: machine-controller
+      image: gcr.io/k8s-cluster-api/machine-controller:0.1-alpha
       args:
         - --token={{ .Token }}
         - --cloud=google

@@ -71,7 +71,7 @@ func (gce *GCEClient) Create(machine *machinesv1.Machine) error {
 		return err
 	}
 
-	startupScript := nodeStartupScript(gce.kubeadmToken, gce.masterIP)
+	startupScript := nodeStartupScript(gce.kubeadmToken, gce.masterIP, machine.Spec.Versions.Kubelet)
 
 	op, err := gce.service.Instances.Insert(config.Project, config.Zone, &compute.Instance{
 		Name:        machine.ObjectMeta.Name,

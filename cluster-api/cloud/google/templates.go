@@ -28,9 +28,9 @@ func sanitizeMasterIP(ip string) string {
 }
 
 
-func nodeStartupScript(kubeadmToken	string, masterIP string) string {
+func nodeStartupScript(kubeadmToken, masterIP, kubeletVersion string) string {
 	mip := sanitizeMasterIP(masterIP)
-	return fmt.Sprintf(nodeStartupTemplate, kubeadmToken, mip)
+	return fmt.Sprintf(nodeStartupTemplate, kubeadmToken, mip, kubeletVersion)
 }
 
 const nodeStartupTemplate = `
@@ -42,6 +42,7 @@ set -x
 (
 TOKEN=%s
 MASTER=%s
+KUBELET_VERSION=%s-00
 
 apt-get update
 apt-get install -y apt-transport-https
@@ -62,7 +63,7 @@ cat <<EOF > /etc/apt/sources.list.d/kubernetes.list
 deb http://apt.kubernetes.io/ kubernetes-xenial main
 EOF
 apt-get update
-apt-get install -y kubelet kubeadm kubectl kubernetes-cni
+apt-get install -y kubelet=${KUBELET_VERSION} kubeadm=${KUBELET_VERSION}
 
 kubeadm join --token "${TOKEN}" "${MASTER}:443" --skip-preflight-checks
 

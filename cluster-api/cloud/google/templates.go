@@ -28,9 +28,9 @@ func sanitizeMasterIP(ip string) string {
 }
 
 
-func nodeStartupScript(kubeadmToken, masterIP, kubeletVersion string) string {
+func nodeStartupScript(kubeadmToken, masterIP, machineName, kubeletVersion string) string {
 	mip := sanitizeMasterIP(masterIP)
-	return fmt.Sprintf(nodeStartupTemplate, kubeadmToken, mip, kubeletVersion)
+	return fmt.Sprintf(nodeStartupTemplate, kubeadmToken, mip, machineName, kubeletVersion)
 }
 
 const nodeStartupTemplate = `
@@ -42,6 +42,7 @@ set -x
 (
 TOKEN=%s
 MASTER=%s
+MACHINE=%s
 KUBELET_VERSION=%s-00
 
 apt-get update
@@ -63,9 +64,14 @@ cat <<EOF > /etc/apt/sources.list.d/kubernetes.list
 deb http://apt.kubernetes.io/ kubernetes-xenial main
 EOF
 apt-get update
-apt-get install -y kubelet=${KUBELET_VERSION} kubeadm=${KUBELET_VERSION}
+apt-get install -y kubelet=${KUBELET_VERSION} kubeadm=${KUBELET_VERSION} kubectl=${KUBELET_VERSION}
 
 kubeadm join --token "${TOKEN}" "${MASTER}:443" --skip-preflight-checks
+
+for tries in $(seq 1 60); do
+	kubectl --kubeconfig /etc/kubernetes/kubelet.conf annotate node $(hostname) machine=${MACHINE} && break
+	sleep 1
+done
 
 echo done.
 ) 2>&1 | tee /var/log/startup.log

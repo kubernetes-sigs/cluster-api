@@ -22,6 +22,10 @@ import (
 	"k8s.io/kubernetes/pkg/api"
 )
 
+// deepcopy-gen can be installed with:
+// go get k8s.io/gengo/examples/deepcopy-gen
+//go:generate deepcopy-gen -i . -O zz_generated.deepcopy
+
 const MachineResourcePlural = "machines"
 
 // Machine represents a single Node that should exist (whether it does or
@@ -51,7 +55,7 @@ type Machine struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata"`
 
-	Spec   MachineSpec `json:"spec"`
+	Spec   MachineSpec   `json:"spec"`
 	Status MachineStatus `json:"status,omitempty"`
 }
 
@@ -167,6 +171,11 @@ type MachineVersionInfo struct {
 	// Semantic version of kubelet to run
 	Kubelet string `json:"kubelet"`
 
+	// Semantic version of the Kubernetes control plane to
+	// run. This should only be populated when the machine is a
+	// master.
+	ControlPlane string `json:"controlPlane"`
+
 	// Name/version of container runtime
 	ContainerRuntime ContainerRuntimeInfo `json:"containerRuntime"`
 }
@@ -181,7 +190,7 @@ type ContainerRuntimeInfo struct {
 
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
 type MachineList struct {
-        metav1.TypeMeta `json:",inline"`
-        metav1.ListMeta `json:"metadata"`
-        Items           []Machine `json:"items"`
+	metav1.TypeMeta `json:",inline"`
+	metav1.ListMeta `json:"metadata"`
+	Items           []Machine `json:"items"`
 }

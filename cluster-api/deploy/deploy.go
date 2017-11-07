@@ -1,25 +1,26 @@
 package deploy
 
 import (
-	"github.com/kris-nova/kubicorn/cutil/initapi"
-	"github.com/kris-nova/kubicorn/cutil/agent"
-	"github.com/kris-nova/kubicorn/cutil"
 	"fmt"
-	"github.com/kris-nova/kubicorn/cutil/logger"
-	"github.com/kris-nova/kubicorn/apis/cluster"
-	"github.com/kris-nova/kubicorn/cutil/kubeconfig"
 	"strings"
+
+	"github.com/kris-nova/kubicorn/apis/cluster"
+	"github.com/kris-nova/kubicorn/cutil"
+	"github.com/kris-nova/kubicorn/cutil/agent"
+	"github.com/kris-nova/kubicorn/cutil/initapi"
+	"github.com/kris-nova/kubicorn/cutil/kubeconfig"
+	"github.com/kris-nova/kubicorn/cutil/logger"
 	"k8s.io/kube-deploy/cluster-api/api"
 	"k8s.io/kube-deploy/cluster-api/api/machines/v1alpha1"
+	"k8s.io/kube-deploy/cluster-api/cloud/google"
 
-	"github.com/kris-nova/kubicorn/profiles/azure"
 	"github.com/kris-nova/kubicorn/cutil/kubeadm"
 	"github.com/kris-nova/kubicorn/cutil/task"
+	"github.com/kris-nova/kubicorn/profiles/azure"
 )
 
-
 // CreateCluster uses kubicorn API to create cluster
-func CreateCluster(c *api.Cluster, machines []v1alpha1.Machine) error {
+func CreateCluster(c *api.Cluster, machines []v1alpha1.Machine, enableMachineController bool) error {
 	cluster, err := convertToKubecornCluster(c)
 	if err != nil {
 		return err
@@ -65,6 +66,15 @@ func CreateCluster(c *api.Cluster, machines []v1alpha1.Machine) error {
 		return err
 	}
 
+	if enableMachineController && c.Spec.Cloud == "google" {
+		if err = google.CreateMachineControllerServiceAccount(c.Spec.Project); err != nil {
+			return err
+		}
+		if err = google.CreateMachineControllerPod(); err != nil {
+			return err
+		}
+	}
+
 	logger.Always("The [%s] cluster has applied successfully!", newCluster.Name)
 	logger.Always("You can now `kubectl get nodes`")
 	privKeyPath := strings.Replace(newCluster.SSH.PublicKeyPath, ".pub", "", 1)
@@ -73,10 +83,9 @@ func CreateCluster(c *api.Cluster, machines []v1alpha1.Machine) error {
 	return nil
 }
 
-
 func DeleteCluster(c *api.Cluster) error {
 	cluster, err := convertToKubecornCluster(c)
-	if err!= nil {
+	if err != nil {
 		return err
 	}
 
@@ -122,15 +131,13 @@ func convertToKubecornCluster(cluster *api.Cluster) (*cluster.Cluster, error) {
 	return newCluster, nil
 }
 
-
 type profileFunc func(name string) *cluster.Cluster
 
 var profileMapIndexed = map[string]profileFunc{
-	"azure":        azure.NewUbuntuCluster,
-	"google":       NewUbuntuGoogleComputeCluster,
-	"gcp":          NewUbuntuGoogleComputeCluster,
+	"azure":  azure.NewUbuntuCluster,
+	"google": NewUbuntuGoogleComputeCluster,
+	"gcp":    NewUbuntuGoogleComputeCluster,
 }
-
 
 // NewUbuntuGoogleComputeCluster creates a basic Ubuntu Google Compute cluster.
 func NewUbuntuGoogleComputeCluster(name string) *cluster.Cluster {

@@ -2,6 +2,7 @@ items:
 - apiVersion: "cluster-api.k8s.io/v1alpha1"
   kind: Machine
   metadata:
+    name: master-1
     generateName: gce-master-
     labels:
       set: master
@@ -10,7 +11,7 @@ items:
       {
         "apiVersion": "gceproviderconfig/v1alpha1",
         "kind": "GCEProviderConfig",
-        "project": "beacham-gke-dev",
+        "project": "kumaraji-gke-dev",
         "zone": "us-central1-f",
         "machineType": "n1-standard-1",
         "image": "projects/ubuntu-os-cloud/global/images/family/ubuntu-1604-lts"
@@ -33,7 +34,7 @@ items:
       {
         "apiVersion": "gceproviderconfig/v1alpha1",
         "kind": "GCEProviderConfig",
-        "project": "beacham-gke-dev",
+        "project": "kumaraji-gke-dev",
         "zone": "us-central1-f",
         "machineType": "n1-standard-1",
         "image": "projects/ubuntu-os-cloud/global/images/family/ubuntu-1604-lts"

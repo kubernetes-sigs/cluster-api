@@ -33,6 +33,10 @@ func nodeStartupScript(kubeadmToken, masterIP, machineName, kubeletVersion strin
 	return fmt.Sprintf(nodeStartupTemplate, kubeadmToken, mip, machineName, kubeletVersion)
 }
 
+func masterStartupScript(kubeadmToken, port string) string {
+	return fmt.Sprintf(masterStartupTemplate, kubeadmToken, port)
+}
+
 const nodeStartupTemplate = `
 #!/bin/bash
 
@@ -85,27 +89,37 @@ set -e
 set -x
 
 (
-apt-get update
-apt-get install -y apt-transport-https
-apt-key adv --keyserver hkp://keyserver.ubuntu.com --recv-keys F76221572C52609D
+TOKEN=%s
+PORT=%s
+curl -s https://packages.cloud.google.com/apt/doc/apt-key.gpg | sudo apt-key add -
+touch /etc/apt/sources.list.d/kubernetes.list
+sh -c 'echo "deb http://apt.kubernetes.io/ kubernetes-xenial main" > /etc/apt/sources.list.d/kubernetes.list'
 
-cat <<EOF > /etc/apt/sources.list.d/k8s.list
-deb [arch=amd64] https://apt.dockerproject.org/repo ubuntu-xenial main
-EOF
+apt-get update -y
+apt-get install -y \
+    socat \
+    ebtables \
+    docker.io \
+    apt-transport-https \
+    kubelet \
+    kubeadm=1.7.0-00 \
+    cloud-utils
 
-apt-get update
-apt-get install -y docker-engine=1.12.0-0~xenial
-systemctl enable docker || true
-systemctl start docker || true
+systemctl enable docker
+systemctl start docker
+` +
+	"PRIVATEIP=`curl --retry 5 -sfH \"Metadata-Flavor: Google\" \"http://metadata/computeMetadata/v1/instance/network-interfaces/0/ip\"`" + `
+echo $PRIVATEIP > /tmp/.ip
+` +
+"PUBLICIP=`curl --retry 5 -sfH \"Metadata-Flavor: Google\" \"http://metadata/computeMetadata/v1/instance/network-interfaces/0/access-configs/0/external-ip\"`" + `
 
-curl -s https://packages.cloud.google.com/apt/doc/apt-key.gpg | apt-key add -
+kubeadm reset
+kubeadm init --apiserver-bind-port ${PORT} --token ${TOKEN}  --apiserver-advertise-address ${PUBLICIP} --apiserver-cert-extra-sans ${PUBLICIP} ${PRIVATEIP}
 
-cat <<EOF > /etc/apt/sources.list.d/kubernetes.list
-deb http://apt.kubernetes.io/ kubernetes-xenial main
-EOF
-apt-get update
-apt-get install -y kubelet kubeadm kubectl kubernetes-cni
+kubectl apply \
+  -f http://docs.projectcalico.org/v2.3/getting-started/kubernetes/installation/hosted/kubeadm/1.6/calico.yaml \
+  --kubeconfig /etc/kubernetes/admin.conf
 
 echo done.
-) 2&>1 | tee /var/log/startup.log
+) 2>&1 | tee /var/log/startup.log
 `

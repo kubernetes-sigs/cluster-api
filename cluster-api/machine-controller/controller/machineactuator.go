@@ -20,6 +20,7 @@ import (
 	"fmt"
 
 	"github.com/golang/glog"
+	clusterv1 "k8s.io/kube-deploy/cluster-api/api/cluster/v1alpha1"
 	machinesv1 "k8s.io/kube-deploy/cluster-api/api/machines/v1alpha1"
 	"k8s.io/kube-deploy/cluster-api/cloud"
 	"k8s.io/kube-deploy/cluster-api/cloud/google"
@@ -53,4 +54,19 @@ func (a loggingMachineActuator) Delete(machine *machinesv1.Machine) error {
 func (a loggingMachineActuator) Get(name string) (*machinesv1.Machine, error) {
 	glog.Infof("actuator received get %s\n", name)
 	return &machinesv1.Machine{}, nil
+}
+
+func (a loggingMachineActuator) GetIP(machine *machinesv1.Machine) (string, error) {
+	glog.Infof("actuator received GetIP: %s\n", machine.ObjectMeta.Name)
+	return "", nil
+}
+
+func (a loggingMachineActuator) GetKubeConfig(master *machinesv1.Machine) (string, error) {
+	glog.Infof("actuator received GetKubeConfig: %s\n", master.ObjectMeta.Name)
+	return "", nil
+}
+
+func (a loggingMachineActuator) CreateMachineController (cluster *clusterv1.Cluster) error {
+	glog.Infof("actuator received CreateMachineController: %s\n", cluster.ObjectMeta.Name)
+	return nil
 }

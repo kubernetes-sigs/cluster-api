@@ -8,14 +8,8 @@
   version = "v0.15.0"
 
 [[projects]]
-  name = "github.com/Azure/azure-sdk-for-go"
-  packages = ["arm/examples/helpers","arm/network","arm/resources/resources"]
-  revision = "509eea43b93cec2f3f17acbe2578ef58703923f8"
-  version = "v11.1.1-beta"
-
-[[projects]]
   name = "github.com/Azure/go-autorest"
-  packages = ["autorest","autorest/adal","autorest/azure","autorest/date","autorest/to","autorest/validation"]
+  packages = ["autorest","autorest/adal","autorest/azure","autorest/date"]
   revision = "7aa5b8a6f18b5c15910c767ab005fc4585221177"
   version = "v9.1.1"
 
@@ -32,12 +26,6 @@
   revision = "de5bf2ad457846296e2031421a34e2568e304e35"
 
 [[projects]]
-  name = "github.com/aws/aws-sdk-go"
-  packages = ["aws","aws/awserr","aws/awsutil","aws/client","aws/client/metadata","aws/corehandlers","aws/credentials","aws/credentials/ec2rolecreds","aws/credentials/endpointcreds","aws/credentials/stscreds","aws/defaults","aws/ec2metadata","aws/endpoints","aws/request","aws/session","aws/signer/v4","internal/shareddefaults","private/protocol","private/protocol/ec2query","private/protocol/query","private/protocol/query/queryutil","private/protocol/rest","private/protocol/restxml","private/protocol/xml/xmlutil","service/autoscaling","service/ec2","service/s3","service/sts"]
-  revision = "f426770fd5a4bae6186b280d4af7dca83a4cdef4"
-  version = "v1.12.17"
-
-[[projects]]
   name = "github.com/davecgh/go-spew"
   packages = ["spew"]
   revision = "346938d642f2ec3594ed81d874461961cd0faa76"
@@ -50,34 +38,16 @@
   version = "v3.1.0"
 
 [[projects]]
-  name = "github.com/digitalocean/godo"
-  packages = [".","context"]
-  revision = "77ea48de76a7b31b234d854f15d003c68bb2fb90"
-  version = "v1.1.1"
-
-[[projects]]
   name = "github.com/emicklei/go-restful"
   packages = [".","log"]
   revision = "5741799b275a3c4a5a9623a993576d7545cf7b5c"
   version = "v2.4.0"
 
 [[projects]]
-  name = "github.com/fatih/color"
-  packages = ["."]
-  revision = "570b54cabe6b8eb0bc2dfce68d964677d63b5260"
-  version = "v1.5.0"
-
-[[projects]]
   name = "github.com/ghodss/yaml"
   packages = ["."]
   revision = "0ca9ea5df5451ffdf184b4428c902747c2c11cd7"
   version = "v1.0.0"
-
-[[projects]]
-  name = "github.com/go-ini/ini"
-  packages = ["."]
-  revision = "5b3e00af70a9484542169a976dcab8d03e601a17"
-  version = "v1.30.0"
 
 [[projects]]
   branch = "master"
@@ -129,12 +99,6 @@
 
 [[projects]]
   branch = "master"
-  name = "github.com/google/go-querystring"
-  packages = ["query"]
-  revision = "53e6ce116135b80d037921a7fdd5138cf32d7a8a"
-
-[[projects]]
-  branch = "master"
   name = "github.com/google/gofuzz"
   packages = ["."]
   revision = "24818f796faf91cd76ec7bddd72458fbced7a6c1"
@@ -182,11 +146,6 @@
   version = "v1.0"
 
 [[projects]]
-  name = "github.com/jmespath/go-jmespath"
-  packages = ["."]
-  revision = "0b12d6b5"
-
-[[projects]]
   name = "github.com/json-iterator/go"
   packages = ["."]
   revision = "6240e1e7983a85228f7fd9c3e1b6932d46ec58e2"
@@ -200,45 +159,9 @@
 
 [[projects]]
   branch = "master"
-  name = "github.com/kr/fs"
-  packages = ["."]
-  revision = "2788f0dbd16903de03cb8186e5c7d97b69ad387b"
-
-[[projects]]
-  name = "github.com/kris-nova/klone"
-  packages = ["pkg/local"]
-  revision = "a9d1a9905c22559b040697cd0a22b89217d56c9a"
-  version = "v1.2.0"
-
-[[projects]]
-  branch = "master"
-  name = "github.com/kris-nova/kubicorn"
-  packages = ["apis/cluster","cloud","cloud/amazon/awsSdkGo","cloud/amazon/public","cloud/amazon/public/resources","cloud/azure/azureSDK","cloud/azure/public","cloud/azure/public/resources","cloud/digitalocean/droplet","cloud/digitalocean/droplet/resources","cloud/digitalocean/godoSdk","cloud/google/compute","cloud/google/compute/resources","cloud/google/googleSDK","cutil","cutil/agent","cutil/compare","cutil/defaults","cutil/hang","cutil/initapi","cutil/kubeadm","cutil/kubeconfig","cutil/local","cutil/logger","cutil/parser","cutil/rand","cutil/scp","cutil/script","cutil/signals","cutil/task","profiles/azure"]
-  revision = "de82c2a1e621118841d23ef6f2b5c94727cb702a"
-
-[[projects]]
-  branch = "master"
-  name = "github.com/kris-nova/lolgopher"
-  packages = ["."]
-  revision = "14bbba5e911d8e26eda5a2254405941b2c38607d"
-
-[[projects]]
-  branch = "master"
   name = "github.com/mailru/easyjson"
   packages = ["buffer","jlexer","jwriter"]
   revision = "4d347d79dea0067c945f374f990601decb08abb5"
-
-[[projects]]
-  name = "github.com/mattn/go-colorable"
-  packages = ["."]
-  revision = "167de6bfdfba052fa6b2d3664c8f5272e23c9072"
-  version = "v0.0.9"
-
-[[projects]]
-  name = "github.com/mattn/go-isatty"
-  packages = ["."]
-  revision = "0360b2af4f38e8d38c7fce2a9f4e702702d73a39"
-  version = "v0.0.3"
 
 [[projects]]
   branch = "master"
@@ -251,18 +174,6 @@
   packages = ["."]
   revision = "5f041e8faa004a95c88a202771f4cc3e991971e6"
   version = "v2.0.1"
-
-[[projects]]
-  name = "github.com/pkg/errors"
-  packages = ["."]
-  revision = "645ef00459ed84a119197bfb8d8205042c6df63d"
-  version = "v0.8.0"
-
-[[projects]]
-  branch = "master"
-  name = "github.com/pkg/sftp"
-  packages = ["."]
-  revision = "7c1f7a370726a2457b33b29baefc2402b4965c65"
 
 [[projects]]
   name = "github.com/spf13/cobra"
@@ -278,14 +189,8 @@
 
 [[projects]]
   branch = "master"
-  name = "github.com/tent/http-link-go"
-  packages = ["."]
-  revision = "ac974c61c2f990f4115b119354b5e0b47550e888"
-
-[[projects]]
-  branch = "master"
   name = "golang.org/x/crypto"
-  packages = ["curve25519","ed25519","ed25519/internal/edwards25519","ssh","ssh/agent","ssh/terminal"]
+  packages = ["ssh/terminal"]
   revision = "2509b142fb2b797aa7587dad548f113b2c0f20ce"
 
 [[projects]]
@@ -381,6 +286,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "2522c4a48288ce2248bfc4a103d87daaa9fece84b5a4aff47445ff94bf1f43a6"
+  inputs-digest = "0f429a12e20f91186d685140481f59dfb1db272711ecde7195a2304ab7c8f6ab"
   solver-name = "gps-cdcl"
   solver-version = 1

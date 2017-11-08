@@ -5,5 +5,5 @@ spec:
         "apiVersion": "gceproviderconfig/v1alpha1",
         "kind": "GCEProviderConfig",
         "project": "kumaraji-gke-dev",
-        "zone": "us-central1-f",
+        "zone": "us-central1-f"
       }

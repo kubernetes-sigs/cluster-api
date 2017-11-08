@@ -2,7 +2,7 @@ items:
 - apiVersion: "cluster-api.k8s.io/v1alpha1"
   kind: Machine
   metadata:
-    name: master-1
+    name: gce-master-1
     generateName: gce-master-
     labels:
       set: master

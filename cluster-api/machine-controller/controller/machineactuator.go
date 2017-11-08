@@ -65,7 +65,7 @@ func (a loggingMachineActuator) GetKubeConfig(master *clusterv1.Machine) (string
 	return "", nil
 }
 
-func (a loggingMachineActuator) CreateMachineController(cluster *clusterv1.Cluster) error {
-	glog.Infof("actuator received CreateMachineController: %s\n", cluster.ObjectMeta.Name)
+func (a loggingMachineActuator) CreateMachineController(machines []*clusterv1.Machine) error {
+	glog.Infof("actuator received CreateMachineController: %q\n", machines)
 	return nil
 }

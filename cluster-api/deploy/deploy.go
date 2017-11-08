@@ -35,20 +35,19 @@ type deployer struct {
 
 func NewDeployer() *deployer {
 	token := util.RandomToken()
-	a, err := google.NewMachineActuator(token, "mastetrip")
+	a, err := google.NewMachineActuator(token, "masterip")
 	if err != nil {
 		log.Fatal(err)
 	}
 	return &deployer{
 		token:    token,
-		masterIP: "mastetrip",
+		masterIP: "masterip",
 		actuator: a,
 	}
 }
 
 // CreateCluster uses GCP APIs to create cluster
-func (d *deployer) CreateCluster(c *clusterv1.Cluster, machines []clusterv1.Machine, enableMachineController bool) error {
-
+func (d *deployer) CreateCluster(c *clusterv1.Cluster, machines []*clusterv1.Machine, enableMachineController bool) error {
 	master := util.GetMaster(machines)
 	if master == nil {
 		return fmt.Errorf("error creating master vm, no master found")
@@ -72,7 +71,7 @@ func (d *deployer) CreateCluster(c *clusterv1.Cluster, machines []clusterv1.Mach
 	}
 
 	if enableMachineController {
-		if err := d.actuator.CreateMachineController(c); err != nil {
+		if err := d.actuator.CreateMachineController(machines); err != nil {
 			return err
 		}
 	}

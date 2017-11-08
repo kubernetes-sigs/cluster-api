@@ -63,7 +63,7 @@ func parseClusterYaml(file string) (*clusterv1.Cluster, error) {
 	return cluster, nil
 }
 
-func parseMachinesYaml(file string) ([]clusterv1.Machine, error) {
+func parseMachinesYaml(file string) ([]*clusterv1.Machine, error) {
 	bytes, err := ioutil.ReadFile(file)
 	if err != nil {
 		return nil, err
@@ -74,5 +74,11 @@ func parseMachinesYaml(file string) ([]clusterv1.Machine, error) {
 	if err != nil {
 		return nil, err
 	}
-	return machines.Items, nil
+
+	// Convert to list of pointers
+	var ret []*clusterv1.Machine
+	for _, machine := range machines.Items {
+		ret = append(ret, machine.DeepCopy())
+	}
+	return ret, nil
 }

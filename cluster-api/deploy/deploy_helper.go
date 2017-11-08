@@ -39,7 +39,8 @@ const (
 	DeleteSleepSeconds     = 5
 )
 
-func (d *deployer) createMachineCRD(machines []clusterv1.Machine) error {
+func (d *deployer) createMachineCRD(machines []*clusterv1.Machine) error {
+	log.Print("Creating Machines CRD...\n")
 	config, err := getConfig()
 	cs, err := clientset(config)
 	if err != nil {
@@ -49,6 +50,7 @@ func (d *deployer) createMachineCRD(machines []clusterv1.Machine) error {
 	success := false
 	for i := 0; i <= RetryAttempts; i++ {
 		if _, err = clusterv1.CreateMachinesCRD(cs); err != nil {
+			log.Printf("Failure creating Machines CRD (will retry): %v\n", err)
 			time.Sleep(time.Duration(SleepSecondsPerAttempt) * time.Second)
 			continue
 		}
@@ -67,7 +69,7 @@ func (d *deployer) createMachineCRD(machines []clusterv1.Machine) error {
 	}
 
 	for _, machine := range machines {
-		_, err = client.Machines().Create(&machine)
+		_, err = client.Machines().Create(machine)
 		if err != nil {
 			return err
 		}

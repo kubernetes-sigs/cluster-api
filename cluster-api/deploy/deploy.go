@@ -18,8 +18,8 @@ package deploy
 
 import (
 	"fmt"
-	"k8s.io/kube-deploy/cluster-api/api"
-	"k8s.io/kube-deploy/cluster-api/api/machines/v1alpha1"
+	clusterv1 "k8s.io/kube-deploy/cluster-api/api/cluster/v1alpha1"
+	machinev1 "k8s.io/kube-deploy/cluster-api/api/machines/v1alpha1"
 	"k8s.io/kube-deploy/cluster-api/util"
 	"k8s.io/kube-deploy/cluster-api/cloud"
 	"k8s.io/kube-deploy/cluster-api/cloud/google"
@@ -46,7 +46,7 @@ func NewDeployer() *deployer {
 	}
 }
 // CreateCluster uses GCP APIs to create cluster
-func (d *deployer) CreateCluster(c *api.Cluster, machines []v1alpha1.Machine, enableMachineController bool) error {
+func (d *deployer) CreateCluster(c *clusterv1.Cluster, machines []machinev1.Machine, enableMachineController bool) error {
 
 	master := util.GetMaster(machines)
 	if master == nil {
@@ -72,11 +72,8 @@ func (d *deployer) CreateCluster(c *api.Cluster, machines []v1alpha1.Machine, en
 	}
 
 
-	if enableMachineController && c.Spec.Cloud == "google" {
-		if err := google.CreateMachineControllerServiceAccount(c.Spec.Project); err != nil {
-			return err
-		}
-		if err := google.CreateMachineControllerPod(d.token); err != nil {
+	if enableMachineController {
+		if err := d.actuator.CreateMachineController(c); err != nil {
 			return err
 		}
 	}
@@ -88,7 +85,7 @@ func (d *deployer) CreateCluster(c *api.Cluster, machines []v1alpha1.Machine, en
 }
 
 
-func (d *deployer) DeleteCluster(c *api.Cluster) error {
+func (d *deployer) DeleteCluster(c *clusterv1.Cluster) error {
 	return fmt.Errorf("not implemented yet")
 
 }

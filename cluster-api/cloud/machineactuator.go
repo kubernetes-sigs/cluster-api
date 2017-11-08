@@ -17,6 +17,7 @@ limitations under the License.
 package cloud
 
 import (
+	clusterv1 "k8s.io/kube-deploy/cluster-api/api/cluster/v1alpha1"
 	machinesv1 "k8s.io/kube-deploy/cluster-api/api/machines/v1alpha1"
 )
 
@@ -27,4 +28,5 @@ type MachineActuator interface {
 	Get(string) (*machinesv1.Machine, error)
 	GetIP(machine *machinesv1.Machine) (string, error)
 	GetKubeConfig(master *machinesv1.Machine) (string, error)
+	CreateMachineController (cluster *clusterv1.Cluster) error
 }

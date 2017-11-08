@@ -17,11 +17,11 @@ limitations under the License.
 package cmd
 
 import (
+	"io/ioutil"
 	"log"
+
 	"github.com/ghodss/yaml"
 	"github.com/spf13/cobra"
-	"io/ioutil"
-	machinev1 "k8s.io/kube-deploy/cluster-api/api/machines/v1alpha1"
 	clusterv1 "k8s.io/kube-deploy/cluster-api/api/cluster/v1alpha1"
 )
 
@@ -36,7 +36,7 @@ var RootCmd = &cobra.Command{
 }
 
 // Kubernetes cluster config file.
-var KubeConfig string;
+var KubeConfig string
 
 func init() {
 	RootCmd.Flags().StringVarP(&KubeConfig, "kubecofig", "k", "", "location for the kubernetes config file")
@@ -63,14 +63,13 @@ func parseClusterYaml(file string) (*clusterv1.Cluster, error) {
 	return cluster, nil
 }
 
-
-func parseMachinesYaml(file string) ([]machinev1.Machine, error) {
+func parseMachinesYaml(file string) ([]clusterv1.Machine, error) {
 	bytes, err := ioutil.ReadFile(file)
 	if err != nil {
 		return nil, err
 	}
 
-	machines := &machinev1.MachineList{}
+	machines := &clusterv1.MachineList{}
 	err = yaml.Unmarshal(bytes, &machines)
 	if err != nil {
 		return nil, err

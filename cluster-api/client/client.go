@@ -19,10 +19,9 @@ package client
 import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/serializer"
-	rest "k8s.io/client-go/rest"
-	machinesv1 "k8s.io/kube-deploy/cluster-api/api/machines/v1alpha1"
-	clustersv1 "k8s.io/kube-deploy/cluster-api/api/cluster/v1alpha1"
 	scheme "k8s.io/client-go/kubernetes/scheme"
+	rest "k8s.io/client-go/rest"
+	clusterv1 "k8s.io/kube-deploy/cluster-api/api/cluster/v1alpha1"
 )
 
 type ClusterAPIV1Alpha1Interface interface {
@@ -78,14 +77,11 @@ func New(c rest.Interface) *ClusterAPIV1Alpha1Client {
 
 func setConfigDefaults(config *rest.Config) error {
 	global_scheme := scheme.Scheme
-	if err := machinesv1.AddToScheme(global_scheme); err != nil {
-		return err
-	}
-	if err := clustersv1.AddToScheme(global_scheme); err != nil {
+	if err := clusterv1.AddToScheme(global_scheme); err != nil {
 		return err
 	}
 
-	gv := machinesv1.SchemeGroupVersion
+	gv := clusterv1.SchemeGroupVersion
 	config.GroupVersion = &gv
 	config.APIPath = "/apis"
 	config.ContentType = runtime.ContentTypeJSON

@@ -17,20 +17,21 @@ limitations under the License.
 package util
 
 import (
-	machinesv1 "k8s.io/kube-deploy/cluster-api/api/machines/v1alpha1"
+	"fmt"
+	"log"
+	"math/rand"
+	"os"
 	"os/exec"
 	"os/user"
-	"fmt"
-	"os"
 	"strings"
 	"time"
-	"math/rand"
-	"log"
+
+	clusterv1 "k8s.io/kube-deploy/cluster-api/api/cluster/v1alpha1"
 )
 
 const (
 	TypeMaster = "Master"
-	CharSet = "0123456789abcdefghijklmnopqrstuvwxyz"
+	CharSet    = "0123456789abcdefghijklmnopqrstuvwxyz"
 )
 
 var (
@@ -49,7 +50,7 @@ func randomString(n int) string {
 	return string(result)
 }
 
-func Contains (a string, list []string) bool {
+func Contains(a string, list []string) bool {
 	for _, b := range list {
 		if b == a {
 			return true
@@ -58,13 +59,13 @@ func Contains (a string, list []string) bool {
 	return false
 }
 
-func IsMaster(machine *machinesv1.Machine) bool {
+func IsMaster(machine *clusterv1.Machine) bool {
 	return Contains(TypeMaster, machine.Spec.Roles)
 }
 
-func GetMaster(machines []machinesv1.Machine) *machinesv1.Machine {
+func GetMaster(machines []clusterv1.Machine) *clusterv1.Machine {
 	for _, machine := range machines {
-		if IsMaster(&machine){
+		if IsMaster(&machine) {
 			return &machine
 		}
 	}
@@ -89,7 +90,6 @@ func Home() string {
 	}
 	return usr.HomeDir
 }
-
 
 func GetKubeConfigPath() (string, error) {
 	localDir := fmt.Sprintf("%s/.kube", Home())

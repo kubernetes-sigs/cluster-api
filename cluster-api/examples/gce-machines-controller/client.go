@@ -22,7 +22,7 @@ import (
 	_ "k8s.io/client-go/plugin/pkg/client/auth/gcp"
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/clientcmd"
-	machinesv1 "k8s.io/kube-deploy/cluster-api/api/machines/v1alpha1"
+	clusterv1 "k8s.io/kube-deploy/cluster-api/api/cluster/v1alpha1"
 )
 
 func restClient() (*rest.RESTClient, *runtime.Scheme, error) {
@@ -32,12 +32,12 @@ func restClient() (*rest.RESTClient, *runtime.Scheme, error) {
 	}
 
 	scheme := runtime.NewScheme()
-	if err := machinesv1.AddToScheme(scheme); err != nil {
+	if err := clusterv1.AddToScheme(scheme); err != nil {
 		return nil, nil, err
 	}
 
 	config := *cfg
-	config.GroupVersion = &machinesv1.SchemeGroupVersion
+	config.GroupVersion = &clusterv1.SchemeGroupVersion
 	config.APIPath = "/apis"
 	config.ContentType = runtime.ContentTypeJSON
 	config.NegotiatedSerializer = serializer.DirectCodecFactory{CodecFactory: serializer.NewCodecFactory(scheme)}

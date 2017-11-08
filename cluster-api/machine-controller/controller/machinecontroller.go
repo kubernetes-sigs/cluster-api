@@ -29,7 +29,7 @@ import (
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/cache"
 
-	machinesv1 "k8s.io/kube-deploy/cluster-api/api/machines/v1alpha1"
+	clusterv1 "k8s.io/kube-deploy/cluster-api/api/cluster/v1alpha1"
 	"k8s.io/kube-deploy/cluster-api/cloud"
 )
 
@@ -83,7 +83,7 @@ func (c *MachineController) run(ctx context.Context) error {
 
 	_, informer := cache.NewInformer(
 		source,
-		&machinesv1.Machine{},
+		&clusterv1.Machine{},
 		0,
 		cache.ResourceEventHandlerFuncs{
 			AddFunc:    c.onAdd,
@@ -97,7 +97,7 @@ func (c *MachineController) run(ctx context.Context) error {
 }
 
 func (c *MachineController) onAdd(obj interface{}) {
-	machine := obj.(*machinesv1.Machine)
+	machine := obj.(*clusterv1.Machine)
 	glog.Infof("object created: %s\n", machine.ObjectMeta.Name)
 
 	if ignored(machine) {
@@ -112,8 +112,8 @@ func (c *MachineController) onAdd(obj interface{}) {
 }
 
 func (c *MachineController) onUpdate(oldObj, newObj interface{}) {
-	oldMachine := oldObj.(*machinesv1.Machine)
-	newMachine := newObj.(*machinesv1.Machine)
+	oldMachine := oldObj.(*clusterv1.Machine)
+	newMachine := newObj.(*clusterv1.Machine)
 	glog.Infof("object updated: %s\n", oldMachine.ObjectMeta.Name)
 	glog.Infof("  old k8s version: %s, new: %s\n", oldMachine.Spec.Versions.Kubelet, newMachine.Spec.Versions.Kubelet)
 
@@ -139,7 +139,7 @@ func (c *MachineController) onUpdate(oldObj, newObj interface{}) {
 }
 
 func (c *MachineController) onDelete(obj interface{}) {
-	machine := obj.(*machinesv1.Machine)
+	machine := obj.(*clusterv1.Machine)
 	glog.Infof("object deleted: %s\n", machine.ObjectMeta.Name)
 
 	if ignored(machine) {
@@ -152,8 +152,8 @@ func (c *MachineController) onDelete(obj interface{}) {
 	}
 }
 
-func ignored(machine *machinesv1.Machine) bool {
-	for _, role := range(machine.Spec.Roles) {
+func ignored(machine *clusterv1.Machine) bool {
+	for _, role := range machine.Spec.Roles {
 		if role == "Master" {
 			glog.Infof("Ignoring master machine\n")
 			return true
@@ -163,7 +163,7 @@ func ignored(machine *machinesv1.Machine) bool {
 }
 
 // The two machines differ in a way that requires an update
-func (c *MachineController) requiresUpdate(a *machinesv1.Machine, b *machinesv1.Machine) bool {
+func (c *MachineController) requiresUpdate(a *clusterv1.Machine, b *clusterv1.Machine) bool {
 	// Do not want status changes. Do want changes that impact machine provisioning
 	return !reflect.DeepEqual(a.Spec.ObjectMeta, b.Spec.ObjectMeta) ||
 		!reflect.DeepEqual(a.Spec.ProviderConfig, b.Spec.ProviderConfig) ||
@@ -172,14 +172,14 @@ func (c *MachineController) requiresUpdate(a *machinesv1.Machine, b *machinesv1.
 		a.ObjectMeta.Name != b.ObjectMeta.Name
 }
 
-func (c *MachineController) create(machine *machinesv1.Machine) error {
+func (c *MachineController) create(machine *clusterv1.Machine) error {
 	//TODO: check if the actual machine does not already exist
 	return c.actuator.Create(machine)
 	//TODO: wait for machine to become a node
 	//TODO: link node to machine CRD
 }
 
-func (c *MachineController) delete(machine *machinesv1.Machine) error {
+func (c *MachineController) delete(machine *clusterv1.Machine) error {
 	//TODO: check if the actual machine does not exist
 	//TODO: delink node from machine CRD
 	c.kubeClientSet.Core().Nodes().Delete(machine.ObjectMeta.Name, &meta_v1.DeleteOptions{})

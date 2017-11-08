@@ -18,15 +18,14 @@ package cloud
 
 import (
 	clusterv1 "k8s.io/kube-deploy/cluster-api/api/cluster/v1alpha1"
-	machinesv1 "k8s.io/kube-deploy/cluster-api/api/machines/v1alpha1"
 )
 
 // Controls machines on a specific cloud.
 type MachineActuator interface {
-	Create(*machinesv1.Machine) error
-	Delete(*machinesv1.Machine) error
-	Get(string) (*machinesv1.Machine, error)
-	GetIP(machine *machinesv1.Machine) (string, error)
-	GetKubeConfig(master *machinesv1.Machine) (string, error)
-	CreateMachineController (cluster *clusterv1.Cluster) error
+	Create(*clusterv1.Machine) error
+	Delete(*clusterv1.Machine) error
+	Get(string) (*clusterv1.Machine, error)
+	GetIP(machine *clusterv1.Machine) (string, error)
+	GetKubeConfig(master *clusterv1.Machine) (string, error)
+	CreateMachineController(cluster *clusterv1.Cluster) error
 }

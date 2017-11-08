@@ -22,7 +22,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/client-go/tools/clientcmd"
-	machinesv1 "k8s.io/kube-deploy/cluster-api/api/machines/v1alpha1"
+	clusterv1 "k8s.io/kube-deploy/cluster-api/api/cluster/v1alpha1"
 	clusapiclnt "k8s.io/kube-deploy/cluster-api/client"
 	"fmt"
 )
@@ -80,7 +80,7 @@ func UpgradeCluster(kubeversion string, kubeconfig string) error {
 	// Continue to update all the nodes.
 	errors := make(chan error, len(machine_list.Items))
 	for i, _ := range machine_list.Items {
-		go func(mach *machinesv1.Machine) {
+		go func(mach *clusterv1.Machine) {
 			mach.Spec.Versions.Kubelet = kubeversion
 			new_machine, err := client.Machines().Update(mach)
 			if err == nil {

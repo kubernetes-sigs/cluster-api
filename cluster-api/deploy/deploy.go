@@ -18,19 +18,19 @@ package deploy
 
 import (
 	"fmt"
+	"log"
+
 	clusterv1 "k8s.io/kube-deploy/cluster-api/api/cluster/v1alpha1"
-	machinev1 "k8s.io/kube-deploy/cluster-api/api/machines/v1alpha1"
-	"k8s.io/kube-deploy/cluster-api/util"
 	"k8s.io/kube-deploy/cluster-api/cloud"
 	"k8s.io/kube-deploy/cluster-api/cloud/google"
-	"log"
+	"k8s.io/kube-deploy/cluster-api/util"
 )
 
 type deployer struct {
-	token string
-	masterIP string
+	token      string
+	masterIP   string
 	configPath string
-	actuator cloud.MachineActuator
+	actuator   cloud.MachineActuator
 }
 
 func NewDeployer() *deployer {
@@ -40,13 +40,14 @@ func NewDeployer() *deployer {
 		log.Fatal(err)
 	}
 	return &deployer{
-		token: token,
+		token:    token,
 		masterIP: "mastetrip",
 		actuator: a,
 	}
 }
+
 // CreateCluster uses GCP APIs to create cluster
-func (d *deployer) CreateCluster(c *clusterv1.Cluster, machines []machinev1.Machine, enableMachineController bool) error {
+func (d *deployer) CreateCluster(c *clusterv1.Cluster, machines []clusterv1.Machine, enableMachineController bool) error {
 
 	master := util.GetMaster(machines)
 	if master == nil {
@@ -57,7 +58,6 @@ func (d *deployer) CreateCluster(c *clusterv1.Cluster, machines []machinev1.Mach
 		return err
 	}
 	log.Printf("Created master %s", master.Name)
-
 
 	if err := d.setMasterIP(master); err != nil {
 		return fmt.Errorf("unable to get master IP: %v", err)
@@ -71,7 +71,6 @@ func (d *deployer) CreateCluster(c *clusterv1.Cluster, machines []machinev1.Mach
 		return err
 	}
 
-
 	if enableMachineController {
 		if err := d.actuator.CreateMachineController(c); err != nil {
 			return err
@@ -83,7 +82,6 @@ func (d *deployer) CreateCluster(c *clusterv1.Cluster, machines []machinev1.Mach
 
 	return nil
 }
-
 
 func (d *deployer) DeleteCluster(c *clusterv1.Cluster) error {
 	return fmt.Errorf("not implemented yet")

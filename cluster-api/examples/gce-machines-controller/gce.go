@@ -26,7 +26,7 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/serializer"
 	"k8s.io/client-go/rest"
-	machinesv1 "k8s.io/kube-deploy/cluster-api/api/machines/v1alpha1"
+	clusterv1 "k8s.io/kube-deploy/cluster-api/api/cluster/v1alpha1"
 	gceconfig "k8s.io/kube-deploy/cluster-api/examples/gce-machines-controller/apis/gceproviderconfig"
 	gceconfigv1 "k8s.io/kube-deploy/cluster-api/examples/gce-machines-controller/apis/gceproviderconfig/v1alpha1"
 )
@@ -62,9 +62,9 @@ func New(kube *rest.RESTClient) (*GCEClient, error) {
 	}, nil
 }
 
-func (gce *GCEClient) CreateVM(machine *machinesv1.Machine) error {
+func (gce *GCEClient) CreateVM(machine *clusterv1.Machine) error {
 	if err := gce.validateConfig(machine); err != nil {
-		errorReason := machinesv1.InvalidConfigurationMachineError
+		errorReason := clusterv1.InvalidConfigurationMachineError
 		errorMessage := fmt.Sprintf("Invalid configuration: %v", err)
 
 		update := machine.DeepCopy()
@@ -73,7 +73,7 @@ func (gce *GCEClient) CreateVM(machine *machinesv1.Machine) error {
 
 		kerr := gce.kube.Put().
 			Name(update.ObjectMeta.Name).
-			Resource(machinesv1.MachineResourcePlural).
+			Resource(clusterv1.MachineResourcePlural).
 			Body(update).
 			Do().
 			Error()
@@ -129,7 +129,7 @@ func (gce *GCEClient) CreateVM(machine *machinesv1.Machine) error {
 	return err
 }
 
-func (gce *GCEClient) DeleteVM(machine *machinesv1.Machine) error {
+func (gce *GCEClient) DeleteVM(machine *clusterv1.Machine) error {
 	config, err := gce.providerConfig(machine)
 	if err != nil {
 		return err
@@ -139,14 +139,14 @@ func (gce *GCEClient) DeleteVM(machine *machinesv1.Machine) error {
 	return err
 }
 
-func (gce *GCEClient) validateConfig(machine *machinesv1.Machine) error {
+func (gce *GCEClient) validateConfig(machine *clusterv1.Machine) error {
 	if !strings.HasPrefix(machine.Spec.Versions.Kubelet, "1.8.") {
 		return fmt.Errorf("unsupported kubelet version: %v", machine.Spec.Versions.Kubelet)
 	}
 	return nil
 }
 
-func (gce *GCEClient) providerConfig(machine *machinesv1.Machine) (*gceconfig.GCEProviderConfig, error) {
+func (gce *GCEClient) providerConfig(machine *clusterv1.Machine) (*gceconfig.GCEProviderConfig, error) {
 	obj, gvk, err := gce.codecFactory.UniversalDecoder().Decode([]byte(machine.Spec.ProviderConfig), nil, nil)
 	if err != nil {
 		return nil, fmt.Errorf("decoding failure: %v", err)

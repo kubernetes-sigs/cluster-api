@@ -24,7 +24,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	_ "k8s.io/client-go/plugin/pkg/client/auth"
 	"k8s.io/client-go/tools/clientcmd"
-	machinesv1 "k8s.io/kube-deploy/cluster-api/api/machines/v1alpha1"
+	clusterv1 "k8s.io/kube-deploy/cluster-api/api/cluster/v1alpha1"
 	clusterapiclient "k8s.io/kube-deploy/cluster-api/client"
 )
 
@@ -139,7 +139,7 @@ func scale(machines clusterapiclient.MachinesInterface, labelSelector string, re
 	return nil
 }
 
-func clone(old machinesv1.Machine) *machinesv1.Machine {
+func clone(old clusterv1.Machine) *clusterv1.Machine {
 	// Make sure we get the full Spec
 	newMachine := old.DeepCopy()
 
@@ -152,6 +152,6 @@ func clone(old machinesv1.Machine) *machinesv1.Machine {
 	newMachine.ObjectMeta.ClusterName = old.ObjectMeta.ClusterName
 
 	// Completely wipe out the status as well
-	newMachine.Status = machinesv1.MachineStatus{}
+	newMachine.Status = clusterv1.MachineStatus{}
 	return newMachine
 }

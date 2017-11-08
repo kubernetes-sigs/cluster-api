@@ -18,27 +18,28 @@ package deploy
 
 import (
 	"fmt"
-	"k8s.io/kube-deploy/cluster-api/client"
-	apiextensionsclient "k8s.io/apiextensions-apiserver/pkg/client/clientset/clientset"
-	_ "k8s.io/client-go/plugin/pkg/client/auth/gcp"
-	"k8s.io/client-go/tools/clientcmd"
-	restclient "k8s.io/client-go/rest"
-	machinesv1 "k8s.io/kube-deploy/cluster-api/api/machines/v1alpha1"
+	"log"
 	"os"
 	"time"
+
+	apiextensionsclient "k8s.io/apiextensions-apiserver/pkg/client/clientset/clientset"
+	_ "k8s.io/client-go/plugin/pkg/client/auth/gcp"
+	restclient "k8s.io/client-go/rest"
+	"k8s.io/client-go/tools/clientcmd"
+	clusterv1 "k8s.io/kube-deploy/cluster-api/api/cluster/v1alpha1"
+	"k8s.io/kube-deploy/cluster-api/client"
 	"k8s.io/kube-deploy/cluster-api/util"
-	"log"
 )
 
 const (
-	MasterIPAttempts = 40
+	MasterIPAttempts       = 40
 	SleepSecondsPerAttempt = 5
-	RetryAttempts = 30
-	DeleteAttempts = 150
-	DeleteSleepSeconds = 5
+	RetryAttempts          = 30
+	DeleteAttempts         = 150
+	DeleteSleepSeconds     = 5
 )
 
-func (d *deployer) createMachineCRD(machines []machinesv1.Machine) error {
+func (d *deployer) createMachineCRD(machines []clusterv1.Machine) error {
 	config, err := getConfig()
 	cs, err := clientset(config)
 	if err != nil {
@@ -47,7 +48,7 @@ func (d *deployer) createMachineCRD(machines []machinesv1.Machine) error {
 
 	success := false
 	for i := 0; i <= RetryAttempts; i++ {
-		if _, err = machinesv1.CreateMachinesCRD(cs); err != nil {
+		if _, err = clusterv1.CreateMachinesCRD(cs); err != nil {
 			time.Sleep(time.Duration(SleepSecondsPerAttempt) * time.Second)
 			continue
 		}
@@ -77,7 +78,7 @@ func (d *deployer) createMachineCRD(machines []machinesv1.Machine) error {
 
 }
 
-func (d *deployer) setMasterIP(master *machinesv1.Machine) error {
+func (d *deployer) setMasterIP(master *clusterv1.Machine) error {
 	for i := 0; i < MasterIPAttempts; i++ {
 		ip, err := d.actuator.GetIP(master)
 		if err != nil || ip == "" {
@@ -91,14 +92,14 @@ func (d *deployer) setMasterIP(master *machinesv1.Machine) error {
 		return nil
 	}
 
-	return  fmt.Errorf("unable to find Master IP after defined wait")
+	return fmt.Errorf("unable to find Master IP after defined wait")
 }
 
-func (d *deployer) copyKubeConfig(master *machinesv1.Machine) error {
+func (d *deployer) copyKubeConfig(master *clusterv1.Machine) error {
 	for i := 0; i <= RetryAttempts; i++ {
 		var config string
 		var err error
-		if config, err = d.actuator.GetKubeConfig(master); err != nil || config == ""  {
+		if config, err = d.actuator.GetKubeConfig(master); err != nil || config == "" {
 			log.Print("Waiting for Kubernetes to come up...")
 			time.Sleep(time.Duration(SleepSecondsPerAttempt) * time.Second)
 			continue

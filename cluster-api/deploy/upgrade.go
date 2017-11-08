@@ -24,6 +24,7 @@ import (
 	"k8s.io/client-go/tools/clientcmd"
 	machinesv1 "k8s.io/kube-deploy/cluster-api/api/machines/v1alpha1"
 	clusapiclnt "k8s.io/kube-deploy/cluster-api/client"
+	"fmt"
 )
 
 func UpgradeCluster(kubeversion string, kubeconfig string) error {
@@ -37,24 +38,53 @@ func UpgradeCluster(kubeversion string, kubeconfig string) error {
 		return err
 	}
 
-	// Now continue to update all the node's state.
 	machine_list, err := client.Machines().List(metav1.ListOptions{})
 	if err != nil {
 		return err
 	}
 
-	// Polling the cluster until nodes are updated.
+	// Update the control plan first. It assumes single master.
+	master_found := false
+	for _, mach := range machine_list.Items {
+		for _, role := range mach.Spec.Roles {
+			if role == "master" {
+				mach.Spec.Versions.Kubelet = kubeversion
+				mach.Spec.Versions.ControlPlane = kubeversion
+				new_machine, err := client.Machines().Update(&mach)
+				if err == nil {
+					err = wait.Poll(5*time.Second, 10*time.Minute, func() (bool, error) {
+						new_machine, err = client.Machines().Get(new_machine.Name, metav1.GetOptions{})
+						//if err == nil && new_machine.Status.Ready {
+						//	return true, err
+						//}
+						//return false, err
+						if err != nil {
+							return false, err
+						}
+						return true, nil
+					})
+				}
+				master_found = true
+				break
+			}
+		}
+	}
+
+	if err == nil && !master_found {
+		err = fmt.Errorf("No master is found.")
+	}
+	if err != nil {
+		return err
+	}
+
+	// Continue to update all the nodes.
 	errors := make(chan error, len(machine_list.Items))
 	for i, _ := range machine_list.Items {
 		go func(mach *machinesv1.Machine) {
 			mach.Spec.Versions.Kubelet = kubeversion
-			for _, role := range mach.Spec.Roles {
-				if role == "master" {
-					mach.Spec.Versions.ControlPlane = kubeversion
-				}
-			}
 			new_machine, err := client.Machines().Update(mach)
 			if err == nil {
+				// Polling the cluster until nodes are updated.
 				err = wait.Poll(5*time.Second, 10*time.Minute, func() (bool, error) {
 					new_machine, err = client.Machines().Get(new_machine.Name, metav1.GetOptions{})
 					//if err == nil && new_machine.Status.Ready {

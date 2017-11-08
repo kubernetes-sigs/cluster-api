@@ -18,9 +18,8 @@ package cmd
 
 import (
 	"github.com/spf13/cobra"
-	"os"
-	"github.com/kris-nova/kubicorn/cutil/logger"
 	"k8s.io/kube-deploy/cluster-api/deploy"
+	"log"
 )
 
 type DeleteOptions struct {
@@ -31,22 +30,19 @@ type DeleteOptions struct {
 var do = &DeleteOptions{}
 
 var deleteCmd = &cobra.Command{
-	Use:   "delete [YAML_FILE]",
+	Use:   "delete",
 	Short: "Simple kubernetes cluster manager",
 	Long:  `Delete a kubernetes cluster with one command`,
 	Run: func(cmd *cobra.Command, args []string) {
 		if do.Cluster == "" {
-			logger.Critical("Please provide yaml file for cluster definition.")
-			os.Exit(1)
+			log.Fatal("Please provide yaml file for cluster definition.")
 		}
 		if do.Machine == "" {
-			logger.Critical("Please provide yaml file for machine definition.")
-			os.Exit(1)
+			log.Fatal("Please provide yaml file for machine definition.")
 		}
 
 		if err := RunDelete(do); err != nil {
-			logger.Critical(err.Error())
-			os.Exit(1)
+			log.Fatal(err)
 		}
 	},
 }
@@ -60,16 +56,14 @@ func RunDelete(do *DeleteOptions) error {
 	if _, err := parseMachinesYaml(do.Machine); err != nil {
 		return err
 	}
+	d := deploy.NewDeployer()
 
-	if err := deploy.DeleteCluster(cluster); err != nil {
-		logger.Critical(err.Error())
-		os.Exit(1)
-	}
-	return nil
+	return d.DeleteCluster(cluster)
 }
 
 func init() {
 	deleteCmd.Flags().StringVarP(&do.Cluster, "cluster", "c", "", "cluster yaml file")
 	deleteCmd.Flags().StringVarP(&do.Machine, "machines", "m", "", "machine yaml file")
+
 	RootCmd.AddCommand(deleteCmd)
 }

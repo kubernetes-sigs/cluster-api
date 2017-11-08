@@ -28,6 +28,8 @@ import (
 	gceconfig "k8s.io/kube-deploy/cluster-api/cloud/google/gceproviderconfig"
 	gceconfigv1 "k8s.io/kube-deploy/cluster-api/cloud/google/gceproviderconfig/v1alpha1"
 	"path"
+	"k8s.io/kube-deploy/cluster-api/util"
+	"strings"
 )
 
 type GCEClient struct {
@@ -71,7 +73,12 @@ func (gce *GCEClient) Create(machine *machinesv1.Machine) error {
 		return err
 	}
 
-	startupScript := nodeStartupScript(gce.kubeadmToken, gce.masterIP, machine.ObjectMeta.Name, machine.Spec.Versions.Kubelet)
+	var startupScript string
+	if util.IsMaster(machine) {
+		startupScript = masterStartupScript(gce.kubeadmToken, "443")
+	} else {
+		startupScript = nodeStartupScript(gce.kubeadmToken, gce.masterIP, machine.ObjectMeta.Name, machine.Spec.Versions.Kubelet)
+	}
 
 	op, err := gce.service.Instances.Insert(config.Project, config.Zone, &compute.Instance{
 		Name:        machine.ObjectMeta.Name,
@@ -105,11 +112,16 @@ func (gce *GCEClient) Create(machine *machinesv1.Machine) error {
 				},
 			},
 		},
+		Tags: &compute.Tags{
+			Items: []string{"https-server"},
+		},
 	}).Do()
 
-	gce.waitForOperation(config, op)
+	if err != nil {
+		return err
+	}
 
-	return err
+	return gce.waitForOperation(config, op)
 }
 
 func (gce *GCEClient) Delete(machine *machinesv1.Machine) error {
@@ -125,6 +137,45 @@ func (gce *GCEClient) Delete(machine *machinesv1.Machine) error {
 
 func (gce *GCEClient) Get(name string) (*machinesv1.Machine, error){
 	return nil, fmt.Errorf("Get machine is not implemented on Google")
+}
+
+func (gce *GCEClient) GetIP(machine *machinesv1.Machine) (string, error){
+	config, err := gce.providerconfig(machine)
+	if err != nil {
+		return "", err
+	}
+
+	instance, err := gce.service.Instances.Get(config.Project, config.Zone, machine.ObjectMeta.Name).Do()
+	if err != nil {
+		return "", err
+	}
+
+	var masterIPPublic string
+
+	for _, networkInterface := range instance.NetworkInterfaces {
+		if networkInterface.Name == "nic0" {
+			for _, accessConfigs := range networkInterface.AccessConfigs {
+				masterIPPublic = accessConfigs.NatIP
+			}
+		}
+	}
+	return masterIPPublic, nil
+}
+
+func (gce *GCEClient) GetKubeConfig(master *machinesv1.Machine) (string, error) {
+	config, err := gce.providerconfig(master)
+	if err != nil {
+		return "", err
+	}
+
+	command := "echo STARTFILE; sudo cat /etc/kubernetes/admin.conf"
+	args := []string{"compute", "ssh", "--project", config.Project, "--zone", config.Zone, master.ObjectMeta.Name, "--command", command}
+	result := strings.TrimSpace(util.ExecCommand("gcloud", args))
+	parts := strings.Split(result, "STARTFILE")
+	if len(parts) != 2 {
+		return "", nil
+	}
+	return strings.TrimSpace(parts[1]), nil
 }
 
 func (gce *GCEClient) providerconfig(machine *machinesv1.Machine) (*gceconfig.GCEProviderConfig, error) {

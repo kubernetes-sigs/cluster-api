@@ -17,10 +17,10 @@ limitations under the License.
 package cmd
 
 import (
-	"github.com/kris-nova/kubicorn/cutil/logger"
+
 	"github.com/spf13/cobra"
 	"k8s.io/kube-deploy/cluster-api/deploy"
-	_ "k8s.io/kube-deploy/cluster-api/deploy"
+	"log"
 	"os"
 )
 
@@ -38,41 +38,38 @@ var createCmd = &cobra.Command{
 	Long:  `Create a kubernetes cluster with one command`,
 	Run: func(cmd *cobra.Command, args []string) {
 		if co.Cluster == "" {
-			logger.Critical("Please provide yaml file for cluster definition.")
+			log.Print("Please provide yaml file for cluster definition." )
+			cmd.Help()
 			os.Exit(1)
 		}
 		if co.Machine == "" {
-			logger.Critical("Please provide yaml file for machine definition.")
+			log.Print("Please provide yaml file for machine definition.")
+			cmd.Help()
 			os.Exit(1)
 		}
 		if err := RunCreate(co); err != nil {
-			logger.Critical(err.Error())
-			os.Exit(1)
+			log.Fatal(err)
 		}
+		//log.Print("Cluster creation successful")
 	},
 }
 
 func RunCreate(co *CreateOptions) error {
-	logger.Info("start parsing")
-
 	cluster, err := parseClusterYaml(co.Cluster)
 	if err != nil {
 		return err
 	}
-	//logger.Info("Parsing done cluster: [%s]", cluster)
+	//log.Printf("Parsing done cluster: [%s]", cluster)
 
 	machines, err := parseMachinesYaml(co.Machine)
 	if err != nil {
 		return err
 	}
+	//log.Printf("Parsing done [%s]", machines)
 
-	//logger.Info("Parsing done [%s]", machines)
+	d := deploy.NewDeployer()
 
-	if err = deploy.CreateCluster(cluster, machines, co.EnableMachineController); err != nil {
-		return err
-	}
-	return nil
-
+	return d.CreateCluster(cluster, machines, co.EnableMachineController)
 }
 func init() {
 	createCmd.Flags().StringVarP(&co.Cluster, "cluster", "c", "", "cluster yaml file")

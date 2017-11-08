@@ -17,12 +17,10 @@ limitations under the License.
 package cmd
 
 import (
-	"os"
-
 	_ "k8s.io/client-go/plugin/pkg/client/auth/gcp"
 	"github.com/spf13/cobra"
-	"github.com/kris-nova/kubicorn/cutil/logger"
 	"k8s.io/kube-deploy/cluster-api/deploy"
+	"github.com/golang/glog"
 )
 
 type UpgradeOptions struct {
@@ -38,27 +36,23 @@ var upgradeCmd = &cobra.Command{
 	Args: cobra.ExactArgs(1),
 	Run: func(cmd *cobra.Command, args []string) {
 		if uo.KubernetesVersion == "" {
-			logger.Critical("Please provide new kubernetes version.")
-			os.Exit(1)
+			glog.Exit("Please provide new kubernetes version.")
 		}
 
 		if err := RunUpgrade(uo); err != nil {
-			logger.Critical(err.Error())
-			os.Exit(1)
+			glog.Exit(err.Error())
 		}
 	},
 }
 
 func RunUpgrade(uo *UpgradeOptions) error {
-	if err := deploy.UpgradeCluster(uo.KubernetesVersion, KubeConfig); err != nil {
-		logger.Critical(err.Error())
-		os.Exit(1)
-	}
-	return nil
+	return deploy.UpgradeCluster(uo.KubernetesVersion, KubeConfig)
+
 }
 
 func init() {
 	upgradeCmd.Flags().StringVarP(&uo.KubernetesVersion, "version", "v", "", "Kubernetes Version")
+
 	RootCmd.AddCommand(upgradeCmd)
 }
 

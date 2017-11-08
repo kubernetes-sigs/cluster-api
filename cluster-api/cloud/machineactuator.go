@@ -25,4 +25,6 @@ type MachineActuator interface {
 	Create(*machinesv1.Machine) error
 	Delete(*machinesv1.Machine) error
 	Get(string) (*machinesv1.Machine, error)
+	GetIP(machine *machinesv1.Machine) (string, error)
+	GetKubeConfig(master *machinesv1.Machine) (string, error)
 }

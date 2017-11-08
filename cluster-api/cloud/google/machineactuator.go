@@ -24,6 +24,7 @@ import (
 	compute "google.golang.org/api/compute/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/serializer"
+	clusterv1 "k8s.io/kube-deploy/cluster-api/api/cluster/v1alpha1"
 	machinesv1 "k8s.io/kube-deploy/cluster-api/api/machines/v1alpha1"
 	gceconfig "k8s.io/kube-deploy/cluster-api/cloud/google/gceproviderconfig"
 	gceconfigv1 "k8s.io/kube-deploy/cluster-api/cloud/google/gceproviderconfig/v1alpha1"
@@ -67,8 +68,23 @@ func NewMachineActuator(kubeadmToken string, masterIP string) (*GCEClient, error
 	}, nil
 }
 
+func (gce *GCEClient) CreateMachineController (cluster *clusterv1.Cluster) error {
+	config, err := gce.providerconfig(cluster.Spec.ProviderConfig)
+	if err != nil {
+		return err
+	}
+	if err := CreateMachineControllerServiceAccount(config.Project); err != nil {
+		return err
+	}
+	if err := CreateMachineControllerPod(gce.kubeadmToken); err != nil {
+		return err
+	}
+	return nil
+}
+
+
 func (gce *GCEClient) Create(machine *machinesv1.Machine) error {
-	config, err := gce.providerconfig(machine)
+	config, err := gce.providerconfig(machine.Spec.ProviderConfig)
 	if err != nil {
 		return err
 	}
@@ -125,7 +141,7 @@ func (gce *GCEClient) Create(machine *machinesv1.Machine) error {
 }
 
 func (gce *GCEClient) Delete(machine *machinesv1.Machine) error {
-	config, err := gce.providerconfig(machine)
+	config, err := gce.providerconfig(machine.Spec.ProviderConfig)
 	if err != nil {
 		return err
 	}
@@ -140,7 +156,7 @@ func (gce *GCEClient) Get(name string) (*machinesv1.Machine, error){
 }
 
 func (gce *GCEClient) GetIP(machine *machinesv1.Machine) (string, error){
-	config, err := gce.providerconfig(machine)
+	config, err := gce.providerconfig(machine.Spec.ProviderConfig)
 	if err != nil {
 		return "", err
 	}
@@ -163,7 +179,7 @@ func (gce *GCEClient) GetIP(machine *machinesv1.Machine) (string, error){
 }
 
 func (gce *GCEClient) GetKubeConfig(master *machinesv1.Machine) (string, error) {
-	config, err := gce.providerconfig(master)
+	config, err := gce.providerconfig(master.Spec.ProviderConfig)
 	if err != nil {
 		return "", err
 	}
@@ -178,8 +194,8 @@ func (gce *GCEClient) GetKubeConfig(master *machinesv1.Machine) (string, error) 
 	return strings.TrimSpace(parts[1]), nil
 }
 
-func (gce *GCEClient) providerconfig(machine *machinesv1.Machine) (*gceconfig.GCEProviderConfig, error) {
-	obj, gvk, err := gce.codecFactory.UniversalDecoder().Decode([]byte(machine.Spec.ProviderConfig), nil, nil)
+func (gce *GCEClient) providerconfig(providerConfig string) (*gceconfig.GCEProviderConfig, error) {
+	obj, gvk, err := gce.codecFactory.UniversalDecoder().Decode([]byte(providerConfig), nil, nil)
 	if err != nil {
 		return nil, fmt.Errorf("decoding failure: %v", err)
 	}

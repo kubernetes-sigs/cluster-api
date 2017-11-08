@@ -21,8 +21,8 @@ import (
 	"github.com/ghodss/yaml"
 	"github.com/spf13/cobra"
 	"io/ioutil"
-	"k8s.io/kube-deploy/cluster-api/api"
-	"k8s.io/kube-deploy/cluster-api/api/machines/v1alpha1"
+	machinev1 "k8s.io/kube-deploy/cluster-api/api/machines/v1alpha1"
+	clusterv1 "k8s.io/kube-deploy/cluster-api/api/cluster/v1alpha1"
 )
 
 var RootCmd = &cobra.Command{
@@ -48,13 +48,13 @@ func Execute() {
 	}
 }
 
-func parseClusterYaml(file string) (*api.Cluster, error) {
+func parseClusterYaml(file string) (*clusterv1.Cluster, error) {
 	bytes, err := ioutil.ReadFile(file)
 	if err != nil {
 		return nil, err
 	}
 
-	cluster := &api.Cluster{}
+	cluster := &clusterv1.Cluster{}
 	err = yaml.Unmarshal(bytes, cluster)
 	if err != nil {
 		return nil, err
@@ -64,13 +64,13 @@ func parseClusterYaml(file string) (*api.Cluster, error) {
 }
 
 
-func parseMachinesYaml(file string) ([]v1alpha1.Machine, error) {
+func parseMachinesYaml(file string) ([]machinev1.Machine, error) {
 	bytes, err := ioutil.ReadFile(file)
 	if err != nil {
 		return nil, err
 	}
 
-	machines := &v1alpha1.MachineList{}
+	machines := &machinev1.MachineList{}
 	err = yaml.Unmarshal(bytes, &machines)
 	if err != nil {
 		return nil, err

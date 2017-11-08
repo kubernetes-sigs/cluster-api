@@ -21,7 +21,7 @@ import (
 	"log"
 	"os"
 	"time"
-
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	apiextensionsclient "k8s.io/apiextensions-apiserver/pkg/client/clientset/clientset"
 	_ "k8s.io/client-go/plugin/pkg/client/auth/gcp"
 	restclient "k8s.io/client-go/rest"
@@ -40,9 +40,7 @@ const (
 )
 
 func (d *deployer) createMachineCRD(machines []*clusterv1.Machine) error {
-	log.Print("Creating Machines CRD...\n")
-	config, err := getConfig()
-	cs, err := clientset(config)
+	cs, err := d.newClientSet()
 	if err != nil {
 		return err
 	}
@@ -62,22 +60,41 @@ func (d *deployer) createMachineCRD(machines []*clusterv1.Machine) error {
 	if !success {
 		return fmt.Errorf("error creating Machines CRD: %v", err)
 	}
+	return d.createMachines(machines)
+}
 
-	client, err := client.NewForConfig(config)
+func (d *deployer) createMachines(machines []*clusterv1.Machine) error {
+	c, err := d.newApiClient()
 	if err != nil {
 		return err
 	}
 
 	for _, machine := range machines {
-		_, err = client.Machines().Create(machine)
+		_, err = c.Machines().Create(machine)
 		if err != nil {
 			return err
 		}
 		log.Printf("Added machine [%s]", machine.Name)
 	}
-
 	return nil
+}
 
+func (d *deployer) deleteMachineCRDs() error {
+	c, err := d.newApiClient()
+	if err != nil {
+		return err
+	}
+	machines, err := c.Machines().List(metav1.ListOptions{})
+	if err != nil {
+		return err
+	}
+	for _, m := range machines.Items {
+		if err := c.Machines().Delete(m.Name, &metav1.DeleteOptions{}); err != nil {
+			return err
+		}
+		log.Printf("Deleted machine object %s", m.Name)
+	}
+	return nil
 }
 
 func (d *deployer) setMasterIP(master *clusterv1.Machine) error {
@@ -93,7 +110,6 @@ func (d *deployer) setMasterIP(master *clusterv1.Machine) error {
 
 		return nil
 	}
-
 	return fmt.Errorf("unable to find Master IP after defined wait")
 }
 
@@ -114,7 +130,7 @@ func (d *deployer) copyKubeConfig(master *clusterv1.Machine) error {
 }
 
 func (d *deployer) writeConfigToDisk(config string) error {
-	filePath, err := util.GetKubeConfigPath()
+	filePath, err := util.GetDefaultKubeConfigPath()
 	if err != nil {
 		return err
 	}
@@ -132,17 +148,35 @@ func (d *deployer) writeConfigToDisk(config string) error {
 	return nil
 }
 
-func clientset(config *restclient.Config) (*apiextensionsclient.Clientset, error) {
-	clientset, err := apiextensionsclient.NewForConfig(config)
+func (d *deployer) newClientSet() (*apiextensionsclient.Clientset, error) {
+	config, err := d.getConfig()
 	if err != nil {
 		return nil, err
 	}
 
-	return clientset, nil
+	cs, err := apiextensionsclient.NewForConfig(config)
+	if err != nil {
+		return nil, err
+	}
+
+	return cs, nil
 }
 
-func getConfig() (*restclient.Config, error) {
-	kubeconfig, err := util.GetKubeConfigPath()
+func (d *deployer) newApiClient() (*client.ClusterAPIV1Alpha1Client, error) {
+	config, err := d.getConfig()
+	if err != nil {
+		return nil, err
+	}
+
+	c, err := client.NewForConfig(config)
+	if err != nil {
+		return nil, err
+	}
+	return c, nil
+}
+
+func (d *deployer) getConfig() (*restclient.Config, error) {
+	kubeconfig, err := util.GetDefaultKubeConfigPath()
 	if err != nil {
 		return nil, err
 	}

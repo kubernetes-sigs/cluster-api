@@ -35,12 +35,13 @@ var RootCmd = &cobra.Command{
 	},
 }
 
-// Kubernetes cluster config file.
-var KubeConfig string
 
-func init() {
-	RootCmd.Flags().StringVarP(&KubeConfig, "kubecofig", "k", "", "location for the kubernetes config file")
+
+type Options struct {
+	KubeConfig string
 }
+
+var o = &Options{}
 
 func Execute() {
 	if err := RootCmd.Execute(); err != nil {
@@ -64,6 +65,7 @@ func parseClusterYaml(file string) (*clusterv1.Cluster, error) {
 }
 
 func parseMachinesYaml(file string) ([]*clusterv1.Machine, error) {
+
 	bytes, err := ioutil.ReadFile(file)
 	if err != nil {
 		return nil, err
@@ -81,4 +83,9 @@ func parseMachinesYaml(file string) ([]*clusterv1.Machine, error) {
 		ret = append(ret, machine.DeepCopy())
 	}
 	return ret, nil
+}
+
+
+func init() {
+	RootCmd.PersistentFlags().StringVarP(&o.KubeConfig, "kubecofig", "k", "", "location for the kubernetes config file. If not provided, $HOME/.kube/config is used")
 }

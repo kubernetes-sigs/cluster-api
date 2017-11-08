@@ -19,13 +19,13 @@ package util
 import (
 	machinesv1 "k8s.io/kube-deploy/cluster-api/api/machines/v1alpha1"
 	"os/exec"
-	"github.com/kris-nova/kubicorn/cutil/logger"
 	"os/user"
 	"fmt"
 	"os"
 	"strings"
 	"time"
 	"math/rand"
+	"log"
 )
 
 const (
@@ -84,7 +84,7 @@ func Home() string {
 
 	usr, err := user.Current()
 	if err != nil {
-		logger.Warning("unable to find user: %v", err)
+		log.Printf("unable to find user: %v", err)
 		return ""
 	}
 	return usr.HomeDir

@@ -24,7 +24,7 @@ import (
 	"k8s.io/apimachinery/pkg/fields"
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/cache"
-	machinesv1 "k8s.io/kube-deploy/cluster-api/api/machines/v1alpha1"
+	clusterv1 "k8s.io/kube-deploy/cluster-api/api/cluster/v1alpha1"
 )
 
 type controller struct {
@@ -33,7 +33,7 @@ type controller struct {
 }
 
 func (c *controller) onAdd(obj interface{}) {
-	machine := obj.(*machinesv1.Machine)
+	machine := obj.(*clusterv1.Machine)
 	fmt.Printf("object created: %s\n", machine.ObjectMeta.Name)
 
 	if err := c.gce.CreateVM(machine); err != nil {
@@ -44,14 +44,14 @@ func (c *controller) onAdd(obj interface{}) {
 }
 
 func (c *controller) onUpdate(oldObj, newObj interface{}) {
-	oldMachine := oldObj.(*machinesv1.Machine)
-	newMachine := newObj.(*machinesv1.Machine)
+	oldMachine := oldObj.(*clusterv1.Machine)
+	newMachine := newObj.(*clusterv1.Machine)
 	fmt.Printf("object updated: %s\n", oldMachine.ObjectMeta.Name)
 	fmt.Printf("  old k8s version: %s, new: %s\n", oldMachine.Spec.Versions.Kubelet, newMachine.Spec.Versions.Kubelet)
 }
 
 func (c *controller) onDelete(obj interface{}) {
-	machine := obj.(*machinesv1.Machine)
+	machine := obj.(*clusterv1.Machine)
 	fmt.Printf("object deleted: %s\n", machine.ObjectMeta.Name)
 
 	if err := c.gce.DeleteVM(machine); err != nil {
@@ -66,7 +66,7 @@ func (c *controller) run(ctx context.Context) error {
 
 	_, controller := cache.NewInformer(
 		source,
-		&machinesv1.Machine{},
+		&clusterv1.Machine{},
 		0,
 		cache.ResourceEventHandlerFuncs{
 			AddFunc:    c.onAdd,

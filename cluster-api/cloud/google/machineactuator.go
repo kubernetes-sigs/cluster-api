@@ -18,6 +18,8 @@ package google
 
 import (
 	"fmt"
+	"path"
+	"strings"
 
 	"golang.org/x/net/context"
 	"golang.org/x/oauth2/google"
@@ -25,12 +27,9 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/serializer"
 	clusterv1 "k8s.io/kube-deploy/cluster-api/api/cluster/v1alpha1"
-	machinesv1 "k8s.io/kube-deploy/cluster-api/api/machines/v1alpha1"
 	gceconfig "k8s.io/kube-deploy/cluster-api/cloud/google/gceproviderconfig"
 	gceconfigv1 "k8s.io/kube-deploy/cluster-api/cloud/google/gceproviderconfig/v1alpha1"
-	"path"
 	"k8s.io/kube-deploy/cluster-api/util"
-	"strings"
 )
 
 type GCEClient struct {
@@ -64,11 +63,11 @@ func NewMachineActuator(kubeadmToken string, masterIP string) (*GCEClient, error
 		scheme:       scheme,
 		codecFactory: codecFactory,
 		kubeadmToken: kubeadmToken,
-		masterIP: masterIP,
+		masterIP:     masterIP,
 	}, nil
 }
 
-func (gce *GCEClient) CreateMachineController (cluster *clusterv1.Cluster) error {
+func (gce *GCEClient) CreateMachineController(cluster *clusterv1.Cluster) error {
 	config, err := gce.providerconfig(cluster.Spec.ProviderConfig)
 	if err != nil {
 		return err
@@ -82,8 +81,7 @@ func (gce *GCEClient) CreateMachineController (cluster *clusterv1.Cluster) error
 	return nil
 }
 
-
-func (gce *GCEClient) Create(machine *machinesv1.Machine) error {
+func (gce *GCEClient) Create(machine *clusterv1.Machine) error {
 	config, err := gce.providerconfig(machine.Spec.ProviderConfig)
 	if err != nil {
 		return err
@@ -123,7 +121,7 @@ func (gce *GCEClient) Create(machine *machinesv1.Machine) error {
 		Metadata: &compute.Metadata{
 			Items: []*compute.MetadataItems{
 				&compute.MetadataItems{
-					Key: "startup-script",
+					Key:   "startup-script",
 					Value: &startupScript,
 				},
 			},
@@ -140,7 +138,7 @@ func (gce *GCEClient) Create(machine *machinesv1.Machine) error {
 	return gce.waitForOperation(config, op)
 }
 
-func (gce *GCEClient) Delete(machine *machinesv1.Machine) error {
+func (gce *GCEClient) Delete(machine *clusterv1.Machine) error {
 	config, err := gce.providerconfig(machine.Spec.ProviderConfig)
 	if err != nil {
 		return err
@@ -151,11 +149,11 @@ func (gce *GCEClient) Delete(machine *machinesv1.Machine) error {
 	return err
 }
 
-func (gce *GCEClient) Get(name string) (*machinesv1.Machine, error){
+func (gce *GCEClient) Get(name string) (*clusterv1.Machine, error) {
 	return nil, fmt.Errorf("Get machine is not implemented on Google")
 }
 
-func (gce *GCEClient) GetIP(machine *machinesv1.Machine) (string, error){
+func (gce *GCEClient) GetIP(machine *clusterv1.Machine) (string, error) {
 	config, err := gce.providerconfig(machine.Spec.ProviderConfig)
 	if err != nil {
 		return "", err
@@ -178,7 +176,7 @@ func (gce *GCEClient) GetIP(machine *machinesv1.Machine) (string, error){
 	return masterIPPublic, nil
 }
 
-func (gce *GCEClient) GetKubeConfig(master *machinesv1.Machine) (string, error) {
+func (gce *GCEClient) GetKubeConfig(master *clusterv1.Machine) (string, error) {
 	config, err := gce.providerconfig(master.Spec.ProviderConfig)
 	if err != nil {
 		return "", err

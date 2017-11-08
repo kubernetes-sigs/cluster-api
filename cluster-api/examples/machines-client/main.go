@@ -23,7 +23,7 @@ import (
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/tools/clientcmd"
-	machinesv1 "k8s.io/kube-deploy/cluster-api/api/machines/v1alpha1"
+	clusterv1 "k8s.io/kube-deploy/cluster-api/api/cluster/v1alpha1"
 	clusterapiclient "k8s.io/kube-deploy/cluster-api/client"
 )
 
@@ -42,12 +42,12 @@ func main() {
 		panic(err.Error())
 	}
 
-	machine := &machinesv1.Machine{
+	machine := &clusterv1.Machine{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:   "mygcehost",
 			Labels: map[string]string{"mylabel": "test"},
 		},
-		Spec: machinesv1.MachineSpec{
+		Spec: clusterv1.MachineSpec{
 			ProviderConfig: "n1-standard-1",
 		},
 	}

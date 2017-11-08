@@ -30,13 +30,16 @@ import (
 )
 
 const (
-	ClustersCRDGroup   = "cluster-api.k8s.io"
-	ClustersCRDPlural  = "clusters"
-	ClustersCRDVersion = "v1alpha1"
-	ClustersCRDName    = ClustersCRDPlural + "." + ClustersCRDGroup
+	CRDGroup   = "cluster-api.k8s.io"
+	CRDVersion = "v1alpha1"
+
+	ClustersCRDPlural = "clusters"
+	ClustersCRDName   = ClustersCRDPlural + "." + CRDGroup
+	MachinesCRDPlural = "machines"
+	MachinesCRDName   = MachinesCRDPlural + "." + CRDGroup
 )
 
-var SchemeGroupVersion = schema.GroupVersion{Group: ClustersCRDGroup, Version: ClustersCRDVersion}
+var SchemeGroupVersion = schema.GroupVersion{Group: CRDGroup, Version: CRDVersion}
 
 func CreateClustersCRD(clientset apiextensionsclient.Interface) (*extensionsv1.CustomResourceDefinition, error) {
 	crd := &extensionsv1.CustomResourceDefinition{
@@ -44,7 +47,7 @@ func CreateClustersCRD(clientset apiextensionsclient.Interface) (*extensionsv1.C
 			Name: ClustersCRDName,
 		},
 		Spec: extensionsv1.CustomResourceDefinitionSpec{
-			Group:   ClustersCRDGroup,
+			Group:   SchemeGroupVersion.Group,
 			Version: SchemeGroupVersion.Version,
 			Scope:   extensionsv1.ClusterScoped,
 			Names: extensionsv1.CustomResourceDefinitionNames{
@@ -53,9 +56,31 @@ func CreateClustersCRD(clientset apiextensionsclient.Interface) (*extensionsv1.C
 			},
 		},
 	}
+	return crd, createCRD(clientset, crd)
+}
+
+func CreateMachinesCRD(clientset apiextensionsclient.Interface) (*extensionsv1.CustomResourceDefinition, error) {
+	crd := &extensionsv1.CustomResourceDefinition{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: MachinesCRDName,
+		},
+		Spec: extensionsv1.CustomResourceDefinitionSpec{
+			Group:   SchemeGroupVersion.Group,
+			Version: SchemeGroupVersion.Version,
+			Scope:   extensionsv1.ClusterScoped,
+			Names: extensionsv1.CustomResourceDefinitionNames{
+				Plural: MachinesCRDPlural,
+				Kind:   reflect.TypeOf(Machine{}).Name(),
+			},
+		},
+	}
+	return crd, createCRD(clientset, crd)
+}
+
+func createCRD(clientset apiextensionsclient.Interface, crd *extensionsv1.CustomResourceDefinition) error {
 	_, err := clientset.ApiextensionsV1beta1().CustomResourceDefinitions().Create(crd)
 	if err != nil {
-		return nil, err
+		return err
 	}
 
 	// wait for CRD being established
@@ -81,9 +106,9 @@ func CreateClustersCRD(clientset apiextensionsclient.Interface) (*extensionsv1.C
 	if err != nil {
 		deleteErr := clientset.ApiextensionsV1beta1().CustomResourceDefinitions().Delete(ClustersCRDName, nil)
 		if deleteErr != nil {
-			return nil, errors.NewAggregate([]error{err, deleteErr})
+			return errors.NewAggregate([]error{err, deleteErr})
 		}
-		return nil, err
+		return err
 	}
-	return crd, nil
+	return nil
 }

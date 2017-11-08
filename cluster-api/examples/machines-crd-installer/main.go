@@ -23,7 +23,7 @@ import (
 	apiextensionsclient "k8s.io/apiextensions-apiserver/pkg/client/clientset/clientset"
 	_ "k8s.io/client-go/plugin/pkg/client/auth/gcp"
 	"k8s.io/client-go/tools/clientcmd"
-	machinesv1 "k8s.io/kube-deploy/cluster-api/api/machines/v1alpha1"
+	clusterv1 "k8s.io/kube-deploy/cluster-api/api/cluster/v1alpha1"
 )
 
 // Stand-alone tool for creating the Machines CRD on a cluster. This isn't very
@@ -40,7 +40,7 @@ func main() {
 		panic(err.Error())
 	}
 
-	_, err = machinesv1.CreateMachinesCRD(cs)
+	_, err = clusterv1.CreateMachinesCRD(cs)
 	if err != nil {
 		fmt.Printf("Error creating Machines CRD: %v\n", err)
 	} else {

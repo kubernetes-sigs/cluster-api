@@ -278,14 +278,25 @@
   revision = "3c9596422809744570e7b344a5597b4ad8aaabfb"
 
 [[projects]]
+  name = "k8s.io/code-generator"
+  packages = ["cmd/client-gen","cmd/client-gen/args","cmd/client-gen/generators","cmd/client-gen/generators/fake","cmd/client-gen/generators/scheme","cmd/client-gen/generators/util","cmd/client-gen/path","cmd/client-gen/types","cmd/conversion-gen","cmd/conversion-gen/generators","cmd/deepcopy-gen","cmd/defaulter-gen","cmd/informer-gen","cmd/informer-gen/generators","cmd/lister-gen","cmd/lister-gen/generators","cmd/openapi-gen"]
+  revision = "961bc077103364eb5bda2c40e2b560d068c9a8c6"
+
+[[projects]]
+  branch = "master"
+  name = "k8s.io/gengo"
+  packages = ["args","examples/deepcopy-gen/generators","examples/defaulter-gen/generators","examples/set-gen/sets","generator","namer","parser","types"]
+  revision = "2da3816cfcc88b2c95b0e7fc25c14b46ab95695f"
+
+[[projects]]
   branch = "master"
   name = "k8s.io/kube-openapi"
-  packages = ["pkg/common"]
+  packages = ["pkg/common","pkg/generators"]
   revision = "61b46af70dfed79c6d24530cd23b41440a7f22a5"
 
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "7109a1292e0569b059a68fa1dccde3f71230282f5724b7862a06f1b82f87666c"
+  inputs-digest = "ba36d533413e6e9fec4f2f4783aac6eb4db84a4029f90eddf1ab3441161b223d"
   solver-name = "gps-cdcl"
   solver-version = 1

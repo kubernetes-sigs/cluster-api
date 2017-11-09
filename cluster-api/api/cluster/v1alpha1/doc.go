@@ -15,8 +15,5 @@ limitations under the License.
 */
 
 // +k8s:deepcopy-gen=package,register
-// +k8s:openapi-gen=false
-
 // +groupName=cluster.k8s.io
-
-package v1alpha1
+package v1alpha1 // import "k8s.io/kube-deploy/cluster-api/api/cluster/v1alpha1"

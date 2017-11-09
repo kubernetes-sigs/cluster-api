@@ -23,13 +23,12 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-// deepcopy-gen can be installed with:
-// go get k8s.io/gengo/examples/deepcopy-gen
-//go:generate deepcopy-gen -i . -O zz_generated.deepcopy
+// +genclient
+// +genclient:nonNamespaced
+// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
 
 // Cluster is an API object representing cluster-wide configuration
 // parameters and status.
-// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
 type Cluster struct {
 	metav1.ObjectMeta `json:"metadata"`
 	metav1.TypeMeta   `json:",inline"`
@@ -117,9 +116,10 @@ const (
 	DeleteClusterError ClusterStatusError = "DeleteError"
 )
 
+// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
+
 // This is needed to be able to list objects, even if we only expect one to be
 // found at a time.
-// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
 type ClusterList struct {
 	metav1.TypeMeta `json:",inline"`
 	metav1.ListMeta `json:"metadata"`
@@ -127,6 +127,10 @@ type ClusterList struct {
 }
 
 const MachineResourcePlural = "machines"
+
+// +genclient
+// +genclient:nonNamespaced
+// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
 
 // Machine represents a single Node that should exist (whether it does or
 // not yet). In this model, there is no grouping of nodes to scale with a
@@ -149,8 +153,6 @@ const MachineResourcePlural = "machines"
 // It is recommended, but not required, that provider-specific controllers add
 // finalizers to Machine objects so that they can be triggered on deletion to
 // release the necessary external resources, reporting any errors encountered.
-
-// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
 type Machine struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata"`

@@ -63,10 +63,10 @@ func IsMaster(machine *clusterv1.Machine) bool {
 	return Contains(TypeMaster, machine.Spec.Roles)
 }
 
-func GetMaster(machines []clusterv1.Machine) *clusterv1.Machine {
+func GetMaster(machines []*clusterv1.Machine) *clusterv1.Machine {
 	for _, machine := range machines {
-		if IsMaster(&machine) {
-			return &machine
+		if IsMaster(machine) {
+			return machine
 		}
 	}
 	return nil

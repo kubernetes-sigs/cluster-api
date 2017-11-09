@@ -67,12 +67,19 @@ func NewMachineActuator(kubeadmToken string, masterIP string) (*GCEClient, error
 	}, nil
 }
 
-func (gce *GCEClient) CreateMachineController(cluster *clusterv1.Cluster) error {
-	config, err := gce.providerconfig(cluster.Spec.ProviderConfig)
-	if err != nil {
-		return err
+func (gce *GCEClient) CreateMachineController(initialMachines []*clusterv1.Machine) error {
+	// Figure out what projects the service account needs permission to.
+	var projects []string
+	for _, machine := range initialMachines {
+		config, err := gce.providerconfig(machine.Spec.ProviderConfig)
+		if err != nil {
+			return err
+		}
+
+		projects = append(projects, config.Project)
 	}
-	if err := CreateMachineControllerServiceAccount(config.Project); err != nil {
+
+	if err := CreateMachineControllerServiceAccount(projects); err != nil {
 		return err
 	}
 	if err := CreateMachineControllerPod(gce.kubeadmToken); err != nil {

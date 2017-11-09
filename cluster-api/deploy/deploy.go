@@ -21,7 +21,6 @@ import (
 
 	clusterv1 "k8s.io/kube-deploy/cluster-api/api/cluster/v1alpha1"
 	"k8s.io/kube-deploy/cluster-api/cloud"
-	"k8s.io/kube-deploy/cluster-api/cloud/google"
 	"k8s.io/kube-deploy/cluster-api/util"
 	"github.com/golang/glog"
 )
@@ -33,10 +32,11 @@ type deployer struct {
 	actuator   cloud.MachineActuator
 }
 
-func NewDeployer() *deployer {
+func NewDeployer(provider string) *deployer {
 	token := util.RandomToken()
 	masterIP := "masterIP"
-	a, err := google.NewMachineActuator(token, masterIP)
+
+	a, err := cloud.NewMachineActuator(provider, token, masterIP)
 	if err != nil {
 		glog.Exit(err)
 	}

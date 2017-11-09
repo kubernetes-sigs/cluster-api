@@ -24,7 +24,6 @@ import (
 )
 
 type UpgradeOptions struct {
-	Options
 	KubernetesVersion string
 }
 
@@ -47,7 +46,7 @@ var upgradeCmd = &cobra.Command{
 }
 
 func RunUpgrade(uo *UpgradeOptions) error {
-	return deploy.UpgradeCluster(uo.KubernetesVersion, uo.KubeConfig)
+	return deploy.UpgradeCluster(uo.KubernetesVersion, kubeConfig)
 
 }
 

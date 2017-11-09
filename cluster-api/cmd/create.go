@@ -25,7 +25,6 @@ import (
 )
 
 type CreateOptions struct {
-	Options
 	Cluster                 string
 	Machine                 string
 	EnableMachineController bool
@@ -65,7 +64,7 @@ func RunCreate(co *CreateOptions) error {
 		return err
 	}
 
-	d := deploy.NewDeployer()
+	d := deploy.NewDeployer(provider)
 
 	return d.CreateCluster(cluster, machines, co.EnableMachineController)
 }

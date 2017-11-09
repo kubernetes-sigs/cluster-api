@@ -37,12 +37,10 @@ var RootCmd = &cobra.Command{
 }
 
 
-
-type Options struct {
-	KubeConfig string
-}
-
-var o = &Options{}
+var (
+	kubeConfig string
+	provider string
+)
 
 func Execute() {
 	if err := RootCmd.Execute(); err != nil {
@@ -87,8 +85,8 @@ func parseMachinesYaml(file string) ([]*clusterv1.Machine, error) {
 
 
 func init() {
+	RootCmd.PersistentFlags().StringVarP(&provider, "provider", "p", "google", "cloud provider google/azure/aws")
+	RootCmd.PersistentFlags().StringVarP(&kubeConfig, "kubecofig", "k", "", "location for the kubernetes config file. If not provided, $HOME/.kube/config is used")
 	flag.CommandLine.Parse([]string{})
 	logs.InitLogs()
-
-	RootCmd.PersistentFlags().StringVarP(&o.KubeConfig, "kubecofig", "k", "", "location for the kubernetes config file. If not provided, $HOME/.kube/config is used")
 }

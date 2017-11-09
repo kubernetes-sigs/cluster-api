@@ -24,7 +24,6 @@ import (
 )
 
 type DeleteOptions struct {
-	Options
 	Cluster string
 	Machine string
 }
@@ -63,7 +62,7 @@ func RunDelete(do *DeleteOptions) error {
 		return err
 	}
 
-	d := deploy.NewDeployer()
+	d := deploy.NewDeployer(provider)
 
 	return d.DeleteCluster(cluster, machines)
 }

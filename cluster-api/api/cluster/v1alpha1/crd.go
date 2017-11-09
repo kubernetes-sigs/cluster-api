@@ -85,7 +85,7 @@ func createCRD(clientset apiextensionsclient.Interface, crd *extensionsv1.Custom
 
 	// wait for CRD being established
 	err = wait.Poll(500*time.Millisecond, 60*time.Second, func() (bool, error) {
-		crd, err = clientset.ApiextensionsV1beta1().CustomResourceDefinitions().Get(ClustersCRDName, metav1.GetOptions{})
+		crd, err = clientset.ApiextensionsV1beta1().CustomResourceDefinitions().Get(crd.ObjectMeta.Name, metav1.GetOptions{})
 		if err != nil {
 			return false, err
 		}
@@ -104,7 +104,7 @@ func createCRD(clientset apiextensionsclient.Interface, crd *extensionsv1.Custom
 		return false, err
 	})
 	if err != nil {
-		deleteErr := clientset.ApiextensionsV1beta1().CustomResourceDefinitions().Delete(ClustersCRDName, nil)
+		deleteErr := clientset.ApiextensionsV1beta1().CustomResourceDefinitions().Delete(crd.ObjectMeta.Name, nil)
 		if deleteErr != nil {
 			return errors.NewAggregate([]error{err, deleteErr})
 		}

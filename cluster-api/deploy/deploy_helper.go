@@ -18,7 +18,6 @@ package deploy
 
 import (
 	"fmt"
-	"log"
 	"os"
 	"time"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -29,6 +28,7 @@ import (
 	clusterv1 "k8s.io/kube-deploy/cluster-api/api/cluster/v1alpha1"
 	"k8s.io/kube-deploy/cluster-api/client"
 	"k8s.io/kube-deploy/cluster-api/util"
+	"github.com/golang/glog"
 )
 
 const (
@@ -48,12 +48,12 @@ func (d *deployer) createMachineCRD(machines []*clusterv1.Machine) error {
 	success := false
 	for i := 0; i <= RetryAttempts; i++ {
 		if _, err = clusterv1.CreateMachinesCRD(cs); err != nil {
-			log.Printf("Failure creating Machines CRD (will retry): %v\n", err)
+			glog.Infof("Failure creating Machines CRD (will retry): %v\n", err)
 			time.Sleep(time.Duration(SleepSecondsPerAttempt) * time.Second)
 			continue
 		}
 		success = true
-		log.Print("Machines CRD created successfully!")
+		glog.Info("Machines CRD created successfully!")
 		break
 	}
 
@@ -74,7 +74,7 @@ func (d *deployer) createMachines(machines []*clusterv1.Machine) error {
 		if err != nil {
 			return err
 		}
-		log.Printf("Added machine [%s]", machine.Name)
+		glog.Infof("Added machine [%s]", machine.Name)
 	}
 	return nil
 }
@@ -92,7 +92,7 @@ func (d *deployer) deleteMachineCRDs() error {
 		if err := c.Machines().Delete(m.Name, &metav1.DeleteOptions{}); err != nil {
 			return err
 		}
-		log.Printf("Deleted machine object %s", m.Name)
+		glog.Infof("Deleted machine object %s", m.Name)
 	}
 	return nil
 }
@@ -101,11 +101,11 @@ func (d *deployer) setMasterIP(master *clusterv1.Machine) error {
 	for i := 0; i < MasterIPAttempts; i++ {
 		ip, err := d.actuator.GetIP(master)
 		if err != nil || ip == "" {
-			log.Printf("Hanging for master IP...")
+			glog.Info("Hanging for master IP...")
 			time.Sleep(time.Duration(SleepSecondsPerAttempt) * time.Second)
 			continue
 		}
-		log.Printf("Got master IP [%s]", ip)
+		glog.Infof("Got master IP [%s]", ip)
 		d.masterIP = ip
 
 		return nil
@@ -118,11 +118,10 @@ func (d *deployer) copyKubeConfig(master *clusterv1.Machine) error {
 		var config string
 		var err error
 		if config, err = d.actuator.GetKubeConfig(master); err != nil || config == "" {
-			log.Print("Waiting for Kubernetes to come up...")
+			glog.Infof("Waiting for Kubernetes to come up...")
 			time.Sleep(time.Duration(SleepSecondsPerAttempt) * time.Second)
 			continue
 		}
-		//log.Printf("Got kubeconfig [%s]", config)
 
 		return d.writeConfigToDisk(config)
 	}
@@ -144,7 +143,7 @@ func (d *deployer) writeConfigToDisk(config string) error {
 	defer file.Close()
 
 	file.Sync() // flush
-	log.Printf("wrote kubeconfig to [%s]", filePath)
+	glog.Infof("wrote kubeconfig to [%s]", filePath)
 	return nil
 }
 

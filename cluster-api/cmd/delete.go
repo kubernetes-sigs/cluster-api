@@ -19,7 +19,8 @@ package cmd
 import (
 	"github.com/spf13/cobra"
 	"k8s.io/kube-deploy/cluster-api/deploy"
-	"log"
+	"github.com/golang/glog"
+	"os"
 )
 
 type DeleteOptions struct {
@@ -36,14 +37,17 @@ var deleteCmd = &cobra.Command{
 	Long:  `Delete a kubernetes cluster with one command`,
 	Run: func(cmd *cobra.Command, args []string) {
 		if do.Cluster == "" {
-			log.Fatal("Please provide yaml file for cluster definition.")
+			glog.Error("Please provide yaml file for cluster definition." )
+			cmd.Help()
+			os.Exit(1)
 		}
 		if do.Machine == "" {
-			log.Fatal("Please provide yaml file for machine definition.")
+			glog.Error("Please provide yaml file for machine definition.")
+			cmd.Help()
+			os.Exit(1)
 		}
-
 		if err := RunDelete(do); err != nil {
-			log.Fatal(err)
+			glog.Exit(err)
 		}
 	},
 }

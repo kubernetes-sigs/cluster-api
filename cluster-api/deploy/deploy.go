@@ -18,12 +18,12 @@ package deploy
 
 import (
 	"fmt"
-	"log"
 
 	clusterv1 "k8s.io/kube-deploy/cluster-api/api/cluster/v1alpha1"
 	"k8s.io/kube-deploy/cluster-api/cloud"
 	"k8s.io/kube-deploy/cluster-api/cloud/google"
 	"k8s.io/kube-deploy/cluster-api/util"
+	"github.com/golang/glog"
 )
 
 type deployer struct {
@@ -38,7 +38,7 @@ func NewDeployer() *deployer {
 	masterIP := "masterIP"
 	a, err := google.NewMachineActuator(token, masterIP)
 	if err != nil {
-		log.Fatal(err)
+		glog.Exit(err)
 	}
 	return &deployer{
 		token:    token,
@@ -57,7 +57,7 @@ func (d *deployer) CreateCluster(c *clusterv1.Cluster, machines []*clusterv1.Mac
 	if err := d.actuator.Create(master); err != nil {
 		return err
 	}
-	log.Printf("Created master %s", master.Name)
+	glog.Infof("Created master %s", master.Name)
 
 	if err := d.setMasterIP(master); err != nil {
 		return fmt.Errorf("unable to get master IP: %v", err)
@@ -77,8 +77,8 @@ func (d *deployer) CreateCluster(c *clusterv1.Cluster, machines []*clusterv1.Mac
 		}
 	}
 
-	log.Printf("The [%s] cluster has been created successfully!", c.Name)
-	log.Print("You can now `kubectl get nodes`")
+	glog.Infof("The [%s] cluster has been created successfully!", c.Name)
+	glog.Info("You can now `kubectl get nodes`")
 
 	return nil
 }
@@ -95,6 +95,6 @@ func (d *deployer) DeleteCluster(c *clusterv1.Cluster, machines []*clusterv1.Mac
 	if err := d.actuator.Delete(master); err != nil {
 		return err
 	}
-	log.Print("Deletion successful")
+	glog.Infof("Deletion successful")
 	return nil
 }

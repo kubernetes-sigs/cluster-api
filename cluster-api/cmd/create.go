@@ -20,7 +20,7 @@ import (
 
 	"github.com/spf13/cobra"
 	"k8s.io/kube-deploy/cluster-api/deploy"
-	"log"
+	"github.com/golang/glog"
 	"os"
 )
 
@@ -39,19 +39,18 @@ var createCmd = &cobra.Command{
 	Long:  `Create a kubernetes cluster with one command`,
 	Run: func(cmd *cobra.Command, args []string) {
 		if co.Cluster == "" {
-			log.Print("Please provide yaml file for cluster definition." )
+			glog.Error("Please provide yaml file for cluster definition." )
 			cmd.Help()
 			os.Exit(1)
 		}
 		if co.Machine == "" {
-			log.Print("Please provide yaml file for machine definition.")
+			glog.Error("Please provide yaml file for machine definition.")
 			cmd.Help()
 			os.Exit(1)
 		}
 		if err := RunCreate(co); err != nil {
-			log.Fatal(err)
+			glog.Exit(err)
 		}
-		//log.Print("Cluster creation successful")
 	},
 }
 
@@ -60,13 +59,11 @@ func RunCreate(co *CreateOptions) error {
 	if err != nil {
 		return err
 	}
-	//log.Printf("Parsing done cluster: [%s]", cluster)
 
 	machines, err := parseMachinesYaml(co.Machine)
 	if err != nil {
 		return err
 	}
-	//log.Printf("Parsing done [%s]", machines)
 
 	d := deploy.NewDeployer()
 

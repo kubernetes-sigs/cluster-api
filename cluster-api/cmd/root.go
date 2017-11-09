@@ -18,11 +18,12 @@ package cmd
 
 import (
 	"io/ioutil"
-	"log"
-
+	"flag"
+	"k8s.io/apiserver/pkg/util/logs"
 	"github.com/ghodss/yaml"
 	"github.com/spf13/cobra"
 	clusterv1 "k8s.io/kube-deploy/cluster-api/api/cluster/v1alpha1"
+	"github.com/golang/glog"
 )
 
 var RootCmd = &cobra.Command{
@@ -45,7 +46,7 @@ var o = &Options{}
 
 func Execute() {
 	if err := RootCmd.Execute(); err != nil {
-		log.Fatal(err)
+		glog.Exit(err)
 	}
 }
 
@@ -65,7 +66,6 @@ func parseClusterYaml(file string) (*clusterv1.Cluster, error) {
 }
 
 func parseMachinesYaml(file string) ([]*clusterv1.Machine, error) {
-
 	bytes, err := ioutil.ReadFile(file)
 	if err != nil {
 		return nil, err
@@ -87,5 +87,8 @@ func parseMachinesYaml(file string) ([]*clusterv1.Machine, error) {
 
 
 func init() {
+	flag.CommandLine.Parse([]string{})
+	logs.InitLogs()
+
 	RootCmd.PersistentFlags().StringVarP(&o.KubeConfig, "kubecofig", "k", "", "location for the kubernetes config file. If not provided, $HOME/.kube/config is used")
 }

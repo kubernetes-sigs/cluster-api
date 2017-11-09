@@ -23,6 +23,7 @@ import (
 )
 
 type DeleteOptions struct {
+	Options
 	Cluster string
 	Machine string
 }
@@ -31,7 +32,7 @@ var do = &DeleteOptions{}
 
 var deleteCmd = &cobra.Command{
 	Use:   "delete",
-	Short: "Simple kubernetes cluster manager",
+	Short: "Delete kubernetes cluster",
 	Long:  `Delete a kubernetes cluster with one command`,
 	Run: func(cmd *cobra.Command, args []string) {
 		if do.Cluster == "" {
@@ -53,12 +54,14 @@ func RunDelete(do *DeleteOptions) error {
 		return err
 	}
 
-	if _, err := parseMachinesYaml(do.Machine); err != nil {
+	machines, err := parseMachinesYaml(do.Machine)
+	if err != nil {
 		return err
 	}
+
 	d := deploy.NewDeployer()
 
-	return d.DeleteCluster(cluster)
+	return d.DeleteCluster(cluster, machines)
 }
 
 func init() {

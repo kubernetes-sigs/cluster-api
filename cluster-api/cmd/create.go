@@ -25,6 +25,7 @@ import (
 )
 
 type CreateOptions struct {
+	Options
 	Cluster                 string
 	Machine                 string
 	EnableMachineController bool
@@ -34,7 +35,7 @@ var co = &CreateOptions{}
 
 var createCmd = &cobra.Command{
 	Use:   "create",
-	Short: "Simple kubernetes cluster creator",
+	Short: "Create kubernetes cluster",
 	Long:  `Create a kubernetes cluster with one command`,
 	Run: func(cmd *cobra.Command, args []string) {
 		if co.Cluster == "" {

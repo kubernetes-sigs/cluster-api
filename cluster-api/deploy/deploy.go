@@ -35,13 +35,14 @@ type deployer struct {
 
 func NewDeployer() *deployer {
 	token := util.RandomToken()
-	a, err := google.NewMachineActuator(token, "masterip")
+	masterIP := "masterIP"
+	a, err := google.NewMachineActuator(token, masterIP)
 	if err != nil {
 		log.Fatal(err)
 	}
 	return &deployer{
 		token:    token,
-		masterIP: "masterip",
+		masterIP: masterIP,
 		actuator: a,
 	}
 }
@@ -82,7 +83,18 @@ func (d *deployer) CreateCluster(c *clusterv1.Cluster, machines []*clusterv1.Mac
 	return nil
 }
 
-func (d *deployer) DeleteCluster(c *clusterv1.Cluster) error {
-	return fmt.Errorf("not implemented yet")
+func (d *deployer) DeleteCluster(c *clusterv1.Cluster, machines []*clusterv1.Machine,) error {
+	if err := d.deleteMachineCRDs(); err != nil {
+		return err
+	}
+	master := util.GetMaster(machines)
+	if master == nil {
+		return fmt.Errorf("error deleting master vm, no master found")
+	}
 
+	if err := d.actuator.Delete(master); err != nil {
+		return err
+	}
+	log.Print("Deletion successful")
+	return nil
 }

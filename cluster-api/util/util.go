@@ -91,7 +91,7 @@ func Home() string {
 	return usr.HomeDir
 }
 
-func GetKubeConfigPath() (string, error) {
+func GetDefaultKubeConfigPath() (string, error) {
 	localDir := fmt.Sprintf("%s/.kube", Home())
 	if _, err := os.Stat(localDir); os.IsNotExist(err) {
 		if err := os.Mkdir(localDir, 0777); err != nil {

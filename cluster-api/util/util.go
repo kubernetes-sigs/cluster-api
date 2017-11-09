@@ -38,6 +38,7 @@ var (
 	r = rand.New(rand.NewSource(time.Now().UnixNano()))
 )
 
+
 func RandomToken() string {
 	return fmt.Sprintf("%s.%s", randomString(6), randomString(16))
 }

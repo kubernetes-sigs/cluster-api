@@ -14,30 +14,36 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package controller
+package cloud
 
 import (
 	"fmt"
 
 	"github.com/golang/glog"
 	clusterv1 "k8s.io/kube-deploy/cluster-api/api/cluster/v1alpha1"
-	"k8s.io/kube-deploy/cluster-api/cloud"
 	"k8s.io/kube-deploy/cluster-api/cloud/google"
 )
 
-func newMachineActuator(cloud string, kubeadmToken string, masterIP string) (cloud.MachineActuator, error) {
+
+// An actuator that just logs instead of doing anything.
+type loggingMachineActuator struct{}
+
+const config = `
+apiVersion: v1
+kind: config
+preferences: {}
+`
+
+func NewMachineActuator(cloud string, kubeadmToken string, masterIP string) (MachineActuator, error) {
 	switch cloud {
 	case "google":
 		return google.NewMachineActuator(kubeadmToken, masterIP)
-	case "test":
+	case "test", "aws", "azure":
 		return &loggingMachineActuator{}, nil
 	default:
 		return nil, fmt.Errorf("Not recognized cloud provider: %s\n", cloud)
 	}
 }
-
-// An actuator that just logs instead of doing anything.
-type loggingMachineActuator struct{}
 
 func (a loggingMachineActuator) Create(machine *clusterv1.Machine) error {
 	glog.Infof("actuator received create: %s\n", machine.ObjectMeta.Name)
@@ -57,12 +63,12 @@ func (a loggingMachineActuator) Get(name string) (*clusterv1.Machine, error) {
 
 func (a loggingMachineActuator) GetIP(machine *clusterv1.Machine) (string, error) {
 	glog.Infof("actuator received GetIP: %s\n", machine.ObjectMeta.Name)
-	return "", nil
+	return "0.0.0.0", nil
 }
 
 func (a loggingMachineActuator) GetKubeConfig(master *clusterv1.Machine) (string, error) {
 	glog.Infof("actuator received GetKubeConfig: %s\n", master.ObjectMeta.Name)
-	return "", nil
+	return config, nil
 }
 
 func (a loggingMachineActuator) CreateMachineController(machines []*clusterv1.Machine) error {

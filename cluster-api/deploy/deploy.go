@@ -31,11 +31,13 @@ type deployer struct {
 	configPath string
 	actuator   cloud.MachineActuator
 }
-
-func NewDeployer(provider string) *deployer {
+//it takes path for kubeconfig file.
+func NewDeployer(provider string, configPath string) *deployer {
 	token := util.RandomToken()
 	masterIP := "masterIP"
-
+	if configPath == "" {
+		configPath = util.GetDefaultKubeConfigPath()
+	}
 	a, err := cloud.NewMachineActuator(provider, token, masterIP)
 	if err != nil {
 		glog.Exit(err)
@@ -44,6 +46,7 @@ func NewDeployer(provider string) *deployer {
 		token:    token,
 		masterIP: masterIP,
 		actuator: a,
+		configPath: configPath,
 	}
 }
 
@@ -83,7 +86,7 @@ func (d *deployer) CreateCluster(c *clusterv1.Cluster, machines []*clusterv1.Mac
 	return nil
 }
 // CreateCluster uses GCP APIs to create cluster
-func (d *deployer) AddNodes(c *clusterv1.Cluster, machines []*clusterv1.Machine) error {
+func (d *deployer) AddNodes(machines []*clusterv1.Machine) error {
 	if err := d.createMachines(machines); err != nil {
 		return err
 	}
@@ -91,13 +94,19 @@ func (d *deployer) AddNodes(c *clusterv1.Cluster, machines []*clusterv1.Machine)
 }
 
 
-func (d *deployer) DeleteCluster(c *clusterv1.Cluster, machines []*clusterv1.Machine,) error {
-	if err := d.deleteMachines(); err != nil {
+func (d *deployer) DeleteCluster() error {
+	machines, err := d.listMachines()
+	if err != nil {
 		return err
 	}
+
 	master := util.GetMaster(machines)
 	if master == nil {
 		return fmt.Errorf("error deleting master vm, no master found")
+	}
+
+	if err := d.deleteMachines(); err != nil {
+		return err
 	}
 
 	if err := d.actuator.Delete(master); err != nil {

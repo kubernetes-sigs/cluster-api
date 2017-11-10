@@ -26,7 +26,6 @@ import (
 )
 
 type AddOptions struct {
-	Cluster string
 	Machine string
 }
 
@@ -35,13 +34,8 @@ var ao = &AddOptions{}
 var addCmd = &cobra.Command{
 	Use:   "add",
 	Short: "Add nodes to cluster",
-	Long:  `Add nodes to cluste`,
+	Long:  `Add nodes to cluster`,
 	Run: func(cmd *cobra.Command, args []string) {
-		if ao.Cluster == "" {
-			glog.Error("Please provide yaml file for cluster definition." )
-			cmd.Help()
-			os.Exit(1)
-		}
 		if ao.Machine == "" {
 			glog.Error("Please provide yaml file for machine definition.")
 			cmd.Help()
@@ -54,22 +48,16 @@ var addCmd = &cobra.Command{
 }
 
 func RunAdd(ao *AddOptions) error {
-	cluster, err := parseClusterYaml(ao.Cluster)
-	if err != nil {
-		return err
-	}
-
 	machines, err := parseMachinesYaml(ao.Machine)
 	if err != nil {
 		return err
 	}
 
-	d := deploy.NewDeployer(provider)
+	d := deploy.NewDeployer(provider, kubeConfig)
 
-	return d.AddNodes(cluster, machines)
+	return d.AddNodes(machines)
 }
 func init() {
-	addCmd.Flags().StringVarP(&ao.Cluster, "cluster", "c", "", "cluster yaml file")
 	addCmd.Flags().StringVarP(&ao.Machine, "machines", "m", "", "machine yaml file")
 
 	RootCmd.AddCommand(addCmd)

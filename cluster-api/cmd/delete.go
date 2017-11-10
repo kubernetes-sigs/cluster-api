@@ -20,56 +20,25 @@ import (
 	"github.com/spf13/cobra"
 	"k8s.io/kube-deploy/cluster-api/deploy"
 	"github.com/golang/glog"
-	"os"
 )
 
-type DeleteOptions struct {
-	Cluster string
-	Machine string
-}
-
-var do = &DeleteOptions{}
 
 var deleteCmd = &cobra.Command{
 	Use:   "delete",
 	Short: "Delete kubernetes cluster",
 	Long:  `Delete a kubernetes cluster with one command`,
 	Run: func(cmd *cobra.Command, args []string) {
-		if do.Cluster == "" {
-			glog.Error("Please provide yaml file for cluster definition." )
-			cmd.Help()
-			os.Exit(1)
-		}
-		if do.Machine == "" {
-			glog.Error("Please provide yaml file for machine definition.")
-			cmd.Help()
-			os.Exit(1)
-		}
-		if err := RunDelete(do); err != nil {
+		if err := RunDelete(); err != nil {
 			glog.Exit(err)
 		}
 	},
 }
 
-func RunDelete(do *DeleteOptions) error {
-	cluster, err := parseClusterYaml(do.Cluster)
-	if err != nil {
-		return err
-	}
-
-	machines, err := parseMachinesYaml(do.Machine)
-	if err != nil {
-		return err
-	}
-
-	d := deploy.NewDeployer(provider)
-
-	return d.DeleteCluster(cluster, machines)
+func RunDelete() error {
+	d := deploy.NewDeployer(provider, kubeConfig)
+	return d.DeleteCluster()
 }
 
 func init() {
-	deleteCmd.Flags().StringVarP(&do.Cluster, "cluster", "c", "", "cluster yaml file")
-	deleteCmd.Flags().StringVarP(&do.Machine, "machines", "m", "", "machine yaml file")
-
 	RootCmd.AddCommand(deleteCmd)
 }

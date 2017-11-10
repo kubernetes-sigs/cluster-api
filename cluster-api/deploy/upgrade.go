@@ -25,9 +25,13 @@ import (
 	clusterv1 "k8s.io/kube-deploy/cluster-api/api/cluster/v1alpha1"
 	clusapiclnt "k8s.io/kube-deploy/cluster-api/client"
 	"fmt"
+	"k8s.io/kube-deploy/cluster-api/util"
 )
 
 func UpgradeCluster(kubeversion string, kubeconfig string) error {
+	if kubeconfig == "" {
+		kubeconfig = util.GetDefaultKubeConfigPath()
+	}
 	config, err := clientcmd.BuildConfigFromFlags("", kubeconfig)
 	if err != nil {
 		return err

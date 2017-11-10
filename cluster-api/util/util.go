@@ -18,7 +18,6 @@ package util
 
 import (
 	"fmt"
-	"log"
 	"math/rand"
 	"os"
 	"os/exec"
@@ -27,6 +26,7 @@ import (
 	"time"
 
 	clusterv1 "k8s.io/kube-deploy/cluster-api/api/cluster/v1alpha1"
+	"github.com/golang/glog"
 )
 
 const (
@@ -73,6 +73,15 @@ func GetMaster(machines []*clusterv1.Machine) *clusterv1.Machine {
 	return nil
 }
 
+func MachineP(machines []clusterv1.Machine) []*clusterv1.Machine {
+	// Convert to list of pointers
+	var ret []*clusterv1.Machine
+	for _, machine := range machines {
+		ret = append(ret, machine.DeepCopy())
+	}
+	return ret
+}
+
 func ExecCommand(name string, args []string) string {
 	cmdOut, _ := exec.Command(name, args...).Output()
 	return string(cmdOut)
@@ -86,18 +95,18 @@ func Home() string {
 
 	usr, err := user.Current()
 	if err != nil {
-		log.Printf("unable to find user: %v", err)
+		glog.Warningf("unable to find user: %v", err)
 		return ""
 	}
 	return usr.HomeDir
 }
 
-func GetDefaultKubeConfigPath() (string, error) {
+func GetDefaultKubeConfigPath() (string) {
 	localDir := fmt.Sprintf("%s/.kube", Home())
 	if _, err := os.Stat(localDir); os.IsNotExist(err) {
 		if err := os.Mkdir(localDir, 0777); err != nil {
-			return "", err
+			glog.Fatal(err)
 		}
 	}
-	return fmt.Sprintf("%s/config", localDir), nil
+	return fmt.Sprintf("%s/config", localDir)
 }

@@ -2,8 +2,7 @@ items:
 - apiVersion: "cluster-api.k8s.io/v1alpha1"
   kind: Machine
   metadata:
-    name: gce-master-1
-    generateName: gce-master-
+    generateName: gce-big-node-
     labels:
       set: master
   spec:
@@ -22,7 +21,7 @@ items:
         name: docker
         version: 1.12.0
     roles:
-    - Master
+    - Node
 - apiVersion: "cluster-api.k8s.io/v1alpha1"
   kind: Machine
   metadata:

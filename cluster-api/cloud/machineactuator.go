@@ -33,4 +33,5 @@ type MachineActuator interface {
 	// are provided in case the function wants to refer to them (and their
 	// ProviderConfigs) to know how to configure the machine controller.
 	CreateMachineController(initialMachines []*clusterv1.Machine) error
+	PostDelete(machines []*clusterv1.Machine) error
 }

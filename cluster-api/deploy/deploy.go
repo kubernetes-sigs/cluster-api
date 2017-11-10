@@ -53,10 +53,14 @@ func NewDeployer(provider string, configPath string) *deployer {
 
 // CreateCluster uses GCP APIs to create cluster
 func (d *deployer) CreateCluster(c *clusterv1.Cluster, machines []*clusterv1.Machine, enableMachineController bool) error {
+	glog.Infof("Starting cluster creation %s", c.Name)
+
 	master := util.GetMaster(machines)
 	if master == nil {
 		return fmt.Errorf("error creating master vm, no master found")
 	}
+
+	glog.Infof("Starting master creation %s", master.Name)
 
 	if err := d.actuator.Create(master); err != nil {
 		return err
@@ -107,11 +111,18 @@ func (d *deployer) DeleteCluster() error {
 		return fmt.Errorf("error deleting master vm, no master found")
 	}
 
+	glog.Info("Deleting machine objects")
 	if err := d.deleteMachines(); err != nil {
 		return err
 	}
 
+	glog.Infof("Deleting mater vm %s", master.Name)
 	if err := d.actuator.Delete(master); err != nil {
+		return err
+	}
+
+	glog.Info("Running post delete operations")
+	if err := d.actuator.PostDelete(machines); err != nil {
 		return err
 	}
 	glog.Infof("Deletion successful")

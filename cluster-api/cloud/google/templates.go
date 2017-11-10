@@ -32,8 +32,8 @@ func nodeStartupScript(kubeadmToken, masterIP, machineName, kubeletVersion strin
 	return fmt.Sprintf(nodeStartupTemplate, kubeadmToken, mip, machineName, kubeletVersion)
 }
 
-func masterStartupScript(kubeadmToken, port, machineName string) string {
-	return fmt.Sprintf(masterStartupTemplate, kubeadmToken, port, machineName)
+func masterStartupScript(kubeadmToken, port, machineName, kubeletVersion, controlPlaneVersion string) string {
+	return fmt.Sprintf(masterStartupTemplate, kubeadmToken, port, machineName, kubeletVersion, controlPlaneVersion)
 }
 
 const nodeStartupTemplate = `
@@ -91,6 +91,8 @@ set -x
 TOKEN=%s
 PORT=%s
 MACHINE=%s
+KUBELET_VERSION=%s
+CONTROL_PLANE_VERSION=%s
 curl -s https://packages.cloud.google.com/apt/doc/apt-key.gpg | sudo apt-key add -
 touch /etc/apt/sources.list.d/kubernetes.list
 sh -c 'echo "deb http://apt.kubernetes.io/ kubernetes-xenial main" > /etc/apt/sources.list.d/kubernetes.list'
@@ -101,8 +103,8 @@ apt-get install -y \
     ebtables \
     docker.io \
     apt-transport-https \
-    kubelet \
-    kubeadm=1.7.0-00 \
+    kubelet=${KUBELET_VERSION}-00 \
+    kubeadm=${CONTROL_PLANE_VERSION}-00 \
     cloud-utils
 
 systemctl enable docker
@@ -114,7 +116,7 @@ echo $PRIVATEIP > /tmp/.ip
 	"PUBLICIP=`curl --retry 5 -sfH \"Metadata-Flavor: Google\" \"http://metadata/computeMetadata/v1/instance/network-interfaces/0/access-configs/0/external-ip\"`" + `
 
 kubeadm reset
-kubeadm init --apiserver-bind-port ${PORT} --token ${TOKEN}  --apiserver-advertise-address ${PUBLICIP} --apiserver-cert-extra-sans ${PUBLICIP} ${PRIVATEIP}
+kubeadm init --apiserver-bind-port ${PORT} --token ${TOKEN} --kubernetes-version v${CONTROL_PLANE_VERSION} --apiserver-advertise-address ${PUBLICIP} --apiserver-cert-extra-sans ${PUBLICIP} ${PRIVATEIP}
 
 for tries in $(seq 1 60); do
 	kubectl --kubeconfig /etc/kubernetes/kubelet.conf annotate node $(hostname) machine=${MACHINE} && break

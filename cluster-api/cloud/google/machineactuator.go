@@ -245,6 +245,7 @@ func (gce *GCEClient) GetKubeConfig(master *clusterv1.Machine) (string, error) {
 }
 
 func (gce *GCEClient) remoteSshCommand(master *clusterv1.Machine, cmd string) (string, error) {
+	glog.Infof("Remote SSH execution '%s' on %s", cmd, master.ObjectMeta.Name)
 	config, err := gce.providerconfig(master.Spec.ProviderConfig)
 	if err != nil {
 		return "", err

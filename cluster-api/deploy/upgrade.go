@@ -26,9 +26,12 @@ import (
 	clusterv1 "k8s.io/kube-deploy/cluster-api/api/cluster/v1alpha1"
 	clusapiclnt "k8s.io/kube-deploy/cluster-api/client"
 	"k8s.io/kube-deploy/cluster-api/util"
+	"github.com/golang/glog"
 )
 
 func UpgradeCluster(kubeversion string, kubeconfig string) error {
+	glog.Infof("Starting to upgrade cluster to version: %s", kubeversion)
+
 	if kubeconfig == "" {
 		kubeconfig = util.GetDefaultKubeConfigPath()
 	}
@@ -46,6 +49,8 @@ func UpgradeCluster(kubeversion string, kubeconfig string) error {
 	if err != nil {
 		return err
 	}
+
+	glog.Info("Upgrading the control plan.")
 
 	// Update the control plan first. It assumes single master.
 	master_found := false
@@ -79,6 +84,8 @@ func UpgradeCluster(kubeversion string, kubeconfig string) error {
 		return err
 	}
 
+	glog.Info("Upgrading the nodes.")
+
 	// Continue to update all the nodes.
 	errors := make(chan error, len(machine_list.Items))
 	for i, _ := range machine_list.Items {
@@ -104,11 +111,16 @@ func UpgradeCluster(kubeversion string, kubeconfig string) error {
 			}(&machine_list.Items[i])
 		}
 	}
+	glog.Info("Waiting for update to be completed.")
 
-	for i := 0; i < len(machine_list.Items); i++ {
-		if err = <-errors; err != nil {
-			return err
+	for _, machine := range machine_list.Items {
+		if !util.IsMaster(&machine) {
+			if err = <-errors; err != nil {
+				return err
+			}
 		}
 	}
+
+	glog.Info("Successfully upgraded the cluster.")
 	return nil
 }

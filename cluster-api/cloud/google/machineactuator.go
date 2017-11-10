@@ -96,7 +96,15 @@ func (gce *GCEClient) Create(machine *clusterv1.Machine) error {
 
 	var startupScript string
 	if util.IsMaster(machine) {
-		startupScript = masterStartupScript(gce.kubeadmToken, "443", machine.ObjectMeta.Name)
+		kubeletVersion := machine.Spec.Versions.Kubelet
+		controlPlaneVersion := machine.Spec.Versions.ControlPlane
+		if kubeletVersion == "" {
+			return fmt.Errorf("invalid master configuration: missing Machine.Spec.Versions.Kubelet")
+		}
+		if controlPlaneVersion == "" {
+			return fmt.Errorf("invalid master configuration: missing Machine.Spec.Versions.ControlPlane")
+		}
+		startupScript = masterStartupScript(gce.kubeadmToken, "443", machine.ObjectMeta.Name, kubeletVersion, controlPlaneVersion)
 	} else {
 		startupScript = nodeStartupScript(gce.kubeadmToken, gce.masterIP, machine.ObjectMeta.Name, machine.Spec.Versions.Kubelet)
 	}

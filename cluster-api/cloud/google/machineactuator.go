@@ -156,6 +156,21 @@ func (gce *GCEClient) Delete(machine *clusterv1.Machine) error {
 	return err
 }
 
+func (gce *GCEClient) PostDelete(machines []*clusterv1.Machine) error {
+	var projects []string
+	for _, machine := range machines {
+		config, err := gce.providerconfig(machine.Spec.ProviderConfig)
+		if err != nil {
+			return err
+		}
+
+		projects = append(projects, config.Project)
+	}
+
+	return DeleteMachineControllerServiceAccount(projects)
+}
+
+
 func (gce *GCEClient) Get(name string) (*clusterv1.Machine, error) {
 	return nil, fmt.Errorf("Get machine is not implemented on Google")
 }
@@ -190,8 +205,9 @@ func (gce *GCEClient) GetKubeConfig(master *clusterv1.Machine) (string, error) {
 	}
 
 	command := "echo STARTFILE; sudo cat /etc/kubernetes/admin.conf"
-	args := []string{"compute", "ssh", "--project", config.Project, "--zone", config.Zone, master.ObjectMeta.Name, "--command", command}
-	result := strings.TrimSpace(util.ExecCommand("gcloud", args))
+	result := strings.TrimSpace(util.ExecCommand(
+		"gcloud", "compute", "ssh", "--project", config.Project,
+			"--zone", config.Zone, master.ObjectMeta.Name, "--command", command))
 	parts := strings.Split(result, "STARTFILE")
 	if len(parts) != 2 {
 		return "", nil

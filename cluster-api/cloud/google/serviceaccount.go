@@ -19,6 +19,7 @@ package google
 import (
 	"fmt"
 	"os/exec"
+	"github.com/golang/glog"
 )
 
 const (
@@ -41,7 +42,7 @@ func CreateMachineControllerServiceAccount(projects []string) error {
 		return fmt.Errorf("couldn't create service account: %v", err)
 	}
 
-	email := fmt.Sprintf("%s@%s.iam.gserviceaccount.com", MachineControllerServiceAccount, project)
+	email := accountId(project)
 	localFile := MachineControllerServiceAccount + "-key.json"
 
 	for _, project := range projects {
@@ -60,8 +61,31 @@ func CreateMachineControllerServiceAccount(projects []string) error {
 	if err != nil {
 		return fmt.Errorf("couldn't import service account key as credential: %v", err)
 	}
-
+	if err := run("rm", localFile); err != nil {
+		glog.Error(err)
+	}
 	return nil
+}
+
+func DeleteMachineControllerServiceAccount(projects []string) error {
+	project := projects[0]
+
+	email := accountId(project)
+	err := run("gcloud", "projects", "remove-iam-policy-binding", project, "--member=serviceAccount:"+email, "--role=roles/compute.instanceAdmin.v1")
+
+	if err != nil {
+		return fmt.Errorf("couldn't remove permissions to service account: %v", err)
+	}
+
+	err = run("gcloud", "--project", project, "iam", "service-accounts", "delete", email)
+	if err != nil {
+		return fmt.Errorf("couldn't delete service account: %v", err)
+	}
+	return nil
+}
+
+func accountId(project string) string {
+	return fmt.Sprintf("%s@%s.iam.gserviceaccount.com", MachineControllerServiceAccount, project)
 }
 
 func run(cmd string, args ...string) error {

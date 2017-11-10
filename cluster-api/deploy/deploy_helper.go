@@ -52,7 +52,7 @@ func (d *deployer) createMachineCRD(machines []*clusterv1.Machine) error {
 	success := false
 	for i := 0; i <= RetryAttempts; i++ {
 		if _, err = clusterv1.CreateMachinesCRD(cs); err != nil {
-			glog.Infof("Failure creating Machines CRD (will retry): %v\n", err)
+			glog.Info("Failure creating Machines CRD (will retry).")
 			time.Sleep(time.Duration(SleepSecondsPerAttempt) * time.Second)
 			continue
 		}

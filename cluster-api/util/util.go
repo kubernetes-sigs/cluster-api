@@ -82,7 +82,7 @@ func MachineP(machines []clusterv1.Machine) []*clusterv1.Machine {
 	return ret
 }
 
-func ExecCommand(name string, args []string) string {
+func ExecCommand(name string, args ...string) string {
 	cmdOut, _ := exec.Command(name, args...).Output()
 	return string(cmdOut)
 }

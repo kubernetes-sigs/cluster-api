@@ -75,3 +75,8 @@ func (a loggingMachineActuator) CreateMachineController(machines []*clusterv1.Ma
 	glog.Infof("actuator received CreateMachineController: %q\n", machines)
 	return nil
 }
+
+func (a loggingMachineActuator) PostDelete(machines []*clusterv1.Machine) error {
+	glog.Infof("actuator received PostDelete: %q\n", machines)
+	return nil
+}

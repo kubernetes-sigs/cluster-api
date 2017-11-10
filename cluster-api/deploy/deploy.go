@@ -19,10 +19,10 @@ package deploy
 import (
 	"fmt"
 
+	"github.com/golang/glog"
 	clusterv1 "k8s.io/kube-deploy/cluster-api/api/cluster/v1alpha1"
 	"k8s.io/kube-deploy/cluster-api/cloud"
 	"k8s.io/kube-deploy/cluster-api/util"
-	"github.com/golang/glog"
 )
 
 type deployer struct {
@@ -31,6 +31,7 @@ type deployer struct {
 	configPath string
 	actuator   cloud.MachineActuator
 }
+
 //it takes path for kubeconfig file.
 func NewDeployer(provider string, configPath string) *deployer {
 	token := util.RandomToken()
@@ -43,9 +44,9 @@ func NewDeployer(provider string, configPath string) *deployer {
 		glog.Exit(err)
 	}
 	return &deployer{
-		token:    token,
-		masterIP: masterIP,
-		actuator: a,
+		token:      token,
+		masterIP:   masterIP,
+		actuator:   a,
 		configPath: configPath,
 	}
 }
@@ -75,8 +76,9 @@ func (d *deployer) CreateCluster(c *clusterv1.Cluster, machines []*clusterv1.Mac
 	}
 
 	if enableMachineController {
+		glog.Info("Starting the machine controller...\n")
 		if err := d.actuator.CreateMachineController(machines); err != nil {
-			return err
+			return fmt.Errorf("can't create machine controller: %v", err)
 		}
 	}
 
@@ -85,6 +87,7 @@ func (d *deployer) CreateCluster(c *clusterv1.Cluster, machines []*clusterv1.Mac
 
 	return nil
 }
+
 // CreateCluster uses GCP APIs to create cluster
 func (d *deployer) AddNodes(machines []*clusterv1.Machine) error {
 	if err := d.createMachines(machines); err != nil {
@@ -92,7 +95,6 @@ func (d *deployer) AddNodes(machines []*clusterv1.Machine) error {
 	}
 	return nil
 }
-
 
 func (d *deployer) DeleteCluster() error {
 	machines, err := d.listMachines()

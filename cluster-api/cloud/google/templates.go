@@ -27,7 +27,6 @@ func sanitizeMasterIP(ip string) string {
 	return parts[0]
 }
 
-
 func nodeStartupScript(kubeadmToken, masterIP, machineName, kubeletVersion string) string {
 	mip := sanitizeMasterIP(masterIP)
 	return fmt.Sprintf(nodeStartupTemplate, kubeadmToken, mip, machineName, kubeletVersion)
@@ -111,7 +110,7 @@ systemctl start docker
 	"PRIVATEIP=`curl --retry 5 -sfH \"Metadata-Flavor: Google\" \"http://metadata/computeMetadata/v1/instance/network-interfaces/0/ip\"`" + `
 echo $PRIVATEIP > /tmp/.ip
 ` +
-"PUBLICIP=`curl --retry 5 -sfH \"Metadata-Flavor: Google\" \"http://metadata/computeMetadata/v1/instance/network-interfaces/0/access-configs/0/external-ip\"`" + `
+	"PUBLICIP=`curl --retry 5 -sfH \"Metadata-Flavor: Google\" \"http://metadata/computeMetadata/v1/instance/network-interfaces/0/access-configs/0/external-ip\"`" + `
 
 kubeadm reset
 kubeadm init --apiserver-bind-port ${PORT} --token ${TOKEN}  --apiserver-advertise-address ${PUBLICIP} --apiserver-cert-extra-sans ${PUBLICIP} ${PRIVATEIP}

@@ -21,6 +21,9 @@ import (
 	"fmt"
 	"os/exec"
 	"text/template"
+	"time"
+
+	"github.com/golang/glog"
 )
 
 func CreateMachineControllerPod(token string) error {
@@ -34,7 +37,6 @@ func CreateMachineControllerPod(token string) error {
 	}
 
 	var tmplBuf bytes.Buffer
-
 	err = tmpl.Execute(&tmplBuf, params{
 		Token: token,
 	})
@@ -42,6 +44,26 @@ func CreateMachineControllerPod(token string) error {
 		return err
 	}
 
+	maxTries := 5
+	for tries := 0; tries < maxTries; tries++ {
+		err = createPod(tmplBuf.Bytes())
+		if err == nil {
+			return nil
+		} else {
+			if tries < maxTries-1 {
+				glog.Info("Error scheduling machine controller. Will retry...\n")
+				time.Sleep(3 * time.Second)
+			}
+		}
+	}
+	if err != nil {
+		return fmt.Errorf("couldn't start machine controller: %v\n", err)
+	} else {
+		return nil
+	}
+}
+
+func createPod(manifest []byte) error {
 	cmd := exec.Command("kubectl", "create", "-f", "-")
 	stdin, err := cmd.StdinPipe()
 	if err != nil {
@@ -50,12 +72,13 @@ func CreateMachineControllerPod(token string) error {
 
 	go func() {
 		defer stdin.Close()
-		stdin.Write(tmplBuf.Bytes())
+		stdin.Write(manifest)
 	}()
 
 	out, err := cmd.CombinedOutput()
-	if err != nil {
-		return fmt.Errorf("couldn't create machine controller pod: %v, output: %v", err, out)
+	if err == nil {
+		return nil
+	} else {
+		return fmt.Errorf("couldn't create pod: %v, output: %v", err, out)
 	}
-	return nil
 }

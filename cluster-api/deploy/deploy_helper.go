@@ -79,7 +79,7 @@ func (d *deployer) createMachines(machines []*clusterv1.Machine) error {
 	return nil
 }
 
-func (d *deployer) deleteMachineCRDs() error {
+func (d *deployer) deleteMachines() error {
 	c, err := d.newApiClient()
 	if err != nil {
 		return err

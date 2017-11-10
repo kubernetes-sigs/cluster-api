@@ -82,9 +82,17 @@ func (d *deployer) CreateCluster(c *clusterv1.Cluster, machines []*clusterv1.Mac
 
 	return nil
 }
+// CreateCluster uses GCP APIs to create cluster
+func (d *deployer) AddNodes(c *clusterv1.Cluster, machines []*clusterv1.Machine) error {
+	if err := d.createMachines(machines); err != nil {
+		return err
+	}
+	return nil
+}
+
 
 func (d *deployer) DeleteCluster(c *clusterv1.Cluster, machines []*clusterv1.Machine,) error {
-	if err := d.deleteMachineCRDs(); err != nil {
+	if err := d.deleteMachines(); err != nil {
 		return err
 	}
 	master := util.GetMaster(machines)

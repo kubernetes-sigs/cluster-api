@@ -32,8 +32,8 @@ func nodeStartupScript(kubeadmToken, masterIP, machineName, kubeletVersion strin
 	return fmt.Sprintf(nodeStartupTemplate, kubeadmToken, mip, machineName, kubeletVersion)
 }
 
-func masterStartupScript(kubeadmToken, port string) string {
-	return fmt.Sprintf(masterStartupTemplate, kubeadmToken, port)
+func masterStartupScript(kubeadmToken, port, machineName string) string {
+	return fmt.Sprintf(masterStartupTemplate, kubeadmToken, port, machineName)
 }
 
 const nodeStartupTemplate = `
@@ -90,6 +90,7 @@ set -x
 (
 TOKEN=%s
 PORT=%s
+MACHINE=%s
 curl -s https://packages.cloud.google.com/apt/doc/apt-key.gpg | sudo apt-key add -
 touch /etc/apt/sources.list.d/kubernetes.list
 sh -c 'echo "deb http://apt.kubernetes.io/ kubernetes-xenial main" > /etc/apt/sources.list.d/kubernetes.list'
@@ -114,6 +115,11 @@ echo $PRIVATEIP > /tmp/.ip
 
 kubeadm reset
 kubeadm init --apiserver-bind-port ${PORT} --token ${TOKEN}  --apiserver-advertise-address ${PUBLICIP} --apiserver-cert-extra-sans ${PUBLICIP} ${PRIVATEIP}
+
+for tries in $(seq 1 60); do
+	kubectl --kubeconfig /etc/kubernetes/kubelet.conf annotate node $(hostname) machine=${MACHINE} && break
+	sleep 1
+done
 
 kubectl apply \
   -f http://docs.projectcalico.org/v2.3/getting-started/kubernetes/installation/hosted/kubeadm/1.6/calico.yaml \

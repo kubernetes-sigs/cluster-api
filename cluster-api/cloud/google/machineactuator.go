@@ -96,7 +96,7 @@ func (gce *GCEClient) Create(machine *clusterv1.Machine) error {
 
 	var startupScript string
 	if util.IsMaster(machine) {
-		startupScript = masterStartupScript(gce.kubeadmToken, "443")
+		startupScript = masterStartupScript(gce.kubeadmToken, "443", machine.ObjectMeta.Name)
 	} else {
 		startupScript = nodeStartupScript(gce.kubeadmToken, gce.masterIP, machine.ObjectMeta.Name, machine.Spec.Versions.Kubelet)
 	}

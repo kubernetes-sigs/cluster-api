@@ -64,7 +64,7 @@ func RunCreate(co *CreateOptions) error {
 		return err
 	}
 
-	d := deploy.NewDeployer(provider)
+	d := deploy.NewDeployer(provider, kubeConfig)
 
 	return d.CreateCluster(cluster, machines, co.EnableMachineController)
 }

@@ -97,6 +97,19 @@ func (d *deployer) deleteMachines() error {
 	return nil
 }
 
+func (d *deployer) listMachines() ([]*clusterv1.Machine, error) {
+	c, err := d.newApiClient()
+	if err != nil {
+		return nil, err
+	}
+
+	machines, err := c.Machines().List(metav1.ListOptions{})
+	if err != nil {
+		return nil, err
+	}
+	return util.MachineP(machines.Items), nil
+}
+
 func (d *deployer) setMasterIP(master *clusterv1.Machine) error {
 	for i := 0; i < MasterIPAttempts; i++ {
 		ip, err := d.actuator.GetIP(master)
@@ -129,11 +142,7 @@ func (d *deployer) copyKubeConfig(master *clusterv1.Machine) error {
 }
 
 func (d *deployer) writeConfigToDisk(config string) error {
-	filePath, err := util.GetDefaultKubeConfigPath()
-	if err != nil {
-		return err
-	}
-	file, err := os.Create(filePath)
+	file, err := os.Create(d.configPath)
 	if err != nil {
 		return err
 	}
@@ -143,7 +152,7 @@ func (d *deployer) writeConfigToDisk(config string) error {
 	defer file.Close()
 
 	file.Sync() // flush
-	glog.Infof("wrote kubeconfig to [%s]", filePath)
+	glog.Infof("wrote kubeconfig to [%s]", d.configPath)
 	return nil
 }
 
@@ -175,11 +184,7 @@ func (d *deployer) newApiClient() (*client.ClusterAPIV1Alpha1Client, error) {
 }
 
 func (d *deployer) getConfig() (*restclient.Config, error) {
-	kubeconfig, err := util.GetDefaultKubeConfigPath()
-	if err != nil {
-		return nil, err
-	}
-	config, err := clientcmd.BuildConfigFromFlags("", kubeconfig)
+	config, err := clientcmd.BuildConfigFromFlags("", d.configPath)
 	if err != nil {
 		return nil, err
 	}

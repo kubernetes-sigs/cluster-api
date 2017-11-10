@@ -24,6 +24,7 @@ import (
 	"github.com/spf13/cobra"
 	clusterv1 "k8s.io/kube-deploy/cluster-api/api/cluster/v1alpha1"
 	"github.com/golang/glog"
+	"k8s.io/kube-deploy/cluster-api/util"
 )
 
 var RootCmd = &cobra.Command{
@@ -75,12 +76,7 @@ func parseMachinesYaml(file string) ([]*clusterv1.Machine, error) {
 		return nil, err
 	}
 
-	// Convert to list of pointers
-	var ret []*clusterv1.Machine
-	for _, machine := range machines.Items {
-		ret = append(ret, machine.DeepCopy())
-	}
-	return ret, nil
+	return util.MachineP(machines.Items), nil
 }
 
 

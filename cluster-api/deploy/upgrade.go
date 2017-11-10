@@ -50,27 +50,25 @@ func UpgradeCluster(kubeversion string, kubeconfig string) error {
 	// Update the control plan first. It assumes single master.
 	master_found := false
 	for _, mach := range machine_list.Items {
-		for _, role := range mach.Spec.Roles {
-			if role == "master" {
-				mach.Spec.Versions.Kubelet = kubeversion
-				mach.Spec.Versions.ControlPlane = kubeversion
-				new_machine, err := client.Machines().Update(&mach)
-				if err == nil {
-					err = wait.Poll(5*time.Second, 10*time.Minute, func() (bool, error) {
-						new_machine, err = client.Machines().Get(new_machine.Name, metav1.GetOptions{})
-						//if err == nil && new_machine.Status.Ready {
-						//	return true, err
-						//}
-						//return false, err
-						if err != nil {
-							return false, err
-						}
-						return true, nil
-					})
-				}
-				master_found = true
-				break
+		if util.IsMaster(&mach) {
+			mach.Spec.Versions.Kubelet = kubeversion
+			mach.Spec.Versions.ControlPlane = kubeversion
+			new_machine, err := client.Machines().Update(&mach)
+			if err == nil {
+				err = wait.Poll(5*time.Second, 10*time.Minute, func() (bool, error) {
+					new_machine, err = client.Machines().Get(new_machine.Name, metav1.GetOptions{})
+					//if err == nil && new_machine.Status.Ready {
+					//	return true, err
+					//}
+					//return false, err
+					if err != nil {
+						return false, err
+					}
+					return true, nil
+				})
 			}
+			master_found = true
+			break
 		}
 	}
 
@@ -84,25 +82,27 @@ func UpgradeCluster(kubeversion string, kubeconfig string) error {
 	// Continue to update all the nodes.
 	errors := make(chan error, len(machine_list.Items))
 	for i, _ := range machine_list.Items {
-		go func(mach *clusterv1.Machine) {
-			mach.Spec.Versions.Kubelet = kubeversion
-			new_machine, err := client.Machines().Update(mach)
-			if err == nil {
-				// Polling the cluster until nodes are updated.
-				err = wait.Poll(5*time.Second, 10*time.Minute, func() (bool, error) {
-					new_machine, err = client.Machines().Get(new_machine.Name, metav1.GetOptions{})
-					//if err == nil && new_machine.Status.Ready {
-					//	return true, err
-					//}
-					//return false, err
-					if err != nil {
-						return false, err
-					}
-					return true, nil
-				})
-			}
-			errors <- err
-		}(&machine_list.Items[i])
+		if !util.IsMaster(&machine_list.Items[i]) {
+			go func(mach *clusterv1.Machine) {
+				mach.Spec.Versions.Kubelet = kubeversion
+				new_machine, err := client.Machines().Update(mach)
+				if err == nil {
+					// Polling the cluster until nodes are updated.
+					err = wait.Poll(5*time.Second, 10*time.Minute, func() (bool, error) {
+						new_machine, err = client.Machines().Get(new_machine.Name, metav1.GetOptions{})
+						//if err == nil && new_machine.Status.Ready {
+						//	return true, err
+						//}
+						//return false, err
+						if err != nil {
+							return false, err
+						}
+						return true, nil
+					})
+				}
+				errors <- err
+			}(&machine_list.Items[i])
+		}
 	}
 
 	for i := 0; i < len(machine_list.Items); i++ {

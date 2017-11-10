@@ -20,6 +20,7 @@ import (
 	"fmt"
 	"path"
 	"strings"
+	"os/exec"
 
 	"golang.org/x/net/context"
 	"golang.org/x/oauth2/google"
@@ -30,6 +31,7 @@ import (
 	gceconfig "k8s.io/kube-deploy/cluster-api/cloud/google/gceproviderconfig"
 	gceconfigv1 "k8s.io/kube-deploy/cluster-api/cloud/google/gceproviderconfig/v1alpha1"
 	"k8s.io/kube-deploy/cluster-api/util"
+	"github.com/golang/glog"
 )
 
 type GCEClient struct {
@@ -178,6 +180,25 @@ func (gce *GCEClient) PostDelete(machines []*clusterv1.Machine) error {
 	return DeleteMachineControllerServiceAccount(projects)
 }
 
+func (gce *GCEClient) Update(oldMachine *clusterv1.Machine, newMachine *clusterv1.Machine) error {
+	var err error = nil
+	if util.IsMaster(oldMachine) {
+		glog.Infof("Doing an in-place upgrade for master.\n")
+		err = gce.updateMasterInplace(oldMachine, newMachine)
+	} else {
+		glog.Infof("re-creating machine %s for update.", oldMachine.ObjectMeta.Name)
+		err = gce.Delete(oldMachine)
+		if err != nil {
+			glog.Errorf("delete machine %s for update failed: %v", oldMachine.ObjectMeta.Name, err)
+		} else {
+			err = gce.Create(newMachine)
+			if err != nil {
+				glog.Errorf("create machine %s for update failed: %v", newMachine.ObjectMeta.Name, err)
+			}
+		}
+	}
+	return err
+}
 
 func (gce *GCEClient) Get(name string) (*clusterv1.Machine, error) {
 	return nil, fmt.Errorf("Get machine is not implemented on Google")
@@ -223,6 +244,27 @@ func (gce *GCEClient) GetKubeConfig(master *clusterv1.Machine) (string, error) {
 	return strings.TrimSpace(parts[1]), nil
 }
 
+func (gce *GCEClient) remoteSshCommand(master *clusterv1.Machine, cmd string) (string, error) {
+	config, err := gce.providerconfig(master.Spec.ProviderConfig)
+	if err != nil {
+		return "", err
+	}
+
+	command := fmt.Sprintf("echo STARTFILE; %s", cmd)
+	c := exec.Command("gcloud", "compute", "ssh", "--project", config.Project, "--zone", config.Zone, master.ObjectMeta.Name, "--command", command)
+	out, err := c.CombinedOutput()
+	if err != nil {
+		return "", fmt.Errorf("error: %v, output: %s", err, string(out))
+	}
+	result := strings.TrimSpace(string(out))
+	parts := strings.Split(result, "STARTFILE")
+	if len(parts) != 2 {
+		return "", nil
+	}
+	// TODO: Check error.
+	return strings.TrimSpace(parts[1]), nil
+}
+
 func (gce *GCEClient) providerconfig(providerConfig string) (*gceconfig.GCEProviderConfig, error) {
 	obj, gvk, err := gce.codecFactory.UniversalDecoder().Decode([]byte(providerConfig), nil, nil)
 	if err != nil {
@@ -251,4 +293,39 @@ func (gce *GCEClient) waitForOperation(c *gceconfig.GCEProviderConfig, op *compu
 // getOp returns an updated operation.
 func (gce *GCEClient) getOp(c *gceconfig.GCEProviderConfig, op *compute.Operation) (*compute.Operation, error) {
 	return gce.service.ZoneOperations.Get(c.Project, path.Base(op.Zone), op.Name).Do()
+}
+
+func (gce *GCEClient) updateMasterInplace(oldMachine *clusterv1.Machine, newMachine *clusterv1.Machine) error {
+	if (oldMachine.Spec.Versions.ControlPlane != newMachine.Spec.Versions.ControlPlane) {
+		// Upgrade kubeadm to latest version.
+		cmd := `
+export VERSION=$(curl -sSL https://dl.k8s.io/release/stable.txt) &&
+export ARCH=amd64 &&
+curl -sSL https://dl.k8s.io/release/${VERSION}/bin/linux/${ARCH}/kubeadm > /usr/bin/kubeadm &&
+chmod a+rx /usr/bin/kubeadm
+`
+		_, err := gce.remoteSshCommand(newMachine, cmd);
+		if err != nil {
+			return err
+		}
+
+		// Upgrade control plan.
+		cmd = fmt.Sprintf("kubeadm upgrade apply %s", newMachine.Spec.Versions.ControlPlane)
+		_, err = gce.remoteSshCommand(newMachine, cmd);
+		if err != nil {
+			return err
+		}
+	}
+
+	// Upgrade kubelet.
+	// TODO: Mark master as unscheduleable and evict the workloads.
+	if oldMachine.Spec.Versions.Kubelet != newMachine.Spec.Versions.Kubelet {
+		cmd := fmt.Sprintf("sudo apt-get install kubelet=%s", newMachine.Spec.Versions.Kubelet)
+		_, err := gce.remoteSshCommand(newMachine, cmd);
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
 }

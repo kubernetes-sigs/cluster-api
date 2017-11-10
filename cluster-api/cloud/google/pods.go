@@ -79,6 +79,6 @@ func createPod(manifest []byte) error {
 	if err == nil {
 		return nil
 	} else {
-		return fmt.Errorf("couldn't create pod: %v, output: %v", err, out)
+		return fmt.Errorf("couldn't create pod: %v, output: %s", err, string(out))
 	}
 }

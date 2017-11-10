@@ -53,7 +53,7 @@ func NewDeployer(provider string, configPath string) *deployer {
 }
 
 // CreateCluster uses GCP APIs to create cluster
-func (d *deployer) CreateCluster(c *clusterv1.Cluster, machines []*clusterv1.Machine, enableMachineController bool) error {
+func (d *deployer) CreateCluster(c *clusterv1.Cluster, machines []*clusterv1.Machine) error {
 	glog.Infof("Starting cluster creation %s", c.Name)
 
 	master := util.GetMaster(machines)
@@ -85,11 +85,9 @@ func (d *deployer) CreateCluster(c *clusterv1.Cluster, machines []*clusterv1.Mac
 		return err
 	}
 
-	if enableMachineController {
-		glog.Info("Starting the machine controller...\n")
-		if err := d.actuator.CreateMachineController(machines); err != nil {
-			return fmt.Errorf("can't create machine controller: %v", err)
-		}
+	glog.Info("Starting the machine controller...\n")
+	if err := d.actuator.CreateMachineController(machines); err != nil {
+		return fmt.Errorf("can't create machine controller: %v", err)
 	}
 
 	glog.Infof("The [%s] cluster has been created successfully!", c.Name)

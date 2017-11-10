@@ -27,7 +27,6 @@ import (
 type CreateOptions struct {
 	Cluster                 string
 	Machine                 string
-	EnableMachineController bool
 }
 
 var co = &CreateOptions{}
@@ -66,12 +65,11 @@ func RunCreate(co *CreateOptions) error {
 
 	d := deploy.NewDeployer(provider, kubeConfig)
 
-	return d.CreateCluster(cluster, machines, co.EnableMachineController)
+	return d.CreateCluster(cluster, machines)
 }
 func init() {
 	createCmd.Flags().StringVarP(&co.Cluster, "cluster", "c", "", "cluster yaml file")
 	createCmd.Flags().StringVarP(&co.Machine, "machines", "m", "", "machine yaml file")
-	createCmd.Flags().BoolVarP(&co.EnableMachineController, "enable-machine-controller", "e", false, "whether or not to start the machine controller")
 
 	RootCmd.AddCommand(createCmd)
 }

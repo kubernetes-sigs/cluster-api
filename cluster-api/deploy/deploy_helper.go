@@ -17,18 +17,22 @@ limitations under the License.
 package deploy
 
 import (
+	"crypto/tls"
 	"fmt"
+	"net/http"
 	"os"
 	"time"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+
+	"github.com/golang/glog"
+
 	apiextensionsclient "k8s.io/apiextensions-apiserver/pkg/client/clientset/clientset"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	_ "k8s.io/client-go/plugin/pkg/client/auth/gcp"
 	restclient "k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/clientcmd"
 	clusterv1 "k8s.io/kube-deploy/cluster-api/api/cluster/v1alpha1"
 	"k8s.io/kube-deploy/cluster-api/client"
 	"k8s.io/kube-deploy/cluster-api/util"
-	"github.com/golang/glog"
 )
 
 const (
@@ -189,4 +193,30 @@ func (d *deployer) getConfig() (*restclient.Config, error) {
 		return nil, err
 	}
 	return config, nil
+}
+
+// Make sure you successfully call setMasterIp first.
+func (d *deployer) waitForApiserver(timeout time.Duration) error {
+	endpoint := fmt.Sprintf("https://%s/healthz", d.masterIP)
+
+	// Skip certificate validation since we're only looking for signs of
+	// health, and we're not going to have the CA in our default chain.
+	tr := &http.Transport{
+		TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
+	}
+	client := &http.Client{Transport: tr}
+
+	startTime := time.Now()
+
+	var err error
+	var resp *http.Response
+	for time.Now().Sub(startTime) < timeout {
+		resp, err = client.Get(endpoint)
+		if err == nil && resp.StatusCode == 200 {
+			return nil
+		}
+		time.Sleep(1 * time.Second)
+	}
+
+	return err
 }

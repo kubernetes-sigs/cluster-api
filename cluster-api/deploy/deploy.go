@@ -18,6 +18,7 @@ package deploy
 
 import (
 	"fmt"
+	"time"
 
 	"github.com/golang/glog"
 	clusterv1 "k8s.io/kube-deploy/cluster-api/api/cluster/v1alpha1"
@@ -69,6 +70,11 @@ func (d *deployer) CreateCluster(c *clusterv1.Cluster, machines []*clusterv1.Mac
 
 	if err := d.copyKubeConfig(master); err != nil {
 		return fmt.Errorf("unable to write kubeconfig: %v", err)
+	}
+
+	glog.Info("Waiting for apiserver to become healthy...\n")
+	if err := d.waitForApiserver(1 * time.Minute); err != nil {
+		return fmt.Errorf("apiserver never came up: %v", err)
 	}
 
 	if err := d.createMachineCRD(machines); err != nil {

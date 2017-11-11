@@ -82,13 +82,15 @@ func scale(machines client.MachinesInterface, labelSelector string, replicas int
 	}
 
 	if len(list.Items) == replicas {
-		fmt.Printf("Already have %d machines. Nothing to do.\n", replicas)
+		fmt.Printf("Already have %d machines matching %q. Nothing to do.\n", replicas, labelSelector)
 		return nil
 	}
 
 	if len(list.Items) > replicas {
 		numToDelete := len(list.Items) - replicas
-		fmt.Printf("Scaling down from %d to %d; deleting %d machines.\n", len(list.Items), replicas, numToDelete)
+		fmt.Printf("Scaling down matchines matching %q from %d to %d; deleting %d machines.\n",
+			labelSelector, len(list.Items), replicas, numToDelete)
+		fmt.Println("Machines deleted:")
 		for _, machine := range list.Items[0:numToDelete] {
 			if err := machines.Delete(machine.ObjectMeta.Name, nil); err != nil {
 				return err
@@ -102,7 +104,9 @@ func scale(machines client.MachinesInterface, labelSelector string, replicas int
 
 	if len(list.Items) < replicas {
 		numToCreate := replicas - len(list.Items)
-		fmt.Printf("Scaling up from %d to %d; creating %d machines.\n", len(list.Items), replicas, numToCreate)
+		fmt.Printf("Scaling up machines matching %q from %d to %d; creating %d machines.\n",
+			labelSelector, len(list.Items), replicas, numToCreate)
+		fmt.Println("Machines created:")
 
 		newMachine := clone(list.Items[0])
 

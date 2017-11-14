@@ -76,7 +76,7 @@ func (d *deployer) CreateCluster(c *clusterv1.Cluster, machines []*clusterv1.Mac
 		return fmt.Errorf("unable to write kubeconfig: %v", err)
 	}
 
-	glog.Info("Waiting for apiserver to become healthy...\n")
+	glog.Info("Waiting for apiserver to become healthy...")
 	if err := d.waitForApiserver(1 * time.Minute); err != nil {
 		return fmt.Errorf("apiserver never came up: %v", err)
 	}
@@ -104,6 +104,42 @@ func (d *deployer) AddNodes(machines []*clusterv1.Machine) error {
 	return nil
 }
 
+func (d *deployer) RepairNode(dryRun bool) error {
+	nodes, err := d.getUnhealthyNodes()
+	if err != nil {
+		return err
+	}
+	if len(nodes) > 0 {
+		glog.Infof("found unhealthy nodes: %v", nodes)
+	} else {
+		glog.Info("All nodes are healthy")
+		return nil
+	}
+
+	if dryRun {
+		glog.Info("Running in dry run mode. Not taking any action")
+		return nil
+	}
+
+	for _, node := range nodes {
+		m, err := d.getMachine(node)
+		if err != nil {
+			glog.Info("Error retrieving machine object %s. Not taking any action on this node.", node)
+			continue
+		}
+		if err := d.deleteMachine(m.Name); err != nil {
+			return err
+		}
+
+		if err := d.createMachine(util.Copy(m)); err != nil {
+			return err
+		}
+		glog.Infof("Recreated node %s", node)
+	}
+
+	return nil
+}
+
 func (d *deployer) DeleteCluster() error {
 	machines, err := d.listMachines()
 	if err != nil {
@@ -116,7 +152,7 @@ func (d *deployer) DeleteCluster() error {
 	}
 
 	glog.Info("Deleting machine objects")
-	if err := d.deleteMachines(); err != nil {
+	if err := d.deleteAllMachines(); err != nil {
 		return err
 	}
 

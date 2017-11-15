@@ -104,7 +104,7 @@ apt-get install -y \
     docker.io \
     apt-transport-https \
     kubelet=${KUBELET_VERSION}-00 \
-    kubeadm=${CONTROL_PLANE_VERSION}-00 \
+    kubeadm=${KUBELET_VERSION}-00 \
     cloud-utils
 
 systemctl enable docker

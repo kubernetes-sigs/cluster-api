@@ -23,6 +23,8 @@ spec:
           mountPath: /etc/credentials
         - name: certs
           mountPath: /etc/ssl/certs
+        - name: sshkeys
+          mountPath: /etc/sshkeys
       env:
         - name: GOOGLE_APPLICATION_CREDENTIALS
           value: /etc/credentials/service-account.json
@@ -50,3 +52,7 @@ spec:
     - name: certs
       hostPath:
         path: /etc/ssl/certs
+    - name: sshkeys
+      secret:
+        secretName: machine-controller-sshkeys
+        defaultMode: 256

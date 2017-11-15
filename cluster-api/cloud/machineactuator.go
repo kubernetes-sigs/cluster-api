@@ -35,4 +35,5 @@ type MachineActuator interface {
 	// ProviderConfigs) to know how to configure the machine controller.
 	CreateMachineController(initialMachines []*clusterv1.Machine) error
 	PostDelete(machines []*clusterv1.Machine) error
+	SetupSSHAccess(privateKeyPath string, user string) error
 }

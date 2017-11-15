@@ -10,13 +10,13 @@ items:
       {
         "apiVersion": "gceproviderconfig/v1alpha1",
         "kind": "GCEProviderConfig",
-        "project": "kumaraji-gke-dev",
+        "project": "fmin-gke-dev",
         "zone": "us-central1-f",
         "machineType": "n1-standard-2",
         "image": "projects/ubuntu-os-cloud/global/images/family/ubuntu-1604-lts"
       }
     versions:
-      kubelet: 1.7.4
+      kubelet: 1.8.3
       controlPlane: 1.7.4
       containerRuntime:
         name: docker
@@ -34,7 +34,7 @@ items:
       {
         "apiVersion": "gceproviderconfig/v1alpha1",
         "kind": "GCEProviderConfig",
-        "project": "kumaraji-gke-dev",
+        "project": "fmin-gke-dev",
         "zone": "us-central1-f",
         "machineType": "n1-standard-1",
         "image": "projects/ubuntu-os-cloud/global/images/family/ubuntu-1604-lts"

@@ -84,3 +84,8 @@ func (a loggingMachineActuator) PostDelete(machines []*clusterv1.Machine) error 
 	glog.Infof("actuator received PostDelete: %q\n", machines)
 	return nil
 }
+
+func (a loggingMachineActuator) SetupSSHAccess(privateKeyPath string, user string) error {
+	glog.Infof("actuator received SetupSSHAccess: (%s,%s)\n", user, privateKeyPath)
+	return nil
+}

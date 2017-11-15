@@ -50,7 +50,7 @@ func UpgradeCluster(kubeversion string, kubeconfig string) error {
 		return err
 	}
 
-	glog.Info("Upgrading the control plan.")
+	glog.Info("Upgrading the control plane.")
 
 	// Update the control plan first. It assumes single master.
 	master_found := false

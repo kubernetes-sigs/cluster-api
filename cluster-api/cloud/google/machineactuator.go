@@ -18,9 +18,9 @@ package google
 
 import (
 	"fmt"
+	"os"
 	"path"
 	"strings"
-	"os"
 	//"os/exec"
 	"io/ioutil"
 
@@ -37,7 +37,7 @@ import (
 )
 
 type SshCreds struct {
-	user string
+	user           string
 	privateKeyPath string
 }
 
@@ -87,9 +87,9 @@ func NewMachineActuator(kubeadmToken string, masterIP string) (*GCEClient, error
 		codecFactory: codecFactory,
 		kubeadmToken: kubeadmToken,
 		masterIP:     masterIP,
-		sshCreds: 	  SshCreds{
+		sshCreds: SshCreds{
 			privateKeyPath: privateKeyPath,
-			user: user,
+			user:           user,
 		},
 	}, nil
 }
@@ -305,21 +305,9 @@ func (gce *GCEClient) getOp(c *gceconfig.GCEProviderConfig, op *compute.Operatio
 
 func (gce *GCEClient) updateMasterInplace(oldMachine *clusterv1.Machine, newMachine *clusterv1.Machine) error {
 	if oldMachine.Spec.Versions.ControlPlane != newMachine.Spec.Versions.ControlPlane {
-		// Upgrade kubeadm to latest version.
-		cmd := `
-export VERSION=$(curl -sSL https://dl.k8s.io/release/stable.txt) &&
-export ARCH=amd64 &&
-curl -sSL https://dl.k8s.io/release/${VERSION}/bin/linux/${ARCH}/kubeadm > /usr/bin/kubeadm &&
-chmod a+rx /usr/bin/kubeadm
-`
-		//_, err := gce.remoteSshCommand(newMachine, cmd)
-		//if err != nil {
-		//	glog.Infof("remotesshcomand error: %v", err)
-		//	return err
-		//}
-
+		// TODO: We might want to upgrade kubeadm if the target control plane version is newer.
 		// Upgrade control plan.
-		cmd = fmt.Sprintf("sudo kubeadm upgrade apply %s -y", "v"+newMachine.Spec.Versions.ControlPlane)
+		cmd := fmt.Sprintf("sudo kubeadm upgrade apply %s -y", "v"+newMachine.Spec.Versions.ControlPlane)
 		_, err := gce.remoteSshCommand(newMachine, cmd)
 		if err != nil {
 			glog.Infof("remotesshcomand error: %v", err)
@@ -330,7 +318,7 @@ chmod a+rx /usr/bin/kubeadm
 	// Upgrade kubelet.
 	// TODO: Mark master as unscheduleable and evict the workloads.
 	if oldMachine.Spec.Versions.Kubelet != newMachine.Spec.Versions.Kubelet {
-		cmd := fmt.Sprintf("sudo apt-get install kubelet=%s", newMachine.Spec.Versions.Kubelet)
+		cmd := fmt.Sprintf("sudo apt-get install kubelet=%s", newMachine.Spec.Versions.Kubelet + "-00")
 		_, err := gce.remoteSshCommand(newMachine, cmd)
 		if err != nil {
 			glog.Infof("remotesshcomand error: %v", err)

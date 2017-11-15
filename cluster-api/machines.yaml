@@ -16,7 +16,7 @@ items:
         "image": "projects/ubuntu-os-cloud/global/images/family/ubuntu-1604-lts"
       }
     versions:
-      kubelet: 1.8.3
+      kubelet: 1.7.4
       controlPlane: 1.7.4
       containerRuntime:
         name: docker

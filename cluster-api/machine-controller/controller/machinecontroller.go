@@ -23,7 +23,7 @@ import (
 	"github.com/golang/glog"
 
 	apiv1 "k8s.io/api/core/v1"
-	meta_v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/fields"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
@@ -38,6 +38,7 @@ type MachineController struct {
 	restClient    *rest.RESTClient
 	kubeClientSet *kubernetes.Clientset
 	actuator      cloud.MachineActuator
+	nodeWatcher   *NodeWatcher
 }
 
 func NewMachineController(config *Configuration) *MachineController {
@@ -62,11 +63,17 @@ func NewMachineController(config *Configuration) *MachineController {
 		glog.Fatalf("error creating machine actuator: %v", err)
 	}
 
+	nodeWatcher, err := NewNodeWatcher(config.Kubeconfig)
+	if err != nil {
+		glog.Fatalf("error creating node watcher: %v", err)
+	}
+
 	return &MachineController{
 		config:        config,
 		restClient:    restClient,
 		kubeClientSet: kubeClientSet,
 		actuator:      actuator,
+		nodeWatcher: nodeWatcher,
 	}
 }
 
@@ -74,6 +81,10 @@ func (c *MachineController) Run() error {
 	glog.Infof("Running ...")
 
 	// Run leader election
+
+	go func() {
+		c.nodeWatcher.Run()
+	}()
 
 	return c.run(context.Background())
 }
@@ -182,6 +193,6 @@ func (c *MachineController) create(machine *clusterv1.Machine) error {
 func (c *MachineController) delete(machine *clusterv1.Machine) error {
 	//TODO: check if the actual machine does not exist
 	//TODO: delink node from machine CRD
-	c.kubeClientSet.Core().Nodes().Delete(machine.ObjectMeta.Name, &meta_v1.DeleteOptions{})
+	c.kubeClientSet.Core().Nodes().Delete(machine.ObjectMeta.Name, &metav1.DeleteOptions{})
 	return c.actuator.Delete(machine)
 }

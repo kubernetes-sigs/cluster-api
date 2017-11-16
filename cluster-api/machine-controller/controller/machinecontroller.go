@@ -193,6 +193,7 @@ func (c *MachineController) create(machine *clusterv1.Machine) error {
 func (c *MachineController) delete(machine *clusterv1.Machine) error {
 	//TODO: check if the actual machine does not exist
 	//TODO: delink node from machine CRD
-	c.kubeClientSet.Core().Nodes().Delete(machine.ObjectMeta.Name, &metav1.DeleteOptions{})
+
+	c.kubeClientSet.CoreV1().Nodes().Delete(machine.ObjectMeta.Name, &metav1.DeleteOptions{})
 	return c.actuator.Delete(machine)
 }

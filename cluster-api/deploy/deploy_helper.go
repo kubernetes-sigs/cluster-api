@@ -24,7 +24,7 @@ import (
 	"time"
 
 	"github.com/golang/glog"
-
+	"k8s.io/api/core/v1"
 	apiextensionsclient "k8s.io/apiextensions-apiserver/pkg/client/clientset/clientset"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	_ "k8s.io/client-go/plugin/pkg/client/auth/gcp"
@@ -33,6 +33,7 @@ import (
 	clusterv1 "k8s.io/kube-deploy/cluster-api/api/cluster/v1alpha1"
 	"k8s.io/kube-deploy/cluster-api/client"
 	"k8s.io/kube-deploy/cluster-api/util"
+	"github.com/ghodss/yaml"
 )
 
 const (
@@ -83,7 +84,11 @@ func (d *deployer) createMachines(machines []*clusterv1.Machine) error {
 	return nil
 }
 
-func (d *deployer) deleteMachines() error {
+func (d *deployer) createMachine(m *clusterv1.Machine) error {
+	return d.createMachines([]*clusterv1.Machine{m})
+}
+
+func (d *deployer) deleteAllMachines() error {
 	c, err := d.newApiClient()
 	if err != nil {
 		return err
@@ -93,10 +98,48 @@ func (d *deployer) deleteMachines() error {
 		return err
 	}
 	for _, m := range machines.Items {
-		if err := c.Machines().Delete(m.Name, &metav1.DeleteOptions{}); err != nil {
+		if err := d.delete(c, m.Name); err != nil {
 			return err
 		}
 		glog.Infof("Deleted machine object %s", m.Name)
+	}
+	return nil
+}
+
+func (d *deployer) deleteMachine(name string) error {
+	c, err := d.newApiClient()
+	if err != nil {
+		return err
+	}
+	return d.delete(c, name)
+}
+
+func (d *deployer) delete (c *client.ClusterAPIV1Alpha1Client, name string) error {
+	// TODO  https://github.com/kubernetes/kube-deploy/issues/390
+	return c.Machines().Delete(name, &metav1.DeleteOptions{})
+}
+
+
+func (d * deployer) getMachine(name string) (*clusterv1.Machine, error) {
+	c, err := d.newApiClient()
+	if err != nil {
+		return nil, err
+	}
+	machine, err := c.Machines().Get(name, metav1.GetOptions{})
+	if err != nil {
+		return nil, err
+	}
+	return machine, nil
+}
+
+func (d * deployer) updateMachine(machine *clusterv1.Machine) error {
+	c, err := d.newApiClient()
+	if err != nil {
+		return err
+	}
+
+	if _, err := c.Machines().Update(machine); err != nil {
+		return err
 	}
 	return nil
 }
@@ -129,6 +172,29 @@ func (d *deployer) setMasterIP(master *clusterv1.Machine) error {
 	}
 	return fmt.Errorf("unable to find Master IP after defined wait")
 }
+
+func (d *deployer) getUnhealthyNodes() ([]string, error) {
+	nodeList := &v1.NodeList{}
+	out := util.ExecCommand("kubectl", "get", "nodes", "-o=yaml")
+	err := yaml.Unmarshal([]byte(out), nodeList)
+	if err != nil {
+		return nil, err
+	}
+
+	var healthy []string
+	var unhealthy []string
+
+	for _, node := range nodeList.Items {
+		if util.IsNodeReady(&node) {
+			healthy = append(healthy, node.Name)
+		} else {
+			unhealthy = append(unhealthy, node.Name)
+		}
+	}
+	glog.Infof("healthy nodes: %v", healthy)
+	glog.Infof("unhealthy nodes: %v", unhealthy)
+	return unhealthy, nil
+};
 
 func (d *deployer) copyKubeConfig(master *clusterv1.Machine) error {
 	for i := 0; i <= RetryAttempts; i++ {

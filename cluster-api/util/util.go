@@ -25,6 +25,7 @@ import (
 	"strings"
 	"time"
 
+	"k8s.io/api/core/v1"
 	clusterv1 "k8s.io/kube-deploy/cluster-api/api/cluster/v1alpha1"
 	"github.com/golang/glog"
 )
@@ -73,6 +74,16 @@ func GetMaster(machines []*clusterv1.Machine) *clusterv1.Machine {
 	return nil
 }
 
+func IsNodeReady(node *v1.Node) bool {
+	for _, condition := range node.Status.Conditions {
+		if condition.Type == v1.NodeReady {
+			return condition.Status == v1.ConditionTrue
+		}
+	}
+
+	return false
+}
+
 func MachineP(machines []clusterv1.Machine) []*clusterv1.Machine {
 	// Convert to list of pointers
 	var ret []*clusterv1.Machine
@@ -109,4 +120,16 @@ func GetDefaultKubeConfigPath() (string) {
 		}
 	}
 	return fmt.Sprintf("%s/config", localDir)
+}
+
+func Copy(m *clusterv1.Machine) *clusterv1.Machine {
+	ret := &clusterv1.Machine{}
+	ret.APIVersion = m.APIVersion
+	ret.Kind = m.Kind
+	ret.ClusterName = m.ClusterName
+	ret.GenerateName = m.GenerateName
+	ret.Name = m.Name
+	ret.Namespace = m.Namespace
+	m.Spec.DeepCopyInto(&ret.Spec)
+	return ret
 }

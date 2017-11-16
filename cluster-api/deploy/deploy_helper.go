@@ -23,6 +23,7 @@ import (
 	"os"
 	"time"
 
+	"github.com/ghodss/yaml"
 	"github.com/golang/glog"
 	"k8s.io/api/core/v1"
 	apiextensionsclient "k8s.io/apiextensions-apiserver/pkg/client/clientset/clientset"
@@ -33,7 +34,6 @@ import (
 	clusterv1 "k8s.io/kube-deploy/cluster-api/api/cluster/v1alpha1"
 	"k8s.io/kube-deploy/cluster-api/client"
 	"k8s.io/kube-deploy/cluster-api/util"
-	"github.com/ghodss/yaml"
 )
 
 const (
@@ -43,6 +43,30 @@ const (
 	DeleteAttempts         = 150
 	DeleteSleepSeconds     = 5
 )
+
+func (d *deployer) createClusterCRD() error {
+	cs, err := d.newClientSet()
+	if err != nil {
+		return err
+	}
+
+	success := false
+	for i := 0; i <= RetryAttempts; i++ {
+		if _, err = clusterv1.CreateClustersCRD(cs); err != nil {
+			glog.Info("Failure creating Clusters CRD (will retry).")
+			time.Sleep(SleepSecondsPerAttempt * time.Second)
+			continue
+		}
+		success = true
+		glog.Info("Clusters CRD created succuessfully!")
+		break
+	}
+
+	if !success {
+		return fmt.Errorf("error creating Clusters CRD: %v", err)
+	}
+	return nil
+}
 
 func (d *deployer) createMachineCRD() error {
 	cs, err := d.newClientSet()
@@ -66,6 +90,16 @@ func (d *deployer) createMachineCRD() error {
 		return fmt.Errorf("error creating Machines CRD: %v", err)
 	}
 	return nil
+}
+
+func (d *deployer) createCluster(cluster *clusterv1.Cluster) error {
+	c, err := d.newApiClient()
+	if err != nil {
+		return err
+	}
+
+	_, err = c.Clusters().Create(cluster)
+	return err
 }
 
 func (d *deployer) createMachines(machines []*clusterv1.Machine) error {
@@ -114,13 +148,12 @@ func (d *deployer) deleteMachine(name string) error {
 	return d.delete(c, name)
 }
 
-func (d *deployer) delete (c *client.ClusterAPIV1Alpha1Client, name string) error {
+func (d *deployer) delete(c *client.ClusterAPIV1Alpha1Client, name string) error {
 	// TODO  https://github.com/kubernetes/kube-deploy/issues/390
 	return c.Machines().Delete(name, &metav1.DeleteOptions{})
 }
 
-
-func (d * deployer) getMachine(name string) (*clusterv1.Machine, error) {
+func (d *deployer) getMachine(name string) (*clusterv1.Machine, error) {
 	c, err := d.newApiClient()
 	if err != nil {
 		return nil, err
@@ -132,7 +165,7 @@ func (d * deployer) getMachine(name string) (*clusterv1.Machine, error) {
 	return machine, nil
 }
 
-func (d * deployer) updateMachine(machine *clusterv1.Machine) error {
+func (d *deployer) updateMachine(machine *clusterv1.Machine) error {
 	c, err := d.newApiClient()
 	if err != nil {
 		return err
@@ -157,7 +190,7 @@ func (d *deployer) listMachines() ([]*clusterv1.Machine, error) {
 	return util.MachineP(machines.Items), nil
 }
 
-func (d *deployer) setMasterIP(master *clusterv1.Machine) error {
+func (d *deployer) getMasterIP(master *clusterv1.Machine) (string, error) {
 	for i := 0; i < MasterIPAttempts; i++ {
 		ip, err := d.actuator.GetIP(master)
 		if err != nil || ip == "" {
@@ -165,12 +198,9 @@ func (d *deployer) setMasterIP(master *clusterv1.Machine) error {
 			time.Sleep(time.Duration(SleepSecondsPerAttempt) * time.Second)
 			continue
 		}
-		glog.Infof("Got master IP [%s]", ip)
-		d.masterIP = ip
-
-		return nil
+		return ip, nil
 	}
-	return fmt.Errorf("unable to find Master IP after defined wait")
+	return "", fmt.Errorf("unable to find Master IP after defined wait")
 }
 
 func (d *deployer) getUnhealthyNodes() ([]string, error) {
@@ -194,7 +224,7 @@ func (d *deployer) getUnhealthyNodes() ([]string, error) {
 	glog.Infof("healthy nodes: %v", healthy)
 	glog.Infof("unhealthy nodes: %v", unhealthy)
 	return unhealthy, nil
-};
+}
 
 func (d *deployer) copyKubeConfig(master *clusterv1.Machine) error {
 	for i := 0; i <= RetryAttempts; i++ {
@@ -262,8 +292,8 @@ func (d *deployer) getConfig() (*restclient.Config, error) {
 }
 
 // Make sure you successfully call setMasterIp first.
-func (d *deployer) waitForApiserver(timeout time.Duration) error {
-	endpoint := fmt.Sprintf("https://%s/healthz", d.masterIP)
+func (d *deployer) waitForApiserver(master string, timeout time.Duration) error {
+	endpoint := fmt.Sprintf("https://%s/healthz", master)
 
 	// Skip certificate validation since we're only looking for signs of
 	// health, and we're not going to have the CA in our default chain.

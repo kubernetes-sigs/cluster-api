@@ -17,6 +17,7 @@ limitations under the License.
 package google
 
 import (
+	"errors"
 	"fmt"
 	"os"
 	"path"
@@ -46,11 +47,10 @@ type GCEClient struct {
 	scheme       *runtime.Scheme
 	codecFactory *serializer.CodecFactory
 	kubeadmToken string
-	masterIP     string
 	sshCreds     SshCreds
 }
 
-func NewMachineActuator(kubeadmToken string, masterIP string) (*GCEClient, error) {
+func NewMachineActuator(kubeadmToken string) (*GCEClient, error) {
 	// The default GCP client expects the environment variable
 	// GOOGLE_APPLICATION_CREDENTIALS to point to a file with service credentials.
 	client, err := google.DefaultClient(context.TODO(), compute.ComputeScope)
@@ -86,7 +86,6 @@ func NewMachineActuator(kubeadmToken string, masterIP string) (*GCEClient, error
 		scheme:       scheme,
 		codecFactory: codecFactory,
 		kubeadmToken: kubeadmToken,
-		masterIP:     masterIP,
 		sshCreds: SshCreds{
 			privateKeyPath: privateKeyPath,
 			user:           user,
@@ -111,7 +110,7 @@ func (gce *GCEClient) CreateMachineController(initialMachines []*clusterv1.Machi
 	}
 
 	// Setup SSH access to master VM
-	if err:= gce.setupSSHAccess(util.GetMaster(initialMachines)); err != nil {
+	if err := gce.setupSSHAccess(util.GetMaster(initialMachines)); err != nil {
 		return err
 	}
 
@@ -121,13 +120,26 @@ func (gce *GCEClient) CreateMachineController(initialMachines []*clusterv1.Machi
 	return nil
 }
 
-func (gce *GCEClient) Create(machine *clusterv1.Machine) error {
+func (gce *GCEClient) Create(cluster *clusterv1.Cluster, machine *clusterv1.Machine) error {
 	config, err := gce.providerconfig(machine.Spec.ProviderConfig)
 	if err != nil {
 		return err
 	}
 
 	var startupScript string
+	dnsDomain := cluster.Spec.ClusterNetwork.DNSDomain
+	podCIDR := cluster.Spec.ClusterNetwork.PodSubnet
+	serviceCIDR := cluster.Spec.ClusterNetwork.ServiceSubnet
+	// TODO we need to have API defaults, but I don't think CRDs have defaulting
+	if dnsDomain == "" {
+		dnsDomain = "cluster.local"
+	}
+	if podCIDR == "" {
+		podCIDR = "192.168.0.0/16"
+	}
+	if serviceCIDR == "" {
+		serviceCIDR = "10.96.0.0/12"
+	}
 	if util.IsMaster(machine) {
 		kubeletVersion := machine.Spec.Versions.Kubelet
 		controlPlaneVersion := machine.Spec.Versions.ControlPlane
@@ -137,9 +149,32 @@ func (gce *GCEClient) Create(machine *clusterv1.Machine) error {
 		if controlPlaneVersion == "" {
 			return fmt.Errorf("invalid master configuration: missing Machine.Spec.Versions.ControlPlane")
 		}
-		startupScript = masterStartupScript(gce.kubeadmToken, "443", machine.ObjectMeta.Name, kubeletVersion, controlPlaneVersion)
+		startupScript = masterStartupScript(
+			gce.kubeadmToken,
+			"443",
+			machine.ObjectMeta.Name,
+			kubeletVersion,
+			controlPlaneVersion,
+			dnsDomain,
+			podCIDR,
+			serviceCIDR,
+		)
 	} else {
-		startupScript = nodeStartupScript(gce.kubeadmToken, gce.masterIP, machine.ObjectMeta.Name, machine.Spec.Versions.Kubelet)
+		master := ""
+		for _, endpoint := range cluster.Status.APIEndpoints {
+			master = fmt.Sprintf("%s:%d", endpoint.Host, endpoint.Port)
+		}
+		if master == "" {
+			return errors.New("missing master endpoints in cluster")
+		}
+		startupScript = nodeStartupScript(
+			gce.kubeadmToken,
+			master,
+			machine.ObjectMeta.Name,
+			machine.Spec.Versions.Kubelet,
+			dnsDomain,
+			serviceCIDR,
+		)
 	}
 
 	op, err := gce.service.Instances.Insert(config.Project, config.Zone, &compute.Instance{
@@ -211,8 +246,8 @@ func (gce *GCEClient) PostDelete(machines []*clusterv1.Machine) error {
 	return DeleteMachineControllerServiceAccount(projects)
 }
 
-func (gce *GCEClient) Update(oldMachine *clusterv1.Machine, newMachine *clusterv1.Machine) error {
-	var err error = nil
+func (gce *GCEClient) Update(cluster *clusterv1.Cluster, oldMachine *clusterv1.Machine, newMachine *clusterv1.Machine) error {
+	var err error
 	if util.IsMaster(oldMachine) {
 		glog.Infof("Doing an in-place upgrade for master.\n")
 		err = gce.updateMasterInplace(oldMachine, newMachine)
@@ -225,7 +260,7 @@ func (gce *GCEClient) Update(oldMachine *clusterv1.Machine, newMachine *clusterv
 		if err != nil {
 			glog.Errorf("delete machine %s for update failed: %v", oldMachine.ObjectMeta.Name, err)
 		} else {
-			err = gce.Create(newMachine)
+			err = gce.Create(cluster, newMachine)
 			if err != nil {
 				glog.Errorf("create machine %s for update failed: %v", newMachine.ObjectMeta.Name, err)
 			}
@@ -249,16 +284,16 @@ func (gce *GCEClient) GetIP(machine *clusterv1.Machine) (string, error) {
 		return "", err
 	}
 
-	var masterIPPublic string
+	var publicIP string
 
 	for _, networkInterface := range instance.NetworkInterfaces {
 		if networkInterface.Name == "nic0" {
 			for _, accessConfigs := range networkInterface.AccessConfigs {
-				masterIPPublic = accessConfigs.NatIP
+				publicIP = accessConfigs.NatIP
 			}
 		}
 	}
-	return masterIPPublic, nil
+	return publicIP, nil
 }
 
 func (gce *GCEClient) GetKubeConfig(master *clusterv1.Machine) (string, error) {
@@ -323,7 +358,7 @@ func (gce *GCEClient) updateMasterInplace(oldMachine *clusterv1.Machine, newMach
 	// Upgrade kubelet.
 	// TODO: Mark master as unscheduleable and evict the workloads.
 	if oldMachine.Spec.Versions.Kubelet != newMachine.Spec.Versions.Kubelet {
-		cmd := fmt.Sprintf("sudo apt-get install kubelet=%s", newMachine.Spec.Versions.Kubelet + "-00")
+		cmd := fmt.Sprintf("sudo apt-get install kubelet=%s", newMachine.Spec.Versions.Kubelet+"-00")
 		_, err := gce.remoteSshCommand(newMachine, cmd)
 		if err != nil {
 			glog.Infof("remotesshcomand error: %v", err)

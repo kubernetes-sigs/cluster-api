@@ -20,6 +20,7 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/serializer"
 	"k8s.io/client-go/kubernetes"
+	"k8s.io/client-go/kubernetes/scheme"
 	_ "k8s.io/client-go/plugin/pkg/client/auth"
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/clientcmd"
@@ -27,29 +28,28 @@ import (
 	clusterv1 "k8s.io/kube-deploy/cluster-api/api/cluster/v1alpha1"
 )
 
-func restClient(kubeconfigpath string) (*rest.RESTClient, *runtime.Scheme, error) {
+func restClient(kubeconfigpath string) (*rest.RESTClient, error) {
 	cfg, err := clientcmd.BuildConfigFromFlags("", kubeconfigpath)
 	if err != nil {
-		return nil, nil, err
+		return nil, err
 	}
 
-	scheme := runtime.NewScheme()
-	if err := clusterv1.AddToScheme(scheme); err != nil {
-		return nil, nil, err
+	if err := clusterv1.AddToScheme(scheme.Scheme); err != nil {
+		return nil, err
 	}
 
 	config := *cfg
 	config.GroupVersion = &clusterv1.SchemeGroupVersion
 	config.APIPath = "/apis"
 	config.ContentType = runtime.ContentTypeJSON
-	config.NegotiatedSerializer = serializer.DirectCodecFactory{CodecFactory: serializer.NewCodecFactory(scheme)}
+	config.NegotiatedSerializer = serializer.DirectCodecFactory{CodecFactory: serializer.NewCodecFactory(scheme.Scheme)}
 
 	client, err := rest.RESTClientFor(&config)
 	if err != nil {
-		return nil, nil, err
+		return nil, err
 	}
 
-	return client, scheme, nil
+	return client, nil
 }
 
 func kubeClientSet(kubeconfigpath string) (*kubernetes.Clientset, error) {
@@ -58,8 +58,7 @@ func kubeClientSet(kubeconfigpath string) (*kubernetes.Clientset, error) {
 		return nil, err
 	}
 
-	scheme := runtime.NewScheme()
-	if err := clusterv1.AddToScheme(scheme); err != nil {
+	if err := clusterv1.AddToScheme(scheme.Scheme); err != nil {
 		return nil, err
 	}
 
@@ -67,7 +66,7 @@ func kubeClientSet(kubeconfigpath string) (*kubernetes.Clientset, error) {
 	config.GroupVersion = &clusterv1.SchemeGroupVersion
 	config.APIPath = "/apis"
 	config.ContentType = runtime.ContentTypeJSON
-	config.NegotiatedSerializer = serializer.DirectCodecFactory{CodecFactory: serializer.NewCodecFactory(scheme)}
+	config.NegotiatedSerializer = serializer.DirectCodecFactory{CodecFactory: serializer.NewCodecFactory(scheme.Scheme)}
 
 	client, err := kubernetes.NewForConfig(&config)
 	if err != nil {

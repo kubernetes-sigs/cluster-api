@@ -28,7 +28,6 @@ import (
 
 type deployer struct {
 	token      string
-	masterIP   string
 	configPath string
 	actuator   cloud.MachineActuator
 }
@@ -36,17 +35,15 @@ type deployer struct {
 //it takes path for kubeconfig file.
 func NewDeployer(provider string, configPath string) *deployer {
 	token := util.RandomToken()
-	masterIP := "masterIP"
 	if configPath == "" {
 		configPath = util.GetDefaultKubeConfigPath()
 	}
-	a, err := cloud.NewMachineActuator(provider, token, masterIP)
+	a, err := cloud.NewMachineActuator(provider, token)
 	if err != nil {
 		glog.Exit(err)
 	}
 	return &deployer{
 		token:      token,
-		masterIP:   masterIP,
 		actuator:   a,
 		configPath: configPath,
 	}
@@ -74,22 +71,37 @@ func (d *deployer) CreateCluster(c *clusterv1.Cluster, machines []*clusterv1.Mac
 
 	glog.Infof("Starting master creation %s", master.GetName())
 
-	if err := d.actuator.Create(master); err != nil {
+	if err := d.actuator.Create(c, master); err != nil {
 		return err
 	}
 	glog.Infof("Created master %s", master.GetName())
 
-	if err := d.setMasterIP(master); err != nil {
+	masterIP, err := d.getMasterIP(master)
+	if err != nil {
 		return fmt.Errorf("unable to get master IP: %v", err)
 	}
+
+	c.Status.APIEndpoints = append(c.Status.APIEndpoints,
+		clusterv1.APIEndpoint{
+			Host: masterIP,
+			Port: 443,
+		})
 
 	if err := d.copyKubeConfig(master); err != nil {
 		return fmt.Errorf("unable to write kubeconfig: %v", err)
 	}
 
 	glog.Info("Waiting for apiserver to become healthy...")
-	if err := d.waitForApiserver(1 * time.Minute); err != nil {
+	if err := d.waitForApiserver(masterIP, 1*time.Minute); err != nil {
 		return fmt.Errorf("apiserver never came up: %v", err)
+	}
+
+	if err := d.createClusterCRD(); err != nil {
+		return err
+	}
+
+	if err := d.createCluster(c); err != nil {
+		return err
 	}
 
 	if err := d.createMachineCRD(); err != nil {

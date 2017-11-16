@@ -16,28 +16,17 @@ limitations under the License.
 
 package google
 
-import (
-	"fmt"
-	"strings"
-)
+import "fmt"
 
-func sanitizeMasterIP(ip string) string {
-	s := strings.TrimPrefix(ip, "https://")
-	parts := strings.Split(s, ":")
-	return parts[0]
+func nodeStartupScript(kubeadmToken, master, machineName, kubeletVersion, dnsDomain, serviceCIDR string) string {
+	return fmt.Sprintf(nodeStartupTemplate, kubeadmToken, master, machineName, kubeletVersion, dnsDomain, serviceCIDR)
 }
 
-func nodeStartupScript(kubeadmToken, masterIP, machineName, kubeletVersion string) string {
-	mip := sanitizeMasterIP(masterIP)
-	return fmt.Sprintf(nodeStartupTemplate, kubeadmToken, mip, machineName, kubeletVersion)
+func masterStartupScript(kubeadmToken, port, machineName, kubeletVersion, controlPlaneVersion, dnsDomain, podCIDR, serviceCIDR string) string {
+	return fmt.Sprintf(masterStartupTemplate, kubeadmToken, port, machineName, kubeletVersion, controlPlaneVersion, dnsDomain, podCIDR, serviceCIDR)
 }
 
-func masterStartupScript(kubeadmToken, port, machineName, kubeletVersion, controlPlaneVersion string) string {
-	return fmt.Sprintf(masterStartupTemplate, kubeadmToken, port, machineName, kubeletVersion, controlPlaneVersion)
-}
-
-const nodeStartupTemplate = `
-#!/bin/bash
+const nodeStartupTemplate = `#!/bin/bash
 
 set -e
 set -x
@@ -47,9 +36,11 @@ TOKEN=%s
 MASTER=%s
 MACHINE=%s
 KUBELET_VERSION=%s-00
+CLUSTER_DNS_DOMAIN=%s
+SERVICE_CIDR=%s
 
 apt-get update
-apt-get install -y apt-transport-https
+apt-get install -y apt-transport-https prips
 apt-key adv --keyserver hkp://keyserver.ubuntu.com --recv-keys F76221572C52609D
 
 cat <<EOF > /etc/apt/sources.list.d/k8s.list
@@ -69,7 +60,13 @@ EOF
 apt-get update
 apt-get install -y kubelet=${KUBELET_VERSION} kubeadm=${KUBELET_VERSION} kubectl=${KUBELET_VERSION}
 
-kubeadm join --token "${TOKEN}" "${MASTER}:443" --skip-preflight-checks
+# kubeadm uses 10th IP as DNS server
+CLUSTER_DNS_SERVER=$(prips ${SERVICE_CIDR} | head -n 11 | tail -n 1)
+
+sed -i "s/KUBELET_DNS_ARGS=[^\"]*/KUBELET_DNS_ARGS=--cluster-dns=${CLUSTER_DNS_SERVER} --cluster-domain=${CLUSTER_DNS_DOMAIN}/" /etc/systemd/system/kubelet.service.d/10-kubeadm.conf
+systemctl restart kubelet.service
+
+kubeadm join --token "${TOKEN}" "${MASTER}" --skip-preflight-checks
 
 for tries in $(seq 1 60); do
 	kubectl --kubeconfig /etc/kubernetes/kubelet.conf annotate node $(hostname) machine=${MACHINE} && break
@@ -81,8 +78,7 @@ echo done.
 `
 
 // TODO: actually init the cluster, templatize token, etc.
-const masterStartupTemplate = `
-#!/bin/bash
+const masterStartupTemplate = `#!/bin/bash
 
 set -e
 set -x
@@ -93,6 +89,9 @@ PORT=%s
 MACHINE=%s
 KUBELET_VERSION=%s
 CONTROL_PLANE_VERSION=%s
+CLUSTER_DNS_DOMAIN=%s
+POD_CIDR=%s
+SERVICE_CIDR=%s
 curl -s https://packages.cloud.google.com/apt/doc/apt-key.gpg | sudo apt-key add -
 touch /etc/apt/sources.list.d/kubernetes.list
 sh -c 'echo "deb http://apt.kubernetes.io/ kubernetes-xenial main" > /etc/apt/sources.list.d/kubernetes.list'
@@ -105,10 +104,16 @@ apt-get install -y \
     apt-transport-https \
     kubelet=${KUBELET_VERSION}-00 \
     kubeadm=${KUBELET_VERSION}-00 \
-    cloud-utils
+    cloud-utils \
+    prips
+
+# kubeadm uses 10th IP as DNS server
+CLUSTER_DNS_SERVER=$(prips ${SERVICE_CIDR} | head -n 11 | tail -n 1)
 
 systemctl enable docker
 systemctl start docker
+sed -i "s/KUBELET_DNS_ARGS=[^\"]*/KUBELET_DNS_ARGS=--cluster-dns=${CLUSTER_DNS_SERVER} --cluster-domain=${CLUSTER_DNS_DOMAIN}/" /etc/systemd/system/kubelet.service.d/10-kubeadm.conf
+systemctl restart kubelet.service
 ` +
 	"PRIVATEIP=`curl --retry 5 -sfH \"Metadata-Flavor: Google\" \"http://metadata/computeMetadata/v1/instance/network-interfaces/0/ip\"`" + `
 echo $PRIVATEIP > /tmp/.ip
@@ -121,16 +126,19 @@ curl -sSL https://dl.k8s.io/release/${KUBEADM_VERSION}/bin/linux/${ARCH}/kubeadm
 chmod a+rx /usr/bin/kubeadm
 
 kubeadm reset
-kubeadm init --apiserver-bind-port ${PORT} --token ${TOKEN} --kubernetes-version v${CONTROL_PLANE_VERSION} --apiserver-advertise-address ${PUBLICIP} --apiserver-cert-extra-sans ${PUBLICIP} ${PRIVATEIP}
+kubeadm init --apiserver-bind-port ${PORT} --token ${TOKEN} --kubernetes-version v${CONTROL_PLANE_VERSION} --apiserver-advertise-address ${PUBLICIP} --apiserver-cert-extra-sans ${PUBLICIP} ${PRIVATEIP} --service-cidr ${SERVICE_CIDR}
 
 for tries in $(seq 1 60); do
 	kubectl --kubeconfig /etc/kubernetes/kubelet.conf annotate node $(hostname) machine=${MACHINE} && break
 	sleep 1
 done
 
-kubectl apply \
-  -f http://docs.projectcalico.org/v2.3/getting-started/kubernetes/installation/hosted/kubeadm/1.6/calico.yaml \
-  --kubeconfig /etc/kubernetes/admin.conf
+# download Calico manifest and pick a random service IP in the service CIDR
+CALICO=$(curl --retry 5 -sL https://docs.projectcalico.org/v2.3/getting-started/kubernetes/installation/hosted/kubeadm/1.6/calico.yaml)
+CALICOIP=$(prips ${SERVICE_CIDR} | sed '1d;11d;$d' | shuf -n 1) # random IP excluding network, broadcast, and DNS server addresses
+CALICO=${CALICO//10\.96\.232\.136/${CALICOIP}} # replace etcd cluster IP
+CALICO=${CALICO//192\.168\.0\.0\/16/${POD_CIDR}} # replace pod cidr
+echo "${CALICO}" | kubectl --kubeconfig /etc/kubernetes/admin.conf apply -f -
 
 echo done.
 ) 2>&1 | tee /var/log/startup.log

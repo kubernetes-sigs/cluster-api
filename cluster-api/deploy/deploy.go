@@ -57,7 +57,6 @@ func (d *deployer) CreateCluster(c *clusterv1.Cluster, machines []*clusterv1.Mac
 	if c.GetName() == "" {
 		return fmt.Errorf("cluster name must be specified for cluster creation")
 	}
-
 	master := util.GetMaster(machines)
 	if master == nil {
 		return fmt.Errorf("master spec must be provided for cluster creation")

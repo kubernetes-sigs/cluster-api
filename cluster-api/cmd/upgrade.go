@@ -33,7 +33,6 @@ var upgradeCmd = &cobra.Command{
 	Use:   "upgrade",
 	Short: "Upgrade Kubernetes cluster.",
 	Long:  `Upgrade the kubernetes control plan and nodes to the specified version.`,
-	Args: cobra.ExactArgs(1),
 	Run: func(cmd *cobra.Command, args []string) {
 		if uo.KubernetesVersion == "" {
 			glog.Exit("Please provide new kubernetes version.")
@@ -46,8 +45,11 @@ var upgradeCmd = &cobra.Command{
 }
 
 func RunUpgrade(uo *UpgradeOptions) error {
-	return deploy.UpgradeCluster(uo.KubernetesVersion, kubeConfig)
-
+	err := deploy.UpgradeCluster(uo.KubernetesVersion, kubeConfig)
+	if err != nil {
+		glog.Errorf("Failed to upgrade cluster with error : %v", err)
+	}
+	return err
 }
 
 func init() {

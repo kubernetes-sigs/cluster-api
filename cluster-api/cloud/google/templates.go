@@ -104,7 +104,7 @@ apt-get install -y \
     docker.io \
     apt-transport-https \
     kubelet=${KUBELET_VERSION}-00 \
-    kubeadm=${CONTROL_PLANE_VERSION}-00 \
+    kubeadm=${KUBELET_VERSION}-00 \
     cloud-utils
 
 systemctl enable docker
@@ -114,6 +114,11 @@ systemctl start docker
 echo $PRIVATEIP > /tmp/.ip
 ` +
 	"PUBLICIP=`curl --retry 5 -sfH \"Metadata-Flavor: Google\" \"http://metadata/computeMetadata/v1/instance/network-interfaces/0/access-configs/0/external-ip\"`" + `
+
+KUBEADM_VERSION=$(curl -sSL https://dl.k8s.io/release/stable.txt)
+ARCH=amd64
+curl -sSL https://dl.k8s.io/release/${KUBEADM_VERSION}/bin/linux/${ARCH}/kubeadm > /usr/bin/kubeadm
+chmod a+rx /usr/bin/kubeadm
 
 kubeadm reset
 kubeadm init --apiserver-bind-port ${PORT} --token ${TOKEN} --kubernetes-version v${CONTROL_PLANE_VERSION} --apiserver-advertise-address ${PUBLICIP} --apiserver-cert-extra-sans ${PUBLICIP} ${PRIVATEIP}

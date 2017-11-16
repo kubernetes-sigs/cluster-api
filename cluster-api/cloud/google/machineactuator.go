@@ -18,9 +18,13 @@ package google
 
 import (
 	"fmt"
+	"os"
 	"path"
 	"strings"
+	//"os/exec"
+	"io/ioutil"
 
+	"github.com/golang/glog"
 	"golang.org/x/net/context"
 	"golang.org/x/oauth2/google"
 	compute "google.golang.org/api/compute/v1"
@@ -32,12 +36,18 @@ import (
 	"k8s.io/kube-deploy/cluster-api/util"
 )
 
+type SshCreds struct {
+	user           string
+	privateKeyPath string
+}
+
 type GCEClient struct {
 	service      *compute.Service
 	scheme       *runtime.Scheme
 	codecFactory *serializer.CodecFactory
 	kubeadmToken string
 	masterIP     string
+	sshCreds     SshCreds
 }
 
 func NewMachineActuator(kubeadmToken string, masterIP string) (*GCEClient, error) {
@@ -58,12 +68,29 @@ func NewMachineActuator(kubeadmToken string, masterIP string) (*GCEClient, error
 		return nil, err
 	}
 
+	// Only applicable if it's running inside machine controller pod.
+	var privateKeyPath, user string
+	if _, err := os.Stat("/etc/sshkeys/private"); err == nil {
+		privateKeyPath = "/etc/sshkeys/private"
+
+		b, err := ioutil.ReadFile("/etc/sshkeys/user")
+		if err == nil {
+			user = string(b)
+		} else {
+			return nil, err
+		}
+	}
+
 	return &GCEClient{
 		service:      service,
 		scheme:       scheme,
 		codecFactory: codecFactory,
 		kubeadmToken: kubeadmToken,
 		masterIP:     masterIP,
+		sshCreds: SshCreds{
+			privateKeyPath: privateKeyPath,
+			user:           user,
+		},
 	}, nil
 }
 
@@ -82,6 +109,12 @@ func (gce *GCEClient) CreateMachineController(initialMachines []*clusterv1.Machi
 	if err := CreateMachineControllerServiceAccount(projects); err != nil {
 		return err
 	}
+
+	// Setup SSH access to master VM
+	if err:= gce.setupSSHAccess(util.GetMaster(initialMachines)); err != nil {
+		return err
+	}
+
 	if err := CreateMachineControllerPod(gce.kubeadmToken); err != nil {
 		return err
 	}
@@ -178,6 +211,28 @@ func (gce *GCEClient) PostDelete(machines []*clusterv1.Machine) error {
 	return DeleteMachineControllerServiceAccount(projects)
 }
 
+func (gce *GCEClient) Update(oldMachine *clusterv1.Machine, newMachine *clusterv1.Machine) error {
+	var err error = nil
+	if util.IsMaster(oldMachine) {
+		glog.Infof("Doing an in-place upgrade for master.\n")
+		err = gce.updateMasterInplace(oldMachine, newMachine)
+		if err != nil {
+			glog.Errorf("master inplace update failed: %v", err)
+		}
+	} else {
+		glog.Infof("re-creating machine %s for update.", oldMachine.ObjectMeta.Name)
+		err = gce.Delete(oldMachine)
+		if err != nil {
+			glog.Errorf("delete machine %s for update failed: %v", oldMachine.ObjectMeta.Name, err)
+		} else {
+			err = gce.Create(newMachine)
+			if err != nil {
+				glog.Errorf("create machine %s for update failed: %v", newMachine.ObjectMeta.Name, err)
+			}
+		}
+	}
+	return err
+}
 
 func (gce *GCEClient) Get(name string) (*clusterv1.Machine, error) {
 	return nil, fmt.Errorf("Get machine is not implemented on Google")
@@ -215,7 +270,7 @@ func (gce *GCEClient) GetKubeConfig(master *clusterv1.Machine) (string, error) {
 	command := "echo STARTFILE; sudo cat /etc/kubernetes/admin.conf"
 	result := strings.TrimSpace(util.ExecCommand(
 		"gcloud", "compute", "ssh", "--project", config.Project,
-			"--zone", config.Zone, master.ObjectMeta.Name, "--command", command))
+		"--zone", config.Zone, master.ObjectMeta.Name, "--command", command))
 	parts := strings.Split(result, "STARTFILE")
 	if len(parts) != 2 {
 		return "", nil
@@ -251,4 +306,30 @@ func (gce *GCEClient) waitForOperation(c *gceconfig.GCEProviderConfig, op *compu
 // getOp returns an updated operation.
 func (gce *GCEClient) getOp(c *gceconfig.GCEProviderConfig, op *compute.Operation) (*compute.Operation, error) {
 	return gce.service.ZoneOperations.Get(c.Project, path.Base(op.Zone), op.Name).Do()
+}
+
+func (gce *GCEClient) updateMasterInplace(oldMachine *clusterv1.Machine, newMachine *clusterv1.Machine) error {
+	if oldMachine.Spec.Versions.ControlPlane != newMachine.Spec.Versions.ControlPlane {
+		// TODO: We might want to upgrade kubeadm if the target control plane version is newer.
+		// Upgrade control plan.
+		cmd := fmt.Sprintf("sudo kubeadm upgrade apply %s -y", "v"+newMachine.Spec.Versions.ControlPlane)
+		_, err := gce.remoteSshCommand(newMachine, cmd)
+		if err != nil {
+			glog.Infof("remotesshcomand error: %v", err)
+			return err
+		}
+	}
+
+	// Upgrade kubelet.
+	// TODO: Mark master as unscheduleable and evict the workloads.
+	if oldMachine.Spec.Versions.Kubelet != newMachine.Spec.Versions.Kubelet {
+		cmd := fmt.Sprintf("sudo apt-get install kubelet=%s", newMachine.Spec.Versions.Kubelet + "-00")
+		_, err := gce.remoteSshCommand(newMachine, cmd)
+		if err != nil {
+			glog.Infof("remotesshcomand error: %v", err)
+			return err
+		}
+	}
+
+	return nil
 }

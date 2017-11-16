@@ -53,7 +53,11 @@ func (a loggingMachineActuator) Create(machine *clusterv1.Machine) error {
 func (a loggingMachineActuator) Delete(machine *clusterv1.Machine) error {
 	glog.Infof("actuator received delete: %s\n", machine.ObjectMeta.Name)
 	return nil
+}
 
+func (a loggingMachineActuator) Update(oldMachine *clusterv1.Machine, newMachine *clusterv1.Machine) error {
+	glog.Infof("actuator received update: %s\n", oldMachine.ObjectMeta.Name)
+	return nil
 }
 
 func (a loggingMachineActuator) Get(name string) (*clusterv1.Machine, error) {

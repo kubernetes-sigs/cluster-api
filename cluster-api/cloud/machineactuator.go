@@ -24,6 +24,7 @@ import (
 type MachineActuator interface {
 	Create(*clusterv1.Machine) error
 	Delete(*clusterv1.Machine) error
+	Update(*clusterv1.Machine, *clusterv1.Machine) error
 	Get(string) (*clusterv1.Machine, error)
 	GetIP(machine *clusterv1.Machine) (string, error)
 	GetKubeConfig(master *clusterv1.Machine) (string, error)

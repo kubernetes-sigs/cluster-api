@@ -31,6 +31,7 @@ import (
 
 	clusterv1 "k8s.io/kube-deploy/cluster-api/api/cluster/v1alpha1"
 	"k8s.io/kube-deploy/cluster-api/cloud"
+	"k8s.io/kube-deploy/cluster-api/util"
 )
 
 type MachineController struct {
@@ -128,25 +129,12 @@ func (c *MachineController) onUpdate(oldObj, newObj interface{}) {
 	glog.Infof("object updated: %s\n", oldMachine.ObjectMeta.Name)
 	glog.Infof("  old k8s version: %s, new: %s\n", oldMachine.Spec.Versions.Kubelet, newMachine.Spec.Versions.Kubelet)
 
-	if ignored(newMachine) {
-		return
-	}
-
 	if !c.requiresUpdate(newMachine, oldMachine) {
 		glog.Infof("machine %s change does not require any update action to be taken.", oldMachine.ObjectMeta.Name)
 		return
 	}
 
-	glog.Infof("re-creating machine %s for update.", oldMachine.ObjectMeta.Name)
-	err := c.delete(oldMachine)
-	if err != nil {
-		glog.Errorf("delete machine %s for update failed: %v", oldMachine.ObjectMeta.Name, err)
-		return
-	}
-	err = c.create(newMachine)
-	if err != nil {
-		glog.Errorf("create machine %s for update failed: %v", newMachine.ObjectMeta.Name, err)
-	}
+	c.update(oldMachine, newMachine)
 }
 
 func (c *MachineController) onDelete(obj interface{}) {
@@ -164,11 +152,9 @@ func (c *MachineController) onDelete(obj interface{}) {
 }
 
 func ignored(machine *clusterv1.Machine) bool {
-	for _, role := range machine.Spec.Roles {
-		if role == "Master" {
-			glog.Infof("Ignoring master machine\n")
-			return true
-		}
+	if util.IsMaster(machine) {
+		glog.Infof("Ignoring master machine\n")
+		return true
 	}
 	return false
 }
@@ -196,4 +182,10 @@ func (c *MachineController) delete(machine *clusterv1.Machine) error {
 
 	c.kubeClientSet.CoreV1().Nodes().Delete(machine.ObjectMeta.Name, &metav1.DeleteOptions{})
 	return c.actuator.Delete(machine)
+}
+
+func (c *MachineController) update(old_machine *clusterv1.Machine, new_machine *clusterv1.Machine) error {
+	// TODO: Assume single master for now.
+	// TODO: Assume we never change the role for the machines. (Master->Node, Node->Master, etc)
+	return c.actuator.Update(old_machine, new_machine)
 }

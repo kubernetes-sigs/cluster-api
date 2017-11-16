@@ -10,7 +10,7 @@ items:
       {
         "apiVersion": "gceproviderconfig/v1alpha1",
         "kind": "GCEProviderConfig",
-        "project": "kumaraji-gke-dev",
+        "project": "fmin-gke-dev",
         "zone": "us-central1-f",
         "machineType": "n1-standard-2",
         "image": "projects/ubuntu-os-cloud/global/images/family/ubuntu-1604-lts"
@@ -34,7 +34,7 @@ items:
       {
         "apiVersion": "gceproviderconfig/v1alpha1",
         "kind": "GCEProviderConfig",
-        "project": "kumaraji-gke-dev",
+        "project": "fmin-gke-dev",
         "zone": "us-central1-f",
         "machineType": "n1-standard-1",
         "image": "projects/ubuntu-os-cloud/global/images/family/ubuntu-1604-lts"

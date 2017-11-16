@@ -110,6 +110,11 @@ func (gce *GCEClient) CreateMachineController(initialMachines []*clusterv1.Machi
 		return err
 	}
 
+	// Setup SSH access to master VM
+	if err:= gce.setupSSHAccess(util.GetMaster(initialMachines)); err != nil {
+		return err
+	}
+
 	if err := CreateMachineControllerPod(gce.kubeadmToken); err != nil {
 		return err
 	}

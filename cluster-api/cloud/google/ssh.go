@@ -20,22 +20,76 @@ import (
 	"fmt"
 	"os/exec"
 	"strings"
+	"os"
+	"io/ioutil"
 
 	"github.com/golang/glog"
 	clusterv1 "k8s.io/kube-deploy/cluster-api/api/cluster/v1alpha1"
-
 )
 
 const (
 	MachineControllerSshKeySecret = "machine-controller-sshkeys"
+	// Arbitrary name used for SSH.
+	SshUser    = "clusterapi"
+	SshKeyFile = "clusterapi-key"
+	SshKeyFilePublic = SshKeyFile + ".pub"
+	SshKeyFilePublicGcloud = SshKeyFilePublic + ".gcloud"
 )
 
-// It creates secret to store priate key.
-func (gce *GCEClient) SetupSSHAccess(privateKeyFile string, user string) error {
-	err := run("kubectl", "create", "secret", "generic", "-n", "kube-system", MachineControllerSshKeySecret, "--from-file=private="+privateKeyFile, "--from-literal=user="+user)
+func createSshKeyPairs() error {
+	err := run("ssh-keygen", "-t", "rsa", "-f", SshKeyFile, "-C", SshUser, "-N", "")
+	if err != nil {
+		return fmt.Errorf("couldn't generate RSA keys: %v", err)
+	}
+
+	// Prepare a gce format public key file
+	outfile, err := os.Create(SshKeyFilePublicGcloud)
+	if err != nil {
+		return err
+	}
+	defer outfile.Close()
+
+	b, err := ioutil.ReadFile(SshKeyFilePublic)
+	if err == nil {
+		outfile.WriteString(SshUser + ":" + string(b))
+	}
+
+	return err
+}
+
+func cleanupSshKeyPairs() {
+	os.Remove(SshKeyFile)
+	os.Remove(SshKeyFilePublic)
+	os.Remove(SshKeyFilePublicGcloud)
+}
+// It creates secret to store private key.
+func (gce *GCEClient) setupSSHAccess(master *clusterv1.Machine) error {
+	// Create public/private key pairs
+	err := createSshKeyPairs()
+	if err != nil {
+		return err
+	}
+
+	config, err := gce.providerconfig(master.Spec.ProviderConfig)
+	if err != nil {
+		return err
+	}
+
+	err = run("gcloud", "compute", "instances", "add-metadata", master.Name,
+		"--metadata-from-file", "ssh-keys=" + SshKeyFile + ".pub.gcloud",
+		"--project", config.Project, "--zone", config.Zone)
+	if err != nil {
+		return err
+	}
+
+	// Create secrets so that machine controller container can load them.
+	err = run("kubectl", "create", "secret", "generic", "-n", "kube-system", MachineControllerSshKeySecret, "--from-file=private="+SshKeyFile, "--from-literal=user="+SshUser)
 	if err != nil {
 		return fmt.Errorf("couldn't create service account key as credential: %v", err)
 	}
+
+	cleanupSshKeyPairs()
+	
 	return err
 }
 

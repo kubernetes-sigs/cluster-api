@@ -27,8 +27,6 @@ import (
 type CreateOptions struct {
 	Cluster                 string
 	Machine                 string
-	PrivateKeyPath          string
-	User                    string
 }
 
 var co = &CreateOptions{}
@@ -67,13 +65,11 @@ func RunCreate(co *CreateOptions) error {
 
 	d := deploy.NewDeployer(provider, kubeConfig)
 
-	return d.CreateCluster(cluster, machines, co.PrivateKeyPath, co.User)
+	return d.CreateCluster(cluster, machines)
 }
 func init() {
 	createCmd.Flags().StringVarP(&co.Cluster, "cluster", "c", "", "cluster yaml file")
 	createCmd.Flags().StringVarP(&co.Machine, "machines", "m", "", "machine yaml file")
-	createCmd.Flags().StringVarP(&co.PrivateKeyPath, "privatekeypath", "", "", "path to priate key file")
-	createCmd.Flags().StringVarP(&co.User, "user", "u", "", "user associated with related public key")
 
 	RootCmd.AddCommand(createCmd)
 }

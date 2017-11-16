@@ -18,6 +18,7 @@ package controller
 
 import (
 	"context"
+	"errors"
 	"reflect"
 
 	"github.com/golang/glog"
@@ -30,6 +31,7 @@ import (
 	"k8s.io/client-go/tools/cache"
 
 	clusterv1 "k8s.io/kube-deploy/cluster-api/api/cluster/v1alpha1"
+	"k8s.io/kube-deploy/cluster-api/client"
 	"k8s.io/kube-deploy/cluster-api/cloud"
 	"k8s.io/kube-deploy/cluster-api/util"
 )
@@ -38,12 +40,13 @@ type MachineController struct {
 	config        *Configuration
 	restClient    *rest.RESTClient
 	kubeClientSet *kubernetes.Clientset
+	clusterClient *client.ClusterAPIV1Alpha1Client
 	actuator      cloud.MachineActuator
 	nodeWatcher   *NodeWatcher
 }
 
 func NewMachineController(config *Configuration) *MachineController {
-	restClient, _, err := restClient(config.Kubeconfig)
+	restClient, err := restClient(config.Kubeconfig)
 	if err != nil {
 		glog.Fatalf("error creating rest client: %v", err)
 	}
@@ -53,13 +56,10 @@ func NewMachineController(config *Configuration) *MachineController {
 		glog.Fatalf("error creating kube client set: %v", err)
 	}
 
-	masterIP, err := host(config.Kubeconfig)
-	if err != nil {
-		glog.Fatalf("error getting master IP from rest client: %v", err)
-	}
+	clusterClient := client.New(restClient)
 
 	// Determine cloud type from cluster CRD when available
-	actuator, err := cloud.NewMachineActuator(config.Cloud, config.KubeadmToken, masterIP)
+	actuator, err := cloud.NewMachineActuator(config.Cloud, config.KubeadmToken)
 	if err != nil {
 		glog.Fatalf("error creating machine actuator: %v", err)
 	}
@@ -73,8 +73,9 @@ func NewMachineController(config *Configuration) *MachineController {
 		config:        config,
 		restClient:    restClient,
 		kubeClientSet: kubeClientSet,
+		clusterClient: clusterClient,
 		actuator:      actuator,
-		nodeWatcher: nodeWatcher,
+		nodeWatcher:   nodeWatcher,
 	}
 }
 
@@ -170,8 +171,13 @@ func (c *MachineController) requiresUpdate(a *clusterv1.Machine, b *clusterv1.Ma
 }
 
 func (c *MachineController) create(machine *clusterv1.Machine) error {
+	cluster, err := c.getCluster()
+	if err != nil {
+		return err
+	}
+
 	//TODO: check if the actual machine does not already exist
-	return c.actuator.Create(machine)
+	return c.actuator.Create(cluster, machine)
 	//TODO: wait for machine to become a node
 	//TODO: link node to machine CRD
 }
@@ -179,13 +185,34 @@ func (c *MachineController) create(machine *clusterv1.Machine) error {
 func (c *MachineController) delete(machine *clusterv1.Machine) error {
 	//TODO: check if the actual machine does not exist
 	//TODO: delink node from machine CRD
-
 	c.kubeClientSet.CoreV1().Nodes().Delete(machine.ObjectMeta.Name, &metav1.DeleteOptions{})
 	return c.actuator.Delete(machine)
 }
 
 func (c *MachineController) update(old_machine *clusterv1.Machine, new_machine *clusterv1.Machine) error {
+	cluster, err := c.getCluster()
+	if err != nil {
+		return err
+	}
+
 	// TODO: Assume single master for now.
 	// TODO: Assume we never change the role for the machines. (Master->Node, Node->Master, etc)
-	return c.actuator.Update(old_machine, new_machine)
+	return c.actuator.Update(cluster, old_machine, new_machine)
+}
+
+//TODO: we should cache this locally and update with an informer
+func (c *MachineController) getCluster() (*clusterv1.Cluster, error) {
+	clusters, err := c.clusterClient.Clusters().List(metav1.ListOptions{})
+	if err != nil {
+		return nil, err
+	}
+
+	switch len(clusters.Items) {
+	case 0:
+		return nil, errors.New("no clusters defined")
+	case 1:
+		return &clusters.Items[0], nil
+	default:
+		return nil, errors.New("multiple clusters defined")
+	}
 }

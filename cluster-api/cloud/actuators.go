@@ -24,7 +24,6 @@ import (
 	"k8s.io/kube-deploy/cluster-api/cloud/google"
 )
 
-
 // An actuator that just logs instead of doing anything.
 type loggingMachineActuator struct{}
 
@@ -34,10 +33,10 @@ kind: config
 preferences: {}
 `
 
-func NewMachineActuator(cloud string, kubeadmToken string, masterIP string) (MachineActuator, error) {
+func NewMachineActuator(cloud string, kubeadmToken string) (MachineActuator, error) {
 	switch cloud {
 	case "google":
-		return google.NewMachineActuator(kubeadmToken, masterIP)
+		return google.NewMachineActuator(kubeadmToken)
 	case "test", "aws", "azure":
 		return &loggingMachineActuator{}, nil
 	default:
@@ -45,7 +44,7 @@ func NewMachineActuator(cloud string, kubeadmToken string, masterIP string) (Mac
 	}
 }
 
-func (a loggingMachineActuator) Create(machine *clusterv1.Machine) error {
+func (a loggingMachineActuator) Create(cluster *clusterv1.Cluster, machine *clusterv1.Machine) error {
 	glog.Infof("actuator received create: %s\n", machine.ObjectMeta.Name)
 	return nil
 }
@@ -55,7 +54,7 @@ func (a loggingMachineActuator) Delete(machine *clusterv1.Machine) error {
 	return nil
 }
 
-func (a loggingMachineActuator) Update(oldMachine *clusterv1.Machine, newMachine *clusterv1.Machine) error {
+func (a loggingMachineActuator) Update(cluster *clusterv1.Cluster, oldMachine *clusterv1.Machine, newMachine *clusterv1.Machine) error {
 	glog.Infof("actuator received update: %s\n", oldMachine.ObjectMeta.Name)
 	return nil
 }

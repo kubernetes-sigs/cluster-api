@@ -22,9 +22,9 @@ import (
 
 // Controls machines on a specific cloud.
 type MachineActuator interface {
-	Create(*clusterv1.Machine) error
+	Create(*clusterv1.Cluster, *clusterv1.Machine) error
 	Delete(*clusterv1.Machine) error
-	Update(*clusterv1.Machine, *clusterv1.Machine) error
+	Update(c *clusterv1.Cluster, oldMachine *clusterv1.Machine, newMachine *clusterv1.Machine) error
 	Get(string) (*clusterv1.Machine, error)
 	GetIP(machine *clusterv1.Machine) (string, error)
 	GetKubeConfig(master *clusterv1.Machine) (string, error)

@@ -18,10 +18,10 @@ package google
 
 import (
 	"fmt"
+	"io/ioutil"
+	"os"
 	"os/exec"
 	"strings"
-	"os"
-	"io/ioutil"
 
 	"github.com/golang/glog"
 	clusterv1 "k8s.io/kube-deploy/cluster-api/api/cluster/v1alpha1"
@@ -30,9 +30,9 @@ import (
 const (
 	MachineControllerSshKeySecret = "machine-controller-sshkeys"
 	// Arbitrary name used for SSH.
-	SshUser    = "clusterapi"
-	SshKeyFile = "clusterapi-key"
-	SshKeyFilePublic = SshKeyFile + ".pub"
+	SshUser                = "clusterapi"
+	SshKeyFile             = "clusterapi-key"
+	SshKeyFilePublic       = SshKeyFile + ".pub"
 	SshKeyFilePublicGcloud = SshKeyFilePublic + ".gcloud"
 )
 
@@ -62,21 +62,22 @@ func cleanupSshKeyPairs() {
 	os.Remove(SshKeyFilePublic)
 	os.Remove(SshKeyFilePublicGcloud)
 }
+
 // It creates secret to store private key.
-func (gce *GCEClient) setupSSHAccess(master *clusterv1.Machine) error {
+func (gce *GCEClient) setupSSHAccess(m *clusterv1.Machine) error {
 	// Create public/private key pairs
 	err := createSshKeyPairs()
 	if err != nil {
 		return err
 	}
 
-	config, err := gce.providerconfig(master.Spec.ProviderConfig)
+	config, err := gce.providerconfig(m.Spec.ProviderConfig)
 	if err != nil {
 		return err
 	}
 
-	err = run("gcloud", "compute", "instances", "add-metadata", master.Name,
-		"--metadata-from-file", "ssh-keys=" + SshKeyFile + ".pub.gcloud",
+	err = run("gcloud", "compute", "instances", "add-metadata", m.Name,
+		"--metadata-from-file", "ssh-keys="+SshKeyFile+".pub.gcloud",
 		"--project", config.Project, "--zone", config.Zone)
 	if err != nil {
 		return err
@@ -89,15 +90,20 @@ func (gce *GCEClient) setupSSHAccess(master *clusterv1.Machine) error {
 	}
 
 	cleanupSshKeyPairs()
-	
+
 	return err
 }
 
-func (gce *GCEClient) remoteSshCommand(master *clusterv1.Machine, cmd string) (string, error) {
-	glog.Infof("Remote SSH execution '%s' on %s", cmd, master.ObjectMeta.Name)
+func (gce *GCEClient) remoteSshCommand(m *clusterv1.Machine, cmd string) (string, error) {
+	glog.Infof("Remote SSH execution '%s' on %s", cmd, m.ObjectMeta.Name)
+
+	publicIP, err := gce.GetIP(m)
+	if err != nil {
+		return "", err
+	}
 
 	command := fmt.Sprintf("echo STARTFILE; %s", cmd)
-	c := exec.Command("ssh", "-i", gce.sshCreds.privateKeyPath, gce.sshCreds.user+"@"+sanitizeMasterIP(gce.masterIP), command)
+	c := exec.Command("ssh", "-i", gce.sshCreds.privateKeyPath, gce.sshCreds.user+"@"+publicIP, command)
 	out, err := c.CombinedOutput()
 	if err != nil {
 		return "", fmt.Errorf("error: %v, output: %s", err, string(out))

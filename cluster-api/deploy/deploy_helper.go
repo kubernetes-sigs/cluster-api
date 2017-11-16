@@ -44,7 +44,7 @@ const (
 	DeleteSleepSeconds     = 5
 )
 
-func (d *deployer) createMachineCRD(machines []*clusterv1.Machine) error {
+func (d *deployer) createMachineCRD() error {
 	cs, err := d.newClientSet()
 	if err != nil {
 		return err
@@ -65,7 +65,7 @@ func (d *deployer) createMachineCRD(machines []*clusterv1.Machine) error {
 	if !success {
 		return fmt.Errorf("error creating Machines CRD: %v", err)
 	}
-	return d.createMachines(machines)
+	return nil
 }
 
 func (d *deployer) createMachines(machines []*clusterv1.Machine) error {
@@ -75,11 +75,11 @@ func (d *deployer) createMachines(machines []*clusterv1.Machine) error {
 	}
 
 	for _, machine := range machines {
-		_, err = c.Machines().Create(machine)
+		m, err := c.Machines().Create(machine)
 		if err != nil {
 			return err
 		}
-		glog.Infof("Added machine [%s]", machine.Name)
+		glog.Infof("Added machine [%s]", m.Name)
 	}
 	return nil
 }

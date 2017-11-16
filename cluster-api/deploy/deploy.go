@@ -54,19 +54,31 @@ func NewDeployer(provider string, configPath string) *deployer {
 
 // CreateCluster uses GCP APIs to create cluster
 func (d *deployer) CreateCluster(c *clusterv1.Cluster, machines []*clusterv1.Machine) error {
-	glog.Infof("Starting cluster creation %s", c.Name)
+	if c.GetName() == "" {
+		return fmt.Errorf("cluster name must be specified for cluster creation")
+	}
 
 	master := util.GetMaster(machines)
 	if master == nil {
-		return fmt.Errorf("error creating master vm, no master found")
+		return fmt.Errorf("master spec must be provided for cluster creation")
 	}
 
-	glog.Infof("Starting master creation %s", master.Name)
+	if master.GetName() == "" && master.GetGenerateName() == "" {
+		return fmt.Errorf("master name must be specified for cluster creation")
+	}
+
+	if master.GetName() == "" {
+		master.Name = master.GetGenerateName() + c.GetName()
+	}
+
+	glog.Infof("Starting cluster creation %s", c.GetName())
+
+	glog.Infof("Starting master creation %s", master.GetName())
 
 	if err := d.actuator.Create(master); err != nil {
 		return err
 	}
-	glog.Infof("Created master %s", master.Name)
+	glog.Infof("Created master %s", master.GetName())
 
 	if err := d.setMasterIP(master); err != nil {
 		return fmt.Errorf("unable to get master IP: %v", err)
@@ -81,11 +93,15 @@ func (d *deployer) CreateCluster(c *clusterv1.Cluster, machines []*clusterv1.Mac
 		return fmt.Errorf("apiserver never came up: %v", err)
 	}
 
-	if err := d.createMachineCRD(machines); err != nil {
+	if err := d.createMachineCRD(); err != nil {
 		return err
 	}
 
-	glog.Info("Starting the machine controller...\n")
+	if err := d.createMachines(machines); err != nil {
+		return err
+	}
+
+	glog.Info("Starting the machine controller...")
 	if err := d.actuator.CreateMachineController(machines); err != nil {
 		return fmt.Errorf("can't create machine controller: %v", err)
 	}

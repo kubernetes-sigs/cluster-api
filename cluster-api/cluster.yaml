@@ -1,7 +1,8 @@
-name: test1
+metadata:
+  name: test1
 spec:
-    providerConfig: >
-      {
-        "apiVersion": "gceproviderconfig/v1alpha1",
-        "kind": "GCEProviderConfig"
-      }
+  providerConfig: >
+    {
+      "apiVersion": "gceproviderconfig/v1alpha1",
+      "kind": "GCEProviderConfig"
+    }

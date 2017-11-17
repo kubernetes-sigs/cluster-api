@@ -17,13 +17,13 @@ limitations under the License.
 package cmd
 
 import (
-	"io/ioutil"
 	"flag"
-	"k8s.io/apiserver/pkg/util/logs"
 	"github.com/ghodss/yaml"
-	"github.com/spf13/cobra"
-	clusterv1 "k8s.io/kube-deploy/cluster-api/api/cluster/v1alpha1"
 	"github.com/golang/glog"
+	"github.com/spf13/cobra"
+	"io/ioutil"
+	"k8s.io/apiserver/pkg/util/logs"
+	clusterv1 "k8s.io/kube-deploy/cluster-api/api/cluster/v1alpha1"
 	"k8s.io/kube-deploy/cluster-api/util"
 )
 
@@ -37,10 +37,9 @@ var RootCmd = &cobra.Command{
 	},
 }
 
-
 var (
 	kubeConfig string
-	provider string
+	provider   string
 )
 
 func Execute() {
@@ -78,7 +77,6 @@ func parseMachinesYaml(file string) ([]*clusterv1.Machine, error) {
 
 	return util.MachineP(machines.Items), nil
 }
-
 
 func init() {
 	RootCmd.PersistentFlags().StringVarP(&provider, "provider", "p", "google", "cloud provider google/azure/aws")

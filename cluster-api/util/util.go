@@ -25,9 +25,9 @@ import (
 	"strings"
 	"time"
 
+	"github.com/golang/glog"
 	"k8s.io/api/core/v1"
 	clusterv1 "k8s.io/kube-deploy/cluster-api/api/cluster/v1alpha1"
-	"github.com/golang/glog"
 )
 
 const (
@@ -38,7 +38,6 @@ const (
 var (
 	r = rand.New(rand.NewSource(time.Now().UnixNano()))
 )
-
 
 func RandomToken() string {
 	return fmt.Sprintf("%s.%s", randomString(6), randomString(16))
@@ -112,7 +111,7 @@ func Home() string {
 	return usr.HomeDir
 }
 
-func GetDefaultKubeConfigPath() (string) {
+func GetDefaultKubeConfigPath() string {
 	localDir := fmt.Sprintf("%s/.kube", Home())
 	if _, err := os.Stat(localDir); os.IsNotExist(err) {
 		if err := os.Mkdir(localDir, 0777); err != nil {

@@ -16,12 +16,10 @@ limitations under the License.
 
 package cmd
 
-
 import (
-
+	"github.com/golang/glog"
 	"github.com/spf13/cobra"
 	"k8s.io/kube-deploy/cluster-api/deploy"
-	"github.com/golang/glog"
 	"os"
 )
 
@@ -62,4 +60,3 @@ func init() {
 
 	RootCmd.AddCommand(addCmd)
 }
-

@@ -16,12 +16,10 @@ limitations under the License.
 
 package cmd
 
-
 import (
-
+	"github.com/golang/glog"
 	"github.com/spf13/cobra"
 	"k8s.io/kube-deploy/cluster-api/deploy"
-	"github.com/golang/glog"
 )
 
 type RepairOptions struct {
@@ -50,4 +48,3 @@ func init() {
 	repairCmd.Flags().BoolVarP(&ro.dryRun, "dryrun", "", true, "dry run mode. Defaults to true")
 	RootCmd.AddCommand(repairCmd)
 }
-

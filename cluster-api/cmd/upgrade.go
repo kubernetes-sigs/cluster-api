@@ -17,10 +17,10 @@ limitations under the License.
 package cmd
 
 import (
-	_ "k8s.io/client-go/plugin/pkg/client/auth/gcp"
-	"github.com/spf13/cobra"
-	"k8s.io/kube-deploy/cluster-api/deploy"
 	"github.com/golang/glog"
+	"github.com/spf13/cobra"
+	_ "k8s.io/client-go/plugin/pkg/client/auth/gcp"
+	"k8s.io/kube-deploy/cluster-api/deploy"
 )
 
 type UpgradeOptions struct {
@@ -57,4 +57,3 @@ func init() {
 
 	RootCmd.AddCommand(upgradeCmd)
 }
-

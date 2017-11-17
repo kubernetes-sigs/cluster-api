@@ -11,7 +11,7 @@ metadata:
 spec:
   containers:
     - name: machine-controller
-      image: gcr.io/k8s-cluster-api/machine-controller:0.6
+      image: {{ .Image }}
       args:
         - --token={{ .Token }}
         - --cloud=google

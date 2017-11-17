@@ -19,12 +19,21 @@ package google
 import (
 	"bytes"
 	"fmt"
+	"os"
 	"os/exec"
 	"text/template"
 	"time"
 
 	"github.com/golang/glog"
 )
+
+var machineControllerImage = "gcr.io/k8s-cluster-api/machine-controller:0.6"
+
+func init() {
+	if img, ok := os.LookupEnv("MACHINE_CONTROLLER_IMAGE"); ok {
+		machineControllerImage = img
+	}
+}
 
 func CreateMachineControllerPod(token string) error {
 	tmpl, err := template.ParseFiles("cloud/google/pods/machine-controller.yaml")
@@ -34,11 +43,13 @@ func CreateMachineControllerPod(token string) error {
 
 	type params struct {
 		Token string
+		Image string
 	}
 
 	var tmplBuf bytes.Buffer
 	err = tmpl.Execute(&tmplBuf, params{
 		Token: token,
+		Image: machineControllerImage,
 	})
 	if err != nil {
 		return err

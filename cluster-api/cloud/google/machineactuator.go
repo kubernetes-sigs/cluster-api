@@ -286,10 +286,22 @@ func (gce *GCEClient) Update(cluster *clusterv1.Cluster, oldMachine *clusterv1.M
 			glog.Errorf("master inplace update failed: %v", err)
 		}
 	} else {
-		glog.Infof("re-creating machine %s for update.", oldMachine.ObjectMeta.Name)
-		err = gce.Delete(oldMachine)
+		// It's a little counter-intuitive to Delete(newMachine)
+		// instead of Delete(oldMachine), but this fixes the case where
+		// a Machine is edited to have invalid configuration, and then
+		// fixed with correct configuration. If we try to do
+		// Delete(oldMachine), the old Spec is invalid, and we might
+		// not even be able to unmarshal the ProviderConfig, so the
+		// deletion will fail.
+		//
+		// There is still an edge case we need to handle where someone
+		// wants to change the project or zone of the Machine in the
+		// ProviderConfig, where using Delete(newMachine) won't
+		// actually delete the correct VM.
+		glog.Infof("re-creating machine %s for update.", newMachine.ObjectMeta.Name)
+		err = gce.Delete(newMachine)
 		if err != nil {
-			glog.Errorf("delete machine %s for update failed: %v", oldMachine.ObjectMeta.Name, err)
+			glog.Errorf("delete machine %s for update failed: %v", newMachine.ObjectMeta.Name, err)
 		} else {
 			err = gce.Create(cluster, newMachine)
 			if err != nil {

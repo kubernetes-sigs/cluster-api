@@ -120,9 +120,9 @@ echo $PRIVATEIP > /tmp/.ip
 ` +
 	"PUBLICIP=`curl --retry 5 -sfH \"Metadata-Flavor: Google\" \"http://metadata/computeMetadata/v1/instance/network-interfaces/0/access-configs/0/external-ip\"`" + `
 
-KUBEADM_VERSION=$(curl -sSL https://dl.k8s.io/release/stable.txt)
-ARCH=amd64
-curl -sSL https://dl.k8s.io/release/${KUBEADM_VERSION}/bin/linux/${ARCH}/kubeadm > /usr/bin/kubeadm
+export VERSION=$(curl -sSL https://dl.k8s.io/release/stable.txt)
+export ARCH=amd64
+curl -sSL https://dl.k8s.io/release/${VERSION}/bin/linux/${ARCH}/kubeadm > /usr/bin/kubeadm
 chmod a+rx /usr/bin/kubeadm
 
 kubeadm reset

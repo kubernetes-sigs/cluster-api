@@ -335,6 +335,9 @@ func (gce *GCEClient) waitForOperation(c *gceconfig.GCEProviderConfig, op *compu
 			return err
 		}
 	}
+	if op != nil && op.Error != nil {
+		return fmt.Errorf("Operation Failed : %v", *op.Error.Errors[0])
+	}
 	return nil
 }
 
@@ -345,10 +348,20 @@ func (gce *GCEClient) getOp(c *gceconfig.GCEProviderConfig, op *compute.Operatio
 
 func (gce *GCEClient) updateMasterInplace(oldMachine *clusterv1.Machine, newMachine *clusterv1.Machine) error {
 	if oldMachine.Spec.Versions.ControlPlane != newMachine.Spec.Versions.ControlPlane {
+		// First pull off the latest kubeadm.
+		cmd := "export KUBEADM_VERSION=$(curl -sSL https://dl.k8s.io/release/stable.txt); "+
+			   "curl -sSL https://dl.k8s.io/release/${KUBEADM_VERSION}/bin/linux/amd64/kubeadm | sudo tee /usr/bin/kubeadm > /dev/null; "+
+			   "sudo chmod a+rx /usr/bin/kubeadm"
+		_, err := gce.remoteSshCommand(newMachine, cmd)
+		if err != nil {
+			glog.Infof("remotesshcomand error: %v", err)
+			return err
+		}
+
 		// TODO: We might want to upgrade kubeadm if the target control plane version is newer.
 		// Upgrade control plan.
-		cmd := fmt.Sprintf("sudo kubeadm upgrade apply %s -y", "v"+newMachine.Spec.Versions.ControlPlane)
-		_, err := gce.remoteSshCommand(newMachine, cmd)
+		cmd = fmt.Sprintf("sudo kubeadm upgrade apply %s -y", "v"+newMachine.Spec.Versions.ControlPlane)
+		_, err = gce.remoteSshCommand(newMachine, cmd)
 		if err != nil {
 			glog.Infof("remotesshcomand error: %v", err)
 			return err
@@ -356,10 +369,19 @@ func (gce *GCEClient) updateMasterInplace(oldMachine *clusterv1.Machine, newMach
 	}
 
 	// Upgrade kubelet.
-	// TODO: Mark master as unscheduleable and evict the workloads.
 	if oldMachine.Spec.Versions.Kubelet != newMachine.Spec.Versions.Kubelet {
-		cmd := fmt.Sprintf("sudo apt-get install kubelet=%s", newMachine.Spec.Versions.Kubelet+"-00")
+		cmd := fmt.Sprintf("sudo kubectl drain %s --kubeconfig /etc/kubernetes/admin.conf --ignore-daemonsets", newMachine.Name)
+		// The errors are intentionally ignored as master has static pods.
+		gce.remoteSshCommand(newMachine, cmd)
+		// Upgrade kubelet to desired version.
+		cmd = fmt.Sprintf("sudo apt-get install kubelet=%s", newMachine.Spec.Versions.Kubelet+"-00")
 		_, err := gce.remoteSshCommand(newMachine, cmd)
+		if err != nil {
+			glog.Infof("remotesshcomand error: %v", err)
+			return err
+		}
+		cmd = fmt.Sprintf("sudo kubectl uncordon %s --kubeconfig /etc/kubernetes/admin.conf", newMachine.Name)
+		_, err = gce.remoteSshCommand(newMachine, cmd)
 		if err != nil {
 			glog.Infof("remotesshcomand error: %v", err)
 			return err

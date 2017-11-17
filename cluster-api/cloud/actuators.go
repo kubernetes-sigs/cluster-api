@@ -20,7 +20,9 @@ import (
 	"fmt"
 
 	"github.com/golang/glog"
+
 	clusterv1 "k8s.io/kube-deploy/cluster-api/api/cluster/v1alpha1"
+	"k8s.io/kube-deploy/cluster-api/client"
 	"k8s.io/kube-deploy/cluster-api/cloud/google"
 )
 
@@ -33,10 +35,10 @@ kind: config
 preferences: {}
 `
 
-func NewMachineActuator(cloud string, kubeadmToken string) (MachineActuator, error) {
+func NewMachineActuator(cloud string, kubeadmToken string, machineClient client.MachinesInterface) (MachineActuator, error) {
 	switch cloud {
 	case "google":
-		return google.NewMachineActuator(kubeadmToken)
+		return google.NewMachineActuator(kubeadmToken, machineClient)
 	case "test", "aws", "azure":
 		return &loggingMachineActuator{}, nil
 	default:

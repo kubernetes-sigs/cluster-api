@@ -26,7 +26,6 @@ import (
 	"k8s.io/apimachinery/pkg/fields"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/tools/cache"
-	"k8s.io/client-go/tools/clientcmd"
 	clusterapiclient "k8s.io/kube-deploy/cluster-api/client"
 )
 
@@ -64,34 +63,6 @@ func NewNodeWatcher(kubeconfig string) (*NodeWatcher, error) {
 		machineClient: machineClient,
 		linkedNodes:   make(map[string]bool),
 	}, nil
-}
-
-func nodeClient(kubeconfig string) (*kubernetes.Clientset, error) {
-	config, err := clientcmd.BuildConfigFromFlags("", kubeconfig)
-	if err != nil {
-		return nil, err
-	}
-
-	clientset, err := kubernetes.NewForConfig(config)
-	if err != nil {
-		return nil, err
-	}
-
-	return clientset, nil
-}
-
-func machineClient(kubeconfig string) (clusterapiclient.MachinesInterface, error) {
-	cfg, err := clientcmd.BuildConfigFromFlags("", kubeconfig)
-	if err != nil {
-		return nil, err
-	}
-
-	client, err := clusterapiclient.NewForConfig(cfg)
-	if err != nil {
-		return nil, err
-	}
-
-	return client.Machines(), nil
 }
 
 func (c *NodeWatcher) Run() error {

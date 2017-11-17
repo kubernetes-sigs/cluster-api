@@ -40,7 +40,7 @@ func NewDeployer(provider string, configPath string) *deployer {
 	if configPath == "" {
 		configPath = util.GetDefaultKubeConfigPath()
 	}
-	a, err := cloud.NewMachineActuator(provider, token)
+	a, err := cloud.NewMachineActuator(provider, token, nil)
 	if err != nil {
 		glog.Exit(err)
 	}

@@ -12,6 +12,7 @@ push: image
 	gcloud docker -- push "gcr.io/$(PROJECT)/$(NAME):$(VERSION)"
 
 fix-image-permissions:
+	gsutil acl ch -u AllUsers:READ gs://artifacts.$(PROJECT).appspot.com
 	gsutil -m acl ch -r -u AllUsers:READ gs://artifacts.$(PROJECT).appspot.com
 
 .PHONY: image push staticbuild fix-image-permissions

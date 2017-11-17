@@ -17,16 +17,15 @@ limitations under the License.
 package cmd
 
 import (
-
+	"github.com/golang/glog"
 	"github.com/spf13/cobra"
 	"k8s.io/kube-deploy/cluster-api/deploy"
-	"github.com/golang/glog"
 	"os"
 )
 
 type CreateOptions struct {
-	Cluster                 string
-	Machine                 string
+	Cluster string
+	Machine string
 }
 
 var co = &CreateOptions{}
@@ -37,7 +36,7 @@ var createCmd = &cobra.Command{
 	Long:  `Create a kubernetes cluster with one command`,
 	Run: func(cmd *cobra.Command, args []string) {
 		if co.Cluster == "" {
-			glog.Error("Please provide yaml file for cluster definition." )
+			glog.Error("Please provide yaml file for cluster definition.")
 			cmd.Help()
 			os.Exit(1)
 		}

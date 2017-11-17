@@ -20,13 +20,13 @@ import (
 	"time"
 
 	"fmt"
+	"github.com/golang/glog"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/client-go/tools/clientcmd"
 	clusterv1 "k8s.io/kube-deploy/cluster-api/api/cluster/v1alpha1"
 	clusapiclnt "k8s.io/kube-deploy/cluster-api/client"
 	"k8s.io/kube-deploy/cluster-api/util"
-	"github.com/golang/glog"
 )
 
 func UpgradeCluster(kubeversion string, kubeconfig string) error {

@@ -18,8 +18,8 @@ package google
 
 import (
 	"fmt"
-	"os/exec"
 	"github.com/golang/glog"
+	"os/exec"
 )
 
 const (

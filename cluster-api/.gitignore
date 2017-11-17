@@ -4,3 +4,4 @@ examples/machines-crd-installer/machines-crd-installer
 examples/machines-controller/machines-controller
 examples/gce-machines-controller/gce-machines-controller
 examples/machineset/machineset
+examples/machines-client/machines-client

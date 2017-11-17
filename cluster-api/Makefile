@@ -7,4 +7,7 @@ all:
 	cd examples/machines-crd-installer && go build
 	cd examples/machineset && go build
 
-.PHONY: all
+fmt:
+	find -path './vendor' -prune -o -name '*.go' -exec gofmt -w {} \;
+
+.PHONY: all fmt

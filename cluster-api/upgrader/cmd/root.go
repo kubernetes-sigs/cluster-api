@@ -17,27 +17,29 @@ limitations under the License.
 package cmd
 
 import (
+	"flag"
+
 	"github.com/golang/glog"
 	"github.com/spf13/cobra"
-	_ "k8s.io/client-go/plugin/pkg/client/auth/gcp"
-	"k8s.io/kube-deploy/cluster-api/deploy"
+	"k8s.io/apiserver/pkg/util/logs"
+	"k8s.io/kube-deploy/cluster-api/upgrader/util"
 )
 
 type UpgradeOptions struct {
 	KubernetesVersion string
+	kubeConfig        string
 }
 
 var uo = &UpgradeOptions{}
 
-var upgradeCmd = &cobra.Command{
-	Use:   "upgrade",
-	Short: "Upgrade Kubernetes cluster.",
-	Long:  `Upgrade the kubernetes control plan and nodes to the specified version.`,
+var RootCmd = &cobra.Command{
+	Use:   "upgrader",
+	Short: "cluster upgrader",
+	Long:  `A single tool to upgrade kubernetes cluster`,
 	Run: func(cmd *cobra.Command, args []string) {
 		if uo.KubernetesVersion == "" {
 			glog.Exit("Please provide new kubernetes version.")
 		}
-
 		if err := RunUpgrade(uo); err != nil {
 			glog.Exit(err.Error())
 		}
@@ -45,15 +47,22 @@ var upgradeCmd = &cobra.Command{
 }
 
 func RunUpgrade(uo *UpgradeOptions) error {
-	err := deploy.UpgradeCluster(uo.KubernetesVersion, kubeConfig)
+	err := util.UpgradeCluster(uo.KubernetesVersion, uo.kubeConfig)
 	if err != nil {
 		glog.Errorf("Failed to upgrade cluster with error : %v", err)
 	}
 	return err
 }
 
-func init() {
-	upgradeCmd.Flags().StringVarP(&uo.KubernetesVersion, "version", "v", "", "Kubernetes Version")
+func Execute() {
+	if err := RootCmd.Execute(); err != nil {
+		glog.Exit(err)
+	}
+}
 
-	RootCmd.AddCommand(upgradeCmd)
+func init() {
+	RootCmd.PersistentFlags().StringVarP(&uo.kubeConfig, "kubecofig", "k", "", "location for the kubernetes config file. If not provided, $HOME/.kube/config is used")
+	RootCmd.PersistentFlags().StringVarP(&uo.KubernetesVersion, "version", "v", "", "target kubernets version")
+	flag.CommandLine.Parse([]string{})
+	logs.InitLogs()
 }

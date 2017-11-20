@@ -60,6 +60,8 @@ EOF
 apt-get update
 apt-get install -y kubelet=${KUBELET_VERSION} kubeadm=${KUBELET_VERSION} kubectl=${KUBELET_VERSION}
 
+sysctl net.bridge.bridge-nf-call-iptables=1
+
 # kubeadm uses 10th IP as DNS server
 CLUSTER_DNS_SERVER=$(prips ${SERVICE_CIDR} | head -n 11 | tail -n 1)
 
@@ -133,12 +135,10 @@ for tries in $(seq 1 60); do
 	sleep 1
 done
 
-# download Calico manifest and pick a random service IP in the service CIDR
-CALICO=$(curl --retry 5 -sL https://docs.projectcalico.org/v2.3/getting-started/kubernetes/installation/hosted/kubeadm/1.6/calico.yaml)
-CALICOIP=$(prips ${SERVICE_CIDR} | sed '1d;11d;$d' | shuf -n 1) # random IP excluding network, broadcast, and DNS server addresses
-CALICO=${CALICO//10\.96\.232\.136/${CALICOIP}} # replace etcd cluster IP
-CALICO=${CALICO//192\.168\.0\.0\/16/${POD_CIDR}} # replace pod cidr
-echo "${CALICO}" | kubectl --kubeconfig /etc/kubernetes/admin.conf apply -f -
+# install wavenet
+sysctl net.bridge.bridge-nf-call-iptables=1
+export kubever=$(kubectl version --kubeconfig /etc/kubernetes/admin.conf | base64 | tr -d '\n')
+kubectl apply --kubeconfig /etc/kubernetes/admin.conf -f "https://cloud.weave.works/k8s/net?k8s-version=$kubever"
 
 echo done.
 ) 2>&1 | tee /var/log/startup.log

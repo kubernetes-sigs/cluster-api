@@ -23,9 +23,7 @@ import (
 	"os"
 	"time"
 
-	"github.com/ghodss/yaml"
 	"github.com/golang/glog"
-	"k8s.io/api/core/v1"
 	apiextensionsclient "k8s.io/apiextensions-apiserver/pkg/client/clientset/clientset"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	_ "k8s.io/client-go/plugin/pkg/client/auth/gcp"
@@ -203,29 +201,6 @@ func (d *deployer) getMasterIP(master *clusterv1.Machine) (string, error) {
 	return "", fmt.Errorf("unable to find Master IP after defined wait")
 }
 
-func (d *deployer) getUnhealthyNodes() ([]string, error) {
-	nodeList := &v1.NodeList{}
-	out := util.ExecCommand("kubectl", "get", "nodes", "-o=yaml")
-	err := yaml.Unmarshal([]byte(out), nodeList)
-	if err != nil {
-		return nil, err
-	}
-
-	var healthy []string
-	var unhealthy []string
-
-	for _, node := range nodeList.Items {
-		if util.IsNodeReady(&node) {
-			healthy = append(healthy, node.Name)
-		} else {
-			unhealthy = append(unhealthy, node.Name)
-		}
-	}
-	glog.Infof("healthy nodes: %v", healthy)
-	glog.Infof("unhealthy nodes: %v", unhealthy)
-	return unhealthy, nil
-}
-
 func (d *deployer) copyKubeConfig(master *clusterv1.Machine) error {
 	for i := 0; i <= RetryAttempts; i++ {
 		var config string
@@ -313,6 +288,5 @@ func (d *deployer) waitForApiserver(master string, timeout time.Duration) error 
 		}
 		time.Sleep(1 * time.Second)
 	}
-
 	return err
 }

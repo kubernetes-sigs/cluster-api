@@ -131,42 +131,6 @@ func (d *deployer) AddNodes(machines []*clusterv1.Machine) error {
 	return nil
 }
 
-func (d *deployer) RepairNode(dryRun bool) error {
-	nodes, err := d.getUnhealthyNodes()
-	if err != nil {
-		return err
-	}
-	if len(nodes) > 0 {
-		glog.Infof("found unhealthy nodes: %v", nodes)
-	} else {
-		glog.Info("All nodes are healthy")
-		return nil
-	}
-
-	if dryRun {
-		glog.Info("Running in dry run mode. Not taking any action")
-		return nil
-	}
-
-	for _, node := range nodes {
-		m, err := d.getMachine(node)
-		if err != nil {
-			glog.Info("Error retrieving machine object %s. Not taking any action on this node.", node)
-			continue
-		}
-		if err := d.deleteMachine(m.Name); err != nil {
-			return err
-		}
-
-		if err := d.createMachine(util.Copy(m)); err != nil {
-			return err
-		}
-		glog.Infof("Recreated node %s", node)
-	}
-
-	return nil
-}
-
 func (d *deployer) DeleteCluster() error {
 	machines, err := d.listMachines()
 	if err != nil {

@@ -13,7 +13,6 @@ go_test(
         "transport_test.go",
         "upgradeaware_test.go",
     ],
-    importpath = "k8s.io/apimachinery/pkg/util/proxy",
     library = ":go_default_library",
     deps = [
         "//vendor/github.com/stretchr/testify/assert:go_default_library",
@@ -33,7 +32,6 @@ go_library(
         "transport.go",
         "upgradeaware.go",
     ],
-    importpath = "k8s.io/apimachinery/pkg/util/proxy",
     deps = [
         "//vendor/github.com/golang/glog:go_default_library",
         "//vendor/github.com/mxk/go-flowrate/flowrate:go_default_library",

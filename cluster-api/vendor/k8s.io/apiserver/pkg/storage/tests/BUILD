@@ -9,7 +9,6 @@ load(
 go_test(
     name = "go_default_test",
     srcs = ["cacher_test.go"],
-    importpath = "k8s.io/apiserver/pkg/storage/tests",
     library = ":go_default_library",
     deps = [
         "//vendor/golang.org/x/net/context:go_default_library",
@@ -39,7 +38,6 @@ go_test(
 go_library(
     name = "go_default_library",
     srcs = ["utils.go"],
-    importpath = "k8s.io/apiserver/pkg/storage/tests",
     deps = ["//vendor/k8s.io/apiserver/pkg/apis/example:go_default_library"],
 )
 

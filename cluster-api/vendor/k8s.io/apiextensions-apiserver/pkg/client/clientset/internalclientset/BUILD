@@ -11,7 +11,6 @@ go_library(
         "clientset.go",
         "doc.go",
     ],
-    importpath = "k8s.io/apiextensions-apiserver/pkg/client/clientset/internalclientset",
     deps = [
         "//vendor/github.com/golang/glog:go_default_library",
         "//vendor/k8s.io/apiextensions-apiserver/pkg/client/clientset/internalclientset/typed/apiextensions/internalversion:go_default_library",

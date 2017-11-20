@@ -9,7 +9,6 @@ load(
 go_library(
     name = "go_default_library",
     srcs = ["backend.go"],
-    importpath = "k8s.io/apiserver/plugin/pkg/audit/log",
     deps = [
         "//vendor/k8s.io/apimachinery/pkg/runtime:go_default_library",
         "//vendor/k8s.io/apimachinery/pkg/runtime/schema:go_default_library",
@@ -34,7 +33,6 @@ filegroup(
 go_test(
     name = "go_default_test",
     srcs = ["backend_test.go"],
-    importpath = "k8s.io/apiserver/plugin/pkg/audit/log",
     library = ":go_default_library",
     deps = [
         "//vendor/github.com/pborman/uuid:go_default_library",

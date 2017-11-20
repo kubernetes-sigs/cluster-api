@@ -11,7 +11,6 @@ go_library(
         "etcd.go",
         "strategy.go",
     ],
-    importpath = "k8s.io/apiextensions-apiserver/pkg/registry/customresource",
     deps = [
         "//vendor/github.com/go-openapi/validate:go_default_library",
         "//vendor/k8s.io/apiextensions-apiserver/pkg/apiserver/validation:go_default_library",

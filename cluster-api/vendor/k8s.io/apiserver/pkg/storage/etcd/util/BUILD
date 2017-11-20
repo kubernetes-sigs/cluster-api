@@ -9,7 +9,6 @@ load(
 go_test(
     name = "go_default_test",
     srcs = ["etcd_util_test.go"],
-    importpath = "k8s.io/apiserver/pkg/storage/etcd/util",
     library = ":go_default_library",
     deps = [
         "//vendor/github.com/coreos/etcd/client:go_default_library",
@@ -23,7 +22,6 @@ go_library(
         "doc.go",
         "etcd_util.go",
     ],
-    importpath = "k8s.io/apiserver/pkg/storage/etcd/util",
     deps = ["//vendor/github.com/coreos/etcd/client:go_default_library"],
 )
 

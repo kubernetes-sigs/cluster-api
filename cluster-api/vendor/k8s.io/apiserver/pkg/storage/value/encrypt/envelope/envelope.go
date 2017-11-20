@@ -46,6 +46,9 @@ type envelopeTransformer struct {
 	// transformers is a thread-safe LRU cache which caches decrypted DEKs indexed by their encrypted form.
 	transformers *lru.Cache
 
+	// cacheSize is the maximum number of DEKs that are cached.
+	cacheSize int
+
 	// baseTransformerFunc creates a new transformer for encrypting the data with the DEK.
 	baseTransformerFunc func(cipher.Block) value.Transformer
 }
@@ -65,6 +68,7 @@ func NewEnvelopeTransformer(envelopeService Service, cacheSize int, baseTransfor
 	return &envelopeTransformer{
 		envelopeService:     envelopeService,
 		transformers:        cache,
+		cacheSize:           cacheSize,
 		baseTransformerFunc: baseTransformerFunc,
 	}, nil
 }

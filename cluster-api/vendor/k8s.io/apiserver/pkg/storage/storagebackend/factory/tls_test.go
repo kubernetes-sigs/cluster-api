@@ -71,6 +71,7 @@ func TestTLSConnection(t *testing.T) {
 		KeyFile:    keyFile,
 		CAFile:     caFile,
 		Codec:      codec,
+		Copier:     scheme,
 	}
 	storage, destroyFunc, err := newETCD3Storage(cfg)
 	defer destroyFunc()

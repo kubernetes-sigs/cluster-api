@@ -60,6 +60,8 @@ EOF
 apt-get update
 apt-get install -y kubelet=${KUBELET_VERSION} kubeadm=${KUBELET_VERSION} kubectl=${KUBELET_VERSION}
 
+sysctl net.bridge.bridge-nf-call-iptables=1
+
 # kubeadm uses 10th IP as DNS server
 CLUSTER_DNS_SERVER=$(prips ${SERVICE_CIDR} | head -n 11 | tail -n 1)
 

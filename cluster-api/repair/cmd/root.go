@@ -17,8 +17,11 @@ limitations under the License.
 package cmd
 
 import (
+	"flag"
+
 	"github.com/golang/glog"
 	"github.com/spf13/cobra"
+	"k8s.io/apiserver/pkg/util/logs"
 	"k8s.io/kube-deploy/cluster-api/repair/util"
 )
 
@@ -53,5 +56,6 @@ func Execute() {
 func init() {
 	rootCmd.Flags().BoolVarP(&ro.dryRun, "dryrun", "", true, "dry run mode. Defaults to true")
 	rootCmd.PersistentFlags().StringVarP(&ro.kubeConfig, "kubecofig", "k", "", "location for the kubernetes config file. If not provided, $HOME/.kube/config is used")
-
+	flag.CommandLine.Parse([]string{})
+	logs.InitLogs()
 }

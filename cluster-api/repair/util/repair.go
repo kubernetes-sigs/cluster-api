@@ -62,11 +62,15 @@ func (r *repairer) RepairNode() error {
 
 	for _, node := range nodes {
 		m, err := r.client.Machines().Get(node, metav1.GetOptions{})
+
 		if err != nil {
 			glog.Info("Error retrieving machine object %s. Not taking any action on this node.", node)
 			continue
 		}
-
+		if util.IsMaster(m) {
+			glog.Infof("Found master node %s, skipping repair for it", m.Name)
+			continue
+		}
 		if err := r.client.Machines().Delete(node, &metav1.DeleteOptions{}); err != nil {
 			return err
 		}

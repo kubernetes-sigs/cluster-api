@@ -19,16 +19,17 @@ package cmd
 import (
 	"github.com/golang/glog"
 	"github.com/spf13/cobra"
-	"k8s.io/kube-deploy/cluster-api/deploy"
+	"k8s.io/kube-deploy/cluster-api/repair/util"
 )
 
 type RepairOptions struct {
-	dryRun bool
+	dryRun     bool
+	kubeConfig string
 }
 
 var ro = &RepairOptions{}
 
-var repairCmd = &cobra.Command{
+var rootCmd = &cobra.Command{
 	Use:   "repair",
 	Short: "Repair node",
 	Long:  `Repairs given node`,
@@ -40,11 +41,17 @@ var repairCmd = &cobra.Command{
 }
 
 func RunRepair(ro *RepairOptions) error {
-	d := deploy.NewDeployer(provider, kubeConfig)
-	return d.RepairNode(ro.dryRun)
+	return util.NewRepairer(ro.dryRun, ro.kubeConfig).RepairNode()
+}
+
+func Execute() {
+	if err := rootCmd.Execute(); err != nil {
+		glog.Exit(err)
+	}
 }
 
 func init() {
-	repairCmd.Flags().BoolVarP(&ro.dryRun, "dryrun", "", true, "dry run mode. Defaults to true")
-	RootCmd.AddCommand(repairCmd)
+	rootCmd.Flags().BoolVarP(&ro.dryRun, "dryrun", "", true, "dry run mode. Defaults to true")
+	rootCmd.PersistentFlags().StringVarP(&ro.kubeConfig, "kubecofig", "k", "", "location for the kubernetes config file. If not provided, $HOME/.kube/config is used")
+
 }

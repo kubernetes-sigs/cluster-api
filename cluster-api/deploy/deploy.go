@@ -22,6 +22,7 @@ import (
 
 	"github.com/golang/glog"
 	clusterv1 "k8s.io/kube-deploy/cluster-api/api/cluster/v1alpha1"
+	"k8s.io/kube-deploy/cluster-api/client"
 	"k8s.io/kube-deploy/cluster-api/cloud"
 	"k8s.io/kube-deploy/cluster-api/util"
 )
@@ -30,6 +31,7 @@ type deployer struct {
 	token      string
 	configPath string
 	actuator   cloud.MachineActuator
+	client     *client.ClusterAPIV1Alpha1Client
 }
 
 //it takes path for kubeconfig file.
@@ -96,11 +98,15 @@ func (d *deployer) CreateCluster(c *clusterv1.Cluster, machines []*clusterv1.Mac
 		return fmt.Errorf("apiserver never came up: %v", err)
 	}
 
+	if err := d.initApiClient(); err != nil {
+		return err
+	}
+
 	if err := d.createClusterCRD(); err != nil {
 		return err
 	}
 
-	if err := d.createCluster(c); err != nil {
+	if _, err := d.client.Clusters().Create(c); err != nil {
 		return err
 	}
 
@@ -132,6 +138,10 @@ func (d *deployer) AddNodes(machines []*clusterv1.Machine) error {
 }
 
 func (d *deployer) DeleteCluster() error {
+	if err := d.initApiClient(); err != nil {
+		return err
+	}
+
 	machines, err := d.listMachines()
 	if err != nil {
 		return err

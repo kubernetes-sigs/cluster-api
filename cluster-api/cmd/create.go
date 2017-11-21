@@ -17,10 +17,11 @@ limitations under the License.
 package cmd
 
 import (
+	"os"
+
 	"github.com/golang/glog"
 	"github.com/spf13/cobra"
 	"k8s.io/kube-deploy/cluster-api/deploy"
-	"os"
 )
 
 type CreateOptions struct {

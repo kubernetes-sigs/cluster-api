@@ -24,8 +24,8 @@ import (
 	_ "k8s.io/client-go/plugin/pkg/client/auth"
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/clientcmd"
-
 	clusterv1 "k8s.io/kube-deploy/cluster-api/api/cluster/v1alpha1"
+	"k8s.io/kube-deploy/cluster-api/client"
 )
 
 func restClient(kubeconfigpath string) (*rest.RESTClient, error) {
@@ -74,6 +74,34 @@ func kubeClientSet(kubeconfigpath string) (*kubernetes.Clientset, error) {
 	}
 
 	return client, nil
+}
+
+func nodeClient(kubeconfig string) (*kubernetes.Clientset, error) {
+	config, err := clientcmd.BuildConfigFromFlags("", kubeconfig)
+	if err != nil {
+		return nil, err
+	}
+
+	clientset, err := kubernetes.NewForConfig(config)
+	if err != nil {
+		return nil, err
+	}
+
+	return clientset, nil
+}
+
+func machineClient(kubeconfig string) (client.MachinesInterface, error) {
+	cfg, err := clientcmd.BuildConfigFromFlags("", kubeconfig)
+	if err != nil {
+		return nil, err
+	}
+
+	client, err := client.NewForConfig(cfg)
+	if err != nil {
+		return nil, err
+	}
+
+	return client.Machines(), nil
 }
 
 func host(kubeconfigpath string) (string, error) {

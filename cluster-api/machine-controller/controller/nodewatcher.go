@@ -97,7 +97,7 @@ func (c *NodeWatcher) onAdd(obj interface{}) {
 
 func (c *NodeWatcher) onUpdate(oldObj, newObj interface{}) {
 	newNode := newObj.(*corev1.Node)
-	glog.Infof("node updated: %s\n", newNode.ObjectMeta.Name)
+	glog.V(2).Infof("node updated: %s\n", newNode.ObjectMeta.Name)
 	c.link(newNode)
 }
 

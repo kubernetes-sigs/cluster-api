@@ -156,7 +156,7 @@ func (d *deployer) DeleteCluster() error {
 		return err
 	}
 
-	glog.Infof("Deleting mater vm %s", master.Name)
+	glog.Infof("Deleting master vm %s", master.Name)
 	if err := d.actuator.Delete(master); err != nil {
 		return err
 	}

@@ -24,13 +24,9 @@ import (
 	"time"
 
 	"github.com/golang/glog"
-	apiextensionsclient "k8s.io/apiextensions-apiserver/pkg/client/clientset/clientset"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	_ "k8s.io/client-go/plugin/pkg/client/auth/gcp"
-	restclient "k8s.io/client-go/rest"
-	"k8s.io/client-go/tools/clientcmd"
 	clusterv1 "k8s.io/kube-deploy/cluster-api/api/cluster/v1alpha1"
-	"k8s.io/kube-deploy/cluster-api/client"
 	"k8s.io/kube-deploy/cluster-api/util"
 )
 
@@ -43,7 +39,7 @@ const (
 )
 
 func (d *deployer) createClusterCRD() error {
-	cs, err := d.newClientSet()
+	cs, err := util.NewClientSet(d.configPath)
 	if err != nil {
 		return err
 	}
@@ -67,7 +63,7 @@ func (d *deployer) createClusterCRD() error {
 }
 
 func (d *deployer) createMachineCRD() error {
-	cs, err := d.newClientSet()
+	cs, err := util.NewClientSet(d.configPath)
 	if err != nil {
 		return err
 	}
@@ -90,24 +86,9 @@ func (d *deployer) createMachineCRD() error {
 	return nil
 }
 
-func (d *deployer) createCluster(cluster *clusterv1.Cluster) error {
-	c, err := d.newApiClient()
-	if err != nil {
-		return err
-	}
-
-	_, err = c.Clusters().Create(cluster)
-	return err
-}
-
 func (d *deployer) createMachines(machines []*clusterv1.Machine) error {
-	c, err := d.newApiClient()
-	if err != nil {
-		return err
-	}
-
 	for _, machine := range machines {
-		m, err := c.Machines().Create(machine)
+		m, err := d.client.Machines().Create(machine)
 		if err != nil {
 			return err
 		}
@@ -121,16 +102,12 @@ func (d *deployer) createMachine(m *clusterv1.Machine) error {
 }
 
 func (d *deployer) deleteAllMachines() error {
-	c, err := d.newApiClient()
-	if err != nil {
-		return err
-	}
-	machines, err := c.Machines().List(metav1.ListOptions{})
+	machines, err := d.client.Machines().List(metav1.ListOptions{})
 	if err != nil {
 		return err
 	}
 	for _, m := range machines.Items {
-		if err := d.delete(c, m.Name); err != nil {
+		if err := d.delete(m.Name); err != nil {
 			return err
 		}
 		glog.Infof("Deleted machine object %s", m.Name)
@@ -138,50 +115,13 @@ func (d *deployer) deleteAllMachines() error {
 	return nil
 }
 
-func (d *deployer) deleteMachine(name string) error {
-	c, err := d.newApiClient()
-	if err != nil {
-		return err
-	}
-	return d.delete(c, name)
-}
-
-func (d *deployer) delete(c *client.ClusterAPIV1Alpha1Client, name string) error {
+func (d *deployer) delete(name string) error {
 	// TODO  https://github.com/kubernetes/kube-deploy/issues/390
-	return c.Machines().Delete(name, &metav1.DeleteOptions{})
-}
-
-func (d *deployer) getMachine(name string) (*clusterv1.Machine, error) {
-	c, err := d.newApiClient()
-	if err != nil {
-		return nil, err
-	}
-	machine, err := c.Machines().Get(name, metav1.GetOptions{})
-	if err != nil {
-		return nil, err
-	}
-	return machine, nil
-}
-
-func (d *deployer) updateMachine(machine *clusterv1.Machine) error {
-	c, err := d.newApiClient()
-	if err != nil {
-		return err
-	}
-
-	if _, err := c.Machines().Update(machine); err != nil {
-		return err
-	}
-	return nil
+	return d.client.Machines().Delete(name, &metav1.DeleteOptions{})
 }
 
 func (d *deployer) listMachines() ([]*clusterv1.Machine, error) {
-	c, err := d.newApiClient()
-	if err != nil {
-		return nil, err
-	}
-
-	machines, err := c.Machines().List(metav1.ListOptions{})
+	machines, err := d.client.Machines().List(metav1.ListOptions{})
 	if err != nil {
 		return nil, err
 	}
@@ -216,6 +156,15 @@ func (d *deployer) copyKubeConfig(master *clusterv1.Machine) error {
 	return fmt.Errorf("timedout writing kubeconfig")
 }
 
+func (d *deployer) initApiClient() error {
+	c, err := util.NewApiClient(d.configPath)
+	if err != nil {
+		return err
+	}
+	d.client = c
+	return nil
+
+}
 func (d *deployer) writeConfigToDisk(config string) error {
 	file, err := os.Create(d.configPath)
 	if err != nil {
@@ -229,41 +178,6 @@ func (d *deployer) writeConfigToDisk(config string) error {
 	file.Sync() // flush
 	glog.Infof("wrote kubeconfig to [%s]", d.configPath)
 	return nil
-}
-
-func (d *deployer) newClientSet() (*apiextensionsclient.Clientset, error) {
-	config, err := d.getConfig()
-	if err != nil {
-		return nil, err
-	}
-
-	cs, err := apiextensionsclient.NewForConfig(config)
-	if err != nil {
-		return nil, err
-	}
-
-	return cs, nil
-}
-
-func (d *deployer) newApiClient() (*client.ClusterAPIV1Alpha1Client, error) {
-	config, err := d.getConfig()
-	if err != nil {
-		return nil, err
-	}
-
-	c, err := client.NewForConfig(config)
-	if err != nil {
-		return nil, err
-	}
-	return c, nil
-}
-
-func (d *deployer) getConfig() (*restclient.Config, error) {
-	config, err := clientcmd.BuildConfigFromFlags("", d.configPath)
-	if err != nil {
-		return nil, err
-	}
-	return config, nil
 }
 
 // Make sure you successfully call setMasterIp first.

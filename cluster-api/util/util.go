@@ -27,7 +27,10 @@ import (
 
 	"github.com/golang/glog"
 	"k8s.io/api/core/v1"
+	apiextensionsclient "k8s.io/apiextensions-apiserver/pkg/client/clientset/clientset"
+	"k8s.io/client-go/tools/clientcmd"
 	clusterv1 "k8s.io/kube-deploy/cluster-api/api/cluster/v1alpha1"
+	"k8s.io/kube-deploy/cluster-api/client"
 )
 
 const (
@@ -131,4 +134,31 @@ func Copy(m *clusterv1.Machine) *clusterv1.Machine {
 	ret.Namespace = m.Namespace
 	m.Spec.DeepCopyInto(&ret.Spec)
 	return ret
+}
+
+func NewApiClient(configPath string) (*client.ClusterAPIV1Alpha1Client, error) {
+	config, err := clientcmd.BuildConfigFromFlags("", configPath)
+	if err != nil {
+		return nil, err
+	}
+
+	c, err := client.NewForConfig(config)
+	if err != nil {
+		return nil, err
+	}
+	return c, nil
+}
+
+func NewClientSet(configPath string) (*apiextensionsclient.Clientset, error) {
+	config, err := clientcmd.BuildConfigFromFlags("", configPath)
+	if err != nil {
+		return nil, err
+	}
+
+	cs, err := apiextensionsclient.NewForConfig(config)
+	if err != nil {
+		return nil, err
+	}
+
+	return cs, nil
 }

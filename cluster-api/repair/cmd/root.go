@@ -44,7 +44,11 @@ var rootCmd = &cobra.Command{
 }
 
 func RunRepair(ro *RepairOptions) error {
-	return util.NewRepairer(ro.dryRun, ro.kubeConfig).RepairNode()
+	r, err := util.NewRepairer(ro.dryRun, ro.kubeConfig)
+	if err != nil {
+		return err
+	}
+	return r.RepairNode()
 }
 
 func Execute() {

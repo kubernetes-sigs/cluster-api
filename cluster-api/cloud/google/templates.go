@@ -71,7 +71,7 @@ systemctl restart kubelet.service
 kubeadm join --token "${TOKEN}" "${MASTER}" --skip-preflight-checks
 
 for tries in $(seq 1 60); do
-	kubectl --kubeconfig /etc/kubernetes/kubelet.conf annotate node $(hostname) machine=${MACHINE} && break
+	kubectl --kubeconfig /etc/kubernetes/kubelet.conf annotate --overwrite node $(hostname) machine=${MACHINE} && break
 	sleep 1
 done
 
@@ -131,7 +131,7 @@ kubeadm reset
 kubeadm init --apiserver-bind-port ${PORT} --token ${TOKEN} --kubernetes-version v${CONTROL_PLANE_VERSION} --apiserver-advertise-address ${PUBLICIP} --apiserver-cert-extra-sans ${PUBLICIP} ${PRIVATEIP} --service-cidr ${SERVICE_CIDR}
 
 for tries in $(seq 1 60); do
-	kubectl --kubeconfig /etc/kubernetes/kubelet.conf annotate node $(hostname) machine=${MACHINE} && break
+	kubectl --kubeconfig /etc/kubernetes/kubelet.conf annotate --overwrite node $(hostname) machine=${MACHINE} && break
 	sleep 1
 done
 

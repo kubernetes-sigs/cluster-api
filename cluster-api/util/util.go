@@ -43,10 +43,10 @@ var (
 )
 
 func RandomToken() string {
-	return fmt.Sprintf("%s.%s", randomString(6), randomString(16))
+	return fmt.Sprintf("%s.%s", RandomString(6), RandomString(16))
 }
 
-func randomString(n int) string {
+func RandomString(n int) string {
 	result := make([]byte, n)
 	for i := range result {
 		result[i] = CharSet[r.Intn(len(CharSet))]

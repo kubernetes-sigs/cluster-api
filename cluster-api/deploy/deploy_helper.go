@@ -128,6 +128,17 @@ func (d *deployer) listMachines() ([]*clusterv1.Machine, error) {
 	return util.MachineP(machines.Items), nil
 }
 
+func (d *deployer) getCluster() (*clusterv1.Cluster, error) {
+	clusters, err := d.client.Clusters().List(metav1.ListOptions{})
+	if err != nil {
+		return nil, err
+	}
+	if len(clusters.Items) != 1 {
+		return nil, fmt.Errorf("cluster object count != 1")
+	}
+	return &clusters.Items[0], nil
+}
+
 func (d *deployer) getMasterIP(master *clusterv1.Machine) (string, error) {
 	for i := 0; i < MasterIPAttempts; i++ {
 		ip, err := d.actuator.GetIP(master)

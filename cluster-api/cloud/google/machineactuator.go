@@ -266,7 +266,22 @@ func (gce *GCEClient) Delete(machine *clusterv1.Machine) error {
 		return gce.handleMachineError(machine, verr)
 	}
 
-	op, err := gce.service.Instances.Delete(config.Project, config.Zone, machine.ObjectMeta.Name).Do()
+	var project, zone, name string
+
+	if machine.ObjectMeta.Annotations != nil {
+		project = machine.ObjectMeta.Annotations[ProjectAnnotationKey]
+		zone = machine.ObjectMeta.Annotations[ZoneAnnotationKey]
+		name = machine.ObjectMeta.Annotations[NameAnnotationKey]
+	}
+
+	// If the annotations are missing, fall back on providerConfig
+	if project == "" || zone == "" || name == "" {
+		project = config.Project
+		zone = config.Zone
+		name = machine.ObjectMeta.Name
+	}
+
+	op, err := gce.service.Instances.Delete(project, zone, name).Do()
 	if err == nil {
 		err = gce.waitForOperation(config, op)
 	}

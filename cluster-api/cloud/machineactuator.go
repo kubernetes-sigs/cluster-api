@@ -33,6 +33,6 @@ type MachineActuator interface {
 	// machines don't have to be reconciled as part of this function, but
 	// are provided in case the function wants to refer to them (and their
 	// ProviderConfigs) to know how to configure the machine controller.
-	CreateMachineController(initialMachines []*clusterv1.Machine) error
-	PostDelete(machines []*clusterv1.Machine) error
+	CreateMachineController(cluster *clusterv1.Cluster, initialMachines []*clusterv1.Machine) error
+	PostDelete(cluster *clusterv1.Cluster, machines []*clusterv1.Machine) error
 }

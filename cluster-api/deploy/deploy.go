@@ -101,6 +101,10 @@ func (d *deployer) CreateCluster(c *clusterv1.Cluster, machines []*clusterv1.Mac
 	if err := d.initApiClient(); err != nil {
 		return err
 	}
+	glog.Info("Starting the machine controller...")
+	if err := d.actuator.CreateMachineController(c, machines); err != nil {
+		return fmt.Errorf("can't create machine controller: %v", err)
+	}
 
 	if err := d.createClusterCRD(); err != nil {
 		return err
@@ -116,11 +120,6 @@ func (d *deployer) CreateCluster(c *clusterv1.Cluster, machines []*clusterv1.Mac
 
 	if err := d.createMachines(machines); err != nil {
 		return err
-	}
-
-	glog.Info("Starting the machine controller...")
-	if err := d.actuator.CreateMachineController(machines); err != nil {
-		return fmt.Errorf("can't create machine controller: %v", err)
 	}
 
 	glog.Infof("The [%s] cluster has been created successfully!", c.Name)
@@ -145,6 +144,10 @@ func (d *deployer) DeleteCluster() error {
 	if err != nil {
 		return err
 	}
+	cluster, err := d.getCluster()
+	if err != nil {
+		return err
+	}
 
 	master := util.GetMaster(machines)
 	if master == nil {
@@ -162,7 +165,7 @@ func (d *deployer) DeleteCluster() error {
 	}
 
 	glog.Info("Running post delete operations")
-	if err := d.actuator.PostDelete(machines); err != nil {
+	if err := d.actuator.PostDelete(cluster, machines); err != nil {
 		return err
 	}
 	glog.Infof("Deletion successful")

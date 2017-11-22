@@ -103,19 +103,8 @@ func NewMachineActuator(kubeadmToken string, machineClient client.MachinesInterf
 	}, nil
 }
 
-func (gce *GCEClient) CreateMachineController(initialMachines []*clusterv1.Machine) error {
-	// Figure out what projects the service account needs permission to.
-	var projects []string
-	for _, machine := range initialMachines {
-		config, err := gce.providerconfig(machine.Spec.ProviderConfig)
-		if err != nil {
-			return err
-		}
-
-		projects = append(projects, config.Project)
-	}
-
-	if err := CreateMachineControllerServiceAccount(projects); err != nil {
+func (gce *GCEClient) CreateMachineController(cluster *clusterv1.Cluster, initialMachines []*clusterv1.Machine) error {
+	if err := gce.CreateMachineControllerServiceAccount(cluster, initialMachines); err != nil {
 		return err
 	}
 
@@ -292,18 +281,8 @@ func (gce *GCEClient) Delete(machine *clusterv1.Machine) error {
 	return nil
 }
 
-func (gce *GCEClient) PostDelete(machines []*clusterv1.Machine) error {
-	var projects []string
-	for _, machine := range machines {
-		config, err := gce.providerconfig(machine.Spec.ProviderConfig)
-		if err != nil {
-			return err
-		}
-
-		projects = append(projects, config.Project)
-	}
-
-	return DeleteMachineControllerServiceAccount(projects)
+func (gce *GCEClient) PostDelete(cluster *clusterv1.Cluster, machines []*clusterv1.Machine) error {
+	return gce.DeleteMachineControllerServiceAccount(cluster, machines)
 }
 
 func (gce *GCEClient) Update(cluster *clusterv1.Cluster, oldMachine *clusterv1.Machine, newMachine *clusterv1.Machine) error {

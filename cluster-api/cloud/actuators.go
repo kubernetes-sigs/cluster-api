@@ -76,12 +76,12 @@ func (a loggingMachineActuator) GetKubeConfig(master *clusterv1.Machine) (string
 	return config, nil
 }
 
-func (a loggingMachineActuator) CreateMachineController(machines []*clusterv1.Machine) error {
+func (a loggingMachineActuator) CreateMachineController(cluster *clusterv1.Cluster, machines []*clusterv1.Machine) error {
 	glog.Infof("actuator received CreateMachineController: %q\n", machines)
 	return nil
 }
 
-func (a loggingMachineActuator) PostDelete(machines []*clusterv1.Machine) error {
+func (a loggingMachineActuator) PostDelete(cluster *clusterv1.Cluster, machines []*clusterv1.Machine) error {
 	glog.Infof("actuator received PostDelete: %q\n", machines)
 	return nil
 }

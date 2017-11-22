@@ -9,6 +9,6 @@ all:
 	cd examples/machineset && go build
 
 fmt:
-	find -path './vendor' -prune -o -name '*.go' -exec gofmt -w {} \;
+	find -path './vendor' -prune -o -name '*.go' -exec gofmt -w -l {} \;
 
 .PHONY: all fmt

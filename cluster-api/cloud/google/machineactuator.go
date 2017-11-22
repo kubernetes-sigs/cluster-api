@@ -17,12 +17,14 @@ limitations under the License.
 package google
 
 import (
+	"bytes"
 	"errors"
 	"fmt"
 	"io/ioutil"
 	"os"
 	"path"
 	"strings"
+	"time"
 
 	"github.com/golang/glog"
 	"golang.org/x/net/context"
@@ -60,6 +62,11 @@ type GCEClient struct {
 	sshCreds      SshCreds
 	machineClient client.MachinesInterface
 }
+
+const (
+	gceTimeout   = time.Minute * 10
+	gceWaitSleep = time.Second * 5
+)
 
 func NewMachineActuator(kubeadmToken string, machineClient client.MachinesInterface) (*GCEClient, error) {
 	// The default GCP client expects the environment variable
@@ -393,22 +400,44 @@ func (gce *GCEClient) providerconfig(providerConfig string) (*gceconfig.GCEProvi
 }
 
 func (gce *GCEClient) waitForOperation(c *gceconfig.GCEProviderConfig, op *compute.Operation) error {
-	for op != nil && op.Status != "DONE" {
-		var err error
-		op, err = gce.getOp(c, op)
-		if err != nil {
+	glog.Infof("Wait for %v %q...", op.OperationType, op.Name)
+	defer glog.Infof("Finish wait for %v %q...", op.OperationType, op.Name)
+
+	start := time.Now()
+	ctx, cf := context.WithTimeout(context.Background(), gceTimeout)
+	defer cf()
+
+	var err error
+	for {
+		if err = gce.checkOp(op, err); err != nil || op.Status == "DONE" {
 			return err
 		}
+		glog.V(1).Infof("Wait for %v %q: %v (%d%%): %v", op.OperationType, op.Name, op.Status, op.Progress, op.StatusMessage)
+		select {
+		case <-ctx.Done():
+			return fmt.Errorf("gce operation %v %q timed out after %v", op.OperationType, op.Name, time.Since(start))
+		case <-time.After(gceWaitSleep):
+		}
+		op, err = gce.getOp(c, op)
 	}
-	if op != nil && op.Error != nil {
-		return fmt.Errorf("Operation Failed : %v", *op.Error.Errors[0])
-	}
-	return nil
 }
 
 // getOp returns an updated operation.
 func (gce *GCEClient) getOp(c *gceconfig.GCEProviderConfig, op *compute.Operation) (*compute.Operation, error) {
 	return gce.service.ZoneOperations.Get(c.Project, path.Base(op.Zone), op.Name).Do()
+}
+
+func (gce *GCEClient) checkOp(op *compute.Operation, err error) error {
+	if err != nil || op.Error == nil || len(op.Error.Errors) == 0 {
+		return err
+	}
+
+	var errs bytes.Buffer
+	for _, v := range op.Error.Errors {
+		errs.WriteString(v.Message)
+		errs.WriteByte('\n')
+	}
+	return errors.New(errs.String())
 }
 
 func (gce *GCEClient) updateMasterInplace(oldMachine *clusterv1.Machine, newMachine *clusterv1.Machine) error {

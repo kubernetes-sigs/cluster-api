@@ -27,7 +27,7 @@ import (
 	"github.com/golang/glog"
 )
 
-var machineControllerImage = "gcr.io/k8s-cluster-api/machine-controller:0.8"
+var machineControllerImage = "gcr.io/k8s-cluster-api/machine-controller:0.9"
 
 func init() {
 	if img, ok := os.LookupEnv("MACHINE_CONTROLLER_IMAGE"); ok {

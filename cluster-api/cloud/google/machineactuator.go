@@ -39,6 +39,12 @@ import (
 	"k8s.io/kube-deploy/cluster-api/util"
 )
 
+const (
+	ProjectAnnotationKey = "gcp-project"
+	ZoneAnnotationKey    = "gcp-zone"
+	NameAnnotationKey    = "gcp-name"
+)
+
 type SshCreds struct {
 	user           string
 	privateKeyPath string
@@ -184,9 +190,13 @@ func (gce *GCEClient) Create(cluster *clusterv1.Cluster, machine *clusterv1.Mach
 		)
 	}
 
-	op, err := gce.service.Instances.Insert(config.Project, config.Zone, &compute.Instance{
-		Name:        machine.ObjectMeta.Name,
-		MachineType: fmt.Sprintf("zones/%s/machineTypes/%s", config.Zone, config.MachineType),
+	name := machine.ObjectMeta.Name
+	project := config.Project
+	zone := config.Zone
+
+	op, err := gce.service.Instances.Insert(project, zone, &compute.Instance{
+		Name:        name,
+		MachineType: fmt.Sprintf("zones/%s/machineTypes/%s", zone, config.MachineType),
 		NetworkInterfaces: []*compute.NetworkInterface{
 			{
 				Network: "global/networks/default",
@@ -228,6 +238,19 @@ func (gce *GCEClient) Create(cluster *clusterv1.Cluster, machine *clusterv1.Mach
 	if err != nil {
 		return gce.handleMachineError(machine, apierrors.CreateMachine(
 			"error creating GCE instance: %v", err))
+	}
+
+	// If we have a machineClient, then annotate the machine so that we
+	// remember exactly what VM we created for it.
+	if gce.machineClient != nil {
+		if machine.ObjectMeta.Annotations == nil {
+			machine.ObjectMeta.Annotations = make(map[string]string)
+		}
+		machine.ObjectMeta.Annotations[ProjectAnnotationKey] = project
+		machine.ObjectMeta.Annotations[ZoneAnnotationKey] = zone
+		machine.ObjectMeta.Annotations[NameAnnotationKey] = name
+		_, err := gce.machineClient.Update(machine)
+		return err
 	}
 	return nil
 }
@@ -392,9 +415,9 @@ func (gce *GCEClient) getOp(c *gceconfig.GCEProviderConfig, op *compute.Operatio
 func (gce *GCEClient) updateMasterInplace(oldMachine *clusterv1.Machine, newMachine *clusterv1.Machine) error {
 	if oldMachine.Spec.Versions.ControlPlane != newMachine.Spec.Versions.ControlPlane {
 		// First pull off the latest kubeadm.
-		cmd := "export KUBEADM_VERSION=$(curl -sSL https://dl.k8s.io/release/stable.txt); "+
-			   "curl -sSL https://dl.k8s.io/release/${KUBEADM_VERSION}/bin/linux/amd64/kubeadm | sudo tee /usr/bin/kubeadm > /dev/null; "+
-			   "sudo chmod a+rx /usr/bin/kubeadm"
+		cmd := "export KUBEADM_VERSION=$(curl -sSL https://dl.k8s.io/release/stable.txt); " +
+			"curl -sSL https://dl.k8s.io/release/${KUBEADM_VERSION}/bin/linux/amd64/kubeadm | sudo tee /usr/bin/kubeadm > /dev/null; " +
+			"sudo chmod a+rx /usr/bin/kubeadm"
 		_, err := gce.remoteSshCommand(newMachine, cmd)
 		if err != nil {
 			glog.Infof("remotesshcomand error: %v", err)

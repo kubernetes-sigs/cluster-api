@@ -38,6 +38,80 @@ const (
 	DeleteSleepSeconds     = 5
 )
 
+func (d *deployer) createCluster(c *clusterv1.Cluster, machines []*clusterv1.Machine, vmCreated *bool) error {
+	if c.GetName() == "" {
+		return fmt.Errorf("cluster name must be specified for cluster creation")
+	}
+	master := util.GetMaster(machines)
+	if master == nil {
+		return fmt.Errorf("master spec must be provided for cluster creation")
+	}
+
+	if master.GetName() == "" && master.GetGenerateName() == "" {
+		return fmt.Errorf("master name must be specified for cluster creation")
+	}
+
+	if master.GetName() == "" {
+		master.Name = master.GetGenerateName() + c.GetName()
+	}
+
+	glog.Infof("Starting cluster creation %s", c.GetName())
+
+	glog.Infof("Starting master creation %s", master.GetName())
+
+	if err := d.actuator.Create(c, master); err != nil {
+		return err
+	}
+
+	*vmCreated = true
+	glog.Infof("Created master %s", master.GetName())
+
+	masterIP, err := d.getMasterIP(master)
+	if err != nil {
+		return fmt.Errorf("unable to get master IP: %v", err)
+	}
+
+	c.Status.APIEndpoints = append(c.Status.APIEndpoints,
+		clusterv1.APIEndpoint{
+			Host: masterIP,
+			Port: 443,
+		})
+
+	if err := d.copyKubeConfig(master); err != nil {
+		return fmt.Errorf("unable to write kubeconfig: %v", err)
+	}
+
+	glog.Info("Waiting for apiserver to become healthy...")
+	if err := d.waitForApiserver(masterIP, 1*time.Minute); err != nil {
+		return fmt.Errorf("apiserver never came up: %v", err)
+	}
+
+	if err := d.initApiClient(); err != nil {
+		return err
+	}
+	glog.Info("Starting the machine controller...")
+	if err := d.actuator.CreateMachineController(c, machines); err != nil {
+		return fmt.Errorf("can't create machine controller: %v", err)
+	}
+
+	if err := d.createClusterCRD(); err != nil {
+		return err
+	}
+
+	if _, err := d.client.Clusters().Create(c); err != nil {
+		return err
+	}
+
+	if err := d.createMachineCRD(); err != nil {
+		return err
+	}
+
+	if err := d.createMachines(machines); err != nil {
+		return err
+	}
+	return nil
+}
+
 func (d *deployer) createClusterCRD() error {
 	cs, err := util.NewClientSet(d.configPath)
 	if err != nil {

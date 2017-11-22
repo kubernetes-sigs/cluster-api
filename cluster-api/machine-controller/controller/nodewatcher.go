@@ -123,7 +123,8 @@ func (c *NodeWatcher) link(node *corev1.Node) {
 		if _, err := c.machineClient.Update(machine); err != nil {
 			glog.Errorf("Error updating machine to link to node: %v\n", err)
 		} else {
-			glog.Infof("Successfully linked machine to node\n")
+			glog.Infof("Successfully linked machine %s to node %s\n",
+				machine.ObjectMeta.Name, node.ObjectMeta.Name)
 			c.linkedNodes[node.ObjectMeta.Name] = true
 		}
 	}

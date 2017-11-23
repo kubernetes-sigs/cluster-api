@@ -3,6 +3,7 @@ items:
   kind: Machine
   metadata:
     generateName: gce-master-
+    uid: 40276eba-d030-11e7-910f-42010a800002
     labels:
       set: master
   spec:
@@ -10,7 +11,7 @@ items:
       {
         "apiVersion": "gceproviderconfig/v1alpha1",
         "kind": "GCEProviderConfig",
-        "project": "fmin-gke-dev",
+        "project": "jesschen-gke-dev",
         "zone": "us-central1-f",
         "machineType": "n1-standard-2",
         "image": "projects/ubuntu-os-cloud/global/images/family/ubuntu-1604-lts"
@@ -34,7 +35,7 @@ items:
       {
         "apiVersion": "gceproviderconfig/v1alpha1",
         "kind": "GCEProviderConfig",
-        "project": "fmin-gke-dev",
+        "project": "jesschen-gke-dev",
         "zone": "us-central1-f",
         "machineType": "n1-standard-1",
         "image": "projects/ubuntu-os-cloud/global/images/family/ubuntu-1604-lts"

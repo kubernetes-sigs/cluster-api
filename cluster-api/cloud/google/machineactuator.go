@@ -43,6 +43,8 @@ const (
 	ProjectAnnotationKey = "gcp-project"
 	ZoneAnnotationKey    = "gcp-zone"
 	NameAnnotationKey    = "gcp-name"
+
+	UIDLabelKey          = "machine-crd-uid"
 )
 
 type SshCreds struct {
@@ -217,6 +219,9 @@ func (gce *GCEClient) Create(cluster *clusterv1.Cluster, machine *clusterv1.Mach
 		},
 		Tags: &compute.Tags{
 			Items: []string{"https-server"},
+		},
+		Labels: map[string]string{
+			UIDLabelKey : fmt.Sprintf("%v", machine.ObjectMeta.UID),
 		},
 	}).Do()
 

@@ -19,7 +19,6 @@ package controller
 import (
 	"context"
 	"errors"
-	"reflect"
 
 	"github.com/golang/glog"
 
@@ -120,18 +119,14 @@ func (c *MachineController) run(ctx context.Context) error {
 
 func (c *MachineController) onAdd(obj interface{}) {
 	machine := obj.(*clusterv1.Machine)
-	glog.Infof("object created: %s\n", machine.ObjectMeta.Name)
+	glog.Infof("machine object created: %s\n", machine.ObjectMeta.Name)
 
-	if ignored(machine) {
-		return
-	}
-
-	c.runner.runAsync(machine.ObjectMeta.Name, func() {
-		err := c.create(machine)
+	c.runner.runAsync(machine.ObjectMeta.Name, func(){
+		err := c.reconcile(machine)
 		if err != nil {
-			glog.Errorf("create machine %s failed: %v", machine.ObjectMeta.Name, err)
+			glog.Errorf("processing machine object %s create failed: %v", machine.ObjectMeta.Name, err)
 		} else {
-			glog.Infof("create machine %s succeded.", machine.ObjectMeta.Name)
+			glog.Infof("processing machine object %s create succeded.", machine.ObjectMeta.Name)
 		}
 	})
 }
@@ -139,38 +134,32 @@ func (c *MachineController) onAdd(obj interface{}) {
 func (c *MachineController) onUpdate(oldObj, newObj interface{}) {
 	oldMachine := oldObj.(*clusterv1.Machine)
 	newMachine := newObj.(*clusterv1.Machine)
-	glog.Infof("object updated: %s\n", oldMachine.ObjectMeta.Name)
-	glog.Infof("  old k8s version: %s, new: %s\n", oldMachine.Spec.Versions.Kubelet, newMachine.Spec.Versions.Kubelet)
+	glog.Infof("machine object updated: %s\n", oldMachine.ObjectMeta.Name)
 
-	if !c.requiresUpdate(newMachine, oldMachine) {
-		glog.Infof("machine %s change does not require any update action to be taken.", oldMachine.ObjectMeta.Name)
-		return
-	}
-
-	c.runner.runAsync(newMachine.ObjectMeta.Name, func() {
-		err := c.update(oldMachine, newMachine)
+	c.runner.runAsync(newMachine.ObjectMeta.Name, func(){
+		err := 	c.reconcile(newMachine)
 		if err != nil {
-			glog.Errorf("update machine %s failed: %v", newMachine.ObjectMeta.Name, err)
+			glog.Errorf("processing machine object %s update failed: %v", newMachine.ObjectMeta.Name, err)
 		} else {
-			glog.Infof("update machine %s succeded.", newMachine.ObjectMeta.Name)
+			glog.Infof("processing machine object %s update succeded.", newMachine.ObjectMeta.Name)
 		}
 	})
 }
 
 func (c *MachineController) onDelete(obj interface{}) {
 	machine := obj.(*clusterv1.Machine)
-	glog.Infof("object deleted: %s\n", machine.ObjectMeta.Name)
+	glog.Infof("machine object deleted: %s\n", machine.ObjectMeta.Name)
 
 	if ignored(machine) {
 		return
 	}
 
-	c.runner.runAsync(machine.ObjectMeta.Name, func() {
-		err := c.delete(machine)
+	c.runner.runAsync(machine.ObjectMeta.Name, func(){
+		err := c.reconcile(machine)
 		if err != nil {
-			glog.Errorf("delete machine %s failed: %v", machine.ObjectMeta.Name, err)
+			glog.Errorf("processing machine object %s delete failed: %v", machine.ObjectMeta.Name, err)
 		} else {
-			glog.Infof("delete machine %s succeded.", machine.ObjectMeta.Name)
+			glog.Infof("processing machine object %s delete succeded.", machine.ObjectMeta.Name)
 		}
 	})
 }
@@ -183,28 +172,38 @@ func ignored(machine *clusterv1.Machine) bool {
 	return false
 }
 
-// The two machines differ in a way that requires an update
-func (c *MachineController) requiresUpdate(a *clusterv1.Machine, b *clusterv1.Machine) bool {
-	// Do not want status changes. Do want changes that impact machine provisioning
-	return !reflect.DeepEqual(a.Spec.ObjectMeta, b.Spec.ObjectMeta) ||
-		!reflect.DeepEqual(a.Spec.ProviderConfig, b.Spec.ProviderConfig) ||
-		!reflect.DeepEqual(a.Spec.Roles, b.Spec.Roles) ||
-		!reflect.DeepEqual(a.Spec.Versions, b.Spec.Versions) ||
-		a.ObjectMeta.Name != b.ObjectMeta.Name
+// Reconcile for the given machine the current desired state (in form of machine CRD)
+// and the current actual state (in form of actual machine status
+func (c *MachineController) reconcile(machine *clusterv1.Machine) error {
+	desiredMachine, err := util.GetCurrentMachineIfExists(c.machineClient, machine)
+	if err != nil {
+		return err
+	}
+
+	if desiredMachine == nil {
+		// CRD deleted. Delete machine.
+		glog.Infof("reconciling machine object %v triggers idempotent delete.", machine.ObjectMeta.Name)
+		return c.delete(machine)
+	}
+
+	exist, err := c.actuator.Exists(machine)
+	if err != nil {
+		return err
+	}
+
+	if !exist {
+		// CRD created. Machine does not yet exist.
+		glog.Infof("reconciling machine object %v triggers idempotent create.", machine.ObjectMeta.Name)
+		return c.create(desiredMachine)
+	}
+
+	glog.Infof("reconciling machine object %v triggers idempotent update.", machine.ObjectMeta.Name)
+	return c.update(desiredMachine)
 }
 
 func (c *MachineController) create(machine *clusterv1.Machine) error {
 	cluster, err := c.getCluster()
 	if err != nil {
-		return err
-	}
-
-	// Sometimes old events get replayed even though they have already been processed by this
-	// controller. Temporarily work around this by checking if the machine CRD actually exists
-	// on create.
-	_, err = c.machineClient.Get(machine.ObjectMeta.Name, metav1.GetOptions{})
-	if err != nil {
-		glog.Errorf("Skipping machine create due to error getting machine %v: %v\n", machine.ObjectMeta.Name, err)
 		return err
 	}
 
@@ -222,7 +221,7 @@ func (c *MachineController) delete(machine *clusterv1.Machine) error {
 	return nil
 }
 
-func (c *MachineController) update(old_machine *clusterv1.Machine, new_machine *clusterv1.Machine) error {
+func (c *MachineController) update(new_machine *clusterv1.Machine) error {
 	cluster, err := c.getCluster()
 	if err != nil {
 		return err
@@ -230,7 +229,7 @@ func (c *MachineController) update(old_machine *clusterv1.Machine, new_machine *
 
 	// TODO: Assume single master for now.
 	// TODO: Assume we never change the role for the machines. (Master->Node, Node->Master, etc)
-	return c.actuator.Update(cluster, old_machine, new_machine)
+	return c.actuator.Update(cluster, new_machine)
 }
 
 //TODO: we should cache this locally and update with an informer

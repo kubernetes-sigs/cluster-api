@@ -33,12 +33,14 @@ import (
 
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/serializer"
+
 	clusterv1 "k8s.io/kube-deploy/cluster-api/api/cluster/v1alpha1"
 	"k8s.io/kube-deploy/cluster-api/client"
 	gceconfig "k8s.io/kube-deploy/cluster-api/cloud/google/gceproviderconfig"
 	gceconfigv1 "k8s.io/kube-deploy/cluster-api/cloud/google/gceproviderconfig/v1alpha1"
 	apierrors "k8s.io/kube-deploy/cluster-api/errors"
 	"k8s.io/kube-deploy/cluster-api/util"
+	"reflect"
 )
 
 const (
@@ -46,7 +48,8 @@ const (
 	ZoneAnnotationKey    = "gcp-zone"
 	NameAnnotationKey    = "gcp-name"
 
-	UIDLabelKey = "machine-crd-uid"
+	UIDLabelKey       = "machine-crd-uid"
+	BootstrapLabelKey = "boostrap"
 )
 
 type SshCreds struct {
@@ -199,6 +202,11 @@ func (gce *GCEClient) Create(cluster *clusterv1.Cluster, machine *clusterv1.Mach
 		})
 	}
 
+	instance, err := gce.instanceIfExists(machine)
+	if err != nil {
+		return err
+	}
+
 	name := machine.ObjectMeta.Name
 	project := config.Project
 	zone := config.Zone
@@ -210,66 +218,79 @@ func (gce *GCEClient) Create(cluster *clusterv1.Cluster, machine *clusterv1.Mach
 		diskSize = 30
 	}
 
-	op, err := gce.service.Instances.Insert(project, zone, &compute.Instance{
-		Name:        name,
-		MachineType: fmt.Sprintf("zones/%s/machineTypes/%s", zone, config.MachineType),
-		NetworkInterfaces: []*compute.NetworkInterface{
-			{
-				Network: "global/networks/default",
-				AccessConfigs: []*compute.AccessConfig{
-					{
-						Type: "ONE_TO_ONE_NAT",
-						Name: "External NAT",
+	if instance == nil {
+		labels := map[string]string{
+			UIDLabelKey: fmt.Sprintf("%v", machine.ObjectMeta.UID),
+		}
+		if gce.machineClient == nil {
+			labels[BootstrapLabelKey] = "true"
+		}
+
+		op, err := gce.service.Instances.Insert(project, zone, &compute.Instance{
+			Name:        name,
+			MachineType: fmt.Sprintf("zones/%s/machineTypes/%s", zone, config.MachineType),
+			NetworkInterfaces: []*compute.NetworkInterface{
+				{
+					Network: "global/networks/default",
+					AccessConfigs: []*compute.AccessConfig{
+						{
+							Type: "ONE_TO_ONE_NAT",
+							Name: "External NAT",
+						},
 					},
 				},
 			},
-		},
-		Disks: []*compute.AttachedDisk{
-			{
-				AutoDelete: true,
-				Boot:       true,
-				InitializeParams: &compute.AttachedDiskInitializeParams{
-					SourceImage: image,
-					DiskSizeGb:  diskSize,
+			Disks: []*compute.AttachedDisk{
+				{
+					AutoDelete: true,
+					Boot:       true,
+					InitializeParams: &compute.AttachedDiskInitializeParams{
+						SourceImage: image,
+						DiskSizeGb:  diskSize,
+					},
 				},
 			},
-		},
-		Metadata: &compute.Metadata{
-			Items: metadataItems,
-		},
-		Tags: &compute.Tags{
-			Items: []string{"https-server"},
-		},
-		Labels: map[string]string{
-			UIDLabelKey: fmt.Sprintf("%v", machine.ObjectMeta.UID),
-		},
-	}).Do()
+			Metadata: &compute.Metadata{
+				Items: metadataItems,
+			},
+			Tags: &compute.Tags{
+				Items: []string{"https-server"},
+			},
+			Labels: labels,
+		}).Do()
 
-	if err == nil {
-		err = gce.waitForOperation(config, op)
-	}
-
-	if err != nil {
-		return gce.handleMachineError(machine, apierrors.CreateMachine(
-			"error creating GCE instance: %v", err))
-	}
-
-	// If we have a machineClient, then annotate the machine so that we
-	// remember exactly what VM we created for it.
-	if gce.machineClient != nil {
-		if machine.ObjectMeta.Annotations == nil {
-			machine.ObjectMeta.Annotations = make(map[string]string)
+		if err == nil {
+			err = gce.waitForOperation(config, op)
 		}
-		machine.ObjectMeta.Annotations[ProjectAnnotationKey] = project
-		machine.ObjectMeta.Annotations[ZoneAnnotationKey] = zone
-		machine.ObjectMeta.Annotations[NameAnnotationKey] = name
-		_, err := gce.machineClient.Update(machine)
-		return err
+
+		if err != nil {
+			return gce.handleMachineError(machine, apierrors.CreateMachine(
+				"error creating GCE instance: %v", err))
+		}
+
+		// If we have a machineClient, then annotate the machine so that we
+		// remember exactly what VM we created for it.
+		if gce.machineClient != nil {
+			return gce.updateAnnotations(machine)
+		}
+	} else {
+		glog.Infof("Skipped creating a VM that already exists.\n")
 	}
+
 	return nil
 }
 
 func (gce *GCEClient) Delete(machine *clusterv1.Machine) error {
+	instance, err := gce.instanceIfExists(machine)
+	if err != nil {
+		return err
+	}
+
+	if instance == nil {
+		glog.Infof("Skipped deleting a VM that is already deleted.\n")
+		return nil
+	}
+
 	config, err := gce.providerconfig(machine.Spec.ProviderConfig)
 	if err != nil {
 		return gce.handleMachineError(machine,
@@ -303,6 +324,7 @@ func (gce *GCEClient) Delete(machine *clusterv1.Machine) error {
 		return gce.handleMachineError(machine, apierrors.DeleteMachine(
 			"error deleting GCE instance: %v", err))
 	}
+
 	return nil
 }
 
@@ -310,52 +332,71 @@ func (gce *GCEClient) PostDelete(cluster *clusterv1.Cluster, machines []*cluster
 	return gce.DeleteMachineControllerServiceAccount(cluster, machines)
 }
 
-func (gce *GCEClient) Update(cluster *clusterv1.Cluster, oldMachine *clusterv1.Machine, newMachine *clusterv1.Machine) error {
+func (gce *GCEClient) Update(cluster *clusterv1.Cluster, goalMachine *clusterv1.Machine) error {
 	// Before updating, do some basic validation of the object first.
-	config, err := gce.providerconfig(newMachine.Spec.ProviderConfig)
+	config, err := gce.providerconfig(goalMachine.Spec.ProviderConfig)
 	if err != nil {
-		return gce.handleMachineError(newMachine,
+		return gce.handleMachineError(goalMachine,
 			apierrors.InvalidMachineConfiguration("Cannot unmarshal providerConfig field: %v", err))
 	}
-	if verr := gce.validateMachine(newMachine, config); verr != nil {
-		return gce.handleMachineError(newMachine, verr)
+	if verr := gce.validateMachine(goalMachine, config); verr != nil {
+		return gce.handleMachineError(goalMachine, verr)
 	}
 
-	if util.IsMaster(oldMachine) {
+	status, err := gce.instanceStatus(goalMachine)
+	if err != nil {
+		return err
+	}
+
+	currentMachine := (*clusterv1.Machine)(status)
+	if currentMachine == nil {
+		instance, err := gce.instanceIfExists(goalMachine)
+		if err != nil{
+			return err
+		}
+		if instance != nil && instance.Labels[BootstrapLabelKey] != ""{
+			glog.Infof("Populating current state for boostrap machine %v", goalMachine.ObjectMeta.Name)
+			return gce.updateAnnotations(goalMachine)
+		} else {
+			return fmt.Errorf("Cannot retrieve current state to update machine %v", goalMachine.ObjectMeta.Name)
+		}
+	}
+
+	if !gce.requiresUpdate(currentMachine, goalMachine) {
+		return nil
+	}
+
+	if util.IsMaster(currentMachine) {
 		glog.Infof("Doing an in-place upgrade for master.\n")
-		err = gce.updateMasterInplace(oldMachine, newMachine)
+		err = gce.updateMasterInplace(currentMachine, goalMachine)
 		if err != nil {
 			glog.Errorf("master inplace update failed: %v", err)
 		}
 	} else {
-		// It's a little counter-intuitive to Delete(newMachine)
-		// instead of Delete(oldMachine), but this fixes the case where
-		// a Machine is edited to have invalid configuration, and then
-		// fixed with correct configuration. If we try to do
-		// Delete(oldMachine), the old Spec is invalid, and we might
-		// not even be able to unmarshal the ProviderConfig, so the
-		// deletion will fail.
-		//
-		// There is still an edge case we need to handle where someone
-		// wants to change the project or zone of the Machine in the
-		// ProviderConfig, where using Delete(newMachine) won't
-		// actually delete the correct VM.
-		glog.Infof("re-creating machine %s for update.", newMachine.ObjectMeta.Name)
-		err = gce.Delete(newMachine)
+		glog.Infof("re-creating machine %s for update.", currentMachine.ObjectMeta.Name)
+		err = gce.Delete(currentMachine)
 		if err != nil {
-			glog.Errorf("delete machine %s for update failed: %v", newMachine.ObjectMeta.Name, err)
+			glog.Errorf("delete machine %s for update failed: %v", currentMachine.ObjectMeta.Name, err)
 		} else {
-			err = gce.Create(cluster, newMachine)
+			err = gce.Create(cluster, goalMachine)
 			if err != nil {
-				glog.Errorf("create machine %s for update failed: %v", newMachine.ObjectMeta.Name, err)
+				glog.Errorf("create machine %s for update failed: %v", goalMachine.ObjectMeta.Name, err)
 			}
 		}
 	}
+	if err != nil {
+		return err
+	}
+	err = gce.updateInstanceStatus(goalMachine)
 	return err
 }
 
-func (gce *GCEClient) Get(name string) (*clusterv1.Machine, error) {
-	return nil, fmt.Errorf("Get machine is not implemented on Google")
+func (gce *GCEClient) Exists(machine *clusterv1.Machine) (bool, error) {
+	i, err := gce.instanceIfExists(machine)
+	if err != nil {
+		return false, err
+	}
+	return (i != nil), err
 }
 
 func (gce *GCEClient) GetIP(machine *clusterv1.Machine) (string, error) {
@@ -396,6 +437,87 @@ func (gce *GCEClient) GetKubeConfig(master *clusterv1.Machine) (string, error) {
 		return "", nil
 	}
 	return strings.TrimSpace(parts[1]), nil
+}
+
+func (gce *GCEClient) updateAnnotations(machine *clusterv1.Machine) error {
+	config, err := gce.providerconfig(machine.Spec.ProviderConfig)
+	name := machine.ObjectMeta.Name
+	project := config.Project
+	zone := config.Zone
+
+	if err != nil {
+		return gce.handleMachineError(machine,
+			apierrors.InvalidMachineConfiguration("Cannot unmarshal providerConfig field: %v", err))
+	}
+
+	if machine.ObjectMeta.Annotations == nil {
+		machine.ObjectMeta.Annotations = make(map[string]string)
+	}
+	machine.ObjectMeta.Annotations[ProjectAnnotationKey] = project
+	machine.ObjectMeta.Annotations[ZoneAnnotationKey] = zone
+	machine.ObjectMeta.Annotations[NameAnnotationKey] = name
+	_, err = gce.machineClient.Update(machine)
+	if err != nil {
+		return err
+	}
+	err = gce.updateInstanceStatus(machine)
+	return err
+}
+
+// The two machines differ in a way that requires an update
+func (gce *GCEClient) requiresUpdate(a *clusterv1.Machine, b *clusterv1.Machine) bool {
+	// Do not want status changes. Do want changes that impact machine provisioning
+	return !reflect.DeepEqual(a.Spec.ObjectMeta, b.Spec.ObjectMeta) ||
+		!reflect.DeepEqual(a.Spec.ProviderConfig, b.Spec.ProviderConfig) ||
+		!reflect.DeepEqual(a.Spec.Roles, b.Spec.Roles) ||
+		!reflect.DeepEqual(a.Spec.Versions, b.Spec.Versions) ||
+		a.ObjectMeta.Name != b.ObjectMeta.Name ||
+		a.ObjectMeta.UID != b.ObjectMeta.UID
+}
+
+// Gets the instance represented by the given machine
+func (gce *GCEClient) instanceIfExists(machine *clusterv1.Machine) (*compute.Instance, error) {
+	identifyingMachine := machine
+
+	// Try to use the last saved status locating the machine
+	// in case instance details like the proj or zone has changed
+	status, err := gce.instanceStatus(machine)
+	if err != nil {
+		return nil, err
+	}
+
+	if status != nil {
+		identifyingMachine = (*clusterv1.Machine)(status)
+	}
+
+	// Get the VM via specified location and name
+	config, err := gce.providerconfig(identifyingMachine.Spec.ProviderConfig)
+	if err != nil {
+		return nil, err
+	}
+
+	instance, err := gce.service.Instances.Get(config.Project, config.Zone, identifyingMachine.ObjectMeta.Name).Do()
+	if err != nil {
+		// TODO: Use formal way to check for error code 404
+		if strings.Contains(err.Error(), "Error 404") {
+			return nil, nil
+		}
+		return nil, err
+	}
+
+	uid := instance.Labels[UIDLabelKey]
+	if uid == "" {
+		if instance.Labels[BootstrapLabelKey] != "" {
+			glog.Infof("Skipping uid check since instance %v %v %v is missing uid label due to being provisioned as part of bootstrap.", config.Project, config.Zone, identifyingMachine.ObjectMeta.Name)
+		} else {
+			return nil, fmt.Errorf("Instance %v %v %v is missing uid label.", config.Project, config.Zone, identifyingMachine.ObjectMeta.Name)
+		}
+	} else if uid != fmt.Sprintf("%v", machine.ObjectMeta.UID) {
+		glog.Infof("Instance %v exists but it has a different UID. Object UID: %v . Instance UID: %v", machine.ObjectMeta.Name, machine.ObjectMeta.UID, uid)
+		return nil, nil
+	}
+
+	return instance, nil
 }
 
 func (gce *GCEClient) providerconfig(providerConfig string) (*gceconfig.GCEProviderConfig, error) {

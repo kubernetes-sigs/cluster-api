@@ -197,7 +197,8 @@ function getversion() {
 KUBELET=$(getversion kubelet ${KUBELET_VERSION}-)
 KUBEADM=$(getversion kubeadm ${KUBELET_VERSION}-)
 KUBECTL=$(getversion kubectl ${KUBELET_VERSION}-)
-apt-get install -y kubelet=${KUBELET} kubeadm=${KUBEADM} kubectl=${KUBECTL}
+# Explicit cni version is a temporary workaround till the right version can be automatically detected correctly
+apt-get install -y kubelet=${KUBELET} kubeadm=${KUBEADM} kubectl=${KUBECTL} kubernetes-cni=0.5.1-00
 
 systemctl enable docker || true
 systemctl start docker || true
@@ -240,7 +241,7 @@ apt-get install -y \
     cloud-utils \
     prips
 
-export VERSION=$(curl -sSL https://dl.k8s.io/release/stable.txt)
+export VERSION=v${KUBELET_VERSION}
 export ARCH=amd64
 curl -sSL https://dl.k8s.io/release/${VERSION}/bin/linux/${ARCH}/kubeadm > /usr/bin/kubeadm.dl
 chmod a+rx /usr/bin/kubeadm.dl
@@ -276,9 +277,11 @@ function getversion() {
 KUBELET=$(getversion kubelet ${KUBELET_VERSION}-)
 KUBEADM=$(getversion kubeadm ${KUBELET_VERSION}-)
 
+# Explicit cni version is a temporary workaround till the right version can be automatically detected correctly
 apt-get install -y \
     kubelet=${KUBELET} \
     kubeadm=${KUBEADM} \
+    kubernetes-cni=0.5.1-00
 
 mv /usr/bin/kubeadm.dl /usr/bin/kubeadm
 chmod a+rx /usr/bin/kubeadm

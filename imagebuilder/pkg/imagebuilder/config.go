@@ -22,7 +22,7 @@ type Config struct {
 }
 
 func (c *Config) InitDefaults() {
-	c.BootstrapVZRepo = "https://github.com/justinsb/bootstrap-vz.git"
+	c.BootstrapVZRepo = "https://github.com/andsens/bootstrap-vz.git"
 	c.BootstrapVZBranch = "master"
 
 	c.SSHUsername = "admin"
@@ -32,7 +32,7 @@ func (c *Config) InitDefaults() {
 	setupCommands := []string{
 		"sudo apt-get update",
 		"sudo apt-get install --yes git python debootstrap python-pip kpartx parted",
-		"sudo pip install termcolor jsonschema fysom docopt pyyaml boto",
+		"sudo pip install termcolor jsonschema fysom docopt pyyaml boto boto3",
 	}
 	for _, cmd := range setupCommands {
 		c.SetupCommands = append(c.SetupCommands, strings.Split(cmd, " "))
@@ -65,27 +65,35 @@ func (c *AWSConfig) InitDefaults(region string) {
 		// A slightly older image, but the newest one we have
 		c.ImageID = "ami-da69a1b7"
 
-	// Debian 8.4 images from https://wiki.debian.org/Cloud/AmazonEC2Image/Jessie
+	// Debian 8.7 images from https://wiki.debian.org/Cloud/AmazonEC2Image/Jessie
 	case "ap-northeast-1":
-		c.ImageID = "ami-d7d4c5b9"
+		c.ImageID = "ami-dbc0bcbc"
 	case "ap-northeast-2":
-		c.ImageID = "ami-9a03caf4"
+		c.ImageID = "ami-6d8b5a03"
+	case "ap-south-1":
+		c.ImageID = "ami-9a83f5f5"
 	case "ap-southeast-1":
-		c.ImageID = "ami-73974210"
+		c.ImageID = "ami-0842e96b"
 	case "ap-southeast-2":
-		c.ImageID = "ami-09daf96a"
+		c.ImageID = "ami-881317eb"
+	case "ca-central-1":
+		c.ImageID = "ami-a1fe43c5"
 	case "eu-central-1":
-		c.ImageID = "ami-ccc021a3"
+		c.ImageID = "ami-5900cc36"
 	case "eu-west-1":
-		c.ImageID = "ami-e079f893"
+		c.ImageID = "ami-402f1a33"
+	case "eu-west-2":
+		c.ImageID = "ami-87848ee3"
 	case "sa-east-1":
-		c.ImageID = "ami-d3ae21bf"
+		c.ImageID = "ami-b256ccde"
 	case "us-east-1":
-		c.ImageID = "ami-c8bda8a2"
+		c.ImageID = "ami-b14ba7a7"
+	case "us-east-2":
+		c.ImageID = "ami-b2795cd7"
 	case "us-west-1":
-		c.ImageID = "ami-45374b25"
+		c.ImageID = "ami-94bdeef4"
 	case "us-west-2":
-		c.ImageID = "ami-98e114f8"
+		c.ImageID = "ami-221ea342"
 
 	default:
 		glog.Warningf("Building in unknown region %q - will require specifying an image, may not work correctly")

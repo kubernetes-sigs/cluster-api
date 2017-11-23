@@ -35,9 +35,22 @@ set -x
 TOKEN=%s
 MASTER=%s
 MACHINE=%s
-KUBELET_VERSION=%s-00
+KUBELET_VERSION=%s
 CLUSTER_DNS_DOMAIN=%s
 SERVICE_CIDR=%s
+
+# Our Debian packages have versions like "1.8.0-00" or "1.8.0-01". Do a prefix
+# search based on our SemVer to find the right (newest) package version.
+function getversion() {
+	name=$1
+	prefix=$2
+	version=$(apt-cache madison $name | awk '{ print $3 }' | grep ^$prefix | head -n1)
+	if [[ -z "$version" ]]; then
+		echo Can\'t find package $name with prefix $prefix
+		exit 1
+	fi
+	echo $version
+}
 
 apt-get update
 apt-get install -y apt-transport-https prips
@@ -58,7 +71,11 @@ cat <<EOF > /etc/apt/sources.list.d/kubernetes.list
 deb http://apt.kubernetes.io/ kubernetes-xenial main
 EOF
 apt-get update
-apt-get install -y kubelet=${KUBELET_VERSION} kubeadm=${KUBELET_VERSION} kubectl=${KUBELET_VERSION}
+
+KUBELET=$(getversion kubelet ${KUBELET_VERSION}-)
+KUBEADM=$(getversion kubeadm ${KUBELET_VERSION}-)
+KUBECTL=$(getversion kubectl ${KUBELET_VERSION}-)
+apt-get install -y kubelet=${KUBELET} kubeadm=${KUBEADM} kubectl=${KUBECTL}
 
 sysctl net.bridge.bridge-nf-call-iptables=1
 
@@ -86,6 +103,19 @@ set -e
 set -x
 
 (
+# Our Debian packages have versions like "1.8.0-00" or "1.8.0-01". Do a prefix
+# search based on our SemVer to find the right (newest) package version.
+function getversion() {
+	name=$1
+	prefix=$2
+	version=$(apt-cache madison $name | awk '{ print $3 }' | grep ^$prefix | head -n1)
+	if [[ -z "$version" ]]; then
+		echo Can\'t find package $name with prefix $prefix
+		exit 1
+	fi
+	echo $version
+}
+
 TOKEN=%s
 PORT=%s
 MACHINE=%s
@@ -99,13 +129,17 @@ touch /etc/apt/sources.list.d/kubernetes.list
 sh -c 'echo "deb http://apt.kubernetes.io/ kubernetes-xenial main" > /etc/apt/sources.list.d/kubernetes.list'
 
 apt-get update -y
+
+KUBELET=$(getversion kubelet ${KUBELET_VERSION}-)
+KUBEADM=$(getversion kubeadm ${KUBELET_VERSION}-)
+
 apt-get install -y \
     socat \
     ebtables \
     docker.io \
     apt-transport-https \
-    kubelet=${KUBELET_VERSION}-00 \
-    kubeadm=${KUBELET_VERSION}-00 \
+    kubelet=${KUBELET} \
+    kubeadm=${KUBEADM} \
     cloud-utils \
     prips
 

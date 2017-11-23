@@ -24,7 +24,7 @@ func (s *LocalhostExecutor) Mkdir(dest string, mode os.FileMode) error {
 func (s *LocalhostExecutor) Put(dest string, length int, content io.Reader, mode os.FileMode) error {
 	f, err := os.OpenFile(dest, os.O_RDWR|os.O_CREATE|os.O_TRUNC, mode)
 	if err != nil {
-		return fmt.Errorf("error opening file %q: %v", err)
+		return fmt.Errorf("error opening file %q: %v", dest, err)
 	}
 
 	defer func() {

@@ -144,7 +144,8 @@ plugins:
        - [ 'chroot', '{root}', 'apt-get', 'install', '--yes', 'linux-image-k8s', 'linux-headers-k8s' ]
 
        # Remove supplied dkms ixgbevf driver so we fall back to more recent in kernel driver (despite lower version number)   
-       - [ 'chroot', '{root}', 'dkms', 'remove', 'ixgbevf/3.2.2', '--all' ]
+       - [ 'chroot', '{root}', 'dkms', 'status' ]
+       - [ 'chroot', '{root}', 'dkms', 'remove', 'ixgbevf/2.16.1', '--all' ]
 
        # We don't enable unattended upgrades - nodeup can always add it
        # but if we add it now, there's a race to turn it off

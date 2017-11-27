@@ -2,10 +2,11 @@ package executor
 
 import (
 	"fmt"
-	"github.com/golang/glog"
 	"io"
 	"os"
 	"os/exec"
+
+	"github.com/golang/glog"
 )
 
 type LocalhostExecutor struct {

@@ -2,12 +2,13 @@ package executor
 
 import (
 	"fmt"
-	"github.com/golang/glog"
-	"golang.org/x/crypto/ssh"
 	"io"
 	"os"
 	"path/filepath"
 	"strconv"
+
+	"github.com/golang/glog"
+	"golang.org/x/crypto/ssh"
 )
 
 type SSHExecutor struct {

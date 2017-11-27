@@ -18,12 +18,13 @@ package imagebuilder
 
 import (
 	"fmt"
+	"time"
+
 	"github.com/golang/glog"
 	"golang.org/x/crypto/ssh"
 	"google.golang.org/api/compute/v1"
 	"google.golang.org/api/googleapi"
 	"k8s.io/kube-deploy/imagebuilder/pkg/imagebuilder/executor"
-	"time"
 )
 
 // TODO: We should replace most of this code with a fast-install manifest

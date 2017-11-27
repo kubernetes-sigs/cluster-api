@@ -99,6 +99,12 @@ func (c *AWSConfig) InitDefaults(region string) {
 	default:
 		glog.Warningf("Building in unknown region %q - will require specifying an image, may not work correctly")
 	}
+
+	// Not all regions support m3.medium
+	switch c.Region {
+	case "us-east-2":
+		c.InstanceType = "m4.large"
+	}
 }
 
 type GCEConfig struct {

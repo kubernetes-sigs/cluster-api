@@ -24,15 +24,15 @@ import (
 	"fmt"
 	"time"
 
-	"golang.org/x/crypto/ssh"
-
 	"crypto/md5"
 	"encoding/hex"
+
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/ec2"
 	"github.com/golang/glog"
+	"golang.org/x/crypto/ssh"
 	"k8s.io/kube-deploy/imagebuilder/pkg/imagebuilder/executor"
 )
 
@@ -521,17 +521,12 @@ func (a *AWSCloud) FindImage(imageName string) (Image, error) {
 		return nil, fmt.Errorf("found multiple matching snapshots for image: %q", imageName)
 	}
 
-	snapshotID := aws.StringValue(image.BlockDeviceMappings[0].Ebs.SnapshotId)
-	if snapshotID == "" {
-		return nil, fmt.Errorf("found image with empty SnapshotId: %q", imageName)
-	}
-
 	return &AWSImage{
 		ec2:     a.ec2,
 		region:  a.config.Region,
-		image:   image,
 		imageID: imageID,
-		snapshotID: snapshotID,
+
+		cachedImage: image,
 	}, nil
 }
 
@@ -566,12 +561,11 @@ func findAWSImage(client *ec2.EC2, imageName string) (*ec2.Image, error) {
 
 // AWSImage represents an AMI on AWS
 type AWSImage struct {
-	ec2    *ec2.EC2
-	region string
-	//cloud   *AWSCloud
-	image   *ec2.Image
+	ec2     *ec2.EC2
+	region  string
 	imageID string
-	snapshotID string
+
+	cachedImage *ec2.Image
 }
 
 // ID returns the AWS identifier for the image
@@ -628,7 +622,7 @@ func (i *AWSImage) waitStatusAvailable() error {
 		}
 
 		if len(response.Images) != 1 {
-			return fmt.Errorf("multiple imags found with ID %q", imageID)
+			return fmt.Errorf("multiple images found with ID %q", imageID)
 		}
 
 		image := response.Images[0]
@@ -638,13 +632,108 @@ func (i *AWSImage) waitStatusAvailable() error {
 		if state == "available" {
 			return nil
 		}
-		glog.Infof("Image not yet available (%s); waiting", imageID)
+		glog.Infof("Image %q not yet available (%s); waiting", imageID, state)
 		time.Sleep(10 * time.Second)
 	}
 }
 
+func waitSnapshotCompleted(client *ec2.EC2, snapshotID string) error {
+	for {
+		// TODO: Timeout
+		request := &ec2.DescribeSnapshotsInput{}
+		request.SnapshotIds = aws.StringSlice([]string{snapshotID})
+
+		glog.V(2).Infof("AWS DescribeSnapshots SnapshotId=%q", snapshotID)
+		response, err := client.DescribeSnapshots(request)
+		if err != nil {
+			return fmt.Errorf("error making AWS DescribeSnapshots call: %v", err)
+		}
+
+		if len(response.Snapshots) == 0 {
+			return fmt.Errorf("snapshot not found %q", snapshotID)
+		}
+
+		if len(response.Snapshots) != 1 {
+			return fmt.Errorf("multiple snapshots found with ID %q", snapshotID)
+		}
+
+		snapshot := response.Snapshots[0]
+
+		state := aws.StringValue(snapshot.State)
+		glog.V(2).Infof("snapshot state %q", state)
+		if state == "completed" {
+			return nil
+		}
+		glog.Infof("Snapshot %q not yet completed (%s); waiting", snapshotID, state)
+		time.Sleep(10 * time.Second)
+	}
+}
+
+func (i *AWSImage) image() (*ec2.Image, error) {
+	if i.cachedImage != nil {
+		return i.cachedImage, nil
+	}
+
+	if i.imageID == "" {
+		return nil, fmt.Errorf("imageID not set")
+	}
+	request := &ec2.DescribeImagesInput{}
+	request.ImageIds = aws.StringSlice([]string{i.imageID})
+
+	glog.V(2).Infof("AWS DescribeImages id=%q", i.imageID)
+	response, err := i.ec2.DescribeImages(request)
+	if err != nil {
+		return nil, fmt.Errorf("error making AWS DescribeImages call: %v", err)
+	}
+
+	if len(response.Images) == 0 {
+		return nil, nil
+	}
+
+	if len(response.Images) != 1 {
+		// Image names are unique per user...
+		return nil, fmt.Errorf("found multiple matching images for id: %q", i.imageID)
+	}
+
+	image := response.Images[0]
+	i.cachedImage = image
+	return image, nil
+}
+
+func (i *AWSImage) imageSnapshotId() (string, error) {
+	image, err := i.image()
+	if err != nil {
+		return "", err
+	}
+	if image == nil {
+		return "", fmt.Errorf("image not set")
+	}
+	if image.BlockDeviceMappings == nil {
+		glog.Warningf("image did not have BlockDeviceMappings: %v", image)
+		return "", nil
+	}
+	if len(image.BlockDeviceMappings) == 0 {
+		glog.Warningf("image did not have BlockDeviceMappings: %v", image)
+		return "", nil
+	}
+	if image.BlockDeviceMappings[0].Ebs == nil {
+		glog.Warningf("image had nil BlockDeviceMappings[0].Ebs: %v", image)
+		return "", nil
+	}
+	snapshotID := aws.StringValue(image.BlockDeviceMappings[0].Ebs.SnapshotId)
+	if snapshotID == "" {
+		glog.Warningf("image did not have snapshot: %v", image)
+	}
+	return snapshotID, nil
+}
+
 func (i *AWSImage) ensurePublic() error {
 	err := i.waitStatusAvailable()
+	if err != nil {
+		return err
+	}
+
+	image, err := i.image()
 	if err != nil {
 		return err
 	}
@@ -658,25 +747,33 @@ func (i *AWSImage) ensurePublic() error {
 		},
 	}
 
-	glog.V(2).Infof("AWS ModifyImageAttribute Image=%q, LaunchPermission All", i.image)
+	glog.V(2).Infof("AWS ModifyImageAttribute Image=%q, LaunchPermission All", image)
 	_, err = i.ec2.ModifyImageAttribute(request)
 	if err != nil {
-		return fmt.Errorf("error making image public %q: %v", i.imageID, err)
+		return fmt.Errorf("error making image public (%q in region %q): %v", i.imageID, i.region, err)
+	}
+
+	snapshotID, err := i.imageSnapshotId()
+	if err != nil {
+		return err
+	}
+	if snapshotID == "" {
+		return fmt.Errorf("found image with empty SnapshotId: %q", aws.StringValue(image.ImageId))
 	}
 
 	request2 := &ec2.ModifySnapshotAttributeInput{
-	    Attribute: aws.String("createVolumePermission"),
-	    GroupNames: []*string{
-	        aws.String("all"),
-	    },
-	    OperationType: aws.String("add"),
-	    SnapshotId:    aws.String(i.snapshotID),
+		Attribute: aws.String("createVolumePermission"),
+		GroupNames: []*string{
+			aws.String("all"),
+		},
+		OperationType: aws.String("add"),
+		SnapshotId:    aws.String(snapshotID),
 	}
 
-	glog.V(2).Infof("AWS ModifySnapshotAttribute Snapshot=%q, CreateVolumePermission All", i.snapshotID)
+	glog.V(2).Infof("AWS ModifySnapshotAttribute Snapshot=%q, CreateVolumePermission All", snapshotID)
 	_, err = i.ec2.ModifySnapshotAttribute(request2)
 	if err != nil {
-		return fmt.Errorf("error making snapshot public %q: %v", i.snapshotID, err)
+		return fmt.Errorf("error making snapshot public (%q in region %q): %v", snapshotID, i.region, err)
 	}
 
 	return err
@@ -728,8 +825,13 @@ func (i *AWSImage) ReplicateImage(makePublic bool) (map[string]Image, error) {
 func (i *AWSImage) copyImageToRegion(regionName string) (string, error) {
 	targetEC2 := ec2.New(session.New(), &aws.Config{Region: &regionName})
 
-	imageName := aws.StringValue(i.image.Name)
-	description := aws.StringValue(i.image.Description)
+	image, err := i.image()
+	if err != nil {
+		return "", err
+	}
+
+	imageName := aws.StringValue(image.Name)
+	description := aws.StringValue(image.Description)
 
 	destImage, err := findAWSImage(targetEC2, imageName)
 	if err != nil {
@@ -742,22 +844,72 @@ func (i *AWSImage) copyImageToRegion(regionName string) (string, error) {
 	if destImage != nil {
 		imageID = aws.StringValue(destImage.ImageId)
 	} else {
-		token := imageName + "-" + regionName
+		var snapshotId string
 
-		request := &ec2.CopyImageInput{
-			ClientToken:   aws.String(token),
-			Description:   aws.String(description),
-			Name:          aws.String(imageName),
-			SourceImageId: aws.String(i.imageID),
-			SourceRegion:  aws.String(i.region),
-		}
-		glog.V(2).Infof("AWS CopyImage Image=%q, Region=%q", i.imageID, regionName)
-		response, err := targetEC2.CopyImage(request)
-		if err != nil {
-			return "", fmt.Errorf("error copying image to region %q: %v", regionName, err)
+		{
+			sourceSnapshotID, err := i.imageSnapshotId()
+			if err != nil {
+				return "", err
+			}
+			if sourceSnapshotID == "" {
+				return "", fmt.Errorf("found image with empty SnapshotId: %q", imageName)
+			}
+
+			request := &ec2.CopySnapshotInput{
+				Description:       aws.String(description),
+				SourceSnapshotId:  aws.String(sourceSnapshotID),
+				SourceRegion:      aws.String(i.region),
+				DestinationRegion: aws.String(regionName),
+			}
+			glog.V(2).Infof("AWS CopySnapshot SnapshotId=%q, Region=%q", sourceSnapshotID, regionName)
+			response, err := targetEC2.CopySnapshot(request)
+			if err != nil {
+				return "", fmt.Errorf("error copying snapshot to region %q: %v", regionName, err)
+			}
+			snapshotId = aws.StringValue(response.SnapshotId)
 		}
 
-		imageID = aws.StringValue(response.ImageId)
+		if err := waitSnapshotCompleted(targetEC2, snapshotId); err != nil {
+			return "", err
+		}
+
+		{
+			request := &ec2.RegisterImageInput{
+				Architecture: image.Architecture,
+				//BlockDeviceMappings: image.BlockDeviceMappings,
+				Description:        aws.String(description),
+				EnaSupport:         image.EnaSupport,
+				KernelId:           image.KernelId,
+				Name:               aws.String(imageName),
+				RamdiskId:          image.RamdiskId,
+				RootDeviceName:     image.RootDeviceName,
+				SriovNetSupport:    image.SriovNetSupport,
+				VirtualizationType: image.VirtualizationType,
+			}
+			found := false
+			for _, bdm := range image.BlockDeviceMappings {
+				copy := *bdm
+				if copy.Ebs != nil {
+					if aws.StringValue(copy.Ebs.SnapshotId) != "" {
+						found = true
+						copy.Ebs.SnapshotId = aws.String(snapshotId)
+						copy.Ebs.Encrypted = nil
+					}
+				}
+				request.BlockDeviceMappings = append(request.BlockDeviceMappings, &copy)
+			}
+			if !found {
+				return "", fmt.Errorf("unable to remap block device mappings for image %q", aws.StringValue(image.ImageId))
+			}
+
+			glog.V(2).Infof("AWS RegisterImage SnapshotId=%q, Region=%q", snapshotId, regionName)
+			response, err := targetEC2.RegisterImage(request)
+			if err != nil {
+				return "", fmt.Errorf("error copying image to region %q: %v", regionName, err)
+			}
+
+			imageID = aws.StringValue(response.ImageId)
+		}
 	}
 
 	return imageID, nil

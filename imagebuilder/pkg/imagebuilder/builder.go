@@ -3,9 +3,10 @@ package imagebuilder
 import (
 	"bytes"
 	"fmt"
-	"k8s.io/kube-deploy/imagebuilder/pkg/imagebuilder/executor"
 	"math/rand"
 	"path"
+
+	"k8s.io/kube-deploy/imagebuilder/pkg/imagebuilder/executor"
 )
 
 type Builder struct {

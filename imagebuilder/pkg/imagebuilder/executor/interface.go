@@ -3,11 +3,12 @@ package executor
 import (
 	"bytes"
 	"fmt"
-	"github.com/golang/glog"
 	"io"
 	"math/rand"
 	"os"
 	"strings"
+
+	"github.com/golang/glog"
 )
 
 type Executor interface {

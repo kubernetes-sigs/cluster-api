@@ -1,8 +1,9 @@
 package imagebuilder
 
 import (
-	"github.com/golang/glog"
 	"strings"
+
+	"github.com/golang/glog"
 )
 
 type Config struct {

@@ -43,6 +43,7 @@ type MachineController struct {
 	clusterClient *client.ClusterAPIV1Alpha1Client
 	actuator      cloud.MachineActuator
 	nodeWatcher   *NodeWatcher
+	runner        *asyncRunner
 }
 
 func NewMachineController(config *Configuration) *MachineController {
@@ -81,6 +82,7 @@ func NewMachineController(config *Configuration) *MachineController {
 		clusterClient: clusterClient,
 		actuator:      actuator,
 		nodeWatcher:   nodeWatcher,
+		runner: newAsyncRunner(),
 	}
 }
 
@@ -122,11 +124,14 @@ func (c *MachineController) onAdd(obj interface{}) {
 		return
 	}
 
-	err := c.create(machine)
-	if err != nil {
-		glog.Errorf("create machine %s failed: %v", machine.ObjectMeta.Name, err)
-	}
-
+	c.runner.runAsync(machine.ObjectMeta.Name, func(){
+		err := c.create(machine)
+		if err != nil {
+			glog.Errorf("create machine %s failed: %v", machine.ObjectMeta.Name, err)
+		} else {
+			glog.Infof("create machine %s succeded.", machine.ObjectMeta.Name)
+		}
+	})
 }
 
 func (c *MachineController) onUpdate(oldObj, newObj interface{}) {
@@ -140,7 +145,14 @@ func (c *MachineController) onUpdate(oldObj, newObj interface{}) {
 		return
 	}
 
-	c.update(oldMachine, newMachine)
+	c.runner.runAsync(newMachine.ObjectMeta.Name, func(){
+		err := 	c.update(oldMachine, newMachine)
+		if err != nil {
+			glog.Errorf("update machine %s failed: %v", newMachine.ObjectMeta.Name, err)
+		} else {
+			glog.Infof("update machine %s succeded.", newMachine.ObjectMeta.Name)
+		}
+	})
 }
 
 func (c *MachineController) onDelete(obj interface{}) {
@@ -151,10 +163,14 @@ func (c *MachineController) onDelete(obj interface{}) {
 		return
 	}
 
-	err := c.delete(machine)
-	if err != nil {
-		glog.Errorf("delete machine %s failed: %v", machine.ObjectMeta.Name, err)
-	}
+	c.runner.runAsync(machine.ObjectMeta.Name, func(){
+		err := c.delete(machine)
+		if err != nil {
+			glog.Errorf("delete machine %s failed: %v", machine.ObjectMeta.Name, err)
+		} else {
+			glog.Infof("delete machine %s succeded.", machine.ObjectMeta.Name)
+		}
+	})
 }
 
 func ignored(machine *clusterv1.Machine) bool {

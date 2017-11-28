@@ -25,16 +25,21 @@ import (
 )
 
 type templateParams struct {
-	Token   string
-	Cluster *clusterv1.Cluster
-	Machine *clusterv1.Machine
+	Token        string
+	Cluster      *clusterv1.Cluster
+	Machine      *clusterv1.Machine
+	DockerImages []string
 }
 
 func nodeMetadata(params templateParams) (map[string]string, error) {
 	metadata := map[string]string{}
 	var buf bytes.Buffer
+	tName := "fullScript"
+	if isPreloaded(params) {
+		tName = "preloadedScript"
+	}
 
-	if err := nodeStartupScriptTemplate.Execute(&buf, params); err != nil {
+	if err := nodeStartupScriptTemplate.ExecuteTemplate(&buf, tName, params); err != nil {
 		return nil, err
 	}
 	metadata["startup-script"] = buf.String()
@@ -45,12 +50,41 @@ func nodeMetadata(params templateParams) (map[string]string, error) {
 func masterMetadata(params templateParams) (map[string]string, error) {
 	metadata := map[string]string{}
 	var buf bytes.Buffer
+	tName := "fullScript"
+	if isPreloaded(params) {
+		tName = "preloadedScript"
+	}
 
-	if err := masterStartupScriptTemplate.Execute(&buf, params); err != nil {
+	if err := masterStartupScriptTemplate.ExecuteTemplate(&buf, tName, params); err != nil {
 		return nil, err
 	}
 	metadata["startup-script"] = buf.String()
 	return metadata, nil
+}
+
+func isPreloaded(params templateParams) bool {
+	return false
+}
+
+// PreloadMasterScript returns a script that can be used to preload a master.
+func PreloadMasterScript(version string, dockerImages []string) (string, error) {
+	return preloadScript(masterStartupScriptTemplate, version, dockerImages)
+}
+
+// PreloadNodeScript returns a script that can be used to preload a master.
+func PreloadNodeScript(version string, dockerImages []string) (string, error) {
+	return preloadScript(nodeStartupScriptTemplate, version, dockerImages)
+}
+
+func preloadScript(t *template.Template, version string, dockerImages []string) (string, error) {
+	var buf bytes.Buffer
+	params := templateParams{
+		Machine:      &clusterv1.Machine{},
+		DockerImages: dockerImages,
+	}
+	params.Machine.Spec.Versions.Kubelet = version
+	err := t.ExecuteTemplate(&buf, "generatePreloadedImage", params)
+	return buf.String(), err
 }
 
 var (
@@ -66,22 +100,58 @@ func init() {
 		"endpoint": endpoint,
 	}
 	nodeStartupScriptTemplate = template.Must(template.New("nodeStartupScript").Funcs(funcMap).Parse(nodeStartupScript))
+	nodeStartupScriptTemplate = template.Must(nodeStartupScriptTemplate.Parse(genericTemplates))
 	masterStartupScriptTemplate = template.Must(template.New("masterStartupScript").Parse(masterStartupScript))
+	masterStartupScriptTemplate = template.Must(masterStartupScriptTemplate.Parse(genericTemplates))
 }
 
-const nodeStartupScript = `#!/bin/bash
+const genericTemplates = `
+{{ define "fullScript" -}}
+  {{ template "startScript" . }}
+  {{ template "install" . }}
+  {{ template "configure" . }}
+  {{ template "endScript" . }}
+{{- end }}
+
+{{ define "preloadedScript" -}}
+  {{ template "startScript" . }}
+  {{ template "configure" . }}
+  {{ template "endScript" . }}
+{{- end }}
+
+{{ define "generatePreloadedImage" -}}
+  {{ template "startScript" . }}
+  {{ template "install" . }}
+
+systemctl enable docker || true
+systemctl start docker || true
+
+  {{ range .DockerImages }}
+docker pull {{ . }}
+  {{ end  }}
+
+  {{ template "endScript" . }}
+{{- end }}
+
+{{ define "startScript" -}}
+#!/bin/bash
 
 set -e
 set -x
 
 (
-TOKEN={{ .Token }}
-MASTER={{ index .Cluster.Status.APIEndpoints 0 | endpoint }}
-MACHINE={{ .Machine.ObjectMeta.Name }}
-KUBELET_VERSION={{ .Machine.Spec.Versions.Kubelet }}
-CLUSTER_DNS_DOMAIN={{ .Cluster.Spec.ClusterNetwork.DNSDomain }}
-SERVICE_CIDR={{ .Cluster.Spec.ClusterNetwork.ServiceSubnet }}
+{{- end }}
 
+{{define "endScript" -}}
+
+echo done.
+) 2>&1 | tee /var/log/startup.log
+
+{{- end }}
+`
+
+const nodeStartupScript = `
+{{ define "install" -}}
 # Our Debian packages have versions like "1.8.0-00" or "1.8.0-01". Do a prefix
 # search based on our SemVer to find the right (newest) package version.
 function getversion() {
@@ -95,6 +165,8 @@ function getversion() {
 	echo $version
 }
 
+KUBELET_VERSION={{ .Machine.Spec.Versions.Kubelet }}
+
 apt-get update
 apt-get install -y apt-transport-https prips
 apt-key adv --keyserver hkp://keyserver.ubuntu.com --recv-keys F76221572C52609D
@@ -105,8 +177,6 @@ EOF
 
 apt-get update
 apt-get install -y docker-engine=1.12.0-0~xenial
-systemctl enable docker || true
-systemctl start docker || true
 
 curl -s https://packages.cloud.google.com/apt/doc/apt-key.gpg | apt-key add -
 
@@ -119,6 +189,17 @@ KUBELET=$(getversion kubelet ${KUBELET_VERSION}-)
 KUBEADM=$(getversion kubeadm ${KUBELET_VERSION}-)
 KUBECTL=$(getversion kubectl ${KUBELET_VERSION}-)
 apt-get install -y kubelet=${KUBELET} kubeadm=${KUBEADM} kubectl=${KUBECTL}
+{{- end }} {{/* end install */}}
+
+{{ define "configure" -}}
+TOKEN={{ .Token }}
+MASTER={{ index .Cluster.Status.APIEndpoints 0 | endpoint }}
+MACHINE={{ .Machine.ObjectMeta.Name }}
+CLUSTER_DNS_DOMAIN={{ .Cluster.Spec.ClusterNetwork.DNSDomain }}
+SERVICE_CIDR={{ .Cluster.Spec.ClusterNetwork.ServiceSubnet }}
+
+systemctl enable docker || true
+systemctl start docker || true
 
 sysctl net.bridge.bridge-nf-call-iptables=1
 
@@ -135,18 +216,12 @@ for tries in $(seq 1 60); do
 	kubectl --kubeconfig /etc/kubernetes/kubelet.conf annotate --overwrite node $(hostname) machine=${MACHINE} && break
 	sleep 1
 done
-
-echo done.
-) 2>&1 | tee /var/log/startup.log
+{{- end }} {{/* end configure */}}
 `
 
 // TODO: actually init the cluster, templatize token, etc.
-const masterStartupScript = `#!/bin/bash
-
-set -e
-set -x
-
-(
+const masterStartupScript = `
+{{ define "install" -}}
 # Our Debian packages have versions like "1.8.0-00" or "1.8.0-01". Do a prefix
 # search based on our SemVer to find the right (newest) package version.
 function getversion() {
@@ -160,14 +235,7 @@ function getversion() {
 	echo $version
 }
 
-TOKEN={{ .Token }}
-PORT=443
-MACHINE={{ .Machine.ObjectMeta.Name }}
 KUBELET_VERSION={{ .Machine.Spec.Versions.Kubelet }}
-CONTROL_PLANE_VERSION={{ .Machine.Spec.Versions.ControlPlane }}
-CLUSTER_DNS_DOMAIN={{ .Cluster.Spec.ClusterNetwork.DNSDomain }}
-POD_CIDR={{ .Cluster.Spec.ClusterNetwork.PodSubnet }}
-SERVICE_CIDR={{ .Cluster.Spec.ClusterNetwork.ServiceSubnet }}
 
 curl -s https://packages.cloud.google.com/apt/doc/apt-key.gpg | sudo apt-key add -
 touch /etc/apt/sources.list.d/kubernetes.list
@@ -188,6 +256,22 @@ apt-get install -y \
     cloud-utils \
     prips
 
+export VERSION=$(curl -sSL https://dl.k8s.io/release/stable.txt)
+export ARCH=amd64
+curl -sSL https://dl.k8s.io/release/${VERSION}/bin/linux/${ARCH}/kubeadm > /usr/bin/kubeadm
+chmod a+rx /usr/bin/kubeadm
+{{- end }} {{/* end install */}}
+
+
+{{ define "configure" -}}
+TOKEN={{ .Token }}
+PORT=443
+MACHINE={{ .Machine.ObjectMeta.Name }}
+CONTROL_PLANE_VERSION={{ .Machine.Spec.Versions.ControlPlane }}
+CLUSTER_DNS_DOMAIN={{ .Cluster.Spec.ClusterNetwork.DNSDomain }}
+POD_CIDR={{ .Cluster.Spec.ClusterNetwork.PodSubnet }}
+SERVICE_CIDR={{ .Cluster.Spec.ClusterNetwork.ServiceSubnet }}
+
 # kubeadm uses 10th IP as DNS server
 CLUSTER_DNS_SERVER=$(prips ${SERVICE_CIDR} | head -n 11 | tail -n 1)
 
@@ -202,10 +286,6 @@ echo $PRIVATEIP > /tmp/.ip
 ` +
 	"PUBLICIP=`curl --retry 5 -sfH \"Metadata-Flavor: Google\" \"http://metadata/computeMetadata/v1/instance/network-interfaces/0/access-configs/0/external-ip\"`" + `
 
-export VERSION=$(curl -sSL https://dl.k8s.io/release/stable.txt)
-export ARCH=amd64
-curl -sSL https://dl.k8s.io/release/${VERSION}/bin/linux/${ARCH}/kubeadm > /usr/bin/kubeadm
-chmod a+rx /usr/bin/kubeadm
 
 kubeadm reset
 kubeadm init --apiserver-bind-port ${PORT} --token ${TOKEN} --kubernetes-version v${CONTROL_PLANE_VERSION} \
@@ -222,6 +302,5 @@ sysctl net.bridge.bridge-nf-call-iptables=1
 export kubever=$(kubectl version --kubeconfig /etc/kubernetes/admin.conf | base64 | tr -d '\n')
 kubectl apply --kubeconfig /etc/kubernetes/admin.conf -f "https://cloud.weave.works/k8s/net?k8s-version=$kubever"
 
-echo done.
-) 2>&1 | tee /var/log/startup.log
+{{- end }} {{/* end configure */}}
 `

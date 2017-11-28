@@ -67,16 +67,16 @@ func checkMachineReady(machineName string, kubeVersion string) (bool, error) {
 	node, err := kubeClientSet.CoreV1().Nodes().Get(machine.Status.NodeRef.Name, metav1.GetOptions{})
 	switch {
 	case err != nil:
-		glog.Infof("Failed to get node %s: %v", machineName, err)
+		glog.V(1).Infof("Failed to get node %s: %v", machineName, err)
 		return false, err
 	case !util.IsNodeReady(node):
-		glog.Infof("node %s is not ready. Status : %v", machineName, node.Status.Conditions)
+		glog.V(1).Infof("node %s is not ready. Status : %v", machineName, node.Status.Conditions)
 		return false, nil
 	case node.Status.NodeInfo.KubeletVersion == "v"+kubeVersion:
-		glog.Infof("node %s is ready", machineName)
+		glog.V(1).Infof("node %s is ready", machineName)
 		return true, nil
 	default:
-		glog.Infof("node %s kubelet current version: %s, target: %s.", machineName, node.Status.NodeInfo.KubeletVersion, kubeVersion)
+		glog.V(1).Infof("node %s kubelet current version: %s, target: %s.", machineName, node.Status.NodeInfo.KubeletVersion, kubeVersion)
 		return false, nil
 	}
 }
@@ -124,13 +124,17 @@ func UpgradeCluster(kubeversion string, kubeconfig string) error {
 		return err
 	}
 
-	glog.Info("Upgrading the nodes.")
+	glog.Info("Finished upgrading control plane.")
+
+	num_nodes := len(machine_list.Items) - 1
+	glog.Infof("Upgrading %d nodes in the cluster.", num_nodes)
 
 	// Continue to update all the nodes.
 	errors := make(chan error, len(machine_list.Items))
 	for i, _ := range machine_list.Items {
 		if !util.IsMaster(&machine_list.Items[i]) {
 			go func(mach *clusterv1.Machine) {
+				glog.Infof("Upgrading %s.", mach.Name)
 				mach, err = client.Machines().Get(mach.Name, metav1.GetOptions{})
 				if err == nil {
 					mach.Spec.Versions.Kubelet = kubeversion
@@ -155,12 +159,16 @@ func UpgradeCluster(kubeversion string, kubeconfig string) error {
 			}(&machine_list.Items[i])
 		}
 	}
-	glog.Info("Waiting for update to be completed.")
 
 	for _, machine := range machine_list.Items {
 		if !util.IsMaster(&machine) {
 			if err = <-errors; err != nil {
 				return err
+			} else {
+				num_nodes--
+				if num_nodes > 0 {
+					glog.Infof("%d nodes are still being updated", num_nodes)
+				}
 			}
 		}
 	}

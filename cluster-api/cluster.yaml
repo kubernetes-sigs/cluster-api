@@ -6,7 +6,7 @@ spec:
     clusterNetwork:
         serviceSubnet: "10.96.0.0/12"
         podSubnet: "192.168.0.0/16"
-        dnsDomain: "mycluster.local"
+        dnsDomain: "cluster.local"
     providerConfig: >
       {
         "apiVersion": "gceproviderconfig/v1alpha1",

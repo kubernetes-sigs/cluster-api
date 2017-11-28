@@ -44,7 +44,7 @@ const (
 	ZoneAnnotationKey    = "gcp-zone"
 	NameAnnotationKey    = "gcp-name"
 
-	UIDLabelKey          = "machine-crd-uid"
+	UIDLabelKey = "machine-crd-uid"
 )
 
 type SshCreds struct {
@@ -132,53 +132,59 @@ func (gce *GCEClient) Create(cluster *clusterv1.Cluster, machine *clusterv1.Mach
 		return gce.handleMachineError(machine, verr)
 	}
 
-	var startupScript string
-	dnsDomain := cluster.Spec.ClusterNetwork.DNSDomain
-	podCIDR := cluster.Spec.ClusterNetwork.PodSubnet
-	serviceCIDR := cluster.Spec.ClusterNetwork.ServiceSubnet
-	// TODO we need to have API defaults, but I don't think CRDs have defaulting
-	if dnsDomain == "" {
-		dnsDomain = "cluster.local"
+	var metadata map[string]string
+	if cluster.Spec.ClusterNetwork.DNSDomain == "" {
+		return errors.New("invalid cluster configuration: missing Cluster.Spec.ClusterNetwork.DNSDomain")
 	}
-	if podCIDR == "" {
-		podCIDR = "192.168.0.0/16"
+	if cluster.Spec.ClusterNetwork.PodSubnet == "" {
+		return errors.New("invalid cluster configuration: missing Cluster.Spec.ClusterNetwork.PodSubnet")
 	}
-	if serviceCIDR == "" {
-		serviceCIDR = "10.96.0.0/12"
+	if cluster.Spec.ClusterNetwork.ServiceSubnet == "" {
+		return errors.New("invalid cluster configuration: missing Cluster.Spec.ClusterNetwork.ServiceSubnet")
+	}
+	if machine.Spec.Versions.Kubelet == "" {
+		return errors.New("invalid master configuration: missing Machine.Spec.Versions.Kubelet")
 	}
 	if util.IsMaster(machine) {
-		kubeletVersion := machine.Spec.Versions.Kubelet
-		controlPlaneVersion := machine.Spec.Versions.ControlPlane
-		if controlPlaneVersion == "" {
+		if machine.Spec.Versions.ControlPlane == "" {
 			return gce.handleMachineError(machine, apierrors.InvalidMachineConfiguration(
-				"invalid master configuration: missing machine.spec.versions.controlPlane"))
+				"invalid master configuration: missing Machine.Spec.Versions.ControlPlane"))
 		}
-		startupScript = masterStartupScript(
-			gce.kubeadmToken,
-			"443",
-			machine.ObjectMeta.Name,
-			kubeletVersion,
-			controlPlaneVersion,
-			dnsDomain,
-			podCIDR,
-			serviceCIDR,
+		var err error
+		metadata, err = masterMetadata(
+			templateParams{
+				Token:   gce.kubeadmToken,
+				Cluster: cluster,
+				Machine: machine,
+			},
 		)
+		if err != nil {
+			return err
+		}
 	} else {
-		master := ""
-		for _, endpoint := range cluster.Status.APIEndpoints {
-			master = fmt.Sprintf("%s:%d", endpoint.Host, endpoint.Port)
+		if len(cluster.Status.APIEndpoints) == 0 {
+			return errors.New("invalid cluster state: cannot create a Kubernetes node without an API endpoint")
 		}
-		if master == "" {
-			return errors.New("missing master endpoints in cluster")
-		}
-		startupScript = nodeStartupScript(
-			gce.kubeadmToken,
-			master,
-			machine.ObjectMeta.Name,
-			machine.Spec.Versions.Kubelet,
-			dnsDomain,
-			serviceCIDR,
+		var err error
+		metadata, err = nodeMetadata(
+			templateParams{
+				Token:   gce.kubeadmToken,
+				Cluster: cluster,
+				Machine: machine,
+			},
 		)
+		if err != nil {
+			return err
+		}
+	}
+
+	var metadataItems []*compute.MetadataItems
+	for k, v := range metadata {
+		v := v // rebind scope to avoid loop aliasing below
+		metadataItems = append(metadataItems, &compute.MetadataItems{
+			Key:   k,
+			Value: &v,
+		})
 	}
 
 	name := machine.ObjectMeta.Name
@@ -210,18 +216,13 @@ func (gce *GCEClient) Create(cluster *clusterv1.Cluster, machine *clusterv1.Mach
 			},
 		},
 		Metadata: &compute.Metadata{
-			Items: []*compute.MetadataItems{
-				&compute.MetadataItems{
-					Key:   "startup-script",
-					Value: &startupScript,
-				},
-			},
+			Items: metadataItems,
 		},
 		Tags: &compute.Tags{
 			Items: []string{"https-server"},
 		},
 		Labels: map[string]string{
-			UIDLabelKey : fmt.Sprintf("%v", machine.ObjectMeta.UID),
+			UIDLabelKey: fmt.Sprintf("%v", machine.ObjectMeta.UID),
 		},
 	}).Do()
 

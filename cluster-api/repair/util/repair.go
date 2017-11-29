@@ -64,7 +64,7 @@ func (r *repairer) RepairNode() error {
 		m, err := r.client.Machines().Get(node, metav1.GetOptions{})
 
 		if err != nil {
-			glog.Info("Error retrieving machine object %s. Not taking any action on this node.", node)
+			glog.Info("Error retrieving machine object %v. Not taking any action on this node.", node)
 			continue
 		}
 		if util.IsMaster(m) {

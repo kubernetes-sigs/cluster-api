@@ -3,7 +3,6 @@ items:
   kind: Machine
   metadata:
     generateName: gce-master-
-    uid: 40276eba-d030-11e7-910f-42010a800002
     labels:
       set: master
   spec:

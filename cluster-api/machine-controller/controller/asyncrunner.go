@@ -8,25 +8,25 @@ const workQueueMax int = 100
 // against a single id serially and do work against
 // different ids in parallel
 type asyncRunner struct {
-	lock *sync.Mutex
+	lock       *sync.Mutex
 	workQueues map[string]workQueue
 }
 
 type workQueue struct {
-	lock *sync.Mutex
+	lock  *sync.Mutex
 	queue chan func()
 }
 
 func newAsyncRunner() *asyncRunner {
 	return &asyncRunner{
-		lock: &sync.Mutex{},
+		lock:       &sync.Mutex{},
 		workQueues: map[string]workQueue{},
 	}
 }
 
 func newWorkQueue() workQueue {
 	return workQueue{
-		lock: &sync.Mutex{},
+		lock:  &sync.Mutex{},
 		queue: make(chan func(), workQueueMax),
 	}
 }
@@ -52,7 +52,7 @@ func (r *asyncRunner) run(id string, f func()) {
 	wq.lock.Lock()
 	defer wq.lock.Unlock()
 
-	w := <- wq.queue
+	w := <-wq.queue
 	w()
 }
 

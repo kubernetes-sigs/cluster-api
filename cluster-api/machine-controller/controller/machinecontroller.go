@@ -197,17 +197,18 @@ func (c *MachineController) create(machine *clusterv1.Machine) error {
 		return err
 	}
 
-	//TODO: check if the actual machine does not already exist
 	return c.actuator.Create(cluster, machine)
-	//TODO: wait for machine to become a node
-	//TODO: link node to machine CRD
 }
 
 func (c *MachineController) delete(machine *clusterv1.Machine) error {
-	//TODO: check if the actual machine does not exist
-	//TODO: delink node from machine CRD
 	c.kubeClientSet.CoreV1().Nodes().Delete(machine.ObjectMeta.Name, &metav1.DeleteOptions{})
-	return c.actuator.Delete(machine)
+	if err := c.actuator.Delete(machine); err != nil {
+		return err
+	}
+	// Do a second node cleanup after the delete completes in case the node joined the cluster
+	// while the deletion of the machine was mid-way.
+	c.kubeClientSet.CoreV1().Nodes().Delete(machine.ObjectMeta.Name, &metav1.DeleteOptions{})
+	return nil
 }
 
 func (c *MachineController) update(old_machine *clusterv1.Machine, new_machine *clusterv1.Machine) error {

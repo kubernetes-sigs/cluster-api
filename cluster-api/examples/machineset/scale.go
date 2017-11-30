@@ -134,7 +134,8 @@ func clone(old clusterv1.Machine) *clusterv1.Machine {
 	newMachine.ObjectMeta = metav1.ObjectMeta{}
 	newMachine.ObjectMeta.GenerateName = old.ObjectMeta.GenerateName
 	newMachine.ObjectMeta.Labels = old.ObjectMeta.Labels
-	newMachine.ObjectMeta.Annotations = old.ObjectMeta.Annotations
+	// Do not copy annotations as they currently contain info like machine name/location etc.
+	// newMachine.ObjectMeta.Annotations = old.ObjectMeta.Annotations
 	newMachine.ObjectMeta.ClusterName = old.ObjectMeta.ClusterName
 
 	// Completely wipe out the status as well

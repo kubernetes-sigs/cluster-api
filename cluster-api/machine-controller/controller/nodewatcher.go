@@ -116,6 +116,7 @@ func (c *NodeWatcher) link(node *corev1.Node) {
 		machine, err := c.machineClient.Get(val, metav1.GetOptions{})
 		if err != nil {
 			glog.Errorf("Error getting machine %v: %v\n", val, err)
+			return
 		}
 
 		machine.Status.NodeRef = objectRef(node)
@@ -135,6 +136,7 @@ func (c *NodeWatcher) unlink(node *corev1.Node) {
 		machine, err := c.machineClient.Get(val, metav1.GetOptions{})
 		if err != nil {
 			glog.Errorf("Error getting machine %v: %v\n", val, err)
+			return
 		}
 
 		// This machine has no link to remove

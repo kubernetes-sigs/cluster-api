@@ -78,7 +78,7 @@ func checkMachineReady(machineName string, kubeVersion string) (bool, error) {
 		glog.V(1).Infof("node %s is not ready. Status : %v", machineName, node.Status.Conditions)
 		return false, nil
 	case node.Status.NodeInfo.KubeletVersion == "v"+kubeVersion:
-		glog.V(1).Infof("node %s is ready", machineName)
+		glog.Infof("node %s is ready", machineName)
 		return true, nil
 	default:
 		glog.V(1).Infof("node %s kubelet current version: %s, target: %s.", machineName, node.Status.NodeInfo.KubeletVersion, kubeVersion)
@@ -105,6 +105,7 @@ func UpgradeCluster(kubeversion string, kubeconfig string) error {
 	for _, mach := range machine_list.Items {
 		if util.IsMaster(&mach) {
 			master = &mach
+			break
 		}
 	}
 

@@ -63,6 +63,11 @@ func checkMachineReady(machineName string, kubeVersion string) (bool, error) {
 	if err != nil {
 		return false, err
 	}
+
+	if machine.Status.NodeRef == nil {
+		return false, nil
+	}
+
 	// Find the node object via reference in machine object.
 	node, err := kubeClientSet.CoreV1().Nodes().Get(machine.Status.NodeRef.Name, metav1.GetOptions{})
 	switch {
@@ -73,7 +78,7 @@ func checkMachineReady(machineName string, kubeVersion string) (bool, error) {
 		glog.V(1).Infof("node %s is not ready. Status : %v", machineName, node.Status.Conditions)
 		return false, nil
 	case node.Status.NodeInfo.KubeletVersion == "v"+kubeVersion:
-		glog.V(1).Infof("node %s is ready", machineName)
+		glog.Infof("node %s is ready", machineName)
 		return true, nil
 	default:
 		glog.V(1).Infof("node %s kubelet current version: %s, target: %s.", machineName, node.Status.NodeInfo.KubeletVersion, kubeVersion)
@@ -96,30 +101,32 @@ func UpgradeCluster(kubeversion string, kubeconfig string) error {
 	glog.Info("Upgrading the control plane.")
 
 	// Update the control plan first. It assumes single master.
-	master_found := false
+	var master *clusterv1.Machine = nil
 	for _, mach := range machine_list.Items {
 		if util.IsMaster(&mach) {
-			mach.Spec.Versions.Kubelet = kubeversion
-			mach.Spec.Versions.ControlPlane = kubeversion
-			new_machine, err := client.Machines().Update(&mach)
-			if err == nil {
-				err = wait.Poll(5*time.Second, 10*time.Minute, func() (bool, error) {
-					ready, err := checkMachineReady(new_machine.Name, kubeversion)
-					if err != nil {
-						// Ignore the error as control plan is restarting.
-						return false, nil
-					}
-					return ready, nil
-				})
-			}
-			master_found = true
+			master = &mach
 			break
 		}
 	}
 
-	if err == nil && !master_found {
+	if master == nil {
 		err = fmt.Errorf("No master is found.")
+	} else {
+		master.Spec.Versions.Kubelet = kubeversion
+		master.Spec.Versions.ControlPlane = kubeversion
+		new_machine, err := client.Machines().Update(master)
+		if err == nil {
+			err = wait.Poll(5*time.Second, 10*time.Minute, func() (bool, error) {
+				ready, err := checkMachineReady(new_machine.Name, kubeversion)
+				if err != nil {
+					// Ignore the error as control plan is restarting.
+					return false, nil
+				}
+				return ready, nil
+			})
+		}
 	}
+
 	if err != nil {
 		return err
 	}

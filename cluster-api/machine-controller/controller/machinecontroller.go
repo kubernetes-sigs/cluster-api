@@ -43,6 +43,7 @@ type MachineController struct {
 	clusterClient *client.ClusterAPIV1Alpha1Client
 	actuator      cloud.MachineActuator
 	nodeWatcher   *NodeWatcher
+	machineClient client.MachinesInterface
 	runner        *asyncRunner
 }
 
@@ -82,6 +83,7 @@ func NewMachineController(config *Configuration) *MachineController {
 		clusterClient: clusterClient,
 		actuator:      actuator,
 		nodeWatcher:   nodeWatcher,
+		machineClient: machineClient,
 		runner: newAsyncRunner(),
 	}
 }
@@ -196,6 +198,15 @@ func (c *MachineController) create(machine *clusterv1.Machine) error {
 	if err != nil {
 		return err
 	}
+
+	// Sometimes old events get replayed even though they have already been processed by this
+	// controller. Temporarily work around this by checking if the machine CRD actually exists
+	// on create.
+	_, err = c.machineClient.Get(machine.ObjectMeta.Name, metav1.GetOptions{})
+	if err != nil {
+		glog.Errorf("Skipping machine create due to error getting machine %v: %v\n", machine.ObjectMeta.Name, err)
+		return err
+	}	
 
 	return c.actuator.Create(cluster, machine)
 }

@@ -21,11 +21,11 @@ limitations under the License.
 package imagebuilder
 
 import (
-	"fmt"
-	"time"
-
 	"crypto/md5"
 	"encoding/hex"
+	"fmt"
+	"sync"
+	"time"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/awserr"
@@ -565,7 +565,8 @@ type AWSImage struct {
 	region  string
 	imageID string
 
-	cachedImage *ec2.Image
+	cachedImageMutex sync.Mutex
+	cachedImage      *ec2.Image
 }
 
 // ID returns the AWS identifier for the image
@@ -670,6 +671,9 @@ func waitSnapshotCompleted(client *ec2.EC2, snapshotID string) error {
 }
 
 func (i *AWSImage) image() (*ec2.Image, error) {
+	i.cachedImageMutex.Lock()
+	defer i.cachedImageMutex.Unlock()
+
 	if i.cachedImage != nil {
 		return i.cachedImage, nil
 	}
@@ -781,7 +785,7 @@ func (i *AWSImage) ensurePublic() error {
 
 // ReplicateImage copies the image to all accessable AWS regions
 func (i *AWSImage) ReplicateImage(makePublic bool) (map[string]Image, error) {
-	imagesByRegion := make(map[string]Image)
+	var results sync.Map
 
 	glog.V(2).Infof("AWS DescribeRegions")
 	request := &ec2.DescribeRegionsInput{}
@@ -790,35 +794,63 @@ func (i *AWSImage) ReplicateImage(makePublic bool) (map[string]Image, error) {
 		return nil, fmt.Errorf("error listing ec2 regions: %v", err)
 
 	}
-	imagesByRegion[i.region] = i
+	results.Store(i.region, i)
+
+	var wg sync.WaitGroup
 
 	for _, region := range response.Regions {
-		regionName := aws.StringValue(region.RegionName)
-		if imagesByRegion[regionName] != nil {
-			continue
-		}
-
-		imageID, err := i.copyImageToRegion(regionName)
-		if err != nil {
-			return nil, fmt.Errorf("error copying image to region %q: %v", regionName, err)
-		}
-		targetEC2 := ec2.New(session.New(), &aws.Config{Region: &regionName})
-		imagesByRegion[regionName] = &AWSImage{
-			ec2:     targetEC2,
-			region:  regionName,
-			imageID: imageID,
-		}
-	}
-
-	if makePublic {
-		for regionName, image := range imagesByRegion {
-			err := image.EnsurePublic()
-			if err != nil {
-				return nil, fmt.Errorf("error making image public in region %q: %v", regionName, err)
+		go func(regionName string) {
+			var image *AWSImage
+			if v, ok := results.Load(regionName); ok {
+				image = v.(*AWSImage)
 			}
-		}
+
+			if image == nil {
+				imageID, err := i.copyImageToRegion(regionName)
+				if err != nil {
+					results.Store(regionName, fmt.Errorf("error copying image to region %q: %v", regionName, err))
+					wg.Done()
+					return
+				}
+				targetEC2 := ec2.New(session.New(), &aws.Config{Region: &regionName})
+				image = &AWSImage{
+					ec2:     targetEC2,
+					region:  regionName,
+					imageID: imageID,
+				}
+
+				results.Store(regionName, image)
+			}
+
+			if makePublic {
+				err := image.EnsurePublic()
+				if err != nil {
+					results.Store(regionName, fmt.Errorf("error making image public in region %q: %v", regionName, err))
+					wg.Done()
+					return
+				}
+			}
+
+			wg.Done()
+		}(aws.StringValue(region.RegionName))
+		wg.Add(1)
 	}
 
+	wg.Wait()
+
+	imagesByRegion := make(map[string]Image)
+	var returnError error
+	results.Range(func(k, v interface{}) bool {
+		if err, ok := v.(error); ok {
+			returnError = err
+			return false
+		}
+		imagesByRegion[k.(string)] = v.(*AWSImage)
+		return true
+	})
+	if returnError != nil {
+		return nil, returnError
+	}
 	return imagesByRegion, nil
 }
 

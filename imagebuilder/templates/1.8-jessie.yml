@@ -8,6 +8,7 @@ provider:
 {{ if eq .Cloud "aws" }}
   name: ec2
   virtualization: hvm
+  enhanced_networking: simple
 {{ else if eq .Cloud "gce" }}
   name: gce
   gcs_destination: {{ .GCSDestination }}
@@ -149,6 +150,14 @@ plugins:
        - [ 'chroot', '{root}', '/bin/sh', '-c', 'echo "APT::Periodic::Update-Package-Lists \"0\";" > /etc/apt/apt.conf.d/20auto-upgrades' ]
        - [ 'chroot', '{root}', '/bin/sh', '-c', 'echo "APT::Periodic::Unattended-Upgrade \"0\"; " >> /etc/apt/apt.conf.d/20auto-upgrades' ]
        # - [ 'chroot', '{root}', 'apt-get', 'remove', '--yes', 'unattended-upgrades' ]
+
+       # Remove dkms & other unneeded packages
+       # TODO: running kernel removal needs removing-running-kernel preseed
+       # https://apt-browse.org/browse/debian/jessie/main/i386/linux-image-3.16.0-4-586/3.16.7-ckt25-2/debian/prerm
+       # - [ 'chroot', '{root}', 'apt-get', 'remove', '--yes', 'linux-image-3.16.0-4-amd64', 'linux-headers-3.16.0-4-common' ]
+       - [ 'chroot', '{root}', 'apt-get', 'remove', '--yes', '--purge', 'dkms' ]
+       - [ 'chroot', '{root}', 'apt-get', 'remove', '--yes', 'linux-headers-3.16.0-4-common' ]
+       - [ 'chroot', '{root}', 'apt-get', 'remove', '--yes', 'libgcc-4.8-dev', 'gcc-4.8', 'cpp', 'cpp-4.9' ]
 
        # Install docker
        - [ 'wget', 'http://apt.dockerproject.org/repo/pool/main/d/docker-engine/docker-engine_1.13.1-0~debian-jessie_amd64.deb', '-O', '{root}/tmp/docker.deb' ]

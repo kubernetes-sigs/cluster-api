@@ -152,6 +152,9 @@ func (gce *GCEClient) Create(cluster *clusterv1.Cluster, machine *clusterv1.Mach
 	if machine.Spec.Versions.Kubelet == "" {
 		return errors.New("invalid master configuration: missing Machine.Spec.Versions.Kubelet")
 	}
+
+	image, preloaded := gce.getImage(machine, config)
+
 	if util.IsMaster(machine) {
 		if machine.Spec.Versions.ControlPlane == "" {
 			return gce.handleMachineError(machine, apierrors.InvalidMachineConfiguration(
@@ -160,9 +163,10 @@ func (gce *GCEClient) Create(cluster *clusterv1.Cluster, machine *clusterv1.Mach
 		var err error
 		metadata, err = masterMetadata(
 			templateParams{
-				Token:   gce.kubeadmToken,
-				Cluster: cluster,
-				Machine: machine,
+				Token:     gce.kubeadmToken,
+				Cluster:   cluster,
+				Machine:   machine,
+				Preloaded: preloaded,
 			},
 		)
 		if err != nil {
@@ -175,9 +179,10 @@ func (gce *GCEClient) Create(cluster *clusterv1.Cluster, machine *clusterv1.Mach
 		var err error
 		metadata, err = nodeMetadata(
 			templateParams{
-				Token:   gce.kubeadmToken,
-				Cluster: cluster,
-				Machine: machine,
+				Token:     gce.kubeadmToken,
+				Cluster:   cluster,
+				Machine:   machine,
+				Preloaded: preloaded,
 			},
 		)
 		if err != nil {
@@ -197,6 +202,13 @@ func (gce *GCEClient) Create(cluster *clusterv1.Cluster, machine *clusterv1.Mach
 	name := machine.ObjectMeta.Name
 	project := config.Project
 	zone := config.Zone
+	diskSize := int64(10)
+
+	// Our preloaded image already has a lot stored on it, so increase the
+	// disk size to have more free working space.
+	if preloaded {
+		diskSize = 30
+	}
 
 	op, err := gce.service.Instances.Insert(project, zone, &compute.Instance{
 		Name:        name,
@@ -217,8 +229,8 @@ func (gce *GCEClient) Create(cluster *clusterv1.Cluster, machine *clusterv1.Mach
 				AutoDelete: true,
 				Boot:       true,
 				InitializeParams: &compute.AttachedDiskInitializeParams{
-					SourceImage: config.Image,
-					DiskSizeGb:  10,
+					SourceImage: image,
+					DiskSizeGb:  diskSize,
 				},
 			},
 		},
@@ -514,4 +526,19 @@ func (gce *GCEClient) handleMachineError(machine *clusterv1.Machine, err *apierr
 
 	glog.Errorf("Machine error: %v", err.Message)
 	return err
+}
+
+func (gce *GCEClient) getImage(machine *clusterv1.Machine, config *gceconfig.GCEProviderConfig) (image string, isPreloaded bool) {
+	project := config.Project
+	imgName := "prebaked-ubuntu-1604-lts"
+	fullName := fmt.Sprintf("projects/%s/global/images/%s", project, imgName)
+
+	// Check to see if a preloaded image exists in this project. If so, use it.
+	_, err := gce.service.Images.Get(project, imgName).Do()
+	if err == nil {
+		return fullName, true
+	}
+
+	// Otherwise, fall back to the non-preloaded base image.
+	return "projects/ubuntu-os-cloud/global/images/family/ubuntu-1604-lts", false
 }

@@ -29,6 +29,7 @@ type templateParams struct {
 	Cluster      *clusterv1.Cluster
 	Machine      *clusterv1.Machine
 	DockerImages []string
+	Preloaded    bool
 }
 
 func nodeMetadata(params templateParams) (map[string]string, error) {
@@ -63,7 +64,7 @@ func masterMetadata(params templateParams) (map[string]string, error) {
 }
 
 func isPreloaded(params templateParams) bool {
-	return false
+	return params.Preloaded
 }
 
 // PreloadMasterScript returns a script that can be used to preload a master.
@@ -152,21 +153,6 @@ echo done.
 
 const nodeStartupScript = `
 {{ define "install" -}}
-# Our Debian packages have versions like "1.8.0-00" or "1.8.0-01". Do a prefix
-# search based on our SemVer to find the right (newest) package version.
-function getversion() {
-	name=$1
-	prefix=$2
-	version=$(apt-cache madison $name | awk '{ print $3 }' | grep ^$prefix | head -n1)
-	if [[ -z "$version" ]]; then
-		echo Can\'t find package $name with prefix $prefix
-		exit 1
-	fi
-	echo $version
-}
-
-KUBELET_VERSION={{ .Machine.Spec.Versions.Kubelet }}
-
 apt-get update
 apt-get install -y apt-transport-https prips
 apt-key adv --keyserver hkp://keyserver.ubuntu.com --recv-keys F76221572C52609D
@@ -185,18 +171,33 @@ deb http://apt.kubernetes.io/ kubernetes-xenial main
 EOF
 apt-get update
 
-KUBELET=$(getversion kubelet ${KUBELET_VERSION}-)
-KUBEADM=$(getversion kubeadm ${KUBELET_VERSION}-)
-KUBECTL=$(getversion kubectl ${KUBELET_VERSION}-)
-apt-get install -y kubelet=${KUBELET} kubeadm=${KUBEADM} kubectl=${KUBECTL}
 {{- end }} {{/* end install */}}
 
 {{ define "configure" -}}
+KUBELET_VERSION={{ .Machine.Spec.Versions.Kubelet }}
 TOKEN={{ .Token }}
 MASTER={{ index .Cluster.Status.APIEndpoints 0 | endpoint }}
 MACHINE={{ .Machine.ObjectMeta.Name }}
 CLUSTER_DNS_DOMAIN={{ .Cluster.Spec.ClusterNetwork.DNSDomain }}
 SERVICE_CIDR={{ .Cluster.Spec.ClusterNetwork.ServiceSubnet }}
+
+# Our Debian packages have versions like "1.8.0-00" or "1.8.0-01". Do a prefix
+# search based on our SemVer to find the right (newest) package version.
+function getversion() {
+	name=$1
+	prefix=$2
+	version=$(apt-cache madison $name | awk '{ print $3 }' | grep ^$prefix | head -n1)
+	if [[ -z "$version" ]]; then
+		echo Can\'t find package $name with prefix $prefix
+		exit 1
+	fi
+	echo $version
+}
+
+KUBELET=$(getversion kubelet ${KUBELET_VERSION}-)
+KUBEADM=$(getversion kubeadm ${KUBELET_VERSION}-)
+KUBECTL=$(getversion kubectl ${KUBELET_VERSION}-)
+apt-get install -y kubelet=${KUBELET} kubeadm=${KUBEADM} kubectl=${KUBECTL}
 
 systemctl enable docker || true
 systemctl start docker || true
@@ -222,6 +223,43 @@ done
 // TODO: actually init the cluster, templatize token, etc.
 const masterStartupScript = `
 {{ define "install" -}}
+
+KUBELET_VERSION={{ .Machine.Spec.Versions.Kubelet }}
+
+curl -s https://packages.cloud.google.com/apt/doc/apt-key.gpg | sudo apt-key add -
+touch /etc/apt/sources.list.d/kubernetes.list
+sh -c 'echo "deb http://apt.kubernetes.io/ kubernetes-xenial main" > /etc/apt/sources.list.d/kubernetes.list'
+
+apt-get update -y
+
+apt-get install -y \
+    socat \
+    ebtables \
+    docker.io \
+    apt-transport-https \
+    cloud-utils \
+    prips
+
+export VERSION=$(curl -sSL https://dl.k8s.io/release/stable.txt)
+export ARCH=amd64
+curl -sSL https://dl.k8s.io/release/${VERSION}/bin/linux/${ARCH}/kubeadm > /usr/bin/kubeadm.dl
+chmod a+rx /usr/bin/kubeadm.dl
+{{- end }} {{/* end install */}}
+
+
+{{ define "configure" -}}
+KUBELET_VERSION={{ .Machine.Spec.Versions.Kubelet }}
+TOKEN={{ .Token }}
+PORT=443
+MACHINE={{ .Machine.ObjectMeta.Name }}
+CONTROL_PLANE_VERSION={{ .Machine.Spec.Versions.ControlPlane }}
+CLUSTER_DNS_DOMAIN={{ .Cluster.Spec.ClusterNetwork.DNSDomain }}
+POD_CIDR={{ .Cluster.Spec.ClusterNetwork.PodSubnet }}
+SERVICE_CIDR={{ .Cluster.Spec.ClusterNetwork.ServiceSubnet }}
+
+# kubeadm uses 10th IP as DNS server
+CLUSTER_DNS_SERVER=$(prips ${SERVICE_CIDR} | head -n 11 | tail -n 1)
+
 # Our Debian packages have versions like "1.8.0-00" or "1.8.0-01". Do a prefix
 # search based on our SemVer to find the right (newest) package version.
 function getversion() {
@@ -235,45 +273,15 @@ function getversion() {
 	echo $version
 }
 
-KUBELET_VERSION={{ .Machine.Spec.Versions.Kubelet }}
-
-curl -s https://packages.cloud.google.com/apt/doc/apt-key.gpg | sudo apt-key add -
-touch /etc/apt/sources.list.d/kubernetes.list
-sh -c 'echo "deb http://apt.kubernetes.io/ kubernetes-xenial main" > /etc/apt/sources.list.d/kubernetes.list'
-
-apt-get update -y
-
 KUBELET=$(getversion kubelet ${KUBELET_VERSION}-)
 KUBEADM=$(getversion kubeadm ${KUBELET_VERSION}-)
 
 apt-get install -y \
-    socat \
-    ebtables \
-    docker.io \
-    apt-transport-https \
     kubelet=${KUBELET} \
     kubeadm=${KUBEADM} \
-    cloud-utils \
-    prips
 
-export VERSION=$(curl -sSL https://dl.k8s.io/release/stable.txt)
-export ARCH=amd64
-curl -sSL https://dl.k8s.io/release/${VERSION}/bin/linux/${ARCH}/kubeadm > /usr/bin/kubeadm
+mv /usr/bin/kubeadm.dl /usr/bin/kubeadm
 chmod a+rx /usr/bin/kubeadm
-{{- end }} {{/* end install */}}
-
-
-{{ define "configure" -}}
-TOKEN={{ .Token }}
-PORT=443
-MACHINE={{ .Machine.ObjectMeta.Name }}
-CONTROL_PLANE_VERSION={{ .Machine.Spec.Versions.ControlPlane }}
-CLUSTER_DNS_DOMAIN={{ .Cluster.Spec.ClusterNetwork.DNSDomain }}
-POD_CIDR={{ .Cluster.Spec.ClusterNetwork.PodSubnet }}
-SERVICE_CIDR={{ .Cluster.Spec.ClusterNetwork.ServiceSubnet }}
-
-# kubeadm uses 10th IP as DNS server
-CLUSTER_DNS_SERVER=$(prips ${SERVICE_CIDR} | head -n 11 | tail -n 1)
 
 systemctl enable docker
 systemctl start docker
@@ -287,20 +295,19 @@ echo $PRIVATEIP > /tmp/.ip
 	"PUBLICIP=`curl --retry 5 -sfH \"Metadata-Flavor: Google\" \"http://metadata/computeMetadata/v1/instance/network-interfaces/0/access-configs/0/external-ip\"`" + `
 
 
-kubeadm reset
 kubeadm init --apiserver-bind-port ${PORT} --token ${TOKEN} --kubernetes-version v${CONTROL_PLANE_VERSION} \
              --apiserver-advertise-address ${PUBLICIP} --apiserver-cert-extra-sans ${PUBLICIP} ${PRIVATEIP} \
-             --service-cidr ${SERVICE_CIDR} 
+             --service-cidr ${SERVICE_CIDR}
+
+# install weavenet
+sysctl net.bridge.bridge-nf-call-iptables=1
+export kubever=$(kubectl version --kubeconfig /etc/kubernetes/admin.conf | base64 | tr -d '\n')
+kubectl apply --kubeconfig /etc/kubernetes/admin.conf -f "https://cloud.weave.works/k8s/net?k8s-version=$kubever"
 
 for tries in $(seq 1 60); do
 	kubectl --kubeconfig /etc/kubernetes/kubelet.conf annotate --overwrite node $(hostname) machine=${MACHINE} && break
 	sleep 1
 done
-
-# install wavenet
-sysctl net.bridge.bridge-nf-call-iptables=1
-export kubever=$(kubectl version --kubeconfig /etc/kubernetes/admin.conf | base64 | tr -d '\n')
-kubectl apply --kubeconfig /etc/kubernetes/admin.conf -f "https://cloud.weave.works/k8s/net?k8s-version=$kubever"
 
 {{- end }} {{/* end configure */}}
 `

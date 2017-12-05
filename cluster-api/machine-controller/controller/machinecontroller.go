@@ -84,7 +84,7 @@ func NewMachineController(config *Configuration) *MachineController {
 		actuator:      actuator,
 		nodeWatcher:   nodeWatcher,
 		machineClient: machineClient,
-		runner: newAsyncRunner(),
+		runner:        newAsyncRunner(),
 	}
 }
 
@@ -126,7 +126,7 @@ func (c *MachineController) onAdd(obj interface{}) {
 		return
 	}
 
-	c.runner.runAsync(machine.ObjectMeta.Name, func(){
+	c.runner.runAsync(machine.ObjectMeta.Name, func() {
 		err := c.create(machine)
 		if err != nil {
 			glog.Errorf("create machine %s failed: %v", machine.ObjectMeta.Name, err)
@@ -147,8 +147,8 @@ func (c *MachineController) onUpdate(oldObj, newObj interface{}) {
 		return
 	}
 
-	c.runner.runAsync(newMachine.ObjectMeta.Name, func(){
-		err := 	c.update(oldMachine, newMachine)
+	c.runner.runAsync(newMachine.ObjectMeta.Name, func() {
+		err := c.update(oldMachine, newMachine)
 		if err != nil {
 			glog.Errorf("update machine %s failed: %v", newMachine.ObjectMeta.Name, err)
 		} else {
@@ -165,7 +165,7 @@ func (c *MachineController) onDelete(obj interface{}) {
 		return
 	}
 
-	c.runner.runAsync(machine.ObjectMeta.Name, func(){
+	c.runner.runAsync(machine.ObjectMeta.Name, func() {
 		err := c.delete(machine)
 		if err != nil {
 			glog.Errorf("delete machine %s failed: %v", machine.ObjectMeta.Name, err)
@@ -206,7 +206,7 @@ func (c *MachineController) create(machine *clusterv1.Machine) error {
 	if err != nil {
 		glog.Errorf("Skipping machine create due to error getting machine %v: %v\n", machine.ObjectMeta.Name, err)
 		return err
-	}	
+	}
 
 	return c.actuator.Create(cluster, machine)
 }

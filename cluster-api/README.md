@@ -1,3 +1,4 @@
+# Cluster API
 ## What is the Cluster API?
 
 The Cluster API is a Kubernetes project to bring declarative, Kubernetes-style
@@ -13,7 +14,8 @@ To learn more, see the full [Cluster API proposal][proposal].
 
 ## Get involved!
 
-* Join our weekly Cluster API working group sessions
+* Join our Cluster API working group sessions
+  * Weekly on Wednesdays @ 11:00 PT (19:00 UTC) on [Zoom][zoomMeeting]
   * Previous meetings: \[ [notes][notes] | [recordings][recordings] \]
 * Chat with us on [Slack](http://slack.k8s.io/): #sig-cluster-lifecycle
 
@@ -28,8 +30,9 @@ upgrading is handled by kubeadm.
 ### Prerequisite
 
 * `kubectl` is required, see [here](http://kubernetes.io/docs/user-guide/prereqs/).
-* `Google Cloud SDK` is installed if you are creating cluster on GCP, see [here](https://cloud.google.com/sdk/downloads).
-* You need to have an account on Google Cloud Platform which have enough quota for the resource.
+* If you want to create a cluster on Google Cloud Platform (GCP):
+  * The [Google Cloud SDK][gcpSDK] needs to be installed.
+  * You will need to have a GCP account.
 
 ### How to build
 ```bash
@@ -46,8 +49,7 @@ $ go build
 3) Update machines.yaml with google cloud project name.
 4) Run `gcloud auth application-default login` to get default credentials.
 5) Create cluster: `./cluster-api create -c cluster.yaml -m machines.yaml`
-6) Add new nodes: update new-machines.yaml with cloud project name and run `./cluster-api add -m new-machines.yaml`
-7) Delete cluster: `./cluster-api delete`
+6) Delete cluster: `./cluster-api delete`
 
 ### How to use the API
 
@@ -60,3 +62,5 @@ To see how to build tooling on top of the Cluster API, please check out a few ex
 [proposal]: https://docs.google.com/document/d/1G2sqUQlOYsYX6w1qj0RReffaGXH4ig2rl3zsIzEFCGY/edit#
 [notes]: https://docs.google.com/document/d/16ils69KImmE94RlmzjWDrkmFZysgB2J4lGnYMRN89WM/edit#heading=h.xqb69epnpv
 [recordings]: https://www.youtube.com/watch?v=I9764DRBKLI&list=PL69nYSiGNLP29D0nYgAGWt1ZFqS9Z7lw4
+[gcpSDK]: https://cloud.google.com/sdk/downloads
+[zoomMeeting]: https://zoom.us/j/166836624

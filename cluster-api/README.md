@@ -43,18 +43,18 @@ $ go build
 each machine's `providerConfig` field.
    - *Optional*: Update the `cluster.yaml` file to change the cluster name.
 3. Run `gcloud auth application-default login` to get default credentials.
-4. Create cluster: `./cluster-api create -c cluster.yaml -m machines.yaml`
-5. Delete cluster: `./cluster-api delete`
+4. Create a cluster: `./cluster-api create -c cluster.yaml -m machines.yaml`
+5. Delete that cluster: `./cluster-api delete`
 
 ### How to use the API
 
 To see how to build tooling on top of the Cluster API, please check out a few examples below:
 
-* [Upgrade](upgrader/README.md)
-* [Repair](repair/README.md)
-* [Scaling](examples/machineset/README.md)
+* [upgrader](upgrader/README.md): a cluster upgrade tool.
+* [repair](repair/README.md): detect problematic nodes and fix them.
+* [machineset](examples/machineset/README.md): a client-side implementation of MachineSets for declaratively scaling Machines.
 
-### How is it implemented?
+### How does the prototype work?
 
 Right now, the Cluster and Machine objects are stored as Custom Resources (CRDs)
 in the cluster's apiserver.  Like other resources in kubernetes, a [machine

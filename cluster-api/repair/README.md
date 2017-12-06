@@ -1,5 +1,7 @@
 # Cluster Repair
-Cluster repair is an standalone tool to repair the problematic nodes in the cluster
+`repair` is an standalone tool to detect problematic nodes in a cluster and
+repair them. It is built on top of the Cluster API, and is an example of tooling
+that can be built in a cloud-agnostic way.
 
 ## Build
 
@@ -11,6 +13,8 @@ $ go build
 ```
 
 ## Run
-1) Spin up a cluster using cluster-api
-2) To repair the nodes in cluster, run `./repair`
-3) To do a dryrun to see what will happen, run `./repair --dryrun true`
+1) Create a cluster using the `cluster-api` tool.
+2) To do a dry run of detecting broken nodes and seeing what needs to be
+repaired, run `./repair --dryrun true`.
+3) To actually repair the nodes in cluster, run `./repair` without the
+`--dryrun` flag.

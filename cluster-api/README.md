@@ -9,8 +9,13 @@ feedback on the API types themselves. All of the code here is to experiment with
 the API and demo its abilities, in order to drive more technical feedback to the
 API design. Because of this, all of the prototype code is rapidly changing.
 
-To learn more, see the full [Cluster API
-proposal](https://docs.google.com/document/d/1G2sqUQlOYsYX6w1qj0RReffaGXH4ig2rl3zsIzEFCGY/edit#).
+To learn more, see the full [Cluster API proposal][proposal].
+
+## Get involved!
+
+* Join our weekly Cluster API working group sessions
+  * Previous meetings: \[ [notes][notes] | [recordings][recordings] \]
+* Chat with us on [Slack](http://slack.k8s.io/): #sig-cluster-lifecycle
 
 ## How is it implemented?
 Right now, the Cluster and Machine objects are stored as Custom Resources (CRDs)
@@ -51,3 +56,7 @@ To see how to build tooling on top of the Cluster API, please check out a few ex
 * [Upgrade](upgrader/README.md)
 * [Repair](repair/README.md)
 * [Scaling](examples/machineset/README.md)
+
+[proposal]: https://docs.google.com/document/d/1G2sqUQlOYsYX6w1qj0RReffaGXH4ig2rl3zsIzEFCGY/edit#
+[notes]: https://docs.google.com/document/d/16ils69KImmE94RlmzjWDrkmFZysgB2J4lGnYMRN89WM/edit#heading=h.xqb69epnpv
+[recordings]: https://www.youtube.com/watch?v=I9764DRBKLI&list=PL69nYSiGNLP29D0nYgAGWt1ZFqS9Z7lw4

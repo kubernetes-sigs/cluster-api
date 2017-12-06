@@ -1,14 +1,23 @@
-## What is cluster-api
+## What is the Cluster API?
 
-It's a declarative way to create, configure, and manage a cluster. It provides an optional, additive functionality on
-top of core Kubernetes.
+The Cluster API is a Kubernetes project to bring declarative, Kubernetes-style
+APIs to cluster creation, configuration, and management. It provides optional,
+additive functionality on top of core Kubernetes.
 
-Note that cluster-api effort is still in the prototype stage. All the code here is for experimental and demo-purpose,
-and under rapid change.
+Note that Cluster API effort is still in the prototype stage while we get
+feedback on the API types themselves. All of the code here is to experiment with
+the API and demo its abilities, in order to drive more technical feedback to the
+API design. Because of this, all of the prototype code is rapidly changing.
 
-## How is it implemented
-We use custom resource type (CRD) to model new machine and cluster object. Just like other resources in kubernetes,
-a [machine controller](machine-controller/README.md) is running as regular pod to reconcile the actual machine state vs desired state.
+To learn more, see the full [Cluster API
+proposal](https://docs.google.com/document/d/1G2sqUQlOYsYX6w1qj0RReffaGXH4ig2rl3zsIzEFCGY/edit#).
+
+## How is it implemented?
+Right now, the Cluster and Machine objects are stored as Custom Resources (CRDs)
+in the cluster's apiserver.  Like other resources in kubernetes, a [machine
+controller](machine-controller/README.md) is run as a pod on the cluster to
+reconcile the actual vs. desired machine state. Bootstrapping and in-place
+upgrading is handled by kubeadm.
 
 ## How to run
 ### Prerequisite
@@ -37,7 +46,7 @@ $ go build
 
 ### How to use the API
 
-To see how we can use API to build toolings on top of cluster API, please check out a few examples below.
+To see how to build tooling on top of the Cluster API, please check out a few examples below:
 
 * [Upgrade](upgrader/README.md)
 * [Repair](repair/README.md)

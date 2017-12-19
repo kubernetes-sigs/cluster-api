@@ -56,14 +56,14 @@ func (a loggingMachineActuator) Delete(machine *clusterv1.Machine) error {
 	return nil
 }
 
-func (a loggingMachineActuator) Update(cluster *clusterv1.Cluster, oldMachine *clusterv1.Machine, newMachine *clusterv1.Machine) error {
-	glog.Infof("actuator received update: %s\n", oldMachine.ObjectMeta.Name)
+func (a loggingMachineActuator) Update(cluster *clusterv1.Cluster, machine *clusterv1.Machine) error {
+	glog.Infof("actuator received update: %s\n", machine.ObjectMeta.Name)
 	return nil
 }
 
-func (a loggingMachineActuator) Get(name string) (*clusterv1.Machine, error) {
-	glog.Infof("actuator received get %s\n", name)
-	return &clusterv1.Machine{}, nil
+func (a loggingMachineActuator) Exists(machine *clusterv1.Machine) (bool, error) {
+	glog.Infof("actuator received exists %s\n", machine.ObjectMeta.Name)
+	return false, nil
 }
 
 func (a loggingMachineActuator) GetIP(machine *clusterv1.Machine) (string, error) {

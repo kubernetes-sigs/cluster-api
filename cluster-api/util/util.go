@@ -27,6 +27,8 @@ import (
 
 	"github.com/golang/glog"
 	"k8s.io/api/core/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/types"
 	apiextensionsclient "k8s.io/apiextensions-apiserver/pkg/client/clientset/clientset"
 	"k8s.io/client-go/tools/clientcmd"
 	clusterv1 "k8s.io/kube-deploy/cluster-api/api/cluster/v1alpha1"
@@ -161,4 +163,31 @@ func NewClientSet(configPath string) (*apiextensionsclient.Clientset, error) {
 	}
 
 	return cs, nil
+}
+
+
+func GetCurrentMachineIfExists(machineClient client.MachinesInterface, machine *clusterv1.Machine) (*clusterv1.Machine, error) {
+	return GetMachineIfExists(machineClient, machine.ObjectMeta.Name, machine.ObjectMeta.UID)
+}
+
+func GetMachineIfExists(machineClient client.MachinesInterface, name string, uid types.UID) (*clusterv1.Machine, error) {
+	if machineClient == nil {
+		// Being called before k8s is setup as part of master VM creation
+		return nil, nil
+	}
+
+	// Machines are identified by name and UID
+	machine, err := machineClient.Get(name, metav1.GetOptions{})
+	if err != nil {
+		// TODO: Use formal way to check for not found
+		if strings.Contains(err.Error(), "not found") {
+			return nil, nil
+		}
+		return nil, err
+	}
+
+	if machine.ObjectMeta.UID != uid {
+		return nil, nil
+	}
+	return machine, nil
 }

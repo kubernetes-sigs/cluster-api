@@ -1,6 +1,6 @@
 PROJECT=k8s-cluster-api
 NAME=machine-controller
-VERSION=0.17
+VERSION=0.18
 
 staticbuild:
 	CGO_ENABLED=0 GOOS=linux go build -a -ldflags '-extldflags "-static"' .

@@ -9,6 +9,10 @@ all:
 	cd examples/machines-crd-installer && go build
 	cd examples/machineset && go build
 
+controller:
+	cd machine-controller && go build && make push
+	go build
+
 fmt:
 	find -path './vendor' -prune -o -name '*.go' -exec gofmt -w -l {} \;
 

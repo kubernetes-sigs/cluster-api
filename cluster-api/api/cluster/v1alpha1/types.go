@@ -51,14 +51,19 @@ type ClusterSpec struct {
 // ClusterNetworkingConfig specifies the different networking
 // parameters for a cluster.
 type ClusterNetworkingConfig struct {
-	// The subnet CIDR from which service VIPs are allocated.
-	ServiceSubnet string `json:"serviceSubnet"`
+	// The network ranges from which service VIPs are allocated.
+	Services NetworkRanges `json:"services"`
 
-	// The subnet CIDR from which POD networks are allocated.
-	PodSubnet string `json:"podSubnet"`
+	// The network ranges from which POD networks are allocated.
+	Pods NetworkRanges `json:"pods"`
 
 	// Domain name for services.
 	DNSDomain string `json:"dnsDomain"`
+}
+
+// NetworkRanges represents ranges of network addresses.
+type NetworkRanges struct {
+	CIDRBlocks []string `json:"cidrBlocks"`
 }
 
 // ClusterStatus represents the current status of the cluster.

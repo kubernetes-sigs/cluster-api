@@ -4,8 +4,10 @@ metadata:
   name: test1 
 spec:
     clusterNetwork:
-        serviceSubnet: "10.96.0.0/12"
-        podSubnet: "192.168.0.0/16"
+        service:
+            cidrBlocks: "10.96.0.0/12"
+        pods: 
+            cidrBlocks: "192.168.0.0/16"
         dnsDomain: "cluster.local"
     providerConfig: >
       {

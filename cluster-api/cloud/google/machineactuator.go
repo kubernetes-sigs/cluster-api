@@ -23,6 +23,7 @@ import (
 	"io/ioutil"
 	"os"
 	"path"
+	"reflect"
 	"strings"
 	"time"
 
@@ -40,7 +41,6 @@ import (
 	gceconfigv1 "k8s.io/kube-deploy/cluster-api/cloud/google/gceproviderconfig/v1alpha1"
 	apierrors "k8s.io/kube-deploy/cluster-api/errors"
 	"k8s.io/kube-deploy/cluster-api/util"
-	"reflect"
 )
 
 const (
@@ -146,11 +146,11 @@ func (gce *GCEClient) Create(cluster *clusterv1.Cluster, machine *clusterv1.Mach
 	if cluster.Spec.ClusterNetwork.DNSDomain == "" {
 		return errors.New("invalid cluster configuration: missing Cluster.Spec.ClusterNetwork.DNSDomain")
 	}
-	if cluster.Spec.ClusterNetwork.PodSubnet == "" {
-		return errors.New("invalid cluster configuration: missing Cluster.Spec.ClusterNetwork.PodSubnet")
+	if getSubnet(cluster.Spec.ClusterNetwork.Pods) == "" {
+		return errors.New("invalid cluster configuration: missing Cluster.Spec.ClusterNetwork.Pods")
 	}
-	if cluster.Spec.ClusterNetwork.ServiceSubnet == "" {
-		return errors.New("invalid cluster configuration: missing Cluster.Spec.ClusterNetwork.ServiceSubnet")
+	if getSubnet(cluster.Spec.ClusterNetwork.Services) == "" {
+		return errors.New("invalid cluster configuration: missing Cluster.Spec.ClusterNetwork.Services")
 	}
 	if machine.Spec.Versions.Kubelet == "" {
 		return errors.New("invalid master configuration: missing Machine.Spec.Versions.Kubelet")
@@ -351,10 +351,10 @@ func (gce *GCEClient) Update(cluster *clusterv1.Cluster, goalMachine *clusterv1.
 	currentMachine := (*clusterv1.Machine)(status)
 	if currentMachine == nil {
 		instance, err := gce.instanceIfExists(goalMachine)
-		if err != nil{
+		if err != nil {
 			return err
 		}
-		if instance != nil && instance.Labels[BootstrapLabelKey] != ""{
+		if instance != nil && instance.Labels[BootstrapLabelKey] != "" {
 			glog.Infof("Populating current state for boostrap machine %v", goalMachine.ObjectMeta.Name)
 			return gce.updateAnnotations(goalMachine)
 		} else {
@@ -663,4 +663,12 @@ func (gce *GCEClient) getImage(machine *clusterv1.Machine, config *gceconfig.GCE
 
 	// Otherwise, fall back to the non-preloaded base image.
 	return "projects/ubuntu-os-cloud/global/images/family/ubuntu-1604-lts", false
+}
+
+// Just a temporary hack to grab a single range from the config.
+func getSubnet(netRange clusterv1.NetworkRanges) string {
+	if len(netRange.CIDRBlocks) == 0 {
+		return ""
+	}
+	return netRange.CIDRBlocks[0]
 }

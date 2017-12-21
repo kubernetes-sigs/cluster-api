@@ -97,8 +97,13 @@ func init() {
 	endpoint := func(apiEndpoint *clusterv1.APIEndpoint) string {
 		return fmt.Sprintf("%s:%d", apiEndpoint.Host, apiEndpoint.Port)
 	}
+	// Force a compliation error if getSubnet changes. This is the
+	// signature the templates expect, so changes need to be
+	// reflected in templates below.
+	var _ func(clusterv1.NetworkRanges) string = getSubnet
 	funcMap := map[string]interface{}{
-		"endpoint": endpoint,
+		"endpoint":  endpoint,
+		"getSubnet": getSubnet,
 	}
 	nodeStartupScriptTemplate = template.Must(template.New("nodeStartupScript").Funcs(funcMap).Parse(nodeStartupScript))
 	nodeStartupScriptTemplate = template.Must(nodeStartupScriptTemplate.Parse(genericTemplates))
@@ -179,7 +184,7 @@ TOKEN={{ .Token }}
 MASTER={{ index .Cluster.Status.APIEndpoints 0 | endpoint }}
 MACHINE={{ .Machine.ObjectMeta.Name }}
 CLUSTER_DNS_DOMAIN={{ .Cluster.Spec.ClusterNetwork.DNSDomain }}
-SERVICE_CIDR={{ .Cluster.Spec.ClusterNetwork.ServiceSubnet }}
+SERVICE_CIDR={{ getSubnet .Cluster.Spec.ClusterNetwork.Services }}
 
 # Our Debian packages have versions like "1.8.0-00" or "1.8.0-01". Do a prefix
 # search based on our SemVer to find the right (newest) package version.
@@ -255,8 +260,8 @@ PORT=443
 MACHINE={{ .Machine.ObjectMeta.Name }}
 CONTROL_PLANE_VERSION={{ .Machine.Spec.Versions.ControlPlane }}
 CLUSTER_DNS_DOMAIN={{ .Cluster.Spec.ClusterNetwork.DNSDomain }}
-POD_CIDR={{ .Cluster.Spec.ClusterNetwork.PodSubnet }}
-SERVICE_CIDR={{ .Cluster.Spec.ClusterNetwork.ServiceSubnet }}
+POD_CIDR={{ getSubnet .Cluster.Spec.ClusterNetwork.Pods }}
+SERVICE_CIDR={{ getSubnet .Cluster.Spec.ClusterNetwork.Services }}
 
 # kubeadm uses 10th IP as DNS server
 CLUSTER_DNS_SERVER=$(prips ${SERVICE_CIDR} | head -n 11 | tail -n 1)

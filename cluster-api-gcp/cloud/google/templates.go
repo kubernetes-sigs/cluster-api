@@ -107,7 +107,7 @@ func init() {
 	}
 	nodeStartupScriptTemplate = template.Must(template.New("nodeStartupScript").Funcs(funcMap).Parse(nodeStartupScript))
 	nodeStartupScriptTemplate = template.Must(nodeStartupScriptTemplate.Parse(genericTemplates))
-	masterStartupScriptTemplate = template.Must(template.New("masterStartupScript").Parse(masterStartupScript))
+	masterStartupScriptTemplate = template.Must(template.New("masterStartupScript").Funcs(funcMap).Parse(masterStartupScript))
 	masterStartupScriptTemplate = template.Must(masterStartupScriptTemplate.Parse(genericTemplates))
 }
 

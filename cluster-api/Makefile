@@ -1,17 +1,10 @@
 all:
-	go build
-	cd machine-controller && go build
-	cd upgrader && go build
-	cd repair && go build
-	cd examples/gce-machines-controller && go build
-	cd examples/machines-client && go build
+	cd tools/upgrader && go build
+	cd tools/repair && go build
+	cd tools/machineset && go build
+	cd tools/machines-client && go build
 	cd examples/machines-controller && go build
 	cd examples/machines-crd-installer && go build
-	cd examples/machineset && go build
-
-controller:
-	cd machine-controller && go build && make push
-	go build
 
 fmt:
 	find -path './vendor' -prune -o -name '*.go' -exec gofmt -w -l {} \;

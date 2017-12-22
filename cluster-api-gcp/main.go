@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package cluster_api_gcp
+package main
 
 import "k8s.io/kube-deploy/cluster-api-gcp/cmd"
 

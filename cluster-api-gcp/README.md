@@ -25,8 +25,8 @@ $ go build
 each machine's `providerConfig` field.
    - *Optional*: Update the `cluster.yaml` file to change the cluster name.
 3. Run `gcloud auth application-default login` to get default credentials.
-4. Create a cluster: `./cluster-api create -c cluster.yaml -m machines.yaml`
-5. Delete that cluster: `./cluster-api delete`
+4. Create a cluster: `./cluster-api-gcp create -c cluster.yaml -m machines.yaml`
+5. Delete that cluster: `./cluster-api-gcp delete`
 
 ### How does the prototype work?
 

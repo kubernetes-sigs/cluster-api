@@ -1,8 +1,8 @@
 ---
 {{ if eq .Cloud "aws" }}
-name: k8s-1.7-debian-{system.release}-{system.architecture}-{provider.virtualization}-ebs-{%Y}-{%m}-{%d}
+name: k8s-1.8-debian-{system.release}-{system.architecture}-{provider.virtualization}-ebs-{%Y}-{%m}-{%d}
 {{ else }}
-name: k8s-1.7-debian-{system.release}-{system.architecture}-{%Y}-{%m}-{%d}
+name: k8s-1.8-debian-{system.release}-{system.architecture}-{%Y}-{%m}-{%d}
 {{ end }}
 provider:
 {{ if eq .Cloud "aws" }}
@@ -16,7 +16,7 @@ provider:
 {{ else }}
   name: {{ .Cloud }}
 {{ end }}
-  description: Kubernetes 1.7 Base Image - Debian {system.release} {system.architecture}
+  description: Kubernetes 1.8 Base Image - Debian {system.release} {system.architecture}
 bootstrapper:
   workspace: /target
   # tarball speeds up development, but for prod builds we want to be 100% sure...
@@ -143,10 +143,6 @@ plugins:
        - [ 'chroot', '{root}', 'apt-get', 'update' ]
        - [ 'chroot', '{root}', 'apt-get', 'install', '--yes', 'linux-image-k8s', 'linux-headers-k8s' ]
 
-       # Remove supplied dkms ixgbevf driver so we fall back to more recent in kernel driver (despite lower version number)   
-       - [ 'chroot', '{root}', 'dkms', 'status' ]
-       - [ 'chroot', '{root}', 'dkms', 'remove', 'ixgbevf/2.16.1', '--all' ]
-
        # We don't enable unattended upgrades - nodeup can always add it
        # but if we add it now, there's a race to turn it off
        # cloud-init depends on unattended-upgrades, so we can't just remove it
@@ -164,8 +160,8 @@ plugins:
        - [ 'chroot', '{root}', 'apt-get', 'remove', '--yes', 'libgcc-4.8-dev', 'gcc-4.8', 'cpp', 'cpp-4.9' ]
 
        # Install docker
-       - [ 'wget', 'http://apt.dockerproject.org/repo/pool/main/d/docker-engine/docker-engine_1.12.6-0~debian-jessie_amd64.deb', '-O', '{root}/tmp/docker.deb' ]
-       - [ '/bin/sh', '-c', 'cd {root}/tmp; echo "1a8b0c4e3386e12964676a126d284cebf599cc8e  docker.deb" | shasum -c -' ]
+       - [ 'wget', 'http://apt.dockerproject.org/repo/pool/main/d/docker-engine/docker-engine_1.13.1-0~debian-jessie_amd64.deb', '-O', '{root}/tmp/docker.deb' ]
+       - [ '/bin/sh', '-c', 'cd {root}/tmp; echo "1d3370549e32ea13b2755b2db8dbc82b2b787ece  docker.deb" | shasum -c -' ]
        - [ 'chroot', '{root}', '/bin/sh', '-c', 'DEBIAN_FRONTEND=noninteractive dpkg --install /tmp/docker.deb' ]
        - [ 'rm', '{root}/tmp/docker.deb' ]
 

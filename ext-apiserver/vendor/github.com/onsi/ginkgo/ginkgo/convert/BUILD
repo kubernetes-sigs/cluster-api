@@ -1,0 +1,15 @@
+load("@io_bazel_rules_go//go:def.bzl", "go_library")
+
+go_library(
+    name = "go_default_library",
+    srcs = [
+        "ginkgo_ast_nodes.go",
+        "import.go",
+        "package_rewriter.go",
+        "test_finder.go",
+        "testfile_rewriter.go",
+        "testing_t_rewriter.go",
+    ],
+    importpath = "github.com/onsi/ginkgo/ginkgo/convert",
+    visibility = ["//visibility:public"],
+)

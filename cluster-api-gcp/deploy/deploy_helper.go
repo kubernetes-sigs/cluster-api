@@ -60,7 +60,7 @@ func (d *deployer) createCluster(c *clusterv1.Cluster, machines []*clusterv1.Mac
 
 	glog.Infof("Starting master creation %s", master.GetName())
 
-	if err := d.actuator.Create(c, master); err != nil {
+	if err := d.machineDeployer.Create(c, master); err != nil {
 		return err
 	}
 
@@ -91,7 +91,7 @@ func (d *deployer) createCluster(c *clusterv1.Cluster, machines []*clusterv1.Mac
 		return err
 	}
 	glog.Info("Starting the machine controller...")
-	if err := d.actuator.CreateMachineController(c, machines); err != nil {
+	if err := d.machineDeployer.CreateMachineController(c, machines); err != nil {
 		return fmt.Errorf("can't create machine controller: %v", err)
 	}
 
@@ -216,7 +216,7 @@ func (d *deployer) getCluster() (*clusterv1.Cluster, error) {
 
 func (d *deployer) getMasterIP(master *clusterv1.Machine) (string, error) {
 	for i := 0; i < MasterIPAttempts; i++ {
-		ip, err := d.actuator.GetIP(master)
+		ip, err := d.machineDeployer.GetIP(master)
 		if err != nil || ip == "" {
 			glog.Info("Hanging for master IP...")
 			time.Sleep(time.Duration(SleepSecondsPerAttempt) * time.Second)
@@ -231,7 +231,7 @@ func (d *deployer) copyKubeConfig(master *clusterv1.Machine) error {
 	for i := 0; i <= RetryAttempts; i++ {
 		var config string
 		var err error
-		if config, err = d.actuator.GetKubeConfig(master); err != nil || config == "" {
+		if config, err = d.machineDeployer.GetKubeConfig(master); err != nil || config == "" {
 			glog.Infof("Waiting for Kubernetes to come up...")
 			time.Sleep(time.Duration(SleepSecondsPerAttempt) * time.Second)
 			continue

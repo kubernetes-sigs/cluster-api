@@ -22,16 +22,15 @@ import (
 	"github.com/golang/glog"
 	clusterv1 "k8s.io/kube-deploy/cluster-api/api/cluster/v1alpha1"
 	"k8s.io/kube-deploy/cluster-api/client"
-	"k8s.io/kube-deploy/cluster-api-gcp/cloud"
 	"k8s.io/kube-deploy/cluster-api-gcp/util"
 	apiutil "k8s.io/kube-deploy/cluster-api/util"
 )
 
 type deployer struct {
-	token      string
-	configPath string
-	actuator   cloud.MachineActuator
-	client     *client.ClusterAPIV1Alpha1Client
+	token           string
+	configPath      string
+	machineDeployer machineDeployer
+	client          *client.ClusterAPIV1Alpha1Client
 }
 
 //it takes path for kubeconfig file.
@@ -40,14 +39,14 @@ func NewDeployer(provider string, configPath string) *deployer {
 	if configPath == "" {
 		configPath = apiutil.GetDefaultKubeConfigPath()
 	}
-	a, err := cloud.NewMachineActuator(provider, token, nil)
+	md, err := newMachineDeployer(provider, token)
 	if err != nil {
 		glog.Exit(err)
 	}
 	return &deployer{
-		token:      token,
-		actuator:   a,
-		configPath: configPath,
+		token:           token,
+		machineDeployer: md,
+		configPath:      configPath,
 	}
 }
 
@@ -57,7 +56,7 @@ func (d *deployer) CreateCluster(c *clusterv1.Cluster, machines []*clusterv1.Mac
 		if vmCreated {
 			d.deleteMasterVM(machines)
 		}
-		d.actuator.PostDelete(c, machines)
+		d.machineDeployer.PostDelete(c, machines)
 		return err
 	}
 
@@ -98,7 +97,7 @@ func (d *deployer) DeleteCluster() error {
 	}
 
 	glog.Info("Running post delete operations")
-	if err := d.actuator.PostDelete(cluster, machines); err != nil {
+	if err := d.machineDeployer.PostDelete(cluster, machines); err != nil {
 		return err
 	}
 	glog.Infof("Deletion complete")
@@ -112,7 +111,7 @@ func (d *deployer) deleteMasterVM(machines []*clusterv1.Machine) error {
 	}
 
 	glog.Infof("Deleting master vm %s", master.Name)
-	if err := d.actuator.Delete(master); err != nil {
+	if err := d.machineDeployer.Delete(master); err != nil {
 		return err
 	}
 	return nil

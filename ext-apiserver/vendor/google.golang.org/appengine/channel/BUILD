@@ -1,0 +1,23 @@
+load("@io_bazel_rules_go//go:def.bzl", "go_library", "go_test")
+
+go_library(
+    name = "go_default_library",
+    srcs = ["channel.go"],
+    importpath = "google.golang.org/appengine/channel",
+    visibility = ["//visibility:public"],
+    deps = [
+        "//vendor/golang.org/x/net/context:go_default_library",
+        "//vendor/google.golang.org/appengine:go_default_library",
+        "//vendor/google.golang.org/appengine/internal:go_default_library",
+        "//vendor/google.golang.org/appengine/internal/base:go_default_library",
+        "//vendor/google.golang.org/appengine/internal/channel:go_default_library",
+    ],
+)
+
+go_test(
+    name = "go_default_test",
+    srcs = ["channel_test.go"],
+    importpath = "google.golang.org/appengine/channel",
+    library = ":go_default_library",
+    deps = ["//vendor/google.golang.org/appengine/internal:go_default_library"],
+)

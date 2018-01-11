@@ -8,6 +8,9 @@ The Cluster API GCP prototype implements the [Cluster API][https://github.com/ku
 * `kubectl` is required, see [here](http://kubernetes.io/docs/user-guide/prereqs/).
 * The [Google Cloud SDK][gcpSDK] needs to be installed.
 * You will need to have a GCP account.
+* Open firewall rules to allow communication (from kubectl and nodes) to the control plane.
+     (Eg. Opening TCP port 443 from 0.0.0.0/0 to all machines tagged with "https-server"
+     `gcloud compute firewall-rules create cluster-api-open --allow=TCP:443 --source-ranges=0.0.0.0/0 --target-tags='https-server'`)
 
 ### Building
 

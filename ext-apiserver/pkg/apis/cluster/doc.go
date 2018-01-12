@@ -18,7 +18,7 @@ limitations under the License.
 
 
 // +k8s:deepcopy-gen=package,register
-// +groupName=cluster.cluster.k8s.io
+// +groupName=cluster.k8s.io
 
 // Package api is the internal version of the API.
 package cluster

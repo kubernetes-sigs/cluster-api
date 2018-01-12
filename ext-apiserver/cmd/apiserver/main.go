@@ -32,5 +32,5 @@ import (
 
 func main() {
 	version := "v0"
-	server.StartApiServer("/registry/cluster.k8s.io", apis.GetAllApiBuilders(), openapi.GetOpenAPIDefinitions, "Api", version)
+	server.StartApiServer("/registry/k8s.io", apis.GetAllApiBuilders(), openapi.GetOpenAPIDefinitions, "Api", version)
 }

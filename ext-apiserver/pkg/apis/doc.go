@@ -18,7 +18,7 @@ limitations under the License.
 
 
 //
-// +domain=cluster.k8s.io
+// +domain=k8s.io
 
 package apis
 

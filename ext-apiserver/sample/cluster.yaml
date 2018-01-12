@@ -1,4 +1,4 @@
-apiVersion: cluster.cluster.k8s.io/v1alpha1
+apiVersion: cluster.k8s.io/v1alpha1
 kind: Cluster
 metadata:
   name: cluster-example

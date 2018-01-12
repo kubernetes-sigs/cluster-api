@@ -59,7 +59,7 @@ func Execute() {
 
 func init() {
 	rootCmd.Flags().BoolVarP(&ro.dryRun, "dryrun", "", false, "dry run mode.")
-	rootCmd.PersistentFlags().StringVarP(&ro.kubeConfig, "kubecofig", "k", "", "location for the kubernetes config file. If not provided, $HOME/.kube/config is used")
+	rootCmd.PersistentFlags().StringVarP(&ro.kubeConfig, "kubeconfig", "k", "", "location for the kubernetes config file. If not provided, $HOME/.kube/config is used")
 	flag.CommandLine.Parse([]string{})
 	logs.InitLogs()
 }

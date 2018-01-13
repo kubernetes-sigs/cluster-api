@@ -76,7 +76,7 @@ to upgrade your entire cluster with a single command.
 To test node repair, first pick a node, ssh into it, and "break" it by killing the `kubelet` process:
 
 ```
-$ node=$(kubectl get nodes --no-headers | head -1 | awk '{print $1}')
+$ node=$(kubectl get nodes --no-headers | grep -v master | head -n 1 | awk '{print $1}')
 $ gcloud compute ssh $node --zone us-central1-f
 # sudo systemctl stop kubelet.service
 # sudo systemctl daemon-reload

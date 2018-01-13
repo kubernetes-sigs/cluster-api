@@ -352,3 +352,66 @@ type MachineList struct {
 	metav1.ListMeta `json:"metadata"`
 	Items           []Machine `json:"items"`
 }
+
+// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
+type MachineSet struct {
+	metav1.TypeMeta   `json:",inline"`
+	metav1.ObjectMeta `json:"metadata"`
+
+	Spec   MachineSetSpec   `json:"spec"`
+	Status MachineSetStatus `json:"status,omitempty"`
+}
+
+// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
+type MachineSetList struct {
+	metav1.TypeMeta `json:",inline"`
+	metav1.ListMeta `json:"metadata"`
+	Items           []MachineSet `json:"items"`
+}
+
+// MachineSetSpec is the specification of a MachineSet.
+type MachineSetSpec struct {
+	// Replicas is the number of desired replicas.
+	// This is a pointer to distinguish between explicit zero and unspecified.
+	// Defaults to 1.
+	// +optional
+	Replicas *int32 `json:"replicas,omitempty"`
+
+	// Selector is a label query over machines that should match the replica count.
+	// Label keys and values that must match in order to be controlled by this MachineSet.
+	// It must match the machine template's labels.
+	// More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/labels/#label-selectors
+	Selector *metav1.LabelSelector `json:"selector"`
+
+	// Template is the object that describes the machine that will be created if
+	// insufficient replicas are detected.
+	// +optional
+	Template MachineTemplateSpec `json:"template,omitempty"`
+}
+
+// MachineTemplateSpec describes the data a machine should have when created from a template
+type MachineTemplateSpec struct {
+	// Standard object's metadata.
+	// More info: https://git.k8s.io/community/contributors/devel/api-conventions.md#metadata
+	// +optional
+	metav1.ObjectMeta `json:"metadata,omitempty"`
+
+	// Specification of the desired behavior of the machine.
+	// More info: https://git.k8s.io/community/contributors/devel/api-conventions.md#spec-and-status
+	// +optional
+	Spec MachineSpec `json:"spec,omitempty"`
+}
+
+// MachineSetStatus represents the current status of a MachineSet.
+type MachineSetStatus struct {
+	// Replicas is the most recently observed number of replicas.
+	Replicas int32 `json:"replicas"`
+
+	// The number of ready replicas for this MachineSet. A machine is considered ready when the node has been created and is "Ready".
+	// +optional
+	ReadyReplicas int32 `json:"readyReplicas,omitempty"`
+
+	// ObservedGeneration reflects the generation of the most recently observed MachineSet.
+	// +optional
+	ObservedGeneration int64 `json:"observedGeneration,omitempty"`
+}

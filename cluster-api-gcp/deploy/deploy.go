@@ -18,11 +18,12 @@ package deploy
 
 import (
 	"fmt"
+	"os"
 
 	"github.com/golang/glog"
+	"k8s.io/kube-deploy/cluster-api-gcp/util"
 	clusterv1 "k8s.io/kube-deploy/cluster-api/api/cluster/v1alpha1"
 	"k8s.io/kube-deploy/cluster-api/client"
-	"k8s.io/kube-deploy/cluster-api-gcp/util"
 	apiutil "k8s.io/kube-deploy/cluster-api/util"
 )
 
@@ -33,11 +34,21 @@ type deployer struct {
 	client          *client.ClusterAPIV1Alpha1Client
 }
 
-//it takes path for kubeconfig file.
+// NewDeployer returns a cloud provider specific deployer and
+// sets kubeconfig path for the cluster to be deployed
 func NewDeployer(provider string, configPath string) *deployer {
 	token := util.RandomToken()
 	if configPath == "" {
-		configPath = apiutil.GetDefaultKubeConfigPath()
+		configPath = os.Getenv("KUBECONFIG")
+		if configPath == "" {
+			configPath = apiutil.GetDefaultKubeConfigPath()
+		}
+	} else {
+		// This is needed for kubectl commands run later to create secret in function
+		// CreateMachineControllerServiceAccount
+		if err := os.Setenv("KUBECONFIG", configPath); err != nil {
+			glog.Exit(fmt.Sprintf("Failed to set Kubeconfig path err %v\n", err))
+		}
 	}
 	md, err := newMachineDeployer(provider, token)
 	if err != nil {

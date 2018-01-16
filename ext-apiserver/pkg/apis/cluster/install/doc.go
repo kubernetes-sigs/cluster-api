@@ -16,21 +16,5 @@ limitations under the License.
 */
 
 
-package main
+package install
 
-import (
-	// Make sure glide gets these dependencies
-	_ "k8s.io/apimachinery/pkg/apis/meta/v1"
-	_ "github.com/go-openapi/loads"
-
-	"github.com/kubernetes-incubator/apiserver-builder/pkg/cmd/server"
-	_ "k8s.io/client-go/plugin/pkg/client/auth" // Enable cloud provider auth
-
-	"k8s.io/kube-deploy/ext-apiserver/pkg/apis"
-	"k8s.io/kube-deploy/ext-apiserver/pkg/openapi"
-)
-
-func main() {
-	version := "v0"
-	server.StartApiServer("/registry/k8s.io", apis.GetAllApiBuilders(), openapi.GetOpenAPIDefinitions, "Api", version)
-}

@@ -16,21 +16,14 @@ limitations under the License.
 */
 
 
-package main
+// Api versions allow the api contract for a resource to be changed while keeping
+// backward compatibility by support multiple concurrent versions
+// of the same resource
 
-import (
-	// Make sure glide gets these dependencies
-	_ "k8s.io/apimachinery/pkg/apis/meta/v1"
-	_ "github.com/go-openapi/loads"
+// +k8s:openapi-gen=true
+// +k8s:deepcopy-gen=package,register
+// +k8s:conversion-gen=k8s.io/kube-deploy/ext-apiserver/pkg/apis/cluster
+// +k8s:defaulter-gen=TypeMeta
+// +groupName=cluster.k8s.io
+package v1alpha1 // import "k8s.io/kube-deploy/ext-apiserver/pkg/apis/cluster/v1alpha1"
 
-	"github.com/kubernetes-incubator/apiserver-builder/pkg/cmd/server"
-	_ "k8s.io/client-go/plugin/pkg/client/auth" // Enable cloud provider auth
-
-	"k8s.io/kube-deploy/ext-apiserver/pkg/apis"
-	"k8s.io/kube-deploy/ext-apiserver/pkg/openapi"
-)
-
-func main() {
-	version := "v0"
-	server.StartApiServer("/registry/k8s.io", apis.GetAllApiBuilders(), openapi.GetOpenAPIDefinitions, "Api", version)
-}

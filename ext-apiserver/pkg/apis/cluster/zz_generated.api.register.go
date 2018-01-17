@@ -21,6 +21,7 @@ package cluster
 import (
 	"fmt"
 	"github.com/kubernetes-incubator/apiserver-builder/pkg/builders"
+	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/internalversion"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -100,15 +101,57 @@ type Machine struct {
 }
 
 type ClusterStatus struct {
+	APIEndpoints   []APIEndpoint
+	ErrorReason    string
+	ErrorMessage   string
+	ProviderStatus string
 }
 
 type MachineStatus struct {
+	NodeRef      *corev1.ObjectReference
+	LastUpdated  metav1.Time
+	Ready        bool
+	ErrorReason  *string
+	ErrorMessage *string
+}
+
+type APIEndpoint struct {
+	Host string
+	Port int
 }
 
 type MachineSpec struct {
+	metav1.ObjectMeta
+	ProviderConfig string
+	Roles          []string
+	Versions       MachineVersionInfo
+	ConfigSource   *corev1.NodeConfigSource
 }
 
 type ClusterSpec struct {
+	ClusterNetwork ClusterNetworkingConfig
+	ProviderConfig string
+}
+
+type MachineVersionInfo struct {
+	Kubelet          string
+	ControlPlane     string
+	ContainerRuntime ContainerRuntimeInfo
+}
+
+type ClusterNetworkingConfig struct {
+	Services  NetworkRanges
+	Pods      NetworkRanges
+	DNSDomain string
+}
+
+type ContainerRuntimeInfo struct {
+	Name    string
+	Version string
+}
+
+type NetworkRanges struct {
+	CIDRBlocks []string
 }
 
 //

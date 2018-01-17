@@ -20808,6 +20808,31 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 			},
 			Dependencies: []string{},
 		},
+		"k8s.io/kube-deploy/ext-apiserver/pkg/apis/cluster/v1alpha1.APIEndpoint": {
+			Schema: spec.Schema{
+				SchemaProps: spec.SchemaProps{
+					Description: "APIEndpoint represents a reachable Kubernetes API endpoint.",
+					Properties: map[string]spec.Schema{
+						"host": {
+							SchemaProps: spec.SchemaProps{
+								Description: "The hostname on which the API server is serving.",
+								Type:        []string{"string"},
+								Format:      "",
+							},
+						},
+						"port": {
+							SchemaProps: spec.SchemaProps{
+								Description: "The port on which the API server is serving.",
+								Type:        []string{"integer"},
+								Format:      "int32",
+							},
+						},
+					},
+					Required: []string{"host", "port"},
+				},
+			},
+			Dependencies: []string{},
+		},
 		"k8s.io/kube-deploy/ext-apiserver/pkg/apis/cluster/v1alpha1.Cluster": {
 			Schema: spec.Schema{
 				SchemaProps: spec.SchemaProps{
@@ -20890,6 +20915,37 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 			Dependencies: []string{
 				"k8s.io/apimachinery/pkg/apis/meta/v1.ListMeta", "k8s.io/kube-deploy/ext-apiserver/pkg/apis/cluster/v1alpha1.Cluster"},
 		},
+		"k8s.io/kube-deploy/ext-apiserver/pkg/apis/cluster/v1alpha1.ClusterNetworkingConfig": {
+			Schema: spec.Schema{
+				SchemaProps: spec.SchemaProps{
+					Description: "ClusterNetworkingConfig specifies the different networking parameters for a cluster.",
+					Properties: map[string]spec.Schema{
+						"services": {
+							SchemaProps: spec.SchemaProps{
+								Description: "The network ranges from which service VIPs are allocated.",
+								Ref:         ref("k8s.io/kube-deploy/ext-apiserver/pkg/apis/cluster/v1alpha1.NetworkRanges"),
+							},
+						},
+						"pods": {
+							SchemaProps: spec.SchemaProps{
+								Description: "The network ranges from which POD networks are allocated.",
+								Ref:         ref("k8s.io/kube-deploy/ext-apiserver/pkg/apis/cluster/v1alpha1.NetworkRanges"),
+							},
+						},
+						"dnsDomain": {
+							SchemaProps: spec.SchemaProps{
+								Description: "Domain name for services.",
+								Type:        []string{"string"},
+								Format:      "",
+							},
+						},
+					},
+					Required: []string{"services", "pods", "dnsDomain"},
+				},
+			},
+			Dependencies: []string{
+				"k8s.io/kube-deploy/ext-apiserver/pkg/apis/cluster/v1alpha1.NetworkRanges"},
+		},
 		"k8s.io/kube-deploy/ext-apiserver/pkg/apis/cluster/v1alpha1.ClusterSchemeFns": {
 			Schema: spec.Schema{
 				SchemaProps: spec.SchemaProps{
@@ -20911,19 +20967,72 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 			Schema: spec.Schema{
 				SchemaProps: spec.SchemaProps{
 					Description: "ClusterSpec defines the desired state of Cluster",
-					Properties:  map[string]spec.Schema{},
+					Properties: map[string]spec.Schema{
+						"clusterNetwork": {
+							SchemaProps: spec.SchemaProps{
+								Description: "Cluster network configuration",
+								Ref:         ref("k8s.io/kube-deploy/ext-apiserver/pkg/apis/cluster/v1alpha1.ClusterNetworkingConfig"),
+							},
+						},
+						"providerConfig": {
+							SchemaProps: spec.SchemaProps{
+								Description: "Provider-specific serialized configuration to use during cluster creation. It is recommended that providers maintain their own versioned API types that should be serialized/deserialized from this field.",
+								Type:        []string{"string"},
+								Format:      "",
+							},
+						},
+					},
+					Required: []string{"clusterNetwork", "providerConfig"},
 				},
 			},
-			Dependencies: []string{},
+			Dependencies: []string{
+				"k8s.io/kube-deploy/ext-apiserver/pkg/apis/cluster/v1alpha1.ClusterNetworkingConfig"},
 		},
 		"k8s.io/kube-deploy/ext-apiserver/pkg/apis/cluster/v1alpha1.ClusterStatus": {
 			Schema: spec.Schema{
 				SchemaProps: spec.SchemaProps{
 					Description: "ClusterStatus defines the observed state of Cluster",
-					Properties:  map[string]spec.Schema{},
+					Properties: map[string]spec.Schema{
+						"apiEndpoints": {
+							SchemaProps: spec.SchemaProps{
+								Description: "APIEndpoint represents the endpoint to communicate with the IP.",
+								Type:        []string{"array"},
+								Items: &spec.SchemaOrArray{
+									Schema: &spec.Schema{
+										SchemaProps: spec.SchemaProps{
+											Ref: ref("k8s.io/kube-deploy/ext-apiserver/pkg/apis/cluster/v1alpha1.APIEndpoint"),
+										},
+									},
+								},
+							},
+						},
+						"errorReason": {
+							SchemaProps: spec.SchemaProps{
+								Description: "If set, indicates that there is a problem reconciling the state, and will be set to a token value suitable for programmatic interpretation.",
+								Type:        []string{"string"},
+								Format:      "",
+							},
+						},
+						"errorMessage": {
+							SchemaProps: spec.SchemaProps{
+								Description: "If set, indicates that there is a problem reconciling the state, and will be set to a descriptive error message.",
+								Type:        []string{"string"},
+								Format:      "",
+							},
+						},
+						"providerStatus": {
+							SchemaProps: spec.SchemaProps{
+								Description: "Provider-specific serialized status to use during cluster creation. It is recommended that providers maintain their own versioned API types that should be serialized/deserialized from this field.",
+								Type:        []string{"string"},
+								Format:      "",
+							},
+						},
+					},
+					Required: []string{"apiEndpoints", "errorReason", "errorMessage", "providerStatus"},
 				},
 			},
-			Dependencies: []string{},
+			Dependencies: []string{
+				"k8s.io/kube-deploy/ext-apiserver/pkg/apis/cluster/v1alpha1.APIEndpoint"},
 		},
 		"k8s.io/kube-deploy/ext-apiserver/pkg/apis/cluster/v1alpha1.ClusterStatusStrategy": {
 			Schema: spec.Schema{
@@ -20956,6 +21065,30 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 			},
 			Dependencies: []string{
 				"github.com/kubernetes-incubator/apiserver-builder/pkg/builders.DefaultStorageStrategy"},
+		},
+		"k8s.io/kube-deploy/ext-apiserver/pkg/apis/cluster/v1alpha1.ContainerRuntimeInfo": {
+			Schema: spec.Schema{
+				SchemaProps: spec.SchemaProps{
+					Properties: map[string]spec.Schema{
+						"name": {
+							SchemaProps: spec.SchemaProps{
+								Description: "docker, rkt, containerd, ...",
+								Type:        []string{"string"},
+								Format:      "",
+							},
+						},
+						"version": {
+							SchemaProps: spec.SchemaProps{
+								Description: "Semantic version of the container runtime to use",
+								Type:        []string{"string"},
+								Format:      "",
+							},
+						},
+					},
+					Required: []string{"name", "version"},
+				},
+			},
+			Dependencies: []string{},
 		},
 		"k8s.io/kube-deploy/ext-apiserver/pkg/apis/cluster/v1alpha1.Machine": {
 			Schema: spec.Schema{
@@ -21060,19 +21193,96 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 			Schema: spec.Schema{
 				SchemaProps: spec.SchemaProps{
 					Description: "MachineSpec defines the desired state of Machine",
-					Properties:  map[string]spec.Schema{},
+					Properties: map[string]spec.Schema{
+						"metadata": {
+							SchemaProps: spec.SchemaProps{
+								Description: "This ObjectMeta will autopopulate the Node created. Use this to indicate what labels, annotations, name prefix, etc., should be used when creating the Node.",
+								Ref:         ref("k8s.io/apimachinery/pkg/apis/meta/v1.ObjectMeta"),
+							},
+						},
+						"providerConfig": {
+							SchemaProps: spec.SchemaProps{
+								Description: "Provider-specific serialized configuration to use during node creation. It is recommended that providers maintain their own versioned API types that should be serialized/deserialized from this field, akin to component config.",
+								Type:        []string{"string"},
+								Format:      "",
+							},
+						},
+						"roles": {
+							SchemaProps: spec.SchemaProps{
+								Description: "A list consisting of \"Master\" and/or \"Node\".\n\n                | Master present        | Master absent          |\n| Node present: | Install control plane | Join the cluster as    | |               | and be schedulable    | just a node            | |---------------+-----------------------+------------------------| | Node absent:  | Install control plane | Invalid configuration  | |               | and be unscheduleable |                        |",
+								Type:        []string{"array"},
+								Items: &spec.SchemaOrArray{
+									Schema: &spec.Schema{
+										SchemaProps: spec.SchemaProps{
+											Type:   []string{"string"},
+											Format: "",
+										},
+									},
+								},
+							},
+						},
+						"versions": {
+							SchemaProps: spec.SchemaProps{
+								Description: "Versions of key software to use.",
+								Ref:         ref("k8s.io/kube-deploy/ext-apiserver/pkg/apis/cluster/v1alpha1.MachineVersionInfo"),
+							},
+						},
+						"configSource": {
+							SchemaProps: spec.SchemaProps{
+								Description: "To populate in the associated Node for dynamic kubelet config. This field already exists in Node, so any updates to it in the Machine spec will be automatially copied to the linked NodeRef from the status. The rest of dynamic kubelet config support should then work as-is.",
+								Ref:         ref("k8s.io/api/core/v1.NodeConfigSource"),
+							},
+						},
+					},
 				},
 			},
-			Dependencies: []string{},
+			Dependencies: []string{
+				"k8s.io/api/core/v1.NodeConfigSource", "k8s.io/apimachinery/pkg/apis/meta/v1.ObjectMeta", "k8s.io/kube-deploy/ext-apiserver/pkg/apis/cluster/v1alpha1.MachineVersionInfo"},
 		},
 		"k8s.io/kube-deploy/ext-apiserver/pkg/apis/cluster/v1alpha1.MachineStatus": {
 			Schema: spec.Schema{
 				SchemaProps: spec.SchemaProps{
 					Description: "MachineStatus defines the observed state of Machine",
-					Properties:  map[string]spec.Schema{},
+					Properties: map[string]spec.Schema{
+						"nodeRef": {
+							SchemaProps: spec.SchemaProps{
+								Description: "If the corresponding Node exists, this will point to its object.",
+								Ref:         ref("k8s.io/api/core/v1.ObjectReference"),
+							},
+						},
+						"lastUpdated": {
+							SchemaProps: spec.SchemaProps{
+								Description: "When was this status last observed",
+								Ref:         ref("k8s.io/apimachinery/pkg/apis/meta/v1.Time"),
+							},
+						},
+						"ready": {
+							SchemaProps: spec.SchemaProps{
+								Description: "Indicates whether or not the Machine is fully reconciled. When a controller observes that the spec has changed and no longer matches reality, it should update Ready to false before reconciling the state, and then set back to true when the state matches the spec.",
+								Type:        []string{"boolean"},
+								Format:      "",
+							},
+						},
+						"errorReason": {
+							SchemaProps: spec.SchemaProps{
+								Description: "If set, indicates that there is a problem reconciling state, and will be set to a token value suitable for machine interpretation.",
+								Type:        []string{"string"},
+								Format:      "",
+							},
+						},
+						"errorMessage": {
+							SchemaProps: spec.SchemaProps{
+								Description: "If set, indicates that there is a problem reconciling state, and will be set to a human readable string to indicate the problem.",
+								Type:        []string{"string"},
+								Format:      "",
+							},
+						},
+					},
+					Required: []string{"ready"},
 				},
 			},
-			Dependencies: []string{},
+			Dependencies: []string{
+				"k8s.io/api/core/v1.ObjectReference", "k8s.io/apimachinery/pkg/apis/meta/v1.Time"},
 		},
 		"k8s.io/kube-deploy/ext-apiserver/pkg/apis/cluster/v1alpha1.MachineStatusStrategy": {
 			Schema: spec.Schema{
@@ -21105,6 +21315,61 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 			},
 			Dependencies: []string{
 				"github.com/kubernetes-incubator/apiserver-builder/pkg/builders.DefaultStorageStrategy"},
+		},
+		"k8s.io/kube-deploy/ext-apiserver/pkg/apis/cluster/v1alpha1.MachineVersionInfo": {
+			Schema: spec.Schema{
+				SchemaProps: spec.SchemaProps{
+					Properties: map[string]spec.Schema{
+						"kubelet": {
+							SchemaProps: spec.SchemaProps{
+								Description: "Semantic version of kubelet to run",
+								Type:        []string{"string"},
+								Format:      "",
+							},
+						},
+						"controlPlane": {
+							SchemaProps: spec.SchemaProps{
+								Description: "Semantic version of the Kubernetes control plane to run. This should only be populated when the machine is a master.",
+								Type:        []string{"string"},
+								Format:      "",
+							},
+						},
+						"containerRuntime": {
+							SchemaProps: spec.SchemaProps{
+								Description: "Name/version of container runtime",
+								Ref:         ref("k8s.io/kube-deploy/ext-apiserver/pkg/apis/cluster/v1alpha1.ContainerRuntimeInfo"),
+							},
+						},
+					},
+					Required: []string{"kubelet", "controlPlane", "containerRuntime"},
+				},
+			},
+			Dependencies: []string{
+				"k8s.io/kube-deploy/ext-apiserver/pkg/apis/cluster/v1alpha1.ContainerRuntimeInfo"},
+		},
+		"k8s.io/kube-deploy/ext-apiserver/pkg/apis/cluster/v1alpha1.NetworkRanges": {
+			Schema: spec.Schema{
+				SchemaProps: spec.SchemaProps{
+					Description: "NetworkRanges represents ranges of network addresses.",
+					Properties: map[string]spec.Schema{
+						"cidrBlocks": {
+							SchemaProps: spec.SchemaProps{
+								Type: []string{"array"},
+								Items: &spec.SchemaOrArray{
+									Schema: &spec.Schema{
+										SchemaProps: spec.SchemaProps{
+											Type:   []string{"string"},
+											Format: "",
+										},
+									},
+								},
+							},
+						},
+					},
+					Required: []string{"cidrBlocks"},
+				},
+			},
+			Dependencies: []string{},
 		},
 	}
 }

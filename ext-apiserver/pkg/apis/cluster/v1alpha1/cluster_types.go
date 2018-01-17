@@ -46,10 +46,66 @@ type Cluster struct {
 
 // ClusterSpec defines the desired state of Cluster
 type ClusterSpec struct {
+	// Cluster network configuration
+	ClusterNetwork ClusterNetworkingConfig `json:"clusterNetwork"`
+
+	// Provider-specific serialized configuration to use during
+	// cluster creation. It is recommended that providers maintain
+	// their own versioned API types that should be
+	// serialized/deserialized from this field.
+	ProviderConfig string `json:"providerConfig"`
+}
+
+// ClusterNetworkingConfig specifies the different networking
+// parameters for a cluster.
+type ClusterNetworkingConfig struct {
+	// The network ranges from which service VIPs are allocated.
+	Services NetworkRanges `json:"services"`
+
+	// The network ranges from which POD networks are allocated.
+	Pods NetworkRanges `json:"pods"`
+
+	// Domain name for services.
+	DNSDomain string `json:"dnsDomain"`
+}
+
+// NetworkRanges represents ranges of network addresses.
+type NetworkRanges struct {
+	CIDRBlocks []string `json:"cidrBlocks"`
 }
 
 // ClusterStatus defines the observed state of Cluster
 type ClusterStatus struct {
+	// APIEndpoint represents the endpoint to communicate with the IP.
+	APIEndpoints []APIEndpoint `json:"apiEndpoints"`
+
+	// NB: Eventually we will redefine ErrorReason as ClusterStatusError once the
+	// following issue is fixed.
+	// https://github.com/kubernetes-incubator/apiserver-builder/issues/176
+
+	// If set, indicates that there is a problem reconciling the
+	// state, and will be set to a token value suitable for
+	// programmatic interpretation.
+	ErrorReason string `json:"errorReason"`
+
+	// If set, indicates that there is a problem reconciling the
+	// state, and will be set to a descriptive error message.
+	ErrorMessage string `json:"errorMessage"`
+
+	// Provider-specific serialized status to use during cluster
+	// creation. It is recommended that providers maintain their
+	// own versioned API types that should be
+	// serialized/deserialized from this field.
+	ProviderStatus string `json:"providerStatus"`
+}
+
+// APIEndpoint represents a reachable Kubernetes API endpoint.
+type APIEndpoint struct {
+	// The hostname on which the API server is serving.
+	Host string `json:"host"`
+
+	// The port on which the API server is serving.
+	Port int `json:"port"`
 }
 
 // Validate checks that an instance of Cluster is well formed

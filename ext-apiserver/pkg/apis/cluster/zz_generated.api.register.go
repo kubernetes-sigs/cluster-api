@@ -28,6 +28,7 @@ import (
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apiserver/pkg/endpoints/request"
 	"k8s.io/apiserver/pkg/registry/rest"
+	clustercommon "k8s.io/kube-deploy/ext-apiserver/pkg/apis/cluster/common"
 )
 
 var (
@@ -102,7 +103,7 @@ type Machine struct {
 
 type ClusterStatus struct {
 	APIEndpoints   []APIEndpoint
-	ErrorReason    string
+	ErrorReason    clustercommon.ClusterStatusError
 	ErrorMessage   string
 	ProviderStatus string
 }
@@ -111,7 +112,7 @@ type MachineStatus struct {
 	NodeRef      *corev1.ObjectReference
 	LastUpdated  metav1.Time
 	Ready        bool
-	ErrorReason  *string
+	ErrorReason  *clustercommon.MachineStatusError
 	ErrorMessage *string
 }
 

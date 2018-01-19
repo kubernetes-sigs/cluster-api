@@ -25,6 +25,7 @@ import (
 	conversion "k8s.io/apimachinery/pkg/conversion"
 	runtime "k8s.io/apimachinery/pkg/runtime"
 	cluster "k8s.io/kube-deploy/ext-apiserver/pkg/apis/cluster"
+	common "k8s.io/kube-deploy/ext-apiserver/pkg/apis/cluster/common"
 	unsafe "unsafe"
 )
 
@@ -209,7 +210,7 @@ func Convert_cluster_ClusterSpec_To_v1alpha1_ClusterSpec(in *cluster.ClusterSpec
 
 func autoConvert_v1alpha1_ClusterStatus_To_cluster_ClusterStatus(in *ClusterStatus, out *cluster.ClusterStatus, s conversion.Scope) error {
 	out.APIEndpoints = *(*[]cluster.APIEndpoint)(unsafe.Pointer(&in.APIEndpoints))
-	out.ErrorReason = in.ErrorReason
+	out.ErrorReason = common.ClusterStatusError(in.ErrorReason)
 	out.ErrorMessage = in.ErrorMessage
 	out.ProviderStatus = in.ProviderStatus
 	return nil
@@ -222,7 +223,7 @@ func Convert_v1alpha1_ClusterStatus_To_cluster_ClusterStatus(in *ClusterStatus, 
 
 func autoConvert_cluster_ClusterStatus_To_v1alpha1_ClusterStatus(in *cluster.ClusterStatus, out *ClusterStatus, s conversion.Scope) error {
 	out.APIEndpoints = *(*[]APIEndpoint)(unsafe.Pointer(&in.APIEndpoints))
-	out.ErrorReason = in.ErrorReason
+	out.ErrorReason = common.ClusterStatusError(in.ErrorReason)
 	out.ErrorMessage = in.ErrorMessage
 	out.ProviderStatus = in.ProviderStatus
 	return nil
@@ -385,7 +386,7 @@ func autoConvert_v1alpha1_MachineStatus_To_cluster_MachineStatus(in *MachineStat
 	out.NodeRef = (*v1.ObjectReference)(unsafe.Pointer(in.NodeRef))
 	out.LastUpdated = in.LastUpdated
 	out.Ready = in.Ready
-	out.ErrorReason = (*string)(unsafe.Pointer(in.ErrorReason))
+	out.ErrorReason = (*common.MachineStatusError)(unsafe.Pointer(in.ErrorReason))
 	out.ErrorMessage = (*string)(unsafe.Pointer(in.ErrorMessage))
 	return nil
 }
@@ -399,7 +400,7 @@ func autoConvert_cluster_MachineStatus_To_v1alpha1_MachineStatus(in *cluster.Mac
 	out.NodeRef = (*v1.ObjectReference)(unsafe.Pointer(in.NodeRef))
 	out.LastUpdated = in.LastUpdated
 	out.Ready = in.Ready
-	out.ErrorReason = (*string)(unsafe.Pointer(in.ErrorReason))
+	out.ErrorReason = (*common.MachineStatusError)(unsafe.Pointer(in.ErrorReason))
 	out.ErrorMessage = (*string)(unsafe.Pointer(in.ErrorMessage))
 	return nil
 }

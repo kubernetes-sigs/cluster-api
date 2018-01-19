@@ -24,6 +24,7 @@ import (
 	v1 "k8s.io/api/core/v1"
 	conversion "k8s.io/apimachinery/pkg/conversion"
 	runtime "k8s.io/apimachinery/pkg/runtime"
+	common "k8s.io/kube-deploy/ext-apiserver/pkg/apis/cluster/common"
 	reflect "reflect"
 )
 
@@ -356,7 +357,7 @@ func (in *MachineStatus) DeepCopyInto(out *MachineStatus) {
 		if *in == nil {
 			*out = nil
 		} else {
-			*out = new(string)
+			*out = new(common.MachineStatusError)
 			**out = **in
 		}
 	}

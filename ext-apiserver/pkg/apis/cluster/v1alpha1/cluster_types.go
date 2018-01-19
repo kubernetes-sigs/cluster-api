@@ -28,6 +28,7 @@ import (
 	"k8s.io/apimachinery/pkg/util/validation/field"
 
 	"k8s.io/kube-deploy/ext-apiserver/pkg/apis/cluster"
+	"k8s.io/kube-deploy/ext-apiserver/pkg/apis/cluster/common"
 )
 
 // +genclient
@@ -86,7 +87,7 @@ type ClusterStatus struct {
 	// If set, indicates that there is a problem reconciling the
 	// state, and will be set to a token value suitable for
 	// programmatic interpretation.
-	ErrorReason string `json:"errorReason"`
+	ErrorReason common.ClusterStatusError `json:"errorReason"`
 
 	// If set, indicates that there is a problem reconciling the
 	// state, and will be set to a descriptive error message.

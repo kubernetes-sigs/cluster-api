@@ -29,6 +29,7 @@ import (
 	"k8s.io/apimachinery/pkg/util/validation/field"
 
 	"k8s.io/kube-deploy/ext-apiserver/pkg/apis/cluster"
+	"k8s.io/kube-deploy/ext-apiserver/pkg/apis/cluster/common"
 )
 
 // +genclient
@@ -109,7 +110,7 @@ type MachineStatus struct {
 	// If set, indicates that there is a problem reconciling state, and
 	// will be set to a token value suitable for machine interpretation.
 	// +optional
-	ErrorReason *string `json:"errorReason,omitempty"`
+	ErrorReason *common.MachineStatusError `json:"errorReason,omitempty"`
 
 	// +optional
 	// If set, indicates that there is a problem reconciling state, and

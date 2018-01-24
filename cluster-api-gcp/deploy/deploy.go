@@ -72,7 +72,7 @@ func (d *deployer) CreateCluster(c *clusterv1.Cluster, machines []*clusterv1.Mac
 	}
 
 	glog.Infof("The [%s] cluster has been created successfully!", c.Name)
-	glog.Info("You can now `kubectl get nodes`")
+	glog.Info("You can now `kubectl get nodes`. Note: you might only see the master for the first few minutes while the machine controller spins up the node machines.")
 	return nil
 }
 

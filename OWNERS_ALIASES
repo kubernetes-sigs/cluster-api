@@ -12,7 +12,7 @@ aliases:
     - luxas
     - roberthbailey
   kube-deploy-maintainers:
-    - jesssicaochen
+    - jessicaochen
     - kris-nova
     - krousey
     - medinatiger

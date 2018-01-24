@@ -17,7 +17,7 @@ To learn more, see the [Cluster API KEP][cluster-api-kep].
 * Join our Cluster API working group sessions
   * Weekly on Wednesdays @ 11:00 PT (19:00 UTC) on [Zoom][zoomMeeting]
   * Previous meetings: \[ [notes][notes] | [recordings][recordings] \]
-* Chat with us on [Slack](http://slack.k8s.io/): #sig-cluster-lifecycle
+* Chat with us on [Slack](http://slack.k8s.io/): #cluster-api
 
 ## Getting Started
 ### Prerequisites

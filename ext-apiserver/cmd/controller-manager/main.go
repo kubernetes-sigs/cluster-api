@@ -1,4 +1,3 @@
-
 /*
 Copyright 2018 The Kubernetes Authors.
 
@@ -15,25 +14,28 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-
 package main
 
 import (
-	"flag"
-	"log"
-
 	controllerlib "github.com/kubernetes-incubator/apiserver-builder/pkg/controller"
+	"github.com/spf13/pflag"
 
+	"github.com/golang/glog"
+	"k8s.io/apiserver/pkg/util/logs"
 	"k8s.io/kube-deploy/ext-apiserver/pkg/controller"
+	"k8s.io/kube-deploy/ext-apiserver/pkg/controller/config"
 )
 
-var kubeconfig = flag.String("kubeconfig", "", "path to kubeconfig")
-
 func main() {
-	flag.Parse()
-	config, err := controllerlib.GetConfig(*kubeconfig)
+
+	pflag.Parse()
+
+	logs.InitLogs()
+	defer logs.FlushLogs()
+
+	config, err := controllerlib.GetConfig(config.ControllerConfig.Kubeconfig)
 	if err != nil {
-		log.Fatalf("Could not create Config for talking to the apiserver: %v", err)
+		glog.Fatalf("Could not create Config for talking to the apiserver: %v", err)
 	}
 
 	controllers, _ := controller.GetAllControllers(config)

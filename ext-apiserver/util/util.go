@@ -18,17 +18,20 @@ package util
 
 import (
 	"fmt"
-	"os/exec"
 	"math/rand"
+	"os"
+	"os/exec"
+	"os/user"
 	"strings"
 	"time"
 
-	"k8s.io/apimachinery/pkg/types"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"github.com/golang/glog"
 	apiextensionsclient "k8s.io/apiextensions-apiserver/pkg/client/clientset/clientset"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/client-go/tools/clientcmd"
 	clusterv1 "k8s.io/kube-deploy/ext-apiserver/pkg/apis/cluster/v1alpha1"
 	client "k8s.io/kube-deploy/ext-apiserver/pkg/client/clientset_generated/clientset/typed/cluster/v1alpha1"
-	"k8s.io/client-go/tools/clientcmd"
 )
 
 const (
@@ -71,6 +74,43 @@ func MachineP(machines []clusterv1.Machine) []*clusterv1.Machine {
 		ret = append(ret, machine.DeepCopy())
 	}
 	return ret
+}
+
+func Home() string {
+	home := os.Getenv("HOME")
+	if strings.Contains(home, "root") {
+		return "/root"
+	}
+
+	usr, err := user.Current()
+	if err != nil {
+		glog.Warningf("unable to find user: %v", err)
+		return ""
+	}
+	return usr.HomeDir
+}
+
+func GetDefaultKubeConfigPath() string {
+	localDir := fmt.Sprintf("%s/.kube", Home())
+	if _, err := os.Stat(localDir); os.IsNotExist(err) {
+		if err := os.Mkdir(localDir, 0777); err != nil {
+			glog.Fatal(err)
+		}
+	}
+	return fmt.Sprintf("%s/config", localDir)
+}
+
+func NewApiClient(configPath string) (*client.ClusterV1alpha1Client, error) {
+	config, err := clientcmd.BuildConfigFromFlags("", configPath)
+	if err != nil {
+		return nil, err
+	}
+
+	c, err := client.NewForConfig(config)
+	if err != nil {
+		return nil, err
+	}
+	return c, nil
 }
 
 func NewClientSet(configPath string) (*apiextensionsclient.Clientset, error) {

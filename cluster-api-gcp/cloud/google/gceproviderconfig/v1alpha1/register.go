@@ -24,8 +24,9 @@ import (
 )
 
 const GroupName = "gceproviderconfig"
+const VersionName = "v1alpha1"
 
-var SchemeGroupVersion = schema.GroupVersion{Group: GroupName, Version: "v1alpha1"}
+var SchemeGroupVersion = schema.GroupVersion{Group: GroupName, Version: VersionName}
 
 var (
 	SchemeBuilder      runtime.SchemeBuilder

@@ -17,6 +17,8 @@ limitations under the License.
 package v1alpha1
 
 import (
+	"fmt"
+
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
@@ -28,4 +30,9 @@ type GCEProviderConfig struct {
 	Zone        string `json:"zone"`
 	MachineType string `json:"machineType"`
 	Image       string `json:"image"`
+}
+
+func (config *GCEProviderConfig) String() string {
+	return fmt.Sprintf("Project=%s, Zone=%s, MachineType=%s, Image=%s",
+		config.Project, config.Zone, config.MachineType, config.Image)
 }

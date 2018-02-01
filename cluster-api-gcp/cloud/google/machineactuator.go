@@ -33,14 +33,16 @@ import (
 	compute "google.golang.org/api/compute/v1"
 
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/runtime/serializer"
+	"k8s.io/apimachinery/pkg/runtime/serializer/json"
 
-	clusterv1 "k8s.io/kube-deploy/cluster-api/api/cluster/v1alpha1"
-	"k8s.io/kube-deploy/cluster-api/client"
 	gceconfig "k8s.io/kube-deploy/cluster-api-gcp/cloud/google/gceproviderconfig"
 	gceconfigv1 "k8s.io/kube-deploy/cluster-api-gcp/cloud/google/gceproviderconfig/v1alpha1"
 	apierrors "k8s.io/kube-deploy/cluster-api-gcp/errors"
 	"k8s.io/kube-deploy/cluster-api-gcp/util"
+	clusterv1 "k8s.io/kube-deploy/cluster-api/api/cluster/v1alpha1"
+	"k8s.io/kube-deploy/cluster-api/client"
 	apiutil "k8s.io/kube-deploy/cluster-api/util"
 )
 
@@ -65,6 +67,7 @@ type GCEClient struct {
 	kubeadmToken  string
 	sshCreds      SshCreds
 	machineClient client.MachinesInterface
+	serializer    *json.Serializer
 }
 
 const (
@@ -113,6 +116,7 @@ func NewMachineActuator(kubeadmToken string, machineClient client.MachinesInterf
 			user:           user,
 		},
 		machineClient: machineClient,
+		serializer:    json.NewSerializer(json.DefaultMetaFactory, scheme, scheme, true),
 	}, nil
 }
 
@@ -348,8 +352,8 @@ func (gce *GCEClient) Update(cluster *clusterv1.Cluster, goalMachine *clusterv1.
 	if err != nil {
 		return err
 	}
-
 	currentMachine := (*clusterv1.Machine)(status)
+
 	if currentMachine == nil {
 		instance, err := gce.instanceIfExists(goalMachine)
 		if err != nil {
@@ -361,6 +365,12 @@ func (gce *GCEClient) Update(cluster *clusterv1.Cluster, goalMachine *clusterv1.
 		} else {
 			return fmt.Errorf("Cannot retrieve current state to update machine %v", goalMachine.ObjectMeta.Name)
 		}
+	}
+
+	currentMachine, err = currentMachineActualStatus(gce, currentMachine)
+	if err != nil {
+		glog.Errorf("Could not get current machine status.... %v", err)
+		return err
 	}
 
 	if !gce.requiresUpdate(currentMachine, goalMachine) {
@@ -467,13 +477,21 @@ func (gce *GCEClient) updateAnnotations(machine *clusterv1.Machine) error {
 
 // The two machines differ in a way that requires an update
 func (gce *GCEClient) requiresUpdate(a *clusterv1.Machine, b *clusterv1.Machine) bool {
+	aConfig, aerr := gce.providerconfig(a.Spec.ProviderConfig)
+	bConfig, berr := gce.providerconfig(b.Spec.ProviderConfig)
+	if aerr != nil || berr != nil {
+		glog.Errorf("Decoding providerconfig failed, aerr=%v, berr=%v", aerr, berr)
+		return false
+	}
+
 	// Do not want status changes. Do want changes that impact machine provisioning
-	return !reflect.DeepEqual(a.Spec.ObjectMeta, b.Spec.ObjectMeta) ||
-		!reflect.DeepEqual(a.Spec.ProviderConfig, b.Spec.ProviderConfig) ||
+	return !reflect.DeepEqual(aConfig, bConfig) ||
+		!reflect.DeepEqual(a.Spec.ObjectMeta, b.Spec.ObjectMeta) ||
 		!reflect.DeepEqual(a.Spec.Roles, b.Spec.Roles) ||
 		!reflect.DeepEqual(a.Spec.Versions, b.Spec.Versions) ||
 		a.ObjectMeta.Name != b.ObjectMeta.Name ||
-		a.ObjectMeta.UID != b.ObjectMeta.UID
+		a.ObjectMeta.UID != b.ObjectMeta.UID ||
+		!reflect.DeepEqual(aConfig, bConfig)
 }
 
 // Gets the instance represented by the given machine
@@ -522,17 +540,16 @@ func (gce *GCEClient) instanceIfExists(machine *clusterv1.Machine) (*compute.Ins
 }
 
 func (gce *GCEClient) providerconfig(providerConfig string) (*gceconfig.GCEProviderConfig, error) {
-	obj, gvk, err := gce.codecFactory.UniversalDecoder().Decode([]byte(providerConfig), nil, nil)
+	var obj gceconfigv1.GCEProviderConfig
+	_, _, err := gce.serializer.Decode([]byte(providerConfig), &schema.GroupVersionKind{
+		Group:   gceconfigv1.GroupName,
+		Version: gceconfigv1.VersionName,
+		Kind:    reflect.TypeOf(obj).Name()}, &obj)
 	if err != nil {
 		return nil, fmt.Errorf("decoding failure: %v", err)
 	}
-
-	config, ok := obj.(*gceconfig.GCEProviderConfig)
-	if !ok {
-		return nil, fmt.Errorf("failure to cast to gce; type: %v", gvk)
-	}
-
-	return config, nil
+	config := gceconfig.GCEProviderConfig(obj)
+	return &config, nil
 }
 
 func (gce *GCEClient) waitForOperation(c *gceconfig.GCEProviderConfig, op *compute.Operation) error {
@@ -672,4 +689,34 @@ func getSubnet(netRange clusterv1.NetworkRanges) string {
 		return ""
 	}
 	return netRange.CIDRBlocks[0]
+}
+
+// Takes a Machine object representing the current state, and update it based on the actual
+// current state as reported by GCE, kubelet etc.
+func currentMachineActualStatus(gce *GCEClient, currentMachine *clusterv1.Machine) (*clusterv1.Machine, error) {
+	instance, err := gce.instanceIfExists(currentMachine)
+	if err != nil {
+		return nil, err
+	}
+
+	machineType := strings.Split(instance.MachineType, "/")
+	zone := strings.Split(instance.Zone, "/")
+
+	config, e := gce.providerconfig(currentMachine.Spec.ProviderConfig)
+	if e != nil {
+		return nil, apierrors.InvalidMachineConfiguration("Cannot unmarshal providerConfig field: %v", e)
+	}
+
+	config.MachineType = machineType[len(machineType)-1]
+	config.Zone = zone[len(zone)-1]
+
+	b := []byte{}
+	buff := bytes.NewBuffer(b)
+	err = gce.serializer.Encode(config, buff)
+	if err != nil {
+		return nil, fmt.Errorf("encoding failure: %v", err)
+	}
+
+	currentMachine.Spec.ProviderConfig = buff.String()
+	return currentMachine, nil
 }

@@ -11,6 +11,7 @@ aliases:
     - krousey
     - luxas
     - roberthbailey
+    - rsdcastro
   kube-deploy-maintainers:
     - jessicaochen
     - kris-nova

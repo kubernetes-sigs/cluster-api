@@ -4,13 +4,13 @@
 
 If you don't have a Google Cloud Project, please [create one](https://cloud.google.com/resource-manager/docs/creating-managing-projects).
 
-## Set GCP Credentials
+## Create Firewall
 
-In order to use the GCP machine controller, you need to configure the credentials so that the code has access to the GCP project where resources will be created.
+Create a firewall rule to allow communication from kubectl (and nodes) to the control plane.
 
-Steps to follow:
-1. Verify that the environment variable `GOOGLE_APPLICATION_CREDENTIALS` is set pointing to valid service account credentials
-2. If not set, follow the [instructions on Google Cloud Platform site](https://cloud.google.com/docs/authentication/getting-started) to have it set up.
+   ```bash
+   gcloud compute firewall-rules create cluster-api-open --allow=TCP:443 --source-ranges=0.0.0.0/0 --target-tags='https-server'
+   ```
 
 ## Install Google Cloud SDK (gcloud)
 
@@ -23,8 +23,13 @@ Steps to follow:
 2.  Configure Cloud SDK to point to the GCP project you will be using.
 
     ```bash
-    $ gcloud auth login
     $ gcloud config set project <GCP_PROJECT_ID>
+    ```
+
+3.  Set the client credentials to be used by Cluster API to create resources.
+
+    ```bash
+    $ gcloud auth application-default login
     ```
 
 ## Install Docker

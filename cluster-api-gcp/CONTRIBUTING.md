@@ -43,7 +43,7 @@ This message shows that your installation appears to be working correctly.
 
 ```bash
 $ cd $GOPATH/src/k8s.io/
-$ git clone https://github.com/<github-username>/kube-deploy.git
+$ git clone https://github.com/<GITHUB-USERNAME>/kube-deploy.git
 $ cd kube-deploy/cluster-api-gcp/
 $ go build
 ```

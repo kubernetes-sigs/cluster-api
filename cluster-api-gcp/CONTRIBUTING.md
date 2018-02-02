@@ -8,9 +8,9 @@ If you don't have a Google Cloud Project, please [create one](https://cloud.goog
 
 In order to use the GCP machine controller, you need to configure the credentials so that the code has access to the GCP project where resources will be created.
 
-For that, make sure that the environment variable `GOOGLE_APPLICATION_CREDENTIALS` is set pointing to valid service account credentials.
-
-In case you don't have it set, follow the [instructions on Google Cloud Platform site](https://cloud.google.com/docs/authentication/getting-started) to have it set up.
+Steps to follow:
+1. Verify that the environment variable `GOOGLE_APPLICATION_CREDENTIALS` is set pointing to valid service account credentials
+2. If not set, follow the [instructions on Google Cloud Platform site](https://cloud.google.com/docs/authentication/getting-started) to have it set up.
 
 ## Install Google Cloud SDK (gcloud)
 
@@ -19,18 +19,18 @@ Google Cloud SDK (gcloud) will be helpful for two reasons:
 -  Set configuration values that will be used during development (like project name).
 
 Steps to follow:
-1.  Install as per [Cloud SDK instructions](https://cloud.google.com/sdk/)
-2.  Configure GCP project
+1.  Install as per [Cloud SDK instructions](https://cloud.google.com/sdk/);
+2.  Configure Cloud SDK to point to the GCP project you will be using.
 
-```bash
-$ gcloud auth login
-$ gcloud config set project <GCP_PROJECT_ID>
-```
+    ```bash
+    $ gcloud auth login
+    $ gcloud config set project <GCP_PROJECT_ID>
+    ```
 
 ## Install Docker
 
-1. Install Docker
-2. Make sure your user can execute docker commmands (without sudo)
+1. Install [Docker](https://docs.docker.com/install/) on your machine;
+2. Make sure your user can execute docker commmands (without sudo). This is a way to test it:
 ```bash
 $ docker run hello-world
 

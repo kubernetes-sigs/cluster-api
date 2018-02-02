@@ -39,12 +39,22 @@ This message shows that your installation appears to be working correctly.
 ...
 ```
 
-## Build
+## Fetch Source Code
 
+1. Fork [kube-deploy repo](https://github.com/kubernetes/kube-deploy). If it's your first time forking, please take a look at [GitHub Repo instructions](https://help.github.com/articles/fork-a-repo/). The general [Kubernetes GitHub workflow](https://github.com/kubernetes/community/blob/master/contributors/guide/github-workflow.md) is helpful here too if you're getting started.
+
+2. Clone Repo Locally
 ```bash
 $ cd $GOPATH/src/k8s.io/
 $ git clone https://github.com/<GITHUB_USERNAME>/kube-deploy.git
 $ cd kube-deploy/cluster-api-gcp/
+$ go build
+```
+
+## Build
+
+```bash
+$ cd $GOPATH/src/k8s.io/kube-deploy/cluster-api-gcp/
 $ go build
 ```
 
@@ -90,7 +100,7 @@ This step is necessary to include the project name (as configured in Google Clou
 	$ ./generate-yaml.sh
 	```
 
-If Cloud SDK isn't configure, you will see an error like the one below:
+If Cloud SDK isn't configured, you will see an error like the one below:
 
 	```bash
 	$ ./generate-yaml.sh

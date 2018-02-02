@@ -26,8 +26,8 @@ import (
 	"github.com/golang/glog"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	_ "k8s.io/client-go/plugin/pkg/client/auth/gcp"
-	clusterv1 "k8s.io/kube-deploy/cluster-api/api/cluster/v1alpha1"
 	"k8s.io/kube-deploy/cluster-api-gcp/util"
+	clusterv1 "k8s.io/kube-deploy/cluster-api/api/cluster/v1alpha1"
 	apiutil "k8s.io/kube-deploy/cluster-api/util"
 )
 
@@ -243,6 +243,9 @@ func (d *deployer) copyKubeConfig(master *clusterv1.Machine) error {
 }
 
 func (d *deployer) initApiClient() error {
+	if _, err := os.Stat(d.configPath); os.IsNotExist(err) {
+		return fmt.Errorf("kubectl config file %s doesn't exist. Is kubectl configured to access a cluster?", d.configPath)
+	}
 	c, err := apiutil.NewApiClient(d.configPath)
 	if err != nil {
 		return err

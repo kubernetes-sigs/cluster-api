@@ -1,15 +1,54 @@
 # Contributing Guidelines
 
+## Google Cloud Project
+
+If you don't have a Google Cloud Project, please [create one](https://cloud.google.com/resource-manager/docs/creating-managing-projects).
+
+## Set GCP Credentials
+
+In order to use the GCP machine controller, you need to configure the credentials so that the code has access to the GCP project where resources will be created.
+
+For that, make sure that the environment variable `GOOGLE_APPLICATION_CREDENTIALS` is set pointing to valid service account credentials.
+
+In case you don't have it set, follow the [instructions on Google Cloud Platform site](https://cloud.google.com/docs/authentication/getting-started) to have it set up.
+
+## Install Google Cloud SDK (gcloud)
+
+Google Cloud SDK (gcloud) will be helpful for two reasons:
+-  Inspect GCP resources during development;
+-  Set configuration values that will be used during development (like project name).
+
+Steps to follow:
+1.  Install as per [Cloud SDK instructions](https://cloud.google.com/sdk/)
+2.  Configure GCP project
+
+```bash
+$ gcloud auth login
+$ gcloud config set project <GCP_PROJECT_ID>
+```
+
+## Install Docker
+
+1. Install Docker
+2. Make sure your user can execute docker commmands (without sudo)
+```bash
+$ docker run hello-world
+
+Hello from Docker!
+This message shows that your installation appears to be working correctly.
+...
+```
+
 ## Build
 
 ```bash
 $ cd $GOPATH/src/k8s.io/
-$ git clone git@github.com:kubernetes/kube-deploy.git
+$ git clone https://github.com/kubernetes/kube-deploy.git
 $ cd kube-deploy/cluster-api-gcp/
 $ go build
 ```
 
-This will create a binary `cluster-api-gcp` that you can use to manage a GCP cluster.
+This will create a binary `cluster-api-gcp` in the same directory. You can use that binary to manage a GCP cluster.
 
 ## Developing
 
@@ -21,16 +60,19 @@ $ ./cluster-api-gcp delete
 
 After making changes to the machine controller or the actuator, you need to follow these two steps:
 
-1. Rebuild the machine-controller image. Modify the `machine-controller/Makefile` and change the `PROJECT` to your own GCP project. This is important so you don't overwrite the official image. Also change `machineControllerImage` in `cloud/google/pods.go` to the new image path (make sure the version in the Makefile and `pods.go` match if you want to use the new image). Then, rebuild and push the image.
+1. Rebuild the machine-controller image. Also change `machineControllerImage` in `cloud/google/pods.go` to the new image path (make sure the version in the Makefile and `pods.go` match if you want to use the new image). Then, rebuild and push the image.
 
 	```bash
 	$ cd machine-controller
 	$ make push fix-image-permissions
 	```
 
+NOTE: that the image will be pushed to `gcr.io/$(GCLOUD_PROJECT)/machine-controller`. Image storage is a billable resource.
+
 2. Rebuild cluster-api-gcp
 
 	```bash
+    $ cd ..
 	$ go build
 	```
 
@@ -39,6 +81,21 @@ The new `cluster-api-gcp` will have your changes.
 ## Testing
 
 We do not have unit tests or integration tests currently. For any changes, it is recommended that you test a create-edit-delete sequence using the new machine controller image and the new `cluster-api-gcp` binary.
+
+1. Generate machines configuration file.
+
+This step is necessary to include the project name (as configured in Google Cloud SDK) in the yaml file.
+
+	```bash
+	$ ./generate-yaml.sh
+	```
+
+If Cloud SDK isn't configure, you will see an error like the one below:
+
+	```bash
+	$ ./generate-yaml.sh
+    ERROR: (gcloud.config.get-value) Section [core] has no property [project].
+	```
 
 1. Create a cluster
 

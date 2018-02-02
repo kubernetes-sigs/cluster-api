@@ -17,7 +17,7 @@ while test $# -gt 0; do
             echo " "
             echo "options:"
             echo "-h, --help                show brief help"
-            echo "-f, --force-overwrite     overwrite if file to be generated already exists"
+            echo "-f, --force-overwrite     if file to be generated already exists, force script to overwrite it"
             exit 0
             ;;
           -f)

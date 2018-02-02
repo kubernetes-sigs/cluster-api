@@ -1,4 +1,4 @@
-GCLOUD_PROJECT ?= $(shell /usr/bin/gcloud config get-value project1)
+GCLOUD_PROJECT ?= $(shell /usr/bin/gcloud config get-value project)
 NAME=machine-controller
 VERSION=0.19
 

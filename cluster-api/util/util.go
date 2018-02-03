@@ -25,6 +25,7 @@ import (
 
 	"github.com/golang/glog"
 	"k8s.io/api/core/v1"
+	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/tools/clientcmd"
 	clusterv1 "k8s.io/kube-deploy/cluster-api/api/cluster/v1alpha1"
 	"k8s.io/kube-deploy/cluster-api/client"
@@ -105,6 +106,19 @@ func NewApiClient(configPath string) (*client.ClusterAPIV1Alpha1Client, error) {
 	}
 
 	c, err := client.NewForConfig(config)
+	if err != nil {
+		return nil, err
+	}
+	return c, nil
+}
+
+func NewKubernetesClient(configPath string) (*kubernetes.Clientset, error) {
+	config, err := clientcmd.BuildConfigFromFlags("", configPath)
+	if err != nil {
+		return nil, err
+	}
+
+	c, err := kubernetes.NewForConfig(config)
 	if err != nil {
 		return nil, err
 	}

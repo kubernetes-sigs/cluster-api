@@ -113,6 +113,10 @@ func NewApiClient(configPath string) (*client.ClusterAPIV1Alpha1Client, error) {
 }
 
 func NewKubernetesClient(configPath string) (*kubernetes.Clientset, error) {
+	if _, err := os.Stat(configPath); os.IsNotExist(err) {
+		return nil, fmt.Errorf("kubectl config file %s doesn't exist. Is kubectl configured to access a cluster?", configPath)
+	}
+
 	config, err := clientcmd.BuildConfigFromFlags("", configPath)
 	if err != nil {
 		return nil, err

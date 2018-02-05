@@ -21,14 +21,15 @@ import (
 	"os/exec"
 
 	"github.com/golang/glog"
-	clusterv1 "k8s.io/kube-deploy/cluster-api/api/cluster/v1alpha1"
 	"k8s.io/kube-deploy/cluster-api-gcp/util"
+	clusterv1 "k8s.io/kube-deploy/cluster-api/api/cluster/v1alpha1"
 )
 
 const (
 	ServiceAccountPrefix    = "k8s-machine-controller-"
 	ServiceAccount          = "service-account"
 	MachineControllerSecret = "machine-controller-credential"
+	ServiceAccountNs        = "kube-system"
 )
 
 // Creates a GCP service account for the machine controller, granted the
@@ -37,7 +38,7 @@ const (
 func (gce *GCEClient) CreateMachineControllerServiceAccount(cluster *clusterv1.Cluster, initialMachines []*clusterv1.Machine) error {
 
 	if len(initialMachines) == 0 {
-		return fmt.Errorf("machine count is zero, cannot create service a/c")
+		return fmt.Errorf("machine count is zero, cannot create machine controller GCP service account.")
 	}
 
 	// TODO: use real go bindings
@@ -69,12 +70,12 @@ func (gce *GCEClient) CreateMachineControllerServiceAccount(cluster *clusterv1.C
 
 	err = run("gcloud", "--project", project, "iam", "service-accounts", "keys", "create", localFile, "--iam-account", email)
 	if err != nil {
-		return fmt.Errorf("couldn't create service account key: %v", err)
+		return fmt.Errorf("couldn't create key for machine controller GCP service account %v: %v", email, err)
 	}
 
-	err = run("kubectl", "create", "secret", "generic", "-n", "kube-system", MachineControllerSecret, "--from-file=service-account.json="+localFile)
+	err = run("kubectl", "create", "secret", "generic", "-n", ServiceAccountNs, MachineControllerSecret, "--from-file=service-account.json="+localFile)
 	if err != nil {
-		return fmt.Errorf("couldn't import service account key as credential: %v", err)
+		return fmt.Errorf("couldn't import key as credential for machine controller GCP service account %v: %v", email, err)
 	}
 	if err := run("rm", localFile); err != nil {
 		glog.Error(err)
@@ -89,7 +90,7 @@ func (gce *GCEClient) CreateMachineControllerServiceAccount(cluster *clusterv1.C
 
 func (gce *GCEClient) DeleteMachineControllerServiceAccount(cluster *clusterv1.Cluster, machines []*clusterv1.Machine) error {
 	if len(machines) == 0 {
-		glog.Info("machine count is zero, cannot determine project for service a/c deletion")
+		glog.Info("machine count is zero, cannot determine project for deleting machine controller GCP service account.")
 		return nil
 	}
 
@@ -104,19 +105,19 @@ func (gce *GCEClient) DeleteMachineControllerServiceAccount(cluster *clusterv1.C
 	}
 
 	if email == "" {
-		glog.Info("No service a/c found in cluster.")
+		glog.Warn("no machine controller GCP service account found as Kubernetes secret.")
 		return nil
 	}
 
 	err = run("gcloud", "projects", "remove-iam-policy-binding", project, "--member=serviceAccount:"+email, "--role=roles/compute.instanceAdmin.v1")
 
 	if err != nil {
-		return fmt.Errorf("couldn't remove permissions to service account: %v", err)
+		return fmt.Errorf("couldn't remove permissions to machine controller GCP service account %v: %v", email, err)
 	}
 
 	err = run("gcloud", "--project", project, "iam", "service-accounts", "delete", email)
 	if err != nil {
-		return fmt.Errorf("couldn't delete service account: %v", err)
+		return fmt.Errorf("couldn't delete machine controller GCP service account %v: %v", email, err)
 	}
 	return nil
 }

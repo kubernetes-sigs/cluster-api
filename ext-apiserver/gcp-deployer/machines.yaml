@@ -10,14 +10,14 @@ items:
       {
         "apiVersion": "gceproviderconfig/v1alpha1",
         "kind": "GCEProviderConfig",
-        "project": "jesschen-gke-dev",
+        "project": "k8s-cluster-api",
         "zone": "us-central1-f",
         "machineType": "n1-standard-2",
         "image": "projects/ubuntu-os-cloud/global/images/family/ubuntu-1604-lts"
       }
     versions:
-      kubelet: 1.7.4
-      controlPlane: 1.7.4
+      kubelet: 1.8.3
+      controlPlane: 1.8.3
       containerRuntime:
         name: docker
         version: 1.12.0
@@ -34,13 +34,13 @@ items:
       {
         "apiVersion": "gceproviderconfig/v1alpha1",
         "kind": "GCEProviderConfig",
-        "project": "jesschen-gke-dev",
+        "project": "k8s-cluster-api",
         "zone": "us-central1-f",
         "machineType": "n1-standard-1",
         "image": "projects/ubuntu-os-cloud/global/images/family/ubuntu-1604-lts"
       }
     versions:
-      kubelet: 1.7.4
+      kubelet: 1.8.3
       containerRuntime:
         name: docker
         version: 1.12.0

@@ -26,11 +26,11 @@ import (
 	"time"
 
 	"github.com/golang/glog"
-	apiextensionsclient "k8s.io/apiextensions-apiserver/pkg/client/clientset/clientset"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/tools/clientcmd"
 	clusterv1 "k8s.io/kube-deploy/ext-apiserver/pkg/apis/cluster/v1alpha1"
+	"k8s.io/kube-deploy/ext-apiserver/pkg/client/clientset_generated/clientset"
 	client "k8s.io/kube-deploy/ext-apiserver/pkg/client/clientset_generated/clientset/typed/cluster/v1alpha1"
 )
 
@@ -100,26 +100,13 @@ func GetDefaultKubeConfigPath() string {
 	return fmt.Sprintf("%s/config", localDir)
 }
 
-func NewApiClient(configPath string) (*client.ClusterV1alpha1Client, error) {
+func NewClientSet(configPath string) (*clientset.Clientset, error) {
 	config, err := clientcmd.BuildConfigFromFlags("", configPath)
 	if err != nil {
 		return nil, err
 	}
 
-	c, err := client.NewForConfig(config)
-	if err != nil {
-		return nil, err
-	}
-	return c, nil
-}
-
-func NewClientSet(configPath string) (*apiextensionsclient.Clientset, error) {
-	config, err := clientcmd.BuildConfigFromFlags("", configPath)
-	if err != nil {
-		return nil, err
-	}
-
-	cs, err := apiextensionsclient.NewForConfig(config)
+	cs, err := clientset.NewForConfig(config)
 	if err != nil {
 		return nil, err
 	}

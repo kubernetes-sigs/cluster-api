@@ -84,7 +84,7 @@ func (gce *GCEClient) setupSSHAccess(m *clusterv1.Machine) error {
 	}
 
 	// Create secrets so that machine controller container can load them.
-	err = run("kubectl", "create", "secret", "generic", "-n", "kube-system", MachineControllerSshKeySecret, "--from-file=private="+SshKeyFile, "--from-literal=user="+SshUser)
+	err = run("kubectl", "create", "secret", "generic", MachineControllerSshKeySecret, "--from-file=private="+SshKeyFile, "--from-literal=user="+SshUser)
 	if err != nil {
 		return fmt.Errorf("couldn't create service account key as credential: %v", err)
 	}

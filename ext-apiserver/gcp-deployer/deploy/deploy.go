@@ -22,6 +22,7 @@ import (
 
 	"github.com/golang/glog"
 	clusterv1 "k8s.io/kube-deploy/ext-apiserver/pkg/apis/cluster/v1alpha1"
+	"k8s.io/kube-deploy/ext-apiserver/pkg/client/clientset_generated/clientset"
 	"k8s.io/kube-deploy/ext-apiserver/pkg/client/clientset_generated/clientset/typed/cluster/v1alpha1"
 	"k8s.io/kube-deploy/ext-apiserver/util"
 	apiutil "k8s.io/kube-deploy/ext-apiserver/util"
@@ -31,7 +32,8 @@ type deployer struct {
 	token           string
 	configPath      string
 	machineDeployer machineDeployer
-	client          *v1alpha1.ClusterV1alpha1Client
+	client          v1alpha1.ClusterV1alpha1Interface
+	clientSet       clientset.Interface
 }
 
 // NewDeployer returns a cloud provider specific deployer and

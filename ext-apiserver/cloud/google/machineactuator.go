@@ -125,7 +125,11 @@ func (gce *GCEClient) CreateMachineController(cluster *clusterv1.Cluster, initia
 		return err
 	}
 
-	if err := CreateMachineControllerPod(gce.kubeadmToken); err != nil {
+	if err := CreateExtApiServerRoleBinding(); err != nil {
+		return err
+	}
+
+	if err := CreateApiServerAndController(gce.kubeadmToken); err != nil {
 		return err
 	}
 	return nil
@@ -671,4 +675,13 @@ func getSubnet(netRange clusterv1.NetworkRanges) string {
 		return ""
 	}
 	return netRange.CIDRBlocks[0]
+}
+
+// TODO: We need to change this when we create dedicated service account for apiserver/controller
+// pod.
+//
+func CreateExtApiServerRoleBinding() error {
+	return run("kubectl", "create", "rolebinding",
+		"-n", "kube-system", "machine-controller", "--role=extension-apiserver-authentication-reader",
+		"--serviceaccount=default:default")
 }

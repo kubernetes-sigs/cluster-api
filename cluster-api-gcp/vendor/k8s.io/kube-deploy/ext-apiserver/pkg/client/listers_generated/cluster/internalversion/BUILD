@@ -1,0 +1,18 @@
+load("@io_bazel_rules_go//go:def.bzl", "go_library")
+
+go_library(
+    name = "go_default_library",
+    srcs = [
+        "cluster.go",
+        "expansion_generated.go",
+        "machine.go",
+    ],
+    importpath = "k8s.io/kube-deploy/ext-apiserver/pkg/client/listers_generated/cluster/internalversion",
+    visibility = ["//visibility:public"],
+    deps = [
+        "//pkg/apis/cluster:go_default_library",
+        "//vendor/k8s.io/apimachinery/pkg/api/errors:go_default_library",
+        "//vendor/k8s.io/apimachinery/pkg/labels:go_default_library",
+        "//vendor/k8s.io/client-go/tools/cache:go_default_library",
+    ],
+)

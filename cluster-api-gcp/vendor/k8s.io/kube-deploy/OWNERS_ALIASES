@@ -1,0 +1,20 @@
+# See the OWNERS docs: https://git.k8s.io/community/docs/devel/owners.md
+
+aliases:
+  sig-cluster-lifecycle-leads:
+    - jbeda
+    - lukemarsden
+    - luxas
+    - roberthbailey
+  kube-deploy-admins:
+    - justinsb
+    - krousey
+    - luxas
+    - roberthbailey
+  kube-deploy-maintainers:
+    - jessicaochen
+    - kris-nova
+    - krousey
+    - medinatiger
+    - roberthbailey
+    - rsdcastro

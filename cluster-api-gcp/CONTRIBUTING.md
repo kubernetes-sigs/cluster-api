@@ -1,10 +1,12 @@
 # Contributing Guidelines
 
-## Google Cloud Project
+## Prerequisites
+
+### Google Cloud Project
 
 If you don't have a Google Cloud Project, please [create one](https://cloud.google.com/resource-manager/docs/creating-managing-projects).
 
-## Create Firewall
+### Create Firewall
 
 Create a firewall rule to allow communication from kubectl (and nodes) to the control plane.
 
@@ -12,7 +14,7 @@ Create a firewall rule to allow communication from kubectl (and nodes) to the co
    gcloud compute firewall-rules create cluster-api-open --allow=TCP:443 --source-ranges=0.0.0.0/0 --target-tags='https-server'
    ```
 
-## Install Google Cloud SDK (gcloud)
+### Install Google Cloud SDK (gcloud)
 
 Google Cloud SDK (gcloud) will be helpful for two reasons:
 -  Inspect GCP resources during development;
@@ -26,19 +28,19 @@ Steps to follow:
     $ gcloud config set project <GCP_PROJECT_ID>
     ```
 
-## Set GCP Credentials
+### Set GCP Credentials
 
 In order to use the GCP machine controller, you need to configure the credentials so that the code has access to the GCP project where resources will be created.
 
 You can set it in two ways, as explained below.
 
-### Environment Variable GOOGLE_APPLICATION_CREDENTIALS
+#### Environment Variable GOOGLE_APPLICATION_CREDENTIALS
 
 Steps to follow:
 1. Verify that the environment variable `GOOGLE_APPLICATION_CREDENTIALS` is set pointing to valid service account credentials
 2. If not set, follow the [instructions on Google Cloud Platform site](https://cloud.google.com/docs/authentication/getting-started) to have it set up.
 
-### Login Using Cloud SDK
+#### Login Using Cloud SDK
 
 The alternative is to set the client credentials via gcloud by executing the command line below.
 
@@ -46,7 +48,7 @@ The alternative is to set the client credentials via gcloud by executing the com
 $ gcloud auth application-default login
 ```
 
-## Install Docker
+### Install Docker
 
 1. Install [Docker](https://docs.docker.com/install/) on your machine;
 2. Make sure your user can execute docker commmands (without sudo). This is a way to test it:
@@ -143,3 +145,18 @@ ERROR: (gcloud.config.get-value) Section [core] has no property [project].
 	```bash
 	$ ./cluster-api-gcp delete
 	```
+
+## Updating vendor directory for cluster-api changes
+
+For changes to dependencies, like [cluster-api](https://github.com/kubernetes/kube-deploy/tree/master/cluster-api), follow the steps:
+
+1. Make sure you have dep installed (or install it from [here])
+
+2. Run ```dep ensure -update``` as follows:
+
+```bash
+$ cd $GOPATH/src/k8s.io/kube-deploy/cluster-api-gcp/
+$ dep ensure -update k8s.io/kube-deploy
+```
+
+3. Submit a pull request with the updated files.

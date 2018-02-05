@@ -11,7 +11,9 @@ This document is meant to help OSS contributors implement support for cloud prov
 As part of adding support for a provider (cloud or on-prem), you will need to:
 
 1.  Create tooling that conforms to the Cluster API (described further below)
-1.  A machine controller that can run independent of the cluster. This controller should handle the lifecycle of the machines, whether it's run inside the master in a pod, in an external API server, or even on your local workstation.
+1.  A machine controller that can run independent of the cluster. This controller should handle the lifecycle of the machines, whether it's run in-cluster or out-cluster.
+
+The machine controller should be able to act on a subset of machines that form a cluster (for example using a label selector).
 
 ### Resources
 
@@ -28,13 +30,10 @@ As part of adding support for a provider (cloud or on-prem), you will need to:
 
 When a cluster is first created with a cluster config file, there is no master node or api server. So the user will need to bootstrap a cluster. While the implementation details are specific to the provider, the following guidance should help you:
 
-*   Your tooling should create a Node for the master machine specified by the user. This master can use kubeadm to initialize the master. See [this example](https://github.com/kubernetes/kube-deploy/blob/68e27e43894efebb45f5f014aa5510c11015c3b3/cluster-api-gcp/cloud/google/templates.go).
-*   Start the machine controller specific to the provider.
-*   Register the clusters CRD with the machine controller.
-*   POST the cluster config.
-*   Register the machines CRD's with the machine controller.
-*   POST the machines config.
-*   A correctly implemented Update (discussed below) will then reconcile the machines.
+* Your tool should spin up the external apiserver and the machine controller.
+* POST the objects to the apiserver.
+* The machine controller creates resources (Machines etc)
+* Pivot the apiserver and the machine controller in to the cluster.
 
 ### A specific Node can be deleted, freeing external resources associated with it.
 

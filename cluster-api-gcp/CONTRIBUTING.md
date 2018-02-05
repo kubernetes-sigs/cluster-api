@@ -42,9 +42,9 @@ Steps to follow:
 
 The alternative is to set the client credentials via gcloud by executing the command line below.
 
-    ```bash
-    $ gcloud auth application-default login
-    ```
+```bash
+$ gcloud auth application-default login
+```
 
 ## Install Docker
 

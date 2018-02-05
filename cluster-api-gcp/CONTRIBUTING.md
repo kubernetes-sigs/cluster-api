@@ -115,16 +115,16 @@ We do not have unit tests or integration tests currently. For any changes, it is
 
 This step is necessary to include the project name (as configured in Google Cloud SDK) in the yaml file.
 
-	```bash
-	$ ./generate-yaml.sh
-	```
+```bash
+$ ./generate-yaml.sh
+```
 
 If Cloud SDK isn't configured, you will see an error like the one below:
 
-	```bash
-	$ ./generate-yaml.sh
-    ERROR: (gcloud.config.get-value) Section [core] has no property [project].
-	```
+```bash
+$ ./generate-yaml.sh
+ERROR: (gcloud.config.get-value) Section [core] has no property [project].
+```
 
 1. Create a cluster
 

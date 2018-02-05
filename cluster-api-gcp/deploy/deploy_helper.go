@@ -35,8 +35,8 @@ const (
 	MasterIPAttempts       = 40
 	SleepSecondsPerAttempt = 5
 	RetryAttempts          = 30
-	DeleteAttempts         = 150
-	DeleteSleepSeconds     = 5
+	ServiceAccountNs       = "kube-system"
+	ServiceAccountName     = "default"
 )
 
 func (d *deployer) createCluster(c *clusterv1.Cluster, machines []*clusterv1.Machine, vmCreated *bool) error {
@@ -90,6 +90,12 @@ func (d *deployer) createCluster(c *clusterv1.Cluster, machines []*clusterv1.Mac
 	if err := d.initApiClient(); err != nil {
 		return err
 	}
+
+	glog.Info("Waiting for the service account to exist...")
+	if err := d.waitForServiceAccount(1 * time.Minute); err != nil {
+		return fmt.Errorf("service account %s/%s not found: %v", ServiceAccountNs, ServiceAccountName, err)
+	}
+
 	glog.Info("Starting the machine controller...")
 	if err := d.machineDeployer.CreateMachineController(c, machines); err != nil {
 		return fmt.Errorf("can't create machine controller: %v", err)
@@ -290,6 +296,24 @@ func (d *deployer) waitForApiserver(master string, timeout time.Duration) error 
 			return nil
 		}
 		time.Sleep(1 * time.Second)
+	}
+	return err
+}
+
+// Make sure the default service account in kube-system namespace exists.
+func (d *deployer) waitForServiceAccount(timeout time.Duration) error {
+	client, err := apiutil.NewKubernetesClient(d.configPath)
+	if err != nil {
+		return err
+	}
+	startTime := time.Now()
+
+	for time.Now().Sub(startTime) < timeout {
+		_, err := client.CoreV1().ServiceAccounts(ServiceAccountNs).Get(ServiceAccountName, metav1.GetOptions{})
+		if err == nil {
+			return nil
+		}
+		time.Sleep(SleepSecondsPerAttempt * time.Second)
 	}
 	return err
 }

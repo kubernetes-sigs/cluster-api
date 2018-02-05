@@ -26,7 +26,21 @@ Steps to follow:
     $ gcloud config set project <GCP_PROJECT_ID>
     ```
 
-3.  Set the client credentials to be used by Cluster API to create resources.
+## Set GCP Credentials
+
+In order to use the GCP machine controller, you need to configure the credentials so that the code has access to the GCP project where resources will be created.
+
+You can set it in two ways, as explained below.
+
+### Environment Variable GOOGLE_APPLICATION_CREDENTIALS
+
+Steps to follow:
+1. Verify that the environment variable `GOOGLE_APPLICATION_CREDENTIALS` is set pointing to valid service account credentials
+2. If not set, follow the [instructions on Google Cloud Platform site](https://cloud.google.com/docs/authentication/getting-started) to have it set up.
+
+### Login Using Cloud SDK
+
+The alternative is to set the client credentials via gcloud by executing the command line below.
 
     ```bash
     $ gcloud auth application-default login

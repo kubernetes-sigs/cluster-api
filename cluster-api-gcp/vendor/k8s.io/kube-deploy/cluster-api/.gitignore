@@ -1,9 +1,6 @@
-cluster-api
-machine-controller/machine-controller
-upgrader/upgrader
-repair/repair
+tools/upgrader/upgrader
+tools/repair/repair
+tools/machineset/machineset
+tools/machines-client/machines-client
 examples/machines-crd-installer/machines-crd-installer
 examples/machines-controller/machines-controller
-examples/gce-machines-controller/gce-machines-controller
-examples/machineset/machineset
-examples/machines-client/machines-client

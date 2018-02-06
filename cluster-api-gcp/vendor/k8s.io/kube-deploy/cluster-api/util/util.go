@@ -18,18 +18,14 @@ package util
 
 import (
 	"fmt"
-	"math/rand"
 	"os"
 	"os/exec"
 	"os/user"
 	"strings"
-	"time"
 
 	"github.com/golang/glog"
 	"k8s.io/api/core/v1"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/types"
-	apiextensionsclient "k8s.io/apiextensions-apiserver/pkg/client/clientset/clientset"
+	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/tools/clientcmd"
 	clusterv1 "k8s.io/kube-deploy/cluster-api/api/cluster/v1alpha1"
 	"k8s.io/kube-deploy/cluster-api/client"
@@ -37,24 +33,7 @@ import (
 
 const (
 	TypeMaster = "Master"
-	CharSet    = "0123456789abcdefghijklmnopqrstuvwxyz"
 )
-
-var (
-	r = rand.New(rand.NewSource(time.Now().UnixNano()))
-)
-
-func RandomToken() string {
-	return fmt.Sprintf("%s.%s", RandomString(6), RandomString(16))
-}
-
-func RandomString(n int) string {
-	result := make([]byte, n)
-	for i := range result {
-		result[i] = CharSet[r.Intn(len(CharSet))]
-	}
-	return string(result)
-}
 
 func Contains(a string, list []string) bool {
 	for _, b := range list {
@@ -69,15 +48,6 @@ func IsMaster(machine *clusterv1.Machine) bool {
 	return Contains(TypeMaster, machine.Spec.Roles)
 }
 
-func GetMaster(machines []*clusterv1.Machine) *clusterv1.Machine {
-	for _, machine := range machines {
-		if IsMaster(machine) {
-			return machine
-		}
-	}
-	return nil
-}
-
 func IsNodeReady(node *v1.Node) bool {
 	for _, condition := range node.Status.Conditions {
 		if condition.Type == v1.NodeReady {
@@ -88,18 +58,21 @@ func IsNodeReady(node *v1.Node) bool {
 	return false
 }
 
-func MachineP(machines []clusterv1.Machine) []*clusterv1.Machine {
-	// Convert to list of pointers
-	var ret []*clusterv1.Machine
-	for _, machine := range machines {
-		ret = append(ret, machine.DeepCopy())
-	}
-	return ret
-}
-
 func ExecCommand(name string, args ...string) string {
 	cmdOut, _ := exec.Command(name, args...).Output()
 	return string(cmdOut)
+}
+
+func Copy(m *clusterv1.Machine) *clusterv1.Machine {
+	ret := &clusterv1.Machine{}
+	ret.APIVersion = m.APIVersion
+	ret.Kind = m.Kind
+	ret.ClusterName = m.ClusterName
+	ret.GenerateName = m.GenerateName
+	ret.Name = m.Name
+	ret.Namespace = m.Namespace
+	m.Spec.DeepCopyInto(&ret.Spec)
+	return ret
 }
 
 func Home() string {
@@ -126,18 +99,6 @@ func GetDefaultKubeConfigPath() string {
 	return fmt.Sprintf("%s/config", localDir)
 }
 
-func Copy(m *clusterv1.Machine) *clusterv1.Machine {
-	ret := &clusterv1.Machine{}
-	ret.APIVersion = m.APIVersion
-	ret.Kind = m.Kind
-	ret.ClusterName = m.ClusterName
-	ret.GenerateName = m.GenerateName
-	ret.Name = m.Name
-	ret.Namespace = m.Namespace
-	m.Spec.DeepCopyInto(&ret.Spec)
-	return ret
-}
-
 func NewApiClient(configPath string) (*client.ClusterAPIV1Alpha1Client, error) {
 	config, err := clientcmd.BuildConfigFromFlags("", configPath)
 	if err != nil {
@@ -151,43 +112,19 @@ func NewApiClient(configPath string) (*client.ClusterAPIV1Alpha1Client, error) {
 	return c, nil
 }
 
-func NewClientSet(configPath string) (*apiextensionsclient.Clientset, error) {
+func NewKubernetesClient(configPath string) (*kubernetes.Clientset, error) {
+	if _, err := os.Stat(configPath); os.IsNotExist(err) {
+		return nil, fmt.Errorf("kubectl config file %s doesn't exist. Is kubectl configured to access a cluster?", configPath)
+	}
+
 	config, err := clientcmd.BuildConfigFromFlags("", configPath)
 	if err != nil {
 		return nil, err
 	}
 
-	cs, err := apiextensionsclient.NewForConfig(config)
+	c, err := kubernetes.NewForConfig(config)
 	if err != nil {
 		return nil, err
 	}
-
-	return cs, nil
-}
-
-
-func GetCurrentMachineIfExists(machineClient client.MachinesInterface, machine *clusterv1.Machine) (*clusterv1.Machine, error) {
-	return GetMachineIfExists(machineClient, machine.ObjectMeta.Name, machine.ObjectMeta.UID)
-}
-
-func GetMachineIfExists(machineClient client.MachinesInterface, name string, uid types.UID) (*clusterv1.Machine, error) {
-	if machineClient == nil {
-		// Being called before k8s is setup as part of master VM creation
-		return nil, nil
-	}
-
-	// Machines are identified by name and UID
-	machine, err := machineClient.Get(name, metav1.GetOptions{})
-	if err != nil {
-		// TODO: Use formal way to check for not found
-		if strings.Contains(err.Error(), "not found") {
-			return nil, nil
-		}
-		return nil, err
-	}
-
-	if machine.ObjectMeta.UID != uid {
-		return nil, nil
-	}
-	return machine, nil
+	return c, nil
 }

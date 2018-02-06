@@ -1,0 +1,15 @@
+
+# gazelle:proto disable
+# gazelle:exclude vendor
+load("@io_bazel_rules_go//go:def.bzl", "gazelle")
+
+gazelle(
+    name = "gazelle",
+    command = "fix",
+    prefix = "k8s.io/kube-deploy/ext-apiserver",
+    external = "vendored",
+    args = [
+        "-build_file_name",
+        "BUILD,BUILD.bazel",
+    ],
+)

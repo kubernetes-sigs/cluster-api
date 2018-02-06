@@ -19,6 +19,7 @@ package deploy
 import (
 	"crypto/tls"
 	"fmt"
+	"io/ioutil"
 	"net/http"
 	"os"
 	"time"
@@ -26,6 +27,8 @@ import (
 	"github.com/golang/glog"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	_ "k8s.io/client-go/plugin/pkg/client/auth/gcp"
+	"k8s.io/client-go/tools/clientcmd"
+	clientcmdapi "k8s.io/client-go/tools/clientcmd/api"
 	"k8s.io/kube-deploy/cluster-api-gcp/util"
 	clusterv1 "k8s.io/kube-deploy/cluster-api/api/cluster/v1alpha1"
 	apiutil "k8s.io/kube-deploy/cluster-api/util"
@@ -255,16 +258,13 @@ func (d *deployer) initApiClient() error {
 
 }
 func (d *deployer) writeConfigToDisk(config string) error {
-	file, err := os.Create(d.configPath)
+	mergedConfig, err := mergeConfigIfExists(config, d.configPath)
 	if err != nil {
 		return err
 	}
-	if _, err := file.WriteString(config); err != nil {
+	if err = clientcmd.WriteToFile(*mergedConfig, d.configPath); err != nil {
 		return err
 	}
-	defer file.Close()
-
-	file.Sync() // flush
 	glog.Infof("wrote kubeconfig to [%s]", d.configPath)
 	return nil
 }
@@ -292,4 +292,19 @@ func (d *deployer) waitForApiserver(master string, timeout time.Duration) error 
 		time.Sleep(1 * time.Second)
 	}
 	return err
+}
+
+// expects new config as string and an existing file to merge new config into.
+func mergeConfigIfExists(newConfig, existingFilePath string) (*clientcmdapi.Config, error) {
+	// store newconfig in a temp file, existing api expects file paths.
+	tempFile, _ := ioutil.TempFile("", "")
+	defer os.Remove(tempFile.Name())
+	if _, err := tempFile.WriteString(newConfig); err != nil {
+		return nil, err
+	}
+	// new Config takes precedence
+	loadingRules := clientcmd.ClientConfigLoadingRules{
+		Precedence: []string{tempFile.Name(), existingFilePath},
+	}
+	return loadingRules.Load()
 }

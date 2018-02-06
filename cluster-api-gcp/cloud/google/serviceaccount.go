@@ -105,7 +105,7 @@ func (gce *GCEClient) DeleteMachineControllerServiceAccount(cluster *clusterv1.C
 	}
 
 	if email == "" {
-		glog.Warn("no machine controller GCP service account found as Kubernetes secret.")
+		glog.Warning("no machine controller GCP service account found as Kubernetes secret.")
 		return nil
 	}
 

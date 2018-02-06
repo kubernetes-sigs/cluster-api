@@ -6,7 +6,7 @@
 
 The Cluster API is a Kubernetes project to bring declarative, Kubernetes-style APIs to cluster creation, configuration, and management. It provides optional, additive functionality on top of core Kubernetes.
 
-This document is meant to help OSS contributors implement support for cloud providers.
+This document is meant to help OSS contributors implement support for providers (cloud or on-prem).
 
 As part of adding support for a provider (cloud or on-prem), you will need to:
 

@@ -329,7 +329,13 @@ func (gce *GCEClient) Delete(machine *clusterv1.Machine) error {
 			"error deleting GCE instance: %v", err))
 	}
 
-	return nil
+	if gce.machineClient != nil {
+		// Remove the finalizer
+		machine.ObjectMeta.Finalizers = util.Filter(machine.ObjectMeta.Finalizers, clusterv1.MachineFinalizer)
+		_, err = gce.machineClient.Update(machine)
+	}
+
+	return err
 }
 
 func (gce *GCEClient) PostDelete(cluster *clusterv1.Cluster, machines []*clusterv1.Machine) error {
@@ -647,7 +653,7 @@ func (gce *GCEClient) handleMachineError(machine *clusterv1.Machine, err *apierr
 		message := err.Message
 		machine.Status.ErrorReason = &reason
 		machine.Status.ErrorMessage = &message
-		gce.machineClient.Update(machine)
+		gce.machineClient.UpdateStatus(machine)
 	}
 
 	glog.Errorf("Machine error: %v", err.Message)

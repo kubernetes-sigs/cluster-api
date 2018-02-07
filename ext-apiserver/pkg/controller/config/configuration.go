@@ -24,16 +24,18 @@ type Configuration struct {
 	Kubeconfig   string
 	Cloud        string
 	KubeadmToken string
+	InCluster    bool
 }
 
 var ControllerConfig = Configuration{
-	Cloud: "google", // Default with GCP
+	InCluster: true,
 }
 
 func (c *Configuration) AddFlags(fs *pflag.FlagSet) {
 	fs.StringVar(&c.Kubeconfig, "kubeconfig", c.Kubeconfig, "Path to kubeconfig file with authorization and master location information.")
 	fs.StringVar(&c.Cloud, "cloud", c.Cloud, "Cloud provider (google/azure).")
 	fs.StringVar(&c.KubeadmToken, "token", c.KubeadmToken, "Kubeadm token to use to join new machines.")
+	fs.BoolVar(&c.InCluster, "incluster", c.InCluster, "Controller will be running inside the cluster.")
 }
 
 func init() {

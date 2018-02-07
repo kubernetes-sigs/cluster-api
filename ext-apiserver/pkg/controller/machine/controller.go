@@ -30,6 +30,7 @@ import (
 	listers "k8s.io/kube-deploy/ext-apiserver/pkg/client/listers_generated/cluster/v1alpha1"
 	cfg "k8s.io/kube-deploy/ext-apiserver/pkg/controller/config"
 	"k8s.io/kube-deploy/ext-apiserver/pkg/controller/sharedinformers"
+	"k8s.io/kube-deploy/ext-apiserver/util"
 )
 
 // +controller:group=cluster,version=v1alpha1,kind=Machine,resource=machines
@@ -82,8 +83,23 @@ func (c *MachineControllerImpl) Reconcile(machine *clusterv1.Machine) error {
 			glog.Infof("reconciling machine object %v triggers idempotent create.", machine.ObjectMeta.Name)
 			err = c.create(machine)
 		} else {
-			glog.Infof("reconciling machine object %v triggers idempotent update.", machine.ObjectMeta.Name)
-			err = c.update(machine)
+
+			if !machine.ObjectMeta.DeletionTimestamp.IsZero() {
+				// no-op if finalizer has been removed.
+				if !util.Contains(machine.ObjectMeta.Finalizers, clusterv1.MachineFinalizer) {
+					glog.Infof("reconciling machine object %v causes a no-op as there is no finalizer.", machine.ObjectMeta.Name)
+					return nil
+				}
+				if cfg.ControllerConfig.InCluster && util.IsMaster(machine) {
+					glog.Infof("skipping reconciling master machine object %v", machine.ObjectMeta.Name)
+				} else {
+					glog.Infof("reconciling machine object %v triggers delete.", machine.ObjectMeta.Name)
+					err = c.delete(machine)
+				}
+			} else {
+				glog.Infof("reconciling machine object %v triggers idempotent update.", machine.ObjectMeta.Name)
+				err = c.update(machine)
+			}
 		}
 	}
 	if err != nil {
@@ -114,6 +130,10 @@ func (c *MachineControllerImpl) update(new_machine *clusterv1.Machine) error {
 	// TODO: Assume single master for now.
 	// TODO: Assume we never change the role for the machines. (Master->Node, Node->Master, etc)
 	return c.actuator.Update(cluster, new_machine)
+}
+
+func (c *MachineControllerImpl) delete(machine *clusterv1.Machine) error {
+	return c.actuator.Delete(machine)
 }
 
 func (c *MachineControllerImpl) getCluster() (*clusterv1.Cluster, error) {

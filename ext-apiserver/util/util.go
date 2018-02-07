@@ -26,6 +26,7 @@ import (
 	"time"
 
 	"github.com/golang/glog"
+
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/tools/clientcmd"
@@ -140,20 +141,29 @@ func GetMachineIfExists(machineClient client.MachineInterface, name string, uid 
 	return machine, nil
 }
 
-func Contains(a string, list []string) bool {
-	for _, b := range list {
-		if b == a {
-			return true
-		}
-	}
-	return false
-}
-
 func IsMaster(machine *clusterv1.Machine) bool {
-	return Contains(TypeMaster, machine.Spec.Roles)
+	return Contains(machine.Spec.Roles, TypeMaster)
 }
 
 func ExecCommand(name string, args ...string) string {
 	cmdOut, _ := exec.Command(name, args...).Output()
 	return string(cmdOut)
+}
+
+func Filter(list []string, strToFilter string) (newList []string) {
+	for _, item := range list {
+		if item != strToFilter {
+			newList = append(newList, item)
+		}
+	}
+	return
+}
+
+func Contains(list []string, strToSearch string) bool {
+	for _, item := range list {
+		if item == strToSearch {
+			return true
+		}
+	}
+	return false
 }

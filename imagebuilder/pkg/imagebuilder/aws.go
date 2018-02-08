@@ -453,6 +453,9 @@ func (c *AWSCloud) CreateInstance() (Instance, error) {
 	request.ImageId = aws.String(c.config.ImageID)
 	request.KeyName = aws.String(sshKeyName)
 	request.InstanceType = aws.String(c.config.InstanceType)
+	if c.config.InstanceProfile != "" {
+		request.IamInstanceProfile = &ec2.IamInstanceProfileSpecification{Name: aws.String(c.config.InstanceProfile)}
+	}
 	request.NetworkInterfaces = []*ec2.InstanceNetworkInterfaceSpecification{
 		{
 			DeviceIndex:              aws.Int64(0),

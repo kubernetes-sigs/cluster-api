@@ -18,6 +18,8 @@ type Config struct {
 	SSHPublicKey  string
 	SSHPrivateKey string
 
+	InstanceProfile string
+
 	// Tags to add to the image
 	Tags map[string]string
 }
@@ -29,6 +31,8 @@ func (c *Config) InitDefaults() {
 	c.SSHUsername = "admin"
 	c.SSHPublicKey = "~/.ssh/id_rsa.pub"
 	c.SSHPrivateKey = "~/.ssh/id_rsa"
+
+	c.InstanceProfile = ""
 
 	setupCommands := []string{
 		"sudo apt-get update",

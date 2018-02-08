@@ -6,14 +6,6 @@
 
 If you don't have a Google Cloud Project, please [create one](https://cloud.google.com/resource-manager/docs/creating-managing-projects).
 
-### Create Firewall
-
-Create a firewall rule to allow communication from kubectl (and nodes) to the control plane.
-
-   ```bash
-   gcloud compute firewall-rules create cluster-api-open --allow=TCP:443 --source-ranges=0.0.0.0/0 --target-tags='https-server'
-   ```
-
 ### Install Google Cloud SDK (gcloud)
 
 Google Cloud SDK (gcloud) will be helpful for two reasons:
@@ -47,6 +39,14 @@ The alternative is to set the client credentials via gcloud by executing the com
 ```bash
 $ gcloud auth application-default login
 ```
+
+### Create Firewall
+
+Create a firewall rule to allow communication from kubectl (and nodes) to the control plane.
+
+   ```bash
+   gcloud compute firewall-rules create cluster-api-open --allow=TCP:443 --source-ranges=0.0.0.0/0 --target-tags='https-server'
+   ```
 
 ### Install Docker
 

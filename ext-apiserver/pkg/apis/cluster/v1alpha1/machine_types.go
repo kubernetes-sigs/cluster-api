@@ -1,4 +1,3 @@
-
 /*
 Copyright 2018 The Kubernetes Authors.
 
@@ -15,7 +14,6 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-
 package v1alpha1
 
 import (
@@ -31,6 +29,9 @@ import (
 	"k8s.io/kube-deploy/ext-apiserver/pkg/apis/cluster"
 	"k8s.io/kube-deploy/ext-apiserver/pkg/apis/cluster/common"
 )
+
+// Finalizer is set on PreareForCreate callback
+const MachineFinalizer string = "machine.cluster.k8s.io"
 
 // +genclient
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
@@ -146,6 +147,16 @@ func (MachineStrategy) Validate(ctx request.Context, obj runtime.Object) field.E
 	errors := field.ErrorList{}
 	// perform validation here and add to errors using field.Invalid
 	return errors
+}
+
+// PrepareForCreate clears fields that are not allowed to be set by end users on creation.
+func (m MachineStrategy) PrepareForCreate(ctx request.Context, obj runtime.Object) {
+	// Invoke the parent implementation to strip the Status
+	m.DefaultStorageStrategy.PrepareForCreate(ctx, obj)
+
+	// Cast the element and set finalizer
+	o := obj.(*cluster.Machine)
+	o.ObjectMeta.Finalizers = append(o.ObjectMeta.Finalizers, MachineFinalizer)
 }
 
 // DefaultingFunction sets default Machine field values

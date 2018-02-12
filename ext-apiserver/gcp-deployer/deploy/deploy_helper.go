@@ -148,17 +148,28 @@ func (d *deployer) deleteAllMachines() error {
 		return err
 	}
 	for _, m := range machines.Items {
-		if err := d.delete(m.Name); err != nil {
-			return err
+		if !util.IsMaster(&m) {
+			if err := d.delete(m.Name); err != nil {
+				return err
+			}
+			glog.Infof("Deleted machine object %s", m.Name)
 		}
-		glog.Infof("Deleted machine object %s", m.Name)
 	}
 	return nil
 }
 
 func (d *deployer) delete(name string) error {
-	// TODO  https://github.com/kubernetes/kube-deploy/issues/390
-	return d.client.Machines(apiv1.NamespaceDefault).Delete(name, &metav1.DeleteOptions{})
+	err := d.client.Machines(apiv1.NamespaceDefault).Delete(name, &metav1.DeleteOptions{})
+	if err != nil {
+		return err
+	}
+	err = wait.Poll(500*time.Millisecond, 120*time.Second, func() (bool, error) {
+		if _, err = d.client.Machines(apiv1.NamespaceDefault).Get(name, metav1.GetOptions{}); err == nil {
+			return false, nil
+		}
+		return true, nil
+	})
+	return err
 }
 
 func (d *deployer) listMachines() ([]*clusterv1.Machine, error) {

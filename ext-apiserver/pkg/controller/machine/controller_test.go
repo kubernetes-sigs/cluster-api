@@ -1,4 +1,3 @@
-
 /*
 Copyright 2018 The Kubernetes Authors.
 
@@ -15,16 +14,16 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-
 package machine_test
 
 import (
+	"sync"
 	"time"
 
-	. "k8s.io/kube-deploy/ext-apiserver/pkg/apis/cluster/v1alpha1"
-	. "k8s.io/kube-deploy/ext-apiserver/pkg/client/clientset_generated/clientset/typed/cluster/v1alpha1"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
+	. "k8s.io/kube-deploy/ext-apiserver/pkg/apis/cluster/v1alpha1"
+	. "k8s.io/kube-deploy/ext-apiserver/pkg/client/clientset_generated/clientset/typed/cluster/v1alpha1"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
@@ -39,7 +38,7 @@ var _ = Describe("Machine controller", func() {
 	BeforeEach(func() {
 		instance = Machine{}
 		instance.Name = "instance-1"
-		expectedKey = "machine-controller-test-handler/instance-1"
+		expectedKey = "default/instance-1"
 	})
 
 	AfterEach(func() {
@@ -48,26 +47,31 @@ var _ = Describe("Machine controller", func() {
 
 	Describe("when creating a new object", func() {
 		It("invoke the reconcile method", func() {
-			client = cs.ClusterV1alpha1().Machines("machine-controller-test-handler")
+			cluster := Cluster{}
+			cluster.Name = "cluster-1"
+			_, err := cs.ClusterV1alpha1().Clusters("default").Create(&cluster)
+			Expect(err).ShouldNot(HaveOccurred())
+			client = cs.ClusterV1alpha1().Machines("default")
 			before = make(chan struct{})
 			after = make(chan struct{})
+			var aftOnce, befOnce sync.Once
 
 			actualKey := ""
 			var actualErr error = nil
 
 			// Setup test callbacks to be called when the message is reconciled
 			controller.BeforeReconcile = func(key string) {
-				defer close(before)
 				actualKey = key
+				befOnce.Do(func() { close(before) })
 			}
 			controller.AfterReconcile = func(key string, err error) {
-				defer close(after)
 				actualKey = key
 				actualErr = err
+				aftOnce.Do(func() { close(after) })
 			}
 
 			// Create an instance
-			_, err := client.Create(&instance)
+			_, err = client.Create(&instance)
 			Expect(err).ShouldNot(HaveOccurred())
 
 			// Verify reconcile function is called against the correct key

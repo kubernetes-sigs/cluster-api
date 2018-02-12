@@ -18,7 +18,9 @@ package google
 
 import (
 	"bytes"
+	"encoding/base64"
 	"fmt"
+	"io/ioutil"
 	"os"
 	"os/exec"
 	"text/template"
@@ -27,7 +29,7 @@ import (
 	"github.com/golang/glog"
 )
 
-var machineControllerImage = "gcr.io/k8s-cluster-api/machine-controller:0.19"
+var machineControllerImage = "gcr.io/k8s-cluster-api/apiserver-controller:0.1"
 
 func init() {
 	if img, ok := os.LookupEnv("MACHINE_CONTROLLER_IMAGE"); ok {
@@ -35,21 +37,74 @@ func init() {
 	}
 }
 
-func CreateMachineControllerPod(token string) error {
-	tmpl, err := template.ParseFiles("cloud/google/pods/machine-controller.yaml")
+type caCertParams struct {
+	caBundle string
+	tlsCrt   string
+	tlsKey   string
+}
+
+func getBase64(file string) string {
+	buff := bytes.Buffer{}
+	enc := base64.NewEncoder(base64.StdEncoding, &buff)
+	data, err := ioutil.ReadFile(file)
+	if err != nil {
+		glog.Fatalf("Could not read file %s: %v", file, err)
+	}
+
+	_, err = enc.Write(data)
+	if err != nil {
+		glog.Fatalf("Could not write bytes: %v", err)
+	}
+	enc.Close()
+	return buff.String()
+}
+
+func getApiServerCerts() (*caCertParams, error) {
+	// TODO: remove the need to use apiserver-boot to generate the certificate.
+	os.RemoveAll("./config")
+	err := run("apiserver-boot", "build", "config",
+		"--name", "clusterapi", "--namespace", "default",
+		"--image", machineControllerImage)
+	if err != nil {
+		return nil, err
+	}
+
+	certParms := &caCertParams{
+		caBundle: getBase64("config/certificates/apiserver_ca.crt"),
+		tlsCrt:   getBase64("config/certificates/apiserver.crt"),
+		tlsKey:   getBase64("config/certificates/apiserver.key"),
+	}
+
+	return certParms, nil
+}
+
+func CreateApiServerAndController(token string) error {
+	tmpl, err := template.ParseFiles("cloud/google/config/apiserver.yaml")
 	if err != nil {
 		return err
 	}
 
+	certParms, err := getApiServerCerts()
+	if err != nil {
+		glog.Errorf("Error: %v", err)
+		return err
+	}
+
 	type params struct {
-		Token string
-		Image string
+		Token    string
+		Image    string
+		CaBundle string
+		TlsCrt   string
+		TlsKey   string
 	}
 
 	var tmplBuf bytes.Buffer
 	err = tmpl.Execute(&tmplBuf, params{
-		Token: token,
-		Image: machineControllerImage,
+		Token:    token,
+		Image:    machineControllerImage,
+		CaBundle: certParms.caBundle,
+		TlsCrt:   certParms.tlsCrt,
+		TlsKey:   certParms.tlsKey,
 	})
 	if err != nil {
 		return err
@@ -57,7 +112,7 @@ func CreateMachineControllerPod(token string) error {
 
 	maxTries := 5
 	for tries := 0; tries < maxTries; tries++ {
-		err = createPod(tmplBuf.Bytes())
+		err = deployConfig(tmplBuf.Bytes())
 		if err == nil {
 			return nil
 		} else {
@@ -67,6 +122,7 @@ func CreateMachineControllerPod(token string) error {
 			}
 		}
 	}
+
 	if err != nil {
 		return fmt.Errorf("couldn't start machine controller: %v\n", err)
 	} else {
@@ -74,7 +130,7 @@ func CreateMachineControllerPod(token string) error {
 	}
 }
 
-func createPod(manifest []byte) error {
+func deployConfig(manifest []byte) error {
 	cmd := exec.Command("kubectl", "create", "-f", "-")
 	stdin, err := cmd.StdinPipe()
 	if err != nil {

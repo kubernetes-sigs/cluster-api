@@ -72,7 +72,7 @@ func (gce *GCEClient) CreateMachineControllerServiceAccount(cluster *clusterv1.C
 		return fmt.Errorf("couldn't create service account key: %v", err)
 	}
 
-	err = run("kubectl", "create", "secret", "generic", "-n", "kube-system", MachineControllerSecret, "--from-file=service-account.json="+localFile)
+	err = run("kubectl", "create", "secret", "generic", MachineControllerSecret, "--from-file=service-account.json="+localFile)
 	if err != nil {
 		return fmt.Errorf("couldn't import service account key as credential: %v", err)
 	}

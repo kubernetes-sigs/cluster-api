@@ -22,11 +22,13 @@ import (
 	"github.com/golang/glog"
 	"github.com/kubernetes-incubator/apiserver-builder/pkg/builders"
 
-	apiv1 "k8s.io/api/core/v1"
+	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/labels"
+	"k8s.io/client-go/kubernetes"
 	"k8s.io/kube-deploy/ext-apiserver/cloud"
 	clusterv1 "k8s.io/kube-deploy/ext-apiserver/pkg/apis/cluster/v1alpha1"
 	"k8s.io/kube-deploy/ext-apiserver/pkg/client/clientset_generated/clientset"
+	"k8s.io/kube-deploy/ext-apiserver/pkg/client/clientset_generated/clientset/typed/cluster/v1alpha1"
 	listers "k8s.io/kube-deploy/ext-apiserver/pkg/client/listers_generated/cluster/v1alpha1"
 	cfg "k8s.io/kube-deploy/ext-apiserver/pkg/controller/config"
 	"k8s.io/kube-deploy/ext-apiserver/pkg/controller/sharedinformers"
@@ -39,13 +41,15 @@ type MachineControllerImpl struct {
 
 	// lister indexes properties about Machine
 	lister listers.MachineLister
-
 	// lister indexes properties about Cluster
 	clusterLister listers.ClusterLister
 
 	actuator cloud.MachineActuator
 
-	clientSet *clientset.Clientset
+	kubernetesClientSet *kubernetes.Clientset
+	clientSet           *clientset.Clientset
+	machineClient       v1alpha1.MachineInterface
+	linkedNodes         map[string]bool
 }
 
 // Init initializes the controller and is called by the generated code
@@ -60,16 +64,24 @@ func (c *MachineControllerImpl) Init(arguments sharedinformers.ControllerInitArg
 		glog.Fatalf("error creating machine client: %v", err)
 	}
 	c.clientSet = clientset
+	c.kubernetesClientSet = arguments.GetSharedInformers().KubernetesClientSet
+
+	c.linkedNodes = make(map[string]bool)
 
 	// Create machine actuator.
 	// TODO: Assume default namespace for now. Maybe a separate a controller per namespace?
-	machInterface := clientset.ClusterV1alpha1().Machines(apiv1.NamespaceDefault)
+	c.machineClient = clientset.ClusterV1alpha1().Machines(corev1.NamespaceDefault)
 	var config *cfg.Configuration = &cfg.ControllerConfig
-	actuator, err := cloud.NewMachineActuator(config.Cloud, config.KubeadmToken, machInterface)
+	actuator, err := cloud.NewMachineActuator(config.Cloud, config.KubeadmToken, c.machineClient)
 	if err != nil {
 		glog.Fatalf("error creating machine actuator: %v", err)
 	}
 	c.actuator = actuator
+
+	// Start watching for Node resource. It will effectively create a new worker queue, and
+	// reconcileNode() will be invoked in a loop to handle the reconciling.
+	ni := arguments.GetSharedInformers().KubernetesFactory.Core().V1().Nodes()
+	arguments.GetSharedInformers().Watch("NodeWatcher", ni.Informer(), nil, c.reconcileNode)
 }
 
 // Reconcile handles enqueued messages. The delete will be handled by finalizer.

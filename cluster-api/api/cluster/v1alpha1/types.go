@@ -427,4 +427,38 @@ type MachineSetStatus struct {
 	// ObservedGeneration reflects the generation of the most recently observed MachineSet.
 	// +optional
 	ObservedGeneration int64 `json:"observedGeneration,omitempty"`
+
+	// In the event that there is a terminal problem reconciling the
+	// replicas, both ErrorReason and ErrorMessage will be set. ErrorReason
+	// will be populated with a succinct value suitable for machine
+	// interpretation, while ErrorMessage will contain a more verbose
+	// string suitable for logging and human consumption.
+	//
+	// These fields should not be set for transitive errors that a
+	// controller faces that are expected to be fixed automatically over
+	// time (like service outages), but instead indicate that something is
+	// fundamentally wrong with the MachineTemplates's spec or the configuration of
+	// the machine controller, and that manual intervention is required. Examples
+	// of terminal errors would be invalid combinations of settings in the
+	// spec, values that are unsupported by the machine controller, or the
+	// responsible machine controller itself being critically misconfigured.
+	//
+	// Any transient errors that occur during the reconcilation of Machines
+	// can be added as events to the MachineSet object and/or logged in the
+	// controller's output.
+	// +optional
+	ErrorReason *MachineSetStatusError `json:"errorReason,omitempty"`
+	// +optional
+	ErrorMessage *string `json:"errorMessage,omitempty"`
 }
+
+type MachineSetStatusError string
+
+const (
+	// Represents that the combination of configuration in the MachineTemplateSpec
+	// is not supported by this cluster. This is not a transient error, but
+	// indicates a state that must be fixed before progress can be made.
+	//
+	// Example: the ProviderConfig specifies an instance type that doesn't exist.
+	InvalidConfigurationMachineSetError MachineSetStatusError = "InvalidConfiguration"
+)

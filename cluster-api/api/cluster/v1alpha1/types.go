@@ -377,6 +377,11 @@ type MachineSetSpec struct {
 	// +optional
 	Replicas *int32 `json:"replicas,omitempty"`
 
+	// Minimum number of seconds for which a newly created machine should be ready.
+	// Defaults to 0 (machine will be considered available as soon as it is ready)
+	// +optional
+	MinReadySeconds int32 `json:"minReadySeconds,omitempty"`
+
 	// Selector is a label query over machines that should match the replica count.
 	// Label keys and values that must match in order to be controlled by this MachineSet.
 	// It must match the machine template's labels.
@@ -407,9 +412,17 @@ type MachineSetStatus struct {
 	// Replicas is the most recently observed number of replicas.
 	Replicas int32 `json:"replicas"`
 
+	// The number of replicas that have labels matching the labels of the machine template of the MachineSet.
+	// +optional
+	FullyLabeledReplicas int32 `json:"fullyLabeledReplicas,omitempty"`
+
 	// The number of ready replicas for this MachineSet. A machine is considered ready when the node has been created and is "Ready".
 	// +optional
 	ReadyReplicas int32 `json:"readyReplicas,omitempty"`
+
+	// The number of available replicas (ready for at least minReadySeconds) for this MachineSet.
+	// +optional
+	AvailableReplicas int32 `json:"availableReplicas,omitempty"`
 
 	// ObservedGeneration reflects the generation of the most recently observed MachineSet.
 	// +optional

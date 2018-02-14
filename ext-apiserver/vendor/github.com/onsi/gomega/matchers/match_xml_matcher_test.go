@@ -23,6 +23,13 @@ var _ = Describe("MatchXMLMatcher", func() {
 	)
 
 	Context("When passed stringifiables", func() {
+		It("matches documents regardless of the attribute order", func() {
+			a := `<a foo="bar" ka="boom"></a>`
+			b := `<a ka="boom" foo="bar"></a>`
+			Ω(b).Should(MatchXML(a))
+			Ω(a).Should(MatchXML(b))
+		})
+
 		It("should succeed if the XML matches", func() {
 			Ω(sample_01).Should(MatchXML(sample_01))    // same XML
 			Ω(sample_01).Should(MatchXML(sample_02))    // same XML with blank lines

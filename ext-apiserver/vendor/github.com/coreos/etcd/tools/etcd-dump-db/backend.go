@@ -18,7 +18,7 @@ import (
 	"fmt"
 	"path/filepath"
 
-	"github.com/boltdb/bolt"
+	bolt "github.com/coreos/bbolt"
 	"github.com/coreos/etcd/mvcc"
 	"github.com/coreos/etcd/mvcc/backend"
 )
@@ -40,7 +40,7 @@ func getBuckets(dbPath string) (buckets []string, err error) {
 			return nil
 		})
 	})
-	return
+	return buckets, err
 }
 
 func iterateBucket(dbPath, bucket string, limit uint64) (err error) {
@@ -70,7 +70,7 @@ func iterateBucket(dbPath, bucket string, limit uint64) (err error) {
 
 		return nil
 	})
-	return
+	return err
 }
 
 func getHash(dbPath string) (hash uint32, err error) {

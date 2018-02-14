@@ -26,6 +26,7 @@ import (
 	"github.com/gophercloud/gophercloud/openstack/compute/v2/flavors"
 	"github.com/gophercloud/gophercloud/openstack/compute/v2/servers"
 
+	"github.com/gophercloud/gophercloud/openstack/compute/v2/extensions/aggregates"
 	"golang.org/x/crypto/ssh"
 )
 
@@ -143,11 +144,13 @@ func CreateFlavor(t *testing.T, client *gophercloud.ServiceClient) (*flavors.Fla
 	flavorName := tools.RandomString("flavor_", 5)
 	t.Logf("Attempting to create flavor %s", flavorName)
 
+	isPublic := true
 	createOpts := flavors.CreateOpts{
-		Name:  flavorName,
-		RAM:   1,
-		VCPUs: 1,
-		Disk:  gophercloud.IntToPointer(1),
+		Name:     flavorName,
+		RAM:      1,
+		VCPUs:    1,
+		Disk:     gophercloud.IntToPointer(1),
+		IsPublic: &isPublic,
 	}
 
 	flavor, err := flavors.Create(client, createOpts).Extract()
@@ -266,6 +269,31 @@ func CreateMultiEphemeralServer(t *testing.T, client *gophercloud.ServiceClient,
 	newServer, err := servers.Get(client, server.ID).Extract()
 
 	return newServer, nil
+}
+
+// CreatePrivateFlavor will create a private flavor with a random name.
+// An error will be returned if the flavor could not be created.
+func CreatePrivateFlavor(t *testing.T, client *gophercloud.ServiceClient) (*flavors.Flavor, error) {
+	flavorName := tools.RandomString("flavor_", 5)
+	t.Logf("Attempting to create flavor %s", flavorName)
+
+	isPublic := false
+	createOpts := flavors.CreateOpts{
+		Name:     flavorName,
+		RAM:      1,
+		VCPUs:    1,
+		Disk:     gophercloud.IntToPointer(1),
+		IsPublic: &isPublic,
+	}
+
+	flavor, err := flavors.Create(client, createOpts).Extract()
+	if err != nil {
+		return nil, err
+	}
+
+	t.Logf("Successfully created flavor %s", flavor.ID)
+
+	return flavor, nil
 }
 
 // CreateSecurityGroup will create a security group with a random name.
@@ -543,6 +571,37 @@ func CreateVolumeAttachment(t *testing.T, client *gophercloud.ServiceClient, blo
 	return volumeAttachment, nil
 }
 
+// CreateAggregate will create an aggregate with random name and available zone.
+// An error will be returned if the aggregate could not be created.
+func CreateAggregate(t *testing.T, client *gophercloud.ServiceClient) (*aggregates.Aggregate, error) {
+	aggregateName := tools.RandomString("aggregate_", 5)
+	availableZone := tools.RandomString("zone_", 5)
+	t.Logf("Attempting to create aggregate %s", aggregateName)
+
+	createOpts := aggregates.CreateOpts{Name: aggregateName, AvailabilityZone: availableZone}
+
+	aggregate, err := aggregates.Create(client, createOpts).Extract()
+	if err != nil {
+		return nil, err
+	}
+
+	t.Logf("Successfully created aggregate %d", aggregate.ID)
+
+	return aggregate, nil
+}
+
+// DeleteAggregate will delete a given host aggregate. A fatal error will occur if
+// the aggregate deleting is failed. This works best when using it as a
+// deferred function.
+func DeleteAggregate(t *testing.T, client *gophercloud.ServiceClient, aggregate *aggregates.Aggregate) {
+	err := aggregates.Delete(client, aggregate.ID).ExtractErr()
+	if err != nil {
+		t.Fatalf("Unable to delete aggregate %d", aggregate.ID)
+	}
+
+	t.Logf("Deleted aggregate: %d", aggregate.ID)
+}
+
 // DeleteDefaultRule deletes a default security group rule.
 // A fatal error will occur if the rule failed to delete. This works best when
 // using it as a deferred function.
@@ -785,13 +844,13 @@ func WaitForComputeStatus(client *gophercloud.ServiceClient, server *servers.Ser
 
 //Convenience method to fill an QuotaSet-UpdateOpts-struct from a QuotaSet-struct
 func FillUpdateOptsFromQuotaSet(src quotasets.QuotaSet, dest *quotasets.UpdateOpts) {
-	dest.FixedIps = &src.FixedIps
-	dest.FloatingIps = &src.FloatingIps
+	dest.FixedIPs = &src.FixedIPs
+	dest.FloatingIPs = &src.FloatingIPs
 	dest.InjectedFileContentBytes = &src.InjectedFileContentBytes
 	dest.InjectedFilePathBytes = &src.InjectedFilePathBytes
 	dest.InjectedFiles = &src.InjectedFiles
 	dest.KeyPairs = &src.KeyPairs
-	dest.Ram = &src.Ram
+	dest.RAM = &src.RAM
 	dest.SecurityGroupRules = &src.SecurityGroupRules
 	dest.SecurityGroups = &src.SecurityGroups
 	dest.Cores = &src.Cores

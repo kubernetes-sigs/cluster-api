@@ -1,0 +1,64 @@
+
+# Gopkg.toml example
+#
+# Refer to https://github.com/golang/dep/blob/master/docs/Gopkg.toml.md
+# for detailed Gopkg.toml documentation.
+#
+# required = ["github.com/user/thing/cmd/thing"]
+# ignored = ["github.com/user/project/pkgX", "bitbucket.org/user/project/pkgA/pkgY"]
+#
+# [[constraint]]
+#   name = "github.com/user/project"
+#   version = "1.0.0"
+#
+# [[constraint]]
+#   name = "github.com/user/project2"
+#   branch = "dev"
+#   source = "github.com/myfork/project2"
+#
+# [[override]]
+#  name = "github.com/x/y"
+#  version = "2.4.0"
+
+required = [
+  "github.com/Azure/go-autorest/autorest/adal", # added so we can apply the constraint below
+]
+
+[[constraint]]
+  name = "github.com/ghodss/yaml"
+  version = "1.0.0"
+
+[[constraint]]
+  name = "github.com/spf13/cobra"
+  version = "0.0.1"
+
+[[constraint]]
+  name = "github.com/spf13/pflag"
+  version = "1.0.0"
+
+[[constraint]]
+  name = "k8s.io/api"
+  branch = "release-1.8"
+
+[[constraint]]
+  name = "k8s.io/apimachinery"
+  branch = "release-1.8"
+
+[[constraint]]
+  name = "k8s.io/apiserver"
+  branch = "release-1.8"
+
+[[constraint]]
+  name = "k8s.io/client-go"
+  branch = "release-5.0"
+  # revision = "1fb83015bea362f028381bc0fcfb2a4e3eb7390b"
+
+# client-go needs this version
+[[constraint]]
+  name = "github.com/Azure/go-autorest"
+  version = "v8.0.0"
+
+[[constraint]]
+  name = "github.com/kubernetes-incubator/apiserver-builder"
+  # version = "v0.1-alpha.27"
+  revision = "b7ce760cf80c9917270f830b9589e948e085144d"

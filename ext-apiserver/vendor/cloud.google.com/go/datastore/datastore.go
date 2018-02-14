@@ -21,13 +21,11 @@ import (
 	"os"
 	"reflect"
 
-	"github.com/golang/protobuf/proto"
 	"golang.org/x/net/context"
 	"google.golang.org/api/option"
-	"google.golang.org/api/transport"
+	gtransport "google.golang.org/api/transport/grpc"
 	pb "google.golang.org/genproto/googleapis/datastore/v1"
 	"google.golang.org/grpc"
-	"google.golang.org/grpc/metadata"
 )
 
 const (
@@ -38,49 +36,9 @@ const (
 // ScopeDatastore grants permissions to view and/or manage datastore entities
 const ScopeDatastore = "https://www.googleapis.com/auth/datastore"
 
-// protoClient is an interface for *transport.ProtoClient to support injecting
-// fake clients in tests.
-type protoClient interface {
-	Call(context.Context, string, proto.Message, proto.Message) error
-}
-
-// datastoreClient is a wrapper for the pb.DatastoreClient that includes gRPC
-// metadata to be sent in each request for server-side traffic management.
-type datastoreClient struct {
-	c  pb.DatastoreClient
-	md metadata.MD
-}
-
-func newDatastoreClient(conn *grpc.ClientConn, projectID string) pb.DatastoreClient {
-	return &datastoreClient{
-		c:  pb.NewDatastoreClient(conn),
-		md: metadata.Pairs(resourcePrefixHeader, "projects/"+projectID),
-	}
-}
-
-func (dc *datastoreClient) Lookup(ctx context.Context, in *pb.LookupRequest, opts ...grpc.CallOption) (*pb.LookupResponse, error) {
-	return dc.c.Lookup(metadata.NewContext(ctx, dc.md), in, opts...)
-}
-
-func (dc *datastoreClient) RunQuery(ctx context.Context, in *pb.RunQueryRequest, opts ...grpc.CallOption) (*pb.RunQueryResponse, error) {
-	return dc.c.RunQuery(metadata.NewContext(ctx, dc.md), in, opts...)
-}
-
-func (dc *datastoreClient) BeginTransaction(ctx context.Context, in *pb.BeginTransactionRequest, opts ...grpc.CallOption) (*pb.BeginTransactionResponse, error) {
-	return dc.c.BeginTransaction(metadata.NewContext(ctx, dc.md), in, opts...)
-}
-
-func (dc *datastoreClient) Commit(ctx context.Context, in *pb.CommitRequest, opts ...grpc.CallOption) (*pb.CommitResponse, error) {
-	return dc.c.Commit(metadata.NewContext(ctx, dc.md), in, opts...)
-}
-
-func (dc *datastoreClient) Rollback(ctx context.Context, in *pb.RollbackRequest, opts ...grpc.CallOption) (*pb.RollbackResponse, error) {
-	return dc.c.Rollback(metadata.NewContext(ctx, dc.md), in, opts...)
-}
-
-func (dc *datastoreClient) AllocateIds(ctx context.Context, in *pb.AllocateIdsRequest, opts ...grpc.CallOption) (*pb.AllocateIdsResponse, error) {
-	return dc.c.AllocateIds(metadata.NewContext(ctx, dc.md), in, opts...)
-}
+// resourcePrefixHeader is the name of the metadata header used to indicate
+// the resource being operated on.
+const resourcePrefixHeader = "google-cloud-resource-prefix"
 
 // Client is a client for reading and writing data in a datastore dataset.
 type Client struct {
@@ -126,7 +84,7 @@ func NewClient(ctx context.Context, projectID string, opts ...option.ClientOptio
 		return nil, errors.New("datastore: missing project/dataset id")
 	}
 	o = append(o, opts...)
-	conn, err := transport.DialGRPC(ctx, o...)
+	conn, err := gtransport.Dial(ctx, o...)
 	if err != nil {
 		return nil, fmt.Errorf("dialing: %v", err)
 	}
@@ -157,23 +115,6 @@ const (
 	multiArgTypeStructPtr
 	multiArgTypeInterface
 )
-
-// nsKey is the type of the context.Context key to store the datastore
-// namespace.
-type nsKey struct{}
-
-// WithNamespace returns a new context that limits the scope its parent
-// context with a Datastore namespace.
-func WithNamespace(parent context.Context, namespace string) context.Context {
-	return context.WithValue(parent, nsKey{}, namespace)
-}
-
-// ctxNamespace returns the active namespace for a context.
-// It defaults to "" if no namespace was specified.
-func ctxNamespace(ctx context.Context) string {
-	v, _ := ctx.Value(nsKey{}).(string)
-	return v
-}
 
 // ErrFieldMismatch is returned when a field is to be loaded into a different
 // type than the one it was stored from, or when a field is missing or
@@ -206,25 +147,31 @@ func keyToProto(k *Key) *pb.Key {
 		return nil
 	}
 
-	// TODO(jbd): Eliminate unrequired allocations.
 	var path []*pb.Key_PathElement
 	for {
-		el := &pb.Key_PathElement{Kind: k.kind}
-		if k.id != 0 {
-			el.IdType = &pb.Key_PathElement_Id{k.id}
-		} else if k.name != "" {
-			el.IdType = &pb.Key_PathElement_Name{k.name}
+		el := &pb.Key_PathElement{Kind: k.Kind}
+		if k.ID != 0 {
+			el.IdType = &pb.Key_PathElement_Id{Id: k.ID}
+		} else if k.Name != "" {
+			el.IdType = &pb.Key_PathElement_Name{Name: k.Name}
 		}
-		path = append([]*pb.Key_PathElement{el}, path...)
-		if k.parent == nil {
+		path = append(path, el)
+		if k.Parent == nil {
 			break
 		}
-		k = k.parent
+		k = k.Parent
 	}
+
+	// The path should be in order [grandparent, parent, child]
+	// We did it backward above, so reverse back.
+	for i := 0; i < len(path)/2; i++ {
+		path[i], path[len(path)-i-1] = path[len(path)-i-1], path[i]
+	}
+
 	key := &pb.Key{Path: path}
-	if k.namespace != "" {
+	if k.Namespace != "" {
 		key.PartitionId = &pb.PartitionId{
-			NamespaceId: k.namespace,
+			NamespaceId: k.Namespace,
 		}
 	}
 	return key
@@ -241,11 +188,11 @@ func protoToKey(p *pb.Key) (*Key, error) {
 	}
 	for _, el := range p.Path {
 		key = &Key{
-			namespace: namespace,
-			kind:      el.Kind,
-			id:        el.GetId(),
-			name:      el.GetName(),
-			parent:    key,
+			Namespace: namespace,
+			Kind:      el.Kind,
+			ID:        el.GetId(),
+			Name:      el.GetName(),
+			Parent:    key,
 		}
 	}
 	if !key.valid() { // Also detects key == nil.
@@ -339,8 +286,8 @@ func checkMultiArg(v reflect.Value) (m multiArgType, elemType reflect.Type) {
 }
 
 // Close closes the Client.
-func (c *Client) Close() {
-	c.conn.Close()
+func (c *Client) Close() error {
+	return c.conn.Close()
 }
 
 // Get loads the entity stored for key into dst, which must be a struct pointer
@@ -395,17 +342,21 @@ func (c *Client) get(ctx context.Context, keys []*Key, dst interface{}, opts *pb
 		return nil
 	}
 
-	// Go through keys, validate them, serialize then, and create a dict mapping them to their index
+	// Go through keys, validate them, serialize then, and create a dict mapping them to their indices.
+	// Equal keys are deduped.
 	multiErr, any := make(MultiError, len(keys)), false
-	keyMap := make(map[string]int)
-	pbKeys := make([]*pb.Key, len(keys))
+	keyMap := make(map[string][]int, len(keys))
+	pbKeys := make([]*pb.Key, 0, len(keys))
 	for i, k := range keys {
 		if !k.valid() {
 			multiErr[i] = ErrInvalidKey
 			any = true
 		} else {
-			keyMap[k.String()] = i
-			pbKeys[i] = keyToProto(k)
+			ks := k.String()
+			if _, ok := keyMap[ks]; !ok {
+				pbKeys = append(pbKeys, keyToProto(k))
+			}
+			keyMap[ks] = append(keyMap[ks], i)
 		}
 	}
 	if any {
@@ -420,39 +371,63 @@ func (c *Client) get(ctx context.Context, keys []*Key, dst interface{}, opts *pb
 	if err != nil {
 		return err
 	}
-	if len(resp.Deferred) > 0 {
-		// TODO(jbd): Assess whether we should retry the deferred keys.
-		return errors.New("datastore: some entities temporarily unavailable")
+	found := resp.Found
+	missing := resp.Missing
+	// Upper bound 100 iterations to prevent infinite loop.
+	// We choose 100 iterations somewhat logically:
+	// Max number of Entities you can request from Datastore is 1,000.
+	// Max size for a Datastore Entity is 1 MiB.
+	// Max request size is 10 MiB, so we assume max response size is also 10 MiB.
+	// 1,000 / 10 = 100.
+	// Note that if ctx has a deadline, the deadline will probably
+	// be hit before we reach 100 iterations.
+	for i := 0; len(resp.Deferred) > 0 && i < 100; i++ {
+		req.Keys = resp.Deferred
+		resp, err = c.client.Lookup(ctx, req)
+		if err != nil {
+			return err
+		}
+		found = append(found, resp.Found...)
+		missing = append(missing, resp.Missing...)
 	}
-	if len(keys) != len(resp.Found)+len(resp.Missing) {
-		return errors.New("datastore: internal error: server returned the wrong number of entities")
-	}
-	for _, e := range resp.Found {
+
+	filled := 0
+	for _, e := range found {
 		k, err := protoToKey(e.Entity.Key)
 		if err != nil {
 			return errors.New("datastore: internal error: server returned an invalid key")
 		}
-		index := keyMap[k.String()]
-		elem := v.Index(index)
-		if multiArgType == multiArgTypePropertyLoadSaver || multiArgType == multiArgTypeStruct {
-			elem = elem.Addr()
-		}
-		if multiArgType == multiArgTypeStructPtr && elem.IsNil() {
-			elem.Set(reflect.New(elem.Type().Elem()))
-		}
-		if err := loadEntity(elem.Interface(), e.Entity); err != nil {
-			multiErr[index] = err
-			any = true
+		filled += len(keyMap[k.String()])
+		for _, index := range keyMap[k.String()] {
+			elem := v.Index(index)
+			if multiArgType == multiArgTypePropertyLoadSaver || multiArgType == multiArgTypeStruct {
+				elem = elem.Addr()
+			}
+			if multiArgType == multiArgTypeStructPtr && elem.IsNil() {
+				elem.Set(reflect.New(elem.Type().Elem()))
+			}
+			if err := loadEntityProto(elem.Interface(), e.Entity); err != nil {
+				multiErr[index] = err
+				any = true
+			}
 		}
 	}
-	for _, e := range resp.Missing {
+	for _, e := range missing {
 		k, err := protoToKey(e.Entity.Key)
 		if err != nil {
 			return errors.New("datastore: internal error: server returned an invalid key")
 		}
-		multiErr[keyMap[k.String()]] = ErrNoSuchEntity
+		filled += len(keyMap[k.String()])
+		for _, index := range keyMap[k.String()] {
+			multiErr[index] = ErrNoSuchEntity
+		}
 		any = true
 	}
+
+	if filled != len(keys) {
+		return errors.New("datastore: internal error: server returned the wrong number of entities")
+	}
+
 	if any {
 		return multiErr
 	}
@@ -526,6 +501,8 @@ func putMutations(keys []*Key, src interface{}) ([]*pb.Mutation, error) {
 		return nil, err
 	}
 	mutations := make([]*pb.Mutation, 0, len(keys))
+	multiErr := make(MultiError, len(keys))
+	hasErr := false
 	for i, k := range keys {
 		elem := v.Index(i)
 		// Two cases where we need to take the address:
@@ -536,15 +513,19 @@ func putMutations(keys []*Key, src interface{}) ([]*pb.Mutation, error) {
 		}
 		p, err := saveEntity(k, elem.Interface())
 		if err != nil {
-			return nil, fmt.Errorf("datastore: Error while saving %v: %v", k.String(), err)
+			multiErr[i] = err
+			hasErr = true
 		}
 		var mut *pb.Mutation
 		if k.Incomplete() {
-			mut = &pb.Mutation{Operation: &pb.Mutation_Insert{p}}
+			mut = &pb.Mutation{Operation: &pb.Mutation_Insert{Insert: p}}
 		} else {
-			mut = &pb.Mutation{Operation: &pb.Mutation_Upsert{p}}
+			mut = &pb.Mutation{Operation: &pb.Mutation_Upsert{Upsert: p}}
 		}
 		mutations = append(mutations, mut)
+	}
+	if hasErr {
+		return nil, multiErr
 	}
 	return mutations, nil
 }
@@ -576,13 +557,18 @@ func (c *Client) DeleteMulti(ctx context.Context, keys []*Key) error {
 
 func deleteMutations(keys []*Key) ([]*pb.Mutation, error) {
 	mutations := make([]*pb.Mutation, 0, len(keys))
+	set := make(map[string]bool, len(keys))
 	for _, k := range keys {
 		if k.Incomplete() {
 			return nil, fmt.Errorf("datastore: can't delete the incomplete key: %v", k)
 		}
-		mutations = append(mutations, &pb.Mutation{
-			Operation: &pb.Mutation_Delete{keyToProto(k)},
-		})
+		ks := k.String()
+		if !set[ks] {
+			mutations = append(mutations, &pb.Mutation{
+				Operation: &pb.Mutation_Delete{Delete: keyToProto(k)},
+			})
+		}
+		set[ks] = true
 	}
 	return mutations, nil
 }

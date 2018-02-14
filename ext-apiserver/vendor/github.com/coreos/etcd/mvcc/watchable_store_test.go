@@ -16,8 +16,10 @@ package mvcc
 
 import (
 	"bytes"
+	"fmt"
 	"os"
 	"reflect"
+	"sync"
 	"testing"
 	"time"
 
@@ -294,6 +296,48 @@ func TestWatchFutureRev(t *testing.T) {
 	}
 }
 
+func TestWatchRestore(t *testing.T) {
+	test := func(delay time.Duration) func(t *testing.T) {
+		return func(t *testing.T) {
+			b, tmpPath := backend.NewDefaultTmpBackend()
+			s := newWatchableStore(b, &lease.FakeLessor{}, nil)
+			defer cleanup(s, b, tmpPath)
+
+			testKey := []byte("foo")
+			testValue := []byte("bar")
+			rev := s.Put(testKey, testValue, lease.NoLease)
+
+			newBackend, newPath := backend.NewDefaultTmpBackend()
+			newStore := newWatchableStore(newBackend, &lease.FakeLessor{}, nil)
+			defer cleanup(newStore, newBackend, newPath)
+
+			w := newStore.NewWatchStream()
+			w.Watch(testKey, nil, rev-1)
+
+			time.Sleep(delay)
+
+			newStore.Restore(b)
+			select {
+			case resp := <-w.Chan():
+				if resp.Revision != rev {
+					t.Fatalf("rev = %d, want %d", resp.Revision, rev)
+				}
+				if len(resp.Events) != 1 {
+					t.Fatalf("failed to get events from the response")
+				}
+				if resp.Events[0].Kv.ModRevision != rev {
+					t.Fatalf("kv.rev = %d, want %d", resp.Events[0].Kv.ModRevision, rev)
+				}
+			case <-time.After(time.Second):
+				t.Fatal("failed to receive event in 1 second.")
+			}
+		}
+	}
+
+	t.Run("Normal", test(0))
+	t.Run("RunSyncWatchLoopBeforeRestore", test(time.Millisecond*120)) // longer than default waitDuration
+}
+
 // TestWatchBatchUnsynced tests batching on unsynced watchers
 func TestWatchBatchUnsynced(t *testing.T) {
 	b, tmpPath := backend.NewDefaultTmpBackend()
@@ -321,8 +365,8 @@ func TestWatchBatchUnsynced(t *testing.T) {
 		}
 	}
 
-	s.store.mu.Lock()
-	defer s.store.mu.Unlock()
+	s.store.revMu.Lock()
+	defer s.store.revMu.Unlock()
 	if size := s.synced.size(); size != 1 {
 		t.Errorf("synced size = %d, want 1", size)
 	}
@@ -423,4 +467,130 @@ func TestNewMapwatcherToEventMap(t *testing.T) {
 			}
 		}
 	}
+}
+
+// TestWatchVictims tests that watchable store delivers watch events
+// when the watch channel is temporarily clogged with too many events.
+func TestWatchVictims(t *testing.T) {
+	oldChanBufLen, oldMaxWatchersPerSync := chanBufLen, maxWatchersPerSync
+
+	b, tmpPath := backend.NewDefaultTmpBackend()
+	s := newWatchableStore(b, &lease.FakeLessor{}, nil)
+
+	defer func() {
+		s.store.Close()
+		os.Remove(tmpPath)
+		chanBufLen, maxWatchersPerSync = oldChanBufLen, oldMaxWatchersPerSync
+	}()
+
+	chanBufLen, maxWatchersPerSync = 1, 2
+	numPuts := chanBufLen * 64
+	testKey, testValue := []byte("foo"), []byte("bar")
+
+	var wg sync.WaitGroup
+	numWatches := maxWatchersPerSync * 128
+	errc := make(chan error, numWatches)
+	wg.Add(numWatches)
+	for i := 0; i < numWatches; i++ {
+		go func() {
+			w := s.NewWatchStream()
+			w.Watch(testKey, nil, 1)
+			defer func() {
+				w.Close()
+				wg.Done()
+			}()
+			tc := time.After(10 * time.Second)
+			evs, nextRev := 0, int64(2)
+			for evs < numPuts {
+				select {
+				case <-tc:
+					errc <- fmt.Errorf("time out")
+					return
+				case wr := <-w.Chan():
+					evs += len(wr.Events)
+					for _, ev := range wr.Events {
+						if ev.Kv.ModRevision != nextRev {
+							errc <- fmt.Errorf("expected rev=%d, got %d", nextRev, ev.Kv.ModRevision)
+							return
+						}
+						nextRev++
+					}
+					time.Sleep(time.Millisecond)
+				}
+			}
+			if evs != numPuts {
+				errc <- fmt.Errorf("expected %d events, got %d", numPuts, evs)
+				return
+			}
+			select {
+			case <-w.Chan():
+				errc <- fmt.Errorf("unexpected response")
+			default:
+			}
+		}()
+		time.Sleep(time.Millisecond)
+	}
+
+	var wgPut sync.WaitGroup
+	wgPut.Add(numPuts)
+	for i := 0; i < numPuts; i++ {
+		go func() {
+			defer wgPut.Done()
+			s.Put(testKey, testValue, lease.NoLease)
+		}()
+	}
+	wgPut.Wait()
+
+	wg.Wait()
+	select {
+	case err := <-errc:
+		t.Fatal(err)
+	default:
+	}
+}
+
+// TestStressWatchCancelClose tests closing a watch stream while
+// canceling its watches.
+func TestStressWatchCancelClose(t *testing.T) {
+	b, tmpPath := backend.NewDefaultTmpBackend()
+	s := newWatchableStore(b, &lease.FakeLessor{}, nil)
+
+	defer func() {
+		s.store.Close()
+		os.Remove(tmpPath)
+	}()
+
+	testKey, testValue := []byte("foo"), []byte("bar")
+	var wg sync.WaitGroup
+	readyc := make(chan struct{})
+	wg.Add(100)
+	for i := 0; i < 100; i++ {
+		go func() {
+			defer wg.Done()
+			w := s.NewWatchStream()
+			ids := make([]WatchID, 10)
+			for i := range ids {
+				ids[i] = w.Watch(testKey, nil, 0)
+			}
+			<-readyc
+			wg.Add(1 + len(ids)/2)
+			for i := range ids[:len(ids)/2] {
+				go func(n int) {
+					defer wg.Done()
+					w.Cancel(ids[n])
+				}(i)
+			}
+			go func() {
+				defer wg.Done()
+				w.Close()
+			}()
+		}()
+	}
+
+	close(readyc)
+	for i := 0; i < 100; i++ {
+		s.Put(testKey, testValue, lease.NoLease)
+	}
+
+	wg.Wait()
 }

@@ -14,7 +14,7 @@
 #        ./scripts/updatedep.sh github.com/USER/PROJECT#9b772b54b3bf0be1eec083c9669766a56332559a
 # 2. make sure glide.yaml and glide.lock are updated
 
-if ! [[ "$0" =~ "scripts/updatedep.sh" ]]; then
+if ! [[ "$0" =~ scripts/updatedep.sh ]]; then
 	echo "must be run from repository root"
 	exit 255
 fi
@@ -43,31 +43,22 @@ pushd "${GLIDE_VC_ROOT}"
 popd
 
 if [ -n "$1" ]; then
-	echo "glide get on $(echo $1)"
-	matches=`grep "name: $1" glide.lock`
+	echo "glide get on $1"
+	matches=$(grep "name: $1" glide.lock)
 	if [ ! -z "$matches" ]; then
 		echo "glide update on $1"
-		glide update --strip-vendor $1
+		glide update --strip-vendor "$1"
 	else
 		echo "glide get on $1"
-		glide get --strip-vendor $1
+		glide get --strip-vendor "$1"
 	fi
 else
 	echo "glide update on *"
 	glide update --strip-vendor
 fi;
 
-# TODO: workaround to keep 'github.com/stretchr/testify/assert' in v2 tests
-# TODO: remove this after dropping v2
-echo "copying github.com/stretchr/testify/assert"
-cp -rf vendor/github.com/stretchr/testify/assert ./temp-assert
-
 echo "removing test files"
 glide vc --only-code --no-tests
-
-# TODO: remove this after dropping v2
-mkdir -p vendor/github.com/stretchr/testify
-mv ./temp-assert vendor/github.com/stretchr/testify/assert
 
 mv vendor cmd/
 

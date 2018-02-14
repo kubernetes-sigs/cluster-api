@@ -11,6 +11,8 @@ import (
 	"github.com/gophercloud/gophercloud/acceptance/tools"
 	"github.com/gophercloud/gophercloud/openstack/compute/v2/extensions/attachinterfaces"
 	"github.com/gophercloud/gophercloud/openstack/compute/v2/extensions/availabilityzones"
+	"github.com/gophercloud/gophercloud/openstack/compute/v2/extensions/extendedstatus"
+	"github.com/gophercloud/gophercloud/openstack/compute/v2/extensions/lockunlock"
 	"github.com/gophercloud/gophercloud/openstack/compute/v2/extensions/pauseunpause"
 	"github.com/gophercloud/gophercloud/openstack/compute/v2/extensions/suspendresume"
 	"github.com/gophercloud/gophercloud/openstack/compute/v2/servers"
@@ -110,6 +112,7 @@ func TestServersCreateDestroyWithExtensions(t *testing.T) {
 	var extendedServer struct {
 		servers.Server
 		availabilityzones.ServerAvailabilityZoneExt
+		extendedstatus.ServerExtendedStatusExt
 	}
 
 	client, err := clients.NewComputeV2Client()
@@ -130,6 +133,9 @@ func TestServersCreateDestroyWithExtensions(t *testing.T) {
 	tools.PrintResource(t, extendedServer)
 
 	t.Logf("Availability Zone: %s\n", extendedServer.AvailabilityZone)
+	t.Logf("Power State: %s\n", extendedServer.PowerState)
+	t.Logf("Task State: %s\n", extendedServer.TaskState)
+	t.Logf("VM State: %s\n", extendedServer.VmState)
 }
 
 func TestServersWithoutImageRef(t *testing.T) {
@@ -470,6 +476,42 @@ func TestServersActionSuspend(t *testing.T) {
 	}
 
 	err = suspendresume.Resume(client, server.ID).ExtractErr()
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	err = WaitForComputeStatus(client, server, "ACTIVE")
+	if err != nil {
+		t.Fatal(err)
+	}
+}
+
+func TestServersActionLock(t *testing.T) {
+	t.Parallel()
+
+	client, err := clients.NewComputeV2Client()
+	if err != nil {
+		t.Fatalf("Unable to create a compute client: %v", err)
+	}
+
+	server, err := CreateServer(t, client)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer DeleteServer(t, client, server)
+
+	t.Logf("Attempting to Lock server %s", server.ID)
+	err = lockunlock.Lock(client, server.ID).ExtractErr()
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	err = servers.Delete(client, server.ID).ExtractErr()
+	if err == nil {
+		t.Fatalf("Should not have been able to delete the server")
+	}
+
+	err = lockunlock.Unlock(client, server.ID).ExtractErr()
 	if err != nil {
 		t.Fatal(err)
 	}

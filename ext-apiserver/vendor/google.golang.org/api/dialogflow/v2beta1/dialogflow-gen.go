@@ -551,14 +551,14 @@ type GoogleCloudDialogflowV2Intent struct {
 	// `Response` field in API.AI console.
 	Messages []*GoogleCloudDialogflowV2IntentMessage `json:"messages,omitempty"`
 
-	// MlEnabled: Optional. Indicates whether Machine Learning is enabled
+	// MlDisabled: Optional. Indicates whether Machine Learning is disabled
 	// for the intent.
-	// Note: If `ml_enabled` setting is set to false, then this intent is
+	// Note: If `ml_diabled` setting is set to false, then this intent is
 	// not
 	// taken into account during inference in `ML ONLY` match mode.
 	// Also,
 	// auto-markup in the UI is turned off.
-	MlEnabled bool `json:"mlEnabled,omitempty"`
+	MlDisabled bool `json:"mlDisabled,omitempty"`
 
 	// Name: Required for all methods except `create` (`create` populates
 	// the name
@@ -2140,11 +2140,8 @@ type GoogleCloudDialogflowV2beta1BatchUpdateEntityTypesRequest struct {
 	// create.
 	EntityTypeBatchInline *GoogleCloudDialogflowV2beta1EntityTypeBatch `json:"entityTypeBatchInline,omitempty"`
 
-	// EntityTypeBatchUri: Warning: Importing entity types from a URI is not
-	// implemented yet.
-	// This feature is coming soon.
-	// The URI to a Google Cloud Storage file containing entity types to
-	// update
+	// EntityTypeBatchUri: The URI to a Google Cloud Storage file containing
+	// entity types to update
 	// or create. The file format can either be a serialized proto
 	// (of
 	// EntityBatch type) or a JSON object. Note: The URI must start
@@ -2226,11 +2223,8 @@ type GoogleCloudDialogflowV2beta1BatchUpdateIntentsRequest struct {
 	// IntentBatchInline: The collection of intents to update or create.
 	IntentBatchInline *GoogleCloudDialogflowV2beta1IntentBatch `json:"intentBatchInline,omitempty"`
 
-	// IntentBatchUri: Warning: Importing intents from a URI is not
-	// implemented yet.
-	// This feature is coming soon.
-	// The URI to a Google Cloud Storage file containing intents to update
-	// or
+	// IntentBatchUri: The URI to a Google Cloud Storage file containing
+	// intents to update or
 	// create. The file format can either be a serialized proto (of
 	// IntentBatch
 	// type) or JSON object. Note: The URI must start with "gs://".
@@ -2653,11 +2647,8 @@ func (s *GoogleCloudDialogflowV2beta1EventInput) MarshalJSON() ([]byte, error) {
 // GoogleCloudDialogflowV2beta1ExportAgentRequest: The request message
 // for Agents.ExportAgent.
 type GoogleCloudDialogflowV2beta1ExportAgentRequest struct {
-	// AgentUri: Warning: Exporting agents to a URI is not implemented
-	// yet.
-	// This feature is coming soon.
-	//
-	// Optional. The Google Cloud Storage URI to export the agent to.
+	// AgentUri: Optional. The Google Cloud Storage URI to export the agent
+	// to.
 	// Note: The URI must start with
 	// "gs://". If left unspecified, the serialized agent is returned
 	// inline.
@@ -2758,12 +2749,8 @@ type GoogleCloudDialogflowV2beta1ImportAgentRequest struct {
 	//    }"
 	AgentContent string `json:"agentContent,omitempty"`
 
-	// AgentUri: Warning: Importing agents from a URI is not implemented
-	// yet.
-	// This feature is coming soon.
-	//
-	// The URI to a Google Cloud Storage file containing the agent to
-	// import.
+	// AgentUri: The URI to a Google Cloud Storage file containing the agent
+	// to import.
 	// Note: The URI must start with "gs://".
 	AgentUri string `json:"agentUri,omitempty"`
 
@@ -4446,12 +4433,8 @@ type GoogleCloudDialogflowV2beta1RestoreAgentRequest struct {
 	//    }" \
 	AgentContent string `json:"agentContent,omitempty"`
 
-	// AgentUri: Warning: Restoring agents from a URI is not implemented
-	// yet.
-	// This feature is coming soon.
-	//
-	// The URI to a Google Cloud Storage file containing the agent to
-	// restore.
+	// AgentUri: The URI to a Google Cloud Storage file containing the agent
+	// to restore.
 	// Note: The URI must start with "gs://".
 	AgentUri string `json:"agentUri,omitempty"`
 

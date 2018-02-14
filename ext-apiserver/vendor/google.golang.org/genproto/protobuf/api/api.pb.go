@@ -31,22 +31,29 @@ var _ = math.Inf
 // proto package needs to be updated.
 const _ = proto.ProtoPackageIsVersion2 // please upgrade the proto package
 
-// Api is a light-weight descriptor for a protocol buffer service.
+// Api is a light-weight descriptor for an API Interface.
+//
+// Interfaces are also described as "protocol buffer services" in some contexts,
+// such as by the "service" keyword in a .proto file, but they are different
+// from API Services, which represent a concrete implementation of an interface
+// as opposed to simply a description of methods and bindings. They are also
+// sometimes simply referred to as "APIs" in other contexts, such as the name of
+// this message itself. See https://cloud.google.com/apis/design/glossary for
+// detailed terminology.
 type Api struct {
-	// The fully qualified name of this api, including package name
-	// followed by the api's simple name.
+	// The fully qualified name of this interface, including package name
+	// followed by the interface's simple name.
 	Name string `protobuf:"bytes,1,opt,name=name" json:"name,omitempty"`
-	// The methods of this api, in unspecified order.
+	// The methods of this interface, in unspecified order.
 	Methods []*Method `protobuf:"bytes,2,rep,name=methods" json:"methods,omitempty"`
-	// Any metadata attached to the API.
+	// Any metadata attached to the interface.
 	Options []*google_protobuf2.Option `protobuf:"bytes,3,rep,name=options" json:"options,omitempty"`
-	// A version string for this api. If specified, must have the form
-	// `major-version.minor-version`, as in `1.10`. If the minor version
-	// is omitted, it defaults to zero. If the entire version field is
-	// empty, the major version is derived from the package name, as
-	// outlined below. If the field is not empty, the version in the
-	// package name will be verified to be consistent with what is
-	// provided here.
+	// A version string for this interface. If specified, must have the form
+	// `major-version.minor-version`, as in `1.10`. If the minor version is
+	// omitted, it defaults to zero. If the entire version field is empty, the
+	// major version is derived from the package name, as outlined below. If the
+	// field is not empty, the version in the package name will be verified to be
+	// consistent with what is provided here.
 	//
 	// The versioning schema uses [semantic
 	// versioning](http://semver.org) where the major version number
@@ -56,17 +63,17 @@ type Api struct {
 	// chosen based on the product plan.
 	//
 	// The major version is also reflected in the package name of the
-	// API, which must end in `v<major-version>`, as in
+	// interface, which must end in `v<major-version>`, as in
 	// `google.feature.v1`. For major versions 0 and 1, the suffix can
 	// be omitted. Zero major versions must only be used for
-	// experimental, none-GA apis.
+	// experimental, non-GA interfaces.
 	//
 	//
 	Version string `protobuf:"bytes,4,opt,name=version" json:"version,omitempty"`
 	// Source context for the protocol buffer service represented by this
 	// message.
 	SourceContext *google_protobuf.SourceContext `protobuf:"bytes,5,opt,name=source_context,json=sourceContext" json:"source_context,omitempty"`
-	// Included APIs. See [Mixin][].
+	// Included interfaces. See [Mixin][].
 	Mixins []*Mixin `protobuf:"bytes,6,rep,name=mixins" json:"mixins,omitempty"`
 	// The source syntax of the service.
 	Syntax google_protobuf2.Syntax `protobuf:"varint,7,opt,name=syntax,enum=google.protobuf.Syntax" json:"syntax,omitempty"`
@@ -126,7 +133,7 @@ func (m *Api) GetSyntax() google_protobuf2.Syntax {
 	return google_protobuf2.Syntax_SYNTAX_PROTO2
 }
 
-// Method represents a method of an api.
+// Method represents a method of an API interface.
 type Method struct {
 	// The simple name of this method.
 	Name string `protobuf:"bytes,1,opt,name=name" json:"name,omitempty"`
@@ -198,9 +205,9 @@ func (m *Method) GetSyntax() google_protobuf2.Syntax {
 	return google_protobuf2.Syntax_SYNTAX_PROTO2
 }
 
-// Declares an API to be included in this API. The including API must
-// redeclare all the methods from the included API, but documentation
-// and options are inherited as follows:
+// Declares an API Interface to be included in this interface. The including
+// interface must redeclare all the methods from the included interface, but
+// documentation and options are inherited as follows:
 //
 // - If after comment and whitespace stripping, the documentation
 //   string of the redeclared method is empty, it will be inherited
@@ -212,7 +219,8 @@ func (m *Method) GetSyntax() google_protobuf2.Syntax {
 //
 // - If an http annotation is inherited, the path pattern will be
 //   modified as follows. Any version prefix will be replaced by the
-//   version of the including API plus the [root][] path if specified.
+//   version of the including interface plus the [root][] path if
+//   specified.
 //
 // Example of a simple mixin:
 //
@@ -276,7 +284,7 @@ func (m *Method) GetSyntax() google_protobuf2.Syntax {
 //       ...
 //     }
 type Mixin struct {
-	// The fully qualified name of the API which is included.
+	// The fully qualified name of the interface which is included.
 	Name string `protobuf:"bytes,1,opt,name=name" json:"name,omitempty"`
 	// If non-empty specifies a path under which inherited HTTP paths
 	// are rooted.

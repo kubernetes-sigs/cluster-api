@@ -17,14 +17,17 @@ package main
 import (
 	"flag"
 	"fmt"
+	"io/ioutil"
 	"net/http"
-	"net/http/pprof"
 	"os"
 	"strings"
 
+	"github.com/coreos/etcd/pkg/debugutil"
+
 	"github.com/coreos/pkg/capnslog"
-	"github.com/prometheus/client_golang/prometheus"
+	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"golang.org/x/time/rate"
+	"google.golang.org/grpc/grpclog"
 )
 
 var plog = capnslog.NewPackageLogger("github.com/coreos/etcd", "etcd-tester")
@@ -35,40 +38,50 @@ const (
 	defaultFailpointPort = 2381
 )
 
-const pprofPrefix = "/debug/pprof-tester"
-
 func main() {
 	endpointStr := flag.String("agent-endpoints", "localhost:9027", "HTTP RPC endpoints of agents. Do not specify the schema.")
 	clientPorts := flag.String("client-ports", "", "etcd client port for each agent endpoint")
+	advertiseClientPorts := flag.String("advertise-client-ports", "", "etcd advertise client port for each agent endpoint")
 	peerPorts := flag.String("peer-ports", "", "etcd peer port for each agent endpoint")
+	advertisePeerPorts := flag.String("advertise-peer-ports", "", "etcd advertise peer port for each agent endpoint")
 	failpointPorts := flag.String("failpoint-ports", "", "etcd failpoint port for each agent endpoint")
 
-	datadir := flag.String("data-dir", "agent.etcd", "etcd data directory location on agent machine.")
 	stressKeyLargeSize := flag.Uint("stress-key-large-size", 32*1024+1, "the size of each large key written into etcd.")
 	stressKeySize := flag.Uint("stress-key-size", 100, "the size of each small key written into etcd.")
 	stressKeySuffixRange := flag.Uint("stress-key-count", 250000, "the count of key range written into etcd.")
+	stressKeyTxnSuffixRange := flag.Uint("stress-key-txn-count", 100, "the count of key range written into etcd txn (max 100).")
+	stressKeyTxnOps := flag.Uint("stress-key-txn-ops", 1, "number of operations per a transaction (max 64).")
 	limit := flag.Int("limit", -1, "the limit of rounds to run failure set (-1 to run without limits).")
+	exitOnFailure := flag.Bool("exit-on-failure", false, "exit tester on first failure")
 	stressQPS := flag.Int("stress-qps", 10000, "maximum number of stresser requests per second.")
 	schedCases := flag.String("schedule-cases", "", "test case schedule")
 	consistencyCheck := flag.Bool("consistency-check", true, "true to check consistency (revision, hash)")
-	stresserType := flag.String("stresser", "keys,lease", "comma separated list of stressers (keys, lease, v2keys, nop).")
+	stresserType := flag.String("stresser", "keys,lease", "comma separated list of stressers (keys, lease, v2keys, nop, election-runner, watch-runner, lock-racer-runner, lease-runner).")
+	etcdRunnerPath := flag.String("etcd-runner", "", "specify a path of etcd runner binary")
 	failureTypes := flag.String("failures", "default,failpoints", "specify failures (concat of \"default\" and \"failpoints\").")
+	failpoints := flag.String("failpoints", `panic("etcd-tester")`, `comma separated list of failpoint terms to inject (e.g. 'panic("etcd-tester"),1*sleep(1000)')`)
 	externalFailures := flag.String("external-failures", "", "specify a path of script for enabling/disabling an external fault injector")
 	enablePprof := flag.Bool("enable-pprof", false, "true to enable pprof")
 	flag.Parse()
 
+	// to discard gRPC-side balancer logs
+	grpclog.SetLoggerV2(grpclog.NewLoggerV2(ioutil.Discard, ioutil.Discard, ioutil.Discard))
+
 	eps := strings.Split(*endpointStr, ",")
 	cports := portsFromArg(*clientPorts, len(eps), defaultClientPort)
+	acports := portsFromArg(*advertiseClientPorts, len(eps), defaultClientPort)
 	pports := portsFromArg(*peerPorts, len(eps), defaultPeerPort)
+	apports := portsFromArg(*advertisePeerPorts, len(eps), defaultPeerPort)
 	fports := portsFromArg(*failpointPorts, len(eps), defaultFailpointPort)
 	agents := make([]agentConfig, len(eps))
 
 	for i := range eps {
 		agents[i].endpoint = eps[i]
 		agents[i].clientPort = cports[i]
+		agents[i].advertiseClientPort = acports[i]
 		agents[i].peerPort = pports[i]
+		agents[i].advertisePeerPort = apports[i]
 		agents[i].failpointPort = fports[i]
-		agents[i].datadir = *datadir
 	}
 
 	c := &cluster{agents: agents}
@@ -83,7 +96,8 @@ func main() {
 	var failures []failure
 
 	if failureTypes != nil && *failureTypes != "" {
-		failures = makeFailures(*failureTypes, c)
+		types, failpoints := strings.Split(*failureTypes, ","), strings.Split(*failpoints, ",")
+		failures = makeFailures(types, failpoints, c)
 	}
 
 	if externalFailures != nil && *externalFailures != "" {
@@ -114,18 +128,29 @@ func main() {
 	}
 
 	scfg := stressConfig{
-		rateLimiter:    rate.NewLimiter(rate.Limit(*stressQPS), *stressQPS),
-		keyLargeSize:   int(*stressKeyLargeSize),
-		keySize:        int(*stressKeySize),
-		keySuffixRange: int(*stressKeySuffixRange),
-		numLeases:      10,
-		keysPerLease:   10,
+		rateLimiter:       rate.NewLimiter(rate.Limit(*stressQPS), *stressQPS),
+		keyLargeSize:      int(*stressKeyLargeSize),
+		keySize:           int(*stressKeySize),
+		keySuffixRange:    int(*stressKeySuffixRange),
+		keyTxnSuffixRange: int(*stressKeyTxnSuffixRange),
+		keyTxnOps:         int(*stressKeyTxnOps),
+		numLeases:         10,
+		keysPerLease:      10,
+
+		etcdRunnerPath: *etcdRunnerPath,
+	}
+	if scfg.keyTxnSuffixRange > 100 {
+		plog.Fatalf("stress-key-txn-count is maximum 100, got %d", scfg.keyTxnSuffixRange)
+	}
+	if scfg.keyTxnOps > 64 {
+		plog.Fatalf("stress-key-txn-ops is maximum 64, got %d", scfg.keyTxnOps)
 	}
 
 	t := &tester{
-		failures: schedule,
-		cluster:  c,
-		limit:    *limit,
+		failures:      schedule,
+		cluster:       c,
+		limit:         *limit,
+		exitOnFailure: *exitOnFailure,
 
 		scfg:         scfg,
 		stresserType: *stresserType,
@@ -134,18 +159,12 @@ func main() {
 
 	sh := statusHandler{status: &t.status}
 	http.Handle("/status", sh)
-	http.Handle("/metrics", prometheus.Handler())
+	http.Handle("/metrics", promhttp.Handler())
 
 	if *enablePprof {
-		http.Handle(pprofPrefix+"/", http.HandlerFunc(pprof.Index))
-		http.Handle(pprofPrefix+"/profile", http.HandlerFunc(pprof.Profile))
-		http.Handle(pprofPrefix+"/symbol", http.HandlerFunc(pprof.Symbol))
-		http.Handle(pprofPrefix+"/cmdline", http.HandlerFunc(pprof.Cmdline))
-		http.Handle(pprofPrefix+"/trace", http.HandlerFunc(pprof.Trace))
-		http.Handle(pprofPrefix+"/heap", pprof.Handler("heap"))
-		http.Handle(pprofPrefix+"/goroutine", pprof.Handler("goroutine"))
-		http.Handle(pprofPrefix+"/threadcreate", pprof.Handler("threadcreate"))
-		http.Handle(pprofPrefix+"/block", pprof.Handler("block"))
+		for p, h := range debugutil.PProfHandlers() {
+			http.Handle(p, h)
+		}
 	}
 
 	go func() { plog.Fatal(http.ListenAndServe(":9028", nil)) }()
@@ -176,12 +195,10 @@ func portsFromArg(arg string, n, defaultPort int) []int {
 	return ret
 }
 
-func makeFailures(types string, c *cluster) []failure {
+func makeFailures(types, failpoints []string, c *cluster) []failure {
 	var failures []failure
-
-	fails := strings.Split(types, ",")
-	for i := range fails {
-		switch fails[i] {
+	for i := range types {
+		switch types[i] {
 		case "default":
 			defaultFailures := []failure{
 				newFailureKillAll(),
@@ -199,14 +216,14 @@ func makeFailures(types string, c *cluster) []failure {
 			failures = append(failures, defaultFailures...)
 
 		case "failpoints":
-			fpFailures, fperr := failpointFailures(c)
+			fpFailures, fperr := failpointFailures(c, failpoints)
 			if len(fpFailures) == 0 {
 				plog.Infof("no failpoints found (%v)", fperr)
 			}
 			failures = append(failures, fpFailures...)
 
 		default:
-			plog.Errorf("unknown failure: %s\n", fails[i])
+			plog.Errorf("unknown failure: %s\n", types[i])
 			os.Exit(1)
 		}
 	}

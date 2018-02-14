@@ -16,13 +16,14 @@ limitations under the License.
 package bigtable
 
 import (
-	"reflect"
 	"strings"
 	"testing"
 	"time"
 
 	"cloud.google.com/go/bigtable/bttest"
+	"cloud.google.com/go/internal/testutil"
 	"github.com/golang/protobuf/ptypes/wrappers"
+	"github.com/google/go-cmp/cmp"
 	"golang.org/x/net/context"
 	"google.golang.org/api/option"
 	btpb "google.golang.org/genproto/googleapis/bigtable/v2"
@@ -32,11 +33,11 @@ import (
 )
 
 func setupFakeServer(opt ...grpc.ServerOption) (tbl *Table, cleanup func(), err error) {
-	srv, err := bttest.NewServer("127.0.0.1:0", opt...)
+	srv, err := bttest.NewServer("localhost:0", opt...)
 	if err != nil {
 		return nil, nil, err
 	}
-	conn, err := grpc.Dial(srv.Addr, grpc.WithInsecure())
+	conn, err := grpc.Dial(srv.Addr, grpc.WithInsecure(), grpc.WithBlock())
 	if err != nil {
 		return nil, nil, err
 	}
@@ -80,10 +81,10 @@ func TestRetryApply(t *testing.T) {
 		return handler(ctx, req)
 	}
 	tbl, cleanup, err := setupFakeServer(grpc.UnaryInterceptor(errInjector))
-	defer cleanup()
 	if err != nil {
 		t.Fatalf("fake server setup: %v", err)
 	}
+	defer cleanup()
 
 	mut := NewMutation()
 	mut.Set("cf", "col", 1, []byte("val"))
@@ -231,13 +232,13 @@ func TestRetryApplyBulk(t *testing.T) {
 	}
 	errors, err = tbl.ApplyBulk(ctx, []string{"row1", "row2"}, []*Mutation{m1, niMut})
 	if err != nil {
-		t.Errorf("unretryable errors: request failed %v")
+		t.Errorf("unretryable errors: request failed %v", err)
 	}
 	want := []error{
 		grpc.Errorf(codes.FailedPrecondition, ""),
 		grpc.Errorf(codes.Aborted, ""),
 	}
-	if !reflect.DeepEqual(want, errors) {
+	if !testutil.Equal(want, errors) {
 		t.Errorf("unretryable errors: got: %v, want: %v", errors, want)
 	}
 
@@ -273,15 +274,23 @@ func TestRetainRowsAfter(t *testing.T) {
 	prevRowKey := "m"
 	want := NewRange("m\x00", "z")
 	got := prevRowRange.retainRowsAfter(prevRowKey)
-	if !reflect.DeepEqual(want, got) {
+	if !testutil.Equal(want, got, cmp.AllowUnexported(RowRange{})) {
 		t.Errorf("range retry: got %v, want %v", got, want)
+	}
+
+	prevRowRangeList := RowRangeList{NewRange("a", "d"), NewRange("e", "g"), NewRange("h", "l")}
+	prevRowKey = "f"
+	wantRowRangeList := RowRangeList{NewRange("f\x00", "g"), NewRange("h", "l")}
+	got = prevRowRangeList.retainRowsAfter(prevRowKey)
+	if !testutil.Equal(wantRowRangeList, got, cmp.AllowUnexported(RowRange{})) {
+		t.Errorf("range list retry: got %v, want %v", got, wantRowRangeList)
 	}
 
 	prevRowList := RowList{"a", "b", "c", "d", "e", "f"}
 	prevRowKey = "b"
 	wantList := RowList{"c", "d", "e", "f"}
 	got = prevRowList.retainRowsAfter(prevRowKey)
-	if !reflect.DeepEqual(wantList, got) {
+	if !testutil.Equal(wantList, got) {
 		t.Errorf("list retry: got %v, want %v", got, wantList)
 	}
 }
@@ -317,6 +326,9 @@ func TestRetryReadRows(t *testing.T) {
 			err = grpc.Errorf(codes.Unavailable, "")
 		case 1:
 			// Write two rows then error
+			if want, got := "a", string(req.Rows.RowRanges[0].GetStartKeyClosed()); want != got {
+				t.Errorf("first retry, no data received yet: got %q, want %q", got, want)
+			}
 			writeReadRowsResponse(ss, "a", "b")
 			err = grpc.Errorf(codes.Unavailable, "")
 		case 2:
@@ -340,7 +352,7 @@ func TestRetryReadRows(t *testing.T) {
 		return true
 	})
 	want := []string{"a", "b", "c", "d"}
-	if !reflect.DeepEqual(got, want) {
+	if !testutil.Equal(got, want) {
 		t.Errorf("retry range integration: got %v, want %v", got, want)
 	}
 }

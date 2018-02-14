@@ -15,6 +15,7 @@
 package command
 
 import (
+	"context"
 	"crypto/sha256"
 	"encoding/binary"
 	"encoding/json"
@@ -27,7 +28,6 @@ import (
 	"reflect"
 	"strings"
 
-	"github.com/boltdb/bolt"
 	"github.com/coreos/etcd/etcdserver"
 	"github.com/coreos/etcd/etcdserver/etcdserverpb"
 	"github.com/coreos/etcd/etcdserver/membership"
@@ -42,8 +42,9 @@ import (
 	"github.com/coreos/etcd/store"
 	"github.com/coreos/etcd/wal"
 	"github.com/coreos/etcd/wal/walpb"
+
+	bolt "github.com/coreos/bbolt"
 	"github.com/spf13/cobra"
-	"golang.org/x/net/context"
 )
 
 const (
@@ -55,6 +56,7 @@ var (
 	restoreCluster      string
 	restoreClusterToken string
 	restoreDataDir      string
+	restoreWalDir       string
 	restorePeerURLs     string
 	restoreName         string
 	skipHashCheck       bool
@@ -98,6 +100,7 @@ func NewSnapshotRestoreCommand() *cobra.Command {
 		Run:   snapshotRestoreCommandFunc,
 	}
 	cmd.Flags().StringVar(&restoreDataDir, "data-dir", "", "Path to the data directory")
+	cmd.Flags().StringVar(&restoreWalDir, "wal-dir", "", "Path to the WAL directory (use --data-dir if none given)")
 	cmd.Flags().StringVar(&restoreCluster, "initial-cluster", initialClusterFromName(defaultName), "Initial cluster configuration for restore bootstrap")
 	cmd.Flags().StringVar(&restoreClusterToken, "initial-cluster-token", "etcd-cluster", "Initial cluster token for the etcd cluster during restore bootstrap")
 	cmd.Flags().StringVar(&restorePeerURLs, "initial-advertise-peer-urls", defaultInitialAdvertisePeerURLs, "List of this member's peer URLs to advertise to the rest of the cluster")
@@ -186,7 +189,10 @@ func snapshotRestoreCommandFunc(cmd *cobra.Command, args []string) {
 		basedir = restoreName + ".etcd"
 	}
 
-	waldir := filepath.Join(basedir, "member", "wal")
+	waldir := restoreWalDir
+	if waldir == "" {
+		waldir = filepath.Join(basedir, "member", "wal")
+	}
 	snapdir := filepath.Join(basedir, "member", "snap")
 
 	if _, err := os.Stat(basedir); err == nil {
@@ -310,14 +316,14 @@ func makeDB(snapdir, dbfile string, commit int) {
 	defer f.Close()
 
 	// get snapshot integrity hash
-	if _, err := f.Seek(-sha256.Size, os.SEEK_END); err != nil {
+	if _, err := f.Seek(-sha256.Size, io.SeekEnd); err != nil {
 		ExitWithError(ExitIO, err)
 	}
 	sha := make([]byte, sha256.Size)
 	if _, err := f.Read(sha); err != nil {
 		ExitWithError(ExitIO, err)
 	}
-	if _, err := f.Seek(0, os.SEEK_SET); err != nil {
+	if _, err := f.Seek(0, io.SeekStart); err != nil {
 		ExitWithError(ExitIO, err)
 	}
 
@@ -335,7 +341,7 @@ func makeDB(snapdir, dbfile string, commit int) {
 	}
 
 	// truncate away integrity hash, if any.
-	off, serr := db.Seek(0, os.SEEK_END)
+	off, serr := db.Seek(0, io.SeekEnd)
 	if serr != nil {
 		ExitWithError(ExitIO, serr)
 	}
@@ -353,7 +359,7 @@ func makeDB(snapdir, dbfile string, commit int) {
 
 	if hasHash && !skipHashCheck {
 		// check for match
-		if _, err := db.Seek(0, os.SEEK_SET); err != nil {
+		if _, err := db.Seek(0, io.SeekStart); err != nil {
 			ExitWithError(ExitIO, err)
 		}
 		h := sha256.New()
@@ -375,13 +381,12 @@ func makeDB(snapdir, dbfile string, commit int) {
 	be := backend.NewDefaultBackend(dbpath)
 	// a lessor never timeouts leases
 	lessor := lease.NewLessor(be, math.MaxInt64)
-
 	s := mvcc.NewStore(be, lessor, (*initIndex)(&commit))
-	id := s.TxnBegin()
+	txn := s.Write()
 	btx := be.BatchTx()
 	del := func(k, v []byte) error {
-		_, _, err := s.TxnDeleteRange(id, k, nil)
-		return err
+		txn.DeleteRange(k, nil)
+		return nil
 	}
 
 	// delete stored members from old cluster since using new members
@@ -389,9 +394,10 @@ func makeDB(snapdir, dbfile string, commit int) {
 	// todo: add back new members when we start to deprecate old snap file.
 	btx.UnsafeForEach([]byte("members_removed"), del)
 	// trigger write-out of new consistent index
-	s.TxnEnd(id)
+	txn.End()
 	s.Commit()
 	s.Close()
+	be.Close()
 }
 
 type dbstatus struct {
@@ -408,7 +414,7 @@ func dbStatus(p string) dbstatus {
 
 	ds := dbstatus{}
 
-	db, err := bolt.Open(p, 0400, nil)
+	db, err := bolt.Open(p, 0400, &bolt.Options{ReadOnly: true})
 	if err != nil {
 		ExitWithError(ExitError, err)
 	}

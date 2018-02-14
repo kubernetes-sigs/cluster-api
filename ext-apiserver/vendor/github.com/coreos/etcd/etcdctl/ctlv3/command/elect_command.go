@@ -15,14 +15,16 @@
 package command
 
 import (
+	"context"
 	"errors"
 	"os"
 	"os/signal"
+	"syscall"
 
 	"github.com/coreos/etcd/clientv3"
 	"github.com/coreos/etcd/clientv3/concurrency"
+
 	"github.com/spf13/cobra"
-	"golang.org/x/net/context"
 )
 
 var (
@@ -73,7 +75,7 @@ func observe(c *clientv3.Client, election string) error {
 
 	donec := make(chan struct{})
 	sigc := make(chan os.Signal, 1)
-	signal.Notify(sigc, os.Interrupt, os.Kill)
+	signal.Notify(sigc, syscall.SIGINT, syscall.SIGTERM)
 	go func() {
 		<-sigc
 		cancel()
@@ -107,7 +109,7 @@ func campaign(c *clientv3.Client, election string, prop string) error {
 
 	donec := make(chan struct{})
 	sigc := make(chan os.Signal, 1)
-	signal.Notify(sigc, os.Interrupt, os.Kill)
+	signal.Notify(sigc, syscall.SIGINT, syscall.SIGTERM)
 	go func() {
 		<-sigc
 		cancel()

@@ -8,7 +8,7 @@ import fmt "fmt"
 import math "math"
 import _ "google.golang.org/genproto/googleapis/api/annotations"
 import _ "google.golang.org/genproto/googleapis/api/serviceconfig"
-import google_api21 "google.golang.org/genproto/googleapis/api/serviceconfig"
+import google_api22 "google.golang.org/genproto/googleapis/api/serviceconfig"
 import google_longrunning "google.golang.org/genproto/googleapis/longrunning"
 import google_protobuf1 "github.com/golang/protobuf/ptypes/any"
 import _ "google.golang.org/genproto/protobuf/field_mask"
@@ -301,7 +301,7 @@ func (m *ListServiceConfigsRequest) GetPageSize() int32 {
 // Response message for ListServiceConfigs method.
 type ListServiceConfigsResponse struct {
 	// The list of service configuration resources.
-	ServiceConfigs []*google_api21.Service `protobuf:"bytes,1,rep,name=service_configs,json=serviceConfigs" json:"service_configs,omitempty"`
+	ServiceConfigs []*google_api22.Service `protobuf:"bytes,1,rep,name=service_configs,json=serviceConfigs" json:"service_configs,omitempty"`
 	// The token of the next page of results.
 	NextPageToken string `protobuf:"bytes,2,opt,name=next_page_token,json=nextPageToken" json:"next_page_token,omitempty"`
 }
@@ -311,7 +311,7 @@ func (m *ListServiceConfigsResponse) String() string            { return proto.C
 func (*ListServiceConfigsResponse) ProtoMessage()               {}
 func (*ListServiceConfigsResponse) Descriptor() ([]byte, []int) { return fileDescriptor1, []int{9} }
 
-func (m *ListServiceConfigsResponse) GetServiceConfigs() []*google_api21.Service {
+func (m *ListServiceConfigsResponse) GetServiceConfigs() []*google_api22.Service {
 	if m != nil {
 		return m.ServiceConfigs
 	}
@@ -331,7 +331,7 @@ type CreateServiceConfigRequest struct {
 	// for naming requirements.  For example: `example.googleapis.com`.
 	ServiceName string `protobuf:"bytes,1,opt,name=service_name,json=serviceName" json:"service_name,omitempty"`
 	// The service configuration resource.
-	ServiceConfig *google_api21.Service `protobuf:"bytes,2,opt,name=service_config,json=serviceConfig" json:"service_config,omitempty"`
+	ServiceConfig *google_api22.Service `protobuf:"bytes,2,opt,name=service_config,json=serviceConfig" json:"service_config,omitempty"`
 }
 
 func (m *CreateServiceConfigRequest) Reset()                    { *m = CreateServiceConfigRequest{} }
@@ -346,7 +346,7 @@ func (m *CreateServiceConfigRequest) GetServiceName() string {
 	return ""
 }
 
-func (m *CreateServiceConfigRequest) GetServiceConfig() *google_api21.Service {
+func (m *CreateServiceConfigRequest) GetServiceConfig() *google_api22.Service {
 	if m != nil {
 		return m.ServiceConfig
 	}
@@ -395,7 +395,7 @@ func (m *SubmitConfigSourceRequest) GetValidateOnly() bool {
 // Response message for SubmitConfigSource method.
 type SubmitConfigSourceResponse struct {
 	// The generated service configuration.
-	ServiceConfig *google_api21.Service `protobuf:"bytes,1,opt,name=service_config,json=serviceConfig" json:"service_config,omitempty"`
+	ServiceConfig *google_api22.Service `protobuf:"bytes,1,opt,name=service_config,json=serviceConfig" json:"service_config,omitempty"`
 }
 
 func (m *SubmitConfigSourceResponse) Reset()                    { *m = SubmitConfigSourceResponse{} }
@@ -403,7 +403,7 @@ func (m *SubmitConfigSourceResponse) String() string            { return proto.C
 func (*SubmitConfigSourceResponse) ProtoMessage()               {}
 func (*SubmitConfigSourceResponse) Descriptor() ([]byte, []int) { return fileDescriptor1, []int{12} }
 
-func (m *SubmitConfigSourceResponse) GetServiceConfig() *google_api21.Service {
+func (m *SubmitConfigSourceResponse) GetServiceConfig() *google_api22.Service {
 	if m != nil {
 		return m.ServiceConfig
 	}
@@ -773,12 +773,12 @@ type ServiceManagerClient interface {
 	// from the newest to the oldest.
 	ListServiceConfigs(ctx context.Context, in *ListServiceConfigsRequest, opts ...grpc.CallOption) (*ListServiceConfigsResponse, error)
 	// Gets a service configuration (version) for a managed service.
-	GetServiceConfig(ctx context.Context, in *GetServiceConfigRequest, opts ...grpc.CallOption) (*google_api21.Service, error)
+	GetServiceConfig(ctx context.Context, in *GetServiceConfigRequest, opts ...grpc.CallOption) (*google_api22.Service, error)
 	// Creates a new service configuration (version) for a managed service.
 	// This method only stores the service configuration. To roll out the service
 	// configuration to backend systems please call
 	// [CreateServiceRollout][google.api.servicemanagement.v1.ServiceManager.CreateServiceRollout].
-	CreateServiceConfig(ctx context.Context, in *CreateServiceConfigRequest, opts ...grpc.CallOption) (*google_api21.Service, error)
+	CreateServiceConfig(ctx context.Context, in *CreateServiceConfigRequest, opts ...grpc.CallOption) (*google_api22.Service, error)
 	// Creates a new service configuration (version) for a managed service based
 	// on
 	// user-supplied configuration source files (for example: OpenAPI
@@ -894,8 +894,8 @@ func (c *serviceManagerClient) ListServiceConfigs(ctx context.Context, in *ListS
 	return out, nil
 }
 
-func (c *serviceManagerClient) GetServiceConfig(ctx context.Context, in *GetServiceConfigRequest, opts ...grpc.CallOption) (*google_api21.Service, error) {
-	out := new(google_api21.Service)
+func (c *serviceManagerClient) GetServiceConfig(ctx context.Context, in *GetServiceConfigRequest, opts ...grpc.CallOption) (*google_api22.Service, error) {
+	out := new(google_api22.Service)
 	err := grpc.Invoke(ctx, "/google.api.servicemanagement.v1.ServiceManager/GetServiceConfig", in, out, c.cc, opts...)
 	if err != nil {
 		return nil, err
@@ -903,8 +903,8 @@ func (c *serviceManagerClient) GetServiceConfig(ctx context.Context, in *GetServ
 	return out, nil
 }
 
-func (c *serviceManagerClient) CreateServiceConfig(ctx context.Context, in *CreateServiceConfigRequest, opts ...grpc.CallOption) (*google_api21.Service, error) {
-	out := new(google_api21.Service)
+func (c *serviceManagerClient) CreateServiceConfig(ctx context.Context, in *CreateServiceConfigRequest, opts ...grpc.CallOption) (*google_api22.Service, error) {
+	out := new(google_api22.Service)
 	err := grpc.Invoke(ctx, "/google.api.servicemanagement.v1.ServiceManager/CreateServiceConfig", in, out, c.cc, opts...)
 	if err != nil {
 		return nil, err
@@ -1014,12 +1014,12 @@ type ServiceManagerServer interface {
 	// from the newest to the oldest.
 	ListServiceConfigs(context.Context, *ListServiceConfigsRequest) (*ListServiceConfigsResponse, error)
 	// Gets a service configuration (version) for a managed service.
-	GetServiceConfig(context.Context, *GetServiceConfigRequest) (*google_api21.Service, error)
+	GetServiceConfig(context.Context, *GetServiceConfigRequest) (*google_api22.Service, error)
 	// Creates a new service configuration (version) for a managed service.
 	// This method only stores the service configuration. To roll out the service
 	// configuration to backend systems please call
 	// [CreateServiceRollout][google.api.servicemanagement.v1.ServiceManager.CreateServiceRollout].
-	CreateServiceConfig(context.Context, *CreateServiceConfigRequest) (*google_api21.Service, error)
+	CreateServiceConfig(context.Context, *CreateServiceConfigRequest) (*google_api22.Service, error)
 	// Creates a new service configuration (version) for a managed service based
 	// on
 	// user-supplied configuration source files (for example: OpenAPI

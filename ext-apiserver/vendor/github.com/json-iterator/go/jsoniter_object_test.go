@@ -158,6 +158,28 @@ func Test_ignore_field_on_not_valid_type(t *testing.T) {
 	should.Equal(`{"field-1":"hello world"}`, str)
 }
 
+func Test_nested_field_omit_empty(t *testing.T) {
+	should := require.New(t)
+	type S1 struct {
+		F1 string `json:",omitempty"`
+	}
+
+	type S2 struct {
+		*S1
+		F2 string `json:",omitempty"`
+	}
+	s1 := &S1{
+		//F1: "abc",
+	}
+	s2 := &S2{
+		S1: s1,
+		F2: "123",
+	}
+	str, err := MarshalToString(s2)
+	should.Nil(err)
+	should.Equal(`{"F2":"123"}`, str)
+}
+
 func Test_recursive_struct(t *testing.T) {
 	should := require.New(t)
 	type TestObject struct {
@@ -327,4 +349,16 @@ func Test_decode_nested(t *testing.T) {
 		fmt.Println(iter.Error)
 		t.Fatal(slice[2])
 	}
+}
+
+func Test_decode_field_with_escape(t *testing.T) {
+	should := require.New(t)
+	type TestObject struct {
+		Field1 string
+	}
+	var obj TestObject
+	should.Nil(ConfigCompatibleWithStandardLibrary.Unmarshal([]byte(`{"Field\"1":"hello"}`), &obj))
+	should.Equal("", obj.Field1)
+	should.Nil(ConfigCompatibleWithStandardLibrary.Unmarshal([]byte(`{"\u0046ield1":"hello"}`), &obj))
+	should.Equal("hello", obj.Field1)
 }

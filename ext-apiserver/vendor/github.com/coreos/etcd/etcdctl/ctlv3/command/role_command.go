@@ -15,15 +15,16 @@
 package command
 
 import (
+	"context"
 	"fmt"
 
 	"github.com/coreos/etcd/clientv3"
 	"github.com/spf13/cobra"
-	"golang.org/x/net/context"
 )
 
 var (
-	grantPermissionPrefix bool
+	rolePermPrefix  bool
+	rolePermFromKey bool
 )
 
 // NewRoleCommand returns the cobra command for "role".
@@ -82,17 +83,23 @@ func newRoleGrantPermissionCommand() *cobra.Command {
 		Run:   roleGrantPermissionCommandFunc,
 	}
 
-	cmd.Flags().BoolVar(&grantPermissionPrefix, "prefix", false, "grant a prefix permission")
+	cmd.Flags().BoolVar(&rolePermPrefix, "prefix", false, "grant a prefix permission")
+	cmd.Flags().BoolVar(&rolePermFromKey, "from-key", false, "grant a permission of keys that are greater than or equal to the given key using byte compare")
 
 	return cmd
 }
 
 func newRoleRevokePermissionCommand() *cobra.Command {
-	return &cobra.Command{
+	cmd := &cobra.Command{
 		Use:   "revoke-permission <role name> <key> [endkey]",
 		Short: "Revokes a key from a role",
 		Run:   roleRevokePermissionCommandFunc,
 	}
+
+	cmd.Flags().BoolVar(&rolePermPrefix, "prefix", false, "revoke a prefix permission")
+	cmd.Flags().BoolVar(&rolePermFromKey, "from-key", false, "revoke a permission of keys that are greater than or equal to the given key using byte compare")
+
+	return cmd
 }
 
 // roleAddCommandFunc executes the "role add" command.
@@ -163,17 +170,8 @@ func roleGrantPermissionCommandFunc(cmd *cobra.Command, args []string) {
 		ExitWithError(ExitBadArgs, err)
 	}
 
-	rangeEnd := ""
-	if 4 <= len(args) {
-		if grantPermissionPrefix {
-			ExitWithError(ExitBadArgs, fmt.Errorf("don't pass both of --prefix option and range end to grant permission command"))
-		}
-		rangeEnd = args[3]
-	} else if grantPermissionPrefix {
-		rangeEnd = clientv3.GetPrefixRangeEnd(args[2])
-	}
-
-	resp, err := mustClientFromCmd(cmd).Auth.RoleGrantPermission(context.TODO(), args[0], args[2], rangeEnd, perm)
+	key, rangeEnd := permRange(args[2:])
+	resp, err := mustClientFromCmd(cmd).Auth.RoleGrantPermission(context.TODO(), args[0], key, rangeEnd, perm)
 	if err != nil {
 		ExitWithError(ExitError, err)
 	}
@@ -187,14 +185,60 @@ func roleRevokePermissionCommandFunc(cmd *cobra.Command, args []string) {
 		ExitWithError(ExitBadArgs, fmt.Errorf("role revoke-permission command requires role name and key [endkey] as its argument."))
 	}
 
-	rangeEnd := ""
-	if 3 <= len(args) {
-		rangeEnd = args[2]
-	}
-
-	resp, err := mustClientFromCmd(cmd).Auth.RoleRevokePermission(context.TODO(), args[0], args[1], rangeEnd)
+	key, rangeEnd := permRange(args[1:])
+	resp, err := mustClientFromCmd(cmd).Auth.RoleRevokePermission(context.TODO(), args[0], key, rangeEnd)
 	if err != nil {
 		ExitWithError(ExitError, err)
 	}
 	display.RoleRevokePermission(args[0], args[1], rangeEnd, *resp)
+}
+
+func permRange(args []string) (string, string) {
+	key := args[0]
+	var rangeEnd string
+	if len(key) == 0 {
+		if rolePermPrefix && rolePermFromKey {
+			ExitWithError(ExitBadArgs, fmt.Errorf("--from-key and --prefix flags are mutually exclusive"))
+		}
+
+		// Range permission is expressed as adt.BytesAffineInterval,
+		// so the empty prefix which should be matched with every key must be like this ["\x00", <end>).
+		key = "\x00"
+		if rolePermPrefix || rolePermFromKey {
+			// For the both cases of prefix and from-key, a permission with an empty key
+			// should allow access to the entire key space.
+			// 0x00 will be treated as open ended in server side.
+			rangeEnd = "\x00"
+		}
+	} else {
+		var err error
+		rangeEnd, err = rangeEndFromPermFlags(args[0:])
+		if err != nil {
+			ExitWithError(ExitBadArgs, err)
+		}
+	}
+	return key, rangeEnd
+}
+
+func rangeEndFromPermFlags(args []string) (string, error) {
+	if len(args) == 1 {
+		if rolePermPrefix {
+			if rolePermFromKey {
+				return "", fmt.Errorf("--from-key and --prefix flags are mutually exclusive")
+			}
+			return clientv3.GetPrefixRangeEnd(args[0]), nil
+		}
+		if rolePermFromKey {
+			return "\x00", nil
+		}
+		// single key case
+		return "", nil
+	}
+	if rolePermPrefix {
+		return "", fmt.Errorf("unexpected endkey argument with --prefix flag")
+	}
+	if rolePermFromKey {
+		return "", fmt.Errorf("unexpected endkey argument with --from-key flag")
+	}
+	return args[1], nil
 }

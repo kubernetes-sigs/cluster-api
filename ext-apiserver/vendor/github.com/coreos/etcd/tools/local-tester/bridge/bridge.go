@@ -57,6 +57,11 @@ func bridge(b *bridgeConn) {
 	b.d.Copy(b.in, makeFetch(b.out))
 }
 
+func delayBridge(b *bridgeConn, txDelay, rxDelay time.Duration) {
+	go b.d.Copy(b.out, makeFetchDelay(makeFetch(b.in), txDelay))
+	b.d.Copy(b.in, makeFetchDelay(makeFetch(b.out), rxDelay))
+}
+
 func timeBridge(b *bridgeConn) {
 	go func() {
 		t := time.Duration(rand.Intn(5)+1) * time.Second
@@ -135,6 +140,17 @@ func makeFetchRand(f func() ([]byte, error)) fetchFunc {
 	}
 }
 
+func makeFetchDelay(f fetchFunc, delay time.Duration) fetchFunc {
+	return func() ([]byte, error) {
+		b, err := f()
+		if err != nil {
+			return nil, err
+		}
+		time.Sleep(delay)
+		return b, nil
+	}
+}
+
 func randomBlackhole(b *bridgeConn) {
 	log.Println("random blackhole: connection", b.String())
 
@@ -166,6 +182,9 @@ type config struct {
 	corruptSend     bool
 	corruptReceive  bool
 	reorder         bool
+
+	txDelay string
+	rxDelay string
 }
 
 type acceptFaultFunc func()
@@ -174,19 +193,23 @@ type connFaultFunc func(*bridgeConn)
 func main() {
 	var cfg config
 
-	flag.BoolVar(&cfg.delayAccept, "delay-accept", true, "delays accepting new connections")
-	flag.BoolVar(&cfg.resetListen, "reset-listen", true, "resets the listening port")
+	flag.BoolVar(&cfg.delayAccept, "delay-accept", false, "delays accepting new connections")
+	flag.BoolVar(&cfg.resetListen, "reset-listen", false, "resets the listening port")
 
-	flag.Float64Var(&cfg.connFaultRate, "conn-fault-rate", 0.25, "rate of faulty connections")
-	flag.BoolVar(&cfg.immediateClose, "immediate-close", true, "close after accept")
-	flag.BoolVar(&cfg.blackhole, "blackhole", true, "reads nothing, writes go nowhere")
-	flag.BoolVar(&cfg.timeClose, "time-close", true, "close after random time")
-	flag.BoolVar(&cfg.writeRemoteOnly, "write-remote-only", true, "only write, no read")
-	flag.BoolVar(&cfg.readRemoteOnly, "read-remote-only", true, "only read, no write")
-	flag.BoolVar(&cfg.randomBlackhole, "random-blackhole", true, "blackhole after data xfer")
-	flag.BoolVar(&cfg.corruptReceive, "corrupt-receive", true, "corrupt packets received from destination")
-	flag.BoolVar(&cfg.corruptSend, "corrupt-send", true, "corrupt packets sent to destination")
-	flag.BoolVar(&cfg.reorder, "reorder", true, "reorder packet delivery")
+	flag.Float64Var(&cfg.connFaultRate, "conn-fault-rate", 0.0, "rate of faulty connections")
+	flag.BoolVar(&cfg.immediateClose, "immediate-close", false, "close after accept")
+	flag.BoolVar(&cfg.blackhole, "blackhole", false, "reads nothing, writes go nowhere")
+	flag.BoolVar(&cfg.timeClose, "time-close", false, "close after random time")
+	flag.BoolVar(&cfg.writeRemoteOnly, "write-remote-only", false, "only write, no read")
+	flag.BoolVar(&cfg.readRemoteOnly, "read-remote-only", false, "only read, no write")
+	flag.BoolVar(&cfg.randomBlackhole, "random-blackhole", false, "blackhole after data xfer")
+	flag.BoolVar(&cfg.corruptReceive, "corrupt-receive", false, "corrupt packets received from destination")
+	flag.BoolVar(&cfg.corruptSend, "corrupt-send", false, "corrupt packets sent to destination")
+	flag.BoolVar(&cfg.reorder, "reorder", false, "reorder packet delivery")
+
+	flag.StringVar(&cfg.txDelay, "tx-delay", "0", "duration to delay client transmission to server")
+	flag.StringVar(&cfg.rxDelay, "rx-delay", "0", "duration to delay client receive from server")
+
 	flag.Parse()
 
 	lAddr := flag.Args()[0]
@@ -251,6 +274,23 @@ func main() {
 		connFaults = append(connFaults, corruptReceive)
 	}
 
+	txd, txdErr := time.ParseDuration(cfg.txDelay)
+	if txdErr != nil {
+		log.Fatal(txdErr)
+	}
+	rxd, rxdErr := time.ParseDuration(cfg.rxDelay)
+	if rxdErr != nil {
+		log.Fatal(rxdErr)
+	}
+	if txd != 0 || rxd != 0 {
+		f := func(b *bridgeConn) { delayBridge(b, txd, rxd) }
+		connFaults = append(connFaults, f)
+	}
+
+	if len(connFaults) > 1 && cfg.connFaultRate == 0 {
+		log.Fatal("connection faults defined but conn-fault-rate=0")
+	}
+
 	var disp dispatcher
 	if cfg.reorder {
 		disp = newDispatcherPool()
@@ -266,7 +306,7 @@ func main() {
 		}
 
 		r := rand.Intn(len(connFaults))
-		if rand.Intn(100) > int(100.0*cfg.connFaultRate) {
+		if rand.Intn(100) >= int(100.0*cfg.connFaultRate) {
 			r = 0
 		}
 

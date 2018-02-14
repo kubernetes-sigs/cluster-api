@@ -1,4 +1,4 @@
-// Copyright 2014 Google Inc. All Rights Reserved.
+// Copyright 2014 Google Inc. LiveAndArchived Rights Reserved.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -15,14 +15,51 @@
 package storage
 
 import (
+	"fmt"
 	"net/http"
+	"reflect"
 	"time"
 
+	"cloud.google.com/go/internal/optional"
 	"golang.org/x/net/context"
 	"google.golang.org/api/googleapi"
 	"google.golang.org/api/iterator"
 	raw "google.golang.org/api/storage/v1"
 )
+
+// BucketHandle provides operations on a Google Cloud Storage bucket.
+// Use Client.Bucket to get a handle.
+type BucketHandle struct {
+	c                *Client
+	name             string
+	acl              ACLHandle
+	defaultObjectACL ACLHandle
+	conds            *BucketConditions
+	userProject      string // project for Requester Pays buckets
+}
+
+// Bucket returns a BucketHandle, which provides operations on the named bucket.
+// This call does not perform any network operations.
+//
+// The supplied name must contain only lowercase letters, numbers, dashes,
+// underscores, and dots. The full specification for valid bucket names can be
+// found at:
+//   https://cloud.google.com/storage/docs/bucket-naming
+func (c *Client) Bucket(name string) *BucketHandle {
+	return &BucketHandle{
+		c:    c,
+		name: name,
+		acl: ACLHandle{
+			c:      c,
+			bucket: name,
+		},
+		defaultObjectACL: ACLHandle{
+			c:         c,
+			bucket:    name,
+			isDefault: true,
+		},
+	}
+}
 
 // Create creates the Bucket in the project.
 // If attrs is nil the API defaults will be used.
@@ -34,29 +71,49 @@ func (b *BucketHandle) Create(ctx context.Context, projectID string, attrs *Buck
 		bkt = &raw.Bucket{}
 	}
 	bkt.Name = b.name
+	// If there is lifecycle information but no location, explicitly set
+	// the location. This is a GCS quirk/bug.
+	if bkt.Location == "" && bkt.Lifecycle != nil {
+		bkt.Location = "US"
+	}
 	req := b.c.raw.Buckets.Insert(projectID, bkt)
-	_, err := req.Context(ctx).Do()
-	return err
+	setClientHeader(req.Header())
+	return runWithRetry(ctx, func() error { _, err := req.Context(ctx).Do(); return err })
 }
 
 // Delete deletes the Bucket.
 func (b *BucketHandle) Delete(ctx context.Context) error {
+	req, err := b.newDeleteCall()
+	if err != nil {
+		return err
+	}
+	return runWithRetry(ctx, func() error { return req.Context(ctx).Do() })
+}
+
+func (b *BucketHandle) newDeleteCall() (*raw.BucketsDeleteCall, error) {
 	req := b.c.raw.Buckets.Delete(b.name)
-	return req.Context(ctx).Do()
+	setClientHeader(req.Header())
+	if err := applyBucketConds("BucketHandle.Delete", b.conds, req); err != nil {
+		return nil, err
+	}
+	if b.userProject != "" {
+		req.UserProject(b.userProject)
+	}
+	return req, nil
 }
 
 // ACL returns an ACLHandle, which provides access to the bucket's access control list.
 // This controls who can list, create or overwrite the objects in a bucket.
 // This call does not perform any network operations.
-func (c *BucketHandle) ACL() *ACLHandle {
-	return c.acl
+func (b *BucketHandle) ACL() *ACLHandle {
+	return &b.acl
 }
 
 // DefaultObjectACL returns an ACLHandle, which provides access to the bucket's default object ACLs.
 // These ACLs are applied to newly created objects in this bucket that do not have a defined ACL.
 // This call does not perform any network operations.
-func (c *BucketHandle) DefaultObjectACL() *ACLHandle {
-	return c.defaultObjectACL
+func (b *BucketHandle) DefaultObjectACL() *ACLHandle {
+	return &b.defaultObjectACL
 }
 
 // Object returns an ObjectHandle, which provides operations on the named object.
@@ -70,17 +127,28 @@ func (b *BucketHandle) Object(name string) *ObjectHandle {
 		c:      b.c,
 		bucket: b.name,
 		object: name,
-		acl: &ACLHandle{
-			c:      b.c,
-			bucket: b.name,
-			object: name,
+		acl: ACLHandle{
+			c:           b.c,
+			bucket:      b.name,
+			object:      name,
+			userProject: b.userProject,
 		},
+		gen:         -1,
+		userProject: b.userProject,
 	}
 }
 
 // Attrs returns the metadata for the bucket.
 func (b *BucketHandle) Attrs(ctx context.Context) (*BucketAttrs, error) {
-	resp, err := b.c.raw.Buckets.Get(b.name).Projection("full").Context(ctx).Do()
+	req, err := b.newGetCall()
+	if err != nil {
+		return nil, err
+	}
+	var resp *raw.Bucket
+	err = runWithRetry(ctx, func() error {
+		resp, err = req.Context(ctx).Do()
+		return err
+	})
 	if e, ok := err.(*googleapi.Error); ok && e.Code == http.StatusNotFound {
 		return nil, ErrBucketNotExist
 	}
@@ -90,9 +158,49 @@ func (b *BucketHandle) Attrs(ctx context.Context) (*BucketAttrs, error) {
 	return newBucket(resp), nil
 }
 
+func (b *BucketHandle) newGetCall() (*raw.BucketsGetCall, error) {
+	req := b.c.raw.Buckets.Get(b.name).Projection("full")
+	setClientHeader(req.Header())
+	if err := applyBucketConds("BucketHandle.Attrs", b.conds, req); err != nil {
+		return nil, err
+	}
+	if b.userProject != "" {
+		req.UserProject(b.userProject)
+	}
+	return req, nil
+}
+
+func (b *BucketHandle) Update(ctx context.Context, uattrs BucketAttrsToUpdate) (*BucketAttrs, error) {
+	req, err := b.newPatchCall(&uattrs)
+	if err != nil {
+		return nil, err
+	}
+	// TODO(jba): retry iff metagen is set?
+	rb, err := req.Context(ctx).Do()
+	if err != nil {
+		return nil, err
+	}
+	return newBucket(rb), nil
+}
+
+func (b *BucketHandle) newPatchCall(uattrs *BucketAttrsToUpdate) (*raw.BucketsPatchCall, error) {
+	rb := uattrs.toRawBucket()
+	req := b.c.raw.Buckets.Patch(b.name, rb).Projection("full")
+	setClientHeader(req.Header())
+	if err := applyBucketConds("BucketHandle.Update", b.conds, req); err != nil {
+		return nil, err
+	}
+	if b.userProject != "" {
+		req.UserProject(b.userProject)
+	}
+	return req, nil
+}
+
 // BucketAttrs represents the metadata for a Google Cloud Storage bucket.
+// Read-only fields are ignored by BucketHandle.Create.
 type BucketAttrs struct {
 	// Name is the name of the bucket.
+	// This field is read-only.
 	Name string
 
 	// ACL is the list of access control rules on the bucket.
@@ -106,16 +214,125 @@ type BucketAttrs struct {
 	Location string
 
 	// MetaGeneration is the metadata generation of the bucket.
+	// This field is read-only.
 	MetaGeneration int64
 
-	// StorageClass is the storage class of the bucket. This defines
+	// StorageClass is the default storage class of the bucket. This defines
 	// how objects in the bucket are stored and determines the SLA
-	// and the cost of storage. Typical values are "STANDARD" and
-	// "DURABLE_REDUCED_AVAILABILITY". Defaults to "STANDARD".
+	// and the cost of storage. Typical values are "MULTI_REGIONAL",
+	// "REGIONAL", "NEARLINE", "COLDLINE", "STANDARD" and
+	// "DURABLE_REDUCED_AVAILABILITY". Defaults to "STANDARD", which
+	// is equivalent to "MULTI_REGIONAL" or "REGIONAL" depending on
+	// the bucket's location settings.
 	StorageClass string
 
 	// Created is the creation time of the bucket.
+	// This field is read-only.
 	Created time.Time
+
+	// VersioningEnabled reports whether this bucket has versioning enabled.
+	VersioningEnabled bool
+
+	// Labels are the bucket's labels.
+	Labels map[string]string
+
+	// RequesterPays reports whether the bucket is a Requester Pays bucket.
+	// Clients performing operations on Requester Pays buckets must provide
+	// a user project (see BucketHandle.UserProject), which will be billed
+	// for the operations.
+	RequesterPays bool
+	// Lifecycle is the lifecycle configuration for objects in the bucket.
+	Lifecycle Lifecycle
+}
+
+// Lifecycle is the lifecycle configuration for objects in the bucket.
+type Lifecycle struct {
+	Rules []LifecycleRule
+}
+
+const (
+	// RFC3339 date with only the date segment, used for CreatedBefore in LifecycleRule.
+	rfc3339Date = "2006-01-02"
+
+	// DeleteAction is a lifecycle action that deletes a live and/or archived
+	// objects. Takes precendence over SetStorageClass actions.
+	DeleteAction = "Delete"
+
+	// SetStorageClassAction changes the storage class of live and/or archived
+	// objects.
+	SetStorageClassAction = "SetStorageClass"
+)
+
+// LifecycleRule is a lifecycle configuration rule.
+//
+// When all the configured conditions are met by an object in the bucket, the
+// configured action will automatically be taken on that object.
+type LifecycleRule struct {
+	// Action is the action to take when all of the associated conditions are
+	// met.
+	Action LifecycleAction
+
+	// Condition is the set of conditions that must be met for the associated
+	// action to be taken.
+	Condition LifecycleCondition
+}
+
+// LifecycleAction is a lifecycle configuration action.
+type LifecycleAction struct {
+	// Type is the type of action to take on matching objects.
+	//
+	// Acceptable values are "Delete" to delete matching objects and
+	// "SetStorageClass" to set the storage class defined in StorageClass on
+	// matching objects.
+	Type string
+
+	// StorageClass is the storage class to set on matching objects if the Action
+	// is "SetStorageClass".
+	StorageClass string
+}
+
+// Liveness specifies whether the object is live or not.
+type Liveness int
+
+const (
+	// LiveAndArchived includes both live and archived objects.
+	LiveAndArchived Liveness = iota
+	// Live specifies that the object is still live.
+	Live
+	// Archived specifies that the object is archived.
+	Archived
+)
+
+// LifecycleCondition is a set of conditions used to match objects and take an
+// action automatically.
+//
+// All configured conditions must be met for the associated action to be taken.
+type LifecycleCondition struct {
+	// AgeInDays is the age of the object in days.
+	AgeInDays int64
+
+	// CreatedBefore is the time the object was created.
+	//
+	// This condition is satisfied when an object is created before midnight of
+	// the specified date in UTC.
+	CreatedBefore time.Time
+
+	// Liveness specifies the object's liveness. Relevant only for versioned objects
+	Liveness Liveness
+
+	// MatchesStorageClasses is the condition matching the object's storage
+	// class.
+	//
+	// Values include "MULTI_REGIONAL", "REGIONAL", "NEARLINE", "COLDLINE",
+	// "STANDARD", and "DURABLE_REDUCED_AVAILABILITY".
+	MatchesStorageClasses []string
+
+	// NumNewerVersions is the condition matching objects with a number of newer versions.
+	//
+	// If the value is N, this condition is satisfied when there are at least N
+	// versions (including the live version) newer than this version of the
+	// object.
+	NumNewerVersions int64
 }
 
 func newBucket(b *raw.Bucket) *BucketAttrs {
@@ -123,11 +340,15 @@ func newBucket(b *raw.Bucket) *BucketAttrs {
 		return nil
 	}
 	bucket := &BucketAttrs{
-		Name:           b.Name,
-		Location:       b.Location,
-		MetaGeneration: b.Metageneration,
-		StorageClass:   b.StorageClass,
-		Created:        convertTime(b.TimeCreated),
+		Name:              b.Name,
+		Location:          b.Location,
+		MetaGeneration:    b.Metageneration,
+		StorageClass:      b.StorageClass,
+		Created:           convertTime(b.TimeCreated),
+		VersioningEnabled: b.Versioning != nil && b.Versioning.Enabled,
+		Labels:            b.Labels,
+		RequesterPays:     b.Billing != nil && b.Billing.RequesterPays,
+		Lifecycle:         toLifecycle(b.Lifecycle),
 	}
 	acl := make([]ACLRule, len(b.Acl))
 	for i, rule := range b.Acl {
@@ -161,54 +382,236 @@ func (b *BucketAttrs) toRawBucket() *raw.Bucket {
 		}
 	}
 	dACL := toRawObjectACL(b.DefaultObjectACL)
+	// Copy label map.
+	var labels map[string]string
+	if len(b.Labels) > 0 {
+		labels = make(map[string]string, len(b.Labels))
+		for k, v := range b.Labels {
+			labels[k] = v
+		}
+	}
+	// Ignore VersioningEnabled if it is false. This is OK because
+	// we only call this method when creating a bucket, and by default
+	// new buckets have versioning off.
+	var v *raw.BucketVersioning
+	if b.VersioningEnabled {
+		v = &raw.BucketVersioning{Enabled: true}
+	}
+	var bb *raw.BucketBilling
+	if b.RequesterPays {
+		bb = &raw.BucketBilling{RequesterPays: true}
+	}
 	return &raw.Bucket{
 		Name:             b.Name,
 		DefaultObjectAcl: dACL,
 		Location:         b.Location,
 		StorageClass:     b.StorageClass,
 		Acl:              acl,
+		Versioning:       v,
+		Labels:           labels,
+		Billing:          bb,
+		Lifecycle:        toRawLifecycle(b.Lifecycle),
 	}
 }
 
-// ObjectList represents a list of objects returned from a bucket List call.
-type ObjectList struct {
-	// Results represent a list of object results.
-	Results []*ObjectAttrs
+type BucketAttrsToUpdate struct {
+	// VersioningEnabled, if set, updates whether the bucket uses versioning.
+	VersioningEnabled optional.Bool
 
-	// Next is the continuation query to retrieve more
-	// results with the same filtering criteria. If there
-	// are no more results to retrieve, it is nil.
-	Next *Query
+	// RequesterPays, if set, updates whether the bucket is a Requester Pays bucket.
+	RequesterPays optional.Bool
 
-	// Prefixes represents prefixes of objects
-	// matching-but-not-listed up to and including
-	// the requested delimiter.
-	Prefixes []string
+	setLabels    map[string]string
+	deleteLabels map[string]bool
 }
 
-// List lists objects from the bucket. You can specify a query
-// to filter the results. If q is nil, no filtering is applied.
-//
-// Deprecated. Use BucketHandle.Objects instead.
-func (b *BucketHandle) List(ctx context.Context, q *Query) (*ObjectList, error) {
-	it := b.Objects(ctx, q)
-	nextToken, err := it.fetch(it.pageInfo.MaxSize, it.pageInfo.Token)
-	if err != nil {
-		return nil, err
+// SetLabel causes a label to be added or modified when ua is used
+// in a call to Bucket.Update.
+func (ua *BucketAttrsToUpdate) SetLabel(name, value string) {
+	if ua.setLabels == nil {
+		ua.setLabels = map[string]string{}
 	}
-	list := &ObjectList{}
-	for _, item := range it.items {
-		if item.Prefix != "" {
-			list.Prefixes = append(list.Prefixes, item.Prefix)
-		} else {
-			list.Results = append(list.Results, item)
+	ua.setLabels[name] = value
+}
+
+// DeleteLabel causes a label to be deleted when ua is used in a
+// call to Bucket.Update.
+func (ua *BucketAttrsToUpdate) DeleteLabel(name string) {
+	if ua.deleteLabels == nil {
+		ua.deleteLabels = map[string]bool{}
+	}
+	ua.deleteLabels[name] = true
+}
+
+func (ua *BucketAttrsToUpdate) toRawBucket() *raw.Bucket {
+	rb := &raw.Bucket{}
+	if ua.VersioningEnabled != nil {
+		rb.Versioning = &raw.BucketVersioning{
+			Enabled:         optional.ToBool(ua.VersioningEnabled),
+			ForceSendFields: []string{"Enabled"},
 		}
 	}
-	if nextToken != "" {
-		it.query.Cursor = nextToken
-		list.Next = &it.query
+	if ua.RequesterPays != nil {
+		rb.Billing = &raw.BucketBilling{
+			RequesterPays:   optional.ToBool(ua.RequesterPays),
+			ForceSendFields: []string{"RequesterPays"},
+		}
 	}
-	return list, nil
+	if ua.setLabels != nil || ua.deleteLabels != nil {
+		rb.Labels = map[string]string{}
+		for k, v := range ua.setLabels {
+			rb.Labels[k] = v
+		}
+		if len(rb.Labels) == 0 && len(ua.deleteLabels) > 0 {
+			rb.ForceSendFields = append(rb.ForceSendFields, "Labels")
+		}
+		for l := range ua.deleteLabels {
+			rb.NullFields = append(rb.NullFields, "Labels."+l)
+		}
+	}
+	return rb
+}
+
+// If returns a new BucketHandle that applies a set of preconditions.
+// Preconditions already set on the BucketHandle are ignored.
+// Operations on the new handle will only occur if the preconditions are
+// satisfied. The only valid preconditions for buckets are MetagenerationMatch
+// and MetagenerationNotMatch.
+func (b *BucketHandle) If(conds BucketConditions) *BucketHandle {
+	b2 := *b
+	b2.conds = &conds
+	return &b2
+}
+
+// BucketConditions constrain bucket methods to act on specific metagenerations.
+//
+// The zero value is an empty set of constraints.
+type BucketConditions struct {
+	// MetagenerationMatch specifies that the bucket must have the given
+	// metageneration for the operation to occur.
+	// If MetagenerationMatch is zero, it has no effect.
+	MetagenerationMatch int64
+
+	// MetagenerationNotMatch specifies that the bucket must not have the given
+	// metageneration for the operation to occur.
+	// If MetagenerationNotMatch is zero, it has no effect.
+	MetagenerationNotMatch int64
+}
+
+func (c *BucketConditions) validate(method string) error {
+	if *c == (BucketConditions{}) {
+		return fmt.Errorf("storage: %s: empty conditions", method)
+	}
+	if c.MetagenerationMatch != 0 && c.MetagenerationNotMatch != 0 {
+		return fmt.Errorf("storage: %s: multiple conditions specified for metageneration", method)
+	}
+	return nil
+}
+
+// UserProject returns a new BucketHandle that passes the project ID as the user
+// project for all subsequent calls. Calls with a user project will be billed to that
+// project rather than to the bucket's owning project.
+//
+// A user project is required for all operations on Requester Pays buckets.
+func (b *BucketHandle) UserProject(projectID string) *BucketHandle {
+	b2 := *b
+	b2.userProject = projectID
+	b2.acl.userProject = projectID
+	b2.defaultObjectACL.userProject = projectID
+	return &b2
+}
+
+// applyBucketConds modifies the provided call using the conditions in conds.
+// call is something that quacks like a *raw.WhateverCall.
+func applyBucketConds(method string, conds *BucketConditions, call interface{}) error {
+	if conds == nil {
+		return nil
+	}
+	if err := conds.validate(method); err != nil {
+		return err
+	}
+	cval := reflect.ValueOf(call)
+	switch {
+	case conds.MetagenerationMatch != 0:
+		if !setConditionField(cval, "IfMetagenerationMatch", conds.MetagenerationMatch) {
+			return fmt.Errorf("storage: %s: ifMetagenerationMatch not supported", method)
+		}
+	case conds.MetagenerationNotMatch != 0:
+		if !setConditionField(cval, "IfMetagenerationNotMatch", conds.MetagenerationNotMatch) {
+			return fmt.Errorf("storage: %s: ifMetagenerationNotMatch not supported", method)
+		}
+	}
+	return nil
+}
+
+func toRawLifecycle(l Lifecycle) *raw.BucketLifecycle {
+	var rl raw.BucketLifecycle
+	if len(l.Rules) == 0 {
+		return nil
+	}
+	for _, r := range l.Rules {
+		rr := &raw.BucketLifecycleRule{
+			Action: &raw.BucketLifecycleRuleAction{
+				Type:         r.Action.Type,
+				StorageClass: r.Action.StorageClass,
+			},
+			Condition: &raw.BucketLifecycleRuleCondition{
+				Age:                 r.Condition.AgeInDays,
+				MatchesStorageClass: r.Condition.MatchesStorageClasses,
+				NumNewerVersions:    r.Condition.NumNewerVersions,
+			},
+		}
+
+		switch r.Condition.Liveness {
+		case LiveAndArchived:
+			rr.Condition.IsLive = nil
+		case Live:
+			rr.Condition.IsLive = googleapi.Bool(true)
+		case Archived:
+			rr.Condition.IsLive = googleapi.Bool(false)
+		}
+
+		if !r.Condition.CreatedBefore.IsZero() {
+			rr.Condition.CreatedBefore = r.Condition.CreatedBefore.Format(rfc3339Date)
+		}
+		rl.Rule = append(rl.Rule, rr)
+	}
+	return &rl
+}
+
+func toLifecycle(rl *raw.BucketLifecycle) Lifecycle {
+	var l Lifecycle
+	if rl == nil {
+		return l
+	}
+	for _, rr := range rl.Rule {
+		r := LifecycleRule{
+			Action: LifecycleAction{
+				Type:         rr.Action.Type,
+				StorageClass: rr.Action.StorageClass,
+			},
+			Condition: LifecycleCondition{
+				AgeInDays:             rr.Condition.Age,
+				MatchesStorageClasses: rr.Condition.MatchesStorageClass,
+				NumNewerVersions:      rr.Condition.NumNewerVersions,
+			},
+		}
+
+		switch {
+		case rr.Condition.IsLive == nil:
+			r.Condition.Liveness = LiveAndArchived
+		case *rr.Condition.IsLive == true:
+			r.Condition.Liveness = Live
+		case *rr.Condition.IsLive == false:
+			r.Condition.Liveness = Archived
+		}
+
+		if rr.Condition.CreatedBefore != "" {
+			r.Condition.CreatedBefore, _ = time.Parse(rfc3339Date, rr.Condition.CreatedBefore)
+		}
+		l.Rules = append(l.Rules, r)
+	}
+	return l
 }
 
 // Objects returns an iterator over the objects in the bucket that match the Query q.
@@ -224,8 +627,6 @@ func (b *BucketHandle) Objects(ctx context.Context, q *Query) *ObjectIterator {
 		func() interface{} { b := it.items; it.items = nil; return b })
 	if q != nil {
 		it.query = *q
-		it.pageInfo.MaxSize = q.MaxResults
-		it.pageInfo.Token = q.Cursor
 	}
 	return it
 }
@@ -243,9 +644,9 @@ type ObjectIterator struct {
 // PageInfo supports pagination. See the google.golang.org/api/iterator package for details.
 func (it *ObjectIterator) PageInfo() *iterator.PageInfo { return it.pageInfo }
 
-// Next returns the next result. Its second return value is Done if there are
-// no more results. Once Next returns Done, all subsequent calls will return
-// Done.
+// Next returns the next result. Its second return value is iterator.Done if
+// there are no more results. Once Next returns iterator.Done, all subsequent
+// calls will return iterator.Done.
 //
 // If Query.Delimiter is non-empty, some of the ObjectAttrs returned by Next will
 // have a non-empty Prefix field, and a zero value for all other fields. These
@@ -261,16 +662,28 @@ func (it *ObjectIterator) Next() (*ObjectAttrs, error) {
 
 func (it *ObjectIterator) fetch(pageSize int, pageToken string) (string, error) {
 	req := it.bucket.c.raw.Objects.List(it.bucket.name)
+	setClientHeader(req.Header())
 	req.Projection("full")
 	req.Delimiter(it.query.Delimiter)
 	req.Prefix(it.query.Prefix)
 	req.Versions(it.query.Versions)
 	req.PageToken(pageToken)
+	if it.bucket.userProject != "" {
+		req.UserProject(it.bucket.userProject)
+	}
 	if pageSize > 0 {
 		req.MaxResults(int64(pageSize))
 	}
-	resp, err := req.Context(it.ctx).Do()
+	var resp *raw.Objects
+	var err error
+	err = runWithRetry(it.ctx, func() error {
+		resp, err = req.Context(it.ctx).Do()
+		return err
+	})
 	if err != nil {
+		if e, ok := err.(*googleapi.Error); ok && e.Code == http.StatusNotFound {
+			err = ErrBucketNotExist
+		}
 		return "", err
 	}
 	for _, item := range resp.Items {
@@ -314,9 +727,9 @@ type BucketIterator struct {
 	nextFunc  func() error
 }
 
-// Next returns the next result. Its second return value is Done if there are
-// no more results. Once Next returns Done, all subsequent calls will return
-// Done.
+// Next returns the next result. Its second return value is iterator.Done if
+// there are no more results. Once Next returns iterator.Done, all subsequent
+// calls will return iterator.Done.
 func (it *BucketIterator) Next() (*BucketAttrs, error) {
 	if err := it.nextFunc(); err != nil {
 		return nil, err
@@ -331,13 +744,19 @@ func (it *BucketIterator) PageInfo() *iterator.PageInfo { return it.pageInfo }
 
 func (it *BucketIterator) fetch(pageSize int, pageToken string) (string, error) {
 	req := it.client.raw.Buckets.List(it.projectID)
+	setClientHeader(req.Header())
 	req.Projection("full")
 	req.Prefix(it.Prefix)
 	req.PageToken(pageToken)
 	if pageSize > 0 {
 		req.MaxResults(int64(pageSize))
 	}
-	resp, err := req.Context(it.ctx).Do()
+	var resp *raw.Buckets
+	var err error
+	err = runWithRetry(it.ctx, func() error {
+		resp, err = req.Context(it.ctx).Do()
+		return err
+	})
 	if err != nil {
 		return "", err
 	}

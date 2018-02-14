@@ -15,11 +15,12 @@
 package concurrency
 
 import (
+	"context"
 	"fmt"
 
 	v3 "github.com/coreos/etcd/clientv3"
+	pb "github.com/coreos/etcd/etcdserver/etcdserverpb"
 	"github.com/coreos/etcd/mvcc/mvccpb"
-	"golang.org/x/net/context"
 )
 
 func waitDelete(ctx context.Context, client *v3.Client, key string, rev int64) error {
@@ -46,19 +47,19 @@ func waitDelete(ctx context.Context, client *v3.Client, key string, rev int64) e
 
 // waitDeletes efficiently waits until all keys matching the prefix and no greater
 // than the create revision.
-func waitDeletes(ctx context.Context, client *v3.Client, pfx string, maxCreateRev int64) error {
+func waitDeletes(ctx context.Context, client *v3.Client, pfx string, maxCreateRev int64) (*pb.ResponseHeader, error) {
 	getOpts := append(v3.WithLastCreate(), v3.WithMaxCreateRev(maxCreateRev))
 	for {
 		resp, err := client.Get(ctx, pfx, getOpts...)
 		if err != nil {
-			return err
+			return nil, err
 		}
 		if len(resp.Kvs) == 0 {
-			return nil
+			return resp.Header, nil
 		}
 		lastKey := string(resp.Kvs[0].Key)
 		if err = waitDelete(ctx, client, lastKey, resp.Header.Revision); err != nil {
-			return err
+			return nil, err
 		}
 	}
 }

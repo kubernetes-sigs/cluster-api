@@ -4,6 +4,7 @@ import (
 	"net/url"
 	"reflect"
 	"testing"
+	"time"
 
 	"github.com/gophercloud/gophercloud"
 	th "github.com/gophercloud/gophercloud/testhelper"
@@ -37,13 +38,14 @@ func TestBuildQueryString(t *testing.T) {
 	type testVar string
 	iFalse := false
 	opts := struct {
-		J  int       `q:"j"`
-		R  string    `q:"r,required"`
-		C  bool      `q:"c"`
-		S  []string  `q:"s"`
-		TS []testVar `q:"ts"`
-		TI []int     `q:"ti"`
-		F  *bool     `q:"f"`
+		J  int               `q:"j"`
+		R  string            `q:"r,required"`
+		C  bool              `q:"c"`
+		S  []string          `q:"s"`
+		TS []testVar         `q:"ts"`
+		TI []int             `q:"ti"`
+		F  *bool             `q:"f"`
+		M  map[string]string `q:"m"`
 	}{
 		J:  2,
 		R:  "red",
@@ -52,8 +54,9 @@ func TestBuildQueryString(t *testing.T) {
 		TS: []testVar{"a", "b"},
 		TI: []int{1, 2},
 		F:  &iFalse,
+		M:  map[string]string{"k1": "success1"},
 	}
-	expected := &url.URL{RawQuery: "c=true&f=false&j=2&r=red&s=one&s=two&s=three&ti=1&ti=2&ts=a&ts=b"}
+	expected := &url.URL{RawQuery: "c=true&f=false&j=2&m=%7B%27k1%27%3A%27success1%27%7D&r=red&s=one&s=two&s=three&ti=1&ti=2&ts=a&ts=b"}
 	actual, err := gophercloud.BuildQueryString(&opts)
 	if err != nil {
 		t.Errorf("Error building query string: %v", err)
@@ -61,13 +64,14 @@ func TestBuildQueryString(t *testing.T) {
 	th.CheckDeepEquals(t, expected, actual)
 
 	opts = struct {
-		J  int       `q:"j"`
-		R  string    `q:"r,required"`
-		C  bool      `q:"c"`
-		S  []string  `q:"s"`
-		TS []testVar `q:"ts"`
-		TI []int     `q:"ti"`
-		F  *bool     `q:"f"`
+		J  int               `q:"j"`
+		R  string            `q:"r,required"`
+		C  bool              `q:"c"`
+		S  []string          `q:"s"`
+		TS []testVar         `q:"ts"`
+		TI []int             `q:"ti"`
+		F  *bool             `q:"f"`
+		M  map[string]string `q:"m"`
 	}{
 		J: 2,
 		C: true,
@@ -251,4 +255,22 @@ func TestBuildRequestBody(t *testing.T) {
 		_, err := gophercloud.BuildRequestBody(failCase.opts, "auth")
 		th.AssertDeepEquals(t, reflect.TypeOf(failCase.expected), reflect.TypeOf(err))
 	}
+
+	createdAt := time.Date(2018, 1, 4, 10, 00, 12, 0, time.UTC)
+	var complexFields = struct {
+		Username  string     `json:"username" required:"true"`
+		CreatedAt *time.Time `json:"-"`
+	}{
+		Username:  "jdoe",
+		CreatedAt: &createdAt,
+	}
+
+	expectedComplexFields := map[string]interface{}{
+		"username": "jdoe",
+	}
+
+	actual, err := gophercloud.BuildRequestBody(complexFields, "")
+	th.AssertNoErr(t, err)
+	th.AssertDeepEquals(t, expectedComplexFields, actual)
+
 }

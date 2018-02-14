@@ -1,0 +1,11 @@
+Cloud: aws
+TemplatePath: templates/1.8-jessie.yml
+Tags:
+  k8s.io/kernel: "4.9"
+  k8s.io/version: "1.8"
+  k8s.io/family: "default"
+  k8s.io/distro: "debian"
+  k8s.io/ssh-user: "admin"
+# Ensure the image is repeatable - really we should be locking to a tag
+BootstrapVZRepo: https://github.com/justinsb/bootstrap-vz.git
+BootstrapVZBranch: image18

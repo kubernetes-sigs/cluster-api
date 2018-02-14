@@ -490,8 +490,7 @@ func (gce *GCEClient) requiresUpdate(a *clusterv1.Machine, b *clusterv1.Machine)
 		!reflect.DeepEqual(a.Spec.Roles, b.Spec.Roles) ||
 		!reflect.DeepEqual(a.Spec.Versions, b.Spec.Versions) ||
 		a.ObjectMeta.Name != b.ObjectMeta.Name ||
-		a.ObjectMeta.UID != b.ObjectMeta.UID ||
-		!reflect.DeepEqual(aConfig, bConfig)
+		a.ObjectMeta.UID != b.ObjectMeta.UID
 }
 
 // Gets the instance represented by the given machine

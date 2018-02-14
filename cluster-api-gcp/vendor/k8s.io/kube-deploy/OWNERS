@@ -1,0 +1,6 @@
+# See the OWNERS docs: https://git.k8s.io/community/contributors/devel/owners.md
+
+approvers:
+  - sig-cluster-lifecycle-leads
+  - kube-deploy-admins
+  - kube-deploy-maintainers

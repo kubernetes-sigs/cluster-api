@@ -59,3 +59,7 @@
   # in release-1.8 the lister and informer are broken
   revision = "961bc077103364eb5bda2c40e2b560d068c9a8c6"
 
+
+[[constraint]]
+  branch = "master"
+  name = "k8s.io/kube-deploy"

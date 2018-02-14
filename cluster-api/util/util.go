@@ -25,13 +25,10 @@ import (
 
 	"github.com/golang/glog"
 	"k8s.io/api/core/v1"
+	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/tools/clientcmd"
 	clusterv1 "k8s.io/kube-deploy/cluster-api/api/cluster/v1alpha1"
 	"k8s.io/kube-deploy/cluster-api/client"
-)
-
-const (
-	TypeMaster = "Master"
 )
 
 func Contains(a string, list []string) bool {
@@ -43,8 +40,17 @@ func Contains(a string, list []string) bool {
 	return false
 }
 
+func RoleContains(a clusterv1.MachineRole, list []clusterv1.MachineRole) bool {
+	for _, b := range list {
+		if b == a {
+			return true
+		}
+	}
+	return false
+}
+
 func IsMaster(machine *clusterv1.Machine) bool {
-	return Contains(TypeMaster, machine.Spec.Roles)
+	return RoleContains(clusterv1.MasterRole, machine.Spec.Roles)
 }
 
 func IsNodeReady(node *v1.Node) bool {
@@ -105,6 +111,23 @@ func NewApiClient(configPath string) (*client.ClusterAPIV1Alpha1Client, error) {
 	}
 
 	c, err := client.NewForConfig(config)
+	if err != nil {
+		return nil, err
+	}
+	return c, nil
+}
+
+func NewKubernetesClient(configPath string) (*kubernetes.Clientset, error) {
+	if _, err := os.Stat(configPath); os.IsNotExist(err) {
+		return nil, fmt.Errorf("kubectl config file %s doesn't exist. Is kubectl configured to access a cluster?", configPath)
+	}
+
+	config, err := clientcmd.BuildConfigFromFlags("", configPath)
+	if err != nil {
+		return nil, err
+	}
+
+	c, err := kubernetes.NewForConfig(config)
 	if err != nil {
 		return nil, err
 	}

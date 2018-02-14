@@ -6,33 +6,15 @@ The Cluster API GCP prototype implements the [Cluster API](https://github.com/ku
 
 ### Prerequisites
 
-* `kubectl` is required, see [here](http://kubernetes.io/docs/user-guide/prereqs/).
-* The [Google Cloud SDK](https://cloud.google.com/sdk/downloads) needs to be installed.
-* You will need to have a GCP account.
-* Create a firewall rule to allow communication from kubectl (and nodes) to the control plane.
-
-   ```bash
-   gcloud compute firewall-rules create cluster-api-open --allow=TCP:443 --source-ranges=0.0.0.0/0 --target-tags='https-server'
-   ```
-
-
-### Building
-
-```bash
-$ cd $GOPATH/src/k8s.io/
-$ git clone git@github.com:kubernetes/kube-deploy.git
-$ cd kube-deploy/cluster-api-gcp
-$ go build
-```
-
+Follow the steps listed at [CONTRIBUTING.md](https://github.com/kubernetes/kube-deploy/blob/master/cluster-api-gcp/CONTRIBUTING.md) to:
+1. Build the `cluster-api-gcp` tool
+2. Generate base `machines.yaml` file configured for your GCP project
 
 ### Creating a cluster
 
-1. Follow the above steps to clone the repository and build the `cluster-api-gcp` tool.
-1. Update `machines.yaml` to give your preferred GCP project/zone in
+1. *Optional* update `machines.yaml` to give your preferred GCP zone in
 each machine's `providerConfig` field.
-   - *Optional*: Update `cluster.yaml` to set a custom cluster name.
-1. Run `gcloud auth application-default login` to get default credentials.
+1. *Optional*: Update `cluster.yaml` to set a custom cluster name.
 1. Create a cluster: `./cluster-api-gcp create -c cluster.yaml -m machines.yaml`
 
 During cluster creation, you can watch the machine resources get created in Kubernetes,

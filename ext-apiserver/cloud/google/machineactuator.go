@@ -125,7 +125,11 @@ func (gce *GCEClient) CreateMachineController(cluster *clusterv1.Cluster, initia
 		return err
 	}
 
-	if err := CreateMachineControllerPod(gce.kubeadmToken); err != nil {
+	if err := CreateExtApiServerRoleBinding(); err != nil {
+		return err
+	}
+
+	if err := CreateApiServerAndController(gce.kubeadmToken); err != nil {
 		return err
 	}
 	return nil
@@ -325,7 +329,13 @@ func (gce *GCEClient) Delete(machine *clusterv1.Machine) error {
 			"error deleting GCE instance: %v", err))
 	}
 
-	return nil
+	if gce.machineClient != nil {
+		// Remove the finalizer
+		machine.ObjectMeta.Finalizers = util.Filter(machine.ObjectMeta.Finalizers, clusterv1.MachineFinalizer)
+		_, err = gce.machineClient.Update(machine)
+	}
+
+	return err
 }
 
 func (gce *GCEClient) PostDelete(cluster *clusterv1.Cluster, machines []*clusterv1.Machine) error {
@@ -643,7 +653,7 @@ func (gce *GCEClient) handleMachineError(machine *clusterv1.Machine, err *apierr
 		message := err.Message
 		machine.Status.ErrorReason = &reason
 		machine.Status.ErrorMessage = &message
-		gce.machineClient.Update(machine)
+		gce.machineClient.UpdateStatus(machine)
 	}
 
 	glog.Errorf("Machine error: %v", err.Message)
@@ -671,4 +681,13 @@ func getSubnet(netRange clusterv1.NetworkRanges) string {
 		return ""
 	}
 	return netRange.CIDRBlocks[0]
+}
+
+// TODO: We need to change this when we create dedicated service account for apiserver/controller
+// pod.
+//
+func CreateExtApiServerRoleBinding() error {
+	return run("kubectl", "create", "rolebinding",
+		"-n", "kube-system", "machine-controller", "--role=extension-apiserver-authentication-reader",
+		"--serviceaccount=default:default")
 }

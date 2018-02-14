@@ -10,6 +10,8 @@ feedback on the API types themselves. All of the code here is to experiment with
 the API and demo its abilities, in order to drive more technical feedback to the
 API design. Because of this, all of the prototype code is rapidly changing.
 
+![Cluster API Architecture](architecture.png "Cluster API Architecture")
+
 To learn more, see the [Cluster API KEP][cluster-api-kep].
 
 ## Get involved!

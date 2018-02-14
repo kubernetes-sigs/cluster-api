@@ -23,7 +23,13 @@ import (
 	"github.com/coreos/etcd/pkg/expect"
 )
 
-func TestCtlV3Elect(t *testing.T) { testCtl(t, testElect) }
+func TestCtlV3Elect(t *testing.T) {
+	oldenv := os.Getenv("EXPECT_DEBUG")
+	defer os.Setenv("EXPECT_DEBUG", oldenv)
+	os.Setenv("EXPECT_DEBUG", "1")
+
+	testCtl(t, testElect)
+}
 
 func testElect(cx ctlCtx) {
 	name := "a"
@@ -70,7 +76,7 @@ func testElect(cx ctlCtx) {
 	if err = blocked.Signal(os.Interrupt); err != nil {
 		cx.t.Fatal(err)
 	}
-	if err = blocked.Close(); err != nil {
+	if err = closeWithTimeout(blocked, time.Second); err != nil {
 		cx.t.Fatal(err)
 	}
 
@@ -78,7 +84,7 @@ func testElect(cx ctlCtx) {
 	if err = holder.Signal(os.Interrupt); err != nil {
 		cx.t.Fatal(err)
 	}
-	if err = holder.Close(); err != nil {
+	if err = closeWithTimeout(holder, time.Second); err != nil {
 		cx.t.Fatal(err)
 	}
 

@@ -15,6 +15,7 @@
 package integration
 
 import (
+	"context"
 	"fmt"
 	"log"
 	"math/rand"
@@ -27,9 +28,8 @@ import (
 	"github.com/coreos/etcd/client"
 	"github.com/coreos/etcd/etcdserver"
 	"github.com/coreos/etcd/pkg/testutil"
-	"github.com/coreos/pkg/capnslog"
 
-	"golang.org/x/net/context"
+	"github.com/coreos/pkg/capnslog"
 )
 
 func init() {
@@ -151,7 +151,15 @@ func testDecreaseClusterSize(t *testing.T, size int) {
 	// TODO: remove the last but one member
 	for i := 0; i < size-1; i++ {
 		id := c.Members[len(c.Members)-1].s.ID()
-		c.RemoveMember(t, uint64(id))
+		// may hit second leader election on slow machines
+		if err := c.removeMember(t, uint64(id)); err != nil {
+			if strings.Contains(err.Error(), "no leader") {
+				t.Logf("got leader error (%v)", err)
+				i--
+				continue
+			}
+			t.Fatal(err)
+		}
 		c.waitLeader(t, c.Members)
 	}
 	clusterMustProgress(t, c.Members)
@@ -447,7 +455,9 @@ func TestRejectUnhealthyRemove(t *testing.T) {
 // (see https://github.com/coreos/etcd/issues/7512 for more).
 func TestRestartRemoved(t *testing.T) {
 	defer testutil.AfterTest(t)
+
 	capnslog.SetGlobalLogLevel(capnslog.INFO)
+	defer capnslog.SetGlobalLogLevel(defaultLogLevel)
 
 	// 1. start single-member cluster
 	c := NewCluster(t, 1)
@@ -493,13 +503,24 @@ func TestRestartRemoved(t *testing.T) {
 func clusterMustProgress(t *testing.T, membs []*member) {
 	cc := MustNewHTTPClient(t, []string{membs[0].URL()}, nil)
 	kapi := client.NewKeysAPI(cc)
-	ctx, cancel := context.WithTimeout(context.Background(), requestTimeout)
 	key := fmt.Sprintf("foo%d", rand.Int())
-	resp, err := kapi.Create(ctx, "/"+key, "bar")
+	var (
+		err  error
+		resp *client.Response
+	)
+	// retry in case of leader loss induced by slow CI
+	for i := 0; i < 3; i++ {
+		ctx, cancel := context.WithTimeout(context.Background(), requestTimeout)
+		resp, err = kapi.Create(ctx, "/"+key, "bar")
+		cancel()
+		if err == nil {
+			break
+		}
+		t.Logf("failed to create key on %q (%v)", membs[0].URL(), err)
+	}
 	if err != nil {
 		t.Fatalf("create on %s error: %v", membs[0].URL(), err)
 	}
-	cancel()
 
 	for i, m := range membs {
 		u := m.URL()
@@ -513,47 +534,22 @@ func clusterMustProgress(t *testing.T, membs []*member) {
 	}
 }
 
-func TestTransferLeader(t *testing.T) {
+func TestSpeedyTerminate(t *testing.T) {
 	defer testutil.AfterTest(t)
-
 	clus := NewClusterV3(t, &ClusterConfig{Size: 3})
-	defer clus.Terminate(t)
-
-	oldLeadIdx := clus.WaitLeader(t)
-	oldLeadID := uint64(clus.Members[oldLeadIdx].s.ID())
-
-	// ensure followers go through leader transition while learship transfer
-	idc := make(chan uint64)
-	for i := range clus.Members {
-		if oldLeadIdx != i {
-			go func(m *member) {
-				idc <- checkLeaderTransition(t, m, oldLeadID)
-			}(clus.Members[i])
-		}
+	// Stop/Restart so requests will time out on lost leaders
+	for i := 0; i < 3; i++ {
+		clus.Members[i].Stop(t)
+		clus.Members[i].Restart(t)
 	}
-
-	err := clus.Members[oldLeadIdx].s.TransferLeadership()
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	// wait until leader transitions have happened
-	var newLeadIDs [2]uint64
-	for i := range newLeadIDs {
-		select {
-		case newLeadIDs[i] = <-idc:
-		case <-time.After(time.Second):
-			t.Fatal("timed out waiting for leader transition")
-		}
-	}
-
-	// remaining members must agree on the same leader
-	if newLeadIDs[0] != newLeadIDs[1] {
-		t.Fatalf("expected same new leader %d == %d", newLeadIDs[0], newLeadIDs[1])
-	}
-
-	// new leader must be different than the old leader
-	if oldLeadID == newLeadIDs[0] {
-		t.Fatalf("expected old leader %d != new leader %d", oldLeadID, newLeadIDs[0])
+	donec := make(chan struct{})
+	go func() {
+		defer close(donec)
+		clus.Terminate(t)
+	}()
+	select {
+	case <-time.After(10 * time.Second):
+		t.Fatalf("cluster took too long to terminate")
+	case <-donec:
 	}
 }

@@ -15,14 +15,13 @@
 package integration
 
 import (
+	"context"
 	"reflect"
 	"testing"
 
-	"github.com/coreos/etcd/clientv3"
 	"github.com/coreos/etcd/integration"
 	"github.com/coreos/etcd/pkg/testutil"
 	"github.com/coreos/etcd/pkg/types"
-	"golang.org/x/net/context"
 )
 
 func TestMemberList(t *testing.T) {
@@ -31,7 +30,7 @@ func TestMemberList(t *testing.T) {
 	clus := integration.NewClusterV3(t, &integration.ClusterConfig{Size: 3})
 	defer clus.Terminate(t)
 
-	capi := clientv3.NewCluster(clus.RandClient())
+	capi := clus.RandClient()
 
 	resp, err := capi.MemberList(context.Background())
 	if err != nil {
@@ -49,7 +48,7 @@ func TestMemberAdd(t *testing.T) {
 	clus := integration.NewClusterV3(t, &integration.ClusterConfig{Size: 3})
 	defer clus.Terminate(t)
 
-	capi := clientv3.NewCluster(clus.RandClient())
+	capi := clus.RandClient()
 
 	urls := []string{"http://127.0.0.1:1234"}
 	resp, err := capi.MemberAdd(context.Background(), urls)
@@ -68,7 +67,7 @@ func TestMemberRemove(t *testing.T) {
 	clus := integration.NewClusterV3(t, &integration.ClusterConfig{Size: 3})
 	defer clus.Terminate(t)
 
-	capi := clientv3.NewCluster(clus.Client(1))
+	capi := clus.Client(1)
 	resp, err := capi.MemberList(context.Background())
 	if err != nil {
 		t.Fatalf("failed to list member %v", err)
@@ -106,7 +105,7 @@ func TestMemberUpdate(t *testing.T) {
 	clus := integration.NewClusterV3(t, &integration.ClusterConfig{Size: 3})
 	defer clus.Terminate(t)
 
-	capi := clientv3.NewCluster(clus.RandClient())
+	capi := clus.RandClient()
 	resp, err := capi.MemberList(context.Background())
 	if err != nil {
 		t.Fatalf("failed to list member %v", err)
@@ -125,5 +124,38 @@ func TestMemberUpdate(t *testing.T) {
 
 	if !reflect.DeepEqual(resp.Members[0].PeerURLs, urls) {
 		t.Errorf("urls = %v, want %v", urls, resp.Members[0].PeerURLs)
+	}
+}
+
+func TestMemberAddUpdateWrongURLs(t *testing.T) {
+	defer testutil.AfterTest(t)
+
+	clus := integration.NewClusterV3(t, &integration.ClusterConfig{Size: 1})
+	defer clus.Terminate(t)
+
+	capi := clus.RandClient()
+	tt := [][]string{
+		// missing protocol scheme
+		{"://127.0.0.1:2379"},
+		// unsupported scheme
+		{"mailto://127.0.0.1:2379"},
+		// not conform to host:port
+		{"http://127.0.0.1"},
+		// contain a path
+		{"http://127.0.0.1:2379/path"},
+		// first path segment in URL cannot contain colon
+		{"127.0.0.1:1234"},
+		// URL scheme must be http, https, unix, or unixs
+		{"localhost:1234"},
+	}
+	for i := range tt {
+		_, err := capi.MemberAdd(context.Background(), tt[i])
+		if err == nil {
+			t.Errorf("#%d: MemberAdd err = nil, but error", i)
+		}
+		_, err = capi.MemberUpdate(context.Background(), 0, tt[i])
+		if err == nil {
+			t.Errorf("#%d: MemberUpdate err = nil, but error", i)
+		}
 	}
 }

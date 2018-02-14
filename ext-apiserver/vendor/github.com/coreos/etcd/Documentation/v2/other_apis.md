@@ -1,3 +1,8 @@
+**This is the documentation for etcd2 releases. Read [etcd3 doc][v3-docs] for etcd3 releases.**
+
+[v3-docs]: ../docs.md#documentation
+
+
 # Miscellaneous APIs
 
 * [Getting the etcd version](#getting-the-etcd-version)
@@ -24,5 +29,5 @@ curl http://10.0.0.10:2379/health
 ```
 
 ```json
-{"health": "true"}
+{"health":"true"}
 ```

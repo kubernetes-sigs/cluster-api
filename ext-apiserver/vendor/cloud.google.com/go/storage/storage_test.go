@@ -24,70 +24,125 @@ import (
 	"net"
 	"net/http"
 	"net/http/httptest"
-	"reflect"
+	"net/url"
+	"regexp"
 	"strings"
 	"testing"
 	"time"
 
+	"cloud.google.com/go/iam"
+	"cloud.google.com/go/internal/testutil"
+
 	"golang.org/x/net/context"
+	"google.golang.org/api/googleapi"
+	"google.golang.org/api/iterator"
 	"google.golang.org/api/option"
 	raw "google.golang.org/api/storage/v1"
 )
 
+func TestHeaderSanitization(t *testing.T) {
+	t.Parallel()
+	var tests = []struct {
+		desc string
+		in   []string
+		want []string
+	}{
+		{
+			desc: "already sanitized headers should not be modified",
+			in:   []string{"x-goog-header1:true", "x-goog-header2:0"},
+			want: []string{"x-goog-header1:true", "x-goog-header2:0"},
+		},
+		{
+			desc: "sanitized headers should be sorted",
+			in:   []string{"x-goog-header2:0", "x-goog-header1:true"},
+			want: []string{"x-goog-header1:true", "x-goog-header2:0"},
+		},
+		{
+			desc: "non-canonical headers should be removed",
+			in:   []string{"x-goog-header1:true", "x-goog-no-value", "non-canonical-header:not-of-use"},
+			want: []string{"x-goog-header1:true"},
+		},
+		{
+			desc: "excluded canonical headers should be removed",
+			in:   []string{"x-goog-header1:true", "x-goog-encryption-key:my_key", "x-goog-encryption-key-sha256:my_sha256"},
+			want: []string{"x-goog-header1:true"},
+		},
+		{
+			desc: "dirty headers should be formatted correctly",
+			in:   []string{" x-goog-header1 : \textra-spaces ", "X-Goog-Header2:CamelCaseValue"},
+			want: []string{"x-goog-header1:extra-spaces", "x-goog-header2:CamelCaseValue"},
+		},
+		{
+			desc: "duplicate headers should be merged",
+			in:   []string{"x-goog-header1:value1", "X-Goog-Header1:value2"},
+			want: []string{"x-goog-header1:value1,value2"},
+		},
+	}
+	for _, test := range tests {
+		got := sanitizeHeaders(test.in)
+		if !testutil.Equal(got, test.want) {
+			t.Errorf("%s: got %v, want %v", test.desc, got, test.want)
+		}
+	}
+}
+
 func TestSignedURL(t *testing.T) {
+	t.Parallel()
 	expires, _ := time.Parse(time.RFC3339, "2002-10-02T10:00:00-05:00")
 	url, err := SignedURL("bucket-name", "object-name", &SignedURLOptions{
 		GoogleAccessID: "xxx@clientid",
 		PrivateKey:     dummyKey("rsa"),
 		Method:         "GET",
-		MD5:            []byte("202cb962ac59075b964b07152d234b70"),
+		MD5:            "ICy5YqxZB1uWSwcVLSNLcA==",
 		Expires:        expires,
 		ContentType:    "application/json",
-		Headers:        []string{"x-header1", "x-header2"},
+		Headers:        []string{"x-goog-header1:true", "x-goog-header2:false"},
 	})
 	if err != nil {
 		t.Error(err)
 	}
 	want := "https://storage.googleapis.com/bucket-name/object-name?" +
 		"Expires=1033570800&GoogleAccessId=xxx%40clientid&Signature=" +
-		"ITqNWQHr7ayIj%2B0Ds5%2FzUT2cWMQQouuFmu6L11Zd3kfNKvm3sjyGIzO" +
-		"gZsSUoter1SxP7BcrCzgqIZ9fQmgQnuIpqqLL4kcGmTbKsQS6hTknpJM%2F" +
-		"2lS4NY6UH1VXBgm2Tce28kz8rnmqG6svcGvtWuOgJsETeSIl1R9nAEIDCEq" +
-		"ZJzoOiru%2BODkHHkpoFjHWAwHugFHX%2B9EX4SxaytiN3oEy48HpYGWV0I" +
-		"h8NvU1hmeWzcLr41GnTADeCn7Eg%2Fb5H2GCNO70Cz%2Bw2fn%2BofLCUeR" +
-		"YQd%2FhES8oocv5kpHZkstc8s8uz3aKMsMauzZ9MOmGy%2F6VULBgIVvi6a" +
-		"AwEBIYOw%3D%3D"
+		"RfsHlPtbB2JUYjzCgNr2Mi%2BjggdEuL1V7E6N9o6aaqwVLBDuTv3I0%2B9" +
+		"x94E6rmmr%2FVgnmZigkIUxX%2Blfl7LgKf30uPGLt0mjKGH2p7r9ey1ONJ" +
+		"%2BhVec23FnTRcSgopglvHPuCMWU2oNJE%2F1y8EwWE27baHrG1RhRHbLVF" +
+		"bPpLZ9xTRFK20pluIkfHV00JGljB1imqQHXM%2B2XPWqBngLr%2FwqxLN7i" +
+		"FcUiqR8xQEOHF%2F2e7fbkTHPNq4TazaLZ8X0eZ3eFdJ55A5QmNi8atlN4W" +
+		"5q7Hvs0jcxElG3yqIbx439A995BkspLiAcA%2Fo4%2BxAwEMkGLICdbvakq" +
+		"3eEprNCojw%3D%3D"
 	if url != want {
 		t.Fatalf("Unexpected signed URL; found %v", url)
 	}
 }
 
 func TestSignedURL_PEMPrivateKey(t *testing.T) {
+	t.Parallel()
 	expires, _ := time.Parse(time.RFC3339, "2002-10-02T10:00:00-05:00")
 	url, err := SignedURL("bucket-name", "object-name", &SignedURLOptions{
 		GoogleAccessID: "xxx@clientid",
 		PrivateKey:     dummyKey("pem"),
 		Method:         "GET",
-		MD5:            []byte("202cb962ac59075b964b07152d234b70"),
+		MD5:            "ICy5YqxZB1uWSwcVLSNLcA==",
 		Expires:        expires,
 		ContentType:    "application/json",
-		Headers:        []string{"x-header1", "x-header2"},
+		Headers:        []string{"x-goog-header1:true", "x-goog-header2:false"},
 	})
 	if err != nil {
 		t.Error(err)
 	}
 	want := "https://storage.googleapis.com/bucket-name/object-name?" +
 		"Expires=1033570800&GoogleAccessId=xxx%40clientid&Signature=" +
-		"B7XkS4dfmVDoe%2FoDeXZkWlYmg8u2kI0SizTrzL5%2B9RmKnb5j7Kf34DZ" +
-		"JL8Hcjr1MdPFLNg2QV4lEH86Gqgqt%2Fv3jFOTRl4wlzcRU%2FvV5c5HU8M" +
-		"qW0FZ0IDbqod2RdsMONLEO6yQWV2HWFrMLKl2yMFlWCJ47et%2BFaHe6v4Z" +
-		"EBc0%3D"
+		"TiyKD%2FgGb6Kh0kkb2iF%2FfF%2BnTx7L0J4YiZua8AcTmnidutePEGIU5" +
+		"NULYlrGl6l52gz4zqFb3VFfIRTcPXMdXnnFdMCDhz2QuJBUpsU1Ai9zlyTQ" +
+		"dkb6ShG03xz9%2BEXWAUQO4GBybJw%2FULASuv37xA00SwLdkqj8YdyS5II" +
+		"1lro%3D"
 	if url != want {
 		t.Fatalf("Unexpected signed URL; found %v", url)
 	}
 }
 
 func TestSignedURL_SignBytes(t *testing.T) {
+	t.Parallel()
 	expires, _ := time.Parse(time.RFC3339, "2002-10-02T10:00:00-05:00")
 	url, err := SignedURL("bucket-name", "object-name", &SignedURLOptions{
 		GoogleAccessID: "xxx@clientid",
@@ -95,10 +150,10 @@ func TestSignedURL_SignBytes(t *testing.T) {
 			return []byte("signed"), nil
 		},
 		Method:      "GET",
-		MD5:         []byte("202cb962ac59075b964b07152d234b70"),
+		MD5:         "ICy5YqxZB1uWSwcVLSNLcA==",
 		Expires:     expires,
 		ContentType: "application/json",
-		Headers:     []string{"x-header1", "x-header2"},
+		Headers:     []string{"x-goog-header1:true", "x-goog-header2:false"},
 	})
 	if err != nil {
 		t.Error(err)
@@ -112,32 +167,34 @@ func TestSignedURL_SignBytes(t *testing.T) {
 }
 
 func TestSignedURL_URLUnsafeObjectName(t *testing.T) {
+	t.Parallel()
 	expires, _ := time.Parse(time.RFC3339, "2002-10-02T10:00:00-05:00")
 	url, err := SignedURL("bucket-name", "object name界", &SignedURLOptions{
 		GoogleAccessID: "xxx@clientid",
 		PrivateKey:     dummyKey("pem"),
 		Method:         "GET",
-		MD5:            []byte("202cb962ac59075b964b07152d234b70"),
+		MD5:            "ICy5YqxZB1uWSwcVLSNLcA==",
 		Expires:        expires,
 		ContentType:    "application/json",
-		Headers:        []string{"x-header1", "x-header2"},
+		Headers:        []string{"x-goog-header1:true", "x-goog-header2:false"},
 	})
 	if err != nil {
 		t.Error(err)
 	}
-	want := "https://storage.googleapis.com/bucket-name/object%20nam" +
-		"e%E7%95%8C?Expires=1033570800&GoogleAccessId=xxx%40clientid" +
-		"&Signature=bxORkrAm73INEMHktrE7VoUZQzVPvL5NFZ7noAI5zK%2BGSm" +
-		"%2BWFvsK%2FVnRGtYK9BK89jz%2BX4ZQd87nkMEJw1OsqmGNiepyzB%2B3o" +
-		"sUYrHyV7UnKs9bkQpBkqPFlfgK1o7oX4NJjA1oKjuHP%2Fj5%2FC15OPa3c" +
-		"vHV619BEb7vf30nAwQM%3D"
+	want := "https://storage.googleapis.com/bucket-name/object%20name%E7%95%8C?" +
+		"Expires=1033570800&GoogleAccessId=xxx%40clientid&Signature=bxVH1%2Bl%2" +
+		"BSxpnj3XuqKz6mOFk6M94Y%2B4w85J6FCmJan%2FNhGSpndP6fAw1uLHlOn%2F8xUaY%2F" +
+		"SfZ5GzcQ%2BbxOL1WA37yIwZ7xgLYlO%2ByAi3GuqMUmHZiNCai28emODXQ8RtWHvgv6dE" +
+		"SQ%2F0KpDMIWW7rYCaUa63UkUyeSQsKhrVqkIA%3D"
 	if url != want {
 		t.Fatalf("Unexpected signed URL; found %v", url)
 	}
 }
 
 func TestSignedURL_MissingOptions(t *testing.T) {
+	t.Parallel()
 	pk := dummyKey("rsa")
+	expires, _ := time.Parse(time.RFC3339, "2002-10-02T10:00:00-05:00")
 	var tests = []struct {
 		opts   *SignedURLOptions
 		errMsg string
@@ -180,6 +237,16 @@ func TestSignedURL_MissingOptions(t *testing.T) {
 			},
 			"missing required expires",
 		},
+		{
+			&SignedURLOptions{
+				GoogleAccessID: "access_id",
+				PrivateKey:     pk,
+				Method:         "PUT",
+				Expires:        expires,
+				MD5:            "invalid",
+			},
+			"invalid MD5 checksum",
+		},
 	}
 	for _, test := range tests {
 		_, err := SignedURL("bucket", "name", test.opts)
@@ -198,25 +265,26 @@ func dummyKey(kind string) []byte {
 }
 
 func TestCopyToMissingFields(t *testing.T) {
+	t.Parallel()
 	var tests = []struct {
 		srcBucket, srcName, destBucket, destName string
 		errMsg                                   string
 	}{
 		{
 			"mybucket", "", "mybucket", "destname",
-			"the source and destination object names must both be non-empty",
+			"name is empty",
 		},
 		{
 			"mybucket", "srcname", "mybucket", "",
-			"the source and destination object names must both be non-empty",
+			"name is empty",
 		},
 		{
 			"", "srcfile", "mybucket", "destname",
-			"the source and destination bucket names must both be non-empty",
+			"name is empty",
 		},
 		{
 			"mybucket", "srcfile", "", "destname",
-			"the source and destination bucket names must both be non-empty",
+			"name is empty",
 		},
 	}
 	ctx := context.Background()
@@ -227,7 +295,7 @@ func TestCopyToMissingFields(t *testing.T) {
 	for i, test := range tests {
 		src := client.Bucket(test.srcBucket).Object(test.srcName)
 		dst := client.Bucket(test.destBucket).Object(test.destName)
-		_, err := src.CopyTo(ctx, dst, nil)
+		_, err := dst.CopierFrom(src).Run(ctx)
 		if !strings.Contains(err.Error(), test.errMsg) {
 			t.Errorf("CopyTo test #%v:\ngot err  %q\nwant err %q", i, err, test.errMsg)
 		}
@@ -235,6 +303,7 @@ func TestCopyToMissingFields(t *testing.T) {
 }
 
 func TestObjectNames(t *testing.T) {
+	t.Parallel()
 	// Naming requirements: https://cloud.google.com/storage/docs/bucket-naming
 	const maxLegalLength = 1024
 
@@ -300,10 +369,10 @@ func TestObjectNames(t *testing.T) {
 		GoogleAccessID: "xxx@clientid",
 		PrivateKey:     dummyKey("rsa"),
 		Method:         "GET",
-		MD5:            []byte("202cb962ac59075b964b07152d234b70"),
+		MD5:            "ICy5YqxZB1uWSwcVLSNLcA==",
 		Expires:        time.Date(2002, time.October, 2, 10, 0, 0, 0, time.UTC),
 		ContentType:    "application/json",
-		Headers:        []string{"x-header1", "x-header2"},
+		Headers:        []string{"x-goog-header1", "x-goog-header2"},
 	}
 
 	for _, test := range tests {
@@ -318,15 +387,12 @@ func TestObjectNames(t *testing.T) {
 }
 
 func TestCondition(t *testing.T) {
+	t.Parallel()
 	gotReq := make(chan *http.Request, 1)
 	hc, close := newTestServer(func(w http.ResponseWriter, r *http.Request) {
 		io.Copy(ioutil.Discard, r.Body)
 		gotReq <- r
-		if r.Method == "POST" {
-			w.WriteHeader(200)
-		} else {
-			w.WriteHeader(500)
-		}
+		w.WriteHeader(200)
 	})
 	defer close()
 	ctx := context.Background()
@@ -342,40 +408,41 @@ func TestCondition(t *testing.T) {
 		want string
 	}{
 		{
-			func() { obj.WithConditions(Generation(1234)).NewReader(ctx) },
+			func() { obj.Generation(1234).NewReader(ctx) },
 			"GET /buck/obj?generation=1234",
 		},
 		{
-			func() { obj.WithConditions(IfGenerationMatch(1234)).NewReader(ctx) },
+			func() { obj.If(Conditions{GenerationMatch: 1234}).NewReader(ctx) },
 			"GET /buck/obj?ifGenerationMatch=1234",
 		},
 		{
-			func() { obj.WithConditions(IfGenerationNotMatch(1234)).NewReader(ctx) },
+			func() { obj.If(Conditions{GenerationNotMatch: 1234}).NewReader(ctx) },
 			"GET /buck/obj?ifGenerationNotMatch=1234",
 		},
 		{
-			func() { obj.WithConditions(IfMetaGenerationMatch(1234)).NewReader(ctx) },
+			func() { obj.If(Conditions{MetagenerationMatch: 1234}).NewReader(ctx) },
 			"GET /buck/obj?ifMetagenerationMatch=1234",
 		},
 		{
-			func() { obj.WithConditions(IfMetaGenerationNotMatch(1234)).NewReader(ctx) },
+			func() { obj.If(Conditions{MetagenerationNotMatch: 1234}).NewReader(ctx) },
 			"GET /buck/obj?ifMetagenerationNotMatch=1234",
 		},
 		{
-			func() { obj.WithConditions(IfMetaGenerationNotMatch(1234)).Attrs(ctx) },
+			func() { obj.If(Conditions{MetagenerationNotMatch: 1234}).Attrs(ctx) },
 			"GET /storage/v1/b/buck/o/obj?alt=json&ifMetagenerationNotMatch=1234&projection=full",
 		},
+
 		{
-			func() { obj.WithConditions(IfMetaGenerationMatch(1234)).Update(ctx, ObjectAttrs{}) },
+			func() { obj.If(Conditions{MetagenerationMatch: 1234}).Update(ctx, ObjectAttrsToUpdate{}) },
 			"PATCH /storage/v1/b/buck/o/obj?alt=json&ifMetagenerationMatch=1234&projection=full",
 		},
 		{
-			func() { obj.WithConditions(Generation(1234)).Delete(ctx) },
+			func() { obj.Generation(1234).Delete(ctx) },
 			"DELETE /storage/v1/b/buck/o/obj?alt=json&generation=1234",
 		},
 		{
 			func() {
-				w := obj.WithConditions(IfGenerationMatch(1234)).NewWriter(ctx)
+				w := obj.If(Conditions{GenerationMatch: 1234}).NewWriter(ctx)
 				w.ContentType = "text/plain"
 				w.Close()
 			},
@@ -383,9 +450,17 @@ func TestCondition(t *testing.T) {
 		},
 		{
 			func() {
-				obj.WithConditions(IfGenerationMatch(1234)).CopyTo(ctx, dst.WithConditions(IfMetaGenerationMatch(5678)), nil)
+				w := obj.If(Conditions{DoesNotExist: true}).NewWriter(ctx)
+				w.ContentType = "text/plain"
+				w.Close()
 			},
-			"POST /storage/v1/b/buck/o/obj/copyTo/b/dstbuck/o/dst?alt=json&ifMetagenerationMatch=5678&ifSourceGenerationMatch=1234&projection=full",
+			"POST /upload/storage/v1/b/buck/o?alt=json&ifGenerationMatch=0&projection=full&uploadType=multipart",
+		},
+		{
+			func() {
+				dst.If(Conditions{MetagenerationMatch: 5678}).CopierFrom(obj.If(Conditions{GenerationMatch: 1234})).Run(ctx)
+			},
+			"POST /storage/v1/b/buck/o/obj/rewriteTo/b/dstbuck/o/dst?alt=json&ifMetagenerationMatch=5678&ifSourceGenerationMatch=1234&projection=full",
 		},
 	}
 
@@ -406,14 +481,30 @@ func TestCondition(t *testing.T) {
 	}
 
 	// Test an error, too:
-	err = obj.WithConditions(Generation(1234)).NewWriter(ctx).Close()
-	if err == nil || !strings.Contains(err.Error(), "NewWriter: condition Generation not supported") {
-		t.Errorf("want error about unsupported condition; got %v", err)
+	err = obj.Generation(1234).NewWriter(ctx).Close()
+	if err == nil || !strings.Contains(err.Error(), "NewWriter: generation not supported") {
+		t.Errorf("want error about unsupported generation; got %v", err)
+	}
+}
+
+func TestConditionErrors(t *testing.T) {
+	t.Parallel()
+	for _, conds := range []Conditions{
+		{GenerationMatch: 0},
+		{DoesNotExist: false}, // same as above, actually
+		{GenerationMatch: 1, GenerationNotMatch: 2},
+		{GenerationNotMatch: 2, DoesNotExist: true},
+		{MetagenerationMatch: 1, MetagenerationNotMatch: 2},
+	} {
+		if err := conds.validate(""); err == nil {
+			t.Errorf("%+v: got nil, want error", conds)
+		}
 	}
 }
 
 // Test object compose.
 func TestObjectCompose(t *testing.T) {
+	t.Parallel()
 	gotURL := make(chan string, 1)
 	gotBody := make(chan []byte, 1)
 	hc, close := newTestServer(func(w http.ResponseWriter, r *http.Request) {
@@ -447,6 +538,7 @@ func TestObjectCompose(t *testing.T) {
 			},
 			wantURL: "/storage/v1/b/foo/o/bar/compose?alt=json",
 			wantReq: raw.ComposeRequest{
+				Destination: &raw.Object{Bucket: "foo"},
 				SourceObjects: []*raw.ComposeRequestSourceObjects{
 					{Name: "baz"},
 					{Name: "quux"},
@@ -468,7 +560,7 @@ func TestObjectCompose(t *testing.T) {
 			wantReq: raw.ComposeRequest{
 				Destination: &raw.Object{
 					Bucket:      "foo",
-					Name:        "bar",
+					Name:        "not-bar",
 					ContentType: "application/json",
 				},
 				SourceObjects: []*raw.ComposeRequestSourceObjects{
@@ -479,13 +571,17 @@ func TestObjectCompose(t *testing.T) {
 		},
 		{
 			desc: "with conditions",
-			dst:  c.Bucket("foo").Object("bar").WithConditions(IfGenerationMatch(12), IfMetaGenerationMatch(34)),
+			dst: c.Bucket("foo").Object("bar").If(Conditions{
+				GenerationMatch:     12,
+				MetagenerationMatch: 34,
+			}),
 			srcs: []*ObjectHandle{
-				c.Bucket("foo").Object("baz").WithConditions(Generation(56)),
-				c.Bucket("foo").Object("quux").WithConditions(IfGenerationMatch(78)),
+				c.Bucket("foo").Object("baz").Generation(56),
+				c.Bucket("foo").Object("quux").If(Conditions{GenerationMatch: 78}),
 			},
 			wantURL: "/storage/v1/b/foo/o/bar/compose?alt=json&ifGenerationMatch=12&ifMetagenerationMatch=34",
 			wantReq: raw.ComposeRequest{
+				Destination: &raw.Object{Bucket: "foo"},
 				SourceObjects: []*raw.ComposeRequestSourceObjects{
 					{
 						Name:       "baz",
@@ -539,7 +635,7 @@ func TestObjectCompose(t *testing.T) {
 		},
 		{
 			desc: "destination, bad condition",
-			dst:  c.Bucket("foo").Object("bar").WithConditions(Generation(12)),
+			dst:  c.Bucket("foo").Object("bar").Generation(12),
 			srcs: []*ObjectHandle{
 				c.Bucket("foo").Object("baz"),
 			},
@@ -549,14 +645,18 @@ func TestObjectCompose(t *testing.T) {
 			desc: "source, bad condition",
 			dst:  c.Bucket("foo").Object("bar"),
 			srcs: []*ObjectHandle{
-				c.Bucket("foo").Object("baz").WithConditions(IfMetaGenerationMatch(12)),
+				c.Bucket("foo").Object("baz").If(Conditions{MetagenerationMatch: 12}),
 			},
 			wantErr: true,
 		},
 	}
 
 	for _, tt := range testCases {
-		_, err := tt.dst.ComposeFrom(ctx, tt.srcs, tt.attrs)
+		composer := tt.dst.ComposerFrom(tt.srcs...)
+		if tt.attrs != nil {
+			composer.ObjectAttrs = *tt.attrs
+		}
+		_, err := composer.Run(ctx)
 		if gotErr := err != nil; gotErr != tt.wantErr {
 			t.Errorf("%s: got error %v; want err %t", tt.desc, err, tt.wantErr)
 			continue
@@ -572,7 +672,7 @@ func TestObjectCompose(t *testing.T) {
 		if err := json.Unmarshal(body, &req); err != nil {
 			t.Errorf("%s: json.Unmarshal %v (body %s)", tt.desc, err, body)
 		}
-		if !reflect.DeepEqual(req, tt.wantReq) {
+		if !testutil.Equal(req, tt.wantReq) {
 			// Print to JSON.
 			wantReq, _ := json.Marshal(tt.wantReq)
 			t.Errorf("%s: request body\ngot  %s\nwant %s", tt.desc, body, wantReq)
@@ -583,6 +683,7 @@ func TestObjectCompose(t *testing.T) {
 // Test that ObjectIterator's Next and NextPage methods correctly terminate
 // if there is nothing to iterate over.
 func TestEmptyObjectIterator(t *testing.T) {
+	t.Parallel()
 	hClient, close := newTestServer(func(w http.ResponseWriter, r *http.Request) {
 		io.Copy(ioutil.Discard, r.Body)
 		fmt.Fprintf(w, "{}")
@@ -594,24 +695,16 @@ func TestEmptyObjectIterator(t *testing.T) {
 		t.Fatal(err)
 	}
 	it := client.Bucket("b").Objects(ctx, nil)
-	c := make(chan error, 1)
-	go func() {
-		_, err := it.Next()
-		c <- err
-	}()
-	select {
-	case err := <-c:
-		if err != Done {
-			t.Errorf("got %v, want Done", err)
-		}
-	case <-time.After(50 * time.Millisecond):
-		t.Error("timed out")
+	_, err = it.Next()
+	if err != iterator.Done {
+		t.Errorf("got %v, want Done", err)
 	}
 }
 
 // Test that BucketIterator's Next method correctly terminates if there is
 // nothing to iterate over.
 func TestEmptyBucketIterator(t *testing.T) {
+	t.Parallel()
 	hClient, close := newTestServer(func(w http.ResponseWriter, r *http.Request) {
 		io.Copy(ioutil.Discard, r.Body)
 		fmt.Fprintf(w, "{}")
@@ -623,19 +716,184 @@ func TestEmptyBucketIterator(t *testing.T) {
 		t.Fatal(err)
 	}
 	it := client.Buckets(ctx, "project")
-	c := make(chan error, 1)
-	go func() {
-		_, err := it.Next()
-		c <- err
-	}()
-	select {
-	case err := <-c:
-		if err != Done {
-			t.Errorf("got %v, want Done", err)
-		}
-	case <-time.After(50 * time.Millisecond):
-		t.Error("timed out")
+	_, err = it.Next()
+	if err != iterator.Done {
+		t.Errorf("got %v, want Done", err)
 	}
+
+}
+
+func TestCodecUint32(t *testing.T) {
+	t.Parallel()
+	for _, u := range []uint32{0, 1, 256, 0xFFFFFFFF} {
+		s := encodeUint32(u)
+		d, err := decodeUint32(s)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if d != u {
+			t.Errorf("got %d, want input %d", d, u)
+		}
+	}
+}
+
+func TestBucketAttrs(t *testing.T) {
+	for _, c := range []struct {
+		attrs BucketAttrs
+		raw   raw.Bucket
+	}{{
+		attrs: BucketAttrs{
+			Lifecycle: Lifecycle{
+				Rules: []LifecycleRule{{
+					Action: LifecycleAction{
+						Type:         SetStorageClassAction,
+						StorageClass: "NEARLINE",
+					},
+					Condition: LifecycleCondition{
+						AgeInDays:             10,
+						Liveness:              Live,
+						CreatedBefore:         time.Date(2017, 1, 2, 3, 4, 5, 6, time.UTC),
+						MatchesStorageClasses: []string{"MULTI_REGIONAL", "REGIONAL", "STANDARD"},
+						NumNewerVersions:      3,
+					},
+				}, {
+					Action: LifecycleAction{
+						Type: DeleteAction,
+					},
+					Condition: LifecycleCondition{
+						AgeInDays:             30,
+						Liveness:              Live,
+						CreatedBefore:         time.Date(2017, 1, 2, 3, 4, 5, 6, time.UTC),
+						MatchesStorageClasses: []string{"NEARLINE"},
+						NumNewerVersions:      10,
+					},
+				}, {
+					Action: LifecycleAction{
+						Type: DeleteAction,
+					},
+					Condition: LifecycleCondition{
+						Liveness: Archived,
+					},
+				}},
+			},
+		},
+		raw: raw.Bucket{
+			Lifecycle: &raw.BucketLifecycle{
+				Rule: []*raw.BucketLifecycleRule{{
+					Action: &raw.BucketLifecycleRuleAction{
+						Type:         SetStorageClassAction,
+						StorageClass: "NEARLINE",
+					},
+					Condition: &raw.BucketLifecycleRuleCondition{
+						Age:                 10,
+						IsLive:              googleapi.Bool(true),
+						CreatedBefore:       "2017-01-02",
+						MatchesStorageClass: []string{"MULTI_REGIONAL", "REGIONAL", "STANDARD"},
+						NumNewerVersions:    3,
+					},
+				}, {
+					Action: &raw.BucketLifecycleRuleAction{
+						Type: DeleteAction,
+					},
+					Condition: &raw.BucketLifecycleRuleCondition{
+						Age:                 30,
+						IsLive:              googleapi.Bool(true),
+						CreatedBefore:       "2017-01-02",
+						MatchesStorageClass: []string{"NEARLINE"},
+						NumNewerVersions:    10,
+					},
+				}, {
+					Action: &raw.BucketLifecycleRuleAction{
+						Type: DeleteAction,
+					},
+					Condition: &raw.BucketLifecycleRuleCondition{
+						IsLive: googleapi.Bool(false),
+					},
+				}},
+			},
+		},
+	}} {
+		if got := c.attrs.toRawBucket(); !testutil.Equal(*got, c.raw) {
+			t.Errorf("toRawBucket: got %v, want %v", *got, c.raw)
+		}
+	}
+}
+
+func TestUserProject(t *testing.T) {
+	// Verify that the userProject query param is sent.
+	t.Parallel()
+	ctx := context.Background()
+	gotURL := make(chan *url.URL, 1)
+	hClient, close := newTestServer(func(w http.ResponseWriter, r *http.Request) {
+		io.Copy(ioutil.Discard, r.Body)
+		gotURL <- r.URL
+		if strings.Contains(r.URL.String(), "/rewriteTo/") {
+			res := &raw.RewriteResponse{Done: true}
+			bytes, err := res.MarshalJSON()
+			if err != nil {
+				t.Fatal(err)
+			}
+			w.Write(bytes)
+		} else {
+			fmt.Fprintf(w, "{}")
+		}
+	})
+	defer close()
+	client, err := NewClient(ctx, option.WithHTTPClient(hClient))
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	re := regexp.MustCompile(`\buserProject=p\b`)
+	b := client.Bucket("b").UserProject("p")
+	o := b.Object("o")
+
+	check := func(msg string, f func()) {
+		f()
+		select {
+		case u := <-gotURL:
+			if !re.MatchString(u.RawQuery) {
+				t.Errorf("%s: query string %q does not contain userProject", msg, u.RawQuery)
+			}
+		case <-time.After(2 * time.Second):
+			t.Errorf("%s: timed out", msg)
+		}
+	}
+
+	check("buckets.delete", func() { b.Delete(ctx) })
+	check("buckets.get", func() { b.Attrs(ctx) })
+	check("buckets.patch", func() { b.Update(ctx, BucketAttrsToUpdate{}) })
+	check("storage.objects.compose", func() { o.ComposerFrom(b.Object("x")).Run(ctx) })
+	check("storage.objects.delete", func() { o.Delete(ctx) })
+	check("storage.objects.get", func() { o.Attrs(ctx) })
+	check("storage.objects.insert", func() { o.NewWriter(ctx).Close() })
+	check("storage.objects.list", func() { b.Objects(ctx, nil).Next() })
+	check("storage.objects.patch", func() { o.Update(ctx, ObjectAttrsToUpdate{}) })
+	check("storage.objects.rewrite", func() { o.CopierFrom(b.Object("x")).Run(ctx) })
+	check("storage.objectAccessControls.list", func() { o.ACL().List(ctx) })
+	check("storage.objectAccessControls.update", func() { o.ACL().Set(ctx, "", "") })
+	check("storage.objectAccessControls.delete", func() { o.ACL().Delete(ctx, "") })
+	check("storage.bucketAccessControls.list", func() { b.ACL().List(ctx) })
+	check("storage.bucketAccessControls.update", func() { b.ACL().Set(ctx, "", "") })
+	check("storage.bucketAccessControls.delete", func() { b.ACL().Delete(ctx, "") })
+	check("storage.defaultObjectAccessControls.list",
+		func() { b.DefaultObjectACL().List(ctx) })
+	check("storage.defaultObjectAccessControls.update",
+		func() { b.DefaultObjectACL().Set(ctx, "", "") })
+	check("storage.defaultObjectAccessControls.delete",
+		func() { b.DefaultObjectACL().Delete(ctx, "") })
+	check("buckets.getIamPolicy", func() { b.IAM().Policy(ctx) })
+	check("buckets.setIamPolicy", func() {
+		p := &iam.Policy{}
+		p.Add("m", iam.Owner)
+		b.IAM().SetPolicy(ctx, p)
+	})
+	check("buckets.testIamPermissions", func() { b.IAM().TestPermissions(ctx, nil) })
+	check("storage.notifications.insert", func() {
+		b.AddNotification(ctx, &Notification{TopicProjectID: "p", TopicID: "t"})
+	})
+	check("storage.notifications.delete", func() { b.DeleteNotification(ctx, "n") })
+	check("storage.notifications.list", func() { b.Notifications(ctx) })
 }
 
 func newTestServer(handler func(w http.ResponseWriter, r *http.Request)) (*http.Client, func()) {

@@ -45,6 +45,17 @@ func New() (*Conn, error) {
 	return c, nil
 }
 
+// Close closes the dbus connection
+func (c *Conn) Close() {
+	if c == nil {
+		return
+	}
+
+	if c.conn != nil {
+		c.conn.Close()
+	}
+}
+
 func (c *Conn) initConnection() error {
 	var err error
 	c.conn, err = dbus.SystemBusPrivate()

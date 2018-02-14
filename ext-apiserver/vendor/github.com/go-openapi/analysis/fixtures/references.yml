@@ -52,6 +52,9 @@ paths:
         200:
           schema:
             $ref: "#/definitions/tag"
+  "/other/place":
+    $ref: "#/x-shared-path/getItems"
+
 definitions:
   named:
     type: string

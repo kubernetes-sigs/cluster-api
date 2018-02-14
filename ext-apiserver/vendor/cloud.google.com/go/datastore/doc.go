@@ -15,6 +15,8 @@
 /*
 Package datastore provides a client for Google Cloud Datastore.
 
+Note: This package is in beta.  Some backwards-incompatible changes may occur.
+
 
 Basic Operations
 
@@ -40,12 +42,10 @@ Valid value types are:
   - GeoPoint,
   - time.Time (stored with microsecond precision),
   - structs whose fields are all valid value types,
+  - pointers to structs whose fields are all valid value types,
   - slices of any of the above.
 
-Slices of structs are valid, as are structs that contain slices. However, if
-one struct contains another, then at most one of those can be repeated. This
-disqualifies recursively defined struct types: any struct T that (directly or
-indirectly) contains a []T.
+Slices of structs are valid, as are structs that contain slices.
 
 The Get and Put functions load and save an entity's contents. An entity's
 contents are typically represented by a struct pointer.
@@ -66,7 +66,7 @@ Example code:
 			// Handle error.
 		}
 
-		k := datastore.NewKey(ctx, "Entity", "stringID", 0, nil)
+		k := datastore.NameKey("Entity", "stringID", nil)
 		e := new(Entity)
 		if err := dsClient.Get(ctx, k, e); err != nil {
 			// Handle error.
@@ -109,17 +109,32 @@ caller whether this error is fatal, recoverable or ignorable.
 
 By default, for struct pointers, all properties are potentially indexed, and
 the property name is the same as the field name (and hence must start with an
-upper case letter). Fields may have a `datastore:"name,options"` tag. The tag
-name is the property name, which must be one or more valid Go identifiers
-joined by ".", but may start with a lower case letter. An empty tag name means
-to just use the field name. A "-" tag name means that the datastore will
-ignore that field. If options is "noindex" then the field will not be indexed.
-If the options is "" then the comma may be omitted. There are no other
-recognized options.
+upper case letter).
 
-All fields are indexed by default. Strings or byte slices longer than 1500
-bytes cannot be indexed; fields used to store long strings and byte slices must
-be tagged with "noindex" or they will cause Put operations to fail.
+Fields may have a `datastore:"name,options"` tag. The tag name is the
+property name, which must be one or more valid Go identifiers joined by ".",
+but may start with a lower case letter. An empty tag name means to just use the
+field name. A "-" tag name means that the datastore will ignore that field.
+
+The only valid options are "omitempty", "noindex" and "flatten".
+
+If the options include "omitempty" and the value of the field is empty, then the field will be omitted on Save.
+The empty values are false, 0, any nil interface value, and any array, slice, map, or string of length zero.
+Struct field values will never be empty.
+
+If options include "noindex" then the field will not be indexed. All fields are indexed
+by default. Strings or byte slices longer than 1500 bytes cannot be indexed;
+fields used to store long strings and byte slices must be tagged with "noindex"
+or they will cause Put operations to fail.
+
+For a nested struct field, the options may also include "flatten". This indicates
+that the immediate fields and any nested substruct fields of the nested struct should be
+flattened. See below for examples.
+
+To use multiple options together, separate them by a comma.
+The order does not matter.
+
+If the options is "" then the comma may be omitted.
 
 Example code:
 
@@ -139,10 +154,76 @@ Example code:
 	}
 
 
+Key Field
+
+If the struct contains a *datastore.Key field tagged with the name "__key__",
+its value will be ignored on Put. When reading the Entity back into the Go struct,
+the field will be populated with the *datastore.Key value used to query for
+the Entity.
+
+Example code:
+
+	type MyEntity struct {
+		A int
+		K *datastore.Key `datastore:"__key__"`
+	}
+
+	k := datastore.NameKey("Entity", "stringID", nil)
+	e := MyEntity{A: 12}
+	k, err = dsClient.Put(ctx, k, e)
+	if err != nil {
+		// Handle error.
+	}
+
+	var entities []MyEntity
+	q := datastore.NewQuery("Entity").Filter("A =", 12).Limit(1)
+	_, err := dsClient.GetAll(ctx, q, &entities)
+	if err != nil {
+		// Handle error
+	}
+
+	log.Println(entities[0])
+	// Prints {12 /Entity,stringID}
+
+
+
 Structured Properties
 
 If the struct pointed to contains other structs, then the nested or embedded
-structs are flattened. For example, given these definitions:
+structs are themselves saved as Entity values. For example, given these definitions:
+
+	type Inner struct {
+		W int32
+		X string
+	}
+
+	type Outer struct {
+		I Inner
+	}
+
+then an Outer would have one property, Inner, encoded as an Entity value.
+
+If an outer struct is tagged "noindex" then all of its implicit flattened
+fields are effectively "noindex".
+
+If the Inner struct contains a *Key field with the name "__key__", like so:
+
+	type Inner struct {
+		W int32
+		X string
+		K *datastore.Key `datastore:"__key__"`
+	}
+
+	type Outer struct {
+		I Inner
+	}
+
+then the value of K will be used as the Key for Inner, represented
+as an Entity value in datastore.
+
+If any nested struct fields should be flattened, instead of encoded as
+Entity values, the nested struct field should be tagged with the "flatten"
+option. For example, given the following:
 
 	type Inner1 struct {
 		W int32
@@ -157,28 +238,35 @@ structs are flattened. For example, given these definitions:
 		Z bool
 	}
 
+	type Inner4 struct {
+		WW int
+	}
+
+	type Inner5 struct {
+		X Inner4
+	}
+
 	type Outer struct {
 		A int16
-		I []Inner1
-		J Inner2
-		Inner3
+		I []Inner1 `datastore:",flatten"`
+		J Inner2   `datastore:",flatten"`
+		K Inner5   `datastore:",flatten"`
+		Inner3     `datastore:",flatten"`
 	}
 
-then an Outer's properties would be equivalent to those of:
+an Outer's properties would be equivalent to those of:
 
 	type OuterEquivalent struct {
-		A     int16
-		IDotW []int32  `datastore:"I.W"`
-		IDotX []string `datastore:"I.X"`
-		JDotY float64  `datastore:"J.Y"`
-		Z     bool
+		A          int16
+		IDotW      []int32  `datastore:"I.W"`
+		IDotX      []string `datastore:"I.X"`
+		JDotY      float64  `datastore:"J.Y"`
+		KDotXDotWW int      `datastore:"K.X.WW"`
+		Z          bool
 	}
 
-If Outer's embedded Inner3 field was tagged as `datastore:"Foo"` then the
-equivalent field would instead be: FooDotZ bool `datastore:"Foo.Z"`.
-
-If an outer struct is tagged "noindex" then all of its implicit flattened
-fields are effectively "noindex".
+Note that the "flatten" option cannot be used for Entity value fields.
+The server will reject any dotted field names for an Entity value.
 
 
 The PropertyLoadSaver Interface
@@ -211,7 +299,7 @@ Example code:
 	func (x *CustomPropsExample) Save() ([]datastore.Property, error) {
 		// Validate the Sum field.
 		if x.Sum != x.I + x.J {
-			return errors.New("CustomPropsExample has inconsistent sum")
+			return nil, errors.New("CustomPropsExample has inconsistent sum")
 		}
 		// Save I and J as usual. The code below is equivalent to calling
 		// "return datastore.SaveStruct(x)", but is done manually for
@@ -225,11 +313,45 @@ Example code:
 				Name:  "J",
 				Value: int64(x.J),
 			},
-		}
+		}, nil
 	}
 
 The *PropertyList type implements PropertyLoadSaver, and can therefore hold an
 arbitrary entity's contents.
+
+The KeyLoader Interface
+
+If a type implements the PropertyLoadSaver interface, it may
+also want to implement the KeyLoader interface.
+The KeyLoader interface exists to allow implementations of PropertyLoadSaver
+to also load an Entity's Key into the Go type. This type may be a struct
+pointer, but it does not have to be. The datastore package will call LoadKey
+when getting the entity's contents, after calling Load.
+
+Example code:
+
+	type WithKeyExample struct {
+		I int
+		Key   *datastore.Key
+	}
+
+	func (x *WithKeyExample) LoadKey(k *datastore.Key) error {
+		x.Key = k
+		return nil
+	}
+
+	func (x *WithKeyExample) Load(ps []datastore.Property) error {
+		// Load I as usual.
+		return datastore.LoadStruct(x, ps)
+	}
+
+	func (x *WithKeyExample) Save() ([]datastore.Property, error) {
+		// Save I as usual.
+		return datastore.SaveStruct(x)
+	}
+
+To load a Key into a struct which does not implement the PropertyLoadSaver
+interface, see the "Key Field" section above.
 
 
 Queries
@@ -267,10 +389,10 @@ Example code:
 		q := datastore.NewQuery("Widget").
 			Filter("Price <", 1000).
 			Order("-Price")
-		for t := dsClient.Run(ctx, q); ; {
+		for t := client.Run(ctx, q); ; {
 			var x Widget
 			key, err := t.Next(&x)
-			if err == datastore.Done {
+			if err == iterator.Done {
 				break
 			}
 			if err != nil {
@@ -293,8 +415,8 @@ Example code:
 
 	func incCount(ctx context.Context, client *datastore.Client) {
 		var count int
-		key := datastore.NewKey(ctx, "Counter", "singleton", 0, nil)
-		err := dsClient.RunInTransaction(ctx, func(tx *datastore.Transaction) error {
+		key := datastore.NameKey("Counter", "singleton", nil)
+		_, err := client.RunInTransaction(ctx, func(tx *datastore.Transaction) error {
 			var x Counter
 			if err := tx.Get(key, &x); err != nil && err != datastore.ErrNoSuchEntity {
 				return err
@@ -304,7 +426,8 @@ Example code:
 				return err
 			}
 			count = x.Count
-		}, nil)
+			return nil
+		})
 		if err != nil {
 			// Handle error.
 		}
@@ -312,9 +435,20 @@ Example code:
 		// (RunInTransaction has returned nil).
 		fmt.Printf("Count=%d\n", count)
 	}
+
+Google Cloud Datastore Emulator
+
+This package supports the Cloud Datastore emulator, which is useful for testing and
+development. Environment variables are used to indicate that datastore traffic should be
+directed to the emulator instead of the production Datastore service.
+
+To install and set up the emulator and its environment variables, see the documentation
+at https://cloud.google.com/datastore/docs/tools/datastore-emulator.
+
+Authentication
+
+See examples of authorization and authentication at
+https://godoc.org/cloud.google.com/go#pkg-examples.
+
 */
 package datastore // import "cloud.google.com/go/datastore"
-
-// resourcePrefixHeader is the name of the metadata header used to indicate
-// the resource being operated on.
-const resourcePrefixHeader = "google-cloud-resource-prefix"

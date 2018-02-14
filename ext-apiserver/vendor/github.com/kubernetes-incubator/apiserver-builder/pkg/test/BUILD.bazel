@@ -10,8 +10,8 @@ go_library(
     importpath = "github.com/kubernetes-incubator/apiserver-builder/pkg/test",
     visibility = ["//visibility:public"],
     deps = [
-        "//vendor/github.com/kubernetes-incubator/apiserver-builder/pkg/builders:go_default_library",
-        "//vendor/github.com/kubernetes-incubator/apiserver-builder/pkg/cmd/server:go_default_library",
+        "//pkg/builders:go_default_library",
+        "//pkg/cmd/server:go_default_library",
         "//vendor/github.com/onsi/ginkgo/config:go_default_library",
         "//vendor/github.com/onsi/ginkgo/types:go_default_library",
         "//vendor/k8s.io/apiserver/pkg/server:go_default_library",

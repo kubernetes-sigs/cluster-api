@@ -51,15 +51,15 @@ func (v *Uint) UnmarshalEasyJSON(l *jlexer.Lexer) {
 }
 
 // MarshalJSON implements a standard json marshaler interface.
-func (v *Uint) MarshalJSON() ([]byte, error) {
+func (v Uint) MarshalJSON() ([]byte, error) {
 	w := jwriter.Writer{}
 	v.MarshalEasyJSON(&w)
 	return w.Buffer.BuildBytes(), w.Error
 }
 
-// MarshalJSON implements a standard json marshaler interface.
+// UnmarshalJSON implements a standard json unmarshaler interface.
 func (v *Uint) UnmarshalJSON(data []byte) error {
-	l := jlexer.Lexer{}
+	l := jlexer.Lexer{Data: data}
 	v.UnmarshalEasyJSON(&l)
 	return l.Error()
 }

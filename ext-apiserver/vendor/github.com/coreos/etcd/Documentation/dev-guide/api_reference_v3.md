@@ -40,8 +40,6 @@ This is a generated documentation. Please read the proto files for more.
 
 ##### service `KV` (etcdserver/etcdserverpb/rpc.proto)
 
-for grpc-gateway
-
 | Method | Request Type | Response Type | Description |
 | ------ | ------------ | ------------- | ----------- |
 | Range | RangeRequest | RangeResponse | Range gets the keys in the range from the key-value store. |
@@ -60,6 +58,7 @@ for grpc-gateway
 | LeaseRevoke | LeaseRevokeRequest | LeaseRevokeResponse | LeaseRevoke revokes a lease. All keys attached to the lease will expire and be deleted. |
 | LeaseKeepAlive | LeaseKeepAliveRequest | LeaseKeepAliveResponse | LeaseKeepAlive keeps the lease alive by streaming keep alive requests from the client to the server and streaming keep alive responses from the server to the client. |
 | LeaseTimeToLive | LeaseTimeToLiveRequest | LeaseTimeToLiveResponse | LeaseTimeToLive retrieves lease information. |
+| LeaseLeases | LeaseLeasesRequest | LeaseLeasesResponse | LeaseLeases lists all existing leases. |
 
 
 
@@ -70,8 +69,10 @@ for grpc-gateway
 | Alarm | AlarmRequest | AlarmResponse | Alarm activates, deactivates, and queries alarms regarding cluster health. |
 | Status | StatusRequest | StatusResponse | Status gets the status of the member. |
 | Defragment | DefragmentRequest | DefragmentResponse | Defragment defragments a member's backend database to recover storage space. |
-| Hash | HashRequest | HashResponse | Hash returns the hash of the local KV state for consistency checking purpose. This is designed for testing; do not use this in production when there are ongoing transactions. |
+| Hash | HashRequest | HashResponse | Hash computes the hash of the KV's backend. This is designed for testing; do not use this in production when there are ongoing transactions. |
+| HashKV | HashKVRequest | HashKVResponse | HashKV computes the hash of all MVCC keys up to a given revision. |
 | Snapshot | SnapshotRequest | SnapshotResponse | Snapshot sends a snapshot of the entire backend from a member over a stream to a client. |
+| MoveLeader | MoveLeaderRequest | MoveLeaderResponse | MoveLeader requests current leader node to transfer its leadership to transferee. |
 
 
 
@@ -93,8 +94,6 @@ for grpc-gateway
 
 
 ##### message `AlarmRequest` (etcdserver/etcdserverpb/rpc.proto)
-
-default, used to query if any alarm is active space quota is exhausted
 
 | Field | Description | Type |
 | ----- | ----------- | ---- |
@@ -405,6 +404,8 @@ CompactionRequest compacts the key-value store up to a given revision. All super
 | create_revision | create_revision is the creation revision of the given key | int64 |
 | mod_revision | mod_revision is the last modified revision of the given key. | int64 |
 | value | value is the value of the given key, in bytes. | bytes |
+| lease | lease is the lease id of the given key. | int64 |
+| range_end | range_end compares the given target to all keys in the range [key, range_end). See RangeRequest for more details on key ranges. | bytes |
 
 
 
@@ -427,8 +428,8 @@ Empty field.
 | Field | Description | Type |
 | ----- | ----------- | ---- |
 | key | key is the first key to delete in the range. | bytes |
-| range_end | range_end is the key following the last key to delete for the range [key, range_end). If range_end is not given, the range is defined to contain only the key argument. If range_end is one bit larger than the given key, then the range is all the all keys with the prefix (the given key). If range_end is '\0', the range is all keys greater than or equal to the key argument. | bytes |
-| prev_kv | If prev_kv is set, etcd gets the previous key-value pairs before deleting it. The previous key-value pairs will be returned in the delte response. | bool |
+| range_end | range_end is the key following the last key to delete for the range [key, range_end). If range_end is not given, the range is defined to contain only the key argument. If range_end is one bit larger than the given key, then the range is all the keys with the prefix (the given key). If range_end is '\0', the range is all keys greater than or equal to the key argument. | bytes |
+| prev_kv | If prev_kv is set, etcd gets the previous key-value pairs before deleting it. The previous key-value pairs will be returned in the delete response. | bool |
 
 
 
@@ -439,6 +440,24 @@ Empty field.
 | header |  | ResponseHeader |
 | deleted | deleted is the number of keys deleted by the delete range request. | int64 |
 | prev_kvs | if prev_kv is set in the request, the previous key-value pairs will be returned. | (slice of) mvccpb.KeyValue |
+
+
+
+##### message `HashKVRequest` (etcdserver/etcdserverpb/rpc.proto)
+
+| Field | Description | Type |
+| ----- | ----------- | ---- |
+| revision | revision is the key-value store revision for the hash operation. | int64 |
+
+
+
+##### message `HashKVResponse` (etcdserver/etcdserverpb/rpc.proto)
+
+| Field | Description | Type |
+| ----- | ----------- | ---- |
+| header |  | ResponseHeader |
+| hash | hash is the hash value computed from the responding member's MVCC keys up to a given revision. | uint32 |
+| compact_revision | compact_revision is the compacted revision of key-value store when hash begins. | int64 |
 
 
 
@@ -453,7 +472,7 @@ Empty field.
 | Field | Description | Type |
 | ----- | ----------- | ---- |
 | header |  | ResponseHeader |
-| hash | hash is the hash value computed from the responding member's key-value store. | uint32 |
+| hash | hash is the hash value computed from the responding member's KV's backend. | uint32 |
 
 
 
@@ -461,7 +480,7 @@ Empty field.
 
 | Field | Description | Type |
 | ----- | ----------- | ---- |
-| TTL | TTL is the advisory time-to-live in seconds. | int64 |
+| TTL | TTL is the advisory time-to-live in seconds. Expired lease will return -1. | int64 |
 | ID | ID is the requested ID for the lease. If ID is set to 0, the lessor chooses an ID. | int64 |
 
 
@@ -495,6 +514,21 @@ Empty field.
 
 
 
+##### message `LeaseLeasesRequest` (etcdserver/etcdserverpb/rpc.proto)
+
+Empty field.
+
+
+
+##### message `LeaseLeasesResponse` (etcdserver/etcdserverpb/rpc.proto)
+
+| Field | Description | Type |
+| ----- | ----------- | ---- |
+| header |  | ResponseHeader |
+| leases |  | (slice of) LeaseStatus |
+
+
+
 ##### message `LeaseRevokeRequest` (etcdserver/etcdserverpb/rpc.proto)
 
 | Field | Description | Type |
@@ -508,6 +542,14 @@ Empty field.
 | Field | Description | Type |
 | ----- | ----------- | ---- |
 | header |  | ResponseHeader |
+
+
+
+##### message `LeaseStatus` (etcdserver/etcdserverpb/rpc.proto)
+
+| Field | Description | Type |
+| ----- | ----------- | ---- |
+| ID |  | int64 |
 
 
 
@@ -557,6 +599,7 @@ Empty field.
 | ----- | ----------- | ---- |
 | header |  | ResponseHeader |
 | member | member is the member information for the added member. | Member |
+| members | members is a list of all members after adding the new member. | (slice of) Member |
 
 
 
@@ -588,6 +631,7 @@ Empty field.
 | Field | Description | Type |
 | ----- | ----------- | ---- |
 | header |  | ResponseHeader |
+| members | members is a list of all members after removing the member. | (slice of) Member |
 
 
 
@@ -605,6 +649,23 @@ Empty field.
 | Field | Description | Type |
 | ----- | ----------- | ---- |
 | header |  | ResponseHeader |
+| members | members is a list of all members after updating the member. | (slice of) Member |
+
+
+
+##### message `MoveLeaderRequest` (etcdserver/etcdserverpb/rpc.proto)
+
+| Field | Description | Type |
+| ----- | ----------- | ---- |
+| targetID | targetID is the node ID for the new leader. | uint64 |
+
+
+
+##### message `MoveLeaderResponse` (etcdserver/etcdserverpb/rpc.proto)
+
+| Field | Description | Type |
+| ----- | ----------- | ---- |
+| header |  | ResponseHeader |
 
 
 
@@ -616,6 +677,8 @@ Empty field.
 | value | value is the value, in bytes, to associate with the key in the key-value store. | bytes |
 | lease | lease is the lease ID to associate with the key in the key-value store. A lease value of 0 indicates no lease. | int64 |
 | prev_kv | If prev_kv is set, etcd gets the previous key-value pair before changing it. The previous key-value pair will be returned in the put response. | bool |
+| ignore_value | If ignore_value is set, etcd updates the key using its current value. Returns an error if the key does not exist. | bool |
+| ignore_lease | If ignore_lease is set, etcd updates the key using its current lease. Returns an error if the key does not exist. | bool |
 
 
 
@@ -632,9 +695,9 @@ Empty field.
 
 | Field | Description | Type |
 | ----- | ----------- | ---- |
-| key | default, no sorting lowest target value first highest target value first key is the first key for the range. If range_end is not given, the request only looks up key. | bytes |
-| range_end | range_end is the upper bound on the requested range [key, range_end). If range_end is '\0', the range is all keys >= key. If the range_end is one bit larger than the given key, then the range requests get the all keys with the prefix (the given key). If both key and range_end are '\0', then range requests returns all keys. | bytes |
-| limit | limit is a limit on the number of keys returned for the request. | int64 |
+| key | key is the first key for the range. If range_end is not given, the request only looks up key. | bytes |
+| range_end | range_end is the upper bound on the requested range [key, range_end). If range_end is '\0', the range is all keys >= key. If range_end is key plus one (e.g., "aa"+1 == "ab", "a\xff"+1 == "b"), then the range request gets all keys prefixed with key. If both key and range_end are '\0', then the range request returns all keys. | bytes |
+| limit | limit is a limit on the number of keys returned for the request. When limit is set to 0, it is treated as no limit. | int64 |
 | revision | revision is the point-in-time of the key-value store to use for the range. If revision is less or equal to zero, the range is over the newest key-value store. If the revision has been compacted, ErrCompacted is returned as a response. | int64 |
 | sort_order | sort_order is the order for returned sorted results. | SortOrder |
 | sort_target | sort_target is the key-value field to use for sorting. | SortTarget |
@@ -667,6 +730,7 @@ Empty field.
 | request_range |  | RangeRequest |
 | request_put |  | PutRequest |
 | request_delete_range |  | DeleteRangeRequest |
+| request_txn |  | TxnRequest |
 
 
 
@@ -689,6 +753,7 @@ Empty field.
 | response_range |  | RangeResponse |
 | response_put |  | PutResponse |
 | response_delete_range |  | DeleteRangeResponse |
+| response_txn |  | TxnResponse |
 
 
 
@@ -765,7 +830,7 @@ From google paxosdb paper: Our implementation hinges around a powerful primitive
 | range_end | range_end is the end of the range [key, range_end) to watch. If range_end is not given, only the key argument is watched. If range_end is equal to '\0', all keys greater than or equal to the key argument are watched. If the range_end is one bit larger than the given key, then all keys with the prefix (the given key) will be watched. | bytes |
 | start_revision | start_revision is an optional revision to watch from (inclusive). No start_revision is "now". | int64 |
 | progress_notify | progress_notify is set so that the etcd server will periodically send a WatchResponse with no events to the new watcher if there are no recent events. It is useful when clients wish to recover a disconnected watcher starting from a recent known revision. The etcd server may decide how often it will send notifications based on current load. | bool |
-| filters | filter out put event. filter out delete event. filters filter the events at server side before it sends back to the watcher. | (slice of) FilterType |
+| filters | filters filter the events at server side before it sends back to the watcher. | (slice of) FilterType |
 | prev_kv | If prev_kv is set, created watcher gets the previous KV before the event happens. If the previous KV is already compacted, nothing will be returned. | bool |
 
 
@@ -789,6 +854,7 @@ From google paxosdb paper: Our implementation hinges around a powerful primitive
 | created | created is set to true if the response is for a create watch request. The client should record the watch_id and expect to receive events for the created watcher from the same stream. All events sent to the created watcher will attach with the same watch_id. | bool |
 | canceled | canceled is set to true if the response is for a cancel watch request. No further events will be sent to the canceled watcher. | bool |
 | compact_revision | compact_revision is set to the minimum index if a watcher tries to watch at a compacted index.  This happens when creating a watcher at a compacted revision or the watcher cannot catch up with the progress of the key-value store.  The client should treat the watcher as canceled and should not try to create any watcher with the same start_revision again. | int64 |
+| cancel_reason | cancel_reason indicates the reason for canceling the watcher. | string |
 | events |  | (slice of) mvccpb.Event |
 
 

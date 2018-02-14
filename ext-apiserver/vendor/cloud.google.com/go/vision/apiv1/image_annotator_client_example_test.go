@@ -1,10 +1,10 @@
-// Copyright 2016 Google Inc. All Rights Reserved.
+// Copyright 2018 Google LLC
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
 // You may obtain a copy of the License at
 //
-//      http://www.apache.org/licenses/LICENSE-2.0
+//     https://www.apache.org/licenses/LICENSE-2.0
 //
 // Unless required by applicable law or agreed to in writing, software
 // distributed under the License is distributed on an "AS IS" BASIS,
@@ -22,9 +22,9 @@ import (
 	visionpb "google.golang.org/genproto/googleapis/cloud/vision/v1"
 )
 
-func ExampleNewClient() {
+func ExampleNewImageAnnotatorClient() {
 	ctx := context.Background()
-	c, err := vision.NewClient(ctx)
+	c, err := vision.NewImageAnnotatorClient(ctx)
 	if err != nil {
 		// TODO: Handle error.
 	}
@@ -32,15 +32,15 @@ func ExampleNewClient() {
 	_ = c
 }
 
-func ExampleClient_BatchAnnotateImages() {
+func ExampleImageAnnotatorClient_BatchAnnotateImages() {
 	ctx := context.Background()
-	c, err := vision.NewClient(ctx)
+	c, err := vision.NewImageAnnotatorClient(ctx)
 	if err != nil {
 		// TODO: Handle error.
 	}
 
 	req := &visionpb.BatchAnnotateImagesRequest{
-	// TODO: Fill request struct fields.
+		// TODO: Fill request struct fields.
 	}
 	resp, err := c.BatchAnnotateImages(ctx, req)
 	if err != nil {

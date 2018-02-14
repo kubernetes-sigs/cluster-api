@@ -16,13 +16,13 @@ package raft
 
 import (
 	"bytes"
+	"context"
 	"reflect"
 	"testing"
 	"time"
 
 	"github.com/coreos/etcd/pkg/testutil"
 	"github.com/coreos/etcd/raft/raftpb"
-	"golang.org/x/net/context"
 )
 
 // TestNodeStep ensures that node.Step sends msgProp to propc chan
@@ -190,6 +190,38 @@ func TestNodeReadIndex(t *testing.T) {
 	}
 }
 
+// TestDisableProposalForwarding ensures that proposals are not forwarded to
+// the leader when DisableProposalForwarding is true.
+func TestDisableProposalForwarding(t *testing.T) {
+	r1 := newTestRaft(1, []uint64{1, 2, 3}, 10, 1, NewMemoryStorage())
+	r2 := newTestRaft(2, []uint64{1, 2, 3}, 10, 1, NewMemoryStorage())
+	cfg3 := newTestConfig(3, []uint64{1, 2, 3}, 10, 1, NewMemoryStorage())
+	cfg3.DisableProposalForwarding = true
+	r3 := newRaft(cfg3)
+	nt := newNetwork(r1, r2, r3)
+
+	// elect r1 as leader
+	nt.send(raftpb.Message{From: 1, To: 1, Type: raftpb.MsgHup})
+
+	var testEntries = []raftpb.Entry{{Data: []byte("testdata")}}
+
+	// send proposal to r2(follower) where DisableProposalForwarding is false
+	r2.Step(raftpb.Message{From: 2, To: 2, Type: raftpb.MsgProp, Entries: testEntries})
+
+	// verify r2(follower) does forward the proposal when DisableProposalForwarding is false
+	if len(r2.msgs) != 1 {
+		t.Fatalf("len(r2.msgs) expected 1, got %d", len(r2.msgs))
+	}
+
+	// send proposal to r3(follower) where DisableProposalForwarding is true
+	r3.Step(raftpb.Message{From: 3, To: 3, Type: raftpb.MsgProp, Entries: testEntries})
+
+	// verify r3(follower) does not forward the proposal when DisableProposalForwarding is true
+	if len(r3.msgs) != 0 {
+		t.Fatalf("len(r3.msgs) expected 0, got %d", len(r3.msgs))
+	}
+}
+
 // TestNodeReadIndexToOldLeader ensures that raftpb.MsgReadIndex to old leader
 // gets forwarded to the new leader and 'send' method does not attach its term.
 func TestNodeReadIndexToOldLeader(t *testing.T) {
@@ -301,6 +333,7 @@ func TestNodeProposeAddDuplicateNode(t *testing.T) {
 	n.Campaign(context.TODO())
 	rdyEntries := make([]raftpb.Entry, 0)
 	ticker := time.NewTicker(time.Millisecond * 100)
+	defer ticker.Stop()
 	done := make(chan struct{})
 	stop := make(chan struct{})
 	applyConfChan := make(chan struct{})
@@ -402,7 +435,11 @@ func TestNodeTick(t *testing.T) {
 	go n.run(r)
 	elapsed := r.electionElapsed
 	n.Tick()
-	testutil.WaitSchedule()
+
+	for len(n.tickc) != 0 {
+		time.Sleep(100 * time.Millisecond)
+	}
+
 	n.Stop()
 	if r.electionElapsed != elapsed+1 {
 		t.Errorf("elapsed = %d, want %d", r.electionElapsed, elapsed+1)
@@ -453,9 +490,9 @@ func TestReadyContainUpdates(t *testing.T) {
 		{Ready{}, false},
 		{Ready{SoftState: &SoftState{Lead: 1}}, true},
 		{Ready{HardState: raftpb.HardState{Vote: 1}}, true},
-		{Ready{Entries: make([]raftpb.Entry, 1, 1)}, true},
-		{Ready{CommittedEntries: make([]raftpb.Entry, 1, 1)}, true},
-		{Ready{Messages: make([]raftpb.Message, 1, 1)}, true},
+		{Ready{Entries: make([]raftpb.Entry, 1)}, true},
+		{Ready{CommittedEntries: make([]raftpb.Entry, 1)}, true},
+		{Ready{Messages: make([]raftpb.Message, 1)}, true},
 		{Ready{Snapshot: raftpb.Snapshot{Metadata: raftpb.SnapshotMetadata{Index: 1}}}, true},
 	}
 
@@ -487,11 +524,13 @@ func TestNodeStart(t *testing.T) {
 			CommittedEntries: []raftpb.Entry{
 				{Type: raftpb.EntryConfChange, Term: 1, Index: 1, Data: ccdata},
 			},
+			MustSync: true,
 		},
 		{
 			HardState:        raftpb.HardState{Term: 2, Commit: 3, Vote: 1},
 			Entries:          []raftpb.Entry{{Term: 2, Index: 3, Data: []byte("foo")}},
 			CommittedEntries: []raftpb.Entry{{Term: 2, Index: 3, Data: []byte("foo")}},
+			MustSync:         true,
 		},
 	}
 	storage := NewMemoryStorage()
@@ -544,6 +583,7 @@ func TestNodeRestart(t *testing.T) {
 		HardState: st,
 		// commit up to index commit index in st
 		CommittedEntries: entries[:st.Commit],
+		MustSync:         true,
 	}
 
 	storage := NewMemoryStorage()
@@ -588,6 +628,7 @@ func TestNodeRestartFromSnapshot(t *testing.T) {
 		HardState: st,
 		// commit up to index commit index in st
 		CommittedEntries: entries,
+		MustSync:         true,
 	}
 
 	s := NewMemoryStorage()

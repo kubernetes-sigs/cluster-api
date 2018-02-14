@@ -4,8 +4,4 @@ For the most part, the etcd project is stable, but we are still moving fast! We 
 
 ## The current experimental API/features are:
 
-- [gateway][gateway]: beta, to be stable in 3.2 release
-- [gRPC proxy][grpc-proxy]: alpha, to be stable in 3.2 release
-
-[gateway]: ../op-guide/gateway.md
-[grpc-proxy]: ../op-guide/grpc_proxy.md
+- [KV ordering](https://godoc.org/github.com/coreos/etcd/clientv3/ordering) wrapper. When an etcd client switches endpoints, responses to serializable reads may go backward in time if the new endpoint is lagging behind the rest of the cluster. The ordering wrapper caches the current cluster revision from response headers. If a response revision is less than the cached revision, the client selects another endpoint and reissues the read. Enable in grpcproxy with `--experimental-serializable-ordering`.

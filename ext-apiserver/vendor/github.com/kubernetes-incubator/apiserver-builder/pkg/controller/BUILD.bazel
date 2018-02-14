@@ -9,7 +9,7 @@ go_library(
     importpath = "github.com/kubernetes-incubator/apiserver-builder/pkg/controller",
     visibility = ["//visibility:public"],
     deps = [
-        "//vendor/github.com/kubernetes-incubator/apiserver-builder/pkg/builders:go_default_library",
+        "//pkg/builders:go_default_library",
         "//vendor/github.com/golang/glog:go_default_library",
         "//vendor/k8s.io/apimachinery/pkg/util/runtime:go_default_library",
         "//vendor/k8s.io/apimachinery/pkg/util/wait:go_default_library",

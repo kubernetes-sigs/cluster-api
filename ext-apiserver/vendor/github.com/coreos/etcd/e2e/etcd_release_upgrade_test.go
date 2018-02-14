@@ -23,6 +23,7 @@ import (
 
 	"github.com/coreos/etcd/pkg/fileutil"
 	"github.com/coreos/etcd/pkg/testutil"
+	"github.com/coreos/etcd/version"
 )
 
 // TestReleaseUpgrade ensures that changes to master branch does not affect
@@ -53,7 +54,7 @@ func TestReleaseUpgrade(t *testing.T) {
 	// so there's a window at boot time where it doesn't have V3rpcCapability enabled
 	// poll /version until etcdcluster is >2.3.x before making v3 requests
 	for i := 0; i < 7; i++ {
-		if err = cURLGet(epc, cURLReq{endpoint: "/version", expected: `"etcdcluster":"3.0`}); err != nil {
+		if err = cURLGet(epc, cURLReq{endpoint: "/version", expected: `"etcdcluster":"` + version.Cluster(version.Version)}); err != nil {
 			t.Logf("#%d: v3 is not ready yet (%v)", i, err)
 			time.Sleep(time.Second)
 			continue
@@ -87,8 +88,8 @@ func TestReleaseUpgrade(t *testing.T) {
 		if err := epc.procs[i].Stop(); err != nil {
 			t.Fatalf("#%d: error closing etcd process (%v)", i, err)
 		}
-		epc.procs[i].cfg.execPath = binDir + "/etcd"
-		epc.procs[i].cfg.keepDataDir = true
+		epc.procs[i].Config().execPath = binDir + "/etcd"
+		epc.procs[i].Config().keepDataDir = true
 
 		if err := epc.procs[i].Restart(); err != nil {
 			t.Fatalf("error restarting etcd process (%v)", err)
@@ -154,8 +155,8 @@ func TestReleaseUpgradeWithRestart(t *testing.T) {
 	wg.Add(len(epc.procs))
 	for i := range epc.procs {
 		go func(i int) {
-			epc.procs[i].cfg.execPath = binDir + "/etcd"
-			epc.procs[i].cfg.keepDataDir = true
+			epc.procs[i].Config().execPath = binDir + "/etcd"
+			epc.procs[i].Config().keepDataDir = true
 			if err := epc.procs[i].Restart(); err != nil {
 				t.Fatalf("error restarting etcd process (%v)", err)
 			}

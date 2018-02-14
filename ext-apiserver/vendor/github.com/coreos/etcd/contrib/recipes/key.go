@@ -15,13 +15,13 @@
 package recipe
 
 import (
+	"context"
 	"fmt"
 	"strings"
 	"time"
 
 	v3 "github.com/coreos/etcd/clientv3"
 	"github.com/coreos/etcd/clientv3/concurrency"
-	"golang.org/x/net/context"
 )
 
 // RemoteKV is a key/revision pair created by the client and stored on etcd
@@ -73,7 +73,7 @@ func putNewKV(kv v3.KV, key, val string, leaseID v3.LeaseID) (int64, error) {
 }
 
 // newSequentialKV allocates a new sequential key <prefix>/nnnnn with a given
-// value and lease.  Note: a bookkeeping node __<prefix> is also allocated.
+// prefix and value. Note: a bookkeeping node __<prefix> is also allocated.
 func newSequentialKV(kv v3.KV, prefix, val string) (*RemoteKV, error) {
 	resp, err := kv.Get(context.TODO(), prefix, v3.WithLastKey()...)
 	if err != nil {

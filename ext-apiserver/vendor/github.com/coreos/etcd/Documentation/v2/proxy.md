@@ -1,3 +1,8 @@
+**This is the documentation for etcd2 releases. Read [etcd3 doc][v3-docs] for etcd3 releases.**
+
+[v3-docs]: ../docs.md#documentation
+
+
 # Proxy
 
 etcd can run as a transparent proxy. Doing so allows for easy discovery of etcd within your infrastructure, since it can run on each machine as a local service. In this mode, etcd acts as a reverse proxy and forwards client requests to an active etcd cluster. The etcd proxy does not participate in the consensus replication of the etcd cluster, thus it neither increases the resilience nor decreases the write performance of the etcd cluster.
@@ -108,7 +113,7 @@ ETCD_INITIAL_CLUSTER_STATE=existing
 Stop the existing proxy so we can wipe its state on disk and reload it with the new configuration:
 
 ``` bash
-px aux | grep etcd
+ps aux | grep etcd
 kill %etcd_proxy_pid%
 ```
 
@@ -149,5 +154,5 @@ If an error occurs, check the [add member troubleshooting doc][runtime-configura
 
 [discovery-service]: clustering.md#discovery
 [goreman]: https://github.com/mattn/goreman
-[procfile]: https://github.com/coreos/etcd/blob/master/Procfile
+[procfile]: https://github.com/coreos/etcd/blob/master/Procfile.v2
 [runtime-configuration]: runtime-configuration.md#error-cases-when-adding-members

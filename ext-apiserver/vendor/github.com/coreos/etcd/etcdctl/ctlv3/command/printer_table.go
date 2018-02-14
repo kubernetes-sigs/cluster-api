@@ -31,6 +31,7 @@ func (tp *tablePrinter) MemberList(r v3.MemberListResponse) {
 	for _, row := range rows {
 		table.Append(row)
 	}
+	table.SetAlignment(tablewriter.ALIGN_RIGHT)
 	table.Render()
 }
 func (tp *tablePrinter) EndpointStatus(r []epStatus) {
@@ -40,6 +41,17 @@ func (tp *tablePrinter) EndpointStatus(r []epStatus) {
 	for _, row := range rows {
 		table.Append(row)
 	}
+	table.SetAlignment(tablewriter.ALIGN_RIGHT)
+	table.Render()
+}
+func (tp *tablePrinter) EndpointHashKV(r []epHashKV) {
+	hdr, rows := makeEndpointHashKVTable(r)
+	table := tablewriter.NewWriter(os.Stdout)
+	table.SetHeader(hdr)
+	for _, row := range rows {
+		table.Append(row)
+	}
+	table.SetAlignment(tablewriter.ALIGN_RIGHT)
 	table.Render()
 }
 func (tp *tablePrinter) DBStatus(r dbstatus) {
@@ -49,5 +61,6 @@ func (tp *tablePrinter) DBStatus(r dbstatus) {
 	for _, row := range rows {
 		table.Append(row)
 	}
+	table.SetAlignment(tablewriter.ALIGN_RIGHT)
 	table.Render()
 }

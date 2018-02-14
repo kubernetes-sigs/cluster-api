@@ -1,5 +1,16 @@
-load("@io_bazel_rules_go//proto:def.bzl", "go_proto_library")
-load("@io_bazel_rules_go//go:def.bzl", "go_library", "go_test")
+package(default_visibility = ["//visibility:public"])
+
+load(
+    "@io_bazel_rules_go//go:def.bzl",
+    "go_library",
+    "go_test",
+)
+
+go_test(
+    name = "go_default_test",
+    srcs = ["swagger_doc_generator_test.go"],
+    library = ":go_default_library",
+)
 
 go_library(
     name = "go_default_library",
@@ -22,8 +33,6 @@ go_library(
         "types_proto.go",
         "zz_generated.deepcopy.go",
     ],
-    importpath = "k8s.io/apimachinery/pkg/runtime",
-    visibility = ["//visibility:public"],
     deps = [
         "//vendor/github.com/gogo/protobuf/proto:go_default_library",
         "//vendor/k8s.io/apimachinery/pkg/conversion:go_default_library",
@@ -34,13 +43,6 @@ go_library(
 )
 
 go_test(
-    name = "go_default_test",
-    srcs = ["swagger_doc_generator_test.go"],
-    importpath = "k8s.io/apimachinery/pkg/runtime",
-    library = ":go_default_library",
-)
-
-go_test(
     name = "go_default_xtest",
     srcs = [
         "conversion_test.go",
@@ -48,13 +50,12 @@ go_test(
         "extension_test.go",
         "scheme_test.go",
     ],
-    importpath = "k8s.io/apimachinery/pkg/runtime_test",
     deps = [
-        ":go_default_library",
         "//vendor/github.com/google/gofuzz:go_default_library",
         "//vendor/github.com/spf13/pflag:go_default_library",
         "//vendor/k8s.io/apimachinery/pkg/api/meta:go_default_library",
         "//vendor/k8s.io/apimachinery/pkg/conversion:go_default_library",
+        "//vendor/k8s.io/apimachinery/pkg/runtime:go_default_library",
         "//vendor/k8s.io/apimachinery/pkg/runtime/schema:go_default_library",
         "//vendor/k8s.io/apimachinery/pkg/runtime/serializer:go_default_library",
         "//vendor/k8s.io/apimachinery/pkg/runtime/testing:go_default_library",
@@ -62,17 +63,26 @@ go_test(
     ],
 )
 
-proto_library(
-    name = "runtime_proto",
-    srcs = ["generated.proto"],
-    visibility = ["//visibility:public"],
-    deps = ["//k8s.io/apimachinery/pkg/util/intstr:intstr_proto"],
+filegroup(
+    name = "package-srcs",
+    srcs = glob(["**"]),
+    tags = ["automanaged"],
+    visibility = ["//visibility:private"],
 )
 
-go_proto_library(
-    name = "runtime_go_proto",
-    importpath = "k8s.io/apimachinery/pkg/runtime",
-    proto = ":runtime_proto",
+filegroup(
+    name = "all-srcs",
+    srcs = [
+        ":package-srcs",
+        "//staging/src/k8s.io/apimachinery/pkg/runtime/schema:all-srcs",
+        "//staging/src/k8s.io/apimachinery/pkg/runtime/serializer:all-srcs",
+        "//staging/src/k8s.io/apimachinery/pkg/runtime/testing:all-srcs",
+    ],
+    tags = ["automanaged"],
+)
+
+filegroup(
+    name = "go_default_library_protos",
+    srcs = ["generated.proto"],
     visibility = ["//visibility:public"],
-    deps = ["//k8s.io/apimachinery/pkg/util/intstr:go_default_library"],
 )

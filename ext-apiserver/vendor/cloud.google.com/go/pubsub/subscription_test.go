@@ -15,55 +15,16 @@
 package pubsub
 
 import (
-	"errors"
-	"reflect"
+	"fmt"
 	"testing"
+	"time"
+
+	"cloud.google.com/go/internal/testutil"
 
 	"golang.org/x/net/context"
+
+	"google.golang.org/api/iterator"
 )
-
-type subListCall struct {
-	inTok, outTok string
-	subs          []string
-	err           error
-}
-
-type subListService struct {
-	service
-	calls []subListCall
-
-	t *testing.T // for error logging.
-}
-
-func (s *subListService) listSubs(pageTok string) (*stringsPage, error) {
-	if len(s.calls) == 0 {
-		s.t.Errorf("unexpected call: pageTok: %q", pageTok)
-		return nil, errors.New("bang")
-	}
-
-	call := s.calls[0]
-	s.calls = s.calls[1:]
-	if call.inTok != pageTok {
-		s.t.Errorf("page token: got: %v, want: %v", pageTok, call.inTok)
-	}
-	return &stringsPage{call.subs, call.outTok}, call.err
-}
-
-func (s *subListService) listProjectSubscriptions(ctx context.Context, projName, pageTok string) (*stringsPage, error) {
-	if projName != "projects/projid" {
-		s.t.Errorf("unexpected call: projName: %q, pageTok: %q", projName, pageTok)
-		return nil, errors.New("bang")
-	}
-	return s.listSubs(pageTok)
-}
-
-func (s *subListService) listTopicSubscriptions(ctx context.Context, topicName, pageTok string) (*stringsPage, error) {
-	if topicName != "projects/projid/topics/topic" {
-		s.t.Errorf("unexpected call: topicName: %q, pageTok: %q", topicName, pageTok)
-		return nil, errors.New("bang")
-	}
-	return s.listSubs(pageTok)
-}
 
 // All returns the remaining subscriptions from this iterator.
 func slurpSubs(it *SubscriptionIterator) ([]*Subscription, error) {
@@ -72,7 +33,7 @@ func slurpSubs(it *SubscriptionIterator) ([]*Subscription, error) {
 		switch sub, err := it.Next(); err {
 		case nil:
 			subs = append(subs, sub)
-		case Done:
+		case iterator.Done:
 			return subs, nil
 		default:
 			return nil, err
@@ -80,68 +41,140 @@ func slurpSubs(it *SubscriptionIterator) ([]*Subscription, error) {
 	}
 }
 
+func TestSubscriptionID(t *testing.T) {
+	const id = "id"
+	c := &Client{projectID: "projid"}
+	s := c.Subscription(id)
+	if got, want := s.ID(), id; got != want {
+		t.Errorf("Subscription.ID() = %q; want %q", got, want)
+	}
+}
+
 func TestListProjectSubscriptions(t *testing.T) {
-	calls := []subListCall{
-		{
-			subs:   []string{"s1", "s2"},
-			outTok: "a",
-		},
-		{
-			inTok:  "a",
-			subs:   []string{"s3"},
-			outTok: "",
-		},
+	ctx := context.Background()
+	c, _ := newFake(t)
+	topic := mustCreateTopic(t, c, "t")
+	var want []string
+	for i := 1; i <= 2; i++ {
+		id := fmt.Sprintf("s%d", i)
+		want = append(want, id)
+		_, err := c.CreateSubscription(ctx, id, SubscriptionConfig{Topic: topic})
+		if err != nil {
+			t.Fatal(err)
+		}
 	}
-	s := &subListService{calls: calls, t: t}
-	c := &Client{projectID: "projid", s: s}
-	subs, err := slurpSubs(c.Subscriptions(context.Background()))
+	subs, err := slurpSubs(c.Subscriptions(ctx))
 	if err != nil {
-		t.Errorf("error listing subscriptions: %v", err)
+		t.Fatal(err)
 	}
-	got := subNames(subs)
-	want := []string{"s1", "s2", "s3"}
-	if !reflect.DeepEqual(got, want) {
-		t.Errorf("sub list: got: %v, want: %v", got, want)
+
+	got := getSubIDs(subs)
+	if !testutil.Equal(got, want) {
+		t.Errorf("got %v, want %v", got, want)
 	}
-	if len(s.calls) != 0 {
-		t.Errorf("outstanding calls: %v", s.calls)
+}
+
+func getSubIDs(subs []*Subscription) []string {
+	var names []string
+	for _, sub := range subs {
+		names = append(names, sub.ID())
 	}
+	return names
 }
 
 func TestListTopicSubscriptions(t *testing.T) {
-	calls := []subListCall{
-		{
-			subs:   []string{"s1", "s2"},
-			outTok: "a",
-		},
-		{
-			inTok:  "a",
-			subs:   []string{"s3"},
-			outTok: "",
-		},
+	ctx := context.Background()
+	c, _ := newFake(t)
+	topics := []*Topic{
+		mustCreateTopic(t, c, "t0"),
+		mustCreateTopic(t, c, "t1"),
 	}
-	s := &subListService{calls: calls, t: t}
-	c := &Client{projectID: "projid", s: s}
-	subs, err := slurpSubs(c.Topic("topic").Subscriptions(context.Background()))
-	if err != nil {
-		t.Errorf("error listing subscriptions: %v", err)
+	wants := make([][]string, 2)
+	for i := 0; i < 5; i++ {
+		id := fmt.Sprintf("s%d", i)
+		sub, err := c.CreateSubscription(ctx, id, SubscriptionConfig{Topic: topics[i%2]})
+		if err != nil {
+			t.Fatal(err)
+		}
+		wants[i%2] = append(wants[i%2], sub.ID())
 	}
-	got := subNames(subs)
-	want := []string{"s1", "s2", "s3"}
-	if !reflect.DeepEqual(got, want) {
-		t.Errorf("sub list: got: %v, want: %v", got, want)
-	}
-	if len(s.calls) != 0 {
-		t.Errorf("outstanding calls: %v", s.calls)
+
+	for i, topic := range topics {
+		subs, err := slurpSubs(topic.Subscriptions(ctx))
+		if err != nil {
+			t.Fatal(err)
+		}
+		got := getSubIDs(subs)
+		if !testutil.Equal(got, wants[i]) {
+			t.Errorf("#%d: got %v, want %v", i, got, wants[i])
+		}
 	}
 }
 
-func subNames(subs []*Subscription) []string {
-	var names []string
+const defaultRetentionDuration = 168 * time.Hour
 
-	for _, sub := range subs {
-		names = append(names, sub.name)
+func TestUpdateSubscription(t *testing.T) {
+	ctx := context.Background()
+	client, _ := newFake(t)
+	defer client.Close()
 
+	topic := client.Topic("t")
+	sub, err := client.CreateSubscription(ctx, "s", SubscriptionConfig{Topic: topic})
+	if err != nil {
+		t.Fatal(err)
 	}
-	return names
+	cfg, err := sub.Config(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+	want := SubscriptionConfig{
+		Topic:               topic,
+		AckDeadline:         10 * time.Second,
+		RetainAckedMessages: false,
+		RetentionDuration:   defaultRetentionDuration,
+	}
+	if !testutil.Equal(cfg, want) {
+		t.Fatalf("\ngot  %+v\nwant %+v", cfg, want)
+	}
+
+	got, err := sub.Update(ctx, SubscriptionConfigToUpdate{
+		AckDeadline:         20 * time.Second,
+		RetainAckedMessages: true,
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	want = SubscriptionConfig{
+		Topic:               topic,
+		AckDeadline:         20 * time.Second,
+		RetainAckedMessages: true,
+		RetentionDuration:   defaultRetentionDuration,
+	}
+	if !testutil.Equal(got, want) {
+		t.Fatalf("\ngot  %+v\nwant %+v", got, want)
+	}
+
+	got, err = sub.Update(ctx, SubscriptionConfigToUpdate{RetentionDuration: 2 * time.Hour})
+	if err != nil {
+		t.Fatal(err)
+	}
+	want.RetentionDuration = 2 * time.Hour
+	if !testutil.Equal(got, want) {
+		t.Fatalf("\ngot %+v\nwant %+v", got, want)
+	}
+
+	_, err = sub.Update(ctx, SubscriptionConfigToUpdate{})
+	if err == nil {
+		t.Fatal("got nil, want error")
+	}
+}
+
+func (t1 *Topic) Equal(t2 *Topic) bool {
+	if t1 == nil && t2 == nil {
+		return true
+	}
+	if t1 == nil || t2 == nil {
+		return false
+	}
+	return t1.c == t2.c && t1.name == t2.name
 }

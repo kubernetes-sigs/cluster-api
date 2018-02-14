@@ -313,6 +313,7 @@ func mergeConfigIfExists(newConfig, existingFilePath string) (*clientcmdapi.Conf
 		Precedence: []string{tempFile.Name(), existingFilePath},
 	}
 	return loadingRules.Load()
+}
 
 // Make sure the default service account in kube-system namespace exists.
 func (d *deployer) waitForServiceAccount(timeout time.Duration) error {

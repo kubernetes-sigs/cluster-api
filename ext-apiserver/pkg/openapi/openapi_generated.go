@@ -1510,7 +1510,7 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 					Properties: map[string]spec.Schema{
 						"selector": {
 							SchemaProps: spec.SchemaProps{
-								Description: "A label query over pods that are managed by the daemon set. Must match in order to be controlled. If empty, defaulted to labels on Pod template. More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/labels/#label-selectors",
+								Description: "A label query over pods that are managed by the daemon set. Must match in order to be controlled. It must match the pod template's labels. More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/labels/#label-selectors",
 								Ref:         ref("k8s.io/apimachinery/pkg/apis/meta/v1.LabelSelector"),
 							},
 						},
@@ -1541,7 +1541,7 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 							},
 						},
 					},
-					Required: []string{"template"},
+					Required: []string{"selector", "template"},
 				},
 			},
 			Dependencies: []string{
@@ -1799,7 +1799,7 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 						},
 						"selector": {
 							SchemaProps: spec.SchemaProps{
-								Description: "Label selector for pods. Existing ReplicaSets whose pods are selected by this will be the ones affected by this deployment.",
+								Description: "Label selector for pods. Existing ReplicaSets whose pods are selected by this will be the ones affected by this deployment. It must match the pod template's labels.",
 								Ref:         ref("k8s.io/apimachinery/pkg/apis/meta/v1.LabelSelector"),
 							},
 						},
@@ -1844,7 +1844,7 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 							},
 						},
 					},
-					Required: []string{"template"},
+					Required: []string{"selector", "template"},
 				},
 			},
 			Dependencies: []string{
@@ -2108,7 +2108,7 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 						},
 						"selector": {
 							SchemaProps: spec.SchemaProps{
-								Description: "Selector is a label query over pods that should match the replica count. If the selector is empty, it is defaulted to the labels present on the pod template. Label keys and values that must match in order to be controlled by this replica set. More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/labels/#label-selectors",
+								Description: "Selector is a label query over pods that should match the replica count. Label keys and values that must match in order to be controlled by this replica set. It must match the pod template's labels. More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/labels/#label-selectors",
 								Ref:         ref("k8s.io/apimachinery/pkg/apis/meta/v1.LabelSelector"),
 							},
 						},
@@ -2119,6 +2119,7 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 							},
 						},
 					},
+					Required: []string{"selector"},
 				},
 			},
 			Dependencies: []string{
@@ -2445,7 +2446,7 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 						},
 						"selector": {
 							SchemaProps: spec.SchemaProps{
-								Description: "selector is a label query over pods that should match the replica count. If empty, defaulted to labels on the pod template. More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/labels/#label-selectors",
+								Description: "selector is a label query over pods that should match the replica count. It must match the pod template's labels. More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/labels/#label-selectors",
 								Ref:         ref("k8s.io/apimachinery/pkg/apis/meta/v1.LabelSelector"),
 							},
 						},
@@ -2496,7 +2497,7 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 							},
 						},
 					},
-					Required: []string{"template", "serviceName"},
+					Required: []string{"selector", "template", "serviceName"},
 				},
 			},
 			Dependencies: []string{
@@ -10289,7 +10290,7 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 						"scaleIO": {
 							SchemaProps: spec.SchemaProps{
 								Description: "ScaleIO represents a ScaleIO persistent volume attached and mounted on Kubernetes nodes.",
-								Ref:         ref("k8s.io/api/core/v1.ScaleIOVolumeSource"),
+								Ref:         ref("k8s.io/api/core/v1.ScaleIOPersistentVolumeSource"),
 							},
 						},
 						"local": {
@@ -10308,7 +10309,7 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 				},
 			},
 			Dependencies: []string{
-				"k8s.io/api/core/v1.AWSElasticBlockStoreVolumeSource", "k8s.io/api/core/v1.AzureDiskVolumeSource", "k8s.io/api/core/v1.AzureFilePersistentVolumeSource", "k8s.io/api/core/v1.CephFSPersistentVolumeSource", "k8s.io/api/core/v1.CinderVolumeSource", "k8s.io/api/core/v1.FCVolumeSource", "k8s.io/api/core/v1.FlexVolumeSource", "k8s.io/api/core/v1.FlockerVolumeSource", "k8s.io/api/core/v1.GCEPersistentDiskVolumeSource", "k8s.io/api/core/v1.GlusterfsVolumeSource", "k8s.io/api/core/v1.HostPathVolumeSource", "k8s.io/api/core/v1.ISCSIVolumeSource", "k8s.io/api/core/v1.LocalVolumeSource", "k8s.io/api/core/v1.NFSVolumeSource", "k8s.io/api/core/v1.PhotonPersistentDiskVolumeSource", "k8s.io/api/core/v1.PortworxVolumeSource", "k8s.io/api/core/v1.QuobyteVolumeSource", "k8s.io/api/core/v1.RBDVolumeSource", "k8s.io/api/core/v1.ScaleIOVolumeSource", "k8s.io/api/core/v1.StorageOSPersistentVolumeSource", "k8s.io/api/core/v1.VsphereVirtualDiskVolumeSource"},
+				"k8s.io/api/core/v1.AWSElasticBlockStoreVolumeSource", "k8s.io/api/core/v1.AzureDiskVolumeSource", "k8s.io/api/core/v1.AzureFilePersistentVolumeSource", "k8s.io/api/core/v1.CephFSPersistentVolumeSource", "k8s.io/api/core/v1.CinderVolumeSource", "k8s.io/api/core/v1.FCVolumeSource", "k8s.io/api/core/v1.FlexVolumeSource", "k8s.io/api/core/v1.FlockerVolumeSource", "k8s.io/api/core/v1.GCEPersistentDiskVolumeSource", "k8s.io/api/core/v1.GlusterfsVolumeSource", "k8s.io/api/core/v1.HostPathVolumeSource", "k8s.io/api/core/v1.ISCSIVolumeSource", "k8s.io/api/core/v1.LocalVolumeSource", "k8s.io/api/core/v1.NFSVolumeSource", "k8s.io/api/core/v1.PhotonPersistentDiskVolumeSource", "k8s.io/api/core/v1.PortworxVolumeSource", "k8s.io/api/core/v1.QuobyteVolumeSource", "k8s.io/api/core/v1.RBDVolumeSource", "k8s.io/api/core/v1.ScaleIOPersistentVolumeSource", "k8s.io/api/core/v1.StorageOSPersistentVolumeSource", "k8s.io/api/core/v1.VsphereVirtualDiskVolumeSource"},
 		},
 		"k8s.io/api/core/v1.PersistentVolumeSpec": {
 			Schema: spec.Schema{
@@ -10439,7 +10440,7 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 						"scaleIO": {
 							SchemaProps: spec.SchemaProps{
 								Description: "ScaleIO represents a ScaleIO persistent volume attached and mounted on Kubernetes nodes.",
-								Ref:         ref("k8s.io/api/core/v1.ScaleIOVolumeSource"),
+								Ref:         ref("k8s.io/api/core/v1.ScaleIOPersistentVolumeSource"),
 							},
 						},
 						"local": {
@@ -10506,7 +10507,7 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 				},
 			},
 			Dependencies: []string{
-				"k8s.io/api/core/v1.AWSElasticBlockStoreVolumeSource", "k8s.io/api/core/v1.AzureDiskVolumeSource", "k8s.io/api/core/v1.AzureFilePersistentVolumeSource", "k8s.io/api/core/v1.CephFSPersistentVolumeSource", "k8s.io/api/core/v1.CinderVolumeSource", "k8s.io/api/core/v1.FCVolumeSource", "k8s.io/api/core/v1.FlexVolumeSource", "k8s.io/api/core/v1.FlockerVolumeSource", "k8s.io/api/core/v1.GCEPersistentDiskVolumeSource", "k8s.io/api/core/v1.GlusterfsVolumeSource", "k8s.io/api/core/v1.HostPathVolumeSource", "k8s.io/api/core/v1.ISCSIVolumeSource", "k8s.io/api/core/v1.LocalVolumeSource", "k8s.io/api/core/v1.NFSVolumeSource", "k8s.io/api/core/v1.ObjectReference", "k8s.io/api/core/v1.PhotonPersistentDiskVolumeSource", "k8s.io/api/core/v1.PortworxVolumeSource", "k8s.io/api/core/v1.QuobyteVolumeSource", "k8s.io/api/core/v1.RBDVolumeSource", "k8s.io/api/core/v1.ScaleIOVolumeSource", "k8s.io/api/core/v1.StorageOSPersistentVolumeSource", "k8s.io/api/core/v1.VsphereVirtualDiskVolumeSource", "k8s.io/apimachinery/pkg/api/resource.Quantity"},
+				"k8s.io/api/core/v1.AWSElasticBlockStoreVolumeSource", "k8s.io/api/core/v1.AzureDiskVolumeSource", "k8s.io/api/core/v1.AzureFilePersistentVolumeSource", "k8s.io/api/core/v1.CephFSPersistentVolumeSource", "k8s.io/api/core/v1.CinderVolumeSource", "k8s.io/api/core/v1.FCVolumeSource", "k8s.io/api/core/v1.FlexVolumeSource", "k8s.io/api/core/v1.FlockerVolumeSource", "k8s.io/api/core/v1.GCEPersistentDiskVolumeSource", "k8s.io/api/core/v1.GlusterfsVolumeSource", "k8s.io/api/core/v1.HostPathVolumeSource", "k8s.io/api/core/v1.ISCSIVolumeSource", "k8s.io/api/core/v1.LocalVolumeSource", "k8s.io/api/core/v1.NFSVolumeSource", "k8s.io/api/core/v1.ObjectReference", "k8s.io/api/core/v1.PhotonPersistentDiskVolumeSource", "k8s.io/api/core/v1.PortworxVolumeSource", "k8s.io/api/core/v1.QuobyteVolumeSource", "k8s.io/api/core/v1.RBDVolumeSource", "k8s.io/api/core/v1.ScaleIOPersistentVolumeSource", "k8s.io/api/core/v1.StorageOSPersistentVolumeSource", "k8s.io/api/core/v1.VsphereVirtualDiskVolumeSource", "k8s.io/apimachinery/pkg/api/resource.Quantity"},
 		},
 		"k8s.io/api/core/v1.PersistentVolumeStatus": {
 			Schema: spec.Schema{
@@ -12543,6 +12544,87 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 			},
 			Dependencies: []string{},
 		},
+		"k8s.io/api/core/v1.ScaleIOPersistentVolumeSource": {
+			Schema: spec.Schema{
+				SchemaProps: spec.SchemaProps{
+					Description: "ScaleIOPersistentVolumeSource represents a persistent ScaleIO volume",
+					Properties: map[string]spec.Schema{
+						"gateway": {
+							SchemaProps: spec.SchemaProps{
+								Description: "The host address of the ScaleIO API Gateway.",
+								Type:        []string{"string"},
+								Format:      "",
+							},
+						},
+						"system": {
+							SchemaProps: spec.SchemaProps{
+								Description: "The name of the storage system as configured in ScaleIO.",
+								Type:        []string{"string"},
+								Format:      "",
+							},
+						},
+						"secretRef": {
+							SchemaProps: spec.SchemaProps{
+								Description: "SecretRef references to the secret for ScaleIO user and other sensitive information. If this is not provided, Login operation will fail.",
+								Ref:         ref("k8s.io/api/core/v1.SecretReference"),
+							},
+						},
+						"sslEnabled": {
+							SchemaProps: spec.SchemaProps{
+								Description: "Flag to enable/disable SSL communication with Gateway, default false",
+								Type:        []string{"boolean"},
+								Format:      "",
+							},
+						},
+						"protectionDomain": {
+							SchemaProps: spec.SchemaProps{
+								Description: "The name of the ScaleIO Protection Domain for the configured storage.",
+								Type:        []string{"string"},
+								Format:      "",
+							},
+						},
+						"storagePool": {
+							SchemaProps: spec.SchemaProps{
+								Description: "The ScaleIO Storage Pool associated with the protection domain.",
+								Type:        []string{"string"},
+								Format:      "",
+							},
+						},
+						"storageMode": {
+							SchemaProps: spec.SchemaProps{
+								Description: "Indicates whether the storage for a volume should be ThickProvisioned or ThinProvisioned.",
+								Type:        []string{"string"},
+								Format:      "",
+							},
+						},
+						"volumeName": {
+							SchemaProps: spec.SchemaProps{
+								Description: "The name of a volume already created in the ScaleIO system that is associated with this volume source.",
+								Type:        []string{"string"},
+								Format:      "",
+							},
+						},
+						"fsType": {
+							SchemaProps: spec.SchemaProps{
+								Description: "Filesystem type to mount. Must be a filesystem type supported by the host operating system. Ex. \"ext4\", \"xfs\", \"ntfs\". Implicitly inferred to be \"ext4\" if unspecified.",
+								Type:        []string{"string"},
+								Format:      "",
+							},
+						},
+						"readOnly": {
+							SchemaProps: spec.SchemaProps{
+								Description: "Defaults to false (read/write). ReadOnly here will force the ReadOnly setting in VolumeMounts.",
+								Type:        []string{"boolean"},
+								Format:      "",
+							},
+						},
+					},
+					Required: []string{"gateway", "system", "secretRef"},
+				},
+			},
+			Dependencies: []string{
+				"k8s.io/api/core/v1.SecretReference"},
+		},
 		"k8s.io/api/core/v1.ScaleIOVolumeSource": {
 			Schema: spec.Schema{
 				SchemaProps: spec.SchemaProps{
@@ -12577,21 +12659,21 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 						},
 						"protectionDomain": {
 							SchemaProps: spec.SchemaProps{
-								Description: "The name of the Protection Domain for the configured storage (defaults to \"default\").",
+								Description: "The name of the ScaleIO Protection Domain for the configured storage.",
 								Type:        []string{"string"},
 								Format:      "",
 							},
 						},
 						"storagePool": {
 							SchemaProps: spec.SchemaProps{
-								Description: "The Storage Pool associated with the protection domain (defaults to \"default\").",
+								Description: "The ScaleIO Storage Pool associated with the protection domain.",
 								Type:        []string{"string"},
 								Format:      "",
 							},
 						},
 						"storageMode": {
 							SchemaProps: spec.SchemaProps{
-								Description: "Indicates whether the storage for a volume should be thick or thin (defaults to \"thin\").",
+								Description: "Indicates whether the storage for a volume should be ThickProvisioned or ThinProvisioned.",
 								Type:        []string{"string"},
 								Format:      "",
 							},
@@ -21200,6 +21282,19 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 								Ref:         ref("k8s.io/apimachinery/pkg/apis/meta/v1.ObjectMeta"),
 							},
 						},
+						"taints": {
+							SchemaProps: spec.SchemaProps{
+								Description: "The full, authoritative list of taints to apply to the corresponding Node. This list will overwrite any modifications made to the Node on an ongoing basis.",
+								Type:        []string{"array"},
+								Items: &spec.SchemaOrArray{
+									Schema: &spec.Schema{
+										SchemaProps: spec.SchemaProps{
+											Ref: ref("k8s.io/api/core/v1.Taint"),
+										},
+									},
+								},
+							},
+						},
 						"providerConfig": {
 							SchemaProps: spec.SchemaProps{
 								Description: "Provider-specific serialized configuration to use during node creation. It is recommended that providers maintain their own versioned API types that should be serialized/deserialized from this field, akin to component config.",
@@ -21209,7 +21304,7 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 						},
 						"roles": {
 							SchemaProps: spec.SchemaProps{
-								Description: "A list consisting of \"Master\" and/or \"Node\".\n\n                | Master present        | Master absent          |\n| Node present: | Install control plane | Join the cluster as    | |               | and be schedulable    | just a node            | |---------------+-----------------------+------------------------| | Node absent:  | Install control plane | Invalid configuration  | |               | and be unscheduleable |                        |",
+								Description: "A list of roles for this Machine to use.",
 								Type:        []string{"array"},
 								Items: &spec.SchemaOrArray{
 									Schema: &spec.Schema{
@@ -21223,7 +21318,7 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 						},
 						"versions": {
 							SchemaProps: spec.SchemaProps{
-								Description: "Versions of key software to use.",
+								Description: "Versions of key software to use. This field is optional at cluster creation time, and omitting the field indicates that the cluster installation tool should select defaults for the user. These defaults may differ based on the cluster installer, but the tool should populate the values it uses when persisting Machine objects. A Machine spec missing this field at runtime is invalid.",
 								Ref:         ref("k8s.io/kube-deploy/ext-apiserver/pkg/apis/cluster/v1alpha1.MachineVersionInfo"),
 							},
 						},
@@ -21237,7 +21332,7 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 				},
 			},
 			Dependencies: []string{
-				"k8s.io/api/core/v1.NodeConfigSource", "k8s.io/apimachinery/pkg/apis/meta/v1.ObjectMeta", "k8s.io/kube-deploy/ext-apiserver/pkg/apis/cluster/v1alpha1.MachineVersionInfo"},
+				"k8s.io/api/core/v1.NodeConfigSource", "k8s.io/api/core/v1.Taint", "k8s.io/apimachinery/pkg/apis/meta/v1.ObjectMeta", "k8s.io/kube-deploy/ext-apiserver/pkg/apis/cluster/v1alpha1.MachineVersionInfo"},
 		},
 		"k8s.io/kube-deploy/ext-apiserver/pkg/apis/cluster/v1alpha1.MachineStatus": {
 			Schema: spec.Schema{
@@ -21256,33 +21351,30 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 								Ref:         ref("k8s.io/apimachinery/pkg/apis/meta/v1.Time"),
 							},
 						},
-						"ready": {
+						"versions": {
 							SchemaProps: spec.SchemaProps{
-								Description: "Indicates whether or not the Machine is fully reconciled. When a controller observes that the spec has changed and no longer matches reality, it should update Ready to false before reconciling the state, and then set back to true when the state matches the spec.",
-								Type:        []string{"boolean"},
-								Format:      "",
+								Description: "The current versions of software on the corresponding Node (if it exists). This is provided for a few reasons:\n\n1) It is more convenient than checking the NodeRef, traversing it to\n   the Node, and finding the appropriate field in Node.Status.NodeInfo\n   (which uses different field names and formatting).\n2) It removes some of the dependency on the structure of the Node,\n   so that if the structure of Node.Status.NodeInfo changes, only\n   machine controllers need to be updated, rather than every client\n   of the Machines API.\n3) There is no other way simple way to check the ControlPlane\n   version. A client would have to connect directly to the apiserver\n   running on the target node in order to find out its version.",
+								Ref:         ref("k8s.io/kube-deploy/ext-apiserver/pkg/apis/cluster/v1alpha1.MachineVersionInfo"),
 							},
 						},
 						"errorReason": {
 							SchemaProps: spec.SchemaProps{
-								Description: "If set, indicates that there is a problem reconciling state, and will be set to a token value suitable for machine interpretation.",
+								Description: "In the event that there is a terminal problem reconciling the Machine, both ErrorReason and ErrorMessage will be set. ErrorReason will be populated with a succinct value suitable for machine interpretation, while ErrorMessage will contain a more verbose string suitable for logging and human consumption.\n\nThese fields should not be set for transitive errors that a controller faces that are expected to be fixed automatically over time (like service outages), but instead indicate that something is fundamentally wrong with the Machine's spec or the configuration of the controller, and that manual intervention is required. Examples of terminal errors would be invalid combinations of settings in the spec, values that are unsupported by the controller, or the responsible controller itself being critically misconfigured.\n\nAny transient errors that occur during the reconcilation of Machines can be added as events to the Machine object and/or logged in the controller's output.",
 								Type:        []string{"string"},
 								Format:      "",
 							},
 						},
 						"errorMessage": {
 							SchemaProps: spec.SchemaProps{
-								Description: "If set, indicates that there is a problem reconciling state, and will be set to a human readable string to indicate the problem.",
-								Type:        []string{"string"},
-								Format:      "",
+								Type:   []string{"string"},
+								Format: "",
 							},
 						},
 					},
-					Required: []string{"ready"},
 				},
 			},
 			Dependencies: []string{
-				"k8s.io/api/core/v1.ObjectReference", "k8s.io/apimachinery/pkg/apis/meta/v1.Time"},
+				"k8s.io/api/core/v1.ObjectReference", "k8s.io/apimachinery/pkg/apis/meta/v1.Time", "k8s.io/kube-deploy/ext-apiserver/pkg/apis/cluster/v1alpha1.MachineVersionInfo"},
 		},
 		"k8s.io/kube-deploy/ext-apiserver/pkg/apis/cluster/v1alpha1.MachineStatusStrategy": {
 			Schema: spec.Schema{
@@ -21341,7 +21433,7 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 							},
 						},
 					},
-					Required: []string{"kubelet", "controlPlane", "containerRuntime"},
+					Required: []string{"kubelet", "containerRuntime"},
 				},
 			},
 			Dependencies: []string{

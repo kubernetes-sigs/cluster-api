@@ -912,7 +912,7 @@
     "util/jsonpath",
     "util/workqueue"
   ]
-  revision = "3a46b5de730a74e064197a157c96c2d29724a677"
+  revision = "04b7cf8ad6185c7168751d613c638c94f60711be"
 
 [[projects]]
   branch = "master"
@@ -928,6 +928,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "a54378e03bb6bcaf5f194ad9658162214b46cf41e027b38406b3e86c157b276f"
+  inputs-digest = "a45b31318bfde6352f707acfd63eeab3cf41e70047bc18e8672dcccd9bd002fc"
   solver-name = "gps-cdcl"
   solver-version = 1

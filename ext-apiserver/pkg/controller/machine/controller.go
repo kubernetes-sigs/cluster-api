@@ -23,7 +23,7 @@ import (
 	"github.com/kubernetes-incubator/apiserver-builder/pkg/builders"
 
 	corev1 "k8s.io/api/core/v1"
-	"k8s.io/apimachinery/pkg/labels"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/kube-deploy/ext-apiserver/cloud"
 	clusterv1 "k8s.io/kube-deploy/ext-apiserver/pkg/apis/cluster/v1alpha1"
@@ -41,8 +41,6 @@ type MachineControllerImpl struct {
 
 	// lister indexes properties about Machine
 	lister listers.MachineLister
-	// lister indexes properties about Cluster
-	clusterLister listers.ClusterLister
 
 	actuator cloud.MachineActuator
 
@@ -57,7 +55,6 @@ type MachineControllerImpl struct {
 func (c *MachineControllerImpl) Init(arguments sharedinformers.ControllerInitArguments) {
 	// Use the lister for indexing machines labels
 	c.lister = arguments.GetSharedInformers().Factory.Cluster().V1alpha1().Machines().Lister()
-	c.clusterLister = arguments.GetSharedInformers().Factory.Cluster().V1alpha1().Clusters().Lister()
 
 	clientset, err := clientset.NewForConfig(arguments.GetRestConfig())
 	if err != nil {
@@ -125,7 +122,7 @@ func (c *MachineControllerImpl) Get(namespace, name string) (*clusterv1.Machine,
 }
 
 func (c *MachineControllerImpl) create(machine *clusterv1.Machine) error {
-	cluster, err := c.getCluster()
+	cluster, err := c.getCluster(machine)
 	if err != nil {
 		return err
 	}
@@ -134,7 +131,7 @@ func (c *MachineControllerImpl) create(machine *clusterv1.Machine) error {
 }
 
 func (c *MachineControllerImpl) update(new_machine *clusterv1.Machine) error {
-	cluster, err := c.getCluster()
+	cluster, err := c.getCluster(new_machine)
 	if err != nil {
 		return err
 	}
@@ -148,17 +145,17 @@ func (c *MachineControllerImpl) delete(machine *clusterv1.Machine) error {
 	return c.actuator.Delete(machine)
 }
 
-func (c *MachineControllerImpl) getCluster() (*clusterv1.Cluster, error) {
-	clusters, err := c.clusterLister.List(labels.Everything())
+func (c *MachineControllerImpl) getCluster(machine *clusterv1.Machine) (*clusterv1.Cluster, error) {
+	clusterList, err := c.clientSet.ClusterV1alpha1().Clusters(machine.Namespace).List(metav1.ListOptions{})
 	if err != nil {
 		return nil, err
 	}
 
-	switch len(clusters) {
+	switch len(clusterList.Items) {
 	case 0:
 		return nil, errors.New("no clusters defined")
 	case 1:
-		return clusters[0], nil
+		return &clusterList.Items[0], nil
 	default:
 		return nil, errors.New("multiple clusters defined")
 	}

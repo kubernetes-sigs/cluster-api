@@ -27,6 +27,7 @@ import (
 	"time"
 
 	"github.com/golang/glog"
+	"k8s.io/kube-deploy/ext-apiserver/cloud/google/config"
 )
 
 var machineControllerImage = "gcr.io/k8s-cluster-api/apiserver-controller:0.1"
@@ -79,7 +80,7 @@ func getApiServerCerts() (*caCertParams, error) {
 }
 
 func CreateApiServerAndController(token string) error {
-	tmpl, err := template.ParseFiles("cloud/google/config/apiserver.yaml")
+	tmpl, err := template.New("config").Parse(config.ClusterAPIDeployConfigTemplate)
 	if err != nil {
 		return err
 	}

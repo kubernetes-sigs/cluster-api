@@ -23,10 +23,12 @@ import (
 	"io/ioutil"
 	"os"
 	"os/exec"
+	"path/filepath"
 	"text/template"
 	"time"
 
 	"github.com/golang/glog"
+	corev1 "k8s.io/api/core/v1"
 	"k8s.io/kube-deploy/ext-apiserver/cloud/google/config"
 )
 
@@ -61,19 +63,49 @@ func getBase64(file string) string {
 }
 
 func getApiServerCerts() (*caCertParams, error) {
-	// TODO: remove the need to use apiserver-boot to generate the certificate.
-	os.RemoveAll("./config")
-	err := run("apiserver-boot", "build", "config",
-		"--name", "clusterapi", "--namespace", "default",
-		"--image", machineControllerImage)
+	const name = "clusterapi"
+	const namespace = corev1.NamespaceDefault
+	configDir, err := ioutil.TempDir("", "cert")
 	if err != nil {
+		return nil, err
+	}
+	defer os.RemoveAll(configDir) // clean up
+
+	if err := run("openssl", "req", "-x509",
+		"-newkey", "rsa:2048",
+		"-keyout", filepath.Join(configDir, "apiserver_ca.key"),
+		"-out", filepath.Join(configDir, "apiserver_ca.crt"),
+		"-days", "365",
+		"-nodes",
+		"-subj", fmt.Sprintf("/C=un/ST=st/L=l/O=o/OU=ou/CN=%s-certificate-authority", name)); err != nil {
+		return nil, err
+	}
+
+	// Use <service-Name>.<Namespace>.svc as the domain Name for the certificate
+	if err = run("openssl", "req",
+		"-out", filepath.Join(configDir, "apiserver.csr"),
+		"-new",
+		"-newkey", "rsa:2048",
+		"-nodes",
+		"-keyout", filepath.Join(configDir, "apiserver.key"),
+		"-subj", fmt.Sprintf("/C=un/ST=st/L=l/O=o/OU=ou/CN=%s.%s.svc", name, namespace)); err != nil {
+		return nil, err
+	}
+
+	if err = run("openssl", "x509", "-req",
+		"-days", "365",
+		"-in", filepath.Join(configDir, "apiserver.csr"),
+		"-CA", filepath.Join(configDir, "apiserver_ca.crt"),
+		"-CAkey", filepath.Join(configDir, "apiserver_ca.key"),
+		"-CAcreateserial",
+		"-out", filepath.Join(configDir, "apiserver.crt")); err != nil {
 		return nil, err
 	}
 
 	certParms := &caCertParams{
-		caBundle: getBase64("config/certificates/apiserver_ca.crt"),
-		tlsCrt:   getBase64("config/certificates/apiserver.crt"),
-		tlsKey:   getBase64("config/certificates/apiserver.key"),
+		caBundle: getBase64(filepath.Join(configDir, "apiserver_ca.crt")),
+		tlsCrt:   getBase64(filepath.Join(configDir, "apiserver.crt")),
+		tlsKey:   getBase64(filepath.Join(configDir, "apiserver.key")),
 	}
 
 	return certParms, nil

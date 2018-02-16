@@ -30,13 +30,10 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/tools/clientcmd"
+	clustercommon "k8s.io/kube-deploy/ext-apiserver/pkg/apis/cluster/common"
 	clusterv1 "k8s.io/kube-deploy/ext-apiserver/pkg/apis/cluster/v1alpha1"
 	"k8s.io/kube-deploy/ext-apiserver/pkg/client/clientset_generated/clientset"
 	client "k8s.io/kube-deploy/ext-apiserver/pkg/client/clientset_generated/clientset/typed/cluster/v1alpha1"
-)
-
-const (
-	TypeMaster = "Master"
 )
 
 const (
@@ -141,8 +138,17 @@ func GetMachineIfExists(machineClient client.MachineInterface, name string, uid 
 	return machine, nil
 }
 
+func RoleContains(a clustercommon.MachineRole, list []clustercommon.MachineRole) bool {
+	for _, b := range list {
+		if b == a {
+			return true
+		}
+	}
+	return false
+}
+
 func IsMaster(machine *clusterv1.Machine) bool {
-	return Contains(machine.Spec.Roles, TypeMaster)
+	return RoleContains(clustercommon.MasterRole, machine.Spec.Roles)
 }
 
 func ExecCommand(name string, args ...string) string {

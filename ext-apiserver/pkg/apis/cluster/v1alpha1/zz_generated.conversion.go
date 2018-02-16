@@ -352,8 +352,9 @@ func Convert_cluster_MachineList_To_v1alpha1_MachineList(in *cluster.MachineList
 
 func autoConvert_v1alpha1_MachineSpec_To_cluster_MachineSpec(in *MachineSpec, out *cluster.MachineSpec, s conversion.Scope) error {
 	out.ObjectMeta = in.ObjectMeta
+	out.Taints = *(*[]v1.Taint)(unsafe.Pointer(&in.Taints))
 	out.ProviderConfig = in.ProviderConfig
-	out.Roles = *(*[]string)(unsafe.Pointer(&in.Roles))
+	out.Roles = *(*[]common.MachineRole)(unsafe.Pointer(&in.Roles))
 	if err := Convert_v1alpha1_MachineVersionInfo_To_cluster_MachineVersionInfo(&in.Versions, &out.Versions, s); err != nil {
 		return err
 	}
@@ -368,8 +369,9 @@ func Convert_v1alpha1_MachineSpec_To_cluster_MachineSpec(in *MachineSpec, out *c
 
 func autoConvert_cluster_MachineSpec_To_v1alpha1_MachineSpec(in *cluster.MachineSpec, out *MachineSpec, s conversion.Scope) error {
 	out.ObjectMeta = in.ObjectMeta
+	out.Taints = *(*[]v1.Taint)(unsafe.Pointer(&in.Taints))
 	out.ProviderConfig = in.ProviderConfig
-	out.Roles = *(*[]string)(unsafe.Pointer(&in.Roles))
+	out.Roles = *(*[]common.MachineRole)(unsafe.Pointer(&in.Roles))
 	if err := Convert_cluster_MachineVersionInfo_To_v1alpha1_MachineVersionInfo(&in.Versions, &out.Versions, s); err != nil {
 		return err
 	}
@@ -385,7 +387,7 @@ func Convert_cluster_MachineSpec_To_v1alpha1_MachineSpec(in *cluster.MachineSpec
 func autoConvert_v1alpha1_MachineStatus_To_cluster_MachineStatus(in *MachineStatus, out *cluster.MachineStatus, s conversion.Scope) error {
 	out.NodeRef = (*v1.ObjectReference)(unsafe.Pointer(in.NodeRef))
 	out.LastUpdated = in.LastUpdated
-	out.Ready = in.Ready
+	out.Versions = (*cluster.MachineVersionInfo)(unsafe.Pointer(in.Versions))
 	out.ErrorReason = (*common.MachineStatusError)(unsafe.Pointer(in.ErrorReason))
 	out.ErrorMessage = (*string)(unsafe.Pointer(in.ErrorMessage))
 	return nil
@@ -399,7 +401,7 @@ func Convert_v1alpha1_MachineStatus_To_cluster_MachineStatus(in *MachineStatus, 
 func autoConvert_cluster_MachineStatus_To_v1alpha1_MachineStatus(in *cluster.MachineStatus, out *MachineStatus, s conversion.Scope) error {
 	out.NodeRef = (*v1.ObjectReference)(unsafe.Pointer(in.NodeRef))
 	out.LastUpdated = in.LastUpdated
-	out.Ready = in.Ready
+	out.Versions = (*MachineVersionInfo)(unsafe.Pointer(in.Versions))
 	out.ErrorReason = (*common.MachineStatusError)(unsafe.Pointer(in.ErrorReason))
 	out.ErrorMessage = (*string)(unsafe.Pointer(in.ErrorMessage))
 	return nil

@@ -311,9 +311,16 @@ func (in *MachineList) DeepCopyObject() runtime.Object {
 func (in *MachineSpec) DeepCopyInto(out *MachineSpec) {
 	*out = *in
 	in.ObjectMeta.DeepCopyInto(&out.ObjectMeta)
+	if in.Taints != nil {
+		in, out := &in.Taints, &out.Taints
+		*out = make([]v1.Taint, len(*in))
+		for i := range *in {
+			(*in)[i].DeepCopyInto(&(*out)[i])
+		}
+	}
 	if in.Roles != nil {
 		in, out := &in.Roles, &out.Roles
-		*out = make([]string, len(*in))
+		*out = make([]common.MachineRole, len(*in))
 		copy(*out, *in)
 	}
 	out.Versions = in.Versions
@@ -352,6 +359,15 @@ func (in *MachineStatus) DeepCopyInto(out *MachineStatus) {
 		}
 	}
 	in.LastUpdated.DeepCopyInto(&out.LastUpdated)
+	if in.Versions != nil {
+		in, out := &in.Versions, &out.Versions
+		if *in == nil {
+			*out = nil
+		} else {
+			*out = new(MachineVersionInfo)
+			**out = **in
+		}
+	}
 	if in.ErrorReason != nil {
 		in, out := &in.ErrorReason, &out.ErrorReason
 		if *in == nil {

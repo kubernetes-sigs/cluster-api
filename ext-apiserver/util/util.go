@@ -27,6 +27,7 @@ import (
 
 	"github.com/golang/glog"
 
+	"k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/tools/clientcmd"
@@ -149,6 +150,28 @@ func RoleContains(a clustercommon.MachineRole, list []clustercommon.MachineRole)
 
 func IsMaster(machine *clusterv1.Machine) bool {
 	return RoleContains(clustercommon.MasterRole, machine.Spec.Roles)
+}
+
+func IsNodeReady(node *v1.Node) bool {
+	for _, condition := range node.Status.Conditions {
+		if condition.Type == v1.NodeReady {
+			return condition.Status == v1.ConditionTrue
+		}
+	}
+
+	return false
+}
+
+func Copy(m *clusterv1.Machine) *clusterv1.Machine {
+	ret := &clusterv1.Machine{}
+	ret.APIVersion = m.APIVersion
+	ret.Kind = m.Kind
+	ret.ClusterName = m.ClusterName
+	ret.GenerateName = m.GenerateName
+	ret.Name = m.Name
+	ret.Namespace = m.Namespace
+	m.Spec.DeepCopyInto(&ret.Spec)
+	return ret
 }
 
 func ExecCommand(name string, args ...string) string {

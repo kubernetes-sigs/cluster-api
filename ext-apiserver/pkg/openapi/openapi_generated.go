@@ -21271,6 +21271,234 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 			Dependencies: []string{
 				"github.com/kubernetes-incubator/apiserver-builder/pkg/builders.DefaultSchemeFns"},
 		},
+		"k8s.io/kube-deploy/ext-apiserver/pkg/apis/cluster/v1alpha1.MachineSet": {
+			Schema: spec.Schema{
+				SchemaProps: spec.SchemaProps{
+					Description: "MachineSet ensures that a specified number of machines replicas are running at any given time.",
+					Properties: map[string]spec.Schema{
+						"kind": {
+							SchemaProps: spec.SchemaProps{
+								Description: "Kind is a string value representing the REST resource this object represents. Servers may infer this from the endpoint the client submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/api-conventions.md#types-kinds",
+								Type:        []string{"string"},
+								Format:      "",
+							},
+						},
+						"apiVersion": {
+							SchemaProps: spec.SchemaProps{
+								Description: "APIVersion defines the versioned schema of this representation of an object. Servers should convert recognized schemas to the latest internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/api-conventions.md#resources",
+								Type:        []string{"string"},
+								Format:      "",
+							},
+						},
+						"metadata": {
+							SchemaProps: spec.SchemaProps{
+								Ref: ref("k8s.io/apimachinery/pkg/apis/meta/v1.ObjectMeta"),
+							},
+						},
+						"spec": {
+							SchemaProps: spec.SchemaProps{
+								Ref: ref("k8s.io/kube-deploy/ext-apiserver/pkg/apis/cluster/v1alpha1.MachineSetSpec"),
+							},
+						},
+						"status": {
+							SchemaProps: spec.SchemaProps{
+								Ref: ref("k8s.io/kube-deploy/ext-apiserver/pkg/apis/cluster/v1alpha1.MachineSetStatus"),
+							},
+						},
+					},
+				},
+			},
+			Dependencies: []string{
+				"k8s.io/apimachinery/pkg/apis/meta/v1.ObjectMeta", "k8s.io/kube-deploy/ext-apiserver/pkg/apis/cluster/v1alpha1.MachineSetSpec", "k8s.io/kube-deploy/ext-apiserver/pkg/apis/cluster/v1alpha1.MachineSetStatus"},
+		},
+		"k8s.io/kube-deploy/ext-apiserver/pkg/apis/cluster/v1alpha1.MachineSetList": {
+			Schema: spec.Schema{
+				SchemaProps: spec.SchemaProps{
+					Properties: map[string]spec.Schema{
+						"kind": {
+							SchemaProps: spec.SchemaProps{
+								Description: "Kind is a string value representing the REST resource this object represents. Servers may infer this from the endpoint the client submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/api-conventions.md#types-kinds",
+								Type:        []string{"string"},
+								Format:      "",
+							},
+						},
+						"apiVersion": {
+							SchemaProps: spec.SchemaProps{
+								Description: "APIVersion defines the versioned schema of this representation of an object. Servers should convert recognized schemas to the latest internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/api-conventions.md#resources",
+								Type:        []string{"string"},
+								Format:      "",
+							},
+						},
+						"metadata": {
+							SchemaProps: spec.SchemaProps{
+								Ref: ref("k8s.io/apimachinery/pkg/apis/meta/v1.ListMeta"),
+							},
+						},
+						"items": {
+							SchemaProps: spec.SchemaProps{
+								Type: []string{"array"},
+								Items: &spec.SchemaOrArray{
+									Schema: &spec.Schema{
+										SchemaProps: spec.SchemaProps{
+											Ref: ref("k8s.io/kube-deploy/ext-apiserver/pkg/apis/cluster/v1alpha1.MachineSet"),
+										},
+									},
+								},
+							},
+						},
+					},
+					Required: []string{"items"},
+				},
+			},
+			Dependencies: []string{
+				"k8s.io/apimachinery/pkg/apis/meta/v1.ListMeta", "k8s.io/kube-deploy/ext-apiserver/pkg/apis/cluster/v1alpha1.MachineSet"},
+		},
+		"k8s.io/kube-deploy/ext-apiserver/pkg/apis/cluster/v1alpha1.MachineSetSchemeFns": {
+			Schema: spec.Schema{
+				SchemaProps: spec.SchemaProps{
+					Description: "MachineSet Functions and Structs",
+					Properties: map[string]spec.Schema{
+						"DefaultSchemeFns": {
+							SchemaProps: spec.SchemaProps{
+								Ref: ref("github.com/kubernetes-incubator/apiserver-builder/pkg/builders.DefaultSchemeFns"),
+							},
+						},
+					},
+					Required: []string{"DefaultSchemeFns"},
+				},
+			},
+			Dependencies: []string{
+				"github.com/kubernetes-incubator/apiserver-builder/pkg/builders.DefaultSchemeFns"},
+		},
+		"k8s.io/kube-deploy/ext-apiserver/pkg/apis/cluster/v1alpha1.MachineSetSpec": {
+			Schema: spec.Schema{
+				SchemaProps: spec.SchemaProps{
+					Description: "MachineSetSpec defines the desired state of MachineSet",
+					Properties: map[string]spec.Schema{
+						"replicas": {
+							SchemaProps: spec.SchemaProps{
+								Description: "Replicas is the number of desired replicas. This is a pointer to distinguish between explicit zero and unspecified. Defaults to 1.",
+								Type:        []string{"integer"},
+								Format:      "int32",
+							},
+						},
+						"minReadySeconds": {
+							SchemaProps: spec.SchemaProps{
+								Description: "Minimum number of seconds for which a newly created machine should be ready. Defaults to 0 (machine will be considered available as soon as it is ready)",
+								Type:        []string{"integer"},
+								Format:      "int32",
+							},
+						},
+						"selector": {
+							SchemaProps: spec.SchemaProps{
+								Description: "Selector is a label query over machines that should match the replica count. Label keys and values that must match in order to be controlled by this MachineSet. It must match the machine template's labels. More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/labels/#label-selectors",
+								Ref:         ref("k8s.io/apimachinery/pkg/apis/meta/v1.LabelSelector"),
+							},
+						},
+						"template": {
+							SchemaProps: spec.SchemaProps{
+								Description: "Template is the object that describes the machine that will be created if insufficient replicas are detected.",
+								Ref:         ref("k8s.io/kube-deploy/ext-apiserver/pkg/apis/cluster/v1alpha1.MachineTemplateSpec"),
+							},
+						},
+					},
+					Required: []string{"selector"},
+				},
+			},
+			Dependencies: []string{
+				"k8s.io/apimachinery/pkg/apis/meta/v1.LabelSelector", "k8s.io/kube-deploy/ext-apiserver/pkg/apis/cluster/v1alpha1.MachineTemplateSpec"},
+		},
+		"k8s.io/kube-deploy/ext-apiserver/pkg/apis/cluster/v1alpha1.MachineSetStatus": {
+			Schema: spec.Schema{
+				SchemaProps: spec.SchemaProps{
+					Description: "MachineSetStatus defines the observed state of MachineSet",
+					Properties: map[string]spec.Schema{
+						"replicas": {
+							SchemaProps: spec.SchemaProps{
+								Description: "Replicas is the most recently observed number of replicas.",
+								Type:        []string{"integer"},
+								Format:      "int32",
+							},
+						},
+						"fullyLabeledReplicas": {
+							SchemaProps: spec.SchemaProps{
+								Description: "The number of replicas that have labels matching the labels of the machine template of the MachineSet.",
+								Type:        []string{"integer"},
+								Format:      "int32",
+							},
+						},
+						"readyReplicas": {
+							SchemaProps: spec.SchemaProps{
+								Description: "The number of ready replicas for this MachineSet. A machine is considered ready when the node has been created and is \"Ready\".",
+								Type:        []string{"integer"},
+								Format:      "int32",
+							},
+						},
+						"availableReplicas": {
+							SchemaProps: spec.SchemaProps{
+								Description: "The number of available replicas (ready for at least minReadySeconds) for this MachineSet.",
+								Type:        []string{"integer"},
+								Format:      "int32",
+							},
+						},
+						"observedGeneration": {
+							SchemaProps: spec.SchemaProps{
+								Description: "ObservedGeneration reflects the generation of the most recently observed MachineSet.",
+								Type:        []string{"integer"},
+								Format:      "int64",
+							},
+						},
+						"errorReason": {
+							SchemaProps: spec.SchemaProps{
+								Description: "In the event that there is a terminal problem reconciling the replicas, both ErrorReason and ErrorMessage will be set. ErrorReason will be populated with a succinct value suitable for machine interpretation, while ErrorMessage will contain a more verbose string suitable for logging and human consumption.\n\nThese fields should not be set for transitive errors that a controller faces that are expected to be fixed automatically over time (like service outages), but instead indicate that something is fundamentally wrong with the MachineTemplates's spec or the configuration of the machine controller, and that manual intervention is required. Examples of terminal errors would be invalid combinations of settings in the spec, values that are unsupported by the machine controller, or the responsible machine controller itself being critically misconfigured.\n\nAny transient errors that occur during the reconcilation of Machines can be added as events to the MachineSet object and/or logged in the controller's output.",
+								Type:        []string{"string"},
+								Format:      "",
+							},
+						},
+						"errorMessage": {
+							SchemaProps: spec.SchemaProps{
+								Type:   []string{"string"},
+								Format: "",
+							},
+						},
+					},
+					Required: []string{"replicas"},
+				},
+			},
+			Dependencies: []string{},
+		},
+		"k8s.io/kube-deploy/ext-apiserver/pkg/apis/cluster/v1alpha1.MachineSetStatusStrategy": {
+			Schema: spec.Schema{
+				SchemaProps: spec.SchemaProps{
+					Properties: map[string]spec.Schema{
+						"DefaultStatusStorageStrategy": {
+							SchemaProps: spec.SchemaProps{
+								Ref: ref("github.com/kubernetes-incubator/apiserver-builder/pkg/builders.DefaultStatusStorageStrategy"),
+							},
+						},
+					},
+					Required: []string{"DefaultStatusStorageStrategy"},
+				},
+			},
+			Dependencies: []string{
+				"github.com/kubernetes-incubator/apiserver-builder/pkg/builders.DefaultStatusStorageStrategy"},
+		},
+		"k8s.io/kube-deploy/ext-apiserver/pkg/apis/cluster/v1alpha1.MachineSetStrategy": {
+			Schema: spec.Schema{
+				SchemaProps: spec.SchemaProps{
+					Properties: map[string]spec.Schema{
+						"DefaultStorageStrategy": {
+							SchemaProps: spec.SchemaProps{
+								Ref: ref("github.com/kubernetes-incubator/apiserver-builder/pkg/builders.DefaultStorageStrategy"),
+							},
+						},
+					},
+					Required: []string{"DefaultStorageStrategy"},
+				},
+			},
+			Dependencies: []string{
+				"github.com/kubernetes-incubator/apiserver-builder/pkg/builders.DefaultStorageStrategy"},
+		},
 		"k8s.io/kube-deploy/ext-apiserver/pkg/apis/cluster/v1alpha1.MachineSpec": {
 			Schema: spec.Schema{
 				SchemaProps: spec.SchemaProps{
@@ -21407,6 +21635,29 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 			},
 			Dependencies: []string{
 				"github.com/kubernetes-incubator/apiserver-builder/pkg/builders.DefaultStorageStrategy"},
+		},
+		"k8s.io/kube-deploy/ext-apiserver/pkg/apis/cluster/v1alpha1.MachineTemplateSpec": {
+			Schema: spec.Schema{
+				SchemaProps: spec.SchemaProps{
+					Description: "MachineTemplateSpec describes the data a machine should have when created from a template",
+					Properties: map[string]spec.Schema{
+						"metadata": {
+							SchemaProps: spec.SchemaProps{
+								Description: "Standard object's metadata. More info: https://git.k8s.io/community/contributors/devel/api-conventions.md#metadata",
+								Ref:         ref("k8s.io/apimachinery/pkg/apis/meta/v1.ObjectMeta"),
+							},
+						},
+						"spec": {
+							SchemaProps: spec.SchemaProps{
+								Description: "Specification of the desired behavior of the machine. More info: https://git.k8s.io/community/contributors/devel/api-conventions.md#spec-and-status",
+								Ref:         ref("k8s.io/kube-deploy/ext-apiserver/pkg/apis/cluster/v1alpha1.MachineSpec"),
+							},
+						},
+					},
+				},
+			},
+			Dependencies: []string{
+				"k8s.io/apimachinery/pkg/apis/meta/v1.ObjectMeta", "k8s.io/kube-deploy/ext-apiserver/pkg/apis/cluster/v1alpha1.MachineSpec"},
 		},
 		"k8s.io/kube-deploy/ext-apiserver/pkg/apis/cluster/v1alpha1.MachineVersionInfo": {
 			Schema: spec.Schema{

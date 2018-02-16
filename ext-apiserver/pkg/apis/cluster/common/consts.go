@@ -110,3 +110,14 @@ const (
 	MasterRole MachineRole = "Master"
 	NodeRole   MachineRole = "Node"
 )
+
+type MachineSetStatusError string
+
+const (
+	// Represents that the combination of configuration in the MachineTemplateSpec
+	// is not supported by this cluster. This is not a transient error, but
+	// indicates a state that must be fixed before progress can be made.
+	//
+	// Example: the ProviderConfig specifies an instance type that doesn't exist.
+	InvalidConfigurationMachineSetError MachineSetStatusError = "InvalidConfiguration"
+)

@@ -114,13 +114,6 @@ type Machine struct {
 }
 
 type MachineSetStatus struct {
-	Replicas             int32
-	FullyLabeledReplicas int32
-	ReadyReplicas        int32
-	AvailableReplicas    int32
-	ObservedGeneration   int64
-	ErrorReason          *clustercommon.MachineSetStatusError
-	ErrorMessage         *string
 }
 
 type MachineStatus struct {
@@ -129,6 +122,17 @@ type MachineStatus struct {
 	Versions     *MachineVersionInfo
 	ErrorReason  *clustercommon.MachineStatusError
 	ErrorMessage *string
+}
+
+type APIEndpoint struct {
+	Host string
+	Port int
+}
+
+type MachineVersionInfo struct {
+	Kubelet          string
+	ControlPlane     string
+	ContainerRuntime ContainerRuntimeInfo
 }
 
 type MachineSpec struct {
@@ -140,22 +144,29 @@ type MachineSpec struct {
 	ConfigSource   *corev1.NodeConfigSource
 }
 
-type MachineVersionInfo struct {
-	Kubelet          string
-	ControlPlane     string
-	ContainerRuntime ContainerRuntimeInfo
-}
-
 type ContainerRuntimeInfo struct {
 	Name    string
 	Version string
 }
 
+type ClusterSpec struct {
+	ClusterNetwork ClusterNetworkingConfig
+	ProviderConfig string
+}
+
+type ClusterNetworkingConfig struct {
+	Services  NetworkRanges
+	Pods      NetworkRanges
+	DNSDomain string
+}
+
 type MachineSetSpec struct {
-	Replicas        *int32
-	MinReadySeconds int32
-	Selector        metav1.LabelSelector
-	Template        MachineTemplateSpec
+}
+
+type MachineVersionInfo struct {
+	Kubelet          string
+	ControlPlane     string
+	ContainerRuntime ContainerRuntimeInfo
 }
 
 // +genclient
@@ -169,9 +180,9 @@ type Cluster struct {
 	Status ClusterStatus
 }
 
-type MachineTemplateSpec struct {
-	metav1.ObjectMeta
-	Spec MachineSpec
+type ContainerRuntimeInfo struct {
+	Name    string
+	Version string
 }
 
 type ClusterStatus struct {
@@ -181,14 +192,14 @@ type ClusterStatus struct {
 	ProviderStatus string
 }
 
-type APIEndpoint struct {
-	Host string
-	Port int
-}
-
 type ClusterSpec struct {
 	ClusterNetwork ClusterNetworkingConfig
 	ProviderConfig string
+}
+
+type APIEndpoint struct {
+	Host string
+	Port int
 }
 
 type ClusterNetworkingConfig struct {

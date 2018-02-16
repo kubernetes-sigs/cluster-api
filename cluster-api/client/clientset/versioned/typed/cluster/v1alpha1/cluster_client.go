@@ -26,6 +26,7 @@ type ClusterV1alpha1Interface interface {
 	RESTClient() rest.Interface
 	ClustersGetter
 	MachinesGetter
+	MachineSetsGetter
 }
 
 // ClusterV1alpha1Client is used to interact with features provided by the cluster.k8s.io group.
@@ -39,6 +40,10 @@ func (c *ClusterV1alpha1Client) Clusters() ClusterInterface {
 
 func (c *ClusterV1alpha1Client) Machines() MachineInterface {
 	return newMachines(c)
+}
+
+func (c *ClusterV1alpha1Client) MachineSets() MachineSetInterface {
+	return newMachineSets(c)
 }
 
 // NewForConfig creates a new ClusterV1alpha1Client for the given config.

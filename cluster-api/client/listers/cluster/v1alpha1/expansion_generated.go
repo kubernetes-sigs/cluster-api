@@ -25,3 +25,7 @@ type ClusterListerExpansion interface{}
 // MachineListerExpansion allows custom methods to be added to
 // MachineLister.
 type MachineListerExpansion interface{}
+
+// MachineSetListerExpansion allows custom methods to be added to
+// MachineSetLister.
+type MachineSetListerExpansion interface{}

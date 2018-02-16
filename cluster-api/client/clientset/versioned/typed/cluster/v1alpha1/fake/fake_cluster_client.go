@@ -33,6 +33,10 @@ func (c *FakeClusterV1alpha1) Machines() v1alpha1.MachineInterface {
 	return &FakeMachines{c}
 }
 
+func (c *FakeClusterV1alpha1) MachineSets() v1alpha1.MachineSetInterface {
+	return &FakeMachineSets{c}
+}
+
 // RESTClient returns a RESTClient that is used to communicate
 // with API server by this client implementation.
 func (c *FakeClusterV1alpha1) RESTClient() rest.Interface {

@@ -16,47 +16,33 @@ limitations under the License.
 */
 
 
-package cluster_test
+package cluster
 
 import (
 	"testing"
 
-	. "github.com/onsi/ginkgo"
-	. "github.com/onsi/gomega"
-	"k8s.io/client-go/rest"
 	"github.com/kubernetes-incubator/apiserver-builder/pkg/test"
 
 	"k8s.io/kube-deploy/ext-apiserver/pkg/apis"
 	"k8s.io/kube-deploy/ext-apiserver/pkg/client/clientset_generated/clientset"
 	"k8s.io/kube-deploy/ext-apiserver/pkg/openapi"
 	"k8s.io/kube-deploy/ext-apiserver/pkg/controller/sharedinformers"
-	"k8s.io/kube-deploy/ext-apiserver/pkg/controller/cluster"
 )
 
-var testenv *test.TestEnvironment
-var config *rest.Config
-var cs *clientset.Clientset
-var shutdown chan struct{}
-var controller *cluster.ClusterController
-var si *sharedinformers.SharedInformers
-
 func TestCluster(t *testing.T) {
-	RegisterFailHandler(Fail)
-	RunSpecsWithDefaultAndCustomReporters(t, "Cluster Suite", []Reporter{test.NewlineReporter{}})
-}
+	testenv := test.NewTestEnvironment()
+	config := testenv.Start(apis.GetAllApiBuilders(), openapi.GetOpenAPIDefinitions)
+	cs := clientset.NewForConfigOrDie(config)
 
-var _ = BeforeSuite(func() {
-	testenv = test.NewTestEnvironment()
-	config = testenv.Start(apis.GetAllApiBuilders(), openapi.GetOpenAPIDefinitions)
-	cs = clientset.NewForConfigOrDie(config)
-
-	shutdown = make(chan struct{})
-	si = sharedinformers.NewSharedInformers(config, shutdown)
-	controller = cluster.NewClusterController(config, si)
+	shutdown := make(chan struct{})
+	si := sharedinformers.NewSharedInformers(config, shutdown)
+	controller := NewClusterController(config, si)
 	controller.Run(shutdown)
-})
 
-var _ = AfterSuite(func() {
+	t.Run("clusterControllerReconcile", func(t *testing.T) {
+		clusterControllerReconcile(t, cs, controller)
+	})
+
 	close(shutdown)
 	testenv.Stop()
-})
+}

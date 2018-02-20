@@ -17,64 +17,75 @@ limitations under the License.
 package v1alpha1_test
 
 import (
-	. "github.com/onsi/ginkgo"
-	. "github.com/onsi/gomega"
+	"reflect"
+	"testing"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
-	. "k8s.io/kube-deploy/ext-apiserver/pkg/apis/cluster/v1alpha1"
-	. "k8s.io/kube-deploy/ext-apiserver/pkg/client/clientset_generated/clientset/typed/cluster/v1alpha1"
+	"k8s.io/kube-deploy/ext-apiserver/pkg/apis/cluster/v1alpha1"
+	"k8s.io/kube-deploy/ext-apiserver/pkg/client/clientset_generated/clientset"
 )
 
-var _ = Describe("Machine", func() {
-	var instance Machine
-	var expected Machine
-	var client MachineInterface
+func crudAccessToMachineClient(t *testing.T, cs *clientset.Clientset) {
+	instance := v1alpha1.Machine{}
+	instance.Name = "instance-1"
 
-	BeforeEach(func() {
-		instance = Machine{}
-		instance.Name = "instance-1"
+	expected := instance
 
-		expected = instance
-	})
+	// When sending a storage request for a valid config,
+	// it should provide CRUD access to the object.
+	client := cs.ClusterV1alpha1().Machines("machine-test-valid")
 
-	AfterEach(func() {
-		client.Delete(instance.Name, &metav1.DeleteOptions{})
-	})
+	// Test that the create request returns success.
+	actual, err := client.Create(&instance)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer client.Delete(instance.Name, &metav1.DeleteOptions{})
+	if !reflect.DeepEqual(actual.Spec, expected.Spec) {
+		t.Fatalf(
+			"Default fields were not set correctly.\nActual:\t%+v\nExpected:\t%+v",
+			actual.Spec, expected.Spec)
+	}
 
-	Describe("when sending a storage request", func() {
-		Context("for a valid config", func() {
-			It("should provide CRUD access to the object", func() {
-				client = cs.ClusterV1alpha1().Machines("machine-test-valid")
+	// Test getting the created item for list requests.
+	result, err := client.List(metav1.ListOptions{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if itemLength := len(result.Items); itemLength != 1 {
+		t.Fatalf("Number of items in Items list should be 1, but is %d.", itemLength)
+	}
+	if resultSpec := result.Items[0].Spec; !reflect.DeepEqual(resultSpec, expected.Spec) {
+		t.Fatalf(
+			"Item returned from list is not equal to the expected item.\nActual:\t%+v\nExpected:\t%+v",
+			resultSpec, expected.Spec)
+	}
 
-				By("returning success from the create request")
-				actual, err := client.Create(&instance)
-				Expect(err).ShouldNot(HaveOccurred())
+	// Test getting the created item for get requests.
+	actual, err = client.Get(instance.Name, metav1.GetOptions{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !reflect.DeepEqual(actual.Spec, expected.Spec) {
+		t.Fatalf(
+			"Item returned from get is not equal to the expected item.\nActual:\t%+v\nExpected:\t%+v",
+			actual.Spec, expected.Spec)
+	}
 
-				By("defaulting the expected fields")
-				Expect(actual.Spec).To(Equal(expected.Spec))
-
-				By("returning the item for list requests")
-				result, err := client.List(metav1.ListOptions{})
-				Expect(err).ShouldNot(HaveOccurred())
-				Expect(result.Items).To(HaveLen(1))
-				Expect(result.Items[0].Spec).To(Equal(expected.Spec))
-
-				By("returning the item for get requests")
-				actual, err = client.Get(instance.Name, metav1.GetOptions{})
-				Expect(err).ShouldNot(HaveOccurred())
-				Expect(actual.Spec).To(Equal(expected.Spec))
-
-				By("deleting the item for delete requests")
-				actual.Finalizers = nil
-				_, err = client.Update(actual)
-				Expect(err).ShouldNot(HaveOccurred())
-				err = client.Delete(instance.Name, &metav1.DeleteOptions{})
-				Expect(err).ShouldNot(HaveOccurred())
-				result, err = client.List(metav1.ListOptions{})
-				Expect(err).ShouldNot(HaveOccurred())
-				Expect(result.Items).To(HaveLen(0))
-			})
-		})
-	})
-})
+	// Test deleting the item for delete requests.
+	actual.Finalizers = nil
+	if _, updateErr := client.Update(actual); updateErr != nil {
+		t.Fatal(updateErr)
+	}
+	if deleteErr := client.Delete(instance.Name, &metav1.DeleteOptions{}); deleteErr != nil {
+		t.Fatal(deleteErr)
+	}
+	result, err = client.List(metav1.ListOptions{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if itemLength := len(result.Items); itemLength != 0 {
+		t.Fatalf("Number of items in Items list should be 0, but is %d.", itemLength)
+	}
+}

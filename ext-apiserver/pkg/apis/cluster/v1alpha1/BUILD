@@ -40,8 +40,6 @@ go_test(
         "//pkg/client/clientset_generated/clientset/typed/cluster/v1alpha1:go_default_library",
         "//pkg/openapi:go_default_library",
         "//vendor/github.com/kubernetes-incubator/apiserver-builder/pkg/test:go_default_library",
-        "//vendor/github.com/onsi/ginkgo:go_default_library",
-        "//vendor/github.com/onsi/gomega:go_default_library",
         "//vendor/k8s.io/apimachinery/pkg/apis/meta/v1:go_default_library",
         "//vendor/k8s.io/client-go/rest:go_default_library",
     ],

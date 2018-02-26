@@ -26,6 +26,7 @@ import (
 
 	"github.com/golang/glog"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apiserver/pkg/storage/names"
 	_ "k8s.io/client-go/plugin/pkg/client/auth/gcp"
 	"k8s.io/client-go/tools/clientcmd"
 	clientcmdapi "k8s.io/client-go/tools/clientcmd/api"
@@ -56,7 +57,9 @@ func (d *deployer) createCluster(c *clusterv1.Cluster, machines []*clusterv1.Mac
 	}
 
 	if master.GetName() == "" {
-		master.Name = master.GetGenerateName() + c.GetName()
+		/* Need the generate master name here, master object gets created before submitting CRD to API server.
+		However, in case of node names, we submit the CRD to API server which generates the name on validation.*/
+		master.Name = names.SimpleNameGenerator.GenerateName(master.GetGenerateName()) + "-" + c.GetName()
 	}
 
 	glog.Infof("Starting cluster creation %s", c.GetName())

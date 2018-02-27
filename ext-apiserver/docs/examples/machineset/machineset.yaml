@@ -1,0 +1,7 @@
+note: MachineSet Example
+sample: |
+  apiVersion: cluster.k8s.io/v1alpha1
+  kind: MachineSet
+  metadata:
+    name: machineset-example
+  spec:

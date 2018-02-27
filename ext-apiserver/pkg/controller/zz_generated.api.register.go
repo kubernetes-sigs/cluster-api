@@ -23,6 +23,7 @@ import (
 	"k8s.io/client-go/rest"
 	"k8s.io/kube-deploy/ext-apiserver/pkg/controller/cluster"
 	"k8s.io/kube-deploy/ext-apiserver/pkg/controller/machine"
+	"k8s.io/kube-deploy/ext-apiserver/pkg/controller/machineset"
 	"k8s.io/kube-deploy/ext-apiserver/pkg/controller/sharedinformers"
 )
 
@@ -32,5 +33,6 @@ func GetAllControllers(config *rest.Config) ([]controller.Controller, chan struc
 	return []controller.Controller{
 		cluster.NewClusterController(config, si),
 		machine.NewMachineController(config, si),
+		machineset.NewMachineSetController(config, si),
 	}, shutdown
 }

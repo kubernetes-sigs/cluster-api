@@ -33,3 +33,11 @@ type MachineListerExpansion interface{}
 // MachineNamespaceListerExpansion allows custom methods to be added to
 // MachineNamespaceLister.
 type MachineNamespaceListerExpansion interface{}
+
+// MachineSetListerExpansion allows custom methods to be added to
+// MachineSetLister.
+type MachineSetListerExpansion interface{}
+
+// MachineSetNamespaceListerExpansion allows custom methods to be added to
+// MachineSetNamespaceLister.
+type MachineSetNamespaceListerExpansion interface{}

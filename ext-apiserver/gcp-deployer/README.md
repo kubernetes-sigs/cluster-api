@@ -10,6 +10,10 @@ Follow the steps listed at [CONTRIBUTING.md](https://github.com/kubernetes/kube-
 1. Build the `gcp-deployer` tool
 2. Generate base `machines.yaml` file configured for your GCP project
 
+### Limitation
+
+gcp-deployer tool only supports Kubernetes version 1.8 or newer.
+
 ### Creating a cluster
 
 1. *Optional* update `machines.yaml` to give your preferred GCP zone in

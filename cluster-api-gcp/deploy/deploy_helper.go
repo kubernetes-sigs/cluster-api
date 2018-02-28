@@ -247,10 +247,7 @@ func (d *deployer) copyKubeConfig(master *clusterv1.Machine) error {
 		}
 		glog.Infof("Kubernetes is up.. Writing kubeconfig to disk.")
 		err = d.writeConfigToDisk(config)
-		if err != nil {
-			return false, err
-		}
-		return true, nil
+		return (err == nil), nil
 	}, 5)
 
 	if writeErr != nil {
@@ -297,10 +294,7 @@ func (d *deployer) waitForApiserver(master string) error {
 	waitErr := util.Retry(func() (bool, error) {
 		glog.Info("Waiting for apiserver to become healthy...")
 		resp, err := client.Get(endpoint)
-		if err == nil && resp.StatusCode == 200 {
-			return true, nil
-		}
-		return false, nil
+		return (err == nil && resp.StatusCode == 200), nil
 	}, 3)
 
 	if waitErr != nil {
@@ -335,10 +329,7 @@ func (d *deployer) waitForServiceAccount() error {
 	waitErr := util.Retry(func() (bool, error) {
 		glog.Info("Waiting for the service account to exist...")
 		_, err = client.CoreV1().ServiceAccounts(ServiceAccountNs).Get(ServiceAccountName, metav1.GetOptions{})
-		if err == nil {
-			return true, nil
-		}
-		return false, nil
+		return (err == nil), nil
 	}, 5)
 
 	if waitErr != nil {

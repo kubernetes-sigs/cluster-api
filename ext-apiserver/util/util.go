@@ -28,6 +28,7 @@ import (
 	"github.com/golang/glog"
 
 	"k8s.io/api/core/v1"
+	"k8s.io/client-go/kubernetes"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/tools/clientcmd"
@@ -111,6 +112,23 @@ func NewClientSet(configPath string) (*clientset.Clientset, error) {
 	}
 
 	return cs, nil
+}
+
+func NewKubernetesClient(configPath string) (*kubernetes.Clientset, error) {
+	if _, err := os.Stat(configPath); os.IsNotExist(err) {
+		return nil, fmt.Errorf("kubectl config file %s doesn't exist. Is kubectl configured to access a cluster?", configPath)
+	}
+
+	config, err := clientcmd.BuildConfigFromFlags("", configPath)
+	if err != nil {
+		return nil, err
+	}
+
+	c, err := kubernetes.NewForConfig(config)
+	if err != nil {
+		return nil, err
+	}
+	return c, nil
 }
 
 func GetCurrentMachineIfExists(machineClient client.MachineInterface, machine *clusterv1.Machine) (*clusterv1.Machine, error) {

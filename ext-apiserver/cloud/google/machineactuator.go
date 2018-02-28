@@ -673,7 +673,7 @@ func (gce *GCEClient) getImage(machine *clusterv1.Machine, config *gceconfig.GCE
 		// Only the image name was specified in config, so check if it is preloaded in the project specified in config.
 		fullPath := fmt.Sprintf("projects/%s/global/images/%s", project, img)
 		if _, err := gce.service.Images.Get(project, img).Do(); err == nil {
-			return fullPath, true
+			return fullPath, false
 		}
 
 		// Otherwise, fall back to the non-preloaded base image.
@@ -691,7 +691,7 @@ func (gce *GCEClient) getImage(machine *clusterv1.Machine, config *gceconfig.GCE
 	}
 
 	if err == nil {
-		return img, true
+		return img, false
 	}
 
 	// Otherwise, fall back to the non-preloaded base image.

@@ -682,12 +682,12 @@ func (gce *GCEClient) getImage(machine *clusterv1.Machine, config *gceconfig.GCE
 	}
 
 	// Check to see if the image exists in the given path. The presence of "family" in the path dictates which API call we need to make.
-	project, family, imgName := matches[1], matches[2], matches[3]
+	project, family, name := matches[1], matches[2], matches[3]
 	var err error
 	if family == "" {
-		_, err = gce.service.Images.Get(project, imgName).Do()
+		_, err = gce.service.Images.Get(project, name).Do()
 	} else {
-		_, err = gce.service.Images.GetFromFamily(project, imgName).Do()
+		_, err = gce.service.Images.GetFromFamily(project, name).Do()
 	}
 
 	if err == nil {

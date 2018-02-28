@@ -41,6 +41,7 @@ import (
 	clusterv1 "k8s.io/kube-deploy/ext-apiserver/pkg/apis/cluster/v1alpha1"
 	client "k8s.io/kube-deploy/ext-apiserver/pkg/client/clientset_generated/clientset/typed/cluster/v1alpha1"
 	"k8s.io/kube-deploy/ext-apiserver/util"
+	"regexp"
 )
 
 const (
@@ -661,18 +662,41 @@ func (gce *GCEClient) handleMachineError(machine *clusterv1.Machine, err *apierr
 }
 
 func (gce *GCEClient) getImage(machine *clusterv1.Machine, config *gceconfig.GCEProviderConfig) (image string, isPreloaded bool) {
+	defaultImg := "projects/ubuntu-os-cloud/global/images/family/ubuntu-1710"
 	project := config.Project
-	imgName := "prebaked-ubuntu-1604-lts"
-	fullName := fmt.Sprintf("projects/%s/global/images/%s", project, imgName)
+	img := config.Image
 
-	// Check to see if a preloaded image exists in this project. If so, use it.
-	_, err := gce.service.Images.Get(project, imgName).Do()
+	// A full image path must match the regex format. If it doesn't, we'll assume it's just the image name and try to get it.
+	// If that doesn't work, we will fall back to a default base image.
+	matches := regexp.MustCompile("projects/(.+)/global/images/(family/)*(.+)").FindStringSubmatch(img)
+	if matches == nil {
+		// Only the image name was specified in config, so check if it is preloaded in the project specified in config.
+		fullPath := fmt.Sprintf("projects/%s/global/images/%s", project, img)
+		if _, err := gce.service.Images.Get(project, img).Do(); err == nil {
+			return fullPath, true
+		}
+
+		// Otherwise, fall back to the non-preloaded base image.
+		glog.Infof("Could not find image at %s. Defaulting to %s.", fullPath, defaultImg)
+		return defaultImg, false
+	}
+
+	// Check to see if the image exists in the given path. The presence of "family" in the path dictates which API call we need to make.
+	project, family, imgName := matches[1], matches[2], matches[3]
+	var err error
+	if family == "" {
+		_, err = gce.service.Images.Get(project, imgName).Do()
+	} else {
+		_, err = gce.service.Images.GetFromFamily(project, imgName).Do()
+	}
+
 	if err == nil {
-		return fullName, true
+		return img, true
 	}
 
 	// Otherwise, fall back to the non-preloaded base image.
-	return "projects/ubuntu-os-cloud/global/images/family/ubuntu-1604-lts", false
+	glog.Infof("Could not find image at %s. Defaulting to %s.", img, defaultImg)
+	return defaultImg, false
 }
 
 // Just a temporary hack to grab a single range from the config.

@@ -35,9 +35,8 @@ import (
 const (
 	MasterIPAttempts       = 40
 	SleepSecondsPerAttempt = 5
-	RetryAttempts          = 30
-	DeleteAttempts         = 150
-	DeleteSleepSeconds     = 5
+	ServiceAccountNs       = "kube-system"
+	ServiceAccountName     = "default"
 )
 
 func (d *deployer) createCluster(c *clusterv1.Cluster, machines []*clusterv1.Machine, vmCreated *bool) error {
@@ -77,13 +76,16 @@ func (d *deployer) createCluster(c *clusterv1.Cluster, machines []*clusterv1.Mac
 		return fmt.Errorf("unable to write kubeconfig: %v", err)
 	}
 
-	glog.Info("Waiting for apiserver to become healthy...")
-	if err := d.waitForApiserver(masterIP, 1*time.Minute); err != nil {
+	if err := d.waitForApiserver(masterIP); err != nil {
 		return fmt.Errorf("apiserver never came up: %v", err)
 	}
 
 	if err := d.initApiClient(); err != nil {
 		return err
+	}
+
+	if err := d.waitForServiceAccount(); err != nil {
+		return fmt.Errorf("service account %s/%s not found: %v", ServiceAccountNs, ServiceAccountName, err)
 	}
 
 	glog.Info("Deploying the addon apiserver and controller manager...")
@@ -205,18 +207,22 @@ func (d *deployer) getMasterIP(master *clusterv1.Machine) (string, error) {
 }
 
 func (d *deployer) copyKubeConfig(master *clusterv1.Machine) error {
-	for i := 0; i <= RetryAttempts; i++ {
-		var config string
-		var err error
-		if config, err = d.machineDeployer.GetKubeConfig(master); err != nil || config == "" {
-			glog.Infof("Waiting for Kubernetes to come up...")
-			time.Sleep(time.Duration(SleepSecondsPerAttempt) * time.Second)
-			continue
+	writeErr := util.Retry(func() (bool, error) {
+		glog.Infof("Waiting for Kubernetes to come up...")
+		config, err := d.machineDeployer.GetKubeConfig(master)
+		if err != nil || config == "" {
+			glog.Errorf("Error while retriving kubeconfig %s", err)
+			return false, err
 		}
+		glog.Infof("Kubernetes is up.. Writing kubeconfig to disk.")
+		err = d.writeConfigToDisk(config)
+		return (err == nil), nil
+	}, 5)
 
-		return d.writeConfigToDisk(config)
+	if writeErr != nil {
+		return fmt.Errorf("timedout writing kubeconfig: %s", writeErr)
 	}
-	return fmt.Errorf("timedout writing kubeconfig")
+	return nil
 }
 
 func (d *deployer) initApiClient() error {
@@ -245,7 +251,7 @@ func (d *deployer) writeConfigToDisk(config string) error {
 }
 
 // Make sure you successfully call setMasterIp first.
-func (d *deployer) waitForApiserver(master string, timeout time.Duration) error {
+func (d *deployer) waitForApiserver(master string) error {
 	endpoint := fmt.Sprintf("https://%s/healthz", master)
 
 	// Skip certificate validation since we're only looking for signs of
@@ -255,16 +261,35 @@ func (d *deployer) waitForApiserver(master string, timeout time.Duration) error 
 	}
 	client := &http.Client{Transport: tr}
 
-	startTime := time.Now()
+	waitErr := util.Retry(func() (bool, error) {
+		glog.Info("Waiting for apiserver to become healthy...")
+		resp, err := client.Get(endpoint)
+		return (err == nil && resp.StatusCode == 200), nil
+	}, 3)
 
-	var err error
-	var resp *http.Response
-	for time.Now().Sub(startTime) < timeout {
-		resp, err = client.Get(endpoint)
-		if err == nil && resp.StatusCode == 200 {
-			return nil
-		}
-		time.Sleep(1 * time.Second)
+	if waitErr != nil {
+		glog.Errorf("Error waiting for apiserver: %s", waitErr)
+		return waitErr
 	}
-	return err
+	return nil
+}
+
+// Make sure the default service account in kube-system namespace exists.
+func (d *deployer) waitForServiceAccount() error {
+	client, err := util.NewKubernetesClient(d.configPath)
+	if err != nil {
+		return err
+	}
+
+	waitErr := util.Retry(func() (bool, error) {
+		glog.Info("Waiting for the service account to exist...")
+		_, err = client.CoreV1().ServiceAccounts(ServiceAccountNs).Get(ServiceAccountName, metav1.GetOptions{})
+		return (err == nil), nil
+	}, 5)
+
+	if waitErr != nil {
+		glog.Errorf("Error waiting for service account: %s", waitErr)
+		return waitErr
+	}
+	return nil
 }

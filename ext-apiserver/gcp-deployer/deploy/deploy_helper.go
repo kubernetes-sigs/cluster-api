@@ -26,7 +26,6 @@ import (
 	"github.com/golang/glog"
 	apiv1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/util/wait"
 	_ "k8s.io/client-go/plugin/pkg/client/auth/gcp"
 	clusterv1 "k8s.io/kube-deploy/ext-apiserver/pkg/apis/cluster/v1alpha1"
 	"k8s.io/kube-deploy/ext-apiserver/util"
@@ -118,7 +117,7 @@ func (d *deployer) createCluster(c *clusterv1.Cluster, machines []*clusterv1.Mac
 }
 
 func (d *deployer) waitForClusterResourceReady() error {
-	err := wait.Poll(500*time.Millisecond, 120*time.Second, func() (bool, error) {
+	err := util.Poll(500*time.Millisecond, 120*time.Second, func() (bool, error) {
 		_, err := d.clientSet.Discovery().ServerResourcesForGroupVersion("cluster.k8s.io/v1alpha1")
 		if err == nil {
 			return true, nil
@@ -165,7 +164,7 @@ func (d *deployer) delete(name string) error {
 	if err != nil {
 		return err
 	}
-	err = wait.Poll(500*time.Millisecond, 120*time.Second, func() (bool, error) {
+	err = util.Poll(500*time.Millisecond, 120*time.Second, func() (bool, error) {
 		if _, err = d.client.Machines(apiv1.NamespaceDefault).Get(name, metav1.GetOptions{}); err == nil {
 			return false, nil
 		}

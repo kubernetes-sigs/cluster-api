@@ -45,3 +45,7 @@ func Retry(fn wait.ConditionFunc, initialBackoffSec int) error {
 	}
 	return nil
 }
+
+func Poll(interval, timeout time.Duration, condition wait.ConditionFunc) error {
+	return wait.Poll(interval, timeout, condition)
+}

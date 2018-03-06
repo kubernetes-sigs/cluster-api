@@ -26,7 +26,6 @@ import (
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/validation/field"
-
 	"k8s.io/kube-deploy/ext-apiserver/pkg/apis/cluster"
 	"k8s.io/kube-deploy/ext-apiserver/pkg/apis/cluster/common"
 )
@@ -140,6 +139,14 @@ func (MachineSetStrategy) Validate(ctx request.Context, obj runtime.Object) fiel
 // DefaultingFunction sets default MachineSet field values
 func (MachineSetSchemeFns) DefaultingFunction(o interface{}) {
 	obj := o.(*MachineSet)
-	// set default field values here
 	log.Printf("Defaulting fields for MachineSet %s\n", obj.Name)
+
+	if obj.Spec.Replicas == nil {
+		obj.Spec.Replicas = new(int32)
+		*obj.Spec.Replicas = 1
+	}
+
+	if len(obj.Namespace) == 0 {
+		obj.Namespace = metav1.NamespaceDefault
+	}
 }

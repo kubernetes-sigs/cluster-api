@@ -32,6 +32,8 @@ func machineSetControllerReconcile(t *testing.T, cs *clientset.Clientset, contro
 	instance := v1alpha1.MachineSet{}
 	instance.Name = "instance-1"
 	expectedKey := "default/instance-1"
+	replicas := int32(0)
+	instance.Spec.Replicas = &replicas
 
 	// When creating a new object, it should invoke the reconcile method.
 	cluster := v1alpha1.Cluster{}

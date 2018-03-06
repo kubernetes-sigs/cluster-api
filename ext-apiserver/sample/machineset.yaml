@@ -1,5 +1,27 @@
-apiVersion: cluster.k8s.io/v1alpha1
+apiVersion: "cluster.k8s.io/v1alpha1"
 kind: MachineSet
 metadata:
-  name: machineset-example
+  name: my-first-machineset
 spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      type: strong-machine
+  template:
+    spec:
+      providerConfig: >
+        {
+          "apiVersion": "gceproviderconfig/v1alpha1",
+          "kind": "GCEProviderConfig",
+          "project": "$GCLOUD_PROJECT",
+          "zone": "us-central1-f",
+          "machineType": "n1-standard-1",
+          "image": "projects/ubuntu-os-cloud/global/images/family/ubuntu-1604-lts"
+        }
+      versions:
+        kubelet: 1.7.4
+        containerRuntime:
+          name: docker
+          version: 1.12.0
+      roles:
+      - Node

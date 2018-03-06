@@ -23,8 +23,87 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	"k8s.io/kube-deploy/ext-apiserver/pkg/apis/cluster/v1alpha1"
+	"k8s.io/kube-deploy/ext-apiserver/pkg/apis/cluster"
 	"k8s.io/kube-deploy/ext-apiserver/pkg/client/clientset_generated/clientset"
+	genericapirequest "k8s.io/apiserver/pkg/endpoints/request"
 )
+
+func TestValidateMachineSetStrategy(t *testing.T) {
+	tests := []struct {
+		name string
+		machineSetToTest *cluster.MachineSet
+		expectError bool
+	}{
+		{
+			name: "scenario 1: a machine with empty selector is not valid",
+			machineSetToTest: &cluster.MachineSet{},
+			expectError: true,
+		},
+		{
+			name:             "scenario 2: a machine with valid selector but with empty template.Labels is not valid",
+			machineSetToTest: &cluster.MachineSet{
+				Spec: cluster.MachineSetSpec{
+					Selector: metav1.LabelSelector{
+						MatchLabels: map[string]string{"foo":"bar"},
+					},
+				},
+			},
+			expectError:      true,
+		},
+		{
+			name:             "scenario 3: a machine with valid selector and with corresponding template.Labels is valid",
+			machineSetToTest: &cluster.MachineSet{
+				Spec: cluster.MachineSetSpec{
+					Selector: metav1.LabelSelector{
+						MatchLabels: map[string]string{"foo":"bar"},
+					},
+					Template: cluster.MachineTemplateSpec{
+						ObjectMeta: metav1.ObjectMeta{
+							Labels: map[string]string{"foo":"bar"},
+						},
+					},
+				},
+			},
+			expectError:      false,
+		},
+		{
+			name:             "scenario 4: a machine with valid selector but w/o corresponding template.Labels is not valid",
+			machineSetToTest: &cluster.MachineSet{
+				Spec: cluster.MachineSetSpec{
+					Selector: metav1.LabelSelector{
+						MatchLabels: map[string]string{"foo":"bar"},
+					},
+					Template: cluster.MachineTemplateSpec{
+						ObjectMeta: metav1.ObjectMeta{
+							Labels: map[string]string{"bar":"foo"},
+						},
+					},
+				},
+			},
+			expectError:      true,
+		},
+	}
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			// setup the test scenario
+			ctx := genericapirequest.NewDefaultContext()
+			target := v1alpha1.MachineSetStrategy{}
+
+			// act
+			errors := target.Validate(ctx, test.machineSetToTest)
+
+			// validate
+			if len(errors) > 0 && !test.expectError {
+				t.Fatalf("an unexpected error was returned = %v", errors)
+			}
+			if test.expectError && len(errors) ==0 {
+				t.Fatal("expected an error but non was returned")
+			}
+
+		})
+	}
+
+}
 
 func crudAccessToMachineSetClient(t *testing.T, cs *clientset.Clientset) {
 	instance := v1alpha1.MachineSet{}

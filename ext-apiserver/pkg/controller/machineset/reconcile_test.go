@@ -83,6 +83,14 @@ func TestMachineSetControllerReconcileHandler(t *testing.T) {
 			namespaceToSync:     "acme",
 			expectedActions:     []string{"delete", "delete"},
 		},
+		{
+			name:                "scenario 6: the current machine has different labels than the given machineSet, thus a machine is created.",
+			startingMachineSets: []*v1alpha1.MachineSet{createMachineSet(1, "foo", "bar2", "acme")},
+			startingMachines:    []*v1alpha1.Machine{machineWithDifferentLabels(createMachineSet(1, "foo", "bar1", "acme"), "bar1")},
+			machineSetToSync:    "foo",
+			namespaceToSync:     "acme",
+			expectedActions:     []string{"create"},
+		},
 	}
 
 	for _, test := range tests {
@@ -168,10 +176,14 @@ func createMachineSet(replicas int, machineSetName string, machineName string, n
 		},
 		Spec: v1alpha1.MachineSetSpec{
 			Replicas: &replicasInt32,
+			Selector:metav1.LabelSelector{
+				MatchLabels: map[string]string{"type":"strongMachine"},
+			},
 			Template: v1alpha1.MachineTemplateSpec{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      machineName,
 					Namespace: namespace,
+					Labels: map[string]string{"type":"strongMachine"},
 				},
 				Spec: v1alpha1.MachineSpec{
 					ProviderConfig: "some provider specific configuration data",
@@ -192,8 +204,14 @@ func machineFromMachineSet(machineSet *v1alpha1.MachineSet, name string) *v1alph
 	}
 
 	amachine.Name = name
-	amachine.OwnerReferences = []metav1.OwnerReference{*metav1.NewControllerRef(machineSet, v1alpha1.SchemeGroupVersion.WithKind("MachineSet"))}
 	amachine.GenerateName = fmt.Sprintf("%s-", machineSet.Name)
 
 	return amachine
 }
+
+func machineWithDifferentLabels(machineSet *v1alpha1.MachineSet, name string) *v1alpha1.Machine {
+	amachine := machineFromMachineSet(machineSet, name)
+	amachine.Labels = map[string]string{"foo":"bar"}
+	return amachine
+}
+

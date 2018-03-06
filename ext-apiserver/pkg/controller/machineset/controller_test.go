@@ -31,9 +31,12 @@ import (
 func machineSetControllerReconcile(t *testing.T, cs *clientset.Clientset, controller *machineset.MachineSetController) {
 	instance := v1alpha1.MachineSet{}
 	instance.Name = "instance-1"
-	expectedKey := "default/instance-1"
 	replicas := int32(0)
 	instance.Spec.Replicas = &replicas
+	instance.Spec.Selector = metav1.LabelSelector{MatchLabels: map[string]string{"foo":"barr"}}
+	instance.Spec.Template.Labels = map[string]string{"foo":"barr"}
+
+	expectedKey := "default/instance-1"
 
 	// When creating a new object, it should invoke the reconcile method.
 	cluster := v1alpha1.Cluster{}

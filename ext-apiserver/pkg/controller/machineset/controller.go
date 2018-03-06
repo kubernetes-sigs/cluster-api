@@ -22,7 +22,6 @@ import (
 	"github.com/kubernetes-incubator/apiserver-builder/pkg/builders"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/kube-deploy/ext-apiserver/pkg/apis/cluster/v1alpha1"
 	machineclientset "k8s.io/kube-deploy/ext-apiserver/pkg/client/clientset_generated/clientset"
 	listers "k8s.io/kube-deploy/ext-apiserver/pkg/client/listers_generated/cluster/v1alpha1"
@@ -113,7 +112,6 @@ func (c *MachineSetControllerImpl) syncReplicas(machineSet *v1alpha1.MachineSet,
 
 // createMachine creates a machine resource.
 // the name of the newly created resource is going to be created by the API server, we set the generateName field
-// in addition, the newly created resource is owned by the given machineSet (we set the OwnerReferences field)
 func (c *MachineSetControllerImpl) createMachine(machineSet *v1alpha1.MachineSet) (*v1alpha1.Machine, error) {
 	gv := v1alpha1.SchemeGroupVersion
 	machine := &v1alpha1.Machine{
@@ -124,27 +122,20 @@ func (c *MachineSetControllerImpl) createMachine(machineSet *v1alpha1.MachineSet
 		ObjectMeta: machineSet.Spec.Template.ObjectMeta,
 		Spec:       machineSet.Spec.Template.Spec,
 	}
-	machine.ObjectMeta.OwnerReferences = append(machine.ObjectMeta.OwnerReferences, *metav1.NewControllerRef(machineSet, gv.WithKind("MachineSet")))
 	machine.ObjectMeta.GenerateName = fmt.Sprintf("%s-", machineSet.Name)
 
 	return machine, nil
 }
 
-// getMachines returns a list of machines that match on machineSet.UID
+// getMachines returns a list of machines that match on machineSet.Spec.Selector
 func (c *MachineSetControllerImpl) getMachines(machineSet *v1alpha1.MachineSet) ([]*v1alpha1.Machine, error) {
-	filteredMachines := []*v1alpha1.Machine{}
-	allMachines, err := c.machineLister.List(labels.Everything())
+	selector, err := metav1.LabelSelectorAsSelector(&machineSet.Spec.Selector)
 	if err != nil {
 		return nil, err
 	}
-	for _, machine := range allMachines {
-		oRef := metav1.GetControllerOf(machine)
-		if oRef == nil {
-			continue
-		}
-		if oRef.UID == machineSet.UID {
-			filteredMachines = append(filteredMachines, machine)
-		}
+	filteredMachines, err := c.machineLister.List(selector)
+	if err != nil {
+		return nil, err
 	}
-	return filteredMachines, nil
+	return filteredMachines, err
 }

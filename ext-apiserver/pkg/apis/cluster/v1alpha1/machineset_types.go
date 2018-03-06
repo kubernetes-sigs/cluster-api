@@ -26,8 +26,10 @@ import (
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/validation/field"
-	"k8s.io/kube-deploy/ext-apiserver/pkg/apis/cluster"
 	"k8s.io/kube-deploy/ext-apiserver/pkg/apis/cluster/common"
+	"k8s.io/apimachinery/pkg/labels"
+	"k8s.io/kube-deploy/ext-apiserver/pkg/apis/cluster"
+	metav1validation "k8s.io/apimachinery/pkg/apis/meta/v1/validation"
 )
 
 // +genclient
@@ -129,10 +131,25 @@ type MachineSetStatus struct {
 
 // Validate checks that an instance of MachineSet is well formed
 func (MachineSetStrategy) Validate(ctx request.Context, obj runtime.Object) field.ErrorList {
-	o := obj.(*cluster.MachineSet)
-	log.Printf("Validating fields for MachineSet %s\n", o.Name)
+	machineSet := obj.(*cluster.MachineSet)
 	errors := field.ErrorList{}
-	// perform validation here and add to errors using field.Invalid
+
+	// validate spec.selector and spec.template.labels
+	fldPath := field.NewPath("spec")
+	errors = append(errors, metav1validation.ValidateLabelSelector(&machineSet.Spec.Selector, fldPath.Child("selector"))...)
+	if len(machineSet.Spec.Selector.MatchLabels)+len(machineSet.Spec.Selector.MatchExpressions) == 0 {
+		errors = append(errors, field.Invalid(fldPath.Child("selector"), machineSet.Spec.Selector, "empty selector is not valid for MachineSet."))
+	}
+	selector, err := metav1.LabelSelectorAsSelector(&machineSet.Spec.Selector)
+	if err != nil {
+		errors = append(errors, field.Invalid(fldPath.Child("selector"), machineSet.Spec.Selector, "invalid label selector."))
+	} else {
+		labels := labels.Set(machineSet.Spec.Template.Labels)
+		if !selector.Matches(labels) {
+			errors = append(errors, field.Invalid(fldPath.Child("template","metadata","labels"), machineSet.Spec.Template.Labels, "`selector` does not match template `labels`"))
+		}
+	}
+
 	return errors
 }
 

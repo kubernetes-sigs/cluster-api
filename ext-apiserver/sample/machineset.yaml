@@ -6,8 +6,11 @@ spec:
   replicas: 3
   selector:
     matchLabels:
-      type: strong-machine
+      foo: bar
   template:
+    metadata:
+      labels:
+        foo: bar
     spec:
       providerConfig: >
         {

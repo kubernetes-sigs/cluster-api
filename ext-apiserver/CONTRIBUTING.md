@@ -22,6 +22,10 @@ The machine controller should be able to act on a subset of machines that form a
 *   [Cluster type](https://github.com/kubernetes/kube-deploy/blob/master/ext-apiserver/pkg/apis/cluster/v1alpha1/cluster_types.go#L40)
 *   [Machine type](https://github.com/kubernetes/kube-deploy/blob/master/ext-apiserver/pkg/apis/cluster/v1alpha1/machine_types.go#L42)
 
+### Boostrapping
+
+To minimize code duplication and maximize flexibility, bootstrap clusters with an external Cluster Management API Stack. A Cluster Management API Stack contains all the components needed to provide Kubernetes Cluster Management API for a cluster. [Bootstrap Process Design Details](https://docs.google.com/document/d/1CnzIXtitfbO6Y7ZxVWROGO8jr19t0vooDx-YQ7c2nbI/edit?usp=sharing).
+
 ### A new Machine can be created in a declarative way
 
 **A new Machine can be created in a declarative way, including Kubernetes version and container runtime version. It should also be able to specify provider-specific information such as OS image, instance type, disk configuration, etc., though this will not be portable.**

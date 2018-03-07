@@ -1,9 +1,7 @@
-# kube-deploy
+# Cluster Lifecycle - Cluster API
 
-This is a repository of community maintained Kubernetes cluster deployment
-automations.
+Home for the cluster api work, a subproject of sig-cluster-lifecycle
 
-Think of this as https://github.com/kubernetes/contrib for deployment
-automations! Each subdirectory is its own project. It should be a place where
-people can come see how the community is deploying kubernetes and should allow
-for faster development iteration compared to developing in the main repository.
+Note that this is the new home for the work contained in the [kube-deploy](https://github.com/kubernetes/kube-deploy/tree/master/cluster-api) repository.
+
+This repository will be updated as soon as possible!

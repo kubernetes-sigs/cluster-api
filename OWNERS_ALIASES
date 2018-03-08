@@ -2,10 +2,10 @@
 
 aliases:
   sig-cluster-lifecycle-leads:
-    - jbeda
     - lukemarsden
     - luxas
     - roberthbailey
+    - timothysc
   kube-deploy-admins:
     - justinsb
     - krousey
@@ -13,6 +13,7 @@ aliases:
     - roberthbailey
   kube-deploy-maintainers:
     - jessicaochen
+    - karan
     - kris-nova
     - krousey
     - medinatiger

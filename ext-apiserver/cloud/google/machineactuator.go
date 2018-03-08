@@ -35,13 +35,14 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/serializer"
 
+	"regexp"
+
 	gceconfig "k8s.io/kube-deploy/ext-apiserver/cloud/google/gceproviderconfig"
 	gceconfigv1 "k8s.io/kube-deploy/ext-apiserver/cloud/google/gceproviderconfig/v1alpha1"
 	apierrors "k8s.io/kube-deploy/ext-apiserver/errors"
 	clusterv1 "k8s.io/kube-deploy/ext-apiserver/pkg/apis/cluster/v1alpha1"
 	client "k8s.io/kube-deploy/ext-apiserver/pkg/client/clientset_generated/clientset/typed/cluster/v1alpha1"
 	"k8s.io/kube-deploy/ext-apiserver/util"
-	"regexp"
 )
 
 const (
@@ -148,8 +149,8 @@ func (gce *GCEClient) Create(cluster *clusterv1.Cluster, machine *clusterv1.Mach
 	}
 
 	var metadata map[string]string
-	if cluster.Spec.ClusterNetwork.DNSDomain == "" {
-		return errors.New("invalid cluster configuration: missing Cluster.Spec.ClusterNetwork.DNSDomain")
+	if cluster.Spec.ClusterNetwork.ServiceDomain == "" {
+		return errors.New("invalid cluster configuration: missing Cluster.Spec.ClusterNetwork.ServiceDomain")
 	}
 	if getSubnet(cluster.Spec.ClusterNetwork.Pods) == "" {
 		return errors.New("invalid cluster configuration: missing Cluster.Spec.ClusterNetwork.Pods")

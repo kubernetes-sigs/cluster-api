@@ -20,6 +20,7 @@ package cluster
 
 import (
 	"fmt"
+
 	"github.com/kubernetes-incubator/apiserver-builder/pkg/builders"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/internalversion"
@@ -192,9 +193,9 @@ type ClusterSpec struct {
 }
 
 type ClusterNetworkingConfig struct {
-	Services  NetworkRanges
-	Pods      NetworkRanges
-	DNSDomain string
+	Services      NetworkRanges
+	Pods          NetworkRanges
+	ServiceDomain string
 }
 
 type NetworkRanges struct {

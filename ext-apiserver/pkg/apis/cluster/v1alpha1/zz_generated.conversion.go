@@ -171,7 +171,7 @@ func autoConvert_v1alpha1_ClusterNetworkingConfig_To_cluster_ClusterNetworkingCo
 	if err := Convert_v1alpha1_NetworkRanges_To_cluster_NetworkRanges(&in.Pods, &out.Pods, s); err != nil {
 		return err
 	}
-	out.DNSDomain = in.DNSDomain
+	out.ServiceDomain = in.ServiceDomain
 	return nil
 }
 
@@ -187,7 +187,7 @@ func autoConvert_cluster_ClusterNetworkingConfig_To_v1alpha1_ClusterNetworkingCo
 	if err := Convert_cluster_NetworkRanges_To_v1alpha1_NetworkRanges(&in.Pods, &out.Pods, s); err != nil {
 		return err
 	}
-	out.DNSDomain = in.DNSDomain
+	out.ServiceDomain = in.ServiceDomain
 	return nil
 }
 

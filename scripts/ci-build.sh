@@ -21,6 +21,4 @@ set -o pipefail
 REPO_ROOT=$(dirname "${BASH_SOURCE}")/..
 
 go build \
-   "${REPO_ROOT}"/cluster-api/... \
-   "${REPO_ROOT}"/cluster-api-gcp/... \
    "${REPO_ROOT}"/ext-apiserver/...

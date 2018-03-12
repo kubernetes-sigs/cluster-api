@@ -9,10 +9,10 @@ top of the Cluster API in a completely cloud-agnostic way.
 ```bash
 $ cd $GOPATH/src/k8s.io/
 $ git clone git@github.com:kubernetes/kube-deploy.git
-$ cd kube-deploy/cluster-api/upgrader
+$ cd kube-deploy/ext-apiserver/tools/upgrader
 $ go build
 ```
 
 ## Running
-1) First, create a cluster using the `cluster-api` tool (the default Kubernetes version should be `1.7.4`)
-2) To update the entire cluster to `v1.8.3`, run `./upgrader -v 1.8.3`
+1) First, create a cluster using the `gcp-deployer` tool (the default Kubernetes version should be `1.8.3`)
+2) To update the entire cluster to `v1.9.4`, run `./upgrader -v 1.9.4`

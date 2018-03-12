@@ -27,7 +27,19 @@ import (
 )
 
 func crudAccessToClusterClient(t *testing.T, cs *clientset.Clientset) {
-	instance := v1alpha1.Cluster{}
+	instance := v1alpha1.Cluster{
+		Spec: v1alpha1.ClusterSpec{
+			ClusterNetwork: v1alpha1.ClusterNetworkingConfig{
+				Services: v1alpha1.NetworkRanges{
+					CIDRBlocks: []string{"10.96.0.0/12"},
+				},
+				Pods: v1alpha1.NetworkRanges{
+					CIDRBlocks: []string{"192.168.0.0/16"},
+				},
+				ServiceDomain: "cluster.local",
+			},
+		},
+	}
 	instance.Name = "instance-1"
 
 	expected := instance
@@ -83,5 +95,69 @@ func crudAccessToClusterClient(t *testing.T, cs *clientset.Clientset) {
 	}
 	if itemLength := len(result.Items); itemLength != 0 {
 		t.Fatalf("Number of items in Items list should be 0, but is %d.", itemLength)
+	}
+}
+
+func clusterValidationTest(t *testing.T, cs *clientset.Clientset) {
+	tests := []struct {
+		name        string
+		cluster     v1alpha1.Cluster
+		errExpected bool
+	}{
+		{
+			name: "missing services",
+			cluster: v1alpha1.Cluster{
+				Spec: v1alpha1.ClusterSpec{
+					ClusterNetwork: v1alpha1.ClusterNetworkingConfig{
+						Pods: v1alpha1.NetworkRanges{
+							CIDRBlocks: []string{"192.168.0.0/16"},
+						},
+						ServiceDomain: "cluster.local",
+					},
+				},
+			},
+			errExpected: true,
+		},
+		{
+			name: "missing pods",
+			cluster: v1alpha1.Cluster{
+				Spec: v1alpha1.ClusterSpec{
+					ClusterNetwork: v1alpha1.ClusterNetworkingConfig{
+						Services: v1alpha1.NetworkRanges{
+							CIDRBlocks: []string{"10.96.0.0/12"},
+						},
+						ServiceDomain: "cluster.local",
+					},
+				},
+			},
+			errExpected: true,
+		},
+		{
+			name: "missing ServiceDomain",
+			cluster: v1alpha1.Cluster{
+				Spec: v1alpha1.ClusterSpec{
+					ClusterNetwork: v1alpha1.ClusterNetworkingConfig{
+						Services: v1alpha1.NetworkRanges{
+							CIDRBlocks: []string{"10.96.0.0/12"},
+						},
+						Pods: v1alpha1.NetworkRanges{
+							CIDRBlocks: []string{"192.168.0.0/16"},
+						},
+					},
+				},
+			},
+			errExpected: true,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			tt.cluster.Name = "cluster1"
+			client := cs.ClusterV1alpha1().Clusters("cluster-test-valid")
+
+			if _, err := client.Create(&tt.cluster); (err != nil) != tt.errExpected {
+				t.Fatal(err)
+			}
+			client.Delete(tt.cluster.Name, &metav1.DeleteOptions{})
+		})
 	}
 }

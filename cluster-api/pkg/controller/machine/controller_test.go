@@ -33,7 +33,19 @@ func machineControllerReconcile(t *testing.T, cs *clientset.Clientset, controlle
 	expectedKey := "default/instance-1"
 
 	// When creating a new object, it should invoke the reconcile method.
-	cluster := v1alpha1.Cluster{}
+	cluster := v1alpha1.Cluster{
+		Spec: v1alpha1.ClusterSpec{
+			ClusterNetwork: v1alpha1.ClusterNetworkingConfig{
+				Services: v1alpha1.NetworkRanges{
+					CIDRBlocks: []string{"10.96.0.0/12"},
+				},
+				Pods: v1alpha1.NetworkRanges{
+					CIDRBlocks: []string{"192.168.0.0/16"},
+				},
+				ServiceDomain: "cluster.local",
+			},
+		},
+	}
 	cluster.Name = "cluster-1"
 	if _, err := cs.ClusterV1alpha1().Clusters("default").Create(&cluster); err != nil {
 		t.Fatal(err)

@@ -33,13 +33,25 @@ func machineSetControllerReconcile(t *testing.T, cs *clientset.Clientset, contro
 	instance.Name = "instance-1"
 	replicas := int32(0)
 	instance.Spec.Replicas = &replicas
-	instance.Spec.Selector = metav1.LabelSelector{MatchLabels: map[string]string{"foo":"barr"}}
-	instance.Spec.Template.Labels = map[string]string{"foo":"barr"}
+	instance.Spec.Selector = metav1.LabelSelector{MatchLabels: map[string]string{"foo": "barr"}}
+	instance.Spec.Template.Labels = map[string]string{"foo": "barr"}
 
 	expectedKey := "default/instance-1"
 
 	// When creating a new object, it should invoke the reconcile method.
-	cluster := v1alpha1.Cluster{}
+	cluster := v1alpha1.Cluster{
+		Spec: v1alpha1.ClusterSpec{
+			ClusterNetwork: v1alpha1.ClusterNetworkingConfig{
+				Services: v1alpha1.NetworkRanges{
+					CIDRBlocks: []string{"10.96.0.0/12"},
+				},
+				Pods: v1alpha1.NetworkRanges{
+					CIDRBlocks: []string{"192.168.0.0/16"},
+				},
+				ServiceDomain: "cluster.local",
+			},
+		},
+	}
 	cluster.Name = "cluster-1"
 	if _, err := cs.ClusterV1alpha1().Clusters("default").Create(&cluster); err != nil {
 		t.Fatal(err)

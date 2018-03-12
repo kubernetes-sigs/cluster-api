@@ -113,6 +113,24 @@ func (ClusterStrategy) Validate(ctx request.Context, obj runtime.Object) field.E
 	log.Printf("Validating fields for Cluster %s\n", o.Name)
 	errors := field.ErrorList{}
 	// perform validation here and add to errors using field.Invalid
+	if o.Spec.ClusterNetwork.ServiceDomain == "" {
+		errors = append(errors, field.Invalid(
+			field.NewPath("Spec", "ClusterNetwork", "ServiceDomain"),
+			o.Spec.ClusterNetwork.ServiceDomain,
+			"invalid cluster configuration: missing Cluster.Spec.ClusterNetwork.ServiceDomain"))
+	}
+	if len(o.Spec.ClusterNetwork.Pods.CIDRBlocks) == 0 {
+		errors = append(errors, field.Invalid(
+			field.NewPath("Spec", "ClusterNetwork", "Pods"),
+			o.Spec.ClusterNetwork.Pods,
+			"invalid cluster configuration: missing Cluster.Spec.ClusterNetwork.Pods"))
+	}
+	if len(o.Spec.ClusterNetwork.Services.CIDRBlocks) == 0 {
+		errors = append(errors, field.Invalid(
+			field.NewPath("Spec", "ClusterNetwork", "Services"),
+			o.Spec.ClusterNetwork.Services,
+			"invalid cluster configuration: missing Cluster.Spec.ClusterNetwork.Services"))
+	}
 	return errors
 }
 

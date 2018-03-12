@@ -22,7 +22,7 @@ import (
 	"github.com/golang/glog"
 	"github.com/spf13/cobra"
 	"k8s.io/apiserver/pkg/util/logs"
-	"k8s.io/kube-deploy/cluster-api/tools/repair/util"
+	"k8s.io/kube-deploy/ext-apiserver/tools/repair/util"
 )
 
 type RepairOptions struct {

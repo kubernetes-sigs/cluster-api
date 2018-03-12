@@ -8,12 +8,12 @@ that can be built in a cloud-agnostic way.
 ```bash
 $ cd $GOPATH/src/k8s.io/
 $ git clone git@github.com:kubernetes/kube-deploy.git
-$ cd kube-deploy/cluster-api/repair
+$ cd kube-deploy/ext-apiserver/tools/repair
 $ go build
 ```
 
 ## Run
-1) Create a cluster using the `cluster-api` tool.
+1) Create a cluster using the `gcp-deployer` tool.
 2) To do a dry run of detecting broken nodes and seeing what needs to be
 repaired, run `./repair --dryrun true`.
 3) To actually repair the nodes in cluster, run `./repair` without the

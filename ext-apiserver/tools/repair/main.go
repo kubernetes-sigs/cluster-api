@@ -17,7 +17,7 @@ limitations under the License.
 package main
 
 import (
-	"k8s.io/kube-deploy/cluster-api/tools/repair/cmd"
+	"k8s.io/kube-deploy/ext-apiserver/tools/repair/cmd"
 )
 
 func main() {

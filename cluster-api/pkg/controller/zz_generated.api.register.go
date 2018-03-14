@@ -22,7 +22,6 @@ import (
 	"github.com/kubernetes-incubator/apiserver-builder/pkg/controller"
 	"k8s.io/client-go/rest"
 	"k8s.io/kube-deploy/cluster-api/pkg/controller/cluster"
-	"k8s.io/kube-deploy/cluster-api/pkg/controller/machine"
 	"k8s.io/kube-deploy/cluster-api/pkg/controller/machineset"
 	"k8s.io/kube-deploy/cluster-api/pkg/controller/sharedinformers"
 )
@@ -32,7 +31,6 @@ func GetAllControllers(config *rest.Config) ([]controller.Controller, chan struc
 	si := sharedinformers.NewSharedInformers(config, shutdown)
 	return []controller.Controller{
 		cluster.NewClusterController(config, si),
-		machine.NewMachineController(config, si),
 		machineset.NewMachineSetController(config, si),
 	}, shutdown
 }

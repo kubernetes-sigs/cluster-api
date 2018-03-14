@@ -23,7 +23,6 @@ import (
 
 	"k8s.io/kube-deploy/cluster-api/pkg/apis"
 	"k8s.io/kube-deploy/cluster-api/pkg/client/clientset_generated/clientset"
-	cfg "k8s.io/kube-deploy/cluster-api/pkg/controller/config"
 	"k8s.io/kube-deploy/cluster-api/pkg/controller/machineset"
 	"k8s.io/kube-deploy/cluster-api/pkg/controller/sharedinformers"
 	"k8s.io/kube-deploy/cluster-api/pkg/openapi"
@@ -33,7 +32,6 @@ func TestMachineSet(t *testing.T) {
 	testenv := test.NewTestEnvironment()
 	config := testenv.Start(apis.GetAllApiBuilders(), openapi.GetOpenAPIDefinitions)
 	cs := clientset.NewForConfigOrDie(config)
-	cfg.ControllerConfig.Cloud = "test"
 
 	shutdown := make(chan struct{})
 	si := sharedinformers.NewSharedInformers(config, shutdown)

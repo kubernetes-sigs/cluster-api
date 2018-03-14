@@ -26,6 +26,10 @@ import (
 	"k8s.io/kube-deploy/cluster-api/pkg/controller/config"
 )
 
+func init() {
+	config.ControllerConfig.AddFlags(pflag.CommandLine)
+}
+
 func main() {
 
 	pflag.Parse()

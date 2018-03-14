@@ -21014,7 +21014,7 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 								Ref:         ref("k8s.io/kube-deploy/ext-apiserver/pkg/apis/cluster/v1alpha1.NetworkRanges"),
 							},
 						},
-						"dnsDomain": {
+						"serviceDomain": {
 							SchemaProps: spec.SchemaProps{
 								Description: "Domain name for services.",
 								Type:        []string{"string"},
@@ -21022,7 +21022,7 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 							},
 						},
 					},
-					Required: []string{"services", "pods", "dnsDomain"},
+					Required: []string{"services", "pods", "serviceDomain"},
 				},
 			},
 			Dependencies: []string{

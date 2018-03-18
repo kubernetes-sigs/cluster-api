@@ -32,7 +32,7 @@ import (
 	"k8s.io/kube-deploy/ext-apiserver/cloud/google/config"
 )
 
-var machineControllerImage = "gcr.io/k8s-cluster-api/apiserver-controller:0.1"
+var machineControllerImage = "gcr.io/k8s-cluster-api/apiserver-controller:0.2"
 
 func init() {
 	if img, ok := os.LookupEnv("MACHINE_CONTROLLER_IMAGE"); ok {

@@ -34,7 +34,6 @@ To see how to build tooling on top of the Cluster API, please check out a few ex
 
 * [upgrader](tools/upgrader/README.md): a cluster upgrade tool.
 * [repair](tools/repair/README.md): detect problematic nodes and fix them.
-* [machineset](tools/machineset/README.md): a client-side implementation of MachineSets for declaratively scaling Machines.
 
 [cluster-api-kep]: https://github.com/kubernetes/community/blob/master/keps/sig-cluster-lifecycle/0003-cluster-api.md
 [notes]: https://docs.google.com/document/d/16ils69KImmE94RlmzjWDrkmFZysgB2J4lGnYMRN89WM/edit

@@ -45,10 +45,7 @@ $ kubectl get machines -o yaml
 
 #### Scaling your cluster
 
-You can add individual machines to your cluster using `kubectl apply` or
-`kubectl create` or you can use the [client-side machineset
-tool](https://github.com/kubernetes/kube-deploy/tree/master/ext-apiserver/tools/machineset)
-to add (or remove) a bunch of identical nodes to your cluster.
+You can add machines to your cluster using `kubectl apply` or `kubectl create`.
 
 #### Upgrading your cluster
 

@@ -24,8 +24,8 @@ import (
 	"github.com/golang/glog"
 	"github.com/spf13/cobra"
 	"k8s.io/apiserver/pkg/util/logs"
-	clusterv1 "k8s.io/kube-deploy/ext-apiserver/pkg/apis/cluster/v1alpha1"
-	"k8s.io/kube-deploy/ext-apiserver/util"
+	clusterv1 "k8s.io/kube-deploy/cluster-api/pkg/apis/cluster/v1alpha1"
+	"k8s.io/kube-deploy/cluster-api/util"
 )
 
 var RootCmd = &cobra.Command{

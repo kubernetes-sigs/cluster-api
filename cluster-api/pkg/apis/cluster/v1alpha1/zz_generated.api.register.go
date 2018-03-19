@@ -23,7 +23,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
-	"k8s.io/kube-deploy/ext-apiserver/pkg/apis/cluster"
+	"k8s.io/kube-deploy/cluster-api/pkg/apis/cluster"
 )
 
 var (

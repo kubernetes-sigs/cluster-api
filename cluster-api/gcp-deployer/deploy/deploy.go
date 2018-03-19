@@ -21,11 +21,11 @@ import (
 	"os"
 
 	"github.com/golang/glog"
-	clusterv1 "k8s.io/kube-deploy/ext-apiserver/pkg/apis/cluster/v1alpha1"
-	"k8s.io/kube-deploy/ext-apiserver/pkg/client/clientset_generated/clientset"
-	"k8s.io/kube-deploy/ext-apiserver/pkg/client/clientset_generated/clientset/typed/cluster/v1alpha1"
-	"k8s.io/kube-deploy/ext-apiserver/util"
-	apiutil "k8s.io/kube-deploy/ext-apiserver/util"
+	clusterv1 "k8s.io/kube-deploy/cluster-api/pkg/apis/cluster/v1alpha1"
+	"k8s.io/kube-deploy/cluster-api/pkg/client/clientset_generated/clientset"
+	"k8s.io/kube-deploy/cluster-api/pkg/client/clientset_generated/clientset/typed/cluster/v1alpha1"
+	"k8s.io/kube-deploy/cluster-api/util"
+	apiutil "k8s.io/kube-deploy/cluster-api/util"
 )
 
 type deployer struct {

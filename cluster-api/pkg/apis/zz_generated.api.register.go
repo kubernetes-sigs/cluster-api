@@ -20,8 +20,8 @@ package apis
 
 import (
 	"github.com/kubernetes-incubator/apiserver-builder/pkg/builders"
-	"k8s.io/kube-deploy/ext-apiserver/pkg/apis/cluster"
-	clusterv1alpha1 "k8s.io/kube-deploy/ext-apiserver/pkg/apis/cluster/v1alpha1"
+	"k8s.io/kube-deploy/cluster-api/pkg/apis/cluster"
+	clusterv1alpha1 "k8s.io/kube-deploy/cluster-api/pkg/apis/cluster/v1alpha1"
 )
 
 // GetAllApiBuilders returns all known APIGroupBuilders
@@ -34,7 +34,7 @@ func GetAllApiBuilders() []*builders.APIGroupBuilder {
 
 var clusterApiGroup = builders.NewApiGroupBuilder(
 	"cluster.k8s.io",
-	"k8s.io/kube-deploy/ext-apiserver/pkg/apis/cluster").
+	"k8s.io/kube-deploy/cluster-api/pkg/apis/cluster").
 	WithUnVersionedApi(cluster.ApiVersion).
 	WithVersionedApis(
 		clusterv1alpha1.ApiVersion,

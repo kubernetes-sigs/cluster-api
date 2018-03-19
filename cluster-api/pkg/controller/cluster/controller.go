@@ -23,9 +23,9 @@ import (
 
 	"github.com/kubernetes-incubator/apiserver-builder/pkg/builders"
 
-	"k8s.io/kube-deploy/ext-apiserver/pkg/apis/cluster/v1alpha1"
-	"k8s.io/kube-deploy/ext-apiserver/pkg/controller/sharedinformers"
-	listers "k8s.io/kube-deploy/ext-apiserver/pkg/client/listers_generated/cluster/v1alpha1"
+	"k8s.io/kube-deploy/cluster-api/pkg/apis/cluster/v1alpha1"
+	"k8s.io/kube-deploy/cluster-api/pkg/controller/sharedinformers"
+	listers "k8s.io/kube-deploy/cluster-api/pkg/client/listers_generated/cluster/v1alpha1"
 )
 
 // +controller:group=cluster,version=v1alpha1,kind=Cluster,resource=clusters

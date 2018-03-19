@@ -9,7 +9,7 @@ top of the Cluster API in a completely cloud-agnostic way.
 ```bash
 $ cd $GOPATH/src/k8s.io/
 $ git clone git@github.com:kubernetes/kube-deploy.git
-$ cd kube-deploy/ext-apiserver/tools/upgrader
+$ cd kube-deploy/cluster-api/tools/upgrader
 $ go build
 ```
 

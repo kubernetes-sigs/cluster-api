@@ -1,12 +1,12 @@
 # Cluster API GCP Prototype
 
-The Cluster API GCP prototype implements the [Cluster API](https://github.com/kubernetes/kube-deploy/blob/master/ext-apiserver/README.md) for GCP.
+The Cluster API GCP prototype implements the [Cluster API](https://github.com/kubernetes/kube-deploy/blob/master/cluster-api/README.md) for GCP.
 
 ## Getting Started
 
 ### Prerequisites
 
-Follow the steps listed at [CONTRIBUTING.md](https://github.com/kubernetes/kube-deploy/blob/master/ext-apiserver/gcp-deployer/CONTRIBUTING.md) to:
+Follow the steps listed at [CONTRIBUTING.md](https://github.com/kubernetes/kube-deploy/blob/master/cluster-api/gcp-deployer/CONTRIBUTING.md) to:
 1. Build the `gcp-deployer` tool
 2. Generate base `machines.yaml` file configured for your GCP project
 
@@ -51,7 +51,7 @@ You can add machines to your cluster using `kubectl apply` or `kubectl create`.
 
 By default, your cluster will initially be running Kubernetes version 1.7.4. You
 can upgrade the control plane or nodes using `kubectl edit` or you can run the
-[upgrader tool](https://github.com/kubernetes/kube-deploy/tree/master/ext-apiserver/tools/upgrader)
+[upgrader tool](https://github.com/kubernetes/kube-deploy/tree/master/cluster-api/tools/upgrader)
 to upgrade your entire cluster with a single command.
 
 #### Node repair
@@ -66,7 +66,7 @@ $ gcloud compute ssh $node --zone us-central1-f
 ```
 
 Then run the [node repair
-tool]( https://github.com/kubernetes/kube-deploy/tree/master/ext-apiserver/tools/repair)
+tool]( https://github.com/kubernetes/kube-deploy/tree/master/cluster-api/tools/repair)
 to find the broken node (using the dry run flag) and fix it.
 
 

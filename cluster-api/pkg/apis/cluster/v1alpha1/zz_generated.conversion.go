@@ -24,8 +24,8 @@ import (
 	v1 "k8s.io/api/core/v1"
 	conversion "k8s.io/apimachinery/pkg/conversion"
 	runtime "k8s.io/apimachinery/pkg/runtime"
-	cluster "k8s.io/kube-deploy/ext-apiserver/pkg/apis/cluster"
-	common "k8s.io/kube-deploy/ext-apiserver/pkg/apis/cluster/common"
+	cluster "k8s.io/kube-deploy/cluster-api/pkg/apis/cluster"
+	common "k8s.io/kube-deploy/cluster-api/pkg/apis/cluster/common"
 	unsafe "unsafe"
 )
 

@@ -23,9 +23,9 @@ import (
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
-	"k8s.io/kube-deploy/ext-apiserver/pkg/apis/cluster/v1alpha1"
-	"k8s.io/kube-deploy/ext-apiserver/pkg/client/clientset_generated/clientset"
-	"k8s.io/kube-deploy/ext-apiserver/pkg/controller/machineset"
+	"k8s.io/kube-deploy/cluster-api/pkg/apis/cluster/v1alpha1"
+	"k8s.io/kube-deploy/cluster-api/pkg/client/clientset_generated/clientset"
+	"k8s.io/kube-deploy/cluster-api/pkg/controller/machineset"
 )
 
 func machineSetControllerReconcile(t *testing.T, cs *clientset.Clientset, controller *machineset.MachineSetController) {

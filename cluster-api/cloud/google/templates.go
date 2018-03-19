@@ -21,7 +21,7 @@ import (
 	"fmt"
 	"text/template"
 
-	clusterv1 "k8s.io/kube-deploy/ext-apiserver/pkg/apis/cluster/v1alpha1"
+	clusterv1 "k8s.io/kube-deploy/cluster-api/pkg/apis/cluster/v1alpha1"
 )
 
 type templateParams struct {

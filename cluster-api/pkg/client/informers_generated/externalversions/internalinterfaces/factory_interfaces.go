@@ -21,7 +21,7 @@ package internalinterfaces
 import (
 	runtime "k8s.io/apimachinery/pkg/runtime"
 	cache "k8s.io/client-go/tools/cache"
-	clientset "k8s.io/kube-deploy/ext-apiserver/pkg/client/clientset_generated/clientset"
+	clientset "k8s.io/kube-deploy/cluster-api/pkg/client/clientset_generated/clientset"
 	time "time"
 )
 

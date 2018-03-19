@@ -11,7 +11,7 @@ go_library(
         "zz_generated.deepcopy.go",
         "zz_generated.defaults.go",
     ],
-    importpath = "k8s.io/kube-deploy/ext-apiserver/pkg/apis/cluster/v1alpha1",
+    importpath = "k8s.io/kube-deploy/cluster-api/pkg/apis/cluster/v1alpha1",
     visibility = ["//visibility:public"],
     deps = [
         "//pkg/apis/cluster:go_default_library",
@@ -32,7 +32,7 @@ go_test(
         "machine_types_test.go",
         "v1alpha1_suite_test.go",
     ],
-    importpath = "k8s.io/kube-deploy/ext-apiserver/pkg/apis/cluster/v1alpha1_test",
+    importpath = "k8s.io/kube-deploy/cluster-api/pkg/apis/cluster/v1alpha1_test",
     deps = [
         ":go_default_library",
         "//pkg/apis:go_default_library",

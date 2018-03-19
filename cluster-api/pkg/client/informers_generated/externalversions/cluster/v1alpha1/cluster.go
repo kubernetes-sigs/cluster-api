@@ -23,10 +23,10 @@ import (
 	runtime "k8s.io/apimachinery/pkg/runtime"
 	watch "k8s.io/apimachinery/pkg/watch"
 	cache "k8s.io/client-go/tools/cache"
-	cluster_v1alpha1 "k8s.io/kube-deploy/ext-apiserver/pkg/apis/cluster/v1alpha1"
-	clientset "k8s.io/kube-deploy/ext-apiserver/pkg/client/clientset_generated/clientset"
-	internalinterfaces "k8s.io/kube-deploy/ext-apiserver/pkg/client/informers_generated/externalversions/internalinterfaces"
-	v1alpha1 "k8s.io/kube-deploy/ext-apiserver/pkg/client/listers_generated/cluster/v1alpha1"
+	cluster_v1alpha1 "k8s.io/kube-deploy/cluster-api/pkg/apis/cluster/v1alpha1"
+	clientset "k8s.io/kube-deploy/cluster-api/pkg/client/clientset_generated/clientset"
+	internalinterfaces "k8s.io/kube-deploy/cluster-api/pkg/client/informers_generated/externalversions/internalinterfaces"
+	v1alpha1 "k8s.io/kube-deploy/cluster-api/pkg/client/listers_generated/cluster/v1alpha1"
 	time "time"
 )
 

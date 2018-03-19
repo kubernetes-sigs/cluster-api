@@ -20890,7 +20890,7 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 			},
 			Dependencies: []string{},
 		},
-		"k8s.io/kube-deploy/ext-apiserver/pkg/apis/cluster/v1alpha1.APIEndpoint": {
+		"k8s.io/kube-deploy/cluster-api/pkg/apis/cluster/v1alpha1.APIEndpoint": {
 			Schema: spec.Schema{
 				SchemaProps: spec.SchemaProps{
 					Description: "APIEndpoint represents a reachable Kubernetes API endpoint.",
@@ -20915,7 +20915,7 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 			},
 			Dependencies: []string{},
 		},
-		"k8s.io/kube-deploy/ext-apiserver/pkg/apis/cluster/v1alpha1.Cluster": {
+		"k8s.io/kube-deploy/cluster-api/pkg/apis/cluster/v1alpha1.Cluster": {
 			Schema: spec.Schema{
 				SchemaProps: spec.SchemaProps{
 					Description: "Cluster",
@@ -20941,21 +20941,21 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 						},
 						"spec": {
 							SchemaProps: spec.SchemaProps{
-								Ref: ref("k8s.io/kube-deploy/ext-apiserver/pkg/apis/cluster/v1alpha1.ClusterSpec"),
+								Ref: ref("k8s.io/kube-deploy/cluster-api/pkg/apis/cluster/v1alpha1.ClusterSpec"),
 							},
 						},
 						"status": {
 							SchemaProps: spec.SchemaProps{
-								Ref: ref("k8s.io/kube-deploy/ext-apiserver/pkg/apis/cluster/v1alpha1.ClusterStatus"),
+								Ref: ref("k8s.io/kube-deploy/cluster-api/pkg/apis/cluster/v1alpha1.ClusterStatus"),
 							},
 						},
 					},
 				},
 			},
 			Dependencies: []string{
-				"k8s.io/apimachinery/pkg/apis/meta/v1.ObjectMeta", "k8s.io/kube-deploy/ext-apiserver/pkg/apis/cluster/v1alpha1.ClusterSpec", "k8s.io/kube-deploy/ext-apiserver/pkg/apis/cluster/v1alpha1.ClusterStatus"},
+				"k8s.io/apimachinery/pkg/apis/meta/v1.ObjectMeta", "k8s.io/kube-deploy/cluster-api/pkg/apis/cluster/v1alpha1.ClusterSpec", "k8s.io/kube-deploy/cluster-api/pkg/apis/cluster/v1alpha1.ClusterStatus"},
 		},
-		"k8s.io/kube-deploy/ext-apiserver/pkg/apis/cluster/v1alpha1.ClusterList": {
+		"k8s.io/kube-deploy/cluster-api/pkg/apis/cluster/v1alpha1.ClusterList": {
 			Schema: spec.Schema{
 				SchemaProps: spec.SchemaProps{
 					Properties: map[string]spec.Schema{
@@ -20984,7 +20984,7 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 								Items: &spec.SchemaOrArray{
 									Schema: &spec.Schema{
 										SchemaProps: spec.SchemaProps{
-											Ref: ref("k8s.io/kube-deploy/ext-apiserver/pkg/apis/cluster/v1alpha1.Cluster"),
+											Ref: ref("k8s.io/kube-deploy/cluster-api/pkg/apis/cluster/v1alpha1.Cluster"),
 										},
 									},
 								},
@@ -20995,9 +20995,9 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 				},
 			},
 			Dependencies: []string{
-				"k8s.io/apimachinery/pkg/apis/meta/v1.ListMeta", "k8s.io/kube-deploy/ext-apiserver/pkg/apis/cluster/v1alpha1.Cluster"},
+				"k8s.io/apimachinery/pkg/apis/meta/v1.ListMeta", "k8s.io/kube-deploy/cluster-api/pkg/apis/cluster/v1alpha1.Cluster"},
 		},
-		"k8s.io/kube-deploy/ext-apiserver/pkg/apis/cluster/v1alpha1.ClusterNetworkingConfig": {
+		"k8s.io/kube-deploy/cluster-api/pkg/apis/cluster/v1alpha1.ClusterNetworkingConfig": {
 			Schema: spec.Schema{
 				SchemaProps: spec.SchemaProps{
 					Description: "ClusterNetworkingConfig specifies the different networking parameters for a cluster.",
@@ -21005,13 +21005,13 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 						"services": {
 							SchemaProps: spec.SchemaProps{
 								Description: "The network ranges from which service VIPs are allocated.",
-								Ref:         ref("k8s.io/kube-deploy/ext-apiserver/pkg/apis/cluster/v1alpha1.NetworkRanges"),
+								Ref:         ref("k8s.io/kube-deploy/cluster-api/pkg/apis/cluster/v1alpha1.NetworkRanges"),
 							},
 						},
 						"pods": {
 							SchemaProps: spec.SchemaProps{
 								Description: "The network ranges from which POD networks are allocated.",
-								Ref:         ref("k8s.io/kube-deploy/ext-apiserver/pkg/apis/cluster/v1alpha1.NetworkRanges"),
+								Ref:         ref("k8s.io/kube-deploy/cluster-api/pkg/apis/cluster/v1alpha1.NetworkRanges"),
 							},
 						},
 						"serviceDomain": {
@@ -21026,9 +21026,9 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 				},
 			},
 			Dependencies: []string{
-				"k8s.io/kube-deploy/ext-apiserver/pkg/apis/cluster/v1alpha1.NetworkRanges"},
+				"k8s.io/kube-deploy/cluster-api/pkg/apis/cluster/v1alpha1.NetworkRanges"},
 		},
-		"k8s.io/kube-deploy/ext-apiserver/pkg/apis/cluster/v1alpha1.ClusterSchemeFns": {
+		"k8s.io/kube-deploy/cluster-api/pkg/apis/cluster/v1alpha1.ClusterSchemeFns": {
 			Schema: spec.Schema{
 				SchemaProps: spec.SchemaProps{
 					Description: "Cluster Functions and Structs",
@@ -21045,7 +21045,7 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 			Dependencies: []string{
 				"github.com/kubernetes-incubator/apiserver-builder/pkg/builders.DefaultSchemeFns"},
 		},
-		"k8s.io/kube-deploy/ext-apiserver/pkg/apis/cluster/v1alpha1.ClusterSpec": {
+		"k8s.io/kube-deploy/cluster-api/pkg/apis/cluster/v1alpha1.ClusterSpec": {
 			Schema: spec.Schema{
 				SchemaProps: spec.SchemaProps{
 					Description: "ClusterSpec defines the desired state of Cluster",
@@ -21053,7 +21053,7 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 						"clusterNetwork": {
 							SchemaProps: spec.SchemaProps{
 								Description: "Cluster network configuration",
-								Ref:         ref("k8s.io/kube-deploy/ext-apiserver/pkg/apis/cluster/v1alpha1.ClusterNetworkingConfig"),
+								Ref:         ref("k8s.io/kube-deploy/cluster-api/pkg/apis/cluster/v1alpha1.ClusterNetworkingConfig"),
 							},
 						},
 						"providerConfig": {
@@ -21068,9 +21068,9 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 				},
 			},
 			Dependencies: []string{
-				"k8s.io/kube-deploy/ext-apiserver/pkg/apis/cluster/v1alpha1.ClusterNetworkingConfig"},
+				"k8s.io/kube-deploy/cluster-api/pkg/apis/cluster/v1alpha1.ClusterNetworkingConfig"},
 		},
-		"k8s.io/kube-deploy/ext-apiserver/pkg/apis/cluster/v1alpha1.ClusterStatus": {
+		"k8s.io/kube-deploy/cluster-api/pkg/apis/cluster/v1alpha1.ClusterStatus": {
 			Schema: spec.Schema{
 				SchemaProps: spec.SchemaProps{
 					Description: "ClusterStatus defines the observed state of Cluster",
@@ -21082,7 +21082,7 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 								Items: &spec.SchemaOrArray{
 									Schema: &spec.Schema{
 										SchemaProps: spec.SchemaProps{
-											Ref: ref("k8s.io/kube-deploy/ext-apiserver/pkg/apis/cluster/v1alpha1.APIEndpoint"),
+											Ref: ref("k8s.io/kube-deploy/cluster-api/pkg/apis/cluster/v1alpha1.APIEndpoint"),
 										},
 									},
 								},
@@ -21114,9 +21114,9 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 				},
 			},
 			Dependencies: []string{
-				"k8s.io/kube-deploy/ext-apiserver/pkg/apis/cluster/v1alpha1.APIEndpoint"},
+				"k8s.io/kube-deploy/cluster-api/pkg/apis/cluster/v1alpha1.APIEndpoint"},
 		},
-		"k8s.io/kube-deploy/ext-apiserver/pkg/apis/cluster/v1alpha1.ClusterStatusStrategy": {
+		"k8s.io/kube-deploy/cluster-api/pkg/apis/cluster/v1alpha1.ClusterStatusStrategy": {
 			Schema: spec.Schema{
 				SchemaProps: spec.SchemaProps{
 					Properties: map[string]spec.Schema{
@@ -21132,7 +21132,7 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 			Dependencies: []string{
 				"github.com/kubernetes-incubator/apiserver-builder/pkg/builders.DefaultStatusStorageStrategy"},
 		},
-		"k8s.io/kube-deploy/ext-apiserver/pkg/apis/cluster/v1alpha1.ClusterStrategy": {
+		"k8s.io/kube-deploy/cluster-api/pkg/apis/cluster/v1alpha1.ClusterStrategy": {
 			Schema: spec.Schema{
 				SchemaProps: spec.SchemaProps{
 					Properties: map[string]spec.Schema{
@@ -21148,7 +21148,7 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 			Dependencies: []string{
 				"github.com/kubernetes-incubator/apiserver-builder/pkg/builders.DefaultStorageStrategy"},
 		},
-		"k8s.io/kube-deploy/ext-apiserver/pkg/apis/cluster/v1alpha1.ContainerRuntimeInfo": {
+		"k8s.io/kube-deploy/cluster-api/pkg/apis/cluster/v1alpha1.ContainerRuntimeInfo": {
 			Schema: spec.Schema{
 				SchemaProps: spec.SchemaProps{
 					Properties: map[string]spec.Schema{
@@ -21172,7 +21172,7 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 			},
 			Dependencies: []string{},
 		},
-		"k8s.io/kube-deploy/ext-apiserver/pkg/apis/cluster/v1alpha1.Machine": {
+		"k8s.io/kube-deploy/cluster-api/pkg/apis/cluster/v1alpha1.Machine": {
 			Schema: spec.Schema{
 				SchemaProps: spec.SchemaProps{
 					Description: "Machine",
@@ -21198,21 +21198,21 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 						},
 						"spec": {
 							SchemaProps: spec.SchemaProps{
-								Ref: ref("k8s.io/kube-deploy/ext-apiserver/pkg/apis/cluster/v1alpha1.MachineSpec"),
+								Ref: ref("k8s.io/kube-deploy/cluster-api/pkg/apis/cluster/v1alpha1.MachineSpec"),
 							},
 						},
 						"status": {
 							SchemaProps: spec.SchemaProps{
-								Ref: ref("k8s.io/kube-deploy/ext-apiserver/pkg/apis/cluster/v1alpha1.MachineStatus"),
+								Ref: ref("k8s.io/kube-deploy/cluster-api/pkg/apis/cluster/v1alpha1.MachineStatus"),
 							},
 						},
 					},
 				},
 			},
 			Dependencies: []string{
-				"k8s.io/apimachinery/pkg/apis/meta/v1.ObjectMeta", "k8s.io/kube-deploy/ext-apiserver/pkg/apis/cluster/v1alpha1.MachineSpec", "k8s.io/kube-deploy/ext-apiserver/pkg/apis/cluster/v1alpha1.MachineStatus"},
+				"k8s.io/apimachinery/pkg/apis/meta/v1.ObjectMeta", "k8s.io/kube-deploy/cluster-api/pkg/apis/cluster/v1alpha1.MachineSpec", "k8s.io/kube-deploy/cluster-api/pkg/apis/cluster/v1alpha1.MachineStatus"},
 		},
-		"k8s.io/kube-deploy/ext-apiserver/pkg/apis/cluster/v1alpha1.MachineList": {
+		"k8s.io/kube-deploy/cluster-api/pkg/apis/cluster/v1alpha1.MachineList": {
 			Schema: spec.Schema{
 				SchemaProps: spec.SchemaProps{
 					Properties: map[string]spec.Schema{
@@ -21241,7 +21241,7 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 								Items: &spec.SchemaOrArray{
 									Schema: &spec.Schema{
 										SchemaProps: spec.SchemaProps{
-											Ref: ref("k8s.io/kube-deploy/ext-apiserver/pkg/apis/cluster/v1alpha1.Machine"),
+											Ref: ref("k8s.io/kube-deploy/cluster-api/pkg/apis/cluster/v1alpha1.Machine"),
 										},
 									},
 								},
@@ -21252,9 +21252,9 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 				},
 			},
 			Dependencies: []string{
-				"k8s.io/apimachinery/pkg/apis/meta/v1.ListMeta", "k8s.io/kube-deploy/ext-apiserver/pkg/apis/cluster/v1alpha1.Machine"},
+				"k8s.io/apimachinery/pkg/apis/meta/v1.ListMeta", "k8s.io/kube-deploy/cluster-api/pkg/apis/cluster/v1alpha1.Machine"},
 		},
-		"k8s.io/kube-deploy/ext-apiserver/pkg/apis/cluster/v1alpha1.MachineSchemeFns": {
+		"k8s.io/kube-deploy/cluster-api/pkg/apis/cluster/v1alpha1.MachineSchemeFns": {
 			Schema: spec.Schema{
 				SchemaProps: spec.SchemaProps{
 					Description: "Machine Functions and Structs",
@@ -21271,7 +21271,7 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 			Dependencies: []string{
 				"github.com/kubernetes-incubator/apiserver-builder/pkg/builders.DefaultSchemeFns"},
 		},
-		"k8s.io/kube-deploy/ext-apiserver/pkg/apis/cluster/v1alpha1.MachineSet": {
+		"k8s.io/kube-deploy/cluster-api/pkg/apis/cluster/v1alpha1.MachineSet": {
 			Schema: spec.Schema{
 				SchemaProps: spec.SchemaProps{
 					Description: "MachineSet ensures that a specified number of machines replicas are running at any given time.",
@@ -21297,21 +21297,21 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 						},
 						"spec": {
 							SchemaProps: spec.SchemaProps{
-								Ref: ref("k8s.io/kube-deploy/ext-apiserver/pkg/apis/cluster/v1alpha1.MachineSetSpec"),
+								Ref: ref("k8s.io/kube-deploy/cluster-api/pkg/apis/cluster/v1alpha1.MachineSetSpec"),
 							},
 						},
 						"status": {
 							SchemaProps: spec.SchemaProps{
-								Ref: ref("k8s.io/kube-deploy/ext-apiserver/pkg/apis/cluster/v1alpha1.MachineSetStatus"),
+								Ref: ref("k8s.io/kube-deploy/cluster-api/pkg/apis/cluster/v1alpha1.MachineSetStatus"),
 							},
 						},
 					},
 				},
 			},
 			Dependencies: []string{
-				"k8s.io/apimachinery/pkg/apis/meta/v1.ObjectMeta", "k8s.io/kube-deploy/ext-apiserver/pkg/apis/cluster/v1alpha1.MachineSetSpec", "k8s.io/kube-deploy/ext-apiserver/pkg/apis/cluster/v1alpha1.MachineSetStatus"},
+				"k8s.io/apimachinery/pkg/apis/meta/v1.ObjectMeta", "k8s.io/kube-deploy/cluster-api/pkg/apis/cluster/v1alpha1.MachineSetSpec", "k8s.io/kube-deploy/cluster-api/pkg/apis/cluster/v1alpha1.MachineSetStatus"},
 		},
-		"k8s.io/kube-deploy/ext-apiserver/pkg/apis/cluster/v1alpha1.MachineSetList": {
+		"k8s.io/kube-deploy/cluster-api/pkg/apis/cluster/v1alpha1.MachineSetList": {
 			Schema: spec.Schema{
 				SchemaProps: spec.SchemaProps{
 					Properties: map[string]spec.Schema{
@@ -21340,7 +21340,7 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 								Items: &spec.SchemaOrArray{
 									Schema: &spec.Schema{
 										SchemaProps: spec.SchemaProps{
-											Ref: ref("k8s.io/kube-deploy/ext-apiserver/pkg/apis/cluster/v1alpha1.MachineSet"),
+											Ref: ref("k8s.io/kube-deploy/cluster-api/pkg/apis/cluster/v1alpha1.MachineSet"),
 										},
 									},
 								},
@@ -21351,9 +21351,9 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 				},
 			},
 			Dependencies: []string{
-				"k8s.io/apimachinery/pkg/apis/meta/v1.ListMeta", "k8s.io/kube-deploy/ext-apiserver/pkg/apis/cluster/v1alpha1.MachineSet"},
+				"k8s.io/apimachinery/pkg/apis/meta/v1.ListMeta", "k8s.io/kube-deploy/cluster-api/pkg/apis/cluster/v1alpha1.MachineSet"},
 		},
-		"k8s.io/kube-deploy/ext-apiserver/pkg/apis/cluster/v1alpha1.MachineSetSchemeFns": {
+		"k8s.io/kube-deploy/cluster-api/pkg/apis/cluster/v1alpha1.MachineSetSchemeFns": {
 			Schema: spec.Schema{
 				SchemaProps: spec.SchemaProps{
 					Description: "MachineSet Functions and Structs",
@@ -21370,7 +21370,7 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 			Dependencies: []string{
 				"github.com/kubernetes-incubator/apiserver-builder/pkg/builders.DefaultSchemeFns"},
 		},
-		"k8s.io/kube-deploy/ext-apiserver/pkg/apis/cluster/v1alpha1.MachineSetSpec": {
+		"k8s.io/kube-deploy/cluster-api/pkg/apis/cluster/v1alpha1.MachineSetSpec": {
 			Schema: spec.Schema{
 				SchemaProps: spec.SchemaProps{
 					Description: "MachineSetSpec defines the desired state of MachineSet",
@@ -21398,7 +21398,7 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 						"template": {
 							SchemaProps: spec.SchemaProps{
 								Description: "Template is the object that describes the machine that will be created if insufficient replicas are detected.",
-								Ref:         ref("k8s.io/kube-deploy/ext-apiserver/pkg/apis/cluster/v1alpha1.MachineTemplateSpec"),
+								Ref:         ref("k8s.io/kube-deploy/cluster-api/pkg/apis/cluster/v1alpha1.MachineTemplateSpec"),
 							},
 						},
 					},
@@ -21406,9 +21406,9 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 				},
 			},
 			Dependencies: []string{
-				"k8s.io/apimachinery/pkg/apis/meta/v1.LabelSelector", "k8s.io/kube-deploy/ext-apiserver/pkg/apis/cluster/v1alpha1.MachineTemplateSpec"},
+				"k8s.io/apimachinery/pkg/apis/meta/v1.LabelSelector", "k8s.io/kube-deploy/cluster-api/pkg/apis/cluster/v1alpha1.MachineTemplateSpec"},
 		},
-		"k8s.io/kube-deploy/ext-apiserver/pkg/apis/cluster/v1alpha1.MachineSetStatus": {
+		"k8s.io/kube-deploy/cluster-api/pkg/apis/cluster/v1alpha1.MachineSetStatus": {
 			Schema: spec.Schema{
 				SchemaProps: spec.SchemaProps{
 					Description: "MachineSetStatus defines the observed state of MachineSet",
@@ -21467,7 +21467,7 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 			},
 			Dependencies: []string{},
 		},
-		"k8s.io/kube-deploy/ext-apiserver/pkg/apis/cluster/v1alpha1.MachineSetStatusStrategy": {
+		"k8s.io/kube-deploy/cluster-api/pkg/apis/cluster/v1alpha1.MachineSetStatusStrategy": {
 			Schema: spec.Schema{
 				SchemaProps: spec.SchemaProps{
 					Properties: map[string]spec.Schema{
@@ -21483,7 +21483,7 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 			Dependencies: []string{
 				"github.com/kubernetes-incubator/apiserver-builder/pkg/builders.DefaultStatusStorageStrategy"},
 		},
-		"k8s.io/kube-deploy/ext-apiserver/pkg/apis/cluster/v1alpha1.MachineSetStrategy": {
+		"k8s.io/kube-deploy/cluster-api/pkg/apis/cluster/v1alpha1.MachineSetStrategy": {
 			Schema: spec.Schema{
 				SchemaProps: spec.SchemaProps{
 					Properties: map[string]spec.Schema{
@@ -21499,7 +21499,7 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 			Dependencies: []string{
 				"github.com/kubernetes-incubator/apiserver-builder/pkg/builders.DefaultStorageStrategy"},
 		},
-		"k8s.io/kube-deploy/ext-apiserver/pkg/apis/cluster/v1alpha1.MachineSpec": {
+		"k8s.io/kube-deploy/cluster-api/pkg/apis/cluster/v1alpha1.MachineSpec": {
 			Schema: spec.Schema{
 				SchemaProps: spec.SchemaProps{
 					Description: "MachineSpec defines the desired state of Machine",
@@ -21547,7 +21547,7 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 						"versions": {
 							SchemaProps: spec.SchemaProps{
 								Description: "Versions of key software to use. This field is optional at cluster creation time, and omitting the field indicates that the cluster installation tool should select defaults for the user. These defaults may differ based on the cluster installer, but the tool should populate the values it uses when persisting Machine objects. A Machine spec missing this field at runtime is invalid.",
-								Ref:         ref("k8s.io/kube-deploy/ext-apiserver/pkg/apis/cluster/v1alpha1.MachineVersionInfo"),
+								Ref:         ref("k8s.io/kube-deploy/cluster-api/pkg/apis/cluster/v1alpha1.MachineVersionInfo"),
 							},
 						},
 						"configSource": {
@@ -21560,9 +21560,9 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 				},
 			},
 			Dependencies: []string{
-				"k8s.io/api/core/v1.NodeConfigSource", "k8s.io/api/core/v1.Taint", "k8s.io/apimachinery/pkg/apis/meta/v1.ObjectMeta", "k8s.io/kube-deploy/ext-apiserver/pkg/apis/cluster/v1alpha1.MachineVersionInfo"},
+				"k8s.io/api/core/v1.NodeConfigSource", "k8s.io/api/core/v1.Taint", "k8s.io/apimachinery/pkg/apis/meta/v1.ObjectMeta", "k8s.io/kube-deploy/cluster-api/pkg/apis/cluster/v1alpha1.MachineVersionInfo"},
 		},
-		"k8s.io/kube-deploy/ext-apiserver/pkg/apis/cluster/v1alpha1.MachineStatus": {
+		"k8s.io/kube-deploy/cluster-api/pkg/apis/cluster/v1alpha1.MachineStatus": {
 			Schema: spec.Schema{
 				SchemaProps: spec.SchemaProps{
 					Description: "MachineStatus defines the observed state of Machine",
@@ -21582,7 +21582,7 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 						"versions": {
 							SchemaProps: spec.SchemaProps{
 								Description: "The current versions of software on the corresponding Node (if it exists). This is provided for a few reasons:\n\n1) It is more convenient than checking the NodeRef, traversing it to\n   the Node, and finding the appropriate field in Node.Status.NodeInfo\n   (which uses different field names and formatting).\n2) It removes some of the dependency on the structure of the Node,\n   so that if the structure of Node.Status.NodeInfo changes, only\n   machine controllers need to be updated, rather than every client\n   of the Machines API.\n3) There is no other way simple way to check the ControlPlane\n   version. A client would have to connect directly to the apiserver\n   running on the target node in order to find out its version.",
-								Ref:         ref("k8s.io/kube-deploy/ext-apiserver/pkg/apis/cluster/v1alpha1.MachineVersionInfo"),
+								Ref:         ref("k8s.io/kube-deploy/cluster-api/pkg/apis/cluster/v1alpha1.MachineVersionInfo"),
 							},
 						},
 						"errorReason": {
@@ -21602,9 +21602,9 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 				},
 			},
 			Dependencies: []string{
-				"k8s.io/api/core/v1.ObjectReference", "k8s.io/apimachinery/pkg/apis/meta/v1.Time", "k8s.io/kube-deploy/ext-apiserver/pkg/apis/cluster/v1alpha1.MachineVersionInfo"},
+				"k8s.io/api/core/v1.ObjectReference", "k8s.io/apimachinery/pkg/apis/meta/v1.Time", "k8s.io/kube-deploy/cluster-api/pkg/apis/cluster/v1alpha1.MachineVersionInfo"},
 		},
-		"k8s.io/kube-deploy/ext-apiserver/pkg/apis/cluster/v1alpha1.MachineStatusStrategy": {
+		"k8s.io/kube-deploy/cluster-api/pkg/apis/cluster/v1alpha1.MachineStatusStrategy": {
 			Schema: spec.Schema{
 				SchemaProps: spec.SchemaProps{
 					Properties: map[string]spec.Schema{
@@ -21620,7 +21620,7 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 			Dependencies: []string{
 				"github.com/kubernetes-incubator/apiserver-builder/pkg/builders.DefaultStatusStorageStrategy"},
 		},
-		"k8s.io/kube-deploy/ext-apiserver/pkg/apis/cluster/v1alpha1.MachineStrategy": {
+		"k8s.io/kube-deploy/cluster-api/pkg/apis/cluster/v1alpha1.MachineStrategy": {
 			Schema: spec.Schema{
 				SchemaProps: spec.SchemaProps{
 					Properties: map[string]spec.Schema{
@@ -21636,7 +21636,7 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 			Dependencies: []string{
 				"github.com/kubernetes-incubator/apiserver-builder/pkg/builders.DefaultStorageStrategy"},
 		},
-		"k8s.io/kube-deploy/ext-apiserver/pkg/apis/cluster/v1alpha1.MachineTemplateSpec": {
+		"k8s.io/kube-deploy/cluster-api/pkg/apis/cluster/v1alpha1.MachineTemplateSpec": {
 			Schema: spec.Schema{
 				SchemaProps: spec.SchemaProps{
 					Description: "MachineTemplateSpec describes the data a machine should have when created from a template",
@@ -21650,16 +21650,16 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 						"spec": {
 							SchemaProps: spec.SchemaProps{
 								Description: "Specification of the desired behavior of the machine. More info: https://git.k8s.io/community/contributors/devel/api-conventions.md#spec-and-status",
-								Ref:         ref("k8s.io/kube-deploy/ext-apiserver/pkg/apis/cluster/v1alpha1.MachineSpec"),
+								Ref:         ref("k8s.io/kube-deploy/cluster-api/pkg/apis/cluster/v1alpha1.MachineSpec"),
 							},
 						},
 					},
 				},
 			},
 			Dependencies: []string{
-				"k8s.io/apimachinery/pkg/apis/meta/v1.ObjectMeta", "k8s.io/kube-deploy/ext-apiserver/pkg/apis/cluster/v1alpha1.MachineSpec"},
+				"k8s.io/apimachinery/pkg/apis/meta/v1.ObjectMeta", "k8s.io/kube-deploy/cluster-api/pkg/apis/cluster/v1alpha1.MachineSpec"},
 		},
-		"k8s.io/kube-deploy/ext-apiserver/pkg/apis/cluster/v1alpha1.MachineVersionInfo": {
+		"k8s.io/kube-deploy/cluster-api/pkg/apis/cluster/v1alpha1.MachineVersionInfo": {
 			Schema: spec.Schema{
 				SchemaProps: spec.SchemaProps{
 					Properties: map[string]spec.Schema{
@@ -21680,7 +21680,7 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 						"containerRuntime": {
 							SchemaProps: spec.SchemaProps{
 								Description: "Name/version of container runtime",
-								Ref:         ref("k8s.io/kube-deploy/ext-apiserver/pkg/apis/cluster/v1alpha1.ContainerRuntimeInfo"),
+								Ref:         ref("k8s.io/kube-deploy/cluster-api/pkg/apis/cluster/v1alpha1.ContainerRuntimeInfo"),
 							},
 						},
 					},
@@ -21688,9 +21688,9 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 				},
 			},
 			Dependencies: []string{
-				"k8s.io/kube-deploy/ext-apiserver/pkg/apis/cluster/v1alpha1.ContainerRuntimeInfo"},
+				"k8s.io/kube-deploy/cluster-api/pkg/apis/cluster/v1alpha1.ContainerRuntimeInfo"},
 		},
-		"k8s.io/kube-deploy/ext-apiserver/pkg/apis/cluster/v1alpha1.NetworkRanges": {
+		"k8s.io/kube-deploy/cluster-api/pkg/apis/cluster/v1alpha1.NetworkRanges": {
 			Schema: spec.Schema{
 				SchemaProps: spec.SchemaProps{
 					Description: "NetworkRanges represents ranges of network addresses.",

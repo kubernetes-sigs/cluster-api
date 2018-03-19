@@ -17,7 +17,7 @@ limitations under the License.
 package cloud
 
 import (
-	clusterv1 "k8s.io/kube-deploy/ext-apiserver/pkg/apis/cluster/v1alpha1"
+	clusterv1 "k8s.io/kube-deploy/cluster-api/pkg/apis/cluster/v1alpha1"
 )
 
 // Controls machines on a specific cloud. All methods should be idempotent unless otherwise specified.

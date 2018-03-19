@@ -20,8 +20,8 @@ import (
 	types "k8s.io/apimachinery/pkg/types"
 	watch "k8s.io/apimachinery/pkg/watch"
 	rest "k8s.io/client-go/rest"
-	v1alpha1 "k8s.io/kube-deploy/ext-apiserver/pkg/apis/cluster/v1alpha1"
-	scheme "k8s.io/kube-deploy/ext-apiserver/pkg/client/clientset_generated/clientset/scheme"
+	v1alpha1 "k8s.io/kube-deploy/cluster-api/pkg/apis/cluster/v1alpha1"
+	scheme "k8s.io/kube-deploy/cluster-api/pkg/client/clientset_generated/clientset/scheme"
 )
 
 // MachineSetsGetter has a method to return a MachineSetInterface.

@@ -22,8 +22,8 @@ import (
 	"github.com/kubernetes-incubator/apiserver-builder/pkg/controller"
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/cache"
-	"k8s.io/kube-deploy/ext-apiserver/pkg/client/clientset_generated/clientset"
-	"k8s.io/kube-deploy/ext-apiserver/pkg/client/informers_generated/externalversions"
+	"k8s.io/kube-deploy/cluster-api/pkg/client/clientset_generated/clientset"
+	"k8s.io/kube-deploy/cluster-api/pkg/client/informers_generated/externalversions"
 	"time"
 )
 

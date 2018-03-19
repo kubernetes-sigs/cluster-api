@@ -29,7 +29,7 @@ import (
 
 	"github.com/golang/glog"
 	corev1 "k8s.io/api/core/v1"
-	"k8s.io/kube-deploy/ext-apiserver/cloud/google/config"
+	"k8s.io/kube-deploy/cluster-api/cloud/google/config"
 )
 
 var machineControllerImage = "gcr.io/k8s-cluster-api/apiserver-controller:0.2"

@@ -25,14 +25,14 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
-	"k8s.io/kube-deploy/ext-apiserver/cloud"
-	clusterv1 "k8s.io/kube-deploy/ext-apiserver/pkg/apis/cluster/v1alpha1"
-	"k8s.io/kube-deploy/ext-apiserver/pkg/client/clientset_generated/clientset"
-	"k8s.io/kube-deploy/ext-apiserver/pkg/client/clientset_generated/clientset/typed/cluster/v1alpha1"
-	listers "k8s.io/kube-deploy/ext-apiserver/pkg/client/listers_generated/cluster/v1alpha1"
-	cfg "k8s.io/kube-deploy/ext-apiserver/pkg/controller/config"
-	"k8s.io/kube-deploy/ext-apiserver/pkg/controller/sharedinformers"
-	"k8s.io/kube-deploy/ext-apiserver/util"
+	"k8s.io/kube-deploy/cluster-api/cloud"
+	clusterv1 "k8s.io/kube-deploy/cluster-api/pkg/apis/cluster/v1alpha1"
+	"k8s.io/kube-deploy/cluster-api/pkg/client/clientset_generated/clientset"
+	"k8s.io/kube-deploy/cluster-api/pkg/client/clientset_generated/clientset/typed/cluster/v1alpha1"
+	listers "k8s.io/kube-deploy/cluster-api/pkg/client/listers_generated/cluster/v1alpha1"
+	cfg "k8s.io/kube-deploy/cluster-api/pkg/controller/config"
+	"k8s.io/kube-deploy/cluster-api/pkg/controller/sharedinformers"
+	"k8s.io/kube-deploy/cluster-api/util"
 )
 
 // +controller:group=cluster,version=v1alpha1,kind=Machine,resource=machines

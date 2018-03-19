@@ -81,7 +81,7 @@ $ git clone https://github.com/<GITHUB_USERNAME>/kube-deploy.git
 ## Build
 
 ```bash
-$ cd $GOPATH/src/k8s.io/kube-deploy/ext-apiserver/gcp-deployer/
+$ cd $GOPATH/src/k8s.io/kube-deploy/cluster-api/gcp-deployer/
 $ go build
 ```
 
@@ -100,7 +100,7 @@ After making changes to the controllers or the actuator, you need to follow thes
 1. Rebuild the machine-controller image. Also change `machineControllerImage` in `cloud/google/pods.go` to the new image path (make sure the version in the Makefile and `pods.go` match if you want to use the new image). Then, rebuild and push the image.
 
 	```bash
-	$ cd $GOPATH/src/k8s.io/kube-deploy/ext-apiserver
+	$ cd $GOPATH/src/k8s.io/kube-deploy/cluster-api
 	$ apiserver-boot build container --image gcr.io/$(GCLOUD_PROJECT)/apiserver-controller:$(VERSION) --generate=false
 	```
 
@@ -109,7 +109,7 @@ NOTE: that the image will be pushed to `gcr.io/$(GCLOUD_PROJECT)/apiserver-contr
 2. Rebuild gcp-deployer
 
 	```bash
-    $ cd $GOPATH/src/k8s.io/kube-deploy/ext-apiserver/gcp-deployer/
+    $ cd $GOPATH/src/k8s.io/kube-deploy/cluster-api/gcp-deployer/
 	$ go build
 	```
 

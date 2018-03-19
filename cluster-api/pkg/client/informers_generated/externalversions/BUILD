@@ -6,7 +6,7 @@ go_library(
         "factory.go",
         "generic.go",
     ],
-    importpath = "k8s.io/kube-deploy/ext-apiserver/pkg/client/informers_generated/externalversions",
+    importpath = "k8s.io/kube-deploy/cluster-api/pkg/client/informers_generated/externalversions",
     visibility = ["//visibility:public"],
     deps = [
         "//pkg/apis/cluster/v1alpha1:go_default_library",

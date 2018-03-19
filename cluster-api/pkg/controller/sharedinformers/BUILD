@@ -7,7 +7,7 @@ go_library(
         "informers.go",
         "zz_generated.api.register.go",
     ],
-    importpath = "k8s.io/kube-deploy/ext-apiserver/pkg/controller/sharedinformers",
+    importpath = "k8s.io/kube-deploy/cluster-api/pkg/controller/sharedinformers",
     visibility = ["//visibility:public"],
     deps = [
         "//pkg/client/clientset_generated/clientset:go_default_library",

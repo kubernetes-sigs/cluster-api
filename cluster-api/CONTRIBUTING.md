@@ -19,8 +19,8 @@ The machine controller should be able to act on a subset of machines that form a
 
 *   [kubernetes/kube-deploy](https://github.com/kubernetes/kube-deploy)
 *   [Cluster Management API KEP](https://github.com/kubernetes/community/blob/master/keps/sig-cluster-lifecycle/0003-cluster-api.md)
-*   [Cluster type](https://github.com/kubernetes/kube-deploy/blob/master/ext-apiserver/pkg/apis/cluster/v1alpha1/cluster_types.go#L40)
-*   [Machine type](https://github.com/kubernetes/kube-deploy/blob/master/ext-apiserver/pkg/apis/cluster/v1alpha1/machine_types.go#L42)
+*   [Cluster type](https://github.com/kubernetes/kube-deploy/blob/master/cluster-api/pkg/apis/cluster/v1alpha1/cluster_types.go#L40)
+*   [Machine type](https://github.com/kubernetes/kube-deploy/blob/master/cluster-api/pkg/apis/cluster/v1alpha1/machine_types.go#L42)
 
 ### Boostrapping
 
@@ -49,7 +49,7 @@ These include:
 *   A specific Machine can have its container runtime changed, or its version upgraded or downgraded.
 *   A specific Machine can have its OS image upgraded or downgraded.
 
-A sample implementation for an upgrader is [provided here](https://github.com/kubernetes/kube-deploy/blob/master/ext-apiserver/tools/upgrader/util/upgrade.go). Each machine is upgraded serially, which can amount to:
+A sample implementation for an upgrader is [provided here](https://github.com/kubernetes/kube-deploy/blob/master/cluster-api/tools/upgrader/util/upgrade.go). Each machine is upgraded serially, which can amount to:
 
 ```
 for machine in machines:

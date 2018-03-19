@@ -21,9 +21,9 @@ import (
 
 	"github.com/golang/glog"
 
-	clusterv1 "k8s.io/kube-deploy/ext-apiserver/pkg/apis/cluster/v1alpha1"
-	client "k8s.io/kube-deploy/ext-apiserver/pkg/client/clientset_generated/clientset/typed/cluster/v1alpha1"
-	"k8s.io/kube-deploy/ext-apiserver/cloud/google"
+	clusterv1 "k8s.io/kube-deploy/cluster-api/pkg/apis/cluster/v1alpha1"
+	client "k8s.io/kube-deploy/cluster-api/pkg/client/clientset_generated/clientset/typed/cluster/v1alpha1"
+	"k8s.io/kube-deploy/cluster-api/cloud/google"
 )
 
 // An actuator that just logs instead of doing anything.

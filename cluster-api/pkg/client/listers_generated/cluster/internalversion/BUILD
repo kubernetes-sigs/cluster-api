@@ -7,7 +7,7 @@ go_library(
         "expansion_generated.go",
         "machine.go",
     ],
-    importpath = "k8s.io/kube-deploy/ext-apiserver/pkg/client/listers_generated/cluster/internalversion",
+    importpath = "k8s.io/kube-deploy/cluster-api/pkg/client/listers_generated/cluster/internalversion",
     visibility = ["//visibility:public"],
     deps = [
         "//pkg/apis/cluster:go_default_library",

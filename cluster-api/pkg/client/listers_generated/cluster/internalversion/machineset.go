@@ -22,7 +22,7 @@ import (
 	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/client-go/tools/cache"
-	cluster "k8s.io/kube-deploy/ext-apiserver/pkg/apis/cluster"
+	cluster "k8s.io/kube-deploy/cluster-api/pkg/apis/cluster"
 )
 
 // MachineSetLister helps list MachineSets.

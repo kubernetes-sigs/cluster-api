@@ -22,8 +22,8 @@ limitations under the License.
 
 // +k8s:openapi-gen=true
 // +k8s:deepcopy-gen=package,register
-// +k8s:conversion-gen=k8s.io/kube-deploy/ext-apiserver/pkg/apis/cluster
+// +k8s:conversion-gen=k8s.io/kube-deploy/cluster-api/pkg/apis/cluster
 // +k8s:defaulter-gen=TypeMeta
 // +groupName=cluster.k8s.io
-package v1alpha1 // import "k8s.io/kube-deploy/ext-apiserver/pkg/apis/cluster/v1alpha1"
+package v1alpha1 // import "k8s.io/kube-deploy/cluster-api/pkg/apis/cluster/v1alpha1"
 

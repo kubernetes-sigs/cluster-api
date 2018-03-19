@@ -26,7 +26,7 @@ To learn more, see the [Cluster API KEP][cluster-api-kep].
 * `kubectl` is required, see [here](http://kubernetes.io/docs/user-guide/prereqs/).
 
 ### Prototype implementations
-* [gcp](https://github.com/kubernetes/kube-deploy/blob/master/ext-apiserver/gcp-deployer/README.md)
+* [gcp](https://github.com/kubernetes/kube-deploy/blob/master/cluster-api/gcp-deployer/README.md)
 
 ## How to use the API
 

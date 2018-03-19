@@ -26,8 +26,8 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/validation/field"
 
-	"k8s.io/kube-deploy/ext-apiserver/pkg/apis/cluster"
-	clustercommon "k8s.io/kube-deploy/ext-apiserver/pkg/apis/cluster/common"
+	"k8s.io/kube-deploy/cluster-api/pkg/apis/cluster"
+	clustercommon "k8s.io/kube-deploy/cluster-api/pkg/apis/cluster/common"
 )
 
 // Finalizer is set on PreareForCreate callback

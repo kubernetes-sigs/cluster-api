@@ -6,7 +6,7 @@ go_library(
         "doc.go",
         "openapi_generated.go",
     ],
-    importpath = "k8s.io/kube-deploy/ext-apiserver/pkg/openapi",
+    importpath = "k8s.io/kube-deploy/cluster-api/pkg/openapi",
     visibility = ["//visibility:public"],
     deps = [
         "//vendor/github.com/go-openapi/spec:go_default_library",

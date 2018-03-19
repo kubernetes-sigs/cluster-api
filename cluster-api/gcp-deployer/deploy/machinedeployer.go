@@ -3,9 +3,9 @@ package deploy
 import (
 	"fmt"
 
-	"k8s.io/kube-deploy/ext-apiserver/cloud"
-	"k8s.io/kube-deploy/ext-apiserver/cloud/google"
-	clusterv1 "k8s.io/kube-deploy/ext-apiserver/pkg/apis/cluster/v1alpha1"
+	"k8s.io/kube-deploy/cluster-api/cloud"
+	"k8s.io/kube-deploy/cluster-api/cloud/google"
+	clusterv1 "k8s.io/kube-deploy/cluster-api/pkg/apis/cluster/v1alpha1"
 )
 
 // Provider-specific machine logic the deployer needs.

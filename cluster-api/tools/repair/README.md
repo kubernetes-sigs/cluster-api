@@ -8,7 +8,7 @@ that can be built in a cloud-agnostic way.
 ```bash
 $ cd $GOPATH/src/k8s.io/
 $ git clone git@github.com:kubernetes/kube-deploy.git
-$ cd kube-deploy/ext-apiserver/tools/repair
+$ cd kube-deploy/cluster-api/tools/repair
 $ go build
 ```
 

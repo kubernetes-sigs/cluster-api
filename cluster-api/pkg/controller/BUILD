@@ -6,7 +6,7 @@ go_library(
         "doc.go",
         "zz_generated.api.register.go",
     ],
-    importpath = "k8s.io/kube-deploy/ext-apiserver/pkg/controller",
+    importpath = "k8s.io/kube-deploy/cluster-api/pkg/controller",
     visibility = ["//visibility:public"],
     deps = [
         "//pkg/controller/cluster:go_default_library",

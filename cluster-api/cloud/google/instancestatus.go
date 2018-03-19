@@ -5,8 +5,8 @@ import (
 	"bytes"
 	"k8s.io/apimachinery/pkg/runtime/serializer/json"
 
-	clusterv1 "k8s.io/kube-deploy/ext-apiserver/pkg/apis/cluster/v1alpha1"
-	"k8s.io/kube-deploy/ext-apiserver/util"
+	clusterv1 "k8s.io/kube-deploy/cluster-api/pkg/apis/cluster/v1alpha1"
+	"k8s.io/kube-deploy/cluster-api/util"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 )
 

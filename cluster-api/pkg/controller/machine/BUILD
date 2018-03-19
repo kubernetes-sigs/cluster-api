@@ -6,7 +6,7 @@ go_library(
         "controller.go",
         "zz_generated.api.register.go",
     ],
-    importpath = "k8s.io/kube-deploy/ext-apiserver/pkg/controller/machine",
+    importpath = "k8s.io/kube-deploy/cluster-api/pkg/controller/machine",
     visibility = ["//visibility:public"],
     deps = [
         "//pkg/apis/cluster/v1alpha1:go_default_library",
@@ -28,7 +28,7 @@ go_test(
         "controller_test.go",
         "machine_suite_test.go",
     ],
-    importpath = "k8s.io/kube-deploy/ext-apiserver/pkg/controller/machine_test",
+    importpath = "k8s.io/kube-deploy/cluster-api/pkg/controller/machine_test",
     deps = [
         ":go_default_library",
         "//pkg/apis:go_default_library",

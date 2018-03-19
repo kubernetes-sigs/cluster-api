@@ -25,7 +25,7 @@ import (
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/cache"
 	"k8s.io/client-go/util/workqueue"
-	"k8s.io/kube-deploy/ext-apiserver/pkg/controller/sharedinformers"
+	"k8s.io/kube-deploy/cluster-api/pkg/controller/sharedinformers"
 )
 
 // ClusterController implements the controller.ClusterController interface

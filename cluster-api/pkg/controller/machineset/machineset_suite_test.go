@@ -21,12 +21,12 @@ import (
 
 	"github.com/kubernetes-incubator/apiserver-builder/pkg/test"
 
-	"k8s.io/kube-deploy/ext-apiserver/pkg/apis"
-	"k8s.io/kube-deploy/ext-apiserver/pkg/client/clientset_generated/clientset"
-	cfg "k8s.io/kube-deploy/ext-apiserver/pkg/controller/config"
-	"k8s.io/kube-deploy/ext-apiserver/pkg/controller/machineset"
-	"k8s.io/kube-deploy/ext-apiserver/pkg/controller/sharedinformers"
-	"k8s.io/kube-deploy/ext-apiserver/pkg/openapi"
+	"k8s.io/kube-deploy/cluster-api/pkg/apis"
+	"k8s.io/kube-deploy/cluster-api/pkg/client/clientset_generated/clientset"
+	cfg "k8s.io/kube-deploy/cluster-api/pkg/controller/config"
+	"k8s.io/kube-deploy/cluster-api/pkg/controller/machineset"
+	"k8s.io/kube-deploy/cluster-api/pkg/controller/sharedinformers"
+	"k8s.io/kube-deploy/cluster-api/pkg/openapi"
 )
 
 func TestMachineSet(t *testing.T) {

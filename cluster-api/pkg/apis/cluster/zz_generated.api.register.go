@@ -20,12 +20,12 @@ package cluster
 
 import (
 	"fmt"
-
 	"github.com/kubernetes-incubator/apiserver-builder/pkg/builders"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/internalversion"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
+	pkgruntime "k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apiserver/pkg/endpoints/request"
 	"k8s.io/apiserver/pkg/registry/rest"
@@ -96,67 +96,11 @@ func Resource(resource string) schema.GroupResource {
 // +genclient
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
 
-type MachineSet struct {
-	metav1.TypeMeta
-	metav1.ObjectMeta
-	Spec   MachineSetSpec
-	Status MachineSetStatus
-}
-
-// +genclient
-// +genclient
-// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
-
 type Machine struct {
 	metav1.TypeMeta
 	metav1.ObjectMeta
 	Spec   MachineSpec
 	Status MachineStatus
-}
-
-type MachineSetStatus struct {
-	Replicas             int32
-	FullyLabeledReplicas int32
-	ReadyReplicas        int32
-	AvailableReplicas    int32
-	ObservedGeneration   int64
-	ErrorReason          *clustercommon.MachineSetStatusError
-	ErrorMessage         *string
-}
-
-type MachineStatus struct {
-	NodeRef      *corev1.ObjectReference
-	LastUpdated  metav1.Time
-	Versions     *MachineVersionInfo
-	ErrorReason  *clustercommon.MachineStatusError
-	ErrorMessage *string
-}
-
-type MachineSpec struct {
-	metav1.ObjectMeta
-	Taints         []corev1.Taint
-	ProviderConfig string
-	Roles          []clustercommon.MachineRole
-	Versions       MachineVersionInfo
-	ConfigSource   *corev1.NodeConfigSource
-}
-
-type MachineVersionInfo struct {
-	Kubelet          string
-	ControlPlane     string
-	ContainerRuntime ContainerRuntimeInfo
-}
-
-type ContainerRuntimeInfo struct {
-	Name    string
-	Version string
-}
-
-type MachineSetSpec struct {
-	Replicas        *int32
-	MinReadySeconds int32
-	Selector        metav1.LabelSelector
-	Template        MachineTemplateSpec
 }
 
 // +genclient
@@ -170,9 +114,12 @@ type Cluster struct {
 	Status ClusterStatus
 }
 
-type MachineTemplateSpec struct {
-	metav1.ObjectMeta
-	Spec MachineSpec
+type MachineStatus struct {
+	NodeRef      *corev1.ObjectReference
+	LastUpdated  metav1.Time
+	Versions     *MachineVersionInfo
+	ErrorReason  *clustercommon.MachineStatusError
+	ErrorMessage *string
 }
 
 type ClusterStatus struct {
@@ -182,14 +129,34 @@ type ClusterStatus struct {
 	ProviderStatus string
 }
 
+type MachineVersionInfo struct {
+	Kubelet          string
+	ControlPlane     string
+	ContainerRuntime ContainerRuntimeInfo
+}
+
 type APIEndpoint struct {
 	Host string
 	Port int
 }
 
+type ContainerRuntimeInfo struct {
+	Name    string
+	Version string
+}
+
 type ClusterSpec struct {
 	ClusterNetwork ClusterNetworkingConfig
 	ProviderConfig string
+}
+
+type MachineSpec struct {
+	metav1.ObjectMeta
+	Taints         []corev1.Taint
+	ProviderConfig ProviderConfig
+	Roles          []clustercommon.MachineRole
+	Versions       MachineVersionInfo
+	ConfigSource   *corev1.NodeConfigSource
 }
 
 type ClusterNetworkingConfig struct {
@@ -200,6 +167,47 @@ type ClusterNetworkingConfig struct {
 
 type NetworkRanges struct {
 	CIDRBlocks []string
+}
+
+type ProviderConfig struct {
+	Value     *pkgruntime.RawExtension
+	ValueFrom *ProviderConfigSource
+}
+
+// +genclient
+// +genclient
+// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
+
+type MachineSet struct {
+	metav1.TypeMeta
+	metav1.ObjectMeta
+	Spec   MachineSetSpec
+	Status MachineSetStatus
+}
+
+type ProviderConfigSource struct {
+}
+
+type MachineSetStatus struct {
+	Replicas             int32
+	FullyLabeledReplicas int32
+	ReadyReplicas        int32
+	AvailableReplicas    int32
+	ObservedGeneration   int64
+	ErrorReason          *clustercommon.MachineSetStatusError
+	ErrorMessage         *string
+}
+
+type MachineSetSpec struct {
+	Replicas        *int32
+	MinReadySeconds int32
+	Selector        metav1.LabelSelector
+	Template        MachineTemplateSpec
+}
+
+type MachineTemplateSpec struct {
+	metav1.ObjectMeta
+	Spec MachineSpec
 }
 
 //

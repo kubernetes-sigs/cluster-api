@@ -532,8 +532,8 @@ func (gce *GCEClient) instanceIfExists(machine *clusterv1.Machine) (*compute.Ins
 	return instance, nil
 }
 
-func (gce *GCEClient) providerconfig(providerConfig string) (*gceconfig.GCEProviderConfig, error) {
-	obj, gvk, err := gce.codecFactory.UniversalDecoder().Decode([]byte(providerConfig), nil, nil)
+func (gce *GCEClient) providerconfig(providerConfig clusterv1.ProviderConfig) (*gceconfig.GCEProviderConfig, error) {
+	obj, gvk, err := gce.codecFactory.UniversalDecoder().Decode(providerConfig.Value.Raw, nil, nil)
 	if err != nil {
 		return nil, fmt.Errorf("decoding failure: %v", err)
 	}

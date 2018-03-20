@@ -6,15 +6,14 @@ items:
     labels:
       set: master
   spec:
-    providerConfig: >
-      {
-        "apiVersion": "gceproviderconfig/v1alpha1",
-        "kind": "GCEProviderConfig",
-        "project": "$GCLOUD_PROJECT",
-        "zone": "us-central1-f",
-        "machineType": "n1-standard-2",
-        "image": "projects/ubuntu-os-cloud/global/images/family/ubuntu-1604-lts"
-      }
+    providerConfig:
+      value:
+        apiVersion: "gceproviderconfig/v1alpha1"
+        kind: "GCEProviderConfig"
+        project: "$GCLOUD_PROJECT"
+        zone: "us-central1-f"
+        machineType: "n1-standard-2"
+        image: "projects/ubuntu-os-cloud/global/images/family/ubuntu-1604-lts"
     versions:
       kubelet: 1.8.3
       controlPlane: 1.8.3
@@ -30,15 +29,14 @@ items:
     labels:
       set: node
   spec:
-    providerConfig: >
-      {
-        "apiVersion": "gceproviderconfig/v1alpha1",
-        "kind": "GCEProviderConfig",
-        "project": "$GCLOUD_PROJECT",
-        "zone": "us-central1-f",
-        "machineType": "n1-standard-1",
-        "image": "projects/ubuntu-os-cloud/global/images/family/ubuntu-1604-lts"
-      }
+    providerConfig:
+      value:
+        apiVersion: "gceproviderconfig/v1alpha1"
+        kind: "GCEProviderConfig"
+        project: "$GCLOUD_PROJECT"
+        zone: "us-central1-f"
+        machineType: "n1-standard-1"
+        image: "projects/ubuntu-os-cloud/global/images/family/ubuntu-1604-lts"
     versions:
       kubelet: 1.8.3
       containerRuntime:

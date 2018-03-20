@@ -61,12 +61,9 @@ type MachineSpec struct {
 	// +optional
 	Taints []corev1.Taint `json:"taints,omitempty"`
 
-	// Provider-specific serialized configuration to use during node
-	// creation. It is recommended that providers maintain their own
-	// versioned API types that should be serialized/deserialized from this
-	// field, akin to component config.
+	// Provider-specific configuration to use during node creation.
 	// +optional
-	ProviderConfig string `json:"providerConfig"`
+	ProviderConfig ProviderConfig `json:"providerConfig"`
 
 	// A list of roles for this Machine to use.
 	Roles []clustercommon.MachineRole `json:"roles,omitempty"`
@@ -87,6 +84,30 @@ type MachineSpec struct {
 	// as-is.
 	// +optional
 	ConfigSource *corev1.NodeConfigSource `json:"configSource,omitempty"`
+}
+
+// ProviderConfig defines the configuration to use during node creation.
+type ProviderConfig struct {
+
+	// No more than one of the following may be specified.
+
+	// Value is an inlined, serialized representation of the node
+	// configuration. It is recommended that providers maintain their own
+	// versioned API types that should be serialized/deserialized from this
+	// field, akin to component config.
+	// +optional
+	Value *runtime.RawExtension `json:"value,omitempty"`
+
+	// Source for the provider configuration. Cannot be used if value is
+	// not empty.
+	// +optional
+	ValueFrom *ProviderConfigSource `json:valueFrom,omitempty`
+}
+
+// ProviderConfigSource represents a source for the provider-specific
+// node configuration.
+type ProviderConfigSource struct {
+	// TODO(roberthbailey): Fill these in later
 }
 
 // MachineStatus defines the observed state of Machine

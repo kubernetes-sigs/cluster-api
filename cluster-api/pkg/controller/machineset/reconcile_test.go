@@ -186,7 +186,9 @@ func createMachineSet(replicas int, machineSetName string, machineName string, n
 					Labels: map[string]string{"type":"strongMachine"},
 				},
 				Spec: v1alpha1.MachineSpec{
-					ProviderConfig: "some provider specific configuration data",
+					ProviderConfig: v1alpha1.ProviderConfig{
+						Value: &runtime.RawExtension{Raw: []byte("some provider specific configuration data")},
+					},
 				},
 			},
 		},

@@ -6,12 +6,13 @@ aliases:
     - luxas
     - roberthbailey
     - timothysc
-  kube-deploy-admins:
+  cluster-api-admins:
     - justinsb
     - krousey
     - luxas
     - roberthbailey
-  kube-deploy-maintainers:
+    - kris-nova
+  cluster-api-maintainers:
     - jessicaochen
     - karan
     - kris-nova
@@ -19,7 +20,3 @@ aliases:
     - medinatiger
     - roberthbailey
     - rsdcastro
-    - mkjelland
-    - spew
-    - johnsonj
-    - kcoronado

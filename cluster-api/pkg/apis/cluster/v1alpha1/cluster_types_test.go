@@ -23,23 +23,12 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	"k8s.io/kube-deploy/cluster-api/pkg/apis/cluster/v1alpha1"
+	"k8s.io/kube-deploy/cluster-api/pkg/apis/cluster/v1alpha1/testutil"
 	"k8s.io/kube-deploy/cluster-api/pkg/client/clientset_generated/clientset"
 )
 
 func crudAccessToClusterClient(t *testing.T, cs *clientset.Clientset) {
-	instance := v1alpha1.Cluster{
-		Spec: v1alpha1.ClusterSpec{
-			ClusterNetwork: v1alpha1.ClusterNetworkingConfig{
-				Services: v1alpha1.NetworkRanges{
-					CIDRBlocks: []string{"10.96.0.0/12"},
-				},
-				Pods: v1alpha1.NetworkRanges{
-					CIDRBlocks: []string{"192.168.0.0/16"},
-				},
-				ServiceDomain: "cluster.local",
-			},
-		},
-	}
+	instance := testutil.GetVanillaCluster()
 	instance.Name = "instance-1"
 
 	expected := instance

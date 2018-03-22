@@ -24,6 +24,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	"k8s.io/kube-deploy/cluster-api/pkg/apis/cluster/v1alpha1"
+	"k8s.io/kube-deploy/cluster-api/pkg/apis/cluster/v1alpha1/testutil"
 	"k8s.io/kube-deploy/cluster-api/pkg/client/clientset_generated/clientset"
 	"k8s.io/kube-deploy/cluster-api/pkg/controller/machineset"
 )
@@ -39,19 +40,7 @@ func machineSetControllerReconcile(t *testing.T, cs *clientset.Clientset, contro
 	expectedKey := "default/instance-1"
 
 	// When creating a new object, it should invoke the reconcile method.
-	cluster := v1alpha1.Cluster{
-		Spec: v1alpha1.ClusterSpec{
-			ClusterNetwork: v1alpha1.ClusterNetworkingConfig{
-				Services: v1alpha1.NetworkRanges{
-					CIDRBlocks: []string{"10.96.0.0/12"},
-				},
-				Pods: v1alpha1.NetworkRanges{
-					CIDRBlocks: []string{"192.168.0.0/16"},
-				},
-				ServiceDomain: "cluster.local",
-			},
-		},
-	}
+	cluster := testutil.GetVanillaCluster()
 	cluster.Name = "cluster-1"
 	if _, err := cs.ClusterV1alpha1().Clusters("default").Create(&cluster); err != nil {
 		t.Fatal(err)

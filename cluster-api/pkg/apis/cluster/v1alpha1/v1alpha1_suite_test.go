@@ -34,6 +34,9 @@ func TestV1alpha1(t *testing.T) {
 	t.Run("crudAccessToClusterClient", func(t *testing.T) {
 		crudAccessToClusterClient(t, cs)
 	})
+	t.Run("clusterValidationTest", func(t *testing.T) {
+		clusterValidationTest(t, cs)
+	})
 	t.Run("crudAccessToMachineClient", func(t *testing.T) {
 		crudAccessToMachineClient(t, cs)
 	})

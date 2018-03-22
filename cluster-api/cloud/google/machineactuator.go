@@ -149,15 +149,6 @@ func (gce *GCEClient) Create(cluster *clusterv1.Cluster, machine *clusterv1.Mach
 	}
 
 	var metadata map[string]string
-	if cluster.Spec.ClusterNetwork.ServiceDomain == "" {
-		return errors.New("invalid cluster configuration: missing Cluster.Spec.ClusterNetwork.ServiceDomain")
-	}
-	if getSubnet(cluster.Spec.ClusterNetwork.Pods) == "" {
-		return errors.New("invalid cluster configuration: missing Cluster.Spec.ClusterNetwork.Pods")
-	}
-	if getSubnet(cluster.Spec.ClusterNetwork.Services) == "" {
-		return errors.New("invalid cluster configuration: missing Cluster.Spec.ClusterNetwork.Services")
-	}
 	if machine.Spec.Versions.Kubelet == "" {
 		return errors.New("invalid master configuration: missing Machine.Spec.Versions.Kubelet")
 	}

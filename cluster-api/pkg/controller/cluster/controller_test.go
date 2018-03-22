@@ -22,12 +22,12 @@ import (
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
-	"k8s.io/kube-deploy/cluster-api/pkg/apis/cluster/v1alpha1"
+	"k8s.io/kube-deploy/cluster-api/pkg/apis/cluster/v1alpha1/testutil"
 	"k8s.io/kube-deploy/cluster-api/pkg/client/clientset_generated/clientset"
 )
 
 func clusterControllerReconcile(t *testing.T, cs *clientset.Clientset, controller *ClusterController) {
-	instance := v1alpha1.Cluster{}
+	instance := testutil.GetVanillaCluster()
 	instance.Name = "instance-1"
 	expectedKey := "cluster-controller-test-handler/instance-1"
 

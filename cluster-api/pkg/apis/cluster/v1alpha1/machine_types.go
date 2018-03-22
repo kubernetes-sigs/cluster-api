@@ -184,8 +184,8 @@ type ContainerRuntimeInfo struct {
 
 // Validate checks that an instance of Machine is well formed
 func (MachineStrategy) Validate(ctx request.Context, obj runtime.Object) field.ErrorList {
-	o := obj.(*cluster.Machine)
-	log.Printf("Validating fields for Machine %s\n", o.Name)
+	machine := obj.(*cluster.Machine)
+	log.Printf("Validating fields for Machine %s\n", machine.Name)
 	errors := field.ErrorList{}
 	// perform validation here and add to errors using field.Invalid
 	return errors

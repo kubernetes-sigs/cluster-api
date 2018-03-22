@@ -137,6 +137,23 @@ func clusterValidationTest(t *testing.T, cs *clientset.Clientset) {
 			},
 			errExpected: true,
 		},
+		{
+			name: "positive test case",
+			cluster: v1alpha1.Cluster{
+				Spec: v1alpha1.ClusterSpec{
+					ClusterNetwork: v1alpha1.ClusterNetworkingConfig{
+						Services: v1alpha1.NetworkRanges{
+							CIDRBlocks: []string{"10.96.0.0/12"},
+						},
+						Pods: v1alpha1.NetworkRanges{
+							CIDRBlocks: []string{"192.168.0.0/16"},
+						},
+						ServiceDomain: "cluster.local",
+					},
+				},
+			},
+			errExpected: false,
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {

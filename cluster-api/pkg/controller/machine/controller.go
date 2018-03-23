@@ -25,7 +25,7 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
-	"k8s.io/kube-deploy/cluster-api/cloud"
+
 	clusterv1 "k8s.io/kube-deploy/cluster-api/pkg/apis/cluster/v1alpha1"
 	"k8s.io/kube-deploy/cluster-api/pkg/client/clientset_generated/clientset"
 	"k8s.io/kube-deploy/cluster-api/pkg/client/clientset_generated/clientset/typed/cluster/v1alpha1"
@@ -42,7 +42,7 @@ type MachineControllerImpl struct {
 	// lister indexes properties about Machine
 	lister listers.MachineLister
 
-	actuator cloud.MachineActuator
+	actuator Actuator
 
 	kubernetesClientSet *kubernetes.Clientset
 	clientSet           *clientset.Clientset
@@ -52,7 +52,7 @@ type MachineControllerImpl struct {
 
 // Init initializes the controller and is called by the generated code
 // Register watches for additional resource types here.
-func (c *MachineControllerImpl) Init(arguments sharedinformers.ControllerInitArguments) {
+func (c *MachineControllerImpl) Init(arguments sharedinformers.ControllerInitArguments, actuator Actuator) {
 	// Use the lister for indexing machines labels
 	c.lister = arguments.GetSharedInformers().Factory.Cluster().V1alpha1().Machines().Lister()
 
@@ -68,11 +68,6 @@ func (c *MachineControllerImpl) Init(arguments sharedinformers.ControllerInitArg
 	// Create machine actuator.
 	// TODO: Assume default namespace for now. Maybe a separate a controller per namespace?
 	c.machineClient = clientset.ClusterV1alpha1().Machines(corev1.NamespaceDefault)
-	var config *cfg.Configuration = &cfg.ControllerConfig
-	actuator, err := cloud.NewMachineActuator(config.Cloud, config.KubeadmToken, c.machineClient)
-	if err != nil {
-		glog.Fatalf("error creating machine actuator: %v", err)
-	}
 	c.actuator = actuator
 
 	// Start watching for Node resource. It will effectively create a new worker queue, and

@@ -22,21 +22,27 @@ import (
 	"github.com/kubernetes-incubator/apiserver-builder/pkg/test"
 
 	"k8s.io/kube-deploy/cluster-api/pkg/apis"
+	clusterv1 "k8s.io/kube-deploy/cluster-api/pkg/apis/cluster/v1alpha1"
 	"k8s.io/kube-deploy/cluster-api/pkg/client/clientset_generated/clientset"
-	cfg "k8s.io/kube-deploy/cluster-api/pkg/controller/config"
 	"k8s.io/kube-deploy/cluster-api/pkg/controller/sharedinformers"
 	"k8s.io/kube-deploy/cluster-api/pkg/openapi"
 )
+
+type fakeActuator struct{}
+
+func (fakeActuator) Create(*clusterv1.Cluster, *clusterv1.Machine) error           { return nil }
+func (fakeActuator) Delete(*clusterv1.Machine) error                               { return nil }
+func (fakeActuator) Update(c *clusterv1.Cluster, machine *clusterv1.Machine) error { return nil }
+func (fakeActuator) Exists(*clusterv1.Machine) (bool, error)                       { return false, nil }
 
 func TestMachine(t *testing.T) {
 	testenv := test.NewTestEnvironment()
 	config := testenv.Start(apis.GetAllApiBuilders(), openapi.GetOpenAPIDefinitions)
 	cs := clientset.NewForConfigOrDie(config)
-	cfg.ControllerConfig.Cloud = "test"
 
 	shutdown := make(chan struct{})
 	si := sharedinformers.NewSharedInformers(config, shutdown)
-	controller := NewMachineController(config, si)
+	controller := NewMachineController(config, si, fakeActuator{})
 	controller.Run(shutdown)
 
 	t.Run("machineControllerReconcile", func(t *testing.T) {

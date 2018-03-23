@@ -1,16 +1,13 @@
 package deploy
 
 import (
-	"fmt"
-
-	"k8s.io/kube-deploy/cluster-api/cloud"
-	"k8s.io/kube-deploy/cluster-api/cloud/google"
 	clusterv1 "k8s.io/kube-deploy/cluster-api/pkg/apis/cluster/v1alpha1"
+	"k8s.io/kube-deploy/cluster-api/pkg/controller/machine"
 )
 
 // Provider-specific machine logic the deployer needs.
 type machineDeployer interface {
-	cloud.MachineActuator
+	machine.Actuator
 	GetIP(machine *clusterv1.Machine) (string, error)
 	GetKubeConfig(master *clusterv1.Machine) (string, error)
 
@@ -21,13 +18,4 @@ type machineDeployer interface {
 	// Not idempotent.
 	CreateMachineController(cluster *clusterv1.Cluster, initialMachines []*clusterv1.Machine) error
 	PostDelete(cluster *clusterv1.Cluster, machines []*clusterv1.Machine) error
-}
-
-func newMachineDeployer(cloud string, kubeadmToken string) (machineDeployer, error) {
-	switch cloud {
-	case "google":
-		return google.NewMachineActuator(kubeadmToken, nil)
-	default:
-		return nil, fmt.Errorf("Not recognized cloud provider: %s\n", cloud)
-	}
 }

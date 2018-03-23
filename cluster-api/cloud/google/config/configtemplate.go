@@ -33,7 +33,7 @@ spec:
     name: clusterapi
     namespace: default
   versionPriority: 10
-  caBundle: {{ .CaBundle }}
+  caBundle: {{ .CABundle }}
 ---
 apiVersion: v1
 kind: Service
@@ -83,7 +83,7 @@ spec:
         operator: Exists
       containers:
       - name: apiserver
-        image: {{ .Image }}
+        image: {{ .APIServerImage }}
         volumeMounts:
         - name: cluster-apiserver-certs
           mountPath: /apiserver.local.config/certificates
@@ -110,8 +110,26 @@ spec:
           limits:
             cpu: 100m
             memory: 30Mi
-      - name: controller
-        image: {{ .Image }}
+      - name: controller-manager
+        image: {{ .ControllerManagerImage }}
+        volumeMounts:
+          - name: config
+            mountPath: /etc/kubernetes
+          - name: certs
+            mountPath: /etc/ssl/certs
+        command:
+        - "./controller-manager"
+        args:
+        - --kubeconfig=/etc/kubernetes/admin.conf
+        resources:
+          requests:
+            cpu: 100m
+            memory: 20Mi
+          limits:
+            cpu: 100m
+            memory: 30Mi
+      - name: gce-machine-controller
+        image: {{ .MachineControllerImage }}
         volumeMounts:
           - name: config
             mountPath: /etc/kubernetes
@@ -125,9 +143,8 @@ spec:
           - name: GOOGLE_APPLICATION_CREDENTIALS
             value: /etc/credentials/service-account.json
         command:
-        - "./controller-manager"
+        - "./gce-machine-controller"
         args:
-        - --cloud=google
         - --kubeconfig=/etc/kubernetes/admin.conf
         - --token={{ .Token }}
         resources:
@@ -256,6 +273,6 @@ metadata:
     api: clusterapi
     apiserver: "true"
 data:
-  tls.crt: {{ .TlsCrt }}
-  tls.key: {{ .TlsKey }}
+  tls.crt: {{ .TLSCrt }}
+  tls.key: {{ .TLSKey }}
 `

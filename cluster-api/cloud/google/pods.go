@@ -32,11 +32,21 @@ import (
 	"k8s.io/kube-deploy/cluster-api/cloud/google/config"
 )
 
-var machineControllerImage = "gcr.io/k8s-cluster-api/apiserver-controller:0.3"
+var apiServerImage = "gcr.io/k8s-cluster-api/cluster-apiserver:0.0.1"
+var controllerManagerImage = "gcr.io/k8s-cluster-api/controller-manager:0.0.1"
+var machineControllerImage = "gcr.io/k8s-cluster-api/gce-machine-controller:0.0.1"
 
 func init() {
 	if img, ok := os.LookupEnv("MACHINE_CONTROLLER_IMAGE"); ok {
 		machineControllerImage = img
+	}
+
+	if img, ok := os.LookupEnv("CLUSTER_API_SERVER_IMAGE"); ok {
+		apiServerImage = img
+	}
+
+	if img, ok := os.LookupEnv("CONTROLLER_MANAGER_IMAGE"); ok {
+		controllerManagerImage = img
 	}
 }
 
@@ -124,20 +134,24 @@ func CreateApiServerAndController(token string) error {
 	}
 
 	type params struct {
-		Token    string
-		Image    string
-		CaBundle string
-		TlsCrt   string
-		TlsKey   string
+		Token                  string
+		APIServerImage         string
+		ControllerManagerImage string
+		MachineControllerImage string
+		CABundle               string
+		TLSCrt                 string
+		TLSKey                 string
 	}
 
 	var tmplBuf bytes.Buffer
 	err = tmpl.Execute(&tmplBuf, params{
-		Token:    token,
-		Image:    machineControllerImage,
-		CaBundle: certParms.caBundle,
-		TlsCrt:   certParms.tlsCrt,
-		TlsKey:   certParms.tlsKey,
+		Token:                  token,
+		APIServerImage:         apiServerImage,
+		ControllerManagerImage: controllerManagerImage,
+		MachineControllerImage: machineControllerImage,
+		CABundle:               certParms.caBundle,
+		TLSCrt:                 certParms.tlsCrt,
+		TLSKey:                 certParms.tlsKey,
 	})
 	if err != nil {
 		return err

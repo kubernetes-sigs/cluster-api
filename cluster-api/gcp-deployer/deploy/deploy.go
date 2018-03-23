@@ -21,6 +21,8 @@ import (
 	"os"
 
 	"github.com/golang/glog"
+
+	"k8s.io/kube-deploy/cluster-api/cloud/google"
 	clusterv1 "k8s.io/kube-deploy/cluster-api/pkg/apis/cluster/v1alpha1"
 	"k8s.io/kube-deploy/cluster-api/pkg/client/clientset_generated/clientset"
 	"k8s.io/kube-deploy/cluster-api/pkg/client/clientset_generated/clientset/typed/cluster/v1alpha1"
@@ -52,13 +54,13 @@ func NewDeployer(provider string, configPath string) *deployer {
 			glog.Exit(fmt.Sprintf("Failed to set Kubeconfig path err %v\n", err))
 		}
 	}
-	md, err := newMachineDeployer(provider, token)
+	ma, err := google.NewMachineActuator(token, nil)
 	if err != nil {
 		glog.Exit(err)
 	}
 	return &deployer{
 		token:           token,
-		machineDeployer: md,
+		machineDeployer: ma,
 		configPath:      configPath,
 	}
 }

@@ -74,4 +74,51 @@ var _ = Describe("Deepone", func() {
 			})
 		})
 	})
+
+	Describe("when listing a resource", func() {
+		Context("using labels", func() {
+			It("should find the matchings objects", func() {
+				instance1 := DeepOne{}
+				instance1.Name = "deepone-1"
+				instance1.Spec.FishRequired = 150
+				instance1.Labels = map[string]string{"foo": "1"}
+
+				expected1 := instance1
+
+				instance2 := DeepOne{}
+				instance2.Name = "deepone-2"
+				instance2.Spec.FishRequired = 140
+				instance2.Labels = map[string]string{"foo": "2"}
+
+				expected2 := instance2
+
+				client = cs.InnsmouthV1().DeepOnes("deepone-test-valid")
+
+				By("returning success from the create request")
+				_, err := client.Create(&instance1)
+				Expect(err).ShouldNot(HaveOccurred())
+
+				By("returning success from the create request")
+				_, err = client.Create(&instance2)
+				Expect(err).ShouldNot(HaveOccurred())
+
+				By("returning the item for list requests")
+				result, err := client.List(metav1.ListOptions{LabelSelector: "foo=1"})
+				Expect(err).ShouldNot(HaveOccurred())
+				Expect(result.Items).To(HaveLen(1))
+				Expect(result.Items[0].Spec).To(Equal(expected1.Spec))
+
+				By("returning the item for list requests")
+				result, err = client.List(metav1.ListOptions{LabelSelector: "foo=2"})
+				Expect(err).ShouldNot(HaveOccurred())
+				Expect(result.Items).To(HaveLen(1))
+				Expect(result.Items[0].Spec).To(Equal(expected2.Spec))
+
+				By("returning the item for list requests")
+				result, err = client.List(metav1.ListOptions{})
+				Expect(err).ShouldNot(HaveOccurred())
+				Expect(result.Items).To(HaveLen(2))
+			})
+		})
+	})
 })

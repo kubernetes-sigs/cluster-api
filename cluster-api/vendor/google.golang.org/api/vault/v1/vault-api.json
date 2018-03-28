@@ -491,6 +491,16 @@
                   "location": "path",
                   "required": true,
                   "type": "string"
+                },
+                "view": {
+                  "description": "Specifies which parts of the Hold to return.",
+                  "enum": [
+                    "HOLD_VIEW_UNSPECIFIED",
+                    "BASIC_HOLD",
+                    "FULL_HOLD"
+                  ],
+                  "location": "query",
+                  "type": "string"
                 }
               },
               "path": "v1/matters/{matterId}/holds/{holdId}",
@@ -525,6 +535,16 @@
                 },
                 "pageToken": {
                   "description": "The pagination token as returned in the response.\nAn empty token means start from the beginning.",
+                  "location": "query",
+                  "type": "string"
+                },
+                "view": {
+                  "description": "Specifies which parts of the Hold to return.",
+                  "enum": [
+                    "HOLD_VIEW_UNSPECIFIED",
+                    "BASIC_HOLD",
+                    "FULL_HOLD"
+                  ],
                   "location": "query",
                   "type": "string"
                 }
@@ -687,7 +707,7 @@
       }
     }
   },
-  "revision": "20180105",
+  "revision": "20180303",
   "rootUrl": "https://vault.googleapis.com/",
   "schemas": {
     "AddMatterPermissionsRequest": {
@@ -738,6 +758,10 @@
           "$ref": "HeldGroupsQuery",
           "description": "Details pertaining to Groups holds. If set, corpus must be Groups."
         },
+        "hangoutsChatQuery": {
+          "$ref": "HeldHangoutsChatQuery",
+          "description": "Details pertaining to Hangouts Chat holds. If set, corpus must be\nHangouts Chat."
+        },
         "mailQuery": {
           "$ref": "HeldMailQuery",
           "description": "Details pertaining to mail holds. If set, corpus must be mail."
@@ -768,7 +792,7 @@
       "type": "object"
     },
     "HeldDriveQuery": {
-      "description": "Query options for drive holds.",
+      "description": "Query options for Drive holds.",
       "id": "HeldDriveQuery",
       "properties": {
         "includeTeamDriveFiles": {
@@ -795,6 +819,17 @@
         "terms": {
           "description": "The search terms for the hold.",
           "type": "string"
+        }
+      },
+      "type": "object"
+    },
+    "HeldHangoutsChatQuery": {
+      "description": "Query options for hangouts chat holds.",
+      "id": "HeldHangoutsChatQuery",
+      "properties": {
+        "includeRooms": {
+          "description": "If true, include rooms the user has participated in.",
+          "type": "boolean"
         }
       },
       "type": "object"
@@ -830,7 +865,7 @@
           "type": "string"
         },
         "orgUnitId": {
-          "description": "The org unit's immutable ID as provided by the admin SDK.",
+          "description": "The org unit's immutable ID as provided by the Admin SDK.",
           "type": "string"
         }
       },
@@ -853,13 +888,15 @@
             "CORPUS_TYPE_UNSPECIFIED",
             "DRIVE",
             "MAIL",
-            "GROUPS"
+            "GROUPS",
+            "HANGOUTS_CHAT"
           ],
           "enumDescriptions": [
             "No corpus specified.",
             "Drive.",
             "Mail.",
-            "Groups."
+            "Groups.",
+            "Hangouts Chat."
           ],
           "type": "string"
         },

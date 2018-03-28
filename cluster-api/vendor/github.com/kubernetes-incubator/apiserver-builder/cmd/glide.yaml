@@ -31,13 +31,13 @@ import:
 - package: github.com/spf13/viper
   version: 7fb2782df3d83e0036cc89f461ed0422628776f4
 - package: k8s.io/apimachinery
-  version: release-1.8
+  version: release-1.9
 - package: k8s.io/apiserver
-  version: release-1.8
+  version: release-1.9
 - package: k8s.io/client-go
-  version: release-5.0
+  version: release-6.0
 - package: k8s.io/api
-  version: release-1.8
+  version: release-1.9
 - package: k8s.io/kube-openapi
 - package: k8s.io/gengo
   version: 9e661e9308f078838e266cca1c673922088c0ea4
@@ -46,5 +46,5 @@ import:
 - package: github.com/onsi/gomega
   version: v1.2.0
 - package: k8s.io/code-generator
-  version: release-1.8 
+  version: release-1.9 
 - package: github.com/kubernetes-incubator/reference-docs/gen-apidocs

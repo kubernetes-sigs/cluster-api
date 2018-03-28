@@ -87,7 +87,7 @@ func NewServerOptions(etcdPath string, out, errOut io.Writer, b []*builders.APIG
 	}
 
 	o := &ServerOptions{
-		RecommendedOptions: genericoptions.NewRecommendedOptions(etcdPath, builders.Scheme, builders.Codecs.LegacyCodec(versions...)),
+		RecommendedOptions: genericoptions.NewRecommendedOptions(etcdPath, builders.Codecs.LegacyCodec(versions...)),
 		APIBuilders:        b,
 		RunDelegatedAuth:   true,
 	}

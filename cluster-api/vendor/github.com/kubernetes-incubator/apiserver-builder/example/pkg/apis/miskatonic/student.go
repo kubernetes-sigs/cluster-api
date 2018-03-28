@@ -34,7 +34,7 @@ type StudentREST struct {
 	Registry StudentRegistry
 }
 
-func (r *StudentREST) Create(ctx request.Context, obj runtime.Object, includeUninitialized bool) (runtime.Object, error) {
+func (r *StudentREST) Create(ctx request.Context, obj runtime.Object, createValidation rest.ValidateObjectFunc, includeUninitialized bool) (runtime.Object, error) {
 	s := obj.(*Student)
 	s.Spec.ID = s.Spec.ID + 1
 	return s, nil
@@ -46,7 +46,7 @@ func (r *StudentREST) Get(ctx request.Context, name string, options *metav1.GetO
 }
 
 // Update alters the status subset of an object.
-func (r *StudentREST) Update(ctx request.Context, name string, objInfo rest.UpdatedObjectInfo) (runtime.Object, bool, error) {
+func (r *StudentREST) Update(ctx request.Context, name string, objInfo rest.UpdatedObjectInfo, createValidation rest.ValidateObjectFunc, updateValidation rest.ValidateObjectUpdateFunc) (runtime.Object, bool, error) {
 	return nil, false, nil
 }
 

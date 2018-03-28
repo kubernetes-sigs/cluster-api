@@ -38,7 +38,6 @@ var test bool
 var version string
 var kubernetesVersion string
 var commit string
-var userLocalVendor bool
 var useBazel bool
 
 var cachevendordir string
@@ -64,7 +63,6 @@ func main() {
 	vendorCmd.Flags().StringVar(&kubernetesVersion, "kubernetesVersion", "1.8.1", "version of kubernetes libs")
 	vendorCmd.Flags().StringVar(&cachevendordir, "vendordir", "",
 		"if specified, use this directory for setting up vendor instead of creating a tmp directory.")
-	vendorCmd.Flags().BoolVar(&userLocalVendor, "use-local-vendor", true, "if true, run use the local vendored code")
 	cmd.AddCommand(vendorCmd)
 
 	installCmd.Flags().StringVar(&version, "version", "", "version name")
@@ -301,7 +299,7 @@ var OwnedBuildPackages = []string{
 
 func BuildVendorTar(dir string) {
 	// create the new file
-	f := filepath.Join(dir, "bin", "glide.tar.gz")
+	f := filepath.Join(dir, "bin", "vendor.tar.gz")
 	fw, err := os.Create(f)
 	if err != nil {
 		log.Fatalf("failed to create vendor tar file %s %v", f, err)
@@ -438,24 +436,7 @@ func RunVendor(cmd *cobra.Command, args []string) {
 	dir = filepath.Join(dir, "release", version)
 	os.MkdirAll(dir, 0700)
 
-	if userLocalVendor {
-		BuildLocalVendor(dir)
-	} else {
-		//Build binaries for the current platform so that we can use them
-		for _, pkg := range VendoredBuildPackages {
-			Build(filepath.Join("vendor", pkg, "main.go"),
-				filepath.Join(dir, "bin", filepath.Base(pkg)),
-				"", "",
-			)
-		}
-		for _, pkg := range OwnedBuildPackages {
-			Build(filepath.Join(pkg, "main.go"),
-				filepath.Join(dir, "bin", filepath.Base(pkg)),
-				"", "",
-			)
-		}
-		BuildVendor(dir)
-	}
+	BuildLocalVendor(dir)
 }
 
 func BuildLocalVendor(tooldir string) {
@@ -477,83 +458,14 @@ func BuildLocalVendor(tooldir string) {
 	RunCmd(c, "")
 
 	c = exec.Command("cp", "-R", "-H",
-		filepath.Join("glide.yaml"),
-		filepath.Join(tooldir, "src", "glide.yaml"))
+		filepath.Join("Gopkg.toml"),
+		filepath.Join(tooldir, "src", "Gopkg.toml"))
 	RunCmd(c, "")
 	c = exec.Command("cp", "-R", "-H",
-		filepath.Join("glide.lock"),
-		filepath.Join(tooldir, "src", "glide.lock"))
+		filepath.Join("Gopkg.lock"),
+		filepath.Join(tooldir, "src", "Gopkg.lock"))
 	RunCmd(c, "")
 
-}
-
-func BuildVendor(tooldir string) string {
-	vendordir := cachevendordir
-	if len(vendordir) == 0 {
-		vendordir = TmpDir()
-		fmt.Printf("to rerun with cached glide use `--vendordir %s`\n", vendordir)
-	}
-
-	if len(vendordir) == 0 && len(commit) == 0 {
-		log.Fatal("must specify the --commit flag")
-	}
-
-	vendordir, err := filepath.EvalSymlinks(vendordir)
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	pkgDir := filepath.Join(vendordir, "src", "github.com", "kubernetes-incubator", "test")
-	bootBin := filepath.Join(tooldir, "bin", "apiserver-boot")
-	err = os.MkdirAll(pkgDir, 0700)
-	if err != nil {
-		log.Fatalf("failed to create directory %s %v", pkgDir, err)
-	}
-
-	ioutil.WriteFile(filepath.Join(pkgDir, "boilerplate.go.txt"), []byte(""), 0555)
-
-	os.RemoveAll(filepath.Join(pkgDir, "pkg"))
-	os.RemoveAll(filepath.Join(pkgDir, "docs"))
-	os.RemoveAll(filepath.Join(pkgDir, "main.go"))
-
-	cmd := exec.Command(bootBin, "init", "repo", "--domain", "k8s.io", "--install-deps=false")
-	cmd.Dir = pkgDir
-	RunCmd(cmd, vendordir)
-
-	cmd = exec.Command(bootBin, "create", "group", "version", "resource", "--group", "misk", "--version", "v1beta1", "--kind", "Student")
-	cmd.Dir = pkgDir
-	RunCmd(cmd, vendordir)
-
-	cmd = exec.Command(bootBin, "init", "glide", "--fetch", "--commit", commit)
-	cmd.Dir = pkgDir
-	RunCmd(cmd, vendordir)
-
-	// Copy the vendored libraries.  This will make it easier to debug if there is a test failure.
-	os.MkdirAll(filepath.Join(tooldir, "src"), 0700)
-	c := exec.Command("cp", "-R", "-H",
-		filepath.Join(pkgDir, "vendor"),
-		filepath.Join(tooldir, "src", "vendor"))
-	RunCmd(c, "")
-	c = exec.Command("cp", "-R", "-H",
-		filepath.Join(pkgDir, "glide.yaml"),
-		filepath.Join(tooldir, "src", "glide.yaml"))
-	RunCmd(c, "")
-	c = exec.Command("cp", "-R", "-H",
-		filepath.Join(pkgDir, "glide.lock"),
-		filepath.Join(tooldir, "src", "glide.lock"))
-	RunCmd(c, "")
-
-	if test {
-		cmd = exec.Command(bootBin, "build", "executables")
-		cmd.Dir = pkgDir
-		RunCmd(cmd, vendordir)
-
-		cmd = exec.Command("go", "test", "./"+filepath.Join("pkg", "..."))
-		cmd.Dir = pkgDir
-		RunCmd(cmd, vendordir)
-	}
-
-	return pkgDir
 }
 
 var installCmd = &cobra.Command{

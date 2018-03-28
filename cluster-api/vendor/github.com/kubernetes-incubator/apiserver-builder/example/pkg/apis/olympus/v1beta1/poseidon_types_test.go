@@ -74,4 +74,49 @@ var _ = Describe("Poseidon", func() {
 			})
 		})
 	})
+
+	Describe("when listing a resource", func() {
+		Context("using labels", func() {
+			It("shouldn't find the matchings objects because the functions are overriden", func() {
+				client = cs.OlympusV1beta1().Poseidons("poseidon-test-valid")
+
+				instance1 := Poseidon{}
+				instance1.Name = "instance-1"
+				instance1.Spec.Deployment.Name = "i1"
+				instance1.Labels = map[string]string{"foo": "1"}
+				expected1 := instance1
+
+				instance2 := Poseidon{}
+				instance2.Name = "instance-2"
+				instance2.Spec.Deployment.Name = "i2"
+				instance2.Labels = map[string]string{"foo": "2"}
+				expected2 := instance2
+
+				By("returning success from the create request")
+				_, err := client.Create(&instance1)
+				Expect(err).ShouldNot(HaveOccurred())
+
+				By("returning success from the create request")
+				_, err = client.Create(&instance2)
+				Expect(err).ShouldNot(HaveOccurred())
+
+				By("returning the item for list requests")
+				result, err := client.List(metav1.ListOptions{FieldSelector: "spec.deployment.name=i1"})
+				Expect(err).ShouldNot(HaveOccurred())
+				Expect(result.Items).To(HaveLen(1))
+				Expect(result.Items[0].Name).To(Equal(expected1.Name))
+
+				By("returning the item for list requests")
+				result, err = client.List(metav1.ListOptions{FieldSelector: "spec.deployment.name=i2"})
+				Expect(err).ShouldNot(HaveOccurred())
+				Expect(result.Items).To(HaveLen(1))
+				Expect(result.Items[0].Name).To(Equal(expected2.Name))
+
+				By("returning the item for list requests")
+				result, err = client.List(metav1.ListOptions{})
+				Expect(err).ShouldNot(HaveOccurred())
+				Expect(result.Items).To(HaveLen(2))
+			})
+		})
+	})
 })

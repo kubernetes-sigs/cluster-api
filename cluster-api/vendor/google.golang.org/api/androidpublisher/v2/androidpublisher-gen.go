@@ -1481,7 +1481,7 @@ type ProductPurchase struct {
 	// PurchaseState: The purchase state of the order. Possible values are:
 	//
 	// - Purchased
-	// - Cancelled
+	// - Canceled
 	PurchaseState int64 `json:"purchaseState,omitempty"`
 
 	// PurchaseTimeMillis: The time the product was purchased, in
@@ -1492,6 +1492,7 @@ type ProductPurchase struct {
 	// is only set if this purchase was not made using the standard in-app
 	// billing flow. Possible values are:
 	// - Test (i.e. purchased from a license testing account)
+	// - Promo (i.e. purchased using a promo code)
 	PurchaseType int64 `json:"purchaseType,omitempty"`
 
 	// ServerResponse contains the HTTP response code and headers from the
@@ -1797,13 +1798,13 @@ type SubscriptionPurchase struct {
 	// when it reaches its current expiry time.
 	AutoRenewing bool `json:"autoRenewing,omitempty"`
 
-	// CancelReason: The reason why a subscription was cancelled or is not
+	// CancelReason: The reason why a subscription was canceled or is not
 	// auto-renewing. Possible values are:
-	// - User cancelled the subscription
-	// - Subscription was cancelled by the system, for example because of a
+	// - User canceled the subscription
+	// - Subscription was canceled by the system, for example because of a
 	// billing problem
 	// - Subscription was replaced with a new subscription
-	// - Subscription was cancelled by the developer
+	// - Subscription was canceled by the developer
 	CancelReason *int64 `json:"cancelReason,omitempty"`
 
 	// CountryCode: ISO 3166-1 alpha-2 billing country/region code of the
@@ -1814,9 +1815,24 @@ type SubscriptionPurchase struct {
 	// supplemental information about an order.
 	DeveloperPayload string `json:"developerPayload,omitempty"`
 
+	// EmailAddress: The email address of the user when the subscription was
+	// purchased. Only present for purchases made with 'Subscribe with
+	// Google'.
+	EmailAddress string `json:"emailAddress,omitempty"`
+
 	// ExpiryTimeMillis: Time at which the subscription will expire, in
 	// milliseconds since the Epoch.
 	ExpiryTimeMillis int64 `json:"expiryTimeMillis,omitempty,string"`
+
+	// FamilyName: The family name of the user when the subscription was
+	// purchased. Only present for purchases made with 'Subscribe with
+	// Google'.
+	FamilyName string `json:"familyName,omitempty"`
+
+	// GivenName: The given name of the user when the subscription was
+	// purchased. Only present for purchases made with 'Subscribe with
+	// Google'.
+	GivenName string `json:"givenName,omitempty"`
 
 	// Kind: This kind represents a subscriptionPurchase object in the
 	// androidpublisher service.
@@ -1857,6 +1873,16 @@ type SubscriptionPurchase struct {
 	// For example, if the price is specified in British pounds sterling,
 	// price_currency_code is "GBP".
 	PriceCurrencyCode string `json:"priceCurrencyCode,omitempty"`
+
+	// ProfileId: The profile id of the user when the subscription was
+	// purchased. Only present for purchases made with 'Subscribe with
+	// Google'.
+	ProfileId string `json:"profileId,omitempty"`
+
+	// ProfileName: The profile name of the user when the subscription was
+	// purchased. Only present for purchases made with 'Subscribe with
+	// Google'.
+	ProfileName string `json:"profileName,omitempty"`
 
 	// PurchaseType: The type of purchase of the subscription. This field is
 	// only set if this purchase was not made using the standard in-app
@@ -2051,7 +2077,7 @@ func (s *TokenPagination) MarshalJSON() ([]byte, error) {
 
 type Track struct {
 	// Track: Identifier for this track. One of "alpha", "beta",
-	// "production" or "rollout".
+	// "production", "rollout" or "internal".
 	Track string `json:"track,omitempty"`
 
 	UserFraction float64 `json:"userFraction,omitempty"`
@@ -2209,7 +2235,7 @@ func (s *UserComment) MarshalJSON() ([]byte, error) {
 }
 
 // VoidedPurchase: A VoidedPurchase resource indicates a purchase that
-// was either cancelled/refunded/charged-back.
+// was either canceled/refunded/charged-back.
 type VoidedPurchase struct {
 	// Kind: This kind represents a voided purchase object in the
 	// androidpublisher service.
@@ -2224,7 +2250,7 @@ type VoidedPurchase struct {
 	PurchaseToken string `json:"purchaseToken,omitempty"`
 
 	// VoidedTimeMillis: The time at which the purchase was
-	// cancelled/refunded/charged-back, in milliseconds since the epoch (Jan
+	// canceled/refunded/charged-back, in milliseconds since the epoch (Jan
 	// 1, 1970).
 	VoidedTimeMillis int64 `json:"voidedTimeMillis,omitempty,string"`
 
@@ -7555,9 +7581,9 @@ func (c *EditsTestersGetCall) Do(opts ...googleapi.CallOption) (*Testers, error)
 	//       "type": "string"
 	//     },
 	//     "track": {
-	//       "description": "The track to read or modify. Acceptable values are: \"alpha\", \"beta\", \"production\" or \"rollout\".",
+	//       "description": "The track to read or modify. Acceptable values are: \"alpha\", \"beta\", \"production\", \"rollout\" or \"internal\".",
 	//       "location": "path",
-	//       "pattern": "(alpha|beta|production|rollout)",
+	//       "pattern": "(alpha|beta|production|rollout|internal)",
 	//       "required": true,
 	//       "type": "string"
 	//     }
@@ -7705,9 +7731,9 @@ func (c *EditsTestersPatchCall) Do(opts ...googleapi.CallOption) (*Testers, erro
 	//       "type": "string"
 	//     },
 	//     "track": {
-	//       "description": "The track to read or modify. Acceptable values are: \"alpha\", \"beta\", \"production\" or \"rollout\".",
+	//       "description": "The track to read or modify. Acceptable values are: \"alpha\", \"beta\", \"production\", \"rollout\" or \"internal\".",
 	//       "location": "path",
-	//       "pattern": "(alpha|beta|production|rollout)",
+	//       "pattern": "(alpha|beta|production|rollout|internal)",
 	//       "required": true,
 	//       "type": "string"
 	//     }
@@ -7858,9 +7884,9 @@ func (c *EditsTestersUpdateCall) Do(opts ...googleapi.CallOption) (*Testers, err
 	//       "type": "string"
 	//     },
 	//     "track": {
-	//       "description": "The track to read or modify. Acceptable values are: \"alpha\", \"beta\", \"production\" or \"rollout\".",
+	//       "description": "The track to read or modify. Acceptable values are: \"alpha\", \"beta\", \"production\", \"rollout\" or \"internal\".",
 	//       "location": "path",
-	//       "pattern": "(alpha|beta|production|rollout)",
+	//       "pattern": "(alpha|beta|production|rollout|internal)",
 	//       "required": true,
 	//       "type": "string"
 	//     }
@@ -8020,9 +8046,9 @@ func (c *EditsTracksGetCall) Do(opts ...googleapi.CallOption) (*Track, error) {
 	//       "type": "string"
 	//     },
 	//     "track": {
-	//       "description": "The track to read or modify. Acceptable values are: \"alpha\", \"beta\", \"production\" or \"rollout\".",
+	//       "description": "The track to read or modify. Acceptable values are: \"alpha\", \"beta\", \"production\", \"rollout\" or \"internal\".",
 	//       "location": "path",
-	//       "pattern": "(alpha|beta|production|rollout)",
+	//       "pattern": "(alpha|beta|production|rollout|internal)",
 	//       "required": true,
 	//       "type": "string"
 	//     }
@@ -8321,9 +8347,9 @@ func (c *EditsTracksPatchCall) Do(opts ...googleapi.CallOption) (*Track, error) 
 	//       "type": "string"
 	//     },
 	//     "track": {
-	//       "description": "The track to read or modify. Acceptable values are: \"alpha\", \"beta\", \"production\" or \"rollout\".",
+	//       "description": "The track to read or modify. Acceptable values are: \"alpha\", \"beta\", \"production\", \"rollout\" or \"internal\".",
 	//       "location": "path",
-	//       "pattern": "(alpha|beta|production|rollout)",
+	//       "pattern": "(alpha|beta|production|rollout|internal)",
 	//       "required": true,
 	//       "type": "string"
 	//     }
@@ -8477,9 +8503,9 @@ func (c *EditsTracksUpdateCall) Do(opts ...googleapi.CallOption) (*Track, error)
 	//       "type": "string"
 	//     },
 	//     "track": {
-	//       "description": "The track to read or modify. Acceptable values are: \"alpha\", \"beta\", \"production\" or \"rollout\".",
+	//       "description": "The track to read or modify. Acceptable values are: \"alpha\", \"beta\", \"production\", \"rollout\" or \"internal\".",
 	//       "location": "path",
-	//       "pattern": "(alpha|beta|production|rollout)",
+	//       "pattern": "(alpha|beta|production|rollout|internal)",
 	//       "required": true,
 	//       "type": "string"
 	//     }
@@ -10395,7 +10421,7 @@ type PurchasesVoidedpurchasesListCall struct {
 	header_      http.Header
 }
 
-// List: Lists the purchases that were cancelled, refunded or
+// List: Lists the purchases that were canceled, refunded or
 // charged-back.
 func (r *PurchasesVoidedpurchasesService) List(packageName string) *PurchasesVoidedpurchasesListCall {
 	c := &PurchasesVoidedpurchasesListCall{s: r.s, urlParams_: make(gensupport.URLParams)}
@@ -10541,7 +10567,7 @@ func (c *PurchasesVoidedpurchasesListCall) Do(opts ...googleapi.CallOption) (*Vo
 	}
 	return ret, nil
 	// {
-	//   "description": "Lists the purchases that were cancelled, refunded or charged-back.",
+	//   "description": "Lists the purchases that were canceled, refunded or charged-back.",
 	//   "httpMethod": "GET",
 	//   "id": "androidpublisher.purchases.voidedpurchases.list",
 	//   "parameterOrder": [

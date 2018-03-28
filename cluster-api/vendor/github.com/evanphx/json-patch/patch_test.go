@@ -315,6 +315,24 @@ var TestCases = []TestCase{
 		"",
 	},
 	{
+		`{ "foo": null }`,
+		`[ { "op": "test", "path": "/foo", "value": null } ]`,
+		true,
+		"",
+	},
+	{
+		`{ "foo": {} }`,
+		`[ { "op": "test", "path": "/foo", "value": null } ]`,
+		false,
+		"/foo",
+	},
+	{
+		`{ "foo": [] }`,
+		`[ { "op": "test", "path": "/foo", "value": null } ]`,
+		false,
+		"/foo",
+	},
+	{
 		`{ "baz/foo": "qux" }`,
 		`[ { "op": "test", "path": "/baz~1foo", "value": "qux"} ]`,
 		true,

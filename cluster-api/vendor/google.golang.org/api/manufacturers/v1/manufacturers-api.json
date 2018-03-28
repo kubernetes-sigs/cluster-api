@@ -9,7 +9,7 @@
     }
   },
   "basePath": "",
-  "baseUrl": "https://manufacturers.googleapis.com/",
+  "baseUrl": "https://content-manufacturers.googleapis.com/",
   "batchPath": "batch",
   "canonicalName": "Manufacturer Center",
   "description": "Public API for managing Manufacturer Center related data.",
@@ -221,7 +221,7 @@
               ]
             },
             "update": {
-              "description": "Inserts or updates the product in a Manufacturer Center account.\n\nThe checks at upload time are minimal. All required attributes need to be\npresent for a product to be valid. Issues may show up later\nafter the API has accepted an update for a product and it is possible to\noverwrite an existing valid product with an invalid product. To detect\nthis, you should retrieve the product and check it for issues once the\nupdated version is available.\n\nInserted or updated products first need to be processed before they can be\nretrieved. Until then, new products will be unavailable, and retrieval\nof updated products will return the original state of the product.",
+              "description": "Inserts or updates the attributes of the product in a Manufacturer Center\naccount.\n\nCreates a product with the provided attributes. If the product already\nexists, then all attributes are replaced with the new ones. The checks at\nupload time are minimal. All required attributes need to be present for a\nproduct to be valid. Issues may show up later after the API has accepted a\nnew upload for a product and it is possible to overwrite an existing valid\nproduct with an invalid product. To detect this, you should retrieve the\nproduct and check it for issues once the new version is available.\n\nUploaded attributes first need to be processed before they can be\nretrieved. Until then, new products will be unavailable, and retrieval\nof previously uploaded products will return the original state of the\nproduct.",
               "flatPath": "v1/accounts/{accountsId}/products/{productsId}",
               "httpMethod": "PUT",
               "id": "manufacturers.accounts.products.update",
@@ -247,10 +247,10 @@
               },
               "path": "v1/{+parent}/products/{+name}",
               "request": {
-                "$ref": "Product"
+                "$ref": "Attributes"
               },
               "response": {
-                "$ref": "Product"
+                "$ref": "Empty"
               },
               "scopes": [
                 "https://www.googleapis.com/auth/manufacturercenter"
@@ -261,8 +261,8 @@
       }
     }
   },
-  "revision": "20180207",
-  "rootUrl": "https://manufacturers.googleapis.com/",
+  "revision": "20180316",
+  "rootUrl": "https://content-manufacturers.googleapis.com/",
   "schemas": {
     "Attributes": {
       "description": "Attributes of the product. For more information, see\nhttps://support.google.com/manufacturers/answer/6124116.",

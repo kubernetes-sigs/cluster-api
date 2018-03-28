@@ -40,5 +40,5 @@ func AddUpdateVendorCmd(cmd *cobra.Command) {
 func RunUpdateVendor(cmd *cobra.Command, args []string) {
 	init_repo.Update = true
 	log.Printf("Replacing vendored libraries managed by apiserver-builder with the current version.")
-	init_repo.CopyGlide()
+	init_repo.RunVendorInstall(cmd, args)
 }

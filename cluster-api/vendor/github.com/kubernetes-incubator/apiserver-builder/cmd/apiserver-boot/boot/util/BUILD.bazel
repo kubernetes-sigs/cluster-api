@@ -5,5 +5,5 @@ go_library(
     srcs = ["util.go"],
     importpath = "github.com/kubernetes-incubator/apiserver-builder/cmd/apiserver-boot/boot/util",
     visibility = ["//visibility:public"],
-    deps = ["//cmd/vendor/github.com/markbates/inflect:go_default_library"],
+    deps = ["//vendor/github.com/markbates/inflect:go_default_library"],
 )

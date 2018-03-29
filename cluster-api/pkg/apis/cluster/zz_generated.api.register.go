@@ -102,11 +102,99 @@ func Resource(resource string) schema.GroupResource {
 // +genclient
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
 
+type Cluster struct {
+	metav1.TypeMeta
+	metav1.ObjectMeta
+	Spec   ClusterSpec
+	Status ClusterStatus
+}
+
+// +genclient
+// +genclient
+// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
+
 type MachineSet struct {
 	metav1.TypeMeta
 	metav1.ObjectMeta
 	Spec   MachineSetSpec
 	Status MachineSetStatus
+}
+
+type ClusterStatus struct {
+	APIEndpoints   []APIEndpoint
+	ErrorReason    clustercommon.ClusterStatusError
+	ErrorMessage   string
+	ProviderStatus string
+}
+
+type MachineSetStatus struct {
+	Replicas             int32
+	FullyLabeledReplicas int32
+	ReadyReplicas        int32
+	AvailableReplicas    int32
+	ObservedGeneration   int64
+	ErrorReason          *clustercommon.MachineSetStatusError
+	ErrorMessage         *string
+}
+
+type APIEndpoint struct {
+	Host string
+	Port int
+}
+
+type MachineSetSpec struct {
+	Replicas        *int32
+	MinReadySeconds int32
+	Selector        metav1.LabelSelector
+	Template        MachineTemplateSpec
+}
+
+type ClusterSpec struct {
+	ClusterNetwork ClusterNetworkingConfig
+	ProviderConfig string
+}
+
+type MachineTemplateSpec struct {
+	metav1.ObjectMeta
+	Spec MachineSpec
+}
+
+type ClusterNetworkingConfig struct {
+	Services      NetworkRanges
+	Pods          NetworkRanges
+	ServiceDomain string
+}
+
+type MachineSpec struct {
+	metav1.ObjectMeta
+	Taints         []corev1.Taint
+	ProviderConfig ProviderConfig
+	Roles          []clustercommon.MachineRole
+	Versions       MachineVersionInfo
+	ConfigSource   *corev1.NodeConfigSource
+}
+
+type NetworkRanges struct {
+	CIDRBlocks []string
+}
+
+type MachineVersionInfo struct {
+	Kubelet          string
+	ControlPlane     string
+	ContainerRuntime ContainerRuntimeInfo
+}
+
+type ProviderConfig struct {
+	Value     *pkgruntime.RawExtension
+	ValueFrom *ProviderConfigSource
+}
+
+type ContainerRuntimeInfo struct {
+	Name    string
+	Version string
+}
+
+type ProviderConfigSource struct {
 }
 
 // +genclient
@@ -120,100 +208,12 @@ type Machine struct {
 	Status MachineStatus
 }
 
-type MachineSetStatus struct {
-	Replicas             int32
-	FullyLabeledReplicas int32
-	ReadyReplicas        int32
-	AvailableReplicas    int32
-	ObservedGeneration   int64
-	ErrorReason          *clustercommon.MachineSetStatusError
-	ErrorMessage         *string
-}
-
 type MachineStatus struct {
 	NodeRef      *corev1.ObjectReference
 	LastUpdated  metav1.Time
 	Versions     *MachineVersionInfo
 	ErrorReason  *clustercommon.MachineStatusError
 	ErrorMessage *string
-}
-
-type MachineSpec struct {
-	metav1.ObjectMeta
-	Taints         []corev1.Taint
-	ProviderConfig ProviderConfig
-	Roles          []clustercommon.MachineRole
-	Versions       MachineVersionInfo
-	ConfigSource   *corev1.NodeConfigSource
-}
-
-type MachineVersionInfo struct {
-	Kubelet          string
-	ControlPlane     string
-	ContainerRuntime ContainerRuntimeInfo
-}
-
-type ContainerRuntimeInfo struct {
-	Name    string
-	Version string
-}
-
-type ProviderConfig struct {
-	Value     *pkgruntime.RawExtension
-	ValueFrom *ProviderConfigSource
-}
-
-type MachineSetSpec struct {
-	Replicas        *int32
-	MinReadySeconds int32
-	Selector        metav1.LabelSelector
-	Template        MachineTemplateSpec
-}
-
-type ProviderConfigSource struct {
-}
-
-type MachineTemplateSpec struct {
-	metav1.ObjectMeta
-	Spec MachineSpec
-}
-
-// +genclient
-// +genclient
-// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
-
-type Cluster struct {
-	metav1.TypeMeta
-	metav1.ObjectMeta
-	Spec   ClusterSpec
-	Status ClusterStatus
-}
-
-type ClusterStatus struct {
-	APIEndpoints   []APIEndpoint
-	ErrorReason    clustercommon.ClusterStatusError
-	ErrorMessage   string
-	ProviderStatus string
-}
-
-type ClusterSpec struct {
-	ClusterNetwork ClusterNetworkingConfig
-	ProviderConfig string
-}
-
-type APIEndpoint struct {
-	Host string
-	Port int
-}
-
-type ClusterNetworkingConfig struct {
-	Services      NetworkRanges
-	Pods          NetworkRanges
-	ServiceDomain string
-}
-
-type NetworkRanges struct {
-	CIDRBlocks []string
 }
 
 //

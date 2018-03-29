@@ -144,12 +144,12 @@ type {{.Kind}}SchemeFns struct {
 }
 
 // +k8s:deepcopy-gen=false
-type {{.Kind}}Strategy struct {
+type {{.Strategy}} struct {
 	builders.DefaultStorageStrategy
 }
 
 // +k8s:deepcopy-gen=false
-type {{$api.Kind}}StatusStrategy struct {
+type {{.StatusStrategy}} struct {
 	builders.DefaultStatusStorageStrategy
 }
 

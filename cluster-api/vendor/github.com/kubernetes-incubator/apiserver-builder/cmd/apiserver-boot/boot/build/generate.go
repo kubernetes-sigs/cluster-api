@@ -38,6 +38,7 @@ var codegenerators []string
 var copyright string
 var generators = sets.String{}
 var vendorDir string
+var GenUnversionedClient bool
 
 var generateCmd = &cobra.Command{
 	Use:   "generated",
@@ -59,6 +60,7 @@ func AddGenerate(cmd *cobra.Command) {
 	generateCmd.Flags().StringVar(&vendorDir, "vendor-dir", "", "Location of directory containing vendor files.")
 	generateCmd.Flags().StringArrayVar(&versionedAPIs, "api-versions", []string{}, "API version to generate code for.  Can be specified multiple times.  e.g. --api-versions foo/v1beta1 --api-versions bar/v1  defaults to all versions found under directories pkg/apis/<group>/<version>")
 	generateCmd.Flags().StringArrayVar(&codegenerators, "generator", []string{}, "list of generators to run.  e.g. --generator apiregister --generator conversion Valid values: [apiregister,conversion,client,deepcopy,defaulter,openapi]")
+	generateCmd.Flags().BoolVar(&GenUnversionedClient, "gen-unversioned-client", true, "If true, generate unversioned clients.")
 	generateCmd.AddCommand(generateCleanCmd)
 }
 
@@ -227,22 +229,26 @@ func RunGenerate(cmd *cobra.Command, args []string) {
 			log.Fatalf("failed to run client-gen %s %v", out, err)
 		}
 
-		c = exec.Command(filepath.Join(root, "client-gen"),
-			"-o", util.GoSrc,
-			"--go-header-file", copyright,
-			"--input-base", filepath.Join(util.Repo, "pkg", "apis"),
-			"--input", strings.Join(unversionedAPIs, ","),
-			"--clientset-path", clientset,
-			"--clientset-name", "internalclientset")
-		fmt.Printf("%s\n", strings.Join(c.Args, " "))
-		out, err = c.CombinedOutput()
-		if err != nil {
-			log.Fatalf("failed to run client-gen for unversioned APIs %s %v", out, err)
+		toGen := versioned
+		if GenUnversionedClient {
+			toGen = all
+			c = exec.Command(filepath.Join(root, "client-gen"),
+				"-o", util.GoSrc,
+				"--go-header-file", copyright,
+				"--input-base", filepath.Join(util.Repo, "pkg", "apis"),
+				"--input", strings.Join(unversionedAPIs, ","),
+				"--clientset-path", clientset,
+				"--clientset-name", "internalclientset")
+			fmt.Printf("%s\n", strings.Join(c.Args, " "))
+			out, err = c.CombinedOutput()
+			if err != nil {
+				log.Fatalf("failed to run client-gen for unversioned APIs %s %v", out, err)
+			}
 		}
 
 		listerPkg := filepath.Join(clientPkg, "listers_generated")
 		c = exec.Command(filepath.Join(root, "lister-gen"),
-			append(all,
+			append(toGen,
 				"-o", util.GoSrc,
 				"--go-header-file", copyright,
 				"--output-package", listerPkg)...,
@@ -255,7 +261,7 @@ func RunGenerate(cmd *cobra.Command, args []string) {
 
 		informerPkg := filepath.Join(clientPkg, "informers_generated")
 		c = exec.Command(filepath.Join(root, "informer-gen"),
-			append(all,
+			append(toGen,
 				"-o", util.GoSrc,
 				"--go-header-file", copyright,
 				"--output-package", informerPkg,

@@ -59,4 +59,4 @@ required = [
 
 [[constraint]]
   name = "github.com/kubernetes-incubator/apiserver-builder"
-  version = "v1.9-alpha.2"
+  version = "v1.9-alpha.3"

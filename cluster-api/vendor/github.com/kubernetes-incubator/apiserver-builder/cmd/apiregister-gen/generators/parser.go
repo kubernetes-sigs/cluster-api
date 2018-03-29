@@ -301,9 +301,9 @@ func (b *APIsBuilder) ParseIndex() {
 
 		r.Strategy = rt.Strategy
 
-		// If not defined, default the strategy to the group strategy for backwards compatibility
+		// If not defined, default the strategy to the {{.Kind}}Strategy for backwards compatibility
 		if len(r.Strategy) == 0 {
-			r.Strategy = fmt.Sprintf("%s.%sStrategy", r.Group, r.Kind)
+			r.Strategy = fmt.Sprintf("%sStrategy", r.Kind)
 		}
 
 		// Copy the Status strategy to mirror the non-status strategy

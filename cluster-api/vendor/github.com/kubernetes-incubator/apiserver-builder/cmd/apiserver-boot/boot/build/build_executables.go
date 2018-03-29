@@ -53,7 +53,7 @@ apiserver-boot build executables --bazel --gazelle
 apiserver-boot build executables --bazel
 
 # Run Bazel without generating BUILD files or generated code
-apiserver-boot build executables --bazel --generated=false
+apiserver-boot build executables --bazel --generate=false
 `,
 	Run: RunBuildExecutables,
 }
@@ -61,6 +61,7 @@ apiserver-boot build executables --bazel --generated=false
 func AddBuildExecutables(cmd *cobra.Command) {
 	cmd.AddCommand(createBuildExecutablesCmd)
 
+	createBuildExecutablesCmd.Flags().BoolVar(&GenUnversionedClient, "gen-unversioned-client", true, "If true, generate unversioned clients.")
 	createBuildExecutablesCmd.Flags().StringVar(&vendorDir, "vendor-dir", "", "Location of directory containing vendor files.")
 	createBuildExecutablesCmd.Flags().BoolVar(&GenerateForBuild, "generate", true, "if true, generate code before building")
 	createBuildExecutablesCmd.Flags().StringVar(&goos, "goos", "", "if specified, set this GOOS")

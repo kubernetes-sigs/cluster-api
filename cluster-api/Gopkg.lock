@@ -307,8 +307,8 @@
     "pkg/test",
     "pkg/validators"
   ]
-  revision = "ae3be829659d94ef0f52b7bdda3c69d1321de64a"
-  version = "v1.9-alpha.2"
+  revision = "e809ac2f9f0c238f08d08a876f8b3f499604f941"
+  version = "v1.9-alpha.3"
 
 [[projects]]
   branch = "master"
@@ -921,6 +921,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "ebdc2a2b10d3fb243c5239aefab39dd1e8ef928d153b1459899315ec7ac8de90"
+  inputs-digest = "d0debf76403522fddedb0d725a3dc46846e0cbb86dd2f0225ed9740d22b49383"
   solver-name = "gps-cdcl"
   solver-version = 1

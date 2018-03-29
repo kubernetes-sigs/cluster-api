@@ -23730,6 +23730,278 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 			Dependencies: []string{
 				"k8s.io/apimachinery/pkg/apis/meta/v1.ObjectMeta", "k8s.io/kube-deploy/cluster-api/pkg/apis/cluster/v1alpha1.MachineSpec", "k8s.io/kube-deploy/cluster-api/pkg/apis/cluster/v1alpha1.MachineStatus"},
 		},
+		"k8s.io/kube-deploy/cluster-api/pkg/apis/cluster/v1alpha1.MachineDeployment": {
+			Schema: spec.Schema{
+				SchemaProps: spec.SchemaProps{
+					Description: "MachineDeployment",
+					Properties: map[string]spec.Schema{
+						"kind": {
+							SchemaProps: spec.SchemaProps{
+								Description: "Kind is a string value representing the REST resource this object represents. Servers may infer this from the endpoint the client submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/api-conventions.md#types-kinds",
+								Type:        []string{"string"},
+								Format:      "",
+							},
+						},
+						"apiVersion": {
+							SchemaProps: spec.SchemaProps{
+								Description: "APIVersion defines the versioned schema of this representation of an object. Servers should convert recognized schemas to the latest internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/api-conventions.md#resources",
+								Type:        []string{"string"},
+								Format:      "",
+							},
+						},
+						"metadata": {
+							SchemaProps: spec.SchemaProps{
+								Ref: ref("k8s.io/apimachinery/pkg/apis/meta/v1.ObjectMeta"),
+							},
+						},
+						"spec": {
+							SchemaProps: spec.SchemaProps{
+								Ref: ref("k8s.io/kube-deploy/cluster-api/pkg/apis/cluster/v1alpha1.MachineDeploymentSpec"),
+							},
+						},
+						"status": {
+							SchemaProps: spec.SchemaProps{
+								Ref: ref("k8s.io/kube-deploy/cluster-api/pkg/apis/cluster/v1alpha1.MachineDeploymentStatus"),
+							},
+						},
+					},
+				},
+			},
+			Dependencies: []string{
+				"k8s.io/apimachinery/pkg/apis/meta/v1.ObjectMeta", "k8s.io/kube-deploy/cluster-api/pkg/apis/cluster/v1alpha1.MachineDeploymentSpec", "k8s.io/kube-deploy/cluster-api/pkg/apis/cluster/v1alpha1.MachineDeploymentStatus"},
+		},
+		"k8s.io/kube-deploy/cluster-api/pkg/apis/cluster/v1alpha1.MachineDeploymentList": {
+			Schema: spec.Schema{
+				SchemaProps: spec.SchemaProps{
+					Properties: map[string]spec.Schema{
+						"kind": {
+							SchemaProps: spec.SchemaProps{
+								Description: "Kind is a string value representing the REST resource this object represents. Servers may infer this from the endpoint the client submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/api-conventions.md#types-kinds",
+								Type:        []string{"string"},
+								Format:      "",
+							},
+						},
+						"apiVersion": {
+							SchemaProps: spec.SchemaProps{
+								Description: "APIVersion defines the versioned schema of this representation of an object. Servers should convert recognized schemas to the latest internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/api-conventions.md#resources",
+								Type:        []string{"string"},
+								Format:      "",
+							},
+						},
+						"metadata": {
+							SchemaProps: spec.SchemaProps{
+								Ref: ref("k8s.io/apimachinery/pkg/apis/meta/v1.ListMeta"),
+							},
+						},
+						"items": {
+							SchemaProps: spec.SchemaProps{
+								Type: []string{"array"},
+								Items: &spec.SchemaOrArray{
+									Schema: &spec.Schema{
+										SchemaProps: spec.SchemaProps{
+											Ref: ref("k8s.io/kube-deploy/cluster-api/pkg/apis/cluster/v1alpha1.MachineDeployment"),
+										},
+									},
+								},
+							},
+						},
+					},
+					Required: []string{"items"},
+				},
+			},
+			Dependencies: []string{
+				"k8s.io/apimachinery/pkg/apis/meta/v1.ListMeta", "k8s.io/kube-deploy/cluster-api/pkg/apis/cluster/v1alpha1.MachineDeployment"},
+		},
+		"k8s.io/kube-deploy/cluster-api/pkg/apis/cluster/v1alpha1.MachineDeploymentSchemeFns": {
+			Schema: spec.Schema{
+				SchemaProps: spec.SchemaProps{
+					Description: "MachineDeployment Functions and Structs",
+					Properties: map[string]spec.Schema{
+						"DefaultSchemeFns": {
+							SchemaProps: spec.SchemaProps{
+								Ref: ref("github.com/kubernetes-incubator/apiserver-builder/pkg/builders.DefaultSchemeFns"),
+							},
+						},
+					},
+					Required: []string{"DefaultSchemeFns"},
+				},
+			},
+			Dependencies: []string{
+				"github.com/kubernetes-incubator/apiserver-builder/pkg/builders.DefaultSchemeFns"},
+		},
+		"k8s.io/kube-deploy/cluster-api/pkg/apis/cluster/v1alpha1.MachineDeploymentSpec": {
+			Schema: spec.Schema{
+				SchemaProps: spec.SchemaProps{
+					Description: "MachineDeploymentSpec defines the desired state of MachineDeployment",
+					Properties: map[string]spec.Schema{
+						"replicas": {
+							SchemaProps: spec.SchemaProps{
+								Description: "Number of desired machines. Defaults to 1. This is a pointer to distinguish between explicit zero and not specified.",
+								Type:        []string{"integer"},
+								Format:      "int32",
+							},
+						},
+						"selector": {
+							SchemaProps: spec.SchemaProps{
+								Description: "Label selector for machines. Existing MachineSets whose machines are selected by this will be the ones affected by this deployment. It must match the machine template's labels.",
+								Ref:         ref("k8s.io/apimachinery/pkg/apis/meta/v1.LabelSelector"),
+							},
+						},
+						"template": {
+							SchemaProps: spec.SchemaProps{
+								Description: "Template describes the machines that will be created.",
+								Ref:         ref("k8s.io/kube-deploy/cluster-api/pkg/apis/cluster/v1alpha1.MachineTemplateSpec"),
+							},
+						},
+						"strategy": {
+							SchemaProps: spec.SchemaProps{
+								Description: "The deployment strategy to use to replace existing machines with new ones.",
+								Ref:         ref("k8s.io/kube-deploy/cluster-api/pkg/apis/cluster/v1alpha1.MachineDeploymentStrategy"),
+							},
+						},
+						"minReadySeconds": {
+							SchemaProps: spec.SchemaProps{
+								Description: "Minimum number of seconds for which a newly created machine should be ready. Defaults to 0 (machine will be considered available as soon as it is ready)",
+								Type:        []string{"integer"},
+								Format:      "int32",
+							},
+						},
+						"revisionHistoryLimit": {
+							SchemaProps: spec.SchemaProps{
+								Description: "The number of old MachineSets to retain to allow rollback. This is a pointer to distinguish between explicit zero and not specified. Defaults to 1.",
+								Type:        []string{"integer"},
+								Format:      "int32",
+							},
+						},
+						"paused": {
+							SchemaProps: spec.SchemaProps{
+								Description: "Indicates that the deployment is paused.",
+								Type:        []string{"boolean"},
+								Format:      "",
+							},
+						},
+						"progressDeadlineSeconds": {
+							SchemaProps: spec.SchemaProps{
+								Description: "The maximum time in seconds for a deployment to make progress before it is considered to be failed. The deployment controller will continue to process failed deployments and a condition with a ProgressDeadlineExceeded reason will be surfaced in the deployment status. Note that progress will not be estimated during the time a deployment is paused. Defaults to 600s.",
+								Type:        []string{"integer"},
+								Format:      "int32",
+							},
+						},
+					},
+					Required: []string{"selector", "template"},
+				},
+			},
+			Dependencies: []string{
+				"k8s.io/apimachinery/pkg/apis/meta/v1.LabelSelector", "k8s.io/kube-deploy/cluster-api/pkg/apis/cluster/v1alpha1.MachineDeploymentStrategy", "k8s.io/kube-deploy/cluster-api/pkg/apis/cluster/v1alpha1.MachineTemplateSpec"},
+		},
+		"k8s.io/kube-deploy/cluster-api/pkg/apis/cluster/v1alpha1.MachineDeploymentStatus": {
+			Schema: spec.Schema{
+				SchemaProps: spec.SchemaProps{
+					Description: "MachineDeploymentStatus defines the observed state of MachineDeployment",
+					Properties: map[string]spec.Schema{
+						"observedGeneration": {
+							SchemaProps: spec.SchemaProps{
+								Description: "The generation observed by the deployment controller.",
+								Type:        []string{"integer"},
+								Format:      "int64",
+							},
+						},
+						"replicas": {
+							SchemaProps: spec.SchemaProps{
+								Description: "Total number of non-terminated machines targeted by this deployment (their labels match the selector).",
+								Type:        []string{"integer"},
+								Format:      "int32",
+							},
+						},
+						"updatedReplicas": {
+							SchemaProps: spec.SchemaProps{
+								Description: "Total number of non-terminated machines targeted by this deployment that have the desired template spec.",
+								Type:        []string{"integer"},
+								Format:      "int32",
+							},
+						},
+						"readyReplicas": {
+							SchemaProps: spec.SchemaProps{
+								Description: "Total number of ready machines targeted by this deployment.",
+								Type:        []string{"integer"},
+								Format:      "int32",
+							},
+						},
+						"availableReplicas": {
+							SchemaProps: spec.SchemaProps{
+								Description: "Total number of available machines (ready for at least minReadySeconds) targeted by this deployment.",
+								Type:        []string{"integer"},
+								Format:      "int32",
+							},
+						},
+						"unavailableReplicas": {
+							SchemaProps: spec.SchemaProps{
+								Description: "Total number of unavailable machines targeted by this deployment. This is the total number of machines that are still required for the deployment to have 100% available capacity. They may either be machines that are running but not yet available or machines that still have not been created.",
+								Type:        []string{"integer"},
+								Format:      "int32",
+							},
+						},
+					},
+				},
+			},
+			Dependencies: []string{},
+		},
+		"k8s.io/kube-deploy/cluster-api/pkg/apis/cluster/v1alpha1.MachineDeploymentStrategy": {
+			Schema: spec.Schema{
+				SchemaProps: spec.SchemaProps{
+					Description: "MachineDeploymentStrategy describes how to replace existing machines with new ones.",
+					Properties: map[string]spec.Schema{
+						"type": {
+							SchemaProps: spec.SchemaProps{
+								Description: "Type of deployment. Can be only be \"RollingUpdate\". Default is RollingUpdate.",
+								Type:        []string{"string"},
+								Format:      "",
+							},
+						},
+						"rollingUpdate": {
+							SchemaProps: spec.SchemaProps{
+								Description: "Rolling update config params. Present only if MachineDeploymentStrategyType = RollingUpdate.",
+								Ref:         ref("k8s.io/kube-deploy/cluster-api/pkg/apis/cluster/v1alpha1.MachineRollingUpdateDeployment"),
+							},
+						},
+					},
+				},
+			},
+			Dependencies: []string{
+				"k8s.io/kube-deploy/cluster-api/pkg/apis/cluster/v1alpha1.MachineRollingUpdateDeployment"},
+		},
+		"k8s.io/kube-deploy/cluster-api/pkg/apis/cluster/v1alpha1.MachineDeploymentValidationStatusStrategy": {
+			Schema: spec.Schema{
+				SchemaProps: spec.SchemaProps{
+					Properties: map[string]spec.Schema{
+						"DefaultStatusStorageStrategy": {
+							SchemaProps: spec.SchemaProps{
+								Ref: ref("github.com/kubernetes-incubator/apiserver-builder/pkg/builders.DefaultStatusStorageStrategy"),
+							},
+						},
+					},
+					Required: []string{"DefaultStatusStorageStrategy"},
+				},
+			},
+			Dependencies: []string{
+				"github.com/kubernetes-incubator/apiserver-builder/pkg/builders.DefaultStatusStorageStrategy"},
+		},
+		"k8s.io/kube-deploy/cluster-api/pkg/apis/cluster/v1alpha1.MachineDeploymentValidationStrategy": {
+			Schema: spec.Schema{
+				SchemaProps: spec.SchemaProps{
+					Properties: map[string]spec.Schema{
+						"DefaultStorageStrategy": {
+							SchemaProps: spec.SchemaProps{
+								Ref: ref("github.com/kubernetes-incubator/apiserver-builder/pkg/builders.DefaultStorageStrategy"),
+							},
+						},
+					},
+					Required: []string{"DefaultStorageStrategy"},
+				},
+			},
+			Dependencies: []string{
+				"github.com/kubernetes-incubator/apiserver-builder/pkg/builders.DefaultStorageStrategy"},
+		},
 		"k8s.io/kube-deploy/cluster-api/pkg/apis/cluster/v1alpha1.MachineList": {
 			Schema: spec.Schema{
 				SchemaProps: spec.SchemaProps{
@@ -23771,6 +24043,29 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 			},
 			Dependencies: []string{
 				"k8s.io/apimachinery/pkg/apis/meta/v1.ListMeta", "k8s.io/kube-deploy/cluster-api/pkg/apis/cluster/v1alpha1.Machine"},
+		},
+		"k8s.io/kube-deploy/cluster-api/pkg/apis/cluster/v1alpha1.MachineRollingUpdateDeployment": {
+			Schema: spec.Schema{
+				SchemaProps: spec.SchemaProps{
+					Description: "Spec to control the desired behavior of rolling update.",
+					Properties: map[string]spec.Schema{
+						"maxUnavailable": {
+							SchemaProps: spec.SchemaProps{
+								Description: "The maximum number of machines that can be unavailable during the update. Value can be an absolute number (ex: 5) or a percentage of desired machines (ex: 10%). Absolute number is calculated from percentage by rounding down. This can not be 0 if MaxSurge is 0. Defaults to 0. Example: when this is set to 30%, the old MachineSet can be scaled down to 70% of desired machines immediately when the rolling update starts. Once new machines are ready, old MachineSet can be scaled down further, followed by scaling up the new MachineSet, ensuring that the total number of machines available at all times during the update is at least 70% of desired machines.",
+								Ref:         ref("k8s.io/apimachinery/pkg/util/intstr.IntOrString"),
+							},
+						},
+						"maxSurge": {
+							SchemaProps: spec.SchemaProps{
+								Description: "The maximum number of machines that can be scheduled above the desired number of machines. Value can be an absolute number (ex: 5) or a percentage of desired machines (ex: 10%). This can not be 0 if MaxUnavailable is 0. Absolute number is calculated from percentage by rounding up. Defaults to 1. Example: when this is set to 30%, the new MachineSet can be scaled up immediately when the rolling update starts, such that the total number of old and new machines do not exceed 130% of desired machines. Once old machines have been killed, new MachineSet can be scaled up further, ensuring that total number of machines running at any time during the update is at most 130% of desired machines.",
+								Ref:         ref("k8s.io/apimachinery/pkg/util/intstr.IntOrString"),
+							},
+						},
+					},
+				},
+			},
+			Dependencies: []string{
+				"k8s.io/apimachinery/pkg/util/intstr.IntOrString"},
 		},
 		"k8s.io/kube-deploy/cluster-api/pkg/apis/cluster/v1alpha1.MachineSchemeFns": {
 			Schema: spec.Schema{

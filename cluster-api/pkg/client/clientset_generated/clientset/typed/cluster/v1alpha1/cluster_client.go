@@ -26,6 +26,7 @@ type ClusterV1alpha1Interface interface {
 	RESTClient() rest.Interface
 	ClustersGetter
 	MachinesGetter
+	MachineDeploymentsGetter
 	MachineSetsGetter
 }
 
@@ -40,6 +41,10 @@ func (c *ClusterV1alpha1Client) Clusters(namespace string) ClusterInterface {
 
 func (c *ClusterV1alpha1Client) Machines(namespace string) MachineInterface {
 	return newMachines(c, namespace)
+}
+
+func (c *ClusterV1alpha1Client) MachineDeployments(namespace string) MachineDeploymentInterface {
+	return newMachineDeployments(c, namespace)
 }
 
 func (c *ClusterV1alpha1Client) MachineSets(namespace string) MachineSetInterface {

@@ -74,17 +74,19 @@ var (
 	{{ range $api := .UnversionedResources -}}
 	Internal{{ $api.Kind }} = builders.NewInternalResource(
 		"{{ $api.Resource }}",
+        "{{ $api.Kind }}",
 		func() runtime.Object { return &{{ $api.Kind }}{} },
 		func() runtime.Object { return &{{ $api.Kind }}List{} },
 	)
 	Internal{{ $api.Kind }}Status = builders.NewInternalResourceStatus(
 		"{{ $api.Resource }}",
+        "{{ $api.Kind }}Status",
 		func() runtime.Object { return &{{ $api.Kind }}{} },
 		func() runtime.Object { return &{{ $api.Kind }}List{} },
 	)
 	{{ range $subresource := .Subresources -}}
 	Internal{{$subresource.REST}} = builders.NewInternalSubresource(
-		"{{$subresource.Resource}}", "{{$subresource.Path}}",
+		"{{$subresource.Resource}}", "{{$subresource.Request}}", "{{$subresource.Path}}",
 		func() runtime.Object { return &{{$subresource.Request}}{} },
 	)
 	{{ end -}}
@@ -139,12 +141,12 @@ type {{ $s.Name }} struct {
 // {{.Kind}} Functions and Structs
 //
 // +k8s:deepcopy-gen=false
-type {{.Kind}}Strategy struct {
+type {{.Strategy}} struct {
 	builders.DefaultStorageStrategy
 }
 
 // +k8s:deepcopy-gen=false
-type {{$api.Kind}}StatusStrategy struct {
+type {{.StatusStrategy}} struct {
 	builders.DefaultStatusStorageStrategy
 }
 
@@ -243,7 +245,7 @@ func (s *storage{{.Kind}}) Get{{.Kind}}(ctx request.Context, id string, options 
 
 func (s *storage{{.Kind}}) Create{{.Kind}}(ctx request.Context, object *{{.Kind}}) (*{{.Kind}}, error) {
 	st := s.GetStandardStorage()
-	obj, err := st.Create(ctx, object, false)
+	obj, err := st.Create(ctx, object, nil, true)
 	if err != nil {
 		return nil, err
 	}
@@ -252,7 +254,7 @@ func (s *storage{{.Kind}}) Create{{.Kind}}(ctx request.Context, object *{{.Kind}
 
 func (s *storage{{.Kind}}) Update{{.Kind}}(ctx request.Context, object *{{.Kind}}) (*{{.Kind}}, error) {
 	st := s.GetStandardStorage()
-	obj, _, err := st.Update(ctx, object.Name, rest.DefaultUpdatedObjectInfo(object, builders.Scheme))
+	obj, _, err := st.Update(ctx, object.Name, rest.DefaultUpdatedObjectInfo(object), nil, nil)
 	if err != nil {
 		return nil, err
 	}

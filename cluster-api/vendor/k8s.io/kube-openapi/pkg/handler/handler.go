@@ -28,6 +28,8 @@ import (
 	"sync"
 	"time"
 
+	"bitbucket.org/ww/goautoneg"
+
 	yaml "gopkg.in/yaml.v2"
 
 	"github.com/NYTimes/gziphandler"
@@ -79,7 +81,7 @@ func computeETag(data []byte) string {
 }
 
 // NOTE: [DEPRECATION] We will announce deprecation for format-separated endpoints for OpenAPI spec,
-// and switch to a single /openapi/v2 endpoint in Kubernetes 1.9. The design doc and deprecation process
+// and switch to a single /openapi/v2 endpoint in Kubernetes 1.10. The design doc and deprecation process
 // are tracked at: https://docs.google.com/document/d/19lEqE9lc4yHJ3WJAJxS_G7TcORIJXGHyq3wpwcH28nU.
 //
 // BuildAndRegisterOpenAPIService builds the spec and registers a handler to provides access to it.
@@ -93,7 +95,7 @@ func BuildAndRegisterOpenAPIService(servePath string, webServices []*restful.Web
 }
 
 // NOTE: [DEPRECATION] We will announce deprecation for format-separated endpoints for OpenAPI spec,
-// and switch to a single /openapi/v2 endpoint in Kubernetes 1.9. The design doc and deprecation process
+// and switch to a single /openapi/v2 endpoint in Kubernetes 1.10. The design doc and deprecation process
 // are tracked at: https://docs.google.com/document/d/19lEqE9lc4yHJ3WJAJxS_G7TcORIJXGHyq3wpwcH28nU.
 //
 // RegisterOpenAPIService registers a handler to provides access to provided swagger spec.
@@ -219,33 +221,43 @@ func RegisterOpenAPIVersionedService(openapiSpec *spec.Swagger, servePath string
 		return nil, err
 	}
 
-	files := map[string]func() ([]byte, string, time.Time){
-		"application/json":                                           o.getSwaggerBytes,
-		"application/com.github.proto-openapi.spec.v2@v1.0+protobuf": o.getSwaggerPbBytes,
+	accepted := []struct {
+		Type           string
+		SubType        string
+		GetDataAndETag func() ([]byte, string, time.Time)
+	}{
+		{"application", "json", o.getSwaggerBytes},
+		{"application", "com.github.proto-openapi.spec.v2@v1.0+protobuf", o.getSwaggerPbBytes},
 	}
 
 	handler.Handle(servePath, gziphandler.GzipHandler(http.HandlerFunc(
 		func(w http.ResponseWriter, r *http.Request) {
-			var getDataAndETag func() ([]byte, string, time.Time)
-			// Get the first value associated with header "Accept"
-			decipherableFormat := r.Header.Get("Accept")
-			if decipherableFormat == "" || decipherableFormat == "*/*" {
-				// If "Accept" header is not set or "*/*", serve json file as default
-				decipherableFormat = "application/json"
+			decipherableFormats := r.Header.Get("Accept")
+			if decipherableFormats == "" {
+				decipherableFormats = "*/*"
 			}
+			clauses := goautoneg.ParseAccept(decipherableFormats)
 			w.Header().Add("Vary", "Accept")
+			for _, clause := range clauses {
+				for _, accepts := range accepted {
+					if clause.Type != accepts.Type && clause.Type != "*" {
+						continue
+					}
+					if clause.SubType != accepts.SubType && clause.SubType != "*" {
+						continue
+					}
 
-			getDataAndETag = files[decipherableFormat]
-			if getDataAndETag == nil {
-				// Return 406 for not acceptable format
-				w.WriteHeader(406)
-				return
+					// serve the first matching media type in the sorted clause list
+					data, etag, lastModified := accepts.GetDataAndETag()
+					w.Header().Set("Etag", etag)
+					// ServeContent will take care of caching using eTag.
+					http.ServeContent(w, r, servePath, lastModified, bytes.NewReader(data))
+					return
+				}
 			}
-			data, etag, lastModified := getDataAndETag()
-			w.Header().Set("Etag", etag)
-
-			// ServeContent will take care of caching using eTag.
-			http.ServeContent(w, r, servePath, lastModified, bytes.NewReader(data))
+			// Return 406 for not acceptable format
+			w.WriteHeader(406)
+			return
 		}),
 	))
 

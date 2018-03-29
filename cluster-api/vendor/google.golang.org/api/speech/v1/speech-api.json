@@ -15,6 +15,7 @@
   "description": "Converts audio to text by applying powerful neural network models.",
   "discoveryVersion": "v1",
   "documentationLink": "https://cloud.google.com/speech/",
+  "fullyEncodeReservedExpansion": true,
   "icons": {
     "x16": "http://www.google.com/images/icons/product/search-16.gif",
     "x32": "http://www.google.com/images/icons/product/search-32.gif"
@@ -184,7 +185,7 @@
       }
     }
   },
-  "revision": "20180130",
+  "revision": "20180326",
   "rootUrl": "https://speech.googleapis.com/",
   "schemas": {
     "LongRunningRecognizeRequest": {
@@ -257,16 +258,12 @@
       "description": "Provides information to the recognizer that specifies how to process the\nrequest.",
       "id": "RecognitionConfig",
       "properties": {
-        "enableWordConfidence": {
-          "description": "*Optional* If `true`, the top result includes a list of words and the\nconfidence for those words. If `false`, no word-level confidence\ninformation is returned. The default is `false`.",
-          "type": "boolean"
-        },
         "enableWordTimeOffsets": {
           "description": "*Optional* If `true`, the top result includes a list of words and\nthe start and end time offsets (timestamps) for those words. If\n`false`, no word-level time offset information is returned. The default is\n`false`.",
           "type": "boolean"
         },
         "encoding": {
-          "description": "*Required* Encoding of audio data sent in all `RecognitionAudio` messages.",
+          "description": "Encoding of audio data sent in all `RecognitionAudio` messages.\nThis field is optional for `FLAC` and `WAV` audio files and required\nfor all other audio formats. For details, see AudioEncoding.",
           "enum": [
             "ENCODING_UNSPECIFIED",
             "LINEAR16",
@@ -280,7 +277,7 @@
           "enumDescriptions": [
             "Not specified.",
             "Uncompressed 16-bit signed little-endian samples (Linear PCM).",
-            "[`FLAC`](https://xiph.org/flac/documentation.html) (Free Lossless Audio\nCodec) is the recommended encoding because it is\nlossless--therefore recognition is not compromised--and\nrequires only about half the bandwidth of `LINEAR16`. `FLAC` stream\nencoding supports 16-bit and 24-bit samples, however, not all fields in\n`STREAMINFO` are supported.",
+            "`FLAC` (Free Lossless Audio\nCodec) is the recommended encoding because it is\nlossless--therefore recognition is not compromised--and\nrequires only about half the bandwidth of `LINEAR16`. `FLAC` stream\nencoding supports 16-bit and 24-bit samples, however, not all fields in\n`STREAMINFO` are supported.",
             "8-bit samples that compand 14-bit audio samples using G.711 PCMU/mu-law.",
             "Adaptive Multi-Rate Narrowband codec. `sample_rate_hertz` must be 8000.",
             "Adaptive Multi-Rate Wideband codec. `sample_rate_hertz` must be 16000.",
@@ -303,7 +300,7 @@
           "type": "boolean"
         },
         "sampleRateHertz": {
-          "description": "*Required* Sample rate in Hertz of the audio data sent in all\n`RecognitionAudio` messages. Valid values are: 8000-48000.\n16000 is optimal. For best results, set the sampling rate of the audio\nsource to 16000 Hz. If that's not possible, use the native sample rate of\nthe audio source (instead of re-sampling).",
+          "description": "Sample rate in Hertz of the audio data sent in all\n`RecognitionAudio` messages. Valid values are: 8000-48000.\n16000 is optimal. For best results, set the sampling rate of the audio\nsource to 16000 Hz. If that's not possible, use the native sample rate of\nthe audio source (instead of re-sampling).\nThis field is optional for `FLAC` and `WAV` audio files and required\nfor all other audio formats. For details, see AudioEncoding.",
           "format": "int32",
           "type": "integer"
         },
@@ -337,7 +334,7 @@
       "id": "RecognizeResponse",
       "properties": {
         "results": {
-          "description": "*Output-only* Sequential list of transcription results corresponding to\nsequential portions of audio.",
+          "description": "Output only. Sequential list of transcription results corresponding to\nsequential portions of audio.",
           "items": {
             "$ref": "SpeechRecognitionResult"
           },
@@ -365,16 +362,16 @@
       "id": "SpeechRecognitionAlternative",
       "properties": {
         "confidence": {
-          "description": "*Output-only* The confidence estimate between 0.0 and 1.0. A higher number\nindicates an estimated greater likelihood that the recognized words are\ncorrect. This field is set only for the top alternative of a non-streaming\nresult or, of a streaming result where `is_final=true`.\nThis field is not guaranteed to be accurate and users should not rely on it\nto be always provided.\nThe default of 0.0 is a sentinel value indicating `confidence` was not set.",
+          "description": "Output only. The confidence estimate between 0.0 and 1.0. A higher number\nindicates an estimated greater likelihood that the recognized words are\ncorrect. This field is set only for the top alternative of a non-streaming\nresult or, of a streaming result where `is_final=true`.\nThis field is not guaranteed to be accurate and users should not rely on it\nto be always provided.\nThe default of 0.0 is a sentinel value indicating `confidence` was not set.",
           "format": "float",
           "type": "number"
         },
         "transcript": {
-          "description": "*Output-only* Transcript text representing the words that the user spoke.",
+          "description": "Output only. Transcript text representing the words that the user spoke.",
           "type": "string"
         },
         "words": {
-          "description": "*Output-only* A list of word-specific information for each recognized word.",
+          "description": "Output only. A list of word-specific information for each recognized word.",
           "items": {
             "$ref": "WordInfo"
           },
@@ -388,7 +385,7 @@
       "id": "SpeechRecognitionResult",
       "properties": {
         "alternatives": {
-          "description": "*Output-only* May contain one or more recognition hypotheses (up to the\nmaximum specified in `max_alternatives`).\nThese alternatives are ordered in terms of accuracy, with the top (first)\nalternative being the most probable, as ranked by the recognizer.",
+          "description": "Output only. May contain one or more recognition hypotheses (up to the\nmaximum specified in `max_alternatives`).\nThese alternatives are ordered in terms of accuracy, with the top (first)\nalternative being the most probable, as ranked by the recognizer.",
           "items": {
             "$ref": "SpeechRecognitionAlternative"
           },
@@ -429,17 +426,17 @@
       "id": "WordInfo",
       "properties": {
         "endTime": {
-          "description": "*Output-only* Time offset relative to the beginning of the audio,\nand corresponding to the end of the spoken word.\nThis field is only set if `enable_word_time_offsets=true` and only\nin the top hypothesis.\nThis is an experimental feature and the accuracy of the time offset can\nvary.",
+          "description": "Output only. Time offset relative to the beginning of the audio,\nand corresponding to the end of the spoken word.\nThis field is only set if `enable_word_time_offsets=true` and only\nin the top hypothesis.\nThis is an experimental feature and the accuracy of the time offset can\nvary.",
           "format": "google-duration",
           "type": "string"
         },
         "startTime": {
-          "description": "*Output-only* Time offset relative to the beginning of the audio,\nand corresponding to the start of the spoken word.\nThis field is only set if `enable_word_time_offsets=true` and only\nin the top hypothesis.\nThis is an experimental feature and the accuracy of the time offset can\nvary.",
+          "description": "Output only. Time offset relative to the beginning of the audio,\nand corresponding to the start of the spoken word.\nThis field is only set if `enable_word_time_offsets=true` and only\nin the top hypothesis.\nThis is an experimental feature and the accuracy of the time offset can\nvary.",
           "format": "google-duration",
           "type": "string"
         },
         "word": {
-          "description": "*Output-only* The word corresponding to this set of information.",
+          "description": "Output only. The word corresponding to this set of information.",
           "type": "string"
         }
       },
@@ -447,7 +444,7 @@
     }
   },
   "servicePath": "",
-  "title": "Google Cloud Speech API",
+  "title": "Cloud Speech API",
   "version": "v1",
   "version_module": true
 }

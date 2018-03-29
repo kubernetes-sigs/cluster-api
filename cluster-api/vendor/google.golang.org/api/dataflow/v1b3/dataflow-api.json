@@ -1554,7 +1554,7 @@
       }
     }
   },
-  "revision": "20180126",
+  "revision": "20180314",
   "rootUrl": "https://dataflow.googleapis.com/",
   "schemas": {
     "ApproximateProgress": {
@@ -1826,7 +1826,8 @@
             "OR",
             "AND",
             "SET",
-            "DISTRIBUTION"
+            "DISTRIBUTION",
+            "LATEST_VALUE"
           ],
           "enumDescriptions": [
             "Counter aggregation kind was not set.",
@@ -1837,7 +1838,8 @@
             "Aggregated value represents the logical 'or' of all contributed values.",
             "Aggregated value represents the logical 'and' of all contributed values.",
             "Aggregated value is a set of unique contributed values.",
-            "Aggregated value captures statistics about a distribution."
+            "Aggregated value captures statistics about a distribution.",
+            "Aggregated value tracks the latest value of a variable."
           ],
           "type": "string"
         },
@@ -1985,6 +1987,10 @@
         "integer": {
           "$ref": "SplitInt64",
           "description": "Integer value for Sum, Max, Min."
+        },
+        "integerGauge": {
+          "$ref": "IntegerGauge",
+          "description": "Gauge data"
         },
         "integerList": {
           "$ref": "IntegerList",
@@ -2583,6 +2589,22 @@
         "systemName": {
           "description": "System-defined name of this output.\nUnique across the workflow.",
           "type": "string"
+        }
+      },
+      "type": "object"
+    },
+    "IntegerGauge": {
+      "description": "A metric value representing temporal values of a variable.",
+      "id": "IntegerGauge",
+      "properties": {
+        "timestamp": {
+          "description": "The time at which this value was measured. Measured as msecs from epoch.",
+          "format": "google-datetime",
+          "type": "string"
+        },
+        "value": {
+          "$ref": "SplitInt64",
+          "description": "The value of the variable represented by this gauge."
         }
       },
       "type": "object"
@@ -3197,7 +3219,8 @@
             "OR",
             "AND",
             "SET",
-            "DISTRIBUTION"
+            "DISTRIBUTION",
+            "LATEST_VALUE"
           ],
           "enumDescriptions": [
             "Counter aggregation kind was not set.",
@@ -3208,7 +3231,8 @@
             "Aggregated value represents the logical 'or' of all contributed values.",
             "Aggregated value represents the logical 'and' of all contributed values.",
             "Aggregated value is a set of unique contributed values.",
-            "Aggregated value captures statistics about a distribution."
+            "Aggregated value captures statistics about a distribution.",
+            "Aggregated value tracks the latest value of a variable."
           ],
           "type": "string"
         },
@@ -3613,8 +3637,16 @@
           "format": "int32",
           "type": "integer"
         },
+        "network": {
+          "description": "Network to which VMs will be assigned.  If empty or unspecified,\nthe service will use the network \"default\".",
+          "type": "string"
+        },
         "serviceAccountEmail": {
           "description": "The email address of the service account to run the job as.",
+          "type": "string"
+        },
+        "subnetwork": {
+          "description": "Subnetwork to which VMs will be assigned, if desired.  Expected to be of\nthe form \"regions/REGION/subnetworks/SUBNETWORK\".",
           "type": "string"
         },
         "tempLocation": {
@@ -4832,6 +4864,49 @@
       },
       "type": "object"
     },
+    "WorkerLifecycleEvent": {
+      "description": "A report of an event in a worker's lifecycle.\nThe proto contains one event, because the worker is expected to\nasynchronously send each message immediately after the event.\nDue to this asynchrony, messages may arrive out of order (or missing), and it\nis up to the consumer to interpret.\nThe timestamp of the event is in the enclosing WorkerMessage proto.",
+      "id": "WorkerLifecycleEvent",
+      "properties": {
+        "containerStartTime": {
+          "description": "The start time of this container. All events will report this so that\nevents can be grouped together across container/VM restarts.",
+          "format": "google-datetime",
+          "type": "string"
+        },
+        "event": {
+          "description": "The event being reported.",
+          "enum": [
+            "UNKNOWN_EVENT",
+            "OS_START",
+            "CONTAINER_START",
+            "NETWORK_UP",
+            "STAGING_FILES_DOWNLOAD_START",
+            "STAGING_FILES_DOWNLOAD_FINISH",
+            "SDK_INSTALL_START",
+            "SDK_INSTALL_FINISH"
+          ],
+          "enumDescriptions": [
+            "Invalid event.",
+            "The time the VM started.",
+            "Our container code starts running. Multiple containers could be\ndistinguished with WorkerMessage.labels if desired.",
+            "The worker has a functional external network connection.",
+            "Started downloading staging files.",
+            "Finished downloading all staging files.",
+            "For applicable SDKs, started installation of SDK and worker packages.",
+            "Finished installing SDK."
+          ],
+          "type": "string"
+        },
+        "metadata": {
+          "additionalProperties": {
+            "type": "string"
+          },
+          "description": "Other stats that can accompany an event. E.g.\n{ \"downloaded_bytes\" : \"123456\" }",
+          "type": "object"
+        }
+      },
+      "type": "object"
+    },
     "WorkerMessage": {
       "description": "WorkerMessage provides information to the backend about a worker.",
       "id": "WorkerMessage",
@@ -4851,6 +4926,10 @@
         "workerHealthReport": {
           "$ref": "WorkerHealthReport",
           "description": "The health of a worker."
+        },
+        "workerLifecycleEvent": {
+          "$ref": "WorkerLifecycleEvent",
+          "description": "Record of worker lifecycle events."
         },
         "workerMessageCode": {
           "$ref": "WorkerMessageCode",
@@ -5111,6 +5190,6 @@
     }
   },
   "servicePath": "",
-  "title": "Google Dataflow API",
+  "title": "Dataflow API",
   "version": "v1b3"
 }

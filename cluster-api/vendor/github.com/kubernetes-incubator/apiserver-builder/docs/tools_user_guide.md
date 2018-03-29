@@ -76,8 +76,7 @@ apiserver-boot init repo --domain <your-domain>
 ```
 
 **Note:** You can skip vendoring by running with `--install-deps=false`, and install
-the vendored deps separately with `apiserver-boot init glide`.  To install dependencies
-using glide instead of using the bundled vendor, supply the `--fetch` flag.
+the vendored deps separately with `apiserver-boot init dep`. 
 
 ## Create an API resource
 
@@ -129,7 +128,7 @@ Run an etcd instance and the apiserver + controller-manager.
 **Note:** This will automatically run the code generators and build the
 executables.  These maybe run separate using `apiserver-boot build generated`
 or `apiserver-boot build executables`.  It is possible to skip building as part of run
-if the binaries have already been built and are present by using the flag `--built=false`.
+if the binaries have already been built and are present by using the flag `--build=false`.
 
 **Note: that the generators must be rerun any time fields are added or removed from your resources**
 

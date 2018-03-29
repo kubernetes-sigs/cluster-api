@@ -211,6 +211,31 @@
                     "https://www.googleapis.com/auth/cloud-platform"
                   ]
                 },
+                "getIamPolicy": {
+                  "description": "Gets the access control policy for a resource. Returns an empty policy if the resource exists and does not have a policy set.",
+                  "flatPath": "v1beta2/projects/{projectsId}/locations/{locationsId}/workflowTemplates/{workflowTemplatesId}:getIamPolicy",
+                  "httpMethod": "GET",
+                  "id": "dataproc.projects.locations.workflowTemplates.getIamPolicy",
+                  "parameterOrder": [
+                    "resource"
+                  ],
+                  "parameters": {
+                    "resource": {
+                      "description": "REQUIRED: The resource for which the policy is being requested. See the operation documentation for the appropriate value for this field.",
+                      "location": "path",
+                      "pattern": "^projects/[^/]+/locations/[^/]+/workflowTemplates/[^/]+$",
+                      "required": true,
+                      "type": "string"
+                    }
+                  },
+                  "path": "v1beta2/{+resource}:getIamPolicy",
+                  "response": {
+                    "$ref": "Policy"
+                  },
+                  "scopes": [
+                    "https://www.googleapis.com/auth/cloud-platform"
+                  ]
+                },
                 "instantiate": {
                   "description": "Instantiates a template and begins execution.The returned Operation can be used to track execution of workflow by polling operations.get. The Operation will complete when entire workflow is finished.The running workflow can be aborted via operations.cancel. This will cause any inflight jobs to be cancelled and workflow-owned clusters to be deleted.The Operation.metadata will be WorkflowMetadata.On successful completion, Operation.response will be Empty.",
                   "flatPath": "v1beta2/projects/{projectsId}/locations/{locationsId}/workflowTemplates/{workflowTemplatesId}:instantiate",
@@ -308,6 +333,62 @@
                     "https://www.googleapis.com/auth/cloud-platform"
                   ]
                 },
+                "setIamPolicy": {
+                  "description": "Sets the access control policy on the specified resource. Replaces any existing policy.",
+                  "flatPath": "v1beta2/projects/{projectsId}/locations/{locationsId}/workflowTemplates/{workflowTemplatesId}:setIamPolicy",
+                  "httpMethod": "POST",
+                  "id": "dataproc.projects.locations.workflowTemplates.setIamPolicy",
+                  "parameterOrder": [
+                    "resource"
+                  ],
+                  "parameters": {
+                    "resource": {
+                      "description": "REQUIRED: The resource for which the policy is being specified. See the operation documentation for the appropriate value for this field.",
+                      "location": "path",
+                      "pattern": "^projects/[^/]+/locations/[^/]+/workflowTemplates/[^/]+$",
+                      "required": true,
+                      "type": "string"
+                    }
+                  },
+                  "path": "v1beta2/{+resource}:setIamPolicy",
+                  "request": {
+                    "$ref": "SetIamPolicyRequest"
+                  },
+                  "response": {
+                    "$ref": "Policy"
+                  },
+                  "scopes": [
+                    "https://www.googleapis.com/auth/cloud-platform"
+                  ]
+                },
+                "testIamPermissions": {
+                  "description": "Returns permissions that a caller has on the specified resource. If the resource does not exist, this will return an empty set of permissions, not a NOT_FOUND error.Note: This operation is designed to be used for building permission-aware UIs and command-line tools, not for authorization checking. This operation may \"fail open\" without warning.",
+                  "flatPath": "v1beta2/projects/{projectsId}/locations/{locationsId}/workflowTemplates/{workflowTemplatesId}:testIamPermissions",
+                  "httpMethod": "POST",
+                  "id": "dataproc.projects.locations.workflowTemplates.testIamPermissions",
+                  "parameterOrder": [
+                    "resource"
+                  ],
+                  "parameters": {
+                    "resource": {
+                      "description": "REQUIRED: The resource for which the policy detail is being requested. See the operation documentation for the appropriate value for this field.",
+                      "location": "path",
+                      "pattern": "^projects/[^/]+/locations/[^/]+/workflowTemplates/[^/]+$",
+                      "required": true,
+                      "type": "string"
+                    }
+                  },
+                  "path": "v1beta2/{+resource}:testIamPermissions",
+                  "request": {
+                    "$ref": "TestIamPermissionsRequest"
+                  },
+                  "response": {
+                    "$ref": "TestIamPermissionsResponse"
+                  },
+                  "scopes": [
+                    "https://www.googleapis.com/auth/cloud-platform"
+                  ]
+                },
                 "update": {
                   "description": "Updates (replaces) workflow template. The updated template must contain version that matches the current server version.",
                   "flatPath": "v1beta2/projects/{projectsId}/locations/{locationsId}/workflowTemplates/{workflowTemplatesId}",
@@ -365,6 +446,11 @@
                       "location": "path",
                       "required": true,
                       "type": "string"
+                    },
+                    "requestId": {
+                      "description": "Optional. A unique id used to identify the request. If the server receives two CreateClusterRequest requests with the same id, then the second request will be ignored and the first google.longrunning.Operation created and stored in the backend is returned.It is recommended to always set this value to a UUID (https://en.wikipedia.org/wiki/Universally_unique_identifier).The id must contain only letters (a-z, A-Z), numbers (0-9), underscores (_), and hyphens (-). The maximum length is 40 characters.",
+                      "location": "query",
+                      "type": "string"
                     }
                   },
                   "path": "v1beta2/projects/{projectId}/regions/{region}/clusters",
@@ -410,6 +496,11 @@
                       "description": "Required. The Cloud Dataproc region in which to handle the request.",
                       "location": "path",
                       "required": true,
+                      "type": "string"
+                    },
+                    "requestId": {
+                      "description": "Optional. A unique id used to identify the request. If the server receives two DeleteClusterRequest requests with the same id, then the second request will be ignored and the first google.longrunning.Operation created and stored in the backend is returned.It is recommended to always set this value to a UUID (https://en.wikipedia.org/wiki/Universally_unique_identifier).The id must contain only letters (a-z, A-Z), numbers (0-9), underscores (_), and hyphens (-). The maximum length is 40 characters.",
+                      "location": "query",
                       "type": "string"
                     }
                   },
@@ -607,8 +698,13 @@
                       "required": true,
                       "type": "string"
                     },
+                    "requestId": {
+                      "description": "Optional. A unique id used to identify the request. If the server receives two UpdateClusterRequest requests with the same id, then the second request will be ignored and the first google.longrunning.Operation created and stored in the backend is returned.It is recommended to always set this value to a UUID (https://en.wikipedia.org/wiki/Universally_unique_identifier).The id must contain only letters (a-z, A-Z), numbers (0-9), underscores (_), and hyphens (-). The maximum length is 40 characters.",
+                      "location": "query",
+                      "type": "string"
+                    },
                     "updateMask": {
-                      "description": "Required. Specifies the path, relative to \u003ccode\u003eCluster\u003c/code\u003e, of the field to update. For example, to change the number of workers in a cluster to 5, the \u003ccode\u003eupdate_mask\u003c/code\u003e parameter would be specified as \u003ccode\u003econfig.worker_config.num_instances\u003c/code\u003e, and the PATCH request body would specify the new value, as follows:\n{\n  \"config\":{\n    \"workerConfig\":{\n      \"numInstances\":\"5\"\n    }\n  }\n}\nSimilarly, to change the number of preemptible workers in a cluster to 5, the \u003ccode\u003eupdate_mask\u003c/code\u003e parameter would be \u003ccode\u003econfig.secondary_worker_config.num_instances\u003c/code\u003e, and the PATCH request body would be set as follows:\n{\n  \"config\":{\n    \"secondaryWorkerConfig\":{\n      \"numInstances\":\"5\"\n    }\n  }\n}\n\u003cstrong\u003eNote:\u003c/strong\u003e currently only some fields can be updated: |Mask|Purpose| |labels|Updates labels| |config.worker_config.num_instances|Resize primary worker group| |config.secondary_worker_config.num_instances|Resize secondary worker group|",
+                      "description": "Required. Specifies the path, relative to Cluster, of the field to update. For example, to change the number of workers in a cluster to 5, the update_mask parameter would be specified as config.worker_config.num_instances, and the PATCH request body would specify the new value, as follows:\n{\n  \"config\":{\n    \"workerConfig\":{\n      \"numInstances\":\"5\"\n    }\n  }\n}\nSimilarly, to change the number of preemptible workers in a cluster to 5, the update_mask parameter would be config.secondary_worker_config.num_instances, and the PATCH request body would be set as follows:\n{\n  \"config\":{\n    \"secondaryWorkerConfig\":{\n      \"numInstances\":\"5\"\n    }\n  }\n}\n\u003cstrong\u003eNote:\u003c/strong\u003e currently only the following fields can be updated:\n\u003ctable\u003e\n\u003ctr\u003e\n\u003ctd\u003e\u003cstrong\u003eMask\u003c/strong\u003e\u003c/td\u003e\u003ctd\u003e\u003cstrong\u003ePurpose\u003c/strong\u003e\u003c/td\u003e\n\u003c/tr\u003e\n\u003ctr\u003e\n\u003ctd\u003elabels\u003c/td\u003e\u003ctd\u003eUpdates labels\u003c/td\u003e\n\u003c/tr\u003e\n\u003ctr\u003e\n\u003ctd\u003econfig.worker_config.num_instances\u003c/td\u003e\u003ctd\u003eResize primary worker group\u003c/td\u003e\n\u003c/tr\u003e\n\u003ctr\u003e\n\u003ctd\u003econfig.secondary_worker_config.num_instances\u003c/td\u003e\u003ctd\u003eResize secondary worker group\u003c/td\u003e\n\u003c/tr\u003e\n\u003ctr\u003e\n\u003ctd\u003econfig.lifecycle_config.auto_delete_ttl\u003c/td\u003e\u003ctd\u003eReset MAX TTL duration\u003c/td\u003e\n\u003c/tr\u003e\n\u003ctr\u003e\n\u003ctd\u003econfig.lifecycle_config.auto_delete_time\u003c/td\u003e\u003ctd\u003eUpdate MAX TTL deletion timestamp\u003c/td\u003e\n\u003c/tr\u003e\n\u003ctr\u003e\n\u003ctd\u003econfig.lifecycle_config.idle_delete_ttl\u003c/td\u003e\u003ctd\u003eUpdate Idle TTL duration\u003c/td\u003e\n\u003c/tr\u003e\n\u003c/table\u003e",
                       "format": "google-fieldmask",
                       "location": "query",
                       "type": "string"
@@ -802,6 +898,31 @@
                     "https://www.googleapis.com/auth/cloud-platform"
                   ]
                 },
+                "getIamPolicy": {
+                  "description": "Gets the access control policy for a resource. Returns an empty policy if the resource exists and does not have a policy set.",
+                  "flatPath": "v1beta2/projects/{projectsId}/regions/{regionsId}/jobs/{jobsId}:getIamPolicy",
+                  "httpMethod": "GET",
+                  "id": "dataproc.projects.regions.jobs.getIamPolicy",
+                  "parameterOrder": [
+                    "resource"
+                  ],
+                  "parameters": {
+                    "resource": {
+                      "description": "REQUIRED: The resource for which the policy is being requested. See the operation documentation for the appropriate value for this field.",
+                      "location": "path",
+                      "pattern": "^projects/[^/]+/regions/[^/]+/jobs/[^/]+$",
+                      "required": true,
+                      "type": "string"
+                    }
+                  },
+                  "path": "v1beta2/{+resource}:getIamPolicy",
+                  "response": {
+                    "$ref": "Policy"
+                  },
+                  "scopes": [
+                    "https://www.googleapis.com/auth/cloud-platform"
+                  ]
+                },
                 "list": {
                   "description": "Lists regions/{region}/jobs in a project.",
                   "flatPath": "v1beta2/projects/{projectId}/regions/{region}/jobs",
@@ -911,6 +1032,34 @@
                     "https://www.googleapis.com/auth/cloud-platform"
                   ]
                 },
+                "setIamPolicy": {
+                  "description": "Sets the access control policy on the specified resource. Replaces any existing policy.",
+                  "flatPath": "v1beta2/projects/{projectsId}/regions/{regionsId}/jobs/{jobsId}:setIamPolicy",
+                  "httpMethod": "POST",
+                  "id": "dataproc.projects.regions.jobs.setIamPolicy",
+                  "parameterOrder": [
+                    "resource"
+                  ],
+                  "parameters": {
+                    "resource": {
+                      "description": "REQUIRED: The resource for which the policy is being specified. See the operation documentation for the appropriate value for this field.",
+                      "location": "path",
+                      "pattern": "^projects/[^/]+/regions/[^/]+/jobs/[^/]+$",
+                      "required": true,
+                      "type": "string"
+                    }
+                  },
+                  "path": "v1beta2/{+resource}:setIamPolicy",
+                  "request": {
+                    "$ref": "SetIamPolicyRequest"
+                  },
+                  "response": {
+                    "$ref": "Policy"
+                  },
+                  "scopes": [
+                    "https://www.googleapis.com/auth/cloud-platform"
+                  ]
+                },
                 "submit": {
                   "description": "Submits a job to a cluster.",
                   "flatPath": "v1beta2/projects/{projectId}/regions/{region}/jobs:submit",
@@ -940,6 +1089,34 @@
                   },
                   "response": {
                     "$ref": "Job"
+                  },
+                  "scopes": [
+                    "https://www.googleapis.com/auth/cloud-platform"
+                  ]
+                },
+                "testIamPermissions": {
+                  "description": "Returns permissions that a caller has on the specified resource. If the resource does not exist, this will return an empty set of permissions, not a NOT_FOUND error.Note: This operation is designed to be used for building permission-aware UIs and command-line tools, not for authorization checking. This operation may \"fail open\" without warning.",
+                  "flatPath": "v1beta2/projects/{projectsId}/regions/{regionsId}/jobs/{jobsId}:testIamPermissions",
+                  "httpMethod": "POST",
+                  "id": "dataproc.projects.regions.jobs.testIamPermissions",
+                  "parameterOrder": [
+                    "resource"
+                  ],
+                  "parameters": {
+                    "resource": {
+                      "description": "REQUIRED: The resource for which the policy detail is being requested. See the operation documentation for the appropriate value for this field.",
+                      "location": "path",
+                      "pattern": "^projects/[^/]+/regions/[^/]+/jobs/[^/]+$",
+                      "required": true,
+                      "type": "string"
+                    }
+                  },
+                  "path": "v1beta2/{+resource}:testIamPermissions",
+                  "request": {
+                    "$ref": "TestIamPermissionsRequest"
+                  },
+                  "response": {
+                    "$ref": "TestIamPermissionsResponse"
                   },
                   "scopes": [
                     "https://www.googleapis.com/auth/cloud-platform"
@@ -1024,6 +1201,31 @@
                     "https://www.googleapis.com/auth/cloud-platform"
                   ]
                 },
+                "getIamPolicy": {
+                  "description": "Gets the access control policy for a resource. Returns an empty policy if the resource exists and does not have a policy set.",
+                  "flatPath": "v1beta2/projects/{projectsId}/regions/{regionsId}/operations/{operationsId}:getIamPolicy",
+                  "httpMethod": "GET",
+                  "id": "dataproc.projects.regions.operations.getIamPolicy",
+                  "parameterOrder": [
+                    "resource"
+                  ],
+                  "parameters": {
+                    "resource": {
+                      "description": "REQUIRED: The resource for which the policy is being requested. See the operation documentation for the appropriate value for this field.",
+                      "location": "path",
+                      "pattern": "^projects/[^/]+/regions/[^/]+/operations/[^/]+$",
+                      "required": true,
+                      "type": "string"
+                    }
+                  },
+                  "path": "v1beta2/{+resource}:getIamPolicy",
+                  "response": {
+                    "$ref": "Policy"
+                  },
+                  "scopes": [
+                    "https://www.googleapis.com/auth/cloud-platform"
+                  ]
+                },
                 "list": {
                   "description": "Lists operations that match the specified filter in the request. If the server doesn't support this method, it returns UNIMPLEMENTED.NOTE: the name binding allows API services to override the binding to use different resource name schemes, such as users/*/operations. To override the binding, API services can add a binding such as \"/v1/{name=users/*}/operations\" to their service configuration. For backwards compatibility, the default name includes the operations collection id, however overriding users must ensure the name binding is the parent resource, without the operations collection id.",
                   "flatPath": "v1beta2/projects/{projectsId}/regions/{regionsId}/operations",
@@ -1060,6 +1262,62 @@
                   "path": "v1beta2/{+name}",
                   "response": {
                     "$ref": "ListOperationsResponse"
+                  },
+                  "scopes": [
+                    "https://www.googleapis.com/auth/cloud-platform"
+                  ]
+                },
+                "setIamPolicy": {
+                  "description": "Sets the access control policy on the specified resource. Replaces any existing policy.",
+                  "flatPath": "v1beta2/projects/{projectsId}/regions/{regionsId}/operations/{operationsId}:setIamPolicy",
+                  "httpMethod": "POST",
+                  "id": "dataproc.projects.regions.operations.setIamPolicy",
+                  "parameterOrder": [
+                    "resource"
+                  ],
+                  "parameters": {
+                    "resource": {
+                      "description": "REQUIRED: The resource for which the policy is being specified. See the operation documentation for the appropriate value for this field.",
+                      "location": "path",
+                      "pattern": "^projects/[^/]+/regions/[^/]+/operations/[^/]+$",
+                      "required": true,
+                      "type": "string"
+                    }
+                  },
+                  "path": "v1beta2/{+resource}:setIamPolicy",
+                  "request": {
+                    "$ref": "SetIamPolicyRequest"
+                  },
+                  "response": {
+                    "$ref": "Policy"
+                  },
+                  "scopes": [
+                    "https://www.googleapis.com/auth/cloud-platform"
+                  ]
+                },
+                "testIamPermissions": {
+                  "description": "Returns permissions that a caller has on the specified resource. If the resource does not exist, this will return an empty set of permissions, not a NOT_FOUND error.Note: This operation is designed to be used for building permission-aware UIs and command-line tools, not for authorization checking. This operation may \"fail open\" without warning.",
+                  "flatPath": "v1beta2/projects/{projectsId}/regions/{regionsId}/operations/{operationsId}:testIamPermissions",
+                  "httpMethod": "POST",
+                  "id": "dataproc.projects.regions.operations.testIamPermissions",
+                  "parameterOrder": [
+                    "resource"
+                  ],
+                  "parameters": {
+                    "resource": {
+                      "description": "REQUIRED: The resource for which the policy detail is being requested. See the operation documentation for the appropriate value for this field.",
+                      "location": "path",
+                      "pattern": "^projects/[^/]+/regions/[^/]+/operations/[^/]+$",
+                      "required": true,
+                      "type": "string"
+                    }
+                  },
+                  "path": "v1beta2/{+resource}:testIamPermissions",
+                  "request": {
+                    "$ref": "TestIamPermissionsRequest"
+                  },
+                  "response": {
+                    "$ref": "TestIamPermissionsResponse"
                   },
                   "scopes": [
                     "https://www.googleapis.com/auth/cloud-platform"
@@ -1154,6 +1412,31 @@
                   "path": "v1beta2/{+name}",
                   "response": {
                     "$ref": "WorkflowTemplate"
+                  },
+                  "scopes": [
+                    "https://www.googleapis.com/auth/cloud-platform"
+                  ]
+                },
+                "getIamPolicy": {
+                  "description": "Gets the access control policy for a resource. Returns an empty policy if the resource exists and does not have a policy set.",
+                  "flatPath": "v1beta2/projects/{projectsId}/regions/{regionsId}/workflowTemplates/{workflowTemplatesId}:getIamPolicy",
+                  "httpMethod": "GET",
+                  "id": "dataproc.projects.regions.workflowTemplates.getIamPolicy",
+                  "parameterOrder": [
+                    "resource"
+                  ],
+                  "parameters": {
+                    "resource": {
+                      "description": "REQUIRED: The resource for which the policy is being requested. See the operation documentation for the appropriate value for this field.",
+                      "location": "path",
+                      "pattern": "^projects/[^/]+/regions/[^/]+/workflowTemplates/[^/]+$",
+                      "required": true,
+                      "type": "string"
+                    }
+                  },
+                  "path": "v1beta2/{+resource}:getIamPolicy",
+                  "response": {
+                    "$ref": "Policy"
                   },
                   "scopes": [
                     "https://www.googleapis.com/auth/cloud-platform"
@@ -1256,6 +1539,62 @@
                     "https://www.googleapis.com/auth/cloud-platform"
                   ]
                 },
+                "setIamPolicy": {
+                  "description": "Sets the access control policy on the specified resource. Replaces any existing policy.",
+                  "flatPath": "v1beta2/projects/{projectsId}/regions/{regionsId}/workflowTemplates/{workflowTemplatesId}:setIamPolicy",
+                  "httpMethod": "POST",
+                  "id": "dataproc.projects.regions.workflowTemplates.setIamPolicy",
+                  "parameterOrder": [
+                    "resource"
+                  ],
+                  "parameters": {
+                    "resource": {
+                      "description": "REQUIRED: The resource for which the policy is being specified. See the operation documentation for the appropriate value for this field.",
+                      "location": "path",
+                      "pattern": "^projects/[^/]+/regions/[^/]+/workflowTemplates/[^/]+$",
+                      "required": true,
+                      "type": "string"
+                    }
+                  },
+                  "path": "v1beta2/{+resource}:setIamPolicy",
+                  "request": {
+                    "$ref": "SetIamPolicyRequest"
+                  },
+                  "response": {
+                    "$ref": "Policy"
+                  },
+                  "scopes": [
+                    "https://www.googleapis.com/auth/cloud-platform"
+                  ]
+                },
+                "testIamPermissions": {
+                  "description": "Returns permissions that a caller has on the specified resource. If the resource does not exist, this will return an empty set of permissions, not a NOT_FOUND error.Note: This operation is designed to be used for building permission-aware UIs and command-line tools, not for authorization checking. This operation may \"fail open\" without warning.",
+                  "flatPath": "v1beta2/projects/{projectsId}/regions/{regionsId}/workflowTemplates/{workflowTemplatesId}:testIamPermissions",
+                  "httpMethod": "POST",
+                  "id": "dataproc.projects.regions.workflowTemplates.testIamPermissions",
+                  "parameterOrder": [
+                    "resource"
+                  ],
+                  "parameters": {
+                    "resource": {
+                      "description": "REQUIRED: The resource for which the policy detail is being requested. See the operation documentation for the appropriate value for this field.",
+                      "location": "path",
+                      "pattern": "^projects/[^/]+/regions/[^/]+/workflowTemplates/[^/]+$",
+                      "required": true,
+                      "type": "string"
+                    }
+                  },
+                  "path": "v1beta2/{+resource}:testIamPermissions",
+                  "request": {
+                    "$ref": "TestIamPermissionsRequest"
+                  },
+                  "response": {
+                    "$ref": "TestIamPermissionsResponse"
+                  },
+                  "scopes": [
+                    "https://www.googleapis.com/auth/cloud-platform"
+                  ]
+                },
                 "update": {
                   "description": "Updates (replaces) workflow template. The updated template must contain version that matches the current server version.",
                   "flatPath": "v1beta2/projects/{projectsId}/regions/{regionsId}/workflowTemplates/{workflowTemplatesId}",
@@ -1291,7 +1630,7 @@
       }
     }
   },
-  "revision": "20180130",
+  "revision": "20180320",
   "rootUrl": "https://dataproc.googleapis.com/",
   "schemas": {
     "AcceleratorConfig": {
@@ -1304,7 +1643,7 @@
           "type": "integer"
         },
         "acceleratorTypeUri": {
-          "description": "Full URL, partial URI, or short name of the accelerator type resource to expose to this instance. See Google Compute Engine AcceleratorTypes( /compute/docs/reference/beta/acceleratorTypes)Examples * https://www.googleapis.com/compute/beta/projects/[project_id]/zones/us-east1-a/acceleratorTypes/nvidia-tesla-k80 * projects/[project_id]/zones/us-east1-a/acceleratorTypes/nvidia-tesla-k80 * nvidia-tesla-k80",
+          "description": "Full URL, partial URI, or short name of the accelerator type resource to expose to this instance. See Compute Engine AcceleratorTypes( /compute/docs/reference/beta/acceleratorTypes)Examples * https://www.googleapis.com/compute/beta/projects/[project_id]/zones/us-east1-a/acceleratorTypes/nvidia-tesla-k80 * projects/[project_id]/zones/us-east1-a/acceleratorTypes/nvidia-tesla-k80 * nvidia-tesla-k80",
           "type": "string"
         }
       },
@@ -1335,7 +1674,7 @@
       "type": "object"
     },
     "Cluster": {
-      "description": "Describes the identifying information, config, and status of a cluster of Google Compute Engine instances.",
+      "description": "Describes the identifying information, config, and status of a cluster of Compute Engine instances.",
       "id": "Cluster",
       "properties": {
         "clusterName": {
@@ -1384,12 +1723,12 @@
       "id": "ClusterConfig",
       "properties": {
         "configBucket": {
-          "description": "Optional. A Google Cloud Storage staging bucket used for sharing generated SSH keys and config. If you do not specify a staging bucket, Cloud Dataproc will determine an appropriate Cloud Storage location (US, ASIA, or EU) for your cluster's staging bucket according to the Google Compute Engine zone where your cluster is deployed, and then it will create and manage this project-level, per-location bucket for you.",
+          "description": "Optional. A Cloud Storage staging bucket used for sharing generated SSH keys and config. If you do not specify a staging bucket, Cloud Dataproc will determine an appropriate Cloud Storage location (US, ASIA, or EU) for your cluster's staging bucket according to the Google Compute Engine zone where your cluster is deployed, and then it will create and manage this project-level, per-location bucket for you.",
           "type": "string"
         },
         "gceClusterConfig": {
           "$ref": "GceClusterConfig",
-          "description": "Required. The shared Google Compute Engine config settings for all instances in a cluster."
+          "description": "Required. The shared Compute Engine config settings for all instances in a cluster."
         },
         "initializationActions": {
           "description": "Optional. Commands to execute on each node after config is completed. By default, executables are run on master and all worker nodes. You can test a node's \u003ccode\u003erole\u003c/code\u003e metadata to run an executable on a master or worker node, as shown below using curl (you can also use wget):\nROLE=$(curl -H Metadata-Flavor:Google http://metadata/computeMetadata/v1beta2/instance/attributes/dataproc-role)\nif [[ \"${ROLE}\" == 'Master' ]]; then\n  ... master specific actions ...\nelse\n  ... worker specific actions ...\nfi\n",
@@ -1404,11 +1743,11 @@
         },
         "masterConfig": {
           "$ref": "InstanceGroupConfig",
-          "description": "Optional. The Google Compute Engine config settings for the master instance in a cluster."
+          "description": "Optional. The Compute Engine config settings for the master instance in a cluster."
         },
         "secondaryWorkerConfig": {
           "$ref": "InstanceGroupConfig",
-          "description": "Optional. The Google Compute Engine config settings for additional worker instances in a cluster."
+          "description": "Optional. The Compute Engine config settings for additional worker instances in a cluster."
         },
         "softwareConfig": {
           "$ref": "SoftwareConfig",
@@ -1416,7 +1755,7 @@
         },
         "workerConfig": {
           "$ref": "InstanceGroupConfig",
-          "description": "Optional. The Google Compute Engine config settings for worker instances in a cluster."
+          "description": "Optional. The Compute Engine config settings for worker instances in a cluster."
         }
       },
       "type": "object"
@@ -1626,7 +1965,7 @@
       "id": "DiagnoseClusterResults",
       "properties": {
         "outputUri": {
-          "description": "Output only. The Google Cloud Storage URI of the diagnostic output. The output report is a plain text file with a summary of collected diagnostics.",
+          "description": "Output only. The Cloud Storage URI of the diagnostic output. The output report is a plain text file with a summary of collected diagnostics.",
           "type": "string"
         }
       },
@@ -1660,7 +1999,7 @@
       "type": "object"
     },
     "GceClusterConfig": {
-      "description": "Common config settings for resources of Google Compute Engine cluster instances, applicable to all instances in the cluster.",
+      "description": "Common config settings for resources of Compute Engine cluster instances, applicable to all instances in the cluster.",
       "id": "GceClusterConfig",
       "properties": {
         "internalIpOnly": {
@@ -1671,15 +2010,15 @@
           "additionalProperties": {
             "type": "string"
           },
-          "description": "The Google Compute Engine metadata entries to add to all instances (see Project and instance metadata (https://cloud.google.com/compute/docs/storing-retrieving-metadata#project_and_instance_metadata)).",
+          "description": "The Compute Engine metadata entries to add to all instances (see Project and instance metadata (https://cloud.google.com/compute/docs/storing-retrieving-metadata#project_and_instance_metadata)).",
           "type": "object"
         },
         "networkUri": {
-          "description": "Optional. The Google Compute Engine network to be used for machine communications. Cannot be specified with subnetwork_uri. If neither network_uri nor subnetwork_uri is specified, the \"default\" network of the project is used, if it exists. Cannot be a \"Custom Subnet Network\" (see Using Subnetworks for more information).A full URL, partial URI, or short name are valid. Examples:\nhttps://www.googleapis.com/compute/v1/projects/[project_id]/regions/global/default\nprojects/[project_id]/regions/global/default\ndefault",
+          "description": "Optional. The Compute Engine network to be used for machine communications. Cannot be specified with subnetwork_uri. If neither network_uri nor subnetwork_uri is specified, the \"default\" network of the project is used, if it exists. Cannot be a \"Custom Subnet Network\" (see Using Subnetworks for more information).A full URL, partial URI, or short name are valid. Examples:\nhttps://www.googleapis.com/compute/v1/projects/[project_id]/regions/global/default\nprojects/[project_id]/regions/global/default\ndefault",
           "type": "string"
         },
         "serviceAccount": {
-          "description": "Optional. The service account of the instances. Defaults to the default Google Compute Engine service account. Custom service accounts need permissions equivalent to the folloing IAM roles:\nroles/logging.logWriter\nroles/storage.objectAdmin(see https://cloud.google.com/compute/docs/access/service-accounts#custom_service_accounts for more information). Example: [account_id]@[project_id].iam.gserviceaccount.com",
+          "description": "Optional. The service account of the instances. Defaults to the default Compute Engine service account. Custom service accounts need permissions equivalent to the folloing IAM roles:\nroles/logging.logWriter\nroles/storage.objectAdmin(see https://cloud.google.com/compute/docs/access/service-accounts#custom_service_accounts for more information). Example: [account_id]@[project_id].iam.gserviceaccount.com",
           "type": "string"
         },
         "serviceAccountScopes": {
@@ -1690,18 +2029,18 @@
           "type": "array"
         },
         "subnetworkUri": {
-          "description": "Optional. The Google Compute Engine subnetwork to be used for machine communications. Cannot be specified with network_uri.A full URL, partial URI, or short name are valid. Examples:\nhttps://www.googleapis.com/compute/v1/projects/[project_id]/regions/us-east1/sub0\nprojects/[project_id]/regions/us-east1/sub0\nsub0",
+          "description": "Optional. The Compute Engine subnetwork to be used for machine communications. Cannot be specified with network_uri.A full URL, partial URI, or short name are valid. Examples:\nhttps://www.googleapis.com/compute/v1/projects/[project_id]/regions/us-east1/sub0\nprojects/[project_id]/regions/us-east1/sub0\nsub0",
           "type": "string"
         },
         "tags": {
-          "description": "The Google Compute Engine tags to add to all instances (see Tagging instances).",
+          "description": "The Compute Engine tags to add to all instances (see Tagging instances).",
           "items": {
             "type": "string"
           },
           "type": "array"
         },
         "zoneUri": {
-          "description": "Optional. The zone where the Google Compute Engine cluster will be located. On a create request, it is required in the \"global\" region. If omitted in a non-global Cloud Dataproc region, the service will pick a zone in the corresponding Compute Engine region. On a get request, zone will always be present.A full URL, partial URI, or short name are valid. Examples:\nhttps://www.googleapis.com/compute/v1/projects/[project_id]/zones/[zone]\nprojects/[project_id]/zones/[zone]\nus-central1-f",
+          "description": "Optional. The zone where the Compute Engine cluster will be located. On a create request, it is required in the \"global\" region. If omitted in a non-global Cloud Dataproc region, the service will pick a zone in the corresponding Compute Engine region. On a get request, zone will always be present.A full URL, partial URI, or short name are valid. Examples:\nhttps://www.googleapis.com/compute/v1/projects/[project_id]/zones/[zone]\nprojects/[project_id]/zones/[zone]\nus-central1-f",
           "type": "string"
         }
       },
@@ -1802,11 +2141,11 @@
       "type": "object"
     },
     "InstanceGroupConfig": {
-      "description": "Optional. The config settings for Google Compute Engine resources in an instance group, such as a master or worker group.",
+      "description": "Optional. The config settings for Compute Engine resources in an instance group, such as a master or worker group.",
       "id": "InstanceGroupConfig",
       "properties": {
         "accelerators": {
-          "description": "Optional. The Google Compute Engine accelerator configuration for these instances.Beta Feature: This feature is still under development. It may be changed before final release.",
+          "description": "Optional. The Compute Engine accelerator configuration for these instances.Beta Feature: This feature is still under development. It may be changed before final release.",
           "items": {
             "$ref": "AcceleratorConfig"
           },
@@ -1817,7 +2156,7 @@
           "description": "Optional. Disk option config settings."
         },
         "imageUri": {
-          "description": "Output only. The Google Compute Engine image resource used for cluster instances. Inferred from SoftwareConfig.image_version.",
+          "description": "Output only. The Compute Engine image resource used for cluster instances. Inferred from SoftwareConfig.image_version.",
           "type": "string"
         },
         "instanceNames": {
@@ -1832,12 +2171,12 @@
           "type": "boolean"
         },
         "machineTypeUri": {
-          "description": "Optional. The Google Compute Engine machine type used for cluster instances.A full URL, partial URI, or short name are valid. Examples:\nhttps://www.googleapis.com/compute/v1/projects/[project_id]/zones/us-east1-a/machineTypes/n1-standard-2\nprojects/[project_id]/zones/us-east1-a/machineTypes/n1-standard-2\nn1-standard-2",
+          "description": "Optional. The Compute Engine machine type used for cluster instances.A full URL, partial URI, or short name are valid. Examples:\nhttps://www.googleapis.com/compute/v1/projects/[project_id]/zones/us-east1-a/machineTypes/n1-standard-2\nprojects/[project_id]/zones/us-east1-a/machineTypes/n1-standard-2\nn1-standard-2",
           "type": "string"
         },
         "managedGroupConfig": {
           "$ref": "ManagedGroupConfig",
-          "description": "Output only. The config for Google Compute Engine Instance Group Manager that manages this group. This is only used for preemptible instance groups."
+          "description": "Output only. The config for Compute Engine Instance Group Manager that manages this group. This is only used for preemptible instance groups."
         },
         "minCpuPlatform": {
           "description": "Optional. Specifies the minimum cpu platform for the Instance Group. See Cloud Dataproc\u0026rarr;Minimum CPU Platform.",
@@ -2169,7 +2508,7 @@
       "id": "ManagedCluster",
       "properties": {
         "clusterName": {
-          "description": "Required. The cluster name. Cluster names within a project must be unique. Names from deleted clusters can be reused.",
+          "description": "Required. The cluster name prefix. A unique cluster name will be formed by appending a random suffix.The name must contain only lower-case letters (a-z), numbers (0-9), and hyphens (-). Must begin with a letter. Cannot begin or end with hyphen. Must consist of between 2 and 35 characters.",
           "type": "string"
         },
         "config": {
@@ -2180,7 +2519,7 @@
           "additionalProperties": {
             "type": "string"
           },
-          "description": "Optional. The labels to associate with this cluster.Label keys must be between 1 and 63 characters long, and must conform to the following PCRE regular expression: \\p{Ll}\\p{Lo}{0,62}Label values must be between 1 and 63 characters long, and must conform to the following PCRE regular expression: \\p{Ll}\\p{Lo}\\p{N}_-{0,63}No more than 64 labels can be associated with a given cluster.",
+          "description": "Optional. The labels to associate with this cluster.Label keys must be between 1 and 63 characters long, and must conform to the following PCRE regular expression: \\p{Ll}\\p{Lo}{0,62}Label values must be between 1 and 63 characters long, and must conform to the following PCRE regular expression: \\p{Ll}\\p{Lo}\\p{N}_-{0,63}No more than 32 labels can be associated with a given cluster.",
           "type": "object"
         }
       },
@@ -2206,7 +2545,7 @@
       "id": "NodeInitializationAction",
       "properties": {
         "executableFile": {
-          "description": "Required. Google Cloud Storage URI of executable file.",
+          "description": "Required. Cloud Storage URI of executable file.",
           "type": "string"
         },
         "executionTimeout": {
@@ -2268,7 +2607,7 @@
           "additionalProperties": {
             "type": "string"
           },
-          "description": "Optional. The labels to associate with this job.Label keys must be between 1 and 63 characters long, and must conform to the following regular expression: \\p{Ll}\\p{Lo}{0,62}Label values must be between 1 and 63 characters long, and must conform to the following regular expression: \\p{Ll}\\p{Lo}\\p{N}_-{0,63}No more than 64 labels can be associated with a given job.",
+          "description": "Optional. The labels to associate with this job.Label keys must be between 1 and 63 characters long, and must conform to the following regular expression: \\p{Ll}\\p{Lo}{0,62}Label values must be between 1 and 63 characters long, and must conform to the following regular expression: \\p{Ll}\\p{Lo}\\p{N}_-{0,63}No more than 32 labels can be associated with a given job.",
           "type": "object"
         },
         "pigJob": {
@@ -2299,7 +2638,7 @@
           "description": "Job is a SparkSql job."
         },
         "stepId": {
-          "description": "Required. The step id. The id must be unique among all jobs within the template.The step id is used as prefix for job id, as job workflow-step-id label, and in prerequisite_step_ids field from other steps.",
+          "description": "Required. The step id. The id must be unique among all jobs within the template.The step id is used as prefix for job id, as job goog-dataproc-workflow-step-id label, and in prerequisiteStepIds field from other steps.The id must contain only letters (a-z, A-Z), numbers (0-9), underscores (_), and hyphens (-). Cannot begin or end with underscore or hyphen. Must consist of between 3 and 50 characters.",
           "type": "string"
         }
       },
@@ -2601,6 +2940,10 @@
         "job": {
           "$ref": "Job",
           "description": "Required. The job resource."
+        },
+        "requestId": {
+          "description": "Optional. A unique id used to identify the request. If the server receives two SubmitJobRequest requests with the same id, then the second request will be ignored and the first Job created and stored in the backend is returned.It is recommended to always set this value to a UUID (https://en.wikipedia.org/wiki/Universally_unique_identifier).The id must contain only letters (a-z, A-Z), numbers (0-9), underscores (_), and hyphens (-). The maximum length is 40 characters.",
+          "type": "string"
         }
       },
       "type": "object"
@@ -2666,6 +3009,13 @@
         "graph": {
           "$ref": "WorkflowGraph",
           "description": "Output only. The workflow graph."
+        },
+        "parameters": {
+          "additionalProperties": {
+            "type": "string"
+          },
+          "description": "Map from parameter names to values that were used for those parameters.",
+          "type": "object"
         },
         "state": {
           "description": "Output only. The workflow state.",
@@ -2751,7 +3101,7 @@
           "type": "string"
         },
         "id": {
-          "description": "Required. The template id.",
+          "description": "Required. The template id.The id must contain only letters (a-z, A-Z), numbers (0-9), underscores (_), and hyphens (-). Cannot begin or end with underscore or hyphen. Must consist of between 3 and 50 characters.",
           "type": "string"
         },
         "jobs": {

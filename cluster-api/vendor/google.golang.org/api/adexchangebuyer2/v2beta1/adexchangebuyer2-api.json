@@ -533,11 +533,6 @@
                   "required": true,
                   "type": "string"
                 },
-                "accountId1": {
-                  "description": "The account the creative belongs to.",
-                  "location": "query",
-                  "type": "string"
-                },
                 "duplicateIdMode": {
                   "description": "Indicates if multiple creatives can share an ID or not. Default is\nNO_DUPLICATES (one ID per creative).",
                   "enum": [
@@ -678,11 +673,6 @@
                   "description": "The account that this creative belongs to.\nCan be used to filter the response of the\ncreatives.list\nmethod.",
                   "location": "path",
                   "required": true,
-                  "type": "string"
-                },
-                "accountId1": {
-                  "description": "The account the creative belongs to.",
-                  "location": "query",
                   "type": "string"
                 },
                 "creativeId": {
@@ -1957,7 +1947,7 @@
       }
     }
   },
-  "revision": "20180205",
+  "revision": "20180326",
   "rootUrl": "https://adexchangebuyer.googleapis.com/",
   "schemas": {
     "AbsoluteDateRange": {
@@ -2307,7 +2297,7 @@
       "type": "object"
     },
     "Creative": {
-      "description": "A creative and its classification data.",
+      "description": "A creative and its classification data.\n\nNext ID: 31",
       "id": "Creative",
       "properties": {
         "accountId": {
@@ -2852,32 +2842,22 @@
           ],
           "type": "string"
         },
-        "format": {
-          "description": "DEPRECATED: use repeated formats field instead.\nThe format on which to filter; optional.",
-          "enum": [
-            "FORMAT_UNSPECIFIED",
-            "DISPLAY",
-            "VIDEO"
-          ],
-          "enumDescriptions": [
-            "A placeholder for an undefined format; indicates that no format filter\nwill be applied.",
-            "The ad impression is display format (i.e. an image).",
-            "The ad impression is video format."
-          ],
-          "type": "string"
-        },
         "formats": {
           "description": "The list of formats on which to filter; may be empty. The filters\nrepresented by multiple formats are ORed together (i.e. if non-empty,\nresults must match any one of the formats).",
           "enumDescriptions": [
             "A placeholder for an undefined format; indicates that no format filter\nwill be applied.",
-            "The ad impression is display format (i.e. an image).",
-            "The ad impression is video format."
+            "The ad impression is a native ad, and display (i.e. image) format.",
+            "The ad impression is a native ad, and video format.",
+            "The ad impression is not a native ad, and display (i.e. image) format.",
+            "The ad impression is not a native ad, and video format."
           ],
           "items": {
             "enum": [
               "FORMAT_UNSPECIFIED",
-              "DISPLAY",
-              "VIDEO"
+              "NATIVE_DISPLAY",
+              "NATIVE_VIDEO",
+              "NON_NATIVE_DISPLAY",
+              "NON_NATIVE_VIDEO"
             ],
             "type": "string"
           },

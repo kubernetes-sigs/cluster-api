@@ -20,7 +20,7 @@
 gazelle:
 	find vendor -name BUILD | xargs rm
 	find vendor -name BUILD.bazel | xargs rm
-	gazelle update -go_prefix github.com/pwittrock/testing -external vendored .
+	gazelle fix -go_prefix github.com/kubernetes-incubator/apiserver-builder -external vendored .
 	bash -c "find vendor/ -name BUILD.bazel |  xargs sed -i '' s'|//k8s.io/|//vendor/k8s.io/|g'"
 	bash -c "find vendor/ -name BUILD |  xargs sed -i '' s'|//k8s.io/|//vendor/k8s.io/|g'"
 	bash -c "find vendor/ -name BUILD.bazel |  xargs sed -i '' s'|cgo = True,|cgo = False,|g'"

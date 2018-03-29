@@ -5,5 +5,5 @@ go_library(
     srcs = ["version.go"],
     importpath = "github.com/kubernetes-incubator/apiserver-builder/cmd/apiserver-boot/boot/version",
     visibility = ["//visibility:public"],
-    deps = ["//cmd/vendor/github.com/spf13/cobra:go_default_library"],
+    deps = ["//vendor/github.com/spf13/cobra:go_default_library"],
 )

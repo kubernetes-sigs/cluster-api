@@ -182,7 +182,7 @@ type {{ .SubresourceKind }}REST struct {
 	Registry {{ .Group }}.{{ .Kind }}Registry
 }
 
-func (r *{{ .SubresourceKind }}REST) Create(ctx request.Context, obj runtime.Object, includeUninitialized bool) (runtime.Object, error) {
+func (r *{{ .SubresourceKind }}REST) Create(ctx request.Context, obj runtime.Object, createValidation rest.ValidateObjectFunc, includeUninitialized bool) (runtime.Object, error) {
 	sub := obj.(*{{ title .Subresource }})
 	rec, err := r.Registry.Get{{ title .Kind }}(ctx, sub.Name, &metav1.GetOptions{})
 	if err != nil {
@@ -200,7 +200,7 @@ func (r *{{ .SubresourceKind }}REST) Get(ctx request.Context, name string, optio
 }
 
 // Update alters the status subset of an object.
-func (r *{{ .SubresourceKind }}REST) Update(ctx request.Context, name string, objInfo rest.UpdatedObjectInfo) (runtime.Object, bool, error) {
+func (r *{{ .SubresourceKind }}REST) Update(ctx request.Context, name string, objInfo rest.UpdatedObjectInfo, createValidation rest.ValidateObjectFunc, updateValidation rest.ValidateObjectUpdateFunc) (runtime.Object, bool, error) {
 	return nil, false, nil
 }
 

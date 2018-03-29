@@ -13,7 +13,7 @@ go_library(
     deps = [
         "//cmd/apiserver-boot/boot/build:go_default_library",
         "//cmd/apiserver-boot/boot/util:go_default_library",
-        "//cmd/vendor/github.com/spf13/cobra:go_default_library",
-        "//cmd/vendor/k8s.io/client-go/util/homedir:go_default_library",
+        "//vendor/github.com/spf13/cobra:go_default_library",
+        "//vendor/k8s.io/client-go/util/homedir:go_default_library",
     ],
 )

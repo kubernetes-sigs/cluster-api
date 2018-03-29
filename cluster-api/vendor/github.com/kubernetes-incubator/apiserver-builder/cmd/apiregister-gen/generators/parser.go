@@ -301,9 +301,9 @@ func (b *APIsBuilder) ParseIndex() {
 
 		r.Strategy = rt.Strategy
 
-		// If not defined, default the strategy to the group strategy for backwards compatibility
+		// If not defined, default the strategy to the {{.Kind}}Strategy for backwards compatibility
 		if len(r.Strategy) == 0 {
-			r.Strategy = fmt.Sprintf("%s.%sStrategy", r.Group, r.Kind)
+			r.Strategy = fmt.Sprintf("%sStrategy", r.Kind)
 		}
 
 		// Copy the Status strategy to mirror the non-status strategy
@@ -704,13 +704,13 @@ func (apigroup *APIGroup) DoType(t *types.Type) (*Struct, []*types.Type) {
 
 							uType = prefix + uImportName + "." + name
 
-							fmt.Printf("\nDifferent Parent Package: %s\nChild Package: %s\nKind: %s (Kind.String() %s)\nImport stmt: %s\nType: %s\n\n",
-								pkg,
-								member.Type.Name.Package,
-								member.Type.Kind,
-								member.Type.String(),
-								uImport,
-								uType)
+							//fmt.Printf("\nDifferent Parent Package: %s\nChild Package: %s\nKind: %s (Kind.String() %s)\nImport stmt: %s\nType: %s\n\n",
+							//	pkg,
+							//	member.Type.Name.Package,
+							//	member.Type.Kind,
+							//	member.Type.String(),
+							//	uImport,
+							//	uType)
 						} else {
 							// Handle non- Pointer, Maps, Slices
 							pkg := t.Name.Package
@@ -727,13 +727,13 @@ func (apigroup *APIGroup) DoType(t *types.Type) (*Struct, []*types.Type) {
 							// Create the field type name - should be <pkgalias>.<TypeName>
 							uType = uImportName + "." + name
 
-							fmt.Printf("\nDifferent Parent Package: %s\nChild Package: %s\nKind: %s (Kind.String() %s)\nImport stmt: %s\nType: %s\n\n",
-								pkg,
-								member.Type.Name.Package,
-								member.Type.Kind,
-								member.Type.String(),
-								uImport,
-								uType)
+							//fmt.Printf("\nDifferent Parent Package: %s\nChild Package: %s\nKind: %s (Kind.String() %s)\nImport stmt: %s\nType: %s\n\n",
+							//	pkg,
+							//	member.Type.Name.Package,
+							//	member.Type.Kind,
+							//	member.Type.String(),
+							//	uImport,
+							//	uType)
 						}
 					}
 				}

@@ -34,7 +34,7 @@ var _ = Describe("Festival", func() {
 	BeforeEach(func() {
 		instance = Festival{}
 		instance.Name = "instance-1"
-
+		instance.Spec.Year = 1
 		expected = instance
 	})
 
@@ -71,6 +71,16 @@ var _ = Describe("Festival", func() {
 				result, err = client.List(metav1.ListOptions{})
 				Expect(err).ShouldNot(HaveOccurred())
 				Expect(result.Items).To(HaveLen(0))
+			})
+		})
+		Context("for an invalid config", func() {
+			It("should fail", func() {
+				instance.Spec.Year = -1
+				client = cs.KingsportV1().Festivals()
+
+				By("returning success from the create request")
+				_, err := client.Create(&instance)
+				Expect(err).Should(HaveOccurred())
 			})
 		})
 	})

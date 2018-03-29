@@ -1,4 +1,4 @@
-// Package speech provides access to the Google Cloud Speech API.
+// Package speech provides access to the Cloud Speech API.
 //
 // See https://cloud.google.com/speech/
 //
@@ -259,13 +259,6 @@ func (s *RecognitionAudio) MarshalJSON() ([]byte, error) {
 // specifies how to process the
 // request.
 type RecognitionConfig struct {
-	// EnableWordConfidence: *Optional* If `true`, the top result includes a
-	// list of words and the
-	// confidence for those words. If `false`, no word-level
-	// confidence
-	// information is returned. The default is `false`.
-	EnableWordConfidence bool `json:"enableWordConfidence,omitempty"`
-
 	// EnableWordTimeOffsets: *Optional* If `true`, the top result includes
 	// a list of words and
 	// the start and end time offsets (timestamps) for those words.
@@ -275,15 +268,17 @@ type RecognitionConfig struct {
 	// `false`.
 	EnableWordTimeOffsets bool `json:"enableWordTimeOffsets,omitempty"`
 
-	// Encoding: *Required* Encoding of audio data sent in all
-	// `RecognitionAudio` messages.
+	// Encoding: Encoding of audio data sent in all `RecognitionAudio`
+	// messages.
+	// This field is optional for `FLAC` and `WAV` audio files and
+	// required
+	// for all other audio formats. For details, see AudioEncoding.
 	//
 	// Possible values:
 	//   "ENCODING_UNSPECIFIED" - Not specified.
 	//   "LINEAR16" - Uncompressed 16-bit signed little-endian samples
 	// (Linear PCM).
-	//   "FLAC" - [`FLAC`](https://xiph.org/flac/documentation.html) (Free
-	// Lossless Audio
+	//   "FLAC" - `FLAC` (Free Lossless Audio
 	// Codec) is the recommended encoding because it is
 	// lossless--therefore recognition is not compromised--and
 	// requires only about half the bandwidth of `LINEAR16`. `FLAC`
@@ -356,14 +351,17 @@ type RecognitionConfig struct {
 	// won't be filtered out.
 	ProfanityFilter bool `json:"profanityFilter,omitempty"`
 
-	// SampleRateHertz: *Required* Sample rate in Hertz of the audio data
-	// sent in all
+	// SampleRateHertz: Sample rate in Hertz of the audio data sent in
+	// all
 	// `RecognitionAudio` messages. Valid values are: 8000-48000.
 	// 16000 is optimal. For best results, set the sampling rate of the
 	// audio
 	// source to 16000 Hz. If that's not possible, use the native sample
 	// rate of
 	// the audio source (instead of re-sampling).
+	// This field is optional for `FLAC` and `WAV` audio files and
+	// required
+	// for all other audio formats. For details, see AudioEncoding.
 	SampleRateHertz int64 `json:"sampleRateHertz,omitempty"`
 
 	// SpeechContexts: *Optional* A means to provide context to assist the
@@ -371,7 +369,7 @@ type RecognitionConfig struct {
 	SpeechContexts []*SpeechContext `json:"speechContexts,omitempty"`
 
 	// ForceSendFields is a list of field names (e.g.
-	// "EnableWordConfidence") to unconditionally include in API requests.
+	// "EnableWordTimeOffsets") to unconditionally include in API requests.
 	// By default, fields with empty values are omitted from API requests.
 	// However, any non-pointer, non-interface field appearing in
 	// ForceSendFields will be sent to the server regardless of whether the
@@ -379,7 +377,7 @@ type RecognitionConfig struct {
 	// Patch requests.
 	ForceSendFields []string `json:"-"`
 
-	// NullFields is a list of field names (e.g. "EnableWordConfidence") to
+	// NullFields is a list of field names (e.g. "EnableWordTimeOffsets") to
 	// include in API requests with the JSON null value. By default, fields
 	// with empty values are omitted from API requests. However, any field
 	// with an empty value appearing in NullFields will be sent to the
@@ -435,7 +433,7 @@ func (s *RecognizeRequest) MarshalJSON() ([]byte, error) {
 // `SpeechRecognitionResult`
 // messages.
 type RecognizeResponse struct {
-	// Results: *Output-only* Sequential list of transcription results
+	// Results: Output only. Sequential list of transcription results
 	// corresponding to
 	// sequential portions of audio.
 	Results []*SpeechRecognitionResult `json:"results,omitempty"`
@@ -510,8 +508,8 @@ func (s *SpeechContext) MarshalJSON() ([]byte, error) {
 // SpeechRecognitionAlternative: Alternative hypotheses (a.k.a. n-best
 // list).
 type SpeechRecognitionAlternative struct {
-	// Confidence: *Output-only* The confidence estimate between 0.0 and
-	// 1.0. A higher number
+	// Confidence: Output only. The confidence estimate between 0.0 and 1.0.
+	// A higher number
 	// indicates an estimated greater likelihood that the recognized words
 	// are
 	// correct. This field is set only for the top alternative of a
@@ -524,11 +522,11 @@ type SpeechRecognitionAlternative struct {
 	// not set.
 	Confidence float64 `json:"confidence,omitempty"`
 
-	// Transcript: *Output-only* Transcript text representing the words that
+	// Transcript: Output only. Transcript text representing the words that
 	// the user spoke.
 	Transcript string `json:"transcript,omitempty"`
 
-	// Words: *Output-only* A list of word-specific information for each
+	// Words: Output only. A list of word-specific information for each
 	// recognized word.
 	Words []*WordInfo `json:"words,omitempty"`
 
@@ -572,7 +570,7 @@ func (s *SpeechRecognitionAlternative) UnmarshalJSON(data []byte) error {
 // SpeechRecognitionResult: A speech recognition result corresponding to
 // a portion of the audio.
 type SpeechRecognitionResult struct {
-	// Alternatives: *Output-only* May contain one or more recognition
+	// Alternatives: Output only. May contain one or more recognition
 	// hypotheses (up to the
 	// maximum specified in `max_alternatives`).
 	// These alternatives are ordered in terms of accuracy, with the top
@@ -724,7 +722,7 @@ func (s *Status) MarshalJSON() ([]byte, error) {
 
 // WordInfo: Word-specific information for recognized words.
 type WordInfo struct {
-	// EndTime: *Output-only* Time offset relative to the beginning of the
+	// EndTime: Output only. Time offset relative to the beginning of the
 	// audio,
 	// and corresponding to the end of the spoken word.
 	// This field is only set if `enable_word_time_offsets=true` and only
@@ -734,7 +732,7 @@ type WordInfo struct {
 	// vary.
 	EndTime string `json:"endTime,omitempty"`
 
-	// StartTime: *Output-only* Time offset relative to the beginning of the
+	// StartTime: Output only. Time offset relative to the beginning of the
 	// audio,
 	// and corresponding to the start of the spoken word.
 	// This field is only set if `enable_word_time_offsets=true` and only
@@ -744,8 +742,7 @@ type WordInfo struct {
 	// vary.
 	StartTime string `json:"startTime,omitempty"`
 
-	// Word: *Output-only* The word corresponding to this set of
-	// information.
+	// Word: Output only. The word corresponding to this set of information.
 	Word string `json:"word,omitempty"`
 
 	// ForceSendFields is a list of field names (e.g. "EndTime") to

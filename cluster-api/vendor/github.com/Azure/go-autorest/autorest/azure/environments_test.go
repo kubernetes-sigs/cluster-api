@@ -1,10 +1,78 @@
 // test
 package azure
 
+// Copyright 2017 Microsoft Corporation
+//
+//  Licensed under the Apache License, Version 2.0 (the "License");
+//  you may not use this file except in compliance with the License.
+//  You may obtain a copy of the License at
+//
+//      http://www.apache.org/licenses/LICENSE-2.0
+//
+//  Unless required by applicable law or agreed to in writing, software
+//  distributed under the License is distributed on an "AS IS" BASIS,
+//  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+//  See the License for the specific language governing permissions and
+//  limitations under the License.
+
 import (
 	"encoding/json"
+	"os"
+	"path"
+	"path/filepath"
+	"runtime"
 	"testing"
 )
+
+// This correlates to the expected contents of ./testdata/test_environment_1.json
+var testEnvironment1 = Environment{
+	Name:                         "--unit-test--",
+	ManagementPortalURL:          "--management-portal-url",
+	PublishSettingsURL:           "--publish-settings-url--",
+	ServiceManagementEndpoint:    "--service-management-endpoint--",
+	ResourceManagerEndpoint:      "--resource-management-endpoint--",
+	ActiveDirectoryEndpoint:      "--active-directory-endpoint--",
+	GalleryEndpoint:              "--gallery-endpoint--",
+	KeyVaultEndpoint:             "--key-vault--endpoint--",
+	GraphEndpoint:                "--graph-endpoint--",
+	StorageEndpointSuffix:        "--storage-endpoint-suffix--",
+	SQLDatabaseDNSSuffix:         "--sql-database-dns-suffix--",
+	TrafficManagerDNSSuffix:      "--traffic-manager-dns-suffix--",
+	KeyVaultDNSSuffix:            "--key-vault-dns-suffix--",
+	ServiceBusEndpointSuffix:     "--service-bus-endpoint-suffix--",
+	ServiceManagementVMDNSSuffix: "--asm-vm-dns-suffix--",
+	ResourceManagerVMDNSSuffix:   "--arm-vm-dns-suffix--",
+	ContainerRegistryDNSSuffix:   "--container-registry-dns-suffix--",
+}
+
+func TestEnvironment_EnvironmentFromFile(t *testing.T) {
+	got, err := EnvironmentFromFile(filepath.Join("testdata", "test_environment_1.json"))
+	if err != nil {
+		t.Error(err)
+	}
+
+	if got != testEnvironment1 {
+		t.Logf("got: %v want: %v", got, testEnvironment1)
+		t.Fail()
+	}
+}
+
+func TestEnvironment_EnvironmentFromName_Stack(t *testing.T) {
+	_, currentFile, _, _ := runtime.Caller(0)
+	prevEnvFilepathValue := os.Getenv(EnvironmentFilepathName)
+	os.Setenv(EnvironmentFilepathName, filepath.Join(path.Dir(currentFile), "testdata", "test_environment_1.json"))
+	defer os.Setenv(EnvironmentFilepathName, prevEnvFilepathValue)
+
+	got, err := EnvironmentFromName("AZURESTACKCLOUD")
+	if err != nil {
+		t.Error(err)
+	}
+
+	if got != testEnvironment1 {
+		t.Logf("got: %v want: %v", got, testEnvironment1)
+		t.Fail()
+	}
+}
 
 func TestEnvironmentFromName(t *testing.T) {
 	name := "azurechinacloud"
@@ -59,6 +127,7 @@ func TestDeserializeEnvironment(t *testing.T) {
 		"ActiveDirectoryEndpoint": "--active-directory-endpoint--",
 		"galleryEndpoint": "--gallery-endpoint--",
 		"graphEndpoint": "--graph-endpoint--",
+		"serviceBusEndpoint": "--service-bus-endpoint--",
 		"keyVaultDNSSuffix": "--key-vault-dns-suffix--",
 		"keyVaultEndpoint": "--key-vault-endpoint--",
 		"managementPortalURL": "--management-portal-url--",
@@ -104,6 +173,9 @@ func TestDeserializeEnvironment(t *testing.T) {
 	if "--key-vault-endpoint--" != testSubject.KeyVaultEndpoint {
 		t.Errorf("Expected KeyVaultEndpoint to be \"--key-vault-endpoint--\", but got %q", testSubject.KeyVaultEndpoint)
 	}
+	if "--service-bus-endpoint--" != testSubject.ServiceBusEndpoint {
+		t.Errorf("Expected ServiceBusEndpoint to be \"--service-bus-endpoint--\", but goet %q", testSubject.ServiceBusEndpoint)
+	}
 	if "--graph-endpoint--" != testSubject.GraphEndpoint {
 		t.Errorf("Expected GraphEndpoint to be \"--graph-endpoint--\", but got %q", testSubject.GraphEndpoint)
 	}
@@ -141,6 +213,7 @@ func TestRoundTripSerialization(t *testing.T) {
 		GalleryEndpoint:              "--gallery-endpoint--",
 		KeyVaultEndpoint:             "--key-vault--endpoint--",
 		GraphEndpoint:                "--graph-endpoint--",
+		ServiceBusEndpoint:           "--service-bus-endpoint--",
 		StorageEndpointSuffix:        "--storage-endpoint-suffix--",
 		SQLDatabaseDNSSuffix:         "--sql-database-dns-suffix--",
 		TrafficManagerDNSSuffix:      "--traffic-manager-dns-suffix--",
@@ -182,6 +255,9 @@ func TestRoundTripSerialization(t *testing.T) {
 	}
 	if env.GalleryEndpoint != testSubject.GalleryEndpoint {
 		t.Errorf("Expected GalleryEndpoint to be %q, but got %q", env.GalleryEndpoint, testSubject.GalleryEndpoint)
+	}
+	if env.ServiceBusEndpoint != testSubject.ServiceBusEndpoint {
+		t.Errorf("Expected ServiceBusEnpoint to be %q, but got %q", env.ServiceBusEndpoint, testSubject.ServiceBusEndpoint)
 	}
 	if env.KeyVaultEndpoint != testSubject.KeyVaultEndpoint {
 		t.Errorf("Expected KeyVaultEndpoint to be %q, but got %q", env.KeyVaultEndpoint, testSubject.KeyVaultEndpoint)

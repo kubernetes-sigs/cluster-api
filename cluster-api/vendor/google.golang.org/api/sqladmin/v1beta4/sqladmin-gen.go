@@ -222,9 +222,7 @@ type BackupConfiguration struct {
 	// Kind: This is always sql#backupConfiguration.
 	Kind string `json:"kind,omitempty"`
 
-	// ReplicationLogArchivingEnabled: Whether replication log archiving is
-	// enabled. Replication log archiving is required for the point-in-time
-	// recovery (PITR) feature. PostgreSQL instances only.
+	// ReplicationLogArchivingEnabled: Reserved for future use.
 	ReplicationLogArchivingEnabled bool `json:"replicationLogArchivingEnabled,omitempty"`
 
 	// StartTime: Start time for the daily backup configuration in UTC
@@ -419,10 +417,7 @@ type CloneContext struct {
 	// Kind: This is always sql#cloneContext.
 	Kind string `json:"kind,omitempty"`
 
-	// PitrTimestampMs: The epoch timestamp, in milliseconds, of the time to
-	// which a point-in-time recovery (PITR) is performed. PostgreSQL
-	// instances only. For MySQL instances, use the binLogCoordinates
-	// property.
+	// PitrTimestampMs: Reserved for future use.
 	PitrTimestampMs int64 `json:"pitrTimestampMs,omitempty,string"`
 
 	// ForceSendFields is a list of field names (e.g. "BinLogCoordinates")
@@ -817,6 +812,16 @@ type DemoteMasterContext struct {
 	// ReplicaConfiguration: Configuration specific to read-replicas
 	// replicating from the on-premises master.
 	ReplicaConfiguration *DemoteMasterConfiguration `json:"replicaConfiguration,omitempty"`
+
+	// VerifyGtidConsistency: Verify GTID consistency for demote operation.
+	// Default value: True. Second Generation instances only. Setting this
+	// flag to false enables you to bypass GTID consistency check between
+	// on-premises master and Cloud SQL instance during the demotion
+	// operation but also exposes you to the risk of future replication
+	// failures. Change the value only if you know the reason for the GTID
+	// divergence and are confident that doing so will not cause any
+	// replication issues.
+	VerifyGtidConsistency bool `json:"verifyGtidConsistency,omitempty"`
 
 	// ForceSendFields is a list of field names (e.g. "Kind") to
 	// unconditionally include in API requests. By default, fields with

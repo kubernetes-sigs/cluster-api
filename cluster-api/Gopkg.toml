@@ -38,27 +38,25 @@ required = [
 
 [[constraint]]
   name = "k8s.io/api"
-  branch = "release-1.8"
+  branch = "release-1.9"
 
 [[constraint]]
   name = "k8s.io/apimachinery"
-  branch = "release-1.8"
+  branch = "release-1.9"
 
 [[constraint]]
   name = "k8s.io/apiserver"
-  branch = "release-1.8"
+  branch = "release-1.9"
 
 [[constraint]]
   name = "k8s.io/client-go"
-  branch = "release-5.0"
-  # revision = "1fb83015bea362f028381bc0fcfb2a4e3eb7390b"
+  branch = "release-6.0"
 
 # client-go needs this version
 [[constraint]]
   name = "github.com/Azure/go-autorest"
-  version = "v8.0.0"
+  version = "v9.1.0"
 
 [[constraint]]
   name = "github.com/kubernetes-incubator/apiserver-builder"
-  # version = "v0.1-alpha.27"
-  revision = "b7ce760cf80c9917270f830b9589e948e085144d"
+  version = "v1.9-alpha.3"

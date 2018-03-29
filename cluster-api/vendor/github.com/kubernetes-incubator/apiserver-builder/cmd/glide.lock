@@ -1,5 +1,5 @@
-hash: ca937c73692791a151ed933b759bf94e5aba203672094907650cb3936242b412
-updated: 2017-10-23T10:21:28.437983361-07:00
+hash: 0ed42f135e2b57df4a123b68366c0021a016e9a5b52ff88f31d47eecfb78d5dd
+updated: 2018-01-21T14:04:45.7433-08:00
 imports:
 - name: github.com/emicklei/go-restful
   version: ff4f55a206334ef123e4f79bbf348980da81ca46
@@ -33,11 +33,11 @@ imports:
 - name: github.com/inconshreveable/mousetrap
   version: 76626ae9c91c4f2a10f34cad8ce83ea42c93bb75
 - name: github.com/kubernetes-incubator/reference-docs
-  version: fcf65347b25607dba28903ec6f66f8574bb49a17
+  version: 2991dafd4e5074507fcf86b8f2ae315427a8e829
   subpackages:
   - gen-apidocs
 - name: github.com/markbates/inflect
-  version: ea17041f342f81e8849284b87bc3db1a6fc596bb
+  version: a12c3aec81a6a938bf584a4bac567afed9256586
 - name: github.com/onsi/ginkgo
   version: 9eda700730cba42af70d53180f9dcce9266bc2bc
 - name: github.com/onsi/gomega
@@ -53,24 +53,24 @@ imports:
 - name: github.com/spf13/viper
   version: 7fb2782df3d83e0036cc89f461ed0422628776f4
 - name: k8s.io/api
-  version: 6c6dac0277229b9e9578c5ca3f74a4345d35cdc2
+  version: 006a217681ae70cbacdd66a5e2fca1a61a8ff28e
 - name: k8s.io/apimachinery
-  version: 019ae5ada31de202164b118aee88ee2d14075c31
+  version: 68f9c3a1feb3140df59c67ced62d3a5df8e6c9c2
   subpackages:
   - pkg/runtime/schema
   - pkg/util/runtime
   - pkg/util/sets
   - pkg/util/wait
 - name: k8s.io/apiserver
-  version: a35277792fddcf69f8cbbb8a9cb7727b23077409
+  version: 2a1092aaa7202e8f9b188281ff9424a014ce61c2
   subpackages:
   - pkg/util/logs
 - name: k8s.io/client-go
-  version: 1fb83015bea362f028381bc0fcfb2a4e3eb7390b
+  version: 9389c055a838d4f208b699b3c7c51b70f2368861
   subpackages:
   - util/homedir
 - name: k8s.io/code-generator
-  version: 0c5165a97e055df28cca8bbcb8b7c8ae1019b3f1
+  version: 91d3f6a57905178524105a085085901bb73bd3dc
 - name: k8s.io/gengo
   version: 9e661e9308f078838e266cca1c673922088c0ea4
   subpackages:
@@ -80,5 +80,5 @@ imports:
   - parser
   - types
 - name: k8s.io/kube-openapi
-  version: 89ae48fe8691077463af5b7fb3b6f194632c5946
+  version: 868f2f29720b192240e18284659231b440f9cda5
 testImports: []

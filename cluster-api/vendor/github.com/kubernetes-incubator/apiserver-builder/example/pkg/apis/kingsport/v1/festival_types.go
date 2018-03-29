@@ -62,6 +62,12 @@ func (FestivalStrategy) Validate(ctx request.Context, obj runtime.Object) field.
 	o := obj.(*kingsport.Festival)
 	log.Printf("Validating fields for Festival %s\n", o.Name)
 	errors := field.ErrorList{}
+
+	if o.Spec.Year < 0 {
+		errors = append(errors,
+			field.Invalid(field.NewPath("spec", "year"), o.Spec.Year, "year must be > 0"))
+	}
+
 	// perform validation here and add to errors using field.Invalid
 	return errors
 }

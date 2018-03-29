@@ -59,7 +59,7 @@ updating cloud provider resources (Loadbalancer).
 *Declarative*
 
 Kubernetes APIs are designed such that the desired state of an object is
-sent to the API, and the cluster works to reconcile the actual state with the desired state.
+sent to the API server, and the cluster works to reconcile the actual state with the desired state.
 For example to rollout a new container image to a Deployment, only the declared Deployment image is updated
 and the cluster will automatically perform a rollout of the new image.
 
@@ -121,11 +121,13 @@ the scaffolding for you resource definition with each of these fields.
 - Labels (queryable key-value pairs)
 
 *Spec*: Contains the desired state
+
 Add fields specifying the desired state here.  Canonical information about the object
 goes here.  Used by reconciliation loops to update other objects in the cluster or
 external objects.
 
 *Status*: Contains the observed state
+
 Add fields specifying the observed state here.  **Note**: Status fields should not be the canonical
 source of information, and should only serve to publish status from other sources.
 Used by clients and reconciliation loops to view the state of the object.
@@ -142,7 +144,7 @@ type Foo struct {
 }
 
 type FooSpec struct {
-  // Publish desired object state and canonical object information here
+  // Specify desired object state and canonical object information here
 }
 
 type FooStatus struct {
@@ -269,7 +271,7 @@ certain fields.
 
 If unspecified in your type, a default ValidateUpdate will be provided
 by the apiserver-builder.  Can be overriden by specifying the function
-`<ResourceType>Strategy.PrepareForUpdate`.
+`<ResourceType>Strategy.ValidateUpdate`.
 
 *PrepareForUpdate*: Similar to PrepareForCreate, but for update operations.
 
@@ -295,7 +297,7 @@ and perform cleanup of resources the object may have created.
 Automatic garbage collection may be specified by setting
 an OwnerReference on the object to be garbage collected.  When the owning object
 is deleted, objects with the OwnerReference will automatically be deleted.
-Note: This is the preferred method for garbage collection, but will not
+**Note:** This is the preferred method for garbage collection, but will not
 work for cleaning up external (non-kubernetes-object) resources.  e.g.
 resources provisioned through the cloud provider.  See [garbage-collection](https://kubernetes.io/docs/concepts/workloads/controllers/garbage-collection/)
 for more information.
@@ -390,16 +392,16 @@ Flow:
   
 apiserver-builder can build the needed containers and yaml config to using:
 
-- `apiserver-boot apiserver-boot build container`: cross-compile the go binaries into a
+- `apiserver-boot build container`: cross-compile the go binaries into a
   container image
-- `apiserver-boot apiserver-boot build config`: emit yaml configuration for running the
+- `apiserver-boot build config`: emit yaml configuration for running the
   apiserver, controller-manager and etcd in a cluster
  
 ![Extension apiservers](extensionserver.jpg "Extension apiservers")
 
 ## Advanced API topics
 
-Following are advanced topics for further customizing APIs
+Following are advanced topics for further customizing APIs.
 
 ### Defining reconciliation constraints
 

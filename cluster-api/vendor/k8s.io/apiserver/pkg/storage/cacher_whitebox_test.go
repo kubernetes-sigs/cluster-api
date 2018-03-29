@@ -33,7 +33,6 @@ import (
 	"k8s.io/apimachinery/pkg/util/diff"
 	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/apimachinery/pkg/watch"
-	"k8s.io/client-go/kubernetes/scheme"
 )
 
 // verifies the cacheWatcher.process goroutine is properly cleaned up even if
@@ -53,7 +52,7 @@ func TestCacheWatcherCleanupNotBlockedByResult(t *testing.T) {
 	}
 	// set the size of the buffer of w.result to 0, so that the writes to
 	// w.result is blocked.
-	w := newCacheWatcher(scheme.Scheme, 0, 0, initEvents, filter, forget, testVersioner{})
+	w := newCacheWatcher(0, 0, initEvents, filter, forget, testVersioner{})
 	w.Stop()
 	if err := wait.PollImmediate(1*time.Second, 5*time.Second, func() (bool, error) {
 		lock.RLock()
@@ -171,7 +170,7 @@ TestCase:
 		for j := range testCase.events {
 			testCase.events[j].ResourceVersion = uint64(j) + 1
 		}
-		w := newCacheWatcher(scheme.Scheme, 0, 0, testCase.events, filter, forget, testVersioner{})
+		w := newCacheWatcher(0, 0, testCase.events, filter, forget, testVersioner{})
 		ch := w.ResultChan()
 		for j, event := range testCase.expected {
 			e := <-ch

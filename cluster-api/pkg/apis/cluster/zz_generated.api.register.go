@@ -35,31 +35,37 @@ import (
 var (
 	InternalCluster = builders.NewInternalResource(
 		"clusters",
+		"Cluster",
 		func() runtime.Object { return &Cluster{} },
 		func() runtime.Object { return &ClusterList{} },
 	)
 	InternalClusterStatus = builders.NewInternalResourceStatus(
 		"clusters",
+		"ClusterStatus",
 		func() runtime.Object { return &Cluster{} },
 		func() runtime.Object { return &ClusterList{} },
 	)
 	InternalMachine = builders.NewInternalResource(
 		"machines",
+		"Machine",
 		func() runtime.Object { return &Machine{} },
 		func() runtime.Object { return &MachineList{} },
 	)
 	InternalMachineStatus = builders.NewInternalResourceStatus(
 		"machines",
+		"MachineStatus",
 		func() runtime.Object { return &Machine{} },
 		func() runtime.Object { return &MachineList{} },
 	)
 	InternalMachineSet = builders.NewInternalResource(
 		"machinesets",
+		"MachineSet",
 		func() runtime.Object { return &MachineSet{} },
 		func() runtime.Object { return &MachineSetList{} },
 	)
 	InternalMachineSetStatus = builders.NewInternalResourceStatus(
 		"machinesets",
+		"MachineSetStatus",
 		func() runtime.Object { return &MachineSet{} },
 		func() runtime.Object { return &MachineSetList{} },
 	)
@@ -96,82 +102,11 @@ func Resource(resource string) schema.GroupResource {
 // +genclient
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
 
-type Machine struct {
-	metav1.TypeMeta
-	metav1.ObjectMeta
-	Spec   MachineSpec
-	Status MachineStatus
-}
-
-// +genclient
-// +genclient
-// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
-
 type Cluster struct {
 	metav1.TypeMeta
 	metav1.ObjectMeta
 	Spec   ClusterSpec
 	Status ClusterStatus
-}
-
-type MachineStatus struct {
-	NodeRef      *corev1.ObjectReference
-	LastUpdated  metav1.Time
-	Versions     *MachineVersionInfo
-	ErrorReason  *clustercommon.MachineStatusError
-	ErrorMessage *string
-}
-
-type ClusterStatus struct {
-	APIEndpoints   []APIEndpoint
-	ErrorReason    clustercommon.ClusterStatusError
-	ErrorMessage   string
-	ProviderStatus string
-}
-
-type MachineVersionInfo struct {
-	Kubelet          string
-	ControlPlane     string
-	ContainerRuntime ContainerRuntimeInfo
-}
-
-type APIEndpoint struct {
-	Host string
-	Port int
-}
-
-type ContainerRuntimeInfo struct {
-	Name    string
-	Version string
-}
-
-type ClusterSpec struct {
-	ClusterNetwork ClusterNetworkingConfig
-	ProviderConfig string
-}
-
-type MachineSpec struct {
-	metav1.ObjectMeta
-	Taints         []corev1.Taint
-	ProviderConfig ProviderConfig
-	Roles          []clustercommon.MachineRole
-	Versions       MachineVersionInfo
-	ConfigSource   *corev1.NodeConfigSource
-}
-
-type ClusterNetworkingConfig struct {
-	Services      NetworkRanges
-	Pods          NetworkRanges
-	ServiceDomain string
-}
-
-type NetworkRanges struct {
-	CIDRBlocks []string
-}
-
-type ProviderConfig struct {
-	Value     *pkgruntime.RawExtension
-	ValueFrom *ProviderConfigSource
 }
 
 // +genclient
@@ -185,7 +120,11 @@ type MachineSet struct {
 	Status MachineSetStatus
 }
 
-type ProviderConfigSource struct {
+type ClusterStatus struct {
+	APIEndpoints   []APIEndpoint
+	ErrorReason    clustercommon.ClusterStatusError
+	ErrorMessage   string
+	ProviderStatus string
 }
 
 type MachineSetStatus struct {
@@ -198,6 +137,11 @@ type MachineSetStatus struct {
 	ErrorMessage         *string
 }
 
+type APIEndpoint struct {
+	Host string
+	Port int
+}
+
 type MachineSetSpec struct {
 	Replicas        *int32
 	MinReadySeconds int32
@@ -205,9 +149,71 @@ type MachineSetSpec struct {
 	Template        MachineTemplateSpec
 }
 
+type ClusterSpec struct {
+	ClusterNetwork ClusterNetworkingConfig
+	ProviderConfig string
+}
+
 type MachineTemplateSpec struct {
 	metav1.ObjectMeta
 	Spec MachineSpec
+}
+
+type ClusterNetworkingConfig struct {
+	Services      NetworkRanges
+	Pods          NetworkRanges
+	ServiceDomain string
+}
+
+type MachineSpec struct {
+	metav1.ObjectMeta
+	Taints         []corev1.Taint
+	ProviderConfig ProviderConfig
+	Roles          []clustercommon.MachineRole
+	Versions       MachineVersionInfo
+	ConfigSource   *corev1.NodeConfigSource
+}
+
+type NetworkRanges struct {
+	CIDRBlocks []string
+}
+
+type MachineVersionInfo struct {
+	Kubelet          string
+	ControlPlane     string
+	ContainerRuntime ContainerRuntimeInfo
+}
+
+type ProviderConfig struct {
+	Value     *pkgruntime.RawExtension
+	ValueFrom *ProviderConfigSource
+}
+
+type ContainerRuntimeInfo struct {
+	Name    string
+	Version string
+}
+
+type ProviderConfigSource struct {
+}
+
+// +genclient
+// +genclient
+// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
+
+type Machine struct {
+	metav1.TypeMeta
+	metav1.ObjectMeta
+	Spec   MachineSpec
+	Status MachineStatus
+}
+
+type MachineStatus struct {
+	NodeRef      *corev1.ObjectReference
+	LastUpdated  metav1.Time
+	Versions     *MachineVersionInfo
+	ErrorReason  *clustercommon.MachineStatusError
+	ErrorMessage *string
 }
 
 //
@@ -308,7 +314,7 @@ func (s *storageCluster) GetCluster(ctx request.Context, id string, options *met
 
 func (s *storageCluster) CreateCluster(ctx request.Context, object *Cluster) (*Cluster, error) {
 	st := s.GetStandardStorage()
-	obj, err := st.Create(ctx, object, false)
+	obj, err := st.Create(ctx, object, nil, true)
 	if err != nil {
 		return nil, err
 	}
@@ -317,7 +323,7 @@ func (s *storageCluster) CreateCluster(ctx request.Context, object *Cluster) (*C
 
 func (s *storageCluster) UpdateCluster(ctx request.Context, object *Cluster) (*Cluster, error) {
 	st := s.GetStandardStorage()
-	obj, _, err := st.Update(ctx, object.Name, rest.DefaultUpdatedObjectInfo(object, builders.Scheme))
+	obj, _, err := st.Update(ctx, object.Name, rest.DefaultUpdatedObjectInfo(object), nil, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -428,7 +434,7 @@ func (s *storageMachine) GetMachine(ctx request.Context, id string, options *met
 
 func (s *storageMachine) CreateMachine(ctx request.Context, object *Machine) (*Machine, error) {
 	st := s.GetStandardStorage()
-	obj, err := st.Create(ctx, object, false)
+	obj, err := st.Create(ctx, object, nil, true)
 	if err != nil {
 		return nil, err
 	}
@@ -437,7 +443,7 @@ func (s *storageMachine) CreateMachine(ctx request.Context, object *Machine) (*M
 
 func (s *storageMachine) UpdateMachine(ctx request.Context, object *Machine) (*Machine, error) {
 	st := s.GetStandardStorage()
-	obj, _, err := st.Update(ctx, object.Name, rest.DefaultUpdatedObjectInfo(object, builders.Scheme))
+	obj, _, err := st.Update(ctx, object.Name, rest.DefaultUpdatedObjectInfo(object), nil, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -548,7 +554,7 @@ func (s *storageMachineSet) GetMachineSet(ctx request.Context, id string, option
 
 func (s *storageMachineSet) CreateMachineSet(ctx request.Context, object *MachineSet) (*MachineSet, error) {
 	st := s.GetStandardStorage()
-	obj, err := st.Create(ctx, object, false)
+	obj, err := st.Create(ctx, object, nil, true)
 	if err != nil {
 		return nil, err
 	}
@@ -557,7 +563,7 @@ func (s *storageMachineSet) CreateMachineSet(ctx request.Context, object *Machin
 
 func (s *storageMachineSet) UpdateMachineSet(ctx request.Context, object *MachineSet) (*MachineSet, error) {
 	st := s.GetStandardStorage()
-	obj, _, err := st.Update(ctx, object.Name, rest.DefaultUpdatedObjectInfo(object, builders.Scheme))
+	obj, _, err := st.Update(ctx, object.Name, rest.DefaultUpdatedObjectInfo(object), nil, nil)
 	if err != nil {
 		return nil, err
 	}

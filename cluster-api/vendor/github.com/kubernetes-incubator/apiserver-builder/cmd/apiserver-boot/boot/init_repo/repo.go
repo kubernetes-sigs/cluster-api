@@ -27,8 +27,8 @@ import (
 
 var repoCmd = &cobra.Command{
 	Use:     "repo",
-	Short:   "Initialize a repo with the apiserver scaffolding and glide dependencies",
-	Long:    `Initialize a repo with the apiserver scaffolding and glide dependencies`,
+	Short:   "Initialize a repo with the apiserver scaffolding and vendor/ dependencies",
+	Long:    `Initialize a repo with the apiserver scaffolding and vendor/ dependencies`,
 	Example: `apiserver-boot init repo --domain mydomain`,
 	Run:     RunInitRepo,
 }
@@ -46,7 +46,7 @@ func AddInitRepo(cmd *cobra.Command) {
 	repoCmd.Flags().
 		BoolVar(&installDeps, "install-deps", true, "if true, install the vendored deps packaged with apiserver-boot.")
 	repoCmd.Flags().
-		BoolVar(&Update, "update", false, "if true, don't touch glide.yaml or glide.lock, and replace versions of packages managed by apiserver-boot.")
+		BoolVar(&Update, "update", false, "if true, don't touch Gopkg.toml or Gopkg.lock, and replace versions of packages managed by apiserver-boot.")
 	repoCmd.Flags().MarkHidden("install-deps")
 }
 
@@ -69,8 +69,8 @@ func RunInitRepo(cmd *cobra.Command, args []string) {
 	os.MkdirAll("bin", 0700)
 
 	if installDeps {
-		log.Printf("installing godeps.  To disable this, run with --install-deps=false.")
-		CopyGlide()
+		log.Printf("installing vendor/ directory.  To disable this, run with --install-deps=false.")
+		RunVendorInstall(nil, nil)
 	}
 }
 
@@ -147,7 +147,7 @@ var apiserverTemplate = `
 package main
 
 import (
-	// Make sure glide gets these dependencies
+	// Make sure dep tools picks up these dependencies
 	_ "k8s.io/apimachinery/pkg/apis/meta/v1"
 	_ "github.com/go-openapi/loads"
 

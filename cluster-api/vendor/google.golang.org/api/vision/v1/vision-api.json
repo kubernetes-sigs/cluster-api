@@ -140,9 +140,170 @@
           ]
         }
       }
+    },
+    "locations": {
+      "resources": {
+        "operations": {
+          "methods": {
+            "get": {
+              "description": "Gets the latest state of a long-running operation.  Clients can use this\nmethod to poll the operation result at intervals as recommended by the API\nservice.",
+              "flatPath": "v1/locations/{locationsId}/operations/{operationsId}",
+              "httpMethod": "GET",
+              "id": "vision.locations.operations.get",
+              "parameterOrder": [
+                "name"
+              ],
+              "parameters": {
+                "name": {
+                  "description": "The name of the operation resource.",
+                  "location": "path",
+                  "pattern": "^locations/[^/]+/operations/[^/]+$",
+                  "required": true,
+                  "type": "string"
+                }
+              },
+              "path": "v1/{+name}",
+              "response": {
+                "$ref": "Operation"
+              },
+              "scopes": [
+                "https://www.googleapis.com/auth/cloud-platform",
+                "https://www.googleapis.com/auth/cloud-vision"
+              ]
+            }
+          }
+        }
+      }
+    },
+    "operations": {
+      "methods": {
+        "cancel": {
+          "description": "Starts asynchronous cancellation on a long-running operation.  The server\nmakes a best effort to cancel the operation, but success is not\nguaranteed.  If the server doesn't support this method, it returns\n`google.rpc.Code.UNIMPLEMENTED`.  Clients can use\nOperations.GetOperation or\nother methods to check whether the cancellation succeeded or whether the\noperation completed despite cancellation. On successful cancellation,\nthe operation is not deleted; instead, it becomes an operation with\nan Operation.error value with a google.rpc.Status.code of 1,\ncorresponding to `Code.CANCELLED`.",
+          "flatPath": "v1/operations/{operationsId}:cancel",
+          "httpMethod": "POST",
+          "id": "vision.operations.cancel",
+          "parameterOrder": [
+            "name"
+          ],
+          "parameters": {
+            "name": {
+              "description": "The name of the operation resource to be cancelled.",
+              "location": "path",
+              "pattern": "^operations/.+$",
+              "required": true,
+              "type": "string"
+            }
+          },
+          "path": "v1/{+name}:cancel",
+          "request": {
+            "$ref": "CancelOperationRequest"
+          },
+          "response": {
+            "$ref": "Empty"
+          },
+          "scopes": [
+            "https://www.googleapis.com/auth/cloud-platform",
+            "https://www.googleapis.com/auth/cloud-vision"
+          ]
+        },
+        "delete": {
+          "description": "Deletes a long-running operation. This method indicates that the client is\nno longer interested in the operation result. It does not cancel the\noperation. If the server doesn't support this method, it returns\n`google.rpc.Code.UNIMPLEMENTED`.",
+          "flatPath": "v1/operations/{operationsId}",
+          "httpMethod": "DELETE",
+          "id": "vision.operations.delete",
+          "parameterOrder": [
+            "name"
+          ],
+          "parameters": {
+            "name": {
+              "description": "The name of the operation resource to be deleted.",
+              "location": "path",
+              "pattern": "^operations/.+$",
+              "required": true,
+              "type": "string"
+            }
+          },
+          "path": "v1/{+name}",
+          "response": {
+            "$ref": "Empty"
+          },
+          "scopes": [
+            "https://www.googleapis.com/auth/cloud-platform",
+            "https://www.googleapis.com/auth/cloud-vision"
+          ]
+        },
+        "get": {
+          "description": "Gets the latest state of a long-running operation.  Clients can use this\nmethod to poll the operation result at intervals as recommended by the API\nservice.",
+          "flatPath": "v1/operations/{operationsId}",
+          "httpMethod": "GET",
+          "id": "vision.operations.get",
+          "parameterOrder": [
+            "name"
+          ],
+          "parameters": {
+            "name": {
+              "description": "The name of the operation resource.",
+              "location": "path",
+              "pattern": "^operations/[^/]+$",
+              "required": true,
+              "type": "string"
+            }
+          },
+          "path": "v1/{+name}",
+          "response": {
+            "$ref": "Operation"
+          },
+          "scopes": [
+            "https://www.googleapis.com/auth/cloud-platform",
+            "https://www.googleapis.com/auth/cloud-vision"
+          ]
+        },
+        "list": {
+          "description": "Lists operations that match the specified filter in the request. If the\nserver doesn't support this method, it returns `UNIMPLEMENTED`.\n\nNOTE: the `name` binding allows API services to override the binding\nto use different resource name schemes, such as `users/*/operations`. To\noverride the binding, API services can add a binding such as\n`\"/v1/{name=users/*}/operations\"` to their service configuration.\nFor backwards compatibility, the default name includes the operations\ncollection id, however overriding users must ensure the name binding\nis the parent resource, without the operations collection id.",
+          "flatPath": "v1/operations",
+          "httpMethod": "GET",
+          "id": "vision.operations.list",
+          "parameterOrder": [
+            "name"
+          ],
+          "parameters": {
+            "filter": {
+              "description": "The standard list filter.",
+              "location": "query",
+              "type": "string"
+            },
+            "name": {
+              "description": "The name of the operation's parent resource.",
+              "location": "path",
+              "pattern": "^operations$",
+              "required": true,
+              "type": "string"
+            },
+            "pageSize": {
+              "description": "The standard list page size.",
+              "format": "int32",
+              "location": "query",
+              "type": "integer"
+            },
+            "pageToken": {
+              "description": "The standard list page token.",
+              "location": "query",
+              "type": "string"
+            }
+          },
+          "path": "v1/{+name}",
+          "response": {
+            "$ref": "ListOperationsResponse"
+          },
+          "scopes": [
+            "https://www.googleapis.com/auth/cloud-platform",
+            "https://www.googleapis.com/auth/cloud-vision"
+          ]
+        }
+      }
     }
   },
-  "revision": "20180122",
+  "revision": "20180320",
   "rootUrl": "https://vision.googleapis.com/",
   "schemas": {
     "AnnotateImageRequest": {
@@ -322,6 +483,12 @@
       },
       "type": "object"
     },
+    "CancelOperationRequest": {
+      "description": "The request message for Operations.CancelOperation.",
+      "id": "CancelOperationRequest",
+      "properties": {},
+      "type": "object"
+    },
     "Color": {
       "description": "Represents a color in the RGBA color space. This representation is designed\nfor simplicity of conversion to/from color representations in various\nlanguages over compactness; for example, the fields of this representation\ncan be trivially provided to the constructor of \"java.awt.Color\" in Java; it\ncan also be trivially provided to UIColor's \"+colorWithRed:green:blue:alpha\"\nmethod in iOS; and, with just a little work, it can be easily formatted into\na CSS \"rgba()\" string in JavaScript, as well. Here are some examples:\n\nExample (Java):\n\n     import com.google.type.Color;\n\n     // ...\n     public static java.awt.Color fromProto(Color protocolor) {\n       float alpha = protocolor.hasAlpha()\n           ? protocolor.getAlpha().getValue()\n           : 1.0;\n\n       return new java.awt.Color(\n           protocolor.getRed(),\n           protocolor.getGreen(),\n           protocolor.getBlue(),\n           alpha);\n     }\n\n     public static Color toProto(java.awt.Color color) {\n       float red = (float) color.getRed();\n       float green = (float) color.getGreen();\n       float blue = (float) color.getBlue();\n       float denominator = 255.0;\n       Color.Builder resultBuilder =\n           Color\n               .newBuilder()\n               .setRed(red / denominator)\n               .setGreen(green / denominator)\n               .setBlue(blue / denominator);\n       int alpha = color.getAlpha();\n       if (alpha != 255) {\n         result.setAlpha(\n             FloatValue\n                 .newBuilder()\n                 .setValue(((float) alpha) / denominator)\n                 .build());\n       }\n       return resultBuilder.build();\n     }\n     // ...\n\nExample (iOS / Obj-C):\n\n     // ...\n     static UIColor* fromProto(Color* protocolor) {\n        float red = [protocolor red];\n        float green = [protocolor green];\n        float blue = [protocolor blue];\n        FloatValue* alpha_wrapper = [protocolor alpha];\n        float alpha = 1.0;\n        if (alpha_wrapper != nil) {\n          alpha = [alpha_wrapper value];\n        }\n        return [UIColor colorWithRed:red green:green blue:blue alpha:alpha];\n     }\n\n     static Color* toProto(UIColor* color) {\n         CGFloat red, green, blue, alpha;\n         if (![color getRed:\u0026red green:\u0026green blue:\u0026blue alpha:\u0026alpha]) {\n           return nil;\n         }\n         Color* result = [Color alloc] init];\n         [result setRed:red];\n         [result setGreen:green];\n         [result setBlue:blue];\n         if (alpha \u003c= 0.9999) {\n           [result setAlpha:floatWrapperWithValue(alpha)];\n         }\n         [result autorelease];\n         return result;\n    }\n    // ...\n\n Example (JavaScript):\n\n    // ...\n\n    var protoToCssColor = function(rgb_color) {\n       var redFrac = rgb_color.red || 0.0;\n       var greenFrac = rgb_color.green || 0.0;\n       var blueFrac = rgb_color.blue || 0.0;\n       var red = Math.floor(redFrac * 255);\n       var green = Math.floor(greenFrac * 255);\n       var blue = Math.floor(blueFrac * 255);\n\n       if (!('alpha' in rgb_color)) {\n          return rgbToCssColor_(red, green, blue);\n       }\n\n       var alphaFrac = rgb_color.alpha.value || 0.0;\n       var rgbParams = [red, green, blue].join(',');\n       return ['rgba(', rgbParams, ',', alphaFrac, ')'].join('');\n    };\n\n    var rgbToCssColor_ = function(red, green, blue) {\n      var rgbNumber = new Number((red \u003c\u003c 16) | (green \u003c\u003c 8) | blue);\n      var hexString = rgbNumber.toString(16);\n      var missingZeros = 6 - hexString.length;\n      var resultBuilder = ['#'];\n      for (var i = 0; i \u003c missingZeros; i++) {\n         resultBuilder.push('0');\n      }\n      resultBuilder.push(hexString);\n      return resultBuilder.join('');\n    };\n\n    // ...",
       "id": "Color",
@@ -479,6 +646,12 @@
           "type": "array"
         }
       },
+      "type": "object"
+    },
+    "Empty": {
+      "description": "A generic empty message that you can re-use to avoid defining duplicated\nempty messages in your APIs. A typical example is to use it as the request\nor the response type of an API method. For instance:\n\n    service Foo {\n      rpc Bar(google.protobuf.Empty) returns (google.protobuf.Empty);\n    }\n\nThe JSON representation for `Empty` is empty JSON object `{}`.",
+      "id": "Empty",
+      "properties": {},
       "type": "object"
     },
     "EntityAnnotation": {
@@ -766,6 +939,100 @@
       },
       "type": "object"
     },
+    "GoogleCloudVisionV1p2beta1AsyncAnnotateFileResponse": {
+      "description": "The response for a single offline file annotation request.",
+      "id": "GoogleCloudVisionV1p2beta1AsyncAnnotateFileResponse",
+      "properties": {
+        "outputConfig": {
+          "$ref": "GoogleCloudVisionV1p2beta1OutputConfig",
+          "description": "The output location and metadata from AsyncAnnotateFileRequest."
+        },
+        "outputs": {
+          "description": "The full list of output files in GCS.",
+          "items": {
+            "$ref": "GoogleCloudVisionV1p2beta1GcsDestination"
+          },
+          "type": "array"
+        }
+      },
+      "type": "object"
+    },
+    "GoogleCloudVisionV1p2beta1AsyncBatchAnnotateFilesResponse": {
+      "description": "Response to an async batch file annotation request.",
+      "id": "GoogleCloudVisionV1p2beta1AsyncBatchAnnotateFilesResponse",
+      "properties": {
+        "responses": {
+          "description": "The list of file annotation responses, one for each request in\nAsyncBatchAnnotateFilesRequest.",
+          "items": {
+            "$ref": "GoogleCloudVisionV1p2beta1AsyncAnnotateFileResponse"
+          },
+          "type": "array"
+        }
+      },
+      "type": "object"
+    },
+    "GoogleCloudVisionV1p2beta1GcsDestination": {
+      "description": "The Google Cloud Storage location where the output will be written to.",
+      "id": "GoogleCloudVisionV1p2beta1GcsDestination",
+      "properties": {
+        "uri": {
+          "description": "Google Cloud Storage URI where the results will be stored. Results will\nbe in JSON format and preceded by its corresponding input URI. This field\ncan either represent a single file, or a prefix for multiple outputs.\nPrefixes must end in a `/`.\n\nExamples:\n\n*    File: gs://bucket-name/filename.json\n*    Prefix: gs://bucket-name/prefix/here/\n*    File: gs://bucket-name/prefix/here\n\nIf multiple outputs, each response is still AnnotateFileResponse, each of\nwhich contains some subset of the full list of AnnotateImageResponse.\nMultiple outputs can happen if, for example, the output JSON is too large\nand overflows into multiple sharded files.",
+          "type": "string"
+        }
+      },
+      "type": "object"
+    },
+    "GoogleCloudVisionV1p2beta1OperationMetadata": {
+      "description": "Contains metadata for the BatchAnnotateImages operation.",
+      "id": "GoogleCloudVisionV1p2beta1OperationMetadata",
+      "properties": {
+        "createTime": {
+          "description": "The time when the batch request was received.",
+          "format": "google-datetime",
+          "type": "string"
+        },
+        "state": {
+          "description": "Current state of the batch operation.",
+          "enum": [
+            "STATE_UNSPECIFIED",
+            "CREATED",
+            "RUNNING",
+            "DONE",
+            "CANCELLED"
+          ],
+          "enumDescriptions": [
+            "Invalid.",
+            "Request is received.",
+            "Request is actively being processed.",
+            "The batch processing is done.",
+            "The batch processing was cancelled."
+          ],
+          "type": "string"
+        },
+        "updateTime": {
+          "description": "The time when the operation result was last updated.",
+          "format": "google-datetime",
+          "type": "string"
+        }
+      },
+      "type": "object"
+    },
+    "GoogleCloudVisionV1p2beta1OutputConfig": {
+      "description": "The desired output location and metadata.",
+      "id": "GoogleCloudVisionV1p2beta1OutputConfig",
+      "properties": {
+        "batchSize": {
+          "description": "The max number of response protos to put into each output JSON file on GCS.\nThe valid range is [1, 100]. If not specified, the default value is 20.\n\nFor example, for one pdf file with 100 pages, 100 response protos will\nbe generated. If `batch_size` = 20, then 5 json files each\ncontaining 20 response protos will be written under the prefix\n`gcs_destination`.`uri`.\n\nCurrently, batch_size only applies to GcsDestination, with potential future\nsupport for other output configurations.",
+          "format": "int32",
+          "type": "integer"
+        },
+        "gcsDestination": {
+          "$ref": "GoogleCloudVisionV1p2beta1GcsDestination",
+          "description": "The Google Cloud Storage location to write the output(s) to."
+        }
+      },
+      "type": "object"
+    },
     "Image": {
       "description": "Client image to perform Google Cloud Vision API tasks over.",
       "id": "Image",
@@ -955,6 +1222,24 @@
       },
       "type": "object"
     },
+    "ListOperationsResponse": {
+      "description": "The response message for Operations.ListOperations.",
+      "id": "ListOperationsResponse",
+      "properties": {
+        "nextPageToken": {
+          "description": "The standard List next-page token.",
+          "type": "string"
+        },
+        "operations": {
+          "description": "A list of operations that matches the specified filter in the request.",
+          "items": {
+            "$ref": "Operation"
+          },
+          "type": "array"
+        }
+      },
+      "type": "object"
+    },
     "LocationInfo": {
       "description": "Detected entity location information.",
       "id": "LocationInfo",
@@ -962,6 +1247,41 @@
         "latLng": {
           "$ref": "LatLng",
           "description": "lat/long location coordinates."
+        }
+      },
+      "type": "object"
+    },
+    "Operation": {
+      "description": "This resource represents a long-running operation that is the result of a\nnetwork API call.",
+      "id": "Operation",
+      "properties": {
+        "done": {
+          "description": "If the value is `false`, it means the operation is still in progress.\nIf `true`, the operation is completed, and either `error` or `response` is\navailable.",
+          "type": "boolean"
+        },
+        "error": {
+          "$ref": "Status",
+          "description": "The error result of the operation in case of failure or cancellation."
+        },
+        "metadata": {
+          "additionalProperties": {
+            "description": "Properties of the object. Contains field @type with type URL.",
+            "type": "any"
+          },
+          "description": "Service-specific metadata associated with the operation.  It typically\ncontains progress information and common metadata such as create time.\nSome services might not provide such metadata.  Any method that returns a\nlong-running operation should document the metadata type, if any.",
+          "type": "object"
+        },
+        "name": {
+          "description": "The server-assigned name, which is only unique within the same service that\noriginally returns it. If you use the default HTTP mapping, the\n`name` should have the format of `operations/some/unique/name`.",
+          "type": "string"
+        },
+        "response": {
+          "additionalProperties": {
+            "description": "Properties of the object. Contains field @type with type URL.",
+            "type": "any"
+          },
+          "description": "The normal response of the operation in case of success.  If the original\nmethod returns no data on success, such as `Delete`, the response is\n`google.protobuf.Empty`.  If the original method is standard\n`Get`/`Create`/`Update`, the response should be the resource.  For other\nmethods, the response should have the type `XxxResponse`, where `Xxx`\nis the original method name.  For example, if the original method name\nis `TakeSnapshot()`, the inferred response type is\n`TakeSnapshotResponse`.",
+          "type": "object"
         }
       },
       "type": "object"
@@ -983,7 +1303,7 @@
           "type": "number"
         },
         "height": {
-          "description": "Page height in pixels.",
+          "description": "Page height. For PDFs the unit is points. For images (including\nTIFFs) the unit is pixels.",
           "format": "int32",
           "type": "integer"
         },
@@ -992,7 +1312,7 @@
           "description": "Additional information detected on the page."
         },
         "width": {
-          "description": "Page width in pixels.",
+          "description": "Page width. For PDFs the unit is points. For images (including\nTIFFs) the unit is pixels.",
           "format": "int32",
           "type": "integer"
         }
@@ -1453,7 +1773,7 @@
     }
   },
   "servicePath": "",
-  "title": "Google Cloud Vision API",
+  "title": "Cloud Vision API",
   "version": "v1",
   "version_module": true
 }

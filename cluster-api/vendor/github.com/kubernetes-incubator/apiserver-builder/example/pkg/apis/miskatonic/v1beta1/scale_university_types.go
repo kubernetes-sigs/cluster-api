@@ -44,7 +44,7 @@ type ScaleUniversityREST struct {
 	Registry miskatonic.UniversityRegistry
 }
 
-func (r *ScaleUniversityREST) Create(ctx request.Context, obj runtime.Object, includeUninitialized bool) (runtime.Object, error) {
+func (r *ScaleUniversityREST) Create(ctx request.Context, obj runtime.Object, createValidation rest.ValidateObjectFunc, includeUninitialized bool) (runtime.Object, error) {
 	scale := obj.(*Scale)
 	u, err := r.Registry.GetUniversity(ctx, scale.Name, &metav1.GetOptions{})
 	if err != nil {
@@ -61,7 +61,7 @@ func (r *ScaleUniversityREST) Get(ctx request.Context, name string, options *met
 }
 
 // Update alters the status subset of an object.
-func (r *ScaleUniversityREST) Update(ctx request.Context, name string, objInfo rest.UpdatedObjectInfo) (runtime.Object, bool, error) {
+func (r *ScaleUniversityREST) Update(ctx request.Context, name string, objInfo rest.UpdatedObjectInfo, createValidation rest.ValidateObjectFunc, updateValidation rest.ValidateObjectUpdateFunc) (runtime.Object, bool, error) {
 	return nil, false, nil
 }
 

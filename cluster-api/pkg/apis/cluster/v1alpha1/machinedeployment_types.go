@@ -94,7 +94,8 @@ type MachineDeploymentSpec struct {
 // MachineDeploymentStrategy describes how to replace existing machines
 // with new ones.
 type MachineDeploymentStrategy struct {
-	// Type of deployment. Can be only be "RollingUpdate".
+	// Type of deployment. Currently the only supported strategy is
+	// "RollingUpdate".
 	// Default is RollingUpdate.
 	// +optional
 	Type common.MachineDeploymentStrategyType `json:"type,omitempty"`

@@ -23953,7 +23953,7 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 					Properties: map[string]spec.Schema{
 						"type": {
 							SchemaProps: spec.SchemaProps{
-								Description: "Type of deployment. Can be only be \"RollingUpdate\". Default is RollingUpdate.",
+								Description: "Type of deployment. Currently the only supported strategy is \"RollingUpdate\". Default is RollingUpdate.",
 								Type:        []string{"string"},
 								Format:      "",
 							},

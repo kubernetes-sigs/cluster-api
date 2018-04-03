@@ -121,3 +121,11 @@ const (
 	// Example: the ProviderConfig specifies an instance type that doesn't exist.
 	InvalidConfigurationMachineSetError MachineSetStatusError = "InvalidConfiguration"
 )
+
+type MachineDeploymentStrategyType string
+
+const (
+	// Replace the old MachineSet by new one using rolling update
+	// i.e gradually scale down the old MachineSet and scale up the new one.
+	RollingUpdateMachineDeploymentStrategyType MachineDeploymentStrategyType = "RollingUpdate"
+)

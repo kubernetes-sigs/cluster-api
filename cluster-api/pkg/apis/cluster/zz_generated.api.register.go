@@ -27,6 +27,7 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	pkgruntime "k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
+	utilintstr "k8s.io/apimachinery/pkg/util/intstr"
 	"k8s.io/apiserver/pkg/endpoints/request"
 	"k8s.io/apiserver/pkg/registry/rest"
 	clustercommon "k8s.io/kube-deploy/cluster-api/pkg/apis/cluster/common"
@@ -57,6 +58,18 @@ var (
 		func() runtime.Object { return &Machine{} },
 		func() runtime.Object { return &MachineList{} },
 	)
+	InternalMachineDeployment = builders.NewInternalResource(
+		"machinedeployments",
+		"MachineDeployment",
+		func() runtime.Object { return &MachineDeployment{} },
+		func() runtime.Object { return &MachineDeploymentList{} },
+	)
+	InternalMachineDeploymentStatus = builders.NewInternalResourceStatus(
+		"machinedeployments",
+		"MachineDeploymentStatus",
+		func() runtime.Object { return &MachineDeployment{} },
+		func() runtime.Object { return &MachineDeploymentList{} },
+	)
 	InternalMachineSet = builders.NewInternalResource(
 		"machinesets",
 		"MachineSet",
@@ -75,6 +88,8 @@ var (
 		InternalClusterStatus,
 		InternalMachine,
 		InternalMachineStatus,
+		InternalMachineDeployment,
+		InternalMachineDeploymentStatus,
 		InternalMachineSet,
 		InternalMachineSetStatus,
 	)
@@ -201,11 +216,31 @@ type ProviderConfigSource struct {
 // +genclient
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
 
+type MachineDeployment struct {
+	metav1.TypeMeta
+	metav1.ObjectMeta
+	Spec   MachineDeploymentSpec
+	Status MachineDeploymentStatus
+}
+
+// +genclient
+// +genclient
+// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
+
 type Machine struct {
 	metav1.TypeMeta
 	metav1.ObjectMeta
 	Spec   MachineSpec
 	Status MachineStatus
+}
+
+type MachineDeploymentStatus struct {
+	ObservedGeneration  int64
+	Replicas            int32
+	UpdatedReplicas     int32
+	ReadyReplicas       int32
+	AvailableReplicas   int32
+	UnavailableReplicas int32
 }
 
 type MachineStatus struct {
@@ -214,6 +249,27 @@ type MachineStatus struct {
 	Versions     *MachineVersionInfo
 	ErrorReason  *clustercommon.MachineStatusError
 	ErrorMessage *string
+}
+
+type MachineDeploymentSpec struct {
+	Replicas                *int32
+	Selector                metav1.LabelSelector
+	Template                MachineTemplateSpec
+	Strategy                MachineDeploymentStrategy
+	MinReadySeconds         *int32
+	RevisionHistoryLimit    *int32
+	Paused                  bool
+	ProgressDeadlineSeconds *int32
+}
+
+type MachineDeploymentStrategy struct {
+	Type          clustercommon.MachineDeploymentStrategyType
+	RollingUpdate *MachineRollingUpdateDeployment
+}
+
+type MachineRollingUpdateDeployment struct {
+	MaxUnavailable *utilintstr.IntOrString
+	MaxSurge       *utilintstr.IntOrString
 }
 
 //
@@ -451,6 +507,126 @@ func (s *storageMachine) UpdateMachine(ctx request.Context, object *Machine) (*M
 }
 
 func (s *storageMachine) DeleteMachine(ctx request.Context, id string) (bool, error) {
+	st := s.GetStandardStorage()
+	_, sync, err := st.Delete(ctx, id, nil)
+	return sync, err
+}
+
+//
+// MachineDeployment Functions and Structs
+//
+// +k8s:deepcopy-gen=false
+type MachineDeploymentValidationStrategy struct {
+	builders.DefaultStorageStrategy
+}
+
+// +k8s:deepcopy-gen=false
+type MachineDeploymentValidationStatusStrategy struct {
+	builders.DefaultStatusStorageStrategy
+}
+
+// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
+
+type MachineDeploymentList struct {
+	metav1.TypeMeta
+	metav1.ListMeta
+	Items []MachineDeployment
+}
+
+func (MachineDeployment) NewStatus() interface{} {
+	return MachineDeploymentStatus{}
+}
+
+func (pc *MachineDeployment) GetStatus() interface{} {
+	return pc.Status
+}
+
+func (pc *MachineDeployment) SetStatus(s interface{}) {
+	pc.Status = s.(MachineDeploymentStatus)
+}
+
+func (pc *MachineDeployment) GetSpec() interface{} {
+	return pc.Spec
+}
+
+func (pc *MachineDeployment) SetSpec(s interface{}) {
+	pc.Spec = s.(MachineDeploymentSpec)
+}
+
+func (pc *MachineDeployment) GetObjectMeta() *metav1.ObjectMeta {
+	return &pc.ObjectMeta
+}
+
+func (pc *MachineDeployment) SetGeneration(generation int64) {
+	pc.ObjectMeta.Generation = generation
+}
+
+func (pc MachineDeployment) GetGeneration() int64 {
+	return pc.ObjectMeta.Generation
+}
+
+// Registry is an interface for things that know how to store MachineDeployment.
+// +k8s:deepcopy-gen=false
+type MachineDeploymentRegistry interface {
+	ListMachineDeployments(ctx request.Context, options *internalversion.ListOptions) (*MachineDeploymentList, error)
+	GetMachineDeployment(ctx request.Context, id string, options *metav1.GetOptions) (*MachineDeployment, error)
+	CreateMachineDeployment(ctx request.Context, id *MachineDeployment) (*MachineDeployment, error)
+	UpdateMachineDeployment(ctx request.Context, id *MachineDeployment) (*MachineDeployment, error)
+	DeleteMachineDeployment(ctx request.Context, id string) (bool, error)
+}
+
+// NewRegistry returns a new Registry interface for the given Storage. Any mismatched types will panic.
+func NewMachineDeploymentRegistry(sp builders.StandardStorageProvider) MachineDeploymentRegistry {
+	return &storageMachineDeployment{sp}
+}
+
+// Implement Registry
+// storage puts strong typing around storage calls
+// +k8s:deepcopy-gen=false
+type storageMachineDeployment struct {
+	builders.StandardStorageProvider
+}
+
+func (s *storageMachineDeployment) ListMachineDeployments(ctx request.Context, options *internalversion.ListOptions) (*MachineDeploymentList, error) {
+	if options != nil && options.FieldSelector != nil && !options.FieldSelector.Empty() {
+		return nil, fmt.Errorf("field selector not supported yet")
+	}
+	st := s.GetStandardStorage()
+	obj, err := st.List(ctx, options)
+	if err != nil {
+		return nil, err
+	}
+	return obj.(*MachineDeploymentList), err
+}
+
+func (s *storageMachineDeployment) GetMachineDeployment(ctx request.Context, id string, options *metav1.GetOptions) (*MachineDeployment, error) {
+	st := s.GetStandardStorage()
+	obj, err := st.Get(ctx, id, options)
+	if err != nil {
+		return nil, err
+	}
+	return obj.(*MachineDeployment), nil
+}
+
+func (s *storageMachineDeployment) CreateMachineDeployment(ctx request.Context, object *MachineDeployment) (*MachineDeployment, error) {
+	st := s.GetStandardStorage()
+	obj, err := st.Create(ctx, object, nil, true)
+	if err != nil {
+		return nil, err
+	}
+	return obj.(*MachineDeployment), nil
+}
+
+func (s *storageMachineDeployment) UpdateMachineDeployment(ctx request.Context, object *MachineDeployment) (*MachineDeployment, error) {
+	st := s.GetStandardStorage()
+	obj, _, err := st.Update(ctx, object.Name, rest.DefaultUpdatedObjectInfo(object), nil, nil)
+	if err != nil {
+		return nil, err
+	}
+	return obj.(*MachineDeployment), nil
+}
+
+func (s *storageMachineDeployment) DeleteMachineDeployment(ctx request.Context, id string) (bool, error) {
 	st := s.GetStandardStorage()
 	_, sync, err := st.Delete(ctx, id, nil)
 	return sync, err

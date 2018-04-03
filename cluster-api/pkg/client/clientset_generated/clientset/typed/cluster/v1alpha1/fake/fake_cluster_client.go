@@ -33,6 +33,10 @@ func (c *FakeClusterV1alpha1) Machines(namespace string) v1alpha1.MachineInterfa
 	return &FakeMachines{c, namespace}
 }
 
+func (c *FakeClusterV1alpha1) MachineDeployments(namespace string) v1alpha1.MachineDeploymentInterface {
+	return &FakeMachineDeployments{c, namespace}
+}
+
 func (c *FakeClusterV1alpha1) MachineSets(namespace string) v1alpha1.MachineSetInterface {
 	return &FakeMachineSets{c, namespace}
 }

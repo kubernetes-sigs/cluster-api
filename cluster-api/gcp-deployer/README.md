@@ -9,6 +9,7 @@ The Cluster API GCP prototype implements the [Cluster API](https://github.com/ku
 Follow the steps listed at [CONTRIBUTING.md](https://github.com/kubernetes/kube-deploy/blob/master/cluster-api/gcp-deployer/CONTRIBUTING.md) to:
 1. Build the `gcp-deployer` tool
 2. Generate base `machines.yaml` file configured for your GCP project
+3. Login with gcloud `gcloud auth application-default login`
 
 ### Limitation
 

@@ -50,7 +50,6 @@ const (
 	ZoneAnnotationKey    = "gcp-zone"
 	NameAnnotationKey    = "gcp-name"
 
-	UIDLabelKey       = "machine-crd-uid"
 	BootstrapLabelKey = "boostrap"
 )
 
@@ -216,9 +215,7 @@ func (gce *GCEClient) Create(cluster *clusterv1.Cluster, machine *clusterv1.Mach
 	}
 
 	if instance == nil {
-		labels := map[string]string{
-			UIDLabelKey: fmt.Sprintf("%v", machine.ObjectMeta.UID),
-		}
+	  labels := map[string]string{}
 		if gce.machineClient == nil {
 			labels[BootstrapLabelKey] = "true"
 		}
@@ -474,8 +471,7 @@ func (gce *GCEClient) requiresUpdate(a *clusterv1.Machine, b *clusterv1.Machine)
 		!reflect.DeepEqual(a.Spec.ProviderConfig, b.Spec.ProviderConfig) ||
 		!reflect.DeepEqual(a.Spec.Roles, b.Spec.Roles) ||
 		!reflect.DeepEqual(a.Spec.Versions, b.Spec.Versions) ||
-		a.ObjectMeta.Name != b.ObjectMeta.Name ||
-		a.ObjectMeta.UID != b.ObjectMeta.UID
+		a.ObjectMeta.Name != b.ObjectMeta.Name
 }
 
 // Gets the instance represented by the given machine
@@ -506,18 +502,6 @@ func (gce *GCEClient) instanceIfExists(machine *clusterv1.Machine) (*compute.Ins
 			return nil, nil
 		}
 		return nil, err
-	}
-
-	uid := instance.Labels[UIDLabelKey]
-	if uid == "" {
-		if instance.Labels[BootstrapLabelKey] != "" {
-			glog.Infof("Skipping uid check since instance %v %v %v is missing uid label due to being provisioned as part of bootstrap.", config.Project, config.Zone, identifyingMachine.ObjectMeta.Name)
-		} else {
-			return nil, fmt.Errorf("Instance %v %v %v is missing uid label.", config.Project, config.Zone, identifyingMachine.ObjectMeta.Name)
-		}
-	} else if uid != fmt.Sprintf("%v", machine.ObjectMeta.UID) {
-		glog.Infof("Instance %v exists but it has a different UID. Object UID: %v . Instance UID: %v", machine.ObjectMeta.Name, machine.ObjectMeta.UID, uid)
-		return nil, nil
 	}
 
 	return instance, nil

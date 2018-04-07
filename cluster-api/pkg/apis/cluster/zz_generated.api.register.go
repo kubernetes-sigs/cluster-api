@@ -117,11 +117,81 @@ func Resource(resource string) schema.GroupResource {
 // +genclient
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
 
+type Machine struct {
+	metav1.TypeMeta
+	metav1.ObjectMeta
+	Spec   MachineSpec
+	Status MachineStatus
+}
+
+// +genclient
+// +genclient
+// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
+
 type Cluster struct {
 	metav1.TypeMeta
 	metav1.ObjectMeta
 	Spec   ClusterSpec
 	Status ClusterStatus
+}
+
+type MachineStatus struct {
+	NodeRef      *corev1.ObjectReference
+	LastUpdated  metav1.Time
+	Versions     *MachineVersionInfo
+	ErrorReason  *clustercommon.MachineStatusError
+	ErrorMessage *string
+}
+
+type ClusterStatus struct {
+	APIEndpoints   []APIEndpoint
+	ErrorReason    clustercommon.ClusterStatusError
+	ErrorMessage   string
+	ProviderStatus string
+}
+
+type MachineVersionInfo struct {
+	Kubelet          string
+	ControlPlane     string
+	ContainerRuntime ContainerRuntimeInfo
+}
+
+type APIEndpoint struct {
+	Host string
+	Port int
+}
+
+type ContainerRuntimeInfo struct {
+	Name    string
+	Version string
+}
+
+type ClusterSpec struct {
+	ClusterNetwork ClusterNetworkingConfig
+	ProviderConfig ProviderConfig
+}
+
+type MachineSpec struct {
+	metav1.ObjectMeta
+	Taints         []corev1.Taint
+	ProviderConfig ProviderConfig
+	Roles          []clustercommon.MachineRole
+	Versions       MachineVersionInfo
+	ConfigSource   *corev1.NodeConfigSource
+}
+
+type ProviderConfig struct {
+	Value     *pkgruntime.RawExtension
+	ValueFrom *ProviderConfigSource
+}
+
+type ProviderConfigSource struct {
+}
+
+type ClusterNetworkingConfig struct {
+	Services      NetworkRanges
+	Pods          NetworkRanges
+	ServiceDomain string
 }
 
 // +genclient
@@ -135,11 +205,8 @@ type MachineSet struct {
 	Status MachineSetStatus
 }
 
-type ClusterStatus struct {
-	APIEndpoints   []APIEndpoint
-	ErrorReason    clustercommon.ClusterStatusError
-	ErrorMessage   string
-	ProviderStatus string
+type NetworkRanges struct {
+	CIDRBlocks []string
 }
 
 type MachineSetStatus struct {
@@ -152,11 +219,6 @@ type MachineSetStatus struct {
 	ErrorMessage         *string
 }
 
-type APIEndpoint struct {
-	Host string
-	Port int
-}
-
 type MachineSetSpec struct {
 	Replicas        *int32
 	MinReadySeconds int32
@@ -164,52 +226,9 @@ type MachineSetSpec struct {
 	Template        MachineTemplateSpec
 }
 
-type ClusterSpec struct {
-	ClusterNetwork ClusterNetworkingConfig
-	ProviderConfig string
-}
-
 type MachineTemplateSpec struct {
 	metav1.ObjectMeta
 	Spec MachineSpec
-}
-
-type ClusterNetworkingConfig struct {
-	Services      NetworkRanges
-	Pods          NetworkRanges
-	ServiceDomain string
-}
-
-type MachineSpec struct {
-	metav1.ObjectMeta
-	Taints         []corev1.Taint
-	ProviderConfig ProviderConfig
-	Roles          []clustercommon.MachineRole
-	Versions       MachineVersionInfo
-	ConfigSource   *corev1.NodeConfigSource
-}
-
-type NetworkRanges struct {
-	CIDRBlocks []string
-}
-
-type MachineVersionInfo struct {
-	Kubelet          string
-	ControlPlane     string
-	ContainerRuntime ContainerRuntimeInfo
-}
-
-type ProviderConfig struct {
-	Value     *pkgruntime.RawExtension
-	ValueFrom *ProviderConfigSource
-}
-
-type ContainerRuntimeInfo struct {
-	Name    string
-	Version string
-}
-
-type ProviderConfigSource struct {
 }
 
 // +genclient
@@ -223,17 +242,6 @@ type MachineDeployment struct {
 	Status MachineDeploymentStatus
 }
 
-// +genclient
-// +genclient
-// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
-
-type Machine struct {
-	metav1.TypeMeta
-	metav1.ObjectMeta
-	Spec   MachineSpec
-	Status MachineStatus
-}
-
 type MachineDeploymentStatus struct {
 	ObservedGeneration  int64
 	Replicas            int32
@@ -241,14 +249,6 @@ type MachineDeploymentStatus struct {
 	ReadyReplicas       int32
 	AvailableReplicas   int32
 	UnavailableReplicas int32
-}
-
-type MachineStatus struct {
-	NodeRef      *corev1.ObjectReference
-	LastUpdated  metav1.Time
-	Versions     *MachineVersionInfo
-	ErrorReason  *clustercommon.MachineStatusError
-	ErrorMessage *string
 }
 
 type MachineDeploymentSpec struct {

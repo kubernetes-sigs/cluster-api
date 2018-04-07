@@ -86,30 +86,6 @@ type MachineSpec struct {
 	ConfigSource *corev1.NodeConfigSource `json:"configSource,omitempty"`
 }
 
-// ProviderConfig defines the configuration to use during node creation.
-type ProviderConfig struct {
-
-	// No more than one of the following may be specified.
-
-	// Value is an inlined, serialized representation of the node
-	// configuration. It is recommended that providers maintain their own
-	// versioned API types that should be serialized/deserialized from this
-	// field, akin to component config.
-	// +optional
-	Value *runtime.RawExtension `json:"value,omitempty"`
-
-	// Source for the provider configuration. Cannot be used if value is
-	// not empty.
-	// +optional
-	ValueFrom *ProviderConfigSource `json:valueFrom,omitempty`
-}
-
-// ProviderConfigSource represents a source for the provider-specific
-// node configuration.
-type ProviderConfigSource struct {
-	// TODO(roberthbailey): Fill these in later
-}
-
 // MachineStatus defines the observed state of Machine
 type MachineStatus struct {
 	// If the corresponding Node exists, this will point to its object.

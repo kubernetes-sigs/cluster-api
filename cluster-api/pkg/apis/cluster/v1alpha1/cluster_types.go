@@ -52,7 +52,8 @@ type ClusterSpec struct {
 	// cluster creation. It is recommended that providers maintain
 	// their own versioned API types that should be
 	// serialized/deserialized from this field.
-	ProviderConfig string `json:"providerConfig"`
+	// +optional
+	ProviderConfig ProviderConfig `json:"providerConfig"`
 }
 
 // ClusterNetworkingConfig specifies the different networking

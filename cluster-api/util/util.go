@@ -130,10 +130,6 @@ func NewKubernetesClient(configPath string) (*kubernetes.Clientset, error) {
 	return c, nil
 }
 
-func GetCurrentMachineIfExists(machineClient client.MachineInterface, machine *clusterv1.Machine) (*clusterv1.Machine, error) {
-	return GetMachineIfExists(machineClient, machine.ObjectMeta.Name)
-}
-
 func GetMachineIfExists(machineClient client.MachineInterface, name string) (*clusterv1.Machine, error) {
 	if machineClient == nil {
 		// Being called before k8s is setup as part of master VM creation

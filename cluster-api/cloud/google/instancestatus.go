@@ -20,7 +20,7 @@ type instanceStatus *clusterv1.Machine
 
 // Get the status of the instance identified by the given machine
 func (gce *GCEClient) instanceStatus(machine *clusterv1.Machine) (instanceStatus, error) {
-	currentMachine, err := util.GetCurrentMachineIfExists(gce.machineClient, machine)
+	currentMachine, err := util.GetMachineIfExists(gce.machineClient, machine.ObjectMeta.Name)
 	if err != nil {
 		return nil, err
 	}
@@ -36,7 +36,7 @@ func (gce *GCEClient) instanceStatus(machine *clusterv1.Machine) (instanceStatus
 // Sets the status of the instance identified by the given machine to the given machine
 func (gce *GCEClient) updateInstanceStatus(machine *clusterv1.Machine) error {
 	status := instanceStatus(machine)
-	currentMachine, err := util.GetCurrentMachineIfExists(gce.machineClient, machine)
+	currentMachine, err := util.GetMachineIfExists(gce.machineClient, machine.ObjectMeta.Name)
 	if err != nil {
 		return err
 	}

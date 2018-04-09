@@ -17,28 +17,15 @@ limitations under the License.
 package machine
 
 import (
-	// "fmt"
 	"testing"
 	"time"
-	//"github.com/golang/glog"
 
-	//"github.com/kubernetes-incubator/apiserver-builder/pkg/test"
-	//"k8s.io/kube-deploy/cluster-api/pkg/apis"
-	//"k8s.io/kube-deploy/cluster-api/pkg/controller/sharedinformers"
-	//"k8s.io/kube-deploy/cluster-api/pkg/openapi"
-
-	//"k8s.io/kube-deploy/cluster-api/pkg/client/clientset_generated/clientset"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
-	// "k8s.io/apimachinery/pkg/api/equality"
-	// "k8s.io/apimachinery/pkg/util/diff"
-	// clienttesting "k8s.io/client-go/testing"
-	// "k8s.io/client-go/tools/cache"
+	clustercommon "k8s.io/kube-deploy/cluster-api/pkg/apis/cluster/common"
 	"k8s.io/kube-deploy/cluster-api/pkg/apis/cluster/v1alpha1"
 	"k8s.io/kube-deploy/cluster-api/pkg/apis/cluster/v1alpha1/testutil"
 	"k8s.io/kube-deploy/cluster-api/pkg/client/clientset_generated/clientset/fake"
-	clustercommon "k8s.io/kube-deploy/cluster-api/pkg/apis/cluster/common"
-	// v1alpha1listers "k8s.io/kube-deploy/cluster-api/pkg/client/listers_generated/cluster/v1alpha1"
 )
 
 type CountActuator struct{

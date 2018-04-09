@@ -81,27 +81,28 @@ func (c *MachineControllerImpl) Reconcile(machine *clusterv1.Machine) error {
 	// Implement controller logic here
 	name := machine.Name
 	glog.Infof("Running reconcile Machine for %s\n", name)
-	isDeleting := !machine.ObjectMeta.DeletionTimestamp.IsZero()
-	hasMachineFinalizer := util.Contains(machine.ObjectMeta.Finalizers, clusterv1.MachineFinalizer)
 
-	if isDeleting {
+	if !machine.ObjectMeta.DeletionTimestamp.IsZero() {
 		// no-op if finalizer has been removed.
-		if !hasMachineFinalizer {
+		if !util.Contains(machine.ObjectMeta.Finalizers, clusterv1.MachineFinalizer) {
 			glog.Infof("reconciling machine object %v causes a no-op as there is no finalizer.", name)
 			return nil
 		}
+		// Master should not be deleted as part of reconcilation.
 		if cfg.ControllerConfig.InCluster && util.IsMaster(machine) {
 			glog.Infof("skipping reconciling master machine object %v", name)
 			return nil
 		}
 		glog.Infof("reconciling machine object %v triggers delete.", name)
 		if err := c.delete(machine); err != nil {
+			glog.Errorf("Error deleting machine object %v; %v", name, err)
 			return err
 		}
 		// Remove finalizer on successful deletion.
 		glog.Infof("machine object %v deletion successful, removing finalizer.", name)
 		machine.ObjectMeta.Finalizers = util.Filter(machine.ObjectMeta.Finalizers, clusterv1.MachineFinalizer)
 		if _, err := c.machineClient.Update(machine); err != nil {
+			glog.Errorf("Error removing finalizer from machine object %v; %v", name, err)
 			return err
 		}
 		return nil
@@ -109,7 +110,7 @@ func (c *MachineControllerImpl) Reconcile(machine *clusterv1.Machine) error {
 
 	exist, err := c.actuator.Exists(machine)
 	if err != nil {
-		glog.Errorf("reconciling failed with err: %v", err)
+		glog.Errorf("Error checking existance of machine instance for machine object %v; %v", name, err)
 		return err
 	}
 	if exist {

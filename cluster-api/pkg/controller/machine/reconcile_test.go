@@ -183,7 +183,7 @@ func TestMachineSetControllerReconcileHandler(t *testing.T) {
 }
 
 func getMachine(name string, isDeleting, hasFinalizer, isMaster bool) *v1alpha1.Machine {
-	amachine := &v1alpha1.Machine{
+	m := &v1alpha1.Machine{
 		TypeMeta: metav1.TypeMeta{
 			Kind:       "Machine",
 			APIVersion: v1alpha1.SchemeGroupVersion.String(),
@@ -195,14 +195,14 @@ func getMachine(name string, isDeleting, hasFinalizer, isMaster bool) *v1alpha1.
 	}
 	if isDeleting {
 		now := metav1.NewTime(time.Now())
-		amachine.ObjectMeta.SetDeletionTimestamp(&now)
+		m.ObjectMeta.SetDeletionTimestamp(&now)
 	}
 	if hasFinalizer {
-		amachine.ObjectMeta.SetFinalizers([]string{v1alpha1.MachineFinalizer})
+		m.ObjectMeta.SetFinalizers([]string{v1alpha1.MachineFinalizer})
 	}
 	if isMaster {
-		amachine.Spec.Roles = []clustercommon.MachineRole{clustercommon.MasterRole}
+		m.Spec.Roles = []clustercommon.MachineRole{clustercommon.MasterRole}
 	}
 
-	return amachine
+	return m
 }

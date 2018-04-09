@@ -23,7 +23,7 @@ type ProviderConfig struct {
 
 	// No more than one of the following may be specified.
 
-	// Value is an inlined, serialized representation of the node
+	// Value is an inlined, serialized representation of the resource
 	// configuration. It is recommended that providers maintain their own
 	// versioned API types that should be serialized/deserialized from this
 	// field, akin to component config.
@@ -37,7 +37,7 @@ type ProviderConfig struct {
 }
 
 // ProviderConfigSource represents a source for the provider-specific
-// node configuration.
+// resource configuration.
 type ProviderConfigSource struct {
 	// TODO(roberthbailey): Fill these in later
 }

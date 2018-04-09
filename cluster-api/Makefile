@@ -17,9 +17,9 @@
 all: genapi genconversion
 
 genapi:
-	go get -u github.com/kubernetes-incubator/apiserver-builder/cmd/apiregister-gen
+	go install github.com/kubernetes-incubator/apiserver-builder/cmd/apiregister-gen
 	apiregister-gen -i ./pkg/apis,./pkg/apis/cluster/v1alpha1
 
 genconversion:
-	go get -u k8s.io/code-generator/cmd/conversion-gen
+	go install k8s.io/code-generator/cmd/conversion-gen
 	conversion-gen -i ./pkg/apis/cluster/v1alpha1/ -O zz_generated.conversion

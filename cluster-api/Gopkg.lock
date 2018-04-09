@@ -497,6 +497,15 @@
 
 [[projects]]
   branch = "master"
+  name = "golang.org/x/tools"
+  packages = [
+    "go/ast/astutil",
+    "imports"
+  ]
+  revision = "ac136b6c2db7c4d43955e4bc7174db36dc0539c0"
+
+[[projects]]
+  branch = "master"
   name = "google.golang.org/api"
   packages = [
     "compute/v1",
@@ -907,6 +916,27 @@
   revision = "90539b4e75a8daaf7f67c3874c6180bfb1a63936"
 
 [[projects]]
+  name = "k8s.io/code-generator"
+  packages = [
+    "cmd/conversion-gen",
+    "cmd/conversion-gen/generators"
+  ]
+  revision = "91d3f6a57905178524105a085085901bb73bd3dc"
+  version = "kubernetes-1.9.1"
+
+[[projects]]
+  branch = "master"
+  name = "k8s.io/gengo"
+  packages = [
+    "args",
+    "generator",
+    "namer",
+    "parser",
+    "types"
+  ]
+  revision = "01a732e01d00cb9a81bb0ca050d3e6d2b947927b"
+
+[[projects]]
   branch = "master"
   name = "k8s.io/kube-openapi"
   packages = [
@@ -921,6 +951,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "d0debf76403522fddedb0d725a3dc46846e0cbb86dd2f0225ed9740d22b49383"
+  inputs-digest = "cd83d550d0ee64c0847a31ab37fce90f980e5762b76ee5a9963959b0dd020eed"
   solver-name = "gps-cdcl"
   solver-version = 1

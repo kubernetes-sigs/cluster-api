@@ -29,7 +29,6 @@ import (
 
 	"k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/tools/clientcmd"
 	clustercommon "k8s.io/kube-deploy/cluster-api/pkg/apis/cluster/common"
@@ -131,17 +130,13 @@ func NewKubernetesClient(configPath string) (*kubernetes.Clientset, error) {
 	return c, nil
 }
 
-func GetCurrentMachineIfExists(machineClient client.MachineInterface, machine *clusterv1.Machine) (*clusterv1.Machine, error) {
-	return GetMachineIfExists(machineClient, machine.ObjectMeta.Name, machine.ObjectMeta.UID)
-}
-
-func GetMachineIfExists(machineClient client.MachineInterface, name string, uid types.UID) (*clusterv1.Machine, error) {
+func GetMachineIfExists(machineClient client.MachineInterface, name string) (*clusterv1.Machine, error) {
 	if machineClient == nil {
 		// Being called before k8s is setup as part of master VM creation
 		return nil, nil
 	}
 
-	// Machines are identified by name and UID
+	// Machines are identified by name
 	machine, err := machineClient.Get(name, metav1.GetOptions{})
 	if err != nil {
 		// TODO: Use formal way to check for not found
@@ -151,9 +146,6 @@ func GetMachineIfExists(machineClient client.MachineInterface, name string, uid 
 		return nil, err
 	}
 
-	if machine.ObjectMeta.UID != uid {
-		return nil, nil
-	}
 	return machine, nil
 }
 

@@ -22,10 +22,12 @@ import (
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
+	core "k8s.io/client-go/testing"
 	clustercommon "k8s.io/kube-deploy/cluster-api/pkg/apis/cluster/common"
 	"k8s.io/kube-deploy/cluster-api/pkg/apis/cluster/v1alpha1"
 	"k8s.io/kube-deploy/cluster-api/pkg/apis/cluster/v1alpha1/testutil"
 	"k8s.io/kube-deploy/cluster-api/pkg/client/clientset_generated/clientset/fake"
+	"k8s.io/kube-deploy/cluster-api/util"
 )
 
 type CountActuator struct{
@@ -62,6 +64,8 @@ func TestMachineSetControllerReconcileHandler(t *testing.T) {
 		isDeleting                bool
 		withFinalizer             bool
 		isMaster                  bool
+		ignoreDeleteCallCount     bool
+		expectFinalizerRemoved    bool
 		numExpectedCreateCalls    int64
 		numExpectedDeleteCalls    int64
 		numExpectedUpdateCalls    int64
@@ -87,9 +91,11 @@ func TestMachineSetControllerReconcileHandler(t *testing.T) {
 			instanceExists:         true,
 			isDeleting:             true,
 			withFinalizer:          true,
+			expectFinalizerRemoved: true,
 			numExpectedDeleteCalls: 1,
 		},
 		{
+			// This should not be possible. Here for completeness.
 			name:                   "Delete machine, instance exists without finalizer",
 			objExists:              true,
 			instanceExists:         true,
@@ -102,7 +108,8 @@ func TestMachineSetControllerReconcileHandler(t *testing.T) {
 			instanceExists:         false,
 			isDeleting:             true,
 			withFinalizer:          true,
-			numExpectedDeleteCalls: 1,
+			ignoreDeleteCallCount:  true,
+			expectFinalizerRemoved: true,
 		},
 		{
 			name:                   "Delete machine, instance does not exist, without finalizer",
@@ -129,8 +136,13 @@ func TestMachineSetControllerReconcileHandler(t *testing.T) {
 				knownObjects = append(knownObjects, machineToTest)
 			}
 
+			machineUpdated := false
 			fakeClient := fake.NewSimpleClientset(knownObjects...)
 			fakeMachineClient := fakeClient.Cluster().Machines(metav1.NamespaceDefault)
+			fakeClient.PrependReactor("update", "machines", func(action core.Action) (bool, runtime.Object, error) {
+				machineUpdated = true
+				return false, nil, nil
+			})
 
 			// When creating a new object, it should invoke the reconcile method.
 			cluster := testutil.GetVanillaCluster()
@@ -152,10 +164,15 @@ func TestMachineSetControllerReconcileHandler(t *testing.T) {
 				t.Fatal(err)
 			}
 
+			finalizerRemoved := machineUpdated && !util.Contains(machineToTest.ObjectMeta.Finalizers, v1alpha1.MachineFinalizer)
+
+			if finalizerRemoved != test.expectFinalizerRemoved {
+				t.Errorf("Got finalizer removed %v, expected finalizer removed %v", finalizerRemoved, test.expectFinalizerRemoved)
+			}
 			if actuator.CreateCallCount != test.numExpectedCreateCalls {
 				t.Errorf("Got %v create calls, expected %v", actuator.CreateCallCount, test.numExpectedCreateCalls)
 			}
-			if actuator.DeleteCallCount != test.numExpectedDeleteCalls {
+			if actuator.DeleteCallCount != test.numExpectedDeleteCalls && !test.ignoreDeleteCallCount {
 				t.Errorf("Got %v delete calls, expected %v", actuator.DeleteCallCount, test.numExpectedDeleteCalls)
 			}
 			if actuator.UpdateCallCount != test.numExpectedUpdateCalls {

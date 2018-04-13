@@ -4,3 +4,6 @@ approvers:
   - sig-cluster-lifecycle-leads
   - kube-deploy-admins
   - kube-deploy-maintainers
+
+reviewers:
+  - kube-deploy-maintainers

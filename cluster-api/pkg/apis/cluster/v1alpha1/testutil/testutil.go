@@ -16,7 +16,7 @@ limitations under the License.
 
 package testutil
 
-import "k8s.io/kube-deploy/cluster-api/pkg/apis/cluster/v1alpha1"
+import "sigs.k8s.io/cluster-api/cluster-api/pkg/apis/cluster/v1alpha1"
 
 // GetVanillaCluster return a bare minimum functional cluster resource object
 func GetVanillaCluster() v1alpha1.Cluster {

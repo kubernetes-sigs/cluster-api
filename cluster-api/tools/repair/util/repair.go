@@ -21,8 +21,8 @@ import (
 	"github.com/golang/glog"
 	"k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/kube-deploy/cluster-api/pkg/client/clientset_generated/clientset/typed/cluster/v1alpha1"
-	"k8s.io/kube-deploy/cluster-api/util"
+	"sigs.k8s.io/cluster-api/cluster-api/pkg/client/clientset_generated/clientset/typed/cluster/v1alpha1"
+	"sigs.k8s.io/cluster-api/cluster-api/util"
 )
 
 type repairer struct {

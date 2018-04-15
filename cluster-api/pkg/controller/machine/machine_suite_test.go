@@ -21,11 +21,11 @@ import (
 
 	"github.com/kubernetes-incubator/apiserver-builder/pkg/test"
 
-	"k8s.io/kube-deploy/cluster-api/pkg/apis"
-	clusterv1 "k8s.io/kube-deploy/cluster-api/pkg/apis/cluster/v1alpha1"
-	"k8s.io/kube-deploy/cluster-api/pkg/client/clientset_generated/clientset"
-	"k8s.io/kube-deploy/cluster-api/pkg/controller/sharedinformers"
-	"k8s.io/kube-deploy/cluster-api/pkg/openapi"
+	"sigs.k8s.io/cluster-api/cluster-api/pkg/apis"
+	clusterv1 "sigs.k8s.io/cluster-api/cluster-api/pkg/apis/cluster/v1alpha1"
+	"sigs.k8s.io/cluster-api/cluster-api/pkg/client/clientset_generated/clientset"
+	"sigs.k8s.io/cluster-api/cluster-api/pkg/controller/sharedinformers"
+	"sigs.k8s.io/cluster-api/cluster-api/pkg/openapi"
 )
 
 type fakeActuator struct{}

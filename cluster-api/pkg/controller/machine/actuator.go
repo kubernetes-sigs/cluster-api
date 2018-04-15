@@ -17,7 +17,7 @@ limitations under the License.
 package machine
 
 import (
-	clusterv1 "k8s.io/kube-deploy/cluster-api/pkg/apis/cluster/v1alpha1"
+	clusterv1 "sigs.k8s.io/cluster-api/cluster-api/pkg/apis/cluster/v1alpha1"
 )
 
 // Actuator controls machines on a specific infrastructure. All

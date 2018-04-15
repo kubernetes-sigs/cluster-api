@@ -19,7 +19,7 @@ limitations under the License.
 package v1alpha1
 
 import (
-	internalinterfaces "k8s.io/kube-deploy/cluster-api/pkg/client/informers_generated/externalversions/internalinterfaces"
+	internalinterfaces "sigs.k8s.io/cluster-api/cluster-api/pkg/client/informers_generated/externalversions/internalinterfaces"
 )
 
 // Interface provides access to all the informers in this group version.

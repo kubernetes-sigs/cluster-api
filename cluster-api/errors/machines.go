@@ -19,7 +19,7 @@ package errors
 import (
 	"fmt"
 
-	commonerrors "k8s.io/kube-deploy/cluster-api/pkg/apis/cluster/common"
+	commonerrors "sigs.k8s.io/cluster-api/cluster-api/pkg/apis/cluster/common"
 )
 
 // A more descriptive kind of error that represents an error condition that

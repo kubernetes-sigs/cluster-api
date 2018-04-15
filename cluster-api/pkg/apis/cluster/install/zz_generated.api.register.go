@@ -22,7 +22,7 @@ import (
 	"k8s.io/apimachinery/pkg/apimachinery/announced"
 	"k8s.io/apimachinery/pkg/apimachinery/registered"
 	"k8s.io/apimachinery/pkg/runtime"
-	"k8s.io/kube-deploy/cluster-api/pkg/apis"
+	"sigs.k8s.io/cluster-api/cluster-api/pkg/apis"
 )
 
 func Install(

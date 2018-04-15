@@ -25,9 +25,9 @@ import (
 	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/tools/clientcmd"
-	clusterv1 "k8s.io/kube-deploy/cluster-api/pkg/apis/cluster/v1alpha1"
-	clientv1alpha1 "k8s.io/kube-deploy/cluster-api/pkg/client/clientset_generated/clientset/typed/cluster/v1alpha1"
-	"k8s.io/kube-deploy/cluster-api/util"
+	clusterv1 "sigs.k8s.io/cluster-api/cluster-api/pkg/apis/cluster/v1alpha1"
+	clientv1alpha1 "sigs.k8s.io/cluster-api/cluster-api/pkg/client/clientset_generated/clientset/typed/cluster/v1alpha1"
+	"sigs.k8s.io/cluster-api/cluster-api/util"
 )
 
 var (

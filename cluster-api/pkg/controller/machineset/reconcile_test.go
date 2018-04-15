@@ -26,9 +26,9 @@ import (
 	"k8s.io/apimachinery/pkg/util/diff"
 	clienttesting "k8s.io/client-go/testing"
 	"k8s.io/client-go/tools/cache"
-	"k8s.io/kube-deploy/cluster-api/pkg/apis/cluster/v1alpha1"
-	"k8s.io/kube-deploy/cluster-api/pkg/client/clientset_generated/clientset/fake"
-	v1alpha1listers "k8s.io/kube-deploy/cluster-api/pkg/client/listers_generated/cluster/v1alpha1"
+	"sigs.k8s.io/cluster-api/cluster-api/pkg/apis/cluster/v1alpha1"
+	"sigs.k8s.io/cluster-api/cluster-api/pkg/client/clientset_generated/clientset/fake"
+	v1alpha1listers "sigs.k8s.io/cluster-api/cluster-api/pkg/client/listers_generated/cluster/v1alpha1"
 )
 
 func TestMachineSetControllerReconcileHandler(t *testing.T) {

@@ -22,8 +22,8 @@ import (
 
 	"github.com/golang/glog"
 	"k8s.io/apiserver/pkg/util/logs"
-	"k8s.io/kube-deploy/cluster-api/pkg/controller"
-	"k8s.io/kube-deploy/cluster-api/pkg/controller/config"
+	"sigs.k8s.io/cluster-api/cluster-api/pkg/controller"
+	"sigs.k8s.io/cluster-api/cluster-api/pkg/controller/config"
 )
 
 func init() {

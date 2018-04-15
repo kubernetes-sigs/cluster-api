@@ -22,12 +22,12 @@ import (
 
 	"github.com/golang/glog"
 
-	"k8s.io/kube-deploy/cluster-api/cloud/google"
-	clusterv1 "k8s.io/kube-deploy/cluster-api/pkg/apis/cluster/v1alpha1"
-	"k8s.io/kube-deploy/cluster-api/pkg/client/clientset_generated/clientset"
-	"k8s.io/kube-deploy/cluster-api/pkg/client/clientset_generated/clientset/typed/cluster/v1alpha1"
-	"k8s.io/kube-deploy/cluster-api/util"
-	apiutil "k8s.io/kube-deploy/cluster-api/util"
+	"sigs.k8s.io/cluster-api/cluster-api/cloud/google"
+	clusterv1 "sigs.k8s.io/cluster-api/cluster-api/pkg/apis/cluster/v1alpha1"
+	"sigs.k8s.io/cluster-api/cluster-api/pkg/client/clientset_generated/clientset"
+	"sigs.k8s.io/cluster-api/cluster-api/pkg/client/clientset_generated/clientset/typed/cluster/v1alpha1"
+	"sigs.k8s.io/cluster-api/cluster-api/util"
+	apiutil "sigs.k8s.io/cluster-api/cluster-api/util"
 )
 
 type deployer struct {

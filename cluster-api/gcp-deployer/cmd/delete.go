@@ -19,7 +19,7 @@ package cmd
 import (
 	"github.com/golang/glog"
 	"github.com/spf13/cobra"
-	"k8s.io/kube-deploy/cluster-api/gcp-deployer/deploy"
+	"sigs.k8s.io/cluster-api/cluster-api/gcp-deployer/deploy"
 )
 
 var deleteCmd = &cobra.Command{

@@ -21,9 +21,9 @@ package controller
 import (
 	"github.com/kubernetes-incubator/apiserver-builder/pkg/controller"
 	"k8s.io/client-go/rest"
-	"k8s.io/kube-deploy/cluster-api/pkg/controller/cluster"
-	"k8s.io/kube-deploy/cluster-api/pkg/controller/machineset"
-	"k8s.io/kube-deploy/cluster-api/pkg/controller/sharedinformers"
+	"sigs.k8s.io/cluster-api/cluster-api/pkg/controller/cluster"
+	"sigs.k8s.io/cluster-api/cluster-api/pkg/controller/machineset"
+	"sigs.k8s.io/cluster-api/cluster-api/pkg/controller/sharedinformers"
 )
 
 func GetAllControllers(config *rest.Config) ([]controller.Controller, chan struct{}) {

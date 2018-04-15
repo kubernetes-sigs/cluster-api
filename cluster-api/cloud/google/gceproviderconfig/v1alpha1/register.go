@@ -20,7 +20,7 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/runtime/serializer"
-	"k8s.io/kube-deploy/cluster-api/cloud/google/gceproviderconfig"
+	"sigs.k8s.io/cluster-api/cluster-api/cloud/google/gceproviderconfig"
 )
 
 const GroupName = "gceproviderconfig"

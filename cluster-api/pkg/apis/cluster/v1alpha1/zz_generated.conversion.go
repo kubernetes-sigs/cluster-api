@@ -27,8 +27,8 @@ import (
 	conversion "k8s.io/apimachinery/pkg/conversion"
 	runtime "k8s.io/apimachinery/pkg/runtime"
 	intstr "k8s.io/apimachinery/pkg/util/intstr"
-	cluster "k8s.io/kube-deploy/cluster-api/pkg/apis/cluster"
-	common "k8s.io/kube-deploy/cluster-api/pkg/apis/cluster/common"
+	cluster "sigs.k8s.io/cluster-api/cluster-api/pkg/apis/cluster"
+	common "sigs.k8s.io/cluster-api/cluster-api/pkg/apis/cluster/common"
 )
 
 func init() {

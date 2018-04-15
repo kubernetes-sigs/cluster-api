@@ -25,8 +25,8 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/validation/field"
 
-	"k8s.io/kube-deploy/cluster-api/pkg/apis/cluster"
-	"k8s.io/kube-deploy/cluster-api/pkg/apis/cluster/common"
+	"sigs.k8s.io/cluster-api/cluster-api/pkg/apis/cluster"
+	"sigs.k8s.io/cluster-api/cluster-api/pkg/apis/cluster/common"
 )
 
 // +genclient

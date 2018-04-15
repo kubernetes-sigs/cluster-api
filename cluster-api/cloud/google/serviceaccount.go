@@ -21,8 +21,8 @@ import (
 	"os/exec"
 
 	"github.com/golang/glog"
-	clusterv1 "k8s.io/kube-deploy/cluster-api/pkg/apis/cluster/v1alpha1"
-	"k8s.io/kube-deploy/cluster-api/util"
+	clusterv1 "sigs.k8s.io/cluster-api/cluster-api/pkg/apis/cluster/v1alpha1"
+	"sigs.k8s.io/cluster-api/cluster-api/util"
 )
 
 const (

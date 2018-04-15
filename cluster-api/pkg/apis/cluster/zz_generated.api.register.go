@@ -30,7 +30,7 @@ import (
 	utilintstr "k8s.io/apimachinery/pkg/util/intstr"
 	"k8s.io/apiserver/pkg/endpoints/request"
 	"k8s.io/apiserver/pkg/registry/rest"
-	clustercommon "k8s.io/kube-deploy/cluster-api/pkg/apis/cluster/common"
+	clustercommon "sigs.k8s.io/cluster-api/cluster-api/pkg/apis/cluster/common"
 )
 
 var (

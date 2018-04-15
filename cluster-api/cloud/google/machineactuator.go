@@ -37,12 +37,12 @@ import (
 
 	"regexp"
 
-	gceconfig "k8s.io/kube-deploy/cluster-api/cloud/google/gceproviderconfig"
-	gceconfigv1 "k8s.io/kube-deploy/cluster-api/cloud/google/gceproviderconfig/v1alpha1"
-	apierrors "k8s.io/kube-deploy/cluster-api/errors"
-	clusterv1 "k8s.io/kube-deploy/cluster-api/pkg/apis/cluster/v1alpha1"
-	client "k8s.io/kube-deploy/cluster-api/pkg/client/clientset_generated/clientset/typed/cluster/v1alpha1"
-	"k8s.io/kube-deploy/cluster-api/util"
+	gceconfig "sigs.k8s.io/cluster-api/cluster-api/cloud/google/gceproviderconfig"
+	gceconfigv1 "sigs.k8s.io/cluster-api/cluster-api/cloud/google/gceproviderconfig/v1alpha1"
+	apierrors "sigs.k8s.io/cluster-api/cluster-api/errors"
+	clusterv1 "sigs.k8s.io/cluster-api/cluster-api/pkg/apis/cluster/v1alpha1"
+	client "sigs.k8s.io/cluster-api/cluster-api/pkg/client/clientset_generated/clientset/typed/cluster/v1alpha1"
+	"sigs.k8s.io/cluster-api/cluster-api/util"
 )
 
 const (

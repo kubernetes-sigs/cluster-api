@@ -22,10 +22,10 @@ import (
 	"github.com/kubernetes-incubator/apiserver-builder/pkg/builders"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/kube-deploy/cluster-api/pkg/apis/cluster/v1alpha1"
-	machineclientset "k8s.io/kube-deploy/cluster-api/pkg/client/clientset_generated/clientset"
-	listers "k8s.io/kube-deploy/cluster-api/pkg/client/listers_generated/cluster/v1alpha1"
-	"k8s.io/kube-deploy/cluster-api/pkg/controller/sharedinformers"
+	"sigs.k8s.io/cluster-api/cluster-api/pkg/apis/cluster/v1alpha1"
+	machineclientset "sigs.k8s.io/cluster-api/cluster-api/pkg/client/clientset_generated/clientset"
+	listers "sigs.k8s.io/cluster-api/cluster-api/pkg/client/listers_generated/cluster/v1alpha1"
+	"sigs.k8s.io/cluster-api/cluster-api/pkg/controller/sharedinformers"
 )
 
 // +controller:group=cluster,version=v1alpha1,kind=MachineSet,resource=machinesets

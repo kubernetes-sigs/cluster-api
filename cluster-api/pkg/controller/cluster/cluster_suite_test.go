@@ -23,10 +23,10 @@ import (
 
 	"github.com/kubernetes-incubator/apiserver-builder/pkg/test"
 
-	"k8s.io/kube-deploy/cluster-api/pkg/apis"
-	"k8s.io/kube-deploy/cluster-api/pkg/client/clientset_generated/clientset"
-	"k8s.io/kube-deploy/cluster-api/pkg/openapi"
-	"k8s.io/kube-deploy/cluster-api/pkg/controller/sharedinformers"
+	"sigs.k8s.io/cluster-api/cluster-api/pkg/apis"
+	"sigs.k8s.io/cluster-api/cluster-api/pkg/client/clientset_generated/clientset"
+	"sigs.k8s.io/cluster-api/cluster-api/pkg/openapi"
+	"sigs.k8s.io/cluster-api/cluster-api/pkg/controller/sharedinformers"
 )
 
 func TestCluster(t *testing.T) {

@@ -33,7 +33,7 @@ import (
 	"github.com/aws/aws-sdk-go/service/ec2"
 	"github.com/golang/glog"
 	"golang.org/x/crypto/ssh"
-	"k8s.io/kube-deploy/imagebuilder/pkg/imagebuilder/executor"
+	"sigs.k8s.io/cluster-api/imagebuilder/pkg/imagebuilder/executor"
 )
 
 const tagRoleKey = "k8s.io/role/imagebuilder"

@@ -24,7 +24,7 @@ import (
 	"golang.org/x/crypto/ssh"
 	"google.golang.org/api/compute/v1"
 	"google.golang.org/api/googleapi"
-	"k8s.io/kube-deploy/imagebuilder/pkg/imagebuilder/executor"
+	"sigs.k8s.io/cluster-api/imagebuilder/pkg/imagebuilder/executor"
 )
 
 // TODO: We should replace most of this code with a fast-install manifest

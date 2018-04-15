@@ -26,13 +26,13 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
 
-	clusterv1 "k8s.io/kube-deploy/cluster-api/pkg/apis/cluster/v1alpha1"
-	"k8s.io/kube-deploy/cluster-api/pkg/client/clientset_generated/clientset"
-	"k8s.io/kube-deploy/cluster-api/pkg/client/clientset_generated/clientset/typed/cluster/v1alpha1"
-	listers "k8s.io/kube-deploy/cluster-api/pkg/client/listers_generated/cluster/v1alpha1"
-	cfg "k8s.io/kube-deploy/cluster-api/pkg/controller/config"
-	"k8s.io/kube-deploy/cluster-api/pkg/controller/sharedinformers"
-	"k8s.io/kube-deploy/cluster-api/util"
+	clusterv1 "sigs.k8s.io/cluster-api/cluster-api/pkg/apis/cluster/v1alpha1"
+	"sigs.k8s.io/cluster-api/cluster-api/pkg/client/clientset_generated/clientset"
+	"sigs.k8s.io/cluster-api/cluster-api/pkg/client/clientset_generated/clientset/typed/cluster/v1alpha1"
+	listers "sigs.k8s.io/cluster-api/cluster-api/pkg/client/listers_generated/cluster/v1alpha1"
+	cfg "sigs.k8s.io/cluster-api/cluster-api/pkg/controller/config"
+	"sigs.k8s.io/cluster-api/cluster-api/pkg/controller/sharedinformers"
+	"sigs.k8s.io/cluster-api/cluster-api/util"
 )
 
 // +controller:group=cluster,version=v1alpha1,kind=Machine,resource=machines

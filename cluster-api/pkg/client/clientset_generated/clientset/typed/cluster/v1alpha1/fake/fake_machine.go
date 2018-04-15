@@ -22,7 +22,7 @@ import (
 	types "k8s.io/apimachinery/pkg/types"
 	watch "k8s.io/apimachinery/pkg/watch"
 	testing "k8s.io/client-go/testing"
-	v1alpha1 "k8s.io/kube-deploy/cluster-api/pkg/apis/cluster/v1alpha1"
+	v1alpha1 "sigs.k8s.io/cluster-api/cluster-api/pkg/apis/cluster/v1alpha1"
 )
 
 // FakeMachines implements MachineInterface

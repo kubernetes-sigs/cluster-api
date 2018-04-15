@@ -23,11 +23,11 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apiserver/pkg/util/logs"
 
-	"k8s.io/kube-deploy/cluster-api/cloud/google"
-	"k8s.io/kube-deploy/cluster-api/pkg/client/clientset_generated/clientset"
-	"k8s.io/kube-deploy/cluster-api/pkg/controller/config"
-	"k8s.io/kube-deploy/cluster-api/pkg/controller/machine"
-	"k8s.io/kube-deploy/cluster-api/pkg/controller/sharedinformers"
+	"sigs.k8s.io/cluster-api/cluster-api/cloud/google"
+	"sigs.k8s.io/cluster-api/cluster-api/pkg/client/clientset_generated/clientset"
+	"sigs.k8s.io/cluster-api/cluster-api/pkg/controller/config"
+	"sigs.k8s.io/cluster-api/cluster-api/pkg/controller/machine"
+	"sigs.k8s.io/cluster-api/cluster-api/pkg/controller/sharedinformers"
 )
 
 var (

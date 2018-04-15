@@ -6,7 +6,7 @@ import (
 	"math/rand"
 	"path"
 
-	"k8s.io/kube-deploy/imagebuilder/pkg/imagebuilder/executor"
+	"sigs.k8s.io/cluster-api/imagebuilder/pkg/imagebuilder/executor"
 )
 
 type Builder struct {

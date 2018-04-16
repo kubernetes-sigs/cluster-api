@@ -8,7 +8,7 @@ that can be built in a cloud-agnostic way.
 ```bash
 $ cd $GOPATH/src/sigs.k8s.io/
 $ git clone https://github.com/kubernetes-sigs/cluster-api
-$ cd cluster-api/cluster-api/tools/repair
+$ cd cluster-api/tools/repair
 $ go build
 ```
 

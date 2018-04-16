@@ -46,6 +46,7 @@ import (
 	apierrors "sigs.k8s.io/cluster-api/errors"
 	clusterv1 "sigs.k8s.io/cluster-api/pkg/apis/cluster/v1alpha1"
 	client "sigs.k8s.io/cluster-api/pkg/client/clientset_generated/clientset/typed/cluster/v1alpha1"
+	"sigs.k8s.io/cluster-api/cloud/google/clients"
 	"sigs.k8s.io/cluster-api/util"
 )
 
@@ -66,8 +67,17 @@ type SshCreds struct {
 	privateKeyPath string
 }
 
+type GCEClientComputeService interface {
+	ImagesGet(project string, image string) (*compute.Image, error)
+	ImagesGetFromFamily(project string, family string) (*compute.Image, error)
+	InstancesDelete(project string, zone string, targetInstance string) (*compute.Operation, error)
+	InstancesGet(project string, zone string, instance string) (*compute.Instance, error)
+	InstancesInsert(project string, zone string, instance *compute.Instance) (*compute.Operation, error)
+	ZoneOperationsGet(project string, zone string, operation string) (*compute.Operation, error)
+}
+
 type GCEClient struct {
-	service       *compute.Service
+	computeService GCEClientComputeService
 	scheme        *runtime.Scheme
 	codecFactory  *serializer.CodecFactory
 	kubeadmToken  string
@@ -89,7 +99,7 @@ func NewMachineActuator(kubeadmToken string, machineClient client.MachineInterfa
 		return nil, err
 	}
 
-	service, err := compute.New(client)
+	computeService, err := clients.NewComputeService(client)
 	if err != nil {
 		return nil, err
 	}
@@ -122,10 +132,10 @@ func NewMachineActuator(kubeadmToken string, machineClient client.MachineInterfa
 	}
 
 	return &GCEClient{
-		service:      service,
-		scheme:       scheme,
-		codecFactory: codecFactory,
-		kubeadmToken: kubeadmToken,
+		computeService: computeService,
+		scheme:         scheme,
+		codecFactory:   codecFactory,
+		kubeadmToken:   kubeadmToken,
 		sshCreds: SshCreds{
 			privateKeyPath: privateKeyPath,
 			user:           user,
@@ -257,7 +267,7 @@ func (gce *GCEClient) Create(cluster *clusterv1.Cluster, machine *clusterv1.Mach
 			labels[BootstrapLabelKey] = "true"
 		}
 
-		op, err := gce.service.Instances.Insert(project, zone, &compute.Instance{
+		op, err := gce.computeService.InstancesInsert(project, zone, &compute.Instance{
 			Name:        name,
 			MachineType: fmt.Sprintf("zones/%s/machineTypes/%s", zone, config.MachineType),
 			NetworkInterfaces: []*compute.NetworkInterface{
@@ -288,7 +298,7 @@ func (gce *GCEClient) Create(cluster *clusterv1.Cluster, machine *clusterv1.Mach
 				Items: []string{"https-server"},
 			},
 			Labels: labels,
-		}).Do()
+		})
 
 		if err == nil {
 			err = gce.waitForOperation(config, op)
@@ -347,7 +357,7 @@ func (gce *GCEClient) Delete(machine *clusterv1.Machine) error {
 		name = machine.ObjectMeta.Name
 	}
 
-	op, err := gce.service.Instances.Delete(project, zone, name).Do()
+	op, err := gce.computeService.InstancesDelete(project, zone, name)
 	if err == nil {
 		err = gce.waitForOperation(config, op)
 	}
@@ -442,7 +452,7 @@ func (gce *GCEClient) GetIP(machine *clusterv1.Machine) (string, error) {
 		return "", err
 	}
 
-	instance, err := gce.service.Instances.Get(config.Project, config.Zone, machine.ObjectMeta.Name).Do()
+	instance, err := gce.computeService.InstancesGet(config.Project, config.Zone, machine.ObjectMeta.Name)
 	if err != nil {
 		return "", err
 	}
@@ -532,7 +542,7 @@ func (gce *GCEClient) instanceIfExists(machine *clusterv1.Machine) (*compute.Ins
 		return nil, err
 	}
 
-	instance, err := gce.service.Instances.Get(config.Project, config.Zone, identifyingMachine.ObjectMeta.Name).Do()
+	instance, err := gce.computeService.InstancesGet(config.Project, config.Zone, identifyingMachine.ObjectMeta.Name)
 	if err != nil {
 		// TODO: Use formal way to check for error code 404
 		if strings.Contains(err.Error(), "Error 404") {
@@ -583,7 +593,7 @@ func (gce *GCEClient) waitForOperation(c *gceconfig.GCEProviderConfig, op *compu
 
 // getOp returns an updated operation.
 func (gce *GCEClient) getOp(c *gceconfig.GCEProviderConfig, op *compute.Operation) (*compute.Operation, error) {
-	return gce.service.ZoneOperations.Get(c.Project, path.Base(op.Zone), op.Name).Do()
+	return gce.computeService.ZoneOperationsGet(c.Project, path.Base(op.Zone), op.Name)
 }
 
 func (gce *GCEClient) checkOp(op *compute.Operation, err error) error {
@@ -684,9 +694,9 @@ func (gce *GCEClient) getImagePath(img string) (imagePath string) {
 		project, family, name := matches[1], matches[2], matches[3]
 		var err error
 		if family == "" {
-			_, err = gce.service.Images.Get(project, name).Do()
+			_, err = gce.computeService.ImagesGet(project, name)
 		} else {
-			_, err = gce.service.Images.GetFromFamily(project, name).Do()
+			_, err = gce.computeService.ImagesGetFromFamily(project, name)
 		}
 
 		if err == nil {

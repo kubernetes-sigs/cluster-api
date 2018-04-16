@@ -8,7 +8,7 @@ go_library(
         "zz_generated.deepcopy.go",
         "zz_generated.defaults.go",
     ],
-    importpath = "k8s.io/kube-deploy/cluster-api/pkg/apis/cluster",
+    importpath = "sigs.k8s.io/cluster-api/cluster-api/pkg/apis/cluster",
     visibility = ["//visibility:public"],
     deps = [
         "//vendor/github.com/kubernetes-incubator/apiserver-builder/pkg/builders:go_default_library",

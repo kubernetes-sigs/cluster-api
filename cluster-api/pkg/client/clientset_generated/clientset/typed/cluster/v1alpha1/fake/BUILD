@@ -8,7 +8,7 @@ go_library(
         "fake_cluster_client.go",
         "fake_machine.go",
     ],
-    importpath = "k8s.io/kube-deploy/cluster-api/pkg/client/clientset_generated/clientset/typed/cluster/v1alpha1/fake",
+    importpath = "sigs.k8s.io/cluster-api/cluster-api/pkg/client/clientset_generated/clientset/typed/cluster/v1alpha1/fake",
     visibility = ["//visibility:public"],
     deps = [
         "//pkg/apis/cluster/v1alpha1:go_default_library",

@@ -6,7 +6,7 @@ go_library(
         "doc.go",
         "register.go",
     ],
-    importpath = "k8s.io/kube-deploy/cluster-api/pkg/client/clientset_generated/clientset/scheme",
+    importpath = "sigs.k8s.io/cluster-api/cluster-api/pkg/client/clientset_generated/clientset/scheme",
     visibility = ["//visibility:public"],
     deps = [
         "//pkg/apis/cluster/v1alpha1:go_default_library",

@@ -6,7 +6,7 @@ go_library(
         "controller.go",
         "zz_generated.api.register.go",
     ],
-    importpath = "k8s.io/kube-deploy/cluster-api/pkg/controller/cluster",
+    importpath = "sigs.k8s.io/cluster-api/cluster-api/pkg/controller/cluster",
     visibility = ["//visibility:public"],
     deps = [
         "//pkg/apis/cluster/v1alpha1:go_default_library",
@@ -28,7 +28,7 @@ go_test(
         "cluster_suite_test.go",
         "controller_test.go",
     ],
-    importpath = "k8s.io/kube-deploy/cluster-api/pkg/controller/cluster_test",
+    importpath = "sigs.k8s.io/cluster-api/cluster-api/pkg/controller/cluster_test",
     deps = [
         ":go_default_library",
         "//pkg/apis:go_default_library",

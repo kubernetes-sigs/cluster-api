@@ -1,6 +1,0 @@
-tools/upgrader/upgrader
-tools/repair/repair
-cmd/apiserver/apiserver
-cmd/controller-manager/controller-manager
-gcp-deployer/gcp-deployer
-gcp-deployer/machines.yaml

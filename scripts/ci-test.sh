@@ -20,5 +20,4 @@ set -o pipefail
 
 REPO_ROOT=$(dirname "${BASH_SOURCE}")/..
 
-go test \
-   "${REPO_ROOT}"/cluster-api/...
+go test "${REPO_ROOT}"/...

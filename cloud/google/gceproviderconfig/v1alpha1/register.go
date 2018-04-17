@@ -17,11 +17,19 @@ limitations under the License.
 package v1alpha1
 
 import (
+	"bytes"
+	"fmt"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/runtime/serializer"
 	"sigs.k8s.io/cluster-api/cloud/google/gceproviderconfig"
+	clusterv1 "sigs.k8s.io/cluster-api/pkg/apis/cluster/v1alpha1"
 )
+
+type GCEProviderConfigCodec struct {
+	encoder runtime.Encoder
+	decoder runtime.Decoder
+}
 
 const GroupName = "gceproviderconfig"
 
@@ -44,14 +52,62 @@ func addKnownTypes(scheme *runtime.Scheme) error {
 	return nil
 }
 
-func NewSchemeAndCodecs() (*runtime.Scheme, *serializer.CodecFactory, error) {
+func NewScheme() (*runtime.Scheme, error) {
 	scheme := runtime.NewScheme()
 	if err := AddToScheme(scheme); err != nil {
-		return nil, nil, err
+		return nil, err
 	}
 	if err := gceproviderconfig.AddToScheme(scheme); err != nil {
-		return nil, nil, err
+		return nil, err
 	}
-	codecs := serializer.NewCodecFactory(scheme)
-	return scheme, &codecs, nil
+	return scheme, nil
+}
+
+func NewCodec() (*GCEProviderConfigCodec, error) {
+	scheme, err := NewScheme()
+	if err != nil {
+		return nil, err
+	}
+	codecFactory := serializer.NewCodecFactory(scheme)
+	encoder, err := newEncoder(&codecFactory)
+	if err != nil {
+		return nil, err
+	}
+	codec := GCEProviderConfigCodec{
+		encoder: encoder,
+		decoder: codecFactory.UniversalDecoder(SchemeGroupVersion),
+	}
+	return &codec, nil
+}
+
+func (codec *GCEProviderConfigCodec) DecodeFromProviderConfig(providerConfig clusterv1.ProviderConfig) (*GCEProviderConfig, error) {
+	obj, gvk, err := codec.decoder.Decode(providerConfig.Value.Raw, nil, nil)
+	if err != nil {
+		return nil, fmt.Errorf("decoding failure: %v", err)
+	}
+	config, ok := obj.(*GCEProviderConfig)
+	if !ok {
+		return nil, fmt.Errorf("failure to cast to gce; type: %v", gvk)
+	}
+	return config, nil
+}
+
+func (codec *GCEProviderConfigCodec) EncodeToProviderConfig(gceProviderConfig *GCEProviderConfig) (*clusterv1.ProviderConfig, error) {
+	var buf bytes.Buffer
+	if err := codec.encoder.Encode(gceProviderConfig, &buf); err != nil {
+		return nil, fmt.Errorf("encoding failed: %v", err)
+	}
+	providerConfig := clusterv1.ProviderConfig{
+		Value: &runtime.RawExtension{Raw: buf.Bytes()},
+	}
+	return &providerConfig, nil
+}
+
+func newEncoder(codecFactory *serializer.CodecFactory) (runtime.Encoder, error) {
+	serializerInfos := codecFactory.SupportedMediaTypes()
+	if len(serializerInfos) == 0 {
+		return nil, fmt.Errorf("unable to find any serlializers")
+	}
+	encoder := codecFactory.EncoderForVersion(serializerInfos[0].Serializer, SchemeGroupVersion)
+	return encoder, nil
 }

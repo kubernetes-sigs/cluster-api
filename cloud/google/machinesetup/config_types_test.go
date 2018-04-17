@@ -90,7 +90,7 @@ func TestParseMachineSetupYaml(t *testing.T) {
 				t.Errorf("An error was not received as expected.")
 			}
 			if validConfigs != nil {
-				t.Errorf("ValidConfigs should be nil, got %v", validConfigs)
+				t.Errorf("GetMachineSetupConfigs should be nil, got %v", validConfigs)
 			}
 		}
 		if !table.expectedErr {
@@ -98,7 +98,7 @@ func TestParseMachineSetupYaml(t *testing.T) {
 				t.Errorf("Got unexpected error: %s", err)
 			}
 			if validConfigs == nil {
-				t.Errorf("ValidConfigs should have been parsed, but was nil")
+				t.Errorf("GetMachineSetupConfigs should have been parsed, but was nil")
 			}
 		}
 	}

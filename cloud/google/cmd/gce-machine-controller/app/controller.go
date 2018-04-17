@@ -60,8 +60,12 @@ func StartMachineController(server *options.MachineControllerServer, shutdown <-
 	if err != nil {
 		glog.Fatalf("Could not create config watch: %v", err)
 	}
-
-	actuator, err := google.NewMachineActuator(server.KubeadmToken, client.ClusterV1alpha1().Machines(corev1.NamespaceDefault), configWatch)
+	params := google.MachineActuatorParams{
+		KubeadmToken:             server.KubeadmToken,
+		MachineClient:            client.ClusterV1alpha1().Machines(corev1.NamespaceDefault),
+		MachineSetupConfigGetter: configWatch,
+	}
+	actuator, err := google.NewMachineActuator(params)
 	if err != nil {
 		glog.Fatalf("Could not create Google machine actuator: %v", err)
 	}

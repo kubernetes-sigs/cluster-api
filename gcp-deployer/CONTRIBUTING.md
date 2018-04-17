@@ -70,7 +70,7 @@ If you need to rebuild container image for the extension APIServer and Controlle
 
 ## Fetch Source Code
 
-1. Fork [kube-deploy repo](https://github.com/kubernetes/kube-deploy). If it's your first time forking, please take a look at [GitHub Repo instructions](https://help.github.com/articles/fork-a-repo/). The general [Kubernetes GitHub workflow](https://github.com/kubernetes/community/blob/master/contributors/guide/github-workflow.md) is helpful here too if you're getting started.
+1. Fork [cluster-api repo](https://github.com/kubernetes-sigs/cluster-api/). If it's your first time forking, please take a look at [GitHub Repo instructions](https://help.github.com/articles/fork-a-repo/). The general [Kubernetes GitHub workflow](https://github.com/kubernetes/community/blob/master/contributors/guide/github-workflow.md) is helpful here too if you're getting started.
 
 2. Clone Repo Locally
 ```bash

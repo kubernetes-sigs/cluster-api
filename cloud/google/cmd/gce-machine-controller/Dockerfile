@@ -14,13 +14,13 @@
 
 # Reproducible builder image
 FROM golang:1.10.0 as builder
-WORKDIR /go/src/k8s.io/kube-deploy/cluster-api
+WORKDIR /go/src/sigs.k8s.io/cluster-api
 # This expects that the context passed to the docker build command is
 # the cluster-api directory.
 # e.g. docker build -t <tag> -f <this_Dockerfile> <path_to_cluster-api>
 COPY . . 
 
-RUN CGO_ENABLED=0 GOOS=linux go install -a -ldflags '-extldflags "-static"' k8s.io/kube-deploy/cluster-api/cloud/google/cmd/gce-machine-controller
+RUN CGO_ENABLED=0 GOOS=linux go install -a -ldflags '-extldflags "-static"' sigs.k8s.io/cluster-api/cloud/google/cmd/gce-machine-controller
 
 # Final container
 FROM alpine:3.7

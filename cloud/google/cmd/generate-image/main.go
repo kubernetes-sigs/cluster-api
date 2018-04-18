@@ -19,15 +19,15 @@ package main
 import (
 	"fmt"
 
+	"io/ioutil"
+	"os"
+
 	"github.com/golang/glog"
 	"github.com/spf13/cobra"
-	"sigs.k8s.io/cluster-api/cloud/google"
 )
 
 type options struct {
-	version      string
-	role         string
-	dockerImages []string
+	script string
 }
 
 var opts options
@@ -36,6 +36,12 @@ var generateCmd = &cobra.Command{
 	Use:   "generate_image",
 	Short: "Outputs a script to generate a preloaded image",
 	Run: func(cmd *cobra.Command, args []string) {
+		if opts.script == "" {
+			glog.Error("Please provide a startup script.")
+			cmd.Help()
+			os.Exit(1)
+		}
+
 		if err := runGenerate(opts); err != nil {
 			glog.Exit(err)
 		}
@@ -43,30 +49,18 @@ var generateCmd = &cobra.Command{
 }
 
 func init() {
-	generateCmd.Flags().StringVar(&opts.version, "version", "1.7.3", "The version of kubernetes to install")
-	generateCmd.Flags().StringVar(&opts.role, "role", "master", "The role of the machine (master or node)")
-	generateCmd.Flags().StringArrayVar(&opts.dockerImages, "extra-docker-images", []string{}, "extra docker images to preload")
+	generateCmd.Flags().StringVar(&opts.script, "script", "", "The path to the machine's startup script")
 }
 
 func runGenerate(o options) error {
-	var script string
-	var err error
-	switch o.role {
-	case "master":
-		script, err = google.PreloadMasterScript(o.version, o.dockerImages)
-	case "node":
-		script, err = google.PreloadMasterScript(o.version, o.dockerImages)
-	default:
-		return fmt.Errorf("unrecognized role: %q", o.role)
-	}
-
+	bytes, err := ioutil.ReadFile(o.script)
 	if err != nil {
 		return err
 	}
 
 	// just print the script for now
 	// TODO actually start a VM, let it run the script, stop the VM, then create the image
-	fmt.Println(script)
+	fmt.Println(string(bytes))
 	return nil
 }
 

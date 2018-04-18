@@ -32,13 +32,17 @@ import (
 	"golang.org/x/oauth2/google"
 	compute "google.golang.org/api/compute/v1"
 
+	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/serializer"
 
 	"regexp"
 
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/client-go/kubernetes"
 	gceconfig "sigs.k8s.io/cluster-api/cloud/google/gceproviderconfig"
 	gceconfigv1 "sigs.k8s.io/cluster-api/cloud/google/gceproviderconfig/v1alpha1"
+	"sigs.k8s.io/cluster-api/cloud/google/machinesetup"
 	apierrors "sigs.k8s.io/cluster-api/errors"
 	clusterv1 "sigs.k8s.io/cluster-api/pkg/apis/cluster/v1alpha1"
 	client "sigs.k8s.io/cluster-api/pkg/client/clientset_generated/clientset/typed/cluster/v1alpha1"
@@ -50,7 +54,12 @@ const (
 	ZoneAnnotationKey    = "gcp-zone"
 	NameAnnotationKey    = "gcp-name"
 
+	UIDLabelKey       = "machine-crd-uid"
 	BootstrapLabelKey = "boostrap"
+
+	// This file is a yaml that will be used to create the machine-setup configmap on the machine controller.
+	// It contains the supported machine configurations along with the startup scripts and OS image paths that correspond to each supported configuration.
+	MachineSetupConfigsFilename = "machine_setup_configs.yaml"
 )
 
 type SshCreds struct {
@@ -65,6 +74,7 @@ type GCEClient struct {
 	kubeadmToken  string
 	sshCreds      SshCreds
 	machineClient client.MachineInterface
+	configWatch   *machinesetup.ConfigWatch
 }
 
 const (
@@ -72,7 +82,7 @@ const (
 	gceWaitSleep = time.Second * 5
 )
 
-func NewMachineActuator(kubeadmToken string, machineClient client.MachineInterface) (*GCEClient, error) {
+func NewMachineActuator(kubeadmToken string, machineClient client.MachineInterface, configListPath string) (*GCEClient, error) {
 	// The default GCP client expects the environment variable
 	// GOOGLE_APPLICATION_CREDENTIALS to point to a file with service credentials.
 	client, err := google.DefaultClient(context.TODO(), compute.ComputeScope)
@@ -103,6 +113,15 @@ func NewMachineActuator(kubeadmToken string, machineClient client.MachineInterfa
 		}
 	}
 
+	// TODO: get rid of empty string check when we switch to the new bootstrapping method.
+	var configWatch *machinesetup.ConfigWatch
+	if configListPath != "" {
+		configWatch, err = machinesetup.NewConfigWatch(configListPath)
+		if err != nil {
+			glog.Errorf("Error creating config watch: %v", err)
+		}
+	}
+
 	return &GCEClient{
 		service:      service,
 		scheme:       scheme,
@@ -113,10 +132,11 @@ func NewMachineActuator(kubeadmToken string, machineClient client.MachineInterfa
 			user:           user,
 		},
 		machineClient: machineClient,
+		configWatch:   configWatch,
 	}, nil
 }
 
-func (gce *GCEClient) CreateMachineController(cluster *clusterv1.Cluster, initialMachines []*clusterv1.Machine) error {
+func (gce *GCEClient) CreateMachineController(cluster *clusterv1.Cluster, initialMachines []*clusterv1.Machine, clientSet kubernetes.Clientset) error {
 	if err := gce.CreateMachineControllerServiceAccount(cluster, initialMachines); err != nil {
 		return err
 	}
@@ -127,6 +147,27 @@ func (gce *GCEClient) CreateMachineController(cluster *clusterv1.Cluster, initia
 	}
 
 	if err := CreateExtApiServerRoleBinding(); err != nil {
+		return err
+	}
+
+	// Create the configmap so the machine setup configs can be mounted into the node.
+	// TODO: create the configmap during bootstrapping instead of being buried in the machine actuator code.
+	machineSetupConfigs, err := gce.configWatch.ValidConfigs()
+	if err != nil {
+		return err
+	}
+	yaml, err := machineSetupConfigs.GetYaml()
+	if err != nil {
+		return err
+	}
+	configMap := corev1.ConfigMap{
+		ObjectMeta: metav1.ObjectMeta{Name: "machine-setup"},
+		Data: map[string]string{
+			MachineSetupConfigsFilename: yaml,
+		},
+	}
+	configMaps := clientSet.CoreV1().ConfigMaps(corev1.NamespaceDefault)
+	if _, err := configMaps.Create(&configMap); err != nil {
 		return err
 	}
 
@@ -152,22 +193,32 @@ func (gce *GCEClient) Create(cluster *clusterv1.Cluster, machine *clusterv1.Mach
 		return errors.New("invalid master configuration: missing Machine.Spec.Versions.Kubelet")
 	}
 
-	image, preloaded := gce.getImage(machine, config)
+	machineSetupConfigs, err := gce.configWatch.ValidConfigs()
+	if err != nil {
+		return err
+	}
+	configParams := &machinesetup.ConfigParams{
+		OS:       config.OS,
+		Roles:    machine.Spec.Roles,
+		Versions: machine.Spec.Versions,
+	}
+	image, err := machineSetupConfigs.GetImage(configParams)
+	if err != nil {
+		return err
+	}
+	imagePath := gce.getImagePath(image)
 
+	machineSetupMetadata, err := machineSetupConfigs.GetMetadata(configParams)
+	if err != nil {
+		return err
+	}
 	if util.IsMaster(machine) {
 		if machine.Spec.Versions.ControlPlane == "" {
 			return gce.handleMachineError(machine, apierrors.InvalidMachineConfiguration(
 				"invalid master configuration: missing Machine.Spec.Versions.ControlPlane"))
 		}
 		var err error
-		metadata, err = masterMetadata(
-			templateParams{
-				Token:     gce.kubeadmToken,
-				Cluster:   cluster,
-				Machine:   machine,
-				Preloaded: preloaded,
-			},
-		)
+		metadata, err = masterMetadata(gce.kubeadmToken, cluster, machine, config.Project, &machineSetupMetadata)
 		if err != nil {
 			return err
 		}
@@ -176,14 +227,7 @@ func (gce *GCEClient) Create(cluster *clusterv1.Cluster, machine *clusterv1.Mach
 			return errors.New("invalid cluster state: cannot create a Kubernetes node without an API endpoint")
 		}
 		var err error
-		metadata, err = nodeMetadata(
-			templateParams{
-				Token:     gce.kubeadmToken,
-				Cluster:   cluster,
-				Machine:   machine,
-				Preloaded: preloaded,
-			},
-		)
+		metadata, err = nodeMetadata(gce.kubeadmToken, cluster, machine, &machineSetupMetadata)
 		if err != nil {
 			return err
 		}
@@ -206,16 +250,12 @@ func (gce *GCEClient) Create(cluster *clusterv1.Cluster, machine *clusterv1.Mach
 	name := machine.ObjectMeta.Name
 	project := config.Project
 	zone := config.Zone
-	diskSize := int64(10)
-
-	// Our preloaded image already has a lot stored on it, so increase the
-	// disk size to have more free working space.
-	if preloaded {
-		diskSize = 30
-	}
+	diskSize := int64(30)
 
 	if instance == nil {
-	  labels := map[string]string{}
+		labels := map[string]string{
+			UIDLabelKey: fmt.Sprintf("%v", machine.ObjectMeta.UID),
+		}
 		if gce.machineClient == nil {
 			labels[BootstrapLabelKey] = "true"
 		}
@@ -239,7 +279,7 @@ func (gce *GCEClient) Create(cluster *clusterv1.Cluster, machine *clusterv1.Mach
 					AutoDelete: true,
 					Boot:       true,
 					InitializeParams: &compute.AttachedDiskInitializeParams{
-						SourceImage: image,
+						SourceImage: imagePath,
 						DiskSizeGb:  diskSize,
 					},
 				},
@@ -471,7 +511,8 @@ func (gce *GCEClient) requiresUpdate(a *clusterv1.Machine, b *clusterv1.Machine)
 		!reflect.DeepEqual(a.Spec.ProviderConfig, b.Spec.ProviderConfig) ||
 		!reflect.DeepEqual(a.Spec.Roles, b.Spec.Roles) ||
 		!reflect.DeepEqual(a.Spec.Versions, b.Spec.Versions) ||
-		a.ObjectMeta.Name != b.ObjectMeta.Name
+		a.ObjectMeta.Name != b.ObjectMeta.Name ||
+		a.ObjectMeta.UID != b.ObjectMeta.UID
 }
 
 // Gets the instance represented by the given machine
@@ -502,6 +543,18 @@ func (gce *GCEClient) instanceIfExists(machine *clusterv1.Machine) (*compute.Ins
 			return nil, nil
 		}
 		return nil, err
+	}
+
+	uid := instance.Labels[UIDLabelKey]
+	if uid == "" {
+		if instance.Labels[BootstrapLabelKey] != "" {
+			glog.Infof("Skipping uid check since instance %v %v %v is missing uid label due to being provisioned as part of bootstrap.", config.Project, config.Zone, identifyingMachine.ObjectMeta.Name)
+		} else {
+			return nil, fmt.Errorf("Instance %v %v %v is missing uid label.", config.Project, config.Zone, identifyingMachine.ObjectMeta.Name)
+		}
+	} else if uid != fmt.Sprintf("%v", machine.ObjectMeta.UID) {
+		glog.Infof("Instance %v exists but it has a different UID. Object UID: %v . Instance UID: %v", machine.ObjectMeta.Name, machine.ObjectMeta.UID, uid)
+		return nil, nil
 	}
 
 	return instance, nil
@@ -637,42 +690,29 @@ func (gce *GCEClient) handleMachineError(machine *clusterv1.Machine, err *apierr
 	return err
 }
 
-func (gce *GCEClient) getImage(machine *clusterv1.Machine, config *gceconfig.GCEProviderConfig) (image string, isPreloaded bool) {
+func (gce *GCEClient) getImagePath(img string) (imagePath string) {
 	defaultImg := "projects/ubuntu-os-cloud/global/images/family/ubuntu-1710"
-	project := config.Project
-	img := config.Image
 
-	// A full image path must match the regex format. If it doesn't, we'll assume it's just the image name and try to get it.
-	// If that doesn't work, we will fall back to a default base image.
+	// A full image path must match the regex format. If it doesn't, we will fall back to a default base image.
 	matches := regexp.MustCompile("projects/(.+)/global/images/(family/)*(.+)").FindStringSubmatch(img)
-	if matches == nil {
-		// Only the image name was specified in config, so check if it is preloaded in the project specified in config.
-		fullPath := fmt.Sprintf("projects/%s/global/images/%s", project, img)
-		if _, err := gce.service.Images.Get(project, img).Do(); err == nil {
-			return fullPath, false
+	if matches != nil {
+		// Check to see if the image exists in the given path. The presence of "family" in the path dictates which API call we need to make.
+		project, family, name := matches[1], matches[2], matches[3]
+		var err error
+		if family == "" {
+			_, err = gce.service.Images.Get(project, name).Do()
+		} else {
+			_, err = gce.service.Images.GetFromFamily(project, name).Do()
 		}
 
-		// Otherwise, fall back to the non-preloaded base image.
-		glog.Infof("Could not find image at %s. Defaulting to %s.", fullPath, defaultImg)
-		return defaultImg, false
+		if err == nil {
+			return img
+		}
 	}
 
-	// Check to see if the image exists in the given path. The presence of "family" in the path dictates which API call we need to make.
-	project, family, name := matches[1], matches[2], matches[3]
-	var err error
-	if family == "" {
-		_, err = gce.service.Images.Get(project, name).Do()
-	} else {
-		_, err = gce.service.Images.GetFromFamily(project, name).Do()
-	}
-
-	if err == nil {
-		return img, false
-	}
-
-	// Otherwise, fall back to the non-preloaded base image.
+	// Otherwise, fall back to the base image.
 	glog.Infof("Could not find image at %s. Defaulting to %s.", img, defaultImg)
-	return defaultImg, false
+	return defaultImg
 }
 
 // Just a temporary hack to grab a single range from the config.

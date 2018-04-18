@@ -22,6 +22,7 @@ import (
 
 	"github.com/golang/glog"
 
+	"k8s.io/client-go/kubernetes"
 	"sigs.k8s.io/cluster-api/cloud/google"
 	clusterv1 "sigs.k8s.io/cluster-api/pkg/apis/cluster/v1alpha1"
 	"sigs.k8s.io/cluster-api/pkg/client/clientset_generated/clientset"
@@ -31,37 +32,38 @@ import (
 )
 
 type deployer struct {
-	token           string
-	configPath      string
-	machineDeployer machineDeployer
-	client          v1alpha1.ClusterV1alpha1Interface
-	clientSet       clientset.Interface
+	token               string
+	configPath          string
+	machineDeployer     machineDeployer
+	client              v1alpha1.ClusterV1alpha1Interface
+	clientSet           clientset.Interface
+	kubernetesClientSet kubernetes.Clientset
 }
 
 // NewDeployer returns a cloud provider specific deployer and
 // sets kubeconfig path for the cluster to be deployed
-func NewDeployer(provider string, configPath string) *deployer {
+func NewDeployer(provider string, kubeConfigPath string, machineSetupConfigPath string) *deployer {
 	token := util.RandomToken()
-	if configPath == "" {
-		configPath = os.Getenv("KUBECONFIG")
-		if configPath == "" {
-			configPath = apiutil.GetDefaultKubeConfigPath()
+	if kubeConfigPath == "" {
+		kubeConfigPath = os.Getenv("KUBECONFIG")
+		if kubeConfigPath == "" {
+			kubeConfigPath = apiutil.GetDefaultKubeConfigPath()
 		}
 	} else {
 		// This is needed for kubectl commands run later to create secret in function
 		// CreateMachineControllerServiceAccount
-		if err := os.Setenv("KUBECONFIG", configPath); err != nil {
+		if err := os.Setenv("KUBECONFIG", kubeConfigPath); err != nil {
 			glog.Exit(fmt.Sprintf("Failed to set Kubeconfig path err %v\n", err))
 		}
 	}
-	ma, err := google.NewMachineActuator(token, nil)
+	ma, err := google.NewMachineActuator(token, nil, machineSetupConfigPath)
 	if err != nil {
 		glog.Exit(err)
 	}
 	return &deployer{
 		token:           token,
 		machineDeployer: ma,
-		configPath:      configPath,
+		configPath:      kubeConfigPath,
 	}
 }
 

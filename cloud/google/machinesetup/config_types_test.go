@@ -19,8 +19,8 @@ import (
 	"strings"
 	"testing"
 
-	clustercommon "k8s.io/kube-deploy/cluster-api/pkg/apis/cluster/common"
-	clusterv1 "k8s.io/kube-deploy/cluster-api/pkg/apis/cluster/v1alpha1"
+	clustercommon "sigs.k8s.io/cluster-api/pkg/apis/cluster/common"
+	clusterv1 "sigs.k8s.io/cluster-api/pkg/apis/cluster/v1alpha1"
 )
 
 func TestParseMachineSetupYaml(t *testing.T) {

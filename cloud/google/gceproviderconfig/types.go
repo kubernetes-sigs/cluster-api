@@ -27,5 +27,7 @@ type GCEProviderConfig struct {
 	Project     string `json:"project"`
 	Zone        string `json:"zone"`
 	MachineType string `json:"machineType"`
-	Image       string `json:"image"`
+
+	// The name of the OS to be installed on the machine.
+	OS string `json:"os"`
 }

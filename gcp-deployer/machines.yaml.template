@@ -13,10 +13,10 @@ items:
         project: "$GCLOUD_PROJECT"
         zone: "us-central1-f"
         machineType: "n1-standard-2"
-        image: "projects/ubuntu-os-cloud/global/images/family/ubuntu-1604-lts"
+        os: "ubuntu-1604-lts"
     versions:
-      kubelet: 1.8.3
-      controlPlane: 1.8.3
+      kubelet: 1.9.4
+      controlPlane: 1.9.4
       containerRuntime:
         name: docker
         version: 1.12.0
@@ -36,9 +36,9 @@ items:
         project: "$GCLOUD_PROJECT"
         zone: "us-central1-f"
         machineType: "n1-standard-1"
-        image: "projects/ubuntu-os-cloud/global/images/family/ubuntu-1604-lts"
+        os: "ubuntu-1604-lts"
     versions:
-      kubelet: 1.8.3
+      kubelet: 1.9.4
       containerRuntime:
         name: docker
         version: 1.12.0

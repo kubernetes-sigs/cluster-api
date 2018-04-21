@@ -52,7 +52,7 @@ func RunAdd(ao *AddOptions) error {
 		return err
 	}
 
-	d := deploy.NewDeployer(provider, kubeConfig)
+	d := deploy.NewDeployer(provider, kubeConfig, "")
 
 	return d.AddNodes(machines)
 }

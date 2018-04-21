@@ -2,6 +2,8 @@
 set -e
 
 GCLOUD_PROJECT=$(gcloud config get-value project)
+ZONE=$(gcloud config get-value compute/zone)
+ZONE="${ZONE:-us-central1-f}"
 
 TEMPLATE_FILE=machines.yaml.template
 GENERATED_FILE=machines.yaml
@@ -39,4 +41,4 @@ if [ $OVERWRITE -ne 1 ] && [ -f $GENERATED_FILE ]; then
   exit 1
 fi
 
-sed -e "s/\$GCLOUD_PROJECT/$GCLOUD_PROJECT/" $TEMPLATE_FILE > $GENERATED_FILE
+sed -e "s/\$GCLOUD_PROJECT/$GCLOUD_PROJECT/" $TEMPLATE_FILE | sed -e "s/\$ZONE/$ZONE/" > $GENERATED_FILE

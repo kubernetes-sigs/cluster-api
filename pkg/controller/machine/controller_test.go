@@ -17,11 +17,13 @@ limitations under the License.
 package machine
 
 import (
+	"strconv"
 	"sync"
 	"testing"
 	"time"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/util/wait"
 
 	"sigs.k8s.io/cluster-api/pkg/apis/cluster/v1alpha1"
 	"sigs.k8s.io/cluster-api/pkg/apis/cluster/v1alpha1/testutil"
@@ -36,9 +38,12 @@ func machineControllerReconcile(t *testing.T, cs *clientset.Clientset, controlle
 	// When creating a new object, it should invoke the reconcile method.
 	cluster := testutil.GetVanillaCluster()
 	cluster.Name = "cluster-1"
-	if _, err := cs.ClusterV1alpha1().Clusters("default").Create(&cluster); err != nil {
+	clusterClient := cs.ClusterV1alpha1().Clusters("default")
+	if _, err := clusterClient.Create(&cluster); err != nil {
 		t.Fatal(err)
 	}
+	defer clusterClient.Delete(cluster.Name, &metav1.DeleteOptions{})
+
 	client := cs.ClusterV1alpha1().Machines("default")
 	before := make(chan struct{})
 	after := make(chan struct{})
@@ -92,5 +97,43 @@ func machineControllerReconcile(t *testing.T, cs *clientset.Clientset, controlle
 		}
 	case <-time.After(time.Second * 2):
 		t.Fatalf("reconcile never finished")
+	}
+}
+
+func machineControllerConcurrentReconcile(t *testing.T, cs *clientset.Clientset,
+	controller *MachineController) {
+	// Create a cluster object.
+	cluster := testutil.GetVanillaCluster()
+	cluster.Name = "cluster-1"
+	clusterClient := cs.ClusterV1alpha1().Clusters("default")
+	if _, err := clusterClient.Create(&cluster); err != nil {
+		t.Fatal(err)
+	}
+	defer clusterClient.Delete(cluster.Name, &metav1.DeleteOptions{})
+
+	client := cs.ClusterV1alpha1().Machines("default")
+
+	// Direct test actutaor to block on Create() call.
+	ta := controller.controller.actuator.(*TestActuator)
+	ta.BlockOnCreate = true
+	ta.CreateCallCount = 0
+	defer ta.Unblock()
+
+	// Create a few instances
+	const numMachines = 5
+	for i := 0; i < numMachines; i++ {
+		instance := v1alpha1.Machine{}
+		instance.Name = "instance" + strconv.Itoa(i)
+		if _, err := client.Create(&instance); err != nil {
+			t.Fatal(err)
+		}
+	}
+
+	err := wait.Poll(time.Second, 10*time.Second, func() (bool, error) {
+		return (ta.CreateCallCount == numMachines), nil
+	})
+
+	if err != nil {
+		t.Fatalf("The reconcilation didn't run in parallel.")
 	}
 }

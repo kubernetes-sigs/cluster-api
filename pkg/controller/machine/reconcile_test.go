@@ -30,46 +30,20 @@ import (
 	"sigs.k8s.io/cluster-api/util"
 )
 
-type CountActuator struct{
-	CreateCallCount int64
-	DeleteCallCount int64
-	UpdateCallCount int64
-	ExistsCallCount int64
-	ExistsValue     bool
-}
-
-func (a *CountActuator) Create(*v1alpha1.Cluster, *v1alpha1.Machine) error {
-	a.CreateCallCount++
-	return nil
-}
-func (a *CountActuator) Delete(*v1alpha1.Machine) error {
-	a.DeleteCallCount++
-	return nil
-}
-func (a *CountActuator) Update(c *v1alpha1.Cluster, machine *v1alpha1.Machine) error {
-	a.UpdateCallCount++
-	return nil
-}
-func (a *CountActuator) Exists(*v1alpha1.Machine) (bool, error) {
-	a.ExistsCallCount++
-	return a.ExistsValue, nil
-}
-
-
 func TestMachineSetControllerReconcileHandler(t *testing.T) {
 	tests := []struct {
-		name                      string
-		objExists                 bool
-		instanceExists            bool
-		isDeleting                bool
-		withFinalizer             bool
-		isMaster                  bool
-		ignoreDeleteCallCount     bool
-		expectFinalizerRemoved    bool
-		numExpectedCreateCalls    int64
-		numExpectedDeleteCalls    int64
-		numExpectedUpdateCalls    int64
-		numExpectedExistsCalls    int64
+		name                   string
+		objExists              bool
+		instanceExists         bool
+		isDeleting             bool
+		withFinalizer          bool
+		isMaster               bool
+		ignoreDeleteCallCount  bool
+		expectFinalizerRemoved bool
+		numExpectedCreateCalls int64
+		numExpectedDeleteCalls int64
+		numExpectedUpdateCalls int64
+		numExpectedExistsCalls int64
 	}{
 		{
 			name:                   "Create machine",
@@ -96,11 +70,11 @@ func TestMachineSetControllerReconcileHandler(t *testing.T) {
 		},
 		{
 			// This should not be possible. Here for completeness.
-			name:                   "Delete machine, instance exists without finalizer",
-			objExists:              true,
-			instanceExists:         true,
-			isDeleting:             true,
-			withFinalizer:          false,
+			name:           "Delete machine, instance exists without finalizer",
+			objExists:      true,
+			instanceExists: true,
+			isDeleting:     true,
+			withFinalizer:  false,
 		},
 		{
 			name:                   "Delete machine, instance does not exist, with finalizer",
@@ -112,19 +86,19 @@ func TestMachineSetControllerReconcileHandler(t *testing.T) {
 			expectFinalizerRemoved: true,
 		},
 		{
-			name:                   "Delete machine, instance does not exist, without finalizer",
-			objExists:              true,
-			instanceExists:         false,
-			isDeleting:             true,
-			withFinalizer:          false,
+			name:           "Delete machine, instance does not exist, without finalizer",
+			objExists:      true,
+			instanceExists: false,
+			isDeleting:     true,
+			withFinalizer:  false,
 		},
 		{
-			name:                   "Delete machine, skip master",
-			objExists:              true,
-			instanceExists:         true,
-			isDeleting:             true,
-			withFinalizer:          true,
-			isMaster:               true,
+			name:           "Delete machine, skip master",
+			objExists:      true,
+			instanceExists: true,
+			isDeleting:     true,
+			withFinalizer:  true,
+			isMaster:       true,
 		},
 	}
 
@@ -151,7 +125,8 @@ func TestMachineSetControllerReconcileHandler(t *testing.T) {
 				t.Fatal(err)
 			}
 
-			actuator := &CountActuator{ExistsValue: test.instanceExists}
+			actuator := NewTestActuator()
+			actuator.ExistsValue = test.instanceExists
 
 			target := &MachineControllerImpl{}
 			target.actuator = actuator
@@ -193,7 +168,7 @@ func getMachine(name string, isDeleting, hasFinalizer, isMaster bool) *v1alpha1.
 			APIVersion: v1alpha1.SchemeGroupVersion.String(),
 		},
 		ObjectMeta: metav1.ObjectMeta{
-			Name: name,
+			Name:      name,
 			Namespace: metav1.NamespaceDefault,
 		},
 	}

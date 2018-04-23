@@ -95,7 +95,7 @@ func init() {
 	nodeEnvironmentVarsTemplate = template.Must(template.New("nodeEnvironmentVars").Parse(nodeEnvironmentVars))
 }
 
-// TODO(kcoronado): replace with actual network and node tag args when they are added into provider config.
+// TODO(kcoronado): replace with actual network args when they are added into provider config.
 const masterEnvironmentVars = `
 #!/bin/bash
 KUBELET_VERSION={{ .Machine.Spec.Versions.Kubelet }}
@@ -111,7 +111,8 @@ SERVICE_CIDR={{ .ServiceCIDR }}
 PROJECT={{ .Project }}
 NETWORK=default
 SUBNETWORK=kubernetes
-NODE_TAG=worker
+CLUSTER_NAME={{ .Cluster.Name }}
+NODE_TAG="$CLUSTER_NAME-worker"
 `
 
 const nodeEnvironmentVars = `

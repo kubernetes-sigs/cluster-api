@@ -26,6 +26,7 @@ items:
           apt-transport-https \
           cloud-utils \
           prips
+
       function install_configure_docker () {
           # prevent docker from auto-starting
           echo "exit 101" > /usr/sbin/policy-rc.d
@@ -38,6 +39,7 @@ items:
           systemctl start docker
       }
       install_configure_docker
+
       curl -sSL https://dl.k8s.io/release/${VERSION}/bin/linux/${ARCH}/kubeadm > /usr/bin/kubeadm.dl
       chmod a+rx /usr/bin/kubeadm.dl
       # kubeadm uses 10th IP as DNS server
@@ -61,6 +63,7 @@ items:
           kubeadm=${KUBEADM}
       mv /usr/bin/kubeadm.dl /usr/bin/kubeadm
       chmod a+rx /usr/bin/kubeadm
+
       # Override network args to use kubenet instead of cni, and override Kubelet DNS args.
       cat > /etc/systemd/system/kubelet.service.d/20-kubenet.conf <<EOF
       [Service]
@@ -72,6 +75,7 @@ items:
       PRIVATEIP=`curl --retry 5 -sfH "Metadata-Flavor: Google" "http://metadata/computeMetadata/v1/instance/network-interfaces/0/ip"`
       echo $PRIVATEIP > /tmp/.ip
       PUBLICIP=`curl --retry 5 -sfH "Metadata-Flavor: Google" "http://metadata/computeMetadata/v1/instance/network-interfaces/0/access-configs/0/external-ip"`
+
       # Set up the GCE cloud config, which gets picked up by kubeadm init since cloudProvider is set to GCE.
       cat > /etc/kubernetes/cloud-config <<EOF
       [global]
@@ -80,6 +84,7 @@ items:
       subnetwork-name = ${SUBNETWORK}
       node-tags = ${NODE_TAG}
       EOF
+
       # Set up kubeadm config file to pass parameters to kubeadm init.
       cat > /etc/kubernetes/kubeadm_config.yaml <<EOF
       apiVersion: kubeadm.k8s.io/v1alpha1
@@ -100,7 +105,13 @@ items:
       - ${PUBLICIP}
       - ${PRIVATEIP}
       EOF
-      kubeadm init --config /etc/kubernetes/kubeadm_config.yaml --ignore-preflight-errors=all
+
+      # Create and set bridge-nf-call-iptables to 1 to pass the kubeadm preflight check.
+      # Workaround was found here:
+      # http://zeeshanali.com/sysadmin/fixed-sysctl-cannot-stat-procsysnetbridgebridge-nf-call-iptables/
+      modprobe br_netfilter
+
+      kubeadm init --config /etc/kubernetes/kubeadm_config.yaml
       for tries in $(seq 1 60); do
           kubectl --kubeconfig /etc/kubernetes/kubelet.conf annotate --overwrite node $(hostname) machine=${MACHINE} && break
           sleep 1

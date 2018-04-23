@@ -1,161 +1,5 @@
 items:
 - machineParams:
-  - os: ubuntu-1710-weave
-    roles:
-    - Node
-    versions:
-      kubelet: 1.9.4
-      containerRuntime:
-        name: docker
-        version: 1.12.0
-  image: projects/ubuntu-os-cloud/global/images/family/ubuntu-1710
-  metadata:
-    startupScript: |
-      set -e
-      set -x
-      (
-      apt-get update
-      apt-get install -y apt-transport-https prips
-      apt-key adv --keyserver hkp://keyserver.ubuntu.com --recv-keys F76221572C52609D
-      cat <<EOF > /etc/apt/sources.list.d/k8s.list
-      deb [arch=amd64] https://apt.dockerproject.org/repo ubuntu-xenial main
-      EOF
-      apt-get update
-      apt-get install -y docker-engine=1.12.0-0~xenial
-      curl -s https://packages.cloud.google.com/apt/doc/apt-key.gpg | apt-key add -
-      cat <<EOF > /etc/apt/sources.list.d/kubernetes.list
-      deb http://apt.kubernetes.io/ kubernetes-xenial main
-      EOF
-      apt-get update
-      # Our Debian packages have versions like "1.8.0-00" or "1.8.0-01". Do a prefix
-      # search based on our SemVer to find the right (newest) package version.
-      function getversion() {
-      	name=$1
-      	prefix=$2
-      	version=$(apt-cache madison $name | awk '{ print $3 }' | grep ^$prefix | head -n1)
-      	if [[ -z "$version" ]]; then
-      		echo Can\'t find package $name with prefix $prefix
-      		exit 1
-      	fi
-      	echo $version
-      }
-      KUBELET=$(getversion kubelet ${KUBELET_VERSION}-)
-      KUBEADM=$(getversion kubeadm ${KUBELET_VERSION}-)
-      KUBECTL=$(getversion kubectl ${KUBELET_VERSION}-)
-      apt-get install -y kubelet=${KUBELET} kubeadm=${KUBEADM} kubectl=${KUBECTL}
-      systemctl enable docker || true
-      systemctl start docker || true
-      # kubeadm uses 10th IP as DNS server
-      CLUSTER_DNS_SERVER=$(prips ${SERVICE_CIDR} | head -n 11 | tail -n 1)
-      # Override Kubelet DNS args.
-      cat > /etc/systemd/system/kubelet.service.d/20-kubenet.conf <<EOF
-      [Service]
-      Environment="KUBELET_DNS_ARGS=--cluster-dns=${CLUSTER_DNS_SERVER} --cluster-domain=${CLUSTER_DNS_DOMAIN}"
-      EOF
-      systemctl daemon-reload
-      systemctl restart kubelet.service
-      kubeadm join --token "${TOKEN}" "${MASTER}" --ignore-preflight-errors=all --discovery-token-unsafe-skip-ca-verification
-      for tries in $(seq 1 60); do
-      	kubectl --kubeconfig /etc/kubernetes/kubelet.conf annotate --overwrite node $(hostname) machine=${MACHINE} && break
-      	sleep 1
-      done
-      echo done.
-      ) 2>&1 | tee /var/log/startup.log
-- machineParams:
-  - os: ubuntu-1710-weave
-    roles:
-    - Master
-    versions:
-      kubelet: 1.9.4
-      controlPlane: 1.9.4
-      containerRuntime:
-        name: docker
-        version: 1.12.0
-  image: projects/ubuntu-os-cloud/global/images/family/ubuntu-1710
-  metadata:
-    startupScript: |
-      set -e
-      set -x
-      (
-      ARCH=amd64
-      curl -s https://packages.cloud.google.com/apt/doc/apt-key.gpg | sudo apt-key add -
-      touch /etc/apt/sources.list.d/kubernetes.list
-      sh -c 'echo "deb http://apt.kubernetes.io/ kubernetes-xenial main" > /etc/apt/sources.list.d/kubernetes.list'
-      apt-get update -y
-      apt-get install -y \
-          socat \
-          ebtables \
-          docker.io \
-          apt-transport-https \
-          cloud-utils \
-          prips
-      curl -sSL https://dl.k8s.io/release/${VERSION}/bin/linux/${ARCH}/kubeadm > /usr/bin/kubeadm.dl
-      chmod a+rx /usr/bin/kubeadm.dl
-      # kubeadm uses 10th IP as DNS server
-      CLUSTER_DNS_SERVER=$(prips ${SERVICE_CIDR} | head -n 11 | tail -n 1)
-      # Our Debian packages have versions like "1.8.0-00" or "1.8.0-01". Do a prefix
-      # search based on our SemVer to find the right (newest) package version.
-      function getversion() {
-      	name=$1
-      	prefix=$2
-      	version=$(apt-cache madison $name | awk '{ print $3 }' | grep ^$prefix | head -n1)
-      	if [[ -z "$version" ]]; then
-      		echo Can\'t find package $name with prefix $prefix
-      		exit 1
-      	fi
-      	echo $version
-      }
-      KUBELET=$(getversion kubelet ${KUBELET_VERSION}-)
-      KUBEADM=$(getversion kubeadm ${KUBELET_VERSION}-)
-      apt-get install -y \
-          kubelet=${KUBELET} \
-          kubeadm=${KUBEADM}
-      mv /usr/bin/kubeadm.dl /usr/bin/kubeadm
-      chmod a+rx /usr/bin/kubeadm
-      systemctl enable docker
-      systemctl start docker
-      # Override Kubelet DNS args.
-      cat > /etc/systemd/system/kubelet.service.d/20-kubenet.conf <<EOF
-      [Service]
-      Environment="KUBELET_DNS_ARGS=--cluster-dns=${CLUSTER_DNS_SERVER} --cluster-domain=${CLUSTER_DNS_DOMAIN}"
-      EOF
-      systemctl daemon-reload
-      systemctl restart kubelet.service
-      PRIVATEIP=`curl --retry 5 -sfH "Metadata-Flavor: Google" "http://metadata/computeMetadata/v1/instance/network-interfaces/0/ip"`
-      echo $PRIVATEIP > /tmp/.ip
-      PUBLICIP=`curl --retry 5 -sfH "Metadata-Flavor: Google" "http://metadata/computeMetadata/v1/instance/network-interfaces/0/access-configs/0/external-ip"`
-      # Set up kubeadm config file to pass parameters to kubeadm init.
-      cat > /etc/kubernetes/kubeadm_config.yaml <<EOF
-      apiVersion: kubeadm.k8s.io/v1alpha1
-      kind: MasterConfiguration
-      api:
-        advertiseAddress: ${PUBLICIP}
-        bindPort: ${PORT}
-      networking:
-        serviceSubnet: ${SERVICE_CIDR}
-      kubernetesVersion: v${CONTROL_PLANE_VERSION}
-      token: ${TOKEN}
-      controllerManagerExtraArgs:
-        cluster-cidr: ${POD_CIDR}
-        service-cluster-ip-range: ${SERVICE_CIDR}
-        allocate-node-cidrs: "true"
-      apiServerCertSANs:
-      - ${PUBLICIP}
-      - ${PRIVATEIP}
-      EOF
-      kubeadm init --config /etc/kubernetes/kubeadm_config.yaml
-      # install weavenet
-      sysctl net.bridge.bridge-nf-call-iptables=1
-      export kubever=$(kubectl version --kubeconfig /etc/kubernetes/admin.conf | base64 | tr -d '\n')
-      kubectl apply --kubeconfig /etc/kubernetes/admin.conf -f "https://cloud.weave.works/k8s/net?k8s-version=$kubever"
-      for tries in $(seq 1 60); do
-      	kubectl --kubeconfig /etc/kubernetes/kubelet.conf annotate --overwrite node $(hostname) machine=${MACHINE} && break
-      	sleep 1
-      done
-      echo done.
-      ) 2>&1 | tee /var/log/startup.log
-# These configs currently don't work - they need service accounts.
-- machineParams:
   - os: ubuntu-1604-lts
     roles:
     - Master
@@ -179,10 +23,21 @@ items:
       apt-get install -y \
           socat \
           ebtables \
-          docker.io \
           apt-transport-https \
           cloud-utils \
           prips
+      function install_configure_docker () {
+          # prevent docker from auto-starting
+          echo "exit 101" > /usr/sbin/policy-rc.d
+          chmod +x /usr/sbin/policy-rc.d
+          trap "rm /usr/sbin/policy-rc.d" RETURN
+          apt install -y docker.io
+          echo 'DOCKER_OPTS="--iptables=false --ip-masq=false"' > /etc/default/docker
+          systemctl daemon-reload
+          systemctl enable docker
+          systemctl start docker
+      }
+      install_configure_docker
       curl -sSL https://dl.k8s.io/release/${VERSION}/bin/linux/${ARCH}/kubeadm > /usr/bin/kubeadm.dl
       chmod a+rx /usr/bin/kubeadm.dl
       # kubeadm uses 10th IP as DNS server
@@ -206,8 +61,6 @@ items:
           kubeadm=${KUBEADM}
       mv /usr/bin/kubeadm.dl /usr/bin/kubeadm
       chmod a+rx /usr/bin/kubeadm
-      systemctl enable docker
-      systemctl start docker
       # Override network args to use kubenet instead of cni, and override Kubelet DNS args.
       cat > /etc/systemd/system/kubelet.service.d/20-kubenet.conf <<EOF
       [Service]
@@ -247,13 +100,12 @@ items:
       - ${PUBLICIP}
       - ${PRIVATEIP}
       EOF
-      kubeadm init --config /etc/kubernetes/kubeadm_config.yaml
+      kubeadm init --config /etc/kubernetes/kubeadm_config.yaml --ignore-preflight-errors=all
       for tries in $(seq 1 60); do
           kubectl --kubeconfig /etc/kubernetes/kubelet.conf annotate --overwrite node $(hostname) machine=${MACHINE} && break
           sleep 1
       done
       echo done.
-      # kubectl create configmap cloud-config --namespace=kube-system --from-file=./gce.conf
       ) 2>&1 | tee /var/log/startup.log
 - machineParams:
   - os: ubuntu-1604-lts

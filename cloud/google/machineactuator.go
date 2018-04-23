@@ -256,10 +256,15 @@ func (gce *GCEClient) Create(cluster *clusterv1.Cluster, machine *clusterv1.Mach
 		if gce.machineClient == nil {
 			labels[BootstrapLabelKey] = "true"
 		}
+		tags := []string{"https-server"}
+		if !util.IsMaster(machine) {
+			tags = append(tags, fmt.Sprintf("%s-worker", cluster.Name))
+		}
 
 		op, err := gce.service.Instances.Insert(project, zone, &compute.Instance{
-			Name:        name,
-			MachineType: fmt.Sprintf("zones/%s/machineTypes/%s", zone, config.MachineType),
+			Name:         name,
+			MachineType:  fmt.Sprintf("zones/%s/machineTypes/%s", zone, config.MachineType),
+			CanIpForward: true,
 			NetworkInterfaces: []*compute.NetworkInterface{
 				{
 					Network: "global/networks/default",
@@ -285,9 +290,17 @@ func (gce *GCEClient) Create(cluster *clusterv1.Cluster, machine *clusterv1.Mach
 				Items: metadataItems,
 			},
 			Tags: &compute.Tags{
-				Items: []string{"https-server"},
+				Items: tags,
 			},
 			Labels: labels,
+			ServiceAccounts: []*compute.ServiceAccount{
+				{
+					Email: "default",
+					Scopes: []string{
+						"https://www.googleapis.com/auth/cloud-platform",
+					},
+				},
+			},
 		}).Do()
 
 		if err == nil {

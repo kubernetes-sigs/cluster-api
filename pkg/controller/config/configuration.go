@@ -21,15 +21,18 @@ import (
 )
 
 type Configuration struct {
-	Kubeconfig string
-	InCluster  bool
+	Kubeconfig  string
+	InCluster   bool
+	WorkerCount int
 }
 
 var ControllerConfig = Configuration{
-	InCluster: true,
+	InCluster:   true,
+	WorkerCount: 5, // Default 5 worker.
 }
 
 func (c *Configuration) AddFlags(fs *pflag.FlagSet) {
 	fs.StringVar(&c.Kubeconfig, "kubeconfig", c.Kubeconfig, "Path to kubeconfig file with authorization and master location information.")
 	fs.BoolVar(&c.InCluster, "incluster", c.InCluster, "Controller will be running inside the cluster.")
+	fs.IntVar(&c.WorkerCount, "workers", c.WorkerCount, "The number of workers for controller.")
 }

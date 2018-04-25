@@ -20,35 +20,41 @@ import (
 	"testing"
 
 	"github.com/kubernetes-incubator/apiserver-builder/pkg/test"
+	"k8s.io/client-go/rest"
 
 	"sigs.k8s.io/cluster-api/pkg/apis"
-	clusterv1 "sigs.k8s.io/cluster-api/pkg/apis/cluster/v1alpha1"
 	"sigs.k8s.io/cluster-api/pkg/client/clientset_generated/clientset"
 	"sigs.k8s.io/cluster-api/pkg/controller/sharedinformers"
 	"sigs.k8s.io/cluster-api/pkg/openapi"
 )
-
-type fakeActuator struct{}
-
-func (fakeActuator) Create(*clusterv1.Cluster, *clusterv1.Machine) error           { return nil }
-func (fakeActuator) Delete(*clusterv1.Machine) error                               { return nil }
-func (fakeActuator) Update(c *clusterv1.Cluster, machine *clusterv1.Machine) error { return nil }
-func (fakeActuator) Exists(*clusterv1.Machine) (bool, error)                       { return false, nil }
 
 func TestMachine(t *testing.T) {
 	testenv := test.NewTestEnvironment()
 	config := testenv.Start(apis.GetAllApiBuilders(), openapi.GetOpenAPIDefinitions)
 	cs := clientset.NewForConfigOrDie(config)
 
-	shutdown := make(chan struct{})
-	si := sharedinformers.NewSharedInformers(config, shutdown)
-	controller := NewMachineController(config, si, fakeActuator{})
-	controller.Run(shutdown)
-
+	// TODO: When cluster-api support per namepsace object, we need to make each subtest to run
+	// in different namespace. Everything lives inside default namespace so that the test needs to run
+	// sequentially, which is the default behavior for "go test".
 	t.Run("machineControllerReconcile", func(t *testing.T) {
+		controller, shutdown := getController(config)
+		defer close(shutdown)
 		machineControllerReconcile(t, cs, controller)
 	})
-
-	close(shutdown)
+	t.Run("machineControllerConcurrentReconcile", func(t *testing.T) {
+		controller, shutdown := getController(config)
+		defer close(shutdown)
+		machineControllerConcurrentReconcile(t, cs, controller)
+	})
 	testenv.Stop()
+}
+
+func getController(config *rest.Config) (*MachineController, chan struct{}) {
+	shutdown := make(chan struct{})
+	si := sharedinformers.NewSharedInformers(config, shutdown)
+	actuator := NewTestActuator()
+	controller := NewMachineController(config, si, actuator)
+	controller.RunAsync(shutdown)
+
+	return controller, shutdown
 }

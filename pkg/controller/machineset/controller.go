@@ -160,7 +160,7 @@ func shouldAdopt(machineSet *v1alpha1.MachineSet, machine *v1alpha1.Machine) boo
 
 	// Machine owned by another controller.
 	if metav1.GetControllerOf(machine) != nil && !metav1.IsControlledBy(machine, machineSet) {
-		glog.V(2).Infof("Skipping machine (%v), as it is owned by someone else.", machine.Name)
+		glog.Warningf.Infof("Skipping machine (%v), as it is owned by someone else.", machine.Name)
 		return false
 	}
 

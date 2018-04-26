@@ -270,6 +270,16 @@ func (gce *GCEClient) Create(cluster *clusterv1.Cluster, machine *clusterv1.Mach
 		if !util.IsMaster(machine) {
 			tags = append(tags, fmt.Sprintf("%s-worker", cluster.Name))
 		}
+		serviceAccounts := []*compute.ServiceAccount{nil}
+		if util.IsMaster(machine) {
+			serviceAccounts = append(serviceAccounts,
+				&compute.ServiceAccount{
+					Email: "default",
+					Scopes: []string{
+						"https://www.googleapis.com/auth/cloud-platform",
+					},
+				})
+		}
 
 		op, err := gce.computeService.InstancesInsert(project, zone, &compute.Instance{
 			Name:        name,
@@ -302,15 +312,8 @@ func (gce *GCEClient) Create(cluster *clusterv1.Cluster, machine *clusterv1.Mach
 			Tags: &compute.Tags{
 				Items: tags,
 			},
-			Labels: labels,
-			ServiceAccounts: []*compute.ServiceAccount{
-				{
-					Email: "default",
-					Scopes: []string{
-						"https://www.googleapis.com/auth/cloud-platform",
-					},
-				},
-			},
+			Labels:          labels,
+			ServiceAccounts: serviceAccounts,
 		})
 
 		if err == nil {

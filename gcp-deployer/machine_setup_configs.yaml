@@ -32,7 +32,7 @@ items:
           echo "exit 101" > /usr/sbin/policy-rc.d
           chmod +x /usr/sbin/policy-rc.d
           trap "rm /usr/sbin/policy-rc.d" RETURN
-          apt install -y docker.io
+          apt-get install -y docker.io
           echo 'DOCKER_OPTS="--iptables=false --ip-masq=false"' > /etc/default/docker
           systemctl daemon-reload
           systemctl enable docker

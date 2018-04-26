@@ -21,6 +21,7 @@ import (
 	"os"
 
 	"github.com/golang/glog"
+	"k8s.io/client-go/kubernetes"
 	"sigs.k8s.io/cluster-api/cloud/terraform"
 	clusterv1 "sigs.k8s.io/cluster-api/pkg/apis/cluster/v1alpha1"
 	"sigs.k8s.io/cluster-api/pkg/client/clientset_generated/clientset"
@@ -30,16 +31,17 @@ import (
 )
 
 type deployer struct {
-	token           string
-	configPath      string
-	machineDeployer machineDeployer
-	client          v1alpha1.ClusterV1alpha1Interface
-	clientSet       clientset.Interface
+	token               string
+	configPath          string
+	machineDeployer     machineDeployer
+	client              v1alpha1.ClusterV1alpha1Interface
+	clientSet           clientset.Interface
+	kubernetesClientSet kubernetes.Clientset
 }
 
 // NewDeployer returns a cloud provider specific deployer and
 // sets kubeconfig path for the cluster to be deployed
-func NewDeployer(configPath string) *deployer {
+func NewDeployer(configPath, namedMachinesPath string) *deployer {
 	token := util.RandomToken()
 	if configPath == "" {
 		configPath = os.Getenv("KUBECONFIG")
@@ -53,7 +55,7 @@ func NewDeployer(configPath string) *deployer {
 			glog.Exit(fmt.Sprintf("Failed to set Kubeconfig path err %v\n", err))
 		}
 	}
-	ma, err := terraform.NewMachineActuator(token, nil)
+	ma, err := terraform.NewMachineActuator(token, nil, namedMachinesPath)
 	if err != nil {
 		glog.Exit(err)
 	}

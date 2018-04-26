@@ -82,40 +82,40 @@ func (d *deployer) createCluster(c *clusterv1.Cluster, machines []*clusterv1.Mac
 		return fmt.Errorf("apiserver never came up: %v", err)
 	}
 
-	 if err := d.initApiClient(); err != nil {
-	 	return err
-	 }
+	if err := d.initApiClient(); err != nil {
+		return err
+	}
 
-	 if err := d.waitForServiceAccount(); err != nil {
-	 	return fmt.Errorf("service account %s/%s not found: %v", ServiceAccountNs, ServiceAccountName, err)
-	 }
+	if err := d.waitForServiceAccount(); err != nil {
+		return fmt.Errorf("service account %s/%s not found: %v", ServiceAccountNs, ServiceAccountName, err)
+	}
 
-	 glog.Info("Deploying the addon apiserver and controller manager...")
-	 if err := d.machineDeployer.CreateMachineController(c, machines); err != nil {
-	 	return fmt.Errorf("can't create machine controller: %v", err)
-	 }
+	glog.Info("Deploying the addon apiserver and controller manager...")
+	if err := d.machineDeployer.CreateMachineController(c, machines, d.kubernetesClientSet); err != nil {
+		return fmt.Errorf("can't create machine controller: %v", err)
+	}
 
-	 if err := d.waitForClusterResourceReady(); err != nil {
-	 	return err
-	 }
+	if err := d.waitForClusterResourceReady(); err != nil {
+		return err
+	}
 
-	 c, err = d.client.Clusters(apiv1.NamespaceDefault).Create(c)
-	 if err != nil {
-	 	return err
-	 }
+	c, err = d.client.Clusters(apiv1.NamespaceDefault).Create(c)
+	if err != nil {
+		return err
+	}
 
-	 c.Status.APIEndpoints = append(c.Status.APIEndpoints,
-	 	clusterv1.APIEndpoint{
-	 		Host: masterIP,
-	 		Port: 443,
-	 	})
-	 if _, err := d.client.Clusters(apiv1.NamespaceDefault).UpdateStatus(c); err != nil {
-	 	return err
-	 }
+	c.Status.APIEndpoints = append(c.Status.APIEndpoints,
+		clusterv1.APIEndpoint{
+			Host: masterIP,
+			Port: 443,
+		})
+	if _, err := d.client.Clusters(apiv1.NamespaceDefault).UpdateStatus(c); err != nil {
+		return err
+	}
 
-	 if err := d.createMachines(machines); err != nil {
-	 	return err
-	 }
+	if err := d.createMachines(machines); err != nil {
+		return err
+	}
 	return nil
 }
 
@@ -235,8 +235,13 @@ func (d *deployer) initApiClient() error {
 	if err != nil {
 		return err
 	}
+	kubernetesClientSet, err := util.NewKubernetesClient(d.configPath)
+	if err != nil {
+		return err
+	}
 	d.clientSet = c
 	d.client = c.ClusterV1alpha1()
+	d.kubernetesClientSet = *kubernetesClientSet
 	return nil
 
 }
@@ -281,14 +286,9 @@ func (d *deployer) waitForApiserver(master string) error {
 
 // Make sure the default service account in kube-system namespace exists.
 func (d *deployer) waitForServiceAccount() error {
-	client, err := util.NewKubernetesClient(d.configPath)
-	if err != nil {
-		return err
-	}
-
 	waitErr := util.Retry(func() (bool, error) {
 		glog.Info("Waiting for the service account to exist...")
-		_, err = client.CoreV1().ServiceAccounts(ServiceAccountNs).Get(ServiceAccountName, metav1.GetOptions{})
+		_, err := d.kubernetesClientSet.CoreV1().ServiceAccounts(ServiceAccountNs).Get(ServiceAccountName, metav1.GetOptions{})
 		return (err == nil), nil
 	}, 5)
 

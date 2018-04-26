@@ -32,9 +32,13 @@ import (
 
 	"github.com/golang/glog"
 
+	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/serializer"
 
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/client-go/kubernetes"
+	"sigs.k8s.io/cluster-api/cloud/terraform/namedmachines"
 	terraformconfig "sigs.k8s.io/cluster-api/cloud/terraform/terraformproviderconfig"
 	terraformconfigv1 "sigs.k8s.io/cluster-api/cloud/terraform/terraformproviderconfig/v1alpha1"
 	apierrors "sigs.k8s.io/cluster-api/errors"
@@ -44,33 +48,65 @@ import (
 )
 
 const (
-	MasterIpAnnotationKey       = "master-ip"
+	MasterIpAnnotationKey        = "master-ip"
 	TerraformConfigAnnotationKey = "tf-config"
+
+	// Filename in which named machines are saved using a ConfigMap (in master).
+	NamedMachinesFilename = "vsphere_named_machines.yaml"
 )
 
 type TerraformClient struct {
-	scheme        *runtime.Scheme
-	codecFactory  *serializer.CodecFactory
-	kubeadmToken  string
-	machineClient client.MachineInterface
+	scheme            *runtime.Scheme
+	codecFactory      *serializer.CodecFactory
+	kubeadmToken      string
+	machineClient     client.MachineInterface
+	namedMachineWatch *namedmachines.ConfigWatch
 }
 
-func NewMachineActuator(kubeadmToken string, machineClient client.MachineInterface) (*TerraformClient, error) {
+func NewMachineActuator(kubeadmToken string, machineClient client.MachineInterface, namedMachinePath string) (*TerraformClient, error) {
 	scheme, codecFactory, err := terraformconfigv1.NewSchemeAndCodecs()
 	if err != nil {
 		return nil, err
 	}
 
+	var nmWatch *namedmachines.ConfigWatch
+	nmWatch, err = namedmachines.NewConfigWatch(namedMachinePath)
+	if err != nil {
+		glog.Errorf("error creating named machine config watch: %+v", err)
+	}
 	return &TerraformClient{
-		scheme:       scheme,
-		codecFactory: codecFactory,
-		kubeadmToken: kubeadmToken,
-		machineClient: machineClient,
+		scheme:            scheme,
+		codecFactory:      codecFactory,
+		kubeadmToken:      kubeadmToken,
+		machineClient:     machineClient,
+		namedMachineWatch: nmWatch,
 	}, nil
 }
 
-func (tf *TerraformClient) CreateMachineController(cluster *clusterv1.Cluster, initialMachines []*clusterv1.Machine) error {
+func (tf *TerraformClient) CreateMachineController(cluster *clusterv1.Cluster, initialMachines []*clusterv1.Machine, clientSet kubernetes.Clientset) error {
 	if err := CreateExtApiServerRoleBinding(); err != nil {
+		return err
+	}
+
+	// Create the named machines ConfigMap.
+	// After pivot-based bootstrap is done, the named machine should be a ConfigMap and this logic will be removed.
+	namedMachines, err := tf.namedMachineWatch.NamedMachines()
+
+	if err != nil {
+		return err
+	}
+	yaml, err := namedMachines.GetYaml()
+	if err != nil {
+		return err
+	}
+	nmConfigMap := corev1.ConfigMap{
+		ObjectMeta: metav1.ObjectMeta{Name: "named-machines"},
+		Data: map[string]string{
+			NamedMachinesFilename: yaml,
+		},
+	}
+	configMaps := clientSet.CoreV1().ConfigMaps(corev1.NamespaceDefault)
+	if _, err := configMaps.Create(&nmConfigMap); err != nil {
 		return err
 	}
 
@@ -93,11 +129,11 @@ func getHomeDir() (string, error) {
 	}
 
 	// Fallback to user's profile.
-    usr, err := user.Current()
-    if err != nil {
-        return "", err
-    }
-    return usr.HomeDir, nil
+	usr, err := user.Current()
+	if err != nil {
+		return "", err
+	}
+	return usr.HomeDir, nil
 }
 
 func (tf *TerraformClient) Create(cluster *clusterv1.Cluster, machine *clusterv1.Machine) error {
@@ -126,7 +162,15 @@ func (tf *TerraformClient) Create(cluster *clusterv1.Cluster, machine *clusterv1
 	// Save the config file and variables file to the machinePath
 	tfConfigPath := path.Join(machinePath, "terraform.tf")
 	tfVarsPath := path.Join(machinePath, "variables.tfvars")
-	if err := saveFile(config.TerraformConfig, tfConfigPath, 0644); err != nil {
+	namedMachines, err := tf.namedMachineWatch.NamedMachines()
+	if err != nil {
+		return err
+	}
+	matchedMachine, err := namedMachines.MatchMachine(config.TerraformMachine)
+	if err != nil {
+		return err
+	}
+	if err := saveFile(matchedMachine.MachineHcl, tfConfigPath, 0644); err != nil {
 		return err
 	}
 	if err := saveFile(strings.Join(config.TerraformVariables, "\n"), tfVarsPath, 0644); err != nil {
@@ -286,7 +330,7 @@ func runTerraformCmd(stdout bool, workingDir string, arg ...string) (bytes.Buffe
 		logFileName := fmt.Sprintf("/tmp/cluster-api-%s.log", util.RandomToken())
 		f, _ := os.Create(logFileName)
 		glog.Infof("Running terraform. Check for logs in %s", logFileName)
-    	multiWriter := io.MultiWriter(&out, f)
+		multiWriter := io.MultiWriter(&out, f)
 		cmd.Stdout = multiWriter
 	}
 	cmd.Stdin = os.Stdin
@@ -325,7 +369,7 @@ func (tf *TerraformClient) GetIP(machine *clusterv1.Machine) (string, error) {
 	if machine.ObjectMeta.Annotations != nil {
 		if ip, ok := machine.ObjectMeta.Annotations[MasterIpAnnotationKey]; ok {
 			glog.Infof("Retuning IP from metadata %s", ip)
-		    return ip, nil
+			return ip, nil
 		}
 	}
 
@@ -354,9 +398,9 @@ func (tf *TerraformClient) GetKubeConfig(master *clusterv1.Machine) (string, err
 		"ssh", "-i", "~/.ssh/vsphere_tmp",
 		fmt.Sprintf("ubuntu@%s", ip),
 		"echo STARTFILE; cat /etc/kubernetes/admin.conf")
-    cmd.Stdout = &out
-    cmd.Stderr = os.Stderr
-    cmd.Run()
+	cmd.Stdout = &out
+	cmd.Stderr = os.Stderr
+	cmd.Run()
 	result := strings.TrimSpace(out.String())
 	parts := strings.Split(result, "STARTFILE")
 	if len(parts) != 2 {
@@ -391,33 +435,33 @@ func (tf *TerraformClient) SetupRemoteMaster(master *clusterv1.Machine) error {
 		"-r",
 		path.Join(homedir, ".terraform.d"),
 		fmt.Sprintf("ubuntu@%s:~/", ip))
-    cmd.Stdout = os.Stdout
-    cmd.Stderr = os.Stderr
-    cmd.Run()
+	cmd.Stdout = os.Stdout
+	cmd.Stderr = os.Stderr
+	cmd.Run()
 
-    // TODO: Bake this into the controller image instead of this hacky thing.
-    glog.Infof("Copying the terraform binary to master.")
+	// TODO: Bake this into the controller image instead of this hacky thing.
+	glog.Infof("Copying the terraform binary to master.")
 	cmd = exec.Command(
 		// TODO: this is taking my private key and username for now.
 		"scp", "-i", "~/.ssh/vsphere_tmp",
 		// TODO: this should be a flag?
 		"-r", "/Users/karangoel/.gvm/pkgsets/go1.9.2/global/src/sigs.k8s.io/cluster-api/cloud/terraform/bin/",
 		fmt.Sprintf("ubuntu@%s:~/.terraform.d/", ip))
-    cmd.Stdout = os.Stdout
-    cmd.Stderr = os.Stderr
-    cmd.Run()
+	cmd.Stdout = os.Stdout
+	cmd.Stderr = os.Stderr
+	cmd.Run()
 
-    glog.Infof("Setting up terraform on remote master.")
+	glog.Infof("Setting up terraform on remote master.")
 	cmd = exec.Command(
 		// TODO: this is taking my private key and username for now.
 		"ssh", "-i", "~/.ssh/vsphere_tmp",
 		fmt.Sprintf("ubuntu@%s", ip),
 		fmt.Sprintf("source ~/.profile; cd ~/.terraform.d/kluster/machines/%s; ~/.terraform.d/terraform init; cp -r ~/.terraform.d/kluster/machines/%s/.terraform/plugins/* ~/.terraform.d/plugins/", machineName, machineName))
-    cmd.Stdout = os.Stdout
-    cmd.Stderr = os.Stderr
-    cmd.Run()
+	cmd.Stdout = os.Stdout
+	cmd.Stderr = os.Stderr
+	cmd.Run()
 
-    return nil
+	return nil
 }
 
 func (tf *TerraformClient) updateAnnotations(machine *clusterv1.Machine, masterEndpointIp string) error {
@@ -534,12 +578,12 @@ func run(cmd string, args ...string) error {
 }
 
 func pathExists(path string) (bool, error) {
-    _, err := os.Stat(path)
-    if err == nil {
-    	return true, nil
-    }
-    if os.IsNotExist(err) {
-    	return false, nil
-    }
-    return true, err
+	_, err := os.Stat(path)
+	if err == nil {
+		return true, nil
+	}
+	if os.IsNotExist(err) {
+		return false, nil
+	}
+	return true, err
 }

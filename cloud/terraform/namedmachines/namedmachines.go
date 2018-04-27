@@ -23,7 +23,6 @@ import (
 )
 
 // Config Watch holds the path to the named machines yaml file.
-// This is used during bootstrap when the apiserver does not yet exist.
 type ConfigWatch struct {
 	path string
 }

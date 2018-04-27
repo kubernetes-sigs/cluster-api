@@ -32,7 +32,7 @@ import (
 	"sigs.k8s.io/cluster-api/cloud/terraform/config"
 )
 
-var apiServerImage = "gcr.io/k8s-cluster-api/cluster-apiserver:0.0.1"
+var apiServerImage = "gcr.io/k8s-cluster-api/cluster-apiserver:0.0.2"
 var controllerManagerImage = "gcr.io/k8s-cluster-api/controller-manager:0.0.1"
 var machineControllerImage = "gcr.io/karangoel-gke-1/terraform-machine-controller:0.0.1-dev"
 

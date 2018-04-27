@@ -23,7 +23,7 @@ COPY . .
 RUN CGO_ENABLED=0 GOOS=linux go install -a -ldflags '-extldflags "-static"' sigs.k8s.io/cluster-api/cloud/terraform/cmd/terraform-machine-controller
 
 # Final container
-FROM golang:alpine3.7
+FROM alpine:3.7
 RUN apk --no-cache add --update ca-certificates bash openssh
 RUN echo "StrictHostKeyChecking no" >> /etc/ssh/ssh_config
 RUN echo "UserKnownHostsFile /dev/null" >> /etc/ssh/ssh_config

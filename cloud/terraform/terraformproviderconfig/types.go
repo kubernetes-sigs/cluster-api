@@ -24,9 +24,8 @@ import (
 type TerraformProviderConfig struct {
 	metav1.TypeMeta `json:",inline"`
 
-	// Contents of a terrafrom config file.
-	// This is the HCL config encoded as a string.
-	TerraformConfig string `json:"terraformConfig"`
+	// Name of the machine that's registered in the NamedMachines ConfigMap.
+	TerraformMachine string `json:"terraformMachine"`
 	// List of contents of terraform variables used.
 	// HCL variables encoded as string.
 	TerraformVariables []string `json:"terraformVariables"`

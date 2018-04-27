@@ -6,17 +6,16 @@ items:
     labels:
       set: master
   spec:
-    providerConfig: >
-      {
-        "apiVersion": "terraformproviderconfig/v1alpha1",
-        "kind": "TerraformProviderConfig",
-        "terraformConfig": "",
-        "terraformVariables": [
+    providerConfig:
+      value:
+        apiVersion: "terraformproviderconfig/v1alpha1"
+        kind: "TerraformProviderConfig"
+        terraformMachine: "standard-master"
+        terraformVariables: [
           "user = \"foo\"",
           "password = \"bar\"",
           "vsphere_server = \"192.169.1.1\"",
         ]
-      }
     versions:
       kubelet: 1.8.3
       controlPlane: 1.8.3
@@ -32,17 +31,16 @@ items:
     labels:
       set: master
   spec:
-    providerConfig: >
-      {
-        "apiVersion": "terraformproviderconfig/v1alpha1",
-        "kind": "TerraformProviderConfig",
-        "terraformConfig": "",
-        "terraformVariables": [
+    providerConfig:
+      value:
+        apiVersion: "terraformproviderconfig/v1alpha1"
+        kind: "TerraformProviderConfig"
+        terraformMachine: "standard-node"
+        terraformVariables: [
           "user = \"foo\"",
           "password = \"bar\"",
           "vsphere_server = \"192.169.1.1\"",
         ]
-      }
     versions:
       kubelet: 1.8.3
       controlPlane: 1.8.3

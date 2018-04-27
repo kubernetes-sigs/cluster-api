@@ -24,8 +24,8 @@ import (
 type TerraformProviderConfig struct {
 	metav1.TypeMeta `json:",inline"`
 
-	// Contents of a terrafrom config file.
-	TerraformConfig string `json:"terraformConfig"`
+	// Name of the machine that's registered in the NamedMachines ConfigMap.
+	TerraformMachine string `json:"terraformMachine"`
 	// List of contents of terraform variable files used.
 	TerraformVariables []string `json:"terraformVariables"`
 }

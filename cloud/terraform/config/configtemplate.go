@@ -139,11 +139,14 @@ spec:
             mountPath: /root/.terraform.d
           - name: sshkeys
             mountPath: /root/.ssh
+          - name: named-machines
+            mountPath: /etc/named-machines
         command:
         - "./terraform-machine-controller"
         args:
         - --kubeconfig=/etc/kubernetes/admin.conf
         - --token={{ .Token }}
+        - --namedmachines=/etc/named-machines/vsphere_named_machines.yaml
         resources:
           requests:
             cpu: 200m
@@ -167,6 +170,9 @@ spec:
       - name: sshkeys
         hostPath:
           path: /home/ubuntu/.ssh
+      - name: named-machines
+        configMap:
+          name: named-machines
 ---
 apiVersion: apps/v1beta1
 kind: StatefulSet

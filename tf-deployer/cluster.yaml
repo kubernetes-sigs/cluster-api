@@ -11,5 +11,5 @@ spec:
         serviceDomain: "cluster.local"
     providerConfig:
       value:
-        apiVersion: "terraformproviderconfig/v1alpha1",
+        apiVersion: "terraformproviderconfig/v1alpha1"
         kind: "TerraformProviderConfig"

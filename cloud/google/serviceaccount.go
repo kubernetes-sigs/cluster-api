@@ -65,10 +65,6 @@ func (gce *GCEClient) CreateMachineControllerServiceAccount(cluster *clusterv1.C
 		if err != nil {
 			return fmt.Errorf("couldn't grant permissions to service account: %v", err)
 		}
-		err = run("gcloud", "projects", "add-iam-policy-binding", project, "--member=serviceAccount:"+email, "--role=roles/iam.serviceAccountActor")
-		if err != nil {
-			return fmt.Errorf("couldn't grant permissions to service account: %v", err)
-		}
 	}
 
 	err = run("gcloud", "--project", project, "iam", "service-accounts", "keys", "create", localFile, "--iam-account", email)

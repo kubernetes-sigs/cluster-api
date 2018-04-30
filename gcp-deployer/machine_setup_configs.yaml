@@ -140,7 +140,20 @@ items:
       deb [arch=amd64] https://apt.dockerproject.org/repo ubuntu-xenial main
       EOF
       apt-get update
-      apt-get install -y docker-engine=1.12.0-0~xenial
+
+      function install_configure_docker () {
+          # prevent docker from auto-starting
+          echo "exit 101" > /usr/sbin/policy-rc.d
+          chmod +x /usr/sbin/policy-rc.d
+          trap "rm /usr/sbin/policy-rc.d" RETURN
+          apt-get install -y docker-engine=1.12.0-0~xenial
+          echo 'DOCKER_OPTS="--iptables=false --ip-masq=false"' > /etc/default/docker
+          systemctl daemon-reload
+          systemctl enable docker
+          systemctl start docker
+      }
+      install_configure_docker
+
       curl -s https://packages.cloud.google.com/apt/doc/apt-key.gpg | apt-key add -
       cat <<EOF > /etc/apt/sources.list.d/kubernetes.list
       deb http://apt.kubernetes.io/ kubernetes-xenial main

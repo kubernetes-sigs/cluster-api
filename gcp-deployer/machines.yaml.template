@@ -13,7 +13,7 @@ items:
         project: "$GCLOUD_PROJECT"
         zone: "$ZONE"
         machineType: "n1-standard-2"
-        os: "ubuntu-1710-weave"
+        os: "ubuntu-1604-lts"
     versions:
       kubelet: 1.9.4
       controlPlane: 1.9.4
@@ -36,7 +36,7 @@ items:
         project: "$GCLOUD_PROJECT"
         zone: "$ZONE"
         machineType: "n1-standard-1"
-        os: "ubuntu-1710-weave"
+        os: "ubuntu-1604-lts"
     versions:
       kubelet: 1.9.4
       containerRuntime:

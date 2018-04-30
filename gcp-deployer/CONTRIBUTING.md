@@ -74,14 +74,14 @@ If you need to rebuild container image for the extension APIServer and Controlle
 
 2. Clone Repo Locally
 ```bash
-$ cd $GOPATH/src/k8s.io/
-$ git clone https://github.com/<GITHUB_USERNAME>/kube-deploy.git
+$ cd $GOPATH/src/sigs.k8s.io/
+$ git clone https://github.com/<GITHUB_USERNAME>/cluster-api.git
 ```
 
 ## Build
 
 ```bash
-$ cd $GOPATH/src/k8s.io/kube-deploy/cluster-api/gcp-deployer/
+$ cd $GOPATH/src/sigs.k8s.io/cluster-api/gcp-deployer/
 $ go build
 ```
 
@@ -109,7 +109,7 @@ NOTE: that the image will be pushed to `gcr.io/$(GCLOUD_PROJECT)/apiserver-contr
 2. Rebuild gcp-deployer
 
 	```bash
-    $ cd $GOPATH/src/k8s.io/kube-deploy/cluster-api/gcp-deployer/
+    $ cd $GOPATH/src/sigs.k8s.io/cluster-api/gcp-deployer/
 	$ go build
 	```
 
@@ -137,7 +137,7 @@ ERROR: (gcloud.config.get-value) Section [core] has no property [project].
 1. Create a cluster
 
 	```bash
-	$ ./gcp-deployer create -c cluster.yaml -m machines.yaml
+	$ ./gcp-deployer create -c cluster.yaml -m machines.yaml -s machine_setup_configs.yaml
 	```
 [Optional]To verify API server has been deployed successfully, you can the following command to double check.
     

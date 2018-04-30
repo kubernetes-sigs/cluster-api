@@ -40,13 +40,13 @@ import (
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
+	"sigs.k8s.io/cluster-api/cloud/google/clients"
 	gceconfig "sigs.k8s.io/cluster-api/cloud/google/gceproviderconfig"
 	gceconfigv1 "sigs.k8s.io/cluster-api/cloud/google/gceproviderconfig/v1alpha1"
 	"sigs.k8s.io/cluster-api/cloud/google/machinesetup"
 	apierrors "sigs.k8s.io/cluster-api/errors"
 	clusterv1 "sigs.k8s.io/cluster-api/pkg/apis/cluster/v1alpha1"
 	client "sigs.k8s.io/cluster-api/pkg/client/clientset_generated/clientset/typed/cluster/v1alpha1"
-	"sigs.k8s.io/cluster-api/cloud/google/clients"
 	"sigs.k8s.io/cluster-api/util"
 )
 
@@ -78,12 +78,12 @@ type GCEClientComputeService interface {
 
 type GCEClient struct {
 	computeService GCEClientComputeService
-	scheme        *runtime.Scheme
-	codecFactory  *serializer.CodecFactory
-	kubeadmToken  string
-	sshCreds      SshCreds
-	machineClient client.MachineInterface
-	configWatch   *machinesetup.ConfigWatch
+	scheme         *runtime.Scheme
+	codecFactory   *serializer.CodecFactory
+	kubeadmToken   string
+	sshCreds       SshCreds
+	machineClient  client.MachineInterface
+	configWatch    *machinesetup.ConfigWatch
 }
 
 const (
@@ -267,9 +267,22 @@ func (gce *GCEClient) Create(cluster *clusterv1.Cluster, machine *clusterv1.Mach
 			labels[BootstrapLabelKey] = "true"
 		}
 
+		// The service account is needed for the Kubernetes GCE cloud provider code. It is needed on the master VM.
+		serviceAccounts := []*compute.ServiceAccount{nil}
+		if util.IsMaster(machine) {
+			serviceAccounts = append(serviceAccounts,
+				&compute.ServiceAccount{
+					Email: "default",
+					Scopes: []string{
+						"https://www.googleapis.com/auth/cloud-platform",
+					},
+				})
+		}
+
 		op, err := gce.computeService.InstancesInsert(project, zone, &compute.Instance{
-			Name:        name,
-			MachineType: fmt.Sprintf("zones/%s/machineTypes/%s", zone, config.MachineType),
+			Name:         name,
+			MachineType:  fmt.Sprintf("zones/%s/machineTypes/%s", zone, config.MachineType),
+			CanIpForward: true,
 			NetworkInterfaces: []*compute.NetworkInterface{
 				{
 					Network: "global/networks/default",
@@ -297,7 +310,8 @@ func (gce *GCEClient) Create(cluster *clusterv1.Cluster, machine *clusterv1.Mach
 			Tags: &compute.Tags{
 				Items: []string{"https-server"},
 			},
-			Labels: labels,
+			Labels:          labels,
+			ServiceAccounts: serviceAccounts,
 		})
 
 		if err == nil {

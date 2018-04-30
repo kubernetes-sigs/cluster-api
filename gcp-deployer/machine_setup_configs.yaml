@@ -175,8 +175,6 @@ items:
       KUBEADM=$(getversion kubeadm ${KUBELET_VERSION}-)
       KUBECTL=$(getversion kubectl ${KUBELET_VERSION}-)
       apt-get install -y kubelet=${KUBELET} kubeadm=${KUBEADM} kubectl=${KUBECTL}
-      systemctl enable docker || true
-      systemctl start docker || true
       # kubeadm uses 10th IP as DNS server
       CLUSTER_DNS_SERVER=$(prips ${SERVICE_CIDR} | head -n 11 | tail -n 1)
       # Override network args to use kubenet instead of cni, and override Kubelet DNS args.

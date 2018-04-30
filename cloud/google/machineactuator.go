@@ -266,6 +266,8 @@ func (gce *GCEClient) Create(cluster *clusterv1.Cluster, machine *clusterv1.Mach
 		if gce.machineClient == nil {
 			labels[BootstrapLabelKey] = "true"
 		}
+
+		// The service account is needed for the Kubernetes GCE cloud provider code. It is needed on the master VM.
 		serviceAccounts := []*compute.ServiceAccount{nil}
 		if util.IsMaster(machine) {
 			serviceAccounts = append(serviceAccounts,

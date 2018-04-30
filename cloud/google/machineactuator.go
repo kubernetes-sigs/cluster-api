@@ -306,9 +306,7 @@ func (gce *GCEClient) Create(cluster *clusterv1.Cluster, machine *clusterv1.Mach
 				Items: metadataItems,
 			},
 			Tags: &compute.Tags{
-				Items: []string{
-					"https-server",
-					fmt.Sprintf("%s-worker", cluster.Name)},
+				Items: []string{"https-server"},
 			},
 			Labels:          labels,
 			ServiceAccounts: serviceAccounts,

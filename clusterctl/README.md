@@ -8,30 +8,22 @@ Read the [experience doc here](https://docs.google.com/document/d/1-sYb3EdkRga49
 
 ### Prerequisites
 
-Follow the steps listed at [CONTRIBUTING.md](https://github.com/kubernetes/kube-deploy/blob/master/cluster-api/clusterctl/CONTRIBUTING.md) to:
+Follow the steps listed at [CONTRIBUTING.md](https://github.com/kubernetes-sigs/cluster-api/blob/master/cluster-api/clusterctl/CONTRIBUTING.md) to:
 
-1. Build the `clusterctl` tool 
-3. Create a `machines.yaml` file configured for your cluster. See the provided template for an example.
+1. Build the `clusterctl` tool
 
-### Limitation
+```
+go build
+```
+ 
+2. Create a `machines.yaml` file configured for your cluster. See the provided template for an example.
+
+### Limitations
 
 
 ### Creating a cluster
 
 **NOT YET SUPPORTED!**
-
-In order to create a cluster with the Cluster API, the user will supply these:
-
-* Cluster which defines the spec common across the entire cluster.
-* Machine which defines the spec of a machine. Further abstractions of
-MachineSets and MachineClass and MachineDeployments are supported as well.
-* Extras (optional) spec extras.yaml file with specs of all controllers
-(ConfigMaps) that the cluster needs. This would include the Machine controller,
-MachineSet controller, Machine Setup ConfigMap etc. Note that this is not a new API
-object. There will be defaults running. This will make the tool easily pluggage
-(change the controller spec) instead of changing the tool or mucking with flags.
-
-1. Create a cluster: `./clusterctl create cluster -c cluster.yaml -m machines.yaml -e extras.yaml`
 
 ### Interacting with your cluster
 

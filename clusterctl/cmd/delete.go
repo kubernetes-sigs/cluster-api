@@ -17,40 +17,16 @@ limitations under the License.
 package cmd
 
 import (
-	"github.com/golang/glog"
 	"github.com/spf13/cobra"
-	"os"
-	"sigs.k8s.io/cluster-api/errors"
 )
-
-type DeleteOptions struct {
-	ClusterName string
-}
-
-var do = &DeleteOptions{}
 
 var deleteCmd = &cobra.Command{
 	Use:   "delete",
-	Short: "Delete kubernetes cluster",
-	Long:  `Delete a kubernetes cluster with one command`,
-	Run: func(cmd *cobra.Command, args []string) {
-		if do.ClusterName == "" {
-			glog.Error("Please provide cluster name.")
-			cmd.Help()
-			os.Exit(1)
-		}
-		if err := RunDelete(); err != nil {
-			glog.Exit(err)
-		}
-	},
-}
-
-func RunDelete() error {
-	return errors.NotImplementedError
+	Short: "Delete a cluster API resource",
+	Long:  `Delete a cluster API resource with one command`,
 }
 
 func init() {
-	deleteCmd.Flags().StringVarP(&do.ClusterName, "cluster-name", "n", "", "cluster name")
-
+	deleteCmd.AddCommand(NewCmdDeleteCluster())
 	RootCmd.AddCommand(deleteCmd)
 }

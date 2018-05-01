@@ -17,41 +17,35 @@ limitations under the License.
 package cmd
 
 import (
-	"os"
-
 	"github.com/golang/glog"
 	"github.com/spf13/cobra"
 	"sigs.k8s.io/cluster-api/errors"
 )
 
-type RegisterOptions struct {
-	RegistryEndpoint string
+type DeleteOptions struct {
+	ClusterName string
 }
 
-var ro = &RegisterOptions{}
+var do = &DeleteOptions{}
 
-var registerCmd = &cobra.Command{
-	Use:   "register",
-	Short: "Register a kubernetes cluster with a Cluster Registry",
-	Long:  `Register a kubernetes cluster with a Cluster Registry`,
-	Run: func(cmd *cobra.Command, args []string) {
-		if ro.RegistryEndpoint == "" {
-			glog.Error("Please provide yaml file for cluster definition.")
-			cmd.Help()
-			os.Exit(1)
-		}
-		if err := RunRegister(ro); err != nil {
-			glog.Exit(err)
-		}
-	},
+func NewCmdDeleteCluster() *cobra.Command {
+	cmd := &cobra.Command{
+		Use:   "delete",
+		Short: "Delete kubernetes cluster",
+		Long:  `Delete a kubernetes cluster with one command`,
+		Run: func(cmd *cobra.Command, args []string) {
+			if do.ClusterName == "" {
+				exitWithHelp(cmd, "Please provide cluster name.")
+			}
+			if err := RunDelete(); err != nil {
+				glog.Exit(err)
+			}
+		},
+	}
+
+	return cmd
 }
 
-func RunRegister(co *RegisterOptions) error {
+func RunDelete() error {
 	return errors.NotImplementedError
-}
-
-func init() {
-	registerCmd.Flags().StringVarP(&ro.RegistryEndpoint, "registry-endpoint", "r", "", "registry endpoint")
-
-	RootCmd.AddCommand(registerCmd)
 }

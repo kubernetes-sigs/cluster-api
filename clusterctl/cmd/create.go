@@ -17,55 +17,16 @@ limitations under the License.
 package cmd
 
 import (
-	"os"
-
-	//"fmt"
-	"github.com/golang/glog"
 	"github.com/spf13/cobra"
-	"sigs.k8s.io/cluster-api/errors"
 )
-
-type CreateOptions struct {
-	Cluster string
-	Machine string
-	Extras  string
-}
-
-var co = &CreateOptions{}
 
 var createCmd = &cobra.Command{
 	Use:   "create",
-	Short: "Create kubernetes cluster",
-	Long:  `Create a kubernetes cluster with one command`,
-	Run: func(cmd *cobra.Command, args []string) {
-		if co.Cluster == "" {
-			glog.Error("Please provide yaml file for cluster definition.")
-			cmd.Help()
-			os.Exit(1)
-		}
-		if co.Machine == "" {
-			glog.Error("Please provide yaml file for machine definition.")
-			cmd.Help()
-			os.Exit(1)
-		}
-		if co.Extras == "" {
-			glog.Error("Please provide a yaml file for extra definitions (controllers, Addons etc).")
-			cmd.Help()
-			os.Exit(1)
-		}
-		if err := RunCreate(co); err != nil {
-			glog.Exit(err)
-		}
-	},
+	Short: "Create a cluster API resource",
+	Long:  `Create a cluster API resource with one command`,
 }
 
-func RunCreate(co *CreateOptions) error {
-	return errors.NotImplementedError
-}
 func init() {
-	createCmd.Flags().StringVarP(&co.Cluster, "cluster", "c", "", "cluster yaml file")
-	createCmd.Flags().StringVarP(&co.Machine, "machines", "m", "", "machine yaml file")
-	createCmd.Flags().StringVarP(&co.Extras, "extras", "e", "", "extras yaml file")
-
+	createCmd.AddCommand(NewCmdCreateCluster())
 	RootCmd.AddCommand(createCmd)
 }

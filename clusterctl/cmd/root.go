@@ -19,6 +19,7 @@ package cmd
 import (
 	"flag"
 	"io/ioutil"
+	"os"
 
 	"github.com/ghodss/yaml"
 	"github.com/golang/glog"
@@ -37,10 +38,6 @@ var RootCmd = &cobra.Command{
 		cmd.Help()
 	},
 }
-
-var (
-	kubeConfig string
-)
 
 func Execute() {
 	if err := RootCmd.Execute(); err != nil {
@@ -78,8 +75,13 @@ func parseMachinesYaml(file string) ([]*clusterv1.Machine, error) {
 	return util.MachineP(machines.Items), nil
 }
 
+func exitWithHelp(cmd *cobra.Command, err string) {
+	glog.Error(err)
+	cmd.Help()
+	os.Exit(1)
+}
+
 func init() {
-	RootCmd.PersistentFlags().StringVarP(&kubeConfig, "kubeconfig", "k", "", "location for the kubernetes config file. If not provided, $HOME/.kube/config is used")
 	flag.CommandLine.Parse([]string{})
 	logs.InitLogs()
 }

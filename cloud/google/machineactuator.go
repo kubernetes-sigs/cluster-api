@@ -1,5 +1,5 @@
 /*
-Copyright 2017 The Kubernetes Authors.
+Copyright 2018 The Kubernetes Authors.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -308,7 +308,9 @@ func (gce *GCEClient) Create(cluster *clusterv1.Cluster, machine *clusterv1.Mach
 				Items: metadataItems,
 			},
 			Tags: &compute.Tags{
-				Items: []string{"https-server"},
+				Items: []string{
+					"https-server",
+					fmt.Sprintf("%s-worker", cluster.Name)},
 			},
 			Labels:          labels,
 			ServiceAccounts: serviceAccounts,

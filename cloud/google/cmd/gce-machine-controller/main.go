@@ -18,59 +18,23 @@ package main
 
 import (
 	"github.com/golang/glog"
-	"github.com/kubernetes-incubator/apiserver-builder/pkg/controller"
 	"github.com/spf13/pflag"
-	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apiserver/pkg/util/logs"
-
-	"sigs.k8s.io/cluster-api/cloud/google"
-	"sigs.k8s.io/cluster-api/cloud/google/machinesetup"
-	"sigs.k8s.io/cluster-api/pkg/client/clientset_generated/clientset"
-	"sigs.k8s.io/cluster-api/pkg/controller/config"
-	"sigs.k8s.io/cluster-api/pkg/controller/machine"
-	"sigs.k8s.io/cluster-api/pkg/controller/sharedinformers"
+	"sigs.k8s.io/cluster-api/cloud/google/cmd/gce-machine-controller/app"
+	"sigs.k8s.io/cluster-api/cloud/google/cmd/gce-machine-controller/app/options"
 )
-
-var (
-	kubeadmToken            = pflag.String("token", "", "Kubeadm token to use to join new machines")
-	machineSetupConfigsPath = pflag.String("machinesetup", "", "path to machine setup configs file")
-)
-
-func init() {
-	config.ControllerConfig.AddFlags(pflag.CommandLine)
-}
 
 func main() {
+
+	s := options.NewMachineControllerServer()
+	s.AddFlags(pflag.CommandLine)
+
 	pflag.Parse()
 
 	logs.InitLogs()
 	defer logs.FlushLogs()
 
-	config, err := controller.GetConfig(config.ControllerConfig.Kubeconfig)
-	if err != nil {
-		glog.Fatalf("Could not create Config for talking to the apiserver: %v", err)
+	if err := app.Run(s); err != nil {
+		glog.Errorf("Failed to start machine controller. Err: %v", err)
 	}
-
-	client, err := clientset.NewForConfig(config)
-	if err != nil {
-		glog.Fatalf("Could not create client for talking to the apiserver: %v", err)
-	}
-
-	configWatch, err := machinesetup.NewConfigWatch(*machineSetupConfigsPath)
-	if err != nil {
-		glog.Fatalf("Could not create config watch: %v", err)
-	}
-
-	actuator, err := google.NewMachineActuator(*kubeadmToken, client.ClusterV1alpha1().Machines(corev1.NamespaceDefault), configWatch)
-	if err != nil {
-		glog.Fatalf("Could not create Google machine actuator: %v", err)
-	}
-
-	shutdown := make(chan struct{})
-	si := sharedinformers.NewSharedInformers(config, shutdown)
-	// If this doesn't compile, the code generator probably
-	// overwrote the customized NewMachineController function.
-	c := machine.NewMachineController(config, si, actuator)
-	c.RunAsync(shutdown)
-	select {}
 }

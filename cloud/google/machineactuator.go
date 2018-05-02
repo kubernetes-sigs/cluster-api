@@ -41,7 +41,6 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
 	"sigs.k8s.io/cluster-api/cloud/google/clients"
-	gceconfig "sigs.k8s.io/cluster-api/cloud/google/gceproviderconfig"
 	gceconfigv1 "sigs.k8s.io/cluster-api/cloud/google/gceproviderconfig/v1alpha1"
 	"sigs.k8s.io/cluster-api/cloud/google/machinesetup"
 	apierrors "sigs.k8s.io/cluster-api/errors"
@@ -570,13 +569,12 @@ func (gce *GCEClient) instanceIfExists(machine *clusterv1.Machine) (*compute.Ins
 	return instance, nil
 }
 
-func (gce *GCEClient) providerconfig(providerConfig clusterv1.ProviderConfig) (*gceconfig.GCEProviderConfig, error) {
-	obj, gvk, err := gce.codecFactory.UniversalDecoder().Decode(providerConfig.Value.Raw, nil, nil)
+func (gce *GCEClient) providerconfig(providerConfig clusterv1.ProviderConfig) (*gceconfigv1.GCEProviderConfig, error) {
+	obj, gvk, err := gce.codecFactory.UniversalDecoder(gceconfigv1.SchemeGroupVersion).Decode(providerConfig.Value.Raw, nil, nil)
 	if err != nil {
 		return nil, fmt.Errorf("decoding failure: %v", err)
 	}
-
-	config, ok := obj.(*gceconfig.GCEProviderConfig)
+	config, ok := obj.(*gceconfigv1.GCEProviderConfig)
 	if !ok {
 		return nil, fmt.Errorf("failure to cast to gce; type: %v", gvk)
 	}
@@ -584,7 +582,7 @@ func (gce *GCEClient) providerconfig(providerConfig clusterv1.ProviderConfig) (*
 	return config, nil
 }
 
-func (gce *GCEClient) waitForOperation(c *gceconfig.GCEProviderConfig, op *compute.Operation) error {
+func (gce *GCEClient) waitForOperation(c *gceconfigv1.GCEProviderConfig, op *compute.Operation) error {
 	glog.Infof("Wait for %v %q...", op.OperationType, op.Name)
 	defer glog.Infof("Finish wait for %v %q...", op.OperationType, op.Name)
 
@@ -608,7 +606,7 @@ func (gce *GCEClient) waitForOperation(c *gceconfig.GCEProviderConfig, op *compu
 }
 
 // getOp returns an updated operation.
-func (gce *GCEClient) getOp(c *gceconfig.GCEProviderConfig, op *compute.Operation) (*compute.Operation, error) {
+func (gce *GCEClient) getOp(c *gceconfigv1.GCEProviderConfig, op *compute.Operation) (*compute.Operation, error) {
 	return gce.computeService.ZoneOperationsGet(c.Project, path.Base(op.Zone), op.Name)
 }
 
@@ -670,7 +668,7 @@ func (gce *GCEClient) updateMasterInplace(oldMachine *clusterv1.Machine, newMach
 	return nil
 }
 
-func (gce *GCEClient) validateMachine(machine *clusterv1.Machine, config *gceconfig.GCEProviderConfig) *apierrors.MachineError {
+func (gce *GCEClient) validateMachine(machine *clusterv1.Machine, config *gceconfigv1.GCEProviderConfig) *apierrors.MachineError {
 	if machine.Spec.Versions.Kubelet == "" {
 		return apierrors.InvalidMachineConfiguration("spec.versions.kubelet can't be empty")
 	}

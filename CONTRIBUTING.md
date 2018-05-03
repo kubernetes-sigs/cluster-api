@@ -62,6 +62,28 @@ When a cluster is first created with a cluster config file, there is no master n
 * The machine controller creates resources (Machines etc)
 * Pivot the apiserver and the machine controller in to the cluster.
 
+#### Configurable Machine Setup
+
+While not mandatory, it is suggested for new providers to support configurable machine setups for creating new machines. 
+This is to allow flexibility in what startup scripts are used and what versions are supported instead of hardcoding startup scripts into the machine controller.
+You can find an example implementation for GCE [here](https://github.com/kubernetes-sigs/cluster-api/blob/master/cloud/google/machinesetup/config_types.go).
+
+##### GCE Implementation
+
+For GCE, a [yaml file](https://github.com/kubernetes-sigs/cluster-api/blob/master/gcp-deployer/machine_setup_configs.yaml) holds the list of valid machine setup configs, 
+and the yaml file is volume mounted into the machine controller using a ConfigMap named `machine-setup`. 
+
+A [config type](https://github.com/kubernetes-sigs/cluster-api/blob/master/cloud/google/machinesetup/config_types.go#L45) defines a set of parameters that can be taken from the machine object being created, and maps those parameters to startup scripts and other relevant information. 
+In GCE, the OS, machine roles, and version info are the parameters that map to a GCP image path and metadata (which contains the startup script).
+
+When creating a new machine, there should be a check for whether the machine setup is supported. 
+This is done by looking through the valid configs parsed out of the yaml for a config with matching parameters.
+If a match is found, then the machine can be created with the startup script found in the config.
+If no match is found, then the given machine configuration is not supported.
+Getting the script onto the machine and running it on startup is a provider specific implementation detail. 
+
+More details can be found in the [design doc](https://docs.google.com/document/d/1OfykBDOXP_t6QEtiYBA-Ax7nSpqohFofyX-wOxrQrnw/edit?ts=5ae11208#heading=h.xgjl2srtytjt), but note that it is GCE specific.
+
 ### A specific Machine can be deleted, freeing external resources associated with it.
 
 When the client deletes a Machine object, your controller's reconciler should trigger the deletion of the Machine that backs that machine. The delete is provider specific, but usually requires deleting the VM and freeing up any external resources (like IP).

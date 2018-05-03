@@ -24,6 +24,7 @@ import (
 	"k8s.io/apiserver/pkg/util/logs"
 
 	"sigs.k8s.io/cluster-api/cloud/google"
+	"sigs.k8s.io/cluster-api/cloud/google/machinesetup"
 	"sigs.k8s.io/cluster-api/pkg/client/clientset_generated/clientset"
 	"sigs.k8s.io/cluster-api/pkg/controller/config"
 	"sigs.k8s.io/cluster-api/pkg/controller/machine"
@@ -55,7 +56,12 @@ func main() {
 		glog.Fatalf("Could not create client for talking to the apiserver: %v", err)
 	}
 
-	actuator, err := google.NewMachineActuator(*kubeadmToken, client.ClusterV1alpha1().Machines(corev1.NamespaceDefault), *machineSetupConfigsPath)
+	configWatch, err := machinesetup.NewConfigWatch(*machineSetupConfigsPath)
+	if err != nil {
+		glog.Fatalf("Could not create config watch: %v", err)
+	}
+
+	actuator, err := google.NewMachineActuator(*kubeadmToken, client.ClusterV1alpha1().Machines(corev1.NamespaceDefault), configWatch)
 	if err != nil {
 		glog.Fatalf("Could not create Google machine actuator: %v", err)
 	}

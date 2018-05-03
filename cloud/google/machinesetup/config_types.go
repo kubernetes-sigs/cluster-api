@@ -26,6 +26,12 @@ import (
 	clusterv1 "sigs.k8s.io/cluster-api/pkg/apis/cluster/v1alpha1"
 )
 
+type MachineSetupConfig interface {
+	GetYaml() (string, error)
+	GetImage(params *ConfigParams) (string, error)
+	GetMetadata(params *ConfigParams) (Metadata, error)
+}
+
 // Config Watch holds the path to the machine setup configs yaml file.
 // This works directly with a yaml file is used instead of a ConfigMap object so that we don't take a dependency on the API Server.
 type ConfigWatch struct {
@@ -71,7 +77,7 @@ func NewConfigWatch(path string) (*ConfigWatch, error) {
 	return &ConfigWatch{path: path}, nil
 }
 
-func (cw *ConfigWatch) ValidConfigs() (*ValidConfigs, error) {
+func (cw *ConfigWatch) GetMachineSetupConfig() (MachineSetupConfig, error) {
 	file, err := os.Open(cw.path)
 	if err != nil {
 		return nil, err

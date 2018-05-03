@@ -16,6 +16,11 @@ items:
       set -x
       (
       ARCH=amd64
+
+      function curl_metadata() {
+          curl  --retry 5 --silent --fail --header "Metadata-Flavor: Google" "http://metadata/computeMetadata/v1/instance/$@"
+      }
+
       curl -s https://packages.cloud.google.com/apt/doc/apt-key.gpg | sudo apt-key add -
       touch /etc/apt/sources.list.d/kubernetes.list
       sh -c 'echo "deb http://apt.kubernetes.io/ kubernetes-xenial main" > /etc/apt/sources.list.d/kubernetes.list'
@@ -74,9 +79,9 @@ items:
       EOF
       systemctl daemon-reload
       systemctl restart kubelet.service
-      PRIVATEIP=`curl --retry 5 -sfH "Metadata-Flavor: Google" "http://metadata/computeMetadata/v1/instance/network-interfaces/0/ip"`
+      PRIVATEIP=`curl_metadata "network-interfaces/0/ip"`
       echo $PRIVATEIP > /tmp/.ip
-      PUBLICIP=`curl --retry 5 -sfH "Metadata-Flavor: Google" "http://metadata/computeMetadata/v1/instance/network-interfaces/0/access-configs/0/external-ip"`
+      PUBLICIP=`curl_metadata "network-interfaces/0/access-configs/0/external-ip"`
 
       # Set up the GCE cloud config, which gets picked up by kubeadm init since cloudProvider is set to GCE.
       cat > /etc/kubernetes/cloud-config <<EOF
@@ -108,10 +113,27 @@ items:
       - ${PRIVATEIP}
       EOF
 
+      function install_certificates () {
+          if ! curl_metadata "attributes/ca-cert"; then
+              return
+          fi
+          echo "Configuring custom certificate authority..."
+          PKI_PATH=/etc/kubernetes/pki
+          mkdir -p ${PKI_PATH}
+          CA_CERT_PATH=${PKI_PATH}/ca.crt
+          curl_metadata "attributes/ca-cert" | base64 -d > ${CA_CERT_PATH}
+          chmod 0644 ${CA_CERT_PATH}
+          CA_KEY_PATH=${PKI_PATH}/ca.key
+          curl_metadata "attributes/ca-key" | base64 -d > ${CA_KEY_PATH}
+          chmod 0600 ${CA_KEY_PATH}
+      }
+
       # Create and set bridge-nf-call-iptables to 1 to pass the kubeadm preflight check.
       # Workaround was found here:
       # http://zeeshanali.com/sysadmin/fixed-sysctl-cannot-stat-procsysnetbridgebridge-nf-call-iptables/
       modprobe br_netfilter
+
+      install_certificates
 
       kubeadm init --config /etc/kubernetes/kubeadm_config.yaml
 
@@ -155,6 +177,7 @@ items:
           systemctl enable docker
           systemctl start docker
       }
+
       install_configure_docker
 
       curl -s https://packages.cloud.google.com/apt/doc/apt-key.gpg | apt-key add -

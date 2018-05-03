@@ -37,14 +37,15 @@ import (
 
 	"regexp"
 
+	"encoding/base64"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/runtime/serializer"
 	"k8s.io/client-go/kubernetes"
 	"sigs.k8s.io/cluster-api/cloud/google/clients"
 	gceconfigv1 "sigs.k8s.io/cluster-api/cloud/google/gceproviderconfig/v1alpha1"
 	"sigs.k8s.io/cluster-api/cloud/google/machinesetup"
 	apierrors "sigs.k8s.io/cluster-api/errors"
 	clusterv1 "sigs.k8s.io/cluster-api/pkg/apis/cluster/v1alpha1"
+	"sigs.k8s.io/cluster-api/pkg/cert"
 	client "sigs.k8s.io/cluster-api/pkg/client/clientset_generated/clientset/typed/cluster/v1alpha1"
 	"sigs.k8s.io/cluster-api/util"
 )
@@ -80,10 +81,10 @@ type GCEClientComputeService interface {
 }
 
 type GCEClient struct {
+	certificateAuthority     *cert.CertificateAuthority
 	computeService           GCEClientComputeService
 	gceProviderConfigCodec   *gceconfigv1.GCEProviderConfigCodec
 	scheme                   *runtime.Scheme
-	codecFactory             *serializer.CodecFactory
 	kubeadmToken             string
 	sshCreds                 SshCreds
 	machineClient            client.MachineInterface
@@ -91,6 +92,7 @@ type GCEClient struct {
 }
 
 type MachineActuatorParams struct {
+	CertificateAuthority     *cert.CertificateAuthority
 	ComputeService           GCEClientComputeService
 	KubeadmToken             string
 	MachineClient            client.MachineInterface
@@ -131,6 +133,7 @@ func NewMachineActuator(params MachineActuatorParams) (*GCEClient, error) {
 	}
 
 	return &GCEClient{
+		certificateAuthority:   params.CertificateAuthority,
 		computeService:         computeService,
 		scheme:                 scheme,
 		gceProviderConfigCodec: codec,
@@ -209,58 +212,23 @@ func (gce *GCEClient) Create(cluster *clusterv1.Cluster, machine *clusterv1.Mach
 		return gce.handleMachineError(machine, verr)
 	}
 
-	var metadata map[string]string
-	if machine.Spec.Versions.Kubelet == "" {
-		return errors.New("invalid master configuration: missing Machine.Spec.Versions.Kubelet")
-	}
-
-	machineSetupConfig, err := gce.machineSetupConfigGetter.GetMachineSetupConfig()
-	if err != nil {
-		return err
-	}
 	configParams := &machinesetup.ConfigParams{
 		OS:       config.OS,
 		Roles:    machine.Spec.Roles,
 		Versions: machine.Spec.Versions,
 	}
-	image, err := machineSetupConfig.GetImage(configParams)
+	machineSetupConfigs, err := gce.machineSetupConfigGetter.GetMachineSetupConfig()
+	if err != nil {
+		return err
+	}
+	image, err := machineSetupConfigs.GetImage(configParams)
 	if err != nil {
 		return err
 	}
 	imagePath := gce.getImagePath(image)
-
-	machineSetupMetadata, err := machineSetupConfig.GetMetadata(configParams)
+	metadata, err := gce.getMetadata(cluster, machine, config, configParams)
 	if err != nil {
 		return err
-	}
-	if util.IsMaster(machine) {
-		if machine.Spec.Versions.ControlPlane == "" {
-			return gce.handleMachineError(machine, apierrors.InvalidMachineConfiguration(
-				"invalid master configuration: missing Machine.Spec.Versions.ControlPlane"))
-		}
-		var err error
-		metadata, err = masterMetadata(gce.kubeadmToken, cluster, machine, config.Project, &machineSetupMetadata)
-		if err != nil {
-			return err
-		}
-	} else {
-		if len(cluster.Status.APIEndpoints) == 0 {
-			return errors.New("invalid cluster state: cannot create a Kubernetes node without an API endpoint")
-		}
-		var err error
-		metadata, err = nodeMetadata(gce.kubeadmToken, cluster, machine, config.Project, &machineSetupMetadata)
-		if err != nil {
-			return err
-		}
-	}
-
-	var metadataItems []*compute.MetadataItems
-	for k, v := range metadata {
-		v := v // rebind scope to avoid loop aliasing below
-		metadataItems = append(metadataItems, &compute.MetadataItems{
-			Key:   k,
-			Value: &v,
-		})
 	}
 
 	instance, err := gce.instanceIfExists(machine)
@@ -294,9 +262,7 @@ func (gce *GCEClient) Create(cluster *clusterv1.Cluster, machine *clusterv1.Mach
 				},
 			},
 			Disks: newDisks(config, zone, imagePath, int64(30)),
-			Metadata: &compute.Metadata{
-				Items: metadataItems,
-			},
+			Metadata: metadata,
 			Tags: &compute.Tags{
 				Items: []string{
 					"https-server",
@@ -465,6 +431,7 @@ func (gce *GCEClient) Update(cluster *clusterv1.Cluster, goalMachine *clusterv1.
 
 	if util.IsMaster(currentMachine) {
 		glog.Infof("Doing an in-place upgrade for master.\n")
+		// TODO: should we support custom CAs here?
 		err = gce.updateMasterInplace(currentMachine, goalMachine)
 		if err != nil {
 			glog.Errorf("master inplace update failed: %v", err)
@@ -789,6 +756,58 @@ func getOrNewComputeService(params MachineActuatorParams) (GCEClientComputeServi
 		return nil, err
 	}
 	return computeService, nil
+}
+
+func (gce *GCEClient) getMetadata(cluster *clusterv1.Cluster, machine *clusterv1.Machine, config *gceconfigv1.GCEProviderConfig, configParams *machinesetup.ConfigParams) (*compute.Metadata, error) {
+	var metadataMap map[string]string
+	if machine.Spec.Versions.Kubelet == "" {
+		return nil, errors.New("invalid master configuration: missing Machine.Spec.Versions.Kubelet")
+	}
+	machineSetupConfigs, err := gce.machineSetupConfigGetter.GetMachineSetupConfig()
+	if err != nil {
+		return nil, err
+	}
+	machineSetupMetadata, err := machineSetupConfigs.GetMetadata(configParams)
+	if err != nil {
+		return nil, err
+	}
+	if util.IsMaster(machine) {
+		if machine.Spec.Versions.ControlPlane == "" {
+			return nil, gce.handleMachineError(machine, apierrors.InvalidMachineConfiguration(
+				"invalid master configuration: missing Machine.Spec.Versions.ControlPlane"))
+		}
+		var err error
+		metadataMap, err = masterMetadata(gce.kubeadmToken, cluster, machine, config.Project, &machineSetupMetadata)
+		if err != nil {
+			return nil, err
+		}
+		ca := gce.certificateAuthority
+		if ca != nil {
+			metadataMap["ca-cert"] = base64.StdEncoding.EncodeToString(ca.Certificate)
+			metadataMap["ca-key"] = base64.StdEncoding.EncodeToString(ca.PrivateKey)
+		}
+	} else {
+		if len(cluster.Status.APIEndpoints) == 0 {
+			return nil, errors.New("invalid cluster state: cannot create a Kubernetes node without an API endpoint")
+		}
+		var err error
+		metadataMap, err = nodeMetadata(gce.kubeadmToken, cluster, machine, config.Project, &machineSetupMetadata)
+		if err != nil {
+			return nil, err
+		}
+	}
+	var metadataItems []*compute.MetadataItems
+	for k, v := range metadataMap {
+		v := v // rebind scope to avoid loop aliasing below
+		metadataItems = append(metadataItems, &compute.MetadataItems{
+			Key:   k,
+			Value: &v,
+		})
+	}
+	metadata := compute.Metadata{
+		Items: metadataItems,
+	}
+	return &metadata, nil
 }
 
 // TODO: We need to change this when we create dedicated service account for apiserver/controller

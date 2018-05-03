@@ -34,7 +34,7 @@ var deleteCmd = &cobra.Command{
 }
 
 func RunDelete() error {
-	d := deploy.NewDeployer(provider, kubeConfig, "")
+	d := deploy.NewDeployer(provider, kubeConfig, "", nil)
 	return d.DeleteCluster()
 }
 

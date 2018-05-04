@@ -200,8 +200,8 @@ func ValidateMachineDeploymentSpec(spec *cluster.MachineDeploymentSpec, fldPath 
 		}
 	}
 
-	if *spec.Replicas < 0 {
-		allErrs = append(allErrs, field.Invalid(fldPath.Child("replicas"), *spec.Replicas, "replicas can not be negative"))
+	if spec.Replicas == nil || *spec.Replicas < 0 {
+		allErrs = append(allErrs, field.Invalid(fldPath.Child("replicas"), *spec.Replicas, "replicas must be specified and can not be negative"))
 	}
 
 	allErrs = append(allErrs, ValidateMachineDeploymentStrategy(&spec.Strategy, fldPath.Child("strategy"))...)
@@ -212,26 +212,40 @@ func ValidateMachineDeploymentStrategy(strategy *cluster.MachineDeploymentStrate
 	allErrs := field.ErrorList{}
 	switch strategy.Type {
 	case common.RollingUpdateMachineDeploymentStrategyType:
-		allErrs = append(allErrs, ValidateMachineRollingUpdateDeployment(strategy.RollingUpdate, fldPath.Child("rollingUpdate"))...)
+		if strategy.RollingUpdate != nil {
+			allErrs = append(allErrs, ValidateMachineRollingUpdateDeployment(strategy.RollingUpdate, fldPath.Child("rollingUpdate"))...)
+		}
+	default:
+		allErrs = append(allErrs, field.Invalid(fldPath.Child("Type"), strategy.Type, "is an invalid type"))
 	}
 	return allErrs
 }
 
 func ValidateMachineRollingUpdateDeployment(rollingUpdate *cluster.MachineRollingUpdateDeployment, fldPath *field.Path) field.ErrorList {
 	allErrs := field.ErrorList{}
-	allErrs = append(allErrs, ValidatePositiveIntOrPercent(rollingUpdate.MaxUnavailable, fldPath.Child("maxUnavailable"))...)
-	allErrs = append(allErrs, ValidatePositiveIntOrPercent(rollingUpdate.MaxSurge, fldPath.Child("maxSurge"))...)
-	maxUnavailable, _ := getIntOrPercent(rollingUpdate.MaxUnavailable, false)
-	maxSurge, _ := getIntOrPercent(rollingUpdate.MaxSurge, true)
-	if maxUnavailable == 0 && maxSurge == 0 {
+	var maxUnavailable int
+	var maxSurge int
+
+	if rollingUpdate.MaxUnavailable != nil {
+		allErrs = append(allErrs, ValidatePositiveIntOrPercent(rollingUpdate.MaxUnavailable, fldPath.Child("maxUnavailable"))...)
+		maxUnavailable, _ = getIntOrPercent(rollingUpdate.MaxUnavailable, false)
+
+		// Validate that MaxUnavailable is not more than 100%.
+		if len(utilvalidation.IsValidPercent(rollingUpdate.MaxUnavailable.StrVal)) == 0 && maxUnavailable > 100 {
+			allErrs = append(allErrs, field.Invalid(fldPath.Child("maxUnavailable"), rollingUpdate.MaxUnavailable, "should not be more than 100%"))
+		}
+	}
+
+	if rollingUpdate.MaxSurge != nil {
+		allErrs = append(allErrs, ValidatePositiveIntOrPercent(rollingUpdate.MaxSurge, fldPath.Child("maxSurge"))...)
+		maxSurge, _ = getIntOrPercent(rollingUpdate.MaxSurge, true)
+	}
+
+	if rollingUpdate.MaxUnavailable != nil && rollingUpdate.MaxSurge != nil && maxUnavailable == 0 && maxSurge == 0 {
 		// Both MaxSurge and MaxUnavailable cannot be zero.
 		allErrs = append(allErrs, field.Invalid(fldPath.Child("maxUnavailable"), rollingUpdate.MaxUnavailable, "may not be 0 when `maxSurge` is 0"))
 	}
 
-	// Validate that MaxUnavailable is not more than 100%.
-	if len(utilvalidation.IsValidPercent(rollingUpdate.MaxUnavailable.StrVal)) == 0 && maxUnavailable > 100 {
-		allErrs = append(allErrs, field.Invalid(fldPath.Child("maxUnavailable"), rollingUpdate.MaxUnavailable, "should not be more than 100%"))
-	}
 	return allErrs
 }
 
@@ -259,9 +273,9 @@ func (MachineDeploymentSchemeFns) DefaultingFunction(o interface{}) {
 		*obj.Spec.Replicas = 1
 	}
 
-	if obj.Spec.ProgressDeadlineSeconds == nil {
-		obj.Spec.ProgressDeadlineSeconds = new(int32)
-		*obj.Spec.ProgressDeadlineSeconds = 600
+	if obj.Spec.MinReadySeconds == nil {
+		obj.Spec.MinReadySeconds = new(int32)
+		*obj.Spec.MinReadySeconds = 0
 	}
 
 	if obj.Spec.RevisionHistoryLimit == nil {
@@ -269,18 +283,30 @@ func (MachineDeploymentSchemeFns) DefaultingFunction(o interface{}) {
 		*obj.Spec.RevisionHistoryLimit = 1
 	}
 
-	if obj.Spec.Strategy.RollingUpdate == nil {
-		obj.Spec.Strategy.RollingUpdate = &MachineRollingUpdateDeployment{}
+	if obj.Spec.ProgressDeadlineSeconds == nil {
+		obj.Spec.ProgressDeadlineSeconds = new(int32)
+		*obj.Spec.ProgressDeadlineSeconds = 600
 	}
 
-	if obj.Spec.Strategy.RollingUpdate.MaxSurge == nil {
-		x := intstr.FromInt(1)
-		obj.Spec.Strategy.RollingUpdate.MaxSurge = &x
+	if obj.Spec.Strategy.Type == "" {
+		obj.Spec.Strategy.Type = common.RollingUpdateMachineDeploymentStrategyType
 	}
 
-	if obj.Spec.Strategy.RollingUpdate.MaxUnavailable == nil {
-		x := intstr.FromInt(0)
-		obj.Spec.Strategy.RollingUpdate.MaxUnavailable = &x
+	// Default RollingUpdate strategy only if strategy type is RollingUpdate.
+	if obj.Spec.Strategy.Type == common.RollingUpdateMachineDeploymentStrategyType {
+		if obj.Spec.Strategy.RollingUpdate == nil {
+			obj.Spec.Strategy.RollingUpdate = &MachineRollingUpdateDeployment{}
+		}
+
+		if obj.Spec.Strategy.RollingUpdate.MaxSurge == nil {
+			x := intstr.FromInt(1)
+			obj.Spec.Strategy.RollingUpdate.MaxSurge = &x
+		}
+
+		if obj.Spec.Strategy.RollingUpdate.MaxUnavailable == nil {
+			x := intstr.FromInt(0)
+			obj.Spec.Strategy.RollingUpdate.MaxUnavailable = &x
+		}
 	}
 
 	if len(obj.Namespace) == 0 {

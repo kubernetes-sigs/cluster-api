@@ -167,7 +167,7 @@ deb [arch=amd64] https://apt.dockerproject.org/repo ubuntu-xenial main
 EOF
 
 apt-get update
-apt-get install -y docker-engine=1.11.2-0~xenial
+apt-get install -y docker.io
 
 curl -s https://packages.cloud.google.com/apt/doc/apt-key.gpg | apt-key add -
 
@@ -313,7 +313,7 @@ kubeadm init --apiserver-bind-port ${PORT} --token ${TOKEN} --kubernetes-version
 # install weavenet
 sysctl net.bridge.bridge-nf-call-iptables=1
 export kubever=$(kubectl version --kubeconfig /etc/kubernetes/admin.conf | base64 | tr -d '\n')
-kubectl apply --kubeconfig /etc/kubernetes/admin.conf -f "https://cloud.weave.works/k8s/net?k8s-version=$kubever"
+kubectl apply --kubeconfig /etc/kubernetes/admin.conf -f "https://cloud.weave.works/k8s/net?env.CHECKPOINT_DISABLE=1&env.IPALLOC_RANGE=${POD_CIDR}&disable-npc=true&k8s-version=$kubever"
 
 for tries in $(seq 1 60); do
 	kubectl --kubeconfig /etc/kubernetes/kubelet.conf annotate --overwrite node $(hostname) machine=${MACHINE} && break

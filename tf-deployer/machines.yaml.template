@@ -10,15 +10,15 @@ items:
       value:
         apiVersion: "terraformproviderconfig/v1alpha1"
         kind: "TerraformProviderConfig"
-        terraformMachine: "standard-master"
+        terraformMachine: "cloud-init-master"
         terraformVariables: [
           "user = \"foo\"",
           "password = \"bar\"",
           "vsphere_server = \"192.169.1.1\"",
         ]
     versions:
-      kubelet: 1.8.3
-      controlPlane: 1.8.3
+      kubelet: 1.10.1
+      controlPlane: 1.10.1
       containerRuntime:
         name: docker
         version: 1.12.0
@@ -35,15 +35,15 @@ items:
       value:
         apiVersion: "terraformproviderconfig/v1alpha1"
         kind: "TerraformProviderConfig"
-        terraformMachine: "standard-node"
+        terraformMachine: "cloud-init-node"
         terraformVariables: [
           "user = \"foo\"",
           "password = \"bar\"",
           "vsphere_server = \"192.169.1.1\"",
         ]
     versions:
-      kubelet: 1.8.3
-      controlPlane: 1.8.3
+      kubelet: 1.10.1
+      controlPlane: 1.10.1
       containerRuntime:
         name: docker
         version: 1.12.0

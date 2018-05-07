@@ -8,38 +8,19 @@ items:
     variable "datacenter" {}
     variable "datastore" {}
     variable "resource_pool" {}
-    variable "network" {}
     variable "num_cpus" {}
     variable "memory" {}
     variable "vm_template" {}
-    variable "disk_label" {}
-    variable "disk_size" {}
-
-    // The domain name to set up each virtual machine as.
-    variable "virtual_machine_domain" {}
-
-    // The network address for the virtual machines, in the form of 10.0.0.0/24.
-    variable "virtual_machine_network_address" {}
-
-    // The last octect that serves as the start of the IP addresses for the virtual
-    // machines. Given the default value here of 100, if the network address is
-    // 10.0.0.0/24, the 3 virtual machines will be assigned addresses 10.0.0.100,
-    // 10.0.0.101, and 10.0.0.102.
-    variable "virtual_machine_ip_address_start" {}
-
-    // The default gateway for the network the virtual machines reside in.
-    variable "virtual_machine_gateway" {}
-
-    // The DNS servers for the network the virtual machines reside in.
-    variable "virtual_machine_dns_servers" {
-      type = "list"
-    }
+    variable "network" { default = "VM Network"}
+    variable "disk_label" { default = "disk0" }
+    variable "disk_size" { default = 10}
 
     variable "vm_name" {
       type = "string"
     }
 
     provider "vsphere" {
+      version        = "~> 1.4"
       user           = "${var.user}"
       password       = "${var.password}"
       vsphere_server = "${var.vsphere_server}"
@@ -70,6 +51,22 @@ items:
     data "vsphere_virtual_machine" "template" {
       name          = "${var.vm_template}"
       datacenter_id = "${data.vsphere_datacenter.dc.id}"
+    }
+
+    data "template_file" "user_data" {
+      template = <<EOF
+    #cloud-config
+    write_files:
+      - content: |
+          $${startup_script}
+        path: /tmp/master.sh
+        permissions: '0755'
+    runcmd:
+      - /tmp/master.sh
+    EOF
+      vars {
+        startup_script = "${indent(6, file("/tmp/machine-startup.sh"))}"
+      }
     }
 
     resource "vsphere_virtual_machine" "master" {
@@ -91,189 +88,147 @@ items:
 
       disk {
         label            = "${var.disk_label}"
-        size             = "${data.vsphere_virtual_machine.template.disks.0.size}"
+        size             = "${max(var.disk_size, data.vsphere_virtual_machine.template.disks.0.size)}"
         eagerly_scrub    = "${data.vsphere_virtual_machine.template.disks.0.eagerly_scrub}"
         thin_provisioned = "${data.vsphere_virtual_machine.template.disks.0.thin_provisioned}"
       }
 
       clone {
         template_uuid = "${data.vsphere_virtual_machine.template.id}"
-
-        customize {
-          linux_options {
-            host_name = "${var.vm_name}"
-            domain    = "${var.virtual_machine_domain}"
-          }
-
-          network_interface {
-            ipv4_address = "${cidrhost(var.virtual_machine_network_address, var.virtual_machine_ip_address_start + count.index)}"
-            ipv4_netmask = "${element(split("/", var.virtual_machine_network_address), 1)}"
-          }
-
-          ipv4_gateway    = "${var.virtual_machine_gateway}"
-          dns_suffix_list = ["${var.virtual_machine_domain}"]
-          dns_server_list = ["${var.virtual_machine_dns_servers}"]
-        }
       }
 
-      provisioner "file" {
-        source      = "/tmp/machine-startup.sh"
-        destination = "/tmp/master.sh"
-
-        connection {
-          type        = "ssh"
-          private_key = "${file("~/.ssh/vsphere_tmp")}"
-          user        = "ubuntu"
-          agent       = true
-        }
+      cdrom {
+        client_device = true
       }
 
-      // Copy the private key over so the controller is able to ssh into the nodes.
-      provisioner "file" {
-        source      = "~/.ssh/vsphere_tmp"
-        destination = "~/.ssh/id_rsa"
-
-        connection {
-          type        = "ssh"
-          private_key = "${file("~/.ssh/vsphere_tmp")}"
-          user        = "ubuntu"
-          agent       = true
+      vapp {
+        properties {
+          hostname = "${var.vm_name}"
+          "user-data" = "${base64encode(data.template_file.user_data.rendered)}"
+          "public-keys" = "${file("~/.ssh/vsphere_tmp.pub")}"
         }
       }
+    }
 
-      // NOTE NOTE NOTE NOTE NOTE NOTE NOTE NOTE NOTE NOTE NOTE NOTE NOTE NOTE NOTE
-      // Use username/password here because the machine controller will be running
-      // on a different machine and the image does not have that machines private key.
-      // So either I use user/pw or I inject my SSH private key in the controller.
-      provisioner "remote-exec" {
-        inline = [
-          "echo Making startup script executable...",
-          "chmod +x /tmp/master.sh",
-          "echo Running startup script...",
-          "echo '${var.password}' | sudo -S /tmp/master.sh",
-
-          // This is required for the controller to be able to read the conf file.
-          "echo '${var.password}' | sudo -S chown ubuntu:ubuntu /etc/kubernetes/admin.conf",
-        ]
-
-        connection {
-          type        = "ssh"
-          private_key = "${file("~/.ssh/vsphere_tmp")}"
-          user        = "ubuntu"
-          agent       = true
-        }
-      }
+    output "ip_address" {
+      value = "${vsphere_virtual_machine.master.default_ip_address}"
     }
 - machineName: standard-node
   machineHcl: |
     variable "user" {}
     variable "password" {}
     variable "vsphere_server" {}
+
     variable "datacenter" {}
     variable "datastore" {}
     variable "resource_pool" {}
-    variable "network" {}
     variable "num_cpus" {}
     variable "memory" {}
     variable "vm_template" {}
-    variable "disk_label" {}
-    variable "disk_size" {}
-    variable "virtual_machine_domain" {}
-    variable "virtual_machine_network_address" {}
-    variable "virtual_machine_ip_address_start" {}
-    variable "virtual_machine_gateway" {}
-    variable "virtual_machine_dns_servers" {
-      type = "list"
-      }
-    variable "vm_name" {}
+    variable "network" { default = "VM Network"}
+    variable "disk_label" { default = "disk0" }
+    variable "disk_size" { default = 10}
+
+    variable "vm_name" {
+      type = "string"
+    }
+
     provider "vsphere" {
+      version        = "~> 1.4"
       user           = "${var.user}"
       password       = "${var.password}"
       vsphere_server = "${var.vsphere_server}"
+
       # if you have a self-signed cert
       allow_unverified_ssl = true
-      }
+    }
+
     data "vsphere_datacenter" "dc" {
       name = "${var.datacenter}"
-      }
+    }
+
     data "vsphere_datastore" "datastore" {
       name          = "${var.datastore}"
       datacenter_id = "${data.vsphere_datacenter.dc.id}"
-      }
+    }
+
     data "vsphere_resource_pool" "pool" {
       name          = "${var.resource_pool}"
       datacenter_id = "${data.vsphere_datacenter.dc.id}"
-      }
+    }
+
     data "vsphere_network" "network" {
       name          = "${var.network}"
       datacenter_id = "${data.vsphere_datacenter.dc.id}"
-      }
+    }
+
     data "vsphere_virtual_machine" "template" {
       name          = "${var.vm_template}"
       datacenter_id = "${data.vsphere_datacenter.dc.id}"
+    }
+
+    // Generate cloud-config for VM startup
+    data "template_file" "user_data" {
+      template = <<EOF
+    #cloud-config
+    write_files:
+      - content: |
+          $${startup_script}
+        path: /tmp/node.sh
+        permissions: '0755'
+    runcmd:
+      - /tmp/node.sh
+    EOF
+      vars {
+        startup_script = "${indent(6, file("/tmp/machine-startup.sh"))}"
       }
-    resource "vsphere_virtual_machine" "nodes" {
+    }
+
+    resource "vsphere_virtual_machine" "node" {
       name             = "${var.vm_name}"
       resource_pool_id = "${data.vsphere_resource_pool.pool.id}"
       datastore_id     = "${data.vsphere_datastore.datastore.id}"
+
       num_cpus         = "${var.num_cpus}"
       memory           = "${var.memory}"
       guest_id         = "${data.vsphere_virtual_machine.template.guest_id}"
       enable_disk_uuid = "true"
+
       scsi_type = "${data.vsphere_virtual_machine.template.scsi_type}"
+
       network_interface {
         network_id   = "${data.vsphere_network.network.id}"
         adapter_type = "${data.vsphere_virtual_machine.template.network_interface_types[0]}"
       }
+
       disk {
         label            = "${var.disk_label}"
-        size             = "${data.vsphere_virtual_machine.template.disks.0.size}"
+        size             = "${max(var.disk_size, data.vsphere_virtual_machine.template.disks.0.size)}"
         eagerly_scrub    = "${data.vsphere_virtual_machine.template.disks.0.eagerly_scrub}"
         thin_provisioned = "${data.vsphere_virtual_machine.template.disks.0.thin_provisioned}"
       }
+
       clone {
         template_uuid = "${data.vsphere_virtual_machine.template.id}"
-        customize {
-          linux_options {
-            host_name = "${var.vm_name}"
-            domain    = "${var.virtual_machine_domain}"
-          }
-          network_interface {
-            ipv4_address = "${cidrhost(var.virtual_machine_network_address, var.virtual_machine_ip_address_start + count.index + 1)}"
-            ipv4_netmask = "${element(split("/", var.virtual_machine_network_address), 1)}"
-          }
-          ipv4_gateway    = "${var.virtual_machine_gateway}"
-          dns_suffix_list = ["${var.virtual_machine_domain}"]
-          dns_server_list = ["${var.virtual_machine_dns_servers}"]
-        }
       }
 
-      // Need to make sure that the private key exists at ~/.ssh/id_rsa
-      provisioner "file" {
-        source      = "/tmp/machine-startup.sh"
-        destination = "/tmp/node.sh"
-        connection {
-          type        = "ssh"
-          private_key = "${file("~/.ssh/id_rsa")}"
-          user        = "ubuntu"
+      cdrom {
+        client_device = true
+      }
+
+      // These properties are defined in the Ubuntu cloud image OVA.
+      vapp {
+        properties {
+          hostname = "${var.vm_name}"
+          // This data has to be base64 encoded because OVF uses XML, and this
+          // has to be a valid XML attribute. Cloud-init on the other side will
+          // base64decode it.
+          "user-data" = "${base64encode(data.template_file.user_data.rendered)}"
+          "public-keys" = "${file("~/.ssh/authorized_keys")}"
         }
       }
-      // NOTE NOTE NOTE NOTE NOTE NOTE NOTE NOTE NOTE NOTE NOTE NOTE NOTE NOTE NOTE
-      // Use username/password here because the machine controller will be running
-      // on a different machine and the image does not have that machines private key.
-      // So either I use user/pw or I inject my SSH private key in the controller.
-      provisioner "remote-exec" {
-        inline = [
-          "echo Making startup script executable...",
-          "ls -al /tmp/",
-          "chmod +x /tmp/node.sh",
-          "echo Running startup script...",
-          "echo '${var.password}' | sudo -S /tmp/node.sh",
-        ]
-        connection {
-          type        = "ssh"
-          private_key = "${file("~/.ssh/id_rsa")}"
-          user        = "ubuntu"
-        }
-      }
+    }
+
+    output "ip_address" {
+      value = "${vsphere_virtual_machine.node.default_ip_address}"
     }

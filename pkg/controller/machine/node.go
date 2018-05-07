@@ -25,6 +25,7 @@ import (
 	"k8s.io/client-go/tools/cache"
 
 	"sigs.k8s.io/cluster-api/pkg/controller/noderefutil"
+	"sigs.k8s.io/cluster-api/util"
 )
 
 const (
@@ -54,15 +55,21 @@ func (c *MachineControllerImpl) link(node *corev1.Node) error {
 		return nil
 	}
 
-	machine, err := c.machineClient.Get(val, metav1.GetOptions{})
+	namespace, mach, err := cache.SplitMetaNamespaceKey(val)
 	if err != nil {
-		glog.Errorf("Error getting machine %v: %v\n", val, err)
+		glog.Errorf("Machine annotation format is incorrect %v: %v\n", val, err)
+		return err
+	}
+	machineClient := c.clientSet.ClusterV1alpha1().Machines(util.GetNamespaceOrDefault(namespace))
+	machine, err := machineClient.Get(mach, metav1.GetOptions{})
+	if err != nil {
+		glog.Errorf("Error getting machine %v: %v\n", mach, err)
 		return err
 	}
 
 	machine.Status.LastUpdated = metav1.Now()
 	machine.Status.NodeRef = objectRef(node)
-	if _, err = c.machineClient.UpdateStatus(machine); err != nil {
+	if _, err = machineClient.UpdateStatus(machine); err != nil {
 		glog.Errorf("Error updating machine to link to node: %v\n", err)
 	} else {
 		glog.Infof("Successfully linked machine %s to node %s\n",
@@ -79,9 +86,16 @@ func (c *MachineControllerImpl) unlink(node *corev1.Node) error {
 		return nil
 	}
 
-	machine, err := c.machineClient.Get(val, metav1.GetOptions{})
+	namespace, mach, err := cache.SplitMetaNamespaceKey(val)
 	if err != nil {
-		glog.Errorf("Error getting machine %v: %v\n", val, err)
+		glog.Errorf("Machine annotation format is incorrect %v: %v\n", val, err)
+		return err
+	}
+
+	machineClient := c.clientSet.ClusterV1alpha1().Machines(util.GetNamespaceOrDefault(namespace))
+	machine, err := machineClient.Get(mach, metav1.GetOptions{})
+	if err != nil {
+		glog.Errorf("Error getting machine %v: %v\n", mach, err)
 		return err
 	}
 
@@ -99,7 +113,7 @@ func (c *MachineControllerImpl) unlink(node *corev1.Node) error {
 
 	machine.Status.LastUpdated = metav1.Now()
 	machine.Status.NodeRef = nil
-	if _, err = c.machineClient.UpdateStatus(machine); err != nil {
+	if _, err = machineClient.UpdateStatus(machine); err != nil {
 		glog.Errorf("Error updating machine %s to unlink node %s: %v\n",
 			machine.ObjectMeta.Name, node.ObjectMeta.Name, err)
 	} else {

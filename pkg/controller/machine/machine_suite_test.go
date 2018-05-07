@@ -39,7 +39,8 @@ func TestMachine(t *testing.T) {
 	t.Run("machineControllerReconcile", func(t *testing.T) {
 		controller, shutdown := getController(config)
 		defer close(shutdown)
-		machineControllerReconcile(t, cs, controller)
+		machineControllerReconcile(t, cs, controller, "default")
+		machineControllerReconcile(t, cs, controller, "nondefault")
 	})
 	t.Run("machineControllerConcurrentReconcile", func(t *testing.T) {
 		controller, shutdown := getController(config)

@@ -20,11 +20,9 @@ import (
 	"github.com/kubernetes-incubator/apiserver-builder/pkg/builders"
 
 	"github.com/golang/glog"
-	corev1 "k8s.io/api/core/v1"
 	"k8s.io/client-go/kubernetes"
 	clusterv1 "sigs.k8s.io/cluster-api/pkg/apis/cluster/v1alpha1"
 	"sigs.k8s.io/cluster-api/pkg/client/clientset_generated/clientset"
-	"sigs.k8s.io/cluster-api/pkg/client/clientset_generated/clientset/typed/cluster/v1alpha1"
 	listers "sigs.k8s.io/cluster-api/pkg/client/listers_generated/cluster/v1alpha1"
 	"sigs.k8s.io/cluster-api/pkg/controller/sharedinformers"
 	"sigs.k8s.io/cluster-api/util"
@@ -41,7 +39,6 @@ type ClusterControllerImpl struct {
 
 	kubernetesClientSet *kubernetes.Clientset
 	clientSet           clientset.Interface
-	clusterClient       v1alpha1.ClusterInterface
 }
 
 // Init initializes the controller and is called by the generated code
@@ -57,9 +54,6 @@ func (c *ClusterControllerImpl) Init(arguments sharedinformers.ControllerInitArg
 	c.clientSet = cs
 	c.kubernetesClientSet = arguments.GetSharedInformers().KubernetesClientSet
 
-	// Create cluster actuator.
-	// TODO: Assume default namespace for now. Maybe a separate a controller per namespace?
-	c.clusterClient = cs.ClusterV1alpha1().Clusters(corev1.NamespaceDefault)
 	c.actuator = actuator
 }
 
@@ -83,7 +77,7 @@ func (c *ClusterControllerImpl) Reconcile(cluster *clusterv1.Cluster) error {
 		// Remove finalizer on successful deletion.
 		glog.Infof("cluster object %v deletion successful, removing finalizer.", name)
 		cluster.ObjectMeta.Finalizers = util.Filter(cluster.ObjectMeta.Finalizers, clusterv1.ClusterFinalizer)
-		if _, err := c.clusterClient.Update(cluster); err != nil {
+		if _, err := c.clientSet.ClusterV1alpha1().Clusters(cluster.Namespace).Update(cluster); err != nil {
 			glog.Errorf("Error removing finalizer from cluster object %v; %v", name, err)
 			return err
 		}

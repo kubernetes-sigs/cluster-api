@@ -61,10 +61,11 @@ func StartMachineController(server *options.MachineControllerServer, shutdown <-
 		glog.Fatalf("Could not create config watch: %v", err)
 	}
 	params := google.MachineActuatorParams{
-		MachineClient:            client.ClusterV1alpha1().Machines(corev1.NamespaceDefault),
+		V1Alpha1Client:           client.ClusterV1alpha1(),
 		MachineSetupConfigGetter: configWatch,
 	}
 	actuator, err := google.NewMachineActuator(params)
+
 	if err != nil {
 		glog.Fatalf("Could not create Google machine actuator: %v", err)
 	}

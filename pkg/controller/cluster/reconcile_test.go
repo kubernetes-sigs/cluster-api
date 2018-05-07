@@ -91,7 +91,6 @@ func TestClusterSetControllerReconcileHandler(t *testing.T) {
 
 			clusterUpdated := false
 			fakeClient := fake.NewSimpleClientset(knownObjects...)
-			fakeClusterClient := fakeClient.Cluster().Clusters(metav1.NamespaceDefault)
 			fakeClient.PrependReactor("update", "clusters", func(action core.Action) (bool, runtime.Object, error) {
 				clusterUpdated = true
 				return false, nil, nil
@@ -102,7 +101,6 @@ func TestClusterSetControllerReconcileHandler(t *testing.T) {
 			target := &ClusterControllerImpl{}
 			target.actuator = actuator
 			target.clientSet = fakeClient
-			target.clusterClient = fakeClusterClient
 
 			var err error
 			err = target.Reconcile(clusterToTest)

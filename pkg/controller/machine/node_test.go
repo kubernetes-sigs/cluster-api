@@ -133,7 +133,6 @@ func TestReconcileNode(t *testing.T) {
 			machineLister := v1alpha1listers.NewMachineLister(machinesIndexer)
 
 			fakeClient := fake.NewSimpleClientset(mrObjects...)
-			fakeMachineClient := fakeClient.Cluster().Machines(metav1.NamespaceDefault)
 
 			node := &corev1.Node{
 				ObjectMeta: metav1.ObjectMeta{
@@ -153,7 +152,7 @@ func TestReconcileNode(t *testing.T) {
 				}
 			}
 			if test.nodeHasMachineAnnotation {
-				node.ObjectMeta.Annotations[machineAnnotationKey] = "foo"
+				node.ObjectMeta.Annotations[machineAnnotationKey] = "default/foo"
 			}
 			if test.nodeIsDeleting {
 				node.DeletionTimestamp = &metav1.Time{Time: time.Now()}
@@ -167,7 +166,6 @@ func TestReconcileNode(t *testing.T) {
 
 			target := &MachineControllerImpl{}
 			target.clientSet = fakeClient
-			target.machineClient = fakeMachineClient
 			target.kubernetesClientSet = fakeK8sClient
 			target.lister = machineLister
 			target.linkedNodes = make(map[string]bool)

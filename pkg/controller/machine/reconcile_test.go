@@ -112,7 +112,6 @@ func TestMachineSetControllerReconcileHandler(t *testing.T) {
 
 			machineUpdated := false
 			fakeClient := fake.NewSimpleClientset(knownObjects...)
-			fakeMachineClient := fakeClient.Cluster().Machines(metav1.NamespaceDefault)
 			fakeClient.PrependReactor("update", "machines", func(action core.Action) (bool, runtime.Object, error) {
 				machineUpdated = true
 				return false, nil, nil
@@ -131,7 +130,6 @@ func TestMachineSetControllerReconcileHandler(t *testing.T) {
 			target := &MachineControllerImpl{}
 			target.actuator = actuator
 			target.clientSet = fakeClient
-			target.machineClient = fakeMachineClient
 
 			var err error
 			err = target.Reconcile(machineToTest)

@@ -1,13 +1,14 @@
 package google
 
 import (
-	"fmt"
 	"bytes"
+	"fmt"
+
 	"k8s.io/apimachinery/pkg/runtime/serializer/json"
 
+	"k8s.io/apimachinery/pkg/runtime/schema"
 	clusterv1 "sigs.k8s.io/cluster-api/pkg/apis/cluster/v1alpha1"
 	"sigs.k8s.io/cluster-api/util"
-	"k8s.io/apimachinery/pkg/runtime/schema"
 )
 
 // Long term, we should retrieve the current status by asking k8s, gce etc. for all the needed info.
@@ -20,11 +21,13 @@ type instanceStatus *clusterv1.Machine
 
 // Get the status of the instance identified by the given machine
 func (gce *GCEClient) instanceStatus(machine *clusterv1.Machine) (instanceStatus, error) {
-	currentMachine, err := util.GetMachineIfExists(gce.machineClient, machine.ObjectMeta.Name)
+	if gce.v1Alpha1Client == nil {
+		return nil, nil
+	}
+	currentMachine, err := util.GetMachineIfExists(gce.v1Alpha1Client.Machines(machine.Namespace), machine.ObjectMeta.Name)
 	if err != nil {
 		return nil, err
 	}
-
 
 	if currentMachine == nil {
 		// The current status no longer exists because the matching CRD has been deleted (or does not exist yet ie. bootstrapping)
@@ -35,8 +38,11 @@ func (gce *GCEClient) instanceStatus(machine *clusterv1.Machine) (instanceStatus
 
 // Sets the status of the instance identified by the given machine to the given machine
 func (gce *GCEClient) updateInstanceStatus(machine *clusterv1.Machine) error {
+	if gce.v1Alpha1Client == nil {
+		return nil
+	}
 	status := instanceStatus(machine)
-	currentMachine, err := util.GetMachineIfExists(gce.machineClient, machine.ObjectMeta.Name)
+	currentMachine, err := util.GetMachineIfExists(gce.v1Alpha1Client.Machines(machine.Namespace), machine.ObjectMeta.Name)
 	if err != nil {
 		return err
 	}
@@ -51,7 +57,7 @@ func (gce *GCEClient) updateInstanceStatus(machine *clusterv1.Machine) error {
 		return err
 	}
 
-	_, err = gce.machineClient.Update(m)
+	_, err = gce.v1Alpha1Client.Machines(machine.Namespace).Update(m)
 	return err
 }
 
@@ -70,7 +76,7 @@ func (gce *GCEClient) machineInstanceStatus(machine *clusterv1.Machine) (instanc
 
 	serializer := json.NewSerializer(json.DefaultMetaFactory, gce.scheme, gce.scheme, false)
 	var status clusterv1.Machine
-	_, _, err := serializer.Decode([]byte(a), &schema.GroupVersionKind{Group:"", Version:"cluster.k8s.io/v1alpha1", Kind:"Machine"}, &status)
+	_, _, err := serializer.Decode([]byte(a), &schema.GroupVersionKind{Group: "", Version: "cluster.k8s.io/v1alpha1", Kind: "Machine"}, &status)
 	if err != nil {
 		return nil, fmt.Errorf("decoding failure: %v", err)
 	}
@@ -79,7 +85,7 @@ func (gce *GCEClient) machineInstanceStatus(machine *clusterv1.Machine) (instanc
 }
 
 // Applies the state of an instance onto a given machine CRD
-func (gce *GCEClient) setMachineInstanceStatus(machine *clusterv1.Machine, status instanceStatus)  (*clusterv1.Machine, error)  {
+func (gce *GCEClient) setMachineInstanceStatus(machine *clusterv1.Machine, status instanceStatus) (*clusterv1.Machine, error) {
 	// Avoid status within status within status ...
 	status.ObjectMeta.Annotations[InstanceStatusAnnotationKey] = ""
 

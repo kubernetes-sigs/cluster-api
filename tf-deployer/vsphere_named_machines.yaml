@@ -15,9 +15,6 @@ items:
     variable "disk_label" { default = "disk0" }
     variable "disk_size" { default = 10}
 
-    // The domain name to set up each virtual machine as.
-    variable "virtual_machine_domain" {}
-
     variable "vm_name" {
       type = "string"
     }
@@ -132,9 +129,6 @@ items:
     variable "disk_label" { default = "disk0" }
     variable "disk_size" { default = 10}
 
-    // The domain name to set up each virtual machine as.
-    variable "virtual_machine_domain" {}
-
     variable "vm_name" {
       type = "string"
     }
@@ -173,6 +167,7 @@ items:
       datacenter_id = "${data.vsphere_datacenter.dc.id}"
     }
 
+    // Generate cloud-config for VM startup
     data "template_file" "user_data" {
       template = <<EOF
     #cloud-config
@@ -221,9 +216,13 @@ items:
         client_device = true
       }
 
+      // These properties are defined in the Ubuntu cloud image OVA.
       vapp {
         properties {
           hostname = "${var.vm_name}"
+          // This data has to be base64 encoded because OVF uses XML, and this
+          // has to be a valid XML attribute. Cloud-init on the other side will
+          // base64decode it.
           "user-data" = "${base64encode(data.template_file.user_data.rendered)}"
           "public-keys" = "${file("~/.ssh/authorized_keys")}"
         }

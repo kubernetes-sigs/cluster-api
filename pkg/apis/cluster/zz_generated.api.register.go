@@ -117,81 +117,11 @@ func Resource(resource string) schema.GroupResource {
 // +genclient
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
 
-type Machine struct {
-	metav1.TypeMeta
-	metav1.ObjectMeta
-	Spec   MachineSpec
-	Status MachineStatus
-}
-
-// +genclient
-// +genclient
-// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
-
 type Cluster struct {
 	metav1.TypeMeta
 	metav1.ObjectMeta
 	Spec   ClusterSpec
 	Status ClusterStatus
-}
-
-type MachineStatus struct {
-	NodeRef      *corev1.ObjectReference
-	LastUpdated  metav1.Time
-	Versions     *MachineVersionInfo
-	ErrorReason  *clustercommon.MachineStatusError
-	ErrorMessage *string
-}
-
-type ClusterStatus struct {
-	APIEndpoints   []APIEndpoint
-	ErrorReason    clustercommon.ClusterStatusError
-	ErrorMessage   string
-	ProviderStatus string
-}
-
-type MachineVersionInfo struct {
-	Kubelet          string
-	ControlPlane     string
-	ContainerRuntime ContainerRuntimeInfo
-}
-
-type APIEndpoint struct {
-	Host string
-	Port int
-}
-
-type ContainerRuntimeInfo struct {
-	Name    string
-	Version string
-}
-
-type ClusterSpec struct {
-	ClusterNetwork ClusterNetworkingConfig
-	ProviderConfig ProviderConfig
-}
-
-type MachineSpec struct {
-	metav1.ObjectMeta
-	Taints         []corev1.Taint
-	ProviderConfig ProviderConfig
-	Roles          []clustercommon.MachineRole
-	Versions       MachineVersionInfo
-	ConfigSource   *corev1.NodeConfigSource
-}
-
-type ProviderConfig struct {
-	Value     *pkgruntime.RawExtension
-	ValueFrom *ProviderConfigSource
-}
-
-type ProviderConfigSource struct {
-}
-
-type ClusterNetworkingConfig struct {
-	Services      NetworkRanges
-	Pods          NetworkRanges
-	ServiceDomain string
 }
 
 // +genclient
@@ -205,8 +135,11 @@ type MachineSet struct {
 	Status MachineSetStatus
 }
 
-type NetworkRanges struct {
-	CIDRBlocks []string
+type ClusterStatus struct {
+	APIEndpoints   []APIEndpoint
+	ErrorReason    clustercommon.ClusterStatusError
+	ErrorMessage   string
+	ProviderStatus *pkgruntime.RawExtension
 }
 
 type MachineSetStatus struct {
@@ -219,6 +152,11 @@ type MachineSetStatus struct {
 	ErrorMessage         *string
 }
 
+type APIEndpoint struct {
+	Host string
+	Port int
+}
+
 type MachineSetSpec struct {
 	Replicas        *int32
 	MinReadySeconds int32
@@ -226,9 +164,48 @@ type MachineSetSpec struct {
 	Template        MachineTemplateSpec
 }
 
+type ClusterSpec struct {
+	ClusterNetwork ClusterNetworkingConfig
+	ProviderConfig ProviderConfig
+}
+
 type MachineTemplateSpec struct {
 	metav1.ObjectMeta
 	Spec MachineSpec
+}
+
+type ProviderConfig struct {
+	Value     *pkgruntime.RawExtension
+	ValueFrom *ProviderConfigSource
+}
+
+type MachineSpec struct {
+	metav1.ObjectMeta
+	Taints         []corev1.Taint
+	ProviderConfig ProviderConfig
+	Roles          []clustercommon.MachineRole
+	Versions       MachineVersionInfo
+	ConfigSource   *corev1.NodeConfigSource
+}
+
+type ProviderConfigSource struct {
+}
+
+type MachineVersionInfo struct {
+	Kubelet          string
+	ControlPlane     string
+	ContainerRuntime ContainerRuntimeInfo
+}
+
+type ContainerRuntimeInfo struct {
+	Name    string
+	Version string
+}
+
+type ClusterNetworkingConfig struct {
+	Services      NetworkRanges
+	Pods          NetworkRanges
+	ServiceDomain string
 }
 
 // +genclient
@@ -240,6 +217,10 @@ type MachineDeployment struct {
 	metav1.ObjectMeta
 	Spec   MachineDeploymentSpec
 	Status MachineDeploymentStatus
+}
+
+type NetworkRanges struct {
+	CIDRBlocks []string
 }
 
 type MachineDeploymentStatus struct {
@@ -270,6 +251,26 @@ type MachineDeploymentStrategy struct {
 type MachineRollingUpdateDeployment struct {
 	MaxUnavailable *utilintstr.IntOrString
 	MaxSurge       *utilintstr.IntOrString
+}
+
+// +genclient
+// +genclient
+// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
+
+type Machine struct {
+	metav1.TypeMeta
+	metav1.ObjectMeta
+	Spec   MachineSpec
+	Status MachineStatus
+}
+
+type MachineStatus struct {
+	NodeRef        *corev1.ObjectReference
+	LastUpdated    metav1.Time
+	Versions       *MachineVersionInfo
+	ErrorReason    *clustercommon.MachineStatusError
+	ErrorMessage   *string
+	ProviderStatus *pkgruntime.RawExtension
 }
 
 //

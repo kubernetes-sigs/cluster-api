@@ -134,6 +134,12 @@ type MachineStatus struct {
 	ErrorReason *clustercommon.MachineStatusError `json:"errorReason,omitempty"`
 	// +optional
 	ErrorMessage *string `json:"errorMessage,omitempty"`
+
+	// Provider-specific status.
+	// It is recommended that providers maintain their
+	// own versioned API types that should be
+	// serialized/deserialized from this field.
+	ProviderStatus *runtime.RawExtension `json:"providerStatus"`
 }
 
 type MachineVersionInfo struct {

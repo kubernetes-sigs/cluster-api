@@ -23,17 +23,32 @@ import (
 )
 
 type TestActuator struct {
-	unblock         chan string
-	BlockOnCreate   bool
-	BlockOnDelete   bool
-	BlockOnUpdate   bool
-	BlockOnExists   bool
-	CreateCallCount int64
-	DeleteCallCount int64
-	UpdateCallCount int64
-	ExistsCallCount int64
-	ExistsValue     bool
-	Lock            sync.Mutex
+	unblock                        chan string
+	BlockOnProvisionDependencies   bool
+	BlockOnCreate                  bool
+	BlockOnDelete                  bool
+	BlockOnUpdate                  bool
+	BlockOnExists                  bool
+	ProvisionDependenciesCallCount int64
+	CreateCallCount                int64
+	DeleteCallCount                int64
+	UpdateCallCount                int64
+	ExistsCallCount                int64
+	ExistsValue                    bool
+	Lock                           sync.Mutex
+}
+
+func (a *TestActuator) ProvisionClusterDependencies(*v1alpha1.Cluster, []*v1alpha1.Machine) error {
+	defer func() {
+		if a.BlockOnProvisionDependencies {
+			<-a.unblock
+		}
+	}()
+
+	a.Lock.Lock()
+	defer a.Lock.Unlock()
+	a.ProvisionDependenciesCallCount++
+	return nil
 }
 
 func (a *TestActuator) Create(*v1alpha1.Cluster, *v1alpha1.Machine) error {

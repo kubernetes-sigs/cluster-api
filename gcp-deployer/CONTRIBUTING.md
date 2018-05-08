@@ -100,8 +100,8 @@ After making changes to the controllers or the actuator, you need to follow thes
 1. Rebuild the machine-controller image. Also change `machineControllerImage` in `cloud/google/pods.go` to the new image path (make sure the version in the Makefile and `pods.go` match if you want to use the new image). Then, rebuild and push the image.
 
 	```bash
-	$ cd $GOPATH/src/k8s.io/kube-deploy/cluster-api
-	$ apiserver-boot build container --image gcr.io/$(GCLOUD_PROJECT)/apiserver-controller:$(VERSION) --generate=false
+	$ cd $GOPATH/src/sigs.k8s.io/cluster-api/cloud/google/cmd/gce-machine-controller
+	$ make dev_push
 	```
 
 NOTE: that the image will be pushed to `gcr.io/$(GCLOUD_PROJECT)/apiserver-controller`. Image storage is a billable resource.

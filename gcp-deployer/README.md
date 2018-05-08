@@ -74,6 +74,10 @@ to find the broken node (using the dry run flag) and fix it.
 
 ### Deleting a cluster
 
+***NOTE***: Before deleting your cluster, it is recommended that you delete any Kubernetes
+objects which have created resources external to the cluster, like services with type LoadBalancer,
+some types of persistent volume claims, and ingress resources.
+
 To delete your cluster run `./gcp-deployer delete`
 
 

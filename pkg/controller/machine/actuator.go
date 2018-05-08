@@ -23,6 +23,10 @@ import (
 // Actuator controls machines on a specific infrastructure. All
 // methods should be idempotent unless otherwise specified.
 type Actuator interface {
+	// TODO mkjelland move ProvisionClusterDependencies to a cluster actuator
+	// Provision infrastructure that the cluster needs before it
+	// can be created
+	ProvisionClusterDependencies(*clusterv1.Cluster, []*clusterv1.Machine) error
 	// Create the machine.
 	Create(*clusterv1.Cluster, *clusterv1.Machine) error
 	// Delete the machine.

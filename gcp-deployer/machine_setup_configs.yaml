@@ -70,6 +70,7 @@ items:
       Environment="KUBELET_NETWORK_ARGS=--network-plugin=kubenet"
       Environment="KUBELET_DNS_ARGS=--cluster-dns=${CLUSTER_DNS_SERVER} --cluster-domain=${CLUSTER_DNS_DOMAIN}"
       EOF
+      sed -i "2iEnvironment=\"KUBELET_EXTRA_ARGS=--cloud-provider=gce --cloud-config=/etc/kubernetes/cloud-config\"" /etc/systemd/system/kubelet.service.d/10-kubeadm.conf
       systemctl daemon-reload
       systemctl restart kubelet.service
       PRIVATEIP=`curl --retry 5 -sfH "Metadata-Flavor: Google" "http://metadata/computeMetadata/v1/instance/network-interfaces/0/ip"`
@@ -112,6 +113,21 @@ items:
       modprobe br_netfilter
 
       kubeadm init --config /etc/kubernetes/kubeadm_config.yaml
+
+      # add default storage class
+      cat > /etc/kubernetes/default-storage-class.yaml <<EOF
+      kind: StorageClass
+      apiVersion: storage.k8s.io/v1
+      metadata:
+        name: standard
+        annotations:
+          storageclass.kubernetes.io/is-default-class: "true"
+      provisioner: kubernetes.io/gce-pd
+      parameters:
+        type: pd-standard
+      EOF
+      kubectl apply --kubeconfig /etc/kubernetes/admin.conf -f /etc/kubernetes/default-storage-class.yaml
+
       for tries in $(seq 1 60); do
           kubectl --kubeconfig /etc/kubernetes/kubelet.conf annotate --overwrite node $(hostname) machine=${MACHINE} && break
           sleep 1
@@ -159,6 +175,15 @@ items:
       deb http://apt.kubernetes.io/ kubernetes-xenial main
       EOF
       apt-get update
+
+      mkdir -p /etc/kubernetes/
+      cat > /etc/kubernetes/cloud-config <<EOF
+      [global]
+      project-id = ${PROJECT}
+      network-name = ${NETWORK}
+      subnetwork-name = ${SUBNETWORK}
+      node-tags = ${NODE_TAG}
+      EOF
       # Our Debian packages have versions like "1.8.0-00" or "1.8.0-01". Do a prefix
       # search based on our SemVer to find the right (newest) package version.
       function getversion() {
@@ -183,6 +208,7 @@ items:
       Environment="KUBELET_NETWORK_ARGS=--network-plugin=kubenet"
       Environment="KUBELET_DNS_ARGS=--cluster-dns=${CLUSTER_DNS_SERVER} --cluster-domain=${CLUSTER_DNS_DOMAIN}"
       EOF
+      sed -i "2iEnvironment=\"KUBELET_EXTRA_ARGS=--cloud-provider=gce --cloud-config=/etc/kubernetes/cloud-config\"" /etc/systemd/system/kubelet.service.d/10-kubeadm.conf
       systemctl daemon-reload
       systemctl restart kubelet.service
       kubeadm join --token "${TOKEN}" "${MASTER}" --ignore-preflight-errors=all --discovery-token-unsafe-skip-ca-verification

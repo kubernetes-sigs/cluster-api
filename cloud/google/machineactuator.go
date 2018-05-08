@@ -185,6 +185,20 @@ func (gce *GCEClient) CreateMachineController(cluster *clusterv1.Cluster, initia
 	return nil
 }
 
+func (gce *GCEClient) ProvisionClusterDependencies(cluster *clusterv1.Cluster, initialMachines []*clusterv1.Machine) error {
+	err := gce.CreateMasterNodeServiceAccount(cluster, initialMachines)
+	if err != nil {
+		return err
+	}
+
+	err = gce.CreateWorkerNodeServiceAccount(cluster, initialMachines)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
 func (gce *GCEClient) Create(cluster *clusterv1.Cluster, machine *clusterv1.Machine) error {
 	config, err := gce.providerconfig(machine.Spec.ProviderConfig)
 	if err != nil {
@@ -235,7 +249,7 @@ func (gce *GCEClient) Create(cluster *clusterv1.Cluster, machine *clusterv1.Mach
 			return errors.New("invalid cluster state: cannot create a Kubernetes node without an API endpoint")
 		}
 		var err error
-		metadata, err = nodeMetadata(gce.kubeadmToken, cluster, machine, &machineSetupMetadata)
+		metadata, err = nodeMetadata(gce.kubeadmToken, cluster, machine, config.Project, &machineSetupMetadata)
 		if err != nil {
 			return err
 		}
@@ -264,18 +278,6 @@ func (gce *GCEClient) Create(cluster *clusterv1.Cluster, machine *clusterv1.Mach
 		labels := map[string]string{}
 		if gce.machineClient == nil {
 			labels[BootstrapLabelKey] = "true"
-		}
-
-		// The service account is needed for the Kubernetes GCE cloud provider code. It is needed on the master VM.
-		serviceAccounts := []*compute.ServiceAccount{nil}
-		if util.IsMaster(machine) {
-			serviceAccounts = append(serviceAccounts,
-				&compute.ServiceAccount{
-					Email: "default",
-					Scopes: []string{
-						"https://www.googleapis.com/auth/cloud-platform",
-					},
-				})
 		}
 
 		op, err := gce.computeService.InstancesInsert(project, zone, &compute.Instance{
@@ -311,8 +313,15 @@ func (gce *GCEClient) Create(cluster *clusterv1.Cluster, machine *clusterv1.Mach
 					"https-server",
 					fmt.Sprintf("%s-worker", cluster.Name)},
 			},
-			Labels:          labels,
-			ServiceAccounts: serviceAccounts,
+			Labels: labels,
+			ServiceAccounts: []*compute.ServiceAccount{
+				{
+					Email: gce.GetDefaultServiceAccountForMachine(cluster, machine),
+					Scopes: []string{
+						compute.CloudPlatformScope,
+					},
+				},
+			},
 		})
 
 		if err == nil {
@@ -391,7 +400,16 @@ func (gce *GCEClient) Delete(machine *clusterv1.Machine) error {
 }
 
 func (gce *GCEClient) PostDelete(cluster *clusterv1.Cluster, machines []*clusterv1.Machine) error {
-	return gce.DeleteMachineControllerServiceAccount(cluster, machines)
+	if err := gce.DeleteMasterNodeServiceAccount(cluster, machines); err != nil {
+		return fmt.Errorf("error deleting master node service account: %v", err)
+	}
+	if err := gce.DeleteWorkerNodeServiceAccount(cluster, machines); err != nil {
+		return fmt.Errorf("error deleting worker node service account: %v", err)
+	}
+	if err := gce.DeleteMachineControllerServiceAccount(cluster, machines); err != nil {
+		return fmt.Errorf("error deleting machine controller service account: %v", err)
+	}
+	return nil
 }
 
 func (gce *GCEClient) Update(cluster *clusterv1.Cluster, goalMachine *clusterv1.Machine) error {

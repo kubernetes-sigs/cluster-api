@@ -55,6 +55,12 @@ func (d *deployer) createCluster(c *clusterv1.Cluster, machines []*clusterv1.Mac
 		master.Name = master.GetGenerateName() + c.GetName()
 	}
 
+	glog.Infof("Starting cluster dependency creation %s", c.GetName())
+
+	if err := d.machineDeployer.ProvisionClusterDependencies(c, machines); err != nil {
+		return err
+	}
+
 	glog.Infof("Starting cluster creation %s", c.GetName())
 
 	glog.Infof("Starting master creation %s", master.GetName())

@@ -1,0 +1,7 @@
+note: MachineDeployment Example
+sample: |
+  apiVersion: cluster.k8s.io/v1alpha1
+  kind: MachineDeployment
+  metadata:
+    name: machinedeployment-example
+  spec:

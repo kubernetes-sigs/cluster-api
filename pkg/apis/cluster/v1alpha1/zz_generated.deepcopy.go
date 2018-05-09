@@ -128,6 +128,7 @@ func (in *ClusterNetworkingConfig) DeepCopy() *ClusterNetworkingConfig {
 func (in *ClusterSpec) DeepCopyInto(out *ClusterSpec) {
 	*out = *in
 	in.ClusterNetwork.DeepCopyInto(&out.ClusterNetwork)
+	in.ProviderConfig.DeepCopyInto(&out.ProviderConfig)
 	return
 }
 
@@ -148,6 +149,15 @@ func (in *ClusterStatus) DeepCopyInto(out *ClusterStatus) {
 		in, out := &in.APIEndpoints, &out.APIEndpoints
 		*out = make([]APIEndpoint, len(*in))
 		copy(*out, *in)
+	}
+	if in.ProviderStatus != nil {
+		in, out := &in.ProviderStatus, &out.ProviderStatus
+		if *in == nil {
+			*out = nil
+		} else {
+			*out = new(runtime.RawExtension)
+			(*in).DeepCopyInto(*out)
+		}
 	}
 	return
 }
@@ -610,7 +620,7 @@ func (in *MachineStatus) DeepCopyInto(out *MachineStatus) {
 			**out = **in
 		}
 	}
-	in.LastUpdated.DeepCopyInto(&out.LastUpdated)
+	out.LastUpdated = in.LastUpdated
 	if in.Versions != nil {
 		in, out := &in.Versions, &out.Versions
 		if *in == nil {
@@ -636,6 +646,15 @@ func (in *MachineStatus) DeepCopyInto(out *MachineStatus) {
 		} else {
 			*out = new(string)
 			**out = **in
+		}
+	}
+	if in.ProviderStatus != nil {
+		in, out := &in.ProviderStatus, &out.ProviderStatus
+		if *in == nil {
+			*out = nil
+		} else {
+			*out = new(runtime.RawExtension)
+			(*in).DeepCopyInto(*out)
 		}
 	}
 	return

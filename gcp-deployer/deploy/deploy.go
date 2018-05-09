@@ -24,6 +24,7 @@ import (
 
 	"k8s.io/client-go/kubernetes"
 	"sigs.k8s.io/cluster-api/cloud/google"
+	"sigs.k8s.io/cluster-api/cloud/google/machinesetup"
 	clusterv1 "sigs.k8s.io/cluster-api/pkg/apis/cluster/v1alpha1"
 	"sigs.k8s.io/cluster-api/pkg/client/clientset_generated/clientset"
 	"sigs.k8s.io/cluster-api/pkg/client/clientset_generated/clientset/typed/cluster/v1alpha1"
@@ -56,7 +57,11 @@ func NewDeployer(provider string, kubeConfigPath string, machineSetupConfigPath 
 			glog.Exit(fmt.Sprintf("Failed to set Kubeconfig path err %v\n", err))
 		}
 	}
-	ma, err := google.NewMachineActuator(token, nil, machineSetupConfigPath)
+	configWatch, err := newConfigWatchOrNil(machineSetupConfigPath)
+	if err != nil {
+		glog.Exit(fmt.Sprintf("Could not create config watch: %v\n", err))
+	}
+	ma, err := google.NewMachineActuator(token, nil, configWatch)
 	if err != nil {
 		glog.Exit(err)
 	}
@@ -132,4 +137,11 @@ func (d *deployer) deleteMasterVM(machines []*clusterv1.Machine) error {
 		return err
 	}
 	return nil
+}
+
+func newConfigWatchOrNil(machineSetupConfigPath string) (*machinesetup.ConfigWatch, error) {
+	if machineSetupConfigPath == "" {
+		return nil, nil
+	}
+	return machinesetup.NewConfigWatch(machineSetupConfigPath)
 }

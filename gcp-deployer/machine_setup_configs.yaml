@@ -64,13 +64,14 @@ items:
       mv /usr/bin/kubeadm.dl /usr/bin/kubeadm
       chmod a+rx /usr/bin/kubeadm
 
-      # Override network args to use kubenet instead of cni, and override Kubelet DNS args.
+      # Override network args to use kubenet instead of cni, override Kubelet DNS args and
+      # add cloud provider args.
       cat > /etc/systemd/system/kubelet.service.d/20-kubenet.conf <<EOF
       [Service]
       Environment="KUBELET_NETWORK_ARGS=--network-plugin=kubenet"
       Environment="KUBELET_DNS_ARGS=--cluster-dns=${CLUSTER_DNS_SERVER} --cluster-domain=${CLUSTER_DNS_DOMAIN}"
+      Environment="KUBELET_EXTRA_ARGS=--cloud-provider=gce --cloud-config=/etc/kubernetes/cloud-config"
       EOF
-      sed -i "2iEnvironment=\"KUBELET_EXTRA_ARGS=--cloud-provider=gce --cloud-config=/etc/kubernetes/cloud-config\"" /etc/systemd/system/kubelet.service.d/10-kubeadm.conf
       systemctl daemon-reload
       systemctl restart kubelet.service
       PRIVATEIP=`curl --retry 5 -sfH "Metadata-Flavor: Google" "http://metadata/computeMetadata/v1/instance/network-interfaces/0/ip"`
@@ -202,13 +203,14 @@ items:
       apt-get install -y kubelet=${KUBELET} kubeadm=${KUBEADM} kubectl=${KUBECTL}
       # kubeadm uses 10th IP as DNS server
       CLUSTER_DNS_SERVER=$(prips ${SERVICE_CIDR} | head -n 11 | tail -n 1)
-      # Override network args to use kubenet instead of cni, and override Kubelet DNS args.
+      # Override network args to use kubenet instead of cni, override Kubelet DNS args and
+      # add cloud provider args.
       cat > /etc/systemd/system/kubelet.service.d/20-kubenet.conf <<EOF
       [Service]
       Environment="KUBELET_NETWORK_ARGS=--network-plugin=kubenet"
       Environment="KUBELET_DNS_ARGS=--cluster-dns=${CLUSTER_DNS_SERVER} --cluster-domain=${CLUSTER_DNS_DOMAIN}"
+      Environment="KUBELET_EXTRA_ARGS=--cloud-provider=gce --cloud-config=/etc/kubernetes/cloud-config"
       EOF
-      sed -i "2iEnvironment=\"KUBELET_EXTRA_ARGS=--cloud-provider=gce --cloud-config=/etc/kubernetes/cloud-config\"" /etc/systemd/system/kubelet.service.d/10-kubeadm.conf
       systemctl daemon-reload
       systemctl restart kubelet.service
       kubeadm join --token "${TOKEN}" "${MASTER}" --ignore-preflight-errors=all --discovery-token-unsafe-skip-ca-verification

@@ -12,6 +12,9 @@ type machineDeployer interface {
 	GetIP(machine *clusterv1.Machine) (string, error)
 	GetKubeConfig(master *clusterv1.Machine) (string, error)
 
+	// Provision infrastructure that the cluster needs before it
+	// can be created
+	ProvisionClusterDependencies(*clusterv1.Cluster, []*clusterv1.Machine) error
 	// Create and start the machine controller. The list of initial
 	// machines don't have to be reconciled as part of this function, but
 	// are provided in case the function wants to refer to them (and their

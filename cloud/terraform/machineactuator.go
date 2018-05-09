@@ -116,10 +116,6 @@ func (tf *TerraformClient) CreateMachineController(cluster *clusterv1.Cluster, i
 	return nil
 }
 
-func (tf *TerraformClient) ProvisionClusterDependencies(cluster *clusterv1.Cluster, initialMachines []*clusterv1.Machine) error {
-	return nil
-}
-
 func saveFile(contents, path string, perm os.FileMode) error {
 	return ioutil.WriteFile(path, []byte(contents), perm)
 }

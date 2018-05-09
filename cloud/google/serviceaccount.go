@@ -27,7 +27,7 @@ const (
 	WorkerNodeServiceAccountPrefix        = "k8s-worker"
 	MachineControllerServiceAccountPrefix = "k8s-machine-controller"
 	MachineControllerSecret               = "machine-controller-credential"
-	ClusterAnnotationPrefix               = "service-account-"
+	ClusterAnnotationPrefix               = "gce.clusterapi.k8s.io/service-account-"
 )
 
 var (
@@ -105,6 +105,8 @@ func (gce *GCEClient) CreateMachineControllerServiceAccount(cluster *clusterv1.C
 	return nil
 }
 
+// creates a service account with the roles specifed. Returns the account id
+// of the created account and the project it belongs to.
 func (gce *GCEClient) createServiceAccount(serviceAccountPrefix string, roles []string, cluster *clusterv1.Cluster, initialMachines []*clusterv1.Machine) (string, string, error) {
 	if len(initialMachines) == 0 {
 		return "", "", fmt.Errorf("machine count is zero, cannot create service a/c")

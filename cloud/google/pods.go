@@ -23,13 +23,12 @@ import (
 	"io/ioutil"
 	"os"
 	"os/exec"
+	"path/filepath"
 	"text/template"
 	"time"
 
 	"github.com/golang/glog"
 	corev1 "k8s.io/api/core/v1"
-	"k8s.io/client-go/util/cert"
-	"k8s.io/client-go/util/cert/triple"
 	"sigs.k8s.io/cluster-api/cloud/google/config"
 )
 
@@ -76,31 +75,50 @@ func getBase64(file string) string {
 func getApiServerCerts() (*caCertParams, error) {
 	const name = "clusterapi"
 	const namespace = corev1.NamespaceDefault
-
-	caKeyPair, err := triple.NewCA(fmt.Sprintf("%s-certificate-authority", name))
+	configDir, err := ioutil.TempDir("", "cert")
 	if err != nil {
-		return nil, fmt.Errorf("failed to create root-ca: %v", err)
+		return nil, err
+	}
+	defer os.RemoveAll(configDir) // clean up
+
+	if err := run("openssl", "req", "-x509",
+		"-newkey", "rsa:2048",
+		"-keyout", filepath.Join(configDir, "apiserver_ca.key"),
+		"-out", filepath.Join(configDir, "apiserver_ca.crt"),
+		"-days", "365",
+		"-nodes",
+		"-subj", fmt.Sprintf("/C=un/ST=st/L=l/O=o/OU=ou/CN=%s-certificate-authority", name)); err != nil {
+		return nil, err
 	}
 
-	apiServerKeyPair, err := triple.NewServerKeyPair(
-		caKeyPair,
-		fmt.Sprintf("%s.%s.svc", name, namespace),
-		"kubernetes",
-		"default",
-		"cluster.local",
-		[]string{},
-		[]string{})
-	if err != nil {
-		return nil, fmt.Errorf("failed to create apiserver key pair: %v", err)
+	// Use <service-Name>.<Namespace>.svc as the domain Name for the certificate
+	if err = run("openssl", "req",
+		"-out", filepath.Join(configDir, "apiserver.csr"),
+		"-new",
+		"-newkey", "rsa:2048",
+		"-nodes",
+		"-keyout", filepath.Join(configDir, "apiserver.key"),
+		"-subj", fmt.Sprintf("/C=un/ST=st/L=l/O=o/OU=ou/CN=%s.%s.svc", name, namespace)); err != nil {
+		return nil, err
 	}
 
-	certParams := &caCertParams{
-		caBundle: base64.StdEncoding.EncodeToString(cert.EncodeCertPEM(caKeyPair.Cert)),
-		tlsKey:   base64.StdEncoding.EncodeToString(cert.EncodePrivateKeyPEM(apiServerKeyPair.Key)),
-		tlsCrt:   base64.StdEncoding.EncodeToString(cert.EncodeCertPEM(apiServerKeyPair.Cert)),
+	if err = run("openssl", "x509", "-req",
+		"-days", "365",
+		"-in", filepath.Join(configDir, "apiserver.csr"),
+		"-CA", filepath.Join(configDir, "apiserver_ca.crt"),
+		"-CAkey", filepath.Join(configDir, "apiserver_ca.key"),
+		"-CAcreateserial",
+		"-out", filepath.Join(configDir, "apiserver.crt")); err != nil {
+		return nil, err
 	}
 
-	return certParams, nil
+	certParms := &caCertParams{
+		caBundle: getBase64(filepath.Join(configDir, "apiserver_ca.crt")),
+		tlsCrt:   getBase64(filepath.Join(configDir, "apiserver.crt")),
+		tlsKey:   getBase64(filepath.Join(configDir, "apiserver.key")),
+	}
+
+	return certParms, nil
 }
 
 func CreateApiServerAndController(token string) error {

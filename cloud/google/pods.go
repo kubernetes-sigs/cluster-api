@@ -85,8 +85,8 @@ func getApiServerCerts() (*caCertParams, error) {
 	apiServerKeyPair, err := triple.NewServerKeyPair(
 		caKeyPair,
 		fmt.Sprintf("%s.%s.svc", name, namespace),
-		"kubernetes",
-		"default",
+		name,
+		namespace,
 		"cluster.local",
 		[]string{},
 		[]string{})

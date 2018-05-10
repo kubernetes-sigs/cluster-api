@@ -123,5 +123,5 @@ MASTER={{ .MasterEndpoint }}
 MACHINE={{ .Machine.ObjectMeta.Name }}
 CLUSTER_DNS_DOMAIN={{ .Cluster.Spec.ClusterNetwork.ServiceDomain }}
 POD_CIDR={{ .PodCIDR }}
-SERVICE_CIDER={{ .ServiceCIDR }}
+SERVICE_CIDR={{ .ServiceCIDR }}
 `

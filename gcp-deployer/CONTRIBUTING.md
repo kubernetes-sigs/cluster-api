@@ -60,10 +60,6 @@ This message shows that your installation appears to be working correctly.
 ...
 ```
 
-### Install OpenSSL
-
-Install [OpenSSL](https://www.openssl.org/source/) on your machine. Please note that this is just temporary. We are working to remove this dependency. See [Issue](https://github.com/kubernetes/kube-deploy/issues/591)
-
 ### Install APIServer-Builder (Optional)
 
 If you need to rebuild container image for the extension APIServer and Controller Manager, you will need to install [APIServer-builder](https://github.com/kubernetes-incubator/apiserver-builder/blob/master/docs/installing.md)
@@ -141,9 +137,9 @@ ERROR: (gcloud.config.get-value) Section [core] has no property [project].
 	```
 [Optional]To verify API server has been deployed successfully, you can the following command to double check.
     
-    ```bash
+	```bash
     $ kubectl get apiservices v1alpha1.cluster.k8s.io -o yaml
-    ```
+	```
     
 2. Edit the machine to trigger an update
 

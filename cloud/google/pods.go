@@ -20,7 +20,6 @@ import (
 	"bytes"
 	"encoding/base64"
 	"fmt"
-	"io/ioutil"
 	"os"
 	"os/exec"
 	"text/template"
@@ -57,22 +56,6 @@ type caCertParams struct {
 	tlsKey   string
 }
 
-func getBase64(file string) string {
-	buff := bytes.Buffer{}
-	enc := base64.NewEncoder(base64.StdEncoding, &buff)
-	data, err := ioutil.ReadFile(file)
-	if err != nil {
-		glog.Fatalf("Could not read file %s: %v", file, err)
-	}
-
-	_, err = enc.Write(data)
-	if err != nil {
-		glog.Fatalf("Could not write bytes: %v", err)
-	}
-	enc.Close()
-	return buff.String()
-}
-
 func getApiServerCerts() (*caCertParams, error) {
 	const name = "clusterapi"
 	const namespace = corev1.NamespaceDefault
@@ -85,8 +68,8 @@ func getApiServerCerts() (*caCertParams, error) {
 	apiServerKeyPair, err := triple.NewServerKeyPair(
 		caKeyPair,
 		fmt.Sprintf("%s.%s.svc", name, namespace),
-		"kubernetes",
-		"default",
+		name,
+		namespace,
 		"cluster.local",
 		[]string{},
 		[]string{})

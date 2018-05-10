@@ -135,6 +135,7 @@ ERROR: (gcloud.config.get-value) Section [core] has no property [project].
 	```bash
 	$ ./gcp-deployer create -c cluster.yaml -m machines.yaml -s machine_setup_configs.yaml
 	```
+
 [Optional]To verify API server has been deployed successfully, you can the following command to double check.
 
 	```bash

@@ -138,7 +138,7 @@ ERROR: (gcloud.config.get-value) Section [core] has no property [project].
 [Optional]To verify API server has been deployed successfully, you can the following command to double check.
 
 	```bash
-    $ kubectl get apiservices v1alpha1.cluster.k8s.io -o yaml
+	$ kubectl get apiservices v1alpha1.cluster.k8s.io -o yaml
 	```
     
 2. Edit the machine to trigger an update

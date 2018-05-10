@@ -115,20 +115,6 @@ items:
 
       kubeadm init --config /etc/kubernetes/kubeadm_config.yaml
 
-      # add default storage class
-      cat > /etc/kubernetes/default-storage-class.yaml <<EOF
-      kind: StorageClass
-      apiVersion: storage.k8s.io/v1
-      metadata:
-        name: standard
-        annotations:
-          storageclass.kubernetes.io/is-default-class: "true"
-      provisioner: kubernetes.io/gce-pd
-      parameters:
-        type: pd-standard
-      EOF
-      kubectl apply --kubeconfig /etc/kubernetes/admin.conf -f /etc/kubernetes/default-storage-class.yaml
-
       for tries in $(seq 1 60); do
           kubectl --kubeconfig /etc/kubernetes/kubelet.conf annotate --overwrite node $(hostname) machine=${MACHINE} && break
           sleep 1

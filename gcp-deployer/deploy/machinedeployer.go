@@ -21,5 +21,7 @@ type machineDeployer interface {
 	// ProviderConfigs) to know how to configure the machine controller.
 	// Not idempotent.
 	CreateMachineController(cluster *clusterv1.Cluster, initialMachines []*clusterv1.Machine, clientSet kubernetes.Clientset) error
+	// Create GCE and kubernetes resources after the cluster is created
+	PostCreate(cluster *clusterv1.Cluster, machines []*clusterv1.Machine) error
 	PostDelete(cluster *clusterv1.Cluster, machines []*clusterv1.Machine) error
 }

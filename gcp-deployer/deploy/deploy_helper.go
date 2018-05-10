@@ -98,6 +98,11 @@ func (d *deployer) createCluster(c *clusterv1.Cluster, machines []*clusterv1.Mac
 		return fmt.Errorf("can't create machine controller: %v", err)
 	}
 
+	glog.Info("Creating additional cluster resources...")
+	if err := d.machineDeployer.PostCreate(c, machines); err != nil {
+		return fmt.Errorf("can't create additional cluster resources: %v", err)
+	}
+
 	if err := d.waitForClusterResourceReady(); err != nil {
 		return err
 	}

@@ -186,17 +186,12 @@ func (gce *GCEClient) CreateMachineController(cluster *clusterv1.Cluster, initia
 }
 
 func (gce *GCEClient) ProvisionClusterDependencies(cluster *clusterv1.Cluster, initialMachines []*clusterv1.Machine) error {
-	err := gce.CreateMasterNodeServiceAccount(cluster, initialMachines)
+	err := gce.CreateWorkerNodeServiceAccount(cluster, initialMachines)
 	if err != nil {
 		return err
 	}
 
-	err = gce.CreateWorkerNodeServiceAccount(cluster, initialMachines)
-	if err != nil {
-		return err
-	}
-
-	return nil
+	return gce.CreateMasterNodeServiceAccount(cluster, initialMachines)
 }
 
 func (gce *GCEClient) Create(cluster *clusterv1.Cluster, machine *clusterv1.Machine) error {
@@ -399,12 +394,40 @@ func (gce *GCEClient) Delete(machine *clusterv1.Machine) error {
 	return err
 }
 
+func (gce *GCEClient) PostCreate(cluster *clusterv1.Cluster, machines []*clusterv1.Machine) error {
+	err := CreateDefaultStorageClass()
+	if err != nil {
+		return fmt.Errorf("error creating default storage class: %v", err)
+	}
+
+	err = gce.CreateIngressControllerServiceAccount(cluster, machines)
+	if err != nil {
+		return fmt.Errorf("error creating service account for ingress controller: %v", err)
+	}
+
+	if len(machines) > 0 {
+		config, err := gce.providerconfig(machines[0].Spec.ProviderConfig)
+		if err != nil {
+			return fmt.Errorf("error creating ingress controller: %v", err)
+		}
+		err = CreateIngressController(config.Project, cluster.Name)
+		if err != nil {
+			return fmt.Errorf("error creating ingress controller: %v", err)
+		}
+	}
+
+	return nil
+}
+
 func (gce *GCEClient) PostDelete(cluster *clusterv1.Cluster, machines []*clusterv1.Machine) error {
 	if err := gce.DeleteMasterNodeServiceAccount(cluster, machines); err != nil {
 		return fmt.Errorf("error deleting master node service account: %v", err)
 	}
 	if err := gce.DeleteWorkerNodeServiceAccount(cluster, machines); err != nil {
 		return fmt.Errorf("error deleting worker node service account: %v", err)
+	}
+	if err := gce.DeleteIngressControllerServiceAccount(cluster, machines); err != nil {
+		return fmt.Errorf("error deleting ingress controller service account: %v", err)
 	}
 	if err := gce.DeleteMachineControllerServiceAccount(cluster, machines); err != nil {
 		return fmt.Errorf("error deleting machine controller service account: %v", err)

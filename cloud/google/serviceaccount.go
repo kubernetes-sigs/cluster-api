@@ -25,9 +25,13 @@ import (
 const (
 	MasterNodeServiceAccountPrefix        = "k8s-master"
 	WorkerNodeServiceAccountPrefix        = "k8s-worker"
+	IngressControllerServiceAccountPrefix = "k8s-ingress-controller"
 	MachineControllerServiceAccountPrefix = "k8s-machine-controller"
-	MachineControllerSecret               = "machine-controller-credential"
-	ClusterAnnotationPrefix               = "gce.clusterapi.k8s.io/service-account-"
+
+	IngressControllerSecret = "glbc-gcp-key"
+	MachineControllerSecret = "machine-controller-credential"
+
+	ClusterAnnotationPrefix = "gce.clusterapi.k8s.io/service-account-"
 )
 
 var (
@@ -40,10 +44,12 @@ var (
 		"storage.admin",
 		"storage.objectViewer",
 	}
-	WorkerNodeRoles = []string{
-		"compute.instanceAdmin",
+	WorkerNodeRoles        = []string{}
+	IngressControllerRoles = []string{
+		"compute.instanceAdmin.v1",
 		"compute.networkAdmin",
 		"compute.securityAdmin",
+		"iam.serviceAccountActor",
 	}
 	MachineControllerRoles = []string{
 		"compute.instanceAdmin.v1",
@@ -76,6 +82,16 @@ func (gce *GCEClient) CreateWorkerNodeServiceAccount(cluster *clusterv1.Cluster,
 	return err
 }
 
+// Creates a GCP service account for the ingress controller
+func (gce *GCEClient) CreateIngressControllerServiceAccount(cluster *clusterv1.Cluster, initialMachines []*clusterv1.Machine) error {
+	accountId, project, err := gce.createServiceAccount(IngressControllerServiceAccountPrefix, IngressControllerRoles, cluster, initialMachines)
+	if err != nil {
+		return err
+	}
+
+	return gce.createSecretForServiceAccountKey(accountId, project, IngressControllerSecret, "kube-system")
+}
+
 // Creates a GCP service account for the machine controller, granted the
 // permissions to manage compute instances, and stores its credentials as a
 // Kubernetes secret.
@@ -85,15 +101,19 @@ func (gce *GCEClient) CreateMachineControllerServiceAccount(cluster *clusterv1.C
 		return err
 	}
 
+	return gce.createSecretForServiceAccountKey(accountId, project, MachineControllerSecret, "default")
+}
+
+func (gce *GCEClient) createSecretForServiceAccountKey(accountId string, project string, secretName string, namespace string) error {
 	email := fmt.Sprintf("%s@%s.iam.gserviceaccount.com", accountId, project)
 
 	localFile := accountId + "-key.json"
-	err = run("gcloud", "--project", project, "iam", "service-accounts", "keys", "create", localFile, "--iam-account", email)
+	err := run("gcloud", "--project", project, "iam", "service-accounts", "keys", "create", localFile, "--iam-account", email)
 	if err != nil {
 		return fmt.Errorf("couldn't create service account key: %v", err)
 	}
 
-	err = run("kubectl", "create", "secret", "generic", MachineControllerSecret, "--from-file=service-account.json="+localFile)
+	err = run("kubectl", "create", "secret", "generic", secretName, "--from-file=service-account.json="+localFile, "--namespace="+namespace)
 	if err != nil {
 		return fmt.Errorf("couldn't import service account key as credential: %v", err)
 	}
@@ -154,6 +174,10 @@ func (gce *GCEClient) DeleteMasterNodeServiceAccount(cluster *clusterv1.Cluster,
 
 func (gce *GCEClient) DeleteWorkerNodeServiceAccount(cluster *clusterv1.Cluster, machines []*clusterv1.Machine) error {
 	return gce.deleteServiceAccount(WorkerNodeServiceAccountPrefix, WorkerNodeRoles, cluster, machines)
+}
+
+func (gce *GCEClient) DeleteIngressControllerServiceAccount(cluster *clusterv1.Cluster, machines []*clusterv1.Machine) error {
+	return gce.deleteServiceAccount(IngressControllerServiceAccountPrefix, IngressControllerRoles, cluster, machines)
 }
 
 func (gce *GCEClient) DeleteMachineControllerServiceAccount(cluster *clusterv1.Cluster, machines []*clusterv1.Machine) error {

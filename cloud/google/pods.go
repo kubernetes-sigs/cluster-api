@@ -177,6 +177,77 @@ func CreateApiServerAndController(token string) error {
 	}
 }
 
+func CreateIngressController(project string, clusterName string) error {
+	tmpl, err := template.New("config").Parse(config.IngressControllerConfigTemplate)
+	if err != nil {
+		return err
+	}
+
+	type params struct {
+		Project string
+		NodeTag string
+	}
+
+	var tmplBuf bytes.Buffer
+	err = tmpl.Execute(&tmplBuf, params{
+		Project: project,
+		NodeTag: clusterName + "-worker",
+	})
+	if err != nil {
+		return err
+	}
+
+	maxTries := 5
+	for tries := 0; tries < maxTries; tries++ {
+		err = deployConfig(tmplBuf.Bytes())
+		if err == nil {
+			return nil
+		} else {
+			if tries < maxTries-1 {
+				glog.Infof("Error scheduling ingress controller. Will retry... %v\n", err)
+				time.Sleep(3 * time.Second)
+			}
+		}
+	}
+
+	if err != nil {
+		return fmt.Errorf("couldn't start ingress controller: %v\n", err)
+	} else {
+		return nil
+	}
+}
+
+func CreateDefaultStorageClass() error {
+	tmpl, err := template.New("config").Parse(config.StorageClassConfigTemplate)
+	if err != nil {
+		return err
+	}
+	var tmplBuf bytes.Buffer
+	err = tmpl.Execute(&tmplBuf, nil)
+	if err != nil {
+		return err
+	}
+
+	maxTries := 5
+	for tries := 0; tries < maxTries; tries++ {
+		err = deployConfig(tmplBuf.Bytes())
+		if err == nil {
+			return nil
+		} else {
+			if tries < maxTries-1 {
+				glog.Info("Error creating default storage class. Will retry...\n")
+				time.Sleep(3 * time.Second)
+			}
+		}
+	}
+
+	if err != nil {
+		return fmt.Errorf("couldn't create default storage class: %v\n", err)
+	} else {
+		return nil
+	}
+}
+
 func deployConfig(manifest []byte) error {
 	cmd := exec.Command("kubectl", "create", "-f", "-")
 	stdin, err := cmd.StdinPipe()

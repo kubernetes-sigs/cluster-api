@@ -136,7 +136,7 @@ ERROR: (gcloud.config.get-value) Section [core] has no property [project].
 	$ ./gcp-deployer create -c cluster.yaml -m machines.yaml -s machine_setup_configs.yaml
 	```
 [Optional]To verify API server has been deployed successfully, you can the following command to double check.
-    
+
 	```bash
     $ kubectl get apiservices v1alpha1.cluster.k8s.io -o yaml
 	```

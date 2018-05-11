@@ -14,27 +14,38 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package main
+package cmd
 
 import (
 	"github.com/golang/glog"
-	"github.com/spf13/pflag"
-	"k8s.io/apiserver/pkg/util/logs"
-	"sigs.k8s.io/cluster-api/cloud/google/cmd/gce-machine-controller/app"
-	"sigs.k8s.io/cluster-api/cloud/google/cmd/gce-machine-controller/app/options"
+	"github.com/spf13/cobra"
+	"sigs.k8s.io/cluster-api/errors"
 )
 
-func main() {
+type DeleteOptions struct {
+	ClusterName string
+}
 
-	s := options.NewMachineControllerServer()
-	s.AddFlags(pflag.CommandLine)
+var do = &DeleteOptions{}
 
-	pflag.Parse()
-
-	logs.InitLogs()
-	defer logs.FlushLogs()
-
-	if err := app.Run(s); err != nil {
-		glog.Errorf("Failed to start machine controller. Err: %v", err)
+func NewCmdDeleteCluster() *cobra.Command {
+	cmd := &cobra.Command{
+		Use:   "delete",
+		Short: "Delete kubernetes cluster",
+		Long:  `Delete a kubernetes cluster with one command`,
+		Run: func(cmd *cobra.Command, args []string) {
+			if do.ClusterName == "" {
+				exitWithHelp(cmd, "Please provide cluster name.")
+			}
+			if err := RunDelete(); err != nil {
+				glog.Exit(err)
+			}
+		},
 	}
+
+	return cmd
+}
+
+func RunDelete() error {
+	return errors.NotImplementedError
 }

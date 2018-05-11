@@ -259,19 +259,17 @@ func (tf *TerraformClient) Create(cluster *clusterv1.Cluster, machine *clusterv1
 		args = append(args, fmt.Sprintf("vm_name=%s", machine.ObjectMeta.Name))
 		args = append(args, fmt.Sprintf("-var-file=%s", tfVarsPath))
 
-		out, cmdErr := runTerraformCmd(false, tfConfigDir, args...)
+		_, cmdErr := runTerraformCmd(false, tfConfigDir, args...)
 		if cmdErr != nil {
-			return errors.New(fmt.Sprintf("Could not run terraform: ", cmdErr))
+			return errors.New(fmt.Sprintf("Could not run terraform: %s", cmdErr))
 		}
 
 		// Get the IP address
-		kubeadmJoinIpRe := regexp.MustCompile("kubeadm join .* ([0-9]{1,3}.[0-9]{1,3}.[0-9]{1,3}.[0-9]{1,3}:[0-9]{1,5})")
-		parts := kubeadmJoinIpRe.FindStringSubmatch(out.String()) // [full match, ip addr]
-		if len(parts) < 2 {
-			return errors.New(fmt.Sprintf("Could not get master IP address. You will need to manually modify the cluster object's status with the endpoint if the master was created successfully."))
+		out, cmdErr := runTerraformCmd(false, tfConfigDir, "output", "ip_address")
+		if cmdErr != nil {
+			return fmt.Errorf("could not obtain 'ip_address' output variable: %s", cmdErr)
 		}
-		ipPortParts := strings.Split(parts[1], ":")
-		masterEndpointIp := ipPortParts[0]
+		masterEndpointIp := strings.TrimSpace(out.String())
 		glog.Infof("Master created with ip address %s", masterEndpointIp)
 
 		// If we have a machineClient, then annotate the machine so that we
@@ -396,8 +394,10 @@ func (tf *TerraformClient) GetKubeConfig(master *clusterv1.Machine) (string, err
 	cmd := exec.Command(
 		// TODO: this is taking my private key and username for now.
 		"ssh", "-i", "~/.ssh/vsphere_tmp",
+		"-o", "StrictHostKeyChecking no",
+		"-o", "UserKnownHostsFile /dev/null",
 		fmt.Sprintf("ubuntu@%s", ip),
-		"echo STARTFILE; cat /etc/kubernetes/admin.conf")
+		"echo STARTFILE; sudo cat /etc/kubernetes/admin.conf")
 	cmd.Stdout = &out
 	cmd.Stderr = os.Stderr
 	cmd.Run()
@@ -432,21 +432,11 @@ func (tf *TerraformClient) SetupRemoteMaster(master *clusterv1.Machine) error {
 	}
 	cmd := exec.Command(
 		"scp", "-i", "~/.ssh/vsphere_tmp",
+		"-o", "StrictHostKeyChecking no",
+		"-o", "UserKnownHostsFile /dev/null",
 		"-r",
 		path.Join(homedir, ".terraform.d"),
 		fmt.Sprintf("ubuntu@%s:~/", ip))
-	cmd.Stdout = os.Stdout
-	cmd.Stderr = os.Stderr
-	cmd.Run()
-
-	// TODO: Bake this into the controller image instead of this hacky thing.
-	glog.Infof("Copying the terraform binary to master.")
-	cmd = exec.Command(
-		// TODO: this is taking my private key and username for now.
-		"scp", "-i", "~/.ssh/vsphere_tmp",
-		// TODO: this should be a flag?
-		"-r", "/Users/karangoel/.gvm/pkgsets/go1.9.2/global/src/sigs.k8s.io/cluster-api/cloud/terraform/bin/",
-		fmt.Sprintf("ubuntu@%s:~/.terraform.d/", ip))
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
 	cmd.Run()
@@ -455,6 +445,8 @@ func (tf *TerraformClient) SetupRemoteMaster(master *clusterv1.Machine) error {
 	cmd = exec.Command(
 		// TODO: this is taking my private key and username for now.
 		"ssh", "-i", "~/.ssh/vsphere_tmp",
+		"-o", "StrictHostKeyChecking no",
+		"-o", "UserKnownHostsFile /dev/null",
 		fmt.Sprintf("ubuntu@%s", ip),
 		fmt.Sprintf("source ~/.profile; cd ~/.terraform.d/kluster/machines/%s; ~/.terraform.d/terraform init; cp -r ~/.terraform.d/kluster/machines/%s/.terraform/plugins/* ~/.terraform.d/plugins/", machineName, machineName))
 	cmd.Stdout = os.Stdout

@@ -17,7 +17,7 @@
 PREFIX = gcr.io/k8s-cluster-api
 DEV_PREFIX ?= gcr.io/$(shell gcloud config get-value project)
 NAME = terraform-machine-controller
-TAG = 0.0.1
+TAG = 0.0.2
 
 image:
 	docker build -t "$(PREFIX)/$(NAME):$(TAG)" -f ./Dockerfile ../../../..

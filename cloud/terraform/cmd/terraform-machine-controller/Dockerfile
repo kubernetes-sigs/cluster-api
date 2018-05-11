@@ -24,7 +24,6 @@ RUN CGO_ENABLED=0 GOOS=linux go install -a -ldflags '-extldflags "-static"' sigs
 
 # Final container
 FROM alpine:3.7
-RUN apk --no-cache add --update ca-certificates bash openssh
-RUN echo "StrictHostKeyChecking no" >> /etc/ssh/ssh_config
-RUN echo "UserKnownHostsFile /dev/null" >> /etc/ssh/ssh_config
+RUN apk --no-cache add --update ca-certificates bash openssh terraform
+RUN echo 'plugin_cache_dir = "$HOME/.terraform.d/plugin-cache"' >> ~/.terraformrc
 COPY --from=builder /go/bin/terraform-machine-controller .

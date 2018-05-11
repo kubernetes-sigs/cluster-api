@@ -16,25 +16,8 @@ limitations under the License.
 
 package main
 
-import (
-	"github.com/golang/glog"
-	"github.com/spf13/pflag"
-	"k8s.io/apiserver/pkg/util/logs"
-	"sigs.k8s.io/cluster-api/cloud/google/cmd/gce-machine-controller/app"
-	"sigs.k8s.io/cluster-api/cloud/google/cmd/gce-machine-controller/app/options"
-)
+import "sigs.k8s.io/cluster-api/clusterctl/cmd"
 
 func main() {
-
-	s := options.NewMachineControllerServer()
-	s.AddFlags(pflag.CommandLine)
-
-	pflag.Parse()
-
-	logs.InitLogs()
-	defer logs.FlushLogs()
-
-	if err := app.Run(s); err != nil {
-		glog.Errorf("Failed to start machine controller. Err: %v", err)
-	}
+	cmd.Execute()
 }

@@ -60,10 +60,6 @@ This message shows that your installation appears to be working correctly.
 ...
 ```
 
-### Install OpenSSL
-
-Install [OpenSSL](https://www.openssl.org/source/) on your machine. Please note that this is just temporary. We are working to remove this dependency. See [Issue](https://github.com/kubernetes/kube-deploy/issues/591)
-
 ### Install APIServer-Builder (Optional)
 
 If you need to rebuild container image for the extension APIServer and Controller Manager, you will need to install [APIServer-builder](https://github.com/kubernetes-incubator/apiserver-builder/blob/master/docs/installing.md)
@@ -100,8 +96,8 @@ After making changes to the controllers or the actuator, you need to follow thes
 1. Rebuild the machine-controller image. Also change `machineControllerImage` in `cloud/google/pods.go` to the new image path (make sure the version in the Makefile and `pods.go` match if you want to use the new image). Then, rebuild and push the image.
 
 	```bash
-	$ cd $GOPATH/src/k8s.io/kube-deploy/cluster-api
-	$ apiserver-boot build container --image gcr.io/$(GCLOUD_PROJECT)/apiserver-controller:$(VERSION) --generate=false
+	$ cd $GOPATH/src/sigs.k8s.io/cluster-api/cloud/google/cmd/gce-machine-controller
+	$ make dev_push
 	```
 
 NOTE: that the image will be pushed to `gcr.io/$(GCLOUD_PROJECT)/apiserver-controller`. Image storage is a billable resource.
@@ -139,12 +135,13 @@ ERROR: (gcloud.config.get-value) Section [core] has no property [project].
 	```bash
 	$ ./gcp-deployer create -c cluster.yaml -m machines.yaml -s machine_setup_configs.yaml
 	```
-[Optional]To verify API server has been deployed successfully, you can the following command to double check.
     
-    ```bash
+    [Optional]To verify API server has been deployed successfully, you can the following command to double check.
+
+	```bash
     $ kubectl get apiservices v1alpha1.cluster.k8s.io -o yaml
-    ```
-    
+	```
+
 2. Edit the machine to trigger an update
 
 	```bash

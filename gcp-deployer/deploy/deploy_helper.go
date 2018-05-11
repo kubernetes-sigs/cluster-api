@@ -104,12 +104,12 @@ func (d *deployer) createCluster(c *clusterv1.Cluster, machines []*clusterv1.Mac
 	}
 
 	if err := d.waitForClusterResourceReady(); err != nil {
-		return err
+		return fmt.Errorf("cluster resource isn't ready: %v", err)
 	}
 
 	c, err = d.client.Clusters(apiv1.NamespaceDefault).Create(c)
 	if err != nil {
-		return err
+		return fmt.Errorf("can't create cluster: %v", err)
 	}
 
 	c.Status.APIEndpoints = append(c.Status.APIEndpoints,
@@ -118,11 +118,11 @@ func (d *deployer) createCluster(c *clusterv1.Cluster, machines []*clusterv1.Mac
 			Port: 443,
 		})
 	if _, err := d.client.Clusters(apiv1.NamespaceDefault).UpdateStatus(c); err != nil {
-		return err
+		return fmt.Errorf("can't update status: %v", err)
 	}
 
 	if err := d.createMachines(machines); err != nil {
-		return err
+		return fmt.Errorf("can't create machines: %v", err)
 	}
 	return nil
 }

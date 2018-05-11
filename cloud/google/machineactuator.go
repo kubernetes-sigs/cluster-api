@@ -66,6 +66,10 @@ type SshCreds struct {
 	privateKeyPath string
 }
 
+type GCEClientMachineSetupConfigGetter interface {
+	GetMachineSetupConfig() (machinesetup.MachineSetupConfig, error)
+}
+
 type GCEClientComputeService interface {
 	ImagesGet(project string, image string) (*compute.Image, error)
 	ImagesGetFromFamily(project string, family string) (*compute.Image, error)
@@ -76,13 +80,13 @@ type GCEClientComputeService interface {
 }
 
 type GCEClient struct {
-	computeService GCEClientComputeService
-	scheme         *runtime.Scheme
-	codecFactory   *serializer.CodecFactory
-	kubeadmToken   string
-	sshCreds       SshCreds
-	machineClient  client.MachineInterface
-	configWatch    *machinesetup.ConfigWatch
+	computeService           GCEClientComputeService
+	scheme                   *runtime.Scheme
+	codecFactory             *serializer.CodecFactory
+	kubeadmToken             string
+	sshCreds                 SshCreds
+	machineClient            client.MachineInterface
+	machineSetupConfigGetter GCEClientMachineSetupConfigGetter
 }
 
 const (
@@ -90,7 +94,7 @@ const (
 	gceWaitSleep = time.Second * 5
 )
 
-func NewMachineActuator(kubeadmToken string, machineClient client.MachineInterface, configListPath string) (*GCEClient, error) {
+func NewMachineActuator(kubeadmToken string, machineClient client.MachineInterface, machineSetupConfigGetter GCEClientMachineSetupConfigGetter) (*GCEClient, error) {
 	// The default GCP client expects the environment variable
 	// GOOGLE_APPLICATION_CREDENTIALS to point to a file with service credentials.
 	client, err := google.DefaultClient(context.TODO(), compute.ComputeScope)
@@ -121,15 +125,6 @@ func NewMachineActuator(kubeadmToken string, machineClient client.MachineInterfa
 		}
 	}
 
-	// TODO: get rid of empty string check when we switch to the new bootstrapping method.
-	var configWatch *machinesetup.ConfigWatch
-	if configListPath != "" {
-		configWatch, err = machinesetup.NewConfigWatch(configListPath)
-		if err != nil {
-			glog.Errorf("Error creating config watch: %v", err)
-		}
-	}
-
 	return &GCEClient{
 		computeService: computeService,
 		scheme:         scheme,
@@ -139,12 +134,15 @@ func NewMachineActuator(kubeadmToken string, machineClient client.MachineInterfa
 			privateKeyPath: privateKeyPath,
 			user:           user,
 		},
-		machineClient: machineClient,
-		configWatch:   configWatch,
+		machineClient:            machineClient,
+		machineSetupConfigGetter: machineSetupConfigGetter,
 	}, nil
 }
 
 func (gce *GCEClient) CreateMachineController(cluster *clusterv1.Cluster, initialMachines []*clusterv1.Machine, clientSet kubernetes.Clientset) error {
+	if gce.machineSetupConfigGetter == nil {
+		return errors.New("a valid machineSetupConfigGetter is required")
+	}
 	if err := gce.CreateMachineControllerServiceAccount(cluster, initialMachines); err != nil {
 		return err
 	}
@@ -158,13 +156,11 @@ func (gce *GCEClient) CreateMachineController(cluster *clusterv1.Cluster, initia
 		return err
 	}
 
-	// Create the configmap so the machine setup configs can be mounted into the node.
-	// TODO: create the configmap during bootstrapping instead of being buried in the machine actuator code.
-	machineSetupConfigs, err := gce.configWatch.ValidConfigs()
+	machineSetupConfig, err := gce.machineSetupConfigGetter.GetMachineSetupConfig()
 	if err != nil {
 		return err
 	}
-	yaml, err := machineSetupConfigs.GetYaml()
+	yaml, err := machineSetupConfig.GetYaml()
 	if err != nil {
 		return err
 	}
@@ -195,6 +191,9 @@ func (gce *GCEClient) ProvisionClusterDependencies(cluster *clusterv1.Cluster, i
 }
 
 func (gce *GCEClient) Create(cluster *clusterv1.Cluster, machine *clusterv1.Machine) error {
+	if gce.machineSetupConfigGetter == nil {
+		return errors.New("a valid machineSetupConfigGetter is required")
+	}
 	config, err := gce.providerconfig(machine.Spec.ProviderConfig)
 	if err != nil {
 		return gce.handleMachineError(machine, apierrors.InvalidMachineConfiguration(
@@ -210,7 +209,7 @@ func (gce *GCEClient) Create(cluster *clusterv1.Cluster, machine *clusterv1.Mach
 		return errors.New("invalid master configuration: missing Machine.Spec.Versions.Kubelet")
 	}
 
-	machineSetupConfigs, err := gce.configWatch.ValidConfigs()
+	machineSetupConfig, err := gce.machineSetupConfigGetter.GetMachineSetupConfig()
 	if err != nil {
 		return err
 	}
@@ -219,13 +218,13 @@ func (gce *GCEClient) Create(cluster *clusterv1.Cluster, machine *clusterv1.Mach
 		Roles:    machine.Spec.Roles,
 		Versions: machine.Spec.Versions,
 	}
-	image, err := machineSetupConfigs.GetImage(configParams)
+	image, err := machineSetupConfig.GetImage(configParams)
 	if err != nil {
 		return err
 	}
 	imagePath := gce.getImagePath(image)
 
-	machineSetupMetadata, err := machineSetupConfigs.GetMetadata(configParams)
+	machineSetupMetadata, err := machineSetupConfig.GetMetadata(configParams)
 	if err != nil {
 		return err
 	}

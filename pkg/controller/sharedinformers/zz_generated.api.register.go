@@ -53,6 +53,7 @@ func NewSharedInformers(config *rest.Config, shutdown <-chan struct{}) *SharedIn
 func (si *SharedInformers) startInformers(shutdown <-chan struct{}) {
 	go si.Factory.Cluster().V1alpha1().Clusters().Informer().Run(shutdown)
 	go si.Factory.Cluster().V1alpha1().Machines().Informer().Run(shutdown)
+	go si.Factory.Cluster().V1alpha1().MachineDeployments().Informer().Run(shutdown)
 	go si.Factory.Cluster().V1alpha1().MachineSets().Informer().Run(shutdown)
 }
 

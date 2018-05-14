@@ -102,17 +102,12 @@ func (gce *GCEClient) remoteSshCommand(m *clusterv1.Machine, cmd string) (string
 		return "", err
 	}
 
-	command := fmt.Sprintf("echo STARTFILE; %s", cmd)
-	c := exec.Command("ssh", "-i", gce.sshCreds.privateKeyPath, gce.sshCreds.user+"@"+publicIP, command)
+	command := fmt.Sprintf("%s", cmd)
+	c := exec.Command("ssh", "-i", gce.sshCreds.privateKeyPath, "-q", gce.sshCreds.user+"@"+publicIP, command)
 	out, err := c.CombinedOutput()
 	if err != nil {
 		return "", fmt.Errorf("error: %v, output: %s", err, string(out))
 	}
 	result := strings.TrimSpace(string(out))
-	parts := strings.Split(result, "STARTFILE")
-	if len(parts) != 2 {
-		return "", nil
-	}
-	// TODO: Check error.
-	return strings.TrimSpace(parts[1]), nil
+	return result, nil
 }

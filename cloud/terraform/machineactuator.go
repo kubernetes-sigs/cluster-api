@@ -394,19 +394,16 @@ func (tf *TerraformClient) GetKubeConfig(master *clusterv1.Machine) (string, err
 	cmd := exec.Command(
 		// TODO: this is taking my private key and username for now.
 		"ssh", "-i", "~/.ssh/vsphere_tmp",
+		"-q",
 		"-o", "StrictHostKeyChecking no",
 		"-o", "UserKnownHostsFile /dev/null",
 		fmt.Sprintf("ubuntu@%s", ip),
-		"echo STARTFILE; sudo cat /etc/kubernetes/admin.conf")
+		"sudo cat /etc/kubernetes/admin.conf")
 	cmd.Stdout = &out
 	cmd.Stderr = os.Stderr
 	cmd.Run()
 	result := strings.TrimSpace(out.String())
-	parts := strings.Split(result, "STARTFILE")
-	if len(parts) != 2 {
-		return "", nil
-	}
-	return strings.TrimSpace(parts[1]), nil
+	return result, nil
 }
 
 // After master created, move the plugins folder from local to

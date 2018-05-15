@@ -32,8 +32,8 @@ import (
 	"sigs.k8s.io/cluster-api/cloud/terraform/config"
 )
 
-var apiServerImage = "gcr.io/k8s-cluster-api/cluster-apiserver:0.0.2"
-var controllerManagerImage = "gcr.io/k8s-cluster-api/controller-manager:0.0.2"
+var apiServerImage = "gcr.io/k8s-cluster-api/cluster-apiserver:0.0.3"
+var controllerManagerImage = "gcr.io/k8s-cluster-api/controller-manager:0.0.3"
 var machineControllerImage = "gcr.io/k8s-cluster-api/terraform-machine-controller:0.0.2"
 
 func init() {

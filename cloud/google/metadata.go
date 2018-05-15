@@ -39,11 +39,12 @@ type metadataParams struct {
 	MasterEndpoint string
 }
 
-func nodeMetadata(token string, cluster *clusterv1.Cluster, machine *clusterv1.Machine, metadata *machinesetup.Metadata) (map[string]string, error) {
+func nodeMetadata(token string, cluster *clusterv1.Cluster, machine *clusterv1.Machine, project string, metadata *machinesetup.Metadata) (map[string]string, error) {
 	params := metadataParams{
 		Token:          token,
 		Cluster:        cluster,
 		Machine:        machine,
+		Project:        project,
 		Metadata:       metadata,
 		PodCIDR:        getSubnet(cluster.Spec.ClusterNetwork.Pods),
 		ServiceCIDR:    getSubnet(cluster.Spec.ClusterNetwork.Services),
@@ -124,4 +125,10 @@ MACHINE={{ .Machine.ObjectMeta.Name }}
 CLUSTER_DNS_DOMAIN={{ .Cluster.Spec.ClusterNetwork.ServiceDomain }}
 POD_CIDR={{ .PodCIDR }}
 SERVICE_CIDR={{ .ServiceCIDR }}
+# Environment variables for GCE cloud config
+PROJECT={{ .Project }}
+NETWORK=default
+SUBNETWORK=kubernetes
+CLUSTER_NAME={{ .Cluster.Name }}
+NODE_TAG="$CLUSTER_NAME-worker"
 `

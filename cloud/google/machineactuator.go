@@ -181,6 +181,15 @@ func (gce *GCEClient) CreateMachineController(cluster *clusterv1.Cluster, initia
 	return nil
 }
 
+func (gce *GCEClient) ProvisionClusterDependencies(cluster *clusterv1.Cluster, initialMachines []*clusterv1.Machine) error {
+	err := gce.CreateWorkerNodeServiceAccount(cluster, initialMachines)
+	if err != nil {
+		return err
+	}
+
+	return gce.CreateMasterNodeServiceAccount(cluster, initialMachines)
+}
+
 func (gce *GCEClient) Create(cluster *clusterv1.Cluster, machine *clusterv1.Machine) error {
 	if gce.machineSetupConfigGetter == nil {
 		return errors.New("a valid machineSetupConfigGetter is required")
@@ -234,7 +243,7 @@ func (gce *GCEClient) Create(cluster *clusterv1.Cluster, machine *clusterv1.Mach
 			return errors.New("invalid cluster state: cannot create a Kubernetes node without an API endpoint")
 		}
 		var err error
-		metadata, err = nodeMetadata(gce.kubeadmToken, cluster, machine, &machineSetupMetadata)
+		metadata, err = nodeMetadata(gce.kubeadmToken, cluster, machine, config.Project, &machineSetupMetadata)
 		if err != nil {
 			return err
 		}
@@ -263,18 +272,6 @@ func (gce *GCEClient) Create(cluster *clusterv1.Cluster, machine *clusterv1.Mach
 		labels := map[string]string{}
 		if gce.machineClient == nil {
 			labels[BootstrapLabelKey] = "true"
-		}
-
-		// The service account is needed for the Kubernetes GCE cloud provider code. It is needed on the master VM.
-		serviceAccounts := []*compute.ServiceAccount{nil}
-		if util.IsMaster(machine) {
-			serviceAccounts = append(serviceAccounts,
-				&compute.ServiceAccount{
-					Email: "default",
-					Scopes: []string{
-						"https://www.googleapis.com/auth/cloud-platform",
-					},
-				})
 		}
 
 		op, err := gce.computeService.InstancesInsert(project, zone, &compute.Instance{
@@ -310,8 +307,15 @@ func (gce *GCEClient) Create(cluster *clusterv1.Cluster, machine *clusterv1.Mach
 					"https-server",
 					fmt.Sprintf("%s-worker", cluster.Name)},
 			},
-			Labels:          labels,
-			ServiceAccounts: serviceAccounts,
+			Labels: labels,
+			ServiceAccounts: []*compute.ServiceAccount{
+				{
+					Email: gce.GetDefaultServiceAccountForMachine(cluster, machine),
+					Scopes: []string{
+						compute.CloudPlatformScope,
+					},
+				},
+			},
 		})
 
 		if err == nil {
@@ -389,8 +393,45 @@ func (gce *GCEClient) Delete(machine *clusterv1.Machine) error {
 	return err
 }
 
+func (gce *GCEClient) PostCreate(cluster *clusterv1.Cluster, machines []*clusterv1.Machine) error {
+	err := CreateDefaultStorageClass()
+	if err != nil {
+		return fmt.Errorf("error creating default storage class: %v", err)
+	}
+
+	err = gce.CreateIngressControllerServiceAccount(cluster, machines)
+	if err != nil {
+		return fmt.Errorf("error creating service account for ingress controller: %v", err)
+	}
+
+	if len(machines) > 0 {
+		config, err := gce.providerconfig(machines[0].Spec.ProviderConfig)
+		if err != nil {
+			return fmt.Errorf("error creating ingress controller: %v", err)
+		}
+		err = CreateIngressController(config.Project, cluster.Name)
+		if err != nil {
+			return fmt.Errorf("error creating ingress controller: %v", err)
+		}
+	}
+
+	return nil
+}
+
 func (gce *GCEClient) PostDelete(cluster *clusterv1.Cluster, machines []*clusterv1.Machine) error {
-	return gce.DeleteMachineControllerServiceAccount(cluster, machines)
+	if err := gce.DeleteMasterNodeServiceAccount(cluster, machines); err != nil {
+		return fmt.Errorf("error deleting master node service account: %v", err)
+	}
+	if err := gce.DeleteWorkerNodeServiceAccount(cluster, machines); err != nil {
+		return fmt.Errorf("error deleting worker node service account: %v", err)
+	}
+	if err := gce.DeleteIngressControllerServiceAccount(cluster, machines); err != nil {
+		return fmt.Errorf("error deleting ingress controller service account: %v", err)
+	}
+	if err := gce.DeleteMachineControllerServiceAccount(cluster, machines); err != nil {
+		return fmt.Errorf("error deleting machine controller service account: %v", err)
+	}
+	return nil
 }
 
 func (gce *GCEClient) Update(cluster *clusterv1.Cluster, goalMachine *clusterv1.Machine) error {

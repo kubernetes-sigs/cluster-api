@@ -203,7 +203,7 @@ KUBELET=$(getversion kubelet ${KUBELET_VERSION}-)
 KUBEADM=$(getversion kubeadm ${KUBELET_VERSION}-)
 KUBECTL=$(getversion kubectl ${KUBELET_VERSION}-)
 # Explicit cni version is a temporary workaround till the right version can be automatically detected correctly
-apt-get install -y kubelet=${KUBELET} kubeadm=${KUBEADM} kubectl=${KUBECTL} kubernetes-cni=0.5.1-00
+apt-get install -y kubelet=${KUBELET} kubeadm=${KUBEADM} kubectl=${KUBECTL}
 
 systemctl enable docker || true
 systemctl start docker || true
@@ -217,7 +217,7 @@ sed -i "s/KUBELET_DNS_ARGS=[^\"]*/KUBELET_DNS_ARGS=--cluster-dns=${CLUSTER_DNS_S
 systemctl daemon-reload
 systemctl restart kubelet.service
 
-kubeadm join --token "${TOKEN}" "${MASTER}" --skip-preflight-checks
+kubeadm join --token "${TOKEN}" "${MASTER}" --skip-preflight-checks --discovery-token-unsafe-skip-ca-verification
 
 for tries in $(seq 1 60); do
 	kubectl --kubeconfig /etc/kubernetes/kubelet.conf annotate --overwrite node $(hostname) machine=${MACHINE} && break
@@ -288,8 +288,7 @@ KUBEADM=$(getversion kubeadm ${KUBELET_VERSION}-)
 # Explicit cni version is a temporary workaround till the right version can be automatically detected correctly
 apt-get install -y \
     kubelet=${KUBELET} \
-    kubeadm=${KUBEADM} \
-    kubernetes-cni=0.5.1-00
+    kubeadm=${KUBEADM}
 
 mv /usr/bin/kubeadm.dl /usr/bin/kubeadm
 chmod a+rx /usr/bin/kubeadm

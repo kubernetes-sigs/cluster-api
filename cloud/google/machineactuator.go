@@ -530,15 +530,11 @@ func (gce *GCEClient) GetKubeConfig(master *clusterv1.Machine) (string, error) {
 		return "", err
 	}
 
-	command := "echo STARTFILE; sudo cat /etc/kubernetes/admin.conf"
+	command := "sudo cat /etc/kubernetes/admin.conf"
 	result := strings.TrimSpace(util.ExecCommand(
 		"gcloud", "compute", "ssh", "--project", config.Project,
-		"--zone", config.Zone, master.ObjectMeta.Name, "--command", command))
-	parts := strings.Split(result, "STARTFILE")
-	if len(parts) != 2 {
-		return "", nil
-	}
-	return strings.TrimSpace(parts[1]), nil
+		"--zone", config.Zone, master.ObjectMeta.Name, "--command", command, "--", "-q"))
+	return result, nil
 }
 
 func (gce *GCEClient) updateAnnotations(machine *clusterv1.Machine) error {

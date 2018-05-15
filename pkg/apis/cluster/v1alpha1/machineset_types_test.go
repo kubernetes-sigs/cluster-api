@@ -106,14 +106,28 @@ func TestValidateMachineSetStrategy(t *testing.T) {
 }
 
 func crudAccessToMachineSetClient(t *testing.T, cs *clientset.Clientset) {
-	instance := v1alpha1.MachineSet{}
+	instance := v1alpha1.MachineSet{
+		Spec: v1alpha1.MachineSetSpec{
+			Selector: metav1.LabelSelector{
+				MatchLabels: map[string]string{"foo":"bar"},
+			},
+			Template: v1alpha1.MachineTemplateSpec{
+				ObjectMeta: metav1.ObjectMeta{
+					Labels: map[string]string{"foo":"bar"},
+				},
+			},
+		},
+	}
 	instance.Name = "instance-1"
 
-	expected := instance
+	expected := instance.DeepCopy()
+	// Defaulted fields.
+	var replicas int32 = 1
+	expected.Spec.Replicas = &replicas
 
 	// When sending a storage request for a valid config,
 	// it should provide CRUD access to the object.
-	client := cs.ClusterV1alpha1().MachineSets("machine-test-valid")
+	client := cs.ClusterV1alpha1().MachineSets("default")
 
 	// Test that the create request returns success.
 	actual, err := client.Create(&instance)

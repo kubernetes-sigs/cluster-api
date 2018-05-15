@@ -24,7 +24,7 @@ RUN CGO_ENABLED=0 GOOS=linux go install -a -ldflags '-extldflags "-static"' sigs
 
 # Final container
 FROM alpine:3.7
-RUN apk --no-cache add ca-certificates bash
+RUN apk --no-cache add ca-certificates bash openssh 
 
 COPY --from=builder /go/bin/gce-machine-controller .
 

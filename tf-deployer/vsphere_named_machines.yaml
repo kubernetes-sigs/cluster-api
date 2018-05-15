@@ -101,6 +101,19 @@ items:
         client_device = true
       }
 
+     // Copy the private key over so the controller is able to ssh into the nodes.
+     provisioner "file" {
+       source      = "~/.ssh/vsphere_tmp"
+       destination = "~/.ssh/id_rsa"
+
+       connection {
+         type        = "ssh"
+         private_key = "${file("~/.ssh/vsphere_tmp")}"
+         user        = "ubuntu"
+         agent       = true
+       }
+     }
+
       vapp {
         properties {
           hostname = "${var.vm_name}"

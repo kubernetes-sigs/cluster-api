@@ -406,7 +406,7 @@ func (tf *TerraformClient) updateMasterInPlace(goalMachine *clusterv1.Machine) e
 	// Control plane upgrade
 	if goalMachineControlPlaneVersion != currentControlPlaneVersion {
 		// Pull the kudeadm for target version K8s.
-		cmd := fmt.Sprintf("curl -sSL https://dl.k8s.io/release/%s/bin/linux/amd64/kubeadm | sudo tee /usr/bin/kubeadm > /dev/null; " +
+		cmd := fmt.Sprintf("curl -sSL https://dl.k8s.io/release/v%s/bin/linux/amd64/kubeadm | sudo tee /usr/bin/kubeadm > /dev/null; " +
 			"sudo chmod a+rx /usr/bin/kubeadm", goalMachineControlPlaneVersion)
 		_, err := tf.remoteSshCommand(goalMachine, cmd, "~/.ssh/id_rsa", "ubuntu")
 		if err != nil {

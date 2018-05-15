@@ -159,8 +159,9 @@ func CreateApiServerAndController(token string) error {
 
 	ioutil.WriteFile("/tmp/pods.yaml", tmplBuf.Bytes(), 0644)
 
-	maxTries := 5
+	maxTries := 30
 	for tries := 0; tries < maxTries; tries++ {
+		glog.Infof("Attempting to deploy cluster api config.")
 		err = deployConfig(tmplBuf.Bytes())
 		if err == nil {
 			return nil
@@ -168,6 +169,8 @@ func CreateApiServerAndController(token string) error {
 			if tries < maxTries-1 {
 				glog.Info("Error scheduling machine controller. Will retry...\n")
 				time.Sleep(3 * time.Second)
+			} else {
+				glog.Info("Error scheduling machine controller. No more retries.")
 			}
 		}
 	}

@@ -15,7 +15,6 @@ package google
 
 import (
 	"fmt"
-	"os/exec"
 
 	"github.com/golang/glog"
 	clusterv1 "sigs.k8s.io/cluster-api/pkg/apis/cluster/v1alpha1"
@@ -232,12 +231,4 @@ func (gce *GCEClient) getProjects(machines []*clusterv1.Machine) ([]string, erro
 		projects = append(projects, config.Project)
 	}
 	return projects, nil
-}
-
-func run(cmd string, args ...string) error {
-	c := exec.Command(cmd, args...)
-	if out, err := c.CombinedOutput(); err != nil {
-		return fmt.Errorf("error: %v, output: %s", err, string(out))
-	}
-	return nil
 }

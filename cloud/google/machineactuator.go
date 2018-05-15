@@ -20,8 +20,6 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
-	"io/ioutil"
-	"os"
 	"path"
 	"reflect"
 	"strings"
@@ -64,6 +62,7 @@ const (
 type SshCreds struct {
 	user           string
 	privateKeyPath string
+	publicKey string
 }
 
 type GCEClientMachineSetupConfigGetter interface {
@@ -95,6 +94,9 @@ type MachineActuatorParams struct {
 	KubeadmToken             string
 	MachineClient            client.MachineInterface
 	MachineSetupConfigGetter GCEClientMachineSetupConfigGetter
+	SSHPrivateKeyPath        string
+	SSHPublicKey         string
+	SSHUser                  string
 }
 
 const (
@@ -117,27 +119,15 @@ func NewMachineActuator(params MachineActuatorParams) (*GCEClient, error) {
 		return nil, err
 	}
 
-	// Only applicable if it's running inside machine controller pod.
-	var privateKeyPath, user string
-	if _, err := os.Stat("/etc/sshkeys/private"); err == nil {
-		privateKeyPath = "/etc/sshkeys/private"
-
-		b, err := ioutil.ReadFile("/etc/sshkeys/user")
-		if err == nil {
-			user = string(b)
-		} else {
-			return nil, err
-		}
-	}
-
 	return &GCEClient{
 		computeService:         computeService,
 		scheme:                 scheme,
 		gceProviderConfigCodec: codec,
 		kubeadmToken:           params.KubeadmToken,
 		sshCreds: SshCreds{
-			privateKeyPath: privateKeyPath,
-			user:           user,
+			privateKeyPath: params.SSHPrivateKeyPath,
+			publicKey:  params.SSHPublicKey,
+			user:           params.SSHUser,
 		},
 		machineClient:            params.MachineClient,
 		machineSetupConfigGetter: params.MachineSetupConfigGetter,
@@ -149,11 +139,6 @@ func (gce *GCEClient) CreateMachineController(cluster *clusterv1.Cluster, initia
 		return errors.New("a valid machineSetupConfigGetter is required")
 	}
 	if err := gce.CreateMachineControllerServiceAccount(cluster, initialMachines); err != nil {
-		return err
-	}
-
-	// Setup SSH access to master VM
-	if err := gce.setupSSHAccess(util.GetMaster(initialMachines)); err != nil {
 		return err
 	}
 
@@ -254,6 +239,10 @@ func (gce *GCEClient) Create(cluster *clusterv1.Cluster, machine *clusterv1.Mach
 		}
 	}
 
+	metadata, err = gce.sshMetadata(metadata)
+	if err != nil {
+		return err
+	}
 	var metadataItems []*compute.MetadataItems
 	for k, v := range metadata {
 		v := v // rebind scope to avoid loop aliasing below
@@ -517,19 +506,6 @@ func (gce *GCEClient) GetIP(machine *clusterv1.Machine) (string, error) {
 		}
 	}
 	return publicIP, nil
-}
-
-func (gce *GCEClient) GetKubeConfig(master *clusterv1.Machine) (string, error) {
-	config, err := gce.providerconfig(master.Spec.ProviderConfig)
-	if err != nil {
-		return "", err
-	}
-
-	command := "sudo cat /etc/kubernetes/admin.conf"
-	result := strings.TrimSpace(util.ExecCommand(
-		"gcloud", "compute", "ssh", "--project", config.Project,
-		"--zone", config.Zone, master.ObjectMeta.Name, "--command", command, "--", "-q"))
-	return result, nil
 }
 
 func (gce *GCEClient) updateAnnotations(machine *clusterv1.Machine) error {

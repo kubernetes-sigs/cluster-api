@@ -10,6 +10,8 @@ import (
 	"sigs.k8s.io/cluster-api/pkg/apis/cluster/v1alpha1"
 	"strings"
 	"testing"
+	"io/ioutil"
+	"os"
 )
 
 type GCEClientComputeServiceMock struct {
@@ -180,12 +182,19 @@ func checkDiskValues(t *testing.T, disk *compute.AttachedDisk, boot bool, sizeGb
 }
 
 func createCluster(t *testing.T, config gceconfigv1.GCEProviderConfig, computeServiceMock *GCEClientComputeServiceMock) {
+	privateKeyFile, err := createTempFile()
+	if err != nil {
+		t.Fatalf("unable to create temp private key file: %v", err)
+	}
+	defer os.Remove(privateKeyFile)
+
 	cluster := newDefaultClusterFixture()
 	machine := newMachine(t, config)
 	configWatch := newMachineSetupConfigWatcher()
 	params := google.MachineActuatorParams{
 		ComputeService:           computeServiceMock,
 		MachineSetupConfigGetter: configWatch,
+		SSHPrivateKeyPath: privateKeyFile,
 	}
 	gce, err := google.NewMachineActuator(params)
 	if err != nil {
@@ -195,6 +204,16 @@ func createCluster(t *testing.T, config gceconfigv1.GCEProviderConfig, computeSe
 	if err != nil {
 		t.Fatalf("unable to create cluster: %v", err)
 	}
+}
+
+func createTempFile() (string, error){
+	f, err := ioutil.TempFile("","")
+	if err != nil {
+		return "", err
+	}
+	f.WriteString("")
+	f.Close()
+	return f.Name(), nil
 }
 
 func newInsertInstanceCapturingMock() (*compute.Instance, *GCEClientComputeServiceMock) {

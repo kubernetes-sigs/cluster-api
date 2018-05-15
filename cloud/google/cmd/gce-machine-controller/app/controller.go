@@ -21,6 +21,7 @@ import (
 
 	"github.com/golang/glog"
 	"github.com/kubernetes-incubator/apiserver-builder/pkg/controller"
+	"io/ioutil"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -60,10 +61,24 @@ func StartMachineController(server *options.MachineControllerServer, shutdown <-
 	if err != nil {
 		glog.Fatalf("Could not create config watch: %v", err)
 	}
+
+	sshUser, err := ioutil.ReadFile(server.SSHUserPath)
+	if err != nil {
+		glog.Fatalf("Could not read user file: %v", err)
+	}
+
+	sshPublicKey, err := ioutil.ReadFile(server.SSHPublicKeyPath)
+	if err != nil {
+		glog.Fatalf("Could not read ssh public key file: %v", err)
+	}
+
 	params := google.MachineActuatorParams{
 		KubeadmToken:             server.KubeadmToken,
 		MachineClient:            client.ClusterV1alpha1().Machines(corev1.NamespaceDefault),
 		MachineSetupConfigGetter: configWatch,
+		SSHPrivateKeyPath:        server.SSHPrivateKeyPath,
+		SSHPublicKey:             string(sshPublicKey),
+		SSHUser:                  string(sshUser),
 	}
 	actuator, err := google.NewMachineActuator(params)
 	if err != nil {

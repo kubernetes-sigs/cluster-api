@@ -150,6 +150,9 @@ spec:
         - --kubeconfig=/etc/kubernetes/admin.conf
         - --token={{ .Token }}
         - --machinesetup=/etc/machinesetup/machine_setup_configs.yaml
+        - --sshprivatekeypath=/etc/sshkeys/private
+        - --sshpublickeypath=/etc/sshkeys/public
+        - --sshuserpath=/etc/sshkeys/user
         resources:
           requests:
             cpu: 100m

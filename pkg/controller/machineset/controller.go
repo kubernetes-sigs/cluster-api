@@ -18,12 +18,15 @@ package machineset
 
 import (
 	"fmt"
+
 	"github.com/golang/glog"
 	"github.com/kubernetes-incubator/apiserver-builder/pkg/builders"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/client-go/kubernetes"
+
 	"sigs.k8s.io/cluster-api/pkg/apis/cluster/v1alpha1"
-	machineclientset "sigs.k8s.io/cluster-api/pkg/client/clientset_generated/clientset"
+	clusterapiclientset "sigs.k8s.io/cluster-api/pkg/client/clientset_generated/clientset"
 	listers "sigs.k8s.io/cluster-api/pkg/client/listers_generated/cluster/v1alpha1"
 	"sigs.k8s.io/cluster-api/pkg/controller/sharedinformers"
 )
@@ -35,8 +38,11 @@ var controllerKind = v1alpha1.SchemeGroupVersion.WithKind("MachineSet")
 type MachineSetControllerImpl struct {
 	builders.DefaultControllerFns
 
-	// machineClient a client that knows how to consume Machine resources
-	machineClient machineclientset.Interface
+	// kubernetesClient a client that knows how to consume Node resources
+	kubernetesClient kubernetes.Interface
+
+	// clusterAPIClient a client that knows how to consume Cluster API resources
+	clusterAPIClient clusterapiclientset.Interface
 
 	// machineSetsLister indexes properties about MachineSet
 	machineSetsLister listers.MachineSetLister
@@ -48,13 +54,15 @@ type MachineSetControllerImpl struct {
 // Init initializes the controller and is called by the generated code
 // Register watches for additional resource types here.
 func (c *MachineSetControllerImpl) Init(arguments sharedinformers.ControllerInitArguments) {
+	c.kubernetesClient = arguments.GetSharedInformers().KubernetesClientSet
+
 	c.machineSetsLister = arguments.GetSharedInformers().Factory.Cluster().V1alpha1().MachineSets().Lister()
 	c.machineLister = arguments.GetSharedInformers().Factory.Cluster().V1alpha1().Machines().Lister()
 
 	var err error
-	c.machineClient, err = machineclientset.NewForConfig(arguments.GetRestConfig())
+	c.clusterAPIClient, err = clusterapiclientset.NewForConfig(arguments.GetRestConfig())
 	if err != nil {
-		glog.Fatalf("error building clientset for machineClient: %v", err)
+		glog.Fatalf("error building clientset for clusterAPIClient: %v", err)
 	}
 }
 
@@ -68,7 +76,22 @@ func (c *MachineSetControllerImpl) Reconcile(machineSet *v1alpha1.MachineSet) er
 		return err
 	}
 
-	return c.syncReplicas(machineSet, filteredMachines)
+	syncErr := c.syncReplicas(machineSet, filteredMachines)
+
+	ms := machineSet.DeepCopy()
+	newStatus := c.calculateStatus(ms, filteredMachines)
+
+	// Always updates status as machines come up or die.
+	_, err = updateMachineSetStatus(c.clusterAPIClient.ClusterV1alpha1().MachineSets(machineSet.Namespace), machineSet, newStatus)
+	if err != nil {
+		if syncErr != nil {
+			return fmt.Errorf("failed to sync machines. %v. failed to update machine set status. %v", syncErr, err)
+		} else {
+			return fmt.Errorf("failed to update machine set status. %v", err)
+		}
+	}
+
+	return syncErr
 }
 
 func (c *MachineSetControllerImpl) Get(namespace, name string) (*v1alpha1.MachineSet, error) {
@@ -93,11 +116,8 @@ func (c *MachineSetControllerImpl) syncReplicas(machineSet *v1alpha1.MachineSet,
 		diff *= -1
 		for i := 0; i < diff; i++ {
 			glog.V(2).Infof("creating a machine ( spec.replicas(%d) > currentMachineCount(%d) )", desiredReplicas, currentMachineCount)
-			machine, err := c.createMachine(machineSet)
-			if err != nil {
-				return err
-			}
-			_, err = c.machineClient.ClusterV1alpha1().Machines(machineSet.Namespace).Create(machine)
+			machine := c.createMachine(machineSet)
+			_, err := c.clusterAPIClient.ClusterV1alpha1().Machines(machineSet.Namespace).Create(machine)
 			if err != nil {
 				glog.Errorf("unable to create a machine = %s, due to %v", machine.Name, err)
 				result = err
@@ -109,7 +129,7 @@ func (c *MachineSetControllerImpl) syncReplicas(machineSet *v1alpha1.MachineSet,
 			// TODO: Define machines deletion policies.
 			// see: https://github.com/kubernetes/kube-deploy/issues/625
 			machineToDelete := machines[i]
-			err := c.machineClient.ClusterV1alpha1().Machines(machineSet.Namespace).Delete(machineToDelete.Name, &metav1.DeleteOptions{})
+			err := c.clusterAPIClient.ClusterV1alpha1().Machines(machineSet.Namespace).Delete(machineToDelete.Name, &metav1.DeleteOptions{})
 			if err != nil {
 				glog.Errorf("unable to delete a machine = %s, due to %v", machineToDelete.Name, err)
 				result = err
@@ -122,7 +142,7 @@ func (c *MachineSetControllerImpl) syncReplicas(machineSet *v1alpha1.MachineSet,
 
 // createMachine creates a machine resource.
 // the name of the newly created resource is going to be created by the API server, we set the generateName field
-func (c *MachineSetControllerImpl) createMachine(machineSet *v1alpha1.MachineSet) (*v1alpha1.Machine, error) {
+func (c *MachineSetControllerImpl) createMachine(machineSet *v1alpha1.MachineSet) *v1alpha1.Machine {
 	gv := v1alpha1.SchemeGroupVersion
 	machine := &v1alpha1.Machine{
 		TypeMeta: metav1.TypeMeta{
@@ -133,9 +153,9 @@ func (c *MachineSetControllerImpl) createMachine(machineSet *v1alpha1.MachineSet
 		Spec:       machineSet.Spec.Template.Spec,
 	}
 	machine.ObjectMeta.GenerateName = fmt.Sprintf("%s-", machineSet.Name)
-	machine.ObjectMeta.OwnerReferences = []metav1.OwnerReference{*metav1.NewControllerRef(machineSet, controllerKind),}
+	machine.ObjectMeta.OwnerReferences = []metav1.OwnerReference{*metav1.NewControllerRef(machineSet, controllerKind)}
 
-	return machine, nil
+	return machine
 }
 
 // getMachines returns a list of machines that match on machineSet.Spec.Selector
@@ -182,7 +202,7 @@ func (c *MachineSetControllerImpl) adoptOrphan(machineSet *v1alpha1.MachineSet, 
 	newRef := *metav1.NewControllerRef(machineSet, controllerKind)
 	ownerRefs = append(ownerRefs, newRef)
 	machine.ObjectMeta.SetOwnerReferences(ownerRefs)
-	if _, err := c.machineClient.ClusterV1alpha1().Machines(machineSet.Namespace).Update(machine); err != nil {
+	if _, err := c.clusterAPIClient.ClusterV1alpha1().Machines(machineSet.Namespace).Update(machine); err != nil {
 		glog.Warningf("Failed to update machine owner reference. %v", err)
 	}
 }

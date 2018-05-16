@@ -110,7 +110,12 @@ func (c *MachineControllerImpl) Reconcile(machine *clusterv1.Machine) error {
 		return nil
 	}
 
-	exist, err := c.actuator.Exists(machine)
+	cluster, err := c.getCluster(machine)
+	if err != nil {
+		return err
+	}
+
+	exist, err := c.actuator.Exists(cluster, machine)
 	if err != nil {
 		glog.Errorf("Error checking existance of machine instance for machine object %v; %v", name, err)
 		return err
@@ -149,7 +154,12 @@ func (c *MachineControllerImpl) update(new_machine *clusterv1.Machine) error {
 }
 
 func (c *MachineControllerImpl) delete(machine *clusterv1.Machine) error {
-	return c.actuator.Delete(machine)
+	cluster, err := c.getCluster(machine)
+	if err != nil {
+		return err
+	}
+
+	return c.actuator.Delete(cluster, machine)
 }
 
 func (c *MachineControllerImpl) getCluster(machine *clusterv1.Machine) (*clusterv1.Cluster, error) {

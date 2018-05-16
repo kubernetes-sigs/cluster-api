@@ -1,12 +1,9 @@
 /*
 Copyright 2017 The Kubernetes Authors.
-
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
 You may obtain a copy of the License at
-
     http://www.apache.org/licenses/LICENSE-2.0
-
 Unless required by applicable law or agreed to in writing, software
 distributed under the License is distributed on an "AS IS" BASIS,
 WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -343,7 +340,7 @@ func runTerraformCmd(stdout bool, workingDir string, arg ...string) (bytes.Buffe
 	return out, nil
 }
 
-func (tf *TerraformClient) Delete(machine *clusterv1.Machine) error {
+func (tf *TerraformClient) Delete(_ *clusterv1.Cluster, machine *clusterv1.Machine) error {
 	// Check if the instance exists, return if it doesn't
 	instance, err := tf.instanceIfExists(machine)
 	if err != nil {
@@ -498,7 +495,7 @@ func (tf *TerraformClient) remoteSshCommand(m *clusterv1.Machine, cmd, privateKe
 	return strings.TrimSpace(parts[1]), nil
 }
 
-func (tf *TerraformClient) Exists(machine *clusterv1.Machine) (bool, error) {
+func (tf *TerraformClient) Exists(cluster *clusterv1.Cluster, machine *clusterv1.Machine) (bool, error) {
 	i, err := tf.instanceIfExists(machine)
 	if err != nil {
 		return false, err

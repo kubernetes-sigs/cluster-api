@@ -15,8 +15,7 @@ spec:
       providerConfig:
         value:
           apiVersion: "gceproviderconfig/v1alpha1"
-          kind: "GCEProviderConfig"
-          project: "$GCLOUD_PROJECT"
+          kind: "GCEMachineProviderConfig"
           zone: "us-central1-f"
           machineType: "n1-standard-1"
           os: "ubuntu-1604-lts"

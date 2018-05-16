@@ -9,8 +9,7 @@ items:
     providerConfig:
       value:
         apiVersion: "gceproviderconfig/v1alpha1"
-        kind: "GCEProviderConfig"
-        project: "$GCLOUD_PROJECT"
+        kind: "GCEMachineProviderConfig"
         zone: "$ZONE"
         machineType: "n1-standard-2"
         os: "ubuntu-1604-lts"
@@ -36,8 +35,7 @@ items:
     providerConfig:
       value:
         apiVersion: "gceproviderconfig/v1alpha1"
-        kind: "GCEProviderConfig"
-        project: "$GCLOUD_PROJECT"
+        kind: "GCEMachineProviderConfig"
         zone: "$ZONE"
         machineType: "n1-standard-1"
         os: "ubuntu-1604-lts"

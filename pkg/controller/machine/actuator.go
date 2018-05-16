@@ -26,9 +26,9 @@ type Actuator interface {
 	// Create the machine.
 	Create(*clusterv1.Cluster, *clusterv1.Machine) error
 	// Delete the machine.
-	Delete(*clusterv1.Machine) error
+	Delete(*clusterv1.Cluster, *clusterv1.Machine) error
 	// Update the machine to the provided definition.
-	Update(c *clusterv1.Cluster, machine *clusterv1.Machine) error
+	Update(*clusterv1.Cluster, *clusterv1.Machine) error
 	// Checks if the machine currently exists.
-	Exists(*clusterv1.Machine) (bool, error)
+	Exists(*clusterv1.Cluster, *clusterv1.Machine) (bool, error)
 }

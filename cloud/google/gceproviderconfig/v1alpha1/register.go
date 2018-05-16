@@ -1,12 +1,9 @@
 /*
 Copyright 2017 The Kubernetes Authors.
-
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
 You may obtain a copy of the License at
-
     http://www.apache.org/licenses/LICENSE-2.0
-
 Unless required by applicable law or agreed to in writing, software
 distributed under the License is distributed on an "AS IS" BASIS,
 WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -47,7 +44,10 @@ func init() {
 
 func addKnownTypes(scheme *runtime.Scheme) error {
 	scheme.AddKnownTypes(SchemeGroupVersion,
-		&GCEProviderConfig{},
+		&GCEMachineProviderConfig{},
+	)
+	scheme.AddKnownTypes(SchemeGroupVersion,
+		&GCEClusterProviderConfig{},
 	)
 	return nil
 }
@@ -80,27 +80,22 @@ func NewCodec() (*GCEProviderConfigCodec, error) {
 	return &codec, nil
 }
 
-func (codec *GCEProviderConfigCodec) DecodeFromProviderConfig(providerConfig clusterv1.ProviderConfig) (*GCEProviderConfig, error) {
-	obj, gvk, err := codec.decoder.Decode(providerConfig.Value.Raw, nil, nil)
+func (codec *GCEProviderConfigCodec) DecodeFromProviderConfig(providerConfig clusterv1.ProviderConfig, out runtime.Object) (error) {
+	_, _, err := codec.decoder.Decode(providerConfig.Value.Raw, nil, out)
 	if err != nil {
-		return nil, fmt.Errorf("decoding failure: %v", err)
+		return fmt.Errorf("decoding failure: %v", err)
 	}
-	config, ok := obj.(*GCEProviderConfig)
-	if !ok {
-		return nil, fmt.Errorf("failure to cast to gce; type: %v", gvk)
-	}
-	return config, nil
+	return nil
 }
 
-func (codec *GCEProviderConfigCodec) EncodeToProviderConfig(gceProviderConfig *GCEProviderConfig) (*clusterv1.ProviderConfig, error) {
+func (codec *GCEProviderConfigCodec) EncodeToProviderConfig(in runtime.Object) (*clusterv1.ProviderConfig, error) {
 	var buf bytes.Buffer
-	if err := codec.encoder.Encode(gceProviderConfig, &buf); err != nil {
+	if err := codec.encoder.Encode(in, &buf); err != nil {
 		return nil, fmt.Errorf("encoding failed: %v", err)
 	}
-	providerConfig := clusterv1.ProviderConfig{
+	return &clusterv1.ProviderConfig{
 		Value: &runtime.RawExtension{Raw: buf.Bytes()},
-	}
-	return &providerConfig, nil
+	}, nil
 }
 
 func newEncoder(codecFactory *serializer.CodecFactory) (runtime.Encoder, error) {

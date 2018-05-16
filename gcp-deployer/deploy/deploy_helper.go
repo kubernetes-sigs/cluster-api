@@ -72,12 +72,12 @@ func (d *deployer) createCluster(c *clusterv1.Cluster, machines []*clusterv1.Mac
 	*vmCreated = true
 	glog.Infof("Created master %s", master.GetName())
 
-	masterIP, err := d.getMasterIP(master)
+	masterIP, err := d.getMasterIP(c, master)
 	if err != nil {
 		return fmt.Errorf("unable to get master IP: %v", err)
 	}
 
-	if err := d.copyKubeConfig(master); err != nil {
+	if err := d.copyKubeConfig(c, master); err != nil {
 		return fmt.Errorf("unable to write kubeconfig: %v", err)
 	}
 
@@ -203,9 +203,9 @@ func (d *deployer) getCluster() (*clusterv1.Cluster, error) {
 	return &clusters.Items[0], nil
 }
 
-func (d *deployer) getMasterIP(master *clusterv1.Machine) (string, error) {
+func (d *deployer) getMasterIP(cluster *clusterv1.Cluster, master *clusterv1.Machine) (string, error) {
 	for i := 0; i < MasterIPAttempts; i++ {
-		ip, err := d.machineDeployer.GetIP(master)
+		ip, err := d.machineDeployer.GetIP(cluster, master)
 		if err != nil || ip == "" {
 			glog.Info("Hanging for master IP...")
 			time.Sleep(time.Duration(SleepSecondsPerAttempt) * time.Second)
@@ -216,10 +216,10 @@ func (d *deployer) getMasterIP(master *clusterv1.Machine) (string, error) {
 	return "", fmt.Errorf("unable to find Master IP after defined wait")
 }
 
-func (d *deployer) copyKubeConfig(master *clusterv1.Machine) error {
+func (d *deployer) copyKubeConfig(cluster *clusterv1.Cluster, master *clusterv1.Machine) error {
 	writeErr := util.Retry(func() (bool, error) {
 		glog.Infof("Waiting for Kubernetes to come up...")
-		config, err := d.machineDeployer.GetKubeConfig(master)
+		config, err := d.machineDeployer.GetKubeConfig(cluster, master)
 		if err != nil {
 			glog.Errorf("Error while retriving kubeconfig %s", err)
 			return false, err

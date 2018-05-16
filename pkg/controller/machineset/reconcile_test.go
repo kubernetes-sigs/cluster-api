@@ -106,20 +106,20 @@ func TestMachineSetControllerReconcileHandler(t *testing.T) {
 			expectedMachine:     machineFromMachineSet(createMachineSet(1, "foo", "bar2", "acme"), "bar1"),
 		},
 		{
-			name:                "scenario 8: the current machine has different controller ref, do nothing.",
+			name:                "scenario 8: the current machine has different controller ref, create new machine.",
 			startingMachineSets: []*v1alpha1.MachineSet{createMachineSet(1, "foo", "bar2", "acme")},
 			startingMachines:    []*v1alpha1.Machine{setDifferentOwnerUID(machineFromMachineSet(createMachineSet(1, "foo", "bar1", "acme"), "bar1"))},
 			machineSetToSync:    "foo",
 			namespaceToSync:     "acme",
-			expectedActions:     []string{},
+			expectedActions:     []string{"create"},
 		},
 		{
-			name:                "scenario 9: the current machine is being deleted, do nothing.",
+			name:                "scenario 9: the current machine is being deleted, create new machine.",
 			startingMachineSets: []*v1alpha1.MachineSet{createMachineSet(1, "foo", "bar2", "acme")},
 			startingMachines:    []*v1alpha1.Machine{setMachineDeleting(machineFromMachineSet(createMachineSet(1, "foo", "bar1", "acme"), "bar1"))},
 			machineSetToSync:    "foo",
 			namespaceToSync:     "acme",
-			expectedActions:     []string{},
+			expectedActions:     []string{"create"},
 		},
 		{
 			name:                "scenario 10: the current machine has no controller refs, owner refs preserved, machine should be adopted.",
@@ -174,7 +174,7 @@ func TestMachineSetControllerReconcileHandler(t *testing.T) {
 			actions := fakeClient.Actions()
 			actions = getFilteredActions(actions, "machines")
 			if len(actions) != len(test.expectedActions) {
-				t.Fatalf("unexpected actions: %v, expected %d actions got %d", actions, len(test.expectedActions), len(actions))
+				t.Fatalf("got %d actions, expected %d actions; got %v actions, expected %v actions", len(actions), len(test.expectedActions), actions, test.expectedActions)
 			}
 			for i, verb := range test.expectedActions {
 				if actions[i].GetVerb() != verb {

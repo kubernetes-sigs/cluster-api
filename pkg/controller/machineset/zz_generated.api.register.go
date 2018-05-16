@@ -54,14 +54,6 @@ func NewMachineSetController(config *rest.Config, si *sharedinformers.SharedInfo
 	uc := &MachineSetControllerImpl{}
 	var ci sharedinformers.Controller = uc
 
-	// Call the Init method that is implemented.
-	// Support multiple Init methods for backwards compatibility
-	if i, ok := ci.(sharedinformers.LegacyControllerInit); ok {
-		i.Init(config, si, c.LookupAndReconcile)
-	} else if i, ok := ci.(sharedinformers.ControllerInit); ok {
-		i.Init(&sharedinformers.ControllerInitArgumentsImpl{si, config, c.LookupAndReconcile})
-	}
-
 	c.controller = uc
 
 	queue.Reconcile = c.reconcile
@@ -71,6 +63,15 @@ func NewMachineSetController(config *rest.Config, si *sharedinformers.SharedInfo
 	c.Informers.WorkerQueues["MachineSet"] = queue
 	si.Factory.Cluster().V1alpha1().MachineSets().Informer().
 		AddEventHandler(&controller.QueueingEventHandler{q, nil, false})
+
+	// Call the Init method that is implemented.
+	// Support multiple Init methods for backwards compatibility
+	if i, ok := ci.(sharedinformers.LegacyControllerInit); ok {
+		i.Init(config, si, c.LookupAndReconcile)
+	} else if i, ok := ci.(sharedinformers.ControllerInit); ok {
+		i.Init(&sharedinformers.ControllerInitArgumentsImpl{si, config, c.LookupAndReconcile})
+	}
+
 	return c
 }
 

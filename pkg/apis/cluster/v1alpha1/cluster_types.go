@@ -29,6 +29,8 @@ import (
 	"sigs.k8s.io/cluster-api/pkg/apis/cluster/common"
 )
 
+const ClusterFinalizer string = "cluster.cluster.k8s.io"
+
 // +genclient
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
 
@@ -133,6 +135,16 @@ func (ClusterStrategy) Validate(ctx request.Context, obj runtime.Object) field.E
 			"invalid cluster configuration: missing Cluster.Spec.ClusterNetwork.Services"))
 	}
 	return errors
+}
+
+// PrepareForCreate clears fields that are not allowed to be set by end users on creation.
+func (c ClusterStrategy) PrepareForCreate(ctx request.Context, obj runtime.Object) {
+	// Invoke the parent implementation to strip the Status
+	c.DefaultStorageStrategy.PrepareForCreate(ctx, obj)
+
+	// Cast the element and set finalizer
+	o := obj.(*cluster.Cluster)
+	o.ObjectMeta.Finalizers = append(o.ObjectMeta.Finalizers, ClusterFinalizer)
 }
 
 // DefaultingFunction sets default Cluster field values

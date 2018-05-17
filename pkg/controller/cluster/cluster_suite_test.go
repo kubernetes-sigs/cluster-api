@@ -1,4 +1,3 @@
-
 /*
 Copyright 2018 The Kubernetes Authors.
 
@@ -15,7 +14,6 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-
 package cluster
 
 import (
@@ -23,10 +21,11 @@ import (
 
 	"github.com/kubernetes-incubator/apiserver-builder/pkg/test"
 
+	"k8s.io/client-go/rest"
 	"sigs.k8s.io/cluster-api/pkg/apis"
 	"sigs.k8s.io/cluster-api/pkg/client/clientset_generated/clientset"
-	"sigs.k8s.io/cluster-api/pkg/openapi"
 	"sigs.k8s.io/cluster-api/pkg/controller/sharedinformers"
+	"sigs.k8s.io/cluster-api/pkg/openapi"
 )
 
 func TestCluster(t *testing.T) {
@@ -34,15 +33,21 @@ func TestCluster(t *testing.T) {
 	config := testenv.Start(apis.GetAllApiBuilders(), openapi.GetOpenAPIDefinitions)
 	cs := clientset.NewForConfigOrDie(config)
 
-	shutdown := make(chan struct{})
-	si := sharedinformers.NewSharedInformers(config, shutdown)
-	controller := NewClusterController(config, si)
-	controller.Run(shutdown)
-
 	t.Run("clusterControllerReconcile", func(t *testing.T) {
+		controller, shutdown := getController(config)
+		defer close(shutdown)
 		clusterControllerReconcile(t, cs, controller)
 	})
 
-	close(shutdown)
 	testenv.Stop()
+}
+
+func getController(config *rest.Config) (*ClusterController, chan struct{}) {
+	shutdown := make(chan struct{})
+	si := sharedinformers.NewSharedInformers(config, shutdown)
+	actuator := NewTestActuator()
+	controller := NewClusterController(config, si, actuator)
+	controller.RunAsync(shutdown)
+
+	return controller, shutdown
 }

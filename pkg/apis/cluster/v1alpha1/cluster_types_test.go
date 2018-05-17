@@ -75,6 +75,10 @@ func crudAccessToClusterClient(t *testing.T, cs *clientset.Clientset) {
 	}
 
 	// Test deleting the item for delete requests.
+	actual.Finalizers = nil
+	if _, updateErr := client.Update(actual); updateErr != nil {
+		t.Fatal(updateErr)
+	}
 	if deleteErr := client.Delete(instance.Name, &metav1.DeleteOptions{}); deleteErr != nil {
 		t.Fatal(deleteErr)
 	}

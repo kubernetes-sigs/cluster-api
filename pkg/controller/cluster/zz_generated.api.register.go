@@ -44,25 +44,15 @@ type ClusterController struct {
 }
 
 // NewController returns a new ClusterController for responding to Cluster events
-func NewClusterController(config *rest.Config, si *sharedinformers.SharedInformers) *ClusterController {
+func NewClusterController(config *rest.Config, si *sharedinformers.SharedInformers, actuator Actuator) *ClusterController {
 	q := workqueue.NewNamedRateLimitingQueue(workqueue.DefaultControllerRateLimiter(), "Cluster")
 
 	queue := &controller.QueueWorker{q, 10, "Cluster", nil}
 	c := &ClusterController{queue, nil, "Cluster", nil, nil, si}
 
 	// For non-generated code to add events
-	uc := &ClusterControllerImpl{}
-	var ci sharedinformers.Controller = uc
-
-	// Call the Init method that is implemented.
-	// Support multiple Init methods for backwards compatibility
-	if i, ok := ci.(sharedinformers.LegacyControllerInit); ok {
-		i.Init(config, si, c.LookupAndReconcile)
-	} else if i, ok := ci.(sharedinformers.ControllerInit); ok {
-		i.Init(&sharedinformers.ControllerInitArgumentsImpl{si, config, c.LookupAndReconcile})
-	}
-
-	c.controller = uc
+	c.controller = &ClusterControllerImpl{}
+	c.controller.Init(&sharedinformers.ControllerInitArgumentsImpl{si, config, c.LookupAndReconcile}, actuator)
 
 	queue.Reconcile = c.reconcile
 	if c.Informers.WorkerQueues == nil {

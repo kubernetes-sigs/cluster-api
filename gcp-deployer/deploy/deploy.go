@@ -61,7 +61,11 @@ func NewDeployer(provider string, kubeConfigPath string, machineSetupConfigPath 
 	if err != nil {
 		glog.Exit(fmt.Sprintf("Could not create config watch: %v\n", err))
 	}
-	ma, err := google.NewMachineActuator(token, nil, configWatch)
+	params := google.MachineActuatorParams{
+		MachineSetupConfigGetter: configWatch,
+		KubeadmToken:             token,
+	}
+	ma, err := google.NewMachineActuator(params)
 	if err != nil {
 		glog.Exit(err)
 	}

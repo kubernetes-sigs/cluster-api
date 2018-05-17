@@ -29,5 +29,15 @@ type GCEProviderConfig struct {
 	MachineType string `json:"machineType"`
 
 	// The name of the OS to be installed on the machine.
-	OS string `json:"os"`
+	OS    string `json:"os"`
+	Disks []Disk `json:"disks"`
+}
+
+type Disk struct {
+	InitializeParams DiskInitializeParams `json:"initializeParams"`
+}
+
+type DiskInitializeParams struct {
+	DiskSizeGb int64  `json:"diskSizeGb"`
+	DiskType   string `json:"diskType"`
 }

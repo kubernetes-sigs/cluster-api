@@ -34,11 +34,11 @@ import (
 
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/runtime"
-	"k8s.io/apimachinery/pkg/runtime/serializer"
 
 	"regexp"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime/serializer"
 	"k8s.io/client-go/kubernetes"
 	"sigs.k8s.io/cluster-api/cloud/google/clients"
 	gceconfigv1 "sigs.k8s.io/cluster-api/cloud/google/gceproviderconfig/v1alpha1"
@@ -81,6 +81,7 @@ type GCEClientComputeService interface {
 
 type GCEClient struct {
 	computeService           GCEClientComputeService
+	gceProviderConfigCodec   *gceconfigv1.GCEProviderConfigCodec
 	scheme                   *runtime.Scheme
 	codecFactory             *serializer.CodecFactory
 	kubeadmToken             string
@@ -89,25 +90,29 @@ type GCEClient struct {
 	machineSetupConfigGetter GCEClientMachineSetupConfigGetter
 }
 
+type MachineActuatorParams struct {
+	ComputeService           GCEClientComputeService
+	KubeadmToken             string
+	MachineClient            client.MachineInterface
+	MachineSetupConfigGetter GCEClientMachineSetupConfigGetter
+}
+
 const (
 	gceTimeout   = time.Minute * 10
 	gceWaitSleep = time.Second * 5
 )
 
-func NewMachineActuator(kubeadmToken string, machineClient client.MachineInterface, machineSetupConfigGetter GCEClientMachineSetupConfigGetter) (*GCEClient, error) {
-	// The default GCP client expects the environment variable
-	// GOOGLE_APPLICATION_CREDENTIALS to point to a file with service credentials.
-	client, err := google.DefaultClient(context.TODO(), compute.ComputeScope)
+func NewMachineActuator(params MachineActuatorParams) (*GCEClient, error) {
+	computeService, err := getOrNewComputeService(params)
 	if err != nil {
 		return nil, err
 	}
 
-	computeService, err := clients.NewComputeService(client)
+	scheme, err := gceconfigv1.NewScheme()
 	if err != nil {
 		return nil, err
 	}
-
-	scheme, codecFactory, err := gceconfigv1.NewSchemeAndCodecs()
+	codec, err := gceconfigv1.NewCodec()
 	if err != nil {
 		return nil, err
 	}
@@ -126,16 +131,16 @@ func NewMachineActuator(kubeadmToken string, machineClient client.MachineInterfa
 	}
 
 	return &GCEClient{
-		computeService: computeService,
-		scheme:         scheme,
-		codecFactory:   codecFactory,
-		kubeadmToken:   kubeadmToken,
+		computeService:         computeService,
+		scheme:                 scheme,
+		gceProviderConfigCodec: codec,
+		kubeadmToken:           params.KubeadmToken,
 		sshCreds: SshCreds{
 			privateKeyPath: privateKeyPath,
 			user:           user,
 		},
-		machineClient:            machineClient,
-		machineSetupConfigGetter: machineSetupConfigGetter,
+		machineClient:            params.MachineClient,
+		machineSetupConfigGetter: params.MachineSetupConfigGetter,
 	}, nil
 }
 
@@ -266,7 +271,6 @@ func (gce *GCEClient) Create(cluster *clusterv1.Cluster, machine *clusterv1.Mach
 	name := machine.ObjectMeta.Name
 	project := config.Project
 	zone := config.Zone
-	diskSize := int64(30)
 
 	if instance == nil {
 		labels := map[string]string{}
@@ -289,16 +293,7 @@ func (gce *GCEClient) Create(cluster *clusterv1.Cluster, machine *clusterv1.Mach
 					},
 				},
 			},
-			Disks: []*compute.AttachedDisk{
-				{
-					AutoDelete: true,
-					Boot:       true,
-					InitializeParams: &compute.AttachedDiskInitializeParams{
-						SourceImage: imagePath,
-						DiskSizeGb:  diskSize,
-					},
-				},
-			},
+			Disks: newDisks(config, zone, imagePath, int64(30)),
 			Metadata: &compute.Metadata{
 				Items: metadataItems,
 			},
@@ -606,16 +601,7 @@ func (gce *GCEClient) instanceIfExists(machine *clusterv1.Machine) (*compute.Ins
 }
 
 func (gce *GCEClient) providerconfig(providerConfig clusterv1.ProviderConfig) (*gceconfigv1.GCEProviderConfig, error) {
-	obj, gvk, err := gce.codecFactory.UniversalDecoder(gceconfigv1.SchemeGroupVersion).Decode(providerConfig.Value.Raw, nil, nil)
-	if err != nil {
-		return nil, fmt.Errorf("decoding failure: %v", err)
-	}
-	config, ok := obj.(*gceconfigv1.GCEProviderConfig)
-	if !ok {
-		return nil, fmt.Errorf("failure to cast to gce; type: %v", gvk)
-	}
-
-	return config, nil
+	return gce.gceProviderConfigCodec.DecodeFromProviderConfig(providerConfig)
 }
 
 func (gce *GCEClient) waitForOperation(c *gceconfigv1.GCEProviderConfig, op *compute.Operation) error {
@@ -756,12 +742,53 @@ func (gce *GCEClient) getImagePath(img string) (imagePath string) {
 	return defaultImg
 }
 
+func newDisks(config *gceconfigv1.GCEProviderConfig, zone string, imagePath string, minDiskSizeGb int64) []*compute.AttachedDisk {
+	var disks []*compute.AttachedDisk
+	for idx, disk := range config.Disks {
+		diskSizeGb := disk.InitializeParams.DiskSizeGb
+		d := compute.AttachedDisk{
+			AutoDelete: true,
+			InitializeParams: &compute.AttachedDiskInitializeParams{
+				DiskSizeGb:  diskSizeGb,
+				DiskType:    fmt.Sprintf("zones/%s/diskTypes/%s", zone, disk.InitializeParams.DiskType),
+			},
+		}
+		if idx == 0 {
+			d.InitializeParams.SourceImage = imagePath
+			d.Boot = true
+			if diskSizeGb < minDiskSizeGb {
+				glog.Info("increasing disk size to %v gb, the supplied disk size of %v gb is below the minimum", minDiskSizeGb, diskSizeGb)
+				d.InitializeParams.DiskSizeGb = minDiskSizeGb
+			}
+		}
+		disks = append(disks, &d)
+	}
+	return disks
+}
+
 // Just a temporary hack to grab a single range from the config.
 func getSubnet(netRange clusterv1.NetworkRanges) string {
 	if len(netRange.CIDRBlocks) == 0 {
 		return ""
 	}
 	return netRange.CIDRBlocks[0]
+}
+
+func getOrNewComputeService(params MachineActuatorParams) (GCEClientComputeService, error) {
+	if params.ComputeService != nil {
+		return params.ComputeService, nil
+	}
+	// The default GCP client expects the environment variable
+	// GOOGLE_APPLICATION_CREDENTIALS to point to a file with service credentials.
+	client, err := google.DefaultClient(context.TODO(), compute.ComputeScope)
+	if err != nil {
+		return nil, err
+	}
+	computeService, err := clients.NewComputeService(client)
+	if err != nil {
+		return nil, err
+	}
+	return computeService, nil
 }
 
 // TODO: We need to change this when we create dedicated service account for apiserver/controller

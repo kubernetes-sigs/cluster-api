@@ -344,8 +344,42 @@ func runTerraformCmd(stdout bool, workingDir string, arg ...string) (bytes.Buffe
 }
 
 func (tf *TerraformClient) Delete(machine *clusterv1.Machine) error {
-	glog.Infof("TERRAFORM DELETE.\n")
-	return nil
+	// Check if the instance exists, return if it doesn't
+	instance, err := tf.instanceIfExists(machine)
+	if err != nil {
+		return err
+	}
+
+	if instance == nil {
+		return nil
+	}
+
+	homedir, err := getHomeDir()
+	if err != nil {
+		return err
+	}
+	machinePath := path.Join(homedir, fmt.Sprintf(".terraform.d/kluster/machines/%s", machine.ObjectMeta.Name))
+
+	// destroy it
+	args := []string{
+		"destroy",
+		"-auto-approve",
+		"-input=false",
+		"-var", fmt.Sprintf("vm_name=%s", machine.ObjectMeta.Name),
+		"-var-file=variables.tfvars",
+	}
+	_, err = runTerraformCmd(false, machinePath, args...)
+	if err != nil {
+		return fmt.Errorf("could not run terraform: %s", err)
+	}
+
+	// remove finalizer
+	if tf.machineClient != nil {
+		machine.ObjectMeta.Finalizers = util.Filter(machine.ObjectMeta.Finalizers, clusterv1.MachineFinalizer)
+		_, err = tf.machineClient.Update(machine)
+	}
+
+	return err
 }
 
 func (tf *TerraformClient) PostDelete(cluster *clusterv1.Cluster, machines []*clusterv1.Machine) error {
@@ -406,7 +440,7 @@ func (tf *TerraformClient) updateMasterInPlace(goalMachine *clusterv1.Machine) e
 	// Control plane upgrade
 	if goalMachineControlPlaneVersion != currentControlPlaneVersion {
 		// Pull the kudeadm for target version K8s.
-		cmd := fmt.Sprintf("curl -sSL https://dl.k8s.io/release/v%s/bin/linux/amd64/kubeadm | sudo tee /usr/bin/kubeadm > /dev/null; " +
+		cmd := fmt.Sprintf("curl -sSL https://dl.k8s.io/release/v%s/bin/linux/amd64/kubeadm | sudo tee /usr/bin/kubeadm > /dev/null; "+
 			"sudo chmod a+rx /usr/bin/kubeadm", goalMachineControlPlaneVersion)
 		_, err := tf.remoteSshCommand(goalMachine, cmd, "~/.ssh/id_rsa", "ubuntu")
 		if err != nil {

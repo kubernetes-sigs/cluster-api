@@ -106,7 +106,7 @@ func TestMachineSetControllerReconcileHandler(t *testing.T) {
 			expectedMachine:     machineFromMachineSet(createMachineSet(1, "foo", "bar2", "acme"), "bar1"),
 		},
 		{
-			name:                "scenario 8: the current machine has different controller ref, create new machine.",
+			name:                "scenario 8: the current machine has different controller ref, thus a machine is created.",
 			startingMachineSets: []*v1alpha1.MachineSet{createMachineSet(1, "foo", "bar2", "acme")},
 			startingMachines:    []*v1alpha1.Machine{setDifferentOwnerUID(machineFromMachineSet(createMachineSet(1, "foo", "bar1", "acme"), "bar1"))},
 			machineSetToSync:    "foo",
@@ -114,7 +114,7 @@ func TestMachineSetControllerReconcileHandler(t *testing.T) {
 			expectedActions:     []string{"create"},
 		},
 		{
-			name:                "scenario 9: the current machine is being deleted, create new machine.",
+			name:                "scenario 9: the current machine is being deleted, thus a machine is created.",
 			startingMachineSets: []*v1alpha1.MachineSet{createMachineSet(1, "foo", "bar2", "acme")},
 			startingMachines:    []*v1alpha1.Machine{setMachineDeleting(machineFromMachineSet(createMachineSet(1, "foo", "bar1", "acme"), "bar1"))},
 			machineSetToSync:    "foo",
@@ -157,7 +157,7 @@ func TestMachineSetControllerReconcileHandler(t *testing.T) {
 			machineSetLister := v1alpha1listers.NewMachineSetLister(machineSetIndexer)
 			target := &MachineSetControllerImpl{}
 			target.clusterAPIClient = fakeClient
-			target.machineSetsLister = machineSetLister
+			target.machineSetLister = machineSetLister
 			target.machineLister = machineLister
 
 			// act

@@ -52,7 +52,7 @@ func (c *MachineSetControllerImpl) calculateStatus(ms *v1alpha1.MachineSet, filt
 		}
 		node, err := c.getMachineNode(machine)
 		if err != nil {
-			glog.Warningf("Unable to get node for machine %v, %v", machine.Name, err)
+			glog.V(4).Infof("Unable to get node for machine %v, %v", machine.Name, err)
 			continue
 		}
 		if isNodeReady(node) {

@@ -118,8 +118,8 @@ func (c *MachineSetController) reconcile(key string) (err error) {
 }
 
 func (c *MachineSetController) Run(stopCh <-chan struct{}) {
+	controller.GetDefaults(c.controller).Run(stopCh)
 	for _, q := range c.Informers.WorkerQueues {
 		q.Run(stopCh)
 	}
-	controller.GetDefaults(c.controller).Run(stopCh)
 }

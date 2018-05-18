@@ -8,22 +8,31 @@ Read the [experience doc here](https://docs.google.com/document/d/1-sYb3EdkRga49
 
 ### Prerequisites
 
-Follow the steps listed at [CONTRIBUTING.md](https://github.com/kubernetes-sigs/cluster-api/blob/master/cluster-api/clusterctl/CONTRIBUTING.md) to:
-
 1. Build the `clusterctl` tool
 
-```
-go build
+```bash
+$ cd $GOPATH/src/sigs.k8s.io/
+$ git clone https://github.com/<GITHUB_USERNAME>/cluster-api.git
+$ cd $GOPATH/src/sigs.k8s.io/cluster-api/clusterctl/
+$ go build
 ```
  
-2. Create a `machines.yaml` file configured for your cluster. See the provided template for an example.
-
 ### Limitations
 
 
 ### Creating a cluster
 
-**NOT YET SUPPORTED!**
+**NOT YET SUPPORTED!** - Use [provider-specific deployer](../README.md) to create clusters till cluster creation is supported.
+
+1. Create a `cluster.yaml` and `machines.yaml` files configured for your cluster. See the provider specific templates and generation tools at `$GOPATH/src/sigs.k8s.io/cluster-api/clusterctl/examples/<provider>`. 
+2. Create a cluster 
+```
+clusterctl create cluster -c cluster.yaml -m machines.yaml
+```
+Additional advanced flags can be found via help
+```
+clusterctl create cluster --help
+```
 
 ### Interacting with your cluster
 

@@ -23,6 +23,12 @@ import (
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/tools/cache"
+
+	nodeutil "sigs.k8s.io/cluster-api/pkg/node/util"
+)
+
+const (
+	machineAnnotationKey = "machine"
 )
 
 // We are using "machine" annotation to link node and machine resource. The "machine"
@@ -34,11 +40,16 @@ import (
 // Currently, these annotations are added by the node itself as part of its
 // bootup script after "kubeadm join" succeeds.
 func (c *MachineControllerImpl) link(node *corev1.Node) error {
+	nodeReady := nodeutil.IsNodeReady(node)
+
+	// skip update if cached and no change in readiness.
 	if c.linkedNodes[node.ObjectMeta.Name] {
-		return nil
+		if cachedReady, ok := c.cachedReadiness[node.ObjectMeta.Name]; ok && cachedReady == nodeReady {
+			return nil
+		}
 	}
 
-	val, ok := node.ObjectMeta.Annotations["machine"]
+	val, ok := node.ObjectMeta.Annotations[machineAnnotationKey]
 	if !ok {
 		return nil
 	}
@@ -49,6 +60,7 @@ func (c *MachineControllerImpl) link(node *corev1.Node) error {
 		return err
 	}
 
+	machine.Status.LastUpdated = metav1.Now()
 	machine.Status.NodeRef = objectRef(node)
 	if _, err = c.machineClient.UpdateStatus(machine); err != nil {
 		glog.Errorf("Error updating machine to link to node: %v\n", err)
@@ -56,12 +68,13 @@ func (c *MachineControllerImpl) link(node *corev1.Node) error {
 		glog.Infof("Successfully linked machine %s to node %s\n",
 			machine.ObjectMeta.Name, node.ObjectMeta.Name)
 		c.linkedNodes[node.ObjectMeta.Name] = true
+		c.cachedReadiness[node.ObjectMeta.Name] = nodeReady
 	}
 	return err
 }
 
 func (c *MachineControllerImpl) unlink(node *corev1.Node) error {
-	val, ok := node.ObjectMeta.Annotations["machine"]
+	val, ok := node.ObjectMeta.Annotations[machineAnnotationKey]
 	if !ok {
 		return nil
 	}
@@ -84,6 +97,7 @@ func (c *MachineControllerImpl) unlink(node *corev1.Node) error {
 		return nil
 	}
 
+	machine.Status.LastUpdated = metav1.Now()
 	machine.Status.NodeRef = nil
 	if _, err = c.machineClient.UpdateStatus(machine); err != nil {
 		glog.Errorf("Error updating machine %s to unlink node %s: %v\n",
@@ -91,6 +105,7 @@ func (c *MachineControllerImpl) unlink(node *corev1.Node) error {
 	} else {
 		glog.Infof("Successfully unlinked node %s from machine %s\n",
 			node.ObjectMeta.Name, machine.ObjectMeta.Name)
+		delete(c.cachedReadiness, node.ObjectMeta.Name)
 		delete(c.linkedNodes, node.ObjectMeta.Name)
 	}
 	return err
@@ -123,8 +138,7 @@ func (c *MachineControllerImpl) reconcileNode(key string) error {
 
 func objectRef(node *corev1.Node) *corev1.ObjectReference {
 	return &corev1.ObjectReference{
-		Kind:      "Node",
-		Namespace: node.ObjectMeta.Namespace,
-		Name:      node.ObjectMeta.Name,
+		Kind: "Node",
+		Name: node.ObjectMeta.Name,
 	}
 }

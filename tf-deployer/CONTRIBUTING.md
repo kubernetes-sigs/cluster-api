@@ -58,12 +58,12 @@ Install [OpenSSL](https://www.openssl.org/source/) on your machine. Please note 
 
 ## Fetch Source Code
 
-1. Fork [kube-deploy repo](https://github.com/kubernetes/kube-deploy). If it's your first time forking, please take a look at [GitHub Repo instructions](https://help.github.com/articles/fork-a-repo/). The general [Kubernetes GitHub workflow](https://github.com/kubernetes/community/blob/master/contributors/guide/github-workflow.md) is helpful here too if you're getting started.
+1. Fork [cluster-api repo](https://github.com/kubernetes-sigs/cluster-api). If it's your first time forking, please take a look at [GitHub Repo instructions](https://help.github.com/articles/fork-a-repo/). The general [Kubernetes GitHub workflow](https://github.com/kubernetes/community/blob/master/contributors/guide/github-workflow.md) is helpful here too if you're getting started.
 
 2. Clone Repo Locally
 ```bash
-$ cd $GOPATH/src/k8s.io/
-$ git clone https://github.com/<GITHUB_USERNAME>/kube-deploy.git
+$ cd $GOPATH/src/sigs.k8s.io/
+$ git clone https://github.com/<GITHUB_USERNAME>/cluster-api.git
 ```
 
 ## Build
@@ -78,6 +78,8 @@ This will create a binary `tf-deployer` in the same directory. You can use that 
 ## Developing
 
 When making changes to the machine controller, it's generally a good idea to delete any existing cluster created with an older version of the cluster-api.
+
+Note: the below command is not yet implemented.
 
 ```bash
 $ ./tf-deployer delete
@@ -96,10 +98,10 @@ NOTE: that the image will be pushed to `gcr.io/$GCP_PROJECT/terraform-machine-co
 
 2. Rebuild tf-deployer
 
-	```bash
+    ```bash
     $ cd $GOPATH/src/sigs.k8s.io/cluster-api/tf-deployer/
-	$ go build
-	```
+    $ go build
+    ```
 
 The new `†f-deployer` will have your changes.
 
@@ -112,7 +114,7 @@ We do not have unit tests or integration tests currently. For any changes, it is
 1. Create a cluster
 
 	```bash
-	$ ./tf-deployer create -c cluster.yaml -m machines.yaml
+	$ ./tf-deployer create -c cluster.yaml -m machines.yaml -n vsphere_named_machines.yaml
 	```
 
 [Optional]To verify API server has been deployed successfully, you can the following command to double check.

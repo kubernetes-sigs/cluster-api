@@ -1,16 +1,28 @@
 # Cluster API Terraform Prototype for vSphere 6.5
 
-The Cluster API Terraform prototype implements the [Cluster API](https://github.com/kubernetes/kube-deploy/blob/master/cluster-api/README.md) for Terraform. The target provider for this prototype is vSphere 6.5.
+The Cluster API Terraform prototype implements the [Cluster API](https://github.com/kubernetes-sigs/cluster-api/blob/master/README.md) for Terraform. The target provider for this prototype is vSphere 6.5.
 
 ## Getting Started
 
 ### Prerequisites
 
-Follow the steps listed at [CONTRIBUTING.md](https://github.com/kubernetes/kube-deploy/blob/master/cluster-api/tf-deployer/CONTRIBUTING.md) to:
+Follow the steps listed at [CONTRIBUTING.md](https://github.com/kubernetes-sigs/cluster-api/blob/master/tf-deployer/CONTRIBUTING.md) to:
 
 1. Build the `tf-deployer` tool
-2. Create a vSphere template following [this guide](https://blog.inkubate.io/deploy-a-vmware-vsphere-virtual-machine-with-terraform/), and make sure you have sshd running, and that it had a public key (for which you have the private key). Additionally, make sure a VM running that image is capable of networking (`etc/networking/interfaces`). 
-3. Create a `machines.yaml` file configured for your cluster. See the provided template for an example.
+   ```
+   cd $GOPATH/src/sigs.k8s.io/cluster-api/tf-deployer/
+   go build
+   ```
+1. Create a vSphere template following [this guide](https://blog.inkubate.io/deploy-a-vmware-vsphere-virtual-machine-with-terraform/) up to **Create the vSphere Ubuntu 16.04 template** section.
+1. Create a resource pool for your cluster.
+1. Create a pair of ssh keys that will be used to connect to the VMs. Put your
+   keys in `~/.ssh/vsphere_tmp` and `~/.ssh/vsphere_tmp.pub`.
+   ```
+   ssh-keygen -b 2048 -t rsa -f ~/.ssh/vsphere_tmp -q -N ""
+   ```
+1. Create a `machines.yaml` file configured for your cluster. See the provided template
+   for an example, if you use it, make sure to fill in all missing `terraformVariables`
+   in `providerConfig`.
 
 ### Limitation
 
@@ -18,7 +30,10 @@ See [here](https://github.com/karan/kube-deploy/issues?utf8=%E2%9C%93&q=is%3Aiss
 
 ### Creating a cluster
 
-1. Create a cluster: `./tf-deployer create -c cluster.yaml -m machines.yaml`
+1. Create a cluster:
+  ```
+  ./tf-deployer create -c cluster.yaml -m machines.yaml -n vsphere_named_machines.yaml
+  ```
 
 During cluster creation, you can watch the machine resources get created in Kubernetes,
 see the corresponding virtual machines created in your provider, and then finally see nodes
@@ -26,7 +41,6 @@ join the cluster:
 
 ```bash
 $ watch -n 5 "kubectl get machines"
-$ watch -n 5 "gcloud compute instances list"
 $ watch -n 5 "kubectl get nodes"
 ```
 

@@ -269,6 +269,7 @@ CONTROL_PLANE_VERSION={{ .Machine.Spec.Versions.ControlPlane }}
 CLUSTER_DNS_DOMAIN={{ .Cluster.Spec.ClusterNetwork.ServiceDomain }}
 POD_CIDR={{ getSubnet .Cluster.Spec.ClusterNetwork.Pods }}
 SERVICE_CIDR={{ getSubnet .Cluster.Spec.ClusterNetwork.Services }}
+CNI_PROVIDER=weavenet
 
 # kubeadm uses 10th IP as DNS server
 CLUSTER_DNS_SERVER=$(prips ${SERVICE_CIDR} | head -n 11 | tail -n 1)
@@ -347,10 +348,21 @@ EOF
 
 kubeadm init --config /etc/kubernetes/kubeadm_config.yaml
 
-# install weavenet
-sysctl net.bridge.bridge-nf-call-iptables=1
-export kubever=$(kubectl version --kubeconfig /etc/kubernetes/admin.conf | base64 | tr -d '\n')
-kubectl apply --kubeconfig /etc/kubernetes/admin.conf -f "https://cloud.weave.works/k8s/net?env.CHECKPOINT_DISABLE=1&env.IPALLOC_RANGE=${POD_CIDR}&disable-npc=true&k8s-version=$kubever"
+if [[ "${CNI_PROVIDER}" == "calico" ]]; then
+  KUBEADM_FLAGS+=" --pod-network-cidr=${POD_CIDR}"
+fi
+
+kubeadm init ${KUBEADM_FLAGS}
+
+if [[ "${CNI_PROVIDER}" == "calico" ]]; then
+	# install calico
+	kubectl apply --kubeconfig /etc/kubernetes/admin.conf -f https://docs.projectcalico.org/v3.0/getting-started/kubernetes/installation/hosted/kubeadm/1.7/calico.yaml
+else
+	# install weavenet
+	sysctl net.bridge.bridge-nf-call-iptables=1
+	export kubever=$(kubectl version --kubeconfig /etc/kubernetes/admin.conf | base64 | tr -d '\n')
+	kubectl apply --kubeconfig /etc/kubernetes/admin.conf -f "https://cloud.weave.works/k8s/net?env.CHECKPOINT_DISABLE=1&env.IPALLOC_RANGE=${POD_CIDR}&disable-npc=true&k8s-version=$kubever"
+fi
 
 for tries in $(seq 1 60); do
 	kubectl --kubeconfig /etc/kubernetes/kubelet.conf annotate --overwrite node $(hostname) machine=${MACHINE} && break

@@ -18,15 +18,11 @@ package cmd
 
 import (
 	"flag"
-	"io/ioutil"
 	"os"
 
-	"github.com/ghodss/yaml"
 	"github.com/golang/glog"
 	"github.com/spf13/cobra"
 	"k8s.io/apiserver/pkg/util/logs"
-	clusterv1 "sigs.k8s.io/cluster-api/pkg/apis/cluster/v1alpha1"
-	"sigs.k8s.io/cluster-api/util"
 )
 
 var RootCmd = &cobra.Command{
@@ -45,36 +41,6 @@ func Execute() {
 	}
 }
 
-func parseClusterYaml(file string) (*clusterv1.Cluster, error) {
-	bytes, err := ioutil.ReadFile(file)
-	if err != nil {
-		return nil, err
-	}
-
-	cluster := &clusterv1.Cluster{}
-	err = yaml.Unmarshal(bytes, cluster)
-	if err != nil {
-		return nil, err
-	}
-
-	return cluster, nil
-}
-
-func parseMachinesYaml(file string) ([]*clusterv1.Machine, error) {
-	bytes, err := ioutil.ReadFile(file)
-	if err != nil {
-		return nil, err
-	}
-
-	machines := &clusterv1.MachineList{}
-	err = yaml.Unmarshal(bytes, &machines)
-	if err != nil {
-		return nil, err
-	}
-
-	return util.MachineP(machines.Items), nil
-}
-
 func exitWithHelp(cmd *cobra.Command, err string) {
 	glog.Error(err)
 	cmd.Help()
@@ -84,4 +50,5 @@ func exitWithHelp(cmd *cobra.Command, err string) {
 func init() {
 	flag.CommandLine.Parse([]string{})
 	logs.InitLogs()
+	RootCmd.AddCommand(createCmd)
 }

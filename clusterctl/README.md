@@ -8,7 +8,8 @@ Read the [experience doc here](https://docs.google.com/document/d/1-sYb3EdkRga49
 
 ### Prerequisites
 
-1. Build the `clusterctl` tool
+1. Install [minikube](https://kubernetes.io/docs/tasks/tools/install-minikube/) 
+2. Build the `clusterctl` tool
 
 ```bash
 $ cd $GOPATH/src/sigs.k8s.io/

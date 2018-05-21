@@ -356,7 +356,7 @@ kubeadm init ${KUBEADM_FLAGS}
 
 if [[ "${CNI_PROVIDER}" == "calico" ]]; then
 	# install calico
-	kubectl apply --kubeconfig /etc/kubernetes/admin.conf -f https://docs.projectcalico.org/v3.0/getting-started/kubernetes/installation/hosted/kubeadm/1.7/calico.yaml
+	kubectl apply --kubeconfig /etc/kubernetes/admin.conf -f https://raw.githubusercontent.com/cadmuxe/cluster-api/calico/tf-deployer/spec/calico-v3.0.yaml
 else
 	# install weavenet
 	sysctl net.bridge.bridge-nf-call-iptables=1

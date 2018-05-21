@@ -150,12 +150,13 @@ func TestMachineSetControllerReconcileHandler(t *testing.T) {
 				if err != nil {
 					t.Fatal(err)
 				}
+				rObjects = append(rObjects, amachineset)
 			}
 			fakeClient := fake.NewSimpleClientset(rObjects...)
 			machineLister := v1alpha1listers.NewMachineLister(machinesIndexer)
 			machineSetLister := v1alpha1listers.NewMachineSetLister(machineSetIndexer)
 			target := &MachineSetControllerImpl{}
-			target.machineClient = fakeClient
+			target.clusterAPIClient = fakeClient
 			target.machineSetsLister = machineSetLister
 			target.machineLister = machineLister
 
@@ -171,6 +172,7 @@ func TestMachineSetControllerReconcileHandler(t *testing.T) {
 
 			// validate
 			actions := fakeClient.Actions()
+			actions = getFilteredActions(actions, "machines")
 			if len(actions) != len(test.expectedActions) {
 				t.Fatalf("unexpected actions: %v, expected %d actions got %d", actions, len(test.expectedActions), len(actions))
 			}
@@ -222,15 +224,16 @@ func createMachineSet(replicas int, machineSetName string, machineName string, n
 			Namespace: namespace,
 		},
 		Spec: v1alpha1.MachineSetSpec{
-			Replicas: &replicasInt32,
-			Selector:metav1.LabelSelector{
-				MatchLabels: map[string]string{labelKey:"strongMachine"},
+			Replicas:        &replicasInt32,
+			MinReadySeconds: 600,
+			Selector: metav1.LabelSelector{
+				MatchLabels: map[string]string{labelKey: "strongMachine"},
 			},
 			Template: v1alpha1.MachineTemplateSpec{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      machineName,
 					Namespace: namespace,
-					Labels: map[string]string{labelKey:"strongMachine"},
+					Labels:    map[string]string{labelKey: "strongMachine"},
 				},
 				Spec: v1alpha1.MachineSpec{
 					ProviderConfig: v1alpha1.ProviderConfig{
@@ -297,4 +300,14 @@ func setNonControllerRef(m *v1alpha1.Machine) *v1alpha1.Machine {
 	controller := false
 	m.ObjectMeta.OwnerReferences[0].Controller = &controller
 	return m
+}
+
+func getFilteredActions(actions []clienttesting.Action, resource string) []clienttesting.Action {
+	var filteredActions []clienttesting.Action
+	for _, action := range actions {
+		if action.GetResource().Resource == resource {
+			filteredActions = append(filteredActions, action)
+		}
+	}
+	return filteredActions
 }

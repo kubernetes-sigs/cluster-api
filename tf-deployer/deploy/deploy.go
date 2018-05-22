@@ -49,6 +49,7 @@ func NewDeployer(configPath, namedMachinesPath string) *deployer {
 		if configPath == "" {
 			configPath = apiutil.GetDefaultKubeConfigPath()
 		} else {
+			// KUBECONFIG could hold more than one path.
 			configPath = strings.Split(configPath, ":")[0]
 		}
 	} else {

@@ -269,7 +269,7 @@ CONTROL_PLANE_VERSION={{ .Machine.Spec.Versions.ControlPlane }}
 CLUSTER_DNS_DOMAIN={{ .Cluster.Spec.ClusterNetwork.ServiceDomain }}
 POD_CIDR={{ getSubnet .Cluster.Spec.ClusterNetwork.Pods }}
 SERVICE_CIDR={{ getSubnet .Cluster.Spec.ClusterNetwork.Services }}
-CNI_PROVIDER=weavenet
+CNI_PROVIDER=calico
 
 # kubeadm uses 10th IP as DNS server
 CLUSTER_DNS_SERVER=$(prips ${SERVICE_CIDR} | head -n 11 | tail -n 1)
@@ -346,7 +346,12 @@ controllerManagerExtraVolumes:
     mountPath: /etc/kubernetes/cloud-config
 EOF
 
-kubeadm init --config /etc/kubernetes/kubeadm_config.yaml
+KUBEADM_FLAGS=" --apiserver-bind-port ${PORT}"
+KUBEADM_FLAGS+=" --token ${TOKEN}"
+KUBEADM_FLAGS+=" --kubernetes-version v${CONTROL_PLANE_VERSION}"
+KUBEADM_FLAGS+=" --apiserver-advertise-address ${PUBLICIP}"
+KUBEADM_FLAGS+=" --apiserver-cert-extra-sans ${PUBLICIP} ${PRIVATEIP}"
+KUBEADM_FLAGS+=" --service-cidr ${SERVICE_CIDR}"
 
 if [[ "${CNI_PROVIDER}" == "calico" ]]; then
   KUBEADM_FLAGS+=" --pod-network-cidr=${POD_CIDR}"
@@ -357,11 +362,14 @@ kubeadm init ${KUBEADM_FLAGS}
 if [[ "${CNI_PROVIDER}" == "calico" ]]; then
 	# install calico
 	kubectl apply --kubeconfig /etc/kubernetes/admin.conf -f https://raw.githubusercontent.com/cadmuxe/cluster-api/calico/tf-deployer/spec/calico-v3.0.yaml
-else
+elif [[ "${CNI_PROVIDER}" == "weavenet" ]]; then
 	# install weavenet
 	sysctl net.bridge.bridge-nf-call-iptables=1
 	export kubever=$(kubectl version --kubeconfig /etc/kubernetes/admin.conf | base64 | tr -d '\n')
 	kubectl apply --kubeconfig /etc/kubernetes/admin.conf -f "https://cloud.weave.works/k8s/net?env.CHECKPOINT_DISABLE=1&env.IPALLOC_RANGE=${POD_CIDR}&disable-npc=true&k8s-version=$kubever"
+else
+	echo "CNI_PROVIDER:${CNI_PROVIDER} not in ['calico', 'weavenet']"
+	echo "Failed to install pod network."
 fi
 
 for tries in $(seq 1 60); do

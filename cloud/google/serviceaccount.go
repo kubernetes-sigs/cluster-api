@@ -222,14 +222,18 @@ func (gce *GCEClient) deleteServiceAccount(serviceAccountPrefix string, roles []
 
 func (gce *GCEClient) getProjects(machines []*clusterv1.Machine) ([]string, error) {
 	// Figure out what projects the service account needs permission to.
+	uniqueProjects := make(map[string]struct{})
+	exists := struct{}{}
 	var projects []string
 	for _, machine := range machines {
 		config, err := gce.providerconfig(machine.Spec.ProviderConfig)
 		if err != nil {
 			return nil, err
 		}
-
-		projects = append(projects, config.Project)
+		if _, ok := uniqueProjects[config.Project]; !ok {
+			uniqueProjects[config.Project] = exists
+			projects = append(projects, config.Project)
+		}
 	}
 	return projects, nil
 }

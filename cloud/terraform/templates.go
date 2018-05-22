@@ -213,7 +213,11 @@ sysctl net.bridge.bridge-nf-call-iptables=1
 # kubeadm uses 10th IP as DNS server
 CLUSTER_DNS_SERVER=$(prips ${SERVICE_CIDR} | head -n 11 | tail -n 1)
 
-sed -i "s/KUBELET_DNS_ARGS=[^\"]*/KUBELET_DNS_ARGS=--cluster-dns=${CLUSTER_DNS_SERVER} --cluster-domain=${CLUSTER_DNS_DOMAIN}/" /etc/systemd/system/kubelet.service.d/10-kubeadm.conf
+cat > /etc/systemd/system/kubelet.service.d/20-cloud.conf << EOF
+[Service]
+Environment="KUBELET_DNS_ARGS=--cluster-dns=${CLUSTER_DNS_SERVER} --cluster-domain=${CLUSTER_DNS_DOMAIN}"
+Environment="KUBELET_EXTRA_ARGS=--cloud-provider=vsphere"
+EOF
 systemctl daemon-reload
 systemctl restart kubelet.service
 
@@ -295,7 +299,11 @@ chmod a+rx /usr/bin/kubeadm
 
 systemctl enable docker
 systemctl start docker
-sed -i "s/KUBELET_DNS_ARGS=[^\"]*/KUBELET_DNS_ARGS=--cluster-dns=${CLUSTER_DNS_SERVER} --cluster-domain=${CLUSTER_DNS_DOMAIN}/" /etc/systemd/system/kubelet.service.d/10-kubeadm.conf
+cat > /etc/systemd/system/kubelet.service.d/20-cloud.conf << EOF
+[Service]
+Environment="KUBELET_DNS_ARGS=--cluster-dns=${CLUSTER_DNS_SERVER} --cluster-domain=${CLUSTER_DNS_DOMAIN}"
+Environment="KUBELET_EXTRA_ARGS=--cloud-provider=vsphere --cloud-config=/etc/kubernetes/cloud-config/cloud-config.yaml"
+EOF
 systemctl daemon-reload
 systemctl restart kubelet.service
 ` +
@@ -304,10 +312,37 @@ echo $PRIVATEIP > /tmp/.ip
 ` +
 	"PUBLICIP=`ip route get 8.8.8.8 | awk '{printf \"%s\", $NF; exit}'`" + `
 
+# Set up kubeadm config file to pass parameters to kubeadm init.
+cat > /etc/kubernetes/kubeadm_config.yaml <<EOF
+apiVersion: kubeadm.k8s.io/v1alpha1
+kind: MasterConfiguration
+api:
+  advertiseAddress: ${PUBLICIP}
+  bindPort: ${PORT}
+networking:
+  serviceSubnet: ${SERVICE_CIDR}
+kubernetesVersion: v${CONTROL_PLANE_VERSION}
+token: ${TOKEN}
+apiServerCertSANs:
+- ${PUBLICIP}
+- ${PRIVATEIP}
+apiServerExtraArgs:
+  cloud-provider: vsphere
+  cloud-config: /etc/kubernetes/cloud-config/cloud-config.yaml
+apiServerExtraVolumes:
+  - name: cloud-config
+    hostPath: /etc/kubernetes/cloud-config
+    mountPath: /etc/kubernetes/cloud-config
+controllerManagerExtraArgs:
+  cloud-provider: vsphere
+  cloud-config: /etc/kubernetes/cloud-config/cloud-config.yaml
+controllerManagerExtraVolumes:
+  - name: cloud-config
+    hostPath: /etc/kubernetes/cloud-config
+    mountPath: /etc/kubernetes/cloud-config
+EOF
 
-kubeadm init --apiserver-bind-port ${PORT} --token ${TOKEN} --kubernetes-version v${CONTROL_PLANE_VERSION} \
-             --apiserver-advertise-address ${PUBLICIP} --apiserver-cert-extra-sans ${PUBLICIP} ${PRIVATEIP} \
-             --service-cidr ${SERVICE_CIDR}
+kubeadm init --config /etc/kubernetes/kubeadm_config.yaml
 
 # install weavenet
 sysctl net.bridge.bridge-nf-call-iptables=1

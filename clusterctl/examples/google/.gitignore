@@ -1,1 +1,8 @@
 machines.yaml
+cluster.yaml
+provider-components.yaml
+addons.yaml
+loadbalancer-serviceaccount.json
+machine-controller-key
+machine-controller-key.pub
+machine-controller-serviceaccount.json

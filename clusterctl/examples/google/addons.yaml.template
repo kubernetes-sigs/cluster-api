@@ -1,0 +1,205 @@
+# Note: kubectl apply the generated file after the cluster is provisioned
+---
+kind: StorageClass
+apiVersion: storage.k8s.io/v1
+metadata:
+  name: standard
+  annotations:
+    storageclass.kubernetes.io/is-default-class: "true"
+provisioner: kubernetes.io/gce-pd
+parameters:
+  type: pd-standard
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: glbc
+  namespace: kube-system
+---
+apiVersion: rbac.authorization.k8s.io/
+kind: ClusterRole
+metadata:
+  name: system:controller:glbc
+rules:
+- apiGroups: [""]
+  resources: ["secrets", "endpoints", "services", "pods", "nodes", "namespaces"]
+  verbs: ["describe", "get", "list", "watch"]
+- apiGroups: [""]
+  resources: ["events", "configmaps"]
+  verbs: ["describe", "get", "list", "watch", "update", "create", "patch"]
+- apiGroups: ["extensions"]
+  resources: ["ingresses"]
+  verbs: ["get", "list", "watch", "update"]
+- apiGroups: ["extensions"]
+  resources: ["ingresses/status"]
+  verbs: ["update"]
+---
+apiVersion: rbac.authorization.k8s.io/
+kind: ClusterRoleBinding
+metadata:
+  name: system:controller:glbc
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: system:controller:glbc
+subjects:
+- kind: ServiceAccount
+  name: glbc
+  namespace: kube-system
+---
+apiVersion: extensions/v1beta1
+kind: Deployment
+metadata:
+  name: l7-default-backend
+  namespace: kube-system
+  labels:
+    k8s-app: glbc
+    kubernetes.io/name: "GLBC"
+    kubernetes.io/cluster-service: "true"
+    addonmanager.kubernetes.io/mode: Reconcile
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      k8s-app: glbc
+  template:
+    metadata:
+      labels:
+        k8s-app: glbc
+        name: glbc
+    spec:
+      containers:
+      - name: default-http-backend
+        # Any image is permissible as long as:
+        # 1. It serves a 404 page at /
+        # 2. It serves 200 on a /healthz endpoint
+        image: gcr.io/google_containers/defaultbackend:1.4
+        livenessProbe:
+          httpGet:
+            path: /healthz
+            port: 8080
+            scheme: HTTP
+          initialDelaySeconds: 30
+          timeoutSeconds: 5
+        ports:
+        - containerPort: 8080
+        resources:
+          limits:
+            cpu: 10m
+            memory: 20Mi
+          requests:
+            cpu: 10m
+            memory: 20Mi
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: ingress-controller-config
+  namespace: kube-system
+data:
+  gce.conf: |
+    [global]
+    token-url = nil
+    network = default
+    project-id = $GCLOUD_PROJECT
+    node-tags = $CLUSTER_NAME-worker
+---
+apiVersion: v1
+kind: Service
+metadata:
+  # This must match the --default-backend-service argument of the l7 lb
+  # controller and is required because GCE mandates a default backend.
+  name: default-http-backend
+  namespace: kube-system
+  labels:
+    k8s-app: glbc
+    kubernetes.io/cluster-service: "true"
+    addonmanager.kubernetes.io/mode: Reconcile
+    kubernetes.io/name: "GLBCDefaultBackend"
+spec:
+  # The default backend must be of type NodePort.
+  type: NodePort
+  ports:
+  - port: 80
+    targetPort: 8080
+    protocol: TCP
+    name: http
+  selector:
+    k8s-app: glbc
+---
+apiVersion: extensions/v1beta1
+kind: Deployment
+metadata:
+  namespace: kube-system
+  name: l7-lb-controller
+  annotations:
+    scheduler.alpha.kubernetes.io/critical-pod: ''
+  labels:
+    k8s-app: glbc
+    version: v1.1.1
+    kubernetes.io/name: "GLBC"
+spec:
+  # There should never be more than 1 controller alive simultaneously.
+  replicas: 1
+  selector:
+    matchLabels:
+      k8s-app: glbc
+      version: v1.1.1
+  template:
+    metadata:
+      labels:
+        k8s-app: glbc
+        version: v1.1.1
+        name: glbc
+    spec:
+      serviceAccountName: glbc
+      terminationGracePeriodSeconds: 600
+      containers:
+      - image: k8s.gcr.io/ingress-gce-glbc-amd64:v1.1.1
+        livenessProbe:
+          httpGet:
+            path: /healthz
+            port: 8086
+            scheme: HTTP
+          initialDelaySeconds: 30
+          timeoutSeconds: 5
+          successThreshold: 1
+          failureThreshold: 5
+        env:
+        - name: GOOGLE_APPLICATION_CREDENTIALS
+          value: /etc/credentials/service-account.json
+        name: l7-lb-controller
+        resources:
+          limits:
+            cpu: 100m
+            memory: 100Mi
+          requests:
+            cpu: 100m
+            memory: 50Mi
+        command:
+        - sh
+        - -c
+        - 'exec /glbc --gce-ratelimit=ga.Operations.Get,qps,10,100 --gce-ratelimit=alpha.Operations.Get,qps,10,100 --gce-ratelimit=ga.BackendServices.Get,qps,1.8,1 --gce-ratelimit=ga.HealthChecks.Get,qps,1.8,1 --gce-ratelimit=alpha.HealthChecks.Get,qps,1.8,1 --verbose --default-backend-service=kube-system/default-http-backend --sync-period=600s --running-in-cluster=true --use-real-cloud=true --config-file-path=/etc/ingress-config/gce.conf --healthz-port=8086 2>&1'
+        volumeMounts:
+        - mountPath: /etc/ingress-config
+          name: cloudconfig
+          readOnly: true
+        - mountPath: /etc/credentials
+          name: credentials
+          readOnly: true
+      volumes:
+      - name: cloudconfig
+        configMap:
+          name: ingress-controller-config
+      - name: credentials
+        secret:
+          secretName: glbc-gcp-key
+---
+apiVersion: v1
+kind: Secret
+type: Opaque
+metadata:
+  name: glbc-gcp-key
+  namespace: kube-system
+data:
+  service-account.json: $LOADBALANCER_SA_KEY

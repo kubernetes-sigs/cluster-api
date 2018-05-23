@@ -1,6 +1,7 @@
 package google_test
 
 import (
+	"encoding/base64"
 	compute "google.golang.org/api/compute/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1"
 	"sigs.k8s.io/cluster-api/cloud/google"
@@ -9,6 +10,7 @@ import (
 	"sigs.k8s.io/cluster-api/pkg/apis/cluster/common"
 	"sigs.k8s.io/cluster-api/pkg/apis/cluster/v1alpha1"
 	"strings"
+	"sigs.k8s.io/cluster-api/pkg/cert"
 	"testing"
 )
 
@@ -94,7 +96,7 @@ func TestNoDisks(t *testing.T) {
 	config := newGCEProviderConfigFixture()
 	config.Disks = make([]gceconfigv1.Disk, 0)
 	receivedInstance, computeServiceMock := newInsertInstanceCapturingMock()
-	createCluster(t, config, computeServiceMock)
+	createCluster(t, config, computeServiceMock, nil)
 	checkInstanceValues(t, receivedInstance, 0)
 }
 
@@ -109,7 +111,7 @@ func TestMinimumSizeShouldBeEnforced(t *testing.T) {
 		},
 	}
 	receivedInstance, computeServiceMock := newInsertInstanceCapturingMock()
-	createCluster(t, config, computeServiceMock)
+	createCluster(t, config, computeServiceMock, nil)
 	checkInstanceValues(t, receivedInstance, 1)
 	checkDiskValues(t, receivedInstance.Disks[0], true, 30, "pd-ssd", "projects/ubuntu-os-cloud/global/images/family/ubuntu-1710")
 }
@@ -125,7 +127,7 @@ func TestOneDisk(t *testing.T) {
 		},
 	}
 	receivedInstance, computeServiceMock := newInsertInstanceCapturingMock()
-	createCluster(t, config, computeServiceMock)
+	createCluster(t, config, computeServiceMock, nil)
 	checkInstanceValues(t, receivedInstance, 1)
 	checkDiskValues(t, receivedInstance.Disks[0], true, 37, "pd-ssd", "projects/ubuntu-os-cloud/global/images/family/ubuntu-1710")
 }
@@ -147,7 +149,7 @@ func TestTwoDisks(t *testing.T) {
 		},
 	}
 	receivedInstance, computeServiceMock := newInsertInstanceCapturingMock()
-	createCluster(t, config, computeServiceMock)
+	createCluster(t, config, computeServiceMock, nil)
 	checkInstanceValues(t, receivedInstance, 2)
 	checkDiskValues(t, receivedInstance.Disks[0], true, 32, "pd-ssd", "projects/ubuntu-os-cloud/global/images/family/ubuntu-1710")
 	checkDiskValues(t, receivedInstance.Disks[1], false, 45, "pd-standard", "")
@@ -179,11 +181,48 @@ func checkDiskValues(t *testing.T, disk *compute.AttachedDisk, boot bool, sizeGb
 	}
 }
 
-func createCluster(t *testing.T, config gceconfigv1.GCEProviderConfig, computeServiceMock *GCEClientComputeServiceMock) {
+func TestCreateWithCAShouldPopulateMetadata(t *testing.T) {
+	config := newGCEProviderConfigFixture()
+	receivedInstance, computeServiceMock := newInsertInstanceCapturingMock()
+	ca, err := cert.Load("testdata/ca")
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	createCluster(t, config, computeServiceMock, ca)
+	if receivedInstance.Metadata.Items == nil {
+		t.Fatalf("expected the instance to have valid metadata items")
+	}
+	checkMetadataItem(t, receivedInstance.Metadata, "ca-cert", string(ca.Certificate))
+	checkMetadataItem(t, receivedInstance.Metadata, "ca-key", string(ca.PrivateKey))
+}
+
+func checkMetadataItem(t *testing.T, metadata *compute.Metadata, key string, expectedValue string) {
+	item := getMetadataItem(t, metadata, key)
+	value, err := base64.StdEncoding.DecodeString(*item.Value)
+	if err != nil {
+		t.Fatalf("unable to base64 decode %v's value: %v", item.Key, *item.Value)
+	}
+	if string(value) != expectedValue {
+		t.Errorf("invalid value for %v, expected %v got %v", key, expectedValue, value)
+	}
+}
+
+func getMetadataItem(t *testing.T, metadata *compute.Metadata, itemKey string) *compute.MetadataItems {
+	for _, i := range metadata.Items {
+		if i.Key == itemKey {
+			return i
+		}
+	}
+	t.Fatalf("missing metadata item with key: %v", itemKey)
+	return nil
+}
+
+func createCluster(t *testing.T, config gceconfigv1.GCEProviderConfig, computeServiceMock *GCEClientComputeServiceMock, ca *cert.CertificateAuthority) {
 	cluster := newDefaultClusterFixture()
 	machine := newMachine(t, config)
 	configWatch := newMachineSetupConfigWatcher()
 	params := google.MachineActuatorParams{
+		CertificateAuthority:     ca,
 		ComputeService:           computeServiceMock,
 		MachineSetupConfigGetter: configWatch,
 	}

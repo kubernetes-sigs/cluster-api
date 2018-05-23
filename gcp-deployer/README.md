@@ -20,8 +20,10 @@ gcp-deployer tool only supports Kubernetes version 1.9 or newer.
 1. *Optional* update `machines.yaml` to give your preferred GCP zone in
 each machine's `providerConfig` field.
 1. *Optional*: Update `cluster.yaml` to set a custom cluster name.
-1. Create a cluster: `./gcp-deployer create -c cluster.yaml -m machines.yaml -s machine_setup_configs.yaml`.
+1. Create a cluster: `./gcp-deployer create -c cluster.yaml -m machines.yaml -s machine_setup_configs.yaml -a /path/to/certificate/authority`.
     1. **Note**: The `--machinesetup` or `-s` flag is set to `machine_setup_configs.yaml` by default.
+    1. Note: The `--certificate-authority-path` or `a` flag is optional. If not
+       supplied, then a certificate authority will be generated.
 
 During cluster creation, you can watch the machine resources get created in Kubernetes,
 see the corresponding virtual machines created in GCP, and then finally see nodes

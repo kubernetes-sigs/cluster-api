@@ -30,6 +30,7 @@ import (
 	"sigs.k8s.io/cluster-api/pkg/client/clientset_generated/clientset/typed/cluster/v1alpha1"
 	"sigs.k8s.io/cluster-api/util"
 	apiutil "sigs.k8s.io/cluster-api/util"
+	"io/ioutil"
 )
 
 type deployer struct {
@@ -61,9 +62,18 @@ func NewDeployer(provider string, kubeConfigPath string, machineSetupConfigPath 
 	if err != nil {
 		glog.Exit(fmt.Sprintf("Could not create config watch: %v\n", err))
 	}
+
+	sshPublicKey, err := ioutil.ReadFile(SshKeyFilePublic)
+	if err != nil {
+		glog.Fatalf("Could not read public key file: %v", err)
+	}
+
 	params := google.MachineActuatorParams{
 		MachineSetupConfigGetter: configWatch,
 		KubeadmToken:             token,
+		SSHPrivateKeyPath:        SshKeyFilePrivate,
+		SSHPublicKey:             string(sshPublicKey),
+		SSHUser:                  SshUser,
 	}
 	ma, err := google.NewMachineActuator(params)
 	if err != nil {
@@ -77,12 +87,14 @@ func NewDeployer(provider string, kubeConfigPath string, machineSetupConfigPath 
 }
 
 func (d *deployer) CreateCluster(c *clusterv1.Cluster, machines []*clusterv1.Machine) error {
+	createSshKeyPairs()
 	vmCreated := false
 	if err := d.createCluster(c, machines, &vmCreated); err != nil {
 		if vmCreated {
 			d.deleteMasterVM(machines)
 		}
 		d.machineDeployer.PostDelete(c, machines)
+		cleanupSshKeyPairs()
 		return err
 	}
 
@@ -126,6 +138,7 @@ func (d *deployer) DeleteCluster() error {
 	if err := d.machineDeployer.PostDelete(cluster, machines); err != nil {
 		return err
 	}
+	cleanupSshKeyPairs()
 	glog.Infof("Deletion complete")
 	return nil
 }

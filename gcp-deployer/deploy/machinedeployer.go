@@ -10,7 +10,6 @@ import (
 type machineDeployer interface {
 	machine.Actuator
 	GetIP(machine *clusterv1.Machine) (string, error)
-	GetKubeConfig(master *clusterv1.Machine) (string, error)
 
 	// Provision infrastructure that the cluster needs before it
 	// can be created

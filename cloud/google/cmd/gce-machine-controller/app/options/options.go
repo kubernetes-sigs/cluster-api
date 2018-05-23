@@ -25,6 +25,9 @@ type MachineControllerServer struct {
 	CommonConfig            *config.Configuration
 	KubeadmToken            string
 	MachineSetupConfigsPath string
+	SSHPrivateKeyPath       string
+	SSHPublicKeyPath        string
+	SSHUserPath             string
 }
 
 func NewMachineControllerServer() *MachineControllerServer {
@@ -37,6 +40,9 @@ func NewMachineControllerServer() *MachineControllerServer {
 func (s *MachineControllerServer) AddFlags(fs *pflag.FlagSet) {
 	fs.StringVar(&s.KubeadmToken, "token", s.KubeadmToken, "Kubeadm token to use to join new machines")
 	fs.StringVar(&s.MachineSetupConfigsPath, "machinesetup", s.MachineSetupConfigsPath, "path to machine setup configs file")
+	fs.StringVar(&s.SSHPrivateKeyPath, "sshprivatekeypath", s.SSHPrivateKeyPath, "path to the private ssh key file")
+	fs.StringVar(&s.SSHPublicKeyPath, "sshpublickeypath", s.SSHPrivateKeyPath, "path to the public ssh key file")
+	fs.StringVar(&s.SSHUserPath, "sshuserpath", s.SSHUserPath, "path to the ssh user file")
 
 	config.ControllerConfig.AddFlags(pflag.CommandLine)
 }

@@ -18,93 +18,34 @@ package google
 
 import (
 	"fmt"
-	"io/ioutil"
-	"os"
-	"os/exec"
 	"strings"
 
 	"github.com/golang/glog"
 	clusterv1 "sigs.k8s.io/cluster-api/pkg/apis/cluster/v1alpha1"
 )
 
-const (
-	MachineControllerSshKeySecret = "machine-controller-sshkeys"
-	// Arbitrary name used for SSH.
-	SshUser                = "clusterapi"
-	SshKeyFile             = "clusterapi-key"
-	SshKeyFilePublic       = SshKeyFile + ".pub"
-	SshKeyFilePublicGcloud = SshKeyFilePublic + ".gcloud"
-)
-
-func createSshKeyPairs() error {
-	err := run("ssh-keygen", "-t", "rsa", "-f", SshKeyFile, "-C", SshUser, "-N", "")
-	if err != nil {
-		return fmt.Errorf("couldn't generate RSA keys: %v", err)
-	}
-
-	// Prepare a gce format public key file
-	outfile, err := os.Create(SshKeyFilePublicGcloud)
-	if err != nil {
-		return err
-	}
-	defer outfile.Close()
-
-	b, err := ioutil.ReadFile(SshKeyFilePublic)
-	if err == nil {
-		outfile.WriteString(SshUser + ":" + string(b))
-	}
-
-	return err
+func (gce *GCEClient) sshMetadata(metadata map[string]string) (map[string]string, error) {
+	sshMetadata(metadata, gce.sshCreds.user, gce.sshCreds.publicKey)
+	return metadata, nil
 }
 
-func cleanupSshKeyPairs() {
-	os.Remove(SshKeyFile)
-	os.Remove(SshKeyFilePublic)
-	os.Remove(SshKeyFilePublicGcloud)
-}
-
-// It creates secret to store private key.
-func (gce *GCEClient) setupSSHAccess(m *clusterv1.Machine) error {
-	// Create public/private key pairs
-	err := createSshKeyPairs()
-	if err != nil {
-		return err
-	}
-
-	config, err := gce.providerconfig(m.Spec.ProviderConfig)
-	if err != nil {
-		return err
-	}
-
-	err = run("gcloud", "compute", "instances", "add-metadata", m.Name,
-		"--metadata-from-file", "ssh-keys="+SshKeyFile+".pub.gcloud",
-		"--project", config.Project, "--zone", config.Zone)
-	if err != nil {
-		return err
-	}
-
-	// Create secrets so that machine controller container can load them.
-	err = run("kubectl", "create", "secret", "generic", MachineControllerSshKeySecret, "--from-file=private="+SshKeyFile, "--from-literal=user="+SshUser)
-	if err != nil {
-		return fmt.Errorf("couldn't create service account key as credential: %v", err)
-	}
-
-	cleanupSshKeyPairs()
-
-	return err
+func sshMetadata(metadata map[string]string, user, publicKey string) (map[string]string) {
+	metadata["ssh-keys"] = fmt.Sprintf("%s:%s", user, publicKey)
+	return metadata
 }
 
 func (gce *GCEClient) remoteSshCommand(m *clusterv1.Machine, cmd string) (string, error) {
-	glog.Infof("Remote SSH execution '%s' on %s", cmd, m.ObjectMeta.Name)
-
 	publicIP, err := gce.GetIP(m)
 	if err != nil {
 		return "", err
 	}
 
-	command := fmt.Sprintf("%s", cmd)
-	c := exec.Command("ssh", "-i", gce.sshCreds.privateKeyPath, "-q", gce.sshCreds.user+"@"+publicIP, command)
-	out, err := c.CombinedOutput()
+	glog.Infof("Remote SSH execution '%s' on %s %s", cmd, m.ObjectMeta.Name, publicIP)
+  return remoteSshCommand(publicIP, cmd, gce.sshCreds.user, gce.sshCreds.privateKeyPath)
+}
+
+func remoteSshCommand(ip, cmd, user, privateKeyPath string) (string, error) {
+	out, err := runOutput("ssh", "-i", privateKeyPath, "-q", user+"@"+ip, "-o", "StrictHostKeyChecking=no", "-o", "UserKnownHostsFile=/dev/null", cmd)
 	if err != nil {
 		return "", fmt.Errorf("error: %v, output: %s", err, string(out))
 	}

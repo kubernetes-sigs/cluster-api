@@ -94,6 +94,10 @@ func (d *deployer) createCluster(c *clusterv1.Cluster, machines []*clusterv1.Mac
 	}
 
 	glog.Info("Deploying the addon apiserver and controller manager...")
+	if err := setupSSHSecret(); err != nil {
+		return fmt.Errorf("unable to create ssh secret for machine controller: %v", err)
+	}
+
 	if err := d.machineDeployer.CreateMachineController(c, machines, d.kubernetesClientSet); err != nil {
 		return fmt.Errorf("can't create machine controller: %v", err)
 	}
@@ -217,12 +221,18 @@ func (d *deployer) getMasterIP(master *clusterv1.Machine) (string, error) {
 }
 
 func (d *deployer) copyKubeConfig(master *clusterv1.Machine) error {
+	masterIP, err := d.getMasterIP(master)
+	if err != nil {
+		glog.Errorf("Error resolving master IP while retrieving kubeconfig %s", err)
+		return err
+	}
+
 	writeErr := util.Retry(func() (bool, error) {
 		glog.Infof("Waiting for Kubernetes to come up...")
-		config, err := d.machineDeployer.GetKubeConfig(master)
+		config, err := sshCommand(masterIP, "sudo cat /etc/kubernetes/admin.conf")
 		if err != nil {
-			glog.Errorf("Error while retriving kubeconfig %s", err)
-			return false, err
+			glog.Errorf("Error while retrieving kubeconfig %s", err)
+			return false, nil
 		}
 		if config == "" {
 			return false, nil

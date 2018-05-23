@@ -22,6 +22,7 @@ import (
 	"github.com/spf13/cobra"
 	"io/ioutil"
 	"sigs.k8s.io/cluster-api/clusterctl/clusterdeployer"
+	"sigs.k8s.io/cluster-api/clusterctl/clusterdeployer/minikube"
 	clusterv1 "sigs.k8s.io/cluster-api/pkg/apis/cluster/v1alpha1"
 	"sigs.k8s.io/cluster-api/util"
 )
@@ -29,6 +30,8 @@ import (
 type CreateOptions struct {
 	Cluster string
 	Machine string
+	CleanupExternalCluster bool
+	VmDriver string
 }
 
 var co = &CreateOptions{}
@@ -60,14 +63,20 @@ func RunCreate(co *CreateOptions) error {
 		return err
 	}
 
-	d := &clusterdeployer.ClusterDeployer{}
+	mini := minikube.New(co.VmDriver)
+	d := clusterdeployer.New(mini, co.CleanupExternalCluster)
 	err = d.Create(c, m)
 	return err
 }
 
 func init() {
+	// Required flags
 	createClusterCmd.Flags().StringVarP(&co.Cluster, "cluster", "c", "", "A yaml file containing cluster object definition")
 	createClusterCmd.Flags().StringVarP(&co.Machine, "machines", "m", "", "A yaml file containing machine object definition(s)")
+
+	// Optional flags
+	createClusterCmd.Flags().BoolVarP(&co.CleanupExternalCluster, "cleanup-external-cluster", "", true, "Whether to cleanup the external cluster after bootstrap")
+	createClusterCmd.Flags().StringVarP(&co.VmDriver, "vm-driver", "", "", "Which vm driver to use for minikube")
 }
 
 func parseClusterYaml(file string) (*clusterv1.Cluster, error) {
@@ -91,11 +100,15 @@ func parseMachinesYaml(file string) ([]*clusterv1.Machine, error) {
 		return nil, err
 	}
 
-	machines := &clusterv1.MachineList{}
-	err = yaml.Unmarshal(bytes, &machines)
+	list := &clusterv1.MachineList{}
+	err = yaml.Unmarshal(bytes, &list)
 	if err != nil {
 		return nil, err
 	}
 
-	return util.MachineP(machines.Items), nil
+	if list == nil {
+		return []*clusterv1.Machine{}, nil
+	}
+
+	return util.MachineP(list.Items), nil
 }

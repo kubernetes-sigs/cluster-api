@@ -19,9 +19,9 @@ package cmd
 import (
 	"flag"
 	"os"
-
 	"github.com/golang/glog"
 	"github.com/spf13/cobra"
+	"github.com/spf13/pflag"
 	"k8s.io/apiserver/pkg/util/logs"
 )
 
@@ -49,6 +49,10 @@ func exitWithHelp(cmd *cobra.Command, err string) {
 
 func init() {
 	flag.CommandLine.Parse([]string{})
+
+	// Honor glog flags for verbosity control
+	pflag.CommandLine.AddGoFlagSet(flag.CommandLine)
+
 	logs.InitLogs()
 	RootCmd.AddCommand(createCmd)
 }

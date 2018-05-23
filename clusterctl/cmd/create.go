@@ -18,12 +18,13 @@ package cmd
 
 import (
 	"github.com/spf13/cobra"
+	"k8s.io/kubernetes/pkg/kubectl/util/i18n"
 )
 
 var createCmd = &cobra.Command{
 	Use:   "create",
-	Short: "Create a cluster API resource",
-	Long:  `Create a cluster API resource with one command`,
+	Short: i18n.T("Create a cluster API resource"),
+	Long:  i18n.T("Create a cluster API resource with one command"),
 }
 
 func init() {

@@ -22,6 +22,7 @@ import (
 	"k8s.io/apiserver/pkg/util/logs"
 	"sigs.k8s.io/cluster-api/cloud/google/cmd/gce-machine-controller/app"
 	"sigs.k8s.io/cluster-api/cloud/google/cmd/gce-machine-controller/app/options"
+	"flag"
 )
 
 func main() {
@@ -30,6 +31,8 @@ func main() {
 	s.AddFlags(pflag.CommandLine)
 
 	pflag.Parse()
+	// the following line exists to make glog happy, for more information, see: https://github.com/kubernetes/kubernetes/issues/17162
+	flag.CommandLine.Parse([]string{})
 
 	logs.InitLogs()
 	defer logs.FlushLogs()

@@ -23,7 +23,6 @@ import (
 
 type MachineControllerServer struct {
 	CommonConfig            *config.Configuration
-	KubeadmToken            string
 	MachineSetupConfigsPath string
 }
 
@@ -35,7 +34,6 @@ func NewMachineControllerServer() *MachineControllerServer {
 }
 
 func (s *MachineControllerServer) AddFlags(fs *pflag.FlagSet) {
-	fs.StringVar(&s.KubeadmToken, "token", s.KubeadmToken, "Kubeadm token to use to join new machines")
 	fs.StringVar(&s.MachineSetupConfigsPath, "machinesetup", s.MachineSetupConfigsPath, "path to machine setup configs file")
 
 	config.ControllerConfig.AddFlags(pflag.CommandLine)

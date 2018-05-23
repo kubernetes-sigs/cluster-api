@@ -36,11 +36,13 @@ import (
 
 	"encoding/base64"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime/serializer"
 	"k8s.io/client-go/kubernetes"
 	"sigs.k8s.io/cluster-api/cloud/google/clients"
 	gceconfigv1 "sigs.k8s.io/cluster-api/cloud/google/gceproviderconfig/v1alpha1"
 	"sigs.k8s.io/cluster-api/cloud/google/machinesetup"
 	apierrors "sigs.k8s.io/cluster-api/errors"
+	"sigs.k8s.io/cluster-api/kubeadm"
 	clusterv1 "sigs.k8s.io/cluster-api/pkg/apis/cluster/v1alpha1"
 	"sigs.k8s.io/cluster-api/pkg/cert"
 	client "sigs.k8s.io/cluster-api/pkg/client/clientset_generated/clientset/typed/cluster/v1alpha1"
@@ -64,6 +66,10 @@ type SshCreds struct {
 	privateKeyPath string
 }
 
+type GCEClientKubeadm interface {
+	TokenCreate(params kubeadm.TokenCreateParams) (string, error)
+}
+
 type GCEClientMachineSetupConfigGetter interface {
 	GetMachineSetupConfig() (machinesetup.MachineSetupConfig, error)
 }
@@ -81,8 +87,9 @@ type GCEClient struct {
 	certificateAuthority     *cert.CertificateAuthority
 	computeService           GCEClientComputeService
 	gceProviderConfigCodec   *gceconfigv1.GCEProviderConfigCodec
+	kubeadm                  GCEClientKubeadm
 	scheme                   *runtime.Scheme
-	kubeadmToken             string
+	codecFactory             *serializer.CodecFactory
 	sshCreds                 SshCreds
 	machineClient            client.MachineInterface
 	machineSetupConfigGetter GCEClientMachineSetupConfigGetter
@@ -91,7 +98,7 @@ type GCEClient struct {
 type MachineActuatorParams struct {
 	CertificateAuthority     *cert.CertificateAuthority
 	ComputeService           GCEClientComputeService
-	KubeadmToken             string
+	Kubeadm                  GCEClientKubeadm
 	MachineClient            client.MachineInterface
 	MachineSetupConfigGetter GCEClientMachineSetupConfigGetter
 }
@@ -132,9 +139,9 @@ func NewMachineActuator(params MachineActuatorParams) (*GCEClient, error) {
 	return &GCEClient{
 		certificateAuthority:   params.CertificateAuthority,
 		computeService:         computeService,
+		kubeadm:                getOrNewKubeadm(params),
 		scheme:                 scheme,
 		gceProviderConfigCodec: codec,
-		kubeadmToken:           params.KubeadmToken,
 		sshCreds: SshCreds{
 			privateKeyPath: privateKeyPath,
 			user:           user,
@@ -180,7 +187,7 @@ func (gce *GCEClient) CreateMachineController(cluster *clusterv1.Cluster, initia
 		return err
 	}
 
-	if err := CreateApiServerAndController(gce.kubeadmToken); err != nil {
+	if err := CreateApiServerAndController(); err != nil {
 		return err
 	}
 	return nil
@@ -263,7 +270,7 @@ func (gce *GCEClient) Create(cluster *clusterv1.Cluster, machine *clusterv1.Mach
 					},
 				},
 			},
-			Disks: newDisks(machineConfig, zone, imagePath, int64(30)),
+			Disks:    newDisks(machineConfig, zone, imagePath, int64(30)),
 			Metadata: metadata,
 			Tags: &compute.Tags{
 				Items: []string{
@@ -752,8 +759,8 @@ func newDisks(config *gceconfigv1.GCEMachineProviderConfig, zone string, imagePa
 		d := compute.AttachedDisk{
 			AutoDelete: true,
 			InitializeParams: &compute.AttachedDiskInitializeParams{
-				DiskSizeGb:  diskSizeGb,
-				DiskType:    fmt.Sprintf("zones/%s/diskTypes/%s", zone, disk.InitializeParams.DiskType),
+				DiskSizeGb: diskSizeGb,
+				DiskType:   fmt.Sprintf("zones/%s/diskTypes/%s", zone, disk.InitializeParams.DiskType),
 			},
 		}
 		if idx == 0 {
@@ -775,6 +782,25 @@ func getSubnet(netRange clusterv1.NetworkRanges) string {
 		return ""
 	}
 	return netRange.CIDRBlocks[0]
+}
+
+func (gce *GCEClient) getKubeadmToken() (string, error) {
+	tokenParams := kubeadm.TokenCreateParams{
+		Ttl: time.Duration(10) * time.Minute,
+	}
+	output, err := gce.kubeadm.TokenCreate(tokenParams)
+	if err != nil {
+		glog.Errorf("unable to create token: %v", err)
+		return "", err
+	}
+	return strings.TrimSpace(output), err
+}
+
+func getOrNewKubeadm(params MachineActuatorParams) GCEClientKubeadm {
+	if params.Kubeadm == nil {
+		return kubeadm.New()
+	}
+	return params.Kubeadm
 }
 
 func getOrNewComputeService(params MachineActuatorParams) (GCEClientComputeService, error) {
@@ -813,7 +839,7 @@ func (gce *GCEClient) getMetadata(cluster *clusterv1.Cluster, machine *clusterv1
 				"invalid master configuration: missing Machine.Spec.Versions.ControlPlane"))
 		}
 		var err error
-		metadataMap, err = masterMetadata(gce.kubeadmToken, cluster, machine, clusterConfig.Project, &machineSetupMetadata)
+		metadataMap, err = masterMetadata(cluster, machine, clusterConfig.Project, &machineSetupMetadata)
 		if err != nil {
 			return nil, err
 		}
@@ -823,11 +849,12 @@ func (gce *GCEClient) getMetadata(cluster *clusterv1.Cluster, machine *clusterv1
 			metadataMap["ca-key"] = base64.StdEncoding.EncodeToString(ca.PrivateKey)
 		}
 	} else {
-		if len(cluster.Status.APIEndpoints) == 0 {
-			return nil, errors.New("invalid cluster state: cannot create a Kubernetes node without an API endpoint")
-		}
 		var err error
-		metadataMap, err = nodeMetadata(gce.kubeadmToken, cluster, machine, clusterConfig.Project, &machineSetupMetadata)
+		kubeadmToken, err := gce.getKubeadmToken()
+		if err != nil {
+			return nil, err
+		}
+		metadataMap, err = nodeMetadata(kubeadmToken, cluster, machine, clusterConfig.Project, &machineSetupMetadata)
 		if err != nil {
 			return nil, err
 		}

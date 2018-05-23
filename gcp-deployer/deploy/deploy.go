@@ -65,7 +65,6 @@ func NewDeployer(provider string, kubeConfigPath string, machineSetupConfigPath 
 	params := google.MachineActuatorParams{
 		CertificateAuthority:     ca,
 		MachineSetupConfigGetter: configWatch,
-		KubeadmToken:             token,
 	}
 	ma, err := google.NewMachineActuator(params)
 	if err != nil {

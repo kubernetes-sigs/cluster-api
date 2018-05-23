@@ -86,7 +86,7 @@ func getApiServerCerts() (*caCertParams, error) {
 	return certParams, nil
 }
 
-func CreateApiServerAndController(token string) error {
+func CreateApiServerAndController() error {
 	tmpl, err := template.New("config").Parse(config.ClusterAPIDeployConfigTemplate)
 	if err != nil {
 		return err
@@ -99,7 +99,6 @@ func CreateApiServerAndController(token string) error {
 	}
 
 	type params struct {
-		Token                  string
 		APIServerImage         string
 		ControllerManagerImage string
 		MachineControllerImage string
@@ -110,7 +109,6 @@ func CreateApiServerAndController(token string) error {
 
 	var tmplBuf bytes.Buffer
 	err = tmpl.Execute(&tmplBuf, params{
-		Token:                  token,
 		APIServerImage:         apiServerImage,
 		ControllerManagerImage: controllerManagerImage,
 		MachineControllerImage: machineControllerImage,
@@ -129,7 +127,7 @@ func CreateApiServerAndController(token string) error {
 			return nil
 		} else {
 			if tries < maxTries-1 {
-				glog.Info("Error scheduling machine controller. Will retry...\n")
+				glog.Infof("Retrying scheduling machine controller after encountering error: %v\n", err)
 				time.Sleep(3 * time.Second)
 			}
 		}

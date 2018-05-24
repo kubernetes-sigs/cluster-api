@@ -23,19 +23,20 @@ COPY . .
 RUN CGO_ENABLED=0 GOOS=linux go install -a -ldflags '-extldflags "-static"' sigs.k8s.io/cluster-api/cloud/terraform/cmd/terraform-machine-controller
 
 # Final container
-FROM alpine:3.7
+FROM debian:stretch-slim
 
 ENV TERRAFORM_VERSION=0.11.7
 ENV TERRAFORM_ZIP=terraform_${TERRAFORM_VERSION}_linux_amd64.zip
 ENV TERRAFORM_SHA256SUM=6b8ce67647a59b2a3f70199c304abca0ddec0e49fd060944c26f666298e23418
 ENV TERRAFORM_SHAFILE=terraform_${TERRAFORM_VERSION}_SHA256SUMS
 
-RUN apk --no-cache add --update bash ca-certificates curl openssh && \
+RUN apt-get update && apt-get install -y ca-certificates curl openssh-server unzip && \
     curl https://releases.hashicorp.com/terraform/${TERRAFORM_VERSION}/${TERRAFORM_ZIP} > ${TERRAFORM_ZIP} && \
     echo "${TERRAFORM_SHA256SUM}  ${TERRAFORM_ZIP}" > ${TERRAFORM_SHAFILE} && \
-    sha256sum -cs ${TERRAFORM_SHAFILE} && \
+    sha256sum --quiet -c ${TERRAFORM_SHAFILE} && \
     unzip ${TERRAFORM_ZIP} -d /bin && \
     rm -f ${TERRAFORM_ZIP} ${TERRAFORM_SHAFILE} && \
-    echo 'plugin_cache_dir = "$HOME/.terraform.d/plugin-cache"' >> ~/.terraformrc
+    echo 'plugin_cache_dir = "$HOME/.terraform.d/plugin-cache"' >> ~/.terraformrc && \
+    rm -rf /var/lib/apt/lists/*
     
 COPY --from=builder /go/bin/terraform-machine-controller .

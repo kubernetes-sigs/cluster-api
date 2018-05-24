@@ -32,9 +32,9 @@ import (
 	"sigs.k8s.io/cluster-api/cloud/google/config"
 )
 
-var apiServerImage = "gcr.io/k8s-cluster-api/cluster-apiserver:0.0.3"
-var controllerManagerImage = "gcr.io/k8s-cluster-api/controller-manager:0.0.3"
-var machineControllerImage = "gcr.io/k8s-cluster-api/gce-machine-controller:0.0.10"
+var apiServerImage = "gcr.io/k8s-cluster-api/cluster-apiserver:0.0.4"
+var controllerManagerImage = "gcr.io/k8s-cluster-api/controller-manager:0.0.4"
+var machineControllerImage = "gcr.io/k8s-cluster-api/gce-machine-controller:0.0.11"
 
 func init() {
 	if img, ok := os.LookupEnv("MACHINE_CONTROLLER_IMAGE"); ok {

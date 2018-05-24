@@ -23,8 +23,8 @@ COPY . .
 RUN CGO_ENABLED=0 GOOS=linux go install -a -ldflags '-extldflags "-static"' sigs.k8s.io/cluster-api/cloud/google/cmd/gce-machine-controller
 
 # Final container
-FROM alpine:3.7
-RUN apk --no-cache add ca-certificates bash openssh 
+FROM debian:stretch-slim
+RUN apt-get update && apt-get install -y ca-certificates openssh-server && rm -rf /var/lib/apt/lists/*
 
 COPY --from=builder /go/bin/gce-machine-controller .
 

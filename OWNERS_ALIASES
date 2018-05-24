@@ -14,9 +14,11 @@ aliases:
     - kris-nova
   cluster-api-maintainers:
     - jessicaochen
+    - k4leung4
     - karan
     - kris-nova
     - krousey
     - medinatiger
     - roberthbailey
     - rsdcastro
+    - spew

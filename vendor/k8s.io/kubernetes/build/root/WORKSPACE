@@ -1,0 +1,110 @@
+http_archive(
+    name = "io_bazel_rules_go",
+    sha256 = "441e560e947d8011f064bd7348d86940d6b6131ae7d7c4425a538e8d9f884274",
+    strip_prefix = "rules_go-c72631a220406c4fae276861ee286aaec82c5af2",
+    urls = ["https://github.com/bazelbuild/rules_go/archive/c72631a220406c4fae276861ee286aaec82c5af2.tar.gz"],
+)
+
+http_archive(
+    name = "io_kubernetes_build",
+    sha256 = "89788eb30f10258ae0c6ab8b8625a28cb4c101fba93a8a6725ba227bb778ff27",
+    strip_prefix = "repo-infra-653485c1a6d554513266d55683da451bd41f7d65",
+    urls = ["https://github.com/kubernetes/repo-infra/archive/653485c1a6d554513266d55683da451bd41f7d65.tar.gz"],
+)
+
+http_archive(
+    name = "bazel_skylib",
+    sha256 = "bbccf674aa441c266df9894182d80de104cabd19be98be002f6d478aaa31574d",
+    strip_prefix = "bazel-skylib-2169ae1c374aab4a09aa90e65efe1a3aad4e279b",
+    urls = ["https://github.com/bazelbuild/bazel-skylib/archive/2169ae1c374aab4a09aa90e65efe1a3aad4e279b.tar.gz"],
+)
+
+ETCD_VERSION = "3.1.11"
+
+new_http_archive(
+    name = "com_coreos_etcd",
+    build_file = "third_party/etcd.BUILD",
+    sha256 = "b80c6c0719beee703821ece80f9e48b071ad5f59bb284bd3ea2104700738d9ec",
+    strip_prefix = "etcd-v%s-linux-amd64" % ETCD_VERSION,
+    urls = ["https://github.com/coreos/etcd/releases/download/v%s/etcd-v%s-linux-amd64.tar.gz" % (ETCD_VERSION, ETCD_VERSION)],
+)
+
+# This contains a patch to not prepend ./ to tarfiles produced by pkg_tar.
+# When merged upstream, we'll no longer need to use ixdy's fork:
+# https://bazel-review.googlesource.com/#/c/10390/
+http_archive(
+    name = "io_bazel",
+    sha256 = "892a84aa1e7c1f99fb57bb056cb648745c513077252815324579a012d263defb",
+    strip_prefix = "bazel-df2c687c22bdd7c76f3cdcc85f38fefd02f0b844",
+    urls = ["https://github.com/ixdy/bazel/archive/df2c687c22bdd7c76f3cdcc85f38fefd02f0b844.tar.gz"],
+)
+
+http_archive(
+    name = "io_bazel_rules_docker",
+    sha256 = "c440717ee9b1b2f4a1e9bf5622539feb5aef9db83fc1fa1517818f13c041b0be",
+    strip_prefix = "rules_docker-8bbe2a8abd382641e65ff7127a3700a8530f02ce",
+    urls = ["https://github.com/bazelbuild/rules_docker/archive/8bbe2a8abd382641e65ff7127a3700a8530f02ce.tar.gz"],
+)
+
+load("@bazel_skylib//:lib.bzl", "versions")
+
+versions.check(minimum_bazel_version = "0.6.0")
+
+load("@io_bazel_rules_go//go:def.bzl", "go_rules_dependencies", "go_register_toolchains", "go_download_sdk")
+load("@io_bazel_rules_docker//docker:docker.bzl", "docker_repositories", "docker_pull")
+
+go_rules_dependencies()
+
+# The upstream version of rules_go is broken in a number of ways. Until it's fixed, explicitly download and use go1.9.3 ourselves.
+go_download_sdk(
+    name = "go_sdk",
+    sdks = {
+        "darwin_amd64": ("go1.9.3.darwin-amd64.tar.gz", "f84b39c2ed7df0c2f1648e2b90b2198a6783db56b53700dabfa58afd6335d324"),
+        "linux_386": ("go1.9.3.linux-386.tar.gz", "bc0782ac8116b2244dfe2a04972bbbcd7f1c2da455a768ab47b32864bcd0d49d"),
+        "linux_amd64": ("go1.9.3.linux-amd64.tar.gz", "a4da5f4c07dfda8194c4621611aeb7ceaab98af0b38bfb29e1be2ebb04c3556c"),
+        "linux_armv6l": ("go1.9.3.linux-armv6l.tar.gz", "926d6cd6c21ef3419dca2e5da8d4b74b99592ab1feb5a62a4da244e6333189d2"),
+        "windows_386": ("go1.9.3.windows-386.zip", "cab7d4e008adefed322d36dee87a4c1775ab60b25ce587a2b55d90c75d0bafbc"),
+        "windows_amd64": ("go1.9.3.windows-amd64.zip", "4eee59bb5b70abc357aebd0c54f75e46322eb8b58bbdabc026fdd35834d65e1e"),
+        "freebsd_386": ("go1.9.3.freebsd-386.tar.gz", "a755739e3be0415344d62ea3b168bdcc9a54f7862ac15832684ff2d3e8127a03"),
+        "freebsd_amd64": ("go1.9.3.freebsd-amd64.tar.gz", "f95066089a88749c45fae798422d04e254fe3b622ff030d12bdf333402b186ec"),
+        "linux_arm64": ("go1.9.3.linux-arm64.tar.gz", "065d79964023ccb996e9dbfbf94fc6969d2483fbdeeae6d813f514c5afcd98d9"),
+        "linux_ppc64le": ("go1.9.3.linux-ppc64le.tar.gz", "c802194b1af0cd904689923d6d32f3ed68f9d5f81a3e4a82406d9ce9be163681"),
+        "linux_s390x": ("go1.9.3.linux-s390x.tar.gz", "85e9a257664f84154e583e0877240822bb2fe4308209f5ff57d80d16e2fb95c5"),
+    },
+)
+
+go_register_toolchains(
+    go_version = "overridden by go_download_sdk",
+)
+
+docker_repositories()
+
+http_file(
+    name = "kubernetes_cni",
+    sha256 = "f04339a21b8edf76d415e7f17b620e63b8f37a76b2f706671587ab6464411f2d",
+    url = "https://storage.googleapis.com/kubernetes-release/network-plugins/cni-plugins-amd64-v0.6.0.tgz",
+)
+
+docker_pull(
+    name = "debian-iptables-amd64",
+    digest = "sha256:fb18678f8203ca1bd2fad2671e3ebd80cb408a1baae423d4ad39c05f4caac4e1",
+    registry = "gcr.io",
+    repository = "google-containers/debian-iptables-amd64",
+    tag = "v10",  # ignored, but kept here for documentation
+)
+
+docker_pull(
+    name = "debian-hyperkube-base-amd64",
+    digest = "sha256:cc782ed16599000ca4c85d47ec6264753747ae1e77520894dca84b104a7621e2",
+    registry = "k8s.gcr.io",
+    repository = "debian-hyperkube-base-amd64",
+    tag = "0.10",  # ignored, but kept here for documentation
+)
+
+docker_pull(
+    name = "official_busybox",
+    digest = "sha256:be3c11fdba7cfe299214e46edc642e09514dbb9bbefcd0d3836c05a1e0cd0642",
+    registry = "index.docker.io",
+    repository = "library/busybox",
+    tag = "latest",  # ignored, but kept here for documentation
+)

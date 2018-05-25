@@ -23,7 +23,7 @@ COPY . .
 RUN CGO_ENABLED=0 GOOS=linux go install -a -ldflags '-extldflags "-static"' sigs.k8s.io/cluster-api/cmd/apiserver
 
 # Final container
-FROM alpine:3.7
-RUN apk --no-cache add ca-certificates bash
+FROM debian:stretch-slim
+RUN apt-get update && apt-get install -y ca-certificates && rm -rf /var/lib/apt/lists/*
 
 COPY --from=builder /go/bin/apiserver .

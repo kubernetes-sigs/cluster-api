@@ -78,42 +78,35 @@ $ git clone https://github.com/<GITHUB_USERNAME>/cluster-api.git
 
 ```bash
 $ cd $GOPATH/src/sigs.k8s.io/cluster-api/gcp-deployer/
-$ go build
+$ go build .
 ```
 
 This will create a binary `gcp-deployer` in the same directory. You can use that binary to manage a GCP cluster.
 
 ## Developing
 
-When making changes to the machine controller, it's generally a good idea to delete any existing cluster created with an older version of the cluster-api.
-
-```bash
-$ ./gcp-deployer delete
-```
-
-After making changes to the controllers or the actuator, you need to follow these two steps:
-
-1. Rebuild the machine-controller image. Also change `machineControllerImage` in `cloud/google/pods.go` to the new image path (make sure the version in the Makefile and `pods.go` match if you want to use the new image). Then, rebuild and push the image.
-
-	```bash
-	$ cd $GOPATH/src/sigs.k8s.io/cluster-api/cloud/google/cmd/gce-machine-controller
-	$ make dev_push
-	```
-
-NOTE: that the image will be pushed to `gcr.io/$(GCLOUD_PROJECT)/apiserver-controller`. Image storage is a billable resource.
-
-2. Rebuild gcp-deployer
-
-	```bash
-    $ cd $GOPATH/src/sigs.k8s.io/cluster-api/gcp-deployer/
-	$ go build
-	```
-
-The new `gcp-deployer` will have your changes.
+Before submitting an PR you should run the unit and integration tests. Instructions for doing so are given below.
 
 ## Testing
 
-We do not have unit tests or integration tests currently. For any changes, it is recommended that you test a create-edit-delete sequence using the new machine controller image and the new `gcp-deployer` binary.
+### Unit Tests
+When changing this application, you will often end up modifying other packages above this folder in the project tree. You
+should run all the unit tests in the repository. To run the unit tests, run the following command from the root,
+```cluster-api```, folder of the repo.
+
+```
+go test ./...
+```
+
+### Integration Tests
+
+To run the gcp-deployer integration tests, run the following command from this folder. The integration tests are for sanity checking
+that gcp-deployer's basic functionality is working.
+```
+go test -tags=integration -v
+```
+
+### Manual Tests
 
 1. Generate machines configuration file.
 

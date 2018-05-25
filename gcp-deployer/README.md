@@ -104,3 +104,6 @@ The yaml is unmarshalled into a [machinesetup.configList](../cloud/google/machin
 Right now, the startup scripts must be bash scripts. 
 There is a set of environment variables that is concatenated to the beginning of the startup script.
 You can find them [here](../cloud/google/metadata.go) and use them in your startup script as needed.
+
+## Contributing
+Please see the [contributing guide](CONTRIBUTING.md) for information on how you can get involved.

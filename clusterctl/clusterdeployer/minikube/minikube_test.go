@@ -86,11 +86,11 @@ func TestGetKubeconfig(t *testing.T) {
 		m.kubeconfigpath = f
 		c, err := m.GetKubeconfig()
 		if err != nil {
-			t.Fatal("Unexpected err. Got: %v", err)
+			t.Fatalf("Unexpected err. Got: %v", err)
 			return
 		}
 		if c != contents {
-			t.Fatal("Unexpected contents. Got: %v, Want: %v", c, contents)
+			t.Fatalf("Unexpected contents. Got: %v, Want: %v", c, contents)
 		}
 	})
 }

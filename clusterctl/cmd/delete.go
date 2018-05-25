@@ -18,12 +18,13 @@ package cmd
 
 import (
 	"github.com/spf13/cobra"
+	"k8s.io/kubernetes/pkg/kubectl/util/i18n"
 )
 
 var deleteCmd = &cobra.Command{
 	Use:   "delete",
-	Short: "Delete a cluster API resource",
-	Long:  `Delete a cluster API resource with one command`,
+	Short: i18n.T("Delete a cluster API resource"),
+	Long:  i18n.T("Delete a cluster API resource with one command"),
 }
 
 func init() {

@@ -19,6 +19,7 @@ package cmd
 import (
 	"github.com/golang/glog"
 	"github.com/spf13/cobra"
+	"k8s.io/kubernetes/pkg/kubectl/util/i18n"
 	"sigs.k8s.io/cluster-api/errors"
 )
 
@@ -31,8 +32,8 @@ var do = &DeleteOptions{}
 func NewCmdDeleteCluster() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "delete",
-		Short: "Delete kubernetes cluster",
-		Long:  `Delete a kubernetes cluster with one command`,
+		Short: i18n.T("Delete kubernetes cluster"),
+		Long:  i18n.T("Delete a kubernetes cluster with one command"),
 		Run: func(cmd *cobra.Command, args []string) {
 			if do.ClusterName == "" {
 				exitWithHelp(cmd, "Please provide cluster name.")

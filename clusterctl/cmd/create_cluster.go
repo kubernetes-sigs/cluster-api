@@ -21,6 +21,7 @@ import (
 	"github.com/golang/glog"
 	"github.com/spf13/cobra"
 	"io/ioutil"
+	"k8s.io/kubernetes/pkg/kubectl/util/i18n"
 	"sigs.k8s.io/cluster-api/clusterctl/clusterdeployer"
 	"sigs.k8s.io/cluster-api/clusterctl/clusterdeployer/minikube"
 	clusterv1 "sigs.k8s.io/cluster-api/pkg/apis/cluster/v1alpha1"
@@ -38,8 +39,8 @@ var co = &CreateOptions{}
 
 var createClusterCmd = &cobra.Command{
 	Use:   "cluster",
-	Short: "Create kubernetes cluster",
-	Long:  `Create a kubernetes cluster with one command`,
+	Short: i18n.T("Create kubernetes cluster"),
+	Long:  i18n.T("Create a kubernetes cluster with one command"),
 	Run: func(cmd *cobra.Command, args []string) {
 		if co.Cluster == "" {
 			exitWithHelp(cmd, "Please provide yaml file for cluster definition.")

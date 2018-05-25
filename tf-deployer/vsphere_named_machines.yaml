@@ -53,19 +53,60 @@ items:
       datacenter_id = "${data.vsphere_datacenter.dc.id}"
     }
 
+    data "template_file" "cloud_provider_config" {
+      template = <<EOF
+    [Global]
+    datacenters = "$${datacenter}"
+    insecure-flag = "1" #set to 1 if the vCenter uses a self-signed cert
+
+    [VirtualCenter "$${vsphere_server}"]
+            user = "$${user}"
+            password = "$${password}"
+
+    [Workspace]
+            server = "$${vsphere_server}"
+            datacenter = "$${datacenter}"
+            folder = "$${resource_pool}"
+            default-datastore = "$${datastore}"
+            resourcepool-path = "$${resource_pool}"
+
+    [Disk]
+            scsicontrollertype = pvscsi
+
+    [Network]
+            public-network = "$${network}"
+    EOF
+      vars {
+        vsphere_server = "${var.vsphere_server}"
+        datacenter     = "${var.datacenter}"
+        user           = "${var.user}"
+        password       = "${var.password}"
+        datastore      = "${var.datastore}"
+        resource_pool  = "${var.resource_pool}"
+        network        = "${var.network}"
+      }
+    }
+
     data "template_file" "user_data" {
       template = <<EOF
     #cloud-config
     write_files:
-      - content: |
-          $${startup_script}
-        path: /tmp/master.sh
+      - path: /tmp/master.sh
         permissions: '0755'
+        encoding: base64
+        content: |
+          $${startup_script}
+      - path: /etc/kubernetes/cloud-config/cloud-config.yaml
+        permissions: '0600'
+        encoding: base64
+        content: |
+          $${cloud_provider_config}
     runcmd:
       - /tmp/master.sh
     EOF
       vars {
-        startup_script = "${indent(6, file("/tmp/machine-startup.sh"))}"
+        startup_script = "${base64encode(file("/tmp/machine-startup.sh"))}"
+        cloud_provider_config = "${base64encode(data.template_file.cloud_provider_config.rendered)}"
       }
     }
 

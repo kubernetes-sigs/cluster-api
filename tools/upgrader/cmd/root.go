@@ -62,7 +62,7 @@ func Execute() {
 
 func init() {
 	RootCmd.PersistentFlags().StringVarP(&uo.kubeConfig, "kubeconfig", "k", "", "location for the kubernetes config file. If not provided, $HOME/.kube/config is used")
-	RootCmd.PersistentFlags().StringVarP(&uo.KubernetesVersion, "version", "v", "", "target kubernets version")
+	RootCmd.PersistentFlags().StringVarP(&uo.KubernetesVersion, "version", "v", "", "target kubernetes version")
 	flag.CommandLine.Parse([]string{})
 	logs.InitLogs()
 }

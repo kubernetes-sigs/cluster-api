@@ -70,7 +70,7 @@ func (d *deployer) CreateCluster(c *clusterv1.Cluster, machines []*clusterv1.Mac
 	vmCreated := false
 	if err := d.createCluster(c, machines, &vmCreated); err != nil {
 		if vmCreated {
-			d.deleteMasterVM(machines)
+			d.deleteMasterVM(c, machines)
 		}
 		d.machineDeployer.PostDelete(c, machines)
 		return err
@@ -108,7 +108,7 @@ func (d *deployer) DeleteCluster() error {
 		return err
 	}
 
-	if err := d.deleteMasterVM(machines); err != nil {
+	if err := d.deleteMasterVM(cluster, machines); err != nil {
 		glog.Errorf("Error deleting master vm", err)
 	}
 
@@ -120,14 +120,14 @@ func (d *deployer) DeleteCluster() error {
 	return nil
 }
 
-func (d *deployer) deleteMasterVM(machines []*clusterv1.Machine) error {
+func (d *deployer) deleteMasterVM(cluster *clusterv1.Cluster, machines []*clusterv1.Machine) error {
 	master := util.GetMaster(machines)
 	if master == nil {
 		return fmt.Errorf("error deleting master vm, no master found")
 	}
 
 	glog.Infof("Deleting master vm %s", master.Name)
-	if err := d.machineDeployer.Delete(master); err != nil {
+	if err := d.machineDeployer.Delete(cluster, master); err != nil {
 		return err
 	}
 	return nil

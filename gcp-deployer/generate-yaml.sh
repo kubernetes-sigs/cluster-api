@@ -5,8 +5,10 @@ GCLOUD_PROJECT=$(gcloud config get-value project)
 ZONE=$(gcloud config get-value compute/zone)
 ZONE="${ZONE:-us-central1-f}"
 
-TEMPLATE_FILE=machines.yaml.template
-GENERATED_FILE=machines.yaml
+MACHINE_TEMPLATE_FILE=machines.yaml.template
+MACHINE_GENERATED_FILE=machines.yaml
+CLUSTER_TEMPLATE_FILE=cluster.yaml.template
+CLUSTER_GENERATED_FILE=cluster.yaml
 OVERWRITE=0
 
 SCRIPT=$(basename $0)
@@ -36,9 +38,16 @@ while test $# -gt 0; do
         esac
 done
 
-if [ $OVERWRITE -ne 1 ] && [ -f $GENERATED_FILE ]; then
-  echo File $GENERATED_FILE already exists. Delete it manually before running this script.
+if [ $OVERWRITE -ne 1 ] && [ -f $MACHINE_GENERATED_FILE ]; then
+  echo File $MACHINE_GENERATED_FILE already exists. Delete it manually before running this script.
   exit 1
 fi
 
-sed -e "s/\$GCLOUD_PROJECT/$GCLOUD_PROJECT/" $TEMPLATE_FILE | sed -e "s/\$ZONE/$ZONE/" > $GENERATED_FILE
+if [ $OVERWRITE -ne 1 ] && [ -f $CLUSTER_GENERATED_FILE ]; then
+  echo File $CLUSTER_GENERATED_FILE already exists. Delete it manually before running this script.
+  exit 1
+fi
+
+sed -e "s/\$ZONE/$ZONE/" $MACHINE_TEMPLATE_FILE > $MACHINE_GENERATED_FILE
+
+sed -e "s/\$GCLOUD_PROJECT/$GCLOUD_PROJECT/" $CLUSTER_TEMPLATE_FILE > $CLUSTER_GENERATED_FILE

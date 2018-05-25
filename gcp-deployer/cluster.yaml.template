@@ -12,4 +12,5 @@ spec:
     providerConfig:
       value:
         apiVersion: "gceproviderconfig/v1alpha1"
-        kind: "GCEProviderConfig"
+        kind: "GCEClusterProviderConfig"
+        project: "$GCLOUD_PROJECT"

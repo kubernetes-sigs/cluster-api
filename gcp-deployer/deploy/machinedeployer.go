@@ -9,8 +9,8 @@ import (
 // Provider-specific machine logic the deployer needs.
 type machineDeployer interface {
 	machine.Actuator
-	GetIP(machine *clusterv1.Machine) (string, error)
-	GetKubeConfig(master *clusterv1.Machine) (string, error)
+	GetIP(cluster *clusterv1.Cluster, machine *clusterv1.Machine) (string, error)
+	GetKubeConfig(cluster *clusterv1.Cluster, master *clusterv1.Machine) (string, error)
 
 	// Provision infrastructure that the cluster needs before it
 	// can be created

@@ -93,7 +93,7 @@ func (m *GCEClientMachineSetupConfigMock) GetMetadata(params *machinesetup.Confi
 }
 
 func TestNoDisks(t *testing.T) {
-	config := newGCEProviderConfigFixture()
+	config := newGCEMachineProviderConfigFixture()
 	config.Disks = make([]gceconfigv1.Disk, 0)
 	receivedInstance, computeServiceMock := newInsertInstanceCapturingMock()
 	createCluster(t, config, computeServiceMock, nil)
@@ -101,7 +101,7 @@ func TestNoDisks(t *testing.T) {
 }
 
 func TestMinimumSizeShouldBeEnforced(t *testing.T) {
-	config := newGCEProviderConfigFixture()
+	config := newGCEMachineProviderConfigFixture()
 	config.Disks = []gceconfigv1.Disk{
 		{
 			InitializeParams: gceconfigv1.DiskInitializeParams{
@@ -117,7 +117,7 @@ func TestMinimumSizeShouldBeEnforced(t *testing.T) {
 }
 
 func TestOneDisk(t *testing.T) {
-	config := newGCEProviderConfigFixture()
+	config := newGCEMachineProviderConfigFixture()
 	config.Disks = []gceconfigv1.Disk{
 		{
 			InitializeParams: gceconfigv1.DiskInitializeParams{
@@ -133,7 +133,7 @@ func TestOneDisk(t *testing.T) {
 }
 
 func TestTwoDisks(t *testing.T) {
-	config := newGCEProviderConfigFixture()
+	config := newGCEMachineProviderConfigFixture()
 	config.Disks = []gceconfigv1.Disk{
 		{
 			InitializeParams: gceconfigv1.DiskInitializeParams{
@@ -182,7 +182,7 @@ func checkDiskValues(t *testing.T, disk *compute.AttachedDisk, boot bool, sizeGb
 }
 
 func TestCreateWithCAShouldPopulateMetadata(t *testing.T) {
-	config := newGCEProviderConfigFixture()
+	config := newGCEMachineProviderConfigFixture()
 	receivedInstance, computeServiceMock := newInsertInstanceCapturingMock()
 	ca, err := cert.Load("testdata/ca")
 	if err != nil {
@@ -217,8 +217,8 @@ func getMetadataItem(t *testing.T, metadata *compute.Metadata, itemKey string) *
 	return nil
 }
 
-func createCluster(t *testing.T, config gceconfigv1.GCEProviderConfig, computeServiceMock *GCEClientComputeServiceMock, ca *cert.CertificateAuthority) {
-	cluster := newDefaultClusterFixture()
+func createCluster(t *testing.T, config gceconfigv1.GCEMachineProviderConfig, computeServiceMock *GCEClientComputeServiceMock, ca *cert.CertificateAuthority) {
+	cluster := newDefaultClusterFixture(t)
 	machine := newMachine(t, config)
 	configWatch := newMachineSetupConfigWatcher()
 	params := google.MachineActuatorParams{
@@ -278,7 +278,7 @@ func (cw *TestMachineSetupConfigWatcher) GetMachineSetupConfig() (machinesetup.M
 	return cw.machineSetupConfigMock, nil
 }
 
-func newMachine(t *testing.T, gceProviderConfig gceconfigv1.GCEProviderConfig) *v1alpha1.Machine {
+func newMachine(t *testing.T, gceProviderConfig gceconfigv1.GCEMachineProviderConfig) *v1alpha1.Machine {
 	gceProviderConfigCodec, err := gceconfigv1.NewCodec()
 	if err != nil {
 		t.Fatalf("unable to create GCE provider config codec: %v", err)
@@ -287,6 +287,7 @@ func newMachine(t *testing.T, gceProviderConfig gceconfigv1.GCEProviderConfig) *
 	if err != nil {
 		t.Fatalf("unable to encode provider config: %v", err)
 	}
+
 	return &v1alpha1.Machine{
 		Spec: v1alpha1.MachineSpec{
 			ProviderConfig: *providerConfig,
@@ -305,20 +306,39 @@ func newMachine(t *testing.T, gceProviderConfig gceconfigv1.GCEProviderConfig) *
 	}
 }
 
-func newGCEProviderConfigFixture() gceconfigv1.GCEProviderConfig {
-	return gceconfigv1.GCEProviderConfig{
+func newGCEMachineProviderConfigFixture() gceconfigv1.GCEMachineProviderConfig {
+	return gceconfigv1.GCEMachineProviderConfig{
 		TypeMeta: v1.TypeMeta{
 			APIVersion: "gceproviderconfig/v1alpha1",
-			Kind:       "GCEProviderConfig",
+			Kind:       "GCEMachineProviderConfig",
 		},
-		Project: "project-name-2000",
 		Zone:    "us-west5-f",
 		OS:      "os-name",
 		Disks:   make([]gceconfigv1.Disk, 0),
 	}
 }
 
-func newDefaultClusterFixture() *v1alpha1.Cluster {
+func newGCEClusterProviderConfigFixture() gceconfigv1.GCEClusterProviderConfig {
+	return gceconfigv1.GCEClusterProviderConfig{
+		TypeMeta: v1.TypeMeta{
+			APIVersion: "gceproviderconfig/v1alpha1",
+			Kind:       "GCEClusterProviderConfig",
+		},
+		Project:    "project-name-2000",
+	}
+}
+
+func newDefaultClusterFixture(t *testing.T) *v1alpha1.Cluster {
+	gceProviderConfigCodec, err := gceconfigv1.NewCodec()
+	if err != nil {
+		t.Fatalf("unable to create GCE provider config codec: %v", err)
+	}
+	gceProviderConfig := newGCEClusterProviderConfigFixture()
+	providerConfig, err := gceProviderConfigCodec.EncodeToProviderConfig(&gceProviderConfig)
+	if err != nil {
+		t.Fatalf("unable to encode provider config: %v", err)
+	}
+
 	return &v1alpha1.Cluster{
 		TypeMeta: v1.TypeMeta{
 			Kind: "Cluster",
@@ -339,6 +359,7 @@ func newDefaultClusterFixture() *v1alpha1.Cluster {
 					},
 				},
 			},
+			ProviderConfig: *providerConfig,
 		},
 	}
 }

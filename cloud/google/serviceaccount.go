@@ -132,31 +132,24 @@ func (gce *GCEClient) createServiceAccount(serviceAccountPrefix string, roles []
 		return "", "", fmt.Errorf("machine count is zero, cannot create service a/c")
 	}
 
-	// TODO: use real go bindings
-	// Figure out what projects the service account needs permission to.
-	projects, err := gce.getProjects(initialMachines)
+	config, err := gce.clusterproviderconfig(cluster.Spec.ProviderConfig)
 	if err != nil {
 		return "", "", err
 	}
 
-	// The service account needs to be created in a single project, so just
-	// use the first one, but grant permission to all projects in the list.
-	project := projects[0]
 	accountId := serviceAccountPrefix + "-" + util.RandomString(5)
 
-	err = run("gcloud", "--project", project, "iam", "service-accounts", "create", "--display-name="+serviceAccountPrefix+" service account", accountId)
+	err = run("gcloud", "--project", config.Project, "iam", "service-accounts", "create", "--display-name="+serviceAccountPrefix+" service account", accountId)
 	if err != nil {
 		return "", "", fmt.Errorf("couldn't create service account: %v", err)
 	}
 
-	email := fmt.Sprintf("%s@%s.iam.gserviceaccount.com", accountId, project)
+	email := fmt.Sprintf("%s@%s.iam.gserviceaccount.com", accountId, config.Project)
 
-	for _, project := range projects {
-		for _, role := range roles {
-			err = run("gcloud", "projects", "add-iam-policy-binding", project, "--member=serviceAccount:"+email, "--role=roles/"+role)
-			if err != nil {
-				return "", "", fmt.Errorf("couldn't grant permissions to service account: %v", err)
-			}
+	for _, role := range roles {
+		err = run("gcloud", "projects", "add-iam-policy-binding", config.Project, "--member=serviceAccount:"+email, "--role=roles/"+role)
+		if err != nil {
+			return "", "", fmt.Errorf("couldn't grant permissions to service account: %v", err)
 		}
 	}
 
@@ -165,7 +158,7 @@ func (gce *GCEClient) createServiceAccount(serviceAccountPrefix string, roles []
 	}
 	cluster.ObjectMeta.Annotations[ClusterAnnotationPrefix+serviceAccountPrefix] = email
 
-	return accountId, project, nil
+	return accountId, config.Project, nil
 }
 
 func (gce *GCEClient) DeleteMasterNodeServiceAccount(cluster *clusterv1.Cluster, machines []*clusterv1.Machine) error {
@@ -190,11 +183,12 @@ func (gce *GCEClient) deleteServiceAccount(serviceAccountPrefix string, roles []
 		return nil
 	}
 
-	projects, err := gce.getProjects(machines)
+	config, err := gce.clusterproviderconfig(cluster.Spec.ProviderConfig)
 	if err != nil {
-		return err
+		glog.Info("cannot parse cluster providerConfig field")
+		return nil
 	}
-	project := projects[0]
+
 	var email string
 	if cluster.ObjectMeta.Annotations != nil {
 		email = cluster.ObjectMeta.Annotations[ClusterAnnotationPrefix+serviceAccountPrefix]
@@ -206,32 +200,18 @@ func (gce *GCEClient) deleteServiceAccount(serviceAccountPrefix string, roles []
 	}
 
 	for _, role := range roles {
-		err = run("gcloud", "projects", "remove-iam-policy-binding", project, "--member=serviceAccount:"+email, "--role=roles/"+role)
+		err = run("gcloud", "projects", "remove-iam-policy-binding", config.Project, "--member=serviceAccount:"+email, "--role=roles/"+role)
 	}
 
 	if err != nil {
 		return fmt.Errorf("couldn't remove permissions to service account: %v", err)
 	}
 
-	err = run("gcloud", "--project", project, "iam", "service-accounts", "delete", email)
+	err = run("gcloud", "--project", config.Project, "iam", "service-accounts", "delete", email)
 	if err != nil {
 		return fmt.Errorf("couldn't delete service account: %v", err)
 	}
 	return nil
-}
-
-func (gce *GCEClient) getProjects(machines []*clusterv1.Machine) ([]string, error) {
-	// Figure out what projects the service account needs permission to.
-	var projects []string
-	for _, machine := range machines {
-		config, err := gce.providerconfig(machine.Spec.ProviderConfig)
-		if err != nil {
-			return nil, err
-		}
-
-		projects = append(projects, config.Project)
-	}
-	return projects, nil
 }
 
 func run(cmd string, args ...string) error {

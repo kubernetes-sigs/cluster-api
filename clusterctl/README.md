@@ -19,16 +19,13 @@ $ go build
 ```
  
 ### Limitations
-
+TBD
 
 ### Creating a cluster
-
-**NOT YET SUPPORTED!** - Use [provider-specific deployer](../README.md) to create clusters till cluster creation is supported.
-
-1. Create a `cluster.yaml` and `machines.yaml` files configured for your cluster. See the provider specific templates and generation tools at `$GOPATH/src/sigs.k8s.io/cluster-api/clusterctl/examples/<provider>`. 
+1. Create a `cluster.yaml`, `machines.yaml` and `provider-components.yaml` files configured for your cluster. See the provider specific templates and generation tools at `$GOPATH/src/sigs.k8s.io/cluster-api/clusterctl/examples/<provider>`. 
 2. Create a cluster 
 ```
-clusterctl create cluster -c cluster.yaml -m machines.yaml
+clusterctl create cluster -provider [google/terrraform] -c cluster.yaml -m machines.yaml -p provider-components.yaml
 ```
 Additional advanced flags can be found via help
 ```

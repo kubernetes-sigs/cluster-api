@@ -108,6 +108,9 @@ items:
         cluster-cidr: ${POD_CIDR}
         service-cluster-ip-range: ${SERVICE_CIDR}
         allocate-node-cidrs: "true"
+        address: 0.0.0.0
+      schedulerExtraArgs:
+        address: 0.0.0.0
       apiServerCertSANs:
       - ${PUBLICIP}
       - ${PRIVATEIP}

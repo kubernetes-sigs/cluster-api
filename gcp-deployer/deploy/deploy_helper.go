@@ -175,7 +175,7 @@ func (d *deployer) delete(name string) error {
 	if err != nil {
 		return err
 	}
-	err = util.Poll(500*time.Millisecond, 120*time.Second, func() (bool, error) {
+	err = util.Poll(500*time.Millisecond, 240*time.Second, func() (bool, error) {
 		if _, err = d.client.Machines(apiv1.NamespaceDefault).Get(name, metav1.GetOptions{}); err == nil {
 			return false, nil
 		}

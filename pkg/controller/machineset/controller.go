@@ -29,7 +29,6 @@ import (
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/tools/cache"
-	"k8s.io/client-go/util/workqueue"
 
 	"sigs.k8s.io/cluster-api/pkg/apis/cluster/v1alpha1"
 	clusterapiclientset "sigs.k8s.io/cluster-api/pkg/client/clientset_generated/clientset"
@@ -55,13 +54,7 @@ type MachineSetControllerImpl struct {
 	// machineLister holds a lister that knows how to list Machines from a cache
 	machineLister listers.MachineLister
 
-	// machineSetListerSynced function whether the machineset lister is synced
-	machineSetListerSynced cache.InformerSynced
-	// machineListerSynced function whether the machine lister is synced
-	machineListerSynced cache.InformerSynced
-
-	// queue holds machine set work items
-	queue workqueue.RateLimitingInterface
+	informers *sharedinformers.SharedInformers
 
 	// msKeyMuxMap holds a mutex lock for reconcilation keyed on the machineset key
 	msKeyMuxMap map[string]sync.Mutex
@@ -72,14 +65,8 @@ type MachineSetControllerImpl struct {
 func (c *MachineSetControllerImpl) Init(arguments sharedinformers.ControllerInitArguments) {
 	c.kubernetesClient = arguments.GetSharedInformers().KubernetesClientSet
 
-	msInformer := arguments.GetSharedInformers().Factory.Cluster().V1alpha1().MachineSets()
-	mInformer := arguments.GetSharedInformers().Factory.Cluster().V1alpha1().Machines()
-
-	c.machineSetLister = msInformer.Lister()
-	c.machineLister = mInformer.Lister()
-
-	c.machineSetListerSynced = msInformer.Informer().HasSynced
-	c.machineListerSynced = mInformer.Informer().HasSynced
+	c.machineSetLister = arguments.GetSharedInformers().Factory.Cluster().V1alpha1().MachineSets().Lister()
+	c.machineLister = arguments.GetSharedInformers().Factory.Cluster().V1alpha1().Machines().Lister()
 
 	var err error
 	c.clusterAPIClient, err = clusterapiclientset.NewForConfig(arguments.GetRestConfig())
@@ -92,14 +79,22 @@ func (c *MachineSetControllerImpl) Init(arguments sharedinformers.ControllerInit
 	mi := arguments.GetSharedInformers().Factory.Cluster().V1alpha1().Machines().Informer()
 	arguments.GetSharedInformers().Watch("MachineWatcher", mi, nil, c.reconcileMachine)
 
-	c.queue = arguments.GetSharedInformers().WorkerQueues["MachineSet"].Queue
+	c.informers = arguments.GetSharedInformers()
 
 	c.msKeyMuxMap = make(map[string]sync.Mutex)
+
+	c.waitForCacheSync()
 }
 
-func (c *MachineSetControllerImpl) Run(stopCh <-chan struct{}) {
+func (c *MachineSetControllerImpl) waitForCacheSync() {
 	glog.Infof("Waiting for caches to sync for machine set controller")
-	if !cache.WaitForCacheSync(stopCh, c.machineListerSynced, c.machineSetListerSynced) {
+
+	stopCh := make(chan struct{})
+
+	msListerSynced := c.informers.Factory.Cluster().V1alpha1().MachineSets().Informer().HasSynced
+	mListerSynced := c.informers.Factory.Cluster().V1alpha1().Machines().Informer().HasSynced
+
+	if !cache.WaitForCacheSync(stopCh, mListerSynced, msListerSynced) {
 		glog.Warningf("Unable to sync caches for machineset controller")
 		return
 	}
@@ -323,7 +318,7 @@ func (c *MachineSetControllerImpl) enqueue(machineSet *v1alpha1.MachineSet) erro
 		glog.Errorf("Couldn't get key for object %+v.", machineSet)
 		return err
 	}
-	c.queue.Add(key)
+	c.informers.WorkerQueues["MachineSet"].Queue.Add(key)
 	return nil
 }
 
@@ -333,7 +328,7 @@ func (c *MachineSetControllerImpl) enqueueAfter(machineSet *v1alpha1.MachineSet,
 		glog.Errorf("Couldn't get key for object %+v: %v", machineSet, after)
 		return err
 	}
-	c.queue.AddAfter(key, after)
+	c.informers.WorkerQueues["MachineSet"].Queue.AddAfter(key, after)
 	return nil
 }
 

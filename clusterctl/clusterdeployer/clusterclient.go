@@ -172,6 +172,11 @@ func (c *clusterClient) waitForKubectlApply(manifest string) error {
 		err := c.kubectlApply(manifest)
 		if err != nil {
 			if strings.Contains(err.Error(), "connection refused") {
+				glog.V(4).Infof("Waiting for kubectl apply... server not yet available: %v", err)
+				return false, nil
+			}
+			if strings.Contains(err.Error(), "unable to recognize") {
+				glog.V(4).Infof("Waiting for kubectl apply... api not yet available: %v", err)
 				return false, nil
 			}
 			return false, err
@@ -197,7 +202,7 @@ func waitForClusterResourceReady(cs clientset.Interface) error {
 }
 
 func waitForMachineReady(cs clientset.Interface, machine *clusterv1.Machine) error {
-	err := util.Poll(500*time.Millisecond, 120*time.Second, func() (bool, error) {
+	err := util.Poll(time.Second, 5*time.Minute, func() (bool, error) {
 		glog.V(2).Infof("Waiting for Machine %v to become ready...", machine.Name)
 		m, err := cs.ClusterV1alpha1().Machines(apiv1.NamespaceDefault).Get(machine.Name, metav1.GetOptions{})
 		if err != nil {

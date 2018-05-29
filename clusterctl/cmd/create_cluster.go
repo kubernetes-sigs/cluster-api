@@ -23,9 +23,9 @@ import (
 	"github.com/spf13/cobra"
 	"io/ioutil"
 	"sigs.k8s.io/cluster-api/cloud/google"
+	"sigs.k8s.io/cluster-api/cloud/vsphere"
 	"sigs.k8s.io/cluster-api/clusterctl/clusterdeployer"
 	"sigs.k8s.io/cluster-api/clusterctl/clusterdeployer/minikube"
-	"sigs.k8s.io/cluster-api/errors"
 	clusterv1 "sigs.k8s.io/cluster-api/pkg/apis/cluster/v1alpha1"
 	"sigs.k8s.io/cluster-api/util"
 )
@@ -95,7 +95,7 @@ func init() {
 	createClusterCmd.Flags().StringVarP(&co.Machine, "machines", "m", "", "A yaml file containing machine object definition(s)")
 	createClusterCmd.Flags().StringVarP(&co.ProviderComponents, "provider-components", "p", "", "A yaml file containing cluster api provider controllers and supporting objects")
 	// TODO: Remove as soon as code allows https://github.com/kubernetes-sigs/cluster-api/issues/157
-	createClusterCmd.Flags().StringVarP(&co.Provider, "provider", "", "", "Which provider deployment logic to use (google/terraform)")
+	createClusterCmd.Flags().StringVarP(&co.Provider, "provider", "", "", "Which provider deployment logic to use (google/vsphere)")
 
 	// Optional flags
 	createClusterCmd.Flags().BoolVarP(&co.CleanupExternalCluster, "cleanup-external-cluster", "", true, "Whether to cleanup the external cluster after bootstrap")
@@ -143,10 +143,28 @@ func getProvider(provider string) (clusterdeployer.ProviderDeployer, error) {
 	switch provider {
 	case "google":
 		return google.NewMachineActuator(google.MachineActuatorParams{})
-	case "terraform":
-		// TODO: Actually hook up terraform
-		return nil, errors.NotImplementedError
+	case "vsphere":
+		t, err := vsphere.NewMachineActuator("", nil, "")
+		if err != nil {
+			return nil, err
+		}
+		return &vsphereAdapter{t}, nil
 	default:
 		return nil, fmt.Errorf("Unrecognized provider %v", provider)
 	}
+}
+
+// Adapt the vsphere methods calls since gcp/vsphere are not on the same page.
+// Long term, these providers should converge or the need for a provider will go away.
+// Whichever comes first.
+type vsphereAdapter struct {
+	*vsphere.VsphereClient
+}
+
+func (a *vsphereAdapter) GetIP(cluster *clusterv1.Cluster, machine *clusterv1.Machine) (string, error) {
+	return a.VsphereClient.GetIP(machine)
+}
+
+func (a *vsphereAdapter) GetKubeConfig(cluster *clusterv1.Cluster, master *clusterv1.Machine) (string, error) {
+	return a.VsphereClient.GetKubeConfig(master)
 }

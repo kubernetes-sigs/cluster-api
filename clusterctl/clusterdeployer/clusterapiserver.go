@@ -29,7 +29,7 @@ import (
 	"k8s.io/client-go/util/cert/triple"
 )
 
-var apiServerImage = "gcr.io/k8s-cluster-api/cluster-apiserver:0.0.3"
+var apiServerImage = "gcr.io/k8s-cluster-api/cluster-apiserver:0.0.5"
 
 func init() {
 	if img, ok := os.LookupEnv("CLUSTER_API_SERVER_IMAGE"); ok {

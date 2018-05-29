@@ -24,7 +24,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/tools/cache"
 
-	nodeutil "sigs.k8s.io/cluster-api/pkg/node/util"
+	"sigs.k8s.io/cluster-api/pkg/controller/noderefutil"
 )
 
 const (
@@ -40,7 +40,7 @@ const (
 // Currently, these annotations are added by the node itself as part of its
 // bootup script after "kubeadm join" succeeds.
 func (c *MachineControllerImpl) link(node *corev1.Node) error {
-	nodeReady := nodeutil.IsNodeReady(node)
+	nodeReady := noderefutil.IsNodeReady(node)
 
 	// skip update if cached and no change in readiness.
 	if c.linkedNodes[node.ObjectMeta.Name] {

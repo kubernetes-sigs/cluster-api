@@ -18,7 +18,6 @@ package machineset
 
 import (
 	"fmt"
-	"time"
 
 	"github.com/golang/glog"
 
@@ -28,6 +27,7 @@ import (
 
 	"sigs.k8s.io/cluster-api/pkg/apis/cluster/v1alpha1"
 	machinesetclientset "sigs.k8s.io/cluster-api/pkg/client/clientset_generated/clientset/typed/cluster/v1alpha1"
+	"sigs.k8s.io/cluster-api/pkg/controller/noderefutil"
 )
 
 const (
@@ -55,9 +55,9 @@ func (c *MachineSetControllerImpl) calculateStatus(ms *v1alpha1.MachineSet, filt
 			glog.V(4).Infof("Unable to get node for machine %v, %v", machine.Name, err)
 			continue
 		}
-		if isNodeReady(node) {
+		if noderefutil.IsNodeReady(node) {
 			readyReplicasCount++
-			if isNodeAvailable(node, ms.Spec.MinReadySeconds, metav1.Now()) {
+			if noderefutil.IsNodeAvailable(node, ms.Spec.MinReadySeconds, metav1.Now()) {
 				availableReplicasCount++
 			}
 		}
@@ -117,50 +117,6 @@ func updateMachineSetStatus(c machinesetclientset.MachineSetInterface, ms *v1alp
 	}
 
 	return nil, updateErr
-}
-
-func isNodeAvailable(node *corev1.Node, minReadySeconds int32, now metav1.Time) bool {
-	if !isNodeReady(node) {
-		return false
-	}
-
-	if minReadySeconds == 0 {
-		return true
-	}
-
-	minReadySecondsDuration := time.Duration(minReadySeconds) * time.Second
-	_, readyCondition := getNodeCondition(&node.Status, corev1.NodeReady)
-
-	if !readyCondition.LastTransitionTime.IsZero() &&
-		readyCondition.LastTransitionTime.Add(minReadySecondsDuration).Before(now.Time) {
-		return true
-	}
-
-	return false
-}
-
-// getNodeCondition extracts the provided condition from the given status and returns that.
-// Returns nil and -1 if the condition is not present, and the index of the located condition.
-func getNodeCondition(status *corev1.NodeStatus, conditionType corev1.NodeConditionType) (int, *corev1.NodeCondition) {
-	if status == nil {
-		return -1, nil
-	}
-	for i := range status.Conditions {
-		if status.Conditions[i].Type == conditionType {
-			return i, &status.Conditions[i]
-		}
-	}
-	return -1, nil
-}
-
-// isNodeReady returns true if a node is ready; false otherwise.
-func isNodeReady(node *corev1.Node) bool {
-	for _, c := range node.Status.Conditions {
-		if c.Type == corev1.NodeReady {
-			return c.Status == corev1.ConditionTrue
-		}
-	}
-	return false
 }
 
 func (c *MachineSetControllerImpl) getMachineNode(machine *v1alpha1.Machine) (*corev1.Node, error) {

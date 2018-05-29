@@ -103,7 +103,7 @@ func (c *MachineControllerImpl) Reconcile(machine *clusterv1.Machine) error {
 		// Remove finalizer on successful deletion.
 		glog.Infof("machine object %v deletion successful, removing finalizer.", name)
 		machine.ObjectMeta.Finalizers = util.Filter(machine.ObjectMeta.Finalizers, clusterv1.MachineFinalizer)
-		if _, err := c.machineClient.Update(machine); err != nil {
+		if _, err := c.clientSet.ClusterV1alpha1().Machines(machine.Namespace).Update(machine); err != nil {
 			glog.Errorf("Error removing finalizer from machine object %v; %v", name, err)
 			return err
 		}

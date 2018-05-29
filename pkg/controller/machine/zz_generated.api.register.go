@@ -44,15 +44,25 @@ type MachineController struct {
 }
 
 // NewController returns a new MachineController for responding to Machine events
-func NewMachineController(config *rest.Config, si *sharedinformers.SharedInformers, actuator Actuator) *MachineController {
+func NewMachineController(config *rest.Config, si *sharedinformers.SharedInformers) *MachineController {
 	q := workqueue.NewNamedRateLimitingQueue(workqueue.DefaultControllerRateLimiter(), "Machine")
 
 	queue := &controller.QueueWorker{q, 10, "Machine", nil}
 	c := &MachineController{queue, nil, "Machine", nil, nil, si}
 
 	// For non-generated code to add events
-	c.controller = &MachineControllerImpl{}
-	c.controller.Init(&sharedinformers.ControllerInitArgumentsImpl{si, config, c.LookupAndReconcile}, actuator)
+	uc := &MachineControllerImpl{}
+	var ci sharedinformers.Controller = uc
+
+	// Call the Init method that is implemented.
+	// Support multiple Init methods for backwards compatibility
+	if i, ok := ci.(sharedinformers.LegacyControllerInit); ok {
+		i.Init(config, si, c.LookupAndReconcile)
+	} else if i, ok := ci.(sharedinformers.ControllerInit); ok {
+		i.Init(&sharedinformers.ControllerInitArgumentsImpl{si, config, c.LookupAndReconcile})
+	}
+
+	c.controller = uc
 
 	queue.Reconcile = c.reconcile
 	if c.Informers.WorkerQueues == nil {

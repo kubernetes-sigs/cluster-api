@@ -23664,30 +23664,6 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 			Dependencies: []string{
 				"github.com/kubernetes-incubator/apiserver-builder/pkg/builders.DefaultStorageStrategy"},
 		},
-		"sigs.k8s.io/cluster-api/pkg/apis/cluster/v1alpha1.ContainerRuntimeInfo": {
-			Schema: spec.Schema{
-				SchemaProps: spec.SchemaProps{
-					Properties: map[string]spec.Schema{
-						"name": {
-							SchemaProps: spec.SchemaProps{
-								Description: "docker, rkt, containerd, ...",
-								Type:        []string{"string"},
-								Format:      "",
-							},
-						},
-						"version": {
-							SchemaProps: spec.SchemaProps{
-								Description: "Semantic version of the container runtime to use",
-								Type:        []string{"string"},
-								Format:      "",
-							},
-						},
-					},
-					Required: []string{"name", "version"},
-				},
-			},
-			Dependencies: []string{},
-		},
 		"sigs.k8s.io/cluster-api/pkg/apis/cluster/v1alpha1.Machine": {
 			Schema: spec.Schema{
 				SchemaProps: spec.SchemaProps{
@@ -24494,18 +24470,11 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 								Format:      "",
 							},
 						},
-						"containerRuntime": {
-							SchemaProps: spec.SchemaProps{
-								Description: "Name/version of container runtime",
-								Ref:         ref("sigs.k8s.io/cluster-api/pkg/apis/cluster/v1alpha1.ContainerRuntimeInfo"),
-							},
-						},
 					},
-					Required: []string{"kubelet", "containerRuntime"},
+					Required: []string{"kubelet"},
 				},
 			},
-			Dependencies: []string{
-				"sigs.k8s.io/cluster-api/pkg/apis/cluster/v1alpha1.ContainerRuntimeInfo"},
+			Dependencies: []string{},
 		},
 		"sigs.k8s.io/cluster-api/pkg/apis/cluster/v1alpha1.NetworkRanges": {
 			Schema: spec.Schema{

@@ -321,6 +321,7 @@ api:
   bindPort: ${PORT}
 networking:
   serviceSubnet: ${SERVICE_CIDR}
+  podSubnet: ${POD_CIDR}
 kubernetesVersion: v${CONTROL_PLANE_VERSION}
 token: ${TOKEN}
 apiServerCertSANs:
@@ -345,28 +346,10 @@ controllerManagerExtraVolumes:
     mountPath: /etc/kubernetes/cloud-config
 EOF
 
-KUBEADM_FLAGS=" --apiserver-bind-port ${PORT}"
-KUBEADM_FLAGS+=" --token ${TOKEN}"
-KUBEADM_FLAGS+=" --kubernetes-version v${CONTROL_PLANE_VERSION}"
-KUBEADM_FLAGS+=" --apiserver-advertise-address ${PUBLICIP}"
-KUBEADM_FLAGS+=" --apiserver-cert-extra-sans ${PUBLICIP} ${PRIVATEIP}"
-KUBEADM_FLAGS+=" --service-cidr ${SERVICE_CIDR}"
-KUBEADM_FLAGS+=" --pod-network-cidr=${POD_CIDR}"
-
-kubeadm init ${KUBEADM_FLAGS}
+kubeadm init --config /etc/kubernetes/kubeadm_config.yaml
 
 # install calico
-kubectl apply --kubeconfig /etc/kubernetes/admin.conf -f /tmp/calico.yaml
-
-for tries in $(seq 1 60); do
-	kubectl --kubeconfig /etc/kubernetes/kubelet.conf annotate --overwrite node $(hostname) machine=${MACHINE} && break
-	sleep 1
-done
-
-{{- end }} {{/* end configure */}}
-`
-
-const podNetworkCNICalico = `
+cat > /tmp/calico.yaml << EOF
 # This manifest is forked from https://docs.projectcalico.org/v3.0/getting-started/kubernetes/installation/hosted/kubeadm/1.7/calico.yaml
 # The ipam is changed from "calico-ipam" to "host-local".
 
@@ -813,4 +796,14 @@ kind: ServiceAccount
 metadata:
   name: calico-kube-controllers
   namespace: kube-system
+EOF
+
+kubectl apply --kubeconfig /etc/kubernetes/admin.conf -f /tmp/calico.yaml
+
+for tries in $(seq 1 60); do
+	kubectl --kubeconfig /etc/kubernetes/kubelet.conf annotate --overwrite node $(hostname) machine=${MACHINE} && break
+	sleep 1
+done
+
+{{- end }} {{/* end configure */}}
 `

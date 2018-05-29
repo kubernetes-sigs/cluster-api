@@ -204,10 +204,6 @@ func (tf *TerraformClient) Create(cluster *clusterv1.Cluster, machine *clusterv1
 		if err != nil {
 			return err
 		}
-		// Save the calico.yaml file.
-		if err := saveFile(podNetworkCNICalico, path.Join("/tmp", "calico.yaml"), 0644); err != nil {
-			return errors.New(fmt.Sprintf("could not write calico.yaml %s", err))
-		}
 	} else {
 		if len(cluster.Status.APIEndpoints) == 0 {
 			return errors.New("invalid cluster state: cannot create a Kubernetes node without an API endpoint")

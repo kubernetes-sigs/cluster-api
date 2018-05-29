@@ -93,16 +93,20 @@ items:
     write_files:
       - path: /tmp/master.sh
         permissions: '0755'
-      - content: |
-          $${calico_yaml}
-        path: /tmp/calico.yaml
-        permissions: '0644'
+        encoding: base64
+        content: |
+          $${startup_script}
+      - path: /etc/kubernetes/cloud-config/cloud-config.yaml
+        permissions: '0600'
+        encoding: base64
+        content: |
+          $${cloud_provider_config}
     runcmd:
       - /tmp/master.sh
     EOF
       vars {
-        startup_script = "${indent(6, file("/tmp/machine-startup.sh"))}"
-        calico_yaml = "${indent(6, file("/tmp/calico.yaml"))}"
+        startup_script = "${base64encode(file("/tmp/machine-startup.sh"))}"
+        cloud_provider_config = "${base64encode(data.template_file.cloud_provider_config.rendered)}"
       }
     }
 

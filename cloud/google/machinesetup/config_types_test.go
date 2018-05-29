@@ -37,18 +37,12 @@ func TestParseMachineSetupYaml(t *testing.T) {
     versions:
       kubelet: 1.9.3
       controlPlane: 1.9.3
-      containerRuntime:
-        name: docker
-        version: 1.12.0
   - os: ubuntu-1710
     roles:
     - Master
     versions:
       kubelet: 1.9.4
       controlPlane: 1.9.4
-      containerRuntime:
-        name: docker
-        version: 1.12.0
   image: projects/ubuntu-os-cloud/global/images/family/ubuntu-1710
   metadata:
     startupScript: |
@@ -59,17 +53,11 @@ func TestParseMachineSetupYaml(t *testing.T) {
     - Node
     versions:
       kubelet: 1.9.3
-      containerRuntime:
-        name: docker
-        version: 1.12.0
   - os: ubuntu-1710
     roles:
     - Node
     versions:
       kubelet: 1.9.4
-      containerRuntime:
-        name: docker
-        version: 1.12.0
   image: projects/ubuntu-os-cloud/global/images/family/ubuntu-1710
   metadata:
     startupScript: |
@@ -122,10 +110,6 @@ func TestGetYaml(t *testing.T) {
 									Versions: clusterv1.MachineVersionInfo{
 										Kubelet:      "1.9.4",
 										ControlPlane: "1.9.4",
-										ContainerRuntime: clusterv1.ContainerRuntimeInfo{
-											Name:    "docker",
-											Version: "1.12.0",
-										},
 									},
 								},
 							},
@@ -141,10 +125,6 @@ func TestGetYaml(t *testing.T) {
 									Roles: []clustercommon.MachineRole{clustercommon.NodeRole},
 									Versions: clusterv1.MachineVersionInfo{
 										Kubelet: "1.9.4",
-										ContainerRuntime: clusterv1.ContainerRuntimeInfo{
-											Name:    "docker",
-											Version: "1.12.0",
-										},
 									},
 								},
 							},
@@ -186,11 +166,6 @@ func validConfigs(configs ...config) ValidConfigs {
 }
 
 func TestMatchMachineSetupConfig(t *testing.T) {
-	dockerRuntimeInfo := clusterv1.ContainerRuntimeInfo{
-		Name:    "docker",
-		Version: "1.12.0",
-	}
-
 	masterMachineSetupConfig := config{
 		Params: []ConfigParams{
 			{
@@ -199,7 +174,6 @@ func TestMatchMachineSetupConfig(t *testing.T) {
 				Versions: clusterv1.MachineVersionInfo{
 					Kubelet:          "1.9.3",
 					ControlPlane:     "1.9.3",
-					ContainerRuntime: dockerRuntimeInfo,
 				},
 			},
 			{
@@ -208,7 +182,6 @@ func TestMatchMachineSetupConfig(t *testing.T) {
 				Versions: clusterv1.MachineVersionInfo{
 					Kubelet:          "1.9.4",
 					ControlPlane:     "1.9.4",
-					ContainerRuntime: dockerRuntimeInfo,
 				},
 			},
 		},
@@ -224,7 +197,6 @@ func TestMatchMachineSetupConfig(t *testing.T) {
 				Roles: []clustercommon.MachineRole{clustercommon.NodeRole},
 				Versions: clusterv1.MachineVersionInfo{
 					Kubelet:          "1.9.3",
-					ContainerRuntime: dockerRuntimeInfo,
 				},
 			},
 			{
@@ -232,7 +204,6 @@ func TestMatchMachineSetupConfig(t *testing.T) {
 				Roles: []clustercommon.MachineRole{clustercommon.NodeRole},
 				Versions: clusterv1.MachineVersionInfo{
 					Kubelet:          "1.9.4",
-					ContainerRuntime: dockerRuntimeInfo,
 				},
 			},
 		},
@@ -249,7 +220,6 @@ func TestMatchMachineSetupConfig(t *testing.T) {
 				Versions: clusterv1.MachineVersionInfo{
 					Kubelet:          "1.9.5",
 					ControlPlane:     "1.9.5",
-					ContainerRuntime: dockerRuntimeInfo,
 				},
 			},
 		},
@@ -266,7 +236,6 @@ func TestMatchMachineSetupConfig(t *testing.T) {
 				Versions: clusterv1.MachineVersionInfo{
 					Kubelet:          "1.9.3",
 					ControlPlane:     "1.9.3",
-					ContainerRuntime: dockerRuntimeInfo,
 				},
 			},
 			{
@@ -275,7 +244,6 @@ func TestMatchMachineSetupConfig(t *testing.T) {
 				Versions: clusterv1.MachineVersionInfo{
 					Kubelet:          "1.9.4",
 					ControlPlane:     "1.9.4",
-					ContainerRuntime: dockerRuntimeInfo,
 				},
 			},
 		},
@@ -299,7 +267,6 @@ func TestMatchMachineSetupConfig(t *testing.T) {
 				Versions: clusterv1.MachineVersionInfo{
 					Kubelet:          "1.9.4",
 					ControlPlane:     "1.9.4",
-					ContainerRuntime: dockerRuntimeInfo,
 				},
 			},
 			expectedMatch: &masterMachineSetupConfig,
@@ -312,7 +279,6 @@ func TestMatchMachineSetupConfig(t *testing.T) {
 				Roles: []clustercommon.MachineRole{clustercommon.NodeRole},
 				Versions: clusterv1.MachineVersionInfo{
 					Kubelet:          "1.9.4",
-					ContainerRuntime: dockerRuntimeInfo,
 				},
 			},
 			expectedMatch: &nodeMachineSetupConfig,
@@ -326,7 +292,6 @@ func TestMatchMachineSetupConfig(t *testing.T) {
 				Versions: clusterv1.MachineVersionInfo{
 					Kubelet:          "1.9.5",
 					ControlPlane:     "1.9.5",
-					ContainerRuntime: dockerRuntimeInfo,
 				},
 			},
 			expectedMatch: &multiRoleSetupConfig,
@@ -340,23 +305,6 @@ func TestMatchMachineSetupConfig(t *testing.T) {
 				Versions: clusterv1.MachineVersionInfo{
 					Kubelet:          "1.9.5",
 					ControlPlane:     "1.9.5",
-					ContainerRuntime: dockerRuntimeInfo,
-				},
-			},
-			expectedMatch: nil,
-			expectedErr:   true,
-		},
-		{
-			validConfigs: validConfigs(masterMachineSetupConfig, nodeMachineSetupConfig, multiRoleSetupConfig),
-			params: ConfigParams{
-				OS:    "ubuntu-1710",
-				Roles: []clustercommon.MachineRole{clustercommon.NodeRole},
-				Versions: clusterv1.MachineVersionInfo{
-					Kubelet: "1.9.4",
-					ContainerRuntime: clusterv1.ContainerRuntimeInfo{
-						Name:    "docker",
-						Version: "1.13.0",
-					},
 				},
 			},
 			expectedMatch: nil,
@@ -369,7 +317,6 @@ func TestMatchMachineSetupConfig(t *testing.T) {
 				Roles: []clustercommon.MachineRole{clustercommon.MasterRole, clustercommon.NodeRole},
 				Versions: clusterv1.MachineVersionInfo{
 					Kubelet:          "1.9.3",
-					ContainerRuntime: dockerRuntimeInfo,
 				},
 			},
 			expectedMatch: nil,
@@ -383,7 +330,6 @@ func TestMatchMachineSetupConfig(t *testing.T) {
 				Versions: clusterv1.MachineVersionInfo{
 					Kubelet:          "1.9.5",
 					ControlPlane:     "1.9.5",
-					ContainerRuntime: dockerRuntimeInfo,
 				},
 			},
 			expectedMatch: nil,
@@ -397,7 +343,6 @@ func TestMatchMachineSetupConfig(t *testing.T) {
 				Versions: clusterv1.MachineVersionInfo{
 					Kubelet:          "1.9.4",
 					ControlPlane:     "1.9.4",
-					ContainerRuntime: dockerRuntimeInfo,
 				},
 			},
 			expectedMatch: nil,

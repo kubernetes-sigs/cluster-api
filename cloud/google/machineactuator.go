@@ -701,9 +701,6 @@ func (gce *GCEClient) validateMachine(machine *clusterv1.Machine, config *gcecon
 	if machine.Spec.Versions.Kubelet == "" {
 		return apierrors.InvalidMachineConfiguration("spec.versions.kubelet can't be empty")
 	}
-	if machine.Spec.Versions.ContainerRuntime.Name != "docker" {
-		return apierrors.InvalidMachineConfiguration("Only docker is supported")
-	}
 	return nil
 }
 

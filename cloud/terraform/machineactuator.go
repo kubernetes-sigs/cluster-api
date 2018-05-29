@@ -645,12 +645,6 @@ func (tf *TerraformClient) validateMachine(machine *clusterv1.Machine, config *t
 	if machine.Spec.Versions.Kubelet == "" {
 		return apierrors.InvalidMachineConfiguration("spec.versions.kubelet can't be empty")
 	}
-	if machine.Spec.Versions.ContainerRuntime.Name != "docker" {
-		return apierrors.InvalidMachineConfiguration("Only docker is supported")
-	}
-	if machine.Spec.Versions.ContainerRuntime.Version != "1.12.0" {
-		return apierrors.InvalidMachineConfiguration("Only docker 1.12.0 is supported")
-	}
 	return nil
 }
 

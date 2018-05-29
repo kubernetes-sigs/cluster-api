@@ -46,6 +46,10 @@ func NewCmdDeleteCluster() *cobra.Command {
 	return cmd
 }
 
+func init() {
+	deleteCmd.AddCommand(NewCmdDeleteCluster())
+}
+
 func RunDelete() error {
 	return errors.NotImplementedError
 }

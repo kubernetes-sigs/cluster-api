@@ -54,5 +54,4 @@ func init() {
 	pflag.CommandLine.AddGoFlagSet(flag.CommandLine)
 
 	logs.InitLogs()
-	RootCmd.AddCommand(createCmd)
 }

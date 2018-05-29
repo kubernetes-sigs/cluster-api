@@ -77,6 +77,7 @@ func init() {
 	// Optional flags
 	createClusterCmd.Flags().BoolVarP(&co.CleanupExternalCluster, "cleanup-external-cluster", "", true, "Whether to cleanup the external cluster after bootstrap")
 	createClusterCmd.Flags().StringVarP(&co.VmDriver, "vm-driver", "", "", "Which vm driver to use for minikube")
+	createCmd.AddCommand(createClusterCmd)
 }
 
 func parseClusterYaml(file string) (*clusterv1.Cluster, error) {

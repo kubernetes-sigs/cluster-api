@@ -159,12 +159,22 @@ func (d *deployer) deleteAllMachines() error {
 	if err != nil {
 		return err
 	}
+	glog.Infof("Deleting non-master machines...")
+	var deletedMachineNames []string
 	for _, m := range machines.Items {
 		if !util.IsMaster(&m) {
-			if err := d.delete(m.Name); err != nil {
+			err = d.client.Machines(apiv1.NamespaceDefault).Delete(m.Name, &metav1.DeleteOptions{})
+			if err != nil {
 				return err
 			}
+			deletedMachineNames = append(deletedMachineNames, m.Name)
 			glog.Infof("Deleted machine object %s", m.Name)
+		}
+	}
+	for _, name := range deletedMachineNames {
+		err = d.ensureDeletionCompleted(name)
+		if err != nil {
+			return err
 		}
 	}
 	return nil
@@ -175,12 +185,20 @@ func (d *deployer) delete(name string) error {
 	if err != nil {
 		return err
 	}
-	err = util.Poll(500*time.Millisecond, 240*time.Second, func() (bool, error) {
-		if _, err = d.client.Machines(apiv1.NamespaceDefault).Get(name, metav1.GetOptions{}); err == nil {
+	err = d.ensureDeletionCompleted(name)
+	return err
+}
+
+func (d *deployer) ensureDeletionCompleted(machineName string) error {
+	err := util.Poll(500*time.Millisecond, 240*time.Second, func() (bool, error) {
+		if _, err := d.client.Machines(apiv1.NamespaceDefault).Get(machineName, metav1.GetOptions{}); err == nil {
 			return false, nil
 		}
 		return true, nil
 	})
+	if err != nil {
+		return fmt.Errorf("unable to ensure machine %v has been deleted: %v", machineName, err)
+	}
 	return err
 }
 

@@ -120,6 +120,7 @@ func (d *deployer) DeleteCluster() error {
 		return err
 	}
 
+	glog.Info("Deleting master VM")
 	if err := d.deleteMasterVM(cluster, machines); err != nil {
 		glog.Errorf("Error deleting master vm", err)
 	}

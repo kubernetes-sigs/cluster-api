@@ -336,6 +336,9 @@ apiServerExtraVolumes:
 controllerManagerExtraArgs:
   cloud-provider: vsphere
   cloud-config: /etc/kubernetes/cloud-config/cloud-config.yaml
+  address: 0.0.0.0
+schedulerExtraArgs:
+  address: 0.0.0.0
 controllerManagerExtraVolumes:
   - name: cloud-config
     hostPath: /etc/kubernetes/cloud-config

@@ -51,12 +51,20 @@ type MachineSetControllerImpl struct {
 	clusterAPIClient clusterapiclientset.Interface
 
 	// machineSetsLister indexes properties about MachineSet
-	machineSetsLister listers.MachineSetLister
-
+	machineSetLister listers.MachineSetLister
 	// machineLister holds a lister that knows how to list Machines from a cache
 	machineLister listers.MachineLister
 
+	// machineSetListerSynced function whether the machineset lister is synced
+	machineSetListerSynced cache.InformerSynced
+	// machineListerSynced function whether the machine lister is synced
+	machineListerSynced cache.InformerSynced
+
+	// queue holds machine set work items
 	queue workqueue.RateLimitingInterface
+
+	// msKeyMuxMap holds a mutex lock for reconcilation keyed on the machineset key
+	msKeyMuxMap map[string]sync.Mutex
 }
 
 // Init initializes the controller and is called by the generated code
@@ -64,8 +72,14 @@ type MachineSetControllerImpl struct {
 func (c *MachineSetControllerImpl) Init(arguments sharedinformers.ControllerInitArguments) {
 	c.kubernetesClient = arguments.GetSharedInformers().KubernetesClientSet
 
-	c.machineSetsLister = arguments.GetSharedInformers().Factory.Cluster().V1alpha1().MachineSets().Lister()
-	c.machineLister = arguments.GetSharedInformers().Factory.Cluster().V1alpha1().Machines().Lister()
+	msInformer := arguments.GetSharedInformers().Factory.Cluster().V1alpha1().MachineSets()
+	mInformer := arguments.GetSharedInformers().Factory.Cluster().V1alpha1().Machines()
+
+	c.machineSetLister = msInformer.Lister()
+	c.machineLister = mInformer.Lister()
+
+	c.machineSetListerSynced = msInformer.Informer().HasSynced
+	c.machineListerSynced = mInformer.Informer().HasSynced
 
 	var err error
 	c.clusterAPIClient, err = clusterapiclientset.NewForConfig(arguments.GetRestConfig())
@@ -73,7 +87,23 @@ func (c *MachineSetControllerImpl) Init(arguments sharedinformers.ControllerInit
 		glog.Fatalf("error building clientset for clusterAPIClient: %v", err)
 	}
 
+	// Start watching for Machine resource. It will effectively create a new worker queue, and
+	// reconcileMachine() will be invoked in a loop to handle the reconciling.
+	mi := arguments.GetSharedInformers().Factory.Cluster().V1alpha1().Machines().Informer()
+	arguments.GetSharedInformers().Watch("MachineWatcher", mi, nil, c.reconcileMachine)
+
 	c.queue = arguments.GetSharedInformers().WorkerQueues["MachineSet"].Queue
+
+	c.msKeyMuxMap = make(map[string]sync.Mutex)
+}
+
+func (c *MachineSetControllerImpl) Run(stopCh <-chan struct{}) {
+	glog.Infof("Waiting for caches to sync for machine set controller")
+	if !cache.WaitForCacheSync(stopCh, c.machineListerSynced, c.machineSetListerSynced) {
+		glog.Warningf("Unable to sync caches for machineset controller")
+		return
+	}
+	glog.Infof("Caches are synced for machineset controller")
 }
 
 // Reconcile holds the controller's business logic.
@@ -81,6 +111,20 @@ func (c *MachineSetControllerImpl) Init(arguments sharedinformers.ControllerInit
 // note that the current state of the cluster is calculated based on the number of machines
 // that are owned by the given machineSet (key).
 func (c *MachineSetControllerImpl) Reconcile(machineSet *v1alpha1.MachineSet) error {
+	key, err := cache.MetaNamespaceKeyFunc(machineSet)
+	if err != nil {
+		glog.Errorf("Couldn't get key for object %+v.", machineSet)
+		return err
+	}
+
+	// Lock on Reconcile, this is to avoid the change of a machine object to cause the same machineset to Reconcile
+	// during the creation/deletion of machines, causing the incorrect number of machines to created/deleted
+	// TODO: Find a less heavy handed approach to avoid concurrent machineset reconcilation.
+	mux := c.msKeyMuxMap[key]
+	mux.Lock()
+	defer mux.Unlock()
+
+	glog.V(4).Infof("Reconcile machineset %v", machineSet.Name)
 	allMachines, err := c.machineLister.Machines(machineSet.Namespace).List(labels.Everything())
 	if err != nil {
 		return fmt.Errorf("failed to list machines, %v", err)
@@ -89,13 +133,13 @@ func (c *MachineSetControllerImpl) Reconcile(machineSet *v1alpha1.MachineSet) er
 	// Filter out irrelevant machines (deleting/mismatch labels) and claim orphaned machines.
 	var filteredMachines []*v1alpha1.Machine
 	for _, machine := range allMachines {
-		if c.shouldExcludeMachine(machineSet, machine) {
+		if shouldExcludeMachine(machineSet, machine) {
 			continue
 		}
 		// Attempt to adopt machine if it meets previous conditions and it has no controller ref.
 		if metav1.GetControllerOf(machine) == nil {
 			if err := c.adoptOrphan(machineSet, machine); err != nil {
-				glog.V(4).Infof("failed to adopt machine %v into machineset %v. %v", machine.Name, machineSet.Name, err)
+				glog.Warningf("failed to adopt machine %v into machineset %v. %v", machine.Name, machineSet.Name, err)
 				continue
 			}
 		}
@@ -138,7 +182,7 @@ func (c *MachineSetControllerImpl) Reconcile(machineSet *v1alpha1.MachineSet) er
 }
 
 func (c *MachineSetControllerImpl) Get(namespace, name string) (*v1alpha1.MachineSet, error) {
-	return c.machineSetsLister.MachineSets(namespace).Get(name)
+	return c.machineSetLister.MachineSets(namespace).Get(name)
 }
 
 // syncReplicas essentially scales machine resources up and down.
@@ -149,11 +193,11 @@ func (c *MachineSetControllerImpl) syncReplicas(ms *v1alpha1.MachineSet, machine
 	diff := len(machines) - int(*(ms.Spec.Replicas))
 	if diff < 0 {
 		diff *= -1
-		glog.V(4).Infof("Too few replicas for %v %s/%s, need %d, creating %d", controllerKind, ms.Namespace, ms.Name, *(ms.Spec.Replicas), diff)
+		glog.Infof("Too few replicas for %v %s/%s, need %d, creating %d", controllerKind, ms.Namespace, ms.Name, *(ms.Spec.Replicas), diff)
 
 		var errstrings []string
 		for i := 0; i < diff; i++ {
-			glog.V(2).Infof("creating a machine ( spec.replicas(%d) > currentMachineCount(%d) )", *(ms.Spec.Replicas), len(machines))
+			glog.Infof("creating machine %d of %d, ( spec.replicas(%d) > currentMachineCount(%d) )", i+1, diff, *(ms.Spec.Replicas), len(machines))
 			machine := c.createMachine(ms)
 			_, err := c.clusterAPIClient.ClusterV1alpha1().Machines(ms.Namespace).Create(machine)
 			if err != nil {
@@ -168,7 +212,7 @@ func (c *MachineSetControllerImpl) syncReplicas(ms *v1alpha1.MachineSet, machine
 
 		return nil
 	} else if diff > 0 {
-		glog.V(4).Infof("Too many replicas for %v %s/%s, need %d, deleting %d", controllerKind, ms.Namespace, ms.Name, *(ms.Spec.Replicas), diff)
+		glog.Infof("Too many replicas for %v %s/%s, need %d, deleting %d", controllerKind, ms.Namespace, ms.Name, *(ms.Spec.Replicas), diff)
 
 		// Choose which Machines to delete.
 		machinesToDelete := getMachinesToDelete(machines, diff)
@@ -221,10 +265,10 @@ func (c *MachineSetControllerImpl) createMachine(machineSet *v1alpha1.MachineSet
 }
 
 // shoudExcludeMachine returns true if the machine should be filtered out, false otherwise.
-func (c *MachineSetControllerImpl) shouldExcludeMachine(machineSet *v1alpha1.MachineSet, machine *v1alpha1.Machine) bool {
+func shouldExcludeMachine(machineSet *v1alpha1.MachineSet, machine *v1alpha1.Machine) bool {
 	// Ignore inactive machines.
 	if machine.DeletionTimestamp != nil || !machine.DeletionTimestamp.IsZero() {
-		glog.V(2).Infof("Skipping machine (%v), as it is being deleted.", machine.Name)
+		glog.V(4).Infof("Skipping machine (%v), as it is being deleted.", machine.Name)
 		return true
 	}
 
@@ -232,21 +276,28 @@ func (c *MachineSetControllerImpl) shouldExcludeMachine(machineSet *v1alpha1.Mac
 		glog.V(4).Infof("%s not controlled by %v", machine.Name, machineSet.Name)
 		return true
 	}
-	selector, err := metav1.LabelSelectorAsSelector(&machineSet.Spec.Selector)
-	if err != nil {
-		glog.Warningf("unable to convert selector: %v", err)
-		return true
-	}
-	// If a deployment with a nil or empty selector creeps in, it should match nothing, not everything.
-	if selector.Empty() {
-		glog.V(4).Infof("%v machineset has empty selector", machineSet.Name)
-		return true
-	}
-	if !selector.Matches(labels.Set(machine.Labels)) {
-		glog.V(4).Infof("%v machine has mismatch labels", machine.Name)
+	if !hasMatchingLabels(machineSet, machine) {
 		return true
 	}
 	return false
+}
+
+func hasMatchingLabels(machineSet *v1alpha1.MachineSet, machine *v1alpha1.Machine) bool {
+	selector, err := metav1.LabelSelectorAsSelector(&machineSet.Spec.Selector)
+	if err != nil {
+		glog.Warningf("unable to convert selector: %v", err)
+		return false
+	}
+	// If a deployment with a nil or empty selector creeps in, it should match nothing, not everything.
+	if selector.Empty() {
+		glog.V(2).Infof("%v machineset has empty selector", machineSet.Name)
+		return false
+	}
+	if !selector.Matches(labels.Set(machine.Labels)) {
+		glog.V(4).Infof("%v machine has mismatch labels", machine.Name)
+		return false
+	}
+	return true
 }
 
 func (c *MachineSetControllerImpl) adoptOrphan(machineSet *v1alpha1.MachineSet, machine *v1alpha1.Machine) error {
@@ -263,6 +314,16 @@ func (c *MachineSetControllerImpl) adoptOrphan(machineSet *v1alpha1.MachineSet, 
 		glog.Warningf("Failed to update machine owner reference. %v", err)
 		return err
 	}
+	return nil
+}
+
+func (c *MachineSetControllerImpl) enqueue(machineSet *v1alpha1.MachineSet) error {
+	key, err := cache.MetaNamespaceKeyFunc(machineSet)
+	if err != nil {
+		glog.Errorf("Couldn't get key for object %+v.", machineSet)
+		return err
+	}
+	c.queue.Add(key)
 	return nil
 }
 

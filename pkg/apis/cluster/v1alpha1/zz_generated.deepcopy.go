@@ -620,7 +620,7 @@ func (in *MachineStatus) DeepCopyInto(out *MachineStatus) {
 			**out = **in
 		}
 	}
-	out.LastUpdated = in.LastUpdated
+	in.LastUpdated.DeepCopyInto(&out.LastUpdated)
 	if in.Versions != nil {
 		in, out := &in.Versions, &out.Versions
 		if *in == nil {

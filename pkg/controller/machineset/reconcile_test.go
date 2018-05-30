@@ -132,6 +132,7 @@ func TestMachineSetControllerReconcileHandler(t *testing.T) {
 		},
 	}
 
+	reconcileMutexSleepSec = 0
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
 			// setup the test scenario

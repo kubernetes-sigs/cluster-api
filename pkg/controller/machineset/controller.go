@@ -39,6 +39,10 @@ import (
 // controllerKind contains the schema.GroupVersionKind for this controller type.
 var controllerKind = v1alpha1.SchemeGroupVersion.WithKind("MachineSet")
 
+// reconcileMutexSleepSec is the duration to sleep before releasing the mutex lock that is held for reconcilation.
+// See https://github.com/kubernetes-sigs/cluster-api/issues/245
+var reconcileMutexSleepSec = time.Second
+
 // +controller:group=cluster,version=v1alpha1,kind=MachineSet,resource=machinesets
 type MachineSetControllerImpl struct {
 	builders.DefaultControllerFns
@@ -118,6 +122,7 @@ func (c *MachineSetControllerImpl) Reconcile(machineSet *v1alpha1.MachineSet) er
 	mux := c.msKeyMuxMap[key]
 	mux.Lock()
 	defer mux.Unlock()
+	defer time.Sleep(reconcileMutexSleepSec)
 
 	glog.V(4).Infof("Reconcile machineset %v", machineSet.Name)
 	allMachines, err := c.machineLister.Machines(machineSet.Namespace).List(labels.Everything())

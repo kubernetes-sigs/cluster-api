@@ -1,0 +1,25 @@
+Please provide yaml file for cluster definition.
+Create a kubernetes cluster with one command
+
+Usage:
+  clusterctl create cluster [flags]
+
+Flags:
+      --cleanup-external-cluster     Whether to cleanup the external cluster after bootstrap (default true)
+  -c, --cluster string               A yaml file containing cluster object definition
+  -h, --help                         help for cluster
+      --kubeconfig-out string        where to output the kubeconfig for the provisioned cluster. (default "kubeconfig")
+  -m, --machines string              A yaml file containing machine object definition(s)
+      --provider string              Which provider deployment logic to use (google/vsphere)
+  -p, --provider-components string   A yaml file containing cluster api provider controllers and supporting objects
+      --vm-driver string             Which vm driver to use for minikube
+
+Global Flags:
+      --alsologtostderr                  log to standard error as well as files
+      --log-flush-frequency duration     Maximum number of seconds between log flushes (default 5s)
+      --log_backtrace_at traceLocation   when logging hits line file:N, emit a stack trace (default :0)
+      --log_dir string                   If non-empty, write log files in this directory
+      --logtostderr                      log to standard error instead of files (default true)
+      --stderrthreshold severity         logs at or above this threshold go to stderr (default 2)
+  -v, --v Level                          log level for V logs
+      --vmodule moduleSpec               comma-separated list of pattern=N settings for file-filtered logging

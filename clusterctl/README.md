@@ -58,3 +58,7 @@ $ kubectl get machines -o yaml
 ### Deleting a cluster
 
 **NOT YET SUPPORTED!**
+
+## Contributing
+
+If you are interested in adding to this project, see the [contributing guide](CONTRIBUTING.md) for information on how you can get involved.

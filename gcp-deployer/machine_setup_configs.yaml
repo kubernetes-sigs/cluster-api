@@ -6,9 +6,6 @@ items:
     versions:
       kubelet: 1.9.4
       controlPlane: 1.9.4
-      containerRuntime:
-        name: docker
-        version: 1.12.0
   image: projects/ubuntu-os-cloud/global/images/family/ubuntu-1604-lts
   metadata:
     startupScript: |
@@ -152,9 +149,6 @@ items:
     - Node
     versions:
       kubelet: 1.9.4
-      containerRuntime:
-        name: docker
-        version: 1.12.0
   image: projects/ubuntu-os-cloud/global/images/family/ubuntu-1604-lts
   metadata:
     startupScript: |

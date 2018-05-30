@@ -294,10 +294,6 @@ func newMachine(t *testing.T, gceProviderConfig gceconfigv1.GCEMachineProviderCo
 			Versions: v1alpha1.MachineVersionInfo{
 				Kubelet:      "1.9.4",
 				ControlPlane: "1.9.4",
-				ContainerRuntime: v1alpha1.ContainerRuntimeInfo{
-					Name:    "docker",
-					Version: "1.12.0",
-				},
 			},
 			Roles: []common.MachineRole{
 				common.MasterRole,

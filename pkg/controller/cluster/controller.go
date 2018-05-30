@@ -1,4 +1,3 @@
-
 /*
 Copyright 2018 The Kubernetes Authors.
 
@@ -15,41 +14,91 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-
 package cluster
 
 import (
-	"log"
-
 	"github.com/kubernetes-incubator/apiserver-builder/pkg/builders"
 
-	"sigs.k8s.io/cluster-api/pkg/apis/cluster/v1alpha1"
-	"sigs.k8s.io/cluster-api/pkg/controller/sharedinformers"
+	"github.com/golang/glog"
+	corev1 "k8s.io/api/core/v1"
+	"k8s.io/client-go/kubernetes"
+	clusterv1 "sigs.k8s.io/cluster-api/pkg/apis/cluster/v1alpha1"
+	"sigs.k8s.io/cluster-api/pkg/client/clientset_generated/clientset"
+	"sigs.k8s.io/cluster-api/pkg/client/clientset_generated/clientset/typed/cluster/v1alpha1"
 	listers "sigs.k8s.io/cluster-api/pkg/client/listers_generated/cluster/v1alpha1"
+	"sigs.k8s.io/cluster-api/pkg/controller/sharedinformers"
+	"sigs.k8s.io/cluster-api/util"
 )
 
 // +controller:group=cluster,version=v1alpha1,kind=Cluster,resource=clusters
 type ClusterControllerImpl struct {
 	builders.DefaultControllerFns
 
-	// lister indexes properties about Cluster
-	lister listers.ClusterLister
+	actuator Actuator
+
+	// clusterLister holds a lister that knows how to list Cluster from a cache
+	clusterLister listers.ClusterLister
+
+	kubernetesClientSet *kubernetes.Clientset
+	clientSet           clientset.Interface
+	clusterClient       v1alpha1.ClusterInterface
 }
 
 // Init initializes the controller and is called by the generated code
 // Register watches for additional resource types here.
-func (c *ClusterControllerImpl) Init(arguments sharedinformers.ControllerInitArguments) {
-	// Use the lister for indexing clusters labels
-	c.lister = arguments.GetSharedInformers().Factory.Cluster().V1alpha1().Clusters().Lister()
+func (c *ClusterControllerImpl) Init(arguments sharedinformers.ControllerInitArguments, actuator Actuator) {
+	cInformer := arguments.GetSharedInformers().Factory.Cluster().V1alpha1().Clusters()
+	c.clusterLister = cInformer.Lister()
+	c.actuator = actuator
+	cs, err := clientset.NewForConfig(arguments.GetRestConfig())
+	if err != nil {
+		glog.Fatalf("error creating cluster client: %v", err)
+	}
+	c.clientSet = cs
+	c.kubernetesClientSet = arguments.GetSharedInformers().KubernetesClientSet
+
+	// Create cluster actuator.
+	// TODO: Assume default namespace for now. Maybe a separate a controller per namespace?
+	c.clusterClient = cs.ClusterV1alpha1().Clusters(corev1.NamespaceDefault)
+	c.actuator = actuator
 }
 
-// Reconcile handles enqueued messages
-func (c *ClusterControllerImpl) Reconcile(u *v1alpha1.Cluster) error {
-	// Implement controller logic here
-	log.Printf("Running reconcile Cluster for %s\n", u.Name)
+// Reconcile handles enqueued messages. The delete will be handled by finalizer.
+func (c *ClusterControllerImpl) Reconcile(cluster *clusterv1.Cluster) error {
+	name := cluster.Name
+	glog.Infof("Running reconcile Cluster for %s\n", name)
+
+	if !cluster.ObjectMeta.DeletionTimestamp.IsZero() {
+		// no-op if finalizer has been removed.
+		if !util.Contains(cluster.ObjectMeta.Finalizers, clusterv1.ClusterFinalizer) {
+			glog.Infof("reconciling cluster object %v causes a no-op as there is no finalizer.", name)
+			return nil
+		}
+
+		glog.Infof("reconciling cluster object %v triggers delete.", name)
+		if err := c.actuator.Delete(cluster); err != nil {
+			glog.Errorf("Error deleting cluster object %v; %v", name, err)
+			return err
+		}
+		// Remove finalizer on successful deletion.
+		glog.Infof("cluster object %v deletion successful, removing finalizer.", name)
+		cluster.ObjectMeta.Finalizers = util.Filter(cluster.ObjectMeta.Finalizers, clusterv1.ClusterFinalizer)
+		if _, err := c.clusterClient.Update(cluster); err != nil {
+			glog.Errorf("Error removing finalizer from cluster object %v; %v", name, err)
+			return err
+		}
+		return nil
+	}
+
+	glog.Infof("reconciling cluster object %v triggers idempotent reconcile.", name)
+	err := c.actuator.Reconcile(cluster)
+	if err != nil {
+		glog.Errorf("Error reconciling cluster object %v; %v", name, err)
+		return err
+	}
 	return nil
 }
 
-func (c *ClusterControllerImpl) Get(namespace, name string) (*v1alpha1.Cluster, error) {
-	return c.lister.Clusters(namespace).Get(name)
+func (c *ClusterControllerImpl) Get(namespace, name string) (*clusterv1.Cluster, error) {
+	return c.clusterLister.Clusters(namespace).Get(name)
 }

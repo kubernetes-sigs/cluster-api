@@ -24,6 +24,7 @@ import (
 
 	"sigs.k8s.io/cluster-api/pkg/apis/cluster/v1alpha1/testutil"
 	"sigs.k8s.io/cluster-api/pkg/client/clientset_generated/clientset"
+	"sync"
 )
 
 func clusterControllerReconcile(t *testing.T, cs *clientset.Clientset, controller *ClusterController) {
@@ -39,15 +40,17 @@ func clusterControllerReconcile(t *testing.T, cs *clientset.Clientset, controlle
 	actualKey := ""
 	var actualErr error = nil
 
+	var aftOnce, befOnce sync.Once
+
 	// Setup test callbacks to be called when the message is reconciled
 	controller.BeforeReconcile = func(key string) {
-		defer close(before)
 		actualKey = key
+		befOnce.Do(func() { close(before) })
 	}
 	controller.AfterReconcile = func(key string, err error) {
-		defer close(after)
 		actualKey = key
 		actualErr = err
+		aftOnce.Do(func() { close(after) })
 	}
 
 	// Create an instance

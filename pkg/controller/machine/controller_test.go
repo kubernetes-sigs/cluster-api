@@ -24,14 +24,15 @@ import (
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/wait"
+	"sigs.k8s.io/cluster-api/pkg/client/clientset_generated/clientset/typed/cluster/v1alpha1"
 
-	"sigs.k8s.io/cluster-api/pkg/apis/cluster/v1alpha1"
+	clusterv1 "sigs.k8s.io/cluster-api/pkg/apis/cluster/v1alpha1"
 	"sigs.k8s.io/cluster-api/pkg/apis/cluster/v1alpha1/testutil"
 	"sigs.k8s.io/cluster-api/pkg/client/clientset_generated/clientset"
 )
 
 func machineControllerReconcile(t *testing.T, cs *clientset.Clientset, controller *MachineController) {
-	instance := v1alpha1.Machine{}
+	instance := clusterv1.Machine{}
 	instance.Name = "instance-1"
 	expectedKey := "default/instance-1"
 
@@ -42,7 +43,7 @@ func machineControllerReconcile(t *testing.T, cs *clientset.Clientset, controlle
 	if _, err := clusterClient.Create(&cluster); err != nil {
 		t.Fatal(err)
 	}
-	defer clusterClient.Delete(cluster.Name, &metav1.DeleteOptions{})
+	defer cleanUpCluster(clusterClient, cluster)
 
 	client := cs.ClusterV1alpha1().Machines("default")
 	before := make(chan struct{})
@@ -109,11 +110,11 @@ func machineControllerConcurrentReconcile(t *testing.T, cs *clientset.Clientset,
 	if _, err := clusterClient.Create(&cluster); err != nil {
 		t.Fatal(err)
 	}
-	defer clusterClient.Delete(cluster.Name, &metav1.DeleteOptions{})
+	defer cleanUpCluster(clusterClient, cluster)
 
 	client := cs.ClusterV1alpha1().Machines("default")
 
-	// Direct test actutaor to block on Create() call.
+	// Direct test actuator to block on Create() call.
 	ta := controller.controller.actuator.(*TestActuator)
 	ta.BlockOnCreate = true
 	ta.CreateCallCount = 0
@@ -122,7 +123,7 @@ func machineControllerConcurrentReconcile(t *testing.T, cs *clientset.Clientset,
 	// Create a few instances
 	const numMachines = 5
 	for i := 0; i < numMachines; i++ {
-		instance := v1alpha1.Machine{}
+		instance := clusterv1.Machine{}
 		instance.Name = "instance" + strconv.Itoa(i)
 		if _, err := client.Create(&instance); err != nil {
 			t.Fatal(err)
@@ -136,4 +137,12 @@ func machineControllerConcurrentReconcile(t *testing.T, cs *clientset.Clientset,
 	if err != nil {
 		t.Fatalf("The reconcilation didn't run in parallel.")
 	}
+}
+
+func cleanUpCluster(clusterClient v1alpha1.ClusterInterface, cluster clusterv1.Cluster) {
+	// We have to delete the finalizer since the cluster
+	// controller is not running
+	cluster.ObjectMeta.Finalizers = []string{}
+	clusterClient.Update(&cluster)
+	clusterClient.Delete(cluster.Name, &metav1.DeleteOptions{})
 }

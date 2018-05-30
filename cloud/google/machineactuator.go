@@ -654,10 +654,9 @@ func (gce *GCEClient) checkOp(op *compute.Operation, err error) error {
 
 func (gce *GCEClient) updateMasterInplace(cluster *clusterv1.Cluster, oldMachine *clusterv1.Machine, newMachine *clusterv1.Machine) error {
 	if oldMachine.Spec.Versions.ControlPlane != newMachine.Spec.Versions.ControlPlane {
-		// First pull off the latest kubeadm.
-		cmd := "export KUBEADM_VERSION=$(curl -sSL https://dl.k8s.io/release/stable.txt); " +
-			"curl -sSL https://dl.k8s.io/release/${KUBEADM_VERSION}/bin/linux/amd64/kubeadm | sudo tee /usr/bin/kubeadm > /dev/null; " +
-			"sudo chmod a+rx /usr/bin/kubeadm"
+		cmd := fmt.Sprintf(
+			"curl -sSL https://dl.k8s.io/release/v%s/bin/linux/amd64/kubeadm | sudo tee /usr/bin/kubeadm > /dev/null; " +
+			"sudo chmod a+rx /usr/bin/kubeadm", newMachine.Spec.Versions.ControlPlane)
 		_, err := gce.remoteSshCommand(cluster, newMachine, cmd)
 		if err != nil {
 			glog.Infof("remotesshcomand error: %v", err)

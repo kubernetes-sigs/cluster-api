@@ -12,4 +12,7 @@ spec:
     providerConfig:
       value:
         apiVersion: "vsphereproviderconfig/v1alpha1"
-        kind: "VsphereProviderConfig"
+        kind: "VsphereClusterProviderConfig"
+        vsphereUser: ""
+        vspherePassword: ""
+        vsphereServer: ""

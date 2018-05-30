@@ -627,13 +627,13 @@ func (vc *VsphereClient) instanceIfExists(machine *clusterv1.Machine) (*clusterv
 	return nil, nil
 }
 
-func (vc *VsphereClient) providerconfig(providerConfig clusterv1.ProviderConfig) (*vsphereconfig.VsphereProviderConfig, error) {
+func (vc *VsphereClient) providerconfig(providerConfig clusterv1.ProviderConfig) (*vsphereconfig.VsphereMachineProviderConfig, error) {
 	obj, gvk, err := vc.codecFactory.UniversalDecoder().Decode(providerConfig.Value.Raw, nil, nil)
 	if err != nil {
 		return nil, fmt.Errorf("decoding failure: %v", err)
 	}
 
-	config, ok := obj.(*vsphereconfig.VsphereProviderConfig)
+	config, ok := obj.(*vsphereconfig.VsphereMachineProviderConfig)
 	if !ok {
 		return nil, fmt.Errorf("failure to cast to vsphere; type: %v", gvk)
 	}
@@ -641,7 +641,7 @@ func (vc *VsphereClient) providerconfig(providerConfig clusterv1.ProviderConfig)
 	return config, nil
 }
 
-func (vc *VsphereClient) validateMachine(machine *clusterv1.Machine, config *vsphereconfig.VsphereProviderConfig) *apierrors.MachineError {
+func (vc *VsphereClient) validateMachine(machine *clusterv1.Machine, config *vsphereconfig.VsphereMachineProviderConfig) *apierrors.MachineError {
 	if machine.Spec.Versions.Kubelet == "" {
 		return apierrors.InvalidMachineConfiguration("spec.versions.kubelet can't be empty")
 	}

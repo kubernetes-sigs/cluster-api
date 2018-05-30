@@ -21,7 +21,7 @@ import (
 )
 
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
-type VsphereProviderConfig struct {
+type VsphereMachineProviderConfig struct {
 	metav1.TypeMeta `json:",inline"`
 
 	// Name of the machine that's registered in the NamedMachines ConfigMap.
@@ -29,4 +29,13 @@ type VsphereProviderConfig struct {
 	// List of contents of terraform variables used.
 	// HCL variables encoded as string.
 	TerraformVariables []string `json:"terraformVariables"`
+}
+
+// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
+type VsphereClusterProviderConfig struct {
+	metav1.TypeMeta `json:",inline"`
+
+	VsphereUser     string `json:"vsphereUser"`
+	VspherePassword string `json:"vspherePassword"`
+	VsphereServer   string `json:"vsphereServer"`
 }

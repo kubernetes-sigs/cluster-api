@@ -9,12 +9,9 @@ items:
     providerConfig:
       value:
         apiVersion: "vsphereproviderconfig/v1alpha1"
-        kind: "VsphereProviderConfig"
+        kind: "VsphereMachineProviderConfig"
         vsphereMachine: "standard-master"
         terraformVariables: [
-          "user = \"\"",
-          "password = \"\"",
-          "vsphere_server = \"",
           "datacenter = \"\"",
           "datastore = \"\"",
           "resource_pool = \"\"",
@@ -41,12 +38,9 @@ items:
     providerConfig:
       value:
         apiVersion: "vsphereproviderconfig/v1alpha1"
-        kind: "VsphereProviderConfig"
+        kind: "VsphereMachineProviderConfig"
         vsphereMachine: "standard-node"
         terraformVariables: [
-          "user = \"\"",
-          "password = \"\"",
-          "vsphere_server = \"",
           "datacenter = \"\"",
           "datastore = \"\"",
           "resource_pool = \"\"",

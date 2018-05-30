@@ -21,6 +21,7 @@ import (
 	"sort"
 	"testing"
 
+	"github.com/kubernetes-incubator/apiserver-builder/pkg/controller"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/client-go/tools/cache"
@@ -29,6 +30,7 @@ import (
 	"sigs.k8s.io/cluster-api/pkg/apis/cluster/v1alpha1"
 	"sigs.k8s.io/cluster-api/pkg/client/clientset_generated/clientset/fake"
 	v1alpha1listers "sigs.k8s.io/cluster-api/pkg/client/listers_generated/cluster/v1alpha1"
+	"sigs.k8s.io/cluster-api/pkg/controller/sharedinformers"
 )
 
 func TestMachineSetController_reconcileMachine(t *testing.T) {
@@ -119,7 +121,10 @@ func TestMachineSetController_reconcileMachine(t *testing.T) {
 			target := &MachineSetControllerImpl{}
 			target.clusterAPIClient = fakeClient
 			target.machineSetLister = machineSetLister
-			target.queue = workqueue.NewNamedRateLimitingQueue(workqueue.DefaultControllerRateLimiter(), "MachineSet")
+			target.informers = &sharedinformers.SharedInformers{}
+			target.informers.WorkerQueues = map[string]*controller.QueueWorker{}
+			target_queue := workqueue.NewNamedRateLimitingQueue(workqueue.DefaultControllerRateLimiter(), "MachineSet")
+			target.informers.WorkerQueues["MachineSet"] = &controller.QueueWorker{target_queue, 10, "MachineSet", nil}
 
 			mKey, err := cache.MetaNamespaceKeyFunc(m)
 			if err != nil {
@@ -131,15 +136,15 @@ func TestMachineSetController_reconcileMachine(t *testing.T) {
 				t.Fatalf("got %v error, expected %v error; %v", err != nil, false, err)
 			}
 
-			if target.queue.Len() != test.expectQueued {
-				t.Fatalf("got %v queued items, expected %v queued items", target.queue.Len(), test.expectQueued)
+			if target_queue.Len() != test.expectQueued {
+				t.Fatalf("got %v queued items, expected %v queued items", target_queue.Len(), test.expectQueued)
 			}
 
 			if test.expectQueued == 1 {
-				verifyQueuedKey(t, target.queue, []*v1alpha1.MachineSet{ms})
+				verifyQueuedKey(t, target_queue, []*v1alpha1.MachineSet{ms})
 			}
 			if test.expectQueued == 2 {
-				verifyQueuedKey(t, target.queue, []*v1alpha1.MachineSet{ms, msSameLabel})
+				verifyQueuedKey(t, target_queue, []*v1alpha1.MachineSet{ms, msSameLabel})
 			}
 		})
 	}

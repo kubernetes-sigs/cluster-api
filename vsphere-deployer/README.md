@@ -22,7 +22,7 @@ Follow the steps listed at [CONTRIBUTING.md](https://github.com/kubernetes-sigs/
    ```
 1. Create a `machines.yaml` file configured for your cluster. See the provided template
    for an example, if you use it, make sure to fill in all missing `terraformVariables`
-   in `providerConfig`.
+   in `providerConfig`. You'll also need to create a `cluster.yaml` (look at the provided `cluster.yaml.template`).
 
 ### Limitation
 

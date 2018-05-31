@@ -20,6 +20,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
+// +k8s:deepcopy-gen=true
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
 type VsphereMachineProviderConfig struct {
 	metav1.TypeMeta `json:",inline"`
@@ -31,6 +32,7 @@ type VsphereMachineProviderConfig struct {
 	TerraformVariables []string `json:"terraformVariables"`
 }
 
+// +k8s:deepcopy-gen=true
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
 type VsphereClusterProviderConfig struct {
 	metav1.TypeMeta `json:",inline"`

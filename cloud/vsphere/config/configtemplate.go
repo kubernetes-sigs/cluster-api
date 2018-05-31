@@ -135,8 +135,8 @@ spec:
             mountPath: /etc/kubernetes
           - name: certs
             mountPath: /etc/ssl/certs
-          - name: terraform-config
-            mountPath: /root/.terraform.d
+          - name: machines-stage
+            mountPath: /tmp/cluster-api/machines/
           - name: sshkeys
             mountPath: /root/.ssh
           - name: named-machines
@@ -164,9 +164,9 @@ spec:
       - name: certs
         hostPath:
           path: /etc/ssl/certs
-      - name: terraform-config
+      - name: machines-stage
         hostPath:
-          path: /home/ubuntu/.terraform.d
+          path: /tmp/cluster-api/machines/
       - name: sshkeys
         hostPath:
           path: /home/ubuntu/.ssh

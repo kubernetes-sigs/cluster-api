@@ -1,15 +1,9 @@
 items:
 - machineName: standard-master
   machineHcl: |
-    variable "vsphere_user" {
-      type = "string"
-    }
-    variable "vsphere_password" {
-      type = "string"
-    }
-    variable "vsphere_server" {
-      type = "string"
-    }
+    variable "vsphere_user" {}
+    variable "vsphere_password" {}
+    variable "vsphere_server" {}
 
     variable "datacenter" {}
     variable "datastore" {}

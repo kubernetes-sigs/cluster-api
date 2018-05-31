@@ -39,7 +39,6 @@ RUN apt-get update && apt-get install -y ca-certificates curl openssh-server unz
     rm -rf /var/lib/apt/lists/*
 
 # Setup template provider
-# Setup template provider
 ENV TEMPLATE_PROVIDER_VERSION=1.0.0
 ENV TEMPLATE_PROVIDER_ZIP=terraform-provider-template_${TEMPLATE_PROVIDER_VERSION}_linux_amd64.zip
 ENV TEMPLATE_PROVIDER_SHA256SUM=f54c2764bd4d4c62c1c769681206dde7aa94b64b814a43cb05680f1ec8911977

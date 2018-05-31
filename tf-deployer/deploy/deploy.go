@@ -19,6 +19,7 @@ package deploy
 import (
 	"fmt"
 	"os"
+	"strings"
 
 	"github.com/golang/glog"
 	"k8s.io/client-go/kubernetes"
@@ -47,6 +48,9 @@ func NewDeployer(configPath, namedMachinesPath string) *deployer {
 		configPath = os.Getenv("KUBECONFIG")
 		if configPath == "" {
 			configPath = apiutil.GetDefaultKubeConfigPath()
+		} else {
+			// KUBECONFIG could hold more than one path.
+			configPath = strings.Split(configPath, ":")[0]
 		}
 	} else {
 		// This is needed for kubectl commands run later to create secret in function

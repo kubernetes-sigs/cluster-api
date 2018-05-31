@@ -653,12 +653,6 @@ func (vc *VsphereClient) machineproviderconfig(providerConfig clusterv1.Provider
 
 func (vc *VsphereClient) clusterproviderconfig(providerConfig clusterv1.ProviderConfig) (*vsphereconfig.VsphereClusterProviderConfig, error) {
 	obj, gvk, err := vc.codecFactory.UniversalDecoder().Decode(providerConfig.Value.Raw, nil, nil)
-<<<<<<< HEAD
-=======
-	glog.Infof("obj === %+v", obj)
-	glog.Infof("gvk === %+v", gvk)
-
->>>>>>> 30e25fbe... make the new broken type work, pass user, pass to tf
 	if err != nil {
 		return nil, fmt.Errorf("cluster providerconfig decoding failure: %v", err)
 	}

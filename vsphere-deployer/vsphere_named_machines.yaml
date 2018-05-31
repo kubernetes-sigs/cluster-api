@@ -1,8 +1,8 @@
 items:
 - machineName: standard-master
   machineHcl: |
-    variable "user" {}
-    variable "password" {}
+    variable "vsphere_user" {}
+    variable "vsphere_password" {}
     variable "vsphere_server" {}
 
     variable "datacenter" {}
@@ -21,8 +21,8 @@ items:
 
     provider "vsphere" {
       version        = "~> 1.4"
-      user           = "${var.user}"
-      password       = "${var.password}"
+      user           = "${var.vsphere_user}"
+      password       = "${var.vsphere_password}"
       vsphere_server = "${var.vsphere_server}"
 
       # if you have a self-signed cert
@@ -79,8 +79,8 @@ items:
       vars {
         vsphere_server = "${var.vsphere_server}"
         datacenter     = "${var.datacenter}"
-        user           = "${var.user}"
-        password       = "${var.password}"
+        user           = "${var.vsphere_user}"
+        password       = "${var.vsphere_password}"
         datastore      = "${var.datastore}"
         resource_pool  = "${var.resource_pool}"
         network        = "${var.network}"
@@ -169,8 +169,8 @@ items:
     }
 - machineName: standard-node
   machineHcl: |
-    variable "user" {}
-    variable "password" {}
+    variable "vsphere_user" {}
+    variable "vsphere_password" {}
     variable "vsphere_server" {}
 
     variable "datacenter" {}
@@ -189,8 +189,8 @@ items:
 
     provider "vsphere" {
       version        = "~> 1.4"
-      user           = "${var.user}"
-      password       = "${var.password}"
+      user           = "${var.vsphere_user}"
+      password       = "${var.vsphere_password}"
       vsphere_server = "${var.vsphere_server}"
 
       # if you have a self-signed cert

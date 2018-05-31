@@ -46,7 +46,6 @@ import (
 
 const (
 	MasterIpAnnotationKey            = "master-ip"
-	TerraformConfigAnnotationKey     = "tf-config"
 	ControlPlaneVersionAnnotationKey = "control-plane-version"
 	KubeletVersionAnnotationKey      = "kubelet-version"
 
@@ -136,10 +135,15 @@ func getHomeDir() (string, error) {
 }
 
 func (vc *VsphereClient) Create(cluster *clusterv1.Cluster, machine *clusterv1.Machine) error {
-	config, err := vc.providerconfig(machine.Spec.ProviderConfig)
+	config, err := vc.machineproviderconfig(machine.Spec.ProviderConfig)
 	if err != nil {
 		return vc.handleMachineError(machine, apierrors.InvalidMachineConfiguration(
 			"Cannot unmarshal providerConfig field: %v", err))
+	}
+
+	clusterConfig, err := vc.clusterproviderconfig(cluster.Spec.ProviderConfig)
+	if err != nil {
+		return err
 	}
 
 	machineName := machine.ObjectMeta.Name
@@ -256,6 +260,12 @@ func (vc *VsphereClient) Create(cluster *clusterv1.Cluster, machine *clusterv1.M
 		args = append(args, "-input=false")
 		args = append(args, "-var")
 		args = append(args, fmt.Sprintf("vm_name=%s", machine.ObjectMeta.Name))
+		args = append(args, "-var")
+		args = append(args, fmt.Sprintf("vsphere_user=%s", clusterConfig.VsphereUser))
+		args = append(args, "-var")
+		args = append(args, fmt.Sprintf("vsphere_password=%s", clusterConfig.VspherePassword))
+		args = append(args, "-var")
+		args = append(args, fmt.Sprintf("vsphere_server=%s", clusterConfig.VsphereServer))
 		args = append(args, fmt.Sprintf("-var-file=%s", tfVarsPath))
 
 		_, cmdErr := runTerraformCmd(false, tfConfigDir, args...)
@@ -627,21 +637,35 @@ func (vc *VsphereClient) instanceIfExists(machine *clusterv1.Machine) (*clusterv
 	return nil, nil
 }
 
-func (vc *VsphereClient) providerconfig(providerConfig clusterv1.ProviderConfig) (*vsphereconfig.VsphereProviderConfig, error) {
+func (vc *VsphereClient) machineproviderconfig(providerConfig clusterv1.ProviderConfig) (*vsphereconfig.VsphereMachineProviderConfig, error) {
 	obj, gvk, err := vc.codecFactory.UniversalDecoder().Decode(providerConfig.Value.Raw, nil, nil)
 	if err != nil {
-		return nil, fmt.Errorf("decoding failure: %v", err)
+		return nil, fmt.Errorf("machine providerconfig decoding failure: %v", err)
 	}
 
-	config, ok := obj.(*vsphereconfig.VsphereProviderConfig)
+	config, ok := obj.(*vsphereconfig.VsphereMachineProviderConfig)
 	if !ok {
-		return nil, fmt.Errorf("failure to cast to vsphere; type: %v", gvk)
+		return nil, fmt.Errorf("machine providerconfig failure to cast to vsphere; type: %v", gvk)
 	}
 
 	return config, nil
 }
 
-func (vc *VsphereClient) validateMachine(machine *clusterv1.Machine, config *vsphereconfig.VsphereProviderConfig) *apierrors.MachineError {
+func (vc *VsphereClient) clusterproviderconfig(providerConfig clusterv1.ProviderConfig) (*vsphereconfig.VsphereClusterProviderConfig, error) {
+	obj, gvk, err := vc.codecFactory.UniversalDecoder().Decode(providerConfig.Value.Raw, nil, nil)
+	if err != nil {
+		return nil, fmt.Errorf("cluster providerconfig decoding failure: %v", err)
+	}
+
+	config, ok := obj.(*vsphereconfig.VsphereClusterProviderConfig)
+	if !ok {
+		return nil, fmt.Errorf("cluster providerconfig failure to cast to vsphere; type: %v", gvk)
+	}
+
+	return config, nil
+}
+
+func (vc *VsphereClient) validateMachine(machine *clusterv1.Machine, config *vsphereconfig.VsphereMachineProviderConfig) *apierrors.MachineError {
 	if machine.Spec.Versions.Kubelet == "" {
 		return apierrors.InvalidMachineConfiguration("spec.versions.kubelet can't be empty")
 	}
@@ -657,6 +681,14 @@ func (vc *VsphereClient) validateCluster(cluster *clusterv1.Cluster) error {
 	}
 	if getSubnet(cluster.Spec.ClusterNetwork.Services) == "" {
 		return errors.New("invalid cluster configuration: missing Cluster.Spec.ClusterNetwork.Services")
+	}
+
+	clusterConfig, err := vc.clusterproviderconfig(cluster.Spec.ProviderConfig)
+	if err != nil {
+		return err
+	}
+	if clusterConfig.VsphereUser == "" || clusterConfig.VspherePassword == "" || clusterConfig.VsphereServer == "" {
+		return errors.New("vsphere_user, vsphere_password, vsphere_server are required fields in Cluster spec.")
 	}
 	return nil
 }

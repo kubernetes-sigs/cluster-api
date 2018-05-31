@@ -21,6 +21,10 @@ import (
 	"k8s.io/apimachinery/pkg/runtime/schema"
 )
 
+const GroupName = "vsphereproviderconfig"
+
+var SchemeGroupVersion = schema.GroupVersion{Group: GroupName, Version: runtime.APIVersionInternal}
+
 var (
 	SchemeBuilder      runtime.SchemeBuilder
 	AddToScheme        = SchemeBuilder.AddToScheme
@@ -30,10 +34,6 @@ var (
 func init() {
 	localSchemeBuilder.Register(addKnownTypes)
 }
-
-const GroupName = "vsphereproviderconfig"
-
-var SchemeGroupVersion = schema.GroupVersion{Group: GroupName, Version: runtime.APIVersionInternal}
 
 func Kind(kind string) schema.GroupKind {
 	return SchemeGroupVersion.WithKind(kind).GroupKind()
@@ -45,7 +45,8 @@ func Resource(resource string) schema.GroupResource {
 
 func addKnownTypes(scheme *runtime.Scheme) error {
 	scheme.AddKnownTypes(SchemeGroupVersion,
-		&VsphereProviderConfig{},
+		&VsphereClusterProviderConfig{},
+		&VsphereMachineProviderConfig{},
 	)
 	return nil
 }

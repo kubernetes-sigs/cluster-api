@@ -260,8 +260,11 @@ func (vc *VsphereClient) Create(cluster *clusterv1.Cluster, machine *clusterv1.M
 		args = append(args, "-input=false")
 		args = append(args, "-var")
 		args = append(args, fmt.Sprintf("vm_name=%s", machine.ObjectMeta.Name))
+		args = append(args, "-var")
 		args = append(args, fmt.Sprintf("vsphere_user=%s", clusterConfig.VsphereUser))
+		args = append(args, "-var")
 		args = append(args, fmt.Sprintf("vsphere_password=%s", clusterConfig.VspherePassword))
+		args = append(args, "-var")
 		args = append(args, fmt.Sprintf("vsphere_server=%s", clusterConfig.VsphereServer))
 		args = append(args, fmt.Sprintf("-var-file=%s", tfVarsPath))
 
@@ -650,9 +653,6 @@ func (vc *VsphereClient) machineproviderconfig(providerConfig clusterv1.Provider
 
 func (vc *VsphereClient) clusterproviderconfig(providerConfig clusterv1.ProviderConfig) (*vsphereconfig.VsphereClusterProviderConfig, error) {
 	obj, gvk, err := vc.codecFactory.UniversalDecoder().Decode(providerConfig.Value.Raw, nil, nil)
-	glog.Infof("obj === %+v", obj)
-	glog.Infof("gvk === %+v", gvk)
-
 	if err != nil {
 		return nil, fmt.Errorf("cluster providerconfig decoding failure: %v", err)
 	}

@@ -1,9 +1,15 @@
 items:
 - machineName: standard-master
   machineHcl: |
-    variable "vsphere_user" {}
-    variable "vsphere_password" {}
-    variable "vsphere_server" {}
+    variable "vsphere_user" {
+      type = "string"
+    }
+    variable "vsphere_password" {
+      type = "string"
+    }
+    variable "vsphere_server" {
+      type = "string"
+    }
 
     variable "datacenter" {}
     variable "datastore" {}
@@ -60,8 +66,8 @@ items:
     insecure-flag = "1" #set to 1 if the vCenter uses a self-signed cert
 
     [VirtualCenter "$${vsphere_server}"]
-            user = "$${vsphere_user}"
-            password = "$${vsphere_password}"
+            user = "$${user}"
+            password = "$${password}"
 
     [Workspace]
             server = "$${vsphere_server}"

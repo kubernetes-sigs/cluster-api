@@ -23,7 +23,6 @@ import (
 	"os/exec"
 	"os/user"
 	"path"
-	"path/filepath"
 	"regexp"
 	"strings"
 
@@ -146,6 +145,14 @@ func (vc *VsphereClient) Create(cluster *clusterv1.Cluster, machine *clusterv1.M
 		return err
 	}
 
+	if verr := vc.validateMachine(machine, config); verr != nil {
+		return vc.handleMachineError(machine, verr)
+	}
+
+	if verr := vc.validateCluster(cluster); verr != nil {
+		return verr
+	}
+
 	machineName := machine.ObjectMeta.Name
 
 	// Set up the file system.
@@ -178,14 +185,6 @@ func (vc *VsphereClient) Create(cluster *clusterv1.Cluster, machine *clusterv1.M
 	}
 	if err := saveFile(strings.Join(config.TerraformVariables, "\n"), tfVarsPath, 0644); err != nil {
 		return err
-	}
-
-	if verr := vc.validateMachine(machine, config); verr != nil {
-		return vc.handleMachineError(machine, verr)
-	}
-
-	if verr := vc.validateCluster(cluster); verr != nil {
-		return verr
 	}
 
 	preloaded := false
@@ -299,35 +298,17 @@ func (vc *VsphereClient) Create(cluster *clusterv1.Cluster, machine *clusterv1.M
 	return nil
 }
 
-// Get the directory that holds the file at the passed path.
-func getDirForFile(path string) (string, error) {
-	dir, err := filepath.Abs(filepath.Dir(path))
-	if err != nil {
-		return "", err
-	}
-	return dir, nil
-}
-
 // Set stdout=true to redirect process's standard out to sys stdout.
 // Otherwise returns a byte buffer of stdout.
 func runTerraformCmd(stdout bool, workingDir string, arg ...string) (bytes.Buffer, error) {
 	var out bytes.Buffer
 
-	// Lookup terraform binary where it is copied in the controller.
-	homedir, err := getHomeDir()
+	terraformPath, err := exec.LookPath("terraform")
 	if err != nil {
-		return bytes.Buffer{}, err
+		return bytes.Buffer{}, errors.New("terraform binary not found.")
 	}
-	terraformPath := path.Join(homedir, ".terraform.d/bin/terraform")
-	if _, err := os.Stat(terraformPath); os.IsNotExist(err) {
-		glog.Infof("terraform binary not found in .terraform.d. Looking in PATH.")
-		tfPath, err := exec.LookPath("terraform")
-		if err != nil {
-			return bytes.Buffer{}, errors.New("terraform binary not found.")
-		}
-		terraformPath = tfPath
-		glog.Infof("terraform path: %s", terraformPath)
-	}
+	glog.Infof("terraform path: %s", terraformPath)
+
 	cmd := exec.Command(terraformPath, arg...)
 	// If stdout, only show in stdout
 	if stdout {
@@ -336,7 +317,7 @@ func runTerraformCmd(stdout bool, workingDir string, arg ...string) (bytes.Buffe
 		// Otherwise, save to buffer, and to a local log file.
 		logFileName := fmt.Sprintf("/tmp/cluster-api-%s.log", util.RandomToken())
 		f, _ := os.Create(logFileName)
-		glog.Infof("Running terraform. Check for logs in %s", logFileName)
+		glog.Infof("Executing terraform. Logs are saved in %s", logFileName)
 		multiWriter := io.MultiWriter(&out, f)
 		cmd.Stdout = multiWriter
 	}
@@ -542,7 +523,6 @@ func (vc *VsphereClient) GetKubeConfig(master *clusterv1.Machine) (string, error
 
 	var out bytes.Buffer
 	cmd := exec.Command(
-		// TODO: this is taking my private key and username for now.
 		"ssh", "-i", "~/.ssh/vsphere_tmp",
 		"-q",
 		"-o", "StrictHostKeyChecking no",
@@ -556,8 +536,6 @@ func (vc *VsphereClient) GetKubeConfig(master *clusterv1.Machine) (string, error
 	return result, nil
 }
 
-// After master created, move the plugins folder from local to
-// master's .terraform.d/plugins.
 // Currently each init will download the plugin, so for a large number of machines,
 // this will eat up a lot of space.
 func (vc *VsphereClient) SetupRemoteMaster(master *clusterv1.Machine) error {
@@ -565,14 +543,14 @@ func (vc *VsphereClient) SetupRemoteMaster(master *clusterv1.Machine) error {
 	// we copy over the master from local to remote, then terraform init for that platform,
 	// and copy the plugins to the remote's .terraform.d directory.
 	machineName := master.ObjectMeta.Name
-	glog.Infof("Setting up the remote master[%s] with terraform config and plugin.", machineName)
+	glog.Infof("Setting up the remote master[%s] with terraform config.", machineName)
 
 	ip, err := vc.GetIP(master)
 	if err != nil {
 		return err
 	}
 
-	glog.Infof("Copying .terraform.d directory to master.")
+	glog.Infof("Copying .terraform.d/kluster directory to master.")
 	homedir, err := getHomeDir()
 	if err != nil {
 		return err
@@ -582,20 +560,8 @@ func (vc *VsphereClient) SetupRemoteMaster(master *clusterv1.Machine) error {
 		"-o", "StrictHostKeyChecking no",
 		"-o", "UserKnownHostsFile /dev/null",
 		"-r",
-		path.Join(homedir, ".terraform.d"),
-		fmt.Sprintf("ubuntu@%s:~/", ip))
-	cmd.Stdout = os.Stdout
-	cmd.Stderr = os.Stderr
-	cmd.Run()
-
-	glog.Infof("Setting up terraform on remote master.")
-	cmd = exec.Command(
-		// TODO: this is taking my private key and username for now.
-		"ssh", "-i", "~/.ssh/vsphere_tmp",
-		"-o", "StrictHostKeyChecking no",
-		"-o", "UserKnownHostsFile /dev/null",
-		fmt.Sprintf("ubuntu@%s", ip),
-		fmt.Sprintf("source ~/.profile; cd ~/.terraform.d/kluster/machines/%s; ~/.terraform.d/bin/terraform init; cp -r ~/.terraform.d/kluster/machines/%s/.terraform/plugins/* ~/.terraform.d/plugins/", machineName, machineName))
+		path.Join(homedir, ".terraform.d/kluster"),
+		fmt.Sprintf("ubuntu@%s:~/.terraform.d", ip))
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
 	cmd.Run()

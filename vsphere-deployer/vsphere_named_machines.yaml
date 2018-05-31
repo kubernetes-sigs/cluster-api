@@ -26,13 +26,17 @@ items:
     }
 
     provider "vsphere" {
-      version        = "~> 1.4"
+      version        = "~> 1.5.0"
       user           = "${var.vsphere_user}"
       password       = "${var.vsphere_password}"
       vsphere_server = "${var.vsphere_server}"
 
       # if you have a self-signed cert
       allow_unverified_ssl = true
+    }
+
+    provider "template" {
+      version = "~> 1.0.0"
     }
 
     data "vsphere_datacenter" "dc" {
@@ -194,13 +198,17 @@ items:
     }
 
     provider "vsphere" {
-      version        = "~> 1.4"
+      version        = "~> 1.5.0"
       user           = "${var.vsphere_user}"
       password       = "${var.vsphere_password}"
       vsphere_server = "${var.vsphere_server}"
 
       # if you have a self-signed cert
       allow_unverified_ssl = true
+    }
+
+    provider "template" {
+      version = "~> 1.0.0"
     }
 
     data "vsphere_datacenter" "dc" {

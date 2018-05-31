@@ -60,8 +60,8 @@ items:
     insecure-flag = "1" #set to 1 if the vCenter uses a self-signed cert
 
     [VirtualCenter "$${vsphere_server}"]
-            user = "$${user}"
-            password = "$${password}"
+            user = "$${vsphere_user}"
+            password = "$${vsphere_password}"
 
     [Workspace]
             server = "$${vsphere_server}"

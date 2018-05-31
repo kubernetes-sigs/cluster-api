@@ -18,7 +18,7 @@ GCR_BUCKET = k8s-cluster-api
 PREFIX = gcr.io/$(GCR_BUCKET)
 DEV_PREFIX ?= gcr.io/$(shell gcloud config get-value project)
 NAME = controller-manager
-TAG = 0.0.5
+TAG = 0.0.6
 
 image:
 	docker build -t "$(PREFIX)/$(NAME):$(TAG)" -f ./Dockerfile ../..
@@ -31,7 +31,7 @@ fix_gcs_permissions:
 	gsutil acl ch -u AllUsers:READ gs://artifacts.$(GCR_BUCKET).appspot.com
 	gsutil -m acl ch -r -u AllUsers:READ gs://artifacts.$(GCR_BUCKET).appspot.com
 
-dev_image: 
+dev_image:
 	docker build -t "$(DEV_PREFIX)/$(NAME):$(TAG)-dev" -f ./Dockerfile ../..
 
 dev_push: dev_image

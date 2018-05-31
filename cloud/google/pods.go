@@ -33,7 +33,7 @@ import (
 )
 
 var apiServerImage = "gcr.io/k8s-cluster-api/cluster-apiserver:0.0.5"
-var controllerManagerImage = "gcr.io/k8s-cluster-api/controller-manager:0.0.5"
+var controllerManagerImage = "gcr.io/k8s-cluster-api/controller-manager:0.0.6"
 var machineControllerImage = "gcr.io/k8s-cluster-api/gce-machine-controller:0.0.12"
 
 func init() {

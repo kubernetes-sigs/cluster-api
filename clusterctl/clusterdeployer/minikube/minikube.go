@@ -3,22 +3,22 @@ package minikube
 import (
 	"fmt"
 	"github.com/golang/glog"
+	"io/ioutil"
 	"os"
 	"os/exec"
-	"io/ioutil"
 )
 
 type Minikube struct {
 	kubeconfigpath string
 	vmDriver       string
 	// minikubeExec implemented as function variable for testing hooks
-	minikubeExec   func(env []string, args ...string) (string, error)
+	minikubeExec func(env []string, args ...string) (string, error)
 }
 
 func New(vmDriver string) *Minikube {
 	return &Minikube{
 		minikubeExec: minikubeExec,
-		vmDriver: vmDriver,
+		vmDriver:     vmDriver,
 		// Arbitrary file name. Can potentially be randomly generated.
 		kubeconfigpath: "minikube.config",
 	}
@@ -26,17 +26,17 @@ func New(vmDriver string) *Minikube {
 
 var minikubeExec = func(env []string, args ...string) (string, error) {
 	const executable = "minikube"
-	glog.V(5).Infof("Running: %v %v", executable, args)
+	glog.V(3).Infof("Running: %v %v", executable, args)
 	cmd := exec.Command(executable, args...)
 	cmd.Env = env
 	cmdOut, err := cmd.CombinedOutput()
-	glog.V(4).Infof("Ran: %v %v Output: %v", executable, args, string(cmdOut))
+	glog.V(2).Infof("Ran: %v %v Output: %v", executable, args, string(cmdOut))
 	return string(cmdOut), err
 }
 
 func (m *Minikube) Create() error {
-	args := []string {"start", "--bootstrapper=kubeadm"}
-	if m.vmDriver != ""{
+	args := []string{"start", "--bootstrapper=kubeadm"}
+	if m.vmDriver != "" {
 		args = append(args, fmt.Sprintf("--vm-driver=%v", m.vmDriver))
 	}
 	_, err := m.exec(args...)
@@ -51,7 +51,7 @@ func (m *Minikube) Delete() error {
 
 func (m *Minikube) GetKubeconfig() (string, error) {
 	b, err := ioutil.ReadFile(m.kubeconfigpath)
-	if err!= nil {
+	if err != nil {
 		return "", err
 	}
 	return string(b), nil

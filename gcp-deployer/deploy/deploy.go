@@ -36,6 +36,7 @@ import (
 type deployer struct {
 	token               string
 	configPath          string
+	clusterDeployer     clusterDeployer
 	machineDeployer     machineDeployer
 	client              v1alpha1.ClusterV1alpha1Interface
 	clientSet           clientset.Interface
@@ -58,21 +59,29 @@ func NewDeployer(provider string, kubeConfigPath string, machineSetupConfigPath 
 			glog.Exit(fmt.Sprintf("Failed to set Kubeconfig path err %v\n", err))
 		}
 	}
+
+	clusterParams := google.ClusterActuatorParams{}
+	clusterActuator, err := google.NewClusterActuator(clusterParams)
+	if err != nil {
+		glog.Exit(err)
+	}
+
 	configWatch, err := newConfigWatchOrNil(machineSetupConfigPath)
 	if err != nil {
 		glog.Exit(fmt.Sprintf("Could not create config watch: %v\n", err))
 	}
-	params := google.MachineActuatorParams{
+	machineParams := google.MachineActuatorParams{
 		CertificateAuthority:     ca,
 		MachineSetupConfigGetter: configWatch,
 	}
-	ma, err := google.NewMachineActuator(params)
+	machineActuator, err := google.NewMachineActuator(machineParams)
 	if err != nil {
 		glog.Exit(err)
 	}
 	return &deployer{
 		token:           token,
-		machineDeployer: ma,
+		clusterDeployer: clusterActuator,
+		machineDeployer: machineActuator,
 		configPath:      kubeConfigPath,
 	}
 }

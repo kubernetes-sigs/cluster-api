@@ -110,7 +110,7 @@ const (
 )
 
 func NewMachineActuator(params MachineActuatorParams) (*GCEClient, error) {
-	computeService, err := getOrNewComputeService(params)
+	computeService, err := getOrNewComputeServiceForMachine(params)
 	if err != nil {
 		return nil, err
 	}
@@ -804,7 +804,7 @@ func getOrNewKubeadm(params MachineActuatorParams) GCEClientKubeadm {
 	return params.Kubeadm
 }
 
-func getOrNewComputeService(params MachineActuatorParams) (GCEClientComputeService, error) {
+func getOrNewComputeServiceForMachine(params MachineActuatorParams) (GCEClientComputeService, error) {
 	if params.ComputeService != nil {
 		return params.ComputeService, nil
 	}

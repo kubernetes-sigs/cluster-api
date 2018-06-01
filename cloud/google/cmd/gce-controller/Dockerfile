@@ -20,11 +20,11 @@ WORKDIR /go/src/sigs.k8s.io/cluster-api
 # e.g. docker build -t <tag> -f <this_Dockerfile> <path_to_cluster-api>
 COPY . . 
 
-RUN CGO_ENABLED=0 GOOS=linux go install -a -ldflags '-extldflags "-static"' sigs.k8s.io/cluster-api/cloud/google/cmd/gce-machine-controller
+RUN CGO_ENABLED=0 GOOS=linux go install -a -ldflags '-extldflags "-static"' sigs.k8s.io/cluster-api/cloud/google/cmd/gce-controller
 
 # Final container
 FROM debian:stretch-slim
 RUN apt-get update && apt-get install -y ca-certificates openssh-server && rm -rf /var/lib/apt/lists/*
 
-COPY --from=builder /go/bin/gce-machine-controller .
+COPY --from=builder /go/bin/gce-controller .
 

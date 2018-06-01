@@ -33,8 +33,8 @@ import (
 )
 
 var apiServerImage = "gcr.io/k8s-cluster-api/cluster-apiserver:0.0.5"
-var controllerManagerImage = "gcr.io/k8s-cluster-api/controller-manager:0.0.7"
-var machineControllerImage = "gcr.io/k8s-cluster-api/gce-machine-controller:0.0.13"
+var controllerManagerImage = "gcr.io/k8s-cluster-api/controller-manager:0.0.6"
+var machineControllerImage = "gcr.io/k8s-cluster-api/gce-controller:0.0.13"
 
 func init() {
 	if img, ok := os.LookupEnv("MACHINE_CONTROLLER_IMAGE"); ok {
@@ -101,7 +101,7 @@ func CreateApiServerAndController() error {
 	type params struct {
 		APIServerImage         string
 		ControllerManagerImage string
-		MachineControllerImage string
+		GCEControllerImage     string
 		CABundle               string
 		TLSCrt                 string
 		TLSKey                 string
@@ -111,7 +111,7 @@ func CreateApiServerAndController() error {
 	err = tmpl.Execute(&tmplBuf, params{
 		APIServerImage:         apiServerImage,
 		ControllerManagerImage: controllerManagerImage,
-		MachineControllerImage: machineControllerImage,
+		GCEControllerImage:     machineControllerImage,
 		CABundle:               certParms.caBundle,
 		TLSCrt:                 certParms.tlsCrt,
 		TLSKey:                 certParms.tlsKey,

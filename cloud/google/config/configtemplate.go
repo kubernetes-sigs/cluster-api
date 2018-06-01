@@ -129,7 +129,7 @@ spec:
             cpu: 100m
             memory: 30Mi
       - name: gce-machine-controller
-        image: {{ .MachineControllerImage }}
+        image: {{ .GCEControllerImage }}
         volumeMounts:
           - name: config
             mountPath: /etc/kubernetes
@@ -147,10 +147,39 @@ spec:
           - name: GOOGLE_APPLICATION_CREDENTIALS
             value: /etc/credentials/service-account.json
         command:
-        - "./gce-machine-controller"
+        - "./gce-controller"
         args:
         - --kubeconfig=/etc/kubernetes/admin.conf
         - --machinesetup=/etc/machinesetup/machine_setup_configs.yaml
+        - --controller=machine
+        resources:
+          requests:
+            cpu: 100m
+            memory: 20Mi
+          limits:
+            cpu: 100m
+            memory: 30Mi
+      - name: gce-cluster-controller
+        image: {{ .GCEControllerImage }}
+        volumeMounts:
+          - name: config
+            mountPath: /etc/kubernetes
+          - name: certs
+            mountPath: /etc/ssl/certs
+          - name: credentials
+            mountPath: /etc/credentials
+          - name: sshkeys
+            mountPath: /etc/sshkeys
+          - name: machine-setup
+            mountPath: /etc/machinesetup
+        env:
+          - name: GOOGLE_APPLICATION_CREDENTIALS
+            value: /etc/credentials/service-account.json
+        command:
+        - "./gce-controller"
+        args:
+        - --kubeconfig=/etc/kubernetes/admin.conf
+        - --controller=cluster
         resources:
           requests:
             cpu: 100m

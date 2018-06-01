@@ -26,6 +26,7 @@ import (
 	"time"
 
 	controllerlib "github.com/kubernetes-incubator/apiserver-builder/pkg/controller"
+	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	schema "k8s.io/apimachinery/pkg/runtime/schema"
@@ -58,7 +59,13 @@ func ms(name string, replicas int, selector map[string]string, timestamp metav1.
 		Spec: v1alpha1.MachineSetSpec{
 			Replicas: func() *int32 { i := int32(replicas); return &i }(),
 			Selector: metav1.LabelSelector{MatchLabels: selector},
-			Template: v1alpha1.MachineTemplateSpec{},
+			Template: v1alpha1.MachineTemplateSpec{
+				Spec: v1alpha1.MachineSpec{
+					ClusterRef: corev1.LocalObjectReference{
+						Name: "c1",
+					},
+				},
+			},
 		},
 	}
 }
@@ -99,7 +106,11 @@ func newMachineDeployment(name string, replicas int, revisionHistoryLimit *int32
 				ObjectMeta: metav1.ObjectMeta{
 					Labels: selector,
 				},
-				Spec: v1alpha1.MachineSpec{},
+				Spec: v1alpha1.MachineSpec{
+					ClusterRef: corev1.LocalObjectReference{
+						Name: "c1",
+					},
+				},
 			},
 			MinReadySeconds:      &localMinReadySeconds,
 			RevisionHistoryLimit: revisionHistoryLimit,
@@ -140,6 +151,13 @@ func newMinimalMachineSet(name string, replicas int) *v1alpha1.MachineSet {
 		},
 		Spec: v1alpha1.MachineSetSpec{
 			Replicas: func() *int32 { i := int32(replicas); return &i }(),
+			Template: v1alpha1.MachineTemplateSpec{
+				Spec: v1alpha1.MachineSpec{
+					ClusterRef: corev1.LocalObjectReference{
+						Name: "c1",
+					},
+				},
+			},
 		},
 	}
 }
@@ -161,6 +179,7 @@ func machineDeploymentControllerReconcile(t *testing.T, cs *clientset.Clientset,
 	instance.Spec.MinReadySeconds = &minReadySeconds
 	instance.Spec.Selector = metav1.LabelSelector{MatchLabels: map[string]string{"foo": "barr"}}
 	instance.Spec.Template.Labels = map[string]string{"foo": "barr"}
+	instance.Spec.Template.Spec.ClusterRef.Name = "cluster-1"
 
 	expectedKey := "default/instance-1"
 

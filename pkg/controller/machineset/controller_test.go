@@ -36,6 +36,7 @@ func machineSetControllerReconcile(t *testing.T, cs *clientset.Clientset, contro
 	instance.Spec.Replicas = &replicas
 	instance.Spec.Selector = metav1.LabelSelector{MatchLabels: map[string]string{"foo": "barr"}}
 	instance.Spec.Template.Labels = map[string]string{"foo": "barr"}
+	instance.Spec.Template.Spec.ClusterRef.Name = "cluster-1"
 
 	expectedKey := "default/instance-1"
 

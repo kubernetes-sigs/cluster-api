@@ -29,6 +29,7 @@ import (
 func crudAccessToMachineClient(t *testing.T, cs *clientset.Clientset) {
 	instance := v1alpha1.Machine{}
 	instance.Name = "instance-1"
+	instance.Spec.ClusterRef.Name = "cluster-1"
 
 	expected := instance
 

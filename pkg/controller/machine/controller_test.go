@@ -34,6 +34,7 @@ import (
 func machineControllerReconcile(t *testing.T, cs *clientset.Clientset, controller *MachineController) {
 	instance := clusterv1.Machine{}
 	instance.Name = "instance-1"
+	instance.Spec.ClusterRef.Name = "cluster-1"
 	expectedKey := "default/instance-1"
 
 	// When creating a new object, it should invoke the reconcile method.
@@ -125,6 +126,7 @@ func machineControllerConcurrentReconcile(t *testing.T, cs *clientset.Clientset,
 	for i := 0; i < numMachines; i++ {
 		instance := clusterv1.Machine{}
 		instance.Name = "instance" + strconv.Itoa(i)
+		instance.Spec.ClusterRef.Name = "cluster-1"
 		if _, err := client.Create(&instance); err != nil {
 			t.Fatal(err)
 		}

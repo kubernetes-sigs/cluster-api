@@ -33,6 +33,8 @@ items:
   metadata:
     generateName: tf-node-
   spec:
+    clusterRef:
+	  name: test1
     providerConfig:
       value:
         apiVersion: "vsphereproviderconfig/v1alpha1"

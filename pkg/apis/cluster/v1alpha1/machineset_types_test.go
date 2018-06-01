@@ -20,67 +20,101 @@ import (
 	"reflect"
 	"testing"
 
+	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
-	"sigs.k8s.io/cluster-api/pkg/apis/cluster/v1alpha1"
-	"sigs.k8s.io/cluster-api/pkg/apis/cluster"
-	"sigs.k8s.io/cluster-api/pkg/client/clientset_generated/clientset"
 	genericapirequest "k8s.io/apiserver/pkg/endpoints/request"
+	"sigs.k8s.io/cluster-api/pkg/apis/cluster"
+	"sigs.k8s.io/cluster-api/pkg/apis/cluster/v1alpha1"
+	"sigs.k8s.io/cluster-api/pkg/client/clientset_generated/clientset"
 )
 
 func TestValidateMachineSetStrategy(t *testing.T) {
 	tests := []struct {
-		name string
+		name             string
 		machineSetToTest *cluster.MachineSet
-		expectError bool
+		expectError      bool
 	}{
 		{
-			name: "scenario 1: a machine with empty selector is not valid",
+			name:             "scenario 1: a machine with empty selector is not valid",
 			machineSetToTest: &cluster.MachineSet{},
+			expectError:      true,
+		},
+		{
+			name: "scenario 2: a machine with valid selector but with empty template.Labels is not valid",
+			machineSetToTest: &cluster.MachineSet{
+				Spec: cluster.MachineSetSpec{
+					Selector: metav1.LabelSelector{
+						MatchLabels: map[string]string{"foo": "bar"},
+					},
+					Template: cluster.MachineTemplateSpec{
+						Spec: cluster.MachineSpec{
+							ClusterRef: corev1.LocalObjectReference{
+								Name: "test-cluster",
+							},
+						},
+					},
+				},
+			},
 			expectError: true,
 		},
 		{
-			name:             "scenario 2: a machine with valid selector but with empty template.Labels is not valid",
+			name: "scenario 3: a machine with valid selector and with corresponding template.Labels is valid",
 			machineSetToTest: &cluster.MachineSet{
 				Spec: cluster.MachineSetSpec{
 					Selector: metav1.LabelSelector{
-						MatchLabels: map[string]string{"foo":"bar"},
-					},
-				},
-			},
-			expectError:      true,
-		},
-		{
-			name:             "scenario 3: a machine with valid selector and with corresponding template.Labels is valid",
-			machineSetToTest: &cluster.MachineSet{
-				Spec: cluster.MachineSetSpec{
-					Selector: metav1.LabelSelector{
-						MatchLabels: map[string]string{"foo":"bar"},
+						MatchLabels: map[string]string{"foo": "bar"},
 					},
 					Template: cluster.MachineTemplateSpec{
 						ObjectMeta: metav1.ObjectMeta{
-							Labels: map[string]string{"foo":"bar"},
+							Labels: map[string]string{"foo": "bar"},
+						},
+						Spec: cluster.MachineSpec{
+							ClusterRef: corev1.LocalObjectReference{
+								Name: "test-cluster",
+							},
 						},
 					},
 				},
 			},
-			expectError:      false,
+			expectError: false,
 		},
 		{
-			name:             "scenario 4: a machine with valid selector but w/o corresponding template.Labels is not valid",
+			name: "scenario 4: a machine with valid selector but w/o corresponding template.Labels is not valid",
 			machineSetToTest: &cluster.MachineSet{
 				Spec: cluster.MachineSetSpec{
 					Selector: metav1.LabelSelector{
-						MatchLabels: map[string]string{"foo":"bar"},
+						MatchLabels: map[string]string{"foo": "bar"},
 					},
 					Template: cluster.MachineTemplateSpec{
 						ObjectMeta: metav1.ObjectMeta{
-							Labels: map[string]string{"bar":"foo"},
+							Labels: map[string]string{"bar": "foo"},
+						},
+						Spec: cluster.MachineSpec{
+							ClusterRef: corev1.LocalObjectReference{
+								Name: "test-cluster",
+							},
 						},
 					},
 				},
 			},
-			expectError:      true,
+			expectError: true,
+		},
+		{
+			name: "scenario 5: a machine with an empty cluster reference is not valid",
+			machineSetToTest: &cluster.MachineSet{
+				Spec: cluster.MachineSetSpec{
+					Selector: metav1.LabelSelector{
+						MatchLabels: map[string]string{"foo": "bar"},
+					},
+					Template: cluster.MachineTemplateSpec{
+						ObjectMeta: metav1.ObjectMeta{
+							Labels: map[string]string{"foo": "bar"},
+						},
+					},
+				},
+			},
+			expectError: true,
 		},
 	}
 	for _, test := range tests {
@@ -96,7 +130,7 @@ func TestValidateMachineSetStrategy(t *testing.T) {
 			if len(errors) > 0 && !test.expectError {
 				t.Fatalf("an unexpected error was returned = %v", errors)
 			}
-			if test.expectError && len(errors) ==0 {
+			if test.expectError && len(errors) == 0 {
 				t.Fatal("expected an error but non was returned")
 			}
 
@@ -109,11 +143,16 @@ func crudAccessToMachineSetClient(t *testing.T, cs *clientset.Clientset) {
 	instance := v1alpha1.MachineSet{
 		Spec: v1alpha1.MachineSetSpec{
 			Selector: metav1.LabelSelector{
-				MatchLabels: map[string]string{"foo":"bar"},
+				MatchLabels: map[string]string{"foo": "bar"},
 			},
 			Template: v1alpha1.MachineTemplateSpec{
 				ObjectMeta: metav1.ObjectMeta{
-					Labels: map[string]string{"foo":"bar"},
+					Labels: map[string]string{"foo": "bar"},
+				},
+				Spec: v1alpha1.MachineSpec{
+					ClusterRef: corev1.LocalObjectReference{
+						Name: "cluster-1",
+					},
 				},
 			},
 		},

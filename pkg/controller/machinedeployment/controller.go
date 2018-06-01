@@ -108,6 +108,10 @@ func (c *MachineDeploymentControllerImpl) getMachineSetsForDeployment(d *v1alpha
 			glog.V(4).Infof("%s not controlled by %v", ms.Name, d.Name)
 			continue
 		}
+		if ms.Spec.Template.Spec.ClusterRef.Name != d.Spec.Template.Spec.ClusterRef.Name {
+			glog.V(4).Infof("Skipping machineset %v, cluster mismatch.", ms.Name)
+			continue
+		}
 		selector, err := metav1.LabelSelectorAsSelector(&d.Spec.Selector)
 		if err != nil {
 			glog.Errorf("Skipping machineset %v, failed to get label selector from spec selector.", ms.Name)

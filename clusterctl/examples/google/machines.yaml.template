@@ -29,6 +29,8 @@ items:
     labels:
       set: node
   spec:
+    clusterRef:
+	  name: $CLUSTER_NAME
     providerConfig:
       value:
         apiVersion: "gceproviderconfig/v1alpha1"

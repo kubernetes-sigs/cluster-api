@@ -20,10 +20,11 @@ import (
 	"reflect"
 	"testing"
 
+	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
-	genericapirequest "k8s.io/apiserver/pkg/endpoints/request"
 	"k8s.io/apimachinery/pkg/util/intstr"
+	genericapirequest "k8s.io/apiserver/pkg/endpoints/request"
 	"sigs.k8s.io/cluster-api/pkg/apis/cluster"
 	"sigs.k8s.io/cluster-api/pkg/apis/cluster/common"
 	"sigs.k8s.io/cluster-api/pkg/apis/cluster/v1alpha1"
@@ -53,9 +54,16 @@ func TestMachineDeploymentValidationStrategy(t *testing.T) {
 			machineDeploymentToTest: &cluster.MachineDeployment{
 				Spec: cluster.MachineDeploymentSpec{
 					Replicas: &goodReplicaCount,
+					Template: cluster.MachineTemplateSpec{
+						Spec: cluster.MachineSpec{
+							ClusterRef: corev1.LocalObjectReference{
+								Name: "test-cluster",
+							},
+						},
+					},
 				},
 			},
-			expectError:             true,
+			expectError: true,
 		},
 		{
 			name: "scenario 2: a machine deployment with valid selector but with empty template.Labels is not valid",
@@ -64,6 +72,13 @@ func TestMachineDeploymentValidationStrategy(t *testing.T) {
 					Replicas: &goodReplicaCount,
 					Selector: metav1.LabelSelector{
 						MatchLabels: map[string]string{"foo": "bar"},
+					},
+					Template: cluster.MachineTemplateSpec{
+						Spec: cluster.MachineSpec{
+							ClusterRef: corev1.LocalObjectReference{
+								Name: "test-cluster",
+							},
+						},
 					},
 				},
 			},
@@ -84,6 +99,11 @@ func TestMachineDeploymentValidationStrategy(t *testing.T) {
 						ObjectMeta: metav1.ObjectMeta{
 							Labels: map[string]string{"foo": "bar"},
 						},
+						Spec: cluster.MachineSpec{
+							ClusterRef: corev1.LocalObjectReference{
+								Name: "test-cluster",
+							},
+						},
 					},
 				},
 			},
@@ -101,6 +121,11 @@ func TestMachineDeploymentValidationStrategy(t *testing.T) {
 						ObjectMeta: metav1.ObjectMeta{
 							Labels: map[string]string{"bar": "foo"},
 						},
+						Spec: cluster.MachineSpec{
+							ClusterRef: corev1.LocalObjectReference{
+								Name: "test-cluster",
+							},
+						},
 					},
 				},
 			},
@@ -117,6 +142,11 @@ func TestMachineDeploymentValidationStrategy(t *testing.T) {
 					Template: cluster.MachineTemplateSpec{
 						ObjectMeta: metav1.ObjectMeta{
 							Labels: map[string]string{"foo": "bar"},
+						},
+						Spec: cluster.MachineSpec{
+							ClusterRef: corev1.LocalObjectReference{
+								Name: "test-cluster",
+							},
 						},
 					},
 				},
@@ -138,6 +168,11 @@ func TestMachineDeploymentValidationStrategy(t *testing.T) {
 						ObjectMeta: metav1.ObjectMeta{
 							Labels: map[string]string{"foo": "bar"},
 						},
+						Spec: cluster.MachineSpec{
+							ClusterRef: corev1.LocalObjectReference{
+								Name: "test-cluster",
+							},
+						},
 					},
 				},
 			},
@@ -157,6 +192,11 @@ func TestMachineDeploymentValidationStrategy(t *testing.T) {
 					Template: cluster.MachineTemplateSpec{
 						ObjectMeta: metav1.ObjectMeta{
 							Labels: map[string]string{"foo": "bar"},
+						},
+						Spec: cluster.MachineSpec{
+							ClusterRef: corev1.LocalObjectReference{
+								Name: "test-cluster",
+							},
 						},
 					},
 				},
@@ -178,6 +218,11 @@ func TestMachineDeploymentValidationStrategy(t *testing.T) {
 						ObjectMeta: metav1.ObjectMeta{
 							Labels: map[string]string{"foo": "bar"},
 						},
+						Spec: cluster.MachineSpec{
+							ClusterRef: corev1.LocalObjectReference{
+								Name: "test-cluster",
+							},
+						},
 					},
 				},
 			},
@@ -186,102 +231,122 @@ func TestMachineDeploymentValidationStrategy(t *testing.T) {
 		{
 			name: "scenario 9: a machine deployment with bad MaxUnavailable count",
 			machineDeploymentToTest: getRollingUpdateMachineDeployment(&badCount, nil),
-			expectError: true,
+			expectError:             true,
 		},
 		{
 			name: "scenario 10: a machine deployment with bad MaxUnavailable percent",
 			machineDeploymentToTest: getRollingUpdateMachineDeployment(&badPercent, nil),
-			expectError: true,
+			expectError:             true,
 		},
 		{
 			name: "scenario 11: a machine deployment with good MaxUnavailable count",
 			machineDeploymentToTest: getRollingUpdateMachineDeployment(&goodCount, nil),
-			expectError: false,
+			expectError:             false,
 		},
 		{
 			name: "scenario 12: a machine deployment with good MaxUnavailable percent",
 			machineDeploymentToTest: getRollingUpdateMachineDeployment(&goodPercent, nil),
-			expectError: false,
+			expectError:             false,
 		},
 		{
 			name: "scenario 13: a machine deployment with over 100 MaxUnavailable percent",
 			machineDeploymentToTest: getRollingUpdateMachineDeployment(&over100Percent, nil),
-			expectError: true,
+			expectError:             true,
 		},
 		{
 			name: "scenario 14: a machine deployment with zero MaxUnavailable count",
 			machineDeploymentToTest: getRollingUpdateMachineDeployment(&zeroCount, nil),
-			expectError: false,
+			expectError:             false,
 		},
 		{
 			name: "scenario 15: a machine deployment with zero MaxUnavailable percent",
 			machineDeploymentToTest: getRollingUpdateMachineDeployment(&zeroPercent, nil),
-			expectError: false,
+			expectError:             false,
 		},
 		{
 			name: "scenario 16: a machine deployment with bad MaxSurge count",
 			machineDeploymentToTest: getRollingUpdateMachineDeployment(nil, &badCount),
-			expectError: true,
+			expectError:             true,
 		},
 		{
 			name: "scenario 17: a machine deployment with bad MaxSurge percent",
 			machineDeploymentToTest: getRollingUpdateMachineDeployment(nil, &badPercent),
-			expectError: true,
+			expectError:             true,
 		},
 		{
 			name: "scenario 18: a machine deployment with good MaxSurge count",
 			machineDeploymentToTest: getRollingUpdateMachineDeployment(nil, &goodCount),
-			expectError: false,
+			expectError:             false,
 		},
 		{
 			name: "scenario 19: a machine deployment with good MaxSurge percent",
 			machineDeploymentToTest: getRollingUpdateMachineDeployment(nil, &goodPercent),
-			expectError: false,
+			expectError:             false,
 		},
 		{
 			name: "scenario 20: a machine deployment with over 100 MaxSurge percent",
 			machineDeploymentToTest: getRollingUpdateMachineDeployment(nil, &over100Percent),
-			expectError: false,
+			expectError:             false,
 		},
 		{
 			name: "scenario 21: a machine deployment with zero MaxSurge count",
 			machineDeploymentToTest: getRollingUpdateMachineDeployment(nil, &zeroCount),
-			expectError: false,
+			expectError:             false,
 		},
 		{
 			name: "scenario 22: a machine deployment with zero MaxSurge percent",
 			machineDeploymentToTest: getRollingUpdateMachineDeployment(nil, &zeroPercent),
-			expectError: false,
+			expectError:             false,
 		},
 		{
 			name: "scenario 23: a machine deployment with bad MaxUnavailable/MaxSurge both 0",
 			machineDeploymentToTest: getRollingUpdateMachineDeployment(&zeroCount, &zeroCount),
-			expectError: true,
+			expectError:             true,
 		},
 		{
 			name: "scenario 24: a machine deployment with bad MaxUnavailable/MaxSurge both 0%",
 			machineDeploymentToTest: getRollingUpdateMachineDeployment(&zeroPercent, &zeroPercent),
-			expectError: true,
+			expectError:             true,
 		},
 		{
 			name: "scenario 25: a machine deployment with good MaxUnavailable count, MaxSurge percent",
 			machineDeploymentToTest: getRollingUpdateMachineDeployment(&goodCount, &goodPercent),
-			expectError: false,
+			expectError:             false,
 		},
 		{
 			name: "scenario 26: a machine deployment with good MaxUnavailable percent, MaxSurge count",
 			machineDeploymentToTest: getRollingUpdateMachineDeployment(&goodPercent, &goodCount),
-			expectError: false,
+			expectError:             false,
 		},
 		{
 			name: "scenario 27: a machine deployment with good MaxUnavailable count, MaxSurge count",
 			machineDeploymentToTest: getRollingUpdateMachineDeployment(&goodCount, &goodCount),
-			expectError: false,
+			expectError:             false,
 		},
 		{
 			name: "scenario 28: a machine deployment with good MaxUnavailable percent, MaxSurge percent",
 			machineDeploymentToTest: getRollingUpdateMachineDeployment(&goodPercent, &goodPercent),
-			expectError: false,
+			expectError:             false,
+		},
+		{
+			name: "scenario 29: a machine deployment with an empty cluster reference is not valid",
+			machineDeploymentToTest: &cluster.MachineDeployment{
+				Spec: cluster.MachineDeploymentSpec{
+					Replicas: &goodReplicaCount,
+					Strategy: cluster.MachineDeploymentStrategy{
+						Type: "RollingUpdate",
+					},
+					Selector: metav1.LabelSelector{
+						MatchLabels: map[string]string{"foo": "bar"},
+					},
+					Template: cluster.MachineTemplateSpec{
+						ObjectMeta: metav1.ObjectMeta{
+							Labels: map[string]string{"foo": "bar"},
+						},
+					},
+				},
+			},
+			expectError: true,
 		},
 	}
 	for _, test := range tests {
@@ -311,9 +376,8 @@ func getRollingUpdateMachineDeployment(unavailable, surge *intstr.IntOrString) *
 		Spec: cluster.MachineDeploymentSpec{
 			Replicas: &goodReplicaCount,
 			Strategy: cluster.MachineDeploymentStrategy{
-				Type: "RollingUpdate",
-				RollingUpdate: &cluster.MachineRollingUpdateDeployment{
-				},
+				Type:          "RollingUpdate",
+				RollingUpdate: &cluster.MachineRollingUpdateDeployment{},
 			},
 			Selector: metav1.LabelSelector{
 				MatchLabels: map[string]string{"foo": "bar"},
@@ -321,6 +385,11 @@ func getRollingUpdateMachineDeployment(unavailable, surge *intstr.IntOrString) *
 			Template: cluster.MachineTemplateSpec{
 				ObjectMeta: metav1.ObjectMeta{
 					Labels: map[string]string{"foo": "bar"},
+				},
+				Spec: cluster.MachineSpec{
+					ClusterRef: corev1.LocalObjectReference{
+						Name: "test-cluster",
+					},
 				},
 			},
 		},
@@ -345,6 +414,11 @@ func crudAccessToMachineDeploymentClient(t *testing.T, cs *clientset.Clientset) 
 				ObjectMeta: metav1.ObjectMeta{
 					Labels: map[string]string{"foo": "bar"},
 				},
+				Spec: v1alpha1.MachineSpec{
+					ClusterRef: corev1.LocalObjectReference{
+						Name: "cluster-1",
+					},
+				},
 			},
 		},
 	}
@@ -365,7 +439,7 @@ func crudAccessToMachineDeploymentClient(t *testing.T, cs *clientset.Clientset) 
 	surge := intstr.FromInt(1)
 	rollingUpdate := v1alpha1.MachineRollingUpdateDeployment{
 		MaxUnavailable: &unavailable,
-		MaxSurge: &surge,
+		MaxSurge:       &surge,
 	}
 	expected.Spec.Strategy.RollingUpdate = &rollingUpdate
 

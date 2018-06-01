@@ -17,8 +17,6 @@ limitations under the License.
 package machine
 
 import (
-	"errors"
-
 	"github.com/golang/glog"
 	"github.com/kubernetes-incubator/apiserver-builder/pkg/builders"
 
@@ -163,17 +161,5 @@ func (c *MachineControllerImpl) delete(machine *clusterv1.Machine) error {
 }
 
 func (c *MachineControllerImpl) getCluster(machine *clusterv1.Machine) (*clusterv1.Cluster, error) {
-	clusterList, err := c.clientSet.ClusterV1alpha1().Clusters(machine.Namespace).List(metav1.ListOptions{})
-	if err != nil {
-		return nil, err
-	}
-
-	switch len(clusterList.Items) {
-	case 0:
-		return nil, errors.New("no clusters defined")
-	case 1:
-		return &clusterList.Items[0], nil
-	default:
-		return nil, errors.New("multiple clusters defined")
-	}
+	return c.clientSet.ClusterV1alpha1().Clusters(machine.Namespace).Get(machine.Spec.ClusterRef.Name, metav1.GetOptions{})
 }

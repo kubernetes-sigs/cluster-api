@@ -34,9 +34,7 @@ import (
 
 var apiServerImage = "gcr.io/k8s-cluster-api/cluster-apiserver:0.0.5"
 var controllerManagerImage = "gcr.io/k8s-cluster-api/controller-manager:0.0.6"
-
-//var machineControllerImage = "gcr.io/k8s-cluster-api/vsphere-machine-controller:0.0.2"
-var machineControllerImage = "gcr.io/karangoel-gke-1/vsphere-machine-controller:0.0.2-dev"
+var machineControllerImage = "gcr.io/k8s-cluster-api/vsphere-machine-controller:0.0.2"
 
 func init() {
 	if img, ok := os.LookupEnv("MACHINE_CONTROLLER_IMAGE"); ok {

@@ -466,7 +466,7 @@ func (vc *VsphereClient) Update(cluster *clusterv1.Cluster, goalMachine *cluster
 	// This can only happen right after bootstrapping.
 	if goalMachine.ObjectMeta.Annotations == nil {
 		ip, _ := vc.GetIP(goalMachine)
-		glog.Info("Annotations do not exist. This happens when for a newly bootstrapped machine.")
+		glog.Info("Annotations do not exist. This happens for a newly bootstrapped machine.")
 		tfState, _ := vc.GetTfState(goalMachine)
 		return vc.updateAnnotations(goalMachine, ip, tfState)
 	}
@@ -614,7 +614,7 @@ func (vc *VsphereClient) GetTfState(machine *clusterv1.Machine) (string, error) 
 		return string(tfStateBytes), nil
 	}
 
-	return "", errors.New("could not get tfstatae")
+	return "", errors.New("could not get tfstate")
 }
 
 func (vc *VsphereClient) GetKubeConfig(master *clusterv1.Machine) (string, error) {
@@ -673,6 +673,9 @@ func (vc *VsphereClient) SetupRemoteMaster(master *clusterv1.Machine) error {
 	return nil
 }
 
+// We are storing these as annotations and not in Machine Status because that's intended for
+// "Provider-specific status" that will usually be used to detect updates. Additionally,
+// Status requires yet another version API resource which is too heavy to store IP and TF state.
 func (vc *VsphereClient) updateAnnotations(machine *clusterv1.Machine, masterEndpointIp, tfState string) error {
 	glog.Infof("Updating annotations for machine %s", machine.ObjectMeta.Name)
 	if machine.ObjectMeta.Annotations == nil {

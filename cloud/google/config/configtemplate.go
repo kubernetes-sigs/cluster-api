@@ -141,6 +141,8 @@ spec:
             mountPath: /etc/sshkeys
           - name: machine-setup
             mountPath: /etc/machinesetup
+          - name: kubeadm
+            mountPath: /usr/bin/kubeadm
         env:
           - name: GOOGLE_APPLICATION_CREDENTIALS
             value: /etc/credentials/service-account.json
@@ -148,7 +150,6 @@ spec:
         - "./gce-machine-controller"
         args:
         - --kubeconfig=/etc/kubernetes/admin.conf
-        - --token={{ .Token }}
         - --machinesetup=/etc/machinesetup/machine_setup_configs.yaml
         resources:
           requests:
@@ -177,6 +178,9 @@ spec:
       - name: machine-setup
         configMap: 
           name: machine-setup
+      - name: kubeadm
+        hostPath:
+          path: /usr/bin/kubeadm
 ---
 apiVersion: apps/v1beta1
 kind: StatefulSet

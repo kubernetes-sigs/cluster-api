@@ -1,0 +1,100 @@
+package cmd_runner_test
+
+import (
+	"fmt"
+	"os"
+	"sigs.k8s.io/cluster-api/pkg/cmd-runner"
+	"strings"
+	"testing"
+)
+
+func init() {
+	cmd_runner.RegisterCallback(callbackWithArgs)
+	cmd_runner.RegisterCallback(callbackWithoutArgs)
+}
+
+var (
+	callbackOutput = "**** this is test output ****"
+	commandName    = "my-command"
+	argOne         = "arg1"
+	argTwo         = "arg2"
+	argThree       = "arg3"
+	allArgs        = []string{argOne, argTwo, argThree}
+)
+
+func TestUnregisteredFunctionShouldError(t *testing.T) {
+	_, err := cmd_runner.NewTestRunner(unregisteredFunction)
+	if err == nil {
+		t.Fatalf("expected error, got nil")
+	}
+	expectedContains := "RegisterCallback(unregisteredFunction)"
+	if !strings.Contains(err.Error(), expectedContains) {
+		t.Errorf("expected error to contain '%v', error contents: %v", expectedContains, err)
+	}
+}
+
+func TestCallbackFunctionShouldExecute(t *testing.T) {
+	runner := cmd_runner.NewTestRunnerFailOnErr(t, callbackWithArgs)
+	output, err := runner.CombinedOutput(commandName, allArgs...)
+	if err != nil {
+		t.Errorf("invalid error: expected 'nil', got '%v'", err)
+	}
+	if output != callbackOutput {
+		t.Errorf("invalid output: expected '%v' got '%v'", callbackOutput, output)
+	}
+}
+
+func TestNoArgsShouldNotError(t *testing.T) {
+	runner := cmd_runner.NewTestRunnerFailOnErr(t, callbackWithoutArgs)
+	output, err := runner.CombinedOutput(commandName)
+	if err != nil {
+		t.Errorf("invalid error: expected 'nil', got '%v'", err)
+	}
+	if output != callbackOutput {
+		t.Errorf("invalid output: expected '%v' got '%v'", callbackOutput, output)
+	}
+}
+
+func TestMain(m *testing.M) {
+	cmd_runner.TestMain(m)
+}
+
+func callbackWithoutArgs(cmd string, args ...string) int {
+	return verifyCmdAndArgsAndPrint(commandName, []string{}, cmd, args...)
+}
+
+func callbackWithArgs(cmd string, args ...string) int {
+	return verifyCmdAndArgsAndPrint(commandName, allArgs, cmd, args...)
+}
+
+func verifyCmdAndArgsAndPrint(expectedCmd string, expectedArgs []string, cmd string, args ...string) (exitCode int) {
+	if cmd != expectedCmd {
+		fmt.Fprintln(os.Stderr, fmt.Sprintf("incorrect cmd name, expected '%v', got '%v'", commandName, cmd))
+		return 1
+	}
+	if !stringSlicesEqual(args, expectedArgs) {
+		fmt.Fprintln(os.Stderr, fmt.Sprintf("incorrect args, expected: '%v', got '%v'", allArgs, args))
+		return 1
+	}
+	fmt.Print(callbackOutput)
+	return 0
+}
+
+func stringSlicesEqual(s1 []string, s2 []string) bool {
+	if s1 == nil && s2 == nil {
+		return true
+	}
+	if s1 == nil && s2 != nil || s1 != nil && s2 == nil {
+		return false
+	}
+	for i := range s1 {
+		if s1[i] != s2[i] {
+			return false
+		}
+	}
+	return true
+}
+
+func unregisteredFunction(cmd string, args ...string) int {
+	return 0
+}

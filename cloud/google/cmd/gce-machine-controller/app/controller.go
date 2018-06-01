@@ -61,7 +61,6 @@ func StartMachineController(server *options.MachineControllerServer, shutdown <-
 		glog.Fatalf("Could not create config watch: %v", err)
 	}
 	params := google.MachineActuatorParams{
-		KubeadmToken:             server.KubeadmToken,
 		MachineClient:            client.ClusterV1alpha1().Machines(corev1.NamespaceDefault),
 		MachineSetupConfigGetter: configWatch,
 	}

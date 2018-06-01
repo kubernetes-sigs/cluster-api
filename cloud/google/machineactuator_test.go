@@ -2,17 +2,35 @@ package google_test
 
 import (
 	"encoding/base64"
+	"fmt"
 	compute "google.golang.org/api/compute/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1"
+	"os"
 	"sigs.k8s.io/cluster-api/cloud/google"
 	gceconfigv1 "sigs.k8s.io/cluster-api/cloud/google/gceproviderconfig/v1alpha1"
 	"sigs.k8s.io/cluster-api/cloud/google/machinesetup"
+	"sigs.k8s.io/cluster-api/pkg/cmd-runner"
+	"sigs.k8s.io/cluster-api/kubeadm"
 	"sigs.k8s.io/cluster-api/pkg/apis/cluster/common"
 	"sigs.k8s.io/cluster-api/pkg/apis/cluster/v1alpha1"
-	"strings"
 	"sigs.k8s.io/cluster-api/pkg/cert"
+	"strings"
 	"testing"
 )
+
+func init() {
+	cmd_runner.RegisterCallback(tokenCreateCommandCallback)
+	cmd_runner.RegisterCallback(tokenCreateErrorCommandCallback)
+}
+
+const (
+	tokenCreateCmdOutput = "c582f9.65a6f54fa78da5ae\n"
+	tokenCreateCmdError  = "failed to load admin kubeconfig [open /etc/kubernetes/admin.conf: permission denied]"
+)
+
+func TestMain(m *testing.M) {
+	cmd_runner.TestMain(m)
+}
 
 type GCEClientComputeServiceMock struct {
 	mockImagesGet           func(project string, image string) (*compute.Image, error)
@@ -92,11 +110,51 @@ func (m *GCEClientMachineSetupConfigMock) GetMetadata(params *machinesetup.Confi
 	return m.mockGetMetadata(params)
 }
 
+func TestKubeadmTokenShouldBeInStartupScript(t *testing.T) {
+	config := newGCEMachineProviderConfigFixture()
+	receivedInstance, computeServiceMock := newInsertInstanceCapturingMock()
+	kubeadm := kubeadm.NewWithCmdRunner(cmd_runner.NewTestRunnerFailOnErr(t, tokenCreateCommandCallback))
+	machine := newMachine(t, config, common.NodeRole)
+	err := createCluster(t, machine, computeServiceMock, nil, kubeadm)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if receivedInstance.Metadata.Items == nil {
+		t.Fatalf("expected the instance to have valid metadata items")
+	}
+	startupScript := getMetadataItem(t, receivedInstance.Metadata, "startup-script")
+	expected := fmt.Sprintf("TOKEN=%v\n", strings.Trim(tokenCreateCmdOutput, "\n"))
+	if !strings.Contains(*startupScript.Value, expected) {
+		t.Errorf("startup-script metadata is missing the expected TOKEN variable")
+	}
+}
+
+func tokenCreateCommandCallback(cmd string, args ...string) int {
+	fmt.Print(tokenCreateCmdOutput)
+	return 0
+}
+
+func TestTokenCreateCommandError(t *testing.T) {
+	config := newGCEMachineProviderConfigFixture()
+	_, computeServiceMock := newInsertInstanceCapturingMock()
+	kubeadm := kubeadm.NewWithCmdRunner(cmd_runner.NewTestRunnerFailOnErr(t, tokenCreateErrorCommandCallback))
+	machine := newMachine(t, config, common.NodeRole)
+	err := createCluster(t, machine, computeServiceMock, nil, kubeadm)
+	if err == nil {
+		t.Fatalf("expected error, got nil")
+	}
+}
+
+func tokenCreateErrorCommandCallback(cmd string, args ...string) int {
+	fmt.Fprintf(os.Stderr, tokenCreateCmdError)
+	return 1
+}
+
 func TestNoDisks(t *testing.T) {
 	config := newGCEMachineProviderConfigFixture()
 	config.Disks = make([]gceconfigv1.Disk, 0)
 	receivedInstance, computeServiceMock := newInsertInstanceCapturingMock()
-	createCluster(t, config, computeServiceMock, nil)
+	createClusterAndFailOnError(t, config, computeServiceMock, nil)
 	checkInstanceValues(t, receivedInstance, 0)
 }
 
@@ -111,7 +169,7 @@ func TestMinimumSizeShouldBeEnforced(t *testing.T) {
 		},
 	}
 	receivedInstance, computeServiceMock := newInsertInstanceCapturingMock()
-	createCluster(t, config, computeServiceMock, nil)
+	createClusterAndFailOnError(t, config, computeServiceMock, nil)
 	checkInstanceValues(t, receivedInstance, 1)
 	checkDiskValues(t, receivedInstance.Disks[0], true, 30, "pd-ssd", "projects/ubuntu-os-cloud/global/images/family/ubuntu-1710")
 }
@@ -127,7 +185,7 @@ func TestOneDisk(t *testing.T) {
 		},
 	}
 	receivedInstance, computeServiceMock := newInsertInstanceCapturingMock()
-	createCluster(t, config, computeServiceMock, nil)
+	createClusterAndFailOnError(t, config, computeServiceMock, nil)
 	checkInstanceValues(t, receivedInstance, 1)
 	checkDiskValues(t, receivedInstance.Disks[0], true, 37, "pd-ssd", "projects/ubuntu-os-cloud/global/images/family/ubuntu-1710")
 }
@@ -149,10 +207,20 @@ func TestTwoDisks(t *testing.T) {
 		},
 	}
 	receivedInstance, computeServiceMock := newInsertInstanceCapturingMock()
-	createCluster(t, config, computeServiceMock, nil)
+	createClusterAndFailOnError(t, config, computeServiceMock, nil)
 	checkInstanceValues(t, receivedInstance, 2)
 	checkDiskValues(t, receivedInstance.Disks[0], true, 32, "pd-ssd", "projects/ubuntu-os-cloud/global/images/family/ubuntu-1710")
 	checkDiskValues(t, receivedInstance.Disks[1], false, 45, "pd-standard", "")
+}
+
+func getMetadataItem(t *testing.T, metadata *compute.Metadata, itemKey string) *compute.MetadataItems {
+	for _, i := range metadata.Items {
+		if i.Key == itemKey {
+			return i
+		}
+	}
+	t.Fatalf("missing metadata item with key: %v", itemKey)
+	return nil
 }
 
 func checkInstanceValues(t *testing.T, instance *compute.Instance, diskCount int) {
@@ -188,7 +256,7 @@ func TestCreateWithCAShouldPopulateMetadata(t *testing.T) {
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
-	createCluster(t, config, computeServiceMock, ca)
+	createClusterAndFailOnError(t, config, computeServiceMock, ca)
 	if receivedInstance.Metadata.Items == nil {
 		t.Fatalf("expected the instance to have valid metadata items")
 	}
@@ -207,33 +275,28 @@ func checkMetadataItem(t *testing.T, metadata *compute.Metadata, key string, exp
 	}
 }
 
-func getMetadataItem(t *testing.T, metadata *compute.Metadata, itemKey string) *compute.MetadataItems {
-	for _, i := range metadata.Items {
-		if i.Key == itemKey {
-			return i
-		}
+func createClusterAndFailOnError(t *testing.T, config gceconfigv1.GCEMachineProviderConfig, computeServiceMock *GCEClientComputeServiceMock, ca *cert.CertificateAuthority) {
+	machine := newMachine(t, config, common.MasterRole)
+	err := createCluster(t, machine, computeServiceMock, ca, nil)
+	if err != nil {
+		t.Fatalf("unable to create cluster: %v", err)
 	}
-	t.Fatalf("missing metadata item with key: %v", itemKey)
-	return nil
 }
 
-func createCluster(t *testing.T, config gceconfigv1.GCEMachineProviderConfig, computeServiceMock *GCEClientComputeServiceMock, ca *cert.CertificateAuthority) {
+func createCluster(t *testing.T, machine *v1alpha1.Machine, computeServiceMock *GCEClientComputeServiceMock, ca *cert.CertificateAuthority, kubeadm *kubeadm.Kubeadm) error {
 	cluster := newDefaultClusterFixture(t)
-	machine := newMachine(t, config)
 	configWatch := newMachineSetupConfigWatcher()
 	params := google.MachineActuatorParams{
 		CertificateAuthority:     ca,
 		ComputeService:           computeServiceMock,
+		Kubeadm:                  kubeadm,
 		MachineSetupConfigGetter: configWatch,
 	}
 	gce, err := google.NewMachineActuator(params)
 	if err != nil {
 		t.Fatalf("unable to create machine actuator: %v", err)
 	}
-	err = gce.Create(cluster, machine)
-	if err != nil {
-		t.Fatalf("unable to create cluster: %v", err)
-	}
+	return gce.Create(cluster, machine)
 }
 
 func newInsertInstanceCapturingMock() (*compute.Instance, *GCEClientComputeServiceMock) {
@@ -278,7 +341,7 @@ func (cw *TestMachineSetupConfigWatcher) GetMachineSetupConfig() (machinesetup.M
 	return cw.machineSetupConfigMock, nil
 }
 
-func newMachine(t *testing.T, gceProviderConfig gceconfigv1.GCEMachineProviderConfig) *v1alpha1.Machine {
+func newMachine(t *testing.T, gceProviderConfig gceconfigv1.GCEMachineProviderConfig, role common.MachineRole) *v1alpha1.Machine {
 	gceProviderConfigCodec, err := gceconfigv1.NewCodec()
 	if err != nil {
 		t.Fatalf("unable to create GCE provider config codec: %v", err)
@@ -296,7 +359,7 @@ func newMachine(t *testing.T, gceProviderConfig gceconfigv1.GCEMachineProviderCo
 				ControlPlane: "1.9.4",
 			},
 			Roles: []common.MachineRole{
-				common.MasterRole,
+				role,
 			},
 		},
 	}
@@ -356,6 +419,14 @@ func newDefaultClusterFixture(t *testing.T) *v1alpha1.Cluster {
 				},
 			},
 			ProviderConfig: *providerConfig,
+		},
+		Status: v1alpha1.ClusterStatus{
+			APIEndpoints: []v1alpha1.APIEndpoint{
+				{
+					Host: "172.12.0.1",
+					Port: 1234,
+				},
+			},
 		},
 	}
 }

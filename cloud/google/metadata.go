@@ -18,9 +18,9 @@ package google
 
 import (
 	"bytes"
-	"fmt"
 	"text/template"
 
+	"fmt"
 	"sigs.k8s.io/cluster-api/cloud/google/machinesetup"
 	clusterv1 "sigs.k8s.io/cluster-api/pkg/apis/cluster/v1alpha1"
 )
@@ -61,9 +61,8 @@ func nodeMetadata(token string, cluster *clusterv1.Cluster, machine *clusterv1.M
 	return nodeMetadata, nil
 }
 
-func masterMetadata(token string, cluster *clusterv1.Cluster, machine *clusterv1.Machine, project string, metadata *machinesetup.Metadata) (map[string]string, error) {
+func masterMetadata(cluster *clusterv1.Cluster, machine *clusterv1.Machine, project string, metadata *machinesetup.Metadata) (map[string]string, error) {
 	params := metadataParams{
-		Token:       token,
 		Cluster:     cluster,
 		Machine:     machine,
 		Project:     project,
@@ -101,7 +100,6 @@ const masterEnvironmentVars = `
 #!/bin/bash
 KUBELET_VERSION={{ .Machine.Spec.Versions.Kubelet }}
 VERSION=v${KUBELET_VERSION}
-TOKEN={{ .Token }}
 PORT=443
 MACHINE={{ .Machine.ObjectMeta.Name }}
 CONTROL_PLANE_VERSION={{ .Machine.Spec.Versions.ControlPlane }}

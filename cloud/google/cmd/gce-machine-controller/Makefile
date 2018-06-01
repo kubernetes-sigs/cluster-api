@@ -31,7 +31,7 @@ fix_gcs_permissions:
 	gsutil acl ch -u AllUsers:READ gs://artifacts.$(GCR_BUCKET).appspot.com
 	gsutil -m acl ch -r -u AllUsers:READ gs://artifacts.$(GCR_BUCKET).appspot.com
 
-dev_image: 
+dev_image:
 	docker build -t "$(DEV_PREFIX)/$(NAME):$(TAG)-dev" -f ./Dockerfile ../../../..
 
 dev_push: dev_image

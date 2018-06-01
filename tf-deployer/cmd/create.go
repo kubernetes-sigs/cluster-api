@@ -20,6 +20,7 @@ import (
 	"os"
 
 	"fmt"
+
 	"github.com/golang/glog"
 	"github.com/spf13/cobra"
 	"sigs.k8s.io/cluster-api/tf-deployer/deploy"
@@ -68,6 +69,9 @@ func RunCreate(co *CreateOptions) error {
 	machines, err := parseMachinesYaml(co.Machine)
 	if err != nil {
 		return fmt.Errorf("Error parsing machines yaml: %+v", err)
+	}
+	for _, machine := range machines {
+		machine.Spec.ClusterRef.Name = cluster.Name
 	}
 
 	d := deploy.NewDeployer(kubeConfig, co.NamedMachinePath)

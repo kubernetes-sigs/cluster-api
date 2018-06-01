@@ -17,6 +17,7 @@ limitations under the License.
 package v1alpha1
 
 import (
+	"fmt"
 	"log"
 
 	"k8s.io/apimachinery/pkg/labels"
@@ -25,9 +26,12 @@ import (
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	metav1validation "k8s.io/apimachinery/pkg/apis/meta/v1/validation"
+	"k8s.io/apimachinery/pkg/fields"
 	"k8s.io/apimachinery/pkg/util/intstr"
 	utilvalidation "k8s.io/apimachinery/pkg/util/validation"
 	"k8s.io/apimachinery/pkg/util/validation/field"
+	"k8s.io/apiserver/pkg/registry/generic"
+	"k8s.io/apiserver/pkg/storage"
 
 	"sigs.k8s.io/cluster-api/pkg/apis/cluster"
 	"sigs.k8s.io/cluster-api/pkg/apis/cluster/common"
@@ -199,6 +203,9 @@ func ValidateMachineDeploymentSpec(spec *cluster.MachineDeploymentSpec, fldPath 
 			allErrs = append(allErrs, field.Invalid(fldPath.Child("template", "metadata", "labels"), spec.Template.Labels, "`selector` does not match template `labels`"))
 		}
 	}
+	if spec.Template.Spec.ClusterRef.Name == "" {
+		allErrs = append(allErrs, field.Required(fldPath.Child("template", "spec", "clusterRef", "name"), "must specify a cluster for the machines"))
+	}
 
 	if spec.Replicas == nil || *spec.Replicas < 0 {
 		allErrs = append(allErrs, field.Invalid(fldPath.Child("replicas"), *spec.Replicas, "replicas must be specified and can not be negative"))
@@ -263,6 +270,27 @@ func getIntOrPercent(s *intstr.IntOrString, roundUp bool) (int, error) {
 	return intstr.GetValueFromIntOrPercent(s, 100, roundUp)
 }
 
+// GetAttrs gets the attributes for the specified MachineDeployment.
+func (m MachineDeploymentValidationStrategy) GetAttrs(o runtime.Object) (labels.Set, fields.Set, bool, error) {
+	l, _, uninit, e := m.DefaultStorageStrategy.GetAttrs(o)
+	obj := o.(*cluster.MachineDeployment)
+
+	fs := fields.Set{"spec.template.spec.clusterRef.name": obj.Spec.Template.Spec.ClusterRef.Name}
+	fs = generic.AddObjectMetaFieldsSet(fs, &obj.ObjectMeta, true)
+	return l, fs, uninit, e
+}
+
+// BasicMatch returns the predicate to use when performing a label or field
+// selector match.
+func (m MachineDeploymentValidationStrategy) BasicMatch(label labels.Selector, field fields.Selector) storage.SelectionPredicate {
+	return storage.SelectionPredicate{
+		Label:       label,
+		Field:       field,
+		GetAttrs:    m.GetAttrs,
+		IndexFields: []string{"spec.template.spec.clusterRef.name"},
+	}
+}
+
 // DefaultingFunction sets default MachineDeployment field values
 func (MachineDeploymentSchemeFns) DefaultingFunction(o interface{}) {
 	obj := o.(*MachineDeployment)
@@ -311,5 +339,19 @@ func (MachineDeploymentSchemeFns) DefaultingFunction(o interface{}) {
 
 	if len(obj.Namespace) == 0 {
 		obj.Namespace = metav1.NamespaceDefault
+	}
+}
+
+// FieldSelectorConversion adds field selectors for MachineDeployments.
+func (MachineDeploymentSchemeFns) FieldSelectorConversion(label, value string) (string, string, error) {
+	switch label {
+	case "metadata.name":
+		return label, value, nil
+	case "metadata.namespace":
+		return label, value, nil
+	case "spec.template.spec.clusterRef.name":
+		return label, value, nil
+	default:
+		return "", "", fmt.Errorf("%q is not a known field selector: only %q, %q, %q", label, "metadata.name", "metadata.namespace", "spec.template.spec.clusterRef.name")
 	}
 }

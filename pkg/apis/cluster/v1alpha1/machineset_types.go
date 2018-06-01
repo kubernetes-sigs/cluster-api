@@ -1,4 +1,3 @@
-
 /*
 Copyright 2018 The Kubernetes Authors.
 
@@ -15,21 +14,24 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-
 package v1alpha1
 
 import (
+	"fmt"
 	"log"
 
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apiserver/pkg/endpoints/request"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/util/validation/field"
-	"sigs.k8s.io/cluster-api/pkg/apis/cluster/common"
-	"k8s.io/apimachinery/pkg/labels"
-	"sigs.k8s.io/cluster-api/pkg/apis/cluster"
 	metav1validation "k8s.io/apimachinery/pkg/apis/meta/v1/validation"
+	"k8s.io/apimachinery/pkg/fields"
+	"k8s.io/apimachinery/pkg/labels"
+	"k8s.io/apimachinery/pkg/util/validation/field"
+	"k8s.io/apiserver/pkg/registry/generic"
+	"k8s.io/apiserver/pkg/storage"
+	"sigs.k8s.io/cluster-api/pkg/apis/cluster"
+	"sigs.k8s.io/cluster-api/pkg/apis/cluster/common"
 )
 
 // +genclient
@@ -146,11 +148,35 @@ func (MachineSetStrategy) Validate(ctx request.Context, obj runtime.Object) fiel
 	} else {
 		labels := labels.Set(machineSet.Spec.Template.Labels)
 		if !selector.Matches(labels) {
-			errors = append(errors, field.Invalid(fldPath.Child("template","metadata","labels"), machineSet.Spec.Template.Labels, "`selector` does not match template `labels`"))
+			errors = append(errors, field.Invalid(fldPath.Child("template", "metadata", "labels"), machineSet.Spec.Template.Labels, "`selector` does not match template `labels`"))
 		}
+	}
+	if machineSet.Spec.Template.Spec.ClusterRef.Name == "" {
+		errors = append(errors, field.Required(fldPath.Child("template", "spec", "clusterRef", "name"), "must specify a cluster for the machines"))
 	}
 
 	return errors
+}
+
+// GetAttrs gets the attributes for the specified MachineSet.
+func (m MachineSetStrategy) GetAttrs(o runtime.Object) (labels.Set, fields.Set, bool, error) {
+	l, _, uninit, e := m.DefaultStorageStrategy.GetAttrs(o)
+	obj := o.(*cluster.MachineSet)
+
+	fs := fields.Set{"spec.template.spec.clusterRef.name": obj.Spec.Template.Spec.ClusterRef.Name}
+	fs = generic.AddObjectMetaFieldsSet(fs, &obj.ObjectMeta, true)
+	return l, fs, uninit, e
+}
+
+// BasicMatch returns the predicate to use when performing a label or field
+// selector match.
+func (m MachineSetStrategy) BasicMatch(label labels.Selector, field fields.Selector) storage.SelectionPredicate {
+	return storage.SelectionPredicate{
+		Label:       label,
+		Field:       field,
+		GetAttrs:    m.GetAttrs,
+		IndexFields: []string{"spec.template.spec.clusterRef.name"},
+	}
 }
 
 // DefaultingFunction sets default MachineSet field values
@@ -165,5 +191,19 @@ func (MachineSetSchemeFns) DefaultingFunction(o interface{}) {
 
 	if len(obj.Namespace) == 0 {
 		obj.Namespace = metav1.NamespaceDefault
+	}
+}
+
+// FieldSelectorConversion adds field selectors for MachineSets.
+func (MachineSetSchemeFns) FieldSelectorConversion(label, value string) (string, string, error) {
+	switch label {
+	case "metadata.name":
+		return label, value, nil
+	case "metadata.namespace":
+		return label, value, nil
+	case "spec.template.spec.clusterRef.name":
+		return label, value, nil
+	default:
+		return "", "", fmt.Errorf("%q is not a known field selector: only %q, %q, %q", label, "metadata.name", "metadata.namespace", "spec.template.spec.clusterRef.name")
 	}
 }

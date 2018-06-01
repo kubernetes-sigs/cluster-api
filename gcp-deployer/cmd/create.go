@@ -70,6 +70,9 @@ func RunCreate(co *CreateOptions) error {
 	if err != nil {
 		return err
 	}
+	for _, machine := range machines {
+		machine.Spec.ClusterRef.Name = cluster.Name
+	}
 
 	ca, err := loadCA()
 	if err != nil {

@@ -108,7 +108,7 @@ func (gce *GCEClient) remoteSshCommand(cluster *clusterv1.Cluster, machine *clus
 	}
 
 	command := fmt.Sprintf("%s", cmd)
-	c := exec.Command("ssh", "-i", gce.sshCreds.privateKeyPath, "-q", gce.sshCreds.user+"@"+publicIP, command)
+	c := exec.Command("ssh", "-o", "StrictHostKeyChecking=no", "-o", "UserKnownHostsFile=/dev/null", "-i", gce.sshCreds.privateKeyPath, "-q", gce.sshCreds.user+"@"+publicIP, command)
 	out, err := c.CombinedOutput()
 	if err != nil {
 		return "", fmt.Errorf("error: %v, output: %s", err, string(out))

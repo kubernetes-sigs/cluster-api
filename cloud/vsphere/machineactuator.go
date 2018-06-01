@@ -23,7 +23,6 @@ import (
 	"os/exec"
 	"os/user"
 	"path"
-	"path/filepath"
 	"regexp"
 	"strings"
 
@@ -51,6 +50,18 @@ const (
 
 	// Filename in which named machines are saved using a ConfigMap (in master).
 	NamedMachinesFilename = "vsphere_named_machines.yaml"
+
+	// The contents of the tfstate file for a machine.
+	StatusMachineTerraformState = "tf-state"
+)
+
+const (
+	StageDir               = "/tmp/cluster-api/machines"
+	MachinePathStageFormat = "/tmp/cluster-api/machines/%s/"
+	TfConfigFilename       = "terraform.tf"
+	TfVarsFilename         = "variables.tfvars"
+	TfStateFilename        = "terraform.tfstate"
+	MasterIpFilename       = "master-ip"
 )
 
 type VsphereClient struct {
@@ -134,60 +145,91 @@ func getHomeDir() (string, error) {
 	return usr.HomeDir, nil
 }
 
-func (vc *VsphereClient) Create(cluster *clusterv1.Cluster, machine *clusterv1.Machine) error {
+// Stage the machine for running terraform.
+// Return: machine's staging dir path, error
+func (vc *VsphereClient) prepareStageMachineDir(machine *clusterv1.Machine) (string, error) {
+	machineName := machine.ObjectMeta.Name
 	config, err := vc.machineproviderconfig(machine.Spec.ProviderConfig)
 	if err != nil {
-		return vc.handleMachineError(machine, apierrors.InvalidMachineConfiguration(
+		return "", vc.handleMachineError(machine, apierrors.InvalidMachineConfiguration(
 			"Cannot unmarshal providerConfig field: %v", err))
 	}
 
-	clusterConfig, err := vc.clusterproviderconfig(cluster.Spec.ProviderConfig)
-	if err != nil {
-		return err
-	}
-
-	machineName := machine.ObjectMeta.Name
-
-	// Set up the file system.
-	// Create ~/.terraform.d/plugins and ~/.terraform.d/cluster/machines/$machineName directories
-	homedir, err := getHomeDir()
-	if err != nil {
-		return err
-	}
-	pluginsPath := path.Join(homedir, ".terraform.d/plugins")
-	machinePath := path.Join(homedir, fmt.Sprintf(".terraform.d/kluster/machines/%s", machineName))
-	if _, err := os.Stat(pluginsPath); os.IsNotExist(err) {
-		os.MkdirAll(pluginsPath, 0755)
-	}
+	machinePath := fmt.Sprintf(MachinePathStageFormat, machineName)
 	if _, err := os.Stat(machinePath); os.IsNotExist(err) {
 		os.MkdirAll(machinePath, 0755)
 	}
+
 	// Save the config file and variables file to the machinePath
-	tfConfigPath := path.Join(machinePath, "terraform.tf")
-	tfVarsPath := path.Join(machinePath, "variables.tfvars")
+	tfConfigPath := path.Join(machinePath, TfConfigFilename)
+	tfVarsPath := path.Join(machinePath, TfVarsFilename)
+
 	namedMachines, err := vc.namedMachineWatch.NamedMachines()
 	if err != nil {
-		return err
+		return "", err
 	}
 	matchedMachine, err := namedMachines.MatchMachine(config.VsphereMachine)
 	if err != nil {
-		return err
+		return "", err
 	}
 	if err := saveFile(matchedMachine.MachineHcl, tfConfigPath, 0644); err != nil {
-		return err
+		return "", err
 	}
 	if err := saveFile(strings.Join(config.TerraformVariables, "\n"), tfVarsPath, 0644); err != nil {
-		return err
+		return "", err
 	}
 
-	if verr := vc.validateMachine(machine, config); verr != nil {
-		return vc.handleMachineError(machine, verr)
+	// Save the tfstate file (if not bootstrapping).
+	_, err = vc.stageTfState(machine)
+	if err != nil {
+		return "", err
 	}
 
-	if verr := vc.validateCluster(cluster); verr != nil {
-		return verr
+	return machinePath, nil
+}
+
+// Returns the path to the tfstate file.
+func (vc *VsphereClient) stageTfState(machine *clusterv1.Machine) (string, error) {
+	machinePath := fmt.Sprintf(MachinePathStageFormat, machine.ObjectMeta.Name)
+	tfStateFilePath := path.Join(machinePath, TfStateFilename)
+
+	// Check if the tfstate file already exists.
+	exists, err := pathExists(tfStateFilePath)
+	if err != nil {
+		return "", err
+	}
+	if exists {
+		return tfStateFilePath, nil
 	}
 
+	// Attempt to stage the file from annotations.
+	glog.Infof("Attempting to stage tf state for machine %s", machine.ObjectMeta.Name)
+	if machine.ObjectMeta.Annotations == nil {
+		glog.Infof("machine does not have annotations, state does not exist")
+		return "", nil
+	}
+
+	if _, ok := machine.ObjectMeta.Annotations[StatusMachineTerraformState]; !ok {
+		glog.Info("machine does not have annotation for tf state.")
+		return "", nil
+	}
+
+	tfState, _ := machine.ObjectMeta.Annotations[StatusMachineTerraformState]
+	if err := saveFile(tfState, tfStateFilePath, 0644); err != nil {
+		return "", err
+	}
+
+	return tfStateFilePath, nil
+}
+
+// Cleans up the staging directory.
+func (vc *VsphereClient) cleanUpStagingDir(machine *clusterv1.Machine) error {
+	glog.Infof("Cleaning up the staging dir for machine %s", machine.ObjectMeta.Name)
+	return os.RemoveAll(fmt.Sprintf(MachinePathStageFormat, machine.ObjectMeta.Name))
+}
+
+// Builds and saves the startup script for the passed machine and cluster.
+func (vc *VsphereClient) saveStartupScript(cluster *clusterv1.Cluster, machine *clusterv1.Machine) error {
 	preloaded := false
 	var startupScript string
 
@@ -231,29 +273,48 @@ func (vc *VsphereClient) Create(cluster *clusterv1.Cluster, machine *clusterv1.M
 		return errors.New(fmt.Sprintf("Could not write startup script %s", err))
 	}
 
+	return nil
+}
+
+func (vc *VsphereClient) Create(cluster *clusterv1.Cluster, machine *clusterv1.Machine) error {
+	config, err := vc.machineproviderconfig(machine.Spec.ProviderConfig)
+	if err != nil {
+		return vc.handleMachineError(machine, apierrors.InvalidMachineConfiguration(
+			"Cannot unmarshal providerConfig field: %v", err))
+	}
+
+	clusterConfig, err := vc.clusterproviderconfig(cluster.Spec.ProviderConfig)
+	if err != nil {
+		return err
+	}
+
+	if verr := vc.validateMachine(machine, config); verr != nil {
+		return vc.handleMachineError(machine, verr)
+	}
+
+	if verr := vc.validateCluster(cluster); verr != nil {
+		return verr
+	}
+
+	machinePath, err := vc.prepareStageMachineDir(machine)
+	if err != nil {
+		return errors.New(fmt.Sprintf("error while staging machine: %+v", err))
+	}
+
+	// Save the startup script.
+	err = vc.saveStartupScript(cluster, machine)
+	if err != nil {
+		return errors.New(fmt.Sprintf("could not write startup script %+v", err))
+	}
+
 	instance, err := vc.instanceIfExists(machine)
 	if err != nil {
 		return err
 	}
 
 	if instance == nil {
-		glog.Infof("Will start creating machine %s", machine.ObjectMeta.Name)
-		tfConfigDir := machinePath
+		glog.Infof("machine instance does not exist. will create %s", machine.ObjectMeta.Name)
 
-		// Check if we need to terraform init
-		tfInitExists, e := pathExists(path.Join(tfConfigDir, ".terraform/"))
-		if e != nil {
-			return errors.New(fmt.Sprintf("Could not get the path of the file: %+v", e))
-		}
-		if !tfInitExists {
-			glog.Infof("Terraform not initialized.. Running terraform init.")
-			_, initErr := runTerraformCmd(true, tfConfigDir, "init")
-			if initErr != nil {
-				return errors.New(fmt.Sprintf("Could not run terraform: %+v", initErr))
-			}
-		}
-
-		// Now create the machine
 		var args []string
 		args = append(args, "apply")
 		args = append(args, "-auto-approve")
@@ -266,28 +327,31 @@ func (vc *VsphereClient) Create(cluster *clusterv1.Cluster, machine *clusterv1.M
 		args = append(args, fmt.Sprintf("vsphere_password=%s", clusterConfig.VspherePassword))
 		args = append(args, "-var")
 		args = append(args, fmt.Sprintf("vsphere_server=%s", clusterConfig.VsphereServer))
-		args = append(args, fmt.Sprintf("-var-file=%s", tfVarsPath))
+		args = append(args, fmt.Sprintf("-var-file=%s", path.Join(machinePath, TfVarsFilename)))
 
-		_, cmdErr := runTerraformCmd(false, tfConfigDir, args...)
+		_, cmdErr := runTerraformCmd(false, machinePath, args...)
 		if cmdErr != nil {
-			return errors.New(fmt.Sprintf("Could not run terraform: %s", cmdErr))
+			return errors.New(fmt.Sprintf("could not run terraform to create machine: %s", cmdErr))
 		}
 
 		// Get the IP address
-		out, cmdErr := runTerraformCmd(false, tfConfigDir, "output", "ip_address")
+		out, cmdErr := runTerraformCmd(false, machinePath, "output", "ip_address")
 		if cmdErr != nil {
 			return fmt.Errorf("could not obtain 'ip_address' output variable: %s", cmdErr)
 		}
 		masterEndpointIp := strings.TrimSpace(out.String())
 		glog.Infof("Master created with ip address %s", masterEndpointIp)
 
+		// TODO: the following logic will be cleaner after pivot. machineClient will always exist.
 		// If we have a machineClient, then annotate the machine so that we
 		// remember exactly what VM we created for it.
 		if vc.machineClient != nil {
-			return vc.updateAnnotations(machine, masterEndpointIp)
+			tfState, _ := vc.GetTfState(machine)
+			vc.cleanUpStagingDir(machine)
+			return vc.updateAnnotations(machine, masterEndpointIp, tfState)
 		} else {
-			masterIpFile := path.Join(machinePath, "master-ip")
-			glog.Infof("Since we are bootstrapping, saving IP address to %s", masterIpFile)
+			masterIpFile := path.Join(machinePath, MasterIpFilename)
+			glog.Infof("Run in bootstrap mode, saving IP address to %s", masterIpFile)
 			if err := saveFile(masterEndpointIp, masterIpFile, 0644); err != nil {
 				return errors.New(fmt.Sprintf("Could not write master IP to file %s", err))
 			}
@@ -299,35 +363,38 @@ func (vc *VsphereClient) Create(cluster *clusterv1.Cluster, machine *clusterv1.M
 	return nil
 }
 
-// Get the directory that holds the file at the passed path.
-func getDirForFile(path string) (string, error) {
-	dir, err := filepath.Abs(filepath.Dir(path))
-	if err != nil {
-		return "", err
-	}
-	return dir, nil
-}
-
+// Assumes the staging dir (workingDir) is set up correctly. That means have the .tf, .tfstate and .tfvars
+// there as needed.
 // Set stdout=true to redirect process's standard out to sys stdout.
 // Otherwise returns a byte buffer of stdout.
 func runTerraformCmd(stdout bool, workingDir string, arg ...string) (bytes.Buffer, error) {
 	var out bytes.Buffer
 
-	// Lookup terraform binary where it is copied in the controller.
-	homedir, err := getHomeDir()
+	terraformPath, err := exec.LookPath("terraform")
 	if err != nil {
-		return bytes.Buffer{}, err
+		return bytes.Buffer{}, errors.New("terraform binary not found")
 	}
-	terraformPath := path.Join(homedir, ".terraform.d/bin/terraform")
-	if _, err := os.Stat(terraformPath); os.IsNotExist(err) {
-		glog.Infof("terraform binary not found in .terraform.d. Looking in PATH.")
-		tfPath, err := exec.LookPath("terraform")
-		if err != nil {
-			return bytes.Buffer{}, errors.New("terraform binary not found.")
+	glog.Infof("terraform path: %s", terraformPath)
+
+	// Check if we need to terraform init
+	tfInitExists, e := pathExists(path.Join(workingDir, ".terraform/"))
+	if e != nil {
+		return bytes.Buffer{}, errors.New(fmt.Sprintf("Could not get the path of .terraform for machine: %+v", e))
+	}
+	if !tfInitExists {
+		glog.Infof("Terraform not initialized. Running terraform init.")
+		cmd := exec.Command(terraformPath, "init")
+		cmd.Stdout = os.Stdout
+		cmd.Stdin = os.Stdin
+		cmd.Stderr = os.Stderr
+		cmd.Dir = workingDir
+
+		initErr := cmd.Run()
+		if initErr != nil {
+			return bytes.Buffer{}, errors.New(fmt.Sprintf("Could not run terraform: %+v", initErr))
 		}
-		terraformPath = tfPath
-		glog.Infof("terraform path: %s", terraformPath)
 	}
+
 	cmd := exec.Command(terraformPath, arg...)
 	// If stdout, only show in stdout
 	if stdout {
@@ -336,7 +403,7 @@ func runTerraformCmd(stdout bool, workingDir string, arg ...string) (bytes.Buffe
 		// Otherwise, save to buffer, and to a local log file.
 		logFileName := fmt.Sprintf("/tmp/cluster-api-%s.log", util.RandomToken())
 		f, _ := os.Create(logFileName)
-		glog.Infof("Running terraform. Check for logs in %s", logFileName)
+		glog.Infof("Executing terraform. Logs are saved in %s", logFileName)
 		multiWriter := io.MultiWriter(&out, f)
 		cmd.Stdout = multiWriter
 	}
@@ -347,6 +414,7 @@ func runTerraformCmd(stdout bool, workingDir string, arg ...string) (bytes.Buffe
 	if err != nil {
 		return out, err
 	}
+
 	return out, nil
 }
 
@@ -398,15 +466,17 @@ func (vc *VsphereClient) Update(cluster *clusterv1.Cluster, goalMachine *cluster
 	// This can only happen right after bootstrapping.
 	if goalMachine.ObjectMeta.Annotations == nil {
 		ip, _ := vc.GetIP(goalMachine)
-		glog.Info("Annotations do not exist. Populating existing state for bootstrapped machine.")
-		return vc.updateAnnotations(goalMachine, ip)
+		glog.Info("Annotations do not exist. This happens for a newly bootstrapped machine.")
+		tfState, _ := vc.GetTfState(goalMachine)
+		return vc.updateAnnotations(goalMachine, ip, tfState)
 	}
 
 	// Check if the annotations we want to track exist, if not, the user likely created a master machine with their own annotation.
 	if _, ok := goalMachine.ObjectMeta.Annotations[ControlPlaneVersionAnnotationKey]; !ok {
 		ip, _ := vc.GetIP(goalMachine)
 		glog.Info("Version annotations do not exist. Populating existing state for bootstrapped machine.")
-		return vc.updateAnnotations(goalMachine, ip)
+		tfState, _ := vc.GetTfState(goalMachine)
+		return vc.updateAnnotations(goalMachine, ip, tfState)
 	}
 
 	if util.IsMaster(goalMachine) {
@@ -488,8 +558,8 @@ func (vc *VsphereClient) remoteSshCommand(m *clusterv1.Machine, cmd, privateKeyP
 
 	command := fmt.Sprintf("echo STARTFILE; %s", cmd)
 	c := exec.Command("ssh", "-i", privateKeyPath, sshUser+"@"+publicIP,
-		"-o", "StrictHostKeyChecking no",
-		"-o", "UserKnownHostsFile /dev/null",
+		"-o", "StrictHostKeyChecking=no",
+		"-o", "UserKnownHostsFile=/dev/null",
 		command)
 	out, err := c.CombinedOutput()
 	if err != nil {
@@ -516,22 +586,35 @@ func (vc *VsphereClient) Exists(cluster *clusterv1.Cluster, machine *clusterv1.M
 func (vc *VsphereClient) GetIP(machine *clusterv1.Machine) (string, error) {
 	if machine.ObjectMeta.Annotations != nil {
 		if ip, ok := machine.ObjectMeta.Annotations[MasterIpAnnotationKey]; ok {
-			glog.Infof("Retuning IP from metadata %s", ip)
+			glog.Infof("Returning IP from machine annotation %s", ip)
 			return ip, nil
 		}
 	}
 
-	homedir, err := getHomeDir()
-	if err != nil {
-		return "", err
-	}
-	ipBytes, _ := ioutil.ReadFile(path.Join(homedir, fmt.Sprintf(".terraform.d/kluster/machines/%s/%s", machine.ObjectMeta.Name, "master-ip")))
+	ipBytes, _ := ioutil.ReadFile(path.Join(fmt.Sprintf(MachinePathStageFormat, machine.ObjectMeta.Name), MasterIpFilename))
 	if ipBytes != nil {
-		glog.Infof("Retuning IP from file %s", string(ipBytes))
+		glog.Infof("Returning IP from file %s", string(ipBytes))
 		return string(ipBytes), nil
 	}
 
-	return "", errors.New("Could not get IP")
+	return "", errors.New("could not get IP")
+}
+
+func (vc *VsphereClient) GetTfState(machine *clusterv1.Machine) (string, error) {
+	if machine.ObjectMeta.Annotations != nil {
+		if tfState, ok := machine.ObjectMeta.Annotations[StatusMachineTerraformState]; ok {
+			glog.Infof("Returning tfstate from annotation")
+			return tfState, nil
+		}
+	}
+
+	tfStateBytes, _ := ioutil.ReadFile(path.Join(fmt.Sprintf(MachinePathStageFormat, machine.ObjectMeta.Name), TfStateFilename))
+	if tfStateBytes != nil {
+		glog.Infof("Returning tfstate from staging file")
+		return string(tfStateBytes), nil
+	}
+
+	return "", errors.New("could not get tfstate")
 }
 
 func (vc *VsphereClient) GetKubeConfig(master *clusterv1.Machine) (string, error) {
@@ -542,7 +625,6 @@ func (vc *VsphereClient) GetKubeConfig(master *clusterv1.Machine) (string, error
 
 	var out bytes.Buffer
 	cmd := exec.Command(
-		// TODO: this is taking my private key and username for now.
 		"ssh", "-i", "~/.ssh/vsphere_tmp",
 		"-q",
 		"-o", "StrictHostKeyChecking no",
@@ -556,46 +638,34 @@ func (vc *VsphereClient) GetKubeConfig(master *clusterv1.Machine) (string, error
 	return result, nil
 }
 
-// After master created, move the plugins folder from local to
-// master's .terraform.d/plugins.
-// Currently each init will download the plugin, so for a large number of machines,
-// this will eat up a lot of space.
+// This method exists because during bootstrap some artifacts need to be transferred to the
+// remote master. These include the IP address for the master, terraform state file.
+// In GCE, we set this kind of data as GCE metadata. Unfortunately, vSphere does not have
+// a comparable API.
 func (vc *VsphereClient) SetupRemoteMaster(master *clusterv1.Machine) error {
-	// Because bootstrapping machine and the remote machine can be different platform,
-	// we copy over the master from local to remote, then terraform init for that platform,
-	// and copy the plugins to the remote's .terraform.d directory.
 	machineName := master.ObjectMeta.Name
-	glog.Infof("Setting up the remote master[%s] with terraform config and plugin.", machineName)
+	glog.Infof("Setting up the remote master[%s] with terraform config.", machineName)
 
 	ip, err := vc.GetIP(master)
 	if err != nil {
 		return err
 	}
 
-	glog.Infof("Copying .terraform.d directory to master.")
-	homedir, err := getHomeDir()
+	glog.Infof("Copying the staging directory to master.")
+	machinePath := fmt.Sprintf(MachinePathStageFormat, machineName)
+	_, err = vc.remoteSshCommand(master, fmt.Sprintf("mkdir -p %s", machinePath), "~/.ssh/vsphere_tmp", "ubuntu")
 	if err != nil {
+		glog.Infof("remoteSshCommand failed while creating remote machine stage: %+v", err)
 		return err
 	}
+
 	cmd := exec.Command(
 		"scp", "-i", "~/.ssh/vsphere_tmp",
-		"-o", "StrictHostKeyChecking no",
-		"-o", "UserKnownHostsFile /dev/null",
+		"-o", "StrictHostKeyChecking=no",
+		"-o", "UserKnownHostsFile=/dev/null",
 		"-r",
-		path.Join(homedir, ".terraform.d"),
-		fmt.Sprintf("ubuntu@%s:~/", ip))
-	cmd.Stdout = os.Stdout
-	cmd.Stderr = os.Stderr
-	cmd.Run()
-
-	glog.Infof("Setting up terraform on remote master.")
-	cmd = exec.Command(
-		// TODO: this is taking my private key and username for now.
-		"ssh", "-i", "~/.ssh/vsphere_tmp",
-		"-o", "StrictHostKeyChecking no",
-		"-o", "UserKnownHostsFile /dev/null",
-		fmt.Sprintf("ubuntu@%s", ip),
-		fmt.Sprintf("source ~/.profile; cd ~/.terraform.d/kluster/machines/%s; ~/.terraform.d/bin/terraform init; cp -r ~/.terraform.d/kluster/machines/%s/.terraform/plugins/* ~/.terraform.d/plugins/", machineName, machineName))
+		machinePath,
+		fmt.Sprintf("ubuntu@%s:%s", ip, StageDir))
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
 	cmd.Run()
@@ -603,13 +673,18 @@ func (vc *VsphereClient) SetupRemoteMaster(master *clusterv1.Machine) error {
 	return nil
 }
 
-func (vc *VsphereClient) updateAnnotations(machine *clusterv1.Machine, masterEndpointIp string) error {
+// We are storing these as annotations and not in Machine Status because that's intended for
+// "Provider-specific status" that will usually be used to detect updates. Additionally,
+// Status requires yet another version API resource which is too heavy to store IP and TF state.
+func (vc *VsphereClient) updateAnnotations(machine *clusterv1.Machine, masterEndpointIp, tfState string) error {
+	glog.Infof("Updating annotations for machine %s", machine.ObjectMeta.Name)
 	if machine.ObjectMeta.Annotations == nil {
 		machine.ObjectMeta.Annotations = make(map[string]string)
 	}
 	machine.ObjectMeta.Annotations[MasterIpAnnotationKey] = masterEndpointIp
 	machine.ObjectMeta.Annotations[ControlPlaneVersionAnnotationKey] = machine.Spec.Versions.ControlPlane
 	machine.ObjectMeta.Annotations[KubeletVersionAnnotationKey] = machine.Spec.Versions.Kubelet
+	machine.ObjectMeta.Annotations[StatusMachineTerraformState] = tfState
 
 	_, err := vc.machineClient.Update(machine)
 	if err != nil {
@@ -619,15 +694,20 @@ func (vc *VsphereClient) updateAnnotations(machine *clusterv1.Machine, masterEnd
 	return nil
 }
 
+// Returns the machine object if the passed machine exists in terraform state.
 func (vc *VsphereClient) instanceIfExists(machine *clusterv1.Machine) (*clusterv1.Machine, error) {
-	homedir, err := getHomeDir()
+	machinePath := fmt.Sprintf(MachinePathStageFormat, machine.ObjectMeta.Name)
+	tfStateFilePath, err := vc.stageTfState(machine)
 	if err != nil {
 		return nil, err
 	}
-	tfConfigDir := path.Join(homedir, fmt.Sprintf(".terraform.d/kluster/machines/%s", machine.ObjectMeta.Name))
-	out, tfCmdErr := runTerraformCmd(false, tfConfigDir, "show")
+	if tfStateFilePath == "" {
+		return nil, nil
+	}
+
+	out, tfCmdErr := runTerraformCmd(false, machinePath, "show")
 	if tfCmdErr != nil {
-		glog.Infof("Ignore terrafrom error in instanceIfExists: %s", err)
+		glog.Infof("Ignore terraform error in instanceIfExists: %+v", err)
 		return nil, nil
 	}
 	re := regexp.MustCompile(fmt.Sprintf("\n[[:space:]]*(name = %s)\n", machine.ObjectMeta.Name))

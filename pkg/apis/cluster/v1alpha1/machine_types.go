@@ -151,6 +151,19 @@ type MachineVersionInfo struct {
 	// master.
 	// +optional
 	ControlPlane string `json:"controlPlane,omitempty"`
+
+	// Name and version of the container runtime
+	// +optional
+	ContainerRuntime ContainerRuntimeInfo `json:"containerRuntime,omitempty"`
+}
+
+type ContainerRuntimeInfo struct {
+	// Name of the container runtime, e.G. docker or cri-o
+	Name string `json:"name"`
+
+	// Semantic version of the container runtime
+	// +optional
+	Version string `json:"version,omitempty"`
 }
 
 // Validate checks that an instance of Machine is well formed

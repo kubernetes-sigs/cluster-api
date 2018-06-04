@@ -193,8 +193,20 @@ func (vc *VsphereClient) stageTfState(machine *clusterv1.Machine) (string, error
 	machinePath := fmt.Sprintf(MachinePathStageFormat, machine.ObjectMeta.Name)
 	tfStateFilePath := path.Join(machinePath, TfStateFilename)
 
+	// Ensure machinePath exists
+	exists, err := pathExists(machinePath)
+	if err != nil {
+		return "", err
+	}
+	if !exists {
+		err = os.Mkdir(machinePath, os.ModePerm)
+		if err != nil {
+			return "", err
+		}
+	}
+
 	// Check if the tfstate file already exists.
-	exists, err := pathExists(tfStateFilePath)
+	exists, err = pathExists(tfStateFilePath)
 	if err != nil {
 		return "", err
 	}

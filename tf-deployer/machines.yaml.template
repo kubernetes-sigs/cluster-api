@@ -12,7 +12,7 @@ items:
         kind: "TerraformProviderConfig"
         terraformMachine: "standard-master"
         terraformVariables: [
-         	"user = \"\"",
+          "user = \"\"",
           "password = \"\"",
           "vsphere_server = \"",
           "datacenter = \"\"",
@@ -25,7 +25,7 @@ items:
           "disk_label = \"\"",
           "disk_size = \"\"",
           "virtual_machine_domain = \"\"",
-				]
+        ]
     versions:
       kubelet: 1.10.1
       controlPlane: 1.10.1
@@ -35,8 +35,6 @@ items:
   kind: Machine
   metadata:
     generateName: tf-node-
-    labels:
-      set: master
   spec:
     providerConfig:
       value:
@@ -44,7 +42,7 @@ items:
         kind: "TerraformProviderConfig"
         terraformMachine: "standard-node"
         terraformVariables: [
-         	"user = \"\"",
+          "user = \"\"",
           "password = \"\"",
           "vsphere_server = \"",
           "datacenter = \"\"",
@@ -57,9 +55,8 @@ items:
           "disk_label = \"\"",
           "disk_size = \"\"",
           "virtual_machine_domain = \"\"",
-				]
+        ]
     versions:
       kubelet: 1.10.1
-      controlPlane: 1.10.1
     roles:
     - Node

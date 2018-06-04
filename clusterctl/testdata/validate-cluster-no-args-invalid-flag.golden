@@ -1,0 +1,22 @@
+Error: unknown flag: --invalid-flag
+Usage:
+  clusterctl validate cluster [flags]
+
+Flags:
+      --cluster string      The name of the kubeconfig cluster to use
+  -h, --help                help for cluster
+      --kubeconfig string   The file path of the kubeconfig file for the cluster to validate.. If not specified, $KUBECONFIG environment variable or ${HOME}/.kube/config is used.
+  -n, --namespace string    If present, the namespace scope for this CLI request
+      --user string         The name of the kubeconfig user to use
+
+Global Flags:
+      --alsologtostderr                  log to standard error as well as files
+      --log-flush-frequency duration     Maximum number of seconds between log flushes (default 5s)
+      --log_backtrace_at traceLocation   when logging hits line file:N, emit a stack trace (default :0)
+      --log_dir string                   If non-empty, write log files in this directory
+      --logtostderr                      log to standard error instead of files (default true)
+      --stderrthreshold severity         logs at or above this threshold go to stderr (default 2)
+  -v, --v Level                          log level for V logs
+      --vmodule moduleSpec               comma-separated list of pattern=N settings for file-filtered logging
+
+unknown flag: --invalid-flag

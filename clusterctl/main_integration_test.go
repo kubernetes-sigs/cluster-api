@@ -66,6 +66,7 @@ func TestEmptyAndInvalidArgs(t *testing.T) {
 		{"delete cluster with no arguments with invalid flag", []string{"delete", "cluster", "--invalid-flag"}, 1, "delete-cluster-no-args-invalid-flag.golden"},
 		{"validate with no arguments", []string{"validate"}, 0, "validate-no-args.golden"},
 		{"validate with no arguments with invalid flag", []string{"validate", "--invalid-flag"}, 1, "validate-no-args-invalid-flag.golden"},
+		{"validate cluster with no arguments with invalid flag", []string{"validate", "cluster", "--invalid-flag"}, 1, "validate-cluster-no-args-invalid-flag.golden"},
 	}
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {

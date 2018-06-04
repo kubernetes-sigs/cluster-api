@@ -1,0 +1,4 @@
+Validating Cluster API objects in namespace "validate-cluster-api-object-output"
+Checking cluster object "test-cluster"... PASS
+Checking machine object "test-machine1"... PASS
+Checking machine object "test-machine2"... PASS

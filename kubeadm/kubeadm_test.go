@@ -3,11 +3,11 @@ package kubeadm_test
 import (
 	"fmt"
 	"os"
-	"sigs.k8s.io/cluster-api/pkg/cmd-runner"
 	"sigs.k8s.io/cluster-api/kubeadm"
 	"strings"
 	"testing"
 	"time"
+	"sigs.k8s.io/cluster-api/pkg/test-cmd-runner"
 )
 
 var (
@@ -17,9 +17,9 @@ var (
 )
 
 func init() {
-	cmd_runner.RegisterCallback(echoCallback)
-	cmd_runner.RegisterCallback(errorCallback)
-	cmd_runner.RegisterCallback(tokenCallback)
+	test_cmd_runner.RegisterCallback(echoCallback)
+	test_cmd_runner.RegisterCallback(errorCallback)
+	test_cmd_runner.RegisterCallback(tokenCallback)
 }
 
 func TestTokenCreateParameters(t *testing.T) {
@@ -44,7 +44,7 @@ func TestTokenCreateParameters(t *testing.T) {
 		{"all", nil, "kubeadm token create --config /my/config --description my description --groups bootstrappers --help --print-join-command --ttl 1h1m1s --usages authentication",
 			kubeadm.TokenCreateParams{Config: "/my/config", Description: "my description", Groups: []string{"bootstrappers"}, Help: true, PrintJoinCommand: true, Ttl: toDuration(1, 1, 1), Usages: []string{"authentication"}}},
 	}
-	kadm := kubeadm.NewWithCmdRunner(cmd_runner.NewTestRunnerFailOnErr(t, echoCallback))
+	kadm := kubeadm.NewWithCmdRunner(test_cmd_runner.NewTestRunnerFailOnErr(t, echoCallback))
 	for _, tst := range tests {
 		output, err := kadm.TokenCreate(tst.params)
 		if err != tst.err {
@@ -57,7 +57,7 @@ func TestTokenCreateParameters(t *testing.T) {
 }
 
 func TestTokenCreateReturnsUnmodifiedOutput(t *testing.T) {
-	kadm := kubeadm.NewWithCmdRunner(cmd_runner.NewTestRunnerFailOnErr(t, tokenCallback))
+	kadm := kubeadm.NewWithCmdRunner(test_cmd_runner.NewTestRunnerFailOnErr(t, tokenCallback))
 	output, err := kadm.TokenCreate(kubeadm.TokenCreateParams{})
 	if err != nil {
 		t.Errorf("unexpected error: wanted nil")
@@ -68,7 +68,7 @@ func TestTokenCreateReturnsUnmodifiedOutput(t *testing.T) {
 }
 
 func TestNonZeroExitCodeResultsInError(t *testing.T) {
-	kadm := kubeadm.NewWithCmdRunner(cmd_runner.NewTestRunnerFailOnErr(t, errorCallback))
+	kadm := kubeadm.NewWithCmdRunner(test_cmd_runner.NewTestRunnerFailOnErr(t, errorCallback))
 	output, err := kadm.TokenCreate(kubeadm.TokenCreateParams{})
 	if err == nil {
 		t.Errorf("expected error: got nil")
@@ -95,7 +95,7 @@ func errorCallback(cmd string, args ...string) int {
 }
 
 func TestMain(m *testing.M) {
-	cmd_runner.TestMain(m)
+	test_cmd_runner.TestMain(m)
 }
 
 func toDuration(hour int, minute int, second int) time.Duration {

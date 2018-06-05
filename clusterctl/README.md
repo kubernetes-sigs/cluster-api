@@ -12,8 +12,7 @@ Read the [experience doc here](https://docs.google.com/document/d/1-sYb3EdkRga49
 2. Build the `clusterctl` tool
 
 ```bash
-$ cd $GOPATH/src/sigs.k8s.io/
-$ git clone https://github.com/<GITHUB_USERNAME>/cluster-api.git
+$ git clone https://github.com/kubernetes-sigs/cluster-api.git $GOPATH/src/sig.k8s.io/cluster-api
 $ cd $GOPATH/src/sigs.k8s.io/cluster-api/clusterctl/
 $ go build
 ```
@@ -24,11 +23,14 @@ TBD
 ### Creating a cluster
 1. Create a `cluster.yaml`, `machines.yaml` and `provider-components.yaml` files configured for your cluster. See the provider specific templates and generation tools at `$GOPATH/src/sigs.k8s.io/cluster-api/clusterctl/examples/<provider>`. 
 2. Create a cluster 
+
+```shell
+clusterctl create cluster --provider [google/vsphere] -c cluster.yaml -m machines.yaml -p provider-components.yaml
 ```
-clusterctl create cluster -provider [google/terrraform] -c cluster.yaml -m machines.yaml -p provider-components.yaml
-```
+
 Additional advanced flags can be found via help
-```
+
+```shell
 clusterctl create cluster --help
 ```
 

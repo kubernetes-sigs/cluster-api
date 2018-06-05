@@ -9,6 +9,7 @@ Read the [experience doc here](https://docs.google.com/document/d/1-sYb3EdkRga49
 ### Prerequisites
 
 1. Install [minikube](https://kubernetes.io/docs/tasks/tools/install-minikube/) 
+2. Install a driver. For Linux, we recommend kvm. For MacOS, we recommend VirtualBox.
 2. Build the `clusterctl` tool
 
 ```bash
@@ -27,7 +28,6 @@ TBD
 ```shell
 clusterctl create cluster --provider [google/vsphere] -c cluster.yaml -m machines.yaml -p provider-components.yaml
 ```
-
 Additional advanced flags can be found via help
 
 ```shell
@@ -40,9 +40,9 @@ Once you have created a cluster, you can interact with the cluster and machine
 resources using kubectl:
 
 ```
-$ kubectl get clusters
-$ kubectl get machines
-$ kubectl get machines -o yaml
+$ kubectl --kubeconfig kubeconfig get clusters
+$ kubectl --kubeconfig kubeconfig get machines
+$ kubectl --kubeconfig kubeconfig get machines -o yaml
 ```
 
 #### Scaling your cluster

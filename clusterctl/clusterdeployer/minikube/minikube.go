@@ -20,7 +20,7 @@ func New(vmDriver string) *Minikube {
 		minikubeExec: minikubeExec,
 		vmDriver:     vmDriver,
 		// Arbitrary file name. Can potentially be randomly generated.
-		kubeconfigpath: "minikube.config",
+		kubeconfigpath: "minikube.kubeconfig",
 	}
 }
 

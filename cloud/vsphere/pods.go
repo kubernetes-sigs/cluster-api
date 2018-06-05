@@ -34,7 +34,7 @@ import (
 
 var apiServerImage = "gcr.io/k8s-cluster-api/cluster-apiserver:0.0.5"
 var controllerManagerImage = "gcr.io/k8s-cluster-api/controller-manager:0.0.6"
-var machineControllerImage = "gcr.io/k8s-cluster-api/vsphere-machine-controller:0.0.2"
+var machineControllerImage = "gcr.io/k8s-cluster-api/vsphere-machine-controller:0.0.5"
 
 func init() {
 	if img, ok := os.LookupEnv("MACHINE_CONTROLLER_IMAGE"); ok {
@@ -156,8 +156,6 @@ func CreateApiServerAndController(token string) error {
 	if err != nil {
 		return err
 	}
-
-	ioutil.WriteFile("/tmp/pods.yaml", tmplBuf.Bytes(), 0644)
 
 	maxTries := 30
 	for tries := 0; tries < maxTries; tries++ {

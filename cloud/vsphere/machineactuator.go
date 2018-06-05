@@ -433,22 +433,28 @@ func runTerraformCmd(stdout bool, workingDir string, arg ...string) (bytes.Buffe
 	return out, nil
 }
 
-func (vc *VsphereClient) Delete(_ *clusterv1.Cluster, machine *clusterv1.Machine) error {
+func (vc *VsphereClient) Delete(cluster *clusterv1.Cluster, machine *clusterv1.Machine) error {
 	// Check if the instance exists, return if it doesn't
 	instance, err := vc.instanceIfExists(machine)
 	if err != nil {
 		return err
 	}
-
 	if instance == nil {
 		return nil
 	}
 
-	homedir, err := getHomeDir()
+	clusterConfig, err := vc.clusterproviderconfig(cluster.Spec.ProviderConfig)
 	if err != nil {
 		return err
 	}
-	machinePath := path.Join(homedir, fmt.Sprintf(".terraform.d/kluster/machines/%s", machine.ObjectMeta.Name))
+
+	machinePath, err := vc.prepareStageMachineDir(machine)
+
+	// The machine HCL reads the startup script, so we need to have something there for terraform
+	// to not fail.
+	if err := saveFile("", path.Join("/tmp", "machine-startup.sh"), 0644); err != nil {
+		return errors.New(fmt.Sprintf("Could not write startup script %s", err))
+	}
 
 	// destroy it
 	args := []string{
@@ -456,12 +462,17 @@ func (vc *VsphereClient) Delete(_ *clusterv1.Cluster, machine *clusterv1.Machine
 		"-auto-approve",
 		"-input=false",
 		"-var", fmt.Sprintf("vm_name=%s", machine.ObjectMeta.Name),
+		"-var", fmt.Sprintf("vsphere_user=%s", clusterConfig.VsphereUser),
+		"-var", fmt.Sprintf("vsphere_password=%s", clusterConfig.VspherePassword),
+		"-var", fmt.Sprintf("vsphere_server=%s", clusterConfig.VsphereServer),
 		"-var-file=variables.tfvars",
 	}
 	_, err = runTerraformCmd(false, machinePath, args...)
 	if err != nil {
 		return fmt.Errorf("could not run terraform: %s", err)
 	}
+
+	vc.cleanUpStagingDir(machine)
 
 	// remove finalizer
 	if vc.machineClient != nil {

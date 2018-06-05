@@ -35,8 +35,8 @@ const (
 	ApiServerPort              = 443
 	RetryIntervalKubectlApply  = 5 * time.Second
 	RetryIntervalResourceReady = 5 * time.Second
-	TimeoutKubectlApply        = 120 * time.Second
-	TimeoutResourceReady       = 120 * time.Second
+	TimeoutKubectlApply        = 2 * time.Minute
+	TimeoutResourceReady       = 2 * time.Minute
 	TimeoutMachineReady        = 5 * time.Minute
 )
 

@@ -441,11 +441,10 @@ func (vc *VsphereClient) Delete(_ *clusterv1.Cluster, machine *clusterv1.Machine
 		return nil
 	}
 
-	homedir, err := getHomeDir()
+	machinePath, err := vc.prepareStageMachineDir(machine)
 	if err != nil {
-		return err
+		return errors.New(fmt.Sprintf("error while staging machine: %+v", err))
 	}
-	machinePath := path.Join(homedir, fmt.Sprintf(".terraform.d/kluster/machines/%s", machine.ObjectMeta.Name))
 
 	// destroy it
 	args := []string{
@@ -493,14 +492,8 @@ func (vc *VsphereClient) Update(cluster *clusterv1.Cluster, goalMachine *cluster
 
 	if util.IsMaster(goalMachine) {
 		glog.Info("Upgrade for master machine.. Check if upgrade needed.")
-		// Get the versions for the new object.
-		goalMachineControlPlaneVersion := goalMachine.Spec.Versions.ControlPlane
-		goalMachineKubeletVersion := goalMachine.Spec.Versions.Kubelet
-
-		// If the saved versions and new versions differ, do in-place upgrade.
-		if goalMachineControlPlaneVersion != goalMachine.Annotations[ControlPlaneVersionAnnotationKey] ||
-			goalMachineKubeletVersion != goalMachine.Annotations[KubeletVersionAnnotationKey] {
-			glog.Infof("Doing in-place upgrade for master from %s to %s", goalMachine.Annotations[ControlPlaneVersionAnnotationKey], goalMachineControlPlaneVersion)
+		if masterUpdateNeeded(goalMachine) {
+			glog.Infof("Doing in-place upgrade for master from %s to %s", goalMachine.Annotations[ControlPlaneVersionAnnotationKey], goalMachine.Spec.Versions.ControlPlane)
 			err := vc.updateMasterInPlace(goalMachine)
 			if err != nil {
 				glog.Errorf("Master inplace update failed: %+v", err)
@@ -510,8 +503,16 @@ func (vc *VsphereClient) Update(cluster *clusterv1.Cluster, goalMachine *cluster
 			return nil
 		}
 	} else {
-		glog.Info("NODE UPDATES NOT SUPPORTED")
-		return nil
+		glog.Info("Upgrade for node machine.. Check if upgrade needed.")
+		if machineUpdateNeeded(goalMachine) {
+      err := vc.updateMachine(cluster, goalMachine)
+			if err != nil {
+				glog.Errorf("Machine update failed: %+v", err)
+			}
+		} else {
+			glog.Info("UPDATE TYPE NOT SUPPORTED")
+			return nil
+		}
 	}
 
 	return nil
@@ -558,6 +559,27 @@ func (vc *VsphereClient) updateMasterInPlace(goalMachine *clusterv1.Machine) err
 	}
 
 	return nil
+}
+
+// Updates machine. Assumes update is needed. Can potentially use machine replacement.
+func (vc *VsphereClient) updateMachine(cluster *clusterv1.Cluster, machine *clusterv1.Machine) error {
+	if err := vc.Delete(cluster, machine); err != nil {
+		return err
+	}
+	if err := vc.Create(cluster, machine); err != nil {
+		return err
+	}
+	return nil
+}
+
+func machineUpdateNeeded(machine *clusterv1.Machine) bool {
+	// If the saved versions and new versions differ, do upgrade.
+	return machine.Spec.Versions.Kubelet != machine.Annotations[KubeletVersionAnnotationKey]
+}
+
+func masterUpdateNeeded(master *clusterv1.Machine) bool {
+	// If the saved versions and new versions differ, do upgrade.
+	return master.Spec.Versions.ControlPlane != master.Annotations[ControlPlaneVersionAnnotationKey] || machineUpdateNeeded(master)
 }
 
 func (vc *VsphereClient) remoteSshCommand(m *clusterv1.Machine, cmd, privateKeyPath, sshUser string) (string, error) {

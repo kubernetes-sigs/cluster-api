@@ -32,6 +32,7 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/serializer"
 
+	"encoding/base64"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
 	"sigs.k8s.io/cluster-api/cloud/vsphere/namedmachines"
@@ -78,6 +79,7 @@ func NewMachineActuator(kubeadmToken string, machineClient client.MachineInterfa
 		return nil, err
 	}
 
+	// DEPRECATED: Remove when vsphere-deployer is deleted.
 	var nmWatch *namedmachines.ConfigWatch
 	nmWatch, err = namedmachines.NewConfigWatch(namedMachinePath)
 	if err != nil {
@@ -92,6 +94,7 @@ func NewMachineActuator(kubeadmToken string, machineClient client.MachineInterfa
 	}, nil
 }
 
+// DEPRECATED: Remove when vsphere-deployer is deleted.
 func (vc *VsphereClient) CreateMachineController(cluster *clusterv1.Cluster, initialMachines []*clusterv1.Machine, clientSet kubernetes.Clientset) error {
 	if err := CreateExtApiServerRoleBinding(); err != nil {
 		return err
@@ -148,6 +151,11 @@ func getHomeDir() (string, error) {
 // Stage the machine for running terraform.
 // Return: machine's staging dir path, error
 func (vc *VsphereClient) prepareStageMachineDir(machine *clusterv1.Machine) (string, error) {
+	err := vc.cleanUpStagingDir(machine)
+	if err != nil {
+		return "", err
+	}
+
 	machineName := machine.ObjectMeta.Name
 	config, err := vc.machineproviderconfig(machine.Spec.ProviderConfig)
 	if err != nil {
@@ -226,8 +234,13 @@ func (vc *VsphereClient) stageTfState(machine *clusterv1.Machine) (string, error
 		return "", nil
 	}
 
-	tfState, _ := machine.ObjectMeta.Annotations[StatusMachineTerraformState]
-	if err := saveFile(tfState, tfStateFilePath, 0644); err != nil {
+	tfStateB64, _ := machine.ObjectMeta.Annotations[StatusMachineTerraformState]
+	tfState, err := base64.StdEncoding.DecodeString(tfStateB64)
+	if err != nil {
+		glog.Errorf("error decoding tfstate while staging. %+v", err)
+		return "", err
+	}
+	if err := saveFile(string(tfState), tfStateFilePath, 0644); err != nil {
 		return "", err
 	}
 
@@ -354,20 +367,10 @@ func (vc *VsphereClient) Create(cluster *clusterv1.Cluster, machine *clusterv1.M
 		masterEndpointIp := strings.TrimSpace(out.String())
 		glog.Infof("Master created with ip address %s", masterEndpointIp)
 
-		// TODO: the following logic will be cleaner after pivot. machineClient will always exist.
-		// If we have a machineClient, then annotate the machine so that we
-		// remember exactly what VM we created for it.
-		if vc.machineClient != nil {
-			tfState, _ := vc.GetTfState(machine)
-			vc.cleanUpStagingDir(machine)
-			return vc.updateAnnotations(machine, masterEndpointIp, tfState)
-		} else {
-			masterIpFile := path.Join(machinePath, MasterIpFilename)
-			glog.Infof("Run in bootstrap mode, saving IP address to %s", masterIpFile)
-			if err := saveFile(masterEndpointIp, masterIpFile, 0644); err != nil {
-				return errors.New(fmt.Sprintf("Could not write master IP to file %s", err))
-			}
-		}
+		// Annotate the machine so that we remember exactly what VM we created for it.
+		tfState, _ := vc.GetTfState(machine)
+		vc.cleanUpStagingDir(machine)
+		return vc.updateAnnotations(machine, masterEndpointIp, tfState)
 	} else {
 		glog.Infof("Skipped creating a VM that already exists.\n")
 	}
@@ -614,9 +617,14 @@ func (vc *VsphereClient) GetIP(machine *clusterv1.Machine) (string, error) {
 
 func (vc *VsphereClient) GetTfState(machine *clusterv1.Machine) (string, error) {
 	if machine.ObjectMeta.Annotations != nil {
-		if tfState, ok := machine.ObjectMeta.Annotations[StatusMachineTerraformState]; ok {
+		if tfStateB64, ok := machine.ObjectMeta.Annotations[StatusMachineTerraformState]; ok {
 			glog.Infof("Returning tfstate from annotation")
-			return tfState, nil
+			tfState, err := base64.StdEncoding.DecodeString(tfStateB64)
+			if err != nil {
+				glog.Errorf("error decoding tfstate in annotation. %+v", err)
+				return "", err
+			}
+			return string(tfState), nil
 		}
 	}
 
@@ -650,6 +658,7 @@ func (vc *VsphereClient) GetKubeConfig(master *clusterv1.Machine) (string, error
 	return result, nil
 }
 
+// DEPRECATED. Remove after vsphere-deployer is deleted.
 // This method exists because during bootstrap some artifacts need to be transferred to the
 // remote master. These include the IP address for the master, terraform state file.
 // In GCE, we set this kind of data as GCE metadata. Unfortunately, vSphere does not have
@@ -693,16 +702,18 @@ func (vc *VsphereClient) updateAnnotations(machine *clusterv1.Machine, masterEnd
 	if machine.ObjectMeta.Annotations == nil {
 		machine.ObjectMeta.Annotations = make(map[string]string)
 	}
+
+	tfStateB64 := base64.StdEncoding.EncodeToString([]byte(tfState))
+
 	machine.ObjectMeta.Annotations[MasterIpAnnotationKey] = masterEndpointIp
 	machine.ObjectMeta.Annotations[ControlPlaneVersionAnnotationKey] = machine.Spec.Versions.ControlPlane
 	machine.ObjectMeta.Annotations[KubeletVersionAnnotationKey] = machine.Spec.Versions.Kubelet
-	machine.ObjectMeta.Annotations[StatusMachineTerraformState] = tfState
+	machine.ObjectMeta.Annotations[StatusMachineTerraformState] = tfStateB64
 
 	_, err := vc.machineClient.Update(machine)
 	if err != nil {
 		return err
 	}
-	//err = vc.updateInstanceStatus(machine)
 	return nil
 }
 
@@ -812,7 +823,6 @@ func getSubnet(netRange clusterv1.NetworkRanges) string {
 
 // TODO: We need to change this when we create dedicated service account for apiserver/controller
 // pod.
-//
 func CreateExtApiServerRoleBinding() error {
 	return run("kubectl", "create", "rolebinding",
 		"-n", "kube-system", "machine-controller", "--role=extension-apiserver-authentication-reader",

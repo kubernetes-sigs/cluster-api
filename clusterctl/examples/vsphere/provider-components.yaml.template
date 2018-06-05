@@ -45,7 +45,7 @@ spec:
             cpu: 100m
             memory: 30Mi
       - name: vsphere-machine-controller
-        image: gcr.io/k8s-cluster-api/vsphere-machine-controller:0.0.4
+        image: gcr.io/k8s-cluster-api/vsphere-machine-controller:0.0.5
         volumeMounts:
           - name: config
             mountPath: /etc/kubernetes

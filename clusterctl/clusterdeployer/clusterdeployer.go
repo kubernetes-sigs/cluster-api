@@ -92,11 +92,13 @@ func (d *ClusterDeployer) Create(cluster *clusterv1.Cluster, machines []*cluster
 		return fmt.Errorf("unable to seperate master machines from node machines: %v", err)
 	}
 
+	glog.Info("Creating external cluster")
 	externalClient, err := d.createExternalCluster()
 	if err != nil {
 		return fmt.Errorf("could not create external client: %v", err)
 	}
 	if d.cleanupExternalCluster {
+		glog.Info("Cleaning up external cluster.")
 		defer d.externalProvisioner.Delete()
 	}
 	defer func() {
@@ -106,29 +108,33 @@ func (d *ClusterDeployer) Create(cluster *clusterv1.Cluster, machines []*cluster
 		}
 	}()
 
+	glog.Info("Applying Cluster API stack to external cluster")
 	err = d.applyClusterAPIStack(externalClient)
 	if err != nil {
 		return fmt.Errorf("unable to apply cluster api stack to external cluster: %v", err)
 	}
 
-	glog.V(1).Info("Provisioning internal cluster and master via external cluster.")
-	glog.V(2).Infof("Creating cluster %v", cluster.Name)
+	glog.Info("Provisioning internal cluster via external cluster")
+
+	glog.Infof("Creating cluster object %v on external cluster", cluster.Name)
 	err = externalClient.CreateClusterObject(cluster)
 	if err != nil {
 		return fmt.Errorf("unable to create cluster object: %v", err)
 	}
 
-	glog.V(2).Infof("Creating master %v", master.Name)
+	glog.Infof("Creating master %v", master.Name)
 	err = externalClient.CreateMachineObjects([]*clusterv1.Machine{master})
 	if err != nil {
 		return fmt.Errorf("unable to create master machine: %v", err)
 	}
 
+	glog.Infof("Updating external cluster object with master (%s) endpoint", master.Name)
 	err = d.updateClusterEndpoint(externalClient)
 	if err != nil {
 		return fmt.Errorf("unable to update external cluster endpoint: %v", err)
 	}
 
+	glog.Info("Creating internal cluster")
 	internalClient, err := d.createInternalCluster(externalClient)
 	if err != nil {
 		return fmt.Errorf("unable to create internal cluster client: %v", err)
@@ -140,18 +146,21 @@ func (d *ClusterDeployer) Create(cluster *clusterv1.Cluster, machines []*cluster
 		}
 	}()
 
-	glog.V(1).Info("Applying Cluster API stack to internal cluster.")
+	glog.Info("Applying Cluster API stack to internal cluster")
 	err = d.applyClusterAPIStackWithPivoting(internalClient, externalClient)
 	if err != nil {
 		return fmt.Errorf("unable to apply cluster api stack to internal cluster: %v", err)
 	}
 
+	// For some reason, endpoint doesn't get updated in external cluster sometimes. So we
+	// update the internal cluster endpoint as well to be sure.
+	glog.Infof("Updating internal cluster object with master (%s) endpoint", master.Name)
 	err = d.updateClusterEndpoint(internalClient)
 	if err != nil {
 		return fmt.Errorf("unable to update internal cluster endpoint: %v", err)
 	}
 
-	glog.V(2).Info("Creating node machines in internal cluster.")
+	glog.Info("Creating node machines in internal cluster.")
 	err = internalClient.CreateMachineObjects(nodes)
 	if err != nil {
 		return fmt.Errorf("unable to create node machines: %v", err)
@@ -163,7 +172,6 @@ func (d *ClusterDeployer) Create(cluster *clusterv1.Cluster, machines []*cluster
 }
 
 func (d *ClusterDeployer) createExternalCluster() (ClusterClient, error) {
-	glog.V(1).Info("Spinning up external cluster.")
 	var err error
 	if err = d.externalProvisioner.Create(); err != nil {
 		return nil, fmt.Errorf("could not create external control plane: %v", err)
@@ -171,6 +179,7 @@ func (d *ClusterDeployer) createExternalCluster() (ClusterClient, error) {
 	if d.cleanupExternalCluster {
 		defer func() {
 			if err != nil {
+				glog.Info("Cleaning up external cluster.")
 				d.externalProvisioner.Delete()
 			}
 		}()
@@ -191,16 +200,18 @@ func (d *ClusterDeployer) createInternalCluster(externalClient ClusterClient) (C
 	if err != nil {
 		return nil, err
 	}
+
 	glog.V(1).Info("Getting internal cluster kubeconfig.")
 	internalKubeconfig, err := waitForKubeconfigReady(d.provider, cluster, master)
 	if err != nil {
 		return nil, fmt.Errorf("unable to get internal cluster kubeconfig: %v", err)
 	}
+
 	err = d.writeKubeconfig(internalKubeconfig)
 	if err != nil {
 		return nil, err
 	}
-	defer glog.Infof("You can now access your cluster with kubectl --kubeconfig %v", d.kubeconfigOutput)
+
 	internalClient, err := d.clientFactory.ClusterClient(internalKubeconfig)
 	if err != nil {
 		return nil, fmt.Errorf("unable to create internal cluster client: %v", err)
@@ -228,12 +239,13 @@ func (d *ClusterDeployer) updateClusterEndpoint(client ClusterClient) error {
 }
 
 func (d *ClusterDeployer) applyClusterAPIStack(client ClusterClient) error {
-	glog.V(2).Info("Applying Cluster API APIServer.")
+	glog.Info("Applying Cluster API APIServer")
 	err := d.applyClusterAPIApiserver(client)
 	if err != nil {
 		return fmt.Errorf("unable to apply cluster apiserver: %v", err)
 	}
-	glog.V(2).Info("Applying Cluster API Provider Components.")
+
+	glog.Info("Applying Cluster API Provider Components")
 	err = d.applyClusterAPIControllers(client)
 	if err != nil {
 		return fmt.Errorf("unable to apply cluster api controllers: %v", err)
@@ -242,20 +254,19 @@ func (d *ClusterDeployer) applyClusterAPIStack(client ClusterClient) error {
 }
 
 func (d *ClusterDeployer) applyClusterAPIStackWithPivoting(client ClusterClient, source ClusterClient) error {
-	glog.V(1).Info("Applying Cluster API stack.")
-	glog.V(2).Info("Applying Cluster API API server.")
+	glog.Info("Applying Cluster API APIServer")
 	err := d.applyClusterAPIApiserver(client)
 	if err != nil {
 		return fmt.Errorf("unable to apply cluster api apiserver: %v", err)
 	}
 
-	glog.V(2).Info("Pivoting Cluster API objects.")
+	glog.Info("Pivoting Cluster API objects from external to internal cluster.")
 	err = pivot(source, client)
 	if err != nil {
 		return fmt.Errorf("unable to pivot cluster API objects: %v", err)
 	}
 
-	glog.V(2).Info("Applying Cluster API Provider Components.")
+	glog.Info("Applying Cluster API Provider Components.")
 	err = d.applyClusterAPIControllers(client)
 	if err != nil {
 		return fmt.Errorf("unable to apply cluster api controllers: %v", err)

@@ -31,7 +31,14 @@ import (
 	"time"
 )
 
-const apiserverPort = 443
+const (
+	ApiServerPort              = 443
+	RetryIntervalKubectlApply  = 5 * time.Second
+	RetryIntervalResourceReady = 5 * time.Second
+	TimeoutKubectlApply        = 2 * time.Minute
+	TimeoutResourceReady       = 2 * time.Minute
+	TimeoutMachineReady        = 5 * time.Minute
+)
 
 type clusterClient struct {
 	clientSet      clientset.Interface
@@ -143,7 +150,7 @@ func (c *clusterClient) UpdateClusterObjectEndpoint(masterIP string) error {
 	cluster.Status.APIEndpoints = append(cluster.Status.APIEndpoints,
 		clusterv1.APIEndpoint{
 			Host: masterIP,
-			Port: apiserverPort,
+			Port: ApiServerPort,
 		})
 	_, err = c.clientSet.ClusterV1alpha1().Clusters(apiv1.NamespaceDefault).UpdateStatus(cluster)
 	return err
@@ -167,12 +174,12 @@ func (c *clusterClient) kubectlApply(manifest string) error {
 }
 
 func (c *clusterClient) waitForKubectlApply(manifest string) error {
-	err := util.Poll(500*time.Millisecond, 120*time.Second, func() (bool, error) {
+	err := util.Poll(RetryIntervalKubectlApply, TimeoutKubectlApply, func() (bool, error) {
 		glog.V(2).Infof("Waiting for kubectl apply...")
 		err := c.kubectlApply(manifest)
 		if err != nil {
 			if strings.Contains(err.Error(), "refused") {
-				// Connection refused probably due to the main apiserver not being up yet.
+				// Connection was refused, probably because the API server is not ready yet.
 				glog.V(4).Infof("Waiting for kubectl apply... server not yet available: %v", err)
 				return false, nil
 			}
@@ -194,7 +201,7 @@ func (c *clusterClient) waitForKubectlApply(manifest string) error {
 }
 
 func waitForClusterResourceReady(cs clientset.Interface) error {
-	err := util.Poll(500*time.Millisecond, 120*time.Second, func() (bool, error) {
+	err := util.Poll(RetryIntervalResourceReady, TimeoutResourceReady, func() (bool, error) {
 		glog.V(2).Info("Waiting for Cluster v1alpha resources to become available...")
 		_, err := cs.Discovery().ServerResourcesForGroupVersion("cluster.k8s.io/v1alpha1")
 		if err == nil {
@@ -207,7 +214,7 @@ func waitForClusterResourceReady(cs clientset.Interface) error {
 }
 
 func waitForMachineReady(cs clientset.Interface, machine *clusterv1.Machine) error {
-	err := util.Poll(time.Second, 5*time.Minute, func() (bool, error) {
+	err := util.Poll(RetryIntervalResourceReady, TimeoutMachineReady, func() (bool, error) {
 		glog.V(2).Infof("Waiting for Machine %v to become ready...", machine.Name)
 		m, err := cs.ClusterV1alpha1().Machines(apiv1.NamespaceDefault).Get(machine.Name, metav1.GetOptions{})
 		if err != nil {

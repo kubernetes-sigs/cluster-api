@@ -9,18 +9,18 @@ import (
 	"sigs.k8s.io/cluster-api/cloud/google"
 	gceconfigv1 "sigs.k8s.io/cluster-api/cloud/google/gceproviderconfig/v1alpha1"
 	"sigs.k8s.io/cluster-api/cloud/google/machinesetup"
-	"sigs.k8s.io/cluster-api/pkg/cmd-runner"
 	"sigs.k8s.io/cluster-api/kubeadm"
 	"sigs.k8s.io/cluster-api/pkg/apis/cluster/common"
 	"sigs.k8s.io/cluster-api/pkg/apis/cluster/v1alpha1"
 	"sigs.k8s.io/cluster-api/pkg/cert"
+	"sigs.k8s.io/cluster-api/pkg/test-cmd-runner"
 	"strings"
 	"testing"
 )
 
 func init() {
-	cmd_runner.RegisterCallback(tokenCreateCommandCallback)
-	cmd_runner.RegisterCallback(tokenCreateErrorCommandCallback)
+	test_cmd_runner.RegisterCallback(tokenCreateCommandCallback)
+	test_cmd_runner.RegisterCallback(tokenCreateErrorCommandCallback)
 }
 
 const (
@@ -29,7 +29,7 @@ const (
 )
 
 func TestMain(m *testing.M) {
-	cmd_runner.TestMain(m)
+	test_cmd_runner.TestMain(m)
 }
 
 type GCEClientComputeServiceMock struct {
@@ -113,7 +113,7 @@ func (m *GCEClientMachineSetupConfigMock) GetMetadata(params *machinesetup.Confi
 func TestKubeadmTokenShouldBeInStartupScript(t *testing.T) {
 	config := newGCEMachineProviderConfigFixture()
 	receivedInstance, computeServiceMock := newInsertInstanceCapturingMock()
-	kubeadm := kubeadm.NewWithCmdRunner(cmd_runner.NewTestRunnerFailOnErr(t, tokenCreateCommandCallback))
+	kubeadm := kubeadm.NewWithCmdRunner(test_cmd_runner.NewTestRunnerFailOnErr(t, tokenCreateCommandCallback))
 	machine := newMachine(t, config, common.NodeRole)
 	err := createCluster(t, machine, computeServiceMock, nil, kubeadm)
 	if err != nil {
@@ -137,7 +137,7 @@ func tokenCreateCommandCallback(cmd string, args ...string) int {
 func TestTokenCreateCommandError(t *testing.T) {
 	config := newGCEMachineProviderConfigFixture()
 	_, computeServiceMock := newInsertInstanceCapturingMock()
-	kubeadm := kubeadm.NewWithCmdRunner(cmd_runner.NewTestRunnerFailOnErr(t, tokenCreateErrorCommandCallback))
+	kubeadm := kubeadm.NewWithCmdRunner(test_cmd_runner.NewTestRunnerFailOnErr(t, tokenCreateErrorCommandCallback))
 	machine := newMachine(t, config, common.NodeRole)
 	err := createCluster(t, machine, computeServiceMock, nil, kubeadm)
 	if err == nil {

@@ -1,4 +1,4 @@
-package cmd_runner
+package test_cmd_runner
 
 import (
 	"flag"

@@ -1,16 +1,16 @@
-package cmd_runner_test
+package test_cmd_runner_test
 
 import (
 	"fmt"
 	"os"
-	"sigs.k8s.io/cluster-api/pkg/cmd-runner"
+	"sigs.k8s.io/cluster-api/pkg/test-cmd-runner"
 	"strings"
 	"testing"
 )
 
 func init() {
-	cmd_runner.RegisterCallback(callbackWithArgs)
-	cmd_runner.RegisterCallback(callbackWithoutArgs)
+	test_cmd_runner.RegisterCallback(callbackWithArgs)
+	test_cmd_runner.RegisterCallback(callbackWithoutArgs)
 }
 
 var (
@@ -23,7 +23,7 @@ var (
 )
 
 func TestUnregisteredFunctionShouldError(t *testing.T) {
-	_, err := cmd_runner.NewTestRunner(unregisteredFunction)
+	_, err := test_cmd_runner.NewTestRunner(unregisteredFunction)
 	if err == nil {
 		t.Fatalf("expected error, got nil")
 	}
@@ -34,7 +34,7 @@ func TestUnregisteredFunctionShouldError(t *testing.T) {
 }
 
 func TestCallbackFunctionShouldExecute(t *testing.T) {
-	runner := cmd_runner.NewTestRunnerFailOnErr(t, callbackWithArgs)
+	runner := test_cmd_runner.NewTestRunnerFailOnErr(t, callbackWithArgs)
 	output, err := runner.CombinedOutput(commandName, allArgs...)
 	if err != nil {
 		t.Errorf("invalid error: expected 'nil', got '%v'", err)
@@ -45,7 +45,7 @@ func TestCallbackFunctionShouldExecute(t *testing.T) {
 }
 
 func TestNoArgsShouldNotError(t *testing.T) {
-	runner := cmd_runner.NewTestRunnerFailOnErr(t, callbackWithoutArgs)
+	runner := test_cmd_runner.NewTestRunnerFailOnErr(t, callbackWithoutArgs)
 	output, err := runner.CombinedOutput(commandName)
 	if err != nil {
 		t.Errorf("invalid error: expected 'nil', got '%v'", err)
@@ -56,7 +56,7 @@ func TestNoArgsShouldNotError(t *testing.T) {
 }
 
 func TestMain(m *testing.M) {
-	cmd_runner.TestMain(m)
+	test_cmd_runner.TestMain(m)
 }
 
 func callbackWithoutArgs(cmd string, args ...string) int {

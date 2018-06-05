@@ -658,6 +658,42 @@ func (vc *VsphereClient) GetKubeConfig(master *clusterv1.Machine) (string, error
 	return result, nil
 }
 
+// DEPRECATED. Remove after vsphere-deployer is deleted.
+// This method exists because during bootstrap some artifacts need to be transferred to the
+// remote master. These include the IP address for the master, terraform state file.
+// In GCE, we set this kind of data as GCE metadata. Unfortunately, vSphere does not have
+// a comparable API.
+func (vc *VsphereClient) SetupRemoteMaster(master *clusterv1.Machine) error {
+	machineName := master.ObjectMeta.Name
+	glog.Infof("Setting up the remote master[%s] with terraform config.", machineName)
+
+	ip, err := vc.GetIP(master)
+	if err != nil {
+		return err
+	}
+
+	glog.Infof("Copying the staging directory to master.")
+	machinePath := fmt.Sprintf(MachinePathStageFormat, machineName)
+	_, err = vc.remoteSshCommand(master, fmt.Sprintf("mkdir -p %s", machinePath), "~/.ssh/vsphere_tmp", "ubuntu")
+	if err != nil {
+		glog.Infof("remoteSshCommand failed while creating remote machine stage: %+v", err)
+		return err
+	}
+
+	cmd := exec.Command(
+		"scp", "-i", "~/.ssh/vsphere_tmp",
+		"-o", "StrictHostKeyChecking=no",
+		"-o", "UserKnownHostsFile=/dev/null",
+		"-r",
+		machinePath,
+		fmt.Sprintf("ubuntu@%s:%s", ip, StageDir))
+	cmd.Stdout = os.Stdout
+	cmd.Stderr = os.Stderr
+	cmd.Run()
+
+	return nil
+}
+
 // We are storing these as annotations and not in Machine Status because that's intended for
 // "Provider-specific status" that will usually be used to detect updates. Additionally,
 // Status requires yet another version API resource which is too heavy to store IP and TF state.

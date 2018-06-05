@@ -1,0 +1,23 @@
+Error: unknown flag: --invalid-flag
+Usage:
+  clusterctl create [command]
+
+Available Commands:
+  cluster     Create kubernetes cluster
+
+Flags:
+  -h, --help   help for create
+
+Global Flags:
+      --alsologtostderr                  log to standard error as well as files
+      --log-flush-frequency duration     Maximum number of seconds between log flushes (default 5s)
+      --log_backtrace_at traceLocation   when logging hits line file:N, emit a stack trace (default :0)
+      --log_dir string                   If non-empty, write log files in this directory
+      --logtostderr                      log to standard error instead of files (default true)
+      --stderrthreshold severity         logs at or above this threshold go to stderr (default 2)
+  -v, --v Level                          log level for V logs
+      --vmodule moduleSpec               comma-separated list of pattern=N settings for file-filtered logging
+
+Use "clusterctl create [command] --help" for more information about a command.
+
+unknown flag: --invalid-flag

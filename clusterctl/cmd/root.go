@@ -18,7 +18,7 @@ package cmd
 
 import (
 	"flag"
-	"github.com/golang/glog"
+	"fmt"
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
 	"k8s.io/apiserver/pkg/util/logs"
@@ -37,12 +37,13 @@ var RootCmd = &cobra.Command{
 
 func Execute() {
 	if err := RootCmd.Execute(); err != nil {
-		glog.Exit(err)
+		fmt.Fprintln(os.Stderr, err)
+		os.Exit(1)
 	}
 }
 
 func exitWithHelp(cmd *cobra.Command, err string) {
-	glog.Error(err)
+	fmt.Fprintln(os.Stderr, err)
 	cmd.Help()
 	os.Exit(1)
 }

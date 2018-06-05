@@ -171,12 +171,17 @@ func (c *clusterClient) waitForKubectlApply(manifest string) error {
 		glog.V(2).Infof("Waiting for kubectl apply...")
 		err := c.kubectlApply(manifest)
 		if err != nil {
-			if strings.Contains(err.Error(), "connection refused") {
+			if strings.Contains(err.Error(), "refused") {
+				// Connection refused probably due to the main apiserver not being up yet.
 				glog.V(4).Infof("Waiting for kubectl apply... server not yet available: %v", err)
 				return false, nil
 			}
 			if strings.Contains(err.Error(), "unable to recognize") {
 				glog.V(4).Infof("Waiting for kubectl apply... api not yet available: %v", err)
+				return false, nil
+			}
+			if strings.Contains(err.Error(), "namespaces \"default\" not found") {
+				glog.V(4).Infof("Waiting for kubectl apply... default namespace not yet available: %v", err)
 				return false, nil
 			}
 			return false, err

@@ -742,6 +742,7 @@ func autoConvert_v1alpha1_MachineSpec_To_cluster_MachineSpec(in *MachineSpec, ou
 		return err
 	}
 	out.ConfigSource = (*v1.NodeConfigSource)(unsafe.Pointer(in.ConfigSource))
+	out.ClusterRef = in.ClusterRef
 	return nil
 }
 
@@ -761,6 +762,7 @@ func autoConvert_cluster_MachineSpec_To_v1alpha1_MachineSpec(in *cluster.Machine
 		return err
 	}
 	out.ConfigSource = (*v1.NodeConfigSource)(unsafe.Pointer(in.ConfigSource))
+	out.ClusterRef = in.ClusterRef
 	return nil
 }
 

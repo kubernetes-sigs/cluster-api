@@ -17,6 +17,7 @@ limitations under the License.
 package v1alpha1
 
 import (
+	"fmt"
 	"log"
 
 	"k8s.io/apimachinery/pkg/runtime"
@@ -24,7 +25,11 @@ import (
 
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/fields"
+	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/util/validation/field"
+	"k8s.io/apiserver/pkg/registry/generic"
+	"k8s.io/apiserver/pkg/storage"
 
 	"sigs.k8s.io/cluster-api/pkg/apis/cluster"
 	clustercommon "sigs.k8s.io/cluster-api/pkg/apis/cluster/common"
@@ -84,6 +89,9 @@ type MachineSpec struct {
 	// as-is.
 	// +optional
 	ConfigSource *corev1.NodeConfigSource `json:"configSource,omitempty"`
+
+	// Reference to the Cluster to which this Machine is associated.
+	ClusterRef corev1.LocalObjectReference `json:"clusterRef"`
 }
 
 // MachineStatus defines the observed state of Machine
@@ -159,6 +167,9 @@ func (MachineStrategy) Validate(ctx request.Context, obj runtime.Object) field.E
 	log.Printf("Validating fields for Machine %s\n", machine.Name)
 	errors := field.ErrorList{}
 	// perform validation here and add to errors using field.Invalid
+	if machine.Spec.ClusterRef.Name == "" {
+		errors = append(errors, field.Required(field.NewPath("spec", "clusterRef", "name"), "must specify a cluster"))
+	}
 	return errors
 }
 
@@ -172,9 +183,44 @@ func (m MachineStrategy) PrepareForCreate(ctx request.Context, obj runtime.Objec
 	o.ObjectMeta.Finalizers = append(o.ObjectMeta.Finalizers, MachineFinalizer)
 }
 
+// GetAttrs gets the attributes for the specified Machine.
+func (m MachineStrategy) GetAttrs(o runtime.Object) (labels.Set, fields.Set, bool, error) {
+	l, _, uninit, e := m.DefaultStorageStrategy.GetAttrs(o)
+	obj := o.(*cluster.Machine)
+
+	fs := fields.Set{"spec.clusterRef.name": obj.Spec.ClusterRef.Name}
+	fs = generic.AddObjectMetaFieldsSet(fs, &obj.ObjectMeta, true)
+	return l, fs, uninit, e
+}
+
+// BasicMatch returns the predicate to use when performing a label or field
+// selector match.
+func (m MachineStrategy) BasicMatch(label labels.Selector, field fields.Selector) storage.SelectionPredicate {
+	return storage.SelectionPredicate{
+		Label:       label,
+		Field:       field,
+		GetAttrs:    m.GetAttrs,
+		IndexFields: []string{"spec.clusterRef.name"},
+	}
+}
+
 // DefaultingFunction sets default Machine field values
 func (MachineSchemeFns) DefaultingFunction(o interface{}) {
 	obj := o.(*Machine)
 	// set default field values here
 	log.Printf("Defaulting fields for Machine %s\n", obj.Name)
+}
+
+// FieldSelectorConversion adds field selectors for Machines.
+func (MachineSchemeFns) FieldSelectorConversion(label, value string) (string, string, error) {
+	switch label {
+	case "metadata.name":
+		return label, value, nil
+	case "metadata.namespace":
+		return label, value, nil
+	case "spec.clusterRef.name":
+		return label, value, nil
+	default:
+		return "", "", fmt.Errorf("%q is not a known field selector: only %q, %q, %q", label, "metadata.name", "metadata.namespace", "spec.clusterRef.name")
+	}
 }

@@ -31,21 +31,21 @@ import (
 	"sigs.k8s.io/cluster-api/pkg/client/clientset_generated/clientset"
 )
 
-func machineControllerReconcile(t *testing.T, cs *clientset.Clientset, controller *MachineController) {
+func machineControllerReconcile(t *testing.T, cs *clientset.Clientset, controller *MachineController, namespace string) {
 	instance := clusterv1.Machine{}
 	instance.Name = "instance-1"
-	expectedKey := "default/instance-1"
+	expectedKey := namespace + "/instance-1"
 
 	// When creating a new object, it should invoke the reconcile method.
 	cluster := testutil.GetVanillaCluster()
 	cluster.Name = "cluster-1"
-	clusterClient := cs.ClusterV1alpha1().Clusters("default")
+	clusterClient := cs.ClusterV1alpha1().Clusters(namespace)
 	if _, err := clusterClient.Create(&cluster); err != nil {
 		t.Fatal(err)
 	}
 	defer cleanUpCluster(clusterClient, cluster)
 
-	client := cs.ClusterV1alpha1().Machines("default")
+	client := cs.ClusterV1alpha1().Machines(namespace)
 	before := make(chan struct{})
 	after := make(chan struct{})
 	var aftOnce, befOnce sync.Once

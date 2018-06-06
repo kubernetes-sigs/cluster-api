@@ -35,6 +35,7 @@ import (
 	"regexp"
 
 	"encoding/base64"
+
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime/serializer"
 	"k8s.io/client-go/kubernetes"
@@ -91,7 +92,7 @@ type GCEClient struct {
 	scheme                   *runtime.Scheme
 	codecFactory             *serializer.CodecFactory
 	sshCreds                 SshCreds
-	machineClient            client.MachineInterface
+	v1Alpha1Client           client.ClusterV1alpha1Interface
 	machineSetupConfigGetter GCEClientMachineSetupConfigGetter
 }
 
@@ -99,7 +100,7 @@ type MachineActuatorParams struct {
 	CertificateAuthority     *cert.CertificateAuthority
 	ComputeService           GCEClientComputeService
 	Kubeadm                  GCEClientKubeadm
-	MachineClient            client.MachineInterface
+	V1Alpha1Client           client.ClusterV1alpha1Interface
 	MachineSetupConfigGetter GCEClientMachineSetupConfigGetter
 }
 
@@ -146,7 +147,7 @@ func NewMachineActuator(params MachineActuatorParams) (*GCEClient, error) {
 			privateKeyPath: privateKeyPath,
 			user:           user,
 		},
-		machineClient:            params.MachineClient,
+		v1Alpha1Client:           params.V1Alpha1Client,
 		machineSetupConfigGetter: params.MachineSetupConfigGetter,
 	}, nil
 }
@@ -251,7 +252,7 @@ func (gce *GCEClient) Create(cluster *clusterv1.Cluster, machine *clusterv1.Mach
 
 	if instance == nil {
 		labels := map[string]string{}
-		if gce.machineClient == nil {
+		if gce.v1Alpha1Client == nil {
 			labels[BootstrapLabelKey] = "true"
 		}
 
@@ -297,9 +298,9 @@ func (gce *GCEClient) Create(cluster *clusterv1.Cluster, machine *clusterv1.Mach
 				"error creating GCE instance: %v", err))
 		}
 
-		// If we have a machineClient, then annotate the machine so that we
+		// If we have a v1Alpha1Client, then annotate the machine so that we
 		// remember exactly what VM we created for it.
-		if gce.machineClient != nil {
+		if gce.v1Alpha1Client != nil {
 			return gce.updateAnnotations(cluster, machine)
 		}
 	} else {
@@ -360,10 +361,10 @@ func (gce *GCEClient) Delete(cluster *clusterv1.Cluster, machine *clusterv1.Mach
 			"error deleting GCE instance: %v", err))
 	}
 
-	if gce.machineClient != nil {
+	if gce.v1Alpha1Client != nil {
 		// Remove the finalizer
 		machine.ObjectMeta.Finalizers = util.Filter(machine.ObjectMeta.Finalizers, clusterv1.MachineFinalizer)
-		_, err = gce.machineClient.Update(machine)
+		_, err = gce.v1Alpha1Client.Machines(machine.Namespace).Update(machine)
 	}
 
 	return err
@@ -544,7 +545,7 @@ func (gce *GCEClient) updateAnnotations(cluster *clusterv1.Cluster, machine *clu
 	machine.ObjectMeta.Annotations[ProjectAnnotationKey] = project
 	machine.ObjectMeta.Annotations[ZoneAnnotationKey] = zone
 	machine.ObjectMeta.Annotations[NameAnnotationKey] = name
-	_, err = gce.machineClient.Update(machine)
+	_, err = gce.v1Alpha1Client.Machines(machine.Namespace).Update(machine)
 	if err != nil {
 		return err
 	}
@@ -662,8 +663,8 @@ func (gce *GCEClient) checkOp(op *compute.Operation, err error) error {
 func (gce *GCEClient) updateMasterInplace(cluster *clusterv1.Cluster, oldMachine *clusterv1.Machine, newMachine *clusterv1.Machine) error {
 	if oldMachine.Spec.Versions.ControlPlane != newMachine.Spec.Versions.ControlPlane {
 		cmd := fmt.Sprintf(
-			"curl -sSL https://dl.k8s.io/release/v%s/bin/linux/amd64/kubeadm | sudo tee /usr/bin/kubeadm > /dev/null; " +
-			"sudo chmod a+rx /usr/bin/kubeadm", newMachine.Spec.Versions.ControlPlane)
+			"curl -sSL https://dl.k8s.io/release/v%s/bin/linux/amd64/kubeadm | sudo tee /usr/bin/kubeadm > /dev/null; "+
+				"sudo chmod a+rx /usr/bin/kubeadm", newMachine.Spec.Versions.ControlPlane)
 		_, err := gce.remoteSshCommand(cluster, newMachine, cmd)
 		if err != nil {
 			glog.Infof("remotesshcomand error: %v", err)
@@ -715,12 +716,12 @@ func (gce *GCEClient) validateMachine(machine *clusterv1.Machine, config *gcecon
 // cluster installation, it will operate as a no-op. It also returns the
 // original error for convenience, so callers can do "return handleMachineError(...)".
 func (gce *GCEClient) handleMachineError(machine *clusterv1.Machine, err *apierrors.MachineError) error {
-	if gce.machineClient != nil {
+	if gce.v1Alpha1Client != nil {
 		reason := err.Reason
 		message := err.Message
 		machine.Status.ErrorReason = &reason
 		machine.Status.ErrorMessage = &message
-		gce.machineClient.UpdateStatus(machine)
+		gce.v1Alpha1Client.Machines(machine.Namespace).UpdateStatus(machine)
 	}
 
 	glog.Errorf("Machine error: %v", err.Message)

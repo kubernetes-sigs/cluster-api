@@ -22,13 +22,11 @@ import (
 	"github.com/golang/glog"
 	"github.com/kubernetes-incubator/apiserver-builder/pkg/builders"
 
-	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
 
 	clusterv1 "sigs.k8s.io/cluster-api/pkg/apis/cluster/v1alpha1"
 	"sigs.k8s.io/cluster-api/pkg/client/clientset_generated/clientset"
-	"sigs.k8s.io/cluster-api/pkg/client/clientset_generated/clientset/typed/cluster/v1alpha1"
 	listers "sigs.k8s.io/cluster-api/pkg/client/listers_generated/cluster/v1alpha1"
 	cfg "sigs.k8s.io/cluster-api/pkg/controller/config"
 	"sigs.k8s.io/cluster-api/pkg/controller/sharedinformers"
@@ -46,7 +44,6 @@ type MachineControllerImpl struct {
 
 	kubernetesClientSet kubernetes.Interface
 	clientSet           clientset.Interface
-	machineClient       v1alpha1.MachineInterface
 	linkedNodes         map[string]bool
 	cachedReadiness     map[string]bool
 }
@@ -67,9 +64,6 @@ func (c *MachineControllerImpl) Init(arguments sharedinformers.ControllerInitArg
 	c.linkedNodes = make(map[string]bool)
 	c.cachedReadiness = make(map[string]bool)
 
-	// Create machine actuator.
-	// TODO: Assume default namespace for now. Maybe a separate a controller per namespace?
-	c.machineClient = clientset.ClusterV1alpha1().Machines(corev1.NamespaceDefault)
 	c.actuator = actuator
 
 	// Start watching for Node resource. It will effectively create a new worker queue, and
@@ -100,6 +94,7 @@ func (c *MachineControllerImpl) Reconcile(machine *clusterv1.Machine) error {
 			glog.Errorf("Error deleting machine object %v; %v", name, err)
 			return err
 		}
+
 		// Remove finalizer on successful deletion.
 		glog.Infof("machine object %v deletion successful, removing finalizer.", name)
 		machine.ObjectMeta.Finalizers = util.Filter(machine.ObjectMeta.Finalizers, clusterv1.MachineFinalizer)

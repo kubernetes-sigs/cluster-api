@@ -206,3 +206,10 @@ func Contains(list []string, strToSearch string) bool {
 	}
 	return false
 }
+
+func GetNamespaceOrDefault(namespace string) string {
+	if namespace == "" {
+		return v1.NamespaceDefault
+	}
+	return namespace
+}

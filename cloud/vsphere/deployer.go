@@ -17,10 +17,8 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
-	"io/ioutil"
 	"os"
 	"os/exec"
-	"path"
 	"strings"
 
 	"github.com/golang/glog"
@@ -34,7 +32,7 @@ import (
 // Currently implements a subset of the machineDeployer interface at
 // sigs.k8s.io/cluster-api/vsphere-deployer/deploy/machinedeployer.go
 // till vsphere-deployer gets deleted
-type DeploymentClient struct {}
+type DeploymentClient struct{}
 
 func NewDeploymentClient() *DeploymentClient {
 	return &DeploymentClient{}
@@ -42,16 +40,10 @@ func NewDeploymentClient() *DeploymentClient {
 
 func (*DeploymentClient) GetIP(machine *clusterv1.Machine) (string, error) {
 	if machine.ObjectMeta.Annotations != nil {
-		if ip, ok := machine.ObjectMeta.Annotations[MasterIpAnnotationKey]; ok {
+		if ip, ok := machine.ObjectMeta.Annotations[VmIpAnnotationKey]; ok {
 			glog.Infof("Returning IP from machine annotation %s", ip)
 			return ip, nil
 		}
-	}
-
-	ipBytes, _ := ioutil.ReadFile(path.Join(fmt.Sprintf(MachinePathStageFormat, machine.ObjectMeta.Name), MasterIpFilename))
-	if ipBytes != nil {
-		glog.Infof("Returning IP from file %s", string(ipBytes))
-		return string(ipBytes), nil
 	}
 
 	return "", errors.New("could not get IP")

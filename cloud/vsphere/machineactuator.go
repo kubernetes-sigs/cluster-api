@@ -21,7 +21,6 @@ import (
 	"io/ioutil"
 	"os"
 	"os/exec"
-	"os/user"
 	"path"
 	"regexp"
 	"strings"
@@ -45,7 +44,7 @@ import (
 )
 
 const (
-	MasterIpAnnotationKey            = "master-ip"
+	VmIpAnnotationKey                = "vm-ip-address"
 	ControlPlaneVersionAnnotationKey = "control-plane-version"
 	KubeletVersionAnnotationKey      = "kubelet-version"
 
@@ -62,7 +61,6 @@ const (
 	TfConfigFilename       = "terraform.tf"
 	TfVarsFilename         = "variables.tfvars"
 	TfStateFilename        = "terraform.tfstate"
-	MasterIpFilename       = "master-ip"
 )
 
 type VsphereClient struct {
@@ -136,22 +134,6 @@ func saveFile(contents, path string, perm os.FileMode) error {
 	return ioutil.WriteFile(path, []byte(contents), perm)
 }
 
-// Currently only works for unix systems.
-// TODO: Consider using https://github.com/mitchellh/go-homedir.
-func getHomeDir() (string, error) {
-	// Prefer $HOME.
-	if home := os.Getenv("HOME"); home != "" {
-		return home, nil
-	}
-
-	// Fallback to user's profile.
-	usr, err := user.Current()
-	if err != nil {
-		return "", err
-	}
-	return usr.HomeDir, nil
-}
-
 // Stage the machine for running terraform.
 // Return: machine's staging dir path, error
 func (vc *VsphereClient) prepareStageMachineDir(machine *clusterv1.Machine) (string, error) {
@@ -200,30 +182,13 @@ func (vc *VsphereClient) prepareStageMachineDir(machine *clusterv1.Machine) (str
 	return machinePath, nil
 }
 
-// Returns the path to the tfstate file.
+// Returns the path to the tfstate file staged from the tf state in annotations.
 func (vc *VsphereClient) stageTfState(machine *clusterv1.Machine) (string, error) {
 	machinePath := fmt.Sprintf(MachinePathStageFormat, machine.ObjectMeta.Name)
 	tfStateFilePath := path.Join(machinePath, TfStateFilename)
 
-	// Ensure machinePath exists
-	exists, err := pathExists(machinePath)
-	if err != nil {
-		return "", err
-	}
-	if !exists {
-		err = os.Mkdir(machinePath, os.ModePerm)
-		if err != nil {
-			return "", err
-		}
-	}
-
-	// Check if the tfstate file already exists.
-	exists, err = pathExists(tfStateFilePath)
-	if err != nil {
-		return "", err
-	}
-	if exists {
-		return tfStateFilePath, nil
+	if _, err := os.Stat(machinePath); os.IsNotExist(err) {
+		os.MkdirAll(machinePath, 0755)
 	}
 
 	// Attempt to stage the file from annotations.
@@ -297,6 +262,8 @@ func (vc *VsphereClient) saveStartupScript(cluster *clusterv1.Cluster, machine *
 		}
 	}
 
+	glog.Infof("Saving startup script for machine %s", machine.ObjectMeta.Name)
+
 	// Save the startup script.
 	if err := saveFile(startupScript, path.Join("/tmp", "machine-startup.sh"), 0644); err != nil {
 		return errors.New(fmt.Sprintf("Could not write startup script %s", err))
@@ -330,19 +297,22 @@ func (vc *VsphereClient) Create(cluster *clusterv1.Cluster, machine *clusterv1.M
 		return errors.New(fmt.Sprintf("error while staging machine: %+v", err))
 	}
 
+	glog.Infof("Staged for machine create at %s", machinePath)
+
 	// Save the startup script.
 	err = vc.saveStartupScript(cluster, machine)
 	if err != nil {
 		return errors.New(fmt.Sprintf("could not write startup script %+v", err))
 	}
 
+	glog.Infof("Checking if machine %s exists", machine.ObjectMeta.Name)
 	instance, err := vc.instanceIfExists(machine)
 	if err != nil {
 		return err
 	}
 
 	if instance == nil {
-		glog.Infof("machine instance does not exist. will create %s", machine.ObjectMeta.Name)
+		glog.Infof("Machine instance does not exist. will create %s", machine.ObjectMeta.Name)
 
 		var args []string
 		args = append(args, "apply")
@@ -368,15 +338,15 @@ func (vc *VsphereClient) Create(cluster *clusterv1.Cluster, machine *clusterv1.M
 		if cmdErr != nil {
 			return fmt.Errorf("could not obtain 'ip_address' output variable: %s", cmdErr)
 		}
-		masterEndpointIp := strings.TrimSpace(out.String())
-		glog.Infof("Master created with ip address %s", masterEndpointIp)
+		vmIp := strings.TrimSpace(out.String())
+		glog.Infof("Machine %s created with ip address %s", machine.ObjectMeta.Name, vmIp)
 
 		// Annotate the machine so that we remember exactly what VM we created for it.
 		tfState, _ := vc.GetTfState(machine)
 		vc.cleanUpStagingDir(machine)
-		return vc.updateAnnotations(machine, masterEndpointIp, tfState)
+		return vc.updateAnnotations(machine, vmIp, tfState)
 	} else {
-		glog.Infof("Skipped creating a VM that already exists.\n")
+		glog.Infof("Skipped creating a VM for machine %s that already exists.", machine.ObjectMeta.Name)
 	}
 
 	return nil
@@ -478,11 +448,10 @@ func (vc *VsphereClient) Delete(cluster *clusterv1.Cluster, machine *clusterv1.M
 
 	vc.cleanUpStagingDir(machine)
 
-	// remove finalizer
-	if vc.machineClient != nil {
-		machine.ObjectMeta.Finalizers = util.Filter(machine.ObjectMeta.Finalizers, clusterv1.MachineFinalizer)
-		_, err = vc.machineClient.Update(machine)
-	}
+	// Update annotation for the state and remove finalizer.
+	machine.ObjectMeta.Annotations[StatusMachineTerraformState] = ""
+	machine.ObjectMeta.Finalizers = util.Filter(machine.ObjectMeta.Finalizers, clusterv1.MachineFinalizer)
+	_, err = vc.machineClient.Update(machine)
 
 	return err
 }
@@ -492,15 +461,6 @@ func (vc *VsphereClient) PostDelete(cluster *clusterv1.Cluster, machines []*clus
 }
 
 func (vc *VsphereClient) Update(cluster *clusterv1.Cluster, goalMachine *clusterv1.Machine) error {
-	// Try to get the annotations for the versions. If they don't exist, update the annotation and return.
-	// This can only happen right after bootstrapping.
-	if goalMachine.ObjectMeta.Annotations == nil {
-		ip, _ := vc.DeploymentClient.GetIP(goalMachine)
-		glog.Info("Annotations do not exist. This happens for a newly bootstrapped machine.")
-		tfState, _ := vc.GetTfState(goalMachine)
-		return vc.updateAnnotations(goalMachine, ip, tfState)
-	}
-
 	// Check if the annotations we want to track exist, if not, the user likely created a master machine with their own annotation.
 	if _, ok := goalMachine.ObjectMeta.Annotations[ControlPlaneVersionAnnotationKey]; !ok {
 		ip, _ := vc.DeploymentClient.GetIP(goalMachine)
@@ -510,69 +470,113 @@ func (vc *VsphereClient) Update(cluster *clusterv1.Cluster, goalMachine *cluster
 	}
 
 	if util.IsMaster(goalMachine) {
+		// Master upgrades
 		glog.Info("Upgrade for master machine.. Check if upgrade needed.")
-		// Get the versions for the new object.
-		goalMachineControlPlaneVersion := goalMachine.Spec.Versions.ControlPlane
-		goalMachineKubeletVersion := goalMachine.Spec.Versions.Kubelet
 
 		// If the saved versions and new versions differ, do in-place upgrade.
-		if goalMachineControlPlaneVersion != goalMachine.Annotations[ControlPlaneVersionAnnotationKey] ||
-			goalMachineKubeletVersion != goalMachine.Annotations[KubeletVersionAnnotationKey] {
-			glog.Infof("Doing in-place upgrade for master from %s to %s", goalMachine.Annotations[ControlPlaneVersionAnnotationKey], goalMachineControlPlaneVersion)
+		if vc.needsMasterUpdate(goalMachine) {
+			glog.Infof("Doing in-place upgrade for master from v%s to v%s", goalMachine.Annotations[ControlPlaneVersionAnnotationKey], goalMachine.Spec.Versions.ControlPlane)
 			err := vc.updateMasterInPlace(goalMachine)
 			if err != nil {
-				glog.Errorf("Master inplace update failed: %+v", err)
+				glog.Errorf("Master in-place upgrade failed: %+v", err)
+				return err
 			}
 		} else {
-			glog.Info("UPDATE TYPE NOT SUPPORTED")
-			return nil
+			glog.Info("UNSUPPORTED MASTER UPDATE.")
 		}
 	} else {
-		glog.Info("NODE UPDATES NOT SUPPORTED")
-		return nil
+		if vc.needsNodeUpdate(goalMachine) {
+			// Node upgrades
+			if err := vc.updateNode(cluster, goalMachine); err != nil {
+				glog.Errorf("Node %s update failed: %+v", goalMachine.ObjectMeta.Name, err)
+				return err
+			}
+		} else {
+			glog.Info("UNSUPPORTED NODE UPDATE.")
+		}
 	}
 
 	return nil
 }
 
-// Assumes that update is needed.
-// For now support only K8s control plane upgrades.
-func (vc *VsphereClient) updateMasterInPlace(goalMachine *clusterv1.Machine) error {
-	goalMachineControlPlaneVersion := goalMachine.Spec.Versions.ControlPlane
-	goalMachineKubeletVersion := goalMachine.Spec.Versions.Kubelet
+func (vc *VsphereClient) needsControlPlaneUpdate(machine *clusterv1.Machine) bool {
+	return machine.Spec.Versions.ControlPlane != machine.Annotations[ControlPlaneVersionAnnotationKey]
+}
 
-	currentControlPlaneVersion := goalMachine.Annotations[ControlPlaneVersionAnnotationKey]
-	currentKubeletVersion := goalMachine.Annotations[KubeletVersionAnnotationKey]
+func (vc *VsphereClient) needsKubeletUpdate(machine *clusterv1.Machine) bool {
+	return machine.Spec.Versions.Kubelet != machine.Annotations[KubeletVersionAnnotationKey]
+}
 
-	// Control plane upgrade
-	if goalMachineControlPlaneVersion != currentControlPlaneVersion {
+// Returns true if the node is needed to be upgraded.
+func (vc *VsphereClient) needsNodeUpdate(machine *clusterv1.Machine) bool {
+	return !util.IsMaster(machine) &&
+		vc.needsKubeletUpdate(machine)
+}
+
+// Returns true if the master is needed to be upgraded.
+func (vc *VsphereClient) needsMasterUpdate(machine *clusterv1.Machine) bool {
+	return util.IsMaster(machine) &&
+		vc.needsControlPlaneUpdate(machine)
+	// TODO: we should support kubelet upgrades here as well.
+}
+
+func (vc *VsphereClient) updateKubelet(machine *clusterv1.Machine) error {
+	if vc.needsKubeletUpdate(machine) {
+		// Kubelet packages are versioned 1.10.1-00 and so on.
+		kubeletAptVersion := machine.Spec.Versions.Kubelet + "-00"
+		cmd := fmt.Sprintf("sudo apt-get install kubelet=%s", kubeletAptVersion)
+		if _, err := vc.remoteSshCommand(machine, cmd, "~/.ssh/vsphere_tmp", "ubuntu"); err != nil {
+			glog.Errorf("remoteSshCommand while installing new kubelet version: %v", err)
+			return err
+		}
+	}
+	return nil
+}
+
+func (vc *VsphereClient) updateControlPlane(machine *clusterv1.Machine) error {
+	if vc.needsControlPlaneUpdate(machine) {
 		// Pull the kudeadm for target version K8s.
 		cmd := fmt.Sprintf("curl -sSL https://dl.k8s.io/release/v%s/bin/linux/amd64/kubeadm | sudo tee /usr/bin/kubeadm > /dev/null; "+
-			"sudo chmod a+rx /usr/bin/kubeadm", goalMachineControlPlaneVersion)
-		_, err := vc.remoteSshCommand(goalMachine, cmd, "~/.ssh/id_rsa", "ubuntu")
-		if err != nil {
+			"sudo chmod a+rx /usr/bin/kubeadm", machine.Spec.Versions.ControlPlane)
+		if _, err := vc.remoteSshCommand(machine, cmd, "~/.ssh/vsphere_tmp", "ubuntu"); err != nil {
 			glog.Infof("remoteSshCommand failed while downloading new kubeadm: %+v", err)
 			return err
 		}
 
 		// Next upgrade control plane
-		cmd = fmt.Sprintf("sudo kubeadm upgrade apply %s -y", "v"+goalMachine.Spec.Versions.ControlPlane)
-		_, err = vc.remoteSshCommand(goalMachine, cmd, "~/.ssh/id_rsa", "ubuntu")
-		if err != nil {
+		cmd = fmt.Sprintf("sudo kubeadm upgrade apply %s -y", "v"+machine.Spec.Versions.ControlPlane)
+		if _, err := vc.remoteSshCommand(machine, cmd, "~/.ssh/vsphere_tmp", "ubuntu"); err != nil {
 			glog.Infof("remoteSshCommand failed while upgrading control plane: %+v", err)
 			return err
 		}
 	}
+	return nil
+}
 
-	// Upgrade kubelet
-	if goalMachineKubeletVersion != currentKubeletVersion {
-		// Upgrade kubelet to desired version.
-		cmd := fmt.Sprintf("sudo apt-get install kubelet=%s", goalMachine.Spec.Versions.Kubelet+"-00")
-		_, err := vc.remoteSshCommand(goalMachine, cmd, "~/.ssh/id_rsa", "ubuntu")
-		if err != nil {
-			glog.Infof("remoteSshCommand while installing new kubelet version: %v", err)
-			return err
-		}
+// Update the passed node machine by recreating it.
+func (vc *VsphereClient) updateNode(cluster *clusterv1.Cluster, machine *clusterv1.Machine) error {
+	if err := vc.Delete(cluster, machine); err != nil {
+		return err
+	}
+
+	if err := vc.Create(cluster, machine); err != nil {
+		return err
+	}
+	return nil
+}
+
+// Assumes that update is needed.
+// For now support only K8s control plane upgrades.
+func (vc *VsphereClient) updateMasterInPlace(machine *clusterv1.Machine) error {
+	// Execute a control plane upgrade.
+	if err := vc.updateControlPlane(machine); err != nil {
+		return err
+	}
+
+	// Update annotation for version.
+	machine.ObjectMeta.Annotations[ControlPlaneVersionAnnotationKey] = machine.Spec.Versions.ControlPlane
+	if _, err := vc.machineClient.Update(machine); err != nil {
+		return err
 	}
 
 	return nil
@@ -616,7 +620,7 @@ func (vc *VsphereClient) Exists(cluster *clusterv1.Cluster, machine *clusterv1.M
 func (vc *VsphereClient) GetTfState(machine *clusterv1.Machine) (string, error) {
 	if machine.ObjectMeta.Annotations != nil {
 		if tfStateB64, ok := machine.ObjectMeta.Annotations[StatusMachineTerraformState]; ok {
-			glog.Infof("Returning tfstate from annotation")
+			glog.Infof("Returning tfstate for machine %s from annotation", machine.ObjectMeta.Name)
 			tfState, err := base64.StdEncoding.DecodeString(tfStateB64)
 			if err != nil {
 				glog.Errorf("error decoding tfstate in annotation. %+v", err)
@@ -628,7 +632,7 @@ func (vc *VsphereClient) GetTfState(machine *clusterv1.Machine) (string, error) 
 
 	tfStateBytes, _ := ioutil.ReadFile(path.Join(fmt.Sprintf(MachinePathStageFormat, machine.ObjectMeta.Name), TfStateFilename))
 	if tfStateBytes != nil {
-		glog.Infof("Returning tfstate from staging file")
+		glog.Infof("Returning tfstate for machine %s from staging file", machine.ObjectMeta.Name)
 		return string(tfStateBytes), nil
 	}
 
@@ -674,7 +678,7 @@ func (vc *VsphereClient) SetupRemoteMaster(master *clusterv1.Machine) error {
 // We are storing these as annotations and not in Machine Status because that's intended for
 // "Provider-specific status" that will usually be used to detect updates. Additionally,
 // Status requires yet another version API resource which is too heavy to store IP and TF state.
-func (vc *VsphereClient) updateAnnotations(machine *clusterv1.Machine, masterEndpointIp, tfState string) error {
+func (vc *VsphereClient) updateAnnotations(machine *clusterv1.Machine, vmIp, tfState string) error {
 	glog.Infof("Updating annotations for machine %s", machine.ObjectMeta.Name)
 	if machine.ObjectMeta.Annotations == nil {
 		machine.ObjectMeta.Annotations = make(map[string]string)
@@ -682,7 +686,7 @@ func (vc *VsphereClient) updateAnnotations(machine *clusterv1.Machine, masterEnd
 
 	tfStateB64 := base64.StdEncoding.EncodeToString([]byte(tfState))
 
-	machine.ObjectMeta.Annotations[MasterIpAnnotationKey] = masterEndpointIp
+	machine.ObjectMeta.Annotations[VmIpAnnotationKey] = vmIp
 	machine.ObjectMeta.Annotations[ControlPlaneVersionAnnotationKey] = machine.Spec.Versions.ControlPlane
 	machine.ObjectMeta.Annotations[KubeletVersionAnnotationKey] = machine.Spec.Versions.Kubelet
 	machine.ObjectMeta.Annotations[StatusMachineTerraformState] = tfStateB64
@@ -701,6 +705,7 @@ func (vc *VsphereClient) instanceIfExists(machine *clusterv1.Machine) (*clusterv
 	if err != nil {
 		return nil, err
 	}
+	glog.Infof("Instance existance checked in directory %+v", tfStateFilePath)
 	if tfStateFilePath == "" {
 		return nil, nil
 	}

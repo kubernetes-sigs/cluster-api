@@ -45,7 +45,7 @@ spec:
             cpu: 100m
             memory: 30Mi
       - name: vsphere-machine-controller
-        image: gcr.io/k8s-cluster-api/vsphere-machine-controller:0.0.7
+        image: gcr.io/k8s-cluster-api/vsphere-machine-controller:0.0.8
         volumeMounts:
           - name: config
             mountPath: /etc/kubernetes
@@ -86,6 +86,7 @@ spec:
         emptyDir: {}
       - name: sshkeys
         secret:
+          defaultMode: 0600
           secretName: sshkeys
       - name: named-machines
         configMap:
@@ -254,19 +255,6 @@ data:
           cdrom {
             client_device = true
           }
-
-         // Copy the private key over so the controller is able to ssh into the nodes.
-         provisioner "file" {
-           source      = "~/.ssh/vsphere_tmp"
-           destination = "~/.ssh/id_rsa"
-
-           connection {
-             type        = "ssh"
-             private_key = "${file("~/.ssh/vsphere_tmp")}"
-             user        = "ubuntu"
-             agent       = false
-           }
-         }
 
           vapp {
             properties {

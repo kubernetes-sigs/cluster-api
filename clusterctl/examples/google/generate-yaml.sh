@@ -119,6 +119,12 @@ gcloud projects add-iam-policy-binding $GCLOUD_PROJECT --member=serviceAccount:$
 echo Generating $WORKER_SA_EMAIL service account for workers
 gcloud iam service-accounts create --display-name="worker service account" $WORKER_SA_NAME
 
+FIREWALL_RULE_NAME="cluster-api-open"
+if ! gcloud compute firewall-rules describe ${FIREWALL_RULE_NAME}; then
+  echo "Creating ${FIREWALL_RULE_NAME} firewall rule to enable inbound communication to nodes"
+  gcloud compute firewall-rules create ${FIREWALL_RULE_NAME} --allow=TCP:443 --source-ranges=0.0.0.0/0 --target-tags='https-server'
+fi
+
 if [ ! -f $MACHINE_CONTROLLER_SSH_PRIVATE_FILE ]; then
   echo Generate SSH key files fo machine controller
   ssh-keygen -t rsa -f $MACHINE_CONTROLLER_SSH_PRIVATE_FILE -C $MACHINE_CONTROLLER_SSH_USER_PLAIN -N ""

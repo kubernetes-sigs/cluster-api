@@ -1,9 +1,9 @@
 Error: unknown flag: --invalid-flag
 Usage:
-  clusterctl delete delete [flags]
+  clusterctl delete cluster [flags]
 
 Flags:
-  -h, --help   help for delete
+  -h, --help   help for cluster
 
 Global Flags:
       --alsologtostderr                  log to standard error as well as files

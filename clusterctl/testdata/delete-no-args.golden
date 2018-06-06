@@ -4,7 +4,7 @@ Usage:
   clusterctl delete [command]
 
 Available Commands:
-  delete      Delete kubernetes cluster
+  cluster     Delete kubernetes cluster
 
 Flags:
   -h, --help   help for delete

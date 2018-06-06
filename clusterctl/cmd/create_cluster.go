@@ -144,11 +144,7 @@ func getProvider(provider string) (clusterdeployer.ProviderDeployer, error) {
 	case "google":
 		return google.NewMachineActuator(google.MachineActuatorParams{})
 	case "vsphere":
-		t, err := vsphere.NewMachineActuator("", nil, "")
-		if err != nil {
-			return nil, err
-		}
-		return &vsphereAdapter{t}, nil
+		return &vsphereAdapter{vsphere.NewDeploymentClient()}, nil
 	default:
 		return nil, fmt.Errorf("Unrecognized provider %v", provider)
 	}
@@ -158,13 +154,13 @@ func getProvider(provider string) (clusterdeployer.ProviderDeployer, error) {
 // Long term, these providers should converge or the need for a provider will go away.
 // Whichever comes first.
 type vsphereAdapter struct {
-	*vsphere.VsphereClient
+	*vsphere.DeploymentClient
 }
 
 func (a *vsphereAdapter) GetIP(cluster *clusterv1.Cluster, machine *clusterv1.Machine) (string, error) {
-	return a.VsphereClient.GetIP(machine)
+	return a.DeploymentClient.GetIP(machine)
 }
 
 func (a *vsphereAdapter) GetKubeConfig(cluster *clusterv1.Cluster, master *clusterv1.Machine) (string, error) {
-	return a.VsphereClient.GetKubeConfig(master)
+	return a.DeploymentClient.GetKubeConfig(master)
 }

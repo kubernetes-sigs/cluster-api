@@ -1,3 +1,7 @@
+## gcp-deployer is deprecated in favor of clusterctl. It will be deleted soon*.
+
+*\*after we change the integration test to use clusterctl, and cluster delete is implemented in clusterctl.* 
+
 # Cluster API GCP Prototype
 
 The Cluster API GCP prototype implements the [Cluster API](../README.md) for GCP.

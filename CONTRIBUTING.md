@@ -70,7 +70,7 @@ You can find an example implementation for GCE [here](https://github.com/kuberne
 
 ##### GCE Implementation
 
-For GCE, a [yaml file](https://github.com/kubernetes-sigs/cluster-api/blob/master/gcp-deployer/machine_setup_configs.yaml) holds the list of valid machine setup configs, 
+For GCE, a [config map](https://github.com/kubernetes-sigs/cluster-api/blob/6aecf9c80a1ca29b45cb43ebfd50ac0d57eb7132/clusterctl/examples/google/provider-components.yaml.template#L118) holds the list of valid machine setup configs, 
 and the yaml file is volume mounted into the machine controller using a ConfigMap named `machine-setup`. 
 
 A [config type](https://github.com/kubernetes-sigs/cluster-api/blob/master/cloud/google/machinesetup/config_types.go#L45) defines a set of parameters that can be taken from the machine object being created, and maps those parameters to startup scripts and other relevant information. 

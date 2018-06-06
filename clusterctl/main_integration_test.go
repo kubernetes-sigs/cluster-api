@@ -149,7 +149,7 @@ func setupPrerequisites() error {
 	}
 	err = cleanAndBuildClusterctl()
 	if err != nil {
-		return fmt.Errorf("unable to build gcp-deployer: %v", err)
+		return fmt.Errorf("unable to build clusterctl: %v", err)
 	}
 	return nil
 }

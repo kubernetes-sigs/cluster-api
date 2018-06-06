@@ -30,7 +30,7 @@ var do = &DeleteOptions{}
 
 func NewCmdDeleteCluster() *cobra.Command {
 	cmd := &cobra.Command{
-		Use:   "delete",
+		Use:   "cluster",
 		Short: "Delete kubernetes cluster",
 		Long:  `Delete a kubernetes cluster with one command`,
 		Run: func(cmd *cobra.Command, args []string) {

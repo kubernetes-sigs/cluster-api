@@ -523,8 +523,7 @@ func (vc *VsphereClient) needsMasterUpdate(machine *clusterv1.Machine) bool {
 func (vc *VsphereClient) updateKubelet(machine *clusterv1.Machine) error {
 	if vc.needsKubeletUpdate(machine) {
 		cmd := fmt.Sprintf("sudo apt-get install kubelet=%s", machine.Spec.Versions.Kubelet+"-00")
-		_, err := vc.remoteSshCommand(machine, cmd, "~/.ssh/vsphere_tmp", "ubuntu")
-		if err != nil {
+		if _, err := vc.remoteSshCommand(machine, cmd, "~/.ssh/vsphere_tmp", "ubuntu"); err != nil {
 			glog.Infof("remoteSshCommand while installing new kubelet version: %v", err)
 			return err
 		}
@@ -704,7 +703,7 @@ func (vc *VsphereClient) instanceIfExists(machine *clusterv1.Machine) (*clusterv
 	if err != nil {
 		return nil, err
 	}
-	glog.Infof("tfStateFilePath=%+v", tfStateFilePath)
+	glog.Infof("Instance existance checked in directory %+v", tfStateFilePath)
 	if tfStateFilePath == "" {
 		return nil, nil
 	}

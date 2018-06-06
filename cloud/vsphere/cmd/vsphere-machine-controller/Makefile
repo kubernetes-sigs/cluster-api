@@ -18,11 +18,7 @@ GCR_BUCKET = k8s-cluster-api
 PREFIX = gcr.io/$(GCR_BUCKET)
 DEV_PREFIX ?= gcr.io/$(shell gcloud config get-value project)
 NAME = vsphere-machine-controller
-<<<<<<< HEAD
-TAG = 0.0.7
-=======
 TAG = 0.0.8
->>>>>>> 7c175893... More verbose logging, bump image version.
 
 image:
 	docker build -t "$(PREFIX)/$(NAME):$(TAG)" -f ./Dockerfile ../../../..

@@ -71,6 +71,9 @@ type VsphereClient struct {
 	kubeadmToken      string
 	machineClient     client.MachineInterface
 	namedMachineWatch *namedmachines.ConfigWatch
+	// Once the vsphere-deployer is deleted, both DeploymentClient and VsphereClient can depend on
+	// something that implements GetIP instead of the VsphereClient depending on DeploymentClient.
+	*DeploymentClient
 }
 
 func NewMachineActuator(kubeadmToken string, machineClient client.MachineInterface, namedMachinePath string) (*VsphereClient, error) {
@@ -91,6 +94,7 @@ func NewMachineActuator(kubeadmToken string, machineClient client.MachineInterfa
 		kubeadmToken:      kubeadmToken,
 		machineClient:     machineClient,
 		namedMachineWatch: nmWatch,
+		DeploymentClient:  NewDeploymentClient(),
 	}, nil
 }
 
@@ -491,7 +495,7 @@ func (vc *VsphereClient) Update(cluster *clusterv1.Cluster, goalMachine *cluster
 	// Try to get the annotations for the versions. If they don't exist, update the annotation and return.
 	// This can only happen right after bootstrapping.
 	if goalMachine.ObjectMeta.Annotations == nil {
-		ip, _ := vc.GetIP(goalMachine)
+		ip, _ := vc.DeploymentClient.GetIP(goalMachine)
 		glog.Info("Annotations do not exist. This happens for a newly bootstrapped machine.")
 		tfState, _ := vc.GetTfState(goalMachine)
 		return vc.updateAnnotations(goalMachine, ip, tfState)
@@ -499,7 +503,7 @@ func (vc *VsphereClient) Update(cluster *clusterv1.Cluster, goalMachine *cluster
 
 	// Check if the annotations we want to track exist, if not, the user likely created a master machine with their own annotation.
 	if _, ok := goalMachine.ObjectMeta.Annotations[ControlPlaneVersionAnnotationKey]; !ok {
-		ip, _ := vc.GetIP(goalMachine)
+		ip, _ := vc.DeploymentClient.GetIP(goalMachine)
 		glog.Info("Version annotations do not exist. Populating existing state for bootstrapped machine.")
 		tfState, _ := vc.GetTfState(goalMachine)
 		return vc.updateAnnotations(goalMachine, ip, tfState)
@@ -577,7 +581,7 @@ func (vc *VsphereClient) updateMasterInPlace(goalMachine *clusterv1.Machine) err
 func (vc *VsphereClient) remoteSshCommand(m *clusterv1.Machine, cmd, privateKeyPath, sshUser string) (string, error) {
 	glog.Infof("Remote SSH execution '%s' on %s", cmd, m.ObjectMeta.Name)
 
-	publicIP, err := vc.GetIP(m)
+	publicIP, err := vc.DeploymentClient.GetIP(m)
 	if err != nil {
 		return "", err
 	}
@@ -609,23 +613,6 @@ func (vc *VsphereClient) Exists(cluster *clusterv1.Cluster, machine *clusterv1.M
 	return i != nil, err
 }
 
-func (vc *VsphereClient) GetIP(machine *clusterv1.Machine) (string, error) {
-	if machine.ObjectMeta.Annotations != nil {
-		if ip, ok := machine.ObjectMeta.Annotations[MasterIpAnnotationKey]; ok {
-			glog.Infof("Returning IP from machine annotation %s", ip)
-			return ip, nil
-		}
-	}
-
-	ipBytes, _ := ioutil.ReadFile(path.Join(fmt.Sprintf(MachinePathStageFormat, machine.ObjectMeta.Name), MasterIpFilename))
-	if ipBytes != nil {
-		glog.Infof("Returning IP from file %s", string(ipBytes))
-		return string(ipBytes), nil
-	}
-
-	return "", errors.New("could not get IP")
-}
-
 func (vc *VsphereClient) GetTfState(machine *clusterv1.Machine) (string, error) {
 	if machine.ObjectMeta.Annotations != nil {
 		if tfStateB64, ok := machine.ObjectMeta.Annotations[StatusMachineTerraformState]; ok {
@@ -648,27 +635,6 @@ func (vc *VsphereClient) GetTfState(machine *clusterv1.Machine) (string, error) 
 	return "", errors.New("could not get tfstate")
 }
 
-func (vc *VsphereClient) GetKubeConfig(master *clusterv1.Machine) (string, error) {
-	ip, err := vc.GetIP(master)
-	if err != nil {
-		return "", err
-	}
-
-	var out bytes.Buffer
-	cmd := exec.Command(
-		"ssh", "-i", "~/.ssh/vsphere_tmp",
-		"-q",
-		"-o", "StrictHostKeyChecking no",
-		"-o", "UserKnownHostsFile /dev/null",
-		fmt.Sprintf("ubuntu@%s", ip),
-		"sudo cat /etc/kubernetes/admin.conf")
-	cmd.Stdout = &out
-	cmd.Stderr = os.Stderr
-	cmd.Run()
-	result := strings.TrimSpace(out.String())
-	return result, nil
-}
-
 // DEPRECATED. Remove after vsphere-deployer is deleted.
 // This method exists because during bootstrap some artifacts need to be transferred to the
 // remote master. These include the IP address for the master, terraform state file.
@@ -678,7 +644,7 @@ func (vc *VsphereClient) SetupRemoteMaster(master *clusterv1.Machine) error {
 	machineName := master.ObjectMeta.Name
 	glog.Infof("Setting up the remote master[%s] with terraform config.", machineName)
 
-	ip, err := vc.GetIP(master)
+	ip, err := vc.DeploymentClient.GetIP(master)
 	if err != nil {
 		return err
 	}

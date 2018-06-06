@@ -492,15 +492,6 @@ func (vc *VsphereClient) PostDelete(cluster *clusterv1.Cluster, machines []*clus
 }
 
 func (vc *VsphereClient) Update(cluster *clusterv1.Cluster, goalMachine *clusterv1.Machine) error {
-	// Try to get the annotations for the versions. If they don't exist, update the annotation and return.
-	// This can only happen right after bootstrapping.
-	if goalMachine.ObjectMeta.Annotations == nil {
-		ip, _ := vc.DeploymentClient.GetIP(goalMachine)
-		glog.Info("Annotations do not exist. This happens for a newly bootstrapped machine.")
-		tfState, _ := vc.GetTfState(goalMachine)
-		return vc.updateAnnotations(goalMachine, ip, tfState)
-	}
-
 	// Check if the annotations we want to track exist, if not, the user likely created a master machine with their own annotation.
 	if _, ok := goalMachine.ObjectMeta.Annotations[ControlPlaneVersionAnnotationKey]; !ok {
 		ip, _ := vc.DeploymentClient.GetIP(goalMachine)
@@ -510,69 +501,123 @@ func (vc *VsphereClient) Update(cluster *clusterv1.Cluster, goalMachine *cluster
 	}
 
 	if util.IsMaster(goalMachine) {
+		// Master upgrades
 		glog.Info("Upgrade for master machine.. Check if upgrade needed.")
-		// Get the versions for the new object.
-		goalMachineControlPlaneVersion := goalMachine.Spec.Versions.ControlPlane
-		goalMachineKubeletVersion := goalMachine.Spec.Versions.Kubelet
 
 		// If the saved versions and new versions differ, do in-place upgrade.
-		if goalMachineControlPlaneVersion != goalMachine.Annotations[ControlPlaneVersionAnnotationKey] ||
-			goalMachineKubeletVersion != goalMachine.Annotations[KubeletVersionAnnotationKey] {
-			glog.Infof("Doing in-place upgrade for master from %s to %s", goalMachine.Annotations[ControlPlaneVersionAnnotationKey], goalMachineControlPlaneVersion)
+		if vc.needsMasterUpdate(goalMachine) {
+			glog.Infof("Doing in-place upgrade for master from v%s to v%s", goalMachine.Annotations[ControlPlaneVersionAnnotationKey], goalMachine.Spec.Versions.ControlPlane)
 			err := vc.updateMasterInPlace(goalMachine)
 			if err != nil {
-				glog.Errorf("Master inplace update failed: %+v", err)
+				glog.Errorf("Master in-place upgrade failed: %+v", err)
 			}
 		} else {
-			glog.Info("UPDATE TYPE NOT SUPPORTED")
+			glog.Info("UNSUPPORTED MASTER UPDATE.")
 			return nil
 		}
 	} else {
-		glog.Info("NODE UPDATES NOT SUPPORTED")
-		return nil
+		if vc.needsNodeUpdate(goalMachine) {
+			// Node upgrades
+			if err := vc.updateNode(cluster, goalMachine); err != nil {
+				return err
+			}
+		} else {
+			glog.Info("UNSUPPORTED NODE UPDATE.")
+			return nil
+		}
 	}
 
 	return nil
 }
 
-// Assumes that update is needed.
-// For now support only K8s control plane upgrades.
-func (vc *VsphereClient) updateMasterInPlace(goalMachine *clusterv1.Machine) error {
-	goalMachineControlPlaneVersion := goalMachine.Spec.Versions.ControlPlane
-	goalMachineKubeletVersion := goalMachine.Spec.Versions.Kubelet
+func (vc *VsphereClient) needsControlPlaneUpdate(machine *clusterv1.Machine) bool {
+	return machine.Spec.Versions.ControlPlane != machine.Annotations[ControlPlaneVersionAnnotationKey]
+}
 
-	currentControlPlaneVersion := goalMachine.Annotations[ControlPlaneVersionAnnotationKey]
-	currentKubeletVersion := goalMachine.Annotations[KubeletVersionAnnotationKey]
+func (vc *VsphereClient) needsKubeletUpdate(machine *clusterv1.Machine) bool {
+	return machine.Spec.Versions.Kubelet != machine.Annotations[KubeletVersionAnnotationKey]
+}
 
-	// Control plane upgrade
-	if goalMachineControlPlaneVersion != currentControlPlaneVersion {
+// Returns true if the node is needed to be upgraded.
+func (vc *VsphereClient) needsNodeUpdate(machine *clusterv1.Machine) bool {
+	return !util.IsMaster(machine) &&
+		vc.needsKubeletUpdate(machine)
+}
+
+// Returns true if the master is needed to be upgraded.
+func (vc *VsphereClient) needsMasterUpdate(machine *clusterv1.Machine) bool {
+	return util.IsMaster(machine) &&
+		vc.needsControlPlaneUpdate(machine)
+	// TODO: we should support kubelet upgrades here as well.
+}
+
+func (vc *VsphereClient) updateKubelet(machine *clusterv1.Machine) error {
+	if vc.needsKubeletUpdate(machine) {
+		cmd := fmt.Sprintf("sudo apt-get install kubelet=%s", machine.Spec.Versions.Kubelet+"-00")
+		_, err := vc.remoteSshCommand(machine, cmd, "~/.ssh/vsphere_tmp", "ubuntu")
+		if err != nil {
+			glog.Infof("remoteSshCommand while installing new kubelet version: %v", err)
+			return err
+		}
+	}
+	return nil
+}
+
+func (vc *VsphereClient) updateControlPlane(machine *clusterv1.Machine) error {
+	if vc.needsControlPlaneUpdate(machine) {
 		// Pull the kudeadm for target version K8s.
 		cmd := fmt.Sprintf("curl -sSL https://dl.k8s.io/release/v%s/bin/linux/amd64/kubeadm | sudo tee /usr/bin/kubeadm > /dev/null; "+
-			"sudo chmod a+rx /usr/bin/kubeadm", goalMachineControlPlaneVersion)
-		_, err := vc.remoteSshCommand(goalMachine, cmd, "~/.ssh/id_rsa", "ubuntu")
+			"sudo chmod a+rx /usr/bin/kubeadm", machine.Spec.Versions.ControlPlane)
+		_, err := vc.remoteSshCommand(machine, cmd, "~/.ssh/vsphere_tmp", "ubuntu")
 		if err != nil {
 			glog.Infof("remoteSshCommand failed while downloading new kubeadm: %+v", err)
 			return err
 		}
 
 		// Next upgrade control plane
-		cmd = fmt.Sprintf("sudo kubeadm upgrade apply %s -y", "v"+goalMachine.Spec.Versions.ControlPlane)
-		_, err = vc.remoteSshCommand(goalMachine, cmd, "~/.ssh/id_rsa", "ubuntu")
+		cmd = fmt.Sprintf("sudo kubeadm upgrade apply %s -y", "v"+machine.Spec.Versions.ControlPlane)
+		_, err = vc.remoteSshCommand(machine, cmd, "~/.ssh/vsphere_tmp", "ubuntu")
 		if err != nil {
 			glog.Infof("remoteSshCommand failed while upgrading control plane: %+v", err)
 			return err
 		}
 	}
+	return nil
+}
 
-	// Upgrade kubelet
-	if goalMachineKubeletVersion != currentKubeletVersion {
-		// Upgrade kubelet to desired version.
-		cmd := fmt.Sprintf("sudo apt-get install kubelet=%s", goalMachine.Spec.Versions.Kubelet+"-00")
-		_, err := vc.remoteSshCommand(goalMachine, cmd, "~/.ssh/id_rsa", "ubuntu")
-		if err != nil {
-			glog.Infof("remoteSshCommand while installing new kubelet version: %v", err)
-			return err
-		}
+// Update the passed node machine by recreating it.
+func (vc *VsphereClient) updateNode(cluster *clusterv1.Cluster, machine *clusterv1.Machine) error {
+	if err := vc.Delete(cluster, machine); err != nil {
+		return err
+	}
+
+	// Update annotation for the state.
+	machine.ObjectMeta.Annotations[StatusMachineTerraformState] = ""
+	_, err := vc.machineClient.Update(machine)
+	if err != nil {
+		return err
+	}
+
+	if err := vc.Create(cluster, machine); err != nil {
+		return err
+	}
+	return nil
+}
+
+// Assumes that update is needed.
+// For now support only K8s control plane upgrades.
+func (vc *VsphereClient) updateMasterInPlace(machine *clusterv1.Machine) error {
+	// Control plane upgrade
+	err := vc.updateControlPlane(machine)
+	if err != nil {
+		return err
+	}
+
+	// Update annotation for version.
+	machine.ObjectMeta.Annotations[ControlPlaneVersionAnnotationKey] = machine.Spec.Versions.ControlPlane
+	_, err = vc.machineClient.Update(machine)
+	if err != nil {
+		return err
 	}
 
 	return nil

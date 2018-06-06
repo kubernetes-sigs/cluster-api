@@ -38,6 +38,8 @@ import (
 	clusterv1 "sigs.k8s.io/cluster-api/pkg/apis/cluster/v1alpha1"
 	client "sigs.k8s.io/cluster-api/pkg/client/clientset_generated/clientset/typed/cluster/v1alpha1"
 	"sigs.k8s.io/cluster-api/util"
+	"sigs.k8s.io/cluster-api/kubeadm"
+	"time"
 )
 
 const (
@@ -59,12 +61,12 @@ const (
 	TfVarsFilename         = "variables.tfvars"
 	TfStateFilename        = "terraform.tfstate"
 	startupScriptFilename  = "machine-startup.sh"
+	KubeadmTokenTtl        = time.Duration(10) * time.Minute
 )
 
 type VsphereClient struct {
 	scheme            *runtime.Scheme
 	codecFactory      *serializer.CodecFactory
-	kubeadmToken      string
 	machineClient     client.MachineInterface
 	namedMachineWatch *namedmachines.ConfigWatch
 	// Once the vsphere-deployer is deleted, both DeploymentClient and VsphereClient can depend on
@@ -72,7 +74,7 @@ type VsphereClient struct {
 	*DeploymentClient
 }
 
-func NewMachineActuator(kubeadmToken string, machineClient client.MachineInterface, namedMachinePath string) (*VsphereClient, error) {
+func NewMachineActuator(machineClient client.MachineInterface, namedMachinePath string) (*VsphereClient, error) {
 	scheme, codecFactory, err := vsphereconfigv1.NewSchemeAndCodecs()
 	if err != nil {
 		return nil, err
@@ -87,7 +89,6 @@ func NewMachineActuator(kubeadmToken string, machineClient client.MachineInterfa
 	return &VsphereClient{
 		scheme:            scheme,
 		codecFactory:      codecFactory,
-		kubeadmToken:      kubeadmToken,
 		machineClient:     machineClient,
 		namedMachineWatch: nmWatch,
 		DeploymentClient:  NewDeploymentClient(),
@@ -205,7 +206,6 @@ func (vc *VsphereClient) saveStartupScript(cluster *clusterv1.Cluster, machine *
 		var err error
 		startupScript, err = getMasterStartupScript(
 			templateParams{
-				Token:     vc.kubeadmToken,
 				Cluster:   cluster,
 				Machine:   machine,
 				Preloaded: preloaded,
@@ -218,10 +218,13 @@ func (vc *VsphereClient) saveStartupScript(cluster *clusterv1.Cluster, machine *
 		if len(cluster.Status.APIEndpoints) == 0 {
 			return "", errors.New("invalid cluster state: cannot create a Kubernetes node without an API endpoint")
 		}
-		var err error
+		kubeadmToken, err := getKubeadmToken()
+		if err != nil {
+			return "", err
+		}
 		startupScript, err = getNodeStartupScript(
 			templateParams{
-				Token:     vc.kubeadmToken,
+				Token:     kubeadmToken,
 				Cluster:   cluster,
 				Machine:   machine,
 				Preloaded: preloaded,
@@ -709,6 +712,17 @@ func (vc *VsphereClient) validateCluster(cluster *clusterv1.Cluster) error {
 		return errors.New("vsphere_user, vsphere_password, vsphere_server are required fields in Cluster spec.")
 	}
 	return nil
+}
+
+func getKubeadmToken() (string, error) {
+	tokenParams := kubeadm.TokenCreateParams{
+		Ttl: KubeadmTokenTtl,
+	}
+	output, err := kubeadm.New().TokenCreate(tokenParams)
+	if err != nil {
+		return "", fmt.Errorf("unable to create kubeadm token: %v", err)
+	}
+	return strings.TrimSpace(output), err
 }
 
 // If the VsphereClient has a client for updating Machine objects, this will set

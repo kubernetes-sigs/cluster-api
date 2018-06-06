@@ -16,3 +16,6 @@
 # IntelliJ
 .idea/
 *.iml
+
+# VirtualGo
+*.virtualgo

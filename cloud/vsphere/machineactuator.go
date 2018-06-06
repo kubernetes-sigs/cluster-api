@@ -522,9 +522,11 @@ func (vc *VsphereClient) needsMasterUpdate(machine *clusterv1.Machine) bool {
 
 func (vc *VsphereClient) updateKubelet(machine *clusterv1.Machine) error {
 	if vc.needsKubeletUpdate(machine) {
-		cmd := fmt.Sprintf("sudo apt-get install kubelet=%s", machine.Spec.Versions.Kubelet+"-00")
+		// Kubelet packages are versioned 1.10.1-00 and so on.
+		kubeletAptVersion := machine.Spec.Versions.Kubelet + "-00"
+		cmd := fmt.Sprintf("sudo apt-get install kubelet=%s", kubeletAptVersion)
 		if _, err := vc.remoteSshCommand(machine, cmd, "~/.ssh/vsphere_tmp", "ubuntu"); err != nil {
-			glog.Infof("remoteSshCommand while installing new kubelet version: %v", err)
+			glog.Errorf("remoteSshCommand while installing new kubelet version: %v", err)
 			return err
 		}
 	}

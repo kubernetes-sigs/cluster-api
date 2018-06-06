@@ -61,6 +61,10 @@ $ kubectl --kubeconfig kubeconfig get machines -o yaml
 
 **NOT YET SUPPORTED!**
 
+clusterctl does not yet support deletion, please see provider specific deletion guides:
+
+- [google](../cloud/google/README.md#Cluster-Deletion)
+
 ## Contributing
 
 If you are interested in adding to this project, see the [contributing guide](CONTRIBUTING.md) for information on how you can get involved.

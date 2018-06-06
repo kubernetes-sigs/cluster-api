@@ -27,13 +27,10 @@ import (
 
 	"github.com/golang/glog"
 
-	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/serializer"
 
 	"encoding/base64"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/client-go/kubernetes"
 	"sigs.k8s.io/cluster-api/cloud/vsphere/namedmachines"
 	vsphereconfig "sigs.k8s.io/cluster-api/cloud/vsphere/vsphereproviderconfig"
 	vsphereconfigv1 "sigs.k8s.io/cluster-api/cloud/vsphere/vsphereproviderconfig/v1alpha1"
@@ -94,40 +91,6 @@ func NewMachineActuator(kubeadmToken string, machineClient client.MachineInterfa
 		namedMachineWatch: nmWatch,
 		DeploymentClient:  NewDeploymentClient(),
 	}, nil
-}
-
-// DEPRECATED: Remove when vsphere-deployer is deleted.
-func (vc *VsphereClient) CreateMachineController(cluster *clusterv1.Cluster, initialMachines []*clusterv1.Machine, clientSet kubernetes.Clientset) error {
-	if err := CreateExtApiServerRoleBinding(); err != nil {
-		return err
-	}
-
-	// Create the named machines ConfigMap.
-	// After pivot-based bootstrap is done, the named machine should be a ConfigMap and this logic will be removed.
-	namedMachines, err := vc.namedMachineWatch.NamedMachines()
-
-	if err != nil {
-		return err
-	}
-	yaml, err := namedMachines.GetYaml()
-	if err != nil {
-		return err
-	}
-	nmConfigMap := corev1.ConfigMap{
-		ObjectMeta: metav1.ObjectMeta{Name: "named-machines"},
-		Data: map[string]string{
-			NamedMachinesFilename: yaml,
-		},
-	}
-	configMaps := clientSet.CoreV1().ConfigMaps(corev1.NamespaceDefault)
-	if _, err := configMaps.Create(&nmConfigMap); err != nil {
-		return err
-	}
-
-	if err := CreateApiServerAndController(vc.kubeadmToken); err != nil {
-		return err
-	}
-	return nil
 }
 
 func saveFile(contents, path string, perm os.FileMode) error {
@@ -637,42 +600,6 @@ func (vc *VsphereClient) GetTfState(machine *clusterv1.Machine) (string, error) 
 	}
 
 	return "", errors.New("could not get tfstate")
-}
-
-// DEPRECATED. Remove after vsphere-deployer is deleted.
-// This method exists because during bootstrap some artifacts need to be transferred to the
-// remote master. These include the IP address for the master, terraform state file.
-// In GCE, we set this kind of data as GCE metadata. Unfortunately, vSphere does not have
-// a comparable API.
-func (vc *VsphereClient) SetupRemoteMaster(master *clusterv1.Machine) error {
-	machineName := master.ObjectMeta.Name
-	glog.Infof("Setting up the remote master[%s] with terraform config.", machineName)
-
-	ip, err := vc.DeploymentClient.GetIP(master)
-	if err != nil {
-		return err
-	}
-
-	glog.Infof("Copying the staging directory to master.")
-	machinePath := fmt.Sprintf(MachinePathStageFormat, machineName)
-	_, err = vc.remoteSshCommand(master, fmt.Sprintf("mkdir -p %s", machinePath), "~/.ssh/vsphere_tmp", "ubuntu")
-	if err != nil {
-		glog.Infof("remoteSshCommand failed while creating remote machine stage: %+v", err)
-		return err
-	}
-
-	cmd := exec.Command(
-		"scp", "-i", "~/.ssh/vsphere_tmp",
-		"-o", "StrictHostKeyChecking=no",
-		"-o", "UserKnownHostsFile=/dev/null",
-		"-r",
-		machinePath,
-		fmt.Sprintf("ubuntu@%s:%s", ip, StageDir))
-	cmd.Stdout = os.Stdout
-	cmd.Stderr = os.Stderr
-	cmd.Run()
-
-	return nil
 }
 
 // We are storing these as annotations and not in Machine Status because that's intended for

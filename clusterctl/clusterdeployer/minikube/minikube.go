@@ -6,6 +6,7 @@ import (
 	"io/ioutil"
 	"os"
 	"os/exec"
+	"strings"
 )
 
 type Minikube struct {
@@ -31,6 +32,9 @@ var minikubeExec = func(env []string, args ...string) (string, error) {
 	cmd.Env = env
 	cmdOut, err := cmd.CombinedOutput()
 	glog.V(2).Infof("Ran: %v %v Output: %v", executable, args, string(cmdOut))
+	if err != nil {
+		err = fmt.Errorf("error running command '%v %v': %v", executable, strings.Join(args, " "), err)
+	}
 	return string(cmdOut), err
 }
 

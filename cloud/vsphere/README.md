@@ -13,12 +13,14 @@ necessary.
 1. Delete all of the node `Machine`s in the cluster. Make sure to wait for the corresponding Nodes to be deleted before moving onto the next step. After this step, the master node will be the only remaining node.
    
 ```bash
-kubectl delete machines -l set=node
 kubectl get nodes
+
+# For each non-master node (See the "ROLES" column)
+kubectl delete machines $MACHINE-NAME
 ```
 
 2. Delete the VM that is running your cluster's control plane. You can either do this from the vCenter UI or using govc.
 
 ```bash
-govc vm.destroy --dc=$VSPHERE-DC $VM-NAME
+govc vm.destroy $MACHINE-NAME
 ```

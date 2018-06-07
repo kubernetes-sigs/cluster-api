@@ -54,10 +54,12 @@ func (in *VsphereClusterProviderConfig) DeepCopyObject() runtime.Object {
 func (in *VsphereMachineProviderConfig) DeepCopyInto(out *VsphereMachineProviderConfig) {
 	*out = *in
 	out.TypeMeta = in.TypeMeta
-	if in.TerraformVariables != nil {
-		in, out := &in.TerraformVariables, &out.TerraformVariables
-		*out = make([]string, len(*in))
-		copy(*out, *in)
+	if in.MachineVariables != nil {
+		in, out := &in.MachineVariables, &out.MachineVariables
+		*out = make(map[string]string, len(*in))
+		for key, val := range *in {
+			(*out)[key] = val
+		}
 	}
 	return
 }

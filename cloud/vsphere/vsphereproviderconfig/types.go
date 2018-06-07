@@ -27,9 +27,8 @@ type VsphereMachineProviderConfig struct {
 
 	// Name of the machine that's registered in the NamedMachines ConfigMap.
 	VsphereMachine string `json:"vsphereMachine"`
-	// List of contents of terraform variables used.
-	// HCL variables encoded as string.
-	TerraformVariables []string `json:"terraformVariables"`
+	// List of variables for the chosen machine.
+	MachineVariables map[string]string `json:"machineVariables"`
 }
 
 // +k8s:deepcopy-gen=true

@@ -35,9 +35,9 @@ const (
 	ApiServerPort              = 443
 	RetryIntervalKubectlApply  = 5 * time.Second
 	RetryIntervalResourceReady = 5 * time.Second
-	TimeoutKubectlApply        = 2 * time.Minute
-	TimeoutResourceReady       = 2 * time.Minute
-	TimeoutMachineReady        = 5 * time.Minute
+	TimeoutKubectlApply        = 5 * time.Minute
+	TimeoutResourceReady       = 5 * time.Minute
+	TimeoutMachineReady        = 10 * time.Minute
 )
 
 type clusterClient struct {

@@ -28,26 +28,22 @@ type DeleteOptions struct {
 
 var do = &DeleteOptions{}
 
-func NewCmdDeleteCluster() *cobra.Command {
-	cmd := &cobra.Command{
-		Use:   "cluster",
-		Short: "Delete kubernetes cluster",
-		Long:  `Delete a kubernetes cluster with one command`,
-		Run: func(cmd *cobra.Command, args []string) {
-			if do.ClusterName == "" {
-				exitWithHelp(cmd, "Please provide cluster name.")
-			}
-			if err := RunDelete(); err != nil {
-				glog.Exit(err)
-			}
-		},
-	}
-
-	return cmd
+var deleteClusterCmd = &cobra.Command{
+	Use:   "cluster",
+	Short: "Delete kubernetes cluster",
+	Long:  `Delete a kubernetes cluster with one command`,
+	Run: func(cmd *cobra.Command, args []string) {
+		if do.ClusterName == "" {
+			exitWithHelp(cmd, "Please provide cluster name.")
+		}
+		if err := RunDelete(); err != nil {
+			glog.Exit(err)
+		}
+	},
 }
 
 func init() {
-	deleteCmd.AddCommand(NewCmdDeleteCluster())
+	deleteCmd.AddCommand(deleteClusterCmd)
 }
 
 func RunDelete() error {

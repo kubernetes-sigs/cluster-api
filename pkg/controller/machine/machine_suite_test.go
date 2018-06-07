@@ -40,6 +40,10 @@ func TestMachine(t *testing.T) {
 		controller, shutdown := getController(config)
 		defer close(shutdown)
 		machineControllerReconcile(t, cs, controller, "default")
+	})
+	t.Run("machineControllerReconcileNonDefaultNameSpace", func(t *testing.T) {
+		controller, shutdown := getController(config)
+		defer close(shutdown)
 		machineControllerReconcile(t, cs, controller, "nondefault")
 	})
 	t.Run("machineControllerConcurrentReconcile", func(t *testing.T) {

@@ -22,5 +22,5 @@ kubectl delete machines $MACHINE-NAME
 2. Delete the VM that is running your cluster's control plane. You can either do this from the vCenter UI or using govc.
 
 ```bash
-govc vm.destroy --dc=$VSPHERE-DC $VM-NAME
+govc vm.destroy $VM-NAME
 ```

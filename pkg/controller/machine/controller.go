@@ -95,6 +95,12 @@ func (c *MachineControllerImpl) Reconcile(machine *clusterv1.Machine) error {
 			return err
 		}
 
+		// Fetch a fresh Machine object.
+		machine, err := c.Get(machine.Namespace, name)
+		if err != nil {
+			glog.Errorf("Error fetching the latest machine object for machine %s", name)
+		}
+
 		// Remove finalizer on successful deletion.
 		glog.Infof("machine object %v deletion successful, removing finalizer.", name)
 		machine.ObjectMeta.Finalizers = util.Filter(machine.ObjectMeta.Finalizers, clusterv1.MachineFinalizer)

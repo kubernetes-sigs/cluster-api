@@ -65,6 +65,6 @@ func main() {
 	// If this doesn't compile, the code generator probably
 	// overwrote the customized NewMachineController function.
 	c := machine.NewMachineController(config, si, actuator)
-	c.Run(shutdown)
+	c.RunAsync(shutdown)
 	select {}
 }

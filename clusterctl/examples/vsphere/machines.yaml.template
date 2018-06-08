@@ -11,18 +11,17 @@ items:
         apiVersion: "vsphereproviderconfig/v1alpha1"
         kind: "VsphereMachineProviderConfig"
         vsphereMachine: "standard-master"
-        terraformVariables: [
-          "datacenter = \"\"",
-          "datastore = \"\"",
-          "resource_pool = \"\"",
-          "network = \"\"",
-          "num_cpus = \"2\"",
-          "memory = \"2048\"",
-          "vm_template = \"\"",
-          "disk_label = \"\"",
-          "disk_size = \"\"",
-          "virtual_machine_domain = \"\"",
-        ]
+        machineVariables:
+          datacenter: ""
+          datastore: ""
+          resource_pool: ""
+          network: ""
+          num_cpus: "2"
+          memory: "2048"
+          vm_template: ""
+          disk_label: ""
+          disk_size: ""
+          virtual_machine_domain: ""
     versions:
       kubelet: 1.10.1
       controlPlane: 1.10.1
@@ -38,18 +37,17 @@ items:
         apiVersion: "vsphereproviderconfig/v1alpha1"
         kind: "VsphereMachineProviderConfig"
         vsphereMachine: "standard-node"
-        terraformVariables: [
-          "datacenter = \"\"",
-          "datastore = \"\"",
-          "resource_pool = \"\"",
-          "network = \"\"",
-          "num_cpus = \"2\"",
-          "memory = \"2048\"",
-          "vm_template = \"\"",
-          "disk_label = \"\"",
-          "disk_size = \"\"",
-          "virtual_machine_domain = \"\"",
-        ]
+        machineVariables:
+          datacenter: ""
+          datastore: ""
+          resource_pool: ""
+          network: ""
+          num_cpus: "2"
+          memory: "2048"
+          vm_template: ""
+          disk_label: ""
+          disk_size: ""
+          virtual_machine_domain: ""
     versions:
       kubelet: 1.10.1
     roles:

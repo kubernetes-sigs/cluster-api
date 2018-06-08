@@ -132,7 +132,12 @@ func (vc *VsphereClient) prepareStageMachineDir(machine *clusterv1.Machine) (str
 	if err := saveFile(matchedMachine.MachineHcl, tfConfigPath, 0644); err != nil {
 		return "", err
 	}
-	if err := saveFile(strings.Join(config.TerraformVariables, "\n"), tfVarsPath, 0644); err != nil {
+
+	var tfVarsContents []string
+	for key, value := range config.MachineVariables {
+		tfVarsContents = append(tfVarsContents, fmt.Sprintf("%s=\"%s\"", key, value))
+	}
+	if err := saveFile(strings.Join(tfVarsContents, "\n"), tfVarsPath, 0644); err != nil {
 		return "", err
 	}
 

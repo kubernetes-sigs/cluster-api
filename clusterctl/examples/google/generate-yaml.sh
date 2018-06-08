@@ -6,20 +6,22 @@ ZONE=$(gcloud config get-value compute/zone)
 ZONE="${ZONE:-us-central1-f}"
 CLUSTER_NAME=test1
 
-MACHINE_TEMPLATE_FILE=machines.yaml.template
-MACHINE_GENERATED_FILE=machines.yaml
-CLUSTER_TEMPLATE_FILE=cluster.yaml.template
-CLUSTER_GENERATED_FILE=cluster.yaml
-PROVIDERCOMPONENT_TEMPLATE_FILE=provider-components.yaml.template
-PROVIDERCOMPONENT_GENERATED_FILE=provider-components.yaml
-ADDON_TEMPLATE_FILE=addons.yaml.template
-ADDON_GENERATED_FILE=addons.yaml
+OUTPUT_DIR=out
 
-MACHINE_CONTROLLER_SA_FILE=machine-controller-serviceaccount.json
+MACHINE_TEMPLATE_FILE=machines.yaml.template
+MACHINE_GENERATED_FILE=${OUTPUT_DIR}/machines.yaml
+CLUSTER_TEMPLATE_FILE=cluster.yaml.template
+CLUSTER_GENERATED_FILE=${OUTPUT_DIR}/cluster.yaml
+PROVIDERCOMPONENT_TEMPLATE_FILE=provider-components.yaml.template
+PROVIDERCOMPONENT_GENERATED_FILE=${OUTPUT_DIR}/provider-components.yaml
+ADDON_TEMPLATE_FILE=addons.yaml.template
+ADDON_GENERATED_FILE=${OUTPUT_DIR}/addons.yaml
+
+MACHINE_CONTROLLER_SA_FILE=${OUTPUT_DIR}/machine-controller-serviceaccount.json
 MACHINE_CONTROLLER_SA_NAME="machine-controller-$CLUSTER_NAME"
 MACHINE_CONTROLLER_SA_EMAIL="$MACHINE_CONTROLLER_SA_NAME@$GCLOUD_PROJECT.iam.gserviceaccount.com"
 MACHINE_CONTROLLER_SA_KEY=
-LOADBALANCER_SA_FILE=loadbalancer-serviceaccount.json
+LOADBALANCER_SA_FILE=${OUTPUT_DIR}/loadbalancer-serviceaccount.json
 LOADBALANCER_SA_NAME="loadbalancer-$CLUSTER_NAME"
 LOADBALANCER_SA_EMAIL="$LOADBALANCER_SA_NAME@$GCLOUD_PROJECT.iam.gserviceaccount.com"
 LOADBALANCER_SA_KEY=
@@ -30,9 +32,9 @@ MASTER_SA_EMAIL="$MASTER_SA_NAME@$GCLOUD_PROJECT.iam.gserviceaccount.com"
 WORKER_SA_NAME="worker-$CLUSTER_NAME"
 WORKER_SA_EMAIL="$WORKER_SA_NAME@$GCLOUD_PROJECT.iam.gserviceaccount.com"
 
-MACHINE_CONTROLLER_SSH_PUBLIC_FILE=machine-controller-key.pub
+MACHINE_CONTROLLER_SSH_PUBLIC_FILE=${OUTPUT_DIR}/machine-controller-key.pub
 MACHINE_CONTROLLER_SSH_PUBLIC=
-MACHINE_CONTROLLER_SSH_PRIVATE_FILE=machine-controller-key
+MACHINE_CONTROLLER_SSH_PRIVATE_FILE=${OUTPUT_DIR}/machine-controller-key
 MACHINE_CONTROLLER_SSH_PRIVATE=
 MACHINE_CONTROLLER_SSH_USER_PLAIN=clusterapi
 MACHINE_CONTROLLER_SSH_USER=$(echo -n "$MACHINE_CONTROLLER_SSH_USER_PLAIN" | base64 -w0)
@@ -86,6 +88,8 @@ if [ $OVERWRITE -ne 1 ] && [ -f $ADDON_GENERATED_FILE ]; then
   echo File $ADDON_GENERATED_FILE already exists. Delete it manually before running this script.
   exit 1
 fi
+
+mkdir -p ${OUTPUT_DIR}
 
 if [ ! -f $MACHINE_CONTROLLER_SA_FILE ]; then
   echo Generating $MACHINE_CONTROLLER_SA_EMAIL service account for machine controller

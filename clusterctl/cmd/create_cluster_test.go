@@ -143,10 +143,6 @@ func TestGetProvider(t *testing.T) {
 			provider: "google",
 		},
 		{
-			provider:  "terraform",
-			expectErr: true,
-		},
-		{
 			provider:  "blah blah",
 			expectErr: true,
 		},

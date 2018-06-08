@@ -22,11 +22,15 @@ import (
 	"time"
 
 	"k8s.io/apimachinery/pkg/api/equality"
+	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/diff"
 	clienttesting "k8s.io/client-go/testing"
+	core "k8s.io/client-go/testing"
 	"k8s.io/client-go/tools/cache"
+
 	"sigs.k8s.io/cluster-api/pkg/apis/cluster/v1alpha1"
 	"sigs.k8s.io/cluster-api/pkg/client/clientset_generated/clientset/fake"
 	v1alpha1listers "sigs.k8s.io/cluster-api/pkg/client/listers_generated/cluster/v1alpha1"
@@ -36,15 +40,60 @@ const (
 	labelKey = "type"
 )
 
+type fakeMachineLister struct {
+	indexer cache.Indexer
+}
+
+// List lists all Machines in the indexer.
+func (s *fakeMachineLister) List(selector labels.Selector) (ret []*v1alpha1.Machine, err error) {
+	err = cache.ListAll(s.indexer, selector, func(m interface{}) {
+		ret = append(ret, m.(*v1alpha1.Machine))
+	})
+	return ret, err
+}
+
+// Machines returns an object that can list and get Machines.
+func (s *fakeMachineLister) Machines(namespace string) v1alpha1listers.MachineNamespaceLister {
+	return fakeMachineNamespaceLister{indexer: s.indexer, namespace: namespace}
+}
+
+type fakeMachineNamespaceLister struct {
+	indexer   cache.Indexer
+	namespace string
+}
+
+func (s fakeMachineNamespaceLister) List(selector labels.Selector) (ret []*v1alpha1.Machine, err error) {
+	err = cache.ListAllByNamespace(s.indexer, s.namespace, selector, func(m interface{}) {
+		ret = append(ret, m.(*v1alpha1.Machine))
+	})
+	return ret, err
+}
+
+func (s fakeMachineNamespaceLister) Get(name string) (*v1alpha1.Machine, error) {
+	obj, exists, err := s.indexer.GetByKey(s.namespace + "/" + name)
+	if err != nil {
+		return nil, err
+	}
+	if !exists {
+		return nil, errors.NewNotFound(v1alpha1.Resource("machine"), name)
+	}
+	return obj.(*v1alpha1.Machine), nil
+}
+
 func TestMachineSetControllerReconcileHandler(t *testing.T) {
+	now := time.Now()
+
 	tests := []struct {
 		name                string
 		startingMachineSets []*v1alpha1.MachineSet
 		startingMachines    []*v1alpha1.Machine
 		machineSetToSync    string
 		namespaceToSync     string
+		confirmationTimeout *time.Duration
+		deletionTimestamp   *time.Time
 		expectedMachine     *v1alpha1.Machine
 		expectedActions     []string
+		expectedError       bool
 	}{
 		{
 			name:                "scenario 1: the current state of the cluster is empty, thus a machine is created.",
@@ -95,6 +144,7 @@ func TestMachineSetControllerReconcileHandler(t *testing.T) {
 			machineSetToSync:    "foo",
 			namespaceToSync:     "acme",
 			expectedActions:     []string{"create"},
+			expectedMachine:     machineFromMachineSet(createMachineSet(1, "foo", "bar2", "acme"), "bar2"),
 		},
 		{
 			name:                "scenario 7: the current machine is missing owner refs, machine should be adopted.",
@@ -112,6 +162,7 @@ func TestMachineSetControllerReconcileHandler(t *testing.T) {
 			machineSetToSync:    "foo",
 			namespaceToSync:     "acme",
 			expectedActions:     []string{"create"},
+			expectedMachine:     machineFromMachineSet(createMachineSet(1, "foo", "bar2", "acme"), "bar2"),
 		},
 		{
 			name:                "scenario 9: the current machine is being deleted, thus a machine is created.",
@@ -120,6 +171,7 @@ func TestMachineSetControllerReconcileHandler(t *testing.T) {
 			machineSetToSync:    "foo",
 			namespaceToSync:     "acme",
 			expectedActions:     []string{"create"},
+			expectedMachine:     machineFromMachineSet(createMachineSet(1, "foo", "bar2", "acme"), "bar2"),
 		},
 		{
 			name:                "scenario 10: the current machine has no controller refs, owner refs preserved, machine should be adopted.",
@@ -130,11 +182,37 @@ func TestMachineSetControllerReconcileHandler(t *testing.T) {
 			expectedActions:     []string{"update"},
 			expectedMachine:     machineWithMultipleOwnerRefs(createMachineSet(1, "foo", "bar2", "acme"), "bar1"),
 		},
+		{
+			name:                "scenario 11: create confirmation timed out, err.",
+			startingMachineSets: []*v1alpha1.MachineSet{createMachineSet(1, "foo", "bar1", "acme")},
+			startingMachines:    nil,
+			machineSetToSync:    "foo",
+			namespaceToSync:     "acme",
+			expectedError:       true,
+		},
+		{
+			name:                "scenario 12: delete confirmation timed out, err.",
+			startingMachineSets: []*v1alpha1.MachineSet{createMachineSet(0, "foo", "bar2", "acme")},
+			startingMachines:    []*v1alpha1.Machine{machineFromMachineSet(createMachineSet(1, "foo", "bar1", "acme"), "bar1")},
+			machineSetToSync:    "foo",
+			namespaceToSync:     "acme",
+			expectedError:       true,
+		},
+		{
+			name:                "scenario 13: delete confirmation accepts delete non-zero timestamp.",
+			startingMachineSets: []*v1alpha1.MachineSet{createMachineSet(0, "foo", "bar2", "acme")},
+			startingMachines:    []*v1alpha1.Machine{machineFromMachineSet(createMachineSet(1, "foo", "bar1", "acme"), "bar1")},
+			machineSetToSync:    "foo",
+			namespaceToSync:     "acme",
+			deletionTimestamp:   &now,
+			expectedActions:     []string{"delete"},
+		},
 	}
 
-	reconcileMutexSleepSec = 0
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
+			stateConfirmationTimeout = 1 * time.Millisecond
+
 			// setup the test scenario
 			rObjects := []runtime.Object{}
 			machinesIndexer := cache.NewIndexer(cache.MetaNamespaceKeyFunc, cache.Indexers{})
@@ -154,12 +232,43 @@ func TestMachineSetControllerReconcileHandler(t *testing.T) {
 				rObjects = append(rObjects, amachineset)
 			}
 			fakeClient := fake.NewSimpleClientset(rObjects...)
-			machineLister := v1alpha1listers.NewMachineLister(machinesIndexer)
+
+			machineLister := fakeMachineLister{indexer: machinesIndexer}
 			machineSetLister := v1alpha1listers.NewMachineSetLister(machineSetIndexer)
 			target := &MachineSetControllerImpl{}
 			target.clusterAPIClient = fakeClient
 			target.machineSetLister = machineSetLister
-			target.machineLister = machineLister
+			target.machineLister = &machineLister
+
+			fakeClient.PrependReactor("create", "machines", func(action core.Action) (bool, runtime.Object, error) {
+				if test.expectedError {
+					return true, nil, errors.NewNotFound(v1alpha1.Resource("machine"), "somemachine")
+				}
+				if test.expectedMachine != nil {
+					machineLister.indexer.Add(test.expectedMachine)
+				}
+				return true, test.expectedMachine, nil
+			})
+
+			fakeClient.PrependReactor("delete", "machines", func(action core.Action) (bool, runtime.Object, error) {
+				if test.deletionTimestamp != nil {
+					machineLister.indexer.Delete(test.startingMachines[0])
+					m := test.startingMachines[0].DeepCopy()
+					timestamp := metav1.NewTime(*test.deletionTimestamp)
+					m.ObjectMeta.DeletionTimestamp = &timestamp
+					machineLister.indexer.Add(m)
+					return true, nil, nil
+				}
+				if test.expectedError {
+					return false, nil, nil
+				}
+				for i, action := range test.expectedActions {
+					if action == "delete" {
+						machineLister.indexer.Delete(test.startingMachines[i])
+					}
+				}
+				return true, nil, nil
+			})
 
 			// act
 			machineSetToTest, err := target.Get(test.namespaceToSync, test.machineSetToSync)
@@ -167,8 +276,13 @@ func TestMachineSetControllerReconcileHandler(t *testing.T) {
 				t.Fatal(err)
 			}
 			err = target.Reconcile(machineSetToTest)
-			if err != nil {
-				t.Fatal(err)
+
+			if test.expectedError != (err != nil) {
+				t.Fatalf("Unexpected reconcile err: got %v, expected %v. %v", (err != nil), test.expectedError, err)
+				return
+			}
+			if test.expectedError {
+				return
 			}
 
 			// validate

@@ -9,7 +9,7 @@ Read the [experience doc here](https://docs.google.com/document/d/1-sYb3EdkRga49
 ### Prerequisites
 
 1. Install [minikube](https://kubernetes.io/docs/tasks/tools/install-minikube/) 
-2. Install a driver. For Linux, we recommend kvm. For MacOS, we recommend VirtualBox.
+2. Install a [driver](https://github.com/kubernetes/minikube/blob/master/docs/drivers.md) for minikube. For Linux, we recommend kvm2. For MacOS, we recommend VirtualBox.
 2. Build the `clusterctl` tool
 
 ```bash
@@ -28,7 +28,10 @@ TBD
 ```shell
 clusterctl create cluster --provider [google/vsphere] -c cluster.yaml -m machines.yaml -p provider-components.yaml
 ```
-Additional advanced flags can be found via help
+
+To choose a specific minikube driver, please use the `--vm-driver` command line parameter. For example to use the kvm2 driver with clusterctl you woud add `--vm-driver kvm2`
+
+Additional advanced flags can be found via help.
 
 ```shell
 clusterctl create cluster --help

@@ -106,10 +106,10 @@ spec:
         resources:
           requests:
             cpu: 100m
-            memory: 20Mi
+            memory: 50Mi
           limits:
-            cpu: 100m
-            memory: 30Mi
+            cpu: 300m
+            memory: 200Mi
       volumes:
       - name: cluster-apiserver-certs
         secret:

@@ -187,6 +187,7 @@ func TestCreate(t *testing.T) {
 			externalClient:          &testClusterClient{},
 			cleanupExternal:         true,
 			expectExternalCreated:   true,
+			expectExternalExists:    true,
 			factoryClusterClientErr: fmt.Errorf("Test failure"),
 			expectErr:               true,
 		},

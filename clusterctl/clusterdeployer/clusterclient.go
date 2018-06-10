@@ -95,8 +95,8 @@ func (c *clusterClient) GetClusterObjects() ([]*clusterv1.Cluster, error) {
 		return nil, err
 	}
 
-	for _, cluster := range clusterlist.Items {
-		clusters = append(clusters, &cluster)
+	for i := 0; i < len(clusterlist.Items); i++ {
+		clusters = append(clusters, &clusterlist.Items[i])
 	}
 	return clusters, nil
 }
@@ -109,8 +109,8 @@ func (c *clusterClient) GetMachineObjects() ([]*clusterv1.Machine, error) {
 		return nil, err
 	}
 
-	for _, machine := range machineslist.Items {
-		machines = append(machines, &machine)
+	for i := 0; i < len(machineslist.Items); i++ {
+		machines = append(machines, &machineslist.Items[i])
 	}
 	return machines, nil
 }

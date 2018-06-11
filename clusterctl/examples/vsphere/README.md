@@ -10,17 +10,14 @@ For convenience, a generation script which populates templates where possible.
 ```
 ./generate-yaml.sh
 ```
-2. Copy machines.yaml.template to machines.yaml and
-Manually edit ```terraformVariables``` for machines in machines.yaml
-```
-cp machines.yaml.template machines.yaml
-```
+2. To define the master machine, copy `machines.yaml.template` to `machines.yaml` and
+manually edit `machineVariables`.
 
-3. Copy cluster.yaml.template to cluster.yaml and
-Manually edit ```providerConfig``` for the cluster in cluster.yaml
-```
-cp cluster.yaml.template cluster.yaml
-```
+3. To define nodes, copy `machineset.yaml.template` to `machineset.yaml` and
+manually edit `machineVariables`. If needed, adjust `replicas` as well.
+
+4. Copy `cluster.yaml.template` to `cluster.yaml` and
+manually edit `providerConfig`.
 
 ## Manual Modification
 You may always manually curate files based on the examples provided.

@@ -2,7 +2,7 @@ items:
 - apiVersion: "cluster.k8s.io/v1alpha1"
   kind: Machine
   metadata:
-    generateName: tf-master-
+    generateName: vs-master-
     labels:
       set: master
   spec:
@@ -27,28 +27,3 @@ items:
       controlPlane: 1.10.1
     roles:
     - Master
-- apiVersion: "cluster.k8s.io/v1alpha1"
-  kind: Machine
-  metadata:
-    generateName: tf-node-
-  spec:
-    providerConfig:
-      value:
-        apiVersion: "vsphereproviderconfig/v1alpha1"
-        kind: "VsphereMachineProviderConfig"
-        vsphereMachine: "standard-node"
-        machineVariables:
-          datacenter: ""
-          datastore: ""
-          resource_pool: ""
-          network: ""
-          num_cpus: "2"
-          memory: "2048"
-          vm_template: ""
-          disk_label: ""
-          disk_size: ""
-          virtual_machine_domain: ""
-    versions:
-      kubelet: 1.10.1
-    roles:
-    - Node

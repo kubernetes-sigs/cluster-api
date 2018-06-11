@@ -27,7 +27,7 @@ spec:
         operator: Exists
       containers:
       - name: controller-manager
-        image: gcr.io/k8s-cluster-api/controller-manager:0.0.5
+        image: gcr.io/k8s-cluster-api/controller-manager:0.0.7
         volumeMounts:
           - name: config
             mountPath: /etc/kubernetes

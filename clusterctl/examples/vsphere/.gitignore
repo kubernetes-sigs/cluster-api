@@ -1,5 +1,6 @@
 machines.yaml
 cluster.yaml
 provider-components.yaml
+machineset.yaml
 vsphere_tmp
 vsphere_tmp.pub

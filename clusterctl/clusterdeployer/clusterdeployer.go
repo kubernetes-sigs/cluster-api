@@ -300,7 +300,7 @@ func (d *ClusterDeployer) writeKubeconfig(kubeconfig string) error {
 
 func waitForKubeconfigReady(provider ProviderDeployer, cluster *clusterv1.Cluster, machine *clusterv1.Machine) (string, error) {
 	kubeconfig := ""
-	err := util.Poll(5*time.Second, 10*time.Minute, func() (bool, error) {
+	err := util.PollImmediate(5*time.Second, 10*time.Minute, func() (bool, error) {
 		glog.V(2).Infof("Waiting for kubeconfig on %v to become ready...", machine.Name)
 		k, err := provider.GetKubeConfig(cluster, machine)
 		if err != nil {

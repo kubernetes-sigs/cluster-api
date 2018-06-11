@@ -29,6 +29,7 @@ import (
 	clusterv1 "sigs.k8s.io/cluster-api/pkg/apis/cluster/v1alpha1"
 	"sigs.k8s.io/cluster-api/pkg/apis/cluster/v1alpha1/testutil"
 	"sigs.k8s.io/cluster-api/pkg/client/clientset_generated/clientset"
+	"k8s.io/client-go/tools/cache"
 )
 
 func machineControllerReconcile(t *testing.T, cs *clientset.Clientset, controller *MachineController, namespace string) {
@@ -56,13 +57,19 @@ func machineControllerReconcile(t *testing.T, cs *clientset.Clientset, controlle
 	// Setup test callbacks to be called when the message is reconciled.
 	// Sometimes reconcile is called multiple times, so use Once to prevent closing the channels again.
 	controller.BeforeReconcile = func(key string) {
-		actualKey = key
-		befOnce.Do(func() { close(before) })
+		ns, _, error := cache.SplitMetaNamespaceKey(key)
+		if error == nil && ns == namespace {
+			actualKey = key
+			befOnce.Do(func() { close(before) })
+		}
 	}
 	controller.AfterReconcile = func(key string, err error) {
-		actualKey = key
-		actualErr = err
-		aftOnce.Do(func() { close(after) })
+		ns, _, error := cache.SplitMetaNamespaceKey(key)
+		if error == nil && ns == namespace {
+			actualKey = key
+			actualErr = err
+			aftOnce.Do(func() { close(after) })
+		}
 	}
 
 	// Create an instance

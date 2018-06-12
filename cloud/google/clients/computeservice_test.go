@@ -2,8 +2,6 @@ package clients_test
 
 import (
 	compute "google.golang.org/api/compute/v1"
-	"encoding/json"
-	"google.golang.org/api/googleapi"
 	"net/http"
 	"net/http/httptest"
 	"sigs.k8s.io/cluster-api/cloud/google/clients"
@@ -11,7 +9,7 @@ import (
 )
 
 func TestImagesGet(t *testing.T) {
-	mux, server, client := createMuxServerAndClient()
+	mux, server, client := createMuxServerAndComputeClient(t)
 	defer server.Close()
 	responseImage := compute.Image{
 		Name:             "imageName",
@@ -34,7 +32,7 @@ func TestImagesGet(t *testing.T) {
 }
 
 func TestImagesGetFromFamily(t *testing.T) {
-	mux, server, client := createMuxServerAndClient()
+	mux, server, client := createMuxServerAndComputeClient(t)
 	defer server.Close()
 	responseImage := compute.Image{
 		Name:             "imageName",
@@ -57,7 +55,7 @@ func TestImagesGetFromFamily(t *testing.T) {
 }
 
 func TestInstancesDelete(t *testing.T) {
-	mux, server, client := createMuxServerAndClient()
+	mux, server, client := createMuxServerAndComputeClient(t)
 	defer server.Close()
 	responseOperation := compute.Operation{
 		Id: 4501,
@@ -76,7 +74,7 @@ func TestInstancesDelete(t *testing.T) {
 }
 
 func TestInstancesGet(t *testing.T) {
-	mux, server, client := createMuxServerAndClient()
+	mux, server, client := createMuxServerAndComputeClient(t)
 	defer server.Close()
 	responseInstance := compute.Instance{
 		Name: "instanceName",
@@ -99,7 +97,7 @@ func TestInstancesGet(t *testing.T) {
 }
 
 func TestInstancesInsert(t *testing.T) {
-	mux, server, client := createMuxServerAndClient()
+	mux, server, client := createMuxServerAndComputeClient(t)
 	defer server.Close()
 	responseOperation := compute.Operation{
 		Id: 3001,
@@ -117,40 +115,11 @@ func TestInstancesInsert(t *testing.T) {
 	}
 }
 
-func createMuxServerAndClient() (*http.ServeMux, *httptest.Server, *clients.ComputeService) {
-	mux := http.NewServeMux()
-	server := httptest.NewServer(mux)
-	client, _ := clients.NewComputeServiceForURL(server.Client(), server.URL)
+func createMuxServerAndComputeClient(t *testing.T) (*http.ServeMux, *httptest.Server, *clients.ComputeService) {
+	mux, server := createMuxAndServer()
+	client, err := clients.NewComputeServiceForURL(server.Client(), server.URL)
+	if err != nil {
+		t.Fatalf("unable to create compute service: %v", err)
+	}
 	return mux, server, client
-}
-
-func handler(err *googleapi.Error, obj interface{}) http.HandlerFunc {
-	return func(w http.ResponseWriter, req *http.Request) {
-		handleTestRequest(w, err, obj)
-	}
-}
-
-func handleTestRequest(w http.ResponseWriter, handleErr *googleapi.Error, obj interface{}) {
-	if handleErr != nil {
-		http.Error(w, errMsg(handleErr), handleErr.Code)
-		return
-	}
-	res, err := json.Marshal(obj)
-	if err != nil {
-		http.Error(w, "json marshal error", http.StatusInternalServerError)
-		return
-	}
-	w.Write(res)
-}
-
-func errMsg(e *googleapi.Error) string {
-	res, err := json.Marshal(&errorReply{e})
-	if err != nil {
-		return "json marshal error"
-	}
-	return string(res)
-}
-
-type errorReply struct {
-	Error *googleapi.Error `json:"error"`
 }

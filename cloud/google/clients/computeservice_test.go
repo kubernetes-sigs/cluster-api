@@ -1,11 +1,12 @@
 package clients_test
 
 import (
-	compute "google.golang.org/api/compute/v1"
 	"net/http"
 	"net/http/httptest"
-	"sigs.k8s.io/cluster-api/cloud/google/clients"
 	"testing"
+
+	compute "google.golang.org/api/compute/v1"
+	"sigs.k8s.io/cluster-api/cloud/google/clients"
 )
 
 func TestImagesGet(t *testing.T) {
@@ -112,6 +113,39 @@ func TestInstancesInsert(t *testing.T) {
 	}
 	if responseOperation.Id != uint64(3001) {
 		t.Errorf("expected %v got %v", responseOperation.Id, 3001)
+	}
+}
+
+func TestWaitForOperationSuccess(t *testing.T) {
+	_, server, client := createMuxServerAndComputeClient(t)
+	defer server.Close()
+	op := &compute.Operation{
+		Id: 3001,
+		Status: "DONE",
+	}
+	err := client.WaitForOperation("projectName", op)
+	if err != nil {
+		t.Errorf("unexpected error: %v", err)
+	}
+}
+
+func TestWaitForOperationError(t *testing.T) {
+	_, server, client := createMuxServerAndComputeClient(t)
+	defer server.Close()
+	responseError := &compute.OperationErrorErrors{
+		Message: "testerrorthrown",
+	}
+	responseErrors := []*compute.OperationErrorErrors{}
+	responseErrors = append(responseErrors, responseError)
+	op := &compute.Operation{
+		Id: 3001,
+		Error: &compute.OperationError{
+			Errors:responseErrors,
+		},
+	}
+	err := client.WaitForOperation("projectName", op)
+	if err == nil || err.Error() != responseError.Message+"\n" {
+		t.Errorf("expected error to occur: %v", responseError.Message)
 	}
 }
 

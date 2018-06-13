@@ -124,6 +124,7 @@ data:
         variable "network" { default = "VM Network"}
         variable "disk_label" { default = "disk0" }
         variable "disk_size" { default = 10}
+        variable "startup_script_path" {}
 
         variable "vm_name" {
           type = "string"
@@ -219,7 +220,7 @@ data:
           - /tmp/master.sh
         EOF
           vars {
-            startup_script = "${base64encode(file("/tmp/machine-startup.sh"))}"
+            startup_script = "${base64encode(file(var.startup_script_path))}"
             cloud_provider_config = "${base64encode(data.template_file.cloud_provider_config.rendered)}"
           }
         }
@@ -283,6 +284,7 @@ data:
         variable "network" { default = "VM Network"}
         variable "disk_label" { default = "disk0" }
         variable "disk_size" { default = 10}
+        variable "startup_script_path" {}
 
         variable "vm_name" {
           type = "string"
@@ -339,7 +341,7 @@ data:
           - /tmp/node.sh
         EOF
           vars {
-            startup_script = "${indent(6, file("/tmp/machine-startup.sh"))}"
+            startup_script = "${base64encode(file(var.startup_script_path))}"
           }
         }
 

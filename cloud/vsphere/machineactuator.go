@@ -58,6 +58,7 @@ const (
 	TfConfigFilename       = "terraform.tf"
 	TfVarsFilename         = "variables.tfvars"
 	TfStateFilename        = "terraform.tfstate"
+	startupScriptFilename  = "machine-startup.sh"
 )
 
 type VsphereClient struct {
@@ -191,13 +192,14 @@ func (vc *VsphereClient) cleanUpStagingDir(machine *clusterv1.Machine) error {
 }
 
 // Builds and saves the startup script for the passed machine and cluster.
-func (vc *VsphereClient) saveStartupScript(cluster *clusterv1.Cluster, machine *clusterv1.Machine) error {
+// Returns the full path of the saved startup script and possible error.
+func (vc *VsphereClient) saveStartupScript(cluster *clusterv1.Cluster, machine *clusterv1.Machine) (string, error) {
 	preloaded := false
 	var startupScript string
 
 	if util.IsMaster(machine) {
 		if machine.Spec.Versions.ControlPlane == "" {
-			return vc.handleMachineError(machine, apierrors.InvalidMachineConfiguration(
+			return "", vc.handleMachineError(machine, apierrors.InvalidMachineConfiguration(
 				"invalid master configuration: missing Machine.Spec.Versions.ControlPlane"))
 		}
 		var err error
@@ -210,11 +212,11 @@ func (vc *VsphereClient) saveStartupScript(cluster *clusterv1.Cluster, machine *
 			},
 		)
 		if err != nil {
-			return err
+			return "", err
 		}
 	} else {
 		if len(cluster.Status.APIEndpoints) == 0 {
-			return errors.New("invalid cluster state: cannot create a Kubernetes node without an API endpoint")
+			return "", errors.New("invalid cluster state: cannot create a Kubernetes node without an API endpoint")
 		}
 		var err error
 		startupScript, err = getNodeStartupScript(
@@ -226,18 +228,19 @@ func (vc *VsphereClient) saveStartupScript(cluster *clusterv1.Cluster, machine *
 			},
 		)
 		if err != nil {
-			return err
+			return "", err
 		}
 	}
 
 	glog.Infof("Saving startup script for machine %s", machine.ObjectMeta.Name)
-
 	// Save the startup script.
-	if err := saveFile(startupScript, path.Join("/tmp", "machine-startup.sh"), 0644); err != nil {
-		return errors.New(fmt.Sprintf("Could not write startup script %s", err))
+	machinePath := fmt.Sprintf(MachinePathStageFormat, machine.Name)
+	startupScriptPath := path.Join(machinePath, startupScriptFilename)
+	if err := saveFile(startupScript, startupScriptPath, 0644); err != nil {
+		return "", errors.New(fmt.Sprintf("Could not write startup script %s", err))
 	}
 
-	return nil
+	return startupScriptPath, nil
 }
 
 func (vc *VsphereClient) Create(cluster *clusterv1.Cluster, machine *clusterv1.Machine) error {
@@ -268,10 +271,11 @@ func (vc *VsphereClient) Create(cluster *clusterv1.Cluster, machine *clusterv1.M
 	glog.Infof("Staged for machine create at %s", machinePath)
 
 	// Save the startup script.
-	err = vc.saveStartupScript(cluster, machine)
+	startupScriptPath, err := vc.saveStartupScript(cluster, machine)
 	if err != nil {
 		return errors.New(fmt.Sprintf("could not write startup script %+v", err))
 	}
+	defer cleanUpStartupScript(machine.Name, startupScriptPath)
 
 	glog.Infof("Checking if machine %s exists", machine.ObjectMeta.Name)
 	instance, err := vc.instanceIfExists(machine)
@@ -295,6 +299,8 @@ func (vc *VsphereClient) Create(cluster *clusterv1.Cluster, machine *clusterv1.M
 		args = append(args, "-var")
 		args = append(args, fmt.Sprintf("vsphere_server=%s", clusterConfig.VsphereServer))
 		args = append(args, fmt.Sprintf("-var-file=%s", path.Join(machinePath, TfVarsFilename)))
+		args = append(args, "-var")
+		args = append(args, fmt.Sprintf("startup_script_path=%s", startupScriptPath))
 
 		_, cmdErr := runTerraformCmd(false, machinePath, args...)
 		if cmdErr != nil {
@@ -392,12 +398,6 @@ func (vc *VsphereClient) Delete(cluster *clusterv1.Cluster, machine *clusterv1.M
 
 	machinePath, err := vc.prepareStageMachineDir(machine)
 
-	// The machine HCL reads the startup script, so we need to have something there for terraform
-	// to not fail.
-	if err := saveFile("", path.Join("/tmp", "machine-startup.sh"), 0644); err != nil {
-		return errors.New(fmt.Sprintf("Could not write startup script %s", err))
-	}
-
 	// destroy it
 	args := []string{
 		"destroy",
@@ -407,6 +407,7 @@ func (vc *VsphereClient) Delete(cluster *clusterv1.Cluster, machine *clusterv1.M
 		"-var", fmt.Sprintf("vsphere_user=%s", clusterConfig.VsphereUser),
 		"-var", fmt.Sprintf("vsphere_password=%s", clusterConfig.VspherePassword),
 		"-var", fmt.Sprintf("vsphere_server=%s", clusterConfig.VsphereServer),
+		"-var", "startup_script_path=/dev/null",
 		"-var-file=variables.tfvars",
 	}
 	_, err = runTerraformCmd(false, machinePath, args...)
@@ -760,4 +761,11 @@ func pathExists(path string) (bool, error) {
 		return false, nil
 	}
 	return true, err
+}
+
+func cleanUpStartupScript(machineName, fullPath string) {
+	glog.Infof("cleaning up startup script for %v: %v", machineName, fullPath)
+	if err := os.RemoveAll(path.Dir(fullPath)); err != nil {
+		glog.Error(err)
+	}
 }

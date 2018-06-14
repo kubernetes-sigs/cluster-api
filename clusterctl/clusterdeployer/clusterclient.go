@@ -174,7 +174,7 @@ func (c *clusterClient) kubectlApply(manifest string) error {
 }
 
 func (c *clusterClient) waitForKubectlApply(manifest string) error {
-	err := util.Poll(RetryIntervalKubectlApply, TimeoutKubectlApply, func() (bool, error) {
+	err := util.PollImmediate(RetryIntervalKubectlApply, TimeoutKubectlApply, func() (bool, error) {
 		glog.V(2).Infof("Waiting for kubectl apply...")
 		err := c.kubectlApply(manifest)
 		if err != nil {
@@ -201,7 +201,7 @@ func (c *clusterClient) waitForKubectlApply(manifest string) error {
 }
 
 func waitForClusterResourceReady(cs clientset.Interface) error {
-	err := util.Poll(RetryIntervalResourceReady, TimeoutResourceReady, func() (bool, error) {
+	err := util.PollImmediate(RetryIntervalResourceReady, TimeoutResourceReady, func() (bool, error) {
 		glog.V(2).Info("Waiting for Cluster v1alpha resources to become available...")
 		_, err := cs.Discovery().ServerResourcesForGroupVersion("cluster.k8s.io/v1alpha1")
 		if err == nil {
@@ -214,7 +214,7 @@ func waitForClusterResourceReady(cs clientset.Interface) error {
 }
 
 func waitForMachineReady(cs clientset.Interface, machine *clusterv1.Machine) error {
-	err := util.Poll(RetryIntervalResourceReady, TimeoutMachineReady, func() (bool, error) {
+	err := util.PollImmediate(RetryIntervalResourceReady, TimeoutMachineReady, func() (bool, error) {
 		glog.V(2).Infof("Waiting for Machine %v to become ready...", machine.Name)
 		m, err := cs.ClusterV1alpha1().Machines(apiv1.NamespaceDefault).Get(machine.Name, metav1.GetOptions{})
 		if err != nil {

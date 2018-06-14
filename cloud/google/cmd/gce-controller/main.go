@@ -25,6 +25,7 @@ import (
 	"sigs.k8s.io/cluster-api/cloud/google/cmd/gce-controller/machine-controller-app"
 	machineoptions "sigs.k8s.io/cluster-api/cloud/google/cmd/gce-controller/machine-controller-app/options"
 	"sigs.k8s.io/cluster-api/pkg/controller/config"
+	"flag"
 )
 
 func main() {
@@ -34,6 +35,8 @@ func main() {
 	fs.StringVar(&controllerType, "controller", controllerType, "specify whether this should run the machine or cluster controller")
 	fs.StringVar(&machineSetupConfigsPath, "machinesetup", machineSetupConfigsPath, "path to machine setup configs file")
 	config.ControllerConfig.AddFlags(pflag.CommandLine)
+	// the following line exists to make glog happy, for more information, see: https://github.com/kubernetes/kubernetes/issues/17162
+	flag.CommandLine.Parse([]string{})
 	pflag.Parse()
 
 	logs.InitLogs()

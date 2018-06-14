@@ -24,15 +24,15 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/client-go/kubernetes"
-	"k8s.io/client-go/tools/clientcmd"
 	clusterv1 "sigs.k8s.io/cluster-api/pkg/apis/cluster/v1alpha1"
 	clientv1alpha1 "sigs.k8s.io/cluster-api/pkg/client/clientset_generated/clientset/typed/cluster/v1alpha1"
+	"sigs.k8s.io/cluster-api/pkg/clientcmd"
 	"sigs.k8s.io/cluster-api/util"
 )
 
 var (
 	kubeClientSet *kubernetes.Clientset
-	client        *clientv1alpha1.ClusterV1alpha1Client
+	client        clientv1alpha1.ClusterV1alpha1Interface
 	machInterface clientv1alpha1.MachineInterface
 )
 
@@ -40,22 +40,13 @@ func initClient(kubeconfig string) error {
 	if kubeconfig == "" {
 		kubeconfig = util.GetDefaultKubeConfigPath()
 	}
-	config, err := clientcmd.BuildConfigFromFlags("", kubeconfig)
+	coreClientset, clusterapiClientset, err := clientcmd.NewClientsForDefaultSearchpath(kubeconfig)
 	if err != nil {
-		glog.Fatalf("BuildConfigFromFlags failed: %v", err)
+		glog.Fatalf("Error creating rest config: %v", err)
 		return err
 	}
-
-	kubeClientSet, err = kubernetes.NewForConfig(config)
-	if err != nil {
-		glog.Fatalf("error creating kube client set: %v", err)
-	}
-
-	client, err = clientv1alpha1.NewForConfig(config)
-	if err != nil {
-		glog.Fatalf("error creating cluster api client: %v", err)
-		return err
-	}
+	kubeClientSet = coreClientset
+	client = clusterapiClientset.ClusterV1alpha1()
 	machInterface = client.Machines(v1.NamespaceDefault)
 
 	return nil

@@ -22,6 +22,7 @@ import (
 	"k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"sigs.k8s.io/cluster-api/pkg/client/clientset_generated/clientset/typed/cluster/v1alpha1"
+	"sigs.k8s.io/cluster-api/pkg/clientcmd"
 	"sigs.k8s.io/cluster-api/util"
 )
 
@@ -36,7 +37,7 @@ func NewRepairer(dryRun bool, configPath string) (*repairer, error) {
 		configPath = util.GetDefaultKubeConfigPath()
 	}
 
-	c, err := util.NewClientSet(configPath)
+	c, err := clientcmd.NewClusterApiClientForDefaultSearchPath(configPath)
 	if err != nil {
 		return nil, err
 	}

@@ -93,13 +93,10 @@ func (d *ClusterDeployer) Create(cluster *clusterv1.Cluster, machines []*cluster
 	}
 
 	glog.Info("Creating external cluster")
-	externalClient, err := d.createExternalCluster()
+	externalClient, cleanupExternalCluster, err := d.createExternalCluster()
+	defer cleanupExternalCluster()
 	if err != nil {
 		return fmt.Errorf("could not create external client: %v", err)
-	}
-	if d.cleanupExternalCluster {
-		glog.Info("Cleaning up external cluster.")
-		defer d.externalProvisioner.Delete()
 	}
 	defer func() {
 		err := externalClient.Close()
@@ -171,28 +168,26 @@ func (d *ClusterDeployer) Create(cluster *clusterv1.Cluster, machines []*cluster
 	return nil
 }
 
-func (d *ClusterDeployer) createExternalCluster() (ClusterClient, error) {
-	var err error
-	if err = d.externalProvisioner.Create(); err != nil {
-		return nil, fmt.Errorf("could not create external control plane: %v", err)
+func (d *ClusterDeployer) createExternalCluster() (ClusterClient, func(), error) {
+	cleanupFn := func() {}
+	if err := d.externalProvisioner.Create(); err != nil {
+		return nil, cleanupFn, fmt.Errorf("could not create external control plane: %v", err)
 	}
 	if d.cleanupExternalCluster {
-		defer func() {
-			if err != nil {
-				glog.Info("Cleaning up external cluster.")
-				d.externalProvisioner.Delete()
-			}
-		}()
+		cleanupFn = func() {
+			glog.Info("Cleaning up external cluster.")
+			d.externalProvisioner.Delete()
+		}
 	}
 	externalKubeconfig, err := d.externalProvisioner.GetKubeconfig()
 	if err != nil {
-		return nil, fmt.Errorf("unable to get external cluster kubeconfig: %v", err)
+		return nil, cleanupFn, fmt.Errorf("unable to get external cluster kubeconfig: %v", err)
 	}
 	externalClient, err := d.clientFactory.ClusterClient(externalKubeconfig)
 	if err != nil {
-		return nil, fmt.Errorf("unable to create external client: %v", err)
+		return nil, cleanupFn, fmt.Errorf("unable to create external client: %v", err)
 	}
-	return externalClient, nil
+	return externalClient, cleanupFn, nil
 }
 
 func (d *ClusterDeployer) createInternalCluster(externalClient ClusterClient) (ClusterClient, error) {

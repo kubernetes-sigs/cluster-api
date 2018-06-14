@@ -17,11 +17,12 @@ package clusterdeployer_test
 
 import (
 	"fmt"
-	"sigs.k8s.io/cluster-api/clusterctl/clusterdeployer"
-	"testing"
-
 	"io/ioutil"
 	"os"
+	"testing"
+
+	"k8s.io/client-go/kubernetes"
+	"sigs.k8s.io/cluster-api/clusterctl/clusterdeployer"
 	clustercommon "sigs.k8s.io/cluster-api/pkg/apis/cluster/common"
 	clusterv1 "sigs.k8s.io/cluster-api/pkg/apis/cluster/v1alpha1"
 )
@@ -52,6 +53,33 @@ func (p *testClusterProvisioner) Delete() error {
 
 func (p *testClusterProvisioner) GetKubeconfig() (string, error) {
 	return p.kubeconfig, p.err
+}
+
+type mockProviderComponentsStoreFactory struct {
+	NewFromCoreclientsetPCStore          clusterdeployer.ProviderComponentsStore
+	NewFromCoreclientsetError            error
+	NewFromCoreclientsetCapturedArgument *kubernetes.Clientset
+}
+
+func (m *mockProviderComponentsStoreFactory) NewFromCoreClientset(clientset *kubernetes.Clientset) (clusterdeployer.ProviderComponentsStore, error) {
+	m.NewFromCoreclientsetCapturedArgument = clientset
+	return m.NewFromCoreclientsetPCStore, m.NewFromCoreclientsetError
+}
+
+type mockProviderComponentsStore struct {
+	SaveErr                        error
+	SaveCapturedProviderComponents string
+	LoadResult                     string
+	LoadErr                        error
+}
+
+func (m *mockProviderComponentsStore) Save(providerComponents string) error {
+	m.SaveCapturedProviderComponents = providerComponents
+	return m.SaveErr
+}
+
+func (m *mockProviderComponentsStore) Load() (string, error) {
+	return m.LoadResult, m.LoadErr
 }
 
 type testClusterClient struct {
@@ -106,21 +134,27 @@ func (c *testClusterClient) Close() error {
 }
 
 type testClusterClientFactory struct {
-	ClusterClientErr error
-	clients          map[string]*testClusterClient
+	ClusterClientErr    error
+	clusterClients      map[string]*testClusterClient
+	NewCoreClientsetErr error
+	CoreClientsets      map[string]*kubernetes.Clientset
 }
 
 func newTestClusterClientFactory() *testClusterClientFactory {
 	return &testClusterClientFactory{
-		clients: map[string]*testClusterClient{},
+		clusterClients: map[string]*testClusterClient{},
 	}
 }
 
-func (f *testClusterClientFactory) ClusterClient(kubeconfig string) (clusterdeployer.ClusterClient, error) {
+func (f *testClusterClientFactory) NewCoreClientsetFromKubeconfigFile(kubeconfigPath string) (*kubernetes.Clientset, error) {
+	return f.CoreClientsets[kubeconfigPath], f.NewCoreClientsetErr
+}
+
+func (f *testClusterClientFactory) NewClusterClientFromKubeconfig(kubeconfig string) (clusterdeployer.ClusterClient, error) {
 	if f.ClusterClientErr != nil {
 		return nil, f.ClusterClientErr
 	}
-	return f.clients[kubeconfig], nil
+	return f.clusterClients[kubeconfig], nil
 }
 
 type testProviderDeployer struct {
@@ -292,12 +326,7 @@ func TestCreate(t *testing.T) {
 	}
 	for _, testcase := range testcases {
 		t.Run(testcase.name, func(t *testing.T) {
-			kubeconfigOutFile, err := ioutil.TempFile("", "")
-			if err != nil {
-				t.Fatalf("could not provision temp file:%v", err)
-			}
-			kubeconfigOutFile.Close()
-			kubeconfigOut := kubeconfigOutFile.Name()
+			kubeconfigOut := newTempFile(t)
 			defer os.Remove(kubeconfigOut)
 
 			// Create provisioners & clients and hook them up
@@ -308,16 +337,18 @@ func TestCreate(t *testing.T) {
 			pd := &testProviderDeployer{}
 			pd.kubeconfig = internalKubeconfig
 			f := newTestClusterClientFactory()
-			f.clients[externalKubeconfig] = testcase.externalClient
-			f.clients[internalKubeconfig] = testcase.internalClient
+			f.clusterClients[externalKubeconfig] = testcase.externalClient
+			f.clusterClients[internalKubeconfig] = testcase.internalClient
 			f.ClusterClientErr = testcase.factoryClusterClientErr
 
 			// Create
 			inputCluster := &clusterv1.Cluster{}
 			inputCluster.Name = "test-cluster"
 			inputMachines := generateMachines()
+			pcStore := mockProviderComponentsStore{}
+			pcFactory := mockProviderComponentsStoreFactory{NewFromCoreclientsetPCStore: &pcStore}
 			d := clusterdeployer.New(p, f, pd, "", kubeconfigOut, testcase.cleanupExternal)
-			err = d.Create(inputCluster, inputMachines)
+			err := d.Create(inputCluster, inputMachines, &pcFactory)
 
 			// Validate
 			if (testcase.expectErr && err == nil) || (!testcase.expectErr && err != nil) {
@@ -350,6 +381,50 @@ func TestCreate(t *testing.T) {
 	}
 }
 
+func TestCreateProviderComponentsScenarios(t *testing.T) {
+	const externalKubeconfig = "external"
+	const internalKubeconfig = "internal"
+	testCases := []struct {
+		name          string
+		pcStore       mockProviderComponentsStore
+		expectedError string
+	}{
+		{"success", mockProviderComponentsStore{SaveErr: nil}, ""},
+		{"error when saving", mockProviderComponentsStore{SaveErr: fmt.Errorf("pcstore save error")}, "unable to save provider components to internal cluster: error saving provider components: pcstore save error"},
+	}
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			kubeconfigOut := newTempFile(t)
+			defer os.Remove(kubeconfigOut)
+			p := &testClusterProvisioner{
+				kubeconfig: externalKubeconfig,
+			}
+			pd := &testProviderDeployer{}
+			pd.kubeconfig = internalKubeconfig
+			f := newTestClusterClientFactory()
+			f.clusterClients[externalKubeconfig] = &testClusterClient{}
+			f.clusterClients[internalKubeconfig] = &testClusterClient{}
+
+			inputCluster := &clusterv1.Cluster{}
+			inputCluster.Name = "test-cluster"
+			inputMachines := generateMachines()
+			pcFactory := mockProviderComponentsStoreFactory{NewFromCoreclientsetPCStore: &tc.pcStore}
+			providerComponentsYaml := "-yaml\ndefinition"
+			d := clusterdeployer.New(p, f, pd, providerComponentsYaml, kubeconfigOut, false)
+			err := d.Create(inputCluster, inputMachines, &pcFactory)
+			if err == nil && tc.expectedError != "" {
+				t.Fatalf("error mismatch: got '%v', want '%v'", err, tc.expectedError)
+			}
+			if err != nil && err.Error() != tc.expectedError {
+				t.Errorf("error message mismatch: got '%v', want '%v'", err, tc.expectedError)
+			}
+			if tc.pcStore.SaveCapturedProviderComponents != providerComponentsYaml {
+				t.Errorf("provider components mismatch: got '%v', want '%v'", tc.pcStore.SaveCapturedProviderComponents, providerComponentsYaml)
+			}
+		})
+	}
+}
+
 func generateMachines() []*clusterv1.Machine {
 	master := &clusterv1.Machine{}
 	master.Name = "test-master"
@@ -357,4 +432,13 @@ func generateMachines() []*clusterv1.Machine {
 	node := &clusterv1.Machine{}
 	node.Name = "test.Node"
 	return []*clusterv1.Machine{master, node}
+}
+
+func newTempFile(t *testing.T) string {
+	kubeconfigOutFile, err := ioutil.TempFile("", "")
+	if err != nil {
+		t.Fatalf("could not provision temp file:%v", err)
+	}
+	kubeconfigOutFile.Close()
+	return kubeconfigOutFile.Name()
 }

@@ -113,7 +113,7 @@ func TestReconcileNode(t *testing.T) {
 
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-			m := getMachine("foo", false, false, false)
+			m := getMachine("foo", nil, false, false)
 			if test.nodeRefName != "" {
 				m.Status.NodeRef = &corev1.ObjectReference{
 					Kind: "Node",

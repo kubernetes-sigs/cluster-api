@@ -56,7 +56,6 @@ type LeaderElectionConfiguration struct {
 
 type Configuration struct {
 	Kubeconfig           string
-	InCluster            bool
 	WorkerCount          int
 	leaderElectionConfig *LeaderElectionConfiguration
 }
@@ -71,7 +70,6 @@ const (
 )
 
 var ControllerConfig = Configuration{
-	InCluster:   true,
 	WorkerCount: 5, // Default 5 worker.
 	leaderElectionConfig: &LeaderElectionConfiguration{
 		LeaderElect:   false,
@@ -88,7 +86,6 @@ func GetLeaderElectionConfig() *LeaderElectionConfiguration {
 
 func (c *Configuration) AddFlags(fs *pflag.FlagSet) {
 	fs.StringVar(&c.Kubeconfig, "kubeconfig", c.Kubeconfig, "Path to kubeconfig file with authorization and master location information.")
-	fs.BoolVar(&c.InCluster, "incluster", c.InCluster, "Controller will be running inside the cluster.")
 	fs.IntVar(&c.WorkerCount, "workers", c.WorkerCount, "The number of workers for controller.")
 
 	AddLeaderElectionFlags(c.leaderElectionConfig, fs)

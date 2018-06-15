@@ -146,6 +146,10 @@ spec:
         env:
           - name: GOOGLE_APPLICATION_CREDENTIALS
             value: /etc/credentials/service-account.json
+          - name: NODE_NAME
+            valueFrom:
+              fieldRef:
+                fieldPath: spec.nodeName
         command:
         - "./gce-controller"
         args:

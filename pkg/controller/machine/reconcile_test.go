@@ -20,10 +20,12 @@ import (
 	"testing"
 	"time"
 
+	"k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/types"
+	corefake "k8s.io/client-go/kubernetes/fake"
 	core "k8s.io/client-go/testing"
-	clustercommon "sigs.k8s.io/cluster-api/pkg/apis/cluster/common"
 	"sigs.k8s.io/cluster-api/pkg/apis/cluster/v1alpha1"
 	"sigs.k8s.io/cluster-api/pkg/apis/cluster/v1alpha1/testutil"
 	"sigs.k8s.io/cluster-api/pkg/client/clientset_generated/clientset/fake"
@@ -37,13 +39,13 @@ func TestMachineSetControllerReconcileHandler(t *testing.T) {
 		instanceExists         bool
 		isDeleting             bool
 		withFinalizer          bool
-		isMaster               bool
 		ignoreDeleteCallCount  bool
 		expectFinalizerRemoved bool
 		numExpectedCreateCalls int64
 		numExpectedDeleteCalls int64
 		numExpectedUpdateCalls int64
 		numExpectedExistsCalls int64
+		nodeRef                *v1.ObjectReference
 	}{
 		{
 			name:                   "Create machine",
@@ -93,18 +95,29 @@ func TestMachineSetControllerReconcileHandler(t *testing.T) {
 			withFinalizer:  false,
 		},
 		{
-			name:           "Delete machine, skip master",
-			objExists:      true,
-			instanceExists: true,
-			isDeleting:     true,
-			withFinalizer:  true,
-			isMaster:       true,
+			name:                   "Delete machine, controller on different node with same name, but different UID",
+			objExists:              true,
+			instanceExists:         true,
+			isDeleting:             true,
+			withFinalizer:          true,
+			numExpectedDeleteCalls: 1,
+			expectFinalizerRemoved: true,
+			nodeRef:                &v1.ObjectReference{Name: "controller-node-name", UID: "another-uid"},
+		},
+		{
+			name:                   "Delete machine, controller on the same node",
+			objExists:              true,
+			instanceExists:         true,
+			isDeleting:             true,
+			withFinalizer:          true,
+			expectFinalizerRemoved: false,
+			nodeRef:                &v1.ObjectReference{Name: "controller-node-name", UID: "controller-node-uid"},
 		},
 	}
 
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-			machineToTest := getMachine("bar", test.isDeleting, test.withFinalizer, test.isMaster)
+			machineToTest := getMachine("bar", test.nodeRef, test.isDeleting, test.withFinalizer)
 			knownObjects := []runtime.Object{}
 			if test.objExists {
 				knownObjects = append(knownObjects, machineToTest)
@@ -116,6 +129,14 @@ func TestMachineSetControllerReconcileHandler(t *testing.T) {
 				machineUpdated = true
 				return false, nil, nil
 			})
+			fakeKubernetesClient := corefake.NewSimpleClientset()
+			node := v1.Node{
+				ObjectMeta: metav1.ObjectMeta{
+					Name: "controller-node-name",
+					UID:  "controller-node-uid",
+				},
+			}
+			fakeKubernetesClient.CoreV1().Nodes().Create(&node)
 
 			// When creating a new object, it should invoke the reconcile method.
 			cluster := testutil.GetVanillaCluster()
@@ -130,6 +151,8 @@ func TestMachineSetControllerReconcileHandler(t *testing.T) {
 			target := &MachineControllerImpl{}
 			target.actuator = actuator
 			target.clientSet = fakeClient
+			target.kubernetesClientSet = fakeKubernetesClient
+			target.nodeName = "controller-node-name"
 
 			var err error
 			err = target.Reconcile(machineToTest)
@@ -159,7 +182,50 @@ func TestMachineSetControllerReconcileHandler(t *testing.T) {
 	}
 }
 
-func getMachine(name string, isDeleting, hasFinalizer, isMaster bool) *v1alpha1.Machine {
+func TestIsDeleteAllowed(t *testing.T) {
+	testCases := []struct {
+		name                  string
+		setControllerNodeName bool
+		nodeRef               *v1.ObjectReference
+		expectedResult        bool
+	}{
+		{"empty controller node name should return true", false, nil, true},
+		{"nil machine.Status.NodeRef should return true", true, nil, true},
+		{"different node name should return true", true, &v1.ObjectReference{Name: "another-node", UID: "another-uid"}, true},
+		{"same node name and different UID should return true", true, &v1.ObjectReference{Name: "controller-node-name", UID: "another-uid"}, true},
+		{"same node name and same UID should return false", true, &v1.ObjectReference{Name: "controller-node-name", UID: "controller-node-uid"}, false},
+	}
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			controller, machine := createIsDeleteAllowedTestFixtures(t, tc.setControllerNodeName, "controller-node-name", "controller-node-uid", tc.nodeRef)
+			result := controller.isDeleteAllowed(machine)
+			if result != tc.expectedResult {
+				t.Errorf("result mismatch: got '%v', want '%v'", result, tc.expectedResult)
+			}
+		})
+	}
+}
+
+func createIsDeleteAllowedTestFixtures(t *testing.T, setControllerNodeNameVariable bool, controllerNodeName string, controllerNodeUid string, nodeRef *v1.ObjectReference) (*MachineControllerImpl, *v1alpha1.Machine) {
+	controller := &MachineControllerImpl{}
+	fakeKubernetesClient := corefake.NewSimpleClientset()
+	node := v1.Node{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: controllerNodeName,
+			UID:  types.UID(controllerNodeUid),
+		},
+	}
+	fakeKubernetesClient.CoreV1().Nodes().Create(&node)
+	controller.kubernetesClientSet = fakeKubernetesClient
+	controller.kubernetesClientSet = fakeKubernetesClient
+	if setControllerNodeNameVariable {
+		controller.nodeName = controllerNodeName
+	}
+	machine := getMachine("bar", nodeRef, true, false)
+	return controller, machine
+}
+
+func getMachine(name string, nodeRef *v1.ObjectReference, isDeleting, hasFinalizer bool) *v1alpha1.Machine {
 	m := &v1alpha1.Machine{
 		TypeMeta: metav1.TypeMeta{
 			Kind:       "Machine",
@@ -169,6 +235,9 @@ func getMachine(name string, isDeleting, hasFinalizer, isMaster bool) *v1alpha1.
 			Name:      name,
 			Namespace: metav1.NamespaceDefault,
 		},
+		Status: v1alpha1.MachineStatus{
+			NodeRef: nodeRef,
+		},
 	}
 	if isDeleting {
 		now := metav1.NewTime(time.Now())
@@ -176,9 +245,6 @@ func getMachine(name string, isDeleting, hasFinalizer, isMaster bool) *v1alpha1.
 	}
 	if hasFinalizer {
 		m.ObjectMeta.SetFinalizers([]string{v1alpha1.MachineFinalizer})
-	}
-	if isMaster {
-		m.Spec.Roles = []clustercommon.MachineRole{clustercommon.MasterRole}
 	}
 
 	return m

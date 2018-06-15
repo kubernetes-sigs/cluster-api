@@ -61,6 +61,11 @@ spec:
             subPath: vsphere_tmp.pub
           - name: named-machines
             mountPath: /etc/named-machines
+        env:
+          - name: NODE_NAME
+            valueFrom:
+              fieldRef:
+                fieldPath: spec.nodeName
         command:
         - "./vsphere-machine-controller"
         args:

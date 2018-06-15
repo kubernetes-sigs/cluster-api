@@ -137,6 +137,7 @@ func TestReconcileNode(t *testing.T) {
 			node := &corev1.Node{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:        "bar",
+					UID:         "the-uid",
 					Annotations: make(map[string]string),
 				},
 			}
@@ -239,6 +240,9 @@ func TestReconcileNode(t *testing.T) {
 				}
 				if actualMachine.Status.NodeRef.Name != "bar" {
 					t.Errorf("got %v node ref name, expected bar node ref name.", actualMachine.Status.NodeRef.Name)
+				}
+				if actualMachine.Status.NodeRef.UID != "the-uid" {
+					t.Errorf("got '%v' node ref uid, expected 'the-uid' node ref uid", actualMachine.Status.NodeRef.UID)
 				}
 			}
 			if !test.expectLinked {

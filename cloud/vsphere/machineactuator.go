@@ -428,7 +428,7 @@ func (vc *VsphereClient) Delete(cluster *clusterv1.Cluster, machine *clusterv1.M
 	return err
 }
 
-func (vc *VsphereClient) PostDelete(cluster *clusterv1.Cluster, machines []*clusterv1.Machine) error {
+func (vc *VsphereClient) PostDelete(cluster *clusterv1.Cluster) error {
 	return nil
 }
 

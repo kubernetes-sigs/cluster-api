@@ -91,7 +91,7 @@ func (d *deployer) CreateCluster(c *clusterv1.Cluster, machines []*clusterv1.Mac
 		if vmCreated {
 			d.deleteMasterVM(c, machines)
 		}
-		d.machineDeployer.PostDelete(c, machines)
+		d.machineDeployer.PostDelete(c)
 		return err
 	}
 
@@ -133,7 +133,7 @@ func (d *deployer) DeleteCluster() error {
 	}
 
 	glog.Info("Running post delete operations")
-	if err := d.machineDeployer.PostDelete(cluster, machines); err != nil {
+	if err := d.machineDeployer.PostDelete(cluster); err != nil {
 		return err
 	}
 	glog.Infof("Deletion complete")

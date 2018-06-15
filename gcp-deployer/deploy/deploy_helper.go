@@ -58,7 +58,7 @@ func (d *deployer) createCluster(c *clusterv1.Cluster, machines []*clusterv1.Mac
 
 	glog.Infof("Starting cluster dependency creation %s", c.GetName())
 
-	if err := d.machineDeployer.ProvisionClusterDependencies(c, machines); err != nil {
+	if err := d.machineDeployer.ProvisionClusterDependencies(c); err != nil {
 		return err
 	}
 
@@ -100,7 +100,7 @@ func (d *deployer) createCluster(c *clusterv1.Cluster, machines []*clusterv1.Mac
 	}
 
 	glog.Info("Creating additional cluster resources...")
-	if err := d.machineDeployer.PostCreate(c, machines); err != nil {
+	if err := d.machineDeployer.PostCreate(c); err != nil {
 		return fmt.Errorf("can't create additional cluster resources: %v", err)
 	}
 

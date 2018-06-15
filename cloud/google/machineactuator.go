@@ -729,7 +729,7 @@ func (gce *GCEClient) handleMachineError(machine *clusterv1.Machine, err *apierr
 }
 
 func (gce *GCEClient) getImagePath(img string) (imagePath string) {
-	defaultImg := "projects/ubuntu-os-cloud/global/images/family/ubuntu-1710"
+	defaultImg := "projects/ubuntu-os-cloud/global/images/family/ubuntu-1604-lts"
 
 	// A full image path must match the regex format. If it doesn't, we will fall back to a default base image.
 	matches := regexp.MustCompile("projects/(.+)/global/images/(family/)*(.+)").FindStringSubmatch(img)

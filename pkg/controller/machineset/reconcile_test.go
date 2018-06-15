@@ -165,13 +165,12 @@ func TestMachineSetControllerReconcileHandler(t *testing.T) {
 			expectedMachine:     machineFromMachineSet(createMachineSet(1, "foo", "bar2", "acme"), "bar2"),
 		},
 		{
-			name:                "scenario 9: the current machine is being deleted, thus a machine is created.",
+			name:                "scenario 9: the current machine is being deleted, is still counted towards the machine set, no machine resource is created.",
 			startingMachineSets: []*v1alpha1.MachineSet{createMachineSet(1, "foo", "bar2", "acme")},
 			startingMachines:    []*v1alpha1.Machine{setMachineDeleting(machineFromMachineSet(createMachineSet(1, "foo", "bar1", "acme"), "bar1"))},
 			machineSetToSync:    "foo",
 			namespaceToSync:     "acme",
-			expectedActions:     []string{"create"},
-			expectedMachine:     machineFromMachineSet(createMachineSet(1, "foo", "bar2", "acme"), "bar2"),
+			expectedActions:     []string{},
 		},
 		{
 			name:                "scenario 10: the current machine has no controller refs, owner refs preserved, machine should be adopted.",

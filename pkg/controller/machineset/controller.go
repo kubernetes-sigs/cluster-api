@@ -257,11 +257,6 @@ func (c *MachineSetControllerImpl) createMachine(machineSet *v1alpha1.MachineSet
 // shoudExcludeMachine returns true if the machine should be filtered out, false otherwise.
 func shouldExcludeMachine(machineSet *v1alpha1.MachineSet, machine *v1alpha1.Machine) bool {
 	// Ignore inactive machines.
-	if machine.DeletionTimestamp != nil || !machine.DeletionTimestamp.IsZero() {
-		glog.V(4).Infof("Skipping machine (%v), as it is being deleted.", machine.Name)
-		return true
-	}
-
 	if metav1.GetControllerOf(machine) != nil && !metav1.IsControlledBy(machine, machineSet) {
 		glog.V(4).Infof("%s not controlled by %v", machine.Name, machineSet.Name)
 		return true

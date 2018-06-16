@@ -28,6 +28,7 @@ import (
 	"sigs.k8s.io/cluster-api/clusterctl/clusterdeployer/minikube"
 	clusterv1 "sigs.k8s.io/cluster-api/pkg/apis/cluster/v1alpha1"
 	"sigs.k8s.io/cluster-api/util"
+	"sigs.k8s.io/cluster-provider-openstack/cloud/openstack"
 )
 
 type CreateOptions struct {
@@ -145,6 +146,8 @@ func getProvider(provider string) (clusterdeployer.ProviderDeployer, error) {
 		return google.NewMachineActuator(google.MachineActuatorParams{})
 	case "vsphere":
 		return &vsphereAdapter{vsphere.NewDeploymentClient()}, nil
+	case "openstack":
+		return openstack.NewDeploymentClient(), nil
 	default:
 		return nil, fmt.Errorf("Unrecognized provider %v", provider)
 	}

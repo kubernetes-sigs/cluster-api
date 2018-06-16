@@ -37,7 +37,9 @@ MACHINE_CONTROLLER_SSH_PUBLIC=
 MACHINE_CONTROLLER_SSH_PRIVATE_FILE=${OUTPUT_DIR}/machine-controller-key
 MACHINE_CONTROLLER_SSH_PRIVATE=
 MACHINE_CONTROLLER_SSH_USER_PLAIN=clusterapi
-MACHINE_CONTROLLER_SSH_USER=$(echo -n "$MACHINE_CONTROLLER_SSH_USER_PLAIN" | base64 -w0)
+# By default, linux wraps base64 output every 76 cols, so we use 'tr -d' to remove whitespaces.
+# Note 'base64 -w0' doesn't work on Mac OS X, which has different flags.
+MACHINE_CONTROLLER_SSH_USER=$(echo -n "$MACHINE_CONTROLLER_SSH_USER_PLAIN" | base64 | tr -d '\r\n')
 
 
 OVERWRITE=0
@@ -98,7 +100,9 @@ if [ ! -f $MACHINE_CONTROLLER_SA_FILE ]; then
   gcloud projects add-iam-policy-binding $GCLOUD_PROJECT --member=serviceAccount:$MACHINE_CONTROLLER_SA_EMAIL --role=roles/iam.serviceAccountActor
   gcloud iam service-accounts keys create $MACHINE_CONTROLLER_SA_FILE --iam-account $MACHINE_CONTROLLER_SA_EMAIL
 fi
-MACHINE_CONTROLLER_SA_KEY=$(cat $MACHINE_CONTROLLER_SA_FILE|base64 -w0)
+# By default, linux wraps base64 output every 76 cols, so we use 'tr -d' to remove whitespaces.
+# Note 'base64 -w0' doesn't work on Mac OS X, which has different flags.
+MACHINE_CONTROLLER_SA_KEY=$(cat $MACHINE_CONTROLLER_SA_FILE | base64 | tr -d '\r\n')
 
 if [ ! -f $LOADBALANCER_SA_FILE ]; then
   echo Generating $LOADBALANCER_SA_EMAIL service account for loadbalancers
@@ -109,7 +113,9 @@ if [ ! -f $LOADBALANCER_SA_FILE ]; then
   gcloud projects add-iam-policy-binding $GCLOUD_PROJECT --member=serviceAccount:$LOADBALANCER_SA_EMAIL --role=roles/iam.serviceAccountActor
   gcloud iam service-accounts keys create $LOADBALANCER_SA_FILE --iam-account $LOADBALANCER_SA_EMAIL
 fi
-LOADBALANCER_SA_KEY=$(cat $LOADBALANCER_SA_FILE|base64 -w0)
+# By default, linux wraps base64 output every 76 cols, so we use 'tr -d' to remove whitespaces.
+# Note 'base64 -w0' doesn't work on Mac OS X, which has different flags.
+LOADBALANCER_SA_KEY=$(cat $LOADBALANCER_SA_FILE | base64 | tr -d '\r\n')
 
 echo Generating $MASTER_SA_EMAIL service account for masters
 gcloud iam service-accounts create --display-name="master service account" $MASTER_SA_NAME
@@ -134,8 +140,10 @@ if [ ! -f $MACHINE_CONTROLLER_SSH_PRIVATE_FILE ]; then
   ssh-keygen -t rsa -f $MACHINE_CONTROLLER_SSH_PRIVATE_FILE -C $MACHINE_CONTROLLER_SSH_USER_PLAIN -N ""
 fi
 
-MACHINE_CONTROLLER_SSH_PUBLIC=$(cat $MACHINE_CONTROLLER_SSH_PUBLIC_FILE|base64 -w0)
-MACHINE_CONTROLLER_SSH_PRIVATE=$(cat $MACHINE_CONTROLLER_SSH_PRIVATE_FILE|base64 -w0)
+# By default, linux wraps base64 output every 76 cols, so we use 'tr -d' to remove whitespaces.
+# Note 'base64 -w0' doesn't work on Mac OS X, which has different flags.
+MACHINE_CONTROLLER_SSH_PUBLIC=$(cat $MACHINE_CONTROLLER_SSH_PUBLIC_FILE | base64 | tr -d '\r\n')
+MACHINE_CONTROLLER_SSH_PRIVATE=$(cat $MACHINE_CONTROLLER_SSH_PRIVATE_FILE | base64 | tr -d '\r\n')
 
 cat $MACHINE_TEMPLATE_FILE \
   | sed -e "s/\$ZONE/$ZONE/" \

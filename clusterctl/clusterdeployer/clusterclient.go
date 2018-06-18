@@ -33,11 +33,11 @@ import (
 
 const (
 	ApiServerPort              = 443
-	RetryIntervalKubectlApply  = 5 * time.Second
-	RetryIntervalResourceReady = 5 * time.Second
-	TimeoutKubectlApply        = 5 * time.Minute
-	TimeoutResourceReady       = 5 * time.Minute
-	TimeoutMachineReady        = 10 * time.Minute
+	RetryIntervalKubectlApply  = 10 * time.Second
+	RetryIntervalResourceReady = 10 * time.Second
+	TimeoutKubectlApply        = 15 * time.Minute
+	TimeoutResourceReady       = 15 * time.Minute
+	TimeoutMachineReady        = 30 * time.Minute
 )
 
 type clusterClient struct {

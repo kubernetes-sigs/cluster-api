@@ -29,11 +29,8 @@ import (
 
 	"k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/client-go/kubernetes"
-	"k8s.io/client-go/tools/clientcmd"
 	clustercommon "sigs.k8s.io/cluster-api/pkg/apis/cluster/common"
 	clusterv1 "sigs.k8s.io/cluster-api/pkg/apis/cluster/v1alpha1"
-	"sigs.k8s.io/cluster-api/pkg/client/clientset_generated/clientset"
 	client "sigs.k8s.io/cluster-api/pkg/client/clientset_generated/clientset/typed/cluster/v1alpha1"
 )
 
@@ -97,37 +94,6 @@ func GetDefaultKubeConfigPath() string {
 		}
 	}
 	return fmt.Sprintf("%s/config", localDir)
-}
-
-func NewClientSet(configPath string) (*clientset.Clientset, error) {
-	config, err := clientcmd.BuildConfigFromFlags("", configPath)
-	if err != nil {
-		return nil, err
-	}
-
-	cs, err := clientset.NewForConfig(config)
-	if err != nil {
-		return nil, err
-	}
-
-	return cs, nil
-}
-
-func NewKubernetesClient(configPath string) (*kubernetes.Clientset, error) {
-	if _, err := os.Stat(configPath); os.IsNotExist(err) {
-		return nil, fmt.Errorf("kubectl config file %s doesn't exist. Is kubectl configured to access a cluster?", configPath)
-	}
-
-	config, err := clientcmd.BuildConfigFromFlags("", configPath)
-	if err != nil {
-		return nil, err
-	}
-
-	c, err := kubernetes.NewForConfig(config)
-	if err != nil {
-		return nil, err
-	}
-	return c, nil
 }
 
 func GetMachineIfExists(machineClient client.MachineInterface, name string) (*clusterv1.Machine, error) {

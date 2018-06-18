@@ -28,6 +28,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	_ "k8s.io/client-go/plugin/pkg/client/auth/gcp"
 	clusterv1 "sigs.k8s.io/cluster-api/pkg/apis/cluster/v1alpha1"
+	"sigs.k8s.io/cluster-api/pkg/clientcmd"
 	"sigs.k8s.io/cluster-api/util"
 )
 
@@ -257,11 +258,11 @@ func (d *deployer) copyKubeConfig(cluster *clusterv1.Cluster, master *clusterv1.
 }
 
 func (d *deployer) initApiClient() error {
-	c, err := util.NewClientSet(d.configPath)
+	c, err := clientcmd.NewClusterApiClientForDefaultSearchPath(d.configPath)
 	if err != nil {
 		return err
 	}
-	kubernetesClientSet, err := util.NewKubernetesClient(d.configPath)
+	kubernetesClientSet, err := clientcmd.NewCoreClientSetForDefaultSearchPath(d.configPath)
 	if err != nil {
 		return err
 	}

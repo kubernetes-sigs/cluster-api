@@ -262,7 +262,6 @@ chmod a+rx /usr/bin/kubeadm.dl
 
 {{ define "configure" -}}
 KUBELET_VERSION={{ .Machine.Spec.Versions.Kubelet }}
-TOKEN={{ .Token }}
 PORT=443
 MACHINE={{ .Machine.ObjectMeta.Name }}
 CONTROL_PLANE_VERSION={{ .Machine.Spec.Versions.ControlPlane }}
@@ -323,7 +322,6 @@ networking:
   serviceSubnet: ${SERVICE_CIDR}
   podSubnet: ${POD_CIDR}
 kubernetesVersion: v${CONTROL_PLANE_VERSION}
-token: ${TOKEN}
 apiServerCertSANs:
 - ${PUBLICIP}
 - ${PRIVATEIP}

@@ -31,7 +31,6 @@ import (
 )
 
 var (
-	kubeadmToken      = pflag.String("token", "", "Kubeadm token to use to join new machines")
 	namedMachinesPath = pflag.String("namedmachines", "", "path to named machines yaml file")
 )
 
@@ -55,7 +54,7 @@ func main() {
 		glog.Fatalf("Could not create client for talking to the apiserver: %v", err)
 	}
 
-	actuator, err := vsphere.NewMachineActuator(*kubeadmToken, client.ClusterV1alpha1().Machines(corev1.NamespaceDefault), *namedMachinesPath)
+	actuator, err := vsphere.NewMachineActuator(client.ClusterV1alpha1().Machines(corev1.NamespaceDefault), *namedMachinesPath)
 	if err != nil {
 		glog.Fatalf("Could not create vSphere machine actuator: %v", err)
 	}

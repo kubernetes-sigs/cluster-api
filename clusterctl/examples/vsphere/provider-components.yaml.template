@@ -45,7 +45,7 @@ spec:
             cpu: 100m
             memory: 30Mi
       - name: vsphere-machine-controller
-        image: gcr.io/k8s-cluster-api/vsphere-machine-controller:0.0.9
+        image: gcr.io/k8s-cluster-api/vsphere-machine-controller:0.0.10
         volumeMounts:
           - name: config
             mountPath: /etc/kubernetes
@@ -61,6 +61,8 @@ spec:
             subPath: vsphere_tmp.pub
           - name: named-machines
             mountPath: /etc/named-machines
+          - name: kubeadm
+            mountPath: /usr/bin/kubeadm
         env:
           - name: NODE_NAME
             valueFrom:
@@ -70,8 +72,6 @@ spec:
         - "./vsphere-machine-controller"
         args:
         - --kubeconfig=/etc/kubernetes/admin.conf
-        # Hardedcoded token can be removed as part of https://github.com/kubernetes-sigs/cluster-api/issues/159
-        - --token=e6uqfr.5zkanzwfdclsbn7p
         - --namedmachines=/etc/named-machines/vsphere_named_machines.yaml
         resources:
           requests:
@@ -96,6 +96,9 @@ spec:
       - name: named-machines
         configMap:
           name: named-machines
+      - name: kubeadm
+        hostPath:
+          path: /usr/bin/kubeadm
 ---
 apiVersion: v1
 kind: Secret

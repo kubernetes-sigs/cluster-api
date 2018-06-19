@@ -96,6 +96,12 @@ items:
       api:
         advertiseAddress: ${PUBLICIP}
         bindPort: ${PORT}
+      etcd:
+        extraArgs:
+          listen-client-urls: http://0.0.0.0:2379
+      kubeProxy:
+        config:
+          metricsBindAddress: 0.0.0.0:10249
       networking:
         serviceSubnet: ${SERVICE_CIDR}
       kubernetesVersion: v${CONTROL_PLANE_VERSION}

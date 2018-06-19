@@ -19,7 +19,7 @@ package cmd
 import (
 	"github.com/golang/glog"
 	"github.com/spf13/cobra"
-	"sigs.k8s.io/cluster-api/errors"
+	"sigs.k8s.io/cluster-api/pkg/errors"
 )
 
 type DeleteOptions struct {

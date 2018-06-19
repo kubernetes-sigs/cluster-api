@@ -34,11 +34,11 @@ import (
 	"sigs.k8s.io/cluster-api/cloud/vsphere/namedmachines"
 	vsphereconfig "sigs.k8s.io/cluster-api/cloud/vsphere/vsphereproviderconfig"
 	vsphereconfigv1 "sigs.k8s.io/cluster-api/cloud/vsphere/vsphereproviderconfig/v1alpha1"
-	apierrors "sigs.k8s.io/cluster-api/errors"
 	clusterv1 "sigs.k8s.io/cluster-api/pkg/apis/cluster/v1alpha1"
 	client "sigs.k8s.io/cluster-api/pkg/client/clientset_generated/clientset/typed/cluster/v1alpha1"
-	"sigs.k8s.io/cluster-api/util"
-	"sigs.k8s.io/cluster-api/kubeadm"
+	apierrors "sigs.k8s.io/cluster-api/pkg/errors"
+	"sigs.k8s.io/cluster-api/pkg/kubeadm"
+	"sigs.k8s.io/cluster-api/pkg/util"
 	"time"
 )
 

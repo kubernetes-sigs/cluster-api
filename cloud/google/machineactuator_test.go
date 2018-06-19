@@ -9,10 +9,10 @@ import (
 	"sigs.k8s.io/cluster-api/cloud/google"
 	gceconfigv1 "sigs.k8s.io/cluster-api/cloud/google/gceproviderconfig/v1alpha1"
 	"sigs.k8s.io/cluster-api/cloud/google/machinesetup"
-	"sigs.k8s.io/cluster-api/kubeadm"
 	"sigs.k8s.io/cluster-api/pkg/apis/cluster/common"
 	"sigs.k8s.io/cluster-api/pkg/apis/cluster/v1alpha1"
 	"sigs.k8s.io/cluster-api/pkg/cert"
+	"sigs.k8s.io/cluster-api/pkg/kubeadm"
 	"sigs.k8s.io/cluster-api/pkg/test-cmd-runner"
 	"strings"
 	"testing"
@@ -371,9 +371,9 @@ func newGCEMachineProviderConfigFixture() gceconfigv1.GCEMachineProviderConfig {
 			APIVersion: "gceproviderconfig/v1alpha1",
 			Kind:       "GCEMachineProviderConfig",
 		},
-		Zone:    "us-west5-f",
-		OS:      "os-name",
-		Disks:   make([]gceconfigv1.Disk, 0),
+		Zone:  "us-west5-f",
+		OS:    "os-name",
+		Disks: make([]gceconfigv1.Disk, 0),
 	}
 }
 
@@ -383,7 +383,7 @@ func newGCEClusterProviderConfigFixture() gceconfigv1.GCEClusterProviderConfig {
 			APIVersion: "gceproviderconfig/v1alpha1",
 			Kind:       "GCEClusterProviderConfig",
 		},
-		Project:    "project-name-2000",
+		Project: "project-name-2000",
 	}
 }
 

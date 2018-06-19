@@ -3,10 +3,11 @@ package kubeadm_test
 import (
 	"fmt"
 	"os"
-	"sigs.k8s.io/cluster-api/kubeadm"
 	"strings"
 	"testing"
 	"time"
+
+	"sigs.k8s.io/cluster-api/pkg/kubeadm"
 	"sigs.k8s.io/cluster-api/pkg/test-cmd-runner"
 )
 

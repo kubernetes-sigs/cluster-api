@@ -7,7 +7,7 @@ import (
 
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	clusterv1 "sigs.k8s.io/cluster-api/pkg/apis/cluster/v1alpha1"
-	"sigs.k8s.io/cluster-api/util"
+	"sigs.k8s.io/cluster-api/pkg/util"
 )
 
 // Long term, we should retrieve the current status by asking k8s, gce etc. for all the needed info.

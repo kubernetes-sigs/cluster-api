@@ -347,7 +347,7 @@ func TestCreate(t *testing.T) {
 			inputMachines := generateMachines()
 			pcStore := mockProviderComponentsStore{}
 			pcFactory := mockProviderComponentsStoreFactory{NewFromCoreclientsetPCStore: &pcStore}
-			d := clusterdeployer.New(p, f, pd, "", kubeconfigOut, testcase.cleanupExternal)
+			d := clusterdeployer.New(p, f, pd, "", "", kubeconfigOut, testcase.cleanupExternal)
 			err := d.Create(inputCluster, inputMachines, &pcFactory)
 
 			// Validate
@@ -410,7 +410,8 @@ func TestCreateProviderComponentsScenarios(t *testing.T) {
 			inputMachines := generateMachines()
 			pcFactory := mockProviderComponentsStoreFactory{NewFromCoreclientsetPCStore: &tc.pcStore}
 			providerComponentsYaml := "-yaml\ndefinition"
-			d := clusterdeployer.New(p, f, pd, providerComponentsYaml, kubeconfigOut, false)
+			addonsYaml := "-yaml\ndefinition"
+			d := clusterdeployer.New(p, f, pd, providerComponentsYaml, addonsYaml, kubeconfigOut, false)
 			err := d.Create(inputCluster, inputMachines, &pcFactory)
 			if err == nil && tc.expectedError != "" {
 				t.Fatalf("error mismatch: got '%v', want '%v'", err, tc.expectedError)

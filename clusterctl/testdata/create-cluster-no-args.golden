@@ -5,10 +5,11 @@ Usage:
   clusterctl create cluster [flags]
 
 Flags:
+  -a, --addon-components string      A yaml file containing cluster addons to apply to the internal cluster
       --cleanup-external-cluster     Whether to cleanup the external cluster after bootstrap (default true)
   -c, --cluster string               A yaml file containing cluster object definition
   -h, --help                         help for cluster
-      --kubeconfig-out string        where to output the kubeconfig for the provisioned cluster. (default "kubeconfig")
+      --kubeconfig-out string        Where to output the kubeconfig for the provisioned cluster (default "kubeconfig")
   -m, --machines string              A yaml file containing machine object definition(s)
       --provider string              Which provider deployment logic to use (google/vsphere)
   -p, --provider-components string   A yaml file containing cluster api provider controllers and supporting objects

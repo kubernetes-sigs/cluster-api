@@ -34,6 +34,7 @@ type CreateOptions struct {
 	Cluster                string
 	Machine                string
 	ProviderComponents     string
+	AddonComponents        string
 	CleanupExternalCluster bool
 	VmDriver               string
 	Provider               string
@@ -52,6 +53,12 @@ var createClusterCmd = &cobra.Command{
 		}
 		if co.Machine == "" {
 			exitWithHelp(cmd, "Please provide yaml file for machine definition.")
+		}
+		if co.ProviderComponents == "" {
+			exitWithHelp(cmd, "Please provide yaml file for provider component definition.")
+		}
+		if co.AddonComponents == "" {
+			exitWithHelp(cmd, "Please provide yaml file for addon component definition.")
 		}
 		if err := RunCreate(co); err != nil {
 			glog.Exit(err)
@@ -76,7 +83,11 @@ func RunCreate(co *CreateOptions) error {
 	}
 	pc, err := ioutil.ReadFile(co.ProviderComponents)
 	if err != nil {
-		return err
+		return fmt.Errorf("error loading provider components file '%v': %v", co.ProviderComponents, err)
+	}
+	ac, err := ioutil.ReadFile(co.AddonComponents)
+	if err != nil {
+		return fmt.Errorf("error loading addons file '%v': %v", co.AddonComponents, err)
 	}
 	pcsFactory := clusterdeployer.NewProviderComponentsStoreFactory()
 	d := clusterdeployer.New(
@@ -84,10 +95,10 @@ func RunCreate(co *CreateOptions) error {
 		clusterdeployer.NewClientFactory(),
 		pd,
 		string(pc),
+		string(ac),
 		co.KubeconfigOutput,
 		co.CleanupExternalCluster)
-	err = d.Create(c, m, pcsFactory)
-	return err
+	return d.Create(c, m, pcsFactory)
 }
 
 func init() {
@@ -95,13 +106,14 @@ func init() {
 	createClusterCmd.Flags().StringVarP(&co.Cluster, "cluster", "c", "", "A yaml file containing cluster object definition")
 	createClusterCmd.Flags().StringVarP(&co.Machine, "machines", "m", "", "A yaml file containing machine object definition(s)")
 	createClusterCmd.Flags().StringVarP(&co.ProviderComponents, "provider-components", "p", "", "A yaml file containing cluster api provider controllers and supporting objects")
+	createClusterCmd.Flags().StringVarP(&co.AddonComponents, "addon-components", "a", "", "A yaml file containing cluster addons to apply to the internal cluster")
 	// TODO: Remove as soon as code allows https://github.com/kubernetes-sigs/cluster-api/issues/157
 	createClusterCmd.Flags().StringVarP(&co.Provider, "provider", "", "", "Which provider deployment logic to use (google/vsphere)")
 
 	// Optional flags
 	createClusterCmd.Flags().BoolVarP(&co.CleanupExternalCluster, "cleanup-external-cluster", "", true, "Whether to cleanup the external cluster after bootstrap")
 	createClusterCmd.Flags().StringVarP(&co.VmDriver, "vm-driver", "", "", "Which vm driver to use for minikube")
-	createClusterCmd.Flags().StringVarP(&co.KubeconfigOutput, "kubeconfig-out", "", "kubeconfig", "where to output the kubeconfig for the provisioned cluster.")
+	createClusterCmd.Flags().StringVarP(&co.KubeconfigOutput, "kubeconfig-out", "", "kubeconfig", "Where to output the kubeconfig for the provisioned cluster")
 
 	createCmd.AddCommand(createClusterCmd)
 }

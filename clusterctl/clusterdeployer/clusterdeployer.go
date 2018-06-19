@@ -75,6 +75,7 @@ type ClusterDeployer struct {
 	clientFactory          ClientFactory
 	provider               ProviderDeployer
 	providerComponents     string
+	addonComponents        string
 	kubeconfigOutput       string
 	cleanupExternalCluster bool
 }
@@ -84,6 +85,7 @@ func New(
 	clientFactory ClientFactory,
 	provider ProviderDeployer,
 	providerComponents string,
+	addonComponents string,
 	kubeconfigOutput string,
 	cleanupExternalCluster bool) *ClusterDeployer {
 	return &ClusterDeployer{
@@ -91,6 +93,7 @@ func New(
 		clientFactory:          clientFactory,
 		provider:               provider,
 		providerComponents:     providerComponents,
+		addonComponents:        addonComponents,
 		kubeconfigOutput:       kubeconfigOutput,
 		cleanupExternalCluster: cleanupExternalCluster,
 	}
@@ -117,28 +120,24 @@ func (d *ClusterDeployer) Create(cluster *clusterv1.Cluster, machines []*cluster
 	}()
 
 	glog.Info("Applying Cluster API stack to external cluster")
-	err = d.applyClusterAPIStack(externalClient)
-	if err != nil {
+	if err := d.applyClusterAPIStack(externalClient); err != nil {
 		return fmt.Errorf("unable to apply cluster api stack to external cluster: %v", err)
 	}
 
 	glog.Info("Provisioning internal cluster via external cluster")
 
 	glog.Infof("Creating cluster object %v on external cluster", cluster.Name)
-	err = externalClient.CreateClusterObject(cluster)
-	if err != nil {
+	if err := externalClient.CreateClusterObject(cluster); err != nil {
 		return fmt.Errorf("unable to create cluster object: %v", err)
 	}
 
 	glog.Infof("Creating master %v", master.Name)
-	err = externalClient.CreateMachineObjects([]*clusterv1.Machine{master})
-	if err != nil {
+	if err := externalClient.CreateMachineObjects([]*clusterv1.Machine{master}); err != nil {
 		return fmt.Errorf("unable to create master machine: %v", err)
 	}
 
 	glog.Infof("Updating external cluster object with master (%s) endpoint", master.Name)
-	err = d.updateClusterEndpoint(externalClient)
-	if err != nil {
+	if err := d.updateClusterEndpoint(externalClient); err != nil {
 		return fmt.Errorf("unable to update external cluster endpoint: %v", err)
 	}
 
@@ -155,8 +154,7 @@ func (d *ClusterDeployer) Create(cluster *clusterv1.Cluster, machines []*cluster
 	}()
 
 	glog.Info("Applying Cluster API stack to internal cluster")
-	err = d.applyClusterAPIStackWithPivoting(internalClient, externalClient)
-	if err != nil {
+	if err := d.applyClusterAPIStackWithPivoting(internalClient, externalClient); err != nil {
 		return fmt.Errorf("unable to apply cluster api stack to internal cluster: %v", err)
 	}
 
@@ -169,15 +167,18 @@ func (d *ClusterDeployer) Create(cluster *clusterv1.Cluster, machines []*cluster
 	// For some reason, endpoint doesn't get updated in external cluster sometimes. So we
 	// update the internal cluster endpoint as well to be sure.
 	glog.Infof("Updating internal cluster object with master (%s) endpoint", master.Name)
-	err = d.updateClusterEndpoint(internalClient)
-	if err != nil {
+	if err := d.updateClusterEndpoint(internalClient); err != nil {
 		return fmt.Errorf("unable to update internal cluster endpoint: %v", err)
 	}
 
 	glog.Info("Creating node machines in internal cluster.")
-	err = internalClient.CreateMachineObjects(nodes)
-	if err != nil {
+	if err := internalClient.CreateMachineObjects(nodes); err != nil {
 		return fmt.Errorf("unable to create node machines: %v", err)
+	}
+
+	glog.Info("Creating addons in internal cluster.")
+	if err := internalClient.Apply(d.addonComponents); err != nil {
+		return fmt.Errorf("unable to apply addons: %v", err)
 	}
 
 	glog.Infof("Done provisioning cluster. You can now access your cluster with kubectl --kubeconfig %v", d.kubeconfigOutput)

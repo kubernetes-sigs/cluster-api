@@ -171,7 +171,7 @@ func TestMinimumSizeShouldBeEnforced(t *testing.T) {
 	receivedInstance, computeServiceMock := newInsertInstanceCapturingMock()
 	createClusterAndFailOnError(t, config, computeServiceMock, nil)
 	checkInstanceValues(t, receivedInstance, 1)
-	checkDiskValues(t, receivedInstance.Disks[0], true, 30, "pd-ssd", "projects/ubuntu-os-cloud/global/images/family/ubuntu-1710")
+	checkDiskValues(t, receivedInstance.Disks[0], true, 30, "pd-ssd", "projects/ubuntu-os-cloud/global/images/family/ubuntu-1604-lts")
 }
 
 func TestOneDisk(t *testing.T) {
@@ -187,7 +187,7 @@ func TestOneDisk(t *testing.T) {
 	receivedInstance, computeServiceMock := newInsertInstanceCapturingMock()
 	createClusterAndFailOnError(t, config, computeServiceMock, nil)
 	checkInstanceValues(t, receivedInstance, 1)
-	checkDiskValues(t, receivedInstance.Disks[0], true, 37, "pd-ssd", "projects/ubuntu-os-cloud/global/images/family/ubuntu-1710")
+	checkDiskValues(t, receivedInstance.Disks[0], true, 37, "pd-ssd", "projects/ubuntu-os-cloud/global/images/family/ubuntu-1604-lts")
 }
 
 func TestTwoDisks(t *testing.T) {
@@ -209,7 +209,7 @@ func TestTwoDisks(t *testing.T) {
 	receivedInstance, computeServiceMock := newInsertInstanceCapturingMock()
 	createClusterAndFailOnError(t, config, computeServiceMock, nil)
 	checkInstanceValues(t, receivedInstance, 2)
-	checkDiskValues(t, receivedInstance.Disks[0], true, 32, "pd-ssd", "projects/ubuntu-os-cloud/global/images/family/ubuntu-1710")
+	checkDiskValues(t, receivedInstance.Disks[0], true, 32, "pd-ssd", "projects/ubuntu-os-cloud/global/images/family/ubuntu-1604-lts")
 	checkDiskValues(t, receivedInstance.Disks[1], false, 45, "pd-standard", "")
 }
 

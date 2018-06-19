@@ -29,7 +29,8 @@ import (
 	"time"
 )
 
-// Provider specific logic. Logic here should eventually be optional & additive.
+// Deprecated interface for Provider specific logic. Please do not extend or add. This interface should be removed
+// once issues/158 and issues/160 below are fixed.
 type ProviderDeployer interface {
 	// TODO: This requirement can be removed once after: https://github.com/kubernetes-sigs/cluster-api/issues/158
 	GetIP(cluster *clusterv1.Cluster, machine *clusterv1.Machine) (string, error)

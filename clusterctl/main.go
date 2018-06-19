@@ -16,7 +16,11 @@ limitations under the License.
 
 package main
 
-import "sigs.k8s.io/cluster-api/clusterctl/cmd"
+import (
+	_ "sigs.k8s.io/cluster-api/cloud/google"
+	_ "sigs.k8s.io/cluster-api/cloud/vsphere"
+	"sigs.k8s.io/cluster-api/clusterctl/cmd"
+)
 
 func main() {
 	cmd.Execute()

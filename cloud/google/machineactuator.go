@@ -44,6 +44,7 @@ import (
 	"sigs.k8s.io/cluster-api/cloud/google/clients"
 	gceconfigv1 "sigs.k8s.io/cluster-api/cloud/google/gceproviderconfig/v1alpha1"
 	"sigs.k8s.io/cluster-api/cloud/google/machinesetup"
+	clustercommon "sigs.k8s.io/cluster-api/pkg/apis/cluster/common"
 	clusterv1 "sigs.k8s.io/cluster-api/pkg/apis/cluster/v1alpha1"
 	"sigs.k8s.io/cluster-api/pkg/cert"
 	client "sigs.k8s.io/cluster-api/pkg/client/clientset_generated/clientset/typed/cluster/v1alpha1"
@@ -62,6 +63,7 @@ const (
 	// This file is a yaml that will be used to create the machine-setup configmap on the machine controller.
 	// It contains the supported machine configurations along with the startup scripts and OS image paths that correspond to each supported configuration.
 	MachineSetupConfigsFilename = "machine_setup_configs.yaml"
+	ProviderName                = "google"
 )
 
 const (
@@ -69,6 +71,14 @@ const (
 	deleteEventAction = "Delete"
 	noEventAction     = ""
 )
+
+func init() {
+	actuator, err := NewMachineActuator(MachineActuatorParams{})
+	if err != nil {
+		glog.Fatalf("Error creating cluster provisioner for google : %v", err)
+	}
+	clustercommon.RegisterClusterProvisioner(ProviderName, actuator)
+}
 
 type SshCreds struct {
 	user           string

@@ -449,7 +449,7 @@ func (vc *VsphereClient) PostDelete(cluster *clusterv1.Cluster) error {
 func (vc *VsphereClient) Update(cluster *clusterv1.Cluster, goalMachine *clusterv1.Machine) error {
 	// Check if the annotations we want to track exist, if not, the user likely created a master machine with their own annotation.
 	if _, ok := goalMachine.ObjectMeta.Annotations[ControlPlaneVersionAnnotationKey]; !ok {
-		ip, _ := vc.DeploymentClient.GetIP(goalMachine)
+		ip, _ := vc.DeploymentClient.GetIP(nil, goalMachine)
 		glog.Info("Version annotations do not exist. Populating existing state for bootstrapped machine.")
 		tfState, _ := vc.GetTfState(goalMachine)
 		return vc.updateAnnotations(goalMachine, ip, tfState)
@@ -571,7 +571,7 @@ func (vc *VsphereClient) updateMasterInPlace(machine *clusterv1.Machine) error {
 func (vc *VsphereClient) remoteSshCommand(m *clusterv1.Machine, cmd, privateKeyPath, sshUser string) (string, error) {
 	glog.Infof("Remote SSH execution '%s' on %s", cmd, m.ObjectMeta.Name)
 
-	publicIP, err := vc.DeploymentClient.GetIP(m)
+	publicIP, err := vc.DeploymentClient.GetIP(nil, m)
 	if err != nil {
 		return "", err
 	}

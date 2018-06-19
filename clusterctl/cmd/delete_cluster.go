@@ -23,7 +23,8 @@ import (
 )
 
 type DeleteOptions struct {
-	ClusterName string
+	ClusterName        string
+	ProviderComponents string
 }
 
 var do = &DeleteOptions{}
@@ -43,6 +44,7 @@ var deleteClusterCmd = &cobra.Command{
 }
 
 func init() {
+	deleteClusterCmd.Flags().StringVarP(&do.ProviderComponents, "provider-components", "p", "", "A yaml file containing cluster api provider controllers and supporting objects, if empty the value is loaded from the cluster's configuration store.")
 	deleteCmd.AddCommand(deleteClusterCmd)
 }
 

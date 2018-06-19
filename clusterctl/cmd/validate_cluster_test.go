@@ -19,7 +19,7 @@ package cmd
 import (
 	"testing"
 
-	"sigs.k8s.io/cluster-api/errors"
+	"sigs.k8s.io/cluster-api/pkg/errors"
 )
 
 func TestRunValidateCluster(t *testing.T) {

@@ -29,8 +29,7 @@ import (
 	"sigs.k8s.io/cluster-api/pkg/cert"
 	"sigs.k8s.io/cluster-api/pkg/client/clientset_generated/clientset"
 	"sigs.k8s.io/cluster-api/pkg/client/clientset_generated/clientset/typed/cluster/v1alpha1"
-	"sigs.k8s.io/cluster-api/util"
-	apiutil "sigs.k8s.io/cluster-api/util"
+	"sigs.k8s.io/cluster-api/pkg/util"
 )
 
 type deployer struct {
@@ -50,7 +49,7 @@ func NewDeployer(provider string, kubeConfigPath string, machineSetupConfigPath 
 	if kubeConfigPath == "" {
 		kubeConfigPath = os.Getenv("KUBECONFIG")
 		if kubeConfigPath == "" {
-			kubeConfigPath = apiutil.GetDefaultKubeConfigPath()
+			kubeConfigPath = util.GetDefaultKubeConfigPath()
 		}
 	} else {
 		// This is needed for kubectl commands run later to create secret in function

@@ -25,7 +25,7 @@ import (
 	"sigs.k8s.io/cluster-api/pkg/client/clientset_generated/clientset"
 	listers "sigs.k8s.io/cluster-api/pkg/client/listers_generated/cluster/v1alpha1"
 	"sigs.k8s.io/cluster-api/pkg/controller/sharedinformers"
-	"sigs.k8s.io/cluster-api/util"
+	"sigs.k8s.io/cluster-api/pkg/util"
 )
 
 // +controller:group=cluster,version=v1alpha1,kind=Cluster,resource=clusters

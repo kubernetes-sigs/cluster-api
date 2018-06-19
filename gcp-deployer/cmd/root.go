@@ -25,7 +25,7 @@ import (
 	"github.com/spf13/cobra"
 	"k8s.io/apiserver/pkg/util/logs"
 	clusterv1 "sigs.k8s.io/cluster-api/pkg/apis/cluster/v1alpha1"
-	"sigs.k8s.io/cluster-api/util"
+	"sigs.k8s.io/cluster-api/pkg/util"
 )
 
 var RootCmd = &cobra.Command{

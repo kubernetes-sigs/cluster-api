@@ -25,7 +25,7 @@ import (
 	"k8s.io/client-go/tools/cache"
 
 	"sigs.k8s.io/cluster-api/pkg/controller/noderefutil"
-	"sigs.k8s.io/cluster-api/util"
+	"sigs.k8s.io/cluster-api/pkg/util"
 )
 
 const (

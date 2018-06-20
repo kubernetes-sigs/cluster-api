@@ -76,6 +76,99 @@ func TestEmptyAndInvalidArgs(t *testing.T) {
 	}
 }
 
+func TestCreateAndDelete(t *testing.T) {
+	tempDir, err := ioutil.TempDir("", workingDirectoryName)
+	if err != nil {
+		t.Fatalf("unable to create temporary folder: %v", err)
+	}
+	defer os.RemoveAll(tempDir)
+	generateYaml(t, tempDir)
+	kubeconfigPath := "kubeconfig"
+	err = runClusterctlPipeOuputs(tempDir,"create", "cluster",
+		"-c", "cluster.yaml", "-m", "machines.yaml", "-p", "provider-components.yaml", "--kubeconfig-out", kubeconfigPath, "--provider", "google")
+	if err != nil {
+		t.Fatalf("error running clusterctl create cluster: %v", err)
+	}
+	err = runClusterctlPipeOuputs(tempDir,"delete", "cluster", "--kubeconfig", kubeconfigPath)
+	if err != nil {
+		t.Fatalf("error running clusterctl delete cluster: %v", err)
+	}
+}
+
+func generateYaml(t *testing.T, outputPath string) {
+	t.Helper()
+	examplesDir := "examples/google"
+	tempDir, err := ioutil.TempDir("", workingDirectoryName)
+	if err != nil {
+		t.Fatalf("unable to create temporary folder: %v", err)
+	}
+	defer os.RemoveAll(tempDir)
+	err = copyDirectoryNoRecursion(examplesDir, tempDir)
+	if err != nil {
+		t.Fatalf("error copying directory: %v", err)
+	}
+	err = runCmdPipeOutput(tempDir, path.Join(tempDir, "generate-yaml.sh"))
+	if err != nil {
+		t.Fatalf("error running generate-yaml.sh: %v", err)
+	}
+	outputDir := path.Join(tempDir, "out")
+	err = copyDirectoryNoRecursion(outputDir, outputPath)
+	if err != nil {
+		t.Fatalf("error copying generated files from '%v' to '%v': %v", outputDir, outputPath, err)
+	}
+}
+
+func copyDirectoryNoRecursion(src, dst string) (error) {
+	_, err := os.Stat(dst)
+	if os.IsNotExist(err) {
+		err = os.MkdirAll(dst, 0777)
+	}
+	if err != nil {
+		return err
+	}
+	stat, err := os.Stat(src)
+	if err != nil {
+		return fmt.Errorf("error inspecting src '%v': %v", src, err)
+	}
+	if stat.IsDir() {
+		fileInfos, err := ioutil.ReadDir(src)
+		if err != nil {
+			return fmt.Errorf("error listing examples directory of '%v': %v", src, err)
+		}
+		for _, fi := range fileInfos {
+			if fi.IsDir() {
+				continue
+			}
+			srcFile := path.Join(src, fi.Name())
+			_, err := copyFileToDir(srcFile, dst)
+			if err != nil {
+				return fmt.Errorf("error copying file '%v' to '%v': %v", srcFile, dst, err)
+			}
+		}
+	} else {
+		copyFileToDir(src, dst)
+	}
+	return nil
+}
+
+func copyFileToDir(src string, dstDir string) (fpath string, err error) {
+	bytes, err := ioutil.ReadFile(src)
+	if err != nil {
+		return "", fmt.Errorf("unable to read file: %v", err)
+	}
+	info, err := os.Stat(src)
+	if err != nil {
+		return "", err
+	}
+	_, fname := path.Split(src)
+	fpath = path.Join(dstDir, fname)
+	err = ioutil.WriteFile(fpath, bytes, info.Mode())
+	if err != nil {
+		return "", fmt.Errorf("unable to write file: %v", err)
+	}
+	return fpath, nil
+}
+
 func compareExitCode(t *testing.T, err error, expectedExitCode int) {
 	if expectedExitCode == 0 {
 		if err != nil {
@@ -180,4 +273,22 @@ func runCmd(workDir string, cmd string, args ...string) (string, error) {
 	fmt.Printf("Running command: %v\n", cmdStr)
 	output, err := command.CombinedOutput()
 	return string(output), err
+}
+
+func runClusterctlPipeOuputs(workDir string, args ...string) error {
+	testWd, err := os.Getwd()
+	if err != nil {
+		return fmt.Errorf("unable to retrieve working directory: %v", err)
+	}
+	return runCmdPipeOutput(workDir, path.Join(testWd, clusterctlBinaryName), args...)
+}
+
+func runCmdPipeOutput(workDir string, cmd string, args ...string) error {
+	command := exec.Command(cmd, args...)
+	command.Stdout = os.Stdout
+	command.Stderr = os.Stderr
+	command.Dir = workDir
+	cmdStr := fmt.Sprintf("%v %v", cmd, strings.Join(args, " "))
+	fmt.Printf("Running command: %v\n", cmdStr)
+	return command.Run()
 }

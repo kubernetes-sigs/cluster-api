@@ -80,6 +80,15 @@ func NewCodec() (*GCEProviderConfigCodec, error) {
 	return &codec, nil
 }
 
+func (codec *GCEProviderConfigCodec) ClusterProviderFromProviderConfig(providerConfig clusterv1.ProviderConfig) (*GCEClusterProviderConfig, error) {
+	var config GCEClusterProviderConfig
+	err := codec.DecodeFromProviderConfig(providerConfig, &config)
+	if err != nil {
+		return nil, err
+	}
+	return &config, nil
+}
+
 func (codec *GCEProviderConfigCodec) DecodeFromProviderConfig(providerConfig clusterv1.ProviderConfig, out runtime.Object) (error) {
 	_, _, err := codec.decoder.Decode(providerConfig.Value.Raw, nil, out)
 	if err != nil {

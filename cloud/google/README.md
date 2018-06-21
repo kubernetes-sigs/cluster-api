@@ -17,9 +17,10 @@ If your cluster was created using the gcp-deployer tool, see the
    export MACHINE_CONTROLLER_SERVICE_ACCOUNT=$(kubectl get cluster -o=jsonpath='{.items[0].metadata.annotations.gce\.clusterapi\.k8s\.io\/service-account-k8s-machine-controller}')
    ```
 
-1. Remember the name and zone of the master VM
+1. Remember the name and zone of the master VM and the name of the cluster
 
    ```bash
+   export CLUSTER_NAME=$(kubectl get cluster -o=jsonpath='{.items[0].metadata.name}')
    export MASTER_VM_NAME=$(kubectl get machines -l set=master | awk '{print $1}' | tail -n +2)
    export MASTER_VM_ZONE=$(kubectl get machines -l set=master -o=jsonpath='{.items[0].metadata.annotations.gcp-zone}')
    ```
@@ -61,4 +62,11 @@ behalf, make sure to run these commands for each namespace that you created:
 
    ```bash
    ./delete-service-accounts.sh
+   ```
+
+1. Delete the Firewall rules that were created for the cluster
+
+   ```bash
+   gcloud compute firewall-rules delete $CLUSTER_NAME-allow-cluster-internal
+   gcloud compute firewall-rules delete $CLUSTER_NAME-allow-api-public
    ```

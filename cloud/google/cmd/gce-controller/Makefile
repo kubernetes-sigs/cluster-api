@@ -18,7 +18,7 @@ GCR_BUCKET = k8s-cluster-api
 PREFIX = gcr.io/$(GCR_BUCKET)
 DEV_PREFIX ?= gcr.io/$(shell gcloud config get-value project)
 NAME = gce-controller
-TAG = 0.0.13
+TAG = 0.0.14
 
 image:
 	docker build -t "$(PREFIX)/$(NAME):$(TAG)" -f ./Dockerfile ../../../..

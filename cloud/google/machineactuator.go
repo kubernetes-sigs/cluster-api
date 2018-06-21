@@ -14,12 +14,10 @@ limitations under the License.
 package google
 
 import (
-	"bytes"
 	"errors"
 	"fmt"
 	"io/ioutil"
 	"os"
-	"path"
 	"reflect"
 	"strings"
 	"time"
@@ -75,15 +73,6 @@ type GCEClientMachineSetupConfigGetter interface {
 	GetMachineSetupConfig() (machinesetup.MachineSetupConfig, error)
 }
 
-type GCEClientComputeService interface {
-	ImagesGet(project string, image string) (*compute.Image, error)
-	ImagesGetFromFamily(project string, family string) (*compute.Image, error)
-	InstancesDelete(project string, zone string, targetInstance string) (*compute.Operation, error)
-	InstancesGet(project string, zone string, instance string) (*compute.Instance, error)
-	InstancesInsert(project string, zone string, instance *compute.Instance) (*compute.Operation, error)
-	ZoneOperationsGet(project string, zone string, operation string) (*compute.Operation, error)
-}
-
 type GCEClient struct {
 	certificateAuthority     *cert.CertificateAuthority
 	computeService           GCEClientComputeService
@@ -104,11 +93,6 @@ type MachineActuatorParams struct {
 	V1Alpha1Client           client.ClusterV1alpha1Interface
 	MachineSetupConfigGetter GCEClientMachineSetupConfigGetter
 }
-
-const (
-	gceTimeout   = time.Minute * 10
-	gceWaitSleep = time.Second * 5
-)
 
 func NewMachineActuator(params MachineActuatorParams) (*GCEClient, error) {
 	computeService, err := getOrNewComputeServiceForMachine(params)
@@ -294,7 +278,7 @@ func (gce *GCEClient) Create(cluster *clusterv1.Cluster, machine *clusterv1.Mach
 		})
 
 		if err == nil {
-			err = gce.waitForOperation(clusterConfig, op)
+			err = gce.computeService.WaitForOperation(clusterConfig.Project, op)
 		}
 
 		if err != nil {
@@ -358,7 +342,7 @@ func (gce *GCEClient) Delete(cluster *clusterv1.Cluster, machine *clusterv1.Mach
 
 	op, err := gce.computeService.InstancesDelete(project, zone, name)
 	if err == nil {
-		err = gce.waitForOperation(clusterConfig, op)
+		err = gce.computeService.WaitForOperation(clusterConfig.Project, op)
 	}
 	if err != nil {
 		return gce.handleMachineError(machine, apierrors.DeleteMachine(
@@ -612,47 +596,6 @@ func (gce *GCEClient) machineproviderconfig(providerConfig clusterv1.ProviderCon
 		return nil, err
 	}
 	return &config, nil
-}
-
-func (gce *GCEClient) waitForOperation(c *gceconfigv1.GCEClusterProviderConfig, op *compute.Operation) error {
-	glog.Infof("Wait for %v %q...", op.OperationType, op.Name)
-	defer glog.Infof("Finish wait for %v %q...", op.OperationType, op.Name)
-
-	start := time.Now()
-	ctx, cf := context.WithTimeout(context.Background(), gceTimeout)
-	defer cf()
-
-	var err error
-	for {
-		if err = gce.checkOp(op, err); err != nil || op.Status == "DONE" {
-			return err
-		}
-		glog.V(1).Infof("Wait for %v %q: %v (%d%%): %v", op.OperationType, op.Name, op.Status, op.Progress, op.StatusMessage)
-		select {
-		case <-ctx.Done():
-			return fmt.Errorf("gce operation %v %q timed out after %v", op.OperationType, op.Name, time.Since(start))
-		case <-time.After(gceWaitSleep):
-		}
-		op, err = gce.getOp(c, op)
-	}
-}
-
-// getOp returns an updated operation.
-func (gce *GCEClient) getOp(c *gceconfigv1.GCEClusterProviderConfig, op *compute.Operation) (*compute.Operation, error) {
-	return gce.computeService.ZoneOperationsGet(c.Project, path.Base(op.Zone), op.Name)
-}
-
-func (gce *GCEClient) checkOp(op *compute.Operation, err error) error {
-	if err != nil || op.Error == nil || len(op.Error.Errors) == 0 {
-		return err
-	}
-
-	var errs bytes.Buffer
-	for _, v := range op.Error.Errors {
-		errs.WriteString(v.Message)
-		errs.WriteByte('\n')
-	}
-	return errors.New(errs.String())
 }
 
 func (gce *GCEClient) updateMasterInplace(cluster *clusterv1.Cluster, oldMachine *clusterv1.Machine, newMachine *clusterv1.Machine) error {

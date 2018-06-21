@@ -12,9 +12,9 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-.PHONY: genapi genconversion genclientset
+.PHONY: genapi genconversion genclientset gendeepcopy
 
-all: genapi genconversion genclientset
+all: genapi genconversion genclientset gendeepcopy
 
 genapi:
 	go install github.com/kubernetes-incubator/apiserver-builder/cmd/apiregister-gen
@@ -22,7 +22,7 @@ genapi:
 
 genconversion:
 	go install k8s.io/code-generator/cmd/conversion-gen
-	conversion-gen -i ./pkg/apis/cluster/v1alpha1/ -O zz_generated.conversion
+	conversion-gen -i ./pkg/apis/cluster/v1alpha1/ -O zz_generated.conversion --go-header-file boilerplate.go.txt
 
 genclientset:
 	go build -o $$GOPATH/bin/client-gen sigs.k8s.io/cluster-api/vendor/k8s.io/code-generator/cmd/client-gen
@@ -33,3 +33,11 @@ genclientset:
 		--output-package "sigs.k8s.io/cluster-api/pkg/client/clientset_generated" \
 		--go-header-file boilerplate.go.txt \
 		--clientset-path sigs.k8s.io/cluster-api/pkg/client/clientset_generated
+
+gendeepcopy:
+	go build -o $$GOPATH/bin/deepcopy-gen sigs.k8s.io/cluster-api/vendor/k8s.io/code-generator/cmd/deepcopy-gen
+	deepcopy-gen \
+	  -i ./pkg/apis/cluster/v1alpha1/,./cloud/google/gceproviderconfig/v1alpha1,./cloud/google/gceproviderconfig,./cloud/vsphere/vsphereproviderconfig/v1alpha1,./cloud/vsphere/vsphereproviderconfig \
+	  -O zz_generated.deepcopy \
+	  -h boilerplate.go.txt
+

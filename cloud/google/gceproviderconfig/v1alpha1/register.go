@@ -16,6 +16,7 @@ package v1alpha1
 import (
 	"bytes"
 	"fmt"
+
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/runtime/serializer"
@@ -23,6 +24,7 @@ import (
 	clusterv1 "sigs.k8s.io/cluster-api/pkg/apis/cluster/v1alpha1"
 )
 
+// +k8s:deepcopy-gen=false
 type GCEProviderConfigCodec struct {
 	encoder runtime.Encoder
 	decoder runtime.Decoder
@@ -89,7 +91,7 @@ func (codec *GCEProviderConfigCodec) ClusterProviderFromProviderConfig(providerC
 	return &config, nil
 }
 
-func (codec *GCEProviderConfigCodec) DecodeFromProviderConfig(providerConfig clusterv1.ProviderConfig, out runtime.Object) (error) {
+func (codec *GCEProviderConfigCodec) DecodeFromProviderConfig(providerConfig clusterv1.ProviderConfig, out runtime.Object) error {
 	_, _, err := codec.decoder.Decode(providerConfig.Value.Raw, nil, out)
 	if err != nil {
 		return fmt.Errorf("decoding failure: %v", err)

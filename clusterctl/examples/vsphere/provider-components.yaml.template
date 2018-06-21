@@ -345,6 +345,7 @@ data:
               $${startup_script}
             path: /tmp/node.sh
             permissions: '0755'
+            encoding: base64
         runcmd:
           - /tmp/node.sh
         EOF

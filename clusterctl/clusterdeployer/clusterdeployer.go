@@ -154,16 +154,16 @@ func (d *ClusterDeployer) Create(cluster *clusterv1.Cluster, machines []*cluster
 		}
 	}()
 
-	glog.Info("Saving provider components to the internal cluster")
-	err = d.saveProviderComponentsToCluster(providerComponentsStoreFactory, d.kubeconfigOutput)
-	if err != nil {
-		return fmt.Errorf("unable to save provider components to internal cluster: %v", err)
-	}
-
 	glog.Info("Applying Cluster API stack to internal cluster")
 	err = d.applyClusterAPIStackWithPivoting(internalClient, externalClient)
 	if err != nil {
 		return fmt.Errorf("unable to apply cluster api stack to internal cluster: %v", err)
+	}
+
+	glog.Info("Saving provider components to the internal cluster")
+	err = d.saveProviderComponentsToCluster(providerComponentsStoreFactory, d.kubeconfigOutput)
+	if err != nil {
+		return fmt.Errorf("unable to save provider components to internal cluster: %v", err)
 	}
 
 	// For some reason, endpoint doesn't get updated in external cluster sometimes. So we

@@ -80,7 +80,7 @@ func (pc *Store) saveToConfigMap(providerComponents string) error {
 			},
 		}
 	} else if err != nil {
-		return err
+		return fmt.Errorf("unable to get configmap '%v': %v", configMapName, err)
 	}
 	if configMap.Data == nil {
 		configMap.Data = make(map[string]string)

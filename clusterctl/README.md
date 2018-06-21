@@ -22,11 +22,11 @@ $ go build
 TBD
 
 ### Creating a cluster
-1. Create a `cluster.yaml`, `machines.yaml` and `provider-components.yaml` files configured for your cluster. See the provider specific templates and generation tools at `$GOPATH/src/sigs.k8s.io/cluster-api/clusterctl/examples/<provider>`. 
+1. Create the `cluster.yaml`, `machines.yaml`, `provider-components.yaml`, and `addons.yaml` files configured for your cluster. See the provider specific templates and generation tools at `$GOPATH/src/sigs.k8s.io/cluster-api/clusterctl/examples/<provider>`.
 2. Create a cluster 
 
 ```shell
-clusterctl create cluster --provider [google/vsphere] -c cluster.yaml -m machines.yaml -p provider-components.yaml
+clusterctl create cluster --provider [google/vsphere] -c cluster.yaml -m machines.yaml -p provider-components.yaml -a addons.yaml
 ```
 
 To choose a specific minikube driver, please use the `--vm-driver` command line parameter. For example to use the kvm2 driver with clusterctl you woud add `--vm-driver kvm2`

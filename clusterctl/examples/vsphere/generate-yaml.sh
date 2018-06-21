@@ -79,4 +79,4 @@ cat $PROVIDERCOMPONENT_TEMPLATE_FILE \
   > $PROVIDERCOMPONENT_GENERATED_FILE
 
 echo "Done generating $PROVIDERCOMPONENT_GENERATED_FILE"
-echo "You will still need to generate the cluster.yaml and machines.yaml"
+echo "You will still need to generate the cluster.yaml,  machines.yaml, and addons.yaml configuration files"

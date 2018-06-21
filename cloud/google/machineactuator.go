@@ -17,6 +17,7 @@ import (
 	"errors"
 	"fmt"
 	"io/ioutil"
+	"net/http"
 	"os"
 	"reflect"
 	"strings"
@@ -26,6 +27,7 @@ import (
 	"golang.org/x/net/context"
 	"golang.org/x/oauth2/google"
 	compute "google.golang.org/api/compute/v1"
+	"google.golang.org/api/googleapi"
 
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -579,8 +581,7 @@ func (gce *GCEClient) instanceIfExists(cluster *clusterv1.Cluster, machine *clus
 
 	instance, err := gce.computeService.InstancesGet(clusterConfig.Project, machineConfig.Zone, identifyingMachine.ObjectMeta.Name)
 	if err != nil {
-		// TODO: Use formal way to check for error code 404
-		if strings.Contains(err.Error(), "Error 404") {
+		if gerr, ok := err.(*googleapi.Error); ok && gerr.Code == http.StatusNotFound {
 			return nil, nil
 		}
 		return nil, err

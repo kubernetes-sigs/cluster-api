@@ -96,28 +96,28 @@ func (c *GCEClientComputeServiceMock) GlobalOperationsGet(project string, operat
 }
 
 func (c *GCEClientComputeServiceMock) FirewallsGet(project string) (*compute.FirewallList, error) {
-	if c.mockZoneOperationsGet == nil {
+	if c.mockFirewallsGet == nil {
 		return nil, nil
 	}
 	return c.mockFirewallsGet(project)
 }
 
 func (c *GCEClientComputeServiceMock) FirewallsInsert(project string, firewallRule *compute.Firewall) (*compute.Operation, error) {
-	if c.mockZoneOperationsGet == nil {
+	if c.mockFirewallsInsert == nil {
 		return nil, nil
 	}
 	return c.mockFirewallsInsert(project, firewallRule)
 }
 
 func (c *GCEClientComputeServiceMock) FirewallsDelete(project string, name string) (*compute.Operation, error) {
-	if c.mockZoneOperationsGet == nil {
+	if c.mockFirewallsDelete == nil {
 		return nil, nil
 	}
 	return c.mockFirewallsDelete(project, name)
 }
 
 func (c *GCEClientComputeServiceMock) WaitForOperation(project string, op *compute.Operation) error {
-	if c.mockZoneOperationsGet == nil {
+	if c.mockWaitForOperation == nil {
 		return nil
 	}
 	return c.mockWaitForOperation(project, op)

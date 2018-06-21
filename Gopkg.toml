@@ -21,8 +21,9 @@
 #  version = "2.4.0"
 
 required = [
-  "github.com/Azure/go-autorest/autorest/adal", # added so we can apply the constraint below
-  "k8s.io/code-generator/cmd/conversion-gen"
+  "github.com/kubernetes-incubator/apiserver-builder/cmd/apiregister-gen",
+  "k8s.io/code-generator/cmd/conversion-gen",
+  "k8s.io/code-generator/cmd/client-gen",
 ]
 
 [[constraint]]
@@ -52,11 +53,6 @@ required = [
 [[constraint]]
   name = "k8s.io/client-go"
   branch = "release-6.0"
-
-# client-go needs this version
-[[constraint]]
-  name = "github.com/Azure/go-autorest"
-  version = "v9.1.0"
 
 [[constraint]]
   name = "github.com/kubernetes-incubator/apiserver-builder"

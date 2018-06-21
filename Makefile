@@ -14,17 +14,22 @@
 
 .PHONY: genapi genconversion genclientset gendeepcopy
 
-all: genapi genconversion genclientset gendeepcopy
+all: generate build images
 
-genapi:
-	go install github.com/kubernetes-incubator/apiserver-builder/cmd/apiregister-gen
+depend:
+	dep ensure
+
+generate: genapi genconversion genclientset gendeepcopy
+
+genapi: depend
+	go build -o $$GOPATH/bin/apiregister-gen sigs.k8s.io/cluster-api/vendor/github.com/kubernetes-incubator/apiserver-builder/cmd/apiregister-gen
 	apiregister-gen -i ./pkg/apis,./pkg/apis/cluster/v1alpha1
 
-genconversion:
-	go install k8s.io/code-generator/cmd/conversion-gen
+genconversion: depend
+	go build -o $$GOPATH/bin/conversion-gen sigs.k8s.io/cluster-api/vendor/k8s.io/code-generator/cmd/conversion-gen
 	conversion-gen -i ./pkg/apis/cluster/v1alpha1/ -O zz_generated.conversion --go-header-file boilerplate.go.txt
 
-genclientset:
+genclientset: depend
 	go build -o $$GOPATH/bin/client-gen sigs.k8s.io/cluster-api/vendor/k8s.io/code-generator/cmd/client-gen
 	client-gen \
 	  --input="cluster/v1alpha1" \
@@ -41,3 +46,14 @@ gendeepcopy:
 	  -O zz_generated.deepcopy \
 	  -h boilerplate.go.txt
 
+build: depend
+	CGO_ENABLED=0 go install -a -ldflags '-extldflags "-static"' sigs.k8s.io/cluster-api/cloud/google/cmd/gce-controller
+	CGO_ENABLED=0 go install -a -ldflags '-extldflags "-static"' sigs.k8s.io/cluster-api/cloud/vsphere/cmd/vsphere-machine-controller
+	CGO_ENABLED=0 go install -a -ldflags '-extldflags "-static"' sigs.k8s.io/cluster-api/cmd/apiserver
+	CGO_ENABLED=0 go install -a -ldflags '-extldflags "-static"' sigs.k8s.io/cluster-api/cmd/controller-manager
+
+images: depend
+	$(MAKE) -C cloud/google/cmd/gce-controller image
+	$(MAKE) -C cloud/vsphere/cmd/vsphere-machine-controller image
+	$(MAKE) -C cmd/apiserver image
+	$(MAKE) -C cmd/controller-manager image

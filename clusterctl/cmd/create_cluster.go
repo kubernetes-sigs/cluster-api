@@ -17,11 +17,13 @@ limitations under the License.
 package cmd
 
 import (
+	"errors"
 	"fmt"
+	"io/ioutil"
+
 	"github.com/ghodss/yaml"
 	"github.com/golang/glog"
 	"github.com/spf13/cobra"
-	"io/ioutil"
 	"sigs.k8s.io/cluster-api/cloud/google"
 	"sigs.k8s.io/cluster-api/cloud/vsphere"
 	"sigs.k8s.io/cluster-api/clusterctl/clusterdeployer"
@@ -96,7 +98,7 @@ func init() {
 	createClusterCmd.Flags().StringVarP(&co.Machine, "machines", "m", "", "A yaml file containing machine object definition(s)")
 	createClusterCmd.Flags().StringVarP(&co.ProviderComponents, "provider-components", "p", "", "A yaml file containing cluster api provider controllers and supporting objects")
 	// TODO: Remove as soon as code allows https://github.com/kubernetes-sigs/cluster-api/issues/157
-	createClusterCmd.Flags().StringVarP(&co.Provider, "provider", "", "", "Which provider deployment logic to use (google/vsphere)")
+	createClusterCmd.Flags().StringVarP(&co.Provider, "provider", "", "", "Which provider deployment logic to use (google/vsphere/azure)")
 
 	// Optional flags
 	createClusterCmd.Flags().BoolVarP(&co.CleanupExternalCluster, "cleanup-external-cluster", "", true, "Whether to cleanup the external cluster after bootstrap")
@@ -146,6 +148,9 @@ func getProvider(provider string) (clusterdeployer.ProviderDeployer, error) {
 		return google.NewMachineActuator(google.MachineActuatorParams{})
 	case "vsphere":
 		return &vsphereAdapter{vsphere.NewDeploymentClient()}, nil
+	case "azure":
+		//Work being done at https://github.com/platform9/azure-provider
+		return nil, errors.New("Azure not yet implemented")
 	default:
 		return nil, fmt.Errorf("Unrecognized provider %v", provider)
 	}

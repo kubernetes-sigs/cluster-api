@@ -67,7 +67,7 @@ func TestSaveToConfigMap(t *testing.T) {
 		expectedDataLen      int
 		expectedErrorMessage string
 	}{
-		{"random error retrieving config map", nil, fmt.Errorf("random config map error"), nil, nil, 1, "random config map error"},
+		{"random error retrieving config map", nil, fmt.Errorf("random config map error"), nil, nil, 1, "unable to get configmap 'clusterctl': random config map error"},
 		{"new config map, success", nil, notFoundErr, nil, nil, 1, ""},
 		{"new config map, error", nil, notFoundErr, fmt.Errorf("create has failed"), nil, 0, "error creating config map 'clusterctl': create has failed"},
 		{"existing config map, error", newConfigMap(configMapName, nil), nil, nil, fmt.Errorf("update has failed"), 1, "error updating config map 'clusterctl': update has failed"},

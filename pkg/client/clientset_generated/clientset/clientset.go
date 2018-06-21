@@ -45,7 +45,7 @@ func (c *Clientset) ClusterV1alpha1() clusterv1alpha1.ClusterV1alpha1Interface {
 	return c.clusterV1alpha1
 }
 
-// Deprecated: Cluster retrieves the default version of ClusterClient.
+// Deprecated: Cluster retrieves the default version of ClusterClient
 // Please explicitly pick a version.
 func (c *Clientset) Cluster() clusterv1alpha1.ClusterV1alpha1Interface {
 	return c.clusterV1alpha1

@@ -15,13 +15,22 @@ limitations under the License.
 */
 package clusterdeployer
 
-type clusterClientFactory struct {
+import (
+	"k8s.io/client-go/kubernetes"
+	"sigs.k8s.io/cluster-api/pkg/clientcmd"
+)
+
+type clientFactory struct {
 }
 
-func NewClusterClientFactory() ClusterClientFactory {
-	return &clusterClientFactory{}
+func NewClientFactory() ClientFactory {
+	return &clientFactory{}
 }
 
-func (f *clusterClientFactory) ClusterClient(kubeconfig string) (ClusterClient, error) {
+func (f *clientFactory) NewClusterClientFromKubeconfig(kubeconfig string) (ClusterClient, error) {
 	return NewClusterClient(kubeconfig)
+}
+
+func (f *clientFactory) NewCoreClientsetFromKubeconfigFile(kubeconfigPath string) (*kubernetes.Clientset, error) {
+	return clientcmd.NewCoreClientSetForDefaultSearchPath(kubeconfigPath)
 }

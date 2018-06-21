@@ -78,14 +78,15 @@ func RunCreate(co *CreateOptions) error {
 	if err != nil {
 		return err
 	}
+	pcsFactory := clusterdeployer.NewProviderComponentsStoreFactory()
 	d := clusterdeployer.New(
 		mini,
-		clusterdeployer.NewClusterClientFactory(),
+		clusterdeployer.NewClientFactory(),
 		pd,
 		string(pc),
 		co.KubeconfigOutput,
 		co.CleanupExternalCluster)
-	err = d.Create(c, m)
+	err = d.Create(c, m, pcsFactory)
 	return err
 }
 

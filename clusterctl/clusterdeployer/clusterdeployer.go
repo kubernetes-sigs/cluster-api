@@ -17,10 +17,11 @@ package clusterdeployer
 
 import (
 	"fmt"
-
-	"github.com/golang/glog"
 	"io/ioutil"
 	"os"
+
+	"github.com/golang/glog"
+	"k8s.io/client-go/kubernetes"
 	clustercommon "sigs.k8s.io/cluster-api/pkg/apis/cluster/common"
 	clusterv1 "sigs.k8s.io/cluster-api/pkg/apis/cluster/v1alpha1"
 	"sigs.k8s.io/cluster-api/pkg/util"
@@ -55,13 +56,23 @@ type ClusterClient interface {
 }
 
 // Can create cluster clients
-type ClusterClientFactory interface {
-	ClusterClient(string) (ClusterClient, error)
+type ClientFactory interface {
+	NewClusterClientFromKubeconfig(string) (ClusterClient, error)
+	NewCoreClientsetFromKubeconfigFile(string) (*kubernetes.Clientset, error)
+}
+
+type ProviderComponentsStore interface {
+	Save(providerComponents string) error
+	Load() (string, error)
+}
+
+type ProviderComponentsStoreFactory interface {
+	NewFromCoreClientset(clientset *kubernetes.Clientset) (ProviderComponentsStore, error)
 }
 
 type ClusterDeployer struct {
 	externalProvisioner    ClusterProvisioner
-	clientFactory          ClusterClientFactory
+	clientFactory          ClientFactory
 	provider               ProviderDeployer
 	providerComponents     string
 	kubeconfigOutput       string
@@ -70,7 +81,7 @@ type ClusterDeployer struct {
 
 func New(
 	externalProvisioner ClusterProvisioner,
-	clientFactory ClusterClientFactory,
+	clientFactory ClientFactory,
 	provider ProviderDeployer,
 	providerComponents string,
 	kubeconfigOutput string,
@@ -86,7 +97,7 @@ func New(
 }
 
 // Creates the a cluster from the provided cluster definition and machine list.
-func (d *ClusterDeployer) Create(cluster *clusterv1.Cluster, machines []*clusterv1.Machine) error {
+func (d *ClusterDeployer) Create(cluster *clusterv1.Cluster, machines []*clusterv1.Machine, providerComponentsStoreFactory ProviderComponentsStoreFactory) error {
 	master, nodes, err := splitMachineRoles(machines)
 	if err != nil {
 		return fmt.Errorf("unable to seperate master machines from node machines: %v", err)
@@ -134,7 +145,7 @@ func (d *ClusterDeployer) Create(cluster *clusterv1.Cluster, machines []*cluster
 	glog.Info("Creating internal cluster")
 	internalClient, err := d.createInternalCluster(externalClient)
 	if err != nil {
-		return fmt.Errorf("unable to create internal cluster client: %v", err)
+		return fmt.Errorf("unable to create internal cluster: %v", err)
 	}
 	defer func() {
 		err := internalClient.Close()
@@ -142,6 +153,12 @@ func (d *ClusterDeployer) Create(cluster *clusterv1.Cluster, machines []*cluster
 			glog.Errorf("Could not close internal client: %v", err)
 		}
 	}()
+
+	glog.Info("Saving provider components to the internal cluster")
+	err = d.saveProviderComponentsToCluster(providerComponentsStoreFactory, d.kubeconfigOutput)
+	if err != nil {
+		return fmt.Errorf("unable to save provider components to internal cluster: %v", err)
+	}
 
 	glog.Info("Applying Cluster API stack to internal cluster")
 	err = d.applyClusterAPIStackWithPivoting(internalClient, externalClient)
@@ -183,7 +200,7 @@ func (d *ClusterDeployer) createExternalCluster() (ClusterClient, func(), error)
 	if err != nil {
 		return nil, cleanupFn, fmt.Errorf("unable to get external cluster kubeconfig: %v", err)
 	}
-	externalClient, err := d.clientFactory.ClusterClient(externalKubeconfig)
+	externalClient, err := d.clientFactory.NewClusterClientFromKubeconfig(externalKubeconfig)
 	if err != nil {
 		return nil, cleanupFn, fmt.Errorf("unable to create external client: %v", err)
 	}
@@ -207,7 +224,7 @@ func (d *ClusterDeployer) createInternalCluster(externalClient ClusterClient) (C
 		return nil, err
 	}
 
-	internalClient, err := d.clientFactory.ClusterClient(internalKubeconfig)
+	internalClient, err := d.clientFactory.NewClusterClientFromKubeconfig(internalKubeconfig)
 	if err != nil {
 		return nil, fmt.Errorf("unable to create internal cluster client: %v", err)
 	}
@@ -229,6 +246,22 @@ func (d *ClusterDeployer) updateClusterEndpoint(client ClusterClient) error {
 	err = client.UpdateClusterObjectEndpoint(masterIP)
 	if err != nil {
 		return fmt.Errorf("unable to update cluster endpoint: %v", err)
+	}
+	return nil
+}
+
+func (d *ClusterDeployer) saveProviderComponentsToCluster(factory ProviderComponentsStoreFactory, kubeconfigPath string) error {
+	clientset, err := d.clientFactory.NewCoreClientsetFromKubeconfigFile(kubeconfigPath)
+	if err != nil {
+		return fmt.Errorf("error creating core clientset: %v", err)
+	}
+	pcStore, err := factory.NewFromCoreClientset(clientset)
+	if err != nil {
+		return fmt.Errorf("unable to create provider components store: %v", err)
+	}
+	err = pcStore.Save(d.providerComponents)
+	if err != nil {
+		return fmt.Errorf("error saving provider components: %v", err)
 	}
 	return nil
 }

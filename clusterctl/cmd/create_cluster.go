@@ -159,7 +159,7 @@ func getProvider(provider string) (clusterdeployer.ProviderDeployer, error) {
 	case "vsphere":
 		return &vsphereAdapter{vsphere.NewDeploymentClient()}, nil
 	default:
-		return nil, fmt.Errorf("Unrecognized provider %v", provider)
+		return nil, fmt.Errorf("unrecognized provider %v", provider)
 	}
 }
 

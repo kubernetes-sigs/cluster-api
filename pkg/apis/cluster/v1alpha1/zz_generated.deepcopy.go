@@ -633,6 +633,11 @@ func (in *MachineStatus) DeepCopyInto(out *MachineStatus) {
 			(*in).DeepCopyInto(*out)
 		}
 	}
+	if in.Addresses != nil {
+		in, out := &in.Addresses, &out.Addresses
+		*out = make([]v1.NodeAddress, len(*in))
+		copy(*out, *in)
+	}
 	return
 }
 

@@ -779,6 +779,7 @@ func autoConvert_v1alpha1_MachineStatus_To_cluster_MachineStatus(in *MachineStat
 	out.ErrorReason = (*common.MachineStatusError)(unsafe.Pointer(in.ErrorReason))
 	out.ErrorMessage = (*string)(unsafe.Pointer(in.ErrorMessage))
 	out.ProviderStatus = (*runtime.RawExtension)(unsafe.Pointer(in.ProviderStatus))
+	out.Addresses = *(*[]v1.NodeAddress)(unsafe.Pointer(&in.Addresses))
 	return nil
 }
 
@@ -794,6 +795,7 @@ func autoConvert_cluster_MachineStatus_To_v1alpha1_MachineStatus(in *cluster.Mac
 	out.ErrorReason = (*common.MachineStatusError)(unsafe.Pointer(in.ErrorReason))
 	out.ErrorMessage = (*string)(unsafe.Pointer(in.ErrorMessage))
 	out.ProviderStatus = (*runtime.RawExtension)(unsafe.Pointer(in.ProviderStatus))
+	out.Addresses = *(*[]v1.NodeAddress)(unsafe.Pointer(&in.Addresses))
 	return nil
 }
 

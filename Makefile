@@ -14,7 +14,7 @@
 
 .PHONY: genapi genconversion genclientset gendeepcopy
 
-all: generate build
+all: generate build images
 
 depend:
 	dep version || go get -u github.com/golang/dep/cmd/dep

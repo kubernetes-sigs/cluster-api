@@ -21,7 +21,13 @@ set -o pipefail
 GCLOUD_PROJECT=$(gcloud config get-value project)
 ZONE=$(gcloud config get-value compute/zone)
 ZONE="${ZONE:-us-central1-f}"
-CLUSTER_NAME=test1
+# Generate a somewhat unique cluster name, UUID is not an option as service-accounts are limited to 30 characters in length
+# and one has a 19 character prefix (i.e. 'machine-controller-'). Of the 11 remaining characters 6 are reserved for the human
+# friendly cluster name, one for a dash, and 5 are left for this random string.
+RANDOM_STRING=$(head -c5 < <(LC_ALL=C tr -dc 'a-zA-Z0-9' < /dev/urandom) | tr '[:upper:]' '[:lower:]')
+# Human friendly cluster name, limited to 6 characters
+HUMAN_FRIENDLY_CLUSTER_NAME=test1
+CLUSTER_NAME=${HUMAN_FRIENDLY_CLUSTER_NAME}-${RANDOM_STRING}
 
 OUTPUT_DIR=out
 
@@ -179,3 +185,5 @@ cat $ADDON_TEMPLATE_FILE \
   | sed -e "s/\$CLUSTER_NAME/$CLUSTER_NAME/" \
   | sed "s/\$LOADBALANCER_SA_KEY/$LOADBALANCER_SA_KEY/" \
   > $ADDON_GENERATED_FILE
+
+echo -e "\nYour cluster name is '${CLUSTER_NAME}'"

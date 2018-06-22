@@ -57,3 +57,6 @@ images: depend
 	$(MAKE) -C cloud/vsphere/cmd/vsphere-machine-controller image
 	$(MAKE) -C cmd/apiserver image
 	$(MAKE) -C cmd/controller-manager image
+
+verify:
+	./hack/verify_boilerplate.py

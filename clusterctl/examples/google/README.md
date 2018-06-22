@@ -22,3 +22,10 @@ ERROR: (gcloud.config.get-value) Section [core] has no property [project].
 ## Manual Modification
 You may always manually curate files based on the examples provided.
 
+## Setup Environment
+In order to run `clusterctl create`, setup the GOOGLE_APPLICATION_CREDENTIALS environment
+variable:
+
+```
+export GOOGLE_APPLICATION_CREDENTIALS="$(pwd)/out/machine-controller-serviceaccount.json"
+```

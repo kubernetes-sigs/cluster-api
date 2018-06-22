@@ -140,6 +140,10 @@ type MachineStatus struct {
 	// own versioned API types that should be
 	// serialized/deserialized from this field.
 	ProviderStatus *runtime.RawExtension `json:"providerStatus"`
+
+	// Addresses is a list of addresses assigned to the machine. Queried from cloud provider, if available.
+	// +optional
+	Addresses []corev1.NodeAddress `json:"addresses,omitempty"`
 }
 
 type MachineVersionInfo struct {

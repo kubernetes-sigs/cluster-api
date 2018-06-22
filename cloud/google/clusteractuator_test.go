@@ -23,6 +23,7 @@ import (
 	"sigs.k8s.io/cluster-api/pkg/controller/cluster"
 	compute "google.golang.org/api/compute/v1"
 	"google.golang.org/api/googleapi"
+	"k8s.io/client-go/tools/record"
 )
 
 func TestDelete(t *testing.T) {
@@ -33,7 +34,7 @@ func TestDelete(t *testing.T) {
 		expectedErrorMessage    string
 	}{
 		{"successs", &compute.Operation{}, nil, ""},
-		{"error", nil, &googleapi.Error{Code: 408, Message: "request timeout"}, "error deleting firewall rule for internal cluster traffic: error deleting firewall rule: googleapi: Error 408: request timeout"},
+		{"error", nil, &googleapi.Error{Code: 408, Message: "request timeout"}, "Error deleting firewall rule for internal cluster traffic: error deleting firewall rule: googleapi: Error 408: request timeout"},
 		{"404/NotFound error should succeed", nil, &googleapi.Error{Code: 404, Message: "not found"}, ""},
 	}
 	for _, tc := range testCases {
@@ -43,7 +44,10 @@ func TestDelete(t *testing.T) {
 					return tc.firewallsDeleteOpResult, tc.firewallsDeleteErr
 				},
 			}
-			params := google.ClusterActuatorParams{ComputeService: &computeServiceMock}
+			params := google.ClusterActuatorParams{
+				ComputeService: &computeServiceMock,
+				EventRecorder: &record.FakeRecorder{},
+			}
 			actuator := newClusterActuator(t, params)
 			cluster := newDefaultClusterFixture(t)
 			err := actuator.Delete(cluster)

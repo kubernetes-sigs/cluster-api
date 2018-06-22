@@ -22,6 +22,9 @@ import (
 	"os/exec"
 
 	"fmt"
+	"strings"
+	"time"
+
 	"github.com/golang/glog"
 	apiv1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -29,8 +32,6 @@ import (
 	"sigs.k8s.io/cluster-api/pkg/client/clientset_generated/clientset"
 	"sigs.k8s.io/cluster-api/pkg/clientcmd"
 	"sigs.k8s.io/cluster-api/pkg/util"
-	"strings"
-	"time"
 )
 
 const (

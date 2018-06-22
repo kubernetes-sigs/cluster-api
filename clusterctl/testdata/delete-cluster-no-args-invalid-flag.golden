@@ -3,8 +3,12 @@ Usage:
   clusterctl delete cluster [flags]
 
 Flags:
+      --cluster string               The name of the kubeconfig cluster to use
   -h, --help                         help for cluster
+      --kubeconfig string            Path to the kubeconfig file to use for connecting to the cluster to be deleted, if empty, the default KUBECONFIG load path is used.
+  -n, --namespace string             If present, the namespace scope for this CLI request
   -p, --provider-components string   A yaml file containing cluster api provider controllers and supporting objects, if empty the value is loaded from the cluster's configuration store.
+      --user string                  The name of the kubeconfig user to use
 
 Global Flags:
       --alsologtostderr                  log to standard error as well as files

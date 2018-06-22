@@ -41,7 +41,7 @@ func initClient(kubeconfig string) error {
 	if kubeconfig == "" {
 		kubeconfig = util.GetDefaultKubeConfigPath()
 	}
-	coreClientset, clusterapiClientset, err := clientcmd.NewClientsForDefaultSearchpath(kubeconfig)
+	coreClientset, clusterapiClientset, err := clientcmd.NewClientsForDefaultSearchpath(kubeconfig, clientcmd.NewConfigOverrides())
 	if err != nil {
 		glog.Fatalf("Error creating rest config: %v", err)
 		return err

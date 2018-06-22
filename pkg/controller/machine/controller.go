@@ -84,13 +84,15 @@ func (c *MachineControllerImpl) Init(arguments sharedinformers.ControllerInitArg
 
 // Reconcile handles enqueued messages. The delete will be handled by finalizer.
 func (c *MachineControllerImpl) Reconcile(machine *clusterv1.Machine) error {
+	// Deep-copy otherwise we are mutating our cache.
+	m := machine.DeepCopy()
 	// Implement controller logic here
-	name := machine.Name
+	name := m.Name
 	glog.Infof("Running reconcile Machine for %s\n", name)
 
-	if !machine.ObjectMeta.DeletionTimestamp.IsZero() {
+	if !m.ObjectMeta.DeletionTimestamp.IsZero() {
 		// no-op if finalizer has been removed.
-		if !util.Contains(machine.ObjectMeta.Finalizers, clusterv1.MachineFinalizer) {
+		if !util.Contains(m.ObjectMeta.Finalizers, clusterv1.MachineFinalizer) {
 			glog.Infof("reconciling machine object %v causes a no-op as there is no finalizer.", name)
 			return nil
 		}
@@ -99,38 +101,38 @@ func (c *MachineControllerImpl) Reconcile(machine *clusterv1.Machine) error {
 			return nil
 		}
 		glog.Infof("reconciling machine object %v triggers delete.", name)
-		if err := c.delete(machine); err != nil {
+		if err := c.delete(m); err != nil {
 			glog.Errorf("Error deleting machine object %v; %v", name, err)
 			return err
 		}
 
 		// Remove finalizer on successful deletion.
 		glog.Infof("machine object %v deletion successful, removing finalizer.", name)
-		machine.ObjectMeta.Finalizers = util.Filter(machine.ObjectMeta.Finalizers, clusterv1.MachineFinalizer)
-		if _, err := c.clientSet.ClusterV1alpha1().Machines(machine.Namespace).Update(machine); err != nil {
+		m.ObjectMeta.Finalizers = util.Filter(m.ObjectMeta.Finalizers, clusterv1.MachineFinalizer)
+		if _, err := c.clientSet.ClusterV1alpha1().Machines(m.Namespace).Update(m); err != nil {
 			glog.Errorf("Error removing finalizer from machine object %v; %v", name, err)
 			return err
 		}
 		return nil
 	}
 
-	cluster, err := c.getCluster(machine)
+	cluster, err := c.getCluster(m)
 	if err != nil {
 		return err
 	}
 
-	exist, err := c.actuator.Exists(cluster, machine)
+	exist, err := c.actuator.Exists(cluster, m)
 	if err != nil {
 		glog.Errorf("Error checking existance of machine instance for machine object %v; %v", name, err)
 		return err
 	}
 	if exist {
 		glog.Infof("reconciling machine object %v triggers idempotent update.", name)
-		return c.update(machine)
+		return c.update(m)
 	}
 	// Machine resource created. Machine does not yet exist.
-	glog.Infof("reconciling machine object %v triggers idempotent create.", machine.ObjectMeta.Name)
-	return c.create(machine)
+	glog.Infof("reconciling machine object %v triggers idempotent create.", m.ObjectMeta.Name)
+	return c.create(m)
 }
 
 func (c *MachineControllerImpl) Get(namespace, name string) (*clusterv1.Machine, error) {

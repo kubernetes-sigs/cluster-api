@@ -423,9 +423,8 @@ func (vc *VsphereClient) Delete(cluster *clusterv1.Cluster, machine *clusterv1.M
 
 	vc.cleanUpStagingDir(machine)
 
-	// Update annotation for the state and remove finalizer.
+	// Update annotation for the state.
 	machine.ObjectMeta.Annotations[StatusMachineTerraformState] = ""
-	machine.ObjectMeta.Finalizers = util.Filter(machine.ObjectMeta.Finalizers, clusterv1.MachineFinalizer)
 	_, err = vc.machineClient.Update(machine)
 
 	return err

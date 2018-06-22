@@ -354,12 +354,6 @@ func (gce *GCEClient) Delete(cluster *clusterv1.Cluster, machine *clusterv1.Mach
 			"error deleting GCE instance: %v", err))
 	}
 
-	if gce.v1Alpha1Client != nil {
-		// Remove the finalizer
-		machine.ObjectMeta.Finalizers = util.Filter(machine.ObjectMeta.Finalizers, clusterv1.MachineFinalizer)
-		_, err = gce.v1Alpha1Client.Machines(machine.Namespace).Update(machine)
-	}
-
 	return err
 }
 

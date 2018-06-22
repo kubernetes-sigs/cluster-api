@@ -26,10 +26,10 @@ import (
 	"k8s.io/apimachinery/pkg/util/wait"
 	"sigs.k8s.io/cluster-api/pkg/client/clientset_generated/clientset/typed/cluster/v1alpha1"
 
+	"k8s.io/client-go/tools/cache"
 	clusterv1 "sigs.k8s.io/cluster-api/pkg/apis/cluster/v1alpha1"
 	"sigs.k8s.io/cluster-api/pkg/apis/cluster/v1alpha1/testutil"
 	"sigs.k8s.io/cluster-api/pkg/client/clientset_generated/clientset"
-	"k8s.io/client-go/tools/cache"
 )
 
 func machineControllerReconcile(t *testing.T, cs *clientset.Clientset, controller *MachineController, namespace string) {

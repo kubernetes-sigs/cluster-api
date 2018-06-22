@@ -32,7 +32,7 @@ import (
 	"sigs.k8s.io/cluster-api/pkg/util"
 )
 
-func TestMachineSetControllerReconcileHandler(t *testing.T) {
+func TestMachineControllerReconcileHandler(t *testing.T) {
 	tests := []struct {
 		name                   string
 		objExists              bool
@@ -160,7 +160,14 @@ func TestMachineSetControllerReconcileHandler(t *testing.T) {
 				t.Fatal(err)
 			}
 
-			finalizerRemoved := machineUpdated && !util.Contains(machineToTest.ObjectMeta.Finalizers, v1alpha1.MachineFinalizer)
+			finalizerRemoved := false
+			if machineUpdated {
+				updatedMachine, err := fakeClient.ClusterV1alpha1().Machines(machineToTest.Namespace).Get(machineToTest.Name, metav1.GetOptions{})
+				if err != nil {
+					t.Fatalf("failed to get updated machine.")
+				}
+				finalizerRemoved = !util.Contains(updatedMachine.ObjectMeta.Finalizers, v1alpha1.MachineFinalizer)
+			}
 
 			if finalizerRemoved != test.expectFinalizerRemoved {
 				t.Errorf("Got finalizer removed %v, expected finalizer removed %v", finalizerRemoved, test.expectFinalizerRemoved)

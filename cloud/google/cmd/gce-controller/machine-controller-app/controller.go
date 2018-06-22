@@ -45,7 +45,7 @@ const (
 	gceMachineControllerName = "gce-controller"
 )
 
-func StartMachineController(server *options.MachineControllerServer, shutdown <-chan struct{}) {
+func StartMachineController(server *options.MachineControllerServer, recorder record.EventRecorder, shutdown <-chan struct{}) {
 	config, err := controller.GetConfig(server.CommonConfig.Kubeconfig)
 	if err != nil {
 		glog.Fatalf("Could not create Config for talking to the apiserver: %v", err)
@@ -63,6 +63,7 @@ func StartMachineController(server *options.MachineControllerServer, shutdown <-
 	params := google.MachineActuatorParams{
 		V1Alpha1Client:           client.ClusterV1alpha1(),
 		MachineSetupConfigGetter: configWatch,
+		EventRecorder:            recorder,
 	}
 	actuator, err := google.NewMachineActuator(params)
 
@@ -86,7 +87,7 @@ func RunMachineController(server *options.MachineControllerServer) error {
 		return err
 	}
 
-	kubeClientControl, err := kubernetes.NewForConfig(
+	clientSet, err := kubernetes.NewForConfig(
 		rest.AddUserAgent(kubeConfig, "machine-controller-manager"),
 	)
 	if err != nil {
@@ -94,7 +95,7 @@ func RunMachineController(server *options.MachineControllerServer) error {
 		return err
 	}
 
-	recorder, err := createRecorder(kubeClientControl)
+	recorder, err := createRecorder(clientSet)
 	if err != nil {
 		glog.Errorf("Could not create event recorder : %v", err)
 		return err
@@ -102,7 +103,7 @@ func RunMachineController(server *options.MachineControllerServer) error {
 
 	// run function will block and never return.
 	run := func(stop <-chan struct{}) {
-		StartMachineController(server, stop)
+		StartMachineController(server, recorder, stop)
 	}
 
 	leaderElectConfig := config.GetLeaderElectionConfig()
@@ -155,7 +156,7 @@ func createRecorder(kubeClient *kubernetes.Clientset) (record.EventRecorder, err
 	if err := corev1.AddToScheme(eventsScheme); err != nil {
 		return nil, err
 	}
-	// We also emit events for our own types
+	// We also emit events for our own types.
 	clusterapiclientsetscheme.AddToScheme(eventsScheme)
 
 	eventBroadcaster := record.NewBroadcaster()

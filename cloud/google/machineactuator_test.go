@@ -32,6 +32,7 @@ import (
 	"sigs.k8s.io/cluster-api/pkg/test-cmd-runner"
 	"strings"
 	"testing"
+	"k8s.io/client-go/tools/record"
 )
 
 func init() {
@@ -347,6 +348,7 @@ func createCluster(t *testing.T, machine *v1alpha1.Machine, computeServiceMock *
 		ComputeService:           computeServiceMock,
 		Kubeadm:                  kubeadm,
 		MachineSetupConfigGetter: configWatch,
+		EventRecorder:            &record.FakeRecorder{},
 	}
 	gce, err := google.NewMachineActuator(params)
 	if err != nil {

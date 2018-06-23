@@ -23,7 +23,7 @@ generate: genapi genconversion genclientset gendeepcopy
 
 genapi: depend
 	go build -o $$GOPATH/bin/apiregister-gen sigs.k8s.io/cluster-api/vendor/github.com/kubernetes-incubator/apiserver-builder/cmd/apiregister-gen
-	apiregister-gen -i ./pkg/apis,./pkg/apis/cluster/v1alpha1
+	apiregister-gen -i ./pkg/apis,./pkg/apis/cluster,./pkg/apis/cluster/v1alpha1
 
 genconversion: depend
 	go build -o $$GOPATH/bin/conversion-gen sigs.k8s.io/cluster-api/vendor/k8s.io/code-generator/cmd/conversion-gen
@@ -42,7 +42,7 @@ genclientset: depend
 gendeepcopy:
 	go build -o $$GOPATH/bin/deepcopy-gen sigs.k8s.io/cluster-api/vendor/k8s.io/code-generator/cmd/deepcopy-gen
 	deepcopy-gen \
-	  -i ./pkg/apis/cluster/v1alpha1/,./cloud/google/gceproviderconfig/v1alpha1,./cloud/google/gceproviderconfig,./cloud/vsphere/vsphereproviderconfig/v1alpha1,./cloud/vsphere/vsphereproviderconfig \
+	  -i ./pkg/apis/cluster/,./pkg/apis/cluster/v1alpha1/,./cloud/google/gceproviderconfig/v1alpha1,./cloud/google/gceproviderconfig,./cloud/vsphere/vsphereproviderconfig/v1alpha1,./cloud/vsphere/vsphereproviderconfig \
 	  -O zz_generated.deepcopy \
 	  -h boilerplate.go.txt
 

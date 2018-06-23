@@ -49,11 +49,14 @@ type clusterClient struct {
 	closeFn        func() error
 }
 
+// NewClusterClient creates and returns the address of a clusterClient, the kubeconfig argument is expected to be the string represenattion
+// of a valid kubeconfig.
 func NewClusterClient(kubeconfig string) (*clusterClient, error) {
 	f, err := createTempFile(kubeconfig)
 	if err != nil {
 		return nil, err
 	}
+	defer ifErrRemove(&err, f)
 	c, err := NewClusterClientFromFile(f)
 	if err != nil {
 		return nil, err
@@ -66,6 +69,8 @@ func (c *clusterClient) removeKubeconfigFile() error {
 	return os.Remove(c.kubeconfigFile)
 }
 
+// NewClusterClientFromFile creates and returns the address of a clusterClient, the kubeconfigFile argument is expected to be the path to a
+// valid kubeconfig file.
 func NewClusterClientFromFile(kubeconfigFile string) (*clusterClient, error) {
 	c, err := clientcmd.NewClusterApiClientForDefaultSearchPath(kubeconfigFile)
 	if err != nil {
@@ -251,10 +256,21 @@ func createTempFile(contents string) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	defer f.Close()
+	defer ifErrRemove(&err, f.Name())
+	if err = f.Close(); err != nil {
+		return "", err
+	}
 	_, err = f.WriteString(contents)
 	if err != nil {
 		return "", err
 	}
 	return f.Name(), nil
+}
+
+func ifErrRemove(pErr *error, path string) {
+	if *pErr != nil {
+		if err := os.Remove(path); err != nil {
+			glog.Warningf("Error removing file '%v': %v", err)
+		}
+	}
 }

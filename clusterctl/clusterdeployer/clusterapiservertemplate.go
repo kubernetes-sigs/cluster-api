@@ -169,8 +169,7 @@ spec:
       terminationGracePeriodSeconds: 10
       containers:
       - name: etcd
-        image: quay.io/coreos/etcd:latest
-        imagePullPolicy: Always
+        image: k8s.gcr.io/etcd:3.1.12
         resources:
           requests:
             cpu: 100m

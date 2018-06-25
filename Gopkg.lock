@@ -984,6 +984,7 @@
   revision = "90539b4e75a8daaf7f67c3874c6180bfb1a63936"
 
 [[projects]]
+  branch = "release-1.9"
   name = "k8s.io/code-generator"
   packages = [
     "cmd/client-gen",
@@ -997,8 +998,7 @@
     "cmd/conversion-gen",
     "cmd/conversion-gen/generators"
   ]
-  revision = "91d3f6a57905178524105a085085901bb73bd3dc"
-  version = "kubernetes-1.9.1"
+  revision = "0ab89e584187c20cc7c1a3f30db69f3b4ab64196"
 
 [[projects]]
   branch = "master"
@@ -1027,6 +1027,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "fca685a0d2d693b48a45688d74c4c626621d891aa65e1f35971e84fae9e3204a"
+  inputs-digest = "40cbed3bd870f59d6c28ecaaa706e5aab9d974a8b52a410e89442a1e522962c6"
   solver-name = "gps-cdcl"
   solver-version = 1

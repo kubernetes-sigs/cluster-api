@@ -60,4 +60,4 @@ required = [
 
 [[constraint]]
   name = "k8s.io/code-generator"
-  version = "kubernetes-1.9.6"
+  branch = "release-1.9"

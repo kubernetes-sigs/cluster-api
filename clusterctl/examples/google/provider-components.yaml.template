@@ -44,7 +44,7 @@ spec:
             cpu: 100m
             memory: 30Mi
       - name: gce-machine-controller
-        image: gcr.io/k8s-cluster-api/gce-controller:0.0.14
+        image: gcr.io/k8s-cluster-api/gce-controller:0.0.15
         volumeMounts:
           - name: config
             mountPath: /etc/kubernetes
@@ -79,7 +79,7 @@ spec:
             cpu: 100m
             memory: 30Mi
       - name: gce-cluster-controller
-        image: gcr.io/k8s-cluster-api/gce-controller:0.0.14
+        image: gcr.io/k8s-cluster-api/gce-controller:0.0.15
         volumeMounts:
           - name: config
             mountPath: /etc/kubernetes

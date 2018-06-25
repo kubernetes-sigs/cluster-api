@@ -258,11 +258,7 @@ func (d *deployer) copyKubeConfig(cluster *clusterv1.Cluster, master *clusterv1.
 }
 
 func (d *deployer) initApiClient() error {
-	c, err := clientcmd.NewClusterApiClientForDefaultSearchPath(d.configPath)
-	if err != nil {
-		return err
-	}
-	kubernetesClientSet, err := clientcmd.NewCoreClientSetForDefaultSearchPath(d.configPath)
+	kubernetesClientSet, c, err := clientcmd.NewClientsForDefaultSearchpath(d.configPath, clientcmd.NewConfigOverrides())
 	if err != nil {
 		return err
 	}

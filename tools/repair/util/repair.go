@@ -37,7 +37,7 @@ func NewRepairer(dryRun bool, configPath string) (*repairer, error) {
 		configPath = util.GetDefaultKubeConfigPath()
 	}
 
-	c, err := clientcmd.NewClusterApiClientForDefaultSearchPath(configPath)
+	c, err := clientcmd.NewClusterApiClientForDefaultSearchPath(configPath, clientcmd.NewConfigOverrides())
 	if err != nil {
 		return nil, err
 	}

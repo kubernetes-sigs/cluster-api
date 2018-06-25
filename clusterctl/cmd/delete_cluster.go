@@ -17,14 +17,22 @@ limitations under the License.
 package cmd
 
 import (
+	"fmt"
+
+	"k8s.io/api/core/v1"
+	tcmd "k8s.io/client-go/tools/clientcmd"
+	"sigs.k8s.io/cluster-api/clusterctl/providercomponents"
+	"sigs.k8s.io/cluster-api/pkg/clientcmd"
+	"sigs.k8s.io/cluster-api/pkg/errors"
+
 	"github.com/golang/glog"
 	"github.com/spf13/cobra"
-	"sigs.k8s.io/cluster-api/pkg/errors"
 )
 
 type DeleteOptions struct {
-	ClusterName        string
-	ProviderComponents string
+	KubeconfigPath      string
+	ProviderComponents  string
+	KubeconfigOverrides tcmd.ConfigOverrides
 }
 
 var do = &DeleteOptions{}
@@ -34,9 +42,6 @@ var deleteClusterCmd = &cobra.Command{
 	Short: "Delete kubernetes cluster",
 	Long:  `Delete a kubernetes cluster with one command`,
 	Run: func(cmd *cobra.Command, args []string) {
-		if do.ClusterName == "" {
-			exitWithHelp(cmd, "Please provide cluster name.")
-		}
 		if err := RunDelete(); err != nil {
 			glog.Exit(err)
 		}
@@ -44,10 +49,33 @@ var deleteClusterCmd = &cobra.Command{
 }
 
 func init() {
+	deleteClusterCmd.Flags().StringVarP(&do.KubeconfigPath, "kubeconfig", "", "", "Path to the kubeconfig file to use for connecting to the cluster to be deleted, if empty, the default KUBECONFIG load path is used.")
 	deleteClusterCmd.Flags().StringVarP(&do.ProviderComponents, "provider-components", "p", "", "A yaml file containing cluster api provider controllers and supporting objects, if empty the value is loaded from the cluster's configuration store.")
+	// BindContextFlags will bind the flags cluster, namespace, and user
+	tcmd.BindContextFlags(&do.KubeconfigOverrides.Context, deleteClusterCmd.Flags(), tcmd.RecommendedContextOverrideFlags(""))
 	deleteCmd.AddCommand(deleteClusterCmd)
 }
 
 func RunDelete() error {
+	_, err := loadProviderComponents()
+	if err != nil {
+		return err
+	}
 	return errors.NotImplementedError
+}
+
+func loadProviderComponents() (string, error) {
+	coreClients, err := clientcmd.NewCoreClientSetForDefaultSearchPath(do.KubeconfigPath, do.KubeconfigOverrides)
+	if err != nil {
+		return "", fmt.Errorf("error creating core clients: %v", err)
+	}
+	pcStore := providercomponents.Store{
+		ExplicitPath: do.ProviderComponents,
+		ConfigMap:    coreClients.CoreV1().ConfigMaps(v1.NamespaceDefault),
+	}
+	providerComponents, err := pcStore.Load()
+	if err != nil {
+		return "", fmt.Errorf("error when loading provider components: %v", err)
+	}
+	return providerComponents, nil
 }

@@ -28,6 +28,7 @@ import (
 	"github.com/golang/glog"
 	apiv1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	tcmd "k8s.io/client-go/tools/clientcmd"
 	clusterv1 "sigs.k8s.io/cluster-api/pkg/apis/cluster/v1alpha1"
 	"sigs.k8s.io/cluster-api/pkg/client/clientset_generated/clientset"
 	"sigs.k8s.io/cluster-api/pkg/clientcmd"
@@ -44,9 +45,10 @@ const (
 )
 
 type clusterClient struct {
-	clientSet      clientset.Interface
-	kubeconfigFile string
-	closeFn        func() error
+	clientSet       clientset.Interface
+	kubeconfigFile  string
+	configOverrides tcmd.ConfigOverrides
+	closeFn         func() error
 }
 
 // NewClusterClient creates and returns the address of a clusterClient, the kubeconfig argument is expected to be the string represenattion
@@ -57,7 +59,7 @@ func NewClusterClient(kubeconfig string) (*clusterClient, error) {
 		return nil, err
 	}
 	defer ifErrRemove(&err, f)
-	c, err := NewClusterClientFromFile(f)
+	c, err := NewClusterClientFromDefaultSearchPath(f, clientcmd.NewConfigOverrides())
 	if err != nil {
 		return nil, err
 	}
@@ -69,17 +71,18 @@ func (c *clusterClient) removeKubeconfigFile() error {
 	return os.Remove(c.kubeconfigFile)
 }
 
-// NewClusterClientFromFile creates and returns the address of a clusterClient, the kubeconfigFile argument is expected to be the path to a
+// NewClusterClientFromDefaultSearchPath creates and returns the address of a clusterClient, the kubeconfigFile argument is expected to be the path to a
 // valid kubeconfig file.
-func NewClusterClientFromFile(kubeconfigFile string) (*clusterClient, error) {
-	c, err := clientcmd.NewClusterApiClientForDefaultSearchPath(kubeconfigFile)
+func NewClusterClientFromDefaultSearchPath(kubeconfigFile string, overrides tcmd.ConfigOverrides) (*clusterClient, error) {
+	c, err := clientcmd.NewClusterApiClientForDefaultSearchPath(kubeconfigFile, overrides)
 	if err != nil {
 		return nil, err
 	}
 
 	return &clusterClient{
-		kubeconfigFile: kubeconfigFile,
-		clientSet:      c,
+		kubeconfigFile:  kubeconfigFile,
+		clientSet:       c,
+		configOverrides: overrides,
 	}, nil
 }
 
@@ -169,16 +172,30 @@ func (c *clusterClient) WaitForClusterV1alpha1Ready() error {
 }
 
 func (c *clusterClient) kubectlApply(manifest string) error {
-	r := strings.NewReader(manifest)
-	cmd := exec.Command("kubectl", "apply", "--kubeconfig", c.kubeconfigFile, "-f", "-")
-	cmd.Stdin = r
-
+	cmd := exec.Command("kubectl", c.buildKubectlArgs("apply")...)
+	cmd.Stdin = strings.NewReader(manifest)
 	out, err := cmd.CombinedOutput()
-	if err == nil {
-		return nil
-	} else {
+	if err != nil {
 		return fmt.Errorf("couldn't kubectl apply: %v, output: %s", err, string(out))
 	}
+	return nil
+}
+
+func (c *clusterClient) buildKubectlArgs(commandName string) []string {
+	args := []string{commandName}
+	if c.kubeconfigFile != "" {
+		args = append(args, "--kubeconfig", c.kubeconfigFile)
+	}
+	if c.configOverrides.Context.Cluster != "" {
+		args = append(args, "--cluster", c.configOverrides.Context.Cluster)
+	}
+	if c.configOverrides.Context.Namespace != "" {
+		args = append(args, "--namespace", c.configOverrides.Context.Namespace)
+	}
+	if c.configOverrides.Context.AuthInfo != "" {
+		args = append(args, "--user", c.configOverrides.Context.AuthInfo)
+	}
+	return append(args, "-f", "-")
 }
 
 func (c *clusterClient) waitForKubectlApply(manifest string) error {

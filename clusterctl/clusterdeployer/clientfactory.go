@@ -33,5 +33,5 @@ func (f *clientFactory) NewClusterClientFromKubeconfig(kubeconfig string) (Clust
 }
 
 func (f *clientFactory) NewCoreClientsetFromKubeconfigFile(kubeconfigPath string) (*kubernetes.Clientset, error) {
-	return clientcmd.NewCoreClientSetForDefaultSearchPath(kubeconfigPath)
+	return clientcmd.NewCoreClientSetForDefaultSearchPath(kubeconfigPath, clientcmd.NewConfigOverrides())
 }

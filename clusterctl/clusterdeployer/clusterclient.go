@@ -260,7 +260,7 @@ func createTempFile(contents string) (string, error) {
 	if err = f.Close(); err != nil {
 		return "", err
 	}
-	_, err = f.WriteString(contents)
+	err = ioutil.WriteFile(f.Name(), []byte(contents), 0644)
 	if err != nil {
 		return "", err
 	}

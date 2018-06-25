@@ -135,11 +135,9 @@ type MachineStatus struct {
 	// +optional
 	ErrorMessage *string `json:"errorMessage,omitempty"`
 
-	// Provider-specific status.
-	// It is recommended that providers maintain their
-	// own versioned API types that should be
-	// serialized/deserialized from this field.
-	ProviderStatus *runtime.RawExtension `json:"providerStatus"`
+	// Provider-specific observed machine state.
+	// +optional
+	ProviderStatus ProviderStatus `json:"providerStatus"`
 
 	// Addresses is a list of addresses assigned to the machine. Queried from cloud provider, if available.
 	// +optional

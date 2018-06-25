@@ -94,11 +94,9 @@ type ClusterStatus struct {
 	// state, and will be set to a descriptive error message.
 	ErrorMessage string `json:"errorMessage"`
 
-	// Provider-specific status.
-	// It is recommended that providers maintain their
-	// own versioned API types that should be
-	// serialized/deserialized from this field.
-	ProviderStatus *runtime.RawExtension `json:"providerStatus"`
+	// Provider-specific observed cluster state.
+	// +optional
+	ProviderStatus ProviderStatus `json:"providerStatus"`
 }
 
 // APIEndpoint represents a reachable Kubernetes API endpoint.

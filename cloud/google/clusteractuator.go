@@ -26,6 +26,7 @@ import (
 	gceconfigv1 "sigs.k8s.io/cluster-api/cloud/google/gceproviderconfig/v1alpha1"
 	clusterv1 "sigs.k8s.io/cluster-api/pkg/apis/cluster/v1alpha1"
 	client "sigs.k8s.io/cluster-api/pkg/client/clientset_generated/clientset/typed/cluster/v1alpha1"
+	"k8s.io/apimachinery/pkg/api/errors"
 )
 
 const (
@@ -177,6 +178,9 @@ func (gce *GCEClusterClient) deleteFirewallRule(cluster *clusterv1.Cluster, rule
 	}
 	op, err := gce.computeService.FirewallsDelete(clusterConfig.Project, ruleName)
 	if err != nil {
+		if errors.IsNotFound(err) {
+			return nil
+		}
 		return fmt.Errorf("error deleting firewall rule: %v", err)
 	}
 	return gce.computeService.WaitForOperation(clusterConfig.Project, op)

@@ -23,10 +23,10 @@ import (
 	"golang.org/x/oauth2/google"
 	"google.golang.org/api/compute/v1"
 	"sigs.k8s.io/cluster-api/cloud/google/clients"
+	"sigs.k8s.io/cluster-api/cloud/google/clients/errors"
 	gceconfigv1 "sigs.k8s.io/cluster-api/cloud/google/gceproviderconfig/v1alpha1"
 	clusterv1 "sigs.k8s.io/cluster-api/pkg/apis/cluster/v1alpha1"
 	client "sigs.k8s.io/cluster-api/pkg/client/clientset_generated/clientset/typed/cluster/v1alpha1"
-	"k8s.io/apimachinery/pkg/api/errors"
 )
 
 const (

@@ -17,15 +17,12 @@ limitations under the License.
 package google_test
 
 import (
-	"fmt"
 	"testing"
 
-	"k8s.io/apimachinery/pkg/api/errors"
 	"sigs.k8s.io/cluster-api/cloud/google"
 	"sigs.k8s.io/cluster-api/pkg/controller/cluster"
-	"sigs.k8s.io/cluster-api/pkg/apis/cluster/v1alpha1"
-
 	compute "google.golang.org/api/compute/v1"
+	"google.golang.org/api/googleapi"
 )
 
 func TestDelete(t *testing.T) {
@@ -36,8 +33,8 @@ func TestDelete(t *testing.T) {
 		expectedErrorMessage    string
 	}{
 		{"successs", &compute.Operation{}, nil, ""},
-		{"error", nil, fmt.Errorf("random error"), "error deleting firewall rule for internal cluster traffic: error deleting firewall rule: random error"},
-		{"404/NotFound error should succeed", nil, errors.NewNotFound(v1alpha1.Resource("cluster"), "404 not found"), ""},
+		{"error", nil, &googleapi.Error{Code: 408, Message: "request timeout"}, "error deleting firewall rule for internal cluster traffic: error deleting firewall rule: googleapi: Error 408: request timeout"},
+		{"404/NotFound error should succeed", nil, &googleapi.Error{Code: 404, Message: "not found"}, ""},
 	}
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {

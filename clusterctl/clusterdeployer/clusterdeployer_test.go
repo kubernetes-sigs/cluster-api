@@ -25,7 +25,6 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
 	"sigs.k8s.io/cluster-api/clusterctl/clusterdeployer"
-	clustercommon "sigs.k8s.io/cluster-api/pkg/apis/cluster/common"
 	clusterv1 "sigs.k8s.io/cluster-api/pkg/apis/cluster/v1alpha1"
 )
 
@@ -582,7 +581,7 @@ func TestDeleteBasicScenarios(t *testing.T) {
 func generateMachines() []*clusterv1.Machine {
 	master := &clusterv1.Machine{}
 	master.Name = "test-master"
-	master.Spec.Roles = []clustercommon.MachineRole{clustercommon.MasterRole}
+	master.Spec.Versions.ControlPlane = "1.10.1"
 	node := &clusterv1.Machine{}
 	node.Name = "test.Node"
 	return []*clusterv1.Machine{master, node}

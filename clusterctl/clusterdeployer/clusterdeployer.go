@@ -20,13 +20,15 @@ import (
 	"fmt"
 	"io/ioutil"
 	"os"
+	"strings"
+	"time"
 
-	"github.com/golang/glog"
 	"k8s.io/client-go/kubernetes"
 	clustercommon "sigs.k8s.io/cluster-api/pkg/apis/cluster/common"
 	clusterv1 "sigs.k8s.io/cluster-api/pkg/apis/cluster/v1alpha1"
 	"sigs.k8s.io/cluster-api/pkg/util"
-	"time"
+
+	"github.com/golang/glog"
 )
 
 // Provider specific logic. Logic here should eventually be optional & additive.
@@ -47,11 +49,20 @@ type ClusterProvisioner interface {
 // Provides interaction with a cluster
 type ClusterClient interface {
 	Apply(string) error
+	Delete(string) error
 	WaitForClusterV1alpha1Ready() error
 	GetClusterObjects() ([]*clusterv1.Cluster, error)
+	GetMachineDeploymentObjects() ([]*clusterv1.MachineDeployment, error)
+	GetMachineSetObjects() ([]*clusterv1.MachineSet, error)
 	GetMachineObjects() ([]*clusterv1.Machine, error)
 	CreateClusterObject(*clusterv1.Cluster) error
+	CreateMachineDeploymentObjects([]*clusterv1.MachineDeployment) error
+	CreateMachineSetObjects([]*clusterv1.MachineSet) error
 	CreateMachineObjects([]*clusterv1.Machine) error
+	DeleteClusterObjects() error
+	DeleteMachineDeploymentObjects() error
+	DeleteMachineSetObjects() error
+	DeleteMachineObjects() error
 	UpdateClusterObjectEndpoint(string) error
 	Close() error
 }
@@ -74,28 +85,22 @@ type ProviderComponentsStoreFactory interface {
 type ClusterDeployer struct {
 	externalProvisioner    ClusterProvisioner
 	clientFactory          ClientFactory
-	provider               ProviderDeployer
 	providerComponents     string
 	addonComponents        string
-	kubeconfigOutput       string
 	cleanupExternalCluster bool
 }
 
 func New(
 	externalProvisioner ClusterProvisioner,
 	clientFactory ClientFactory,
-	provider ProviderDeployer,
 	providerComponents string,
 	addonComponents string,
-	kubeconfigOutput string,
 	cleanupExternalCluster bool) *ClusterDeployer {
 	return &ClusterDeployer{
 		externalProvisioner:    externalProvisioner,
 		clientFactory:          clientFactory,
-		provider:               provider,
 		providerComponents:     providerComponents,
 		addonComponents:        addonComponents,
-		kubeconfigOutput:       kubeconfigOutput,
 		cleanupExternalCluster: cleanupExternalCluster,
 	}
 }
@@ -106,7 +111,8 @@ const (
 )
 
 // Creates the a cluster from the provided cluster definition and machine list.
-func (d *ClusterDeployer) Create(cluster *clusterv1.Cluster, machines []*clusterv1.Machine, providerComponentsStoreFactory ProviderComponentsStoreFactory) error {
+
+func (d *ClusterDeployer) Create(cluster *clusterv1.Cluster, machines []*clusterv1.Machine, provider ProviderDeployer, kubeconfigOutput string, providerComponentsStoreFactory ProviderComponentsStoreFactory) error {
 	master, nodes, err := splitMachineRoles(machines)
 	if err != nil {
 		return fmt.Errorf("unable to seperate master machines from node machines: %v", err)
@@ -118,12 +124,7 @@ func (d *ClusterDeployer) Create(cluster *clusterv1.Cluster, machines []*cluster
 	if err != nil {
 		return fmt.Errorf("could not create external client: %v", err)
 	}
-	defer func() {
-		err := externalClient.Close()
-		if err != nil {
-			glog.Errorf("Could not close external client: %v", err)
-		}
-	}()
+	defer closeClient(externalClient, "external")
 
 	glog.Info("Applying Cluster API stack to external cluster")
 	if err := d.applyClusterAPIStack(externalClient); err != nil {
@@ -143,21 +144,16 @@ func (d *ClusterDeployer) Create(cluster *clusterv1.Cluster, machines []*cluster
 	}
 
 	glog.Infof("Updating external cluster object with master (%s) endpoint", master.Name)
-	if err := d.updateClusterEndpoint(externalClient); err != nil {
+	if err := d.updateClusterEndpoint(externalClient, provider); err != nil {
 		return fmt.Errorf("unable to update external cluster endpoint: %v", err)
 	}
 
 	glog.Info("Creating internal cluster")
-	internalClient, err := d.createInternalCluster(externalClient)
+	internalClient, err := d.createInternalCluster(externalClient, provider, kubeconfigOutput)
 	if err != nil {
 		return fmt.Errorf("unable to create internal cluster: %v", err)
 	}
-	defer func() {
-		err := internalClient.Close()
-		if err != nil {
-			glog.Errorf("Could not close internal client: %v", err)
-		}
-	}()
+	defer closeClient(internalClient, "internal")
 
 	glog.Info("Applying Cluster API stack to internal cluster")
 	if err := d.applyClusterAPIStackWithPivoting(internalClient, externalClient); err != nil {
@@ -165,7 +161,7 @@ func (d *ClusterDeployer) Create(cluster *clusterv1.Cluster, machines []*cluster
 	}
 
 	glog.Info("Saving provider components to the internal cluster")
-	err = d.saveProviderComponentsToCluster(providerComponentsStoreFactory, d.kubeconfigOutput)
+	err = d.saveProviderComponentsToCluster(providerComponentsStoreFactory, kubeconfigOutput)
 	if err != nil {
 		return fmt.Errorf("unable to save provider components to internal cluster: %v", err)
 	}
@@ -173,7 +169,7 @@ func (d *ClusterDeployer) Create(cluster *clusterv1.Cluster, machines []*cluster
 	// For some reason, endpoint doesn't get updated in external cluster sometimes. So we
 	// update the internal cluster endpoint as well to be sure.
 	glog.Infof("Updating internal cluster object with master (%s) endpoint", master.Name)
-	if err := d.updateClusterEndpoint(internalClient); err != nil {
+	if err := d.updateClusterEndpoint(internalClient, provider); err != nil {
 		return fmt.Errorf("unable to update internal cluster endpoint: %v", err)
 	}
 
@@ -189,7 +185,41 @@ func (d *ClusterDeployer) Create(cluster *clusterv1.Cluster, machines []*cluster
 		}
 	}
 
-	glog.Infof("Done provisioning cluster. You can now access your cluster with kubectl --kubeconfig %v", d.kubeconfigOutput)
+	glog.Infof("Done provisioning cluster. You can now access your cluster with kubectl --kubeconfig %v", kubeconfigOutput)
+
+	return nil
+}
+
+func (d *ClusterDeployer) Delete(internalClient ClusterClient) error {
+	glog.Info("Creating external cluster")
+	externalClient, cleanupExternalCluster, err := d.createExternalCluster()
+	defer cleanupExternalCluster()
+	if err != nil {
+		return fmt.Errorf("could not create external cluster: %v", err)
+	}
+	defer closeClient(externalClient, "external")
+
+	glog.Info("Applying Cluster API stack to external cluster")
+	if err = d.applyClusterAPIStack(externalClient); err != nil {
+		return fmt.Errorf("unable to apply cluster api stack to external cluster: %v", err)
+	}
+
+	glog.Info("Deleting Cluster API Provider Components from internal cluster")
+	if err = internalClient.Delete(d.providerComponents); err != nil {
+		glog.Infof("error while removing provider components from internal cluster: %v", err)
+		glog.Infof("Continuing with a best effort delete")
+	}
+
+	glog.Info("Copying objects from internal cluster to external cluster")
+	if err = pivot(internalClient, externalClient); err != nil {
+		return fmt.Errorf("unable to copy objects from internal to external cluster: %v", err)
+	}
+
+	glog.Info("Deleting objects from external cluster")
+	if err = deleteObjects(externalClient); err != nil {
+		return fmt.Errorf("unable to finish deleting objects in external cluster, resources may have been leaked: %v", err)
+	}
+	glog.Info("Deletion of cluster complete")
 
 	return nil
 }
@@ -216,20 +246,19 @@ func (d *ClusterDeployer) createExternalCluster() (ClusterClient, func(), error)
 	return externalClient, cleanupFn, nil
 }
 
-func (d *ClusterDeployer) createInternalCluster(externalClient ClusterClient) (ClusterClient, error) {
+func (d *ClusterDeployer) createInternalCluster(externalClient ClusterClient, provider ProviderDeployer, kubeconfigOutput string) (ClusterClient, error) {
 	cluster, master, _, err := getClusterAPIObjects(externalClient)
 	if err != nil {
 		return nil, err
 	}
 
 	glog.V(1).Info("Getting internal cluster kubeconfig.")
-	internalKubeconfig, err := waitForKubeconfigReady(d.provider, cluster, master)
+	internalKubeconfig, err := waitForKubeconfigReady(provider, cluster, master)
 	if err != nil {
 		return nil, fmt.Errorf("unable to get internal cluster kubeconfig: %v", err)
 	}
 
-	err = d.writeKubeconfig(internalKubeconfig)
-	if err != nil {
+	if err = d.writeKubeconfig(internalKubeconfig, kubeconfigOutput); err != nil {
 		return nil, err
 	}
 
@@ -237,10 +266,11 @@ func (d *ClusterDeployer) createInternalCluster(externalClient ClusterClient) (C
 	if err != nil {
 		return nil, fmt.Errorf("unable to create internal cluster client: %v", err)
 	}
+
 	return internalClient, nil
 }
 
-func (d *ClusterDeployer) updateClusterEndpoint(client ClusterClient) error {
+func (d *ClusterDeployer) updateClusterEndpoint(client ClusterClient, provider ProviderDeployer) error {
 	// Update cluster endpoint. Needed till this logic moves into cluster controller.
 	// TODO: https://github.com/kubernetes-sigs/cluster-api/issues/158
 	// Fetch fresh objects.
@@ -248,7 +278,7 @@ func (d *ClusterDeployer) updateClusterEndpoint(client ClusterClient) error {
 	if err != nil {
 		return err
 	}
-	masterIP, err := d.provider.GetIP(cluster, master)
+	masterIP, err := provider.GetIP(cluster, master)
 	if err != nil {
 		return fmt.Errorf("unable to get master IP: %v", err)
 	}
@@ -329,10 +359,10 @@ func (d *ClusterDeployer) applyClusterAPIControllers(client ClusterClient) error
 	return client.Apply(d.providerComponents)
 }
 
-func (d *ClusterDeployer) writeKubeconfig(kubeconfig string) error {
+func (d *ClusterDeployer) writeKubeconfig(kubeconfig string, kubeconfigOutput string) error {
 	const fileMode = 0666
-	os.Remove(d.kubeconfigOutput)
-	return ioutil.WriteFile(d.kubeconfigOutput, []byte(kubeconfig), fileMode)
+	os.Remove(kubeconfigOutput)
+	return ioutil.WriteFile(kubeconfigOutput, []byte(kubeconfig), fileMode)
 }
 
 func waitForKubeconfigReady(provider ProviderDeployer, cluster *clusterv1.Cluster, machine *clusterv1.Machine) (string, error) {
@@ -356,11 +386,11 @@ func waitForKubeconfigReady(provider ProviderDeployer, cluster *clusterv1.Cluste
 
 func pivot(from, to ClusterClient) error {
 	if err := from.WaitForClusterV1alpha1Ready(); err != nil {
-		return fmt.Errorf("Cluster v1aplpha1 resource not ready on source cluster.")
+		return fmt.Errorf("cluster v1alpha1 resource not ready on source cluster")
 	}
 
 	if err := to.WaitForClusterV1alpha1Ready(); err != nil {
-		return fmt.Errorf("Cluster v1aplpha1 resource not ready on target cluster.")
+		return fmt.Errorf("cluster v1alpha1 resource not ready on target cluster")
 	}
 
 	clusters, err := from.GetClusterObjects()
@@ -371,11 +401,36 @@ func pivot(from, to ClusterClient) error {
 	for _, cluster := range clusters {
 		// New objects cannot have a specified resource version. Clear it out.
 		cluster.SetResourceVersion("")
-		err = to.CreateClusterObject(cluster)
-		if err != nil {
-			return err
+		if err = to.CreateClusterObject(cluster); err != nil {
+			return fmt.Errorf("error moving Cluster '%v': %v", cluster.GetName(), err)
 		}
 		glog.Infof("Moved Cluster '%s'", cluster.GetName())
+	}
+
+	fromDeployments, err := from.GetMachineDeploymentObjects()
+	if err != nil {
+		return err
+	}
+	for _, deployment := range fromDeployments {
+		// New objects cannot have a specified resource version. Clear it out.
+		deployment.SetResourceVersion("")
+		if err = to.CreateMachineDeploymentObjects([]*clusterv1.MachineDeployment{deployment}); err != nil {
+			return fmt.Errorf("error moving MachineDeployment '%v': %v", deployment.GetName(), err)
+		}
+		glog.Infof("Moved MachineDeployment %v", deployment.GetName())
+	}
+
+	fromMachineSets, err := from.GetMachineSetObjects()
+	if err != nil {
+		return err
+	}
+	for _, machineSet := range fromMachineSets {
+		// New objects cannot have a specified resource version. Clear it out.
+		machineSet.SetResourceVersion("")
+		if err := to.CreateMachineSetObjects([]*clusterv1.MachineSet{machineSet}); err != nil {
+			return fmt.Errorf("error moving MachineSet '%v': %v", machineSet.GetName(), err)
+		}
+		glog.Infof("Moved MachineSet %v", machineSet.GetName())
 	}
 
 	machines, err := from.GetMachineObjects()
@@ -386,11 +441,38 @@ func pivot(from, to ClusterClient) error {
 	for _, machine := range machines {
 		// New objects cannot have a specified resource version. Clear it out.
 		machine.SetResourceVersion("")
-		err = to.CreateMachineObjects([]*clusterv1.Machine{machine})
-		if err != nil {
-			return err
+		if err = to.CreateMachineObjects([]*clusterv1.Machine{machine}); err != nil {
+			return fmt.Errorf("error moving Machine '%v': %v", machine.GetName(), err)
 		}
 		glog.Infof("Moved Machine '%s'", machine.GetName())
+	}
+	return nil
+}
+
+func deleteObjects(client ClusterClient) error {
+	var errors []string
+	glog.Infof("Deleting machine deployments")
+	if err := client.DeleteMachineDeploymentObjects(); err != nil {
+		err = fmt.Errorf("error deleting machine deployments: %v", err)
+		errors = append(errors, err.Error())
+	}
+	glog.Infof("Deleting machine sets")
+	if err := client.DeleteMachineSetObjects(); err != nil {
+		err = fmt.Errorf("error deleting machine sets: %v", err)
+		errors = append(errors, err.Error())
+	}
+	glog.Infof("Deleting machines")
+	if err := client.DeleteMachineObjects(); err != nil {
+		err = fmt.Errorf("error deleting machines: %v", err)
+		errors = append(errors, err.Error())
+	}
+	glog.Infof("Deleting clusters")
+	if err := client.DeleteClusterObjects(); err != nil {
+		err = fmt.Errorf("error deleting clusters: %v", err)
+		errors = append(errors, err.Error())
+	}
+	if len(errors) > 0 {
+		return fmt.Errorf("error(s) encountered deleting objects from external cluster: [%v]", strings.Join(errors, ", "))
 	}
 	return nil
 }
@@ -439,4 +521,10 @@ func containsMasterRole(roles []clustercommon.MachineRole) bool {
 		}
 	}
 	return false
+}
+
+func closeClient(client ClusterClient, name string) {
+	if err := client.Close(); err != nil {
+		glog.Errorf("Could not close %v client: %v", name, err)
+	}
 }

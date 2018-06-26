@@ -22,6 +22,7 @@ import (
 	"os"
 	"testing"
 
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
 	"sigs.k8s.io/cluster-api/clusterctl/clusterdeployer"
 	clustercommon "sigs.k8s.io/cluster-api/pkg/apis/cluster/common"
@@ -84,21 +85,36 @@ func (m *mockProviderComponentsStore) Load() (string, error) {
 }
 
 type testClusterClient struct {
-	ApplyErr                       error
-	WaitForClusterV1alpha1ReadyErr error
-	GetClusterObjectsErr           error
-	GetMachineObjectsErr           error
-	CreateClusterObjectErr         error
-	CreateMachineObjectsErr        error
-	UpdateClusterObjectEndpointErr error
-	CloseErr                       error
+	ApplyErr                           error
+	DeleteErr                          error
+	WaitForClusterV1alpha1ReadyErr     error
+	GetClusterObjectsErr               error
+	GetMachineDeploymentObjectsErr     error
+	GetMachineSetObjectsErr            error
+	GetMachineObjectsErr               error
+	CreateClusterObjectErr             error
+	CreateMachineObjectsErr            error
+	CreateMachineSetObjectsErr         error
+	CreateMachineDeploymentsObjectsErr error
+	DeleteClusterObjectsErr            error
+	DeleteMachineObjectsErr            error
+	DeleteMachineSetObjectsErr         error
+	DeleteMachineDeploymentsObjectsErr error
+	UpdateClusterObjectEndpointErr     error
+	CloseErr                           error
 
-	clusters []*clusterv1.Cluster
-	machines []*clusterv1.Machine
+	clusters           []*clusterv1.Cluster
+	machineDeployments []*clusterv1.MachineDeployment
+	machineSets        []*clusterv1.MachineSet
+	machines           []*clusterv1.Machine
 }
 
 func (c *testClusterClient) Apply(string) error {
 	return c.ApplyErr
+}
+
+func (c *testClusterClient) Delete(string) error {
+	return c.DeleteErr
 }
 
 func (c *testClusterClient) WaitForClusterV1alpha1Ready() error {
@@ -109,24 +125,66 @@ func (c *testClusterClient) GetClusterObjects() ([]*clusterv1.Cluster, error) {
 	return c.clusters, c.GetClusterObjectsErr
 }
 
+func (c *testClusterClient) GetMachineDeploymentObjects() ([]*clusterv1.MachineDeployment, error) {
+	return c.machineDeployments, c.GetMachineDeploymentObjectsErr
+}
+
+func (c *testClusterClient) GetMachineSetObjects() ([]*clusterv1.MachineSet, error) {
+	return c.machineSets, c.GetMachineSetObjectsErr
+}
+
 func (c *testClusterClient) GetMachineObjects() ([]*clusterv1.Machine, error) {
 	return c.machines, c.GetMachineObjectsErr
 }
 
 func (c *testClusterClient) CreateClusterObject(cluster *clusterv1.Cluster) error {
-	if c.CreateClusterObjectErr != nil {
-		return c.CreateClusterObjectErr
+	if c.CreateClusterObjectErr == nil {
+		c.clusters = append(c.clusters, cluster)
+		return nil
 	}
-	c.clusters = append(c.clusters, cluster)
-	return nil
+	return c.CreateClusterObjectErr
 }
+
+func (c *testClusterClient) CreateMachineDeploymentObjects(deployments []*clusterv1.MachineDeployment) error {
+	if c.CreateMachineDeploymentsObjectsErr == nil {
+		c.machineDeployments = append(c.machineDeployments, deployments...)
+		return nil
+	}
+	return c.CreateMachineDeploymentsObjectsErr
+}
+
+func (c *testClusterClient) CreateMachineSetObjects(machineSets []*clusterv1.MachineSet) error {
+	if c.CreateMachineSetObjectsErr == nil {
+		c.machineSets = append(c.machineSets, machineSets...)
+		return nil
+	}
+	return c.CreateMachineSetObjectsErr
+}
+
 func (c *testClusterClient) CreateMachineObjects(machines []*clusterv1.Machine) error {
-	if c.CreateMachineObjectsErr != nil {
-		return c.CreateMachineObjectsErr
+	if c.CreateMachineObjectsErr == nil {
+		c.machines = append(c.machines, machines...)
+		return nil
 	}
-	c.machines = append(c.machines, machines...)
-	return nil
+	return c.CreateMachineObjectsErr
 }
+
+func (c *testClusterClient) DeleteClusterObjects() error {
+	return c.DeleteClusterObjectsErr
+}
+
+func (c *testClusterClient) DeleteMachineDeploymentObjects() error {
+	return c.DeleteMachineDeploymentsObjectsErr
+}
+
+func (c *testClusterClient) DeleteMachineSetObjects() error {
+	return c.DeleteMachineSetObjectsErr
+}
+
+func (c *testClusterClient) DeleteMachineObjects() error {
+	return c.DeleteMachineObjectsErr
+}
+
 func (c *testClusterClient) UpdateClusterObjectEndpoint(string) error {
 	return c.UpdateClusterObjectEndpointErr
 }
@@ -348,8 +406,8 @@ func TestCreate(t *testing.T) {
 			inputMachines := generateMachines()
 			pcStore := mockProviderComponentsStore{}
 			pcFactory := mockProviderComponentsStoreFactory{NewFromCoreclientsetPCStore: &pcStore}
-			d := clusterdeployer.New(p, f, pd, "", "", kubeconfigOut, testcase.cleanupExternal)
-			err := d.Create(inputCluster, inputMachines, &pcFactory)
+			d := clusterdeployer.New(p, f, "", "", testcase.cleanupExternal)
+			err := d.Create(inputCluster, inputMachines, pd, kubeconfigOut, &pcFactory)
 
 			// Validate
 			if (testcase.expectErr && err == nil) || (!testcase.expectErr && err != nil) {
@@ -412,8 +470,8 @@ func TestCreateProviderComponentsScenarios(t *testing.T) {
 			pcFactory := mockProviderComponentsStoreFactory{NewFromCoreclientsetPCStore: &tc.pcStore}
 			providerComponentsYaml := "-yaml\ndefinition"
 			addonsYaml := "-yaml\ndefinition"
-			d := clusterdeployer.New(p, f, pd, providerComponentsYaml, addonsYaml, kubeconfigOut, false)
-			err := d.Create(inputCluster, inputMachines, &pcFactory)
+			d := clusterdeployer.New(p, f, providerComponentsYaml, addonsYaml, false)
+			err := d.Create(inputCluster, inputMachines, pd, kubeconfigOut, &pcFactory)
 			if err == nil && tc.expectedError != "" {
 				t.Fatalf("error mismatch: got '%v', want '%v'", err, tc.expectedError)
 			}
@@ -427,6 +485,100 @@ func TestCreateProviderComponentsScenarios(t *testing.T) {
 	}
 }
 
+func TestDeleteCleanupExternalCluster(t *testing.T) {
+	const externalKubeconfig = "external"
+	const internalKubeconfig = "internal"
+
+	testCases := []struct {
+		name                   string
+		cleanupExternalCluster bool
+		provisionExternalErr   error
+		externalClient         *testClusterClient
+		internalClient         *testClusterClient
+		expectedErrorMessage   string
+	}{
+		{"success with cleanup", true, nil, &testClusterClient{}, &testClusterClient{}, ""},
+		{"success without cleanup", false, nil, &testClusterClient{}, &testClusterClient{}, ""},
+		{"error with cleanup", true, nil, &testClusterClient{}, &testClusterClient{GetMachineSetObjectsErr: fmt.Errorf("get machine sets error")}, "unable to copy objects from internal to external cluster: get machine sets error"},
+		{"error without cleanup", true, nil, &testClusterClient{}, &testClusterClient{GetMachineSetObjectsErr: fmt.Errorf("get machine sets error")}, "unable to copy objects from internal to external cluster: get machine sets error"},
+	}
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			kubeconfigOut := newTempFile(t)
+			defer os.Remove(kubeconfigOut)
+			p := &testClusterProvisioner{err: tc.provisionExternalErr, kubeconfig: externalKubeconfig}
+			f := newTestClusterClientFactory()
+			f.clusterClients[externalKubeconfig] = tc.externalClient
+			f.clusterClients[internalKubeconfig] = tc.internalClient
+			d := clusterdeployer.New(p, f, "", "", tc.cleanupExternalCluster)
+			err := d.Delete(tc.internalClient)
+			if err != nil || tc.expectedErrorMessage != "" {
+				if err == nil {
+					t.Errorf("expected error")
+				} else if err.Error() != tc.expectedErrorMessage {
+					t.Errorf("Unexpected error: got '%v', want: '%v'", err, tc.expectedErrorMessage)
+				}
+			}
+			if !tc.cleanupExternalCluster != p.clusterExists {
+				t.Errorf("cluster existence mismatch: got: '%v', want: '%v'", p.clusterExists, !tc.cleanupExternalCluster)
+			}
+		})
+	}
+}
+
+func TestDeleteBasicScenarios(t *testing.T) {
+	const externalKubeconfig = "external"
+	const internalKubeconfig = "internal"
+
+	testCases := []struct {
+		name                 string
+		provisionExternalErr error
+		NewCoreClientsetErr  error
+		externalClient       *testClusterClient
+		internalClient       *testClusterClient
+		expectedErrorMessage string
+	}{
+		{"success", nil, nil, &testClusterClient{}, &testClusterClient{}, ""},
+		{"error creating core client", nil, fmt.Errorf("error creating core client"), &testClusterClient{}, &testClusterClient{}, "could not create external cluster: unable to create external client: error creating core client"},
+		{"fail provision external cluster", fmt.Errorf("minikube error"), nil, &testClusterClient{}, &testClusterClient{}, "could not create external cluster: could not create external control plane: minikube error"},
+		{"fail apply yaml to external cluster", nil, nil, &testClusterClient{ApplyErr: fmt.Errorf("yaml apply error")}, &testClusterClient{}, "unable to apply cluster api stack to external cluster: unable to apply cluster apiserver: unable to apply apiserver yaml: yaml apply error"},
+		{"fail delete provider components should succeed", nil, nil, &testClusterClient{}, &testClusterClient{DeleteErr: fmt.Errorf("kubectl delete error")}, ""},
+		{"error listing machines", nil, nil, &testClusterClient{}, &testClusterClient{GetMachineObjectsErr: fmt.Errorf("get machines error")}, "unable to copy objects from internal to external cluster: get machines error"},
+		{"error listing machine sets", nil, nil, &testClusterClient{}, &testClusterClient{GetMachineSetObjectsErr: fmt.Errorf("get machine sets error")}, "unable to copy objects from internal to external cluster: get machine sets error"},
+		{"error listing machine deployments", nil, nil, &testClusterClient{}, &testClusterClient{GetMachineDeploymentObjectsErr: fmt.Errorf("get machine deployments error")}, "unable to copy objects from internal to external cluster: get machine deployments error"},
+		{"error listing clusters", nil, nil, &testClusterClient{}, &testClusterClient{GetClusterObjectsErr: fmt.Errorf("get clusters error")}, "unable to copy objects from internal to external cluster: get clusters error"},
+		{"error creating machines", nil, nil, &testClusterClient{CreateMachineObjectsErr: fmt.Errorf("create machines error")}, &testClusterClient{machines: generateMachines()}, "unable to copy objects from internal to external cluster: error moving Machine 'test-master': create machines error"},
+		{"error creating machine sets", nil, nil, &testClusterClient{CreateMachineSetObjectsErr: fmt.Errorf("create machine sets error")}, &testClusterClient{machineSets: newMachineSetsFixture()}, "unable to copy objects from internal to external cluster: error moving MachineSet 'machine-set-name-1': create machine sets error"},
+		{"error creating machine deployments", nil, nil, &testClusterClient{CreateMachineDeploymentsObjectsErr: fmt.Errorf("create machine deployments error")}, &testClusterClient{machineDeployments: newMachineDeploymentsFixture()}, "unable to copy objects from internal to external cluster: error moving MachineDeployment 'machine-deployment-name-1': create machine deployments error"},
+		{"error creating cluster", nil, nil, &testClusterClient{CreateClusterObjectErr: fmt.Errorf("create cluster error")}, &testClusterClient{clusters: newClustersFixture()}, "unable to copy objects from internal to external cluster: error moving Cluster 'cluster-name-1': create cluster error"},
+		{"error deleting machines", nil, nil, &testClusterClient{DeleteMachineObjectsErr: fmt.Errorf("delete machines error")}, &testClusterClient{}, "unable to finish deleting objects in external cluster, resources may have been leaked: error(s) encountered deleting objects from external cluster: [error deleting machines: delete machines error]"},
+		{"error deleting machine sets", nil, nil, &testClusterClient{DeleteMachineSetObjectsErr: fmt.Errorf("delete machine sets error")}, &testClusterClient{}, "unable to finish deleting objects in external cluster, resources may have been leaked: error(s) encountered deleting objects from external cluster: [error deleting machine sets: delete machine sets error]"},
+		{"error deleting machine deployments", nil, nil, &testClusterClient{DeleteMachineDeploymentsObjectsErr: fmt.Errorf("delete machine deployments error")}, &testClusterClient{}, "unable to finish deleting objects in external cluster, resources may have been leaked: error(s) encountered deleting objects from external cluster: [error deleting machine deployments: delete machine deployments error]"},
+		{"error deleting clusters", nil, nil, &testClusterClient{DeleteClusterObjectsErr: fmt.Errorf("delete clusters error")}, &testClusterClient{}, "unable to finish deleting objects in external cluster, resources may have been leaked: error(s) encountered deleting objects from external cluster: [error deleting clusters: delete clusters error]"},
+		{"error deleting machines and clusters", nil, nil, &testClusterClient{DeleteMachineObjectsErr: fmt.Errorf("delete machines error"), DeleteClusterObjectsErr: fmt.Errorf("delete clusters error")}, &testClusterClient{}, "unable to finish deleting objects in external cluster, resources may have been leaked: error(s) encountered deleting objects from external cluster: [error deleting machines: delete machines error, error deleting clusters: delete clusters error]"},
+	}
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			kubeconfigOut := newTempFile(t)
+			defer os.Remove(kubeconfigOut)
+			p := &testClusterProvisioner{err: tc.provisionExternalErr, kubeconfig: externalKubeconfig}
+			f := newTestClusterClientFactory()
+			f.clusterClients[externalKubeconfig] = tc.externalClient
+			f.clusterClients[internalKubeconfig] = tc.internalClient
+			f.ClusterClientErr = tc.NewCoreClientsetErr
+			d := clusterdeployer.New(p, f, "", "", true)
+			err := d.Delete(tc.internalClient)
+			if err != nil || tc.expectedErrorMessage != "" {
+				if err == nil {
+					t.Errorf("expected error")
+				} else if err.Error() != tc.expectedErrorMessage {
+					t.Errorf("Unexpected error: got '%v', want: '%v'", err, tc.expectedErrorMessage)
+				}
+			}
+		})
+	}
+}
+
 func generateMachines() []*clusterv1.Machine {
 	master := &clusterv1.Machine{}
 	master.Name = "test-master"
@@ -434,6 +586,27 @@ func generateMachines() []*clusterv1.Machine {
 	node := &clusterv1.Machine{}
 	node.Name = "test.Node"
 	return []*clusterv1.Machine{master, node}
+}
+
+func newMachineSetsFixture() []*clusterv1.MachineSet {
+	return []*clusterv1.MachineSet{
+		&clusterv1.MachineSet{ObjectMeta: metav1.ObjectMeta{Name: "machine-set-name-1"}},
+		&clusterv1.MachineSet{ObjectMeta: metav1.ObjectMeta{Name: "machine-set-name-2"}},
+	}
+}
+
+func newMachineDeploymentsFixture() []*clusterv1.MachineDeployment {
+	return []*clusterv1.MachineDeployment{
+		&clusterv1.MachineDeployment{ObjectMeta: metav1.ObjectMeta{Name: "machine-deployment-name-1"}},
+		&clusterv1.MachineDeployment{ObjectMeta: metav1.ObjectMeta{Name: "machine-deployment-name-2"}},
+	}
+}
+
+func newClustersFixture() []*clusterv1.Cluster {
+	return []*clusterv1.Cluster{
+		&clusterv1.Cluster{ObjectMeta: metav1.ObjectMeta{Name: "cluster-name-1"}},
+		&clusterv1.Cluster{ObjectMeta: metav1.ObjectMeta{Name: "cluster-name-2"}},
+	}
 }
 
 func newTempFile(t *testing.T) string {

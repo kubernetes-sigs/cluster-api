@@ -17,12 +17,14 @@ limitations under the License.
 package google
 
 import (
+	"encoding/base64"
 	"errors"
 	"fmt"
 	"io/ioutil"
 	"net/http"
 	"os"
 	"reflect"
+	"regexp"
 	"strings"
 	"time"
 
@@ -33,15 +35,12 @@ import (
 	"google.golang.org/api/googleapi"
 
 	corev1 "k8s.io/api/core/v1"
-	"k8s.io/apimachinery/pkg/runtime"
-
-	"regexp"
-
-	"encoding/base64"
-
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/serializer"
 	"k8s.io/client-go/kubernetes"
+	"k8s.io/client-go/tools/record"
+
 	"sigs.k8s.io/cluster-api/cloud/google/clients"
 	gceconfigv1 "sigs.k8s.io/cluster-api/cloud/google/gceproviderconfig/v1alpha1"
 	"sigs.k8s.io/cluster-api/cloud/google/machinesetup"
@@ -51,7 +50,6 @@ import (
 	apierrors "sigs.k8s.io/cluster-api/pkg/errors"
 	"sigs.k8s.io/cluster-api/pkg/kubeadm"
 	"sigs.k8s.io/cluster-api/pkg/util"
-	"k8s.io/client-go/tools/record"
 )
 
 const (
@@ -227,7 +225,7 @@ func (gce *GCEClient) Create(cluster *clusterv1.Cluster, machine *clusterv1.Mach
 
 	configParams := &machinesetup.ConfigParams{
 		OS:       machineConfig.OS,
-		Roles:    machine.Spec.Roles,
+		Roles:    machineConfig.Roles,
 		Versions: machine.Spec.Versions,
 	}
 	machineSetupConfigs, err := gce.machineSetupConfigGetter.GetMachineSetupConfig()
@@ -411,12 +409,12 @@ func (gce *GCEClient) PostDelete(cluster *clusterv1.Cluster) error {
 
 func (gce *GCEClient) Update(cluster *clusterv1.Cluster, goalMachine *clusterv1.Machine) error {
 	// Before updating, do some basic validation of the object first.
-	config, err := gce.machineproviderconfig(goalMachine.Spec.ProviderConfig)
+	goalConfig, err := gce.machineproviderconfig(goalMachine.Spec.ProviderConfig)
 	if err != nil {
 		return gce.handleMachineError(goalMachine,
 			apierrors.InvalidMachineConfiguration("Cannot unmarshal machine's providerConfig field: %v", err), noEventAction)
 	}
-	if verr := gce.validateMachine(goalMachine, config); verr != nil {
+	if verr := gce.validateMachine(goalMachine, goalConfig); verr != nil {
 		return gce.handleMachineError(goalMachine, verr, noEventAction)
 	}
 
@@ -439,11 +437,17 @@ func (gce *GCEClient) Update(cluster *clusterv1.Cluster, goalMachine *clusterv1.
 		}
 	}
 
+	currentConfig, err := gce.machineproviderconfig(currentMachine.Spec.ProviderConfig)
+	if err != nil {
+		return gce.handleMachineError(currentMachine, apierrors.InvalidMachineConfiguration(
+			"Cannot unmarshal machine's providerConfig field: %v", err), noEventAction)
+	}
+
 	if !gce.requiresUpdate(currentMachine, goalMachine) {
 		return nil
 	}
 
-	if util.IsMaster(currentMachine) {
+	if isMaster(currentConfig.Roles) {
 		glog.Infof("Doing an in-place upgrade for master.\n")
 		// TODO: should we support custom CAs here?
 		err = gce.updateMasterInplace(cluster, currentMachine, goalMachine)
@@ -465,8 +469,7 @@ func (gce *GCEClient) Update(cluster *clusterv1.Cluster, goalMachine *clusterv1.
 	if err != nil {
 		return err
 	}
-	err = gce.updateInstanceStatus(goalMachine)
-	return err
+	return gce.updateInstanceStatus(goalMachine)
 }
 
 func (gce *GCEClient) Exists(cluster *clusterv1.Cluster, machine *clusterv1.Machine) (bool, error) {
@@ -521,6 +524,15 @@ func (gce *GCEClient) GetKubeConfig(cluster *clusterv1.Cluster, master *clusterv
 		"gcloud", "compute", "ssh", "--project", clusterConfig.Project,
 		"--zone", machineConfig.Zone, master.ObjectMeta.Name, "--command", command, "--", "-q"))
 	return result, nil
+}
+
+func isMaster(roles []gceconfigv1.MachineRole) bool {
+	for _, r := range roles {
+		if r == gceconfigv1.MasterRole {
+			return true
+		}
+	}
+	return false
 }
 
 func (gce *GCEClient) updateAnnotations(cluster *clusterv1.Cluster, machine *clusterv1.Machine) error {
@@ -787,7 +799,7 @@ func (gce *GCEClient) getMetadata(cluster *clusterv1.Cluster, machine *clusterv1
 	if err != nil {
 		return nil, err
 	}
-	if util.IsMaster(machine) {
+	if isMaster(configParams.Roles) {
 		if machine.Spec.Versions.ControlPlane == "" {
 			return nil, gce.handleMachineError(machine, apierrors.InvalidMachineConfiguration(
 				"invalid master configuration: missing Machine.Spec.Versions.ControlPlane"), createEventAction)

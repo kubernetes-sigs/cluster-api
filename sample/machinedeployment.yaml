@@ -16,6 +16,8 @@ spec:
         value:
           apiVersion: "gceproviderconfig/v1alpha1"
           kind: "GCEProviderConfig"
+          roles:
+          - Node
           project: "${GCLOUD_PROJECT}"
           zone: "us-central1-c"
           machineType: "n1-standard-2"

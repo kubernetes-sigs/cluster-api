@@ -86,6 +86,11 @@ func (in *GCEClusterProviderConfig) DeepCopyObject() runtime.Object {
 func (in *GCEMachineProviderConfig) DeepCopyInto(out *GCEMachineProviderConfig) {
 	*out = *in
 	out.TypeMeta = in.TypeMeta
+	if in.Roles != nil {
+		in, out := &in.Roles, &out.Roles
+		*out = make([]MachineRole, len(*in))
+		copy(*out, *in)
+	}
 	if in.Disks != nil {
 		in, out := &in.Disks, &out.Disks
 		*out = make([]Disk, len(*in))

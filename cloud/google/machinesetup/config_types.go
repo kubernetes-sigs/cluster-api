@@ -25,7 +25,7 @@ import (
 	"reflect"
 
 	"github.com/ghodss/yaml"
-	clustercommon "sigs.k8s.io/cluster-api/pkg/apis/cluster/common"
+	gceconfigv1 "sigs.k8s.io/cluster-api/cloud/google/gceproviderconfig/v1alpha1"
 	clusterv1 "sigs.k8s.io/cluster-api/pkg/apis/cluster/v1alpha1"
 )
 
@@ -69,7 +69,7 @@ type Metadata struct {
 
 type ConfigParams struct {
 	OS       string
-	Roles    []clustercommon.MachineRole
+	Roles    []gceconfigv1.MachineRole
 	Versions clusterv1.MachineVersionInfo
 }
 
@@ -155,8 +155,8 @@ func (vc *ValidConfigs) matchMachineSetupConfig(params *ConfigParams) (*config, 
 	}
 }
 
-func rolesToMap(roles []clustercommon.MachineRole) map[clustercommon.MachineRole]int {
-	rolesMap := map[clustercommon.MachineRole]int{}
+func rolesToMap(roles []gceconfigv1.MachineRole) map[gceconfigv1.MachineRole]int {
+	rolesMap := map[gceconfigv1.MachineRole]int{}
 	for _, role := range roles {
 		rolesMap[role] = rolesMap[role] + 1
 	}

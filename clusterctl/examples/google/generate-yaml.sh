@@ -147,6 +147,7 @@ gcloud projects add-iam-policy-binding $GCLOUD_PROJECT --member=serviceAccount:$
 gcloud projects add-iam-policy-binding $GCLOUD_PROJECT --member=serviceAccount:$MASTER_SA_EMAIL --role=roles/compute.networkAdmin
 gcloud projects add-iam-policy-binding $GCLOUD_PROJECT --member=serviceAccount:$MASTER_SA_EMAIL --role=roles/compute.securityAdmin
 gcloud projects add-iam-policy-binding $GCLOUD_PROJECT --member=serviceAccount:$MASTER_SA_EMAIL --role=roles/compute.viewer
+gcloud projects add-iam-policy-binding $GCLOUD_PROJECT --member=serviceAccount:$MASTER_SA_EMAIL --role=roles/iam.serviceAccountUser
 gcloud projects add-iam-policy-binding $GCLOUD_PROJECT --member=serviceAccount:$MASTER_SA_EMAIL --role=roles/storage.admin
 gcloud projects add-iam-policy-binding $GCLOUD_PROJECT --member=serviceAccount:$MASTER_SA_EMAIL --role=roles/storage.objectViewer
 

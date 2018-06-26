@@ -556,11 +556,6 @@ func (in *MachineSpec) DeepCopyInto(out *MachineSpec) {
 		}
 	}
 	in.ProviderConfig.DeepCopyInto(&out.ProviderConfig)
-	if in.Roles != nil {
-		in, out := &in.Roles, &out.Roles
-		*out = make([]common.MachineRole, len(*in))
-		copy(*out, *in)
-	}
 	out.Versions = in.Versions
 	if in.ConfigSource != nil {
 		in, out := &in.ConfigSource, &out.ConfigSource

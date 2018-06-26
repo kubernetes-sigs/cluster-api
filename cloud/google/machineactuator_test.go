@@ -19,19 +19,19 @@ package google_test
 import (
 	"encoding/base64"
 	"fmt"
+	"os"
+	"strings"
+	"testing"
+
 	compute "google.golang.org/api/compute/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1"
-	"os"
 	"sigs.k8s.io/cluster-api/cloud/google"
 	gceconfigv1 "sigs.k8s.io/cluster-api/cloud/google/gceproviderconfig/v1alpha1"
 	"sigs.k8s.io/cluster-api/cloud/google/machinesetup"
-	"sigs.k8s.io/cluster-api/pkg/apis/cluster/common"
 	"sigs.k8s.io/cluster-api/pkg/apis/cluster/v1alpha1"
 	"sigs.k8s.io/cluster-api/pkg/cert"
 	"sigs.k8s.io/cluster-api/pkg/kubeadm"
 	"sigs.k8s.io/cluster-api/pkg/test-cmd-runner"
-	"strings"
-	"testing"
 	"k8s.io/client-go/tools/record"
 )
 
@@ -80,7 +80,8 @@ func TestKubeadmTokenShouldBeInStartupScript(t *testing.T) {
 	config := newGCEMachineProviderConfigFixture()
 	receivedInstance, computeServiceMock := newInsertInstanceCapturingMock()
 	kubeadm := kubeadm.NewWithCmdRunner(test_cmd_runner.NewTestRunnerFailOnErr(t, tokenCreateCommandCallback))
-	machine := newMachine(t, config, common.NodeRole)
+	config.Roles = []gceconfigv1.MachineRole{ gceconfigv1.NodeRole }
+	machine := newMachine(t, config)
 	err := createCluster(t, machine, computeServiceMock, nil, kubeadm)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
@@ -104,7 +105,8 @@ func TestTokenCreateCommandError(t *testing.T) {
 	config := newGCEMachineProviderConfigFixture()
 	_, computeServiceMock := newInsertInstanceCapturingMock()
 	kubeadm := kubeadm.NewWithCmdRunner(test_cmd_runner.NewTestRunnerFailOnErr(t, tokenCreateErrorCommandCallback))
-	machine := newMachine(t, config, common.NodeRole)
+	config.Roles = []gceconfigv1.MachineRole{ gceconfigv1.NodeRole }
+	machine := newMachine(t, config)
 	err := createCluster(t, machine, computeServiceMock, nil, kubeadm)
 	if err == nil {
 		t.Fatalf("expected error, got nil")
@@ -242,7 +244,7 @@ func checkMetadataItem(t *testing.T, metadata *compute.Metadata, key string, exp
 }
 
 func createClusterAndFailOnError(t *testing.T, config gceconfigv1.GCEMachineProviderConfig, computeServiceMock *GCEClientComputeServiceMock, ca *cert.CertificateAuthority) {
-	machine := newMachine(t, config, common.MasterRole)
+	machine := newMachine(t, config)
 	err := createCluster(t, machine, computeServiceMock, ca, nil)
 	if err != nil {
 		t.Fatalf("unable to create cluster: %v", err)
@@ -308,7 +310,7 @@ func (cw *TestMachineSetupConfigWatcher) GetMachineSetupConfig() (machinesetup.M
 	return cw.machineSetupConfigMock, nil
 }
 
-func newMachine(t *testing.T, gceProviderConfig gceconfigv1.GCEMachineProviderConfig, role common.MachineRole) *v1alpha1.Machine {
+func newMachine(t *testing.T, gceProviderConfig gceconfigv1.GCEMachineProviderConfig) *v1alpha1.Machine {
 	gceProviderConfigCodec, err := gceconfigv1.NewCodec()
 	if err != nil {
 		t.Fatalf("unable to create GCE provider config codec: %v", err)
@@ -325,9 +327,6 @@ func newMachine(t *testing.T, gceProviderConfig gceconfigv1.GCEMachineProviderCo
 				Kubelet:      "1.9.4",
 				ControlPlane: "1.9.4",
 			},
-			Roles: []common.MachineRole{
-				role,
-			},
 		},
 	}
 }
@@ -337,6 +336,9 @@ func newGCEMachineProviderConfigFixture() gceconfigv1.GCEMachineProviderConfig {
 		TypeMeta: v1.TypeMeta{
 			APIVersion: "gceproviderconfig/v1alpha1",
 			Kind:       "GCEMachineProviderConfig",
+		},
+		Roles: []gceconfigv1.MachineRole{
+			gceconfigv1.MasterRole,
 		},
 		Zone:  "us-west5-f",
 		OS:    "os-name",

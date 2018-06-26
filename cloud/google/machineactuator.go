@@ -227,7 +227,7 @@ func (gce *GCEClient) Create(cluster *clusterv1.Cluster, machine *clusterv1.Mach
 
 	configParams := &machinesetup.ConfigParams{
 		OS:       machineConfig.OS,
-		Roles:    machine.Spec.Roles,
+		Roles:    machineConfig.Roles,
 		Versions: machine.Spec.Versions,
 	}
 	machineSetupConfigs, err := gce.machineSetupConfigGetter.GetMachineSetupConfig()
@@ -411,12 +411,12 @@ func (gce *GCEClient) PostDelete(cluster *clusterv1.Cluster) error {
 
 func (gce *GCEClient) Update(cluster *clusterv1.Cluster, goalMachine *clusterv1.Machine) error {
 	// Before updating, do some basic validation of the object first.
-	config, err := gce.machineproviderconfig(goalMachine.Spec.ProviderConfig)
+	goalConfig, err := gce.machineproviderconfig(goalMachine.Spec.ProviderConfig)
 	if err != nil {
 		return gce.handleMachineError(goalMachine,
 			apierrors.InvalidMachineConfiguration("Cannot unmarshal machine's providerConfig field: %v", err), noEventAction)
 	}
-	if verr := gce.validateMachine(goalMachine, config); verr != nil {
+	if verr := gce.validateMachine(goalMachine, goalConfig); verr != nil {
 		return gce.handleMachineError(goalMachine, verr, noEventAction)
 	}
 
@@ -439,11 +439,18 @@ func (gce *GCEClient) Update(cluster *clusterv1.Cluster, goalMachine *clusterv1.
 		}
 	}
 
+	currentConfig, err := gce.machineproviderconfig(currentMachine.Spec.ProviderConfig)
+	if err != nil {
+		return gce.handleMachineError(currentMachine, apierrors.InvalidMachineConfiguration(
+			"Cannot unmarshal machine's providerConfig field: %v", err), createEventAction)
+	}
+
+
 	if !gce.requiresUpdate(currentMachine, goalMachine) {
 		return nil
 	}
 
-	if util.IsMaster(currentMachine) {
+	if isMaster(currentConfig.Roles) {
 		glog.Infof("Doing an in-place upgrade for master.\n")
 		// TODO: should we support custom CAs here?
 		err = gce.updateMasterInplace(cluster, currentMachine, goalMachine)
@@ -465,8 +472,7 @@ func (gce *GCEClient) Update(cluster *clusterv1.Cluster, goalMachine *clusterv1.
 	if err != nil {
 		return err
 	}
-	err = gce.updateInstanceStatus(goalMachine)
-	return err
+	return gce.updateInstanceStatus(goalMachine)
 }
 
 func (gce *GCEClient) Exists(cluster *clusterv1.Cluster, machine *clusterv1.Machine) (bool, error) {
@@ -521,6 +527,16 @@ func (gce *GCEClient) GetKubeConfig(cluster *clusterv1.Cluster, master *clusterv
 		"gcloud", "compute", "ssh", "--project", clusterConfig.Project,
 		"--zone", machineConfig.Zone, master.ObjectMeta.Name, "--command", command, "--", "-q"))
 	return result, nil
+}
+
+func isMaster(roles []gceconfigv1.MachineRole) bool {
+	for _, r := range roles {
+		if r == gceconfigv1.MasterRole {
+			return true
+		}
+	}
+	return false
+
 }
 
 func (gce *GCEClient) updateAnnotations(cluster *clusterv1.Cluster, machine *clusterv1.Machine) error {
@@ -787,7 +803,7 @@ func (gce *GCEClient) getMetadata(cluster *clusterv1.Cluster, machine *clusterv1
 	if err != nil {
 		return nil, err
 	}
-	if util.IsMaster(machine) {
+	if isMaster(configParams.Roles) {
 		if machine.Spec.Versions.ControlPlane == "" {
 			return nil, gce.handleMachineError(machine, apierrors.InvalidMachineConfiguration(
 				"invalid master configuration: missing Machine.Spec.Versions.ControlPlane"), createEventAction)

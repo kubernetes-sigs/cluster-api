@@ -30,8 +30,10 @@ import (
 
 	"github.com/golang/glog"
 
+	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/serializer"
+	"k8s.io/client-go/tools/record"
 
 	"encoding/base64"
 	"sigs.k8s.io/cluster-api/cloud/vsphere/namedmachines"
@@ -55,6 +57,9 @@ const (
 
 	// The contents of the tfstate file for a machine.
 	StatusMachineTerraformState = "tf-state"
+
+	createEventAction = "Create"
+	deleteEventAction = "Delete"
 )
 
 const (
@@ -72,12 +77,13 @@ type VsphereClient struct {
 	codecFactory      *serializer.CodecFactory
 	machineClient     client.MachineInterface
 	namedMachineWatch *namedmachines.ConfigWatch
+	eventRecorder     record.EventRecorder
 	// Once the vsphere-deployer is deleted, both DeploymentClient and VsphereClient can depend on
 	// something that implements GetIP instead of the VsphereClient depending on DeploymentClient.
 	*DeploymentClient
 }
 
-func NewMachineActuator(machineClient client.MachineInterface, namedMachinePath string) (*VsphereClient, error) {
+func NewMachineActuator(machineClient client.MachineInterface, eventRecorder record.EventRecorder, namedMachinePath string) (*VsphereClient, error) {
 	scheme, codecFactory, err := vsphereconfigv1.NewSchemeAndCodecs()
 	if err != nil {
 		return nil, err
@@ -94,6 +100,7 @@ func NewMachineActuator(machineClient client.MachineInterface, namedMachinePath 
 		codecFactory:      codecFactory,
 		machineClient:     machineClient,
 		namedMachineWatch: nmWatch,
+		eventRecorder:     eventRecorder,
 		DeploymentClient:  NewDeploymentClient(),
 	}, nil
 }
@@ -104,7 +111,7 @@ func saveFile(contents, path string, perm os.FileMode) error {
 
 // Stage the machine for running terraform.
 // Return: machine's staging dir path, error
-func (vc *VsphereClient) prepareStageMachineDir(machine *clusterv1.Machine) (string, error) {
+func (vc *VsphereClient) prepareStageMachineDir(machine *clusterv1.Machine, eventAction string) (string, error) {
 	err := vc.cleanUpStagingDir(machine)
 	if err != nil {
 		return "", err
@@ -114,7 +121,7 @@ func (vc *VsphereClient) prepareStageMachineDir(machine *clusterv1.Machine) (str
 	config, err := vc.machineproviderconfig(machine.Spec.ProviderConfig)
 	if err != nil {
 		return "", vc.handleMachineError(machine, apierrors.InvalidMachineConfiguration(
-			"Cannot unmarshal providerConfig field: %v", err))
+			"Cannot unmarshal providerConfig field: %v", err), eventAction)
 	}
 
 	machinePath := fmt.Sprintf(MachinePathStageFormat, machineName)
@@ -204,7 +211,7 @@ func (vc *VsphereClient) saveStartupScript(cluster *clusterv1.Cluster, machine *
 	if util.IsMaster(machine) {
 		if machine.Spec.Versions.ControlPlane == "" {
 			return "", vc.handleMachineError(machine, apierrors.InvalidMachineConfiguration(
-				"invalid master configuration: missing Machine.Spec.Versions.ControlPlane"))
+				"invalid master configuration: missing Machine.Spec.Versions.ControlPlane"), createEventAction)
 		}
 		var err error
 		startupScript, err = getMasterStartupScript(
@@ -253,7 +260,7 @@ func (vc *VsphereClient) Create(cluster *clusterv1.Cluster, machine *clusterv1.M
 	config, err := vc.machineproviderconfig(machine.Spec.ProviderConfig)
 	if err != nil {
 		return vc.handleMachineError(machine, apierrors.InvalidMachineConfiguration(
-			"Cannot unmarshal providerConfig field: %v", err))
+			"Cannot unmarshal providerConfig field: %v", err), createEventAction)
 	}
 
 	clusterConfig, err := vc.clusterproviderconfig(cluster.Spec.ProviderConfig)
@@ -262,14 +269,14 @@ func (vc *VsphereClient) Create(cluster *clusterv1.Cluster, machine *clusterv1.M
 	}
 
 	if verr := vc.validateMachine(machine, config); verr != nil {
-		return vc.handleMachineError(machine, verr)
+		return vc.handleMachineError(machine, verr, createEventAction)
 	}
 
 	if verr := vc.validateCluster(cluster); verr != nil {
 		return verr
 	}
 
-	machinePath, err := vc.prepareStageMachineDir(machine)
+	machinePath, err := vc.prepareStageMachineDir(machine, createEventAction)
 	if err != nil {
 		return errors.New(fmt.Sprintf("error while staging machine: %+v", err))
 	}
@@ -324,6 +331,7 @@ func (vc *VsphereClient) Create(cluster *clusterv1.Cluster, machine *clusterv1.M
 		// Annotate the machine so that we remember exactly what VM we created for it.
 		tfState, _ := vc.GetTfState(machine)
 		vc.cleanUpStagingDir(machine)
+		vc.eventRecorder.Eventf(machine, corev1.EventTypeNormal, "Created", "Created Machine %v", machine.Name)
 		return vc.updateAnnotations(machine, vmIp, tfState)
 	} else {
 		glog.Infof("Skipped creating a VM for machine %s that already exists.", machine.ObjectMeta.Name)
@@ -402,7 +410,7 @@ func (vc *VsphereClient) Delete(cluster *clusterv1.Cluster, machine *clusterv1.M
 		return err
 	}
 
-	machinePath, err := vc.prepareStageMachineDir(machine)
+	machinePath, err := vc.prepareStageMachineDir(machine, deleteEventAction)
 
 	// destroy it
 	args := []string{
@@ -426,6 +434,10 @@ func (vc *VsphereClient) Delete(cluster *clusterv1.Cluster, machine *clusterv1.M
 	// Update annotation for the state.
 	machine.ObjectMeta.Annotations[StatusMachineTerraformState] = ""
 	_, err = vc.machineClient.Update(machine)
+
+	if err == nil {
+		vc.eventRecorder.Eventf(machine, corev1.EventTypeNormal, "Killing", "Killing machine %v", machine.Name)
+	}
 
 	return err
 }
@@ -731,13 +743,16 @@ func getKubeadmToken() (string, error) {
 // the appropriate reason/message on the Machine.Status. If not, such as during
 // cluster installation, it will operate as a no-op. It also returns the
 // original error for convenience, so callers can do "return handleMachineError(...)".
-func (vc *VsphereClient) handleMachineError(machine *clusterv1.Machine, err *apierrors.MachineError) error {
+func (vc *VsphereClient) handleMachineError(machine *clusterv1.Machine, err *apierrors.MachineError, eventAction string) error {
 	if vc.machineClient != nil {
 		reason := err.Reason
 		message := err.Message
 		machine.Status.ErrorReason = &reason
 		machine.Status.ErrorMessage = &message
 		vc.machineClient.UpdateStatus(machine)
+	}
+	if eventAction != "" {
+		vc.eventRecorder.Eventf(machine, corev1.EventTypeWarning, "Failed"+eventAction, "%v", err.Reason)
 	}
 
 	glog.Errorf("Machine error: %v", err.Message)

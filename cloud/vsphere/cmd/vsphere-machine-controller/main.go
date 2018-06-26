@@ -22,9 +22,15 @@ import (
 	"github.com/spf13/pflag"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apiserver/pkg/util/logs"
+	v1core "k8s.io/client-go/kubernetes/typed/core/v1"
 
+	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/client-go/kubernetes"
+	"k8s.io/client-go/rest"
+	"k8s.io/client-go/tools/record"
 	"sigs.k8s.io/cluster-api/cloud/vsphere"
 	"sigs.k8s.io/cluster-api/pkg/client/clientset_generated/clientset"
+	clusterapiclientsetscheme "sigs.k8s.io/cluster-api/pkg/client/clientset_generated/clientset/scheme"
 	"sigs.k8s.io/cluster-api/pkg/controller/config"
 	"sigs.k8s.io/cluster-api/pkg/controller/machine"
 	"sigs.k8s.io/cluster-api/pkg/controller/sharedinformers"
@@ -33,6 +39,8 @@ import (
 var (
 	namedMachinesPath = pflag.String("namedmachines", "", "path to named machines yaml file")
 )
+
+const vsphereMachineControllerName = "vsphere-machine-controller"
 
 func init() {
 	config.ControllerConfig.AddFlags(pflag.CommandLine)
@@ -54,7 +62,19 @@ func main() {
 		glog.Fatalf("Could not create client for talking to the apiserver: %v", err)
 	}
 
-	actuator, err := vsphere.NewMachineActuator(client.ClusterV1alpha1().Machines(corev1.NamespaceDefault), *namedMachinesPath)
+	clientSet, err := kubernetes.NewForConfig(
+		rest.AddUserAgent(config, "machine-controller-manager"),
+	)
+	if err != nil {
+		glog.Fatalf("Invalid API configuration for kubeconfig-control: %v", err)
+	}
+
+	eventRecorder, err := createRecorder(clientSet)
+	if err != nil {
+		glog.Fatalf("Could not create vSphere event recorder: %v", err)
+	}
+
+	actuator, err := vsphere.NewMachineActuator(client.ClusterV1alpha1().Machines(corev1.NamespaceDefault), eventRecorder, *namedMachinesPath)
 	if err != nil {
 		glog.Fatalf("Could not create vSphere machine actuator: %v", err)
 	}
@@ -66,4 +86,19 @@ func main() {
 	c := machine.NewMachineController(config, si, actuator)
 	c.RunAsync(shutdown)
 	select {}
+}
+
+func createRecorder(kubeClient *kubernetes.Clientset) (record.EventRecorder, error) {
+
+	eventsScheme := runtime.NewScheme()
+	if err := corev1.AddToScheme(eventsScheme); err != nil {
+		return nil, err
+	}
+	// We also emit events for our own types.
+	clusterapiclientsetscheme.AddToScheme(eventsScheme)
+
+	eventBroadcaster := record.NewBroadcaster()
+	eventBroadcaster.StartLogging(glog.Infof)
+	eventBroadcaster.StartRecordingToSink(&v1core.EventSinkImpl{Interface: v1core.New(kubeClient.CoreV1().RESTClient()).Events("")})
+	return eventBroadcaster.NewRecorder(eventsScheme, corev1.EventSource{Component: vsphereMachineControllerName}), nil
 }

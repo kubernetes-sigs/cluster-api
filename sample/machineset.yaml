@@ -16,6 +16,8 @@ spec:
         value:
           apiVersion: "gceproviderconfig/v1alpha1"
           kind: "GCEMachineProviderConfig"
+          roles:
+          - Node
           zone: "us-central1-f"
           machineType: "n1-standard-1"
           os: "ubuntu-1604-lts"

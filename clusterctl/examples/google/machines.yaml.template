@@ -10,6 +10,8 @@ items:
       value:
         apiVersion: "gceproviderconfig/v1alpha1"
         kind: "GCEMachineProviderConfig"
+        roles:
+        - Master
         zone: "$ZONE"
         machineType: "n1-standard-2"
         os: "ubuntu-1604-lts"
@@ -33,6 +35,8 @@ items:
       value:
         apiVersion: "gceproviderconfig/v1alpha1"
         kind: "GCEMachineProviderConfig"
+        roles:
+        - Node
         zone: "$ZONE"
         machineType: "n1-standard-1"
         os: "ubuntu-1604-lts"

@@ -36,14 +36,14 @@ import (
 )
 
 const (
-	ApiServerPort               = 443
-	RetryIntervalKubectlApply   = 10 * time.Second
-	RetryIntervalResourceReady  = 10 * time.Second
-	RetryIntervalResourceDelete = 10 * time.Second
-	TimeoutKubectlApply         = 15 * time.Minute
-	TimeoutResourceReady        = 15 * time.Minute
-	TimeoutResourceDelete       = 15 * time.Minute
-	TimeoutMachineReady         = 30 * time.Minute
+	apiServerPort               = 443
+	retryIntervalKubectlApply   = 10 * time.Second
+	retryIntervalResourceReady  = 10 * time.Second
+	retryIntervalResourceDelete = 10 * time.Second
+	timeoutKubectlApply         = 15 * time.Minute
+	timeoutResourceReady        = 15 * time.Minute
+	timeoutMachineReady         = 30 * time.Minute
+	timeoutResourceDelete       = 15 * time.Minute
 )
 
 type clusterClient struct {
@@ -275,7 +275,7 @@ func (c *clusterClient) UpdateClusterObjectEndpoint(masterIP string) error {
 	cluster.Status.APIEndpoints = append(cluster.Status.APIEndpoints,
 		clusterv1.APIEndpoint{
 			Host: masterIP,
-			Port: ApiServerPort,
+			Port: apiServerPort,
 		})
 	_, err = c.clientSet.ClusterV1alpha1().Clusters(apiv1.NamespaceDefault).UpdateStatus(cluster)
 	return err
@@ -286,7 +286,7 @@ func (c *clusterClient) WaitForClusterV1alpha1Ready() error {
 }
 
 func (c *clusterClient) waitForClusterDelete() error {
-	return util.PollImmediate(RetryIntervalResourceDelete, TimeoutResourceDelete, func() (bool, error) {
+	return util.PollImmediate(retryIntervalResourceDelete, timeoutResourceDelete, func() (bool, error) {
 		glog.V(2).Infof("Waiting for cluster objects to be deleted...")
 		response, err := c.clientSet.ClusterV1alpha1().Clusters(apiv1.NamespaceDefault).List(metav1.ListOptions{})
 		if err != nil {
@@ -300,7 +300,7 @@ func (c *clusterClient) waitForClusterDelete() error {
 }
 
 func (c *clusterClient) waitForMachineDeploymentsDelete() error {
-	return util.PollImmediate(RetryIntervalResourceDelete, TimeoutResourceDelete, func() (bool, error) {
+	return util.PollImmediate(retryIntervalResourceDelete, timeoutResourceDelete, func() (bool, error) {
 		glog.V(2).Infof("Waiting for machine deployment objects to be deleted...")
 		response, err := c.clientSet.ClusterV1alpha1().MachineDeployments(apiv1.NamespaceDefault).List(metav1.ListOptions{})
 		if err != nil {
@@ -314,7 +314,7 @@ func (c *clusterClient) waitForMachineDeploymentsDelete() error {
 }
 
 func (c *clusterClient) waitForMachineSetsDelete() error {
-	return util.PollImmediate(RetryIntervalResourceDelete, TimeoutResourceDelete, func() (bool, error) {
+	return util.PollImmediate(retryIntervalResourceDelete, timeoutResourceDelete, func() (bool, error) {
 		glog.V(2).Infof("Waiting for machine set objects to be deleted...")
 		response, err := c.clientSet.ClusterV1alpha1().MachineSets(apiv1.NamespaceDefault).List(metav1.ListOptions{})
 		if err != nil {
@@ -328,7 +328,7 @@ func (c *clusterClient) waitForMachineSetsDelete() error {
 }
 
 func (c *clusterClient) waitForMachinesDelete() error {
-	return util.PollImmediate(RetryIntervalResourceDelete, TimeoutResourceDelete, func() (bool, error) {
+	return util.PollImmediate(retryIntervalResourceDelete, timeoutResourceDelete, func() (bool, error) {
 		glog.V(2).Infof("Waiting for machine objects to be deleted...")
 		response, err := c.clientSet.ClusterV1alpha1().Machines(apiv1.NamespaceDefault).List(metav1.ListOptions{})
 		if err != nil {
@@ -377,7 +377,7 @@ func (c *clusterClient) buildKubectlArgs(commandName string) []string {
 }
 
 func (c *clusterClient) waitForKubectlApply(manifest string) error {
-	err := util.PollImmediate(RetryIntervalKubectlApply, TimeoutKubectlApply, func() (bool, error) {
+	err := util.PollImmediate(retryIntervalKubectlApply, timeoutKubectlApply, func() (bool, error) {
 		glog.V(2).Infof("Waiting for kubectl apply...")
 		err := c.kubectlApply(manifest)
 		if err != nil {
@@ -404,8 +404,8 @@ func (c *clusterClient) waitForKubectlApply(manifest string) error {
 }
 
 func waitForClusterResourceReady(cs clientset.Interface) error {
-	deadline := time.Now().Add(TimeoutResourceReady)
-	err := util.PollImmediate(RetryIntervalResourceReady, TimeoutResourceReady, func() (bool, error) {
+	deadline := time.Now().Add(timeoutResourceReady)
+	err := util.PollImmediate(retryIntervalResourceReady, timeoutResourceReady, func() (bool, error) {
 		glog.V(2).Info("Waiting for Cluster v1alpha resources to become available...")
 		_, err := cs.Discovery().ServerResourcesForGroupVersion("cluster.k8s.io/v1alpha1")
 		if err == nil {
@@ -418,7 +418,7 @@ func waitForClusterResourceReady(cs clientset.Interface) error {
 		return err
 	}
 	timeout := time.Until(deadline)
-	return util.PollImmediate(RetryIntervalResourceReady, timeout, func() (bool, error) {
+	return util.PollImmediate(retryIntervalResourceReady, timeout, func() (bool, error) {
 		glog.V(2).Info("Waiting for Cluster v1alpha resources to be listable...")
 		_, err := cs.ClusterV1alpha1().Clusters(apiv1.NamespaceDefault).List(metav1.ListOptions{})
 		if err == nil {
@@ -429,7 +429,7 @@ func waitForClusterResourceReady(cs clientset.Interface) error {
 }
 
 func waitForMachineReady(cs clientset.Interface, machine *clusterv1.Machine) error {
-	err := util.PollImmediate(RetryIntervalResourceReady, TimeoutMachineReady, func() (bool, error) {
+	err := util.PollImmediate(retryIntervalResourceReady, timeoutMachineReady, func() (bool, error) {
 		glog.V(2).Infof("Waiting for Machine %v to become ready...", machine.Name)
 		m, err := cs.ClusterV1alpha1().Machines(apiv1.NamespaceDefault).Get(machine.Name, metav1.GetOptions{})
 		if err != nil {

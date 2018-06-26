@@ -100,6 +100,11 @@ func New(
 	}
 }
 
+const (
+	retryKubeConfigReady   = 10 * time.Second
+	timeoutKubeconfigReady = 20 * time.Minute
+)
+
 // Creates the a cluster from the provided cluster definition and machine list.
 func (d *ClusterDeployer) Create(cluster *clusterv1.Cluster, machines []*clusterv1.Machine, providerComponentsStoreFactory ProviderComponentsStoreFactory) error {
 	master, nodes, err := splitMachineRoles(machines)
@@ -177,9 +182,11 @@ func (d *ClusterDeployer) Create(cluster *clusterv1.Cluster, machines []*cluster
 		return fmt.Errorf("unable to create node machines: %v", err)
 	}
 
-	glog.Info("Creating addons in internal cluster.")
-	if err := internalClient.Apply(d.addonComponents); err != nil {
-		return fmt.Errorf("unable to apply addons: %v", err)
+	if d.addonComponents != "" {
+		glog.Info("Creating addons in internal cluster.")
+		if err := internalClient.Apply(d.addonComponents); err != nil {
+			return fmt.Errorf("unable to apply addons: %v", err)
+		}
 	}
 
 	glog.Infof("Done provisioning cluster. You can now access your cluster with kubectl --kubeconfig %v", d.kubeconfigOutput)
@@ -330,7 +337,7 @@ func (d *ClusterDeployer) writeKubeconfig(kubeconfig string) error {
 
 func waitForKubeconfigReady(provider ProviderDeployer, cluster *clusterv1.Cluster, machine *clusterv1.Machine) (string, error) {
 	kubeconfig := ""
-	err := util.PollImmediate(5*time.Second, 10*time.Minute, func() (bool, error) {
+	err := util.PollImmediate(retryKubeConfigReady, timeoutKubeconfigReady, func() (bool, error) {
 		glog.V(2).Infof("Waiting for kubeconfig on %v to become ready...", machine.Name)
 		k, err := provider.GetKubeConfig(cluster, machine)
 		if err != nil {

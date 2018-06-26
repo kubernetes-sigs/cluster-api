@@ -767,14 +767,6 @@ func getSubnet(netRange clusterv1.NetworkRanges) string {
 	return netRange.CIDRBlocks[0]
 }
 
-// TODO: We need to change this when we create dedicated service account for apiserver/controller
-// pod.
-func CreateExtApiServerRoleBinding() error {
-	return run("kubectl", "create", "rolebinding",
-		"-n", "kube-system", "machine-controller", "--role=extension-apiserver-authentication-reader",
-		"--serviceaccount=default:default")
-}
-
 func run(cmd string, args ...string) error {
 	c := exec.Command(cmd, args...)
 	if out, err := c.CombinedOutput(); err != nil {

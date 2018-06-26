@@ -19,6 +19,9 @@ manually edit `machineVariables`. If needed, adjust `replicas` as well.
 4. Copy `cluster.yaml.template` to `cluster.yaml` and
 manually edit `providerConfig`.
 
+5. *Optional*: Copy `addons.yaml.template` to `addons.yaml` and
++manually edit `parameters`.
+
 ## Manual Modification
 You may always manually curate files based on the examples provided.
 

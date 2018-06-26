@@ -65,9 +65,6 @@ type MachineSpec struct {
 	// +optional
 	ProviderConfig ProviderConfig `json:"providerConfig"`
 
-	// A list of roles for this Machine to use.
-	Roles []clustercommon.MachineRole `json:"roles,omitempty"`
-
 	// Versions of key software to use. This field is optional at cluster
 	// creation time, and omitting the field indicates that the cluster
 	// installation tool should select defaults for the user. These

@@ -17,12 +17,14 @@ limitations under the License.
 package google
 
 import (
+	"encoding/base64"
 	"errors"
 	"fmt"
 	"io/ioutil"
 	"net/http"
 	"os"
 	"reflect"
+	"regexp"
 	"strings"
 	"time"
 
@@ -33,15 +35,12 @@ import (
 	"google.golang.org/api/googleapi"
 
 	corev1 "k8s.io/api/core/v1"
-	"k8s.io/apimachinery/pkg/runtime"
-
-	"regexp"
-
-	"encoding/base64"
-
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/serializer"
 	"k8s.io/client-go/kubernetes"
+	"k8s.io/client-go/tools/record"
+
 	"sigs.k8s.io/cluster-api/cloud/google/clients"
 	gceconfigv1 "sigs.k8s.io/cluster-api/cloud/google/gceproviderconfig/v1alpha1"
 	"sigs.k8s.io/cluster-api/cloud/google/machinesetup"
@@ -51,7 +50,6 @@ import (
 	apierrors "sigs.k8s.io/cluster-api/pkg/errors"
 	"sigs.k8s.io/cluster-api/pkg/kubeadm"
 	"sigs.k8s.io/cluster-api/pkg/util"
-	"k8s.io/client-go/tools/record"
 )
 
 const (
@@ -442,9 +440,8 @@ func (gce *GCEClient) Update(cluster *clusterv1.Cluster, goalMachine *clusterv1.
 	currentConfig, err := gce.machineproviderconfig(currentMachine.Spec.ProviderConfig)
 	if err != nil {
 		return gce.handleMachineError(currentMachine, apierrors.InvalidMachineConfiguration(
-			"Cannot unmarshal machine's providerConfig field: %v", err), createEventAction)
+			"Cannot unmarshal machine's providerConfig field: %v", err), noEventAction)
 	}
-
 
 	if !gce.requiresUpdate(currentMachine, goalMachine) {
 		return nil
@@ -536,7 +533,6 @@ func isMaster(roles []gceconfigv1.MachineRole) bool {
 		}
 	}
 	return false
-
 }
 
 func (gce *GCEClient) updateAnnotations(cluster *clusterv1.Cluster, machine *clusterv1.Machine) error {

@@ -160,7 +160,7 @@ sed -i '/ swap / s/^/#/' /etc/fstab
 
 apt-get update
 apt-get install -y apt-transport-https prips
-apt-key adv --keyserver hkp://keyserver.ubuntu.com --recv-keys F76221572C52609D
+apt-key adv --keyserver hkp://keyserver.ubuntu.com:80 --recv-keys F76221572C52609D
 
 cat <<EOF > /etc/apt/sources.list.d/k8s.list
 deb [arch=amd64] https://apt.dockerproject.org/repo ubuntu-xenial main

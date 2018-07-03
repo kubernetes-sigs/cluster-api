@@ -1,0 +1,53 @@
+items:
+- apiVersion: "cluster.k8s.io/v1alpha1"
+  kind: Machine
+  metadata:
+    generateName: openstack-master-
+    labels:
+      set: master
+  spec:
+    providerConfig:
+      value:
+        apiVersion: "openstackproviderconfig/v1alpha1"
+        kind: "OpenstackProviderConfig"
+        name: master
+        flavor: m1.medium
+        image: CC-Ubuntu16.04-20160610
+        availability_zone: nova
+        networks:
+        - uuid: ab14ce0d-5e1f-4e32-bf65-00416e3cc19c
+        floatingIP: 129.114.111.153
+    versions:
+      kubelet: 1.9.4
+      controlPlane: 1.9.4
+      containerRuntime:
+        name: docker
+        version: 1.12.0
+    roles:
+    - Master
+- apiVersion: "cluster.k8s.io/v1alpha1"
+  kind: Machine
+  metadata:
+    generateName: openstack-node-
+    labels:
+      set: node
+  spec:
+    providerConfig:
+      value:
+        apiVersion: "openstackproviderconfig/v1alpha1"
+        kind: "OpenstackProviderConfig"
+        name: node01
+        flavor: m1.medium
+        image: CC-Ubuntu16.04-20160610
+        availability_zone: nova
+        networks:
+        - uuid: ab14ce0d-5e1f-4e32-bf65-00416e3cc19c
+          floatingIP: 129.114.111.153
+    versions:
+      kubelet: 1.9.4
+      containerRuntime:
+        name: docker
+        version: 1.12.0
+    roles:
+    - Node
+

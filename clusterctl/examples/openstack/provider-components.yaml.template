@@ -1,0 +1,292 @@
+apiVersion: apps/v1beta1
+kind: Deployment
+metadata:
+  name: clusterapi-controllers
+  labels:
+    api: clusterapi
+spec:
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        api: clusterapi
+    spec:
+      nodeSelector:
+        node-role.kubernetes.io/master: ""
+      tolerations:
+      - effect: NoSchedule
+        key: node-role.kubernetes.io/master
+      - key: CriticalAddonsOnly
+        operator: Exists
+      - effect: NoExecute
+        key: node.alpha.kubernetes.io/notReady
+        operator: Exists
+      - effect: NoExecute
+        key: node.alpha.kubernetes.io/unreachable
+        operator: Exists
+      containers:
+      - name: controller-manager
+        image: gcr.io/k8s-cluster-api/controller-manager:0.0.7
+        volumeMounts:
+          - name: config
+            mountPath: /etc/kubernetes
+          - name: certs
+            mountPath: /etc/ssl/certs
+        command:
+        - "./controller-manager"
+        args:
+        - --kubeconfig=/etc/kubernetes/admin.conf
+        resources:
+          requests:
+            cpu: 100m
+            memory: 20Mi
+          limits:
+            cpu: 100m
+            memory: 30Mi
+      - name: openstack-machine-controller
+        image: gcr.io/openstack-cluster-api/openstack-machine-controller:0.0.1
+        volumeMounts:
+          - name: config
+            mountPath: /etc/kubernetes
+          - name: certs
+            mountPath: /etc/ssl/certs
+          - name: sshkeys
+            mountPath: /etc/sshkeys
+          - name: machine-setup
+            mountPath: /etc/machinesetup
+          - name: cloudConfig
+            mountPath: /etc/cloud
+          - name: kubeadm
+            mountPath: /usr/bin/kubeadm
+        command:
+        - "./openstack-machine-controller"
+        args:
+        - --kubeconfig=/etc/kubernetes/admin.conf
+        resources:
+          requests:
+            cpu: 100m
+            memory: 20Mi
+          limits:
+            cpu: 100m
+            memory: 30Mi
+      volumes:
+      - name: config
+        hostPath:
+          path: /etc/kubernetes
+      - name: certs
+        hostPath:
+          path: /etc/ssl/certs
+      - name: sshkeys
+        secret:
+          secretName: machine-controller-sshkeys
+          defaultMode: 256
+      - name: cloudConfig
+        secret:
+          secretName: cloud-config
+      - name: machine-setup
+        configMap:
+          name: machine-setup
+      - name: kubeadm
+        hostPath:
+          path: /usr/bin/kubeadm
+---
+apiVersion: v1
+kind: Secret
+type: Opaque
+metadata:
+  name: machine-controller-sshkeys
+  namespace: default
+data:
+  user: $MACHINE_CONTROLLER_SSH_USER
+  private: $MACHINE_CONTROLLER_SSH_PRIVATE
+  public: $MACHINE_CONTROLLER_SSH_PUBLIC
+---
+apiVersion: v1
+kind: Secret
+type: Opaque
+metadata:
+  name: cloud-config
+  namespace: default
+data:
+  config_config.yaml: $OPENSTACK_CLOUD_CONFIG
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: machine-setup
+data:
+  machine_setup_configs.yaml: |-
+    items:
+    - machineParams:
+      - os: ubuntu-1604-lts
+        roles:
+        - Master
+        versions:
+          kubelet: 1.9.4
+          controlPlane: 1.9.4
+          containerRuntime:
+            name: docker
+            version: 1.12.0
+      metadata:
+        startupScript: |
+          set -e
+          set -x
+          (
+          ARCH=amd64
+          curl -s https://packages.cloud.google.com/apt/doc/apt-key.gpg | sudo apt-key add -
+          touch /etc/apt/sources.list.d/kubernetes.list
+          sh -c 'echo "deb http://apt.kubernetes.io/ kubernetes-xenial main" > /etc/apt/sources.list.d/kubernetes.list'
+          apt-get update -y
+          apt-get install -y \
+              prips
+
+          function install_configure_docker () {
+              # prevent docker from auto-starting
+              echo "exit 101" > /usr/sbin/policy-rc.d
+              chmod +x /usr/sbin/policy-rc.d
+              trap "rm /usr/sbin/policy-rc.d" RETURN
+              apt-get install -y docker.io
+              echo 'DOCKER_OPTS="--iptables=false --ip-masq=false"' > /etc/default/docker
+              systemctl daemon-reload
+              systemctl enable docker
+              systemctl start docker
+          }
+          install_configure_docker
+
+          curl -sSL https://dl.k8s.io/release/${VERSION}/bin/linux/${ARCH}/kubeadm > /usr/bin/kubeadm.dl
+          chmod a+rx /usr/bin/kubeadm.dl
+          # kubeadm uses 10th IP as DNS server
+          CLUSTER_DNS_SERVER=$(prips ${SERVICE_CIDR} | head -n 11 | tail -n 1)
+          # Our Debian packages have versions like "1.8.0-00" or "1.8.0-01". Do a prefix
+          # search based on our SemVer to find the right (newest) package version.
+          function getversion() {
+              name=$1
+              prefix=$2
+              version=$(apt-cache madison $name | awk '{ print $3 }' | grep ^$prefix | head -n1)
+              if [[ -z "$version" ]]; then
+                  echo Can\'t find package $name with prefix $prefix
+                  exit 1
+              fi
+              echo $version
+          }
+          KUBELET=$(getversion kubelet ${KUBELET_VERSION}-)
+          KUBEADM=$(getversion kubeadm ${KUBELET_VERSION}-)
+          apt-get install -y \
+              kubelet=${KUBELET} \
+              kubeadm=${KUBEADM}
+          mv /usr/bin/kubeadm.dl /usr/bin/kubeadm
+          chmod a+rx /usr/bin/kubeadm
+
+          cat > /etc/systemd/system/kubelet.service.d/20-kubenet.conf <<EOF
+          [Service]
+          Environment="KUBELET_DNS_ARGS=--cluster-dns=${CLUSTER_DNS_SERVER} --cluster-domain=${CLUSTER_DNS_DOMAIN}"
+          EOF
+          systemctl daemon-reload
+          systemctl restart kubelet.service
+
+          # Set up kubeadm config file to pass parameters to kubeadm init.
+          cat > /etc/kubernetes/kubeadm_config.yaml <<EOF
+          apiVersion: kubeadm.k8s.io/v1alpha1
+          kind: MasterConfiguration
+          networking:
+            serviceSubnet: ${SERVICE_CIDR}
+          kubernetesVersion: v${CONTROL_PLANE_VERSION}
+          token: ${TOKEN}
+          controllerManagerExtraArgs:
+            cluster-cidr: ${POD_CIDR}
+            service-cluster-ip-range: ${SERVICE_CIDR}
+            allocate-node-cidrs: "true"
+          EOF
+
+          # Create and set bridge-nf-call-iptables to 1 to pass the kubeadm preflight check.
+          # Workaround was found here:
+          # http://zeeshanali.com/sysadmin/fixed-sysctl-cannot-stat-procsysnetbridgebridge-nf-call-iptables/
+          modprobe br_netfilter
+
+          kubeadm init --config /etc/kubernetes/kubeadm_config.yaml
+          for tries in $(seq 1 60); do
+              kubectl --kubeconfig /etc/kubernetes/kubelet.conf annotate --overwrite node $(hostname) machine=${MACHINE} && break
+              sleep 1
+          done
+          # By default, use calico for container network plugin, should make this configurable.
+          kubectl apply -f https://docs.projectcalico.org/v3.1/getting-started/kubernetes/installation/hosted/rbac-kdd.yaml
+          kubectl apply -f https://docs.projectcalico.org/v3.1/getting-started/kubernetes/installation/hosted/kubernetes-datastore/calico-networking/1.7/calico.yaml
+          echo done.
+          ) 2>&1 | tee /var/log/startup.log
+    - machineParams:
+      - os: ubuntu-1604-lts
+        roles:
+        - Node
+        versions:
+          kubelet: 1.9.4
+          containerRuntime:
+            name: docker
+            version: 1.12.0
+      metadata:
+        startupScript: |
+          set -e
+          set -x
+          (
+          apt-get update
+          apt-get install -y apt-transport-https prips
+          apt-key adv --keyserver hkp://keyserver.ubuntu.com --recv-keys F76221572C52609D
+          cat <<EOF > /etc/apt/sources.list.d/k8s.list
+          deb [arch=amd64] https://apt.dockerproject.org/repo ubuntu-xenial main
+          EOF
+          apt-get update
+
+          function install_configure_docker () {
+              # prevent docker from auto-starting
+              echo "exit 101" > /usr/sbin/policy-rc.d
+              chmod +x /usr/sbin/policy-rc.d
+              trap "rm /usr/sbin/policy-rc.d" RETURN
+              apt-get install -y docker-engine=1.12.0-0~xenial
+              echo 'DOCKER_OPTS="--iptables=false --ip-masq=false"' > /etc/default/docker
+              systemctl daemon-reload
+              systemctl enable docker
+              systemctl start docker
+          }
+
+          install_configure_docker
+
+          curl -s https://packages.cloud.google.com/apt/doc/apt-key.gpg | apt-key add -
+          cat <<EOF > /etc/apt/sources.list.d/kubernetes.list
+          deb http://apt.kubernetes.io/ kubernetes-xenial main
+          EOF
+          apt-get update
+
+          mkdir -p /etc/kubernetes/
+          # Our Debian packages have versions like "1.8.0-00" or "1.8.0-01". Do a prefix
+          # search based on our SemVer to find the right (newest) package version.
+          function getversion() {
+          	name=$1
+          	prefix=$2
+          	version=$(apt-cache madison $name | awk '{ print $3 }' | grep ^$prefix | head -n1)
+          	if [[ -z "$version" ]]; then
+          		echo Can\'t find package $name with prefix $prefix
+          		exit 1
+          	fi
+          	echo $version
+          }
+          KUBELET=$(getversion kubelet ${KUBELET_VERSION}-)
+          KUBEADM=$(getversion kubeadm ${KUBELET_VERSION}-)
+          KUBECTL=$(getversion kubectl ${KUBELET_VERSION}-)
+          apt-get install -y kubelet=${KUBELET} kubeadm=${KUBEADM} kubectl=${KUBECTL}
+          # kubeadm uses 10th IP as DNS server
+          CLUSTER_DNS_SERVER=$(prips ${SERVICE_CIDR} | head -n 11 | tail -n 1)
+          # Override network args to use kubenet instead of cni, override Kubelet DNS args and
+          # add cloud provider args.
+          cat > /etc/systemd/system/kubelet.service.d/20-kubenet.conf <<EOF
+          [Service]
+          Environment="KUBELET_DNS_ARGS=--cluster-dns=${CLUSTER_DNS_SERVER} --cluster-domain=${CLUSTER_DNS_DOMAIN}"
+          EOF
+          systemctl daemon-reload
+          systemctl restart kubelet.service
+          kubeadm join --token "${TOKEN}" "${MASTER}" --ignore-preflight-errors=all --discovery-token-unsafe-skip-ca-verification
+          for tries in $(seq 1 60); do
+          	kubectl --kubeconfig /etc/kubernetes/kubelet.conf annotate --overwrite node $(hostname) machine=${MACHINE} && break
+          	sleep 1
+          done
+          echo done.
+          ) 2>&1 | tee /var/log/startup.log
+

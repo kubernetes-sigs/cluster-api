@@ -86,13 +86,18 @@ func (c *ClusterControllerImpl) Reconcile(cluster *clusterv1.Cluster) error {
 		return nil
 	}
 
-	glog.Infof("reconciling cluster object %v triggers idempotent reconcile.", name)
-	err := c.actuator.Reconcile(clusterCopy)
+	exist, err := c.actuator.Exists(clusterCopy)
 	if err != nil {
-		glog.Errorf("Error reconciling cluster object %v; %v", name, err)
+		glog.Errorf("Error checking existance of cluster for cluster object %v; %v", name, err)
 		return err
 	}
-	return nil
+	if exist {
+		glog.Infof("reconciling cluster %v triggers idempotent update.", name)
+		return c.actuator.Update(clusterCopy)
+	}
+	// Cluster resource created. Cluster does not yet exist.
+	glog.Infof("reconciling cluster object %v triggers idempotent create.", name)
+	return c.actuator.Create(clusterCopy)
 }
 
 func (c *ClusterControllerImpl) Get(namespace, name string) (*clusterv1.Cluster, error) {

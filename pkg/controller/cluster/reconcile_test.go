@@ -30,29 +30,37 @@ import (
 
 func TestClusterSetControllerReconcileHandler(t *testing.T) {
 	tests := []struct {
-		name                      string
-		objExists                 bool
-		isDeleting                bool
-		withFinalizer             bool
-		isMaster                  bool
-		ignoreDeleteCallCount     bool
-		expectFinalizerRemoved    bool
-		numExpectedReconcileCalls int64
-		numExpectedDeleteCalls    int64
+		name                   string
+		objExists              bool
+		clusterExists          bool
+		isDeleting             bool
+		withFinalizer          bool
+		isMaster               bool
+		ignoreDeleteCallCount  bool
+		expectFinalizerRemoved bool
+		numExpectedCreateCalls int64
+		numExpectedDeleteCalls int64
+		numExpectedUpdateCalls int64
+		numExpectedExistsCalls int64
 	}{
 		{
-			name:                      "Create cluster",
-			objExists:                 false,
-			numExpectedReconcileCalls: 1,
+			name:                   "Create cluster",
+			objExists:              false,
+			clusterExists:          false,
+			numExpectedCreateCalls: 1,
+			numExpectedExistsCalls: 1,
 		},
 		{
-			name:                      "Update cluster",
-			objExists:                 true,
-			numExpectedReconcileCalls: 1,
+			name:                   "Update cluster",
+			objExists:              true,
+			clusterExists:          true,
+			numExpectedUpdateCalls: 1,
+			numExpectedExistsCalls: 1,
 		},
 		{
 			name:                   "Delete cluster, instance exists, with finalizer",
 			objExists:              true,
+			clusterExists:          true,
 			isDeleting:             true,
 			withFinalizer:          true,
 			expectFinalizerRemoved: true,
@@ -62,12 +70,14 @@ func TestClusterSetControllerReconcileHandler(t *testing.T) {
 			// This should not be possible. Here for completeness.
 			name:          "Delete cluster, instance exists without finalizer",
 			objExists:     true,
+			clusterExists: true,
 			isDeleting:    true,
 			withFinalizer: false,
 		},
 		{
 			name:                   "Delete cluster, instance does not exist, with finalizer",
 			objExists:              true,
+			clusterExists:          false,
 			isDeleting:             true,
 			withFinalizer:          true,
 			ignoreDeleteCallCount:  true,
@@ -76,6 +86,7 @@ func TestClusterSetControllerReconcileHandler(t *testing.T) {
 		{
 			name:          "Delete cluster, instance does not exist, without finalizer",
 			objExists:     true,
+			clusterExists: false,
 			isDeleting:    true,
 			withFinalizer: false,
 		},
@@ -97,6 +108,7 @@ func TestClusterSetControllerReconcileHandler(t *testing.T) {
 			})
 
 			actuator := NewTestActuator()
+			actuator.ExistsValue = test.clusterExists
 
 			target := &ClusterControllerImpl{}
 			target.actuator = actuator
@@ -113,11 +125,17 @@ func TestClusterSetControllerReconcileHandler(t *testing.T) {
 			if finalizerRemoved != test.expectFinalizerRemoved {
 				t.Errorf("Got finalizer removed %v, expected finalizer removed %v", finalizerRemoved, test.expectFinalizerRemoved)
 			}
-			if actuator.ReconcileCallCount != test.numExpectedReconcileCalls {
-				t.Errorf("Got %v create calls, expected %v", actuator.ReconcileCallCount, test.numExpectedReconcileCalls)
+			if actuator.CreateCallCount != test.numExpectedCreateCalls {
+				t.Errorf("Got %v create calls, expected %v", actuator.CreateCallCount, test.numExpectedCreateCalls)
 			}
 			if actuator.DeleteCallCount != test.numExpectedDeleteCalls && !test.ignoreDeleteCallCount {
 				t.Errorf("Got %v delete calls, expected %v", actuator.DeleteCallCount, test.numExpectedDeleteCalls)
+			}
+			if actuator.UpdateCallCount != test.numExpectedUpdateCalls {
+				t.Errorf("Got %v update calls, expected %v", actuator.UpdateCallCount, test.numExpectedUpdateCalls)
+			}
+			if actuator.ExistsCallCount != test.numExpectedExistsCalls {
+				t.Errorf("Got %v exists calls, expected %v", actuator.ExistsCallCount, test.numExpectedExistsCalls)
 			}
 
 		})

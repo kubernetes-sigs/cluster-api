@@ -23,24 +23,42 @@ import (
 )
 
 type TestActuator struct {
-	unblock            chan string
-	BlockOnReconcile   bool
-	BlockOnDelete      bool
-	ReconcileCallCount int64
-	DeleteCallCount    int64
-	Lock               sync.Mutex
+	unblock         chan string
+	BlockOnCreate   bool
+	BlockOnUpdate   bool
+	BlockOnDelete   bool
+	BlockOnExists   bool
+	CreateCallCount int64
+	UpdateCallCount int64
+	DeleteCallCount int64
+	ExistsCallCount int64
+	ExistsValue     bool
+	Lock            sync.Mutex
 }
 
-func (a *TestActuator) Reconcile(*v1alpha1.Cluster) error {
+func (a *TestActuator) Create(*v1alpha1.Cluster) error {
 	defer func() {
-		if a.BlockOnReconcile {
+		if a.BlockOnCreate {
 			<-a.unblock
 		}
 	}()
 
 	a.Lock.Lock()
 	defer a.Lock.Unlock()
-	a.ReconcileCallCount++
+	a.CreateCallCount++
+	return nil
+}
+
+func (a *TestActuator) Update(*v1alpha1.Cluster) error {
+	defer func() {
+		if a.BlockOnUpdate {
+			<-a.unblock
+		}
+	}()
+
+	a.Lock.Lock()
+	defer a.Lock.Unlock()
+	a.UpdateCallCount++
 	return nil
 }
 
@@ -55,6 +73,19 @@ func (a *TestActuator) Delete(*v1alpha1.Cluster) error {
 	defer a.Lock.Unlock()
 	a.DeleteCallCount++
 	return nil
+}
+
+func (a *TestActuator) Exists(*v1alpha1.Cluster) (bool, error) {
+	defer func() {
+		if a.BlockOnExists {
+			<-a.unblock
+		}
+	}()
+
+	a.Lock.Lock()
+	defer a.Lock.Unlock()
+	a.ExistsCallCount++
+	return a.ExistsValue, nil
 }
 
 func NewTestActuator() *TestActuator {

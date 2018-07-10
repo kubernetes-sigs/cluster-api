@@ -18,6 +18,7 @@ package google
 
 import (
 	"fmt"
+
 	"github.com/golang/glog"
 	"golang.org/x/net/context"
 	"golang.org/x/oauth2/google"
@@ -63,8 +64,13 @@ func NewClusterActuator(params ClusterActuatorParams) (*GCEClusterClient, error)
 	}, nil
 }
 
-func (gce *GCEClusterClient) Reconcile(cluster *clusterv1.Cluster) error {
-	glog.Infof("Reconciling cluster %v.", cluster.Name)
+func (gce *GCEClusterClient) Update(cluster *clusterv1.Cluster) error {
+	glog.Infof("Updating cluster %v.", cluster.Name)
+	return nil
+}
+
+func (gce *GCEClusterClient) Create(cluster *clusterv1.Cluster) error {
+	glog.Infof("Creating cluster %v.", cluster.Name)
 	err := gce.createFirewallRuleIfNotExists(cluster, &compute.Firewall{
 		Name:    cluster.Name + firewallRuleInternalSuffix,
 		Network: "global/networks/default",
@@ -110,6 +116,28 @@ func (gce *GCEClusterClient) Delete(cluster *clusterv1.Cluster) error {
 	return nil
 }
 
+func (gce *GCEClusterClient) Exists(cluster *clusterv1.Cluster) (bool, error) {
+	intFWExists, err := gce.firewallRuleExists(cluster, cluster.Name+firewallRuleInternalSuffix)
+	if err != nil {
+		return false, fmt.Errorf("error checking existence of firewall rule for internal cluster traffic: %v", err)
+	}
+	apiFWExists, err := gce.firewallRuleExists(cluster, cluster.Name+firewallRuleApiSuffix)
+	if err != nil {
+		return false, fmt.Errorf("error checking existence of firewall rule for core api server traffic: %v", err)
+	}
+
+	return intFWExists && apiFWExists, nil
+}
+
+func (gce *GCEClusterClient) firewallRuleExists(cluster *clusterv1.Cluster, ruleName string) (bool, error) {
+	ruleExists, ok := cluster.ObjectMeta.Annotations[firewallRuleAnnotationPrefix+ruleName]
+	if ok {
+		// The firewall rule was already created.
+		return ruleExists == "true", nil
+	}
+	return false, nil
+}
+
 func getOrNewComputeServiceForCluster(params ClusterActuatorParams) (GCEClientComputeService, error) {
 	if params.ComputeService != nil {
 		return params.ComputeService, nil
@@ -126,8 +154,11 @@ func getOrNewComputeServiceForCluster(params ClusterActuatorParams) (GCEClientCo
 }
 
 func (gce *GCEClusterClient) createFirewallRuleIfNotExists(cluster *clusterv1.Cluster, firewallRule *compute.Firewall) error {
-	ruleExists, ok := cluster.ObjectMeta.Annotations[firewallRuleAnnotationPrefix+firewallRule.Name]
-	if ok && ruleExists == "true" {
+	ruleExists, err := gce.firewallRuleExists(cluster, firewallRule.Name)
+	if err != nil {
+		return err
+	}
+	if ruleExists {
 		// The firewall rule was already created.
 		return nil
 	}

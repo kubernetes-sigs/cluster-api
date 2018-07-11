@@ -25,6 +25,7 @@ import (
 	"github.com/golang/glog"
 	"github.com/spf13/cobra"
 	"sigs.k8s.io/cluster-api/cloud/google"
+	"sigs.k8s.io/cluster-api/cloud/openstack"
 	"sigs.k8s.io/cluster-api/cloud/vsphere"
 	"sigs.k8s.io/cluster-api/clusterctl/clusterdeployer"
 	"sigs.k8s.io/cluster-api/clusterctl/clusterdeployer/minikube"
@@ -163,6 +164,8 @@ func getProvider(provider string) (clusterdeployer.ProviderDeployer, error) {
 	case "azure":
 		//Work being done at https://github.com/platform9/azure-provider
 		return nil, errors.New("Azure not yet implemented")
+	case "openstack":
+		return openstack.NewDeploymentClient(), nil
 	default:
 		return nil, fmt.Errorf("Unrecognized provider %v", provider)
 	}

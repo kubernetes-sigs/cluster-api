@@ -19,7 +19,16 @@ To learn more, see the [Cluster API KEP][cluster-api-kep].
 * Join our Cluster API working group sessions
   * Weekly on Wednesdays @ 10:00 PT on [Zoom][zoomMeeting]
   * Previous meetings: \[ [notes][notes] | [recordings][recordings] \]
+
 * Chat with us on [Slack](http://slack.k8s.io/): #cluster-api
+
+* Pointers to repositories and PRs where some Cluster API provisioners are being
+  developed.
+  * AWS/Openshift, https://github.com/openshift/cluster-operator
+  * Azure, https://github.com/platform9/azure-provider
+  * GCE, https://github.com/kubernetes-sigs/cluster-api/tree/master/cloud/google
+  * VSphere, https://github.com/kubernetes-sigs/cluster-api/tree/master/cloud/vsphere
+  * OpenStack, https://github.com/kubernetes-sigs/cluster-api-provider-openstack
 
 ## Getting Started
 ### Prerequisites

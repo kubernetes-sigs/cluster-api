@@ -109,7 +109,7 @@ func init() {
 	createClusterCmd.Flags().StringVarP(&co.Machine, "machines", "m", "", "A yaml file containing machine object definition(s)")
 	createClusterCmd.Flags().StringVarP(&co.ProviderComponents, "provider-components", "p", "", "A yaml file containing cluster api provider controllers and supporting objects")
 	// TODO: Remove as soon as code allows https://github.com/kubernetes-sigs/cluster-api/issues/157
-	createClusterCmd.Flags().StringVarP(&co.Provider, "provider", "", "", "Which provider deployment logic to use (google/vsphere/azure)")
+	createClusterCmd.Flags().StringVarP(&co.Provider, "provider", "", "", "Which provider deployment logic to use (google/vsphere/azure/openstack)")
 
 	// Optional flags
 	createClusterCmd.Flags().StringVarP(&co.AddonComponents, "addon-components", "a", "", "A yaml file containing cluster addons to apply to the internal cluster")
@@ -163,6 +163,9 @@ func getProvider(provider string) (clusterdeployer.ProviderDeployer, error) {
 	case "azure":
 		//Work being done at https://github.com/platform9/azure-provider
 		return nil, errors.New("Azure not yet implemented")
+	case "openstack":
+		//Work being done at https://github.com/kubernetes-sigs/cluster-api-provider-openstack
+		return nil, errors.New("OpenStack not yet implemented")
 	default:
 		return nil, fmt.Errorf("Unrecognized provider %v", provider)
 	}

@@ -23,8 +23,12 @@ import (
 // Actuator controls clusters on a specific infrastructure. All
 // methods should be idempotent unless otherwise specified.
 type Actuator interface {
-	// Create or update the cluster
-	Reconcile(*clusterv1.Cluster) error
+	// Create the cluster
+	Create(*clusterv1.Cluster) error
 	// Delete the cluster.
 	Delete(*clusterv1.Cluster) error
+	// Update the cluster
+	Update(*clusterv1.Cluster) error
+	// Checks if the cluster currently exists
+	Exists(*clusterv1.Cluster) (bool, error)
 }

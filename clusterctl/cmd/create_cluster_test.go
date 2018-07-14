@@ -20,6 +20,7 @@ import (
 	"io/ioutil"
 	"os"
 	"testing"
+	_ "sigs.k8s.io/cluster-api/cloud/google"
 )
 
 const validCluster = `

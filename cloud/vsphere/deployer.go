@@ -26,22 +26,26 @@ import (
 
 	"github.com/golang/glog"
 
+	clustercommon "sigs.k8s.io/cluster-api/pkg/apis/cluster/common"
 	clusterv1 "sigs.k8s.io/cluster-api/pkg/apis/cluster/v1alpha1"
 )
 
+const ProviderName = "vsphere"
+
+func init() {
+	clustercommon.RegisterClusterProvisioner(ProviderName, &DeploymentClient{})
+}
+
 // Contains vsphere-specific deployment logic
-// intended to eventually implement ProviderDeployer interface at
+// that implements ProviderDeployer interface at
 // sigs.k8s.io/cluster-api/clusterctl/clusterdeployer/clusterdeployer.go
-// Currently implements a subset of the machineDeployer interface at
-// sigs.k8s.io/cluster-api/vsphere-deployer/deploy/machinedeployer.go
-// till vsphere-deployer gets deleted
 type DeploymentClient struct{}
 
 func NewDeploymentClient() *DeploymentClient {
 	return &DeploymentClient{}
 }
 
-func (*DeploymentClient) GetIP(machine *clusterv1.Machine) (string, error) {
+func (*DeploymentClient) GetIP(_ *clusterv1.Cluster, machine *clusterv1.Machine) (string, error) {
 	if machine.ObjectMeta.Annotations != nil {
 		if ip, ok := machine.ObjectMeta.Annotations[VmIpAnnotationKey]; ok {
 			glog.Infof("Returning IP from machine annotation %s", ip)
@@ -52,8 +56,8 @@ func (*DeploymentClient) GetIP(machine *clusterv1.Machine) (string, error) {
 	return "", errors.New("could not get IP")
 }
 
-func (d *DeploymentClient) GetKubeConfig(master *clusterv1.Machine) (string, error) {
-	ip, err := d.GetIP(master)
+func (d *DeploymentClient) GetKubeConfig(cluster *clusterv1.Cluster, master *clusterv1.Machine) (string, error) {
+	ip, err := d.GetIP(cluster, master)
 	if err != nil {
 		return "", err
 	}

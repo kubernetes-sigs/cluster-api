@@ -17,17 +17,15 @@ limitations under the License.
 package cmd
 
 import (
-	"errors"
 	"fmt"
 	"io/ioutil"
 
 	"github.com/ghodss/yaml"
 	"github.com/golang/glog"
 	"github.com/spf13/cobra"
-	"sigs.k8s.io/cluster-api/cloud/google"
-	"sigs.k8s.io/cluster-api/cloud/vsphere"
 	"sigs.k8s.io/cluster-api/clusterctl/clusterdeployer"
 	"sigs.k8s.io/cluster-api/clusterctl/clusterdeployer/minikube"
+	clustercommon "sigs.k8s.io/cluster-api/pkg/apis/cluster/common"
 	clusterv1 "sigs.k8s.io/cluster-api/pkg/apis/cluster/v1alpha1"
 	"sigs.k8s.io/cluster-api/pkg/util"
 )
@@ -154,31 +152,14 @@ func parseMachinesYaml(file string) ([]*clusterv1.Machine, error) {
 	return util.MachineP(list.Items), nil
 }
 
-func getProvider(provider string) (clusterdeployer.ProviderDeployer, error) {
-	switch provider {
-	case "google":
-		return google.NewMachineActuator(google.MachineActuatorParams{})
-	case "vsphere":
-		return &vsphereAdapter{vsphere.NewDeploymentClient()}, nil
-	case "azure":
-		//Work being done at https://github.com/platform9/azure-provider
-		return nil, errors.New("Azure not yet implemented")
-	default:
-		return nil, fmt.Errorf("Unrecognized provider %v", provider)
+func getProvider(name string) (clusterdeployer.ProviderDeployer, error) {
+	provisioner, err := clustercommon.ClusterProvisioner(name)
+	if err != nil {
+		return nil, err
 	}
-}
-
-// Adapt the vsphere methods calls since gcp/vsphere are not on the same page.
-// Long term, these providers should converge or the need for a provider will go away.
-// Whichever comes first.
-type vsphereAdapter struct {
-	*vsphere.DeploymentClient
-}
-
-func (a *vsphereAdapter) GetIP(cluster *clusterv1.Cluster, machine *clusterv1.Machine) (string, error) {
-	return a.DeploymentClient.GetIP(machine)
-}
-
-func (a *vsphereAdapter) GetKubeConfig(cluster *clusterv1.Cluster, master *clusterv1.Machine) (string, error) {
-	return a.DeploymentClient.GetKubeConfig(master)
+	provider, ok := provisioner.(clusterdeployer.ProviderDeployer)
+	if !ok {
+		return nil, fmt.Errorf("provider for %s does not implement interface", name)
+	}
+	return provider, nil
 }

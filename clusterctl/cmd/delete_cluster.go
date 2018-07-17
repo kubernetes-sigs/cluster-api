@@ -21,9 +21,10 @@ import (
 
 	"k8s.io/api/core/v1"
 	tcmd "k8s.io/client-go/tools/clientcmd"
+	"sigs.k8s.io/cluster-api/clusterctl/clusterdeployer"
+	"sigs.k8s.io/cluster-api/clusterctl/clusterdeployer/minikube"
 	"sigs.k8s.io/cluster-api/clusterctl/providercomponents"
 	"sigs.k8s.io/cluster-api/pkg/clientcmd"
-	"sigs.k8s.io/cluster-api/pkg/errors"
 
 	"github.com/golang/glog"
 	"github.com/spf13/cobra"
@@ -57,11 +58,22 @@ func init() {
 }
 
 func RunDelete() error {
-	_, err := loadProviderComponents()
+	providerComponents, err := loadProviderComponents()
 	if err != nil {
 		return err
 	}
-	return errors.NotImplementedError
+	clusterClient, err := clusterdeployer.NewClusterClientFromDefaultSearchPath(do.KubeconfigPath, do.KubeconfigOverrides)
+	if err != nil {
+		return fmt.Errorf("error when creating cluster client: %v", err)
+	}
+	defer clusterClient.Close()
+	mini := minikube.New(co.VmDriver)
+	deployer := clusterdeployer.New(mini,
+		clusterdeployer.NewClientFactory(),
+		providerComponents,
+		"",
+		true)
+	return deployer.Delete(clusterClient)
 }
 
 func loadProviderComponents() (string, error) {

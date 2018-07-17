@@ -93,12 +93,10 @@ func RunCreate(co *CreateOptions) error {
 	d := clusterdeployer.New(
 		mini,
 		clusterdeployer.NewClientFactory(),
-		pd,
 		string(pc),
 		string(ac),
-		co.KubeconfigOutput,
 		co.CleanupExternalCluster)
-	return d.Create(c, m, pcsFactory)
+	return d.Create(c, m, pd, co.KubeconfigOutput, pcsFactory)
 }
 
 func init() {

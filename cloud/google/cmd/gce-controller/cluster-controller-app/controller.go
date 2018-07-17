@@ -44,7 +44,7 @@ const (
 	gceClusterControllerName = "gce-cluster-controller"
 )
 
-func StartClusterController(server *options.ClusterControllerServer, shutdown <-chan struct{}) {
+func StartClusterController(server *options.ClusterControllerServer, eventRecorder record.EventRecorder, shutdown <-chan struct{}) {
 	config, err := controller.GetConfig(server.CommonConfig.Kubeconfig)
 	if err != nil {
 		glog.Fatalf("Could not create Config for talking to the apiserver: %v", err)
@@ -56,7 +56,8 @@ func StartClusterController(server *options.ClusterControllerServer, shutdown <-
 	}
 
 	params := google.ClusterActuatorParams{
-		ClusterClient: client.ClusterV1alpha1().Clusters(corev1.NamespaceDefault),
+		ClusterClient:  client.ClusterV1alpha1().Clusters(corev1.NamespaceDefault),
+		EventRecorder:  eventRecorder,
 	}
 	actuator, err := google.NewClusterActuator(params)
 	if err != nil {
@@ -97,7 +98,7 @@ func RunClusterController(server *options.ClusterControllerServer) error {
 
 	// run function will block and never return.
 	run := func(stop <-chan struct{}) {
-		StartClusterController(server, stop)
+		StartClusterController(server, recorder, stop)
 	}
 
 	leaderElectConfig := config.GetLeaderElectionConfig()

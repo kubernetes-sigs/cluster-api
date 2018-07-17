@@ -108,7 +108,14 @@ func TestClusterSetControllerReconcileHandler(t *testing.T) {
 				t.Fatal(err)
 			}
 
-			finalizerRemoved := clusterUpdated && !util.Contains(clusterToTest.ObjectMeta.Finalizers, v1alpha1.ClusterFinalizer)
+			finalizerRemoved := false
+			if clusterUpdated {
+				updatedCluster, err := fakeClient.ClusterV1alpha1().Clusters(clusterToTest.Namespace).Get(clusterToTest.Name, metav1.GetOptions{})
+				if err != nil {
+					t.Fatalf("failed to get updated cluster.")
+				}
+				finalizerRemoved = !util.Contains(updatedCluster.ObjectMeta.Finalizers, v1alpha1.ClusterFinalizer)
+			}
 
 			if finalizerRemoved != test.expectFinalizerRemoved {
 				t.Errorf("Got finalizer removed %v, expected finalizer removed %v", finalizerRemoved, test.expectFinalizerRemoved)

@@ -318,6 +318,12 @@ kind: MasterConfiguration
 api:
   advertiseAddress: ${PUBLICIP}
   bindPort: ${PORT}
+etcd:
+  extraArgs:
+    listen-client-urls: http://0.0.0.0:2379
+kubeProxy:
+  config:
+    metricsBindAddress: 0.0.0.0:10249
 networking:
   serviceSubnet: ${SERVICE_CIDR}
   podSubnet: ${POD_CIDR}

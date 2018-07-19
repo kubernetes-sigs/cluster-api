@@ -537,20 +537,6 @@
   revision = "ac136b6c2db7c4d43955e4bc7174db36dc0539c0"
 
 [[projects]]
-  branch = "master"
-  name = "google.golang.org/api"
-  packages = [
-    "cloudbilling/v1",
-    "cloudresourcemanager/v1",
-    "compute/v1",
-    "gensupport",
-    "googleapi",
-    "googleapi/internal/uritemplates",
-    "servicemanagement/v1"
-  ]
-  revision = "a213db537ac9b393526194a5c85ad6e546f7923f"
-
-[[projects]]
   name = "google.golang.org/appengine"
   packages = [
     ".",
@@ -965,7 +951,6 @@
     "tools/clientcmd/api",
     "tools/clientcmd/api/latest",
     "tools/clientcmd/api/v1",
-    "tools/leaderelection",
     "tools/leaderelection/resourcelock",
     "tools/metrics",
     "tools/pager",
@@ -1027,6 +1012,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "40cbed3bd870f59d6c28ecaaa706e5aab9d974a8b52a410e89442a1e522962c6"
+  inputs-digest = "b950caa303849ce241ac0b88cecb340f1ba19f3bfca65fc036b235c044cbc4f2"
   solver-name = "gps-cdcl"
   solver-version = 1

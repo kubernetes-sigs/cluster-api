@@ -20,7 +20,6 @@ import (
 	"io/ioutil"
 	"os"
 	"testing"
-	_ "sigs.k8s.io/cluster-api/cloud/google"
 )
 
 const validCluster = `
@@ -141,9 +140,6 @@ func TestGetProvider(t *testing.T) {
 		provider  string
 		expectErr bool
 	}{
-		{
-			provider: "google",
-		},
 		{
 			provider:  "blah blah",
 			expectErr: true,

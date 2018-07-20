@@ -24,11 +24,12 @@ To learn more, see the [Cluster API KEP][cluster-api-kep].
 
 * Pointers to repositories and PRs where some Cluster API provisioners are being
   developed.
+  * AWS, https://github.com/kubernetes-sigs/cluster-api-provider-aws
   * AWS/Openshift, https://github.com/openshift/cluster-operator
   * Azure, https://github.com/platform9/azure-provider
-  * GCE, https://github.com/kubernetes-sigs/cluster-api/tree/master/cloud/google
-  * vSphere, https://github.com/kubernetes-sigs/cluster-api/tree/master/cloud/vsphere
+  * GCE, https://github.com/kubernetes-sigs/cluster-api-provider-gcp
   * OpenStack, https://github.com/kubernetes-sigs/cluster-api-provider-openstack
+  * vSphere, https://github.com/kubernetes-sigs/cluster-api/tree/master/cloud/vsphere
 
 ## Getting Started
 ### Prerequisites

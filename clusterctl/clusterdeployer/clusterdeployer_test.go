@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package clusterdeployer_test
+package clusterdeployer
 
 import (
 	"fmt"
@@ -24,7 +24,6 @@ import (
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
-	"sigs.k8s.io/cluster-api/clusterctl/clusterdeployer"
 	clusterv1 "sigs.k8s.io/cluster-api/pkg/apis/cluster/v1alpha1"
 )
 
@@ -57,12 +56,12 @@ func (p *testClusterProvisioner) GetKubeconfig() (string, error) {
 }
 
 type mockProviderComponentsStoreFactory struct {
-	NewFromCoreclientsetPCStore          clusterdeployer.ProviderComponentsStore
+	NewFromCoreclientsetPCStore          ProviderComponentsStore
 	NewFromCoreclientsetError            error
 	NewFromCoreclientsetCapturedArgument *kubernetes.Clientset
 }
 
-func (m *mockProviderComponentsStoreFactory) NewFromCoreClientset(clientset *kubernetes.Clientset) (clusterdeployer.ProviderComponentsStore, error) {
+func (m *mockProviderComponentsStoreFactory) NewFromCoreClientset(clientset *kubernetes.Clientset) (ProviderComponentsStore, error) {
 	m.NewFromCoreclientsetCapturedArgument = clientset
 	return m.NewFromCoreclientsetPCStore, m.NewFromCoreclientsetError
 }
@@ -208,7 +207,7 @@ func (f *testClusterClientFactory) NewCoreClientsetFromKubeconfigFile(kubeconfig
 	return f.CoreClientsets[kubeconfigPath], f.NewCoreClientsetErr
 }
 
-func (f *testClusterClientFactory) NewClusterClientFromKubeconfig(kubeconfig string) (clusterdeployer.ClusterClient, error) {
+func (f *testClusterClientFactory) NewClusterClientFromKubeconfig(kubeconfig string) (ClusterClient, error) {
 	if f.ClusterClientErr != nil {
 		return nil, f.ClusterClientErr
 	}
@@ -405,7 +404,7 @@ func TestCreate(t *testing.T) {
 			inputMachines := generateMachines()
 			pcStore := mockProviderComponentsStore{}
 			pcFactory := mockProviderComponentsStoreFactory{NewFromCoreclientsetPCStore: &pcStore}
-			d := clusterdeployer.New(p, f, "", "", testcase.cleanupExternal)
+			d := New(p, f, "", "", testcase.cleanupExternal)
 			err := d.Create(inputCluster, inputMachines, pd, kubeconfigOut, &pcFactory)
 
 			// Validate
@@ -469,7 +468,7 @@ func TestCreateProviderComponentsScenarios(t *testing.T) {
 			pcFactory := mockProviderComponentsStoreFactory{NewFromCoreclientsetPCStore: &tc.pcStore}
 			providerComponentsYaml := "-yaml\ndefinition"
 			addonsYaml := "-yaml\ndefinition"
-			d := clusterdeployer.New(p, f, providerComponentsYaml, addonsYaml, false)
+			d := New(p, f, providerComponentsYaml, addonsYaml, false)
 			err := d.Create(inputCluster, inputMachines, pd, kubeconfigOut, &pcFactory)
 			if err == nil && tc.expectedError != "" {
 				t.Fatalf("error mismatch: got '%v', want '%v'", err, tc.expectedError)
@@ -509,7 +508,7 @@ func TestDeleteCleanupExternalCluster(t *testing.T) {
 			f := newTestClusterClientFactory()
 			f.clusterClients[externalKubeconfig] = tc.externalClient
 			f.clusterClients[internalKubeconfig] = tc.internalClient
-			d := clusterdeployer.New(p, f, "", "", tc.cleanupExternalCluster)
+			d := New(p, f, "", "", tc.cleanupExternalCluster)
 			err := d.Delete(tc.internalClient)
 			if err != nil || tc.expectedErrorMessage != "" {
 				if err == nil {
@@ -565,7 +564,7 @@ func TestDeleteBasicScenarios(t *testing.T) {
 			f.clusterClients[externalKubeconfig] = tc.externalClient
 			f.clusterClients[internalKubeconfig] = tc.internalClient
 			f.ClusterClientErr = tc.NewCoreClientsetErr
-			d := clusterdeployer.New(p, f, "", "", true)
+			d := New(p, f, "", "", true)
 			err := d.Delete(tc.internalClient)
 			if err != nil || tc.expectedErrorMessage != "" {
 				if err == nil {

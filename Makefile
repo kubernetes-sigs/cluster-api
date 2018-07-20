@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-.PHONY: genapi genconversion genclientset gendeepcopy
+.PHONY: genapi genconversion genclientset gendeepcopy test testcover
 
 all: generate build images
 

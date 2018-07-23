@@ -42,18 +42,16 @@ genclientset: depend
 gendeepcopy:
 	go build -o $$GOPATH/bin/deepcopy-gen sigs.k8s.io/cluster-api/vendor/k8s.io/code-generator/cmd/deepcopy-gen
 	deepcopy-gen \
-	  -i ./pkg/apis/cluster/,./pkg/apis/cluster/v1alpha1/,./cloud/google/gceproviderconfig/v1alpha1,./cloud/google/gceproviderconfig,./cloud/vsphere/vsphereproviderconfig/v1alpha1,./cloud/vsphere/vsphereproviderconfig \
+	  -i ./pkg/apis/cluster/,./pkg/apis/cluster/v1alpha1/,./cloud/vsphere/vsphereproviderconfig/v1alpha1,./cloud/vsphere/vsphereproviderconfig \
 	  -O zz_generated.deepcopy \
 	  -h boilerplate.go.txt
 
 build: depend
-	CGO_ENABLED=0 go install -a -ldflags '-extldflags "-static"' sigs.k8s.io/cluster-api/cloud/google/cmd/gce-controller
 	CGO_ENABLED=0 go install -a -ldflags '-extldflags "-static"' sigs.k8s.io/cluster-api/cloud/vsphere/cmd/vsphere-machine-controller
 	CGO_ENABLED=0 go install -a -ldflags '-extldflags "-static"' sigs.k8s.io/cluster-api/cmd/apiserver
 	CGO_ENABLED=0 go install -a -ldflags '-extldflags "-static"' sigs.k8s.io/cluster-api/cmd/controller-manager
 
 images: depend
-	$(MAKE) -C cloud/google/cmd/gce-controller image
 	$(MAKE) -C cloud/vsphere/cmd/vsphere-machine-controller image
 	$(MAKE) -C cmd/apiserver image
 	$(MAKE) -C cmd/controller-manager image

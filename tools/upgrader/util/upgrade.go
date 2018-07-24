@@ -95,7 +95,7 @@ func UpgradeCluster(kubeversion string, kubeconfig string) error {
 
 	glog.Info("Upgrading the control plane.")
 
-	// Update the control plan first. It assumes single master.
+	// Update the control plane first. It assumes single master.
 	var master *clusterv1.Machine = nil
 	for _, mach := range machine_list.Items {
 		if util.IsMaster(&mach) {

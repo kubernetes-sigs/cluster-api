@@ -24,7 +24,6 @@ import (
 	"time"
 
 	"k8s.io/client-go/kubernetes"
-	clustercommon "sigs.k8s.io/cluster-api/pkg/apis/cluster/common"
 	clusterv1 "sigs.k8s.io/cluster-api/pkg/apis/cluster/v1alpha1"
 	"sigs.k8s.io/cluster-api/pkg/util"
 
@@ -114,7 +113,7 @@ const (
 // Creates the a cluster from the provided cluster definition and machine list.
 
 func (d *ClusterDeployer) Create(cluster *clusterv1.Cluster, machines []*clusterv1.Machine, provider ProviderDeployer, kubeconfigOutput string, providerComponentsStoreFactory ProviderComponentsStoreFactory) error {
-	master, nodes, err := splitMachineRoles(machines)
+	master, nodes, err := extractMasterMachine(machines)
 	if err != nil {
 		return fmt.Errorf("unable to seperate master machines from node machines: %v", err)
 	}
@@ -491,19 +490,21 @@ func getClusterAPIObjects(client ClusterClient) (*clusterv1.Cluster, *clusterv1.
 		return nil, nil, nil, fmt.Errorf("fetched not exactly one cluster object. Count %v", len(clusters))
 	}
 	cluster := clusters[0]
-	master, nodes, err := splitMachineRoles(machines)
+	master, nodes, err := extractMasterMachine(machines)
 	if err != nil {
 		return nil, nil, nil, fmt.Errorf("unable to fetch master machine: %v", err)
 	}
 	return cluster, master, nodes, nil
 }
 
-// Split the incoming machine set into the master and the non-masters
-func splitMachineRoles(machines []*clusterv1.Machine) (*clusterv1.Machine, []*clusterv1.Machine, error) {
+// extractMasterMachine separates the master (singular) from the incoming machines.
+// This is currently done by looking at which machine specifies the control plane version
+// (which implies that it is a master). This should be cleaned up in the future.
+func extractMasterMachine(machines []*clusterv1.Machine) (*clusterv1.Machine, []*clusterv1.Machine, error) {
 	nodes := []*clusterv1.Machine{}
 	masters := []*clusterv1.Machine{}
 	for _, machine := range machines {
-		if containsMasterRole(machine.Spec.Roles) {
+		if util.IsMaster(machine) {
 			masters = append(masters, machine)
 		} else {
 			nodes = append(nodes, machine)
@@ -513,15 +514,6 @@ func splitMachineRoles(machines []*clusterv1.Machine) (*clusterv1.Machine, []*cl
 		return nil, nil, fmt.Errorf("expected one master, got: %v", len(masters))
 	}
 	return masters[0], nodes, nil
-}
-
-func containsMasterRole(roles []clustercommon.MachineRole) bool {
-	for _, role := range roles {
-		if role == clustercommon.MasterRole {
-			return true
-		}
-	}
-	return false
 }
 
 func closeClient(client ClusterClient, name string) {

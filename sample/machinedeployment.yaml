@@ -24,8 +24,3 @@ spec:
           os: "ubuntu-1604-lts"
       versions:
         kubelet: 1.9.4
-        containerRuntime:
-          name: docker
-          version: 1.12.0
-      roles:
-      - Node

@@ -51,7 +51,7 @@ func init() {
 		&vco.Kubeconfig, "kubeconfig", "", "",
 		"The file path of the kubeconfig file for the cluster to validate.. If not specified, $KUBECONFIG environment variable or ${HOME}/.kube/config is used.")
 	// BindContextFlags will bind the flags cluster, namespace, and user
-	tcmd.BindContextFlags(&do.KubeconfigOverrides.Context, validateClusterCmd.Flags(), tcmd.RecommendedContextOverrideFlags(""))
+	tcmd.BindContextFlags(&vco.KubeconfigOverrides.Context, validateClusterCmd.Flags(), tcmd.RecommendedContextOverrideFlags(""))
 	validateCmd.AddCommand(validateClusterCmd)
 }
 

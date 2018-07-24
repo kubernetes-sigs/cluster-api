@@ -14,5 +14,5 @@ $ go build
 ```
 
 ## Running
-1) First, create a cluster using the `gcp-deployer` tool (the default Kubernetes version should be `1.8.3`)
-2) To update the entire cluster to `v1.9.4`, run `./upgrader -v 1.9.4`
+1) First, create a cluster using the `clusterctl` tool (the default Kubernetes version should be `1.9.4`)
+2) To update the entire cluster to `v1.9.5`, run `./upgrader -v 1.9.5`

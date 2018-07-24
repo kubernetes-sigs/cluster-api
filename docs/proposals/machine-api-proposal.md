@@ -9,21 +9,17 @@ and add optional machine management features to Kubernetes clusters.
 
 This API strives to be able to add these capabilities:
 
-1. A new Node can be created in a declarative way, including Kubernetes version
-   and container runtime version. It should also be able to specify
-   provider-specific information such as OS image, instance type, disk
-   configuration, etc., though this will not be portable.
+1. A new Node can be created in a declarative way, including Kubernetes version.
+   It should also be able to specify provider-specific information such as OS image,
+   instance type, disk configuration, etc., though this will not be portable.
 
-2. A specific Node can be deleted, freeing external resources associated with
+1. A specific Node can be deleted, freeing external resources associated with
    it.
 
-3. A specific Node can have its kubelet version upgraded or downgraded in a
+1. A specific Node can have its kubelet version upgraded or downgraded in a
    declarative way\*.
 
-4. A specific Node can have its container runtime changed, or its version
-   upgraded or downgraded, in a declarative way\*.
-
-5. A specific Node can have its OS image upgraded or downgraded in a declarative
+1. A specific Node can have its OS image upgraded or downgraded in a declarative
    way\*.
 
 \*  It is an implementation detail of the provider if these operations are
@@ -43,10 +39,9 @@ with a new one matching the updated spec. If a Machine object is deleted, the
 corresponding Node should have its external resources released by the
 provider-specific controller, and should be deleted as well.
 
-Fields like the kubelet version, the container runtime to use, and its version,
-are modeled as fields on the Machine's spec. Any other information that is
-provider-specific, though, is part of an opaque ProviderConfig string that is
-not portable between different providers.
+Fields like the kubelet version are modeled as fields on the Machine's spec.
+Any other information that is provider-specific, though, is part of an opaque
+ProviderConfig string that is not portable between different providers.
 
 The ProviderConfig is recommended to be a serialized API object in a format
 owned by that provider, akin to the [Component Config](https://goo.gl/opSc2o)
@@ -98,35 +93,7 @@ update, or if a full Node replacement is necessary.
 
 ## Omitted Capabilities
 
-* A scalable representation of a group of nodes
-
-Given the existing targeted capabilities, this functionality could easily be
-built client-side via label selectors to find groups of Nodes and using (1) and
-(2) to add or delete instances to simulate this scaling.
-
-It is natural to extend this API in the future to introduce the concepts of
-MachineSets and MachineDeployments that mirror ReplicaSets and Deployments, but
-an initial goal is to first solidify the definition and behavior of a single
-Machine, similar to how Kubernetes first solidifed Pods.
-
-A nice property of this proposal is that if provider controllers are written
-solely against Machines, the concept of MachineSets can be implemented in a
-provider-agnostic way with a generic controller that uses the MachineSet
-template to create and delete Machine instances. All Machine-based provider
-controllers will continue to work, and will get full MachineSet functionality
-for free without modification. Similarly, a MachineDeployment controller could
-then be introduced to generically operate on MachineSets without having to know
-about Machines or providers. Provider-specific controllers that are actually
-responsible for creating and deleting hosts would only ever have to worry about
-individual Machine objects, unless they explicitly opt into watching
-higher-level APIs like MachineSets in order to take advantage of
-provider-specific features like AutoScalingGroups or Managed Instance Groups.
-
-However, this leaves the barrier to entry very low for adding new providers:
-simply implement creation and deletion of individual Nodes, and get Sets and
-Deployments for free.
-
-* A provider-agnostic mechanism to request new nodes
+### A provider-agnostic mechanism to request new nodes
 
 In this proposal, only certain attributes of Machines are provider-agnostic and
 can be operated on in a generic way. In other iterations of similar proposals,
@@ -136,9 +103,10 @@ support usecases around automated Machine scaling. This introduced a lot of
 upfront complexity in the API proposals.
 
 This proposal starts much more minimalistic, but doesn't preclude the option of
-extending the API to support these advanced concepts in the future.
+extending the API to support these advanced concepts in the future (see
+https://github.com/kubernetes-sigs/cluster-api/issues/22).
 
-* Dynamic API endpoint
+### Dynamic API endpoint
 
 This proposal lacks the ability to declaratively update the kube-apiserver
 endpoint for the kubelet to register with. This feature could be added later,
@@ -150,7 +118,7 @@ endpoint into any hosts it provisions.
 
 ## Conditions
 
-Brian Grant and Eric Tune have indicated that the API pattern of having
+Brian Grant (@bgrant0607) and Eric Tune (@erictune) have indicated that the API pattern of having
 "Conditions" lists in object statuses is soon to be deprecated. These have
 generally been used as a timeline of state transitions for the object's
 reconcilation, and difficult to consume for clients that just want a meaningful
@@ -161,4 +129,4 @@ revisit the specifics when new patterns start to emerge in core.
 
 ## Types
 
-Please see the full types [here](types.go).
+Please see the full types [here](https://github.com/kubernetes-sigs/cluster-api/blob/master/pkg/apis/cluster/v1alpha1/machine_types.go).

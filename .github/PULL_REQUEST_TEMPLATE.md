@@ -13,7 +13,7 @@ Fixes #
 
 **Special notes for your reviewer**:
 
-1. Please confirm that if this PR changes any image versions, then that's the sole change this PR makes.
+_Please confirm that if this PR changes any image versions, then that's the sole change this PR makes._
 
 **Release note**:
 <!--  Write your release note:

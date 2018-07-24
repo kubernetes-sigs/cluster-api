@@ -1,4 +1,4 @@
-package clusterdeployer
+package externalclusterprovisioner
 
 import (
 	"io/ioutil"

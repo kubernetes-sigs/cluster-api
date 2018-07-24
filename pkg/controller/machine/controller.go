@@ -123,16 +123,18 @@ func (c *MachineControllerImpl) Reconcile(machine *clusterv1.Machine) error {
 
 	exist, err := c.actuator.Exists(cluster, m)
 	if err != nil {
-		glog.Errorf("Error checking existance of machine instance for machine object %v; %v", name, err)
+		glog.Errorf("Error checking existence of machine instance for machine object %v; %v", name, err)
 		return err
 	}
 	if exist {
-		glog.Infof("reconciling machine object %v triggers idempotent update.", name)
+		glog.Infof("Reconciling machine object %v triggers idempotent update.", name)
 		return c.update(m)
 	}
 	// Machine resource created. Machine does not yet exist.
-	glog.Infof("reconciling machine object %v triggers idempotent create.", m.ObjectMeta.Name)
-	return c.create(m)
+	glog.Infof("Reconciling machine object %v triggers idempotent create.", m.ObjectMeta.Name)
+	err = c.create(m)
+	glog.Warningf("Unable to create machine %v: %v", name, err)
+	return err
 }
 
 func (c *MachineControllerImpl) Get(namespace, name string) (*clusterv1.Machine, error) {

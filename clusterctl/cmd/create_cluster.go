@@ -75,14 +75,14 @@ func RunCreate(co *CreateOptions) error {
 		return err
 	}
 
-	var exernalProvider clusterdeployer.ClusterProvisioner
+	var externalProvider clusterdeployer.ClusterProvisioner
 	if co.ExistingClusterKubeconfigPath != "" {
-		exernalProvider, err = externalclusterprovisioner.NewExternalCluster(co.ExistingClusterKubeconfigPath)
+		externalProvider, err = externalclusterprovisioner.NewExternalCluster(co.ExistingClusterKubeconfigPath)
 		if err != nil {
 			return err
 		}
 	} else {
-		exernalProvider = minikube.New(co.VmDriver)
+		externalProvider = minikube.New(co.VmDriver)
 
 	}
 
@@ -103,7 +103,7 @@ func RunCreate(co *CreateOptions) error {
 	}
 	pcsFactory := clusterdeployer.NewProviderComponentsStoreFactory()
 	d := clusterdeployer.New(
-		exernalProvider,
+		externalProvider,
 		clusterdeployer.NewClientFactory(),
 		string(pc),
 		string(ac),
@@ -124,7 +124,7 @@ func init() {
 	createClusterCmd.Flags().BoolVarP(&co.CleanupExternalCluster, "cleanup-external-cluster", "", true, "Whether to cleanup the external cluster after bootstrap")
 	createClusterCmd.Flags().StringVarP(&co.VmDriver, "vm-driver", "", "", "Which vm driver to use for minikube")
 	createClusterCmd.Flags().StringVarP(&co.KubeconfigOutput, "kubeconfig-out", "", "kubeconfig", "Where to output the kubeconfig for the provisioned cluster")
-	createClusterCmd.Flags().StringVarP(&co.ExistingClusterKubeconfigPath, "existing-cluster-kubeconfig", "k", "", "path to an existing cluster's kubeconfig (intead of using minikube)")
+	createClusterCmd.Flags().StringVarP(&co.ExistingClusterKubeconfigPath, "existing-bootstrap-cluster-kubeconfig", "", "", "Path to an existing cluster's kubeconfig for bootstrapping (intead of using minikube)")
 
 	createCmd.AddCommand(createClusterCmd)
 }

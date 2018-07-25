@@ -6,6 +6,8 @@ go_library(
         "cluster.go",
         "expansion_generated.go",
         "machine.go",
+        "machinedeployment.go",
+        "machineset.go",
     ],
     importpath = "sigs.k8s.io/cluster-api/pkg/client/listers_generated/cluster/v1alpha1",
     visibility = ["//visibility:public"],

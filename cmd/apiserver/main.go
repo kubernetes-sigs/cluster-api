@@ -21,9 +21,9 @@ import (
 
 	// Make sure glide gets these dependencies
 	_ "github.com/go-openapi/loads"
-	_ "k8s.io/apimachinery/pkg/apis/meta/v1"
-
 	"github.com/kubernetes-incubator/apiserver-builder/pkg/cmd/server"
+
+	_ "k8s.io/apimachinery/pkg/apis/meta/v1"
 	_ "k8s.io/client-go/plugin/pkg/client/auth" // Enable cloud provider auth
 
 	"sigs.k8s.io/cluster-api/pkg/apis"

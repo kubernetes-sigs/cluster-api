@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package clusterdeployer_test
+package clusterdeployer
 
 import (
 	"fmt"
@@ -24,7 +24,6 @@ import (
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
-	"sigs.k8s.io/cluster-api/clusterctl/clusterdeployer"
 	clusterv1 "sigs.k8s.io/cluster-api/pkg/apis/cluster/v1alpha1"
 )
 
@@ -57,12 +56,12 @@ func (p *testClusterProvisioner) GetKubeconfig() (string, error) {
 }
 
 type mockProviderComponentsStoreFactory struct {
-	NewFromCoreclientsetPCStore          clusterdeployer.ProviderComponentsStore
+	NewFromCoreclientsetPCStore          ProviderComponentsStore
 	NewFromCoreclientsetError            error
 	NewFromCoreclientsetCapturedArgument *kubernetes.Clientset
 }
 
-func (m *mockProviderComponentsStoreFactory) NewFromCoreClientset(clientset *kubernetes.Clientset) (clusterdeployer.ProviderComponentsStore, error) {
+func (m *mockProviderComponentsStoreFactory) NewFromCoreClientset(clientset *kubernetes.Clientset) (ProviderComponentsStore, error) {
 	m.NewFromCoreclientsetCapturedArgument = clientset
 	return m.NewFromCoreclientsetPCStore, m.NewFromCoreclientsetError
 }
@@ -208,7 +207,7 @@ func (f *testClusterClientFactory) NewCoreClientsetFromKubeconfigFile(kubeconfig
 	return f.CoreClientsets[kubeconfigPath], f.NewCoreClientsetErr
 }
 
-func (f *testClusterClientFactory) NewClusterClientFromKubeconfig(kubeconfig string) (clusterdeployer.ClusterClient, error) {
+func (f *testClusterClientFactory) NewClusterClientFromKubeconfig(kubeconfig string) (ClusterClient, error) {
 	if f.ClusterClientErr != nil {
 		return nil, f.ClusterClientErr
 	}
@@ -405,7 +404,7 @@ func TestCreate(t *testing.T) {
 			inputMachines := generateMachines()
 			pcStore := mockProviderComponentsStore{}
 			pcFactory := mockProviderComponentsStoreFactory{NewFromCoreclientsetPCStore: &pcStore}
-			d := clusterdeployer.New(p, f, "", "", testcase.cleanupExternal)
+			d := New(p, f, "", "", testcase.cleanupExternal)
 			err := d.Create(inputCluster, inputMachines, pd, kubeconfigOut, &pcFactory)
 
 			// Validate
@@ -422,7 +421,7 @@ func TestCreate(t *testing.T) {
 				t.Fatalf("Unexpected cluster count. Got: %v, Want: %v", len(testcase.internalClient.clusters), testcase.expectedInternalClusters)
 			}
 			if testcase.expectedInternalClusters > 1 && inputCluster.Name != testcase.internalClient.clusters[0].Name {
-				t.Errorf("Provisioned cluster has unexpeted name. Got: %v, Want: %v", testcase.internalClient.clusters[0].Name, inputCluster.Name)
+				t.Errorf("Provisioned cluster has unexpected name. Got: %v, Want: %v", testcase.internalClient.clusters[0].Name, inputCluster.Name)
 			}
 
 			if testcase.expectedInternalMachines != len(testcase.internalClient.machines) {
@@ -469,7 +468,7 @@ func TestCreateProviderComponentsScenarios(t *testing.T) {
 			pcFactory := mockProviderComponentsStoreFactory{NewFromCoreclientsetPCStore: &tc.pcStore}
 			providerComponentsYaml := "-yaml\ndefinition"
 			addonsYaml := "-yaml\ndefinition"
-			d := clusterdeployer.New(p, f, providerComponentsYaml, addonsYaml, false)
+			d := New(p, f, providerComponentsYaml, addonsYaml, false)
 			err := d.Create(inputCluster, inputMachines, pd, kubeconfigOut, &pcFactory)
 			if err == nil && tc.expectedError != "" {
 				t.Fatalf("error mismatch: got '%v', want '%v'", err, tc.expectedError)
@@ -479,6 +478,72 @@ func TestCreateProviderComponentsScenarios(t *testing.T) {
 			}
 			if tc.pcStore.SaveCapturedProviderComponents != providerComponentsYaml {
 				t.Errorf("provider components mismatch: got '%v', want '%v'", tc.pcStore.SaveCapturedProviderComponents, providerComponentsYaml)
+			}
+		})
+	}
+}
+
+func TestExtractMasterMachine(t *testing.T) {
+	const singleMasterName = "test-master"
+	multpleMasterNames := []string{"test-master-1", "test-master-2"}
+	const singleNodeName = "test-node"
+	multipleNodeNames := []string{"test-node-1", "test-node-2", "test-node-3"}
+
+	testCases := []struct {
+		name            string
+		inputMachines   []*clusterv1.Machine
+		expectedMasters *clusterv1.Machine
+		expectedNodes   []*clusterv1.Machine
+		expectedError   error
+	}{
+		{
+			name:            "success_1_master_1_node",
+			inputMachines:   generateMachines(),
+			expectedMasters: generateTestMasterMachine(singleMasterName),
+			expectedNodes:   generateTestNodeMachines([]string{singleNodeName}),
+			expectedError:   nil,
+		},
+		{
+			name:            "success_1_master_multiple_nodes",
+			inputMachines:   generateValidExtractMasterMachineInput([]string{singleMasterName}, multipleNodeNames),
+			expectedMasters: generateTestMasterMachine(singleMasterName),
+			expectedNodes:   generateTestNodeMachines(multipleNodeNames),
+			expectedError:   nil,
+		},
+		{
+			name:            "fail_more_than_1_master_not_allowed",
+			inputMachines:   generateInvalidExtractMasterMachine(multpleMasterNames, multipleNodeNames),
+			expectedMasters: nil,
+			expectedNodes:   nil,
+			expectedError:   fmt.Errorf("expected one master, got: 2"),
+		},
+		{
+			name:            "fail_0_master_not_allowed",
+			inputMachines:   generateTestNodeMachines(multipleNodeNames),
+			expectedMasters: nil,
+			expectedNodes:   nil,
+			expectedError:   fmt.Errorf("expected one master, got: 0"),
+		},
+	}
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			actualMasters, actualNodes, actualError := extractMasterMachine(tc.inputMachines)
+
+			if tc.expectedError == nil && actualError != nil {
+				t.Fatalf("%s: extractMasterMachine(%q): gotError %q; wantError [nil]", tc.name, tc.inputMachines, actualError)
+			}
+
+			if tc.expectedError != nil && tc.expectedError.Error() != actualError.Error() {
+				t.Fatalf("%s: extractMasterMachine(%q): gotError %q; wantError %q", tc.name, tc.inputMachines, actualError, tc.expectedError)
+			}
+
+			if (tc.expectedMasters == nil && actualMasters != nil) ||
+				(tc.expectedMasters != nil && actualMasters == nil) {
+				t.Fatalf("%s: extractMasterMachine(%q): gotMasters = %q; wantMasters = %q", tc.name, tc.inputMachines, actualMasters, tc.expectedMasters)
+			}
+
+			if len(tc.expectedNodes) != len(actualNodes) {
+				t.Fatalf("%s: extractMasterMachine(%q): gotNodes = %q; wantNodes = %q", tc.name, tc.inputMachines, actualNodes, tc.expectedNodes)
 			}
 		})
 	}
@@ -509,7 +574,7 @@ func TestDeleteCleanupExternalCluster(t *testing.T) {
 			f := newTestClusterClientFactory()
 			f.clusterClients[externalKubeconfig] = tc.externalClient
 			f.clusterClients[internalKubeconfig] = tc.internalClient
-			d := clusterdeployer.New(p, f, "", "", tc.cleanupExternalCluster)
+			d := New(p, f, "", "", tc.cleanupExternalCluster)
 			err := d.Delete(tc.internalClient)
 			if err != nil || tc.expectedErrorMessage != "" {
 				if err == nil {
@@ -565,7 +630,7 @@ func TestDeleteBasicScenarios(t *testing.T) {
 			f.clusterClients[externalKubeconfig] = tc.externalClient
 			f.clusterClients[internalKubeconfig] = tc.internalClient
 			f.ClusterClientErr = tc.NewCoreClientsetErr
-			d := clusterdeployer.New(p, f, "", "", true)
+			d := New(p, f, "", "", true)
 			err := d.Delete(tc.internalClient)
 			if err != nil || tc.expectedErrorMessage != "" {
 				if err == nil {
@@ -578,12 +643,60 @@ func TestDeleteBasicScenarios(t *testing.T) {
 	}
 }
 
+func generateTestMasterMachine(name string) *clusterv1.Machine {
+	return &clusterv1.Machine{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: name,
+		},
+		Spec: clusterv1.MachineSpec{
+			Versions: clusterv1.MachineVersionInfo{
+				ControlPlane: "1.10.1",
+			},
+		},
+	}
+}
+
+func generateTestNodeMachine(name string) *clusterv1.Machine {
+	return &clusterv1.Machine{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: name,
+		},
+	}
+}
+
+func generateTestMasterMachines(masterNames []string) []*clusterv1.Machine {
+	var masters []*clusterv1.Machine
+	for _, mn := range masterNames {
+		masters = append(masters, generateTestMasterMachine(mn))
+	}
+	return masters
+}
+
+func generateTestNodeMachines(nodeNames []string) []*clusterv1.Machine {
+	var nodes []*clusterv1.Machine
+	for _, nn := range nodeNames {
+		nodes = append(nodes, generateTestNodeMachine(nn))
+	}
+	return nodes
+}
+
+func generateInvalidExtractMasterMachine(masterNames, nodeNames []string) []*clusterv1.Machine {
+	masters := generateTestMasterMachines(masterNames)
+	nodes := generateTestNodeMachines(nodeNames)
+
+	return append(masters, nodes...)
+}
+
+func generateValidExtractMasterMachineInput(masterNames, nodeNames []string) []*clusterv1.Machine {
+	masters := generateTestMasterMachines(masterNames)
+	nodes := generateTestNodeMachines(nodeNames)
+
+	return append(masters, nodes...)
+}
+
 func generateMachines() []*clusterv1.Machine {
-	master := &clusterv1.Machine{}
-	master.Name = "test-master"
-	master.Spec.Versions.ControlPlane = "1.10.1"
-	node := &clusterv1.Machine{}
-	node.Name = "test.Node"
+	master := generateTestMasterMachine("test-master")
+	node := generateTestNodeMachine("test-node")
 	return []*clusterv1.Machine{master, node}
 }
 

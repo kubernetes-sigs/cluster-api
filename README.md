@@ -29,7 +29,7 @@ To learn more, see the [Cluster API KEP][cluster-api-kep].
   * Azure, https://github.com/platform9/azure-provider
   * GCE, https://github.com/kubernetes-sigs/cluster-api-provider-gcp
   * OpenStack, https://github.com/kubernetes-sigs/cluster-api-provider-openstack
-  * vSphere, https://github.com/kubernetes-sigs/cluster-api/tree/master/cloud/vsphere
+  * vSphere, https://github.com/roberthbailey/cluster-api-provider-vsphere
 
 ## Getting Started
 ### Prerequisites

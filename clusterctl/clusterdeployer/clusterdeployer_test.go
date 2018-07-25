@@ -421,7 +421,7 @@ func TestCreate(t *testing.T) {
 				t.Fatalf("Unexpected cluster count. Got: %v, Want: %v", len(testcase.internalClient.clusters), testcase.expectedInternalClusters)
 			}
 			if testcase.expectedInternalClusters > 1 && inputCluster.Name != testcase.internalClient.clusters[0].Name {
-				t.Errorf("Provisioned cluster has unexpeted name. Got: %v, Want: %v", testcase.internalClient.clusters[0].Name, inputCluster.Name)
+				t.Errorf("Provisioned cluster has unexpected name. Got: %v, Want: %v", testcase.internalClient.clusters[0].Name, inputCluster.Name)
 			}
 
 			if testcase.expectedInternalMachines != len(testcase.internalClient.machines) {
@@ -499,15 +499,15 @@ func TestExtractMasterMachine(t *testing.T) {
 		{
 			name:            "success_1_master_1_node",
 			inputMachines:   generateMachines(),
-			expectedMasters: generateMasterNode(singleMasterName),
+			expectedMasters: generateTestMasterMachine(singleMasterName),
 			expectedNodes:   generateTestNodeMachines([]string{singleNodeName}),
 			expectedError:   nil,
 		},
 		{
 			name:            "success_1_master_multiple_nodes",
-			inputMachines:   generateValidExtractMasterMachineInput(singleMasterName, multipleNodeNames),
-			expectedMasters: generateMasterNode("test-master"),
-			expectedNodes:   generateTestNodeMachines([]string{"test-node-1", "test-node-2", "test-node-3"}),
+			inputMachines:   generateValidExtractMasterMachineInput([]string{singleMasterName}, multipleNodeNames),
+			expectedMasters: generateTestMasterMachine(singleMasterName),
+			expectedNodes:   generateTestNodeMachines(multipleNodeNames),
 			expectedError:   nil,
 		},
 		{
@@ -530,20 +530,20 @@ func TestExtractMasterMachine(t *testing.T) {
 			actualMasters, actualNodes, actualError := extractMasterMachine(tc.inputMachines)
 
 			if tc.expectedError == nil && actualError != nil {
-				t.Fatalf("Expected error=[nil], Actual error=[%v]", actualError)
+				t.Fatalf("%s: extractMasterMachine(%q): gotError %q; wantError [nil]", tc.name, tc.inputMachines, actualError)
 			}
 
 			if tc.expectedError != nil && tc.expectedError.Error() != actualError.Error() {
-				t.Fatalf("Expected error=[%v], Actual error=[%v]", tc.expectedError, actualError)
+				t.Fatalf("%s: extractMasterMachine(%q): gotError %q; wantError %q", tc.name, tc.inputMachines, actualError, tc.expectedError)
 			}
 
 			if (tc.expectedMasters == nil && actualMasters != nil) ||
 				(tc.expectedMasters != nil && actualMasters == nil) {
-				t.Fatalf("Expected master machines does not match with actual master machine")
+				t.Fatalf("%s: extractMasterMachine(%q): gotMasters = %q; wantMasters = %q", tc.name, tc.inputMachines, actualMasters, tc.expectedMasters)
 			}
 
 			if len(tc.expectedNodes) != len(actualNodes) {
-				t.Fatalf("Expected node machines=%d, Actual node machines %d nodes", len(tc.expectedNodes), len(actualNodes))
+				t.Fatalf("%s: extractMasterMachine(%q): gotNodes = %q; wantNodes = %q", tc.name, tc.inputMachines, actualNodes, tc.expectedNodes)
 			}
 		})
 	}
@@ -643,18 +643,31 @@ func TestDeleteBasicScenarios(t *testing.T) {
 	}
 }
 
-func generateMasterNode(name string) *clusterv1.Machine {
-	master := &clusterv1.Machine{}
-	master.Name = name
-	master.Spec.Versions.ControlPlane = "1.10.1"
-	return master
+func generateTestMasterMachine(name string) *clusterv1.Machine {
+	return &clusterv1.Machine{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: name,
+		},
+		Spec: clusterv1.MachineSpec{
+			Versions: clusterv1.MachineVersionInfo{
+				ControlPlane: "1.10.1",
+			},
+		},
+	}
 }
 
-func generateTestMasterMachine(masterNames []string) []*clusterv1.Machine {
+func generateTestNodeMachine(name string) *clusterv1.Machine {
+	return &clusterv1.Machine{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: name,
+		},
+	}
+}
+
+func generateTestMasterMachines(masterNames []string) []*clusterv1.Machine {
 	var masters []*clusterv1.Machine
 	for _, mn := range masterNames {
-		m := generateMasterNode(mn)
-		masters = append(masters, m)
+		masters = append(masters, generateTestMasterMachine(mn))
 	}
 	return masters
 }
@@ -662,37 +675,28 @@ func generateTestMasterMachine(masterNames []string) []*clusterv1.Machine {
 func generateTestNodeMachines(nodeNames []string) []*clusterv1.Machine {
 	var nodes []*clusterv1.Machine
 	for _, nn := range nodeNames {
-		n := &clusterv1.Machine{}
-		n.Name = nn
-		nodes = append(nodes, n)
+		nodes = append(nodes, generateTestNodeMachine(nn))
 	}
 	return nodes
 }
 
 func generateInvalidExtractMasterMachine(masterNames, nodeNames []string) []*clusterv1.Machine {
-	masters := generateTestMasterMachine(masterNames)
+	masters := generateTestMasterMachines(masterNames)
 	nodes := generateTestNodeMachines(nodeNames)
 
-	var inputMachines []*clusterv1.Machine
-	inputMachines = append(inputMachines, masters...)
-	inputMachines = append(inputMachines, nodes...)
-	return inputMachines
+	return append(masters, nodes...)
 }
 
-func generateValidExtractMasterMachineInput(masterName string, nodeNames []string) []*clusterv1.Machine {
-	masters := generateMasterNode(masterName)
+func generateValidExtractMasterMachineInput(masterNames, nodeNames []string) []*clusterv1.Machine {
+	masters := generateTestMasterMachines(masterNames)
 	nodes := generateTestNodeMachines(nodeNames)
 
-	var inputMachines []*clusterv1.Machine
-	inputMachines = append(inputMachines, masters)
-	inputMachines = append(inputMachines, nodes...)
-	return inputMachines
+	return append(masters, nodes...)
 }
 
 func generateMachines() []*clusterv1.Machine {
-	master := generateMasterNode("test-master")
-	node := &clusterv1.Machine{}
-	node.Name = "test.Node"
+	master := generateTestMasterMachine("test-master")
+	node := generateTestNodeMachine("test-node")
 	return []*clusterv1.Machine{master, node}
 }
 

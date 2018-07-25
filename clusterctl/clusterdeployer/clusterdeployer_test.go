@@ -483,6 +483,72 @@ func TestCreateProviderComponentsScenarios(t *testing.T) {
 	}
 }
 
+func TestExtractMasterMachine(t *testing.T) {
+	const singleMasterName = "test-master"
+	multpleMasterNames := []string{"test-master-1", "test-master-2"}
+	const singleNodeName = "test-node"
+	multipleNodeNames := []string{"test-node-1", "test-node-2", "test-node-3"}
+
+	testCases := []struct {
+		name            string
+		inputMachines   []*clusterv1.Machine
+		expectedMasters *clusterv1.Machine
+		expectedNodes   []*clusterv1.Machine
+		expectedError   error
+	}{
+		{
+			name:            "success_1_master_1_node",
+			inputMachines:   generateMachines(),
+			expectedMasters: generateMasterNode(singleMasterName),
+			expectedNodes:   generateTestNodeMachines([]string{singleNodeName}),
+			expectedError:   nil,
+		},
+		{
+			name:            "success_1_master_multiple_nodes",
+			inputMachines:   generateValidExtractMasterMachineInput(singleMasterName, multipleNodeNames),
+			expectedMasters: generateMasterNode("test-master"),
+			expectedNodes:   generateTestNodeMachines([]string{"test-node-1", "test-node-2", "test-node-3"}),
+			expectedError:   nil,
+		},
+		{
+			name:            "fail_more_than_1_master_not_allowed",
+			inputMachines:   generateInvalidExtractMasterMachine(multpleMasterNames, multipleNodeNames),
+			expectedMasters: nil,
+			expectedNodes:   nil,
+			expectedError:   fmt.Errorf("expected one master, got: 2"),
+		},
+		{
+			name:            "fail_0_master_not_allowed",
+			inputMachines:   generateTestNodeMachines(multipleNodeNames),
+			expectedMasters: nil,
+			expectedNodes:   nil,
+			expectedError:   fmt.Errorf("expected one master, got: 0"),
+		},
+	}
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			actualMasters, actualNodes, actualError := extractMasterMachine(tc.inputMachines)
+
+			if tc.expectedError == nil && actualError != nil {
+				t.Fatalf("Expected error=[nil], Actual error=[%v]", actualError)
+			}
+
+			if tc.expectedError != nil && tc.expectedError.Error() != actualError.Error() {
+				t.Fatalf("Expected error=[%v], Actual error=[%v]", tc.expectedError, actualError)
+			}
+
+			if (tc.expectedMasters == nil && actualMasters != nil) ||
+				(tc.expectedMasters != nil && actualMasters == nil) {
+				t.Fatalf("Expected master machines does not match with actual master machine")
+			}
+
+			if len(tc.expectedNodes) != len(actualNodes) {
+				t.Fatalf("Expected node machines=%d, Actual node machines %d nodes", len(tc.expectedNodes), len(actualNodes))
+			}
+		})
+	}
+}
+
 func TestDeleteCleanupExternalCluster(t *testing.T) {
 	const externalKubeconfig = "external"
 	const internalKubeconfig = "internal"
@@ -577,10 +643,54 @@ func TestDeleteBasicScenarios(t *testing.T) {
 	}
 }
 
-func generateMachines() []*clusterv1.Machine {
+func generateMasterNode(name string) *clusterv1.Machine {
 	master := &clusterv1.Machine{}
-	master.Name = "test-master"
+	master.Name = name
 	master.Spec.Versions.ControlPlane = "1.10.1"
+	return master
+}
+
+func generateTestMasterMachine(masterNames []string) []*clusterv1.Machine {
+	var masters []*clusterv1.Machine
+	for _, mn := range masterNames {
+		m := generateMasterNode(mn)
+		masters = append(masters, m)
+	}
+	return masters
+}
+
+func generateTestNodeMachines(nodeNames []string) []*clusterv1.Machine {
+	var nodes []*clusterv1.Machine
+	for _, nn := range nodeNames {
+		n := &clusterv1.Machine{}
+		n.Name = nn
+		nodes = append(nodes, n)
+	}
+	return nodes
+}
+
+func generateInvalidExtractMasterMachine(masterNames, nodeNames []string) []*clusterv1.Machine {
+	masters := generateTestMasterMachine(masterNames)
+	nodes := generateTestNodeMachines(nodeNames)
+
+	var inputMachines []*clusterv1.Machine
+	inputMachines = append(inputMachines, masters...)
+	inputMachines = append(inputMachines, nodes...)
+	return inputMachines
+}
+
+func generateValidExtractMasterMachineInput(masterName string, nodeNames []string) []*clusterv1.Machine {
+	masters := generateMasterNode(masterName)
+	nodes := generateTestNodeMachines(nodeNames)
+
+	var inputMachines []*clusterv1.Machine
+	inputMachines = append(inputMachines, masters)
+	inputMachines = append(inputMachines, nodes...)
+	return inputMachines
+}
+
+func generateMachines() []*clusterv1.Machine {
+	master := generateMasterNode("test-master")
 	node := &clusterv1.Machine{}
 	node.Name = "test.Node"
 	return []*clusterv1.Machine{master, node}

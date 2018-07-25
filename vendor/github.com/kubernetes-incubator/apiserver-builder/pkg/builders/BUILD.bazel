@@ -13,6 +13,7 @@ go_library(
         "resource_interfaces.go",
         "scheme.go",
     ],
+    importmap = "sigs.k8s.io/cluster-api/vendor/github.com/kubernetes-incubator/apiserver-builder/pkg/builders",
     importpath = "github.com/kubernetes-incubator/apiserver-builder/pkg/builders",
     visibility = ["//visibility:public"],
     deps = [

@@ -1,0 +1,36 @@
+load("@io_bazel_rules_go//go:def.bzl", "go_library", "go_test")
+
+go_library(
+    name = "go_default_library",
+    srcs = ["validate_cluster_api_objects.go"],
+    importpath = "sigs.k8s.io/cluster-api/clusterctl/validation",
+    visibility = ["//visibility:public"],
+    deps = [
+        "//pkg/apis/cluster/common:go_default_library",
+        "//pkg/apis/cluster/v1alpha1:go_default_library",
+        "//pkg/client/clientset_generated/clientset:go_default_library",
+        "//pkg/controller/noderefutil:go_default_library",
+        "//vendor/k8s.io/apimachinery/pkg/apis/meta/v1:go_default_library",
+        "//vendor/k8s.io/client-go/kubernetes:go_default_library",
+    ],
+)
+
+go_test(
+    name = "go_default_test",
+    srcs = ["validate_cluster_api_objects_test.go"],
+    data = glob(["testdata/**"]),
+    embed = [":go_default_library"],
+    deps = [
+        "//pkg/apis:go_default_library",
+        "//pkg/apis/cluster/common:go_default_library",
+        "//pkg/apis/cluster/v1alpha1:go_default_library",
+        "//pkg/apis/cluster/v1alpha1/testutil:go_default_library",
+        "//pkg/client/clientset_generated/clientset:go_default_library",
+        "//pkg/openapi:go_default_library",
+        "//vendor/github.com/kubernetes-incubator/apiserver-builder/pkg/test:go_default_library",
+        "//vendor/k8s.io/api/core/v1:go_default_library",
+        "//vendor/k8s.io/apimachinery/pkg/apis/meta/v1:go_default_library",
+        "//vendor/k8s.io/client-go/kubernetes:go_default_library",
+        "//vendor/k8s.io/client-go/kubernetes/fake:go_default_library",
+    ],
+)

@@ -13,7 +13,7 @@ $ go build
 ```
 
 ## Run
-1) Create a cluster using the `gcp-deployer` tool.
+1) Create a cluster using the `clusterctl` tool.
 2) To do a dry run of detecting broken nodes and seeing what needs to be
 repaired, run `./repair --dryrun true`.
 3) To actually repair the nodes in cluster, run `./repair` without the

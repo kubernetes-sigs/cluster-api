@@ -16,3 +16,10 @@
 # IntelliJ
 .idea/
 *.iml
+
+# Bazel symlinks
+bazel-bin
+bazel-cluster-api
+bazel-genfiles
+bazel-out
+bazel-testlogs

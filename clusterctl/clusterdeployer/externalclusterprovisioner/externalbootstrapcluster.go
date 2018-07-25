@@ -48,9 +48,3 @@ func (e *ExternalBootstrapCluster) GetKubeconfig() (string, error) {
 
 	return e.kubeconfigFile, nil
 }
-
-
-
-func CleanUpExternalCluster() {
-
-}

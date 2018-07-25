@@ -13,7 +13,9 @@ type ExternalBootstrapCluster struct {
 	kubeconfigFile string
 }
 
-
+// NewExternalCluster creates a new external k8s bootstrap cluster object
+// We should clean up any lingering resources when clusterctl is complete.
+// TODO https://github.com/kubernetes-sigs/cluster-api/issues/448
 func NewExternalCluster(kubeconfigPath string) (*ExternalBootstrapCluster, error) {
 	if _, err := os.Stat(kubeconfigPath); os.IsNotExist(err) {
 		return nil, fmt.Errorf("file at %s does not exist", kubeconfigPath)

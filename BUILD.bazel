@@ -4,5 +4,5 @@ gazelle(
     name = "gazelle",
     command = "fix",
     external = "vendored",
-    prefix = "k8s.io/kube-deploy/cluster-api",
+    prefix = "sigs.k8s.io/cluster-api",
 )

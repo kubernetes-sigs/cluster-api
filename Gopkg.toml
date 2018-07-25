@@ -26,6 +26,20 @@ required = [
   "k8s.io/code-generator/cmd/client-gen",
 ]
 
+[prune]
+  go-tests = true
+  unused-packages = true
+
+  # Don't prune helper scripts from code-generator
+  [[prune.project]]
+    name = "k8s.io/code-generator"
+    unused-packages = false
+
+  # Don't prune helper scripts from gengo
+  [[prune.project]]
+    name = "k8s.io/gengo"
+    unused-packages = false
+
 [[constraint]]
   name = "github.com/ghodss/yaml"
   version = "1.0.0"

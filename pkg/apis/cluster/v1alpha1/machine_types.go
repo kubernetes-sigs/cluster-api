@@ -103,7 +103,7 @@ type MachineStatus struct {
 	//    so that if the structure of Node.Status.NodeInfo changes, only
 	//    machine controllers need to be updated, rather than every client
 	//    of the Machines API.
-	// 3) There is no other way simple way to check the ControlPlane
+	// 3) There is no other simple way to check the ControlPlane
 	//    version. A client would have to connect directly to the apiserver
 	//    running on the target node in order to find out its version.
 	// +optional

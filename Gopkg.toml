@@ -40,6 +40,11 @@ required = [
     name = "k8s.io/gengo"
     unused-packages = false
 
+  # Don't prune code needed by openapi-gen
+  [[prune.project]]
+    name = "k8s.io/kube-openapi"
+    unused-packages = false
+
 [[constraint]]
   name = "github.com/ghodss/yaml"
   version = "1.0.0"

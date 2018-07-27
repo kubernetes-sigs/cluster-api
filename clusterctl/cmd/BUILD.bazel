@@ -15,6 +15,7 @@ go_library(
     visibility = ["//visibility:public"],
     deps = [
         "//clusterctl/clusterdeployer:go_default_library",
+        "//clusterctl/clusterdeployer/externalclusterprovisioner:go_default_library",
         "//clusterctl/clusterdeployer/minikube:go_default_library",
         "//clusterctl/providercomponents:go_default_library",
         "//clusterctl/validation:go_default_library",

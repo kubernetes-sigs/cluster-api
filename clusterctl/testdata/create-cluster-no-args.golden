@@ -5,15 +5,16 @@ Usage:
   clusterctl create cluster [flags]
 
 Flags:
-  -a, --addon-components string      A yaml file containing cluster addons to apply to the internal cluster
-      --cleanup-external-cluster     Whether to cleanup the external cluster after bootstrap (default true)
-  -c, --cluster string               A yaml file containing cluster object definition
-  -h, --help                         help for cluster
-      --kubeconfig-out string        Where to output the kubeconfig for the provisioned cluster (default "kubeconfig")
-  -m, --machines string              A yaml file containing machine object definition(s)
-      --provider string              Which provider deployment logic to use (google/vsphere/azure)
-  -p, --provider-components string   A yaml file containing cluster api provider controllers and supporting objects
-      --vm-driver string             Which vm driver to use for minikube
+  -a, --addon-components string                        A yaml file containing cluster addons to apply to the internal cluster
+      --cleanup-external-cluster                       Whether to cleanup the external cluster after bootstrap (default true)
+  -c, --cluster string                                 A yaml file containing cluster object definition
+      --existing-bootstrap-cluster-kubeconfig string   Path to an existing cluster's kubeconfig for bootstrapping (intead of using minikube)
+  -h, --help                                           help for cluster
+      --kubeconfig-out string                          Where to output the kubeconfig for the provisioned cluster (default "kubeconfig")
+  -m, --machines string                                A yaml file containing machine object definition(s)
+      --provider string                                Which provider deployment logic to use (google/vsphere/azure)
+  -p, --provider-components string                     A yaml file containing cluster api provider controllers and supporting objects
+      --vm-driver string                               Which vm driver to use for minikube
 
 Global Flags:
       --alsologtostderr                  log to standard error as well as files

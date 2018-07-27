@@ -25,20 +25,22 @@ import (
 	"github.com/spf13/cobra"
 	"sigs.k8s.io/cluster-api/clusterctl/clusterdeployer"
 	"sigs.k8s.io/cluster-api/clusterctl/clusterdeployer/minikube"
+	"sigs.k8s.io/cluster-api/clusterctl/clusterdeployer/externalclusterprovisioner"
 	clustercommon "sigs.k8s.io/cluster-api/pkg/apis/cluster/common"
 	clusterv1 "sigs.k8s.io/cluster-api/pkg/apis/cluster/v1alpha1"
 	"sigs.k8s.io/cluster-api/pkg/util"
 )
 
 type CreateOptions struct {
-	Cluster                string
-	Machine                string
-	ProviderComponents     string
-	AddonComponents        string
-	CleanupExternalCluster bool
-	VmDriver               string
-	Provider               string
-	KubeconfigOutput       string
+	Cluster                       string
+	Machine                       string
+	ProviderComponents            string
+	AddonComponents               string
+	CleanupExternalCluster        bool
+	VmDriver                      string
+	Provider                      string
+	KubeconfigOutput              string
+	ExistingClusterKubeconfigPath string
 }
 
 var co = &CreateOptions{}
@@ -73,7 +75,17 @@ func RunCreate(co *CreateOptions) error {
 		return err
 	}
 
-	mini := minikube.New(co.VmDriver)
+	var externalProvider clusterdeployer.ClusterProvisioner
+	if co.ExistingClusterKubeconfigPath != "" {
+		externalProvider, err = externalclusterprovisioner.NewExternalCluster(co.ExistingClusterKubeconfigPath)
+		if err != nil {
+			return err
+		}
+	} else {
+		externalProvider = minikube.New(co.VmDriver)
+
+	}
+
 	pd, err := getProvider(co.Provider)
 	if err != nil {
 		return err
@@ -91,7 +103,7 @@ func RunCreate(co *CreateOptions) error {
 	}
 	pcsFactory := clusterdeployer.NewProviderComponentsStoreFactory()
 	d := clusterdeployer.New(
-		mini,
+		externalProvider,
 		clusterdeployer.NewClientFactory(),
 		string(pc),
 		string(ac),
@@ -112,6 +124,7 @@ func init() {
 	createClusterCmd.Flags().BoolVarP(&co.CleanupExternalCluster, "cleanup-external-cluster", "", true, "Whether to cleanup the external cluster after bootstrap")
 	createClusterCmd.Flags().StringVarP(&co.VmDriver, "vm-driver", "", "", "Which vm driver to use for minikube")
 	createClusterCmd.Flags().StringVarP(&co.KubeconfigOutput, "kubeconfig-out", "", "kubeconfig", "Where to output the kubeconfig for the provisioned cluster")
+	createClusterCmd.Flags().StringVarP(&co.ExistingClusterKubeconfigPath, "existing-bootstrap-cluster-kubeconfig", "", "", "Path to an existing cluster's kubeconfig for bootstrapping (intead of using minikube)")
 
 	createCmd.AddCommand(createClusterCmd)
 }

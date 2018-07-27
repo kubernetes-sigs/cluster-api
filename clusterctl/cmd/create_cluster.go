@@ -41,6 +41,7 @@ type CreateOptions struct {
 	Provider                      string
 	KubeconfigOutput              string
 	ExistingClusterKubeconfigPath string
+	NoPivotCluster                bool
 }
 
 var co = &CreateOptions{}
@@ -107,7 +108,8 @@ func RunCreate(co *CreateOptions) error {
 		clusterdeployer.NewClientFactory(),
 		string(pc),
 		string(ac),
-		co.CleanupBootstrapCluster)
+		co.CleanupBootstrapCluster,
+		!co.NoPivotCluster)
 	return d.Create(c, m, pd, co.KubeconfigOutput, pcsFactory)
 }
 
@@ -122,6 +124,7 @@ func init() {
 	// Optional flags
 	createClusterCmd.Flags().StringVarP(&co.AddonComponents, "addon-components", "a", "", "A yaml file containing cluster addons to apply to the internal cluster")
 	createClusterCmd.Flags().BoolVarP(&co.CleanupBootstrapCluster, "cleanup-bootstrap-cluster", "", true, "Whether to cleanup the bootstrap cluster after bootstrap")
+	createClusterCmd.Flags().BoolVarP(&co.NoPivotCluster, "no-pivot-cluster", "", false, "Whether skip pivoting the cluster-api to the provisioned cluster")
 	createClusterCmd.Flags().StringVarP(&co.VmDriver, "vm-driver", "", "", "Which vm driver to use for minikube")
 	createClusterCmd.Flags().StringVarP(&co.KubeconfigOutput, "kubeconfig-out", "", "kubeconfig", "Where to output the kubeconfig for the provisioned cluster")
 	createClusterCmd.Flags().StringVarP(&co.ExistingClusterKubeconfigPath, "existing-bootstrap-cluster-kubeconfig", "", "", "Path to an existing cluster's kubeconfig for bootstrapping (intead of using minikube)")

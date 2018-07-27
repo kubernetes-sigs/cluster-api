@@ -72,6 +72,7 @@ func RunDelete() error {
 		clusterdeployer.NewClientFactory(),
 		providerComponents,
 		"",
+		true,
 		true)
 	return deployer.Delete(clusterClient)
 }

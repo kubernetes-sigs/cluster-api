@@ -239,6 +239,7 @@ func TestCreate(t *testing.T) {
 		bootstrapClient          *testClusterClient
 		targetClient             *testClusterClient
 		cleanupExternal          bool
+		pivotCluster             bool
 		expectErr                bool
 		expectExternalExists     bool
 		expectExternalCreated    bool
@@ -250,6 +251,7 @@ func TestCreate(t *testing.T) {
 			targetClient:             &testClusterClient{},
 			bootstrapClient:          &testClusterClient{},
 			cleanupExternal:          true,
+			pivotCluster:             true,
 			expectExternalExists:     false,
 			expectExternalCreated:    true,
 			expectedInternalClusters: 1,
@@ -260,6 +262,7 @@ func TestCreate(t *testing.T) {
 			targetClient:             &testClusterClient{},
 			bootstrapClient:          &testClusterClient{},
 			cleanupExternal:          false,
+			pivotCluster:             true,
 			expectExternalExists:     true,
 			expectExternalCreated:    true,
 			expectedInternalClusters: 1,
@@ -277,6 +280,7 @@ func TestCreate(t *testing.T) {
 			targetClient:            &testClusterClient{},
 			bootstrapClient:         &testClusterClient{},
 			cleanupExternal:         true,
+			pivotCluster:            true,
 			expectExternalCreated:   true,
 			factoryClusterClientErr: fmt.Errorf("Test failure"),
 			expectErr:               true,
@@ -286,6 +290,7 @@ func TestCreate(t *testing.T) {
 			targetClient:          &testClusterClient{},
 			bootstrapClient:       &testClusterClient{ApplyErr: fmt.Errorf("Test failure")},
 			cleanupExternal:       true,
+			pivotCluster:          true,
 			expectExternalCreated: true,
 			expectErr:             true,
 		},
@@ -294,6 +299,7 @@ func TestCreate(t *testing.T) {
 			targetClient:          &testClusterClient{},
 			bootstrapClient:       &testClusterClient{WaitForClusterV1alpha1ReadyErr: fmt.Errorf("Test failure")},
 			cleanupExternal:       true,
+			pivotCluster:          true,
 			expectExternalCreated: true,
 			expectErr:             true,
 		},
@@ -302,6 +308,7 @@ func TestCreate(t *testing.T) {
 			targetClient:          &testClusterClient{},
 			bootstrapClient:       &testClusterClient{GetClusterObjectsErr: fmt.Errorf("Test failure")},
 			cleanupExternal:       true,
+			pivotCluster:          true,
 			expectExternalCreated: true,
 			expectErr:             true,
 		},
@@ -310,6 +317,7 @@ func TestCreate(t *testing.T) {
 			targetClient:          &testClusterClient{},
 			bootstrapClient:       &testClusterClient{GetMachineObjectsErr: fmt.Errorf("Test failure")},
 			cleanupExternal:       true,
+			pivotCluster:          true,
 			expectExternalCreated: true,
 			expectErr:             true,
 		},
@@ -318,6 +326,7 @@ func TestCreate(t *testing.T) {
 			targetClient:          &testClusterClient{},
 			bootstrapClient:       &testClusterClient{CreateClusterObjectErr: fmt.Errorf("Test failure")},
 			cleanupExternal:       true,
+			pivotCluster:          true,
 			expectExternalCreated: true,
 			expectErr:             true,
 		},
@@ -326,6 +335,7 @@ func TestCreate(t *testing.T) {
 			targetClient:          &testClusterClient{},
 			bootstrapClient:       &testClusterClient{CreateMachineObjectsErr: fmt.Errorf("Test failure")},
 			cleanupExternal:       true,
+			pivotCluster:          true,
 			expectExternalCreated: true,
 			expectErr:             true,
 		},
@@ -334,6 +344,7 @@ func TestCreate(t *testing.T) {
 			targetClient:          &testClusterClient{},
 			bootstrapClient:       &testClusterClient{UpdateClusterObjectEndpointErr: fmt.Errorf("Test failure")},
 			cleanupExternal:       true,
+			pivotCluster:          true,
 			expectExternalCreated: true,
 			expectErr:             true,
 		},
@@ -342,6 +353,7 @@ func TestCreate(t *testing.T) {
 			targetClient:          &testClusterClient{ApplyErr: fmt.Errorf("Test failure")},
 			bootstrapClient:       &testClusterClient{},
 			cleanupExternal:       true,
+			pivotCluster:          true,
 			expectExternalCreated: true,
 			expectErr:             true,
 		},
@@ -350,6 +362,7 @@ func TestCreate(t *testing.T) {
 			targetClient:          &testClusterClient{WaitForClusterV1alpha1ReadyErr: fmt.Errorf("Test failure")},
 			bootstrapClient:       &testClusterClient{},
 			cleanupExternal:       true,
+			pivotCluster:          true,
 			expectExternalCreated: true,
 			expectErr:             true,
 		},
@@ -358,6 +371,7 @@ func TestCreate(t *testing.T) {
 			targetClient:          &testClusterClient{CreateClusterObjectErr: fmt.Errorf("Test failure")},
 			bootstrapClient:       &testClusterClient{},
 			cleanupExternal:       true,
+			pivotCluster:          true,
 			expectExternalCreated: true,
 			expectErr:             true,
 		},
@@ -366,6 +380,7 @@ func TestCreate(t *testing.T) {
 			targetClient:             &testClusterClient{CreateMachineObjectsErr: fmt.Errorf("Test failure")},
 			bootstrapClient:          &testClusterClient{},
 			cleanupExternal:          true,
+			pivotCluster:             true,
 			expectExternalCreated:    true,
 			expectedInternalClusters: 1,
 			expectErr:                true,
@@ -375,6 +390,7 @@ func TestCreate(t *testing.T) {
 			targetClient:             &testClusterClient{UpdateClusterObjectEndpointErr: fmt.Errorf("Test failure")},
 			bootstrapClient:          &testClusterClient{},
 			cleanupExternal:          true,
+			pivotCluster:             true,
 			expectExternalCreated:    true,
 			expectedInternalClusters: 1,
 			expectedInternalMachines: 1,
@@ -404,7 +420,7 @@ func TestCreate(t *testing.T) {
 			inputMachines := generateMachines()
 			pcStore := mockProviderComponentsStore{}
 			pcFactory := mockProviderComponentsStoreFactory{NewFromCoreclientsetPCStore: &pcStore}
-			d := New(p, f, "", "", testcase.cleanupExternal)
+			d := New(p, f, "", "", testcase.cleanupExternal, testcase.pivotCluster)
 			err := d.Create(inputCluster, inputMachines, pd, kubeconfigOut, &pcFactory)
 
 			// Validate
@@ -447,7 +463,7 @@ func TestCreateProviderComponentsScenarios(t *testing.T) {
 		expectedError string
 	}{
 		{"success", mockProviderComponentsStore{SaveErr: nil}, ""},
-		{"error when saving", mockProviderComponentsStore{SaveErr: fmt.Errorf("pcstore save error")}, "unable to save provider components to target cluster: error saving provider components: pcstore save error"},
+		{"error when saving", mockProviderComponentsStore{SaveErr: fmt.Errorf("pcstore save error")}, "unable to save provider components to provisioned cluster: error saving provider components: pcstore save error"},
 	}
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
@@ -468,7 +484,7 @@ func TestCreateProviderComponentsScenarios(t *testing.T) {
 			pcFactory := mockProviderComponentsStoreFactory{NewFromCoreclientsetPCStore: &tc.pcStore}
 			providerComponentsYaml := "-yaml\ndefinition"
 			addonsYaml := "-yaml\ndefinition"
-			d := New(p, f, providerComponentsYaml, addonsYaml, false)
+			d := New(p, f, providerComponentsYaml, addonsYaml, false, true)
 			err := d.Create(inputCluster, inputMachines, pd, kubeconfigOut, &pcFactory)
 			if err == nil && tc.expectedError != "" {
 				t.Fatalf("error mismatch: got '%v', want '%v'", err, tc.expectedError)
@@ -574,7 +590,7 @@ func TestDeleteCleanupExternalCluster(t *testing.T) {
 			f := newTestClusterClientFactory()
 			f.clusterClients[bootstrapKubeconfig] = tc.bootstrapClient
 			f.clusterClients[targetKubeconfig] = tc.targetClient
-			d := New(p, f, "", "", tc.cleanupExternalCluster)
+			d := New(p, f, "", "", tc.cleanupExternalCluster, true)
 			err := d.Delete(tc.targetClient)
 			if err != nil || tc.expectedErrorMessage != "" {
 				if err == nil {
@@ -630,7 +646,7 @@ func TestDeleteBasicScenarios(t *testing.T) {
 			f.clusterClients[bootstrapKubeconfig] = tc.bootstrapClient
 			f.clusterClients[targetKubeconfig] = tc.targetClient
 			f.ClusterClientErr = tc.NewCoreClientsetErr
-			d := New(p, f, "", "", true)
+			d := New(p, f, "", "", true, true)
 			err := d.Delete(tc.targetClient)
 			if err != nil || tc.expectedErrorMessage != "" {
 				if err == nil {

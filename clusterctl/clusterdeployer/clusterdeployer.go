@@ -89,6 +89,7 @@ type ClusterDeployer struct {
 	providerComponents      string
 	addonComponents         string
 	cleanupBootstrapCluster bool
+	pivotCluster            bool
 }
 
 func New(
@@ -96,13 +97,15 @@ func New(
 	clientFactory ClientFactory,
 	providerComponents string,
 	addonComponents string,
-	cleanupBootstrapCluster bool) *ClusterDeployer {
+	cleanupBootstrapCluster bool,
+	pivotCluster bool) *ClusterDeployer {
 	return &ClusterDeployer{
 		bootstrapProvisioner:    bootstrapProvisioner,
 		clientFactory:           clientFactory,
 		providerComponents:      providerComponents,
 		addonComponents:         addonComponents,
 		cleanupBootstrapCluster: cleanupBootstrapCluster,
+		pivotCluster:            pivotCluster,
 	}
 }
 
@@ -149,39 +152,47 @@ func (d *ClusterDeployer) Create(cluster *clusterv1.Cluster, machines []*cluster
 		return fmt.Errorf("unable to update bootstrap cluster endpoint: %v", err)
 	}
 
-	glog.Info("Creating target cluster")
-	targetClient, err := d.createTargetClusterClient(bootstrapClient, provider, kubeconfigOutput)
+	glog.Info("Creating provisioned cluster client")
+	provisionedClient, err := d.createProvisionedClusterClient(bootstrapClient, provider, kubeconfigOutput)
 	if err != nil {
-		return fmt.Errorf("unable to create target cluster: %v", err)
+		return fmt.Errorf("unable to create provisioned cluster client: %v", err)
 	}
-	defer closeClient(targetClient, "target")
+	defer closeClient(provisionedClient, "provisioned")
 
-	glog.Info("Applying Cluster API stack to target cluster")
-	if err := d.applyClusterAPIStackWithPivoting(targetClient, bootstrapClient); err != nil {
-		return fmt.Errorf("unable to apply cluster api stack to target cluster: %v", err)
+	targetClient := bootstrapClient
+	targetCluster := "bootstrap"
+	if d.pivotCluster {
+		targetClient = provisionedClient
+		targetCluster = "provisioned"
+
+		glog.Info("Applying Cluster API stack to provisioned cluster")
+		if err := d.applyClusterAPIStackWithPivoting(provisionedClient, bootstrapClient); err != nil {
+			return fmt.Errorf("unable to apply cluster api stack to target cluster: %v", err)
+		}
+
+		glog.Info("Saving provider components to the provisioned cluster")
+		err = d.saveProviderComponentsToCluster(providerComponentsStoreFactory, kubeconfigOutput)
+		if err != nil {
+			return fmt.Errorf("unable to save provider components to provisioned cluster: %v", err)
+		}
+
+		// For some reason, endpoint doesn't get updated in bootstrap cluster sometimes. So we
+		// update the target cluster endpoint as well to be sure.
+		glog.Infof("Updating target cluster object with master (%s) endpoint", master.Name)
+		if err := d.updateClusterEndpoint(provisionedClient, provider); err != nil {
+			return fmt.Errorf("unable to update provisioned cluster endpoint: %v", err)
+		}
 	}
 
-	glog.Info("Saving provider components to the target cluster")
-	err = d.saveProviderComponentsToCluster(providerComponentsStoreFactory, kubeconfigOutput)
-	if err != nil {
-		return fmt.Errorf("unable to save provider components to target cluster: %v", err)
-	}
-
-	// For some reason, endpoint doesn't get updated in bootstrap cluster sometimes. So we
-	// update the target cluster endpoint as well to be sure.
-	glog.Infof("Updating target cluster object with master (%s) endpoint", master.Name)
-	if err := d.updateClusterEndpoint(targetClient, provider); err != nil {
-		return fmt.Errorf("unable to update target cluster endpoint: %v", err)
-	}
-
-	glog.Info("Creating node machines in target cluster.")
+	glog.Infof("Creating node machines in %s cluster.", targetCluster)
 	if err := targetClient.CreateMachineObjects(nodes); err != nil {
 		return fmt.Errorf("unable to create node machines: %v", err)
 	}
 
 	if d.addonComponents != "" {
-		glog.Info("Creating addons in target cluster.")
-		if err := targetClient.Apply(d.addonComponents); err != nil {
+		// Always create addons in the provisioned cluster
+		glog.Info("Creating addons in provisioned cluster.")
+		if err := provisionedClient.Apply(d.addonComponents); err != nil {
 			return fmt.Errorf("unable to apply addons: %v", err)
 		}
 	}
@@ -231,7 +242,7 @@ func (d *ClusterDeployer) createBootstrapCluster() (ClusterClient, func(), error
 		return nil, cleanupFn, fmt.Errorf("could not create bootstrap control plane: %v", err)
 	}
 
-	if d.cleanupBootstrapCluster {
+	if d.cleanupBootstrapCluster && d.pivotCluster {
 		cleanupFn = func() {
 			glog.Info("Cleaning up bootstrap cluster.")
 			d.bootstrapProvisioner.Delete()
@@ -250,28 +261,28 @@ func (d *ClusterDeployer) createBootstrapCluster() (ClusterClient, func(), error
 	return bootstrapClient, cleanupFn, nil
 }
 
-func (d *ClusterDeployer) createTargetClusterClient(bootstrapClient ClusterClient, provider ProviderDeployer, kubeconfigOutput string) (ClusterClient, error) {
+func (d *ClusterDeployer) createProvisionedClusterClient(bootstrapClient ClusterClient, provider ProviderDeployer, kubeconfigOutput string) (ClusterClient, error) {
 	cluster, master, _, err := getClusterAPIObjects(bootstrapClient)
 	if err != nil {
 		return nil, err
 	}
 
-	glog.V(1).Info("Getting target cluster kubeconfig.")
-	targetKubeconfig, err := waitForKubeconfigReady(provider, cluster, master)
+	glog.V(1).Info("Getting provisioned cluster kubeconfig.")
+	provisionedKubeconfig, err := waitForKubeconfigReady(provider, cluster, master)
 	if err != nil {
-		return nil, fmt.Errorf("unable to get target cluster kubeconfig: %v", err)
+		return nil, fmt.Errorf("unable to get provisioned cluster kubeconfig: %v", err)
 	}
 
-	if err = d.writeKubeconfig(targetKubeconfig, kubeconfigOutput); err != nil {
+	if err = d.writeKubeconfig(provisionedKubeconfig, kubeconfigOutput); err != nil {
 		return nil, err
 	}
 
-	targetClient, err := d.clientFactory.NewClusterClientFromKubeconfig(targetKubeconfig)
+	provisionedClient, err := d.clientFactory.NewClusterClientFromKubeconfig(provisionedKubeconfig)
 	if err != nil {
-		return nil, fmt.Errorf("unable to create target cluster client: %v", err)
+		return nil, fmt.Errorf("unable to create provisioned cluster client: %v", err)
 	}
 
-	return targetClient, nil
+	return provisionedClient, nil
 }
 
 func (d *ClusterDeployer) updateClusterEndpoint(client ClusterClient, provider ProviderDeployer) error {

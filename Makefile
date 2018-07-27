@@ -46,6 +46,32 @@ gendeepcopy:
 	  -O zz_generated.deepcopy \
 	  -h boilerplate.go.txt
 
+STATIC_API_DIRS = k8s.io/apimachinery/pkg/apis/meta/v1
+STATIC_API_DIRS += k8s.io/apimachinery/pkg/api/resource
+STATIC_API_DIRS += k8s.io/apimachinery/pkg/version
+STATIC_API_DIRS += k8s.io/apimachinery/pkg/runtime
+STATIC_API_DIRS += k8s.io/apimachinery/pkg/util/intstr
+STATIC_API_DIRS += k8s.io/api/core/v1
+
+# Automatically extract vendored apis under vendor/k8s.io/api.
+VENDOR_API_DIRS := $(shell find vendor/k8s.io/api -type d | grep -E 'v\d+(alpha\d+|beta\d+)*' | sed -e 's/^vendor\///')
+
+empty:=
+comma:=,
+space:=$(empty) $(empty)
+
+genopenapi: static_apis = $(subst $(space),$(comma),$(STATIC_API_DIRS))
+genopenapi: vendor_apis = $(subst $(space),$(comma),$(VENDOR_API_DIRS))
+
+genopenapi:
+	go build -o $$GOPATH/bin/openapi-gen sigs.k8s.io/cluster-api/vendor/k8s.io/code-generator/cmd/openapi-gen
+	openapi-gen \
+	  --input-dirs $(static_apis) \
+	  --input-dirs $(vendor_apis) \
+	  --input-dirs ./pkg/apis/cluster/,./pkg/apis/cluster/v1alpha1/ \
+	  --output-package "sigs.k8s.io/cluster-api/pkg/openapi" \
+	  --go-header-file boilerplate.go.txt
+
 build: depend
 	CGO_ENABLED=0 go install -a -ldflags '-extldflags "-static"' sigs.k8s.io/cluster-api/cmd/apiserver
 	CGO_ENABLED=0 go install -a -ldflags '-extldflags "-static"' sigs.k8s.io/cluster-api/cmd/controller-manager

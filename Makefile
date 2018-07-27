@@ -18,6 +18,14 @@ all: generate build images
 
 depend:
 	dep version || go get -u github.com/golang/dep/cmd/dep
+	dep ensure -v
+
+	# go libraries often ship BUILD and BUILD.bazel files, but they often don't work.
+	# We delete them and regenerate them
+	find vendor -name "BUILD" -delete
+	find vendor -name "BUILD.bazel" -delete
+
+	bazel run //:gazelle
 
 generate: genapi genconversion genclientset gendeepcopy
 

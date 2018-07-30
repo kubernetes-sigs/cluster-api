@@ -18,7 +18,7 @@ ARG KUBECTL_VERSION=1.11.1
 
 # Reproducible builder image
 FROM golang:${GOLANG_VERSION} as builder
-WORKDIR /go/src/sigs.k8s.io/cluster-api-provider-ssh
+WORKDIR /go/src/sigs.k8s.io/cluster-api
 # This expects that the context passed to the docker build command is
 # the cluster-api directory.
 # e.g. docker build -t <tag> -f <this_Dockerfile> <path_to_cluster-api>

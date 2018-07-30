@@ -27,7 +27,7 @@ depend:
 
 	bazel run //:gazelle
 
-generate: genapi genconversion genclientset gendeepcopy
+generate: genapi genconversion genclientset gendeepcopy genopenapi
 
 genapi: depend
 	go build -o $$GOPATH/bin/apiregister-gen sigs.k8s.io/cluster-api/vendor/github.com/kubernetes-incubator/apiserver-builder/cmd/apiregister-gen
@@ -62,7 +62,7 @@ STATIC_API_DIRS += k8s.io/apimachinery/pkg/util/intstr
 STATIC_API_DIRS += k8s.io/api/core/v1
 
 # Automatically extract vendored apis under vendor/k8s.io/api.
-VENDOR_API_DIRS := $(shell find vendor/k8s.io/api -type d | grep -E 'v\d+(alpha\d+|beta\d+)*' | sed -e 's/^vendor\///')
+VENDOR_API_DIRS := $(shell find vendor/k8s.io/api -type d | grep -E 'v[[:digit:]]+(alpha[[:digit:]]+|beta[[:digit:]]+)*' | sed -e 's/^vendor\///')
 
 empty:=
 comma:=,

@@ -69,6 +69,9 @@ type ClusterNetworkingConfig struct {
 
 	// Domain name for services.
 	ServiceDomain string `json:"serviceDomain"`
+
+	// Defines endpoint of api server to use
+	APIEndpoint APIEndpoint `json:"apiEndpoint"`
 }
 
 // NetworkRanges represents ranges of network addresses.
@@ -104,10 +107,10 @@ type ClusterStatus struct {
 // APIEndpoint represents a reachable Kubernetes API endpoint.
 type APIEndpoint struct {
 	// The hostname on which the API server is serving.
-	Host string `json:"host"`
+	Host string `json:"host,omitempty"`
 
 	// The port on which the API server is serving.
-	Port int `json:"port"`
+	Port int `json:"port,omitempty"`
 }
 
 // Validate checks that an instance of Cluster is well formed

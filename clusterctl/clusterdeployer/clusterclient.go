@@ -271,11 +271,17 @@ func (c *clusterClient) UpdateClusterObjectEndpoint(masterIP string) error {
 		// TODO: Do not assume default namespace nor single cluster https://github.com/kubernetes-sigs/cluster-api/issues/252
 		return fmt.Errorf("More than the one expected cluster found %v", clusters)
 	}
+
 	cluster := clusters[0]
+	port := cluster.Spec.ClusterNetwork.APIEndpoint.Port
+	if port == 0 {
+		port = apiServerPort
+	}
+
 	cluster.Status.APIEndpoints = append(cluster.Status.APIEndpoints,
 		clusterv1.APIEndpoint{
 			Host: masterIP,
-			Port: apiServerPort,
+			Port: port,
 		})
 	_, err = c.clientSet.ClusterV1alpha1().Clusters(apiv1.NamespaceDefault).UpdateStatus(cluster)
 	return err

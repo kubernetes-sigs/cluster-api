@@ -60,6 +60,7 @@ type ClusterClient interface {
 	CreateMachineSetObjects([]*clusterv1.MachineSet) error
 	CreateMachineObjects([]*clusterv1.Machine) error
 	DeleteClusterObjects() error
+	DeleteApiServerStackDeployments() error
 	DeleteMachineDeploymentObjects() error
 	DeleteMachineSetObjects() error
 	DeleteMachineObjects() error
@@ -120,7 +121,7 @@ func (d *ClusterDeployer) Create(cluster *clusterv1.Cluster, machines []*cluster
 
 	glog.Info("Creating external cluster")
 	externalClient, cleanupExternalCluster, err := d.createExternalCluster()
-	defer cleanupExternalCluster()
+	defer d.cleanCreatedExternalClientResources(externalClient, cleanupExternalCluster)
 	if err != nil {
 		return fmt.Errorf("could not create external client: %v", err)
 	}
@@ -190,8 +191,27 @@ func (d *ClusterDeployer) Create(cluster *clusterv1.Cluster, machines []*cluster
 	return nil
 }
 
+// try to delete and clean up created resources from the external cluster.
+func (d *ClusterDeployer) cleanCreatedExternalClientResources(client ClusterClient, cleanupExternalCluster func()) {
+	glog.Info("Removing resources created in external cluster")
+	defer closeClient(client, "external")
+
+	// delete resources like machines, clusters etc...
+	if err := deleteObjects(client); err != nil {
+		glog.Infof("unable to delete objects: %v", err)
+	}
+
+	// delete the apiserver stack...
+	if err := client.DeleteApiServerStackDeployments(); err != nil {
+		glog.Infof("unable to delete apiserver stack: %v", err)
+	}
+
+	// additional clean up for the external cluster
+	cleanupExternalCluster()
+}
+
 func (d *ClusterDeployer) Delete(internalClient ClusterClient) error {
-	glog.Info("Creating external cluster")
+	glog.Info("Deleting external cluster")
 	externalClient, cleanupExternalCluster, err := d.createExternalCluster()
 	defer cleanupExternalCluster()
 	if err != nil {
@@ -357,6 +377,20 @@ func (d *ClusterDeployer) applyClusterAPIApiserver(client ClusterClient) error {
 	}
 	return client.WaitForClusterV1alpha1Ready()
 }
+
+func (d *ClusterDeployer) deleteClusterAPIApiserver(client ClusterClient) error {
+	yaml, err := getApiServerYaml()
+	if err != nil {
+		return fmt.Errorf("unable to generate apiserver yaml: %v", err)
+	}
+
+	err = client.Delete(yaml)
+	if err != nil {
+		return fmt.Errorf("unable to delete apiserver yaml: %v", err)
+	}
+	return client.WaitForClusterV1alpha1Ready()
+}
+
 
 func (d *ClusterDeployer) applyClusterAPIControllers(client ClusterClient) error {
 	return client.Apply(d.providerComponents)

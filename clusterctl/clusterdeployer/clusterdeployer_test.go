@@ -95,6 +95,7 @@ type testClusterClient struct {
 	CreateMachineSetObjectsErr         error
 	CreateMachineDeploymentsObjectsErr error
 	DeleteClusterObjectsErr            error
+	DeleteApiServerStackDeploymentsErr error
 	DeleteMachineObjectsErr            error
 	DeleteMachineSetObjectsErr         error
 	DeleteMachineDeploymentsObjectsErr error
@@ -177,6 +178,10 @@ func (c *testClusterClient) DeleteMachineDeploymentObjects() error {
 
 func (c *testClusterClient) DeleteMachineSetObjects() error {
 	return c.DeleteMachineSetObjectsErr
+}
+
+func (c *testClusterClient) DeleteApiServerStackDeployments() error {
+	return c.DeleteApiServerStackDeploymentsErr
 }
 
 func (c *testClusterClient) DeleteMachineObjects() error {
@@ -354,7 +359,7 @@ func TestCreate(t *testing.T) {
 			expectErr:             true,
 		},
 		{
-			name:                  "fail  create internal cluster",
+			name:                  "fail create internal cluster",
 			internalClient:        &testClusterClient{CreateClusterObjectErr: fmt.Errorf("Test failure")},
 			externalClient:        &testClusterClient{},
 			cleanupExternal:       true,
@@ -620,6 +625,7 @@ func TestDeleteBasicScenarios(t *testing.T) {
 		{"error deleting machine deployments", nil, nil, &testClusterClient{DeleteMachineDeploymentsObjectsErr: fmt.Errorf("delete machine deployments error")}, &testClusterClient{}, "unable to finish deleting objects in external cluster, resources may have been leaked: error(s) encountered deleting objects from external cluster: [error deleting machine deployments: delete machine deployments error]"},
 		{"error deleting clusters", nil, nil, &testClusterClient{DeleteClusterObjectsErr: fmt.Errorf("delete clusters error")}, &testClusterClient{}, "unable to finish deleting objects in external cluster, resources may have been leaked: error(s) encountered deleting objects from external cluster: [error deleting clusters: delete clusters error]"},
 		{"error deleting machines and clusters", nil, nil, &testClusterClient{DeleteMachineObjectsErr: fmt.Errorf("delete machines error"), DeleteClusterObjectsErr: fmt.Errorf("delete clusters error")}, &testClusterClient{}, "unable to finish deleting objects in external cluster, resources may have been leaked: error(s) encountered deleting objects from external cluster: [error deleting machines: delete machines error, error deleting clusters: delete clusters error]"},
+		{"fail to delete clusterapi-controllers", nil, nil, &testClusterClient{DeleteApiServerStackDeploymentsErr: fmt.Errorf("couldn't kubectl delete deployment clusterapi-controllers: %v, output: %s")}, nil, "couldn't kubectl delete deployment clusterapi-controllers: %v, output: %s"},
 	}
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {

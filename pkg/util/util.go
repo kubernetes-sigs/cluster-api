@@ -29,7 +29,6 @@ import (
 
 	"k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	clustercommon "sigs.k8s.io/cluster-api/pkg/apis/cluster/common"
 	clusterv1 "sigs.k8s.io/cluster-api/pkg/apis/cluster/v1alpha1"
 	client "sigs.k8s.io/cluster-api/pkg/client/clientset_generated/clientset/typed/cluster/v1alpha1"
 )
@@ -115,17 +114,9 @@ func GetMachineIfExists(machineClient client.MachineInterface, name string) (*cl
 	return machine, nil
 }
 
-func RoleContains(a clustercommon.MachineRole, list []clustercommon.MachineRole) bool {
-	for _, b := range list {
-		if b == a {
-			return true
-		}
-	}
-	return false
-}
-
+// TODO(robertbailey): Remove this function
 func IsMaster(machine *clusterv1.Machine) bool {
-	return RoleContains(clustercommon.MasterRole, machine.Spec.Roles)
+	return machine.Spec.Versions.ControlPlane != ""
 }
 
 func IsNodeReady(node *v1.Node) bool {

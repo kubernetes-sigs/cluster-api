@@ -141,9 +141,6 @@ func TestGetProvider(t *testing.T) {
 		expectErr bool
 	}{
 		{
-			provider: "google",
-		},
-		{
 			provider:  "blah blah",
 			expectErr: true,
 		},

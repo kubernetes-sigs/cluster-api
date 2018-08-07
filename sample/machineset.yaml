@@ -23,5 +23,3 @@ spec:
           os: "ubuntu-1604-lts"
       versions:
         kubelet: 1.9.4
-      roles:
-      - Node

@@ -18,8 +18,16 @@ all: generate build images
 
 depend:
 	dep version || go get -u github.com/golang/dep/cmd/dep
+	dep ensure -v
 
-generate: genapi genconversion genclientset gendeepcopy
+	# go libraries often ship BUILD and BUILD.bazel files, but they often don't work.
+	# We delete them and regenerate them
+	find vendor -name "BUILD" -delete
+	find vendor -name "BUILD.bazel" -delete
+
+	bazel run //:gazelle
+
+generate: genapi genconversion genclientset gendeepcopy genopenapi
 
 genapi: depend
 	go build -o $$GOPATH/bin/apiregister-gen sigs.k8s.io/cluster-api/vendor/github.com/kubernetes-incubator/apiserver-builder/cmd/apiregister-gen
@@ -42,19 +50,41 @@ genclientset: depend
 gendeepcopy:
 	go build -o $$GOPATH/bin/deepcopy-gen sigs.k8s.io/cluster-api/vendor/k8s.io/code-generator/cmd/deepcopy-gen
 	deepcopy-gen \
-	  -i ./pkg/apis/cluster/,./pkg/apis/cluster/v1alpha1/,./cloud/google/gceproviderconfig/v1alpha1,./cloud/google/gceproviderconfig,./cloud/vsphere/vsphereproviderconfig/v1alpha1,./cloud/vsphere/vsphereproviderconfig \
+	  -i ./pkg/apis/cluster/,./pkg/apis/cluster/v1alpha1/ \
 	  -O zz_generated.deepcopy \
 	  -h boilerplate.go.txt
 
+STATIC_API_DIRS = k8s.io/apimachinery/pkg/apis/meta/v1
+STATIC_API_DIRS += k8s.io/apimachinery/pkg/api/resource
+STATIC_API_DIRS += k8s.io/apimachinery/pkg/version
+STATIC_API_DIRS += k8s.io/apimachinery/pkg/runtime
+STATIC_API_DIRS += k8s.io/apimachinery/pkg/util/intstr
+STATIC_API_DIRS += k8s.io/api/core/v1
+
+# Automatically extract vendored apis under vendor/k8s.io/api.
+VENDOR_API_DIRS := $(shell find vendor/k8s.io/api -type d | grep -E 'v[[:digit:]]+(alpha[[:digit:]]+|beta[[:digit:]]+)*' | sed -e 's/^vendor\///')
+
+empty:=
+comma:=,
+space:=$(empty) $(empty)
+
+genopenapi: static_apis = $(subst $(space),$(comma),$(STATIC_API_DIRS))
+genopenapi: vendor_apis = $(subst $(space),$(comma),$(VENDOR_API_DIRS))
+
+genopenapi:
+	go build -o $$GOPATH/bin/openapi-gen sigs.k8s.io/cluster-api/vendor/k8s.io/code-generator/cmd/openapi-gen
+	openapi-gen \
+	  --input-dirs $(static_apis) \
+	  --input-dirs $(vendor_apis) \
+	  --input-dirs ./pkg/apis/cluster/,./pkg/apis/cluster/v1alpha1/ \
+	  --output-package "sigs.k8s.io/cluster-api/pkg/openapi" \
+	  --go-header-file boilerplate.go.txt
+
 build: depend
-	CGO_ENABLED=0 go install -a -ldflags '-extldflags "-static"' sigs.k8s.io/cluster-api/cloud/google/cmd/gce-controller
-	CGO_ENABLED=0 go install -a -ldflags '-extldflags "-static"' sigs.k8s.io/cluster-api/cloud/vsphere/cmd/vsphere-machine-controller
 	CGO_ENABLED=0 go install -a -ldflags '-extldflags "-static"' sigs.k8s.io/cluster-api/cmd/apiserver
 	CGO_ENABLED=0 go install -a -ldflags '-extldflags "-static"' sigs.k8s.io/cluster-api/cmd/controller-manager
 
 images: depend
-	$(MAKE) -C cloud/google/cmd/gce-controller image
-	$(MAKE) -C cloud/vsphere/cmd/vsphere-machine-controller image
 	$(MAKE) -C cmd/apiserver image
 	$(MAKE) -C cmd/controller-manager image
 

@@ -1,0 +1,3 @@
+Validating Cluster API objects in namespace "validate-cluster-api-object-output"
+Checking cluster object "test-cluster"... FAIL
+	[CreateError]: Failed to create cluster

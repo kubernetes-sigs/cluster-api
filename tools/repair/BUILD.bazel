@@ -1,0 +1,15 @@
+load("@io_bazel_rules_go//go:def.bzl", "go_binary", "go_library")
+
+go_library(
+    name = "go_default_library",
+    srcs = ["main.go"],
+    importpath = "sigs.k8s.io/cluster-api/tools/repair",
+    visibility = ["//visibility:private"],
+    deps = ["//tools/repair/cmd:go_default_library"],
+)
+
+go_binary(
+    name = "repair",
+    embed = [":go_default_library"],
+    visibility = ["//visibility:public"],
+)

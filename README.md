@@ -16,10 +16,27 @@ To learn more, see the [Cluster API KEP][cluster-api-kep].
 
 ## Get involved!
 
+* Join the [sig-cluster-lifecycle](https://groups.google.com/forum/#!forum/kubernetes-sig-cluster-lifecycle)
+Google Group for access to documents and calendars.
+
 * Join our Cluster API working group sessions
   * Weekly on Wednesdays @ 10:00 PT on [Zoom][zoomMeeting]
   * Previous meetings: \[ [notes][notes] | [recordings][recordings] \]
+
 * Chat with us on [Slack](http://slack.k8s.io/): #cluster-api
+
+## Provider Implementations
+
+The code in this repository is independent of any specific deployment environment.
+Provider specific code is being developed in separate repositories, some of which
+are also sponsored by SIG-cluster-lifecycle:
+
+  * AWS, https://github.com/kubernetes-sigs/cluster-api-provider-aws
+  * AWS/Openshift, https://github.com/openshift/cluster-operator
+  * Azure, https://github.com/platform9/azure-provider
+  * GCE, https://github.com/kubernetes-sigs/cluster-api-provider-gcp
+  * OpenStack, https://github.com/kubernetes-sigs/cluster-api-provider-openstack
+  * vSphere, https://github.com/roberthbailey/cluster-api-provider-vsphere
 
 ## Getting Started
 ### Prerequisites

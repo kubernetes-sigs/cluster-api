@@ -14,15 +14,16 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-
 package main
 
 import (
-	// Make sure glide gets these dependencies
-	_ "k8s.io/apimachinery/pkg/apis/meta/v1"
-	_ "github.com/go-openapi/loads"
+	"flag"
 
+	// Make sure glide gets these dependencies
+	_ "github.com/go-openapi/loads"
 	"github.com/kubernetes-incubator/apiserver-builder/pkg/cmd/server"
+
+	_ "k8s.io/apimachinery/pkg/apis/meta/v1"
 	_ "k8s.io/client-go/plugin/pkg/client/auth" // Enable cloud provider auth
 
 	"sigs.k8s.io/cluster-api/pkg/apis"
@@ -30,6 +31,9 @@ import (
 )
 
 func main() {
+	// the following line exists to make glog happy, for more information, see: https://github.com/kubernetes/kubernetes/issues/17162
+	flag.CommandLine.Parse([]string{})
+
 	version := "v0"
 	server.StartApiServer("/registry/k8s.io", apis.GetAllApiBuilders(), openapi.GetOpenAPIDefinitions, "Api", version)
 }

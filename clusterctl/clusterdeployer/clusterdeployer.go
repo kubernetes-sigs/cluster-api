@@ -24,14 +24,14 @@ import (
 	"time"
 
 	"k8s.io/client-go/kubernetes"
-	clustercommon "sigs.k8s.io/cluster-api/pkg/apis/cluster/common"
 	clusterv1 "sigs.k8s.io/cluster-api/pkg/apis/cluster/v1alpha1"
 	"sigs.k8s.io/cluster-api/pkg/util"
 
 	"github.com/golang/glog"
 )
 
-// Provider specific logic. Logic here should eventually be optional & additive.
+// Deprecated interface for Provider specific logic. Please do not extend or add. This interface should be removed
+// once issues/158 and issues/160 below are fixed.
 type ProviderDeployer interface {
 	// TODO: This requirement can be removed once after: https://github.com/kubernetes-sigs/cluster-api/issues/158
 	GetIP(cluster *clusterv1.Cluster, machine *clusterv1.Machine) (string, error)
@@ -113,7 +113,7 @@ const (
 // Creates the a cluster from the provided cluster definition and machine list.
 
 func (d *ClusterDeployer) Create(cluster *clusterv1.Cluster, machines []*clusterv1.Machine, provider ProviderDeployer, kubeconfigOutput string, providerComponentsStoreFactory ProviderComponentsStoreFactory) error {
-	master, nodes, err := splitMachineRoles(machines)
+	master, nodes, err := extractMasterMachine(machines)
 	if err != nil {
 		return fmt.Errorf("unable to seperate master machines from node machines: %v", err)
 	}
@@ -200,27 +200,23 @@ func (d *ClusterDeployer) Delete(internalClient ClusterClient) error {
 	defer closeClient(externalClient, "external")
 
 	glog.Info("Applying Cluster API stack to external cluster")
-	err = d.applyClusterAPIStack(externalClient)
-	if err != nil {
+	if err = d.applyClusterAPIStack(externalClient); err != nil {
 		return fmt.Errorf("unable to apply cluster api stack to external cluster: %v", err)
 	}
 
 	glog.Info("Deleting Cluster API Provider Components from internal cluster")
-	err = internalClient.Delete(d.providerComponents)
-	if err != nil {
-		glog.Infof("Error while shutting down provider components on internal cluster: %v", err)
+	if err = internalClient.Delete(d.providerComponents); err != nil {
+		glog.Infof("error while removing provider components from internal cluster: %v", err)
 		glog.Infof("Continuing with a best effort delete")
 	}
 
 	glog.Info("Copying objects from internal cluster to external cluster")
-	err = pivot(internalClient, externalClient)
-	if err != nil {
+	if err = pivot(internalClient, externalClient); err != nil {
 		return fmt.Errorf("unable to copy objects from internal to external cluster: %v", err)
 	}
 
 	glog.Info("Deleting objects from external cluster")
-	err = deleteObjects(externalClient)
-	if err != nil {
+	if err = deleteObjects(externalClient); err != nil {
 		return fmt.Errorf("unable to finish deleting objects in external cluster, resources may have been leaked: %v", err)
 	}
 	glog.Info("Deletion of cluster complete")
@@ -233,12 +229,14 @@ func (d *ClusterDeployer) createExternalCluster() (ClusterClient, func(), error)
 	if err := d.externalProvisioner.Create(); err != nil {
 		return nil, cleanupFn, fmt.Errorf("could not create external control plane: %v", err)
 	}
+
 	if d.cleanupExternalCluster {
 		cleanupFn = func() {
 			glog.Info("Cleaning up external cluster.")
 			d.externalProvisioner.Delete()
 		}
 	}
+
 	externalKubeconfig, err := d.externalProvisioner.GetKubeconfig()
 	if err != nil {
 		return nil, cleanupFn, fmt.Errorf("unable to get external cluster kubeconfig: %v", err)
@@ -247,6 +245,7 @@ func (d *ClusterDeployer) createExternalCluster() (ClusterClient, func(), error)
 	if err != nil {
 		return nil, cleanupFn, fmt.Errorf("unable to create external client: %v", err)
 	}
+
 	return externalClient, cleanupFn, nil
 }
 
@@ -262,8 +261,7 @@ func (d *ClusterDeployer) createInternalCluster(externalClient ClusterClient, pr
 		return nil, fmt.Errorf("unable to get internal cluster kubeconfig: %v", err)
 	}
 
-	err = d.writeKubeconfig(internalKubeconfig, kubeconfigOutput)
-	if err != nil {
+	if err = d.writeKubeconfig(internalKubeconfig, kubeconfigOutput); err != nil {
 		return nil, err
 	}
 
@@ -406,8 +404,7 @@ func pivot(from, to ClusterClient) error {
 	for _, cluster := range clusters {
 		// New objects cannot have a specified resource version. Clear it out.
 		cluster.SetResourceVersion("")
-		err = to.CreateClusterObject(cluster)
-		if err != nil {
+		if err = to.CreateClusterObject(cluster); err != nil {
 			return fmt.Errorf("error moving Cluster '%v': %v", cluster.GetName(), err)
 		}
 		glog.Infof("Moved Cluster '%s'", cluster.GetName())
@@ -420,8 +417,7 @@ func pivot(from, to ClusterClient) error {
 	for _, deployment := range fromDeployments {
 		// New objects cannot have a specified resource version. Clear it out.
 		deployment.SetResourceVersion("")
-		err = to.CreateMachineDeploymentObjects([]*clusterv1.MachineDeployment{deployment})
-		if err != nil {
+		if err = to.CreateMachineDeploymentObjects([]*clusterv1.MachineDeployment{deployment}); err != nil {
 			return fmt.Errorf("error moving MachineDeployment '%v': %v", deployment.GetName(), err)
 		}
 		glog.Infof("Moved MachineDeployment %v", deployment.GetName())
@@ -434,8 +430,7 @@ func pivot(from, to ClusterClient) error {
 	for _, machineSet := range fromMachineSets {
 		// New objects cannot have a specified resource version. Clear it out.
 		machineSet.SetResourceVersion("")
-		err := to.CreateMachineSetObjects([]*clusterv1.MachineSet{machineSet})
-		if err != nil {
+		if err := to.CreateMachineSetObjects([]*clusterv1.MachineSet{machineSet}); err != nil {
 			return fmt.Errorf("error moving MachineSet '%v': %v", machineSet.GetName(), err)
 		}
 		glog.Infof("Moved MachineSet %v", machineSet.GetName())
@@ -449,8 +444,7 @@ func pivot(from, to ClusterClient) error {
 	for _, machine := range machines {
 		// New objects cannot have a specified resource version. Clear it out.
 		machine.SetResourceVersion("")
-		err = to.CreateMachineObjects([]*clusterv1.Machine{machine})
-		if err != nil {
+		if err = to.CreateMachineObjects([]*clusterv1.Machine{machine}); err != nil {
 			return fmt.Errorf("error moving Machine '%v': %v", machine.GetName(), err)
 		}
 		glog.Infof("Moved Machine '%s'", machine.GetName())
@@ -461,26 +455,22 @@ func pivot(from, to ClusterClient) error {
 func deleteObjects(client ClusterClient) error {
 	var errors []string
 	glog.Infof("Deleting machine deployments")
-	err := client.DeleteMachineDeploymentObjects()
-	if err != nil {
+	if err := client.DeleteMachineDeploymentObjects(); err != nil {
 		err = fmt.Errorf("error deleting machine deployments: %v", err)
 		errors = append(errors, err.Error())
 	}
 	glog.Infof("Deleting machine sets")
-	err = client.DeleteMachineSetObjects()
-	if err != nil {
+	if err := client.DeleteMachineSetObjects(); err != nil {
 		err = fmt.Errorf("error deleting machine sets: %v", err)
 		errors = append(errors, err.Error())
 	}
 	glog.Infof("Deleting machines")
-	err = client.DeleteMachineObjects()
-	if err != nil {
+	if err := client.DeleteMachineObjects(); err != nil {
 		err = fmt.Errorf("error deleting machines: %v", err)
 		errors = append(errors, err.Error())
 	}
 	glog.Infof("Deleting clusters")
-	err = client.DeleteClusterObjects()
-	if err != nil {
+	if err := client.DeleteClusterObjects(); err != nil {
 		err = fmt.Errorf("error deleting clusters: %v", err)
 		errors = append(errors, err.Error())
 	}
@@ -503,19 +493,21 @@ func getClusterAPIObjects(client ClusterClient) (*clusterv1.Cluster, *clusterv1.
 		return nil, nil, nil, fmt.Errorf("fetched not exactly one cluster object. Count %v", len(clusters))
 	}
 	cluster := clusters[0]
-	master, nodes, err := splitMachineRoles(machines)
+	master, nodes, err := extractMasterMachine(machines)
 	if err != nil {
 		return nil, nil, nil, fmt.Errorf("unable to fetch master machine: %v", err)
 	}
 	return cluster, master, nodes, nil
 }
 
-// Split the incoming machine set into the master and the non-masters
-func splitMachineRoles(machines []*clusterv1.Machine) (*clusterv1.Machine, []*clusterv1.Machine, error) {
+// extractMasterMachine separates the master (singular) from the incoming machines.
+// This is currently done by looking at which machine specifies the control plane version
+// (which implies that it is a master). This should be cleaned up in the future.
+func extractMasterMachine(machines []*clusterv1.Machine) (*clusterv1.Machine, []*clusterv1.Machine, error) {
 	nodes := []*clusterv1.Machine{}
 	masters := []*clusterv1.Machine{}
 	for _, machine := range machines {
-		if containsMasterRole(machine.Spec.Roles) {
+		if util.IsMaster(machine) {
 			masters = append(masters, machine)
 		} else {
 			nodes = append(nodes, machine)
@@ -527,13 +519,10 @@ func splitMachineRoles(machines []*clusterv1.Machine) (*clusterv1.Machine, []*cl
 	return masters[0], nodes, nil
 }
 
-func containsMasterRole(roles []clustercommon.MachineRole) bool {
-	for _, role := range roles {
-		if role == clustercommon.MasterRole {
-			return true
-		}
+func closeClient(client ClusterClient, name string) {
+	if err := client.Close(); err != nil {
+		glog.Errorf("Could not close %v client: %v", name, err)
 	}
-	return false
 }
 
 func closeClient(client ClusterClient, name string) {

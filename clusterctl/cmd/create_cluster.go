@@ -17,30 +17,30 @@ limitations under the License.
 package cmd
 
 import (
-	"errors"
 	"fmt"
 	"io/ioutil"
 
 	"github.com/ghodss/yaml"
 	"github.com/golang/glog"
 	"github.com/spf13/cobra"
-	"sigs.k8s.io/cluster-api/cloud/google"
-	"sigs.k8s.io/cluster-api/cloud/vsphere"
 	"sigs.k8s.io/cluster-api/clusterctl/clusterdeployer"
 	"sigs.k8s.io/cluster-api/clusterctl/clusterdeployer/minikube"
+	"sigs.k8s.io/cluster-api/clusterctl/clusterdeployer/externalclusterprovisioner"
+	clustercommon "sigs.k8s.io/cluster-api/pkg/apis/cluster/common"
 	clusterv1 "sigs.k8s.io/cluster-api/pkg/apis/cluster/v1alpha1"
 	"sigs.k8s.io/cluster-api/pkg/util"
 )
 
 type CreateOptions struct {
-	Cluster                string
-	Machine                string
-	ProviderComponents     string
-	AddonComponents        string
-	CleanupExternalCluster bool
-	VmDriver               string
-	Provider               string
-	KubeconfigOutput       string
+	Cluster                       string
+	Machine                       string
+	ProviderComponents            string
+	AddonComponents               string
+	CleanupExternalCluster        bool
+	VmDriver                      string
+	Provider                      string
+	KubeconfigOutput              string
+	ExistingClusterKubeconfigPath string
 }
 
 var co = &CreateOptions{}
@@ -75,7 +75,17 @@ func RunCreate(co *CreateOptions) error {
 		return err
 	}
 
-	mini := minikube.New(co.VmDriver)
+	var externalProvider clusterdeployer.ClusterProvisioner
+	if co.ExistingClusterKubeconfigPath != "" {
+		externalProvider, err = externalclusterprovisioner.NewExternalCluster(co.ExistingClusterKubeconfigPath)
+		if err != nil {
+			return err
+		}
+	} else {
+		externalProvider = minikube.New(co.VmDriver)
+
+	}
+
 	pd, err := getProvider(co.Provider)
 	if err != nil {
 		return err
@@ -93,13 +103,12 @@ func RunCreate(co *CreateOptions) error {
 	}
 	pcsFactory := clusterdeployer.NewProviderComponentsStoreFactory()
 	d := clusterdeployer.New(
-		mini,
+		externalProvider,
 		clusterdeployer.NewClientFactory(),
 		string(pc),
 		string(ac),
 		co.CleanupExternalCluster)
-	err = d.Create(c, m, pd, co.KubeconfigOutput, pcsFactory)
-	return err
+	return d.Create(c, m, pd, co.KubeconfigOutput, pcsFactory)
 }
 
 func init() {
@@ -115,6 +124,7 @@ func init() {
 	createClusterCmd.Flags().BoolVarP(&co.CleanupExternalCluster, "cleanup-external-cluster", "", true, "Whether to cleanup the external cluster after bootstrap")
 	createClusterCmd.Flags().StringVarP(&co.VmDriver, "vm-driver", "", "", "Which vm driver to use for minikube")
 	createClusterCmd.Flags().StringVarP(&co.KubeconfigOutput, "kubeconfig-out", "", "kubeconfig", "Where to output the kubeconfig for the provisioned cluster")
+	createClusterCmd.Flags().StringVarP(&co.ExistingClusterKubeconfigPath, "existing-bootstrap-cluster-kubeconfig", "", "", "Path to an existing cluster's kubeconfig for bootstrapping (intead of using minikube)")
 
 	createCmd.AddCommand(createClusterCmd)
 }
@@ -153,31 +163,14 @@ func parseMachinesYaml(file string) ([]*clusterv1.Machine, error) {
 	return util.MachineP(list.Items), nil
 }
 
-func getProvider(provider string) (clusterdeployer.ProviderDeployer, error) {
-	switch provider {
-	case "google":
-		return google.NewMachineActuator(google.MachineActuatorParams{})
-	case "vsphere":
-		return &vsphereAdapter{vsphere.NewDeploymentClient()}, nil
-	case "azure":
-		//Work being done at https://github.com/platform9/azure-provider
-		return nil, errors.New("Azure not yet implemented")
-	default:
-		return nil, fmt.Errorf("Unrecognized provider %v", provider)
+func getProvider(name string) (clusterdeployer.ProviderDeployer, error) {
+	provisioner, err := clustercommon.ClusterProvisioner(name)
+	if err != nil {
+		return nil, err
 	}
-}
-
-// Adapt the vsphere methods calls since gcp/vsphere are not on the same page.
-// Long term, these providers should converge or the need for a provider will go away.
-// Whichever comes first.
-type vsphereAdapter struct {
-	*vsphere.DeploymentClient
-}
-
-func (a *vsphereAdapter) GetIP(cluster *clusterv1.Cluster, machine *clusterv1.Machine) (string, error) {
-	return a.DeploymentClient.GetIP(machine)
-}
-
-func (a *vsphereAdapter) GetKubeConfig(cluster *clusterv1.Cluster, master *clusterv1.Machine) (string, error) {
-	return a.DeploymentClient.GetKubeConfig(master)
+	provider, ok := provisioner.(clusterdeployer.ProviderDeployer)
+	if !ok {
+		return nil, fmt.Errorf("provider for %s does not implement interface", name)
+	}
+	return provider, nil
 }

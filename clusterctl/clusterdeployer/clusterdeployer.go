@@ -254,15 +254,14 @@ func (d *ClusterDeployer) createExternalCluster() (ClusterClient, func(), error)
 		return nil, cleanupFn, fmt.Errorf("unable to get external cluster kubeconfig: %v", err)
 	}
 	externalClient, err := d.clientFactory.NewClusterClientFromKubeconfig(externalKubeconfig)
-	if err != nil {
-		return nil, cleanupFn, fmt.Errorf("unable to create external client: %v", err)
-	}
-
 	if d.cleanupExternalCluster {
 		cleanupFn = func() {
 			glog.Info("Cleaning up external cluster.")
 			d.cleanCreatedExternalClientResources(externalClient, func() {d.externalProvisioner.Delete()})
 		}
+	}
+	if err != nil {
+		return nil, cleanupFn, fmt.Errorf("unable to create external client: %v", err)
 	}
 
 	return externalClient, cleanupFn, nil

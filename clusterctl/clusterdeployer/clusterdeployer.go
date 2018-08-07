@@ -195,14 +195,16 @@ func (d *ClusterDeployer) Create(cluster *clusterv1.Cluster, machines []*cluster
 func (d *ClusterDeployer) cleanCreatedExternalClientResources(client ClusterClient, cleanupExternalCluster func()) {
 	glog.Info("Removing resources created in external cluster")
 
-	// delete resources like machines, clusters etc...
-	if err := deleteObjects(client); err != nil {
-		glog.Infof("unable to delete objects: %v", err)
-	}
+	if client != nil {
+		// delete resources like machines, clusters etc...
+		if err := deleteObjects(client); err != nil {
+			glog.Infof("unable to delete objects: %v", err)
+		}
 
-	// delete the apiserver stack...
-	if err := client.DeleteApiServerStackDeployments(); err != nil {
-		glog.Infof("unable to delete apiserver stack: %v", err)
+		// delete the apiserver stack...
+		if err := client.DeleteApiServerStackDeployments(); err != nil {
+			glog.Infof("unable to delete apiserver stack: %v", err)
+		}
 	}
 
 	// additional clean up for the external cluster

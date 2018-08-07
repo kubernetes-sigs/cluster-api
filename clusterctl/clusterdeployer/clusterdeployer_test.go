@@ -755,14 +755,6 @@ func TestDeleteBasicScenarios(t *testing.T) {
 				"error(s) encountered deleting objects from external cluster: [error deleting machines: " +
 				"delete machines error, error deleting clusters: delete clusters error]",
 		},
-		{
-			name: "fail to delete clusterapi-controllers",
-			provisionExternalErr: nil,
-			NewCoreClientsetErr: nil,
-			externalClient: &testClusterClient{DeleteApiServerStackDeploymentsErr: fmt.Errorf("couldn't kubectl delete deployment clusterapi-controllers: %v, output: %s")},
-			internalClient: nil,
-			expectedErrorMessage: "couldn't kubectl delete deployment clusterapi-controllers: %v, output: %s",
-		},
 	}
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
@@ -777,7 +769,7 @@ func TestDeleteBasicScenarios(t *testing.T) {
 			err := d.Delete(tc.internalClient)
 			if err != nil || tc.expectedErrorMessage != "" {
 				if err == nil {
-					t.Errorf("expected error")
+					t.Errorf("expected to find an error, but found none.")
 				} else if err.Error() != tc.expectedErrorMessage {
 					t.Errorf("Unexpected error: got '%v', want: '%v'", err, tc.expectedErrorMessage)
 				}

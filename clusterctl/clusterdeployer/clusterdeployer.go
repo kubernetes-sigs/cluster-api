@@ -121,7 +121,7 @@ func (d *ClusterDeployer) Create(cluster *clusterv1.Cluster, machines []*cluster
 
 	glog.Info("Creating external cluster")
 	externalClient, cleanupExternalCluster, err := d.createExternalCluster()
-	defer d.cleanCreatedExternalClientResources(externalClient, cleanupExternalCluster)
+	defer cleanupExternalCluster()
 	if err != nil {
 		return fmt.Errorf("could not create external client: %v", err)
 	}
@@ -194,7 +194,6 @@ func (d *ClusterDeployer) Create(cluster *clusterv1.Cluster, machines []*cluster
 // try to delete and clean up created resources from the external cluster.
 func (d *ClusterDeployer) cleanCreatedExternalClientResources(client ClusterClient, cleanupExternalCluster func()) {
 	glog.Info("Removing resources created in external cluster")
-	defer closeClient(client, "external")
 
 	// delete resources like machines, clusters etc...
 	if err := deleteObjects(client); err != nil {
@@ -250,13 +249,6 @@ func (d *ClusterDeployer) createExternalCluster() (ClusterClient, func(), error)
 		return nil, cleanupFn, fmt.Errorf("could not create external control plane: %v", err)
 	}
 
-	if d.cleanupExternalCluster {
-		cleanupFn = func() {
-			glog.Info("Cleaning up external cluster.")
-			d.externalProvisioner.Delete()
-		}
-	}
-
 	externalKubeconfig, err := d.externalProvisioner.GetKubeconfig()
 	if err != nil {
 		return nil, cleanupFn, fmt.Errorf("unable to get external cluster kubeconfig: %v", err)
@@ -264,6 +256,13 @@ func (d *ClusterDeployer) createExternalCluster() (ClusterClient, func(), error)
 	externalClient, err := d.clientFactory.NewClusterClientFromKubeconfig(externalKubeconfig)
 	if err != nil {
 		return nil, cleanupFn, fmt.Errorf("unable to create external client: %v", err)
+	}
+
+	if d.cleanupExternalCluster {
+		cleanupFn = func() {
+			glog.Info("Cleaning up external cluster.")
+			d.cleanCreatedExternalClientResources(externalClient, func() {d.externalProvisioner.Delete()})
+		}
 	}
 
 	return externalClient, cleanupFn, nil

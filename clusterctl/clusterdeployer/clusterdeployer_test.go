@@ -26,6 +26,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
 	clusterv1 "sigs.k8s.io/cluster-api/pkg/apis/cluster/v1alpha1"
+	"sigs.k8s.io/cluster-api/clusterctl/clusterdeployer/clusterclient"
 )
 
 type testClusterProvisioner struct {
@@ -339,7 +340,7 @@ func (f *testClusterClientFactory) NewCoreClientsetFromKubeconfigFile(kubeconfig
 	return f.CoreClientsets[kubeconfigPath], f.NewCoreClientsetErr
 }
 
-func (f *testClusterClientFactory) NewClusterClientFromKubeconfig(kubeconfig string) (ClusterClient, error) {
+func (f *testClusterClientFactory) NewClientFromKubeconfig(kubeconfig string) (clusterclient.Client, error) {
 	if f.ClusterClientErr != nil {
 		return nil, f.ClusterClientErr
 	}

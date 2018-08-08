@@ -14,24 +14,8 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package clusterdeployer
+package clusterclient
 
-import (
-	"k8s.io/client-go/kubernetes"
-	"sigs.k8s.io/cluster-api/pkg/clientcmd"
-)
-
-type clientFactory struct {
-}
-
-func NewClientFactory() ClientFactory {
-	return &clientFactory{}
-}
-
-func (f *clientFactory) NewClusterClientFromKubeconfig(kubeconfig string) (ClusterClient, error) {
-	return NewClusterClient(kubeconfig)
-}
-
-func (f *clientFactory) NewCoreClientsetFromKubeconfigFile(kubeconfigPath string) (*kubernetes.Clientset, error) {
-	return clientcmd.NewCoreClientSetForDefaultSearchPath(kubeconfigPath, clientcmd.NewConfigOverrides())
-}
+// TODO: Test clusterclient. To do this properly, etcd and kubectl need to be on the box running the test.
+// Placeholder till the presubmit images have the needed binaries.
+// https://github.com/kubernetes-sigs/cluster-api/issues/254

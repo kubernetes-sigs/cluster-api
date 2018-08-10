@@ -36,7 +36,7 @@ are also sponsored by SIG-cluster-lifecycle:
   * Azure, https://github.com/platform9/azure-provider
   * GCE, https://github.com/kubernetes-sigs/cluster-api-provider-gcp
   * OpenStack, https://github.com/kubernetes-sigs/cluster-api-provider-openstack
-  * vSphere, https://github.com/roberthbailey/cluster-api-provider-vsphere
+  * vSphere, https://github.com/kubernetes-sigs/cluster-api-provider-vsphere
 
 ## Getting Started
 ### Prerequisites

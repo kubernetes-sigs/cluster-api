@@ -24,12 +24,12 @@ import (
 	"time"
 
 	"k8s.io/client-go/kubernetes"
-		clusterv1 "sigs.k8s.io/cluster-api/pkg/apis/cluster/v1alpha1"
+	"sigs.k8s.io/cluster-api/clusterctl/clusterdeployer/clusterclient"
+	clusterv1 "sigs.k8s.io/cluster-api/pkg/apis/cluster/v1alpha1"
 	"sigs.k8s.io/cluster-api/pkg/deployer"
 	"sigs.k8s.io/cluster-api/pkg/util"
 
 	"github.com/golang/glog"
-	"sigs.k8s.io/cluster-api/clusterctl/clusterdeployer/clusterclient"
 )
 
 // Deprecated interface for Provider specific logic. Please do not extend or add. This interface should be removed

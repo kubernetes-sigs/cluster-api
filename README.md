@@ -23,6 +23,10 @@ Google Group for access to documents and calendars.
   * Weekly on Wednesdays @ 10:00 PT on [Zoom][zoomMeeting]
   * Previous meetings: \[ [notes][notes] | [recordings][recordings] \]
 
+* Provider implementer office hours
+  * Weekly on Mondays @ 09:30 PT and Tuesdays @ 12:00 PT on [Zoom][zoomMeeting]
+  * Previous meetings: \[ [notes][implementerNotes] \]
+
 * Chat with us on [Slack](http://slack.k8s.io/): #cluster-api
 
 ## Provider Implementations
@@ -42,7 +46,7 @@ are also sponsored by SIG-cluster-lifecycle:
 ### Prerequisites
 * `kubectl` is required, see [here](http://kubernetes.io/docs/user-guide/prereqs/).
 * `clusterctl` is a SIG-cluster-lifecycle sponsored tool to manage Cluster API clusters. See [here](clusterctl)
- 
+
 ## How to use the API
 
 To see how to build tooling on top of the Cluster API, please check out a few examples below:
@@ -54,3 +58,4 @@ To see how to build tooling on top of the Cluster API, please check out a few ex
 [notes]: https://docs.google.com/document/d/16ils69KImmE94RlmzjWDrkmFZysgB2J4lGnYMRN89WM/edit
 [recordings]: https://www.youtube.com/playlist?list=PL69nYSiGNLP29D0nYgAGWt1ZFqS9Z7lw4
 [zoomMeeting]: https://zoom.us/j/166836624
+[implementerNotes]: https://docs.google.com/document/d/1IZ2-AZhe4r3CYiJuttyciS7bGZTTx4iMppcA8_Pr3xE/edit

@@ -25,6 +25,7 @@ import (
 
 	"k8s.io/client-go/kubernetes"
 	clusterv1 "sigs.k8s.io/cluster-api/pkg/apis/cluster/v1alpha1"
+	"sigs.k8s.io/cluster-api/pkg/deployer"
 	"sigs.k8s.io/cluster-api/pkg/util"
 
 	"github.com/golang/glog"
@@ -346,7 +347,7 @@ func (d *ClusterDeployer) applyClusterAPIStackWithPivoting(client ClusterClient,
 }
 
 func (d *ClusterDeployer) applyClusterAPIApiserver(client ClusterClient) error {
-	yaml, err := getApiServerYaml()
+	yaml, err := deployer.GetApiServerYaml()
 	if err != nil {
 		return fmt.Errorf("unable to generate apiserver yaml: %v", err)
 	}

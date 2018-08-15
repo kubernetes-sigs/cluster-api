@@ -24,8 +24,8 @@ import (
 	"github.com/golang/glog"
 	"github.com/spf13/cobra"
 	"sigs.k8s.io/cluster-api/clusterctl/clusterdeployer"
-	"sigs.k8s.io/cluster-api/clusterctl/clusterdeployer/minikube"
 	"sigs.k8s.io/cluster-api/clusterctl/clusterdeployer/externalclusterprovisioner"
+	"sigs.k8s.io/cluster-api/clusterctl/clusterdeployer/minikube"
 	clustercommon "sigs.k8s.io/cluster-api/pkg/apis/cluster/common"
 	clusterv1 "sigs.k8s.io/cluster-api/pkg/apis/cluster/v1alpha1"
 	"sigs.k8s.io/cluster-api/pkg/util"
@@ -170,7 +170,7 @@ func getProvider(name string) (clusterdeployer.ProviderDeployer, error) {
 	}
 	provider, ok := provisioner.(clusterdeployer.ProviderDeployer)
 	if !ok {
-		return nil, fmt.Errorf("provider for %s does not implement interface", name)
+		return nil, fmt.Errorf("provider for %s does not implement ProviderDeployer interface", name)
 	}
 	return provider, nil
 }

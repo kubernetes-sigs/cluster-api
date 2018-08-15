@@ -6,7 +6,7 @@ Read the [experience doc here](https://docs.google.com/document/d/1-sYb3EdkRga49
 
 ## Getting Started
 
-**Due to the [limitations](#Limitations) described below, you must currently compile and run a `clusterctl` binary
+**Due to the [limitations](#limitations) described below, you must currently compile and run a `clusterctl` binary
 from your chosen [provider implementation](../README.md#provider-implementations) rather than using the binary from
 this repository.**
 

@@ -2,14 +2,13 @@ load("@io_bazel_rules_go//go:def.bzl", "go_library", "go_test")
 
 go_library(
     name = "go_default_library",
-    srcs = ["minikube.go"],
-    importpath = "sigs.k8s.io/cluster-api/clusterctl/clusterdeployer/minikube",
+    srcs = ["exisingcluster.go"],
+    importpath = "sigs.k8s.io/cluster-api/clusterctl/clusterdeployer/bootstrap/existing",
     visibility = ["//visibility:public"],
-    deps = ["//vendor/github.com/golang/glog:go_default_library"],
 )
 
 go_test(
     name = "go_default_test",
-    srcs = ["minikube_test.go"],
+    srcs = ["existingcluster_test.go"],
     embed = [":go_default_library"],
 )

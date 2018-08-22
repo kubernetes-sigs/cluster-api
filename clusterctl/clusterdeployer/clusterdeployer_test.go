@@ -95,6 +95,7 @@ type testClusterClient struct {
 	CreateMachineSetObjectsErr         error
 	CreateMachineDeploymentsObjectsErr error
 	DeleteClusterObjectsErr            error
+	DeleteApiServerStackDeploymentsErr error
 	DeleteMachineObjectsErr            error
 	DeleteMachineSetObjectsErr         error
 	DeleteMachineDeploymentsObjectsErr error
@@ -177,6 +178,10 @@ func (c *testClusterClient) DeleteMachineDeploymentObjects() error {
 
 func (c *testClusterClient) DeleteMachineSetObjects() error {
 	return c.DeleteMachineSetObjectsErr
+}
+
+func (c *testClusterClient) DeleteApiServerStackDeployments() error {
+	return c.DeleteApiServerStackDeploymentsErr
 }
 
 func (c *testClusterClient) DeleteMachineObjects() error {
@@ -354,7 +359,7 @@ func TestCreate(t *testing.T) {
 			expectErr:             true,
 		},
 		{
-			name:                  "fail  create internal cluster",
+			name:                  "fail create internal cluster",
 			internalClient:        &testClusterClient{CreateClusterObjectErr: fmt.Errorf("Test failure")},
 			externalClient:        &testClusterClient{},
 			cleanupExternal:       true,
@@ -602,24 +607,154 @@ func TestDeleteBasicScenarios(t *testing.T) {
 		internalClient       *testClusterClient
 		expectedErrorMessage string
 	}{
-		{"success", nil, nil, &testClusterClient{}, &testClusterClient{}, ""},
-		{"error creating core client", nil, fmt.Errorf("error creating core client"), &testClusterClient{}, &testClusterClient{}, "could not create external cluster: unable to create external client: error creating core client"},
-		{"fail provision external cluster", fmt.Errorf("minikube error"), nil, &testClusterClient{}, &testClusterClient{}, "could not create external cluster: could not create external control plane: minikube error"},
-		{"fail apply yaml to external cluster", nil, nil, &testClusterClient{ApplyErr: fmt.Errorf("yaml apply error")}, &testClusterClient{}, "unable to apply cluster api stack to external cluster: unable to apply cluster apiserver: unable to apply apiserver yaml: yaml apply error"},
-		{"fail delete provider components should succeed", nil, nil, &testClusterClient{}, &testClusterClient{DeleteErr: fmt.Errorf("kubectl delete error")}, ""},
-		{"error listing machines", nil, nil, &testClusterClient{}, &testClusterClient{GetMachineObjectsErr: fmt.Errorf("get machines error")}, "unable to copy objects from internal to external cluster: get machines error"},
-		{"error listing machine sets", nil, nil, &testClusterClient{}, &testClusterClient{GetMachineSetObjectsErr: fmt.Errorf("get machine sets error")}, "unable to copy objects from internal to external cluster: get machine sets error"},
-		{"error listing machine deployments", nil, nil, &testClusterClient{}, &testClusterClient{GetMachineDeploymentObjectsErr: fmt.Errorf("get machine deployments error")}, "unable to copy objects from internal to external cluster: get machine deployments error"},
-		{"error listing clusters", nil, nil, &testClusterClient{}, &testClusterClient{GetClusterObjectsErr: fmt.Errorf("get clusters error")}, "unable to copy objects from internal to external cluster: get clusters error"},
-		{"error creating machines", nil, nil, &testClusterClient{CreateMachineObjectsErr: fmt.Errorf("create machines error")}, &testClusterClient{machines: generateMachines()}, "unable to copy objects from internal to external cluster: error moving Machine 'test-master': create machines error"},
-		{"error creating machine sets", nil, nil, &testClusterClient{CreateMachineSetObjectsErr: fmt.Errorf("create machine sets error")}, &testClusterClient{machineSets: newMachineSetsFixture()}, "unable to copy objects from internal to external cluster: error moving MachineSet 'machine-set-name-1': create machine sets error"},
-		{"error creating machine deployments", nil, nil, &testClusterClient{CreateMachineDeploymentsObjectsErr: fmt.Errorf("create machine deployments error")}, &testClusterClient{machineDeployments: newMachineDeploymentsFixture()}, "unable to copy objects from internal to external cluster: error moving MachineDeployment 'machine-deployment-name-1': create machine deployments error"},
-		{"error creating cluster", nil, nil, &testClusterClient{CreateClusterObjectErr: fmt.Errorf("create cluster error")}, &testClusterClient{clusters: newClustersFixture()}, "unable to copy objects from internal to external cluster: error moving Cluster 'cluster-name-1': create cluster error"},
-		{"error deleting machines", nil, nil, &testClusterClient{DeleteMachineObjectsErr: fmt.Errorf("delete machines error")}, &testClusterClient{}, "unable to finish deleting objects in external cluster, resources may have been leaked: error(s) encountered deleting objects from external cluster: [error deleting machines: delete machines error]"},
-		{"error deleting machine sets", nil, nil, &testClusterClient{DeleteMachineSetObjectsErr: fmt.Errorf("delete machine sets error")}, &testClusterClient{}, "unable to finish deleting objects in external cluster, resources may have been leaked: error(s) encountered deleting objects from external cluster: [error deleting machine sets: delete machine sets error]"},
-		{"error deleting machine deployments", nil, nil, &testClusterClient{DeleteMachineDeploymentsObjectsErr: fmt.Errorf("delete machine deployments error")}, &testClusterClient{}, "unable to finish deleting objects in external cluster, resources may have been leaked: error(s) encountered deleting objects from external cluster: [error deleting machine deployments: delete machine deployments error]"},
-		{"error deleting clusters", nil, nil, &testClusterClient{DeleteClusterObjectsErr: fmt.Errorf("delete clusters error")}, &testClusterClient{}, "unable to finish deleting objects in external cluster, resources may have been leaked: error(s) encountered deleting objects from external cluster: [error deleting clusters: delete clusters error]"},
-		{"error deleting machines and clusters", nil, nil, &testClusterClient{DeleteMachineObjectsErr: fmt.Errorf("delete machines error"), DeleteClusterObjectsErr: fmt.Errorf("delete clusters error")}, &testClusterClient{}, "unable to finish deleting objects in external cluster, resources may have been leaked: error(s) encountered deleting objects from external cluster: [error deleting machines: delete machines error, error deleting clusters: delete clusters error]"},
+		{
+			name: "success",
+			provisionExternalErr: nil,
+			NewCoreClientsetErr: nil,
+			externalClient: &testClusterClient{},
+			internalClient: &testClusterClient{},
+			expectedErrorMessage: "",
+		},
+		{
+			name: "error creating core client",
+			provisionExternalErr: nil,
+			NewCoreClientsetErr: fmt.Errorf("error creating core client"),
+			externalClient: &testClusterClient{},
+			internalClient: &testClusterClient{},
+			expectedErrorMessage: "could not create external cluster: unable to create external client: error creating core client",
+		},
+		{
+			name: "fail provision external cluster",
+			provisionExternalErr: fmt.Errorf("minikube error"),
+			NewCoreClientsetErr: nil,
+			externalClient: &testClusterClient{},
+			internalClient: &testClusterClient{},
+			expectedErrorMessage: "could not create external cluster: could not create external control plane: minikube error",
+		},
+		{
+			name: "fail apply yaml to external cluster",
+			provisionExternalErr: nil,
+			NewCoreClientsetErr: nil,
+			externalClient: &testClusterClient{ApplyErr: fmt.Errorf("yaml apply error")},
+			internalClient: &testClusterClient{},
+			expectedErrorMessage: "unable to apply cluster api stack to external cluster: unable to apply cluster apiserver: " +
+				"unable to apply apiserver yaml: yaml apply error",
+		},
+		{
+			name: "fail delete provider components should succeed",
+			provisionExternalErr: nil,
+			NewCoreClientsetErr: nil,
+			externalClient: &testClusterClient{},
+			internalClient: &testClusterClient{DeleteErr: fmt.Errorf("kubectl delete error")},
+			expectedErrorMessage: "",
+		},
+		{
+			name: "error listing machines",
+			provisionExternalErr: nil,
+			NewCoreClientsetErr: nil, externalClient: &testClusterClient{},
+			internalClient: &testClusterClient{GetMachineObjectsErr: fmt.Errorf("get machines error")},
+			expectedErrorMessage: "unable to copy objects from internal to external cluster: get machines error",
+		},
+		{
+			name: "error listing machine sets",
+			provisionExternalErr: nil,
+			NewCoreClientsetErr: nil, externalClient: &testClusterClient{},
+			internalClient: &testClusterClient{GetMachineSetObjectsErr: fmt.Errorf("get machine sets error")},
+			expectedErrorMessage: "unable to copy objects from internal to external cluster: get machine sets error",
+		},
+		{
+			name: "error listing machine deployments",
+			provisionExternalErr: nil,
+			NewCoreClientsetErr: nil, externalClient: &testClusterClient{},
+			internalClient: &testClusterClient{GetMachineDeploymentObjectsErr: fmt.Errorf("get machine deployments error")},
+			expectedErrorMessage: "unable to copy objects from internal to external cluster: get machine deployments error",
+		},
+		{
+			name: "error listing clusters",
+			provisionExternalErr: nil,
+			NewCoreClientsetErr: nil, externalClient: &testClusterClient{},
+			internalClient: &testClusterClient{GetClusterObjectsErr: fmt.Errorf("get clusters error")},
+			expectedErrorMessage: "unable to copy objects from internal to external cluster: get clusters error",
+		},
+		{
+			name: "error creating machines",
+			provisionExternalErr: nil,
+			NewCoreClientsetErr: nil,
+			externalClient: &testClusterClient{CreateMachineObjectsErr: fmt.Errorf("create machines error"),},
+			internalClient: &testClusterClient{machines: generateMachines()},
+			expectedErrorMessage: "unable to copy objects from internal to external cluster: error moving Machine 'test-master': create machines error",
+		},
+		{
+			name: "error creating machine sets",
+			provisionExternalErr: nil,
+			NewCoreClientsetErr: nil,
+			externalClient: &testClusterClient{CreateMachineSetObjectsErr: fmt.Errorf("create machine sets error")},
+			internalClient: &testClusterClient{machineSets: newMachineSetsFixture()},
+			expectedErrorMessage: "unable to copy objects from internal to external cluster: error moving MachineSet 'machine-set-name-1': create machine sets error",
+		},
+		{
+			name: "error creating machine deployments",
+			provisionExternalErr: nil,
+			NewCoreClientsetErr: nil,
+			externalClient: &testClusterClient{CreateMachineDeploymentsObjectsErr: fmt.Errorf("create machine deployments error")},
+			internalClient: &testClusterClient{machineDeployments: newMachineDeploymentsFixture()},
+			expectedErrorMessage: "unable to copy objects from internal to external cluster: error moving " +
+				"MachineDeployment 'machine-deployment-name-1': create machine deployments error",
+		},
+		{
+			name: "error creating cluster",
+			provisionExternalErr: nil,
+			NewCoreClientsetErr: nil,
+			externalClient: &testClusterClient{CreateClusterObjectErr: fmt.Errorf("create cluster error")},
+			internalClient: &testClusterClient{clusters: newClustersFixture()},
+			expectedErrorMessage: "unable to copy objects from internal to external cluster: error moving Cluster 'cluster-name-1': create cluster error",
+		},
+		{
+			name: "error deleting machines",
+			provisionExternalErr: nil,
+			NewCoreClientsetErr: nil,
+			externalClient: &testClusterClient{DeleteMachineObjectsErr: fmt.Errorf("delete machines error")},
+			internalClient: &testClusterClient{},
+			expectedErrorMessage: "unable to finish deleting objects in external cluster, resources may have been leaked: " +
+				"error(s) encountered deleting objects from external cluster: [error deleting machines: delete machines error]",
+		},
+		{
+			name: "error deleting machine sets",
+			provisionExternalErr: nil,
+			NewCoreClientsetErr: nil,
+			externalClient: &testClusterClient{DeleteMachineSetObjectsErr: fmt.Errorf("delete machine sets error")},
+			internalClient: &testClusterClient{},
+			expectedErrorMessage: "unable to finish deleting objects in external cluster, resources may have been leaked: " +
+				"error(s) encountered deleting objects from external cluster: [error deleting machine sets: delete machine sets error]",
+		},
+		{
+			name: "error deleting machine deployments",
+			provisionExternalErr: nil,
+			NewCoreClientsetErr: nil,
+			externalClient: &testClusterClient{DeleteMachineDeploymentsObjectsErr: fmt.Errorf("delete machine deployments error")},
+			internalClient: &testClusterClient{},
+			expectedErrorMessage: "unable to finish deleting objects in external cluster, resources may have been leaked: " +
+				"error(s) encountered deleting objects from external cluster: [error deleting machine deployments: delete machine deployments error]",
+		},
+		{
+			name: "error deleting clusters",
+			provisionExternalErr: nil,
+			NewCoreClientsetErr: nil,
+			externalClient: &testClusterClient{DeleteClusterObjectsErr: fmt.Errorf("delete clusters error")},
+			internalClient: &testClusterClient{},
+			expectedErrorMessage: "unable to finish deleting objects in external cluster, resources may have been leaked: " +
+				"error(s) encountered deleting objects from external cluster: [error deleting clusters: delete clusters error]",
+		},
+		{
+			name: "error deleting machines and clusters",
+			provisionExternalErr: nil,
+			NewCoreClientsetErr: nil,
+			externalClient: &testClusterClient{DeleteMachineObjectsErr: fmt.Errorf("delete machines error"), DeleteClusterObjectsErr: fmt.Errorf("delete clusters error")},
+			internalClient: &testClusterClient{},
+			expectedErrorMessage: "unable to finish deleting objects in external cluster, resources may have been leaked: " +
+				"error(s) encountered deleting objects from external cluster: [error deleting machines: " +
+				"delete machines error, error deleting clusters: delete clusters error]",
+		},
 	}
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
@@ -634,7 +769,7 @@ func TestDeleteBasicScenarios(t *testing.T) {
 			err := d.Delete(tc.internalClient)
 			if err != nil || tc.expectedErrorMessage != "" {
 				if err == nil {
-					t.Errorf("expected error")
+					t.Errorf("expected to find an error, but found none.")
 				} else if err.Error() != tc.expectedErrorMessage {
 					t.Errorf("Unexpected error: got '%v', want: '%v'", err, tc.expectedErrorMessage)
 				}

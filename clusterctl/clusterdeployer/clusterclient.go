@@ -207,6 +207,50 @@ func (c *clusterClient) CreateMachineObjects(machines []*clusterv1.Machine) erro
 	return nil
 }
 
+// DeleteApiServerStackDeployments attempts to delete apiserver stack resources
+func (c *clusterClient) DeleteApiServerStackDeployments() error {
+	// delete cluster controller
+	cmd := exec.Command("kubectl", c.buildKubectlDeleteDeploymentArgs("deployment","clusterapi-controllers")...)
+	out, err := cmd.CombinedOutput()
+	if err != nil {
+		glog.V(2).Infof("running args kubeclt %v", c.buildKubectlDeleteDeploymentArgs("deployment","clusterapi-controllers"))
+		return fmt.Errorf("couldn't kubectl delete deployment clusterapi-controllers: %v, output: %s", err, string(out))
+	}
+
+	// delete apiserver
+	cmd = exec.Command("kubectl", c.buildKubectlDeleteDeploymentArgs("deployment","clusterapi-apiserver")...)
+	out, err = cmd.CombinedOutput()
+	if err != nil {
+		glog.V(2).Infof("running args kubeclt %v", c.buildKubectlDeleteDeploymentArgs("deployment","clusterapi-apiserver"))
+		return fmt.Errorf("couldn't kubectl delete deployment clusterapi-apiserver: %v, output: %s", err, string(out))
+	}
+
+	// delete etcd server
+	cmd = exec.Command("kubectl", c.buildKubectlDeleteDeploymentArgs("statefulset","etcd-clusterapi")...)
+	out, err = cmd.CombinedOutput()
+	if err != nil {
+		glog.V(2).Infof("running args kubeclt %v", c.buildKubectlDeleteDeploymentArgs("statefulset","etcd-clusterapi"))
+		return fmt.Errorf("couldn't kubectl delete statefulset etcd-clusterapi: %v, output: %s", err, string(out))
+	}
+	return nil
+}
+
+// builds the commands to delete a resources based on type and name
+func (c *clusterClient) buildKubectlDeleteDeploymentArgs(resourceType string, resourceName string) []string {
+	args := []string{"delete"}
+	if c.kubeconfigFile != "" {
+		args = append(args, "--kubeconfig", c.kubeconfigFile)
+	}
+	if c.configOverrides.Context.Namespace != "" {
+		args = append(args, "--namespace", c.configOverrides.Context.Namespace)
+	}
+	if c.configOverrides.Context.AuthInfo != "" {
+		args = append(args, "--user", c.configOverrides.Context.AuthInfo)
+	}
+	return append(args, resourceType, resourceName)
+}
+
+
 func (c *clusterClient) DeleteClusterObjects() error {
 	err := c.clientSet.ClusterV1alpha1().Clusters(apiv1.NamespaceDefault).DeleteCollection(newDeleteOptions(), metav1.ListOptions{})
 	if err != nil {

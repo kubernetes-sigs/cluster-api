@@ -17,9 +17,10 @@ limitations under the License.
 package kubeadm
 
 import (
-	"sigs.k8s.io/cluster-api/pkg/cmd-runner"
 	"strings"
 	"time"
+
+	"sigs.k8s.io/cluster-api/pkg/cmd-runner"
 )
 
 // The purpose of Kubeadm and this file is to provide a unit tested wrapper around the 'kubeadm' exec command. Higher
@@ -34,6 +35,7 @@ type TokenCreateParams struct {
 	Description      string
 	Groups           []string
 	Help             bool
+	KubeConfig       string
 	PrintJoinCommand bool
 	Ttl              time.Duration
 	Usages           []string
@@ -57,6 +59,7 @@ func (k *Kubeadm) TokenCreate(params TokenCreateParams) (string, error) {
 	args = appendStringParamIfPresent(args, "--description", params.Description)
 	args = appendStringSliceIfValid(args, "--groups", params.Groups)
 	args = appendFlagIfTrue(args, "--help", params.Help)
+	args = appendStringParamIfPresent(args, "--kubeconfig", params.KubeConfig)
 	args = appendFlagIfTrue(args, "--print-join-command", params.PrintJoinCommand)
 	if params.Ttl != time.Duration(0) {
 		args = append(args, "--ttl")

@@ -14,8 +14,9 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package clusterdeployer
+package deployer
 
+// ClusterAPIAPIServerConfigTemplate specifies the manifests for the clusterapi-apiserver
 const ClusterAPIAPIServerConfigTemplate = `
 apiVersion: apiregistration.k8s.io/v1beta1
 kind: APIService

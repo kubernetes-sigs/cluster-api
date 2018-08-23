@@ -24261,12 +24261,25 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 								},
 							},
 						},
+						"conditions": {
+							SchemaProps: spec.SchemaProps{
+								Description: "List of conditions synced from the node-conditions of the corresponding node-object. Machine-controller would be responsible for keeping conditions up-to-date. Machine-set controller will be taking these conditions as a signal to decide if machine is healthy or needs to be replaced. Refer: https://kubernetes.io/docs/concepts/architecture/nodes/#condition",
+								Type:        []string{"array"},
+								Items: &spec.SchemaOrArray{
+									Schema: &spec.Schema{
+										SchemaProps: spec.SchemaProps{
+											Ref: ref("k8s.io/api/core/v1.NodeCondition"),
+										},
+									},
+								},
+							},
+						},
 					},
 					Required: []string{"providerStatus"},
 				},
 			},
 			Dependencies: []string{
-				"k8s.io/api/core/v1.NodeAddress", "k8s.io/api/core/v1.ObjectReference", "k8s.io/apimachinery/pkg/apis/meta/v1.Time", "k8s.io/apimachinery/pkg/runtime.RawExtension", "sigs.k8s.io/cluster-api/pkg/apis/cluster/v1alpha1.MachineVersionInfo"},
+				"k8s.io/api/core/v1.NodeAddress", "k8s.io/api/core/v1.NodeCondition", "k8s.io/api/core/v1.ObjectReference", "k8s.io/apimachinery/pkg/apis/meta/v1.Time", "k8s.io/apimachinery/pkg/runtime.RawExtension", "sigs.k8s.io/cluster-api/pkg/apis/cluster/v1alpha1.MachineVersionInfo"},
 		},
 		"sigs.k8s.io/cluster-api/pkg/apis/cluster/v1alpha1.MachineStatusStrategy": {
 			Schema: spec.Schema{

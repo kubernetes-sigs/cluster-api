@@ -14,12 +14,12 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package externalclusterprovisioner
+package existing
 
 import (
-	"testing"
-	"os"
 	"io/ioutil"
+	"os"
+	"testing"
 )
 
 func TestGetKubeconfig(t *testing.T) {
@@ -30,8 +30,8 @@ func TestGetKubeconfig(t *testing.T) {
 	}
 	defer os.Remove(f)
 
-	t.Run("invalid path given", func(t *testing.T){
-		_, err = NewExternalCluster("")
+	t.Run("invalid path given", func(t *testing.T) {
+		_, err = NewExistingCluster("")
 		if err == nil {
 			t.Fatal("Should not be able create External Cluster Provisioner.")
 		}
@@ -39,7 +39,7 @@ func TestGetKubeconfig(t *testing.T) {
 
 	t.Run("file exists", func(t *testing.T) {
 
-		ec, err := NewExternalCluster(f)
+		ec, err := NewExistingCluster(f)
 		if err != nil {
 			t.Fatal("Should be able create External Cluster Provisioner.")
 		}

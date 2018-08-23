@@ -6,7 +6,7 @@ Usage:
 
 Flags:
   -a, --addon-components string                        A yaml file containing cluster addons to apply to the internal cluster
-      --cleanup-external-cluster                       Whether to cleanup the external cluster after bootstrap (default true)
+      --cleanup-bootstrap-cluster                      Whether to cleanup the bootstrap cluster after bootstrap (default true)
   -c, --cluster string                                 A yaml file containing cluster object definition
       --existing-bootstrap-cluster-kubeconfig string   Path to an existing cluster's kubeconfig for bootstrapping (intead of using minikube)
   -h, --help                                           help for cluster

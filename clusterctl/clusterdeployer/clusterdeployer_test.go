@@ -229,15 +229,15 @@ func (d *testProviderDeployer) GetKubeConfig(_ *clusterv1.Cluster, _ *clusterv1.
 }
 
 func TestCreate(t *testing.T) {
-	const externalKubeconfig = "external"
-	const internalKubeconfig = "internal"
+	const bootstrapKubeconfig = "bootstrap"
+	const targetKubeconfig = "target"
 
 	var testcases = []struct {
 		name                     string
 		provisionExternalErr     error
 		factoryClusterClientErr  error
-		externalClient           *testClusterClient
-		internalClient           *testClusterClient
+		bootstrapClient          *testClusterClient
+		targetClient             *testClusterClient
 		cleanupExternal          bool
 		expectErr                bool
 		expectExternalExists     bool
@@ -247,8 +247,8 @@ func TestCreate(t *testing.T) {
 	}{
 		{
 			name:                     "success",
-			internalClient:           &testClusterClient{},
-			externalClient:           &testClusterClient{},
+			targetClient:             &testClusterClient{},
+			bootstrapClient:          &testClusterClient{},
 			cleanupExternal:          true,
 			expectExternalExists:     false,
 			expectExternalCreated:    true,
@@ -256,9 +256,9 @@ func TestCreate(t *testing.T) {
 			expectedInternalMachines: 2,
 		},
 		{
-			name:                     "success no cleaning external",
-			internalClient:           &testClusterClient{},
-			externalClient:           &testClusterClient{},
+			name:                     "success no cleaning bootstrap",
+			targetClient:             &testClusterClient{},
+			bootstrapClient:          &testClusterClient{},
 			cleanupExternal:          false,
 			expectExternalExists:     true,
 			expectExternalCreated:    true,
@@ -266,114 +266,114 @@ func TestCreate(t *testing.T) {
 			expectedInternalMachines: 2,
 		},
 		{
-			name:                 "fail provision external cluster",
-			internalClient:       &testClusterClient{},
-			externalClient:       &testClusterClient{},
+			name:                 "fail provision bootstrap cluster",
+			targetClient:         &testClusterClient{},
+			bootstrapClient:      &testClusterClient{},
 			provisionExternalErr: fmt.Errorf("Test failure"),
 			expectErr:            true,
 		},
 		{
 			name:                    "fail create clients",
-			internalClient:          &testClusterClient{},
-			externalClient:          &testClusterClient{},
+			targetClient:            &testClusterClient{},
+			bootstrapClient:         &testClusterClient{},
 			cleanupExternal:         true,
 			expectExternalCreated:   true,
 			factoryClusterClientErr: fmt.Errorf("Test failure"),
 			expectErr:               true,
 		},
 		{
-			name:                  "fail apply yaml to external cluster",
-			internalClient:        &testClusterClient{},
-			externalClient:        &testClusterClient{ApplyErr: fmt.Errorf("Test failure")},
+			name:                  "fail apply yaml to bootstrap cluster",
+			targetClient:          &testClusterClient{},
+			bootstrapClient:       &testClusterClient{ApplyErr: fmt.Errorf("Test failure")},
 			cleanupExternal:       true,
 			expectExternalCreated: true,
 			expectErr:             true,
 		},
 		{
-			name:                  "fail waiting for api ready on external cluster",
-			internalClient:        &testClusterClient{},
-			externalClient:        &testClusterClient{WaitForClusterV1alpha1ReadyErr: fmt.Errorf("Test failure")},
+			name:                  "fail waiting for api ready on bootstrap cluster",
+			targetClient:          &testClusterClient{},
+			bootstrapClient:       &testClusterClient{WaitForClusterV1alpha1ReadyErr: fmt.Errorf("Test failure")},
 			cleanupExternal:       true,
 			expectExternalCreated: true,
 			expectErr:             true,
 		},
 		{
-			name:                  "fail getting external cluster objects",
-			internalClient:        &testClusterClient{},
-			externalClient:        &testClusterClient{GetClusterObjectsErr: fmt.Errorf("Test failure")},
+			name:                  "fail getting bootstrap cluster objects",
+			targetClient:          &testClusterClient{},
+			bootstrapClient:       &testClusterClient{GetClusterObjectsErr: fmt.Errorf("Test failure")},
 			cleanupExternal:       true,
 			expectExternalCreated: true,
 			expectErr:             true,
 		},
 		{
-			name:                  "fail getting external machine objects",
-			internalClient:        &testClusterClient{},
-			externalClient:        &testClusterClient{GetMachineObjectsErr: fmt.Errorf("Test failure")},
+			name:                  "fail getting bootstrap machine objects",
+			targetClient:          &testClusterClient{},
+			bootstrapClient:       &testClusterClient{GetMachineObjectsErr: fmt.Errorf("Test failure")},
 			cleanupExternal:       true,
 			expectExternalCreated: true,
 			expectErr:             true,
 		},
 		{
 			name:                  "fail create cluster",
-			internalClient:        &testClusterClient{},
-			externalClient:        &testClusterClient{CreateClusterObjectErr: fmt.Errorf("Test failure")},
+			targetClient:          &testClusterClient{},
+			bootstrapClient:       &testClusterClient{CreateClusterObjectErr: fmt.Errorf("Test failure")},
 			cleanupExternal:       true,
 			expectExternalCreated: true,
 			expectErr:             true,
 		},
 		{
 			name:                  "fail create master",
-			internalClient:        &testClusterClient{},
-			externalClient:        &testClusterClient{CreateMachineObjectsErr: fmt.Errorf("Test failure")},
+			targetClient:          &testClusterClient{},
+			bootstrapClient:       &testClusterClient{CreateMachineObjectsErr: fmt.Errorf("Test failure")},
 			cleanupExternal:       true,
 			expectExternalCreated: true,
 			expectErr:             true,
 		},
 		{
-			name:                  "fail update external cluster endpoint",
-			internalClient:        &testClusterClient{},
-			externalClient:        &testClusterClient{UpdateClusterObjectEndpointErr: fmt.Errorf("Test failure")},
+			name:                  "fail update bootstrap cluster endpoint",
+			targetClient:          &testClusterClient{},
+			bootstrapClient:       &testClusterClient{UpdateClusterObjectEndpointErr: fmt.Errorf("Test failure")},
 			cleanupExternal:       true,
 			expectExternalCreated: true,
 			expectErr:             true,
 		},
 		{
-			name:                  "fail apply yaml to internal cluster",
-			internalClient:        &testClusterClient{ApplyErr: fmt.Errorf("Test failure")},
-			externalClient:        &testClusterClient{},
+			name:                  "fail apply yaml to target cluster",
+			targetClient:          &testClusterClient{ApplyErr: fmt.Errorf("Test failure")},
+			bootstrapClient:       &testClusterClient{},
 			cleanupExternal:       true,
 			expectExternalCreated: true,
 			expectErr:             true,
 		},
 		{
-			name:                  "fail wait for api ready on internal cluster",
-			internalClient:        &testClusterClient{WaitForClusterV1alpha1ReadyErr: fmt.Errorf("Test failure")},
-			externalClient:        &testClusterClient{},
+			name:                  "fail wait for api ready on target cluster",
+			targetClient:          &testClusterClient{WaitForClusterV1alpha1ReadyErr: fmt.Errorf("Test failure")},
+			bootstrapClient:       &testClusterClient{},
 			cleanupExternal:       true,
 			expectExternalCreated: true,
 			expectErr:             true,
 		},
 		{
-			name:                  "fail  create internal cluster",
-			internalClient:        &testClusterClient{CreateClusterObjectErr: fmt.Errorf("Test failure")},
-			externalClient:        &testClusterClient{},
+			name:                  "fail  create target cluster",
+			targetClient:          &testClusterClient{CreateClusterObjectErr: fmt.Errorf("Test failure")},
+			bootstrapClient:       &testClusterClient{},
 			cleanupExternal:       true,
 			expectExternalCreated: true,
 			expectErr:             true,
 		},
 		{
 			name:                     "fail create nodes",
-			internalClient:           &testClusterClient{CreateMachineObjectsErr: fmt.Errorf("Test failure")},
-			externalClient:           &testClusterClient{},
+			targetClient:             &testClusterClient{CreateMachineObjectsErr: fmt.Errorf("Test failure")},
+			bootstrapClient:          &testClusterClient{},
 			cleanupExternal:          true,
 			expectExternalCreated:    true,
 			expectedInternalClusters: 1,
 			expectErr:                true,
 		},
 		{
-			name:                     "fail update cluster endpoint internal",
-			internalClient:           &testClusterClient{UpdateClusterObjectEndpointErr: fmt.Errorf("Test failure")},
-			externalClient:           &testClusterClient{},
+			name:                     "fail update cluster endpoint target",
+			targetClient:             &testClusterClient{UpdateClusterObjectEndpointErr: fmt.Errorf("Test failure")},
+			bootstrapClient:          &testClusterClient{},
 			cleanupExternal:          true,
 			expectExternalCreated:    true,
 			expectedInternalClusters: 1,
@@ -389,13 +389,13 @@ func TestCreate(t *testing.T) {
 			// Create provisioners & clients and hook them up
 			p := &testClusterProvisioner{
 				err:        testcase.provisionExternalErr,
-				kubeconfig: externalKubeconfig,
+				kubeconfig: bootstrapKubeconfig,
 			}
 			pd := &testProviderDeployer{}
-			pd.kubeconfig = internalKubeconfig
+			pd.kubeconfig = targetKubeconfig
 			f := newTestClusterClientFactory()
-			f.clusterClients[externalKubeconfig] = testcase.externalClient
-			f.clusterClients[internalKubeconfig] = testcase.internalClient
+			f.clusterClients[bootstrapKubeconfig] = testcase.bootstrapClient
+			f.clusterClients[targetKubeconfig] = testcase.targetClient
 			f.ClusterClientErr = testcase.factoryClusterClientErr
 
 			// Create
@@ -412,25 +412,25 @@ func TestCreate(t *testing.T) {
 				t.Fatalf("Unexpected returned error. Got: %v, Want Err: %v", err, testcase.expectErr)
 			}
 			if testcase.expectExternalExists != p.clusterExists {
-				t.Errorf("Unexpected external cluster existance. Got: %v, Want: %v", p.clusterExists, testcase.expectExternalExists)
+				t.Errorf("Unexpected bootstrap cluster existance. Got: %v, Want: %v", p.clusterExists, testcase.expectExternalExists)
 			}
 			if testcase.expectExternalCreated != p.clusterCreated {
-				t.Errorf("Unexpected external cluster provisioning. Got: %v, Want: %v", p.clusterCreated, testcase.expectExternalCreated)
+				t.Errorf("Unexpected bootstrap cluster provisioning. Got: %v, Want: %v", p.clusterCreated, testcase.expectExternalCreated)
 			}
-			if testcase.expectedInternalClusters != len(testcase.internalClient.clusters) {
-				t.Fatalf("Unexpected cluster count. Got: %v, Want: %v", len(testcase.internalClient.clusters), testcase.expectedInternalClusters)
+			if testcase.expectedInternalClusters != len(testcase.targetClient.clusters) {
+				t.Fatalf("Unexpected cluster count. Got: %v, Want: %v", len(testcase.targetClient.clusters), testcase.expectedInternalClusters)
 			}
-			if testcase.expectedInternalClusters > 1 && inputCluster.Name != testcase.internalClient.clusters[0].Name {
-				t.Errorf("Provisioned cluster has unexpected name. Got: %v, Want: %v", testcase.internalClient.clusters[0].Name, inputCluster.Name)
+			if testcase.expectedInternalClusters > 1 && inputCluster.Name != testcase.targetClient.clusters[0].Name {
+				t.Errorf("Provisioned cluster has unexpected name. Got: %v, Want: %v", testcase.targetClient.clusters[0].Name, inputCluster.Name)
 			}
 
-			if testcase.expectedInternalMachines != len(testcase.internalClient.machines) {
-				t.Fatalf("Unexpected machine count. Got: %v, Want: %v", len(testcase.internalClient.machines), testcase.expectedInternalMachines)
+			if testcase.expectedInternalMachines != len(testcase.targetClient.machines) {
+				t.Fatalf("Unexpected machine count. Got: %v, Want: %v", len(testcase.targetClient.machines), testcase.expectedInternalMachines)
 			}
 			if testcase.expectedInternalMachines == len(inputMachines) {
 				for i := range inputMachines {
-					if inputMachines[i].Name != testcase.internalClient.machines[i].Name {
-						t.Fatalf("Unexpected machine name at %v. Got: %v, Want: %v", i, inputMachines[i].Name, testcase.internalClient.machines[i].Name)
+					if inputMachines[i].Name != testcase.targetClient.machines[i].Name {
+						t.Fatalf("Unexpected machine name at %v. Got: %v, Want: %v", i, inputMachines[i].Name, testcase.targetClient.machines[i].Name)
 					}
 				}
 			}
@@ -439,28 +439,28 @@ func TestCreate(t *testing.T) {
 }
 
 func TestCreateProviderComponentsScenarios(t *testing.T) {
-	const externalKubeconfig = "external"
-	const internalKubeconfig = "internal"
+	const bootstrapKubeconfig = "bootstrap"
+	const targetKubeconfig = "target"
 	testCases := []struct {
 		name          string
 		pcStore       mockProviderComponentsStore
 		expectedError string
 	}{
 		{"success", mockProviderComponentsStore{SaveErr: nil}, ""},
-		{"error when saving", mockProviderComponentsStore{SaveErr: fmt.Errorf("pcstore save error")}, "unable to save provider components to internal cluster: error saving provider components: pcstore save error"},
+		{"error when saving", mockProviderComponentsStore{SaveErr: fmt.Errorf("pcstore save error")}, "unable to save provider components to target cluster: error saving provider components: pcstore save error"},
 	}
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
 			kubeconfigOut := newTempFile(t)
 			defer os.Remove(kubeconfigOut)
 			p := &testClusterProvisioner{
-				kubeconfig: externalKubeconfig,
+				kubeconfig: bootstrapKubeconfig,
 			}
 			pd := &testProviderDeployer{}
-			pd.kubeconfig = internalKubeconfig
+			pd.kubeconfig = targetKubeconfig
 			f := newTestClusterClientFactory()
-			f.clusterClients[externalKubeconfig] = &testClusterClient{}
-			f.clusterClients[internalKubeconfig] = &testClusterClient{}
+			f.clusterClients[bootstrapKubeconfig] = &testClusterClient{}
+			f.clusterClients[targetKubeconfig] = &testClusterClient{}
 
 			inputCluster := &clusterv1.Cluster{}
 			inputCluster.Name = "test-cluster"
@@ -550,32 +550,32 @@ func TestExtractMasterMachine(t *testing.T) {
 }
 
 func TestDeleteCleanupExternalCluster(t *testing.T) {
-	const externalKubeconfig = "external"
-	const internalKubeconfig = "internal"
+	const bootstrapKubeconfig = "bootstrap"
+	const targetKubeconfig = "target"
 
 	testCases := []struct {
 		name                   string
 		cleanupExternalCluster bool
 		provisionExternalErr   error
-		externalClient         *testClusterClient
-		internalClient         *testClusterClient
+		bootstrapClient        *testClusterClient
+		targetClient           *testClusterClient
 		expectedErrorMessage   string
 	}{
 		{"success with cleanup", true, nil, &testClusterClient{}, &testClusterClient{}, ""},
 		{"success without cleanup", false, nil, &testClusterClient{}, &testClusterClient{}, ""},
-		{"error with cleanup", true, nil, &testClusterClient{}, &testClusterClient{GetMachineSetObjectsErr: fmt.Errorf("get machine sets error")}, "unable to copy objects from internal to external cluster: get machine sets error"},
-		{"error without cleanup", true, nil, &testClusterClient{}, &testClusterClient{GetMachineSetObjectsErr: fmt.Errorf("get machine sets error")}, "unable to copy objects from internal to external cluster: get machine sets error"},
+		{"error with cleanup", true, nil, &testClusterClient{}, &testClusterClient{GetMachineSetObjectsErr: fmt.Errorf("get machine sets error")}, "unable to copy objects from target to bootstrap cluster: get machine sets error"},
+		{"error without cleanup", true, nil, &testClusterClient{}, &testClusterClient{GetMachineSetObjectsErr: fmt.Errorf("get machine sets error")}, "unable to copy objects from target to bootstrap cluster: get machine sets error"},
 	}
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
 			kubeconfigOut := newTempFile(t)
 			defer os.Remove(kubeconfigOut)
-			p := &testClusterProvisioner{err: tc.provisionExternalErr, kubeconfig: externalKubeconfig}
+			p := &testClusterProvisioner{err: tc.provisionExternalErr, kubeconfig: bootstrapKubeconfig}
 			f := newTestClusterClientFactory()
-			f.clusterClients[externalKubeconfig] = tc.externalClient
-			f.clusterClients[internalKubeconfig] = tc.internalClient
+			f.clusterClients[bootstrapKubeconfig] = tc.bootstrapClient
+			f.clusterClients[targetKubeconfig] = tc.targetClient
 			d := New(p, f, "", "", tc.cleanupExternalCluster)
-			err := d.Delete(tc.internalClient)
+			err := d.Delete(tc.targetClient)
 			if err != nil || tc.expectedErrorMessage != "" {
 				if err == nil {
 					t.Errorf("expected error")
@@ -591,47 +591,47 @@ func TestDeleteCleanupExternalCluster(t *testing.T) {
 }
 
 func TestDeleteBasicScenarios(t *testing.T) {
-	const externalKubeconfig = "external"
-	const internalKubeconfig = "internal"
+	const bootstrapKubeconfig = "bootstrap"
+	const targetKubeconfig = "target"
 
 	testCases := []struct {
 		name                 string
 		provisionExternalErr error
 		NewCoreClientsetErr  error
-		externalClient       *testClusterClient
-		internalClient       *testClusterClient
+		bootstrapClient      *testClusterClient
+		targetClient         *testClusterClient
 		expectedErrorMessage string
 	}{
 		{"success", nil, nil, &testClusterClient{}, &testClusterClient{}, ""},
-		{"error creating core client", nil, fmt.Errorf("error creating core client"), &testClusterClient{}, &testClusterClient{}, "could not create external cluster: unable to create external client: error creating core client"},
-		{"fail provision external cluster", fmt.Errorf("minikube error"), nil, &testClusterClient{}, &testClusterClient{}, "could not create external cluster: could not create external control plane: minikube error"},
-		{"fail apply yaml to external cluster", nil, nil, &testClusterClient{ApplyErr: fmt.Errorf("yaml apply error")}, &testClusterClient{}, "unable to apply cluster api stack to external cluster: unable to apply cluster apiserver: unable to apply apiserver yaml: yaml apply error"},
+		{"error creating core client", nil, fmt.Errorf("error creating core client"), &testClusterClient{}, &testClusterClient{}, "could not create bootstrap cluster: unable to create bootstrap client: error creating core client"},
+		{"fail provision bootstrap cluster", fmt.Errorf("minikube error"), nil, &testClusterClient{}, &testClusterClient{}, "could not create bootstrap cluster: could not create bootstrap control plane: minikube error"},
+		{"fail apply yaml to bootstrap cluster", nil, nil, &testClusterClient{ApplyErr: fmt.Errorf("yaml apply error")}, &testClusterClient{}, "unable to apply cluster api stack to bootstrap cluster: unable to apply cluster apiserver: unable to apply apiserver yaml: yaml apply error"},
 		{"fail delete provider components should succeed", nil, nil, &testClusterClient{}, &testClusterClient{DeleteErr: fmt.Errorf("kubectl delete error")}, ""},
-		{"error listing machines", nil, nil, &testClusterClient{}, &testClusterClient{GetMachineObjectsErr: fmt.Errorf("get machines error")}, "unable to copy objects from internal to external cluster: get machines error"},
-		{"error listing machine sets", nil, nil, &testClusterClient{}, &testClusterClient{GetMachineSetObjectsErr: fmt.Errorf("get machine sets error")}, "unable to copy objects from internal to external cluster: get machine sets error"},
-		{"error listing machine deployments", nil, nil, &testClusterClient{}, &testClusterClient{GetMachineDeploymentObjectsErr: fmt.Errorf("get machine deployments error")}, "unable to copy objects from internal to external cluster: get machine deployments error"},
-		{"error listing clusters", nil, nil, &testClusterClient{}, &testClusterClient{GetClusterObjectsErr: fmt.Errorf("get clusters error")}, "unable to copy objects from internal to external cluster: get clusters error"},
-		{"error creating machines", nil, nil, &testClusterClient{CreateMachineObjectsErr: fmt.Errorf("create machines error")}, &testClusterClient{machines: generateMachines()}, "unable to copy objects from internal to external cluster: error moving Machine 'test-master': create machines error"},
-		{"error creating machine sets", nil, nil, &testClusterClient{CreateMachineSetObjectsErr: fmt.Errorf("create machine sets error")}, &testClusterClient{machineSets: newMachineSetsFixture()}, "unable to copy objects from internal to external cluster: error moving MachineSet 'machine-set-name-1': create machine sets error"},
-		{"error creating machine deployments", nil, nil, &testClusterClient{CreateMachineDeploymentsObjectsErr: fmt.Errorf("create machine deployments error")}, &testClusterClient{machineDeployments: newMachineDeploymentsFixture()}, "unable to copy objects from internal to external cluster: error moving MachineDeployment 'machine-deployment-name-1': create machine deployments error"},
-		{"error creating cluster", nil, nil, &testClusterClient{CreateClusterObjectErr: fmt.Errorf("create cluster error")}, &testClusterClient{clusters: newClustersFixture()}, "unable to copy objects from internal to external cluster: error moving Cluster 'cluster-name-1': create cluster error"},
-		{"error deleting machines", nil, nil, &testClusterClient{DeleteMachineObjectsErr: fmt.Errorf("delete machines error")}, &testClusterClient{}, "unable to finish deleting objects in external cluster, resources may have been leaked: error(s) encountered deleting objects from external cluster: [error deleting machines: delete machines error]"},
-		{"error deleting machine sets", nil, nil, &testClusterClient{DeleteMachineSetObjectsErr: fmt.Errorf("delete machine sets error")}, &testClusterClient{}, "unable to finish deleting objects in external cluster, resources may have been leaked: error(s) encountered deleting objects from external cluster: [error deleting machine sets: delete machine sets error]"},
-		{"error deleting machine deployments", nil, nil, &testClusterClient{DeleteMachineDeploymentsObjectsErr: fmt.Errorf("delete machine deployments error")}, &testClusterClient{}, "unable to finish deleting objects in external cluster, resources may have been leaked: error(s) encountered deleting objects from external cluster: [error deleting machine deployments: delete machine deployments error]"},
-		{"error deleting clusters", nil, nil, &testClusterClient{DeleteClusterObjectsErr: fmt.Errorf("delete clusters error")}, &testClusterClient{}, "unable to finish deleting objects in external cluster, resources may have been leaked: error(s) encountered deleting objects from external cluster: [error deleting clusters: delete clusters error]"},
-		{"error deleting machines and clusters", nil, nil, &testClusterClient{DeleteMachineObjectsErr: fmt.Errorf("delete machines error"), DeleteClusterObjectsErr: fmt.Errorf("delete clusters error")}, &testClusterClient{}, "unable to finish deleting objects in external cluster, resources may have been leaked: error(s) encountered deleting objects from external cluster: [error deleting machines: delete machines error, error deleting clusters: delete clusters error]"},
+		{"error listing machines", nil, nil, &testClusterClient{}, &testClusterClient{GetMachineObjectsErr: fmt.Errorf("get machines error")}, "unable to copy objects from target to bootstrap cluster: get machines error"},
+		{"error listing machine sets", nil, nil, &testClusterClient{}, &testClusterClient{GetMachineSetObjectsErr: fmt.Errorf("get machine sets error")}, "unable to copy objects from target to bootstrap cluster: get machine sets error"},
+		{"error listing machine deployments", nil, nil, &testClusterClient{}, &testClusterClient{GetMachineDeploymentObjectsErr: fmt.Errorf("get machine deployments error")}, "unable to copy objects from target to bootstrap cluster: get machine deployments error"},
+		{"error listing clusters", nil, nil, &testClusterClient{}, &testClusterClient{GetClusterObjectsErr: fmt.Errorf("get clusters error")}, "unable to copy objects from target to bootstrap cluster: get clusters error"},
+		{"error creating machines", nil, nil, &testClusterClient{CreateMachineObjectsErr: fmt.Errorf("create machines error")}, &testClusterClient{machines: generateMachines()}, "unable to copy objects from target to bootstrap cluster: error moving Machine 'test-master': create machines error"},
+		{"error creating machine sets", nil, nil, &testClusterClient{CreateMachineSetObjectsErr: fmt.Errorf("create machine sets error")}, &testClusterClient{machineSets: newMachineSetsFixture()}, "unable to copy objects from target to bootstrap cluster: error moving MachineSet 'machine-set-name-1': create machine sets error"},
+		{"error creating machine deployments", nil, nil, &testClusterClient{CreateMachineDeploymentsObjectsErr: fmt.Errorf("create machine deployments error")}, &testClusterClient{machineDeployments: newMachineDeploymentsFixture()}, "unable to copy objects from target to bootstrap cluster: error moving MachineDeployment 'machine-deployment-name-1': create machine deployments error"},
+		{"error creating cluster", nil, nil, &testClusterClient{CreateClusterObjectErr: fmt.Errorf("create cluster error")}, &testClusterClient{clusters: newClustersFixture()}, "unable to copy objects from target to bootstrap cluster: error moving Cluster 'cluster-name-1': create cluster error"},
+		{"error deleting machines", nil, nil, &testClusterClient{DeleteMachineObjectsErr: fmt.Errorf("delete machines error")}, &testClusterClient{}, "unable to finish deleting objects in bootstrap cluster, resources may have been leaked: error(s) encountered deleting objects from bootstrap cluster: [error deleting machines: delete machines error]"},
+		{"error deleting machine sets", nil, nil, &testClusterClient{DeleteMachineSetObjectsErr: fmt.Errorf("delete machine sets error")}, &testClusterClient{}, "unable to finish deleting objects in bootstrap cluster, resources may have been leaked: error(s) encountered deleting objects from bootstrap cluster: [error deleting machine sets: delete machine sets error]"},
+		{"error deleting machine deployments", nil, nil, &testClusterClient{DeleteMachineDeploymentsObjectsErr: fmt.Errorf("delete machine deployments error")}, &testClusterClient{}, "unable to finish deleting objects in bootstrap cluster, resources may have been leaked: error(s) encountered deleting objects from bootstrap cluster: [error deleting machine deployments: delete machine deployments error]"},
+		{"error deleting clusters", nil, nil, &testClusterClient{DeleteClusterObjectsErr: fmt.Errorf("delete clusters error")}, &testClusterClient{}, "unable to finish deleting objects in bootstrap cluster, resources may have been leaked: error(s) encountered deleting objects from bootstrap cluster: [error deleting clusters: delete clusters error]"},
+		{"error deleting machines and clusters", nil, nil, &testClusterClient{DeleteMachineObjectsErr: fmt.Errorf("delete machines error"), DeleteClusterObjectsErr: fmt.Errorf("delete clusters error")}, &testClusterClient{}, "unable to finish deleting objects in bootstrap cluster, resources may have been leaked: error(s) encountered deleting objects from bootstrap cluster: [error deleting machines: delete machines error, error deleting clusters: delete clusters error]"},
 	}
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
 			kubeconfigOut := newTempFile(t)
 			defer os.Remove(kubeconfigOut)
-			p := &testClusterProvisioner{err: tc.provisionExternalErr, kubeconfig: externalKubeconfig}
+			p := &testClusterProvisioner{err: tc.provisionExternalErr, kubeconfig: bootstrapKubeconfig}
 			f := newTestClusterClientFactory()
-			f.clusterClients[externalKubeconfig] = tc.externalClient
-			f.clusterClients[internalKubeconfig] = tc.internalClient
+			f.clusterClients[bootstrapKubeconfig] = tc.bootstrapClient
+			f.clusterClients[targetKubeconfig] = tc.targetClient
 			f.ClusterClientErr = tc.NewCoreClientsetErr
 			d := New(p, f, "", "", true)
-			err := d.Delete(tc.internalClient)
+			err := d.Delete(tc.targetClient)
 			if err != nil || tc.expectedErrorMessage != "" {
 				if err == nil {
 					t.Errorf("expected error")

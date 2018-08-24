@@ -108,12 +108,15 @@ type testClusterClient struct {
 	DeleteMachineDeploymentsObjectsErr            error
 	DeleteMachineDeploymentsObjectsInNamespaceErr error
 	UpdateClusterObjectEndpointErr                error
+	EnsureNamespaceErr                            error
+	DeleteNamespaceErr                            error
 	CloseErr                                      error
 
 	clusters           map[string][]*clusterv1.Cluster
 	machineDeployments map[string][]*clusterv1.MachineDeployment
 	machineSets        map[string][]*clusterv1.MachineSet
 	machines           map[string][]*clusterv1.Machine
+	namespaces         []string
 	contextNamespace   string
 }
 
@@ -280,6 +283,40 @@ func (c *testClusterClient) Close() error {
 	return c.CloseErr
 }
 
+func (c *testClusterClient) EnsureNamespace(nsName string) error {
+	if len(c.namespaces) == 0 {
+		c.namespaces = append(c.namespaces, nsName)
+	}
+	if exists := contains(c.namespaces, nsName); !exists {
+		c.namespaces = append(c.namespaces, nsName)
+	}
+	return c.EnsureNamespaceErr
+}
+
+func (c *testClusterClient) DeleteNamespace(namespaceName string) error {
+	var ns []string
+	for _, n := range c.namespaces {
+		if n == namespaceName {
+			continue
+		}
+		ns = append(ns, n)
+	}
+	c.namespaces = ns
+
+	return c.DeleteNamespaceErr
+}
+
+func contains(s []string, e string) bool {
+	exists := false
+	for _, existingNs := range s {
+		if existingNs == e {
+			exists = true
+			break
+		}
+	}
+	return exists
+}
+
 type testClusterClientFactory struct {
 	ClusterClientErr    error
 	clusterClients      map[string]*testClusterClient
@@ -400,6 +437,28 @@ func TestClusterCreate(t *testing.T) {
 				"": getClustersForNamespace("", 1),
 			},
 			expectedTotalInternalClustersCount: 1,
+		},
+		{
+			name:                                "fail ensureNamespace in bootstrap cluster",
+			targetClient:                        &testClusterClient{},
+			bootstrapClient:                     &testClusterClient{EnsureNamespaceErr: fmt.Errorf("Test failure")},
+			namespaceToExpectedInternalMachines: make(map[string]int),
+			namespaceToInputCluster:             map[string][]*clusterv1.Cluster{"foo": getClustersForNamespace("foo", 3)},
+			expectErr:                           true,
+			cleanupExternal:                     true,
+			expectExternalExists:                false,
+			expectExternalCreated:               true,
+		},
+		{
+			name:                                "fail ensureNamespace in target cluster",
+			targetClient:                        &testClusterClient{EnsureNamespaceErr: fmt.Errorf("Test failure")},
+			bootstrapClient:                     &testClusterClient{},
+			namespaceToExpectedInternalMachines: make(map[string]int),
+			namespaceToInputCluster:             map[string][]*clusterv1.Cluster{"foo": getClustersForNamespace("foo", 3)},
+			expectErr:                           true,
+			cleanupExternal:                     true,
+			expectExternalExists:                false,
+			expectExternalCreated:               true,
 		},
 		{
 			name:                                "fail provision multiple clusters in a namespace",
@@ -564,7 +623,6 @@ func TestClusterCreate(t *testing.T) {
 	}
 
 	for _, testcase := range testcases {
-
 		t.Run(testcase.name, func(t *testing.T) {
 			kubeconfigOut := newTempFile(t)
 			defer os.Remove(kubeconfigOut)
@@ -636,6 +694,14 @@ func TestClusterCreate(t *testing.T) {
 						if inputMachines[i].Name != testcase.targetClient.machines[ns][i].Name {
 							t.Fatalf("Unexpected machine name at %v in namespace %q. Got: %v, Want: %v", i, ns, inputMachines[i].Name, testcase.targetClient.machines[ns][i].Name)
 						}
+					}
+
+					if !contains(testcase.targetClient.namespaces, ns) {
+						t.Fatalf("Expected namespace %q in target namespace not found. Got: NotFound, Want: Found", ns)
+					}
+
+					if !contains(testcase.bootstrapClient.namespaces, ns) {
+						t.Fatalf("Expected namespace %q in bootstrap namespace not found. Got: NotFound, Want: Found", ns)
 					}
 				}
 				// Validate across all namespaces
@@ -800,7 +866,7 @@ func TestDeleteCleanupExternalCluster(t *testing.T) {
 	}
 }
 
-func TestDeleteClusters(t *testing.T) {
+func TestClusterDelete(t *testing.T) {
 	const bootstrapKubeconfig = "bootstrap"
 	const targetKubeconfig = "target"
 
@@ -1101,9 +1167,14 @@ func TestDeleteClusters(t *testing.T) {
 				if len(testCase.bootstrapClient.machineDeployments[testCase.namespace]) != 0 {
 					t.Fatalf("Unexpected machineDeployments count in namespace %q. Got: %d, Want: 0", testCase.namespace, len(testCase.targetClient.machineDeployments[testCase.namespace]))
 				}
-
 				if len(testCase.bootstrapClient.clusters) != testCase.expectedExternalClusterCount {
 					t.Fatalf("Unexpected remaining cluster count. Got: %d, Want: %d", len(testCase.bootstrapClient.clusters), testCase.expectedExternalClusterCount)
+				}
+				if contains(testCase.bootstrapClient.namespaces, testCase.namespace) {
+					t.Fatalf("Unexpected remaining namespace %q in bootstrap cluster. Got: Found, Want: NotFound", testCase.namespace)
+				}
+				if contains(testCase.targetClient.namespaces, testCase.namespace) {
+					t.Fatalf("Unexpected remaining namespace %q in target cluster. Got: Found, Want: NotFound", testCase.namespace)
 				}
 			}
 		})

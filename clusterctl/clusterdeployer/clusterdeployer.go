@@ -76,6 +76,8 @@ type ClusterClient interface {
 	DeleteMachineObjectsInNamespace(string) error
 	DeleteMachineObjects() error
 	UpdateClusterObjectEndpoint(string, string, string) error
+	EnsureNamespace(string) error
+	DeleteNamespace(string) error
 	Close() error
 }
 
@@ -140,7 +142,11 @@ func (d *ClusterDeployer) Create(cluster *clusterv1.Cluster, machines []*cluster
 	if cluster.Namespace == "" {
 		cluster.Namespace = bootstrapClient.GetContextNamespace()
 	}
-	// TODO: @ashisha Create cluster.Namespace in bootstrap and target clusters?
+
+	err = bootstrapClient.EnsureNamespace(cluster.Namespace)
+	if err != nil {
+		return fmt.Errorf("unable to ensure namespace %q in bootstrap cluster: %v", cluster.Namespace, err)
+	}
 
 	glog.Info("Applying Cluster API stack to bootstrap cluster")
 	if err := d.applyClusterAPIStack(bootstrapClient, cluster.Namespace); err != nil {
@@ -165,7 +171,7 @@ func (d *ClusterDeployer) Create(cluster *clusterv1.Cluster, machines []*cluster
 	}
 
 	glog.Info("Creating target cluster")
-	targetClient, err := d.createTargetCluster(bootstrapClient, provider, kubeconfigOutput, cluster.Name, cluster.Namespace)
+	targetClient, err := d.createTargetClusterClient(bootstrapClient, provider, kubeconfigOutput, cluster.Name, cluster.Namespace)
 	if err != nil {
 		return fmt.Errorf("unable to create target cluster: %v", err)
 	}
@@ -180,6 +186,11 @@ func (d *ClusterDeployer) Create(cluster *clusterv1.Cluster, machines []*cluster
 	err = d.saveProviderComponentsToCluster(providerComponentsStoreFactory, kubeconfigOutput)
 	if err != nil {
 		return fmt.Errorf("unable to save provider components to target cluster: %v", err)
+	}
+
+	err = targetClient.EnsureNamespace(cluster.Namespace)
+	if err != nil {
+		return fmt.Errorf("unable to ensure namespace %q in targetCluster: %v", cluster.Namespace, err)
 	}
 
 	// For some reason, endpoint doesn't get updated in bootstrap cluster sometimes. So we
@@ -235,6 +246,7 @@ func (d *ClusterDeployer) Delete(targetClient ClusterClient, namespace string) e
 	if err = deleteObjectsInNamespace(bootstrapClient, namespace); err != nil {
 		return fmt.Errorf("unable to finish deleting objects in bootstrap cluster, resources may have been leaked: %v", err)
 	}
+
 	glog.Info("Deletion of cluster complete")
 
 	return nil
@@ -265,7 +277,7 @@ func (d *ClusterDeployer) createBootstrapCluster() (ClusterClient, func(), error
 	return bootstrapClient, cleanupFn, nil
 }
 
-func (d *ClusterDeployer) createTargetCluster(bootstrapClient ClusterClient, provider ProviderDeployer, kubeconfigOutput, clusterName, namespace string) (ClusterClient, error) {
+func (d *ClusterDeployer) createTargetClusterClient(bootstrapClient ClusterClient, provider ProviderDeployer, kubeconfigOutput, clusterName, namespace string) (ClusterClient, error) {
 	cluster, master, _, err := getClusterAPIObject(bootstrapClient, clusterName, namespace)
 	if err != nil {
 		return nil, err
@@ -470,24 +482,29 @@ func pivotNamespace(from, to ClusterClient, namespace string) error {
 
 func deleteObjectsInNamespace(client ClusterClient, namespace string) error {
 	var errors []string
-	glog.Infof("Deleting machine deployments")
+	glog.Infof("Deleting machine deployments in namespace %q", namespace)
 	if err := client.DeleteMachineDeploymentObjectsInNamespace(namespace); err != nil {
 		err = fmt.Errorf("error deleting machine deployments: %v", err)
 		errors = append(errors, err.Error())
 	}
-	glog.Infof("Deleting machine sets")
+	glog.Infof("Deleting machine sets in namespace %q", namespace)
 	if err := client.DeleteMachineSetObjectsInNamespace(namespace); err != nil {
 		err = fmt.Errorf("error deleting machine sets: %v", err)
 		errors = append(errors, err.Error())
 	}
-	glog.Infof("Deleting machines")
+	glog.Infof("Deleting machines in namespace %q", namespace)
 	if err := client.DeleteMachineObjectsInNamespace(namespace); err != nil {
 		err = fmt.Errorf("error deleting machines: %v", err)
 		errors = append(errors, err.Error())
 	}
-	glog.Infof("Deleting clusters")
+	glog.Infof("Deleting clusters in namespace %q", namespace)
 	if err := client.DeleteClusterObjectsInNamespace(namespace); err != nil {
 		err = fmt.Errorf("error deleting clusters: %v", err)
+		errors = append(errors, err.Error())
+	}
+	glog.Infof("Deleting namespace %q", namespace)
+	if err := client.DeleteNamespace(namespace); err != nil {
+		err = fmt.Errorf("error deleting namespace: %v", err)
 		errors = append(errors, err.Error())
 	}
 	if len(errors) > 0 {

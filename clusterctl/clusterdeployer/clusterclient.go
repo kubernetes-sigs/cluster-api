@@ -25,6 +25,7 @@ import (
 	"time"
 
 	apiv1 "k8s.io/api/core/v1"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	tcmd "k8s.io/client-go/tools/clientcmd"
 	clusterv1 "sigs.k8s.io/cluster-api/pkg/apis/cluster/v1alpha1"
@@ -71,6 +72,37 @@ func NewClusterClient(kubeconfig string) (*clusterClient, error) {
 
 func (c *clusterClient) removeKubeconfigFile() error {
 	return os.Remove(c.kubeconfigFile)
+}
+
+func (c *clusterClient) EnsureNamespace(namespaceName string) error {
+	clientset, err := clientcmd.NewCoreClientSetForKubeconfig(c.kubeconfigFile)
+	if err != nil {
+		return fmt.Errorf("error creating core clientset: %v", err)
+	}
+
+	namespace := apiv1.Namespace{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: namespaceName,
+		},
+	}
+	_, err = clientset.CoreV1().Namespaces().Create(&namespace)
+	if err != nil && !apierrors.IsAlreadyExists(err) {
+		return err
+	}
+	return nil
+}
+
+func (c *clusterClient) DeleteNamespace(namespaceName string) error {
+	clientset, err := clientcmd.NewCoreClientSetForKubeconfig(c.kubeconfigFile)
+	if err != nil {
+		return fmt.Errorf("error creating core clientset: %v", err)
+	}
+
+	err = clientset.CoreV1().Namespaces().Delete(namespaceName, &metav1.DeleteOptions{})
+	if err != nil && !apierrors.IsNotFound(err) {
+		return err
+	}
+	return nil
 }
 
 // NewClusterClientFromDefaultSearchPath creates and returns the address of a clusterClient, the kubeconfigFile argument is expected to be the path to a
@@ -197,7 +229,7 @@ func (c *clusterClient) GetMachineObjects() ([]*clusterv1.Machine, error) {
 }
 
 func (c *clusterClient) CreateClusterObject(cluster *clusterv1.Cluster) error {
-	namespace := c.configOverrides.Context.Namespace
+	namespace := c.GetContextNamespace()
 	if cluster.Namespace != "" {
 		namespace = cluster.Namespace
 	}

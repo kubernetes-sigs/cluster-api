@@ -72,7 +72,10 @@ func RunDelete() error {
 		return fmt.Errorf("error when creating cluster client: %v", err)
 	}
 	defer clusterClient.Close()
-	mini := minikube.New(do.VmDriver)
+	if co.VmDriver != "" {
+		co.MiniKube = append(co.MiniKube, fmt.Sprintf("vm-driver=%s", co.VmDriver))
+	}
+	mini := minikube.WithOptions(co.MiniKube)
 	deployer := clusterdeployer.New(mini,
 		clusterclient.NewFactory(),
 		providerComponents,

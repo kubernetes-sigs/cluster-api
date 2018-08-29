@@ -29,7 +29,6 @@ spec:
   version: v1alpha1
   group: cluster.k8s.io
   groupPriorityMinimum: 2000
-  priority: 200
   service:
     name: clusterapi
     namespace: default

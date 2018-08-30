@@ -171,8 +171,9 @@ func (c *clusterClient) GetClusterObjectsInNamespace(namespace string) ([]*clust
 	return clusters, nil
 }
 
+// Deprecated API. Please do not extend or use.
 func (c *clusterClient) GetClusterObjects() ([]*clusterv1.Cluster, error) {
-	// TODO: Iterate over all namespaces where we could have Cluster API Objects https://github.com/kubernetes-sigs/cluster-api/issues/252
+	glog.V(2).Info("GetClusterObjects API is deprecated, use GetClusterObjectsInNamespace instead")
 	return c.GetClusterObjectsInNamespace(apiv1.NamespaceDefault)
 }
 
@@ -188,8 +189,9 @@ func (c *clusterClient) GetMachineDeploymentObjectsInNamespace(namespace string)
 	return machineDeployments, nil
 }
 
+// Deprecated API. Please do not extend or use.
 func (c *clusterClient) GetMachineDeploymentObjects() ([]*clusterv1.MachineDeployment, error) {
-	// TODO: Iterate over all namespaces where we could have Cluster API Objects https://github.com/kubernetes-sigs/cluster-api/issues/252
+	glog.V(2).Info("GetMachineDeploymentObjects API is deprecated, use GetMachineDeploymentObjectsInNamespace instead")
 	return c.GetMachineDeploymentObjectsInNamespace(apiv1.NamespaceDefault)
 }
 
@@ -205,8 +207,9 @@ func (c *clusterClient) GetMachineSetObjectsInNamespace(namespace string) ([]*cl
 	return machineSets, nil
 }
 
+// Deprecated API. Please do not extend or use.
 func (c *clusterClient) GetMachineSetObjects() ([]*clusterv1.MachineSet, error) {
-	// TODO: Iterate over all namespaces where we could have Cluster API Objects https://github.com/kubernetes-sigs/cluster-api/issues/252
+	glog.V(2).Info("GetMachineSetObjects API is deprecated, use GetMachineSetObjectsInNamespace instead")
 	return c.GetMachineSetObjectsInNamespace(apiv1.NamespaceDefault)
 }
 
@@ -223,8 +226,9 @@ func (c *clusterClient) GetMachineObjectsInNamespace(namespace string) ([]*clust
 	return machines, nil
 }
 
+// Deprecated API. Please do not extend or use.
 func (c *clusterClient) GetMachineObjects() ([]*clusterv1.Machine, error) {
-	// TODO: Iterate over all namespaces where we could have Cluster API Objects https://github.com/kubernetes-sigs/cluster-api/issues/252
+	glog.V(2).Info("GetMachineObjects API is deprecated, use GetMachineObjectsInNamespace instead")
 	return c.GetMachineObjectsInNamespace(apiv1.NamespaceDefault)
 }
 
@@ -278,7 +282,9 @@ func (c *clusterClient) CreateMachineObjects(machines []*clusterv1.Machine, name
 	return nil
 }
 
+// Deprecated API. Please do not extend or use.
 func (c *clusterClient) DeleteClusterObjects() error {
+	glog.V(2).Info("DeleteClusterObjects API is deprecated, use DeleteClusterObjectsInNamespace instead")
 	return c.DeleteClusterObjectsInNamespace(apiv1.NamespaceDefault)
 }
 
@@ -294,7 +300,9 @@ func (c *clusterClient) DeleteClusterObjectsInNamespace(namespace string) error 
 	return nil
 }
 
+// Deprecated API. Please do not extend or use.
 func (c *clusterClient) DeleteMachineDeploymentObjects() error {
+	glog.V(2).Info("DeleteMachineDeploymentObjects API is deprecated, use DeleteMachineDeploymentObjectsInNamespace instead")
 	return c.DeleteMachineDeploymentObjectsInNamespace(apiv1.NamespaceDefault)
 }
 
@@ -310,7 +318,9 @@ func (c *clusterClient) DeleteMachineDeploymentObjectsInNamespace(namespace stri
 	return nil
 }
 
+// Deprecated API. Please do not extend or use.
 func (c *clusterClient) DeleteMachineSetObjects() error {
+	glog.V(2).Info("DeleteMachineSetObjects API is deprecated, use DeleteMachineSetObjectsInNamespace instead")
 	return c.DeleteMachineSetObjectsInNamespace(apiv1.NamespaceDefault)
 }
 
@@ -326,7 +336,9 @@ func (c *clusterClient) DeleteMachineSetObjectsInNamespace(namespace string) err
 	return nil
 }
 
+// Deprecated API. Please do not extend or use.
 func (c *clusterClient) DeleteMachineObjects() error {
+	glog.V(2).Info("DeleteMachineObjects API is deprecated, use DeleteMachineObjectsInNamespace instead")
 	return c.DeleteMachineObjectsInNamespace(apiv1.NamespaceDefault)
 }
 

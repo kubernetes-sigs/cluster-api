@@ -23,7 +23,6 @@ import (
 	"strings"
 	"time"
 
-	apiv1 "k8s.io/api/core/v1"
 	"k8s.io/client-go/kubernetes"
 	clusterv1 "sigs.k8s.io/cluster-api/pkg/apis/cluster/v1alpha1"
 	"sigs.k8s.io/cluster-api/pkg/deployer"
@@ -511,10 +510,6 @@ func deleteObjectsInNamespace(client ClusterClient, namespace string) error {
 		return fmt.Errorf("error(s) encountered deleting objects from bootstrap cluster: [%v]", strings.Join(errors, ", "))
 	}
 	return nil
-}
-
-func deleteObjects(client ClusterClient) error {
-	return deleteObjectsInNamespace(client, apiv1.NamespaceDefault)
 }
 
 func getClusterAPIObject(client ClusterClient, clusterName, namespace string) (*clusterv1.Cluster, *clusterv1.Machine, []*clusterv1.Machine, error) {

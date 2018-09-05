@@ -99,11 +99,10 @@ spec:
         - "--etcd-servers=http://etcd-clusterapi-svc:2379"
         - "--tls-cert-file=/apiserver.local.config/certificates/tls.crt"
         - "--tls-private-key-file=/apiserver.local.config/certificates/tls.key"
+        - "--requestheader-client-ca-file=/etc/kubernetes/ssl/ca.pem"
         - "--audit-log-path=-"
         - "--audit-log-maxage=0"
         - "--audit-log-maxbackup=0"
-        - "--authorization-kubeconfig=/etc/kubernetes/admin.conf"
-        - "--kubeconfig=/etc/kubernetes/admin.conf"
         resources:
           requests:
             cpu: 100m

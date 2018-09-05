@@ -17,13 +17,18 @@ limitations under the License.
 package cluster
 
 import (
-	"github.com/kubernetes-incubator/apiserver-builder/pkg/builders"
+	"fmt"
+	"time"
 
 	"github.com/golang/glog"
+	"github.com/kubernetes-incubator/apiserver-builder/pkg/builders"
 	"k8s.io/client-go/kubernetes"
+	"k8s.io/client-go/tools/cache"
+
 	clusterv1 "sigs.k8s.io/cluster-api/pkg/apis/cluster/v1alpha1"
 	"sigs.k8s.io/cluster-api/pkg/client/clientset_generated/clientset"
 	listers "sigs.k8s.io/cluster-api/pkg/client/listers_generated/cluster/v1alpha1"
+	controllerError "sigs.k8s.io/cluster-api/pkg/controller/error"
 	"sigs.k8s.io/cluster-api/pkg/controller/sharedinformers"
 	"sigs.k8s.io/cluster-api/pkg/util"
 )
@@ -39,6 +44,7 @@ type ClusterControllerImpl struct {
 
 	kubernetesClientSet *kubernetes.Clientset
 	clientSet           clientset.Interface
+	informers           *sharedinformers.SharedInformers
 }
 
 // Init initializes the controller and is called by the generated code
@@ -52,6 +58,7 @@ func (c *ClusterControllerImpl) Init(arguments sharedinformers.ControllerInitArg
 		glog.Fatalf("error creating cluster client: %v", err)
 	}
 	c.clientSet = cs
+	c.informers = arguments.GetSharedInformers()
 	c.kubernetesClientSet = arguments.GetSharedInformers().KubernetesClientSet
 
 	c.actuator = actuator
@@ -89,9 +96,27 @@ func (c *ClusterControllerImpl) Reconcile(cluster *clusterv1.Cluster) error {
 	glog.Infof("reconciling cluster object %v triggers idempotent reconcile.", name)
 	err := c.actuator.Reconcile(clusterCopy)
 	if err != nil {
+		if requeueErr, ok := err.(*controllerError.RequeueAfterError); ok {
+			glog.Infof("Actuator returned requeue after error: %v", requeueErr)
+			return c.enqueueAfter(clusterCopy, requeueErr.RequeueAfter)
+		}
 		glog.Errorf("Error reconciling cluster object %v; %v", name, err)
 		return err
 	}
+	return nil
+}
+
+func (c *ClusterControllerImpl) enqueueAfter(cluster *clusterv1.Cluster, after time.Duration) error {
+	key, err := cache.MetaNamespaceKeyFunc(cluster)
+	if err != nil {
+		glog.Errorf("Couldn't get key for object %+v: %v", cluster, after)
+		return err
+	}
+	queue, ok := c.informers.WorkerQueues["Cluster"]
+	if !ok {
+		return fmt.Errorf("Unable to find Cluster worker queue")
+	}
+	queue.Queue.AddAfter(key, after)
 	return nil
 }
 

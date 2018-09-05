@@ -24,7 +24,6 @@ import (
 
 	"github.com/golang/glog"
 	"github.com/kubernetes-incubator/apiserver-builder/pkg/builders"
-	"github.com/kubernetes-incubator/apiserver-builder/pkg/controller"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
@@ -56,13 +55,14 @@ type MachineControllerImpl struct {
 	actuator Actuator
 
 	kubernetesClientSet kubernetes.Interface
-	queue               *controller.QueueWorker
 	clientSet           clientset.Interface
 	linkedNodes         map[string]bool
 	cachedReadiness     map[string]bool
 
 	// nodeName is the name of the node on which the machine controller is running, if not present, it is loaded from NODE_NAME.
 	nodeName string
+
+	informers *sharedinformers.SharedInformers
 }
 
 // Init initializes the controller and is called by the generated code
@@ -82,6 +82,7 @@ func (c *MachineControllerImpl) Init(arguments sharedinformers.ControllerInitArg
 		glog.Fatalf("error creating machine client: %v", err)
 	}
 	c.clientSet = clientset
+	c.informers = arguments.GetSharedInformers()
 	c.kubernetesClientSet = arguments.GetSharedInformers().KubernetesClientSet
 
 	c.linkedNodes = make(map[string]bool)
@@ -93,8 +94,6 @@ func (c *MachineControllerImpl) Init(arguments sharedinformers.ControllerInitArg
 	// reconcileNode() will be invoked in a loop to handle the reconciling.
 	ni := arguments.GetSharedInformers().KubernetesFactory.Core().V1().Nodes()
 	arguments.GetSharedInformers().Watch("NodeWatcher", ni.Informer(), nil, c.reconcileNode)
-
-	c.queue = arguments.GetSharedInformers().WorkerQueues["Machine"]
 }
 
 // Reconcile handles enqueued messages. The delete will be handled by finalizer.
@@ -171,7 +170,11 @@ func (c *MachineControllerImpl) enqueueAfter(machine *clusterv1.Machine, after t
 		glog.Errorf("Couldn't get key for object %+v: %v", machine, after)
 		return err
 	}
-	c.queue.Queue.AddAfter(key, after)
+	queue, ok := c.informers.WorkerQueues["Machine"]
+	if !ok {
+		return fmt.Errorf("Unable to find Machine worker queue")
+	}
+	queue.Queue.AddAfter(key, after)
 	return nil
 }
 

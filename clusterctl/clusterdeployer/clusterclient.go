@@ -93,6 +93,9 @@ func (c *clusterClient) EnsureNamespace(namespaceName string) error {
 }
 
 func (c *clusterClient) DeleteNamespace(namespaceName string) error {
+	if namespaceName == apiv1.NamespaceDefault {
+		return nil
+	}
 	clientset, err := clientcmd.NewCoreClientSetForKubeconfig(c.kubeconfigFile)
 	if err != nil {
 		return fmt.Errorf("error creating core clientset: %v", err)
@@ -138,7 +141,7 @@ func (c *clusterClient) Apply(manifest string) error {
 
 func (c *clusterClient) GetContextNamespace() string {
 	if c.configOverrides.Context.Namespace == "" {
-		c.configOverrides.Context.Namespace = apiv1.NamespaceDefault
+		return apiv1.NamespaceDefault
 	}
 	return c.configOverrides.Context.Namespace
 }

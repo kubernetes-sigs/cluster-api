@@ -22,6 +22,7 @@ import (
 	"os"
 	"testing"
 
+	apiv1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
 	clusterv1 "sigs.k8s.io/cluster-api/pkg/apis/cluster/v1alpha1"
@@ -294,6 +295,10 @@ func (c *testClusterClient) EnsureNamespace(nsName string) error {
 }
 
 func (c *testClusterClient) DeleteNamespace(namespaceName string) error {
+	if namespaceName == apiv1.NamespaceDefault {
+		return nil
+	}
+
 	var ns []string
 	for _, n := range c.namespaces {
 		if n == namespaceName {
@@ -1173,7 +1178,7 @@ func TestClusterDelete(t *testing.T) {
 				if contains(testCase.bootstrapClient.namespaces, testCase.namespace) {
 					t.Fatalf("Unexpected remaining namespace %q in bootstrap cluster. Got: Found, Want: NotFound", testCase.namespace)
 				}
-				if contains(testCase.targetClient.namespaces, testCase.namespace) {
+				if testCase.namespace != apiv1.NamespaceDefault && contains(testCase.targetClient.namespaces, testCase.namespace) {
 					t.Fatalf("Unexpected remaining namespace %q in target cluster. Got: Found, Want: NotFound", testCase.namespace)
 				}
 			}

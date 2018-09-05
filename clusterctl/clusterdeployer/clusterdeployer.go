@@ -123,7 +123,7 @@ const (
 	timeoutKubeconfigReady = 20 * time.Minute
 )
 
-// Create the a cluster from the provided cluster definition and machine list.
+// Create the cluster from the provided cluster definition and machine list.
 func (d *ClusterDeployer) Create(cluster *clusterv1.Cluster, machines []*clusterv1.Machine, provider ProviderDeployer, kubeconfigOutput string, providerComponentsStoreFactory ProviderComponentsStoreFactory) error {
 	master, nodes, err := extractMasterMachine(machines)
 	if err != nil {
@@ -154,17 +154,17 @@ func (d *ClusterDeployer) Create(cluster *clusterv1.Cluster, machines []*cluster
 
 	glog.Info("Provisioning target cluster via bootstrap cluster")
 
-	glog.Infof("Creating cluster object %v on bootstrap cluster in namespace %v", cluster.Name, cluster.Namespace)
+	glog.Infof("Creating cluster object %v on bootstrap cluster in namespace %q", cluster.Name, cluster.Namespace)
 	if err := bootstrapClient.CreateClusterObject(cluster); err != nil {
 		return fmt.Errorf("unable to create cluster object: %v", err)
 	}
 
-	glog.Infof("Creating master %v in namespace %v", master.Name, cluster.Namespace)
+	glog.Infof("Creating master %v in namespace %q", master.Name, cluster.Namespace)
 	if err := bootstrapClient.CreateMachineObjects([]*clusterv1.Machine{master}, cluster.Namespace); err != nil {
 		return fmt.Errorf("unable to create master machine: %v", err)
 	}
 
-	glog.Infof("Updating bootstrap cluster object for cluster %v in namespace %v with master (%s) endpoint", cluster.Name, cluster.Namespace, master.Name)
+	glog.Infof("Updating bootstrap cluster object for cluster %v in namespace %q with master (%s) endpoint", cluster.Name, cluster.Namespace, master.Name)
 	if err := d.updateClusterEndpoint(bootstrapClient, provider, cluster.Name, cluster.Namespace); err != nil {
 		return fmt.Errorf("unable to update bootstrap cluster endpoint: %v", err)
 	}

@@ -24,26 +24,19 @@ import (
 
 	"github.com/golang/glog"
 	"github.com/kubernetes-incubator/apiserver-builder/pkg/builders"
-
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/tools/cache"
+
 	clusterv1 "sigs.k8s.io/cluster-api/pkg/apis/cluster/v1alpha1"
 	"sigs.k8s.io/cluster-api/pkg/client/clientset_generated/clientset"
 	listers "sigs.k8s.io/cluster-api/pkg/client/listers_generated/cluster/v1alpha1"
+	controllerError "sigs.k8s.io/cluster-api/pkg/controller/error"
 	"sigs.k8s.io/cluster-api/pkg/controller/sharedinformers"
 	"sigs.k8s.io/cluster-api/pkg/util"
 )
 
 const NodeNameEnvVar = "NODE_NAME"
-
-type RequeueAfterError struct {
-	RequeueAfter time.Duration
-}
-
-func (e *RequeueAfterError) Error() string {
-	return fmt.Sprintf("requeue machine in: %s", e.RequeueAfter)
-}
 
 // +controller:group=cluster,version=v1alpha1,kind=Machine,resource=machines
 type MachineControllerImpl struct {
@@ -144,7 +137,7 @@ func (c *MachineControllerImpl) Reconcile(machine *clusterv1.Machine) error {
 		glog.Infof("Reconciling machine object %v triggers idempotent update.", name)
 		err = c.update(m)
 		if err != nil {
-			if requeueErr, ok := err.(*RequeueAfterError); ok {
+			if requeueErr, ok := err.(*controllerError.RequeueAfterError); ok {
 				glog.Infof("Actuator returned requeue after error: %v", requeueErr)
 				return c.enqueueAfter(machine, requeueErr.RequeueAfter)
 			}
@@ -155,7 +148,7 @@ func (c *MachineControllerImpl) Reconcile(machine *clusterv1.Machine) error {
 	glog.Infof("Reconciling machine object %v triggers idempotent create.", m.ObjectMeta.Name)
 	if err := c.create(m); err != nil {
 		glog.Warningf("Unable to create machine %v: %v", name, err)
-		if requeueErr, ok := err.(*RequeueAfterError); ok {
+		if requeueErr, ok := err.(*controllerError.RequeueAfterError); ok {
 			glog.Infof("Actuator returned requeue-after error: %v", requeueErr)
 			return c.enqueueAfter(machine, requeueErr.RequeueAfter)
 		}

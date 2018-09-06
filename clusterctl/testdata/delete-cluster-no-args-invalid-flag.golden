@@ -4,6 +4,7 @@ Usage:
 
 Flags:
       --cluster string               The name of the kubeconfig cluster to use
+      --cluster-namespace string     Namespace where the cluster to be deleted resides (default "default")
   -h, --help                         help for cluster
       --kubeconfig string            Path to the kubeconfig file to use for connecting to the cluster to be deleted, if empty, the default KUBECONFIG load path is used.
   -n, --namespace string             If present, the namespace scope for this CLI request

@@ -34,6 +34,7 @@ type DeleteOptions struct {
 	KubeconfigPath      string
 	ProviderComponents  string
 	ClusterNamespace    string
+	VmDriver            string
 	KubeconfigOverrides tcmd.ConfigOverrides
 }
 
@@ -54,6 +55,7 @@ func init() {
 	deleteClusterCmd.Flags().StringVarP(&do.KubeconfigPath, "kubeconfig", "", "", "Path to the kubeconfig file to use for connecting to the cluster to be deleted, if empty, the default KUBECONFIG load path is used.")
 	deleteClusterCmd.Flags().StringVarP(&do.ProviderComponents, "provider-components", "p", "", "A yaml file containing cluster api provider controllers and supporting objects, if empty the value is loaded from the cluster's configuration store.")
 	deleteClusterCmd.Flags().StringVarP(&do.ClusterNamespace, "cluster-namespace", "", v1.NamespaceDefault, "Namespace where the cluster to be deleted resides")
+	deleteClusterCmd.Flags().StringVarP(&do.VmDriver, "vm-driver", "", "", "Which vm driver to use for minikube")
 	// BindContextFlags will bind the flags cluster, namespace, and user
 	tcmd.BindContextFlags(&do.KubeconfigOverrides.Context, deleteClusterCmd.Flags(), tcmd.RecommendedContextOverrideFlags(""))
 	deleteCmd.AddCommand(deleteClusterCmd)
@@ -69,7 +71,7 @@ func RunDelete() error {
 		return fmt.Errorf("error when creating cluster client: %v", err)
 	}
 	defer clusterClient.Close()
-	mini := minikube.New(co.VmDriver)
+	mini := minikube.New(do.VmDriver)
 	deployer := clusterdeployer.New(mini,
 		clusterdeployer.NewClientFactory(),
 		providerComponents,

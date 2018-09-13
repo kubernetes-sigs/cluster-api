@@ -138,7 +138,7 @@ func (c *MachineControllerImpl) Reconcile(machine *clusterv1.Machine) error {
 		err = c.update(m)
 		if err != nil {
 			if requeueErr, ok := err.(*controllerError.RequeueAfterError); ok {
-				glog.Infof("Actuator returned requeue after error: %v", requeueErr)
+				glog.Infof("Actuator returned requeue-after error: %v", requeueErr)
 				return c.enqueueAfter(machine, requeueErr.RequeueAfter)
 			}
 		}

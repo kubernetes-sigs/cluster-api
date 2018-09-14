@@ -26,6 +26,7 @@ import (
 	"sigs.k8s.io/cluster-api/clusterctl/clusterdeployer"
 	"sigs.k8s.io/cluster-api/clusterctl/clusterdeployer/bootstrap/existing"
 	"sigs.k8s.io/cluster-api/clusterctl/clusterdeployer/bootstrap/minikube"
+	"sigs.k8s.io/cluster-api/clusterctl/clusterdeployer/clusterclient"
 	clustercommon "sigs.k8s.io/cluster-api/pkg/apis/cluster/common"
 	clusterv1 "sigs.k8s.io/cluster-api/pkg/apis/cluster/v1alpha1"
 	"sigs.k8s.io/cluster-api/pkg/util"
@@ -104,7 +105,7 @@ func RunCreate(co *CreateOptions) error {
 	pcsFactory := clusterdeployer.NewProviderComponentsStoreFactory()
 	d := clusterdeployer.New(
 		bootstrapProvider,
-		clusterdeployer.NewClientFactory(),
+		clusterclient.NewFactory(),
 		string(pc),
 		string(ac),
 		co.CleanupBootstrapCluster)

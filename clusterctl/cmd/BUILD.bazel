@@ -17,6 +17,7 @@ go_library(
         "//clusterctl/clusterdeployer:go_default_library",
         "//clusterctl/clusterdeployer/bootstrap/existing:go_default_library",
         "//clusterctl/clusterdeployer/bootstrap/minikube:go_default_library",
+        "//clusterctl/clusterdeployer/clusterclient:go_default_library",
         "//clusterctl/providercomponents:go_default_library",
         "//clusterctl/validation:go_default_library",
         "//pkg/apis/cluster/common:go_default_library",

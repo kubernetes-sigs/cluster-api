@@ -24,6 +24,7 @@ import (
 	"time"
 
 	"k8s.io/client-go/kubernetes"
+	"sigs.k8s.io/cluster-api/clusterctl/clusterdeployer/clusterclient"
 	clusterv1 "sigs.k8s.io/cluster-api/pkg/apis/cluster/v1alpha1"
 	"sigs.k8s.io/cluster-api/pkg/deployer"
 	"sigs.k8s.io/cluster-api/pkg/util"
@@ -47,45 +48,6 @@ type ClusterProvisioner interface {
 	GetKubeconfig() (string, error)
 }
 
-// Provides interaction with a cluster
-type ClusterClient interface {
-	GetContextNamespace() string
-	Apply(string) error
-	Delete(string) error
-	WaitForClusterV1alpha1Ready() error
-	GetClusterObjects() ([]*clusterv1.Cluster, error)
-	GetClusterObjectsInNamespace(string) ([]*clusterv1.Cluster, error)
-	GetClusterObject(string, string) (*clusterv1.Cluster, error)
-	GetMachineDeploymentObjects() ([]*clusterv1.MachineDeployment, error)
-	GetMachineDeploymentObjectsInNamespace(string) ([]*clusterv1.MachineDeployment, error)
-	GetMachineSetObjects() ([]*clusterv1.MachineSet, error)
-	GetMachineSetObjectsInNamespace(string) ([]*clusterv1.MachineSet, error)
-	GetMachineObjects() ([]*clusterv1.Machine, error)
-	GetMachineObjectsInNamespace(ns string) ([]*clusterv1.Machine, error)
-	CreateClusterObject(*clusterv1.Cluster) error
-	CreateMachineDeploymentObjects([]*clusterv1.MachineDeployment, string) error
-	CreateMachineSetObjects([]*clusterv1.MachineSet, string) error
-	CreateMachineObjects([]*clusterv1.Machine, string) error
-	DeleteClusterObjectsInNamespace(string) error
-	DeleteClusterObjects() error
-	DeleteMachineDeploymentObjectsInNamespace(string) error
-	DeleteMachineDeploymentObjects() error
-	DeleteMachineSetObjectsInNamespace(string) error
-	DeleteMachineSetObjects() error
-	DeleteMachineObjectsInNamespace(string) error
-	DeleteMachineObjects() error
-	UpdateClusterObjectEndpoint(string, string, string) error
-	EnsureNamespace(string) error
-	DeleteNamespace(string) error
-	Close() error
-}
-
-// Can create cluster clients
-type ClientFactory interface {
-	NewClusterClientFromKubeconfig(string) (ClusterClient, error)
-	NewCoreClientsetFromKubeconfigFile(string) (*kubernetes.Clientset, error)
-}
-
 type ProviderComponentsStore interface {
 	Save(providerComponents string) error
 	Load() (string, error)
@@ -97,7 +59,7 @@ type ProviderComponentsStoreFactory interface {
 
 type ClusterDeployer struct {
 	bootstrapProvisioner    ClusterProvisioner
-	clientFactory           ClientFactory
+	clientFactory           clusterclient.Factory
 	providerComponents      string
 	addonComponents         string
 	cleanupBootstrapCluster bool
@@ -105,7 +67,7 @@ type ClusterDeployer struct {
 
 func New(
 	bootstrapProvisioner ClusterProvisioner,
-	clientFactory ClientFactory,
+	clientFactory clusterclient.Factory,
 	providerComponents string,
 	addonComponents string,
 	cleanupBootstrapCluster bool) *ClusterDeployer {
@@ -216,7 +178,7 @@ func (d *ClusterDeployer) Create(cluster *clusterv1.Cluster, machines []*cluster
 	return nil
 }
 
-func (d *ClusterDeployer) Delete(targetClient ClusterClient, namespace string) error {
+func (d *ClusterDeployer) Delete(targetClient clusterclient.Client, namespace string) error {
 	glog.Info("Creating bootstrap cluster")
 	bootstrapClient, cleanupBootstrapCluster, err := d.createBootstrapCluster()
 	defer cleanupBootstrapCluster()
@@ -251,7 +213,7 @@ func (d *ClusterDeployer) Delete(targetClient ClusterClient, namespace string) e
 	return nil
 }
 
-func (d *ClusterDeployer) createBootstrapCluster() (ClusterClient, func(), error) {
+func (d *ClusterDeployer) createBootstrapCluster() (clusterclient.Client, func(), error) {
 	cleanupFn := func() {}
 	if err := d.bootstrapProvisioner.Create(); err != nil {
 		return nil, cleanupFn, fmt.Errorf("could not create bootstrap control plane: %v", err)
@@ -268,7 +230,7 @@ func (d *ClusterDeployer) createBootstrapCluster() (ClusterClient, func(), error
 	if err != nil {
 		return nil, cleanupFn, fmt.Errorf("unable to get bootstrap cluster kubeconfig: %v", err)
 	}
-	bootstrapClient, err := d.clientFactory.NewClusterClientFromKubeconfig(bootstrapKubeconfig)
+	bootstrapClient, err := d.clientFactory.NewClientFromKubeconfig(bootstrapKubeconfig)
 	if err != nil {
 		return nil, cleanupFn, fmt.Errorf("unable to create bootstrap client: %v", err)
 	}
@@ -276,7 +238,7 @@ func (d *ClusterDeployer) createBootstrapCluster() (ClusterClient, func(), error
 	return bootstrapClient, cleanupFn, nil
 }
 
-func (d *ClusterDeployer) createTargetClusterClient(bootstrapClient ClusterClient, provider ProviderDeployer, kubeconfigOutput, clusterName, namespace string) (ClusterClient, error) {
+func (d *ClusterDeployer) createTargetClusterClient(bootstrapClient clusterclient.Client, provider ProviderDeployer, kubeconfigOutput string, clusterName, namespace string) (clusterclient.Client, error) {
 	cluster, master, _, err := getClusterAPIObject(bootstrapClient, clusterName, namespace)
 	if err != nil {
 		return nil, err
@@ -292,7 +254,7 @@ func (d *ClusterDeployer) createTargetClusterClient(bootstrapClient ClusterClien
 		return nil, err
 	}
 
-	targetClient, err := d.clientFactory.NewClusterClientFromKubeconfig(targetKubeconfig)
+	targetClient, err := d.clientFactory.NewClientFromKubeconfig(targetKubeconfig)
 	if err != nil {
 		return nil, fmt.Errorf("unable to create target cluster client: %v", err)
 	}
@@ -300,7 +262,7 @@ func (d *ClusterDeployer) createTargetClusterClient(bootstrapClient ClusterClien
 	return targetClient, nil
 }
 
-func (d *ClusterDeployer) updateClusterEndpoint(client ClusterClient, provider ProviderDeployer, clusterName, namespace string) error {
+func (d *ClusterDeployer) updateClusterEndpoint(client clusterclient.Client, provider ProviderDeployer, clusterName, namespace string) error {
 	// Update cluster endpoint. Needed till this logic moves into cluster controller.
 	// TODO: https://github.com/kubernetes-sigs/cluster-api/issues/158
 	// Fetch fresh objects.
@@ -335,8 +297,8 @@ func (d *ClusterDeployer) saveProviderComponentsToCluster(factory ProviderCompon
 	return nil
 }
 
-func (d *ClusterDeployer) applyClusterAPIStack(client ClusterClient, namespace string) error {
-	glog.Infof("Applying Cluster API APIServer in namespace %v", namespace)
+func (d *ClusterDeployer) applyClusterAPIStack(client clusterclient.Client, namespace string) error {
+	glog.Info("Applying Cluster API APIServer")
 	err := d.applyClusterAPIApiserver(client, namespace)
 	if err != nil {
 		return fmt.Errorf("unable to apply cluster apiserver in namespace %v: %v", namespace, err)
@@ -350,7 +312,7 @@ func (d *ClusterDeployer) applyClusterAPIStack(client ClusterClient, namespace s
 	return nil
 }
 
-func (d *ClusterDeployer) applyClusterAPIStackWithPivoting(client, source ClusterClient, namespace string) error {
+func (d *ClusterDeployer) applyClusterAPIStackWithPivoting(client, source clusterclient.Client, namespace string) error {
 	glog.Info("Applying Cluster API APIServer")
 	err := d.applyClusterAPIApiserver(client, namespace)
 	if err != nil {
@@ -372,7 +334,7 @@ func (d *ClusterDeployer) applyClusterAPIStackWithPivoting(client, source Cluste
 	return nil
 }
 
-func (d *ClusterDeployer) applyClusterAPIApiserver(client ClusterClient, namespace string) error {
+func (d *ClusterDeployer) applyClusterAPIApiserver(client clusterclient.Client, namespace string) error {
 	yaml, err := deployer.GetApiServerYaml()
 	if err != nil {
 		return fmt.Errorf("unable to generate apiserver yaml: %v", err)
@@ -385,7 +347,7 @@ func (d *ClusterDeployer) applyClusterAPIApiserver(client ClusterClient, namespa
 	return client.WaitForClusterV1alpha1Ready()
 }
 
-func (d *ClusterDeployer) applyClusterAPIControllers(client ClusterClient, namespace string) error {
+func (d *ClusterDeployer) applyClusterAPIControllers(client clusterclient.Client, namespace string) error {
 	return client.Apply(d.providerComponents)
 }
 
@@ -414,7 +376,7 @@ func waitForKubeconfigReady(provider ProviderDeployer, cluster *clusterv1.Cluste
 	return kubeconfig, err
 }
 
-func pivotNamespace(from, to ClusterClient, namespace string) error {
+func pivotNamespace(from, to clusterclient.Client, namespace string) error {
 	if err := from.WaitForClusterV1alpha1Ready(); err != nil {
 		return fmt.Errorf("cluster v1alpha1 resource not ready on source cluster")
 	}
@@ -479,7 +441,7 @@ func pivotNamespace(from, to ClusterClient, namespace string) error {
 	return nil
 }
 
-func deleteObjectsInNamespace(client ClusterClient, namespace string) error {
+func deleteObjectsInNamespace(client clusterclient.Client, namespace string) error {
 	var errors []string
 	glog.Infof("Deleting machine deployments in namespace %q", namespace)
 	if err := client.DeleteMachineDeploymentObjectsInNamespace(namespace); err != nil {
@@ -512,7 +474,7 @@ func deleteObjectsInNamespace(client ClusterClient, namespace string) error {
 	return nil
 }
 
-func getClusterAPIObject(client ClusterClient, clusterName, namespace string) (*clusterv1.Cluster, *clusterv1.Machine, []*clusterv1.Machine, error) {
+func getClusterAPIObject(client clusterclient.Client, clusterName, namespace string) (*clusterv1.Cluster, *clusterv1.Machine, []*clusterv1.Machine, error) {
 	machines, err := client.GetMachineObjectsInNamespace(namespace)
 	if err != nil {
 		return nil, nil, nil, fmt.Errorf("unable to fetch machines: %v", err)
@@ -548,7 +510,7 @@ func extractMasterMachine(machines []*clusterv1.Machine) (*clusterv1.Machine, []
 	return masters[0], nodes, nil
 }
 
-func closeClient(client ClusterClient, name string) {
+func closeClient(client clusterclient.Client, name string) {
 	if err := client.Close(); err != nil {
 		glog.Errorf("Could not close %v client: %v", name, err)
 	}

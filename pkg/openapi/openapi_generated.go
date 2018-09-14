@@ -24263,7 +24263,7 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 						},
 						"conditions": {
 							SchemaProps: spec.SchemaProps{
-								Description: "List of conditions synced from the node-conditions of the corresponding node-object. Machine-controller would be responsible for keeping conditions up-to-date. Machine-set controller will be taking these conditions as a signal to decide if machine is healthy or needs to be replaced. Refer: https://kubernetes.io/docs/concepts/architecture/nodes/#condition",
+								Description: "List of conditions synced from the node conditions of the corresponding node-object. Machine-controller is responsible for keeping conditions up-to-date. MachineSet controller will be taking these conditions as a signal to decide if machine is healthy or needs to be replaced. Refer: https://kubernetes.io/docs/concepts/architecture/nodes/#condition",
 								Type:        []string{"array"},
 								Items: &spec.SchemaOrArray{
 									Schema: &spec.Schema{

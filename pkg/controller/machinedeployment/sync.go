@@ -111,7 +111,7 @@ func (dc *MachineDeploymentControllerImpl) getNewMachineSet(d *v1alpha1.MachineD
 
 		if needsUpdate {
 			var err error
-			if d, err = dc.machineClient.ClusterV1alpha1().MachineDeployments(d.Namespace).UpdateStatus(d); err != nil {
+			if d, err = dc.machineClient.ClusterV1alpha1().MachineDeployments(d.Namespace).Update(d); err != nil {
 				return nil, err
 			}
 		}

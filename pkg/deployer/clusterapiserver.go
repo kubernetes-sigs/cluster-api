@@ -43,9 +43,8 @@ type caCertParams struct {
 	tlsKey   string
 }
 
-func getApiServerCerts() (*caCertParams, error) {
+func getApiServerCertsForNamespace(namespace string) (*caCertParams, error) {
 	const name = "clusterapi"
-	const namespace = corev1.NamespaceDefault
 
 	caKeyPair, err := triple.NewCA(fmt.Sprintf("%s-certificate-authority", name))
 	if err != nil {
@@ -73,14 +72,19 @@ func getApiServerCerts() (*caCertParams, error) {
 	return certParams, nil
 }
 
-// GetApiServerYaml returns the clusterapi-apiserver manifest used for deployment
+// GetApiServerYaml returns the clusterapi-apiserver manifest for deployment in the default namespace
 func GetApiServerYaml() (string, error) {
+	return GetApiServerYamlForNamespace(corev1.NamespaceDefault)
+}
+
+// GetApiServerYamlForNamespace returns the clusterapi-apiserver manifest used for deployment in the supplied namespace
+func GetApiServerYamlForNamespace(namespace string) (string, error) {
 	tmpl, err := template.New("config").Parse(ClusterAPIAPIServerConfigTemplate)
 	if err != nil {
 		return "", err
 	}
 
-	certParms, err := getApiServerCerts()
+	certParms, err := getApiServerCertsForNamespace(namespace)
 	if err != nil {
 		glog.Errorf("Error: %v", err)
 		return "", err
@@ -94,6 +98,7 @@ func GetApiServerYaml() (string, error) {
 		CABundle               string
 		TLSCrt                 string
 		TLSKey                 string
+		Namespace              string
 	}
 
 	var tmplBuf bytes.Buffer
@@ -102,6 +107,7 @@ func GetApiServerYaml() (string, error) {
 		CABundle:       certParms.caBundle,
 		TLSCrt:         certParms.tlsCrt,
 		TLSKey:         certParms.tlsKey,
+		Namespace:      namespace,
 	})
 	if err != nil {
 		return "", err

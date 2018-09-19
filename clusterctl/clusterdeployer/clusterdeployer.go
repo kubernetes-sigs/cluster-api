@@ -335,7 +335,7 @@ func (d *ClusterDeployer) applyClusterAPIStackWithPivoting(client, source cluste
 }
 
 func (d *ClusterDeployer) applyClusterAPIApiserver(client clusterclient.Client, namespace string) error {
-	yaml, err := deployer.GetApiServerYaml()
+	yaml, err := deployer.GetApiServerYamlForNamespace(namespace)
 	if err != nil {
 		return fmt.Errorf("unable to generate apiserver yaml: %v", err)
 	}

@@ -31,7 +31,7 @@ spec:
   groupPriorityMinimum: 2000
   service:
     name: clusterapi
-    namespace: default
+    namespace: {{ .Namespace }}
   versionPriority: 10
   caBundle: {{ .CABundle }}
 ---
@@ -39,7 +39,7 @@ apiVersion: v1
 kind: Service
 metadata:
   name: clusterapi
-  namespace: default
+  namespace: {{ .Namespace }}
   labels:
     api: clusterapi
     apiserver: "true"
@@ -56,7 +56,7 @@ apiVersion: apps/v1beta1
 kind: Deployment
 metadata:
   name: clusterapi-apiserver
-  namespace: default
+  namespace: {{ .Namespace }}
   labels:
     api: clusterapi
     apiserver: "true"
@@ -126,12 +126,12 @@ kind: ServiceAccount
 apiVersion: v1
 metadata:
   name: apiserver
-  namespace: default
+  namespace: {{ .Namespace }}
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRoleBinding
 metadata:
-  name: default:system:auth-delegator
+  name: {{ .Namespace }}:system:auth-delegator
 roleRef:
   apiGroup: rbac.authorization.k8s.io
   kind: ClusterRole
@@ -139,7 +139,7 @@ roleRef:
 subjects:
 - kind: ServiceAccount
   name: apiserver
-  namespace: default
+  namespace: {{ .Namespace }}
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: RoleBinding
@@ -153,13 +153,13 @@ roleRef:
 subjects:
 - kind: ServiceAccount
   name: apiserver
-  namespace: default
+  namespace: {{ .Namespace }}
 ---
 apiVersion: apps/v1beta1
 kind: StatefulSet
 metadata:
   name: etcd-clusterapi
-  namespace: default
+  namespace: {{ .Namespace }}
 spec:
   serviceName: "etcd"
   replicas: 1
@@ -234,7 +234,7 @@ apiVersion: v1
 kind: Service
 metadata:
   name: etcd-clusterapi-svc
-  namespace: default
+  namespace: {{ .Namespace }}
   labels:
     app: etcd
 spec:
@@ -250,7 +250,7 @@ kind: Secret
 type: kubernetes.io/tls
 metadata:
   name: cluster-apiserver-certs
-  namespace: default
+  namespace: {{ .Namespace }}
   labels:
     api: clusterapi
     apiserver: "true"

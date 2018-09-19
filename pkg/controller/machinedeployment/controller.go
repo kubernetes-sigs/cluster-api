@@ -19,6 +19,7 @@ package machinedeployment
 import (
 	"fmt"
 	"reflect"
+	"time"
 
 	"github.com/golang/glog"
 	"github.com/kubernetes-incubator/apiserver-builder/pkg/builders"
@@ -35,6 +36,8 @@ import (
 	listers "sigs.k8s.io/cluster-api/pkg/client/listers_generated/cluster/v1alpha1"
 	"sigs.k8s.io/cluster-api/pkg/controller/sharedinformers"
 )
+
+const requeueAfterWhenQueueAbsent = 1 * time.Second
 
 // controllerKind contains the schema.GroupVersionKind for this controller type.
 var controllerKind = v1alpha1.SchemeGroupVersion.WithKind("MachineDeployment")
@@ -366,6 +369,12 @@ func (c *MachineDeploymentControllerImpl) enqueue(d *v1alpha1.MachineDeployment)
 	key, err := cache.MetaNamespaceKeyFunc(d)
 	if err != nil {
 		utilruntime.HandleError(fmt.Errorf("Couldn't get key for object %#v: %v", d, err))
+		return
+	}
+	if _, queueExists := c.informers.WorkerQueues["MachineDeployment"]; !queueExists {
+		glog.V(2).Infof("MachineDeployment queue does not exist, requing after %v", requeueAfterWhenQueueAbsent)
+		time.Sleep(requeueAfterWhenQueueAbsent)
+		c.enqueue(d)
 		return
 	}
 

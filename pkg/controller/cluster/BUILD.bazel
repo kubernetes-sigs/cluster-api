@@ -16,6 +16,7 @@ go_library(
         "//pkg/client/clientset_generated/clientset:go_default_library",
         "//pkg/client/listers_generated/cluster/v1alpha1:go_default_library",
         "//pkg/controller/config:go_default_library",
+        "//pkg/controller/error:go_default_library",
         "//pkg/controller/sharedinformers:go_default_library",
         "//pkg/util:go_default_library",
         "//vendor/github.com/golang/glog:go_default_library",

@@ -43,6 +43,12 @@ are also sponsored by SIG-cluster-lifecycle:
   * OpenStack, https://github.com/kubernetes-sigs/cluster-api-provider-openstack
   * vSphere, https://github.com/kubernetes-sigs/cluster-api-provider-vsphere
 
+## API Adoption
+
+Following are the implementations managed by third-parties adopting the standard cluster-api and/or machine-api being developed here.
+
+  * Machine-controller-manager, https://github.com/gardener/machine-controller-manager/tree/cluster-api
+
 ## Getting Started
 ### Prerequisites
 * `kubectl` is required, see [here](http://kubernetes.io/docs/user-guide/prereqs/).

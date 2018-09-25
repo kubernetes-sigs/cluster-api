@@ -18,6 +18,7 @@ package machineset
 
 import (
 	"fmt"
+	"sort"
 	"strings"
 	"sync"
 	"time"
@@ -117,7 +118,8 @@ func (c *MachineSetControllerImpl) Reconcile(machineSet *v1alpha1.MachineSet) er
 	}
 
 	// Filter out irrelevant machines (deleting/mismatch labels) and claim orphaned machines.
-	var filteredMachines []*v1alpha1.Machine
+	var machineNames []string
+	machineSetMachines := make(map[string]*v1alpha1.Machine)
 	for _, machine := range allMachines {
 		if shouldExcludeMachine(machineSet, machine) {
 			continue
@@ -129,7 +131,22 @@ func (c *MachineSetControllerImpl) Reconcile(machineSet *v1alpha1.MachineSet) er
 				continue
 			}
 		}
-		filteredMachines = append(filteredMachines, machine)
+		machineNames = append(machineNames, machine.Name)
+		machineSetMachines[machine.Name] = machine
+	}
+
+	// Sort the machines deterministically to delete machines in the same order.
+	// In general the machines are sequenced randomly depending on Machines().List() result.
+	// When number of replicas goes down, the reconcilication loop is called multiple
+	// times, each time taking a different subset of machines to be deleted.
+	// Which may result in deletion of more machines than requested (followed
+	// by recreation of new machines). Given each machine represents a node,
+	// deleting more nodes than expected can be very disruptive.
+	sort.Strings(machineNames)
+
+	var filteredMachines []*v1alpha1.Machine
+	for _, machineName := range machineNames {
+		filteredMachines = append(filteredMachines, machineSetMachines[machineName])
 	}
 
 	syncErr := c.syncReplicas(machineSet, filteredMachines)

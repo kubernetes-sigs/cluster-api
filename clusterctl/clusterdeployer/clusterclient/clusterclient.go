@@ -232,7 +232,7 @@ func (c *client) GetMachineDeploymentObjects() ([]*clusterv1.MachineDeployment, 
 }
 
 func (c *client) GetMachineSetObjectsInNamespace(namespace string) ([]*clusterv1.MachineSet, error) {
-	machineSetList, err := c.clientSet.ClusterV1alpha1().MachineSets(apiv1.NamespaceDefault).List(metav1.ListOptions{})
+	machineSetList, err := c.clientSet.ClusterV1alpha1().MachineSets(namespace).List(metav1.ListOptions{})
 	if err != nil {
 		return nil, fmt.Errorf("error listing machine set objects in namespace %q: %v", namespace, err)
 	}
@@ -329,7 +329,7 @@ func (c *client) DeleteClusterObjectsInNamespace(namespace string) error {
 	if err != nil {
 		return fmt.Errorf("error deleting cluster objects in namespace %q: %v", namespace, err)
 	}
-	err = c.waitForClusterDelete()
+	err = c.waitForClusterDelete(namespace)
 	if err != nil {
 		return fmt.Errorf("error waiting for cluster(s) deletion to complete in namespace %q: %v", namespace, err)
 	}
@@ -347,7 +347,7 @@ func (c *client) DeleteMachineDeploymentObjectsInNamespace(namespace string) err
 	if err != nil {
 		return fmt.Errorf("error deleting machine deployment objects in namespace %q: %v", namespace, err)
 	}
-	err = c.waitForMachineDeploymentsDelete()
+	err = c.waitForMachineDeploymentsDelete(namespace)
 	if err != nil {
 		return fmt.Errorf("error waiting for machine deployment(s) deletion to complete in namespace %q: %v", namespace, err)
 	}
@@ -365,7 +365,7 @@ func (c *client) DeleteMachineSetObjectsInNamespace(namespace string) error {
 	if err != nil {
 		return fmt.Errorf("error deleting machine set objects in namespace %q: %v", namespace, err)
 	}
-	err = c.waitForMachineSetsDelete()
+	err = c.waitForMachineSetsDelete(namespace)
 	if err != nil {
 		return fmt.Errorf("error waiting for machine set(s) deletion to complete in namespace %q: %v", namespace, err)
 	}
@@ -383,7 +383,7 @@ func (c *client) DeleteMachineObjectsInNamespace(namespace string) error {
 	if err != nil {
 		return fmt.Errorf("error deleting machine objects in namespace %q: %v", namespace, err)
 	}
-	err = c.waitForMachinesDelete()
+	err = c.waitForMachinesDelete(namespace)
 	if err != nil {
 		return fmt.Errorf("error waiting for machine(s) deletion to complete in namespace %q: %v", namespace, err)
 	}
@@ -397,8 +397,8 @@ func newDeleteOptions() *metav1.DeleteOptions {
 	}
 }
 
-func (c *client) UpdateClusterObjectEndpoint(masterIP, clusterName, ns string) error {
-	cluster, err := c.GetClusterObject(clusterName, ns)
+func (c *client) UpdateClusterObjectEndpoint(masterIP, clusterName, namespace string) error {
+	cluster, err := c.GetClusterObject(clusterName, namespace)
 	if err != nil {
 		return err
 	}
@@ -407,7 +407,7 @@ func (c *client) UpdateClusterObjectEndpoint(masterIP, clusterName, ns string) e
 			Host: masterIP,
 			Port: apiServerPort,
 		})
-	_, err = c.clientSet.ClusterV1alpha1().Clusters(apiv1.NamespaceDefault).UpdateStatus(cluster)
+	_, err = c.clientSet.ClusterV1alpha1().Clusters(namespace).UpdateStatus(cluster)
 	return err
 }
 
@@ -415,10 +415,10 @@ func (c *client) WaitForClusterV1alpha1Ready() error {
 	return waitForClusterResourceReady(c.clientSet)
 }
 
-func (c *client) waitForClusterDelete() error {
+func (c *client) waitForClusterDelete(namespace string) error {
 	return util.PollImmediate(retryIntervalResourceDelete, timeoutResourceDelete, func() (bool, error) {
 		glog.V(2).Infof("Waiting for cluster objects to be deleted...")
-		response, err := c.clientSet.ClusterV1alpha1().Clusters(apiv1.NamespaceDefault).List(metav1.ListOptions{})
+		response, err := c.clientSet.ClusterV1alpha1().Clusters(namespace).List(metav1.ListOptions{})
 		if err != nil {
 			return false, nil
 		}
@@ -429,10 +429,10 @@ func (c *client) waitForClusterDelete() error {
 	})
 }
 
-func (c *client) waitForMachineDeploymentsDelete() error {
+func (c *client) waitForMachineDeploymentsDelete(namespace string) error {
 	return util.PollImmediate(retryIntervalResourceDelete, timeoutResourceDelete, func() (bool, error) {
 		glog.V(2).Infof("Waiting for machine deployment objects to be deleted...")
-		response, err := c.clientSet.ClusterV1alpha1().MachineDeployments(apiv1.NamespaceDefault).List(metav1.ListOptions{})
+		response, err := c.clientSet.ClusterV1alpha1().MachineDeployments(namespace).List(metav1.ListOptions{})
 		if err != nil {
 			return false, nil
 		}
@@ -443,10 +443,10 @@ func (c *client) waitForMachineDeploymentsDelete() error {
 	})
 }
 
-func (c *client) waitForMachineSetsDelete() error {
+func (c *client) waitForMachineSetsDelete(namespace string) error {
 	return util.PollImmediate(retryIntervalResourceDelete, timeoutResourceDelete, func() (bool, error) {
 		glog.V(2).Infof("Waiting for machine set objects to be deleted...")
-		response, err := c.clientSet.ClusterV1alpha1().MachineSets(apiv1.NamespaceDefault).List(metav1.ListOptions{})
+		response, err := c.clientSet.ClusterV1alpha1().MachineSets(namespace).List(metav1.ListOptions{})
 		if err != nil {
 			return false, nil
 		}
@@ -457,10 +457,10 @@ func (c *client) waitForMachineSetsDelete() error {
 	})
 }
 
-func (c *client) waitForMachinesDelete() error {
+func (c *client) waitForMachinesDelete(namespace string) error {
 	return util.PollImmediate(retryIntervalResourceDelete, timeoutResourceDelete, func() (bool, error) {
 		glog.V(2).Infof("Waiting for machine objects to be deleted...")
-		response, err := c.clientSet.ClusterV1alpha1().Machines(apiv1.NamespaceDefault).List(metav1.ListOptions{})
+		response, err := c.clientSet.ClusterV1alpha1().Machines(namespace).List(metav1.ListOptions{})
 		if err != nil {
 			return false, nil
 		}
@@ -561,7 +561,7 @@ func waitForClusterResourceReady(cs clientset.Interface) error {
 func waitForMachineReady(cs clientset.Interface, machine *clusterv1.Machine) error {
 	err := util.PollImmediate(retryIntervalResourceReady, timeoutMachineReady, func() (bool, error) {
 		glog.V(2).Infof("Waiting for Machine %v to become ready...", machine.Name)
-		m, err := cs.ClusterV1alpha1().Machines(apiv1.NamespaceDefault).Get(machine.Name, metav1.GetOptions{})
+		m, err := cs.ClusterV1alpha1().Machines(machine.Namespace).Get(machine.Name, metav1.GetOptions{})
 		if err != nil {
 			return false, nil
 		}

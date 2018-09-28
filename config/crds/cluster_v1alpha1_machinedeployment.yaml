@@ -1,0 +1,120 @@
+apiVersion: apiextensions.k8s.io/v1beta1
+kind: CustomResourceDefinition
+metadata:
+  creationTimestamp: null
+  labels:
+    controller-tools.k8s.io: "1.0"
+  name: machinedeployments.cluster.k8s.io
+spec:
+  group: cluster.k8s.io
+  names:
+    kind: MachineDeployment
+    plural: machinedeployments
+  scope: Namespaced
+  subresources:
+    status: {}
+  validation:
+    openAPIV3Schema:
+      properties:
+        apiVersion:
+          type: string
+        kind:
+          type: string
+        metadata:
+          type: object
+        spec:
+          properties:
+            minReadySeconds:
+              format: int32
+              type: integer
+            paused:
+              type: boolean
+            progressDeadlineSeconds:
+              format: int32
+              type: integer
+            replicas:
+              format: int32
+              type: integer
+            revisionHistoryLimit:
+              format: int32
+              type: integer
+            selector:
+              type: object
+            strategy:
+              properties:
+                rollingUpdate:
+                  properties:
+                    maxSurge:
+                      type: object
+                    maxUnavailable:
+                      type: object
+                  type: object
+                type:
+                  type: string
+              type: object
+            template:
+              properties:
+                metadata:
+                  type: object
+                spec:
+                  properties:
+                    configSource:
+                      type: object
+                    metadata:
+                      type: object
+                    providerConfig:
+                      properties:
+                        value:
+                          type: object
+                        valueFrom:
+                          type: object
+                      type: object
+                    taints:
+                      items:
+                        type: object
+                      type: array
+                    versions:
+                      properties:
+                        controlPlane:
+                          type: string
+                        kubelet:
+                          type: string
+                      required:
+                      - kubelet
+                      type: object
+                  required:
+                  - providerConfig
+                  type: object
+              type: object
+          required:
+          - selector
+          - template
+          type: object
+        status:
+          properties:
+            availableReplicas:
+              format: int32
+              type: integer
+            observedGeneration:
+              format: int64
+              type: integer
+            readyReplicas:
+              format: int32
+              type: integer
+            replicas:
+              format: int32
+              type: integer
+            unavailableReplicas:
+              format: int32
+              type: integer
+            updatedReplicas:
+              format: int32
+              type: integer
+          type: object
+  version: v1alpha1
+status:
+  acceptedNames:
+    kind: ""
+    plural: ""
+  conditions: []
+  storedVersions: []

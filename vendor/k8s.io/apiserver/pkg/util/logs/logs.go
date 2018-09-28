@@ -18,6 +18,7 @@ package logs
 
 import (
 	"flag"
+	"fmt"
 	"log"
 	"time"
 
@@ -26,11 +27,19 @@ import (
 	"k8s.io/apimachinery/pkg/util/wait"
 )
 
-var logFlushFreq = pflag.Duration("log-flush-frequency", 5*time.Second, "Maximum number of seconds between log flushes")
+const logFlushFreqFlagName = "log-flush-frequency"
+
+var logFlushFreq = pflag.Duration(logFlushFreqFlagName, 5*time.Second, "Maximum number of seconds between log flushes")
 
 // TODO(thockin): This is temporary until we agree on log dirs and put those into each cmd.
 func init() {
 	flag.Set("logtostderr", "true")
+}
+
+// AddFlags registers this package's flags on arbitrary FlagSets, such that they point to the
+// same value as the global flags.
+func AddFlags(fs *pflag.FlagSet) {
+	fs.AddFlag(pflag.Lookup(logFlushFreqFlagName))
 }
 
 // GlogWriter serves as a bridge between the standard log package and the glog package.
@@ -38,7 +47,7 @@ type GlogWriter struct{}
 
 // Write implements the io.Writer interface.
 func (writer GlogWriter) Write(data []byte) (n int, err error) {
-	glog.Info(string(data))
+	glog.InfoDepth(1, string(data))
 	return len(data), nil
 }
 
@@ -46,8 +55,8 @@ func (writer GlogWriter) Write(data []byte) (n int, err error) {
 func InitLogs() {
 	log.SetOutput(GlogWriter{})
 	log.SetFlags(0)
-	// The default glog flush interval is 30 seconds, which is frighteningly long.
-	go wait.Until(glog.Flush, *logFlushFreq, wait.NeverStop)
+	// The default glog flush interval is 5 seconds.
+	go wait.Forever(glog.Flush, *logFlushFreq)
 }
 
 // FlushLogs flushes logs immediately.
@@ -58,4 +67,13 @@ func FlushLogs() {
 // NewLogger creates a new log.Logger which sends logs to glog.Info.
 func NewLogger(prefix string) *log.Logger {
 	return log.New(GlogWriter{}, prefix, 0)
+}
+
+// GlogSetter is a setter to set glog level.
+func GlogSetter(val string) (string, error) {
+	var level glog.Level
+	if err := level.Set(val); err != nil {
+		return "", fmt.Errorf("failed set glog.logging.verbosity %s: %v", val, err)
+	}
+	return fmt.Sprintf("successfully set glog.logging.verbosity to %s", val), nil
 }

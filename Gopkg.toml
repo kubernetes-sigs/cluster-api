@@ -1,82 +1,35 @@
-
-# Gopkg.toml example
-#
-# Refer to https://github.com/golang/dep/blob/master/docs/Gopkg.toml.md
-# for detailed Gopkg.toml documentation.
-#
-# required = ["github.com/user/thing/cmd/thing"]
-# ignored = ["github.com/user/project/pkgX", "bitbucket.org/user/project/pkgA/pkgY"]
-#
-# [[constraint]]
-#   name = "github.com/user/project"
-#   version = "1.0.0"
-#
-# [[constraint]]
-#   name = "github.com/user/project2"
-#   branch = "dev"
-#   source = "github.com/myfork/project2"
-#
-# [[override]]
-#  name = "github.com/x/y"
-#  version = "2.4.0"
-
 required = [
-  "github.com/kubernetes-incubator/apiserver-builder/cmd/apiregister-gen",
-  "k8s.io/code-generator/cmd/conversion-gen",
-  "k8s.io/code-generator/cmd/client-gen",
-]
+    "github.com/emicklei/go-restful",
+    "github.com/onsi/ginkgo", # for test framework
+    "github.com/onsi/gomega", # for test matchers
+    "k8s.io/client-go/plugin/pkg/client/auth/gcp", # for development against gcp
+    "k8s.io/code-generator/cmd/deepcopy-gen", # for go generate
+    "sigs.k8s.io/controller-tools/cmd/controller-gen", # for crd/rbac generation
+    "sigs.k8s.io/controller-runtime/pkg/client/config",
+    "sigs.k8s.io/controller-runtime/pkg/controller",
+    "sigs.k8s.io/controller-runtime/pkg/handler",
+    "sigs.k8s.io/controller-runtime/pkg/manager",
+    "sigs.k8s.io/controller-runtime/pkg/runtime/signals",
+    "sigs.k8s.io/controller-runtime/pkg/source",
+    "sigs.k8s.io/testing_frameworks/integration", # for integration testing
+    "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1beta1",
+    ]
 
 [prune]
   go-tests = true
-  unused-packages = true
 
-  # Don't prune helper scripts from code-generator
-  [[prune.project]]
-    name = "k8s.io/code-generator"
-    unused-packages = false
-
-  # Don't prune helper scripts from gengo
-  [[prune.project]]
-    name = "k8s.io/gengo"
-    unused-packages = false
-
-  # Don't prune code needed by openapi-gen
-  [[prune.project]]
-    name = "k8s.io/kube-openapi"
-    unused-packages = false
+# STANZAS BELOW ARE GENERATED AND MAY BE WRITTEN - DO NOT MODIFY BELOW THIS LINE.
 
 [[constraint]]
-  name = "github.com/ghodss/yaml"
-  version = "1.0.0"
+  name="sigs.k8s.io/controller-runtime"
+  version="v0.1.1"
 
 [[constraint]]
-  name = "github.com/spf13/cobra"
-  version = "0.0.1"
+  name="sigs.k8s.io/controller-tools"
+  version="v0.1.1"
 
-[[constraint]]
-  name = "github.com/spf13/pflag"
-  version = "1.0.0"
-
-[[constraint]]
-  name = "k8s.io/api"
-  branch = "release-1.9"
-
-[[constraint]]
-  name = "k8s.io/apimachinery"
-  branch = "release-1.9"
-
-[[constraint]]
-  name = "k8s.io/apiserver"
-  branch = "release-1.9"
-
-[[constraint]]
-  name = "k8s.io/client-go"
-  branch = "release-6.0"
-
-[[constraint]]
-  name = "github.com/kubernetes-incubator/apiserver-builder"
-  version = "v1.9-alpha.3"
-
-[[constraint]]
-  name = "k8s.io/code-generator"
-  branch = "release-1.9"
+# For dependency below: Refer to issue https://github.com/golang/dep/issues/1799
+[[override]]
+name = "gopkg.in/fsnotify.v1"
+source = "https://github.com/fsnotify/fsnotify.git"
+version="v1.4.7"

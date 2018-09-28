@@ -88,7 +88,7 @@ func (a *TestActuator) Exists(*v1alpha1.Cluster, *v1alpha1.Machine) (bool, error
 	return a.ExistsValue, nil
 }
 
-func NewTestActuator() *TestActuator {
+func newTestActuator() *TestActuator {
 	ta := new(TestActuator)
 	ta.unblock = make(chan string)
 	return ta

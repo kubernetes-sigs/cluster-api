@@ -57,7 +57,7 @@ func (a *TestActuator) Delete(*v1alpha1.Cluster) error {
 	return nil
 }
 
-func NewTestActuator() *TestActuator {
+func newTestActuator() *TestActuator {
 	ta := new(TestActuator)
 	ta.unblock = make(chan string)
 	return ta

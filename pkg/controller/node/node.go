@@ -14,18 +14,21 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package machine
+package node
 
 import (
 	"github.com/golang/glog"
 
 	corev1 "k8s.io/api/core/v1"
-	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/tools/cache"
 
+	"context"
+
+	"sigs.k8s.io/cluster-api/pkg/apis/cluster/v1alpha1"
 	"sigs.k8s.io/cluster-api/pkg/controller/noderefutil"
 	"sigs.k8s.io/cluster-api/pkg/util"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
 const (
@@ -40,7 +43,7 @@ const (
 //
 // Currently, these annotations are added by the node itself as part of its
 // bootup script after "kubeadm join" succeeds.
-func (c *MachineControllerImpl) link(node *corev1.Node) error {
+func (c *ReconcileNode) link(node *corev1.Node) error {
 	nodeReady := noderefutil.IsNodeReady(node)
 
 	// skip update if cached and no change in readiness.
@@ -60,16 +63,19 @@ func (c *MachineControllerImpl) link(node *corev1.Node) error {
 		glog.Errorf("Machine annotation format is incorrect %v: %v\n", val, err)
 		return err
 	}
-	machineClient := c.clientSet.ClusterV1alpha1().Machines(util.GetNamespaceOrDefault(namespace))
-	machine, err := machineClient.Get(mach, metav1.GetOptions{})
-	if err != nil {
+	namespace = util.GetNamespaceOrDefault(namespace)
+	key := client.ObjectKey{Namespace: namespace, Name: mach}
+
+	machine := &v1alpha1.Machine{}
+	if err = c.Client.Get(context.Background(), key, machine); err != nil {
 		glog.Errorf("Error getting machine %v: %v\n", mach, err)
 		return err
 	}
 
-	machine.Status.LastUpdated = metav1.Now()
+	t := metav1.Now()
+	machine.Status.LastUpdated = &t
 	machine.Status.NodeRef = objectRef(node)
-	if _, err = machineClient.UpdateStatus(machine); err != nil {
+	if err = c.Client.Status().Update(context.Background(), machine); err != nil {
 		glog.Errorf("Error updating machine to link to node: %v\n", err)
 	} else {
 		glog.Infof("Successfully linked machine %s to node %s\n",
@@ -80,7 +86,7 @@ func (c *MachineControllerImpl) link(node *corev1.Node) error {
 	return err
 }
 
-func (c *MachineControllerImpl) unlink(node *corev1.Node) error {
+func (c *ReconcileNode) unlink(node *corev1.Node) error {
 	val, ok := node.ObjectMeta.Annotations[machineAnnotationKey]
 	if !ok {
 		return nil
@@ -91,10 +97,11 @@ func (c *MachineControllerImpl) unlink(node *corev1.Node) error {
 		glog.Errorf("Machine annotation format is incorrect %v: %v\n", val, err)
 		return err
 	}
+	namespace = util.GetNamespaceOrDefault(namespace)
+	key := client.ObjectKey{Namespace: namespace, Name: mach}
 
-	machineClient := c.clientSet.ClusterV1alpha1().Machines(util.GetNamespaceOrDefault(namespace))
-	machine, err := machineClient.Get(mach, metav1.GetOptions{})
-	if err != nil {
+	machine := &v1alpha1.Machine{}
+	if err = c.Client.Get(context.Background(), key, machine); err != nil {
 		glog.Errorf("Error getting machine %v: %v\n", mach, err)
 		return err
 	}
@@ -111,9 +118,10 @@ func (c *MachineControllerImpl) unlink(node *corev1.Node) error {
 		return nil
 	}
 
-	machine.Status.LastUpdated = metav1.Now()
+	t := metav1.Now()
+	machine.Status.LastUpdated = &t
 	machine.Status.NodeRef = nil
-	if _, err = machineClient.UpdateStatus(machine); err != nil {
+	if err = c.Client.Status().Update(context.Background(), machine); err != nil {
 		glog.Errorf("Error updating machine %s to unlink node %s: %v\n",
 			machine.ObjectMeta.Name, node.ObjectMeta.Name, err)
 	} else {
@@ -123,31 +131,6 @@ func (c *MachineControllerImpl) unlink(node *corev1.Node) error {
 		delete(c.linkedNodes, node.ObjectMeta.Name)
 	}
 	return err
-}
-
-// reconcileNode is serialized by an internal queue. It has built-in rated limited retry logic.
-// So as long as the reconcile loop return an error, the processing queue will retry the
-// reconciliation.
-func (c *MachineControllerImpl) reconcileNode(key string) error {
-	_, name, err := cache.SplitMetaNamespaceKey(key)
-	if err != nil {
-		return err
-	}
-
-	n, err := c.kubernetesClientSet.CoreV1().Nodes().Get(name, metav1.GetOptions{})
-	if errors.IsNotFound(err) {
-		return nil
-	}
-	if err != nil {
-		glog.Errorf("Unable to retrieve Node %v from store: %v", key, err)
-		return err
-	}
-
-	if n.DeletionTimestamp.IsZero() {
-		return c.link(n)
-	} else {
-		return c.unlink(n)
-	}
 }
 
 func objectRef(node *corev1.Node) *corev1.ObjectReference {

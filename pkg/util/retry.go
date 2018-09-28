@@ -23,10 +23,10 @@ import (
 )
 
 const (
-	backoffSteps = 10
-	backoffFactor = 1.25
+	backoffSteps    = 10
+	backoffFactor   = 1.25
 	backoffDuration = 5
-	backoffJitter = 1.0
+	backoffJitter   = 1.0
 )
 
 func Retry(fn wait.ConditionFunc, initialBackoffSec int) error {

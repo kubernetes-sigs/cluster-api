@@ -21,7 +21,7 @@ import (
 	"sigs.k8s.io/cluster-api/cmd/clusterctl/clientcmd"
 )
 
-// Can create cluster clients
+// Factory can create cluster clients
 type Factory interface {
 	NewClientFromKubeconfig(string) (Client, error)
 	NewCoreClientsetFromKubeconfigFile(string) (*kubernetes.Clientset, error)

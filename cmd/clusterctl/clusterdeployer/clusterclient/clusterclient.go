@@ -53,7 +53,6 @@ type Client interface {
 	Apply(string) error
 	Delete(string) error
 	WaitForClusterV1alpha1Ready() error
-	GetClusterObjects() ([]*clusterv1.Cluster, error)
 	GetClusterObjectsInNamespace(string) ([]*clusterv1.Cluster, error)
 	GetClusterObject(string, string) (*clusterv1.Cluster, error)
 	GetMachineDeploymentObjects() ([]*clusterv1.MachineDeployment, error)
@@ -87,7 +86,7 @@ type client struct {
 	closeFn         func() error
 }
 
-// New creates and returns the address of a Client, the kubeconfig argument is expected to be the string represenattion
+// New creates and returns the address of a Client, the kubeconfig argument is expected to be the string represenation
 // of a valid kubeconfig.
 func New(kubeconfig string) (*client, error) {
 	f, err := createTempFile(kubeconfig)
@@ -141,7 +140,7 @@ func (c *client) DeleteNamespace(namespaceName string) error {
 	return nil
 }
 
-// NewFromDefaultSearchPath creates and returns the address of a Client, the kubeconfigFile argument is expected to be the path to a
+// NewFromDefaultSearchPath creates and returns the address of a Client.  The kubeconfigFile argument is expected to be the path to a
 // valid kubeconfig file.
 func NewFromDefaultSearchPath(kubeconfigFile string, overrides tcmd.ConfigOverrides) (*client, error) {
 	c, err := clientcmd.NewClusterApiClientForDefaultSearchPath(kubeconfigFile, overrides)
@@ -156,7 +155,7 @@ func NewFromDefaultSearchPath(kubeconfigFile string, overrides tcmd.ConfigOverri
 	}, nil
 }
 
-// Frees resources associated with the cluster client
+// Close frees resources associated with the cluster client
 func (c *client) Close() error {
 	if c.closeFn != nil {
 		return c.closeFn()
@@ -205,12 +204,6 @@ func (c *client) GetClusterObjectsInNamespace(namespace string) ([]*clusterv1.Cl
 		clusters = append(clusters, &clusterlist.Items[i])
 	}
 	return clusters, nil
-}
-
-// Deprecated API. Please do not extend or use.
-func (c *client) GetClusterObjects() ([]*clusterv1.Cluster, error) {
-	glog.V(2).Info("GetClusterObjects API is deprecated, use GetClusterObjectsInNamespace instead")
-	return c.GetClusterObjectsInNamespace(apiv1.NamespaceDefault)
 }
 
 func (c *client) GetMachineDeploymentObjectsInNamespace(namespace string) ([]*clusterv1.MachineDeployment, error) {
@@ -397,6 +390,7 @@ func newDeleteOptions() *metav1.DeleteOptions {
 	}
 }
 
+// TODO: Test this function
 func (c *client) UpdateClusterObjectEndpoint(masterIP, clusterName, namespace string) error {
 	cluster, err := c.GetClusterObject(clusterName, namespace)
 	if err != nil {
@@ -407,7 +401,7 @@ func (c *client) UpdateClusterObjectEndpoint(masterIP, clusterName, namespace st
 			Host: masterIP,
 			Port: apiServerPort,
 		})
-	_, err = c.clientSet.ClusterV1alpha1().Clusters(namespace).Update(cluster)
+	_, err = c.clientSet.ClusterV1alpha1().Clusters(namespace).UpdateStatus(cluster)
 	return err
 }
 

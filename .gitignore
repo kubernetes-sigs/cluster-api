@@ -3,6 +3,7 @@
 *.dll
 *.so
 *.dylib
+cmd/clusterctl/clusterctl
 
 # Test binary, build with `go test -c`
 *.test

@@ -16,7 +16,7 @@ limitations under the License.
 
 package v1alpha1
 
-import runtime "k8s.io/apimachinery/pkg/runtime"
+import "k8s.io/apimachinery/pkg/runtime"
 
 // ProviderConfig defines the configuration to use during node creation.
 type ProviderConfig struct {

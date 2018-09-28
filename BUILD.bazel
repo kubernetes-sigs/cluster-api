@@ -1,8 +1,0 @@
-load("@bazel_gazelle//:def.bzl", "gazelle")
-
-gazelle(
-    name = "gazelle",
-    command = "fix",
-    external = "vendored",
-    prefix = "sigs.k8s.io/cluster-api",
-)

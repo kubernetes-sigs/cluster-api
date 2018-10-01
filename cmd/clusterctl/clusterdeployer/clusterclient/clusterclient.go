@@ -86,7 +86,7 @@ type client struct {
 	closeFn         func() error
 }
 
-// New creates and returns the address of a Client, the kubeconfig argument is expected to be the string represenation
+// New creates and returns a Client, the kubeconfig argument is expected to be the string represenation
 // of a valid kubeconfig.
 func New(kubeconfig string) (*client, error) {
 	f, err := createTempFile(kubeconfig)
@@ -140,7 +140,7 @@ func (c *client) DeleteNamespace(namespaceName string) error {
 	return nil
 }
 
-// NewFromDefaultSearchPath creates and returns the address of a Client.  The kubeconfigFile argument is expected to be the path to a
+// NewFromDefaultSearchPath creates and returns a Client.  The kubeconfigFile argument is expected to be the path to a
 // valid kubeconfig file.
 func NewFromDefaultSearchPath(kubeconfigFile string, overrides tcmd.ConfigOverrides) (*client, error) {
 	c, err := clientcmd.NewClusterApiClientForDefaultSearchPath(kubeconfigFile, overrides)

@@ -20,7 +20,6 @@ import (
 	"context"
 	"fmt"
 	"reflect"
-	"time"
 
 	"github.com/golang/glog"
 	"k8s.io/apimachinery/pkg/api/errors"
@@ -37,8 +36,6 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 	"sigs.k8s.io/controller-runtime/pkg/source"
 )
-
-const requeueAfterWhenQueueAbsent = 1 * time.Second
 
 // controllerKind contains the schema.GroupVersionKind for this controller type.
 var controllerKind = v1alpha1.SchemeGroupVersion.WithKind("MachineDeployment")

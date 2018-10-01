@@ -21,13 +21,8 @@ clusterctl: generate fmt vet
 run: generate fmt vet
 	go run ./cmd/manager/main.go
 
-# Install CRDs into a cluster
-install: manifests
-	kubectl apply -f config/crds
-
 # Deploy controller in the configured Kubernetes cluster in ~/.kube/config
 deploy: manifests
-	kubectl apply -f config/crds
 	kustomize build config/default | kubectl apply -f -
 
 # Generate manifests e.g. CRD, RBAC etc.

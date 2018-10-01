@@ -33,7 +33,7 @@ type ProviderConfig struct {
 	// Source for the provider configuration. Cannot be used if value is
 	// not empty.
 	// +optional
-	ValueFrom *ProviderConfigSource `json:valueFrom,omitempty`
+	ValueFrom *ProviderConfigSource `json:"valueFrom,omitempty"`
 }
 
 // ProviderConfigSource represents a source for the provider-specific

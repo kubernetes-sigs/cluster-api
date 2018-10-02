@@ -49,13 +49,3 @@ func InitLogs() {
 	// The default glog flush interval is 30 seconds, which is frighteningly long.
 	go wait.Until(glog.Flush, *logFlushFreq, wait.NeverStop)
 }
-
-// FlushLogs flushes logs immediately.
-func FlushLogs() {
-	glog.Flush()
-}
-
-// NewLogger creates a new log.Logger which sends logs to glog.Info.
-func NewLogger(prefix string) *log.Logger {
-	return log.New(GlogWriter{}, prefix, 0)
-}

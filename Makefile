@@ -1,3 +1,16 @@
+# Copyright 2018 The Kubernetes Authors.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
 
 # Image URL to use all building/pushing image targets
 IMG ?= gcr.io/k8s-cluster-api/cluster-api-controller:latest
@@ -5,7 +18,7 @@ IMG ?= gcr.io/k8s-cluster-api/cluster-api-controller:latest
 all: test manager clusterctl
 
 # Run tests
-test: generate fmt vet manifests
+test: generate fmt vet manifests verify
 	go test -v -tags=integration ./pkg/... ./cmd/...
 #	go test -v -tags=integration ./pkg/... ./cmd/... -coverprofile cover.out
 

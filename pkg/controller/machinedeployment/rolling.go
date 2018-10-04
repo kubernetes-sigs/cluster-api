@@ -30,15 +30,15 @@ import (
 )
 
 // rolloutRolling implements the logic for rolling a new machine set.
-func (dc *MachineDeploymentControllerImpl) rolloutRolling(d *v1alpha1.MachineDeployment, msList []*v1alpha1.MachineSet, machineMap map[types.UID]*v1alpha1.MachineList) error {
-	newMS, oldMSs, err := dc.getAllMachineSetsAndSyncRevision(d, msList, machineMap, true)
+func (r *ReconcileMachineDeployment) rolloutRolling(d *v1alpha1.MachineDeployment, msList []*v1alpha1.MachineSet, machineMap map[types.UID]*v1alpha1.MachineList) error {
+	newMS, oldMSs, err := r.getAllMachineSetsAndSyncRevision(d, msList, machineMap, true)
 	if err != nil {
 		return err
 	}
 	allMSs := append(oldMSs, newMS)
 
 	// Scale up, if we can.
-	scaledUp, err := dc.reconcileNewMachineSet(allMSs, newMS, d)
+	scaledUp, err := r.reconcileNewMachineSet(allMSs, newMS, d)
 	if err != nil {
 		return err
 	}
@@ -48,7 +48,7 @@ func (dc *MachineDeploymentControllerImpl) rolloutRolling(d *v1alpha1.MachineDep
 	}
 
 	// Scale down, if we can.
-	scaledDown, err := dc.reconcileOldMachineSets(allMSs, dutil.FilterActiveMachineSets(oldMSs), newMS, d)
+	scaledDown, err := r.reconcileOldMachineSets(allMSs, dutil.FilterActiveMachineSets(oldMSs), newMS, d)
 	if err != nil {
 		return err
 	}
@@ -58,7 +58,7 @@ func (dc *MachineDeploymentControllerImpl) rolloutRolling(d *v1alpha1.MachineDep
 	}
 
 	if dutil.DeploymentComplete(d, &d.Status) {
-		if err := dc.cleanupDeployment(oldMSs, d); err != nil {
+		if err := r.cleanupDeployment(oldMSs, d); err != nil {
 			return err
 		}
 	}
@@ -67,7 +67,7 @@ func (dc *MachineDeploymentControllerImpl) rolloutRolling(d *v1alpha1.MachineDep
 	return nil
 }
 
-func (dc *MachineDeploymentControllerImpl) reconcileNewMachineSet(allMSs []*v1alpha1.MachineSet, newMS *v1alpha1.MachineSet, deployment *v1alpha1.MachineDeployment) (bool, error) {
+func (r *ReconcileMachineDeployment) reconcileNewMachineSet(allMSs []*v1alpha1.MachineSet, newMS *v1alpha1.MachineSet, deployment *v1alpha1.MachineDeployment) (bool, error) {
 	if deployment.Spec.Replicas == nil {
 		return false, fmt.Errorf("spec replicas for deployment set %v is nil, this is unexpected", deployment.Name)
 	}
@@ -81,18 +81,18 @@ func (dc *MachineDeploymentControllerImpl) reconcileNewMachineSet(allMSs []*v1al
 	}
 	if *(newMS.Spec.Replicas) > *(deployment.Spec.Replicas) {
 		// Scale down.
-		scaled, _, err := dc.scaleMachineSet(newMS, *(deployment.Spec.Replicas), deployment)
+		scaled, _, err := r.scaleMachineSet(newMS, *(deployment.Spec.Replicas), deployment)
 		return scaled, err
 	}
 	newReplicasCount, err := dutil.NewMSNewReplicas(deployment, allMSs, newMS)
 	if err != nil {
 		return false, err
 	}
-	scaled, _, err := dc.scaleMachineSet(newMS, newReplicasCount, deployment)
+	scaled, _, err := r.scaleMachineSet(newMS, newReplicasCount, deployment)
 	return scaled, err
 }
 
-func (dc *MachineDeploymentControllerImpl) reconcileOldMachineSets(allMSs []*v1alpha1.MachineSet, oldMSs []*v1alpha1.MachineSet, newMS *v1alpha1.MachineSet, deployment *v1alpha1.MachineDeployment) (bool, error) {
+func (r *ReconcileMachineDeployment) reconcileOldMachineSets(allMSs []*v1alpha1.MachineSet, oldMSs []*v1alpha1.MachineSet, newMS *v1alpha1.MachineSet, deployment *v1alpha1.MachineDeployment) (bool, error) {
 	if deployment.Spec.Replicas == nil {
 		return false, fmt.Errorf("spec replicas for deployment set %v is nil, this is unexpected", deployment.Name)
 	}
@@ -149,7 +149,7 @@ func (dc *MachineDeploymentControllerImpl) reconcileOldMachineSets(allMSs []*v1a
 
 	// Clean up unhealthy replicas first, otherwise unhealthy replicas will block deployment
 	// and cause timeout. See https://github.com/kubernetes/kubernetes/issues/16737
-	oldMSs, cleanupCount, err := dc.cleanupUnhealthyReplicas(oldMSs, deployment, maxScaledDown)
+	oldMSs, cleanupCount, err := r.cleanupUnhealthyReplicas(oldMSs, deployment, maxScaledDown)
 	if err != nil {
 		return false, nil
 	}
@@ -157,7 +157,7 @@ func (dc *MachineDeploymentControllerImpl) reconcileOldMachineSets(allMSs []*v1a
 
 	// Scale down old machine sets, need check maxUnavailable to ensure we can scale down
 	allMSs = append(oldMSs, newMS)
-	scaledDownCount, err := dc.scaleDownOldMachineSetsForRollingUpdate(allMSs, oldMSs, deployment)
+	scaledDownCount, err := r.scaleDownOldMachineSetsForRollingUpdate(allMSs, oldMSs, deployment)
 	if err != nil {
 		return false, nil
 	}
@@ -168,7 +168,7 @@ func (dc *MachineDeploymentControllerImpl) reconcileOldMachineSets(allMSs []*v1a
 }
 
 // cleanupUnhealthyReplicas will scale down old machine sets with unhealthy replicas, so that all unhealthy replicas will be deleted.
-func (dc *MachineDeploymentControllerImpl) cleanupUnhealthyReplicas(oldMSs []*v1alpha1.MachineSet, deployment *v1alpha1.MachineDeployment, maxCleanupCount int32) ([]*v1alpha1.MachineSet, int32, error) {
+func (r *ReconcileMachineDeployment) cleanupUnhealthyReplicas(oldMSs []*v1alpha1.MachineSet, deployment *v1alpha1.MachineDeployment, maxCleanupCount int32) ([]*v1alpha1.MachineSet, int32, error) {
 	sort.Sort(dutil.MachineSetsByCreationTimestamp(oldMSs))
 	// Safely scale down all old machine sets with unhealthy replicas. Replica set will sort the machines in the order
 	// such that not-ready < ready, unscheduled < scheduled, and pending < running. This ensures that unhealthy replicas will
@@ -202,7 +202,7 @@ func (dc *MachineDeploymentControllerImpl) cleanupUnhealthyReplicas(oldMSs []*v1
 		if newReplicasCount > oldMSReplicas {
 			return nil, 0, fmt.Errorf("when cleaning up unhealthy replicas, got invalid request to scale down %s/%s %d -> %d", targetMS.Namespace, targetMS.Name, oldMSReplicas, newReplicasCount)
 		}
-		_, updatedOldMS, err := dc.scaleMachineSet(targetMS, newReplicasCount, deployment)
+		_, updatedOldMS, err := r.scaleMachineSet(targetMS, newReplicasCount, deployment)
 		if err != nil {
 			return nil, totalScaledDown, err
 		}
@@ -214,7 +214,7 @@ func (dc *MachineDeploymentControllerImpl) cleanupUnhealthyReplicas(oldMSs []*v1
 
 // scaleDownOldMachineSetsForRollingUpdate scales down old machine sets when deployment strategy is "RollingUpdate".
 // Need check maxUnavailable to ensure availability
-func (dc *MachineDeploymentControllerImpl) scaleDownOldMachineSetsForRollingUpdate(allMSs []*v1alpha1.MachineSet, oldMSs []*v1alpha1.MachineSet, deployment *v1alpha1.MachineDeployment) (int32, error) {
+func (r *ReconcileMachineDeployment) scaleDownOldMachineSetsForRollingUpdate(allMSs []*v1alpha1.MachineSet, oldMSs []*v1alpha1.MachineSet, deployment *v1alpha1.MachineDeployment) (int32, error) {
 	if deployment.Spec.Replicas == nil {
 		return 0, fmt.Errorf("spec replicas for deployment %v is nil, this is unexpected", deployment.Name)
 	}
@@ -254,7 +254,7 @@ func (dc *MachineDeploymentControllerImpl) scaleDownOldMachineSetsForRollingUpda
 		if newReplicasCount > *(targetMS.Spec.Replicas) {
 			return 0, fmt.Errorf("when scaling down old MS, got invalid request to scale down %s/%s %d -> %d", targetMS.Namespace, targetMS.Name, *(targetMS.Spec.Replicas), newReplicasCount)
 		}
-		_, _, err := dc.scaleMachineSet(targetMS, newReplicasCount, deployment)
+		_, _, err := r.scaleMachineSet(targetMS, newReplicasCount, deployment)
 		if err != nil {
 			return totalScaledDown, err
 		}

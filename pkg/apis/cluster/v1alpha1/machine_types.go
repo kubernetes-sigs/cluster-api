@@ -17,28 +17,22 @@ limitations under the License.
 package v1alpha1
 
 import (
-	"log"
-
-	"k8s.io/apimachinery/pkg/runtime"
-	"k8s.io/apiserver/pkg/endpoints/request"
-
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/util/validation/field"
+	"k8s.io/apimachinery/pkg/runtime"
 
-	"sigs.k8s.io/cluster-api/pkg/apis/cluster"
-	clustercommon "sigs.k8s.io/cluster-api/pkg/apis/cluster/common"
+	"sigs.k8s.io/cluster-api/pkg/apis/cluster/common"
 )
 
 // Finalizer is set on PreareForCreate callback
-const MachineFinalizer string = "machine.cluster.k8s.io"
+const MachineFinalizer = "machine.cluster.k8s.io"
 
 // +genclient
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
 
-// Machine
+// Machine is the Schema for the machines API
 // +k8s:openapi-gen=true
-// +resource:path=machines,strategy=MachineStrategy
+// +kubebuilder:subresource:status
 type Machine struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
@@ -91,7 +85,7 @@ type MachineStatus struct {
 
 	// When was this status last observed
 	// +optional
-	LastUpdated metav1.Time `json:"lastUpdated,omitempty"`
+	LastUpdated *metav1.Time `json:"lastUpdated,omitempty"`
 
 	// The current versions of software on the corresponding Node (if it
 	// exists). This is provided for a few reasons:
@@ -124,11 +118,11 @@ type MachineStatus struct {
 	// spec, values that are unsupported by the controller, or the
 	// responsible controller itself being critically misconfigured.
 	//
-	// Any transient errors that occur during the reconcilation of Machines
+	// Any transient errors that occur during the reconciliation of Machines
 	// can be added as events to the Machine object and/or logged in the
 	// controller's output.
 	// +optional
-	ErrorReason *clustercommon.MachineStatusError `json:"errorReason,omitempty"`
+	ErrorReason *common.MachineStatusError `json:"errorReason,omitempty"`
 	// +optional
 	ErrorMessage *string `json:"errorMessage,omitempty"`
 
@@ -136,7 +130,8 @@ type MachineStatus struct {
 	// It is recommended that providers maintain their
 	// own versioned API types that should be
 	// serialized/deserialized from this field.
-	ProviderStatus *runtime.RawExtension `json:"providerStatus"`
+	// +optional
+	ProviderStatus *runtime.RawExtension `json:"providerStatus,omitempty"`
 
 	// Addresses is a list of addresses assigned to the machine. Queried from cloud provider, if available.
 	// +optional
@@ -162,28 +157,15 @@ type MachineVersionInfo struct {
 	ControlPlane string `json:"controlPlane,omitempty"`
 }
 
-// Validate checks that an instance of Machine is well formed
-func (MachineStrategy) Validate(ctx request.Context, obj runtime.Object) field.ErrorList {
-	machine := obj.(*cluster.Machine)
-	log.Printf("Validating fields for Machine %s\n", machine.Name)
-	errors := field.ErrorList{}
-	// perform validation here and add to errors using field.Invalid
-	return errors
+// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
+
+// MachineList contains a list of Machine
+type MachineList struct {
+	metav1.TypeMeta `json:",inline"`
+	metav1.ListMeta `json:"metadata,omitempty"`
+	Items           []Machine `json:"items"`
 }
 
-// PrepareForCreate clears fields that are not allowed to be set by end users on creation.
-func (m MachineStrategy) PrepareForCreate(ctx request.Context, obj runtime.Object) {
-	// Invoke the parent implementation to strip the Status
-	m.DefaultStorageStrategy.PrepareForCreate(ctx, obj)
-
-	// Cast the element and set finalizer
-	o := obj.(*cluster.Machine)
-	o.ObjectMeta.Finalizers = append(o.ObjectMeta.Finalizers, MachineFinalizer)
-}
-
-// DefaultingFunction sets default Machine field values
-func (MachineSchemeFns) DefaultingFunction(o interface{}) {
-	obj := o.(*Machine)
-	// set default field values here
-	log.Printf("Defaulting fields for Machine %s\n", obj.Name)
+func init() {
+	SchemeBuilder.Register(&Machine{}, &MachineList{})
 }

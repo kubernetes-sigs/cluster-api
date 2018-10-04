@@ -25,9 +25,11 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
 
+	"context"
+
 	"sigs.k8s.io/cluster-api/pkg/apis/cluster/v1alpha1"
-	machinesetclientset "sigs.k8s.io/cluster-api/pkg/client/clientset_generated/clientset/typed/cluster/v1alpha1"
 	"sigs.k8s.io/cluster-api/pkg/controller/noderefutil"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
 const (
@@ -35,7 +37,7 @@ const (
 	statusUpdateRetries = 1
 )
 
-func (c *MachineSetControllerImpl) calculateStatus(ms *v1alpha1.MachineSet, filteredMachines []*v1alpha1.Machine) v1alpha1.MachineSetStatus {
+func (c *ReconcileMachineSet) calculateStatus(ms *v1alpha1.MachineSet, filteredMachines []*v1alpha1.Machine) v1alpha1.MachineSetStatus {
 	newStatus := ms.Status
 	// Count the number of machines that have labels matching the labels of the machine
 	// template of the replica set, the matching machines may have more
@@ -71,7 +73,7 @@ func (c *MachineSetControllerImpl) calculateStatus(ms *v1alpha1.MachineSet, filt
 }
 
 // updateMachineSetStatus attempts to update the Status.Replicas of the given MachineSet, with a single GET/PUT retry.
-func updateMachineSetStatus(c machinesetclientset.MachineSetInterface, ms *v1alpha1.MachineSet, newStatus v1alpha1.MachineSetStatus) (*v1alpha1.MachineSet, error) {
+func updateMachineSetStatus(c client.Client, ms *v1alpha1.MachineSet, newStatus v1alpha1.MachineSetStatus) (*v1alpha1.MachineSet, error) {
 	// This is the steady state. It happens when the MachineSet doesn't have any expectations, since
 	// we do a periodic relist every 30s. If the generations differ but the replicas are
 	// the same, a caller might've resized to the same replica count.
@@ -90,26 +92,29 @@ func updateMachineSetStatus(c machinesetclientset.MachineSetInterface, ms *v1alp
 	newStatus.ObservedGeneration = ms.Generation
 
 	var getErr, updateErr error
-	var updatedMS *v1alpha1.MachineSet
 	for i := 0; ; i++ {
+		var replicas int32
+		if ms.Spec.Replicas != nil {
+			replicas = *ms.Spec.Replicas
+		}
 		glog.V(4).Infof(fmt.Sprintf("Updating status for %v: %s/%s, ", ms.Kind, ms.Namespace, ms.Name) +
-			fmt.Sprintf("replicas %d->%d (need %d), ", ms.Status.Replicas, newStatus.Replicas, *(ms.Spec.Replicas)) +
+			fmt.Sprintf("replicas %d->%d (need %d), ", ms.Status.Replicas, newStatus.Replicas, replicas) +
 			fmt.Sprintf("fullyLabeledReplicas %d->%d, ", ms.Status.FullyLabeledReplicas, newStatus.FullyLabeledReplicas) +
 			fmt.Sprintf("readyReplicas %d->%d, ", ms.Status.ReadyReplicas, newStatus.ReadyReplicas) +
 			fmt.Sprintf("availableReplicas %d->%d, ", ms.Status.AvailableReplicas, newStatus.AvailableReplicas) +
 			fmt.Sprintf("sequence No: %v->%v", ms.Status.ObservedGeneration, newStatus.ObservedGeneration))
 
 		ms.Status = newStatus
-		updatedMS, updateErr = c.UpdateStatus(ms)
+		updateErr = c.Status().Update(context.Background(), ms)
 		if updateErr == nil {
-			return updatedMS, nil
+			return ms, nil
 		}
 		// Stop retrying if we exceed statusUpdateRetries - the machineSet will be requeued with a rate limit.
 		if i >= statusUpdateRetries {
 			break
 		}
 		// Update the MachineSet with the latest resource version for the next poll
-		if ms, getErr = c.Get(ms.Name, metav1.GetOptions{}); getErr != nil {
+		if getErr = c.Get(context.Background(), client.ObjectKey{Name: ms.Name}, ms); getErr != nil {
 			// If the GET fails we can't trust status.Replicas anymore. This error
 			// is bound to be more interesting than the update failure.
 			return nil, getErr
@@ -119,11 +124,13 @@ func updateMachineSetStatus(c machinesetclientset.MachineSetInterface, ms *v1alp
 	return nil, updateErr
 }
 
-func (c *MachineSetControllerImpl) getMachineNode(machine *v1alpha1.Machine) (*corev1.Node, error) {
+func (c *ReconcileMachineSet) getMachineNode(machine *v1alpha1.Machine) (*corev1.Node, error) {
 	nodeRef := machine.Status.NodeRef
 	if nodeRef == nil {
 		return nil, fmt.Errorf("machine has no node ref")
 	}
 
-	return c.kubernetesClient.CoreV1().Nodes().Get(nodeRef.Name, metav1.GetOptions{})
+	node := &corev1.Node{}
+	err := c.Client.Get(context.Background(), client.ObjectKey{Name: nodeRef.Name}, node)
+	return node, err
 }

@@ -14,15 +14,10 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-
-// Api versions allow the api contract for a resource to be changed while keeping
-// backward compatibility by support multiple concurrent versions
-// of the same resource
-
+// Package v1alpha1 contains API Schema definitions for the cluster v1alpha1 API group
 // +k8s:openapi-gen=true
 // +k8s:deepcopy-gen=package,register
 // +k8s:conversion-gen=sigs.k8s.io/cluster-api/pkg/apis/cluster
 // +k8s:defaulter-gen=TypeMeta
 // +groupName=cluster.k8s.io
-package v1alpha1 // import "sigs.k8s.io/cluster-api/pkg/apis/cluster/v1alpha1"
-
+package v1alpha1

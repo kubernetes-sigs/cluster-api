@@ -1,0 +1,29 @@
+Error: unknown flag: --invalid-flag
+Usage:
+  clusterctl create cluster [flags]
+
+Flags:
+  -a, --addon-components string                        A yaml file containing cluster addons to apply to the internal cluster
+      --cleanup-bootstrap-cluster                      Whether to cleanup the bootstrap cluster after bootstrap (default true)
+  -c, --cluster string                                 A yaml file containing cluster object definition
+      --existing-bootstrap-cluster-kubeconfig string   Path to an existing cluster's kubeconfig for bootstrapping (intead of using minikube)
+  -h, --help                                           help for cluster
+      --kubeconfig-out string                          Where to output the kubeconfig for the provisioned cluster (default "kubeconfig")
+  -m, --machines string                                A yaml file containing machine object definition(s)
+      --provider string                                Which provider deployment logic to use (google/vsphere/azure)
+  -p, --provider-components string                     A yaml file containing cluster api provider controllers and supporting objects
+      --vm-driver string                               Which vm driver to use for minikube
+
+Global Flags:
+      --alsologtostderr                  log to standard error as well as files
+      --kubeconfig string                Paths to a kubeconfig. Only required if out-of-cluster.
+      --log-flush-frequency duration     Maximum number of seconds between log flushes (default 5s)
+      --log_backtrace_at traceLocation   when logging hits line file:N, emit a stack trace (default :0)
+      --log_dir string                   If non-empty, write log files in this directory
+      --logtostderr                      log to standard error instead of files (default true)
+      --master string                    The address of the Kubernetes API server. Overrides any value in kubeconfig. Only required if out-of-cluster.
+      --stderrthreshold severity         logs at or above this threshold go to stderr (default 2)
+  -v, --v Level                          log level for V logs
+      --vmodule moduleSpec               comma-separated list of pattern=N settings for file-filtered logging
+
+unknown flag: --invalid-flag

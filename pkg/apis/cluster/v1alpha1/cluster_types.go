@@ -17,26 +17,21 @@ limitations under the License.
 package v1alpha1
 
 import (
-	"log"
-
-	"k8s.io/apimachinery/pkg/runtime"
-	"k8s.io/apiserver/pkg/endpoints/request"
-
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/util/validation/field"
+	"k8s.io/apimachinery/pkg/runtime"
 
-	"sigs.k8s.io/cluster-api/pkg/apis/cluster"
+	"k8s.io/apimachinery/pkg/util/validation/field"
 	"sigs.k8s.io/cluster-api/pkg/apis/cluster/common"
 )
 
-const ClusterFinalizer string = "cluster.cluster.k8s.io"
+const ClusterFinalizer = "cluster.cluster.k8s.io"
 
 // +genclient
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
 
-// Cluster
+// Cluster is the Schema for the clusters API
 // +k8s:openapi-gen=true
-// +resource:path=clusters,strategy=ClusterStrategy
+// +kubebuilder:subresource:status
 type Cluster struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
@@ -79,7 +74,8 @@ type NetworkRanges struct {
 // ClusterStatus defines the observed state of Cluster
 type ClusterStatus struct {
 	// APIEndpoint represents the endpoint to communicate with the IP.
-	APIEndpoints []APIEndpoint `json:"apiEndpoints"`
+	// +optional
+	APIEndpoints []APIEndpoint `json:"apiEndpoints,omitempty"`
 
 	// NB: Eventually we will redefine ErrorReason as ClusterStatusError once the
 	// following issue is fixed.
@@ -88,17 +84,20 @@ type ClusterStatus struct {
 	// If set, indicates that there is a problem reconciling the
 	// state, and will be set to a token value suitable for
 	// programmatic interpretation.
-	ErrorReason common.ClusterStatusError `json:"errorReason"`
+	// +optional
+	ErrorReason common.ClusterStatusError `json:"errorReason,omitempty"`
 
 	// If set, indicates that there is a problem reconciling the
 	// state, and will be set to a descriptive error message.
-	ErrorMessage string `json:"errorMessage"`
+	// +optional
+	ErrorMessage string `json:"errorMessage,omitempty"`
 
 	// Provider-specific status.
 	// It is recommended that providers maintain their
 	// own versioned API types that should be
 	// serialized/deserialized from this field.
-	ProviderStatus *runtime.RawExtension `json:"providerStatus"`
+	// +optional
+	ProviderStatus *runtime.RawExtension `json:"providerStatus,omitempty"`
 }
 
 // APIEndpoint represents a reachable Kubernetes API endpoint.
@@ -110,10 +109,7 @@ type APIEndpoint struct {
 	Port int `json:"port"`
 }
 
-// Validate checks that an instance of Cluster is well formed
-func (ClusterStrategy) Validate(ctx request.Context, obj runtime.Object) field.ErrorList {
-	o := obj.(*cluster.Cluster)
-	log.Printf("Validating fields for Cluster %s\n", o.Name)
+func (o *Cluster) Validate() field.ErrorList {
 	errors := field.ErrorList{}
 	// perform validation here and add to errors using field.Invalid
 	if o.Spec.ClusterNetwork.ServiceDomain == "" {
@@ -137,19 +133,15 @@ func (ClusterStrategy) Validate(ctx request.Context, obj runtime.Object) field.E
 	return errors
 }
 
-// PrepareForCreate clears fields that are not allowed to be set by end users on creation.
-func (c ClusterStrategy) PrepareForCreate(ctx request.Context, obj runtime.Object) {
-	// Invoke the parent implementation to strip the Status
-	c.DefaultStorageStrategy.PrepareForCreate(ctx, obj)
+// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
 
-	// Cast the element and set finalizer
-	o := obj.(*cluster.Cluster)
-	o.ObjectMeta.Finalizers = append(o.ObjectMeta.Finalizers, ClusterFinalizer)
+// ClusterList contains a list of Cluster
+type ClusterList struct {
+	metav1.TypeMeta `json:",inline"`
+	metav1.ListMeta `json:"metadata,omitempty"`
+	Items           []Cluster `json:"items"`
 }
 
-// DefaultingFunction sets default Cluster field values
-func (ClusterSchemeFns) DefaultingFunction(o interface{}) {
-	obj := o.(*Cluster)
-	// set default field values here
-	log.Printf("Defaulting fields for Cluster %s\n", obj.Name)
+func init() {
+	SchemeBuilder.Register(&Cluster{}, &ClusterList{})
 }

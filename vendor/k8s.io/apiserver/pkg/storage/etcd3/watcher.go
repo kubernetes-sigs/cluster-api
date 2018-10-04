@@ -17,6 +17,7 @@ limitations under the License.
 package etcd3
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"os"
@@ -32,7 +33,6 @@ import (
 
 	"github.com/coreos/etcd/clientv3"
 	"github.com/golang/glog"
-	"golang.org/x/net/context"
 )
 
 const (
@@ -72,7 +72,7 @@ type watchChan struct {
 	key               string
 	initialRev        int64
 	recursive         bool
-	internalFilter    storage.FilterFunc
+	internalPred      storage.SelectionPredicate
 	ctx               context.Context
 	cancel            context.CancelFunc
 	incomingEventChan chan *event
@@ -111,14 +111,14 @@ func (w *watcher) createWatchChan(ctx context.Context, key string, rev int64, re
 		key:               key,
 		initialRev:        rev,
 		recursive:         recursive,
-		internalFilter:    storage.SimpleFilter(pred),
+		internalPred:      pred,
 		incomingEventChan: make(chan *event, incomingBufSize),
 		resultChan:        make(chan watch.Event, outgoingBufSize),
 		errChan:           make(chan error, 1),
 	}
 	if pred.Empty() {
 		// The filter doesn't filter out any object.
-		wc.internalFilter = nil
+		wc.internalPred = storage.Everything
 	}
 	wc.ctx, wc.cancel = context.WithCancel(ctx)
 	return wc
@@ -232,7 +232,7 @@ func (wc *watchChan) processEvent(wg *sync.WaitGroup) {
 				continue
 			}
 			if len(wc.resultChan) == outgoingBufSize {
-				glog.Warningf("Fast watcher, slow processing. Number of buffered events: %d."+
+				glog.V(3).Infof("Fast watcher, slow processing. Number of buffered events: %d."+
 					"Probably caused by slow dispatching events to watchers", outgoingBufSize)
 			}
 			// If user couldn't receive results fast enough, we also block incoming events from watcher.
@@ -250,14 +250,15 @@ func (wc *watchChan) processEvent(wg *sync.WaitGroup) {
 }
 
 func (wc *watchChan) filter(obj runtime.Object) bool {
-	if wc.internalFilter == nil {
+	if wc.internalPred.Empty() {
 		return true
 	}
-	return wc.internalFilter(obj)
+	matched, err := wc.internalPred.Matches(obj)
+	return err == nil && matched
 }
 
 func (wc *watchChan) acceptAll() bool {
-	return wc.internalFilter == nil
+	return wc.internalPred.Empty()
 }
 
 // transform transforms an event into a result for user if not filtered.
@@ -338,7 +339,7 @@ func (wc *watchChan) sendError(err error) {
 
 func (wc *watchChan) sendEvent(e *event) {
 	if len(wc.incomingEventChan) == incomingBufSize {
-		glog.Warningf("Fast watcher, slow processing. Number of buffered events: %d."+
+		glog.V(3).Infof("Fast watcher, slow processing. Number of buffered events: %d."+
 			"Probably caused by slow decoding, user not receiving fast, or other processing logic",
 			incomingBufSize)
 	}

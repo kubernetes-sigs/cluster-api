@@ -14,38 +14,42 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package v1alpha1_test
+package v1alpha1
 
 import (
+	"log"
+	"os"
+	"path/filepath"
 	"testing"
 
-	"github.com/kubernetes-incubator/apiserver-builder/pkg/test"
-
-	"sigs.k8s.io/cluster-api/pkg/apis"
-	"sigs.k8s.io/cluster-api/pkg/client/clientset_generated/clientset"
-	"sigs.k8s.io/cluster-api/pkg/openapi"
+	"k8s.io/client-go/kubernetes/scheme"
+	"k8s.io/client-go/rest"
+	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/envtest"
 )
 
-func TestV1alpha1(t *testing.T) {
-	testenv := test.NewTestEnvironment()
-	config := testenv.Start(apis.GetAllApiBuilders(), openapi.GetOpenAPIDefinitions)
-	cs := clientset.NewForConfigOrDie(config)
+var cfg *rest.Config
+var c client.Client
 
-	t.Run("crudAccessToClusterClient", func(t *testing.T) {
-		crudAccessToClusterClient(t, cs)
-	})
-	t.Run("clusterValidationTest", func(t *testing.T) {
-		clusterValidationTest(t, cs)
-	})
-	t.Run("crudAccessToMachineClient", func(t *testing.T) {
-		crudAccessToMachineClient(t, cs)
-	})
-	t.Run("crudAccessToMachineSetClient", func(t *testing.T) {
-		crudAccessToMachineSetClient(t, cs)
-	})
-	t.Run("crudAccessToMachineDeploymentClient", func(t *testing.T) {
-		crudAccessToMachineDeploymentClient(t, cs)
-	})
+func TestMain(m *testing.M) {
+	t := &envtest.Environment{
+		CRDDirectoryPaths: []string{filepath.Join("..", "..", "..", "..", "config", "crds")},
+	}
 
-	testenv.Stop()
+	err := SchemeBuilder.AddToScheme(scheme.Scheme)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	if cfg, err = t.Start(); err != nil {
+		log.Fatal(err)
+	}
+
+	if c, err = client.New(cfg, client.Options{Scheme: scheme.Scheme}); err != nil {
+		log.Fatal(err)
+	}
+
+	code := m.Run()
+	t.Stop()
+	os.Exit(code)
 }

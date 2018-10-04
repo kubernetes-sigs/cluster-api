@@ -17,6 +17,7 @@ limitations under the License.
 package util
 
 import (
+	"context"
 	"fmt"
 	"math/rand"
 	"os"
@@ -26,11 +27,11 @@ import (
 	"time"
 
 	"github.com/golang/glog"
-
 	"k8s.io/api/core/v1"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/api/errors"
+	"sigs.k8s.io/controller-runtime/pkg/client"
+
 	clusterv1 "sigs.k8s.io/cluster-api/pkg/apis/cluster/v1alpha1"
-	client "sigs.k8s.io/cluster-api/pkg/client/clientset_generated/clientset/typed/cluster/v1alpha1"
 )
 
 const (
@@ -95,17 +96,17 @@ func GetDefaultKubeConfigPath() string {
 	return fmt.Sprintf("%s/config", localDir)
 }
 
-func GetMachineIfExists(machineClient client.MachineInterface, name string) (*clusterv1.Machine, error) {
-	if machineClient == nil {
+func GetMachineIfExists(c client.Client, namespace, name string) (*clusterv1.Machine, error) {
+	if c == nil {
 		// Being called before k8s is setup as part of master VM creation
 		return nil, nil
 	}
 
 	// Machines are identified by name
-	machine, err := machineClient.Get(name, metav1.GetOptions{})
+	machine := &clusterv1.Machine{}
+	err := c.Get(context.Background(), client.ObjectKey{Namespace: namespace, Name: name}, machine)
 	if err != nil {
-		// TODO: Use formal way to check for not found
-		if strings.Contains(err.Error(), "not found") {
+		if errors.IsNotFound(err) {
 			return nil, nil
 		}
 		return nil, err

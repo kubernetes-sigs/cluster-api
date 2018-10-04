@@ -3,6 +3,9 @@
 *.dll
 *.so
 *.dylib
+cmd/clusterctl/clusterctl
+cmd/manager/manager
+bin
 
 # Test binary, build with `go test -c`
 *.test

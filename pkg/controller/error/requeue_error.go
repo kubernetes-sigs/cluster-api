@@ -30,5 +30,5 @@ type RequeueAfterError struct {
 
 // Error implements the error interface
 func (e *RequeueAfterError) Error() string {
-	return fmt.Sprintf("requeue cluster in: %s", e.RequeueAfter)
+	return fmt.Sprintf("requeue in: %s", e.RequeueAfter)
 }

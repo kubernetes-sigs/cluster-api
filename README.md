@@ -54,13 +54,6 @@ Following are the implementations managed by third-parties adopting the standard
 * `kubectl` is required, see [here](http://kubernetes.io/docs/user-guide/prereqs/).
 * `clusterctl` is a SIG-cluster-lifecycle sponsored tool to manage Cluster API clusters. See [here](clusterctl)
 
-## How to use the API
-
-To see how to build tooling on top of the Cluster API, please check out a few examples below:
-
-* [upgrader](tools/upgrader/README.md): a cluster upgrade tool.
-* [repair](tools/repair/README.md): detect problematic nodes and fix them.
-
 [cluster-api-kep]: https://github.com/kubernetes/community/blob/master/keps/sig-cluster-lifecycle/0003-cluster-api.md
 [notes]: https://docs.google.com/document/d/16ils69KImmE94RlmzjWDrkmFZysgB2J4lGnYMRN89WM/edit
 [recordings]: https://www.youtube.com/playlist?list=PL69nYSiGNLP29D0nYgAGWt1ZFqS9Z7lw4

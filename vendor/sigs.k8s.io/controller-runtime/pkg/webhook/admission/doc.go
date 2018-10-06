@@ -15,30 +15,81 @@ limitations under the License.
 */
 
 /*
-Package admission provides functions to build and bootstrap an admission webhook server for a k8s cluster.
+Package admission provides implementation for admission webhook and methods to implement admission webhook handlers.
 
-Build webhooks
+The following snippet is an example implementation of mutating handler.
 
-	webhook1, err := NewWebhookBuilder().
-		Name("foo.k8s.io").
-		Mutating().
-		Operations(admissionregistrationv1beta1.Create).
-		ForType(&corev1.Pod{}).
-		WithManager(mgr).
-		Build(mutatingHandler1, mutatingHandler2)
-	if err != nil {
-		// handle error
+	type Mutator struct {
+		client  client.Client
+		decoder types.Decoder
 	}
 
-	webhook2, err := NewWebhookBuilder().
-		Name("bar.k8s.io").
-		Validating().
-		Operations(admissionregistrationv1beta1.Create, admissionregistrationv1beta1.Update).
-		ForType(&appsv1.Deployment{}).
-		WithManager(mgr).
-		Build(validatingHandler1)
-	if err != nil {
-		// handle error
+	func (m *Mutator) mutatePodsFn(ctx context.Context, pod *corev1.Pod) error {
+		// your logic to mutate the passed-in pod.
+	}
+
+	func (m *Mutator) Handle(ctx context.Context, req types.Request) types.Response {
+		pod := &corev1.Pod{}
+		err := m.decoder.Decode(req, pod)
+		if err != nil {
+			return admission.ErrorResponse(http.StatusBadRequest, err)
+		}
+		// Do deepcopy before actually mutate the object.
+		copy := pod.DeepCopy()
+		err = m.mutatePodsFn(ctx, copy)
+		if err != nil {
+			return admission.ErrorResponse(http.StatusInternalServerError, err)
+		}
+		return admission.PatchResponse(pod, copy)
+	}
+
+	// InjectClient is called by the Manager and provides a client.Client to the Mutator instance.
+	func (m *Mutator) InjectClient(c client.Client) error {
+		h.client = c
+		return nil
+	}
+
+	// InjectDecoder is called by the Manager and provides a types.Decoder to the Mutator instance.
+	func (m *Mutator) InjectDecoder(d types.Decoder) error {
+		h.decoder = d
+		return nil
+	}
+
+The following snippet is an example implementation of validating handler.
+
+	type Handler struct {
+		client  client.Client
+		decoder types.Decoder
+	}
+
+	func (v *Validator) validatePodsFn(ctx context.Context, pod *corev1.Pod) (bool, string, error) {
+		// your business logic
+	}
+
+	func (v *Validator) Handle(ctx context.Context, req types.Request) types.Response {
+		pod := &corev1.Pod{}
+		err := h.decoder.Decode(req, pod)
+		if err != nil {
+			return admission.ErrorResponse(http.StatusBadRequest, err)
+		}
+
+		allowed, reason, err := h.validatePodsFn(ctx, pod)
+		if err != nil {
+			return admission.ErrorResponse(http.StatusInternalServerError, err)
+		}
+		return admission.ValidationResponse(allowed, reason)
+	}
+
+	// InjectClient is called by the Manager and provides a client.Client to the Validator instance.
+	func (v *Validator) InjectClient(c client.Client) error {
+		h.client = c
+		return nil
+	}
+
+	// InjectDecoder is called by the Manager and provides a types.Decoder to the Validator instance.
+	func (v *Validator) InjectDecoder(d types.Decoder) error {
+		h.decoder = d
+		return nil
 	}
 */
 package admission

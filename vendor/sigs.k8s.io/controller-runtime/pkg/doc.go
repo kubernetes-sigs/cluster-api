@@ -49,6 +49,19 @@ system must be read for each Reconciler.
 
 * Controller require Watches to be configured to enqueue reconcile.Requests in response to events.
 
+Webhook
+
+Admission Webhooks are a mechanism for extending kubernetes APIs. Webhooks can be configured with target
+event type (object Create, Update, Delete), the API server will send AdmissionRequests to them
+when certain events happen. The webhooks may mutate and (or) validate the object embedded in
+the AdmissionReview requests and send back the response to the API server.
+
+There are 2 types of admission webhook: mutating and validating admission webhook.
+Mutating webhook is used to mutate a core API object or a CRD instance before the API server admits it.
+Validating webhook is used to validate if an object meets certain requirements.
+
+* Admission Webhooks require Handler(s) to be provided to process the received AdmissionReview requests.
+
 Reconciler
 
 Reconciler is a function provided to a Controller that may be called at anytime with the Name and Namespace of an object.

@@ -180,6 +180,11 @@ func (s *Server) Register(webhooks ...Webhook) error {
 	return s.manager.Add(s)
 }
 
+// Handle registers a http.Handler for the given pattern.
+func (s *Server) Handle(pattern string, handler http.Handler) {
+	s.sMux.Handle(pattern, handler)
+}
+
 var _ manager.Runnable = &Server{}
 
 // Start runs the server if s.Dryrun is false.

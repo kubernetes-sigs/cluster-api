@@ -65,6 +65,13 @@ func GVKForObject(obj runtime.Object, scheme *runtime.Scheme) (schema.GroupVersi
 // RESTClientForGVK constructs a new rest.Interface capable of accessing the resource associated
 // with the given GroupVersionKind.
 func RESTClientForGVK(gvk schema.GroupVersionKind, baseConfig *rest.Config, codecs serializer.CodecFactory) (rest.Interface, error) {
+	cfg := createRestConfig(gvk, baseConfig)
+	cfg.NegotiatedSerializer = serializer.DirectCodecFactory{CodecFactory: codecs}
+	return rest.RESTClientFor(cfg)
+}
+
+//createRestConfig copies the base config and updates needed fields for a new rest config
+func createRestConfig(gvk schema.GroupVersionKind, baseConfig *rest.Config) *rest.Config {
 	gv := gvk.GroupVersion()
 
 	cfg := rest.CopyConfig(baseConfig)
@@ -74,9 +81,8 @@ func RESTClientForGVK(gvk schema.GroupVersionKind, baseConfig *rest.Config, code
 	} else {
 		cfg.APIPath = "/apis"
 	}
-	cfg.NegotiatedSerializer = serializer.DirectCodecFactory{CodecFactory: codecs}
 	if cfg.UserAgent == "" {
 		cfg.UserAgent = rest.DefaultKubernetesUserAgent()
 	}
-	return rest.RESTClientFor(cfg)
+	return cfg
 }

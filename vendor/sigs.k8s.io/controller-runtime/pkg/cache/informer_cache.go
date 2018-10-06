@@ -23,6 +23,7 @@ import (
 	"strings"
 
 	apimeta "k8s.io/apimachinery/pkg/api/meta"
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/client-go/tools/cache"
@@ -58,11 +59,6 @@ func (ip *informerCache) Get(ctx context.Context, key client.ObjectKey, out runt
 
 // List implements Reader
 func (ip *informerCache) List(ctx context.Context, opts *client.ListOptions, out runtime.Object) error {
-	itemsPtr, err := apimeta.GetItemsPtr(out)
-	if err != nil {
-		return nil
-	}
-
 	gvk, err := apiutil.GVKForObject(out, ip.Scheme)
 	if err != nil {
 		return err
@@ -73,13 +69,25 @@ func (ip *informerCache) List(ctx context.Context, opts *client.ListOptions, out
 	}
 	// we need the non-list GVK, so chop off the "List" from the end of the kind
 	gvk.Kind = gvk.Kind[:len(gvk.Kind)-4]
-
-	// http://knowyourmeme.com/memes/this-is-fine
-	elemType := reflect.Indirect(reflect.ValueOf(itemsPtr)).Type().Elem()
-	cacheTypeValue := reflect.Zero(reflect.PtrTo(elemType))
-	cacheTypeObj, ok := cacheTypeValue.Interface().(runtime.Object)
-	if !ok {
-		return fmt.Errorf("cannot get cache for %T, its element %T is not a runtime.Object", out, cacheTypeValue.Interface())
+	_, isUnstructured := out.(*unstructured.UnstructuredList)
+	var cacheTypeObj runtime.Object
+	if isUnstructured {
+		u := &unstructured.Unstructured{}
+		u.SetGroupVersionKind(gvk)
+		cacheTypeObj = u
+	} else {
+		itemsPtr, err := apimeta.GetItemsPtr(out)
+		if err != nil {
+			return nil
+		}
+		// http://knowyourmeme.com/memes/this-is-fine
+		elemType := reflect.Indirect(reflect.ValueOf(itemsPtr)).Type().Elem()
+		cacheTypeValue := reflect.Zero(reflect.PtrTo(elemType))
+		var ok bool
+		cacheTypeObj, ok = cacheTypeValue.Interface().(runtime.Object)
+		if !ok {
+			return fmt.Errorf("cannot get cache for %T, its element %T is not a runtime.Object", out, cacheTypeValue.Interface())
+		}
 	}
 
 	cache, err := ip.InformersMap.Get(gvk, cacheTypeObj)

@@ -15,7 +15,9 @@ limitations under the License.
 */
 
 /*
-Package webhook provides functions to build and bootstrap an admission webhook server for a k8s cluster.
+Package webhook provides methods to build and bootstrap a webhook server.
+
+Currently, it only supports admission webhooks. It will support CRD conversion webhooks in the near future.
 
 Build webhooks
 
@@ -46,9 +48,25 @@ Build webhooks
 		// handle error
 	}
 
-Create a server for webhooks.
+Create a webhook server.
 
-	as, err := NewServer("baz-admission-server", mrg, ServerOptions{})
+	as, err := NewServer("baz-admission-server", mgr, ServerOptions{
+		CertDir: "/tmp/cert",
+		BootstrapOptions: &BootstrapOptions{
+			Secret: &apitypes.NamespacedName{
+				Namespace: "default",
+				Name:      "foo-admission-server-secret",
+			},
+			Service: &Service{
+				Namespace: "default",
+				Name:      "foo-admission-server-service",
+				// Selectors should select the pods that runs this webhook server.
+				Selectors: map[string]string{
+					"app": "foo-admission-server",
+				},
+			},
+		},
+	})
 	if err != nil {
 		// handle error
 	}

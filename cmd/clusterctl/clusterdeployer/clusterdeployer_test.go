@@ -771,60 +771,60 @@ func TestExtractMasterMachine(t *testing.T) {
 	multipleNodeNames := []string{"test-node-1", "test-node-2", "test-node-3"}
 
 	testCases := []struct {
-		name            string
-		inputMachines   []*clusterv1.Machine
-		expectedMasters *clusterv1.Machine
-		expectedNodes   []*clusterv1.Machine
-		expectedError   error
+		name           string
+		inputMachines  []*clusterv1.Machine
+		expectedMaster *clusterv1.Machine
+		expectedNodes  []*clusterv1.Machine
+		expectedError  error
 	}{
 		{
-			name:            "success_1_master_1_node",
-			inputMachines:   generateMachines(),
-			expectedMasters: generateTestMasterMachine(singleMasterName),
-			expectedNodes:   generateTestNodeMachines([]string{singleNodeName}),
-			expectedError:   nil,
+			name:           "success_1_master_1_node",
+			inputMachines:  generateMachines(),
+			expectedMaster: generateTestMasterMachine(singleMasterName),
+			expectedNodes:  generateTestNodeMachines([]string{singleNodeName}),
+			expectedError:  nil,
 		},
 		{
-			name:            "success_1_master_multiple_nodes",
-			inputMachines:   generateValidExtractMasterMachineInput([]string{singleMasterName}, multipleNodeNames),
-			expectedMasters: generateTestMasterMachine(singleMasterName),
-			expectedNodes:   generateTestNodeMachines(multipleNodeNames),
-			expectedError:   nil,
+			name:           "success_1_master_multiple_nodes",
+			inputMachines:  generateValidExtractMasterMachineInput([]string{singleMasterName}, multipleNodeNames),
+			expectedMaster: generateTestMasterMachine(singleMasterName),
+			expectedNodes:  generateTestNodeMachines(multipleNodeNames),
+			expectedError:  nil,
 		},
 		{
-			name:            "fail_more_than_1_master_not_allowed",
-			inputMachines:   generateInvalidExtractMasterMachine(multpleMasterNames, multipleNodeNames),
-			expectedMasters: nil,
-			expectedNodes:   nil,
-			expectedError:   fmt.Errorf("expected one master, got: 2"),
+			name:           "fail_more_than_1_master_not_allowed",
+			inputMachines:  generateInvalidExtractMasterMachine(multpleMasterNames, multipleNodeNames),
+			expectedMaster: nil,
+			expectedNodes:  nil,
+			expectedError:  fmt.Errorf("expected one master, got: 2"),
 		},
 		{
-			name:            "fail_0_master_not_allowed",
-			inputMachines:   generateTestNodeMachines(multipleNodeNames),
-			expectedMasters: nil,
-			expectedNodes:   nil,
-			expectedError:   fmt.Errorf("expected one master, got: 0"),
+			name:           "fail_0_master_not_allowed",
+			inputMachines:  generateTestNodeMachines(multipleNodeNames),
+			expectedMaster: nil,
+			expectedNodes:  nil,
+			expectedError:  fmt.Errorf("expected one master, got: 0"),
 		},
 	}
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			actualMasters, actualNodes, actualError := extractMasterMachine(tc.inputMachines)
+			actualMaster, actualNodes, actualError := extractMasterMachine(tc.inputMachines)
 
 			if tc.expectedError == nil && actualError != nil {
-				t.Fatalf("%s: extractMasterMachine(%q): gotError %q; wantError [nil]", tc.name, tc.inputMachines, actualError)
+				t.Fatalf("%s: extractMasterMachine(%q): gotError %q; wantError [nil]", tc.name, len(tc.inputMachines), actualError)
 			}
 
 			if tc.expectedError != nil && tc.expectedError.Error() != actualError.Error() {
-				t.Fatalf("%s: extractMasterMachine(%q): gotError %q; wantError %q", tc.name, tc.inputMachines, actualError, tc.expectedError)
+				t.Fatalf("%s: extractMasterMachine(%q): gotError %q; wantError %q", tc.name, len(tc.inputMachines), actualError, tc.expectedError)
 			}
 
-			if (tc.expectedMasters == nil && actualMasters != nil) ||
-				(tc.expectedMasters != nil && actualMasters == nil) {
-				t.Fatalf("%s: extractMasterMachine(%q): gotMasters = %q; wantMasters = %q", tc.name, tc.inputMachines, actualMasters, tc.expectedMasters)
+			if (tc.expectedMaster == nil && actualMaster != nil) ||
+				(tc.expectedMaster != nil && actualMaster == nil) {
+				t.Fatalf("%s: extractMasterMachine(%q): gotMaster = %v; wantMaster = %v", tc.name, len(tc.inputMachines), actualMaster != nil, tc.expectedMaster != nil)
 			}
 
 			if len(tc.expectedNodes) != len(actualNodes) {
-				t.Fatalf("%s: extractMasterMachine(%q): gotNodes = %q; wantNodes = %q", tc.name, tc.inputMachines, actualNodes, tc.expectedNodes)
+				t.Fatalf("%s: extractMasterMachine(%q): gotNodes = %q; wantNodes = %q", tc.name, len(tc.inputMachines), len(actualNodes), len(tc.expectedNodes))
 			}
 		})
 	}

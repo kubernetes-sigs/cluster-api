@@ -367,6 +367,9 @@ func pivotNamespace(from, to clusterclient.Client, namespace string) error {
 		}
 		glog.Infof("Moved Cluster '%s'", cluster.GetName())
 	}
+	if err := from.DeleteClusterObjectsInNamespace(namespace); err != nil {
+		glog.Errorf("error deleting Clusters in original client")
+	}
 
 	fromDeployments, err := from.GetMachineDeploymentObjectsInNamespace(namespace)
 	if err != nil {
@@ -379,6 +382,9 @@ func pivotNamespace(from, to clusterclient.Client, namespace string) error {
 			return fmt.Errorf("error moving MachineDeployment '%v': %v", deployment.GetName(), err)
 		}
 		glog.Infof("Moved MachineDeployment %v", deployment.GetName())
+	}
+	if err := from.DeleteMachineDeploymentObjectsInNamespace(namespace); err != nil {
+		glog.Errorf("error deleting MachineDeployments in namespace %q of original client", namespace)
 	}
 
 	fromMachineSets, err := from.GetMachineSetObjectsInNamespace(namespace)
@@ -393,6 +399,9 @@ func pivotNamespace(from, to clusterclient.Client, namespace string) error {
 		}
 		glog.Infof("Moved MachineSet %v", machineSet.GetName())
 	}
+	if err := from.DeleteMachineSetObjectsInNamespace(namespace); err != nil {
+		glog.Errorf("error deleting MachineSets in namespace %q of original client", namespace)
+	}
 
 	machines, err := from.GetMachineObjectsInNamespace(namespace)
 	if err != nil {
@@ -406,6 +415,9 @@ func pivotNamespace(from, to clusterclient.Client, namespace string) error {
 			return fmt.Errorf("error moving Machine '%v': %v", machine.GetName(), err)
 		}
 		glog.Infof("Moved Machine '%s'", machine.GetName())
+	}
+	if err := from.DeleteMachineSetObjects(); err != nil {
+		glog.Errorf("error deleting Machines in namespace %q of original client", namespace)
 	}
 	return nil
 }

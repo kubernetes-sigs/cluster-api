@@ -1,0 +1,31 @@
+# Sample machine-class object
+apiVersion: "cluster.k8s.io/v1alpha1"
+kind: MachineClass
+metadata:
+  name: small
+  namespace: foo
+providerConfig:
+  apiVersion: "gceproviderconfig/v1alpha1"
+  kind: "GCEProviderConfig"
+  project: "$GCLOUD_PROJECT"
+  zone: "us-central1-f"
+  machineType: "n1-standard-2"
+  image: "projects/ubuntu-os-cloud/global/images/family/ubuntu-1604-lts"
+
+---
+
+# Sample machine object
+apiVersion: cluster.k8s.io/v1alpha1
+kind: Machine
+metadata:
+  name: test-machine 
+  namespace: foo
+  labels:
+    test-label: test-label 
+spec:
+  providerConfig:
+    valueFrom:
+      machineClass: 
+        provider: gcp
+        name: small
+        namespace: foo

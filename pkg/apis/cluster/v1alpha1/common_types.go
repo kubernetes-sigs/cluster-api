@@ -16,7 +16,10 @@ limitations under the License.
 
 package v1alpha1
 
-import "k8s.io/apimachinery/pkg/runtime"
+import (
+	corev1 "k8s.io/api/core/v1"
+	runtime "k8s.io/apimachinery/pkg/runtime"
+)
 
 // ProviderConfig defines the configuration to use during node creation.
 type ProviderConfig struct {
@@ -39,5 +42,17 @@ type ProviderConfig struct {
 // ProviderConfigSource represents a source for the provider-specific
 // resource configuration.
 type ProviderConfigSource struct {
-	// TODO(roberthbailey): Fill these in later
+	// The machine class from which the provider config should be sourced.
+	// +optional
+	MachineClass *MachineClassRef `json:"machineClass,omitempty"`
+}
+
+// MachineClassRef is a reference to the MachineClass object. Controllers should find the right MachineClass using this reference.
+type MachineClassRef struct {
+	// +optional
+	*corev1.ObjectReference `json:",inline"`
+
+	// Provider is the name of the cloud-provider which MachineClass is intended for.
+	// +optional
+	Provider string `json:"provider,omitempty"`
 }

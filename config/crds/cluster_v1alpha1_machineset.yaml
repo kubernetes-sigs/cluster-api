@@ -47,6 +47,12 @@ spec:
                         value:
                           type: object
                         valueFrom:
+                          properties:
+                            machineClass:
+                              properties:
+                                provider:
+                                  type: string
+                              type: object
                           type: object
                       type: object
                     taints:

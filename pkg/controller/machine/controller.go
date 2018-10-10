@@ -168,6 +168,7 @@ func (r *ReconcileMachine) Reconcile(request reconcile.Request) (reconcile.Resul
 				return reconcile.Result{Requeue: true, RequeueAfter: requeueErr.RequeueAfter}, nil
 			}
 		}
+		return reconcile.Result{}, err
 	}
 	// Machine resource created. Machine does not yet exist.
 	glog.Infof("Reconciling machine object %v triggers idempotent create.", m.ObjectMeta.Name)

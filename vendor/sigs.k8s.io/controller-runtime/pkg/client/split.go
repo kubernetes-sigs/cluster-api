@@ -16,6 +16,13 @@ limitations under the License.
 
 package client
 
+import (
+	"context"
+
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
+	"k8s.io/apimachinery/pkg/runtime"
+)
+
 // DelegatingClient forms an interface Client by composing separate
 // reader, writer and statusclient interfaces.  This way, you can have an Client that
 // reads from a cache and writes to the API server.
@@ -23,4 +30,30 @@ type DelegatingClient struct {
 	Reader
 	Writer
 	StatusClient
+}
+
+// DelegatingReader forms a interface Reader that will cause Get and List
+// requests for unstructured types to use the ClientReader while
+// requests for any other type of object with use the CacheReader.
+type DelegatingReader struct {
+	CacheReader  Reader
+	ClientReader Reader
+}
+
+// Get retrieves an obj for a given object key from the Kubernetes Cluster.
+func (d *DelegatingReader) Get(ctx context.Context, key ObjectKey, obj runtime.Object) error {
+	_, isUnstructured := obj.(*unstructured.Unstructured)
+	if isUnstructured {
+		return d.ClientReader.Get(ctx, key, obj)
+	}
+	return d.CacheReader.Get(ctx, key, obj)
+}
+
+// List retrieves list of objects for a given namespace and list options.
+func (d *DelegatingReader) List(ctx context.Context, opts *ListOptions, list runtime.Object) error {
+	_, isUnstructured := list.(*unstructured.UnstructuredList)
+	if isUnstructured {
+		return d.ClientReader.List(ctx, opts, list)
+	}
+	return d.CacheReader.List(ctx, opts, list)
 }

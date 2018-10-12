@@ -79,6 +79,10 @@ type Options struct {
 
 	// Resync is the resync period. Defaults to defaultResyncTime.
 	Resync *time.Duration
+
+	// Namespace restricts the cache's ListWatch to the desired namespace
+	// Default watches all namespaces
+	Namespace string
 }
 
 var defaultResyncTime = 10 * time.Hour
@@ -89,7 +93,7 @@ func New(config *rest.Config, opts Options) (Cache, error) {
 	if err != nil {
 		return nil, err
 	}
-	im := internal.NewInformersMap(config, opts.Scheme, opts.Mapper, *opts.Resync)
+	im := internal.NewInformersMap(config, opts.Scheme, opts.Mapper, *opts.Resync, opts.Namespace)
 	return &informerCache{InformersMap: im}, nil
 }
 

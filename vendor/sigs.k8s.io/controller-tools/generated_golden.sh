@@ -22,9 +22,14 @@ cd test
 ln -s ../vendor vendor
 ../bin/controller-scaffold project --domain testproject.org --controller-tools-path ".." --license apache2 --owner "The Kubernetes authors" --dep=false
 ../bin/controller-scaffold api --group crew --version v1 --kind FirstMate --controller=true --resource=true --make=false
+../bin/controller-scaffold webhook --group crew --version v1 --kind FirstMate --type=mutating --operations=create,update
+../bin/controller-scaffold webhook --group crew --version v1 --kind FirstMate --type=mutating --operations=delete
 ../bin/controller-scaffold api --group ship --version v1beta1 --kind Frigate --example=false --controller=true --resource=true --make=false
+../bin/controller-scaffold webhook --group ship --version v1beta1 --kind Frigate --type=validating --operations=update
 ../bin/controller-scaffold api --group creatures --version v2alpha1 --kind Kraken --namespaced=false --example=false --controller=true --resource=true --make=false
+../bin/controller-scaffold webhook --group creatures --version v2alpha1 --kind Kraken --type=validating --operations=create
 ../bin/controller-scaffold api --group core --version v1 --kind Namespace --example=false --controller=true --resource=false --namespaced=false
+../bin/controller-scaffold webhook --group core --version v1 --kind Namespace --type=mutating --operations=update
 ../bin/controller-scaffold api --group policy --version v1beta1 --kind HealthCheckPolicy --example=false --controller=true --resource=true --namespaced=false
 make
 rm -rf ./bin/

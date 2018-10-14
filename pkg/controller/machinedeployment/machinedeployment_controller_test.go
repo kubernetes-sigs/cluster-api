@@ -25,6 +25,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/intstr"
+	"k8s.io/client-go/util/retry"
 	"sigs.k8s.io/cluster-api/pkg/apis/cluster/common"
 	clusterv1alpha1 "sigs.k8s.io/cluster-api/pkg/apis/cluster/v1alpha1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -40,11 +41,13 @@ const timeout = time.Second * 5
 
 func TestReconcile(t *testing.T) {
 	g := gomega.NewGomegaWithT(t)
+	labels := map[string]string{"foo": "bar"}
 	instance := &clusterv1alpha1.MachineDeployment{
 		ObjectMeta: metav1.ObjectMeta{Name: "foo", Namespace: "default"},
 		Spec: clusterv1alpha1.MachineDeploymentSpec{
 			MinReadySeconds: int32Ptr(0),
 			Replicas:        int32Ptr(2),
+			Selector:        metav1.LabelSelector{MatchLabels: labels},
 			Strategy: clusterv1alpha1.MachineDeploymentStrategy{
 				Type: common.RollingUpdateMachineDeploymentStrategyType,
 				RollingUpdate: &clusterv1alpha1.MachineRollingUpdateDeployment{
@@ -53,6 +56,9 @@ func TestReconcile(t *testing.T) {
 				},
 			},
 			Template: clusterv1alpha1.MachineTemplateSpec{
+				ObjectMeta: metav1.ObjectMeta{
+					Labels: labels,
+				},
 				Spec: clusterv1alpha1.MachineSpec{
 					Versions: clusterv1alpha1.MachineVersionInfo{Kubelet: "1.10.3"},
 				},
@@ -94,7 +100,56 @@ func TestReconcile(t *testing.T) {
 	g.Expect(c.Delete(context.TODO(), &ms)).NotTo(gomega.HaveOccurred())
 	g.Eventually(requests, timeout).Should(gomega.Receive(gomega.Equal(expectedRequest)))
 	g.Eventually(errors, timeout).Should(gomega.Receive(gomega.BeNil()))
+	g.Eventually(func() int {
+		if err := c.List(context.TODO(), &client.ListOptions{}, machineSets); err != nil {
+			return -1
+		}
+		return len(machineSets.Items)
+	}, timeout).Should(gomega.BeEquivalentTo(1))
 
+	// Scale a MachineDeployment and expect Reconcile to be called
+	err = updateMachineDeployment(c, instance, func(d *clusterv1alpha1.MachineDeployment) { d.Spec.Replicas = int32Ptr(5) })
+	g.Expect(err).NotTo(gomega.HaveOccurred())
+	g.Expect(c.Update(context.TODO(), instance)).NotTo(gomega.HaveOccurred())
+	g.Eventually(requests, timeout).Should(gomega.Receive(gomega.Equal(expectedRequest)))
+	g.Eventually(errors, timeout).Should(gomega.Receive(gomega.BeNil()))
+	g.Eventually(func() int32 {
+		if err := c.List(context.TODO(), &client.ListOptions{}, machineSets); err != nil {
+			return -1
+		}
+		if len(machineSets.Items) != 1 {
+			return -1
+		}
+		return *machineSets.Items[0].Spec.Replicas
+	}, timeout).Should(gomega.BeEquivalentTo(5))
+
+	// Update a MachineDeployment, expect Reconsile to be called and a new MachineSet to appear
+	err = updateMachineDeployment(c, instance, func(d *clusterv1alpha1.MachineDeployment) { d.Spec.Template.Labels["updated"] = "true" })
+	g.Expect(err).NotTo(gomega.HaveOccurred())
+	g.Expect(c.Update(context.TODO(), instance)).NotTo(gomega.HaveOccurred())
+	g.Eventually(requests, timeout).Should(gomega.Receive(gomega.Equal(expectedRequest)))
+	g.Eventually(errors, timeout).Should(gomega.Receive(gomega.BeNil()))
+	g.Eventually(func() int {
+		if err := c.List(context.TODO(), &client.ListOptions{}, machineSets); err != nil {
+			return -1
+		}
+		return len(machineSets.Items)
+	}, timeout).Should(gomega.BeEquivalentTo(2))
+
+}
+
+func updateMachineDeployment(c client.Client, d *clusterv1alpha1.MachineDeployment, modify func(*clusterv1alpha1.MachineDeployment)) error {
+	err := retry.RetryOnConflict(retry.DefaultBackoff, func() error {
+		//Get latest version from API
+		if err := c.Get(context.Background(), types.NamespacedName{Namespace: d.Namespace, Name: d.Name}, d); err != nil {
+			return err
+		}
+		// Apply modifications
+		modify(d)
+		// Update the machineDeployment
+		return c.Update(context.Background(), d)
+	})
+	return err
 }
 
 func int32Ptr(i int32) *int32 {

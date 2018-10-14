@@ -25,7 +25,6 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/intstr"
-	"k8s.io/client-go/util/retry"
 	"sigs.k8s.io/cluster-api/pkg/apis/cluster/common"
 	clusterv1alpha1 "sigs.k8s.io/cluster-api/pkg/apis/cluster/v1alpha1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -45,9 +44,10 @@ func TestReconcile(t *testing.T) {
 	instance := &clusterv1alpha1.MachineDeployment{
 		ObjectMeta: metav1.ObjectMeta{Name: "foo", Namespace: "default"},
 		Spec: clusterv1alpha1.MachineDeploymentSpec{
-			MinReadySeconds: int32Ptr(0),
-			Replicas:        int32Ptr(2),
-			Selector:        metav1.LabelSelector{MatchLabels: labels},
+			MinReadySeconds:      int32Ptr(0),
+			Replicas:             int32Ptr(2),
+			RevisionHistoryLimit: int32Ptr(0),
+			Selector:             metav1.LabelSelector{MatchLabels: labels},
 			Strategy: clusterv1alpha1.MachineDeploymentStrategy{
 				Type: common.RollingUpdateMachineDeploymentStrategyType,
 				RollingUpdate: &clusterv1alpha1.MachineRollingUpdateDeployment{
@@ -123,7 +123,7 @@ func TestReconcile(t *testing.T) {
 		return *machineSets.Items[0].Spec.Replicas
 	}, timeout).Should(gomega.BeEquivalentTo(5))
 
-	// Update a MachineDeployment, expect Reconsile to be called and a new MachineSet to appear
+	// Update a MachineDeployment, expect Reconcile to be called and a new MachineSet to appear
 	err = updateMachineDeployment(c, instance, func(d *clusterv1alpha1.MachineDeployment) { d.Spec.Template.Labels["updated"] = "true" })
 	g.Expect(err).NotTo(gomega.HaveOccurred())
 	g.Expect(c.Update(context.TODO(), instance)).NotTo(gomega.HaveOccurred())
@@ -136,20 +136,64 @@ func TestReconcile(t *testing.T) {
 		return len(machineSets.Items)
 	}, timeout).Should(gomega.BeEquivalentTo(2))
 
-}
+	// Wait for the new MachineSet to get scaled up and set .Status.Replicas and .Status.AvailableReplicas
+	// at each step
+	var newMachineSet, oldMachineSet *clusterv1alpha1.MachineSet
+	if machineSets.Items[0].CreationTimestamp.Before(&machineSets.Items[1].CreationTimestamp) {
+		newMachineSet = &machineSets.Items[0]
+		oldMachineSet = &machineSets.Items[1]
+	} else {
+		newMachineSet = &machineSets.Items[1]
+		oldMachineSet = &machineSets.Items[0]
+	}
 
-func updateMachineDeployment(c client.Client, d *clusterv1alpha1.MachineDeployment, modify func(*clusterv1alpha1.MachineDeployment)) error {
-	err := retry.RetryOnConflict(retry.DefaultBackoff, func() error {
-		//Get latest version from API
-		if err := c.Get(context.Background(), types.NamespacedName{Namespace: d.Namespace, Name: d.Name}, d); err != nil {
-			return err
+	// Start off by setting .Status.Replicas and .Status.AvailableReplicas of the old MachineSet
+	oldMachineSet.Status.AvailableReplicas = *oldMachineSet.Spec.Replicas
+	oldMachineSet.Status.Replicas = *oldMachineSet.Spec.Replicas
+	g.Expect(c.Status().Update(context.TODO(), oldMachineSet)).NotTo(gomega.HaveOccurred())
+	g.Eventually(requests, timeout).Should(gomega.Receive(gomega.Equal(expectedRequest)))
+	g.Eventually(errors, timeout).Should(gomega.Receive(gomega.BeNil()))
+
+	// Iterate over the scalesteps
+	for i := int32(1); i < 6; i++ {
+		// Wait for newMachineSet to be scaled up
+		g.Eventually(func() int32 {
+			if err := c.Get(context.TODO(), types.NamespacedName{
+				Namespace: newMachineSet.Namespace, Name: newMachineSet.Name}, newMachineSet); err != nil {
+				return -1
+			}
+			return *newMachineSet.Spec.Replicas
+		}, timeout).Should(gomega.BeEquivalentTo(i))
+		// Set its status
+		newMachineSet.Status.Replicas = *newMachineSet.Spec.Replicas
+		newMachineSet.Status.AvailableReplicas = *newMachineSet.Spec.Replicas
+		g.Expect(c.Status().Update(context.TODO(), newMachineSet)).NotTo(gomega.HaveOccurred())
+		g.Eventually(requests, timeout).Should(gomega.Receive(gomega.Equal(expectedRequest)))
+		g.Eventually(errors, timeout).Should(gomega.Receive(gomega.BeNil()))
+		// Wait for oldMachineSet to be scaled down
+		g.Eventually(func() int32 {
+			if err := c.Get(context.TODO(), types.NamespacedName{
+				Namespace: oldMachineSet.Namespace, Name: oldMachineSet.Name}, oldMachineSet); err != nil {
+				return -1
+			}
+			return *oldMachineSet.Spec.Replicas
+		}, timeout).Should(gomega.BeEquivalentTo(5 - i))
+		// Set its status
+		oldMachineSet.Status.Replicas = *oldMachineSet.Spec.Replicas
+		oldMachineSet.Status.AvailableReplicas = *oldMachineSet.Spec.Replicas
+		oldMachineSet.Status.ObservedGeneration = oldMachineSet.Generation
+		g.Expect(c.Status().Update(context.TODO(), oldMachineSet)).NotTo(gomega.HaveOccurred())
+		g.Eventually(requests, timeout).Should(gomega.Receive(gomega.Equal(expectedRequest)))
+		g.Eventually(errors, timeout).Should(gomega.Receive(gomega.BeNil()))
+	}
+
+	// Expect the old MachineSet to be removed
+	g.Eventually(func() int {
+		if err := c.List(context.TODO(), &client.ListOptions{}, machineSets); err != nil {
+			return -1
 		}
-		// Apply modifications
-		modify(d)
-		// Update the machineDeployment
-		return c.Update(context.Background(), d)
-	})
-	return err
+		return len(machineSets.Items)
+	}, timeout).Should(gomega.BeEquivalentTo(1))
 }
 
 func int32Ptr(i int32) *int32 {

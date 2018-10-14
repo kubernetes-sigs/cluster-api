@@ -7,13 +7,13 @@ Read the [experience doc here](https://docs.google.com/document/d/1-sYb3EdkRga49
 ## Getting Started
 
 **Due to the [limitations](#limitations) described below, you must currently compile and run a `clusterctl` binary
-from your chosen [provider implementation](../README.md#provider-implementations) rather than using the binary from
+from your chosen [provider implementation](../../README.md#provider-implementations) rather than using the binary from
 this repository.**
 
 
 ### Prerequisites
 
-1. Install [minikube](https://kubernetes.io/docs/tasks/tools/install-minikube/) 
+1. Install [minikube](https://kubernetes.io/docs/tasks/tools/install-minikube/)
 2. Install a [driver](https://github.com/kubernetes/minikube/blob/master/docs/drivers.md) for minikube. For Linux, we recommend kvm2. For MacOS, we recommend VirtualBox.
 2. Build the `clusterctl` tool
 
@@ -22,7 +22,7 @@ $ git clone https://github.com/kubernetes-sigs/cluster-api $GOPATH/src/sigs.k8s.
 $ cd $GOPATH/src/sigs.k8s.io/cluster-api/clusterctl/
 $ go build
 ```
- 
+
 ### Limitations
 
 `clusterctl` can only use a provider that is compiled in. As provider specific code has been moved out
@@ -36,7 +36,7 @@ https://github.com/kubernetes-sigs/cluster-api/issues/158 and https://github.com
 ### Creating a cluster
 
 1. Create the `cluster.yaml`, `machines.yaml`, `provider-components.yaml`, and `addons.yaml` files configured for your cluster.
-   See the provider specific templates and generation tools for your chosen [provider implementation](../README.md#provider-implementations).
+   See the provider specific templates and generation tools for your chosen [provider implementation](../../README.md#provider-implementations).
 
 1. Create a cluster:
 
@@ -84,7 +84,7 @@ When you are ready to remove your cluster, you can use clusterctl to delete the 
 ./clusterctl delete cluster --kubeconfig kubeconfig
 ```
 
-Please also check the documentation for your [provider implementation](../README.md#provider-implementations)
+Please also check the documentation for your [provider implementation](../../README.md#provider-implementations)
 to determine if any additional steps need to be taken to completely clean up your cluster.
 
 ## Contributing

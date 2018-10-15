@@ -20,6 +20,10 @@ bin
 .idea/
 *.iml
 
+# vim state files
+*~
+*.swp
+
 # Bazel symlinks
 bazel-bin
 bazel-cluster-api

@@ -27,15 +27,19 @@ import (
 
 type Minikube struct {
 	kubeconfigpath string
-	vmDriver       string
+	options        []string
 	// minikubeExec implemented as function variable for testing hooks
 	minikubeExec func(env []string, args ...string) (string, error)
 }
 
-func New(vmDriver string) *Minikube {
+func New() *Minikube {
+	return WithOptions([]string{})
+}
+
+func WithOptions(options []string) *Minikube {
 	return &Minikube{
 		minikubeExec: minikubeExec,
-		vmDriver:     vmDriver,
+		options:      options,
 		// Arbitrary file name. Can potentially be randomly generated.
 		kubeconfigpath: "minikube.kubeconfig",
 	}
@@ -56,8 +60,8 @@ var minikubeExec = func(env []string, args ...string) (string, error) {
 
 func (m *Minikube) Create() error {
 	args := []string{"start", "--bootstrapper=kubeadm"}
-	if m.vmDriver != "" {
-		args = append(args, fmt.Sprintf("--vm-driver=%v", m.vmDriver))
+	for _, opt := range m.options {
+		args = append(args, fmt.Sprintf("--%v", opt))
 	}
 	_, err := m.exec(args...)
 	return err

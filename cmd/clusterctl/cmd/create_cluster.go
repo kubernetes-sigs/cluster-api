@@ -38,6 +38,7 @@ type CreateOptions struct {
 	ProviderComponents            string
 	AddonComponents               string
 	CleanupBootstrapCluster       bool
+	MiniKube                      []string
 	VmDriver                      string
 	Provider                      string
 	KubeconfigOutput              string
@@ -83,7 +84,11 @@ func RunCreate(co *CreateOptions) error {
 			return err
 		}
 	} else {
-		bootstrapProvider = minikube.New(co.VmDriver)
+		if co.VmDriver != "" {
+			co.MiniKube = append(co.MiniKube, fmt.Sprintf("vm-driver=%s", co.VmDriver))
+		}
+
+		bootstrapProvider = minikube.WithOptions(co.MiniKube)
 
 	}
 
@@ -123,6 +128,7 @@ func init() {
 	// Optional flags
 	createClusterCmd.Flags().StringVarP(&co.AddonComponents, "addon-components", "a", "", "A yaml file containing cluster addons to apply to the internal cluster")
 	createClusterCmd.Flags().BoolVarP(&co.CleanupBootstrapCluster, "cleanup-bootstrap-cluster", "", true, "Whether to cleanup the bootstrap cluster after bootstrap")
+	createClusterCmd.Flags().StringSliceVarP(&co.MiniKube, "minikube", "", []string{}, "Minikube options")
 	createClusterCmd.Flags().StringVarP(&co.VmDriver, "vm-driver", "", "", "Which vm driver to use for minikube")
 	createClusterCmd.Flags().StringVarP(&co.KubeconfigOutput, "kubeconfig-out", "", "kubeconfig", "Where to output the kubeconfig for the provisioned cluster")
 	createClusterCmd.Flags().StringVarP(&co.ExistingClusterKubeconfigPath, "existing-bootstrap-cluster-kubeconfig", "", "", "Path to an existing cluster's kubeconfig for bootstrapping (intead of using minikube)")

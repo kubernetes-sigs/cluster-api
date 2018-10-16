@@ -40,7 +40,36 @@ func TestCreate(t *testing.T) {
 	}
 	for _, testcase := range testcases {
 		t.Run(testcase.name, func(t *testing.T) {
-			m := New("")
+			m := New()
+			m.minikubeExec = func(env []string, args ...string) (string, error) {
+				return "", testcase.execError
+			}
+			err := m.Create()
+			if (testcase.expectErr && err == nil) || (!testcase.expectErr && err != nil) {
+				t.Fatalf("Unexpected returned error. Got: %v, Want Err: %v", err, testcase.expectErr)
+			}
+		})
+	}
+}
+
+func TestCreateOptions(t *testing.T) {
+	var testcases = []struct {
+		name      string
+		execError error
+		expectErr bool
+	}{
+		{
+			name: "success",
+		},
+		{
+			name:      "exec fail",
+			execError: fmt.Errorf("test error"),
+			expectErr: true,
+		},
+	}
+	for _, testcase := range testcases {
+		t.Run(testcase.name, func(t *testing.T) {
+			m := WithOptions([]string{"vm-driver=kvm2", "insecure-registry='172.16.0.1'"})
 			m.minikubeExec = func(env []string, args ...string) (string, error) {
 				return "", testcase.execError
 			}
@@ -69,7 +98,7 @@ func TestDelete(t *testing.T) {
 	}
 	for _, testcase := range testcases {
 		t.Run(testcase.name, func(t *testing.T) {
-			m := New("")
+			m := New()
 			m.minikubeExec = func(env []string, args ...string) (string, error) {
 				return "", testcase.execError
 			}
@@ -83,7 +112,7 @@ func TestDelete(t *testing.T) {
 
 func TestGetKubeconfig(t *testing.T) {
 	const contents = "dfserfafaew"
-	m := New("")
+	m := New()
 	f, err := createTempFile(contents)
 	if err != nil {
 		t.Fatal("Unable to create test file.")

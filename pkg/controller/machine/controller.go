@@ -97,7 +97,13 @@ type ReconcileMachine struct {
 func (r *ReconcileMachine) Reconcile(request reconcile.Request) (reconcile.Result, error) {
 	// Fetch the Machine instance
 	m := &clusterv1.Machine{}
-	err := r.Get(context.Background(), request.NamespacedName, m)
+	cluster, err := r.getCluster(m)
+	if err != nil {
+		glog.Errorf("Error in getting cluster: %v", err)
+		return reconcile.Result{}, err
+	}
+
+	err = r.Get(context.Background(), request.NamespacedName, m)
 	if err != nil {
 		if apierrors.IsNotFound(err) {
 			// Object not found, return.  Created objects are automatically garbage collected.
@@ -134,11 +140,18 @@ func (r *ReconcileMachine) Reconcile(request reconcile.Request) (reconcile.Resul
 			return reconcile.Result{}, nil
 		}
 		glog.Infof("reconciling machine object %v triggers delete.", name)
-		if err := r.delete(m); err != nil {
-			glog.Errorf("Error deleting machine object %v; %v", name, err)
+
+		exist, err := r.actuator.Exists(cluster, m)
+		if err != nil {
+			glog.Errorf("Failed to delete. Error checking existence of machine instance for machine object %v: %v", name, err)
 			return reconcile.Result{}, err
 		}
-
+		if exist {
+			if err := r.delete(m); err != nil {
+				glog.Errorf("Error deleting machine object %v: %v", name, err)
+				return reconcile.Result{}, err
+			}
+		}
 		// Remove finalizer on successful deletion.
 		glog.Infof("machine object %v deletion successful, removing finalizer.", name)
 		m.ObjectMeta.Finalizers = util.Filter(m.ObjectMeta.Finalizers, clusterv1.MachineFinalizer)
@@ -147,11 +160,6 @@ func (r *ReconcileMachine) Reconcile(request reconcile.Request) (reconcile.Resul
 			return reconcile.Result{}, err
 		}
 		return reconcile.Result{}, nil
-	}
-
-	cluster, err := r.getCluster(m)
-	if err != nil {
-		return reconcile.Result{}, err
 	}
 
 	exist, err := r.actuator.Exists(cluster, m)

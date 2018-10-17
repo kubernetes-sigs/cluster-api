@@ -12,7 +12,7 @@ spec:
       labels:
         foo: bar
     spec:
-      providerConfig:
+      providerSpec:
         value:
           apiVersion: "gceproviderconfig/v1alpha1"
           kind: "GCEProviderConfig"

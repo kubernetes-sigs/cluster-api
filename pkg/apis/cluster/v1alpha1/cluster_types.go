@@ -50,7 +50,7 @@ type ClusterSpec struct {
 	// their own versioned API types that should be
 	// serialized/deserialized from this field.
 	// +optional
-	ProviderConfig ProviderConfig `json:"providerConfig,omitempty"`
+	ProviderSpec ProviderSpec `json:"providerSpec,omitempty"`
 }
 
 // ClusterNetworkingConfig specifies the different networking

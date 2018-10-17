@@ -41,15 +41,15 @@ provider-specific controller, and should be deleted as well.
 
 Fields like the kubelet version are modeled as fields on the Machine's spec.
 Any other information that is provider-specific, though, is part of an opaque
-ProviderConfig string that is not portable between different providers.
+ProviderSpec string that is not portable between different providers.
 
-The ProviderConfig is recommended to be a serialized API object in a format
+The ProviderSpec is recommended to be a serialized API object in a format
 owned by that provider, akin to the [Component Config](https://goo.gl/opSc2o)
 pattern. This will allow the configuration to be strongly typed, versioned, and
 have as much nested depth as appropriate. These provider-specific API
 definitions are meant to live outside of the Machines API, which will allow them
 to evolve independently of it. Attributes like instance type, which network to
-use, and the OS image all belong in the ProviderConfig.
+use, and the OS image all belong in the ProviderSpec.
 
 ## In-place vs. Replace
 

@@ -51,7 +51,7 @@ spec:
               - pods
               - serviceDomain
               type: object
-            providerConfig:
+            providerSpec:
               properties:
                 value:
                   type: object

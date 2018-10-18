@@ -40,7 +40,7 @@ type MachineDeploymentSpec struct {
 	// The deployment strategy to use to replace existing machines with
 	// new ones.
 	// +optional
-	Strategy MachineDeploymentStrategy `json:"strategy,omitempty"`
+	Strategy *MachineDeploymentStrategy `json:"strategy,omitempty"`
 
 	// Minimum number of seconds for which a newly created machine should
 	// be ready.

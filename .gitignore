@@ -26,3 +26,6 @@ bazel-cluster-api
 bazel-genfiles
 bazel-out
 bazel-testlogs
+
+# kubeconfigs
+minikube.kubeconfig

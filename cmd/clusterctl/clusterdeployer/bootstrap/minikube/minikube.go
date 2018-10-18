@@ -18,11 +18,12 @@ package minikube
 
 import (
 	"fmt"
-	"github.com/golang/glog"
 	"io/ioutil"
 	"os"
 	"os/exec"
 	"strings"
+
+	"github.com/golang/glog"
 )
 
 type Minikube struct {
@@ -37,11 +38,18 @@ func New() *Minikube {
 }
 
 func WithOptions(options []string) *Minikube {
-	return &Minikube{
-		minikubeExec: minikubeExec,
-		options:      options,
+	return WithOptionsAndKubeConfigPath(options, "")
+}
+
+func WithOptionsAndKubeConfigPath(options []string, kubeconfigpath string) *Minikube {
+	if kubeconfigpath == "" {
 		// Arbitrary file name. Can potentially be randomly generated.
-		kubeconfigpath: "minikube.kubeconfig",
+		kubeconfigpath = "minikube.kubeconfig"
+	}
+	return &Minikube{
+		minikubeExec:   minikubeExec,
+		options:        options,
+		kubeconfigpath: kubeconfigpath,
 	}
 }
 

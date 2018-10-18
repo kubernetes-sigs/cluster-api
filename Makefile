@@ -43,8 +43,8 @@ manifests:
 	go run vendor/sigs.k8s.io/controller-tools/cmd/controller-gen/main.go all
 	@# Kubebuilder CRD generation can't handle intstr.IntOrString properly:
 	@# https://github.com/kubernetes-sigs/kubebuilder/issues/442
-	sed -i '/maxSurge:/{n;d}' config/crds/cluster_v1alpha1_machinedeployment.yaml
-	sed -i '/maxUnavailable:/{n;d}' config/crds/cluster_v1alpha1_machinedeployment.yaml
+	sed -i -e 's/maxSurge:/maxSurge: {}/g' -e '/maxSurge:/{n;d};' config/crds/cluster_v1alpha1_machinedeployment.yaml
+	sed -i -e 's/maxUnavailable:/maxUnavailable: {}/g' -e '/maxUnavailable:/{n;d};' config/crds/cluster_v1alpha1_machinedeployment.yaml
 
 # Run go fmt against code
 fmt:

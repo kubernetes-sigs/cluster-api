@@ -167,8 +167,9 @@ func (r *ReconcileMachine) Reconcile(request reconcile.Request) (reconcile.Resul
 				glog.Infof("Actuator returned requeue-after error: %v", requeueErr)
 				return reconcile.Result{Requeue: true, RequeueAfter: requeueErr.RequeueAfter}, nil
 			}
+			return reconcile.Result{}, err
 		}
-		return reconcile.Result{}, err
+		return reconcile.Result{}, nil
 	}
 	// Machine resource created. Machine does not yet exist.
 	glog.Infof("Reconciling machine object %v triggers idempotent create.", m.ObjectMeta.Name)
@@ -178,8 +179,9 @@ func (r *ReconcileMachine) Reconcile(request reconcile.Request) (reconcile.Resul
 			glog.Infof("Actuator returned requeue-after error: %v", requeueErr)
 			return reconcile.Result{Requeue: true, RequeueAfter: requeueErr.RequeueAfter}, nil
 		}
+		return reconcile.Result{}, err
 	}
-	return reconcile.Result{}, err
+	return reconcile.Result{}, nil
 }
 
 func (c *ReconcileMachine) create(machine *clusterv1.Machine) error {

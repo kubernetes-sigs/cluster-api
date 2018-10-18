@@ -137,6 +137,13 @@ func (d *ClusterDeployer) Create(cluster *clusterv1.Cluster, machines []*cluster
 	}
 	defer closeClient(targetClient, "target")
 
+	if d.addonComponents != "" {
+		glog.Info("Creating addons in target cluster.")
+		if err := targetClient.Apply(d.addonComponents); err != nil {
+			return fmt.Errorf("unable to apply addons: %v", err)
+		}
+	}
+
 	glog.Info("Applying Cluster API stack to target cluster")
 	if err := d.applyClusterAPIStackWithPivoting(targetClient, bootstrapClient, cluster.Namespace); err != nil {
 		return fmt.Errorf("unable to apply cluster api stack to target cluster: %v", err)
@@ -163,13 +170,6 @@ func (d *ClusterDeployer) Create(cluster *clusterv1.Cluster, machines []*cluster
 	glog.Info("Creating node machines in target cluster.")
 	if err := targetClient.CreateMachineObjects(nodes, cluster.Namespace); err != nil {
 		return fmt.Errorf("unable to create node machines: %v", err)
-	}
-
-	if d.addonComponents != "" {
-		glog.Info("Creating addons in target cluster.")
-		if err := targetClient.Apply(d.addonComponents); err != nil {
-			return fmt.Errorf("unable to apply addons: %v", err)
-		}
 	}
 
 	glog.Infof("Done provisioning cluster. You can now access your cluster with kubectl --kubeconfig %v", kubeconfigOutput)

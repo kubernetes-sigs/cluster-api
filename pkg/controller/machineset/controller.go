@@ -243,7 +243,7 @@ func (c *ReconcileMachineSet) syncReplicas(ms *clusterv1alpha1.MachineSet, machi
 		glog.Infof("Too many replicas for %v %s/%s, need %d, deleting %d", controllerKind, ms.Namespace, ms.Name, *(ms.Spec.Replicas), diff)
 
 		// Choose which Machines to delete.
-		machinesToDelete := getMachinesToDelete(machines, diff)
+		machinesToDelete := getMachinesToDeletePrioritized(machines, diff, simpleDeletePriority)
 
 		// TODO: Add cap to limit concurrent delete calls.
 		errCh := make(chan error, diff)
@@ -322,12 +322,6 @@ func (c *ReconcileMachineSet) adoptOrphan(machineSet *clusterv1alpha1.MachineSet
 		return err
 	}
 	return nil
-}
-
-func getMachinesToDelete(filteredMachines []*clusterv1alpha1.Machine, diff int) []*clusterv1alpha1.Machine {
-	// TODO: Define machines deletion policies.
-	// see: https://github.com/kubernetes/kube-deploy/issues/625
-	return filteredMachines[:diff]
 }
 
 func (c *ReconcileMachineSet) waitForMachineCreation(machineList []*clusterv1alpha1.Machine) error {

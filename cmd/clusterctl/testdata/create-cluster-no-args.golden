@@ -8,7 +8,7 @@ Flags:
   -a, --addon-components string                        A yaml file containing cluster addons to apply to the internal cluster
       --cleanup-bootstrap-cluster                      Whether to cleanup the bootstrap cluster after bootstrap (default true)
   -c, --cluster string                                 A yaml file containing cluster object definition
-      --existing-bootstrap-cluster-kubeconfig string   Path to an existing cluster's kubeconfig for bootstrapping (intead of using minikube)
+  -e, --existing-bootstrap-cluster-kubeconfig string   Path to an existing cluster's kubeconfig for bootstrapping (intead of using minikube)
   -h, --help                                           help for cluster
       --kubeconfig-out string                          Where to output the kubeconfig for the provisioned cluster (default "kubeconfig")
   -m, --machines string                                A yaml file containing machine object definition(s)

@@ -59,8 +59,7 @@ func TestReconcile(t *testing.T) {
 	defer close(StartTestManager(mgr, t))
 
 	// Create the Machine object and expect Reconcile and the actuator to be called
-	err = c.Create(context.TODO(), instance)
-	if err != nil {
+	if err = c.Create(context.TODO(), instance); err != nil {
 		t.Fatalf("error creating instance: %v", err)
 	}
 	defer c.Delete(context.TODO(), instance)

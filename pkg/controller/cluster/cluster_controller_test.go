@@ -62,8 +62,7 @@ func TestReconcile(t *testing.T) {
 	defer close(StartTestManager(mgr, t))
 
 	// Create the Cluster object and expect the Reconcile and Deployment to be created
-	err = c.Create(context.TODO(), instance)
-	if err != nil {
+	if err = c.Create(context.TODO(), instance); err != nil {
 		t.Fatalf("error creating instance: %v", err)
 	}
 	defer c.Delete(context.TODO(), instance)

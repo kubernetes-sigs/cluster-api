@@ -17,6 +17,7 @@ limitations under the License.
 package machinedeployment
 
 import (
+	"sync"
 	"testing"
 	"time"
 
@@ -117,8 +118,7 @@ func TestReconcile(t *testing.T) {
 	})
 
 	// Scale a MachineDeployment and expect Reconcile to be called
-	err = updateMachineDeployment(c, instance, func(d *clusterv1alpha1.MachineDeployment) { d.Spec.Replicas = int32Ptr(5) })
-	if err != nil {
+	if err = updateMachineDeployment(c, instance, func(d *clusterv1alpha1.MachineDeployment) { d.Spec.Replicas = int32Ptr(5) }); err != nil {
 		t.Errorf("error scaling machinedeployment: %v", err)
 	}
 	if err = c.Update(context.TODO(), instance); err != nil {
@@ -136,8 +136,7 @@ func TestReconcile(t *testing.T) {
 	})
 
 	// Update a MachineDeployment, expect Reconcile to be called and a new MachineSet to appear
-	err = updateMachineDeployment(c, instance, func(d *clusterv1alpha1.MachineDeployment) { d.Spec.Template.Labels["updated"] = "true" })
-	if err != nil {
+	if err = updateMachineDeployment(c, instance, func(d *clusterv1alpha1.MachineDeployment) { d.Spec.Template.Labels["updated"] = "true" }); err != nil {
 		t.Errorf("error scaling machinedeployment: %v", err)
 	}
 	if err = c.Update(context.TODO(), instance); err != nil {
@@ -230,41 +229,45 @@ func intstrPtr(i int32) *intstr.IntOrString {
 func expectReconcile(t *testing.T, requests chan reconcile.Request, errors chan error) {
 	t.Helper()
 
-	{
-		ctx, cancel := context.WithTimeout(context.TODO(), timeout)
-		defer cancel()
+	var wg sync.WaitGroup
+	ctx, cancel := context.WithTimeout(context.TODO(), timeout)
+	defer cancel()
 
-	LOOP0:
+	wg.Add(1)
+	go func() {
+		defer wg.Done()
+
 		for range time.Tick(pollingInterval) {
 			select {
 			case recv := <-requests:
 				if recv == expectedRequest {
-					break LOOP0
+					return
 				}
 			case <-ctx.Done():
 				t.Errorf("timed out waiting reconcile")
-				break LOOP0
+				return
 			}
 		}
-	}
+	}()
 
-	{
-		ctx, cancel := context.WithTimeout(context.TODO(), timeout)
-		defer cancel()
+	wg.Add(1)
+	go func() {
+		defer wg.Done()
 
-	LOOP1:
 		for range time.Tick(pollingInterval) {
 			select {
 			case err := <-errors:
 				if err == nil {
-					break LOOP1
+					return
 				}
 			case <-ctx.Done():
 				t.Errorf("timed out waiting reconcile")
-				break LOOP1
+				return
 			}
 		}
-	}
+	}()
+
+	wg.Wait()
 }
 
 func expectInt(t *testing.T, expect int, fn func(context.Context) int) {

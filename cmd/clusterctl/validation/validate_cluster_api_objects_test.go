@@ -82,8 +82,7 @@ func TestGetClusterObjectWithNoCluster(t *testing.T) {
 	c = mgr.GetClient()
 	defer close(StartTestManager(mgr, t))
 
-	_, err = getClusterObject(c, "test-cluster", "get-cluster-object-with-no-cluster")
-	if err == nil {
+	if _, err = getClusterObject(c, "test-cluster", "get-cluster-object-with-no-cluster"); err == nil {
 		t.Error("expected error but didn't get one")
 	}
 }
@@ -102,8 +101,7 @@ func TestGetClusterObjectWithOneCluster(t *testing.T) {
 	cluster := testutil.GetVanillaCluster()
 	cluster.Name = testClusterName
 	cluster.Namespace = testNamespace
-	err = c.Create(context.TODO(), &cluster)
-	if err != nil {
+	if err = c.Create(context.TODO(), &cluster); err != nil {
 		t.Fatalf("error creating cluster: %v", err)
 	}
 	defer c.Delete(context.TODO(), &cluster)
@@ -170,8 +168,7 @@ func TestGetClusterObjectWithMoreThanOneCluster(t *testing.T) {
 	cluster1 := testutil.GetVanillaCluster()
 	cluster1.Name = testClusterName1
 	cluster1.Namespace = testNamespace
-	err = c.Create(context.TODO(), &cluster1)
-	if err != nil {
+	if err = c.Create(context.TODO(), &cluster1); err != nil {
 		t.Fatalf("error creating cluster1: %v", err)
 	}
 	defer c.Delete(context.TODO(), &cluster1)
@@ -180,8 +177,7 @@ func TestGetClusterObjectWithMoreThanOneCluster(t *testing.T) {
 	cluster2 := testutil.GetVanillaCluster()
 	cluster2.Name = testClusterName2
 	cluster2.Namespace = testNamespace
-	err = c.Create(context.TODO(), &cluster2)
-	if err != nil {
+	if err = c.Create(context.TODO(), &cluster2); err != nil {
 		t.Fatalf("error creating cluster2: %v", err)
 	}
 	defer c.Delete(context.TODO(), &cluster2)
@@ -279,8 +275,7 @@ func TestValidateMachineObjects(t *testing.T) {
 
 	const testNodeName = "test-node"
 	testNode := getNodeWithReadyStatus(testNodeName, v1.ConditionTrue)
-	err = c.Create(context.TODO(), &testNode)
-	if err != nil {
+	if err = c.Create(context.TODO(), &testNode); err != nil {
 		t.Fatalf("error creating node: %v", err)
 	}
 	defer c.Delete(context.TODO(), &testNode)
@@ -362,16 +357,14 @@ func TestValidateMachineObjectWithReferredNode(t *testing.T) {
 
 	const testNodeReadyName = "test-node-ready"
 	testNodeReady := getNodeWithReadyStatus(testNodeReadyName, v1.ConditionTrue)
-	err = c.Create(context.TODO(), &testNodeReady)
-	if err != nil {
+	if err = c.Create(context.TODO(), &testNodeReady); err != nil {
 		t.Fatalf("error creating node: %v", err)
 	}
 	defer c.Delete(context.TODO(), &testNodeReady)
 
 	const testNodeNotReadyName = "test-node-not-ready"
 	testNodeNotReady := getNodeWithReadyStatus(testNodeNotReadyName, v1.ConditionFalse)
-	err = c.Create(context.TODO(), &testNodeNotReady)
-	if err != nil {
+	if err = c.Create(context.TODO(), &testNodeNotReady); err != nil {
 		t.Fatalf("error creating node: %v", err)
 	}
 	defer c.Delete(context.TODO(), &testNodeNotReady)
@@ -496,68 +489,62 @@ func TestValidateClusterAPIObjectsOutput(t *testing.T) {
 			cluster := testutil.GetVanillaCluster()
 			cluster.Name = testClusterName
 			cluster.Namespace = testcase.namespace
-			err = c.Create(context.TODO(), &cluster)
-			if err != nil {
+			if err = c.Create(context.TODO(), &cluster); err != nil {
 				t.Fatalf("error creating cluster: %v", err)
 			}
 			defer c.Delete(context.TODO(), &cluster)
 
 			machine1 := getMachineWithError(testMachine1Name, testcase.namespace, nil, nil, nil) // machine with no error
-			err = c.Create(context.TODO(), &machine1)
-			if err != nil {
+			if err = c.Create(context.TODO(), &machine1); err != nil {
 				t.Fatalf("error creating machine1: %v", err)
 			}
 			defer c.Delete(context.TODO(), &machine1)
 
 			machine2 := getMachineWithError(testMachine2Name, testcase.namespace, nil, nil, nil) // machine with no error
-			err = c.Create(context.TODO(), &machine2)
-			if err != nil {
+			if err = c.Create(context.TODO(), &machine2); err != nil {
 				t.Fatalf("error creating machine2: %v", err)
 			}
 			defer c.Delete(context.TODO(), &machine2)
 
 			testNode1 := getNodeWithReadyStatus(testNode1Name, v1.ConditionTrue)
-			err = c.Create(context.TODO(), &testNode1)
-			if err != nil {
+			if err = c.Create(context.TODO(), &testNode1); err != nil {
 				t.Fatalf("error creating node1: %v", err)
 			}
 			defer c.Delete(context.TODO(), &testNode1)
 
 			testNode2 := getNodeWithReadyStatus(testNode2Name, v1.ConditionTrue)
-			err = c.Create(context.TODO(), &testNode2)
-			if err != nil {
+			if err = c.Create(context.TODO(), &testNode2); err != nil {
 				t.Fatalf("error creating node2: %v", err)
 			}
 			defer c.Delete(context.TODO(), &testNode2)
 
 			testNodeNotReady := getNodeWithReadyStatus(testNodeNotReadyName, v1.ConditionFalse)
-			err = c.Create(context.TODO(), &testNodeNotReady)
-			if err != nil {
+			if err = c.Create(context.TODO(), &testNodeNotReady); err != nil {
 				t.Fatalf("error creating node: %v", err)
 			}
 			defer c.Delete(context.TODO(), &testNodeNotReady)
 
-			if err := c.Get(context.TODO(), types.NamespacedName{Name: testClusterName, Namespace: testcase.namespace}, &cluster); err != nil {
+			if err = c.Get(context.TODO(), types.NamespacedName{Name: testClusterName, Namespace: testcase.namespace}, &cluster); err != nil {
 				t.Fatalf("Unable to get cluster: %v", err)
 			}
 			cluster.Status = testcase.clusterStatus
-			if err := c.Status().Update(context.TODO(), &cluster); err != nil {
+			if err = c.Status().Update(context.TODO(), &cluster); err != nil {
 				t.Fatalf("Unable to update cluster with status: %v", err)
 			}
-			if err := c.Get(context.TODO(), types.NamespacedName{Name: testMachine1Name, Namespace: testcase.namespace}, &machine1); err != nil {
+			if err = c.Get(context.TODO(), types.NamespacedName{Name: testMachine1Name, Namespace: testcase.namespace}, &machine1); err != nil {
 				t.Fatalf("Unable to get machine 1: %v", err)
 			}
 
 			machine1.Status = testcase.machine1Status
-			if err := c.Status().Update(context.TODO(), &machine1); err != nil {
+			if err = c.Status().Update(context.TODO(), &machine1); err != nil {
 				t.Fatalf("Unable to update machine 1 with status: %v", err)
 			}
 
-			if err := c.Get(context.TODO(), types.NamespacedName{Name: testMachine2Name, Namespace: testcase.namespace}, &machine2); err != nil {
+			if err = c.Get(context.TODO(), types.NamespacedName{Name: testMachine2Name, Namespace: testcase.namespace}, &machine2); err != nil {
 				t.Fatalf("Unable to get machine 2: %v", err)
 			}
 			machine2.Status = testcase.machine2Status
-			if err := c.Status().Update(context.TODO(), &machine2); err != nil {
+			if err = c.Status().Update(context.TODO(), &machine2); err != nil {
 				t.Fatalf("Unable to update machine 2 with status: %v", err)
 			}
 

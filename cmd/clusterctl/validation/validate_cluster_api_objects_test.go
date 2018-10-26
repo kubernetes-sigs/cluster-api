@@ -23,8 +23,6 @@ import (
 	"path"
 	"testing"
 
-	"github.com/onsi/gomega"
-
 	"k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
@@ -76,26 +74,28 @@ func getNodeWithReadyStatus(nodeName string, nodeReadyStatus v1.ConditionStatus)
 }
 
 func TestGetClusterObjectWithNoCluster(t *testing.T) {
-	g := gomega.NewGomegaWithT(t)
-
 	// Setup the Manager and Controller.
 	mgr, err := manager.New(cfg, manager.Options{})
-	g.Expect(err).NotTo(gomega.HaveOccurred())
+	if err != nil {
+		t.Fatalf("error creating new manager: %v", err)
+	}
 	c = mgr.GetClient()
-	defer close(StartTestManager(mgr, g))
+	defer close(StartTestManager(mgr, t))
 
 	_, err = getClusterObject(c, "test-cluster", "get-cluster-object-with-no-cluster")
-	g.Expect(err).To(gomega.HaveOccurred())
+	if err == nil {
+		t.Error("expected error but didn't get one")
+	}
 }
 
 func TestGetClusterObjectWithOneCluster(t *testing.T) {
-	g := gomega.NewGomegaWithT(t)
-
 	// Setup the Manager and Controller.
 	mgr, err := manager.New(cfg, manager.Options{})
-	g.Expect(err).NotTo(gomega.HaveOccurred())
+	if err != nil {
+		t.Fatalf("error creating new manager: %v", err)
+	}
 	c = mgr.GetClient()
-	defer close(StartTestManager(mgr, g))
+	defer close(StartTestManager(mgr, t))
 
 	const testClusterName = "test-cluster"
 	const testNamespace = "get-cluster-object-with-one-cluster"
@@ -103,7 +103,9 @@ func TestGetClusterObjectWithOneCluster(t *testing.T) {
 	cluster.Name = testClusterName
 	cluster.Namespace = testNamespace
 	err = c.Create(context.TODO(), &cluster)
-	g.Expect(err).NotTo(gomega.HaveOccurred())
+	if err != nil {
+		t.Fatalf("error creating cluster: %v", err)
+	}
 	defer c.Delete(context.TODO(), &cluster)
 
 	var testcases = []struct {
@@ -154,13 +156,13 @@ func TestGetClusterObjectWithOneCluster(t *testing.T) {
 }
 
 func TestGetClusterObjectWithMoreThanOneCluster(t *testing.T) {
-	g := gomega.NewGomegaWithT(t)
-
 	// Setup the Manager and Controller.
 	mgr, err := manager.New(cfg, manager.Options{})
-	g.Expect(err).NotTo(gomega.HaveOccurred())
+	if err != nil {
+		t.Fatalf("error creating new manager: %v", err)
+	}
 	c = mgr.GetClient()
-	defer close(StartTestManager(mgr, g))
+	defer close(StartTestManager(mgr, t))
 
 	const testNamespace = "get-cluster-object-with-more-than-one-cluster"
 
@@ -169,7 +171,9 @@ func TestGetClusterObjectWithMoreThanOneCluster(t *testing.T) {
 	cluster1.Name = testClusterName1
 	cluster1.Namespace = testNamespace
 	err = c.Create(context.TODO(), &cluster1)
-	g.Expect(err).NotTo(gomega.HaveOccurred())
+	if err != nil {
+		t.Fatalf("error creating cluster1: %v", err)
+	}
 	defer c.Delete(context.TODO(), &cluster1)
 
 	const testClusterName2 = "test-cluster2"
@@ -177,7 +181,9 @@ func TestGetClusterObjectWithMoreThanOneCluster(t *testing.T) {
 	cluster2.Name = testClusterName2
 	cluster2.Namespace = testNamespace
 	err = c.Create(context.TODO(), &cluster2)
-	g.Expect(err).NotTo(gomega.HaveOccurred())
+	if err != nil {
+		t.Fatalf("error creating cluster2: %v", err)
+	}
 	defer c.Delete(context.TODO(), &cluster2)
 
 	var testcases = []struct {
@@ -263,18 +269,20 @@ func TestValidateClusterObject(t *testing.T) {
 }
 
 func TestValidateMachineObjects(t *testing.T) {
-	g := gomega.NewGomegaWithT(t)
-
 	// Setup the Manager and Controller.
 	mgr, err := manager.New(cfg, manager.Options{})
-	g.Expect(err).NotTo(gomega.HaveOccurred())
+	if err != nil {
+		t.Fatalf("error creating new manager: %v", err)
+	}
 	c = mgr.GetClient()
-	defer close(StartTestManager(mgr, g))
+	defer close(StartTestManager(mgr, t))
 
 	const testNodeName = "test-node"
 	testNode := getNodeWithReadyStatus(testNodeName, v1.ConditionTrue)
 	err = c.Create(context.TODO(), &testNode)
-	g.Expect(err).NotTo(gomega.HaveOccurred())
+	if err != nil {
+		t.Fatalf("error creating node: %v", err)
+	}
 	defer c.Delete(context.TODO(), &testNode)
 
 	testNodeRef := v1.ObjectReference{Kind: "Node", Name: testNodeName}
@@ -344,24 +352,28 @@ func TestValidateMachineObjects(t *testing.T) {
 }
 
 func TestValidateMachineObjectWithReferredNode(t *testing.T) {
-	g := gomega.NewGomegaWithT(t)
-
 	// Setup the Manager and Controller.
 	mgr, err := manager.New(cfg, manager.Options{})
-	g.Expect(err).NotTo(gomega.HaveOccurred())
+	if err != nil {
+		t.Fatalf("error creating new manager: %v", err)
+	}
 	c = mgr.GetClient()
-	defer close(StartTestManager(mgr, g))
+	defer close(StartTestManager(mgr, t))
 
 	const testNodeReadyName = "test-node-ready"
 	testNodeReady := getNodeWithReadyStatus(testNodeReadyName, v1.ConditionTrue)
 	err = c.Create(context.TODO(), &testNodeReady)
-	g.Expect(err).NotTo(gomega.HaveOccurred())
+	if err != nil {
+		t.Fatalf("error creating node: %v", err)
+	}
 	defer c.Delete(context.TODO(), &testNodeReady)
 
 	const testNodeNotReadyName = "test-node-not-ready"
 	testNodeNotReady := getNodeWithReadyStatus(testNodeNotReadyName, v1.ConditionFalse)
 	err = c.Create(context.TODO(), &testNodeNotReady)
-	g.Expect(err).NotTo(gomega.HaveOccurred())
+	if err != nil {
+		t.Fatalf("error creating node: %v", err)
+	}
 	defer c.Delete(context.TODO(), &testNodeNotReady)
 
 	const testNodeNotExistName = "test-node-not-exist"
@@ -407,12 +419,12 @@ func TestValidateMachineObjectWithReferredNode(t *testing.T) {
 }
 
 func TestValidateClusterAPIObjectsOutput(t *testing.T) {
-	g := gomega.NewGomegaWithT(t)
-
 	// Setup the Manager and Controller.
 	mgr, err := manager.New(cfg, manager.Options{})
-	g.Expect(err).NotTo(gomega.HaveOccurred())
-	defer close(StartTestManager(mgr, g))
+	if err != nil {
+		t.Fatalf("error creating new manager: %v", err)
+	}
+	defer close(StartTestManager(mgr, t))
 
 	const testClusterName = "test-cluster"
 	const testMachine1Name = "test-machine1"
@@ -422,7 +434,9 @@ func TestValidateClusterAPIObjectsOutput(t *testing.T) {
 	const testNodeNotReadyName = "test-node-not-ready"
 
 	c, err := client.New(cfg, client.Options{Scheme: mgr.GetScheme(), Mapper: mgr.GetRESTMapper()})
-	g.Expect(err).NotTo(gomega.HaveOccurred())
+	if err != nil {
+		t.Fatalf("error creating client: %v", err)
+	}
 
 	testNodeRef1 := v1.ObjectReference{Kind: "Node", Name: testNode1Name}
 	testNodeRef2 := v1.ObjectReference{Kind: "Node", Name: testNode2Name}
@@ -483,32 +497,44 @@ func TestValidateClusterAPIObjectsOutput(t *testing.T) {
 			cluster.Name = testClusterName
 			cluster.Namespace = testcase.namespace
 			err = c.Create(context.TODO(), &cluster)
-			g.Expect(err).NotTo(gomega.HaveOccurred())
+			if err != nil {
+				t.Fatalf("error creating cluster: %v", err)
+			}
 			defer c.Delete(context.TODO(), &cluster)
 
 			machine1 := getMachineWithError(testMachine1Name, testcase.namespace, nil, nil, nil) // machine with no error
 			err = c.Create(context.TODO(), &machine1)
-			g.Expect(err).NotTo(gomega.HaveOccurred())
+			if err != nil {
+				t.Fatalf("error creating machine1: %v", err)
+			}
 			defer c.Delete(context.TODO(), &machine1)
 
 			machine2 := getMachineWithError(testMachine2Name, testcase.namespace, nil, nil, nil) // machine with no error
 			err = c.Create(context.TODO(), &machine2)
-			g.Expect(err).NotTo(gomega.HaveOccurred())
+			if err != nil {
+				t.Fatalf("error creating machine2: %v", err)
+			}
 			defer c.Delete(context.TODO(), &machine2)
 
 			testNode1 := getNodeWithReadyStatus(testNode1Name, v1.ConditionTrue)
 			err = c.Create(context.TODO(), &testNode1)
-			g.Expect(err).NotTo(gomega.HaveOccurred())
+			if err != nil {
+				t.Fatalf("error creating node1: %v", err)
+			}
 			defer c.Delete(context.TODO(), &testNode1)
 
 			testNode2 := getNodeWithReadyStatus(testNode2Name, v1.ConditionTrue)
 			err = c.Create(context.TODO(), &testNode2)
-			g.Expect(err).NotTo(gomega.HaveOccurred())
+			if err != nil {
+				t.Fatalf("error creating node2: %v", err)
+			}
 			defer c.Delete(context.TODO(), &testNode2)
 
 			testNodeNotReady := getNodeWithReadyStatus(testNodeNotReadyName, v1.ConditionFalse)
 			err = c.Create(context.TODO(), &testNodeNotReady)
-			g.Expect(err).NotTo(gomega.HaveOccurred())
+			if err != nil {
+				t.Fatalf("error creating node: %v", err)
+			}
 			defer c.Delete(context.TODO(), &testNodeNotReady)
 
 			if err := c.Get(context.TODO(), types.NamespacedName{Name: testClusterName, Namespace: testcase.namespace}, &cluster); err != nil {

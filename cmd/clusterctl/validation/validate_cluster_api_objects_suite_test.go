@@ -22,7 +22,6 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/onsi/gomega"
 	"k8s.io/client-go/kubernetes/scheme"
 	"k8s.io/client-go/rest"
 	"sigs.k8s.io/cluster-api/pkg/apis"
@@ -49,10 +48,14 @@ func TestMain(m *testing.M) {
 }
 
 // StartTestManager adds recFn
-func StartTestManager(mgr manager.Manager, g *gomega.GomegaWithT) chan struct{} {
+func StartTestManager(mgr manager.Manager, t *testing.T) chan struct{} {
+	t.Helper()
+
 	stop := make(chan struct{})
 	go func() {
-		g.Expect(mgr.Start(stop)).NotTo(gomega.HaveOccurred())
+		if err := mgr.Start(stop); err != nil {
+			t.Fatalf("error starting test manager: %v", err)
+		}
 	}()
 	return stop
 }

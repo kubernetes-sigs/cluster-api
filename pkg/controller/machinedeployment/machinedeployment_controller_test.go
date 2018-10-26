@@ -17,7 +17,6 @@ limitations under the License.
 package machinedeployment
 
 import (
-	"sync"
 	"testing"
 	"time"
 
@@ -229,50 +228,30 @@ func intstrPtr(i int32) *intstr.IntOrString {
 func expectReconcile(t *testing.T, requests chan reconcile.Request, errors chan error) {
 	t.Helper()
 
-	var wg sync.WaitGroup
 	ctx, cancel := context.WithTimeout(context.TODO(), timeout)
 	defer cancel()
 
-	wg.Add(1)
-	go func() {
-		defer wg.Done()
-		for range time.Tick(pollingInterval) {
-			select {
-			case recv := <-requests:
-				if recv == expectedRequest {
-					return
-				}
-			case <-ctx.Done():
+LOOP:
+	for range time.Tick(pollingInterval) {
+		select {
+		case recv := <-requests:
+			if recv == expectedRequest {
+				break LOOP
+			}
+		case <-ctx.Done():
+			t.Fatalf("timed out waiting reconcile request")
+		}
+	}
+
+	for range time.Tick(pollingInterval) {
+		select {
+		case err := <-errors:
+			if err == nil {
 				return
 			}
+		case <-ctx.Done():
+			t.Fatalf("timed out waiting reconcile error")
 		}
-	}()
-
-	wg.Add(1)
-	go func() {
-		defer wg.Done()
-		for range time.Tick(pollingInterval) {
-			select {
-			case err := <-errors:
-				if err == nil {
-					return
-				}
-			case <-ctx.Done():
-				return
-			}
-		}
-	}()
-
-	done := make(chan struct{})
-	go func() {
-		wg.Wait()
-		close(done)
-	}()
-
-	select {
-	case <-done:
-	case <-ctx.Done():
-		t.Errorf("timed out waiting reconcile")
 	}
 }
 
@@ -292,7 +271,7 @@ func expectInt(t *testing.T, expect int, fn func(context.Context) int) {
 				return
 			}
 		case <-ctx.Done():
-			t.Errorf("timed out waiting for value: %d", expect)
+			t.Fatalf("timed out waiting for value: %d", expect)
 			return
 		}
 	}

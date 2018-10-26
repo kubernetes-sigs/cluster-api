@@ -236,7 +236,6 @@ func expectReconcile(t *testing.T, requests chan reconcile.Request, errors chan 
 	wg.Add(1)
 	go func() {
 		defer wg.Done()
-
 		for range time.Tick(pollingInterval) {
 			select {
 			case recv := <-requests:
@@ -244,7 +243,6 @@ func expectReconcile(t *testing.T, requests chan reconcile.Request, errors chan 
 					return
 				}
 			case <-ctx.Done():
-				t.Errorf("timed out waiting reconcile")
 				return
 			}
 		}
@@ -253,7 +251,6 @@ func expectReconcile(t *testing.T, requests chan reconcile.Request, errors chan 
 	wg.Add(1)
 	go func() {
 		defer wg.Done()
-
 		for range time.Tick(pollingInterval) {
 			select {
 			case err := <-errors:
@@ -261,13 +258,22 @@ func expectReconcile(t *testing.T, requests chan reconcile.Request, errors chan 
 					return
 				}
 			case <-ctx.Done():
-				t.Errorf("timed out waiting reconcile")
 				return
 			}
 		}
 	}()
 
-	wg.Wait()
+	done := make(chan struct{})
+	go func() {
+		wg.Wait()
+		close(done)
+	}()
+
+	select {
+	case <-done:
+	case <-ctx.Done():
+		t.Errorf("timed out waiting reconcile")
+	}
 }
 
 func expectInt(t *testing.T, expect int, fn func(context.Context) int) {

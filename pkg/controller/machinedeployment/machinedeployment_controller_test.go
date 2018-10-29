@@ -48,7 +48,7 @@ func TestReconcile(t *testing.T) {
 			Replicas:             int32Ptr(2),
 			RevisionHistoryLimit: int32Ptr(0),
 			Selector:             metav1.LabelSelector{MatchLabels: labels},
-			Strategy: clusterv1alpha1.MachineDeploymentStrategy{
+			Strategy: &clusterv1alpha1.MachineDeploymentStrategy{
 				Type: common.RollingUpdateMachineDeploymentStrategyType,
 				RollingUpdate: &clusterv1alpha1.MachineRollingUpdateDeployment{
 					MaxUnavailable: intstrPtr(0),

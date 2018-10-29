@@ -113,8 +113,15 @@ type MachineSpec struct {
 {% method %}
 ## MachineStatus
 
-Note that the **NodeRef** field may not exist, in particular in the
-case of providers which manage remote Kubernetes clusters.
+Note that `NodeRef` may not be set. This can happen if the `Machine` and 
+corresponding `Node` are not within the same cluster. Two reasons this might be
+the case are:
+
+- During bootstraping the master `Machine` will initially not be in the same
+cluster which is being created.
+- Some providers distinguish between _manager_ and _managed_ clusters. For 
+these providers a `Machine` and it's corresponding `Node` may never be within
+the same cluster. **TODO**: There are open issues to address this.
 
 {% sample lang="go" %}
 ```go
@@ -252,7 +259,9 @@ the machine controller will determine which cluster to pass by looking for a
 `Cluster` in the same namespace as the `Machine`
 
 There are two consequences of this:
- - There must be at exactly one `Cluster` per namespace.
+ - The machine actuator assumes there will be exactly one `Cluster` in the
+   same namespace as any `Machine`s it reconciles. See [`getCluster()`](
+   https://github.com/kubernetes-sigs/cluster-api/blob/2d88aefcf94fcffbf647fcc1127a642112714b2f/pkg/controller/machine/controller.go#L216) for the details.
  - If the `Cluster` is deleted before the `Machine` it will not be possible to
    delete the `Machine`. Therefore `Machine`s must be deleted before `Cluster`s.
 {% endpanel %}

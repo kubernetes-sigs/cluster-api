@@ -65,7 +65,7 @@ type ClusterSpec struct {
 
 Some providers use the `APIEndpoint` field to determine when one or more
 masters have been provisioned. This may be necessary before worker nodes
-can be provisioned. For example, the `cluster-api-provider-gcp` does [this](
+can be provisioned. For example, `cluster-api-provider-gcp` does [this](
 https://github.com/kubernetes-sigs/cluster-api-provider-gcp/blob/f3145d8810a5c7fc434ddb5577699b4deb1b5fa6/pkg/cloud/google/metadata.go#L43):
 
 ```go

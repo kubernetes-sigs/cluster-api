@@ -13,6 +13,10 @@ git init
 {% method %}
 ### Generate scaffolding
 
+`kubebuilder init` will create the basic repository layout, including a
+simple containerized manager. It will also initialize the vendored go libraries
+that will be required to build your project.
+
 When asked:
 
 ```

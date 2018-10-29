@@ -31,15 +31,15 @@ watches for create / update / delete events on Resources, and triggers a
 Reconcile function in response. Reconcile is a function that may be called
 at any time with the Namespace and Name of an object (Resource instance), 
 and it will make the cluster state match the state declared in the object
-Spec. Upon completion, Reconcile updates the object Status the new actual
+Spec. Upon completion, Reconcile updates the object Status to the new actual
 state.
 
 The Cluster API consists of a shared set of controllers in order to provide a 
 consistent user experience. In order to support multiple cloud environments, 
-some of these controllers (e.g. `Machine`) call provider specific actuators to 
-do implement the behavior expectived of the controller. Other controllers (e.g.
-`MachineSet`) are generic and operate by interacting with other Cluster API 
-(and Kubernetes) resources.
+some of these controllers (e.g. `Cluster`, `Machine`) call provider specific 
+actuators to implement the the behavior expected of the controller. Other 
+controllers (e.g. `MachineSet`) are generic and operate by interacting with 
+other Cluster API (and Kubernetes) resources.
 
 The task of the provider implementor is to implement the actuator methods so 
 that the shared controllers can call those methods when they must reconcile 

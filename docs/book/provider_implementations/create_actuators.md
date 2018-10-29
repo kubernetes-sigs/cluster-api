@@ -65,9 +65,7 @@ func (a *Actuator) Delete(cluster *clusterv1.Cluster) error {
 }
 ```
 
-# Machine Actuator
-
-## Cluster Actuator
+## Machine Actuator
 
 The following actuator stub code should be copied to
 `cluster-api-provider-solas/pkg/cloud/solas/actuators/machine/actuator.go`.

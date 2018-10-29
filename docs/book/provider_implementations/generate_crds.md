@@ -11,7 +11,7 @@ git init
 {% endmethod %}
 
 {% method %}
-### Generate scafolding
+### Generate scaffolding
 
 When asked:
 
@@ -28,7 +28,7 @@ kubebuilder init --domain cluster.k8s.io --license apache2 --owner "The Kubernet
 ```
 ```bash
 git add .
-git commit -m "Generate scafolding."
+git commit -m "Generate scaffolding."
 ```
 {% endmethod %}
 

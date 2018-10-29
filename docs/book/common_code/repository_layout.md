@@ -1,4 +1,4 @@
-# Reponsitory layout
+# Repository layout
 
 Different providers may differ in their directory layout. Beginning with
 the move to using CRDs and `kubebuilder` the general layout follows that

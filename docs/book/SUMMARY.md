@@ -9,7 +9,7 @@
 ## Common Code
 
 * [Architecture](common_code/architecture.md)
-* [Reponsitory Layout](common_code/reponsitory_layout.md)
+* [Repository Layout](common_code/repository_layout.md)
 * [Cluster Controller](common_code/cluster_controller.md)
 * [Machine Controller](common_code/machine_controller.md)
 * [MachineSet Controller](common_code/machineset_controller.md)

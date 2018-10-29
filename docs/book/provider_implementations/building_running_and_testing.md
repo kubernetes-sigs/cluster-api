@@ -48,7 +48,7 @@ make deploy
 
 ## Verify deployment
 
-**TODO**: Should deploy a sample `Cluster` and `Machine` resource to vetrify 
+**TODO**: Should deploy a sample `Cluster` and `Machine` resource to verify 
 controllers are reconciling properly. This is troublesome however since before
 the actuator stubs are filled in, all we will see is messages to the effect of
 "TODO: Not yet implemented"..."

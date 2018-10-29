@@ -24,18 +24,18 @@ To see the actual and current definitions see the [source](#machine_types_source
 
 `Machine` has 4 fields:
 
-Spec contains the desired cluster state specified by the object. While much
-of the Spec is defined by users, unspecified parts may be filled in with
+`Spec` contains the desired cluster state specified by the object. While much
+of the `Spec` is defined by users, unspecified parts may be filled in with
 defaults or by Controllers such as autoscalers.
 
-Status contains only observed cluster state and is only written by controllers
-Status is not the source of truth for any information, but instead aggregates
+`Status` contains only observed cluster state and is only written by controllers
+`Status` is not the source of truth for any information, but instead aggregates
 and publishes observed state.
 
-TypeMeta contains metadata about the API itself - such as Group, Version, Kind.
-ObjectMeta contains metadata about the specific object instance - such as the
-name, namespace, labels and annotations. ObjectMeta contains data common to most
-objects.
+`TypeMeta` contains metadata about the API itself - such as Group, Version, 
+Kind. `ObjectMeta` contains metadata about the specific object instance, for
+example, it's name, namespace, labels, and annotations, etc. `ObjectMeta` 
+contains data common to most objects.
 
 {% sample lang="go" %}
 ```go
@@ -55,12 +55,12 @@ type Machine struct {
 The `ProviderSpec` is recommended to be a serialized API object in a format 
 owned by that provider. This will allow the configuration to be strongly typed,
 versioned, and have as much nested depth as appropriate. These provider-specific
-API definitions are meant to live outside of the Machines API, which will allow
+API definitions are meant to live outside of the Machine API, which will allow
 them to evolve independently of it. Attributes like instance type, which 
 network to use, and the OS image all belong in the `ProviderSpec`.
 
-Some providers and tooling depends on an annotation to be set on the `Machine`
-to determine once it is done being provisioned. For example, the `clusterctl`
+Some providers and tooling depend on an annotation to be set on the `Machine`
+to determine if provisioning has completed. For example, the `clusterctl`
 command does this [here](https://github.com/kubernetes-sigs/cluster-api/blob/a30de81123009a5f91ade870008c1a35f7ce4b35/cmd/clusterctl/clusterdeployer/clusterclient/clusterclient.go#L555):
 ```go
 		// TODO: update once machine controllers have a way to indicate a machine has been provisoned. https://github.com/kubernetes-sigs/cluster-api/issues/253
@@ -227,13 +227,13 @@ type Actuator interface {
 ## Machine Controller Semantics
 
 {% panel style="info", title="Logic sequence" %}
-We need a diagrams tracing the logic from resource creation though updates
+We need a diagram tracing the logic from resource creation though updates
 and finally deletion.
 {% endpanel %}
 
 0. Determine the `Cluster` associated with the `Machine`.
 - If the `Machine` hasn't been deleted and doesn't have a finalizer, add one.
-- If the `Machine` is being deleted, and there is no finalier, we're done
+- If the `Machine` is being deleted, and there is no finalizer, we're done
   - Check if the `Machine` is allowed to be deleted. [^1]
   - Call the provider specific actuators `Delete()` method.
     - If the `Delete()` method returns true, remove the finalizer.
@@ -247,14 +247,14 @@ method.
 
 {% panel style="warning", title="Machines depend on Clusters" %}
 The Machine actuator methods expect both a `Cluster` and a `Machine` to be
-passed in. While there is not a strong link between `Cluster`s and `Machines`,
+passed in. While there is not a strong link between `Cluster`s and `Machine`s,
 the machine controller will determine which cluster to pass by looking for a 
 `Cluster` in the same namespace as the `Machine`
 
 There are two consequences of this:
  - There must be at exactly one `Cluster` per namespace.
  - If the `Cluster` is deleted before the `Machine` it will not be possible to
-   delete the `Machine`. Therefore `Machines` must be deleted before `Cluster`s.
+   delete the `Machine`. Therefore `Machine`s must be deleted before `Cluster`s.
 {% endpanel %}
 
 ---

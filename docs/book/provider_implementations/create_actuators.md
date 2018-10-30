@@ -29,8 +29,8 @@ package cluster
 
 import (
         "fmt"
+	"log"
 
-        "github.com/golang/glog"
         clusterv1 "sigs.k8s.io/cluster-api/pkg/apis/cluster/v1alpha1"
         client "sigs.k8s.io/cluster-api/pkg/client/clientset_generated/clientset/typed/cluster/v1alpha1"
 )
@@ -54,13 +54,13 @@ func NewActuator(params ActuatorParams) (*Actuator, error) {
 
 // Reconcile reconciles a cluster and is invoked by the Cluster Controller
 func (a *Actuator) Reconcile(cluster *clusterv1.Cluster) error {
-        glog.Infof("Reconciling cluster %v.", cluster.Name)
+        log.Printf("Reconciling cluster %v.", cluster.Name)
         return fmt.Errorf("TODO: Not yet implemented")
 }
 
 // Delete deletes a cluster and is invoked by the Cluster Controller
 func (a *Actuator) Delete(cluster *clusterv1.Cluster) error {
-        glog.Infof("Deleting cluster %v.", cluster.Name)
+        log.Printf("Deleting cluster %v.", cluster.Name)
         return fmt.Errorf("TODO: Not yet implemented")
 }
 ```
@@ -91,8 +91,8 @@ package machine
 
 import (
         "fmt"
+	"log"
 
-        "github.com/golang/glog"
         clusterv1 "sigs.k8s.io/cluster-api/pkg/apis/cluster/v1alpha1"
         client "sigs.k8s.io/cluster-api/pkg/client/clientset_generated/clientset/typed/cluster/v1alpha1"
 )
@@ -120,25 +120,25 @@ func NewActuator(params ActuatorParams) (*Actuator, error) {
 
 // Create creates a machine and is invoked by the Machine Controller
 func (a *Actuator) Create(cluster *clusterv1.Cluster, machine *clusterv1.Machine) error {
-        glog.Infof("Creating machine %v for cluster %v.", machine.Name, cluster.Name)
+        log.Printf("Creating machine %v for cluster %v.", machine.Name, cluster.Name)
         return fmt.Errorf("TODO: Not yet implemented")
 }
 
 // Delete deletes a machine and is invoked by the Machine Controller
 func (a *Actuator) Delete(cluster *clusterv1.Cluster, machine *clusterv1.Machine) error {
-        glog.Infof("Deleting machine %v for cluster %v.", machine.Name, cluster.Name)
+        log.Printf("Deleting machine %v for cluster %v.", machine.Name, cluster.Name)
         return fmt.Errorf("TODO: Not yet implemented")
 }
 
 // Update updates a machine and is invoked by the Machine Controller
 func (a *Actuator) Update(cluster *clusterv1.Cluster, machine *clusterv1.Machine) error {
-        glog.Infof("Updating machine %v for cluster %v.", machine.Name, cluster.Name)
+        log.Printf("Updating machine %v for cluster %v.", machine.Name, cluster.Name)
         return fmt.Errorf("TODO: Not yet implemented")
 }
 
 // Exists test for the existance of a machine and is invoked by the Machine Controller
 func (a *Actuator) Exists(cluster *clusterv1.Cluster, machine *clusterv1.Machine) (bool, error) {
-        glog.Infof("Checking if machine %v for cluster %v exists.", machine.Name, cluster.Name)
+        log.Printf("Checking if machine %v for cluster %v exists.", machine.Name, cluster.Name)
         return false, fmt.Errorf("TODO: Not yet implemented")
 }
 
@@ -148,13 +148,13 @@ func (a *Actuator) Exists(cluster *clusterv1.Cluster, machine *clusterv1.Machine
 
 // GetIP returns IP address of the machine in the cluster.
 func (a *Actuator) GetIP(cluster *clusterv1.Cluster, machine *clusterv1.Machine) (string, error) {
-        glog.Infof("Getting IP of machine %v for cluster %v.", machine.Name, cluster.Name)
+        log.Printf("Getting IP of machine %v for cluster %v.", machine.Name, cluster.Name)
         return "", fmt.Errorf("TODO: Not yet implemented")
 }
 
 // GetKubeConfig gets a kubeconfig from the master.
 func (a *Actuator) GetKubeConfig(cluster *clusterv1.Cluster, master *clusterv1.Machine) (string, error) {
-        glog.Infof("Getting IP of machine %v for cluster %v.", master.Name, cluster.Name)
+        log.Printf("Getting IP of machine %v for cluster %v.", master.Name, cluster.Name)
         return "", fmt.Errorf("TODO: Not yet implemented")
 }
 ```

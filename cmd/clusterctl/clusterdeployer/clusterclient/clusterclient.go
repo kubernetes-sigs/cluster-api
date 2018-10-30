@@ -303,7 +303,7 @@ func (c *client) CreateMachineObjects(machines []*clusterv1.Machine, namespace s
 		errOnce sync.Once
 		gerr    error
 	)
-	// the approach to concurrency here comes from golang.org/x/sync/errgroup
+	// The approach to concurrency here comes from golang.org/x/sync/errgroup.
 	for _, machine := range machines {
 		wg.Add(1)
 
@@ -317,8 +317,8 @@ func (c *client) CreateMachineObjects(machines []*clusterv1.Machine, namespace s
 				})
 				return
 			}
-			err = waitForMachineReady(c.clientSet, createdMachine)
-			if err != nil {
+
+			if err := waitForMachineReady(c.clientSet, createdMachine); err != nil {
 				errOnce.Do(func() { gerr = err })
 			}
 		}(machine)

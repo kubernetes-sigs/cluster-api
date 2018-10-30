@@ -45,6 +45,12 @@ type Cluster struct {
 The `ClusterNetwork` field includes the information necessary to configure
 kubelet networking for `Pod`s and `Service`s.
 
+The `ProviderSpec` is recommended to be a serialized API object in a format
+owned by that provider. This will allow the configuration to be strongly typed,
+versioned, and have as much nested depth as appropriate. These provider-specific
+API definitions are meant to live outside of the Cluster API, which will allow
+them to evolve independently of it.
+
 {% sample lang="go" %}
 ```go
 // ClusterSpec defines the desired state of Cluster
@@ -64,6 +70,9 @@ type ClusterSpec struct {
 
 {% method %}
 ## ClusterStatus
+
+Like `ProviderSpec`, `ProviderStatus` is recommended to be a serialized API 
+object in a format owned by that provider.
 
 Some providers use the `APIEndpoint` field to determine when one or more
 masters have been provisioned. This may be necessary before worker nodes

@@ -110,6 +110,9 @@ type MachineSpec struct {
 {% method %}
 ## MachineStatus
 
+Like `ProviderSpec`, `ProviderStatus` is recommended to be a serialized API 
+object in a format owned by that provider.
+
 Note that `NodeRef` may not be set. This can happen if the `Machine` and 
 corresponding `Node` are not within the same cluster. Two reasons this might be
 the case are:

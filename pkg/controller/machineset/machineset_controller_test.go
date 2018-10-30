@@ -20,7 +20,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/onsi/gomega"
 	"golang.org/x/net/context"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
@@ -37,7 +36,6 @@ var expectedRequest = reconcile.Request{NamespacedName: types.NamespacedName{Nam
 const timeout = time.Second * 5
 
 func TestReconcile(t *testing.T) {
-	g := gomega.NewGomegaWithT(t)
 	replicas := int32(2)
 	instance := &clusterv1alpha1.MachineSet{
 		ObjectMeta: metav1.ObjectMeta{Name: "foo", Namespace: "default"},
@@ -54,37 +52,63 @@ func TestReconcile(t *testing.T) {
 	// Setup the Manager and Controller.  Wrap the Controller Reconcile function so it writes each request to a
 	// channel when it is finished.
 	mgr, err := manager.New(cfg, manager.Options{})
-	g.Expect(err).NotTo(gomega.HaveOccurred())
+	if err != nil {
+		t.Errorf("error creating new manager: %v", err)
+	}
 	c = mgr.GetClient()
 
 	r := newReconciler(mgr)
 	recFn, requests := SetupTestReconcile(r)
-	g.Expect(add(mgr, recFn, r.MachineSetToMachines)).NotTo(gomega.HaveOccurred())
-	defer close(StartTestManager(mgr, g))
+	if err := add(mgr, recFn, r.MachineSetToMachines); err != nil {
+		t.Errorf("error adding controller to manager: %v", err)
+	}
+	defer close(StartTestManager(mgr, t))
 
 	// Create the MachineSet object and expect Reconcile to be called and the Machines to be created.
-	err = c.Create(context.TODO(), instance)
-	g.Expect(err).NotTo(gomega.HaveOccurred())
+	if err := c.Create(context.TODO(), instance); err != nil {
+		t.Errorf("error creating instance: %v", err)
+	}
 	defer c.Delete(context.TODO(), instance)
-	g.Eventually(requests, timeout).Should(gomega.Receive(gomega.Equal(expectedRequest)))
+	select {
+	case recv := <-requests:
+		if recv != expectedRequest {
+			t.Error("received request does not match expected request")
+		}
+	case <-time.After(timeout):
+		t.Error("timed out waiting for request")
+	}
 
 	machines := &clusterv1alpha1.MachineList{}
-	g.Eventually(func() int {
-		if err := c.List(context.TODO(), &client.ListOptions{}, machines); err != nil {
+
+	// TODO(joshuarubin) there seems to be a race here. If expectInt sleeps
+	// briefly, even 10ms, the number of replicas is 4 and not 2 as expected
+	expectInt(t, int(replicas), func(ctx context.Context) int {
+		if err := c.List(ctx, &client.ListOptions{}, machines); err != nil {
 			return -1
 		}
 		return len(machines.Items)
-	}, timeout).Should(gomega.BeEquivalentTo(replicas))
+	})
 
 	// Verify that each machine has the desired kubelet version.
 	for _, m := range machines.Items {
-		g.Expect(m.Spec.Versions.Kubelet).Should(gomega.Equal("1.10.3"))
+		if k := m.Spec.Versions.Kubelet; k != "1.10.3" {
+			t.Errorf("kubelet was %q not '1.10.3'", k)
+		}
 	}
 
 	// Delete a Machine and expect Reconcile to be called to replace it.
 	m := machines.Items[0]
-	g.Expect(c.Delete(context.TODO(), &m)).NotTo(gomega.HaveOccurred())
-	g.Eventually(requests, timeout).Should(gomega.Receive(gomega.Equal(expectedRequest)))
+	if err := c.Delete(context.TODO(), &m); err != nil {
+		t.Errorf("error deleting machine: %v", err)
+	}
+	select {
+	case recv := <-requests:
+		if recv != expectedRequest {
+			t.Error("received request does not match expected request")
+		}
+	case <-time.After(timeout):
+		t.Error("timed out waiting for request")
+	}
 
 	// TODO (robertbailey): Figure out why the control loop isn't working as expected.
 	/*
@@ -95,4 +119,24 @@ func TestReconcile(t *testing.T) {
 			return len(machines.Items)
 		}, timeout).Should(gomega.BeEquivalentTo(replicas))
 	*/
+}
+
+func expectInt(t *testing.T, expect int, fn func(context.Context) int) {
+	t.Helper()
+
+	ctx, cancel := context.WithTimeout(context.TODO(), timeout)
+	defer cancel()
+
+	intCh := make(chan int)
+
+	go func() { intCh <- fn(ctx) }()
+
+	select {
+	case n := <-intCh:
+		if n != expect {
+			t.Errorf("go unexpectef value %d, expected %d", n, expect)
+		}
+	case <-ctx.Done():
+		t.Errorf("timed out waiting for value: %d", expect)
+	}
 }

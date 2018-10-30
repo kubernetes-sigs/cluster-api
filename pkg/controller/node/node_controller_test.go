@@ -20,7 +20,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/onsi/gomega"
 	"golang.org/x/net/context"
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
@@ -38,18 +37,21 @@ var expectedRequest = reconcile.Request{NamespacedName: types.NamespacedName{Nam
 const timeout = time.Second * 5
 
 func TestReconcile(t *testing.T) {
-	g := gomega.NewGomegaWithT(t)
 	instance := &corev1.Node{ObjectMeta: metav1.ObjectMeta{Name: "foo"}}
 
 	// Setup the Manager and Controller.  Wrap the Controller Reconcile function so it writes each request to a
 	// channel when it is finished.
 	mgr, err := manager.New(cfg, manager.Options{})
-	g.Expect(err).NotTo(gomega.HaveOccurred())
+	if err != nil {
+		t.Errorf("error creating new manager: %v", err)
+	}
 	c = mgr.GetClient()
 
 	recFn, requests := SetupTestReconcile(newReconciler(mgr))
-	g.Expect(add(mgr, recFn)).NotTo(gomega.HaveOccurred())
-	defer close(StartTestManager(mgr, g))
+	if err := add(mgr, recFn); err != nil {
+		t.Errorf("error adding controller to manager: %v", err)
+	}
+	defer close(StartTestManager(mgr, t))
 
 	// Create the Node object and expect the Reconcile
 	err = c.Create(context.TODO(), instance)
@@ -59,8 +61,17 @@ func TestReconcile(t *testing.T) {
 		t.Logf("failed to create object, got an invalid object error: %v", err)
 		return
 	}
-	g.Expect(err).NotTo(gomega.HaveOccurred())
+	if err != nil {
+		t.Errorf("error creating instance: %v", err)
+	}
 	defer c.Delete(context.TODO(), instance)
-	g.Eventually(requests, timeout).Should(gomega.Receive(gomega.Equal(expectedRequest)))
+	select {
+	case recv := <-requests:
+		if recv != expectedRequest {
+			t.Error("received request does not match expected request")
+		}
+	case <-time.After(timeout):
+		t.Error("timed out waiting for request")
+	}
 
 }

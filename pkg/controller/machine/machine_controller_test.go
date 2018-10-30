@@ -20,7 +20,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/onsi/gomega"
 	"golang.org/x/net/context"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
@@ -37,7 +36,6 @@ var expectedRequest = reconcile.Request{NamespacedName: types.NamespacedName{Nam
 const timeout = time.Second * 5
 
 func TestReconcile(t *testing.T) {
-	g := gomega.NewGomegaWithT(t)
 	instance := &clusterv1alpha1.Machine{
 		ObjectMeta: metav1.ObjectMeta{Name: "foo", Namespace: "default"},
 		Spec: clusterv1alpha1.MachineSpec{
@@ -48,19 +46,31 @@ func TestReconcile(t *testing.T) {
 	// Setup the Manager and Controller.  Wrap the Controller Reconcile function so it writes each request to a
 	// channel when it is finished.
 	mgr, err := manager.New(cfg, manager.Options{})
-	g.Expect(err).NotTo(gomega.HaveOccurred())
+	if err != nil {
+		t.Fatalf("error creating new manager: %v", err)
+	}
 	c = mgr.GetClient()
 
 	a := newTestActuator()
 	recFn, requests := SetupTestReconcile(newReconciler(mgr, a))
-	g.Expect(add(mgr, recFn)).NotTo(gomega.HaveOccurred())
-	defer close(StartTestManager(mgr, g))
+	if err := add(mgr, recFn); err != nil {
+		t.Fatalf("error adding controller to manager: %v", err)
+	}
+	defer close(StartTestManager(mgr, t))
 
 	// Create the Machine object and expect Reconcile and the actuator to be called
-	err = c.Create(context.TODO(), instance)
-	g.Expect(err).NotTo(gomega.HaveOccurred())
+	if err := c.Create(context.TODO(), instance); err != nil {
+		t.Fatalf("error creating instance: %v", err)
+	}
 	defer c.Delete(context.TODO(), instance)
-	g.Eventually(requests, timeout).Should(gomega.Receive(gomega.Equal(expectedRequest)))
+	select {
+	case recv := <-requests:
+		if recv != expectedRequest {
+			t.Error("received request does not match expected request")
+		}
+	case <-time.After(timeout):
+		t.Error("timed out waiting for request")
+	}
 
 	// TODO: Verify that the actuator is called correctly on Create
 }

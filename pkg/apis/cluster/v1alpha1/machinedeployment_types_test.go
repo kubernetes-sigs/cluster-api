@@ -17,9 +17,9 @@ limitations under the License.
 package v1alpha1
 
 import (
+	"reflect"
 	"testing"
 
-	"github.com/onsi/gomega"
 	"golang.org/x/net/context"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
@@ -28,24 +28,39 @@ import (
 func TestStorageMachineDeployment(t *testing.T) {
 	key := types.NamespacedName{Name: "foo", Namespace: "default"}
 	created := &MachineDeployment{ObjectMeta: metav1.ObjectMeta{Name: "foo", Namespace: "default"}}
-	g := gomega.NewGomegaWithT(t)
 
 	// Test Create
 	fetched := &MachineDeployment{}
-	g.Expect(c.Create(context.TODO(), created)).NotTo(gomega.HaveOccurred())
+	if err := c.Create(context.TODO(), created); err != nil {
+		t.Errorf("error creating machine deployment: %v", err)
+	}
 
-	g.Expect(c.Get(context.TODO(), key, fetched)).NotTo(gomega.HaveOccurred())
-	g.Expect(fetched).To(gomega.Equal(created))
+	if err := c.Get(context.TODO(), key, fetched); err != nil {
+		t.Errorf("error getting machine deployment: %v", err)
+	}
+	if !reflect.DeepEqual(*fetched, *created) {
+		t.Error("fetched value not what was created")
+	}
 
 	// Test Updating the Labels
 	updated := fetched.DeepCopy()
 	updated.Labels = map[string]string{"hello": "world"}
-	g.Expect(c.Update(context.TODO(), updated)).NotTo(gomega.HaveOccurred())
+	if err := c.Update(context.TODO(), updated); err != nil {
+		t.Errorf("error updating machine deployment: %v", err)
+	}
 
-	g.Expect(c.Get(context.TODO(), key, fetched)).NotTo(gomega.HaveOccurred())
-	g.Expect(fetched).To(gomega.Equal(updated))
+	if err := c.Get(context.TODO(), key, fetched); err != nil {
+		t.Errorf("error getting machine deployment: %v", err)
+	}
+	if !reflect.DeepEqual(*fetched, *updated) {
+		t.Error("fetched value not what was updated")
+	}
 
 	// Test Delete
-	g.Expect(c.Delete(context.TODO(), fetched)).NotTo(gomega.HaveOccurred())
-	g.Expect(c.Get(context.TODO(), key, fetched)).To(gomega.HaveOccurred())
+	if err := c.Delete(context.TODO(), fetched); err != nil {
+		t.Errorf("error deleting machine deployment: %v", err)
+	}
+	if err := c.Get(context.TODO(), key, fetched); err == nil {
+		t.Error("expected error getting machine deployment")
+	}
 }

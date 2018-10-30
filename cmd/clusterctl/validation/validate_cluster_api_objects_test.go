@@ -82,7 +82,7 @@ func TestGetClusterObjectWithNoCluster(t *testing.T) {
 	c = mgr.GetClient()
 	defer close(StartTestManager(mgr, t))
 
-	if _, err = getClusterObject(c, "test-cluster", "get-cluster-object-with-no-cluster"); err == nil {
+	if _, err := getClusterObject(c, "test-cluster", "get-cluster-object-with-no-cluster"); err == nil {
 		t.Error("expected error but didn't get one")
 	}
 }

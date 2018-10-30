@@ -121,7 +121,8 @@ All methods should be idempotent.
 `Spec`, or after every resync period.
 
 If a `Cluster` resource is deleted, the controller will call the actuator's 
-`Delete()` method until it succeeds, or the finalizer is removed (see below).
+`Delete()` method until it succeeds, or the [finalizer](
+ https://kubernetes.io/docs/tasks/access-kubernetes-api/custom-resources/custom-resource-definitions/#finalizers) is removed (see below).
 
 **TODO**: Determine what the current resync period is.
 

@@ -234,7 +234,7 @@ type Actuator interface {
 ## Machine Controller Semantics
 
 {% panel style="info", title="Logic sequence" %}
-We need a diagram tracing the logic from resource creation though updates
+We need a diagram tracing the logic from resource creation through updates
 and finally deletion.
 {% endpanel %}
 

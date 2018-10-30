@@ -16,14 +16,16 @@ Cluster has 4 fields:
 of the `Spec` is defined by users, unspecified parts may be filled in with
 defaults or by Controllers such as autoscalers.
 
-`Status` contains only observed cluster state and is only written by controllers
-`Status` is not the source of truth for any information, but instead aggregates
-and publishes observed state.
+`Status` contains only observed cluster state and is only written by
+controllers. `Status` is not the source of truth for any information, but
+instead aggregates and publishes observed state.
 
 `TypeMeta` contains metadata about the API itself - such as Group, Version, 
-Kind. `ObjectMeta` contains metadata about the specific object instance, for
-example, it's name, namespace, labels, and annotations, etc. `ObjectMeta` 
-contains data common to most objects.
+Kind.
+
+`ObjectMeta` contains metadata about the specific object instance, for example,
+it's name, namespace, labels, and annotations, etc. `ObjectMeta` contains data 
+common to most objects.
 
 {% sample lang="go" %}
 ```go

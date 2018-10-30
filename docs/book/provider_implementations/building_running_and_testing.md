@@ -31,10 +31,12 @@ index ac12c7e..9b4f945 100644
 
 ## Build and push images
 
+Determine a location to upload your container and then build and push it:
+
 ```bash
+export IMG=<your-docker-registry>/cluster-api-provider-solas
 dep ensure
 make
-export IMG=quay.io/samsung_cnct/cluster-api-provider-solas
 make docker-build IMG=${IMG}
 make docker-push IMG=${IMG}
 ```

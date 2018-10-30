@@ -1,19 +1,14 @@
 
 # Machine Controller
 
-A `Machine` is the declarative spec for a Node, as represented in Kubernetes 
+A `Machine` is the declarative spec for a `Node`, as represented in Kubernetes 
 core. If a new Machine object is created, a provider-specific controller will 
-handle provisioning and installing a new host to register as a new Node matching
-the Machine spec. If the Machine's spec is updated, a provider-specific 
-controller is responsible for updating the Node in-place or replacing the host 
-with a new one matching the updated spec. If a Machine object is deleted, the 
-corresponding Node should have its external resources released by the provider-
-specific controller, and should be deleted as well.
-
-Fields like the kubelet version, the container runtime to use, and its version,
-are modeled as fields on the Machine's spec. Any other information that is 
-provider-specific, though, is part of an opaque `ProviderSpec` string that is 
-not portable between different providers.
+handle provisioning and installing a new host to register as a new `Node`
+matching the Machine spec. If the `Machine`s spec is updated, a provider-
+specific controller is responsible for updating the Node in-place or replacing 
+the host with a new one matching the updated spec. If a `Machine` object is 
+deleted, the corresponding `Node` should have its external resources released by
+the provider-specific controller, and should be deleted as well.
 
 {% panel style="info", title="Important" %}
 To see the actual and current definitions see the [source](#machine_types_source).
@@ -28,12 +23,14 @@ To see the actual and current definitions see the [source](#machine_types_source
 of the `Spec` is defined by users, unspecified parts may be filled in with
 defaults or by Controllers such as autoscalers.
 
-`Status` contains only observed cluster state and is only written by controllers
-`Status` is not the source of truth for any information, but instead aggregates
-and publishes observed state.
+`Status` contains only observed cluster state and is only written by
+controllers. `Status` is not the source of truth for any information, but 
+instead aggregates and publishes observed state.
 
 `TypeMeta` contains metadata about the API itself - such as Group, Version, 
-Kind. `ObjectMeta` contains metadata about the specific object instance, for
+Kind. 
+
+`ObjectMeta` contains metadata about the specific object instance, for
 example, it's name, namespace, labels, and annotations, etc. `ObjectMeta` 
 contains data common to most objects.
 

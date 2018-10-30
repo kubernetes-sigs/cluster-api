@@ -1,15 +1,14 @@
 # Repository Naming
 
-The naming convention for new Cluster API [_provider_ repositories][repo-naming] 
+The naming convention for new Cluster API [_provider_ repositories][repo-naming]
 is generally of the form `cluster-api-provider-${cloud}`, where `${cloud}` is a,
 possibly short, name for the cloud in question. For example `cluster-api-provider-gcp`
 is an implementation for the Google Cloud Platform, and `cluster-api-provider-aws` 
 is one for Amazon Web Services. Note that a single cloud provider may include 
 more than one [_variant_][variant-naming]. So for example, `cluster-api-provider-aws` 
-may include both an implementation based on EC2 as well as one based on their hosted
-EKS solution. Finally, it is not uncommon for the word _cloud_ in this context to 
-refer to even bare metal or virtual machine infrastructure, when the difference is 
-not important.
+may include both an implementation based on EC2 as well as one based on their
+hosted EKS solution. Finally, it is not uncommon for the word _cloud_ in this 
+context to refer to even bare metal or virtual machine infrastructure, when the difference is not important.
 
 {% panel style="info", title="Important" %}
 For the purposes of this guide we will create a fictional provider for a 

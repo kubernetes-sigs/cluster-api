@@ -59,13 +59,13 @@ func TestReconcile(t *testing.T) {
 
 	r := newReconciler(mgr)
 	recFn, requests := SetupTestReconcile(r)
-	if err = add(mgr, recFn, r.MachineSetToMachines); err != nil {
+	if err := add(mgr, recFn, r.MachineSetToMachines); err != nil {
 		t.Errorf("error adding controller to manager: %v", err)
 	}
 	defer close(StartTestManager(mgr, t))
 
 	// Create the MachineSet object and expect Reconcile to be called and the Machines to be created.
-	if err = c.Create(context.TODO(), instance); err != nil {
+	if err := c.Create(context.TODO(), instance); err != nil {
 		t.Errorf("error creating instance: %v", err)
 	}
 	defer c.Delete(context.TODO(), instance)
@@ -83,7 +83,7 @@ func TestReconcile(t *testing.T) {
 	// TODO(joshuarubin) there seems to be a race here. If expectInt sleeps
 	// briefly, even 10ms, the number of replicas is 4 and not 2 as expected
 	expectInt(t, int(replicas), func(ctx context.Context) int {
-		if err = c.List(ctx, &client.ListOptions{}, machines); err != nil {
+		if err := c.List(ctx, &client.ListOptions{}, machines); err != nil {
 			return -1
 		}
 		return len(machines.Items)
@@ -98,7 +98,7 @@ func TestReconcile(t *testing.T) {
 
 	// Delete a Machine and expect Reconcile to be called to replace it.
 	m := machines.Items[0]
-	if err = c.Delete(context.TODO(), &m); err != nil {
+	if err := c.Delete(context.TODO(), &m); err != nil {
 		t.Errorf("error deleting machine: %v", err)
 	}
 	select {

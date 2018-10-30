@@ -56,13 +56,13 @@ func TestReconcile(t *testing.T) {
 
 	a := newTestActuator()
 	recFn, requests := SetupTestReconcile(newReconciler(mgr, a))
-	if err = add(mgr, recFn); err != nil {
+	if err := add(mgr, recFn); err != nil {
 		t.Fatalf("error adding controller to manager: %v", err)
 	}
 	defer close(StartTestManager(mgr, t))
 
 	// Create the Cluster object and expect the Reconcile and Deployment to be created
-	if err = c.Create(context.TODO(), instance); err != nil {
+	if err := c.Create(context.TODO(), instance); err != nil {
 		t.Fatalf("error creating instance: %v", err)
 	}
 	defer c.Delete(context.TODO(), instance)

@@ -75,13 +75,13 @@ func TestReconcile(t *testing.T) {
 
 	r := newReconciler(mgr)
 	recFn, requests, errors := SetupTestReconcile(r)
-	if err = add(mgr, recFn, r.MachineSetToDeployments); err != nil {
+	if err := add(mgr, recFn, r.MachineSetToDeployments); err != nil {
 		t.Errorf("error adding controller to manager: %v", err)
 	}
 	defer close(StartTestManager(mgr, t))
 
 	// Create the MachineDeployment object and expect Reconcile to be called.
-	if err = c.Create(context.TODO(), instance); err != nil {
+	if err := c.Create(context.TODO(), instance); err != nil {
 		t.Errorf("error creating instance: %v", err)
 	}
 	defer c.Delete(context.TODO(), instance)
@@ -90,7 +90,7 @@ func TestReconcile(t *testing.T) {
 	// Verify that the MachineSet was created.
 	machineSets := &clusterv1alpha1.MachineSetList{}
 	expectInt(t, 1, func(ctx context.Context) int {
-		if err = c.List(ctx, &client.ListOptions{}, machineSets); err != nil {
+		if err := c.List(ctx, &client.ListOptions{}, machineSets); err != nil {
 			return -1
 		}
 		return len(machineSets.Items)
@@ -105,27 +105,27 @@ func TestReconcile(t *testing.T) {
 	}
 
 	// Delete a MachineSet and expect Reconcile to be called to replace it.
-	if err = c.Delete(context.TODO(), &ms); err != nil {
+	if err := c.Delete(context.TODO(), &ms); err != nil {
 		t.Errorf("error deleting machineset: %v", err)
 	}
 	expectReconcile(t, requests, errors)
 	expectInt(t, 1, func(ctx context.Context) int {
-		if err = c.List(ctx, &client.ListOptions{}, machineSets); err != nil {
+		if err := c.List(ctx, &client.ListOptions{}, machineSets); err != nil {
 			return -1
 		}
 		return len(machineSets.Items)
 	})
 
 	// Scale a MachineDeployment and expect Reconcile to be called
-	if err = updateMachineDeployment(c, instance, func(d *clusterv1alpha1.MachineDeployment) { d.Spec.Replicas = int32Ptr(5) }); err != nil {
+	if err := updateMachineDeployment(c, instance, func(d *clusterv1alpha1.MachineDeployment) { d.Spec.Replicas = int32Ptr(5) }); err != nil {
 		t.Errorf("error scaling machinedeployment: %v", err)
 	}
-	if err = c.Update(context.TODO(), instance); err != nil {
+	if err := c.Update(context.TODO(), instance); err != nil {
 		t.Errorf("error updating instance: %v", err)
 	}
 	expectReconcile(t, requests, errors)
 	expectInt(t, 5, func(ctx context.Context) int {
-		if err = c.List(ctx, &client.ListOptions{}, machineSets); err != nil {
+		if err := c.List(ctx, &client.ListOptions{}, machineSets); err != nil {
 			return -1
 		}
 		if len(machineSets.Items) != 1 {
@@ -135,15 +135,15 @@ func TestReconcile(t *testing.T) {
 	})
 
 	// Update a MachineDeployment, expect Reconcile to be called and a new MachineSet to appear
-	if err = updateMachineDeployment(c, instance, func(d *clusterv1alpha1.MachineDeployment) { d.Spec.Template.Labels["updated"] = "true" }); err != nil {
+	if err := updateMachineDeployment(c, instance, func(d *clusterv1alpha1.MachineDeployment) { d.Spec.Template.Labels["updated"] = "true" }); err != nil {
 		t.Errorf("error scaling machinedeployment: %v", err)
 	}
-	if err = c.Update(context.TODO(), instance); err != nil {
+	if err := c.Update(context.TODO(), instance); err != nil {
 		t.Errorf("error updating instance: %v", err)
 	}
 	expectReconcile(t, requests, errors)
 	expectInt(t, 2, func(ctx context.Context) int {
-		if err = c.List(ctx, &client.ListOptions{}, machineSets); err != nil {
+		if err := c.List(ctx, &client.ListOptions{}, machineSets); err != nil {
 			return -1
 		}
 		return len(machineSets.Items)
@@ -163,7 +163,7 @@ func TestReconcile(t *testing.T) {
 	// Start off by setting .Status.Replicas and .Status.AvailableReplicas of the old MachineSet
 	oldMachineSet.Status.AvailableReplicas = *oldMachineSet.Spec.Replicas
 	oldMachineSet.Status.Replicas = *oldMachineSet.Spec.Replicas
-	if err = c.Status().Update(context.TODO(), oldMachineSet); err != nil {
+	if err := c.Status().Update(context.TODO(), oldMachineSet); err != nil {
 		t.Errorf("error updating machineset: %v", err)
 	}
 	expectReconcile(t, requests, errors)
@@ -182,7 +182,7 @@ func TestReconcile(t *testing.T) {
 		// Set its status
 		newMachineSet.Status.Replicas = *newMachineSet.Spec.Replicas
 		newMachineSet.Status.AvailableReplicas = *newMachineSet.Spec.Replicas
-		if err = c.Status().Update(context.TODO(), newMachineSet); err != nil {
+		if err := c.Status().Update(context.TODO(), newMachineSet); err != nil {
 			t.Errorf("error updating machineset: %v", err)
 		}
 		expectReconcile(t, requests, errors)

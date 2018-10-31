@@ -98,20 +98,7 @@ The definition of `Exist()` is determined by the provider.
 **TODO**: Provide more guidance on `Exists()`.
 
 {% sample lang="go" %}
-```go
-// Actuator controls machines on a specific infrastructure. All
-// methods should be idempotent unless otherwise specified.
-type Actuator interface {
-	// Create the machine.
-	Create(*clusterv1.Cluster, *clusterv1.Machine) error
-	// Delete the machine. If no error is returned, it is assumed that all dependent resources have been cleaned up.
-	Delete(*clusterv1.Cluster, *clusterv1.Machine) error
-	// Update the machine to the provided definition.
-	Update(*clusterv1.Cluster, *clusterv1.Machine) error
-	// Checks if the machine currently exists.
-	Exists(*clusterv1.Cluster, *clusterv1.Machine) (bool, error)
-}
-```
+[import:'Actuator'](../../../pkg/controller/machine/actuator.go)
 {% endmethod %}
 
 ## Machine Controller Semantics

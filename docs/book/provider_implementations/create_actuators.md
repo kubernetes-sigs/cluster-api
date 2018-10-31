@@ -29,7 +29,7 @@ package cluster
 
 import (
         "fmt"
-	"log"
+        "log"
 
         clusterv1 "sigs.k8s.io/cluster-api/pkg/apis/cluster/v1alpha1"
         client "sigs.k8s.io/cluster-api/pkg/client/clientset_generated/clientset/typed/cluster/v1alpha1"
@@ -91,7 +91,7 @@ package machine
 
 import (
         "fmt"
-	"log"
+        "log"
 
         clusterv1 "sigs.k8s.io/cluster-api/pkg/apis/cluster/v1alpha1"
         client "sigs.k8s.io/cluster-api/pkg/client/clientset_generated/clientset/typed/cluster/v1alpha1"

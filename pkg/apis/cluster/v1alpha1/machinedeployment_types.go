@@ -23,6 +23,7 @@ import (
 	"sigs.k8s.io/cluster-api/pkg/apis/cluster/common"
 )
 
+/// [MachineDeploymentSpec]
 // MachineDeploymentSpec defines the desired state of MachineDeployment
 type MachineDeploymentSpec struct {
 	// Number of desired machines. Defaults to 1.
@@ -67,6 +68,9 @@ type MachineDeploymentSpec struct {
 	ProgressDeadlineSeconds *int32 `json:"progressDeadlineSeconds,omitempty"`
 }
 
+/// [MachineDeploymentSpec]
+
+/// [MachineDeploymentStrategy]
 // MachineDeploymentStrategy describes how to replace existing machines
 // with new ones.
 type MachineDeploymentStrategy struct {
@@ -82,6 +86,9 @@ type MachineDeploymentStrategy struct {
 	RollingUpdate *MachineRollingUpdateDeployment `json:"rollingUpdate,omitempty"`
 }
 
+/// [MachineDeploymentStrategy]
+
+/// [MachineRollingUpdateDeployment]
 // Spec to control the desired behavior of rolling update.
 type MachineRollingUpdateDeployment struct {
 	// The maximum number of machines that can be unavailable during the update.
@@ -116,6 +123,9 @@ type MachineRollingUpdateDeployment struct {
 	MaxSurge *intstr.IntOrString `json:"maxSurge,omitempty" protobuf:"bytes,2,opt,name=maxSurge"`
 }
 
+/// [MachineRollingUpdateDeployment]
+
+/// [MachineDeploymentStatus]
 // MachineDeploymentStatus defines the observed state of MachineDeployment
 type MachineDeploymentStatus struct {
 	// The generation observed by the deployment controller.
@@ -150,9 +160,12 @@ type MachineDeploymentStatus struct {
 	UnavailableReplicas int32 `json:"unavailableReplicas,omitempty" protobuf:"varint,5,opt,name=unavailableReplicas"`
 }
 
+/// [MachineDeploymentStatus]
+
 // +genclient
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
 
+/// [MachineDeployment]
 // MachineDeployment is the Schema for the machinedeployments API
 // +k8s:openapi-gen=true
 // +kubebuilder:subresource:status
@@ -163,6 +176,8 @@ type MachineDeployment struct {
 	Spec   MachineDeploymentSpec   `json:"spec,omitempty"`
 	Status MachineDeploymentStatus `json:"status,omitempty"`
 }
+
+/// [MachineDeployment]
 
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
 

@@ -3,10 +3,6 @@
 
 A `Cluster` represents the global configuration of a Kubernetes cluster.
 
-{% panel style="info", title="Important" %}
-To see the actual and current definitions see the [source](#cluster_source).
-{% endpanel %}
-
 {% method %}
 ## Cluster
 
@@ -28,15 +24,7 @@ it's name, namespace, labels, and annotations, etc. `ObjectMeta` contains data
 common to most objects.
 
 {% sample lang="go" %}
-```go
-type Cluster struct {
-	metav1.TypeMeta   `json:",inline"`
-	metav1.ObjectMeta `json:"metadata,omitempty"`
-
-	Spec   ClusterSpec   `json:"spec,omitempty"`
-	Status ClusterStatus `json:"status,omitempty"`
-}
-```
+[import:'Cluster'](../../../pkg/apis/cluster/v1alpha1/cluster_types.go)
 {% endmethod %}
 
 {% method %}
@@ -52,20 +40,7 @@ API definitions are meant to live outside of the Cluster API, which will allow
 them to evolve independently of it.
 
 {% sample lang="go" %}
-```go
-// ClusterSpec defines the desired state of Cluster
-type ClusterSpec struct {
-	// Cluster network configuration
-	ClusterNetwork ClusterNetworkingConfig `json:"clusterNetwork"`
-
-	// Provider-specific serialized configuration to use during
-	// cluster creation. It is recommended that providers maintain
-	// their own versioned API types that should be
-	// serialized/deserialized from this field.
-	// +optional
-	ProviderSpec ProviderSpec `json:"providerSpec,omitempty"`
-}
-```
+[import:'ClusterSpec'](../../../pkg/apis/cluster/v1alpha1/cluster_types.go)
 {% endmethod %}
 
 {% method %}
@@ -89,36 +64,7 @@ https://github.com/kubernetes-sigs/cluster-api-provider-gcp/blob/f3145d8810a5c7f
 used in practice.
 
 {% sample lang="go" %}
-```go
-// ClusterStatus defines the observed state of Cluster
-type ClusterStatus struct {
-	// APIEndpoint represents the endpoint to communicate with the IP.
-	// +optional
-	APIEndpoints []APIEndpoint `json:"apiEndpoints,omitempty"`
-
-	// NB: Eventually we will redefine ErrorReason as ClusterStatusError once the
-	// following issue is fixed.
-	// https://github.com/kubernetes-incubator/apiserver-builder/issues/176
-
-	// If set, indicates that there is a problem reconciling the
-	// state, and will be set to a token value suitable for
-	// programmatic interpretation.
-	// +optional
-	ErrorReason common.ClusterStatusError `json:"errorReason,omitempty"`
-
-	// If set, indicates that there is a problem reconciling the
-	// state, and will be set to a descriptive error message.
-	// +optional
-	ErrorMessage string `json:"errorMessage,omitempty"`
-
-	// Provider-specific status.
-	// It is recommended that providers maintain their
-	// own versioned API types that should be
-	// serialized/deserialized from this field.
-	// +optional
-	ProviderStatus *runtime.RawExtension `json:"providerStatus,omitempty"`
-}
-```
+[import:'ClusterStatus'](../../../pkg/apis/cluster/v1alpha1/cluster_types.go)
 {% endmethod %}
 
 {% method %}
@@ -136,16 +82,7 @@ If a `Cluster` resource is deleted, the controller will call the actuator's
 **TODO**: Determine what the current resync period is.
 
 {% sample lang="go" %}
-```go
-// Actuator controls clusters on a specific infrastructure. All
-// methods should be idempotent unless otherwise specified.
-type Actuator interface {
-	// Create or update the cluster
-	Reconcile(*clusterv1.Cluster) error
-	// Delete the cluster.
-	Delete(*clusterv1.Cluster) error
-}
-```
+[import:'Actuator'](../../../pkg/controller/cluster/actuator.go)
 {% endmethod %}
 
 ## Cluster Controller Semantics

@@ -20,6 +20,7 @@ import (
 	clusterv1 "sigs.k8s.io/cluster-api/pkg/apis/cluster/v1alpha1"
 )
 
+/// [Actuator]
 // Actuator controls machines on a specific infrastructure. All
 // methods should be idempotent unless otherwise specified.
 type Actuator interface {
@@ -32,3 +33,5 @@ type Actuator interface {
 	// Checks if the machine currently exists.
 	Exists(*clusterv1.Cluster, *clusterv1.Machine) (bool, error)
 }
+
+/// [Actuator]

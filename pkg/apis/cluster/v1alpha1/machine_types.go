@@ -30,6 +30,7 @@ const MachineFinalizer = "machine.cluster.k8s.io"
 // +genclient
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
 
+/// [Machine]
 // Machine is the Schema for the machines API
 // +k8s:openapi-gen=true
 // +kubebuilder:subresource:status
@@ -41,6 +42,9 @@ type Machine struct {
 	Status MachineStatus `json:"status,omitempty"`
 }
 
+/// [Machine]
+
+/// [MachineSpec]
 // MachineSpec defines the desired state of Machine
 type MachineSpec struct {
 	// This ObjectMeta will autopopulate the Node created. Use this to
@@ -77,6 +81,9 @@ type MachineSpec struct {
 	ConfigSource *corev1.NodeConfigSource `json:"configSource,omitempty"`
 }
 
+/// [MachineSpec]
+
+/// [MachineStatus]
 // MachineStatus defines the observed state of Machine
 type MachineStatus struct {
 	// If the corresponding Node exists, this will point to its object.
@@ -146,6 +153,9 @@ type MachineStatus struct {
 	Conditions []corev1.NodeCondition `json:"conditions,omitempty"`
 }
 
+/// [MachineStatus]
+
+/// [MachineVersionInfo]
 type MachineVersionInfo struct {
 	// Semantic version of kubelet to run
 	Kubelet string `json:"kubelet"`
@@ -156,6 +166,8 @@ type MachineVersionInfo struct {
 	// +optional
 	ControlPlane string `json:"controlPlane,omitempty"`
 }
+
+/// [MachineVersionInfo]
 
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
 

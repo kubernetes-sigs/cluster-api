@@ -3,13 +3,16 @@ Usage:
   clusterctl delete cluster [flags]
 
 Flags:
-      --cluster string               The name of the kubeconfig cluster to use
-      --cluster-namespace string     Namespace where the cluster to be deleted resides (default "default")
-  -h, --help                         help for cluster
-  -n, --namespace string             If present, the namespace scope for this CLI request
-  -p, --provider-components string   A yaml file containing cluster api provider controllers and supporting objects, if empty the value is loaded from the cluster's configuration store.
-      --user string                  The name of the kubeconfig user to use
-      --vm-driver string             Which vm driver to use for minikube
+      --cleanup-bootstrap-cluster                      Whether to cleanup the bootstrap cluster after bootstrap (default true)
+      --cluster string                                 The name of the kubeconfig cluster to use
+      --cluster-namespace string                       Namespace where the cluster to be deleted resides (default "default")
+  -e, --existing-bootstrap-cluster-kubeconfig string   Path to an existing cluster's kubeconfig for bootstrapping (intead of using minikube)
+  -h, --help                                           help for cluster
+      --minikube strings                               Minikube options
+  -n, --namespace string                               If present, the namespace scope for this CLI request
+  -p, --provider-components string                     A yaml file containing cluster api provider controllers and supporting objects, if empty the value is loaded from the cluster's configuration store.
+      --user string                                    The name of the kubeconfig user to use
+      --vm-driver string                               Which vm driver to use for minikube
 
 Global Flags:
       --alsologtostderr                  log to standard error as well as files

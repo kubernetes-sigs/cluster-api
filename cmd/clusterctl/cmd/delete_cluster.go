@@ -23,6 +23,7 @@ import (
 	tcmd "k8s.io/client-go/tools/clientcmd"
 	"sigs.k8s.io/cluster-api/cmd/clusterctl/clientcmd"
 	"sigs.k8s.io/cluster-api/cmd/clusterctl/clusterdeployer"
+	"sigs.k8s.io/cluster-api/cmd/clusterctl/clusterdeployer/bootstrap/existing"
 	"sigs.k8s.io/cluster-api/cmd/clusterctl/clusterdeployer/bootstrap/minikube"
 	"sigs.k8s.io/cluster-api/cmd/clusterctl/clusterdeployer/clusterclient"
 	"sigs.k8s.io/cluster-api/cmd/clusterctl/providercomponents"
@@ -32,11 +33,14 @@ import (
 )
 
 type DeleteOptions struct {
-	KubeconfigPath      string
-	ProviderComponents  string
-	ClusterNamespace    string
-	VmDriver            string
-	KubeconfigOverrides tcmd.ConfigOverrides
+	KubeconfigPath                string
+	ProviderComponents            string
+	ClusterNamespace              string
+	CleanupBootstrapCluster       bool
+	MiniKube                      []string
+	VmDriver                      string
+	ExistingClusterKubeconfigPath string
+	KubeconfigOverrides           tcmd.ConfigOverrides
 }
 
 var do = &DeleteOptions{}
@@ -46,6 +50,12 @@ var deleteClusterCmd = &cobra.Command{
 	Short: "Delete kubernetes cluster",
 	Long:  `Delete a kubernetes cluster with one command`,
 	Run: func(cmd *cobra.Command, args []string) {
+		if do.KubeconfigPath == "" {
+			exitWithHelp(cmd, "Please provide kubeconfig file for cluster to delete.")
+		}
+		if do.ProviderComponents == "" {
+			exitWithHelp(cmd, "Please provide yaml file for provider component definition.")
+		}
 		if err := RunDelete(); err != nil {
 			glog.Exit(err)
 		}
@@ -53,10 +63,16 @@ var deleteClusterCmd = &cobra.Command{
 }
 
 func init() {
+	// Required flags
 	deleteClusterCmd.Flags().StringVarP(&do.KubeconfigPath, "kubeconfig", "", "", "Path to the kubeconfig file to use for connecting to the cluster to be deleted, if empty, the default KUBECONFIG load path is used.")
 	deleteClusterCmd.Flags().StringVarP(&do.ProviderComponents, "provider-components", "p", "", "A yaml file containing cluster api provider controllers and supporting objects, if empty the value is loaded from the cluster's configuration store.")
+
+	// Optional flags
 	deleteClusterCmd.Flags().StringVarP(&do.ClusterNamespace, "cluster-namespace", "", v1.NamespaceDefault, "Namespace where the cluster to be deleted resides")
+	deleteClusterCmd.Flags().BoolVarP(&do.CleanupBootstrapCluster, "cleanup-bootstrap-cluster", "", true, "Whether to cleanup the bootstrap cluster after bootstrap")
+	deleteClusterCmd.Flags().StringSliceVarP(&do.MiniKube, "minikube", "", []string{}, "Minikube options")
 	deleteClusterCmd.Flags().StringVarP(&do.VmDriver, "vm-driver", "", "", "Which vm driver to use for minikube")
+	deleteClusterCmd.Flags().StringVarP(&do.ExistingClusterKubeconfigPath, "existing-bootstrap-cluster-kubeconfig", "e", "", "Path to an existing cluster's kubeconfig for bootstrapping (intead of using minikube)")
 	// BindContextFlags will bind the flags cluster, namespace, and user
 	tcmd.BindContextFlags(&do.KubeconfigOverrides.Context, deleteClusterCmd.Flags(), tcmd.RecommendedContextOverrideFlags(""))
 	deleteCmd.AddCommand(deleteClusterCmd)
@@ -72,15 +88,27 @@ func RunDelete() error {
 		return fmt.Errorf("error when creating cluster client: %v", err)
 	}
 	defer clusterClient.Close()
-	if co.VmDriver != "" {
-		co.MiniKube = append(co.MiniKube, fmt.Sprintf("vm-driver=%s", co.VmDriver))
+
+	var bootstrapProvider clusterdeployer.ClusterProvisioner
+	if do.ExistingClusterKubeconfigPath != "" {
+		bootstrapProvider, err = existing.NewExistingCluster(do.ExistingClusterKubeconfigPath)
+		if err != nil {
+			return err
+		}
+	} else {
+		if do.VmDriver != "" {
+			do.MiniKube = append(do.MiniKube, fmt.Sprintf("vm-driver=%s", do.VmDriver))
+		}
+
+		bootstrapProvider = minikube.WithOptions(do.MiniKube)
 	}
-	mini := minikube.WithOptions(co.MiniKube)
-	deployer := clusterdeployer.New(mini,
+
+	deployer := clusterdeployer.New(
+		bootstrapProvider,
 		clusterclient.NewFactory(),
 		providerComponents,
 		"",
-		true)
+		do.CleanupBootstrapCluster)
 	return deployer.Delete(clusterClient, do.ClusterNamespace)
 }
 

@@ -24,6 +24,7 @@ import (
 	"github.com/golang/glog"
 	"github.com/spf13/cobra"
 	"sigs.k8s.io/cluster-api/cmd/clusterctl/clusterdeployer"
+	"sigs.k8s.io/cluster-api/cmd/clusterctl/clusterdeployer/bootstrap"
 	"sigs.k8s.io/cluster-api/cmd/clusterctl/clusterdeployer/bootstrap/existing"
 	"sigs.k8s.io/cluster-api/cmd/clusterctl/clusterdeployer/bootstrap/minikube"
 	"sigs.k8s.io/cluster-api/cmd/clusterctl/clusterdeployer/clusterclient"
@@ -77,7 +78,7 @@ func RunCreate(co *CreateOptions) error {
 		return err
 	}
 
-	var bootstrapProvider clusterdeployer.ClusterProvisioner
+	var bootstrapProvider bootstrap.ClusterProvisioner
 	if co.ExistingClusterKubeconfigPath != "" {
 		bootstrapProvider, err = existing.NewExistingCluster(co.ExistingClusterKubeconfigPath)
 		if err != nil {

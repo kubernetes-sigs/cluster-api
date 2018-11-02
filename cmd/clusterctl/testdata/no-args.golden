@@ -5,6 +5,7 @@ Usage:
   clusterctl [command]
 
 Available Commands:
+  alpha       Alpha/Experimental features
   create      Create a cluster API resource
   delete      Delete a cluster API resource
   help        Help about any command

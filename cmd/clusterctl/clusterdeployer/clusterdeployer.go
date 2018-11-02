@@ -23,12 +23,13 @@ import (
 	"strings"
 	"time"
 
+	"github.com/golang/glog"
 	"k8s.io/client-go/kubernetes"
+	"sigs.k8s.io/cluster-api/cmd/clusterctl/clusterdeployer/bootstrap"
 	"sigs.k8s.io/cluster-api/cmd/clusterctl/clusterdeployer/clusterclient"
+	"sigs.k8s.io/cluster-api/cmd/clusterctl/phases"
 	clusterv1 "sigs.k8s.io/cluster-api/pkg/apis/cluster/v1alpha1"
 	"sigs.k8s.io/cluster-api/pkg/util"
-
-	"github.com/golang/glog"
 )
 
 // Deprecated interface for Provider specific logic. Please do not extend or add. This interface should be removed
@@ -38,13 +39,6 @@ type ProviderDeployer interface {
 	GetIP(cluster *clusterv1.Cluster, machine *clusterv1.Machine) (string, error)
 	// TODO: This requirement can be removed after: https://github.com/kubernetes-sigs/cluster-api/issues/160
 	GetKubeConfig(cluster *clusterv1.Cluster, master *clusterv1.Machine) (string, error)
-}
-
-// Can provision a kubernetes cluster
-type ClusterProvisioner interface {
-	Create() error
-	Delete() error
-	GetKubeconfig() (string, error)
 }
 
 type ProviderComponentsStore interface {
@@ -57,7 +51,7 @@ type ProviderComponentsStoreFactory interface {
 }
 
 type ClusterDeployer struct {
-	bootstrapProvisioner    ClusterProvisioner
+	bootstrapProvisioner    bootstrap.ClusterProvisioner
 	clientFactory           clusterclient.Factory
 	providerComponents      string
 	addonComponents         string
@@ -65,7 +59,7 @@ type ClusterDeployer struct {
 }
 
 func New(
-	bootstrapProvisioner ClusterProvisioner,
+	bootstrapProvisioner bootstrap.ClusterProvisioner,
 	clientFactory clusterclient.Factory,
 	providerComponents string,
 	addonComponents string,
@@ -91,8 +85,7 @@ func (d *ClusterDeployer) Create(cluster *clusterv1.Cluster, machines []*cluster
 		return fmt.Errorf("unable to separate master machines from node machines: %v", err)
 	}
 
-	glog.Info("Creating bootstrap cluster")
-	bootstrapClient, cleanupBootstrapCluster, err := d.createBootstrapCluster()
+	bootstrapClient, cleanupBootstrapCluster, err := phases.CreateBootstrapCluster(d.bootstrapProvisioner, d.cleanupBootstrapCluster, d.clientFactory)
 	defer cleanupBootstrapCluster()
 	if err != nil {
 		return fmt.Errorf("could not create bootstrap cluster: %v", err)
@@ -179,7 +172,7 @@ func (d *ClusterDeployer) Create(cluster *clusterv1.Cluster, machines []*cluster
 
 func (d *ClusterDeployer) Delete(targetClient clusterclient.Client, namespace string) error {
 	glog.Info("Creating bootstrap cluster")
-	bootstrapClient, cleanupBootstrapCluster, err := d.createBootstrapCluster()
+	bootstrapClient, cleanupBootstrapCluster, err := phases.CreateBootstrapCluster(d.bootstrapProvisioner, d.cleanupBootstrapCluster, d.clientFactory)
 	defer cleanupBootstrapCluster()
 	if err != nil {
 		return fmt.Errorf("could not create bootstrap cluster: %v", err)
@@ -210,31 +203,6 @@ func (d *ClusterDeployer) Delete(targetClient clusterclient.Client, namespace st
 	glog.Info("Deletion of cluster complete")
 
 	return nil
-}
-
-func (d *ClusterDeployer) createBootstrapCluster() (clusterclient.Client, func(), error) {
-	cleanupFn := func() {}
-	if err := d.bootstrapProvisioner.Create(); err != nil {
-		return nil, cleanupFn, fmt.Errorf("could not create bootstrap control plane: %v", err)
-	}
-
-	if d.cleanupBootstrapCluster {
-		cleanupFn = func() {
-			glog.Info("Cleaning up bootstrap cluster.")
-			d.bootstrapProvisioner.Delete()
-		}
-	}
-
-	bootstrapKubeconfig, err := d.bootstrapProvisioner.GetKubeconfig()
-	if err != nil {
-		return nil, cleanupFn, fmt.Errorf("unable to get bootstrap cluster kubeconfig: %v", err)
-	}
-	bootstrapClient, err := d.clientFactory.NewClientFromKubeconfig(bootstrapKubeconfig)
-	if err != nil {
-		return nil, cleanupFn, fmt.Errorf("unable to create bootstrap client: %v", err)
-	}
-
-	return bootstrapClient, cleanupFn, nil
 }
 
 func (d *ClusterDeployer) createTargetClusterClient(bootstrapClient clusterclient.Client, provider ProviderDeployer, kubeconfigOutput string, clusterName, namespace string) (clusterclient.Client, error) {

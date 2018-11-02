@@ -23,6 +23,7 @@ import (
 	tcmd "k8s.io/client-go/tools/clientcmd"
 	"sigs.k8s.io/cluster-api/cmd/clusterctl/clientcmd"
 	"sigs.k8s.io/cluster-api/cmd/clusterctl/clusterdeployer"
+	"sigs.k8s.io/cluster-api/cmd/clusterctl/clusterdeployer/bootstrap"
 	"sigs.k8s.io/cluster-api/cmd/clusterctl/clusterdeployer/bootstrap/existing"
 	"sigs.k8s.io/cluster-api/cmd/clusterctl/clusterdeployer/bootstrap/minikube"
 	"sigs.k8s.io/cluster-api/cmd/clusterctl/clusterdeployer/clusterclient"
@@ -89,7 +90,7 @@ func RunDelete() error {
 	}
 	defer clusterClient.Close()
 
-	var bootstrapProvider clusterdeployer.ClusterProvisioner
+	var bootstrapProvider bootstrap.ClusterProvisioner
 	if do.ExistingClusterKubeconfigPath != "" {
 		bootstrapProvider, err = existing.NewExistingCluster(do.ExistingClusterKubeconfigPath)
 		if err != nil {

@@ -131,9 +131,8 @@ func (d *ClusterDeployer) Create(cluster *clusterv1.Cluster, machines []*cluster
 	defer closeClient(targetClient, "target")
 
 	if d.addonComponents != "" {
-		glog.Info("Creating addons in target cluster.")
-		if err := targetClient.Apply(d.addonComponents); err != nil {
-			return fmt.Errorf("unable to apply addons: %v", err)
+		if err := phases.ApplyAddons(targetClient, d.addonComponents); err != nil {
+			return fmt.Errorf("unable to apply addons to target cluster: %v", err)
 		}
 	}
 

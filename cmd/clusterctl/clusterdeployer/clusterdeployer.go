@@ -102,7 +102,7 @@ func (d *ClusterDeployer) Create(cluster *clusterv1.Cluster, machines []*cluster
 	}
 
 	glog.Info("Applying Cluster API stack to bootstrap cluster")
-	if err := d.applyClusterAPIStack(bootstrapClient, cluster.Namespace); err != nil {
+	if err := phases.ApplyClusterAPIComponents(bootstrapClient, d.providerComponents); err != nil {
 		return fmt.Errorf("unable to apply cluster api stack to bootstrap cluster: %v", err)
 	}
 
@@ -138,7 +138,7 @@ func (d *ClusterDeployer) Create(cluster *clusterv1.Cluster, machines []*cluster
 	}
 
 	glog.Info("Applying Cluster API stack to target cluster")
-	if err := d.applyClusterAPIStackWithPivoting(targetClient, bootstrapClient, cluster.Namespace); err != nil {
+	if err := d.applyClusterAPIComponentsWithPivoting(targetClient, bootstrapClient, cluster.Namespace); err != nil {
 		return fmt.Errorf("unable to apply cluster api stack to target cluster: %v", err)
 	}
 
@@ -180,7 +180,7 @@ func (d *ClusterDeployer) Delete(targetClient clusterclient.Client, namespace st
 	defer closeClient(bootstrapClient, "bootstrap")
 
 	glog.Info("Applying Cluster API stack to bootstrap cluster")
-	if err = d.applyClusterAPIStack(bootstrapClient, namespace); err != nil {
+	if err := phases.ApplyClusterAPIComponents(bootstrapClient, d.providerComponents); err != nil {
 		return fmt.Errorf("unable to apply cluster api stack to bootstrap cluster: %v", err)
 	}
 
@@ -264,16 +264,7 @@ func (d *ClusterDeployer) saveProviderComponentsToCluster(factory ProviderCompon
 	return nil
 }
 
-func (d *ClusterDeployer) applyClusterAPIStack(client clusterclient.Client, namespace string) error {
-	glog.Info("Applying Cluster API Provider Components")
-	if err := client.Apply(d.providerComponents); err != nil {
-		return fmt.Errorf("unable to apply cluster api controllers: %v", err)
-	}
-
-	return client.WaitForClusterV1alpha1Ready()
-}
-
-func (d *ClusterDeployer) applyClusterAPIStackWithPivoting(client, source clusterclient.Client, namespace string) error {
+func (d *ClusterDeployer) applyClusterAPIComponentsWithPivoting(client, source clusterclient.Client, namespace string) error {
 	glog.Info("Applying Cluster API Provider Components")
 	if err := client.Apply(d.providerComponents); err != nil {
 		return fmt.Errorf("unable to apply cluster api controllers: %v", err)

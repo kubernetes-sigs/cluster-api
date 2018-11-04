@@ -22,6 +22,7 @@ import (
 	"os"
 	"os/exec"
 	"strings"
+	"sync"
 	"time"
 
 	apiv1 "k8s.io/api/core/v1"
@@ -297,18 +298,33 @@ func (c *client) CreateMachineSetObjects(machineSets []*clusterv1.MachineSet, na
 }
 
 func (c *client) CreateMachineObjects(machines []*clusterv1.Machine, namespace string) error {
+	var (
+		wg      sync.WaitGroup
+		errOnce sync.Once
+		gerr    error
+	)
+	// The approach to concurrency here comes from golang.org/x/sync/errgroup.
 	for _, machine := range machines {
-		// TODO: Run in parallel https://github.com/kubernetes-sigs/cluster-api/issues/258
-		createdMachine, err := c.clientSet.ClusterV1alpha1().Machines(namespace).Create(machine)
-		if err != nil {
-			return fmt.Errorf("error creating a machine object in namespace %v: %v", namespace, err)
-		}
-		err = waitForMachineReady(c.clientSet, createdMachine)
-		if err != nil {
-			return err
-		}
+		wg.Add(1)
+
+		go func(machine *clusterv1.Machine) {
+			defer wg.Done()
+
+			createdMachine, err := c.clientSet.ClusterV1alpha1().Machines(namespace).Create(machine)
+			if err != nil {
+				errOnce.Do(func() {
+					gerr = fmt.Errorf("error creating a machine object in namespace %v: %v", namespace, err)
+				})
+				return
+			}
+
+			if err := waitForMachineReady(c.clientSet, createdMachine); err != nil {
+				errOnce.Do(func() { gerr = err })
+			}
+		}(machine)
 	}
-	return nil
+	wg.Wait()
+	return gerr
 }
 
 // Deprecated API. Please do not extend or use.

@@ -20,11 +20,14 @@ import (
 	clusterv1 "sigs.k8s.io/cluster-api/pkg/apis/cluster/v1alpha1"
 )
 
+/// [Actuator]
 // Actuator controls clusters on a specific infrastructure. All
 // methods should be idempotent unless otherwise specified.
 type Actuator interface {
-	// Create or update the cluster
+	// Reconcile creates or applies updates to the cluster.
 	Reconcile(*clusterv1.Cluster) error
 	// Delete the cluster.
 	Delete(*clusterv1.Cluster) error
 }
+
+/// [Actuator]

@@ -1,0 +1,19 @@
+{
+  "plugins": ["theme-api", "panel", "sequence-diagrams", "ga", "codegroup",
+              "mermaid", "include-codeblock"],
+  "pluginsConfig": {
+    "theme-api": {
+      "split": true
+    },
+    "sequence-diagrams": {
+      "theme": "simple"
+
+    },
+    "ga": {
+            "token": "dew-create-me"
+        }
+  },
+  "gitbook": ">= 3.0.0",
+  "author": "SIG Lifecycle Team",
+  "title": "The Cluster API Book"
+}

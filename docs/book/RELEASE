@@ -1,0 +1,11 @@
+To push the docs you must be an admin until we have proper CI around this.
+  
+```
+cd docs/book/
+gitbook install
+gitbook build
+cd ../../
+git add docs/book/_book
+git commit
+git subtree push --prefix docs/book/_book origin gh-pages
+```

@@ -19,7 +19,7 @@ this repository.**
 
 ```bash
 $ git clone https://github.com/kubernetes-sigs/cluster-api $GOPATH/src/sigs.k8s.io/cluster-api
-$ cd $GOPATH/src/sigs.k8s.io/cluster-api/clusterctl/
+$ cd $GOPATH/src/sigs.k8s.io/cluster-api/cmd/clusterctl/
 $ go build
 ```
 

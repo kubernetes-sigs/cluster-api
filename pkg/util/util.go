@@ -19,6 +19,7 @@ package util
 import (
 	"context"
 	"fmt"
+	"io/ioutil"
 	"math/rand"
 	"os"
 	"os/exec"
@@ -29,9 +30,9 @@ import (
 	"github.com/golang/glog"
 	"k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
-	"sigs.k8s.io/controller-runtime/pkg/client"
-
 	clusterv1 "sigs.k8s.io/cluster-api/pkg/apis/cluster/v1alpha1"
+	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/yaml"
 )
 
 const (
@@ -170,4 +171,36 @@ func GetNamespaceOrDefault(namespace string) string {
 		return v1.NamespaceDefault
 	}
 	return namespace
+}
+
+func ParseClusterYaml(file string) (*clusterv1.Cluster, error) {
+	bytes, err := ioutil.ReadFile(file)
+	if err != nil {
+		return nil, err
+	}
+
+	cluster := &clusterv1.Cluster{}
+	if err := yaml.Unmarshal(bytes, cluster); err != nil {
+		return nil, err
+	}
+
+	return cluster, nil
+}
+
+func ParseMachinesYaml(file string) ([]*clusterv1.Machine, error) {
+	bytes, err := ioutil.ReadFile(file)
+	if err != nil {
+		return nil, err
+	}
+
+	list := &clusterv1.MachineList{}
+	if err := yaml.Unmarshal(bytes, &list); err != nil {
+		return nil, err
+	}
+
+	if list == nil {
+		return []*clusterv1.Machine{}, nil
+	}
+
+	return MachineP(list.Items), nil
 }

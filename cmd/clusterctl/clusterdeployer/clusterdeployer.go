@@ -92,6 +92,17 @@ func (d *ClusterDeployer) Create(cluster *clusterv1.Cluster, machines []*cluster
 	}
 	defer closeClient(bootstrapClient, "bootstrap")
 
+	glog.Info("Applying Cluster API stack to bootstrap cluster")
+	if err := phases.ApplyClusterAPIComponents(bootstrapClient, d.providerComponents); err != nil {
+		return fmt.Errorf("unable to apply cluster api stack to bootstrap cluster: %v", err)
+	}
+
+	glog.Info("Provisioning target cluster via bootstrap cluster")
+	if err := phases.ApplyCluster(bootstrapClient, cluster); err != nil {
+		return fmt.Errorf("unable to create cluster %q in bootstrap cluster: %v", cluster.Name, err)
+	}
+
+	// Create initial controlplane instance
 	if cluster.Namespace == "" {
 		cluster.Namespace = bootstrapClient.GetContextNamespace()
 	}
@@ -99,18 +110,6 @@ func (d *ClusterDeployer) Create(cluster *clusterv1.Cluster, machines []*cluster
 	err = bootstrapClient.EnsureNamespace(cluster.Namespace)
 	if err != nil {
 		return fmt.Errorf("unable to ensure namespace %q in bootstrap cluster: %v", cluster.Namespace, err)
-	}
-
-	glog.Info("Applying Cluster API stack to bootstrap cluster")
-	if err := phases.ApplyClusterAPIComponents(bootstrapClient, d.providerComponents); err != nil {
-		return fmt.Errorf("unable to apply cluster api stack to bootstrap cluster: %v", err)
-	}
-
-	glog.Info("Provisioning target cluster via bootstrap cluster")
-
-	glog.Infof("Creating cluster object %v on bootstrap cluster in namespace %q", cluster.Name, cluster.Namespace)
-	if err := bootstrapClient.CreateClusterObject(cluster); err != nil {
-		return fmt.Errorf("unable to create cluster object: %v", err)
 	}
 
 	glog.Infof("Creating master %v in namespace %q", master.Name, cluster.Namespace)

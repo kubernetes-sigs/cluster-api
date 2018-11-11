@@ -12,6 +12,10 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+# Default timeout for starting/stopping the Kubebuilder test controlplane
+export KUBEBUILDER_CONTROLPLANE_START_TIMEOUT ?=60s
+export KUBEBUILDER_CONTROLPLANE_STOP_TIMEOUT ?=60s
+
 # Image URL to use all building/pushing image targets
 IMG ?= gcr.io/k8s-cluster-api/cluster-api-controller:latest
 

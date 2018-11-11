@@ -158,40 +158,14 @@ func (cm *controllerManager) GetRESTMapper() meta.RESTMapper {
 }
 
 func (cm *controllerManager) Start(stop <-chan struct{}) error {
-	if cm.resourceLock == nil {
-		go cm.start(stop)
-		select {
-		case <-stop:
-			// we are done
-			return nil
-		case err := <-cm.errChan:
-			// Error starting a controller
+	if cm.resourceLock != nil {
+		err := cm.startLeaderElection(stop)
+		if err != nil {
 			return err
 		}
+	} else {
+		go cm.start(stop)
 	}
-
-	l, err := leaderelection.NewLeaderElector(leaderelection.LeaderElectionConfig{
-		Lock: cm.resourceLock,
-		// Values taken from: https://github.com/kubernetes/apiserver/blob/master/pkg/apis/config/v1alpha1/defaults.go
-		// TODO(joelspeed): These timings should be configurable
-		LeaseDuration: 15 * time.Second,
-		RenewDeadline: 10 * time.Second,
-		RetryPeriod:   2 * time.Second,
-		Callbacks: leaderelection.LeaderCallbacks{
-			OnStartedLeading: cm.start,
-			OnStoppedLeading: func() {
-				// Most implementations of leader election log.Fatal() here.
-				// Since Start is wrapped in log.Fatal when called, we can just return
-				// an error here which will cause the program to exit.
-				cm.errChan <- fmt.Errorf("leader election lost")
-			},
-		},
-	})
-	if err != nil {
-		return err
-	}
-
-	go l.Run()
 
 	select {
 	case <-stop:
@@ -204,42 +178,63 @@ func (cm *controllerManager) Start(stop <-chan struct{}) error {
 }
 
 func (cm *controllerManager) start(stop <-chan struct{}) {
-	func() {
-		cm.mu.Lock()
-		defer cm.mu.Unlock()
+	cm.mu.Lock()
+	defer cm.mu.Unlock()
 
-		cm.stop = stop
+	cm.stop = stop
 
-		// Start the Cache. Allow the function to start the cache to be mocked out for testing
-		if cm.startCache == nil {
-			cm.startCache = cm.cache.Start
+	// Start the Cache. Allow the function to start the cache to be mocked out for testing
+	if cm.startCache == nil {
+		cm.startCache = cm.cache.Start
+	}
+	go func() {
+		if err := cm.startCache(stop); err != nil {
+			cm.errChan <- err
 		}
-		go func() {
-			if err := cm.startCache(stop); err != nil {
-				cm.errChan <- err
-			}
-		}()
-
-		// Wait for the caches to sync.
-		// TODO(community): Check the return value and write a test
-		cm.cache.WaitForCacheSync(stop)
-
-		// Start the runnables after the cache has synced
-		for _, c := range cm.runnables {
-			// Controllers block, but we want to return an error if any have an error starting.
-			// Write any Start errors to a channel so we can return them
-			ctrl := c
-			go func() {
-				cm.errChan <- ctrl.Start(stop)
-			}()
-		}
-
-		cm.started = true
 	}()
 
-	select {
-	case <-stop:
-		// We are done
-		return
+	// Wait for the caches to sync.
+	// TODO(community): Check the return value and write a test
+	cm.cache.WaitForCacheSync(stop)
+
+	// Start the runnables after the cache has synced
+	for _, c := range cm.runnables {
+		// Controllers block, but we want to return an error if any have an error starting.
+		// Write any Start errors to a channel so we can return them
+		ctrl := c
+		go func() {
+			cm.errChan <- ctrl.Start(stop)
+		}()
 	}
+
+	cm.started = true
+}
+
+func (cm *controllerManager) startLeaderElection(stop <-chan struct{}) (err error) {
+	l, err := leaderelection.NewLeaderElector(leaderelection.LeaderElectionConfig{
+		Lock: cm.resourceLock,
+		// Values taken from: https://github.com/kubernetes/apiserver/blob/master/pkg/apis/config/v1alpha1/defaults.go
+		// TODO(joelspeed): These timings should be configurable
+		LeaseDuration: 15 * time.Second,
+		RenewDeadline: 10 * time.Second,
+		RetryPeriod:   2 * time.Second,
+		Callbacks: leaderelection.LeaderCallbacks{
+			OnStartedLeading: func(_ <-chan struct{}) {
+				cm.start(stop)
+			},
+			OnStoppedLeading: func() {
+				// Most implementations of leader election log.Fatal() here.
+				// Since Start is wrapped in log.Fatal when called, we can just return
+				// an error here which will cause the program to exit.
+				cm.errChan <- fmt.Errorf("leader election lost")
+			},
+		},
+	})
+	if err != nil {
+		return err
+	}
+
+	// Start the leader elector process
+	go l.Run()
+	return nil
 }

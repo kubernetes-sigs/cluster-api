@@ -28,6 +28,8 @@ import (
 )
 
 const (
+	// CAKeyName is the name of the CA private key
+	CAKeyName = "ca-key.pem"
 	// CACertName is the name of the CA certificate
 	CACertName = "ca-cert.pem"
 	// ServerKeyName is the name of the server private key
@@ -39,7 +41,7 @@ const (
 // CertWriter provides method to handle webhooks.
 type CertWriter interface {
 	// EnsureCert provisions the cert for the webhookClientConfig.
-	EnsureCert(dnsName string, dryrun bool) (*generator.Artifacts, bool, error)
+	EnsureCert(dnsName string) (*generator.Artifacts, bool, error)
 	// Inject injects the necessary information given the objects.
 	// It supports MutatingWebhookConfiguration and ValidatingWebhookConfiguration.
 	Inject(objs ...runtime.Object) error

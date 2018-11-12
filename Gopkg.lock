@@ -754,7 +754,7 @@
   revision = "e3762e86a74c878ffed47484592986685639c2cd"
 
 [[projects]]
-  digest = "1:4c3be496e0e0977b54e265fea184b57e9928fed12a1a14687c04b5d42e044abc"
+  digest = "1:ca3f51201a90f3a23bf35938ee910d2fb3095ece453cf56c8b723e935c194ebd"
   name = "sigs.k8s.io/controller-runtime"
   packages = [
     "pkg/cache",
@@ -786,8 +786,8 @@
     "pkg/webhook/types",
   ]
   pruneopts = "T"
-  revision = "53fc44b56078cd095b11bd44cfa0288ee4cf718f"
-  version = "v0.1.4"
+  revision = "5fd1e9e9fac5261e9ad9d47c375afc014fc31d21"
+  version = "v0.1.7"
 
 [[projects]]
   digest = "1:92290e452e328ffe6bd62f969e51d3aadd57a30a68b5fcf31ccdeda62068bb5d"

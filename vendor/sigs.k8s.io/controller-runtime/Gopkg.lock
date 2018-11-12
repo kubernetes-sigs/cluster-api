@@ -1129,7 +1129,7 @@
   revision = "c106140daf37a5d2b7a513726091a5eb8107e8b9"
 
 [[projects]]
-  digest = "1:b08a45828b09ce543aea649464635291107f53fd21465c0ab00a867b4418fa15"
+  digest = "1:5919b80013fe2204af836990cf255fc100d7d7cb077ec524c7518ff272e9a633"
   name = "k8s.io/client-go"
   packages = [
     "discovery",
@@ -1343,12 +1343,14 @@
     "k8s.io/apimachinery/pkg/runtime/serializer",
     "k8s.io/apimachinery/pkg/selection",
     "k8s.io/apimachinery/pkg/types",
+    "k8s.io/apimachinery/pkg/util/intstr",
     "k8s.io/apimachinery/pkg/util/runtime",
     "k8s.io/apimachinery/pkg/util/sets",
     "k8s.io/apimachinery/pkg/util/uuid",
     "k8s.io/apimachinery/pkg/util/wait",
     "k8s.io/apimachinery/pkg/watch",
     "k8s.io/client-go/discovery",
+    "k8s.io/client-go/dynamic",
     "k8s.io/client-go/kubernetes",
     "k8s.io/client-go/kubernetes/scheme",
     "k8s.io/client-go/kubernetes/typed/core/v1",

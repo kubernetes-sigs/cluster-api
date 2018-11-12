@@ -17,8 +17,12 @@ limitations under the License.
 package envtest
 
 import (
+	"fmt"
+	"net"
 	"os"
 	"path/filepath"
+	"strings"
+	"time"
 
 	apiextensionsv1beta1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1beta1"
 	"k8s.io/client-go/rest"
@@ -32,9 +36,14 @@ const (
 	envEtcdBin             = "TEST_ASSET_ETCD"
 	envKubectlBin          = "TEST_ASSET_KUBECTL"
 	envKubebuilderPath     = "KUBEBUILDER_ASSETS"
+	envStartTimeout        = "KUBEBUILDER_CONTROLPLANE_START_TIMEOUT"
+	envStopTimeout         = "KUBEBUILDER_CONTROLPLANE_STOP_TIMEOUT"
 	defaultKubebuilderPath = "/usr/local/kubebuilder/bin"
 	StartTimeout           = 60
 	StopTimeout            = 60
+
+	defaultKubebuilderControlPlaneStartTimeout = 20 * time.Second
+	defaultKubebuilderControlPlaneStopTimeout  = 20 * time.Second
 )
 
 func defaultAssetPath(binary string) string {
@@ -76,6 +85,16 @@ type Environment struct {
 	// existing kubeconfig, instead of trying to stand up a new control plane.
 	// This is useful in cases that need aggregated API servers and the like.
 	UseExistingCluster bool
+
+	// ControlPlaneStartTimeout is the the maximum duration each controlplane component
+	// may take to start. It defaults to the KUBEBUILDER_CONTROLPLANE_START_TIMEOUT
+	// environment variable or 20 seconds if unspecified
+	ControlPlaneStartTimeout time.Duration
+
+	// ControlPlaneStopTimeout is the the maximum duration each controlplane component
+	// may take to stop. It defaults to the KUBEBUILDER_CONTROLPLANE_STOP_TIMEOUT
+	// environment variable or 20 seconds if unspecified
+	ControlPlaneStopTimeout time.Duration
 }
 
 // Stop stops a running server
@@ -102,11 +121,13 @@ func (te *Environment) Start() (*rest.Config, error) {
 	} else {
 		te.ControlPlane = integration.ControlPlane{}
 		te.ControlPlane.APIServer = &integration.APIServer{Args: defaultKubeAPIServerFlags}
+		te.ControlPlane.Etcd = &integration.Etcd{}
+
 		if os.Getenv(envKubeAPIServerBin) == "" {
 			te.ControlPlane.APIServer.Path = defaultAssetPath("kube-apiserver")
 		}
 		if os.Getenv(envEtcdBin) == "" {
-			te.ControlPlane.Etcd = &integration.Etcd{Path: defaultAssetPath("etcd")}
+			te.ControlPlane.Etcd.Path = defaultAssetPath("etcd")
 		}
 		if os.Getenv(envKubectlBin) == "" {
 			// we can't just set the path manually (it's behind a function), so set the environment variable instead
@@ -115,8 +136,15 @@ func (te *Environment) Start() (*rest.Config, error) {
 			}
 		}
 
-		// Start the control plane - retry if it fails
-		if err := te.ControlPlane.Start(); err != nil {
+		if err := te.defaultTimeouts(); err != nil {
+			return nil, fmt.Errorf("failed to default controlplane timeouts: %v", err)
+		}
+		te.ControlPlane.Etcd.StartTimeout = te.ControlPlaneStartTimeout
+		te.ControlPlane.Etcd.StopTimeout = te.ControlPlaneStopTimeout
+		te.ControlPlane.APIServer.StartTimeout = te.ControlPlaneStartTimeout
+		te.ControlPlane.APIServer.StopTimeout = te.ControlPlaneStopTimeout
+
+		if err := te.startControlPlane(); err != nil {
 			return nil, err
 		}
 
@@ -131,4 +159,56 @@ func (te *Environment) Start() (*rest.Config, error) {
 		CRDs:  te.CRDs,
 	})
 	return te.Config, err
+}
+
+func (te *Environment) startControlPlane() error {
+	numTries, maxRetries := 0, 5
+	for ; numTries < maxRetries; numTries++ {
+		// Start the control plane - retry if it fails
+		err := te.ControlPlane.Start()
+		if err == nil {
+			break
+		}
+		// code snippet copied from following answer on stackoverflow
+		// https://stackoverflow.com/questions/51151973/catching-bind-address-already-in-use-in-golang
+		if opErr, ok := err.(*net.OpError); ok {
+			if opErr.Op == "listen" && strings.Contains(opErr.Error(), "address already in use") {
+				if stopErr := te.ControlPlane.Stop(); stopErr != nil {
+					return fmt.Errorf("failed to stop controlplane in response to bind error 'address already in use'")
+				}
+			}
+		} else {
+			return err
+		}
+	}
+	if numTries == maxRetries {
+		return fmt.Errorf("failed to start the controlplane. retried %d times", numTries)
+	}
+	return nil
+}
+
+func (te *Environment) defaultTimeouts() error {
+	var err error
+	if te.ControlPlaneStartTimeout == 0 {
+		if envVal := os.Getenv(envStartTimeout); envVal != "" {
+			te.ControlPlaneStartTimeout, err = time.ParseDuration(envVal)
+			if err != nil {
+				return err
+			}
+		} else {
+			te.ControlPlaneStartTimeout = defaultKubebuilderControlPlaneStartTimeout
+		}
+	}
+
+	if te.ControlPlaneStopTimeout == 0 {
+		if envVal := os.Getenv(envStopTimeout); envVal != "" {
+			te.ControlPlaneStopTimeout, err = time.ParseDuration(envVal)
+			if err != nil {
+				return err
+			}
+		} else {
+			te.ControlPlaneStopTimeout = defaultKubebuilderControlPlaneStopTimeout
+		}
+	}
+	return nil
 }

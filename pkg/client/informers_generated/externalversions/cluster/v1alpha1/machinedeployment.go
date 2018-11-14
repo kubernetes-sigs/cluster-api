@@ -28,7 +28,7 @@ import (
 	clusterv1alpha1 "sigs.k8s.io/cluster-api/pkg/apis/cluster/v1alpha1"
 	clientset "sigs.k8s.io/cluster-api/pkg/client/clientset_generated/clientset"
 	internalinterfaces "sigs.k8s.io/cluster-api/pkg/client/informers_generated/externalversions/internalinterfaces"
-	v1alpha1 "sigs.k8s.io/cluster-api/pkg/pkg/client/listers_generated/cluster/v1alpha1"
+	v1alpha1 "sigs.k8s.io/cluster-api/pkg/client/listers_generated/cluster/v1alpha1"
 )
 
 // MachineDeploymentInformer provides access to a shared informer and lister for

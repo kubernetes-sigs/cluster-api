@@ -27,7 +27,7 @@ import (
 	runtime "k8s.io/apimachinery/pkg/runtime"
 	schema "k8s.io/apimachinery/pkg/runtime/schema"
 	cache "k8s.io/client-go/tools/cache"
-	clientset "k8s.io/kubernetes/pkg/client/clientset_generated/clientset"
+	clientset "sigs.k8s.io/cluster-api/pkg/client/clientset_generated/clientset"
 	cluster "sigs.k8s.io/cluster-api/pkg/client/informers_generated/externalversions/cluster"
 	internalinterfaces "sigs.k8s.io/cluster-api/pkg/client/informers_generated/externalversions/internalinterfaces"
 )

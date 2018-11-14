@@ -24,7 +24,7 @@ import (
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	runtime "k8s.io/apimachinery/pkg/runtime"
 	cache "k8s.io/client-go/tools/cache"
-	clientset "k8s.io/kubernetes/pkg/client/clientset_generated/clientset"
+	clientset "sigs.k8s.io/cluster-api/pkg/client/clientset_generated/clientset"
 )
 
 type NewInformerFunc func(clientset.Interface, time.Duration) cache.SharedIndexInformer

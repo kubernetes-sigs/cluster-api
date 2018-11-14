@@ -95,9 +95,11 @@ type ReconcileMachine struct {
 // and what is in the Machine.Spec
 // +kubebuilder:rbac:groups=cluster.k8s.io,resources=machines,verbs=get;list;watch;create;update;patch;delete
 func (r *ReconcileMachine) Reconcile(request reconcile.Request) (reconcile.Result, error) {
+	// TODO(mvladev): Can context be passed from Kubebuilder?
+	ctx := context.TODO()
 	// Fetch the Machine instance
 	m := &clusterv1.Machine{}
-	err := r.Get(context.Background(), request.NamespacedName, m)
+	err := r.Get(ctx, request.NamespacedName, m)
 	if err != nil {
 		if apierrors.IsNotFound(err) {
 			// Object not found, return.  Created objects are automatically garbage collected.
@@ -117,7 +119,7 @@ func (r *ReconcileMachine) Reconcile(request reconcile.Request) (reconcile.Resul
 	if m.ObjectMeta.DeletionTimestamp.IsZero() &&
 		!util.Contains(m.ObjectMeta.Finalizers, clusterv1.MachineFinalizer) {
 		m.Finalizers = append(m.Finalizers, clusterv1.MachineFinalizer)
-		if err = r.Update(context.Background(), m); err != nil {
+		if err = r.Update(ctx, m); err != nil {
 			glog.Infof("failed to add finalizer to machine object %v due to error %v.", name, err)
 			return reconcile.Result{}, err
 		}
@@ -134,7 +136,7 @@ func (r *ReconcileMachine) Reconcile(request reconcile.Request) (reconcile.Resul
 			return reconcile.Result{}, nil
 		}
 		glog.Infof("reconciling machine object %v triggers delete.", name)
-		if err := r.delete(m); err != nil {
+		if err := r.delete(ctx, m); err != nil {
 			glog.Errorf("Error deleting machine object %v; %v", name, err)
 			return reconcile.Result{}, err
 		}
@@ -149,19 +151,19 @@ func (r *ReconcileMachine) Reconcile(request reconcile.Request) (reconcile.Resul
 		return reconcile.Result{}, nil
 	}
 
-	cluster, err := r.getCluster(m)
+	cluster, err := r.getCluster(ctx, m)
 	if err != nil {
 		return reconcile.Result{}, err
 	}
 
-	exist, err := r.actuator.Exists(cluster, m)
+	exist, err := r.actuator.Exists(ctx, cluster, m)
 	if err != nil {
 		glog.Errorf("Error checking existence of machine instance for machine object %v; %v", name, err)
 		return reconcile.Result{}, err
 	}
 	if exist {
 		glog.Infof("Reconciling machine object %v triggers idempotent update.", name)
-		err := r.update(m)
+		err := r.update(ctx, m)
 		if err != nil {
 			if requeueErr, ok := err.(*controllerError.RequeueAfterError); ok {
 				glog.Infof("Actuator returned requeue-after error: %v", requeueErr)
@@ -173,7 +175,7 @@ func (r *ReconcileMachine) Reconcile(request reconcile.Request) (reconcile.Resul
 	}
 	// Machine resource created. Machine does not yet exist.
 	glog.Infof("Reconciling machine object %v triggers idempotent create.", m.ObjectMeta.Name)
-	if err := r.create(m); err != nil {
+	if err := r.create(ctx, m); err != nil {
 		glog.Warningf("unable to create machine %v: %v", name, err)
 		if requeueErr, ok := err.(*controllerError.RequeueAfterError); ok {
 			glog.Infof("Actuator returned requeue-after error: %v", requeueErr)
@@ -184,38 +186,38 @@ func (r *ReconcileMachine) Reconcile(request reconcile.Request) (reconcile.Resul
 	return reconcile.Result{}, nil
 }
 
-func (c *ReconcileMachine) create(machine *clusterv1.Machine) error {
-	cluster, err := c.getCluster(machine)
+func (c *ReconcileMachine) create(ctx context.Context, machine *clusterv1.Machine) error {
+	cluster, err := c.getCluster(ctx, machine)
 	if err != nil {
 		return err
 	}
 
-	return c.actuator.Create(cluster, machine)
+	return c.actuator.Create(ctx, cluster, machine)
 }
 
-func (c *ReconcileMachine) update(new_machine *clusterv1.Machine) error {
-	cluster, err := c.getCluster(new_machine)
+func (c *ReconcileMachine) update(ctx context.Context, new_machine *clusterv1.Machine) error {
+	cluster, err := c.getCluster(ctx, new_machine)
 	if err != nil {
 		return err
 	}
 
 	// TODO: Assume single master for now.
 	// TODO: Assume we never change the role for the machines. (Master->Node, Node->Master, etc)
-	return c.actuator.Update(cluster, new_machine)
+	return c.actuator.Update(ctx, cluster, new_machine)
 }
 
-func (c *ReconcileMachine) delete(machine *clusterv1.Machine) error {
-	cluster, err := c.getCluster(machine)
+func (c *ReconcileMachine) delete(ctx context.Context, machine *clusterv1.Machine) error {
+	cluster, err := c.getCluster(ctx, machine)
 	if err != nil {
 		return err
 	}
 
-	return c.actuator.Delete(cluster, machine)
+	return c.actuator.Delete(ctx, cluster, machine)
 }
 
-func (c *ReconcileMachine) getCluster(machine *clusterv1.Machine) (*clusterv1.Cluster, error) {
+func (c *ReconcileMachine) getCluster(ctx context.Context, machine *clusterv1.Machine) (*clusterv1.Cluster, error) {
 	clusterList := clusterv1.ClusterList{}
-	err := c.Client.List(context.Background(), client.InNamespace(machine.Namespace), &clusterList)
+	err := c.Client.List(ctx, client.InNamespace(machine.Namespace), &clusterList)
 	if err != nil {
 		return nil, err
 	}

@@ -34,6 +34,7 @@ import (
 // MachineSet ensures that a specified number of machines replicas are running at any given time.
 // +k8s:openapi-gen=true
 // +kubebuilder:subresource:status
+// +kubebuilder:subresource:scale:specpath=.spec.replicas,statuspath=.status.replicas,selectorpath=.status.labelSelector
 type MachineSet struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`

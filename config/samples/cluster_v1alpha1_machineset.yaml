@@ -5,5 +5,12 @@ metadata:
     controller-tools.k8s.io: "1.0"
   name: machineset-sample
 spec:
-  # Add fields here
-  foo: bar
+  replicas: 3
+  selector:
+    matchLabels:
+      # Add fields here
+      foo: bar
+  template:
+    metadata:
+      labels:
+        foo: bar

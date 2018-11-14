@@ -65,7 +65,7 @@ generate: clientset
 # Generate a typed clientset
 clientset:
 	rm -rf pkg/client
-	cd ./vendor/k8s.io/code-generator && go install ./cmd/{client-gen,lister-gen,informer-gen}
+	cd ./vendor/k8s.io/code-generator/cmd && go install ./client-gen ./lister-gen ./informer-gen
 	$$GOPATH/bin/client-gen --clientset-name clientset --input-base sigs.k8s.io/cluster-api/pkg/apis \
 		--input cluster/v1alpha1 --output-package sigs.k8s.io/cluster-api/pkg/client/clientset_generated \
 		--go-header-file=./hack/boilerplate.go.txt

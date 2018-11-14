@@ -65,9 +65,9 @@ generate: clientset
 # Generate a typed clientset
 clientset:
 	rm -rf pkg/client
-	cd ./vendor/k8s.io/code-generator && go install ./cmd/{defaulter-gen,client-gen,lister-gen,informer-gen,deepcopy-gen}
+	cd ./vendor/k8s.io/code-generator && go install ./cmd/{client-gen,lister-gen,informer-gen}
 	$$GOPATH/bin/client-gen --clientset-name clientset --input-base sigs.k8s.io/cluster-api/pkg/apis --input cluster/v1alpha1 --output-package sigs.k8s.io/cluster-api/pkg/client/clientset_generated
-	$$GOPATH/bin/lister-gen --clientset-name clientset --input-base sigs.k8s.io/cluster-api/pkg/apis --input cluster/v1alpha1 --output-package sigs.k8s.io/cluster-api/pkg/client/clientset_generated
+	$$GOPATH/bin/lister-gen --input-dirs sigs.k8s.io/cluster-api/pkg/apis/cluster/v1alpha1 --output-package sigs.k8s.io/cluster-api/pkg/client/listers_generated
 
 # Build the docker image
 docker-build: generate fmt vet manifests

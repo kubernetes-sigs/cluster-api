@@ -84,6 +84,7 @@ docker-build: generate fmt vet manifests
 
 verify:
 	./hack/verify_boilerplate.py
+	./hack/verify_clientset.sh
 
 # Push the docker image
 docker-push:

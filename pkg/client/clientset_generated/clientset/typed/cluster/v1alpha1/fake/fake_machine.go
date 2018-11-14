@@ -1,5 +1,5 @@
 /*
-Copyright 2018 The Kubernetes Authors.
+Copyright The Kubernetes Authors.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -62,7 +62,7 @@ func (c *FakeMachines) List(opts v1.ListOptions) (result *v1alpha1.MachineList, 
 	if label == nil {
 		label = labels.Everything()
 	}
-	list := &v1alpha1.MachineList{}
+	list := &v1alpha1.MachineList{ListMeta: obj.(*v1alpha1.MachineList).ListMeta}
 	for _, item := range obj.(*v1alpha1.MachineList).Items {
 		if label.Matches(labels.Set(item.Labels)) {
 			list.Items = append(list.Items, item)

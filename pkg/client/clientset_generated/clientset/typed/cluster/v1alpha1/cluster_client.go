@@ -1,5 +1,5 @@
 /*
-Copyright 2018 The Kubernetes Authors.
+Copyright The Kubernetes Authors.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -29,6 +29,7 @@ type ClusterV1alpha1Interface interface {
 	RESTClient() rest.Interface
 	ClustersGetter
 	MachinesGetter
+	MachineClassesGetter
 	MachineDeploymentsGetter
 	MachineSetsGetter
 }
@@ -44,6 +45,10 @@ func (c *ClusterV1alpha1Client) Clusters(namespace string) ClusterInterface {
 
 func (c *ClusterV1alpha1Client) Machines(namespace string) MachineInterface {
 	return newMachines(c, namespace)
+}
+
+func (c *ClusterV1alpha1Client) MachineClasses(namespace string) MachineClassInterface {
+	return newMachineClasses(c, namespace)
 }
 
 func (c *ClusterV1alpha1Client) MachineDeployments(namespace string) MachineDeploymentInterface {

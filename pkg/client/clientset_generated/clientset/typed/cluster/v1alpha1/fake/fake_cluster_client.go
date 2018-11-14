@@ -1,5 +1,5 @@
 /*
-Copyright 2018 The Kubernetes Authors.
+Copyright The Kubernetes Authors.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -34,6 +34,10 @@ func (c *FakeClusterV1alpha1) Clusters(namespace string) v1alpha1.ClusterInterfa
 
 func (c *FakeClusterV1alpha1) Machines(namespace string) v1alpha1.MachineInterface {
 	return &FakeMachines{c, namespace}
+}
+
+func (c *FakeClusterV1alpha1) MachineClasses(namespace string) v1alpha1.MachineClassInterface {
+	return &FakeMachineClasses{c, namespace}
 }
 
 func (c *FakeClusterV1alpha1) MachineDeployments(namespace string) v1alpha1.MachineDeploymentInterface {

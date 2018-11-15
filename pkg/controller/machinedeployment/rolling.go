@@ -20,10 +20,9 @@ import (
 	"fmt"
 	"sort"
 
-	"github.com/golang/glog"
-
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/util/integer"
+	"k8s.io/klog"
 
 	"sigs.k8s.io/cluster-api/pkg/apis/cluster/v1alpha1"
 	dutil "sigs.k8s.io/cluster-api/pkg/controller/machinedeployment/util"
@@ -102,7 +101,7 @@ func (r *ReconcileMachineDeployment) reconcileOldMachineSets(allMSs []*v1alpha1.
 	}
 
 	allMachinesCount := dutil.GetReplicaCountForMachineSets(allMSs)
-	glog.V(4).Infof("New machine set %s/%s has %d available machines.", newMS.Namespace, newMS.Name, newMS.Status.AvailableReplicas)
+	klog.V(4).Infof("New machine set %s/%s has %d available machines.", newMS.Namespace, newMS.Name, newMS.Status.AvailableReplicas)
 	maxUnavailable := dutil.MaxUnavailable(*deployment)
 
 	// Check if we can scale down. We can scale down in the following 2 cases:
@@ -148,7 +147,7 @@ func (r *ReconcileMachineDeployment) reconcileOldMachineSets(allMSs []*v1alpha1.
 	if err != nil {
 		return nil
 	}
-	glog.V(4).Infof("Cleaned up unhealthy replicas from old MSes by %d", cleanupCount)
+	klog.V(4).Infof("Cleaned up unhealthy replicas from old MSes by %d", cleanupCount)
 
 	// Scale down old machine sets, need check maxUnavailable to ensure we can scale down
 	allMSs = append(oldMSs, newMS)
@@ -156,7 +155,7 @@ func (r *ReconcileMachineDeployment) reconcileOldMachineSets(allMSs []*v1alpha1.
 	if err != nil {
 		return err
 	}
-	glog.V(4).Infof("Scaled down old MSes of deployment %s by %d", deployment.Name, scaledDownCount)
+	klog.V(4).Infof("Scaled down old MSes of deployment %s by %d", deployment.Name, scaledDownCount)
 
 	return nil
 }
@@ -182,7 +181,7 @@ func (r *ReconcileMachineDeployment) cleanupUnhealthyReplicas(oldMSs []*v1alpha1
 			continue
 		}
 		oldMSAvailableReplicas := targetMS.Status.AvailableReplicas
-		glog.V(4).Infof("Found %d available machines in old MS %s/%s", oldMSAvailableReplicas, targetMS.Namespace, targetMS.Name)
+		klog.V(4).Infof("Found %d available machines in old MS %s/%s", oldMSAvailableReplicas, targetMS.Namespace, targetMS.Name)
 		if oldMSReplicas == oldMSAvailableReplicas {
 			// no unhealthy replicas found, no scaling required.
 			continue
@@ -222,7 +221,7 @@ func (r *ReconcileMachineDeployment) scaleDownOldMachineSetsForRollingUpdate(all
 		// Cannot scale down.
 		return 0, nil
 	}
-	glog.V(4).Infof("Found %d available machines in deployment %s, scaling down old MSes", availableMachineCount, deployment.Name)
+	klog.V(4).Infof("Found %d available machines in deployment %s, scaling down old MSes", availableMachineCount, deployment.Name)
 
 	sort.Sort(dutil.MachineSetsByCreationTimestamp(oldMSs))
 

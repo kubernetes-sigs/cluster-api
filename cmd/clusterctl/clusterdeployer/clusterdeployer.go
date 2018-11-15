@@ -23,8 +23,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/golang/glog"
 	"k8s.io/client-go/kubernetes"
+	"k8s.io/klog"
 	"sigs.k8s.io/cluster-api/cmd/clusterctl/clusterdeployer/bootstrap"
 	"sigs.k8s.io/cluster-api/cmd/clusterctl/clusterdeployer/clusterclient"
 	"sigs.k8s.io/cluster-api/cmd/clusterctl/phases"
@@ -92,12 +92,12 @@ func (d *ClusterDeployer) Create(cluster *clusterv1.Cluster, machines []*cluster
 	}
 	defer closeClient(bootstrapClient, "bootstrap")
 
-	glog.Info("Applying Cluster API stack to bootstrap cluster")
+	klog.Info("Applying Cluster API stack to bootstrap cluster")
 	if err := phases.ApplyClusterAPIComponents(bootstrapClient, d.providerComponents); err != nil {
 		return fmt.Errorf("unable to apply cluster api stack to bootstrap cluster: %v", err)
 	}
 
-	glog.Info("Provisioning target cluster via bootstrap cluster")
+	klog.Info("Provisioning target cluster via bootstrap cluster")
 	if err := phases.ApplyCluster(bootstrapClient, cluster); err != nil {
 		return fmt.Errorf("unable to create cluster %q in bootstrap cluster: %v", cluster.Name, err)
 	}
@@ -106,17 +106,17 @@ func (d *ClusterDeployer) Create(cluster *clusterv1.Cluster, machines []*cluster
 		cluster.Namespace = bootstrapClient.GetContextNamespace()
 	}
 
-	glog.Infof("Creating master %v in namespace %q", master.Name, cluster.Namespace)
+	klog.Infof("Creating master %v in namespace %q", master.Name, cluster.Namespace)
 	if err := phases.ApplyMachines(bootstrapClient, cluster.Namespace, []*clusterv1.Machine{master}); err != nil {
 		return fmt.Errorf("unable to create master machine: %v", err)
 	}
 
-	glog.Infof("Updating bootstrap cluster object for cluster %v in namespace %q with master (%s) endpoint", cluster.Name, cluster.Namespace, master.Name)
+	klog.Infof("Updating bootstrap cluster object for cluster %v in namespace %q with master (%s) endpoint", cluster.Name, cluster.Namespace, master.Name)
 	if err := d.updateClusterEndpoint(bootstrapClient, provider, cluster.Name, cluster.Namespace); err != nil {
 		return fmt.Errorf("unable to update bootstrap cluster endpoint: %v", err)
 	}
 
-	glog.Info("Creating target cluster")
+	klog.Info("Creating target cluster")
 	targetClient, err := d.createTargetClusterClient(bootstrapClient, provider, kubeconfigOutput, cluster.Name, cluster.Namespace)
 	if err != nil {
 		return fmt.Errorf("unable to create target cluster: %v", err)
@@ -129,12 +129,12 @@ func (d *ClusterDeployer) Create(cluster *clusterv1.Cluster, machines []*cluster
 		}
 	}
 
-	glog.Info("Applying Cluster API stack to target cluster")
+	klog.Info("Applying Cluster API stack to target cluster")
 	if err := d.applyClusterAPIComponentsWithPivoting(targetClient, bootstrapClient, cluster.Namespace); err != nil {
 		return fmt.Errorf("unable to apply cluster api stack to target cluster: %v", err)
 	}
 
-	glog.Info("Saving provider components to the target cluster")
+	klog.Info("Saving provider components to the target cluster")
 	err = d.saveProviderComponentsToCluster(providerComponentsStoreFactory, kubeconfigOutput)
 	if err != nil {
 		return fmt.Errorf("unable to save provider components to target cluster: %v", err)
@@ -147,23 +147,23 @@ func (d *ClusterDeployer) Create(cluster *clusterv1.Cluster, machines []*cluster
 
 	// For some reason, endpoint doesn't get updated in bootstrap cluster sometimes. So we
 	// update the target cluster endpoint as well to be sure.
-	glog.Infof("Updating target cluster object with master (%s) endpoint", master.Name)
+	klog.Infof("Updating target cluster object with master (%s) endpoint", master.Name)
 	if err := d.updateClusterEndpoint(targetClient, provider, cluster.Name, cluster.Namespace); err != nil {
 		return fmt.Errorf("unable to update target cluster endpoint: %v", err)
 	}
 
-	glog.Info("Creating node machines in target cluster.")
+	klog.Info("Creating node machines in target cluster.")
 	if err := phases.ApplyMachines(targetClient, cluster.Namespace, nodes); err != nil {
 		return fmt.Errorf("unable to create node machines: %v", err)
 	}
 
-	glog.Infof("Done provisioning cluster. You can now access your cluster with kubectl --kubeconfig %v", kubeconfigOutput)
+	klog.Infof("Done provisioning cluster. You can now access your cluster with kubectl --kubeconfig %v", kubeconfigOutput)
 
 	return nil
 }
 
 func (d *ClusterDeployer) Delete(targetClient clusterclient.Client, namespace string) error {
-	glog.Info("Creating bootstrap cluster")
+	klog.Info("Creating bootstrap cluster")
 	bootstrapClient, cleanupBootstrapCluster, err := phases.CreateBootstrapCluster(d.bootstrapProvisioner, d.cleanupBootstrapCluster, d.clientFactory)
 	defer cleanupBootstrapCluster()
 	if err != nil {
@@ -171,28 +171,28 @@ func (d *ClusterDeployer) Delete(targetClient clusterclient.Client, namespace st
 	}
 	defer closeClient(bootstrapClient, "bootstrap")
 
-	glog.Info("Applying Cluster API stack to bootstrap cluster")
+	klog.Info("Applying Cluster API stack to bootstrap cluster")
 	if err := phases.ApplyClusterAPIComponents(bootstrapClient, d.providerComponents); err != nil {
 		return fmt.Errorf("unable to apply cluster api stack to bootstrap cluster: %v", err)
 	}
 
-	glog.Info("Deleting Cluster API Provider Components from target cluster")
+	klog.Info("Deleting Cluster API Provider Components from target cluster")
 	if err = targetClient.Delete(d.providerComponents); err != nil {
-		glog.Infof("error while removing provider components from target cluster: %v", err)
-		glog.Infof("Continuing with a best effort delete")
+		klog.Infof("error while removing provider components from target cluster: %v", err)
+		klog.Infof("Continuing with a best effort delete")
 	}
 
-	glog.Info("Copying objects from target cluster to bootstrap cluster")
+	klog.Info("Copying objects from target cluster to bootstrap cluster")
 	if err = pivotNamespace(targetClient, bootstrapClient, namespace); err != nil {
 		return fmt.Errorf("unable to copy objects from target to bootstrap cluster: %v", err)
 	}
 
-	glog.Info("Deleting objects from bootstrap cluster")
+	klog.Info("Deleting objects from bootstrap cluster")
 	if err = deleteObjectsInNamespace(bootstrapClient, namespace); err != nil {
 		return fmt.Errorf("unable to finish deleting objects in bootstrap cluster, resources may have been leaked: %v", err)
 	}
 
-	glog.Info("Deletion of cluster complete")
+	klog.Info("Deletion of cluster complete")
 
 	return nil
 }
@@ -203,7 +203,7 @@ func (d *ClusterDeployer) createTargetClusterClient(bootstrapClient clusterclien
 		return nil, err
 	}
 
-	glog.V(1).Info("Getting target cluster kubeconfig.")
+	klog.V(1).Info("Getting target cluster kubeconfig.")
 	targetKubeconfig, err := waitForKubeconfigReady(provider, cluster, master)
 	if err != nil {
 		return nil, fmt.Errorf("unable to get target cluster kubeconfig: %v", err)
@@ -257,12 +257,12 @@ func (d *ClusterDeployer) saveProviderComponentsToCluster(factory ProviderCompon
 }
 
 func (d *ClusterDeployer) applyClusterAPIComponentsWithPivoting(client, source clusterclient.Client, namespace string) error {
-	glog.Info("Applying Cluster API Provider Components")
+	klog.Info("Applying Cluster API Provider Components")
 	if err := client.Apply(d.providerComponents); err != nil {
 		return fmt.Errorf("unable to apply cluster api controllers: %v", err)
 	}
 
-	glog.Info("Pivoting Cluster API objects from bootstrap to target cluster.")
+	klog.Info("Pivoting Cluster API objects from bootstrap to target cluster.")
 	err := pivotNamespace(source, client, namespace)
 	if err != nil {
 		return fmt.Errorf("unable to pivot cluster API objects: %v", err)
@@ -280,10 +280,10 @@ func (d *ClusterDeployer) writeKubeconfig(kubeconfig string, kubeconfigOutput st
 func waitForKubeconfigReady(provider ProviderDeployer, cluster *clusterv1.Cluster, machine *clusterv1.Machine) (string, error) {
 	kubeconfig := ""
 	err := util.PollImmediate(retryKubeConfigReady, timeoutKubeconfigReady, func() (bool, error) {
-		glog.V(2).Infof("Waiting for kubeconfig on %v to become ready...", machine.Name)
+		klog.V(2).Infof("Waiting for kubeconfig on %v to become ready...", machine.Name)
 		k, err := provider.GetKubeConfig(cluster, machine)
 		if err != nil {
-			glog.V(4).Infof("error getting kubeconfig: %v", err)
+			klog.V(4).Infof("error getting kubeconfig: %v", err)
 			return false, nil
 		}
 		if k == "" {
@@ -316,7 +316,7 @@ func pivotNamespace(from, to clusterclient.Client, namespace string) error {
 		if err = to.CreateClusterObject(cluster); err != nil {
 			return fmt.Errorf("error moving Cluster '%v': %v", cluster.GetName(), err)
 		}
-		glog.Infof("Moved Cluster '%s'", cluster.GetName())
+		klog.Infof("Moved Cluster '%s'", cluster.GetName())
 	}
 
 	fromDeployments, err := from.GetMachineDeploymentObjectsInNamespace(namespace)
@@ -329,7 +329,7 @@ func pivotNamespace(from, to clusterclient.Client, namespace string) error {
 		if err = to.CreateMachineDeploymentObjects([]*clusterv1.MachineDeployment{deployment}, namespace); err != nil {
 			return fmt.Errorf("error moving MachineDeployment '%v': %v", deployment.GetName(), err)
 		}
-		glog.Infof("Moved MachineDeployment %v", deployment.GetName())
+		klog.Infof("Moved MachineDeployment %v", deployment.GetName())
 	}
 
 	fromMachineSets, err := from.GetMachineSetObjectsInNamespace(namespace)
@@ -342,7 +342,7 @@ func pivotNamespace(from, to clusterclient.Client, namespace string) error {
 		if err := to.CreateMachineSetObjects([]*clusterv1.MachineSet{machineSet}, namespace); err != nil {
 			return fmt.Errorf("error moving MachineSet '%v': %v", machineSet.GetName(), err)
 		}
-		glog.Infof("Moved MachineSet %v", machineSet.GetName())
+		klog.Infof("Moved MachineSet %v", machineSet.GetName())
 	}
 
 	machines, err := from.GetMachineObjectsInNamespace(namespace)
@@ -356,34 +356,34 @@ func pivotNamespace(from, to clusterclient.Client, namespace string) error {
 		if err = to.CreateMachineObjects([]*clusterv1.Machine{machine}, namespace); err != nil {
 			return fmt.Errorf("error moving Machine '%v': %v", machine.GetName(), err)
 		}
-		glog.Infof("Moved Machine '%s'", machine.GetName())
+		klog.Infof("Moved Machine '%s'", machine.GetName())
 	}
 	return nil
 }
 
 func deleteObjectsInNamespace(client clusterclient.Client, namespace string) error {
 	var errors []string
-	glog.Infof("Deleting machine deployments in namespace %q", namespace)
+	klog.Infof("Deleting machine deployments in namespace %q", namespace)
 	if err := client.DeleteMachineDeploymentObjectsInNamespace(namespace); err != nil {
 		err = fmt.Errorf("error deleting machine deployments: %v", err)
 		errors = append(errors, err.Error())
 	}
-	glog.Infof("Deleting machine sets in namespace %q", namespace)
+	klog.Infof("Deleting machine sets in namespace %q", namespace)
 	if err := client.DeleteMachineSetObjectsInNamespace(namespace); err != nil {
 		err = fmt.Errorf("error deleting machine sets: %v", err)
 		errors = append(errors, err.Error())
 	}
-	glog.Infof("Deleting machines in namespace %q", namespace)
+	klog.Infof("Deleting machines in namespace %q", namespace)
 	if err := client.DeleteMachineObjectsInNamespace(namespace); err != nil {
 		err = fmt.Errorf("error deleting machines: %v", err)
 		errors = append(errors, err.Error())
 	}
-	glog.Infof("Deleting clusters in namespace %q", namespace)
+	klog.Infof("Deleting clusters in namespace %q", namespace)
 	if err := client.DeleteClusterObjectsInNamespace(namespace); err != nil {
 		err = fmt.Errorf("error deleting clusters: %v", err)
 		errors = append(errors, err.Error())
 	}
-	glog.Infof("Deleting namespace %q", namespace)
+	klog.Infof("Deleting namespace %q", namespace)
 	if err := client.DeleteNamespace(namespace); err != nil {
 		err = fmt.Errorf("error deleting namespace: %v", err)
 		errors = append(errors, err.Error())
@@ -432,6 +432,6 @@ func extractMasterMachine(machines []*clusterv1.Machine) (*clusterv1.Machine, []
 
 func closeClient(client clusterclient.Client, name string) {
 	if err := client.Close(); err != nil {
-		glog.Errorf("Could not close %v client: %v", name, err)
+		klog.Errorf("Could not close %v client: %v", name, err)
 	}
 }

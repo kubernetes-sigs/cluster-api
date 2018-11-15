@@ -19,12 +19,12 @@ package phases
 import (
 	"fmt"
 
-	"github.com/golang/glog"
+	"k8s.io/klog"
 	"sigs.k8s.io/cluster-api/cmd/clusterctl/clusterdeployer/clusterclient"
 )
 
 func ApplyClusterAPIComponents(client clusterclient.Client, providerComponents string) error {
-	glog.Info("Applying Cluster API Provider Components")
+	klog.Info("Applying Cluster API Provider Components")
 	if err := client.Apply(providerComponents); err != nil {
 		return fmt.Errorf("unable to apply cluster api controllers: %v", err)
 	}

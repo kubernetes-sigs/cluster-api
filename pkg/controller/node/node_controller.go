@@ -19,10 +19,10 @@ package node
 import (
 	"context"
 
-	"github.com/golang/glog"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/klog"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
 	"sigs.k8s.io/controller-runtime/pkg/handler"
@@ -87,7 +87,7 @@ func (r *ReconcileNode) Reconcile(request reconcile.Request) (reconcile.Result, 
 		if errors.IsNotFound(err) {
 			// Object not found, return.  Created objects are automatically garbage collected.
 			// For additional cleanup logic use finalizers.
-			glog.Errorf("Unable to retrieve Node %v from store: %v", request, err)
+			klog.Errorf("Unable to retrieve Node %v from store: %v", request, err)
 			return reconcile.Result{}, nil
 		}
 		// Error reading the object - requeue the request.

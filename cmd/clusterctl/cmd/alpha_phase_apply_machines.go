@@ -20,8 +20,8 @@ import (
 	"fmt"
 	"io/ioutil"
 
-	"github.com/golang/glog"
 	"github.com/spf13/cobra"
+	"k8s.io/klog"
 	"sigs.k8s.io/cluster-api/cmd/clusterctl/clusterdeployer/clusterclient"
 	"sigs.k8s.io/cluster-api/cmd/clusterctl/phases"
 	"sigs.k8s.io/cluster-api/pkg/util"
@@ -49,7 +49,7 @@ var alphaPhaseApplyMachinesCmd = &cobra.Command{
 		}
 
 		if err := RunAlphaPhaseApplyMachines(pamo); err != nil {
-			glog.Exit(err)
+			klog.Exit(err)
 		}
 	},
 }

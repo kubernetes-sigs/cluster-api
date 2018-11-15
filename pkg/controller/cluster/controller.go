@@ -19,9 +19,9 @@ package cluster
 import (
 	"context"
 
-	"github.com/golang/glog"
 	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/klog"
 	clusterv1 "sigs.k8s.io/cluster-api/pkg/apis/cluster/v1alpha1"
 	clusterv1alpha1 "sigs.k8s.io/cluster-api/pkg/apis/cluster/v1alpha1"
 	controllerError "sigs.k8s.io/cluster-api/pkg/controller/error"
@@ -86,7 +86,7 @@ func (r *ReconcileCluster) Reconcile(request reconcile.Request) (reconcile.Resul
 	}
 
 	name := cluster.Name
-	glog.Infof("Running reconcile Cluster for %s\n", name)
+	klog.Infof("Running reconcile Cluster for %s\n", name)
 
 	// If object hasn't been deleted and doesn't have a finalizer, add one
 	// Add a finalizer to newly created objects.
@@ -94,7 +94,7 @@ func (r *ReconcileCluster) Reconcile(request reconcile.Request) (reconcile.Resul
 		!util.Contains(cluster.ObjectMeta.Finalizers, clusterv1.ClusterFinalizer) {
 		cluster.Finalizers = append(cluster.Finalizers, clusterv1.ClusterFinalizer)
 		if err = r.Update(context.Background(), cluster); err != nil {
-			glog.Infof("failed to add finalizer to cluster object %v due to error %v.", name, err)
+			klog.Infof("failed to add finalizer to cluster object %v due to error %v.", name, err)
 			return reconcile.Result{}, err
 		}
 	}
@@ -102,33 +102,33 @@ func (r *ReconcileCluster) Reconcile(request reconcile.Request) (reconcile.Resul
 	if !cluster.ObjectMeta.DeletionTimestamp.IsZero() {
 		// no-op if finalizer has been removed.
 		if !util.Contains(cluster.ObjectMeta.Finalizers, clusterv1.ClusterFinalizer) {
-			glog.Infof("reconciling cluster object %v causes a no-op as there is no finalizer.", name)
+			klog.Infof("reconciling cluster object %v causes a no-op as there is no finalizer.", name)
 			return reconcile.Result{}, nil
 		}
 
-		glog.Infof("reconciling cluster object %v triggers delete.", name)
+		klog.Infof("reconciling cluster object %v triggers delete.", name)
 		if err := r.actuator.Delete(cluster); err != nil {
-			glog.Errorf("Error deleting cluster object %v; %v", name, err)
+			klog.Errorf("Error deleting cluster object %v; %v", name, err)
 			return reconcile.Result{}, err
 		}
 		// Remove finalizer on successful deletion.
-		glog.Infof("cluster object %v deletion successful, removing finalizer.", name)
+		klog.Infof("cluster object %v deletion successful, removing finalizer.", name)
 		cluster.ObjectMeta.Finalizers = util.Filter(cluster.ObjectMeta.Finalizers, clusterv1.ClusterFinalizer)
 		if err := r.Client.Update(context.Background(), cluster); err != nil {
-			glog.Errorf("Error removing finalizer from cluster object %v; %v", name, err)
+			klog.Errorf("Error removing finalizer from cluster object %v; %v", name, err)
 			return reconcile.Result{}, err
 		}
 		return reconcile.Result{}, nil
 	}
 
-	glog.Infof("reconciling cluster object %v triggers idempotent reconcile.", name)
+	klog.Infof("reconciling cluster object %v triggers idempotent reconcile.", name)
 	err = r.actuator.Reconcile(cluster)
 	if err != nil {
 		if requeueErr, ok := err.(*controllerError.RequeueAfterError); ok {
-			glog.Infof("Actuator returned requeue after error: %v", requeueErr)
+			klog.Infof("Actuator returned requeue after error: %v", requeueErr)
 			return reconcile.Result{Requeue: true, RequeueAfter: requeueErr.RequeueAfter}, nil
 		}
-		glog.Errorf("Error reconciling cluster object %v; %v", name, err)
+		klog.Errorf("Error reconciling cluster object %v; %v", name, err)
 		return reconcile.Result{}, err
 	}
 	return reconcile.Result{}, nil

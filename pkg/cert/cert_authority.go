@@ -18,10 +18,11 @@ package cert
 
 import (
 	"fmt"
-	"github.com/golang/glog"
 	"io/ioutil"
 	"os"
 	"path/filepath"
+
+	"k8s.io/klog"
 )
 
 type CertificateAuthority struct {
@@ -37,7 +38,7 @@ type CertificateAuthority struct {
 // read the given file and attempt to load the other associated file. For example, if the path given is /path/to/my-ca.crt,
 // then load will attempt to load the private key file at /path/to/my-ca.key.
 func Load(caPath string) (*CertificateAuthority, error) {
-	glog.Infof("Loading certificate authority from %v", caPath)
+	klog.Infof("Loading certificate authority from %v", caPath)
 	certPath, keyPath, err := certPathToCertAndKeyPaths(caPath)
 	if err != nil {
 		return nil, err

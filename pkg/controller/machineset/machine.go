@@ -19,23 +19,23 @@ package machineset
 import (
 	"context"
 
-	"github.com/golang/glog"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
+	"k8s.io/klog"
 	"sigs.k8s.io/cluster-api/pkg/apis/cluster/v1alpha1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
 func (c *ReconcileMachineSet) getMachineSetsForMachine(m *v1alpha1.Machine) []*v1alpha1.MachineSet {
 	if len(m.Labels) == 0 {
-		glog.Warningf("No machine sets found for Machine %v because it has no labels", m.Name)
+		klog.Warningf("No machine sets found for Machine %v because it has no labels", m.Name)
 		return nil
 	}
 
 	msList := &v1alpha1.MachineSetList{}
 	err := c.Client.List(context.Background(), &client.ListOptions{Namespace: m.Namespace}, msList)
 	if err != nil {
-		glog.Errorf("Failed to list machine sets, %v", err)
+		klog.Errorf("Failed to list machine sets, %v", err)
 		return nil
 	}
 
@@ -53,16 +53,16 @@ func (c *ReconcileMachineSet) getMachineSetsForMachine(m *v1alpha1.Machine) []*v
 func hasMatchingLabels(machineSet *v1alpha1.MachineSet, machine *v1alpha1.Machine) bool {
 	selector, err := metav1.LabelSelectorAsSelector(&machineSet.Spec.Selector)
 	if err != nil {
-		glog.Warningf("unable to convert selector: %v", err)
+		klog.Warningf("unable to convert selector: %v", err)
 		return false
 	}
 	// If a deployment with a nil or empty selector creeps in, it should match nothing, not everything.
 	if selector.Empty() {
-		glog.V(2).Infof("%v machineset has empty selector", machineSet.Name)
+		klog.V(2).Infof("%v machineset has empty selector", machineSet.Name)
 		return false
 	}
 	if !selector.Matches(labels.Set(machine.Labels)) {
-		glog.V(4).Infof("%v machine has mismatch labels", machine.Name)
+		klog.V(4).Infof("%v machine has mismatch labels", machine.Name)
 		return false
 	}
 	return true

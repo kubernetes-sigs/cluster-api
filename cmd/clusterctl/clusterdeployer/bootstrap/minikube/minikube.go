@@ -23,7 +23,7 @@ import (
 	"os/exec"
 	"strings"
 
-	"github.com/golang/glog"
+	"k8s.io/klog"
 )
 
 type Minikube struct {
@@ -55,11 +55,11 @@ func WithOptionsAndKubeConfigPath(options []string, kubeconfigpath string) *Mini
 
 var minikubeExec = func(env []string, args ...string) (string, error) {
 	const executable = "minikube"
-	glog.V(3).Infof("Running: %v %v", executable, args)
+	klog.V(3).Infof("Running: %v %v", executable, args)
 	cmd := exec.Command(executable, args...)
 	cmd.Env = env
 	cmdOut, err := cmd.CombinedOutput()
-	glog.V(2).Infof("Ran: %v %v Output: %v", executable, args, string(cmdOut))
+	klog.V(2).Infof("Ran: %v %v Output: %v", executable, args, string(cmdOut))
 	if err != nil {
 		err = fmt.Errorf("error running command '%v %v': %v", executable, strings.Join(args, " "), err)
 	}

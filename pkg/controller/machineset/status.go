@@ -19,11 +19,10 @@ package machineset
 import (
 	"fmt"
 
-	"github.com/golang/glog"
-
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
+	"k8s.io/klog"
 
 	"context"
 
@@ -54,7 +53,7 @@ func (c *ReconcileMachineSet) calculateStatus(ms *v1alpha1.MachineSet, filteredM
 		}
 		node, err := c.getMachineNode(machine)
 		if err != nil {
-			glog.V(4).Infof("Unable to get node for machine %v, %v", machine.Name, err)
+			klog.V(4).Infof("Unable to get node for machine %v, %v", machine.Name, err)
 			continue
 		}
 		if noderefutil.IsNodeReady(node) {
@@ -97,7 +96,7 @@ func updateMachineSetStatus(c client.Client, ms *v1alpha1.MachineSet, newStatus 
 		if ms.Spec.Replicas != nil {
 			replicas = *ms.Spec.Replicas
 		}
-		glog.V(4).Infof(fmt.Sprintf("Updating status for %v: %s/%s, ", ms.Kind, ms.Namespace, ms.Name) +
+		klog.V(4).Infof(fmt.Sprintf("Updating status for %v: %s/%s, ", ms.Kind, ms.Namespace, ms.Name) +
 			fmt.Sprintf("replicas %d->%d (need %d), ", ms.Status.Replicas, newStatus.Replicas, replicas) +
 			fmt.Sprintf("fullyLabeledReplicas %d->%d, ", ms.Status.FullyLabeledReplicas, newStatus.FullyLabeledReplicas) +
 			fmt.Sprintf("readyReplicas %d->%d, ", ms.Status.ReadyReplicas, newStatus.ReadyReplicas) +

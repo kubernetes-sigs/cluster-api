@@ -20,8 +20,8 @@ import (
 	"fmt"
 	"io/ioutil"
 
-	"github.com/golang/glog"
 	"github.com/spf13/cobra"
+	"k8s.io/klog"
 	"sigs.k8s.io/cluster-api/cmd/clusterctl/clusterdeployer"
 	"sigs.k8s.io/cluster-api/cmd/clusterctl/clusterdeployer/bootstrap"
 	"sigs.k8s.io/cluster-api/cmd/clusterctl/clusterdeployer/bootstrap/existing"
@@ -61,7 +61,7 @@ var createClusterCmd = &cobra.Command{
 			exitWithHelp(cmd, "Please provide yaml file for provider component definition.")
 		}
 		if err := RunCreate(co); err != nil {
-			glog.Exit(err)
+			klog.Exit(err)
 		}
 	},
 }

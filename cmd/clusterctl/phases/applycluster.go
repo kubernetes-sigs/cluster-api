@@ -19,7 +19,7 @@ package phases
 import (
 	"fmt"
 
-	"github.com/golang/glog"
+	"k8s.io/klog"
 	"sigs.k8s.io/cluster-api/cmd/clusterctl/clusterdeployer/clusterclient"
 	clusterv1 "sigs.k8s.io/cluster-api/pkg/apis/cluster/v1alpha1"
 )
@@ -34,7 +34,7 @@ func ApplyCluster(client clusterclient.Client, cluster *clusterv1.Cluster) error
 		return fmt.Errorf("unable to ensure namespace %q: %v", cluster.Namespace, err)
 	}
 
-	glog.Infof("Creating cluster object %v in namespace %q", cluster.Name, cluster.Namespace)
+	klog.Infof("Creating cluster object %v in namespace %q", cluster.Name, cluster.Namespace)
 	if err := client.CreateClusterObject(cluster); err != nil {
 		return err
 	}

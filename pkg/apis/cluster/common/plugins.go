@@ -20,7 +20,7 @@ import (
 	"fmt"
 	"sync"
 
-	"github.com/golang/glog"
+	"k8s.io/klog"
 )
 
 var (
@@ -34,9 +34,9 @@ func RegisterClusterProvisioner(name string, provisioner interface{}) {
 	providersMutex.Lock()
 	defer providersMutex.Unlock()
 	if _, found := providers[name]; found {
-		glog.Fatalf("Cluster provisioner %q was registered twice", name)
+		klog.Fatalf("Cluster provisioner %q was registered twice", name)
 	}
-	glog.V(1).Infof("Registered cluster provisioner %q", name)
+	klog.V(1).Infof("Registered cluster provisioner %q", name)
 	providers[name] = provisioner
 }
 

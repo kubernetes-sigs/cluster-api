@@ -73,7 +73,7 @@ func RunAlphaPhaseApplyClusterAPIComponents(pacaso *AlphaPhaseApplyClusterAPICom
 }
 
 func init() {
-	// Optional flags
+	// Required flags
 	alphaPhaseApplyClusterAPIComponentsCmd.Flags().StringVarP(&pacaso.Kubeconfig, "kubeconfig", "", "", "Path for the kubeconfig file to use")
 	alphaPhaseApplyClusterAPIComponentsCmd.Flags().StringVarP(&pacaso.ProviderComponents, "provider-components", "p", "", "A yaml file containing cluster api provider controllers and supporting objects")
 	alphaPhasesCmd.AddCommand(alphaPhaseApplyClusterAPIComponentsCmd)

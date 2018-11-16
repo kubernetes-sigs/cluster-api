@@ -36,6 +36,10 @@ func (c *FakeClusterV1alpha1) Machines(namespace string) v1alpha1.MachineInterfa
 	return &FakeMachines{c, namespace}
 }
 
+func (c *FakeClusterV1alpha1) MachineClasses(namespace string) v1alpha1.MachineClassInterface {
+	return &FakeMachineClasses{c, namespace}
+}
+
 func (c *FakeClusterV1alpha1) MachineDeployments(namespace string) v1alpha1.MachineDeploymentInterface {
 	return &FakeMachineDeployments{c, namespace}
 }

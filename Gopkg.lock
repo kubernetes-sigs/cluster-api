@@ -643,10 +643,19 @@
   version = "kubernetes-1.11.2"
 
 [[projects]]
+  branch = "master"
+  digest = "1:74fe93fed4d79058e3107aa9cd48da81a5b3ec50460b41d34bfc29df369e7584"
+  name = "k8s.io/apiserver"
+  packages = ["pkg/storage/names"]
+  pruneopts = "T"
+  revision = "cf5eff4f5e8f6019796cb18c69918b9f2f09e6db"
+
+[[projects]]
   digest = "1:0a19f9bf56ecc683569299c8c2282ee3ac70d4e32eeb170d3265761bff8d5e12"
   name = "k8s.io/client-go"
   packages = [
     "discovery",
+    "discovery/fake",
     "dynamic",
     "kubernetes",
     "kubernetes/scheme",
@@ -848,10 +857,13 @@
     "k8s.io/apimachinery/pkg/types",
     "k8s.io/apimachinery/pkg/util/intstr",
     "k8s.io/apimachinery/pkg/util/rand",
+    "k8s.io/apimachinery/pkg/util/runtime",
     "k8s.io/apimachinery/pkg/util/validation/field",
     "k8s.io/apimachinery/pkg/util/wait",
     "k8s.io/apimachinery/pkg/watch",
+    "k8s.io/apiserver/pkg/storage/names",
     "k8s.io/client-go/discovery",
+    "k8s.io/client-go/discovery/fake",
     "k8s.io/client-go/kubernetes",
     "k8s.io/client-go/kubernetes/scheme",
     "k8s.io/client-go/kubernetes/typed/core/v1",

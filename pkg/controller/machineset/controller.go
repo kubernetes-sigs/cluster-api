@@ -301,7 +301,7 @@ func shouldExcludeMachine(machineSet *clusterv1alpha1.MachineSet, machine *clust
 		glog.V(4).Infof("%s not controlled by %v", machine.Name, machineSet.Name)
 		return true
 	}
-	if machine.ObjectMeta.DeletionTimestamp != nil{
+	if machine.ObjectMeta.DeletionTimestamp != nil {
 		return true
 	}
 	if !hasMatchingLabels(machineSet, machine) {

@@ -30,7 +30,7 @@ test: generate fmt vet manifests verify
 manager: generate fmt vet
 	go build -o bin/manager sigs.k8s.io/cluster-api/cmd/manager
 
-# Build manager binary
+# Build clusterctl binary
 clusterctl: generate fmt vet
 	go build -o bin/clusterctl sigs.k8s.io/cluster-api/cmd/clusterctl
 

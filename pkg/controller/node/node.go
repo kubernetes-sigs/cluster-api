@@ -32,7 +32,7 @@ import (
 )
 
 const (
-	machineAnnotationKey = "machine"
+	machineAnnotationKey = "cluster.k8s.io/machine"
 )
 
 // We are using "machine" annotation to link node and machine resource. The "machine"

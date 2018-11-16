@@ -92,29 +92,22 @@ func (d *ClusterDeployer) Create(cluster *clusterv1.Cluster, machines []*cluster
 	}
 	defer closeClient(bootstrapClient, "bootstrap")
 
-	if cluster.Namespace == "" {
-		cluster.Namespace = bootstrapClient.GetContextNamespace()
-	}
-
-	err = bootstrapClient.EnsureNamespace(cluster.Namespace)
-	if err != nil {
-		return fmt.Errorf("unable to ensure namespace %q in bootstrap cluster: %v", cluster.Namespace, err)
-	}
-
 	glog.Info("Applying Cluster API stack to bootstrap cluster")
 	if err := phases.ApplyClusterAPIComponents(bootstrapClient, d.providerComponents); err != nil {
 		return fmt.Errorf("unable to apply cluster api stack to bootstrap cluster: %v", err)
 	}
 
 	glog.Info("Provisioning target cluster via bootstrap cluster")
+	if err := phases.ApplyCluster(bootstrapClient, cluster); err != nil {
+		return fmt.Errorf("unable to create cluster %q in bootstrap cluster: %v", cluster.Name, err)
+	}
 
-	glog.Infof("Creating cluster object %v on bootstrap cluster in namespace %q", cluster.Name, cluster.Namespace)
-	if err := bootstrapClient.CreateClusterObject(cluster); err != nil {
-		return fmt.Errorf("unable to create cluster object: %v", err)
+	if cluster.Namespace == "" {
+		cluster.Namespace = bootstrapClient.GetContextNamespace()
 	}
 
 	glog.Infof("Creating master %v in namespace %q", master.Name, cluster.Namespace)
-	if err := bootstrapClient.CreateMachineObjects([]*clusterv1.Machine{master}, cluster.Namespace); err != nil {
+	if err := phases.ApplyMachines(bootstrapClient, cluster.Namespace, []*clusterv1.Machine{master}); err != nil {
 		return fmt.Errorf("unable to create master machine: %v", err)
 	}
 
@@ -160,7 +153,7 @@ func (d *ClusterDeployer) Create(cluster *clusterv1.Cluster, machines []*cluster
 	}
 
 	glog.Info("Creating node machines in target cluster.")
-	if err := targetClient.CreateMachineObjects(nodes, cluster.Namespace); err != nil {
+	if err := phases.ApplyMachines(targetClient, cluster.Namespace, nodes); err != nil {
 		return fmt.Errorf("unable to create node machines: %v", err)
 	}
 

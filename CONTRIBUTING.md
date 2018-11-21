@@ -101,7 +101,7 @@ for machine in machines:
     upgrade machine
 ```
 
-The specific upgrade logic will be implement as part of the machine controller, and is specific to the provider. The user provided provider config will be in `machine.Spec.ProviderConfig`.
+The specific upgrade logic will be implement as part of the machine controller, and is specific to the provider. The user provided provider config will be in `machine.Spec.ProviderSpec`.
 
 Discussion around in-place vs replace upgrades [is here](https://github.com/kubernetes/community/blob/master/keps/sig-cluster-lifecycle/0003-cluster-api.md#in-place-vs-replace).
 

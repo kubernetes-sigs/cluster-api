@@ -61,7 +61,7 @@ type MachineSpec struct {
 
 	// Provider-specific configuration to use during node creation.
 	// +optional
-	ProviderConfig ProviderConfig `json:"providerConfig"`
+	ProviderSpec ProviderSpec `json:"providerSpec"`
 
 	// Versions of key software to use. This field is optional at cluster
 	// creation time, and omitting the field indicates that the cluster

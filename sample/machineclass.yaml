@@ -4,7 +4,7 @@ kind: MachineClass
 metadata:
   name: small
   namespace: foo
-providerConfig:
+providerSpec:
   apiVersion: "gceproviderconfig/v1alpha1"
   kind: "GCEProviderConfig"
   project: "$GCLOUD_PROJECT"
@@ -18,14 +18,14 @@ providerConfig:
 apiVersion: cluster.k8s.io/v1alpha1
 kind: Machine
 metadata:
-  name: test-machine 
+  name: test-machine
   namespace: foo
   labels:
-    test-label: test-label 
+    test-label: test-label
 spec:
-  providerConfig:
+  providerSpec:
     valueFrom:
-      machineClass: 
+      machineClass:
         provider: gcp
         name: small
         namespace: foo

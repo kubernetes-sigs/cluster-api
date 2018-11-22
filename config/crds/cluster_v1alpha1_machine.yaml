@@ -75,7 +75,7 @@ spec:
               properties:
                 description:
                   type: string
-                lastUpdateTime:
+                lastUpdated:
                   format: date-time
                   type: string
                 state:

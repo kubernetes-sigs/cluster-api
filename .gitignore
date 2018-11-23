@@ -32,3 +32,6 @@ minikube.kubeconfig
 
 # GitBook - do not check in node_modules for a specific arch and os.
 docs/book/node_modules/
+
+# Common editor / temporary files
+*~

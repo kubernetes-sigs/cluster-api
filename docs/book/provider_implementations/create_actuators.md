@@ -90,6 +90,7 @@ limitations under the License.
 package machine
 
 import (
+        "context"
         "fmt"
         "log"
 
@@ -119,25 +120,25 @@ func NewActuator(params ActuatorParams) (*Actuator, error) {
 }
 
 // Create creates a machine and is invoked by the Machine Controller
-func (a *Actuator) Create(cluster *clusterv1.Cluster, machine *clusterv1.Machine) error {
+func (a *Actuator) Create(ctx context.Context, cluster *clusterv1.Cluster, machine *clusterv1.Machine) error {
         log.Printf("Creating machine %v for cluster %v.", machine.Name, cluster.Name)
         return fmt.Errorf("TODO: Not yet implemented")
 }
 
 // Delete deletes a machine and is invoked by the Machine Controller
-func (a *Actuator) Delete(cluster *clusterv1.Cluster, machine *clusterv1.Machine) error {
+func (a *Actuator) Delete(ctx context.Context, cluster *clusterv1.Cluster, machine *clusterv1.Machine) error {
         log.Printf("Deleting machine %v for cluster %v.", machine.Name, cluster.Name)
         return fmt.Errorf("TODO: Not yet implemented")
 }
 
 // Update updates a machine and is invoked by the Machine Controller
-func (a *Actuator) Update(cluster *clusterv1.Cluster, machine *clusterv1.Machine) error {
+func (a *Actuator) Update(ctx context.Context, cluster *clusterv1.Cluster, machine *clusterv1.Machine) error {
         log.Printf("Updating machine %v for cluster %v.", machine.Name, cluster.Name)
         return fmt.Errorf("TODO: Not yet implemented")
 }
 
 // Exists test for the existance of a machine and is invoked by the Machine Controller
-func (a *Actuator) Exists(cluster *clusterv1.Cluster, machine *clusterv1.Machine) (bool, error) {
+func (a *Actuator) Exists(ctx context.Context, cluster *clusterv1.Cluster, machine *clusterv1.Machine) (bool, error) {
         log.Printf("Checking if machine %v for cluster %v exists.", machine.Name, cluster.Name)
         return false, fmt.Errorf("TODO: Not yet implemented")
 }

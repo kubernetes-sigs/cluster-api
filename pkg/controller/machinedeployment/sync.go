@@ -127,6 +127,11 @@ func (r *ReconcileMachineDeployment) getNewMachineSet(d *clusterv1alpha1.Machine
 	// Add machineTemplateHash label to selector.
 	newMSSelector := dutil.CloneSelectorAndAddLabel(&d.Spec.Selector, dutil.DefaultMachineDeploymentUniqueLabelKey, machineTemplateSpecHash)
 
+	minReadySeconds := int32(0)
+	if d.Spec.MinReadySeconds != nil {
+		minReadySeconds = *d.Spec.MinReadySeconds
+	}
+
 	// Create new MachineSet
 	newMS := clusterv1alpha1.MachineSet{
 		ObjectMeta: metav1.ObjectMeta{
@@ -138,7 +143,7 @@ func (r *ReconcileMachineDeployment) getNewMachineSet(d *clusterv1alpha1.Machine
 		},
 		Spec: clusterv1alpha1.MachineSetSpec{
 			Replicas:        new(int32),
-			MinReadySeconds: *d.Spec.MinReadySeconds,
+			MinReadySeconds: minReadySeconds,
 			Selector:        *newMSSelector,
 			Template:        newMSTemplate,
 		},

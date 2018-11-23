@@ -137,6 +137,10 @@ func (r *ReconcileMachine) Reconcile(request reconcile.Request) (reconcile.Resul
 		klog.Infof("reconciling machine object %v triggers delete.", name)
 		if err := r.delete(ctx, m); err != nil {
 			klog.Errorf("Error deleting machine object %v; %v", name, err)
+			if requeueErr, ok := err.(*controllerError.RequeueAfterError); ok {
+				klog.Infof("Actuator returned requeue-after error: %v", requeueErr)
+				return reconcile.Result{Requeue: true, RequeueAfter: requeueErr.RequeueAfter}, nil
+			}
 			return reconcile.Result{}, err
 		}
 

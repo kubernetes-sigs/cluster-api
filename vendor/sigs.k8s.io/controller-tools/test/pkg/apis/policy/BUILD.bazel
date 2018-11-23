@@ -1,0 +1,9 @@
+load("@io_bazel_rules_go//go:def.bzl", "go_library")
+
+go_library(
+    name = "go_default_library",
+    srcs = ["group.go"],
+    importmap = "sigs.k8s.io/cluster-api/vendor/sigs.k8s.io/controller-tools/test/pkg/apis/policy",
+    importpath = "sigs.k8s.io/controller-tools/test/pkg/apis/policy",
+    visibility = ["//visibility:public"],
+)

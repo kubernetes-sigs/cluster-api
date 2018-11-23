@@ -1,0 +1,27 @@
+load("@io_bazel_rules_go//go:def.bzl", "go_library")
+
+go_library(
+    name = "go_default_library",
+    srcs = [
+        "add_mutating_firstmate.go",
+        "add_mutating_namespace.go",
+        "add_validating_frigate.go",
+        "add_validating_kraken.go",
+        "server.go",
+    ],
+    importmap = "sigs.k8s.io/cluster-api/vendor/sigs.k8s.io/controller-tools/test/pkg/webhook/default_server",
+    importpath = "sigs.k8s.io/controller-tools/test/pkg/webhook/default_server",
+    visibility = ["//visibility:public"],
+    deps = [
+        "//vendor/k8s.io/apimachinery/pkg/types:go_default_library",
+        "//vendor/sigs.k8s.io/controller-runtime/pkg/manager:go_default_library",
+        "//vendor/sigs.k8s.io/controller-runtime/pkg/runtime/log:go_default_library",
+        "//vendor/sigs.k8s.io/controller-runtime/pkg/webhook:go_default_library",
+        "//vendor/sigs.k8s.io/controller-runtime/pkg/webhook/admission:go_default_library",
+        "//vendor/sigs.k8s.io/controller-runtime/pkg/webhook/admission/builder:go_default_library",
+        "//vendor/sigs.k8s.io/controller-tools/test/pkg/webhook/default_server/firstmates/mutating:go_default_library",
+        "//vendor/sigs.k8s.io/controller-tools/test/pkg/webhook/default_server/frigates/validating:go_default_library",
+        "//vendor/sigs.k8s.io/controller-tools/test/pkg/webhook/default_server/krakens/validating:go_default_library",
+        "//vendor/sigs.k8s.io/controller-tools/test/pkg/webhook/default_server/namespaces/mutating:go_default_library",
+    ],
+)

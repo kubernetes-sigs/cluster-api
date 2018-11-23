@@ -1,0 +1,10 @@
+load("@io_bazel_rules_go//go:def.bzl", "go_library")
+
+go_library(
+    name = "go_default_library",
+    srcs = ["pear.go"],
+    importmap = "sigs.k8s.io/cluster-api/vendor/golang.org/x/tools/cmd/fiximports/testdata/src/fruit.io/pear",
+    importpath = "golang.org/x/tools/cmd/fiximports/testdata/src/fruit.io/pear",
+    visibility = ["//visibility:public"],
+    deps = ["//vendor/fruit.io/banana:go_default_library"],
+)

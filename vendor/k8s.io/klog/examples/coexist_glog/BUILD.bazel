@@ -1,0 +1,19 @@
+load("@io_bazel_rules_go//go:def.bzl", "go_binary", "go_library")
+
+go_library(
+    name = "go_default_library",
+    srcs = ["coexist_glog.go"],
+    importmap = "sigs.k8s.io/cluster-api/vendor/k8s.io/klog/examples/coexist_glog",
+    importpath = "k8s.io/klog/examples/coexist_glog",
+    visibility = ["//visibility:private"],
+    deps = [
+        "//vendor/github.com/golang/glog:go_default_library",
+        "//vendor/k8s.io/klog:go_default_library",
+    ],
+)
+
+go_binary(
+    name = "coexist_glog",
+    embed = [":go_default_library"],
+    visibility = ["//visibility:public"],
+)

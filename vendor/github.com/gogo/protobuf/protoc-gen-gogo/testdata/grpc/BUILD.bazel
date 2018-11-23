@@ -1,0 +1,14 @@
+load("@io_bazel_rules_go//go:def.bzl", "go_library")
+
+go_library(
+    name = "go_default_library",
+    srcs = ["grpc.pb.go"],
+    importmap = "sigs.k8s.io/cluster-api/vendor/github.com/gogo/protobuf/protoc-gen-gogo/testdata/grpc",
+    importpath = "github.com/gogo/protobuf/protoc-gen-gogo/testdata/grpc",
+    visibility = ["//visibility:public"],
+    deps = [
+        "//vendor/github.com/gogo/protobuf/proto:go_default_library",
+        "//vendor/golang.org/x/net/context:go_default_library",
+        "@org_golang_google_grpc//:go_default_library",
+    ],
+)

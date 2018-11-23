@@ -1,0 +1,21 @@
+load("@io_bazel_rules_go//go:def.bzl", "go_binary", "go_library")
+
+go_library(
+    name = "go_default_library",
+    srcs = ["main.go"],
+    importmap = "sigs.k8s.io/cluster-api/vendor/cloud.google.com/go/cmd/go-cloud-debug-agent/internal/debug/cmd/debugproxy",
+    importpath = "cloud.google.com/go/cmd/go-cloud-debug-agent/internal/debug/cmd/debugproxy",
+    visibility = ["//visibility:private"],
+    deps = select({
+        "@io_bazel_rules_go//go/platform:linux": [
+            "//vendor/cloud.google.com/go/cmd/go-cloud-debug-agent/internal/debug/server:go_default_library",
+        ],
+        "//conditions:default": [],
+    }),
+)
+
+go_binary(
+    name = "debugproxy",
+    embed = [":go_default_library"],
+    visibility = ["//vendor/cloud.google.com/go/cmd/go-cloud-debug-agent:__subpackages__"],
+)

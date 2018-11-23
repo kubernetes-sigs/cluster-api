@@ -1,0 +1,20 @@
+load("@io_bazel_rules_go//go:def.bzl", "go_library")
+
+go_library(
+    name = "go_default_library",
+    srcs = [
+        "doc.go",
+        "logger.go",
+        "testingt.go",
+        "timeout.go",
+        "writer.go",
+    ],
+    importmap = "sigs.k8s.io/cluster-api/vendor/go.uber.org/zap/zaptest",
+    importpath = "go.uber.org/zap/zaptest",
+    visibility = ["//visibility:public"],
+    deps = [
+        "//vendor/go.uber.org/zap:go_default_library",
+        "//vendor/go.uber.org/zap/internal/ztest:go_default_library",
+        "//vendor/go.uber.org/zap/zapcore:go_default_library",
+    ],
+)

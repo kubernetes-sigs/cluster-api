@@ -1,0 +1,9 @@
+load("@io_bazel_rules_go//go:def.bzl", "go_library")
+
+go_library(
+    name = "go_default_library",
+    srcs = ["doc.go"],
+    importmap = "sigs.k8s.io/cluster-api/vendor/cloud.google.com/go/cmd/go-cloud-debug-agent/internal/debug/tests/peek",
+    importpath = "cloud.google.com/go/cmd/go-cloud-debug-agent/internal/debug/tests/peek",
+    visibility = ["//vendor/cloud.google.com/go/cmd/go-cloud-debug-agent:__subpackages__"],
+)

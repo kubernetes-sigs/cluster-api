@@ -1,0 +1,12 @@
+load("@io_bazel_rules_go//go:def.bzl", "go_library")
+
+go_library(
+    name = "go_default_library",
+    srcs = [
+        "btree.go",
+        "debug.go",
+    ],
+    importmap = "sigs.k8s.io/cluster-api/vendor/cloud.google.com/go/internal/btree",
+    importpath = "cloud.google.com/go/internal/btree",
+    visibility = ["//vendor/cloud.google.com/go:__subpackages__"],
+)

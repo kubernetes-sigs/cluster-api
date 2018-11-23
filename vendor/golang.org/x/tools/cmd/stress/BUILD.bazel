@@ -1,0 +1,15 @@
+load("@io_bazel_rules_go//go:def.bzl", "go_binary", "go_library")
+
+go_library(
+    name = "go_default_library",
+    srcs = ["stress.go"],
+    importmap = "sigs.k8s.io/cluster-api/vendor/golang.org/x/tools/cmd/stress",
+    importpath = "golang.org/x/tools/cmd/stress",
+    visibility = ["//visibility:private"],
+)
+
+go_binary(
+    name = "stress",
+    embed = [":go_default_library"],
+    visibility = ["//visibility:public"],
+)

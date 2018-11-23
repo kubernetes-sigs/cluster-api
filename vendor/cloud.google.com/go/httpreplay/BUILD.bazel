@@ -1,0 +1,18 @@
+load("@io_bazel_rules_go//go:def.bzl", "go_library")
+
+go_library(
+    name = "go_default_library",
+    srcs = [
+        "httpreplay.go",
+        "httpreplay_not18.go",
+    ],
+    importmap = "sigs.k8s.io/cluster-api/vendor/cloud.google.com/go/httpreplay",
+    importpath = "cloud.google.com/go/httpreplay",
+    visibility = ["//visibility:public"],
+    deps = [
+        "//vendor/cloud.google.com/go/httpreplay/internal/proxy:go_default_library",
+        "//vendor/golang.org/x/net/context:go_default_library",
+        "//vendor/google.golang.org/api/option:go_default_library",
+        "//vendor/google.golang.org/api/transport/http:go_default_library",
+    ],
+)

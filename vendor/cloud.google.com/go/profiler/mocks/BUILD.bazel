@@ -1,0 +1,15 @@
+load("@io_bazel_rules_go//go:def.bzl", "go_library")
+
+go_library(
+    name = "go_default_library",
+    srcs = ["mock_profiler_client.go"],
+    importmap = "sigs.k8s.io/cluster-api/vendor/cloud.google.com/go/profiler/mocks",
+    importpath = "cloud.google.com/go/profiler/mocks",
+    visibility = ["//visibility:public"],
+    deps = [
+        "//vendor/github.com/golang/mock/gomock:go_default_library",
+        "//vendor/golang.org/x/net/context:go_default_library",
+        "@go_googleapis//google/devtools/cloudprofiler/v2:cloudprofiler_go_proto",
+        "@org_golang_google_grpc//:go_default_library",
+    ],
+)

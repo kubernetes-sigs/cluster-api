@@ -1,0 +1,18 @@
+load("@io_bazel_rules_go//go:def.bzl", "go_library")
+
+go_library(
+    name = "go_default_library",
+    srcs = [
+        "interface_fuzzer.go",
+        "reflect_deepcopy.go",
+        "value_fuzzer.go",
+    ],
+    importmap = "sigs.k8s.io/cluster-api/vendor/k8s.io/gengo/examples/deepcopy-gen/output_tests",
+    importpath = "k8s.io/gengo/examples/deepcopy-gen/output_tests",
+    visibility = ["//visibility:public"],
+    deps = [
+        "//vendor/github.com/google/gofuzz:go_default_library",
+        "//vendor/k8s.io/gengo/examples/deepcopy-gen/output_tests/aliases:go_default_library",
+        "//vendor/k8s.io/gengo/examples/deepcopy-gen/output_tests/interfaces:go_default_library",
+    ],
+)

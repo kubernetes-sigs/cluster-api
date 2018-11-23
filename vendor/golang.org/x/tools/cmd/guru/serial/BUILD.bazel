@@ -1,0 +1,9 @@
+load("@io_bazel_rules_go//go:def.bzl", "go_library")
+
+go_library(
+    name = "go_default_library",
+    srcs = ["serial.go"],
+    importmap = "sigs.k8s.io/cluster-api/vendor/golang.org/x/tools/cmd/guru/serial",
+    importpath = "golang.org/x/tools/cmd/guru/serial",
+    visibility = ["//visibility:public"],
+)

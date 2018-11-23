@@ -1,0 +1,9 @@
+load("@io_bazel_rules_go//go:def.bzl", "go_library")
+
+go_library(
+    name = "go_default_library",
+    srcs = ["doc.go"],
+    importmap = "sigs.k8s.io/cluster-api/vendor/golang.org/x/crypto/ssh/test",
+    importpath = "golang.org/x/crypto/ssh/test",
+    visibility = ["//visibility:public"],
+)

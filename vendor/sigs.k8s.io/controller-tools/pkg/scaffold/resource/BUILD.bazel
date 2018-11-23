@@ -1,0 +1,26 @@
+load("@io_bazel_rules_go//go:def.bzl", "go_library")
+
+go_library(
+    name = "go_default_library",
+    srcs = [
+        "addtoscheme.go",
+        "crd.go",
+        "crd_sample.go",
+        "doc.go",
+        "group.go",
+        "register.go",
+        "resource.go",
+        "role.go",
+        "rolebinding.go",
+        "types.go",
+        "typestest.go",
+        "version_suitetest.go",
+    ],
+    importmap = "sigs.k8s.io/cluster-api/vendor/sigs.k8s.io/controller-tools/pkg/scaffold/resource",
+    importpath = "sigs.k8s.io/controller-tools/pkg/scaffold/resource",
+    visibility = ["//visibility:public"],
+    deps = [
+        "//vendor/github.com/markbates/inflect:go_default_library",
+        "//vendor/sigs.k8s.io/controller-tools/pkg/scaffold/input:go_default_library",
+    ],
+)

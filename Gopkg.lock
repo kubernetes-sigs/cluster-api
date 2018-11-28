@@ -755,6 +755,14 @@
   revision = "4242d8e6c5dba56827bb7bcf14ad11cda38f3991"
 
 [[projects]]
+  digest = "1:7a3ef99d492d30157b8e933624a8f0292b4cee5934c23269f7640c8030eb83cd"
+  name = "k8s.io/klog"
+  packages = ["."]
+  pruneopts = "T"
+  revision = "a5bc97fbc634d635061f3146511332c7e313a55a"
+  version = "v0.1.0"
+
+[[projects]]
   branch = "master"
   digest = "1:38bc6f751116369b8f6752fed062e36c56564cfaca0318b3a71caf3b05329d7c"
   name = "k8s.io/kube-openapi"
@@ -839,7 +847,6 @@
   input-imports = [
     "github.com/davecgh/go-spew/spew",
     "github.com/emicklei/go-restful",
-    "github.com/golang/glog",
     "github.com/spf13/cobra",
     "github.com/spf13/pflag",
     "golang.org/x/net/context",
@@ -878,6 +885,7 @@
     "k8s.io/client-go/util/integer",
     "k8s.io/client-go/util/retry",
     "k8s.io/code-generator/cmd/deepcopy-gen",
+    "k8s.io/klog",
     "sigs.k8s.io/controller-runtime/pkg/client",
     "sigs.k8s.io/controller-runtime/pkg/client/config",
     "sigs.k8s.io/controller-runtime/pkg/controller",

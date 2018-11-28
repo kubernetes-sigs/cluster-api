@@ -19,7 +19,7 @@ package phases
 import (
 	"fmt"
 
-	"github.com/golang/glog"
+	"k8s.io/klog"
 	"sigs.k8s.io/cluster-api/cmd/clusterctl/clusterdeployer/clusterclient"
 	clusterv1 "sigs.k8s.io/cluster-api/pkg/apis/cluster/v1alpha1"
 )
@@ -34,7 +34,7 @@ func ApplyMachines(client clusterclient.Client, namespace string, machines []*cl
 		return fmt.Errorf("unable to ensure namespace %q: %v", namespace, err)
 	}
 
-	glog.Infof("Creating machines in namespace %q", namespace)
+	klog.Infof("Creating machines in namespace %q", namespace)
 	if err := client.CreateMachineObjects(machines, namespace); err != nil {
 		return err
 	}

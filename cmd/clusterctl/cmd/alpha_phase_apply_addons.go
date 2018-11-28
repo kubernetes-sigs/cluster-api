@@ -20,8 +20,8 @@ import (
 	"fmt"
 	"io/ioutil"
 
-	"github.com/golang/glog"
 	"github.com/spf13/cobra"
+	"k8s.io/klog"
 	"sigs.k8s.io/cluster-api/cmd/clusterctl/clusterdeployer/clusterclient"
 	"sigs.k8s.io/cluster-api/cmd/clusterctl/phases"
 )
@@ -47,7 +47,7 @@ var alphaPhaseApplyAddonsCmd = &cobra.Command{
 		}
 
 		if err := RunAlphaPhaseApplyAddons(paao); err != nil {
-			glog.Exit(err)
+			klog.Exit(err)
 		}
 	},
 }

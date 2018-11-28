@@ -23,6 +23,7 @@ import (
 
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
+	"k8s.io/klog"
 )
 
 var RootCmd = &cobra.Command{
@@ -49,10 +50,14 @@ func exitWithHelp(cmd *cobra.Command, err string) {
 }
 
 func init() {
+	var flags flag.FlagSet
+	klog.InitFlags(&flags)
+
 	flag.CommandLine.Parse([]string{})
 
-	// Honor glog flags for verbosity control
+	// Honor klog flags for verbosity control
 	pflag.CommandLine.AddGoFlagSet(flag.CommandLine)
+	pflag.CommandLine.AddGoFlagSet(&flags)
 
 	InitLogs()
 }

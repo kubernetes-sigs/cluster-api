@@ -17,11 +17,11 @@ limitations under the License.
 package phases
 
 import (
-	"github.com/golang/glog"
+	"k8s.io/klog"
 	"sigs.k8s.io/cluster-api/cmd/clusterctl/clusterdeployer/clusterclient"
 )
 
 func ApplyAddons(client clusterclient.Client, addons string) error {
-	glog.Info("Applying Addons")
+	klog.Info("Applying Addons")
 	return client.Apply(addons)
 }

@@ -19,13 +19,13 @@ package phases
 import (
 	"fmt"
 
-	"github.com/golang/glog"
+	"k8s.io/klog"
 	"sigs.k8s.io/cluster-api/cmd/clusterctl/clusterdeployer/bootstrap"
 	"sigs.k8s.io/cluster-api/cmd/clusterctl/clusterdeployer/clusterclient"
 )
 
 func CreateBootstrapCluster(provisioner bootstrap.ClusterProvisioner, cleanupBootstrapCluster bool, clientFactory clusterclient.Factory) (clusterclient.Client, func(), error) {
-	glog.Info("Creating bootstrap cluster")
+	klog.Info("Creating bootstrap cluster")
 
 	cleanupFn := func() {}
 	if err := provisioner.Create(); err != nil {
@@ -34,7 +34,7 @@ func CreateBootstrapCluster(provisioner bootstrap.ClusterProvisioner, cleanupBoo
 
 	if cleanupBootstrapCluster {
 		cleanupFn = func() {
-			glog.Info("Cleaning up bootstrap cluster.")
+			klog.Info("Cleaning up bootstrap cluster.")
 			provisioner.Delete()
 		}
 	}

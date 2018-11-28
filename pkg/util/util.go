@@ -27,9 +27,9 @@ import (
 	"strings"
 	"time"
 
-	"github.com/golang/glog"
 	"k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
+	"k8s.io/klog"
 	clusterv1 "sigs.k8s.io/cluster-api/pkg/apis/cluster/v1alpha1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/yaml"
@@ -81,7 +81,7 @@ func Home() string {
 
 	usr, err := user.Current()
 	if err != nil {
-		glog.Warningf("unable to find user: %v", err)
+		klog.Warningf("unable to find user: %v", err)
 		return ""
 	}
 	return usr.HomeDir
@@ -91,7 +91,7 @@ func GetDefaultKubeConfigPath() string {
 	localDir := fmt.Sprintf("%s/.kube", Home())
 	if _, err := os.Stat(localDir); os.IsNotExist(err) {
 		if err := os.Mkdir(localDir, 0777); err != nil {
-			glog.Fatal(err)
+			klog.Fatal(err)
 		}
 	}
 	return fmt.Sprintf("%s/config", localDir)

@@ -19,8 +19,8 @@ package cmd
 import (
 	"fmt"
 
-	"github.com/golang/glog"
 	"github.com/spf13/cobra"
+	"k8s.io/klog"
 	"sigs.k8s.io/cluster-api/cmd/clusterctl/clusterdeployer/bootstrap/minikube"
 	"sigs.k8s.io/cluster-api/cmd/clusterctl/clusterdeployer/clusterclient"
 	"sigs.k8s.io/cluster-api/cmd/clusterctl/phases"
@@ -40,7 +40,7 @@ var alphaPhaseCreateBootstrapClusterCmd = &cobra.Command{
 	Long:  `Create a bootstrap cluster`,
 	Run: func(cmd *cobra.Command, args []string) {
 		if err := RunAlphaPhaseCreateBootstrapCluster(pcbco); err != nil {
-			glog.Exit(err)
+			klog.Exit(err)
 		}
 	},
 }
@@ -57,7 +57,7 @@ func RunAlphaPhaseCreateBootstrapCluster(pcbco *AlphaPhaseCreateBootstrapCluster
 		return fmt.Errorf("failed to create bootstrap cluster: %v", err)
 	}
 
-	glog.Infof("Created bootstrap cluster, path to kubeconfig: %q", pcbco.KubeconfigOutput)
+	klog.Infof("Created bootstrap cluster, path to kubeconfig: %q", pcbco.KubeconfigOutput)
 	return nil
 }
 

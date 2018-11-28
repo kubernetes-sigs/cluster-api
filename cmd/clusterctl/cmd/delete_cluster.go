@@ -29,8 +29,8 @@ import (
 	"sigs.k8s.io/cluster-api/cmd/clusterctl/clusterdeployer/clusterclient"
 	"sigs.k8s.io/cluster-api/cmd/clusterctl/providercomponents"
 
-	"github.com/golang/glog"
 	"github.com/spf13/cobra"
+	"k8s.io/klog"
 )
 
 type DeleteOptions struct {
@@ -58,7 +58,7 @@ var deleteClusterCmd = &cobra.Command{
 			exitWithHelp(cmd, "Please provide yaml file for provider component definition.")
 		}
 		if err := RunDelete(); err != nil {
-			glog.Exit(err)
+			klog.Exit(err)
 		}
 	},
 }

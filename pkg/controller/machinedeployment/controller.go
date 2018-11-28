@@ -21,12 +21,12 @@ import (
 	"fmt"
 	"reflect"
 
-	"github.com/golang/glog"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/klog"
 	"sigs.k8s.io/cluster-api/pkg/apis/cluster/common"
 	"sigs.k8s.io/cluster-api/pkg/apis/cluster/v1alpha1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -106,21 +106,21 @@ func (r *ReconcileMachineDeployment) getMachineSetsForDeployment(d *v1alpha1.Mac
 	for idx, _ := range machineSets.Items {
 		ms := &machineSets.Items[idx]
 		if metav1.GetControllerOf(ms) == nil || (metav1.GetControllerOf(ms) != nil && !metav1.IsControlledBy(ms, d)) {
-			glog.V(4).Infof("%s not controlled by %v", ms.Name, d.Name)
+			klog.V(4).Infof("%s not controlled by %v", ms.Name, d.Name)
 			continue
 		}
 		selector, err := metav1.LabelSelectorAsSelector(&d.Spec.Selector)
 		if err != nil {
-			glog.Errorf("Skipping machineset %v, failed to get label selector from spec selector.", ms.Name)
+			klog.Errorf("Skipping machineset %v, failed to get label selector from spec selector.", ms.Name)
 			continue
 		}
 		// If a deployment with a nil or empty selector creeps in, it should match nothing, not everything.
 		if selector.Empty() {
-			glog.Warningf("Skipping machineset %v as the selector is empty.", ms.Name)
+			klog.Warningf("Skipping machineset %v as the selector is empty.", ms.Name)
 			continue
 		}
 		if !selector.Matches(labels.Set(ms.Labels)) {
-			glog.V(4).Infof("Skipping machineset %v, label mismatch.", ms.Name)
+			klog.V(4).Infof("Skipping machineset %v, label mismatch.", ms.Name)
 			continue
 		}
 		filteredMS = append(filteredMS, ms)
@@ -150,7 +150,7 @@ func (r *ReconcileMachineDeployment) Reconcile(request reconcile.Request) (recon
 		if d.Status.ObservedGeneration < d.Generation {
 			d.Status.ObservedGeneration = d.Generation
 			if err := r.Status().Update(context.Background(), d); err != nil {
-				glog.Warningf("Failed to update status for deployment %v. %v", d.Name, err)
+				klog.Warningf("Failed to update status for deployment %v. %v", d.Name, err)
 				return reconcile.Result{}, err
 			}
 		}
@@ -187,14 +187,14 @@ func (r *ReconcileMachineDeployment) Reconcile(request reconcile.Request) (recon
 // match a MachineSet.
 func (r *ReconcileMachineDeployment) getMachineDeploymentsForMachineSet(ms *v1alpha1.MachineSet) []*v1alpha1.MachineDeployment {
 	if len(ms.Labels) == 0 {
-		glog.Warningf("no machine deployments found for MachineSet %v because it has no labels", ms.Name)
+		klog.Warningf("no machine deployments found for MachineSet %v because it has no labels", ms.Name)
 		return nil
 	}
 
 	dList := &v1alpha1.MachineDeploymentList{}
 	err := r.Client.List(context.Background(), client.InNamespace(ms.Namespace), dList)
 	if err != nil {
-		glog.Warningf("failed to list machine deployments, %v", err)
+		klog.Warningf("failed to list machine deployments, %v", err)
 		return nil
 	}
 
@@ -259,7 +259,7 @@ func (r *ReconcileMachineDeployment) MachineSetToDeployments(o handler.MapObject
 	key := client.ObjectKey{Namespace: o.Meta.GetNamespace(), Name: o.Meta.GetName()}
 	err := r.Client.Get(context.Background(), key, ms)
 	if err != nil {
-		glog.Errorf("Unable to retrieve Machineset %v from store: %v", key, err)
+		klog.Errorf("Unable to retrieve Machineset %v from store: %v", key, err)
 		return nil
 	}
 
@@ -271,7 +271,7 @@ func (r *ReconcileMachineDeployment) MachineSetToDeployments(o handler.MapObject
 
 	mds := r.getMachineDeploymentsForMachineSet(ms)
 	if len(mds) == 0 {
-		glog.V(4).Infof("Found no machine set for machine: %v", ms.Name)
+		klog.V(4).Infof("Found no machine set for machine: %v", ms.Name)
 		return nil
 	}
 

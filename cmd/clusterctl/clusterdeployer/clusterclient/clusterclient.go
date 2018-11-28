@@ -34,7 +34,7 @@ import (
 	"sigs.k8s.io/cluster-api/pkg/client/clientset_generated/clientset"
 	"sigs.k8s.io/cluster-api/pkg/util"
 
-	"github.com/golang/glog"
+	"k8s.io/klog"
 )
 
 const (
@@ -221,7 +221,7 @@ func (c *client) GetMachineDeploymentObjectsInNamespace(namespace string) ([]*cl
 
 // Deprecated API. Please do not extend or use.
 func (c *client) GetMachineDeploymentObjects() ([]*clusterv1.MachineDeployment, error) {
-	glog.V(2).Info("GetMachineDeploymentObjects API is deprecated, use GetMachineDeploymentObjectsInNamespace instead")
+	klog.V(2).Info("GetMachineDeploymentObjects API is deprecated, use GetMachineDeploymentObjectsInNamespace instead")
 	return c.GetMachineDeploymentObjectsInNamespace(apiv1.NamespaceDefault)
 }
 
@@ -239,7 +239,7 @@ func (c *client) GetMachineSetObjectsInNamespace(namespace string) ([]*clusterv1
 
 // Deprecated API. Please do not extend or use.
 func (c *client) GetMachineSetObjects() ([]*clusterv1.MachineSet, error) {
-	glog.V(2).Info("GetMachineSetObjects API is deprecated, use GetMachineSetObjectsInNamespace instead")
+	klog.V(2).Info("GetMachineSetObjects API is deprecated, use GetMachineSetObjectsInNamespace instead")
 	return c.GetMachineSetObjectsInNamespace(apiv1.NamespaceDefault)
 }
 
@@ -258,7 +258,7 @@ func (c *client) GetMachineObjectsInNamespace(namespace string) ([]*clusterv1.Ma
 
 // Deprecated API. Please do not extend or use.
 func (c *client) GetMachineObjects() ([]*clusterv1.Machine, error) {
-	glog.V(2).Info("GetMachineObjects API is deprecated, use GetMachineObjectsInNamespace instead")
+	klog.V(2).Info("GetMachineObjects API is deprecated, use GetMachineObjectsInNamespace instead")
 	return c.GetMachineObjectsInNamespace(apiv1.NamespaceDefault)
 }
 
@@ -329,7 +329,7 @@ func (c *client) CreateMachineObjects(machines []*clusterv1.Machine, namespace s
 
 // Deprecated API. Please do not extend or use.
 func (c *client) DeleteClusterObjects() error {
-	glog.V(2).Info("DeleteClusterObjects API is deprecated, use DeleteClusterObjectsInNamespace instead")
+	klog.V(2).Info("DeleteClusterObjects API is deprecated, use DeleteClusterObjectsInNamespace instead")
 	return c.DeleteClusterObjectsInNamespace(apiv1.NamespaceDefault)
 }
 
@@ -347,7 +347,7 @@ func (c *client) DeleteClusterObjectsInNamespace(namespace string) error {
 
 // Deprecated API. Please do not extend or use.
 func (c *client) DeleteMachineDeploymentObjects() error {
-	glog.V(2).Info("DeleteMachineDeploymentObjects API is deprecated, use DeleteMachineDeploymentObjectsInNamespace instead")
+	klog.V(2).Info("DeleteMachineDeploymentObjects API is deprecated, use DeleteMachineDeploymentObjectsInNamespace instead")
 	return c.DeleteMachineDeploymentObjectsInNamespace(apiv1.NamespaceDefault)
 }
 
@@ -365,7 +365,7 @@ func (c *client) DeleteMachineDeploymentObjectsInNamespace(namespace string) err
 
 // Deprecated API. Please do not extend or use.
 func (c *client) DeleteMachineSetObjects() error {
-	glog.V(2).Info("DeleteMachineSetObjects API is deprecated, use DeleteMachineSetObjectsInNamespace instead")
+	klog.V(2).Info("DeleteMachineSetObjects API is deprecated, use DeleteMachineSetObjectsInNamespace instead")
 	return c.DeleteMachineSetObjectsInNamespace(apiv1.NamespaceDefault)
 }
 
@@ -383,7 +383,7 @@ func (c *client) DeleteMachineSetObjectsInNamespace(namespace string) error {
 
 // Deprecated API. Please do not extend or use.
 func (c *client) DeleteMachineObjects() error {
-	glog.V(2).Info("DeleteMachineObjects API is deprecated, use DeleteMachineObjectsInNamespace instead")
+	klog.V(2).Info("DeleteMachineObjects API is deprecated, use DeleteMachineObjectsInNamespace instead")
 	return c.DeleteMachineObjectsInNamespace(apiv1.NamespaceDefault)
 }
 
@@ -427,7 +427,7 @@ func (c *client) WaitForClusterV1alpha1Ready() error {
 
 func (c *client) waitForClusterDelete(namespace string) error {
 	return util.PollImmediate(retryIntervalResourceDelete, timeoutResourceDelete, func() (bool, error) {
-		glog.V(2).Infof("Waiting for cluster objects to be deleted...")
+		klog.V(2).Infof("Waiting for cluster objects to be deleted...")
 		response, err := c.clientSet.ClusterV1alpha1().Clusters(namespace).List(metav1.ListOptions{})
 		if err != nil {
 			return false, nil
@@ -441,7 +441,7 @@ func (c *client) waitForClusterDelete(namespace string) error {
 
 func (c *client) waitForMachineDeploymentsDelete(namespace string) error {
 	return util.PollImmediate(retryIntervalResourceDelete, timeoutResourceDelete, func() (bool, error) {
-		glog.V(2).Infof("Waiting for machine deployment objects to be deleted...")
+		klog.V(2).Infof("Waiting for machine deployment objects to be deleted...")
 		response, err := c.clientSet.ClusterV1alpha1().MachineDeployments(namespace).List(metav1.ListOptions{})
 		if err != nil {
 			return false, nil
@@ -455,7 +455,7 @@ func (c *client) waitForMachineDeploymentsDelete(namespace string) error {
 
 func (c *client) waitForMachineSetsDelete(namespace string) error {
 	return util.PollImmediate(retryIntervalResourceDelete, timeoutResourceDelete, func() (bool, error) {
-		glog.V(2).Infof("Waiting for machine set objects to be deleted...")
+		klog.V(2).Infof("Waiting for machine set objects to be deleted...")
 		response, err := c.clientSet.ClusterV1alpha1().MachineSets(namespace).List(metav1.ListOptions{})
 		if err != nil {
 			return false, nil
@@ -469,7 +469,7 @@ func (c *client) waitForMachineSetsDelete(namespace string) error {
 
 func (c *client) waitForMachinesDelete(namespace string) error {
 	return util.PollImmediate(retryIntervalResourceDelete, timeoutResourceDelete, func() (bool, error) {
-		glog.V(2).Infof("Waiting for machine objects to be deleted...")
+		klog.V(2).Infof("Waiting for machine objects to be deleted...")
 		response, err := c.clientSet.ClusterV1alpha1().Machines(namespace).List(metav1.ListOptions{})
 		if err != nil {
 			return false, nil
@@ -518,20 +518,20 @@ func (c *client) buildKubectlArgs(commandName string) []string {
 
 func (c *client) waitForKubectlApply(manifest string) error {
 	err := util.PollImmediate(retryIntervalKubectlApply, timeoutKubectlApply, func() (bool, error) {
-		glog.V(2).Infof("Waiting for kubectl apply...")
+		klog.V(2).Infof("Waiting for kubectl apply...")
 		err := c.kubectlApply(manifest)
 		if err != nil {
 			if strings.Contains(err.Error(), "refused") {
 				// Connection was refused, probably because the API server is not ready yet.
-				glog.V(4).Infof("Waiting for kubectl apply... server not yet available: %v", err)
+				klog.V(4).Infof("Waiting for kubectl apply... server not yet available: %v", err)
 				return false, nil
 			}
 			if strings.Contains(err.Error(), "unable to recognize") {
-				glog.V(4).Infof("Waiting for kubectl apply... api not yet available: %v", err)
+				klog.V(4).Infof("Waiting for kubectl apply... api not yet available: %v", err)
 				return false, nil
 			}
 			if strings.Contains(err.Error(), "namespaces \"default\" not found") {
-				glog.V(4).Infof("Waiting for kubectl apply... default namespace not yet available: %v", err)
+				klog.V(4).Infof("Waiting for kubectl apply... default namespace not yet available: %v", err)
 				return false, nil
 			}
 			return false, err
@@ -546,7 +546,7 @@ func (c *client) waitForKubectlApply(manifest string) error {
 func waitForClusterResourceReady(cs clientset.Interface) error {
 	deadline := time.Now().Add(timeoutResourceReady)
 	err := util.PollImmediate(retryIntervalResourceReady, timeoutResourceReady, func() (bool, error) {
-		glog.V(2).Info("Waiting for Cluster v1alpha resources to become available...")
+		klog.V(2).Info("Waiting for Cluster v1alpha resources to become available...")
 		_, err := cs.Discovery().ServerResourcesForGroupVersion("cluster.k8s.io/v1alpha1")
 		if err == nil {
 			return true, nil
@@ -559,7 +559,7 @@ func waitForClusterResourceReady(cs clientset.Interface) error {
 	}
 	timeout := time.Until(deadline)
 	return util.PollImmediate(retryIntervalResourceReady, timeout, func() (bool, error) {
-		glog.V(2).Info("Waiting for Cluster v1alpha resources to be listable...")
+		klog.V(2).Info("Waiting for Cluster v1alpha resources to be listable...")
 		_, err := cs.ClusterV1alpha1().Clusters(apiv1.NamespaceDefault).List(metav1.ListOptions{})
 		if err == nil {
 			return true, nil
@@ -570,7 +570,7 @@ func waitForClusterResourceReady(cs clientset.Interface) error {
 
 func waitForMachineReady(cs clientset.Interface, machine *clusterv1.Machine) error {
 	err := util.PollImmediate(retryIntervalResourceReady, timeoutMachineReady, func() (bool, error) {
-		glog.V(2).Infof("Waiting for Machine %v to become ready...", machine.Name)
+		klog.V(2).Infof("Waiting for Machine %v to become ready...", machine.Name)
 		m, err := cs.ClusterV1alpha1().Machines(machine.Namespace).Get(machine.Name, metav1.GetOptions{})
 		if err != nil {
 			return false, nil
@@ -605,7 +605,7 @@ func createTempFile(contents string) (string, error) {
 func ifErrRemove(pErr *error, path string) {
 	if *pErr != nil {
 		if err := os.Remove(path); err != nil {
-			glog.Warningf("Error removing file '%s': %v", path, err)
+			klog.Warningf("Error removing file '%s': %v", path, err)
 		}
 	}
 }

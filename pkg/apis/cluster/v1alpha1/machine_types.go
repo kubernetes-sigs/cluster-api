@@ -151,6 +151,35 @@ type MachineStatus struct {
 	// Refer: https://kubernetes.io/docs/concepts/architecture/nodes/#condition
 	// +optional
 	Conditions []corev1.NodeCondition `json:"conditions,omitempty"`
+
+	// LastOperation describes the last-operation performed by the machine-controller.
+	// This API should be useful as a history in terms of the latest operation performed on the
+	// specific machine. It should also convey the state of the latest-operation for example if
+	// it is still on-going, failed or completed successfully.
+	// +optional
+	LastOperation *LastOperation `json:"lastOperation,omitempty"`
+
+	// Phase represents the current phase of machine actuation.
+	// Eg. Pending, Running, Terminating, Failed etc.
+	// +optional
+	Phase *string `json:"phase,omitempty"`
+}
+
+// LastOperation represents the detail of the last performed operation on the MachineObject.
+type LastOperation struct {
+	// Description is the human-readable description of the last operation.
+	Description *string `json:"description,omitempty"`
+
+	// LastUpdateTime is the timestamp at which LastOperation API was last-updated.
+	LastUpdated *metav1.Time `json:"lastUpdated,omitempty"`
+
+	// State is the current status of the last performed operation.
+	// Eg.Processing, Failed, Successful etc
+	State *string `json:"state,omitempty"`
+
+	// Type is the type of operation which was last performed.
+	// Eg. Create, Delete, Update etc
+	Type *string `json:"type,omitempty"`
 }
 
 /// [MachineStatus]

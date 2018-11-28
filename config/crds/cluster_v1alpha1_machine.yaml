@@ -71,11 +71,25 @@ spec:
               type: string
             errorReason:
               type: string
+            lastOperation:
+              properties:
+                description:
+                  type: string
+                lastUpdated:
+                  format: date-time
+                  type: string
+                state:
+                  type: string
+                type:
+                  type: string
+              type: object
             lastUpdated:
               format: date-time
               type: string
             nodeRef:
               type: object
+            phase:
+              type: string
             providerStatus:
               type: object
             versions:

@@ -43,6 +43,7 @@ are also sponsored by SIG-cluster-lifecycle:
   * OpenStack, https://github.com/kubernetes-sigs/cluster-api-provider-openstack
   * vSphere, https://github.com/kubernetes-sigs/cluster-api-provider-vsphere
   * Tencent Cloud, https://github.com/TencentCloud/cluster-api-provider-tencent
+  * Baidu Cloud, https://github.com/baidu/cluster-api-provider-baiducloud
 
 ## API Adoption
 

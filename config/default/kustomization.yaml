@@ -20,6 +20,7 @@ namePrefix: cluster-api-
 resources:
 - ../crds/cluster_v1alpha1_cluster.yaml
 - ../crds/cluster_v1alpha1_machine.yaml
+- ../crds/cluster_v1alpha1_machineclass.yaml
 - ../crds/cluster_v1alpha1_machinedeployment.yaml
 - ../crds/cluster_v1alpha1_machineset.yaml
 - ../rbac/rbac_role.yaml

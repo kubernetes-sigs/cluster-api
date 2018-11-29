@@ -20,7 +20,7 @@ Much of the information here was adapted directly from it.
 brew install kubernetes-cli
 
 # Install minikube
-curl -Lo minikube https://storage.googleapis.com/minikube/releases/v0.30.0/minikube-darwin-amd64 && \
+curl -fLo minikube https://storage.googleapis.com/minikube/releases/v0.30.0/minikube-darwin-amd64 && \
 chmod +x minikube && \
 sudo cp minikube /usr/local/bin/ && \
 rm minikube
@@ -30,22 +30,22 @@ brew install kustomize
 ```
 ```bash::Linux
 # Install kubectl
-KUBECTL_VERSION=$(curl -s https://storage.googleapis.com/kubernetes-release/release/stable.txt)
-curl -LO https://storage.googleapis.com/kubernetes-release/release/${KUBECTL_VERSION}/bin/linux/amd64/kubectl
+KUBECTL_VERSION=$(curl -sf https://storage.googleapis.com/kubernetes-release/release/stable.txt)
+curl -fLO https://storage.googleapis.com/kubernetes-release/release/${KUBECTL_VERSION}/bin/linux/amd64/kubectl
 
 # Install minikube
-curl -Lo minikube https://storage.googleapis.com/minikube/releases/v0.30.0/minikube-linux-amd64 && \
+curl -fLo minikube https://storage.googleapis.com/minikube/releases/v0.30.0/minikube-linux-amd64 && \
 chmod +x minikube && \
 sudo cp minikube /usr/local/bin/ && \
 rm minikube
 
 # Install kustomize
 OS_TYPE=linux
-curl -s https://api.github.com/repos/kubernetes-sigs/kustomize/releases/latest |\
+curl -sf https://api.github.com/repos/kubernetes-sigs/kustomize/releases/latest |\
   grep browser_download |\
   grep ${OS_TYPE} |\
   cut -d '"' -f 4 |\
-  xargs curl -O -L
+  xargs curl -f -O -L
 mv kustomize_*_${OS_TYPE}_amd64 /usr/local/bin/kustomize
 chmod u+x /usr/local/bin/kustomize
 ```

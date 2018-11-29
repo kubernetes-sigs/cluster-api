@@ -53,7 +53,7 @@ spec:
         operator: Exists
       containers:
       - command:
-        - /root/manager
+        - /manager
         image: controller:latest
         name: manager
         resources:

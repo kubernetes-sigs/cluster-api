@@ -144,7 +144,11 @@ func Copy(m *clusterv1.Machine) *clusterv1.Machine {
 }
 
 func ExecCommand(name string, args ...string) string {
-	cmdOut, _ := exec.Command(name, args...).Output()
+	cmdOut, err := exec.Command(name, args...).Output()
+	if err != nil {
+		s := strings.Join(append([]string{name}, args...), " ")
+		klog.Errorf("error executing command %q: %v", s, err)
+	}
 	return string(cmdOut)
 }
 

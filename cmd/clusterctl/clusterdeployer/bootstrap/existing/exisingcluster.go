@@ -20,6 +20,9 @@ import (
 	"fmt"
 	"io/ioutil"
 	"os"
+
+	"k8s.io/client-go/rest"
+	"k8s.io/client-go/tools/clientcmd"
 )
 
 // Represents an existing cluster being used for bootstrapping, should not be able to
@@ -65,4 +68,14 @@ func (e *ExistingCluster) GetKubeconfig() (string, error) {
 	}
 
 	return e.kubeconfigFile, nil
+}
+
+// GetConfig implements clusterdeployer.ClusterProvisioner interface
+func (e *ExistingCluster) GetConfig() (*rest.Config, error) {
+	s, err := e.GetKubeconfig()
+	if err != nil {
+		return nil, err
+	}
+
+	return clientcmd.RESTConfigFromKubeConfig([]byte(s))
 }

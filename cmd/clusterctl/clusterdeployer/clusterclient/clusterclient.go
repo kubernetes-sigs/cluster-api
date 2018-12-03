@@ -28,6 +28,7 @@ import (
 	apiv1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/client-go/rest"
 	tcmd "k8s.io/client-go/tools/clientcmd"
 	"sigs.k8s.io/cluster-api/cmd/clusterctl/clientcmd"
 	clusterv1 "sigs.k8s.io/cluster-api/pkg/apis/cluster/v1alpha1"
@@ -101,6 +102,21 @@ func New(kubeconfig string) (*client, error) {
 	}
 	c.closeFn = c.removeKubeconfigFile
 	return c, nil
+}
+
+// NewClient creates and returns a Client for the given config
+func NewClient(config *rest.Config) (*client, error) {
+	overrides := clientcmd.NewConfigOverrides()
+
+	c, err := clientset.NewForConfig(config)
+	if err != nil {
+		return nil, err
+	}
+
+	return &client{
+		clientSet:       c,
+		configOverrides: overrides,
+	}, nil
 }
 
 func (c *client) removeKubeconfigFile() error {

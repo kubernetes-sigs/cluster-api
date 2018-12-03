@@ -16,9 +16,13 @@ limitations under the License.
 
 package bootstrap
 
-// Can provision a kubernetes cluster
+import (
+	"k8s.io/client-go/rest"
+)
+
+// ClusterProvisioner can provision a kubernetes cluster
 type ClusterProvisioner interface {
 	Create() error
 	Delete() error
-	GetKubeconfig() (string, error)
+	GetConfig() (*rest.Config, error)
 }

@@ -23,6 +23,8 @@ import (
 	"os/exec"
 	"strings"
 
+	"k8s.io/client-go/rest"
+	"k8s.io/client-go/tools/clientcmd"
 	"k8s.io/klog"
 )
 
@@ -87,6 +89,16 @@ func (m *Minikube) GetKubeconfig() (string, error) {
 		return "", err
 	}
 	return string(b), nil
+}
+
+// GetConfig implements clusterdeployer.ClusterProvisioner interface
+func (m *Minikube) GetConfig() (*rest.Config, error) {
+	s, err := m.GetKubeconfig()
+	if err != nil {
+		return nil, err
+	}
+
+	return clientcmd.RESTConfigFromKubeConfig([]byte(s))
 }
 
 func (m *Minikube) exec(args ...string) (string, error) {

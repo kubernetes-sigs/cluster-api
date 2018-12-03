@@ -39,11 +39,11 @@ func CreateBootstrapCluster(provisioner bootstrap.ClusterProvisioner, cleanupBoo
 		}
 	}
 
-	bootstrapKubeconfig, err := provisioner.GetKubeconfig()
+	bootstrapKubeconfig, err := provisioner.GetConfig()
 	if err != nil {
 		return nil, cleanupFn, fmt.Errorf("unable to get bootstrap cluster kubeconfig: %v", err)
 	}
-	bootstrapClient, err := clientFactory.NewClientFromKubeconfig(bootstrapKubeconfig)
+	bootstrapClient, err := clientFactory.NewClient(bootstrapKubeconfig)
 	if err != nil {
 		return nil, cleanupFn, fmt.Errorf("unable to create bootstrap client: %v", err)
 	}

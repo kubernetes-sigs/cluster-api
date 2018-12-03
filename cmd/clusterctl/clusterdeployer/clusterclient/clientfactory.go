@@ -23,6 +23,7 @@ import (
 
 // Factory can create cluster clients
 type Factory interface {
+	NewClient(config *rest.Config) (Client, error)
 	NewClientFromKubeconfig(string) (Client, error)
 	NewCoreClientsetFromKubeconfigFile(string) (*kubernetes.Clientset, error)
 }
@@ -32,6 +33,10 @@ type clientFactory struct {
 
 func NewFactory() *clientFactory {
 	return &clientFactory{}
+}
+
+func (f *clientFactory) NewClient(config *rest.Config) (Client, error) {
+	return NewClient(config)
 }
 
 func (f *clientFactory) NewClientFromKubeconfig(kubeconfig string) (Client, error) {

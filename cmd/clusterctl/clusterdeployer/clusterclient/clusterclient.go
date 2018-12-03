@@ -534,6 +534,7 @@ func (c *client) waitForKubectlApply(manifest string) error {
 				klog.V(4).Infof("Waiting for kubectl apply... default namespace not yet available: %v", err)
 				return false, nil
 			}
+			klog.Warningf("Waiting for kubectl apply... unknown error %v", err)
 			return false, err
 		}
 

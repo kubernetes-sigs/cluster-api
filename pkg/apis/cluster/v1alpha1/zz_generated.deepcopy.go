@@ -386,11 +386,6 @@ func (in *MachineDeploymentSpec) DeepCopyInto(out *MachineDeploymentSpec) {
 		*out = new(MachineDeploymentStrategy)
 		(*in).DeepCopyInto(*out)
 	}
-	if in.MinReadySeconds != nil {
-		in, out := &in.MinReadySeconds, &out.MinReadySeconds
-		*out = new(int32)
-		**out = **in
-	}
 	if in.RevisionHistoryLimit != nil {
 		in, out := &in.RevisionHistoryLimit, &out.RevisionHistoryLimit
 		*out = new(int32)

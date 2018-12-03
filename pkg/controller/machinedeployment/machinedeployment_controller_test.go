@@ -43,7 +43,7 @@ func TestReconcile(t *testing.T) {
 	instance := &clusterv1alpha1.MachineDeployment{
 		ObjectMeta: metav1.ObjectMeta{Name: "foo", Namespace: "default"},
 		Spec: clusterv1alpha1.MachineDeploymentSpec{
-			MinReadySeconds:      int32Ptr(0),
+			MinReadySeconds:      0,
 			Replicas:             int32Ptr(2),
 			RevisionHistoryLimit: int32Ptr(0),
 			Selector:             metav1.LabelSelector{MatchLabels: labels},

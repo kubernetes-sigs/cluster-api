@@ -48,7 +48,7 @@ type MachineDeploymentSpec struct {
 	// Defaults to 0 (machine will be considered available as soon as it
 	// is ready)
 	// +optional
-	MinReadySeconds *int32 `json:"minReadySeconds,omitempty"`
+	MinReadySeconds int32 `json:"minReadySeconds,omitempty"`
 
 	// The number of old MachineSets to retain to allow rollback.
 	// This is a pointer to distinguish between explicit zero and not specified.

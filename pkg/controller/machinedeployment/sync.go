@@ -103,9 +103,9 @@ func (r *ReconcileMachineDeployment) getNewMachineSet(d *clusterv1alpha1.Machine
 		// Set existing new machine set's annotation
 		annotationsUpdated := dutil.SetNewMachineSetAnnotations(d, msCopy, newRevision, true)
 
-		minReadySecondsNeedsUpdate := msCopy.Spec.MinReadySeconds != *d.Spec.MinReadySeconds
+		minReadySecondsNeedsUpdate := msCopy.Spec.MinReadySeconds != d.Spec.MinReadySeconds
 		if annotationsUpdated || minReadySecondsNeedsUpdate {
-			msCopy.Spec.MinReadySeconds = *d.Spec.MinReadySeconds
+			msCopy.Spec.MinReadySeconds = d.Spec.MinReadySeconds
 			return nil, r.Update(context.Background(), msCopy)
 		}
 
@@ -138,7 +138,7 @@ func (r *ReconcileMachineDeployment) getNewMachineSet(d *clusterv1alpha1.Machine
 		},
 		Spec: clusterv1alpha1.MachineSetSpec{
 			Replicas:        new(int32),
-			MinReadySeconds: *d.Spec.MinReadySeconds,
+			MinReadySeconds: d.Spec.MinReadySeconds,
 			Selector:        *newMSSelector,
 			Template:        newMSTemplate,
 		},

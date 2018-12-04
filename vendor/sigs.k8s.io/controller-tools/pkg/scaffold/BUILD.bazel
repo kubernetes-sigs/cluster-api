@@ -1,0 +1,18 @@
+load("@io_bazel_rules_go//go:def.bzl", "go_library")
+
+go_library(
+    name = "go_default_library",
+    srcs = [
+        "doc.go",
+        "scaffold.go",
+    ],
+    importmap = "sigs.k8s.io/cluster-api/vendor/sigs.k8s.io/controller-tools/pkg/scaffold",
+    importpath = "sigs.k8s.io/controller-tools/pkg/scaffold",
+    visibility = ["//visibility:public"],
+    deps = [
+        "//vendor/golang.org/x/tools/imports:go_default_library",
+        "//vendor/gopkg.in/yaml.v2:go_default_library",
+        "//vendor/sigs.k8s.io/controller-tools/pkg/scaffold/input:go_default_library",
+        "//vendor/sigs.k8s.io/controller-tools/pkg/util:go_default_library",
+    ],
+)

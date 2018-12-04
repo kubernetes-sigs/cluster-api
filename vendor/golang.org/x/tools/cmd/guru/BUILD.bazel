@@ -1,0 +1,47 @@
+load("@io_bazel_rules_go//go:def.bzl", "go_binary", "go_library")
+
+go_library(
+    name = "go_default_library",
+    srcs = [
+        "callees.go",
+        "callers.go",
+        "callstack.go",
+        "definition.go",
+        "describe.go",
+        "freevars.go",
+        "guru.go",
+        "implements.go",
+        "isAlias18.go",
+        "isAlias19.go",
+        "main.go",
+        "peers.go",
+        "pointsto.go",
+        "pos.go",
+        "referrers.go",
+        "what.go",
+        "whicherrs.go",
+    ],
+    importmap = "sigs.k8s.io/cluster-api/vendor/golang.org/x/tools/cmd/guru",
+    importpath = "golang.org/x/tools/cmd/guru",
+    visibility = ["//visibility:private"],
+    deps = [
+        "//vendor/golang.org/x/tools/cmd/guru/serial:go_default_library",
+        "//vendor/golang.org/x/tools/go/ast/astutil:go_default_library",
+        "//vendor/golang.org/x/tools/go/buildutil:go_default_library",
+        "//vendor/golang.org/x/tools/go/callgraph:go_default_library",
+        "//vendor/golang.org/x/tools/go/callgraph/static:go_default_library",
+        "//vendor/golang.org/x/tools/go/loader:go_default_library",
+        "//vendor/golang.org/x/tools/go/pointer:go_default_library",
+        "//vendor/golang.org/x/tools/go/ssa:go_default_library",
+        "//vendor/golang.org/x/tools/go/ssa/ssautil:go_default_library",
+        "//vendor/golang.org/x/tools/go/types/typeutil:go_default_library",
+        "//vendor/golang.org/x/tools/imports:go_default_library",
+        "//vendor/golang.org/x/tools/refactor/importgraph:go_default_library",
+    ],
+)
+
+go_binary(
+    name = "guru",
+    embed = [":go_default_library"],
+    visibility = ["//visibility:public"],
+)

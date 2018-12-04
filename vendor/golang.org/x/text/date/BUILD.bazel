@@ -1,0 +1,10 @@
+load("@io_bazel_rules_go//go:def.bzl", "go_library")
+
+go_library(
+    name = "go_default_library",
+    srcs = ["tables.go"],
+    importmap = "sigs.k8s.io/cluster-api/vendor/golang.org/x/text/date",
+    importpath = "golang.org/x/text/date",
+    visibility = ["//visibility:public"],
+    deps = ["//vendor/golang.org/x/text/internal/cldrtree:go_default_library"],
+)

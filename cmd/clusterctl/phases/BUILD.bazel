@@ -1,0 +1,20 @@
+load("@io_bazel_rules_go//go:def.bzl", "go_library")
+
+go_library(
+    name = "go_default_library",
+    srcs = [
+        "applyaddons.go",
+        "applycluster.go",
+        "applyclusterapicomponents.go",
+        "applymachines.go",
+        "createbootstrapcluster.go",
+    ],
+    importpath = "sigs.k8s.io/cluster-api/cmd/clusterctl/phases",
+    visibility = ["//visibility:public"],
+    deps = [
+        "//cmd/clusterctl/clusterdeployer/bootstrap:go_default_library",
+        "//cmd/clusterctl/clusterdeployer/clusterclient:go_default_library",
+        "//pkg/apis/cluster/v1alpha1:go_default_library",
+        "//vendor/k8s.io/klog:go_default_library",
+    ],
+)

@@ -1,0 +1,53 @@
+load("@io_bazel_rules_go//go:def.bzl", "go_library", "go_test")
+
+go_library(
+    name = "go_default_library",
+    srcs = [
+        "alpha.go",
+        "alpha_phase_apply_addons.go",
+        "alpha_phase_apply_cluster.go",
+        "alpha_phase_apply_cluster_api_components.go",
+        "alpha_phase_apply_machines.go",
+        "alpha_phase_create_bootstrap_cluster.go",
+        "alpha_phases.go",
+        "create.go",
+        "create_cluster.go",
+        "delete.go",
+        "delete_cluster.go",
+        "logutil.go",
+        "root.go",
+        "validate.go",
+        "validate_cluster.go",
+    ],
+    importpath = "sigs.k8s.io/cluster-api/cmd/clusterctl/cmd",
+    visibility = ["//visibility:public"],
+    deps = [
+        "//cmd/clusterctl/clientcmd:go_default_library",
+        "//cmd/clusterctl/clusterdeployer:go_default_library",
+        "//cmd/clusterctl/clusterdeployer/bootstrap:go_default_library",
+        "//cmd/clusterctl/clusterdeployer/bootstrap/existing:go_default_library",
+        "//cmd/clusterctl/clusterdeployer/bootstrap/minikube:go_default_library",
+        "//cmd/clusterctl/clusterdeployer/clusterclient:go_default_library",
+        "//cmd/clusterctl/phases:go_default_library",
+        "//cmd/clusterctl/providercomponents:go_default_library",
+        "//cmd/clusterctl/validation:go_default_library",
+        "//pkg/apis:go_default_library",
+        "//pkg/apis/cluster/common:go_default_library",
+        "//pkg/util:go_default_library",
+        "//vendor/github.com/spf13/cobra:go_default_library",
+        "//vendor/github.com/spf13/pflag:go_default_library",
+        "//vendor/k8s.io/api/core/v1:go_default_library",
+        "//vendor/k8s.io/apimachinery/pkg/util/wait:go_default_library",
+        "//vendor/k8s.io/client-go/tools/clientcmd:go_default_library",
+        "//vendor/k8s.io/klog:go_default_library",
+        "//vendor/sigs.k8s.io/controller-runtime/pkg/client:go_default_library",
+        "//vendor/sigs.k8s.io/controller-runtime/pkg/client/config:go_default_library",
+        "//vendor/sigs.k8s.io/controller-runtime/pkg/manager:go_default_library",
+    ],
+)
+
+go_test(
+    name = "go_default_test",
+    srcs = ["create_cluster_test.go"],
+    embed = [":go_default_library"],
+)

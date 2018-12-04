@@ -1,0 +1,34 @@
+load("@io_bazel_rules_go//go:def.bzl", "go_library")
+
+go_library(
+    name = "go_default_library",
+    srcs = [
+        "agents_client.go",
+        "contexts_client.go",
+        "doc.go",
+        "entity_types_client.go",
+        "intents_client.go",
+        "session_entity_types_client.go",
+        "sessions_client.go",
+    ],
+    importmap = "sigs.k8s.io/cluster-api/vendor/cloud.google.com/go/dialogflow/apiv2",
+    importpath = "cloud.google.com/go/dialogflow/apiv2",
+    visibility = ["//visibility:public"],
+    deps = [
+        "//vendor/cloud.google.com/go/internal/version:go_default_library",
+        "//vendor/cloud.google.com/go/longrunning:go_default_library",
+        "//vendor/cloud.google.com/go/longrunning/autogen:go_default_library",
+        "//vendor/github.com/golang/protobuf/proto:go_default_library",
+        "//vendor/github.com/googleapis/gax-go:go_default_library",
+        "//vendor/golang.org/x/net/context:go_default_library",
+        "//vendor/google.golang.org/api/iterator:go_default_library",
+        "//vendor/google.golang.org/api/option:go_default_library",
+        "//vendor/google.golang.org/api/transport:go_default_library",
+        "//vendor/google.golang.org/grpc/codes:go_default_library",
+        "//vendor/google.golang.org/grpc/metadata:go_default_library",
+        "@go_googleapis//google/cloud/dialogflow/v2:dialogflow_go_proto",
+        "@go_googleapis//google/longrunning:longrunning_go_proto",
+        "@io_bazel_rules_go//proto/wkt:struct_go_proto",
+        "@org_golang_google_grpc//:go_default_library",
+    ],
+)

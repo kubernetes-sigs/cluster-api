@@ -1,0 +1,30 @@
+load("@io_bazel_rules_go//go:def.bzl", "go_library")
+
+go_library(
+    name = "go_default_library",
+    srcs = [
+        "database_admin_client.go",
+        "doc.go",
+        "path_funcs.go",
+    ],
+    importmap = "sigs.k8s.io/cluster-api/vendor/cloud.google.com/go/spanner/admin/database/apiv1",
+    importpath = "cloud.google.com/go/spanner/admin/database/apiv1",
+    visibility = ["//visibility:public"],
+    deps = [
+        "//vendor/cloud.google.com/go/internal/version:go_default_library",
+        "//vendor/cloud.google.com/go/longrunning:go_default_library",
+        "//vendor/cloud.google.com/go/longrunning/autogen:go_default_library",
+        "//vendor/github.com/golang/protobuf/proto:go_default_library",
+        "//vendor/github.com/googleapis/gax-go:go_default_library",
+        "//vendor/golang.org/x/net/context:go_default_library",
+        "//vendor/google.golang.org/api/iterator:go_default_library",
+        "//vendor/google.golang.org/api/option:go_default_library",
+        "//vendor/google.golang.org/api/transport:go_default_library",
+        "//vendor/google.golang.org/grpc/codes:go_default_library",
+        "//vendor/google.golang.org/grpc/metadata:go_default_library",
+        "@go_googleapis//google/iam/v1:iam_go_proto",
+        "@go_googleapis//google/longrunning:longrunning_go_proto",
+        "@go_googleapis//google/spanner/admin/database/v1:database_go_proto",
+        "@org_golang_google_grpc//:go_default_library",
+    ],
+)

@@ -1,0 +1,12 @@
+load("@io_bazel_rules_go//go:def.bzl", "go_library")
+
+go_library(
+    name = "go_default_library",
+    srcs = [
+        "hash.go",
+        "redirect.go",
+    ],
+    importmap = "sigs.k8s.io/cluster-api/vendor/golang.org/x/tools/godoc/redirect",
+    importpath = "golang.org/x/tools/godoc/redirect",
+    visibility = ["//visibility:public"],
+)

@@ -1,0 +1,9 @@
+load("@io_bazel_rules_go//go:def.bzl", "go_library")
+
+go_library(
+    name = "go_default_library",
+    srcs = ["certificates.go"],
+    importmap = "sigs.k8s.io/cluster-api/vendor/k8s.io/apiserver/pkg/storage/etcd/testing/testingcert",
+    importpath = "k8s.io/apiserver/pkg/storage/etcd/testing/testingcert",
+    visibility = ["//visibility:public"],
+)

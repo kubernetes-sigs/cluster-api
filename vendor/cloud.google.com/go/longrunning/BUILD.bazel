@@ -1,0 +1,19 @@
+load("@io_bazel_rules_go//go:def.bzl", "go_library")
+
+go_library(
+    name = "go_default_library",
+    srcs = ["longrunning.go"],
+    importmap = "sigs.k8s.io/cluster-api/vendor/cloud.google.com/go/longrunning",
+    importpath = "cloud.google.com/go/longrunning",
+    visibility = ["//visibility:public"],
+    deps = [
+        "//vendor/cloud.google.com/go/longrunning/autogen:go_default_library",
+        "//vendor/github.com/golang/protobuf/proto:go_default_library",
+        "//vendor/github.com/googleapis/gax-go:go_default_library",
+        "//vendor/golang.org/x/net/context:go_default_library",
+        "//vendor/google.golang.org/grpc/codes:go_default_library",
+        "//vendor/google.golang.org/grpc/status:go_default_library",
+        "@com_github_golang_protobuf//ptypes:go_default_library_gen",
+        "@go_googleapis//google/longrunning:longrunning_go_proto",
+    ],
+)

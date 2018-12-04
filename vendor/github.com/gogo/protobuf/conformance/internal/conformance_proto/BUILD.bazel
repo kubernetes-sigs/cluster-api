@@ -1,0 +1,13 @@
+load("@io_bazel_rules_go//go:def.bzl", "go_library")
+
+go_library(
+    name = "go_default_library",
+    srcs = ["conformance.pb.go"],
+    importmap = "sigs.k8s.io/cluster-api/vendor/github.com/gogo/protobuf/conformance/internal/conformance_proto",
+    importpath = "github.com/gogo/protobuf/conformance/internal/conformance_proto",
+    visibility = ["//vendor/github.com/gogo/protobuf/conformance:__subpackages__"],
+    deps = [
+        "//vendor/github.com/gogo/protobuf/proto:go_default_library",
+        "//vendor/github.com/gogo/protobuf/types:go_default_library",
+    ],
+)

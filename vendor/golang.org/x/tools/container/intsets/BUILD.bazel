@@ -1,0 +1,15 @@
+load("@io_bazel_rules_go//go:def.bzl", "go_library")
+
+go_library(
+    name = "go_default_library",
+    srcs = [
+        "popcnt_amd64.go",
+        "popcnt_amd64.s",
+        "popcnt_generic.go",
+        "sparse.go",
+        "util.go",
+    ],
+    importmap = "sigs.k8s.io/cluster-api/vendor/golang.org/x/tools/container/intsets",
+    importpath = "golang.org/x/tools/container/intsets",
+    visibility = ["//visibility:public"],
+)

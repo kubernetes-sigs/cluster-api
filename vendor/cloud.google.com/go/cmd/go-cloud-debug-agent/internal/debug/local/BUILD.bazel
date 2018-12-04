@@ -1,0 +1,17 @@
+load("@io_bazel_rules_go//go:def.bzl", "go_library")
+
+go_library(
+    name = "go_default_library",
+    srcs = ["local.go"],
+    importmap = "sigs.k8s.io/cluster-api/vendor/cloud.google.com/go/cmd/go-cloud-debug-agent/internal/debug/local",
+    importpath = "cloud.google.com/go/cmd/go-cloud-debug-agent/internal/debug/local",
+    visibility = ["//vendor/cloud.google.com/go/cmd/go-cloud-debug-agent:__subpackages__"],
+    deps = select({
+        "@io_bazel_rules_go//go/platform:linux": [
+            "//vendor/cloud.google.com/go/cmd/go-cloud-debug-agent/internal/debug:go_default_library",
+            "//vendor/cloud.google.com/go/cmd/go-cloud-debug-agent/internal/debug/server:go_default_library",
+            "//vendor/cloud.google.com/go/cmd/go-cloud-debug-agent/internal/debug/server/protocol:go_default_library",
+        ],
+        "//conditions:default": [],
+    }),
+)

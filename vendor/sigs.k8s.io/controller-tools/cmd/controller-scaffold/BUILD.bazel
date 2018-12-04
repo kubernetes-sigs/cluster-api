@@ -1,0 +1,19 @@
+load("@io_bazel_rules_go//go:def.bzl", "go_binary", "go_library")
+
+go_library(
+    name = "go_default_library",
+    srcs = [
+        "doc.go",
+        "main.go",
+    ],
+    importmap = "sigs.k8s.io/cluster-api/vendor/sigs.k8s.io/controller-tools/cmd/controller-scaffold",
+    importpath = "sigs.k8s.io/controller-tools/cmd/controller-scaffold",
+    visibility = ["//visibility:private"],
+    deps = ["//vendor/sigs.k8s.io/controller-tools/cmd/controller-scaffold/cmd:go_default_library"],
+)
+
+go_binary(
+    name = "controller-scaffold",
+    embed = [":go_default_library"],
+    visibility = ["//visibility:public"],
+)

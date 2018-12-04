@@ -1,0 +1,14 @@
+load("@io_bazel_rules_go//go:def.bzl", "go_library")
+
+go_library(
+    name = "go_default_library",
+    srcs = [
+        "eg.go",
+        "match.go",
+        "rewrite.go",
+    ],
+    importmap = "sigs.k8s.io/cluster-api/vendor/golang.org/x/tools/refactor/eg",
+    importpath = "golang.org/x/tools/refactor/eg",
+    visibility = ["//visibility:public"],
+    deps = ["//vendor/golang.org/x/tools/go/ast/astutil:go_default_library"],
+)

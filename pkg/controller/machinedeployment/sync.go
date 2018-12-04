@@ -473,6 +473,8 @@ func updateMachineDeployment(c client.Client, d *clusterv1alpha1.MachineDeployme
 		if err := c.Get(context.Background(), types.NamespacedName{Namespace: d.Namespace, Name: d.Name}, d); err != nil {
 			return err
 		}
+
+		clusterv1alpha1.PopulateDefaultsMachineDeployment(d)
 		// Apply modifications
 		modify(d)
 		// Update the machineDeployment

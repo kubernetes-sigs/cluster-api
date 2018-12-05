@@ -2,6 +2,9 @@ required = [
     "github.com/emicklei/go-restful",
     "k8s.io/client-go/plugin/pkg/client/auth/gcp", # for development against gcp
     "k8s.io/code-generator/cmd/deepcopy-gen", # for go generate
+    "k8s.io/code-generator/cmd/client-gen", # for go generate
+    "k8s.io/code-generator/cmd/informer-gen", # for go generate
+    "k8s.io/code-generator/cmd/lister-gen", # for go generate
     "sigs.k8s.io/controller-tools/cmd/controller-gen", # for crd/rbac generation
     "sigs.k8s.io/controller-runtime/pkg/client/config",
     "sigs.k8s.io/controller-runtime/pkg/controller",
@@ -15,6 +18,7 @@ required = [
 
 [prune]
   go-tests = true
+  unused-packages = true
 
 # STANZAS BELOW ARE GENERATED AND MAY BE WRITTEN - DO NOT MODIFY BELOW THIS LINE.
 

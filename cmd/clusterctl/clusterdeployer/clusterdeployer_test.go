@@ -27,6 +27,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
 	"sigs.k8s.io/cluster-api/cmd/clusterctl/clusterdeployer/clusterclient"
+	"sigs.k8s.io/cluster-api/cmd/clusterctl/clusterdeployer/provider"
 	clusterv1 "sigs.k8s.io/cluster-api/pkg/apis/cluster/v1alpha1"
 )
 
@@ -59,12 +60,12 @@ func (p *testClusterProvisioner) GetKubeconfig() (string, error) {
 }
 
 type mockProviderComponentsStoreFactory struct {
-	NewFromCoreclientsetPCStore          ProviderComponentsStore
+	NewFromCoreclientsetPCStore          provider.ComponentsStore
 	NewFromCoreclientsetError            error
 	NewFromCoreclientsetCapturedArgument *kubernetes.Clientset
 }
 
-func (m *mockProviderComponentsStoreFactory) NewFromCoreClientset(clientset *kubernetes.Clientset) (ProviderComponentsStore, error) {
+func (m *mockProviderComponentsStoreFactory) NewFromCoreClientset(clientset *kubernetes.Clientset) (provider.ComponentsStore, error) {
 	m.NewFromCoreclientsetCapturedArgument = clientset
 	return m.NewFromCoreclientsetPCStore, m.NewFromCoreclientsetError
 }
@@ -809,7 +810,7 @@ func TestExtractControlPlaneMachine(t *testing.T) {
 	}
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			actualControlPlane, actualNodes, actualError := extractControlPlaneMachine(tc.inputMachines)
+			actualControlPlane, actualNodes, actualError := clusterclient.ExtractControlPlaneMachine(tc.inputMachines)
 
 			if tc.expectedError == nil && actualError != nil {
 				t.Fatalf("%s: extractControlPlaneMachine(%q): gotError %q; wantError [nil]", tc.name, len(tc.inputMachines), actualError)

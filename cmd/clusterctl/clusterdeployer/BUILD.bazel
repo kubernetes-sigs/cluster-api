@@ -11,10 +11,10 @@ go_library(
     deps = [
         "//cmd/clusterctl/clusterdeployer/bootstrap:go_default_library",
         "//cmd/clusterctl/clusterdeployer/clusterclient:go_default_library",
+        "//cmd/clusterctl/clusterdeployer/provider:go_default_library",
         "//cmd/clusterctl/phases:go_default_library",
         "//cmd/clusterctl/providercomponents:go_default_library",
         "//pkg/apis/cluster/v1alpha1:go_default_library",
-        "//pkg/util:go_default_library",
         "//vendor/github.com/pkg/errors:go_default_library",
         "//vendor/k8s.io/client-go/kubernetes:go_default_library",
         "//vendor/k8s.io/klog:go_default_library",
@@ -27,6 +27,7 @@ go_test(
     embed = [":go_default_library"],
     deps = [
         "//cmd/clusterctl/clusterdeployer/clusterclient:go_default_library",
+        "//cmd/clusterctl/clusterdeployer/provider:go_default_library",
         "//pkg/apis/cluster/v1alpha1:go_default_library",
         "//vendor/github.com/pkg/errors:go_default_library",
         "//vendor/k8s.io/api/core/v1:go_default_library",

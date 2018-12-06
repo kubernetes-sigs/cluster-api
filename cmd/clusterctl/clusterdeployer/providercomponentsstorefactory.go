@@ -18,16 +18,17 @@ package clusterdeployer
 
 import (
 	"k8s.io/client-go/kubernetes"
+	"sigs.k8s.io/cluster-api/cmd/clusterctl/clusterdeployer/provider"
 	"sigs.k8s.io/cluster-api/cmd/clusterctl/providercomponents"
 )
 
 type factory struct {
 }
 
-func NewProviderComponentsStoreFactory() ProviderComponentsStoreFactory {
+func NewProviderComponentsStoreFactory() provider.ComponentsStoreFactory {
 	return &factory{}
 }
 
-func (f *factory) NewFromCoreClientset(clientset *kubernetes.Clientset) (ProviderComponentsStore, error) {
+func (f *factory) NewFromCoreClientset(clientset *kubernetes.Clientset) (provider.ComponentsStore, error) {
 	return providercomponents.NewFromClientset(clientset)
 }

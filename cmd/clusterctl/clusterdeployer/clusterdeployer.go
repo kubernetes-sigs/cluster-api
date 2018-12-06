@@ -17,38 +17,17 @@ limitations under the License.
 package clusterdeployer
 
 import (
-	"io/ioutil"
-	"os"
+	"fmt"
 	"strings"
-	"time"
 
 	"github.com/pkg/errors"
-	"k8s.io/client-go/kubernetes"
 	"k8s.io/klog"
 	"sigs.k8s.io/cluster-api/cmd/clusterctl/clusterdeployer/bootstrap"
 	"sigs.k8s.io/cluster-api/cmd/clusterctl/clusterdeployer/clusterclient"
+	"sigs.k8s.io/cluster-api/cmd/clusterctl/clusterdeployer/provider"
 	"sigs.k8s.io/cluster-api/cmd/clusterctl/phases"
 	clusterv1 "sigs.k8s.io/cluster-api/pkg/apis/cluster/v1alpha1"
-	"sigs.k8s.io/cluster-api/pkg/util"
 )
-
-// Deprecated interface for Provider specific logic. Please do not extend or add. This interface should be removed
-// once issues/158 and issues/160 below are fixed.
-type ProviderDeployer interface {
-	// TODO: This requirement can be removed once after: https://github.com/kubernetes-sigs/cluster-api/issues/158
-	GetIP(cluster *clusterv1.Cluster, machine *clusterv1.Machine) (string, error)
-	// TODO: This requirement can be removed after: https://github.com/kubernetes-sigs/cluster-api/issues/160
-	GetKubeConfig(cluster *clusterv1.Cluster, controlPlaneMachine *clusterv1.Machine) (string, error)
-}
-
-type ProviderComponentsStore interface {
-	Save(providerComponents string) error
-	Load() (string, error)
-}
-
-type ProviderComponentsStoreFactory interface {
-	NewFromCoreClientset(clientset *kubernetes.Clientset) (ProviderComponentsStore, error)
-}
 
 type ClusterDeployer struct {
 	bootstrapProvisioner    bootstrap.ClusterProvisioner
@@ -73,14 +52,9 @@ func New(
 	}
 }
 
-const (
-	retryKubeConfigReady   = 10 * time.Second
-	timeoutKubeconfigReady = 20 * time.Minute
-)
-
 // Create the cluster from the provided cluster definition and machine list.
-func (d *ClusterDeployer) Create(cluster *clusterv1.Cluster, machines []*clusterv1.Machine, provider ProviderDeployer, kubeconfigOutput string, providerComponentsStoreFactory ProviderComponentsStoreFactory) error {
-	controlPlaneMachine, nodes, err := extractControlPlaneMachine(machines)
+func (d *ClusterDeployer) Create(cluster *clusterv1.Cluster, machines []*clusterv1.Machine, provider provider.Deployer, kubeconfigOutput string, providerComponentsStoreFactory provider.ComponentsStoreFactory) error {
+	controlPlaneMachine, nodes, err := clusterclient.ExtractControlPlaneMachine(machines)
 	if err != nil {
 		return errors.Wrap(err, "unable to separate control plane machines from node machines")
 	}
@@ -117,9 +91,14 @@ func (d *ClusterDeployer) Create(cluster *clusterv1.Cluster, machines []*cluster
 	}
 
 	klog.Info("Creating target cluster")
-	targetClient, err := d.createTargetClusterClient(bootstrapClient, provider, kubeconfigOutput, cluster.Name, cluster.Namespace)
+	targetKubeconfig, err := phases.GetKubeconfig(bootstrapClient, provider, kubeconfigOutput, cluster.Name, cluster.Namespace)
 	if err != nil {
-		return errors.Wrap(err, "unable to create target cluster")
+		return fmt.Errorf("unable to create target cluster kubeconfig: %v", err)
+	}
+
+	targetClient, err := d.clientFactory.NewClientFromKubeconfig(targetKubeconfig)
+	if err != nil {
+		return errors.Wrap(err, "unable to create target cluster client")
 	}
 	defer closeClient(targetClient, "target")
 
@@ -197,35 +176,11 @@ func (d *ClusterDeployer) Delete(targetClient clusterclient.Client, namespace st
 	return nil
 }
 
-func (d *ClusterDeployer) createTargetClusterClient(bootstrapClient clusterclient.Client, provider ProviderDeployer, kubeconfigOutput string, clusterName, namespace string) (clusterclient.Client, error) {
-	cluster, controlPlane, _, err := getClusterAPIObject(bootstrapClient, clusterName, namespace)
-	if err != nil {
-		return nil, err
-	}
-
-	klog.V(1).Info("Getting target cluster kubeconfig.")
-	targetKubeconfig, err := waitForKubeconfigReady(provider, cluster, controlPlane)
-	if err != nil {
-		return nil, errors.Wrap(err, "unable to get target cluster kubeconfig")
-	}
-
-	if err = d.writeKubeconfig(targetKubeconfig, kubeconfigOutput); err != nil {
-		return nil, err
-	}
-
-	targetClient, err := d.clientFactory.NewClientFromKubeconfig(targetKubeconfig)
-	if err != nil {
-		return nil, errors.Wrap(err, "unable to create target cluster client")
-	}
-
-	return targetClient, nil
-}
-
-func (d *ClusterDeployer) updateClusterEndpoint(client clusterclient.Client, provider ProviderDeployer, clusterName, namespace string) error {
+func (d *ClusterDeployer) updateClusterEndpoint(client clusterclient.Client, provider provider.Deployer, clusterName, namespace string) error {
 	// Update cluster endpoint. Needed till this logic moves into cluster controller.
 	// TODO: https://github.com/kubernetes-sigs/cluster-api/issues/158
 	// Fetch fresh objects.
-	cluster, controlPlane, _, err := getClusterAPIObject(client, clusterName, namespace)
+	cluster, controlPlane, _, err := clusterclient.GetClusterAPIObject(client, clusterName, namespace)
 	if err != nil {
 		return err
 	}
@@ -240,7 +195,7 @@ func (d *ClusterDeployer) updateClusterEndpoint(client clusterclient.Client, pro
 	return nil
 }
 
-func (d *ClusterDeployer) saveProviderComponentsToCluster(factory ProviderComponentsStoreFactory, kubeconfigPath string) error {
+func (d *ClusterDeployer) saveProviderComponentsToCluster(factory provider.ComponentsStoreFactory, kubeconfigPath string) error {
 	clientset, err := d.clientFactory.NewCoreClientsetFromKubeconfigFile(kubeconfigPath)
 	if err != nil {
 		return errors.Wrap(err, "error creating core clientset")
@@ -269,31 +224,6 @@ func (d *ClusterDeployer) applyClusterAPIComponentsWithPivoting(client, source c
 	}
 
 	return nil
-}
-
-func (d *ClusterDeployer) writeKubeconfig(kubeconfig string, kubeconfigOutput string) error {
-	const fileMode = 0666
-	os.Remove(kubeconfigOutput)
-	return ioutil.WriteFile(kubeconfigOutput, []byte(kubeconfig), fileMode)
-}
-
-func waitForKubeconfigReady(provider ProviderDeployer, cluster *clusterv1.Cluster, machine *clusterv1.Machine) (string, error) {
-	kubeconfig := ""
-	err := util.PollImmediate(retryKubeConfigReady, timeoutKubeconfigReady, func() (bool, error) {
-		klog.V(2).Infof("Waiting for kubeconfig on %v to become ready...", machine.Name)
-		k, err := provider.GetKubeConfig(cluster, machine)
-		if err != nil {
-			klog.V(4).Infof("error getting kubeconfig: %v", err)
-			return false, nil
-		}
-		if k == "" {
-			return false, nil
-		}
-		kubeconfig = k
-		return true, nil
-	})
-
-	return kubeconfig, err
 }
 
 func pivotNamespace(from, to clusterclient.Client, namespace string) error {
@@ -392,42 +322,6 @@ func deleteObjectsInNamespace(client clusterclient.Client, namespace string) err
 		return errors.Errorf("error(s) encountered deleting objects from bootstrap cluster: [%v]", strings.Join(errorList, ", "))
 	}
 	return nil
-}
-
-func getClusterAPIObject(client clusterclient.Client, clusterName, namespace string) (*clusterv1.Cluster, *clusterv1.Machine, []*clusterv1.Machine, error) {
-	machines, err := client.GetMachineObjectsInNamespace(namespace)
-	if err != nil {
-		return nil, nil, nil, errors.Wrap(err, "unable to fetch machines")
-	}
-	cluster, err := client.GetClusterObject(clusterName, namespace)
-	if err != nil {
-		return nil, nil, nil, errors.Wrapf(err, "unable to fetch cluster %v in namespace %v", clusterName, namespace)
-	}
-
-	controlPlaneMachine, nodes, err := extractControlPlaneMachine(machines)
-	if err != nil {
-		return nil, nil, nil, errors.Wrapf(err, "unable to fetch control plane machine in cluster %v in namespace %v", clusterName, namespace)
-	}
-	return cluster, controlPlaneMachine, nodes, nil
-}
-
-// extractControlPlaneMachine separates the machines running the control plane (singular) from the incoming machines.
-// This is currently done by looking at which machine specifies the control plane version.
-// TODO: Cleanup.
-func extractControlPlaneMachine(machines []*clusterv1.Machine) (*clusterv1.Machine, []*clusterv1.Machine, error) {
-	nodes := []*clusterv1.Machine{}
-	controlPlaneMachines := []*clusterv1.Machine{}
-	for _, machine := range machines {
-		if util.IsControlPlaneMachine(machine) {
-			controlPlaneMachines = append(controlPlaneMachines, machine)
-		} else {
-			nodes = append(nodes, machine)
-		}
-	}
-	if len(controlPlaneMachines) != 1 {
-		return nil, nil, errors.Errorf("expected one control plane machine, got: %v", len(controlPlaneMachines))
-	}
-	return controlPlaneMachines[0], nodes, nil
 }
 
 func closeClient(client clusterclient.Client, name string) {

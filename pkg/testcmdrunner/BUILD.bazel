@@ -1,0 +1,8 @@
+load("@io_bazel_rules_go//go:def.bzl", "go_library")
+
+go_library(
+    name = "go_default_library",
+    srcs = ["test_cmd_runner.go"],
+    importpath = "sigs.k8s.io/cluster-api/pkg/testcmdrunner",
+    visibility = ["//visibility:public"],
+)

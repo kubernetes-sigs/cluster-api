@@ -14,17 +14,16 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package cmd_runner_test
+package cmdrunner
 
 import (
 	"io/ioutil"
 	"os"
-	"sigs.k8s.io/cluster-api/pkg/cmd-runner"
 	"testing"
 )
 
 func TestInvalidCommand(t *testing.T) {
-	runner := cmd_runner.New()
+	runner := New()
 	output, err := runner.CombinedOutput("asdf")
 	if err == nil {
 		t.Errorf("invalid error: expected 'nil', got '%v'", err)
@@ -36,7 +35,7 @@ func TestInvalidCommand(t *testing.T) {
 
 func TestValidCommandErrors(t *testing.T) {
 	skipIfCommandNotPresent(t, "ls")
-	runner := cmd_runner.New()
+	runner := New()
 	_, err := runner.CombinedOutput("ls /invalid/path")
 	if err == nil {
 		t.Errorf("invalid error: expected 'nil', got '%v'", err)
@@ -51,7 +50,7 @@ func TestValidCommandSucceeds(t *testing.T) {
 		t.FailNow()
 	}
 	defer os.RemoveAll(dir)
-	runner := cmd_runner.New()
+	runner := New()
 	output, err := runner.CombinedOutput("ls", "-al", dir)
 	if err != nil {
 		t.Errorf("invalid error: expected 'nil', got '%v'", err)
@@ -64,7 +63,7 @@ func TestValidCommandSucceeds(t *testing.T) {
 func TestCombinedOutputShouldIncludeStdOutAndErr(t *testing.T) {
 	skipIfCommandNotPresent(t, "echo")
 	skipIfCommandNotPresent(t, "sh")
-	runner := cmd_runner.New()
+	runner := New()
 	output, err := runner.CombinedOutput("sh", "-c", "echo \"stdout\" && (>&2 echo \"stderr\")")
 	if err != nil {
 		t.Errorf("invalid error: expected 'nil', got '%v'", err)
@@ -76,7 +75,7 @@ func TestCombinedOutputShouldIncludeStdOutAndErr(t *testing.T) {
 }
 
 func skipIfCommandNotPresent(t *testing.T, cmd string) {
-	runner := cmd_runner.New()
+	runner := New()
 	_, err := runner.CombinedOutput("ls")
 	if err != nil {
 		t.Skipf("unable to run test, 'ls' reults in error: %v", err)

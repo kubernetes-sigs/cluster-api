@@ -20,13 +20,13 @@ import (
 	"strings"
 	"time"
 
-	"sigs.k8s.io/cluster-api/pkg/cmd-runner"
+	"sigs.k8s.io/cluster-api/pkg/cmdrunner"
 )
 
 // The purpose of Kubeadm and this file is to provide a unit tested wrapper around the 'kubeadm' exec command. Higher
 // level, application specific functionality built on top of kubeadm should be be in another location.
 type Kubeadm struct {
-	runner cmd_runner.CmdRunner
+	runner cmdrunner.Runner
 }
 
 // see https://kubernetes.io/docs/reference/setup-tools/kubeadm/kubeadm-token/ for an explanation of the parameters
@@ -41,14 +41,14 @@ type TokenCreateParams struct {
 	Usages           []string
 }
 
-func NewWithCmdRunner(runner cmd_runner.CmdRunner) *Kubeadm {
+func NewWithRunner(runner cmdrunner.Runner) *Kubeadm {
 	return &Kubeadm{
 		runner: runner,
 	}
 }
 
 func New() *Kubeadm {
-	return NewWithCmdRunner(cmd_runner.New())
+	return NewWithRunner(cmdrunner.New())
 }
 
 // TokenCreate execs `kubeadm token create` with the appropriate flags added by interpreting the params argument. The output of

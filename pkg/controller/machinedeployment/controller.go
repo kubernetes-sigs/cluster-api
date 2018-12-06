@@ -145,6 +145,8 @@ func (r *ReconcileMachineDeployment) Reconcile(request reconcile.Request) (recon
 		return reconcile.Result{}, err
 	}
 
+	v1alpha1.PopulateDefaultsMachineDeployment(d)
+
 	everything := metav1.LabelSelector{}
 	if reflect.DeepEqual(d.Spec.Selector, &everything) {
 		if d.Status.ObservedGeneration < d.Generation {

@@ -5,6 +5,7 @@ go_library(
     srcs = [
         "cluster_types.go",
         "common_types.go",
+        "defaults.go",
         "doc.go",
         "machine_types.go",
         "machineclass_types.go",

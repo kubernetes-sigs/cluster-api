@@ -4,6 +4,7 @@ go_library(
     name = "go_default_library",
     srcs = [
         "deleg.go",
+        "kube_helpers.go",
         "log.go",
         "null.go",
     ],
@@ -14,6 +15,10 @@ go_library(
         "//vendor/github.com/go-logr/logr:go_default_library",
         "//vendor/github.com/go-logr/zapr:go_default_library",
         "//vendor/go.uber.org/zap:go_default_library",
+        "//vendor/go.uber.org/zap/buffer:go_default_library",
         "//vendor/go.uber.org/zap/zapcore:go_default_library",
+        "//vendor/k8s.io/apimachinery/pkg/api/meta:go_default_library",
+        "//vendor/k8s.io/apimachinery/pkg/runtime:go_default_library",
+        "//vendor/k8s.io/apimachinery/pkg/types:go_default_library",
     ],
 )

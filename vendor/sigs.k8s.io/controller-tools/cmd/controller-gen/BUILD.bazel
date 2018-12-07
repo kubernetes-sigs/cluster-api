@@ -10,6 +10,7 @@ go_library(
         "//vendor/github.com/spf13/cobra:go_default_library",
         "//vendor/sigs.k8s.io/controller-tools/pkg/crd/generator:go_default_library",
         "//vendor/sigs.k8s.io/controller-tools/pkg/generate/rbac:go_default_library",
+        "//vendor/sigs.k8s.io/controller-tools/pkg/generate/webhook:go_default_library",
     ],
 )
 

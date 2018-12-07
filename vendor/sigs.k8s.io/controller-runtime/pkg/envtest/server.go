@@ -18,10 +18,8 @@ package envtest
 
 import (
 	"fmt"
-	"net"
 	"os"
 	"path/filepath"
-	"strings"
 	"time"
 
 	apiextensionsv1beta1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1beta1"
@@ -55,9 +53,8 @@ func defaultAssetPath(binary string) string {
 
 }
 
-// APIServerDefaultArgs are flags necessary to bring up apiserver.
-// TODO: create test framework interface to append flag to default flags.
-var defaultKubeAPIServerFlags = []string{
+// DefaultKubeAPIServerFlags are default flags necessary to bring up apiserver.
+var DefaultKubeAPIServerFlags = []string{
 	"--etcd-servers={{ if .EtcdURL }}{{ .EtcdURL.String }}{{ end }}",
 	"--cert-dir={{ .CertDir }}",
 	"--insecure-port={{ if .URL }}{{ .URL.Port }}{{ end }}",
@@ -86,15 +83,18 @@ type Environment struct {
 	// This is useful in cases that need aggregated API servers and the like.
 	UseExistingCluster bool
 
-	// ControlPlaneStartTimeout is the the maximum duration each controlplane component
+	// ControlPlaneStartTimeout is the maximum duration each controlplane component
 	// may take to start. It defaults to the KUBEBUILDER_CONTROLPLANE_START_TIMEOUT
 	// environment variable or 20 seconds if unspecified
 	ControlPlaneStartTimeout time.Duration
 
-	// ControlPlaneStopTimeout is the the maximum duration each controlplane component
+	// ControlPlaneStopTimeout is the maximum duration each controlplane component
 	// may take to stop. It defaults to the KUBEBUILDER_CONTROLPLANE_STOP_TIMEOUT
 	// environment variable or 20 seconds if unspecified
 	ControlPlaneStopTimeout time.Duration
+
+	// KubeAPIServerFlags is the set of flags passed while starting the api server.
+	KubeAPIServerFlags []string
 }
 
 // Stop stops a running server
@@ -103,6 +103,15 @@ func (te *Environment) Stop() error {
 		return nil
 	}
 	return te.ControlPlane.Stop()
+}
+
+// getAPIServerFlags returns flags to be used with the Kubernetes API server.
+func (te Environment) getAPIServerFlags() []string {
+	// Set default API server flags if not set.
+	if len(te.KubeAPIServerFlags) == 0 {
+		return DefaultKubeAPIServerFlags
+	}
+	return te.KubeAPIServerFlags
 }
 
 // Start starts a local Kubernetes server and updates te.ApiserverPort with the port it is listening on
@@ -120,7 +129,7 @@ func (te *Environment) Start() (*rest.Config, error) {
 		}
 	} else {
 		te.ControlPlane = integration.ControlPlane{}
-		te.ControlPlane.APIServer = &integration.APIServer{Args: defaultKubeAPIServerFlags}
+		te.ControlPlane.APIServer = &integration.APIServer{Args: te.getAPIServerFlags()}
 		te.ControlPlane.Etcd = &integration.Etcd{}
 
 		if os.Getenv(envKubeAPIServerBin) == "" {
@@ -168,17 +177,6 @@ func (te *Environment) startControlPlane() error {
 		err := te.ControlPlane.Start()
 		if err == nil {
 			break
-		}
-		// code snippet copied from following answer on stackoverflow
-		// https://stackoverflow.com/questions/51151973/catching-bind-address-already-in-use-in-golang
-		if opErr, ok := err.(*net.OpError); ok {
-			if opErr.Op == "listen" && strings.Contains(opErr.Error(), "address already in use") {
-				if stopErr := te.ControlPlane.Stop(); stopErr != nil {
-					return fmt.Errorf("failed to stop controlplane in response to bind error 'address already in use'")
-				}
-			}
-		} else {
-			return err
 		}
 	}
 	if numTries == maxRetries {

@@ -86,8 +86,8 @@ func (ks *Kind) Start(handler handler.EventHandler, queue workqueue.RateLimiting
 	i, err := ks.cache.GetInformer(ks.Type)
 	if err != nil {
 		if kindMatchErr, ok := err.(*meta.NoKindMatchError); ok {
-			log.Error(err, "if %s is a CRD, should install it before calling Start",
-				kindMatchErr.GroupKind)
+			log.Error(err, "if kind is a CRD, it should be installed before calling Start",
+				"kind", kindMatchErr.GroupKind)
 		}
 		return err
 	}

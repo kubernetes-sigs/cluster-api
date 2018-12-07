@@ -26,5 +26,6 @@ go_library(
         "//vendor/k8s.io/gengo/parser:go_default_library",
         "//vendor/k8s.io/gengo/types:go_default_library",
         "//vendor/sigs.k8s.io/controller-tools/pkg/internal/codegen:go_default_library",
+        "//vendor/sigs.k8s.io/controller-tools/pkg/internal/general:go_default_library",
     ],
 )

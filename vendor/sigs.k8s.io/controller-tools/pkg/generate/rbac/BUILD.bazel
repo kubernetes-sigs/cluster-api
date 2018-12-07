@@ -13,5 +13,6 @@ go_library(
         "//vendor/github.com/ghodss/yaml:go_default_library",
         "//vendor/k8s.io/api/rbac/v1:go_default_library",
         "//vendor/k8s.io/apimachinery/pkg/apis/meta/v1:go_default_library",
+        "//vendor/sigs.k8s.io/controller-tools/pkg/internal/general:go_default_library",
     ],
 )

@@ -18,6 +18,12 @@ go_rules_dependencies()
 
 go_register_toolchains()
 
-load("@bazel_gazelle//:deps.bzl", "gazelle_dependencies")
+load("@bazel_gazelle//:deps.bzl", "gazelle_dependencies", "go_repository")
 
 gazelle_dependencies()
+
+go_repository(
+    name = "io_k8s_sigs_kustomize",
+    commit = "58492e2d83c59ed63881311f46ad6251f77dabc3",
+    importpath = "sigs.k8s.io/kustomize",
+)

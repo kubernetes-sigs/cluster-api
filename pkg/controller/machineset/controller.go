@@ -333,10 +333,10 @@ func (c *ReconcileMachineSet) waitForMachineCreation(machineList []*clusterv1alp
 			err := c.Client.Get(context.Background(),
 				client.ObjectKey{Namespace: machine.Namespace, Name: machine.Name},
 				&clusterv1alpha1.Machine{})
-			klog.Error(err)
 			if err == nil {
 				return true, nil
 			}
+			klog.Error(err)
 			if errors.IsNotFound(err) {
 				return false, nil
 			}

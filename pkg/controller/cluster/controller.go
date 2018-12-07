@@ -97,6 +97,9 @@ func (r *ReconcileCluster) Reconcile(request reconcile.Request) (reconcile.Resul
 			klog.Infof("failed to add finalizer to cluster object %v due to error %v.", name, err)
 			return reconcile.Result{}, err
 		}
+
+		// Since adding the finalizer updates the object return to avoid later update issues
+		return reconcile.Result{}, nil
 	}
 
 	if !cluster.ObjectMeta.DeletionTimestamp.IsZero() {

@@ -34,7 +34,7 @@ gazelle: ## Run Bazel Gazelle
 	(which bazel && bazel run //:gazelle) || true
 
 .PHONY: test
-test: generate fmt vet manifests verify ## Run tests
+test: verify generate fmt vet manifests ## Run tests
 	go test -v -tags=integration ./pkg/... ./cmd/...
 
 .PHONY: manager

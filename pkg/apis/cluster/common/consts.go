@@ -58,6 +58,11 @@ const (
 	//
 	// Example: cannot resolve EC2 IP address.
 	DeleteMachineError MachineStatusError = "DeleteError"
+
+	// This error indicates that the machine did not join the cluster
+	// as a new node within the expected timeframe after instance
+	// creation at the provider succeeded
+	JoinClusterTimeoutMachineError = "JoinClusterTimeoutError"
 )
 
 type ClusterStatusError string

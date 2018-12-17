@@ -29,6 +29,7 @@ import (
 	"sigs.k8s.io/cluster-api/cmd/clusterctl/clusterdeployer/clusterclient"
 	"sigs.k8s.io/cluster-api/cmd/clusterctl/phases"
 	clusterv1 "sigs.k8s.io/cluster-api/pkg/apis/cluster/v1alpha1"
+	machinev1 "sigs.k8s.io/cluster-api/pkg/apis/machine/v1alpha1"
 	"sigs.k8s.io/cluster-api/pkg/util"
 )
 
@@ -36,9 +37,9 @@ import (
 // once issues/158 and issues/160 below are fixed.
 type ProviderDeployer interface {
 	// TODO: This requirement can be removed once after: https://github.com/kubernetes-sigs/cluster-api/issues/158
-	GetIP(cluster *clusterv1.Cluster, machine *clusterv1.Machine) (string, error)
+	GetIP(cluster *clusterv1.Cluster, machine *machinev1.Machine) (string, error)
 	// TODO: This requirement can be removed after: https://github.com/kubernetes-sigs/cluster-api/issues/160
-	GetKubeConfig(cluster *clusterv1.Cluster, master *clusterv1.Machine) (string, error)
+	GetKubeConfig(cluster *clusterv1.Cluster, master *machinev1.Machine) (string, error)
 }
 
 type ProviderComponentsStore interface {
@@ -79,7 +80,7 @@ const (
 )
 
 // Create the cluster from the provided cluster definition and machine list.
-func (d *ClusterDeployer) Create(cluster *clusterv1.Cluster, machines []*clusterv1.Machine, provider ProviderDeployer, kubeconfigOutput string, providerComponentsStoreFactory ProviderComponentsStoreFactory) error {
+func (d *ClusterDeployer) Create(cluster *clusterv1.Cluster, machines []*machinev1.Machine, provider ProviderDeployer, kubeconfigOutput string, providerComponentsStoreFactory ProviderComponentsStoreFactory) error {
 	master, nodes, err := extractMasterMachine(machines)
 	if err != nil {
 		return fmt.Errorf("unable to separate master machines from node machines: %v", err)
@@ -107,7 +108,7 @@ func (d *ClusterDeployer) Create(cluster *clusterv1.Cluster, machines []*cluster
 	}
 
 	klog.Infof("Creating master %v in namespace %q", master.Name, cluster.Namespace)
-	if err := phases.ApplyMachines(bootstrapClient, cluster.Namespace, []*clusterv1.Machine{master}); err != nil {
+	if err := phases.ApplyMachines(bootstrapClient, cluster.Namespace, []*machinev1.Machine{master}); err != nil {
 		return fmt.Errorf("unable to create master machine: %v", err)
 	}
 
@@ -277,7 +278,7 @@ func (d *ClusterDeployer) writeKubeconfig(kubeconfig string, kubeconfigOutput st
 	return ioutil.WriteFile(kubeconfigOutput, []byte(kubeconfig), fileMode)
 }
 
-func waitForKubeconfigReady(provider ProviderDeployer, cluster *clusterv1.Cluster, machine *clusterv1.Machine) (string, error) {
+func waitForKubeconfigReady(provider ProviderDeployer, cluster *clusterv1.Cluster, machine *machinev1.Machine) (string, error) {
 	kubeconfig := ""
 	err := util.PollImmediate(retryKubeConfigReady, timeoutKubeconfigReady, func() (bool, error) {
 		klog.V(2).Infof("Waiting for kubeconfig on %v to become ready...", machine.Name)
@@ -326,7 +327,7 @@ func pivotNamespace(from, to clusterclient.Client, namespace string) error {
 	for _, deployment := range fromDeployments {
 		// New objects cannot have a specified resource version. Clear it out.
 		deployment.SetResourceVersion("")
-		if err = to.CreateMachineDeploymentObjects([]*clusterv1.MachineDeployment{deployment}, namespace); err != nil {
+		if err = to.CreateMachineDeploymentObjects([]*machinev1.MachineDeployment{deployment}, namespace); err != nil {
 			return fmt.Errorf("error moving MachineDeployment '%v': %v", deployment.GetName(), err)
 		}
 		klog.Infof("Moved MachineDeployment %v", deployment.GetName())
@@ -339,7 +340,7 @@ func pivotNamespace(from, to clusterclient.Client, namespace string) error {
 	for _, machineSet := range fromMachineSets {
 		// New objects cannot have a specified resource version. Clear it out.
 		machineSet.SetResourceVersion("")
-		if err := to.CreateMachineSetObjects([]*clusterv1.MachineSet{machineSet}, namespace); err != nil {
+		if err := to.CreateMachineSetObjects([]*machinev1.MachineSet{machineSet}, namespace); err != nil {
 			return fmt.Errorf("error moving MachineSet '%v': %v", machineSet.GetName(), err)
 		}
 		klog.Infof("Moved MachineSet %v", machineSet.GetName())
@@ -353,7 +354,7 @@ func pivotNamespace(from, to clusterclient.Client, namespace string) error {
 	for _, machine := range machines {
 		// New objects cannot have a specified resource version. Clear it out.
 		machine.SetResourceVersion("")
-		if err = to.CreateMachineObjects([]*clusterv1.Machine{machine}, namespace); err != nil {
+		if err = to.CreateMachineObjects([]*machinev1.Machine{machine}, namespace); err != nil {
 			return fmt.Errorf("error moving Machine '%v': %v", machine.GetName(), err)
 		}
 		klog.Infof("Moved Machine '%s'", machine.GetName())
@@ -394,7 +395,7 @@ func deleteObjectsInNamespace(client clusterclient.Client, namespace string) err
 	return nil
 }
 
-func getClusterAPIObject(client clusterclient.Client, clusterName, namespace string) (*clusterv1.Cluster, *clusterv1.Machine, []*clusterv1.Machine, error) {
+func getClusterAPIObject(client clusterclient.Client, clusterName, namespace string) (*clusterv1.Cluster, *machinev1.Machine, []*machinev1.Machine, error) {
 	machines, err := client.GetMachineObjectsInNamespace(namespace)
 	if err != nil {
 		return nil, nil, nil, fmt.Errorf("unable to fetch machines: %v", err)
@@ -414,9 +415,9 @@ func getClusterAPIObject(client clusterclient.Client, clusterName, namespace str
 // extractMasterMachine separates the master (singular) from the incoming machines.
 // This is currently done by looking at which machine specifies the control plane version
 // (which implies that it is a master). This should be cleaned up in the future.
-func extractMasterMachine(machines []*clusterv1.Machine) (*clusterv1.Machine, []*clusterv1.Machine, error) {
-	nodes := []*clusterv1.Machine{}
-	masters := []*clusterv1.Machine{}
+func extractMasterMachine(machines []*machinev1.Machine) (*machinev1.Machine, []*machinev1.Machine, error) {
+	nodes := []*machinev1.Machine{}
+	masters := []*machinev1.Machine{}
 	for _, machine := range machines {
 		if util.IsMaster(machine) {
 			masters = append(masters, machine)

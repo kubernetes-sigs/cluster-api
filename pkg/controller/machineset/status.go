@@ -26,7 +26,7 @@ import (
 
 	"context"
 
-	"sigs.k8s.io/cluster-api/pkg/apis/cluster/v1alpha1"
+	"sigs.k8s.io/cluster-api/pkg/apis/machine/v1alpha1"
 	"sigs.k8s.io/cluster-api/pkg/controller/noderefutil"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )

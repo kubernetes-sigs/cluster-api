@@ -27,10 +27,11 @@ import (
 	"strings"
 	"time"
 
-	"k8s.io/api/core/v1"
+	v1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/klog"
 	clusterv1 "sigs.k8s.io/cluster-api/pkg/apis/cluster/v1alpha1"
+	machinev1 "sigs.k8s.io/cluster-api/pkg/apis/machine/v1alpha1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/yaml"
 )
@@ -55,7 +56,7 @@ func RandomString(n int) string {
 	return string(result)
 }
 
-func GetMaster(machines []*clusterv1.Machine) *clusterv1.Machine {
+func GetMaster(machines []*machinev1.Machine) *machinev1.Machine {
 	for _, machine := range machines {
 		if IsMaster(machine) {
 			return machine
@@ -64,9 +65,9 @@ func GetMaster(machines []*clusterv1.Machine) *clusterv1.Machine {
 	return nil
 }
 
-func MachineP(machines []clusterv1.Machine) []*clusterv1.Machine {
+func MachineP(machines []machinev1.Machine) []*machinev1.Machine {
 	// Convert to list of pointers
-	var ret []*clusterv1.Machine
+	var ret []*machinev1.Machine
 	for _, machine := range machines {
 		ret = append(ret, machine.DeepCopy())
 	}
@@ -97,14 +98,14 @@ func GetDefaultKubeConfigPath() string {
 	return fmt.Sprintf("%s/config", localDir)
 }
 
-func GetMachineIfExists(c client.Client, namespace, name string) (*clusterv1.Machine, error) {
+func GetMachineIfExists(c client.Client, namespace, name string) (*machinev1.Machine, error) {
 	if c == nil {
 		// Being called before k8s is setup as part of master VM creation
 		return nil, nil
 	}
 
 	// Machines are identified by name
-	machine := &clusterv1.Machine{}
+	machine := &machinev1.Machine{}
 	err := c.Get(context.Background(), client.ObjectKey{Namespace: namespace, Name: name}, machine)
 	if err != nil {
 		if errors.IsNotFound(err) {
@@ -117,7 +118,7 @@ func GetMachineIfExists(c client.Client, namespace, name string) (*clusterv1.Mac
 }
 
 // TODO(robertbailey): Remove this function
-func IsMaster(machine *clusterv1.Machine) bool {
+func IsMaster(machine *machinev1.Machine) bool {
 	return machine.Spec.Versions.ControlPlane != ""
 }
 
@@ -131,8 +132,8 @@ func IsNodeReady(node *v1.Node) bool {
 	return false
 }
 
-func Copy(m *clusterv1.Machine) *clusterv1.Machine {
-	ret := &clusterv1.Machine{}
+func Copy(m *machinev1.Machine) *machinev1.Machine {
+	ret := &machinev1.Machine{}
 	ret.APIVersion = m.APIVersion
 	ret.Kind = m.Kind
 	ret.ClusterName = m.ClusterName
@@ -191,19 +192,19 @@ func ParseClusterYaml(file string) (*clusterv1.Cluster, error) {
 	return cluster, nil
 }
 
-func ParseMachinesYaml(file string) ([]*clusterv1.Machine, error) {
+func ParseMachinesYaml(file string) ([]*machinev1.Machine, error) {
 	bytes, err := ioutil.ReadFile(file)
 	if err != nil {
 		return nil, err
 	}
 
-	list := &clusterv1.MachineList{}
+	list := &machinev1.MachineList{}
 	if err := yaml.Unmarshal(bytes, &list); err != nil {
 		return nil, err
 	}
 
 	if list == nil {
-		return []*clusterv1.Machine{}, nil
+		return []*machinev1.Machine{}, nil
 	}
 
 	return MachineP(list.Items), nil

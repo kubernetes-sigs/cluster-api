@@ -23,12 +23,15 @@ import (
 	"path"
 	"testing"
 
-	"k8s.io/api/core/v1"
+	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
+
 	"sigs.k8s.io/cluster-api/pkg/apis/cluster/common"
 	"sigs.k8s.io/cluster-api/pkg/apis/cluster/v1alpha1"
 	"sigs.k8s.io/cluster-api/pkg/apis/cluster/v1alpha1/testutil"
+	machinecommon "sigs.k8s.io/cluster-api/pkg/apis/machine/common"
+	machinev1alpha1 "sigs.k8s.io/cluster-api/pkg/apis/machine/v1alpha1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/manager"
 )
@@ -42,16 +45,16 @@ func newClusterStatus(errorReason common.ClusterStatusError, errorMessage string
 	}
 }
 
-func newMachineStatus(nodeRef *v1.ObjectReference, errorReason *common.MachineStatusError, errorMessage *string) v1alpha1.MachineStatus {
-	return v1alpha1.MachineStatus{
+func newMachineStatus(nodeRef *v1.ObjectReference, errorReason *machinecommon.MachineStatusError, errorMessage *string) machinev1alpha1.MachineStatus {
+	return machinev1alpha1.MachineStatus{
 		NodeRef:      nodeRef,
 		ErrorReason:  errorReason,
 		ErrorMessage: errorMessage,
 	}
 }
 
-func getMachineWithError(machineName, namespace string, nodeRef *v1.ObjectReference, errorReason *common.MachineStatusError, errorMessage *string) v1alpha1.Machine {
-	return v1alpha1.Machine{
+func getMachineWithError(machineName, namespace string, nodeRef *v1.ObjectReference, errorReason *machinecommon.MachineStatusError, errorMessage *string) machinev1alpha1.Machine {
+	return machinev1alpha1.Machine{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      machineName,
 			Namespace: namespace,
@@ -281,12 +284,12 @@ func TestValidateMachineObjects(t *testing.T) {
 	defer c.Delete(context.TODO(), &testNode)
 
 	testNodeRef := v1.ObjectReference{Kind: "Node", Name: testNodeName}
-	machineErrorReason := common.CreateMachineError
+	machineErrorReason := machinecommon.CreateMachineError
 	machineErrorMessage := "Failed to create machine"
 	var testcases = []struct {
 		name         string
 		nodeRef      *v1.ObjectReference
-		errorReason  *common.MachineStatusError
+		errorReason  *machinecommon.MachineStatusError
 		errorMessage *string
 		expectErr    bool
 	}{
@@ -328,8 +331,8 @@ func TestValidateMachineObjects(t *testing.T) {
 	}
 	for _, testcase := range testcases {
 		t.Run(testcase.name, func(t *testing.T) {
-			machines := v1alpha1.MachineList{
-				Items: []v1alpha1.Machine{
+			machines := machinev1alpha1.MachineList{
+				Items: []machinev1alpha1.Machine{
 					getMachineWithError("test-machine-with-no-error", "default", &testNodeRef, nil, nil),
 					getMachineWithError("test-machine", "default", testcase.nodeRef, testcase.errorReason, testcase.errorMessage),
 				},
@@ -394,8 +397,8 @@ func TestValidateMachineObjectWithReferredNode(t *testing.T) {
 	}
 	for _, testcase := range testcases {
 		t.Run(testcase.name, func(t *testing.T) {
-			machines := v1alpha1.MachineList{
-				Items: []v1alpha1.Machine{
+			machines := machinev1alpha1.MachineList{
+				Items: []machinev1alpha1.Machine{
 					getMachineWithError("test-machine", "default", &testcase.nodeRef, nil, nil),
 				},
 			}
@@ -435,15 +438,15 @@ func TestValidateClusterAPIObjectsOutput(t *testing.T) {
 	testNodeRef2 := v1.ObjectReference{Kind: "Node", Name: testNode2Name}
 	testNodeRefNotReady := v1.ObjectReference{Kind: "Node", Name: testNodeNotReadyName}
 	testNodeRefNotExist := v1.ObjectReference{Kind: "Node", Name: "test-node-not-exist"}
-	machineErrorReason := common.CreateMachineError
+	machineErrorReason := machinecommon.CreateMachineError
 	machineErrorMessage := "Failed to create machine"
 
 	var testcases = []struct {
 		name           string
 		namespace      string
 		clusterStatus  v1alpha1.ClusterStatus
-		machine1Status v1alpha1.MachineStatus
-		machine2Status v1alpha1.MachineStatus
+		machine1Status machinev1alpha1.MachineStatus
+		machine2Status machinev1alpha1.MachineStatus
 		expectErr      bool
 		outputFileName string
 	}{
@@ -470,7 +473,7 @@ func TestValidateClusterAPIObjectsOutput(t *testing.T) {
 			namespace:      "validate-machine-objects-errors",
 			clusterStatus:  v1alpha1.ClusterStatus{},
 			machine1Status: newMachineStatus(&testNodeRef1, &machineErrorReason, &machineErrorMessage),
-			machine2Status: v1alpha1.MachineStatus{}, // newMachineStatus(nil, nil, nil),
+			machine2Status: machinev1alpha1.MachineStatus{}, // newMachineStatus(nil, nil, nil),
 			expectErr:      true,
 			outputFileName: "fail-to-validate-machine-objects-with-errors.golden",
 		},

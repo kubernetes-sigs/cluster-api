@@ -20,44 +20,46 @@ import (
 	"reflect"
 	"testing"
 
+	"sigs.k8s.io/cluster-api/pkg/apis/cluster/v1alpha1"
+
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/kubernetes/scheme"
-	"sigs.k8s.io/cluster-api/pkg/apis/cluster/v1alpha1"
+	machinev1 "sigs.k8s.io/cluster-api/pkg/apis/machine/v1alpha1"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 )
 
 func TestReconcileRequest(t *testing.T) {
-	machine1 := v1alpha1.Machine{
+	machine1 := machinev1.Machine{
 		TypeMeta: metav1.TypeMeta{
 			Kind: "Machine",
 		},
 		ObjectMeta: metav1.ObjectMeta{
 			Name:       "create",
 			Namespace:  "default",
-			Finalizers: []string{v1alpha1.MachineFinalizer},
+			Finalizers: []string{machinev1.MachineFinalizer},
 		},
 	}
-	machine2 := v1alpha1.Machine{
+	machine2 := machinev1.Machine{
 		TypeMeta: metav1.TypeMeta{
 			Kind: "Machine",
 		},
 		ObjectMeta: metav1.ObjectMeta{
 			Name:       "update",
 			Namespace:  "default",
-			Finalizers: []string{v1alpha1.MachineFinalizer},
+			Finalizers: []string{machinev1.MachineFinalizer},
 		},
 	}
 	time := metav1.Now()
-	machine3 := v1alpha1.Machine{
+	machine3 := machinev1.Machine{
 		TypeMeta: metav1.TypeMeta{
 			Kind: "Machine",
 		},
 		ObjectMeta: metav1.ObjectMeta{
 			Name:              "delete",
 			Namespace:         "default",
-			Finalizers:        []string{v1alpha1.MachineFinalizer},
+			Finalizers:        []string{machinev1.MachineFinalizer},
 			DeletionTimestamp: &time,
 		},
 	}

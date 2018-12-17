@@ -24,9 +24,10 @@ import (
 
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/types"
-	"sigs.k8s.io/cluster-api/pkg/apis/cluster/common"
 	"sigs.k8s.io/cluster-api/pkg/apis/cluster/v1alpha1"
 	clusterv1alpha1 "sigs.k8s.io/cluster-api/pkg/apis/cluster/v1alpha1"
+	"sigs.k8s.io/cluster-api/pkg/apis/machine/common"
+	machinev1alpha1 "sigs.k8s.io/cluster-api/pkg/apis/machine/v1alpha1"
 	"sigs.k8s.io/cluster-api/pkg/controller/noderefutil"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
@@ -42,7 +43,7 @@ func ValidateClusterAPIObjects(w io.Writer, c client.Client, clusterName string,
 		return err
 	}
 
-	machines := &clusterv1alpha1.MachineList{}
+	machines := &machinev1alpha1.MachineList{}
 	if err := c.List(context.TODO(), client.InNamespace(namespace), machines); err != nil {
 		return fmt.Errorf("failed to get the machines from the apiserver in namespace %q: %v", namespace, err)
 	}
@@ -81,7 +82,7 @@ func validateClusterObject(w io.Writer, cluster *v1alpha1.Cluster) error {
 	return nil
 }
 
-func validateMachineObjects(w io.Writer, machines *v1alpha1.MachineList, client client.Client) error {
+func validateMachineObjects(w io.Writer, machines *machinev1alpha1.MachineList, client client.Client) error {
 	pass := true
 	for _, machine := range machines.Items {
 		if !validateMachineObject(w, machine, client) {
@@ -94,7 +95,7 @@ func validateMachineObjects(w io.Writer, machines *v1alpha1.MachineList, client 
 	return nil
 }
 
-func validateMachineObject(w io.Writer, machine v1alpha1.Machine, client client.Client) bool {
+func validateMachineObject(w io.Writer, machine machinev1alpha1.Machine, client client.Client) bool {
 	fmt.Fprintf(w, "Checking machine object %q... ", machine.Name)
 	if machine.Status.ErrorReason != nil || machine.Status.ErrorMessage != nil {
 		var reason common.MachineStatusError = ""

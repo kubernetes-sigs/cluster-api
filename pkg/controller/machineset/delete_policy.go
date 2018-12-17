@@ -17,7 +17,7 @@ limitations under the License.
 package machineset
 
 import (
-	"sigs.k8s.io/cluster-api/pkg/apis/cluster/v1alpha1"
+	"sigs.k8s.io/cluster-api/pkg/apis/machine/v1alpha1"
 )
 
 type deletePriority int

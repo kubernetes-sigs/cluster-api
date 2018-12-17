@@ -27,6 +27,7 @@ import (
 	"k8s.io/client-go/kubernetes"
 	"sigs.k8s.io/cluster-api/cmd/clusterctl/clusterdeployer/clusterclient"
 	clusterv1 "sigs.k8s.io/cluster-api/pkg/apis/cluster/v1alpha1"
+	machinev1 "sigs.k8s.io/cluster-api/pkg/apis/machine/v1alpha1"
 )
 
 type testClusterProvisioner struct {
@@ -115,9 +116,9 @@ type testClusterClient struct {
 	CloseErr                                      error
 
 	clusters           map[string][]*clusterv1.Cluster
-	machineDeployments map[string][]*clusterv1.MachineDeployment
-	machineSets        map[string][]*clusterv1.MachineSet
-	machines           map[string][]*clusterv1.Machine
+	machineDeployments map[string][]*machinev1.MachineDeployment
+	machineSets        map[string][]*machinev1.MachineSet
+	machines           map[string][]*machinev1.Machine
 	namespaces         []string
 	contextNamespace   string
 }
@@ -166,27 +167,27 @@ func (c *testClusterClient) GetClusterObjectsInNamespace(namespace string) ([]*c
 	return c.clusters[namespace], nil
 }
 
-func (c *testClusterClient) GetMachineDeploymentObjects() ([]*clusterv1.MachineDeployment, error) {
+func (c *testClusterClient) GetMachineDeploymentObjects() ([]*machinev1.MachineDeployment, error) {
 	return c.machineDeployments[metav1.NamespaceDefault], c.GetMachineDeploymentObjectsErr
 }
 
-func (c *testClusterClient) GetMachineDeploymentObjectsInNamespace(namespace string) ([]*clusterv1.MachineDeployment, error) {
+func (c *testClusterClient) GetMachineDeploymentObjectsInNamespace(namespace string) ([]*machinev1.MachineDeployment, error) {
 	return c.machineDeployments[namespace], c.GetMachineDeploymentObjectsInNamespaceErr
 }
 
-func (c *testClusterClient) GetMachineSetObjects() ([]*clusterv1.MachineSet, error) {
+func (c *testClusterClient) GetMachineSetObjects() ([]*machinev1.MachineSet, error) {
 	return c.machineSets[metav1.NamespaceDefault], c.GetMachineSetObjectsErr
 }
 
-func (c *testClusterClient) GetMachineSetObjectsInNamespace(namespace string) ([]*clusterv1.MachineSet, error) {
+func (c *testClusterClient) GetMachineSetObjectsInNamespace(namespace string) ([]*machinev1.MachineSet, error) {
 	return c.machineSets[namespace], c.GetMachineSetObjectsInNamespaceErr
 }
 
-func (c *testClusterClient) GetMachineObjects() ([]*clusterv1.Machine, error) {
+func (c *testClusterClient) GetMachineObjects() ([]*machinev1.Machine, error) {
 	return c.machines[metav1.NamespaceDefault], c.GetMachineObjectsErr
 }
 
-func (c *testClusterClient) GetMachineObjectsInNamespace(namespace string) ([]*clusterv1.Machine, error) {
+func (c *testClusterClient) GetMachineObjectsInNamespace(namespace string) ([]*machinev1.Machine, error) {
 	return c.machines[namespace], c.GetMachineObjectsInNamespaceErr
 }
 
@@ -201,10 +202,10 @@ func (c *testClusterClient) CreateClusterObject(cluster *clusterv1.Cluster) erro
 	return c.CreateClusterObjectErr
 }
 
-func (c *testClusterClient) CreateMachineDeploymentObjects(deployments []*clusterv1.MachineDeployment, namespace string) error {
+func (c *testClusterClient) CreateMachineDeploymentObjects(deployments []*machinev1.MachineDeployment, namespace string) error {
 	if c.CreateMachineDeploymentsObjectsErr == nil {
 		if c.machineDeployments == nil {
-			c.machineDeployments = make(map[string][]*clusterv1.MachineDeployment)
+			c.machineDeployments = make(map[string][]*machinev1.MachineDeployment)
 		}
 		c.machineDeployments[namespace] = append(c.machineDeployments[namespace], deployments...)
 		return nil
@@ -212,10 +213,10 @@ func (c *testClusterClient) CreateMachineDeploymentObjects(deployments []*cluste
 	return c.CreateMachineDeploymentsObjectsErr
 }
 
-func (c *testClusterClient) CreateMachineSetObjects(machineSets []*clusterv1.MachineSet, namespace string) error {
+func (c *testClusterClient) CreateMachineSetObjects(machineSets []*machinev1.MachineSet, namespace string) error {
 	if c.CreateMachineSetObjectsErr == nil {
 		if c.machineSets == nil {
-			c.machineSets = make(map[string][]*clusterv1.MachineSet)
+			c.machineSets = make(map[string][]*machinev1.MachineSet)
 		}
 		c.machineSets[namespace] = append(c.machineSets[namespace], machineSets...)
 		return nil
@@ -223,10 +224,10 @@ func (c *testClusterClient) CreateMachineSetObjects(machineSets []*clusterv1.Mac
 	return c.CreateMachineSetObjectsErr
 }
 
-func (c *testClusterClient) CreateMachineObjects(machines []*clusterv1.Machine, namespace string) error {
+func (c *testClusterClient) CreateMachineObjects(machines []*machinev1.Machine, namespace string) error {
 	if c.CreateMachineObjectsErr == nil {
 		if c.machines == nil {
-			c.machines = make(map[string][]*clusterv1.Machine)
+			c.machines = make(map[string][]*machinev1.Machine)
 		}
 		c.machines[namespace] = append(c.machines[namespace], machines...)
 		return nil
@@ -354,10 +355,10 @@ type testProviderDeployer struct {
 	kubeconfig       string
 }
 
-func (d *testProviderDeployer) GetIP(_ *clusterv1.Cluster, _ *clusterv1.Machine) (string, error) {
+func (d *testProviderDeployer) GetIP(_ *clusterv1.Cluster, _ *machinev1.Machine) (string, error) {
 	return d.ip, d.GetIPErr
 }
-func (d *testProviderDeployer) GetKubeConfig(_ *clusterv1.Cluster, _ *clusterv1.Machine) (string, error) {
+func (d *testProviderDeployer) GetKubeConfig(_ *clusterv1.Cluster, _ *machinev1.Machine) (string, error) {
 	return d.kubeconfig, d.GetKubeConfigErr
 }
 
@@ -772,9 +773,9 @@ func TestExtractMasterMachine(t *testing.T) {
 
 	testCases := []struct {
 		name           string
-		inputMachines  []*clusterv1.Machine
-		expectedMaster *clusterv1.Machine
-		expectedNodes  []*clusterv1.Machine
+		inputMachines  []*machinev1.Machine
+		expectedMaster *machinev1.Machine
+		expectedNodes  []*machinev1.Machine
 		expectedError  error
 	}{
 		{
@@ -894,13 +895,13 @@ func TestClusterDelete(t *testing.T) {
 				clusters: map[string][]*clusterv1.Cluster{
 					metav1.NamespaceDefault: getClustersForNamespace(metav1.NamespaceDefault, 1),
 				},
-				machines: map[string][]*clusterv1.Machine{
+				machines: map[string][]*machinev1.Machine{
 					metav1.NamespaceDefault: generateMachines(),
 				},
-				machineSets: map[string][]*clusterv1.MachineSet{
+				machineSets: map[string][]*machinev1.MachineSet{
 					metav1.NamespaceDefault: newMachineSetsFixture(),
 				},
-				machineDeployments: map[string][]*clusterv1.MachineDeployment{
+				machineDeployments: map[string][]*machinev1.MachineDeployment{
 					metav1.NamespaceDefault: newMachineDeploymentsFixture(),
 				},
 			},
@@ -908,13 +909,13 @@ func TestClusterDelete(t *testing.T) {
 				clusters: map[string][]*clusterv1.Cluster{
 					metav1.NamespaceDefault: getClustersForNamespace(metav1.NamespaceDefault, 1),
 				},
-				machines: map[string][]*clusterv1.Machine{
+				machines: map[string][]*machinev1.Machine{
 					metav1.NamespaceDefault: generateMachines(),
 				},
-				machineSets: map[string][]*clusterv1.MachineSet{
+				machineSets: map[string][]*machinev1.MachineSet{
 					metav1.NamespaceDefault: newMachineSetsFixture(),
 				},
-				machineDeployments: map[string][]*clusterv1.MachineDeployment{
+				machineDeployments: map[string][]*machinev1.MachineDeployment{
 					metav1.NamespaceDefault: newMachineDeploymentsFixture(),
 				},
 			},
@@ -929,17 +930,17 @@ func TestClusterDelete(t *testing.T) {
 					"bar": getClustersForNamespace("bar", 1),
 					"baz": getClustersForNamespace("baz", 1),
 				},
-				machines: map[string][]*clusterv1.Machine{
+				machines: map[string][]*machinev1.Machine{
 					"foo": generateMachines(),
 					"bar": generateMachines(),
 					"baz": generateMachines(),
 				},
-				machineSets: map[string][]*clusterv1.MachineSet{
+				machineSets: map[string][]*machinev1.MachineSet{
 					"foo": newMachineSetsFixture(),
 					"bar": newMachineSetsFixture(),
 					"baz": newMachineSetsFixture(),
 				},
-				machineDeployments: map[string][]*clusterv1.MachineDeployment{
+				machineDeployments: map[string][]*machinev1.MachineDeployment{
 					"foo": newMachineDeploymentsFixture(),
 					"bar": newMachineDeploymentsFixture(),
 					"baz": newMachineDeploymentsFixture(),
@@ -951,17 +952,17 @@ func TestClusterDelete(t *testing.T) {
 					"bar": getClustersForNamespace("bar", 1),
 					"baz": getClustersForNamespace("baz", 1),
 				},
-				machines: map[string][]*clusterv1.Machine{
+				machines: map[string][]*machinev1.Machine{
 					"foo": generateMachines(),
 					"bar": generateMachines(),
 					"baz": generateMachines(),
 				},
-				machineSets: map[string][]*clusterv1.MachineSet{
+				machineSets: map[string][]*machinev1.MachineSet{
 					"foo": newMachineSetsFixture(),
 					"bar": newMachineSetsFixture(),
 					"baz": newMachineSetsFixture(),
 				},
-				machineDeployments: map[string][]*clusterv1.MachineDeployment{
+				machineDeployments: map[string][]*machinev1.MachineDeployment{
 					"foo": newMachineDeploymentsFixture(),
 					"bar": newMachineDeploymentsFixture(),
 					"baz": newMachineDeploymentsFixture(),
@@ -1048,7 +1049,7 @@ func TestClusterDelete(t *testing.T) {
 			NewCoreClientsetErr:  nil,
 			bootstrapClient:      &testClusterClient{CreateMachineObjectsErr: fmt.Errorf("create machines error")},
 			targetClient: &testClusterClient{
-				machines: map[string][]*clusterv1.Machine{
+				machines: map[string][]*machinev1.Machine{
 					metav1.NamespaceDefault: generateMachines(),
 				},
 			},
@@ -1061,7 +1062,7 @@ func TestClusterDelete(t *testing.T) {
 			NewCoreClientsetErr:  nil,
 			bootstrapClient:      &testClusterClient{CreateMachineSetObjectsErr: fmt.Errorf("create machine sets error")},
 			targetClient: &testClusterClient{
-				machineSets: map[string][]*clusterv1.MachineSet{
+				machineSets: map[string][]*machinev1.MachineSet{
 					metav1.NamespaceDefault: newMachineSetsFixture(),
 				},
 			},
@@ -1074,7 +1075,7 @@ func TestClusterDelete(t *testing.T) {
 			NewCoreClientsetErr:  nil,
 			bootstrapClient:      &testClusterClient{CreateMachineDeploymentsObjectsErr: fmt.Errorf("create machine deployments error")},
 			targetClient: &testClusterClient{
-				machineDeployments: map[string][]*clusterv1.MachineDeployment{
+				machineDeployments: map[string][]*machinev1.MachineDeployment{
 					metav1.NamespaceDefault: newMachineDeploymentsFixture(),
 				}},
 			expectedErrorMessage: "unable to copy objects from target to bootstrap cluster: error moving MachineDeployment 'machine-deployment-name-1': create machine deployments error",
@@ -1187,67 +1188,67 @@ func TestClusterDelete(t *testing.T) {
 	}
 }
 
-func generateTestMasterMachine(name string) *clusterv1.Machine {
-	return &clusterv1.Machine{
+func generateTestMasterMachine(name string) *machinev1.Machine {
+	return &machinev1.Machine{
 		ObjectMeta: metav1.ObjectMeta{
 			Name: name,
 		},
-		Spec: clusterv1.MachineSpec{
-			Versions: clusterv1.MachineVersionInfo{
+		Spec: machinev1.MachineSpec{
+			Versions: machinev1.MachineVersionInfo{
 				ControlPlane: "1.10.1",
 			},
 		},
 	}
 }
 
-func generateTestNodeMachine(name string) *clusterv1.Machine {
-	return &clusterv1.Machine{
+func generateTestNodeMachine(name string) *machinev1.Machine {
+	return &machinev1.Machine{
 		ObjectMeta: metav1.ObjectMeta{
 			Name: name,
 		},
 	}
 }
 
-func generateTestMasterMachines(masterNames []string) []*clusterv1.Machine {
-	var masters []*clusterv1.Machine
+func generateTestMasterMachines(masterNames []string) []*machinev1.Machine {
+	var masters []*machinev1.Machine
 	for _, mn := range masterNames {
 		masters = append(masters, generateTestMasterMachine(mn))
 	}
 	return masters
 }
 
-func generateTestNodeMachines(nodeNames []string) []*clusterv1.Machine {
-	var nodes []*clusterv1.Machine
+func generateTestNodeMachines(nodeNames []string) []*machinev1.Machine {
+	var nodes []*machinev1.Machine
 	for _, nn := range nodeNames {
 		nodes = append(nodes, generateTestNodeMachine(nn))
 	}
 	return nodes
 }
 
-func generateInvalidExtractMasterMachine(masterNames, nodeNames []string) []*clusterv1.Machine {
+func generateInvalidExtractMasterMachine(masterNames, nodeNames []string) []*machinev1.Machine {
 	masters := generateTestMasterMachines(masterNames)
 	nodes := generateTestNodeMachines(nodeNames)
 
 	return append(masters, nodes...)
 }
 
-func generateValidExtractMasterMachineInput(masterNames, nodeNames []string) []*clusterv1.Machine {
+func generateValidExtractMasterMachineInput(masterNames, nodeNames []string) []*machinev1.Machine {
 	masters := generateTestMasterMachines(masterNames)
 	nodes := generateTestNodeMachines(nodeNames)
 
 	return append(masters, nodes...)
 }
 
-func generateMachines() []*clusterv1.Machine {
+func generateMachines() []*machinev1.Machine {
 	master := generateTestMasterMachine("test-master")
 	node := generateTestNodeMachine("test-node")
-	return []*clusterv1.Machine{master, node}
+	return []*machinev1.Machine{master, node}
 }
 
-func newMachineSetsFixture() []*clusterv1.MachineSet {
-	return []*clusterv1.MachineSet{
-		&clusterv1.MachineSet{ObjectMeta: metav1.ObjectMeta{Name: "machine-set-name-1"}},
-		&clusterv1.MachineSet{ObjectMeta: metav1.ObjectMeta{Name: "machine-set-name-2"}},
+func newMachineSetsFixture() []*machinev1.MachineSet {
+	return []*machinev1.MachineSet{
+		&machinev1.MachineSet{ObjectMeta: metav1.ObjectMeta{Name: "machine-set-name-1"}},
+		&machinev1.MachineSet{ObjectMeta: metav1.ObjectMeta{Name: "machine-set-name-2"}},
 	}
 }
 
@@ -1264,10 +1265,10 @@ func getClustersForNamespace(namespace string, count int) []*clusterv1.Cluster {
 	return clusters
 }
 
-func newMachineDeploymentsFixture() []*clusterv1.MachineDeployment {
-	return []*clusterv1.MachineDeployment{
-		&clusterv1.MachineDeployment{ObjectMeta: metav1.ObjectMeta{Name: "machine-deployment-name-1"}},
-		&clusterv1.MachineDeployment{ObjectMeta: metav1.ObjectMeta{Name: "machine-deployment-name-2"}},
+func newMachineDeploymentsFixture() []*machinev1.MachineDeployment {
+	return []*machinev1.MachineDeployment{
+		&machinev1.MachineDeployment{ObjectMeta: metav1.ObjectMeta{Name: "machine-deployment-name-1"}},
+		&machinev1.MachineDeployment{ObjectMeta: metav1.ObjectMeta{Name: "machine-deployment-name-2"}},
 	}
 }
 

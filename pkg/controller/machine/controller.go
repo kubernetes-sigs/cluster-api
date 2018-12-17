@@ -27,6 +27,7 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/klog"
 	clusterv1 "sigs.k8s.io/cluster-api/pkg/apis/cluster/v1alpha1"
+	machinev1 "sigs.k8s.io/cluster-api/pkg/apis/machine/v1alpha1"
 	controllerError "sigs.k8s.io/cluster-api/pkg/controller/error"
 	"sigs.k8s.io/cluster-api/pkg/util"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -70,7 +71,7 @@ func add(mgr manager.Manager, r reconcile.Reconciler) error {
 	}
 
 	// Watch for changes to Machine
-	err = c.Watch(&source.Kind{Type: &clusterv1.Machine{}}, &handler.EnqueueRequestForObject{})
+	err = c.Watch(&source.Kind{Type: &machinev1.Machine{}}, &handler.EnqueueRequestForObject{})
 	if err != nil {
 		return err
 	}
@@ -98,7 +99,7 @@ func (r *ReconcileMachine) Reconcile(request reconcile.Request) (reconcile.Resul
 	// TODO(mvladev): Can context be passed from Kubebuilder?
 	ctx := context.TODO()
 	// Fetch the Machine instance
-	m := &clusterv1.Machine{}
+	m := &machinev1.Machine{}
 	if err := r.Client.Get(ctx, request.NamespacedName, m); err != nil {
 		if apierrors.IsNotFound(err) {
 			// Object not found, return.  Created objects are automatically garbage collected.
@@ -116,8 +117,8 @@ func (r *ReconcileMachine) Reconcile(request reconcile.Request) (reconcile.Resul
 	// If object hasn't been deleted and doesn't have a finalizer, add one
 	// Add a finalizer to newly created objects.
 	if m.ObjectMeta.DeletionTimestamp.IsZero() &&
-		!util.Contains(m.ObjectMeta.Finalizers, clusterv1.MachineFinalizer) {
-		m.Finalizers = append(m.Finalizers, clusterv1.MachineFinalizer)
+		!util.Contains(m.ObjectMeta.Finalizers, machinev1.MachineFinalizer) {
+		m.Finalizers = append(m.Finalizers, machinev1.MachineFinalizer)
 		if err := r.Client.Update(ctx, m); err != nil {
 			klog.Infof("failed to add finalizer to machine object %v due to error %v.", name, err)
 			return reconcile.Result{}, err
@@ -129,7 +130,7 @@ func (r *ReconcileMachine) Reconcile(request reconcile.Request) (reconcile.Resul
 
 	if !m.ObjectMeta.DeletionTimestamp.IsZero() {
 		// no-op if finalizer has been removed.
-		if !util.Contains(m.ObjectMeta.Finalizers, clusterv1.MachineFinalizer) {
+		if !util.Contains(m.ObjectMeta.Finalizers, machinev1.MachineFinalizer) {
 			klog.Infof("reconciling machine object %v causes a no-op as there is no finalizer.", name)
 			return reconcile.Result{}, nil
 		}
@@ -149,7 +150,7 @@ func (r *ReconcileMachine) Reconcile(request reconcile.Request) (reconcile.Resul
 
 		// Remove finalizer on successful deletion.
 		klog.Infof("machine object %v deletion successful, removing finalizer.", name)
-		m.ObjectMeta.Finalizers = util.Filter(m.ObjectMeta.Finalizers, clusterv1.MachineFinalizer)
+		m.ObjectMeta.Finalizers = util.Filter(m.ObjectMeta.Finalizers, machinev1.MachineFinalizer)
 		if err := r.Client.Update(context.Background(), m); err != nil {
 			klog.Errorf("Error removing finalizer from machine object %v; %v", name, err)
 			return reconcile.Result{}, err
@@ -191,7 +192,7 @@ func (r *ReconcileMachine) Reconcile(request reconcile.Request) (reconcile.Resul
 	return reconcile.Result{}, nil
 }
 
-func (r *ReconcileMachine) create(ctx context.Context, machine *clusterv1.Machine) error {
+func (r *ReconcileMachine) create(ctx context.Context, machine *machinev1.Machine) error {
 	cluster, err := r.getCluster(ctx, machine)
 	if err != nil {
 		return err
@@ -200,7 +201,7 @@ func (r *ReconcileMachine) create(ctx context.Context, machine *clusterv1.Machin
 	return r.actuator.Create(ctx, cluster, machine)
 }
 
-func (r *ReconcileMachine) update(ctx context.Context, new_machine *clusterv1.Machine) error {
+func (r *ReconcileMachine) update(ctx context.Context, new_machine *machinev1.Machine) error {
 	cluster, err := r.getCluster(ctx, new_machine)
 	if err != nil {
 		return err
@@ -211,7 +212,7 @@ func (r *ReconcileMachine) update(ctx context.Context, new_machine *clusterv1.Ma
 	return r.actuator.Update(ctx, cluster, new_machine)
 }
 
-func (r *ReconcileMachine) delete(ctx context.Context, machine *clusterv1.Machine) error {
+func (r *ReconcileMachine) delete(ctx context.Context, machine *machinev1.Machine) error {
 	cluster, err := r.getCluster(ctx, machine)
 	if err != nil {
 		return err
@@ -220,7 +221,7 @@ func (r *ReconcileMachine) delete(ctx context.Context, machine *clusterv1.Machin
 	return r.actuator.Delete(ctx, cluster, machine)
 }
 
-func (r *ReconcileMachine) getCluster(ctx context.Context, machine *clusterv1.Machine) (*clusterv1.Cluster, error) {
+func (r *ReconcileMachine) getCluster(ctx context.Context, machine *machinev1.Machine) (*clusterv1.Cluster, error) {
 	clusterList := clusterv1.ClusterList{}
 	listOptions := &client.ListOptions{
 		Namespace: machine.Namespace,
@@ -247,7 +248,7 @@ func (r *ReconcileMachine) getCluster(ctx context.Context, machine *clusterv1.Ma
 	}
 }
 
-func (r *ReconcileMachine) isDeleteAllowed(machine *clusterv1.Machine) bool {
+func (r *ReconcileMachine) isDeleteAllowed(machine *machinev1.Machine) bool {
 	if r.nodeName == "" || machine.Status.NodeRef == nil {
 		return true
 	}

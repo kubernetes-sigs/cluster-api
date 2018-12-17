@@ -21,10 +21,10 @@ import (
 
 	"k8s.io/klog"
 	"sigs.k8s.io/cluster-api/cmd/clusterctl/clusterdeployer/clusterclient"
-	clusterv1 "sigs.k8s.io/cluster-api/pkg/apis/cluster/v1alpha1"
+	machinev1 "sigs.k8s.io/cluster-api/pkg/apis/machine/v1alpha1"
 )
 
-func ApplyMachines(client clusterclient.Client, namespace string, machines []*clusterv1.Machine) error {
+func ApplyMachines(client clusterclient.Client, namespace string, machines []*machinev1.Machine) error {
 	if namespace == "" {
 		namespace = client.GetContextNamespace()
 	}

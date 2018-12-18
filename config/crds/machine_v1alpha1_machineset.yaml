@@ -4,12 +4,12 @@ metadata:
   creationTimestamp: null
   labels:
     controller-tools.k8s.io: "1.0"
-  name: machinedeployments.cluster.k8s.io
+  name: machinesets.machine.k8s.io
 spec:
-  group: cluster.k8s.io
+  group: machine.k8s.io
   names:
-    kind: MachineDeployment
-    plural: machinedeployments
+    kind: MachineSet
+    plural: machinesets
   scope: Namespaced
   subresources:
     scale:
@@ -35,86 +35,26 @@ spec:
         spec:
           properties:
             minReadySeconds:
-              description: Minimum number of seconds for which a newly created machine
-                should be ready. Defaults to 0 (machine will be considered available
-                as soon as it is ready)
-              format: int32
-              type: integer
-            paused:
-              description: Indicates that the deployment is paused.
-              type: boolean
-            progressDeadlineSeconds:
-              description: The maximum time in seconds for a deployment to make progress
-                before it is considered to be failed. The deployment controller will
-                continue to process failed deployments and a condition with a ProgressDeadlineExceeded
-                reason will be surfaced in the deployment status. Note that progress
-                will not be estimated during the time a deployment is paused. Defaults
-                to 600s.
+              description: MinReadySeconds is the minimum number of seconds for which
+                a newly created machine should be ready. Defaults to 0 (machine will
+                be considered available as soon as it is ready)
               format: int32
               type: integer
             replicas:
-              description: Number of desired machines. Defaults to 1. This is a pointer
-                to distinguish between explicit zero and not specified.
-              format: int32
-              type: integer
-            revisionHistoryLimit:
-              description: The number of old MachineSets to retain to allow rollback.
-                This is a pointer to distinguish between explicit zero and not specified.
-                Defaults to 1.
+              description: Replicas is the number of desired replicas. This is a pointer
+                to distinguish between explicit zero and unspecified. Defaults to
+                1.
               format: int32
               type: integer
             selector:
-              description: Label selector for machines. Existing MachineSets whose
-                machines are selected by this will be the ones affected by this deployment.
-                It must match the machine template's labels.
-              type: object
-            strategy:
-              description: The deployment strategy to use to replace existing machines
-                with new ones.
-              properties:
-                rollingUpdate:
-                  description: Rolling update config params. Present only if MachineDeploymentStrategyType
-                    = RollingUpdate.
-                  properties:
-                    maxSurge:
-                      description: 'The maximum number of machines that can be scheduled
-                        above the desired number of machines. Value can be an absolute
-                        number (ex: 5) or a percentage of desired machines (ex: 10%).
-                        This can not be 0 if MaxUnavailable is 0. Absolute number
-                        is calculated from percentage by rounding up. Defaults to
-                        1. Example: when this is set to 30%, the new MachineSet can
-                        be scaled up immediately when the rolling update starts, such
-                        that the total number of old and new machines do not exceed
-                        130% of desired machines. Once old machines have been killed,
-                        new MachineSet can be scaled up further, ensuring that total
-                        number of machines running at any time during the update is
-                        at most 130% of desired machines.'
-                      oneOf:
-                      - type: string
-                      - type: integer
-                    maxUnavailable:
-                      description: 'The maximum number of machines that can be unavailable
-                        during the update. Value can be an absolute number (ex: 5)
-                        or a percentage of desired machines (ex: 10%). Absolute number
-                        is calculated from percentage by rounding down. This can not
-                        be 0 if MaxSurge is 0. Defaults to 0. Example: when this is
-                        set to 30%, the old MachineSet can be scaled down to 70% of
-                        desired machines immediately when the rolling update starts.
-                        Once new machines are ready, old MachineSet can be scaled
-                        down further, followed by scaling up the new MachineSet, ensuring
-                        that the total number of machines available at all times during
-                        the update is at least 70% of desired machines.'
-                      oneOf:
-                      - type: string
-                      - type: integer
-                  type: object
-                type:
-                  description: Type of deployment. Currently the only supported strategy
-                    is "RollingUpdate". Default is RollingUpdate.
-                  type: string
+              description: 'Selector is a label query over machines that should match
+                the replica count. Label keys and values that must match in order
+                to be controlled by this MachineSet. It must match the machine template''s
+                labels. More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/labels/#label-selectors'
               type: object
             template:
-              description: Template describes the machines that will be created.
+              description: Template is the object that describes the machine that
+                will be created if insufficient replicas are detected.
               properties:
                 metadata:
                   description: 'Standard object''s metadata. More info: https://git.k8s.io/community/contributors/devel/api-conventions.md#metadata'
@@ -194,41 +134,54 @@ spec:
               type: object
           required:
           - selector
-          - template
           type: object
         status:
           properties:
             availableReplicas:
-              description: Total number of available machines (ready for at least
-                minReadySeconds) targeted by this deployment.
+              description: The number of available replicas (ready for at least minReadySeconds)
+                for this MachineSet.
+              format: int32
+              type: integer
+            errorMessage:
+              type: string
+            errorReason:
+              description: In the event that there is a terminal problem reconciling
+                the replicas, both ErrorReason and ErrorMessage will be set. ErrorReason
+                will be populated with a succinct value suitable for machine interpretation,
+                while ErrorMessage will contain a more verbose string suitable for
+                logging and human consumption.  These fields should not be set for
+                transitive errors that a controller faces that are expected to be
+                fixed automatically over time (like service outages), but instead
+                indicate that something is fundamentally wrong with the MachineTemplate's
+                spec or the configuration of the machine controller, and that manual
+                intervention is required. Examples of terminal errors would be invalid
+                combinations of settings in the spec, values that are unsupported
+                by the machine controller, or the responsible machine controller itself
+                being critically misconfigured.  Any transient errors that occur during
+                the reconciliation of Machines can be added as events to the MachineSet
+                object and/or logged in the controller's output.
+              type: string
+            fullyLabeledReplicas:
+              description: The number of replicas that have labels matching the labels
+                of the machine template of the MachineSet.
               format: int32
               type: integer
             observedGeneration:
-              description: The generation observed by the deployment controller.
+              description: ObservedGeneration reflects the generation of the most
+                recently observed MachineSet.
               format: int64
               type: integer
             readyReplicas:
-              description: Total number of ready machines targeted by this deployment.
+              description: The number of ready replicas for this MachineSet. A machine
+                is considered ready when the node has been created and is "Ready".
               format: int32
               type: integer
             replicas:
-              description: Total number of non-terminated machines targeted by this
-                deployment (their labels match the selector).
+              description: Replicas is the most recently observed number of replicas.
               format: int32
               type: integer
-            unavailableReplicas:
-              description: Total number of unavailable machines targeted by this deployment.
-                This is the total number of machines that are still required for the
-                deployment to have 100% available capacity. They may either be machines
-                that are running but not yet available or machines that still have
-                not been created.
-              format: int32
-              type: integer
-            updatedReplicas:
-              description: Total number of non-terminated machines targeted by this
-                deployment that have the desired template spec.
-              format: int32
-              type: integer
+          required:
+          - replicas
           type: object
   version: v1alpha1
 status:

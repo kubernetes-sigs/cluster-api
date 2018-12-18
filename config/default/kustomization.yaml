@@ -19,10 +19,10 @@ namePrefix: cluster-api-
 # markers ("---").
 resources:
 - ../crds/cluster_v1alpha1_cluster.yaml
-- ../crds/cluster_v1alpha1_machine.yaml
-- ../crds/cluster_v1alpha1_machineclass.yaml
-- ../crds/cluster_v1alpha1_machinedeployment.yaml
-- ../crds/cluster_v1alpha1_machineset.yaml
+- ../crds/machine_v1alpha1_machine.yaml
+- ../crds/machine_v1alpha1_machineclass.yaml
+- ../crds/machine_v1alpha1_machinedeployment.yaml
+- ../crds/machine_v1alpha1_machineset.yaml
 - ../rbac/rbac_role.yaml
 - ../rbac/rbac_role_binding.yaml
 - ../manager/manager.yaml

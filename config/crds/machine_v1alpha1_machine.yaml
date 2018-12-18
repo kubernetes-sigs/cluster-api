@@ -4,9 +4,9 @@ metadata:
   creationTimestamp: null
   labels:
     controller-tools.k8s.io: "1.0"
-  name: machines.cluster.k8s.io
+  name: machines.machine.k8s.io
 spec:
-  group: cluster.k8s.io
+  group: machine.k8s.io
   names:
     kind: Machine
     plural: machines

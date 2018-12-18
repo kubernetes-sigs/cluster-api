@@ -25,18 +25,18 @@ import (
 	types "k8s.io/apimachinery/pkg/types"
 	watch "k8s.io/apimachinery/pkg/watch"
 	testing "k8s.io/client-go/testing"
-	v1alpha1 "sigs.k8s.io/cluster-api/pkg/apis/cluster/v1alpha1"
+	v1alpha1 "sigs.k8s.io/cluster-api/pkg/apis/machine/v1alpha1"
 )
 
 // FakeMachineDeployments implements MachineDeploymentInterface
 type FakeMachineDeployments struct {
-	Fake *FakeClusterV1alpha1
+	Fake *FakeMachineV1alpha1
 	ns   string
 }
 
-var machinedeploymentsResource = schema.GroupVersionResource{Group: "cluster.k8s.io", Version: "v1alpha1", Resource: "machinedeployments"}
+var machinedeploymentsResource = schema.GroupVersionResource{Group: "machine.k8s.io", Version: "v1alpha1", Resource: "machinedeployments"}
 
-var machinedeploymentsKind = schema.GroupVersionKind{Group: "cluster.k8s.io", Version: "v1alpha1", Kind: "MachineDeployment"}
+var machinedeploymentsKind = schema.GroupVersionKind{Group: "machine.k8s.io", Version: "v1alpha1", Kind: "MachineDeployment"}
 
 // Get takes name of the machineDeployment, and returns the corresponding machineDeployment object, and an error if there is any.
 func (c *FakeMachineDeployments) Get(name string, options v1.GetOptions) (result *v1alpha1.MachineDeployment, err error) {

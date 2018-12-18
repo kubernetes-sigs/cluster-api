@@ -21,26 +21,41 @@ package v1alpha1
 import (
 	serializer "k8s.io/apimachinery/pkg/runtime/serializer"
 	rest "k8s.io/client-go/rest"
-	v1alpha1 "sigs.k8s.io/cluster-api/pkg/apis/cluster/v1alpha1"
+	v1alpha1 "sigs.k8s.io/cluster-api/pkg/apis/machine/v1alpha1"
 	"sigs.k8s.io/cluster-api/pkg/client/clientset_generated/clientset/scheme"
 )
 
-type ClusterV1alpha1Interface interface {
+type MachineV1alpha1Interface interface {
 	RESTClient() rest.Interface
-	ClustersGetter
+	MachinesGetter
+	MachineClassesGetter
+	MachineDeploymentsGetter
+	MachineSetsGetter
 }
 
-// ClusterV1alpha1Client is used to interact with features provided by the cluster.k8s.io group.
-type ClusterV1alpha1Client struct {
+// MachineV1alpha1Client is used to interact with features provided by the machine.k8s.io group.
+type MachineV1alpha1Client struct {
 	restClient rest.Interface
 }
 
-func (c *ClusterV1alpha1Client) Clusters(namespace string) ClusterInterface {
-	return newClusters(c, namespace)
+func (c *MachineV1alpha1Client) Machines(namespace string) MachineInterface {
+	return newMachines(c, namespace)
 }
 
-// NewForConfig creates a new ClusterV1alpha1Client for the given config.
-func NewForConfig(c *rest.Config) (*ClusterV1alpha1Client, error) {
+func (c *MachineV1alpha1Client) MachineClasses(namespace string) MachineClassInterface {
+	return newMachineClasses(c, namespace)
+}
+
+func (c *MachineV1alpha1Client) MachineDeployments(namespace string) MachineDeploymentInterface {
+	return newMachineDeployments(c, namespace)
+}
+
+func (c *MachineV1alpha1Client) MachineSets(namespace string) MachineSetInterface {
+	return newMachineSets(c, namespace)
+}
+
+// NewForConfig creates a new MachineV1alpha1Client for the given config.
+func NewForConfig(c *rest.Config) (*MachineV1alpha1Client, error) {
 	config := *c
 	if err := setConfigDefaults(&config); err != nil {
 		return nil, err
@@ -49,12 +64,12 @@ func NewForConfig(c *rest.Config) (*ClusterV1alpha1Client, error) {
 	if err != nil {
 		return nil, err
 	}
-	return &ClusterV1alpha1Client{client}, nil
+	return &MachineV1alpha1Client{client}, nil
 }
 
-// NewForConfigOrDie creates a new ClusterV1alpha1Client for the given config and
+// NewForConfigOrDie creates a new MachineV1alpha1Client for the given config and
 // panics if there is an error in the config.
-func NewForConfigOrDie(c *rest.Config) *ClusterV1alpha1Client {
+func NewForConfigOrDie(c *rest.Config) *MachineV1alpha1Client {
 	client, err := NewForConfig(c)
 	if err != nil {
 		panic(err)
@@ -62,9 +77,9 @@ func NewForConfigOrDie(c *rest.Config) *ClusterV1alpha1Client {
 	return client
 }
 
-// New creates a new ClusterV1alpha1Client for the given RESTClient.
-func New(c rest.Interface) *ClusterV1alpha1Client {
-	return &ClusterV1alpha1Client{c}
+// New creates a new MachineV1alpha1Client for the given RESTClient.
+func New(c rest.Interface) *MachineV1alpha1Client {
+	return &MachineV1alpha1Client{c}
 }
 
 func setConfigDefaults(config *rest.Config) error {
@@ -82,7 +97,7 @@ func setConfigDefaults(config *rest.Config) error {
 
 // RESTClient returns a RESTClient that is used to communicate
 // with API server by this client implementation.
-func (c *ClusterV1alpha1Client) RESTClient() rest.Interface {
+func (c *MachineV1alpha1Client) RESTClient() rest.Interface {
 	if c == nil {
 		return nil
 	}

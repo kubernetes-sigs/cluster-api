@@ -25,18 +25,18 @@ import (
 	types "k8s.io/apimachinery/pkg/types"
 	watch "k8s.io/apimachinery/pkg/watch"
 	testing "k8s.io/client-go/testing"
-	v1alpha1 "sigs.k8s.io/cluster-api/pkg/apis/cluster/v1alpha1"
+	v1alpha1 "sigs.k8s.io/cluster-api/pkg/apis/machine/v1alpha1"
 )
 
 // FakeMachineSets implements MachineSetInterface
 type FakeMachineSets struct {
-	Fake *FakeClusterV1alpha1
+	Fake *FakeMachineV1alpha1
 	ns   string
 }
 
-var machinesetsResource = schema.GroupVersionResource{Group: "cluster.k8s.io", Version: "v1alpha1", Resource: "machinesets"}
+var machinesetsResource = schema.GroupVersionResource{Group: "machine.k8s.io", Version: "v1alpha1", Resource: "machinesets"}
 
-var machinesetsKind = schema.GroupVersionKind{Group: "cluster.k8s.io", Version: "v1alpha1", Kind: "MachineSet"}
+var machinesetsKind = schema.GroupVersionKind{Group: "machine.k8s.io", Version: "v1alpha1", Kind: "MachineSet"}
 
 // Get takes name of the machineSet, and returns the corresponding machineSet object, and an error if there is any.
 func (c *FakeMachineSets) Get(name string, options v1.GetOptions) (result *v1alpha1.MachineSet, err error) {

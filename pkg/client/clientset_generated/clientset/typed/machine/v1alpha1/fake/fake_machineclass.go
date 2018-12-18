@@ -25,18 +25,18 @@ import (
 	types "k8s.io/apimachinery/pkg/types"
 	watch "k8s.io/apimachinery/pkg/watch"
 	testing "k8s.io/client-go/testing"
-	v1alpha1 "sigs.k8s.io/cluster-api/pkg/apis/cluster/v1alpha1"
+	v1alpha1 "sigs.k8s.io/cluster-api/pkg/apis/machine/v1alpha1"
 )
 
 // FakeMachineClasses implements MachineClassInterface
 type FakeMachineClasses struct {
-	Fake *FakeClusterV1alpha1
+	Fake *FakeMachineV1alpha1
 	ns   string
 }
 
-var machineclassesResource = schema.GroupVersionResource{Group: "cluster.k8s.io", Version: "v1alpha1", Resource: "machineclasses"}
+var machineclassesResource = schema.GroupVersionResource{Group: "machine.k8s.io", Version: "v1alpha1", Resource: "machineclasses"}
 
-var machineclassesKind = schema.GroupVersionKind{Group: "cluster.k8s.io", Version: "v1alpha1", Kind: "MachineClass"}
+var machineclassesKind = schema.GroupVersionKind{Group: "machine.k8s.io", Version: "v1alpha1", Kind: "MachineClass"}
 
 // Get takes name of the machineClass, and returns the corresponding machineClass object, and an error if there is any.
 func (c *FakeMachineClasses) Get(name string, options v1.GetOptions) (result *v1alpha1.MachineClass, err error) {

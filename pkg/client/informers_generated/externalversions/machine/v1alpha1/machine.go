@@ -25,65 +25,65 @@ import (
 	runtime "k8s.io/apimachinery/pkg/runtime"
 	watch "k8s.io/apimachinery/pkg/watch"
 	cache "k8s.io/client-go/tools/cache"
-	clusterv1alpha1 "sigs.k8s.io/cluster-api/pkg/apis/cluster/v1alpha1"
+	machinev1alpha1 "sigs.k8s.io/cluster-api/pkg/apis/machine/v1alpha1"
 	clientset "sigs.k8s.io/cluster-api/pkg/client/clientset_generated/clientset"
 	internalinterfaces "sigs.k8s.io/cluster-api/pkg/client/informers_generated/externalversions/internalinterfaces"
-	v1alpha1 "sigs.k8s.io/cluster-api/pkg/client/listers_generated/cluster/v1alpha1"
+	v1alpha1 "sigs.k8s.io/cluster-api/pkg/client/listers_generated/machine/v1alpha1"
 )
 
-// MachineSetInformer provides access to a shared informer and lister for
-// MachineSets.
-type MachineSetInformer interface {
+// MachineInformer provides access to a shared informer and lister for
+// Machines.
+type MachineInformer interface {
 	Informer() cache.SharedIndexInformer
-	Lister() v1alpha1.MachineSetLister
+	Lister() v1alpha1.MachineLister
 }
 
-type machineSetInformer struct {
+type machineInformer struct {
 	factory          internalinterfaces.SharedInformerFactory
 	tweakListOptions internalinterfaces.TweakListOptionsFunc
 	namespace        string
 }
 
-// NewMachineSetInformer constructs a new informer for MachineSet type.
+// NewMachineInformer constructs a new informer for Machine type.
 // Always prefer using an informer factory to get a shared informer instead of getting an independent
 // one. This reduces memory footprint and number of connections to the server.
-func NewMachineSetInformer(client clientset.Interface, namespace string, resyncPeriod time.Duration, indexers cache.Indexers) cache.SharedIndexInformer {
-	return NewFilteredMachineSetInformer(client, namespace, resyncPeriod, indexers, nil)
+func NewMachineInformer(client clientset.Interface, namespace string, resyncPeriod time.Duration, indexers cache.Indexers) cache.SharedIndexInformer {
+	return NewFilteredMachineInformer(client, namespace, resyncPeriod, indexers, nil)
 }
 
-// NewFilteredMachineSetInformer constructs a new informer for MachineSet type.
+// NewFilteredMachineInformer constructs a new informer for Machine type.
 // Always prefer using an informer factory to get a shared informer instead of getting an independent
 // one. This reduces memory footprint and number of connections to the server.
-func NewFilteredMachineSetInformer(client clientset.Interface, namespace string, resyncPeriod time.Duration, indexers cache.Indexers, tweakListOptions internalinterfaces.TweakListOptionsFunc) cache.SharedIndexInformer {
+func NewFilteredMachineInformer(client clientset.Interface, namespace string, resyncPeriod time.Duration, indexers cache.Indexers, tweakListOptions internalinterfaces.TweakListOptionsFunc) cache.SharedIndexInformer {
 	return cache.NewSharedIndexInformer(
 		&cache.ListWatch{
 			ListFunc: func(options v1.ListOptions) (runtime.Object, error) {
 				if tweakListOptions != nil {
 					tweakListOptions(&options)
 				}
-				return client.ClusterV1alpha1().MachineSets(namespace).List(options)
+				return client.MachineV1alpha1().Machines(namespace).List(options)
 			},
 			WatchFunc: func(options v1.ListOptions) (watch.Interface, error) {
 				if tweakListOptions != nil {
 					tweakListOptions(&options)
 				}
-				return client.ClusterV1alpha1().MachineSets(namespace).Watch(options)
+				return client.MachineV1alpha1().Machines(namespace).Watch(options)
 			},
 		},
-		&clusterv1alpha1.MachineSet{},
+		&machinev1alpha1.Machine{},
 		resyncPeriod,
 		indexers,
 	)
 }
 
-func (f *machineSetInformer) defaultInformer(client clientset.Interface, resyncPeriod time.Duration) cache.SharedIndexInformer {
-	return NewFilteredMachineSetInformer(client, f.namespace, resyncPeriod, cache.Indexers{cache.NamespaceIndex: cache.MetaNamespaceIndexFunc}, f.tweakListOptions)
+func (f *machineInformer) defaultInformer(client clientset.Interface, resyncPeriod time.Duration) cache.SharedIndexInformer {
+	return NewFilteredMachineInformer(client, f.namespace, resyncPeriod, cache.Indexers{cache.NamespaceIndex: cache.MetaNamespaceIndexFunc}, f.tweakListOptions)
 }
 
-func (f *machineSetInformer) Informer() cache.SharedIndexInformer {
-	return f.factory.InformerFor(&clusterv1alpha1.MachineSet{}, f.defaultInformer)
+func (f *machineInformer) Informer() cache.SharedIndexInformer {
+	return f.factory.InformerFor(&machinev1alpha1.Machine{}, f.defaultInformer)
 }
 
-func (f *machineSetInformer) Lister() v1alpha1.MachineSetLister {
-	return v1alpha1.NewMachineSetLister(f.Informer().GetIndexer())
+func (f *machineInformer) Lister() v1alpha1.MachineLister {
+	return v1alpha1.NewMachineLister(f.Informer().GetIndexer())
 }

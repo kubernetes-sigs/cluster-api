@@ -23,7 +23,7 @@ import (
 	types "k8s.io/apimachinery/pkg/types"
 	watch "k8s.io/apimachinery/pkg/watch"
 	rest "k8s.io/client-go/rest"
-	v1alpha1 "sigs.k8s.io/cluster-api/pkg/apis/cluster/v1alpha1"
+	v1alpha1 "sigs.k8s.io/cluster-api/pkg/apis/machine/v1alpha1"
 	scheme "sigs.k8s.io/cluster-api/pkg/client/clientset_generated/clientset/scheme"
 )
 
@@ -54,7 +54,7 @@ type machineSets struct {
 }
 
 // newMachineSets returns a MachineSets
-func newMachineSets(c *ClusterV1alpha1Client, namespace string) *machineSets {
+func newMachineSets(c *MachineV1alpha1Client, namespace string) *machineSets {
 	return &machineSets{
 		client: c.RESTClient(),
 		ns:     namespace,

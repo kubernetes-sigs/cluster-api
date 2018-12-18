@@ -30,6 +30,7 @@ import (
 	clientset "sigs.k8s.io/cluster-api/pkg/client/clientset_generated/clientset"
 	cluster "sigs.k8s.io/cluster-api/pkg/client/informers_generated/externalversions/cluster"
 	internalinterfaces "sigs.k8s.io/cluster-api/pkg/client/informers_generated/externalversions/internalinterfaces"
+	machine "sigs.k8s.io/cluster-api/pkg/client/informers_generated/externalversions/machine"
 )
 
 // SharedInformerOption defines the functional option type for SharedInformerFactory.
@@ -173,8 +174,13 @@ type SharedInformerFactory interface {
 	WaitForCacheSync(stopCh <-chan struct{}) map[reflect.Type]bool
 
 	Cluster() cluster.Interface
+	Machine() machine.Interface
 }
 
 func (f *sharedInformerFactory) Cluster() cluster.Interface {
 	return cluster.New(f, f.namespace, f.tweakListOptions)
+}
+
+func (f *sharedInformerFactory) Machine() machine.Interface {
+	return machine.New(f, f.namespace, f.tweakListOptions)
 }

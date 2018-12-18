@@ -66,7 +66,7 @@ type ClusterNetworkingConfig struct {
 	// The network ranges from which service VIPs are allocated.
 	Services NetworkRanges `json:"services"`
 
-	// The network ranges from which POD networks are allocated.
+	// The network ranges from which Pod networks are allocated.
 	Pods NetworkRanges `json:"pods"`
 
 	// Domain name for services.

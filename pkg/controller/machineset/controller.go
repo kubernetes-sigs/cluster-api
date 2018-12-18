@@ -294,7 +294,7 @@ func (c *ReconcileMachineSet) createMachine(machineSet *clusterv1alpha1.MachineS
 	return machine
 }
 
-// shoudExcludeMachine returns true if the machine should be filtered out, false otherwise.
+// shouldExcludeMachine returns true if the machine should be filtered out, false otherwise.
 func shouldExcludeMachine(machineSet *clusterv1alpha1.MachineSet, machine *clusterv1alpha1.Machine) bool {
 	// Ignore inactive machines.
 	if metav1.GetControllerOf(machine) != nil && !metav1.IsControlledBy(machine, machineSet) {

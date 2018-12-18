@@ -24,7 +24,7 @@ import (
 	"sigs.k8s.io/cluster-api/pkg/apis/cluster/common"
 )
 
-// Finalizer is set on PreareForCreate callback
+// Finalizer is set on PrepareForCreate callback
 const MachineFinalizer = "machine.cluster.k8s.io"
 
 // +genclient
@@ -74,7 +74,7 @@ type MachineSpec struct {
 
 	// To populate in the associated Node for dynamic kubelet config. This
 	// field already exists in Node, so any updates to it in the Machine
-	// spec will be automatially copied to the linked NodeRef from the
+	// spec will be automatically copied to the linked NodeRef from the
 	// status. The rest of dynamic kubelet config support should then work
 	// as-is.
 	// +optional
@@ -160,7 +160,7 @@ type MachineStatus struct {
 	LastOperation *LastOperation `json:"lastOperation,omitempty"`
 
 	// Phase represents the current phase of machine actuation.
-	// Eg. Pending, Running, Terminating, Failed etc.
+	// E.g. Pending, Running, Terminating, Failed etc.
 	// +optional
 	Phase *string `json:"phase,omitempty"`
 }
@@ -174,11 +174,11 @@ type LastOperation struct {
 	LastUpdated *metav1.Time `json:"lastUpdated,omitempty"`
 
 	// State is the current status of the last performed operation.
-	// Eg.Processing, Failed, Successful etc
+	// E.g. Processing, Failed, Successful etc
 	State *string `json:"state,omitempty"`
 
 	// Type is the type of operation which was last performed.
-	// Eg. Create, Delete, Update etc
+	// E.g. Create, Delete, Update etc
 	Type *string `json:"type,omitempty"`
 }
 

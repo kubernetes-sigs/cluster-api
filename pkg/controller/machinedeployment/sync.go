@@ -389,7 +389,7 @@ func (r *ReconcileMachineDeployment) scaleMachineSetOperation(ms *clusterv1alpha
 	return scaled, err
 }
 
-// cleanupDeployment is responsible for cleaning up a deployment ie. retains all but the latest N old machine sets
+// cleanupDeployment is responsible for cleaning up a deployment i.e. retains all but the latest N old machine sets
 // where N=d.Spec.RevisionHistoryLimit. Old machine sets are older versions of the machinetemplate of a deployment kept
 // around by default 1) for historical reasons and 2) for the ability to rollback a deployment.
 func (r *ReconcileMachineDeployment) cleanupDeployment(oldMSs []*clusterv1alpha1.MachineSet, deployment *clusterv1alpha1.MachineDeployment) error {

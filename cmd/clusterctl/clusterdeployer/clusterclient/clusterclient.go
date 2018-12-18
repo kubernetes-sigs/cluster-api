@@ -87,7 +87,7 @@ type client struct {
 	closeFn         func() error
 }
 
-// New creates and returns a Client, the kubeconfig argument is expected to be the string represenation
+// New creates and returns a Client, the kubeconfig argument is expected to be the string representation
 // of a valid kubeconfig.
 func New(kubeconfig string) (*client, error) {
 	f, err := createTempFile(kubeconfig)

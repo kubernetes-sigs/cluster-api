@@ -50,7 +50,7 @@ var stateConfirmationInterval = 100 * time.Millisecond
 // and Start it when the Manager is Started.
 func Add(mgr manager.Manager) error {
 	r := newReconciler(mgr)
-	return add(mgr, r, r.MachineSetToMachines)
+	return add(mgr, r, r.MachineToMachineSets)
 }
 
 // newReconciler returns a new reconcile.Reconciler
@@ -100,7 +100,7 @@ type ReconcileMachineSet struct {
 	scheme *runtime.Scheme
 }
 
-func (r *ReconcileMachineSet) MachineSetToMachines(o handler.MapObject) []reconcile.Request {
+func (r *ReconcileMachineSet) MachineToMachineSets(o handler.MapObject) []reconcile.Request {
 	result := []reconcile.Request{}
 	m := &clusterv1alpha1.Machine{}
 	key := client.ObjectKey{Namespace: o.Meta.GetNamespace(), Name: o.Meta.GetName()}

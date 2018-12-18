@@ -59,7 +59,7 @@ func TestReconcile(t *testing.T) {
 
 	r := newReconciler(mgr)
 	recFn, requests := SetupTestReconcile(r)
-	if err := add(mgr, recFn, r.MachineSetToMachines); err != nil {
+	if err := add(mgr, recFn, r.MachineToMachineSets); err != nil {
 		t.Errorf("error adding controller to manager: %v", err)
 	}
 	defer close(StartTestManager(mgr, t))

@@ -34,6 +34,9 @@ func (r *ReconcileMachineDeployment) rolloutRolling(d *v1alpha1.MachineDeploymen
 	if err != nil {
 		return err
 	}
+	if newMS == nil {
+		return nil
+	}
 	allMSs := append(oldMSs, newMS)
 
 	// Scale up, if we can.

@@ -17,21 +17,51 @@ limitations under the License.
 package machineset
 
 import (
+	"math"
+	"sort"
+
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"sigs.k8s.io/cluster-api/pkg/apis/cluster/v1alpha1"
 )
 
-type deletePriority int
+type deletePriority float64
 
 const (
-	mustDelete   deletePriority = 100
-	betterDelete deletePriority = 50
-	couldDelete  deletePriority = 20
-	// mustNotDelete deletePriority = 0
+	mustDelete    deletePriority = 100.0
+	betterDelete  deletePriority = 50.0
+	couldDelete   deletePriority = 20.0
+	mustNotDelete deletePriority = 0.0
 )
 
 type deletePriorityFunc func(machine *v1alpha1.Machine) deletePriority
 
+// maps the creation timestamp onto the 0-100 priority range
+func oldestDeletePriority(machine *v1alpha1.Machine) deletePriority {
+	if machine.DeletionTimestamp != nil && !machine.DeletionTimestamp.IsZero() {
+		return mustDelete
+	}
+	if machine.ObjectMeta.CreationTimestamp.Time.IsZero() {
+		return mustNotDelete
+	}
+	d := metav1.Now().Sub(machine.ObjectMeta.CreationTimestamp.Time)
+	if d.Seconds() < 0 {
+		return mustNotDelete
+	}
+	var secondsPerTenDays float64 = 864000
+	return deletePriority(float64(mustDelete) * (1.0 - math.Exp(-d.Seconds()/secondsPerTenDays)))
+}
+
+func newestDeletePriority(machine *v1alpha1.Machine) deletePriority {
+	if machine.DeletionTimestamp != nil && !machine.DeletionTimestamp.IsZero() {
+		return mustDelete
+	}
+	return mustDelete - oldestDeletePriority(machine)
+}
+
 func simpleDeletePriority(machine *v1alpha1.Machine) deletePriority {
+	if machine.DeletionTimestamp != nil && !machine.DeletionTimestamp.IsZero() {
+		return mustDelete
+	}
 	if machine.DeletionTimestamp != nil && !machine.DeletionTimestamp.IsZero() {
 		return mustDelete
 	}
@@ -39,6 +69,17 @@ func simpleDeletePriority(machine *v1alpha1.Machine) deletePriority {
 		return betterDelete
 	}
 	return couldDelete
+}
+
+type sortableMachines struct {
+	machines []*v1alpha1.Machine
+	priority deletePriorityFunc
+}
+
+func (m sortableMachines) Len() int      { return len(m.machines) }
+func (m sortableMachines) Swap(i, j int) { m.machines[i], m.machines[j] = m.machines[j], m.machines[i] }
+func (m sortableMachines) Less(i, j int) bool {
+	return m.priority(m.machines[j]) < m.priority(m.machines[i]) // sort high to low
 }
 
 // TODO: Define machines deletion policies.
@@ -50,24 +91,11 @@ func getMachinesToDeletePrioritized(filteredMachines []*v1alpha1.Machine, diff i
 		return []*v1alpha1.Machine{}
 	}
 
-	machines := make(map[deletePriority][]*v1alpha1.Machine)
-
-	for _, machine := range filteredMachines {
-		priority := fun(machine)
-		machines[priority] = append(machines[priority], machine)
+	sortable := sortableMachines{
+		machines: filteredMachines,
+		priority: fun,
 	}
+	sort.Sort(sortable)
 
-	result := []*v1alpha1.Machine{}
-	for _, priority := range []deletePriority{
-		mustDelete,
-		betterDelete,
-		couldDelete,
-	} {
-		result = append(result, machines[priority]...)
-		if len(result) >= diff {
-			break
-		}
-	}
-
-	return result[:diff]
+	return sortable.machines[:diff]
 }

@@ -110,7 +110,7 @@ func TestMachineToDelete(t *testing.T) {
 			},
 		},
 		{
-			desc: "func=simpleDeletePriority, diff<=mustDelete+betterDelete+couldDelete",
+			desc: "func=DeletePriority, diff<=mustDelete+betterDelete+couldDelete",
 			diff: 2,
 			machines: []*v1alpha1.Machine{
 				{},
@@ -122,10 +122,131 @@ func TestMachineToDelete(t *testing.T) {
 				{},
 			},
 		},
+		{
+			desc: "func=simpleDeletePriority, diff>betterDelete",
+			diff: 2,
+			machines: []*v1alpha1.Machine{
+				{},
+				betterDeleteMachine,
+				{},
+			},
+			expect: []*v1alpha1.Machine{
+				betterDeleteMachine,
+				{},
+			},
+		},
 	}
 
 	for _, test := range tests {
 		result := getMachinesToDeletePrioritized(test.machines, test.diff, simpleDeletePriority)
+		if !reflect.DeepEqual(result, test.expect) {
+			t.Errorf("[case %s]", test.desc)
+		}
+	}
+}
+
+func TestMachineNewestDelete(t *testing.T) {
+
+	currentTime := metav1.Now()
+
+	mustDeleteMachine := &v1alpha1.Machine{ObjectMeta: metav1.ObjectMeta{DeletionTimestamp: &currentTime}}
+	newest := &v1alpha1.Machine{ObjectMeta: metav1.ObjectMeta{CreationTimestamp: metav1.NewTime(currentTime.Time.AddDate(0, 0, -1))}}
+	new := &v1alpha1.Machine{ObjectMeta: metav1.ObjectMeta{CreationTimestamp: metav1.NewTime(currentTime.Time.AddDate(0, 0, -5))}}
+	old := &v1alpha1.Machine{ObjectMeta: metav1.ObjectMeta{CreationTimestamp: metav1.NewTime(currentTime.Time.AddDate(0, 0, -10))}}
+	oldest := &v1alpha1.Machine{ObjectMeta: metav1.ObjectMeta{CreationTimestamp: metav1.NewTime(currentTime.Time.AddDate(0, 0, -10))}}
+
+	tests := []struct {
+		desc     string
+		machines []*v1alpha1.Machine
+		diff     int
+		expect   []*v1alpha1.Machine
+	}{
+		{
+			desc: "func=newestDeletePriority, diff=1",
+			diff: 1,
+			machines: []*v1alpha1.Machine{
+				new, oldest, old, mustDeleteMachine, newest,
+			},
+			expect: []*v1alpha1.Machine{mustDeleteMachine},
+		},
+		{
+			desc: "func=newestDeletePriority, diff=2",
+			diff: 2,
+			machines: []*v1alpha1.Machine{
+				new, oldest, mustDeleteMachine, old, newest,
+			},
+			expect: []*v1alpha1.Machine{mustDeleteMachine, newest},
+		},
+		{
+			desc: "func=newestDeletePriority, diff=3",
+			diff: 3,
+			machines: []*v1alpha1.Machine{
+				new, mustDeleteMachine, oldest, old, newest,
+			},
+			expect: []*v1alpha1.Machine{mustDeleteMachine, newest, new},
+		},
+	}
+
+	for _, test := range tests {
+		result := getMachinesToDeletePrioritized(test.machines, test.diff, newestDeletePriority)
+		if !reflect.DeepEqual(result, test.expect) {
+			t.Errorf("[case %s]", test.desc)
+		}
+	}
+}
+
+func TestMachineOldestDelete(t *testing.T) {
+
+	currentTime := metav1.Now()
+
+	empty := &v1alpha1.Machine{}
+	newest := &v1alpha1.Machine{ObjectMeta: metav1.ObjectMeta{CreationTimestamp: metav1.NewTime(currentTime.Time.AddDate(0, 0, -1))}}
+	new := &v1alpha1.Machine{ObjectMeta: metav1.ObjectMeta{CreationTimestamp: metav1.NewTime(currentTime.Time.AddDate(0, 0, -5))}}
+	old := &v1alpha1.Machine{ObjectMeta: metav1.ObjectMeta{CreationTimestamp: metav1.NewTime(currentTime.Time.AddDate(0, 0, -10))}}
+	oldest := &v1alpha1.Machine{ObjectMeta: metav1.ObjectMeta{CreationTimestamp: metav1.NewTime(currentTime.Time.AddDate(0, 0, -10))}}
+
+	tests := []struct {
+		desc     string
+		machines []*v1alpha1.Machine
+		diff     int
+		expect   []*v1alpha1.Machine
+	}{
+		{
+			desc: "func=oldestDeletePriority, diff=1",
+			diff: 1,
+			machines: []*v1alpha1.Machine{
+				empty, new, oldest, old, newest,
+			},
+			expect: []*v1alpha1.Machine{oldest},
+		},
+		{
+			desc: "func=oldestDeletePriority, diff=2",
+			diff: 2,
+			machines: []*v1alpha1.Machine{
+				new, oldest, old, newest, empty,
+			},
+			expect: []*v1alpha1.Machine{oldest, old},
+		},
+		{
+			desc: "func=oldestDeletePriority, diff=3",
+			diff: 3,
+			machines: []*v1alpha1.Machine{
+				new, oldest, old, newest, empty,
+			},
+			expect: []*v1alpha1.Machine{oldest, old, new},
+		},
+		{
+			desc: "func=oldestDeletePriority, diff=4",
+			diff: 4,
+			machines: []*v1alpha1.Machine{
+				new, oldest, old, newest, empty,
+			},
+			expect: []*v1alpha1.Machine{oldest, old, new, newest},
+		},
+	}
+
+	for _, test := range tests {
+		result := getMachinesToDeletePrioritized(test.machines, test.diff, oldestDeletePriority)
 		if !reflect.DeepEqual(result, test.expect) {
 			t.Errorf("[case %s]", test.desc)
 		}

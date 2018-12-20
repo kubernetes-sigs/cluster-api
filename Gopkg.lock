@@ -785,7 +785,7 @@
   revision = "e3762e86a74c878ffed47484592986685639c2cd"
 
 [[projects]]
-  digest = "1:f67de7bec51b31c93bce558098ac8c144e598248a6c91016dc7dca668558353d"
+  digest = "1:264a5cbd8f1975842b856e8a590e2c54eaffb087c8bfa130d338eb07c7325a87"
   name = "sigs.k8s.io/controller-runtime"
   packages = [
     "pkg/cache",
@@ -793,6 +793,7 @@
     "pkg/client",
     "pkg/client/apiutil",
     "pkg/client/config",
+    "pkg/client/fake",
     "pkg/controller",
     "pkg/envtest",
     "pkg/envtest/printer",
@@ -905,6 +906,7 @@
     "k8s.io/klog",
     "sigs.k8s.io/controller-runtime/pkg/client",
     "sigs.k8s.io/controller-runtime/pkg/client/config",
+    "sigs.k8s.io/controller-runtime/pkg/client/fake",
     "sigs.k8s.io/controller-runtime/pkg/controller",
     "sigs.k8s.io/controller-runtime/pkg/envtest",
     "sigs.k8s.io/controller-runtime/pkg/handler",

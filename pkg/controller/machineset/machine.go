@@ -18,7 +18,6 @@ package machineset
 
 import (
 	"context"
-
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/klog"
@@ -33,7 +32,19 @@ func (c *ReconcileMachineSet) getMachineSetsForMachine(m *v1alpha1.Machine) []*v
 	}
 
 	msList := &v1alpha1.MachineSetList{}
-	err := c.Client.List(context.Background(), &client.ListOptions{Namespace: m.Namespace}, msList)
+	listOptions := &client.ListOptions{
+		Namespace: m.Namespace,
+		// This is set so the fake client can be used for unit test. See:
+		// https://github.com/kubernetes-sigs/controller-runtime/issues/168
+		Raw: &metav1.ListOptions{
+			TypeMeta: metav1.TypeMeta{
+				APIVersion: v1alpha1.SchemeGroupVersion.String(),
+				Kind:       "MachineSet",
+			},
+		},
+	}
+
+	err := c.Client.List(context.Background(), listOptions, msList)
 	if err != nil {
 		klog.Errorf("Failed to list machine sets, %v", err)
 		return nil

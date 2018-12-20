@@ -1,0 +1,51 @@
+.gbcg-tab-selectors {
+    border-bottom: 1px solid #000;
+}
+
+.gbcg .gbcg-selector {
+    display: inline-block;
+    color: #000;
+    cursor: pointer;
+    padding: 5px 15px;
+    min-width: 100px;
+    text-align: center;
+    margin-left: -5px;
+    font-weight: bold;
+    background-color: #f7f7f7;
+}
+
+.gbcg .gbcg-selector:hover,
+.gbcg .gbcg-selector{
+    text-decoration: none;
+}
+
+.gbcg .gbcg-selector.gbcg-active {
+    color: #000;
+    border-width: 2px;
+    border-bottom: 2px solid #7F0000;
+    border-top: 2px solid #7F0000;
+}
+.color-theme-2 .gbcg .gbcg-selector.gbcg-active{
+    border-bottom: 2px solid #fff;
+    border-top: 2px solid #fff;
+}
+
+.book .book-body .page-wrapper .page-inner section.normal .gbcg a.gbcg-selector {
+    color: #000;
+}
+
+.book .book-body .page-wrapper .page-inner section.normal .gbcg a.gbcg-selector.gbcg-active {
+    color: #7F0000;
+}
+
+/* 
+    ensure compatibility with js-sequence plugin.
+    This hide strategy ensures the diagram is rendered with proper sizing
+    before being brought into view
+ */
+.gbcg-tabname,
+.gbcg .gbcg-tab-item-cntr {
+    visibility: hidden;
+    position: fixed;
+    left: -1000px;
+}

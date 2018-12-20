@@ -895,23 +895,23 @@
   version = "v0.1.8"
 
 [[projects]]
-  digest = "1:2ad3b6ee1aab2b1e6c88881502cc3da56aeb803c9de3440af7b720298fbdf5cb"
+  digest = "1:946a62b07e59b9abd1f475a5b5c8d590255c1d40627f386d34fd073d3de9ecb8"
   name = "sigs.k8s.io/controller-tools"
   packages = [
     "cmd/controller-gen",
     "pkg/crd/generator",
     "pkg/crd/util",
-    "pkg/generate/rbac",
-    "pkg/generate/webhook",
-    "pkg/generate/webhook/internal",
     "pkg/internal/codegen",
     "pkg/internal/codegen/parse",
     "pkg/internal/general",
+    "pkg/rbac",
     "pkg/util",
+    "pkg/webhook",
+    "pkg/webhook/internal",
   ]
   pruneopts = "UT"
-  revision = "b072ef59824b16023b0e12c94d0040d99059a961"
-  version = "v0.1.7"
+  revision = "950a0e88e4effb864253b3c7504b326cc83b9d11"
+  version = "v0.1.8"
 
 [[projects]]
   branch = "master"

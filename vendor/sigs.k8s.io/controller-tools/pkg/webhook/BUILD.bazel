@@ -6,8 +6,8 @@ go_library(
         "manifests.go",
         "parser.go",
     ],
-    importmap = "sigs.k8s.io/cluster-api/vendor/sigs.k8s.io/controller-tools/pkg/generate/webhook",
-    importpath = "sigs.k8s.io/controller-tools/pkg/generate/webhook",
+    importmap = "sigs.k8s.io/cluster-api/vendor/sigs.k8s.io/controller-tools/pkg/webhook",
+    importpath = "sigs.k8s.io/controller-tools/pkg/webhook",
     visibility = ["//visibility:public"],
     deps = [
         "//vendor/github.com/ghodss/yaml:go_default_library",
@@ -17,7 +17,7 @@ go_library(
         "//vendor/sigs.k8s.io/controller-runtime/pkg/webhook:go_default_library",
         "//vendor/sigs.k8s.io/controller-runtime/pkg/webhook/admission:go_default_library",
         "//vendor/sigs.k8s.io/controller-runtime/pkg/webhook/types:go_default_library",
-        "//vendor/sigs.k8s.io/controller-tools/pkg/generate/webhook/internal:go_default_library",
         "//vendor/sigs.k8s.io/controller-tools/pkg/internal/general:go_default_library",
+        "//vendor/sigs.k8s.io/controller-tools/pkg/webhook/internal:go_default_library",
     ],
 )

@@ -98,8 +98,7 @@ func (r *ReconcileMachine) Reconcile(request reconcile.Request) (reconcile.Resul
 	ctx := context.TODO()
 	// Fetch the Machine instance
 	m := &clusterv1.Machine{}
-	err := r.Get(ctx, request.NamespacedName, m)
-	if err != nil {
+	if err := r.Client.Get(ctx, request.NamespacedName, m); err != nil {
 		if apierrors.IsNotFound(err) {
 			// Object not found, return.  Created objects are automatically garbage collected.
 			// For additional cleanup logic use finalizers.
@@ -118,7 +117,7 @@ func (r *ReconcileMachine) Reconcile(request reconcile.Request) (reconcile.Resul
 	if m.ObjectMeta.DeletionTimestamp.IsZero() &&
 		!util.Contains(m.ObjectMeta.Finalizers, clusterv1.MachineFinalizer) {
 		m.Finalizers = append(m.Finalizers, clusterv1.MachineFinalizer)
-		if err = r.Update(ctx, m); err != nil {
+		if err := r.Client.Update(ctx, m); err != nil {
 			klog.Infof("failed to add finalizer to machine object %v due to error %v.", name, err)
 			return reconcile.Result{}, err
 		}
@@ -166,8 +165,7 @@ func (r *ReconcileMachine) Reconcile(request reconcile.Request) (reconcile.Resul
 	}
 	if exist {
 		klog.Infof("Reconciling machine object %v triggers idempotent update.", name)
-		err := r.update(ctx, m)
-		if err != nil {
+		if err := r.update(ctx, m); err != nil {
 			if requeueErr, ok := err.(*controllerError.RequeueAfterError); ok {
 				klog.Infof("Actuator returned requeue-after error: %v", requeueErr)
 				return reconcile.Result{Requeue: true, RequeueAfter: requeueErr.RequeueAfter}, nil
@@ -189,39 +187,38 @@ func (r *ReconcileMachine) Reconcile(request reconcile.Request) (reconcile.Resul
 	return reconcile.Result{}, nil
 }
 
-func (c *ReconcileMachine) create(ctx context.Context, machine *clusterv1.Machine) error {
-	cluster, err := c.getCluster(ctx, machine)
+func (r *ReconcileMachine) create(ctx context.Context, machine *clusterv1.Machine) error {
+	cluster, err := r.getCluster(ctx, machine)
 	if err != nil {
 		return err
 	}
 
-	return c.actuator.Create(ctx, cluster, machine)
+	return r.actuator.Create(ctx, cluster, machine)
 }
 
-func (c *ReconcileMachine) update(ctx context.Context, new_machine *clusterv1.Machine) error {
-	cluster, err := c.getCluster(ctx, new_machine)
+func (r *ReconcileMachine) update(ctx context.Context, new_machine *clusterv1.Machine) error {
+	cluster, err := r.getCluster(ctx, new_machine)
 	if err != nil {
 		return err
 	}
 
 	// TODO: Assume single master for now.
 	// TODO: Assume we never change the role for the machines. (Master->Node, Node->Master, etc)
-	return c.actuator.Update(ctx, cluster, new_machine)
+	return r.actuator.Update(ctx, cluster, new_machine)
 }
 
-func (c *ReconcileMachine) delete(ctx context.Context, machine *clusterv1.Machine) error {
-	cluster, err := c.getCluster(ctx, machine)
+func (r *ReconcileMachine) delete(ctx context.Context, machine *clusterv1.Machine) error {
+	cluster, err := r.getCluster(ctx, machine)
 	if err != nil {
 		return err
 	}
 
-	return c.actuator.Delete(ctx, cluster, machine)
+	return r.actuator.Delete(ctx, cluster, machine)
 }
 
-func (c *ReconcileMachine) getCluster(ctx context.Context, machine *clusterv1.Machine) (*clusterv1.Cluster, error) {
+func (r *ReconcileMachine) getCluster(ctx context.Context, machine *clusterv1.Machine) (*clusterv1.Cluster, error) {
 	clusterList := clusterv1.ClusterList{}
-	err := c.Client.List(ctx, client.InNamespace(machine.Namespace), &clusterList)
-	if err != nil {
+	if err := r.Client.List(ctx, client.InNamespace(machine.Namespace), &clusterList); err != nil {
 		return nil, err
 	}
 
@@ -235,17 +232,17 @@ func (c *ReconcileMachine) getCluster(ctx context.Context, machine *clusterv1.Ma
 	}
 }
 
-func (c *ReconcileMachine) isDeleteAllowed(machine *clusterv1.Machine) bool {
-	if c.nodeName == "" || machine.Status.NodeRef == nil {
+func (r *ReconcileMachine) isDeleteAllowed(machine *clusterv1.Machine) bool {
+	if r.nodeName == "" || machine.Status.NodeRef == nil {
 		return true
 	}
-	if machine.Status.NodeRef.Name != c.nodeName {
+	if machine.Status.NodeRef.Name != r.nodeName {
 		return true
 	}
 	node := &corev1.Node{}
-	err := c.Client.Get(context.Background(), client.ObjectKey{Name: c.nodeName}, node)
+	err := r.Client.Get(context.Background(), client.ObjectKey{Name: r.nodeName}, node)
 	if err != nil {
-		klog.Infof("unable to determine if controller's node is associated with machine '%v', error getting node named '%v': %v", machine.Name, c.nodeName, err)
+		klog.Infof("unable to determine if controller's node is associated with machine '%v', error getting node named '%v': %v", machine.Name, r.nodeName, err)
 		return true
 	}
 	// When the UID of the machine's node reference and this controller's actual node match then then the request is to

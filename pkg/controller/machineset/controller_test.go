@@ -129,7 +129,7 @@ func TestMachineSetToMachines(t *testing.T) {
 	}
 
 	for _, tc := range testsCases {
-		got := r.MachineSetToMachines(tc.mapObject)
+		got := r.MachineToMachineSets(tc.mapObject)
 		if !reflect.DeepEqual(got, tc.expected) {
 			t.Errorf("Case %s. Got: %v, expected: %v", tc.machine.Name, got, tc.expected)
 		}

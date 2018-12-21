@@ -1,6 +1,6 @@
 {
   "plugins": ["theme-api", "panel", "sequence-diagrams", "ga", "codegroup",
-              "mermaid", "include-codeblock"],
+              "include-codeblock"],
   "pluginsConfig": {
     "theme-api": {
       "split": true

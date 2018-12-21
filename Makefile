@@ -31,10 +31,10 @@ help:  ## Display this help
 
 .PHONY: gazelle
 gazelle: ## Run Bazel Gazelle
-	(which bazel && bazel run //:gazelle) || true
+	(which bazel && ./hack/update-bazel.sh) || true
 
 .PHONY: test
-test: generate fmt vet manifests verify ## Run tests
+test: verify generate fmt vet manifests ## Run tests
 	go test -v -tags=integration ./pkg/... ./cmd/...
 
 .PHONY: manager
@@ -71,7 +71,7 @@ vet: ## Run go vet against code
 	go vet ./pkg/... ./cmd/...
 
 .PHONY: generate
-generate: clientset ## Generate code
+generate: clientset gazelle ## Generate code
 	go generate ./pkg/... ./cmd/...
 
 .PHONY: clientset
@@ -89,7 +89,6 @@ clientset: ## Generate a typed clientset
 		--listers-package sigs.k8s.io/cluster-api/pkg/client/listers_generated \
 		--output-package sigs.k8s.io/cluster-api/pkg/client/informers_generated \
 		--go-header-file=./hack/boilerplate.go.txt
-	make gazelle
 
 .PHONY: docker-build
 docker-build: generate fmt vet manifests ## Build the docker image
@@ -105,3 +104,4 @@ docker-push: ## Push the docker image
 verify:
 	./hack/verify_boilerplate.py
 	./hack/verify_clientset.sh
+	./hack/verify-bazel.sh

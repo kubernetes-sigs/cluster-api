@@ -1,0 +1,11 @@
+.gbcg #gbcg-tab-container,
+.gbcg .gbcg-tab-selectors {
+    display:none;
+}
+
+.gbcg-tabname,
+.gbcg .gbcg-tab-item-cntr {
+    visibility: visible;
+    position: relative;
+    left: 0;
+}

@@ -1,0 +1,622 @@
+
+<!DOCTYPE HTML>
+<html lang="" >
+    <head>
+        <meta charset="UTF-8">
+        <meta content="text/html; charset=utf-8" http-equiv="Content-Type">
+        <title>Create Actuators · The Cluster API Book</title>
+        <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+        <meta name="description" content="">
+        <meta name="generator" content="GitBook 3.2.3">
+        <meta name="author" content="SIG Lifecycle Team">
+        
+        
+    
+    <link rel="stylesheet" href="../gitbook/style.css">
+
+    
+            
+                
+                <link rel="stylesheet" href="../gitbook/gitbook-plugin-panel/icons.css">
+                
+            
+                
+                <link rel="stylesheet" href="../gitbook/gitbook-plugin-panel/panel.css">
+                
+            
+                
+                <link rel="stylesheet" href="../gitbook/gitbook-plugin-codegroup/code.group.css">
+                
+            
+                
+                <link rel="stylesheet" href="../gitbook/gitbook-plugin-highlight/website.css">
+                
+            
+                
+                <link rel="stylesheet" href="../gitbook/gitbook-plugin-search/search.css">
+                
+            
+                
+                <link rel="stylesheet" href="../gitbook/gitbook-plugin-fontsettings/website.css">
+                
+            
+                
+                <link rel="stylesheet" href="../gitbook/gitbook-plugin-theme-api/theme-api.css">
+                
+            
+        
+
+    
+
+    
+        
+    
+        
+    
+        
+    
+        
+    
+        
+    
+        
+    
+
+        
+    
+    
+    <meta name="HandheldFriendly" content="true"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black">
+    <link rel="apple-touch-icon-precomposed" sizes="152x152" href="../gitbook/images/apple-touch-icon-precomposed-152.png">
+    <link rel="shortcut icon" href="../gitbook/images/favicon.ico" type="image/x-icon">
+
+    
+    <link rel="next" href="register_controllers.html" />
+    
+    
+    <link rel="prev" href="register_schemes.html" />
+    
+
+    </head>
+    <body>
+        
+<div class="book">
+    <div class="book-summary">
+        
+            
+<div id="book-search-input" role="search">
+    <input type="text" placeholder="Type to search" />
+</div>
+
+            
+                <nav role="navigation">
+                
+
+
+<ul class="summary">
+    
+    
+
+    
+
+    
+        
+        
+    
+        <li class="chapter " data-level="1.1" data-path="../">
+            
+                <a href="../">
+            
+                    
+                    Introduction
+            
+                </a>
+            
+
+            
+        </li>
+    
+
+    
+        
+        <li class="header">Getting Started</li>
+        
+        
+    
+        <li class="chapter " data-level="2.1" data-path="../getting_started/existing_providers.html">
+            
+                <a href="../getting_started/existing_providers.html">
+            
+                    
+                    Existing Providers
+            
+                </a>
+            
+
+            
+        </li>
+    
+
+    
+        
+        <li class="header">Common Code</li>
+        
+        
+    
+        <li class="chapter " data-level="3.1" data-path="../common_code/architecture.html">
+            
+                <a href="../common_code/architecture.html">
+            
+                    
+                    Architecture
+            
+                </a>
+            
+
+            
+        </li>
+    
+        <li class="chapter " data-level="3.2" data-path="../common_code/repository_layout.html">
+            
+                <a href="../common_code/repository_layout.html">
+            
+                    
+                    Repository Layout
+            
+                </a>
+            
+
+            
+        </li>
+    
+        <li class="chapter " data-level="3.3" data-path="../common_code/cluster_controller.html">
+            
+                <a href="../common_code/cluster_controller.html">
+            
+                    
+                    Cluster Controller
+            
+                </a>
+            
+
+            
+        </li>
+    
+        <li class="chapter " data-level="3.4" data-path="../common_code/machine_controller.html">
+            
+                <a href="../common_code/machine_controller.html">
+            
+                    
+                    Machine Controller
+            
+                </a>
+            
+
+            
+        </li>
+    
+        <li class="chapter " data-level="3.5" data-path="../common_code/machineset_controller.html">
+            
+                <a href="../common_code/machineset_controller.html">
+            
+                    
+                    MachineSet Controller
+            
+                </a>
+            
+
+            
+        </li>
+    
+        <li class="chapter " data-level="3.6" data-path="../common_code/machinedeployment_controller.html">
+            
+                <a href="../common_code/machinedeployment_controller.html">
+            
+                    
+                    MachineDeployment Controller
+            
+                </a>
+            
+
+            
+        </li>
+    
+
+    
+        
+        <li class="header">Creating a New Provider</li>
+        
+        
+    
+        <li class="chapter " data-level="4.1" data-path="overview.html">
+            
+                <a href="overview.html">
+            
+                    
+                    Overview
+            
+                </a>
+            
+
+            
+        </li>
+    
+        <li class="chapter " data-level="4.2" data-path="naming.html">
+            
+                <a href="naming.html">
+            
+                    
+                    Naming
+            
+                </a>
+            
+
+            
+        </li>
+    
+        <li class="chapter " data-level="4.3" data-path="generate_crds.html">
+            
+                <a href="generate_crds.html">
+            
+                    
+                    Generate CRDs
+            
+                </a>
+            
+
+            
+        </li>
+    
+        <li class="chapter " data-level="4.4" data-path="register_schemes.html">
+            
+                <a href="register_schemes.html">
+            
+                    
+                    Register Schemes
+            
+                </a>
+            
+
+            
+        </li>
+    
+        <li class="chapter active" data-level="4.5" data-path="create_actuators.html">
+            
+                <a href="create_actuators.html">
+            
+                    
+                    Create Actuators
+            
+                </a>
+            
+
+            
+        </li>
+    
+        <li class="chapter " data-level="4.6" data-path="register_controllers.html">
+            
+                <a href="register_controllers.html">
+            
+                    
+                    Register Controllers
+            
+                </a>
+            
+
+            
+        </li>
+    
+        <li class="chapter " data-level="4.7" data-path="building_running_and_testing.html">
+            
+                <a href="building_running_and_testing.html">
+            
+                    
+                    Building, Running, and Testing
+            
+                </a>
+            
+
+            
+        </li>
+    
+
+    
+        
+        <li class="header">Appendices</li>
+        
+        
+    
+        <li class="chapter " data-level="5.1" data-path="../appendices/keps/0003-cluster-api.html">
+            
+                <a href="../appendices/keps/0003-cluster-api.html">
+            
+                    
+                    Cluster API KEP
+            
+                </a>
+            
+
+            
+        </li>
+    
+
+    
+
+    <li class="divider"></li>
+
+    <li>
+        <a href="https://www.gitbook.com" target="blank" class="gitbook-link">
+            Published with GitBook
+        </a>
+    </li>
+</ul>
+
+
+                </nav>
+            
+        
+    </div>
+
+    <div class="book-body">
+        
+            <div class="body-inner">
+                
+                    
+
+<div class="book-header" role="navigation">
+    
+
+    <!-- Title -->
+    <h1>
+        <i class="fa fa-circle-o-notch fa-spin"></i>
+        <a href=".." >Create Actuators</a>
+    </h1>
+</div>
+
+
+
+
+                    <div class="page-wrapper" tabindex="-1" role="main">
+                        <div class="page-inner">
+                            
+<div id="book-search-results">
+    <div class="search-noresults">
+    
+                                <section class="normal markdown-section">
+                                
+                                <h1 id="creating-actuators">Creating Actuators</h1>
+<p>In this section we will create the actuator stubs needed to create the
+Cluster API controllers.</p>
+<h2 id="cluster-actuator">Cluster Actuator</h2>
+<p>The following actuator stub code should be copied to
+<code>cluster-api-provider-solas/pkg/cloud/solas/actuators/cluster/actuator.go</code>.</p>
+<pre><code class="lang-go"><span class="hljs-comment">/*
+Copyright 2018 The Kubernetes authors.
+
+Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+*/</span>
+
+<span class="hljs-keyword">package</span> cluster
+
+<span class="hljs-keyword">import</span> (
+        <span class="hljs-string">&quot;fmt&quot;</span>
+        <span class="hljs-string">&quot;log&quot;</span>
+
+        clusterv1 <span class="hljs-string">&quot;sigs.k8s.io/cluster-api/pkg/apis/cluster/v1alpha1&quot;</span>
+        client <span class="hljs-string">&quot;sigs.k8s.io/cluster-api/pkg/client/clientset_generated/clientset/typed/cluster/v1alpha1&quot;</span>
+)
+
+<span class="hljs-comment">// Actuator is responsible for performing cluster reconciliation</span>
+<span class="hljs-keyword">type</span> Actuator <span class="hljs-keyword">struct</span> {
+        clustersGetter client.ClustersGetter
+}
+
+<span class="hljs-comment">// ActuatorParams holds parameter information for Actuator</span>
+<span class="hljs-keyword">type</span> ActuatorParams <span class="hljs-keyword">struct</span> {
+        ClustersGetter client.ClustersGetter
+}
+
+<span class="hljs-comment">// NewActuator creates a new Actuator</span>
+<span class="hljs-keyword">func</span> NewActuator(params ActuatorParams) (*Actuator, error) {
+        <span class="hljs-keyword">return</span> &amp;Actuator{
+                clustersGetter: params.ClustersGetter,
+        }, <span class="hljs-literal">nil</span>
+}
+
+<span class="hljs-comment">// Reconcile reconciles a cluster and is invoked by the Cluster Controller</span>
+<span class="hljs-keyword">func</span> (a *Actuator) Reconcile(cluster *clusterv1.Cluster) error {
+        log.Printf(<span class="hljs-string">&quot;Reconciling cluster %v.&quot;</span>, cluster.Name)
+        <span class="hljs-keyword">return</span> fmt.Errorf(<span class="hljs-string">&quot;TODO: Not yet implemented&quot;</span>)
+}
+
+<span class="hljs-comment">// Delete deletes a cluster and is invoked by the Cluster Controller</span>
+<span class="hljs-keyword">func</span> (a *Actuator) Delete(cluster *clusterv1.Cluster) error {
+        log.Printf(<span class="hljs-string">&quot;Deleting cluster %v.&quot;</span>, cluster.Name)
+        <span class="hljs-keyword">return</span> fmt.Errorf(<span class="hljs-string">&quot;TODO: Not yet implemented&quot;</span>)
+}
+</code></pre>
+<h2 id="machine-actuator">Machine Actuator</h2>
+<p>The following actuator stub code should be copied to
+<code>cluster-api-provider-solas/pkg/cloud/solas/actuators/machine/actuator.go</code>.</p>
+<pre><code class="lang-go"><span class="hljs-comment">/*
+Copyright 2018 The Kubernetes authors.
+
+Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+*/</span>
+
+<span class="hljs-keyword">package</span> machine
+
+<span class="hljs-keyword">import</span> (
+        <span class="hljs-string">&quot;context&quot;</span>
+        <span class="hljs-string">&quot;fmt&quot;</span>
+        <span class="hljs-string">&quot;log&quot;</span>
+
+        clusterv1 <span class="hljs-string">&quot;sigs.k8s.io/cluster-api/pkg/apis/cluster/v1alpha1&quot;</span>
+        client <span class="hljs-string">&quot;sigs.k8s.io/cluster-api/pkg/client/clientset_generated/clientset/typed/cluster/v1alpha1&quot;</span>
+)
+
+<span class="hljs-keyword">const</span> (
+        ProviderName = <span class="hljs-string">&quot;solas&quot;</span>
+)
+
+<span class="hljs-comment">// Actuator is responsible for performing machine reconciliation</span>
+<span class="hljs-keyword">type</span> Actuator <span class="hljs-keyword">struct</span> { 
+        machinesGetter client.MachinesGetter
+}
+
+<span class="hljs-comment">// ActuatorParams holds parameter information for Actuator</span>
+<span class="hljs-keyword">type</span> ActuatorParams <span class="hljs-keyword">struct</span> {
+        MachinesGetter client.MachinesGetter
+}
+
+<span class="hljs-comment">// NewActuator creates a new Actuator</span>
+<span class="hljs-keyword">func</span> NewActuator(params ActuatorParams) (*Actuator, error) {
+        <span class="hljs-keyword">return</span> &amp;Actuator{
+                machinesGetter: params.MachinesGetter,
+        }, <span class="hljs-literal">nil</span>
+}
+
+<span class="hljs-comment">// Create creates a machine and is invoked by the Machine Controller</span>
+<span class="hljs-keyword">func</span> (a *Actuator) Create(ctx context.Context, cluster *clusterv1.Cluster, machine *clusterv1.Machine) error {
+        log.Printf(<span class="hljs-string">&quot;Creating machine %v for cluster %v.&quot;</span>, machine.Name, cluster.Name)
+        <span class="hljs-keyword">return</span> fmt.Errorf(<span class="hljs-string">&quot;TODO: Not yet implemented&quot;</span>)
+}
+
+<span class="hljs-comment">// Delete deletes a machine and is invoked by the Machine Controller</span>
+<span class="hljs-keyword">func</span> (a *Actuator) Delete(ctx context.Context, cluster *clusterv1.Cluster, machine *clusterv1.Machine) error {
+        log.Printf(<span class="hljs-string">&quot;Deleting machine %v for cluster %v.&quot;</span>, machine.Name, cluster.Name)
+        <span class="hljs-keyword">return</span> fmt.Errorf(<span class="hljs-string">&quot;TODO: Not yet implemented&quot;</span>)
+}
+
+<span class="hljs-comment">// Update updates a machine and is invoked by the Machine Controller</span>
+<span class="hljs-keyword">func</span> (a *Actuator) Update(ctx context.Context, cluster *clusterv1.Cluster, machine *clusterv1.Machine) error {
+        log.Printf(<span class="hljs-string">&quot;Updating machine %v for cluster %v.&quot;</span>, machine.Name, cluster.Name)
+        <span class="hljs-keyword">return</span> fmt.Errorf(<span class="hljs-string">&quot;TODO: Not yet implemented&quot;</span>)
+}
+
+<span class="hljs-comment">// Exists test for the existance of a machine and is invoked by the Machine Controller</span>
+<span class="hljs-keyword">func</span> (a *Actuator) Exists(ctx context.Context, cluster *clusterv1.Cluster, machine *clusterv1.Machine) (<span class="hljs-keyword">bool</span>, error) {
+        log.Printf(<span class="hljs-string">&quot;Checking if machine %v for cluster %v exists.&quot;</span>, machine.Name, cluster.Name)
+        <span class="hljs-keyword">return</span> <span class="hljs-literal">false</span>, fmt.Errorf(<span class="hljs-string">&quot;TODO: Not yet implemented&quot;</span>)
+}
+
+<span class="hljs-comment">// The Machine Actuator interface must implement GetIP and GetKubeConfig functions as a workaround for issues</span>
+<span class="hljs-comment">// cluster-api#158 (https://github.com/kubernetes-sigs/cluster-api/issues/158) and cluster-api#160</span>
+<span class="hljs-comment">// (https://github.com/kubernetes-sigs/cluster-api/issues/160).</span>
+
+<span class="hljs-comment">// GetIP returns IP address of the machine in the cluster.</span>
+<span class="hljs-keyword">func</span> (a *Actuator) GetIP(cluster *clusterv1.Cluster, machine *clusterv1.Machine) (<span class="hljs-keyword">string</span>, error) {
+        log.Printf(<span class="hljs-string">&quot;Getting IP of machine %v for cluster %v.&quot;</span>, machine.Name, cluster.Name)
+        <span class="hljs-keyword">return</span> <span class="hljs-string">&quot;&quot;</span>, fmt.Errorf(<span class="hljs-string">&quot;TODO: Not yet implemented&quot;</span>)
+}
+
+<span class="hljs-comment">// GetKubeConfig gets a kubeconfig from the master.</span>
+<span class="hljs-keyword">func</span> (a *Actuator) GetKubeConfig(cluster *clusterv1.Cluster, master *clusterv1.Machine) (<span class="hljs-keyword">string</span>, error) {
+        log.Printf(<span class="hljs-string">&quot;Getting IP of machine %v for cluster %v.&quot;</span>, master.Name, cluster.Name)
+        <span class="hljs-keyword">return</span> <span class="hljs-string">&quot;&quot;</span>, fmt.Errorf(<span class="hljs-string">&quot;TODO: Not yet implemented&quot;</span>)
+}
+</code></pre>
+
+                                
+                                </section>
+                            
+    </div>
+    <div class="search-results">
+        <div class="has-results">
+            
+            <h1 class="search-results-title"><span class='search-results-count'></span> results matching "<span class='search-query'></span>"</h1>
+            <ul class="search-results-list"></ul>
+            
+        </div>
+        <div class="no-results">
+            
+            <h1 class="search-results-title">No results matching "<span class='search-query'></span>"</h1>
+            
+        </div>
+    </div>
+</div>
+
+                        </div>
+                    </div>
+                
+            </div>
+
+            
+
+        
+    </div>
+
+    <script>
+        var gitbook = gitbook || [];
+        gitbook.push(function() {
+            gitbook.page.hasChanged({"page":{"title":"Create Actuators","level":"4.5","depth":1,"next":{"title":"Register Controllers","level":"4.6","depth":1,"path":"provider_implementations/register_controllers.md","ref":"provider_implementations/register_controllers.md","articles":[]},"previous":{"title":"Register Schemes","level":"4.4","depth":1,"path":"provider_implementations/register_schemes.md","ref":"provider_implementations/register_schemes.md","articles":[]},"dir":"ltr"},"config":{"plugins":["theme-api","panel","sequence-diagrams","ga","codegroup","include-codeblock"],"styles":{"website":"styles/website.css","pdf":"styles/pdf.css","epub":"styles/epub.css","mobi":"styles/mobi.css","ebook":"styles/ebook.css","print":"styles/print.css"},"pluginsConfig":{"panel":{},"search":{},"sequence-diagrams":{"theme":"simple"},"lunr":{"maxIndexSize":1000000,"ignoreSpecialCharacters":false},"codegroup":{"defaultTabName":"Code","rememberTabs":"false","tabNameSeperator":"::"},"fontsettings":{"theme":"white","family":"sans","size":2},"highlight":{},"theme-api":{"languages":[],"split":true,"theme":"light"},"ga":{"configuration":"auto","token":"dew-create-me"},"include-codeblock":{"check":false,"edit":false,"fixlang":false,"lang":"","template":"default","theme":"chrome","unindent":false},"sharing":{"facebook":true,"twitter":true,"google":false,"weibo":false,"instapaper":false,"vk":false,"all":["facebook","google","twitter","weibo","instapaper"]},"theme-default":{"styles":{"website":"styles/website.css","pdf":"styles/pdf.css","epub":"styles/epub.css","mobi":"styles/mobi.css","ebook":"styles/ebook.css","print":"styles/print.css"},"showLevel":false}},"theme":"default","author":"SIG Lifecycle Team","pdf":{"pageNumbers":true,"fontSize":12,"fontFamily":"Arial","paperSize":"a4","chapterMark":"pagebreak","pageBreaksBefore":"/","margin":{"right":62,"left":62,"top":56,"bottom":56}},"structure":{"langs":"LANGS.md","readme":"README.md","glossary":"GLOSSARY.md","summary":"SUMMARY.md"},"variables":{},"title":"The Cluster API Book","gitbook":">= 3.0.0"},"file":{"path":"provider_implementations/create_actuators.md","mtime":"2018-12-21T16:10:37.870Z","type":"markdown"},"gitbook":{"version":"3.2.3","time":"2018-12-21T16:59:15.690Z"},"basePath":"..","book":{"language":""}});
+        });
+    </script>
+</div>
+
+        
+    <script src="../gitbook/gitbook.js"></script>
+    <script src="../gitbook/theme.js"></script>
+    
+        
+        <script src="../gitbook/gitbook-plugin-ga/plugin.js"></script>
+        
+    
+        
+        <script src="../gitbook/gitbook-plugin-codegroup/code.group.js"></script>
+        
+    
+        
+        <script src="../gitbook/gitbook-plugin-search/search-engine.js"></script>
+        
+    
+        
+        <script src="../gitbook/gitbook-plugin-search/search.js"></script>
+        
+    
+        
+        <script src="../gitbook/gitbook-plugin-lunr/lunr.min.js"></script>
+        
+    
+        
+        <script src="../gitbook/gitbook-plugin-lunr/search-lunr.js"></script>
+        
+    
+        
+        <script src="../gitbook/gitbook-plugin-sharing/buttons.js"></script>
+        
+    
+        
+        <script src="../gitbook/gitbook-plugin-fontsettings/fontsettings.js"></script>
+        
+    
+        
+        <script src="../gitbook/gitbook-plugin-theme-api/theme-api.js"></script>
+        
+    
+
+    </body>
+</html>
+

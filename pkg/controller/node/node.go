@@ -81,8 +81,20 @@ func (c *ReconcileNode) link(node *corev1.Node) error {
 			machine.ObjectMeta.Name, node.ObjectMeta.Name)
 		c.linkedNodes[node.ObjectMeta.Name] = true
 		c.cachedReadiness[node.ObjectMeta.Name] = nodeReady
+		if err := c.reconcileTaintsWithNode(*machine); err != nil {
+			klog.Infof("failed to reconcile machine object %v taints with its node due to error %v.", machine.Name, err)
+			return err
+		}
 	}
 	return err
+}
+
+func (r *ReconcileNode) reconcileTaintsWithNode(machine v1alpha1.Machine) error {
+	if node := machine.Status.NodeRef; node != nil {
+		// TODO: sync taints logic and unit test
+		return r.Client.Update(context.Background(), node)
+	}
+	return nil
 }
 
 func (c *ReconcileNode) unlink(node *corev1.Node) error {

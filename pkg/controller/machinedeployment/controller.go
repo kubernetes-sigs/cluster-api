@@ -106,8 +106,7 @@ func (r *ReconcileMachineDeployment) getMachineSetsForDeployment(d *v1alpha1.Mac
 			},
 		},
 	}
-	err := r.Client.List(context.Background(), listOptions, machineSets)
-	if err != nil {
+	if err := r.Client.List(context.Background(), listOptions, machineSets); err != nil {
 		return nil, err
 	}
 
@@ -216,8 +215,7 @@ func (r *ReconcileMachineDeployment) getMachineDeploymentsForMachineSet(ms *v1al
 			},
 		},
 	}
-	err := r.Client.List(context.Background(), listOptions, dList)
-	if err != nil {
+	if err := r.Client.List(context.Background(), listOptions, dList); err != nil {
 		klog.Warningf("failed to list machine deployments, %v", err)
 		return nil
 	}
@@ -252,8 +250,18 @@ func (r *ReconcileMachineDeployment) getMachineMapForDeployment(d *v1alpha1.Mach
 		return nil, err
 	}
 	machines := &v1alpha1.MachineList{}
-	err = r.Client.List(context.Background(), client.InNamespace(d.Namespace).MatchingLabels(selector), machines)
-	if err != nil {
+	listOptions := &client.ListOptions{
+		Namespace: d.Namespace,
+		// This is set so the fake client can be used for unit test. See:
+		// https://github.com/kubernetes-sigs/controller-runtime/issues/168
+		Raw: &metav1.ListOptions{
+			TypeMeta: metav1.TypeMeta{
+				APIVersion: v1alpha1.SchemeGroupVersion.String(),
+				Kind:       "Machine",
+			},
+		},
+	}
+	if err = r.Client.List(context.Background(), listOptions.MatchingLabels(selector), machines); err != nil {
 		return nil, err
 	}
 	// Group Machines by their controller (if it's in msList).

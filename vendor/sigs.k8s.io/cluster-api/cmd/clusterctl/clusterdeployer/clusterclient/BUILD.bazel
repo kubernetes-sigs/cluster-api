@@ -1,0 +1,29 @@
+load("@io_bazel_rules_go//go:def.bzl", "go_library", "go_test")
+
+go_library(
+    name = "go_default_library",
+    srcs = [
+        "clientfactory.go",
+        "clusterclient.go",
+    ],
+    importpath = "sigs.k8s.io/cluster-api/cmd/clusterctl/clusterdeployer/clusterclient",
+    visibility = ["//visibility:public"],
+    deps = [
+        "//cmd/clusterctl/clientcmd:go_default_library",
+        "//pkg/apis/cluster/v1alpha1:go_default_library",
+        "//pkg/client/clientset_generated/clientset:go_default_library",
+        "//pkg/util:go_default_library",
+        "//vendor/k8s.io/api/core/v1:go_default_library",
+        "//vendor/k8s.io/apimachinery/pkg/api/errors:go_default_library",
+        "//vendor/k8s.io/apimachinery/pkg/apis/meta/v1:go_default_library",
+        "//vendor/k8s.io/client-go/kubernetes:go_default_library",
+        "//vendor/k8s.io/client-go/tools/clientcmd:go_default_library",
+        "//vendor/k8s.io/klog:go_default_library",
+    ],
+)
+
+go_test(
+    name = "go_default_test",
+    srcs = ["clusterclient_test.go"],
+    embed = [":go_default_library"],
+)

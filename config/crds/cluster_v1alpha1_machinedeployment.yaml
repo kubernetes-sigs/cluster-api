@@ -48,8 +48,10 @@ spec:
               properties:
                 rollingUpdate:
                   properties:
-                    maxSurge: {}
-                    maxUnavailable: {}
+                    maxSurge:
+                      type: object
+                    maxUnavailable:
+                      type: object
                   type: object
                 type:
                   type: string

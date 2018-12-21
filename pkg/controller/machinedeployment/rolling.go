@@ -34,6 +34,12 @@ func (r *ReconcileMachineDeployment) rolloutRolling(d *v1alpha1.MachineDeploymen
 	if err != nil {
 		return err
 	}
+	// newMS can be nil in case there is already a MachineSet associated with this deployment,
+	// but there are only either changes in annotations or MinReadySeconds. Or in other words,
+	// this can be nil if there are changes, but no replacement of existing machines is needed.
+	if newMS == nil {
+		return nil
+	}
 	allMSs := append(oldMSs, newMS)
 
 	// Scale up, if we can.

@@ -121,6 +121,9 @@ func (r *ReconcileMachine) Reconcile(request reconcile.Request) (reconcile.Resul
 			klog.Infof("failed to add finalizer to machine object %v due to error %v.", name, err)
 			return reconcile.Result{}, err
 		}
+
+		// Since adding the finalizer updates the object return to avoid later update issues
+		return reconcile.Result{}, nil
 	}
 
 	if !m.ObjectMeta.DeletionTimestamp.IsZero() {

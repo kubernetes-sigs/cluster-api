@@ -58,6 +58,10 @@ type MachineSetSpec struct {
 	// +optional
 	MinReadySeconds int32 `json:"minReadySeconds,omitempty"`
 
+	// DeletePolicy defines the policy used to identify nodes to delete when downscaling
+	// defaults to "Simple".  Valid values are "Simple, "Newest", "Oldest"
+	DeletePolicy string `json:"deletePolicy,omitEmpty"`
+
 	// Selector is a label query over machines that should match the replica count.
 	// Label keys and values that must match in order to be controlled by this MachineSet.
 	// It must match the machine template's labels.

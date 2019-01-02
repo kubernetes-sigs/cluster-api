@@ -34,6 +34,8 @@ spec:
           type: object
         spec:
           properties:
+            deletePolicy:
+              type: string
             minReadySeconds:
               description: MinReadySeconds is the minimum number of seconds for which
                 a newly created machine should be ready. Defaults to 0 (machine will
@@ -153,6 +155,7 @@ spec:
                   type: object
               type: object
           required:
+          - deletePolicy
           - selector
           type: object
         status:

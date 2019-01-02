@@ -47,6 +47,7 @@ func oldestDeletePriority(machine *v1alpha1.Machine) deletePriority {
 	if d.Seconds() < 0 {
 		return mustNotDelete
 	}
+	// var tenDayHalfLife float64    = 1246488.5
 	var secondsPerTenDays float64 = 864000
 	return deletePriority(float64(mustDelete) * (1.0 - math.Exp(-d.Seconds()/secondsPerTenDays)))
 }
@@ -62,8 +63,8 @@ func simpleDeletePriority(machine *v1alpha1.Machine) deletePriority {
 	if machine.DeletionTimestamp != nil && !machine.DeletionTimestamp.IsZero() {
 		return mustDelete
 	}
-	if machine.DeletionTimestamp != nil && !machine.DeletionTimestamp.IsZero() {
-		return mustDelete
+	if machine.ObjectMeta.Annotations != nil && machine.ObjectMeta.Annotations["delete-me"] != "" {
+		return betterDelete
 	}
 	if machine.Status.ErrorReason != nil || machine.Status.ErrorMessage != nil {
 		return betterDelete
@@ -79,7 +80,7 @@ type sortableMachines struct {
 func (m sortableMachines) Len() int      { return len(m.machines) }
 func (m sortableMachines) Swap(i, j int) { m.machines[i], m.machines[j] = m.machines[j], m.machines[i] }
 func (m sortableMachines) Less(i, j int) bool {
-	return m.priority(m.machines[j]) < m.priority(m.machines[i]) // sort high to low
+	return m.priority(m.machines[j]) < m.priority(m.machines[i]) // high to low
 }
 
 // TODO: Define machines deletion policies.

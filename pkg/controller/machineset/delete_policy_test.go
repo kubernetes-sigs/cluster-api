@@ -29,6 +29,7 @@ func TestMachineToDelete(t *testing.T) {
 	now := metav1.Now()
 	mustDeleteMachine := &v1alpha1.Machine{ObjectMeta: metav1.ObjectMeta{DeletionTimestamp: &now}}
 	betterDeleteMachine := &v1alpha1.Machine{Status: v1alpha1.MachineStatus{ErrorMessage: &msg}}
+	deleteMeMachine := &v1alpha1.Machine{ObjectMeta: metav1.ObjectMeta{Annotations: map[string]string{"delete-me": "yes"}}}
 
 	tests := []struct {
 		desc     string
@@ -110,7 +111,7 @@ func TestMachineToDelete(t *testing.T) {
 			},
 		},
 		{
-			desc: "func=DeletePriority, diff<=mustDelete+betterDelete+couldDelete",
+			desc: "func=simpleDeletePriority, diff<=mustDelete+betterDelete+couldDelete",
 			diff: 2,
 			machines: []*v1alpha1.Machine{
 				{},
@@ -135,7 +136,18 @@ func TestMachineToDelete(t *testing.T) {
 				{},
 			},
 		},
-	}
+		{
+			desc: "func=simpleDeletePriority, annotated, diff=1",
+			diff: 1,
+			machines: []*v1alpha1.Machine{
+				{},
+				deleteMeMachine,
+				{},
+			},
+			expect: []*v1alpha1.Machine{
+				deleteMeMachine,
+			},
+		}}
 
 	for _, test := range tests {
 		result := getMachinesToDeletePrioritized(test.machines, test.diff, simpleDeletePriority)

@@ -13,6 +13,7 @@ go_library(
     visibility = ["//visibility:public"],
     deps = [
         "//vendor/github.com/go-logr/logr:go_default_library",
+        "//vendor/github.com/prometheus/client_golang/prometheus/promhttp:go_default_library",
         "//vendor/k8s.io/apimachinery/pkg/api/meta:go_default_library",
         "//vendor/k8s.io/apimachinery/pkg/runtime:go_default_library",
         "//vendor/k8s.io/client-go/kubernetes/scheme:go_default_library",
@@ -25,6 +26,7 @@ go_library(
         "//vendor/sigs.k8s.io/controller-runtime/pkg/client/apiutil:go_default_library",
         "//vendor/sigs.k8s.io/controller-runtime/pkg/internal/recorder:go_default_library",
         "//vendor/sigs.k8s.io/controller-runtime/pkg/leaderelection:go_default_library",
+        "//vendor/sigs.k8s.io/controller-runtime/pkg/metrics:go_default_library",
         "//vendor/sigs.k8s.io/controller-runtime/pkg/recorder:go_default_library",
         "//vendor/sigs.k8s.io/controller-runtime/pkg/runtime/inject:go_default_library",
         "//vendor/sigs.k8s.io/controller-runtime/pkg/runtime/log:go_default_library",

@@ -31,10 +31,11 @@ import (
 )
 
 const (
-	machineAnnotationKey = "cluster.k8s.io/machine"
+	// MachineAnnotationKey annotation used to link node and machine resource
+	MachineAnnotationKey = "cluster.k8s.io/machine"
 )
 
-// We are using "machine" annotation to link node and machine resource. The "machine"
+// We are using "cluster.k8s.io/machine" annotation to link node and machine resource. The "cluster.k8s.io/machine"
 // annotation is an implementation detail of how the two objects can get linked together, but it is
 // not required behavior. However, in the event that a Machine.Spec update requires replacing the
 // Node, this can allow for faster turn-around time by allowing a new Node to be created with a new
@@ -52,7 +53,7 @@ func (c *ReconcileNode) link(node *corev1.Node) error {
 		}
 	}
 
-	val, ok := node.ObjectMeta.Annotations[machineAnnotationKey]
+	val, ok := node.ObjectMeta.Annotations[MachineAnnotationKey]
 	if !ok {
 		return nil
 	}
@@ -86,7 +87,7 @@ func (c *ReconcileNode) link(node *corev1.Node) error {
 }
 
 func (c *ReconcileNode) unlink(node *corev1.Node) error {
-	val, ok := node.ObjectMeta.Annotations[machineAnnotationKey]
+	val, ok := node.ObjectMeta.Annotations[MachineAnnotationKey]
 	if !ok {
 		return nil
 	}

@@ -2,6 +2,7 @@ load("@bazel_gazelle//:def.bzl", "gazelle")
 load("//build:run_in_workspace_with_goroot.bzl", "workspace_binary")
 
 # gazelle:prefix sigs.k8s.io/cluster-api
+# gazelle:proto disable_global
 gazelle(
     name = "gazelle",
     external = "vendored",

@@ -1,20 +1,18 @@
-Please provide yaml file for cluster definition.
-Create a kubernetes cluster with one command
-
+Error: required flag(s) "cluster", "machines", "provider", "provider-components" not set
 Usage:
   clusterctl create cluster [flags]
 
 Flags:
   -a, --addon-components string                        A yaml file containing cluster addons to apply to the internal cluster
       --cleanup-bootstrap-cluster                      Whether to cleanup the bootstrap cluster after bootstrap (default true)
-  -c, --cluster string                                 A yaml file containing cluster object definition
+  -c, --cluster string                                 A yaml file containing cluster object definition. Required.
   -e, --existing-bootstrap-cluster-kubeconfig string   Path to an existing cluster's kubeconfig for bootstrapping (intead of using minikube)
   -h, --help                                           help for cluster
       --kubeconfig-out string                          Where to output the kubeconfig for the provisioned cluster (default "kubeconfig")
-  -m, --machines string                                A yaml file containing machine object definition(s)
+  -m, --machines string                                A yaml file containing machine object definition(s). Required.
       --minikube strings                               Minikube options
-      --provider string                                Which provider deployment logic to use (google/vsphere/azure)
-  -p, --provider-components string                     A yaml file containing cluster api provider controllers and supporting objects
+      --provider string                                Which provider deployment logic to use (google/vsphere/azure). Required.
+  -p, --provider-components string                     A yaml file containing cluster api provider controllers and supporting objects. Required.
       --vm-driver string                               Which vm driver to use for minikube
 
 Global Flags:
@@ -28,3 +26,5 @@ Global Flags:
       --stderrthreshold severity         logs at or above this threshold go to stderr (default 2)
   -v, --v Level                          log level for V logs
       --vmodule moduleSpec               comma-separated list of pattern=N settings for file-filtered logging
+
+required flag(s) "cluster", "machines", "provider", "provider-components" not set

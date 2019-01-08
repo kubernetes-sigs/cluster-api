@@ -23,7 +23,7 @@ which implement their intent by modifying provider-specific `Cluster` and
 ## MachineSetTemplateSpec
 
 {% sample lang="go" %}
-[import:'MachineSetSpec'](../../../pkg/apis/cluster/v1alpha1/machineset_types.go)
+[import:'MachineSetTemplateSpec'](../../../pkg/apis/cluster/v1alpha1/machineset_types.go)
 {% endmethod %}
 
 {% method %}

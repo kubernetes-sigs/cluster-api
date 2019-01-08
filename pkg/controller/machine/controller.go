@@ -23,6 +23,7 @@ import (
 
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/klog"
 	clusterv1 "sigs.k8s.io/cluster-api/pkg/apis/cluster/v1alpha1"
@@ -221,7 +222,18 @@ func (r *ReconcileMachine) delete(ctx context.Context, machine *clusterv1.Machin
 
 func (r *ReconcileMachine) getCluster(ctx context.Context, machine *clusterv1.Machine) (*clusterv1.Cluster, error) {
 	clusterList := clusterv1.ClusterList{}
-	if err := r.Client.List(ctx, client.InNamespace(machine.Namespace), &clusterList); err != nil {
+	listOptions := &client.ListOptions{
+		Namespace: machine.Namespace,
+		// This is set so the fake client can be used for unit test. See:
+		// https://github.com/kubernetes-sigs/controller-runtime/issues/168
+		Raw: &metav1.ListOptions{
+			TypeMeta: metav1.TypeMeta{
+				APIVersion: clusterv1.SchemeGroupVersion.String(),
+				Kind:       "Cluster",
+			},
+		},
+	}
+	if err := r.Client.List(ctx, listOptions, &clusterList); err != nil {
 		return nil, err
 	}
 

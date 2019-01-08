@@ -23,6 +23,8 @@ import (
 	"sigs.k8s.io/cluster-api/pkg/apis/cluster/v1alpha1"
 )
 
+var _ Actuator = &TestActuator{}
+
 type TestActuator struct {
 	unblock         chan string
 	BlockOnCreate   bool

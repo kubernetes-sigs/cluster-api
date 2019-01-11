@@ -12,9 +12,7 @@ aliases:
     - luxas
     - roberthbailey
   cluster-api-maintainers:
-    - jessicaochen
-    - karan
-    - kris-nova
+    - justinsb
     - krousey
-    - mkjelland
     - roberthbailey
+    - vincepri

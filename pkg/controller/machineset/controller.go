@@ -150,6 +150,13 @@ func (r *ReconcileMachineSet) Reconcile(request reconcile.Request) (reconcile.Re
 	}
 
 	klog.V(4).Infof("Reconcile machineset %v", machineSet.Name)
+
+	if errList := machineSet.Validate(); len(errList) > 0 {
+		err := fmt.Errorf("%q machineset validation failed: %v", machineSet.Name, errList.ToAggregate().Error())
+		klog.Error(err)
+		return reconcile.Result{}, err
+	}
+
 	allMachines := &clusterv1alpha1.MachineList{}
 
 	err = r.Client.List(context.Background(), client.InNamespace(machineSet.Namespace), allMachines)

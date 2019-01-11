@@ -10,6 +10,7 @@ go_library(
     visibility = ["//visibility:public"],
     deps = [
         "//cmd/clusterctl/clusterdeployer/bootstrap/existing:go_default_library",
+        "//cmd/clusterctl/clusterdeployer/bootstrap/kind:go_default_library",
         "//cmd/clusterctl/clusterdeployer/bootstrap/minikube:go_default_library",
         "//vendor/github.com/pkg/errors:go_default_library",
         "//vendor/github.com/spf13/pflag:go_default_library",

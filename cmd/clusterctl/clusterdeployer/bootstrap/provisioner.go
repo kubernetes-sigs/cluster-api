@@ -19,6 +19,7 @@ package bootstrap
 import (
 	"github.com/pkg/errors"
 	"sigs.k8s.io/cluster-api/cmd/clusterctl/clusterdeployer/bootstrap/existing"
+	"sigs.k8s.io/cluster-api/cmd/clusterctl/clusterdeployer/bootstrap/kind"
 	"sigs.k8s.io/cluster-api/cmd/clusterctl/clusterdeployer/bootstrap/minikube"
 )
 
@@ -31,6 +32,8 @@ type ClusterProvisioner interface {
 
 func Get(o Options) (ClusterProvisioner, error) {
 	switch o.Type {
+	case "kind":
+		return kind.WithOptions(o.ExtraFlags), nil
 	case "minikube":
 		return minikube.WithOptions(o.ExtraFlags), nil
 	default:

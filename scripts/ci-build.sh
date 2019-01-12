@@ -20,4 +20,4 @@ set -o pipefail
 
 REPO_ROOT=$(dirname "${BASH_SOURCE}")/..
 
-cd $REPO_ROOT && make manager clusterctl
+cd $REPO_ROOT && bazel build //cmd/manager:manager //cmd/clusterctl:clusterctl

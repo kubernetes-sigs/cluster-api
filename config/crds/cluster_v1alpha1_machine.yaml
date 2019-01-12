@@ -17,39 +17,76 @@ spec:
     openAPIV3Schema:
       properties:
         apiVersion:
+          description: 'APIVersion defines the versioned schema of this representation
+            of an object. Servers should convert recognized schemas to the latest
+            internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/api-conventions.md#resources'
           type: string
         kind:
+          description: 'Kind is a string value representing the REST resource this
+            object represents. Servers may infer this from the endpoint the client
+            submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/api-conventions.md#types-kinds'
           type: string
         metadata:
           type: object
         spec:
           properties:
             configSource:
+              description: To populate in the associated Node for dynamic kubelet
+                config. This field already exists in Node, so any updates to it in
+                the Machine spec will be automatically copied to the linked NodeRef
+                from the status. The rest of dynamic kubelet config support should
+                then work as-is.
               type: object
             metadata:
+              description: This ObjectMeta will autopopulate the Node created. Use
+                this to indicate what labels, annotations, name prefix, etc., should
+                be used when creating the Node.
               type: object
             providerSpec:
+              description: Provider-specific configuration to use during node creation.
               properties:
                 value:
+                  description: Value is an inlined, serialized representation of the
+                    resource configuration. It is recommended that providers maintain
+                    their own versioned API types that should be serialized/deserialized
+                    from this field, akin to component config.
                   type: object
                 valueFrom:
+                  description: Source for the provider configuration. Cannot be used
+                    if value is not empty.
                   properties:
                     machineClass:
+                      description: The machine class from which the provider config
+                        should be sourced.
                       properties:
                         provider:
+                          description: Provider is the name of the cloud-provider
+                            which MachineClass is intended for.
                           type: string
                       type: object
                   type: object
               type: object
             taints:
+              description: The full, authoritative list of taints to apply to the
+                corresponding Node. This list will overwrite any modifications made
+                to the Node on an ongoing basis.
               items:
                 type: object
               type: array
             versions:
+              description: Versions of key software to use. This field is optional
+                at cluster creation time, and omitting the field indicates that the
+                cluster installation tool should select defaults for the user. These
+                defaults may differ based on the cluster installer, but the tool should
+                populate the values it uses when persisting Machine objects. A Machine
+                spec missing this field at runtime is invalid.
               properties:
                 controlPlane:
+                  description: Semantic version of the Kubernetes control plane to
+                    run. This should only be populated when the machine is a master.
                   type: string
                 kubelet:
+                  description: Semantic version of kubelet to run
                   type: string
               required:
               - kubelet
@@ -60,43 +97,100 @@ spec:
         status:
           properties:
             addresses:
+              description: Addresses is a list of addresses assigned to the machine.
+                Queried from cloud provider, if available.
               items:
                 type: object
               type: array
             conditions:
+              description: 'List of conditions synced from the node conditions of
+                the corresponding node-object. Machine-controller is responsible for
+                keeping conditions up-to-date. MachineSet controller will be taking
+                these conditions as a signal to decide if machine is healthy or needs
+                to be replaced. Refer: https://kubernetes.io/docs/concepts/architecture/nodes/#condition'
               items:
                 type: object
               type: array
             errorMessage:
               type: string
             errorReason:
+              description: In the event that there is a terminal problem reconciling
+                the Machine, both ErrorReason and ErrorMessage will be set. ErrorReason
+                will be populated with a succinct value suitable for machine interpretation,
+                while ErrorMessage will contain a more verbose string suitable for
+                logging and human consumption.  These fields should not be set for
+                transitive errors that a controller faces that are expected to be
+                fixed automatically over time (like service outages), but instead
+                indicate that something is fundamentally wrong with the Machine's
+                spec or the configuration of the controller, and that manual intervention
+                is required. Examples of terminal errors would be invalid combinations
+                of settings in the spec, values that are unsupported by the controller,
+                or the responsible controller itself being critically misconfigured.  Any
+                transient errors that occur during the reconciliation of Machines
+                can be added as events to the Machine object and/or logged in the
+                controller's output.
               type: string
             lastOperation:
+              description: LastOperation describes the last-operation performed by
+                the machine-controller. This API should be useful as a history in
+                terms of the latest operation performed on the specific machine. It
+                should also convey the state of the latest-operation for example if
+                it is still on-going, failed or completed successfully.
               properties:
                 description:
+                  description: Description is the human-readable description of the
+                    last operation.
                   type: string
                 lastUpdated:
+                  description: LastUpdateTime is the timestamp at which LastOperation
+                    API was last-updated.
                   format: date-time
                   type: string
                 state:
+                  description: State is the current status of the last performed operation.
+                    E.g. Processing, Failed, Successful etc
                   type: string
                 type:
+                  description: Type is the type of operation which was last performed.
+                    E.g. Create, Delete, Update etc
                   type: string
               type: object
             lastUpdated:
+              description: When was this status last observed
               format: date-time
               type: string
             nodeRef:
+              description: If the corresponding Node exists, this will point to its
+                object.
               type: object
             phase:
+              description: Phase represents the current phase of machine actuation.
+                E.g. Pending, Running, Terminating, Failed etc.
               type: string
             providerStatus:
+              description: Provider-specific status. It is recommended that providers
+                maintain their own versioned API types that should be serialized/deserialized
+                from this field.
               type: object
             versions:
+              description: 'The current versions of software on the corresponding
+                Node (if it exists). This is provided for a few reasons:  1) It is
+                more convenient than checking the NodeRef, traversing it to    the
+                Node, and finding the appropriate field in Node.Status.NodeInfo    (which
+                uses different field names and formatting). 2) It removes some of
+                the dependency on the structure of the Node,    so that if the structure
+                of Node.Status.NodeInfo changes, only    machine controllers need
+                to be updated, rather than every client    of the Machines API. 3)
+                There is no other simple way to check the ControlPlane    version.
+                A client would have to connect directly to the apiserver    running
+                on the target node in order to find out its version.'
               properties:
                 controlPlane:
+                  description: Semantic version of the Kubernetes control plane to
+                    run. This should only be populated when the machine is a master.
                   type: string
                 kubelet:
+                  description: Semantic version of kubelet to run
                   type: string
               required:
               - kubelet

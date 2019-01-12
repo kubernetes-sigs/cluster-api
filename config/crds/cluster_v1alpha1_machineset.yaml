@@ -21,53 +21,109 @@ spec:
     openAPIV3Schema:
       properties:
         apiVersion:
+          description: 'APIVersion defines the versioned schema of this representation
+            of an object. Servers should convert recognized schemas to the latest
+            internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/api-conventions.md#resources'
           type: string
         kind:
+          description: 'Kind is a string value representing the REST resource this
+            object represents. Servers may infer this from the endpoint the client
+            submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/api-conventions.md#types-kinds'
           type: string
         metadata:
           type: object
         spec:
           properties:
             minReadySeconds:
+              description: MinReadySeconds is the minimum number of seconds for which
+                a newly created machine should be ready. Defaults to 0 (machine will
+                be considered available as soon as it is ready)
               format: int32
               type: integer
             replicas:
+              description: Replicas is the number of desired replicas. This is a pointer
+                to distinguish between explicit zero and unspecified. Defaults to
+                1.
               format: int32
               type: integer
             selector:
+              description: 'Selector is a label query over machines that should match
+                the replica count. Label keys and values that must match in order
+                to be controlled by this MachineSet. It must match the machine template''s
+                labels. More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/labels/#label-selectors'
               type: object
             template:
+              description: Template is the object that describes the machine that
+                will be created if insufficient replicas are detected.
               properties:
                 metadata:
+                  description: 'Standard object''s metadata. More info: https://git.k8s.io/community/contributors/devel/api-conventions.md#metadata'
                   type: object
                 spec:
+                  description: 'Specification of the desired behavior of the machine.
+                    More info: https://git.k8s.io/community/contributors/devel/api-conventions.md#spec-and-status'
                   properties:
                     configSource:
+                      description: To populate in the associated Node for dynamic
+                        kubelet config. This field already exists in Node, so any
+                        updates to it in the Machine spec will be automatically copied
+                        to the linked NodeRef from the status. The rest of dynamic
+                        kubelet config support should then work as-is.
                       type: object
                     metadata:
+                      description: This ObjectMeta will autopopulate the Node created.
+                        Use this to indicate what labels, annotations, name prefix,
+                        etc., should be used when creating the Node.
                       type: object
                     providerSpec:
+                      description: Provider-specific configuration to use during node
+                        creation.
                       properties:
                         value:
+                          description: Value is an inlined, serialized representation
+                            of the resource configuration. It is recommended that
+                            providers maintain their own versioned API types that
+                            should be serialized/deserialized from this field, akin
+                            to component config.
                           type: object
                         valueFrom:
+                          description: Source for the provider configuration. Cannot
+                            be used if value is not empty.
                           properties:
                             machineClass:
+                              description: The machine class from which the provider
+                                config should be sourced.
                               properties:
                                 provider:
+                                  description: Provider is the name of the cloud-provider
+                                    which MachineClass is intended for.
                                   type: string
                               type: object
                           type: object
                       type: object
                     taints:
+                      description: The full, authoritative list of taints to apply
+                        to the corresponding Node. This list will overwrite any modifications
+                        made to the Node on an ongoing basis.
                       items:
                         type: object
                       type: array
                     versions:
+                      description: Versions of key software to use. This field is
+                        optional at cluster creation time, and omitting the field
+                        indicates that the cluster installation tool should select
+                        defaults for the user. These defaults may differ based on
+                        the cluster installer, but the tool should populate the values
+                        it uses when persisting Machine objects. A Machine spec missing
+                        this field at runtime is invalid.
                       properties:
                         controlPlane:
+                          description: Semantic version of the Kubernetes control
+                            plane to run. This should only be populated when the machine
+                            is a master.
                           type: string
                         kubelet:
+                          description: Semantic version of kubelet to run
                           type: string
                       required:
                       - kubelet
@@ -82,22 +138,46 @@ spec:
         status:
           properties:
             availableReplicas:
+              description: The number of available replicas (ready for at least minReadySeconds)
+                for this MachineSet.
               format: int32
               type: integer
             errorMessage:
               type: string
             errorReason:
+              description: In the event that there is a terminal problem reconciling
+                the replicas, both ErrorReason and ErrorMessage will be set. ErrorReason
+                will be populated with a succinct value suitable for machine interpretation,
+                while ErrorMessage will contain a more verbose string suitable for
+                logging and human consumption.  These fields should not be set for
+                transitive errors that a controller faces that are expected to be
+                fixed automatically over time (like service outages), but instead
+                indicate that something is fundamentally wrong with the MachineTemplate's
+                spec or the configuration of the machine controller, and that manual
+                intervention is required. Examples of terminal errors would be invalid
+                combinations of settings in the spec, values that are unsupported
+                by the machine controller, or the responsible machine controller itself
+                being critically misconfigured.  Any transient errors that occur during
+                the reconciliation of Machines can be added as events to the MachineSet
+                object and/or logged in the controller's output.
               type: string
             fullyLabeledReplicas:
+              description: The number of replicas that have labels matching the labels
+                of the machine template of the MachineSet.
               format: int32
               type: integer
             observedGeneration:
+              description: ObservedGeneration reflects the generation of the most
+                recently observed MachineSet.
               format: int64
               type: integer
             readyReplicas:
+              description: The number of ready replicas for this MachineSet. A machine
+                is considered ready when the node has been created and is "Ready".
               format: int32
               type: integer
             replicas:
+              description: Replicas is the most recently observed number of replicas.
               format: int32
               type: integer
           required:

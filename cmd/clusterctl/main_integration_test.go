@@ -19,6 +19,7 @@ limitations under the License.
 package main_test
 
 import (
+	"bytes"
 	"flag"
 	"fmt"
 	"io/ioutil"
@@ -28,6 +29,8 @@ import (
 	"strings"
 	"syscall"
 	"testing"
+
+	"github.com/sergi/go-diff/diffmatchpatch"
 )
 
 const (
@@ -36,7 +39,10 @@ const (
 )
 
 // run these tests with the flag "-update" to update the values stored in all of the golden files
-var update = flag.Bool("update", false, "update .golden files")
+var (
+	update = flag.Bool("update", false, "update .golden files")
+	dmp    = diffmatchpatch.New()
+)
 
 func TestMain(m *testing.M) {
 	flag.Parse()
@@ -111,8 +117,7 @@ func compareOutput(t *testing.T, actualOutput string, goldenFileName string) {
 	}
 	expectedOutput := loadFixture(t, goldenFileName)
 	if actualOutput != expectedOutput {
-		// TODO: format this using a diff tool / library (issue 255)
-		t.Errorf("unexpected output, want %v, got %v", expectedOutput, actualOutput)
+		t.Errorf("unexpected output:\n%s", DiffPrettyText(dmp.DiffMain(expectedOutput, actualOutput, false)))
 	}
 }
 
@@ -182,4 +187,27 @@ func runCmd(workDir string, cmd string, args ...string) (string, error) {
 	fmt.Printf("Running command: %v\n", cmdStr)
 	output, err := command.CombinedOutput()
 	return string(output), err
+}
+
+// DiffPrettyText converts a []Diff into a text report.
+func DiffPrettyText(diffs []diffmatchpatch.Diff) string {
+	var buff bytes.Buffer
+	for _, diff := range diffs {
+		text := diff.Text
+
+		switch diff.Type {
+		case diffmatchpatch.DiffInsert:
+			_, _ = buff.WriteString("|+++ ")
+			_, _ = buff.WriteString(text)
+			_, _ = buff.WriteString(" +++|")
+		case diffmatchpatch.DiffDelete:
+			_, _ = buff.WriteString("|~~~ ")
+			_, _ = buff.WriteString(text)
+			_, _ = buff.WriteString(" ~~~|")
+		case diffmatchpatch.DiffEqual:
+			_, _ = buff.WriteString(text)
+		}
+	}
+
+	return buff.String()
 }

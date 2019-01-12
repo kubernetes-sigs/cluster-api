@@ -329,7 +329,7 @@ func (c *ReconcileMachineSet) adoptOrphan(machineSet *clusterv1alpha1.MachineSet
 
 func (c *ReconcileMachineSet) waitForMachineCreation(machineList []*clusterv1alpha1.Machine) error {
 	for _, machine := range machineList {
-		pollErr := util.Poll(stateConfirmationInterval, stateConfirmationTimeout, func() (bool, error) {
+		pollErr := util.PollImmediate(stateConfirmationInterval, stateConfirmationTimeout, func() (bool, error) {
 			err := c.Client.Get(context.Background(),
 				client.ObjectKey{Namespace: machine.Namespace, Name: machine.Name},
 				&clusterv1alpha1.Machine{})
@@ -352,7 +352,7 @@ func (c *ReconcileMachineSet) waitForMachineCreation(machineList []*clusterv1alp
 
 func (c *ReconcileMachineSet) waitForMachineDeletion(machineList []*clusterv1alpha1.Machine) error {
 	for _, machine := range machineList {
-		pollErr := util.Poll(stateConfirmationInterval, stateConfirmationTimeout, func() (bool, error) {
+		pollErr := util.PollImmediate(stateConfirmationInterval, stateConfirmationTimeout, func() (bool, error) {
 			m := &clusterv1alpha1.Machine{}
 			err := c.Client.Get(context.Background(),
 				client.ObjectKey{Namespace: machine.Namespace, Name: machine.Name},

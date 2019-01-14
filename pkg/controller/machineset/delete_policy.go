@@ -31,8 +31,14 @@ const (
 
 type deletePriorityFunc func(machine *v1alpha1.Machine) deletePriority
 
+// machineDeleteAnnotationKey annotates machines to be delete among first ones
+var machineDeleteAnnotationKey = "sigs.k8s.io/cluster-api-delete-machine"
+
 func simpleDeletePriority(machine *v1alpha1.Machine) deletePriority {
 	if machine.DeletionTimestamp != nil && !machine.DeletionTimestamp.IsZero() {
+		return mustDelete
+	}
+	if _, exists := machine.Annotations[machineDeleteAnnotationKey]; exists {
 		return mustDelete
 	}
 	if machine.Status.ErrorReason != nil || machine.Status.ErrorMessage != nil {

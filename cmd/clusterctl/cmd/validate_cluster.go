@@ -77,7 +77,9 @@ func RunValidateCluster() error {
 	if err := validation.ValidateClusterAPIObjects(context.TODO(), os.Stdout, c, vco.KubeconfigOverrides.Context.Cluster, vco.KubeconfigOverrides.Context.Namespace); err != nil {
 		return err
 	}
+	if err = validation.ValidateKubeClusterObjects(os.Stdout, c, vco.KubeconfigOverrides.Context.Cluster); err != nil {
+		return err
+	}
 
-	// TODO(wangzhen127): Also validate the cluster in addition to the cluster API objects. https://github.com/kubernetes-sigs/cluster-api/issues/168
 	return nil
 }

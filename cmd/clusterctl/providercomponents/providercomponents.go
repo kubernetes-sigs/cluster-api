@@ -17,13 +17,14 @@ limitations under the License.
 package providercomponents
 
 import (
-	"fmt"
 	"io/ioutil"
+
+	"github.com/pkg/errors"
 	core "k8s.io/api/core/v1"
-	"k8s.io/apimachinery/pkg/api/errors"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	meta "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
-	"k8s.io/client-go/kubernetes/typed/core/v1"
+	v1 "k8s.io/client-go/kubernetes/typed/core/v1"
 )
 
 const (
@@ -66,21 +67,21 @@ func (pc *Store) Load() (string, error) {
 func (pc *Store) loadFromFile() (string, error) {
 	bytes, err := ioutil.ReadFile(pc.ExplicitPath)
 	if err != nil {
-		return "", fmt.Errorf("error when loading provider components from '%v': %v", pc.ExplicitPath, err)
+		return "", errors.Wrapf(err, "error when loading provider components from %q", pc.ExplicitPath)
 	}
 	return string(bytes), nil
 }
 
 func (pc *Store) saveToConfigMap(providerComponents string) error {
 	configMap, err := pc.ConfigMap.Get(configMapName, meta.GetOptions{})
-	if errors.IsNotFound(err) {
+	if apierrors.IsNotFound(err) {
 		configMap = &core.ConfigMap{
 			ObjectMeta: meta.ObjectMeta{
 				Name: configMapName,
 			},
 		}
 	} else if err != nil {
-		return fmt.Errorf("unable to get configmap '%v': %v", configMapName, err)
+		return errors.Wrapf(err, "unable to get configmap %q", configMapName)
 	}
 	if configMap.Data == nil {
 		configMap.Data = make(map[string]string)
@@ -89,12 +90,12 @@ func (pc *Store) saveToConfigMap(providerComponents string) error {
 	if err == nil {
 		_, err = pc.ConfigMap.Update(configMap)
 		if err != nil {
-			return fmt.Errorf("error updating config map '%v': %v", configMapName, err)
+			return errors.Wrapf(err, "error updating config map %q", configMapName)
 		}
 	} else {
 		_, err = pc.ConfigMap.Create(configMap)
 		if err != nil {
-			return fmt.Errorf("error creating config map '%v': %v", configMapName, err)
+			return errors.Wrapf(err, "error creating config map %q", configMapName)
 		}
 	}
 	return nil
@@ -102,15 +103,15 @@ func (pc *Store) saveToConfigMap(providerComponents string) error {
 
 func (pc *Store) loadFromConfigMap() (string, error) {
 	if pc.ConfigMap == nil {
-		return "", fmt.Errorf("unable to load config map: need a valid ConfigMapInterface")
+		return "", errors.New("unable to load config map: need a valid ConfigMapInterface")
 	}
 	configMap, err := pc.ConfigMap.Get(configMapName, meta.GetOptions{})
 	if err != nil {
-		return "", fmt.Errorf("error getting configmap named '%v': %v", configMapName, err)
+		return "", errors.Wrapf(err, "error getting configmap named %q", configMapName)
 	}
 	providerComponents, ok := configMap.Data[configMapProviderComponentsKey]
 	if !ok {
-		return "", fmt.Errorf("configmap '%v' does not contain the provider components key '%v'", configMapName, configMapProviderComponentsKey)
+		return "", errors.Errorf("configmap %q does not contain the provider components key %q", configMapName, configMapProviderComponentsKey)
 	}
 	return providerComponents, nil
 }

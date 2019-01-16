@@ -17,15 +17,14 @@ limitations under the License.
 package machineset
 
 import (
+	"context"
 	"fmt"
 
+	"github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/klog"
-
-	"context"
-
 	"sigs.k8s.io/cluster-api/pkg/apis/cluster/v1alpha1"
 	"sigs.k8s.io/cluster-api/pkg/controller/noderefutil"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -126,7 +125,7 @@ func updateMachineSetStatus(c client.Client, ms *v1alpha1.MachineSet, newStatus 
 func (c *ReconcileMachineSet) getMachineNode(machine *v1alpha1.Machine) (*corev1.Node, error) {
 	nodeRef := machine.Status.NodeRef
 	if nodeRef == nil {
-		return nil, fmt.Errorf("machine has no node ref")
+		return nil, errors.New("machine has no node ref")
 	}
 
 	node := &corev1.Node{}

@@ -19,6 +19,7 @@ package cmd
 import (
 	"fmt"
 
+	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
 	"k8s.io/klog"
 	"sigs.k8s.io/cluster-api/cmd/clusterctl/clusterdeployer/bootstrap/minikube"
@@ -54,7 +55,7 @@ func RunAlphaPhaseCreateBootstrapCluster(pcbco *AlphaPhaseCreateBootstrapCluster
 
 	_, _, err := phases.CreateBootstrapCluster(bootstrapProvider, false, clusterclient.NewFactory())
 	if err != nil {
-		return fmt.Errorf("failed to create bootstrap cluster: %v", err)
+		return errors.Wrap(err, "failed to create bootstrap cluster")
 	}
 
 	klog.Infof("Created bootstrap cluster, path to kubeconfig: %q", pcbco.KubeconfigOutput)

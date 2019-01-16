@@ -17,9 +17,9 @@ limitations under the License.
 package cmd
 
 import (
-	"fmt"
 	"io/ioutil"
 
+	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
 	"k8s.io/klog"
 	"sigs.k8s.io/cluster-api/cmd/clusterctl/clusterdeployer"
@@ -82,13 +82,13 @@ func RunCreate(co *CreateOptions) error {
 	}
 	pc, err := ioutil.ReadFile(co.ProviderComponents)
 	if err != nil {
-		return fmt.Errorf("error loading provider components file '%v': %v", co.ProviderComponents, err)
+		return errors.Wrapf(err, "error loading provider components file %q", co.ProviderComponents)
 	}
 	var ac []byte
 	if co.AddonComponents != "" {
 		ac, err = ioutil.ReadFile(co.AddonComponents)
 		if err != nil {
-			return fmt.Errorf("error loading addons file '%v': %v", co.AddonComponents, err)
+			return errors.Wrapf(err, "error loading addons file %q", co.AddonComponents)
 		}
 	}
 	pcsFactory := clusterdeployer.NewProviderComponentsStoreFactory()
@@ -130,7 +130,7 @@ func getProvider(name string) (clusterdeployer.ProviderDeployer, error) {
 	}
 	provider, ok := provisioner.(clusterdeployer.ProviderDeployer)
 	if !ok {
-		return nil, fmt.Errorf("provider for %s does not implement ProviderDeployer interface", name)
+		return nil, errors.Errorf("provider for %s does not implement ProviderDeployer interface", name)
 	}
 	return provider, nil
 }

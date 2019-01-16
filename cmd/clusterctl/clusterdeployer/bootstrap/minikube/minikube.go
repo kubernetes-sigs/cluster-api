@@ -23,6 +23,7 @@ import (
 	"os/exec"
 	"strings"
 
+	"github.com/pkg/errors"
 	"k8s.io/klog"
 )
 
@@ -61,7 +62,7 @@ var minikubeExec = func(env []string, args ...string) (string, error) {
 	cmdOut, err := cmd.CombinedOutput()
 	klog.V(2).Infof("Ran: %v %v Output: %v", executable, args, string(cmdOut))
 	if err != nil {
-		err = fmt.Errorf("error running command '%v %v': %v", executable, strings.Join(args, " "), err)
+		err = errors.Wrapf(err, "error running command '%v %v'", executable, strings.Join(args, " "))
 	}
 	return string(cmdOut), err
 }

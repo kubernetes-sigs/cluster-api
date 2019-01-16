@@ -25,7 +25,7 @@ import (
 	"strings"
 
 	"github.com/davecgh/go-spew/spew"
-	"k8s.io/api/core/v1"
+	v1 "k8s.io/api/core/v1"
 	apiequality "k8s.io/apimachinery/pkg/api/equality"
 	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -544,7 +544,7 @@ func NewMSNewReplicas(deployment *v1alpha1.MachineDeployment, allMSs []*v1alpha1
 		// Do not exceed the number of desired replicas.
 		scaleUpCount = int32(integer.Int32Min(scaleUpCount, *(deployment.Spec.Replicas)-*(newMS.Spec.Replicas)))
 		return *(newMS.Spec.Replicas) + scaleUpCount, nil
-		// -- return 0, fmt.Errorf("deployment type %v isn't supported", deployment.Spec.Strategy.Type)
+		// -- return 0, errors.Errorf("deployment type %v isn't supported", deployment.Spec.Strategy.Type)
 	}
 }
 

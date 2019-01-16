@@ -19,15 +19,15 @@ package cmd
 import (
 	"fmt"
 	"os"
-	"sigs.k8s.io/cluster-api/pkg/apis"
-	"sigs.k8s.io/controller-runtime/pkg/manager"
 
+	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
-
 	tcmd "k8s.io/client-go/tools/clientcmd"
 	"sigs.k8s.io/cluster-api/cmd/clusterctl/validation"
+	"sigs.k8s.io/cluster-api/pkg/apis"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/config"
+	"sigs.k8s.io/controller-runtime/pkg/manager"
 )
 
 type ValidateClusterOptions struct {
@@ -58,20 +58,20 @@ func init() {
 func RunValidateCluster() error {
 	cfg, err := config.GetConfig()
 	if err != nil {
-		return fmt.Errorf("failed to create client configuration: %v", err)
+		return errors.Wrap(err, "failed to create client configuration")
 	}
 	mgr, err := manager.New(cfg, manager.Options{})
 	if err != nil {
-		return fmt.Errorf("failed to create manager: %v", err)
+		return errors.Wrap(err, "failed to create manager")
 	}
 	// Setup Scheme for all resources
 	if err := apis.AddToScheme(mgr.GetScheme()); err != nil {
-		return fmt.Errorf("failed to add APIs to manager: %v", err)
+		return errors.Wrap(err, "failed to add APIs to manager")
 	}
 
 	c, err := client.New(mgr.GetConfig(), client.Options{Scheme: mgr.GetScheme(), Mapper: mgr.GetRESTMapper()})
 	if err != nil {
-		return fmt.Errorf("failed to create client: %v", err)
+		return errors.Wrap(err, "failed to create client")
 	}
 	if err = validation.ValidateClusterAPIObjects(os.Stdout, c, vco.KubeconfigOverrides.Context.Cluster, vco.KubeconfigOverrides.Context.Namespace); err != nil {
 		return err

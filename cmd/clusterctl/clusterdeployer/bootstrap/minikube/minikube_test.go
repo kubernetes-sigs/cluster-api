@@ -17,10 +17,11 @@ limitations under the License.
 package minikube
 
 import (
-	"fmt"
 	"io/ioutil"
 	"os"
 	"testing"
+
+	"github.com/pkg/errors"
 )
 
 func TestCreate(t *testing.T) {
@@ -34,7 +35,7 @@ func TestCreate(t *testing.T) {
 		},
 		{
 			name:      "exec fail",
-			execError: fmt.Errorf("test error"),
+			execError: errors.New("test error"),
 			expectErr: true,
 		},
 	}
@@ -63,7 +64,7 @@ func TestCreateOptions(t *testing.T) {
 		},
 		{
 			name:      "exec fail",
-			execError: fmt.Errorf("test error"),
+			execError: errors.New("test error"),
 			expectErr: true,
 		},
 	}
@@ -92,7 +93,7 @@ func TestDelete(t *testing.T) {
 		},
 		{
 			name:      "exec fail",
-			execError: fmt.Errorf("test error"),
+			execError: errors.New("test error"),
 			expectErr: true,
 		},
 	}

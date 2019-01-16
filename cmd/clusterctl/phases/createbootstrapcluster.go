@@ -17,8 +17,7 @@ limitations under the License.
 package phases
 
 import (
-	"fmt"
-
+	"github.com/pkg/errors"
 	"k8s.io/klog"
 	"sigs.k8s.io/cluster-api/cmd/clusterctl/clusterdeployer/bootstrap"
 	"sigs.k8s.io/cluster-api/cmd/clusterctl/clusterdeployer/clusterclient"
@@ -29,7 +28,7 @@ func CreateBootstrapCluster(provisioner bootstrap.ClusterProvisioner, cleanupBoo
 
 	cleanupFn := func() {}
 	if err := provisioner.Create(); err != nil {
-		return nil, cleanupFn, fmt.Errorf("could not create bootstrap control plane: %v", err)
+		return nil, cleanupFn, errors.Wrap(err, "could not create bootstrap control plane")
 	}
 
 	if cleanupBootstrapCluster {
@@ -41,11 +40,11 @@ func CreateBootstrapCluster(provisioner bootstrap.ClusterProvisioner, cleanupBoo
 
 	bootstrapKubeconfig, err := provisioner.GetKubeconfig()
 	if err != nil {
-		return nil, cleanupFn, fmt.Errorf("unable to get bootstrap cluster kubeconfig: %v", err)
+		return nil, cleanupFn, errors.Wrap(err, "unable to get bootstrap cluster kubeconfig")
 	}
 	bootstrapClient, err := clientFactory.NewClientFromKubeconfig(bootstrapKubeconfig)
 	if err != nil {
-		return nil, cleanupFn, fmt.Errorf("unable to create bootstrap client: %v", err)
+		return nil, cleanupFn, errors.Wrap(err, "unable to create bootstrap client")
 	}
 
 	return bootstrapClient, cleanupFn, nil

@@ -17,9 +17,9 @@ limitations under the License.
 package cmd
 
 import (
-	"fmt"
 	"io/ioutil"
 
+	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
 	"k8s.io/klog"
 	"sigs.k8s.io/cluster-api/cmd/clusterctl/clusterdeployer/clusterclient"
@@ -60,13 +60,13 @@ func RunAlphaPhaseApplyClusterAPIComponents(pacaso *AlphaPhaseApplyClusterAPICom
 
 	pc, err := ioutil.ReadFile(pacaso.ProviderComponents)
 	if err != nil {
-		return fmt.Errorf("error loading provider components file '%v': %v", pacaso.ProviderComponents, err)
+		return errors.Wrapf(err, "error loading provider components file %q", pacaso.ProviderComponents)
 	}
 
 	clientFactory := clusterclient.NewFactory()
 	client, err := clientFactory.NewClientFromKubeconfig(string(kubeconfig))
 	if err != nil {
-		return fmt.Errorf("unable to create cluster client: %v", err)
+		return errors.Wrap(err, "unable to create cluster client")
 	}
 
 	return phases.ApplyClusterAPIComponents(client, string(pc))

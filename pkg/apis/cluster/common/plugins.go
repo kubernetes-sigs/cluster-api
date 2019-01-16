@@ -17,9 +17,9 @@ limitations under the License.
 package common
 
 import (
-	"fmt"
 	"sync"
 
+	"github.com/pkg/errors"
 	"k8s.io/klog"
 )
 
@@ -45,7 +45,7 @@ func ClusterProvisioner(name string) (interface{}, error) {
 	defer providersMutex.Unlock()
 	provisioner, found := providers[name]
 	if !found {
-		return nil, fmt.Errorf("unable to find provisioner for %s", name)
+		return nil, errors.Errorf("unable to find provisioner for %s", name)
 	}
 	return provisioner, nil
 }

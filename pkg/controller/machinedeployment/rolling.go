@@ -17,9 +17,9 @@ limitations under the License.
 package machinedeployment
 
 import (
-	"fmt"
 	"sort"
 
+	"github.com/pkg/errors"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/util/integer"
 	"k8s.io/klog"
@@ -69,10 +69,10 @@ func (r *ReconcileMachineDeployment) rolloutRolling(d *v1alpha1.MachineDeploymen
 
 func (r *ReconcileMachineDeployment) reconcileNewMachineSet(allMSs []*v1alpha1.MachineSet, newMS *v1alpha1.MachineSet, deployment *v1alpha1.MachineDeployment) error {
 	if deployment.Spec.Replicas == nil {
-		return fmt.Errorf("spec replicas for deployment set %v is nil, this is unexpected", deployment.Name)
+		return errors.Errorf("spec replicas for deployment set %v is nil, this is unexpected", deployment.Name)
 	}
 	if newMS.Spec.Replicas == nil {
-		return fmt.Errorf("spec replicas for machine set %v is nil, this is unexpected", newMS.Name)
+		return errors.Errorf("spec replicas for machine set %v is nil, this is unexpected", newMS.Name)
 	}
 
 	if *(newMS.Spec.Replicas) == *(deployment.Spec.Replicas) {
@@ -94,10 +94,10 @@ func (r *ReconcileMachineDeployment) reconcileNewMachineSet(allMSs []*v1alpha1.M
 
 func (r *ReconcileMachineDeployment) reconcileOldMachineSets(allMSs []*v1alpha1.MachineSet, oldMSs []*v1alpha1.MachineSet, newMS *v1alpha1.MachineSet, deployment *v1alpha1.MachineDeployment) error {
 	if deployment.Spec.Replicas == nil {
-		return fmt.Errorf("spec replicas for deployment set %v is nil, this is unexpected", deployment.Name)
+		return errors.Errorf("spec replicas for deployment set %v is nil, this is unexpected", deployment.Name)
 	}
 	if newMS.Spec.Replicas == nil {
-		return fmt.Errorf("spec replicas for machine set %v is nil, this is unexpected", newMS.Name)
+		return errors.Errorf("spec replicas for machine set %v is nil, this is unexpected", newMS.Name)
 	}
 
 	oldMachinesCount := dutil.GetReplicaCountForMachineSets(oldMSs)
@@ -175,7 +175,7 @@ func (r *ReconcileMachineDeployment) cleanupUnhealthyReplicas(oldMSs []*v1alpha1
 	totalScaledDown := int32(0)
 	for _, targetMS := range oldMSs {
 		if targetMS.Spec.Replicas == nil {
-			return nil, 0, fmt.Errorf("spec replicas for machine set %v is nil, this is unexpected", targetMS.Name)
+			return nil, 0, errors.Errorf("spec replicas for machine set %v is nil, this is unexpected", targetMS.Name)
 		}
 
 		if totalScaledDown >= maxCleanupCount {
@@ -199,7 +199,7 @@ func (r *ReconcileMachineDeployment) cleanupUnhealthyReplicas(oldMSs []*v1alpha1
 		newReplicasCount := oldMSReplicas - scaledDownCount
 
 		if newReplicasCount > oldMSReplicas {
-			return nil, 0, fmt.Errorf("when cleaning up unhealthy replicas, got invalid request to scale down %s/%s %d -> %d", targetMS.Namespace, targetMS.Name, oldMSReplicas, newReplicasCount)
+			return nil, 0, errors.Errorf("when cleaning up unhealthy replicas, got invalid request to scale down %s/%s %d -> %d", targetMS.Namespace, targetMS.Name, oldMSReplicas, newReplicasCount)
 		}
 		_, err := r.scaleMachineSet(targetMS, newReplicasCount, deployment)
 		if err != nil {
@@ -214,7 +214,7 @@ func (r *ReconcileMachineDeployment) cleanupUnhealthyReplicas(oldMSs []*v1alpha1
 // Need check maxUnavailable to ensure availability
 func (r *ReconcileMachineDeployment) scaleDownOldMachineSetsForRollingUpdate(allMSs []*v1alpha1.MachineSet, oldMSs []*v1alpha1.MachineSet, deployment *v1alpha1.MachineDeployment) (int32, error) {
 	if deployment.Spec.Replicas == nil {
-		return 0, fmt.Errorf("spec replicas for deployment %v is nil, this is unexpected", deployment.Name)
+		return 0, errors.Errorf("spec replicas for deployment %v is nil, this is unexpected", deployment.Name)
 	}
 
 	maxUnavailable := dutil.MaxUnavailable(*deployment)
@@ -235,7 +235,7 @@ func (r *ReconcileMachineDeployment) scaleDownOldMachineSetsForRollingUpdate(all
 	totalScaleDownCount := availableMachineCount - minAvailable
 	for _, targetMS := range oldMSs {
 		if targetMS.Spec.Replicas == nil {
-			return 0, fmt.Errorf("spec replicas for machine set %v is nil, this is unexpected", targetMS.Name)
+			return 0, errors.Errorf("spec replicas for machine set %v is nil, this is unexpected", targetMS.Name)
 		}
 
 		if totalScaledDown >= totalScaleDownCount {
@@ -250,7 +250,7 @@ func (r *ReconcileMachineDeployment) scaleDownOldMachineSetsForRollingUpdate(all
 		scaleDownCount := int32(integer.Int32Min(*(targetMS.Spec.Replicas), totalScaleDownCount-totalScaledDown))
 		newReplicasCount := *(targetMS.Spec.Replicas) - scaleDownCount
 		if newReplicasCount > *(targetMS.Spec.Replicas) {
-			return totalScaledDown, fmt.Errorf("when scaling down old MS, got invalid request to scale down %s/%s %d -> %d", targetMS.Namespace, targetMS.Name, *(targetMS.Spec.Replicas), newReplicasCount)
+			return totalScaledDown, errors.Errorf("when scaling down old MS, got invalid request to scale down %s/%s %d -> %d", targetMS.Namespace, targetMS.Name, *(targetMS.Spec.Replicas), newReplicasCount)
 		}
 		_, err := r.scaleMachineSet(targetMS, newReplicasCount, deployment)
 		if err != nil {

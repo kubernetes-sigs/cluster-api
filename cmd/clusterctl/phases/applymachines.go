@@ -17,8 +17,7 @@ limitations under the License.
 package phases
 
 import (
-	"fmt"
-
+	"github.com/pkg/errors"
 	"k8s.io/klog"
 	"sigs.k8s.io/cluster-api/cmd/clusterctl/clusterdeployer/clusterclient"
 	clusterv1 "sigs.k8s.io/cluster-api/pkg/apis/cluster/v1alpha1"
@@ -31,7 +30,7 @@ func ApplyMachines(client clusterclient.Client, namespace string, machines []*cl
 
 	err := client.EnsureNamespace(namespace)
 	if err != nil {
-		return fmt.Errorf("unable to ensure namespace %q: %v", namespace, err)
+		return errors.Wrapf(err, "unable to ensure namespace %q", namespace)
 	}
 
 	klog.Infof("Creating machines in namespace %q", namespace)

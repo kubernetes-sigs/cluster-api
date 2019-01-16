@@ -5,6 +5,7 @@ go_library(
     srcs = ["test_cmd_runner.go"],
     importpath = "sigs.k8s.io/cluster-api/pkg/test-cmd-runner",
     visibility = ["//visibility:public"],
+    deps = ["//vendor/github.com/pkg/errors:go_default_library"],
 )
 
 go_test(

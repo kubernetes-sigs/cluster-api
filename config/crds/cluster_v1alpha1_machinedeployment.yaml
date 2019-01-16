@@ -180,7 +180,7 @@ spec:
                         controlPlane:
                           description: Semantic version of the Kubernetes control
                             plane to run. This should only be populated when the machine
-                            is a master.
+                            is a control plane.
                           type: string
                         kubelet:
                           description: Semantic version of kubelet to run

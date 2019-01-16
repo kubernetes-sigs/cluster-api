@@ -103,7 +103,7 @@ const (
 )
 
 // Actuator is responsible for performing machine reconciliation
-type Actuator struct { 
+type Actuator struct {
         machinesGetter client.MachinesGetter
 }
 
@@ -153,9 +153,9 @@ func (a *Actuator) GetIP(cluster *clusterv1.Cluster, machine *clusterv1.Machine)
         return "", fmt.Errorf("TODO: Not yet implemented")
 }
 
-// GetKubeConfig gets a kubeconfig from the master.
-func (a *Actuator) GetKubeConfig(cluster *clusterv1.Cluster, master *clusterv1.Machine) (string, error) {
-        log.Printf("Getting IP of machine %v for cluster %v.", master.Name, cluster.Name)
+// GetKubeConfig gets a kubeconfig from the running control plane.
+func (a *Actuator) GetKubeConfig(cluster *clusterv1.Cluster, controlPlaneMachine *clusterv1.Machine) (string, error) {
+        log.Printf("Getting IP of machine %v for cluster %v.", controlPlaneMachine.Name, cluster.Name)
         return "", fmt.Errorf("TODO: Not yet implemented")
 }
 ```

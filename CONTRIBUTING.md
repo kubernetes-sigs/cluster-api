@@ -17,7 +17,7 @@ If you're new to the project and want to help, but don't know where to start, we
 ## Contributing a Patch
 
 1. If you haven't already done so, sign a Contributor License Agreement (see details above).
-1. Fork the desired repo, develop and test your code changes. 
+1. Fork the desired repo, develop and test your code changes.
 1. Submit a pull request.
 
 All changes must be code reviewed. Coding conventions and standards are explained in the official [developer docs](https://github.com/kubernetes/community/tree/master/contributors/devel). Expect reviewers to request that you avoid common [go style mistakes](https://github.com/golang/go/wiki/CodeReviewComments) in your PRs.
@@ -54,7 +54,7 @@ To minimize code duplication and maximize flexibility, bootstrap clusters with a
 A new Machine can be created in a declarative way, specifying versions of various components such as the kubelet.
 It should also be able to specify provider-specific information such as OS image, instance type, disk configuration, etc., though this will not be portable.
 
-When a cluster is first created with a cluster config file, there is no master node or api server. So the user will need to bootstrap a cluster. While the implementation details are specific to the provider, the following guidance should help you:
+When a cluster is first created with a cluster config file, there is no control plane node or api server. So the user will need to bootstrap a cluster. While the implementation details are specific to the provider, the following guidance should help you:
 
 * Your tool should spin up the external apiserver and the machine controller.
 * POST the objects to the apiserver.
@@ -63,23 +63,23 @@ When a cluster is first created with a cluster config file, there is no master n
 
 #### Configurable Machine Setup
 
-While not mandatory, it is suggested for new providers to support configurable machine setups for creating new machines. 
+While not mandatory, it is suggested for new providers to support configurable machine setups for creating new machines.
 This is to allow flexibility in what startup scripts are used and what versions are supported instead of hardcoding startup scripts into the machine controller.
 You can find an example implementation for GCE [here](https://github.com/kubernetes-sigs/cluster-api-provider-gcp/blob/ee60efd89c4d0129a6d42b40d069c0b41d2c4987/cloud/google/machinesetup/config_types.go).
 
 ##### GCE Implementation
 
 For GCE, a [config map](https://github.com/kubernetes-sigs/cluster-api-provider-gcp/blob/c0ac09e86b6630bd65c277120883719e514cfdf5/clusterctl/examples/google/provider-components.yaml.template#L151) holds the list of valid machine setup configs,
-and the yaml file is volume mounted into the machine controller using a ConfigMap named `machine-setup`. 
+and the yaml file is volume mounted into the machine controller using a ConfigMap named `machine-setup`.
 
 A [config type](https://github.com/kubernetes-sigs/cluster-api-provider-gcp/blob/ee60efd89c4d0129a6d42b40d069c0b41d2c4987/cloud/google/machinesetup/config_types.go#L70) defines a set of parameters that can be taken from the machine object being created, and maps those parameters to startup scripts and other relevant information.
 In GCE, the OS, machine roles, and version info are the parameters that map to a GCP image path and metadata (which contains the startup script).
 
-When creating a new machine, there should be a check for whether the machine setup is supported. 
+When creating a new machine, there should be a check for whether the machine setup is supported.
 This is done by looking through the valid configs parsed out of the yaml for a config with matching parameters.
 If a match is found, then the machine can be created with the startup script found in the config.
 If no match is found, then the given machine configuration is not supported.
-Getting the script onto the machine and running it on startup is a provider specific implementation detail. 
+Getting the script onto the machine and running it on startup is a provider specific implementation detail.
 
 More details can be found in the [design doc](https://docs.google.com/document/d/1OfykBDOXP_t6QEtiYBA-Ax7nSpqohFofyX-wOxrQrnw/edit?ts=5ae11208#heading=h.xgjl2srtytjt), but note that it is GCE specific.
 

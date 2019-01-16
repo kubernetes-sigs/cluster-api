@@ -557,7 +557,7 @@ func TestClusterCreate(t *testing.T) {
 			expectErr:                           true,
 		},
 		{
-			name:                                "fail create master",
+			name:                                "fail create control plane",
 			targetClient:                        &testClusterClient{},
 			bootstrapClient:                     &testClusterClient{CreateMachineObjectsErr: fmt.Errorf("Test failure")},
 			namespaceToExpectedInternalMachines: make(map[string]int),
@@ -764,67 +764,67 @@ func TestCreateProviderComponentsScenarios(t *testing.T) {
 	}
 }
 
-func TestExtractMasterMachine(t *testing.T) {
-	const singleMasterName = "test-master"
-	multpleMasterNames := []string{"test-master-1", "test-master-2"}
+func TestExtractControlPlaneMachine(t *testing.T) {
+	const singleControlPlaneName = "test-control-plane"
+	multipleControlPlaneNames := []string{"test-control-plane-1", "test-control-plane-2"}
 	const singleNodeName = "test-node"
 	multipleNodeNames := []string{"test-node-1", "test-node-2", "test-node-3"}
 
 	testCases := []struct {
-		name           string
-		inputMachines  []*clusterv1.Machine
-		expectedMaster *clusterv1.Machine
-		expectedNodes  []*clusterv1.Machine
-		expectedError  error
+		name                 string
+		inputMachines        []*clusterv1.Machine
+		expectedControlPlane *clusterv1.Machine
+		expectedNodes        []*clusterv1.Machine
+		expectedError        error
 	}{
 		{
-			name:           "success_1_master_1_node",
-			inputMachines:  generateMachines(),
-			expectedMaster: generateTestMasterMachine(singleMasterName),
-			expectedNodes:  generateTestNodeMachines([]string{singleNodeName}),
-			expectedError:  nil,
+			name:                 "success_1_control_plane_1_node",
+			inputMachines:        generateMachines(),
+			expectedControlPlane: generateTestControlPlaneMachine(singleControlPlaneName),
+			expectedNodes:        generateTestNodeMachines([]string{singleNodeName}),
+			expectedError:        nil,
 		},
 		{
-			name:           "success_1_master_multiple_nodes",
-			inputMachines:  generateValidExtractMasterMachineInput([]string{singleMasterName}, multipleNodeNames),
-			expectedMaster: generateTestMasterMachine(singleMasterName),
-			expectedNodes:  generateTestNodeMachines(multipleNodeNames),
-			expectedError:  nil,
+			name:                 "success_1_control_plane_multiple_nodes",
+			inputMachines:        generateValidExtractControlPlaneMachineInput([]string{singleControlPlaneName}, multipleNodeNames),
+			expectedControlPlane: generateTestControlPlaneMachine(singleControlPlaneName),
+			expectedNodes:        generateTestNodeMachines(multipleNodeNames),
+			expectedError:        nil,
 		},
 		{
-			name:           "fail_more_than_1_master_not_allowed",
-			inputMachines:  generateInvalidExtractMasterMachine(multpleMasterNames, multipleNodeNames),
-			expectedMaster: nil,
-			expectedNodes:  nil,
-			expectedError:  fmt.Errorf("expected one master, got: 2"),
+			name:                 "fail_more_than_1_control_plane_not_allowed",
+			inputMachines:        generateInvalidExtractControlPlaneMachine(multipleControlPlaneNames, multipleNodeNames),
+			expectedControlPlane: nil,
+			expectedNodes:        nil,
+			expectedError:        fmt.Errorf("expected one control plane machine, got: 2"),
 		},
 		{
-			name:           "fail_0_master_not_allowed",
-			inputMachines:  generateTestNodeMachines(multipleNodeNames),
-			expectedMaster: nil,
-			expectedNodes:  nil,
-			expectedError:  fmt.Errorf("expected one master, got: 0"),
+			name:                 "fail_0_control_plane_not_allowed",
+			inputMachines:        generateTestNodeMachines(multipleNodeNames),
+			expectedControlPlane: nil,
+			expectedNodes:        nil,
+			expectedError:        fmt.Errorf("expected one control plane machine, got: 0"),
 		},
 	}
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			actualMaster, actualNodes, actualError := extractMasterMachine(tc.inputMachines)
+			actualControlPlane, actualNodes, actualError := extractControlPlaneMachine(tc.inputMachines)
 
 			if tc.expectedError == nil && actualError != nil {
-				t.Fatalf("%s: extractMasterMachine(%q): gotError %q; wantError [nil]", tc.name, len(tc.inputMachines), actualError)
+				t.Fatalf("%s: extractControlPlaneMachine(%q): gotError %q; wantError [nil]", tc.name, len(tc.inputMachines), actualError)
 			}
 
 			if tc.expectedError != nil && tc.expectedError.Error() != actualError.Error() {
-				t.Fatalf("%s: extractMasterMachine(%q): gotError %q; wantError %q", tc.name, len(tc.inputMachines), actualError, tc.expectedError)
+				t.Fatalf("%s: extractControlPlaneMachine(%q): gotError %q; wantError %q", tc.name, len(tc.inputMachines), actualError, tc.expectedError)
 			}
 
-			if (tc.expectedMaster == nil && actualMaster != nil) ||
-				(tc.expectedMaster != nil && actualMaster == nil) {
-				t.Fatalf("%s: extractMasterMachine(%q): gotMaster = %v; wantMaster = %v", tc.name, len(tc.inputMachines), actualMaster != nil, tc.expectedMaster != nil)
+			if (tc.expectedControlPlane == nil && actualControlPlane != nil) ||
+				(tc.expectedControlPlane != nil && actualControlPlane == nil) {
+				t.Fatalf("%s: extractControlPlaneMachine(%q): gotControlPlane = %v; wantControlPlane = %v", tc.name, len(tc.inputMachines), actualControlPlane != nil, tc.expectedControlPlane != nil)
 			}
 
 			if len(tc.expectedNodes) != len(actualNodes) {
-				t.Fatalf("%s: extractMasterMachine(%q): gotNodes = %q; wantNodes = %q", tc.name, len(tc.inputMachines), len(actualNodes), len(tc.expectedNodes))
+				t.Fatalf("%s: extractControlPlaneMachine(%q): gotNodes = %q; wantNodes = %q", tc.name, len(tc.inputMachines), len(actualNodes), len(tc.expectedNodes))
 			}
 		})
 	}
@@ -1052,7 +1052,7 @@ func TestClusterDelete(t *testing.T) {
 					metav1.NamespaceDefault: generateMachines(),
 				},
 			},
-			expectedErrorMessage: "unable to copy objects from target to bootstrap cluster: error moving Machine 'test-master': create machines error",
+			expectedErrorMessage: "unable to copy objects from target to bootstrap cluster: error moving Machine 'test-control-plane': create machines error",
 		},
 		{
 			name:                 "error creating machine sets",
@@ -1187,7 +1187,7 @@ func TestClusterDelete(t *testing.T) {
 	}
 }
 
-func generateTestMasterMachine(name string) *clusterv1.Machine {
+func generateTestControlPlaneMachine(name string) *clusterv1.Machine {
 	return &clusterv1.Machine{
 		ObjectMeta: metav1.ObjectMeta{
 			Name: name,
@@ -1208,12 +1208,12 @@ func generateTestNodeMachine(name string) *clusterv1.Machine {
 	}
 }
 
-func generateTestMasterMachines(masterNames []string) []*clusterv1.Machine {
-	var masters []*clusterv1.Machine
-	for _, mn := range masterNames {
-		masters = append(masters, generateTestMasterMachine(mn))
+func generateTestControlPlaneMachines(controlPlaneNames []string) []*clusterv1.Machine {
+	var controlPlanes []*clusterv1.Machine
+	for _, mn := range controlPlaneNames {
+		controlPlanes = append(controlPlanes, generateTestControlPlaneMachine(mn))
 	}
-	return masters
+	return controlPlanes
 }
 
 func generateTestNodeMachines(nodeNames []string) []*clusterv1.Machine {
@@ -1224,24 +1224,24 @@ func generateTestNodeMachines(nodeNames []string) []*clusterv1.Machine {
 	return nodes
 }
 
-func generateInvalidExtractMasterMachine(masterNames, nodeNames []string) []*clusterv1.Machine {
-	masters := generateTestMasterMachines(masterNames)
+func generateInvalidExtractControlPlaneMachine(controlPlaneNames, nodeNames []string) []*clusterv1.Machine {
+	controlPlanes := generateTestControlPlaneMachines(controlPlaneNames)
 	nodes := generateTestNodeMachines(nodeNames)
 
-	return append(masters, nodes...)
+	return append(controlPlanes, nodes...)
 }
 
-func generateValidExtractMasterMachineInput(masterNames, nodeNames []string) []*clusterv1.Machine {
-	masters := generateTestMasterMachines(masterNames)
+func generateValidExtractControlPlaneMachineInput(controlPlaneNames, nodeNames []string) []*clusterv1.Machine {
+	controlPlanes := generateTestControlPlaneMachines(controlPlaneNames)
 	nodes := generateTestNodeMachines(nodeNames)
 
-	return append(masters, nodes...)
+	return append(controlPlanes, nodes...)
 }
 
 func generateMachines() []*clusterv1.Machine {
-	master := generateTestMasterMachine("test-master")
+	controlPlaneMachine := generateTestControlPlaneMachine("test-control-plane")
 	node := generateTestNodeMachine("test-node")
-	return []*clusterv1.Machine{master, node}
+	return []*clusterv1.Machine{controlPlaneMachine, node}
 }
 
 func newMachineSetsFixture() []*clusterv1.MachineSet {

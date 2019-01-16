@@ -33,6 +33,12 @@ help:  ## Display this help
 gazelle: ## Run Bazel Gazelle
 	(which bazel && ./hack/update-bazel.sh) || true
 
+.PHONY: dep-ensure
+dep-ensure: ## Runs dep-ensure and rebuilds Bazel gazelle files.
+	find vendor -name 'BUILD.bazel' -delete
+	(which dep && dep ensure -v) || true
+	$(MAKE) gazelle
+
 .PHONY: test
 test: verify generate fmt vet manifests ## Run tests
 	go test -v -tags=integration ./pkg/... ./cmd/...
@@ -67,7 +73,7 @@ vet: ## Run go vet against code
 	go vet ./pkg/... ./cmd/...
 
 .PHONY: generate
-generate: clientset gazelle ## Generate code
+generate: clientset dep-ensure ## Generate code
 	go generate ./pkg/... ./cmd/...
 
 .PHONY: clientset

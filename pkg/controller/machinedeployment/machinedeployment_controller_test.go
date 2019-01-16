@@ -60,7 +60,7 @@ func TestReconcile(t *testing.T) {
 					Labels: labels,
 				},
 				Spec: clusterv1alpha1.MachineSpec{
-					Versions: clusterv1alpha1.MachineVersionInfo{Kubelet: "1.10.3"},
+					Versions: &clusterv1alpha1.MachineVersionInfo{Kubelet: "1.10.3"},
 				},
 			},
 		},

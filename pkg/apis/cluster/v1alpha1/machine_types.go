@@ -70,7 +70,7 @@ type MachineSpec struct {
 	// should populate the values it uses when persisting Machine objects.
 	// A Machine spec missing this field at runtime is invalid.
 	// +optional
-	Versions MachineVersionInfo `json:"versions,omitempty"`
+	Versions *MachineVersionInfo `json:"versions,omitempty"`
 
 	// ConfigSource is used to populate in the associated Node for dynamic kubelet config. This
 	// field already exists in Node, so any updates to it in the Machine

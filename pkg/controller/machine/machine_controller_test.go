@@ -39,7 +39,7 @@ func TestReconcile(t *testing.T) {
 	instance := &clusterv1alpha1.Machine{
 		ObjectMeta: metav1.ObjectMeta{Name: "foo", Namespace: "default"},
 		Spec: clusterv1alpha1.MachineSpec{
-			Versions: clusterv1alpha1.MachineVersionInfo{Kubelet: "1.10.3"},
+			Versions: &clusterv1alpha1.MachineVersionInfo{Kubelet: "1.10.3"},
 		},
 	}
 

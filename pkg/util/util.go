@@ -118,7 +118,10 @@ func GetMachineIfExists(c client.Client, namespace, name string) (*clusterv1.Mac
 
 // TODO(robertbailey): Remove this function
 func IsControlPlaneMachine(machine *clusterv1.Machine) bool {
-	return machine.Spec.Versions.ControlPlane != ""
+	if machine.Spec.Versions != nil {
+		return machine.Spec.Versions.ControlPlane != ""
+	}
+	return false
 }
 
 func IsNodeReady(node *v1.Node) bool {

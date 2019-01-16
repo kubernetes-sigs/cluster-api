@@ -1194,7 +1194,7 @@ func generateTestControlPlaneMachine(name string) *clusterv1.Machine {
 			Name: name,
 		},
 		Spec: clusterv1.MachineSpec{
-			Versions: clusterv1.MachineVersionInfo{
+			Versions: &clusterv1.MachineVersionInfo{
 				ControlPlane: "1.10.1",
 			},
 		},

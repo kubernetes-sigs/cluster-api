@@ -38,6 +38,6 @@ func Get(o Options) (ClusterProvisioner, error) {
 			return existing.NewExistingCluster(o.KubeConfig)
 		}
 
-		return nil, errors.New("Cannot get bootstrapper, specify `--bootstrap-cluster-kubeconfig` to use an existing Kubernetes cluster or specify `--bootstrap-type` to use a built-in ephemeral cluster.")
+		return nil, errors.New("no bootstrap provisioner specified, you can specify `--bootstrap-cluster-kubeconfig` to use an existing Kubernetes cluster or `--bootstrap-type` to use a built-in ephemeral cluster.")
 	}
 }

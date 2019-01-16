@@ -24,24 +24,19 @@ import (
 	"k8s.io/klog"
 	"sigs.k8s.io/cluster-api/cmd/clusterctl/clusterdeployer"
 	"sigs.k8s.io/cluster-api/cmd/clusterctl/clusterdeployer/bootstrap"
-	"sigs.k8s.io/cluster-api/cmd/clusterctl/clusterdeployer/bootstrap/existing"
-	"sigs.k8s.io/cluster-api/cmd/clusterctl/clusterdeployer/bootstrap/minikube"
 	"sigs.k8s.io/cluster-api/cmd/clusterctl/clusterdeployer/clusterclient"
 	clustercommon "sigs.k8s.io/cluster-api/pkg/apis/cluster/common"
 	"sigs.k8s.io/cluster-api/pkg/util"
 )
 
 type CreateOptions struct {
-	Cluster                       string
-	Machine                       string
-	ProviderComponents            string
-	AddonComponents               string
-	CleanupBootstrapCluster       bool
-	MiniKube                      []string
-	VmDriver                      string
-	Provider                      string
-	KubeconfigOutput              string
-	ExistingClusterKubeconfigPath string
+	Cluster            string
+	Machine            string
+	ProviderComponents string
+	AddonComponents    string
+	Provider           string
+	KubeconfigOutput   string
+	BootstrapFlags     bootstrap.Options
 }
 
 var co = &CreateOptions{}
@@ -76,19 +71,9 @@ func RunCreate(co *CreateOptions) error {
 		return err
 	}
 
-	var bootstrapProvider bootstrap.ClusterProvisioner
-	if co.ExistingClusterKubeconfigPath != "" {
-		bootstrapProvider, err = existing.NewExistingCluster(co.ExistingClusterKubeconfigPath)
-		if err != nil {
-			return err
-		}
-	} else {
-		if co.VmDriver != "" {
-			co.MiniKube = append(co.MiniKube, fmt.Sprintf("vm-driver=%s", co.VmDriver))
-		}
-
-		bootstrapProvider = minikube.WithOptions(co.MiniKube)
-
+	bootstrapProvider, err := bootstrap.Get(do.BootstrapFlags)
+	if err != nil {
+		return err
 	}
 
 	pd, err := getProvider(co.Provider)
@@ -107,12 +92,14 @@ func RunCreate(co *CreateOptions) error {
 		}
 	}
 	pcsFactory := clusterdeployer.NewProviderComponentsStoreFactory()
+
 	d := clusterdeployer.New(
 		bootstrapProvider,
 		clusterclient.NewFactory(),
 		string(pc),
 		string(ac),
-		co.CleanupBootstrapCluster)
+		co.BootstrapFlags.Cleanup)
+
 	return d.Create(c, m, pd, co.KubeconfigOutput, pcsFactory)
 }
 
@@ -127,14 +114,12 @@ func init() {
 	// TODO: Remove as soon as code allows https://github.com/kubernetes-sigs/cluster-api/issues/157
 	createClusterCmd.Flags().StringVarP(&co.Provider, "provider", "", "", "Which provider deployment logic to use (google/vsphere/azure). Required.")
 	createClusterCmd.MarkFlagRequired("provider")
+
 	// Optional flags
 	createClusterCmd.Flags().StringVarP(&co.AddonComponents, "addon-components", "a", "", "A yaml file containing cluster addons to apply to the internal cluster")
-	createClusterCmd.Flags().BoolVarP(&co.CleanupBootstrapCluster, "cleanup-bootstrap-cluster", "", true, "Whether to cleanup the bootstrap cluster after bootstrap")
-	createClusterCmd.Flags().StringSliceVarP(&co.MiniKube, "minikube", "", []string{}, "Minikube options")
-	createClusterCmd.Flags().StringVarP(&co.VmDriver, "vm-driver", "", "", "Which vm driver to use for minikube")
 	createClusterCmd.Flags().StringVarP(&co.KubeconfigOutput, "kubeconfig-out", "", "kubeconfig", "Where to output the kubeconfig for the provisioned cluster")
-	createClusterCmd.Flags().StringVarP(&co.ExistingClusterKubeconfigPath, "existing-bootstrap-cluster-kubeconfig", "e", "", "Path to an existing cluster's kubeconfig for bootstrapping (intead of using minikube)")
 
+	co.BootstrapFlags.AddFlags(createClusterCmd.Flags())
 	createCmd.AddCommand(createClusterCmd)
 }
 

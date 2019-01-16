@@ -946,6 +946,7 @@
   input-imports = [
     "github.com/davecgh/go-spew/spew",
     "github.com/emicklei/go-restful",
+    "github.com/pkg/errors",
     "github.com/sergi/go-diff/diffmatchpatch",
     "github.com/spf13/cobra",
     "github.com/spf13/pflag",

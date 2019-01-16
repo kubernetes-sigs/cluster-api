@@ -100,6 +100,11 @@ spec:
                                   type: string
                               type: object
                           type: object
+                      oneOf:
+                      - required:
+                        - value
+                      - required:
+                        - valueFrom
                       type: object
                     taints:
                       description: The full, authoritative list of taints to apply

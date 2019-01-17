@@ -47,19 +47,19 @@ type Machine struct {
 /// [MachineSpec]
 // MachineSpec defines the desired state of Machine
 type MachineSpec struct {
-	// This ObjectMeta will autopopulate the Node created. Use this to
+	// ObjectMeta will autopopulate the Node created. Use this to
 	// indicate what labels, annotations, name prefix, etc., should be used
 	// when creating the Node.
 	// +optional
 	metav1.ObjectMeta `json:"metadata,omitempty"`
 
-	// The full, authoritative list of taints to apply to the corresponding
+	// Taints is the full, authoritative list of taints to apply to the corresponding
 	// Node. This list will overwrite any modifications made to the Node on
 	// an ongoing basis.
 	// +optional
 	Taints []corev1.Taint `json:"taints,omitempty"`
 
-	// Provider-specific configuration to use during node creation.
+	// ProviderSpec details Provider-specific configuration to use during node creation.
 	// +optional
 	ProviderSpec ProviderSpec `json:"providerSpec"`
 
@@ -72,7 +72,7 @@ type MachineSpec struct {
 	// +optional
 	Versions MachineVersionInfo `json:"versions,omitempty"`
 
-	// To populate in the associated Node for dynamic kubelet config. This
+	// ConfigSource is used to populate in the associated Node for dynamic kubelet config. This
 	// field already exists in Node, so any updates to it in the Machine
 	// spec will be automatically copied to the linked NodeRef from the
 	// status. The rest of dynamic kubelet config support should then work
@@ -86,15 +86,15 @@ type MachineSpec struct {
 /// [MachineStatus]
 // MachineStatus defines the observed state of Machine
 type MachineStatus struct {
-	// If the corresponding Node exists, this will point to its object.
+	// NodeRef will point to the corresponding Node if it exists.
 	// +optional
 	NodeRef *corev1.ObjectReference `json:"nodeRef,omitempty"`
 
-	// When was this status last observed
+	// LastUpdated identifies when this status was last observed.
 	// +optional
 	LastUpdated *metav1.Time `json:"lastUpdated,omitempty"`
 
-	// The current versions of software on the corresponding Node (if it
+	// Versions specifies the current versions of software on the corresponding Node (if it
 	// exists). This is provided for a few reasons:
 	//
 	// 1) It is more convenient than checking the NodeRef, traversing it to
@@ -110,9 +110,9 @@ type MachineStatus struct {
 	// +optional
 	Versions *MachineVersionInfo `json:"versions,omitempty"`
 
-	// In the event that there is a terminal problem reconciling the
-	// Machine, both ErrorReason and ErrorMessage will be set. ErrorReason
-	// will be populated with a succinct value suitable for machine
+	// ErrorReason and ErrorMessage will both be set in the event that there is
+	// a terminal problem reconciling the Machine.
+	// ErrorReason will be populated with a succinct value suitable for machine
 	// interpretation, while ErrorMessage will contain a more verbose
 	// string suitable for logging and human consumption.
 	//
@@ -133,7 +133,7 @@ type MachineStatus struct {
 	// +optional
 	ErrorMessage *string `json:"errorMessage,omitempty"`
 
-	// Provider-specific status.
+	// ProviderStatus details a Provider-specific status.
 	// It is recommended that providers maintain their
 	// own versioned API types that should be
 	// serialized/deserialized from this field.
@@ -144,7 +144,7 @@ type MachineStatus struct {
 	// +optional
 	Addresses []corev1.NodeAddress `json:"addresses,omitempty"`
 
-	// List of conditions synced from the node conditions of the corresponding node-object.
+	// Conditions lists the conditions synced from the node conditions of the corresponding node-object.
 	// Machine-controller is responsible for keeping conditions up-to-date.
 	// MachineSet controller will be taking these conditions as a signal to decide if
 	// machine is healthy or needs to be replaced.
@@ -170,7 +170,7 @@ type LastOperation struct {
 	// Description is the human-readable description of the last operation.
 	Description *string `json:"description,omitempty"`
 
-	// LastUpdateTime is the timestamp at which LastOperation API was last-updated.
+	// LastUpdated is the timestamp at which LastOperation API was last-updated.
 	LastUpdated *metav1.Time `json:"lastUpdated,omitempty"`
 
 	// State is the current status of the last performed operation.
@@ -186,10 +186,10 @@ type LastOperation struct {
 
 /// [MachineVersionInfo]
 type MachineVersionInfo struct {
-	// Semantic version of kubelet to run
+	// Kubelet is the semantic version of kubelet to run
 	Kubelet string `json:"kubelet"`
 
-	// Semantic version of the Kubernetes control plane to
+	// ControlPlane is the semantic version of the Kubernetes control plane to
 	// run. This should only be populated when the machine is a
 	// master.
 	// +optional

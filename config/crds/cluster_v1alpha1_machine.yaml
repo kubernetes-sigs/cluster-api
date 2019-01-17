@@ -31,19 +31,20 @@ spec:
         spec:
           properties:
             configSource:
-              description: To populate in the associated Node for dynamic kubelet
-                config. This field already exists in Node, so any updates to it in
-                the Machine spec will be automatically copied to the linked NodeRef
-                from the status. The rest of dynamic kubelet config support should
-                then work as-is.
+              description: ConfigSource is used to populate in the associated Node
+                for dynamic kubelet config. This field already exists in Node, so
+                any updates to it in the Machine spec will be automatically copied
+                to the linked NodeRef from the status. The rest of dynamic kubelet
+                config support should then work as-is.
               type: object
             metadata:
-              description: This ObjectMeta will autopopulate the Node created. Use
-                this to indicate what labels, annotations, name prefix, etc., should
-                be used when creating the Node.
+              description: ObjectMeta will autopopulate the Node created. Use this
+                to indicate what labels, annotations, name prefix, etc., should be
+                used when creating the Node.
               type: object
             providerSpec:
-              description: Provider-specific configuration to use during node creation.
+              description: ProviderSpec details Provider-specific configuration to
+                use during node creation.
               properties:
                 value:
                   description: Value is an inlined, serialized representation of the
@@ -67,9 +68,9 @@ spec:
                   type: object
               type: object
             taints:
-              description: The full, authoritative list of taints to apply to the
-                corresponding Node. This list will overwrite any modifications made
-                to the Node on an ongoing basis.
+              description: Taints is the full, authoritative list of taints to apply
+                to the corresponding Node. This list will overwrite any modifications
+                made to the Node on an ongoing basis.
               items:
                 type: object
               type: array
@@ -82,11 +83,12 @@ spec:
                 spec missing this field at runtime is invalid.
               properties:
                 controlPlane:
-                  description: Semantic version of the Kubernetes control plane to
-                    run. This should only be populated when the machine is a master.
+                  description: ControlPlane is the semantic version of the Kubernetes
+                    control plane to run. This should only be populated when the machine
+                    is a master.
                   type: string
                 kubelet:
-                  description: Semantic version of kubelet to run
+                  description: Kubelet is the semantic version of kubelet to run
                   type: string
               required:
               - kubelet
@@ -103,9 +105,9 @@ spec:
                 type: object
               type: array
             conditions:
-              description: 'List of conditions synced from the node conditions of
-                the corresponding node-object. Machine-controller is responsible for
-                keeping conditions up-to-date. MachineSet controller will be taking
+              description: 'Conditions lists the conditions synced from the node conditions
+                of the corresponding node-object. Machine-controller is responsible
+                for keeping conditions up-to-date. MachineSet controller will be taking
                 these conditions as a signal to decide if machine is healthy or needs
                 to be replaced. Refer: https://kubernetes.io/docs/concepts/architecture/nodes/#condition'
               items:
@@ -114,8 +116,8 @@ spec:
             errorMessage:
               type: string
             errorReason:
-              description: In the event that there is a terminal problem reconciling
-                the Machine, both ErrorReason and ErrorMessage will be set. ErrorReason
+              description: ErrorReason and ErrorMessage will both be set in the event
+                that there is a terminal problem reconciling the Machine. ErrorReason
                 will be populated with a succinct value suitable for machine interpretation,
                 while ErrorMessage will contain a more verbose string suitable for
                 logging and human consumption.  These fields should not be set for
@@ -142,7 +144,7 @@ spec:
                     last operation.
                   type: string
                 lastUpdated:
-                  description: LastUpdateTime is the timestamp at which LastOperation
+                  description: LastUpdated is the timestamp at which LastOperation
                     API was last-updated.
                   format: date-time
                   type: string
@@ -156,27 +158,26 @@ spec:
                   type: string
               type: object
             lastUpdated:
-              description: When was this status last observed
+              description: LastUpdated identifies when this status was last observed.
               format: date-time
               type: string
             nodeRef:
-              description: If the corresponding Node exists, this will point to its
-                object.
+              description: NodeRef will point to the corresponding Node if it exists.
               type: object
             phase:
               description: Phase represents the current phase of machine actuation.
                 E.g. Pending, Running, Terminating, Failed etc.
               type: string
             providerStatus:
-              description: Provider-specific status. It is recommended that providers
-                maintain their own versioned API types that should be serialized/deserialized
-                from this field.
+              description: ProviderStatus details a Provider-specific status. It is
+                recommended that providers maintain their own versioned API types
+                that should be serialized/deserialized from this field.
               type: object
             versions:
-              description: 'The current versions of software on the corresponding
-                Node (if it exists). This is provided for a few reasons:  1) It is
-                more convenient than checking the NodeRef, traversing it to    the
-                Node, and finding the appropriate field in Node.Status.NodeInfo    (which
+              description: 'Versions specifies the current versions of software on
+                the corresponding Node (if it exists). This is provided for a few
+                reasons:  1) It is more convenient than checking the NodeRef, traversing
+                it to    the Node, and finding the appropriate field in Node.Status.NodeInfo    (which
                 uses different field names and formatting). 2) It removes some of
                 the dependency on the structure of the Node,    so that if the structure
                 of Node.Status.NodeInfo changes, only    machine controllers need
@@ -186,11 +187,12 @@ spec:
                 on the target node in order to find out its version.'
               properties:
                 controlPlane:
-                  description: Semantic version of the Kubernetes control plane to
-                    run. This should only be populated when the machine is a master.
+                  description: ControlPlane is the semantic version of the Kubernetes
+                    control plane to run. This should only be populated when the machine
+                    is a master.
                   type: string
                 kubelet:
-                  description: Semantic version of kubelet to run
+                  description: Kubelet is the semantic version of kubelet to run
                   type: string
               required:
               - kubelet

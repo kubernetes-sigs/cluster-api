@@ -124,20 +124,21 @@ spec:
                     More info: https://git.k8s.io/community/contributors/devel/api-conventions.md#spec-and-status'
                   properties:
                     configSource:
-                      description: To populate in the associated Node for dynamic
-                        kubelet config. This field already exists in Node, so any
-                        updates to it in the Machine spec will be automatically copied
-                        to the linked NodeRef from the status. The rest of dynamic
-                        kubelet config support should then work as-is.
+                      description: ConfigSource is used to populate in the associated
+                        Node for dynamic kubelet config. This field already exists
+                        in Node, so any updates to it in the Machine spec will be
+                        automatically copied to the linked NodeRef from the status.
+                        The rest of dynamic kubelet config support should then work
+                        as-is.
                       type: object
                     metadata:
-                      description: This ObjectMeta will autopopulate the Node created.
+                      description: ObjectMeta will autopopulate the Node created.
                         Use this to indicate what labels, annotations, name prefix,
                         etc., should be used when creating the Node.
                       type: object
                     providerSpec:
-                      description: Provider-specific configuration to use during node
-                        creation.
+                      description: ProviderSpec details Provider-specific configuration
+                        to use during node creation.
                       properties:
                         value:
                           description: Value is an inlined, serialized representation
@@ -162,9 +163,9 @@ spec:
                           type: object
                       type: object
                     taints:
-                      description: The full, authoritative list of taints to apply
-                        to the corresponding Node. This list will overwrite any modifications
-                        made to the Node on an ongoing basis.
+                      description: Taints is the full, authoritative list of taints
+                        to apply to the corresponding Node. This list will overwrite
+                        any modifications made to the Node on an ongoing basis.
                       items:
                         type: object
                       type: array
@@ -178,12 +179,13 @@ spec:
                         this field at runtime is invalid.
                       properties:
                         controlPlane:
-                          description: Semantic version of the Kubernetes control
-                            plane to run. This should only be populated when the machine
-                            is a control plane.
+                          description: ControlPlane is the semantic version of the
+                            Kubernetes control plane to run. This should only be populated
+                            when the machine is a master.
                           type: string
                         kubelet:
-                          description: Semantic version of kubelet to run
+                          description: Kubelet is the semantic version of kubelet
+                            to run
                           type: string
                       required:
                       - kubelet

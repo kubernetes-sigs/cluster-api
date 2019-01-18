@@ -27,7 +27,7 @@ import (
 	"strings"
 	"time"
 
-	"k8s.io/api/core/v1"
+	v1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/klog"
 	clusterv1 "sigs.k8s.io/cluster-api/pkg/apis/cluster/v1alpha1"
@@ -55,9 +55,9 @@ func RandomString(n int) string {
 	return string(result)
 }
 
-func GetMaster(machines []*clusterv1.Machine) *clusterv1.Machine {
+func GetControlPlaneMachine(machines []*clusterv1.Machine) *clusterv1.Machine {
 	for _, machine := range machines {
-		if IsMaster(machine) {
+		if IsControlPlaneMachine(machine) {
 			return machine
 		}
 	}
@@ -99,7 +99,7 @@ func GetDefaultKubeConfigPath() string {
 
 func GetMachineIfExists(c client.Client, namespace, name string) (*clusterv1.Machine, error) {
 	if c == nil {
-		// Being called before k8s is setup as part of master VM creation
+		// Being called before k8s is setup as part of control plane VM creation
 		return nil, nil
 	}
 
@@ -117,7 +117,7 @@ func GetMachineIfExists(c client.Client, namespace, name string) (*clusterv1.Mac
 }
 
 // TODO(robertbailey): Remove this function
-func IsMaster(machine *clusterv1.Machine) bool {
+func IsControlPlaneMachine(machine *clusterv1.Machine) bool {
 	return machine.Spec.Versions.ControlPlane != ""
 }
 

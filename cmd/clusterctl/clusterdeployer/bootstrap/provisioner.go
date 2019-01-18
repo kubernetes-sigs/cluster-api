@@ -16,9 +16,28 @@ limitations under the License.
 
 package bootstrap
 
+import (
+	"github.com/pkg/errors"
+	"sigs.k8s.io/cluster-api/cmd/clusterctl/clusterdeployer/bootstrap/existing"
+	"sigs.k8s.io/cluster-api/cmd/clusterctl/clusterdeployer/bootstrap/minikube"
+)
+
 // Can provision a kubernetes cluster
 type ClusterProvisioner interface {
 	Create() error
 	Delete() error
 	GetKubeconfig() (string, error)
+}
+
+func Get(o Options) (ClusterProvisioner, error) {
+	switch o.Type {
+	case "minikube":
+		return minikube.WithOptions(o.ExtraFlags), nil
+	default:
+		if o.KubeConfig != "" {
+			return existing.NewExistingCluster(o.KubeConfig)
+		}
+
+		return nil, errors.New("no bootstrap provisioner specified, you can specify `--bootstrap-cluster-kubeconfig` to use an existing Kubernetes cluster or `--bootstrap-type` to use a built-in ephemeral cluster.")
+	}
 }

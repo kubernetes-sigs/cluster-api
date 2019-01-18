@@ -38,7 +38,7 @@ type ProviderDeployer interface {
 	// TODO: This requirement can be removed once after: https://github.com/kubernetes-sigs/cluster-api/issues/158
 	GetIP(cluster *clusterv1.Cluster, machine *clusterv1.Machine) (string, error)
 	// TODO: This requirement can be removed after: https://github.com/kubernetes-sigs/cluster-api/issues/160
-	GetKubeConfig(cluster *clusterv1.Cluster, master *clusterv1.Machine) (string, error)
+	GetKubeConfig(cluster *clusterv1.Cluster, controlPlaneMachine *clusterv1.Machine) (string, error)
 }
 
 type ProviderComponentsStore interface {
@@ -80,9 +80,9 @@ const (
 
 // Create the cluster from the provided cluster definition and machine list.
 func (d *ClusterDeployer) Create(cluster *clusterv1.Cluster, machines []*clusterv1.Machine, provider ProviderDeployer, kubeconfigOutput string, providerComponentsStoreFactory ProviderComponentsStoreFactory) error {
-	master, nodes, err := extractMasterMachine(machines)
+	controlPlaneMachine, nodes, err := extractControlPlaneMachine(machines)
 	if err != nil {
-		return fmt.Errorf("unable to separate master machines from node machines: %v", err)
+		return fmt.Errorf("unable to separate control plane machines from node machines: %v", err)
 	}
 
 	bootstrapClient, cleanupBootstrapCluster, err := phases.CreateBootstrapCluster(d.bootstrapProvisioner, d.cleanupBootstrapCluster, d.clientFactory)
@@ -106,12 +106,12 @@ func (d *ClusterDeployer) Create(cluster *clusterv1.Cluster, machines []*cluster
 		cluster.Namespace = bootstrapClient.GetContextNamespace()
 	}
 
-	klog.Infof("Creating master %v in namespace %q", master.Name, cluster.Namespace)
-	if err := phases.ApplyMachines(bootstrapClient, cluster.Namespace, []*clusterv1.Machine{master}); err != nil {
-		return fmt.Errorf("unable to create master machine: %v", err)
+	klog.Infof("Creating control plane machine %v in namespace %q", controlPlaneMachine.Name, cluster.Namespace)
+	if err := phases.ApplyMachines(bootstrapClient, cluster.Namespace, []*clusterv1.Machine{controlPlaneMachine}); err != nil {
+		return fmt.Errorf("unable to create control plane machine: %v", err)
 	}
 
-	klog.Infof("Updating bootstrap cluster object for cluster %v in namespace %q with master (%s) endpoint", cluster.Name, cluster.Namespace, master.Name)
+	klog.Infof("Updating bootstrap cluster object for cluster %v in namespace %q with control plane endpoint running on %s", cluster.Name, cluster.Namespace, controlPlaneMachine.Name)
 	if err := d.updateClusterEndpoint(bootstrapClient, provider, cluster.Name, cluster.Namespace); err != nil {
 		return fmt.Errorf("unable to update bootstrap cluster endpoint: %v", err)
 	}
@@ -147,7 +147,7 @@ func (d *ClusterDeployer) Create(cluster *clusterv1.Cluster, machines []*cluster
 
 	// For some reason, endpoint doesn't get updated in bootstrap cluster sometimes. So we
 	// update the target cluster endpoint as well to be sure.
-	klog.Infof("Updating target cluster object with master (%s) endpoint", master.Name)
+	klog.Infof("Updating target cluster object with control plane endpoint running on %s", controlPlaneMachine.Name)
 	if err := d.updateClusterEndpoint(targetClient, provider, cluster.Name, cluster.Namespace); err != nil {
 		return fmt.Errorf("unable to update target cluster endpoint: %v", err)
 	}
@@ -198,13 +198,13 @@ func (d *ClusterDeployer) Delete(targetClient clusterclient.Client, namespace st
 }
 
 func (d *ClusterDeployer) createTargetClusterClient(bootstrapClient clusterclient.Client, provider ProviderDeployer, kubeconfigOutput string, clusterName, namespace string) (clusterclient.Client, error) {
-	cluster, master, _, err := getClusterAPIObject(bootstrapClient, clusterName, namespace)
+	cluster, controlPlane, _, err := getClusterAPIObject(bootstrapClient, clusterName, namespace)
 	if err != nil {
 		return nil, err
 	}
 
 	klog.V(1).Info("Getting target cluster kubeconfig.")
-	targetKubeconfig, err := waitForKubeconfigReady(provider, cluster, master)
+	targetKubeconfig, err := waitForKubeconfigReady(provider, cluster, controlPlane)
 	if err != nil {
 		return nil, fmt.Errorf("unable to get target cluster kubeconfig: %v", err)
 	}
@@ -225,15 +225,15 @@ func (d *ClusterDeployer) updateClusterEndpoint(client clusterclient.Client, pro
 	// Update cluster endpoint. Needed till this logic moves into cluster controller.
 	// TODO: https://github.com/kubernetes-sigs/cluster-api/issues/158
 	// Fetch fresh objects.
-	cluster, master, _, err := getClusterAPIObject(client, clusterName, namespace)
+	cluster, controlPlane, _, err := getClusterAPIObject(client, clusterName, namespace)
 	if err != nil {
 		return err
 	}
-	masterIP, err := provider.GetIP(cluster, master)
+	clusterEndpoint, err := provider.GetIP(cluster, controlPlane)
 	if err != nil {
-		return fmt.Errorf("unable to get master IP: %v", err)
+		return fmt.Errorf("unable to get cluster endpoint: %v", err)
 	}
-	err = client.UpdateClusterObjectEndpoint(masterIP, clusterName, namespace)
+	err = client.UpdateClusterObjectEndpoint(clusterEndpoint, clusterName, namespace)
 	if err != nil {
 		return fmt.Errorf("unable to update cluster endpoint: %v", err)
 	}
@@ -404,30 +404,30 @@ func getClusterAPIObject(client clusterclient.Client, clusterName, namespace str
 		return nil, nil, nil, fmt.Errorf("unable to fetch cluster %v in namespace %v: %v", clusterName, namespace, err)
 	}
 
-	master, nodes, err := extractMasterMachine(machines)
+	controlPlaneMachine, nodes, err := extractControlPlaneMachine(machines)
 	if err != nil {
-		return nil, nil, nil, fmt.Errorf("unable to fetch master machine in cluster %v in namespace %v: %v", clusterName, namespace, err)
+		return nil, nil, nil, fmt.Errorf("unable to fetch control plane machine in cluster %v in namespace %v: %v", clusterName, namespace, err)
 	}
-	return cluster, master, nodes, nil
+	return cluster, controlPlaneMachine, nodes, nil
 }
 
-// extractMasterMachine separates the master (singular) from the incoming machines.
-// This is currently done by looking at which machine specifies the control plane version
-// (which implies that it is a master). This should be cleaned up in the future.
-func extractMasterMachine(machines []*clusterv1.Machine) (*clusterv1.Machine, []*clusterv1.Machine, error) {
+// extractControlPlaneMachine separates the machines running the control plane (singular) from the incoming machines.
+// This is currently done by looking at which machine specifies the control plane version.
+// TODO: Cleanup.
+func extractControlPlaneMachine(machines []*clusterv1.Machine) (*clusterv1.Machine, []*clusterv1.Machine, error) {
 	nodes := []*clusterv1.Machine{}
-	masters := []*clusterv1.Machine{}
+	controlPlaneMachines := []*clusterv1.Machine{}
 	for _, machine := range machines {
-		if util.IsMaster(machine) {
-			masters = append(masters, machine)
+		if util.IsControlPlaneMachine(machine) {
+			controlPlaneMachines = append(controlPlaneMachines, machine)
 		} else {
 			nodes = append(nodes, machine)
 		}
 	}
-	if len(masters) != 1 {
-		return nil, nil, fmt.Errorf("expected one master, got: %v", len(masters))
+	if len(controlPlaneMachines) != 1 {
+		return nil, nil, fmt.Errorf("expected one control plane machine, got: %v", len(controlPlaneMachines))
 	}
-	return masters[0], nodes, nil
+	return controlPlaneMachines[0], nodes, nil
 }
 
 func closeClient(client clusterclient.Client, name string) {

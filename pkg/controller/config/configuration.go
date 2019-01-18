@@ -40,7 +40,7 @@ type LeaderElectionConfiguration struct {
 	// by another candidate. This is only applicable if leader election is
 	// enabled.
 	LeaseDuration metav1.Duration
-	// RenewDeadline is the interval between attempts by the acting master to
+	// RenewDeadline is the interval between attempts by the acting control plane to
 	// renew a leadership slot before it stops leading. This must be less
 	// than or equal to the lease duration. This is only applicable if leader
 	// election is enabled.
@@ -85,7 +85,7 @@ func GetLeaderElectionConfig() *LeaderElectionConfiguration {
 }
 
 func (c *Configuration) AddFlags(fs *pflag.FlagSet) {
-	fs.StringVar(&c.Kubeconfig, "kubeconfig", c.Kubeconfig, "Path to kubeconfig file with authorization and master location information.")
+	fs.StringVar(&c.Kubeconfig, "kubeconfig", c.Kubeconfig, "Path to kubeconfig file with authorization and control plane location information.")
 	fs.IntVar(&c.WorkerCount, "workers", c.WorkerCount, "The number of workers for controller.")
 
 	AddLeaderElectionFlags(c.leaderElectionConfig, fs)
@@ -103,7 +103,7 @@ func AddLeaderElectionFlags(l *LeaderElectionConfiguration, fs *pflag.FlagSet) {
 		"before it is replaced by another candidate. This is only applicable if leader "+
 		"election is enabled.")
 	fs.DurationVar(&l.RenewDeadline.Duration, "leader-elect-renew-deadline", l.RenewDeadline.Duration, ""+
-		"The interval between attempts by the acting master to renew a leadership slot "+
+		"The interval between attempts by the acting control plane to renew a leadership slot "+
 		"before it stops leading. This must be less than or equal to the lease duration. "+
 		"This is only applicable if leader election is enabled.")
 	fs.DurationVar(&l.RetryPeriod.Duration, "leader-elect-retry-period", l.RetryPeriod.Duration, ""+

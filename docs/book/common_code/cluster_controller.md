@@ -16,11 +16,11 @@ defaults or by Controllers such as autoscalers.
 controllers. `Status` is not the source of truth for any information, but
 instead aggregates and publishes observed state.
 
-`TypeMeta` contains metadata about the API itself - such as Group, Version, 
+`TypeMeta` contains metadata about the API itself - such as Group, Version,
 Kind.
 
 `ObjectMeta` contains metadata about the specific object instance, for example,
-it's name, namespace, labels, and annotations, etc. `ObjectMeta` contains data 
+it's name, namespace, labels, and annotations, etc. `ObjectMeta` contains data
 common to most objects.
 
 {% sample lang="go" %}
@@ -46,21 +46,21 @@ them to evolve independently of it.
 {% method %}
 ## ClusterStatus
 
-Like `ProviderSpec`, `ProviderStatus` is recommended to be a serialized API 
+Like `ProviderSpec`, `ProviderStatus` is recommended to be a serialized API
 object in a format owned by that provider.
 
 Some providers use the `APIEndpoint` field to determine when one or more
-masters have been provisioned. This may be necessary before worker nodes
+control plane machines have been provisioned. This may be necessary before worker nodes
 can be provisioned. For example, `cluster-api-provider-gcp` does [this](
 https://github.com/kubernetes-sigs/cluster-api-provider-gcp/blob/f3145d8810a5c7fc434ddb5577699b4deb1b5fa6/pkg/cloud/google/metadata.go#L43):
 
 ```go
 	if len(cluster.Status.APIEndpoints) == 0 {
-		return nil, fmt.Errorf("master endpoint not found in apiEndpoints for cluster %v", cluster)
+		return nil, fmt.Errorf("control plane endpoint not found in apiEndpoints for cluster %v", cluster)
 	}
 ```
 
-**TODO**: Provide examples of how `ErrorReason` and `ErrorMessage` are 
+**TODO**: Provide examples of how `ErrorReason` and `ErrorMessage` are
 used in practice.
 
 {% sample lang="go" %}
@@ -72,10 +72,10 @@ used in practice.
 
 All methods should be idempotent.
 
-`Reconcile()` will be called whenever there is a change to the `Cluster` 
+`Reconcile()` will be called whenever there is a change to the `Cluster`
 `Spec`, or after every resync period.
 
-If a `Cluster` resource is deleted, the controller will call the actuator's 
+If a `Cluster` resource is deleted, the controller will call the actuator's
 `Delete()` method until it succeeds, or the [finalizer](
  https://kubernetes.io/docs/tasks/access-kubernetes-api/custom-resources/custom-resource-definitions/#finalizers) is removed (see below).
 

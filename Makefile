@@ -17,7 +17,7 @@
 
 .DEFAULT_GOAL:=help
 
-# Default timeout for starting/stopping the Kubebuilder test controlplane
+# Default timeout for starting/stopping the Kubebuilder test control plane
 export KUBEBUILDER_CONTROLPLANE_START_TIMEOUT ?=60s
 export KUBEBUILDER_CONTROLPLANE_STOP_TIMEOUT ?=60s
 

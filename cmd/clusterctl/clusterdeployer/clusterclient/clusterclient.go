@@ -407,14 +407,14 @@ func newDeleteOptions() *metav1.DeleteOptions {
 }
 
 // TODO: Test this function
-func (c *client) UpdateClusterObjectEndpoint(masterIP, clusterName, namespace string) error {
+func (c *client) UpdateClusterObjectEndpoint(controlPlaneIP, clusterName, namespace string) error {
 	cluster, err := c.GetClusterObject(clusterName, namespace)
 	if err != nil {
 		return err
 	}
 	cluster.Status.APIEndpoints = append(cluster.Status.APIEndpoints,
 		clusterv1.APIEndpoint{
-			Host: masterIP,
+			Host: controlPlaneIP,
 			Port: apiServerPort,
 		})
 	_, err = c.clientSet.ClusterV1alpha1().Clusters(namespace).UpdateStatus(cluster)
@@ -578,7 +578,7 @@ func waitForMachineReady(cs clientset.Interface, machine *clusterv1.Machine) err
 		}
 
 		// TODO: update once machine controllers have a way to indicate a machine has been provisoned. https://github.com/kubernetes-sigs/cluster-api/issues/253
-		// Seeing a node cannot be purely relied upon because the provisioned master will not be registering with
+		// Seeing a node cannot be purely relied upon because the provisioned control plane will not be registering with
 		// the stack that provisions it.
 		ready := m.Status.NodeRef != nil || len(m.Annotations) > 0
 		return ready, nil

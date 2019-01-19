@@ -121,7 +121,7 @@ spec:
                         controlPlane:
                           description: ControlPlane is the semantic version of the
                             Kubernetes control plane to run. This should only be populated
-                            when the machine is a master.
+                            when the machine is a control plane.
                           type: string
                         kubelet:
                           description: Kubelet is the semantic version of kubelet

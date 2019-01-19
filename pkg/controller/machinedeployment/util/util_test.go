@@ -25,6 +25,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/pkg/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
@@ -61,7 +62,7 @@ func addGetMSReactor(fakeClient *fake.Clientset, obj runtime.Object) *fake.Clien
 				}
 			}
 		}
-		return false, nil, fmt.Errorf("could not find the requested machine set: %s", name)
+		return false, nil, errors.Errorf("could not find the requested machine set: %s", name)
 
 	})
 	return fakeClient

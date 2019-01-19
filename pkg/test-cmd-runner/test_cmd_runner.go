@@ -25,6 +25,8 @@ import (
 	"runtime"
 	"strings"
 	"testing"
+
+	"github.com/pkg/errors"
 )
 
 type TestRunner struct {
@@ -52,7 +54,7 @@ func NewTestRunner(callback func(cmd string, args ...string) (exitCode int)) (*T
 	if _, ok := reggedFunctions[name]; !ok {
 		shortName := getUnqualifiedFunctionName(name)
 		registerCallbackShortName := getUnqualifiedFunctionName(getFullyQualifiedFunctionName(RegisterCallback))
-		return nil, fmt.Errorf("unregistered function: '%v', you must add the following to your package's init() method, %v(%v)", name, registerCallbackShortName, shortName)
+		return nil, errors.Errorf("unregistered function: %q, you must add the following to your package's init() method, %v(%v)", name, registerCallbackShortName, shortName)
 	}
 	return &TestRunner{
 		callback: callback,
@@ -102,7 +104,7 @@ func runTestExec() int {
 	functionName := os.Getenv(CallbackFunctionName)
 	fn := reggedFunctions[functionName]
 	if fn == nil {
-		panic(fmt.Errorf("unregistered function name: %v", functionName))
+		panic(errors.Errorf("unregistered function name: %v", functionName))
 	}
 	return fn(os.Args[1], os.Args[2:len(os.Args)]...)
 }

@@ -17,18 +17,16 @@ limitations under the License.
 package cmd
 
 import (
-	"fmt"
-
+	"github.com/pkg/errors"
+	"github.com/spf13/cobra"
 	v1 "k8s.io/api/core/v1"
 	tcmd "k8s.io/client-go/tools/clientcmd"
+	"k8s.io/klog"
 	"sigs.k8s.io/cluster-api/cmd/clusterctl/clientcmd"
 	"sigs.k8s.io/cluster-api/cmd/clusterctl/clusterdeployer"
 	"sigs.k8s.io/cluster-api/cmd/clusterctl/clusterdeployer/bootstrap"
 	"sigs.k8s.io/cluster-api/cmd/clusterctl/clusterdeployer/clusterclient"
 	"sigs.k8s.io/cluster-api/cmd/clusterctl/providercomponents"
-
-	"github.com/spf13/cobra"
-	"k8s.io/klog"
 )
 
 type DeleteOptions struct {
@@ -80,7 +78,7 @@ func RunDelete() error {
 	}
 	clusterClient, err := clusterclient.NewFromDefaultSearchPath(do.KubeconfigPath, do.KubeconfigOverrides)
 	if err != nil {
-		return fmt.Errorf("error when creating cluster client: %v", err)
+		return errors.Wrap(err, "error when creating cluster client")
 	}
 	defer clusterClient.Close()
 
@@ -102,7 +100,7 @@ func RunDelete() error {
 func loadProviderComponents() (string, error) {
 	coreClients, err := clientcmd.NewCoreClientSetForDefaultSearchPath(do.KubeconfigPath, do.KubeconfigOverrides)
 	if err != nil {
-		return "", fmt.Errorf("error creating core clients: %v", err)
+		return "", errors.Wrap(err, "error creating core clients")
 	}
 	pcStore := providercomponents.Store{
 		ExplicitPath: do.ProviderComponents,
@@ -110,7 +108,7 @@ func loadProviderComponents() (string, error) {
 	}
 	providerComponents, err := pcStore.Load()
 	if err != nil {
-		return "", fmt.Errorf("error when loading provider components: %v", err)
+		return "", errors.Wrap(err, "error when loading provider components")
 	}
 	return providerComponents, nil
 }

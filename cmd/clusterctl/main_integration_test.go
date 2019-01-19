@@ -30,6 +30,7 @@ import (
 	"syscall"
 	"testing"
 
+	"github.com/pkg/errors"
 	"github.com/sergi/go-diff/diffmatchpatch"
 )
 
@@ -147,15 +148,15 @@ func getFixturePath(filename string) string {
 func setupPrerequisites() error {
 	workDir, err := os.Getwd()
 	if err != nil {
-		return fmt.Errorf("unable to retrieve working directory: %v", err)
+		return errors.Wrap(err, "unable to retrieve working directory")
 	}
 	_, dir := path.Split(workDir)
 	if dir != workingDirectoryName {
-		return fmt.Errorf("invalid working directory name: want %v, got %v", workingDirectoryName, dir)
+		return errors.Errorf("invalid working directory name: want %v, got %v", workingDirectoryName, dir)
 	}
 	err = cleanAndBuildClusterctl()
 	if err != nil {
-		return fmt.Errorf("unable to build clusterctl: %v", err)
+		return errors.Wrap(err, "unable to build clusterctl")
 	}
 	return nil
 }
@@ -163,11 +164,11 @@ func setupPrerequisites() error {
 func cleanAndBuildClusterctl() error {
 	err := exec.Command("go", "clean", "./...").Run()
 	if err != nil {
-		return fmt.Errorf("unable to run go clean: %v", err)
+		return errors.Wrap(err, "unable to run go clean")
 	}
 	err = exec.Command("go", "build", ".").Run()
 	if err != nil {
-		return fmt.Errorf("unable to run go build: %v", err)
+		return errors.Wrap(err, "unable to run go build")
 	}
 	return nil
 }

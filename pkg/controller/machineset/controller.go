@@ -23,7 +23,8 @@ import (
 	"sync"
 	"time"
 
-	"k8s.io/apimachinery/pkg/api/errors"
+	"github.com/pkg/errors"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/klog"
@@ -140,7 +141,7 @@ func (r *ReconcileMachineSet) Reconcile(request reconcile.Request) (reconcile.Re
 	machineSet := &clusterv1alpha1.MachineSet{}
 	err := r.Get(context.TODO(), request.NamespacedName, machineSet)
 	if err != nil {
-		if errors.IsNotFound(err) {
+		if apierrors.IsNotFound(err) {
 			// Object not found, return.  Created objects are automatically garbage collected.
 			// For additional cleanup logic use finalizers.
 			return reconcile.Result{}, nil
@@ -154,7 +155,7 @@ func (r *ReconcileMachineSet) Reconcile(request reconcile.Request) (reconcile.Re
 
 	err = r.Client.List(context.Background(), client.InNamespace(machineSet.Namespace), allMachines)
 	if err != nil {
-		return reconcile.Result{}, fmt.Errorf("failed to list machines, %v", err)
+		return reconcile.Result{}, errors.Wrap(err, "failed to list machines")
 	}
 
 	// Filter out irrelevant machines (deleting/mismatch labels) and claim orphaned machines.
@@ -183,9 +184,9 @@ func (r *ReconcileMachineSet) Reconcile(request reconcile.Request) (reconcile.Re
 	updatedMS, err := updateMachineSetStatus(r.Client, machineSet, newStatus)
 	if err != nil {
 		if syncErr != nil {
-			return reconcile.Result{}, fmt.Errorf("failed to sync machines. %v. failed to update machine set status. %v", syncErr, err)
+			return reconcile.Result{}, errors.Wrapf(err, "failed to sync machines: %v. failed to update machine set status", syncErr)
 		}
-		return reconcile.Result{}, fmt.Errorf("failed to update machine set status. %v", err)
+		return reconcile.Result{}, errors.Wrap(err, "failed to update machine set status")
 	}
 
 	var replicas int32
@@ -213,7 +214,7 @@ func (r *ReconcileMachineSet) Reconcile(request reconcile.Request) (reconcile.Re
 // syncReplicas essentially scales machine resources up and down.
 func (c *ReconcileMachineSet) syncReplicas(ms *clusterv1alpha1.MachineSet, machines []*clusterv1alpha1.Machine) error {
 	if ms.Spec.Replicas == nil {
-		return fmt.Errorf("the Replicas field in Spec for machineset %v is nil, this should not be allowed.", ms.Name)
+		return errors.Errorf("the Replicas field in Spec for machineset %v is nil, this should not be allowed", ms.Name)
 	}
 	diff := len(machines) - int(*(ms.Spec.Replicas))
 
@@ -236,7 +237,7 @@ func (c *ReconcileMachineSet) syncReplicas(ms *clusterv1alpha1.MachineSet, machi
 		}
 
 		if len(errstrings) > 0 {
-			return fmt.Errorf(strings.Join(errstrings, "; "))
+			return errors.New(strings.Join(errstrings, "; "))
 		}
 		return c.waitForMachineCreation(machineList)
 	} else if diff > 0 {
@@ -337,14 +338,14 @@ func (c *ReconcileMachineSet) waitForMachineCreation(machineList []*clusterv1alp
 				return true, nil
 			}
 			klog.Error(err)
-			if errors.IsNotFound(err) {
+			if apierrors.IsNotFound(err) {
 				return false, nil
 			}
 			return false, err
 		})
 		if pollErr != nil {
 			klog.Error(pollErr)
-			return fmt.Errorf("failed waiting for machine object to be created. %v", pollErr)
+			return errors.Wrap(pollErr, "failed waiting for machine object to be created")
 		}
 	}
 	return nil
@@ -357,14 +358,14 @@ func (c *ReconcileMachineSet) waitForMachineDeletion(machineList []*clusterv1alp
 			err := c.Client.Get(context.Background(),
 				client.ObjectKey{Namespace: machine.Namespace, Name: machine.Name},
 				m)
-			if errors.IsNotFound(err) || !m.DeletionTimestamp.IsZero() {
+			if apierrors.IsNotFound(err) || !m.DeletionTimestamp.IsZero() {
 				return true, nil
 			}
 			return false, err
 		})
 		if pollErr != nil {
 			klog.Error(pollErr)
-			return fmt.Errorf("failed waiting for machine object to be deleted. %v", pollErr)
+			return errors.Wrap(pollErr, "failed waiting for machine object to be deleted")
 		}
 	}
 	return nil

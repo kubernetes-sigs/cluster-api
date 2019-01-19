@@ -17,9 +17,9 @@ limitations under the License.
 package cmd
 
 import (
-	"fmt"
 	"io/ioutil"
 
+	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
 	"k8s.io/klog"
 	"sigs.k8s.io/cluster-api/cmd/clusterctl/clusterdeployer/clusterclient"
@@ -68,11 +68,11 @@ func RunAlphaPhaseApplyMachines(pamo *AlphaPhaseApplyMachinesOptions) error {
 	clientFactory := clusterclient.NewFactory()
 	client, err := clientFactory.NewClientFromKubeconfig(string(kubeconfig))
 	if err != nil {
-		return fmt.Errorf("unable to create cluster client: %v", err)
+		return errors.Wrap(err, "unable to create cluster client")
 	}
 
 	if err := phases.ApplyMachines(client, pamo.Namespace, machines); err != nil {
-		return fmt.Errorf("unable to apply machines: %v", err)
+		return errors.Wrap(err, "unable to apply machines")
 	}
 
 	return nil

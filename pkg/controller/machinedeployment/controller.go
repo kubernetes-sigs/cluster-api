@@ -18,10 +18,10 @@ package machinedeployment
 
 import (
 	"context"
-	"fmt"
 	"reflect"
 
-	"k8s.io/apimachinery/pkg/api/errors"
+	"github.com/pkg/errors"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -146,7 +146,7 @@ func (r *ReconcileMachineDeployment) Reconcile(request reconcile.Request) (recon
 	d := &v1alpha1.MachineDeployment{}
 	err := r.Get(context.TODO(), request.NamespacedName, d)
 	if err != nil {
-		if errors.IsNotFound(err) {
+		if apierrors.IsNotFound(err) {
 			// Object not found, return.  Created objects are automatically garbage collected.
 			// For additional cleanup logic use finalizers.
 			return reconcile.Result{}, nil
@@ -192,7 +192,7 @@ func (r *ReconcileMachineDeployment) Reconcile(request reconcile.Request) (recon
 		return reconcile.Result{}, r.rolloutRolling(d, msList, machineMap)
 	}
 
-	return reconcile.Result{}, fmt.Errorf("unexpected deployment strategy type: %s", d.Spec.Strategy.Type)
+	return reconcile.Result{}, errors.Errorf("unexpected deployment strategy type: %s", d.Spec.Strategy.Type)
 }
 
 // getMachineDeploymentsForMachineSet returns a list of Deployments that potentially

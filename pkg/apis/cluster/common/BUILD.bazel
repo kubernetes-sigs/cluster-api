@@ -8,5 +8,8 @@ go_library(
     ],
     importpath = "sigs.k8s.io/cluster-api/pkg/apis/cluster/common",
     visibility = ["//visibility:public"],
-    deps = ["//vendor/k8s.io/klog:go_default_library"],
+    deps = [
+        "//vendor/github.com/pkg/errors:go_default_library",
+        "//vendor/k8s.io/klog:go_default_library",
+    ],
 )

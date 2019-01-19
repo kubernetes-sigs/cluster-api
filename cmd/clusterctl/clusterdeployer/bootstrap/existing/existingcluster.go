@@ -17,9 +17,10 @@ limitations under the License.
 package existing
 
 import (
-	"fmt"
 	"io/ioutil"
 	"os"
+
+	"github.com/pkg/errors"
 )
 
 // Represents an existing cluster being used for bootstrapping, should not be able to
@@ -34,7 +35,7 @@ type ExistingCluster struct {
 // TODO https://github.com/kubernetes-sigs/cluster-api/issues/448
 func NewExistingCluster(kubeconfigPath string) (*ExistingCluster, error) {
 	if _, err := os.Stat(kubeconfigPath); os.IsNotExist(err) {
-		return nil, fmt.Errorf("file at %s does not exist", kubeconfigPath)
+		return nil, errors.Errorf("file at %s does not exist", kubeconfigPath)
 	}
 
 	return &ExistingCluster{kubeconfigPath: kubeconfigPath}, nil

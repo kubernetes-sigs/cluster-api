@@ -17,12 +17,12 @@ limitations under the License.
 package clusterdeployer
 
 import (
-	"fmt"
 	"io/ioutil"
 	"os"
 	"strings"
 	"time"
 
+	"github.com/pkg/errors"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/klog"
 	"sigs.k8s.io/cluster-api/cmd/clusterctl/clusterdeployer/bootstrap"
@@ -82,79 +82,79 @@ const (
 func (d *ClusterDeployer) Create(cluster *clusterv1.Cluster, machines []*clusterv1.Machine, provider ProviderDeployer, kubeconfigOutput string, providerComponentsStoreFactory ProviderComponentsStoreFactory) error {
 	controlPlaneMachine, nodes, err := extractControlPlaneMachine(machines)
 	if err != nil {
-		return fmt.Errorf("unable to separate control plane machines from node machines: %v", err)
+		return errors.Wrap(err, "unable to separate control plane machines from node machines")
 	}
 
 	bootstrapClient, cleanupBootstrapCluster, err := phases.CreateBootstrapCluster(d.bootstrapProvisioner, d.cleanupBootstrapCluster, d.clientFactory)
 	defer cleanupBootstrapCluster()
 	if err != nil {
-		return fmt.Errorf("could not create bootstrap cluster: %v", err)
+		return errors.Wrap(err, "could not create bootstrap cluster")
 	}
 	defer closeClient(bootstrapClient, "bootstrap")
 
 	klog.Info("Applying Cluster API stack to bootstrap cluster")
 	if err := phases.ApplyClusterAPIComponents(bootstrapClient, d.providerComponents); err != nil {
-		return fmt.Errorf("unable to apply cluster api stack to bootstrap cluster: %v", err)
+		return errors.Wrap(err, "unable to apply cluster api stack to bootstrap cluster")
 	}
 
 	klog.Info("Provisioning target cluster via bootstrap cluster")
 	if err := phases.ApplyCluster(bootstrapClient, cluster); err != nil {
-		return fmt.Errorf("unable to create cluster %q in bootstrap cluster: %v", cluster.Name, err)
+		return errors.Wrapf(err, "unable to create cluster %q in bootstrap cluster", cluster.Name)
 	}
 
 	if cluster.Namespace == "" {
 		cluster.Namespace = bootstrapClient.GetContextNamespace()
 	}
 
-	klog.Infof("Creating control plane machine %v in namespace %q", controlPlaneMachine.Name, cluster.Namespace)
+	klog.Infof("Creating control plane %v in namespace %q", controlPlaneMachine.Name, cluster.Namespace)
 	if err := phases.ApplyMachines(bootstrapClient, cluster.Namespace, []*clusterv1.Machine{controlPlaneMachine}); err != nil {
-		return fmt.Errorf("unable to create control plane machine: %v", err)
+		return errors.Wrap(err, "unable to create control plane machine")
 	}
 
 	klog.Infof("Updating bootstrap cluster object for cluster %v in namespace %q with control plane endpoint running on %s", cluster.Name, cluster.Namespace, controlPlaneMachine.Name)
 	if err := d.updateClusterEndpoint(bootstrapClient, provider, cluster.Name, cluster.Namespace); err != nil {
-		return fmt.Errorf("unable to update bootstrap cluster endpoint: %v", err)
+		return errors.Wrap(err, "unable to update bootstrap cluster endpoint")
 	}
 
 	klog.Info("Creating target cluster")
 	targetClient, err := d.createTargetClusterClient(bootstrapClient, provider, kubeconfigOutput, cluster.Name, cluster.Namespace)
 	if err != nil {
-		return fmt.Errorf("unable to create target cluster: %v", err)
+		return errors.Wrap(err, "unable to create target cluster")
 	}
 	defer closeClient(targetClient, "target")
 
 	if d.addonComponents != "" {
 		if err := phases.ApplyAddons(targetClient, d.addonComponents); err != nil {
-			return fmt.Errorf("unable to apply addons to target cluster: %v", err)
+			return errors.Wrap(err, "unable to apply addons to target cluster")
 		}
 	}
 
 	klog.Info("Applying Cluster API stack to target cluster")
 	if err := d.applyClusterAPIComponentsWithPivoting(targetClient, bootstrapClient, cluster.Namespace); err != nil {
-		return fmt.Errorf("unable to apply cluster api stack to target cluster: %v", err)
+		return errors.Wrap(err, "unable to apply cluster api stack to target cluster")
 	}
 
 	klog.Info("Saving provider components to the target cluster")
 	err = d.saveProviderComponentsToCluster(providerComponentsStoreFactory, kubeconfigOutput)
 	if err != nil {
-		return fmt.Errorf("unable to save provider components to target cluster: %v", err)
+		return errors.Wrap(err, "unable to save provider components to target cluster")
 	}
 
 	err = targetClient.EnsureNamespace(cluster.Namespace)
 	if err != nil {
-		return fmt.Errorf("unable to ensure namespace %q in targetCluster: %v", cluster.Namespace, err)
+		return errors.Wrapf(err, "unable to ensure namespace %q in targetCluster", cluster.Namespace)
 	}
 
 	// For some reason, endpoint doesn't get updated in bootstrap cluster sometimes. So we
 	// update the target cluster endpoint as well to be sure.
 	klog.Infof("Updating target cluster object with control plane endpoint running on %s", controlPlaneMachine.Name)
 	if err := d.updateClusterEndpoint(targetClient, provider, cluster.Name, cluster.Namespace); err != nil {
-		return fmt.Errorf("unable to update target cluster endpoint: %v", err)
+		return errors.Wrap(err, "unable to update target cluster endpoint")
 	}
 
 	klog.Info("Creating node machines in target cluster.")
 	if err := phases.ApplyMachines(targetClient, cluster.Namespace, nodes); err != nil {
-		return fmt.Errorf("unable to create node machines: %v", err)
+		return errors.Wrap(err, "unable to create node machines")
 	}
 
 	klog.Infof("Done provisioning cluster. You can now access your cluster with kubectl --kubeconfig %v", kubeconfigOutput)
@@ -167,13 +167,13 @@ func (d *ClusterDeployer) Delete(targetClient clusterclient.Client, namespace st
 	bootstrapClient, cleanupBootstrapCluster, err := phases.CreateBootstrapCluster(d.bootstrapProvisioner, d.cleanupBootstrapCluster, d.clientFactory)
 	defer cleanupBootstrapCluster()
 	if err != nil {
-		return fmt.Errorf("could not create bootstrap cluster: %v", err)
+		return errors.Wrap(err, "could not create bootstrap cluster")
 	}
 	defer closeClient(bootstrapClient, "bootstrap")
 
 	klog.Info("Applying Cluster API stack to bootstrap cluster")
 	if err := phases.ApplyClusterAPIComponents(bootstrapClient, d.providerComponents); err != nil {
-		return fmt.Errorf("unable to apply cluster api stack to bootstrap cluster: %v", err)
+		return errors.Wrap(err, "unable to apply cluster api stack to bootstrap cluster")
 	}
 
 	klog.Info("Deleting Cluster API Provider Components from target cluster")
@@ -184,12 +184,12 @@ func (d *ClusterDeployer) Delete(targetClient clusterclient.Client, namespace st
 
 	klog.Info("Copying objects from target cluster to bootstrap cluster")
 	if err = pivotNamespace(targetClient, bootstrapClient, namespace); err != nil {
-		return fmt.Errorf("unable to copy objects from target to bootstrap cluster: %v", err)
+		return errors.Wrap(err, "unable to copy objects from target to bootstrap cluster")
 	}
 
 	klog.Info("Deleting objects from bootstrap cluster")
 	if err = deleteObjectsInNamespace(bootstrapClient, namespace); err != nil {
-		return fmt.Errorf("unable to finish deleting objects in bootstrap cluster, resources may have been leaked: %v", err)
+		return errors.Wrap(err, "unable to finish deleting objects in bootstrap cluster, resources may have been leaked")
 	}
 
 	klog.Info("Deletion of cluster complete")
@@ -206,7 +206,7 @@ func (d *ClusterDeployer) createTargetClusterClient(bootstrapClient clusterclien
 	klog.V(1).Info("Getting target cluster kubeconfig.")
 	targetKubeconfig, err := waitForKubeconfigReady(provider, cluster, controlPlane)
 	if err != nil {
-		return nil, fmt.Errorf("unable to get target cluster kubeconfig: %v", err)
+		return nil, errors.Wrap(err, "unable to get target cluster kubeconfig")
 	}
 
 	if err = d.writeKubeconfig(targetKubeconfig, kubeconfigOutput); err != nil {
@@ -215,7 +215,7 @@ func (d *ClusterDeployer) createTargetClusterClient(bootstrapClient clusterclien
 
 	targetClient, err := d.clientFactory.NewClientFromKubeconfig(targetKubeconfig)
 	if err != nil {
-		return nil, fmt.Errorf("unable to create target cluster client: %v", err)
+		return nil, errors.Wrap(err, "unable to create target cluster client")
 	}
 
 	return targetClient, nil
@@ -231,11 +231,11 @@ func (d *ClusterDeployer) updateClusterEndpoint(client clusterclient.Client, pro
 	}
 	clusterEndpoint, err := provider.GetIP(cluster, controlPlane)
 	if err != nil {
-		return fmt.Errorf("unable to get cluster endpoint: %v", err)
+		return errors.Wrap(err, "unable to get cluster endpoint")
 	}
 	err = client.UpdateClusterObjectEndpoint(clusterEndpoint, clusterName, namespace)
 	if err != nil {
-		return fmt.Errorf("unable to update cluster endpoint: %v", err)
+		return errors.Wrap(err, "unable to update cluster endpoint")
 	}
 	return nil
 }
@@ -243,15 +243,15 @@ func (d *ClusterDeployer) updateClusterEndpoint(client clusterclient.Client, pro
 func (d *ClusterDeployer) saveProviderComponentsToCluster(factory ProviderComponentsStoreFactory, kubeconfigPath string) error {
 	clientset, err := d.clientFactory.NewCoreClientsetFromKubeconfigFile(kubeconfigPath)
 	if err != nil {
-		return fmt.Errorf("error creating core clientset: %v", err)
+		return errors.Wrap(err, "error creating core clientset")
 	}
 	pcStore, err := factory.NewFromCoreClientset(clientset)
 	if err != nil {
-		return fmt.Errorf("unable to create provider components store: %v", err)
+		return errors.Wrap(err, "unable to create provider components store")
 	}
 	err = pcStore.Save(d.providerComponents)
 	if err != nil {
-		return fmt.Errorf("error saving provider components: %v", err)
+		return errors.Wrap(err, "error saving provider components")
 	}
 	return nil
 }
@@ -259,13 +259,13 @@ func (d *ClusterDeployer) saveProviderComponentsToCluster(factory ProviderCompon
 func (d *ClusterDeployer) applyClusterAPIComponentsWithPivoting(client, source clusterclient.Client, namespace string) error {
 	klog.Info("Applying Cluster API Provider Components")
 	if err := client.Apply(d.providerComponents); err != nil {
-		return fmt.Errorf("unable to apply cluster api controllers: %v", err)
+		return errors.Wrap(err, "unable to apply cluster api controllers")
 	}
 
 	klog.Info("Pivoting Cluster API objects from bootstrap to target cluster.")
 	err := pivotNamespace(source, client, namespace)
 	if err != nil {
-		return fmt.Errorf("unable to pivot cluster API objects: %v", err)
+		return errors.Wrap(err, "unable to pivot cluster API objects")
 	}
 
 	return nil
@@ -298,11 +298,11 @@ func waitForKubeconfigReady(provider ProviderDeployer, cluster *clusterv1.Cluste
 
 func pivotNamespace(from, to clusterclient.Client, namespace string) error {
 	if err := from.WaitForClusterV1alpha1Ready(); err != nil {
-		return fmt.Errorf("cluster v1alpha1 resource not ready on source cluster")
+		return errors.New("cluster v1alpha1 resource not ready on source cluster")
 	}
 
 	if err := to.WaitForClusterV1alpha1Ready(); err != nil {
-		return fmt.Errorf("cluster v1alpha1 resource not ready on target cluster")
+		return errors.New("cluster v1alpha1 resource not ready on target cluster")
 	}
 
 	clusters, err := from.GetClusterObjectsInNamespace(namespace)
@@ -314,7 +314,7 @@ func pivotNamespace(from, to clusterclient.Client, namespace string) error {
 		// New objects cannot have a specified resource version. Clear it out.
 		cluster.SetResourceVersion("")
 		if err = to.CreateClusterObject(cluster); err != nil {
-			return fmt.Errorf("error moving Cluster '%v': %v", cluster.GetName(), err)
+			return errors.Wrapf(err, "error moving Cluster %q", cluster.GetName())
 		}
 		klog.Infof("Moved Cluster '%s'", cluster.GetName())
 	}
@@ -327,7 +327,7 @@ func pivotNamespace(from, to clusterclient.Client, namespace string) error {
 		// New objects cannot have a specified resource version. Clear it out.
 		deployment.SetResourceVersion("")
 		if err = to.CreateMachineDeploymentObjects([]*clusterv1.MachineDeployment{deployment}, namespace); err != nil {
-			return fmt.Errorf("error moving MachineDeployment '%v': %v", deployment.GetName(), err)
+			return errors.Wrapf(err, "error moving MachineDeployment %q", deployment.GetName())
 		}
 		klog.Infof("Moved MachineDeployment %v", deployment.GetName())
 	}
@@ -340,7 +340,7 @@ func pivotNamespace(from, to clusterclient.Client, namespace string) error {
 		// New objects cannot have a specified resource version. Clear it out.
 		machineSet.SetResourceVersion("")
 		if err := to.CreateMachineSetObjects([]*clusterv1.MachineSet{machineSet}, namespace); err != nil {
-			return fmt.Errorf("error moving MachineSet '%v': %v", machineSet.GetName(), err)
+			return errors.Wrapf(err, "error moving MachineSet %q", machineSet.GetName())
 		}
 		klog.Infof("Moved MachineSet %v", machineSet.GetName())
 	}
@@ -354,7 +354,7 @@ func pivotNamespace(from, to clusterclient.Client, namespace string) error {
 		// New objects cannot have a specified resource version. Clear it out.
 		machine.SetResourceVersion("")
 		if err = to.CreateMachineObjects([]*clusterv1.Machine{machine}, namespace); err != nil {
-			return fmt.Errorf("error moving Machine '%v': %v", machine.GetName(), err)
+			return errors.Wrapf(err, "error moving Machine %q", machine.GetName())
 		}
 		klog.Infof("Moved Machine '%s'", machine.GetName())
 	}
@@ -362,34 +362,34 @@ func pivotNamespace(from, to clusterclient.Client, namespace string) error {
 }
 
 func deleteObjectsInNamespace(client clusterclient.Client, namespace string) error {
-	var errors []string
+	var errorList []string
 	klog.Infof("Deleting machine deployments in namespace %q", namespace)
 	if err := client.DeleteMachineDeploymentObjectsInNamespace(namespace); err != nil {
-		err = fmt.Errorf("error deleting machine deployments: %v", err)
-		errors = append(errors, err.Error())
+		err = errors.Wrap(err, "error deleting machine deployments")
+		errorList = append(errorList, err.Error())
 	}
 	klog.Infof("Deleting machine sets in namespace %q", namespace)
 	if err := client.DeleteMachineSetObjectsInNamespace(namespace); err != nil {
-		err = fmt.Errorf("error deleting machine sets: %v", err)
-		errors = append(errors, err.Error())
+		err = errors.Wrap(err, "error deleting machine sets")
+		errorList = append(errorList, err.Error())
 	}
 	klog.Infof("Deleting machines in namespace %q", namespace)
 	if err := client.DeleteMachineObjectsInNamespace(namespace); err != nil {
-		err = fmt.Errorf("error deleting machines: %v", err)
-		errors = append(errors, err.Error())
+		err = errors.Wrap(err, "error deleting machines")
+		errorList = append(errorList, err.Error())
 	}
 	klog.Infof("Deleting clusters in namespace %q", namespace)
 	if err := client.DeleteClusterObjectsInNamespace(namespace); err != nil {
-		err = fmt.Errorf("error deleting clusters: %v", err)
-		errors = append(errors, err.Error())
+		err = errors.Wrap(err, "error deleting clusters")
+		errorList = append(errorList, err.Error())
 	}
 	klog.Infof("Deleting namespace %q", namespace)
 	if err := client.DeleteNamespace(namespace); err != nil {
-		err = fmt.Errorf("error deleting namespace: %v", err)
-		errors = append(errors, err.Error())
+		err = errors.Wrap(err, "error deleting namespace")
+		errorList = append(errorList, err.Error())
 	}
-	if len(errors) > 0 {
-		return fmt.Errorf("error(s) encountered deleting objects from bootstrap cluster: [%v]", strings.Join(errors, ", "))
+	if len(errorList) > 0 {
+		return errors.Errorf("error(s) encountered deleting objects from bootstrap cluster: [%v]", strings.Join(errorList, ", "))
 	}
 	return nil
 }
@@ -397,16 +397,16 @@ func deleteObjectsInNamespace(client clusterclient.Client, namespace string) err
 func getClusterAPIObject(client clusterclient.Client, clusterName, namespace string) (*clusterv1.Cluster, *clusterv1.Machine, []*clusterv1.Machine, error) {
 	machines, err := client.GetMachineObjectsInNamespace(namespace)
 	if err != nil {
-		return nil, nil, nil, fmt.Errorf("unable to fetch machines: %v", err)
+		return nil, nil, nil, errors.Wrap(err, "unable to fetch machines")
 	}
 	cluster, err := client.GetClusterObject(clusterName, namespace)
 	if err != nil {
-		return nil, nil, nil, fmt.Errorf("unable to fetch cluster %v in namespace %v: %v", clusterName, namespace, err)
+		return nil, nil, nil, errors.Wrapf(err, "unable to fetch cluster %v in namespace %v", clusterName, namespace)
 	}
 
 	controlPlaneMachine, nodes, err := extractControlPlaneMachine(machines)
 	if err != nil {
-		return nil, nil, nil, fmt.Errorf("unable to fetch control plane machine in cluster %v in namespace %v: %v", clusterName, namespace, err)
+		return nil, nil, nil, errors.Wrapf(err, "unable to fetch control plane machine in cluster %v in namespace %v", clusterName, namespace)
 	}
 	return cluster, controlPlaneMachine, nodes, nil
 }
@@ -425,7 +425,7 @@ func extractControlPlaneMachine(machines []*clusterv1.Machine) (*clusterv1.Machi
 		}
 	}
 	if len(controlPlaneMachines) != 1 {
-		return nil, nil, fmt.Errorf("expected one control plane machine, got: %v", len(controlPlaneMachines))
+		return nil, nil, errors.Errorf("expected one control plane machine, got: %v", len(controlPlaneMachines))
 	}
 	return controlPlaneMachines[0], nodes, nil
 }

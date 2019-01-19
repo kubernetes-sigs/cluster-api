@@ -17,11 +17,11 @@ limitations under the License.
 package providercomponents_test
 
 import (
-	"fmt"
 	"testing"
 
+	"github.com/pkg/errors"
 	core "k8s.io/api/core/v1"
-	"k8s.io/apimachinery/pkg/api/errors"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	meta "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/watch"
@@ -40,8 +40,8 @@ func TestLoadFromConfigMap(t *testing.T) {
 		expectedErrorMessage string
 	}{
 		{"config map exists;key exists", newConfigMap(configMapName, map[string]string{providerComponentsKey: providerComponentsContent}), nil, ""},
-		{"get error", nil, fmt.Errorf("this is the error string"), "error getting configmap named 'clusterctl': this is the error string"},
-		{"config map exists;key doesn't exist", newConfigMap(configMapName, map[string]string{}), nil, "configmap 'clusterctl' does not contain the provider components key 'provider-components'"},
+		{"get error", nil, errors.New("this is the error string"), "error getting configmap named \"clusterctl\": this is the error string"},
+		{"config map exists;key doesn't exist", newConfigMap(configMapName, map[string]string{}), nil, "configmap \"clusterctl\" does not contain the provider components key \"provider-components\""},
 	}
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
@@ -55,14 +55,14 @@ func TestLoadFromConfigMap(t *testing.T) {
 			value, err := store.Load()
 			if err == nil {
 				if tc.expectedErrorMessage != "" {
-					t.Fatalf("error mismatch: got '%v', want '%v'", err, tc.expectedErrorMessage)
+					t.Fatalf("error mismatch: got %q, want %q", err, tc.expectedErrorMessage)
 				}
 				if value != providerComponentsContent {
-					t.Errorf("provider components content mismatch: got '%v', want '%v'", value, providerComponentsContent)
+					t.Errorf("provider components content mismatch: got %q, want %q", value, providerComponentsContent)
 				}
 			} else {
 				if err.Error() != tc.expectedErrorMessage {
-					t.Errorf("error message mismatch: got '%v', want '%v'", err, tc.expectedErrorMessage)
+					t.Errorf("error message mismatch: got %q, want %q", err, tc.expectedErrorMessage)
 				}
 			}
 		})
@@ -73,7 +73,7 @@ func TestSaveToConfigMap(t *testing.T) {
 	providerComponentsContent := "content\nmore content >>"
 	configMapName := "clusterctl"
 	providerComponentsKey := "provider-components"
-	notFoundErr := errors.NewNotFound(v1alpha1.Resource("configmap"), configMapName)
+	notFoundErr := apierrors.NewNotFound(v1alpha1.Resource("configmap"), configMapName)
 	testCases := []struct {
 		name                 string
 		getResult            *core.ConfigMap
@@ -83,10 +83,10 @@ func TestSaveToConfigMap(t *testing.T) {
 		expectedDataLen      int
 		expectedErrorMessage string
 	}{
-		{"random error retrieving config map", nil, fmt.Errorf("random config map error"), nil, nil, 1, "unable to get configmap 'clusterctl': random config map error"},
+		{"random error retrieving config map", nil, errors.New("random config map error"), nil, nil, 1, "unable to get configmap \"clusterctl\": random config map error"},
 		{"new config map, success", nil, notFoundErr, nil, nil, 1, ""},
-		{"new config map, error", nil, notFoundErr, fmt.Errorf("create has failed"), nil, 0, "error creating config map 'clusterctl': create has failed"},
-		{"existing config map, error", newConfigMap(configMapName, nil), nil, nil, fmt.Errorf("update has failed"), 1, "error updating config map 'clusterctl': update has failed"},
+		{"new config map, error", nil, notFoundErr, errors.New("create has failed"), nil, 0, "error creating config map \"clusterctl\": create has failed"},
+		{"existing config map, error", newConfigMap(configMapName, nil), nil, nil, errors.New("update has failed"), 1, "error updating config map \"clusterctl\": update has failed"},
 		{"existing config map with nil map", newConfigMap(configMapName, nil), nil, nil, nil, 1, ""},
 		{"existing config map with existing, different key", newConfigMap(configMapName, map[string]string{providerComponentsKey: "different value"}), nil, nil, nil, 1, ""},
 		{"existing config map with existing, same key", newConfigMap(configMapName, map[string]string{providerComponentsKey: "different value", "another-key": "another-value"}), nil, nil, nil, 2, ""},

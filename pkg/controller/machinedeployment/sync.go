@@ -32,9 +32,8 @@ import (
 	"k8s.io/client-go/util/retry"
 	"k8s.io/klog"
 	clusterv1alpha1 "sigs.k8s.io/cluster-api/pkg/apis/cluster/v1alpha1"
-	"sigs.k8s.io/controller-runtime/pkg/client"
-
 	dutil "sigs.k8s.io/cluster-api/pkg/controller/machinedeployment/util"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
 // sync is responsible for reconciling deployments on scaling events or when they
@@ -182,7 +181,6 @@ func (r *ReconcileMachineDeployment) getNewMachineSet(d *clusterv1alpha1.Machine
 		controllerRef := metav1.GetControllerOf(ms)
 		if controllerRef != nil && controllerRef.UID == d.UID && dutil.EqualIgnoreHash(&d.Spec.Template, &ms.Spec.Template) {
 			createdMS = ms
-			err = nil
 			break
 		}
 

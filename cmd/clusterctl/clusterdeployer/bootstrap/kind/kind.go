@@ -27,8 +27,7 @@ import (
 )
 
 const (
-	kubeconfigEnvVar = "KUBECONFIG"
-	kindClusterName  = "clusterapi"
+	kindClusterName = "clusterapi"
 )
 
 type Kind struct {

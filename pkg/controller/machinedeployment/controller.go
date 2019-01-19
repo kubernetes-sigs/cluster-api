@@ -112,8 +112,8 @@ func (r *ReconcileMachineDeployment) getMachineSetsForDeployment(d *v1alpha1.Mac
 
 	// TODO: flush out machine set adoption.
 
-	var filteredMS []*v1alpha1.MachineSet
-	for idx, _ := range machineSets.Items {
+	filteredMS := make([]*v1alpha1.MachineSet, 0, len(machineSets.Items))
+	for idx := range machineSets.Items {
 		ms := &machineSets.Items[idx]
 		if metav1.GetControllerOf(ms) == nil || (metav1.GetControllerOf(ms) != nil && !metav1.IsControlledBy(ms, d)) {
 			klog.V(4).Infof("%s not controlled by %v", ms.Name, d.Name)
@@ -220,7 +220,7 @@ func (r *ReconcileMachineDeployment) getMachineDeploymentsForMachineSet(ms *v1al
 		return nil
 	}
 
-	var deployments []*v1alpha1.MachineDeployment
+	deployments := make([]*v1alpha1.MachineDeployment, 0, len(dList.Items))
 	for idx, d := range dList.Items {
 		selector, err := metav1.LabelSelectorAsSelector(&d.Spec.Selector)
 		if err != nil {

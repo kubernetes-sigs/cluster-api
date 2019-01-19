@@ -45,14 +45,14 @@ func TestTokenCreateParameters(t *testing.T) {
 		{"groups", nil, "kubeadm token create --groups system:bootstrappers:kubeadm:default-node-token", kubeadm.TokenCreateParams{Groups: []string{"system", "bootstrappers", "kubeadm", "default-node-token"}}},
 		{"help", nil, "kubeadm token create --help", kubeadm.TokenCreateParams{Help: true}},
 		{"print join command", nil, "kubeadm token create --print-join-command", kubeadm.TokenCreateParams{PrintJoinCommand: true}},
-		{"ttl 24 hours", nil, "kubeadm token create --ttl 24h0m0s", kubeadm.TokenCreateParams{Ttl: toDuration(24, 0, 0)}},
-		{"ttl 55 minutes", nil, "kubeadm token create --ttl 55m0s", kubeadm.TokenCreateParams{Ttl: toDuration(0, 55, 0)}},
-		{"ttl 9 seconds", nil, "kubeadm token create --ttl 9s", kubeadm.TokenCreateParams{Ttl: toDuration(0, 0, 9)}},
-		{"ttl 1 second", nil, "kubeadm token create --ttl 1s", kubeadm.TokenCreateParams{Ttl: toDuration(0, 0, 1)}},
-		{"ttl 16 hours, 38 minutes, 2 seconds", nil, "kubeadm token create --ttl 16h38m2s", kubeadm.TokenCreateParams{Ttl: toDuration(16, 38, 2)}},
+		{"ttl 24 hours", nil, "kubeadm token create --ttl 24h0m0s", kubeadm.TokenCreateParams{TTL: toDuration(24, 0, 0)}},
+		{"ttl 55 minutes", nil, "kubeadm token create --ttl 55m0s", kubeadm.TokenCreateParams{TTL: toDuration(0, 55, 0)}},
+		{"ttl 9 seconds", nil, "kubeadm token create --ttl 9s", kubeadm.TokenCreateParams{TTL: toDuration(0, 0, 9)}},
+		{"ttl 1 second", nil, "kubeadm token create --ttl 1s", kubeadm.TokenCreateParams{TTL: toDuration(0, 0, 1)}},
+		{"ttl 16 hours, 38 minutes, 2 seconds", nil, "kubeadm token create --ttl 16h38m2s", kubeadm.TokenCreateParams{TTL: toDuration(16, 38, 2)}},
 		{"usages", nil, "kubeadm token create --usages signing:authentication", kubeadm.TokenCreateParams{Usages: []string{"signing", "authentication"}}},
 		{"all", nil, "kubeadm token create --config /my/config --description my description --groups bootstrappers --help --print-join-command --ttl 1h1m1s --usages authentication",
-			kubeadm.TokenCreateParams{Config: "/my/config", Description: "my description", Groups: []string{"bootstrappers"}, Help: true, PrintJoinCommand: true, Ttl: toDuration(1, 1, 1), Usages: []string{"authentication"}}},
+			kubeadm.TokenCreateParams{Config: "/my/config", Description: "my description", Groups: []string{"bootstrappers"}, Help: true, PrintJoinCommand: true, TTL: toDuration(1, 1, 1), Usages: []string{"authentication"}}},
 	}
 	kadm := kubeadm.NewWithRunner(testcmdrunner.NewOrDie(t, echoCallback))
 	for _, tst := range tests {

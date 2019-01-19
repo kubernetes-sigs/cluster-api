@@ -368,7 +368,7 @@ func TestFindOldMachineSets(t *testing.T) {
 			Name:            "Get empty old MachineSets",
 			deployment:      deployment,
 			msList:          []*v1alpha1.MachineSet{&newMS},
-			expected:        nil,
+			expected:        []*v1alpha1.MachineSet{},
 			expectedRequire: nil,
 		},
 	}

@@ -72,6 +72,13 @@ fmt: ## Run go fmt against code
 vet: ## Run go vet against code
 	go vet ./pkg/... ./cmd/...
 
+.PHONY: lint
+lint: dep-ensure ## Lint codebase
+	bazel run //:lint $(BAZEL_ARGS)
+
+lint-full: dep-ensure ## Run slower linters to detect possible issues
+	bazel run //:lint-full $(BAZEL_ARGS)
+
 .PHONY: generate
 generate: clientset dep-ensure ## Generate code
 	go generate ./pkg/... ./cmd/...
@@ -91,6 +98,10 @@ clientset: ## Generate a typed clientset
 		--listers-package sigs.k8s.io/cluster-api/pkg/client/listers_generated \
 		--output-package sigs.k8s.io/cluster-api/pkg/client/informers_generated \
 		--go-header-file=./hack/boilerplate.go.txt
+
+.PHONY: clean
+clean: ## Remove all generated files
+	rm -f bazel-*
 
 .PHONY: docker-build
 docker-build: generate fmt vet manifests ## Build the docker image

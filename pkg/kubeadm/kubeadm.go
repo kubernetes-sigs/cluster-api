@@ -37,7 +37,7 @@ type TokenCreateParams struct {
 	Help             bool
 	KubeConfig       string
 	PrintJoinCommand bool
-	Ttl              time.Duration
+	TTL              time.Duration
 	Usages           []string
 }
 
@@ -61,9 +61,9 @@ func (k *Kubeadm) TokenCreate(params TokenCreateParams) (string, error) {
 	args = appendFlagIfTrue(args, "--help", params.Help)
 	args = appendStringParamIfPresent(args, "--kubeconfig", params.KubeConfig)
 	args = appendFlagIfTrue(args, "--print-join-command", params.PrintJoinCommand)
-	if params.Ttl != time.Duration(0) {
+	if params.TTL != time.Duration(0) {
 		args = append(args, "--ttl")
-		args = append(args, params.Ttl.String())
+		args = append(args, params.TTL.String())
 	}
 	args = appendStringSliceIfValid(args, "--usages", params.Usages)
 	return k.runner.CombinedOutput("kubeadm", args...)

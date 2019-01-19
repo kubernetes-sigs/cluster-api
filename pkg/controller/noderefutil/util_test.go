@@ -50,7 +50,7 @@ func TestIsNodeAvaialble(t *testing.T) {
 			name: "no ready condition",
 			node: &corev1.Node{Status: corev1.NodeStatus{
 				Conditions: []corev1.NodeCondition{
-					corev1.NodeCondition{
+					{
 						Type:   corev1.NodeOutOfDisk,
 						Status: corev1.ConditionTrue,
 					},
@@ -62,7 +62,7 @@ func TestIsNodeAvaialble(t *testing.T) {
 			name: "ready condition true, minReadySeconds = 0, lastTransitionTime now",
 			node: &corev1.Node{Status: corev1.NodeStatus{
 				Conditions: []corev1.NodeCondition{
-					corev1.NodeCondition{
+					{
 						Type:               corev1.NodeReady,
 						Status:             corev1.ConditionTrue,
 						LastTransitionTime: metav1.Now(),
@@ -75,7 +75,7 @@ func TestIsNodeAvaialble(t *testing.T) {
 			name: "ready condition true, minReadySeconds = 0, lastTransitionTime past",
 			node: &corev1.Node{Status: corev1.NodeStatus{
 				Conditions: []corev1.NodeCondition{
-					corev1.NodeCondition{
+					{
 						Type:               corev1.NodeReady,
 						Status:             corev1.ConditionTrue,
 						LastTransitionTime: metav1.Time{Time: time.Now().Add(time.Duration(-700) * time.Second)},
@@ -88,7 +88,7 @@ func TestIsNodeAvaialble(t *testing.T) {
 			name: "ready condition true, minReadySeconds = 300, lastTransitionTime now",
 			node: &corev1.Node{Status: corev1.NodeStatus{
 				Conditions: []corev1.NodeCondition{
-					corev1.NodeCondition{
+					{
 						Type:               corev1.NodeReady,
 						Status:             corev1.ConditionTrue,
 						LastTransitionTime: metav1.Now(),
@@ -102,7 +102,7 @@ func TestIsNodeAvaialble(t *testing.T) {
 			name: "ready condition true, minReadySeconds = 300, lastTransitionTime past",
 			node: &corev1.Node{Status: corev1.NodeStatus{
 				Conditions: []corev1.NodeCondition{
-					corev1.NodeCondition{
+					{
 						Type:               corev1.NodeReady,
 						Status:             corev1.ConditionTrue,
 						LastTransitionTime: metav1.Time{Time: time.Now().Add(time.Duration(-700) * time.Second)},
@@ -116,7 +116,7 @@ func TestIsNodeAvaialble(t *testing.T) {
 			name: "ready condition false",
 			node: &corev1.Node{Status: corev1.NodeStatus{
 				Conditions: []corev1.NodeCondition{
-					corev1.NodeCondition{
+					{
 						Type:   corev1.NodeReady,
 						Status: corev1.ConditionFalse,
 					},
@@ -128,7 +128,7 @@ func TestIsNodeAvaialble(t *testing.T) {
 			name: "ready condition unknown",
 			node: &corev1.Node{Status: corev1.NodeStatus{
 				Conditions: []corev1.NodeCondition{
-					corev1.NodeCondition{
+					{
 						Type:   corev1.NodeReady,
 						Status: corev1.ConditionUnknown,
 					},
@@ -165,7 +165,7 @@ func TestGetReadyCondition(t *testing.T) {
 			name: "no ready condition",
 			nodeStatus: &corev1.NodeStatus{
 				Conditions: []corev1.NodeCondition{
-					corev1.NodeCondition{
+					{
 						Type:   corev1.NodeOutOfDisk,
 						Status: corev1.ConditionTrue,
 					},
@@ -176,7 +176,7 @@ func TestGetReadyCondition(t *testing.T) {
 			name: "ready condition true",
 			nodeStatus: &corev1.NodeStatus{
 				Conditions: []corev1.NodeCondition{
-					corev1.NodeCondition{
+					{
 						Type:   corev1.NodeReady,
 						Status: corev1.ConditionTrue,
 					},
@@ -191,7 +191,7 @@ func TestGetReadyCondition(t *testing.T) {
 			name: "ready condition false",
 			nodeStatus: &corev1.NodeStatus{
 				Conditions: []corev1.NodeCondition{
-					corev1.NodeCondition{
+					{
 						Type:   corev1.NodeReady,
 						Status: corev1.ConditionFalse,
 					},
@@ -206,7 +206,7 @@ func TestGetReadyCondition(t *testing.T) {
 			name: "ready condition unknown",
 			nodeStatus: &corev1.NodeStatus{
 				Conditions: []corev1.NodeCondition{
-					corev1.NodeCondition{
+					{
 						Type:   corev1.NodeReady,
 						Status: corev1.ConditionUnknown,
 					},
@@ -253,7 +253,7 @@ func TestIsNodeReady(t *testing.T) {
 			name: "no ready condition",
 			node: &corev1.Node{Status: corev1.NodeStatus{
 				Conditions: []corev1.NodeCondition{
-					corev1.NodeCondition{
+					{
 						Type:   corev1.NodeOutOfDisk,
 						Status: corev1.ConditionTrue,
 					},
@@ -265,7 +265,7 @@ func TestIsNodeReady(t *testing.T) {
 			name: "ready condition true",
 			node: &corev1.Node{Status: corev1.NodeStatus{
 				Conditions: []corev1.NodeCondition{
-					corev1.NodeCondition{
+					{
 						Type:   corev1.NodeReady,
 						Status: corev1.ConditionTrue,
 					},
@@ -277,7 +277,7 @@ func TestIsNodeReady(t *testing.T) {
 			name: "ready condition false",
 			node: &corev1.Node{Status: corev1.NodeStatus{
 				Conditions: []corev1.NodeCondition{
-					corev1.NodeCondition{
+					{
 						Type:   corev1.NodeReady,
 						Status: corev1.ConditionFalse,
 					},
@@ -289,7 +289,7 @@ func TestIsNodeReady(t *testing.T) {
 			name: "ready condition unknown",
 			node: &corev1.Node{Status: corev1.NodeStatus{
 				Conditions: []corev1.NodeCondition{
-					corev1.NodeCondition{
+					{
 						Type:   corev1.NodeReady,
 						Status: corev1.ConditionUnknown,
 					},

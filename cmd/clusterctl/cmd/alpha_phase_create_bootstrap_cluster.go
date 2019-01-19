@@ -17,11 +17,10 @@ limitations under the License.
 package cmd
 
 import (
-	"sigs.k8s.io/cluster-api/cmd/clusterctl/clusterdeployer/bootstrap"
-
 	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
 	"k8s.io/klog"
+	"sigs.k8s.io/cluster-api/cmd/clusterctl/clusterdeployer/bootstrap"
 	"sigs.k8s.io/cluster-api/cmd/clusterctl/clusterdeployer/clusterclient"
 	"sigs.k8s.io/cluster-api/cmd/clusterctl/phases"
 )

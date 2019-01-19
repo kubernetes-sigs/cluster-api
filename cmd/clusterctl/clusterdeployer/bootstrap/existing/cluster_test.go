@@ -61,6 +61,8 @@ func createTempFile(contents string) (string, error) {
 		return "", err
 	}
 	defer f.Close()
-	f.WriteString(contents)
+	if _, err := f.WriteString(contents); err != nil {
+		return "", err
+	}
 	return f.Name(), nil
 }

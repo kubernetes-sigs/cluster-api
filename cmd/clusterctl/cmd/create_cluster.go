@@ -71,7 +71,7 @@ func RunCreate(co *CreateOptions) error {
 		return err
 	}
 
-	bootstrapProvider, err := bootstrap.Get(do.BootstrapFlags)
+	bootstrapProvider, err := bootstrap.Get(co.BootstrapFlags)
 	if err != nil {
 		return err
 	}

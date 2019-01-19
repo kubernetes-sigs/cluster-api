@@ -85,7 +85,7 @@ spec:
                 controlPlane:
                   description: ControlPlane is the semantic version of the Kubernetes
                     control plane to run. This should only be populated when the machine
-                    is a master.
+                    is a control plane.
                   type: string
                 kubelet:
                   description: Kubelet is the semantic version of kubelet to run
@@ -193,14 +193,14 @@ spec:
                 the dependency on the structure of the Node,    so that if the structure
                 of Node.Status.NodeInfo changes, only    machine controllers need
                 to be updated, rather than every client    of the Machines API. 3)
-                There is no other simple way to check the ControlPlane    version.
+                There is no other simple way to check the control plane    version.
                 A client would have to connect directly to the apiserver    running
                 on the target node in order to find out its version.'
               properties:
                 controlPlane:
                   description: ControlPlane is the semantic version of the Kubernetes
                     control plane to run. This should only be populated when the machine
-                    is a master.
+                    is a control plane.
                   type: string
                 kubelet:
                   description: Kubelet is the semantic version of kubelet to run

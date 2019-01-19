@@ -17,19 +17,17 @@ limitations under the License.
 package cmd
 
 import (
-	"fmt"
+	"sigs.k8s.io/cluster-api/cmd/clusterctl/clusterdeployer/bootstrap"
 
 	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
 	"k8s.io/klog"
-	"sigs.k8s.io/cluster-api/cmd/clusterctl/clusterdeployer/bootstrap/minikube"
 	"sigs.k8s.io/cluster-api/cmd/clusterctl/clusterdeployer/clusterclient"
 	"sigs.k8s.io/cluster-api/cmd/clusterctl/phases"
 )
 
 type AlphaPhaseCreateBootstrapClusterOptions struct {
-	MiniKube         []string
-	VmDriver         string
+	Bootstrap        bootstrap.Options
 	KubeconfigOutput string
 }
 
@@ -47,13 +45,12 @@ var alphaPhaseCreateBootstrapClusterCmd = &cobra.Command{
 }
 
 func RunAlphaPhaseCreateBootstrapCluster(pcbco *AlphaPhaseCreateBootstrapClusterOptions) error {
-	if pcbco.VmDriver != "" {
-		pcbco.MiniKube = append(pcbco.MiniKube, fmt.Sprintf("vm-driver=%s", pcbco.VmDriver))
+	bootstrapProvider, err := bootstrap.Get(pcbco.Bootstrap)
+	if err != nil {
+		return err
 	}
 
-	bootstrapProvider := minikube.WithOptionsAndKubeConfigPath(pcbco.MiniKube, pcbco.KubeconfigOutput)
-
-	_, _, err := phases.CreateBootstrapCluster(bootstrapProvider, false, clusterclient.NewFactory())
+	_, _, err = phases.CreateBootstrapCluster(bootstrapProvider, false, clusterclient.NewFactory())
 	if err != nil {
 		return errors.Wrap(err, "failed to create bootstrap cluster")
 	}
@@ -64,9 +61,7 @@ func RunAlphaPhaseCreateBootstrapCluster(pcbco *AlphaPhaseCreateBootstrapCluster
 
 func init() {
 	// Optional flags
-	alphaPhaseCreateBootstrapClusterCmd.Flags().StringSliceVarP(&pcbco.MiniKube, "minikube", "", []string{}, "Minikube options")
-	alphaPhaseCreateBootstrapClusterCmd.Flags().StringVarP(&pcbco.VmDriver, "vm-driver", "", "", "Which vm driver to use for minikube")
 	alphaPhaseCreateBootstrapClusterCmd.Flags().StringVarP(&pcbco.KubeconfigOutput, "kubeconfig-out", "", "minikube.kubeconfig", "Where to output the kubeconfig for the bootstrap cluster")
-
+	pcbco.Bootstrap.AddFlags(alphaPhasesCmd.Flags())
 	alphaPhasesCmd.AddCommand(alphaPhaseCreateBootstrapClusterCmd)
 }

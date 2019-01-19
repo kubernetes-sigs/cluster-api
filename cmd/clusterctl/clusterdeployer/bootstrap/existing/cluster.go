@@ -25,36 +25,36 @@ import (
 
 // Represents an existing cluster being used for bootstrapping, should not be able to
 // actually delete or create, but can point to actual kubeconfig file.
-type ExistingCluster struct {
+type Cluster struct {
 	kubeconfigPath string
 	kubeconfigFile string
 }
 
-// NewExistingCluster creates a new existing k8s bootstrap cluster object
+// New creates a new existing k8s bootstrap cluster object
 // We should clean up any lingering resources when clusterctl is complete.
 // TODO https://github.com/kubernetes-sigs/cluster-api/issues/448
-func NewExistingCluster(kubeconfigPath string) (*ExistingCluster, error) {
+func New(kubeconfigPath string) (*Cluster, error) {
 	if _, err := os.Stat(kubeconfigPath); os.IsNotExist(err) {
 		return nil, errors.Errorf("file at %s does not exist", kubeconfigPath)
 	}
 
-	return &ExistingCluster{kubeconfigPath: kubeconfigPath}, nil
+	return &Cluster{kubeconfigPath: kubeconfigPath}, nil
 }
 
 // Create implements clusterdeployer.ClusterProvisioner interface
-func (e *ExistingCluster) Create() error {
+func (e *Cluster) Create() error {
 	// noop
 	return nil
 }
 
 // Delete implements clusterdeployer.ClusterProvisioner interface
-func (e *ExistingCluster) Delete() error {
+func (e *Cluster) Delete() error {
 	// noop
 	return nil
 }
 
 // GetKubeconfig implements clusterdeployer.ClusterProvisioner interface
-func (e *ExistingCluster) GetKubeconfig() (string, error) {
+func (e *Cluster) GetKubeconfig() (string, error) {
 
 	if e.kubeconfigFile == "" {
 		b, err := ioutil.ReadFile(e.kubeconfigPath)

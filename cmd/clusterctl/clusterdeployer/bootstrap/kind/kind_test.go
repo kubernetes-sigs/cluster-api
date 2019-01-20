@@ -91,6 +91,10 @@ func TestGetKubeconfig(t *testing.T) {
 	}
 	defer os.Remove(f)
 	t.Run("file does not exist", func(t *testing.T) {
+		m.execFunc = func(args ...string) (string, error) {
+			return "/tmp/nope", nil
+		}
+
 		c, err := m.GetKubeconfig()
 		if err == nil {
 			t.Fatal("Able to read a file that does not exist")
@@ -102,6 +106,20 @@ func TestGetKubeconfig(t *testing.T) {
 	t.Run("file exists", func(t *testing.T) {
 		m.execFunc = func(args ...string) (string, error) {
 			return f, nil
+		}
+
+		c, err := m.GetKubeconfig()
+		if err != nil {
+			t.Fatalf("Unexpected err, got: %v", err)
+			return
+		}
+		if c != contents {
+			t.Fatalf("Unexpected contents, got: %v, want: %v", c, contents)
+		}
+	})
+	t.Run("file exists, output with newline", func(t *testing.T) {
+		m.execFunc = func(args ...string) (string, error) {
+			return f + "\n", nil
 		}
 
 		c, err := m.GetKubeconfig()

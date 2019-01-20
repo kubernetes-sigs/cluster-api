@@ -31,7 +31,7 @@ func TestGetKubeconfig(t *testing.T) {
 	defer os.Remove(f)
 
 	t.Run("invalid path given", func(t *testing.T) {
-		_, err = NewExistingCluster("")
+		_, err = New("")
 		if err == nil {
 			t.Fatal("Should not be able create External Cluster Provisioner.")
 		}
@@ -39,7 +39,7 @@ func TestGetKubeconfig(t *testing.T) {
 
 	t.Run("file exists", func(t *testing.T) {
 
-		ec, err := NewExistingCluster(f)
+		ec, err := New(f)
 		if err != nil {
 			t.Fatal("Should be able create External Cluster Provisioner.")
 		}

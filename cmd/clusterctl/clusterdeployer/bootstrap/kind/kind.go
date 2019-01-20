@@ -99,7 +99,13 @@ func (k *Kind) getKubeConfigPath() (string, error) {
 	for _, opt := range k.options {
 		args = append(args, fmt.Sprintf("--%v", opt))
 	}
-	return k.exec(args...)
+
+	out, err := k.exec(args...)
+	if err != nil {
+		return "", err
+	}
+
+	return strings.TrimSpace(out), nil
 }
 
 func (k *Kind) exec(args ...string) (string, error) {

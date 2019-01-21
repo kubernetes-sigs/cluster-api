@@ -25,27 +25,29 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
-func ValidatePods(w io.Writer, c client.Client, clusterName string) error {
+func ValidatePods(w io.Writer, c client.Client) error {
 	fmt.Fprintf(w, "Validating pods\n")
 
-	return validatePods(w, c, clusterName, "kube-system")
+	pods, err := getPods(c, "kube-system")
+	if err != nil {
+		return err
+	}
+	return validatePods(w, pods)
 }
 
-func validatePods(w io.Writer, c client.Client, clusterName, namespace string) error {
-	fmt.Fprintf(w, "Checking pods in namespace %s for cluster %s...", namespace, clusterName)
-
+func getPods(c client.Client, namespace string) (*corev1.PodList, error) {
 	pods := &corev1.PodList{}
 	if err := c.List(context.TODO(), client.InNamespace(namespace), pods); err != nil {
-		return fmt.Errorf("Failed to get pods in namespace %q: %v", namespace, err)
+		return nil, fmt.Errorf("Failed to get pods in namespace %q: %v", namespace, err)
 	}
 
-	if len(pods.Items) == 0 {
-		fmt.Fprintf(w, "FAIL\n")
-		fmt.Fprintf(w, "\tNo pod exists in namespace %q.\n", namespace)
-		return fmt.Errorf("Pods are not found in namespace %q.", namespace)
-	}
+	return pods, nil
+}
 
+func validatePods(w io.Writer, pods *corev1.PodList) error {
 	for _, pod := range pods.Items {
+		fmt.Fprintf(w, "Checking pod %q in namespace %q...", pod.Name, pod.Namespace)
+
 		if pod.Status.Phase == corev1.PodSucceeded {
 			continue
 		}
@@ -66,6 +68,12 @@ func validatePods(w io.Writer, c client.Client, clusterName, namespace string) e
 				return fmt.Errorf("Pod %s in namespace %s has container %s which is not ready.", pod.Name, pod.Namespace, container.Name)
 			}
 		}
+	}
+
+	if len(pods.Items) == 0 {
+		fmt.Fprintf(w, "FAIL\n")
+		fmt.Fprintf(w, "\tpods not exist.\n")
+		return fmt.Errorf("Pods not exist.")
 	}
 
 	fmt.Fprintf(w, "PASS\n")

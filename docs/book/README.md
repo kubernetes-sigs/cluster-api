@@ -57,7 +57,7 @@ reliability.
 
 ## Resources
 
-- GitBook: [book.cluster-api.sigs.k8s.io](http://book.cluster-api.sigs.k8s.io)
+- GitBook: [kubernetes-sigs.github.io/cluster-api](https://kubernetes-sigs.github.io/cluster-api)
 - GitHub Repo: [kubernetes-sigs/cluster-api](https://github.com/kubernetes-sigs/cluster-api)
 - Slack channel: [#cluster-api](http://slack.k8s.io/#cluster-api)
 - Google Group: [kubernetes-sig-cluster-lifecycle@googlegroups.com](https://groups.google.com/forum/#!forum/kubernetes-sig-cluster-lifecycle)

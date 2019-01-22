@@ -29,8 +29,8 @@ Including the ability to:
 - Develop new Cluster and Machine controllers.
 - Develop automation on top of MachineSets and MachineDeployments as well
 as other Cluster API resources. For example,
-  - Cloud agnostic Upgrade and Repair tools.
-  - Cluster Autoscalars.
+  - Cloud agnostic upgrade and repair tools.
+  - Cluster autoscalers.
   - Etc.
 
 ## Who else will this book be for in the future?
@@ -51,7 +51,7 @@ through Kubernetes native abstractions.
 
 Including the ability to:
 
-- Create reproducable Kubernetes clusters.
+- Create reproducible Kubernetes clusters.
 - Create hybrid cloud environments which optimize for cost, performance, and
 reliability. 
 

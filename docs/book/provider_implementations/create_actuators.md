@@ -137,7 +137,7 @@ func (a *Actuator) Update(ctx context.Context, cluster *clusterv1.Cluster, machi
         return fmt.Errorf("TODO: Not yet implemented")
 }
 
-// Exists test for the existance of a machine and is invoked by the Machine Controller
+// Exists tests for the existence of a machine and is invoked by the Machine Controller
 func (a *Actuator) Exists(ctx context.Context, cluster *clusterv1.Cluster, machine *clusterv1.Machine) (bool, error) {
         log.Printf("Checking if machine %v for cluster %v exists.", machine.Name, cluster.Name)
         return false, fmt.Errorf("TODO: Not yet implemented")

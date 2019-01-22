@@ -69,7 +69,7 @@ Note that `NodeRef` may not be set. This can happen if the `Machine` and
 corresponding `Node` are not within the same cluster. Two reasons this might be
 the case are:
 
-- During bootstraping the control plane `Machine` will initially not be in the same
+- During bootstrapping, the control plane `Machine` will initially not be in the same
 cluster which is being created.
 - Some providers distinguish between _manager_ and _managed_ clusters. For
 these providers a `Machine` and it's corresponding `Node` may never be within

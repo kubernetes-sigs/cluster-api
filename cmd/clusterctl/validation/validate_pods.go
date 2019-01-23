@@ -19,20 +19,26 @@ package validation
 import (
 	"fmt"
 	"io"
+	"strings"
 
 	"golang.org/x/net/context"
 	corev1 "k8s.io/api/core/v1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
-func ValidatePods(w io.Writer, c client.Client) error {
-	fmt.Fprintf(w, "Validating pods\n")
+type validationError struct {
+	name    string
+	message string
+}
 
-	pods, err := getPods(c, "kube-system")
+func ValidatePods(w io.Writer, c client.Client, namespace string) error {
+	fmt.Fprintf(w, "Validating pods in namespace %q\n", namespace)
+
+	pods, err := getPods(c, namespace)
 	if err != nil {
 		return err
 	}
-	return validatePods(w, pods)
+	return validatePods(w, pods, namespace)
 }
 
 func getPods(c client.Client, namespace string) (*corev1.PodList, error) {
@@ -40,14 +46,20 @@ func getPods(c client.Client, namespace string) (*corev1.PodList, error) {
 	if err := c.List(context.TODO(), client.InNamespace(namespace), pods); err != nil {
 		return nil, fmt.Errorf("Failed to get pods in namespace %q: %v", namespace, err)
 	}
-
 	return pods, nil
 }
 
-func validatePods(w io.Writer, pods *corev1.PodList) error {
-	for _, pod := range pods.Items {
-		fmt.Fprintf(w, "Checking pod %q in namespace %q...", pod.Name, pod.Namespace)
+func validatePods(w io.Writer, pods *corev1.PodList, namespace string) error {
+	fmt.Fprintf(w, "Checking pods in namespace %q...", namespace)
 
+	if len(pods.Items) == 0 {
+		fmt.Fprintf(w, "FAIL\n")
+		fmt.Fprintf(w, "\tpods in namespace %q not exist.\n", namespace)
+		return fmt.Errorf("Pods in namespace %q not exist.", namespace)
+	}
+
+	var failures []*validationError
+	for _, pod := range pods.Items {
 		if pod.Status.Phase == corev1.PodSucceeded {
 			continue
 		}
@@ -55,25 +67,31 @@ func validatePods(w io.Writer, pods *corev1.PodList) error {
 		if pod.Status.Phase == corev1.PodPending ||
 			pod.Status.Phase == corev1.PodFailed ||
 			pod.Status.Phase == corev1.PodUnknown {
-
-			fmt.Fprintf(w, "FAIL\n")
-			fmt.Fprintf(w, "\t[pod %v]: %s\n", pod.Name, pod.Status.Reason)
-			return fmt.Errorf("Pod %s in namespace %s is not ready.", pod.Name, pod.Namespace)
+			failures = append(failures, &validationError{
+				name:    fmt.Sprintf("%q/%q", pod.Namespace, pod.Name),
+				message: fmt.Sprintf("Pod %q in namespace %q is %s.", pod.Name, pod.Namespace, pod.Status.Phase),
+			})
+			continue
 		}
 
+		var notready []string
 		for _, container := range pod.Status.ContainerStatuses {
 			if !container.Ready {
-				fmt.Fprintf(w, "FAIL\n")
-				fmt.Fprintf(w, "\t[container %v in pod %v]: not ready.\n", container.Name, pod.Name)
-				return fmt.Errorf("Pod %s in namespace %s has container %s which is not ready.", pod.Name, pod.Namespace, container.Name)
+				notready = append(notready, container.Name)
 			}
+		}
+		if len(notready) != 0 {
+			failures = append(failures, &validationError{
+				name:    fmt.Sprintf("%q/%q", pod.Namespace, pod.Name),
+				message: fmt.Sprintf("Pod %q in namespace %q is not ready (%s).", pod.Name, pod.Namespace, strings.Join(notready, ",")),
+			})
 		}
 	}
 
-	if len(pods.Items) == 0 {
+	if len(failures) != 0 {
 		fmt.Fprintf(w, "FAIL\n")
-		fmt.Fprintf(w, "\tpods not exist.\n")
-		return fmt.Errorf("Pods not exist.")
+		fmt.Fprintf(w, "\t[%v]: %s\n", failures[0].name, failures[0].message)
+		return fmt.Errorf("%s", failures[0].message)
 	}
 
 	fmt.Fprintf(w, "PASS\n")

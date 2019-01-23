@@ -97,7 +97,7 @@ func TestValidatePodsWithNoPod(t *testing.T) {
 	}
 
 	var b bytes.Buffer
-	if err := validatePods(&b, pods); err == nil {
+	if err := validatePods(&b, pods, "test-namespace"); err == nil {
 		t.Errorf("Expected error but didn't get one")
 	}
 }
@@ -156,7 +156,7 @@ func TestValidatePodsWithOnePod(t *testing.T) {
 			}
 
 			var b bytes.Buffer
-			err := validatePods(&b, pods)
+			err := validatePods(&b, pods, "test-namespace")
 			if testcase.expectErr && err == nil {
 				t.Errorf("Expect to get error, but got no returned error: %v", b.String())
 			}

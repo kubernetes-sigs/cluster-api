@@ -17,27 +17,20 @@ limitations under the License.
 package kubeadm_test
 
 import (
-	"fmt"
-	"os"
+	"errors"
 	"strings"
 	"testing"
 	"time"
 
 	"sigs.k8s.io/cluster-api/pkg/kubeadm"
-	"sigs.k8s.io/cluster-api/pkg/test-cmd-runner"
+	"sigs.k8s.io/cluster-api/pkg/testcmdrunner"
 )
 
 var (
 	joinCommand   = "kubeadm join --token a53d73.21029eb48b9002d0 35.199.169.93:443 --discovery-token-ca-cert-hash sha256:3bb9ee3aa3cee9898b85523e8dd6921752e07e3053453084c8d26d40d929a132"
-	errorExitCode = -1
+	errorExitCode = errors.New("kubeadm error")
 	errorMessage  = "error message"
 )
-
-func init() {
-	test_cmd_runner.RegisterCallback(echoCallback)
-	test_cmd_runner.RegisterCallback(errorCallback)
-	test_cmd_runner.RegisterCallback(tokenCallback)
-}
 
 func TestTokenCreateParameters(t *testing.T) {
 	var tests = []struct {
@@ -61,7 +54,7 @@ func TestTokenCreateParameters(t *testing.T) {
 		{"all", nil, "kubeadm token create --config /my/config --description my description --groups bootstrappers --help --print-join-command --ttl 1h1m1s --usages authentication",
 			kubeadm.TokenCreateParams{Config: "/my/config", Description: "my description", Groups: []string{"bootstrappers"}, Help: true, PrintJoinCommand: true, Ttl: toDuration(1, 1, 1), Usages: []string{"authentication"}}},
 	}
-	kadm := kubeadm.NewWithCmdRunner(test_cmd_runner.NewTestRunnerFailOnErr(t, echoCallback))
+	kadm := kubeadm.NewWithRunner(testcmdrunner.NewOrDie(t, echoCallback))
 	for _, tst := range tests {
 		output, err := kadm.TokenCreate(tst.params)
 		if err != tst.err {
@@ -74,7 +67,7 @@ func TestTokenCreateParameters(t *testing.T) {
 }
 
 func TestTokenCreateReturnsUnmodifiedOutput(t *testing.T) {
-	kadm := kubeadm.NewWithCmdRunner(test_cmd_runner.NewTestRunnerFailOnErr(t, tokenCallback))
+	kadm := kubeadm.NewWithRunner(testcmdrunner.NewOrDie(t, tokenCallback))
 	output, err := kadm.TokenCreate(kubeadm.TokenCreateParams{})
 	if err != nil {
 		t.Errorf("unexpected error: wanted nil")
@@ -85,7 +78,7 @@ func TestTokenCreateReturnsUnmodifiedOutput(t *testing.T) {
 }
 
 func TestNonZeroExitCodeResultsInError(t *testing.T) {
-	kadm := kubeadm.NewWithCmdRunner(test_cmd_runner.NewTestRunnerFailOnErr(t, errorCallback))
+	kadm := kubeadm.NewWithRunner(testcmdrunner.NewOrDie(t, errorCallback))
 	output, err := kadm.TokenCreate(kubeadm.TokenCreateParams{})
 	if err == nil {
 		t.Errorf("expected error: got nil")
@@ -95,24 +88,17 @@ func TestNonZeroExitCodeResultsInError(t *testing.T) {
 	}
 }
 
-func echoCallback(cmd string, args ...string) int {
+func echoCallback(cmd string, args ...string) (string, error) {
 	fullCmd := append([]string{cmd}, args...)
-	fmt.Print(strings.Join(fullCmd, " "))
-	return 0
+	return strings.Join(fullCmd, " "), nil
 }
 
-func tokenCallback(cmd string, args ...string) int {
-	fmt.Print(joinCommand)
-	return 0
+func tokenCallback(cmd string, args ...string) (string, error) {
+	return joinCommand, nil
 }
 
-func errorCallback(cmd string, args ...string) int {
-	fmt.Fprintf(os.Stderr, errorMessage)
-	return errorExitCode
-}
-
-func TestMain(m *testing.M) {
-	test_cmd_runner.TestMain(m)
+func errorCallback(cmd string, args ...string) (string, error) {
+	return errorMessage, errorExitCode
 }
 
 func toDuration(hour int, minute int, second int) time.Duration {

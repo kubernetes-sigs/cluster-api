@@ -14,24 +14,24 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package cmd_runner
+package cmdrunner
 
 import (
 	"os/exec"
 )
 
-type CmdRunner interface {
+type Runner interface {
 	CombinedOutput(cmd string, args ...string) (output string, err error)
 }
 
-type realCmdRunner struct {
+type realRunner struct {
 }
 
-func New() *realCmdRunner {
-	return &realCmdRunner{}
+func New() *realRunner {
+	return &realRunner{}
 }
 
-func (runner *realCmdRunner) CombinedOutput(cmd string, args ...string) (string, error) {
+func (runner *realRunner) CombinedOutput(cmd string, args ...string) (string, error) {
 	output, err := exec.Command(cmd, args...).CombinedOutput()
 	return string(output), err
 }

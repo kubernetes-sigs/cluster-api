@@ -50,8 +50,6 @@ func getPods(c client.Client, namespace string) (*corev1.PodList, error) {
 }
 
 func validatePods(w io.Writer, pods *corev1.PodList, namespace string) error {
-	fmt.Fprintf(w, "Checking pods in namespace %q...", namespace)
-
 	if len(pods.Items) == 0 {
 		fmt.Fprintf(w, "FAIL\n")
 		fmt.Fprintf(w, "\tpods in namespace %q not exist.\n", namespace)

@@ -23,6 +23,7 @@ import (
 
 	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	tcmd "k8s.io/client-go/tools/clientcmd"
 	"sigs.k8s.io/cluster-api/cmd/clusterctl/validation"
 	"sigs.k8s.io/cluster-api/pkg/apis"
@@ -77,7 +78,7 @@ func RunValidateCluster() error {
 	if err := validation.ValidateClusterAPIObjects(context.TODO(), os.Stdout, c, vco.KubeconfigOverrides.Context.Cluster, vco.KubeconfigOverrides.Context.Namespace); err != nil {
 		return err
 	}
-	if err := validation.ValidatePods(os.Stdout, c, "kube-system"); err != nil {
+	if err := validation.ValidatePods(os.Stdout, c, metav1.NamespaceSystem); err != nil {
 		return err
 	}
 

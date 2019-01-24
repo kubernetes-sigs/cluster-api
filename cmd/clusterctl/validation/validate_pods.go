@@ -88,8 +88,10 @@ func validatePods(w io.Writer, pods *corev1.PodList, namespace string) error {
 
 	if len(failures) != 0 {
 		fmt.Fprintf(w, "FAIL\n")
-		fmt.Fprintf(w, "\t[%v]: %s\n", failures[0].name, failures[0].message)
-		return fmt.Errorf("%s", failures[0].message)
+		for _, failure := range failures {
+			fmt.Fprintf(w, "\t[%v]: %s\n", failure.name, failure.message)
+		}
+		return fmt.Errorf("Pod failures in namespace %q found.", namespace)
 	}
 
 	fmt.Fprintf(w, "PASS\n")

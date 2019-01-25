@@ -12,5 +12,8 @@ go_library(
     importmap = "sigs.k8s.io/cluster-api/vendor/sigs.k8s.io/testing_frameworks/integration",
     importpath = "sigs.k8s.io/testing_frameworks/integration",
     visibility = ["//visibility:public"],
-    deps = ["//vendor/sigs.k8s.io/testing_frameworks/integration/internal:go_default_library"],
+    deps = [
+        "//vendor/sigs.k8s.io/testing_frameworks/integration/addr:go_default_library",
+        "//vendor/sigs.k8s.io/testing_frameworks/integration/internal:go_default_library",
+    ],
 )

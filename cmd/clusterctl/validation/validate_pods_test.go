@@ -24,23 +24,6 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-func podWithContainerSpec(podName, namespace, containerName, containerImage string) corev1.Pod {
-	return corev1.Pod{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      podName,
-			Namespace: namespace,
-		},
-		Spec: corev1.PodSpec{
-			Containers: []corev1.Container{
-				{
-					Name:  containerName,
-					Image: containerImage,
-				},
-			},
-		},
-	}
-}
-
 func podWithStatus(podName, namespace string, podPhase corev1.PodPhase, containerReadyStatus bool) corev1.Pod {
 	return corev1.Pod{
 		ObjectMeta: metav1.ObjectMeta{
@@ -119,6 +102,73 @@ func TestValidatePodsWithOnePod(t *testing.T) {
 				Items: []corev1.Pod{
 					podWithStatus("test-pod", "test-namespace", testcase.podPhase, testcase.containerReadyStatus),
 				},
+			}
+
+			var b bytes.Buffer
+			err := validatePods(&b, pods, "test-namespace")
+			if testcase.expectErr && err == nil {
+				t.Errorf("Expect to get error, but got no returned error: %v", b.String())
+			}
+			if !testcase.expectErr && err != nil {
+				t.Errorf("Expect to get no error, but got returned error: %v: %v", err, b.String())
+			}
+		})
+	}
+}
+
+func TestValidatePodsWithNPods(t *testing.T) {
+	var testcases = []struct {
+		name string
+		pods []corev1.Pod
+
+		expectErr bool
+	}{
+		{
+			name: "Pods start with failed pod",
+			pods: []corev1.Pod{
+				podWithStatus("test-pod-1", "test-namespace", corev1.PodFailed, false),
+				podWithStatus("test-pod-2", "test-namespace", corev1.PodRunning, true),
+			},
+			expectErr: true,
+		},
+		{
+			name: "Pods end with failed pod",
+			pods: []corev1.Pod{
+				podWithStatus("test-pod-1", "test-namespace", corev1.PodRunning, true),
+				podWithStatus("test-pod-2", "test-namespace", corev1.PodFailed, false),
+			},
+			expectErr: true,
+		},
+		{
+			name: "Pods include pod with non-ready container",
+			pods: []corev1.Pod{
+				podWithStatus("test-pod-1", "test-namespace", corev1.PodRunning, false),
+				podWithStatus("test-pod-2", "test-namespace", corev1.PodRunning, true),
+			},
+			expectErr: true,
+		},
+		{
+			name: "Pods are all failing",
+			pods: []corev1.Pod{
+				podWithStatus("test-pod-1", "test-namespace", corev1.PodFailed, false),
+				podWithStatus("test-pod-2", "test-namespace", corev1.PodFailed, false),
+			},
+			expectErr: true,
+		},
+		{
+			name: "Pods are all ready",
+			pods: []corev1.Pod{
+				podWithStatus("test-pod-1", "test-namespace", corev1.PodRunning, true),
+				podWithStatus("test-pod-2", "test-namespace", corev1.PodRunning, true),
+			},
+			expectErr: false,
+		},
+	}
+
+	for _, testcase := range testcases {
+		t.Run(testcase.name, func(t *testing.T) {
+			pods := &corev1.PodList{
+				Items: testcase.pods,
 			}
 
 			var b bytes.Buffer

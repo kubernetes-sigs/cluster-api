@@ -78,7 +78,7 @@ func RunValidateCluster() error {
 	if err := validation.ValidateClusterAPIObjects(context.TODO(), os.Stdout, c, vco.KubeconfigOverrides.Context.Cluster, vco.KubeconfigOverrides.Context.Namespace); err != nil {
 		return err
 	}
-	if err := validation.ValidatePods(os.Stdout, c, metav1.NamespaceSystem); err != nil {
+	if err := validation.ValidatePods(context.TODO(), os.Stdout, c, metav1.NamespaceSystem); err != nil {
 		return err
 	}
 

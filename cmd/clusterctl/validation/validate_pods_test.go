@@ -1,5 +1,5 @@
 /*
-Copyright 2018 The Kubernetes Authors.
+Copyright 2019 The Kubernetes Authors.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -20,14 +20,11 @@ import (
 	"bytes"
 	"testing"
 
-	"golang.org/x/net/context"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"sigs.k8s.io/cluster-api/pkg/apis/cluster/v1alpha1/testutil"
-	"sigs.k8s.io/controller-runtime/pkg/manager"
 )
 
-func getPodWithContainerSpec(podName, namespace, containerName, containerImage string) corev1.Pod {
+func podWithContainerSpec(podName, namespace, containerName, containerImage string) corev1.Pod {
 	return corev1.Pod{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      podName,
@@ -44,7 +41,7 @@ func getPodWithContainerSpec(podName, namespace, containerName, containerImage s
 	}
 }
 
-func getPodWithStatus(podName, namespace string, podPhase corev1.PodPhase, containerReadyStatus bool) corev1.Pod {
+func podWithStatus(podName, namespace string, podPhase corev1.PodPhase, containerReadyStatus bool) corev1.Pod {
 	return corev1.Pod{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      podName,
@@ -62,39 +59,8 @@ func getPodWithStatus(podName, namespace string, podPhase corev1.PodPhase, conta
 	}
 }
 
-func TestGetPods(t *testing.T) {
-	// Setup the Manager and Controller.
-	mgr, err := manager.New(cfg, manager.Options{})
-	if err != nil {
-		t.Fatalf("error creating new manager: %v", err)
-	}
-	c = mgr.GetClient()
-	defer close(StartTestManager(mgr, t))
-
-	const testClusterName = "test-cluster"
-	const testNamespace = "get-pods"
-	cluster := testutil.GetVanillaCluster()
-	cluster.Name = testClusterName
-	cluster.Namespace = testNamespace
-	if err := c.Create(context.TODO(), &cluster); err != nil {
-		t.Fatalf("error creating cluster: %v", err)
-	}
-	defer c.Delete(context.TODO(), &cluster)
-
-	pod := getPodWithContainerSpec("test-pod", testNamespace, "test-container", "test-image")
-	if err := c.Create(context.TODO(), &pod); err != nil {
-		t.Fatalf("Error creating pod: %v", err)
-	}
-
-	if pods, _ := getPods(c, testNamespace); len(pods.Items) != 1 {
-		t.Fatalf("Expect to get one pod but get none")
-	}
-}
-
 func TestValidatePodsWithNoPod(t *testing.T) {
-	pods := &corev1.PodList{
-		Items: []corev1.Pod{},
-	}
+	pods := &corev1.PodList{Items: []corev1.Pod{}}
 
 	var b bytes.Buffer
 	if err := validatePods(&b, pods, "test-namespace"); err == nil {
@@ -151,7 +117,7 @@ func TestValidatePodsWithOnePod(t *testing.T) {
 		t.Run(testcase.name, func(t *testing.T) {
 			pods := &corev1.PodList{
 				Items: []corev1.Pod{
-					getPodWithStatus("test-pod", "test-namespace", testcase.podPhase, testcase.containerReadyStatus),
+					podWithStatus("test-pod", "test-namespace", testcase.podPhase, testcase.containerReadyStatus),
 				},
 			}
 

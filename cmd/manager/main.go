@@ -31,6 +31,7 @@ import (
 
 func main() {
 	klog.InitFlags(nil)
+	flag.Set("logtostderr", "true")
 	flag.Parse()
 
 	// Get a config to talk to the apiserver

@@ -29,6 +29,9 @@ var RootCmd = &cobra.Command{
 	Use:   "clusterctl",
 	Short: "cluster management",
 	Long:  `Simple kubernetes cluster management`,
+	PersistentPreRun: func(cmd *cobra.Command, args []string) {
+		cmd.Flags().Set("logtostderr", "true")
+	},
 	Run: func(cmd *cobra.Command, args []string) {
 		// Do Stuff Here
 		cmd.Help()

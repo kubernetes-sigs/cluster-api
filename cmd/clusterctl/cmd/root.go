@@ -50,6 +50,6 @@ func exitWithHelp(cmd *cobra.Command, err string) {
 
 func init() {
 	klog.InitFlags(flag.CommandLine)
+	klog.SetOutput(os.Stdout)
 	RootCmd.PersistentFlags().AddGoFlagSet(flag.CommandLine)
-	InitLogs()
 }

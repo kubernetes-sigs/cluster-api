@@ -30,16 +30,8 @@ import (
 )
 
 func main() {
-	klogFlags := flag.NewFlagSet("klog", flag.ExitOnError)
-	klog.InitFlags(klogFlags)
+	klog.InitFlags(nil)
 	flag.Parse()
-	flag.VisitAll(func(f1 *flag.Flag) {
-		f2 := klogFlags.Lookup(f1.Name)
-		if f2 != nil {
-			value := f1.Value.String()
-			f2.Value.Set(value)
-		}
-	})
 
 	// Get a config to talk to the apiserver
 	cfg, err := config.GetConfig()

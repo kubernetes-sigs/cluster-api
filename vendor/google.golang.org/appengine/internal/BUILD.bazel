@@ -5,11 +5,11 @@ go_library(
     srcs = [
         "api.go",
         "api_common.go",
-        "api_pre17.go",
         "app_id.go",
         "identity.go",
         "identity_vm.go",
         "internal.go",
+        "main_common.go",
         "main_vm.go",
         "metadata.go",
         "net.go",

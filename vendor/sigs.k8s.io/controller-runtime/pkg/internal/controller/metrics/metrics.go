@@ -22,31 +22,33 @@ import (
 )
 
 var (
-	// QueueLength is a prometheus metric which counts the current reconcile
-	// queue length per controller
-	QueueLength = prometheus.NewGaugeVec(prometheus.GaugeOpts{
-		Name: "controller_runtime_reconcile_queue_length",
-		Help: "Length of reconcile queue per controller",
-	}, []string{"controller"})
+	// ReconcileTotal is a prometheus counter metrics which holds the total
+	// number of reconciliations per controller. It has two labels. controller label refers
+	// to the controller name and result label refers to the reconcile result i.e
+	// success, error, requeue, requeue_after
+	ReconcileTotal = prometheus.NewCounterVec(prometheus.CounterOpts{
+		Name: "controller_runtime_reconcile_total",
+		Help: "Total number of reconciliations per controller",
+	}, []string{"controller", "result"})
 
 	// ReconcileErrors is a prometheus counter metrics which holds the total
 	// number of errors from the Reconciler
 	ReconcileErrors = prometheus.NewCounterVec(prometheus.CounterOpts{
 		Name: "controller_runtime_reconcile_errors_total",
-		Help: "Total number of reconcile errors per controller",
+		Help: "Total number of reconciliation errors per controller",
 	}, []string{"controller"})
 
 	// ReconcileTime is a prometheus metric which keeps track of the duration
-	// of reconciles
+	// of reconciliations
 	ReconcileTime = prometheus.NewHistogramVec(prometheus.HistogramOpts{
 		Name: "controller_runtime_reconcile_time_seconds",
-		Help: "Length of time per reconcile per controller",
+		Help: "Length of time per reconciliation per controller",
 	}, []string{"controller"})
 )
 
 func init() {
 	metrics.Registry.MustRegister(
-		QueueLength,
+		ReconcileTotal,
 		ReconcileErrors,
 		ReconcileTime,
 		// expose process metrics like CPU, Memory, file descriptor usage etc.

@@ -16,7 +16,7 @@ import (
 )
 
 // baseAcronyms comes from https://en.wikipedia.org/wiki/List_of_information_technology_acronymss
-const baseAcronyms = `JSON,JWT,ID,UUID,SQL,ACK,ACL,ADSL,AES,ANSI,API,ARP,ATM,BGP,BSS,CAT,CCITT,CHAP,CIDR,CIR,CLI,CPE,CPU,CRC,CRT,CSMA,CMOS,DCE,DEC,DES,DHCP,DNS,DRAM,DSL,DSLAM,DTE,DMI,EHA,EIA,EIGRP,EOF,ESS,FCC,FCS,FDDI,FTP,GBIC,gbps,GEPOF,HDLC,HTTP,HTTPS,IANA,ICMP,IDF,IDS,IEEE,IETF,IMAP,IP,IPS,ISDN,ISP,kbps,LACP,LAN,LAPB,LAPF,LLC,MAC,MAN,Mbps,MC,MDF,MIB,MoCA,MPLS,MTU,NAC,NAT,NBMA,NIC,NRZ,NRZI,NVRAM,OSI,OSPF,OUI,PAP,PAT,PC,PIM,PIM,PCM,PDU,POP3,POP,POST,POTS,PPP,PPTP,PTT,PVST,RADIUS,RAM,RARP,RFC,RIP,RLL,ROM,RSTP,RTP,RCP,SDLC,SFD,SFP,SLARP,SLIP,SMTP,SNA,SNAP,SNMP,SOF,SRAM,SSH,SSID,STP,SYN,TDM,TFTP,TIA,TOFU,UDP,URL,URI,USB,UTP,VC,VLAN,VLSM,VPN,W3C,WAN,WEP,WiFi,WPA,WWW`
+const baseAcronyms = `JSON,JWT,ID,UUID,SQL,ACK,ACL,ADSL,AES,ANSI,API,ARP,ATM,BGP,BSS,CAT,CCITT,CHAP,CIDR,CIR,CLI,CPE,CPU,CRC,CRT,CSMA,CMOS,DCE,DEC,DES,DHCP,DNS,DRAM,DSL,DSLAM,DTE,DMI,EHA,EIA,EIGRP,EOF,ESS,FCC,FCS,FDDI,FTP,GBIC,gbps,GEPOF,HDLC,HTTP,HTTPS,IANA,ICMP,IDF,IDS,IEEE,IETF,IMAP,IP,IPS,ISDN,ISP,kbps,LACP,LAN,LAPB,LAPF,LLC,MAC,MAN,Mbps,MC,MDF,MIB,MoCA,MPLS,MTU,NAC,NAT,NBMA,NIC,NRZ,NRZI,NVRAM,OSI,OSPF,OUI,PAP,PAT,PC,PIM,PIM,PCM,PDU,POP3,POP,POTS,PPP,PPTP,PTT,PVST,RADIUS,RAM,RARP,RFC,RIP,RLL,ROM,RSTP,RTP,RCP,SDLC,SFD,SFP,SLARP,SLIP,SMTP,SNA,SNAP,SNMP,SOF,SRAM,SSH,SSID,STP,SYN,TDM,TFTP,TIA,TOFU,UDP,URL,URI,USB,UTP,VC,VLAN,VLSM,VPN,W3C,WAN,WEP,WiFi,WPA,WWW`
 
 // Rule used by rulesets
 type Rule struct {
@@ -53,6 +53,7 @@ func NewRuleset() *Ruleset {
 // set of common English pluralization rules
 func NewDefaultRuleset() *Ruleset {
 	rs := NewRuleset()
+	rs.AddPlural("movie", "movies")
 	rs.AddPlural("s", "s")
 	rs.AddPlural("testis", "testes")
 	rs.AddPlural("axis", "axes")
@@ -155,6 +156,7 @@ func NewDefaultRuleset() *Ruleset {
 	rs.AddSingular("theses", "thesis")
 	rs.AddSingular("analyses", "analysis")
 	rs.AddSingularExact("analysis", "analysis", true)
+	rs.AddSingular("ovies", "ovie")
 	rs.AddSingular("aves", "afe")
 	rs.AddSingular("bves", "bfe")
 	rs.AddSingular("cves", "cfe")
@@ -201,12 +203,11 @@ func NewDefaultRuleset() *Ruleset {
 	rs.AddSingular("ries", "ry")
 	rs.AddSingular("sies", "sy")
 	rs.AddSingular("ties", "ty")
-	rs.AddSingular("vies", "vy")
+	// rs.AddSingular("vies", "vy")
 	rs.AddSingular("wies", "wy")
 	rs.AddSingular("xies", "xy")
 	rs.AddSingular("zies", "zy")
 	rs.AddSingular("series", "series")
-	rs.AddSingular("movies", "movie")
 	rs.AddSingular("xes", "x")
 	rs.AddSingular("ches", "ch")
 	rs.AddSingular("sses", "ss")
@@ -252,6 +253,7 @@ func NewDefaultRuleset() *Ruleset {
 	rs.AddIrregular("Status", "Statuses")
 	rs.AddIrregular("status", "statuses")
 	rs.AddIrregular("campus", "campuses")
+	rs.AddIrregular("human", "humans")
 	rs.AddUncountable("equipment")
 	rs.AddUncountable("information")
 	rs.AddUncountable("rice")

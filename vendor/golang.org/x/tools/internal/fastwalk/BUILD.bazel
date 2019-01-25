@@ -6,6 +6,8 @@ go_library(
         "fastwalk.go",
         "fastwalk_dirent_fileno.go",
         "fastwalk_dirent_ino.go",
+        "fastwalk_dirent_namlen_bsd.go",
+        "fastwalk_dirent_namlen_linux.go",
         "fastwalk_portable.go",
         "fastwalk_unix.go",
     ],

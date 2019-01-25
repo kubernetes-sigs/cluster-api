@@ -31,6 +31,11 @@ const (
 	kindClusterName  = "clusterapi"
 )
 
+var (
+	// ignoredOptions lists the options not supported by delete and kubeconfig-path.
+	ignoredOptions = []string{"config", "image", "retain"}
+)
+
 type Kind struct {
 	options []string
 	// execFunc implemented as function variable for testing hooks
@@ -72,7 +77,14 @@ func (k *Kind) Create() error {
 
 func (k *Kind) Delete() error {
 	args := []string{"delete", "cluster"}
+
+outer:
 	for _, opt := range k.options {
+		for _, ignoredOption := range ignoredOptions {
+			if strings.HasPrefix(opt, ignoredOption) {
+				continue outer
+			}
+		}
 		args = append(args, fmt.Sprintf("--%v", opt))
 	}
 
@@ -96,7 +108,14 @@ func (k *Kind) GetKubeconfig() (string, error) {
 
 func (k *Kind) getKubeConfigPath() (string, error) {
 	args := []string{"get", "kubeconfig-path"}
+
+outer:
 	for _, opt := range k.options {
+		for _, ignoredOption := range ignoredOptions {
+			if strings.HasPrefix(opt, ignoredOption) {
+				continue outer
+			}
+		}
 		args = append(args, fmt.Sprintf("--%v", opt))
 	}
 

@@ -29,6 +29,9 @@ var RootCmd = &cobra.Command{
 	Use:   "clusterctl",
 	Short: "cluster management",
 	Long:  `Simple kubernetes cluster management`,
+	PersistentPreRun: func(cmd *cobra.Command, args []string) {
+		cmd.Flags().Set("logtostderr", "true")
+	},
 	Run: func(cmd *cobra.Command, args []string) {
 		// Do Stuff Here
 		cmd.Help()
@@ -50,6 +53,7 @@ func exitWithHelp(cmd *cobra.Command, err string) {
 
 func init() {
 	klog.InitFlags(flag.CommandLine)
+	flag.CommandLine.Set("logtostderr", "true")
 	RootCmd.PersistentFlags().AddGoFlagSet(flag.CommandLine)
 	InitLogs()
 }

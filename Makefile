@@ -65,6 +65,8 @@ manifests: ## Generate manifests e.g. CRD, RBAC etc.
 	go run vendor/sigs.k8s.io/controller-tools/cmd/controller-gen/main.go all
 	cp -f ./config/rbac/rbac*.yaml ./config/ci/rbac/
 	cp -f ./config/manager/manager*.yaml ./config/ci/manager/
+	go run vendor/sigs.k8s.io/controller-tools/cmd/controller-gen/main.go crd --domain openshift.io
+	git checkout config/crds/cluster_v1alpha1_*
 
 .PHONY: fmt
 fmt: ## Run go fmt against code

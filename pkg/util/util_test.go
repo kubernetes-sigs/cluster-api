@@ -26,16 +26,121 @@ const validCluster = `
 apiVersion: "cluster.k8s.io/v1alpha1"
 kind: Cluster
 metadata:
-  name: cluster1 
+  name: cluster1
 spec:`
 
-const validMachines = `
+const validMachines1 = `
 items:
 - apiVersion: "cluster.k8s.io/v1alpha1"
   kind: Machine
   metadata:
     name: machine1
   spec:`
+
+const validMachines2 = `
+---
+apiVersion: "cluster.k8s.io/v1alpha1"
+kind: Machine
+metadata:
+  name: machine1
+---
+apiVersion: "cluster.k8s.io/v1alpha1"
+kind: Machine
+metadata:
+  name: machine2`
+
+const validMachines3 = `
+items:
+- metadata:
+    name: machine1
+  spec:
+- metadata:
+    name: machine2
+`
+
+const validUnified1 = `
+apiVersion: "cluster.k8s.io/v1alpha1"
+kind: Cluster
+metadata:
+  name: cluster1
+---
+apiVersion: "cluster.k8s.io/v1alpha1"
+kind: MachineList
+items:
+- apiVersion: "cluster.k8s.io/v1alpha1"
+  kind: Machine
+  metadata:
+    name: machine1`
+
+const validUnified2 = `
+apiVersion: "cluster.k8s.io/v1alpha1"
+kind: Cluster
+metadata:
+  name: cluster1
+---
+apiVersion: "cluster.k8s.io/v1alpha1"
+kind: Machine
+metadata:
+  name: machine1
+---
+apiVersion: "cluster.k8s.io/v1alpha1"
+kind: Machine
+metadata:
+  name: machine2`
+
+const validUnified3 = `
+apiVersion: v1
+data:
+  cluster_name: cluster1
+  cluster_network_pods_cidrBlock: 192.168.0.0/16
+  cluster_network_services_cidrBlock: 10.96.0.0/12
+  cluster_sshKeyName: default
+kind: ConfigMap
+metadata:
+  name: cluster-api-shared-configuration
+  namespace: cluster-api-test
+---
+apiVersion: "cluster.k8s.io/v1alpha1"
+kind: Cluster
+metadata:
+  name: cluster1
+---
+apiVersion: "cluster.k8s.io/v1alpha1"
+kind: Machine
+metadata:
+  name: machine1
+---
+apiVersion: "cluster.k8s.io/v1alpha1"
+kind: Machine
+metadata:
+  name: machine2`
+
+const validUnified4 = `
+apiVersion: v1
+data:
+  cluster_name: cluster1
+  cluster_network_pods_cidrBlock: 192.168.0.0/16
+  cluster_network_services_cidrBlock: 10.96.0.0/12
+  cluster_sshKeyName: default
+kind: ConfigMap
+metadata:
+  name: cluster-api-shared-configuration
+  namespace: cluster-api-test
+---
+apiVersion: "cluster.k8s.io/v1alpha1"
+kind: Cluster
+metadata:
+  name: cluster1
+---
+apiVersion: "cluster.k8s.io/v1alpha1"
+kind: MachineList
+items:
+- metadata:
+    name: machine1
+  spec:
+- metadata:
+    name: machine2
+`
 
 func TestParseClusterYaml(t *testing.T) {
 	t.Run("File does not exist", func(t *testing.T) {
@@ -53,6 +158,26 @@ func TestParseClusterYaml(t *testing.T) {
 		{
 			name:         "valid file",
 			contents:     validCluster,
+			expectedName: "cluster1",
+		},
+		{
+			name:         "valid unified file with machine list",
+			contents:     validUnified1,
+			expectedName: "cluster1",
+		},
+		{
+			name:         "valid unified file with separate machines",
+			contents:     validUnified2,
+			expectedName: "cluster1",
+		},
+		{
+			name:         "valid unified file with separate machines and a configmap",
+			contents:     validUnified3,
+			expectedName: "cluster1",
+		},
+		{
+			name:         "valid unified file with machinelist (only with type info) and a configmap",
+			contents:     validUnified4,
 			expectedName: "cluster1",
 		},
 		{
@@ -100,13 +225,43 @@ func TestParseMachineYaml(t *testing.T) {
 		expectedMachineCount int
 	}{
 		{
-			name:                 "valid file",
-			contents:             validMachines,
+			name:                 "valid file using MachineList",
+			contents:             validMachines1,
 			expectedMachineCount: 1,
 		},
 		{
+			name:                 "valid file using Machines",
+			contents:             validMachines2,
+			expectedMachineCount: 2,
+		},
+		{
+			name:                 "valid file using MachineList without type info",
+			contents:             validMachines3,
+			expectedMachineCount: 2,
+		},
+		{
+			name:                 "valid unified file with machine list",
+			contents:             validUnified1,
+			expectedMachineCount: 1,
+		},
+		{
+			name:                 "valid unified file with separate machines",
+			contents:             validUnified2,
+			expectedMachineCount: 2,
+		},
+		{
+			name:                 "valid unified file with separate machines and a configmap",
+			contents:             validUnified3,
+			expectedMachineCount: 2,
+		},
+		{
+			name:                 "valid unified file with machinelist (only with type info) and a configmap",
+			contents:             validUnified4,
+			expectedMachineCount: 2,
+		},
+		{
 			name:      "gibberish in file",
-			contents:  `blah ` + validMachines + ` blah`,
+			contents:  `blah ` + validMachines1 + ` blah`,
 			expectErr: true,
 		},
 	}

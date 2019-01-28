@@ -20,7 +20,6 @@ import (
 	"context"
 	"fmt"
 	"io"
-	"k8s.io/apimachinery/pkg/util/json"
 	"math/rand"
 	"os"
 	"os/exec"
@@ -31,6 +30,7 @@ import (
 	v1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
+	"k8s.io/apimachinery/pkg/util/json"
 	"k8s.io/apimachinery/pkg/util/yaml"
 	"k8s.io/klog"
 	clusterv1 "sigs.k8s.io/cluster-api/pkg/apis/cluster/v1alpha1"
@@ -241,7 +241,10 @@ func ParseMachinesYaml(file string) ([]*clusterv1.Machine, error) {
 	// Will reread the file to find items which aren't a list.
 	// TODO: Make the Kind field mandatory on machines.yaml and then use the
 	// universal decoder instead of doing this.
-	reader.Seek(0, 0)
+	if _, err := reader.Seek(0, 0); err != nil {
+		return nil, err
+	}
+
 	bytes, err := decodeClusterV1Kinds(decoder, "Machine")
 
 	// Original set of MachineLists did not have Kind field

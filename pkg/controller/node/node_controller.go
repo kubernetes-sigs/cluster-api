@@ -78,7 +78,7 @@ type ReconcileNode struct {
 // Reconcile reads that state of the cluster for a Node object and makes changes based on the state read
 // and what is in the Node.Spec
 // +kubebuilder:rbac:groups=core,resources=nodes,verbs=get;list;watch;create;update;patch;delete
-// +kubebuilder:rbac:groups=cluster.k8s.io,resources=machines,verbs=get;list;watch;create;update;patch;delete
+// +kubebuilder:rbac:groups=machine.openshift.io,resources=machines,verbs=get;list;watch;create;update;patch;delete
 func (r *ReconcileNode) Reconcile(request reconcile.Request) (reconcile.Result, error) {
 	// Fetch the Node instance
 	instance := &corev1.Node{}

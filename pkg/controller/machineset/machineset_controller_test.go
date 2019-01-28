@@ -23,7 +23,7 @@ import (
 	"golang.org/x/net/context"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
-	clusterv1alpha1 "sigs.k8s.io/cluster-api/pkg/apis/cluster/v1alpha1"
+	clusterv1beta1 "sigs.k8s.io/cluster-api/pkg/apis/machine/v1beta1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/manager"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
@@ -37,13 +37,13 @@ const timeout = time.Second * 5
 
 func TestReconcile(t *testing.T) {
 	replicas := int32(2)
-	instance := &clusterv1alpha1.MachineSet{
+	instance := &clusterv1beta1.MachineSet{
 		ObjectMeta: metav1.ObjectMeta{Name: "foo", Namespace: "default"},
-		Spec: clusterv1alpha1.MachineSetSpec{
+		Spec: clusterv1beta1.MachineSetSpec{
 			Replicas: &replicas,
-			Template: clusterv1alpha1.MachineTemplateSpec{
-				Spec: clusterv1alpha1.MachineSpec{
-					Versions: clusterv1alpha1.MachineVersionInfo{Kubelet: "1.10.3"},
+			Template: clusterv1beta1.MachineTemplateSpec{
+				Spec: clusterv1beta1.MachineSpec{
+					Versions: clusterv1beta1.MachineVersionInfo{Kubelet: "1.10.3"},
 				},
 			},
 		},
@@ -78,7 +78,7 @@ func TestReconcile(t *testing.T) {
 		t.Error("timed out waiting for request")
 	}
 
-	machines := &clusterv1alpha1.MachineList{}
+	machines := &clusterv1beta1.MachineList{}
 
 	// TODO(joshuarubin) there seems to be a race here. If expectInt sleeps
 	// briefly, even 10ms, the number of replicas is 4 and not 2 as expected

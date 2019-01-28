@@ -23,12 +23,13 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/util/integer"
 	"k8s.io/klog"
-	"sigs.k8s.io/cluster-api/pkg/apis/cluster/v1alpha1"
+	"sigs.k8s.io/cluster-api/pkg/apis/machine/v1beta1"
+
 	dutil "sigs.k8s.io/cluster-api/pkg/controller/machinedeployment/util"
 )
 
 // rolloutRolling implements the logic for rolling a new machine set.
-func (r *ReconcileMachineDeployment) rolloutRolling(d *v1alpha1.MachineDeployment, msList []*v1alpha1.MachineSet, machineMap map[types.UID]*v1alpha1.MachineList) error {
+func (r *ReconcileMachineDeployment) rolloutRolling(d *v1beta1.MachineDeployment, msList []*v1beta1.MachineSet, machineMap map[types.UID]*v1beta1.MachineList) error {
 	newMS, oldMSs, err := r.getAllMachineSetsAndSyncRevision(d, msList, machineMap, true)
 	if err != nil {
 		return err
@@ -70,7 +71,7 @@ func (r *ReconcileMachineDeployment) rolloutRolling(d *v1alpha1.MachineDeploymen
 	return nil
 }
 
-func (r *ReconcileMachineDeployment) reconcileNewMachineSet(allMSs []*v1alpha1.MachineSet, newMS *v1alpha1.MachineSet, deployment *v1alpha1.MachineDeployment) error {
+func (r *ReconcileMachineDeployment) reconcileNewMachineSet(allMSs []*v1beta1.MachineSet, newMS *v1beta1.MachineSet, deployment *v1beta1.MachineDeployment) error {
 	if deployment.Spec.Replicas == nil {
 		return errors.Errorf("spec replicas for deployment set %v is nil, this is unexpected", deployment.Name)
 	}
@@ -98,7 +99,7 @@ func (r *ReconcileMachineDeployment) reconcileNewMachineSet(allMSs []*v1alpha1.M
 	return err
 }
 
-func (r *ReconcileMachineDeployment) reconcileOldMachineSets(allMSs []*v1alpha1.MachineSet, oldMSs []*v1alpha1.MachineSet, newMS *v1alpha1.MachineSet, deployment *v1alpha1.MachineDeployment) error {
+func (r *ReconcileMachineDeployment) reconcileOldMachineSets(allMSs []*v1beta1.MachineSet, oldMSs []*v1beta1.MachineSet, newMS *v1beta1.MachineSet, deployment *v1beta1.MachineDeployment) error {
 	if deployment.Spec.Replicas == nil {
 		return errors.Errorf("spec replicas for deployment set %v is nil, this is unexpected", deployment.Name)
 	}
@@ -175,7 +176,7 @@ func (r *ReconcileMachineDeployment) reconcileOldMachineSets(allMSs []*v1alpha1.
 }
 
 // cleanupUnhealthyReplicas will scale down old machine sets with unhealthy replicas, so that all unhealthy replicas will be deleted.
-func (r *ReconcileMachineDeployment) cleanupUnhealthyReplicas(oldMSs []*v1alpha1.MachineSet, deployment *v1alpha1.MachineDeployment, maxCleanupCount int32) ([]*v1alpha1.MachineSet, int32, error) {
+func (r *ReconcileMachineDeployment) cleanupUnhealthyReplicas(oldMSs []*v1beta1.MachineSet, deployment *v1beta1.MachineDeployment, maxCleanupCount int32) ([]*v1beta1.MachineSet, int32, error) {
 	sort.Sort(dutil.MachineSetsByCreationTimestamp(oldMSs))
 
 	// Safely scale down all old machine sets with unhealthy replicas. Replica set will sort the machines in the order
@@ -225,7 +226,7 @@ func (r *ReconcileMachineDeployment) cleanupUnhealthyReplicas(oldMSs []*v1alpha1
 
 // scaleDownOldMachineSetsForRollingUpdate scales down old machine sets when deployment strategy is "RollingUpdate".
 // Need check maxUnavailable to ensure availability
-func (r *ReconcileMachineDeployment) scaleDownOldMachineSetsForRollingUpdate(allMSs []*v1alpha1.MachineSet, oldMSs []*v1alpha1.MachineSet, deployment *v1alpha1.MachineDeployment) (int32, error) {
+func (r *ReconcileMachineDeployment) scaleDownOldMachineSetsForRollingUpdate(allMSs []*v1beta1.MachineSet, oldMSs []*v1beta1.MachineSet, deployment *v1beta1.MachineDeployment) (int32, error) {
 	if deployment.Spec.Replicas == nil {
 		return 0, errors.Errorf("spec replicas for deployment %v is nil, this is unexpected", deployment.Name)
 	}

@@ -25,7 +25,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/klog"
-	clusterv1 "sigs.k8s.io/cluster-api/pkg/apis/cluster/v1alpha1"
+	machinev1 "sigs.k8s.io/cluster-api/pkg/apis/machine/v1beta1"
 	controllerError "sigs.k8s.io/cluster-api/pkg/controller/error"
 	"sigs.k8s.io/cluster-api/pkg/util"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -72,7 +72,7 @@ func add(mgr manager.Manager, r reconcile.Reconciler) error {
 
 	// Watch for changes to Machine
 	return c.Watch(
-		&source.Kind{Type: &clusterv1.Machine{}},
+		&source.Kind{Type: &machinev1.Machine{}},
 		&handler.EnqueueRequestForObject{},
 	)
 }
@@ -90,13 +90,13 @@ type ReconcileMachine struct {
 
 // Reconcile reads that state of the cluster for a Machine object and makes changes based on the state read
 // and what is in the Machine.Spec
-// +kubebuilder:rbac:groups=cluster.k8s.io,resources=machines;machines/status,verbs=get;list;watch;create;update;patch;delete
+// +kubebuilder:rbac:groups=machine.openshift.io,resources=machines;machines/status,verbs=get;list;watch;create;update;patch;delete
 func (r *ReconcileMachine) Reconcile(request reconcile.Request) (reconcile.Result, error) {
 	// TODO(mvladev): Can context be passed from Kubebuilder?
 	ctx := context.TODO()
 
 	// Fetch the Machine instance
-	m := &clusterv1.Machine{}
+	m := &machinev1.Machine{}
 	if err := r.Client.Get(ctx, request.NamespacedName, m); err != nil {
 		if apierrors.IsNotFound(err) {
 			// Object not found, return.  Created objects are automatically garbage collected.
@@ -140,8 +140,8 @@ func (r *ReconcileMachine) Reconcile(request reconcile.Request) (reconcile.Resul
 			m.Finalizers = append(m.ObjectMeta.Finalizers, metav1.FinalizerDeleteDependents)
 		}
 
-		if !util.Contains(m.Finalizers, clusterv1.MachineFinalizer) {
-			m.Finalizers = append(m.ObjectMeta.Finalizers, clusterv1.MachineFinalizer)
+		if !util.Contains(m.Finalizers, machinev1.MachineFinalizer) {
+			m.Finalizers = append(m.ObjectMeta.Finalizers, machinev1.MachineFinalizer)
 		}
 
 		if len(m.Finalizers) > finalizerCount {
@@ -157,7 +157,7 @@ func (r *ReconcileMachine) Reconcile(request reconcile.Request) (reconcile.Resul
 
 	if !m.ObjectMeta.DeletionTimestamp.IsZero() {
 		// no-op if finalizer has been removed.
-		if !util.Contains(m.ObjectMeta.Finalizers, clusterv1.MachineFinalizer) {
+		if !util.Contains(m.ObjectMeta.Finalizers, machinev1.MachineFinalizer) {
 			klog.Infof("Reconciling machine %q causes a no-op as there is no finalizer", name)
 			return reconcile.Result{}, nil
 		}
@@ -187,7 +187,7 @@ func (r *ReconcileMachine) Reconcile(request reconcile.Request) (reconcile.Resul
 		}
 
 		// Remove finalizer on successful deletion.
-		m.ObjectMeta.Finalizers = util.Filter(m.ObjectMeta.Finalizers, clusterv1.MachineFinalizer)
+		m.ObjectMeta.Finalizers = util.Filter(m.ObjectMeta.Finalizers, machinev1.MachineFinalizer)
 		if err := r.Client.Update(context.Background(), m); err != nil {
 			klog.Errorf("Failed to remove finalizer from machine %q: %v", name, err)
 			return reconcile.Result{}, err
@@ -233,16 +233,16 @@ func (r *ReconcileMachine) Reconcile(request reconcile.Request) (reconcile.Resul
 	return reconcile.Result{}, nil
 }
 
-func (r *ReconcileMachine) getCluster(ctx context.Context, machine *clusterv1.Machine) (*clusterv1.Cluster, error) {
-	if machine.Labels[clusterv1.MachineClusterLabelName] == "" {
-		klog.Infof("Machine %q in namespace %q doesn't specify %q label, assuming nil cluster", machine.Name, clusterv1.MachineClusterLabelName, machine.Namespace)
+func (r *ReconcileMachine) getCluster(ctx context.Context, machine *machinev1.Machine) (*machinev1.Cluster, error) {
+	if machine.Labels[machinev1.MachineClusterLabelName] == "" {
+		klog.Infof("Machine %q in namespace %q doesn't specify %q label, assuming nil cluster", machine.Name, machinev1.MachineClusterLabelName, machine.Namespace)
 		return nil, nil
 	}
 
-	cluster := &clusterv1.Cluster{}
+	cluster := &machinev1.Cluster{}
 	key := client.ObjectKey{
 		Namespace: machine.Namespace,
-		Name:      machine.Labels[clusterv1.MachineClusterLabelName],
+		Name:      machine.Labels[machinev1.MachineClusterLabelName],
 	}
 
 	if err := r.Client.Get(ctx, key, cluster); err != nil {
@@ -252,7 +252,7 @@ func (r *ReconcileMachine) getCluster(ctx context.Context, machine *clusterv1.Ma
 	return cluster, nil
 }
 
-func (r *ReconcileMachine) isDeleteAllowed(machine *clusterv1.Machine) bool {
+func (r *ReconcileMachine) isDeleteAllowed(machine *machinev1.Machine) bool {
 	if r.nodeName == "" || machine.Status.NodeRef == nil {
 		return true
 	}

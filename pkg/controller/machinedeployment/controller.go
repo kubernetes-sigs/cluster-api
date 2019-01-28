@@ -29,8 +29,8 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/tools/record"
 	"k8s.io/klog"
-	"sigs.k8s.io/cluster-api/pkg/apis/cluster/common"
-	"sigs.k8s.io/cluster-api/pkg/apis/cluster/v1alpha1"
+	"sigs.k8s.io/cluster-api/pkg/apis/machine/common"
+	"sigs.k8s.io/cluster-api/pkg/apis/machine/v1beta1"
 	"sigs.k8s.io/cluster-api/pkg/util"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
@@ -42,7 +42,7 @@ import (
 
 var (
 	// controllerKind contains the schema.GroupVersionKind for this controller type.
-	controllerKind = v1alpha1.SchemeGroupVersion.WithKind("MachineDeployment")
+	controllerKind = v1beta1.SchemeGroupVersion.WithKind("MachineDeployment")
 )
 
 // controllerName is the name of this controller
@@ -76,7 +76,7 @@ func add(mgr manager.Manager, r reconcile.Reconciler, mapFn handler.ToRequestsFu
 
 	// Watch for changes to MachineDeployment.
 	err = c.Watch(&source.Kind{
-		Type: &v1alpha1.MachineDeployment{}},
+		Type: &v1beta1.MachineDeployment{}},
 		&handler.EnqueueRequestForObject{},
 	)
 	if err != nil {
@@ -85,8 +85,8 @@ func add(mgr manager.Manager, r reconcile.Reconciler, mapFn handler.ToRequestsFu
 
 	// Watch for changes to MachineSet and reconcile the owner MachineDeployment.
 	err = c.Watch(
-		&source.Kind{Type: &v1alpha1.MachineSet{}},
-		&handler.EnqueueRequestForOwner{OwnerType: &v1alpha1.MachineDeployment{}, IsController: true},
+		&source.Kind{Type: &v1beta1.MachineSet{}},
+		&handler.EnqueueRequestForOwner{OwnerType: &v1beta1.MachineDeployment{}, IsController: true},
 	)
 	if err != nil {
 		return err
@@ -94,7 +94,7 @@ func add(mgr manager.Manager, r reconcile.Reconciler, mapFn handler.ToRequestsFu
 
 	// Map MachineSet changes to MachineDeployment.
 	err = c.Watch(
-		&source.Kind{Type: &v1alpha1.MachineSet{}},
+		&source.Kind{Type: &v1beta1.MachineSet{}},
 		&handler.EnqueueRequestsFromMapFunc{ToRequests: mapFn},
 	)
 	if err != nil {
@@ -104,16 +104,16 @@ func add(mgr manager.Manager, r reconcile.Reconciler, mapFn handler.ToRequestsFu
 	return nil
 }
 
-func (r *ReconcileMachineDeployment) getMachineSetsForDeployment(d *v1alpha1.MachineDeployment) ([]*v1alpha1.MachineSet, error) {
+func (r *ReconcileMachineDeployment) getMachineSetsForDeployment(d *v1beta1.MachineDeployment) ([]*v1beta1.MachineSet, error) {
 	// List all MachineSets to find those we own but that no longer match our selector.
-	machineSets := &v1alpha1.MachineSetList{}
+	machineSets := &v1beta1.MachineSetList{}
 	listOptions := &client.ListOptions{Namespace: d.Namespace}
 
 	if err := r.Client.List(context.Background(), listOptions, machineSets); err != nil {
 		return nil, err
 	}
 
-	filteredMS := make([]*v1alpha1.MachineSet, 0, len(machineSets.Items))
+	filteredMS := make([]*v1beta1.MachineSet, 0, len(machineSets.Items))
 	for idx := range machineSets.Items {
 		ms := &machineSets.Items[idx]
 
@@ -152,7 +152,7 @@ func (r *ReconcileMachineDeployment) getMachineSetsForDeployment(d *v1alpha1.Mac
 	return filteredMS, nil
 }
 
-func (r *ReconcileMachineDeployment) adoptOrphan(deployment *v1alpha1.MachineDeployment, machineSet *v1alpha1.MachineSet) error {
+func (r *ReconcileMachineDeployment) adoptOrphan(deployment *v1beta1.MachineDeployment, machineSet *v1beta1.MachineSet) error {
 	newRef := *metav1.NewControllerRef(deployment, controllerKind)
 	machineSet.OwnerReferences = append(machineSet.OwnerReferences, newRef)
 	return r.Client.Update(context.Background(), machineSet)
@@ -160,10 +160,10 @@ func (r *ReconcileMachineDeployment) adoptOrphan(deployment *v1alpha1.MachineDep
 
 // Reconcile reads that state of the cluster for a MachineDeployment object and makes changes based on the state read
 // and what is in the MachineDeployment.Spec
-// +kubebuilder:rbac:groups=cluster.k8s.io,resources=machinedeployments,verbs=get;list;watch;create;update;patch;delete
+// +kubebuilder:rbac:groups=machine.openshift.io,resources=machinedeployments,verbs=get;list;watch;create;update;patch;delete
 func (r *ReconcileMachineDeployment) Reconcile(request reconcile.Request) (reconcile.Result, error) {
 	// Fetch the MachineDeployment instance
-	d := &v1alpha1.MachineDeployment{}
+	d := &v1beta1.MachineDeployment{}
 	ctx := context.TODO()
 	if err := r.Get(context.TODO(), request.NamespacedName, d); err != nil {
 		if apierrors.IsNotFound(err) {
@@ -183,8 +183,8 @@ func (r *ReconcileMachineDeployment) Reconcile(request reconcile.Request) (recon
 	return result, err
 }
 
-func (r *ReconcileMachineDeployment) reconcile(ctx context.Context, d *v1alpha1.MachineDeployment) (reconcile.Result, error) {
-	v1alpha1.PopulateDefaultsMachineDeployment(d)
+func (r *ReconcileMachineDeployment) reconcile(ctx context.Context, d *v1beta1.MachineDeployment) (reconcile.Result, error) {
+	v1beta1.PopulateDefaultsMachineDeployment(d)
 
 	everything := metav1.LabelSelector{}
 	if reflect.DeepEqual(d.Spec.Selector, &everything) {
@@ -270,16 +270,16 @@ func (r *ReconcileMachineDeployment) reconcile(ctx context.Context, d *v1alpha1.
 	return reconcile.Result{}, errors.Errorf("unexpected deployment strategy type: %s", d.Spec.Strategy.Type)
 }
 
-func (r *ReconcileMachineDeployment) getCluster(d *v1alpha1.MachineDeployment) (*v1alpha1.Cluster, error) {
-	if d.Spec.Template.Labels[v1alpha1.MachineClusterLabelName] == "" {
-		klog.Infof("Deployment %q in namespace %q doesn't specify %q label, assuming nil cluster", d.Name, v1alpha1.MachineClusterLabelName, d.Namespace)
+func (r *ReconcileMachineDeployment) getCluster(d *v1beta1.MachineDeployment) (*v1beta1.Cluster, error) {
+	if d.Spec.Template.Labels[v1beta1.MachineClusterLabelName] == "" {
+		klog.Infof("Deployment %q in namespace %q doesn't specify %q label, assuming nil cluster", d.Name, v1beta1.MachineClusterLabelName, d.Namespace)
 		return nil, nil
 	}
 
-	cluster := &v1alpha1.Cluster{}
+	cluster := &v1beta1.Cluster{}
 	key := client.ObjectKey{
 		Namespace: d.Namespace,
-		Name:      d.Spec.Template.Labels[v1alpha1.MachineClusterLabelName],
+		Name:      d.Spec.Template.Labels[v1beta1.MachineClusterLabelName],
 	}
 
 	if err := r.Client.Get(context.Background(), key, cluster); err != nil {
@@ -291,20 +291,20 @@ func (r *ReconcileMachineDeployment) getCluster(d *v1alpha1.MachineDeployment) (
 
 // getMachineDeploymentsForMachineSet returns a list of Deployments that potentially
 // match a MachineSet.
-func (r *ReconcileMachineDeployment) getMachineDeploymentsForMachineSet(ms *v1alpha1.MachineSet) []*v1alpha1.MachineDeployment {
+func (r *ReconcileMachineDeployment) getMachineDeploymentsForMachineSet(ms *v1beta1.MachineSet) []*v1beta1.MachineDeployment {
 	if len(ms.Labels) == 0 {
 		klog.Warningf("No machine deployments found for MachineSet %v because it has no labels", ms.Name)
 		return nil
 	}
 
-	dList := &v1alpha1.MachineDeploymentList{}
+	dList := &v1beta1.MachineDeploymentList{}
 	listOptions := &client.ListOptions{Namespace: ms.Namespace}
 	if err := r.Client.List(context.Background(), listOptions, dList); err != nil {
 		klog.Warningf("Failed to list machine deployments: %v", err)
 		return nil
 	}
 
-	deployments := make([]*v1alpha1.MachineDeployment, 0, len(dList.Items))
+	deployments := make([]*v1beta1.MachineDeployment, 0, len(dList.Items))
 	for idx, d := range dList.Items {
 		selector, err := metav1.LabelSelectorAsSelector(&d.Spec.Selector)
 		if err != nil {
@@ -326,7 +326,7 @@ func (r *ReconcileMachineDeployment) getMachineDeploymentsForMachineSet(ms *v1al
 //
 // It returns a map from MachineSet UID to a list of Machines controlled by that MS,
 // according to the Machine's ControllerRef.
-func (r *ReconcileMachineDeployment) getMachineMapForDeployment(d *v1alpha1.MachineDeployment, msList []*v1alpha1.MachineSet) (map[types.UID]*v1alpha1.MachineList, error) {
+func (r *ReconcileMachineDeployment) getMachineMapForDeployment(d *v1beta1.MachineDeployment, msList []*v1beta1.MachineSet) (map[types.UID]*v1beta1.MachineList, error) {
 	// TODO(droot): double check if previous selector maps correctly to new one.
 	// _, err := metav1.LabelSelectorAsSelector(&d.Spec.Selector)
 
@@ -336,16 +336,16 @@ func (r *ReconcileMachineDeployment) getMachineMapForDeployment(d *v1alpha1.Mach
 		return nil, err
 	}
 
-	machines := &v1alpha1.MachineList{}
+	machines := &v1beta1.MachineList{}
 	listOptions := &client.ListOptions{Namespace: d.Namespace}
 	if err = r.Client.List(context.Background(), listOptions.MatchingLabels(selector), machines); err != nil {
 		return nil, err
 	}
 
 	// Group Machines by their controller (if it's in msList).
-	machineMap := make(map[types.UID]*v1alpha1.MachineList, len(msList))
+	machineMap := make(map[types.UID]*v1beta1.MachineList, len(msList))
 	for _, ms := range msList {
-		machineMap[ms.UID] = &v1alpha1.MachineList{}
+		machineMap[ms.UID] = &v1beta1.MachineList{}
 	}
 
 	for idx := range machines.Items {
@@ -370,7 +370,7 @@ func (r *ReconcileMachineDeployment) getMachineMapForDeployment(d *v1alpha1.Mach
 func (r *ReconcileMachineDeployment) MachineSetToDeployments(o handler.MapObject) []reconcile.Request {
 	result := []reconcile.Request{}
 
-	ms := &v1alpha1.MachineSet{}
+	ms := &v1beta1.MachineSet{}
 	key := client.ObjectKey{Namespace: o.Meta.GetNamespace(), Name: o.Meta.GetName()}
 	if err := r.Client.Get(context.Background(), key, ms); err != nil {
 		klog.Errorf("Unable to retrieve Machineset %v from store: %v", key, err)

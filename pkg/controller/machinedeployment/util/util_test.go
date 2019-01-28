@@ -32,8 +32,8 @@ import (
 	"k8s.io/apimachinery/pkg/util/intstr"
 	"k8s.io/apiserver/pkg/storage/names"
 	core "k8s.io/client-go/testing"
-	"sigs.k8s.io/cluster-api/pkg/apis/cluster/common"
-	"sigs.k8s.io/cluster-api/pkg/apis/cluster/v1alpha1"
+	"sigs.k8s.io/cluster-api/pkg/apis/machine/common"
+	"sigs.k8s.io/cluster-api/pkg/apis/machine/v1beta1"
 	"sigs.k8s.io/cluster-api/pkg/client/clientset_generated/clientset/fake"
 )
 
@@ -52,7 +52,7 @@ func addListMachinesReactor(fakeClient *fake.Clientset, obj runtime.Object) *fak
 }
 
 func addGetMSReactor(fakeClient *fake.Clientset, obj runtime.Object) *fake.Clientset {
-	msList, ok := obj.(*v1alpha1.MachineSetList)
+	msList, ok := obj.(*v1beta1.MachineSetList)
 	fakeClient.AddReactor("get", "machinesets", func(action core.Action) (handled bool, ret runtime.Object, err error) {
 		name := action.(core.GetAction).GetName()
 		if ok {
@@ -70,7 +70,7 @@ func addGetMSReactor(fakeClient *fake.Clientset, obj runtime.Object) *fake.Clien
 
 func addUpdateMSReactor(fakeClient *fake.Clientset) *fake.Clientset {
 	fakeClient.AddReactor("update", "machinesets", func(action core.Action) (handled bool, ret runtime.Object, err error) {
-		obj := action.(core.UpdateAction).GetObject().(*v1alpha1.MachineSet)
+		obj := action.(core.UpdateAction).GetObject().(*v1beta1.MachineSet)
 		return true, obj, nil
 	})
 	return fakeClient
@@ -78,32 +78,32 @@ func addUpdateMSReactor(fakeClient *fake.Clientset) *fake.Clientset {
 
 func addUpdateMachinesReactor(fakeClient *fake.Clientset) *fake.Clientset {
 	fakeClient.AddReactor("update", "machines", func(action core.Action) (handled bool, ret runtime.Object, err error) {
-		obj := action.(core.UpdateAction).GetObject().(*v1alpha1.Machine)
+		obj := action.(core.UpdateAction).GetObject().(*v1beta1.Machine)
 		return true, obj, nil
 	})
 	return fakeClient
 }
 
-func generateMSWithLabel(labels map[string]string, image string) v1alpha1.MachineSet {
-	return v1alpha1.MachineSet{
+func generateMSWithLabel(labels map[string]string, image string) v1beta1.MachineSet {
+	return v1beta1.MachineSet{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:   names.SimpleNameGenerator.GenerateName("machineset"),
 			Labels: labels,
 		},
-		Spec: v1alpha1.MachineSetSpec{
+		Spec: v1beta1.MachineSetSpec{
 			Replicas: func(i int32) *int32 { return &i }(1),
 			Selector: metav1.LabelSelector{MatchLabels: labels},
-			Template: v1alpha1.MachineTemplateSpec{
+			Template: v1beta1.MachineTemplateSpec{
 				ObjectMeta: metav1.ObjectMeta{
 					Labels: labels,
 				},
-				Spec: v1alpha1.MachineSpec{},
+				Spec: v1beta1.MachineSpec{},
 			},
 		},
 	}
 }
 
-func newDControllerRef(d *v1alpha1.MachineDeployment) *metav1.OwnerReference {
+func newDControllerRef(d *v1beta1.MachineDeployment) *metav1.OwnerReference {
 	isController := true
 	return &metav1.OwnerReference{
 		APIVersion: "clusters/v1alpha",
@@ -115,16 +115,16 @@ func newDControllerRef(d *v1alpha1.MachineDeployment) *metav1.OwnerReference {
 }
 
 // generateMS creates a machine set, with the input deployment's template as its template
-func generateMS(deployment v1alpha1.MachineDeployment) v1alpha1.MachineSet {
+func generateMS(deployment v1beta1.MachineDeployment) v1beta1.MachineSet {
 	template := deployment.Spec.Template.DeepCopy()
-	return v1alpha1.MachineSet{
+	return v1beta1.MachineSet{
 		ObjectMeta: metav1.ObjectMeta{
 			UID:             randomUID(),
 			Name:            names.SimpleNameGenerator.GenerateName("machineset"),
 			Labels:          template.Labels,
 			OwnerReferences: []metav1.OwnerReference{*newDControllerRef(&deployment)},
 		},
-		Spec: v1alpha1.MachineSetSpec{
+		Spec: v1beta1.MachineSetSpec{
 			Replicas: new(int32),
 			Template: *template,
 			Selector: metav1.LabelSelector{MatchLabels: template.Labels},
@@ -137,41 +137,41 @@ func randomUID() types.UID {
 }
 
 // generateDeployment creates a deployment, with the input image as its template
-func generateDeployment(image string) v1alpha1.MachineDeployment {
+func generateDeployment(image string) v1beta1.MachineDeployment {
 	machineLabels := map[string]string{"name": image}
-	return v1alpha1.MachineDeployment{
+	return v1beta1.MachineDeployment{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:        image,
 			Annotations: make(map[string]string),
 		},
-		Spec: v1alpha1.MachineDeploymentSpec{
+		Spec: v1beta1.MachineDeploymentSpec{
 			Replicas: func(i int32) *int32 { return &i }(1),
 			Selector: metav1.LabelSelector{MatchLabels: machineLabels},
-			Template: v1alpha1.MachineTemplateSpec{
+			Template: v1beta1.MachineTemplateSpec{
 				ObjectMeta: metav1.ObjectMeta{
 					Labels: machineLabels,
 				},
-				Spec: v1alpha1.MachineSpec{},
+				Spec: v1beta1.MachineSpec{},
 			},
 		},
 	}
 }
 
-func generateMachineTemplateSpec(name, nodeName string, annotations, labels map[string]string) v1alpha1.MachineTemplateSpec {
-	return v1alpha1.MachineTemplateSpec{
+func generateMachineTemplateSpec(name, nodeName string, annotations, labels map[string]string) v1beta1.MachineTemplateSpec {
+	return v1beta1.MachineTemplateSpec{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:        name,
 			Annotations: annotations,
 			Labels:      labels,
 		},
-		Spec: v1alpha1.MachineSpec{},
+		Spec: v1beta1.MachineSpec{},
 	}
 }
 
 func TestEqualIgnoreHash(t *testing.T) {
 	tests := []struct {
 		Name           string
-		former, latter v1alpha1.MachineTemplateSpec
+		former, latter v1beta1.MachineTemplateSpec
 		expected       bool
 	}{
 		{
@@ -238,7 +238,7 @@ func TestEqualIgnoreHash(t *testing.T) {
 
 	for _, test := range tests {
 		t.Run(test.Name, func(t *testing.T) {
-			runTest := func(t1, t2 *v1alpha1.MachineTemplateSpec, reversed bool) {
+			runTest := func(t1, t2 *v1beta1.MachineTemplateSpec, reversed bool) {
 				reverseString := ""
 				if reversed {
 					reverseString = " (reverse order)"
@@ -281,26 +281,26 @@ func TestFindNewMachineSet(t *testing.T) {
 
 	tests := []struct {
 		Name       string
-		deployment v1alpha1.MachineDeployment
-		msList     []*v1alpha1.MachineSet
-		expected   *v1alpha1.MachineSet
+		deployment v1beta1.MachineDeployment
+		msList     []*v1beta1.MachineSet
+		expected   *v1beta1.MachineSet
 	}{
 		{
 			Name:       "Get new MachineSet with the same template as Deployment spec but different machine-template-hash value",
 			deployment: deployment,
-			msList:     []*v1alpha1.MachineSet{&newMS, &oldMS},
+			msList:     []*v1beta1.MachineSet{&newMS, &oldMS},
 			expected:   &newMS,
 		},
 		{
 			Name:       "Get the oldest new MachineSet when there are more than one MachineSet with the same template",
 			deployment: deployment,
-			msList:     []*v1alpha1.MachineSet{&newMS, &oldMS, &newMSDup},
+			msList:     []*v1beta1.MachineSet{&newMS, &oldMS, &newMSDup},
 			expected:   &newMSDup,
 		},
 		{
 			Name:       "Get nil new MachineSet",
 			deployment: deployment,
-			msList:     []*v1alpha1.MachineSet{&oldMS},
+			msList:     []*v1beta1.MachineSet{&oldMS},
 			expected:   nil,
 		},
 	}
@@ -337,38 +337,38 @@ func TestFindOldMachineSets(t *testing.T) {
 
 	tests := []struct {
 		Name            string
-		deployment      v1alpha1.MachineDeployment
-		msList          []*v1alpha1.MachineSet
-		machineList     *v1alpha1.MachineList
-		expected        []*v1alpha1.MachineSet
-		expectedRequire []*v1alpha1.MachineSet
+		deployment      v1beta1.MachineDeployment
+		msList          []*v1beta1.MachineSet
+		machineList     *v1beta1.MachineList
+		expected        []*v1beta1.MachineSet
+		expectedRequire []*v1beta1.MachineSet
 	}{
 		{
 			Name:            "Get old MachineSets",
 			deployment:      deployment,
-			msList:          []*v1alpha1.MachineSet{&newMS, &oldMS},
-			expected:        []*v1alpha1.MachineSet{&oldMS},
+			msList:          []*v1beta1.MachineSet{&newMS, &oldMS},
+			expected:        []*v1beta1.MachineSet{&oldMS},
 			expectedRequire: nil,
 		},
 		{
 			Name:            "Get old MachineSets with no new MachineSet",
 			deployment:      deployment,
-			msList:          []*v1alpha1.MachineSet{&oldMS},
-			expected:        []*v1alpha1.MachineSet{&oldMS},
+			msList:          []*v1beta1.MachineSet{&oldMS},
+			expected:        []*v1beta1.MachineSet{&oldMS},
 			expectedRequire: nil,
 		},
 		{
 			Name:            "Get old MachineSets with two new MachineSets, only the oldest new MachineSet is seen as new MachineSet",
 			deployment:      deployment,
-			msList:          []*v1alpha1.MachineSet{&oldMS, &newMS, &newMSDup},
-			expected:        []*v1alpha1.MachineSet{&oldMS, &newMS},
-			expectedRequire: []*v1alpha1.MachineSet{&newMS},
+			msList:          []*v1beta1.MachineSet{&oldMS, &newMS, &newMSDup},
+			expected:        []*v1beta1.MachineSet{&oldMS, &newMS},
+			expectedRequire: []*v1beta1.MachineSet{&newMS},
 		},
 		{
 			Name:            "Get empty old MachineSets",
 			deployment:      deployment,
-			msList:          []*v1alpha1.MachineSet{&newMS},
-			expected:        []*v1alpha1.MachineSet{},
+			msList:          []*v1beta1.MachineSet{&newMS},
+			expected:        []*v1beta1.MachineSet{},
 			expectedRequire: nil,
 		},
 	}
@@ -390,7 +390,7 @@ func TestFindOldMachineSets(t *testing.T) {
 }
 
 // equal compares the equality of two MachineSet slices regardless of their ordering
-func equal(mss1, mss2 []*v1alpha1.MachineSet) bool {
+func equal(mss1, mss2 []*v1beta1.MachineSet) bool {
 	if reflect.DeepEqual(mss1, mss2) {
 		return true
 	}
@@ -419,19 +419,19 @@ func TestGetReplicaCountForMachineSets(t *testing.T) {
 
 	tests := []struct {
 		Name           string
-		sets           []*v1alpha1.MachineSet
+		sets           []*v1beta1.MachineSet
 		expectedCount  int32
 		expectedActual int32
 	}{
 		{
 			"1:2 Replicas",
-			[]*v1alpha1.MachineSet{&ms1},
+			[]*v1beta1.MachineSet{&ms1},
 			1,
 			2,
 		},
 		{
 			"3:5 Replicas",
-			[]*v1alpha1.MachineSet{&ms1, &ms2},
+			[]*v1beta1.MachineSet{&ms1, &ms2},
 			3,
 			5,
 		},
@@ -540,8 +540,8 @@ func TestNewMSNewReplicas(t *testing.T) {
 	for _, test := range tests {
 		t.Run(test.Name, func(t *testing.T) {
 			*(newDeployment.Spec.Replicas) = test.depReplicas
-			newDeployment.Spec.Strategy = &v1alpha1.MachineDeploymentStrategy{Type: test.strategyType}
-			newDeployment.Spec.Strategy.RollingUpdate = &v1alpha1.MachineRollingUpdateDeployment{
+			newDeployment.Spec.Strategy = &v1beta1.MachineDeploymentStrategy{Type: test.strategyType}
+			newDeployment.Spec.Strategy.RollingUpdate = &v1beta1.MachineRollingUpdateDeployment{
 				MaxUnavailable: func(i int) *intstr.IntOrString {
 					x := intstr.FromInt(i)
 					return &x
@@ -552,7 +552,7 @@ func TestNewMSNewReplicas(t *testing.T) {
 				}(test.maxSurge),
 			}
 			*(newRC.Spec.Replicas) = test.newMSReplicas
-			ms, err := NewMSNewReplicas(&newDeployment, []*v1alpha1.MachineSet{&rs5}, &newRC)
+			ms, err := NewMSNewReplicas(&newDeployment, []*v1beta1.MachineSet{&rs5}, &newRC)
 			if err != nil {
 				t.Errorf("In test case %s, got unexpected error %v", test.Name, err)
 			}
@@ -564,19 +564,19 @@ func TestNewMSNewReplicas(t *testing.T) {
 }
 
 func TestDeploymentComplete(t *testing.T) {
-	deployment := func(desired, current, updated, available, maxUnavailable, maxSurge int32) *v1alpha1.MachineDeployment {
-		return &v1alpha1.MachineDeployment{
-			Spec: v1alpha1.MachineDeploymentSpec{
+	deployment := func(desired, current, updated, available, maxUnavailable, maxSurge int32) *v1beta1.MachineDeployment {
+		return &v1beta1.MachineDeployment{
+			Spec: v1beta1.MachineDeploymentSpec{
 				Replicas: &desired,
-				Strategy: &v1alpha1.MachineDeploymentStrategy{
-					RollingUpdate: &v1alpha1.MachineRollingUpdateDeployment{
+				Strategy: &v1beta1.MachineDeploymentStrategy{
+					RollingUpdate: &v1beta1.MachineRollingUpdateDeployment{
 						MaxUnavailable: func(i int) *intstr.IntOrString { x := intstr.FromInt(i); return &x }(int(maxUnavailable)),
 						MaxSurge:       func(i int) *intstr.IntOrString { x := intstr.FromInt(i); return &x }(int(maxSurge)),
 					},
 					Type: common.RollingUpdateMachineDeploymentStrategyType,
 				},
 			},
-			Status: v1alpha1.MachineDeploymentStatus{
+			Status: v1beta1.MachineDeploymentStatus{
 				Replicas:          current,
 				UpdatedReplicas:   updated,
 				AvailableReplicas: available,
@@ -587,7 +587,7 @@ func TestDeploymentComplete(t *testing.T) {
 	tests := []struct {
 		name string
 
-		d *v1alpha1.MachineDeployment
+		d *v1beta1.MachineDeployment
 
 		expected bool
 	}{
@@ -641,12 +641,12 @@ func TestDeploymentComplete(t *testing.T) {
 }
 
 func TestMaxUnavailable(t *testing.T) {
-	deployment := func(replicas int32, maxUnavailable intstr.IntOrString) v1alpha1.MachineDeployment {
-		return v1alpha1.MachineDeployment{
-			Spec: v1alpha1.MachineDeploymentSpec{
+	deployment := func(replicas int32, maxUnavailable intstr.IntOrString) v1beta1.MachineDeployment {
+		return v1beta1.MachineDeployment{
+			Spec: v1beta1.MachineDeploymentSpec{
 				Replicas: func(i int32) *int32 { return &i }(replicas),
-				Strategy: &v1alpha1.MachineDeploymentStrategy{
-					RollingUpdate: &v1alpha1.MachineRollingUpdateDeployment{
+				Strategy: &v1beta1.MachineDeploymentStrategy{
+					RollingUpdate: &v1beta1.MachineRollingUpdateDeployment{
 						MaxSurge:       func(i int) *intstr.IntOrString { x := intstr.FromInt(i); return &x }(int(1)),
 						MaxUnavailable: &maxUnavailable,
 					},
@@ -657,7 +657,7 @@ func TestMaxUnavailable(t *testing.T) {
 	}
 	tests := []struct {
 		name       string
-		deployment v1alpha1.MachineDeployment
+		deployment v1beta1.MachineDeployment
 		expected   int32
 	}{
 		{
@@ -773,14 +773,14 @@ func TestReplicasAnnotationsNeedUpdate(t *testing.T) {
 
 	tests := []struct {
 		name       string
-		machineSet *v1alpha1.MachineSet
+		machineSet *v1beta1.MachineSet
 		expected   bool
 	}{
 		{
 			name: "test Annotations nil",
-			machineSet: &v1alpha1.MachineSet{
+			machineSet: &v1beta1.MachineSet{
 				ObjectMeta: metav1.ObjectMeta{Name: "hello", Namespace: "test"},
-				Spec: v1alpha1.MachineSetSpec{
+				Spec: v1beta1.MachineSetSpec{
 					Selector: metav1.LabelSelector{MatchLabels: map[string]string{"foo": "bar"}},
 				},
 			},
@@ -788,13 +788,13 @@ func TestReplicasAnnotationsNeedUpdate(t *testing.T) {
 		},
 		{
 			name: "test desiredReplicas update",
-			machineSet: &v1alpha1.MachineSet{
+			machineSet: &v1beta1.MachineSet{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:        "hello",
 					Namespace:   "test",
 					Annotations: map[string]string{DesiredReplicasAnnotation: "8", MaxReplicasAnnotation: maxReplicas},
 				},
-				Spec: v1alpha1.MachineSetSpec{
+				Spec: v1beta1.MachineSetSpec{
 					Selector: metav1.LabelSelector{MatchLabels: map[string]string{"foo": "bar"}},
 				},
 			},
@@ -802,13 +802,13 @@ func TestReplicasAnnotationsNeedUpdate(t *testing.T) {
 		},
 		{
 			name: "test maxReplicas update",
-			machineSet: &v1alpha1.MachineSet{
+			machineSet: &v1beta1.MachineSet{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:        "hello",
 					Namespace:   "test",
 					Annotations: map[string]string{DesiredReplicasAnnotation: desiredReplicas, MaxReplicasAnnotation: "16"},
 				},
-				Spec: v1alpha1.MachineSetSpec{
+				Spec: v1beta1.MachineSetSpec{
 					Selector: metav1.LabelSelector{MatchLabels: map[string]string{"foo": "bar"}},
 				},
 			},
@@ -816,13 +816,13 @@ func TestReplicasAnnotationsNeedUpdate(t *testing.T) {
 		},
 		{
 			name: "test needn't update",
-			machineSet: &v1alpha1.MachineSet{
+			machineSet: &v1beta1.MachineSet{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:        "hello",
 					Namespace:   "test",
 					Annotations: map[string]string{DesiredReplicasAnnotation: desiredReplicas, MaxReplicasAnnotation: maxReplicas},
 				},
-				Spec: v1alpha1.MachineSetSpec{
+				Spec: v1beta1.MachineSetSpec{
 					Selector: metav1.LabelSelector{MatchLabels: map[string]string{"foo": "bar"}},
 				},
 			},

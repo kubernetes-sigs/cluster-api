@@ -9,7 +9,7 @@ go_library(
     importpath = "sigs.k8s.io/cluster-api/pkg/controller/node",
     visibility = ["//visibility:public"],
     deps = [
-        "//pkg/apis/cluster/v1alpha1:go_default_library",
+        "//pkg/apis/machine/v1beta1:go_default_library",
         "//pkg/controller/noderefutil:go_default_library",
         "//pkg/util:go_default_library",
         "//vendor/k8s.io/api/core/v1:go_default_library",

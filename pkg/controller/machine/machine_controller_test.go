@@ -23,7 +23,7 @@ import (
 	"golang.org/x/net/context"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
-	clusterv1alpha1 "sigs.k8s.io/cluster-api/pkg/apis/cluster/v1alpha1"
+	machinev1beta1 "sigs.k8s.io/cluster-api/pkg/apis/machine/v1beta1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/manager"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
@@ -36,10 +36,10 @@ var expectedRequest = reconcile.Request{NamespacedName: types.NamespacedName{Nam
 const timeout = time.Second * 5
 
 func TestReconcile(t *testing.T) {
-	instance := &clusterv1alpha1.Machine{
+	instance := &machinev1beta1.Machine{
 		ObjectMeta: metav1.ObjectMeta{Name: "foo", Namespace: "default"},
-		Spec: clusterv1alpha1.MachineSpec{
-			Versions: clusterv1alpha1.MachineVersionInfo{Kubelet: "1.10.3"},
+		Spec: machinev1beta1.MachineSpec{
+			Versions: machinev1beta1.MachineVersionInfo{Kubelet: "1.10.3"},
 		},
 	}
 

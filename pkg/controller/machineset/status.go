@@ -25,7 +25,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/klog"
-	"sigs.k8s.io/cluster-api/pkg/apis/cluster/v1alpha1"
+	"sigs.k8s.io/cluster-api/pkg/apis/machine/v1beta1"
 	"sigs.k8s.io/cluster-api/pkg/controller/noderefutil"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
@@ -35,7 +35,7 @@ const (
 	statusUpdateRetries = 1
 )
 
-func (c *ReconcileMachineSet) calculateStatus(ms *v1alpha1.MachineSet, filteredMachines []*v1alpha1.Machine) v1alpha1.MachineSetStatus {
+func (c *ReconcileMachineSet) calculateStatus(ms *v1beta1.MachineSet, filteredMachines []*v1beta1.Machine) v1beta1.MachineSetStatus {
 	newStatus := ms.Status
 	// Count the number of machines that have labels matching the labels of the machine
 	// template of the replica set, the matching machines may have more
@@ -71,7 +71,7 @@ func (c *ReconcileMachineSet) calculateStatus(ms *v1alpha1.MachineSet, filteredM
 }
 
 // updateMachineSetStatus attempts to update the Status.Replicas of the given MachineSet, with a single GET/PUT retry.
-func updateMachineSetStatus(c client.Client, ms *v1alpha1.MachineSet, newStatus v1alpha1.MachineSetStatus) (*v1alpha1.MachineSet, error) {
+func updateMachineSetStatus(c client.Client, ms *v1beta1.MachineSet, newStatus v1beta1.MachineSetStatus) (*v1beta1.MachineSet, error) {
 	// This is the steady state. It happens when the MachineSet doesn't have any expectations, since
 	// we do a periodic relist every 30s. If the generations differ but the replicas are
 	// the same, a caller might've resized to the same replica count.
@@ -122,7 +122,7 @@ func updateMachineSetStatus(c client.Client, ms *v1alpha1.MachineSet, newStatus 
 	return nil, updateErr
 }
 
-func (c *ReconcileMachineSet) getMachineNode(machine *v1alpha1.Machine) (*corev1.Node, error) {
+func (c *ReconcileMachineSet) getMachineNode(machine *v1beta1.Machine) (*corev1.Node, error) {
 	nodeRef := machine.Status.NodeRef
 	if nodeRef == nil {
 		return nil, errors.New("machine has no node ref")

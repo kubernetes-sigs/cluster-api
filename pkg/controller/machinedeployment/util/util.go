@@ -33,8 +33,8 @@ import (
 	intstrutil "k8s.io/apimachinery/pkg/util/intstr"
 	"k8s.io/client-go/util/integer"
 	"k8s.io/klog"
-	"sigs.k8s.io/cluster-api/pkg/apis/cluster/common"
-	"sigs.k8s.io/cluster-api/pkg/apis/cluster/v1alpha1"
+	"sigs.k8s.io/cluster-api/pkg/apis/machine/common"
+	"sigs.k8s.io/cluster-api/pkg/apis/machine/v1beta1"
 )
 
 const (
@@ -72,7 +72,7 @@ const (
 )
 
 // MachineSetsByCreationTimestamp sorts a list of MachineSet by creation timestamp, using their names as a tie breaker.
-type MachineSetsByCreationTimestamp []*v1alpha1.MachineSet
+type MachineSetsByCreationTimestamp []*v1beta1.MachineSet
 
 func (o MachineSetsByCreationTimestamp) Len() int      { return len(o) }
 func (o MachineSetsByCreationTimestamp) Swap(i, j int) { o[i], o[j] = o[j], o[i] }
@@ -85,7 +85,7 @@ func (o MachineSetsByCreationTimestamp) Less(i, j int) bool {
 
 // MachineSetsBySizeOlder sorts a list of MachineSet by size in descending order, using their creation timestamp or name as a tie breaker.
 // By using the creation timestamp, this sorts from old to new machine sets.
-type MachineSetsBySizeOlder []*v1alpha1.MachineSet
+type MachineSetsBySizeOlder []*v1beta1.MachineSet
 
 func (o MachineSetsBySizeOlder) Len() int      { return len(o) }
 func (o MachineSetsBySizeOlder) Swap(i, j int) { o[i], o[j] = o[j], o[i] }
@@ -98,7 +98,7 @@ func (o MachineSetsBySizeOlder) Less(i, j int) bool {
 
 // MachineSetsBySizeNewer sorts a list of MachineSet by size in descending order, using their creation timestamp or name as a tie breaker.
 // By using the creation timestamp, this sorts from new to old machine sets.
-type MachineSetsBySizeNewer []*v1alpha1.MachineSet
+type MachineSetsBySizeNewer []*v1beta1.MachineSet
 
 func (o MachineSetsBySizeNewer) Len() int      { return len(o) }
 func (o MachineSetsBySizeNewer) Swap(i, j int) { o[i], o[j] = o[j], o[i] }
@@ -110,7 +110,7 @@ func (o MachineSetsBySizeNewer) Less(i, j int) bool {
 }
 
 // SetDeploymentRevision updates the revision for a deployment.
-func SetDeploymentRevision(deployment *v1alpha1.MachineDeployment, revision string) bool {
+func SetDeploymentRevision(deployment *v1beta1.MachineDeployment, revision string) bool {
 	updated := false
 
 	if deployment.Annotations == nil {
@@ -125,7 +125,7 @@ func SetDeploymentRevision(deployment *v1alpha1.MachineDeployment, revision stri
 }
 
 // MaxRevision finds the highest revision in the machine sets
-func MaxRevision(allMSs []*v1alpha1.MachineSet) int64 {
+func MaxRevision(allMSs []*v1beta1.MachineSet) int64 {
 	max := int64(0)
 	for _, ms := range allMSs {
 		if v, err := Revision(ms); err != nil {
@@ -169,7 +169,7 @@ func skipCopyAnnotation(key string) bool {
 // copyDeploymentAnnotationsToMachineSet copies deployment's annotations to machine set's annotations,
 // and returns true if machine set's annotation is changed.
 // Note that apply and revision annotations are not copied.
-func copyDeploymentAnnotationsToMachineSet(deployment *v1alpha1.MachineDeployment, ms *v1alpha1.MachineSet) bool {
+func copyDeploymentAnnotationsToMachineSet(deployment *v1beta1.MachineDeployment, ms *v1beta1.MachineSet) bool {
 	msAnnotationsChanged := false
 	if ms.Annotations == nil {
 		ms.Annotations = make(map[string]string)
@@ -188,15 +188,15 @@ func copyDeploymentAnnotationsToMachineSet(deployment *v1alpha1.MachineDeploymen
 }
 
 // GetDesiredReplicasAnnotation returns the number of desired replicas
-func GetDesiredReplicasAnnotation(ms *v1alpha1.MachineSet) (int32, bool) {
+func GetDesiredReplicasAnnotation(ms *v1beta1.MachineSet) (int32, bool) {
 	return getIntFromAnnotation(ms, DesiredReplicasAnnotation)
 }
 
-func getMaxReplicasAnnotation(ms *v1alpha1.MachineSet) (int32, bool) {
+func getMaxReplicasAnnotation(ms *v1beta1.MachineSet) (int32, bool) {
 	return getIntFromAnnotation(ms, MaxReplicasAnnotation)
 }
 
-func getIntFromAnnotation(ms *v1alpha1.MachineSet, annotationKey string) (int32, bool) {
+func getIntFromAnnotation(ms *v1beta1.MachineSet, annotationKey string) (int32, bool) {
 	annotationValue, ok := ms.Annotations[annotationKey]
 	if !ok {
 		return int32(0), false
@@ -211,7 +211,7 @@ func getIntFromAnnotation(ms *v1alpha1.MachineSet, annotationKey string) (int32,
 
 // SetNewMachineSetAnnotations sets new machine set's annotations appropriately by updating its revision and
 // copying required deployment annotations to it; it returns true if machine set's annotation is changed.
-func SetNewMachineSetAnnotations(deployment *v1alpha1.MachineDeployment, newMS *v1alpha1.MachineSet, newRevision string, exists bool) bool {
+func SetNewMachineSetAnnotations(deployment *v1beta1.MachineDeployment, newMS *v1beta1.MachineSet, newRevision string, exists bool) bool {
 	// First, copy deployment's annotations (except for apply and revision annotations)
 	annotationChanged := copyDeploymentAnnotationsToMachineSet(deployment, newMS)
 	// Then, update machine set's revision annotation
@@ -265,7 +265,7 @@ func SetNewMachineSetAnnotations(deployment *v1alpha1.MachineDeployment, newMS *
 // FindOneActiveOrLatest returns the only active or the latest machine set in case there is at most one active
 // machine set. If there are more than one active machine sets, return nil so machine sets can be scaled down
 // to the point where there is only one active machine set.
-func FindOneActiveOrLatest(newMS *v1alpha1.MachineSet, oldMSs []*v1alpha1.MachineSet) *v1alpha1.MachineSet {
+func FindOneActiveOrLatest(newMS *v1beta1.MachineSet, oldMSs []*v1beta1.MachineSet) *v1beta1.MachineSet {
 	if newMS == nil && len(oldMSs) == 0 {
 		return nil
 	}
@@ -288,7 +288,7 @@ func FindOneActiveOrLatest(newMS *v1alpha1.MachineSet, oldMSs []*v1alpha1.Machin
 }
 
 // SetReplicasAnnotations sets the desiredReplicas and maxReplicas into the annotations
-func SetReplicasAnnotations(ms *v1alpha1.MachineSet, desiredReplicas, maxReplicas int32) bool {
+func SetReplicasAnnotations(ms *v1beta1.MachineSet, desiredReplicas, maxReplicas int32) bool {
 	updated := false
 	if ms.Annotations == nil {
 		ms.Annotations = make(map[string]string)
@@ -307,7 +307,7 @@ func SetReplicasAnnotations(ms *v1alpha1.MachineSet, desiredReplicas, maxReplica
 }
 
 // AnnotationsNeedUpdate return true if ReplicasAnnotations need to be updated
-func ReplicasAnnotationsNeedUpdate(ms *v1alpha1.MachineSet, desiredReplicas, maxReplicas int32) bool {
+func ReplicasAnnotationsNeedUpdate(ms *v1beta1.MachineSet, desiredReplicas, maxReplicas int32) bool {
 	if ms.Annotations == nil {
 		return true
 	}
@@ -323,7 +323,7 @@ func ReplicasAnnotationsNeedUpdate(ms *v1alpha1.MachineSet, desiredReplicas, max
 }
 
 // MaxUnavailable returns the maximum unavailable machines a rolling deployment can take.
-func MaxUnavailable(deployment v1alpha1.MachineDeployment) int32 {
+func MaxUnavailable(deployment v1beta1.MachineDeployment) int32 {
 	if !IsRollingUpdate(&deployment) || *(deployment.Spec.Replicas) == 0 {
 		return int32(0)
 	}
@@ -336,7 +336,7 @@ func MaxUnavailable(deployment v1alpha1.MachineDeployment) int32 {
 }
 
 // MaxSurge returns the maximum surge machines a rolling deployment can take.
-func MaxSurge(deployment v1alpha1.MachineDeployment) int32 {
+func MaxSurge(deployment v1beta1.MachineDeployment) int32 {
 	if !IsRollingUpdate(&deployment) {
 		return int32(0)
 	}
@@ -348,7 +348,7 @@ func MaxSurge(deployment v1alpha1.MachineDeployment) int32 {
 // GetProportion will estimate the proportion for the provided machine set using 1. the current size
 // of the parent deployment, 2. the replica count that needs be added on the machine sets of the
 // deployment, and 3. the total replicas added in the machine sets of the deployment so far.
-func GetProportion(ms *v1alpha1.MachineSet, d v1alpha1.MachineDeployment, deploymentReplicasToAdd, deploymentReplicasAdded int32) int32 {
+func GetProportion(ms *v1beta1.MachineSet, d v1beta1.MachineDeployment, deploymentReplicasToAdd, deploymentReplicasAdded int32) int32 {
 	if ms == nil || *(ms.Spec.Replicas) == 0 || deploymentReplicasToAdd == 0 || deploymentReplicasToAdd == deploymentReplicasAdded {
 		return int32(0)
 	}
@@ -370,7 +370,7 @@ func GetProportion(ms *v1alpha1.MachineSet, d v1alpha1.MachineDeployment, deploy
 
 // getMachineSetFraction estimates the fraction of replicas a machine set can have in
 // 1. a scaling event during a rollout or 2. when scaling a paused deployment.
-func getMachineSetFraction(ms v1alpha1.MachineSet, d v1alpha1.MachineDeployment) int32 {
+func getMachineSetFraction(ms v1beta1.MachineSet, d v1beta1.MachineDeployment) int32 {
 	// If we are scaling down to zero then the fraction of this machine set is its whole size (negative)
 	if *(d.Spec.Replicas) == int32(0) {
 		return -*(ms.Spec.Replicas)
@@ -397,7 +397,7 @@ func getMachineSetFraction(ms v1alpha1.MachineSet, d v1alpha1.MachineDeployment)
 // 1. The hash result would be different upon machineTemplateSpec API changes
 //    (e.g. the addition of a new field will cause the hash code to change)
 // 2. The deployment template won't have hash labels
-func EqualIgnoreHash(template1, template2 *v1alpha1.MachineTemplateSpec) bool {
+func EqualIgnoreHash(template1, template2 *v1beta1.MachineTemplateSpec) bool {
 	t1Copy := template1.DeepCopy()
 	t2Copy := template2.DeepCopy()
 	// Remove hash labels from template.Labels before comparing
@@ -407,7 +407,7 @@ func EqualIgnoreHash(template1, template2 *v1alpha1.MachineTemplateSpec) bool {
 }
 
 // FindNewMachineSet returns the new MS this given deployment targets (the one with the same machine template).
-func FindNewMachineSet(deployment *v1alpha1.MachineDeployment, msList []*v1alpha1.MachineSet) *v1alpha1.MachineSet {
+func FindNewMachineSet(deployment *v1beta1.MachineDeployment, msList []*v1beta1.MachineSet) *v1beta1.MachineSet {
 	sort.Sort(MachineSetsByCreationTimestamp(msList))
 	for i := range msList {
 		if EqualIgnoreHash(&msList[i].Spec.Template, &deployment.Spec.Template) {
@@ -426,9 +426,9 @@ func FindNewMachineSet(deployment *v1alpha1.MachineDeployment, msList []*v1alpha
 // Returns two list of machine sets
 //  - the first contains all old machine sets with all non-zero replicas
 //  - the second contains all old machine sets
-func FindOldMachineSets(deployment *v1alpha1.MachineDeployment, msList []*v1alpha1.MachineSet) ([]*v1alpha1.MachineSet, []*v1alpha1.MachineSet) {
-	var requiredMSs []*v1alpha1.MachineSet
-	allMSs := make([]*v1alpha1.MachineSet, 0, len(msList))
+func FindOldMachineSets(deployment *v1beta1.MachineDeployment, msList []*v1beta1.MachineSet) ([]*v1beta1.MachineSet, []*v1beta1.MachineSet) {
+	var requiredMSs []*v1beta1.MachineSet
+	allMSs := make([]*v1beta1.MachineSet, 0, len(msList))
 	newMS := FindNewMachineSet(deployment, msList)
 	for _, ms := range msList {
 		// Filter out new machine set
@@ -444,7 +444,7 @@ func FindOldMachineSets(deployment *v1alpha1.MachineDeployment, msList []*v1alph
 }
 
 // GetReplicaCountForMachineSets returns the sum of Replicas of the given machine sets.
-func GetReplicaCountForMachineSets(machineSets []*v1alpha1.MachineSet) int32 {
+func GetReplicaCountForMachineSets(machineSets []*v1beta1.MachineSet) int32 {
 	totalReplicas := int32(0)
 	for _, ms := range machineSets {
 		if ms != nil {
@@ -455,7 +455,7 @@ func GetReplicaCountForMachineSets(machineSets []*v1alpha1.MachineSet) int32 {
 }
 
 // GetActualReplicaCountForMachineSets returns the sum of actual replicas of the given machine sets.
-func GetActualReplicaCountForMachineSets(machineSets []*v1alpha1.MachineSet) int32 {
+func GetActualReplicaCountForMachineSets(machineSets []*v1beta1.MachineSet) int32 {
 	totalActualReplicas := int32(0)
 	for _, ms := range machineSets {
 		if ms != nil {
@@ -466,7 +466,7 @@ func GetActualReplicaCountForMachineSets(machineSets []*v1alpha1.MachineSet) int
 }
 
 // GetReadyReplicaCountForMachineSets returns the number of ready machines corresponding to the given machine sets.
-func GetReadyReplicaCountForMachineSets(machineSets []*v1alpha1.MachineSet) int32 {
+func GetReadyReplicaCountForMachineSets(machineSets []*v1beta1.MachineSet) int32 {
 	totalReadyReplicas := int32(0)
 	for _, ms := range machineSets {
 		if ms != nil {
@@ -477,7 +477,7 @@ func GetReadyReplicaCountForMachineSets(machineSets []*v1alpha1.MachineSet) int3
 }
 
 // GetAvailableReplicaCountForMachineSets returns the number of available machines corresponding to the given machine sets.
-func GetAvailableReplicaCountForMachineSets(machineSets []*v1alpha1.MachineSet) int32 {
+func GetAvailableReplicaCountForMachineSets(machineSets []*v1beta1.MachineSet) int32 {
 	totalAvailableReplicas := int32(0)
 	for _, ms := range machineSets {
 		if ms != nil {
@@ -488,13 +488,13 @@ func GetAvailableReplicaCountForMachineSets(machineSets []*v1alpha1.MachineSet) 
 }
 
 // IsRollingUpdate returns true if the strategy type is a rolling update.
-func IsRollingUpdate(deployment *v1alpha1.MachineDeployment) bool {
+func IsRollingUpdate(deployment *v1beta1.MachineDeployment) bool {
 	return deployment.Spec.Strategy.Type == common.RollingUpdateMachineDeploymentStrategyType
 }
 
 // DeploymentComplete considers a deployment to be complete once all of its desired replicas
 // are updated and available, and no old machines are running.
-func DeploymentComplete(deployment *v1alpha1.MachineDeployment, newStatus *v1alpha1.MachineDeploymentStatus) bool {
+func DeploymentComplete(deployment *v1beta1.MachineDeployment, newStatus *v1beta1.MachineDeploymentStatus) bool {
 	return newStatus.UpdatedReplicas == *(deployment.Spec.Replicas) &&
 		newStatus.Replicas == *(deployment.Spec.Replicas) &&
 		newStatus.AvailableReplicas == *(deployment.Spec.Replicas) &&
@@ -505,7 +505,7 @@ func DeploymentComplete(deployment *v1alpha1.MachineDeployment, newStatus *v1alp
 // When one of the following is true, we're rolling out the deployment; otherwise, we're scaling it.
 // 1) The new MS is saturated: newMS's replicas == deployment's replicas
 // 2) Max number of machines allowed is reached: deployment's replicas + maxSurge == all MSs' replicas
-func NewMSNewReplicas(deployment *v1alpha1.MachineDeployment, allMSs []*v1alpha1.MachineSet, newMS *v1alpha1.MachineSet) (int32, error) {
+func NewMSNewReplicas(deployment *v1beta1.MachineDeployment, allMSs []*v1beta1.MachineSet, newMS *v1beta1.MachineSet) (int32, error) {
 	switch deployment.Spec.Strategy.Type {
 	case common.RollingUpdateMachineDeploymentStrategyType:
 		// Check if we can scale up.
@@ -551,7 +551,7 @@ func NewMSNewReplicas(deployment *v1alpha1.MachineDeployment, allMSs []*v1alpha1
 // Both the deployment and the machine set have to believe this machine set can own all of the desired
 // replicas in the deployment and the annotation helps in achieving that. All machines of the MachineSet
 // need to be available.
-func IsSaturated(deployment *v1alpha1.MachineDeployment, ms *v1alpha1.MachineSet) bool {
+func IsSaturated(deployment *v1beta1.MachineDeployment, ms *v1beta1.MachineSet) bool {
 	if ms == nil {
 		return false
 	}
@@ -596,18 +596,18 @@ func ResolveFenceposts(maxSurge, maxUnavailable *intstrutil.IntOrString, desired
 }
 
 // FilterActiveMachineSets returns machine sets that have (or at least ought to have) machines.
-func FilterActiveMachineSets(machineSets []*v1alpha1.MachineSet) []*v1alpha1.MachineSet {
-	activeFilter := func(ms *v1alpha1.MachineSet) bool {
+func FilterActiveMachineSets(machineSets []*v1beta1.MachineSet) []*v1beta1.MachineSet {
+	activeFilter := func(ms *v1beta1.MachineSet) bool {
 		return ms != nil && ms.Spec.Replicas != nil && *(ms.Spec.Replicas) > 0
 	}
 	return FilterMachineSets(machineSets, activeFilter)
 }
 
-type filterMS func(ms *v1alpha1.MachineSet) bool
+type filterMS func(ms *v1beta1.MachineSet) bool
 
 // FilterMachineSets returns machine sets that are filtered by filterFn (all returned ones should match filterFn).
-func FilterMachineSets(MSes []*v1alpha1.MachineSet, filterFn filterMS) []*v1alpha1.MachineSet {
-	var filtered []*v1alpha1.MachineSet
+func FilterMachineSets(MSes []*v1beta1.MachineSet, filterFn filterMS) []*v1beta1.MachineSet {
+	var filtered []*v1beta1.MachineSet
 	for i := range MSes {
 		if filterFn(MSes[i]) {
 			filtered = append(filtered, MSes[i])
@@ -686,7 +686,7 @@ func DeepHashObject(hasher hash.Hash, objectToWrite interface{}) {
 	printer.Fprintf(hasher, "%#v", objectToWrite)
 }
 
-func ComputeHash(template *v1alpha1.MachineTemplateSpec) uint32 {
+func ComputeHash(template *v1beta1.MachineTemplateSpec) uint32 {
 	machineTemplateSpecHasher := fnv.New32a()
 	DeepHashObject(machineTemplateSpecHasher, *template)
 

@@ -20,18 +20,18 @@ import (
 	"testing"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"sigs.k8s.io/cluster-api/pkg/apis/cluster/v1alpha1"
+	"sigs.k8s.io/cluster-api/pkg/apis/machine/v1beta1"
 )
 
 func TestHasMatchingLabels(t *testing.T) {
 	testCases := []struct {
-		machineSet v1alpha1.MachineSet
-		machine    v1alpha1.Machine
+		machineSet v1beta1.MachineSet
+		machine    v1beta1.Machine
 		expected   bool
 	}{
 		{
-			machineSet: v1alpha1.MachineSet{
-				Spec: v1alpha1.MachineSetSpec{
+			machineSet: v1beta1.MachineSet{
+				Spec: v1beta1.MachineSetSpec{
 					Selector: metav1.LabelSelector{
 						MatchLabels: map[string]string{
 							"foo": "bar",
@@ -39,7 +39,7 @@ func TestHasMatchingLabels(t *testing.T) {
 					},
 				},
 			},
-			machine: v1alpha1.Machine{
+			machine: v1beta1.Machine{
 				ObjectMeta: metav1.ObjectMeta{
 					Name: "matchSelector",
 					Labels: map[string]string{
@@ -50,8 +50,8 @@ func TestHasMatchingLabels(t *testing.T) {
 			expected: true,
 		},
 		{
-			machineSet: v1alpha1.MachineSet{
-				Spec: v1alpha1.MachineSetSpec{
+			machineSet: v1beta1.MachineSet{
+				Spec: v1beta1.MachineSetSpec{
 					Selector: metav1.LabelSelector{
 						MatchLabels: map[string]string{
 							"foo": "bar",
@@ -59,7 +59,7 @@ func TestHasMatchingLabels(t *testing.T) {
 					},
 				},
 			},
-			machine: v1alpha1.Machine{
+			machine: v1beta1.Machine{
 				ObjectMeta: metav1.ObjectMeta{
 					Name: "doesNotMatchSelector",
 					Labels: map[string]string{

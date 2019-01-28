@@ -71,7 +71,7 @@ type ReconcileCluster struct {
 	actuator Actuator
 }
 
-// +kubebuilder:rbac:groups=cluster.k8s.io,resources=clusters,verbs=get;list;watch;create;update;patch;delete
+// +kubebuilder:rbac:groups=machine.openshift.io,resources=clusters,verbs=get;list;watch;create;update;patch;delete
 func (r *ReconcileCluster) Reconcile(request reconcile.Request) (reconcile.Result, error) {
 	cluster := &clusterv1alpha1.Cluster{}
 	err := r.Get(context.Background(), request.NamespacedName, cluster)

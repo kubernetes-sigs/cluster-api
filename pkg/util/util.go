@@ -17,9 +17,14 @@ limitations under the License.
 package util
 
 import (
+	"bytes"
 	"context"
 	"fmt"
+	"github.com/pkg/errors"
+	"io"
 	"io/ioutil"
+	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/util/json"
 	"math/rand"
 	"os"
 	"os/exec"
@@ -28,11 +33,12 @@ import (
 	"time"
 
 	v1 "k8s.io/api/core/v1"
-	"k8s.io/apimachinery/pkg/api/errors"
+	k8sErrors "k8s.io/apimachinery/pkg/api/errors"
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
+	"k8s.io/apimachinery/pkg/util/yaml"
 	"k8s.io/klog"
 	clusterv1 "sigs.k8s.io/cluster-api/pkg/apis/cluster/v1alpha1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
-	"sigs.k8s.io/yaml"
 )
 
 const (
@@ -107,7 +113,7 @@ func GetMachineIfExists(c client.Client, namespace, name string) (*clusterv1.Mac
 	machine := &clusterv1.Machine{}
 	err := c.Get(context.Background(), client.ObjectKey{Namespace: namespace, Name: name}, machine)
 	if err != nil {
-		if errors.IsNotFound(err) {
+		if k8sErrors.IsNotFound(err) {
 			return nil, nil
 		}
 		return nil, err
@@ -178,33 +184,111 @@ func GetNamespaceOrDefault(namespace string) string {
 }
 
 func ParseClusterYaml(file string) (*clusterv1.Cluster, error) {
-	bytes, err := ioutil.ReadFile(file)
+	bytes, err := FindGVKInFile(file, "Cluster")
 	if err != nil {
 		return nil, err
 	}
 
-	cluster := &clusterv1.Cluster{}
-	if err := yaml.Unmarshal(bytes, cluster); err != nil {
+	var cluster clusterv1.Cluster
+
+	err = json.Unmarshal(bytes[0], &cluster)
+
+	if err != nil {
 		return nil, err
 	}
 
-	return cluster, nil
+	return &cluster, nil
 }
 
 func ParseMachinesYaml(file string) ([]*clusterv1.Machine, error) {
-	bytes, err := ioutil.ReadFile(file)
+
+	machineList, err := ParseMachineListYaml(file)
+
 	if err != nil {
-		return nil, err
+		return nil, errors.WithStack(err)
 	}
 
-	list := &clusterv1.MachineList{}
-	if err := yaml.Unmarshal(bytes, &list); err != nil {
-		return nil, err
+	bytes, err := FindGVKInFile(file, "Machine")
+
+	// Original set of MachineLists did not have Kind field
+	if err != nil && !isMissingKind(err) {
+		return nil, errors.WithStack(err)
 	}
 
-	if list == nil {
-		return []*clusterv1.Machine{}, nil
+	machines := []clusterv1.Machine{}
+
+	for _, m := range bytes {
+		var machine clusterv1.Machine
+		err = json.Unmarshal(m, &machine)
+		if err != nil {
+			return nil, errors.WithStack(err)
+		}
+		machines = append(machines, machine)
 	}
 
-	return MachineP(list.Items), nil
+	machinesP := MachineP(machines)
+
+	return append(machinesP, machineList...), nil
+}
+
+func ParseMachineListYaml(file string) ([]*clusterv1.Machine, error) {
+	b, err := ioutil.ReadFile(file)
+	if err != nil {
+		return nil, errors.WithStack(err)
+	}
+
+	outs := []clusterv1.Machine{}
+
+	reader := bytes.NewReader(b)
+	decoder := yaml.NewYAMLOrJSONDecoder(reader, 32)
+
+	for {
+		var out clusterv1.MachineList
+		err = decoder.Decode(&out)
+
+		if err != io.EOF && err != nil {
+		} else if err == io.EOF {
+			return MachineP(outs), nil
+		}
+		outs = append(outs, out.Items...)
+	}
+}
+
+func isMissingKind(err error) bool {
+	return strings.Contains(err.Error(), "Object 'Kind' is missing in")
+}
+
+func FindGVKInFile(file string, kind string) ([][]byte, error) {
+	b, err := ioutil.ReadFile(file)
+	if err != nil {
+		return [][]byte{}, errors.WithStack(err)
+	}
+
+	outs := [][]byte{}
+
+	reader := bytes.NewReader(b)
+	decoder := yaml.NewYAMLOrJSONDecoder(reader, 32)
+
+	for {
+		var out unstructured.Unstructured
+		err = decoder.Decode(&out)
+
+		if runtime.IsMissingKind(err) || err == io.EOF {
+			return outs, nil
+		}
+
+		if err != nil {
+			return outs, errors.WithStack(err)
+		}
+
+		if out.GetKind() == kind && out.GetAPIVersion() == clusterv1.SchemeGroupVersion.String() {
+			var marshaled []byte
+			marshaled, err = out.MarshalJSON()
+			fmt.Printf("%T", err)
+			if err != nil {
+				return outs, errors.WithStack(err)
+			}
+			outs = append(outs, marshaled)
+		}
+	}
 }

@@ -66,7 +66,7 @@ func GetControlPlaneMachine(machines []*clusterv1.Machine) *clusterv1.Machine {
 
 func MachineP(machines []clusterv1.Machine) []*clusterv1.Machine {
 	// Convert to list of pointers
-	var ret []*clusterv1.Machine
+	ret := make([]*clusterv1.Machine, 0, len(machines))
 	for _, machine := range machines {
 		ret = append(ret, machine.DeepCopy())
 	}

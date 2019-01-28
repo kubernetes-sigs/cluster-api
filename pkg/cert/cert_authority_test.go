@@ -20,8 +20,9 @@ import (
 	"io/ioutil"
 	"os"
 	"path"
-	"sigs.k8s.io/cluster-api/pkg/cert"
 	"testing"
+
+	"sigs.k8s.io/cluster-api/pkg/cert"
 )
 
 var (

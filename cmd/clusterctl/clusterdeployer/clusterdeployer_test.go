@@ -301,7 +301,7 @@ func (c *testClusterClient) DeleteNamespace(namespaceName string) error {
 		return nil
 	}
 
-	var ns []string
+	ns := make([]string, 0, len(c.namespaces))
 	for _, n := range c.namespaces {
 		if n == namespaceName {
 			continue
@@ -1210,7 +1210,7 @@ func generateTestNodeMachine(name string) *clusterv1.Machine {
 }
 
 func generateTestControlPlaneMachines(controlPlaneNames []string) []*clusterv1.Machine {
-	var controlPlanes []*clusterv1.Machine
+	controlPlanes := make([]*clusterv1.Machine, 0, len(controlPlaneNames))
 	for _, mn := range controlPlaneNames {
 		controlPlanes = append(controlPlanes, generateTestControlPlaneMachine(mn))
 	}
@@ -1218,7 +1218,7 @@ func generateTestControlPlaneMachines(controlPlaneNames []string) []*clusterv1.M
 }
 
 func generateTestNodeMachines(nodeNames []string) []*clusterv1.Machine {
-	var nodes []*clusterv1.Machine
+	nodes := make([]*clusterv1.Machine, 0, len(nodeNames))
 	for _, nn := range nodeNames {
 		nodes = append(nodes, generateTestNodeMachine(nn))
 	}
@@ -1247,8 +1247,8 @@ func generateMachines() []*clusterv1.Machine {
 
 func newMachineSetsFixture() []*clusterv1.MachineSet {
 	return []*clusterv1.MachineSet{
-		&clusterv1.MachineSet{ObjectMeta: metav1.ObjectMeta{Name: "machine-set-name-1"}},
-		&clusterv1.MachineSet{ObjectMeta: metav1.ObjectMeta{Name: "machine-set-name-2"}},
+		{ObjectMeta: metav1.ObjectMeta{Name: "machine-set-name-1"}},
+		{ObjectMeta: metav1.ObjectMeta{Name: "machine-set-name-2"}},
 	}
 }
 
@@ -1267,15 +1267,15 @@ func getClustersForNamespace(namespace string, count int) []*clusterv1.Cluster {
 
 func newMachineDeploymentsFixture() []*clusterv1.MachineDeployment {
 	return []*clusterv1.MachineDeployment{
-		&clusterv1.MachineDeployment{ObjectMeta: metav1.ObjectMeta{Name: "machine-deployment-name-1"}},
-		&clusterv1.MachineDeployment{ObjectMeta: metav1.ObjectMeta{Name: "machine-deployment-name-2"}},
+		{ObjectMeta: metav1.ObjectMeta{Name: "machine-deployment-name-1"}},
+		{ObjectMeta: metav1.ObjectMeta{Name: "machine-deployment-name-2"}},
 	}
 }
 
 func newClustersFixture() []*clusterv1.Cluster {
 	return []*clusterv1.Cluster{
-		&clusterv1.Cluster{ObjectMeta: metav1.ObjectMeta{Name: "cluster-name-1"}},
-		&clusterv1.Cluster{ObjectMeta: metav1.ObjectMeta{Name: "cluster-name-2"}},
+		{ObjectMeta: metav1.ObjectMeta{Name: "cluster-name-1"}},
+		{ObjectMeta: metav1.ObjectMeta{Name: "cluster-name-2"}},
 	}
 }
 

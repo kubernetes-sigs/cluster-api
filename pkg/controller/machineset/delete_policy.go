@@ -23,10 +23,10 @@ import (
 type deletePriority int
 
 const (
-	mustDelete    deletePriority = 100
-	betterDelete  deletePriority = 50
-	couldDelete   deletePriority = 20
-	mustNotDelete deletePriority = 0
+	mustDelete   deletePriority = 100
+	betterDelete deletePriority = 50
+	couldDelete  deletePriority = 20
+	// mustNotDelete deletePriority = 0
 )
 
 type deletePriorityFunc func(machine *v1alpha1.Machine) deletePriority

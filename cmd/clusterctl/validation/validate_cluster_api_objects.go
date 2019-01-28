@@ -50,7 +50,7 @@ func ValidateClusterAPIObjects(w io.Writer, c client.Client, clusterName string,
 	return validateMachineObjects(w, machines, c)
 }
 
-func getClusterObject(c client.Client, clusterName string, namespace string) (*v1alpha1.Cluster, error) {
+func getClusterObject(c client.Reader, clusterName string, namespace string) (*v1alpha1.Cluster, error) {
 	if clusterName != "" {
 		cluster := &clusterv1alpha1.Cluster{}
 		err := c.Get(context.TODO(), types.NamespacedName{Name: clusterName, Namespace: namespace}, cluster)
@@ -97,7 +97,7 @@ func validateMachineObjects(w io.Writer, machines *v1alpha1.MachineList, client 
 func validateMachineObject(w io.Writer, machine v1alpha1.Machine, client client.Client) bool {
 	fmt.Fprintf(w, "Checking machine object %q... ", machine.Name)
 	if machine.Status.ErrorReason != nil || machine.Status.ErrorMessage != nil {
-		var reason common.MachineStatusError = ""
+		var reason common.MachineStatusError
 		if machine.Status.ErrorReason != nil {
 			reason = *machine.Status.ErrorReason
 		}

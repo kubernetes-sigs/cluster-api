@@ -20,15 +20,13 @@ import (
 	"reflect"
 	"testing"
 
-	"sigs.k8s.io/controller-runtime/pkg/client"
-	"sigs.k8s.io/controller-runtime/pkg/handler"
-	"sigs.k8s.io/controller-runtime/pkg/reconcile"
-
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes/scheme"
-	"sigs.k8s.io/controller-runtime/pkg/client/fake"
-
 	"sigs.k8s.io/cluster-api/pkg/apis/cluster/v1alpha1"
+	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/client/fake"
+	"sigs.k8s.io/controller-runtime/pkg/handler"
+	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 )
 
 func TestMachineSetToDeployments(t *testing.T) {
@@ -285,7 +283,7 @@ func TestGetMachineSetsForDeployment(t *testing.T) {
 		},
 		{
 			machineDeployment: machineDeployment2,
-			expected:          nil,
+			expected:          []*v1alpha1.MachineSet{},
 		},
 	}
 

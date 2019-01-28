@@ -18,4 +18,4 @@ package errors
 
 import "github.com/pkg/errors"
 
-var NotImplementedError = errors.New("not implemented")
+var ErrNotImplemented = errors.New("not implemented")

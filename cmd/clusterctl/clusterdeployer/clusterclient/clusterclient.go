@@ -143,7 +143,7 @@ func (c *client) DeleteNamespace(namespaceName string) error {
 // NewFromDefaultSearchPath creates and returns a Client.  The kubeconfigFile argument is expected to be the path to a
 // valid kubeconfig file.
 func NewFromDefaultSearchPath(kubeconfigFile string, overrides tcmd.ConfigOverrides) (*client, error) {
-	c, err := clientcmd.NewClusterApiClientForDefaultSearchPath(kubeconfigFile, overrides)
+	c, err := clientcmd.NewClusterAPIClientForDefaultSearchPath(kubeconfigFile, overrides)
 	if err != nil {
 		return nil, err
 	}

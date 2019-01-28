@@ -1,0 +1,22 @@
+linters:
+  enable:
+    - govet
+    - gofmt
+    - goimports
+    - structcheck
+    - varcheck
+    - interfacer
+    - unconvert
+    - ineffassign
+    - goconst
+    - gocyclo
+    - misspell
+    - nakedret
+    - prealloc
+    - gosec
+  disable-all: true
+  # Run with --fast=false for more extensive checks
+  fast: true
+issue:
+  max-same-issues: 0
+  max-per-linter: 0

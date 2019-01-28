@@ -24,6 +24,7 @@ import (
 	schema "k8s.io/apimachinery/pkg/runtime/schema"
 	cache "k8s.io/client-go/tools/cache"
 	v1alpha1 "sigs.k8s.io/cluster-api/pkg/apis/cluster/v1alpha1"
+	v1beta1 "sigs.k8s.io/cluster-api/pkg/apis/machine/v1beta1"
 )
 
 // GenericInformer is type of SharedIndexInformer which will locate and delegate to other
@@ -63,6 +64,18 @@ func (f *sharedInformerFactory) ForResource(resource schema.GroupVersionResource
 		return &genericInformer{resource: resource.GroupResource(), informer: f.Cluster().V1alpha1().MachineDeployments().Informer()}, nil
 	case v1alpha1.SchemeGroupVersion.WithResource("machinesets"):
 		return &genericInformer{resource: resource.GroupResource(), informer: f.Cluster().V1alpha1().MachineSets().Informer()}, nil
+
+		// Group=machine.openshift.io, Version=v1beta1
+	case v1beta1.SchemeGroupVersion.WithResource("clusters"):
+		return &genericInformer{resource: resource.GroupResource(), informer: f.Machine().V1beta1().Clusters().Informer()}, nil
+	case v1beta1.SchemeGroupVersion.WithResource("machines"):
+		return &genericInformer{resource: resource.GroupResource(), informer: f.Machine().V1beta1().Machines().Informer()}, nil
+	case v1beta1.SchemeGroupVersion.WithResource("machineclasses"):
+		return &genericInformer{resource: resource.GroupResource(), informer: f.Machine().V1beta1().MachineClasses().Informer()}, nil
+	case v1beta1.SchemeGroupVersion.WithResource("machinedeployments"):
+		return &genericInformer{resource: resource.GroupResource(), informer: f.Machine().V1beta1().MachineDeployments().Informer()}, nil
+	case v1beta1.SchemeGroupVersion.WithResource("machinesets"):
+		return &genericInformer{resource: resource.GroupResource(), informer: f.Machine().V1beta1().MachineSets().Informer()}, nil
 
 	}
 

@@ -27,6 +27,7 @@ go_test(
     deps = [
         "//pkg/apis/machine/common:go_default_library",
         "//pkg/apis/machine/v1beta1:go_default_library",
+        "//pkg/client/clientset_generated/clientset/fake:go_default_library",
         "//vendor/github.com/pkg/errors:go_default_library",
         "//vendor/k8s.io/apimachinery/pkg/apis/meta/v1:go_default_library",
         "//vendor/k8s.io/apimachinery/pkg/runtime:go_default_library",
@@ -34,6 +35,5 @@ go_test(
         "//vendor/k8s.io/apimachinery/pkg/util/intstr:go_default_library",
         "//vendor/k8s.io/apiserver/pkg/storage/names:go_default_library",
         "//vendor/k8s.io/client-go/testing:go_default_library",
-        "//vendor/sigs.k8s.io/cluster-api/pkg/client/clientset_generated/clientset/fake:go_default_library",
     ],
 )

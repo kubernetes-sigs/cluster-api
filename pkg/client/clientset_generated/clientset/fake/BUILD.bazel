@@ -11,9 +11,12 @@ go_library(
     visibility = ["//visibility:public"],
     deps = [
         "//pkg/apis/cluster/v1alpha1:go_default_library",
+        "//pkg/apis/machine/v1beta1:go_default_library",
         "//pkg/client/clientset_generated/clientset:go_default_library",
         "//pkg/client/clientset_generated/clientset/typed/cluster/v1alpha1:go_default_library",
         "//pkg/client/clientset_generated/clientset/typed/cluster/v1alpha1/fake:go_default_library",
+        "//pkg/client/clientset_generated/clientset/typed/machine/v1beta1:go_default_library",
+        "//pkg/client/clientset_generated/clientset/typed/machine/v1beta1/fake:go_default_library",
         "//vendor/k8s.io/apimachinery/pkg/apis/meta/v1:go_default_library",
         "//vendor/k8s.io/apimachinery/pkg/runtime:go_default_library",
         "//vendor/k8s.io/apimachinery/pkg/runtime/schema:go_default_library",

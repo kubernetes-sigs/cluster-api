@@ -27,6 +27,8 @@ import (
 	clientset "sigs.k8s.io/cluster-api/pkg/client/clientset_generated/clientset"
 	clusterv1alpha1 "sigs.k8s.io/cluster-api/pkg/client/clientset_generated/clientset/typed/cluster/v1alpha1"
 	fakeclusterv1alpha1 "sigs.k8s.io/cluster-api/pkg/client/clientset_generated/clientset/typed/cluster/v1alpha1/fake"
+	machinev1beta1 "sigs.k8s.io/cluster-api/pkg/client/clientset_generated/clientset/typed/machine/v1beta1"
+	fakemachinev1beta1 "sigs.k8s.io/cluster-api/pkg/client/clientset_generated/clientset/typed/machine/v1beta1/fake"
 )
 
 // NewSimpleClientset returns a clientset that will respond with the provided objects.
@@ -79,4 +81,14 @@ func (c *Clientset) ClusterV1alpha1() clusterv1alpha1.ClusterV1alpha1Interface {
 // Cluster retrieves the ClusterV1alpha1Client
 func (c *Clientset) Cluster() clusterv1alpha1.ClusterV1alpha1Interface {
 	return &fakeclusterv1alpha1.FakeClusterV1alpha1{Fake: &c.Fake}
+}
+
+// MachineV1beta1 retrieves the MachineV1beta1Client
+func (c *Clientset) MachineV1beta1() machinev1beta1.MachineV1beta1Interface {
+	return &fakemachinev1beta1.FakeMachineV1beta1{Fake: &c.Fake}
+}
+
+// Machine retrieves the MachineV1beta1Client
+func (c *Clientset) Machine() machinev1beta1.MachineV1beta1Interface {
+	return &fakemachinev1beta1.FakeMachineV1beta1{Fake: &c.Fake}
 }

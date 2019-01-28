@@ -201,7 +201,6 @@ func ParseClusterYaml(file string) (*clusterv1.Cluster, error) {
 }
 
 func ParseMachinesYaml(file string) ([]*clusterv1.Machine, error) {
-
 	machineList, err := ParseMachineListYaml(file)
 
 	if err != nil {

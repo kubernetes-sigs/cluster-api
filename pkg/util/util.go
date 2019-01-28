@@ -241,6 +241,7 @@ func ParseMachinesYaml(file string) ([]*clusterv1.Machine, error) {
 	// Will reread the file to find items which aren't a list.
 	// TODO: Make the Kind field mandatory on machines.yaml and then use the
 	// universal decoder instead of doing this.
+	// https://github.com/kubernetes-sigs/cluster-api/issues/717
 	if _, err := reader.Seek(0, 0); err != nil {
 		return nil, err
 	}

@@ -29,7 +29,7 @@ import (
 	"time"
 
 	v1 "k8s.io/api/core/v1"
-	k8sErrors "k8s.io/apimachinery/pkg/api/errors"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/util/yaml"
 	"k8s.io/klog"
@@ -117,7 +117,7 @@ func GetMachineIfExists(c client.Client, namespace, name string) (*clusterv1.Mac
 	machine := &clusterv1.Machine{}
 	err := c.Get(context.Background(), client.ObjectKey{Namespace: namespace, Name: name}, machine)
 	if err != nil {
-		if k8sErrors.IsNotFound(err) {
+		if apierrors.IsNotFound(err) {
 			return nil, nil
 		}
 		return nil, err
@@ -132,7 +132,7 @@ func IsControlPlaneMachine(machine *clusterv1.Machine) bool {
 	return machine.Spec.Versions.ControlPlane != ""
 }
 
-// IsNodeReader returns true if a node is ready
+// IsNodeReady returns true if a node is ready
 func IsNodeReady(node *v1.Node) bool {
 	for _, condition := range node.Status.Conditions {
 		if condition.Type == v1.NodeReady {
@@ -203,6 +203,8 @@ func ParseClusterYaml(file string) (*clusterv1.Cluster, error) {
 		return nil, err
 	}
 
+	defer reader.Close()
+
 	decoder := yaml.NewYAMLOrJSONDecoder(reader, 32)
 
 	bytes, err := decodeClusterV1Kinds(decoder, "Cluster")
@@ -212,9 +214,7 @@ func ParseClusterYaml(file string) (*clusterv1.Cluster, error) {
 
 	var cluster clusterv1.Cluster
 
-	err = json.Unmarshal(bytes[0], &cluster)
-
-	if err != nil {
+	if err := json.Unmarshal(bytes[0], &cluster); err != nil {
 		return nil, err
 	}
 
@@ -228,6 +228,8 @@ func ParseMachinesYaml(file string) ([]*clusterv1.Machine, error) {
 	if err != nil {
 		return nil, err
 	}
+
+	defer reader.Close()
 
 	decoder := yaml.NewYAMLOrJSONDecoder(reader, 32)
 	machineList, err := decodeMachineLists(decoder)
@@ -297,10 +299,8 @@ func decodeClusterV1Kinds(decoder *yaml.YAMLOrJSONDecoder, kind string) ([][]byt
 
 		if err == io.EOF {
 			break
-		}
-
-		if err != nil {
-			return outs, err
+		} else if err != nil {
+			return nil, err
 		}
 
 		if out.GetKind() == kind && out.GetAPIVersion() == clusterv1.SchemeGroupVersion.String() {

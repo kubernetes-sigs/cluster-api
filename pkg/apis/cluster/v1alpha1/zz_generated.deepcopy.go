@@ -638,6 +638,11 @@ func (in *MachineSpec) DeepCopyInto(out *MachineSpec) {
 		*out = new(v1.NodeConfigSource)
 		(*in).DeepCopyInto(*out)
 	}
+	if in.ProviderID != nil {
+		in, out := &in.ProviderID, &out.ProviderID
+		*out = new(string)
+		**out = **in
+	}
 	return
 }
 

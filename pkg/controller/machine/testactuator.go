@@ -20,7 +20,7 @@ import (
 	"context"
 	"sync"
 
-	"sigs.k8s.io/cluster-api/pkg/apis/machine/v1beta1"
+	"github.com/openshift/cluster-api/pkg/apis/machine/v1beta1"
 )
 
 var _ Actuator = &TestActuator{}

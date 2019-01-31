@@ -7,7 +7,7 @@ go_library(
         "tail_posix.go",
         "tail_windows.go",
     ],
-    importmap = "sigs.k8s.io/cluster-api/vendor/github.com/hpcloud/tail",
+    importmap = "github.com/openshift/cluster-api/vendor/github.com/hpcloud/tail",
     importpath = "github.com/hpcloud/tail",
     visibility = ["//visibility:public"],
     deps = [

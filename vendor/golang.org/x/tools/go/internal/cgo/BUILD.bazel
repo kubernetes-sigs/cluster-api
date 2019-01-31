@@ -6,7 +6,7 @@ go_library(
         "cgo.go",
         "cgo_pkgconfig.go",
     ],
-    importmap = "sigs.k8s.io/cluster-api/vendor/golang.org/x/tools/go/internal/cgo",
+    importmap = "github.com/openshift/cluster-api/vendor/golang.org/x/tools/go/internal/cgo",
     importpath = "golang.org/x/tools/go/internal/cgo",
     visibility = ["//vendor/golang.org/x/tools/go:__subpackages__"],
 )

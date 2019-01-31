@@ -19,13 +19,13 @@ package machinedeployment
 import (
 	"sort"
 
+	"github.com/openshift/cluster-api/pkg/apis/machine/v1beta1"
 	"github.com/pkg/errors"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/util/integer"
 	"k8s.io/klog"
-	"sigs.k8s.io/cluster-api/pkg/apis/machine/v1beta1"
 
-	dutil "sigs.k8s.io/cluster-api/pkg/controller/machinedeployment/util"
+	dutil "github.com/openshift/cluster-api/pkg/controller/machinedeployment/util"
 )
 
 // rolloutRolling implements the logic for rolling a new machine set.

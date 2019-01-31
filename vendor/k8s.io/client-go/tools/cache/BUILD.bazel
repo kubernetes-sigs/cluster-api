@@ -23,7 +23,7 @@ go_library(
         "thread_safe_store.go",
         "undelta_store.go",
     ],
-    importmap = "sigs.k8s.io/cluster-api/vendor/k8s.io/client-go/tools/cache",
+    importmap = "github.com/openshift/cluster-api/vendor/k8s.io/client-go/tools/cache",
     importpath = "k8s.io/client-go/tools/cache",
     visibility = ["//visibility:public"],
     deps = [

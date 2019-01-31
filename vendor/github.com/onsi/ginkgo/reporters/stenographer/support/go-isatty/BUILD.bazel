@@ -9,7 +9,7 @@ go_library(
         "isatty_solaris.go",
         "isatty_windows.go",
     ],
-    importmap = "sigs.k8s.io/cluster-api/vendor/github.com/onsi/ginkgo/reporters/stenographer/support/go-isatty",
+    importmap = "github.com/openshift/cluster-api/vendor/github.com/onsi/ginkgo/reporters/stenographer/support/go-isatty",
     importpath = "github.com/onsi/ginkgo/reporters/stenographer/support/go-isatty",
     visibility = ["//visibility:public"],
     deps = select({

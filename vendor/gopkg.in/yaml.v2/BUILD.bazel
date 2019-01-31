@@ -17,7 +17,7 @@ go_library(
         "yamlh.go",
         "yamlprivateh.go",
     ],
-    importmap = "sigs.k8s.io/cluster-api/vendor/gopkg.in/yaml.v2",
+    importmap = "github.com/openshift/cluster-api/vendor/gopkg.in/yaml.v2",
     importpath = "gopkg.in/yaml.v2",
     visibility = ["//visibility:public"],
 )

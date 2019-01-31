@@ -9,7 +9,7 @@ go_library(
         "helper.go",
         "round_tripper.go",
     ],
-    importmap = "sigs.k8s.io/cluster-api/vendor/k8s.io/client-go/discovery",
+    importmap = "github.com/openshift/cluster-api/vendor/k8s.io/client-go/discovery",
     importpath = "k8s.io/client-go/discovery",
     visibility = ["//visibility:public"],
     deps = [

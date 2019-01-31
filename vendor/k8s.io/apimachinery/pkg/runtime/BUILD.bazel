@@ -22,7 +22,7 @@ go_library(
         "types_proto.go",
         "zz_generated.deepcopy.go",
     ],
-    importmap = "sigs.k8s.io/cluster-api/vendor/k8s.io/apimachinery/pkg/runtime",
+    importmap = "github.com/openshift/cluster-api/vendor/k8s.io/apimachinery/pkg/runtime",
     importpath = "k8s.io/apimachinery/pkg/runtime",
     visibility = ["//visibility:public"],
     deps = [

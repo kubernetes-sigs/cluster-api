@@ -13,7 +13,7 @@ go_library(
         "replicaset.go",
         "replicaset_expansion.go",
     ],
-    importmap = "sigs.k8s.io/cluster-api/vendor/k8s.io/client-go/listers/extensions/v1beta1",
+    importmap = "github.com/openshift/cluster-api/vendor/k8s.io/client-go/listers/extensions/v1beta1",
     importpath = "k8s.io/client-go/listers/extensions/v1beta1",
     visibility = ["//visibility:public"],
     deps = [

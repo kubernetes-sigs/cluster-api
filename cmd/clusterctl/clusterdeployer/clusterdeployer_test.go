@@ -22,13 +22,13 @@ import (
 	"os"
 	"testing"
 
+	"github.com/openshift/cluster-api/cmd/clusterctl/clusterdeployer/clusterclient"
+	"github.com/openshift/cluster-api/cmd/clusterctl/clusterdeployer/provider"
+	clusterv1 "github.com/openshift/cluster-api/pkg/apis/cluster/v1alpha1"
 	"github.com/pkg/errors"
 	apiv1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
-	"sigs.k8s.io/cluster-api/cmd/clusterctl/clusterdeployer/clusterclient"
-	"sigs.k8s.io/cluster-api/cmd/clusterctl/clusterdeployer/provider"
-	clusterv1 "sigs.k8s.io/cluster-api/pkg/apis/cluster/v1alpha1"
 )
 
 type testClusterProvisioner struct {
@@ -1066,7 +1066,7 @@ func TestDeleteCleanupExternalCluster(t *testing.T) {
 		expectedErrorMessage   string
 	}{
 		{
-			name:                   "success with cleanup",
+			name: "success with cleanup",
 			cleanupExternalCluster: true,
 			provisionExternalErr:   nil,
 			bootstrapClient:        &testClusterClient{},
@@ -1074,7 +1074,7 @@ func TestDeleteCleanupExternalCluster(t *testing.T) {
 			expectedErrorMessage:   "",
 		},
 		{
-			name:                   "success without cleanup",
+			name: "success without cleanup",
 			cleanupExternalCluster: false,
 			provisionExternalErr:   nil,
 			bootstrapClient:        &testClusterClient{},
@@ -1082,7 +1082,7 @@ func TestDeleteCleanupExternalCluster(t *testing.T) {
 			expectedErrorMessage:   "",
 		},
 		{
-			name:                   "error with cleanup",
+			name: "error with cleanup",
 			cleanupExternalCluster: true,
 			provisionExternalErr:   nil,
 			bootstrapClient:        &testClusterClient{},
@@ -1090,7 +1090,7 @@ func TestDeleteCleanupExternalCluster(t *testing.T) {
 			expectedErrorMessage:   "get machine sets error",
 		},
 		{
-			name:                   "error without cleanup",
+			name: "error without cleanup",
 			cleanupExternalCluster: true,
 			provisionExternalErr:   nil,
 			bootstrapClient:        &testClusterClient{},

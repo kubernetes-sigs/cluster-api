@@ -10,7 +10,7 @@ go_library(
         "machinedeployment.go",
         "machineset.go",
     ],
-    importpath = "sigs.k8s.io/cluster-api/pkg/client/informers_generated/externalversions/cluster/v1alpha1",
+    importpath = "github.com/openshift/cluster-api/pkg/client/informers_generated/externalversions/cluster/v1alpha1",
     visibility = ["//visibility:public"],
     deps = [
         "//pkg/apis/cluster/v1alpha1:go_default_library",

@@ -12,7 +12,7 @@ go_library(
         "format.go",
         "spew.go",
     ],
-    importmap = "sigs.k8s.io/cluster-api/vendor/github.com/davecgh/go-spew/spew",
+    importmap = "github.com/openshift/cluster-api/vendor/github.com/davecgh/go-spew/spew",
     importpath = "github.com/davecgh/go-spew/spew",
     visibility = ["//visibility:public"],
 )

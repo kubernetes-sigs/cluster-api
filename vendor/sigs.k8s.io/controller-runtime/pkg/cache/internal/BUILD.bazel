@@ -7,7 +7,7 @@ go_library(
         "deleg_map.go",
         "informers_map.go",
     ],
-    importmap = "sigs.k8s.io/cluster-api/vendor/sigs.k8s.io/controller-runtime/pkg/cache/internal",
+    importmap = "github.com/openshift/cluster-api/vendor/sigs.k8s.io/controller-runtime/pkg/cache/internal",
     importpath = "sigs.k8s.io/controller-runtime/pkg/cache/internal",
     visibility = ["//visibility:public"],
     deps = [

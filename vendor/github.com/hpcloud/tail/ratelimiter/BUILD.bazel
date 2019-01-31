@@ -7,7 +7,7 @@ go_library(
         "memory.go",
         "storage.go",
     ],
-    importmap = "sigs.k8s.io/cluster-api/vendor/github.com/hpcloud/tail/ratelimiter",
+    importmap = "github.com/openshift/cluster-api/vendor/github.com/hpcloud/tail/ratelimiter",
     importpath = "github.com/hpcloud/tail/ratelimiter",
     visibility = ["//visibility:public"],
 )

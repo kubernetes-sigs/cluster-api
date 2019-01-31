@@ -9,7 +9,7 @@ go_library(
         "etcd.go",
         "kubectl.go",
     ],
-    importmap = "sigs.k8s.io/cluster-api/vendor/sigs.k8s.io/testing_frameworks/integration",
+    importmap = "github.com/openshift/cluster-api/vendor/sigs.k8s.io/testing_frameworks/integration",
     importpath = "sigs.k8s.io/testing_frameworks/integration",
     visibility = ["//visibility:public"],
     deps = [

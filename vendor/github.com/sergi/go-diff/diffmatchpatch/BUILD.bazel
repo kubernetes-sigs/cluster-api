@@ -10,7 +10,7 @@ go_library(
         "patch.go",
         "stringutil.go",
     ],
-    importmap = "sigs.k8s.io/cluster-api/vendor/github.com/sergi/go-diff/diffmatchpatch",
+    importmap = "github.com/openshift/cluster-api/vendor/github.com/sergi/go-diff/diffmatchpatch",
     importpath = "github.com/sergi/go-diff/diffmatchpatch",
     visibility = ["//visibility:public"],
 )

@@ -25,7 +25,7 @@ go_library(
         "vec.go",
         "wrap.go",
     ],
-    importmap = "sigs.k8s.io/cluster-api/vendor/github.com/prometheus/client_golang/prometheus",
+    importmap = "github.com/openshift/cluster-api/vendor/github.com/prometheus/client_golang/prometheus",
     importpath = "github.com/prometheus/client_golang/prometheus",
     visibility = ["//visibility:public"],
     deps = [

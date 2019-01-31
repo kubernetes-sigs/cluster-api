@@ -15,7 +15,7 @@ go_library(
         "net.go",
         "transaction.go",
     ],
-    importmap = "sigs.k8s.io/cluster-api/vendor/google.golang.org/appengine/internal",
+    importmap = "github.com/openshift/cluster-api/vendor/google.golang.org/appengine/internal",
     importpath = "google.golang.org/appengine/internal",
     visibility = ["//visibility:public"],
     deps = [

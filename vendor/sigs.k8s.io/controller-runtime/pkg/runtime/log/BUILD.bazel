@@ -8,7 +8,7 @@ go_library(
         "log.go",
         "null.go",
     ],
-    importmap = "sigs.k8s.io/cluster-api/vendor/sigs.k8s.io/controller-runtime/pkg/runtime/log",
+    importmap = "github.com/openshift/cluster-api/vendor/sigs.k8s.io/controller-runtime/pkg/runtime/log",
     importpath = "sigs.k8s.io/controller-runtime/pkg/runtime/log",
     visibility = ["//visibility:public"],
     deps = [

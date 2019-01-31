@@ -17,7 +17,7 @@ limitations under the License.
 package cluster
 
 import (
-	clusterv1 "sigs.k8s.io/cluster-api/pkg/apis/cluster/v1alpha1"
+	clusterv1 "github.com/openshift/cluster-api/pkg/apis/cluster/v1alpha1"
 )
 
 /// [Actuator]

@@ -11,7 +11,7 @@ go_library(
         "fake_machinedeployment.go",
         "fake_machineset.go",
     ],
-    importpath = "sigs.k8s.io/cluster-api/pkg/client/clientset_generated/clientset/typed/machine/v1beta1/fake",
+    importpath = "github.com/openshift/cluster-api/pkg/client/clientset_generated/clientset/typed/machine/v1beta1/fake",
     visibility = ["//visibility:public"],
     deps = [
         "//pkg/apis/machine/v1beta1:go_default_library",

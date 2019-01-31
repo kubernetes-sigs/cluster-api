@@ -6,7 +6,7 @@ go_library(
         "initializerconfiguration.go",
         "interface.go",
     ],
-    importmap = "sigs.k8s.io/cluster-api/vendor/k8s.io/client-go/informers/admissionregistration/v1alpha1",
+    importmap = "github.com/openshift/cluster-api/vendor/k8s.io/client-go/informers/admissionregistration/v1alpha1",
     importpath = "k8s.io/client-go/informers/admissionregistration/v1alpha1",
     visibility = ["//visibility:public"],
     deps = [

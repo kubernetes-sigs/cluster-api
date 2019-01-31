@@ -6,7 +6,7 @@ go_library(
         "override.go",
         "unicode.go",
     ],
-    importmap = "sigs.k8s.io/cluster-api/vendor/golang.org/x/text/encoding/unicode",
+    importmap = "github.com/openshift/cluster-api/vendor/golang.org/x/text/encoding/unicode",
     importpath = "golang.org/x/text/encoding/unicode",
     visibility = ["//visibility:public"],
     deps = [

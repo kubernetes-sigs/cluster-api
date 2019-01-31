@@ -6,7 +6,7 @@ go_library(
         "spec.go",
         "specs.go",
     ],
-    importmap = "sigs.k8s.io/cluster-api/vendor/github.com/onsi/ginkgo/internal/spec",
+    importmap = "github.com/openshift/cluster-api/vendor/github.com/onsi/ginkgo/internal/spec",
     importpath = "github.com/onsi/ginkgo/internal/spec",
     visibility = ["//vendor/github.com/onsi/ginkgo:__subpackages__"],
     deps = [

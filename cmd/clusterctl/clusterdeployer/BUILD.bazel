@@ -6,7 +6,7 @@ go_library(
         "clusterdeployer.go",
         "providercomponentsstorefactory.go",
     ],
-    importpath = "sigs.k8s.io/cluster-api/cmd/clusterctl/clusterdeployer",
+    importpath = "github.com/openshift/cluster-api/cmd/clusterctl/clusterdeployer",
     visibility = ["//visibility:public"],
     deps = [
         "//cmd/clusterctl/clusterdeployer/bootstrap:go_default_library",

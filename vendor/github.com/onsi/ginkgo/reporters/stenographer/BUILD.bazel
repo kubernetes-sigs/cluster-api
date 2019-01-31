@@ -7,7 +7,7 @@ go_library(
         "fake_stenographer.go",
         "stenographer.go",
     ],
-    importmap = "sigs.k8s.io/cluster-api/vendor/github.com/onsi/ginkgo/reporters/stenographer",
+    importmap = "github.com/openshift/cluster-api/vendor/github.com/onsi/ginkgo/reporters/stenographer",
     importpath = "github.com/onsi/ginkgo/reporters/stenographer",
     visibility = ["//visibility:public"],
     deps = ["//vendor/github.com/onsi/ginkgo/types:go_default_library"],

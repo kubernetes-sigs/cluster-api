@@ -9,7 +9,7 @@ go_library(
         "trie.go",
         "trieval.go",
     ],
-    importmap = "sigs.k8s.io/cluster-api/vendor/golang.org/x/net/idna",
+    importmap = "github.com/openshift/cluster-api/vendor/golang.org/x/net/idna",
     importpath = "golang.org/x/net/idna",
     visibility = ["//visibility:public"],
     deps = [

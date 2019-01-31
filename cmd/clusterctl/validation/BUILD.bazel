@@ -6,7 +6,7 @@ go_library(
         "validate_cluster_api_objects.go",
         "validate_pods.go",
     ],
-    importpath = "sigs.k8s.io/cluster-api/cmd/clusterctl/validation",
+    importpath = "github.com/openshift/cluster-api/cmd/clusterctl/validation",
     visibility = ["//visibility:public"],
     deps = [
         "//pkg/apis/cluster/common:go_default_library",

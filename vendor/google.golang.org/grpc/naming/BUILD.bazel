@@ -6,7 +6,7 @@ go_library(
         "dns_resolver.go",
         "naming.go",
     ],
-    importmap = "sigs.k8s.io/cluster-api/vendor/google.golang.org/grpc/naming",
+    importmap = "github.com/openshift/cluster-api/vendor/google.golang.org/grpc/naming",
     importpath = "google.golang.org/grpc/naming",
     visibility = ["//visibility:public"],
     deps = ["//vendor/google.golang.org/grpc/grpclog:go_default_library"],

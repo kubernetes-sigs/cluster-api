@@ -10,7 +10,7 @@ go_library(
         "main.go",
         "reader.go",
     ],
-    importmap = "sigs.k8s.io/cluster-api/vendor/github.com/googleapis/gnostic/compiler",
+    importmap = "github.com/openshift/cluster-api/vendor/github.com/googleapis/gnostic/compiler",
     importpath = "github.com/googleapis/gnostic/compiler",
     visibility = ["//visibility:public"],
     deps = [

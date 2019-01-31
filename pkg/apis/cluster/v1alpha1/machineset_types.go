@@ -19,11 +19,12 @@ package v1alpha1
 import (
 	"log"
 
+	"github.com/openshift/cluster-api/pkg/apis/cluster/common"
+
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	metav1validation "k8s.io/apimachinery/pkg/apis/meta/v1/validation"
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/util/validation/field"
-	"sigs.k8s.io/cluster-api/pkg/apis/cluster/common"
 )
 
 // +genclient

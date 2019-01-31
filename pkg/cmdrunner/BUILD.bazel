@@ -3,7 +3,7 @@ load("@io_bazel_rules_go//go:def.bzl", "go_library", "go_test")
 go_library(
     name = "go_default_library",
     srcs = ["cmd_runner.go"],
-    importpath = "sigs.k8s.io/cluster-api/pkg/cmdrunner",
+    importpath = "github.com/openshift/cluster-api/pkg/cmdrunner",
     visibility = ["//visibility:public"],
 )
 

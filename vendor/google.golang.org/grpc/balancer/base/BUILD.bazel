@@ -6,7 +6,7 @@ go_library(
         "balancer.go",
         "base.go",
     ],
-    importmap = "sigs.k8s.io/cluster-api/vendor/google.golang.org/grpc/balancer/base",
+    importmap = "github.com/openshift/cluster-api/vendor/google.golang.org/grpc/balancer/base",
     importpath = "google.golang.org/grpc/balancer/base",
     visibility = ["//visibility:public"],
     deps = [

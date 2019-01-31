@@ -12,7 +12,7 @@ go_library(
         "packages.go",
         "visit.go",
     ],
-    importmap = "sigs.k8s.io/cluster-api/vendor/golang.org/x/tools/go/packages",
+    importmap = "github.com/openshift/cluster-api/vendor/golang.org/x/tools/go/packages",
     importpath = "golang.org/x/tools/go/packages",
     visibility = ["//visibility:public"],
     deps = [

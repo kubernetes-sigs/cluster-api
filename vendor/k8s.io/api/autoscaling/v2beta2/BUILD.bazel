@@ -10,7 +10,7 @@ go_library(
         "types_swagger_doc_generated.go",
         "zz_generated.deepcopy.go",
     ],
-    importmap = "sigs.k8s.io/cluster-api/vendor/k8s.io/api/autoscaling/v2beta2",
+    importmap = "github.com/openshift/cluster-api/vendor/k8s.io/api/autoscaling/v2beta2",
     importpath = "k8s.io/api/autoscaling/v2beta2",
     visibility = ["//visibility:public"],
     deps = [

@@ -21,7 +21,7 @@ go_library(
         "service.go",
         "serviceaccount.go",
     ],
-    importmap = "sigs.k8s.io/cluster-api/vendor/k8s.io/client-go/informers/core/v1",
+    importmap = "github.com/openshift/cluster-api/vendor/k8s.io/client-go/informers/core/v1",
     importpath = "k8s.io/client-go/informers/core/v1",
     visibility = ["//visibility:public"],
     deps = [

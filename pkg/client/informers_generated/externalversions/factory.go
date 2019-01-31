@@ -23,14 +23,14 @@ import (
 	sync "sync"
 	time "time"
 
+	clientset "github.com/openshift/cluster-api/pkg/client/clientset_generated/clientset"
+	cluster "github.com/openshift/cluster-api/pkg/client/informers_generated/externalversions/cluster"
+	internalinterfaces "github.com/openshift/cluster-api/pkg/client/informers_generated/externalversions/internalinterfaces"
+	machine "github.com/openshift/cluster-api/pkg/client/informers_generated/externalversions/machine"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	runtime "k8s.io/apimachinery/pkg/runtime"
 	schema "k8s.io/apimachinery/pkg/runtime/schema"
 	cache "k8s.io/client-go/tools/cache"
-	clientset "sigs.k8s.io/cluster-api/pkg/client/clientset_generated/clientset"
-	cluster "sigs.k8s.io/cluster-api/pkg/client/informers_generated/externalversions/cluster"
-	internalinterfaces "sigs.k8s.io/cluster-api/pkg/client/informers_generated/externalversions/internalinterfaces"
-	machine "sigs.k8s.io/cluster-api/pkg/client/informers_generated/externalversions/machine"
 )
 
 // SharedInformerOption defines the functional option type for SharedInformerFactory.

@@ -6,7 +6,7 @@ go_library(
         "manifests.go",
         "parser.go",
     ],
-    importmap = "sigs.k8s.io/cluster-api/vendor/sigs.k8s.io/controller-tools/pkg/rbac",
+    importmap = "github.com/openshift/cluster-api/vendor/sigs.k8s.io/controller-tools/pkg/rbac",
     importpath = "sigs.k8s.io/controller-tools/pkg/rbac",
     visibility = ["//visibility:public"],
     deps = [

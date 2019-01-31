@@ -6,7 +6,7 @@ go_library(
         "clientfactory.go",
         "clusterclient.go",
     ],
-    importpath = "sigs.k8s.io/cluster-api/cmd/clusterctl/clusterdeployer/clusterclient",
+    importpath = "github.com/openshift/cluster-api/cmd/clusterctl/clusterdeployer/clusterclient",
     visibility = ["//visibility:public"],
     deps = [
         "//cmd/clusterctl/clientcmd:go_default_library",

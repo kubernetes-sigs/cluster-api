@@ -11,7 +11,7 @@ go_library(
         "instrument_client_1_8.go",
         "instrument_server.go",
     ],
-    importmap = "sigs.k8s.io/cluster-api/vendor/github.com/prometheus/client_golang/prometheus/promhttp",
+    importmap = "github.com/openshift/cluster-api/vendor/github.com/prometheus/client_golang/prometheus/promhttp",
     importpath = "github.com/prometheus/client_golang/prometheus/promhttp",
     visibility = ["//visibility:public"],
     deps = [

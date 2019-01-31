@@ -6,7 +6,7 @@ go_library(
         "identifier.go",
         "mib.go",
     ],
-    importmap = "sigs.k8s.io/cluster-api/vendor/golang.org/x/text/encoding/internal/identifier",
+    importmap = "github.com/openshift/cluster-api/vendor/golang.org/x/text/encoding/internal/identifier",
     importpath = "golang.org/x/text/encoding/internal/identifier",
     visibility = ["//vendor/golang.org/x/text/encoding:__subpackages__"],
 )

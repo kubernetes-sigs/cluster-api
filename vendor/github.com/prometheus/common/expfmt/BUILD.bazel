@@ -9,7 +9,7 @@ go_library(
         "text_create.go",
         "text_parse.go",
     ],
-    importmap = "sigs.k8s.io/cluster-api/vendor/github.com/prometheus/common/expfmt",
+    importmap = "github.com/openshift/cluster-api/vendor/github.com/prometheus/common/expfmt",
     importpath = "github.com/prometheus/common/expfmt",
     visibility = ["//visibility:public"],
     deps = [

@@ -19,16 +19,16 @@ limitations under the License.
 package fake
 
 import (
+	clientset "github.com/openshift/cluster-api/pkg/client/clientset_generated/clientset"
+	clusterv1alpha1 "github.com/openshift/cluster-api/pkg/client/clientset_generated/clientset/typed/cluster/v1alpha1"
+	fakeclusterv1alpha1 "github.com/openshift/cluster-api/pkg/client/clientset_generated/clientset/typed/cluster/v1alpha1/fake"
+	machinev1beta1 "github.com/openshift/cluster-api/pkg/client/clientset_generated/clientset/typed/machine/v1beta1"
+	fakemachinev1beta1 "github.com/openshift/cluster-api/pkg/client/clientset_generated/clientset/typed/machine/v1beta1/fake"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/watch"
 	"k8s.io/client-go/discovery"
 	fakediscovery "k8s.io/client-go/discovery/fake"
 	"k8s.io/client-go/testing"
-	clientset "sigs.k8s.io/cluster-api/pkg/client/clientset_generated/clientset"
-	clusterv1alpha1 "sigs.k8s.io/cluster-api/pkg/client/clientset_generated/clientset/typed/cluster/v1alpha1"
-	fakeclusterv1alpha1 "sigs.k8s.io/cluster-api/pkg/client/clientset_generated/clientset/typed/cluster/v1alpha1/fake"
-	machinev1beta1 "sigs.k8s.io/cluster-api/pkg/client/clientset_generated/clientset/typed/machine/v1beta1"
-	fakemachinev1beta1 "sigs.k8s.io/cluster-api/pkg/client/clientset_generated/clientset/typed/machine/v1beta1/fake"
 )
 
 // NewSimpleClientset returns a clientset that will respond with the provided objects.

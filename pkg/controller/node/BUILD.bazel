@@ -6,7 +6,7 @@ go_library(
         "node.go",
         "node_controller.go",
     ],
-    importpath = "sigs.k8s.io/cluster-api/pkg/controller/node",
+    importpath = "github.com/openshift/cluster-api/pkg/controller/node",
     visibility = ["//visibility:public"],
     deps = [
         "//pkg/apis/machine/v1beta1:go_default_library",

@@ -8,7 +8,7 @@ go_library(
         "tables10.0.0.go",
         "tables9.0.0.go",
     ],
-    importmap = "sigs.k8s.io/cluster-api/vendor/golang.org/x/text/unicode/rangetable",
+    importmap = "github.com/openshift/cluster-api/vendor/golang.org/x/text/unicode/rangetable",
     importpath = "golang.org/x/text/unicode/rangetable",
     visibility = ["//visibility:public"],
 )

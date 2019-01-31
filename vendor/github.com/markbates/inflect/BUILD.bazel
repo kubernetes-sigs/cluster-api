@@ -8,7 +8,7 @@ go_library(
         "name.go",
         "version.go",
     ],
-    importmap = "sigs.k8s.io/cluster-api/vendor/github.com/markbates/inflect",
+    importmap = "github.com/openshift/cluster-api/vendor/github.com/markbates/inflect",
     importpath = "github.com/markbates/inflect",
     visibility = ["//visibility:public"],
     deps = ["//vendor/github.com/gobuffalo/envy:go_default_library"],

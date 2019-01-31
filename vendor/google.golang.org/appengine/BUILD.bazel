@@ -10,7 +10,7 @@ go_library(
         "namespace.go",
         "timeout.go",
     ],
-    importmap = "sigs.k8s.io/cluster-api/vendor/google.golang.org/appengine",
+    importmap = "github.com/openshift/cluster-api/vendor/google.golang.org/appengine",
     importpath = "google.golang.org/appengine",
     visibility = ["//visibility:public"],
     deps = [

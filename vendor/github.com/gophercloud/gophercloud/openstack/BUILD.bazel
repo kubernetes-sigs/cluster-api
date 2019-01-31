@@ -9,7 +9,7 @@ go_library(
         "endpoint_location.go",
         "errors.go",
     ],
-    importmap = "sigs.k8s.io/cluster-api/vendor/github.com/gophercloud/gophercloud/openstack",
+    importmap = "github.com/openshift/cluster-api/vendor/github.com/gophercloud/gophercloud/openstack",
     importpath = "github.com/gophercloud/gophercloud/openstack",
     visibility = ["//visibility:public"],
     deps = [

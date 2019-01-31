@@ -7,7 +7,7 @@ go_library(
         "print.go",
         "triegen.go",
     ],
-    importmap = "sigs.k8s.io/cluster-api/vendor/golang.org/x/text/internal/triegen",
+    importmap = "github.com/openshift/cluster-api/vendor/golang.org/x/text/internal/triegen",
     importpath = "golang.org/x/text/internal/triegen",
     visibility = ["//vendor/golang.org/x/text:__subpackages__"],
 )

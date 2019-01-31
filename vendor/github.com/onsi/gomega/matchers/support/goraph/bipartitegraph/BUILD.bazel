@@ -6,7 +6,7 @@ go_library(
         "bipartitegraph.go",
         "bipartitegraphmatching.go",
     ],
-    importmap = "sigs.k8s.io/cluster-api/vendor/github.com/onsi/gomega/matchers/support/goraph/bipartitegraph",
+    importmap = "github.com/openshift/cluster-api/vendor/github.com/onsi/gomega/matchers/support/goraph/bipartitegraph",
     importpath = "github.com/onsi/gomega/matchers/support/goraph/bipartitegraph",
     visibility = ["//visibility:public"],
     deps = [

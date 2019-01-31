@@ -24,7 +24,7 @@ go_library(
         "types_windows_amd64.go",
         "zsyscall_windows.go",
     ],
-    importmap = "sigs.k8s.io/cluster-api/vendor/golang.org/x/sys/windows",
+    importmap = "github.com/openshift/cluster-api/vendor/golang.org/x/sys/windows",
     importpath = "golang.org/x/sys/windows",
     visibility = ["//visibility:public"],
 )

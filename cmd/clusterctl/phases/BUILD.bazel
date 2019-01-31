@@ -12,7 +12,7 @@ go_library(
         "getkubeconfig.go",
         "pivot.go",
     ],
-    importpath = "sigs.k8s.io/cluster-api/cmd/clusterctl/phases",
+    importpath = "github.com/openshift/cluster-api/cmd/clusterctl/phases",
     visibility = ["//visibility:public"],
     deps = [
         "//cmd/clusterctl/clusterdeployer/bootstrap:go_default_library",

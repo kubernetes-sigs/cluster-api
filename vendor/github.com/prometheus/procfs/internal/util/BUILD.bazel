@@ -6,7 +6,7 @@ go_library(
         "parse.go",
         "sysreadfile_linux.go",
     ],
-    importmap = "sigs.k8s.io/cluster-api/vendor/github.com/prometheus/procfs/internal/util",
+    importmap = "github.com/openshift/cluster-api/vendor/github.com/prometheus/procfs/internal/util",
     importpath = "github.com/prometheus/procfs/internal/util",
     visibility = ["//vendor/github.com/prometheus/procfs:__subpackages__"],
 )

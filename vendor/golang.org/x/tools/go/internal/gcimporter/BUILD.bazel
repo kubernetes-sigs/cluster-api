@@ -11,7 +11,7 @@ go_library(
         "newInterface10.go",
         "newInterface11.go",
     ],
-    importmap = "sigs.k8s.io/cluster-api/vendor/golang.org/x/tools/go/internal/gcimporter",
+    importmap = "github.com/openshift/cluster-api/vendor/golang.org/x/tools/go/internal/gcimporter",
     importpath = "golang.org/x/tools/go/internal/gcimporter",
     visibility = ["//vendor/golang.org/x/tools/go:__subpackages__"],
 )

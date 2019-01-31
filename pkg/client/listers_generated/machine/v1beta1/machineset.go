@@ -19,10 +19,10 @@ limitations under the License.
 package v1beta1
 
 import (
+	v1beta1 "github.com/openshift/cluster-api/pkg/apis/machine/v1beta1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/client-go/tools/cache"
-	v1beta1 "sigs.k8s.io/cluster-api/pkg/apis/machine/v1beta1"
 )
 
 // MachineSetLister helps list MachineSets.

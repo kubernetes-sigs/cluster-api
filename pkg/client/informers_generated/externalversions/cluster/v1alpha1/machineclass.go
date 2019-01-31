@@ -21,14 +21,14 @@ package v1alpha1
 import (
 	time "time"
 
+	clusterv1alpha1 "github.com/openshift/cluster-api/pkg/apis/cluster/v1alpha1"
+	clientset "github.com/openshift/cluster-api/pkg/client/clientset_generated/clientset"
+	internalinterfaces "github.com/openshift/cluster-api/pkg/client/informers_generated/externalversions/internalinterfaces"
+	v1alpha1 "github.com/openshift/cluster-api/pkg/client/listers_generated/cluster/v1alpha1"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	runtime "k8s.io/apimachinery/pkg/runtime"
 	watch "k8s.io/apimachinery/pkg/watch"
 	cache "k8s.io/client-go/tools/cache"
-	clusterv1alpha1 "sigs.k8s.io/cluster-api/pkg/apis/cluster/v1alpha1"
-	clientset "sigs.k8s.io/cluster-api/pkg/client/clientset_generated/clientset"
-	internalinterfaces "sigs.k8s.io/cluster-api/pkg/client/informers_generated/externalversions/internalinterfaces"
-	v1alpha1 "sigs.k8s.io/cluster-api/pkg/client/listers_generated/cluster/v1alpha1"
 )
 
 // MachineClassInformer provides access to a shared informer and lister for

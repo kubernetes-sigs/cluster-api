@@ -7,7 +7,7 @@ go_library(
         "discovery.go",
         "shortcut.go",
     ],
-    importmap = "sigs.k8s.io/cluster-api/vendor/k8s.io/client-go/restmapper",
+    importmap = "github.com/openshift/cluster-api/vendor/k8s.io/client-go/restmapper",
     importpath = "k8s.io/client-go/restmapper",
     visibility = ["//visibility:public"],
     deps = [

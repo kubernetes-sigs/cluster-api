@@ -6,7 +6,7 @@ go_library(
         "doc.go",
         "register.go",
     ],
-    importmap = "sigs.k8s.io/cluster-api/vendor/k8s.io/apiextensions-apiserver/pkg/client/clientset/clientset/scheme",
+    importmap = "github.com/openshift/cluster-api/vendor/k8s.io/apiextensions-apiserver/pkg/client/clientset/clientset/scheme",
     importpath = "k8s.io/apiextensions-apiserver/pkg/client/clientset/clientset/scheme",
     visibility = ["//visibility:public"],
     deps = [

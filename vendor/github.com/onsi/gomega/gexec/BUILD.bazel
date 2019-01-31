@@ -8,7 +8,7 @@ go_library(
         "prefixed_writer.go",
         "session.go",
     ],
-    importmap = "sigs.k8s.io/cluster-api/vendor/github.com/onsi/gomega/gexec",
+    importmap = "github.com/openshift/cluster-api/vendor/github.com/onsi/gomega/gexec",
     importpath = "github.com/onsi/gomega/gexec",
     visibility = ["//visibility:public"],
     deps = [

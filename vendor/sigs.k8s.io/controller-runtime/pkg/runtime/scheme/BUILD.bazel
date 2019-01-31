@@ -3,7 +3,7 @@ load("@io_bazel_rules_go//go:def.bzl", "go_library")
 go_library(
     name = "go_default_library",
     srcs = ["scheme.go"],
-    importmap = "sigs.k8s.io/cluster-api/vendor/sigs.k8s.io/controller-runtime/pkg/runtime/scheme",
+    importmap = "github.com/openshift/cluster-api/vendor/sigs.k8s.io/controller-runtime/pkg/runtime/scheme",
     importpath = "sigs.k8s.io/controller-runtime/pkg/runtime/scheme",
     visibility = ["//visibility:public"],
     deps = [

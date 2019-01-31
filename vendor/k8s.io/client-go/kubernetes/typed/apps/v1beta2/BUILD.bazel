@@ -12,7 +12,7 @@ go_library(
         "replicaset.go",
         "statefulset.go",
     ],
-    importmap = "sigs.k8s.io/cluster-api/vendor/k8s.io/client-go/kubernetes/typed/apps/v1beta2",
+    importmap = "github.com/openshift/cluster-api/vendor/k8s.io/client-go/kubernetes/typed/apps/v1beta2",
     importpath = "k8s.io/client-go/kubernetes/typed/apps/v1beta2",
     visibility = ["//visibility:public"],
     deps = [

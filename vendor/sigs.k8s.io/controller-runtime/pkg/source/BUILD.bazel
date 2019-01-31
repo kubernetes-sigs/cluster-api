@@ -6,7 +6,7 @@ go_library(
         "doc.go",
         "source.go",
     ],
-    importmap = "sigs.k8s.io/cluster-api/vendor/sigs.k8s.io/controller-runtime/pkg/source",
+    importmap = "github.com/openshift/cluster-api/vendor/sigs.k8s.io/controller-runtime/pkg/source",
     importpath = "sigs.k8s.io/controller-runtime/pkg/source",
     visibility = ["//visibility:public"],
     deps = [

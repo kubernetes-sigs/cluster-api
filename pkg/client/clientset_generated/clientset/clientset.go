@@ -19,11 +19,11 @@ limitations under the License.
 package clientset
 
 import (
+	clusterv1alpha1 "github.com/openshift/cluster-api/pkg/client/clientset_generated/clientset/typed/cluster/v1alpha1"
+	machinev1beta1 "github.com/openshift/cluster-api/pkg/client/clientset_generated/clientset/typed/machine/v1beta1"
 	discovery "k8s.io/client-go/discovery"
 	rest "k8s.io/client-go/rest"
 	flowcontrol "k8s.io/client-go/util/flowcontrol"
-	clusterv1alpha1 "sigs.k8s.io/cluster-api/pkg/client/clientset_generated/clientset/typed/cluster/v1alpha1"
-	machinev1beta1 "sigs.k8s.io/cluster-api/pkg/client/clientset_generated/clientset/typed/machine/v1beta1"
 )
 
 type Interface interface {

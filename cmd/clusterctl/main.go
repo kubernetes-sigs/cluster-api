@@ -16,7 +16,7 @@ limitations under the License.
 
 package main
 
-import "sigs.k8s.io/cluster-api/cmd/clusterctl/cmd"
+import "github.com/openshift/cluster-api/cmd/clusterctl/cmd"
 
 func main() {
 	cmd.Execute()

@@ -19,10 +19,10 @@ package machine
 import (
 	"context"
 
+	clusterv1 "github.com/openshift/cluster-api/pkg/apis/machine/v1beta1"
+	clusterv1alpha1 "github.com/openshift/cluster-api/pkg/client/clientset_generated/clientset/typed/cluster/v1alpha1"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/client-go/tools/record"
-	clusterv1 "sigs.k8s.io/cluster-api/pkg/apis/cluster/v1alpha1"
-	clusterv1alpha1 "sigs.k8s.io/cluster-api/pkg/client/clientset_generated/clientset/typed/cluster/v1alpha1"
 )
 
 // Actuator is responsible for performing machine reconciliation.

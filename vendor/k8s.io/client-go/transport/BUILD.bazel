@@ -9,7 +9,7 @@ go_library(
         "token_source.go",
         "transport.go",
     ],
-    importmap = "sigs.k8s.io/cluster-api/vendor/k8s.io/client-go/transport",
+    importmap = "github.com/openshift/cluster-api/vendor/k8s.io/client-go/transport",
     importpath = "k8s.io/client-go/transport",
     visibility = ["//visibility:public"],
     deps = [

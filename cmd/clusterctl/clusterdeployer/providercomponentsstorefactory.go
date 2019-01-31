@@ -17,9 +17,9 @@ limitations under the License.
 package clusterdeployer
 
 import (
+	"github.com/openshift/cluster-api/cmd/clusterctl/clusterdeployer/provider"
+	"github.com/openshift/cluster-api/cmd/clusterctl/providercomponents"
 	"k8s.io/client-go/kubernetes"
-	"sigs.k8s.io/cluster-api/cmd/clusterctl/clusterdeployer/provider"
-	"sigs.k8s.io/cluster-api/cmd/clusterctl/providercomponents"
 )
 
 type factory struct {

@@ -19,7 +19,7 @@ package phases
 import (
 	"github.com/pkg/errors"
 	"k8s.io/klog"
-	"sigs.k8s.io/cluster-api/cmd/clusterctl/clusterdeployer/clusterclient"
+	"github.com/openshift/cluster-api/cmd/clusterctl/clusterdeployer/clusterclient"
 )
 
 func ApplyBootstrapComponents(client clusterclient.Client, components string) error {

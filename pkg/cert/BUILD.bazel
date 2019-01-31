@@ -3,7 +3,7 @@ load("@io_bazel_rules_go//go:def.bzl", "go_library", "go_test")
 go_library(
     name = "go_default_library",
     srcs = ["cert_authority.go"],
-    importpath = "sigs.k8s.io/cluster-api/pkg/cert",
+    importpath = "github.com/openshift/cluster-api/pkg/cert",
     visibility = ["//visibility:public"],
     deps = [
         "//vendor/github.com/pkg/errors:go_default_library",

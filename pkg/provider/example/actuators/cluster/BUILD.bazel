@@ -3,7 +3,7 @@ load("@io_bazel_rules_go//go:def.bzl", "go_library")
 go_library(
     name = "go_default_library",
     srcs = ["clusteractuator.go"],
-    importpath = "sigs.k8s.io/cluster-api/pkg/provider/example/actuators/cluster",
+    importpath = "github.com/openshift/cluster-api/pkg/provider/example/actuators/cluster",
     visibility = ["//visibility:public"],
     deps = [
         "//pkg/apis/cluster/v1alpha1:go_default_library",

@@ -16,16 +16,16 @@
 FROM golang:1.11.6 as builder
 
 # Copy in the go src
-WORKDIR $GOPATH/src/sigs.k8s.io/cluster-api
+WORKDIR $GOPATH/src/github.com/openshift/cluster-api
 COPY pkg/    pkg/
 COPY cmd/    cmd/
 COPY vendor/ vendor/
 
 # Build
-RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -a -ldflags '-extldflags "-static"' -o manager sigs.k8s.io/cluster-api/cmd/manager
+RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -a -ldflags '-extldflags "-static"' -o manager github.com/openshift/cluster-api/cmd/manager
 
 # Copy the controller-manager into a thin image
 FROM gcr.io/distroless/static:latest
 WORKDIR /
-COPY --from=builder /go/src/sigs.k8s.io/cluster-api/manager .
+COPY --from=builder /go/src/github.com/openshift/cluster-api/manager .
 ENTRYPOINT ["/manager"]

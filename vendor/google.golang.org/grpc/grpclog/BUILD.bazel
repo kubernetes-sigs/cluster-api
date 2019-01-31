@@ -7,7 +7,7 @@ go_library(
         "logger.go",
         "loggerv2.go",
     ],
-    importmap = "sigs.k8s.io/cluster-api/vendor/google.golang.org/grpc/grpclog",
+    importmap = "github.com/openshift/cluster-api/vendor/google.golang.org/grpc/grpclog",
     importpath = "google.golang.org/grpc/grpclog",
     visibility = ["//visibility:public"],
 )

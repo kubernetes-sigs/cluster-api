@@ -16,7 +16,7 @@ go_library(
         "utility.go",
         "version.go",
     ],
-    importmap = "sigs.k8s.io/cluster-api/vendor/github.com/Azure/go-autorest/autorest",
+    importmap = "github.com/openshift/cluster-api/vendor/github.com/Azure/go-autorest/autorest",
     importpath = "github.com/Azure/go-autorest/autorest",
     visibility = ["//visibility:public"],
     deps = [

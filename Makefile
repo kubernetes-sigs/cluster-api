@@ -46,11 +46,11 @@ test: gazelle verify generate fmt vet manifests ## Run tests
 
 .PHONY: manager
 manager: generate fmt vet ## Build manager binary
-	go build -o bin/manager sigs.k8s.io/cluster-api/cmd/manager
+	go build -o bin/manager github.com/openshift/cluster-api/cmd/manager
 
 .PHONY: clusterctl
 clusterctl: generate fmt vet ## Build clusterctl binary
-	go build -o bin/clusterctl sigs.k8s.io/cluster-api/cmd/clusterctl
+	go build -o bin/clusterctl github.com/openshift/cluster-api/cmd/clusterctl
 
 .PHONY: run
 run: generate fmt vet ## Run against the configured Kubernetes cluster in ~/.kube/config
@@ -92,16 +92,16 @@ generate: clientset dep-ensure ## Generate code
 clientset: ## Generate a typed clientset
 	rm -rf pkg/client
 	cd ./vendor/k8s.io/code-generator/cmd && go install ./client-gen ./lister-gen ./informer-gen
-	$$GOPATH/bin/client-gen --clientset-name clientset --input-base sigs.k8s.io/cluster-api/pkg/apis \
-		--input cluster/v1alpha1,machine/v1beta1 --output-package sigs.k8s.io/cluster-api/pkg/client/clientset_generated \
+	$$GOPATH/bin/client-gen --clientset-name clientset --input-base github.com/openshift/cluster-api/pkg/apis \
+		--input cluster/v1alpha1,machine/v1beta1 --output-package github.com/openshift/cluster-api/pkg/client/clientset_generated \
 		--go-header-file=./hack/boilerplate.go.txt
-	$$GOPATH/bin/lister-gen --input-dirs sigs.k8s.io/cluster-api/pkg/apis/cluster/v1alpha1,sigs.k8s.io/cluster-api/pkg/apis/machine/v1beta1 \
-		--output-package sigs.k8s.io/cluster-api/pkg/client/listers_generated \
+	$$GOPATH/bin/lister-gen --input-dirs github.com/openshift/cluster-api/pkg/apis/cluster/v1alpha1,github.com/openshift/cluster-api/pkg/apis/machine/v1beta1 \
+		--output-package github.com/openshift/cluster-api/pkg/client/listers_generated \
 		--go-header-file=./hack/boilerplate.go.txt
-	$$GOPATH/bin/informer-gen --input-dirs sigs.k8s.io/cluster-api/pkg/apis/cluster/v1alpha1,sigs.k8s.io/cluster-api/pkg/apis/machine/v1beta1 \
-		--versioned-clientset-package sigs.k8s.io/cluster-api/pkg/client/clientset_generated/clientset \
-		--listers-package sigs.k8s.io/cluster-api/pkg/client/listers_generated \
-		--output-package sigs.k8s.io/cluster-api/pkg/client/informers_generated \
+	$$GOPATH/bin/informer-gen --input-dirs github.com/openshift/cluster-api/pkg/apis/cluster/v1alpha1,github.com/openshift/cluster-api/pkg/apis/machine/v1beta1 \
+		--versioned-clientset-package github.com/openshift/cluster-api/pkg/client/clientset_generated/clientset \
+		--listers-package github.com/openshift/cluster-api/pkg/client/listers_generated \
+		--output-package github.com/openshift/cluster-api/pkg/client/informers_generated \
 		--go-header-file=./hack/boilerplate.go.txt
 	$(MAKE) gazelle
 

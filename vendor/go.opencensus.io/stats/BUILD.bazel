@@ -10,7 +10,7 @@ go_library(
         "record.go",
         "units.go",
     ],
-    importmap = "sigs.k8s.io/cluster-api/vendor/go.opencensus.io/stats",
+    importmap = "github.com/openshift/cluster-api/vendor/go.opencensus.io/stats",
     importpath = "go.opencensus.io/stats",
     visibility = ["//visibility:public"],
     deps = [

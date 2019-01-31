@@ -12,7 +12,7 @@ go_library(
         "stats.go",
         "trace.go",
     ],
-    importmap = "sigs.k8s.io/cluster-api/vendor/go.opencensus.io/plugin/ochttp",
+    importmap = "github.com/openshift/cluster-api/vendor/go.opencensus.io/plugin/ochttp",
     importpath = "go.opencensus.io/plugin/ochttp",
     visibility = ["//visibility:public"],
     deps = [

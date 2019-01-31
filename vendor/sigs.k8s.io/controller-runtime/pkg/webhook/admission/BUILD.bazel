@@ -9,7 +9,7 @@ go_library(
         "response.go",
         "webhook.go",
     ],
-    importmap = "sigs.k8s.io/cluster-api/vendor/sigs.k8s.io/controller-runtime/pkg/webhook/admission",
+    importmap = "github.com/openshift/cluster-api/vendor/sigs.k8s.io/controller-runtime/pkg/webhook/admission",
     importpath = "sigs.k8s.io/controller-runtime/pkg/webhook/admission",
     visibility = ["//visibility:public"],
     deps = [

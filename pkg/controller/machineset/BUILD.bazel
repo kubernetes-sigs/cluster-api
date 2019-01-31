@@ -8,7 +8,7 @@ go_library(
         "machine.go",
         "status.go",
     ],
-    importpath = "sigs.k8s.io/cluster-api/pkg/controller/machineset",
+    importpath = "github.com/openshift/cluster-api/pkg/controller/machineset",
     visibility = ["//visibility:public"],
     deps = [
         "//pkg/apis/machine/v1beta1:go_default_library",

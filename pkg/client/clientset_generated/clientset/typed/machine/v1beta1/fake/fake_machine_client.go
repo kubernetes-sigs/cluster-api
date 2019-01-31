@@ -19,9 +19,9 @@ limitations under the License.
 package fake
 
 import (
+	v1beta1 "github.com/openshift/cluster-api/pkg/client/clientset_generated/clientset/typed/machine/v1beta1"
 	rest "k8s.io/client-go/rest"
 	testing "k8s.io/client-go/testing"
-	v1beta1 "sigs.k8s.io/cluster-api/pkg/client/clientset_generated/clientset/typed/machine/v1beta1"
 )
 
 type FakeMachineV1beta1 struct {

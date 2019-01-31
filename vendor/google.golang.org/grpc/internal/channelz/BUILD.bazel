@@ -10,7 +10,7 @@ go_library(
         "util_linux.go",
         "util_nonlinux.go",
     ],
-    importmap = "sigs.k8s.io/cluster-api/vendor/google.golang.org/grpc/internal/channelz",
+    importmap = "github.com/openshift/cluster-api/vendor/google.golang.org/grpc/internal/channelz",
     importpath = "google.golang.org/grpc/internal/channelz",
     visibility = ["//vendor/google.golang.org/grpc:__subpackages__"],
     deps = [

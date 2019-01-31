@@ -6,7 +6,7 @@ go_library(
         "json.go",
         "meta.go",
     ],
-    importmap = "sigs.k8s.io/cluster-api/vendor/k8s.io/apimachinery/pkg/runtime/serializer/json",
+    importmap = "github.com/openshift/cluster-api/vendor/k8s.io/apimachinery/pkg/runtime/serializer/json",
     importpath = "k8s.io/apimachinery/pkg/runtime/serializer/json",
     visibility = ["//visibility:public"],
     deps = [

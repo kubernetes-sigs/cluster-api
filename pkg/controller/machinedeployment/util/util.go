@@ -25,6 +25,8 @@ import (
 	"strings"
 
 	"github.com/davecgh/go-spew/spew"
+	"github.com/openshift/cluster-api/pkg/apis/machine/common"
+	"github.com/openshift/cluster-api/pkg/apis/machine/v1beta1"
 	v1 "k8s.io/api/core/v1"
 	apiequality "k8s.io/apimachinery/pkg/api/equality"
 	"k8s.io/apimachinery/pkg/api/meta"
@@ -33,8 +35,6 @@ import (
 	intstrutil "k8s.io/apimachinery/pkg/util/intstr"
 	"k8s.io/client-go/util/integer"
 	"k8s.io/klog"
-	"sigs.k8s.io/cluster-api/pkg/apis/machine/common"
-	"sigs.k8s.io/cluster-api/pkg/apis/machine/v1beta1"
 )
 
 const (

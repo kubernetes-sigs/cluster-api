@@ -19,8 +19,8 @@ limitations under the License.
 package cluster
 
 import (
-	v1alpha1 "sigs.k8s.io/cluster-api/pkg/client/informers_generated/externalversions/cluster/v1alpha1"
-	internalinterfaces "sigs.k8s.io/cluster-api/pkg/client/informers_generated/externalversions/internalinterfaces"
+	v1alpha1 "github.com/openshift/cluster-api/pkg/client/informers_generated/externalversions/cluster/v1alpha1"
+	internalinterfaces "github.com/openshift/cluster-api/pkg/client/informers_generated/externalversions/internalinterfaces"
 )
 
 // Interface provides access to each of this group's versions.

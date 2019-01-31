@@ -19,11 +19,11 @@ limitations under the License.
 package clientcmd
 
 import (
+	"github.com/openshift/cluster-api/pkg/client/clientset_generated/clientset"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/clientcmd"
 	"k8s.io/client-go/tools/clientcmd/api"
-	"sigs.k8s.io/cluster-api/pkg/client/clientset_generated/clientset"
 )
 
 // This is a convenience method to prevent the need of importing both this version of clientcmd and the client-go version

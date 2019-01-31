@@ -22,7 +22,7 @@ go_library(
         "validate.go",
         "validate_cluster.go",
     ],
-    importpath = "sigs.k8s.io/cluster-api/cmd/clusterctl/cmd",
+    importpath = "github.com/openshift/cluster-api/cmd/clusterctl/cmd",
     visibility = ["//visibility:public"],
     deps = [
         "//cmd/clusterctl/clientcmd:go_default_library",

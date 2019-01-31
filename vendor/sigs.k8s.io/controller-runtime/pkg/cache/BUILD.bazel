@@ -6,7 +6,7 @@ go_library(
         "cache.go",
         "informer_cache.go",
     ],
-    importmap = "sigs.k8s.io/cluster-api/vendor/sigs.k8s.io/controller-runtime/pkg/cache",
+    importmap = "github.com/openshift/cluster-api/vendor/sigs.k8s.io/controller-runtime/pkg/cache",
     importpath = "sigs.k8s.io/controller-runtime/pkg/cache",
     visibility = ["//visibility:public"],
     deps = [

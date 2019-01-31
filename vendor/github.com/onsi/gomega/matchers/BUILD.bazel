@@ -45,7 +45,7 @@ go_library(
         "type_support.go",
         "with_transform.go",
     ],
-    importmap = "sigs.k8s.io/cluster-api/vendor/github.com/onsi/gomega/matchers",
+    importmap = "github.com/openshift/cluster-api/vendor/github.com/onsi/gomega/matchers",
     importpath = "github.com/onsi/gomega/matchers",
     visibility = ["//visibility:public"],
     deps = [

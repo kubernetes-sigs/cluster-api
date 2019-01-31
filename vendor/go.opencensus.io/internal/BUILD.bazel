@@ -7,7 +7,7 @@ go_library(
         "sanitize.go",
         "traceinternals.go",
     ],
-    importmap = "sigs.k8s.io/cluster-api/vendor/go.opencensus.io/internal",
+    importmap = "github.com/openshift/cluster-api/vendor/go.opencensus.io/internal",
     importpath = "go.opencensus.io/internal",
     visibility = ["//visibility:public"],
     deps = ["//vendor/go.opencensus.io:go_default_library"],

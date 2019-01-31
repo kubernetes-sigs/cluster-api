@@ -17,7 +17,7 @@ limitations under the License.
 package controller
 
 import (
-	"sigs.k8s.io/cluster-api/pkg/controller/machineset"
+	"github.com/openshift/cluster-api/pkg/controller/machineset"
 )
 
 func init() {

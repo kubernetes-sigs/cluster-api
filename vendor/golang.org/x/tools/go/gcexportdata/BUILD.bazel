@@ -6,7 +6,7 @@ go_library(
         "gcexportdata.go",
         "importer.go",
     ],
-    importmap = "sigs.k8s.io/cluster-api/vendor/golang.org/x/tools/go/gcexportdata",
+    importmap = "github.com/openshift/cluster-api/vendor/golang.org/x/tools/go/gcexportdata",
     importpath = "golang.org/x/tools/go/gcexportdata",
     visibility = ["//visibility:public"],
     deps = ["//vendor/golang.org/x/tools/go/internal/gcimporter:go_default_library"],

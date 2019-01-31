@@ -8,7 +8,7 @@ go_library(
         "rewrite.go",
         "util.go",
     ],
-    importmap = "sigs.k8s.io/cluster-api/vendor/golang.org/x/tools/go/ast/astutil",
+    importmap = "github.com/openshift/cluster-api/vendor/golang.org/x/tools/go/ast/astutil",
     importpath = "golang.org/x/tools/go/ast/astutil",
     visibility = ["//visibility:public"],
 )

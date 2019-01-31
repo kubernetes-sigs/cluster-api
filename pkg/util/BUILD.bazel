@@ -6,7 +6,7 @@ go_library(
         "retry.go",
         "util.go",
     ],
-    importpath = "sigs.k8s.io/cluster-api/pkg/util",
+    importpath = "github.com/openshift/cluster-api/pkg/util",
     visibility = ["//visibility:public"],
     deps = [
         "//pkg/apis/cluster/v1alpha1:go_default_library",

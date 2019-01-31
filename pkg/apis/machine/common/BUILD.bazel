@@ -6,7 +6,7 @@ go_library(
         "consts.go",
         "plugins.go",
     ],
-    importpath = "sigs.k8s.io/cluster-api/pkg/apis/machine/common",
+    importpath = "github.com/openshift/cluster-api/pkg/apis/machine/common",
     visibility = ["//visibility:public"],
     deps = [
         "//vendor/github.com/pkg/errors:go_default_library",

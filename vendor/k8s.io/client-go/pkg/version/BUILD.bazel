@@ -7,7 +7,7 @@ go_library(
         "doc.go",
         "version.go",
     ],
-    importmap = "sigs.k8s.io/cluster-api/vendor/k8s.io/client-go/pkg/version",
+    importmap = "github.com/openshift/cluster-api/vendor/k8s.io/client-go/pkg/version",
     importpath = "k8s.io/client-go/pkg/version",
     visibility = ["//visibility:public"],
     deps = ["//vendor/k8s.io/apimachinery/pkg/version:go_default_library"],

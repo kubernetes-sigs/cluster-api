@@ -10,7 +10,7 @@ go_library(
         "transform_spans.go",
         "version.go",
     ],
-    importmap = "sigs.k8s.io/cluster-api/vendor/contrib.go.opencensus.io/exporter/ocagent",
+    importmap = "github.com/openshift/cluster-api/vendor/contrib.go.opencensus.io/exporter/ocagent",
     importpath = "contrib.go.opencensus.io/exporter/ocagent",
     visibility = ["//visibility:public"],
     deps = [

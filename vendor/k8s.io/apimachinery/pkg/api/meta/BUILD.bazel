@@ -14,7 +14,7 @@ go_library(
         "priority.go",
         "restmapper.go",
     ],
-    importmap = "sigs.k8s.io/cluster-api/vendor/k8s.io/apimachinery/pkg/api/meta",
+    importmap = "github.com/openshift/cluster-api/vendor/k8s.io/apimachinery/pkg/api/meta",
     importpath = "k8s.io/apimachinery/pkg/api/meta",
     visibility = ["//visibility:public"],
     deps = [

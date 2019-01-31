@@ -21,14 +21,14 @@ package v1beta1
 import (
 	time "time"
 
+	machinev1beta1 "github.com/openshift/cluster-api/pkg/apis/machine/v1beta1"
+	clientset "github.com/openshift/cluster-api/pkg/client/clientset_generated/clientset"
+	internalinterfaces "github.com/openshift/cluster-api/pkg/client/informers_generated/externalversions/internalinterfaces"
+	v1beta1 "github.com/openshift/cluster-api/pkg/client/listers_generated/machine/v1beta1"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	runtime "k8s.io/apimachinery/pkg/runtime"
 	watch "k8s.io/apimachinery/pkg/watch"
 	cache "k8s.io/client-go/tools/cache"
-	machinev1beta1 "sigs.k8s.io/cluster-api/pkg/apis/machine/v1beta1"
-	clientset "sigs.k8s.io/cluster-api/pkg/client/clientset_generated/clientset"
-	internalinterfaces "sigs.k8s.io/cluster-api/pkg/client/informers_generated/externalversions/internalinterfaces"
-	v1beta1 "sigs.k8s.io/cluster-api/pkg/client/listers_generated/machine/v1beta1"
 )
 
 // MachineInformer provides access to a shared informer and lister for

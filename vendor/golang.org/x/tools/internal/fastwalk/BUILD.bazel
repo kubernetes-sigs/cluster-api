@@ -11,7 +11,7 @@ go_library(
         "fastwalk_portable.go",
         "fastwalk_unix.go",
     ],
-    importmap = "sigs.k8s.io/cluster-api/vendor/golang.org/x/tools/internal/fastwalk",
+    importmap = "github.com/openshift/cluster-api/vendor/golang.org/x/tools/internal/fastwalk",
     importpath = "golang.org/x/tools/internal/fastwalk",
     visibility = ["//vendor/golang.org/x/tools:__subpackages__"],
 )

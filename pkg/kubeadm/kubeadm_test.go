@@ -22,8 +22,8 @@ import (
 	"testing"
 	"time"
 
-	"sigs.k8s.io/cluster-api/pkg/kubeadm"
-	"sigs.k8s.io/cluster-api/pkg/testcmdrunner"
+	"github.com/openshift/cluster-api/pkg/kubeadm"
+	"github.com/openshift/cluster-api/pkg/testcmdrunner"
 )
 
 var (

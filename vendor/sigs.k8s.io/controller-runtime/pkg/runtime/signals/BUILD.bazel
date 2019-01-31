@@ -8,7 +8,7 @@ go_library(
         "signal_posix.go",
         "signal_windows.go",
     ],
-    importmap = "sigs.k8s.io/cluster-api/vendor/sigs.k8s.io/controller-runtime/pkg/runtime/signals",
+    importmap = "github.com/openshift/cluster-api/vendor/sigs.k8s.io/controller-runtime/pkg/runtime/signals",
     importpath = "sigs.k8s.io/controller-runtime/pkg/runtime/signals",
     visibility = ["//visibility:public"],
 )

@@ -10,7 +10,7 @@ go_library(
         "sink.go",
         "util.go",
     ],
-    importmap = "sigs.k8s.io/cluster-api/vendor/google.golang.org/grpc/internal/binarylog",
+    importmap = "github.com/openshift/cluster-api/vendor/google.golang.org/grpc/internal/binarylog",
     importpath = "google.golang.org/grpc/internal/binarylog",
     visibility = ["//vendor/google.golang.org/grpc:__subpackages__"],
     deps = [

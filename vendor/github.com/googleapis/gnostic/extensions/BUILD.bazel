@@ -6,7 +6,7 @@ go_library(
         "extension.pb.go",
         "extensions.go",
     ],
-    importmap = "sigs.k8s.io/cluster-api/vendor/github.com/googleapis/gnostic/extensions",
+    importmap = "github.com/openshift/cluster-api/vendor/github.com/googleapis/gnostic/extensions",
     importpath = "github.com/googleapis/gnostic/extensions",
     visibility = ["//visibility:public"],
     deps = [

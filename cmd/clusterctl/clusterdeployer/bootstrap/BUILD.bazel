@@ -6,7 +6,7 @@ go_library(
         "options.go",
         "provisioner.go",
     ],
-    importpath = "sigs.k8s.io/cluster-api/cmd/clusterctl/clusterdeployer/bootstrap",
+    importpath = "github.com/openshift/cluster-api/cmd/clusterctl/clusterdeployer/bootstrap",
     visibility = ["//visibility:public"],
     deps = [
         "//cmd/clusterctl/clusterdeployer/bootstrap/existing:go_default_library",

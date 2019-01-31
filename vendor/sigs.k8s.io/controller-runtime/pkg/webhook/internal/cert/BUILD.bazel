@@ -6,7 +6,7 @@ go_library(
         "doc.go",
         "provisioner.go",
     ],
-    importmap = "sigs.k8s.io/cluster-api/vendor/sigs.k8s.io/controller-runtime/pkg/webhook/internal/cert",
+    importmap = "github.com/openshift/cluster-api/vendor/sigs.k8s.io/controller-runtime/pkg/webhook/internal/cert",
     importpath = "sigs.k8s.io/controller-runtime/pkg/webhook/internal/cert",
     visibility = ["//vendor/sigs.k8s.io/controller-runtime/pkg/webhook:__subpackages__"],
     deps = [

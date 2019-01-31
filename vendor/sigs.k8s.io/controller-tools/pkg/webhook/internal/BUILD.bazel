@@ -6,7 +6,7 @@ go_library(
         "client.go",
         "manager.go",
     ],
-    importmap = "sigs.k8s.io/cluster-api/vendor/sigs.k8s.io/controller-tools/pkg/webhook/internal",
+    importmap = "github.com/openshift/cluster-api/vendor/sigs.k8s.io/controller-tools/pkg/webhook/internal",
     importpath = "sigs.k8s.io/controller-tools/pkg/webhook/internal",
     visibility = ["//visibility:public"],
     deps = [

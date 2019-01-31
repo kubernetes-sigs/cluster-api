@@ -7,7 +7,7 @@ go_library(
         "diskv.go",
         "index.go",
     ],
-    importmap = "sigs.k8s.io/cluster-api/vendor/github.com/peterbourgon/diskv",
+    importmap = "github.com/openshift/cluster-api/vendor/github.com/peterbourgon/diskv",
     importpath = "github.com/peterbourgon/diskv",
     visibility = ["//visibility:public"],
     deps = ["//vendor/github.com/google/btree:go_default_library"],

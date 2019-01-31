@@ -6,7 +6,7 @@ go_library(
         "klog.go",
         "klog_file.go",
     ],
-    importmap = "sigs.k8s.io/cluster-api/vendor/k8s.io/klog",
+    importmap = "github.com/openshift/cluster-api/vendor/k8s.io/klog",
     importpath = "k8s.io/klog",
     visibility = ["//visibility:public"],
 )

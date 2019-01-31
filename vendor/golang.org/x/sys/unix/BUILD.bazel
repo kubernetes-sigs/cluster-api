@@ -218,7 +218,7 @@ go_library(
         "ztypes_solaris_amd64.go",
     ],
     cgo = True,
-    importmap = "sigs.k8s.io/cluster-api/vendor/golang.org/x/sys/unix",
+    importmap = "github.com/openshift/cluster-api/vendor/golang.org/x/sys/unix",
     importpath = "golang.org/x/sys/unix",
     visibility = ["//visibility:public"],
 )

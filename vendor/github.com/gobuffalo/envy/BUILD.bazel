@@ -6,7 +6,7 @@ go_library(
         "envy.go",
         "version.go",
     ],
-    importmap = "sigs.k8s.io/cluster-api/vendor/github.com/gobuffalo/envy",
+    importmap = "github.com/openshift/cluster-api/vendor/github.com/gobuffalo/envy",
     importpath = "github.com/gobuffalo/envy",
     visibility = ["//visibility:public"],
     deps = [

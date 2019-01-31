@@ -6,7 +6,7 @@ go_library(
         "trace.pb.go",
         "trace_config.pb.go",
     ],
-    importmap = "sigs.k8s.io/cluster-api/vendor/github.com/census-instrumentation/opencensus-proto/gen-go/trace/v1",
+    importmap = "github.com/openshift/cluster-api/vendor/github.com/census-instrumentation/opencensus-proto/gen-go/trace/v1",
     importpath = "github.com/census-instrumentation/opencensus-proto/gen-go/trace/v1",
     visibility = ["//visibility:public"],
     deps = [

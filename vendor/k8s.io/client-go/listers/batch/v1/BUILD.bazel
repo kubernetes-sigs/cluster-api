@@ -7,7 +7,7 @@ go_library(
         "job.go",
         "job_expansion.go",
     ],
-    importmap = "sigs.k8s.io/cluster-api/vendor/k8s.io/client-go/listers/batch/v1",
+    importmap = "github.com/openshift/cluster-api/vendor/k8s.io/client-go/listers/batch/v1",
     importpath = "k8s.io/client-go/listers/batch/v1",
     visibility = ["//visibility:public"],
     deps = [

@@ -24,7 +24,7 @@ go_library(
         "trace.go",
         "version.go",
     ],
-    importmap = "sigs.k8s.io/cluster-api/vendor/google.golang.org/grpc",
+    importmap = "github.com/openshift/cluster-api/vendor/google.golang.org/grpc",
     importpath = "google.golang.org/grpc",
     visibility = ["//visibility:public"],
     deps = [

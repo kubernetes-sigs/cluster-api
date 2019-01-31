@@ -11,7 +11,7 @@ go_library(
         "queue.go",
         "rate_limitting_queue.go",
     ],
-    importmap = "sigs.k8s.io/cluster-api/vendor/k8s.io/client-go/util/workqueue",
+    importmap = "github.com/openshift/cluster-api/vendor/k8s.io/client-go/util/workqueue",
     importpath = "k8s.io/client-go/util/workqueue",
     visibility = ["//visibility:public"],
     deps = [

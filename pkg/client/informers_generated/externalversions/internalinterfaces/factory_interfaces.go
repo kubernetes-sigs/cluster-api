@@ -21,10 +21,10 @@ package internalinterfaces
 import (
 	time "time"
 
+	clientset "github.com/openshift/cluster-api/pkg/client/clientset_generated/clientset"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	runtime "k8s.io/apimachinery/pkg/runtime"
 	cache "k8s.io/client-go/tools/cache"
-	clientset "sigs.k8s.io/cluster-api/pkg/client/clientset_generated/clientset"
 )
 
 // NewInformerFunc takes clientset.Interface and time.Duration to return a SharedIndexInformer.

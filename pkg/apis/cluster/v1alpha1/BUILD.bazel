@@ -14,7 +14,7 @@ go_library(
         "register.go",
         "zz_generated.deepcopy.go",
     ],
-    importpath = "sigs.k8s.io/cluster-api/pkg/apis/cluster/v1alpha1",
+    importpath = "github.com/openshift/cluster-api/pkg/apis/cluster/v1alpha1",
     visibility = ["//visibility:public"],
     deps = [
         "//pkg/apis/cluster/common:go_default_library",

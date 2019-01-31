@@ -3,7 +3,7 @@ load("@io_bazel_rules_go//go:def.bzl", "go_library")
 go_library(
     name = "go_default_library",
     srcs = ["b3.go"],
-    importmap = "sigs.k8s.io/cluster-api/vendor/go.opencensus.io/plugin/ochttp/propagation/b3",
+    importmap = "github.com/openshift/cluster-api/vendor/go.opencensus.io/plugin/ochttp/propagation/b3",
     importpath = "go.opencensus.io/plugin/ochttp/propagation/b3",
     visibility = ["//visibility:public"],
     deps = [

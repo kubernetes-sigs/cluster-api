@@ -6,7 +6,7 @@ go_library(
         "syscall_linux.go",
         "syscall_nonlinux.go",
     ],
-    importmap = "sigs.k8s.io/cluster-api/vendor/google.golang.org/grpc/internal/syscall",
+    importmap = "github.com/openshift/cluster-api/vendor/google.golang.org/grpc/internal/syscall",
     importpath = "google.golang.org/grpc/internal/syscall",
     visibility = ["//vendor/google.golang.org/grpc:__subpackages__"],
     deps = select({

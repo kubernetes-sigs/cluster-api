@@ -8,7 +8,7 @@ go_library(
         "ginkgo.go",
         "server.go",
     ],
-    importmap = "sigs.k8s.io/cluster-api/vendor/sigs.k8s.io/controller-runtime/pkg/envtest",
+    importmap = "github.com/openshift/cluster-api/vendor/sigs.k8s.io/controller-runtime/pkg/envtest",
     importpath = "sigs.k8s.io/controller-runtime/pkg/envtest",
     visibility = ["//visibility:public"],
     deps = [

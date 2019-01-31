@@ -9,7 +9,7 @@ go_library(
         "methodsetcache.go",
         "ui.go",
     ],
-    importmap = "sigs.k8s.io/cluster-api/vendor/golang.org/x/tools/go/types/typeutil",
+    importmap = "github.com/openshift/cluster-api/vendor/golang.org/x/tools/go/types/typeutil",
     importpath = "golang.org/x/tools/go/types/typeutil",
     visibility = ["//visibility:public"],
     deps = ["//vendor/golang.org/x/tools/go/ast/astutil:go_default_library"],

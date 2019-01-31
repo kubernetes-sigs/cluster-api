@@ -9,7 +9,7 @@ go_library(
         "enqueue_owner.go",
         "eventhandler.go",
     ],
-    importmap = "sigs.k8s.io/cluster-api/vendor/sigs.k8s.io/controller-runtime/pkg/handler",
+    importmap = "github.com/openshift/cluster-api/vendor/sigs.k8s.io/controller-runtime/pkg/handler",
     importpath = "sigs.k8s.io/controller-runtime/pkg/handler",
     visibility = ["//visibility:public"],
     deps = [

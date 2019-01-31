@@ -7,7 +7,7 @@ go_library(
         "rolling.go",
         "sync.go",
     ],
-    importpath = "sigs.k8s.io/cluster-api/pkg/controller/machinedeployment",
+    importpath = "github.com/openshift/cluster-api/pkg/controller/machinedeployment",
     visibility = ["//visibility:public"],
     deps = [
         "//pkg/apis/machine/common:go_default_library",

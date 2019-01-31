@@ -6,7 +6,7 @@ go_library(
         "doc.go",
         "fuzz.go",
     ],
-    importmap = "sigs.k8s.io/cluster-api/vendor/github.com/google/gofuzz",
+    importmap = "github.com/openshift/cluster-api/vendor/github.com/google/gofuzz",
     importpath = "github.com/google/gofuzz",
     visibility = ["//visibility:public"],
 )

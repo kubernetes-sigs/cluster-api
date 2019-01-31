@@ -7,7 +7,7 @@ go_library(
         "controller.go",
         "testactuator.go",
     ],
-    importpath = "sigs.k8s.io/cluster-api/pkg/controller/machine",
+    importpath = "github.com/openshift/cluster-api/pkg/controller/machine",
     visibility = ["//visibility:public"],
     deps = [
         "//pkg/apis/machine/v1beta1:go_default_library",

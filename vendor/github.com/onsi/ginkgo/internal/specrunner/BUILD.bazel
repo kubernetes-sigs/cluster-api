@@ -6,7 +6,7 @@ go_library(
         "random_id.go",
         "spec_runner.go",
     ],
-    importmap = "sigs.k8s.io/cluster-api/vendor/github.com/onsi/ginkgo/internal/specrunner",
+    importmap = "github.com/openshift/cluster-api/vendor/github.com/onsi/ginkgo/internal/specrunner",
     importpath = "github.com/onsi/ginkgo/internal/specrunner",
     visibility = ["//vendor/github.com/onsi/ginkgo:__subpackages__"],
     deps = [

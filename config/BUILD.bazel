@@ -6,17 +6,17 @@ filegroup(
         "manager/*.yaml",
         "default/*.yaml",
     ]),
-    visibility = ["//visibility:private"],
+    visibility = ["//visibility:public"],
 )
 
 genrule(
     name = "cluster-api-yaml",
-    cmd = "$(location @io_k8s_sigs_kustomize//:kustomize) build $$(dirname $(location :default/kustomization.yaml)) > $@",
     srcs = [
         ":kustomize-yaml",
         ":default/kustomization.yaml",
     ],
-    tools = ["@io_k8s_sigs_kustomize//:kustomize"],
     outs = ["cluster_api.yaml"],
+    cmd = "$(location @io_k8s_sigs_kustomize//:kustomize) build $$(dirname $(location :default/kustomization.yaml)) > $@",
+    tools = ["@io_k8s_sigs_kustomize//:kustomize"],
     visibility = ["//visibility:public"],
 )

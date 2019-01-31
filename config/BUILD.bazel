@@ -6,7 +6,7 @@ filegroup(
         "manager/*.yaml",
         "default/*.yaml",
     ]),
-    visibility = ["//visibility:private"],
+    visibility = ["//visibility:public"],
 )
 
 genrule(

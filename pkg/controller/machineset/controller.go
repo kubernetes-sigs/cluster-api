@@ -23,6 +23,10 @@ import (
 	"sync"
 	"time"
 
+	"strings"
+	"sync"
+	"time"
+
 	"github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
@@ -330,7 +334,7 @@ func (r *ReconcileMachineSet) syncReplicas(ms *clusterv1alpha1.MachineSet, machi
 			controllerKind, ms.Namespace, ms.Name, *(ms.Spec.Replicas), diff)
 
 		// Choose which Machines to delete.
-		machinesToDelete := getMachinesToDeletePrioritized(machines, diff, simpleDeletePriority)
+		machinesToDelete := getMachinesToDeletePrioritized(machines, diff, deletePriorityFunc)
 
 		// TODO: Add cap to limit concurrent delete calls.
 		errCh := make(chan error, diff)

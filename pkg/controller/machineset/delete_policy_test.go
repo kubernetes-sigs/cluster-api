@@ -29,7 +29,7 @@ func TestMachineToDelete(t *testing.T) {
 	now := metav1.Now()
 	mustDeleteMachine := &v1alpha1.Machine{ObjectMeta: metav1.ObjectMeta{DeletionTimestamp: &now}}
 	betterDeleteMachine := &v1alpha1.Machine{Status: v1alpha1.MachineStatus{ErrorMessage: &msg}}
-	deleteMeMachine := &v1alpha1.Machine{ObjectMeta: metav1.ObjectMeta{Annotations: map[string]string{"delete-me": "yes"}}}
+	deleteMeMachine := &v1alpha1.Machine{ObjectMeta: metav1.ObjectMeta{Annotations: map[string]string{DeleteNodeAnnotation: "yes"}}}
 
 	tests := []struct {
 		desc     string

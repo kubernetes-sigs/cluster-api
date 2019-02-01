@@ -74,6 +74,19 @@ type MachineSetSpec struct {
 	Template MachineTemplateSpec `json:"template,omitempty"`
 }
 
+type MachineSetDeletePolicy string
+
+const (
+	// SimpleMachineSetDeletePolicy
+	SimpleMachineSetDeletePolicy MachineSetDeletePolicy = "Simple"
+
+	// NewestMachineSetDeletePolicy
+	NewestMachineSetDeletePolicy MachineSetDeletePolicy = "Newest"
+
+	// OldestMachineSetDeletePolicy
+	OldestMachineSetDeletePolicy MachineSetDeletePolicy = "Oldest"
+)
+
 /// [MachineSetSpec] // doxygen marker
 
 /// [MachineTemplateSpec] // doxygen marker
@@ -157,6 +170,17 @@ func (m *MachineSet) Validate() field.ErrorList {
 		if !selector.Matches(labels) {
 			errors = append(errors, field.Invalid(fldPath.Child("template", "metadata", "labels"), m.Spec.Template.Labels, "`selector` does not match template `labels`"))
 		}
+	}
+	validDelPolicy := false
+	delPolicies := []MachineSetDeletePolicy{ SimpleMachineSetDeletePolicy, NewestMachineSetDeletePolicy, OldestMachineSetDeletePolicy }
+	for i := range delPolicies {
+		if delPolicies[i] == MachineSetDeletePolicy(machineSet.Spec.DeletePolicy) {
+			validDelPolicy = true
+			break
+			}
+	}
+	if !validDelPolicy {
+		errors = append(errors, field.Invalid(fldPath.Child("deletePolicy"), machineSet.Spec.DeletePolicy, "invalid delete policy."))
 	}
 
 	return errors

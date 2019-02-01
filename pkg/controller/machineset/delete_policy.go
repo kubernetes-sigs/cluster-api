@@ -27,6 +27,9 @@ import (
 type deletePriority float64
 
 const (
+
+	DeleteNodeAnnotation = "machineset.clusters.k8s.io/delete-me"
+
 	mustDelete    deletePriority = 100.0
 	betterDelete  deletePriority = 50.0
 	couldDelete   deletePriority = 20.0
@@ -34,6 +37,10 @@ const (
 )
 
 type deletePriorityFunc func(machine *v1alpha1.Machine) deletePriority
+
+func getDefaultDeletePriorityFunc() deletePriorityFunc {
+	return simpleDeletePriority
+}
 
 // maps the creation timestamp onto the 0-100 priority range
 func oldestDeletePriority(machine *v1alpha1.Machine) deletePriority {
@@ -63,7 +70,7 @@ func simpleDeletePriority(machine *v1alpha1.Machine) deletePriority {
 	if machine.DeletionTimestamp != nil && !machine.DeletionTimestamp.IsZero() {
 		return mustDelete
 	}
-	if machine.ObjectMeta.Annotations != nil && machine.ObjectMeta.Annotations["delete-me"] != "" {
+	if machine.ObjectMeta.Annotations != nil && machine.ObjectMeta.Annotations[DeleteNodeAnnotation] != "" {
 		return betterDelete
 	}
 	if machine.Status.ErrorReason != nil || machine.Status.ErrorMessage != nil {

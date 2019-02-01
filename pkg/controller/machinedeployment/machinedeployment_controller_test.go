@@ -17,6 +17,7 @@ limitations under the License.
 package machinedeployment
 
 import (
+	"strconv"
 	"testing"
 	"time"
 
@@ -153,7 +154,16 @@ func TestReconcile(t *testing.T) {
 	// Wait for the new MachineSet to get scaled up and set .Status.Replicas and .Status.AvailableReplicas
 	// at each step
 	var newMachineSet, oldMachineSet *clusterv1alpha1.MachineSet
-	if machineSets.Items[0].CreationTimestamp.Before(&machineSets.Items[1].CreationTimestamp) {
+	resourceVersion0, err0 := strconv.Atoi(machineSets.Items[0].ResourceVersion)
+	resourceVersion1, err1 := strconv.Atoi(machineSets.Items[1].ResourceVersion)
+	if err0 != nil {
+		t.Fatalf("Unable to convert MS %q ResourceVersion to a number: %v", machineSets.Items[0].Name, err0)
+	}
+	if err1 != nil {
+		t.Fatalf("Unable to convert MS %q ResourceVersion to a number: %v", machineSets.Items[1].Name, err1)
+	}
+
+	if resourceVersion0 > resourceVersion1 {
 		newMachineSet = &machineSets.Items[0]
 		oldMachineSet = &machineSets.Items[1]
 	} else {

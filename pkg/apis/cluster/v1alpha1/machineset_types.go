@@ -136,22 +136,22 @@ type MachineSetStatus struct {
 
 /// [MachineSetStatus]
 
-func (machineSet *MachineSet) Validate() field.ErrorList {
+func (m *MachineSet) Validate() field.ErrorList {
 	errors := field.ErrorList{}
 
 	// validate spec.selector and spec.template.labels
 	fldPath := field.NewPath("spec")
-	errors = append(errors, metav1validation.ValidateLabelSelector(&machineSet.Spec.Selector, fldPath.Child("selector"))...)
-	if len(machineSet.Spec.Selector.MatchLabels)+len(machineSet.Spec.Selector.MatchExpressions) == 0 {
-		errors = append(errors, field.Invalid(fldPath.Child("selector"), machineSet.Spec.Selector, "empty selector is not valid for MachineSet."))
+	errors = append(errors, metav1validation.ValidateLabelSelector(&m.Spec.Selector, fldPath.Child("selector"))...)
+	if len(m.Spec.Selector.MatchLabels)+len(m.Spec.Selector.MatchExpressions) == 0 {
+		errors = append(errors, field.Invalid(fldPath.Child("selector"), m.Spec.Selector, "empty selector is not valid for MachineSet."))
 	}
-	selector, err := metav1.LabelSelectorAsSelector(&machineSet.Spec.Selector)
+	selector, err := metav1.LabelSelectorAsSelector(&m.Spec.Selector)
 	if err != nil {
-		errors = append(errors, field.Invalid(fldPath.Child("selector"), machineSet.Spec.Selector, "invalid label selector."))
+		errors = append(errors, field.Invalid(fldPath.Child("selector"), m.Spec.Selector, "invalid label selector."))
 	} else {
-		labels := labels.Set(machineSet.Spec.Template.Labels)
+		labels := labels.Set(m.Spec.Template.Labels)
 		if !selector.Matches(labels) {
-			errors = append(errors, field.Invalid(fldPath.Child("template", "metadata", "labels"), machineSet.Spec.Template.Labels, "`selector` does not match template `labels`"))
+			errors = append(errors, field.Invalid(fldPath.Child("template", "metadata", "labels"), m.Spec.Template.Labels, "`selector` does not match template `labels`"))
 		}
 	}
 
@@ -159,16 +159,16 @@ func (machineSet *MachineSet) Validate() field.ErrorList {
 }
 
 // DefaultingFunction sets default MachineSet field values
-func (obj *MachineSet) Default() {
-	log.Printf("Defaulting fields for MachineSet %s\n", obj.Name)
+func (m *MachineSet) Default() {
+	log.Printf("Defaulting fields for MachineSet %s\n", m.Name)
 
-	if obj.Spec.Replicas == nil {
-		obj.Spec.Replicas = new(int32)
-		*obj.Spec.Replicas = 1
+	if m.Spec.Replicas == nil {
+		m.Spec.Replicas = new(int32)
+		*m.Spec.Replicas = 1
 	}
 
-	if len(obj.Namespace) == 0 {
-		obj.Namespace = metav1.NamespaceDefault
+	if len(m.Namespace) == 0 {
+		m.Namespace = metav1.NamespaceDefault
 	}
 }
 

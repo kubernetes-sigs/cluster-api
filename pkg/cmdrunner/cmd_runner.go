@@ -20,6 +20,7 @@ import (
 	"os/exec"
 )
 
+// Runner has one method that executes a command and returns stdout and stderr.
 type Runner interface {
 	CombinedOutput(cmd string, args ...string) (output string, err error)
 }
@@ -27,7 +28,8 @@ type Runner interface {
 type realRunner struct {
 }
 
-func New() *realRunner {
+// New returns a command runner.
+func New() *realRunner { // nolint
 	return &realRunner{}
 }
 

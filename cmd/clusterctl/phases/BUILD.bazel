@@ -1,4 +1,4 @@
-load("@io_bazel_rules_go//go:def.bzl", "go_library")
+load("@io_bazel_rules_go//go:def.bzl", "go_library", "go_test")
 
 go_library(
     name = "go_default_library",
@@ -10,6 +10,7 @@ go_library(
         "applymachines.go",
         "createbootstrapcluster.go",
         "getkubeconfig.go",
+        "pivot.go",
     ],
     importpath = "sigs.k8s.io/cluster-api/cmd/clusterctl/phases",
     visibility = ["//visibility:public"],
@@ -20,6 +21,18 @@ go_library(
         "//pkg/apis/cluster/v1alpha1:go_default_library",
         "//pkg/util:go_default_library",
         "//vendor/github.com/pkg/errors:go_default_library",
+        "//vendor/k8s.io/api/apps/v1:go_default_library",
+        "//vendor/k8s.io/apimachinery/pkg/util/yaml:go_default_library",
         "//vendor/k8s.io/klog:go_default_library",
+    ],
+)
+
+go_test(
+    name = "go_default_test",
+    srcs = ["pivot_test.go"],
+    embed = [":go_default_library"],
+    deps = [
+        "//pkg/apis/cluster/v1alpha1:go_default_library",
+        "//vendor/k8s.io/apimachinery/pkg/apis/meta/v1:go_default_library",
     ],
 )

@@ -27,7 +27,6 @@ import (
 	"sigs.k8s.io/cluster-api/cmd/clusterctl/clusterdeployer/provider"
 	"sigs.k8s.io/cluster-api/cmd/clusterctl/phases"
 	clusterv1 "sigs.k8s.io/cluster-api/pkg/apis/cluster/v1alpha1"
-	"sigs.k8s.io/cluster-api/pkg/util"
 )
 
 type ClusterDeployer struct {
@@ -118,22 +117,9 @@ func (d *ClusterDeployer) Create(cluster *clusterv1.Cluster, machines []*cluster
 		}
 	}
 
-	klog.Infof("Creating namespace %q on target cluster", cluster.Namespace)
-	addNamespaceToTarget := func() (bool, error) {
-		err = targetClient.EnsureNamespace(cluster.Namespace)
-		if err != nil {
-			return false, nil
-		}
-		return true, nil
-	}
-
-	if err := util.Retry(addNamespaceToTarget, 0); err != nil {
-		return errors.Wrapf(err, "unable to ensure namespace %q in target cluster", cluster.Namespace)
-	}
-
-	klog.Info("Applying Cluster API stack to target cluster")
-	if err := d.applyClusterAPIComponentsWithPivoting(targetClient, bootstrapClient, cluster.Namespace); err != nil {
-		return errors.Wrap(err, "unable to apply cluster api stack to target cluster")
+	klog.Info("Pivoting Cluster API stack to target cluster")
+	if err := phases.Pivot(bootstrapClient, targetClient, d.providerComponents); err != nil {
+		return errors.Wrap(err, "unable to pivot cluster api stack to target cluster")
 	}
 
 	klog.Info("Saving provider components to the target cluster")
@@ -159,7 +145,7 @@ func (d *ClusterDeployer) Create(cluster *clusterv1.Cluster, machines []*cluster
 	return nil
 }
 
-func (d *ClusterDeployer) Delete(targetClient clusterclient.Client, namespace string) error {
+func (d *ClusterDeployer) Delete(targetClient clusterclient.Client) error {
 	klog.Info("Creating bootstrap cluster")
 	bootstrapClient, cleanupBootstrapCluster, err := phases.CreateBootstrapCluster(d.bootstrapProvisioner, d.cleanupBootstrapCluster, d.clientFactory)
 	defer cleanupBootstrapCluster()
@@ -168,24 +154,13 @@ func (d *ClusterDeployer) Delete(targetClient clusterclient.Client, namespace st
 	}
 	defer closeClient(bootstrapClient, "bootstrap")
 
-	klog.Info("Applying Cluster API stack to bootstrap cluster")
-	if err := phases.ApplyClusterAPIComponents(bootstrapClient, d.providerComponents); err != nil {
-		return errors.Wrap(err, "unable to apply cluster api stack to bootstrap cluster")
-	}
-
-	klog.Info("Deleting Cluster API Provider Components from target cluster")
-	if err = targetClient.Delete(d.providerComponents); err != nil {
-		klog.Infof("error while removing provider components from target cluster: %v", err)
-		klog.Infof("Continuing with a best effort delete")
-	}
-
-	klog.Info("Copying objects from target cluster to bootstrap cluster")
-	if err = pivotNamespace(targetClient, bootstrapClient, namespace); err != nil {
-		return errors.Wrap(err, "unable to copy objects from target to bootstrap cluster")
+	klog.Info("Pivoting Cluster API stack to bootstrap cluster")
+	if err := phases.Pivot(targetClient, bootstrapClient, d.providerComponents); err != nil {
+		return errors.Wrap(err, "unable to pivot Cluster API stack to bootstrap cluster")
 	}
 
 	klog.Info("Deleting objects from bootstrap cluster")
-	if err = deleteObjectsInNamespace(bootstrapClient, namespace); err != nil {
+	if err := deleteClusterAPIObjectsInAllNamespaces(bootstrapClient); err != nil {
 		return errors.Wrap(err, "unable to finish deleting objects in bootstrap cluster, resources may have been leaked")
 	}
 
@@ -229,112 +204,31 @@ func (d *ClusterDeployer) saveProviderComponentsToCluster(factory provider.Compo
 	return nil
 }
 
-func (d *ClusterDeployer) applyClusterAPIComponentsWithPivoting(client, source clusterclient.Client, namespace string) error {
-	klog.Info("Applying Cluster API Provider Components")
-	if err := client.Apply(d.providerComponents); err != nil {
-		return errors.Wrap(err, "unable to apply cluster api controllers")
-	}
-
-	klog.Info("Pivoting Cluster API objects from bootstrap to target cluster.")
-	err := pivotNamespace(source, client, namespace)
-	if err != nil {
-		return errors.Wrap(err, "unable to pivot cluster API objects")
-	}
-
-	return nil
-}
-
-func pivotNamespace(from, to clusterclient.Client, namespace string) error {
-	if err := from.WaitForClusterV1alpha1Ready(); err != nil {
-		return errors.New("cluster v1alpha1 resource not ready on source cluster")
-	}
-
-	if err := to.WaitForClusterV1alpha1Ready(); err != nil {
-		return errors.New("cluster v1alpha1 resource not ready on target cluster")
-	}
-
-	clusters, err := from.GetClusterObjectsInNamespace(namespace)
-	if err != nil {
-		return err
-	}
-
-	for _, cluster := range clusters {
-		// New objects cannot have a specified resource version. Clear it out.
-		cluster.SetResourceVersion("")
-		if err = to.CreateClusterObject(cluster); err != nil {
-			return errors.Wrapf(err, "error moving Cluster %q", cluster.GetName())
-		}
-		klog.Infof("Moved Cluster '%s'", cluster.GetName())
-	}
-
-	fromDeployments, err := from.GetMachineDeploymentObjectsInNamespace(namespace)
-	if err != nil {
-		return err
-	}
-	for _, deployment := range fromDeployments {
-		// New objects cannot have a specified resource version. Clear it out.
-		deployment.SetResourceVersion("")
-		if err = to.CreateMachineDeploymentObjects([]*clusterv1.MachineDeployment{deployment}, namespace); err != nil {
-			return errors.Wrapf(err, "error moving MachineDeployment %q", deployment.GetName())
-		}
-		klog.Infof("Moved MachineDeployment %v", deployment.GetName())
-	}
-
-	fromMachineSets, err := from.GetMachineSetObjectsInNamespace(namespace)
-	if err != nil {
-		return err
-	}
-	for _, machineSet := range fromMachineSets {
-		// New objects cannot have a specified resource version. Clear it out.
-		machineSet.SetResourceVersion("")
-		if err := to.CreateMachineSetObjects([]*clusterv1.MachineSet{machineSet}, namespace); err != nil {
-			return errors.Wrapf(err, "error moving MachineSet %q", machineSet.GetName())
-		}
-		klog.Infof("Moved MachineSet %v", machineSet.GetName())
-	}
-
-	machines, err := from.GetMachineObjectsInNamespace(namespace)
-	if err != nil {
-		return err
-	}
-
-	for _, machine := range machines {
-		// New objects cannot have a specified resource version. Clear it out.
-		machine.SetResourceVersion("")
-		machine.SetOwnerReferences(nil)
-		if err = to.CreateMachineObjects([]*clusterv1.Machine{machine}, namespace); err != nil {
-			return errors.Wrapf(err, "error moving Machine %q", machine.GetName())
-		}
-		klog.Infof("Moved Machine '%s'", machine.GetName())
-	}
-	return nil
-}
-
-func deleteObjectsInNamespace(client clusterclient.Client, namespace string) error {
+func deleteClusterAPIObjectsInAllNamespaces(client clusterclient.Client) error {
 	var errorList []string
-	klog.Infof("Deleting machine deployments in namespace %q", namespace)
-	if err := client.DeleteMachineDeploymentObjectsInNamespace(namespace); err != nil {
-		err = errors.Wrap(err, "error deleting machine deployments")
+	klog.Infof("Deleting MachineDeployments in all namespaces")
+	if err := client.DeleteMachineDeployments(""); err != nil {
+		err = errors.Wrap(err, "error deleting MachineDeployments")
 		errorList = append(errorList, err.Error())
 	}
-	klog.Infof("Deleting machine sets in namespace %q", namespace)
-	if err := client.DeleteMachineSetObjectsInNamespace(namespace); err != nil {
-		err = errors.Wrap(err, "error deleting machine sets")
+	klog.Infof("Deleting MachineSets in all namespaces")
+	if err := client.DeleteMachineSets(""); err != nil {
+		err = errors.Wrap(err, "error deleting MachineSets")
 		errorList = append(errorList, err.Error())
 	}
-	klog.Infof("Deleting machines in namespace %q", namespace)
-	if err := client.DeleteMachineObjectsInNamespace(namespace); err != nil {
-		err = errors.Wrap(err, "error deleting machines")
+	klog.Infof("Deleting Machines in all namespaces")
+	if err := client.DeleteMachines(""); err != nil {
+		err = errors.Wrap(err, "error deleting Machines")
 		errorList = append(errorList, err.Error())
 	}
-	klog.Infof("Deleting clusters in namespace %q", namespace)
-	if err := client.DeleteClusterObjectsInNamespace(namespace); err != nil {
-		err = errors.Wrap(err, "error deleting clusters")
+	klog.Infof("Deleting MachineClasses in all namespaces")
+	if err := client.DeleteMachineClasses(""); err != nil {
+		err = errors.Wrap(err, "error deleting MachineClasses")
 		errorList = append(errorList, err.Error())
 	}
-	klog.Infof("Deleting namespace %q", namespace)
-	if err := client.DeleteNamespace(namespace); err != nil {
-		err = errors.Wrap(err, "error deleting namespace")
+	klog.Infof("Deleting Clusters in all namespaces")
+	if err := client.DeleteClusters(""); err != nil {
+		err = errors.Wrap(err, "error deleting Clusters")
 		errorList = append(errorList, err.Error())
 	}
 	if len(errorList) > 0 {

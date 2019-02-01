@@ -10,7 +10,6 @@ Flags:
       --bootstrap-flags strings               Command line flags to be passed to the chosen bootstrapper
       --bootstrap-type string                 The cluster bootstrapper to use. (default "none")
       --cluster string                        The name of the kubeconfig cluster to use
-      --cluster-namespace string              Namespace where the cluster to be deleted resides (default "default")
   -h, --help                                  help for cluster
   -n, --namespace string                      If present, the namespace scope for this CLI request
   -p, --provider-components string            A yaml file containing cluster api provider controllers and supporting objects, if empty the value is loaded from the cluster's configuration store.

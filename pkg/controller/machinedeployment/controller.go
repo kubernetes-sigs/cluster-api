@@ -97,14 +97,6 @@ func (r *ReconcileMachineDeployment) getMachineSetsForDeployment(d *v1alpha1.Mac
 	machineSets := &v1alpha1.MachineSetList{}
 	listOptions := &client.ListOptions{
 		Namespace: d.Namespace,
-		// This is set so the fake client can be used for unit test. See:
-		// https://github.com/kubernetes-sigs/controller-runtime/issues/168
-		Raw: &metav1.ListOptions{
-			TypeMeta: metav1.TypeMeta{
-				APIVersion: v1alpha1.SchemeGroupVersion.String(),
-				Kind:       "MachineSet",
-			},
-		},
 	}
 	if err := r.Client.List(context.Background(), listOptions, machineSets); err != nil {
 		return nil, err
@@ -206,14 +198,6 @@ func (r *ReconcileMachineDeployment) getMachineDeploymentsForMachineSet(ms *v1al
 	dList := &v1alpha1.MachineDeploymentList{}
 	listOptions := &client.ListOptions{
 		Namespace: ms.Namespace,
-		// This is set so the fake client can be used for unit test. See:
-		// https://github.com/kubernetes-sigs/controller-runtime/issues/168
-		Raw: &metav1.ListOptions{
-			TypeMeta: metav1.TypeMeta{
-				APIVersion: v1alpha1.SchemeGroupVersion.String(),
-				Kind:       "MachineDeployment",
-			},
-		},
 	}
 	if err := r.Client.List(context.Background(), listOptions, dList); err != nil {
 		klog.Warningf("failed to list machine deployments, %v", err)
@@ -252,14 +236,6 @@ func (r *ReconcileMachineDeployment) getMachineMapForDeployment(d *v1alpha1.Mach
 	machines := &v1alpha1.MachineList{}
 	listOptions := &client.ListOptions{
 		Namespace: d.Namespace,
-		// This is set so the fake client can be used for unit test. See:
-		// https://github.com/kubernetes-sigs/controller-runtime/issues/168
-		Raw: &metav1.ListOptions{
-			TypeMeta: metav1.TypeMeta{
-				APIVersion: v1alpha1.SchemeGroupVersion.String(),
-				Kind:       "Machine",
-			},
-		},
 	}
 	if err = r.Client.List(context.Background(), listOptions.MatchingLabels(selector), machines); err != nil {
 		return nil, err

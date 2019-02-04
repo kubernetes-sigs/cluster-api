@@ -25,6 +25,7 @@ import (
 	"sigs.k8s.io/cluster-api/cmd/clusterctl/clusterdeployer"
 	"sigs.k8s.io/cluster-api/cmd/clusterctl/clusterdeployer/bootstrap"
 	"sigs.k8s.io/cluster-api/cmd/clusterctl/clusterdeployer/clusterclient"
+	"sigs.k8s.io/cluster-api/cmd/clusterctl/clusterdeployer/provider"
 	clustercommon "sigs.k8s.io/cluster-api/pkg/apis/cluster/common"
 	"sigs.k8s.io/cluster-api/pkg/util"
 )
@@ -123,14 +124,14 @@ func init() {
 	createCmd.AddCommand(createClusterCmd)
 }
 
-func getProvider(name string) (clusterdeployer.ProviderDeployer, error) {
+func getProvider(name string) (provider.Deployer, error) {
 	provisioner, err := clustercommon.ClusterProvisioner(name)
 	if err != nil {
 		return nil, err
 	}
-	provider, ok := provisioner.(clusterdeployer.ProviderDeployer)
+	provider, ok := provisioner.(provider.Deployer)
 	if !ok {
-		return nil, errors.Errorf("provider for %s does not implement ProviderDeployer interface", name)
+		return nil, errors.Errorf("provider for %s does not implement provider.Deployer interface", name)
 	}
 	return provider, nil
 }

@@ -609,3 +609,39 @@ func ifErrRemove(pErr *error, path string) {
 		}
 	}
 }
+
+func GetClusterAPIObject(client Client, clusterName, namespace string) (*clusterv1.Cluster, *clusterv1.Machine, []*clusterv1.Machine, error) {
+	machines, err := client.GetMachineObjectsInNamespace(namespace)
+	if err != nil {
+		return nil, nil, nil, errors.Wrap(err, "unable to fetch machines")
+	}
+	cluster, err := client.GetClusterObject(clusterName, namespace)
+	if err != nil {
+		return nil, nil, nil, errors.Wrapf(err, "unable to fetch cluster %s/%s", namespace, clusterName)
+	}
+
+	controlPlane, nodes, err := ExtractControlPlaneMachine(machines)
+	if err != nil {
+		return nil, nil, nil, errors.Wrapf(err, "unable to fetch control plane machine in cluster %s/%s", namespace, clusterName)
+	}
+	return cluster, controlPlane, nodes, nil
+}
+
+// ExtractControlPlaneMachine separates the machines running the control plane (singular) from the incoming machines.
+// This is currently done by looking at which machine specifies the control plane version.
+// TODO: Cleanup.
+func ExtractControlPlaneMachine(machines []*clusterv1.Machine) (*clusterv1.Machine, []*clusterv1.Machine, error) {
+	nodes := []*clusterv1.Machine{}
+	controlPlaneMachines := []*clusterv1.Machine{}
+	for _, machine := range machines {
+		if util.IsControlPlaneMachine(machine) {
+			controlPlaneMachines = append(controlPlaneMachines, machine)
+		} else {
+			nodes = append(nodes, machine)
+		}
+	}
+	if len(controlPlaneMachines) != 1 {
+		return nil, nil, errors.Errorf("expected one control plane machine, got: %v", len(controlPlaneMachines))
+	}
+	return controlPlaneMachines[0], nodes, nil
+}

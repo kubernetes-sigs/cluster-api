@@ -698,7 +698,6 @@ func TestMaxUnavailable(t *testing.T) {
 	}
 
 	for _, test := range tests {
-		t.Log(test.name)
 		t.Run(test.name, func(t *testing.T) {
 			maxUnavailable := MaxUnavailable(test.deployment)
 			if test.expected != maxUnavailable {

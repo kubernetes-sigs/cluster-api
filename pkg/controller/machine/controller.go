@@ -21,6 +21,8 @@ import (
 	"errors"
 	"os"
 
+	"k8s.io/apimachinery/pkg/fields"
+
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -36,7 +38,10 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/source"
 )
 
-const NodeNameEnvVar = "NODE_NAME"
+const (
+	NodeNameEnvVar          = "NODE_NAME"
+	MachineClusterLabelName = "cluster.k8s.io/cluster-name"
+)
 
 var DefaultActuator Actuator
 
@@ -116,8 +121,7 @@ func (r *ReconcileMachine) Reconcile(request reconcile.Request) (reconcile.Resul
 	// for machine management.
 	cluster, err := r.getCluster(ctx, m)
 	if err != nil {
-		// Just log the error here.
-		klog.V(4).Infof("Cluster not found, machine actuation might fail: %v", err)
+		return reconcile.Result{}, err
 	}
 	// If object hasn't been deleted and doesn't have a finalizer, add one
 	// Add a finalizer to newly created objects.
@@ -193,9 +197,15 @@ func (r *ReconcileMachine) Reconcile(request reconcile.Request) (reconcile.Resul
 }
 
 func (r *ReconcileMachine) getCluster(ctx context.Context, machine *clusterv1.Machine) (*clusterv1.Cluster, error) {
+	if machine.Labels[MachineClusterLabelName] == "" {
+		klog.Infof("Machine %q in namespace %q doesn't specify %q label, assuming nil cluster", machine.Name, MachineClusterLabelName, machine.Namespace)
+		return nil, nil
+	}
+
 	clusterList := clusterv1.ClusterList{}
 	listOptions := &client.ListOptions{
-		Namespace: machine.Namespace,
+		FieldSelector: fields.OneTermEqualSelector("metadata.name", machine.Labels[MachineClusterLabelName]),
+		Namespace:     machine.Namespace,
 	}
 
 	if err := r.Client.List(ctx, listOptions, &clusterList); err != nil {

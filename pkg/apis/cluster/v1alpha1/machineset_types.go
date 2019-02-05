@@ -172,12 +172,12 @@ func (m *MachineSet) Validate() field.ErrorList {
 		}
 	}
 	validDelPolicy := false
-	delPolicies := []MachineSetDeletePolicy{ SimpleMachineSetDeletePolicy, NewestMachineSetDeletePolicy, OldestMachineSetDeletePolicy }
+	delPolicies := []MachineSetDeletePolicy{SimpleMachineSetDeletePolicy, NewestMachineSetDeletePolicy, OldestMachineSetDeletePolicy}
 	for i := range delPolicies {
 		if delPolicies[i] == MachineSetDeletePolicy(machineSet.Spec.DeletePolicy) {
 			validDelPolicy = true
 			break
-			}
+		}
 	}
 	if !validDelPolicy {
 		errors = append(errors, field.Invalid(fldPath.Child("deletePolicy"), machineSet.Spec.DeletePolicy, "invalid delete policy."))

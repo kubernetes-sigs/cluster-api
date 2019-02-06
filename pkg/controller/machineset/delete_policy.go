@@ -20,6 +20,7 @@ import (
 	"math"
 	"sort"
 
+	"github.com/pkg/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"sigs.k8s.io/cluster-api/pkg/apis/cluster/v1alpha1"
 )
@@ -34,13 +35,11 @@ const (
 	betterDelete  deletePriority = 50.0
 	couldDelete   deletePriority = 20.0
 	mustNotDelete deletePriority = 0.0
+
+	secondsPerTenDays float64 = 864000
 )
 
 type deletePriorityFunc func(machine *v1alpha1.Machine) deletePriority
-
-func getDefaultDeletePriorityFunc() deletePriorityFunc {
-	return simpleDeletePriority
-}
 
 // maps the creation timestamp onto the 0-100 priority range
 func oldestDeletePriority(machine *v1alpha1.Machine) deletePriority {
@@ -55,7 +54,6 @@ func oldestDeletePriority(machine *v1alpha1.Machine) deletePriority {
 		return mustNotDelete
 	}
 	// var tenDayHalfLife float64    = 1246488.5
-	var secondsPerTenDays float64 = 864000
 	return deletePriority(float64(mustDelete) * (1.0 - math.Exp(-d.Seconds()/secondsPerTenDays)))
 }
 
@@ -90,8 +88,6 @@ func (m sortableMachines) Less(i, j int) bool {
 	return m.priority(m.machines[j]) < m.priority(m.machines[i]) // high to low
 }
 
-// TODO: Define machines deletion policies.
-// see: https://github.com/kubernetes/kube-deploy/issues/625
 func getMachinesToDeletePrioritized(filteredMachines []*v1alpha1.Machine, diff int, fun deletePriorityFunc) []*v1alpha1.Machine {
 	if diff >= len(filteredMachines) {
 		return filteredMachines
@@ -106,4 +102,18 @@ func getMachinesToDeletePrioritized(filteredMachines []*v1alpha1.Machine, diff i
 	sort.Sort(sortable)
 
 	return sortable.machines[:diff]
+}
+
+func getDeletePriorityFunc(ms *v1alpha1.MachineSet) (deletePriorityFunc, error) {
+	// Map the Spec.DeletePolicy value to the appropriate delete priority function
+	switch msdp := v1alpha1.MachineSetDeletePolicy(ms.Spec.DeletePolicy); msdp {
+	case v1alpha1.SimpleMachineSetDeletePolicy:
+		return simpleDeletePriority, nil
+	case v1alpha1.NewestMachineSetDeletePolicy:
+		return newestDeletePriority, nil
+	case v1alpha1.OldestMachineSetDeletePolicy:
+		return oldestDeletePriority, nil
+	default:
+		return nil, errors.Errorf("Unsupported delete policy %s. Must be one of 'Simple', 'Newest', or 'Oldest'", msdp)
+	}
 }

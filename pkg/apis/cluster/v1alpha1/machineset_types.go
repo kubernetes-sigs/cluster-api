@@ -58,9 +58,10 @@ type MachineSetSpec struct {
 	// +optional
 	MinReadySeconds int32 `json:"minReadySeconds,omitempty"`
 
-	// DeletePolicy defines the policy used to identify nodes to delete when downscaling
-	// defaults to "Simple".  Valid values are "Simple, "Newest", "Oldest"
-	DeletePolicy string `json:"deletePolicy,omitEmpty"`
+	// DeletePolicy defines the policy used to identify nodes to delete when downscaling.
+	// Defaults to "Simple".  Valid values are "Simple, "Newest", "Oldest"
+	// +kubebuilder:validation:Enum=Simple,Newest,Oldest
+	DeletePolicy string `json:"deletePolicy,omitempty"`
 
 	// Selector is a label query over machines that should match the replica count.
 	// Label keys and values that must match in order to be controlled by this MachineSet.
@@ -77,13 +78,18 @@ type MachineSetSpec struct {
 type MachineSetDeletePolicy string
 
 const (
-	// SimpleMachineSetDeletePolicy
+	// SimpleMachineSetDeletePolicy prioritizes both Machines that have the annotation
+	// "machineset.clusters.k8s.io/delete-me=yes" and Machines that are unhealthy
+	// (Status.ErrorReason or Status.ErrorMessage are set to a non-empty value).
+	// Finally, it picks Machines at random to delete.
 	SimpleMachineSetDeletePolicy MachineSetDeletePolicy = "Simple"
 
-	// NewestMachineSetDeletePolicy
+	// NewestMachineSetDeletePolicy prioritizes the newest Machines for deletion
+	// based on the Machine's CreationTimestamp.
 	NewestMachineSetDeletePolicy MachineSetDeletePolicy = "Newest"
 
-	// OldestMachineSetDeletePolicy
+	// OldestMachineSetDeletePolicy prioritizes the oldest Machines for deletion
+	// based on the Machine's CreationTimestamp.
 	OldestMachineSetDeletePolicy MachineSetDeletePolicy = "Oldest"
 )
 
@@ -197,6 +203,12 @@ func (m *MachineSet) Default() {
 
 	if len(m.Namespace) == 0 {
 		m.Namespace = metav1.NamespaceDefault
+	}
+
+	if m.Spec.DeletePolicy == "" {
+		simplePolicy := string(SimpleMachineSetDeletePolicy)
+		log.Printf("Defaulting to %s\n", simplePolicy)
+		m.Spec.DeletePolicy = simplePolicy
 	}
 }
 

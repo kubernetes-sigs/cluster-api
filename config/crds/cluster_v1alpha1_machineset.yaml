@@ -35,6 +35,13 @@ spec:
         spec:
           properties:
             deletePolicy:
+              description: DeletePolicy defines the policy used to identify nodes
+                to delete when downscaling. Defaults to "Simple".  Valid values are
+                "Simple, "Newest", "Oldest"
+              enum:
+              - Simple
+              - Newest
+              - Oldest
               type: string
             minReadySeconds:
               description: MinReadySeconds is the minimum number of seconds for which
@@ -155,7 +162,6 @@ spec:
                   type: object
               type: object
           required:
-          - deletePolicy
           - selector
           type: object
         status:

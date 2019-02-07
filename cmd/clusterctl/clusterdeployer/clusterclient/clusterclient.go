@@ -18,8 +18,10 @@ package clusterclient
 
 import (
 	"io/ioutil"
+	"net"
 	"os"
 	"os/exec"
+	"strconv"
 	"strings"
 	"sync"
 	"time"
@@ -37,7 +39,7 @@ import (
 )
 
 const (
-	apiServerPort               = 443
+	defaultAPIServerPort        = "443"
 	retryIntervalKubectlApply   = 10 * time.Second
 	retryIntervalResourceReady  = 10 * time.Second
 	retryIntervalResourceDelete = 10 * time.Second
@@ -405,16 +407,29 @@ func newDeleteOptions() *metav1.DeleteOptions {
 	}
 }
 
+// UpdateClusterObjectEndpoint updates the status of a cluster API endpoint, clusterEndpoint
+// can be passed as hostname or hostname:port, if port is not present the default port 443 is applied.
 // TODO: Test this function
-func (c *client) UpdateClusterObjectEndpoint(controlPlaneIP, clusterName, namespace string) error {
+func (c *client) UpdateClusterObjectEndpoint(clusterEndpoint, clusterName, namespace string) error {
 	cluster, err := c.GetClusterObject(clusterName, namespace)
 	if err != nil {
 		return err
 	}
+	endpointHost, endpointPort, err := net.SplitHostPort(clusterEndpoint)
+	if err != nil {
+		// We rely on provider.GetControlPlaneEndpoint to provide a correct hostname/IP, no
+		// further validation is done.
+		endpointHost = clusterEndpoint
+		endpointPort = defaultAPIServerPort
+	}
+	endpointPortInt, err := strconv.Atoi(endpointPort)
+	if err != nil {
+		return errors.Wrapf(err, "error while converting cluster endpoint port %q", endpointPort)
+	}
 	cluster.Status.APIEndpoints = append(cluster.Status.APIEndpoints,
 		clusterv1.APIEndpoint{
-			Host: controlPlaneIP,
-			Port: apiServerPort,
+			Host: endpointHost,
+			Port: endpointPortInt,
 		})
 	_, err = c.clientSet.ClusterV1alpha1().Clusters(namespace).UpdateStatus(cluster)
 	return err

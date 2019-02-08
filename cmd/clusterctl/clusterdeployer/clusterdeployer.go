@@ -27,6 +27,7 @@ import (
 	"sigs.k8s.io/cluster-api/cmd/clusterctl/clusterdeployer/provider"
 	"sigs.k8s.io/cluster-api/cmd/clusterctl/phases"
 	clusterv1 "sigs.k8s.io/cluster-api/pkg/apis/cluster/v1alpha1"
+	"sigs.k8s.io/cluster-api/pkg/util"
 )
 
 type ClusterDeployer struct {
@@ -108,6 +109,19 @@ func (d *ClusterDeployer) Create(cluster *clusterv1.Cluster, machines []*cluster
 		}
 	}
 
+	klog.Info("Creating namespace %q on target cluster", cluster.Namespace)
+	addNamespaceToTarget := func() (bool, error) {
+		err = targetClient.EnsureNamespace(cluster.Namespace)
+		if err != nil {
+			return false, nil
+		}
+		return true, nil
+	}
+
+	if err := util.Retry(addNamespaceToTarget, 0); err != nil {
+		return errors.Wrapf(err, "unable to ensure namespace %q in target cluster", cluster.Namespace)
+	}
+
 	klog.Info("Applying Cluster API stack to target cluster")
 	if err := d.applyClusterAPIComponentsWithPivoting(targetClient, bootstrapClient, cluster.Namespace); err != nil {
 		return errors.Wrap(err, "unable to apply cluster api stack to target cluster")
@@ -117,11 +131,6 @@ func (d *ClusterDeployer) Create(cluster *clusterv1.Cluster, machines []*cluster
 	err = d.saveProviderComponentsToCluster(providerComponentsStoreFactory, kubeconfigOutput)
 	if err != nil {
 		return errors.Wrap(err, "unable to save provider components to target cluster")
-	}
-
-	err = targetClient.EnsureNamespace(cluster.Namespace)
-	if err != nil {
-		return errors.Wrapf(err, "unable to ensure namespace %q in targetCluster", cluster.Namespace)
 	}
 
 	// For some reason, endpoint doesn't get updated in bootstrap cluster sometimes. So we

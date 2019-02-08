@@ -17,6 +17,7 @@ limitations under the License.
 package cmd
 
 import (
+	"context"
 	"fmt"
 	"os"
 
@@ -73,7 +74,7 @@ func RunValidateCluster() error {
 	if err != nil {
 		return errors.Wrap(err, "failed to create client")
 	}
-	if err = validation.ValidateClusterAPIObjects(os.Stdout, c, vco.KubeconfigOverrides.Context.Cluster, vco.KubeconfigOverrides.Context.Namespace); err != nil {
+	if err := validation.ValidateClusterAPIObjects(context.TODO(), os.Stdout, c, vco.KubeconfigOverrides.Context.Cluster, vco.KubeconfigOverrides.Context.Namespace); err != nil {
 		return err
 	}
 

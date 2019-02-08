@@ -82,7 +82,7 @@ func TestGetClusterObjectWithNoCluster(t *testing.T) {
 	c = mgr.GetClient()
 	defer close(StartTestManager(mgr, t))
 
-	if _, err := getClusterObject(c, "test-cluster", "get-cluster-object-with-no-cluster"); err == nil {
+	if _, err := getClusterObject(context.TODO(), c, "test-cluster", "get-cluster-object-with-no-cluster"); err == nil {
 		t.Error("expected error but didn't get one")
 	}
 }
@@ -139,7 +139,7 @@ func TestGetClusterObjectWithOneCluster(t *testing.T) {
 	}
 	for _, testcase := range testcases {
 		t.Run(testcase.name, func(t *testing.T) {
-			cluster, err := getClusterObject(c, testcase.clusterName, testcase.namespace)
+			cluster, err := getClusterObject(context.TODO(), c, testcase.clusterName, testcase.namespace)
 			if testcase.expectErr && err == nil {
 				t.Fatalf("Expect to get error, but got no returned error.")
 			}
@@ -200,7 +200,7 @@ func TestGetClusterObjectWithMoreThanOneCluster(t *testing.T) {
 	}
 	for _, testcase := range testcases {
 		t.Run(testcase.name, func(t *testing.T) {
-			cluster, err := getClusterObject(c, testcase.clusterName, testNamespace)
+			cluster, err := getClusterObject(context.TODO(), c, testcase.clusterName, testNamespace)
 			if testcase.expectErr && err == nil {
 				t.Fatalf("Expect to get error, but got no returned error.")
 			}
@@ -335,7 +335,7 @@ func TestValidateMachineObjects(t *testing.T) {
 				},
 			}
 			var b bytes.Buffer
-			err := validateMachineObjects(&b, &machines, c)
+			err := validateMachineObjects(context.TODO(), &b, &machines, c)
 			if testcase.expectErr && err == nil {
 				t.Errorf("Expect to get error, but got no returned error: %v", b.String())
 			}
@@ -400,7 +400,7 @@ func TestValidateMachineObjectWithReferredNode(t *testing.T) {
 				},
 			}
 			var b bytes.Buffer
-			err := validateMachineObjects(&b, &machines, c)
+			err := validateMachineObjects(context.TODO(), &b, &machines, c)
 			if testcase.expectErr && err == nil {
 				t.Fatalf("Expect to get error, but got no returned error.")
 			}
@@ -549,7 +549,7 @@ func TestValidateClusterAPIObjectsOutput(t *testing.T) {
 			}
 
 			var output bytes.Buffer
-			err = ValidateClusterAPIObjects(&output, c, testClusterName, testcase.namespace)
+			err = ValidateClusterAPIObjects(context.TODO(), &output, c, testClusterName, testcase.namespace)
 
 			if testcase.expectErr && err == nil {
 				t.Fatalf("Expect to get error, but got no returned error: %v", output.String())

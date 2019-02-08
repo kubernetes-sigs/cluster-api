@@ -31,10 +31,10 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
-func ValidateClusterAPIObjects(w io.Writer, c client.Client, clusterName string, namespace string) error {
+func ValidateClusterAPIObjects(ctx context.Context, w io.Writer, c client.Client, clusterName string, namespace string) error {
 	fmt.Fprintf(w, "Validating Cluster API objects in namespace %q\n", namespace)
 
-	cluster, err := getClusterObject(c, clusterName, namespace)
+	cluster, err := getClusterObject(ctx, c, clusterName, namespace)
 	if err != nil {
 		return err
 	}
@@ -43,22 +43,22 @@ func ValidateClusterAPIObjects(w io.Writer, c client.Client, clusterName string,
 	}
 
 	machines := &clusterv1alpha1.MachineList{}
-	if err := c.List(context.TODO(), client.InNamespace(namespace), machines); err != nil {
+	if err := c.List(ctx, client.InNamespace(namespace), machines); err != nil {
 		return errors.Wrapf(err, "failed to get the machines from the apiserver in namespace %q", namespace)
 	}
 
-	return validateMachineObjects(w, machines, c)
+	return validateMachineObjects(ctx, w, machines, c)
 }
 
-func getClusterObject(c client.Reader, clusterName string, namespace string) (*v1alpha1.Cluster, error) {
+func getClusterObject(ctx context.Context, c client.Reader, clusterName string, namespace string) (*v1alpha1.Cluster, error) {
 	if clusterName != "" {
 		cluster := &clusterv1alpha1.Cluster{}
-		err := c.Get(context.TODO(), types.NamespacedName{Name: clusterName, Namespace: namespace}, cluster)
+		err := c.Get(ctx, types.NamespacedName{Name: clusterName, Namespace: namespace}, cluster)
 		return cluster, err
 	}
 
 	clusters := &clusterv1alpha1.ClusterList{}
-	if err := c.List(context.TODO(), &client.ListOptions{Namespace: namespace}, clusters); err != nil {
+	if err := c.List(ctx, &client.ListOptions{Namespace: namespace}, clusters); err != nil {
 		return nil, errors.Wrapf(err, "failed to get the clusters from the apiserver in namespace %q", namespace)
 	}
 
@@ -81,10 +81,10 @@ func validateClusterObject(w io.Writer, cluster *v1alpha1.Cluster) error {
 	return nil
 }
 
-func validateMachineObjects(w io.Writer, machines *v1alpha1.MachineList, client client.Client) error {
+func validateMachineObjects(ctx context.Context, w io.Writer, machines *v1alpha1.MachineList, client client.Client) error {
 	pass := true
 	for _, machine := range machines.Items {
-		if !validateMachineObject(w, machine, client) {
+		if !validateMachineObject(ctx, w, machine, client) {
 			pass = false
 		}
 	}
@@ -94,7 +94,7 @@ func validateMachineObjects(w io.Writer, machines *v1alpha1.MachineList, client 
 	return nil
 }
 
-func validateMachineObject(w io.Writer, machine v1alpha1.Machine, client client.Client) bool {
+func validateMachineObject(ctx context.Context, w io.Writer, machine v1alpha1.Machine, client client.Client) bool {
 	fmt.Fprintf(w, "Checking machine object %q... ", machine.Name)
 	if machine.Status.ErrorReason != nil || machine.Status.ErrorMessage != nil {
 		var reason common.MachineStatusError
@@ -114,7 +114,7 @@ func validateMachineObject(w io.Writer, machine v1alpha1.Machine, client client.
 		fmt.Fprintf(w, "\tThe corresponding node is missing.\n")
 		return false
 	}
-	if err := validateReferredNode(machine.Status.NodeRef.Name, client); err != nil {
+	if err := validateReferredNode(ctx, machine.Status.NodeRef.Name, client); err != nil {
 		fmt.Fprintf(w, "FAIL\n")
 		fmt.Fprintf(w, "\t%v\n", err)
 		return false
@@ -123,9 +123,9 @@ func validateMachineObject(w io.Writer, machine v1alpha1.Machine, client client.
 	return true
 }
 
-func validateReferredNode(nodeName string, client client.Client) error {
+func validateReferredNode(ctx context.Context, nodeName string, client client.Client) error {
 	node := &corev1.Node{}
-	if err := client.Get(context.TODO(), types.NamespacedName{Name: nodeName}, node); err != nil {
+	if err := client.Get(ctx, types.NamespacedName{Name: nodeName}, node); err != nil {
 		return errors.Wrapf(err, "the corresponding node %q is not found", nodeName)
 	}
 	if !noderefutil.IsNodeReady(node) {

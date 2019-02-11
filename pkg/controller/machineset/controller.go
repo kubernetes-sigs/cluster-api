@@ -26,6 +26,7 @@ import (
 	"github.com/pkg/errors"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/klog"
 	clusterv1alpha1 "sigs.k8s.io/cluster-api/pkg/apis/cluster/v1alpha1"
@@ -156,6 +157,17 @@ func (r *ReconcileMachineSet) Reconcile(request reconcile.Request) (reconcile.Re
 	err = r.Client.List(context.Background(), client.InNamespace(machineSet.Namespace), allMachines)
 	if err != nil {
 		return reconcile.Result{}, errors.Wrap(err, "failed to list machines")
+	}
+
+	// Make sure that label selector can match template's labels.
+	// TODO(vincepri): Move to a validation (admission) webhook when supported.
+	selector, err := metav1.LabelSelectorAsSelector(&machineSet.Spec.Selector)
+	if err != nil {
+		return reconcile.Result{}, errors.Wrapf(err, "failed to parse MachineSet %q label selector", machineSet.Name)
+	}
+
+	if !selector.Matches(labels.Set(machineSet.Spec.Template.Labels)) {
+		return reconcile.Result{}, errors.Errorf("failed validation on MachineSet %q label selector, cannot match any machines ", machineSet.Name)
 	}
 
 	// Filter out irrelevant machines (deleting/mismatch labels) and claim orphaned machines.

@@ -109,7 +109,7 @@ func (d *ClusterDeployer) Create(cluster *clusterv1.Cluster, machines []*cluster
 		}
 	}
 
-	klog.Info("Creating namespace %q on target cluster", cluster.Namespace)
+	klog.Infof("Creating namespace %q on target cluster", cluster.Namespace)
 	addNamespaceToTarget := func() (bool, error) {
 		err = targetClient.EnsureNamespace(cluster.Namespace)
 		if err != nil {

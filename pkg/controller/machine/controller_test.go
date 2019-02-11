@@ -37,6 +37,9 @@ func TestReconcileRequest(t *testing.T) {
 			Name:       "create",
 			Namespace:  "default",
 			Finalizers: []string{v1alpha1.MachineFinalizer},
+			Labels: map[string]string{
+				MachineClusterLabelName: "testcluster",
+			},
 		},
 	}
 	machine2 := v1alpha1.Machine{
@@ -47,6 +50,9 @@ func TestReconcileRequest(t *testing.T) {
 			Name:       "update",
 			Namespace:  "default",
 			Finalizers: []string{v1alpha1.MachineFinalizer},
+			Labels: map[string]string{
+				MachineClusterLabelName: "testcluster",
+			},
 		},
 	}
 	time := metav1.Now()
@@ -59,6 +65,9 @@ func TestReconcileRequest(t *testing.T) {
 			Namespace:         "default",
 			Finalizers:        []string{v1alpha1.MachineFinalizer},
 			DeletionTimestamp: &time,
+			Labels: map[string]string{
+				MachineClusterLabelName: "testcluster",
+			},
 		},
 	}
 	clusterList := v1alpha1.ClusterList{
@@ -71,8 +80,17 @@ func TestReconcileRequest(t *testing.T) {
 					Kind: "Cluster",
 				},
 				ObjectMeta: metav1.ObjectMeta{
-					Name:      "cluster",
+					Name:      "testcluster",
 					Namespace: "default",
+				},
+			},
+			{
+				TypeMeta: metav1.TypeMeta{
+					Kind: "Cluster",
+				},
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "rainbow",
+					Namespace: "foo",
 				},
 			},
 		},

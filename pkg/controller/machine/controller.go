@@ -58,6 +58,10 @@ func newReconciler(mgr manager.Manager, actuator Actuator) reconcile.Reconciler 
 		actuator: actuator,
 	}
 
+	mgr.GetFieldIndexer().IndexField(&clusterv1.Cluster{}, "metadata.name", func(obj runtime.Object) []string {
+		return []string{obj.(*clusterv1.Cluster).Name}
+	})
+
 	if r.nodeName == "" {
 		klog.Warningf("environment variable %v is not set, this controller will not protect against deleting its own machine", NodeNameEnvVar)
 	}

@@ -18,10 +18,7 @@ package machine
 
 import (
 	"context"
-	"errors"
 	"os"
-
-	"k8s.io/apimachinery/pkg/fields"
 
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
@@ -57,10 +54,6 @@ func newReconciler(mgr manager.Manager, actuator Actuator) reconcile.Reconciler 
 		nodeName: os.Getenv(NodeNameEnvVar),
 		actuator: actuator,
 	}
-
-	mgr.GetFieldIndexer().IndexField(&clusterv1.Cluster{}, "metadata.name", func(obj runtime.Object) []string {
-		return []string{obj.(*clusterv1.Cluster).Name}
-	})
 
 	if r.nodeName == "" {
 		klog.Warningf("environment variable %v is not set, this controller will not protect against deleting its own machine", NodeNameEnvVar)
@@ -206,24 +199,17 @@ func (r *ReconcileMachine) getCluster(ctx context.Context, machine *clusterv1.Ma
 		return nil, nil
 	}
 
-	clusterList := clusterv1.ClusterList{}
-	listOptions := &client.ListOptions{
-		FieldSelector: fields.OneTermEqualSelector("metadata.name", machine.Labels[MachineClusterLabelName]),
-		Namespace:     machine.Namespace,
+	cluster := &clusterv1.Cluster{}
+	key := client.ObjectKey{
+		Namespace: machine.Namespace,
+		Name:      machine.Labels[MachineClusterLabelName],
 	}
 
-	if err := r.Client.List(ctx, listOptions, &clusterList); err != nil {
+	if err := r.Client.Get(ctx, key, cluster); err != nil {
 		return nil, err
 	}
 
-	switch len(clusterList.Items) {
-	case 0:
-		return nil, errors.New("no clusters defined")
-	case 1:
-		return &clusterList.Items[0], nil
-	default:
-		return nil, errors.New("multiple clusters defined")
-	}
+	return cluster, nil
 }
 
 func (r *ReconcileMachine) isDeleteAllowed(machine *clusterv1.Machine) bool {

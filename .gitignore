@@ -35,3 +35,10 @@ docs/book/node_modules/
 
 # Common editor / temporary files
 *~
+*.tmp
+
+# rbac and manager config for example provider
+config/ci/rbac/rbac_role_binding.yaml
+config/ci/rbac/rbac_role.yaml
+config/ci/manager/manager.yaml
+

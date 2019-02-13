@@ -1,0 +1,569 @@
+
+<!DOCTYPE HTML>
+<html lang="" >
+    <head>
+        <meta charset="UTF-8">
+        <meta content="text/html; charset=utf-8" http-equiv="Content-Type">
+        <title>MachineDeployment Controller · The Cluster API Book</title>
+        <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+        <meta name="description" content="">
+        <meta name="generator" content="GitBook 3.2.3">
+        <meta name="author" content="SIG Lifecycle Team">
+        
+        
+    
+    <link rel="stylesheet" href="../gitbook/style.css">
+
+    
+            
+                
+                <link rel="stylesheet" href="../gitbook/gitbook-plugin-panel/icons.css">
+                
+            
+                
+                <link rel="stylesheet" href="../gitbook/gitbook-plugin-panel/panel.css">
+                
+            
+                
+                <link rel="stylesheet" href="../gitbook/gitbook-plugin-codegroup/code.group.css">
+                
+            
+                
+                <link rel="stylesheet" href="../gitbook/gitbook-plugin-highlight/website.css">
+                
+            
+                
+                <link rel="stylesheet" href="../gitbook/gitbook-plugin-search/search.css">
+                
+            
+                
+                <link rel="stylesheet" href="../gitbook/gitbook-plugin-fontsettings/website.css">
+                
+            
+                
+                <link rel="stylesheet" href="../gitbook/gitbook-plugin-theme-api/theme-api.css">
+                
+            
+        
+
+    
+
+    
+        
+    
+        
+    
+        
+    
+        
+    
+        
+    
+        
+    
+
+        
+    
+    
+    <meta name="HandheldFriendly" content="true"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black">
+    <link rel="apple-touch-icon-precomposed" sizes="152x152" href="../gitbook/images/apple-touch-icon-precomposed-152.png">
+    <link rel="shortcut icon" href="../gitbook/images/favicon.ico" type="image/x-icon">
+
+    
+    <link rel="next" href="../provider_implementations/overview.html" />
+    
+    
+    <link rel="prev" href="machineset_controller.html" />
+    
+
+    </head>
+    <body>
+        
+<div class="book">
+    <div class="book-summary">
+        
+            
+<div id="book-search-input" role="search">
+    <input type="text" placeholder="Type to search" />
+</div>
+
+            
+                <nav role="navigation">
+                
+
+
+<ul class="summary">
+    
+    
+
+    
+
+    
+        
+        
+    
+        <li class="chapter " data-level="1.1" data-path="../">
+            
+                <a href="../">
+            
+                    
+                    Introduction
+            
+                </a>
+            
+
+            
+        </li>
+    
+
+    
+        
+        <li class="header">Getting Started</li>
+        
+        
+    
+        <li class="chapter " data-level="2.1" data-path="../getting_started/existing_providers.html">
+            
+                <a href="../getting_started/existing_providers.html">
+            
+                    
+                    Existing Providers
+            
+                </a>
+            
+
+            
+        </li>
+    
+
+    
+        
+        <li class="header">Common Code</li>
+        
+        
+    
+        <li class="chapter " data-level="3.1" data-path="architecture.html">
+            
+                <a href="architecture.html">
+            
+                    
+                    Architecture
+            
+                </a>
+            
+
+            
+        </li>
+    
+        <li class="chapter " data-level="3.2" data-path="repository_layout.html">
+            
+                <a href="repository_layout.html">
+            
+                    
+                    Repository Layout
+            
+                </a>
+            
+
+            
+        </li>
+    
+        <li class="chapter " data-level="3.3" data-path="cluster_controller.html">
+            
+                <a href="cluster_controller.html">
+            
+                    
+                    Cluster Controller
+            
+                </a>
+            
+
+            
+        </li>
+    
+        <li class="chapter " data-level="3.4" data-path="machine_controller.html">
+            
+                <a href="machine_controller.html">
+            
+                    
+                    Machine Controller
+            
+                </a>
+            
+
+            
+        </li>
+    
+        <li class="chapter " data-level="3.5" data-path="machineset_controller.html">
+            
+                <a href="machineset_controller.html">
+            
+                    
+                    MachineSet Controller
+            
+                </a>
+            
+
+            
+        </li>
+    
+        <li class="chapter active" data-level="3.6" data-path="machinedeployment_controller.html">
+            
+                <a href="machinedeployment_controller.html">
+            
+                    
+                    MachineDeployment Controller
+            
+                </a>
+            
+
+            
+        </li>
+    
+
+    
+        
+        <li class="header">Creating a New Provider</li>
+        
+        
+    
+        <li class="chapter " data-level="4.1" data-path="../provider_implementations/overview.html">
+            
+                <a href="../provider_implementations/overview.html">
+            
+                    
+                    Overview
+            
+                </a>
+            
+
+            
+        </li>
+    
+        <li class="chapter " data-level="4.2" data-path="../provider_implementations/naming.html">
+            
+                <a href="../provider_implementations/naming.html">
+            
+                    
+                    Naming
+            
+                </a>
+            
+
+            
+        </li>
+    
+        <li class="chapter " data-level="4.3" data-path="../provider_implementations/generate_crds.html">
+            
+                <a href="../provider_implementations/generate_crds.html">
+            
+                    
+                    Generate CRDs
+            
+                </a>
+            
+
+            
+        </li>
+    
+        <li class="chapter " data-level="4.4" data-path="../provider_implementations/register_schemes.html">
+            
+                <a href="../provider_implementations/register_schemes.html">
+            
+                    
+                    Register Schemes
+            
+                </a>
+            
+
+            
+        </li>
+    
+        <li class="chapter " data-level="4.5" data-path="../provider_implementations/create_actuators.html">
+            
+                <a href="../provider_implementations/create_actuators.html">
+            
+                    
+                    Create Actuators
+            
+                </a>
+            
+
+            
+        </li>
+    
+        <li class="chapter " data-level="4.6" data-path="../provider_implementations/register_controllers.html">
+            
+                <a href="../provider_implementations/register_controllers.html">
+            
+                    
+                    Register Controllers
+            
+                </a>
+            
+
+            
+        </li>
+    
+        <li class="chapter " data-level="4.7" data-path="../provider_implementations/building_running_and_testing.html">
+            
+                <a href="../provider_implementations/building_running_and_testing.html">
+            
+                    
+                    Building, Running, and Testing
+            
+                </a>
+            
+
+            
+        </li>
+    
+
+    
+        
+        <li class="header">Appendices</li>
+        
+        
+    
+        <li class="chapter " data-level="5.1" data-path="../appendices/keps/0003-cluster-api.html">
+            
+                <a href="../appendices/keps/0003-cluster-api.html">
+            
+                    
+                    Cluster API KEP
+            
+                </a>
+            
+
+            
+        </li>
+    
+
+    
+
+    <li class="divider"></li>
+
+    <li>
+        <a href="https://www.gitbook.com" target="blank" class="gitbook-link">
+            Published with GitBook
+        </a>
+    </li>
+</ul>
+
+
+                </nav>
+            
+        
+    </div>
+
+    <div class="book-body">
+        
+            <div class="body-inner">
+                
+                    
+
+<div class="book-header" role="navigation">
+    
+
+    <!-- Title -->
+    <h1>
+        <i class="fa fa-circle-o-notch fa-spin"></i>
+        <a href=".." >MachineDeployment Controller</a>
+    </h1>
+</div>
+
+
+
+
+                    <div class="page-wrapper" tabindex="-1" role="main">
+                        <div class="page-inner">
+                            
+<div id="book-search-results">
+    <div class="search-noresults">
+    
+                                <section class="normal markdown-section">
+                                
+                                <h1 id="machinedeployment-controller">MachineDeployment Controller</h1>
+<div class="api-method"><div class="api-method-definition"><h2 id="machinedeployment">MachineDeployment</h2>
+</div><div class="api-method-code"><div class="api-method-sample" data-lang="go" data-name="Go"><pre><code class="lang-golang"><span class="hljs-comment">// MachineDeployment is the Schema for the machinedeployments API</span>
+<span class="hljs-comment">// +k8s:openapi-gen=true</span>
+<span class="hljs-comment">// +kubebuilder:subresource:status</span>
+<span class="hljs-comment">// +kubebuilder:subresource:scale:specpath=.spec.replicas,statuspath=.status.replicas,selectorpath=.status.labelSelector</span>
+<span class="hljs-keyword">type</span> MachineDeployment <span class="hljs-keyword">struct</span> {
+    metav1.TypeMeta   <span class="hljs-string">`json:&quot;,inline&quot;`</span>
+    metav1.ObjectMeta <span class="hljs-string">`json:&quot;metadata,omitempty&quot;`</span>
+
+    Spec   MachineDeploymentSpec   <span class="hljs-string">`json:&quot;spec,omitempty&quot;`</span>
+    Status MachineDeploymentStatus <span class="hljs-string">`json:&quot;status,omitempty&quot;`</span>
+}
+</code></pre>
+</div></div></div>
+
+<div class="api-method"><div class="api-method-definition"><h2 id="machinedeploymentspec">MachineDeploymentSpec</h2>
+</div><div class="api-method-code"><div class="api-method-sample" data-lang="go" data-name="Go"><pre><code class="lang-golang"><span class="hljs-comment">// MachineDeploymentSpec defines the desired state of MachineDeployment</span>
+<span class="hljs-keyword">type</span> MachineDeploymentSpec <span class="hljs-keyword">struct</span> {
+    <span class="hljs-comment">// Number of desired machines. Defaults to 1.</span>
+    <span class="hljs-comment">// This is a pointer to distinguish between explicit zero and not specified.</span>
+    Replicas *<span class="hljs-keyword">int32</span> <span class="hljs-string">`json:&quot;replicas,omitempty&quot;`</span>
+
+    <span class="hljs-comment">// Label selector for machines. Existing MachineSets whose machines are</span>
+    <span class="hljs-comment">// selected by this will be the ones affected by this deployment.</span>
+    <span class="hljs-comment">// It must match the machine template&apos;s labels.</span>
+    Selector metav1.LabelSelector <span class="hljs-string">`json:&quot;selector&quot;`</span>
+
+    <span class="hljs-comment">// Template describes the machines that will be created.</span>
+    Template MachineTemplateSpec <span class="hljs-string">`json:&quot;template&quot;`</span>
+
+    <span class="hljs-comment">// The deployment strategy to use to replace existing machines with</span>
+    <span class="hljs-comment">// new ones.</span>
+    <span class="hljs-comment">// +optional</span>
+    Strategy *MachineDeploymentStrategy <span class="hljs-string">`json:&quot;strategy,omitempty&quot;`</span>
+
+    <span class="hljs-comment">// Minimum number of seconds for which a newly created machine should</span>
+    <span class="hljs-comment">// be ready.</span>
+    <span class="hljs-comment">// Defaults to 0 (machine will be considered available as soon as it</span>
+    <span class="hljs-comment">// is ready)</span>
+    <span class="hljs-comment">// +optional</span>
+    MinReadySeconds *<span class="hljs-keyword">int32</span> <span class="hljs-string">`json:&quot;minReadySeconds,omitempty&quot;`</span>
+
+    <span class="hljs-comment">// The number of old MachineSets to retain to allow rollback.</span>
+    <span class="hljs-comment">// This is a pointer to distinguish between explicit zero and not specified.</span>
+    <span class="hljs-comment">// Defaults to 1.</span>
+    <span class="hljs-comment">// +optional</span>
+    RevisionHistoryLimit *<span class="hljs-keyword">int32</span> <span class="hljs-string">`json:&quot;revisionHistoryLimit,omitempty&quot;`</span>
+
+    <span class="hljs-comment">// Indicates that the deployment is paused.</span>
+    <span class="hljs-comment">// +optional</span>
+    Paused <span class="hljs-keyword">bool</span> <span class="hljs-string">`json:&quot;paused,omitempty&quot;`</span>
+
+    <span class="hljs-comment">// The maximum time in seconds for a deployment to make progress before it</span>
+    <span class="hljs-comment">// is considered to be failed. The deployment controller will continue to</span>
+    <span class="hljs-comment">// process failed deployments and a condition with a ProgressDeadlineExceeded</span>
+    <span class="hljs-comment">// reason will be surfaced in the deployment status. Note that progress will</span>
+    <span class="hljs-comment">// not be estimated during the time a deployment is paused. Defaults to 600s.</span>
+    ProgressDeadlineSeconds *<span class="hljs-keyword">int32</span> <span class="hljs-string">`json:&quot;progressDeadlineSeconds,omitempty&quot;`</span>
+}
+</code></pre>
+</div></div></div>
+
+<div class="api-method"><div class="api-method-definition"><h2 id="machinedeploymentstatus">MachineDeploymentStatus</h2>
+</div><div class="api-method-code"><div class="api-method-sample" data-lang="go" data-name="Go"><pre><code class="lang-golang"><span class="hljs-comment">// MachineDeploymentStatus defines the observed state of MachineDeployment</span>
+<span class="hljs-keyword">type</span> MachineDeploymentStatus <span class="hljs-keyword">struct</span> {
+    <span class="hljs-comment">// The generation observed by the deployment controller.</span>
+    <span class="hljs-comment">// +optional</span>
+    ObservedGeneration <span class="hljs-keyword">int64</span> <span class="hljs-string">`json:&quot;observedGeneration,omitempty&quot; protobuf:&quot;varint,1,opt,name=observedGeneration&quot;`</span>
+
+    <span class="hljs-comment">// Total number of non-terminated machines targeted by this deployment</span>
+    <span class="hljs-comment">// (their labels match the selector).</span>
+    <span class="hljs-comment">// +optional</span>
+    Replicas <span class="hljs-keyword">int32</span> <span class="hljs-string">`json:&quot;replicas,omitempty&quot; protobuf:&quot;varint,2,opt,name=replicas&quot;`</span>
+
+    <span class="hljs-comment">// Total number of non-terminated machines targeted by this deployment</span>
+    <span class="hljs-comment">// that have the desired template spec.</span>
+    <span class="hljs-comment">// +optional</span>
+    UpdatedReplicas <span class="hljs-keyword">int32</span> <span class="hljs-string">`json:&quot;updatedReplicas,omitempty&quot; protobuf:&quot;varint,3,opt,name=updatedReplicas&quot;`</span>
+
+    <span class="hljs-comment">// Total number of ready machines targeted by this deployment.</span>
+    <span class="hljs-comment">// +optional</span>
+    ReadyReplicas <span class="hljs-keyword">int32</span> <span class="hljs-string">`json:&quot;readyReplicas,omitempty&quot; protobuf:&quot;varint,7,opt,name=readyReplicas&quot;`</span>
+
+    <span class="hljs-comment">// Total number of available machines (ready for at least minReadySeconds)</span>
+    <span class="hljs-comment">// targeted by this deployment.</span>
+    <span class="hljs-comment">// +optional</span>
+    AvailableReplicas <span class="hljs-keyword">int32</span> <span class="hljs-string">`json:&quot;availableReplicas,omitempty&quot; protobuf:&quot;varint,4,opt,name=availableReplicas&quot;`</span>
+
+    <span class="hljs-comment">// Total number of unavailable machines targeted by this deployment.</span>
+    <span class="hljs-comment">// This is the total number of machines that are still required for</span>
+    <span class="hljs-comment">// the deployment to have 100% available capacity. They may either</span>
+    <span class="hljs-comment">// be machines that are running but not yet available or machines</span>
+    <span class="hljs-comment">// that still have not been created.</span>
+    <span class="hljs-comment">// +optional</span>
+    UnavailableReplicas <span class="hljs-keyword">int32</span> <span class="hljs-string">`json:&quot;unavailableReplicas,omitempty&quot; protobuf:&quot;varint,5,opt,name=unavailableReplicas&quot;`</span>
+}
+</code></pre>
+</div></div></div>
+
+                                
+                                </section>
+                            
+    </div>
+    <div class="search-results">
+        <div class="has-results">
+            
+            <h1 class="search-results-title"><span class='search-results-count'></span> results matching "<span class='search-query'></span>"</h1>
+            <ul class="search-results-list"></ul>
+            
+        </div>
+        <div class="no-results">
+            
+            <h1 class="search-results-title">No results matching "<span class='search-query'></span>"</h1>
+            
+        </div>
+    </div>
+</div>
+
+                        </div>
+                    </div>
+                
+            </div>
+
+            
+
+        
+    </div>
+
+    <script>
+        var gitbook = gitbook || [];
+        gitbook.push(function() {
+            gitbook.page.hasChanged({"page":{"title":"MachineDeployment Controller","level":"3.6","depth":1,"next":{"title":"Overview","level":"4.1","depth":1,"path":"provider_implementations/overview.md","ref":"provider_implementations/overview.md","articles":[]},"previous":{"title":"MachineSet Controller","level":"3.5","depth":1,"path":"common_code/machineset_controller.md","ref":"common_code/machineset_controller.md","articles":[]},"dir":"ltr"},"config":{"plugins":["theme-api","panel","sequence-diagrams","ga","codegroup","include-codeblock"],"styles":{"website":"styles/website.css","pdf":"styles/pdf.css","epub":"styles/epub.css","mobi":"styles/mobi.css","ebook":"styles/ebook.css","print":"styles/print.css"},"pluginsConfig":{"panel":{},"search":{},"sequence-diagrams":{"theme":"simple"},"lunr":{"maxIndexSize":1000000,"ignoreSpecialCharacters":false},"codegroup":{"defaultTabName":"Code","rememberTabs":"false","tabNameSeperator":"::"},"fontsettings":{"theme":"white","family":"sans","size":2},"highlight":{},"theme-api":{"languages":[],"split":true,"theme":"light"},"ga":{"configuration":"auto","token":"dew-create-me"},"include-codeblock":{"check":false,"edit":false,"fixlang":false,"lang":"","template":"default","theme":"chrome","unindent":false},"sharing":{"facebook":true,"twitter":true,"google":false,"weibo":false,"instapaper":false,"vk":false,"all":["facebook","google","twitter","weibo","instapaper"]},"theme-default":{"styles":{"website":"styles/website.css","pdf":"styles/pdf.css","epub":"styles/epub.css","mobi":"styles/mobi.css","ebook":"styles/ebook.css","print":"styles/print.css"},"showLevel":false}},"theme":"default","author":"SIG Lifecycle Team","pdf":{"pageNumbers":true,"fontSize":12,"fontFamily":"Arial","paperSize":"a4","chapterMark":"pagebreak","pageBreaksBefore":"/","margin":{"right":62,"left":62,"top":56,"bottom":56}},"structure":{"langs":"LANGS.md","readme":"README.md","glossary":"GLOSSARY.md","summary":"SUMMARY.md"},"variables":{},"title":"The Cluster API Book","gitbook":">= 3.0.0"},"file":{"path":"common_code/machinedeployment_controller.md","mtime":"2019-02-20T03:42:28.404Z","type":"markdown"},"gitbook":{"version":"3.2.3","time":"2019-02-20T04:01:06.906Z"},"basePath":"..","book":{"language":""}});
+        });
+    </script>
+</div>
+
+        
+    <script src="../gitbook/gitbook.js"></script>
+    <script src="../gitbook/theme.js"></script>
+    
+        
+        <script src="../gitbook/gitbook-plugin-ga/plugin.js"></script>
+        
+    
+        
+        <script src="../gitbook/gitbook-plugin-codegroup/code.group.js"></script>
+        
+    
+        
+        <script src="../gitbook/gitbook-plugin-search/search-engine.js"></script>
+        
+    
+        
+        <script src="../gitbook/gitbook-plugin-search/search.js"></script>
+        
+    
+        
+        <script src="../gitbook/gitbook-plugin-lunr/lunr.min.js"></script>
+        
+    
+        
+        <script src="../gitbook/gitbook-plugin-lunr/search-lunr.js"></script>
+        
+    
+        
+        <script src="../gitbook/gitbook-plugin-sharing/buttons.js"></script>
+        
+    
+        
+        <script src="../gitbook/gitbook-plugin-fontsettings/fontsettings.js"></script>
+        
+    
+        
+        <script src="../gitbook/gitbook-plugin-theme-api/theme-api.js"></script>
+        
+    
+
+    </body>
+</html>
+

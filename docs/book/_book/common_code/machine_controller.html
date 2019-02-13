@@ -1,0 +1,772 @@
+
+<!DOCTYPE HTML>
+<html lang="" >
+    <head>
+        <meta charset="UTF-8">
+        <meta content="text/html; charset=utf-8" http-equiv="Content-Type">
+        <title>Machine Controller · The Cluster API Book</title>
+        <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+        <meta name="description" content="">
+        <meta name="generator" content="GitBook 3.2.3">
+        <meta name="author" content="SIG Lifecycle Team">
+        
+        
+    
+    <link rel="stylesheet" href="../gitbook/style.css">
+
+    
+            
+                
+                <link rel="stylesheet" href="../gitbook/gitbook-plugin-panel/icons.css">
+                
+            
+                
+                <link rel="stylesheet" href="../gitbook/gitbook-plugin-panel/panel.css">
+                
+            
+                
+                <link rel="stylesheet" href="../gitbook/gitbook-plugin-codegroup/code.group.css">
+                
+            
+                
+                <link rel="stylesheet" href="../gitbook/gitbook-plugin-highlight/website.css">
+                
+            
+                
+                <link rel="stylesheet" href="../gitbook/gitbook-plugin-search/search.css">
+                
+            
+                
+                <link rel="stylesheet" href="../gitbook/gitbook-plugin-fontsettings/website.css">
+                
+            
+                
+                <link rel="stylesheet" href="../gitbook/gitbook-plugin-theme-api/theme-api.css">
+                
+            
+        
+
+    
+
+    
+        
+    
+        
+    
+        
+    
+        
+    
+        
+    
+        
+    
+
+        
+    
+    
+    <meta name="HandheldFriendly" content="true"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black">
+    <link rel="apple-touch-icon-precomposed" sizes="152x152" href="../gitbook/images/apple-touch-icon-precomposed-152.png">
+    <link rel="shortcut icon" href="../gitbook/images/favicon.ico" type="image/x-icon">
+
+    
+    <link rel="next" href="machineset_controller.html" />
+    
+    
+    <link rel="prev" href="cluster_controller.html" />
+    
+
+    </head>
+    <body>
+        
+<div class="book">
+    <div class="book-summary">
+        
+            
+<div id="book-search-input" role="search">
+    <input type="text" placeholder="Type to search" />
+</div>
+
+            
+                <nav role="navigation">
+                
+
+
+<ul class="summary">
+    
+    
+
+    
+
+    
+        
+        
+    
+        <li class="chapter " data-level="1.1" data-path="../">
+            
+                <a href="../">
+            
+                    
+                    Introduction
+            
+                </a>
+            
+
+            
+        </li>
+    
+
+    
+        
+        <li class="header">Getting Started</li>
+        
+        
+    
+        <li class="chapter " data-level="2.1" data-path="../getting_started/existing_providers.html">
+            
+                <a href="../getting_started/existing_providers.html">
+            
+                    
+                    Existing Providers
+            
+                </a>
+            
+
+            
+        </li>
+    
+
+    
+        
+        <li class="header">Common Code</li>
+        
+        
+    
+        <li class="chapter " data-level="3.1" data-path="architecture.html">
+            
+                <a href="architecture.html">
+            
+                    
+                    Architecture
+            
+                </a>
+            
+
+            
+        </li>
+    
+        <li class="chapter " data-level="3.2" data-path="repository_layout.html">
+            
+                <a href="repository_layout.html">
+            
+                    
+                    Repository Layout
+            
+                </a>
+            
+
+            
+        </li>
+    
+        <li class="chapter " data-level="3.3" data-path="cluster_controller.html">
+            
+                <a href="cluster_controller.html">
+            
+                    
+                    Cluster Controller
+            
+                </a>
+            
+
+            
+        </li>
+    
+        <li class="chapter active" data-level="3.4" data-path="machine_controller.html">
+            
+                <a href="machine_controller.html">
+            
+                    
+                    Machine Controller
+            
+                </a>
+            
+
+            
+        </li>
+    
+        <li class="chapter " data-level="3.5" data-path="machineset_controller.html">
+            
+                <a href="machineset_controller.html">
+            
+                    
+                    MachineSet Controller
+            
+                </a>
+            
+
+            
+        </li>
+    
+        <li class="chapter " data-level="3.6" data-path="machinedeployment_controller.html">
+            
+                <a href="machinedeployment_controller.html">
+            
+                    
+                    MachineDeployment Controller
+            
+                </a>
+            
+
+            
+        </li>
+    
+
+    
+        
+        <li class="header">Creating a New Provider</li>
+        
+        
+    
+        <li class="chapter " data-level="4.1" data-path="../provider_implementations/overview.html">
+            
+                <a href="../provider_implementations/overview.html">
+            
+                    
+                    Overview
+            
+                </a>
+            
+
+            
+        </li>
+    
+        <li class="chapter " data-level="4.2" data-path="../provider_implementations/naming.html">
+            
+                <a href="../provider_implementations/naming.html">
+            
+                    
+                    Naming
+            
+                </a>
+            
+
+            
+        </li>
+    
+        <li class="chapter " data-level="4.3" data-path="../provider_implementations/generate_crds.html">
+            
+                <a href="../provider_implementations/generate_crds.html">
+            
+                    
+                    Generate CRDs
+            
+                </a>
+            
+
+            
+        </li>
+    
+        <li class="chapter " data-level="4.4" data-path="../provider_implementations/register_schemes.html">
+            
+                <a href="../provider_implementations/register_schemes.html">
+            
+                    
+                    Register Schemes
+            
+                </a>
+            
+
+            
+        </li>
+    
+        <li class="chapter " data-level="4.5" data-path="../provider_implementations/create_actuators.html">
+            
+                <a href="../provider_implementations/create_actuators.html">
+            
+                    
+                    Create Actuators
+            
+                </a>
+            
+
+            
+        </li>
+    
+        <li class="chapter " data-level="4.6" data-path="../provider_implementations/register_controllers.html">
+            
+                <a href="../provider_implementations/register_controllers.html">
+            
+                    
+                    Register Controllers
+            
+                </a>
+            
+
+            
+        </li>
+    
+        <li class="chapter " data-level="4.7" data-path="../provider_implementations/building_running_and_testing.html">
+            
+                <a href="../provider_implementations/building_running_and_testing.html">
+            
+                    
+                    Building, Running, and Testing
+            
+                </a>
+            
+
+            
+        </li>
+    
+
+    
+        
+        <li class="header">Appendices</li>
+        
+        
+    
+        <li class="chapter " data-level="5.1" data-path="../appendices/keps/0003-cluster-api.html">
+            
+                <a href="../appendices/keps/0003-cluster-api.html">
+            
+                    
+                    Cluster API KEP
+            
+                </a>
+            
+
+            
+        </li>
+    
+
+    
+
+    <li class="divider"></li>
+
+    <li>
+        <a href="https://www.gitbook.com" target="blank" class="gitbook-link">
+            Published with GitBook
+        </a>
+    </li>
+</ul>
+
+
+                </nav>
+            
+        
+    </div>
+
+    <div class="book-body">
+        
+            <div class="body-inner">
+                
+                    
+
+<div class="book-header" role="navigation">
+    
+
+    <!-- Title -->
+    <h1>
+        <i class="fa fa-circle-o-notch fa-spin"></i>
+        <a href=".." >Machine Controller</a>
+    </h1>
+</div>
+
+
+
+
+                    <div class="page-wrapper" tabindex="-1" role="main">
+                        <div class="page-inner">
+                            
+<div id="book-search-results">
+    <div class="search-noresults">
+    
+                                <section class="normal markdown-section">
+                                
+                                <h1 id="machine-controller">Machine Controller</h1>
+<p>A <code>Machine</code> is the declarative spec for a <code>Node</code>, as represented in Kubernetes
+core. If a new Machine object is created, a provider-specific controller will
+handle provisioning and installing a new host to register as a new <code>Node</code>
+matching the Machine spec. If the <code>Machine</code>s spec is updated, a provider-
+specific controller is responsible for updating the Node in-place or replacing
+the host with a new one matching the updated spec. If a <code>Machine</code> object is
+deleted, the corresponding <code>Node</code> should have its external resources released by
+the provider-specific controller, and should be deleted as well.</p>
+<p>Machines can be associated with a Cluster using a custom label
+<code>cluster.k8s.io/cluster-name</code>. When the label is set and non-empty,
+then it must reference the name of a cluster residing in the same namespace.
+The label must be set only once and updates are not permitted,
+an admission controller is going to enforce the change in a future version.</p>
+<div class="api-method"><div class="api-method-definition"><h2 id="machine">Machine</h2>
+<p><code>Machine</code> has 4 fields:</p>
+<p><code>Spec</code> contains the desired machine state specified by the object. While much
+of the <code>Spec</code> is defined by users, unspecified parts may be filled in with
+defaults or by Controllers such as autoscalers.</p>
+<p><code>Status</code> contains only observed machine state and is only written by
+controllers. <code>Status</code> is not the source of truth for any information, but
+instead aggregates and publishes observed state.</p>
+<p><code>TypeMeta</code> contains metadata about the API itself - such as Group, Version,
+Kind.</p>
+<p><code>ObjectMeta</code> contains metadata about the specific object instance, for
+example, it&apos;s name, namespace, labels, and annotations, etc. <code>ObjectMeta</code>
+contains data common to most objects.</p>
+</div><div class="api-method-code"><div class="api-method-sample" data-lang="go" data-name="Go"><pre><code class="lang-golang"><span class="hljs-comment">// Machine is the Schema for the machines API</span>
+<span class="hljs-comment">// +k8s:openapi-gen=true</span>
+<span class="hljs-comment">// +kubebuilder:subresource:status</span>
+<span class="hljs-keyword">type</span> Machine <span class="hljs-keyword">struct</span> {
+    metav1.TypeMeta   <span class="hljs-string">`json:&quot;,inline&quot;`</span>
+    metav1.ObjectMeta <span class="hljs-string">`json:&quot;metadata,omitempty&quot;`</span>
+
+    Spec   MachineSpec   <span class="hljs-string">`json:&quot;spec,omitempty&quot;`</span>
+    Status MachineStatus <span class="hljs-string">`json:&quot;status,omitempty&quot;`</span>
+}
+</code></pre>
+</div></div></div>
+
+<div class="api-method"><div class="api-method-definition"><h2 id="machinespec">MachineSpec</h2>
+<p>The <code>ProviderSpec</code> is recommended to be a serialized API object in a format
+owned by that provider. This will allow the configuration to be strongly typed,
+versioned, and have as much nested depth as appropriate. These provider-specific
+API definitions are meant to live outside of the Machine API, which will allow
+them to evolve independently of it. Attributes like instance type, which
+network to use, and the OS image all belong in the <code>ProviderSpec</code>.</p>
+<p>Some providers and tooling depend on an annotation to be set on the <code>Machine</code>
+to determine if provisioning has completed. For example, the <code>clusterctl</code>
+command does this <a href="https://github.com/kubernetes-sigs/cluster-api/blob/a30de81123009a5f91ade870008c1a35f7ce4b35/cmd/clusterctl/clusterdeployer/clusterclient/clusterclient.go#L555" target="_blank">here</a>:</p>
+<pre><code class="lang-go">        <span class="hljs-comment">// <span class="hljs-doctag">TODO:</span> update once machine controllers have a way to indicate a machine has been provisoned. https://github.com/kubernetes-sigs/cluster-api/issues/253</span>
+    <span class="hljs-comment">// Seeing a node cannot be purely relied upon because the machine running the control plane</span>
+    <span class="hljs-comment">// will not be registering with the stack that provisions it.</span>
+        ready := m.Status.NodeRef != <span class="hljs-literal">nil</span> || <span class="hljs-built_in">len</span>(m.Annotations) &gt; <span class="hljs-number">0</span>
+        <span class="hljs-keyword">return</span> ready, <span class="hljs-literal">nil</span>
+</code></pre>
+</div><div class="api-method-code"><div class="api-method-sample" data-lang="go" data-name="Go"><pre><code class="lang-golang"><span class="hljs-comment">// MachineSpec defines the desired state of Machine</span>
+<span class="hljs-keyword">type</span> MachineSpec <span class="hljs-keyword">struct</span> {
+    <span class="hljs-comment">// ObjectMeta will autopopulate the Node created. Use this to</span>
+    <span class="hljs-comment">// indicate what labels, annotations, name prefix, etc., should be used</span>
+    <span class="hljs-comment">// when creating the Node.</span>
+    <span class="hljs-comment">// +optional</span>
+    metav1.ObjectMeta <span class="hljs-string">`json:&quot;metadata,omitempty&quot;`</span>
+
+    <span class="hljs-comment">// Taints is the full, authoritative list of taints to apply to the corresponding</span>
+    <span class="hljs-comment">// Node. This list will overwrite any modifications made to the Node on</span>
+    <span class="hljs-comment">// an ongoing basis.</span>
+    <span class="hljs-comment">// +optional</span>
+    Taints []corev1.Taint <span class="hljs-string">`json:&quot;taints,omitempty&quot;`</span>
+
+    <span class="hljs-comment">// ProviderSpec details Provider-specific configuration to use during node creation.</span>
+    <span class="hljs-comment">// +optional</span>
+    ProviderSpec ProviderSpec <span class="hljs-string">`json:&quot;providerSpec&quot;`</span>
+
+    <span class="hljs-comment">// Versions of key software to use. This field is optional at cluster</span>
+    <span class="hljs-comment">// creation time, and omitting the field indicates that the cluster</span>
+    <span class="hljs-comment">// installation tool should select defaults for the user. These</span>
+    <span class="hljs-comment">// defaults may differ based on the cluster installer, but the tool</span>
+    <span class="hljs-comment">// should populate the values it uses when persisting Machine objects.</span>
+    <span class="hljs-comment">// A Machine spec missing this field at runtime is invalid.</span>
+    <span class="hljs-comment">// +optional</span>
+    Versions MachineVersionInfo <span class="hljs-string">`json:&quot;versions,omitempty&quot;`</span>
+
+    <span class="hljs-comment">// ConfigSource is used to populate in the associated Node for dynamic kubelet config. This</span>
+    <span class="hljs-comment">// field already exists in Node, so any updates to it in the Machine</span>
+    <span class="hljs-comment">// spec will be automatically copied to the linked NodeRef from the</span>
+    <span class="hljs-comment">// status. The rest of dynamic kubelet config support should then work</span>
+    <span class="hljs-comment">// as-is.</span>
+    <span class="hljs-comment">// +optional</span>
+    ConfigSource *corev1.NodeConfigSource <span class="hljs-string">`json:&quot;configSource,omitempty&quot;`</span>
+
+    <span class="hljs-comment">// ProviderID is the identification ID of the machine provided by the provider.</span>
+    <span class="hljs-comment">// This field must match the provider ID as seen on the node object corresponding to this machine.</span>
+    <span class="hljs-comment">// This field is required by higher level consumers of cluster-api. Example use case is cluster autoscaler</span>
+    <span class="hljs-comment">// with cluster-api as provider. Clean-up login in the autoscaler compares machines v/s nodes to find out</span>
+    <span class="hljs-comment">// machines at provider which could not get registered as Kubernetes nodes. With cluster-api as a</span>
+    <span class="hljs-comment">// generic out-of-tree provider for autoscaler, this field is required by autoscaler to be</span>
+    <span class="hljs-comment">// able to have a provider view of the list of machines. Another list of nodes is queries from the k8s apiserver</span>
+    <span class="hljs-comment">// and then comparison is done to find out unregistered machines and are marked for delete.</span>
+    <span class="hljs-comment">// This field will be set by the actuators and consumed by higher level entities like autoscaler  who will</span>
+    <span class="hljs-comment">// be interfacing with cluster-api as generic provider.</span>
+    <span class="hljs-comment">// +optional</span>
+    ProviderID *<span class="hljs-keyword">string</span> <span class="hljs-string">`json:&quot;providerID,omitempty&quot;`</span>
+}
+</code></pre>
+</div></div></div>
+
+<div class="api-method"><div class="api-method-definition"><h2 id="machinestatus">MachineStatus</h2>
+<p>Like <code>ProviderSpec</code>, <code>ProviderStatus</code> is recommended to be a serialized API
+object in a format owned by that provider.</p>
+<p>Note that <code>NodeRef</code> may not be set. This can happen if the <code>Machine</code> and
+corresponding <code>Node</code> are not within the same cluster. Two reasons this might be
+the case are:</p>
+<ul>
+<li>During bootstrapping, the control plane <code>Machine</code> will initially not be in the same
+cluster which is being created.</li>
+<li>Some providers distinguish between <em>manager</em> and <em>managed</em> clusters. For
+these providers a <code>Machine</code> and it&apos;s corresponding <code>Node</code> may never be within
+the same cluster. <strong>TODO</strong>: There are open issues to address this.</li>
+</ul>
+</div><div class="api-method-code"><div class="api-method-sample" data-lang="go" data-name="Go"><pre><code class="lang-golang"><span class="hljs-comment">// MachineStatus defines the observed state of Machine</span>
+<span class="hljs-keyword">type</span> MachineStatus <span class="hljs-keyword">struct</span> {
+    <span class="hljs-comment">// NodeRef will point to the corresponding Node if it exists.</span>
+    <span class="hljs-comment">// +optional</span>
+    NodeRef *corev1.ObjectReference <span class="hljs-string">`json:&quot;nodeRef,omitempty&quot;`</span>
+
+    <span class="hljs-comment">// LastUpdated identifies when this status was last observed.</span>
+    <span class="hljs-comment">// +optional</span>
+    LastUpdated *metav1.Time <span class="hljs-string">`json:&quot;lastUpdated,omitempty&quot;`</span>
+
+    <span class="hljs-comment">// Versions specifies the current versions of software on the corresponding Node (if it</span>
+    <span class="hljs-comment">// exists). This is provided for a few reasons:</span>
+    <span class="hljs-comment">//</span>
+    <span class="hljs-comment">// 1) It is more convenient than checking the NodeRef, traversing it to</span>
+    <span class="hljs-comment">//    the Node, and finding the appropriate field in Node.Status.NodeInfo</span>
+    <span class="hljs-comment">//    (which uses different field names and formatting).</span>
+    <span class="hljs-comment">// 2) It removes some of the dependency on the structure of the Node,</span>
+    <span class="hljs-comment">//    so that if the structure of Node.Status.NodeInfo changes, only</span>
+    <span class="hljs-comment">//    machine controllers need to be updated, rather than every client</span>
+    <span class="hljs-comment">//    of the Machines API.</span>
+    <span class="hljs-comment">// 3) There is no other simple way to check the control plane</span>
+    <span class="hljs-comment">//    version. A client would have to connect directly to the apiserver</span>
+    <span class="hljs-comment">//    running on the target node in order to find out its version.</span>
+    <span class="hljs-comment">// +optional</span>
+    Versions *MachineVersionInfo <span class="hljs-string">`json:&quot;versions,omitempty&quot;`</span>
+
+    <span class="hljs-comment">// ErrorReason will be set in the event that there is a terminal problem</span>
+    <span class="hljs-comment">// reconciling the Machine and will contain a succinct value suitable</span>
+    <span class="hljs-comment">// for machine interpretation.</span>
+    <span class="hljs-comment">//</span>
+    <span class="hljs-comment">// This field should not be set for transitive errors that a controller</span>
+    <span class="hljs-comment">// faces that are expected to be fixed automatically over</span>
+    <span class="hljs-comment">// time (like service outages), but instead indicate that something is</span>
+    <span class="hljs-comment">// fundamentally wrong with the Machine&apos;s spec or the configuration of</span>
+    <span class="hljs-comment">// the controller, and that manual intervention is required. Examples</span>
+    <span class="hljs-comment">// of terminal errors would be invalid combinations of settings in the</span>
+    <span class="hljs-comment">// spec, values that are unsupported by the controller, or the</span>
+    <span class="hljs-comment">// responsible controller itself being critically misconfigured.</span>
+    <span class="hljs-comment">//</span>
+    <span class="hljs-comment">// Any transient errors that occur during the reconciliation of Machines</span>
+    <span class="hljs-comment">// can be added as events to the Machine object and/or logged in the</span>
+    <span class="hljs-comment">// controller&apos;s output.</span>
+    <span class="hljs-comment">// +optional</span>
+    ErrorReason *common.MachineStatusError <span class="hljs-string">`json:&quot;errorReason,omitempty&quot;`</span>
+
+    <span class="hljs-comment">// ErrorMessage will be set in the event that there is a terminal problem</span>
+    <span class="hljs-comment">// reconciling the Machine and will contain a more verbose string suitable</span>
+    <span class="hljs-comment">// for logging and human consumption.</span>
+    <span class="hljs-comment">//</span>
+    <span class="hljs-comment">// This field should not be set for transitive errors that a controller</span>
+    <span class="hljs-comment">// faces that are expected to be fixed automatically over</span>
+    <span class="hljs-comment">// time (like service outages), but instead indicate that something is</span>
+    <span class="hljs-comment">// fundamentally wrong with the Machine&apos;s spec or the configuration of</span>
+    <span class="hljs-comment">// the controller, and that manual intervention is required. Examples</span>
+    <span class="hljs-comment">// of terminal errors would be invalid combinations of settings in the</span>
+    <span class="hljs-comment">// spec, values that are unsupported by the controller, or the</span>
+    <span class="hljs-comment">// responsible controller itself being critically misconfigured.</span>
+    <span class="hljs-comment">//</span>
+    <span class="hljs-comment">// Any transient errors that occur during the reconciliation of Machines</span>
+    <span class="hljs-comment">// can be added as events to the Machine object and/or logged in the</span>
+    <span class="hljs-comment">// controller&apos;s output.</span>
+    <span class="hljs-comment">// +optional</span>
+    ErrorMessage *<span class="hljs-keyword">string</span> <span class="hljs-string">`json:&quot;errorMessage,omitempty&quot;`</span>
+
+    <span class="hljs-comment">// ProviderStatus details a Provider-specific status.</span>
+    <span class="hljs-comment">// It is recommended that providers maintain their</span>
+    <span class="hljs-comment">// own versioned API types that should be</span>
+    <span class="hljs-comment">// serialized/deserialized from this field.</span>
+    <span class="hljs-comment">// +optional</span>
+    ProviderStatus *runtime.RawExtension <span class="hljs-string">`json:&quot;providerStatus,omitempty&quot;`</span>
+
+    <span class="hljs-comment">// Addresses is a list of addresses assigned to the machine. Queried from cloud provider, if available.</span>
+    <span class="hljs-comment">// +optional</span>
+    Addresses []corev1.NodeAddress <span class="hljs-string">`json:&quot;addresses,omitempty&quot;`</span>
+
+    <span class="hljs-comment">// Conditions lists the conditions synced from the node conditions of the corresponding node-object.</span>
+    <span class="hljs-comment">// Machine-controller is responsible for keeping conditions up-to-date.</span>
+    <span class="hljs-comment">// MachineSet controller will be taking these conditions as a signal to decide if</span>
+    <span class="hljs-comment">// machine is healthy or needs to be replaced.</span>
+    <span class="hljs-comment">// Refer: https://kubernetes.io/docs/concepts/architecture/nodes/#condition</span>
+    <span class="hljs-comment">// +optional</span>
+    Conditions []corev1.NodeCondition <span class="hljs-string">`json:&quot;conditions,omitempty&quot;`</span>
+
+    <span class="hljs-comment">// LastOperation describes the last-operation performed by the machine-controller.</span>
+    <span class="hljs-comment">// This API should be useful as a history in terms of the latest operation performed on the</span>
+    <span class="hljs-comment">// specific machine. It should also convey the state of the latest-operation for example if</span>
+    <span class="hljs-comment">// it is still on-going, failed or completed successfully.</span>
+    <span class="hljs-comment">// +optional</span>
+    LastOperation *LastOperation <span class="hljs-string">`json:&quot;lastOperation,omitempty&quot;`</span>
+
+    <span class="hljs-comment">// Phase represents the current phase of machine actuation.</span>
+    <span class="hljs-comment">// E.g. Pending, Running, Terminating, Failed etc.</span>
+    <span class="hljs-comment">// +optional</span>
+    Phase *<span class="hljs-keyword">string</span> <span class="hljs-string">`json:&quot;phase,omitempty&quot;`</span>
+}
+
+<span class="hljs-comment">// LastOperation represents the detail of the last performed operation on the MachineObject.</span>
+<span class="hljs-keyword">type</span> LastOperation <span class="hljs-keyword">struct</span> {
+    <span class="hljs-comment">// Description is the human-readable description of the last operation.</span>
+    Description *<span class="hljs-keyword">string</span> <span class="hljs-string">`json:&quot;description,omitempty&quot;`</span>
+
+    <span class="hljs-comment">// LastUpdated is the timestamp at which LastOperation API was last-updated.</span>
+    LastUpdated *metav1.Time <span class="hljs-string">`json:&quot;lastUpdated,omitempty&quot;`</span>
+
+    <span class="hljs-comment">// State is the current status of the last performed operation.</span>
+    <span class="hljs-comment">// E.g. Processing, Failed, Successful etc</span>
+    State *<span class="hljs-keyword">string</span> <span class="hljs-string">`json:&quot;state,omitempty&quot;`</span>
+
+    <span class="hljs-comment">// Type is the type of operation which was last performed.</span>
+    <span class="hljs-comment">// E.g. Create, Delete, Update etc</span>
+    Type *<span class="hljs-keyword">string</span> <span class="hljs-string">`json:&quot;type,omitempty&quot;`</span>
+}
+</code></pre>
+</div></div></div>
+
+<div class="api-method"><div class="api-method-definition"><h2 id="machine-actuator-interface">Machine Actuator Interface</h2>
+<p>All methods should be idempotent. Each time the Machine controller attempts
+to reconcile the state it will call one or more of the following actuator
+methods.</p>
+<p><code>Create()</code> will only be called when <code>Exists()</code> returns false.</p>
+<p><code>Update()</code> will only be called when <code>Exists()</code> returns true.</p>
+<p><code>Delete()</code> will only be called when the <code>Machine</code> is in the process of being
+deleted.</p>
+<p>The definition of <code>Exists()</code> is determined by the provider.</p>
+<p><strong>TODO</strong>: Provide more guidance on <code>Exists()</code>.</p>
+</div><div class="api-method-code"><div class="api-method-sample" data-lang="go" data-name="Go"><pre><code class="lang-golang"><span class="hljs-comment">// Actuator controls machines on a specific infrastructure. All</span>
+<span class="hljs-comment">// methods should be idempotent unless otherwise specified.</span>
+<span class="hljs-keyword">type</span> Actuator <span class="hljs-keyword">interface</span> {
+    <span class="hljs-comment">// Create the machine.</span>
+    Create(context.Context, *clusterv1.Cluster, *clusterv1.Machine) error
+    <span class="hljs-comment">// Delete the machine. If no error is returned, it is assumed that all dependent resources have been cleaned up.</span>
+    Delete(context.Context, *clusterv1.Cluster, *clusterv1.Machine) error
+    <span class="hljs-comment">// Update the machine to the provided definition.</span>
+    Update(context.Context, *clusterv1.Cluster, *clusterv1.Machine) error
+    <span class="hljs-comment">// Checks if the machine currently exists.</span>
+    Exists(context.Context, *clusterv1.Cluster, *clusterv1.Machine) (<span class="hljs-keyword">bool</span>, error)
+}
+</code></pre>
+</div></div></div>
+
+<h2 id="machine-controller-semantics">Machine Controller Semantics</h2>
+<p><div class="panel panel-info"><div class="panel-heading"><div class="panel-icon"><i class="icon-info"></i></div><div class="panel-title">Logic sequence</div></div><div class="panel-content"><p>We need a diagram tracing the logic from resource creation through updates
+and finally deletion.</p>
+</div></div></p>
+<ol>
+<li>Determine the <code>Cluster</code> associated with the <code>Machine</code> from its <code>cluster.k8s.io/cluster-name</code> label.</li>
+<li>If the <code>Machine</code> hasn&apos;t been deleted and doesn&apos;t have a finalizer, add one.</li>
+<li>If the <code>Machine</code> is being deleted, and there is no finalizer, we&apos;re done<ul>
+<li>Check if the <code>Machine</code> is allowed to be deleted. <sup><a href="#fn_1" id="reffn_1">1</a></sup></li>
+<li>Call the provider specific actuators <code>Delete()</code> method.<ul>
+<li>If the <code>Delete()</code> method returns true, remove the finalizer.</li>
+</ul>
+</li>
+</ul>
+</li>
+<li>Check if the <code>Machine</code> exists by calling the provider specific <code>Exists()</code>
+method.<ul>
+<li>If it does, call the <code>Update()</code> method.</li>
+<li>If the <code>Update()</code> fails and returns a retryable error:<ul>
+<li>Retry the <code>Update()</code> after N seconds.</li>
+</ul>
+</li>
+</ul>
+</li>
+<li>If the machine does not exist, attempt to create machine by calling
+actuator <code>Create()</code> method.</li>
+</ol>
+<p><div class="panel panel-warning"><div class="panel-heading"><div class="panel-icon"><i class="icon-warning"></i></div><div class="panel-title">Machines depend on Clusters</div></div><div class="panel-content"><p>The Machine actuator methods expect both a <code>Cluster</code> and a <code>Machine</code> to be
+passed in. While there is not a strong link between <code>Cluster</code>s and <code>Machine</code>s,
+the machine controller will determine which cluster to pass by looking for a
+<code>Cluster</code> in the same namespace as the <code>Machine</code></p>
+<p>There are two consequences of this:</p>
+<ul>
+<li>The machine actuator assumes there will be exactly one <code>Cluster</code> in the
+same namespace as any <code>Machine</code>s it reconciles. See <a href="https://github.com/kubernetes-sigs/cluster-api/blob/2d88aefcf94fcffbf647fcc1127a642112714b2f/pkg/controller/machine/controller.go#L216" target="_blank"><code>getCluster()</code></a> for the details.</li>
+<li>If the <code>Cluster</code> is deleted before the <code>Machine</code> it will not be possible to
+delete the <code>Machine</code>. Therefore <code>Machine</code>s must be deleted before <code>Cluster</code>s.</li>
+</ul>
+</div></div></p>
+<hr>
+<p><sup><a href="#fn_1" id="reffn_1">1</a></sup> One reason a <code>Machine</code> may not be deleted is if it corresponds to the
+node running the Machine controller.</p>
+
+                                
+                                </section>
+                            
+    </div>
+    <div class="search-results">
+        <div class="has-results">
+            
+            <h1 class="search-results-title"><span class='search-results-count'></span> results matching "<span class='search-query'></span>"</h1>
+            <ul class="search-results-list"></ul>
+            
+        </div>
+        <div class="no-results">
+            
+            <h1 class="search-results-title">No results matching "<span class='search-query'></span>"</h1>
+            
+        </div>
+    </div>
+</div>
+
+                        </div>
+                    </div>
+                
+            </div>
+
+            
+
+        
+    </div>
+
+    <script>
+        var gitbook = gitbook || [];
+        gitbook.push(function() {
+            gitbook.page.hasChanged({"page":{"title":"Machine Controller","level":"3.4","depth":1,"next":{"title":"MachineSet Controller","level":"3.5","depth":1,"path":"common_code/machineset_controller.md","ref":"common_code/machineset_controller.md","articles":[]},"previous":{"title":"Cluster Controller","level":"3.3","depth":1,"path":"common_code/cluster_controller.md","ref":"common_code/cluster_controller.md","articles":[]},"dir":"ltr"},"config":{"plugins":["theme-api","panel","sequence-diagrams","ga","codegroup","include-codeblock"],"styles":{"website":"styles/website.css","pdf":"styles/pdf.css","epub":"styles/epub.css","mobi":"styles/mobi.css","ebook":"styles/ebook.css","print":"styles/print.css"},"pluginsConfig":{"panel":{},"search":{},"sequence-diagrams":{"theme":"simple"},"lunr":{"maxIndexSize":1000000,"ignoreSpecialCharacters":false},"codegroup":{"defaultTabName":"Code","rememberTabs":"false","tabNameSeperator":"::"},"fontsettings":{"theme":"white","family":"sans","size":2},"highlight":{},"theme-api":{"languages":[],"split":true,"theme":"light"},"ga":{"configuration":"auto","token":"dew-create-me"},"include-codeblock":{"check":false,"edit":false,"fixlang":false,"lang":"","template":"default","theme":"chrome","unindent":false},"sharing":{"facebook":true,"twitter":true,"google":false,"weibo":false,"instapaper":false,"vk":false,"all":["facebook","google","twitter","weibo","instapaper"]},"theme-default":{"styles":{"website":"styles/website.css","pdf":"styles/pdf.css","epub":"styles/epub.css","mobi":"styles/mobi.css","ebook":"styles/ebook.css","print":"styles/print.css"},"showLevel":false}},"theme":"default","author":"SIG Lifecycle Team","pdf":{"pageNumbers":true,"fontSize":12,"fontFamily":"Arial","paperSize":"a4","chapterMark":"pagebreak","pageBreaksBefore":"/","margin":{"right":62,"left":62,"top":56,"bottom":56}},"structure":{"langs":"LANGS.md","readme":"README.md","glossary":"GLOSSARY.md","summary":"SUMMARY.md"},"variables":{},"title":"The Cluster API Book","gitbook":">= 3.0.0"},"file":{"path":"common_code/machine_controller.md","mtime":"2019-02-20T03:42:28.404Z","type":"markdown"},"gitbook":{"version":"3.2.3","time":"2019-02-20T04:01:06.906Z"},"basePath":"..","book":{"language":""}});
+        });
+    </script>
+</div>
+
+        
+    <script src="../gitbook/gitbook.js"></script>
+    <script src="../gitbook/theme.js"></script>
+    
+        
+        <script src="../gitbook/gitbook-plugin-ga/plugin.js"></script>
+        
+    
+        
+        <script src="../gitbook/gitbook-plugin-codegroup/code.group.js"></script>
+        
+    
+        
+        <script src="../gitbook/gitbook-plugin-search/search-engine.js"></script>
+        
+    
+        
+        <script src="../gitbook/gitbook-plugin-search/search.js"></script>
+        
+    
+        
+        <script src="../gitbook/gitbook-plugin-lunr/lunr.min.js"></script>
+        
+    
+        
+        <script src="../gitbook/gitbook-plugin-lunr/search-lunr.js"></script>
+        
+    
+        
+        <script src="../gitbook/gitbook-plugin-sharing/buttons.js"></script>
+        
+    
+        
+        <script src="../gitbook/gitbook-plugin-fontsettings/fontsettings.js"></script>
+        
+    
+        
+        <script src="../gitbook/gitbook-plugin-theme-api/theme-api.js"></script>
+        
+    
+
+    </body>
+</html>
+

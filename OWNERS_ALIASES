@@ -1,0 +1,18 @@
+# See the OWNERS docs: https://git.k8s.io/community/docs/devel/owners.md
+
+aliases:
+  sig-cluster-lifecycle-leads:
+    - luxas
+    - roberthbailey
+    - timothysc
+  cluster-api-admins:
+    - justinsb
+    - kris-nova
+    - krousey
+    - luxas
+    - roberthbailey
+  cluster-api-maintainers:
+    - justinsb
+    - krousey
+    - roberthbailey
+    - vincepri

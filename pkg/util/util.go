@@ -18,6 +18,7 @@ package util
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"io"
 	"math/rand"
@@ -40,6 +41,9 @@ import (
 const (
 	// CharSet defines the alphanumeric set for random string generation
 	CharSet = "0123456789abcdefghijklmnopqrstuvwxyz"
+	// MachineListFormatDeprecationMessage notifies the user that the old
+	// MachineList format is no longer supported
+	MachineListFormatDeprecationMessage = "Your MachineList items must include Kind and APIVersion"
 )
 
 var (
@@ -232,58 +236,50 @@ func ParseMachinesYaml(file string) ([]*clusterv1.Machine, error) {
 	defer reader.Close()
 
 	decoder := yaml.NewYAMLOrJSONDecoder(reader, 32)
-	machineList, err := decodeMachineLists(decoder)
 
-	if err != nil {
+	var (
+		bytes       [][]byte
+		machineList clusterv1.MachineList
+		machine     clusterv1.Machine
+		machines    = []clusterv1.Machine{}
+	)
+
+	// TODO: use the universal decoder instead of doing this.
+	if bytes, err = decodeClusterV1Kinds(decoder, "MachineList"); err != nil {
+		if isMissingKind(err) {
+			err = errors.New(MachineListFormatDeprecationMessage)
+		}
 		return nil, err
 	}
+	// TODO: this is O(n^2) and must be optimized
+	for _, ml := range bytes {
+		if err := json.Unmarshal(ml, &machineList); err != nil {
+			return nil, err
+		}
+		for _, machine := range machineList.Items {
+			if machine.APIVersion == "" || machine.Kind == "" {
+				return nil, errors.New(MachineListFormatDeprecationMessage)
+			}
+			machines = append(machines, machine)
+		}
+	}
 
-	// Will reread the file to find items which aren't a list.
-	// TODO: Make the Kind field mandatory on machines.yaml and then use the
-	// universal decoder instead of doing this.
-	// https://github.com/kubernetes-sigs/cluster-api/issues/717
+	// reset reader to search for discrete Machine definitions
 	if _, err := reader.Seek(0, 0); err != nil {
 		return nil, err
 	}
 
-	bytes, err := decodeClusterV1Kinds(decoder, "Machine")
-
-	// Original set of MachineLists did not have Kind field
-	if err != nil && !isMissingKind(err) {
+	if bytes, err = decodeClusterV1Kinds(decoder, "Machine"); err != nil {
 		return nil, err
 	}
-
-	machines := []clusterv1.Machine{}
-
 	for _, m := range bytes {
-		var machine clusterv1.Machine
-		err = json.Unmarshal(m, &machine)
-		if err != nil {
+		if err := json.Unmarshal(m, &machine); err != nil {
 			return nil, err
 		}
 		machines = append(machines, machine)
 	}
 
-	machinesP := MachineP(machines)
-
-	return append(machinesP, machineList...), nil
-}
-
-// decodeMachineLists extracts MachineLists from a byte reader
-func decodeMachineLists(decoder *yaml.YAMLOrJSONDecoder) ([]*clusterv1.Machine, error) {
-
-	outs := []clusterv1.Machine{}
-
-	for {
-		var out clusterv1.MachineList
-		err := decoder.Decode(&out)
-
-		if err == io.EOF {
-			break
-		}
-		outs = append(outs, out.Items...)
-	}
-	return MachineP(outs), nil
+	return MachineP(machines), nil
 }
 
 // isMissingKind reimplements runtime.IsMissingKind as the YAMLOrJSONDecoder

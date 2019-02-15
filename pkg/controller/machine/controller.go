@@ -22,6 +22,7 @@ import (
 
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/klog"
 	clusterv1 "sigs.k8s.io/cluster-api/pkg/apis/cluster/v1alpha1"
@@ -120,30 +121,55 @@ func (r *ReconcileMachine) Reconcile(request reconcile.Request) (reconcile.Resul
 	if err != nil {
 		return reconcile.Result{}, err
 	}
+
+	// Set the ownerRef with foreground deletion if there is a linked cluster.
+	if cluster != nil && len(m.OwnerReferences) == 0 {
+		blockOwnerDeletion := true
+		m.OwnerReferences = append(m.OwnerReferences, metav1.OwnerReference{
+			APIVersion:         cluster.APIVersion,
+			Kind:               cluster.Kind,
+			Name:               cluster.Name,
+			UID:                cluster.UID,
+			BlockOwnerDeletion: &blockOwnerDeletion,
+		})
+	}
+
 	// If object hasn't been deleted and doesn't have a finalizer, add one
 	// Add a finalizer to newly created objects.
-	if m.ObjectMeta.DeletionTimestamp.IsZero() &&
-		!util.Contains(m.ObjectMeta.Finalizers, clusterv1.MachineFinalizer) {
-		m.Finalizers = append(m.Finalizers, clusterv1.MachineFinalizer)
-		if err := r.Client.Update(ctx, m); err != nil {
-			klog.Infof("failed to add finalizer to machine object %v due to error %v.", name, err)
-			return reconcile.Result{}, err
+	if m.ObjectMeta.DeletionTimestamp.IsZero() {
+		finalizerCount := len(m.Finalizers)
+
+		if !util.Contains(m.Finalizers, metav1.FinalizerDeleteDependents) {
+			m.Finalizers = append(m.ObjectMeta.Finalizers, metav1.FinalizerDeleteDependents)
 		}
 
-		// Since adding the finalizer updates the object return to avoid later update issues
-		return reconcile.Result{}, nil
+		if !util.Contains(m.Finalizers, clusterv1.MachineFinalizer) {
+			m.Finalizers = append(m.ObjectMeta.Finalizers, clusterv1.MachineFinalizer)
+		}
+
+		if len(m.Finalizers) > finalizerCount {
+			if err := r.Client.Update(ctx, m); err != nil {
+				klog.Infof("failed to add finalizers to machine object %v due to error %v.", name, err)
+				return reconcile.Result{}, err
+			}
+
+			// Since adding the finalizer updates the object return to avoid later update issues
+			return reconcile.Result{}, nil
+		}
 	}
 
 	if !m.ObjectMeta.DeletionTimestamp.IsZero() {
 		// no-op if finalizer has been removed.
-		if !util.Contains(m.ObjectMeta.Finalizers, clusterv1.MachineFinalizer) {
+		if !util.Contains(m.Finalizers, clusterv1.MachineFinalizer) {
 			klog.Infof("reconciling machine object %v causes a no-op as there is no finalizer.", name)
 			return reconcile.Result{}, nil
 		}
+
 		if !r.isDeleteAllowed(m) {
 			klog.Infof("Skipping reconciling of machine object %v", name)
 			return reconcile.Result{}, nil
 		}
+
 		klog.Infof("reconciling machine object %v triggers delete.", name)
 		if err := r.actuator.Delete(ctx, cluster, m); err != nil {
 			klog.Errorf("Error deleting machine object %v; %v", name, err)
@@ -156,11 +182,12 @@ func (r *ReconcileMachine) Reconcile(request reconcile.Request) (reconcile.Resul
 
 		// Remove finalizer on successful deletion.
 		klog.Infof("machine object %v deletion successful, removing finalizer.", name)
-		m.ObjectMeta.Finalizers = util.Filter(m.ObjectMeta.Finalizers, clusterv1.MachineFinalizer)
+		m.Finalizers = util.Filter(m.Finalizers, clusterv1.MachineFinalizer)
 		if err := r.Client.Update(context.Background(), m); err != nil {
 			klog.Errorf("Error removing finalizer from machine object %v; %v", name, err)
 			return reconcile.Result{}, err
 		}
+
 		return reconcile.Result{}, nil
 	}
 
@@ -169,6 +196,7 @@ func (r *ReconcileMachine) Reconcile(request reconcile.Request) (reconcile.Resul
 		klog.Errorf("Error checking existence of machine instance for machine object %v; %v", name, err)
 		return reconcile.Result{}, err
 	}
+
 	if exist {
 		klog.Infof("Reconciling machine object %v triggers idempotent update.", name)
 		if err := r.actuator.Update(ctx, cluster, m); err != nil {
@@ -180,6 +208,7 @@ func (r *ReconcileMachine) Reconcile(request reconcile.Request) (reconcile.Resul
 		}
 		return reconcile.Result{}, nil
 	}
+
 	// Machine resource created. Machine does not yet exist.
 	klog.Infof("Reconciling machine object %v triggers idempotent create.", m.ObjectMeta.Name)
 	if err := r.actuator.Create(ctx, cluster, m); err != nil {
@@ -190,6 +219,7 @@ func (r *ReconcileMachine) Reconcile(request reconcile.Request) (reconcile.Resul
 		}
 		return reconcile.Result{}, err
 	}
+
 	return reconcile.Result{}, nil
 }
 

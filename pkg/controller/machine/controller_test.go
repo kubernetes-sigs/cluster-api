@@ -36,7 +36,7 @@ func TestReconcileRequest(t *testing.T) {
 		ObjectMeta: metav1.ObjectMeta{
 			Name:       "create",
 			Namespace:  "default",
-			Finalizers: []string{v1alpha1.MachineFinalizer},
+			Finalizers: []string{v1alpha1.MachineFinalizer, metav1.FinalizerDeleteDependents},
 			Labels: map[string]string{
 				MachineClusterLabelName: "testcluster",
 			},
@@ -49,7 +49,7 @@ func TestReconcileRequest(t *testing.T) {
 		ObjectMeta: metav1.ObjectMeta{
 			Name:       "update",
 			Namespace:  "default",
-			Finalizers: []string{v1alpha1.MachineFinalizer},
+			Finalizers: []string{v1alpha1.MachineFinalizer, metav1.FinalizerDeleteDependents},
 			Labels: map[string]string{
 				MachineClusterLabelName: "testcluster",
 			},
@@ -63,7 +63,7 @@ func TestReconcileRequest(t *testing.T) {
 		ObjectMeta: metav1.ObjectMeta{
 			Name:              "delete",
 			Namespace:         "default",
-			Finalizers:        []string{v1alpha1.MachineFinalizer},
+			Finalizers:        []string{v1alpha1.MachineFinalizer, metav1.FinalizerDeleteDependents},
 			DeletionTimestamp: &time,
 			Labels: map[string]string{
 				MachineClusterLabelName: "testcluster",

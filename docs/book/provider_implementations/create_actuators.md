@@ -35,6 +35,9 @@ import (
         client "sigs.k8s.io/cluster-api/pkg/client/clientset_generated/clientset/typed/cluster/v1alpha1"
 )
 
+// Add RBAC rules to access cluster-api resources
+//+kubebuilder:rbac:groups=cluster.k8s.io,resources=clusters;clusters/status,verbs=get;list;watch
+
 // Actuator is responsible for performing cluster reconciliation
 type Actuator struct {
         clustersGetter client.ClustersGetter
@@ -101,6 +104,11 @@ import (
 const (
         ProviderName = "solas"
 )
+
+// Add RBAC rules to access cluster-api resources
+//+kubebuilder:rbac:groups=cluster.k8s.io,resources=machines;machines/status;machinedeployments;machinedeployments/status;machinesets;machinesets/status;machineclasses,verbs=get;list;watch;create;update;patch;delete
+//+kubebuilder:rbac:groups=cluster.k8s.io,resources=clusters;clusters/status,verbs=get;list;watch
+//+kubebuilder:rbac:groups="",resources=nodes;events,verbs=get;list;watch;create;update;patch;delete
 
 // Actuator is responsible for performing machine reconciliation
 type Actuator struct {

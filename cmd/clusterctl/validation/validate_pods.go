@@ -38,7 +38,15 @@ func ValidatePods(ctx context.Context, w io.Writer, c client.Client, namespace s
 	if err != nil {
 		return err
 	}
-	return validatePods(w, pods, namespace)
+	if err := validatePods(w, pods, namespace); err != nil {
+		return err
+	}
+
+	components, err := getComponents(ctx, c)
+	if err != nil {
+		return err
+	}
+	return validateComponents(w, components)
 }
 
 func getPods(ctx context.Context, c client.Client, namespace string) (*corev1.PodList, error) {
@@ -92,6 +100,45 @@ func validatePods(w io.Writer, pods *corev1.PodList, namespace string) error {
 			fmt.Fprintf(w, "\t[%v]: %s\n", failure.name, failure.message)
 		}
 		return fmt.Errorf("pod failures in namespace %q found", namespace)
+	}
+
+	fmt.Fprintf(w, "PASS\n")
+	return nil
+}
+
+func getComponents(ctx context.Context, c client.Client) (*corev1.ComponentStatusList, error) {
+	components := &corev1.ComponentStatusList{}
+	if err := c.List(ctx, &client.ListOptions{}, components); err != nil {
+		return nil, err
+	}
+	return components, nil
+}
+
+func validateComponents(w io.Writer, components *corev1.ComponentStatusList) error {
+	if len(components.Items) == 0 {
+		fmt.Fprintf(w, "FAIL\n")
+		fmt.Fprintf(w, "\tcomponents not exist.\n")
+		return fmt.Errorf("components not exist")
+	}
+
+	var failures []*validationError
+	for _, component := range components.Items {
+		for _, condition := range component.Conditions {
+			if condition.Status != corev1.ConditionTrue {
+				failures = append(failures, &validationError{
+					name:    fmt.Sprintf("%q", component.Name),
+					message: fmt.Sprintf("Component %q is not healthy", component.Name),
+				})
+			}
+		}
+	}
+
+	if len(failures) != 0 {
+		fmt.Fprintf(w, "FAIL\n")
+		for _, failure := range failures {
+			fmt.Fprintf(w, "\t[%v]: %s\n", failure.name, failure.message)
+		}
+		return fmt.Errorf("component failures found")
 	}
 
 	fmt.Fprintf(w, "PASS\n")

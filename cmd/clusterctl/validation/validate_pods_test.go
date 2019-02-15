@@ -182,3 +182,72 @@ func TestValidatePodsWithNPods(t *testing.T) {
 		})
 	}
 }
+
+func componentConditionWithStatus(status corev1.ConditionStatus) corev1.ComponentCondition {
+	return corev1.ComponentCondition{
+		Status: status,
+	}
+}
+
+func componentStatusListWithCondition(componentConditions []corev1.ComponentCondition) *corev1.ComponentStatusList {
+	return &corev1.ComponentStatusList{
+		Items: []corev1.ComponentStatus{
+			{
+				Conditions: componentConditions,
+			},
+		},
+	}
+}
+
+func TestValidateComponentsWithNoComponent(t *testing.T) {
+	components := &corev1.ComponentStatusList{Items: []corev1.ComponentStatus{}}
+
+	var b bytes.Buffer
+	if err := validateComponents(&b, components); err == nil {
+		t.Errorf("Expected error but didn't get one")
+	}
+}
+
+func TestValidateComponents(t *testing.T) {
+	var testcases = []struct {
+		name            string
+		conditionStatus corev1.ConditionStatus
+
+		expectErr bool
+	}{
+		{
+			name:            "Components include unknown status",
+			conditionStatus: corev1.ConditionUnknown,
+			expectErr:       true,
+		},
+		{
+			name:            "Components include not ready status",
+			conditionStatus: corev1.ConditionFalse,
+			expectErr:       true,
+		},
+		{
+			name:            "Components are all ready",
+			conditionStatus: corev1.ConditionTrue,
+			expectErr:       false,
+		},
+	}
+
+	for _, testcase := range testcases {
+		t.Run(testcase.name, func(t *testing.T) {
+			components := componentStatusListWithCondition(
+				[]corev1.ComponentCondition{
+					componentConditionWithStatus(testcase.conditionStatus),
+				},
+			)
+
+			var b bytes.Buffer
+			err := validateComponents(&b, components)
+			if testcase.expectErr && err == nil {
+				t.Errorf("Expect to get error, but got no returned error: %v", b.String())
+			}
+			if !testcase.expectErr && err != nil {
+				t.Errorf("Expect to get no error, but got returned error: %v: %v", err, b.String())
+			}
+		})
+	}
+}

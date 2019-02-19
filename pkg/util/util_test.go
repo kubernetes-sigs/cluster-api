@@ -30,14 +30,6 @@ metadata:
 spec:`
 
 const validMachines1 = `
-items:
-- apiVersion: "cluster.k8s.io/v1alpha1"
-  kind: Machine
-  metadata:
-    name: machine1
-  spec:`
-
-const validMachines2 = `
 ---
 apiVersion: "cluster.k8s.io/v1alpha1"
 kind: Machine
@@ -48,15 +40,6 @@ apiVersion: "cluster.k8s.io/v1alpha1"
 kind: Machine
 metadata:
   name: machine2`
-
-const validMachines3 = `
-items:
-- metadata:
-    name: machine1
-  spec:
-- metadata:
-    name: machine2
-`
 
 const validUnified1 = `
 apiVersion: "cluster.k8s.io/v1alpha1"
@@ -115,7 +98,24 @@ kind: Machine
 metadata:
   name: machine2`
 
-const validUnified4 = `
+const invalidMachines1 = `
+items:
+- apiVersion: "cluster.k8s.io/v1alpha1"
+  kind: Machine
+  metadata:
+    name: machine1
+  spec:`
+
+const invalidMachines2 = `
+items:
+- metadata:
+    name: machine1
+  spec:
+- metadata:
+    name: machine2
+`
+
+const invalidUnified1 = `
 apiVersion: v1
 data:
   cluster_name: cluster1
@@ -140,6 +140,31 @@ items:
   spec:
 - metadata:
     name: machine2
+`
+
+const invalidUnified2 = `
+apiVersion: v1
+data:
+  cluster_name: cluster1
+  cluster_network_pods_cidrBlock: 192.168.0.0/16
+  cluster_network_services_cidrBlock: 10.96.0.0/12
+  cluster_sshKeyName: default
+kind: ConfigMap
+metadata:
+  name: cluster-api-shared-configuration
+  namespace: cluster-api-test
+---
+apiVersion: "cluster.k8s.io/v1alpha1"
+kind: Cluster
+metadata:
+  name: cluster1
+---
+items:
+- metadata:
+    name: machine1
+  spec:
+- metadata:
+		name: machine2
 `
 
 func TestParseClusterYaml(t *testing.T) {
@@ -176,9 +201,14 @@ func TestParseClusterYaml(t *testing.T) {
 			expectedName: "cluster1",
 		},
 		{
-			name:         "valid unified file with machinelist (only with type info) and a configmap",
-			contents:     validUnified4,
+			name:         "valid unified for cluster with invalid machinelist (only with type info) and a configmap",
+			contents:     invalidUnified1,
 			expectedName: "cluster1",
+		},
+		{
+			name:      "valid unified for cluster with invalid machinelist (old top-level items list) and a configmap",
+			contents:  invalidUnified2,
+			expectErr: true,
 		},
 		{
 			name:      "gibberish in file",
@@ -225,18 +255,8 @@ func TestParseMachineYaml(t *testing.T) {
 		expectedMachineCount int
 	}{
 		{
-			name:                 "valid file using MachineList",
-			contents:             validMachines1,
-			expectedMachineCount: 1,
-		},
-		{
 			name:                 "valid file using Machines",
-			contents:             validMachines2,
-			expectedMachineCount: 2,
-		},
-		{
-			name:                 "valid file using MachineList without type info",
-			contents:             validMachines3,
+			contents:             validMachines1,
 			expectedMachineCount: 2,
 		},
 		{
@@ -255,13 +275,28 @@ func TestParseMachineYaml(t *testing.T) {
 			expectedMachineCount: 2,
 		},
 		{
-			name:                 "valid unified file with machinelist (only with type info) and a configmap",
-			contents:             validUnified4,
-			expectedMachineCount: 2,
+			name:      "invalid file using MachineList",
+			contents:  invalidMachines1,
+			expectErr: true,
+		},
+		{
+			name:      "invalid file using MachineList without type info",
+			contents:  invalidMachines2,
+			expectErr: true,
+		},
+		{
+			name:      "valid unified for cluster with invalid machinelist (only with type info) and a configmap",
+			contents:  invalidUnified1,
+			expectErr: true,
+		},
+		{
+			name:      "valid unified for cluster with invalid machinelist (old top-level items list) and a configmap",
+			contents:  invalidUnified2,
+			expectErr: true,
 		},
 		{
 			name:      "gibberish in file",
-			contents:  `blah ` + validMachines1 + ` blah`,
+			contents:  `!@#blah ` + validMachines1 + ` blah!@#`,
 			expectErr: true,
 		},
 	}

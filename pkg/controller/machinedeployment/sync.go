@@ -49,6 +49,7 @@ func (r *ReconcileMachineDeployment) sync(d *clusterv1alpha1.MachineDeployment, 
 		// so we can abort this resync
 		return err
 	}
+
 	//
 	// // TODO: Clean up the deployment when it's paused and no rollback is in flight.
 	//
@@ -90,6 +91,7 @@ func (r *ReconcileMachineDeployment) getNewMachineSet(d *clusterv1alpha1.Machine
 
 	// Calculate the max revision number among all old MSes
 	maxOldRevision := dutil.MaxRevision(oldMSs)
+
 	// Calculate revision number for this new machine set
 	newRevision := strconv.FormatInt(maxOldRevision+1, 10)
 
@@ -123,9 +125,12 @@ func (r *ReconcileMachineDeployment) getNewMachineSet(d *clusterv1alpha1.Machine
 	// new MachineSet does not exist, create one.
 	newMSTemplate := *d.Spec.Template.DeepCopy()
 	machineTemplateSpecHash := fmt.Sprintf("%d", dutil.ComputeHash(&newMSTemplate))
-	newMSTemplate.Labels = dutil.CloneAndAddLabel(d.Spec.Template.Labels, dutil.DefaultMachineDeploymentUniqueLabelKey, machineTemplateSpecHash)
+	newMSTemplate.Labels = dutil.CloneAndAddLabel(d.Spec.Template.Labels,
+		dutil.DefaultMachineDeploymentUniqueLabelKey, machineTemplateSpecHash)
+
 	// Add machineTemplateHash label to selector.
-	newMSSelector := dutil.CloneSelectorAndAddLabel(&d.Spec.Selector, dutil.DefaultMachineDeploymentUniqueLabelKey, machineTemplateSpecHash)
+	newMSSelector := dutil.CloneSelectorAndAddLabel(&d.Spec.Selector,
+		dutil.DefaultMachineDeploymentUniqueLabelKey, machineTemplateSpecHash)
 
 	minReadySeconds := int32(0)
 	if d.Spec.MinReadySeconds != nil {
@@ -148,6 +153,7 @@ func (r *ReconcileMachineDeployment) getNewMachineSet(d *clusterv1alpha1.Machine
 			Template:        newMSTemplate,
 		},
 	}
+
 	allMSs := append(oldMSs, &newMS)
 	newReplicasCount, err := dutil.NewMSNewReplicas(d, allMSs, &newMS)
 	if err != nil {
@@ -155,6 +161,7 @@ func (r *ReconcileMachineDeployment) getNewMachineSet(d *clusterv1alpha1.Machine
 	}
 
 	*(newMS.Spec.Replicas) = newReplicasCount
+
 	// Set new machine set's annotation
 	dutil.SetNewMachineSetAnnotations(d, &newMS, newRevision, false)
 	// Create the new MachineSet. If it already exists, then we need to check for possible
@@ -193,9 +200,11 @@ func (r *ReconcileMachineDeployment) getNewMachineSet(d *clusterv1alpha1.Machine
 	if !alreadyExists {
 		klog.V(4).Infof("Created new machine set %q", createdMS.Name)
 	}
+
 	err = r.updateMachineDeployment(d, func(innerDeployment *clusterv1alpha1.MachineDeployment) {
 		dutil.SetDeploymentRevision(d, newRevision)
 	})
+
 	return createdMS, err
 }
 
@@ -208,15 +217,18 @@ func (r *ReconcileMachineDeployment) scale(deployment *clusterv1alpha1.MachineDe
 	if deployment.Spec.Replicas == nil {
 		return errors.Errorf("spec replicas for deployment %v is nil, this is unexpected", deployment.Name)
 	}
+
 	// If there is only one active machine set then we should scale that up to the full count of the
 	// deployment. If there is no active machine set, then we should scale up the newest machine set.
 	if activeOrLatest := dutil.FindOneActiveOrLatest(newMS, oldMSs); activeOrLatest != nil {
 		if activeOrLatest.Spec.Replicas == nil {
 			return errors.Errorf("spec replicas for machine set %v is nil, this is unexpected", activeOrLatest.Name)
 		}
+
 		if *(activeOrLatest.Spec.Replicas) == *(deployment.Spec.Replicas) {
 			return nil
 		}
+
 		_, err := r.scaleMachineSet(activeOrLatest, *(deployment.Spec.Replicas), deployment)
 		return err
 	}
@@ -259,7 +271,6 @@ func (r *ReconcileMachineDeployment) scale(deployment *clusterv1alpha1.MachineDe
 		case deploymentReplicasToAdd > 0:
 			sort.Sort(dutil.MachineSetsBySizeNewer(allMSs))
 			scalingOperation = "up"
-
 		case deploymentReplicasToAdd < 0:
 			sort.Sort(dutil.MachineSetsBySizeOlder(allMSs))
 			scalingOperation = "down"
@@ -281,7 +292,6 @@ func (r *ReconcileMachineDeployment) scale(deployment *clusterv1alpha1.MachineDe
 			// nameToSize with the current sizes for each machine set.
 			if deploymentReplicasToAdd != 0 {
 				proportion := dutil.GetProportion(ms, *deployment, deploymentReplicasToAdd, deploymentReplicasAdded)
-
 				nameToSize[ms.Name] = *(ms.Spec.Replicas) + proportion
 				deploymentReplicasAdded += proportion
 			} else {
@@ -309,13 +319,13 @@ func (r *ReconcileMachineDeployment) scale(deployment *clusterv1alpha1.MachineDe
 			}
 		}
 	}
+
 	return nil
 }
 
 // syncDeploymentStatus checks if the status is up-to-date and sync it if necessary
 func (r *ReconcileMachineDeployment) syncDeploymentStatus(allMSs []*clusterv1alpha1.MachineSet, newMS *clusterv1alpha1.MachineSet, d *clusterv1alpha1.MachineDeployment) error {
 	newStatus := calculateStatus(allMSs, newMS, d)
-
 	if reflect.DeepEqual(d.Status, newStatus) {
 		return nil
 	}
@@ -329,6 +339,7 @@ func calculateStatus(allMSs []*clusterv1alpha1.MachineSet, newMS *clusterv1alpha
 	availableReplicas := dutil.GetAvailableReplicaCountForMachineSets(allMSs)
 	totalReplicas := dutil.GetReplicaCountForMachineSets(allMSs)
 	unavailableReplicas := totalReplicas - availableReplicas
+
 	// If unavailableReplicas is negative, then that means the Deployment has more available replicas running than
 	// desired, e.g. whenever it scales down. In such a case we should simply default unavailableReplicas to zero.
 	if unavailableReplicas < 0 {
@@ -352,10 +363,12 @@ func (r *ReconcileMachineDeployment) scaleMachineSet(ms *clusterv1alpha1.Machine
 	if ms.Spec.Replicas == nil {
 		return false, errors.Errorf("spec replicas for machine set %v is nil, this is unexpected", ms.Name)
 	}
+
 	// No need to scale
 	if *(ms.Spec.Replicas) == newScale {
 		return false, nil
 	}
+
 	var scalingOperation string
 	if *(ms.Spec.Replicas) < newScale {
 		scalingOperation = "up"
@@ -363,28 +376,37 @@ func (r *ReconcileMachineDeployment) scaleMachineSet(ms *clusterv1alpha1.Machine
 		scalingOperation = "down"
 	}
 
-	scaled, err := r.scaleMachineSetOperation(ms, newScale, deployment, scalingOperation)
-	return scaled, err
+	return r.scaleMachineSetOperation(ms, newScale, deployment, scalingOperation)
 }
 
 func (r *ReconcileMachineDeployment) scaleMachineSetOperation(ms *clusterv1alpha1.MachineSet, newScale int32, deployment *clusterv1alpha1.MachineDeployment, scaleOperation string) (bool, error) {
 	if ms.Spec.Replicas == nil {
 		return false, errors.Errorf("spec replicas for machine set %v is nil, this is unexpected", ms.Name)
 	}
+
 	sizeNeedsUpdate := *(ms.Spec.Replicas) != newScale
 
-	annotationsNeedUpdate := dutil.ReplicasAnnotationsNeedUpdate(ms, *(deployment.Spec.Replicas), *(deployment.Spec.Replicas)+dutil.MaxSurge(*deployment))
+	annotationsNeedUpdate := dutil.ReplicasAnnotationsNeedUpdate(
+		ms,
+		*(deployment.Spec.Replicas),
+		*(deployment.Spec.Replicas)+dutil.MaxSurge(*deployment),
+	)
 
-	scaled := false
-	var err error
+	var (
+		scaled bool
+		err    error
+	)
+
 	if sizeNeedsUpdate || annotationsNeedUpdate {
 		*(ms.Spec.Replicas) = newScale
 		dutil.SetReplicasAnnotations(ms, *(deployment.Spec.Replicas), *(deployment.Spec.Replicas)+dutil.MaxSurge(*deployment))
+
 		err = r.Update(context.Background(), ms)
 		if err == nil && sizeNeedsUpdate {
 			scaled = true
 		}
 	}
+
 	return scaled, err
 }
 
@@ -400,6 +422,7 @@ func (r *ReconcileMachineDeployment) cleanupDeployment(oldMSs []*clusterv1alpha1
 	aliveFilter := func(ms *clusterv1alpha1.MachineSet) bool {
 		return ms != nil && ms.ObjectMeta.DeletionTimestamp == nil
 	}
+
 	cleanableMSes := dutil.FilterMachineSets(oldMSs, aliveFilter)
 
 	diff := int32(len(cleanableMSes)) - *deployment.Spec.RevisionHistoryLimit
@@ -415,10 +438,12 @@ func (r *ReconcileMachineDeployment) cleanupDeployment(oldMSs []*clusterv1alpha1
 		if ms.Spec.Replicas == nil {
 			return errors.Errorf("spec replicas for machine set %v is nil, this is unexpected", ms.Name)
 		}
+
 		// Avoid delete machine set with non-zero replica counts
 		if ms.Status.Replicas != 0 || *(ms.Spec.Replicas) != 0 || ms.Generation > ms.Status.ObservedGeneration || ms.DeletionTimestamp != nil {
 			continue
 		}
+
 		klog.V(4).Infof("Trying to cleanup machine set %q for deployment %q", ms.Name, deployment.Name)
 		if err := r.Delete(context.Background(), ms); err != nil && !apierrors.IsNotFound(err) {
 			// Return error instead of aggregating and continuing DELETEs on the theory

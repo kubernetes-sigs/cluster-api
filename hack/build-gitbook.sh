@@ -22,7 +22,7 @@ export KUBE_ROOT=$(dirname "${BASH_SOURCE}")/..
 cd $KUBE_ROOT
 
 pushd docs/book/
-npm install
+npm install gitbook-cli -g
 npm install phantomjs-prebuilt
 npm ci
 gitbook install

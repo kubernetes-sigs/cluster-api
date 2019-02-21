@@ -18,14 +18,14 @@ namePrefix: cluster-api-
 # YAML string, with resources separated by document
 # markers ("---").
 resources:
-- ../crds/cluster_v1alpha1_cluster.yaml
-- ../crds/cluster_v1alpha1_machine.yaml
-- ../crds/cluster_v1alpha1_machineclass.yaml
-- ../crds/cluster_v1alpha1_machinedeployment.yaml
-- ../crds/cluster_v1alpha1_machineset.yaml
-- ../rbac/rbac_role.yaml
-- ../rbac/rbac_role_binding.yaml
-- ../manager/manager.yaml
+- crds/cluster_v1alpha1_cluster.yaml
+- crds/cluster_v1alpha1_machine.yaml
+- crds/cluster_v1alpha1_machineclass.yaml
+- crds/cluster_v1alpha1_machinedeployment.yaml
+- crds/cluster_v1alpha1_machineset.yaml
+- rbac/rbac_role.yaml
+- rbac/rbac_role_binding.yaml
+- manager/manager.yaml
 
 patches:
-- manager_image_patch.yaml
+- default/manager_image_patch.yaml

@@ -58,7 +58,7 @@ run: generate fmt vet ## Run against the configured Kubernetes cluster in ~/.kub
 
 .PHONY: deploy
 deploy: manifests ## Deploy controller in the configured Kubernetes cluster in ~/.kube/config
-	kustomize build config/default | kubectl apply -f -
+	kustomize build config | kubectl apply -f -
 
 .PHONY: manifests
 manifests: ## Generate manifests e.g. CRD, RBAC etc.

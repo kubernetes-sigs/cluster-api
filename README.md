@@ -54,6 +54,11 @@ Following are the implementations managed by third-parties adopting the standard
   * Machine-controller-manager, https://github.com/gardener/machine-controller-manager/tree/cluster-api
 
 ## Getting Started
+
+### Resources
+
+* GitBook: [kubernetes-sigs.github.io/cluster-api](https://kubernetes-sigs.github.io/cluster-api)
+
 ### Prerequisites
 * `kubectl` is required, see [here](http://kubernetes.io/docs/user-guide/prereqs/).
 * `clusterctl` is a SIG-cluster-lifecycle sponsored tool to manage Cluster API clusters. See [here](cmd/clusterctl)

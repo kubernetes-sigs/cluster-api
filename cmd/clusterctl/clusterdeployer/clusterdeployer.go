@@ -292,6 +292,7 @@ func pivotNamespace(from, to clusterclient.Client, namespace string) error {
 	for _, machine := range machines {
 		// New objects cannot have a specified resource version. Clear it out.
 		machine.SetResourceVersion("")
+		machine.SetOwnerReferences(nil)
 		if err = to.CreateMachineObjects([]*clusterv1.Machine{machine}, namespace); err != nil {
 			return errors.Wrapf(err, "error moving Machine %q", machine.GetName())
 		}

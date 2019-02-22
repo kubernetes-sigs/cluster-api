@@ -1,0 +1,9 @@
+# Each entry in this list must resolve to an existing
+# resource definition in YAML.  These are the resource
+# files that kustomize reads, modifies and emits as a
+# YAML string, with resources separated by document
+# markers ("---").
+resources:
+- rbac_role_binding.yaml
+- rbac_role.yaml
+

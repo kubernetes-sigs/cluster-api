@@ -1,0 +1,16 @@
+# Adds namespace to all resources.
+namespace: provider-system
+
+# Value of this field is prepended to the
+# names of all resources, e.g. a deployment named
+# "wordpress" becomes "alices-wordpress".
+# Note that it should also match with the prefix (text before '-') of the namespace
+# field above.
+namePrefix: provider-
+
+bases:
+- ./rbac/
+- ./manager/
+
+patchesStrategicMerge:
+- manager_image_patch.yaml

@@ -17,6 +17,15 @@ rules:
   - patch
   - delete
 - apiGroups:
+  - ""
+  resources:
+  - events
+  verbs:
+  - get
+  - list
+  - watch
+  - create
+- apiGroups:
   - cluster.k8s.io
   resources:
   - machines

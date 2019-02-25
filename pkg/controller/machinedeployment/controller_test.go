@@ -29,6 +29,10 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 )
 
+var (
+	_ reconcile.Reconciler = &ReconcileMachineDeployment{}
+)
+
 func TestMachineSetToDeployments(t *testing.T) {
 	machineDeployment := v1alpha1.MachineDeployment{
 		ObjectMeta: metav1.ObjectMeta{

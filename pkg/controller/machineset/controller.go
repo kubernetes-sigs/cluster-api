@@ -39,42 +39,47 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/source"
 )
 
-var controllerKind = clusterv1alpha1.SchemeGroupVersion.WithKind("MachineSet")
+var (
+	controllerKind = clusterv1alpha1.SchemeGroupVersion.WithKind("MachineSet")
 
-// stateConfirmationTimeout is the amount of time allowed to wait for desired state.
-var stateConfirmationTimeout = 10 * time.Second
+	// stateConfirmationTimeout is the amount of time allowed to wait for desired state.
+	stateConfirmationTimeout = 10 * time.Second
 
-// stateConfirmationInterval is the amount of time between polling for the desired state.
-// The polling is against a local memory cache.
-var stateConfirmationInterval = 100 * time.Millisecond
+	// stateConfirmationInterval is the amount of time between polling for the desired state.
+	// The polling is against a local memory cache.
+	stateConfirmationInterval = 100 * time.Millisecond
+)
 
-// Add creates a new MachineSet Controller and adds it to the Manager with default RBAC. The Manager will set fields on the Controller
-// and Start it when the Manager is Started.
+// Add creates a new MachineSet Controller and adds it to the Manager with default RBAC.
+// The Manager will set fields on the Controller and Start it when the Manager is Started.
 func Add(mgr manager.Manager) error {
 	r := newReconciler(mgr)
 	return add(mgr, r, r.MachineToMachineSets)
 }
 
-// newReconciler returns a new reconcile.Reconciler
+// newReconciler returns a new reconcile.Reconciler.
 func newReconciler(mgr manager.Manager) *ReconcileMachineSet {
 	return &ReconcileMachineSet{Client: mgr.GetClient(), scheme: mgr.GetScheme()}
 }
 
-// add adds a new Controller to mgr with r as the reconcile.Reconciler
+// add adds a new Controller to mgr with r as the reconcile.Reconciler.
 func add(mgr manager.Manager, r reconcile.Reconciler, mapFn handler.ToRequestsFunc) error {
-	// Create a new controller
+	// Create a new controller.
 	c, err := controller.New("machineset-controller", mgr, controller.Options{Reconciler: r})
 	if err != nil {
 		return err
 	}
 
-	// Watch for changes to MachineSet
-	err = c.Watch(&source.Kind{Type: &clusterv1alpha1.MachineSet{}}, &handler.EnqueueRequestForObject{})
+	// Watch for changes to MachineSet.
+	err = c.Watch(
+		&source.Kind{Type: &clusterv1alpha1.MachineSet{}},
+		&handler.EnqueueRequestForObject{},
+	)
 	if err != nil {
 		return err
 	}
 
-	// Map Machine changes to MachineSets using ControllerRef
+	// Map Machine changes to MachineSets using ControllerRef.
 	err = c.Watch(
 		&source.Kind{Type: &clusterv1alpha1.Machine{}},
 		&handler.EnqueueRequestForOwner{IsController: true, OwnerType: &clusterv1alpha1.MachineSet{}},
@@ -83,18 +88,12 @@ func add(mgr manager.Manager, r reconcile.Reconciler, mapFn handler.ToRequestsFu
 		return err
 	}
 
-	// Map Machine changes to MachineSets by machining labels
-	err = c.Watch(
+	// Map Machine changes to MachineSets by machining labels.
+	return c.Watch(
 		&source.Kind{Type: &clusterv1alpha1.Machine{}},
-		&handler.EnqueueRequestsFromMapFunc{ToRequests: mapFn})
-	if err != nil {
-		return err
-	}
-
-	return nil
+		&handler.EnqueueRequestsFromMapFunc{ToRequests: mapFn},
+	)
 }
-
-var _ reconcile.Reconciler = &ReconcileMachineSet{}
 
 // ReconcileMachineSet reconciles a MachineSet object
 type ReconcileMachineSet struct {
@@ -125,8 +124,8 @@ func (r *ReconcileMachineSet) MachineToMachineSets(o handler.MapObject) []reconc
 	}
 
 	for _, ms := range mss {
-		result = append(result, reconcile.Request{
-			NamespacedName: client.ObjectKey{Namespace: ms.Namespace, Name: ms.Name}})
+		name := client.ObjectKey{Namespace: ms.Namespace, Name: ms.Name}
+		result = append(result, reconcile.Request{NamespacedName: name})
 	}
 
 	return result
@@ -140,8 +139,7 @@ func (r *ReconcileMachineSet) MachineToMachineSets(o handler.MapObject) []reconc
 func (r *ReconcileMachineSet) Reconcile(request reconcile.Request) (reconcile.Result, error) {
 	// Fetch the MachineSet instance
 	machineSet := &clusterv1alpha1.MachineSet{}
-	err := r.Get(context.TODO(), request.NamespacedName, machineSet)
-	if err != nil {
+	if err := r.Get(context.TODO(), request.NamespacedName, machineSet); err != nil {
 		if apierrors.IsNotFound(err) {
 			// Object not found, return.  Created objects are automatically garbage collected.
 			// For additional cleanup logic use finalizers.
@@ -154,8 +152,7 @@ func (r *ReconcileMachineSet) Reconcile(request reconcile.Request) (reconcile.Re
 	klog.V(4).Infof("Reconcile machineset %v", machineSet.Name)
 	allMachines := &clusterv1alpha1.MachineList{}
 
-	err = r.Client.List(context.Background(), client.InNamespace(machineSet.Namespace), allMachines)
-	if err != nil {
+	if err := r.Client.List(context.Background(), client.InNamespace(machineSet.Namespace), allMachines); err != nil {
 		return reconcile.Result{}, errors.Wrap(err, "failed to list machines")
 	}
 
@@ -177,6 +174,7 @@ func (r *ReconcileMachineSet) Reconcile(request reconcile.Request) (reconcile.Re
 		if shouldExcludeMachine(machineSet, machine) {
 			continue
 		}
+
 		// Attempt to adopt machine if it meets previous conditions and it has no controller ref.
 		if metav1.GetControllerOf(machine) == nil {
 			if err := r.adoptOrphan(machineSet, machine); err != nil {
@@ -184,6 +182,7 @@ func (r *ReconcileMachineSet) Reconcile(request reconcile.Request) (reconcile.Re
 				continue
 			}
 		}
+
 		filteredMachines = append(filteredMachines, machine)
 	}
 
@@ -228,32 +227,38 @@ func (r *ReconcileMachineSet) syncReplicas(ms *clusterv1alpha1.MachineSet, machi
 	if ms.Spec.Replicas == nil {
 		return errors.Errorf("the Replicas field in Spec for machineset %v is nil, this should not be allowed", ms.Name)
 	}
+
 	diff := len(machines) - int(*(ms.Spec.Replicas))
 
 	if diff < 0 {
 		diff *= -1
-		klog.Infof("Too few replicas for %v %s/%s, need %d, creating %d", controllerKind, ms.Namespace, ms.Name, *(ms.Spec.Replicas), diff)
+		klog.Infof("Too few replicas for %v %s/%s, need %d, creating %d",
+			controllerKind, ms.Namespace, ms.Name, *(ms.Spec.Replicas), diff)
 
 		var machineList []*clusterv1alpha1.Machine
 		var errstrings []string
 		for i := 0; i < diff; i++ {
-			klog.Infof("creating machine %d of %d, ( spec.replicas(%d) > currentMachineCount(%d) )", i+1, diff, *(ms.Spec.Replicas), len(machines))
+			klog.Infof("creating machine %d of %d, ( spec.replicas(%d) > currentMachineCount(%d) )",
+				i+1, diff, *(ms.Spec.Replicas), len(machines))
+
 			machine := r.createMachine(ms)
-			err := r.Client.Create(context.Background(), machine)
-			if err != nil {
+			if err := r.Client.Create(context.Background(), machine); err != nil {
 				klog.Errorf("unable to create a machine = %s, due to %v", machine.Name, err)
 				errstrings = append(errstrings, err.Error())
 				continue
 			}
+
 			machineList = append(machineList, machine)
 		}
 
 		if len(errstrings) > 0 {
 			return errors.New(strings.Join(errstrings, "; "))
 		}
+
 		return r.waitForMachineCreation(machineList)
 	} else if diff > 0 {
-		klog.Infof("Too many replicas for %v %s/%s, need %d, deleting %d", controllerKind, ms.Namespace, ms.Name, *(ms.Spec.Replicas), diff)
+		klog.Infof("Too many replicas for %v %s/%s, need %d, deleting %d",
+			controllerKind, ms.Namespace, ms.Name, *(ms.Spec.Replicas), diff)
 
 		// Choose which Machines to delete.
 		machinesToDelete := getMachinesToDeletePrioritized(machines, diff, simpleDeletePriority)
@@ -282,6 +287,7 @@ func (r *ReconcileMachineSet) syncReplicas(ms *clusterv1alpha1.MachineSet, machi
 			}
 		default:
 		}
+
 		return r.waitForMachineDeletion(machinesToDelete)
 	}
 
@@ -314,12 +320,15 @@ func shouldExcludeMachine(machineSet *clusterv1alpha1.MachineSet, machine *clust
 		klog.V(4).Infof("%s not controlled by %v", machine.Name, machineSet.Name)
 		return true
 	}
+
 	if machine.ObjectMeta.DeletionTimestamp != nil {
 		return true
 	}
+
 	if !hasMatchingLabels(machineSet, machine) {
 		return true
 	}
+
 	return false
 }
 
@@ -333,33 +342,37 @@ func (r *ReconcileMachineSet) adoptOrphan(machineSet *clusterv1alpha1.MachineSet
 	newRef := *metav1.NewControllerRef(machineSet, controllerKind)
 	ownerRefs = append(ownerRefs, newRef)
 	machine.ObjectMeta.SetOwnerReferences(ownerRefs)
+
 	if err := r.Client.Update(context.Background(), machine); err != nil {
 		klog.Warningf("Failed to update machine owner reference. %v", err)
 		return err
 	}
+
 	return nil
 }
 
 func (r *ReconcileMachineSet) waitForMachineCreation(machineList []*clusterv1alpha1.Machine) error {
 	for _, machine := range machineList {
 		pollErr := util.PollImmediate(stateConfirmationInterval, stateConfirmationTimeout, func() (bool, error) {
-			err := r.Client.Get(context.Background(),
-				client.ObjectKey{Namespace: machine.Namespace, Name: machine.Name},
-				&clusterv1alpha1.Machine{})
-			if err == nil {
-				return true, nil
+			key := client.ObjectKey{Namespace: machine.Namespace, Name: machine.Name}
+
+			if err := r.Client.Get(context.Background(), key, &clusterv1alpha1.Machine{}); err != nil {
+				if apierrors.IsNotFound(err) {
+					return false, nil
+				}
+				klog.Error(err)
+				return false, err
 			}
-			klog.Error(err)
-			if apierrors.IsNotFound(err) {
-				return false, nil
-			}
-			return false, err
+
+			return true, nil
 		})
+
 		if pollErr != nil {
 			klog.Error(pollErr)
 			return errors.Wrap(pollErr, "failed waiting for machine object to be created")
 		}
 	}
+
 	return nil
 }
 
@@ -367,14 +380,16 @@ func (r *ReconcileMachineSet) waitForMachineDeletion(machineList []*clusterv1alp
 	for _, machine := range machineList {
 		pollErr := util.PollImmediate(stateConfirmationInterval, stateConfirmationTimeout, func() (bool, error) {
 			m := &clusterv1alpha1.Machine{}
-			err := r.Client.Get(context.Background(),
-				client.ObjectKey{Namespace: machine.Namespace, Name: machine.Name},
-				m)
+			key := client.ObjectKey{Namespace: machine.Namespace, Name: machine.Name}
+
+			err := r.Client.Get(context.Background(), key, m)
 			if apierrors.IsNotFound(err) || !m.DeletionTimestamp.IsZero() {
 				return true, nil
 			}
+
 			return false, err
 		})
+
 		if pollErr != nil {
 			klog.Error(pollErr)
 			return errors.Wrap(pollErr, "failed waiting for machine object to be deleted")

@@ -30,6 +30,8 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 )
 
+var _ reconcile.Reconciler = &ReconcileMachineSet{}
+
 func TestMachineSetToMachines(t *testing.T) {
 	machineSetList := &v1alpha1.MachineSetList{
 		TypeMeta: metav1.TypeMeta{

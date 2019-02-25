@@ -9,9 +9,9 @@ namespace: cluster-api-system
 namePrefix: cluster-api-
 
 bases:
-- crds/
-- rbac/
-- manager/
+- ../crds/
+- ../rbac/
+- ../manager/
 
 patches:
-- default/manager_image_patch.yaml
+- manager_image_patch.yaml

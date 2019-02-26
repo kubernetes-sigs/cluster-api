@@ -23,6 +23,8 @@ KUSTOMIZE="kustomize"
 KUBECTL="kubectl"
 CRD_YAML="crd.yaml"
 BOOTSTRAP_CLUSTER_NAME="clusterapi-bootstrap"
+CONTROLLER_REPO="controller-ci" # use arbitrary repo name since we don't need to publish it
+EXAMPLE_PROVIDER_REPO="example-provider-ci"
 
 install_kustomize() {
    go get sigs.k8s.io/kustomize
@@ -36,8 +38,8 @@ install_kubectl() {
 
 build_containers() {
    VERSION=$(git describe --exact-match 2> /dev/null || git describe --match=$(git rev-parse --short=8 HEAD) --always --dirty --abbrev=8)
-   CONTROLLER_IMG="${CLUSTER_API_CONTROLLER_REPO}:${VERSION}"
-   EXAMPLE_PROVIDER_IMG="${CLUSTER_API_PROVIDER_CONTROLLER_REPO}:${VERSION}"
+   CONTROLLER_IMG="${CONTROLLER_REPO}:${VERSION}"
+   EXAMPLE_PROVIDER_IMG="${EXAMPLE_PROVIDER_REPO}:${VERSION}"
    export CONTROLLER_IMG="${CONTROLLER_IMG}"
    export EXAMPLE_PROVIDER_IMG="${EXAMPLE_PROVIDER_IMG}" 
 

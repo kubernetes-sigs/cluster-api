@@ -3,7 +3,8 @@
 In order to demonstrate how to develop a new Cluster API provider we will use 
 `kubebuilder` to create an example provider. For more information on `kubebuilder`
 and CRDs in general we highly recommend reading the [Kubebuilder Book][kubebuilder-book].
-Much of the information here was adapted directly from it.
+Much of the information here was adapted directly from it. The minimal version of
+`kubebuilder` required is [`v1.0.5`][kubebuilder-1.0.5].
 
 ## Prerequisites
 
@@ -56,3 +57,4 @@ chmod u+x /usr/local/bin/kustomize
 [kubectl-install]: http://kubernetes.io/docs/user-guide/prereqs/
 [install-kustomize]: https://github.com/kubernetes-sigs/kustomize/blob/master/docs/INSTALL.md
 [install-kubebuilder]: https://book.kubebuilder.io/getting_started/installation_and_setup.html
+[kubebuilder-1.0.5]: https://github.com/kubernetes-sigs/kubebuilder/releases/tag/v1.0.5

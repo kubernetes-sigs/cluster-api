@@ -42,7 +42,7 @@ func TestReconcileRequest(t *testing.T) {
 			Namespace:  "default",
 			Finalizers: []string{v1alpha1.MachineFinalizer, metav1.FinalizerDeleteDependents},
 			Labels: map[string]string{
-				MachineClusterLabelName: "testcluster",
+				v1alpha1.MachineClusterLabelName: "testcluster",
 			},
 		},
 	}
@@ -55,7 +55,7 @@ func TestReconcileRequest(t *testing.T) {
 			Namespace:  "default",
 			Finalizers: []string{v1alpha1.MachineFinalizer, metav1.FinalizerDeleteDependents},
 			Labels: map[string]string{
-				MachineClusterLabelName: "testcluster",
+				v1alpha1.MachineClusterLabelName: "testcluster",
 			},
 		},
 	}
@@ -70,7 +70,7 @@ func TestReconcileRequest(t *testing.T) {
 			Finalizers:        []string{v1alpha1.MachineFinalizer, metav1.FinalizerDeleteDependents},
 			DeletionTimestamp: &time,
 			Labels: map[string]string{
-				MachineClusterLabelName: "testcluster",
+				v1alpha1.MachineClusterLabelName: "testcluster",
 			},
 		},
 	}

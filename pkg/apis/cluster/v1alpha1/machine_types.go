@@ -23,8 +23,13 @@ import (
 	"sigs.k8s.io/cluster-api/pkg/apis/cluster/common"
 )
 
-// Finalizer is set on PrepareForCreate callback
-const MachineFinalizer = "machine.cluster.k8s.io"
+const (
+	// MachineFinalizer is set on PrepareForCreate callback.
+	MachineFinalizer = "machine.cluster.k8s.io"
+
+	// MachineClusterLabelName is the label set on machines linked to a cluster.
+	MachineClusterLabelName = "cluster.k8s.io/cluster-name"
+)
 
 // +genclient
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object

@@ -37,8 +37,7 @@ import (
 )
 
 const (
-	NodeNameEnvVar          = "NODE_NAME"
-	MachineClusterLabelName = "cluster.k8s.io/cluster-name"
+	NodeNameEnvVar = "NODE_NAME"
 )
 
 var DefaultActuator Actuator
@@ -137,7 +136,7 @@ func (r *ReconcileMachine) Reconcile(request reconcile.Request) (reconcile.Resul
 	if m.ObjectMeta.DeletionTimestamp.IsZero() {
 		finalizerCount := len(m.Finalizers)
 
-		if !util.Contains(m.Finalizers, metav1.FinalizerDeleteDependents) {
+		if cluster != nil && !util.Contains(m.Finalizers, metav1.FinalizerDeleteDependents) {
 			m.Finalizers = append(m.ObjectMeta.Finalizers, metav1.FinalizerDeleteDependents)
 		}
 
@@ -226,15 +225,15 @@ func (r *ReconcileMachine) Reconcile(request reconcile.Request) (reconcile.Resul
 }
 
 func (r *ReconcileMachine) getCluster(ctx context.Context, machine *clusterv1.Machine) (*clusterv1.Cluster, error) {
-	if machine.Labels[MachineClusterLabelName] == "" {
-		klog.Infof("Machine %q in namespace %q doesn't specify %q label, assuming nil cluster", machine.Name, MachineClusterLabelName, machine.Namespace)
+	if machine.Labels[clusterv1.MachineClusterLabelName] == "" {
+		klog.Infof("Machine %q in namespace %q doesn't specify %q label, assuming nil cluster", machine.Name, clusterv1.MachineClusterLabelName, machine.Namespace)
 		return nil, nil
 	}
 
 	cluster := &clusterv1.Cluster{}
 	key := client.ObjectKey{
 		Namespace: machine.Namespace,
-		Name:      machine.Labels[MachineClusterLabelName],
+		Name:      machine.Labels[clusterv1.MachineClusterLabelName],
 	}
 
 	if err := r.Client.Get(ctx, key, cluster); err != nil {

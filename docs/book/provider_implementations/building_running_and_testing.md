@@ -6,24 +6,24 @@ Apply the following patch:
 
 ```bash
 diff --git a/Makefile b/Makefile
-index ac12c7e..9b4f945 100644
+index ac12c7e..cf44312 100644
 --- a/Makefile
 +++ b/Makefile
-@@ -22,12 +22,14 @@ install: manifests
+@@ -22,12 +22,15 @@ install: manifests
  
  # Deploy controller in the configured Kubernetes cluster in ~/.kube/config
  deploy: manifests
--       kubectl apply -f config/crds
--       kustomize build config/default | kubectl apply -f -
-+       cat provider-components.yaml | kubectl apply -f -
+-	kubectl apply -f config/crds
+-	kustomize build config/default | kubectl apply -f -
++	cat provider-components.yaml | kubectl apply -f -
  
  # Generate manifests e.g. CRD, RBAC etc.
  manifests:
--       go run vendor/sigs.k8s.io/controller-tools/cmd/controller-gen/main.go all
-+       go run vendor/sigs.k8s.io/controller-tools/cmd/controller-gen/main.go crd
-+       kustomize build config/default/ > provider-components.yaml
-+       echo "---" >> provider-components.yaml
-+       kustomize build vendor/sigs.k8s.io/cluster-api/config/default/ >> provider-components.yaml
+ 	go run vendor/sigs.k8s.io/controller-tools/cmd/controller-gen/main.go all
++	sed -i'' -e 's@^- manager_auth_proxy_patch.yaml.*@#&@' config/default/kustomization.yaml
++	kustomize build config/default/ > provider-components.yaml
++	echo "---" >> provider-components.yaml
++	kustomize build vendor/sigs.k8s.io/cluster-api/config/default/ >> provider-components.yaml
  
  # Run go fmt against code
  fmt:

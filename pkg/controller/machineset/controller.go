@@ -51,7 +51,8 @@ var (
 	// The polling is against a local memory cache.
 	stateConfirmationInterval = 100 * time.Millisecond
 
-	controlerName = "machineset-controller"
+	// controllerName is the name of this controller
+	controllerName = "machineset-controller"
 )
 
 // Add creates a new MachineSet Controller and adds it to the Manager with default RBAC.
@@ -63,13 +64,13 @@ func Add(mgr manager.Manager) error {
 
 // newReconciler returns a new reconcile.Reconciler.
 func newReconciler(mgr manager.Manager) *ReconcileMachineSet {
-	return &ReconcileMachineSet{Client: mgr.GetClient(), scheme: mgr.GetScheme(), recorder: mgr.GetRecorder(controlerName)}
+	return &ReconcileMachineSet{Client: mgr.GetClient(), scheme: mgr.GetScheme(), recorder: mgr.GetRecorder(controllerName)}
 }
 
 // add adds a new Controller to mgr with r as the reconcile.Reconciler.
 func add(mgr manager.Manager, r reconcile.Reconciler, mapFn handler.ToRequestsFunc) error {
 	// Create a new controller.
-	c, err := controller.New(controlerName, mgr, controller.Options{Reconciler: r})
+	c, err := controller.New(controllerName, mgr, controller.Options{Reconciler: r})
 	if err != nil {
 		return err
 	}

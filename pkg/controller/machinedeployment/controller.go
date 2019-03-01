@@ -200,7 +200,7 @@ func (r *ReconcileMachineDeployment) Reconcile(request reconcile.Request) (recon
 		})
 	}
 
-	// Add foregroundDeletion finalizer if MachineSet isn't deleted and linked to a cluster.
+	// Add foregroundDeletion finalizer if MachineDeployment isn't deleted and linked to a cluster.
 	if cluster != nil && d.ObjectMeta.DeletionTimestamp.IsZero() {
 		if !util.Contains(d.Finalizers, metav1.FinalizerDeleteDependents) {
 			d.Finalizers = append(d.ObjectMeta.Finalizers, metav1.FinalizerDeleteDependents)

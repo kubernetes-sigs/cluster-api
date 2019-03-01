@@ -29,6 +29,7 @@ import (
 	"k8s.io/klog"
 	"sigs.k8s.io/cluster-api/pkg/apis/cluster/common"
 	"sigs.k8s.io/cluster-api/pkg/apis/cluster/v1alpha1"
+	"sigs.k8s.io/cluster-api/pkg/util"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
 	"sigs.k8s.io/controller-runtime/pkg/handler"
@@ -180,6 +181,40 @@ func (r *ReconcileMachineDeployment) Reconcile(request reconcile.Request) (recon
 		return reconcile.Result{}, errors.Errorf("failed validation on MachineDeployment %q label selector, cannot match any machines ", d.Name)
 	}
 
+	// Cluster might be nil as some providers might not require a cluster object
+	// for machine management.
+	cluster, err := r.getCluster(d)
+	if err != nil {
+		return reconcile.Result{}, err
+	}
+
+	// Set the ownerRef with foreground deletion if there is a linked cluster.
+	if cluster != nil && len(d.OwnerReferences) == 0 {
+		blockOwnerDeletion := true
+		d.OwnerReferences = append(d.OwnerReferences, metav1.OwnerReference{
+			APIVersion:         cluster.APIVersion,
+			Kind:               cluster.Kind,
+			Name:               cluster.Name,
+			UID:                cluster.UID,
+			BlockOwnerDeletion: &blockOwnerDeletion,
+		})
+	}
+
+	// Add foregroundDeletion finalizer if MachineSet isn't deleted and linked to a cluster.
+	if cluster != nil && d.ObjectMeta.DeletionTimestamp.IsZero() {
+		if !util.Contains(d.Finalizers, metav1.FinalizerDeleteDependents) {
+			d.Finalizers = append(d.ObjectMeta.Finalizers, metav1.FinalizerDeleteDependents)
+		}
+
+		if err := r.Client.Update(context.Background(), d); err != nil {
+			klog.Infof("Failed to add finalizers to MachineSet %q: %v", d.Name, err)
+			return reconcile.Result{}, err
+		}
+
+		// Since adding the finalizer updates the object return to avoid later update issues
+		return reconcile.Result{}, nil
+	}
+
 	msList, err := r.getMachineSetsForDeployment(d)
 	if err != nil {
 		return reconcile.Result{}, err
@@ -204,6 +239,25 @@ func (r *ReconcileMachineDeployment) Reconcile(request reconcile.Request) (recon
 	}
 
 	return reconcile.Result{}, errors.Errorf("unexpected deployment strategy type: %s", d.Spec.Strategy.Type)
+}
+
+func (r *ReconcileMachineDeployment) getCluster(d *v1alpha1.MachineDeployment) (*v1alpha1.Cluster, error) {
+	if d.Spec.Template.Labels[v1alpha1.MachineClusterLabelName] == "" {
+		klog.Infof("Deployment %q in namespace %q doesn't specify %q label, assuming nil cluster", d.Name, v1alpha1.MachineClusterLabelName, d.Namespace)
+		return nil, nil
+	}
+
+	cluster := &v1alpha1.Cluster{}
+	key := client.ObjectKey{
+		Namespace: d.Namespace,
+		Name:      d.Spec.Template.Labels[v1alpha1.MachineClusterLabelName],
+	}
+
+	if err := r.Client.Get(context.Background(), key, cluster); err != nil {
+		return nil, err
+	}
+
+	return cluster, nil
 }
 
 // getMachineDeploymentsForMachineSet returns a list of Deployments that potentially

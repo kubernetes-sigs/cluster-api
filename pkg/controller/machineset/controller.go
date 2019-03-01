@@ -167,6 +167,40 @@ func (r *ReconcileMachineSet) Reconcile(request reconcile.Request) (reconcile.Re
 		return reconcile.Result{}, errors.Errorf("failed validation on MachineSet %q label selector, cannot match any machines ", machineSet.Name)
 	}
 
+	// Cluster might be nil as some providers might not require a cluster object
+	// for machine management.
+	cluster, err := r.getCluster(machineSet)
+	if err != nil {
+		return reconcile.Result{}, err
+	}
+
+	// Set the ownerRef with foreground deletion if there is a linked cluster.
+	if cluster != nil && len(machineSet.OwnerReferences) == 0 {
+		blockOwnerDeletion := true
+		machineSet.OwnerReferences = append(machineSet.OwnerReferences, metav1.OwnerReference{
+			APIVersion:         cluster.APIVersion,
+			Kind:               cluster.Kind,
+			Name:               cluster.Name,
+			UID:                cluster.UID,
+			BlockOwnerDeletion: &blockOwnerDeletion,
+		})
+	}
+
+	// Add foregroundDeletion finalizer if MachineSet isn't deleted and linked to a cluster.
+	if cluster != nil && machineSet.ObjectMeta.DeletionTimestamp.IsZero() {
+		if !util.Contains(machineSet.Finalizers, metav1.FinalizerDeleteDependents) {
+			machineSet.Finalizers = append(machineSet.ObjectMeta.Finalizers, metav1.FinalizerDeleteDependents)
+		}
+
+		if err := r.Client.Update(context.Background(), machineSet); err != nil {
+			klog.Infof("Failed to add finalizers to MachineSet %q: %v", machineSet.Name, err)
+			return reconcile.Result{}, err
+		}
+
+		// Since adding the finalizer updates the object return to avoid later update issues
+		return reconcile.Result{}, nil
+	}
+
 	// Filter out irrelevant machines (deleting/mismatch labels) and claim orphaned machines.
 	filteredMachines := make([]*clusterv1alpha1.Machine, 0, len(allMachines.Items))
 	for idx := range allMachines.Items {
@@ -220,6 +254,25 @@ func (r *ReconcileMachineSet) Reconcile(request reconcile.Request) (reconcile.Re
 	}
 
 	return reconcile.Result{}, nil
+}
+
+func (r *ReconcileMachineSet) getCluster(ms *clusterv1alpha1.MachineSet) (*clusterv1alpha1.Cluster, error) {
+	if ms.Spec.Template.Labels[clusterv1alpha1.MachineClusterLabelName] == "" {
+		klog.Infof("MachineSet %q in namespace %q doesn't specify %q label, assuming nil cluster", ms.Name, clusterv1alpha1.MachineClusterLabelName, ms.Namespace)
+		return nil, nil
+	}
+
+	cluster := &clusterv1alpha1.Cluster{}
+	key := client.ObjectKey{
+		Namespace: ms.Namespace,
+		Name:      ms.Spec.Template.Labels[clusterv1alpha1.MachineClusterLabelName],
+	}
+
+	if err := r.Client.Get(context.Background(), key, cluster); err != nil {
+		return nil, err
+	}
+
+	return cluster, nil
 }
 
 // syncReplicas essentially scales machine resources up and down.

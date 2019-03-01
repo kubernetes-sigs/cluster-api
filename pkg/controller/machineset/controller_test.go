@@ -46,7 +46,8 @@ func TestMachineSetToMachines(t *testing.T) {
 				Spec: v1alpha1.MachineSetSpec{
 					Selector: metav1.LabelSelector{
 						MatchLabels: map[string]string{
-							"foo": "bar",
+							"foo":                            "bar",
+							v1alpha1.MachineClusterLabelName: "test-cluster",
 						},
 					},
 				},
@@ -61,6 +62,9 @@ func TestMachineSetToMachines(t *testing.T) {
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "withOwnerRef",
 			Namespace: "test",
+			Labels: map[string]string{
+				v1alpha1.MachineClusterLabelName: "test-cluster",
+			},
 			OwnerReferences: []metav1.OwnerReference{
 				{
 					Name:       "Owner",
@@ -77,6 +81,9 @@ func TestMachineSetToMachines(t *testing.T) {
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "noOwnerRefNoLabels",
 			Namespace: "test",
+			Labels: map[string]string{
+				v1alpha1.MachineClusterLabelName: "test-cluster",
+			},
 		},
 	}
 	m3 := v1alpha1.Machine{
@@ -87,7 +94,8 @@ func TestMachineSetToMachines(t *testing.T) {
 			Name:      "withMatchingLabels",
 			Namespace: "test",
 			Labels: map[string]string{
-				"foo": "bar",
+				"foo":                            "bar",
+				v1alpha1.MachineClusterLabelName: "test-cluster",
 			},
 		},
 	}

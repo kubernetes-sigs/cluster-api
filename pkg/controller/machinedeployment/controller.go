@@ -113,15 +113,9 @@ func (r *ReconcileMachineDeployment) getMachineSetsForDeployment(d *v1alpha1.Mac
 		return nil, err
 	}
 
-	// TODO: flush out machine set adoption.
-
 	filteredMS := make([]*v1alpha1.MachineSet, 0, len(machineSets.Items))
 	for idx := range machineSets.Items {
 		ms := &machineSets.Items[idx]
-		if metav1.GetControllerOf(ms) == nil || (metav1.GetControllerOf(ms) != nil && !metav1.IsControlledBy(ms, d)) {
-			klog.V(4).Infof("%s not controlled by %v", ms.Name, d.Name)
-			continue
-		}
 
 		selector, err := metav1.LabelSelectorAsSelector(&d.Spec.Selector)
 		if err != nil {
@@ -140,10 +134,28 @@ func (r *ReconcileMachineDeployment) getMachineSetsForDeployment(d *v1alpha1.Mac
 			continue
 		}
 
+		// Attempt to adopt machine if it meets previous conditions and it has no controller references.
+		if metav1.GetControllerOf(ms) == nil {
+			if err := r.adoptOrphan(d, ms); err != nil {
+				klog.Warningf("Failed to adopt MachineSet %q into MachineDeployment %q: %v", ms.Name, d.Name, err)
+				continue
+			}
+		}
+
+		if !metav1.IsControlledBy(ms, d) {
+			continue
+		}
+
 		filteredMS = append(filteredMS, ms)
 	}
 
 	return filteredMS, nil
+}
+
+func (r *ReconcileMachineDeployment) adoptOrphan(deployment *v1alpha1.MachineDeployment, machineSet *v1alpha1.MachineSet) error {
+	newRef := *metav1.NewControllerRef(deployment, controllerKind)
+	machineSet.OwnerReferences = append(machineSet.OwnerReferences, newRef)
+	return r.Client.Update(context.Background(), machineSet)
 }
 
 // Reconcile reads that state of the cluster for a MachineDeployment object and makes changes based on the state read

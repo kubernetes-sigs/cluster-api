@@ -242,7 +242,7 @@ func TestGetMachineSetsForDeployment(t *testing.T) {
 		Spec: v1alpha1.MachineDeploymentSpec{
 			Selector: metav1.LabelSelector{
 				MatchLabels: map[string]string{
-					"foo": "bar",
+					"foo": "bar2",
 				},
 			},
 		},
@@ -253,10 +253,10 @@ func TestGetMachineSetsForDeployment(t *testing.T) {
 			Kind: "MachineSet",
 		},
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      "withNoOwnerRef",
+			Name:      "withNoOwnerRefShouldBeAdopted2",
 			Namespace: "test",
 			Labels: map[string]string{
-				"foo": "bar",
+				"foo": "bar2",
 			},
 		},
 	}
@@ -275,6 +275,30 @@ func TestGetMachineSetsForDeployment(t *testing.T) {
 			},
 		},
 	}
+	ms3 := v1alpha1.MachineSet{
+		TypeMeta: metav1.TypeMeta{
+			Kind: "MachineSet",
+		},
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "withNoOwnerRefShouldBeAdopted1",
+			Namespace: "test",
+			Labels: map[string]string{
+				"foo": "bar",
+			},
+		},
+	}
+	ms4 := v1alpha1.MachineSet{
+		TypeMeta: metav1.TypeMeta{
+			Kind: "MachineSet",
+		},
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "withNoOwnerRefNoMatch",
+			Namespace: "test",
+			Labels: map[string]string{
+				"foo": "nomatch",
+			},
+		},
+	}
 	machineSetList := &v1alpha1.MachineSetList{
 		TypeMeta: metav1.TypeMeta{
 			Kind: "MachineSetList",
@@ -282,6 +306,8 @@ func TestGetMachineSetsForDeployment(t *testing.T) {
 		Items: []v1alpha1.MachineSet{
 			ms1,
 			ms2,
+			ms3,
+			ms4,
 		},
 	}
 
@@ -291,11 +317,11 @@ func TestGetMachineSetsForDeployment(t *testing.T) {
 	}{
 		{
 			machineDeployment: machineDeployment1,
-			expected:          []*v1alpha1.MachineSet{&ms2},
+			expected:          []*v1alpha1.MachineSet{&ms2, &ms3},
 		},
 		{
 			machineDeployment: machineDeployment2,
-			expected:          []*v1alpha1.MachineSet{},
+			expected:          []*v1alpha1.MachineSet{&ms1},
 		},
 	}
 
@@ -309,8 +335,15 @@ func TestGetMachineSetsForDeployment(t *testing.T) {
 		if err != nil {
 			t.Errorf("Failed running getMachineSetsForDeployment: %v", err)
 		}
-		if !reflect.DeepEqual(got, tc.expected) {
-			t.Errorf("Case %s. Got: %v, expected %v", tc.machineDeployment.Name, got, tc.expected)
+
+		if len(tc.expected) != len(got) {
+			t.Errorf("Case %s. Expected to get %d MachineSets but got %d", tc.machineDeployment.Name, len(tc.expected), len(got))
+		}
+
+		for idx, res := range got {
+			if res.Name != tc.expected[idx].Name || res.Namespace != tc.expected[idx].Namespace {
+				t.Errorf("Case %s. Expected %q found %q", tc.machineDeployment.Name, res.Name, tc.expected[idx].Name)
+			}
 		}
 	}
 }

@@ -157,8 +157,8 @@ func (r *ReconcileMachineSet) Reconcile(request reconcile.Request) (reconcile.Re
 
 	result, err := r.reconcile(ctx, machineSet)
 	if err != nil {
-		klog.Errorf("failed to reconcile MachineSet %s: %v", request.NamespacedName, err)
-		r.recorder.Eventf(machineSet, corev1.EventTypeWarning, "ReconcilingError", "%v", err)
+		klog.Errorf("Failed to reconcile MachineSet %q: %v", request.NamespacedName, err)
+		r.recorder.Eventf(machineSet, corev1.EventTypeWarning, "ReconcileError", "%v", err)
 	}
 	return result, err
 }

@@ -92,6 +92,7 @@ func RunDelete() error {
 		clusterclient.NewFactory(),
 		providerComponents,
 		"",
+		"",
 		do.BootstrapFlags.Cleanup)
 
 	return deployer.Delete(clusterClient, do.ClusterNamespace)

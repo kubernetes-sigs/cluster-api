@@ -35,6 +35,7 @@ type ClusterDeployer struct {
 	clientFactory           clusterclient.Factory
 	providerComponents      string
 	addonComponents         string
+	bootstrapComponents     string
 	cleanupBootstrapCluster bool
 }
 
@@ -43,12 +44,14 @@ func New(
 	clientFactory clusterclient.Factory,
 	providerComponents string,
 	addonComponents string,
+	bootstrapComponents string,
 	cleanupBootstrapCluster bool) *ClusterDeployer {
 	return &ClusterDeployer{
 		bootstrapProvisioner:    bootstrapProvisioner,
 		clientFactory:           clientFactory,
 		providerComponents:      providerComponents,
 		addonComponents:         addonComponents,
+		bootstrapComponents:     bootstrapComponents,
 		cleanupBootstrapCluster: cleanupBootstrapCluster,
 	}
 }
@@ -66,6 +69,12 @@ func (d *ClusterDeployer) Create(cluster *clusterv1.Cluster, machines []*cluster
 		return errors.Wrap(err, "could not create bootstrap cluster")
 	}
 	defer closeClient(bootstrapClient, "bootstrap")
+
+	if d.bootstrapComponents != "" {
+		if err := phases.ApplyBootstrapComponents(bootstrapClient, d.bootstrapComponents); err != nil {
+			return errors.Wrap(err, "unable to apply bootstrap components to bootstrap cluster")
+		}
+	}
 
 	klog.Info("Applying Cluster API stack to bootstrap cluster")
 	if err := phases.ApplyClusterAPIComponents(bootstrapClient, d.providerComponents); err != nil {

@@ -4,6 +4,7 @@ go_library(
     name = "go_default_library",
     srcs = [
         "applyaddons.go",
+        "applybootstrapcomponents.go",
         "applycluster.go",
         "applyclusterapicomponents.go",
         "applymachines.go",

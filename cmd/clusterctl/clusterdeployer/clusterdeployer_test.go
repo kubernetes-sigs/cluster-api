@@ -86,6 +86,8 @@ func (m *mockProviderComponentsStore) Load() (string, error) {
 	return m.LoadResult, m.LoadErr
 }
 
+type stringCheckFunc func(string) error
+
 type testClusterClient struct {
 	ApplyErr                                      error
 	DeleteErr                                     error
@@ -116,6 +118,8 @@ type testClusterClient struct {
 	DeleteNamespaceErr                            error
 	CloseErr                                      error
 
+	ApplyFunc stringCheckFunc
+
 	clusters           map[string][]*clusterv1.Cluster
 	machineDeployments map[string][]*clusterv1.MachineDeployment
 	machineSets        map[string][]*clusterv1.MachineSet
@@ -124,7 +128,10 @@ type testClusterClient struct {
 	contextNamespace   string
 }
 
-func (c *testClusterClient) Apply(string) error {
+func (c *testClusterClient) Apply(yaml string) error {
+	if c.ApplyFunc != nil {
+		return c.ApplyFunc(yaml)
+	}
 	return c.ApplyErr
 }
 
@@ -366,6 +373,7 @@ func (d *testProviderDeployer) GetKubeConfig(_ *clusterv1.Cluster, _ *clusterv1.
 func TestClusterCreate(t *testing.T) {
 	const bootstrapKubeconfig = "bootstrap"
 	const targetKubeconfig = "target"
+	const bootstrapComponent = "bootstrap-only"
 
 	testcases := []struct {
 		name                                string
@@ -599,7 +607,7 @@ func TestClusterCreate(t *testing.T) {
 			expectErr:                           true,
 		},
 		{
-			name:                                "fail  create target cluster",
+			name:                                "fail create target cluster",
 			targetClient:                        &testClusterClient{CreateClusterObjectErr: errors.New("Test failure")},
 			bootstrapClient:                     &testClusterClient{},
 			namespaceToExpectedInternalMachines: make(map[string]int),
@@ -628,6 +636,22 @@ func TestClusterCreate(t *testing.T) {
 			expectExternalCreated:               true,
 			expectErr:                           true,
 		},
+		{
+			name: "success bootstrap_only components not applied to target cluster",
+			targetClient: &testClusterClient{ApplyFunc: func(yaml string) error {
+				if yaml == bootstrapComponent {
+					return errors.New("Test failure. Bootstrap component should not be applied to target cluster")
+				}
+				return nil
+			}},
+			bootstrapClient:                     &testClusterClient{},
+			namespaceToExpectedInternalMachines: make(map[string]int),
+			namespaceToInputCluster:             map[string][]*clusterv1.Cluster{metav1.NamespaceDefault: getClustersForNamespace(metav1.NamespaceDefault, 1)},
+			cleanupExternal:                     true,
+			expectExternalCreated:               true,
+			expectErr:                           false,
+			expectedTotalInternalClustersCount:  1,
+		},
 	}
 
 	for _, testcase := range testcases {
@@ -649,7 +673,7 @@ func TestClusterCreate(t *testing.T) {
 
 			pcStore := mockProviderComponentsStore{}
 			pcFactory := mockProviderComponentsStoreFactory{NewFromCoreclientsetPCStore: &pcStore}
-			d := New(p, f, "", "", testcase.cleanupExternal)
+			d := New(p, f, "", "", bootstrapComponent, testcase.cleanupExternal)
 			inputMachines := generateMachines()
 
 			for namespace, inputClusters := range testcase.namespaceToInputCluster {
@@ -751,7 +775,7 @@ func TestCreateProviderComponentsScenarios(t *testing.T) {
 			pcFactory := mockProviderComponentsStoreFactory{NewFromCoreclientsetPCStore: &tc.pcStore}
 			providerComponentsYaml := "-yaml\ndefinition"
 			addonsYaml := "-yaml\ndefinition"
-			d := New(p, f, providerComponentsYaml, addonsYaml, false)
+			d := New(p, f, providerComponentsYaml, addonsYaml, "", false)
 			err := d.Create(inputCluster, inputMachines, pd, kubeconfigOut, &pcFactory)
 			if err == nil && tc.expectedError != "" {
 				t.Fatalf("error mismatch: got '%v', want '%v'", err, tc.expectedError)
@@ -858,7 +882,7 @@ func TestDeleteCleanupExternalCluster(t *testing.T) {
 			f := newTestClusterClientFactory()
 			f.clusterClients[bootstrapKubeconfig] = tc.bootstrapClient
 			f.clusterClients[targetKubeconfig] = tc.targetClient
-			d := New(p, f, "", "", tc.cleanupExternalCluster)
+			d := New(p, f, "", "", "", tc.cleanupExternalCluster)
 			err := d.Delete(tc.targetClient, tc.namespace)
 			if err != nil || tc.expectedErrorMessage != "" {
 				if err == nil {
@@ -1151,7 +1175,7 @@ func TestClusterDelete(t *testing.T) {
 			f.clusterClients[bootstrapKubeconfig] = testCase.bootstrapClient
 			f.clusterClients[targetKubeconfig] = testCase.targetClient
 			f.ClusterClientErr = testCase.NewCoreClientsetErr
-			d := New(p, f, "", "", true)
+			d := New(p, f, "", "", "", true)
 
 			err := d.Delete(testCase.targetClient, testCase.namespace)
 			if err != nil || testCase.expectedErrorMessage != "" {

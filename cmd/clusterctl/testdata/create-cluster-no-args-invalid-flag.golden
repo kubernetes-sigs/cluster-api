@@ -7,6 +7,7 @@ Flags:
       --bootstrap-cluster-cleanup             Whether to cleanup the bootstrap cluster after bootstrap. (default true)
   -e, --bootstrap-cluster-kubeconfig string   Sets the bootstrap cluster to be an existing Kubernetes cluster.
       --bootstrap-flags strings               Command line flags to be passed to the chosen bootstrapper
+      --bootstrap-only-components string      A yaml file containing components to apply only on the bootstrap cluster (before the provider components are applied) but not the provisioned cluster
       --bootstrap-type string                 The cluster bootstrapper to use. (default "none")
   -c, --cluster string                        A yaml file containing cluster object definition. Required.
   -h, --help                                  help for cluster

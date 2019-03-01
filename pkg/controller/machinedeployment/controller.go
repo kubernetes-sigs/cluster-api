@@ -164,7 +164,7 @@ func (r *ReconcileMachineDeployment) Reconcile(request reconcile.Request) (recon
 	}
 	result, err := r.reconcile(ctx, d)
 	if err != nil {
-		klog.Errorf("failed to reconcile MachineDeployment %s: %v", request.NamespacedName, err)
+		klog.Errorf("Failed to reconcile MachineDeployment %q: %v", request.NamespacedName, err)
 		r.recorder.Eventf(d, corev1.EventTypeWarning, "ReconcilingError", "%v", err)
 	}
 

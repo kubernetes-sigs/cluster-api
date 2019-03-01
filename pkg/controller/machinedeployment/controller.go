@@ -45,7 +45,7 @@ var (
 	controllerKind = v1alpha1.SchemeGroupVersion.WithKind("MachineDeployment")
 )
 
-// controllerName is the name of this controller<Paste>
+// controllerName is the name of this controller
 const controllerName = "machinedeployment-controller"
 
 // ReconcileMachineDeployment reconciles a MachineDeployment object.

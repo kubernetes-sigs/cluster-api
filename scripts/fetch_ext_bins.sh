@@ -31,7 +31,7 @@ k8s_version=1.11.0
 goarch=amd64
 goos="unknown"
 
-if [[ "$OSTYPE" == "linux-gnu" ]]; then
+if [[ "$OSTYPE" == "linux"* ]]; then
   goos="linux"
 elif [[ "$OSTYPE" == "darwin"* ]]; then
   goos="darwin"

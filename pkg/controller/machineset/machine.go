@@ -60,14 +60,17 @@ func hasMatchingLabels(machineSet *v1alpha1.MachineSet, machine *v1alpha1.Machin
 		klog.Warningf("unable to convert selector: %v", err)
 		return false
 	}
+
 	// If a deployment with a nil or empty selector creeps in, it should match nothing, not everything.
 	if selector.Empty() {
 		klog.V(2).Infof("%v machineset has empty selector", machineSet.Name)
 		return false
 	}
+
 	if !selector.Matches(labels.Set(machine.Labels)) {
 		klog.V(4).Infof("%v machine has mismatch labels", machine.Name)
 		return false
 	}
+
 	return true
 }

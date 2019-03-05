@@ -35,6 +35,7 @@ mkdir -p "${TMP_DIFFROOT}"
 cp -a "${DIFFROOT}"/* "${TMP_DIFFROOT}"
 
 make clientset
+find "${TMP_DIFFROOT}" -name *.bazel -delete
 
 echo "diffing ${DIFFROOT} against freshly generated codegen"
 ret=0

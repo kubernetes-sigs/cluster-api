@@ -35,5 +35,5 @@ go_repository(
     name = "com_github_golangci_golangci-lint",
     build_file_generation = "on",
     importpath = "github.com/golangci/golangci-lint",
-    tag = "v1.13",
+    tag = "v1.15.0",
 )

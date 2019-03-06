@@ -101,6 +101,7 @@ clientset: ## Generate a typed clientset
 		--listers-package sigs.k8s.io/cluster-api/pkg/client/listers_generated \
 		--output-package sigs.k8s.io/cluster-api/pkg/client/informers_generated \
 		--go-header-file=./hack/boilerplate.go.txt
+	$(MAKE) gazelle
 
 .PHONY: clean
 clean: ## Remove all generated files

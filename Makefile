@@ -42,7 +42,7 @@ dep-ensure: ## Runs dep-ensure and rebuilds Bazel gazelle files.
 
 .PHONY: test
 test: gazelle verify generate fmt vet manifests ## Run tests
-	go test -v -tags=integration ./pkg/... ./cmd/...
+	go test -v -timeout=20m -tags=integration ./pkg/... ./cmd/...
 
 .PHONY: manager
 manager: generate fmt vet ## Build manager binary

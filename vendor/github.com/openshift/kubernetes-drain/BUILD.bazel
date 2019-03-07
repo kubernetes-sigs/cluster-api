@@ -1,0 +1,26 @@
+load("@io_bazel_rules_go//go:def.bzl", "go_library")
+
+go_library(
+    name = "go_default_library",
+    srcs = ["drain.go"],
+    importmap = "sigs.k8s.io/cluster-api/vendor/github.com/openshift/kubernetes-drain",
+    importpath = "github.com/openshift/kubernetes-drain",
+    visibility = ["//visibility:public"],
+    deps = [
+        "//vendor/github.com/go-log/log:go_default_library",
+        "//vendor/k8s.io/api/core/v1:go_default_library",
+        "//vendor/k8s.io/api/policy/v1beta1:go_default_library",
+        "//vendor/k8s.io/apimachinery/pkg/api/errors:go_default_library",
+        "//vendor/k8s.io/apimachinery/pkg/apis/meta/v1:go_default_library",
+        "//vendor/k8s.io/apimachinery/pkg/fields:go_default_library",
+        "//vendor/k8s.io/apimachinery/pkg/labels:go_default_library",
+        "//vendor/k8s.io/apimachinery/pkg/types:go_default_library",
+        "//vendor/k8s.io/apimachinery/pkg/util/errors:go_default_library",
+        "//vendor/k8s.io/apimachinery/pkg/util/sets:go_default_library",
+        "//vendor/k8s.io/apimachinery/pkg/util/wait:go_default_library",
+        "//vendor/k8s.io/client-go/kubernetes:go_default_library",
+        "//vendor/k8s.io/client-go/kubernetes/typed/core/v1:go_default_library",
+        "//vendor/k8s.io/client-go/kubernetes/typed/extensions/v1beta1:go_default_library",
+        "//vendor/k8s.io/client-go/kubernetes/typed/policy/v1beta1:go_default_library",
+    ],
+)

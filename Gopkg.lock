@@ -106,6 +106,17 @@
 
 [[projects]]
   branch = "master"
+  digest = "1:eaa7c96baf38f6abde2f720aac540a49dfc2229b74c3c591c3f84d2ff7e84269"
+  name = "github.com/go-log/log"
+  packages = [
+    ".",
+    "info",
+  ]
+  pruneopts = "UT"
+  revision = "a514cf01a3eb56ec6aff9ae5663453d990e68ed3"
+
+[[projects]]
+  branch = "master"
   digest = "1:edd2fa4578eb086265db78a9201d15e76b298dfd0d5c379da83e9c61712cf6df"
   name = "github.com/go-logr/logr"
   packages = ["."]
@@ -363,6 +374,14 @@
   pruneopts = "UT"
   revision = "65fb64232476ad9046e57c26cd0bff3d3a8dc6cd"
   version = "v1.4.3"
+
+[[projects]]
+  branch = "master"
+  digest = "1:f7646c654e93258958dba300641f8f674d5a9ed015c11119793ba1156e2acbe9"
+  name = "github.com/openshift/kubernetes-drain"
+  packages = ["."]
+  pruneopts = "UT"
+  revision = "c2e51be1758efa30d71a4d30dc4e2db86b70a4df"
 
 [[projects]]
   digest = "1:e5d0bd87abc2781d14e274807a470acd180f0499f8bf5bb18606e9ec22ad9de9"
@@ -1201,8 +1220,10 @@
   input-imports = [
     "github.com/davecgh/go-spew/spew",
     "github.com/emicklei/go-restful",
+    "github.com/go-log/log/info",
     "github.com/onsi/ginkgo",
     "github.com/onsi/gomega",
+    "github.com/openshift/kubernetes-drain",
     "github.com/pkg/errors",
     "github.com/sergi/go-diff/diffmatchpatch",
     "github.com/spf13/cobra",

@@ -18,15 +18,22 @@ package machine
 
 import (
 	"context"
+	"fmt"
 	"os"
+	"time"
 
+	"github.com/go-log/log/info"
 	machinev1 "github.com/openshift/cluster-api/pkg/apis/machine/v1beta1"
 	controllerError "github.com/openshift/cluster-api/pkg/controller/error"
 	"github.com/openshift/cluster-api/pkg/util"
+	kubedrain "github.com/openshift/kubernetes-drain"
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/client-go/kubernetes"
+	"k8s.io/client-go/rest"
+	"k8s.io/client-go/tools/record"
 	"k8s.io/klog"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
@@ -38,6 +45,9 @@ import (
 
 const (
 	NodeNameEnvVar = "NODE_NAME"
+
+	// ExcludeNodeDrainingAnnotation annotation explicitly skips node draining if set
+	ExcludeNodeDrainingAnnotation = "machine.openshift.io/exclude-node-draining"
 )
 
 var DefaultActuator Actuator
@@ -49,10 +59,12 @@ func AddWithActuator(mgr manager.Manager, actuator Actuator) error {
 // newReconciler returns a new reconcile.Reconciler
 func newReconciler(mgr manager.Manager, actuator Actuator) reconcile.Reconciler {
 	r := &ReconcileMachine{
-		Client:   mgr.GetClient(),
-		scheme:   mgr.GetScheme(),
-		nodeName: os.Getenv(NodeNameEnvVar),
-		actuator: actuator,
+		Client:        mgr.GetClient(),
+		eventRecorder: mgr.GetRecorder("machine-controller"),
+		config:        mgr.GetConfig(),
+		scheme:        mgr.GetScheme(),
+		nodeName:      os.Getenv(NodeNameEnvVar),
+		actuator:      actuator,
 	}
 
 	if r.nodeName == "" {
@@ -80,7 +92,10 @@ func add(mgr manager.Manager, r reconcile.Reconciler) error {
 // ReconcileMachine reconciles a Machine object
 type ReconcileMachine struct {
 	client.Client
+	config *rest.Config
 	scheme *runtime.Scheme
+
+	eventRecorder record.EventRecorder
 
 	actuator Actuator
 
@@ -168,6 +183,18 @@ func (r *ReconcileMachine) Reconcile(request reconcile.Request) (reconcile.Resul
 		}
 
 		klog.Infof("Reconciling machine %q triggers delete", name)
+
+		// Drain node before deletion
+		// If a machine is not linked to a node, just delete the machine. Since a node
+		// can be unlinked from a machine when the node goes NotReady and is removed
+		// by cloud controller manager. In that case some machines would never get
+		// deleted without a manual intervention.
+		if _, exists := m.ObjectMeta.Annotations[ExcludeNodeDrainingAnnotation]; !exists && m.Status.NodeRef != nil {
+			if err := r.drainNode(m); err != nil {
+				return reconcile.Result{}, err
+			}
+		}
+
 		if err := r.actuator.Delete(ctx, cluster, m); err != nil {
 			if requeueErr, ok := err.(*controllerError.RequeueAfterError); ok {
 				klog.Infof("Actuator returned requeue-after error: %v", requeueErr)
@@ -231,6 +258,41 @@ func (r *ReconcileMachine) Reconcile(request reconcile.Request) (reconcile.Resul
 	}
 
 	return reconcile.Result{}, nil
+}
+
+func (r *ReconcileMachine) drainNode(machine *machinev1.Machine) error {
+	kubeClient, err := kubernetes.NewForConfig(r.config)
+	if err != nil {
+		return fmt.Errorf("unable to build kube client: %v", err)
+	}
+	node, err := kubeClient.CoreV1().Nodes().Get(machine.Status.NodeRef.Name, metav1.GetOptions{})
+	if err != nil {
+		return fmt.Errorf("unable to get node %q: %v", machine.Status.NodeRef.Name, err)
+	}
+
+	if err := kubedrain.Drain(
+		kubeClient,
+		[]*corev1.Node{node},
+		&kubedrain.DrainOptions{
+			Force:              true,
+			IgnoreDaemonsets:   true,
+			DeleteLocalData:    true,
+			GracePeriodSeconds: -1,
+			Logger:             info.New(klog.V(0)),
+			// If a pod is not evicted in 20 second, retry the eviction next time the
+			// machine gets reconciled again (to allow other machines to be reconciled)
+			Timeout: 20 * time.Second,
+		},
+	); err != nil {
+		// Machine still tries to terminate after drain failure
+		klog.Warningf("drain failed for machine %q: %v", machine.Name, err)
+		return &controllerError.RequeueAfterError{RequeueAfter: 20 * time.Second}
+	}
+
+	klog.Infof("drain successful for machine %q", machine.Name)
+	r.eventRecorder.Eventf(machine, corev1.EventTypeNormal, "Deleted", "Node %q drained", node.Name)
+
+	return nil
 }
 
 func (r *ReconcileMachine) getCluster(ctx context.Context, machine *machinev1.Machine) (*machinev1.Cluster, error) {

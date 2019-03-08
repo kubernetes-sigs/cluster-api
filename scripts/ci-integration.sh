@@ -25,6 +25,7 @@ CRD_YAML="crd.yaml"
 BOOTSTRAP_CLUSTER_NAME="clusterapi-bootstrap"
 CONTROLLER_REPO="controller-ci" # use arbitrary repo name since we don't need to publish it
 EXAMPLE_PROVIDER_REPO="example-provider-ci"
+INTEGRATION_TEST_DIR="./test/integration"
 
 install_kustomize() {
    go get sigs.k8s.io/kustomize
@@ -67,12 +68,33 @@ delete_bootstrap() {
    kind delete cluster --name "${BOOTSTRAP_CLUSTER_NAME}"
 }
 
-verify_cluster_api() {
-   echo "not implemented"
-   #TODO: verify cluster-api CRD on bootstrap cluster
+wait_pod_running() {
+   retry=30
+   INTERVAL=6
+   until kubectl get pods "$1" -n "$2" --no-headers | awk -F" " '{s+=($3!="Running")} END {exit s}'
+   do
+      sleep ${INTERVAL};
+      retry=$((retry - 1))
+      if [ $retry -lt 0 ];
+      then
+         kubectl describe pod "$1" -n "$2"
+         kubectl logs "$1" -n "$2"
+         exit 1
+      fi;
+      kubectl get pods "$1" -n "$2" --no-headers;
+   done;
+}
+
+ensure_docker_in_docker() {
+   if [ -z "${PROW_JOB_ID}" ] ; then
+      # start docker service in setup other than Prow
+      service docker start
+   fi
+   # DinD is configured at Prow
 }
 
 main() {
+   ensure_docker_in_docker
    build_containers
 
    install_kustomize
@@ -81,9 +103,16 @@ main() {
    install_kubectl
    create_bootstrap
 
-   "${KUBECTL}" create -f "${CRD_YAML}" 
+   "${KUBECTL}" create -f "${CRD_YAML}"
 
-   verify_cluster_api
+   set +e
+   wait_pod_running "cluster-api-controller-manager-0" "cluster-api-system"
+   wait_pod_running "provider-controller-manager-0" "provider-system"
+   set -e
+
+   if [ -d "${INTEGRATION_TEST_DIR}" ] ; then
+      go test -v "${INTEGRATION_TEST_DIR}"/...
+   fi
 
    delete_bootstrap
 

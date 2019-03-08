@@ -51,6 +51,13 @@ const (
 	// Example: timeout trying to connect to GCE.
 	CreateMachineError MachineStatusError = "CreateError"
 
+	// There was an error while trying to update a Node that this
+	// Machine represents. This may indicate a transient problem that will be
+	// fixed automatically with time, such as a service outage,
+	//
+	// Example: error updating load balancers
+	UpdateMachineError MachineStatusError = "UpdateError"
+
 	// An error was encountered while trying to delete the Node that this
 	// Machine represents. This could be a transient or terminal error, but
 	// will only be observable if the provider's Machine controller has

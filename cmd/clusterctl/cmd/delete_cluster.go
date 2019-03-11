@@ -32,7 +32,6 @@ import (
 type DeleteOptions struct {
 	KubeconfigPath      string
 	ProviderComponents  string
-	ClusterNamespace    string
 	KubeconfigOverrides tcmd.ConfigOverrides
 	BootstrapFlags      bootstrap.Options
 }
@@ -60,9 +59,6 @@ func init() {
 	// Required flags
 	deleteClusterCmd.Flags().StringVarP(&do.KubeconfigPath, "kubeconfig", "", "", "Path to the kubeconfig file to use for connecting to the cluster to be deleted, if empty, the default KUBECONFIG load path is used.")
 	deleteClusterCmd.Flags().StringVarP(&do.ProviderComponents, "provider-components", "p", "", "A yaml file containing cluster api provider controllers and supporting objects, if empty the value is loaded from the cluster's configuration store.")
-
-	// Optional flags
-	deleteClusterCmd.Flags().StringVarP(&do.ClusterNamespace, "cluster-namespace", "", v1.NamespaceDefault, "Namespace where the cluster to be deleted resides")
 
 	// BindContextFlags will bind the flags cluster, namespace, and user
 	tcmd.BindContextFlags(&do.KubeconfigOverrides.Context, deleteClusterCmd.Flags(), tcmd.RecommendedContextOverrideFlags(""))
@@ -95,7 +91,7 @@ func RunDelete() error {
 		"",
 		do.BootstrapFlags.Cleanup)
 
-	return deployer.Delete(clusterClient, do.ClusterNamespace)
+	return deployer.Delete(clusterClient)
 }
 
 func loadProviderComponents() (string, error) {

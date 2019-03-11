@@ -11,6 +11,7 @@ go_library(
         "alpha_phase_apply_machines.go",
         "alpha_phase_create_bootstrap_cluster.go",
         "alpha_phase_get_kubeconfig.go",
+        "alpha_phase_pivot.go",
         "alpha_phases.go",
         "create.go",
         "create_cluster.go",

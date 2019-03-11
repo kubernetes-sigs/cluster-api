@@ -34,7 +34,7 @@ func ApplyMachines(client clusterclient.Client, namespace string, machines []*cl
 	}
 
 	klog.Infof("Creating machines in namespace %q", namespace)
-	if err := client.CreateMachineObjects(machines, namespace); err != nil {
+	if err := client.CreateMachines(machines, namespace); err != nil {
 		return err
 	}
 

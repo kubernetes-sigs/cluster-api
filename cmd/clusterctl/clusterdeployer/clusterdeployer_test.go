@@ -89,38 +89,35 @@ func (m *mockProviderComponentsStore) Load() (string, error) {
 type stringCheckFunc func(string) error
 
 type testClusterClient struct {
-	ApplyErr                                      error
-	DeleteErr                                     error
-	WaitForClusterV1alpha1ReadyErr                error
-	GetClusterObjectsErr                          error
-	GetClusterObjectErr                           error
-	GetClusterObjectsInNamespaceErr               error
-	GetMachineDeploymentObjectsErr                error
-	GetMachineDeploymentObjectsInNamespaceErr     error
-	GetMachineSetObjectsErr                       error
-	GetMachineSetObjectsInNamespaceErr            error
-	GetMachineObjectsErr                          error
-	GetMachineObjectsInNamespaceErr               error
-	CreateClusterObjectErr                        error
-	CreateMachineObjectsErr                       error
-	CreateMachineSetObjectsErr                    error
-	CreateMachineDeploymentsObjectsErr            error
-	DeleteClusterObjectsErr                       error
-	DeleteClusterObjectsInNamespaceErr            error
-	DeleteMachineObjectsErr                       error
-	DeleteMachineObjectsInNamespaceErr            error
-	DeleteMachineSetObjectsErr                    error
-	DeleteMachineSetObjectsInNamespaceErr         error
-	DeleteMachineDeploymentsObjectsErr            error
-	DeleteMachineDeploymentsObjectsInNamespaceErr error
-	UpdateClusterObjectEndpointErr                error
-	EnsureNamespaceErr                            error
-	DeleteNamespaceErr                            error
-	CloseErr                                      error
+	ApplyErr                              error
+	DeleteErr                             error
+	WaitForClusterV1alpha1ReadyErr        error
+	GetClustersErr                        error
+	GetClusterErr                         error
+	GetMachineClassesErr                  error
+	GetMachineDeploymentsErr              error
+	GetMachineSetsErr                     error
+	GetMachineSetsForMachineDeploymentErr error
+	GetMachinesForMachineSetErr           error
+	GetMachinesErr                        error
+	CreateClusterObjectErr                error
+	CreateMachinesErr                     error
+	CreateMachineSetsErr                  error
+	CreateMachineDeploymentsErr           error
+	DeleteClustersErr                     error
+	DeleteMachineClassesErr               error
+	DeleteMachineDeploymentsErr           error
+	DeleteMachinesErr                     error
+	DeleteMachineSetsErr                  error
+	UpdateClusterObjectEndpointErr        error
+	EnsureNamespaceErr                    error
+	DeleteNamespaceErr                    error
+	CloseErr                              error
 
 	ApplyFunc stringCheckFunc
 
 	clusters           map[string][]*clusterv1.Cluster
+	machineClasses     map[string][]*clusterv1.MachineClass
 	machineDeployments map[string][]*clusterv1.MachineDeployment
 	machineSets        map[string][]*clusterv1.MachineSet
 	machines           map[string][]*clusterv1.Machine
@@ -150,13 +147,9 @@ func (c *testClusterClient) WaitForClusterV1alpha1Ready() error {
 	return c.WaitForClusterV1alpha1ReadyErr
 }
 
-func (c *testClusterClient) GetClusterObjects() ([]*clusterv1.Cluster, error) {
-	return c.clusters[metav1.NamespaceDefault], c.GetClusterObjectsErr
-}
-
-func (c *testClusterClient) GetClusterObject(clusterName, namespace string) (*clusterv1.Cluster, error) {
-	if c.GetClusterObjectErr != nil {
-		return nil, c.GetClusterObjectErr
+func (c *testClusterClient) GetCluster(clusterName, namespace string) (*clusterv1.Cluster, error) {
+	if c.GetClusterErr != nil {
+		return nil, c.GetClusterErr
 	}
 	var cluster *clusterv1.Cluster
 	for _, nc := range c.clusters[namespace] {
@@ -168,35 +161,60 @@ func (c *testClusterClient) GetClusterObject(clusterName, namespace string) (*cl
 	return cluster, nil
 }
 
-func (c *testClusterClient) GetClusterObjectsInNamespace(namespace string) ([]*clusterv1.Cluster, error) {
-	if c.GetClusterObjectsInNamespaceErr != nil {
-		return nil, c.GetClusterObjectsInNamespaceErr
+func (c *testClusterClient) GetClusters(namespace string) ([]*clusterv1.Cluster, error) {
+	if c.GetClustersErr != nil {
+		return nil, c.GetClustersErr
 	}
-	return c.clusters[namespace], nil
+	if namespace != "" {
+		return c.clusters[namespace], nil
+	}
+	var result []*clusterv1.Cluster // nolint
+	for _, clusters := range c.clusters {
+		result = append(result, clusters...)
+	}
+	return result, nil
 }
 
-func (c *testClusterClient) GetMachineDeploymentObjects() ([]*clusterv1.MachineDeployment, error) {
-	return c.machineDeployments[metav1.NamespaceDefault], c.GetMachineDeploymentObjectsErr
+func (c *testClusterClient) GetMachineDeployments(namespace string) ([]*clusterv1.MachineDeployment, error) {
+	if c.GetMachineDeploymentsErr != nil {
+		return nil, c.GetMachineDeploymentsErr
+	}
+	if namespace != "" {
+		return c.machineDeployments[namespace], nil
+	}
+	var result []*clusterv1.MachineDeployment // nolint
+	for _, machineDeployments := range c.machineDeployments {
+		result = append(result, machineDeployments...)
+	}
+	return result, nil
 }
 
-func (c *testClusterClient) GetMachineDeploymentObjectsInNamespace(namespace string) ([]*clusterv1.MachineDeployment, error) {
-	return c.machineDeployments[namespace], c.GetMachineDeploymentObjectsInNamespaceErr
+func (c *testClusterClient) GetMachineSets(namespace string) ([]*clusterv1.MachineSet, error) {
+	if c.GetMachineSetsErr != nil {
+		return nil, c.GetMachineSetsErr
+	}
+	if namespace != "" {
+		return c.machineSets[namespace], nil
+	}
+	var result []*clusterv1.MachineSet // nolint
+	for _, machineSets := range c.machineSets {
+		result = append(result, machineSets...)
+	}
+	return result, nil
 }
 
-func (c *testClusterClient) GetMachineSetObjects() ([]*clusterv1.MachineSet, error) {
-	return c.machineSets[metav1.NamespaceDefault], c.GetMachineSetObjectsErr
-}
-
-func (c *testClusterClient) GetMachineSetObjectsInNamespace(namespace string) ([]*clusterv1.MachineSet, error) {
-	return c.machineSets[namespace], c.GetMachineSetObjectsInNamespaceErr
-}
-
-func (c *testClusterClient) GetMachineObjects() ([]*clusterv1.Machine, error) {
-	return c.machines[metav1.NamespaceDefault], c.GetMachineObjectsErr
-}
-
-func (c *testClusterClient) GetMachineObjectsInNamespace(namespace string) ([]*clusterv1.Machine, error) {
-	return c.machines[namespace], c.GetMachineObjectsInNamespaceErr
+func (c *testClusterClient) GetMachines(namespace string) ([]*clusterv1.Machine, error) {
+	if c.GetMachinesErr != nil {
+		return nil, c.GetMachinesErr
+	}
+	if namespace != "" {
+		return c.machines[namespace], nil
+	}
+	var result []*clusterv1.Machine // nolint
+	for _, machines := range c.machines {
+		result = append(result, machines...)
+	}
+	return result, nil
 }
 
 func (c *testClusterClient) CreateClusterObject(cluster *clusterv1.Cluster) error {
@@ -210,81 +228,97 @@ func (c *testClusterClient) CreateClusterObject(cluster *clusterv1.Cluster) erro
 	return c.CreateClusterObjectErr
 }
 
-func (c *testClusterClient) CreateMachineDeploymentObjects(deployments []*clusterv1.MachineDeployment, namespace string) error {
-	if c.CreateMachineDeploymentsObjectsErr == nil {
+func (c *testClusterClient) CreateMachineDeployments(deployments []*clusterv1.MachineDeployment, namespace string) error {
+	if c.CreateMachineDeploymentsErr == nil {
 		if c.machineDeployments == nil {
 			c.machineDeployments = make(map[string][]*clusterv1.MachineDeployment)
 		}
 		c.machineDeployments[namespace] = append(c.machineDeployments[namespace], deployments...)
 		return nil
 	}
-	return c.CreateMachineDeploymentsObjectsErr
+	return c.CreateMachineDeploymentsErr
 }
 
-func (c *testClusterClient) CreateMachineSetObjects(machineSets []*clusterv1.MachineSet, namespace string) error {
-	if c.CreateMachineSetObjectsErr == nil {
+func (c *testClusterClient) CreateMachineSets(machineSets []*clusterv1.MachineSet, namespace string) error {
+	if c.CreateMachineSetsErr == nil {
 		if c.machineSets == nil {
 			c.machineSets = make(map[string][]*clusterv1.MachineSet)
 		}
 		c.machineSets[namespace] = append(c.machineSets[namespace], machineSets...)
 		return nil
 	}
-	return c.CreateMachineSetObjectsErr
+	return c.CreateMachineSetsErr
 }
 
-func (c *testClusterClient) CreateMachineObjects(machines []*clusterv1.Machine, namespace string) error {
-	if c.CreateMachineObjectsErr == nil {
+func (c *testClusterClient) CreateMachines(machines []*clusterv1.Machine, namespace string) error {
+	if c.CreateMachinesErr == nil {
 		if c.machines == nil {
 			c.machines = make(map[string][]*clusterv1.Machine)
 		}
 		c.machines[namespace] = append(c.machines[namespace], machines...)
 		return nil
 	}
-	return c.CreateMachineObjectsErr
+	return c.CreateMachinesErr
 }
 
-func (c *testClusterClient) DeleteClusterObjectsInNamespace(ns string) error {
-	if c.DeleteClusterObjectsInNamespaceErr == nil {
+func (c *testClusterClient) DeleteClusters(ns string) error {
+	if c.DeleteClustersErr != nil {
+		return c.DeleteClustersErr
+	}
+	if ns == "" {
+		c.clusters = make(map[string][]*clusterv1.Cluster)
+	} else {
 		delete(c.clusters, ns)
 	}
-	return c.DeleteClusterObjectsInNamespaceErr
+	return nil
 }
 
-func (c *testClusterClient) DeleteClusterObjects() error {
-	return c.DeleteClusterObjectsErr
+func (c *testClusterClient) DeleteMachineClasses(ns string) error {
+	if c.DeleteMachineClassesErr != nil {
+		return c.DeleteMachineClassesErr
+	}
+	if ns == "" {
+		c.machineClasses = make(map[string][]*clusterv1.MachineClass)
+	} else {
+		delete(c.machineClasses, ns)
+	}
+	return nil
 }
 
-func (c *testClusterClient) DeleteMachineDeploymentObjectsInNamespace(ns string) error {
-	if c.DeleteMachineDeploymentsObjectsInNamespaceErr == nil {
+func (c *testClusterClient) DeleteMachineDeployments(ns string) error {
+	if c.DeleteMachineDeploymentsErr != nil {
+		return c.DeleteMachineDeploymentsErr
+	}
+	if ns == "" {
+		c.machineDeployments = make(map[string][]*clusterv1.MachineDeployment)
+	} else {
 		delete(c.machineDeployments, ns)
 	}
-	return c.DeleteMachineDeploymentsObjectsInNamespaceErr
+	return nil
 }
 
-func (c *testClusterClient) DeleteMachineDeploymentObjects() error {
-	return c.DeleteMachineDeploymentsObjectsErr
-}
-
-func (c *testClusterClient) DeleteMachineSetObjectsInNamespace(ns string) error {
-	if c.DeleteMachineSetObjectsInNamespaceErr == nil {
+func (c *testClusterClient) DeleteMachineSets(ns string) error {
+	if c.DeleteMachineSetsErr != nil {
+		return c.DeleteMachineSetsErr
+	}
+	if ns == "" {
+		c.machineSets = make(map[string][]*clusterv1.MachineSet)
+	} else {
 		delete(c.machineSets, ns)
 	}
-	return c.DeleteMachineSetObjectsInNamespaceErr
+	return nil
 }
 
-func (c *testClusterClient) DeleteMachineSetObjects() error {
-	return c.DeleteMachineSetObjectsErr
-}
-
-func (c *testClusterClient) DeleteMachineObjectsInNamespace(ns string) error {
-	if c.DeleteMachineObjectsInNamespaceErr == nil {
+func (c *testClusterClient) DeleteMachines(ns string) error {
+	if c.DeleteMachinesErr != nil {
+		return c.DeleteMachinesErr
+	}
+	if ns == "" {
+		c.machines = make(map[string][]*clusterv1.Machine)
+	} else {
 		delete(c.machines, ns)
 	}
-	return c.DeleteMachineObjectsInNamespaceErr
-}
-
-func (c *testClusterClient) DeleteMachineObjects() error {
-	return c.DeleteMachineObjectsErr
+	return nil
 }
 
 func (c *testClusterClient) UpdateClusterObjectEndpoint(string, string, string) error {
@@ -295,9 +329,6 @@ func (c *testClusterClient) Close() error {
 }
 
 func (c *testClusterClient) EnsureNamespace(nsName string) error {
-	if len(c.namespaces) == 0 {
-		c.namespaces = append(c.namespaces, nsName)
-	}
 	if exists := contains(c.namespaces, nsName); !exists {
 		c.namespaces = append(c.namespaces, nsName)
 	}
@@ -319,6 +350,155 @@ func (c *testClusterClient) DeleteNamespace(namespaceName string) error {
 	c.namespaces = ns
 
 	return c.DeleteNamespaceErr
+}
+
+func (c *testClusterClient) ScaleStatefulSet(ns string, name string, scale int32) error {
+	return nil
+}
+
+func (c *testClusterClient) GetMachineSetsForCluster(cluster *clusterv1.Cluster) ([]*clusterv1.MachineSet, error) {
+	var result []*clusterv1.MachineSet
+	for _, ms := range c.machineSets[cluster.Namespace] {
+		if ms.Labels[clusterv1.MachineClusterLabelName] == cluster.Name {
+			result = append(result, ms)
+		}
+	}
+	return result, nil
+}
+
+func (c *testClusterClient) GetMachineDeploymentsForCluster(cluster *clusterv1.Cluster) ([]*clusterv1.MachineDeployment, error) {
+	var result []*clusterv1.MachineDeployment
+	for _, md := range c.machineDeployments[cluster.Namespace] {
+		if md.Labels[clusterv1.MachineClusterLabelName] == cluster.Name {
+			result = append(result, md)
+		}
+	}
+	return result, nil
+}
+
+func (c *testClusterClient) GetMachinesForCluster(cluster *clusterv1.Cluster) ([]*clusterv1.Machine, error) {
+	var result []*clusterv1.Machine
+	for _, m := range c.machines[cluster.Namespace] {
+		if m.Labels[clusterv1.MachineClusterLabelName] == cluster.Name {
+			result = append(result, m)
+		}
+	}
+	return result, nil
+}
+
+func (c *testClusterClient) GetMachineDeployment(namespace, name string) (*clusterv1.MachineDeployment, error) {
+	for _, md := range c.machineDeployments[namespace] {
+		if md.Name == name {
+			return md, nil
+		}
+	}
+	return nil, nil
+}
+
+func (c *testClusterClient) GetMachineSet(namespace, name string) (*clusterv1.MachineSet, error) {
+	for _, ms := range c.machineSets[namespace] {
+		if ms.Name == name {
+			return ms, nil
+		}
+	}
+	return nil, nil
+}
+
+func (c *testClusterClient) ForceDeleteCluster(namespace, name string) error {
+	var newClusters []*clusterv1.Cluster
+	for _, cluster := range c.clusters[namespace] {
+		if cluster.Name != name {
+			newClusters = append(newClusters, cluster)
+		}
+	}
+	c.clusters[namespace] = newClusters
+	return nil
+}
+
+func (c *testClusterClient) ForceDeleteMachine(namespace, name string) error {
+	var newMachines []*clusterv1.Machine
+	for _, machine := range c.machines[namespace] {
+		if machine.Name != name {
+			newMachines = append(newMachines, machine)
+		}
+	}
+	c.machines[namespace] = newMachines
+	return nil
+}
+
+func (c *testClusterClient) ForceDeleteMachineSet(namespace, name string) error {
+	var newMachineSets []*clusterv1.MachineSet
+	for _, ms := range c.machineSets[namespace] {
+		if ms.Name != name {
+			newMachineSets = append(newMachineSets, ms)
+		}
+	}
+	c.machineSets[namespace] = newMachineSets
+	return nil
+}
+
+func (c *testClusterClient) ForceDeleteMachineDeployment(namespace, name string) error {
+	var newMachineDeployments []*clusterv1.MachineDeployment
+	for _, md := range c.machineDeployments[namespace] {
+		if md.Name != name {
+			newMachineDeployments = append(newMachineDeployments, md)
+		}
+	}
+	c.machineDeployments[namespace] = newMachineDeployments
+	return nil
+}
+
+func (c *testClusterClient) GetMachineSetsForMachineDeployment(md *clusterv1.MachineDeployment) ([]*clusterv1.MachineSet, error) {
+	if c.GetMachineSetsForMachineDeploymentErr != nil {
+		return nil, c.GetMachineSetsForMachineDeploymentErr
+	}
+	var results []*clusterv1.MachineSet
+	machineSets, err := c.GetMachineSets(md.Namespace)
+	if err != nil {
+		return nil, err
+	}
+	for _, ms := range machineSets {
+		for _, or := range ms.OwnerReferences {
+			if or.APIVersion == md.APIVersion && or.Kind == md.Kind && or.Name == md.Name {
+				results = append(results, ms)
+			}
+		}
+	}
+	return results, nil
+}
+
+func (c *testClusterClient) GetMachinesForMachineSet(ms *clusterv1.MachineSet) ([]*clusterv1.Machine, error) {
+	if c.GetMachinesForMachineSetErr != nil {
+		return nil, c.GetMachinesForMachineSetErr
+	}
+	var results []*clusterv1.Machine
+	machines, err := c.GetMachines(ms.Namespace)
+	if err != nil {
+		return nil, err
+	}
+	for _, m := range machines {
+		for _, or := range m.OwnerReferences {
+			if or.APIVersion == ms.APIVersion && or.Kind == ms.Kind && or.Name == ms.Name {
+				results = append(results, m)
+			}
+		}
+	}
+	return results, nil
+}
+
+// TODO: implement GetMachineClasses for testClusterClient and add tests
+func (c *testClusterClient) GetMachineClasses(namespace string) ([]*clusterv1.MachineClass, error) {
+	return c.machineClasses[namespace], c.GetMachineClassesErr
+}
+
+// TODO: implement CreateMachineClass for testClusterClient and add tests
+func (c *testClusterClient) CreateMachineClass(*clusterv1.MachineClass) error {
+	return errors.Errorf("CreateMachineClass Not yet implemented.")
+}
+
+// TODO: implement DeleteMachineClass for testClusterClient and add tests
+func (c *testClusterClient) DeleteMachineClass(namespace, name string) error {
+	return errors.Errorf("DeleteMachineClass Not yet implemented.")
 }
 
 func contains(s []string, e string) bool {
@@ -419,7 +599,7 @@ func TestClusterCreate(t *testing.T) {
 		},
 		{
 			name:                                "success no cleaning bootstrap",
-			targetClient:                        &testClusterClient{},
+			targetClient:                        &testClusterClient{ApplyFunc: func(yaml string) error { return nil }},
 			bootstrapClient:                     &testClusterClient{},
 			namespaceToExpectedInternalMachines: make(map[string]int),
 			namespaceToInputCluster:             map[string][]*clusterv1.Cluster{metav1.NamespaceDefault: getClustersForNamespace(metav1.NamespaceDefault, 1)},
@@ -431,7 +611,7 @@ func TestClusterCreate(t *testing.T) {
 		{
 			name:                                "success create cluster with \"\" namespace and bootstrapClientContext namespace",
 			bootstrapClient:                     &testClusterClient{contextNamespace: "foo"},
-			targetClient:                        &testClusterClient{},
+			targetClient:                        &testClusterClient{ApplyFunc: func(yaml string) error { return nil }},
 			cleanupExternal:                     true,
 			expectExternalExists:                false,
 			expectExternalCreated:               true,
@@ -444,7 +624,7 @@ func TestClusterCreate(t *testing.T) {
 		{
 			name:                                "success cluster with \"\" namespace and \"\" bootstrapClientContext namespace",
 			bootstrapClient:                     &testClusterClient{},
-			targetClient:                        &testClusterClient{},
+			targetClient:                        &testClusterClient{ApplyFunc: func(yaml string) error { return nil }},
 			cleanupExternal:                     true,
 			expectExternalExists:                false,
 			expectExternalCreated:               true,
@@ -456,7 +636,7 @@ func TestClusterCreate(t *testing.T) {
 		},
 		{
 			name:                                "fail ensureNamespace in bootstrap cluster",
-			targetClient:                        &testClusterClient{},
+			targetClient:                        &testClusterClient{ApplyFunc: func(yaml string) error { return nil }},
 			bootstrapClient:                     &testClusterClient{EnsureNamespaceErr: errors.New("Test failure")},
 			namespaceToExpectedInternalMachines: make(map[string]int),
 			namespaceToInputCluster:             map[string][]*clusterv1.Cluster{"foo": getClustersForNamespace("foo", 3)},
@@ -478,7 +658,7 @@ func TestClusterCreate(t *testing.T) {
 		},
 		{
 			name:                                "fail provision multiple clusters in a namespace",
-			targetClient:                        &testClusterClient{},
+			targetClient:                        &testClusterClient{ApplyFunc: func(yaml string) error { return nil }},
 			bootstrapClient:                     &testClusterClient{},
 			namespaceToExpectedInternalMachines: make(map[string]int),
 			namespaceToInputCluster:             map[string][]*clusterv1.Cluster{"foo": getClustersForNamespace("foo", 3)},
@@ -489,7 +669,7 @@ func TestClusterCreate(t *testing.T) {
 		},
 		{
 			name:                                "fail provision bootstrap cluster",
-			targetClient:                        &testClusterClient{},
+			targetClient:                        &testClusterClient{ApplyFunc: func(yaml string) error { return nil }},
 			bootstrapClient:                     &testClusterClient{},
 			namespaceToExpectedInternalMachines: make(map[string]int),
 			namespaceToInputCluster:             map[string][]*clusterv1.Cluster{metav1.NamespaceDefault: getClustersForNamespace(metav1.NamespaceDefault, 1)},
@@ -498,7 +678,7 @@ func TestClusterCreate(t *testing.T) {
 		},
 		{
 			name:                                "fail provision bootstrap cluster",
-			targetClient:                        &testClusterClient{},
+			targetClient:                        &testClusterClient{ApplyFunc: func(yaml string) error { return nil }},
 			bootstrapClient:                     &testClusterClient{},
 			namespaceToExpectedInternalMachines: make(map[string]int),
 			namespaceToInputCluster:             map[string][]*clusterv1.Cluster{metav1.NamespaceDefault: getClustersForNamespace(metav1.NamespaceDefault, 1)},
@@ -507,7 +687,7 @@ func TestClusterCreate(t *testing.T) {
 		},
 		{
 			name:                                "fail create clients",
-			targetClient:                        &testClusterClient{},
+			targetClient:                        &testClusterClient{ApplyFunc: func(yaml string) error { return nil }},
 			bootstrapClient:                     &testClusterClient{},
 			namespaceToExpectedInternalMachines: make(map[string]int),
 			namespaceToInputCluster:             map[string][]*clusterv1.Cluster{metav1.NamespaceDefault: getClustersForNamespace(metav1.NamespaceDefault, 1)},
@@ -518,7 +698,7 @@ func TestClusterCreate(t *testing.T) {
 		},
 		{
 			name:                                "fail apply yaml to bootstrap cluster",
-			targetClient:                        &testClusterClient{},
+			targetClient:                        &testClusterClient{ApplyFunc: func(yaml string) error { return nil }},
 			bootstrapClient:                     &testClusterClient{ApplyErr: errors.New("Test failure")},
 			namespaceToExpectedInternalMachines: make(map[string]int),
 			namespaceToInputCluster:             map[string][]*clusterv1.Cluster{metav1.NamespaceDefault: getClustersForNamespace(metav1.NamespaceDefault, 1)},
@@ -528,7 +708,7 @@ func TestClusterCreate(t *testing.T) {
 		},
 		{
 			name:                                "fail waiting for api ready on bootstrap cluster",
-			targetClient:                        &testClusterClient{},
+			targetClient:                        &testClusterClient{ApplyFunc: func(yaml string) error { return nil }},
 			bootstrapClient:                     &testClusterClient{WaitForClusterV1alpha1ReadyErr: errors.New("Test failure")},
 			namespaceToExpectedInternalMachines: make(map[string]int),
 			namespaceToInputCluster:             map[string][]*clusterv1.Cluster{metav1.NamespaceDefault: getClustersForNamespace(metav1.NamespaceDefault, 1)},
@@ -538,8 +718,8 @@ func TestClusterCreate(t *testing.T) {
 		},
 		{
 			name:                                "fail getting bootstrap cluster objects",
-			targetClient:                        &testClusterClient{},
-			bootstrapClient:                     &testClusterClient{GetClusterObjectsInNamespaceErr: errors.New("Test failure")},
+			targetClient:                        &testClusterClient{ApplyFunc: func(yaml string) error { return nil }},
+			bootstrapClient:                     &testClusterClient{GetClustersErr: errors.New("Test failure")},
 			namespaceToExpectedInternalMachines: make(map[string]int),
 			namespaceToInputCluster:             map[string][]*clusterv1.Cluster{metav1.NamespaceDefault: getClustersForNamespace(metav1.NamespaceDefault, 1)},
 			cleanupExternal:                     true,
@@ -548,8 +728,8 @@ func TestClusterCreate(t *testing.T) {
 		},
 		{
 			name:                                "fail getting bootstrap machine objects",
-			targetClient:                        &testClusterClient{},
-			bootstrapClient:                     &testClusterClient{GetMachineObjectsInNamespaceErr: errors.New("Test failure")},
+			targetClient:                        &testClusterClient{ApplyFunc: func(yaml string) error { return nil }},
+			bootstrapClient:                     &testClusterClient{GetMachinesErr: errors.New("Test failure")},
 			namespaceToExpectedInternalMachines: make(map[string]int),
 			namespaceToInputCluster:             map[string][]*clusterv1.Cluster{metav1.NamespaceDefault: getClustersForNamespace(metav1.NamespaceDefault, 1)},
 			cleanupExternal:                     true,
@@ -558,7 +738,7 @@ func TestClusterCreate(t *testing.T) {
 		},
 		{
 			name:                                "fail create cluster",
-			targetClient:                        &testClusterClient{},
+			targetClient:                        &testClusterClient{ApplyFunc: func(yaml string) error { return nil }},
 			bootstrapClient:                     &testClusterClient{CreateClusterObjectErr: errors.New("Test failure")},
 			namespaceToExpectedInternalMachines: make(map[string]int),
 			namespaceToInputCluster:             map[string][]*clusterv1.Cluster{metav1.NamespaceDefault: getClustersForNamespace(metav1.NamespaceDefault, 1)},
@@ -568,8 +748,8 @@ func TestClusterCreate(t *testing.T) {
 		},
 		{
 			name:                                "fail create control plane",
-			targetClient:                        &testClusterClient{},
-			bootstrapClient:                     &testClusterClient{CreateMachineObjectsErr: errors.New("Test failure")},
+			targetClient:                        &testClusterClient{ApplyFunc: func(yaml string) error { return nil }},
+			bootstrapClient:                     &testClusterClient{CreateMachinesErr: errors.New("Test failure")},
 			namespaceToExpectedInternalMachines: make(map[string]int),
 			namespaceToInputCluster:             map[string][]*clusterv1.Cluster{metav1.NamespaceDefault: getClustersForNamespace(metav1.NamespaceDefault, 1)},
 			cleanupExternal:                     true,
@@ -578,7 +758,7 @@ func TestClusterCreate(t *testing.T) {
 		},
 		{
 			name:                                "fail update bootstrap cluster endpoint",
-			targetClient:                        &testClusterClient{},
+			targetClient:                        &testClusterClient{ApplyFunc: func(yaml string) error { return nil }},
 			bootstrapClient:                     &testClusterClient{UpdateClusterObjectEndpointErr: errors.New("Test failure")},
 			namespaceToExpectedInternalMachines: make(map[string]int),
 			namespaceToInputCluster:             map[string][]*clusterv1.Cluster{metav1.NamespaceDefault: getClustersForNamespace(metav1.NamespaceDefault, 1)},
@@ -618,7 +798,7 @@ func TestClusterCreate(t *testing.T) {
 		},
 		{
 			name:                                "fail create nodes",
-			targetClient:                        &testClusterClient{CreateMachineObjectsErr: errors.New("Test failure")},
+			targetClient:                        &testClusterClient{CreateMachinesErr: errors.New("Test failure")},
 			bootstrapClient:                     &testClusterClient{},
 			namespaceToExpectedInternalMachines: make(map[string]int),
 			namespaceToInputCluster:             map[string][]*clusterv1.Cluster{metav1.NamespaceDefault: getClustersForNamespace(metav1.NamespaceDefault, 1)},
@@ -674,7 +854,8 @@ func TestClusterCreate(t *testing.T) {
 			pcStore := mockProviderComponentsStore{}
 			pcFactory := mockProviderComponentsStoreFactory{NewFromCoreclientsetPCStore: &pcStore}
 			d := New(p, f, "", "", bootstrapComponent, testcase.cleanupExternal)
-			inputMachines := generateMachines()
+
+			inputMachines := make(map[string][]*clusterv1.Machine)
 
 			for namespace, inputClusters := range testcase.namespaceToInputCluster {
 				ns := namespace
@@ -685,10 +866,12 @@ func TestClusterCreate(t *testing.T) {
 				var err error
 				for _, inputCluster := range inputClusters {
 					inputCluster.Name = fmt.Sprintf("%s-cluster", ns)
-					err = d.Create(inputCluster, inputMachines, pd, kubeconfigOut, &pcFactory)
+					inputMachines[inputCluster.Name] = generateMachines(inputCluster, ns)
+					err = d.Create(inputCluster, inputMachines[inputCluster.Name], pd, kubeconfigOut, &pcFactory)
 					if err != nil {
 						break
 					}
+					testcase.namespaceToExpectedInternalMachines[ns] = testcase.namespaceToExpectedInternalMachines[ns] + len(inputMachines[inputCluster.Name])
 				}
 				if (testcase.expectErr && err == nil) || (!testcase.expectErr && err != nil) {
 					t.Fatalf("Unexpected error returned. Got: %v, Want Err: %v", err, testcase.expectErr)
@@ -699,7 +882,6 @@ func TestClusterCreate(t *testing.T) {
 				if testcase.expectExternalCreated != p.clusterCreated {
 					t.Errorf("Unexpected bootstrap cluster provisioning. Got: %v, Want: %v", p.clusterCreated, testcase.expectExternalCreated)
 				}
-				testcase.namespaceToExpectedInternalMachines[ns] = len(inputMachines)
 			}
 
 			if !testcase.expectErr {
@@ -722,9 +904,16 @@ func TestClusterCreate(t *testing.T) {
 						t.Fatalf("Unexpected machine count in namespace %q. Got: %d, Want: %d", ns, len(testcase.targetClient.machines[ns]), testcase.namespaceToExpectedInternalMachines[ns])
 					}
 
-					for i := range inputMachines {
-						if inputMachines[i].Name != testcase.targetClient.machines[ns][i].Name {
-							t.Fatalf("Unexpected machine name at %v in namespace %q. Got: %v, Want: %v", i, ns, inputMachines[i].Name, testcase.targetClient.machines[ns][i].Name)
+					clusterMachines := inputMachines[expectedClusterName]
+					for _, m := range clusterMachines {
+						found := false
+						for _, wm := range testcase.targetClient.machines[ns] {
+							if m.Name == wm.Name {
+								found = true
+							}
+						}
+						if !found {
+							t.Fatalf("Unexpected machine name: %s/%s", ns, m.Name)
 						}
 					}
 
@@ -769,12 +958,16 @@ func TestCreateProviderComponentsScenarios(t *testing.T) {
 			f.clusterClients[bootstrapKubeconfig] = &testClusterClient{}
 			f.clusterClients[targetKubeconfig] = &testClusterClient{}
 
-			inputCluster := &clusterv1.Cluster{}
-			inputCluster.Name = "test-cluster"
-			inputMachines := generateMachines()
+			inputCluster := &clusterv1.Cluster{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "test-cluster",
+					Namespace: metav1.NamespaceDefault,
+				},
+			}
+			inputMachines := generateMachines(inputCluster, metav1.NamespaceDefault)
 			pcFactory := mockProviderComponentsStoreFactory{NewFromCoreclientsetPCStore: &tc.pcStore}
-			providerComponentsYaml := "-yaml\ndefinition"
-			addonsYaml := "-yaml\ndefinition"
+			providerComponentsYaml := "---\nyaml: definition"
+			addonsYaml := "---\nyaml: definition"
 			d := New(p, f, providerComponentsYaml, addonsYaml, "", false)
 			err := d.Create(inputCluster, inputMachines, pd, kubeconfigOut, &pcFactory)
 			if err == nil && tc.expectedError != "" {
@@ -805,28 +998,28 @@ func TestExtractControlPlaneMachine(t *testing.T) {
 	}{
 		{
 			name:                 "success_1_control_plane_1_node",
-			inputMachines:        generateMachines(),
-			expectedControlPlane: generateTestControlPlaneMachine(singleControlPlaneName),
-			expectedNodes:        generateTestNodeMachines([]string{singleNodeName}),
+			inputMachines:        generateMachines(nil, metav1.NamespaceDefault),
+			expectedControlPlane: generateTestControlPlaneMachine(nil, metav1.NamespaceDefault, singleControlPlaneName),
+			expectedNodes:        generateTestNodeMachines(nil, metav1.NamespaceDefault, []string{singleNodeName}),
 			expectedError:        nil,
 		},
 		{
 			name:                 "success_1_control_plane_multiple_nodes",
-			inputMachines:        generateValidExtractControlPlaneMachineInput([]string{singleControlPlaneName}, multipleNodeNames),
-			expectedControlPlane: generateTestControlPlaneMachine(singleControlPlaneName),
-			expectedNodes:        generateTestNodeMachines(multipleNodeNames),
+			inputMachines:        generateValidExtractControlPlaneMachineInput(nil, metav1.NamespaceDefault, singleControlPlaneName, multipleNodeNames),
+			expectedControlPlane: generateTestControlPlaneMachine(nil, metav1.NamespaceDefault, singleControlPlaneName),
+			expectedNodes:        generateTestNodeMachines(nil, metav1.NamespaceDefault, multipleNodeNames),
 			expectedError:        nil,
 		},
 		{
 			name:                 "fail_more_than_1_control_plane_not_allowed",
-			inputMachines:        generateInvalidExtractControlPlaneMachine(multipleControlPlaneNames, multipleNodeNames),
+			inputMachines:        generateInvalidExtractControlPlaneMachine(nil, metav1.NamespaceDefault, multipleControlPlaneNames, multipleNodeNames),
 			expectedControlPlane: nil,
 			expectedNodes:        nil,
 			expectedError:        errors.New("expected one control plane machine, got: 2"),
 		},
 		{
 			name:                 "fail_0_control_plane_not_allowed",
-			inputMachines:        generateTestNodeMachines(multipleNodeNames),
+			inputMachines:        generateTestNodeMachines(nil, metav1.NamespaceDefault, multipleNodeNames),
 			expectedControlPlane: nil,
 			expectedNodes:        nil,
 			expectedError:        errors.New("expected one control plane machine, got: 0"),
@@ -862,17 +1055,44 @@ func TestDeleteCleanupExternalCluster(t *testing.T) {
 
 	testCases := []struct {
 		name                   string
-		namespace              string
 		cleanupExternalCluster bool
 		provisionExternalErr   error
 		bootstrapClient        *testClusterClient
 		targetClient           *testClusterClient
 		expectedErrorMessage   string
 	}{
-		{"success with cleanup", metav1.NamespaceDefault, true, nil, &testClusterClient{}, &testClusterClient{}, ""},
-		{"success without cleanup", metav1.NamespaceDefault, false, nil, &testClusterClient{}, &testClusterClient{}, ""},
-		{"error with cleanup", metav1.NamespaceDefault, true, nil, &testClusterClient{}, &testClusterClient{GetMachineSetObjectsInNamespaceErr: errors.New("get machine sets error")}, "unable to copy objects from target to bootstrap cluster: get machine sets error"},
-		{"error without cleanup", metav1.NamespaceDefault, true, nil, &testClusterClient{}, &testClusterClient{GetMachineSetObjectsInNamespaceErr: errors.New("get machine sets error")}, "unable to copy objects from target to bootstrap cluster: get machine sets error"},
+		{
+			name:                   "success with cleanup",
+			cleanupExternalCluster: true,
+			provisionExternalErr:   nil,
+			bootstrapClient:        &testClusterClient{},
+			targetClient:           &testClusterClient{},
+			expectedErrorMessage:   "",
+		},
+		{
+			name:                   "success without cleanup",
+			cleanupExternalCluster: false,
+			provisionExternalErr:   nil,
+			bootstrapClient:        &testClusterClient{},
+			targetClient:           &testClusterClient{},
+			expectedErrorMessage:   "",
+		},
+		{
+			name:                   "error with cleanup",
+			cleanupExternalCluster: true,
+			provisionExternalErr:   nil,
+			bootstrapClient:        &testClusterClient{},
+			targetClient:           &testClusterClient{GetMachineSetsErr: errors.New("get machine sets error")},
+			expectedErrorMessage:   "get machine sets error",
+		},
+		{
+			name:                   "error without cleanup",
+			cleanupExternalCluster: true,
+			provisionExternalErr:   nil,
+			bootstrapClient:        &testClusterClient{},
+			targetClient:           &testClusterClient{GetMachineSetsErr: errors.New("get machine sets error")},
+			expectedErrorMessage:   "get machine sets error",
+		},
 	}
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
@@ -883,12 +1103,12 @@ func TestDeleteCleanupExternalCluster(t *testing.T) {
 			f.clusterClients[bootstrapKubeconfig] = tc.bootstrapClient
 			f.clusterClients[targetKubeconfig] = tc.targetClient
 			d := New(p, f, "", "", "", tc.cleanupExternalCluster)
-			err := d.Delete(tc.targetClient, tc.namespace)
+			err := d.Delete(tc.targetClient)
 			if err != nil || tc.expectedErrorMessage != "" {
 				if err == nil {
 					t.Errorf("expected error %q", tc.expectedErrorMessage)
-				} else if err.Error() != tc.expectedErrorMessage {
-					t.Errorf("Unexpected error: got '%v', want: '%v'", err, tc.expectedErrorMessage)
+				} else if errors.Cause(err).Error() != tc.expectedErrorMessage {
+					t.Errorf("Unexpected error: got %q, want: %q", errors.Cause(err).Error(), tc.expectedErrorMessage)
 				}
 			}
 			if !tc.cleanupExternalCluster != p.clusterExists {
@@ -903,74 +1123,40 @@ func TestClusterDelete(t *testing.T) {
 	const targetKubeconfig = "target"
 
 	testCases := []struct {
-		name                         string
-		namespace                    string
-		provisionExternalErr         error
-		NewCoreClientsetErr          error
-		bootstrapClient              *testClusterClient
-		targetClient                 *testClusterClient
-		expectedErrorMessage         string
-		expectedExternalClusterCount int
-		expectError                  bool
+		name                                   string
+		provisionExternalErr                   error
+		NewCoreClientsetErr                    error
+		bootstrapClient                        *testClusterClient
+		targetClient                           *testClusterClient
+		expectedErrorMessage                   string
+		expectedExternalClusterCount           int
+		expectedExternalMachineCount           int
+		expectedExternalMachineSetCount        int
+		expectedExternalMachineDeploymentCount int
+		expectedExternalMachineClassCount      int
+		expectError                            bool
 	}{
 		{
-			name:      "success delete 1/1 cluster, 0 clusters remaining",
-			namespace: metav1.NamespaceDefault,
-			bootstrapClient: &testClusterClient{
-				clusters: map[string][]*clusterv1.Cluster{
-					metav1.NamespaceDefault: getClustersForNamespace(metav1.NamespaceDefault, 1),
-				},
-				machines: map[string][]*clusterv1.Machine{
-					metav1.NamespaceDefault: generateMachines(),
-				},
-				machineSets: map[string][]*clusterv1.MachineSet{
-					metav1.NamespaceDefault: newMachineSetsFixture(),
-				},
-				machineDeployments: map[string][]*clusterv1.MachineDeployment{
-					metav1.NamespaceDefault: newMachineDeploymentsFixture(),
-				},
-			},
+			name:            "success delete 1/1 cluster",
+			bootstrapClient: &testClusterClient{},
 			targetClient: &testClusterClient{
 				clusters: map[string][]*clusterv1.Cluster{
 					metav1.NamespaceDefault: getClustersForNamespace(metav1.NamespaceDefault, 1),
 				},
 				machines: map[string][]*clusterv1.Machine{
-					metav1.NamespaceDefault: generateMachines(),
+					metav1.NamespaceDefault: generateMachines(nil, metav1.NamespaceDefault),
 				},
 				machineSets: map[string][]*clusterv1.MachineSet{
-					metav1.NamespaceDefault: newMachineSetsFixture(),
+					metav1.NamespaceDefault: newMachineSetsFixture(metav1.NamespaceDefault),
 				},
 				machineDeployments: map[string][]*clusterv1.MachineDeployment{
-					metav1.NamespaceDefault: newMachineDeploymentsFixture(),
+					metav1.NamespaceDefault: newMachineDeploymentsFixture(metav1.NamespaceDefault),
 				},
 			},
-			expectedExternalClusterCount: 0,
 		},
 		{
-			name:      "success delete 1/3 clusters, 2 clusters remaining",
-			namespace: "foo",
-			bootstrapClient: &testClusterClient{
-				clusters: map[string][]*clusterv1.Cluster{
-					"foo": getClustersForNamespace("foo", 1),
-					"bar": getClustersForNamespace("bar", 1),
-					"baz": getClustersForNamespace("baz", 1),
-				},
-				machines: map[string][]*clusterv1.Machine{
-					"foo": generateMachines(),
-					"bar": generateMachines(),
-					"baz": generateMachines(),
-				},
-				machineSets: map[string][]*clusterv1.MachineSet{
-					"foo": newMachineSetsFixture(),
-					"bar": newMachineSetsFixture(),
-					"baz": newMachineSetsFixture(),
-				},
-				machineDeployments: map[string][]*clusterv1.MachineDeployment{
-					"foo": newMachineDeploymentsFixture(),
-					"bar": newMachineDeploymentsFixture(),
-					"baz": newMachineDeploymentsFixture(),
-				},
-			},
+			name:            "success delete 3/3 clusters",
+			bootstrapClient: &testClusterClient{},
 			targetClient: &testClusterClient{
 				clusters: map[string][]*clusterv1.Cluster{
 					"foo": getClustersForNamespace("foo", 1),
@@ -978,53 +1164,48 @@ func TestClusterDelete(t *testing.T) {
 					"baz": getClustersForNamespace("baz", 1),
 				},
 				machines: map[string][]*clusterv1.Machine{
-					"foo": generateMachines(),
-					"bar": generateMachines(),
-					"baz": generateMachines(),
+					"foo": generateMachines(nil, "foo"),
+					"bar": generateMachines(nil, "bar"),
+					"baz": generateMachines(nil, "baz"),
 				},
 				machineSets: map[string][]*clusterv1.MachineSet{
-					"foo": newMachineSetsFixture(),
-					"bar": newMachineSetsFixture(),
-					"baz": newMachineSetsFixture(),
+					"foo": newMachineSetsFixture("foo"),
+					"bar": newMachineSetsFixture("bar"),
+					"baz": newMachineSetsFixture("baz"),
 				},
 				machineDeployments: map[string][]*clusterv1.MachineDeployment{
-					"foo": newMachineDeploymentsFixture(),
-					"bar": newMachineDeploymentsFixture(),
-					"baz": newMachineDeploymentsFixture(),
+					"foo": newMachineDeploymentsFixture("foo"),
+					"bar": newMachineDeploymentsFixture("bar"),
+					"baz": newMachineDeploymentsFixture("baz"),
 				},
 			},
-			expectedExternalClusterCount: 2,
 		},
 		{
 			name:                 "error creating core client",
-			namespace:            metav1.NamespaceDefault,
 			provisionExternalErr: nil,
 			NewCoreClientsetErr:  errors.New("error creating core client"),
 			bootstrapClient:      &testClusterClient{},
 			targetClient:         &testClusterClient{},
-			expectedErrorMessage: "could not create bootstrap cluster: unable to create bootstrap client: error creating core client",
+			expectedErrorMessage: "error creating core client",
 		},
 		{
 			name:                 "fail provision bootstrap cluster",
-			namespace:            metav1.NamespaceDefault,
 			provisionExternalErr: errors.New("minikube error"),
 			NewCoreClientsetErr:  nil,
 			bootstrapClient:      &testClusterClient{},
 			targetClient:         &testClusterClient{},
-			expectedErrorMessage: "could not create bootstrap cluster: could not create bootstrap control plane: minikube error",
+			expectedErrorMessage: "minikube error",
 		},
 		{
 			name:                 "fail apply yaml to bootstrap cluster",
-			namespace:            metav1.NamespaceDefault,
 			provisionExternalErr: nil,
 			NewCoreClientsetErr:  nil,
 			bootstrapClient:      &testClusterClient{ApplyErr: errors.New("yaml apply error")},
 			targetClient:         &testClusterClient{},
-			expectedErrorMessage: "unable to apply cluster api stack to bootstrap cluster: unable to apply cluster api controllers: yaml apply error",
+			expectedErrorMessage: "yaml apply error",
 		},
 		{
 			name:                 "fail delete provider components should succeed",
-			namespace:            metav1.NamespaceDefault,
 			provisionExternalErr: nil,
 			NewCoreClientsetErr:  nil,
 			bootstrapClient:      &testClusterClient{},
@@ -1033,81 +1214,76 @@ func TestClusterDelete(t *testing.T) {
 		},
 		{
 			name:                 "error listing machines",
-			namespace:            metav1.NamespaceDefault,
 			provisionExternalErr: nil,
 			NewCoreClientsetErr:  nil,
 			bootstrapClient:      &testClusterClient{},
-			targetClient:         &testClusterClient{GetMachineObjectsInNamespaceErr: errors.New("get machines error")},
-			expectedErrorMessage: "unable to copy objects from target to bootstrap cluster: get machines error",
+			targetClient:         &testClusterClient{GetMachinesErr: errors.New("get machines error")},
+			expectedErrorMessage: "get machines error",
 		},
 		{
 			name:                 "error listing machine sets",
-			namespace:            metav1.NamespaceDefault,
 			provisionExternalErr: nil,
 			NewCoreClientsetErr:  nil,
 			bootstrapClient:      &testClusterClient{},
-			targetClient:         &testClusterClient{GetMachineSetObjectsInNamespaceErr: errors.New("get machine sets error")},
-			expectedErrorMessage: "unable to copy objects from target to bootstrap cluster: get machine sets error",
+			targetClient:         &testClusterClient{GetMachineSetsErr: errors.New("get machine sets error")},
+			expectedErrorMessage: "get machine sets error",
 		},
 		{
 			name:                 "error listing machine deployments",
-			namespace:            metav1.NamespaceDefault,
 			provisionExternalErr: nil,
 			NewCoreClientsetErr:  nil,
 			bootstrapClient:      &testClusterClient{},
-			targetClient:         &testClusterClient{GetMachineDeploymentObjectsInNamespaceErr: errors.New("get machine deployments error")},
-			expectedErrorMessage: "unable to copy objects from target to bootstrap cluster: get machine deployments error",
+			targetClient:         &testClusterClient{GetMachineDeploymentsErr: errors.New("get machine deployments error")},
+			expectedErrorMessage: "get machine deployments error",
 		},
 		{
 			name:                 "error listing clusters",
-			namespace:            metav1.NamespaceDefault,
 			provisionExternalErr: nil,
 			NewCoreClientsetErr:  nil,
 			bootstrapClient:      &testClusterClient{},
-			targetClient:         &testClusterClient{GetClusterObjectsInNamespaceErr: errors.New("get clusters error")},
-			expectedErrorMessage: "unable to copy objects from target to bootstrap cluster: get clusters error",
+			targetClient:         &testClusterClient{GetClustersErr: errors.New("get clusters error")},
+			expectedErrorMessage: "get clusters error",
 		},
 		{
 			name:                 "error creating machines",
-			namespace:            metav1.NamespaceDefault,
 			provisionExternalErr: nil,
 			NewCoreClientsetErr:  nil,
-			bootstrapClient:      &testClusterClient{CreateMachineObjectsErr: errors.New("create machines error")},
+			bootstrapClient:      &testClusterClient{CreateMachinesErr: errors.New("create machines error")},
 			targetClient: &testClusterClient{
 				machines: map[string][]*clusterv1.Machine{
-					metav1.NamespaceDefault: generateMachines(),
+					metav1.NamespaceDefault: generateMachines(nil, metav1.NamespaceDefault),
 				},
 			},
-			expectedErrorMessage: "unable to copy objects from target to bootstrap cluster: error moving Machine \"test-control-plane\": create machines error",
+			expectedErrorMessage:         "create machines error",
+			expectedExternalMachineCount: 2,
 		},
 		{
 			name:                 "error creating machine sets",
-			namespace:            metav1.NamespaceDefault,
 			provisionExternalErr: nil,
 			NewCoreClientsetErr:  nil,
-			bootstrapClient:      &testClusterClient{CreateMachineSetObjectsErr: errors.New("create machine sets error")},
+			bootstrapClient:      &testClusterClient{CreateMachineSetsErr: errors.New("create machine sets error")},
 			targetClient: &testClusterClient{
 				machineSets: map[string][]*clusterv1.MachineSet{
-					metav1.NamespaceDefault: newMachineSetsFixture(),
+					metav1.NamespaceDefault: newMachineSetsFixture(metav1.NamespaceDefault),
 				},
 			},
-			expectedErrorMessage: "unable to copy objects from target to bootstrap cluster: error moving MachineSet \"machine-set-name-1\": create machine sets error",
+			expectedErrorMessage:            "create machine sets error",
+			expectedExternalMachineSetCount: 2,
 		},
 		{
 			name:                 "error creating machine deployments",
-			namespace:            metav1.NamespaceDefault,
 			provisionExternalErr: nil,
 			NewCoreClientsetErr:  nil,
-			bootstrapClient:      &testClusterClient{CreateMachineDeploymentsObjectsErr: errors.New("create machine deployments error")},
+			bootstrapClient:      &testClusterClient{CreateMachineDeploymentsErr: errors.New("create machine deployments error")},
 			targetClient: &testClusterClient{
 				machineDeployments: map[string][]*clusterv1.MachineDeployment{
-					metav1.NamespaceDefault: newMachineDeploymentsFixture(),
+					metav1.NamespaceDefault: newMachineDeploymentsFixture(metav1.NamespaceDefault),
 				}},
-			expectedErrorMessage: "unable to copy objects from target to bootstrap cluster: error moving MachineDeployment \"machine-deployment-name-1\": create machine deployments error",
+			expectedErrorMessage:                   "create machine deployments error",
+			expectedExternalMachineDeploymentCount: 2,
 		},
 		{
 			name:                 "error creating cluster",
-			namespace:            metav1.NamespaceDefault,
 			provisionExternalErr: nil,
 			NewCoreClientsetErr:  nil,
 			bootstrapClient:      &testClusterClient{CreateClusterObjectErr: errors.New("create cluster error")},
@@ -1116,53 +1292,48 @@ func TestClusterDelete(t *testing.T) {
 					metav1.NamespaceDefault: getClustersForNamespace(metav1.NamespaceDefault, 1),
 				},
 			},
-			expectedErrorMessage: "unable to copy objects from target to bootstrap cluster: error moving Cluster \"default-cluster\": create cluster error",
+			expectedErrorMessage:         "create cluster error",
+			expectedExternalClusterCount: 1,
 		},
-
 		{
 			name:                 "error deleting machines",
-			namespace:            metav1.NamespaceDefault,
 			provisionExternalErr: nil,
 			NewCoreClientsetErr:  nil,
-			bootstrapClient:      &testClusterClient{DeleteMachineObjectsInNamespaceErr: errors.New("delete machines error")},
+			bootstrapClient:      &testClusterClient{DeleteMachinesErr: errors.New("delete machines error")},
 			targetClient:         &testClusterClient{},
-			expectedErrorMessage: "unable to finish deleting objects in bootstrap cluster, resources may have been leaked: error(s) encountered deleting objects from bootstrap cluster: [error deleting machines: delete machines error]",
+			expectedErrorMessage: "error(s) encountered deleting objects from bootstrap cluster: [error deleting Machines: delete machines error]",
 		},
 		{
 			name:                 "error deleting machine sets",
-			namespace:            metav1.NamespaceDefault,
 			provisionExternalErr: nil,
 			NewCoreClientsetErr:  nil,
-			bootstrapClient:      &testClusterClient{DeleteMachineSetObjectsInNamespaceErr: errors.New("delete machine sets error")},
+			bootstrapClient:      &testClusterClient{DeleteMachineSetsErr: errors.New("delete machine sets error")},
 			targetClient:         &testClusterClient{},
-			expectedErrorMessage: "unable to finish deleting objects in bootstrap cluster, resources may have been leaked: error(s) encountered deleting objects from bootstrap cluster: [error deleting machine sets: delete machine sets error]",
+			expectedErrorMessage: "error(s) encountered deleting objects from bootstrap cluster: [error deleting MachineSets: delete machine sets error]",
 		},
 		{
 			name:                 "error deleting machine deployments",
-			namespace:            metav1.NamespaceDefault,
 			provisionExternalErr: nil,
 			NewCoreClientsetErr:  nil,
-			bootstrapClient:      &testClusterClient{DeleteMachineDeploymentsObjectsInNamespaceErr: errors.New("delete machine deployments error")},
+			bootstrapClient:      &testClusterClient{DeleteMachineDeploymentsErr: errors.New("delete machine deployments error")},
 			targetClient:         &testClusterClient{},
-			expectedErrorMessage: "unable to finish deleting objects in bootstrap cluster, resources may have been leaked: error(s) encountered deleting objects from bootstrap cluster: [error deleting machine deployments: delete machine deployments error]",
+			expectedErrorMessage: "error(s) encountered deleting objects from bootstrap cluster: [error deleting MachineDeployments: delete machine deployments error]",
 		},
 		{
 			name:                 "error deleting clusters",
-			namespace:            metav1.NamespaceDefault,
 			provisionExternalErr: nil,
 			NewCoreClientsetErr:  nil,
-			bootstrapClient:      &testClusterClient{DeleteClusterObjectsInNamespaceErr: errors.New("delete clusters error")},
+			bootstrapClient:      &testClusterClient{DeleteClustersErr: errors.New("delete clusters error")},
 			targetClient:         &testClusterClient{},
-			expectedErrorMessage: "unable to finish deleting objects in bootstrap cluster, resources may have been leaked: error(s) encountered deleting objects from bootstrap cluster: [error deleting clusters: delete clusters error]",
+			expectedErrorMessage: "error(s) encountered deleting objects from bootstrap cluster: [error deleting Clusters: delete clusters error]",
 		},
 		{
 			name:                 "error deleting machines and clusters",
-			namespace:            metav1.NamespaceDefault,
 			provisionExternalErr: nil,
 			NewCoreClientsetErr:  nil,
-			bootstrapClient:      &testClusterClient{DeleteMachineObjectsInNamespaceErr: errors.New("delete machines error"), DeleteClusterObjectsInNamespaceErr: errors.New("delete clusters error")},
+			bootstrapClient:      &testClusterClient{DeleteMachinesErr: errors.New("delete machines error"), DeleteClustersErr: errors.New("delete clusters error")},
 			targetClient:         &testClusterClient{},
-			expectedErrorMessage: "unable to finish deleting objects in bootstrap cluster, resources may have been leaked: error(s) encountered deleting objects from bootstrap cluster: [error deleting machines: delete machines error, error deleting clusters: delete clusters error]",
+			expectedErrorMessage: "error(s) encountered deleting objects from bootstrap cluster: [error deleting Machines: delete machines error, error deleting Clusters: delete clusters error]",
 		},
 	}
 
@@ -1170,110 +1341,167 @@ func TestClusterDelete(t *testing.T) {
 		t.Run(testCase.name, func(t *testing.T) {
 			kubeconfigOut := newTempFile(t)
 			defer os.Remove(kubeconfigOut)
-			p := &testClusterProvisioner{err: testCase.provisionExternalErr, kubeconfig: bootstrapKubeconfig}
+			p := &testClusterProvisioner{
+				err:        testCase.provisionExternalErr,
+				kubeconfig: bootstrapKubeconfig,
+			}
 			f := newTestClusterClientFactory()
 			f.clusterClients[bootstrapKubeconfig] = testCase.bootstrapClient
-			f.clusterClients[targetKubeconfig] = testCase.targetClient
 			f.ClusterClientErr = testCase.NewCoreClientsetErr
 			d := New(p, f, "", "", "", true)
 
-			err := d.Delete(testCase.targetClient, testCase.namespace)
+			err := d.Delete(testCase.targetClient)
 			if err != nil || testCase.expectedErrorMessage != "" {
 				if err == nil {
 					t.Errorf("expected error %q", testCase.expectedErrorMessage)
-				} else if err.Error() != testCase.expectedErrorMessage {
-					t.Errorf("Unexpected error: got %q, want: %q", err, testCase.expectedErrorMessage)
+				} else if errors.Cause(err).Error() != testCase.expectedErrorMessage {
+					t.Errorf("Unexpected error: got %q, want: %q", errors.Cause(err).Error(), testCase.expectedErrorMessage)
 				}
 			}
 
 			if !testCase.expectError {
-				if len(testCase.bootstrapClient.clusters[testCase.namespace]) != 0 {
-					t.Fatalf("Unexpected cluster count in namespace %q. Got: %d, Want: 0", testCase.namespace, len(testCase.targetClient.clusters[testCase.namespace]))
+				var (
+					bootstrapClusters, bootstrapMachines, bootstrapMachineDeployments, bootstrapMachineSets, bootstrapMachineClasses int
+					targetClusters, targetMachines, targetMachineDeployments, targetMachineSets, targetMachineClasses                int
+				)
+				for _, clusters := range testCase.bootstrapClient.clusters {
+					bootstrapClusters = bootstrapClusters + len(clusters)
 				}
-				if len(testCase.bootstrapClient.machines[testCase.namespace]) != 0 {
-					t.Fatalf("Unexpected machine count in namespace %q. Got: %d, Want: 0", testCase.namespace, len(testCase.targetClient.machines[testCase.namespace]))
+				for _, machines := range testCase.bootstrapClient.machines {
+					bootstrapMachines = bootstrapMachines + len(machines)
 				}
-				if len(testCase.bootstrapClient.machineSets[testCase.namespace]) != 0 {
-					t.Fatalf("Unexpected machineSets count in namespace %q. Got: %d, Want: 0", testCase.namespace, len(testCase.targetClient.machineSets[testCase.namespace]))
+				for _, machineDeployments := range testCase.bootstrapClient.machineDeployments {
+					bootstrapMachineDeployments = bootstrapMachineDeployments + len(machineDeployments)
 				}
-				if len(testCase.bootstrapClient.machineDeployments[testCase.namespace]) != 0 {
-					t.Fatalf("Unexpected machineDeployments count in namespace %q. Got: %d, Want: 0", testCase.namespace, len(testCase.targetClient.machineDeployments[testCase.namespace]))
+				for _, machineSets := range testCase.bootstrapClient.machineSets {
+					bootstrapMachineSets = bootstrapMachineSets + len(machineSets)
 				}
-				if len(testCase.bootstrapClient.clusters) != testCase.expectedExternalClusterCount {
-					t.Fatalf("Unexpected remaining cluster count. Got: %d, Want: %d", len(testCase.bootstrapClient.clusters), testCase.expectedExternalClusterCount)
+				for _, machineClasses := range testCase.bootstrapClient.machineClasses {
+					bootstrapMachineClasses = bootstrapMachineClasses + len(machineClasses)
 				}
-				if contains(testCase.bootstrapClient.namespaces, testCase.namespace) {
-					t.Fatalf("Unexpected remaining namespace %q in bootstrap cluster. Got: Found, Want: NotFound", testCase.namespace)
+				for _, clusters := range testCase.targetClient.clusters {
+					targetClusters = targetClusters + len(clusters)
 				}
-				if testCase.namespace != apiv1.NamespaceDefault && contains(testCase.targetClient.namespaces, testCase.namespace) {
-					t.Fatalf("Unexpected remaining namespace %q in target cluster. Got: Found, Want: NotFound", testCase.namespace)
+				for _, machines := range testCase.targetClient.machines {
+					targetMachines = targetMachines + len(machines)
+				}
+				for _, machineDeployments := range testCase.targetClient.machineDeployments {
+					targetMachineDeployments = targetMachineDeployments + len(machineDeployments)
+				}
+				for _, machineSets := range testCase.targetClient.machineSets {
+					targetMachineSets = targetMachineSets + len(machineSets)
+				}
+				for _, machineClasses := range testCase.targetClient.machineClasses {
+					targetMachineClasses = targetMachineClasses + len(machineClasses)
+				}
+
+				if bootstrapClusters != 0 {
+					t.Fatalf("Unexpected Cluster count in bootstrap cluster. Got: %d, Want: 0", bootstrapClusters)
+				}
+				if bootstrapMachines != 0 {
+					t.Fatalf("Unexpected Machine count in bootstrap cluster. Got: %d, Want: 0", bootstrapMachines)
+				}
+				if bootstrapMachineSets != 0 {
+					t.Fatalf("Unexpected MachineSet count in bootstrap cluster. Got: %d, Want: 0", bootstrapMachineSets)
+				}
+				if bootstrapMachineDeployments != 0 {
+					t.Fatalf("Unexpected MachineDeployment count in bootstrap cluster. Got: %d, Want: 0", bootstrapMachineDeployments)
+				}
+				if bootstrapMachineClasses != 0 {
+					t.Fatalf("Unexpected MachineClass count in bootstrap cluster. Got: %d, Want: 0", bootstrapMachineClasses)
+				}
+				if targetClusters != testCase.expectedExternalClusterCount {
+					t.Fatalf("Unexpected Cluster count in target cluster. Got: %d, Want: %d", targetClusters, testCase.expectedExternalClusterCount)
+				}
+				if targetMachines != testCase.expectedExternalMachineCount {
+					t.Fatalf("Unexpected Machine count in target cluster. Got: %d, Want: %d", targetMachines, testCase.expectedExternalMachineCount)
+				}
+				if targetMachineSets != testCase.expectedExternalMachineSetCount {
+					t.Fatalf("Unexpected MachineSet count in target cluster. Got: %d, Want: %d", targetMachineSets, testCase.expectedExternalMachineSetCount)
+				}
+				if targetMachineDeployments != testCase.expectedExternalMachineDeploymentCount {
+					t.Fatalf("Unexpected MachineDeployment count in target cluster. Got: %d, Want: %d", targetMachineDeployments, testCase.expectedExternalMachineDeploymentCount)
+				}
+				if targetMachineClasses != testCase.expectedExternalMachineClassCount {
+					t.Fatalf("Unexpected MachineClass count in target cluster. Got: %d, Want: %d", targetMachineClasses, testCase.expectedExternalMachineClassCount)
 				}
 			}
 		})
 	}
 }
 
-func generateTestControlPlaneMachine(name string) *clusterv1.Machine {
-	return &clusterv1.Machine{
-		ObjectMeta: metav1.ObjectMeta{
-			Name: name,
+func generateTestControlPlaneMachine(cluster *clusterv1.Cluster, ns, name string) *clusterv1.Machine {
+	machine := generateTestNodeMachine(cluster, ns, name)
+	machine.Spec = clusterv1.MachineSpec{
+		Versions: clusterv1.MachineVersionInfo{
+			ControlPlane: "1.10.1",
 		},
-		Spec: clusterv1.MachineSpec{
-			Versions: clusterv1.MachineVersionInfo{
-				ControlPlane: "1.10.1",
+	}
+	return machine
+}
+
+func generateTestNodeMachine(cluster *clusterv1.Cluster, ns, name string) *clusterv1.Machine {
+	machine := clusterv1.Machine{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      name,
+			Namespace: ns,
+		},
+	}
+	if cluster != nil {
+		machine.Labels = map[string]string{clusterv1.MachineClusterLabelName: cluster.Name}
+		machine.OwnerReferences = []metav1.OwnerReference{
+			{
+				APIVersion: cluster.APIVersion,
+				Kind:       cluster.Kind,
+				Name:       cluster.Name,
+				UID:        cluster.UID,
 			},
-		},
+		}
 	}
+	return &machine
 }
 
-func generateTestNodeMachine(name string) *clusterv1.Machine {
-	return &clusterv1.Machine{
-		ObjectMeta: metav1.ObjectMeta{
-			Name: name,
-		},
-	}
-}
-
-func generateTestControlPlaneMachines(controlPlaneNames []string) []*clusterv1.Machine {
-	controlPlanes := make([]*clusterv1.Machine, 0, len(controlPlaneNames))
-	for _, mn := range controlPlaneNames {
-		controlPlanes = append(controlPlanes, generateTestControlPlaneMachine(mn))
-	}
-	return controlPlanes
-}
-
-func generateTestNodeMachines(nodeNames []string) []*clusterv1.Machine {
+func generateTestNodeMachines(cluster *clusterv1.Cluster, ns string, nodeNames []string) []*clusterv1.Machine {
 	nodes := make([]*clusterv1.Machine, 0, len(nodeNames))
 	for _, nn := range nodeNames {
-		nodes = append(nodes, generateTestNodeMachine(nn))
+		nodes = append(nodes, generateTestNodeMachine(cluster, ns, nn))
 	}
 	return nodes
 }
 
-func generateInvalidExtractControlPlaneMachine(controlPlaneNames, nodeNames []string) []*clusterv1.Machine {
-	controlPlanes := generateTestControlPlaneMachines(controlPlaneNames)
-	nodes := generateTestNodeMachines(nodeNames)
-
-	return append(controlPlanes, nodes...)
+func generateInvalidExtractControlPlaneMachine(cluster *clusterv1.Cluster, ns string, controlPlaneNames, nodeNames []string) []*clusterv1.Machine {
+	var machines []*clusterv1.Machine // nolint
+	for _, name := range controlPlaneNames {
+		machines = append(machines, generateTestControlPlaneMachine(cluster, ns, name))
+	}
+	machines = append(machines, generateTestNodeMachines(cluster, ns, nodeNames)...)
+	return machines
 }
 
-func generateValidExtractControlPlaneMachineInput(controlPlaneNames, nodeNames []string) []*clusterv1.Machine {
-	controlPlanes := generateTestControlPlaneMachines(controlPlaneNames)
-	nodes := generateTestNodeMachines(nodeNames)
-
-	return append(controlPlanes, nodes...)
+func generateValidExtractControlPlaneMachineInput(cluster *clusterv1.Cluster, ns, controlPlaneName string, nodeNames []string) []*clusterv1.Machine {
+	var machines []*clusterv1.Machine
+	machines = append(machines, generateTestControlPlaneMachine(cluster, ns, controlPlaneName))
+	machines = append(machines, generateTestNodeMachines(cluster, ns, nodeNames)...)
+	return machines
 }
 
-func generateMachines() []*clusterv1.Machine {
-	controlPlaneMachine := generateTestControlPlaneMachine("test-control-plane")
-	node := generateTestNodeMachine("test-node")
-	return []*clusterv1.Machine{controlPlaneMachine, node}
+func generateMachines(cluster *clusterv1.Cluster, ns string) []*clusterv1.Machine {
+	var machines []*clusterv1.Machine
+	controlPlaneName := "control-plane"
+	workerName := "node"
+	if cluster != nil {
+		controlPlaneName = cluster.Name + controlPlaneName
+		workerName = cluster.Name + workerName
+	}
+	machines = append(machines, generateTestControlPlaneMachine(cluster, ns, controlPlaneName))
+	machines = append(machines, generateTestNodeMachine(cluster, ns, workerName))
+	return machines
 }
 
-func newMachineSetsFixture() []*clusterv1.MachineSet {
+func newMachineSetsFixture(ns string) []*clusterv1.MachineSet {
 	return []*clusterv1.MachineSet{
-		{ObjectMeta: metav1.ObjectMeta{Name: "machine-set-name-1"}},
-		{ObjectMeta: metav1.ObjectMeta{Name: "machine-set-name-2"}},
+		{ObjectMeta: metav1.ObjectMeta{Name: "machine-set-name-1", Namespace: ns}},
+		{ObjectMeta: metav1.ObjectMeta{Name: "machine-set-name-2", Namespace: ns}},
 	}
 }
 
@@ -1290,17 +1518,17 @@ func getClustersForNamespace(namespace string, count int) []*clusterv1.Cluster {
 	return clusters
 }
 
-func newMachineDeploymentsFixture() []*clusterv1.MachineDeployment {
+func newMachineDeploymentsFixture(ns string) []*clusterv1.MachineDeployment {
 	return []*clusterv1.MachineDeployment{
-		{ObjectMeta: metav1.ObjectMeta{Name: "machine-deployment-name-1"}},
-		{ObjectMeta: metav1.ObjectMeta{Name: "machine-deployment-name-2"}},
+		{ObjectMeta: metav1.ObjectMeta{Name: "machine-deployment-name-1", Namespace: ns}},
+		{ObjectMeta: metav1.ObjectMeta{Name: "machine-deployment-name-2", Namespace: ns}},
 	}
 }
 
-func newClustersFixture() []*clusterv1.Cluster {
+func newClustersFixture(ns string) []*clusterv1.Cluster {
 	return []*clusterv1.Cluster{
-		{ObjectMeta: metav1.ObjectMeta{Name: "cluster-name-1"}},
-		{ObjectMeta: metav1.ObjectMeta{Name: "cluster-name-2"}},
+		{ObjectMeta: metav1.ObjectMeta{Name: "cluster-name-1", Namespace: ns}},
+		{ObjectMeta: metav1.ObjectMeta{Name: "cluster-name-2", Namespace: ns}},
 	}
 }
 

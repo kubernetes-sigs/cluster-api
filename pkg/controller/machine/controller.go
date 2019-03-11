@@ -178,6 +178,14 @@ func (r *ReconcileMachine) Reconcile(request reconcile.Request) (reconcile.Resul
 			return reconcile.Result{}, err
 		}
 
+		if m.Status.NodeRef != nil {
+			klog.Infof("Deleting node %q for machine %q", m.Status.NodeRef.Name, m.Name)
+			if err := r.deleteNode(ctx, m.Status.NodeRef.Name); err != nil {
+				klog.Errorf("Error deleting node %q for machine %q", name, err)
+				return reconcile.Result{}, err
+			}
+		}
+
 		// Remove finalizer on successful deletion.
 		m.ObjectMeta.Finalizers = util.Filter(m.ObjectMeta.Finalizers, clusterv1.MachineFinalizer)
 		if err := r.Client.Update(context.Background(), m); err != nil {
@@ -262,4 +270,17 @@ func (r *ReconcileMachine) isDeleteAllowed(machine *clusterv1.Machine) bool {
 	// delete the machine this machine-controller is running on. Return false to not allow machine controller to delete its
 	// own machine.
 	return node.UID != machine.Status.NodeRef.UID
+}
+
+func (r *ReconcileMachine) deleteNode(ctx context.Context, name string) error {
+	var node corev1.Node
+	if err := r.Client.Get(ctx, client.ObjectKey{Name: name}, &node); err != nil {
+		if apierrors.IsNotFound(err) {
+			klog.V(2).Infof("Node %q not found", name)
+			return nil
+		}
+		klog.Errorf("Failed to get node %q: %v", name, err)
+		return err
+	}
+	return r.Client.Delete(ctx, &node)
 }

@@ -87,13 +87,6 @@ If a `Cluster` resource is deleted, the controller will call the actuator's
 
 ## Cluster Controller Semantics
 
-{% panel style="info", title="Logic sequence" %}
-We need a diagram tracing the logic from resource creation through updates
-and finally deletion. This was done using the sequences GitBook plugin.
-Unfortunately there are (possibly personal) problems with phantomjs which
-are making this difficult.
-{% endpanel %}
-
 0. If the `Cluster` hasn't been deleted and doesn't have a finalizer, add one.
 - If the `Cluster` is being deleted, and there is no finalizer, we're done.
 - Call the provider specific `Delete()` method.
@@ -101,3 +94,15 @@ are making this difficult.
 - If the `Cluster` has not been deleted, call the `Reconcile()` method.
 
 [cluster_source]: https://github.com/kubernetes-sigs/cluster-api/blob/master/pkg/apis/cluster/v1alpha1/cluster_types.go
+
+#### cluster object reconciliation logic
+
+![cluster object reconciliation logic](images/activity_cluster_reconciliation.svg)
+
+#### cluster object creation sequence
+
+![Cluster object creation](images/sequence_cluster_creation.svg)
+
+#### cluster object deletion sequence
+
+![Cluster object deletion](images/sequence_cluster_deletion.svg)

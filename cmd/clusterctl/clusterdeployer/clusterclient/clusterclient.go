@@ -23,6 +23,7 @@ import (
 	"net"
 	"os"
 	"os/exec"
+	"reflect"
 	"strconv"
 	"strings"
 	"sync"
@@ -93,6 +94,7 @@ type Client interface {
 	ScaleStatefulSet(namespace, name string, scale int32) error
 	WaitForClusterV1alpha1Ready() error
 	UpdateClusterObjectEndpoint(string, string, string) error
+	WaitForResourceStatuses() error
 }
 
 type client struct {
@@ -497,63 +499,162 @@ func (c *client) CreateMachines(machines []*clusterv1.Machine, namespace string)
 	return gerr
 }
 
+// DeleteClusters deletes all Clusters in a namespace. If the namespace is empty then all Clusters in all namespaces are deleted.
 func (c *client) DeleteClusters(namespace string) error {
-	err := c.clientSet.ClusterV1alpha1().Clusters(namespace).DeleteCollection(newDeleteOptions(), metav1.ListOptions{})
-	if err != nil {
-		return errors.Wrapf(err, "error deleting Clusters in namespace %q", namespace)
+	seen := make(map[string]bool)
+
+	if namespace != "" {
+		seen[namespace] = true
+	} else {
+		clusters, err := c.clientSet.ClusterV1alpha1().Clusters("").List(metav1.ListOptions{})
+		if err != nil {
+			return errors.Wrap(err, "error listing Clusters in all namespaces")
+		}
+		for _, cluster := range clusters.Items {
+			if _, ok := seen[cluster.Namespace]; !ok {
+				seen[cluster.Namespace] = true
+			}
+		}
 	}
-	err = c.waitForClusterDelete(namespace)
-	if err != nil {
-		return errors.Wrapf(err, "error waiting for Cluster(s) deletion to complete in namespace %q", namespace)
+	for ns := range seen {
+		err := c.clientSet.ClusterV1alpha1().Clusters(ns).DeleteCollection(newDeleteOptions(), metav1.ListOptions{})
+		if err != nil {
+			return errors.Wrapf(err, "error deleting Clusters in namespace %q", ns)
+		}
+		err = c.waitForClusterDelete(ns)
+		if err != nil {
+			return errors.Wrapf(err, "error waiting for Cluster(s) deletion to complete in namespace %q", ns)
+		}
 	}
+
 	return nil
 }
 
+// DeleteMachineClasses deletes all MachineClasses in a namespace. If the namespace is empty then all MachineClasses in all namespaces are deleted.
 func (c *client) DeleteMachineClasses(namespace string) error {
-	err := c.clientSet.ClusterV1alpha1().MachineClasses(namespace).DeleteCollection(newDeleteOptions(), metav1.ListOptions{})
-	if err != nil {
-		return errors.Wrapf(err, "error deleting MachineClasses in namespace %q", namespace)
+	seen := make(map[string]bool)
+
+	if namespace != "" {
+		seen[namespace] = true
+	} else {
+		machineClasses, err := c.clientSet.ClusterV1alpha1().MachineClasses("").List(metav1.ListOptions{})
+		if err != nil {
+			return errors.Wrap(err, "error listing MachineClasses in all namespaces")
+		}
+		for _, mc := range machineClasses.Items {
+			if _, ok := seen[mc.Namespace]; !ok {
+				seen[mc.Namespace] = true
+			}
+		}
 	}
-	err = c.waitForMachineClassesDelete(namespace)
-	if err != nil {
-		return errors.Wrapf(err, "error waiting for MachineClass(es) deletion to complete in namespace %q", namespace)
+
+	for ns := range seen {
+		if err := c.DeleteMachineClasses(ns); err != nil {
+			return err
+		}
+		err := c.clientSet.ClusterV1alpha1().MachineClasses(ns).DeleteCollection(newDeleteOptions(), metav1.ListOptions{})
+		if err != nil {
+			return errors.Wrapf(err, "error deleting MachineClasses in namespace %q", ns)
+		}
+		err = c.waitForMachineClassesDelete(ns)
+		if err != nil {
+			return errors.Wrapf(err, "error waiting for MachineClass(es) deletion to complete in ns %q", ns)
+		}
 	}
+
 	return nil
 }
 
+// DeleteMachineDeployments deletes all MachineDeployments in a namespace. If the namespace is empty then all MachineDeployments in all namespaces are deleted.
 func (c *client) DeleteMachineDeployments(namespace string) error {
-	err := c.clientSet.ClusterV1alpha1().MachineDeployments(namespace).DeleteCollection(newDeleteOptions(), metav1.ListOptions{})
-	if err != nil {
-		return errors.Wrapf(err, "error deleting MachineDeployments in namespace %q", namespace)
+	seen := make(map[string]bool)
+
+	if namespace != "" {
+		seen[namespace] = true
+	} else {
+		machineDeployments, err := c.clientSet.ClusterV1alpha1().MachineDeployments("").List(metav1.ListOptions{})
+		if err != nil {
+			return errors.Wrap(err, "error listing MachineDeployments in all namespaces")
+		}
+		for _, md := range machineDeployments.Items {
+			if _, ok := seen[md.Namespace]; !ok {
+				seen[md.Namespace] = true
+			}
+		}
 	}
-	err = c.waitForMachineDeploymentsDelete(namespace)
-	if err != nil {
-		return errors.Wrapf(err, "error waiting for MachineDeployment(s) deletion to complete in namespace %q", namespace)
+	for ns := range seen {
+		err := c.clientSet.ClusterV1alpha1().MachineDeployments(ns).DeleteCollection(newDeleteOptions(), metav1.ListOptions{})
+		if err != nil {
+			return errors.Wrapf(err, "error deleting MachineDeployments in namespace %q", ns)
+		}
+		err = c.waitForMachineDeploymentsDelete(ns)
+		if err != nil {
+			return errors.Wrapf(err, "error waiting for MachineDeployment(s) deletion to complete in namespace %q", ns)
+		}
 	}
+
 	return nil
 }
 
+// DeleteMachineSets deletes all MachineSets in a namespace. If the namespace is empty then all MachineSets in all namespaces are deleted.
 func (c *client) DeleteMachineSets(namespace string) error {
-	err := c.clientSet.ClusterV1alpha1().MachineSets(namespace).DeleteCollection(newDeleteOptions(), metav1.ListOptions{})
-	if err != nil {
-		return errors.Wrapf(err, "error deleting MachineSets in namespace %q", namespace)
+	seen := make(map[string]bool)
+
+	if namespace != "" {
+		seen[namespace] = true
+	} else {
+		machineSets, err := c.clientSet.ClusterV1alpha1().MachineSets("").List(metav1.ListOptions{})
+		if err != nil {
+			return errors.Wrap(err, "error listing MachineSets in all namespaces")
+		}
+		for _, ms := range machineSets.Items {
+			if _, ok := seen[ms.Namespace]; !ok {
+				seen[ms.Namespace] = true
+			}
+		}
 	}
-	err = c.waitForMachineSetsDelete(namespace)
-	if err != nil {
-		return errors.Wrapf(err, "error waiting for MachineSet(s) deletion to complete in namespace %q", namespace)
+	for ns := range seen {
+		err := c.clientSet.ClusterV1alpha1().MachineSets(ns).DeleteCollection(newDeleteOptions(), metav1.ListOptions{})
+		if err != nil {
+			return errors.Wrapf(err, "error deleting MachineSets in namespace %q", ns)
+		}
+		err = c.waitForMachineSetsDelete(ns)
+		if err != nil {
+			return errors.Wrapf(err, "error waiting for MachineSet(s) deletion to complete in namespace %q", ns)
+		}
 	}
+
 	return nil
 }
 
+// DeleteMachines deletes all Machines in a namespace. If the namespace is empty then all Machines in all namespaces are deleted.
 func (c *client) DeleteMachines(namespace string) error {
-	err := c.clientSet.ClusterV1alpha1().Machines(namespace).DeleteCollection(newDeleteOptions(), metav1.ListOptions{})
-	if err != nil {
-		return errors.Wrapf(err, "error deleting Machines in namespace %q", namespace)
+	seen := make(map[string]bool)
+
+	if namespace != "" {
+		seen[namespace] = true
+	} else {
+		machines, err := c.clientSet.ClusterV1alpha1().Machines("").List(metav1.ListOptions{})
+		if err != nil {
+			return errors.Wrap(err, "error listing Machines in all namespaces")
+		}
+		for _, m := range machines.Items {
+			if _, ok := seen[m.Namespace]; !ok {
+				seen[m.Namespace] = true
+			}
+		}
 	}
-	err = c.waitForMachinesDelete(namespace)
-	if err != nil {
-		return errors.Wrapf(err, "error waiting for Machine(s) deletion to complete in namespace %q", namespace)
+	for ns := range seen {
+		err := c.clientSet.ClusterV1alpha1().Machines(ns).DeleteCollection(newDeleteOptions(), metav1.ListOptions{})
+		if err != nil {
+			return errors.Wrapf(err, "error deleting Machines in namespace %q", ns)
+		}
+		err = c.waitForMachinesDelete(ns)
+		if err != nil {
+			return errors.Wrapf(err, "error waiting for Machine(s) deletion to complete in namespace %q", ns)
+		}
 	}
+
 	return nil
 }
 
@@ -639,6 +740,59 @@ func (c *client) UpdateClusterObjectEndpoint(clusterEndpoint, clusterName, names
 
 func (c *client) WaitForClusterV1alpha1Ready() error {
 	return waitForClusterResourceReady(c.clientSet)
+}
+
+func (c *client) WaitForResourceStatuses() error {
+	deadline := time.Now().Add(timeoutResourceReady)
+
+	timeout := time.Until(deadline)
+	return util.PollImmediate(retryIntervalResourceReady, timeout, func() (bool, error) {
+		klog.V(2).Info("Waiting for Cluster API resources to have statuses...")
+		clusters, err := c.clientSet.ClusterV1alpha1().Clusters("").List(metav1.ListOptions{})
+		if err != nil {
+			return false, nil
+		}
+		for _, cluster := range clusters.Items {
+			if reflect.DeepEqual(clusterv1.ClusterStatus{}, cluster.Status) {
+				return false, nil
+			}
+			if cluster.Status.ProviderStatus == nil {
+				return false, nil
+			}
+		}
+		machineDeployments, err := c.clientSet.ClusterV1alpha1().MachineDeployments("").List(metav1.ListOptions{})
+		if err != nil {
+			return false, nil
+		}
+		for _, md := range machineDeployments.Items {
+			if reflect.DeepEqual(clusterv1.MachineDeploymentStatus{}, md.Status) {
+				return false, nil
+			}
+		}
+		machineSets, err := c.clientSet.ClusterV1alpha1().MachineSets("").List(metav1.ListOptions{})
+		if err != nil {
+			return false, nil
+		}
+		for _, ms := range machineSets.Items {
+			if reflect.DeepEqual(clusterv1.MachineSetStatus{}, ms.Status) {
+				return false, nil
+			}
+		}
+		machines, err := c.clientSet.ClusterV1alpha1().Machines("").List(metav1.ListOptions{})
+		if err != nil {
+			return false, nil
+		}
+		for _, m := range machines.Items {
+			if reflect.DeepEqual(clusterv1.MachineStatus{}, m.Status) {
+				return false, nil
+			}
+			if m.Status.ProviderStatus == nil {
+				return false, nil
+			}
+		}
+
+		return true, nil
+	})
 }
 
 func (c *client) waitForClusterDelete(namespace string) error {

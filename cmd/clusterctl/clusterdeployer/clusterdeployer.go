@@ -159,6 +159,11 @@ func (d *ClusterDeployer) Delete(targetClient clusterclient.Client) error {
 		return errors.Wrap(err, "unable to pivot Cluster API stack to bootstrap cluster")
 	}
 
+	// Verify that all pivoted resources have a status
+	if err := bootstrapClient.WaitForResourceStatuses(); err != nil {
+		return errors.Wrap(err, "error while waiting for Cluster API resources to contain statuses")
+	}
+
 	klog.Info("Deleting objects from bootstrap cluster")
 	if err := deleteClusterAPIObjectsInAllNamespaces(bootstrapClient); err != nil {
 		return errors.Wrap(err, "unable to finish deleting objects in bootstrap cluster, resources may have been leaked")

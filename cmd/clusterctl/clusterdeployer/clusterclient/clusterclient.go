@@ -388,17 +388,18 @@ func (c *client) GetMachinesForCluster(cluster *clusterv1.Cluster) ([]*clusterv1
 		return nil, errors.Wrapf(err, "error listing Machines for Cluster %s/%s", cluster.Namespace, cluster.Name)
 	}
 	var machines []*clusterv1.Machine
-	for _, m := range machineslist.Items {
+
+	for i := 0; i < len(machineslist.Items); i++ {
+		m := &machineslist.Items[i]
+
 		for _, or := range m.GetOwnerReferences() {
 			if or.Kind == cluster.Kind && or.Name == cluster.Name {
-				machines = append(machines, &m)
-				continue
+				machines = append(machines, m)
+				break
 			}
 		}
 	}
-	for i := 0; i < len(machineslist.Items); i++ {
-		machines = append(machines, &machineslist.Items[i])
-	}
+
 	return machines, nil
 }
 

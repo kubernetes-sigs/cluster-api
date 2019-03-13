@@ -486,6 +486,10 @@ func (c *testClusterClient) GetMachinesForMachineSet(ms *clusterv1.MachineSet) (
 	return results, nil
 }
 
+func (c *testClusterClient) WaitForResourceStatuses() error {
+	return nil
+}
+
 // TODO: implement GetMachineClasses for testClusterClient and add tests
 func (c *testClusterClient) GetMachineClasses(namespace string) ([]*clusterv1.MachineClass, error) {
 	return c.machineClasses[namespace], c.GetMachineClassesErr

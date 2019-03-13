@@ -211,6 +211,7 @@ func (r *ReconcileMachine) Reconcile(request reconcile.Request) (reconcile.Resul
 				return reconcile.Result{Requeue: true, RequeueAfter: requeueErr.RequeueAfter}, nil
 			}
 
+			klog.Errorf(`Error updating machine "%s/%s": %v`, m.Namespace, name, err)
 			return reconcile.Result{}, err
 		}
 

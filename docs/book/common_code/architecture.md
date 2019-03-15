@@ -12,7 +12,7 @@ book in order to better understand this section.
 We need a new simple diagram here reflecting the move to CRDs.
 {% endpanel %}
 
-![Architecture](architecture.png)
+![Architecture](architecture.svg)
 
 ## Cluster API Resources
 

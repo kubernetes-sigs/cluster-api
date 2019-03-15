@@ -59,8 +59,8 @@ type MachineSetSpec struct {
 	MinReadySeconds int32 `json:"minReadySeconds,omitempty"`
 
 	// DeletePolicy defines the policy used to identify nodes to delete when downscaling.
-	// Defaults to "Simple".  Valid values are "Simple, "Newest", "Oldest"
-	// +kubebuilder:validation:Enum=Simple,Newest,Oldest
+	// Defaults to "Random".  Valid values are "Random, "Newest", "Oldest"
+	// +kubebuilder:validation:Enum=Random,Newest,Oldest
 	DeletePolicy string `json:"deletePolicy,omitempty"`
 
 	// Selector is a label query over machines that should match the replica count.
@@ -78,18 +78,22 @@ type MachineSetSpec struct {
 type MachineSetDeletePolicy string
 
 const (
-	// SimpleMachineSetDeletePolicy prioritizes both Machines that have the annotation
-	// "machineset.clusters.k8s.io/delete-me=yes" and Machines that are unhealthy
+	// RandomMachineSetDeletePolicy prioritizes both Machines that have the annotation
+	// "cluster.k8s.io/delete-machine=yes" and Machines that are unhealthy
 	// (Status.ErrorReason or Status.ErrorMessage are set to a non-empty value).
 	// Finally, it picks Machines at random to delete.
-	SimpleMachineSetDeletePolicy MachineSetDeletePolicy = "Simple"
+	RandomMachineSetDeletePolicy MachineSetDeletePolicy = "Random"
 
-	// NewestMachineSetDeletePolicy prioritizes the newest Machines for deletion
-	// based on the Machine's CreationTimestamp.
+	// NewestMachineSetDeletePolicy prioritizes both Machines that have the annotation
+	// "cluster.k8s.io/delete-machine=yes" and Machines that are unhealthy
+	// (Status.ErrorReason or Status.ErrorMessage are set to a non-empty value).
+	// It then prioritizes the newest Machines for deletion based on the Machine's CreationTimestamp.
 	NewestMachineSetDeletePolicy MachineSetDeletePolicy = "Newest"
 
-	// OldestMachineSetDeletePolicy prioritizes the oldest Machines for deletion
-	// based on the Machine's CreationTimestamp.
+	// OldestMachineSetDeletePolicy prioritizes both Machines that have the annotation
+	// "cluster.k8s.io/delete-machine=yes" and Machines that are unhealthy
+	// (Status.ErrorReason or Status.ErrorMessage are set to a non-empty value).
+	// It then prioritizes the oldest Machines for deletion based on the Machine's CreationTimestamp.
 	OldestMachineSetDeletePolicy MachineSetDeletePolicy = "Oldest"
 )
 
@@ -177,17 +181,6 @@ func (m *MachineSet) Validate() field.ErrorList {
 			errors = append(errors, field.Invalid(fldPath.Child("template", "metadata", "labels"), m.Spec.Template.Labels, "`selector` does not match template `labels`"))
 		}
 	}
-	validDelPolicy := false
-	delPolicies := []MachineSetDeletePolicy{SimpleMachineSetDeletePolicy, NewestMachineSetDeletePolicy, OldestMachineSetDeletePolicy}
-	for i := range delPolicies {
-		if delPolicies[i] == MachineSetDeletePolicy(machineSet.Spec.DeletePolicy) {
-			validDelPolicy = true
-			break
-		}
-	}
-	if !validDelPolicy {
-		errors = append(errors, field.Invalid(fldPath.Child("deletePolicy"), machineSet.Spec.DeletePolicy, "invalid delete policy."))
-	}
 
 	return errors
 }
@@ -206,9 +199,9 @@ func (m *MachineSet) Default() {
 	}
 
 	if m.Spec.DeletePolicy == "" {
-		simplePolicy := string(SimpleMachineSetDeletePolicy)
-		log.Printf("Defaulting to %s\n", simplePolicy)
-		m.Spec.DeletePolicy = simplePolicy
+		randomPolicy := string(RandomMachineSetDeletePolicy)
+		log.Printf("Defaulting to %s\n", randomPolicy)
+		m.Spec.DeletePolicy = randomPolicy
 	}
 }
 

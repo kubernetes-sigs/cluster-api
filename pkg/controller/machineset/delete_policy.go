@@ -29,7 +29,9 @@ type deletePriority float64
 
 const (
 
-	DeleteNodeAnnotation = "machineset.clusters.k8s.io/delete-me"
+	// DeleteNodeAnnotation marks nodes that will be given priority for deletion
+	// when a machineset scales down. This annotation is given top priority on all delete policies.
+	DeleteNodeAnnotation = "cluster.k8s.io/delete-machine"
 
 	mustDelete    deletePriority = 100.0
 	betterDelete  deletePriority = 50.0
@@ -44,6 +46,12 @@ type deletePriorityFunc func(machine *v1alpha1.Machine) deletePriority
 // maps the creation timestamp onto the 0-100 priority range
 func oldestDeletePriority(machine *v1alpha1.Machine) deletePriority {
 	if machine.DeletionTimestamp != nil && !machine.DeletionTimestamp.IsZero() {
+		return mustDelete
+	}
+	if machine.ObjectMeta.Annotations != nil && machine.ObjectMeta.Annotations[DeleteNodeAnnotation] != "" {
+		return mustDelete
+	}
+	if machine.Status.ErrorReason != nil || machine.Status.ErrorMessage != nil {
 		return mustDelete
 	}
 	if machine.ObjectMeta.CreationTimestamp.Time.IsZero() {
@@ -61,10 +69,16 @@ func newestDeletePriority(machine *v1alpha1.Machine) deletePriority {
 	if machine.DeletionTimestamp != nil && !machine.DeletionTimestamp.IsZero() {
 		return mustDelete
 	}
+	if machine.ObjectMeta.Annotations != nil && machine.ObjectMeta.Annotations[DeleteNodeAnnotation] != "" {
+		return mustDelete
+	}
+	if machine.Status.ErrorReason != nil || machine.Status.ErrorMessage != nil {
+		return mustDelete
+	}
 	return mustDelete - oldestDeletePriority(machine)
 }
 
-func simpleDeletePriority(machine *v1alpha1.Machine) deletePriority {
+func randomDeletePolicy(machine *v1alpha1.Machine) deletePriority {
 	if machine.DeletionTimestamp != nil && !machine.DeletionTimestamp.IsZero() {
 		return mustDelete
 	}
@@ -107,13 +121,13 @@ func getMachinesToDeletePrioritized(filteredMachines []*v1alpha1.Machine, diff i
 func getDeletePriorityFunc(ms *v1alpha1.MachineSet) (deletePriorityFunc, error) {
 	// Map the Spec.DeletePolicy value to the appropriate delete priority function
 	switch msdp := v1alpha1.MachineSetDeletePolicy(ms.Spec.DeletePolicy); msdp {
-	case v1alpha1.SimpleMachineSetDeletePolicy:
-		return simpleDeletePriority, nil
+	case v1alpha1.RandomMachineSetDeletePolicy:
+		return randomDeletePolicy, nil
 	case v1alpha1.NewestMachineSetDeletePolicy:
 		return newestDeletePriority, nil
 	case v1alpha1.OldestMachineSetDeletePolicy:
 		return oldestDeletePriority, nil
 	default:
-		return nil, errors.Errorf("Unsupported delete policy %s. Must be one of 'Simple', 'Newest', or 'Oldest'", msdp)
+		return nil, errors.Errorf("Unsupported delete policy %s. Must be one of 'Random', 'Newest', or 'Oldest'", msdp)
 	}
 }

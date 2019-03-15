@@ -36,10 +36,10 @@ spec:
           properties:
             deletePolicy:
               description: DeletePolicy defines the policy used to identify nodes
-                to delete when downscaling. Defaults to "Simple".  Valid values are
-                "Simple, "Newest", "Oldest"
+                to delete when downscaling. Defaults to "Random".  Valid values are
+                "Random, "Newest", "Oldest"
               enum:
-              - Simple
+              - Random
               - Newest
               - Oldest
               type: string

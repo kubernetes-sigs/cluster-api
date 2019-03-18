@@ -75,6 +75,8 @@ type MachineSetSpec struct {
 	Template MachineTemplateSpec `json:"template,omitempty"`
 }
 
+// MachineSetDeletePolicy defines how priority is assigned to nodes to delete when
+// downscaling a MachineSet. Defaults to "Random".
 type MachineSetDeletePolicy string
 
 const (

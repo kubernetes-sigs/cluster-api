@@ -61,7 +61,6 @@ func oldestDeletePriority(machine *v1alpha1.Machine) deletePriority {
 	if d.Seconds() < 0 {
 		return mustNotDelete
 	}
-	// var tenDayHalfLife float64    = 1246488.5
 	return deletePriority(float64(mustDelete) * (1.0 - math.Exp(-d.Seconds()/secondsPerTenDays)))
 }
 

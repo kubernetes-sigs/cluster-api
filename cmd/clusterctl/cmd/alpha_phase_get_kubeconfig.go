@@ -88,7 +88,7 @@ func init() {
 	alphaPhaseGetKubeconfigCmd.Flags().StringVarP(&pgko.Kubeconfig, "kubeconfig", "", "", "Path for the kubeconfig file to use")
 	alphaPhaseGetKubeconfigCmd.Flags().StringVarP(&pgko.ClusterName, "cluster-name", "", "", "Cluster Name")
 	// TODO: Remove as soon as code allows https://github.com/kubernetes-sigs/cluster-api/issues/157
-	alphaPhaseGetKubeconfigCmd.Flags().StringVarP(&pgko.Provider, "provider", "", "", "Which provider deployment logic to use (google/vsphere/azure)")
+	alphaPhaseGetKubeconfigCmd.Flags().StringVarP(&pgko.Provider, "provider", "", "", "Which provider deployment logic to use")
 
 	// Optional flags
 	alphaPhaseGetKubeconfigCmd.Flags().StringVarP(&pgko.KubeconfigOutput, "kubeconfig-out", "", "kubeconfig", "Where to output the kubeconfig for the provisioned cluster")

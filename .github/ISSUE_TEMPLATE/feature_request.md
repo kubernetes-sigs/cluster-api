@@ -17,5 +17,6 @@ about: Suggest an idea for this project
 **Environment:**
 
 - Cluster-api version:
+- Minikube version:
 - Kubernetes version: (use `kubectl version`):
 - OS (e.g. from `/etc/os-release`):

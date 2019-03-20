@@ -13,7 +13,7 @@ Flags:
   -h, --help                                  help for cluster
       --kubeconfig-out string                 Where to output the kubeconfig for the provisioned cluster (default "kubeconfig")
   -m, --machines string                       A yaml file containing machine object definition(s). Required.
-      --provider string                       Which provider deployment logic to use (google/vsphere/azure). Required.
+      --provider string                       Which provider deployment logic to use. Required.
   -p, --provider-components string            A yaml file containing cluster api provider controllers and supporting objects. Required.
 
 Global Flags:

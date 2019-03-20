@@ -20,5 +20,6 @@ about: Tell us about a problem you are experiencing
 **Environment:**
 
 - Cluster-api version:
+- Minikube/KIND version:
 - Kubernetes version: (use `kubectl version`):
 - OS (e.g. from `/etc/os-release`):

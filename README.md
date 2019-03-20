@@ -39,6 +39,7 @@ are also sponsored by SIG-cluster-lifecycle:
   * AWS/Openshift, https://github.com/openshift/cluster-operator
   * Azure, https://github.com/kubernetes-sigs/cluster-api-provider-azure
   * Baidu Cloud, https://github.com/baidu/cluster-api-provider-baiducloud
+  * Bare Metal, https://github.com/metalkube/cluster-api-provider-baremetal
   * DigitalOcean, https://github.com/kubernetes-sigs/cluster-api-provider-digitalocean
   * GCE, https://github.com/kubernetes-sigs/cluster-api-provider-gcp
   * OpenStack, https://github.com/kubernetes-sigs/cluster-api-provider-openstack

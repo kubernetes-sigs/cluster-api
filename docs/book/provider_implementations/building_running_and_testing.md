@@ -21,6 +21,7 @@ index ac12c7e..9b4f945 100644
  manifests:
 -       go run vendor/sigs.k8s.io/controller-tools/cmd/controller-gen/main.go all
 +       go run vendor/sigs.k8s.io/controller-tools/cmd/controller-gen/main.go crd
++       go run vendor/sigs.k8s.io/controller-tools/cmd/controller-gen/main.go rbac
 +       kustomize build config/default/ > provider-components.yaml
 +       echo "---" >> provider-components.yaml
 +       kustomize build vendor/sigs.k8s.io/cluster-api/config/default/ >> provider-components.yaml

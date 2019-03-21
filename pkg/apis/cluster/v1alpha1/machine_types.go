@@ -61,7 +61,7 @@ type MachineSpec struct {
 	// Node. This list will overwrite any modifications made to the Node on
 	// an ongoing basis.
 	// +optional
-	Taints []corev1.Taint `json:"taints,omitempty"`
+	Taints []corev1.Taint `json:"taints"`
 
 	// ProviderSpec details Provider-specific configuration to use during node creation.
 	// +optional

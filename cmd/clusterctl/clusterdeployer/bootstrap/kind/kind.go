@@ -32,7 +32,7 @@ const (
 
 var (
 	// ignoredOptions lists the options not supported by delete and kubeconfig-path.
-	ignoredOptions = []string{"config", "image", "retain"}
+	ignoredOptions = []string{"config", "image", "retain", "wait"}
 )
 
 type Kind struct {

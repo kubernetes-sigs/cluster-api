@@ -15,6 +15,21 @@
 {% endmethod %}
 
 {% method %}
+## MachineDeploymentStrategy
+
+{% sample lang="go" %}
+[import:'MachineDeploymentStrategy'](../../../pkg/apis/cluster/v1alpha1/machinedeployment_types.go)
+{% endmethod %}
+
+{% method %}
+## MachineRollingUpdateDeployment
+
+{% sample lang="go" %}
+[import:'MachineRollingUpdateDeployment'](../../../pkg/apis/cluster/v1alpha1/machinedeployment_types.go)
+{% endmethod %}
+
+{% method %}
+
 ## MachineDeploymentStatus
 
 {% sample lang="go" %}

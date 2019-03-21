@@ -126,6 +126,8 @@ func getDeletePriorityFunc(ms *v1alpha1.MachineSet) (deletePriorityFunc, error) 
 		return newestDeletePriority, nil
 	case v1alpha1.OldestMachineSetDeletePolicy:
 		return oldestDeletePriority, nil
+	case "":
+		return randomDeletePolicy, nil
 	default:
 		return nil, errors.Errorf("Unsupported delete policy %s. Must be one of 'Random', 'Newest', or 'Oldest'", msdp)
 	}

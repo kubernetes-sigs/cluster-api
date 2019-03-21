@@ -25,7 +25,6 @@ import (
 	"k8s.io/klog"
 	"sigs.k8s.io/cluster-api/cmd/clusterctl/clusterdeployer/clusterclient"
 	"sigs.k8s.io/cluster-api/cmd/clusterctl/clusterdeployer/provider"
-	clusterv1 "sigs.k8s.io/cluster-api/pkg/apis/cluster/v1alpha1"
 	"sigs.k8s.io/cluster-api/pkg/util"
 )
 
@@ -36,13 +35,8 @@ const (
 
 // GetKubeconfig returns a kubeconfig for the target cluster
 func GetKubeconfig(bootstrapClient clusterclient.Client, provider provider.Deployer, kubeconfigOutput string, clusterName, namespace string) (string, error) {
-	cluster, controlPlane, _, err := clusterclient.GetClusterAPIObject(bootstrapClient, clusterName, namespace)
-	if err != nil {
-		return "", err
-	}
-
 	klog.V(1).Info("Getting target cluster kubeconfig.")
-	targetKubeconfig, err := waitForKubeconfigReady(provider, cluster, controlPlane)
+	targetKubeconfig, err := waitForKubeconfigReady(bootstrapClient, provider, clusterName, namespace)
 	if err != nil {
 		return "", fmt.Errorf("unable to get target cluster kubeconfig: %v", err)
 	}
@@ -54,11 +48,16 @@ func GetKubeconfig(bootstrapClient clusterclient.Client, provider provider.Deplo
 	return targetKubeconfig, nil
 }
 
-func waitForKubeconfigReady(provider provider.Deployer, cluster *clusterv1.Cluster, machine *clusterv1.Machine) (string, error) {
+func waitForKubeconfigReady(bootstrapClient clusterclient.Client, provider provider.Deployer, clusterName, namespace string) (string, error) {
 	kubeconfig := ""
 	err := util.PollImmediate(retryKubeConfigReady, timeoutKubeconfigReady, func() (bool, error) {
-		klog.V(2).Infof("Waiting for kubeconfig on %v to become ready...", machine.Name)
-		k, err := provider.GetKubeConfig(cluster, machine)
+		cluster, controlPlane, _, err := clusterclient.GetClusterAPIObject(bootstrapClient, clusterName, namespace)
+		if err != nil {
+			return false, err
+		}
+
+		klog.V(2).Infof("Waiting for kubeconfig on %v to become ready...", controlPlane.Name)
+		k, err := provider.GetKubeConfig(cluster, controlPlane)
 		if err != nil {
 			klog.V(4).Infof("error getting kubeconfig: %v", err)
 			return false, nil

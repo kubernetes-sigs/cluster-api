@@ -46,9 +46,21 @@ func New() *Kind {
 }
 
 func WithOptions(options []string) *Kind {
+	// Set name if it is not provided.
+	if func() bool {
+		for _, opt := range options {
+			if strings.HasPrefix(opt, "name=") {
+				return false
+			}
+		}
+		return true
+	}() {
+		options = append(options, fmt.Sprintf("name=%s", kindClusterName))
+	}
+
 	return &Kind{
 		execFunc: execFunc,
-		options:  append(options, fmt.Sprintf("name=%s", kindClusterName)),
+		options:  options,
 	}
 }
 

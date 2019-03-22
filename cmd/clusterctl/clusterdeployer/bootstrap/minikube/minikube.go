@@ -27,6 +27,10 @@ import (
 	"k8s.io/klog"
 )
 
+const (
+	minikubeClusterName = "clusterapi"
+)
+
 type Minikube struct {
 	kubeconfigpath string
 	options        []string
@@ -47,6 +51,19 @@ func WithOptionsAndKubeConfigPath(options []string, kubeconfigpath string) *Mini
 		// Arbitrary file name. Can potentially be randomly generated.
 		kubeconfigpath = "minikube.kubeconfig"
 	}
+
+	// Set profile if it is not provided.
+	if func() bool {
+		for _, opt := range options {
+			if strings.HasPrefix(opt, "p=") {
+				return false
+			}
+		}
+		return true
+	}() {
+		options = append(options, fmt.Sprintf("p=%s", minikubeClusterName))
+	}
+
 	return &Minikube{
 		minikubeExec:   minikubeExec,
 		options:        options,

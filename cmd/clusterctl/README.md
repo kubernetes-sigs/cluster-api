@@ -13,8 +13,8 @@ this repository.**
 
 ### Prerequisites
 
-1. Install [minikube](https://kubernetes.io/docs/tasks/tools/install-minikube/)
-2. Install a [driver](https://github.com/kubernetes/minikube/blob/master/docs/drivers.md) for minikube. For Linux, we recommend kvm2. For MacOS, we recommend VirtualBox.
+1. Install [kind](https://github.com/kubernetes-sigs/kind#installation-and-usage) or [minikube](https://kubernetes.io/docs/tasks/tools/install-minikube/). [kind](https://github.com/kubernetes-sigs/kind#installation-and-usage) is preferred.
+2. If you are using kind, go to step 3; If you are using minikube, install a [driver](https://github.com/kubernetes/minikube/blob/master/docs/drivers.md) for minikube. For Linux, we recommend kvm2. For MacOS, we recommend VirtualBox.
 2. Build the `clusterctl` tool
 
 ```bash
@@ -41,10 +41,12 @@ https://github.com/kubernetes-sigs/cluster-api/issues/158 and https://github.com
 1. Create a cluster:
 
    ```shell
-   ./clusterctl create cluster --provider <provider> -c cluster.yaml -m machines.yaml -p provider-components.yaml -a addons.yaml
+   ./clusterctl create cluster --provider <provider> --bootstrap-type <bootstrap-type> -c cluster.yaml -m machines.yaml -p provider-components.yaml -a addons.yaml
    ```
 
-To choose a specific minikube driver, please use the `--bootstrap-flags vm-driver=xxx` command line parameter. For example to use the kvm2 driver with clusterctl you woud add `--bootstrap-flags vm-driver=kvm2`.
+Currently two `bootstrap-type` options are supported - `kind` and `minikube`.
+
+If you are using minikube, to choose a specific minikube driver, please use the `--bootstrap-flags vm-driver=xxx` command line parameter. For example to use the kvm2 driver with clusterctl you woud add `--bootstrap-flags vm-driver=kvm2`.
 
 Additional advanced flags can be found via help.
 
@@ -53,6 +55,12 @@ Additional advanced flags can be found via help.
 ```
 
 ### Interacting with your cluster
+
+If you are using kind, set the `KUBECONFIG` environment variable first before using kubectl:
+
+```
+export KUBECONFIG="$(kind get kubeconfig-path --name="clusterapi")"
+```
 
 Once you have created a cluster, you can interact with the cluster and machine
 resources using kubectl:

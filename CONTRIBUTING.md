@@ -26,6 +26,10 @@ All changes must be code reviewed. Coding conventions and standards are explaine
 
 Cluster API maintainers may add "LGTM" (Looks Good To Me) or an equivalent comment to indicate that a PR is acceptable. Any change requires at least one LGTM.  No pull requests can be merged until at least one Cluster API maintainer signs off with an LGTM.
 
+### Google Doc Viewing Permissions
+
+To gain viewing permissions to google docs in this project, please join either the [kubernetes-dev](https://groups.google.com/forum/#!forum/kubernetes-dev) or [kubernetes-sig-cluster-lifecycle](https://groups.google.com/forum/#!forum/kubernetes-sig-cluster-lifecycle) google group.
+
 ## Cloud Provider Developer Guide
 
 ### Overview

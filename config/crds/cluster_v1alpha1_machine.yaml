@@ -6,6 +6,15 @@ metadata:
     controller-tools.k8s.io: "1.0"
   name: machines.cluster.k8s.io
 spec:
+  additionalPrinterColumns:
+  - JSONPath: .spec.providerID
+    description: Provider ID
+    name: ProviderID
+    type: string
+  - JSONPath: .status.phase
+    description: Machine status such as Terminating/Pending/Running/Failed etc
+    name: Phase
+    type: string
   group: cluster.k8s.io
   names:
     kind: Machine

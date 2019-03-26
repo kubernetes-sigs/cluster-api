@@ -44,7 +44,7 @@ https://github.com/kubernetes-sigs/cluster-api/issues/158 and https://github.com
    ./clusterctl create cluster --provider <provider> -c cluster.yaml -m machines.yaml -p provider-components.yaml -a addons.yaml
    ```
 
-To choose a specific minikube driver, please use the `--vm-driver` command line parameter. For example to use the kvm2 driver with clusterctl you would add `--vm-driver kvm2`
+To choose a specific minikube driver, please use the `--bootstrap-flags vm-driver=xxx` command line parameter. For example to use the kvm2 driver with clusterctl you woud add `--bootstrap-flags vm-driver=kvm2`.
 
 Additional advanced flags can be found via help.
 

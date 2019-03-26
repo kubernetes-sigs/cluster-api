@@ -89,7 +89,6 @@ rules:
   - cluster.k8s.io
   resources:
   - machines
-  - machines/status
   verbs:
   - get
   - list

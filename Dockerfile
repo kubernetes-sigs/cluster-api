@@ -13,7 +13,7 @@
 # limitations under the License.
 
 # Build the manager binary
-FROM golang:1.11.5 as builder
+FROM golang:1.11.6 as builder
 
 # Copy in the go src
 WORKDIR $GOPATH/src/sigs.k8s.io/cluster-api

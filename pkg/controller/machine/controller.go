@@ -90,7 +90,7 @@ type ReconcileMachine struct {
 
 // Reconcile reads that state of the cluster for a Machine object and makes changes based on the state read
 // and what is in the Machine.Spec
-// +kubebuilder:rbac:groups=cluster.k8s.io,resources=machines,verbs=get;list;watch;create;update;patch;delete
+// +kubebuilder:rbac:groups=cluster.k8s.io,resources=machines;machines/status,verbs=get;list;watch;create;update;patch;delete
 func (r *ReconcileMachine) Reconcile(request reconcile.Request) (reconcile.Result, error) {
 	// TODO(mvladev): Can context be passed from Kubebuilder?
 	ctx := context.TODO()

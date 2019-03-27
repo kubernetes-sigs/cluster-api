@@ -43,6 +43,7 @@ go_test(
     embed = [":go_default_library"],
     deps = [
         "//pkg/apis:go_default_library",
+        "//pkg/apis/cluster/common:go_default_library",
         "//pkg/apis/cluster/v1alpha1:go_default_library",
         "//vendor/golang.org/x/net/context:go_default_library",
         "//vendor/k8s.io/apimachinery/pkg/apis/meta/v1:go_default_library",

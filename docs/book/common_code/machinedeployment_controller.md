@@ -35,3 +35,8 @@
 {% sample lang="go" %}
 [import:'MachineDeploymentStatus'](../../../pkg/apis/cluster/v1alpha1/machinedeployment_types.go)
 {% endmethod %}
+
+## MachineDeployment Controller Semantics
+
+![machinedeployment object reconciliation logic](images/activity_machinedeployment_reconciliation.svg)
+

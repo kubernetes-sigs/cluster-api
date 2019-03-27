@@ -109,11 +109,6 @@ The definition of `Exists()` is determined by the provider.
 
 ## Machine Controller Semantics
 
-{% panel style="info", title="Logic sequence" %}
-We need a diagram tracing the logic from resource creation through updates
-and finally deletion.
-{% endpanel %}
-
 0. Determine the `Cluster` associated with the `Machine` from its `cluster.k8s.io/cluster-name` label.
 - If the `Machine` hasn't been deleted and doesn't have a finalizer, add one.
 - If the `Machine` is being deleted, and there is no finalizer, we're done
@@ -141,6 +136,20 @@ There are two consequences of this:
  - If the `Cluster` is deleted before the `Machine` it will not be possible to
    delete the `Machine`. Therefore `Machine`s must be deleted before `Cluster`s.
 {% endpanel %}
+
+#### machine reconciliation logic
+![machine reconciliation logic](images/activity_machine_controller_reconciliation.svg)
+
+#### machine deletion block
+![machine deletion block](images/activity_machine_deletion_block.svg)
+
+#### machine object creation sequence
+
+![machine object creation](images/sequence_machine_creation.svg)
+
+#### machine object deletion sequence
+
+![machine object deletion](images/sequence_machine_deletion.svg)
 
 ---
 

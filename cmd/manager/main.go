@@ -19,6 +19,7 @@ package main
 import (
 	"flag"
 	"log"
+	"time"
 
 	_ "k8s.io/client-go/plugin/pkg/client/auth/gcp"
 	"k8s.io/klog"
@@ -41,7 +42,10 @@ func main() {
 	}
 
 	// Create a new Cmd to provide shared dependencies and start components
-	mgr, err := manager.New(cfg, manager.Options{})
+	syncPeriod := 10 * time.Minute
+	mgr, err := manager.New(cfg, manager.Options{
+		SyncPeriod: &syncPeriod,
+	})
 	if err != nil {
 		log.Fatal(err)
 	}

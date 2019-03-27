@@ -36,7 +36,6 @@ Provider specific code is being developed in separate repositories, some of whic
 are also sponsored by SIG-cluster-lifecycle:
 
   * AWS, https://github.com/kubernetes-sigs/cluster-api-provider-aws
-  * AWS/Openshift, https://github.com/openshift/cluster-operator
   * Azure, https://github.com/kubernetes-sigs/cluster-api-provider-azure
   * Baidu Cloud, https://github.com/baidu/cluster-api-provider-baiducloud
   * Bare Metal, https://github.com/metalkube/cluster-api-provider-baremetal

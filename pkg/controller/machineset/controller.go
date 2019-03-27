@@ -329,8 +329,13 @@ func (r *ReconcileMachineSet) syncReplicas(ms *clusterv1alpha1.MachineSet, machi
 		klog.Infof("Too many replicas for %v %s/%s, need %d, deleting %d",
 			controllerKind, ms.Namespace, ms.Name, *(ms.Spec.Replicas), diff)
 
+		deletePriorityFunc, err := getDeletePriorityFunc(ms)
+		if err != nil {
+			return err
+		}
+		klog.Infof("Found %s delete policy", ms.Spec.DeletePolicy)
 		// Choose which Machines to delete.
-		machinesToDelete := getMachinesToDeletePrioritized(machines, diff, simpleDeletePriority)
+		machinesToDelete := getMachinesToDeletePrioritized(machines, diff, deletePriorityFunc)
 
 		// TODO: Add cap to limit concurrent delete calls.
 		errCh := make(chan error, diff)

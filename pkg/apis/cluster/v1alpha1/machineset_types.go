@@ -58,6 +58,11 @@ type MachineSetSpec struct {
 	// +optional
 	MinReadySeconds int32 `json:"minReadySeconds,omitempty"`
 
+	// DeletePolicy defines the policy used to identify nodes to delete when downscaling.
+	// Defaults to "Random".  Valid values are "Random, "Newest", "Oldest"
+	// +kubebuilder:validation:Enum=Random,Newest,Oldest
+	DeletePolicy string `json:"deletePolicy,omitempty"`
+
 	// Selector is a label query over machines that should match the replica count.
 	// Label keys and values that must match in order to be controlled by this MachineSet.
 	// It must match the machine template's labels.
@@ -69,6 +74,30 @@ type MachineSetSpec struct {
 	// +optional
 	Template MachineTemplateSpec `json:"template,omitempty"`
 }
+
+// MachineSetDeletePolicy defines how priority is assigned to nodes to delete when
+// downscaling a MachineSet. Defaults to "Random".
+type MachineSetDeletePolicy string
+
+const (
+	// RandomMachineSetDeletePolicy prioritizes both Machines that have the annotation
+	// "cluster.k8s.io/delete-machine=yes" and Machines that are unhealthy
+	// (Status.ErrorReason or Status.ErrorMessage are set to a non-empty value).
+	// Finally, it picks Machines at random to delete.
+	RandomMachineSetDeletePolicy MachineSetDeletePolicy = "Random"
+
+	// NewestMachineSetDeletePolicy prioritizes both Machines that have the annotation
+	// "cluster.k8s.io/delete-machine=yes" and Machines that are unhealthy
+	// (Status.ErrorReason or Status.ErrorMessage are set to a non-empty value).
+	// It then prioritizes the newest Machines for deletion based on the Machine's CreationTimestamp.
+	NewestMachineSetDeletePolicy MachineSetDeletePolicy = "Newest"
+
+	// OldestMachineSetDeletePolicy prioritizes both Machines that have the annotation
+	// "cluster.k8s.io/delete-machine=yes" and Machines that are unhealthy
+	// (Status.ErrorReason or Status.ErrorMessage are set to a non-empty value).
+	// It then prioritizes the oldest Machines for deletion based on the Machine's CreationTimestamp.
+	OldestMachineSetDeletePolicy MachineSetDeletePolicy = "Oldest"
+)
 
 /// [MachineSetSpec] // doxygen marker
 
@@ -169,6 +198,12 @@ func (m *MachineSet) Default() {
 
 	if len(m.Namespace) == 0 {
 		m.Namespace = metav1.NamespaceDefault
+	}
+
+	if m.Spec.DeletePolicy == "" {
+		randomPolicy := string(RandomMachineSetDeletePolicy)
+		log.Printf("Defaulting to %s\n", randomPolicy)
+		m.Spec.DeletePolicy = randomPolicy
 	}
 }
 

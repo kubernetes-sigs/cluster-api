@@ -64,3 +64,14 @@ func TestStorageMachineSet(t *testing.T) {
 		t.Error("expected error getting machineset")
 	}
 }
+
+func TestDefaults(t *testing.T) {
+	ms := &MachineSet{ObjectMeta: metav1.ObjectMeta{Name: "foo"}}
+	ms.Default()
+
+	expected := string(RandomMachineSetDeletePolicy)
+	got := ms.Spec.DeletePolicy
+	if got != expected {
+		t.Errorf("expected default machineset delete policy '%s', got '%s'", expected, got)
+	}
+}

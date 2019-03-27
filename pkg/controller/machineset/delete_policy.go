@@ -17,23 +17,72 @@ limitations under the License.
 package machineset
 
 import (
+	"math"
+	"sort"
+
+	"github.com/pkg/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"sigs.k8s.io/cluster-api/pkg/apis/cluster/v1alpha1"
 )
 
-type deletePriority int
+type deletePriority float64
 
 const (
-	mustDelete   deletePriority = 100
-	betterDelete deletePriority = 50
-	couldDelete  deletePriority = 20
-	// mustNotDelete deletePriority = 0
+
+	// DeleteNodeAnnotation marks nodes that will be given priority for deletion
+	// when a machineset scales down. This annotation is given top priority on all delete policies.
+	DeleteNodeAnnotation = "cluster.k8s.io/delete-machine"
+
+	mustDelete    deletePriority = 100.0
+	betterDelete  deletePriority = 50.0
+	couldDelete   deletePriority = 20.0
+	mustNotDelete deletePriority = 0.0
+
+	secondsPerTenDays float64 = 864000
 )
 
 type deletePriorityFunc func(machine *v1alpha1.Machine) deletePriority
 
-func simpleDeletePriority(machine *v1alpha1.Machine) deletePriority {
+// maps the creation timestamp onto the 0-100 priority range
+func oldestDeletePriority(machine *v1alpha1.Machine) deletePriority {
 	if machine.DeletionTimestamp != nil && !machine.DeletionTimestamp.IsZero() {
 		return mustDelete
+	}
+	if machine.ObjectMeta.Annotations != nil && machine.ObjectMeta.Annotations[DeleteNodeAnnotation] != "" {
+		return mustDelete
+	}
+	if machine.Status.ErrorReason != nil || machine.Status.ErrorMessage != nil {
+		return mustDelete
+	}
+	if machine.ObjectMeta.CreationTimestamp.Time.IsZero() {
+		return mustNotDelete
+	}
+	d := metav1.Now().Sub(machine.ObjectMeta.CreationTimestamp.Time)
+	if d.Seconds() < 0 {
+		return mustNotDelete
+	}
+	return deletePriority(float64(mustDelete) * (1.0 - math.Exp(-d.Seconds()/secondsPerTenDays)))
+}
+
+func newestDeletePriority(machine *v1alpha1.Machine) deletePriority {
+	if machine.DeletionTimestamp != nil && !machine.DeletionTimestamp.IsZero() {
+		return mustDelete
+	}
+	if machine.ObjectMeta.Annotations != nil && machine.ObjectMeta.Annotations[DeleteNodeAnnotation] != "" {
+		return mustDelete
+	}
+	if machine.Status.ErrorReason != nil || machine.Status.ErrorMessage != nil {
+		return mustDelete
+	}
+	return mustDelete - oldestDeletePriority(machine)
+}
+
+func randomDeletePolicy(machine *v1alpha1.Machine) deletePriority {
+	if machine.DeletionTimestamp != nil && !machine.DeletionTimestamp.IsZero() {
+		return mustDelete
+	}
+	if machine.ObjectMeta.Annotations != nil && machine.ObjectMeta.Annotations[DeleteNodeAnnotation] != "" {
+		return betterDelete
 	}
 	if machine.Status.ErrorReason != nil || machine.Status.ErrorMessage != nil {
 		return betterDelete
@@ -41,8 +90,17 @@ func simpleDeletePriority(machine *v1alpha1.Machine) deletePriority {
 	return couldDelete
 }
 
-// TODO: Define machines deletion policies.
-// see: https://github.com/kubernetes/kube-deploy/issues/625
+type sortableMachines struct {
+	machines []*v1alpha1.Machine
+	priority deletePriorityFunc
+}
+
+func (m sortableMachines) Len() int      { return len(m.machines) }
+func (m sortableMachines) Swap(i, j int) { m.machines[i], m.machines[j] = m.machines[j], m.machines[i] }
+func (m sortableMachines) Less(i, j int) bool {
+	return m.priority(m.machines[j]) < m.priority(m.machines[i]) // high to low
+}
+
 func getMachinesToDeletePrioritized(filteredMachines []*v1alpha1.Machine, diff int, fun deletePriorityFunc) []*v1alpha1.Machine {
 	if diff >= len(filteredMachines) {
 		return filteredMachines
@@ -50,24 +108,27 @@ func getMachinesToDeletePrioritized(filteredMachines []*v1alpha1.Machine, diff i
 		return []*v1alpha1.Machine{}
 	}
 
-	machines := make(map[deletePriority][]*v1alpha1.Machine)
-
-	for _, machine := range filteredMachines {
-		priority := fun(machine)
-		machines[priority] = append(machines[priority], machine)
+	sortable := sortableMachines{
+		machines: filteredMachines,
+		priority: fun,
 	}
+	sort.Sort(sortable)
 
-	result := []*v1alpha1.Machine{}
-	for _, priority := range []deletePriority{
-		mustDelete,
-		betterDelete,
-		couldDelete,
-	} {
-		result = append(result, machines[priority]...)
-		if len(result) >= diff {
-			break
-		}
+	return sortable.machines[:diff]
+}
+
+func getDeletePriorityFunc(ms *v1alpha1.MachineSet) (deletePriorityFunc, error) {
+	// Map the Spec.DeletePolicy value to the appropriate delete priority function
+	switch msdp := v1alpha1.MachineSetDeletePolicy(ms.Spec.DeletePolicy); msdp {
+	case v1alpha1.RandomMachineSetDeletePolicy:
+		return randomDeletePolicy, nil
+	case v1alpha1.NewestMachineSetDeletePolicy:
+		return newestDeletePriority, nil
+	case v1alpha1.OldestMachineSetDeletePolicy:
+		return oldestDeletePriority, nil
+	case "":
+		return randomDeletePolicy, nil
+	default:
+		return nil, errors.Errorf("Unsupported delete policy %s. Must be one of 'Random', 'Newest', or 'Oldest'", msdp)
 	}
-
-	return result[:diff]
 }

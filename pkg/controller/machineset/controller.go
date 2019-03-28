@@ -203,10 +203,11 @@ func (r *ReconcileMachineSet) reconcile(ctx context.Context, machineSet *cluster
 	}
 
 	// Add foregroundDeletion finalizer if MachineSet isn't deleted and linked to a cluster.
-	if cluster != nil && machineSet.ObjectMeta.DeletionTimestamp.IsZero() {
-		if !util.Contains(machineSet.Finalizers, metav1.FinalizerDeleteDependents) {
-			machineSet.Finalizers = append(machineSet.ObjectMeta.Finalizers, metav1.FinalizerDeleteDependents)
-		}
+	if cluster != nil &&
+		machineSet.ObjectMeta.DeletionTimestamp.IsZero() &&
+		!util.Contains(machineSet.Finalizers, metav1.FinalizerDeleteDependents) {
+
+		machineSet.Finalizers = append(machineSet.ObjectMeta.Finalizers, metav1.FinalizerDeleteDependents)
 
 		if err := r.Client.Update(context.Background(), machineSet); err != nil {
 			klog.Infof("Failed to add finalizers to MachineSet %q: %v", machineSet.Name, err)

@@ -61,11 +61,11 @@ spec:
                 could not get registered as Kubernetes nodes. With cluster-api as
                 a generic out-of-tree provider for autoscaler, this field is required
                 by autoscaler to be able to have a provider view of the list of machines.
-                Another list of nodes is queried from the k8s apiserver and then comparison
-                is done to find out unregistered machines and are marked for delete.
-                This field will be set by the actuators and consumed by higher level
-                entities like autoscaler that will be interfacing with cluster-api
-                as generic provider.
+                Another list of nodes is queried from the k8s apiserver and then a
+                comparison is done to find out unregistered machines and are marked
+                for delete. This field will be set by the actuators and consumed by
+                higher level entities like autoscaler that will be interfacing with
+                cluster-api as generic provider.
               type: string
             providerSpec:
               description: ProviderSpec details Provider-specific configuration to
@@ -93,9 +93,12 @@ spec:
                   type: object
               type: object
             taints:
-              description: Taints is the full, authoritative list of taints to apply
-                to the corresponding Node. This list will overwrite any modifications
-                made to the Node on an ongoing basis.
+              description: The list of the taints to be applied to the corresponding
+                Node in additive manner. This list will not overwrite any other taints
+                added to the Node on an ongoing basis by other entities. These taints
+                should be actively reconciled e.g. if you ask the machine controller
+                to apply a taint and then manually remove the taint the machine controller
+                will put it back) but not have the machine controller remove any taints
               items:
                 type: object
               type: array

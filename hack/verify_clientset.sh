@@ -18,11 +18,12 @@ set -o errexit
 set -o nounset
 set -o pipefail
 
-SCRIPT_ROOT=$(dirname "${BASH_SOURCE}")/..
+SCRIPT_ROOT=$(dirname "${BASH_SOURCE[0]}")/..
 DIFFROOT="${SCRIPT_ROOT}/pkg/client"
 TMP_DIFFROOT="${SCRIPT_ROOT}/_tmp/pkg"
 _tmp="${SCRIPT_ROOT}/_tmp"
 GOPATH=$(go env GOPATH)
+export GOPATH
 
 cleanup() {
     rm -rf "${_tmp}"

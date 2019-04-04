@@ -661,17 +661,6 @@ func TestClusterCreate(t *testing.T) {
 			expectExternalCreated:               true,
 		},
 		{
-			name:                                "fail provision multiple clusters in a namespace",
-			targetClient:                        &testClusterClient{ApplyFunc: func(yaml string) error { return nil }},
-			bootstrapClient:                     &testClusterClient{},
-			namespaceToExpectedInternalMachines: make(map[string]int),
-			namespaceToInputCluster:             map[string][]*clusterv1.Cluster{"foo": getClustersForNamespace("foo", 3)},
-			expectErr:                           true,
-			cleanupExternal:                     true,
-			expectExternalExists:                false,
-			expectExternalCreated:               true,
-		},
-		{
 			name:                                "fail provision bootstrap cluster",
 			targetClient:                        &testClusterClient{ApplyFunc: func(yaml string) error { return nil }},
 			bootstrapClient:                     &testClusterClient{},

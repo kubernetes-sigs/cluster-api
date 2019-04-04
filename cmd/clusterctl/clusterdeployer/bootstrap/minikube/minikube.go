@@ -61,7 +61,7 @@ func WithOptionsAndKubeConfigPath(options []string, kubeconfigpath string) *Mini
 		}
 		return true
 	}() {
-		options = append(options, fmt.Sprintf("p=%s", minikubeClusterName))
+		options = append(options, fmt.Sprintf("profile=%s", minikubeClusterName))
 	}
 
 	return &Minikube{

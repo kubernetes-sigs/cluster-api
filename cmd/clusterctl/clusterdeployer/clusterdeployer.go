@@ -136,9 +136,13 @@ func (d *ClusterDeployer) Create(cluster *clusterv1.Cluster, machines []*cluster
 	}
 
 	if len(controlPlaneMachines) > 1 {
-		klog.Info("Creating additional controlplane machines in target cluster.")
-		if err := phases.ApplyMachines(targetClient, cluster.Namespace, controlPlaneMachines[1:]); err != nil {
-			return errors.Wrap(err, "unable to create additional controlplane machines")
+		// TODO(h0tbird) Done serially until kubernetes/kubeadm#1097 is resolved and all
+		// supported versions of k8s we are deploying (using kubeadm) have the fix.
+		klog.Info("Creating additional control plane machines in target cluster.")
+		for _, controlPlaneMachine := range controlPlaneMachines[1:] {
+			if err := phases.ApplyMachines(targetClient, cluster.Namespace, []*clusterv1.Machine{controlPlaneMachine}); err != nil {
+				return errors.Wrap(err, "unable to create additional control plane machines")
+			}
 		}
 	}
 

@@ -1031,7 +1031,7 @@ func TestExtractControlPlaneMachine(t *testing.T) {
 	}
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			actualControlPlane, actualNodes, actualError := clusterclient.ExtractControlPlaneMachine(tc.inputMachines)
+			actualControlPlanes, actualNodes, actualError := clusterclient.ExtractControlPlaneMachines(tc.inputMachines)
 
 			if tc.expectedError == nil && actualError != nil {
 				t.Fatalf("%s: extractControlPlaneMachine(%q): gotError %q; wantError [nil]", tc.name, len(tc.inputMachines), actualError)
@@ -1041,13 +1041,13 @@ func TestExtractControlPlaneMachine(t *testing.T) {
 				t.Fatalf("%s: extractControlPlaneMachine(%q): gotError %q; wantError %q", tc.name, len(tc.inputMachines), actualError, tc.expectedError)
 			}
 
-			if (tc.expectedControlPlane == nil && actualControlPlane != nil) ||
-				(tc.expectedControlPlane != nil && actualControlPlane == nil) {
-				t.Fatalf("%s: extractControlPlaneMachine(%q): gotControlPlane = %v; wantControlPlane = %v", tc.name, len(tc.inputMachines), actualControlPlane != nil, tc.expectedControlPlane != nil)
+			if (tc.expectedControlPlane == nil && actualControlPlanes[0] != nil) ||
+				(tc.expectedControlPlane != nil && actualControlPlanes[0] == nil) {
+				t.Fatalf("%s: extractControlPlaneMachines(%q): gotControlPlane = %v; wantControlPlane = %v", tc.name, len(tc.inputMachines), actualControlPlanes[0] != nil, tc.expectedControlPlane != nil)
 			}
 
 			if len(tc.expectedNodes) != len(actualNodes) {
-				t.Fatalf("%s: extractControlPlaneMachine(%q): gotNodes = %q; wantNodes = %q", tc.name, len(tc.inputMachines), len(actualNodes), len(tc.expectedNodes))
+				t.Fatalf("%s: extractControlPlaneMachines(%q): gotNodes = %q; wantNodes = %q", tc.name, len(tc.inputMachines), len(actualNodes), len(tc.expectedNodes))
 			}
 		})
 	}

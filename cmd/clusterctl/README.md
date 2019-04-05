@@ -13,8 +13,11 @@ this repository.**
 
 ### Prerequisites
 
-1. Install [kind](https://github.com/kubernetes-sigs/kind#installation-and-usage) or [minikube](https://kubernetes.io/docs/tasks/tools/install-minikube/). [kind](https://github.com/kubernetes-sigs/kind#installation-and-usage) is preferred.
-2. If you are using kind, go to step 3; If you are using minikube, install a [driver](https://github.com/kubernetes/minikube/blob/master/docs/drivers.md) for minikube. For Linux, we recommend kvm2. For MacOS, we recommend VirtualBox.
+1. Cluster API runs its operations in Kubernetes. A pre-existing or temporary bootstrap cluster is required. Currently, we support multiple methods to bootstrap Cluster API: `kind` (preferred), `minikube` or any pre-existing cluster.
+   - If you want to use container, install [kind](https://github.com/kubernetes-sigs/kind#installation-and-usage). This is preferred.
+   - If you want to use VM, install [minikube](https://kubernetes.io/docs/tasks/tools/install-minikube/), version 0.30.0 or greater.
+   - If you want to use existing Kubernetes cluster, prepare your kubeconfig.
+2. If you are using `kind` or existing Kubernetes cluster, go to step 3. If you are using `minikube`, install a [driver](https://github.com/kubernetes/minikube/blob/master/docs/drivers.md). For Linux, we recommend `kvm2`. For MacOS, we recommend VirtualBox.
 2. Build the `clusterctl` tool
 
 ```bash
@@ -40,13 +43,21 @@ https://github.com/kubernetes-sigs/cluster-api/issues/158 and https://github.com
 
 1. Create a cluster:
 
+   - __Bootstrap Cluster__: Use `bootstrap-type`, currently only `kind` and `minikube` are supported.
+
    ```shell
-   ./clusterctl create cluster --provider <provider> --bootstrap-type <bootstrap-type> -c cluster.yaml -m machines.yaml -p provider-components.yaml -a addons.yaml
+   ./clusterctl create cluster --provider <provider> --bootstrap-type <bootstrap-type> -c cluster.yaml \
+     -m machines.yaml -p provider-components.yaml -a addons.yaml
    ```
 
-Currently two `bootstrap-type` options are supported - `kind` and `minikube`.
+   If you are using minikube, to choose a specific minikube driver, please use the `--bootstrap-flags vm-driver=xxx` command line parameter. For example to use the kvm2 driver with clusterctl you woud add `--bootstrap-flags vm-driver=kvm2`.
 
-If you are using minikube, to choose a specific minikube driver, please use the `--bootstrap-flags vm-driver=xxx` command line parameter. For example to use the kvm2 driver with clusterctl you woud add `--bootstrap-flags vm-driver=kvm2`.
+   -  __Existing Cluster__:  Use `bootstrap-cluster-kubeconfig`. This flag is used when you have an existing Kubernetes cluster.
+
+   ```shell
+   ./clusterctl create cluster --provider <provider> --bootstrap-cluster-kubeconfig <kubeconfig> \
+     -c cluster.yaml -m machines.yaml -p provider-components.yaml -a addons.yaml
+   ```
 
 Additional advanced flags can be found via help.
 

@@ -661,17 +661,6 @@ func TestClusterCreate(t *testing.T) {
 			expectExternalCreated:               true,
 		},
 		{
-			name:                                "fail provision multiple clusters in a namespace",
-			targetClient:                        &testClusterClient{ApplyFunc: func(yaml string) error { return nil }},
-			bootstrapClient:                     &testClusterClient{},
-			namespaceToExpectedInternalMachines: make(map[string]int),
-			namespaceToInputCluster:             map[string][]*clusterv1.Cluster{"foo": getClustersForNamespace("foo", 3)},
-			expectErr:                           true,
-			cleanupExternal:                     true,
-			expectExternalExists:                false,
-			expectExternalCreated:               true,
-		},
-		{
 			name:                                "fail provision bootstrap cluster",
 			targetClient:                        &testClusterClient{ApplyFunc: func(yaml string) error { return nil }},
 			bootstrapClient:                     &testClusterClient{},
@@ -996,42 +985,49 @@ func TestExtractControlPlaneMachine(t *testing.T) {
 	testCases := []struct {
 		name                 string
 		inputMachines        []*clusterv1.Machine
-		expectedControlPlane *clusterv1.Machine
-		expectedNodes        []*clusterv1.Machine
+		expectedCPMachines   []*clusterv1.Machine
+		expectedNodeMachines []*clusterv1.Machine
 		expectedError        error
 	}{
 		{
 			name:                 "success_1_control_plane_1_node",
 			inputMachines:        generateMachines(nil, metav1.NamespaceDefault),
-			expectedControlPlane: generateTestControlPlaneMachine(nil, metav1.NamespaceDefault, singleControlPlaneName),
-			expectedNodes:        generateTestNodeMachines(nil, metav1.NamespaceDefault, []string{singleNodeName}),
+			expectedCPMachines:   generateTestControlPlaneMachines(nil, metav1.NamespaceDefault, []string{singleControlPlaneName}),
+			expectedNodeMachines: generateTestNodeMachines(nil, metav1.NamespaceDefault, []string{singleNodeName}),
 			expectedError:        nil,
 		},
 		{
 			name:                 "success_1_control_plane_multiple_nodes",
-			inputMachines:        generateValidExtractControlPlaneMachineInput(nil, metav1.NamespaceDefault, singleControlPlaneName, multipleNodeNames),
-			expectedControlPlane: generateTestControlPlaneMachine(nil, metav1.NamespaceDefault, singleControlPlaneName),
-			expectedNodes:        generateTestNodeMachines(nil, metav1.NamespaceDefault, multipleNodeNames),
+			inputMachines:        generateValidExtractControlPlaneMachineInput(nil, metav1.NamespaceDefault, []string{singleControlPlaneName}, multipleNodeNames),
+			expectedCPMachines:   generateTestControlPlaneMachines(nil, metav1.NamespaceDefault, []string{singleControlPlaneName}),
+			expectedNodeMachines: generateTestNodeMachines(nil, metav1.NamespaceDefault, multipleNodeNames),
 			expectedError:        nil,
 		},
 		{
-			name:                 "fail_more_than_1_control_plane_not_allowed",
-			inputMachines:        generateInvalidExtractControlPlaneMachine(nil, metav1.NamespaceDefault, multipleControlPlaneNames, multipleNodeNames),
-			expectedControlPlane: nil,
-			expectedNodes:        nil,
-			expectedError:        errors.New("expected one control plane machine, got: 2"),
+			name:                 "success_2_control_planes_1_node",
+			inputMachines:        generateValidExtractControlPlaneMachineInput(nil, metav1.NamespaceDefault, multipleControlPlaneNames, []string{singleNodeName}),
+			expectedCPMachines:   generateTestControlPlaneMachines(nil, metav1.NamespaceDefault, multipleControlPlaneNames),
+			expectedNodeMachines: generateTestNodeMachines(nil, metav1.NamespaceDefault, []string{singleNodeName}),
+			expectedError:        nil,
+		},
+		{
+			name:                 "success_2_control_planes_multiple_nodes",
+			inputMachines:        generateValidExtractControlPlaneMachineInput(nil, metav1.NamespaceDefault, multipleControlPlaneNames, multipleNodeNames),
+			expectedCPMachines:   generateTestControlPlaneMachines(nil, metav1.NamespaceDefault, multipleControlPlaneNames),
+			expectedNodeMachines: generateTestNodeMachines(nil, metav1.NamespaceDefault, multipleNodeNames),
+			expectedError:        nil,
 		},
 		{
 			name:                 "fail_0_control_plane_not_allowed",
 			inputMachines:        generateTestNodeMachines(nil, metav1.NamespaceDefault, multipleNodeNames),
-			expectedControlPlane: nil,
-			expectedNodes:        nil,
-			expectedError:        errors.New("expected one control plane machine, got: 0"),
+			expectedCPMachines:   nil,
+			expectedNodeMachines: nil,
+			expectedError:        errors.New("expected one or more control plane machines, got: 0"),
 		},
 	}
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			actualControlPlane, actualNodes, actualError := clusterclient.ExtractControlPlaneMachine(tc.inputMachines)
+			actualCPMachines, actualNodes, actualError := clusterclient.ExtractControlPlaneMachines(tc.inputMachines)
 
 			if tc.expectedError == nil && actualError != nil {
 				t.Fatalf("%s: extractControlPlaneMachine(%q): gotError %q; wantError [nil]", tc.name, len(tc.inputMachines), actualError)
@@ -1041,13 +1037,13 @@ func TestExtractControlPlaneMachine(t *testing.T) {
 				t.Fatalf("%s: extractControlPlaneMachine(%q): gotError %q; wantError %q", tc.name, len(tc.inputMachines), actualError, tc.expectedError)
 			}
 
-			if (tc.expectedControlPlane == nil && actualControlPlane != nil) ||
-				(tc.expectedControlPlane != nil && actualControlPlane == nil) {
-				t.Fatalf("%s: extractControlPlaneMachine(%q): gotControlPlane = %v; wantControlPlane = %v", tc.name, len(tc.inputMachines), actualControlPlane != nil, tc.expectedControlPlane != nil)
+			if (tc.expectedCPMachines == nil && actualCPMachines != nil) ||
+				(tc.expectedCPMachines != nil && actualCPMachines == nil) {
+				t.Fatalf("%s: extractControlPlaneMachine(%q): gotControlPlane = %v; wantControlPlane = %v", tc.name, len(tc.inputMachines), actualCPMachines[0] != nil, tc.expectedCPMachines != nil)
 			}
 
-			if len(tc.expectedNodes) != len(actualNodes) {
-				t.Fatalf("%s: extractControlPlaneMachine(%q): gotNodes = %q; wantNodes = %q", tc.name, len(tc.inputMachines), len(actualNodes), len(tc.expectedNodes))
+			if len(tc.expectedNodeMachines) != len(actualNodes) {
+				t.Fatalf("%s: extractControlPlaneMachine(%q): gotNodes = %q; wantNodes = %q", tc.name, len(tc.inputMachines), len(actualNodes), len(tc.expectedNodeMachines))
 			}
 		})
 	}
@@ -1434,14 +1430,18 @@ func TestClusterDelete(t *testing.T) {
 	}
 }
 
-func generateTestControlPlaneMachine(cluster *clusterv1.Cluster, ns, name string) *clusterv1.Machine {
-	machine := generateTestNodeMachine(cluster, ns, name)
-	machine.Spec = clusterv1.MachineSpec{
-		Versions: clusterv1.MachineVersionInfo{
-			ControlPlane: "1.10.1",
-		},
+func generateTestControlPlaneMachines(cluster *clusterv1.Cluster, ns string, names []string) []*clusterv1.Machine {
+	machines := make([]*clusterv1.Machine, 0, len(names))
+	for _, name := range names {
+		machine := generateTestNodeMachine(cluster, ns, name)
+		machine.Spec = clusterv1.MachineSpec{
+			Versions: clusterv1.MachineVersionInfo{
+				ControlPlane: "1.10.1",
+			},
+		}
+		machines = append(machines, machine)
 	}
-	return machine
+	return machines
 }
 
 func generateTestNodeMachine(cluster *clusterv1.Cluster, ns, name string) *clusterv1.Machine {
@@ -1473,18 +1473,9 @@ func generateTestNodeMachines(cluster *clusterv1.Cluster, ns string, nodeNames [
 	return nodes
 }
 
-func generateInvalidExtractControlPlaneMachine(cluster *clusterv1.Cluster, ns string, controlPlaneNames, nodeNames []string) []*clusterv1.Machine {
-	var machines []*clusterv1.Machine // nolint
-	for _, name := range controlPlaneNames {
-		machines = append(machines, generateTestControlPlaneMachine(cluster, ns, name))
-	}
-	machines = append(machines, generateTestNodeMachines(cluster, ns, nodeNames)...)
-	return machines
-}
-
-func generateValidExtractControlPlaneMachineInput(cluster *clusterv1.Cluster, ns, controlPlaneName string, nodeNames []string) []*clusterv1.Machine {
+func generateValidExtractControlPlaneMachineInput(cluster *clusterv1.Cluster, ns string, controlPlaneName []string, nodeNames []string) []*clusterv1.Machine {
 	var machines []*clusterv1.Machine
-	machines = append(machines, generateTestControlPlaneMachine(cluster, ns, controlPlaneName))
+	machines = append(machines, generateTestControlPlaneMachines(cluster, ns, controlPlaneName)...)
 	machines = append(machines, generateTestNodeMachines(cluster, ns, nodeNames)...)
 	return machines
 }
@@ -1497,7 +1488,7 @@ func generateMachines(cluster *clusterv1.Cluster, ns string) []*clusterv1.Machin
 		controlPlaneName = cluster.Name + controlPlaneName
 		workerName = cluster.Name + workerName
 	}
-	machines = append(machines, generateTestControlPlaneMachine(cluster, ns, controlPlaneName))
+	machines = append(machines, generateTestControlPlaneMachines(cluster, ns, []string{controlPlaneName})...)
 	machines = append(machines, generateTestNodeMachine(cluster, ns, workerName))
 	return machines
 }

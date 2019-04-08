@@ -266,6 +266,10 @@ func (r *ReconcileMachineSet) reconcile(ctx context.Context, machineSet *machine
 		return reconcile.Result{}, errors.Wrap(err, "failed to update machine set status")
 	}
 
+	if syncErr != nil {
+		return reconcile.Result{}, errors.Wrapf(syncErr, "failed to sync machines")
+	}
+
 	var replicas int32
 	if updatedMS.Spec.Replicas != nil {
 		replicas = *updatedMS.Spec.Replicas
@@ -278,7 +282,7 @@ func (r *ReconcileMachineSet) reconcile(ctx context.Context, machineSet *machine
 	// exceeds MinReadySeconds could be incorrect.
 	// To avoid an available replica stuck in the ready state, we force a reconcile after MinReadySeconds,
 	// at which point it should confirm any available replica to be available.
-	if syncErr == nil && updatedMS.Spec.MinReadySeconds > 0 &&
+	if updatedMS.Spec.MinReadySeconds > 0 &&
 		updatedMS.Status.ReadyReplicas == replicas &&
 		updatedMS.Status.AvailableReplicas != replicas {
 

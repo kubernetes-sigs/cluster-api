@@ -55,6 +55,10 @@ const (
 	machineClusterLabelName     = "cluster.k8s.io/cluster-name"
 )
 
+const (
+	TimeoutMachineReady = "CLUSTER_API_MACHINE_READY_TIMEOUT"
+)
+
 // Provides interaction with a cluster
 type Client interface {
 	Apply(string) error
@@ -968,7 +972,17 @@ func waitForClusterResourceReady(cs clientset.Interface) error {
 }
 
 func waitForMachineReady(cs clientset.Interface, machine *clusterv1.Machine) error {
-	err := util.PollImmediate(retryIntervalResourceReady, timeoutMachineReady, func() (bool, error) {
+	timeout := timeoutMachineReady
+	if p := os.Getenv(TimeoutMachineReady); p != "" {
+		t, err := strconv.Atoi(p)
+		if err == nil {
+			// only valid value will be used
+			timeout = time.Duration(t) * time.Minute
+			klog.V(4).Info("Setting wait for machine timeout value to ", timeout)
+		}
+	}
+
+	err := util.PollImmediate(retryIntervalResourceReady, timeout, func() (bool, error) {
 		klog.V(2).Infof("Waiting for Machine %v to become ready...", machine.Name)
 		m, err := cs.ClusterV1alpha1().Machines(machine.Namespace).Get(machine.Name, metav1.GetOptions{})
 		if err != nil {

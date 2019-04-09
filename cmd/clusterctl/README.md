@@ -82,6 +82,8 @@ $ kubectl --kubeconfig kubeconfig get machines
 $ kubectl --kubeconfig kubeconfig get machines -o yaml
 ```
 
+**NOTE:** There is no need to specify `--kubeconfig` if your `kubeconfig` was located in the default directory under `$HOME/.kube/config` or if you have already exposed env variable `KUBECONFIG`.
+
 #### Scaling your cluster
 
 You can scale your cluster by adding additional individual Machines, or by adding a MachineSet or MachineDeployment

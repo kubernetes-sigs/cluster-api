@@ -16,6 +16,8 @@ To learn more, see the [Cluster API KEP][cluster-api-kep].
 
 ## Get involved!
 
+* Join the [Cluster API discuss forum](https://discuss.kubernetes.io/c/contributors/cluster-api).
+
 * Join the [sig-cluster-lifecycle](https://groups.google.com/forum/#!forum/kubernetes-sig-cluster-lifecycle)
 Google Group for access to documents and calendars.
 

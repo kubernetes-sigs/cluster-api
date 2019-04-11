@@ -44,6 +44,16 @@ func TestReconcileRequest(t *testing.T) {
 			Finalizers: []string{v1beta1.MachineFinalizer, metav1.FinalizerDeleteDependents},
 			Labels: map[string]string{
 				v1beta1.MachineClusterLabelName: "testcluster",
+				v1beta1.MachineClusterIDLabel:   "testcluster",
+			},
+		},
+		Spec: v1beta1.MachineSpec{
+			ProviderSpec: v1beta1.ProviderSpec{
+				ValueFrom: &v1beta1.ProviderSpecSource{
+					MachineClass: &v1beta1.MachineClassRef{
+						Provider: "no-provider",
+					},
+				},
 			},
 		},
 	}
@@ -57,6 +67,16 @@ func TestReconcileRequest(t *testing.T) {
 			Finalizers: []string{v1beta1.MachineFinalizer, metav1.FinalizerDeleteDependents},
 			Labels: map[string]string{
 				v1beta1.MachineClusterLabelName: "testcluster",
+				v1beta1.MachineClusterIDLabel:   "testcluster",
+			},
+		},
+		Spec: v1beta1.MachineSpec{
+			ProviderSpec: v1beta1.ProviderSpec{
+				ValueFrom: &v1beta1.ProviderSpecSource{
+					MachineClass: &v1beta1.MachineClassRef{
+						Provider: "no-provider",
+					},
+				},
 			},
 		},
 	}
@@ -72,6 +92,16 @@ func TestReconcileRequest(t *testing.T) {
 			DeletionTimestamp: &time,
 			Labels: map[string]string{
 				v1alpha1.MachineClusterLabelName: "testcluster",
+				v1beta1.MachineClusterIDLabel:    "testcluster",
+			},
+		},
+		Spec: v1beta1.MachineSpec{
+			ProviderSpec: v1beta1.ProviderSpec{
+				ValueFrom: &v1beta1.ProviderSpecSource{
+					MachineClass: &v1beta1.MachineClassRef{
+						Provider: "no-provider",
+					},
+				},
 			},
 		},
 	}

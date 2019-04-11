@@ -17,9 +17,12 @@ limitations under the License.
 package v1beta1
 
 import (
+	"fmt"
+
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/util/validation/field"
 
 	"github.com/openshift/cluster-api/pkg/apis/machine/common"
 )
@@ -30,6 +33,10 @@ const (
 
 	// MachineClusterLabelName is the label set on machines linked to a cluster.
 	MachineClusterLabelName = "cluster.k8s.io/cluster-name"
+
+	// MachineClusterIDLabel is the label that a machine must have to identify the
+	// cluster to which it belongs.
+	MachineClusterIDLabel = "machine.openshift.io/cluster-api-cluster"
 )
 
 // +genclient
@@ -233,6 +240,23 @@ type MachineVersionInfo struct {
 }
 
 /// [MachineVersionInfo]
+
+func (m *Machine) Validate() field.ErrorList {
+	errors := field.ErrorList{}
+
+	// validate spec.labels
+	fldPath := field.NewPath("spec")
+	if m.Labels[MachineClusterIDLabel] == "" {
+		errors = append(errors, field.Invalid(fldPath.Child("labels"), m.Labels, fmt.Sprintf("missing %v label.", MachineClusterIDLabel)))
+	}
+
+	// validate provider config is set
+	if m.Spec.ProviderSpec.Value == nil && m.Spec.ProviderSpec.ValueFrom == nil {
+		errors = append(errors, field.Invalid(fldPath.Child("spec").Child("providerspec"), m.Spec.ProviderSpec, "at least one of value or valueFrom fields must be set"))
+	}
+
+	return errors
+}
 
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
 

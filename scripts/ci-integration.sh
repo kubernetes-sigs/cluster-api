@@ -27,6 +27,8 @@ CONTROLLER_REPO="controller-ci" # use arbitrary repo name since we don't need to
 EXAMPLE_PROVIDER_REPO="example-provider-ci"
 INTEGRATION_TEST_DIR="./test/integration"
 
+ARCH=${ARCH:=amd64}
+
 install_kustomize() {
    go get sigs.k8s.io/kustomize
 }
@@ -39,13 +41,11 @@ install_kubectl() {
 
 build_containers() {
    VERSION="$(git describe --exact-match 2> /dev/null || git describe --match="$(git rev-parse --short=8 HEAD)" --always --dirty --abbrev=8)"
-   CONTROLLER_IMG="${CONTROLLER_REPO}:${VERSION}"
-   EXAMPLE_PROVIDER_IMG="${EXAMPLE_PROVIDER_REPO}:${VERSION}"
-   export CONTROLLER_IMG="${CONTROLLER_IMG}"
-   export EXAMPLE_PROVIDER_IMG="${EXAMPLE_PROVIDER_IMG}" 
+   export CONTROLLER_IMG="${CONTROLLER_REPO}"
+   export EXAMPLE_PROVIDER_IMG="${EXAMPLE_PROVIDER_REPO}"
 
-   "${MAKE}" docker-build
-   "${MAKE}" docker-build-ci
+   "${MAKE}" docker-build TAG=${VERSION} ARCH=${ARCH}
+   "${MAKE}" docker-build-ci TAG=${VERSION} ARCH=${ARCH}
 }
 
 prepare_crd_yaml() {
@@ -61,8 +61,8 @@ create_bootstrap() {
    KUBECONFIG="$(kind get kubeconfig-path --name="${BOOTSTRAP_CLUSTER_NAME}")"
    export KUBECONFIG
 
-   kind load docker-image "${CONTROLLER_IMG}" --name "${BOOTSTRAP_CLUSTER_NAME}"
-   kind load docker-image "${EXAMPLE_PROVIDER_IMG}" --name "${BOOTSTRAP_CLUSTER_NAME}"
+   kind load docker-image "${CONTROLLER_IMG}-${ARCH}:${VERSION}" --name "${BOOTSTRAP_CLUSTER_NAME}"
+   kind load docker-image "${EXAMPLE_PROVIDER_IMG}-${ARCH}:${VERSION}" --name "${BOOTSTRAP_CLUSTER_NAME}"
 }
 
 delete_bootstrap() {

@@ -21,9 +21,18 @@
 export KUBEBUILDER_CONTROLPLANE_START_TIMEOUT ?=60s
 export KUBEBUILDER_CONTROLPLANE_STOP_TIMEOUT ?=60s
 
+# This option is for running docker manifest command
+export DOCKER_CLI_EXPERIMENTAL := enabled
+
 # Image URL to use all building/pushing image targets
-export CONTROLLER_IMG ?= gcr.io/k8s-cluster-api/cluster-api-controller:latest
-export EXAMPLE_PROVIDER_IMG ?= gcr.io/k8s-cluster-api/example-provider-controller:latest
+REGISTRY ?= gcr.io/k8s-cluster-api
+CONTROLLER_IMG ?= $(REGISTRY)/cluster-api-controller
+EXAMPLE_PROVIDER_IMG ?= $(REGISTRY)/example-provider-controller
+
+TAG ?= latest
+
+ARCH?=amd64
+ALL_ARCH = amd64 arm arm64 ppc64le s390x
 
 all: test manager clusterctl
 
@@ -107,25 +116,49 @@ clientset: ## Generate a typed clientset
 clean: ## Remove all generated files
 	rm -f bazel-*
 
+.PHONY: all-docker-build
+all-docker-build: $(addprefix sub-docker-build-,$(ALL_ARCH))
+	@echo "updating kustomize image patch file for manager resource"
+	hack/sed.sh -i.tmp -e 's@image: .*@image: '"$(CONTROLLER_IMG):$(TAG)"'@' ./config/default/manager_image_patch.yaml
+
+sub-docker-build-%:
+	$(MAKE) ARCH=$* docker-build
+
 .PHONY: docker-build
 docker-build: generate fmt vet manifests ## Build the docker image for controller-manager
-	docker build . -t ${CONTROLLER_IMG}
+	docker build --build-arg ARCH=$(ARCH) . -t $(CONTROLLER_IMG)-$(ARCH):$(TAG)
 	@echo "updating kustomize image patch file for manager resource"
-	hack/sed.sh -i.tmp -e 's@image: .*@image: '"${CONTROLLER_IMG}"'@' ./config/default/manager_image_patch.yaml
+	hack/sed.sh -i.tmp -e 's@image: .*@image: '"${CONTROLLER_IMG}-$(ARCH):$(TAG)"'@' ./config/default/manager_image_patch.yaml
+
+.PHONY:all-push ## Push all the architecture docker images and fat manifest docker image
+all-push: all-docker-push push-manifest
+
+.PHONY:all-docker-push ## Push all the architecture docker images
+all-docker-push: $(addprefix sub-docker-push-,$(ALL_ARCH))
+
+sub-docker-push-%:
+	$(MAKE) ARCH=$* docker-push
+
+.PHONY: push-manifest
+push-manifest: ## Push the fat manifest docker image. TODO: Update bazel build to push manifest once https://github.com/bazelbuild/rules_docker/issues/300 get merged
+	## Minimum docker version 18.06.0 is required for creating and pushing manifest images
+	docker manifest create --amend $(CONTROLLER_IMG):$(TAG) $(shell echo $(ALL_ARCH) | sed -e "s~[^ ]*~$(CONTROLLER_IMG)\-&:$(TAG)~g")
+	@for arch in $(ALL_ARCH); do docker manifest annotate --arch $${arch} ${CONTROLLER_IMG}:${TAG} ${CONTROLLER_IMG}-$${arch}:${TAG}; done
+	docker manifest push --purge ${CONTROLLER_IMG}:${TAG}
 
 .PHONY: docker-push
 docker-push: docker-build ## Push the docker image
-	docker push "$(CONTROLLER_IMG)"
+	docker push $(CONTROLLER_IMG)-$(ARCH):$(TAG)
 
 .PHONY: docker-build-ci
 docker-build-ci: generate fmt vet manifests ## Build the docker image for example provider
-	docker build . -f ./pkg/provider/example/container/Dockerfile -t ${EXAMPLE_PROVIDER_IMG}
+	docker build --build-arg ARCH=$(ARCH) . -f ./pkg/provider/example/container/Dockerfile -t $(EXAMPLE_PROVIDER_IMG)-$(ARCH):$(TAG)
 	@echo "updating kustomize image patch file for ci"
-	hack/sed.sh -i.tmp -e 's@image: .*@image: '"${EXAMPLE_PROVIDER_IMG}"'@' ./config/ci/manager_image_patch.yaml
+	hack/sed.sh -i.tmp -e 's@image: .*@image: '"${EXAMPLE_PROVIDER_IMG}-$(ARCH):$(TAG)"'@' ./config/ci/manager_image_patch.yaml
 
 .PHONY: docker-push-ci
 docker-push-ci: docker-build-ci  ## Build the docker image for ci
-	docker push "$(EXAMPLE_PROVIDER_IMG)"
+	docker push "$(EXAMPLE_PROVIDER_IMG)-$(ARCH):$(TAG)"
 
 .PHONY: verify
 verify:

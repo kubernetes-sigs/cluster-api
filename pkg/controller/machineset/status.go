@@ -112,7 +112,7 @@ func updateMachineSetStatus(c client.Client, ms *v1beta1.MachineSet, newStatus v
 			break
 		}
 		// Update the MachineSet with the latest resource version for the next poll
-		if getErr = c.Get(context.Background(), client.ObjectKey{Name: ms.Name}, ms); getErr != nil {
+		if getErr = c.Get(context.Background(), client.ObjectKey{Namespace: ms.Namespace, Name: ms.Name}, ms); getErr != nil {
 			// If the GET fails we can't trust status.Replicas anymore. This error
 			// is bound to be more interesting than the update failure.
 			return nil, getErr

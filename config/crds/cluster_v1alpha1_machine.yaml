@@ -18,8 +18,8 @@ spec:
   - JSONPath: .status.nodeRef.name
     description: Node name associated with this machine
     name: NodeName
-    type: string
     priority: 1
+    type: string
   group: cluster.k8s.io
   names:
     kind: Machine

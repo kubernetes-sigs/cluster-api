@@ -41,7 +41,7 @@ const (
 
 // run these tests with the flag "-update" to update the values stored in all of the golden files
 var (
-	update = flag.Bool("update", true, "update .golden files")
+	update = flag.Bool("update", false, "update .golden files")
 	dmp    = diffmatchpatch.New()
 )
 

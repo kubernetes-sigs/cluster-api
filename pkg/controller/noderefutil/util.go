@@ -60,7 +60,7 @@ func GetReadyCondition(status *corev1.NodeStatus) *corev1.NodeCondition {
 
 // IsNodeReady returns true if a node is ready; false otherwise.
 func IsNodeReady(node *corev1.Node) bool {
-	if node == nil || &node.Status == nil {
+	if node == nil {
 		return false
 	}
 	for _, c := range node.Status.Conditions {

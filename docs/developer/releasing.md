@@ -23,7 +23,7 @@
       version being released
 2. Get the pull request merged
 3. From the commit in step 1 (that is now in the master branch), build and push
-   the container image with `make docker-push`
+   the container images and fat manifest with `make all-push`
 4. Create a tag from this same commit and push the tag to the github repository
 5. Revert the commit made in step 1
 6. Open a pull request with the revert change

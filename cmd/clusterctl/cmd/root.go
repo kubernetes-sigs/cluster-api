@@ -22,6 +22,7 @@ import (
 	"os"
 
 	"github.com/spf13/cobra"
+	cliflag "k8s.io/component-base/cli/flag"
 	"k8s.io/klog"
 )
 
@@ -54,6 +55,7 @@ func exitWithHelp(cmd *cobra.Command, err string) {
 func init() {
 	klog.InitFlags(flag.CommandLine)
 	flag.CommandLine.Set("logtostderr", "true")
+	RootCmd.SetGlobalNormalizationFunc(cliflag.WordSepNormalizeFunc)
 	RootCmd.PersistentFlags().AddGoFlagSet(flag.CommandLine)
 	InitLogs()
 }

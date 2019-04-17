@@ -40,6 +40,8 @@ func RegisterClusterProvisioner(name string, provisioner interface{}) {
 	providers[name] = provisioner
 }
 
+// ClusterProvisioner finds and returns a previously registered
+// ClusterProvisioner by name.
 func ClusterProvisioner(name string) (interface{}, error) {
 	providersMutex.Lock()
 	defer providersMutex.Unlock()

@@ -132,6 +132,7 @@ type APIEndpoint struct {
 
 /// [APIEndpoint]
 
+// Validate looks at the network config of a Cluster and returns any errors.
 func (o *Cluster) Validate() field.ErrorList {
 	errors := field.ErrorList{}
 	// perform validation here and add to errors using field.Invalid

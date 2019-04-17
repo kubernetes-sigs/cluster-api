@@ -227,6 +227,7 @@ type LastOperation struct {
 
 /// [MachineVersionInfo]
 
+// MachineVersionInfo contains semantic versions of software to run on the Machine.
 type MachineVersionInfo struct {
 	// Kubelet is the semantic version of kubelet to run
 	Kubelet string `json:"kubelet"`

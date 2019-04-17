@@ -169,6 +169,7 @@ type MachineSetStatus struct {
 
 /// [MachineSetStatus]
 
+// Validate checks the MachineSet's selectors and returns any errors.
 func (m *MachineSet) Validate() field.ErrorList {
 	errors := field.ErrorList{}
 

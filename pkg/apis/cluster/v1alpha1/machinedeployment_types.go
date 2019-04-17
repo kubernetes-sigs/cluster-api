@@ -23,6 +23,7 @@ import (
 )
 
 /// [MachineDeploymentSpec]
+
 // MachineDeploymentSpec defines the desired state of MachineDeployment
 type MachineDeploymentSpec struct {
 	// Number of desired machines. Defaults to 1.
@@ -70,6 +71,7 @@ type MachineDeploymentSpec struct {
 /// [MachineDeploymentSpec]
 
 /// [MachineDeploymentStrategy]
+
 // MachineDeploymentStrategy describes how to replace existing machines
 // with new ones.
 type MachineDeploymentStrategy struct {
@@ -88,6 +90,7 @@ type MachineDeploymentStrategy struct {
 /// [MachineDeploymentStrategy]
 
 /// [MachineRollingUpdateDeployment]
+
 // Spec to control the desired behavior of rolling update.
 type MachineRollingUpdateDeployment struct {
 	// The maximum number of machines that can be unavailable during the update.
@@ -125,6 +128,7 @@ type MachineRollingUpdateDeployment struct {
 /// [MachineRollingUpdateDeployment]
 
 /// [MachineDeploymentStatus]
+
 // MachineDeploymentStatus defines the observed state of MachineDeployment
 type MachineDeploymentStatus struct {
 	// The generation observed by the deployment controller.
@@ -165,6 +169,7 @@ type MachineDeploymentStatus struct {
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
 
 /// [MachineDeployment]
+
 // MachineDeployment is the Schema for the machinedeployments API
 // +k8s:openapi-gen=true
 // +kubebuilder:subresource:status

@@ -26,6 +26,7 @@ import (
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
 
 /// [MachineClass]
+
 // MachineClass can be used to templatize and re-use provider configuration
 // across multiple Machines / MachineSets / MachineDeployments.
 // +k8s:openapi-gen=true
@@ -64,6 +65,7 @@ type MachineClass struct {
 	// MachineTemplate corev1.ObjectReference `json:machineTemplate`
 }
 
+/// [MachineClass]
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
 
 // MachineClassList contains a list of MachineClasses

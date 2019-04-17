@@ -29,6 +29,7 @@ const ClusterFinalizer = "cluster.cluster.k8s.io"
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
 
 /// [Cluster]
+
 // Cluster is the Schema for the clusters API
 // +k8s:openapi-gen=true
 // +kubebuilder:subresource:status
@@ -43,6 +44,7 @@ type Cluster struct {
 /// [Cluster]
 
 /// [ClusterSpec]
+
 // ClusterSpec defines the desired state of Cluster
 type ClusterSpec struct {
 	// Cluster network configuration
@@ -59,6 +61,7 @@ type ClusterSpec struct {
 /// [ClusterSpec]
 
 /// [ClusterNetworkingConfig]
+
 // ClusterNetworkingConfig specifies the different networking
 // parameters for a cluster.
 type ClusterNetworkingConfig struct {
@@ -75,6 +78,7 @@ type ClusterNetworkingConfig struct {
 /// [ClusterNetworkingConfig]
 
 /// [NetworkRanges]
+
 // NetworkRanges represents ranges of network addresses.
 type NetworkRanges struct {
 	CIDRBlocks []string `json:"cidrBlocks"`
@@ -83,6 +87,7 @@ type NetworkRanges struct {
 /// [NetworkRanges]
 
 /// [ClusterStatus]
+
 // ClusterStatus defines the observed state of Cluster
 type ClusterStatus struct {
 	// APIEndpoint represents the endpoint to communicate with the IP.
@@ -115,6 +120,7 @@ type ClusterStatus struct {
 /// [ClusterStatus]
 
 /// [APIEndpoint]
+
 // APIEndpoint represents a reachable Kubernetes API endpoint.
 type APIEndpoint struct {
 	// The hostname on which the API server is serving.

@@ -54,7 +54,7 @@ type Machine struct {
 
 /// [MachineSpec]
 
-// MachineSpec defines the desired state of Machine
+// MachineSpec defines the desired state of Machine.
 type MachineSpec struct {
 	// ObjectMeta will autopopulate the Node created. Use this to
 	// indicate what labels, annotations, name prefix, etc., should be used
@@ -110,7 +110,7 @@ type MachineSpec struct {
 
 /// [MachineStatus]
 
-// MachineStatus defines the observed state of Machine
+// MachineStatus defines the observed state of Machine.
 type MachineStatus struct {
 	// NodeRef will point to the corresponding Node if it exists.
 	// +optional

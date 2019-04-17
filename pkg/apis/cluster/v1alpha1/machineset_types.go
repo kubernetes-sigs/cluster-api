@@ -47,7 +47,7 @@ type MachineSet struct {
 
 /// [MachineSetSpec]
 
-// MachineSetSpec defines the desired state of MachineSet
+// MachineSetSpec defines the desired state of MachineSet.
 type MachineSetSpec struct {
 	// Replicas is the number of desired replicas.
 	// This is a pointer to distinguish between explicit zero and unspecified.
@@ -105,7 +105,7 @@ const (
 
 /// [MachineTemplateSpec] // doxygen marker
 
-// MachineTemplateSpec describes the data needed to create a Machine from a template
+// MachineTemplateSpec describes the data needed to create a Machine from a template.
 type MachineTemplateSpec struct {
 	// Standard object's metadata.
 	// More info: https://git.k8s.io/community/contributors/devel/api-conventions.md#metadata
@@ -122,7 +122,7 @@ type MachineTemplateSpec struct {
 
 /// [MachineSetStatus]
 
-// MachineSetStatus defines the observed state of MachineSet
+// MachineSetStatus defines the observed state of MachineSet.
 type MachineSetStatus struct {
 	// Replicas is the most recently observed number of replicas.
 	Replicas int32 `json:"replicas"`
@@ -191,7 +191,7 @@ func (m *MachineSet) Validate() field.ErrorList {
 	return errors
 }
 
-// DefaultingFunction sets default MachineSet field values
+// Default sets default MachineSet field values.
 func (m *MachineSet) Default() {
 	log.Printf("Defaulting fields for MachineSet %s\n", m.Name)
 
@@ -213,7 +213,7 @@ func (m *MachineSet) Default() {
 
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
 
-// MachineSetList contains a list of MachineSet
+// MachineSetList contains a list of MachineSet.
 type MachineSetList struct {
 	metav1.TypeMeta `json:",inline"`
 	metav1.ListMeta `json:"metadata,omitempty"`

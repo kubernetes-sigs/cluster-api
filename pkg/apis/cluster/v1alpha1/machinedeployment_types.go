@@ -24,7 +24,7 @@ import (
 
 /// [MachineDeploymentSpec]
 
-// MachineDeploymentSpec defines the desired state of MachineDeployment
+// MachineDeploymentSpec defines the desired state of MachineDeployment.
 type MachineDeploymentSpec struct {
 	// Number of desired machines. Defaults to 1.
 	// This is a pointer to distinguish between explicit zero and not specified.
@@ -91,7 +91,7 @@ type MachineDeploymentStrategy struct {
 
 /// [MachineRollingUpdateDeployment]
 
-// Spec to control the desired behavior of rolling update.
+// MachineRollingUpdateDeployment respresents the desired behavior of rolling update.
 type MachineRollingUpdateDeployment struct {
 	// The maximum number of machines that can be unavailable during the update.
 	// Value can be an absolute number (ex: 5) or a percentage of desired
@@ -129,7 +129,7 @@ type MachineRollingUpdateDeployment struct {
 
 /// [MachineDeploymentStatus]
 
-// MachineDeploymentStatus defines the observed state of MachineDeployment
+// MachineDeploymentStatus defines the observed state of MachineDeployment.
 type MachineDeploymentStatus struct {
 	// The generation observed by the deployment controller.
 	// +optional

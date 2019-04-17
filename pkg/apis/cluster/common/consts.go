@@ -18,12 +18,14 @@ package common
 
 // Constants aren't automatically generated for unversioned packages.
 // Instead share the same constant for all versioned packages
+
 type MachineStatusError string
 
 const (
-	// Represents that the combination of configuration in the MachineSpec
-	// is not supported by this cluster. This is not a transient error, but
-	// indicates a state that must be fixed before progress can be made.
+	// InvalidConfigurationMachineError represents that the combination of
+	// configuration in the MachineSpec is not supported by this cluster.
+	// This is not a transient error, but indicates a state that must be fixed
+	// before progress can be made.
 	//
 	// Example: the ProviderSpec specifies an instance type that doesn't exist,
 	InvalidConfigurationMachineError MachineStatusError = "InvalidConfiguration"

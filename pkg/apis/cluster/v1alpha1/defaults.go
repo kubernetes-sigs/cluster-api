@@ -22,8 +22,8 @@ import (
 	"sigs.k8s.io/cluster-api/pkg/apis/cluster/common"
 )
 
-// PopulateDefaultsMachineDeployment fills in default field values
-// Currently it is called after reading objects, but it could be called in an admission webhook also
+// PopulateDefaultsMachineDeployment fills in default field values.
+// Currently, it is called after reading objects, but it could be called in an admission webhook also.
 func PopulateDefaultsMachineDeployment(d *MachineDeployment) {
 	if d.Spec.Replicas == nil {
 		d.Spec.Replicas = new(int32)

@@ -8,6 +8,7 @@ aliases:
   cluster-api-admins:
     - justinsb
     - detiber
+    - davidewatson
   cluster-api-maintainers:
     - justinsb
     - detiber

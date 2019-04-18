@@ -92,7 +92,9 @@ func add(mgr manager.Manager, r reconcile.Reconciler, mapFn handler.ToRequestsFu
 		return err
 	}
 
-	// Map MachineSet changes to MachineDeployment.
+	// Watch for changes to MachineSets using a mapping function to MachineDeployment.
+	// This watcher is required for use cases like adoption. In case a MachineSet doesn't have
+	// a controller reference, it'll look for potential matching MachineDeployments to reconcile.
 	err = c.Watch(
 		&source.Kind{Type: &v1alpha1.MachineSet{}},
 		&handler.EnqueueRequestsFromMapFunc{ToRequests: mapFn},
@@ -289,39 +291,6 @@ func (r *ReconcileMachineDeployment) getCluster(d *v1alpha1.MachineDeployment) (
 	return cluster, nil
 }
 
-// getMachineDeploymentsForMachineSet returns a list of Deployments that potentially
-// match a MachineSet.
-func (r *ReconcileMachineDeployment) getMachineDeploymentsForMachineSet(ms *v1alpha1.MachineSet) []*v1alpha1.MachineDeployment {
-	if len(ms.Labels) == 0 {
-		klog.Warningf("No machine deployments found for MachineSet %v because it has no labels", ms.Name)
-		return nil
-	}
-
-	dList := &v1alpha1.MachineDeploymentList{}
-	listOptions := &client.ListOptions{Namespace: ms.Namespace}
-	if err := r.Client.List(context.Background(), listOptions, dList); err != nil {
-		klog.Warningf("Failed to list machine deployments: %v", err)
-		return nil
-	}
-
-	deployments := make([]*v1alpha1.MachineDeployment, 0, len(dList.Items))
-	for idx, d := range dList.Items {
-		selector, err := metav1.LabelSelectorAsSelector(&d.Spec.Selector)
-		if err != nil {
-			continue
-		}
-
-		// If a deployment with a nil or empty selector creeps in, it should match nothing, not everything.
-		if selector.Empty() || !selector.Matches(labels.Set(ms.Labels)) {
-			continue
-		}
-
-		deployments = append(deployments, &dList.Items[idx])
-	}
-
-	return deployments
-}
-
 // getMachineMapForDeployment returns the Machines managed by a Deployment.
 //
 // It returns a map from MachineSet UID to a list of Machines controlled by that MS,
@@ -367,6 +336,39 @@ func (r *ReconcileMachineDeployment) getMachineMapForDeployment(d *v1alpha1.Mach
 	return machineMap, nil
 }
 
+// getMachineDeploymentsForMachineSet returns a list of Deployments that potentially
+// match a MachineSet.
+func (r *ReconcileMachineDeployment) getMachineDeploymentsForMachineSet(ms *v1alpha1.MachineSet) []*v1alpha1.MachineDeployment {
+	if len(ms.Labels) == 0 {
+		klog.Warningf("No machine deployments found for MachineSet %v because it has no labels", ms.Name)
+		return nil
+	}
+
+	dList := &v1alpha1.MachineDeploymentList{}
+	listOptions := &client.ListOptions{Namespace: ms.Namespace}
+	if err := r.Client.List(context.Background(), listOptions, dList); err != nil {
+		klog.Warningf("Failed to list machine deployments: %v", err)
+		return nil
+	}
+
+	deployments := make([]*v1alpha1.MachineDeployment, 0, len(dList.Items))
+	for idx, d := range dList.Items {
+		selector, err := metav1.LabelSelectorAsSelector(&d.Spec.Selector)
+		if err != nil {
+			continue
+		}
+
+		// If a deployment with a nil or empty selector creeps in, it should match nothing, not everything.
+		if selector.Empty() || !selector.Matches(labels.Set(ms.Labels)) {
+			continue
+		}
+
+		deployments = append(deployments, &dList.Items[idx])
+	}
+
+	return deployments
+}
+
 func (r *ReconcileMachineDeployment) MachineSetToDeployments(o handler.MapObject) []reconcile.Request {
 	result := []reconcile.Request{}
 
@@ -377,6 +379,8 @@ func (r *ReconcileMachineDeployment) MachineSetToDeployments(o handler.MapObject
 		return nil
 	}
 
+	// Check if the controller reference is already set and
+	// return an empty result when one is found.
 	for _, ref := range ms.ObjectMeta.OwnerReferences {
 		if ref.Controller != nil && *ref.Controller {
 			return result

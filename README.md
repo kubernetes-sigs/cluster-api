@@ -12,7 +12,7 @@ API design. Because of this, all of the prototype code is rapidly changing.
 
 ![Cluster API Architecture](./docs/book/common_code/architecture.svg "Cluster API Architecture")
 
-To learn more, see the [Cluster API KEP][cluster-api-kep].
+Learn more about the project's [scope, objectives, goals and requirements](./docs/scope-and-objectives.md) and [feature proposals](./docs/proposals/).
 
 ## Get involved!
 
@@ -65,7 +65,6 @@ Following are the implementations managed by third-parties adopting the standard
 * `kubectl` is required, see [here](http://kubernetes.io/docs/user-guide/prereqs/).
 * `clusterctl` is a SIG-cluster-lifecycle sponsored tool to manage Cluster API clusters. See [here](cmd/clusterctl)
 
-[cluster-api-kep]: https://github.com/kubernetes/enhancements/blob/master/keps/sig-cluster-lifecycle/clusterapi/0003-cluster-api.md
 [notes]: https://docs.google.com/document/d/1Ys-DOR5UsgbMEeciuG0HOgDQc8kZsaWIWJeKJ1-UfbY/edit
 [recordings]: https://www.youtube.com/playlist?list=PL69nYSiGNLP29D0nYgAGWt1ZFqS9Z7lw4
 [zoomMeeting]: https://zoom.us/j/861487554

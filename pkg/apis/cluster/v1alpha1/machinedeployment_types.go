@@ -22,6 +22,9 @@ import (
 	"sigs.k8s.io/cluster-api/pkg/apis/cluster/common"
 )
 
+// +genclient
+// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
+
 /// [MachineDeploymentSpec]
 
 // MachineDeploymentSpec defines the desired state of MachineDeployment.
@@ -164,9 +167,6 @@ type MachineDeploymentStatus struct {
 }
 
 /// [MachineDeploymentStatus]
-
-// +genclient
-// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
 
 /// [MachineDeployment]
 

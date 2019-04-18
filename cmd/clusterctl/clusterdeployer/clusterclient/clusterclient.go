@@ -919,7 +919,7 @@ func (c *client) waitForKubectlApply(manifest string) error {
 		klog.V(2).Infof("Waiting for kubectl apply...")
 		err := c.kubectlApply(manifest)
 		if err != nil {
-			if strings.Contains(err.Error(), io.EOF.Error()) || strings.Contains(err.Error(), "refused") {
+			if strings.Contains(err.Error(), io.EOF.Error()) || strings.Contains(err.Error(), "refused") || strings.Contains(err.Error(), "no such host") {
 				// Connection was refused, probably because the API server is not ready yet.
 				klog.V(4).Infof("Waiting for kubectl apply... server not yet available: %v", err)
 				return false, nil

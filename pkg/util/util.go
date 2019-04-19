@@ -85,16 +85,6 @@ func GetControlPlaneMachines(machines []*clusterv1.Machine) (res []*clusterv1.Ma
 	return
 }
 
-// MachineP converts a slice of machines into a slice of machine pointers.
-func MachineP(machines []clusterv1.Machine) []*clusterv1.Machine {
-	// Convert to list of pointers
-	ret := make([]*clusterv1.Machine, 0, len(machines))
-	for _, machine := range machines {
-		ret = append(ret, machine.DeepCopy())
-	}
-	return ret
-}
-
 // Home returns the user home directory.
 func Home() string {
 	home := os.Getenv("HOME")
@@ -247,8 +237,7 @@ func ParseMachinesYaml(file string) ([]*clusterv1.Machine, error) {
 	var (
 		bytes       [][]byte
 		machineList clusterv1.MachineList
-		machine     clusterv1.Machine
-		machines    = []clusterv1.Machine{}
+		machines    = []*clusterv1.Machine{}
 	)
 
 	// TODO: use the universal decoder instead of doing this.
@@ -264,7 +253,8 @@ func ParseMachinesYaml(file string) ([]*clusterv1.Machine, error) {
 		if err := json.Unmarshal(ml, &machineList); err != nil {
 			return nil, err
 		}
-		for _, machine := range machineList.Items {
+		for i := range machineList.Items {
+			machine := &machineList.Items[i]
 			if machine.APIVersion == "" || machine.Kind == "" {
 				return nil, errors.New(MachineListFormatDeprecationMessage)
 			}
@@ -282,13 +272,14 @@ func ParseMachinesYaml(file string) ([]*clusterv1.Machine, error) {
 	}
 
 	for _, m := range bytes {
-		if err := json.Unmarshal(m, &machine); err != nil {
+		machine := &clusterv1.Machine{}
+		if err := json.Unmarshal(m, machine); err != nil {
 			return nil, err
 		}
 		machines = append(machines, machine)
 	}
 
-	return MachineP(machines), nil
+	return machines, nil
 }
 
 // isMissingKind reimplements runtime.IsMissingKind as the YAMLOrJSONDecoder

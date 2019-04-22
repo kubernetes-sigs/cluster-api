@@ -178,7 +178,7 @@ func (r *ReconcileMachine) Reconcile(request reconcile.Request) (reconcile.Resul
 		}
 
 		if !r.isDeleteAllowed(m) {
-			klog.Infof("Skipping reconciling of machine %q", name)
+			klog.Infof("Deleting machine hosting this controller is not allowed. Skipping reconciliation of machine %q", name)
 			return reconcile.Result{}, nil
 		}
 

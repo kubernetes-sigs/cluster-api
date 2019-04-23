@@ -304,7 +304,7 @@ func (r *ReconcileMachine) drainNode(machine *machinev1.Machine) error {
 
 func (r *ReconcileMachine) getCluster(ctx context.Context, machine *machinev1.Machine) (*machinev1.Cluster, error) {
 	if machine.Labels[machinev1.MachineClusterLabelName] == "" {
-		klog.Infof("Machine %q in namespace %q doesn't specify %q label, assuming nil cluster", machine.Name, machinev1.MachineClusterLabelName, machine.Namespace)
+		klog.Infof("Machine %q in namespace %q doesn't specify %q label, assuming nil cluster", machine.Name, machine.Namespace, machinev1.MachineClusterLabelName)
 		return nil, nil
 	}
 

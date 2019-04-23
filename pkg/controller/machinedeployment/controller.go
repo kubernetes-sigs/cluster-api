@@ -272,7 +272,7 @@ func (r *ReconcileMachineDeployment) reconcile(ctx context.Context, d *v1beta1.M
 
 func (r *ReconcileMachineDeployment) getCluster(d *v1beta1.MachineDeployment) (*v1beta1.Cluster, error) {
 	if d.Spec.Template.Labels[v1beta1.MachineClusterLabelName] == "" {
-		klog.Infof("Deployment %q in namespace %q doesn't specify %q label, assuming nil cluster", d.Name, v1beta1.MachineClusterLabelName, d.Namespace)
+		klog.Infof("Deployment %q in namespace %q doesn't specify %q label, assuming nil cluster", d.Name, d.Namespace, v1beta1.MachineClusterLabelName)
 		return nil, nil
 	}
 

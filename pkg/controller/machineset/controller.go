@@ -294,7 +294,7 @@ func (r *ReconcileMachineSet) reconcile(ctx context.Context, machineSet *machine
 
 func (r *ReconcileMachineSet) getCluster(ms *machinev1beta1.MachineSet) (*machinev1beta1.Cluster, error) {
 	if ms.Spec.Template.Labels[machinev1beta1.MachineClusterLabelName] == "" {
-		klog.Infof("MachineSet %q in namespace %q doesn't specify %q label, assuming nil cluster", ms.Name, machinev1beta1.MachineClusterLabelName, ms.Namespace)
+		klog.Infof("MachineSet %q in namespace %q doesn't specify %q label, assuming nil cluster", ms.Name, ms.Namespace, machinev1beta1.MachineClusterLabelName)
 		return nil, nil
 	}
 

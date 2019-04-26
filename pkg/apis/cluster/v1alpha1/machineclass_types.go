@@ -17,6 +17,7 @@ limitations under the License.
 package v1alpha1
 
 import (
+	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 )
@@ -41,8 +42,7 @@ type MachineClass struct {
 	// this field is consistent with the underlying machine that will
 	// be provisioned when this class is used, to inform higher level
 	// automation (e.g. the cluster autoscaler).
-	// TODO(hardikdr) Add allocatable field once requirements are clear from autoscaler-clusterapi // integration topic.
-	// Capacity corev1.ResourceList `json:"capacity"`
+	Capacity corev1.ResourceList `json:"capacity"`
 
 	// How much capacity is actually allocatable on this machine.
 	// Must be equal to or less than the capacity, and when less
@@ -52,8 +52,7 @@ type MachineClass struct {
 	// this field is consistent with the underlying machine that will
 	// be provisioned when this class is used, to inform higher level
 	// automation (e.g. the cluster autoscaler).
-	// TODO(hardikdr) Add allocatable field once requirements are clear from autoscaler-clusterapi // integration topic.
-	// Allocatable corev1.ResourceList `json:"allocatable"`
+	Allocatable corev1.ResourceList `json:"allocatable"`
 
 	// Provider-specific configuration to use during node creation.
 	ProviderSpec runtime.RawExtension `json:"providerSpec"`

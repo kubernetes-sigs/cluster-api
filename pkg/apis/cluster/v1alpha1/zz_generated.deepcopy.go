@@ -234,6 +234,20 @@ func (in *MachineClass) DeepCopyInto(out *MachineClass) {
 	*out = *in
 	out.TypeMeta = in.TypeMeta
 	in.ObjectMeta.DeepCopyInto(&out.ObjectMeta)
+	if in.Capacity != nil {
+		in, out := &in.Capacity, &out.Capacity
+		*out = make(v1.ResourceList, len(*in))
+		for key, val := range *in {
+			(*out)[key] = val.DeepCopy()
+		}
+	}
+	if in.Allocatable != nil {
+		in, out := &in.Allocatable, &out.Allocatable
+		*out = make(v1.ResourceList, len(*in))
+		for key, val := range *in {
+			(*out)[key] = val.DeepCopy()
+		}
+	}
 	in.ProviderSpec.DeepCopyInto(&out.ProviderSpec)
 	return
 }

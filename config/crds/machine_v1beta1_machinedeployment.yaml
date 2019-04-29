@@ -157,20 +157,6 @@ spec:
                             should be serialized/deserialized from this field, akin
                             to component config.
                           type: object
-                        valueFrom:
-                          description: Source for the provider configuration. Cannot
-                            be used if value is not empty.
-                          properties:
-                            machineClass:
-                              description: The machine class from which the provider
-                                config should be sourced.
-                              properties:
-                                provider:
-                                  description: Provider is the name of the cloud-provider
-                                    which MachineClass is intended for.
-                                  type: string
-                              type: object
-                          type: object
                       type: object
                     taints:
                       description: The list of the taints to be applied to the corresponding

@@ -196,8 +196,8 @@ func (m *Machine) Validate() field.ErrorList {
 	}
 
 	// validate provider config is set
-	if m.Spec.ProviderSpec.Value == nil && m.Spec.ProviderSpec.ValueFrom == nil {
-		errors = append(errors, field.Invalid(fldPath.Child("spec").Child("providerspec"), m.Spec.ProviderSpec, "at least one of value or valueFrom fields must be set"))
+	if m.Spec.ProviderSpec.Value == nil {
+		errors = append(errors, field.Invalid(fldPath.Child("spec").Child("providerspec"), m.Spec.ProviderSpec, "value field must be set"))
 	}
 
 	return errors

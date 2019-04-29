@@ -20,6 +20,8 @@ import (
 	"reflect"
 	"testing"
 
+	"k8s.io/apimachinery/pkg/runtime"
+
 	"github.com/openshift/cluster-api/pkg/apis/cluster/v1alpha1"
 	"github.com/openshift/cluster-api/pkg/apis/machine/v1beta1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -49,10 +51,8 @@ func TestReconcileRequest(t *testing.T) {
 		},
 		Spec: v1beta1.MachineSpec{
 			ProviderSpec: v1beta1.ProviderSpec{
-				ValueFrom: &v1beta1.ProviderSpecSource{
-					MachineClass: &v1beta1.MachineClassRef{
-						Provider: "no-provider",
-					},
+				Value: &runtime.RawExtension{
+					Raw: []byte("{}"),
 				},
 			},
 		},
@@ -72,10 +72,8 @@ func TestReconcileRequest(t *testing.T) {
 		},
 		Spec: v1beta1.MachineSpec{
 			ProviderSpec: v1beta1.ProviderSpec{
-				ValueFrom: &v1beta1.ProviderSpecSource{
-					MachineClass: &v1beta1.MachineClassRef{
-						Provider: "no-provider",
-					},
+				Value: &runtime.RawExtension{
+					Raw: []byte("{}"),
 				},
 			},
 		},
@@ -97,10 +95,8 @@ func TestReconcileRequest(t *testing.T) {
 		},
 		Spec: v1beta1.MachineSpec{
 			ProviderSpec: v1beta1.ProviderSpec{
-				ValueFrom: &v1beta1.ProviderSpecSource{
-					MachineClass: &v1beta1.MachineClassRef{
-						Provider: "no-provider",
-					},
+				Value: &runtime.RawExtension{
+					Raw: []byte("{}"),
 				},
 			},
 		},

@@ -42,7 +42,7 @@ func TestMachineSetToDeployments(t *testing.T) {
 		Spec: v1beta1.MachineDeploymentSpec{
 			Selector: metav1.LabelSelector{
 				MatchLabels: map[string]string{
-					"foo": "bar",
+					"foo":                           "bar",
 					v1beta1.MachineClusterLabelName: "test-cluster",
 				},
 			},
@@ -91,7 +91,7 @@ func TestMachineSetToDeployments(t *testing.T) {
 			Name:      "withMatchingLabels",
 			Namespace: "test",
 			Labels: map[string]string{
-				"foo": "bar",
+				"foo":                           "bar",
 				v1beta1.MachineClusterLabelName: "test-cluster",
 			},
 		},

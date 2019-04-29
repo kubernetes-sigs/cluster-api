@@ -93,25 +93,6 @@ spec:
               items:
                 type: object
               type: array
-            versions:
-              description: Versions of key software to use. This field is optional
-                at cluster creation time, and omitting the field indicates that the
-                cluster installation tool should select defaults for the user. These
-                defaults may differ based on the cluster installer, but the tool should
-                populate the values it uses when persisting Machine objects. A Machine
-                spec missing this field at runtime is invalid.
-              properties:
-                controlPlane:
-                  description: ControlPlane is the semantic version of the Kubernetes
-                    control plane to run. This should only be populated when the machine
-                    is a control plane.
-                  type: string
-                kubelet:
-                  description: Kubelet is the semantic version of kubelet to run
-                  type: string
-              required:
-              - kubelet
-              type: object
           required:
           - providerSpec
           type: object

@@ -78,15 +78,6 @@ type MachineSpec struct {
 	// +optional
 	ProviderSpec ProviderSpec `json:"providerSpec"`
 
-	// Versions of key software to use. This field is optional at cluster
-	// creation time, and omitting the field indicates that the cluster
-	// installation tool should select defaults for the user. These
-	// defaults may differ based on the cluster installer, but the tool
-	// should populate the values it uses when persisting Machine objects.
-	// A Machine spec missing this field at runtime is invalid.
-	// +optional
-	Versions MachineVersionInfo `json:"versions,omitempty"`
-
 	// ConfigSource is used to populate in the associated Node for dynamic kubelet config. This
 	// field already exists in Node, so any updates to it in the Machine
 	// spec will be automatically copied to the linked NodeRef from the

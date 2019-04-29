@@ -60,9 +60,6 @@ func TestReconcile(t *testing.T) {
 				ObjectMeta: metav1.ObjectMeta{
 					Labels: labels,
 				},
-				Spec: machinev1beta1.MachineSpec{
-					Versions: machinev1beta1.MachineVersionInfo{Kubelet: "1.10.3"},
-				},
 			},
 		},
 	}
@@ -101,9 +98,6 @@ func TestReconcile(t *testing.T) {
 	ms := machineSets.Items[0]
 	if r := *ms.Spec.Replicas; r != 2 {
 		t.Errorf("replicas was %d not 2", r)
-	}
-	if k := ms.Spec.Template.Spec.Versions.Kubelet; k != "1.10.3" {
-		t.Errorf("kubelet was %q not '1.10.3'", k)
 	}
 
 	// Delete a MachineSet and expect Reconcile to be called to replace it.

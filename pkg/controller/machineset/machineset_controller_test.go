@@ -73,9 +73,6 @@ func TestReconcile(t *testing.T) {
 						ObjectMeta: metav1.ObjectMeta{
 							Labels: map[string]string{"foo": "bar2"},
 						},
-						Spec: machinev1beta1.MachineSpec{
-							Versions: machinev1beta1.MachineVersionInfo{Kubelet: "1.10.3"},
-						},
 					},
 				},
 			},
@@ -102,9 +99,6 @@ func TestReconcile(t *testing.T) {
 						ObjectMeta: metav1.ObjectMeta{
 							Labels: labels,
 						},
-						Spec: machinev1beta1.MachineSpec{
-							Versions: machinev1beta1.MachineVersionInfo{Kubelet: "1.10.3"},
-						},
 					},
 				},
 			},
@@ -121,13 +115,6 @@ func TestReconcile(t *testing.T) {
 					}
 					return len(machines.Items)
 				})
-
-				// Verify that each machine has the desired kubelet version.
-				for _, m := range machines.Items {
-					if k := m.Spec.Versions.Kubelet; k != "1.10.3" {
-						t.Errorf("kubelet was %q not '1.10.3'", k)
-					}
-				}
 
 				// Delete a Machine and expect Reconcile to be called to replace it.
 				m := machines.Items[0]

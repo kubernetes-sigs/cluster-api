@@ -682,13 +682,6 @@ func (in *MachineStatus) DeepCopyInto(out *MachineStatus) {
 		*out = make([]v1.NodeAddress, len(*in))
 		copy(*out, *in)
 	}
-	if in.Conditions != nil {
-		in, out := &in.Conditions, &out.Conditions
-		*out = make([]v1.NodeCondition, len(*in))
-		for i := range *in {
-			(*in)[i].DeepCopyInto(&(*out)[i])
-		}
-	}
 	if in.LastOperation != nil {
 		in, out := &in.LastOperation, &out.LastOperation
 		*out = new(LastOperation)

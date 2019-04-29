@@ -154,14 +154,6 @@ type MachineStatus struct {
 	// +optional
 	Addresses []corev1.NodeAddress `json:"addresses,omitempty"`
 
-	// Conditions lists the conditions synced from the node conditions of the corresponding node-object.
-	// Machine-controller is responsible for keeping conditions up-to-date.
-	// MachineSet controller will be taking these conditions as a signal to decide if
-	// machine is healthy or needs to be replaced.
-	// Refer: https://kubernetes.io/docs/concepts/architecture/nodes/#condition
-	// +optional
-	Conditions []corev1.NodeCondition `json:"conditions,omitempty"`
-
 	// LastOperation describes the last-operation performed by the machine-controller.
 	// This API should be useful as a history in terms of the latest operation performed on the
 	// specific machine. It should also convey the state of the latest-operation for example if

@@ -97,15 +97,6 @@ spec:
               items:
                 type: object
               type: array
-            conditions:
-              description: 'Conditions lists the conditions synced from the node conditions
-                of the corresponding node-object. Machine-controller is responsible
-                for keeping conditions up-to-date. MachineSet controller will be taking
-                these conditions as a signal to decide if machine is healthy or needs
-                to be replaced. Refer: https://kubernetes.io/docs/concepts/architecture/nodes/#condition'
-              items:
-                type: object
-              type: array
             errorMessage:
               description: ErrorMessage will be set in the event that there is a terminal
                 problem reconciling the Machine and will contain a more verbose string

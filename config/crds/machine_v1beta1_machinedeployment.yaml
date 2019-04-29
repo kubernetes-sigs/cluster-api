@@ -123,14 +123,6 @@ spec:
                   description: 'Specification of the desired behavior of the machine.
                     More info: https://git.k8s.io/community/contributors/devel/api-conventions.md#spec-and-status'
                   properties:
-                    configSource:
-                      description: ConfigSource is used to populate in the associated
-                        Node for dynamic kubelet config. This field already exists
-                        in Node, so any updates to it in the Machine spec will be
-                        automatically copied to the linked NodeRef from the status.
-                        The rest of dynamic kubelet config support should then work
-                        as-is.
-                      type: object
                     metadata:
                       description: ObjectMeta will autopopulate the Node created.
                         Use this to indicate what labels, annotations, name prefix,

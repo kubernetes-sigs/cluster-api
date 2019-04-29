@@ -78,14 +78,6 @@ type MachineSpec struct {
 	// +optional
 	ProviderSpec ProviderSpec `json:"providerSpec"`
 
-	// ConfigSource is used to populate in the associated Node for dynamic kubelet config. This
-	// field already exists in Node, so any updates to it in the Machine
-	// spec will be automatically copied to the linked NodeRef from the
-	// status. The rest of dynamic kubelet config support should then work
-	// as-is.
-	// +optional
-	ConfigSource *corev1.NodeConfigSource `json:"configSource,omitempty"`
-
 	// ProviderID is the identification ID of the machine provided by the provider.
 	// This field must match the provider ID as seen on the node object corresponding to this machine.
 	// This field is required by higher level consumers of cluster-api. Example use case is cluster autoscaler

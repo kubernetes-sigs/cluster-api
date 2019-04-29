@@ -105,22 +105,6 @@ type MachineStatus struct {
 	// +optional
 	LastUpdated *metav1.Time `json:"lastUpdated,omitempty"`
 
-	// Versions specifies the current versions of software on the corresponding Node (if it
-	// exists). This is provided for a few reasons:
-	//
-	// 1) It is more convenient than checking the NodeRef, traversing it to
-	//    the Node, and finding the appropriate field in Node.Status.NodeInfo
-	//    (which uses different field names and formatting).
-	// 2) It removes some of the dependency on the structure of the Node,
-	//    so that if the structure of Node.Status.NodeInfo changes, only
-	//    machine controllers need to be updated, rather than every client
-	//    of the Machines API.
-	// 3) There is no other simple way to check the control plane
-	//    version. A client would have to connect directly to the apiserver
-	//    running on the target node in order to find out its version.
-	// +optional
-	Versions *MachineVersionInfo `json:"versions,omitempty"`
-
 	// ErrorReason will be set in the event that there is a terminal problem
 	// reconciling the Machine and will contain a succinct value suitable
 	// for machine interpretation.
@@ -206,20 +190,6 @@ type LastOperation struct {
 	// Type is the type of operation which was last performed.
 	// E.g. Create, Delete, Update etc
 	Type *string `json:"type,omitempty"`
-}
-
-/// [MachineStatus]
-
-/// [MachineVersionInfo]
-type MachineVersionInfo struct {
-	// Kubelet is the semantic version of kubelet to run
-	Kubelet string `json:"kubelet"`
-
-	// ControlPlane is the semantic version of the Kubernetes control plane to
-	// run. This should only be populated when the machine is a
-	// control plane.
-	// +optional
-	ControlPlane string `json:"controlPlane,omitempty"`
 }
 
 /// [MachineVersionInfo]

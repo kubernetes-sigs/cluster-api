@@ -132,7 +132,7 @@ Multitenancy Management
 - 🔭 As an operator, given I have created a Kubernetes-conformant cluster without ClusterAPI, I want to use ClusterAPI to manage it. In order to do so, I need to know the requirements for adopting/importing this cluster in terms of required CRD’s and operators (e.g Machine and Cluster objects).
 
 ### Multitenancy Management
-🔭 As an operator, given I have a management cluster and a workload cluster, I want to setup roles, role bindings, users, and usage quotas on my workload cluster.
+- 🔭 As an operator, given I have a management cluster and a workload cluster, I want to setup roles, role bindings, users, and usage quotas on my workload cluster.
 
 
 ### Disaster Recovery

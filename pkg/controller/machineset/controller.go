@@ -24,6 +24,7 @@ import (
 	"sync"
 	"time"
 
+	clusterv1alpha1 "github.com/openshift/cluster-api/pkg/apis/cluster/v1alpha1"
 	machinev1beta1 "github.com/openshift/cluster-api/pkg/apis/machine/v1beta1"
 	"github.com/openshift/cluster-api/pkg/util"
 	"github.com/pkg/errors"
@@ -292,13 +293,13 @@ func (r *ReconcileMachineSet) reconcile(ctx context.Context, machineSet *machine
 	return reconcile.Result{}, nil
 }
 
-func (r *ReconcileMachineSet) getCluster(ms *machinev1beta1.MachineSet) (*machinev1beta1.Cluster, error) {
+func (r *ReconcileMachineSet) getCluster(ms *machinev1beta1.MachineSet) (*clusterv1alpha1.Cluster, error) {
 	if ms.Spec.Template.Labels[machinev1beta1.MachineClusterLabelName] == "" {
 		klog.Infof("MachineSet %q in namespace %q doesn't specify %q label, assuming nil cluster", ms.Name, ms.Namespace, machinev1beta1.MachineClusterLabelName)
 		return nil, nil
 	}
 
-	cluster := &machinev1beta1.Cluster{}
+	cluster := &clusterv1alpha1.Cluster{}
 	key := client.ObjectKey{
 		Namespace: ms.Namespace,
 		Name:      ms.Spec.Template.Labels[machinev1beta1.MachineClusterLabelName],

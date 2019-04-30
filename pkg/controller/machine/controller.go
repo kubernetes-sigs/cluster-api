@@ -23,6 +23,7 @@ import (
 	"time"
 
 	"github.com/go-log/log/info"
+	clusterv1 "github.com/openshift/cluster-api/pkg/apis/cluster/v1alpha1"
 	machinev1 "github.com/openshift/cluster-api/pkg/apis/machine/v1beta1"
 	controllerError "github.com/openshift/cluster-api/pkg/controller/error"
 	"github.com/openshift/cluster-api/pkg/util"
@@ -286,13 +287,13 @@ func (r *ReconcileMachine) drainNode(machine *machinev1.Machine) error {
 	return nil
 }
 
-func (r *ReconcileMachine) getCluster(ctx context.Context, machine *machinev1.Machine) (*machinev1.Cluster, error) {
+func (r *ReconcileMachine) getCluster(ctx context.Context, machine *machinev1.Machine) (*clusterv1.Cluster, error) {
 	if machine.Labels[machinev1.MachineClusterLabelName] == "" {
 		klog.Infof("Machine %q in namespace %q doesn't specify %q label, assuming nil cluster", machine.Name, machine.Namespace, machinev1.MachineClusterLabelName)
 		return nil, nil
 	}
 
-	cluster := &machinev1.Cluster{}
+	cluster := &clusterv1.Cluster{}
 	key := client.ObjectKey{
 		Namespace: machine.Namespace,
 		Name:      machine.Labels[machinev1.MachineClusterLabelName],

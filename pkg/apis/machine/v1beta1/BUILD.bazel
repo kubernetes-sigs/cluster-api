@@ -3,7 +3,6 @@ load("@io_bazel_rules_go//go:def.bzl", "go_library", "go_test")
 go_library(
     name = "go_default_library",
     srcs = [
-        "cluster_types.go",
         "common_types.go",
         "defaults.go",
         "doc.go",
@@ -33,7 +32,6 @@ go_library(
 go_test(
     name = "go_default_test",
     srcs = [
-        "cluster_types_test.go",
         "machine_types_test.go",
         "machinedeployment_types_test.go",
         "machineset_types_test.go",

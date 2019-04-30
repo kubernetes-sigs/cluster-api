@@ -10,6 +10,7 @@ go_library(
     importpath = "github.com/openshift/cluster-api/pkg/controller/machinedeployment",
     visibility = ["//visibility:public"],
     deps = [
+        "//pkg/apis/cluster/v1alpha1:go_default_library",
         "//pkg/apis/machine/common:go_default_library",
         "//pkg/apis/machine/v1beta1:go_default_library",
         "//pkg/controller/machinedeployment/util:go_default_library",

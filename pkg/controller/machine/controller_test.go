@@ -101,11 +101,11 @@ func TestReconcileRequest(t *testing.T) {
 			},
 		},
 	}
-	clusterList := v1beta1.ClusterList{
+	clusterList := v1alpha1.ClusterList{
 		TypeMeta: metav1.TypeMeta{
 			Kind: "ClusterList",
 		},
-		Items: []v1beta1.Cluster{
+		Items: []v1alpha1.Cluster{
 			{
 				TypeMeta: metav1.TypeMeta{
 					Kind: "Cluster",

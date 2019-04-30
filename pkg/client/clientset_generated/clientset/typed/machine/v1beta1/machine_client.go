@@ -27,7 +27,6 @@ import (
 
 type MachineV1beta1Interface interface {
 	RESTClient() rest.Interface
-	ClustersGetter
 	MachinesGetter
 	MachineClassesGetter
 	MachineDeploymentsGetter
@@ -37,10 +36,6 @@ type MachineV1beta1Interface interface {
 // MachineV1beta1Client is used to interact with features provided by the machine.openshift.io group.
 type MachineV1beta1Client struct {
 	restClient rest.Interface
-}
-
-func (c *MachineV1beta1Client) Clusters(namespace string) ClusterInterface {
-	return newClusters(c, namespace)
 }
 
 func (c *MachineV1beta1Client) Machines(namespace string) MachineInterface {

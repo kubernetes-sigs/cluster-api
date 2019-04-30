@@ -66,8 +66,6 @@ func (f *sharedInformerFactory) ForResource(resource schema.GroupVersionResource
 		return &genericInformer{resource: resource.GroupResource(), informer: f.Cluster().V1alpha1().MachineSets().Informer()}, nil
 
 		// Group=machine.openshift.io, Version=v1beta1
-	case v1beta1.SchemeGroupVersion.WithResource("clusters"):
-		return &genericInformer{resource: resource.GroupResource(), informer: f.Machine().V1beta1().Clusters().Informer()}, nil
 	case v1beta1.SchemeGroupVersion.WithResource("machines"):
 		return &genericInformer{resource: resource.GroupResource(), informer: f.Machine().V1beta1().Machines().Informer()}, nil
 	case v1beta1.SchemeGroupVersion.WithResource("machineclasses"):

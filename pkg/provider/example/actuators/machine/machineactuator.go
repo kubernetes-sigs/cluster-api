@@ -19,7 +19,8 @@ package machine
 import (
 	"context"
 
-	clusterv1 "github.com/openshift/cluster-api/pkg/apis/machine/v1beta1"
+	clusterv1 "github.com/openshift/cluster-api/pkg/apis/cluster/v1alpha1"
+	machinev1 "github.com/openshift/cluster-api/pkg/apis/machine/v1beta1"
 	clusterv1alpha1 "github.com/openshift/cluster-api/pkg/client/clientset_generated/clientset/typed/cluster/v1alpha1"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/client-go/tools/record"
@@ -40,25 +41,25 @@ func NewMachineActuator(clusterV1alpha1 clusterv1alpha1.ClusterV1alpha1Interface
 }
 
 // Create creates a machine
-func (a *Actuator) Create(ctx context.Context, cluster *clusterv1.Cluster, machine *clusterv1.Machine) error {
+func (a *Actuator) Create(ctx context.Context, cluster *clusterv1.Cluster, machine *machinev1.Machine) error {
 	a.recorder.Event(machine, corev1.EventTypeWarning, "cluster-api", "machineactuator Create invoked")
 	return nil
 }
 
 // Delete deletes a machine
-func (a *Actuator) Delete(ctx context.Context, cluster *clusterv1.Cluster, machine *clusterv1.Machine) error {
+func (a *Actuator) Delete(ctx context.Context, cluster *clusterv1.Cluster, machine *machinev1.Machine) error {
 	a.recorder.Event(machine, corev1.EventTypeWarning, "cluster-api", "machineactuator Delete invoked")
 	return nil
 }
 
 // Update updates a machine
-func (a *Actuator) Update(ctx context.Context, cluster *clusterv1.Cluster, machine *clusterv1.Machine) error {
+func (a *Actuator) Update(ctx context.Context, cluster *clusterv1.Cluster, machine *machinev1.Machine) error {
 	a.recorder.Event(machine, corev1.EventTypeWarning, "cluster-api", "machineactuator Update invoked")
 	return nil
 }
 
 // Exists test for the existence of a machine
-func (a *Actuator) Exists(ctx context.Context, cluster *clusterv1.Cluster, machine *clusterv1.Machine) (bool, error) {
+func (a *Actuator) Exists(ctx context.Context, cluster *clusterv1.Cluster, machine *machinev1.Machine) (bool, error) {
 	a.recorder.Event(machine, corev1.EventTypeWarning, "cluster-api", "machineactuator Exists invoked")
 	return false, nil
 }

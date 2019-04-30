@@ -18,8 +18,6 @@ limitations under the License.
 
 package v1beta1
 
-type ClusterExpansion interface{}
-
 type MachineExpansion interface{}
 
 type MachineClassExpansion interface{}

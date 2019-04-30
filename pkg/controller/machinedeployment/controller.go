@@ -20,6 +20,7 @@ import (
 	"context"
 	"reflect"
 
+	"github.com/openshift/cluster-api/pkg/apis/cluster/v1alpha1"
 	"github.com/openshift/cluster-api/pkg/apis/machine/common"
 	"github.com/openshift/cluster-api/pkg/apis/machine/v1beta1"
 	"github.com/openshift/cluster-api/pkg/util"
@@ -270,13 +271,13 @@ func (r *ReconcileMachineDeployment) reconcile(ctx context.Context, d *v1beta1.M
 	return reconcile.Result{}, errors.Errorf("unexpected deployment strategy type: %s", d.Spec.Strategy.Type)
 }
 
-func (r *ReconcileMachineDeployment) getCluster(d *v1beta1.MachineDeployment) (*v1beta1.Cluster, error) {
+func (r *ReconcileMachineDeployment) getCluster(d *v1beta1.MachineDeployment) (*v1alpha1.Cluster, error) {
 	if d.Spec.Template.Labels[v1beta1.MachineClusterLabelName] == "" {
 		klog.Infof("Deployment %q in namespace %q doesn't specify %q label, assuming nil cluster", d.Name, d.Namespace, v1beta1.MachineClusterLabelName)
 		return nil, nil
 	}
 
-	cluster := &v1beta1.Cluster{}
+	cluster := &v1alpha1.Cluster{}
 	key := client.ObjectKey{
 		Namespace: d.Namespace,
 		Name:      d.Spec.Template.Labels[v1beta1.MachineClusterLabelName],

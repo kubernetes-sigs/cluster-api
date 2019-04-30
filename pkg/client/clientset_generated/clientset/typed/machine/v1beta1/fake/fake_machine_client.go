@@ -28,10 +28,6 @@ type FakeMachineV1beta1 struct {
 	*testing.Fake
 }
 
-func (c *FakeMachineV1beta1) Clusters(namespace string) v1beta1.ClusterInterface {
-	return &FakeClusters{c, namespace}
-}
-
 func (c *FakeMachineV1beta1) Machines(namespace string) v1beta1.MachineInterface {
 	return &FakeMachines{c, namespace}
 }

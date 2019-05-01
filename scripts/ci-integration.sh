@@ -21,6 +21,7 @@ set -o pipefail
 MAKE="make"
 KUSTOMIZE="kustomize"
 KUBECTL="kubectl"
+KUBECTL_VERSION="v1.13.2"
 CRD_YAML="crd.yaml"
 BOOTSTRAP_CLUSTER_NAME="clusterapi-bootstrap"
 CONTROLLER_REPO="controller-ci" # use arbitrary repo name since we don't need to publish it
@@ -32,7 +33,7 @@ install_kustomize() {
 }
 
 install_kubectl() {
-   wget https://storage.googleapis.com/kubernetes-release/release/v1.10.2/bin/linux/amd64/kubectl \
+   wget https://storage.googleapis.com/kubernetes-release/release/"${KUBECTL_VERSION}"/bin/linux/amd64/kubectl \
      --no-verbose -O /usr/local/bin/kubectl
    chmod +x /usr/local/bin/kubectl
 }

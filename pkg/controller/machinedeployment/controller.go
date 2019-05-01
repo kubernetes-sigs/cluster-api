@@ -162,7 +162,7 @@ func (r *ReconcileMachineDeployment) adoptOrphan(deployment *v1alpha1.MachineDep
 
 // Reconcile reads that state of the cluster for a MachineDeployment object and makes changes based on the state read
 // and what is in the MachineDeployment.Spec
-// +kubebuilder:rbac:groups=cluster.k8s.io,resources=machinedeployments,verbs=get;list;watch;create;update;patch;delete
+// +kubebuilder:rbac:groups=cluster.k8s.io,resources=machinedeployments;machinedeployments/status,verbs=get;list;watch;create;update;patch;delete
 func (r *ReconcileMachineDeployment) Reconcile(request reconcile.Request) (reconcile.Result, error) {
 	// Fetch the MachineDeployment instance
 	d := &v1alpha1.MachineDeployment{}

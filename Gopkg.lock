@@ -1081,6 +1081,14 @@
 
 [[projects]]
   branch = "master"
+  digest = "1:dc54d24e166e75a89145883b6080306f5684db2e8ab7a068625f010dee604c6e"
+  name = "k8s.io/component-base"
+  packages = ["cli/flag"]
+  pruneopts = "UT"
+  revision = "fd5d14dd6d20b9f3b0c066e2702d877b0b8c049f"
+
+[[projects]]
+  branch = "master"
   digest = "1:28514fabca4356625720ffb012408790a9d00d31963a9bd9daf7b5ccd894c301"
   name = "k8s.io/gengo"
   packages = [
@@ -1096,12 +1104,12 @@
   revision = "f8a0810f38afb8478882b3835a615aebfda39afa"
 
 [[projects]]
-  digest = "1:e2999bf1bb6eddc2a6aa03fe5e6629120a53088926520ca3b4765f77d7ff7eab"
+  digest = "1:c696379ad201c1e86591785579e16bf6cf886c362e9a7534e8eb0d1028b20582"
   name = "k8s.io/klog"
   packages = ["."]
   pruneopts = "UT"
-  revision = "a5bc97fbc634d635061f3146511332c7e313a55a"
-  version = "v0.1.0"
+  revision = "e531227889390a39d9533dde61f590fe9f4b0035"
+  version = "v0.3.0"
 
 [[projects]]
   branch = "master"
@@ -1254,6 +1262,7 @@
     "k8s.io/code-generator/cmd/deepcopy-gen",
     "k8s.io/code-generator/cmd/informer-gen",
     "k8s.io/code-generator/cmd/lister-gen",
+    "k8s.io/component-base/cli/flag",
     "k8s.io/klog",
     "sigs.k8s.io/controller-runtime/pkg/client",
     "sigs.k8s.io/controller-runtime/pkg/client/config",

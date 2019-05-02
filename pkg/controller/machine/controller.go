@@ -163,7 +163,7 @@ func (r *ReconcileMachine) Reconcile(request reconcile.Request) (reconcile.Resul
 		}
 
 		if !r.isDeleteAllowed(m) {
-			klog.Infof("Skipping reconciling of machine %q", name)
+			klog.Infof("Deleting machine hosting this controller is not allowed. Skipping reconciliation of machine %q", name)
 			return reconcile.Result{}, nil
 		}
 
@@ -235,7 +235,7 @@ func (r *ReconcileMachine) Reconcile(request reconcile.Request) (reconcile.Resul
 
 func (r *ReconcileMachine) getCluster(ctx context.Context, machine *clusterv1.Machine) (*clusterv1.Cluster, error) {
 	if machine.Labels[clusterv1.MachineClusterLabelName] == "" {
-		klog.Infof("Machine %q in namespace %q doesn't specify %q label, assuming nil cluster", machine.Name, clusterv1.MachineClusterLabelName, machine.Namespace)
+		klog.Infof("Machine %q in namespace %q doesn't specify %q label, assuming nil cluster", machine.Name, machine.Namespace, clusterv1.MachineClusterLabelName)
 		return nil, nil
 	}
 

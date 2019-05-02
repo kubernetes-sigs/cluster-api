@@ -50,6 +50,9 @@ If you are using minikube, to choose a specific minikube driver, please use the 
 
 Additional advanced flags can be found via help.
 
+Also, some environment variables are supported:
+`CLUSTER_API_MACHINE_READY_TIMEOUT`: set this value to adjust the timeout value in minutes for a machine to become ready, The default timeout is currently 30 minutes, `export CLUSTER_API_MACHINE_READY_TIMEOUT=45` will extend the timeout value to 45 minutes.
+
 ```shell
 ./clusterctl create cluster --help
 ```

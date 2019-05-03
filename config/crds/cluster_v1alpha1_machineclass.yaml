@@ -10,6 +10,8 @@ spec:
   names:
     kind: MachineClass
     plural: machineclasses
+    shortNames:
+    - mc
   scope: Namespaced
   validation:
     openAPIV3Schema:

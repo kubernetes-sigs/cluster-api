@@ -24,6 +24,8 @@ spec:
   names:
     kind: Machine
     plural: machines
+    shortNames:
+    - ma
   scope: Namespaced
   subresources:
     status: {}

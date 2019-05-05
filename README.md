@@ -12,7 +12,7 @@ API design. Because of this, all of the prototype code is rapidly changing.
 
 ![Cluster API Architecture](./docs/book/common_code/architecture.svg "Cluster API Architecture")
 
-Learn more about the project's [scope, objectives, goals and requirements](./docs/scope-and-objectives.md) and [feature proposals](./docs/proposals/).
+Learn more about the project's [scope, objectives, goals and requirements](./docs/scope-and-objectives.md), [feature proposals](./docs/proposals/) and [reference use cases](./docs/staging-use-cases.md).
 
 ## Get involved!
 

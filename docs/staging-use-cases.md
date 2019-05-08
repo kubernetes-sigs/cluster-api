@@ -4,21 +4,41 @@ creation-date: 2019-04-16
 last-updated: 2019-04-16
 ---
 
+<!-- START doctoc generated TOC please keep comment here to allow auto update -->
+<!-- DON'T EDIT THIS SECTION, INSTEAD RE-RUN doctoc TO UPDATE -->
+**Table of Contents**  *generated with [DocToc](https://github.com/thlorenz/doctoc)*
+
+- [Cluster API Reference Use Cases](#cluster-api-reference-use-cases)
+  - [Role Glossary](#role-glossary)
+  - [Icon Glossary](#icon-glossary)
+  - [Operator of Workload Cluster](#operator-of-workload-cluster)
+    - [Creating Clusters](#creating-clusters)
+    - [Staged Adoption of Cluster API By Operators](#staged-adoption-of-cluster-api-by-operators)
+    - [Deleting Clusters](#deleting-clusters)
+    - [Scaling](#scaling)
+    - [Configuration Updates](#configuration-updates)
+    - [Security](#security)
+    - [Upgrades](#upgrades)
+    - [Monitoring](#monitoring)
+    - [Adoption](#adoption)
+    - [Multitenancy Management](#multitenancy-management)
+    - [Disaster Recovery](#disaster-recovery)
+  - [Operator of Management Cluster](#operator-of-management-cluster)
+    - [Versioning and Upgrades](#versioning-and-upgrades)
+    - [Removing Cluster API](#removing-cluster-api)
+    - [Cross-cluster Metrics](#cross-cluster-metrics)
+    - [Specific Architecture Approaches](#specific-architecture-approaches)
+    - [Multitenancy Management](#multitenancy-management-1)
+  - [Multi-cluster/Multi-provider](#multi-clustermulti-provider)
+    - [Managing Providers](#managing-providers)
+    - [Creating Workload Clusters](#creating-workload-clusters)
+    - [Provider Implementors](#provider-implementors)
+
+<!-- END doctoc generated TOC please keep comment here to allow auto update -->
+
 # Cluster API Reference Use Cases
 
 This is a living document that serves as a reference and a staging area for use cases collected from the community during post-v1alpha1 project redesign.
-
-## Table of Contents
-
-* [Reference Use Cases](#cluster-api-reference-use-cases)
-  * [Metadata](#metadata)
-  * [Table of Contents](#table-of-contents)
-  * [Role Glossary](#role-glossary)
-  * [Icon Glossary](#icon-glossary)
-  * [Operator of Workload Cluster](#operator-of-workload-cluster)
-  * [Operator of Management Cluster](#operator-of-management-cluster)
-  * [Multi-Cluster/Multi-Provider](#multi-cluster/multi-provider)
-  * [Provider Implementors](#provider-implementors)
 
 ## Role Glossary
 - __User__: consumer of a Kubernetes-conformant cluster created by the Cluster API.

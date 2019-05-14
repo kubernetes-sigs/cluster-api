@@ -10,6 +10,8 @@ spec:
   names:
     kind: Cluster
     plural: clusters
+    shortNames:
+    - cl
   scope: Namespaced
   subresources:
     status: {}

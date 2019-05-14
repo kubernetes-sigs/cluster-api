@@ -32,6 +32,7 @@ import (
 /// [MachineSet]
 // MachineSet ensures that a specified number of machines replicas are running at any given time.
 // +k8s:openapi-gen=true
+// +kubebuilder:resource:shortName=ms
 // +kubebuilder:subresource:status
 // +kubebuilder:subresource:scale:specpath=.spec.replicas,statuspath=.status.replicas,selectorpath=.status.labelSelector
 type MachineSet struct {

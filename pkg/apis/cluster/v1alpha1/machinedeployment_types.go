@@ -167,6 +167,7 @@ type MachineDeploymentStatus struct {
 /// [MachineDeployment]
 // MachineDeployment is the Schema for the machinedeployments API
 // +k8s:openapi-gen=true
+// +kubebuilder:resource:shortName=md
 // +kubebuilder:subresource:status
 // +kubebuilder:subresource:scale:specpath=.spec.replicas,statuspath=.status.replicas,selectorpath=.status.labelSelector
 type MachineDeployment struct {

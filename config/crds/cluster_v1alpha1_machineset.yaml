@@ -10,6 +10,8 @@ spec:
   names:
     kind: MachineSet
     plural: machinesets
+    shortNames:
+    - ms
   scope: Namespaced
   subresources:
     scale:

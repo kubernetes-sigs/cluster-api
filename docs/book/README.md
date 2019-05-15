@@ -53,7 +53,7 @@ Including the ability to:
 
 - Create reproducible Kubernetes clusters.
 - Create hybrid cloud environments which optimize for cost, performance, and
-reliability. 
+reliability.
 
 ## Resources
 

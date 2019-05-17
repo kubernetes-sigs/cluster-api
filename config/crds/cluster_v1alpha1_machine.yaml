@@ -15,6 +15,10 @@ spec:
     description: Machine status such as Terminating/Pending/Running/Failed etc
     name: Phase
     type: string
+  - JSONPath: .status.addresses
+    description: Access IP(s) of the machine
+    name: Addresses
+    type: string
   - JSONPath: .status.nodeRef.name
     description: Node name associated with this machine
     name: NodeName

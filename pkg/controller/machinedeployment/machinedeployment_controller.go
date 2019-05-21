@@ -123,6 +123,13 @@ func (r *ReconcileMachineDeployment) Reconcile(request reconcile.Request) (recon
 		// Error reading the object - requeue the request.
 		return reconcile.Result{}, err
 	}
+
+	// Ignore deleted MachineDeployments, this can happen when foregroundDeletion
+	// is enabled
+	if d.DeletionTimestamp != nil {
+		return reconcile.Result{}, nil
+	}
+
 	result, err := r.reconcile(ctx, d)
 	if err != nil {
 		klog.Errorf("Failed to reconcile MachineDeployment %q: %v", request.NamespacedName, err)

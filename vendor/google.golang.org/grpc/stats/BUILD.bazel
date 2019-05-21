@@ -9,4 +9,5 @@ go_library(
     importmap = "sigs.k8s.io/cluster-api/vendor/google.golang.org/grpc/stats",
     importpath = "google.golang.org/grpc/stats",
     visibility = ["//visibility:public"],
+    deps = ["//vendor/google.golang.org/grpc/metadata:go_default_library"],
 )

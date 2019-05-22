@@ -29,11 +29,7 @@ import (
 type Interface interface {
 	Discovery() discovery.DiscoveryInterface
 	ClusterV1alpha1() clusterv1alpha1.ClusterV1alpha1Interface
-	// Deprecated: please explicitly pick a version if possible.
-	Cluster() clusterv1alpha1.ClusterV1alpha1Interface
 	MachineV1beta1() machinev1beta1.MachineV1beta1Interface
-	// Deprecated: please explicitly pick a version if possible.
-	Machine() machinev1beta1.MachineV1beta1Interface
 }
 
 // Clientset contains the clients for groups. Each group has exactly one
@@ -49,20 +45,8 @@ func (c *Clientset) ClusterV1alpha1() clusterv1alpha1.ClusterV1alpha1Interface {
 	return c.clusterV1alpha1
 }
 
-// Deprecated: Cluster retrieves the default version of ClusterClient.
-// Please explicitly pick a version.
-func (c *Clientset) Cluster() clusterv1alpha1.ClusterV1alpha1Interface {
-	return c.clusterV1alpha1
-}
-
 // MachineV1beta1 retrieves the MachineV1beta1Client
 func (c *Clientset) MachineV1beta1() machinev1beta1.MachineV1beta1Interface {
-	return c.machineV1beta1
-}
-
-// Deprecated: Machine retrieves the default version of MachineClient.
-// Please explicitly pick a version.
-func (c *Clientset) Machine() machinev1beta1.MachineV1beta1Interface {
 	return c.machineV1beta1
 }
 

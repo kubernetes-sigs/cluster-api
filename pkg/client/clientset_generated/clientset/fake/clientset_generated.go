@@ -78,17 +78,7 @@ func (c *Clientset) ClusterV1alpha1() clusterv1alpha1.ClusterV1alpha1Interface {
 	return &fakeclusterv1alpha1.FakeClusterV1alpha1{Fake: &c.Fake}
 }
 
-// Cluster retrieves the ClusterV1alpha1Client
-func (c *Clientset) Cluster() clusterv1alpha1.ClusterV1alpha1Interface {
-	return &fakeclusterv1alpha1.FakeClusterV1alpha1{Fake: &c.Fake}
-}
-
 // MachineV1beta1 retrieves the MachineV1beta1Client
 func (c *Clientset) MachineV1beta1() machinev1beta1.MachineV1beta1Interface {
-	return &fakemachinev1beta1.FakeMachineV1beta1{Fake: &c.Fake}
-}
-
-// Machine retrieves the MachineV1beta1Client
-func (c *Clientset) Machine() machinev1beta1.MachineV1beta1Interface {
 	return &fakemachinev1beta1.FakeMachineV1beta1{Fake: &c.Fake}
 }

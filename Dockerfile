@@ -18,7 +18,7 @@ FROM golang:1.12.5 as builder
 ARG ARCH
 
 # Copy in the go src
-WORKDIR $GOPATH/src/sigs.k8s.io/cluster-api
+WORKDIR ${GOPATH}/src/sigs.k8s.io/cluster-api
 COPY pkg/    pkg/
 COPY cmd/    cmd/
 COPY vendor/ vendor/
@@ -30,4 +30,5 @@ RUN CGO_ENABLED=0 GOOS=linux GOARCH=${ARCH} go build -a -ldflags '-extldflags "-
 FROM gcr.io/distroless/static:latest
 WORKDIR /
 COPY --from=builder /go/src/sigs.k8s.io/cluster-api/manager .
+USER nobody
 ENTRYPOINT ["/manager"]

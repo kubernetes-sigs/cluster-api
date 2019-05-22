@@ -17,10 +17,10 @@ go_library(
         "//vendor/sigs.k8s.io/controller-runtime/pkg/client:go_default_library",
         "//vendor/sigs.k8s.io/controller-runtime/pkg/handler:go_default_library",
         "//vendor/sigs.k8s.io/controller-runtime/pkg/internal/controller/metrics:go_default_library",
+        "//vendor/sigs.k8s.io/controller-runtime/pkg/internal/log:go_default_library",
         "//vendor/sigs.k8s.io/controller-runtime/pkg/predicate:go_default_library",
         "//vendor/sigs.k8s.io/controller-runtime/pkg/reconcile:go_default_library",
         "//vendor/sigs.k8s.io/controller-runtime/pkg/runtime/inject:go_default_library",
-        "//vendor/sigs.k8s.io/controller-runtime/pkg/runtime/log:go_default_library",
         "//vendor/sigs.k8s.io/controller-runtime/pkg/source:go_default_library",
     ],
 )

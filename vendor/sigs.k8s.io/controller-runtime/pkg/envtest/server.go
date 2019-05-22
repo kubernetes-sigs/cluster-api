@@ -27,10 +27,10 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client/config"
 	"sigs.k8s.io/testing_frameworks/integration"
 
-	logf "sigs.k8s.io/controller-runtime/pkg/runtime/log"
+	logf "sigs.k8s.io/controller-runtime/pkg/internal/log"
 )
 
-var log = logf.KBLog.WithName("test-env")
+var log = logf.RuntimeLog.WithName("test-env")
 
 // Default binary path for test framework
 const (
@@ -73,7 +73,9 @@ type Environment struct {
 	// ControlPlane is the ControlPlane including the apiserver and etcd
 	ControlPlane integration.ControlPlane
 
-	// Config can be used to talk to the apiserver
+	// Config can be used to talk to the apiserver.  It's automatically
+	// populated if not set using the standard controller-runtime config
+	// loading.
 	Config *rest.Config
 
 	// CRDs is a list of CRDs to install
@@ -167,6 +169,9 @@ func (te *Environment) Start() (*rest.Config, error) {
 		// Create the *rest.Config for creating new clients
 		te.Config = &rest.Config{
 			Host: te.ControlPlane.APIURL().Host,
+			// gotta go fast during tests -- we don't really care about overwhelming our test API server
+			QPS:   1000.0,
+			Burst: 2000.0,
 		}
 	}
 

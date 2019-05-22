@@ -20,11 +20,31 @@ required = [
   go-tests = true
   unused-packages = true
 
+[[override]]
+  name = "k8s.io/code-generator"
+  version = "kubernetes-1.14.1"
+
+[[override]]
+  name = "k8s.io/api"
+  version = "kubernetes-1.14.1"
+
+[[override]]
+  name = "k8s.io/apiextensions-apiserver"
+  version = "kubernetes-1.14.1"
+
+[[override]]
+  name = "k8s.io/apimachinery"
+  version = "kubernetes-1.14.1"
+
+[[override]]
+  name = "k8s.io/client-go"
+  version = "kubernetes-1.14.1"
+
 # STANZAS BELOW ARE GENERATED AND MAY BE WRITTEN - DO NOT MODIFY BELOW THIS LINE.
 
 [[constraint]]
   name="sigs.k8s.io/controller-runtime"
-  version="v0.1.10"
+  revision="96b67f231945a8e8550dbdd8bfbd550a0c68097b"
 
 [[constraint]]
   name="sigs.k8s.io/controller-tools"

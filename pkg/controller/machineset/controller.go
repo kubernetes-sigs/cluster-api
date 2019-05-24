@@ -218,6 +218,11 @@ func (r *ReconcileMachineSet) reconcile(ctx context.Context, machineSet *cluster
 		return reconcile.Result{}, nil
 	}
 
+	// Return early if the MachineSet is deleted.
+	if !machineSet.ObjectMeta.DeletionTimestamp.IsZero() {
+		return reconcile.Result{}, nil
+	}
+
 	// Filter out irrelevant machines (deleting/mismatch labels) and claim orphaned machines.
 	filteredMachines := make([]*clusterv1alpha1.Machine, 0, len(allMachines.Items))
 	for idx := range allMachines.Items {

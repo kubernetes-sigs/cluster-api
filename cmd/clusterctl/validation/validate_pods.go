@@ -51,7 +51,7 @@ func ValidatePods(ctx context.Context, w io.Writer, c client.Client, namespace s
 
 func getPods(ctx context.Context, c client.Client, namespace string) (*corev1.PodList, error) {
 	pods := &corev1.PodList{}
-	if err := c.List(ctx, client.InNamespace(namespace), pods); err != nil {
+	if err := c.List(ctx, pods, client.InNamespace(namespace)); err != nil {
 		return nil, fmt.Errorf("failed to get pods in namespace %q: %v", namespace, err)
 	}
 	return pods, nil
@@ -108,7 +108,7 @@ func validatePods(w io.Writer, pods *corev1.PodList, namespace string) error {
 
 func getComponents(ctx context.Context, c client.Client) (*corev1.ComponentStatusList, error) {
 	components := &corev1.ComponentStatusList{}
-	if err := c.List(ctx, &client.ListOptions{}, components); err != nil {
+	if err := c.List(ctx, components); err != nil {
 		return nil, err
 	}
 	return components, nil

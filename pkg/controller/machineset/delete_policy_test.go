@@ -20,9 +20,9 @@ import (
 	"reflect"
 	"testing"
 
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"github.com/openshift/cluster-api/pkg/apis/machine/common"
 	"github.com/openshift/cluster-api/pkg/apis/machine/v1beta1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 func TestMachineToDelete(t *testing.T) {

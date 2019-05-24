@@ -54,7 +54,7 @@ var (
 	stateConfirmationInterval = 100 * time.Millisecond
 
 	// controllerName is the name of this controller
-	controllerName = "machineset-controller"
+	controllerName = "machineset_controller"
 )
 
 // Add creates a new MachineSet Controller and adds it to the Manager with default RBAC.
@@ -66,7 +66,7 @@ func Add(mgr manager.Manager) error {
 
 // newReconciler returns a new reconcile.Reconciler.
 func newReconciler(mgr manager.Manager) *ReconcileMachineSet {
-	return &ReconcileMachineSet{Client: mgr.GetClient(), scheme: mgr.GetScheme(), recorder: mgr.GetRecorder(controllerName)}
+	return &ReconcileMachineSet{Client: mgr.GetClient(), scheme: mgr.GetScheme(), recorder: mgr.GetEventRecorderFor(controllerName)}
 }
 
 // add adds a new Controller to mgr with r as the reconcile.Reconciler.
@@ -176,7 +176,7 @@ func (r *ReconcileMachineSet) reconcile(ctx context.Context, machineSet *machine
 
 	allMachines := &machinev1beta1.MachineList{}
 
-	if err := r.Client.List(context.Background(), client.InNamespace(machineSet.Namespace), allMachines); err != nil {
+	if err := r.Client.List(context.Background(), allMachines, client.InNamespace(machineSet.Namespace)); err != nil {
 		return reconcile.Result{}, errors.Wrap(err, "failed to list machines")
 	}
 

@@ -22,8 +22,8 @@ import (
 	"github.com/openshift/cluster-api/pkg/apis/machine/v1beta1"
 	"github.com/pkg/errors"
 	"k8s.io/apimachinery/pkg/types"
-	"k8s.io/client-go/util/integer"
 	"k8s.io/klog"
+	"k8s.io/utils/integer"
 
 	dutil "github.com/openshift/cluster-api/pkg/controller/machinedeployment/util"
 )

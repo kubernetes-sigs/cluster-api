@@ -61,7 +61,7 @@ func AddWithActuator(mgr manager.Manager, actuator Actuator) error {
 func newReconciler(mgr manager.Manager, actuator Actuator) reconcile.Reconciler {
 	r := &ReconcileMachine{
 		Client:        mgr.GetClient(),
-		eventRecorder: mgr.GetRecorder("machine-controller"),
+		eventRecorder: mgr.GetEventRecorderFor("machine-controller"),
 		config:        mgr.GetConfig(),
 		scheme:        mgr.GetScheme(),
 		nodeName:      os.Getenv(NodeNameEnvVar),
@@ -78,7 +78,7 @@ func newReconciler(mgr manager.Manager, actuator Actuator) reconcile.Reconciler 
 // add adds a new Controller to mgr with r as the reconcile.Reconciler
 func add(mgr manager.Manager, r reconcile.Reconciler) error {
 	// Create a new controller
-	c, err := controller.New("machine-controller", mgr, controller.Options{Reconciler: r})
+	c, err := controller.New("machine_controller", mgr, controller.Options{Reconciler: r})
 	if err != nil {
 		return err
 	}

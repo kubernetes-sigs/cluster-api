@@ -1066,7 +1066,7 @@ func TestDeleteCleanupExternalCluster(t *testing.T) {
 		expectedErrorMessage   string
 	}{
 		{
-			name: "success with cleanup",
+			name:                   "success with cleanup",
 			cleanupExternalCluster: true,
 			provisionExternalErr:   nil,
 			bootstrapClient:        &testClusterClient{},
@@ -1074,7 +1074,7 @@ func TestDeleteCleanupExternalCluster(t *testing.T) {
 			expectedErrorMessage:   "",
 		},
 		{
-			name: "success without cleanup",
+			name:                   "success without cleanup",
 			cleanupExternalCluster: false,
 			provisionExternalErr:   nil,
 			bootstrapClient:        &testClusterClient{},
@@ -1082,7 +1082,7 @@ func TestDeleteCleanupExternalCluster(t *testing.T) {
 			expectedErrorMessage:   "",
 		},
 		{
-			name: "error with cleanup",
+			name:                   "error with cleanup",
 			cleanupExternalCluster: true,
 			provisionExternalErr:   nil,
 			bootstrapClient:        &testClusterClient{},
@@ -1090,7 +1090,7 @@ func TestDeleteCleanupExternalCluster(t *testing.T) {
 			expectedErrorMessage:   "get machine sets error",
 		},
 		{
-			name: "error without cleanup",
+			name:                   "error without cleanup",
 			cleanupExternalCluster: true,
 			provisionExternalErr:   nil,
 			bootstrapClient:        &testClusterClient{},

@@ -17,8 +17,8 @@ limitations under the License.
 package provider
 
 import (
-	"k8s.io/client-go/kubernetes"
 	clusterv1 "github.com/openshift/cluster-api/pkg/apis/cluster/v1alpha1"
+	"k8s.io/client-go/kubernetes"
 )
 
 // Deployer is a deprecated interface for Provider specific logic. Please do not extend or add. This interface should be removed

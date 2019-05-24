@@ -20,9 +20,9 @@ import (
 	"math"
 	"sort"
 
+	"github.com/openshift/cluster-api/pkg/apis/machine/v1beta1"
 	"github.com/pkg/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"github.com/openshift/cluster-api/pkg/apis/machine/v1beta1"
 )
 
 type deletePriority float64

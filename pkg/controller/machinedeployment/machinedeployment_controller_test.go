@@ -89,7 +89,7 @@ func TestReconcile(t *testing.T) {
 	// Verify that the MachineSet was created.
 	machineSets := &machinev1beta1.MachineSetList{}
 	expectInt(t, 1, func(ctx context.Context) int {
-		if err := c.List(ctx, &client.ListOptions{}, machineSets); err != nil {
+		if err := c.List(ctx, machineSets); err != nil {
 			return -1
 		}
 		return len(machineSets.Items)
@@ -106,7 +106,7 @@ func TestReconcile(t *testing.T) {
 	}
 	expectReconcile(t, requests, errors)
 	expectInt(t, 1, func(ctx context.Context) int {
-		if err := c.List(ctx, &client.ListOptions{}, machineSets); err != nil {
+		if err := c.List(ctx, machineSets); err != nil {
 			return -1
 		}
 		return len(machineSets.Items)
@@ -121,7 +121,7 @@ func TestReconcile(t *testing.T) {
 	}
 	expectReconcile(t, requests, errors)
 	expectInt(t, 5, func(ctx context.Context) int {
-		if err := c.List(ctx, &client.ListOptions{}, machineSets); err != nil {
+		if err := c.List(ctx, machineSets); err != nil {
 			return -1
 		}
 		if len(machineSets.Items) != 1 {
@@ -139,7 +139,7 @@ func TestReconcile(t *testing.T) {
 	}
 	expectReconcile(t, requests, errors)
 	expectInt(t, 2, func(ctx context.Context) int {
-		if err := c.List(ctx, &client.ListOptions{}, machineSets); err != nil {
+		if err := c.List(ctx, machineSets); err != nil {
 			return -1
 		}
 		return len(machineSets.Items)
@@ -222,7 +222,7 @@ func TestReconcile(t *testing.T) {
 
 	// Expect the old MachineSet to be removed
 	expectInt(t, 1, func(ctx context.Context) int {
-		if err := c.List(ctx, &client.ListOptions{}, machineSets); err != nil {
+		if err := c.List(ctx, machineSets); err != nil {
 			return -1
 		}
 		return len(machineSets.Items)

@@ -20,10 +20,10 @@ import (
 	"fmt"
 	"io/ioutil"
 
-	"github.com/spf13/cobra"
-	"k8s.io/klog"
 	"github.com/openshift/cluster-api/cmd/clusterctl/clusterdeployer/clusterclient"
 	"github.com/openshift/cluster-api/cmd/clusterctl/phases"
+	"github.com/spf13/cobra"
+	"k8s.io/klog"
 )
 
 type AlphaPhaseGetKubeconfigOptions struct {

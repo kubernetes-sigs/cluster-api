@@ -14,6 +14,14 @@ API design. Because of this, all of the prototype code is rapidly changing.
 
 Learn more about the project's [scope, objectives, goals and requirements](./docs/scope-and-objectives.md), [feature proposals](./docs/proposals/) and [reference use cases](./docs/staging-use-cases.md).
 
+### How does Cluster API compare to [Kubernetes Cloud Providers](https://kubernetes.io/docs/concepts/cluster-administration/cloud-providers/)?
+
+Cloud Providers and the Cluster API work in concert to provide a rich Kubernetes experience in cloud environments.
+The Cluster API initializes new nodes and clusters using available [providers](#Provider-Implementations).
+Running clusters can then use Cloud Providers to provision support infrastructure like 
+[load balancers](https://kubernetes.io/docs/tasks/access-application-cluster/create-external-load-balancer/)
+and [persistent volumes](https://kubernetes.io/docs/concepts/storage/persistent-volumes/).
+
 ## Get involved!
 
 * Join the [Cluster API discuss forum](https://discuss.kubernetes.io/c/contributors/cluster-api).

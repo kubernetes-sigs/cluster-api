@@ -33,12 +33,15 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 )
 
-var c client.Client
+const (
+	timeout         = time.Second * 5
+	pollingInterval = 10 * time.Millisecond
+)
 
-var expectedRequest = reconcile.Request{NamespacedName: types.NamespacedName{Name: "foo", Namespace: "default"}}
-
-const timeout = time.Second * 5
-const pollingInterval = 10 * time.Millisecond
+var (
+	c               client.Client
+	expectedRequest = reconcile.Request{NamespacedName: types.NamespacedName{Name: "foo", Namespace: "default"}}
+)
 
 func TestReconcile(t *testing.T) {
 	labels := map[string]string{"foo": "bar"}

@@ -492,17 +492,16 @@ func updateMachineDeployment(c client.Client, d *clusterv1alpha1.MachineDeployme
 	if equality.Semantic.DeepEqual(dCopy, d) {
 		return nil
 	}
-	err := retry.RetryOnConflict(retry.DefaultBackoff, func() error {
-		//Get latest version from API
+	return retry.RetryOnConflict(retry.DefaultBackoff, func() error {
+		// Get latest version.
 		if err := c.Get(context.Background(), types.NamespacedName{Namespace: d.Namespace, Name: d.Name}, d); err != nil {
 			return err
 		}
-
+		// Apply defaults.
 		clusterv1alpha1.PopulateDefaultsMachineDeployment(d)
-		// Apply modifications
+		// Apply modifications.
 		modify(d)
-		// Update the machineDeployment
+		// Update the MachineDeployment.
 		return c.Update(context.Background(), d)
 	})
-	return err
 }

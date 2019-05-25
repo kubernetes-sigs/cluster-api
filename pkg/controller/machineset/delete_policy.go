@@ -25,7 +25,10 @@ import (
 	"sigs.k8s.io/cluster-api/pkg/apis/cluster/v1alpha1"
 )
 
-type deletePriority float64
+type (
+	deletePriority     float64
+	deletePriorityFunc func(machine *v1alpha1.Machine) deletePriority
+)
 
 const (
 
@@ -40,8 +43,6 @@ const (
 
 	secondsPerTenDays float64 = 864000
 )
-
-type deletePriorityFunc func(machine *v1alpha1.Machine) deletePriority
 
 // maps the creation timestamp onto the 0-100 priority range
 func oldestDeletePriority(machine *v1alpha1.Machine) deletePriority {

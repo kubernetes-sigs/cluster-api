@@ -151,7 +151,7 @@ func (r *ReconcileMachine) Reconcile(request reconcile.Request) (reconcile.Resul
 			}
 
 			// Since adding the finalizer updates the object return to avoid later update issues
-			return reconcile.Result{}, nil
+			return reconcile.Result{Requeue: true}, nil
 		}
 	}
 

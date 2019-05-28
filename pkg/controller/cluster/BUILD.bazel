@@ -4,7 +4,7 @@ go_library(
     name = "go_default_library",
     srcs = [
         "actuator.go",
-        "controller.go",
+        "cluster_controller.go",
         "testactuator.go",
     ],
     importpath = "sigs.k8s.io/cluster-api/pkg/controller/cluster",
@@ -28,8 +28,8 @@ go_library(
 go_test(
     name = "go_default_test",
     srcs = [
-        "cluster_controller_suite_test.go",
-        "cluster_controller_test.go",
+        "cluster_reconciler_suite_test.go",
+        "cluster_reconciler_test.go",
     ],
     embed = [":go_default_library"],
     deps = [

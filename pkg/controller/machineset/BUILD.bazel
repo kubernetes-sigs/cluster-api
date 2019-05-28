@@ -3,9 +3,9 @@ load("@io_bazel_rules_go//go:def.bzl", "go_library", "go_test")
 go_library(
     name = "go_default_library",
     srcs = [
-        "controller.go",
         "delete_policy.go",
         "machine.go",
+        "machineset_controller.go",
         "status.go",
     ],
     importpath = "sigs.k8s.io/cluster-api/pkg/controller/machineset",
@@ -37,8 +37,8 @@ go_test(
         "controller_test.go",
         "delete_policy_test.go",
         "machine_test.go",
-        "machineset_controller_suite_test.go",
-        "machineset_controller_test.go",
+        "machineset_reconciler_suite_test.go",
+        "machineset_reconciler_test.go",
     ],
     embed = [":go_default_library"],
     deps = [

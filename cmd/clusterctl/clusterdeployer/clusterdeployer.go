@@ -113,7 +113,7 @@ func (d *ClusterDeployer) Create(cluster *clusterv1.Cluster, machines []*cluster
 
 	if d.addonComponents != "" {
 		if err := phases.ApplyAddons(targetClient, d.addonComponents); err != nil {
-			return errors.Wrap(err, "unable to apply addons to target cluster")
+			klog.Warningf("unable to apply addons to target cluster: %s\n", err)
 		}
 	}
 

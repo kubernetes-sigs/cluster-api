@@ -30,7 +30,7 @@ go_library(
 go_test(
     name = "go_default_test",
     srcs = [
-        "controller_test.go",
+        "machine_controller_test.go",
         "machine_reconciler_suite_test.go",
         "machine_reconciler_test.go",
     ],

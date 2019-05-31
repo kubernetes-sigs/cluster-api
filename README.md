@@ -51,7 +51,7 @@ are also sponsored by SIG-cluster-lifecycle:
   * Bare Metal, https://github.com/metal3-io/cluster-api-provider-baremetal
   * DigitalOcean, https://github.com/kubernetes-sigs/cluster-api-provider-digitalocean
   * Exoscale, https://github.com/exoscale/cluster-api-provider-exoscale
-  * GCE, https://github.com/kubernetes-sigs/cluster-api-provider-gcp
+  * GCP, https://github.com/kubernetes-sigs/cluster-api-provider-gcp
   * IBM Cloud, https://github.com/kubernetes-sigs/cluster-api-provider-ibmcloud
   * OpenStack, https://github.com/kubernetes-sigs/cluster-api-provider-openstack
   * Talos, https://github.com/talos-systems/cluster-api-provider-talos

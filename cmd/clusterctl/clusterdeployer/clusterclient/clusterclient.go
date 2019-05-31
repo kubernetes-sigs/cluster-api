@@ -674,6 +674,19 @@ func (c *client) ForceDeleteMachine(namespace, name string) error {
 	if err := c.clientSet.ClusterV1alpha1().Machines(namespace).Delete(name, newDeleteOptions()); err != nil {
 		return errors.Wrapf(err, "error deleting Machine %s/%s", namespace, name)
 	}
+	// finalizers can be return back after update call
+	machine, err = c.clientSet.ClusterV1alpha1().Machines(namespace).Get(name, metav1.GetOptions{})
+	if err != nil {
+		if apierrors.IsNotFound(err) {
+			return nil
+		} else {
+			return errors.Wrapf(err, "error getting Machine %s/%s", namespace, name)
+		}
+	}
+	machine.SetFinalizers([]string{})
+	if _, err := c.clientSet.ClusterV1alpha1().Machines(namespace).Update(machine); err != nil && !apierrors.IsNotFound(err) {
+		return errors.Wrapf(err, "error removing finalizer for Machine %s/%s", namespace, name)
+	}
 	return nil
 }
 

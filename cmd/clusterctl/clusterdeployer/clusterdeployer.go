@@ -89,12 +89,12 @@ func (d *ClusterDeployer) Create(cluster *clusterv1.Cluster, machines []*cluster
 		cluster.Namespace = bootstrapClient.GetContextNamespace()
 	}
 
-	klog.Infof("Creating control plane %v in namespace %q", controlPlaneMachines[0].Name, cluster.Namespace)
+	klog.Infof("Creating control plane machine in namespace %q", cluster.Namespace)
 	if err := phases.ApplyMachines(bootstrapClient, cluster.Namespace, []*clusterv1.Machine{controlPlaneMachines[0]}); err != nil {
 		return errors.Wrap(err, "unable to create control plane machine")
 	}
 
-	klog.Infof("Updating bootstrap cluster object for cluster %v in namespace %q with control plane endpoint running on %s", cluster.Name, cluster.Namespace, controlPlaneMachines[0].Name)
+	klog.Infof("Updating bootstrap cluster object for cluster %v in namespace %q with control plane endpoint running on machine", cluster.Name, cluster.Namespace)
 	if err := d.updateClusterEndpoint(bootstrapClient, provider, cluster.Name, cluster.Namespace); err != nil {
 		return errors.Wrap(err, "unable to update bootstrap cluster endpoint")
 	}
@@ -130,7 +130,7 @@ func (d *ClusterDeployer) Create(cluster *clusterv1.Cluster, machines []*cluster
 
 	// For some reason, endpoint doesn't get updated in bootstrap cluster sometimes. So we
 	// update the target cluster endpoint as well to be sure.
-	klog.Infof("Updating target cluster object with control plane endpoint running on %s", controlPlaneMachines[0].Name)
+	klog.Info("Updating target cluster object with control plane endpoint running on machine")
 	if err := d.updateClusterEndpoint(targetClient, provider, cluster.Name, cluster.Namespace); err != nil {
 		return errors.Wrap(err, "unable to update target cluster endpoint")
 	}

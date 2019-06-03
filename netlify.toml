@@ -1,6 +1,5 @@
 # Netlify build instructions 
 [build]
-    base = "docs/book"
     command = "./hack/build-gitbook.sh"
     publish = "docs/book/_book"
 

@@ -26,7 +26,3 @@
 * [Register Controllers](provider_implementations/register_controllers.md)
 * [Building, Running, and Testing](provider_implementations/building_running_and_testing.md)
 
-## Appendices
-
-* [Cluster API KEP](appendices/keps/0003-cluster-api.md)
-

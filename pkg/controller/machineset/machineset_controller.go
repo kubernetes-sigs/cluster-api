@@ -129,6 +129,12 @@ func (r *ReconcileMachineSet) Reconcile(request reconcile.Request) (reconcile.Re
 		return reconcile.Result{}, err
 	}
 
+	// Ignore deleted MachineSets, this can happen when foregroundDeletion
+	// is enabled
+	if machineSet.DeletionTimestamp != nil {
+		return reconcile.Result{}, nil
+	}
+
 	result, err := r.reconcile(ctx, machineSet)
 	if err != nil {
 		klog.Errorf("Failed to reconcile MachineSet %q: %v", request.NamespacedName, err)

@@ -28,5 +28,5 @@
   "bugs": {
     "url": "https://github.com/kubernetes-sigs/cluster-api/issues"
   },
-  "homepage": "https://github.com/kubernetes-sigs/cluster-api#readme"
+  "homepage": "https://kubernetes-sigs-cluster-api.netlify.com"
 }

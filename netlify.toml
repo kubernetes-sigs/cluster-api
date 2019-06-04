@@ -1,0 +1,24 @@
+# Netlify build instructions 
+[build]
+    command = "./hack/build-gitbook.sh"
+    publish = "docs/book/_book"
+
+# Standard Netlify redirects
+[[redirects]]
+    from = "https://kubernetes-sigs-cluster-api.netlify.com/*"
+    to = "https://cluster-api.sigs.k8s.io/:splat"
+    status = 301
+    force = true
+
+# HTTP-to-HTTPS rules
+[[redirects]]
+    from = "http://go.cluster-api.sigs.k8s.io/*"
+    to = "https://go.cluster-api.sigs.k8s.io/:splat"
+    status = 301
+    force = true
+
+[[redirects]]
+    from = "http://kubernetes-sigs-cluster-api.netlify.com/*"
+    to = "http://cluster-api.sigs.k8s.io/:splat"
+    status = 301
+    force = true

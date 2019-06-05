@@ -18,7 +18,7 @@ Learn more about the project's [scope, objectives, goals and requirements](./doc
 
 Cloud Providers and the Cluster API work in concert to provide a rich Kubernetes experience in cloud environments.
 The Cluster API initializes new nodes and clusters using available [providers](#Provider-Implementations).
-Running clusters can then use Cloud Providers to provision support infrastructure like 
+Running clusters can then use Cloud Providers to provision support infrastructure like
 [load balancers](https://kubernetes.io/docs/tasks/access-application-cluster/create-external-load-balancer/)
 and [persistent volumes](https://kubernetes.io/docs/concepts/storage/persistent-volumes/).
 
@@ -65,6 +65,14 @@ Following are the implementations managed by third-parties adopting the standard
   * Kubermatic machine-controller, https://github.com/kubermatic/machine-controller/tree/master
   * Machine API Operator, https://github.com/openshift/machine-api-operator/tree/master
   * Machine-controller-manager, https://github.com/gardener/machine-controller-manager/tree/cluster-api
+
+## Versioning, Maintenance, and Compatibility
+
+- We follow [Semantic Versioning (semver)](https://semver.org/).
+- Cluster API release cadence is Kubernetes Release + 6 weeks.
+- The cadence is subject to change if necessary, refer to the [Milestones](https://github.com/kubernetes-sigs/cluster-api/milestones) page for up-to-date information.
+- The _master_ branch is where development happens, this might include breaking changes.
+- The _release-X_ branches contain stable, backward compatible code. A new _release-X_ branch is created at every major (X) release.
 
 ## Getting Started
 

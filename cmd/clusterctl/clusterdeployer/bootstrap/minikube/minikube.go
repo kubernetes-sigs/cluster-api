@@ -96,7 +96,8 @@ func (m *Minikube) Create() error {
 }
 
 func (m *Minikube) Delete() error {
-	_, err := m.exec("delete")
+	args := []string{"delete", "--profile="+minikubeClusterNamePrefix+util.RandomString(5)}
+	_, err := m.exec(args...)
 	os.Remove(m.kubeconfigpath)
 	return err
 }

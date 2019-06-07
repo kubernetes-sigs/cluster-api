@@ -41,7 +41,11 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/source"
 )
 
+// controllerName is the name of this controller
+const controllerName = "machineset-controller"
+
 var (
+	// controllerKind contains the schema.GroupVersionKind for this controller type.
 	controllerKind = clusterv1alpha1.SchemeGroupVersion.WithKind("MachineSet")
 
 	// stateConfirmationTimeout is the amount of time allowed to wait for desired state.
@@ -50,9 +54,6 @@ var (
 	// stateConfirmationInterval is the amount of time between polling for the desired state.
 	// The polling is against a local memory cache.
 	stateConfirmationInterval = 100 * time.Millisecond
-
-	// controllerName is the name of this controller
-	controllerName = "machineset-controller"
 )
 
 // Add creates a new MachineSet Controller and adds it to the Manager with default RBAC.
@@ -84,7 +85,7 @@ func add(mgr manager.Manager, r reconcile.Reconciler, mapFn handler.ToRequestsFu
 		return err
 	}
 
-	// Map Machine changes to MachineSets using ControllerRef.
+	// Watch for changes to Machines and reconcile the owner MachineSet.
 	err = c.Watch(
 		&source.Kind{Type: &clusterv1alpha1.Machine{}},
 		&handler.EnqueueRequestForOwner{IsController: true, OwnerType: &clusterv1alpha1.MachineSet{}},
@@ -93,7 +94,9 @@ func add(mgr manager.Manager, r reconcile.Reconciler, mapFn handler.ToRequestsFu
 		return err
 	}
 
-	// Map Machine changes to MachineSets by machining labels.
+	// Watch for changes to Machines using a mapping function to MachineSets.
+	// This watcher is required for use cases like adoption. In case a Machine doesn't have
+	// a controller reference, it'll look for potential matching MachineSet to reconcile.
 	return c.Watch(
 		&source.Kind{Type: &clusterv1alpha1.Machine{}},
 		&handler.EnqueueRequestsFromMapFunc{ToRequests: mapFn},
@@ -107,36 +110,6 @@ type ReconcileMachineSet struct {
 	recorder record.EventRecorder
 }
 
-func (r *ReconcileMachineSet) MachineToMachineSets(o handler.MapObject) []reconcile.Request {
-	result := []reconcile.Request{}
-	m := &clusterv1alpha1.Machine{}
-	key := client.ObjectKey{Namespace: o.Meta.GetNamespace(), Name: o.Meta.GetName()}
-	err := r.Client.Get(context.Background(), key, m)
-	if err != nil {
-		klog.Errorf("Unable to retrieve Machine %v from store: %v", key, err)
-		return nil
-	}
-
-	for _, ref := range m.ObjectMeta.OwnerReferences {
-		if ref.Controller != nil && *ref.Controller {
-			return result
-		}
-	}
-
-	mss := r.getMachineSetsForMachine(m)
-	if len(mss) == 0 {
-		klog.V(4).Infof("Found no machine set for machine: %v", m.Name)
-		return nil
-	}
-
-	for _, ms := range mss {
-		name := client.ObjectKey{Namespace: ms.Namespace, Name: ms.Name}
-		result = append(result, reconcile.Request{NamespacedName: name})
-	}
-
-	return result
-}
-
 // Reconcile reads that state of the cluster for a MachineSet object and makes changes based on the state read
 // and what is in the MachineSet.Spec
 // Automatically generate RBAC rules to allow the Controller to read and write Deployments
@@ -148,12 +121,18 @@ func (r *ReconcileMachineSet) Reconcile(request reconcile.Request) (reconcile.Re
 	machineSet := &clusterv1alpha1.MachineSet{}
 	if err := r.Get(ctx, request.NamespacedName, machineSet); err != nil {
 		if apierrors.IsNotFound(err) {
-			// Object not found, return.  Created objects are automatically garbage collected.
+			// Object not found, return. Created objects are automatically garbage collected.
 			// For additional cleanup logic use finalizers.
 			return reconcile.Result{}, nil
 		}
 		// Error reading the object - requeue the request.
 		return reconcile.Result{}, err
+	}
+
+	// Ignore deleted MachineSets, this can happen when foregroundDeletion
+	// is enabled
+	if machineSet.DeletionTimestamp != nil {
+		return reconcile.Result{}, nil
 	}
 
 	result, err := r.reconcile(ctx, machineSet)
@@ -215,6 +194,11 @@ func (r *ReconcileMachineSet) reconcile(ctx context.Context, machineSet *cluster
 		}
 
 		// Since adding the finalizer updates the object return to avoid later update issues
+		return reconcile.Result{Requeue: true}, nil
+	}
+
+	// Return early if the MachineSet is deleted.
+	if !machineSet.ObjectMeta.DeletionTimestamp.IsZero() {
 		return reconcile.Result{}, nil
 	}
 
@@ -271,12 +255,13 @@ func (r *ReconcileMachineSet) reconcile(ctx context.Context, machineSet *cluster
 		updatedMS.Status.ReadyReplicas == replicas &&
 		updatedMS.Status.AvailableReplicas != replicas {
 
-		return reconcile.Result{Requeue: true}, nil
+		return reconcile.Result{RequeueAfter: time.Duration(updatedMS.Spec.MinReadySeconds) * time.Second}, nil
 	}
 
 	return reconcile.Result{}, nil
 }
 
+// getCluster reuturns the Cluster associated with the MachineSet, if any.
 func (r *ReconcileMachineSet) getCluster(ms *clusterv1alpha1.MachineSet) (*clusterv1alpha1.Cluster, error) {
 	if ms.Spec.Template.Labels[clusterv1alpha1.MachineClusterLabelName] == "" {
 		klog.Infof("MachineSet %q in namespace %q doesn't specify %q label, assuming nil cluster", ms.Name, ms.Namespace, clusterv1alpha1.MachineClusterLabelName)
@@ -296,7 +281,7 @@ func (r *ReconcileMachineSet) getCluster(ms *clusterv1alpha1.MachineSet) (*clust
 	return cluster, nil
 }
 
-// syncReplicas essentially scales machine resources up and down.
+// syncReplicas scales Machine resources up or down.
 func (r *ReconcileMachineSet) syncReplicas(ms *clusterv1alpha1.MachineSet, machines []*clusterv1alpha1.Machine) error {
 	if ms.Spec.Replicas == nil {
 		return errors.Errorf("the Replicas field in Spec for machineset %v is nil, this should not be allowed", ms.Name)
@@ -373,8 +358,8 @@ func (r *ReconcileMachineSet) syncReplicas(ms *clusterv1alpha1.MachineSet, machi
 	return nil
 }
 
-// createMachine creates a machine resource.
-// the name of the newly created resource is going to be created by the API server, we set the generateName field
+// createMachine creates a Machine resource. The name of the newly created resource is going
+// to be created by the API server, we set the generateName field.
 func (r *ReconcileMachineSet) createMachine(machineSet *clusterv1alpha1.MachineSet) *clusterv1alpha1.Machine {
 	gv := clusterv1alpha1.SchemeGroupVersion
 	machine := &clusterv1alpha1.Machine{
@@ -388,7 +373,6 @@ func (r *ReconcileMachineSet) createMachine(machineSet *clusterv1alpha1.MachineS
 	machine.ObjectMeta.GenerateName = fmt.Sprintf("%s-", machineSet.Name)
 	machine.ObjectMeta.OwnerReferences = []metav1.OwnerReference{*metav1.NewControllerRef(machineSet, controllerKind)}
 	machine.Namespace = machineSet.Namespace
-
 	return machine
 }
 
@@ -411,6 +395,7 @@ func shouldExcludeMachine(machineSet *clusterv1alpha1.MachineSet, machine *clust
 	return false
 }
 
+// adoptOrphan sets the MachineSet as a controller OwnerReference to the Machine.
 func (r *ReconcileMachineSet) adoptOrphan(machineSet *clusterv1alpha1.MachineSet, machine *clusterv1alpha1.Machine) error {
 	newRef := *metav1.NewControllerRef(machineSet, controllerKind)
 	machine.OwnerReferences = append(machine.OwnerReferences, newRef)
@@ -462,4 +447,40 @@ func (r *ReconcileMachineSet) waitForMachineDeletion(machineList []*clusterv1alp
 		}
 	}
 	return nil
+}
+
+// MachineToMachineSets is a handler.ToRequestsFunc to be used to enqeue requests for reconciliation
+// for MachineSets that might adopt an orphaned Machine.
+func (r *ReconcileMachineSet) MachineToMachineSets(o handler.MapObject) []reconcile.Request {
+	result := []reconcile.Request{}
+
+	m := &clusterv1alpha1.Machine{}
+	key := client.ObjectKey{Namespace: o.Meta.GetNamespace(), Name: o.Meta.GetName()}
+	if err := r.Client.Get(context.Background(), key, m); err != nil {
+		if !apierrors.IsNotFound(err) {
+			klog.Errorf("Unable to retrieve Machine %q for possible MachineSet adoption: %v", key, err)
+		}
+		return nil
+	}
+
+	// Check if the controller reference is already set and
+	// return an empty result when one is found.
+	for _, ref := range m.ObjectMeta.OwnerReferences {
+		if ref.Controller != nil && *ref.Controller {
+			return result
+		}
+	}
+
+	mss := r.getMachineSetsForMachine(m)
+	if len(mss) == 0 {
+		klog.V(4).Infof("Found no MachineSet for Machine %q", m.Name)
+		return nil
+	}
+
+	for _, ms := range mss {
+		name := client.ObjectKey{Namespace: ms.Namespace, Name: ms.Name}
+		result = append(result, reconcile.Request{NamespacedName: name})
+	}
+
+	return result
 }

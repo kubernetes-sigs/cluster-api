@@ -754,43 +754,53 @@ func (c *client) WaitForResourceStatuses() error {
 		klog.V(2).Info("Waiting for Cluster API resources to have statuses...")
 		clusters, err := c.clientSet.ClusterV1alpha1().Clusters("").List(metav1.ListOptions{})
 		if err != nil {
+			klog.V(10).Infof("retrying: failed to list clusters: %v", err)
 			return false, nil
 		}
 		for _, cluster := range clusters.Items {
 			if reflect.DeepEqual(clusterv1.ClusterStatus{}, cluster.Status) {
+				klog.V(10).Info("retrying: cluster status is empty")
 				return false, nil
 			}
 			if cluster.Status.ProviderStatus == nil {
+				klog.V(10).Info("retrying: cluster.Status.ProviderStatus is not set")
 				return false, nil
 			}
 		}
 		machineDeployments, err := c.clientSet.ClusterV1alpha1().MachineDeployments("").List(metav1.ListOptions{})
 		if err != nil {
+			klog.V(10).Infof("retrying: failed to list machine deployment: %v", err)
 			return false, nil
 		}
 		for _, md := range machineDeployments.Items {
 			if reflect.DeepEqual(clusterv1.MachineDeploymentStatus{}, md.Status) {
+				klog.V(10).Info("retrying: machine deployment status is empty")
 				return false, nil
 			}
 		}
 		machineSets, err := c.clientSet.ClusterV1alpha1().MachineSets("").List(metav1.ListOptions{})
 		if err != nil {
+			klog.V(10).Infof("retrying: failed to list machinesets: %v", err)
 			return false, nil
 		}
 		for _, ms := range machineSets.Items {
 			if reflect.DeepEqual(clusterv1.MachineSetStatus{}, ms.Status) {
+				klog.V(10).Info("retrying: machineset status is empty")
 				return false, nil
 			}
 		}
 		machines, err := c.clientSet.ClusterV1alpha1().Machines("").List(metav1.ListOptions{})
 		if err != nil {
+			klog.V(10).Infof("retrying: failed to list machines: %v", err)
 			return false, nil
 		}
 		for _, m := range machines.Items {
 			if reflect.DeepEqual(clusterv1.MachineStatus{}, m.Status) {
+				klog.V(10).Info("retrying: machine status is empty")
 				return false, nil
 			}
 			if m.Status.ProviderStatus == nil {
+				klog.V(10).Info("retrying: machine.Status.ProviderStatus is not set")
 				return false, nil
 			}
 		}

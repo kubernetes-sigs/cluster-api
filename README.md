@@ -12,9 +12,19 @@ API design. Because of this, all of the prototype code is rapidly changing.
 
 ![Cluster API Architecture](./docs/book/common_code/architecture.svg "Cluster API Architecture")
 
-To learn more, see the [Cluster API KEP][cluster-api-kep].
+Learn more about the project's [scope, objectives, goals and requirements](./docs/scope-and-objectives.md), [feature proposals](./docs/proposals/) and [reference use cases](./docs/staging-use-cases.md).
+
+### How does Cluster API compare to [Kubernetes Cloud Providers](https://kubernetes.io/docs/concepts/cluster-administration/cloud-providers/)?
+
+Cloud Providers and the Cluster API work in concert to provide a rich Kubernetes experience in cloud environments.
+The Cluster API initializes new nodes and clusters using available [providers](#Provider-Implementations).
+Running clusters can then use Cloud Providers to provision support infrastructure like
+[load balancers](https://kubernetes.io/docs/tasks/access-application-cluster/create-external-load-balancer/)
+and [persistent volumes](https://kubernetes.io/docs/concepts/storage/persistent-volumes/).
 
 ## Get involved!
+
+* Join the [Cluster API discuss forum](https://discuss.kubernetes.io/c/contributors/cluster-api).
 
 * Join the [sig-cluster-lifecycle](https://groups.google.com/forum/#!forum/kubernetes-sig-cluster-lifecycle)
 Google Group for access to documents and calendars.
@@ -38,10 +48,13 @@ are also sponsored by SIG-cluster-lifecycle:
   * AWS, https://github.com/kubernetes-sigs/cluster-api-provider-aws
   * Azure, https://github.com/kubernetes-sigs/cluster-api-provider-azure
   * Baidu Cloud, https://github.com/baidu/cluster-api-provider-baiducloud
-  * Bare Metal, https://github.com/metalkube/cluster-api-provider-baremetal
+  * Bare Metal, https://github.com/metal3-io/cluster-api-provider-baremetal
   * DigitalOcean, https://github.com/kubernetes-sigs/cluster-api-provider-digitalocean
-  * GCE, https://github.com/kubernetes-sigs/cluster-api-provider-gcp
+  * Exoscale, https://github.com/exoscale/cluster-api-provider-exoscale
+  * GCP, https://github.com/kubernetes-sigs/cluster-api-provider-gcp
+  * IBM Cloud, https://github.com/kubernetes-sigs/cluster-api-provider-ibmcloud
   * OpenStack, https://github.com/kubernetes-sigs/cluster-api-provider-openstack
+  * Talos, https://github.com/talos-systems/cluster-api-provider-talos
   * Tencent Cloud, https://github.com/TencentCloud/cluster-api-provider-tencent
   * vSphere, https://github.com/kubernetes-sigs/cluster-api-provider-vsphere
 
@@ -53,6 +66,14 @@ Following are the implementations managed by third-parties adopting the standard
   * Machine API Operator, https://github.com/openshift/machine-api-operator/tree/master
   * Machine-controller-manager, https://github.com/gardener/machine-controller-manager/tree/cluster-api
 
+## Versioning, Maintenance, and Compatibility
+
+- We follow [Semantic Versioning (semver)](https://semver.org/).
+- Cluster API release cadence is Kubernetes Release + 6 weeks.
+- The cadence is subject to change if necessary, refer to the [Milestones](https://github.com/kubernetes-sigs/cluster-api/milestones) page for up-to-date information.
+- The _master_ branch is where development happens, this might include breaking changes.
+- The _release-X_ branches contain stable, backward compatible code. A new _release-X_ branch is created at every major (X) release.
+
 ## Getting Started
 
 ### Resources
@@ -63,7 +84,6 @@ Following are the implementations managed by third-parties adopting the standard
 * `kubectl` is required, see [here](http://kubernetes.io/docs/user-guide/prereqs/).
 * `clusterctl` is a SIG-cluster-lifecycle sponsored tool to manage Cluster API clusters. See [here](cmd/clusterctl)
 
-[cluster-api-kep]: https://github.com/kubernetes/enhancements/blob/master/keps/sig-cluster-lifecycle/0003-cluster-api.md
 [notes]: https://docs.google.com/document/d/1Ys-DOR5UsgbMEeciuG0HOgDQc8kZsaWIWJeKJ1-UfbY/edit
 [recordings]: https://www.youtube.com/playlist?list=PL69nYSiGNLP29D0nYgAGWt1ZFqS9Z7lw4
 [zoomMeeting]: https://zoom.us/j/861487554

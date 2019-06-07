@@ -369,11 +369,18 @@ func moveMachineSet(from sourceClient, to targetClient, ms *clusterv1.MachineSet
 func moveMachines(from sourceClient, to targetClient, machines []*clusterv1.Machine) error {
 	machineNames := make([]string, 0, len(machines))
 	for _, m := range machines {
+		if m.DeletionTimestamp != nil {
+			klog.V(4).Infof("Skipping to move deleted machine: %q", m.Name)
+			continue
+		}
 		machineNames = append(machineNames, m.Name)
 	}
 	klog.V(4).Infof("Preparing to move Machines: %v", machineNames)
 
 	for _, m := range machines {
+		if m.DeletionTimestamp != nil {
+			continue
+		}
 		if err := moveMachine(from, to, m); err != nil {
 			return errors.Wrapf(err, "failed to move Machine %s:%s", m.Namespace, m.Name)
 		}

@@ -4,7 +4,7 @@ go_library(
     name = "go_default_library",
     srcs = [
         "actuator.go",
-        "controller.go",
+        "machine_controller.go",
         "testactuator.go",
     ],
     importpath = "sigs.k8s.io/cluster-api/pkg/controller/machine",
@@ -30,9 +30,9 @@ go_library(
 go_test(
     name = "go_default_test",
     srcs = [
-        "controller_test.go",
-        "machine_controller_suite_test.go",
         "machine_controller_test.go",
+        "machine_reconciler_suite_test.go",
+        "machine_reconciler_test.go",
     ],
     embed = [":go_default_library"],
     deps = [

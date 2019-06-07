@@ -1,11 +1,37 @@
-To push the docs you must be an admin until we have proper CI around this.
-  
+# Overview
+
+The Cluster API documentation is currently written in [Markdown][markdown]
+and rendered into static HTML/CSS/JavaScript using [GitBook][gitbook] and various
+[plugins][plugins]. It is automatically built using a [script](../../hack/build-gitbook.sh)
+and continuously deployed using a shared Netlify account.
+
+# Making changes
+
+The GitBook source is located in [./docs/book](../../docs/book) and the static
+content is generated into [./docs/book/_book](../../docs/book/_book) but not
+checked into version control. Netlify will automatically rebuild the 
+documentation on each merge to master.
+
+## Testing locally
+
 ```
-cd docs/book/
-gitbook install
-gitbook build
-cd ../../
-git add docs/book/_book
-git commit
-git subtree push --prefix docs/book/_book origin gh-pages
+hack/build-gitbook.sh
 ```
+
+## Verify the contents of the GitBook are correct by viewing the pages which 
+should include new or changed content and:
+
+0) Ensuring the expected changes are there.
+1) They are rendered as expected.
+
+```
+cd docs/book
+gitbook serve
+# open localhost:4000 in a web browser
+```
+
+## Finally submit a PR
+
+[markdown]: https://toolchain.gitbook.com/syntax/markdown.html
+[gitbook]: https://toolchain.gitbook.com/
+[plugins]: https://toolchain.gitbook.com/plugins/

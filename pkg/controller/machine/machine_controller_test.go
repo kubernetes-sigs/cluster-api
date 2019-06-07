@@ -17,60 +17,177 @@ limitations under the License.
 package machine
 
 import (
+	"reflect"
 	"testing"
-	"time"
 
-	"golang.org/x/net/context"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
-	clusterv1alpha1 "sigs.k8s.io/cluster-api/pkg/apis/cluster/v1alpha1"
-	"sigs.k8s.io/controller-runtime/pkg/client"
-	"sigs.k8s.io/controller-runtime/pkg/manager"
+	"k8s.io/client-go/kubernetes/scheme"
+	"sigs.k8s.io/cluster-api/pkg/apis/cluster/v1alpha1"
+	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 )
 
-var c client.Client
+var (
+	_ reconcile.Reconciler = &ReconcileMachine{}
+)
 
-var expectedRequest = reconcile.Request{NamespacedName: types.NamespacedName{Name: "foo", Namespace: "default"}}
-
-const timeout = time.Second * 5
-
-func TestReconcile(t *testing.T) {
-	instance := &clusterv1alpha1.Machine{
-		ObjectMeta: metav1.ObjectMeta{Name: "foo", Namespace: "default"},
-		Spec: clusterv1alpha1.MachineSpec{
-			Versions: clusterv1alpha1.MachineVersionInfo{Kubelet: "1.10.3"},
+func TestReconcileRequest(t *testing.T) {
+	machine1 := v1alpha1.Machine{
+		TypeMeta: metav1.TypeMeta{
+			Kind: "Machine",
+		},
+		ObjectMeta: metav1.ObjectMeta{
+			Name:       "create",
+			Namespace:  "default",
+			Finalizers: []string{v1alpha1.MachineFinalizer, metav1.FinalizerDeleteDependents},
+			Labels: map[string]string{
+				v1alpha1.MachineClusterLabelName: "testcluster",
+			},
+		},
+	}
+	machine2 := v1alpha1.Machine{
+		TypeMeta: metav1.TypeMeta{
+			Kind: "Machine",
+		},
+		ObjectMeta: metav1.ObjectMeta{
+			Name:       "update",
+			Namespace:  "default",
+			Finalizers: []string{v1alpha1.MachineFinalizer, metav1.FinalizerDeleteDependents},
+			Labels: map[string]string{
+				v1alpha1.MachineClusterLabelName: "testcluster",
+			},
+		},
+	}
+	time := metav1.Now()
+	machine3 := v1alpha1.Machine{
+		TypeMeta: metav1.TypeMeta{
+			Kind: "Machine",
+		},
+		ObjectMeta: metav1.ObjectMeta{
+			Name:              "delete",
+			Namespace:         "default",
+			Finalizers:        []string{v1alpha1.MachineFinalizer, metav1.FinalizerDeleteDependents},
+			DeletionTimestamp: &time,
+			Labels: map[string]string{
+				v1alpha1.MachineClusterLabelName: "testcluster",
+			},
+		},
+	}
+	clusterList := v1alpha1.ClusterList{
+		TypeMeta: metav1.TypeMeta{
+			Kind: "ClusterList",
+		},
+		Items: []v1alpha1.Cluster{
+			{
+				TypeMeta: metav1.TypeMeta{
+					Kind: "Cluster",
+				},
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "testcluster",
+					Namespace: "default",
+				},
+			},
+			{
+				TypeMeta: metav1.TypeMeta{
+					Kind: "Cluster",
+				},
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "rainbow",
+					Namespace: "foo",
+				},
+			},
 		},
 	}
 
-	// Setup the Manager and Controller.  Wrap the Controller Reconcile function so it writes each request to a
-	// channel when it is finished.
-	mgr, err := manager.New(cfg, manager.Options{})
-	if err != nil {
-		t.Fatalf("error creating new manager: %v", err)
+	type expected struct {
+		createCallCount int64
+		existCallCount  int64
+		updateCallCount int64
+		deleteCallCount int64
+		result          reconcile.Result
+		error           bool
 	}
-	c = mgr.GetClient()
+	testCases := []struct {
+		request     reconcile.Request
+		existsValue bool
+		expected    expected
+	}{
+		{
+			request: reconcile.Request{NamespacedName: types.NamespacedName{Name: machine1.Name, Namespace: machine1.Namespace}},
+			expected: expected{
+				createCallCount: 1,
+				existCallCount:  1,
+				updateCallCount: 0,
+				deleteCallCount: 0,
+				result:          reconcile.Result{},
+				error:           false,
+			},
+		},
+		{
+			request:     reconcile.Request{NamespacedName: types.NamespacedName{Name: machine2.Name, Namespace: machine2.Namespace}},
+			existsValue: true,
+			expected: expected{
+				createCallCount: 0,
+				existCallCount:  1,
+				updateCallCount: 1,
+				deleteCallCount: 0,
+				result:          reconcile.Result{},
+				error:           false,
+			},
+		},
+		{
+			request:     reconcile.Request{NamespacedName: types.NamespacedName{Name: machine3.Name, Namespace: machine3.Namespace}},
+			existsValue: true,
+			expected: expected{
+				createCallCount: 0,
+				existCallCount:  0,
+				updateCallCount: 0,
+				deleteCallCount: 1,
+				result:          reconcile.Result{},
+				error:           false,
+			},
+		},
+	}
 
-	a := newTestActuator()
-	recFn, requests := SetupTestReconcile(newReconciler(mgr, a))
-	if err := add(mgr, recFn); err != nil {
-		t.Fatalf("error adding controller to manager: %v", err)
-	}
-	defer close(StartTestManager(mgr, t))
-
-	// Create the Machine object and expect Reconcile and the actuator to be called
-	if err := c.Create(context.TODO(), instance); err != nil {
-		t.Fatalf("error creating instance: %v", err)
-	}
-	defer c.Delete(context.TODO(), instance)
-	select {
-	case recv := <-requests:
-		if recv != expectedRequest {
-			t.Error("received request does not match expected request")
+	for _, tc := range testCases {
+		act := newTestActuator()
+		act.ExistsValue = tc.existsValue
+		v1alpha1.AddToScheme(scheme.Scheme)
+		r := &ReconcileMachine{
+			Client:   fake.NewFakeClient(&clusterList, &machine1, &machine2, &machine3),
+			scheme:   scheme.Scheme,
+			actuator: act,
 		}
-	case <-time.After(timeout):
-		t.Error("timed out waiting for request")
-	}
 
-	// TODO: Verify that the actuator is called correctly on Create
+		result, err := r.Reconcile(tc.request)
+		gotError := (err != nil)
+		if tc.expected.error != gotError {
+			var errorExpectation string
+			if !tc.expected.error {
+				errorExpectation = "no"
+			}
+			t.Errorf("Case: %s. Expected %s error, got: %v", tc.request.Name, errorExpectation, err)
+		}
+
+		if !reflect.DeepEqual(result, tc.expected.result) {
+			t.Errorf("Case %s. Got: %v, expected %v", tc.request.Name, result, tc.expected.result)
+		}
+
+		if act.CreateCallCount != tc.expected.createCallCount {
+			t.Errorf("Case %s. Got: %d createCallCount, expected %d", tc.request.Name, act.CreateCallCount, tc.expected.createCallCount)
+		}
+
+		if act.UpdateCallCount != tc.expected.updateCallCount {
+			t.Errorf("Case %s. Got: %d updateCallCount, expected %d", tc.request.Name, act.UpdateCallCount, tc.expected.updateCallCount)
+		}
+
+		if act.ExistsCallCount != tc.expected.existCallCount {
+			t.Errorf("Case %s. Got: %d existCallCount, expected %d", tc.request.Name, act.ExistsCallCount, tc.expected.existCallCount)
+		}
+
+		if act.DeleteCallCount != tc.expected.deleteCallCount {
+			t.Errorf("Case %s. Got: %d deleteCallCount, expected %d", tc.request.Name, act.DeleteCallCount, tc.expected.deleteCallCount)
+		}
+	}
 }

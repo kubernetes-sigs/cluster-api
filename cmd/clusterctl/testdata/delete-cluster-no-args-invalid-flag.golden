@@ -24,7 +24,7 @@ Global Flags:
       --logtostderr                      log to standard error instead of files (default true)
       --master string                    The address of the Kubernetes API server. Overrides any value in kubeconfig. Only required if out-of-cluster.
       --skip-headers                     If true, avoid header prefixes in the log messages
-      --skip-log-headers                 If true, avoid headers when openning log files
+      --skip-log-headers                 If true, avoid headers when opening log files
       --stderrthreshold severity         logs at or above this threshold go to stderr (default 2)
   -v, --v Level                          number for the log level verbosity
       --vmodule moduleSpec               comma-separated list of pattern=N settings for file-filtered logging

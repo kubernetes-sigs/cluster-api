@@ -20,6 +20,7 @@ import (
 	"context"
 
 	"k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/klog"
 	clusterv1 "sigs.k8s.io/cluster-api/pkg/apis/cluster/v1alpha1"
@@ -86,20 +87,31 @@ func (r *ReconcileCluster) Reconcile(request reconcile.Request) (reconcile.Resul
 	}
 
 	name := cluster.Name
-	klog.Infof("Running reconcile Cluster for %s\n", name)
+	klog.Infof("Running reconcile Cluster for %q", name)
 
 	// If object hasn't been deleted and doesn't have a finalizer, add one
 	// Add a finalizer to newly created objects.
-	if cluster.ObjectMeta.DeletionTimestamp.IsZero() &&
-		!util.Contains(cluster.ObjectMeta.Finalizers, clusterv1.ClusterFinalizer) {
-		cluster.Finalizers = append(cluster.Finalizers, clusterv1.ClusterFinalizer)
-		if err = r.Update(context.Background(), cluster); err != nil {
-			klog.Infof("failed to add finalizer to cluster object %v due to error %v.", name, err)
-			return reconcile.Result{}, err
+	if cluster.ObjectMeta.DeletionTimestamp.IsZero() {
+		finalizerCount := len(cluster.Finalizers)
+
+		if !util.Contains(cluster.Finalizers, metav1.FinalizerDeleteDependents) {
+			cluster.Finalizers = append(cluster.ObjectMeta.Finalizers, metav1.FinalizerDeleteDependents)
 		}
 
-		// Since adding the finalizer updates the object return to avoid later update issues
-		return reconcile.Result{}, nil
+		if !util.Contains(cluster.Finalizers, clusterv1.ClusterFinalizer) {
+			cluster.Finalizers = append(cluster.ObjectMeta.Finalizers, clusterv1.ClusterFinalizer)
+		}
+
+		if len(cluster.Finalizers) > finalizerCount {
+			if err := r.Update(context.Background(), cluster); err != nil {
+				klog.Infof("Failed to add finalizer to cluster %q: %v", name, err)
+				return reconcile.Result{}, err
+			}
+
+			// Since adding the finalizer updates the object return to avoid later update issues.
+			return reconcile.Result{Requeue: true}, nil
+		}
+
 	}
 
 	if !cluster.ObjectMeta.DeletionTimestamp.IsZero() {

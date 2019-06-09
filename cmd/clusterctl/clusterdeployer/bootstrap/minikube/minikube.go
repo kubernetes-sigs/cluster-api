@@ -96,7 +96,12 @@ func (m *Minikube) Create() error {
 }
 
 func (m *Minikube) Delete() error {
-	args := []string{"delete", "--profile=" + minikubeClusterNamePrefix + util.RandomString(5)}
+	args := []string{"delete"}
+	for _, opt := range m.options {
+		if strings.HasPrefix(opt, "profile=") {
+			args = append(args, fmt.Sprintf("--%v", opt))
+		}
+	}
 	_, err := m.exec(args...)
 	os.Remove(m.kubeconfigpath)
 	return err

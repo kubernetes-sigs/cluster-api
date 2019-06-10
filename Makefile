@@ -109,7 +109,7 @@ clean: ## Remove all generated files
 
 .PHONY: docker-build
 docker-build: generate fmt vet manifests ## Build the docker image for controller-manager
-	docker build . -t ${CONTROLLER_IMG}
+	docker build --pull . -t ${CONTROLLER_IMG}
 	@echo "updating kustomize image patch file for manager resource"
 	hack/sed.sh -i.tmp -e 's@image: .*@image: '"${CONTROLLER_IMG}"'@' ./config/default/manager_image_patch.yaml
 
@@ -119,7 +119,7 @@ docker-push: docker-build ## Push the docker image
 
 .PHONY: docker-build-ci
 docker-build-ci: generate fmt vet manifests ## Build the docker image for example provider
-	docker build . -f ./pkg/provider/example/container/Dockerfile -t ${EXAMPLE_PROVIDER_IMG}
+	docker build --pull . -f ./pkg/provider/example/container/Dockerfile -t ${EXAMPLE_PROVIDER_IMG}
 	@echo "updating kustomize image patch file for ci"
 	hack/sed.sh -i.tmp -e 's@image: .*@image: '"${EXAMPLE_PROVIDER_IMG}"'@' ./config/ci/manager_image_patch.yaml
 

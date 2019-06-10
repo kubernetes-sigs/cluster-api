@@ -76,7 +76,7 @@ A feature implementation offered as part of the Cluster API project, infrastruct
 
 ### Horizontal Scaling
 
-TBD
+The ability to add more machines based on policy and well defined metrics. For example, add a machine to a cluster when CPU load average > (X) for a period of time (Y).
 
 ### Host
 

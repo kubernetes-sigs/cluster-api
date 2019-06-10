@@ -126,7 +126,7 @@ sub-docker-build-%:
 
 .PHONY: docker-build
 docker-build: generate fmt vet manifests ## Build the docker image for controller-manager
-	docker build --build-arg ARCH=$(ARCH) . -t $(CONTROLLER_IMG)-$(ARCH):$(TAG)
+	docker build --pull --build-arg ARCH=$(ARCH) . -t $(CONTROLLER_IMG)-$(ARCH):$(TAG)
 	@echo "updating kustomize image patch file for manager resource"
 	hack/sed.sh -i.tmp -e 's@image: .*@image: '"${CONTROLLER_IMG}-$(ARCH):$(TAG)"'@' ./config/default/manager_image_patch.yaml
 
@@ -152,7 +152,7 @@ docker-push: docker-build ## Push the docker image
 
 .PHONY: docker-build-ci
 docker-build-ci: generate fmt vet manifests ## Build the docker image for example provider
-	docker build --build-arg ARCH=$(ARCH) . -f ./pkg/provider/example/container/Dockerfile -t $(EXAMPLE_PROVIDER_IMG)-$(ARCH):$(TAG)
+	docker build --pull --build-arg ARCH=$(ARCH) . -f ./pkg/provider/example/container/Dockerfile -t $(EXAMPLE_PROVIDER_IMG)-$(ARCH):$(TAG)
 	@echo "updating kustomize image patch file for ci"
 	hack/sed.sh -i.tmp -e 's@image: .*@image: '"${EXAMPLE_PROVIDER_IMG}-$(ARCH):$(TAG)"'@' ./config/ci/manager_image_patch.yaml
 

@@ -2,6 +2,7 @@
 title: Glossary
 authors:
   - "@dhellmann"
+  - "@timothysc"
 reviewers:
   - "@timothysc"
   - "@justinsb"

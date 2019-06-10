@@ -1,5 +1,5 @@
 ---
-title: Cluster API Scope and Objectives
+title: Glossary
 authors:
   - "@dhellmann"
 reviewers:

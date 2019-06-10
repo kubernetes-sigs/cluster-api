@@ -4,6 +4,10 @@ authors:
   - "@dhellmann"
 reviewers:
   - "@timothysc"
+  - "@justinsb"
+  - "@detiber"
+  - "@davidewatson"
+  - "@vincepri"
 creation-date: 2019-06-10
 last-updated: 2019-06-10
 ---

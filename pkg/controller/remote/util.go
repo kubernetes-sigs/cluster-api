@@ -23,11 +23,17 @@ import (
 
 	"github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
 const (
 	kubeconfigSecretKey = "value"
+)
+
+var (
+	ErrSecretNotFound     = errors.New("secret not found")
+	ErrSecretMissingValue = errors.New("missing value in secret")
 )
 
 // KubeConfigSecretName generates the expected name for the Kubeconfig secret
@@ -46,6 +52,9 @@ func GetKubeConfigSecret(c client.Client, cluster, namespace string) (*corev1.Se
 	}
 
 	if err := c.Get(context.TODO(), secretKey, secret); err != nil {
+		if apierrors.IsNotFound(err) {
+			return nil, ErrSecretNotFound
+		}
 		return nil, err
 	}
 
@@ -56,12 +65,12 @@ func GetKubeConfigSecret(c client.Client, cluster, namespace string) (*corev1.Se
 func DecodeKubeConfigSecret(secret *corev1.Secret) ([]byte, error) {
 	encodedKubeconfig, ok := secret.Data[kubeconfigSecretKey]
 	if !ok {
-		return nil, errors.Errorf("missing value in secret %s/%s", secret.Namespace, secret.Name)
+		return nil, ErrSecretMissingValue
 	}
 
 	kubeconfig, err := base64.StdEncoding.DecodeString(string(encodedKubeconfig))
 	if err != nil {
-		return nil, errors.Wrapf(err, "cannot decode kubeconfig secret %s/%s", secret.Namespace, secret.Name)
+		return nil, err
 	}
 
 	return kubeconfig, nil

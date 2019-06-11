@@ -78,7 +78,7 @@ Following are the implementations managed by third-parties adopting the standard
 
 ### Resources
 
-* GitBook: cluster-api.sigs.k8s.io
+* GitBook: [cluster-api.sigs.k8s.io](cluster-api.sigs.k8s.io)
 
 ### Prerequisites
 * `kubectl` is required, see [here](http://kubernetes.io/docs/user-guide/prereqs/).

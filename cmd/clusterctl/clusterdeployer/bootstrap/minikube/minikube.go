@@ -25,10 +25,11 @@ import (
 
 	"github.com/pkg/errors"
 	"k8s.io/klog"
+	"sigs.k8s.io/cluster-api/pkg/util"
 )
 
 const (
-	minikubeClusterName = "clusterapi"
+	minikubeClusterNamePrefix = "clusterapi-"
 )
 
 type Minikube struct {
@@ -61,7 +62,7 @@ func WithOptionsAndKubeConfigPath(options []string, kubeconfigpath string) *Mini
 		}
 		return true
 	}() {
-		options = append(options, fmt.Sprintf("profile=%s", minikubeClusterName))
+		options = append(options, fmt.Sprintf("profile=%s", minikubeClusterNamePrefix+util.RandomString(5)))
 	}
 
 	return &Minikube{
@@ -94,7 +95,13 @@ func (m *Minikube) Create() error {
 }
 
 func (m *Minikube) Delete() error {
-	_, err := m.exec("delete")
+	args := []string{"delete"}
+	for _, opt := range m.options {
+		if strings.HasPrefix(opt, "profile=") {
+			args = append(args, fmt.Sprintf("--%v", opt))
+		}
+	}
+	_, err := m.exec(args...)
 	os.Remove(m.kubeconfigpath)
 	return err
 }

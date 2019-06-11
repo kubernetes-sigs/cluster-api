@@ -13,8 +13,6 @@ import (
 	"regexp"
 	"strings"
 
-	"sigs.k8s.io/kind/pkg/container/cri"
-
 	"github.com/pkg/errors"
 	"gitlab.com/chuckh/cluster-api-provider-kind/kind/kubeadm"
 	"gitlab.com/chuckh/cluster-api-provider-kind/kind/loadbalancer"
@@ -22,6 +20,7 @@ import (
 	"sigs.k8s.io/kind/pkg/cluster/config/defaults"
 	"sigs.k8s.io/kind/pkg/cluster/constants"
 	"sigs.k8s.io/kind/pkg/cluster/nodes"
+	"sigs.k8s.io/kind/pkg/container/cri"
 	"sigs.k8s.io/kind/pkg/exec"
 	"sigs.k8s.io/kind/pkg/kustomize"
 )
@@ -31,7 +30,7 @@ import (
 // KubeConfigPath returns the path to the kubeconfig file for the given cluster name.
 func KubeConfigPath(clusterName string) string {
 	// configDir matches the standard directory expected by kubectl etc
-	configDir := "/kubeconfigs"
+	configDir := filepath.Join(os.Getenv("HOME"), ".kube")
 	// note that the file name however does not, we do not want to overwrite
 	// the standard config, though in the future we may (?) merge them
 	fileName := fmt.Sprintf("kind-config-%s", clusterName)
@@ -90,12 +89,7 @@ func CreateControlPlane(clusterName string) (*nodes.Node, error) {
 		clusterLabel,
 		"127.0.0.1",
 		0,
-		[]cri.Mount{
-			{
-				ContainerPath: "/root/.kube",
-				HostPath:      "/kubeconfigs",
-			},
-		},
+		[]cri.Mount{},
 	)
 	if err != nil {
 		return nil, err

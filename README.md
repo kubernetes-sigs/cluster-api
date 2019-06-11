@@ -2,6 +2,10 @@
 
 A temporary home for CAPK
 
+# Development
+
+Please make an issue to discuss before large changes occur. 
+
 # Manager Container Image
 
 A sample is built and hosted at `gcr.io/kubernetes1-226021/capk-manager:latest` 

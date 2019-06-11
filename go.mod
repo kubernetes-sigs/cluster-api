@@ -20,8 +20,10 @@ require (
 	go.uber.org/zap v1.10.0 // indirect
 	golang.org/x/oauth2 v0.0.0-20190604053449-0f29369cfe45 // indirect
 	golang.org/x/time v0.0.0-20190308202827-9d24e82272b4 // indirect
+	k8s.io/api v0.0.0-20181213150558-05914d821849
 	k8s.io/apiextensions-apiserver v0.0.0-20181213153335-0fe22c71c476 // indirect
 	k8s.io/apimachinery v0.0.0-20181127025237-2b1284ed4c93
+	k8s.io/client-go v10.0.0+incompatible
 	k8s.io/klog v0.3.2
 	sigs.k8s.io/cluster-api v0.0.0-20190607141803-aacb0c613ffb
 	sigs.k8s.io/controller-runtime v0.1.10

@@ -7,11 +7,15 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"io/ioutil"
 	"time"
 
-	"k8s.io/apimachinery/pkg/types"
-
+	"github.com/pkg/errors"
 	"gitlab.com/chuckh/cluster-api-provider-kind/kind/actions"
+	v1 "k8s.io/api/core/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/types"
+	corev1 "k8s.io/client-go/kubernetes/typed/core/v1"
 	clusterv1 "sigs.k8s.io/cluster-api/pkg/apis/cluster/v1alpha1"
 	"sigs.k8s.io/cluster-api/pkg/client/clientset_generated/clientset/typed/cluster/v1alpha1"
 	capierror "sigs.k8s.io/cluster-api/pkg/controller/error"
@@ -22,14 +26,14 @@ import (
 )
 
 type Machine struct {
-	ClusterAPI     v1alpha1.ClusterV1alpha1Interface
-	KubeconfigsDir string
+	Core       corev1.CoreV1Interface
+	ClusterAPI v1alpha1.ClusterV1alpha1Interface
 }
 
-func NewMachineActuator(kubeconfigs string, clusterapi v1alpha1.ClusterV1alpha1Interface) *Machine {
+func NewMachineActuator(clusterapi v1alpha1.ClusterV1alpha1Interface, core corev1.CoreV1Interface) *Machine {
 	return &Machine{
-		ClusterAPI:     clusterapi,
-		KubeconfigsDir: kubeconfigs,
+		Core:       core,
+		ClusterAPI: clusterapi,
 	}
 }
 
@@ -75,7 +79,21 @@ func (m *Machine) Create(ctx context.Context, c *clusterv1.Cluster, machine *clu
 			return err
 		}
 		setKindName(machine, controlPlaneNode.Name())
-		return m.save(old, machine)
+		if err := m.save(old, machine); err != nil {
+			fmt.Printf("%+v", err)
+			return err
+		}
+		s, err := kubeconfigToSecret(c.Name, c.Namespace)
+		if err != nil {
+			fmt.Printf("%+v", err)
+			return err
+		}
+		// Save the secret to the management cluster
+		if _, err := m.Core.Secrets(machine.GetNamespace()).Create(s); err != nil {
+			fmt.Printf("%+v", err)
+			return err
+		}
+		return nil
 	}
 
 	// If there are no control plane then we should hold off on joining workers
@@ -103,14 +121,22 @@ func (m *Machine) Update(ctx context.Context, cluster *clusterv1.Cluster, machin
 }
 
 func (m *Machine) Exists(ctx context.Context, cluster *clusterv1.Cluster, machine *clusterv1.Machine) (bool, error) {
+	if getKindName(machine) == "" {
+		return false, nil
+	}
 	fmt.Println("Looking for a docker container named", getKindName(machine))
 	role := getRole(machine)
-	nodeList, err := nodes.List(fmt.Sprintf("label=%s=%s", constants.NodeRoleKey, role),
+	labels := []string{
+		fmt.Sprintf("label=%s=%s", constants.NodeRoleKey, role),
 		fmt.Sprintf("label=%s=%s", constants.ClusterLabelKey, cluster.Name),
-		fmt.Sprintf("name=%s", getKindName(machine)))
-	if err != nil {
-		return true, err
+		fmt.Sprintf("name=^%s$", getKindName(machine)),
 	}
+	fmt.Printf("using labels: %v\n", labels)
+	nodeList, err := nodes.List(labels...)
+	if err != nil {
+		return false, err
+	}
+	fmt.Printf("found nodes: %v\n", nodeList)
 	return len(nodeList) >= 1, nil
 }
 
@@ -138,7 +164,9 @@ func (m *Machine) save(old, new *clusterv1.Machine) error {
 }
 
 func setKindName(machine *clusterv1.Machine, name string) {
-	machine.SetAnnotations(map[string]string{"name": name})
+	a := machine.GetAnnotations()
+	a["name"] = name
+	machine.SetAnnotations(a)
 }
 
 func getKindName(machine *clusterv1.Machine) string {
@@ -184,4 +212,23 @@ func (c *Cluster) Reconcile(cluster *clusterv1.Cluster) error {
 func (c *Cluster) Delete(cluster *clusterv1.Cluster) error {
 	fmt.Println("Cluster delete is not implemented.")
 	return nil
+}
+
+func kubeconfigToSecret(clusterName, namespace string) (*v1.Secret, error) {
+	// open kubeconfig file
+	data, err := ioutil.ReadFile(actions.KubeConfigPath(clusterName))
+	if err != nil {
+		return nil, errors.WithStack(err)
+	}
+
+	// write it to a secret
+	return &v1.Secret{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      fmt.Sprintf("kubeconfig-%s", clusterName),
+			Namespace: namespace,
+		},
+		Data: map[string][]byte{
+			"kubeconfig": data,
+		},
+	}, nil
 }

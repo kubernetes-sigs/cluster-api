@@ -19,15 +19,57 @@ func main() {
 		printCRDs()
 	case "capk":
 		printClusterAPIPlane()
+	case "control-plane":
+		fmt.Fprintf(os.Stdout, machineYAML(os.Args[2], os.Args[3], os.Args[4], "control-plane"))
+	case "worker":
+		fmt.Fprintf(os.Stdout, machineYAML(os.Args[2], os.Args[3], os.Args[4], "worker"))
+	case "cluster":
+		fmt.Fprintf(os.Stdout, clusterYAML(os.Args[2], os.Args[3]))
 	default:
 		fmt.Fprint(os.Stderr, "unknown command", os.Args[1])
 		os.Exit(2)
 	}
 }
 
+func clusterYAML(name, namespace string) string {
+	return fmt.Sprintf(`apiVersion: "cluster.k8s.io/v1alpha1"
+kind: Cluster
+metadata:
+  name: %s
+  namespace: %s
+spec:
+  clusterNetwork:
+    services:
+      cidrBlocks: ["10.96.0.0/12"]
+    pods:
+      cidrBlocks: ["192.168.0.0/16"]
+    serviceDomain: "cluster.local"
+  providerSpec: {}`, name, namespace)
+}
+
+func machineYAML(name, namespace, cluster, set string) string {
+	return fmt.Sprintf(`apiVersion: "cluster.k8s.io/v1alpha1"
+kind: MachineList
+items:
+  - apiVersion: "cluster.k8s.io/v1alpha1"
+    kind: Machine
+    metadata:
+      name: %s
+      namespace: %s
+      labels:
+        cluster.k8s.io/cluster-name: %s
+      annotations:
+        set: %s
+    spec:
+      versions:
+        kubelet: v1.13.6
+        controlPlane: v1.13.6
+      providerSpec: {}`, name, namespace, cluster, set)
+}
+
 func makeManagementCluster() {
-	// start kind with docker mount
 	kind := execer.NewClient("kind")
+	// start kind with docker mount
 	kindConfig, err := kindConfigFile()
 	if err != nil {
 		panic(err)
@@ -45,8 +87,7 @@ nodes:
   extraMounts:
   - containerPath: /var/run/docker.sock
     hostPath: /var/run/docker.sock
-  - containerPath: /kubeconfigs
-    hostPath: /kubeconfigs`
+`
 
 	f, err := ioutil.TempFile("", "*-kind-config.yaml")
 	if err != nil {
@@ -109,8 +150,6 @@ spec:
           name: dockersock
         - mountPath: /var/lib/docker
           name: dockerlib
-        - mountPath: /kubeconfigs
-          name: kubeconfigs
         securityContext:
           privileged: true
       volumes:
@@ -121,9 +160,6 @@ spec:
       - name: dockerlib
         hostPath:
           path: /var/lib/docker
-      - name: kubeconfigs
-        hostPath:
-          path: /kubeconfigs
       tolerations:
       - effect: NoSchedule
         key: node-role.kubernetes.io/master
@@ -1116,6 +1152,7 @@ rules:
   resources:
   - nodes
   - events
+  - secrets
   verbs:
   - get
   - list

@@ -8,7 +8,7 @@ import (
 	"time"
 
 	"gitlab.com/chuckh/cluster-api-provider-kind/capkactuators"
-	"k8s.io/klog"
+	"k8s.io/client-go/kubernetes"
 	"sigs.k8s.io/cluster-api/pkg/apis"
 	"sigs.k8s.io/cluster-api/pkg/apis/cluster/common"
 	"sigs.k8s.io/cluster-api/pkg/client/clientset_generated/clientset"
@@ -35,13 +35,17 @@ func main() {
 	if err != nil {
 		panic(err)
 	}
+	k8sclientset, err := kubernetes.NewForConfig(cfg)
+	if err != nil {
+		panic(err)
+	}
 	cs, err := clientset.NewForConfig(cfg)
 	if err != nil {
-		klog.Fatalf("Failed to create client from configuration: %v", err)
+		panic(err)
 	}
 
 	clusterActuator := capkactuators.NewClusterActuator()
-	machineActuator := capkactuators.NewMachineActuator("/kubeconfigs", cs.ClusterV1alpha1())
+	machineActuator := capkactuators.NewMachineActuator(cs.ClusterV1alpha1(), k8sclientset.CoreV1())
 
 	// Register our cluster deployer (the interface is in clusterctl and we define the Deployer interface on the actuator)
 	common.RegisterClusterProvisioner("aws", clusterActuator)

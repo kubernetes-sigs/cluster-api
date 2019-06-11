@@ -6,7 +6,8 @@ RUN go mod download
 RUN  curl -L https://dl.k8s.io/v1.14.3/kubernetes-client-linux-amd64.tar.gz | tar xvz
 ADD cmd cmd
 ADD capkactuators capkactuators
-ADD pkg/kind pkg/kind
+ADD kind kind
+ADD execer execer
 
 RUN go install -v ./cmd/capk-manager
 RUN GO111MODULE="on" go get sigs.k8s.io/kind@v0.3.0

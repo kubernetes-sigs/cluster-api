@@ -4,8 +4,8 @@
 It may be useful to read at least the following chapters of the Kubebuilder 
 book in order to better understand this section.
 
-- [What is a Resource](https://book.kubebuilder.io/basics/what_is_a_resource.html)
-- [What is a Controller](https://book.kubebuilder.io/basics/what_is_a_controller.html)
+- [What is a Resource](https://book-v1.book.kubebuilder.io/basics/what_is_a_resource.html)
+- [What is a Controller](https://book-v1.book.kubebuilder.io/basics/what_is_a_controller.html)
 {% endpanel %}
 
 {% panel style="warning", title="Architecture Diagram" %}

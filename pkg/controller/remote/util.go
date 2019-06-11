@@ -18,7 +18,6 @@ package remote
 
 import (
 	"context"
-	"encoding/base64"
 	"fmt"
 
 	"github.com/pkg/errors"
@@ -61,17 +60,11 @@ func GetKubeConfigSecret(c client.Client, cluster, namespace string) (*corev1.Se
 	return secret, nil
 }
 
-// DecodeKubeConfigSecret uses the Secret to retrieve and decode the data.
-func DecodeKubeConfigSecret(secret *corev1.Secret) ([]byte, error) {
-	encodedKubeconfig, ok := secret.Data[kubeconfigSecretKey]
+// KubeConfigFromSecret uses the Secret to retrieve the KubeConfig.
+func KubeConfigFromSecret(secret *corev1.Secret) ([]byte, error) {
+	data, ok := secret.Data[kubeconfigSecretKey]
 	if !ok {
 		return nil, ErrSecretMissingValue
 	}
-
-	kubeconfig, err := base64.StdEncoding.DecodeString(string(encodedKubeconfig))
-	if err != nil {
-		return nil, err
-	}
-
-	return kubeconfig, nil
+	return data, nil
 }

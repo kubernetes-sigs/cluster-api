@@ -17,7 +17,6 @@ limitations under the License.
 package remote
 
 import (
-	"encoding/base64"
 	"reflect"
 	"testing"
 
@@ -54,7 +53,7 @@ users:
 			Namespace: "test",
 		},
 		Data: map[string][]byte{
-			kubeconfigSecretKey: []byte(base64.StdEncoding.EncodeToString([]byte(validKubeConfig))),
+			kubeconfigSecretKey: []byte(validKubeConfig),
 		},
 	}
 
@@ -81,22 +80,15 @@ func TestGetKubeConfigSecret(t *testing.T) {
 	}
 }
 
-func TestDecodeKubeConfigSecret(t *testing.T) {
+func TestKubeConfigFromSecret(t *testing.T) {
 	t.Run("with valid secret", func(t *testing.T) {
-		out, err := DecodeKubeConfigSecret(validSecret)
+		out, err := KubeConfigFromSecret(validSecret)
 		if err != nil {
 			t.Fatalf("Expected no error, got %v", err)
 		}
 
 		if string(out) != validKubeConfig {
 			t.Fatalf("Expected decoded KubeConfig to match input")
-		}
-	})
-
-	t.Run("with invalid secret", func(t *testing.T) {
-		_, err := DecodeKubeConfigSecret(invalidSecret)
-		if err == nil {
-			t.Fatalf("Expected error, got nil")
 		}
 	})
 }

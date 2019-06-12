@@ -55,17 +55,13 @@ func AddControlPlane(clusterName string) (*nodes.Node, error) {
 // SetUpLoadBalancer creates a load balancer but does not configure it.
 func SetUpLoadBalancer(clusterName string) (*nodes.Node, error) {
 	clusterLabel := fmt.Sprintf("%s=%s", constants.ClusterLabelKey, clusterName)
-	lb, err := nodes.CreateExternalLoadBalancerNode(
+	return nodes.CreateExternalLoadBalancerNode(
 		getName(clusterName, constants.ExternalLoadBalancerNodeRoleValue),
 		loadbalancer.Image,
 		clusterLabel,
 		"0.0.0.0",
 		0,
 	)
-	if err != nil {
-		return nil, err
-	}
-	return lb, nil
 }
 
 // CreateControlPlane is creating the first control plane and configuring the load balancer.

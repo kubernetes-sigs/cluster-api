@@ -8,6 +8,7 @@ ADD cmd cmd
 ADD capkactuators capkactuators
 ADD kind kind
 ADD execer execer
+ADD third_party third_party
 
 RUN go install -v ./cmd/capk-manager
 RUN GO111MODULE="on" go get sigs.k8s.io/kind@v0.3.0

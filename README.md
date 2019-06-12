@@ -6,18 +6,18 @@ A temporary home for CAPK
 
 Please make an issue to discuss before large changes occur. 
 
-# Manager Container Image
+## Manager Container Image
 
 A sample is built and hosted at `gcr.io/kubernetes1-226021/capk-manager:latest` 
 
-## Building the binaries
+### Building the binaries
 
 Requires go 1.12? Probably less strict than that.
 
 * `go build ./cmd/...`
 * `go build ./cmd/`
 
-## Building the image
+### Building the image
 
 Requires `gcloud` authenticated and configured.
 
@@ -25,7 +25,7 @@ Requires a google cloud project
 
 `./scripts/publish-capk-manager.sh`
 
-# Running the capk manager
+# Testing out CAPK
 
 ⚠️Only tested on linux⚠️
 
@@ -51,6 +51,8 @@ Run the capk & capi manager
 
 ### Interact with a worker cluster
 
-You will find the kubeconfigs in /kubeconfigs on the host. In this case:
+The kubeconfig is on the management cluster in secrets. Grab it and write it to a file:
 
-`export KUBECONFIG=/kubeconfigs/kind-config-my-cluster`
+`kubectl get secrets -o jsonpath='{.data.kubeconfig}' kubeconfig-my-cluster | base64 --decode > ~/.kube/kind-config-my-cluster`
+ 
+`kubectl get po --all-namespaces --kubeconfig ~/.kube/kind-config-my-cluster`

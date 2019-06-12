@@ -9,9 +9,9 @@ import (
 	"os"
 	"strings"
 
+	"gitlab.com/chuckh/cluster-api-provider-kind/kind/actions"
 	"sigs.k8s.io/kind/pkg/cluster/constants"
 	"sigs.k8s.io/kind/pkg/cluster/nodes"
-	"gitlab.com/chuckh/cluster-api-provider-kind/kind/actions"
 )
 
 func main() {
@@ -26,27 +26,33 @@ func main() {
 		switch inputs[0] {
 		case "new-cluster":
 			fmt.Println("Creating load balancer")
-			if err := actions.SetUpLoadBalancer(clusterName); err != nil {
-				panic(err)
+			lb, err := actions.SetUpLoadBalancer(clusterName)
+			if err != nil {
+				panic(fmt.Sprintf("%+v", err))
 			}
-			if _, err := actions.CreateControlPlane(clusterName); err != nil {
-				panic(err)
+			ip, err := lb.IP()
+			if err != nil {
+				panic(fmt.Sprintf("%+v", err))
+			}
+			if _, err := actions.CreateControlPlane(clusterName, ip); err != nil {
+				panic(fmt.Sprintf("%+v", err))
 			}
 		case "add-worker":
 			if _, err := actions.AddWorker(clusterName); err != nil {
-				panic(err)
+				panic(fmt.Sprintf("%+v", err))
 			}
 		case "delete-node":
 			if len(inputs) < 2 {
-				fmt.Println("usage: delete-worker my-cluster-worker1")
+				fmt.Println("usage: delete-node my-cluster-worker1")
 				continue
 			}
+			fmt.Println("Warning: If you are deleting a control plane node your cluster may break.")
 			if err := actions.DeleteNode(clusterName, inputs[1]); err != nil {
-				panic(err)
+				panic(fmt.Sprintf("%+v", err))
 			}
 		case "add-control-plane":
 			if _, err := actions.AddControlPlane(clusterName); err != nil {
-				panic(err)
+				panic(fmt.Sprintf("%+v", err))
 			}
 		case "set-cluster-name":
 			fmt.Println("setting cluster name...")

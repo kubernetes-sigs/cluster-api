@@ -73,7 +73,17 @@ func (m *Machine) Create(ctx context.Context, c *clusterv1.Cluster, machine *clu
 		}
 
 		fmt.Println("Creating a brand new cluster")
-		controlPlaneNode, err := actions.CreateControlPlane(c.Name)
+		elb, err := getExternalLoadBalancerNode(c.Name)
+		if err != nil {
+			fmt.Printf("%+v\n", err)
+			return err
+		}
+		lbip, err := elb.IP()
+		if err != nil {
+			fmt.Printf("%+v\n", err)
+			return err
+		}
+		controlPlaneNode, err := actions.CreateControlPlane(c.Name, lbip)
 		if err != nil {
 			fmt.Printf("%+v", err)
 			return err
@@ -191,22 +201,35 @@ func NewClusterActuator() *Cluster {
 }
 
 func (c *Cluster) Reconcile(cluster *clusterv1.Cluster) error {
-	elb, err := nodes.List(
-		fmt.Sprintf("label=%s=%s", constants.NodeRoleKey, constants.ExternalLoadBalancerNodeRoleValue),
-		fmt.Sprintf("label=%s=%s", constants.ClusterLabelKey, cluster.Name),
-	)
+	elb, err := getExternalLoadBalancerNode(cluster.Name)
 	if err != nil {
 		fmt.Printf("%+v\n", err)
 		return err
 	}
-	fmt.Println("found external load balancers:", elb)
-	// Abandon if we already have a load balancer.
-	if len(elb) > 0 {
-		fmt.Println("Nothing to do for this cluster.")
+	if elb != nil {
+		fmt.Println("External Load Balancer already exists. Nothing to do for this cluster.")
 		return nil
 	}
 	fmt.Printf("The cluster named %q has been created! Setting up some infrastructure.\n", cluster.Name)
-	return actions.SetUpLoadBalancer(cluster.Name)
+	_, err = actions.SetUpLoadBalancer(cluster.Name)
+	return err
+}
+
+func getExternalLoadBalancerNode(clusterName string) (*nodes.Node, error) {
+	elb, err := nodes.List(
+		fmt.Sprintf("label=%s=%s", constants.NodeRoleKey, constants.ExternalLoadBalancerNodeRoleValue),
+		fmt.Sprintf("label=%s=%s", constants.ClusterLabelKey, clusterName),
+	)
+	if err != nil {
+		return nil, err
+	}
+	if len(elb) == 0 {
+		return nil, nil
+	}
+	if len(elb) > 1 {
+		return nil, errors.New("Too many external load balancers.")
+	}
+	return &elb[0], nil
 }
 
 func (c *Cluster) Delete(cluster *clusterv1.Cluster) error {

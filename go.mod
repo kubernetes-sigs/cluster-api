@@ -24,7 +24,8 @@ require (
 	k8s.io/apiextensions-apiserver v0.0.0-20181213153335-0fe22c71c476 // indirect
 	k8s.io/apimachinery v0.0.0-20181127025237-2b1284ed4c93
 	k8s.io/client-go v10.0.0+incompatible
-	k8s.io/klog v0.3.2
+	k8s.io/cluster-bootstrap v0.0.0-20181213155137-5f9271efc2e7 // indirect
+	k8s.io/kubernetes v1.13.1
 	sigs.k8s.io/cluster-api v0.0.0-20190607141803-aacb0c613ffb
 	sigs.k8s.io/controller-runtime v0.1.10
 	sigs.k8s.io/kind v0.2.1

@@ -24,7 +24,7 @@ import (
 var AddToManagerFuncs []func(manager.Manager) error
 
 // AddToManager adds all Controllers to the Manager
-// +kubebuilder:rbac:groups=core,resources=events,verbs=get;list;watch;create
+// +kubebuilder:rbac:groups=core,resources=events,verbs=get;list;watch;create;patch
 func AddToManager(m manager.Manager) error {
 	for _, f := range AddToManagerFuncs {
 		if err := f(m); err != nil {

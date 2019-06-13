@@ -17,16 +17,19 @@ limitations under the License.
 package main
 
 import (
+	"encoding/json"
 	"flag"
 	"fmt"
 	"io/ioutil"
 	"os"
 
 	"gitlab.com/chuckh/cluster-api-provider-kind/execer"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"sigs.k8s.io/cluster-api/pkg/apis/cluster/v1alpha1"
 )
 
 type machineOptions struct {
-	name, namespace, clusterName, set *string
+	name, namespace, clusterName, set, version *string
 }
 
 func (mo *machineOptions) initFlags(fs *flag.FlagSet) {
@@ -34,6 +37,7 @@ func (mo *machineOptions) initFlags(fs *flag.FlagSet) {
 	mo.namespace = fs.String("namespace", "my-namespace", "The namespece of the machine")
 	mo.clusterName = fs.String("cluster-name", "my-cluster", "The name of the cluster the machine belongs to")
 	mo.set = fs.String("set", "worker", "The role of the machine. Valid entries ['worker', 'control-plane']")
+	mo.version = fs.String("version", "v1.14.2", "The Kubernetes version to run")
 }
 
 func main() {
@@ -76,15 +80,17 @@ func main() {
 		printClusterAPIPlane(*capkImage, *capiImage)
 	case "control-plane":
 		controlPlane.Parse(os.Args[2:])
-		fmt.Fprintf(os.Stdout, machineYAML(*controlPlaneOpts.name, *controlPlaneOpts.namespace, *controlPlaneOpts.clusterName, *controlPlaneOpts.set))
+		fmt.Fprintf(os.Stdout, machineYAML(controlPlaneOpts))
 	case "worker":
 		worker.Parse(os.Args[2:])
-		fmt.Fprintf(os.Stdout, machineYAML(*workerOpts.name, *workerOpts.namespace, *workerOpts.clusterName, *workerOpts.set))
+		fmt.Fprintf(os.Stdout, machineYAML(workerOpts))
 	case "cluster":
 		cluster.Parse(os.Args[2:])
 		fmt.Fprintf(os.Stdout, clusterYAML(*clusterName, *clusterNamespace))
+	case "help":
+		fmt.Println(usage())
 	default:
-		fmt.Fprintf(os.Stderr, "unknown command: %q\n", os.Args[1])
+		fmt.Println(usage())
 		os.Exit(1)
 	}
 }
@@ -104,10 +110,10 @@ subcommands are:
     example: capkctl capk -capk-image gcr.io/kubernetes1-226021/capk-manager:latest -capi-image gcr.io/k8s-cluster-api/cluster-api-controller:0.1.2 | kubeclt apply -f -
 
   control-plane - Write a capk control plane machine to stdout
-    example: capkctl control-plane -name my-control-plane -namespace my-namespace -cluster-name my-cluster | kubectl apply -f - 
+    example: capkctl control-plane -name my-control-plane -namespace my-namespace -cluster-name my-cluster -version v1.14.1 | kubectl apply -f - 
 
   worker - Write a capk worker machine to stdout
-    example: capkctl worker -name my-worker -namespace my-namespace -cluster-name my-cluster | kubectl apply -f -
+    example: capkctl worker -name my-worker -namespace my-namespace -cluster-name my-cluster -version 1.14.2 | kubectl apply -f -
 
   cluster - Write a capk cluster object to stdout
     example: capkctl cluster -cluster-name my-cluster -namespace my-namespace | kubectl apply -f -
@@ -131,25 +137,39 @@ spec:
   providerSpec: {}`, name, namespace)
 }
 
-func machineYAML(name, namespace, cluster, set string) string {
-	return fmt.Sprintf(`apiVersion: "cluster.k8s.io/v1alpha1"
-kind: MachineList
-items:
-  - apiVersion: "cluster.k8s.io/v1alpha1"
-    kind: Machine
-    metadata:
-      name: %s
-      namespace: %s
-      labels:
-        cluster.k8s.io/cluster-name: %s
-      annotations:
-        set: %s
-    spec:
-      versions:
-        kubelet: v1.13.6
-        controlPlane: v1.13.6
-      providerSpec: {}
-`, name, namespace, cluster, set)
+func machineYAML(opts *machineOptions) string {
+	machine := v1alpha1.Machine{
+		TypeMeta: metav1.TypeMeta{
+			Kind:       "Machine",
+			APIVersion: "cluster.k8s.io/v1alpha1",
+		},
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      *opts.name,
+			Namespace: *opts.namespace,
+			Labels: map[string]string{
+				"cluster.k8s.io/cluster-name": *opts.clusterName,
+			},
+			Annotations: map[string]string{
+				"set": *opts.set,
+			},
+		},
+		Spec: v1alpha1.MachineSpec{
+			ProviderSpec: v1alpha1.ProviderSpec{},
+		},
+	}
+	// TODO: 🤔
+	if *opts.set == "control-plane" {
+		machine.Spec.Versions.ControlPlane = *opts.version
+	}
+	if *opts.set == "worker" {
+		machine.Spec.Versions.Kubelet = *opts.version
+	}
+	b, err := json.Marshal(machine)
+	// TODO don't panic on the error
+	if err != nil {
+		panic(err)
+	}
+	return string(b)
 }
 
 func makeManagementCluster(clusterName string) {

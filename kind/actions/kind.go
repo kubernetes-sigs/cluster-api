@@ -25,9 +25,10 @@ import (
 	"path/filepath"
 	"regexp"
 
+	"sigs.k8s.io/kind/pkg/cluster/config/defaults"
+
 	"github.com/pkg/errors"
 	"gitlab.com/chuckh/cluster-api-provider-kind/third_party/forked/loadbalancer"
-	"sigs.k8s.io/kind/pkg/cluster/config/defaults"
 	"sigs.k8s.io/kind/pkg/cluster/constants"
 	"sigs.k8s.io/kind/pkg/cluster/nodes"
 	"sigs.k8s.io/kind/pkg/container/cri"
@@ -42,12 +43,13 @@ func KubeConfigPath(clusterName string) string {
 }
 
 // AddControlPlane adds a control plane to a given cluster
-func AddControlPlane(clusterName string) (*nodes.Node, error) {
+func AddControlPlane(clusterName, version string) (*nodes.Node, error) {
 	clusterLabel := fmt.Sprintf("%s=%s", constants.ClusterLabelKey, clusterName)
+	kindImage := image(version)
 	// This function exposes a port (makes sense for kind) that is not needed in capk scenarios.
 	controlPlane, err := nodes.CreateControlPlaneNode(
 		getName(clusterName, constants.ControlPlaneNodeRoleValue),
-		defaults.Image,
+		kindImage,
 		clusterLabel,
 		"127.0.0.1",
 		0,
@@ -78,12 +80,13 @@ func SetUpLoadBalancer(clusterName string) (*nodes.Node, error) {
 }
 
 // CreateControlPlane is creating the first control plane and configuring the load balancer.
-func CreateControlPlane(clusterName, lbip string) (*nodes.Node, error) {
+func CreateControlPlane(clusterName, lbip, version string) (*nodes.Node, error) {
 	fmt.Println("Creating control plane node")
 	clusterLabel := fmt.Sprintf("%s=%s", constants.ClusterLabelKey, clusterName)
+	kindImage := image(version)
 	controlPlaneNode, err := nodes.CreateControlPlaneNode(
 		getName(clusterName, constants.ControlPlaneNodeRoleValue),
-		defaults.Image,
+		kindImage,
 		clusterLabel,
 		"127.0.0.1",
 		0,
@@ -113,11 +116,12 @@ func CreateControlPlane(clusterName, lbip string) (*nodes.Node, error) {
 }
 
 // AddWorker adds a worker to a given cluster.
-func AddWorker(clusterName string) (*nodes.Node, error) {
+func AddWorker(clusterName, version string) (*nodes.Node, error) {
 	clusterLabel := fmt.Sprintf("%s=%s", constants.ClusterLabelKey, clusterName)
+	kindImage := image(version)
 	worker, err := nodes.CreateWorkerNode(
 		getName(clusterName, constants.WorkerNodeRoleValue),
-		defaults.Image,
+		kindImage,
 		clusterLabel,
 		nil,
 	)
@@ -221,4 +225,15 @@ func getName(clusterName, role string) string {
 		suffix = ""
 	}
 	return fmt.Sprintf("%s-%s%s", clusterName, role, suffix)
+}
+
+func image(version string) string {
+	// valid kindest node versions, but only >= v1.14.0
+	switch version {
+	case "v1.14.2":
+	case "v1.14.1":
+	case "v1.14.0":
+		return fmt.Sprintf("kindest/node:", version)
+	}
+	return defaults.Image
 }

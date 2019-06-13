@@ -31,6 +31,7 @@ func main() {
 	reader := bufio.NewReader(os.Stdin)
 	fmt.Println("Here we go!")
 	clusterName := "my-cluster"
+	version := "v1.14.2"
 	for {
 		// read input
 		text, _ := reader.ReadString('\n')
@@ -47,11 +48,11 @@ func main() {
 			if err != nil {
 				panic(fmt.Sprintf("%+v", err))
 			}
-			if _, err := actions.CreateControlPlane(clusterName, ip); err != nil {
+			if _, err := actions.CreateControlPlane(clusterName, ip, version); err != nil {
 				panic(fmt.Sprintf("%+v", err))
 			}
 		case "add-worker":
-			if _, err := actions.AddWorker(clusterName); err != nil {
+			if _, err := actions.AddWorker(clusterName, version); err != nil {
 				panic(fmt.Sprintf("%+v", err))
 			}
 		case "delete-node":
@@ -64,12 +65,15 @@ func main() {
 				panic(fmt.Sprintf("%+v", err))
 			}
 		case "add-control-plane":
-			if _, err := actions.AddControlPlane(clusterName); err != nil {
+			if _, err := actions.AddControlPlane(clusterName, version); err != nil {
 				panic(fmt.Sprintf("%+v", err))
 			}
 		case "set-cluster-name":
 			fmt.Println("setting cluster name...")
 			clusterName = inputs[1]
+		case "set-version":
+			fmt.Println("setting version")
+			version = inputs[1]
 		default:
 			fmt.Println("Unknown command")
 		}

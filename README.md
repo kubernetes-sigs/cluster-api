@@ -27,7 +27,7 @@ Requires a google cloud project
 
 # Testing out CAPK
 
-⚠️Only tested on linux⚠️
+Tested on: Linux, OS X
 
 Start a management kind cluster
 

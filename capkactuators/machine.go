@@ -72,7 +72,7 @@ func (m *Machine) Create(ctx context.Context, c *clusterv1.Cluster, machine *clu
 	if setValue == constants.ControlPlaneNodeRoleValue {
 		if len(controlPlanes) > 0 {
 			fmt.Println("Adding a control plane")
-			controlPlaneNode, err := actions.AddControlPlane(c.Name)
+			controlPlaneNode, err := actions.AddControlPlane(c.Name, machine.Spec.Versions.ControlPlane)
 			if err != nil {
 				fmt.Printf("%+v", err)
 				return err
@@ -92,7 +92,7 @@ func (m *Machine) Create(ctx context.Context, c *clusterv1.Cluster, machine *clu
 			fmt.Printf("%+v\n", err)
 			return err
 		}
-		controlPlaneNode, err := actions.CreateControlPlane(c.Name, lbip)
+		controlPlaneNode, err := actions.CreateControlPlane(c.Name, lbip, machine.Spec.Versions.ControlPlane)
 		if err != nil {
 			fmt.Printf("%+v", err)
 			return err
@@ -122,7 +122,7 @@ func (m *Machine) Create(ctx context.Context, c *clusterv1.Cluster, machine *clu
 	}
 
 	fmt.Println("Creating a new worker node")
-	worker, err := actions.AddWorker(c.Name)
+	worker, err := actions.AddWorker(c.Name, machine.Spec.Versions.Kubelet)
 	if err != nil {
 		fmt.Printf("%+v", err)
 		return err

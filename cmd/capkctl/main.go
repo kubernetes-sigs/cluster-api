@@ -1,9 +1,23 @@
-// Copyright 2019 VMware, Inc.
-// SPDX-License-Identifier: Apache-2.0
+/*
+Copyright 2019 The Kubernetes Authors.
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+*/
 
 package main
 
 import (
+	"flag"
 	"fmt"
 	"io/ioutil"
 	"os"
@@ -11,24 +25,95 @@ import (
 	"gitlab.com/chuckh/cluster-api-provider-kind/execer"
 )
 
+type machineOptions struct {
+	name, namespace, clusterName, set *string
+}
+
+func (mo *machineOptions) initFlags(fs *flag.FlagSet) {
+	mo.name = fs.String("name", "my-machine", "The name of the machine")
+	mo.namespace = fs.String("namespace", "my-namespace", "The namespece of the machine")
+	mo.clusterName = fs.String("cluster-name", "my-cluster", "The name of the cluster the machine belongs to")
+	mo.set = fs.String("set", "worker", "The role of the machine. Valid entries ['worker', 'control-plane']")
+}
+
 func main() {
+	setup := flag.NewFlagSet("setup", flag.ExitOnError)
+	managementClusterName := setup.String("cluster-name", "kind", "The name of the management cluster")
+
+	// crds takes no args
+
+	capk := flag.NewFlagSet("capk", flag.ExitOnError)
+	capkImage := capk.String("capk-image", "gcr.io/kubernetes1-226021/capk-manager:latest", "The capk manager image to run")
+	capiImage := capk.String("capi-image", "gcr.io/k8s-cluster-api/cluster-api-controller:0.1.1", "The capi manager image to run")
+
+	controlPlane := flag.NewFlagSet("control-plane", flag.ExitOnError)
+	controlPlaneOpts := new(machineOptions)
+	controlPlaneOpts.initFlags(controlPlane)
+	*controlPlaneOpts.set = "control-plane"
+
+	worker := flag.NewFlagSet("worker", flag.ExitOnError)
+	workerOpts := new(machineOptions)
+	workerOpts.initFlags(worker)
+	*workerOpts.set = "worker"
+
+	cluster := flag.NewFlagSet("cluster", flag.ExitOnError)
+	clusterName := cluster.String("cluster-name", "my-cluster", "The name of the cluster")
+	clusterNamespace := cluster.String("namespace", "my-namespace", "The namespace the cluster belongs to")
+
+	if len(os.Args) < 2 {
+		fmt.Println("At least one subcommand is requied.")
+		fmt.Println(usage())
+	}
+
 	switch os.Args[1] {
 	case "setup":
-		makeManagementCluster()
+		setup.Parse(os.Args[2:])
+		makeManagementCluster(*managementClusterName)
 	case "crds":
 		printCRDs()
 	case "capk":
-		printClusterAPIPlane()
+		capk.Parse(os.Args[2:])
+		printClusterAPIPlane(*capkImage, *capiImage)
 	case "control-plane":
-		fmt.Fprintf(os.Stdout, machineYAML(os.Args[2], os.Args[3], os.Args[4], "control-plane"))
+		controlPlane.Parse(os.Args[2:])
+		fmt.Fprintf(os.Stdout, machineYAML(*controlPlaneOpts.name, *controlPlaneOpts.namespace, *controlPlaneOpts.clusterName, *controlPlaneOpts.set))
 	case "worker":
-		fmt.Fprintf(os.Stdout, machineYAML(os.Args[2], os.Args[3], os.Args[4], "worker"))
+		worker.Parse(os.Args[2:])
+		fmt.Fprintf(os.Stdout, machineYAML(*workerOpts.name, *workerOpts.namespace, *workerOpts.clusterName, *workerOpts.set))
 	case "cluster":
-		fmt.Fprintf(os.Stdout, clusterYAML(os.Args[2], os.Args[3]))
+		cluster.Parse(os.Args[2:])
+		fmt.Fprintf(os.Stdout, clusterYAML(*clusterName, *clusterNamespace))
 	default:
-		fmt.Fprint(os.Stderr, "unknown command", os.Args[1])
-		os.Exit(2)
+		fmt.Fprintf(os.Stderr, "unknown command: %q\n", os.Args[1])
+		flag.PrintDefaults()
+		os.Exit(1)
 	}
+}
+
+func usage() string {
+	return `capkctl gets you up and running with capk
+
+subcommands are:
+
+  setup - Create a management cluster
+    example: capkctl setup --name my-management-cluster-name
+
+  crds - Write Cluster API CRDs required to run capk to stdout
+    example: capkctl crds | kubectl apply -f -
+
+  capk - Write capk kubernetes components that run necessary managers to stdout
+    example: capkctl capk -capk-image gcr.io/kubernetes1-226021/capk-manager:latest -capi-image gcr.io/k8s-cluster-api/cluster-api-controller:0.1.2 | kubeclt apply -f -
+
+  control-plane - Write a capk control plane machine to stdout
+    example: capkctl control-plane -name my-control-plane -namespace my-namespace -cluster-name my-cluster | kubectl apply -f - 
+
+  worker - Write a capk worker machine to stdout
+    example: capkctl worker -name my-worker -namespace my-namespace -cluster-name my-cluster | kubectl apply -f -
+
+  cluster - Write a capk cluster object to stdout
+    example: capkctl cluster -cluster-name my-cluster -namespace my-namespace | kubectl apply -f -
+
+`
 }
 
 func clusterYAML(name, namespace string) string {
@@ -64,21 +149,23 @@ items:
       versions:
         kubelet: v1.13.6
         controlPlane: v1.13.6
-      providerSpec: {}`, name, namespace, cluster, set)
+      providerSpec: {}
+`, name, namespace, cluster, set)
 }
 
-func makeManagementCluster() {
+func makeManagementCluster(clusterName string) {
 	kind := execer.NewClient("kind")
 	// start kind with docker mount
 	kindConfig, err := kindConfigFile()
 	if err != nil {
 		panic(err)
 	}
-	if err := kind.RunCommand("create", "cluster", "--config", kindConfig); err != nil {
+	if err := kind.RunCommand("create", "cluster", "--name", clusterName, "--config", kindConfig); err != nil {
 		panic(err)
 	}
 }
 
+// TODO if possible, use the kind library instead of the command line tool
 func kindConfigFile() (string, error) {
 	kfg := `kind: Cluster
 apiVersion: kind.sigs.k8s.io/v1alpha3
@@ -104,8 +191,12 @@ func printCRDs() {
 	fmt.Fprintln(os.Stdout, crds)
 }
 
-func printClusterAPIPlane() {
-	fmt.Fprintln(os.Stdout, capiPlane)
+func printClusterAPIPlane(capkImage, capiImage string) {
+	fmt.Fprintln(os.Stdout, getCAPKPlane(capkImage, capiImage))
+}
+
+func getCAPKPlane(capkImage, capiImage string) string {
+	return fmt.Sprintf(capiPlane, capkImage, capiImage)
 }
 
 var capiPlane = `
@@ -142,7 +233,7 @@ spec:
     spec:
       containers:
       - name: capk-manager
-        image: gcr.io/kubernetes1-226021/capk-manager:latest
+        image: %s
         command:
         - capk-manager
         volumeMounts:
@@ -195,10 +286,11 @@ spec:
       containers:
       - command:
         - /manager
-        image: gcr.io/k8s-cluster-api/cluster-api-controller:0.1.1
+        image: %s
         name: manager
 `
 
+// TODO generate the CRDs
 var crds = `
 apiVersion: apiextensions.k8s.io/v1beta1
 kind: CustomResourceDefinition

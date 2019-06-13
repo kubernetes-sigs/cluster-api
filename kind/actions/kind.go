@@ -233,7 +233,7 @@ func image(version string) string {
 	case "v1.14.2":
 	case "v1.14.1":
 	case "v1.14.0":
-		return fmt.Sprintf("kindest/node:", version)
+		return fmt.Sprintf("kindest/node:%s", version)
 	}
 	return defaults.Image
 }

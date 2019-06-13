@@ -85,7 +85,6 @@ func main() {
 		fmt.Fprintf(os.Stdout, clusterYAML(*clusterName, *clusterNamespace))
 	default:
 		fmt.Fprintf(os.Stderr, "unknown command: %q\n", os.Args[1])
-		flag.PrintDefaults()
 		os.Exit(1)
 	}
 }

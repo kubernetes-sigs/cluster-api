@@ -20,6 +20,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"os"
+	"strconv"
 	"time"
 
 	"k8s.io/klog"
@@ -29,8 +30,9 @@ import (
 )
 
 const (
-	retryKubeConfigReady   = 10 * time.Second
-	timeoutKubeconfigReady = 20 * time.Minute
+	TimeoutMachineReadyEnv        = "CLUSTER_API_KUBECONFIG_READY_TIMEOUT"
+	defaultTimeoutKubeconfigReady = 20 * time.Minute
+	retryKubeConfigReady          = 10 * time.Second
 )
 
 // GetKubeconfig returns a kubeconfig for the target cluster
@@ -49,8 +51,17 @@ func GetKubeconfig(bootstrapClient clusterclient.Client, provider provider.Deplo
 }
 
 func waitForKubeconfigReady(bootstrapClient clusterclient.Client, provider provider.Deployer, clusterName, namespace string) (string, error) {
+	timeout := defaultTimeoutKubeconfigReady
+	if v := os.Getenv(TimeoutMachineReadyEnv); v != "" {
+		t, err := strconv.Atoi(v)
+		if err == nil {
+			timeout = time.Duration(t) * time.Minute
+			klog.V(4).Infof("Setting KubeConfg timeout to %v", timeout)
+		}
+	}
+
 	kubeconfig := ""
-	err := util.PollImmediate(retryKubeConfigReady, timeoutKubeconfigReady, func() (bool, error) {
+	err := util.PollImmediate(retryKubeConfigReady, timeout, func() (bool, error) {
 		cluster, controlPlane, _, err := clusterclient.GetClusterAPIObject(bootstrapClient, clusterName, namespace)
 		if err != nil {
 			return false, err

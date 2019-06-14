@@ -24,6 +24,7 @@ import (
 	"strconv"
 
 	"github.com/pkg/errors"
+	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/equality"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -200,11 +201,13 @@ func (r *ReconcileMachineDeployment) getNewMachineSet(d *clusterv1alpha1.Machine
 		return nil, err
 	case err != nil:
 		klog.V(4).Infof("Failed to create new machine set %q: %v", newMS.Name, err)
+		r.recorder.Eventf(d, corev1.EventTypeWarning, "FailedCreate", "Failed to create MachineSet %q: %v", newMS.Name, err)
 		return nil, err
 	}
 
 	if !alreadyExists {
 		klog.V(4).Infof("Created new machine set %q", createdMS.Name)
+		r.recorder.Eventf(d, corev1.EventTypeNormal, "SuccessfulCreate", "Created MachineSet %q", newMS.Name)
 	}
 
 	err = r.updateMachineDeployment(d, func(innerDeployment *clusterv1alpha1.MachineDeployment) {
@@ -408,8 +411,11 @@ func (r *ReconcileMachineDeployment) scaleMachineSetOperation(ms *clusterv1alpha
 		dutil.SetReplicasAnnotations(ms, *(deployment.Spec.Replicas), *(deployment.Spec.Replicas)+dutil.MaxSurge(*deployment))
 
 		err = r.Update(context.Background(), ms)
-		if err == nil && sizeNeedsUpdate {
+		if err != nil {
+			r.recorder.Eventf(deployment, corev1.EventTypeWarning, "FailedScale", "Failed to scale MachineSet %q: %v", ms.Name, err)
+		} else if sizeNeedsUpdate {
 			scaled = true
+			r.recorder.Eventf(deployment, corev1.EventTypeNormal, "SuccessfulScale", "Scaled %d MachineSet %q to %d", scaleOperation, ms.Name, newScale)
 		}
 	}
 
@@ -454,8 +460,10 @@ func (r *ReconcileMachineDeployment) cleanupDeployment(oldMSs []*clusterv1alpha1
 		if err := r.Delete(context.Background(), ms); err != nil && !apierrors.IsNotFound(err) {
 			// Return error instead of aggregating and continuing DELETEs on the theory
 			// that we may be overloading the api server.
+			r.recorder.Eventf(deployment, corev1.EventTypeWarning, "FailedDelete", "Failed to delete MachineSet %q: %v", ms.Name, err)
 			return err
 		}
+		r.recorder.Eventf(deployment, corev1.EventTypeNormal, "SuccessfulDelete", "Deleted MachineSet %q", ms.Name)
 	}
 
 	return nil

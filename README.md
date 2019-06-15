@@ -56,3 +56,4 @@ The kubeconfig is on the management cluster in secrets. Grab it and write it to 
 `kubectl get secrets -o jsonpath='{.data.kubeconfig}' kubeconfig-my-cluster | base64 --decode > ~/.kube/kind-config-my-cluster`
  
 `kubectl get po --all-namespaces --kubeconfig ~/.kube/kind-config-my-cluster`
+

@@ -20,7 +20,7 @@ import (
 	"fmt"
 	"time"
 
-	"gitlab.com/chuckh/cluster-api-provider-kind/capkactuators"
+	"github.com/chuckha/cluster-api-provider-kind/capkactuators"
 	"k8s.io/client-go/kubernetes"
 	"sigs.k8s.io/cluster-api/pkg/apis"
 	"sigs.k8s.io/cluster-api/pkg/apis/cluster/common"

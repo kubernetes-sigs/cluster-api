@@ -23,7 +23,7 @@ import (
 	"io/ioutil"
 	"os"
 
-	"gitlab.com/chuckh/cluster-api-provider-kind/execer"
+	"github.com/chuckha/cluster-api-provider-kind/execer"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"sigs.k8s.io/cluster-api/pkg/apis/cluster/v1alpha1"
 )

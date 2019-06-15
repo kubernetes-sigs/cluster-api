@@ -27,8 +27,8 @@ import (
 
 	"sigs.k8s.io/kind/pkg/cluster/config/defaults"
 
+	"github.com/chuckha/cluster-api-provider-kind/third_party/forked/loadbalancer"
 	"github.com/pkg/errors"
-	"gitlab.com/chuckh/cluster-api-provider-kind/third_party/forked/loadbalancer"
 	"sigs.k8s.io/kind/pkg/cluster/constants"
 	"sigs.k8s.io/kind/pkg/cluster/nodes"
 	"sigs.k8s.io/kind/pkg/container/cri"
@@ -232,7 +232,6 @@ func image(version string) string {
 	switch version {
 	case "v1.14.2":
 	case "v1.14.1":
-	case "v1.14.0":
 		return fmt.Sprintf("kindest/node:%s", version)
 	}
 	return defaults.Image

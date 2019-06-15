@@ -22,7 +22,7 @@ import (
 	"os"
 	"strings"
 
-	"gitlab.com/chuckh/cluster-api-provider-kind/kind/actions"
+	"github.com/chuckha/cluster-api-provider-kind/kind/actions"
 	"sigs.k8s.io/kind/pkg/cluster/constants"
 	"sigs.k8s.io/kind/pkg/cluster/nodes"
 )

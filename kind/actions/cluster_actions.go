@@ -22,9 +22,9 @@ import (
 	"html/template"
 	"strings"
 
+	"github.com/chuckha/cluster-api-provider-kind/kind/kubeadm"
+	"github.com/chuckha/cluster-api-provider-kind/third_party/forked/loadbalancer"
 	"github.com/pkg/errors"
-	"gitlab.com/chuckh/cluster-api-provider-kind/kind/kubeadm"
-	"gitlab.com/chuckh/cluster-api-provider-kind/third_party/forked/loadbalancer"
 	"sigs.k8s.io/kind/pkg/cluster/constants"
 	"sigs.k8s.io/kind/pkg/cluster/nodes"
 	"sigs.k8s.io/kind/pkg/container/docker"

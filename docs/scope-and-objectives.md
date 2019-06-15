@@ -40,7 +40,7 @@ We are building a set of Kubernetes cluster management APIs to enable common clu
 
 ## Glossary
 
-[See glossary.md](glossary.md)
+[See ./book/GLOSSARY.md](./book/GLOSSARY.md)
 
 - __Cluster API__: Unless otherwise specified, this refers to the project as a whole.
 - __Infrastructure provider__: Refers to the source of computational resources (e.g. machines, networking, etc.). Examples for cloud include AWS, Azure, Google, etc.; for bare metal include VMware, MAAS, etc. When there is more than one way to obtain resources from the same infrastructure provider (e.g. EC2 vs. EKS) each way is referred to as a variant.

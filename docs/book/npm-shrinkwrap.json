@@ -298,9 +298,9 @@
       "integrity": "sha1-vfpzUplmTfr9NFKe1PhSKidf6lY="
     },
     "es6-promise": {
-      "version": "4.2.6",
-      "resolved": "https://registry.npmjs.org/es6-promise/-/es6-promise-4.2.6.tgz",
-      "integrity": "sha512-aRVgGdnmW2OiySVPUC9e6m+plolMAJKjZnQlCwNSuK5yQ0JN61DZSO1X1Ufd1foqWRAlig0rhduTCHe7sVtK5Q=="
+      "version": "4.2.8",
+      "resolved": "https://registry.npmjs.org/es6-promise/-/es6-promise-4.2.8.tgz",
+      "integrity": "sha512-HJDGx5daxeIvxdBxvG2cb9g4tEvwIk3i8+nhX0yGrYmZUzbkdg8QbDevheDB8gd0//uPj4c1EQua8Q+MViT0/w=="
     },
     "escodegen": {
       "version": "1.11.0",

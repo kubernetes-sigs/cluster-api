@@ -8,7 +8,7 @@ A sample is built and hosted at `gcr.io/kubernetes1-226021/capk-manager:latest`
 
 ### Building the binaries
 
-Requires go 1.12? Probably less strict than that.
+Requires go with go modules.
 
 * `go build ./cmd/...`
 * `go build ./cmd/`
@@ -24,6 +24,12 @@ Requires a google cloud project
 # Testing out CAPK
 
 Tested on: Linux, OS X
+
+Requirements: `kind` and `kubectl`
+
+Install capkctl
+
+`go install ./cmd/capkctl`
 
 Start a management kind cluster
 

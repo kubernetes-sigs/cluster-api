@@ -35,7 +35,7 @@ import (
 func KubeadmJoinControlPlane(clusterName string, node *nodes.Node) error {
 	allNodes, err := nodes.List(fmt.Sprintf("label=%s=%s", constants.ClusterLabelKey, clusterName))
 	if err != nil {
-		return nil
+		return err
 	}
 
 	// get the join address

@@ -30,6 +30,25 @@ Cluster API maintainers may add "LGTM" (Looks Good To Me) or an equivalent comme
 
 To gain viewing permissions to google docs in this project, please join either the [kubernetes-dev](https://groups.google.com/forum/#!forum/kubernetes-dev) or [kubernetes-sig-cluster-lifecycle](https://groups.google.com/forum/#!forum/kubernetes-sig-cluster-lifecycle) google group.
 
+### Issue and Pull Request Management
+
+Anyone may comment on issues and submit reviews for pull requests. However, in
+order to be assigned an issue or pull request, you must be a member of the
+[Kubernetes SIGs](https://github.com/kubernetes-sigs) GitHub organization.
+
+If you are a Kubernetes GitHub organization member, you are eligible for
+membership in the Kubernetes SIGs GitHub organization and can request
+membership by [opening an issue](https://github.com/kubernetes/org/issues/new?template=membership.md&title=REQUEST%3A%20New%20membership%20for%20%3Cyour-GH-handle%3E)
+against the kubernetes/org repo.
+
+However, if you are a member of any of the related Kubernetes GitHub
+organizations but not of the Kubernetes org, you will need explicit sponsorship
+for your membership request. You can read more about Kubernetes membership and
+sponsorship [here](https://github.com/kubernetes/community/blob/master/community-membership.md).
+
+Cluster API maintainers can assign you an issue or pull request by leaving a
+`/assign <your Github ID>` comment on the issue or pull request.
+
 ## Cloud Provider Developer Guide
 
 ### Overview

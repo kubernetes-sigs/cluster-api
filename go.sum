@@ -199,6 +199,8 @@ sigs.k8s.io/cluster-api v0.0.0-20190607141803-aacb0c613ffb h1:sL9u/pvPx+6/9pIssy
 sigs.k8s.io/cluster-api v0.0.0-20190607141803-aacb0c613ffb/go.mod h1:aEXstFx3krpj6/AOcV/rOP2VLKdrtSNUMDR2Kmt6YSs=
 sigs.k8s.io/controller-runtime v0.1.10 h1:amLOmcekVdnsD1uIpmgRqfTbQWJ2qxvQkcdeFhcotn4=
 sigs.k8s.io/controller-runtime v0.1.10/go.mod h1:HFAYoOh6XMV+jKF1UjFwrknPbowfyHEHHRdJMf2jMX8=
+sigs.k8s.io/kind v0.3.0 h1:TUIRsJZy123ejyWECuYOU2XzSsIsauoqaeoUGsfdj6k=
+sigs.k8s.io/kind v0.3.0/go.mod h1:bgGo2cWxKGQ7esVxtGp9H17Ttlexju92CTMjCg08HNQ=
 sigs.k8s.io/kustomize v2.0.3+incompatible h1:JUufWFNlI44MdtnjUqVnvh29rR37PQFzPbLXqhyOyX0=
 sigs.k8s.io/kustomize v2.0.3+incompatible/go.mod h1:MkjgH3RdOWrievjo6c9T245dYlB5QeXV4WCbnt/PEpU=
 sigs.k8s.io/structured-merge-diff v0.0.0-20190426204423-ea680f03cc65/go.mod h1:wWxsB5ozmmv/SG7nM11ayaAW51xMvak/t1r0CSlcokI=

@@ -20,16 +20,21 @@ require (
 	go.uber.org/zap v1.10.0 // indirect
 	golang.org/x/oauth2 v0.0.0-20190604053449-0f29369cfe45 // indirect
 	golang.org/x/time v0.0.0-20190308202827-9d24e82272b4 // indirect
-	k8s.io/api v0.0.0-20181213150558-05914d821849
+	k8s.io/api v0.0.0-20190409021203-6e4e0e4f393b
 	k8s.io/apiextensions-apiserver v0.0.0-20181213153335-0fe22c71c476 // indirect
-	k8s.io/apimachinery v0.0.0-20181127025237-2b1284ed4c93
-	k8s.io/client-go v10.0.0+incompatible
+	k8s.io/apimachinery v0.0.0-20190404173353-6a84e37a896d
+	k8s.io/client-go v11.0.0+incompatible
 	k8s.io/cluster-bootstrap v0.0.0-20181213155137-5f9271efc2e7 // indirect
 	k8s.io/kubernetes v1.13.1
 	sigs.k8s.io/cluster-api v0.0.0-20190607141803-aacb0c613ffb
 	sigs.k8s.io/controller-runtime v0.1.10
-	sigs.k8s.io/kind v0.2.1
+	sigs.k8s.io/kind v0.3.0
 	sigs.k8s.io/testing_frameworks v0.1.1 // indirect
 )
 
-replace sigs.k8s.io/kind => github.com/chuckha/kind v0.0.0-20190609180745-73d145437758
+replace (
+	k8s.io/api => k8s.io/api v0.0.0-20181213150558-05914d821849
+	k8s.io/apimachinery => k8s.io/apimachinery v0.0.0-20181127025237-2b1284ed4c93
+	k8s.io/client-go => k8s.io/client-go v10.0.0+incompatible
+	k8s.io/kubernetes => k8s.io/kubernetes v1.13.1
+)

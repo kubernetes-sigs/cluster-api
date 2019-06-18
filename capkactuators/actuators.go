@@ -17,7 +17,6 @@ limitations under the License.
 package capkactuators
 
 import (
-	"encoding/base64"
 	"fmt"
 	"io/ioutil"
 
@@ -108,7 +107,7 @@ func kubeconfigToSecret(clusterName, namespace string) (*v1.Secret, error) {
 			Namespace: namespace,
 		},
 		StringData: map[string]string{
-			"kubeconfig": base64.StdEncoding.EncodeToString(data),
+			"kubeconfig": string(data),
 		},
 	}, nil
 }

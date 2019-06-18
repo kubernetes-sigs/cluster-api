@@ -17,6 +17,7 @@ limitations under the License.
 package capkactuators
 
 import (
+	"encoding/base64"
 	"fmt"
 	"io/ioutil"
 
@@ -42,8 +43,8 @@ func getKindName(machine *clusterv1.Machine) string {
 
 func getRole(machine *clusterv1.Machine) string {
 	// Figure out what kind of node we're making
-	annotations := machine.GetAnnotations()
-	setValue, ok := annotations["set"]
+	labels := machine.GetLabels()
+	setValue, ok := labels["set"]
 	if !ok {
 		setValue = constants.WorkerNodeRoleValue
 	}
@@ -106,8 +107,8 @@ func kubeconfigToSecret(clusterName, namespace string) (*v1.Secret, error) {
 			Name:      fmt.Sprintf("kubeconfig-%s", clusterName),
 			Namespace: namespace,
 		},
-		Data: map[string][]byte{
-			"kubeconfig": data,
+		StringData: map[string]string{
+			"kubeconfig": base64.StdEncoding.EncodeToString(data),
 		},
 	}, nil
 }

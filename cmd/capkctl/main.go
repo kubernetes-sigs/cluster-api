@@ -148,9 +148,7 @@ func machineYAML(opts *machineOptions) string {
 			Namespace: *opts.namespace,
 			Labels: map[string]string{
 				"cluster.k8s.io/cluster-name": *opts.clusterName,
-			},
-			Annotations: map[string]string{
-				"set": *opts.set,
+				"set":                         *opts.set,
 			},
 		},
 		Spec: v1alpha1.MachineSpec{

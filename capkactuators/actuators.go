@@ -29,17 +29,6 @@ import (
 	"sigs.k8s.io/kind/pkg/cluster/nodes"
 )
 
-func setKindName(machine *clusterv1.Machine, name string) {
-	a := machine.GetAnnotations()
-	a["name"] = name
-	machine.SetAnnotations(a)
-}
-
-func getKindName(machine *clusterv1.Machine) string {
-	annotations := machine.GetAnnotations()
-	return annotations["name"]
-}
-
 func getRole(machine *clusterv1.Machine) string {
 	// Figure out what kind of node we're making
 	labels := machine.GetLabels()
@@ -106,8 +95,8 @@ func kubeconfigToSecret(clusterName, namespace string) (*v1.Secret, error) {
 			Name:      fmt.Sprintf("kubeconfig-%s", clusterName),
 			Namespace: namespace,
 		},
-		StringData: map[string]string{
-			"kubeconfig": string(data),
+		Data: map[string][]byte{
+			"kubeconfig": data,
 		},
 	}, nil
 }

@@ -83,7 +83,8 @@ func (m *Machine) Create(ctx context.Context, c *clusterv1.Cluster, machine *clu
 				fmt.Printf("%+v", err)
 				return err
 			}
-			setKindName(machine, controlPlaneNode.Name())
+			name := providerName(controlPlaneNode.Name())
+			machine.Spec.ProviderID = &name
 			return m.save(old, machine)
 		}
 
@@ -100,22 +101,23 @@ func (m *Machine) Create(ctx context.Context, c *clusterv1.Cluster, machine *clu
 		}
 		controlPlaneNode, err := actions.CreateControlPlane(c.Name, lbip, machine.Spec.Versions.ControlPlane)
 		if err != nil {
-			fmt.Printf("%+v", err)
+			fmt.Printf("%+v\n", err)
 			return err
 		}
-		setKindName(machine, controlPlaneNode.Name())
+		name := providerName(controlPlaneNode.Name())
+		machine.Spec.ProviderID = &name
 		if err := m.save(old, machine); err != nil {
-			fmt.Printf("%+v", err)
+			fmt.Printf("%+v\n", err)
 			return err
 		}
 		s, err := kubeconfigToSecret(c.Name, c.Namespace)
 		if err != nil {
-			fmt.Printf("%+v", err)
+			fmt.Printf("%+v\n", err)
 			return err
 		}
 		// Save the secret to the management cluster
 		if _, err := m.Core.Secrets(machine.GetNamespace()).Create(s); err != nil {
-			fmt.Printf("%+v", err)
+			fmt.Printf("%+v\n", err)
 			return err
 		}
 		return nil
@@ -133,11 +135,12 @@ func (m *Machine) Create(ctx context.Context, c *clusterv1.Cluster, machine *clu
 		fmt.Printf("%+v", err)
 		return err
 	}
-	setKindName(machine, worker.Name())
+	name := providerName(worker.Name())
+	machine.Spec.ProviderID = &name
 	return m.save(old, machine)
 }
 func (m *Machine) Delete(ctx context.Context, cluster *clusterv1.Cluster, machine *clusterv1.Machine) error {
-	return actions.DeleteNode(cluster.Name, getKindName(machine))
+	return actions.DeleteNode(cluster.Name, providerNameToLookupID(*machine.Spec.ProviderID))
 }
 
 func (m *Machine) Update(ctx context.Context, cluster *clusterv1.Cluster, machine *clusterv1.Machine) error {
@@ -146,15 +149,16 @@ func (m *Machine) Update(ctx context.Context, cluster *clusterv1.Cluster, machin
 }
 
 func (m *Machine) Exists(ctx context.Context, cluster *clusterv1.Cluster, machine *clusterv1.Machine) (bool, error) {
-	if getKindName(machine) == "" {
+	if machine.Spec.ProviderID == nil {
 		return false, nil
 	}
-	fmt.Println("Looking for a docker container named", getKindName(machine))
+	fmt.Println("Looking for a docker container named", providerNameToLookupID(*machine.Spec.ProviderID))
 	role := getRole(machine)
+	kindRole := CAPIroleToKindRole(role)
 	labels := []string{
-		fmt.Sprintf("label=%s=%s", constants.NodeRoleKey, role),
+		fmt.Sprintf("label=%s=%s", constants.NodeRoleKey, kindRole),
 		fmt.Sprintf("label=%s=%s", constants.ClusterLabelKey, cluster.Name),
-		fmt.Sprintf("name=^%s$", getKindName(machine)),
+		fmt.Sprintf("name=^%s$", providerNameToLookupID(*machine.Spec.ProviderID)),
 	}
 	fmt.Printf("using labels: %v\n", labels)
 	nodeList, err := nodes.List(labels...)
@@ -186,4 +190,19 @@ func (m *Machine) save(old, new *clusterv1.Machine) error {
 		fmt.Println("updated")
 	}
 	return nil
+}
+
+func providerNameToLookupID(providerName string) string {
+	return providerName[1:]
+}
+
+func providerName(name string) string {
+	return fmt.Sprintf("/%s", name)
+}
+
+func CAPIroleToKindRole(CAPIRole string) string {
+	if CAPIRole == clusterAPIControlPlaneSetLabel {
+		return constants.ControlPlaneNodeRoleValue
+	}
+	return CAPIRole
 }

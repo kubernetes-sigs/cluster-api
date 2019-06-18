@@ -36,7 +36,7 @@ func (mo *machineOptions) initFlags(fs *flag.FlagSet) {
 	mo.name = fs.String("name", "my-machine", "The name of the machine")
 	mo.namespace = fs.String("namespace", "my-namespace", "The namespece of the machine")
 	mo.clusterName = fs.String("cluster-name", "my-cluster", "The name of the cluster the machine belongs to")
-	mo.set = fs.String("set", "worker", "The role of the machine. Valid entries ['worker', 'control-plane']")
+	mo.set = fs.String("set", "worker", "The role of the machine. Valid entries ['worker', 'controlplane']")
 	mo.version = fs.String("version", "v1.14.2", "The Kubernetes version to run")
 }
 
@@ -53,7 +53,7 @@ func main() {
 	controlPlane := flag.NewFlagSet("control-plane", flag.ExitOnError)
 	controlPlaneOpts := new(machineOptions)
 	controlPlaneOpts.initFlags(controlPlane)
-	*controlPlaneOpts.set = "control-plane"
+	*controlPlaneOpts.set = "controlplane"
 
 	worker := flag.NewFlagSet("worker", flag.ExitOnError)
 	workerOpts := new(machineOptions)

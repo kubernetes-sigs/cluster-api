@@ -34,6 +34,12 @@ import (
 	"sigs.k8s.io/kind/pkg/cluster/nodes"
 )
 
+const (
+	// kind uses 'control-plane' and cluster-api uses 'controlplane'. Both use 'worker'.
+
+	clusterAPIControlPlaneSetLabel = "controlplane"
+)
+
 type Machine struct {
 	Core       corev1.CoreV1Interface
 	ClusterAPI v1alpha1.ClusterV1alpha1Interface
@@ -69,7 +75,7 @@ func (m *Machine) Create(ctx context.Context, c *clusterv1.Cluster, machine *clu
 	fmt.Printf("Is there a cluster? %v\n", clusterExists)
 	setValue := getRole(machine)
 	fmt.Printf("This node has a role of %q\n", setValue)
-	if setValue == constants.ControlPlaneNodeRoleValue {
+	if setValue == clusterAPIControlPlaneSetLabel {
 		if len(controlPlanes) > 0 {
 			fmt.Println("Adding a control plane")
 			controlPlaneNode, err := actions.AddControlPlane(c.Name, machine.Spec.Versions.ControlPlane)

@@ -16,7 +16,6 @@ metadata:
   name: my-control-plane
   labels:
     cluster.k8s.io/cluster-name: my-cluster
-  annotations:
     set: "control-plane"
 spec:
   providerSpec: {}
@@ -27,8 +26,8 @@ metadata:
   name: worker
   labels:
     cluster.k8s.io/cluster-name: my-cluster
-  annotations:
     set: "worker"
+  annotations:
     name: "my-cluster-worker"
 spec:
   providerSpec: {}

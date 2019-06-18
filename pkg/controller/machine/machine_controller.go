@@ -20,6 +20,7 @@ import (
 	"context"
 	"os"
 
+	"github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -169,9 +170,9 @@ func (r *ReconcileMachine) Reconcile(request reconcile.Request) (reconcile.Resul
 
 		klog.Infof("Reconciling machine %q triggers delete", name)
 		if err := r.actuator.Delete(ctx, cluster, m); err != nil {
-			if requeueErr, ok := err.(*controllerError.RequeueAfterError); ok {
+			if requeueErr, ok := errors.Cause(err).(controllerError.HasRequeueAfterError); ok {
 				klog.Infof("Actuator returned requeue-after error: %v", requeueErr)
-				return reconcile.Result{Requeue: true, RequeueAfter: requeueErr.RequeueAfter}, nil
+				return reconcile.Result{Requeue: true, RequeueAfter: requeueErr.GetRequeueAfter()}, nil
 			}
 
 			klog.Errorf("Failed to delete machine %q: %v", name, err)
@@ -206,9 +207,9 @@ func (r *ReconcileMachine) Reconcile(request reconcile.Request) (reconcile.Resul
 	if exist {
 		klog.Infof("Reconciling machine %q triggers idempotent update", name)
 		if err := r.actuator.Update(ctx, cluster, m); err != nil {
-			if requeueErr, ok := err.(*controllerError.RequeueAfterError); ok {
+			if requeueErr, ok := errors.Cause(err).(controllerError.HasRequeueAfterError); ok {
 				klog.Infof("Actuator returned requeue-after error: %v", requeueErr)
-				return reconcile.Result{Requeue: true, RequeueAfter: requeueErr.RequeueAfter}, nil
+				return reconcile.Result{Requeue: true, RequeueAfter: requeueErr.GetRequeueAfter()}, nil
 			}
 
 			klog.Errorf(`Error updating machine "%s/%s": %v`, m.Namespace, name, err)
@@ -221,9 +222,9 @@ func (r *ReconcileMachine) Reconcile(request reconcile.Request) (reconcile.Resul
 	// Machine resource created. Machine does not yet exist.
 	klog.Infof("Reconciling machine object %v triggers idempotent create.", m.ObjectMeta.Name)
 	if err := r.actuator.Create(ctx, cluster, m); err != nil {
-		if requeueErr, ok := err.(*controllerError.RequeueAfterError); ok {
+		if requeueErr, ok := errors.Cause(err).(controllerError.HasRequeueAfterError); ok {
 			klog.Infof("Actuator returned requeue-after error: %v", requeueErr)
-			return reconcile.Result{Requeue: true, RequeueAfter: requeueErr.RequeueAfter}, nil
+			return reconcile.Result{Requeue: true, RequeueAfter: requeueErr.GetRequeueAfter()}, nil
 		}
 
 		klog.Warningf("Failed to create machine %q: %v", name, err)

@@ -4,6 +4,19 @@
 
 Read the [experience doc here](https://docs.google.com/document/d/1-sYb3EdkRga49nULH1kSwuQFf1o6GvAw_POrsNo5d8c/edit#). To gain viewing permissions, please join either the [kubernetes-dev](https://groups.google.com/forum/#!forum/kubernetes-dev) or [kubernetes-sig-cluster-lifecycle](https://groups.google.com/forum/#!forum/kubernetes-sig-cluster-lifecycle) google group.
 
+## Goals
+
+* Provide a bootstrapping mechanism via `kind` or `minikube`
+* Provide an interface to install a CAPI provider into a cluster via a registry
+* Provide an interface to deploy and manage clusters from multiple providers
+
+## Non-Goals
+
+* Provide higher-order tools for multi-cluster workflows e.g.
+  * Web GUI
+  * User / RBAC Management
+  * Addon Management
+
 ## Getting Started
 
 **Due to the [limitations](#limitations) described below, you must currently compile and run a `clusterctl` binary

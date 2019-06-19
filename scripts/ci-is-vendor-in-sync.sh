@@ -20,6 +20,6 @@ set -o pipefail
 
 REPO_ROOT=$(dirname "${BASH_SOURCE[0]}")/..
 
-cd "$REPO_ROOT"
+cd "${REPO_ROOT}"
 find vendor -name 'BUILD.bazel' -delete
 dep check

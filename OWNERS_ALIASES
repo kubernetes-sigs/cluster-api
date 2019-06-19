@@ -1,0 +1,13 @@
+# See the OWNERS docs: http://git.k8s.io/community/contributors/guide/owners.md
+
+aliases:
+  sig-cluster-lifecycle-leads:
+    - luxas
+    - justinsb
+    - timothysc
+  cluster-api-provider-docker-admins:
+    - chuckha
+    - detiber
+  cluster-api-provider-docker-maintainers:
+    - sethp-nr
+    - ashish-amarnath

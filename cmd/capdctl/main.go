@@ -22,11 +22,15 @@ import (
 	"fmt"
 	"io/ioutil"
 	"os"
-	"strings"
 
 	"github.com/chuckha/cluster-api-provider-docker/execer"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"sigs.k8s.io/cluster-api/pkg/apis/cluster/v1alpha1"
+)
+
+const (
+	// Important to keep this consistent.
+	controlPlaneSet = "controlplane"
 )
 
 type machineOptions struct {
@@ -54,7 +58,7 @@ func main() {
 	controlPlane := flag.NewFlagSet("control-plane", flag.ExitOnError)
 	controlPlaneOpts := new(machineOptions)
 	controlPlaneOpts.initFlags(controlPlane)
-	*controlPlaneOpts.set = "controlplane"
+	*controlPlaneOpts.set = controlPlaneSet
 
 	worker := flag.NewFlagSet("worker", flag.ExitOnError)
 	workerOpts := new(machineOptions)
@@ -149,7 +153,7 @@ func machineYAML(opts *machineOptions) string {
 			Namespace: *opts.namespace,
 			Labels: map[string]string{
 				"cluster.k8s.io/cluster-name": *opts.clusterName,
-				"set":                         *opts.set,
+				"set": *opts.set,
 			},
 		},
 		Spec: v1alpha1.MachineSpec{
@@ -157,7 +161,7 @@ func machineYAML(opts *machineOptions) string {
 		},
 	}
 	// TODO: 🤔
-	if *opts.set == "control-plane" {
+	if *opts.set == controlPlaneSet {
 		machine.Spec.Versions.ControlPlane = *opts.version
 	}
 	if *opts.set == "worker" {
@@ -173,18 +177,6 @@ func machineYAML(opts *machineOptions) string {
 
 func makeManagementCluster(clusterName string) {
 	kind := execer.NewClient("kind")
-	// if a cluster named kind already exists then we assume we're good to go:
-	clusters, err := kind.RunCommandReturnOutput("get", "clusters")
-	if err != nil {
-		panic(err)
-	}
-	for _, cluster := range strings.Split(clusters, "\n") {
-		if strings.TrimSpace(cluster) == "kind" {
-			fmt.Println("Management cluster detected")
-			return
-		}
-	}
-
 	// start kind with docker mount
 	kindConfig, err := kindConfigFile()
 	if err != nil {

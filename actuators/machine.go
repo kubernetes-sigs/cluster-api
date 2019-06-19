@@ -22,8 +22,6 @@ import (
 	"fmt"
 	"time"
 
-	v1 "k8s.io/api/core/v1"
-
 	"github.com/chuckha/cluster-api-provider-docker/kind/actions"
 	"k8s.io/apimachinery/pkg/types"
 	corev1 "k8s.io/client-go/kubernetes/typed/core/v1"
@@ -195,32 +193,6 @@ func (m *Machine) save(old, new *clusterv1.Machine) error {
 		fmt.Println("updated machine")
 	}
 	return nil
-}
-
-// This should be the cloud-provider for docker, but that doesn't exist.
-func (m *Machine) setProviderID(node *v1.Node, kindName string) error {
-	old := node.DeepCopy()
-	node.Spec.ProviderID = providerID(kindName)
-	p, err := patch.NewJSONPatch(old, node)
-	if err != nil {
-		fmt.Printf("%+v\n", err)
-		return err
-	}
-	fmt.Println("Patches for node", p)
-	if len(p) != 0 {
-		pb, err := json.MarshalIndent(p, "", "  ")
-		if err != nil {
-			fmt.Printf("%+v\n", err)
-			return err
-		}
-		if _, err := m.Core.Nodes().Patch(node.Name, types.JSONPatchType, pb); err != nil {
-			fmt.Printf("%+v\n", err)
-			return err
-		}
-		fmt.Println("updated node")
-	}
-	return nil
-
 }
 
 func providerNameToLookupID(providerName string) string {

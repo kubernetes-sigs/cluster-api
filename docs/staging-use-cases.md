@@ -33,6 +33,7 @@ last-updated: 2019-04-16
     - [Managing Providers](#managing-providers)
     - [Creating Workload Clusters](#creating-workload-clusters)
     - [Provider Implementors](#provider-implementors)
+  - [Cluster Health Checking](#cluster-health-checking)
 
 <!-- END doctoc generated TOC please keep comment here to allow auto update -->
 
@@ -227,3 +228,22 @@ Multitenancy Management
 
 ### Provider Implementors
 - As a provider, I want the machine controller to reconcile a Machine in response to an event from some other resource in the cluster. This is the sort of thing that other controllers do on a regular basis, so that's nothing particularly interesting. But having made a machine actuator, there's not an easy way to get access to the machine controller object in order to call its Watch method.
+
+## Cluster Health Checking
+
+Cluster Health Checking is a service to provide the health status of Kubernetes cluster and its components.
+
+- As an operator, given I have created a Kubernetes-conformant cluster with ClusterAPI, I want to check the Kubernetes cluster node status.
+  - Describe nodes and provide details if they are ready/healthy or not ready/healthy.
+  - List conditions for any nodes which are `NotReady`, list information about allocated resources.
+
+- As an operator, given I have created a Kubernetes-conformant cluster with ClusterAPI, I want to check the kube-apiserver status.
+
+- As an operator, given I have created a Kubernetes-conformant cluster with ClusterAPI, I want to check the etcd status.
+
+- 🔭 As an operator, given I have created a Kubernetes-conformant cluster with ClusterAPI, I want to check the Kubernetes components status, like ingress controller, other add-on components etc.
+
+- 🔭 As an operator, given I have created a Kubernetes-conformant cluster with ClusterAPI, I want to check unhealthy Pods statuses in configured namespace.
+  - Provide the details on any pods which are unhealthy in `kube-system` namespace. Filter the unhealthy pods for their status(`kubectl get pods --show-labels -n kube-system | grep -vE "Running|Completed"`)
+  - Describe any Pods which are not `Completed|Running`, list the Events to provide hints on the failure.
+  - Look for Pods which don't have all of their containers running.

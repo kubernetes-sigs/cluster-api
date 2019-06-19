@@ -64,11 +64,11 @@ The set of Kubernetes services that form the basis of a cluster. See also https:
 
 A feature implementation offered as part of the Cluster API project, infrastructure providers can swap it out for a different one.
 
+# H
+
 ## Horizontal Scaling
 
 The ability to add more machines based on policy and well defined metrics. For example, add a machine to a cluster when CPU load average > (X) for a period of time (Y).
-
-# H
 
 ## Host
 

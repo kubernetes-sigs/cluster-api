@@ -22,6 +22,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"os"
+	"strings"
 
 	"github.com/chuckha/cluster-api-provider-docker/execer"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -148,7 +149,7 @@ func machineYAML(opts *machineOptions) string {
 			Namespace: *opts.namespace,
 			Labels: map[string]string{
 				"cluster.k8s.io/cluster-name": *opts.clusterName,
-				"set": *opts.set,
+				"set":                         *opts.set,
 			},
 		},
 		Spec: v1alpha1.MachineSpec{
@@ -172,6 +173,18 @@ func machineYAML(opts *machineOptions) string {
 
 func makeManagementCluster(clusterName string) {
 	kind := execer.NewClient("kind")
+	// if a cluster named kind already exists then we assume we're good to go:
+	clusters, err := kind.RunCommandReturnOutput("get", "clusters")
+	if err != nil {
+		panic(err)
+	}
+	for _, cluster := range strings.Split(clusters, "\n") {
+		if strings.TrimSpace(cluster) == "kind" {
+			fmt.Println("Management cluster detected")
+			return
+		}
+	}
+
 	// start kind with docker mount
 	kindConfig, err := kindConfigFile()
 	if err != nil {
@@ -222,7 +235,7 @@ kind: Namespace
 metadata:
   labels:
     controller-tools.k8s.io: "1.0"
-  name: kind-provider-system
+  name: docker-provider-system
 ---
 apiVersion: v1
 kind: Namespace
@@ -236,13 +249,13 @@ kind: StatefulSet
 metadata:
   labels:
     control-plane: controller-manager
-  name: kind-provider-controller-manager
-  namespace: kind-provider-system
+  name: docker-provider-controller-manager
+  namespace: docker-provider-system
 spec:
   selector:
     matchLabels:
       control-plane: controller-manager
-  serviceName: kind-provider-controller-manager-service
+  serviceName: docker-provider-controller-manager-service
   template:
     metadata:
       labels:
@@ -1214,7 +1227,7 @@ status:
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRole
 metadata:
-  name: kind-provider-manager-role
+  name: docker-provider-manager-role
 rules:
 - apiGroups:
   - cluster.k8s.io
@@ -1377,15 +1390,15 @@ apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRoleBinding
 metadata:
   creationTimestamp: null
-  name: kind-provider-manager-rolebinding
+  name: docker-provider-manager-rolebinding
 roleRef:
   apiGroup: rbac.authorization.k8s.io
   kind: ClusterRole
-  name: kind-provider-manager-role
+  name: docker-provider-manager-role
 subjects:
 - kind: ServiceAccount
   name: default
-  namespace: kind-provider-system
+  namespace: docker-provider-system
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRoleBinding

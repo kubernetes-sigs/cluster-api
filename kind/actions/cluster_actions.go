@@ -273,3 +273,30 @@ func SetNodeRef(clusterName, nodeName string) error {
 
 	return nil
 }
+
+func RemoveNode(clusterName, nodeName string) error {
+	allNodes, err := nodes.List(fmt.Sprintf("label=%s=%s", constants.ClusterLabelKey, clusterName))
+	if err != nil {
+		return nil
+	}
+
+	node, err := nodes.BootstrapControlPlaneNode(allNodes)
+	if err != nil {
+		return err
+	}
+	cmd := node.Command(
+		"kubectl",
+		"--kubeconfig", "/etc/kubernetes/admin.conf",
+		"delete",
+		"node", nodeName,
+	)
+	lines, err := exec.CombinedOutputLines(cmd)
+	if err != nil {
+		for _, line := range lines {
+			fmt.Println(line)
+		}
+		return errors.Wrap(err, "failed to remove node from cluster")
+	}
+
+	return nil
+}

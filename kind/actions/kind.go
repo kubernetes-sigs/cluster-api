@@ -152,25 +152,26 @@ func AddWorker(clusterName, version string) (*nodes.Node, error) {
 
 // DeleteNode removes a node from a cluster and cleans up docker.
 func DeleteNode(clusterName, nodeName string) error {
-	ns, err := nodes.List(
+	nodeList, err := nodes.List(
 		fmt.Sprintf("label=%s=%s", constants.ClusterLabelKey, clusterName),
-		fmt.Sprintf("name=%s", nodeName))
+		fmt.Sprintf("name=%s$", nodeName),
+	)
 	if err != nil {
-		panic(err)
+		return nil
 	}
-	if len(ns) == 0 {
-		fmt.Println("Could not find node", nodeName)
+
+	if len(nodeList) < 1 {
+		return errors.Errorf("could not find node %q", nodeName)
 	}
-	deleteCmd := exec.Command("kubectl", "delete", "node", nodeName, "--kubeconfig", KubeConfigPath(clusterName))
-	if err := deleteCmd.SetStderr(os.Stdout).SetStdout(os.Stdout).Run(); err != nil {
-		fmt.Printf("%+v\n", err)
-		panic(err)
+	if len(nodeList) > 1 {
+		return errors.Errorf("duplicate nodes named %q, cannot continue", nodeName)
 	}
-	if err := nodes.Delete(ns...); err != nil {
-		panic(err)
+
+	node := nodeList[0]
+	if err := RemoveNode(clusterName, nodeName); err != nil {
+		return err
 	}
-	fmt.Println("Deleted a node")
-	return nil
+	return nodes.Delete(node)
 }
 
 func ListControlPlanes(clusterName string) ([]nodes.Node, error) {

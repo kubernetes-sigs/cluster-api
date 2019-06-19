@@ -231,6 +231,7 @@ func providerID(name string) string {
 	return fmt.Sprintf("docker://%s", name)
 }
 
+// TODO there is a better way to do this.
 func CAPIroleToKindRole(CAPIRole string) string {
 	if CAPIRole == clusterAPIControlPlaneSetLabel {
 		return constants.ControlPlaneNodeRoleValue

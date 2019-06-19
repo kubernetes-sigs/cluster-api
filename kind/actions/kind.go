@@ -27,7 +27,7 @@ import (
 
 	"sigs.k8s.io/kind/pkg/cluster/config/defaults"
 
-	"github.com/chuckha/cluster-api-provider-kind/third_party/forked/loadbalancer"
+	"github.com/chuckha/cluster-api-provider-docker/third_party/forked/loadbalancer"
 	"github.com/pkg/errors"
 	"sigs.k8s.io/kind/pkg/cluster/constants"
 	"sigs.k8s.io/kind/pkg/cluster/nodes"
@@ -46,9 +46,10 @@ func KubeConfigPath(clusterName string) string {
 func AddControlPlane(clusterName, version string) (*nodes.Node, error) {
 	clusterLabel := fmt.Sprintf("%s=%s", constants.ClusterLabelKey, clusterName)
 	kindImage := image(version)
-	// This function exposes a port (makes sense for kind) that is not needed in capk scenarios.
+	nodeName := getName(clusterName, constants.ControlPlaneNodeRoleValue)
+	// This function exposes a port (makes sense for kind) that is not needed in capd scenarios.
 	controlPlane, err := nodes.CreateControlPlaneNode(
-		getName(clusterName, constants.ControlPlaneNodeRoleValue),
+		nodeName,
 		kindImage,
 		clusterLabel,
 		"127.0.0.1",
@@ -59,6 +60,10 @@ func AddControlPlane(clusterName, version string) (*nodes.Node, error) {
 		return nil, err
 	}
 	if err := KubeadmJoinControlPlane(clusterName, controlPlane); err != nil {
+		return nil, err
+	}
+	fmt.Println("Updating node providerID")
+	if err := SetNodeRef(clusterName, nodeName); err != nil {
 		return nil, err
 	}
 	if err := ConfigureLoadBalancer(clusterName); err != nil {
@@ -83,9 +88,10 @@ func SetUpLoadBalancer(clusterName string) (*nodes.Node, error) {
 func CreateControlPlane(clusterName, lbip, version string) (*nodes.Node, error) {
 	fmt.Println("Creating control plane node")
 	clusterLabel := fmt.Sprintf("%s=%s", constants.ClusterLabelKey, clusterName)
+	nodeName := getName(clusterName, constants.ControlPlaneNodeRoleValue)
 	kindImage := image(version)
 	controlPlaneNode, err := nodes.CreateControlPlaneNode(
-		getName(clusterName, constants.ControlPlaneNodeRoleValue),
+		nodeName,
 		kindImage,
 		clusterLabel,
 		"127.0.0.1",
@@ -107,8 +113,12 @@ func CreateControlPlane(clusterName, lbip, version string) (*nodes.Node, error) 
 	if err := KubeadmInit(clusterName); err != nil {
 		return nil, err
 	}
+	fmt.Println("Updating node providerID")
+	if err := SetNodeRef(clusterName, nodeName); err != nil {
+		return nil, err
+	}
 	fmt.Println("Setting up CNI")
-	if err := InstallCNI(controlPlaneNode, clusterName); err != nil {
+	if err := InstallCNI(controlPlaneNode); err != nil {
 		return nil, err
 	}
 	fmt.Println("Created a cluster!")
@@ -119,8 +129,9 @@ func CreateControlPlane(clusterName, lbip, version string) (*nodes.Node, error) 
 func AddWorker(clusterName, version string) (*nodes.Node, error) {
 	clusterLabel := fmt.Sprintf("%s=%s", constants.ClusterLabelKey, clusterName)
 	kindImage := image(version)
+	nodeName := getName(clusterName, constants.WorkerNodeRoleValue)
 	worker, err := nodes.CreateWorkerNode(
-		getName(clusterName, constants.WorkerNodeRoleValue),
+		nodeName,
 		kindImage,
 		clusterLabel,
 		nil,
@@ -131,6 +142,11 @@ func AddWorker(clusterName, version string) (*nodes.Node, error) {
 	if err := KubeadmJoin(clusterName, worker); err != nil {
 		return nil, err
 	}
+	fmt.Println("Updating node providerID")
+	if err := SetNodeRef(clusterName, nodeName); err != nil {
+		return nil, err
+	}
+
 	return worker, nil
 }
 

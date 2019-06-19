@@ -20,7 +20,7 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/chuckha/cluster-api-provider-kind/capkactuators"
+	"github.com/chuckha/cluster-api-provider-docker/actuators"
 	"k8s.io/client-go/kubernetes"
 	"sigs.k8s.io/cluster-api/pkg/apis"
 	"sigs.k8s.io/cluster-api/pkg/apis/cluster/common"
@@ -57,8 +57,8 @@ func main() {
 		panic(err)
 	}
 
-	clusterActuator := capkactuators.NewClusterActuator()
-	machineActuator := capkactuators.NewMachineActuator(cs.ClusterV1alpha1(), k8sclientset.CoreV1())
+	clusterActuator := actuators.NewClusterActuator()
+	machineActuator := actuators.NewMachineActuator(cs.ClusterV1alpha1(), k8sclientset.CoreV1())
 
 	// Register our cluster deployer (the interface is in clusterctl and we define the Deployer interface on the actuator)
 	common.RegisterClusterProvisioner("aws", clusterActuator)

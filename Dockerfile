@@ -5,7 +5,7 @@ ADD go.sum .
 RUN go mod download
 RUN  curl -L https://dl.k8s.io/v1.14.3/kubernetes-client-linux-amd64.tar.gz | tar xvz
 ADD cmd cmd
-ADD capkactuators capkactuators
+ADD actuators capkactuators
 ADD kind kind
 ADD execer execer
 ADD third_party third_party

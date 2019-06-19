@@ -14,13 +14,13 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package capkactuators
+package actuators
 
 import (
 	"fmt"
 	"io/ioutil"
 
-	"github.com/chuckha/cluster-api-provider-kind/kind/actions"
+	"github.com/chuckha/cluster-api-provider-docker/kind/actions"
 	"github.com/pkg/errors"
 	"k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"

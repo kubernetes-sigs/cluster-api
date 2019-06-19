@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package capkactuators
+package actuators
 
 import (
 	"context"
@@ -22,7 +22,9 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/chuckha/cluster-api-provider-kind/kind/actions"
+	v1 "k8s.io/api/core/v1"
+
+	"github.com/chuckha/cluster-api-provider-docker/kind/actions"
 	"k8s.io/apimachinery/pkg/types"
 	corev1 "k8s.io/client-go/kubernetes/typed/core/v1"
 	clusterv1 "sigs.k8s.io/cluster-api/pkg/apis/cluster/v1alpha1"
@@ -83,7 +85,7 @@ func (m *Machine) Create(ctx context.Context, c *clusterv1.Cluster, machine *clu
 				fmt.Printf("%+v", err)
 				return err
 			}
-			name := providerName(controlPlaneNode.Name())
+			name := providerID(controlPlaneNode.Name())
 			machine.Spec.ProviderID = &name
 			return m.save(old, machine)
 		}
@@ -104,7 +106,9 @@ func (m *Machine) Create(ctx context.Context, c *clusterv1.Cluster, machine *clu
 			fmt.Printf("%+v\n", err)
 			return err
 		}
-		name := providerName(controlPlaneNode.Name())
+
+		// set the machine's providerID
+		name := providerID(controlPlaneNode.Name())
 		machine.Spec.ProviderID = &name
 		if err := m.save(old, machine); err != nil {
 			fmt.Printf("%+v\n", err)
@@ -135,10 +139,11 @@ func (m *Machine) Create(ctx context.Context, c *clusterv1.Cluster, machine *clu
 		fmt.Printf("%+v", err)
 		return err
 	}
-	name := providerName(worker.Name())
+	name := providerID(worker.Name())
 	machine.Spec.ProviderID = &name
 	return m.save(old, machine)
 }
+
 func (m *Machine) Delete(ctx context.Context, cluster *clusterv1.Cluster, machine *clusterv1.Machine) error {
 	return actions.DeleteNode(cluster.Name, providerNameToLookupID(*machine.Spec.ProviderID))
 }
@@ -176,7 +181,7 @@ func (m *Machine) save(old, new *clusterv1.Machine) error {
 		fmt.Printf("%+v\n", err)
 		return err
 	}
-	fmt.Println("Patches", p)
+	fmt.Println("Patches for machine", p)
 	if len(p) != 0 {
 		pb, err := json.MarshalIndent(p, "", "  ")
 		if err != nil {
@@ -187,17 +192,43 @@ func (m *Machine) save(old, new *clusterv1.Machine) error {
 			fmt.Printf("%+v\n", err)
 			return err
 		}
-		fmt.Println("updated")
+		fmt.Println("updated machine")
 	}
 	return nil
 }
 
-func providerNameToLookupID(providerName string) string {
-	return providerName[1:]
+// This should be the cloud-provider for docker, but that doesn't exist.
+func (m *Machine) setProviderID(node *v1.Node, kindName string) error {
+	old := node.DeepCopy()
+	node.Spec.ProviderID = providerID(kindName)
+	p, err := patch.NewJSONPatch(old, node)
+	if err != nil {
+		fmt.Printf("%+v\n", err)
+		return err
+	}
+	fmt.Println("Patches for node", p)
+	if len(p) != 0 {
+		pb, err := json.MarshalIndent(p, "", "  ")
+		if err != nil {
+			fmt.Printf("%+v\n", err)
+			return err
+		}
+		if _, err := m.Core.Nodes().Patch(node.Name, types.JSONPatchType, pb); err != nil {
+			fmt.Printf("%+v\n", err)
+			return err
+		}
+		fmt.Println("updated node")
+	}
+	return nil
+
 }
 
-func providerName(name string) string {
-	return fmt.Sprintf("/%s", name)
+func providerNameToLookupID(providerName string) string {
+	return providerName[len("docker://"):]
+}
+
+func providerID(name string) string {
+	return fmt.Sprintf("docker://%s", name)
 }
 
 func CAPIroleToKindRole(CAPIRole string) string {

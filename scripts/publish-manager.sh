@@ -6,7 +6,7 @@ set -o xtrace
 REGISTRY=$(gcloud config get-value project)
 TAG=${TAG:-latest}
 
-IMAGE="gcr.io/${REGISTRY}/capk-manager:${TAG}"
+IMAGE="gcr.io/${REGISTRY}/capd-manager:${TAG}"
 
-docker build --file Dockerfile.capk -t "${IMAGE}" .
+docker build --file Dockerfile -t "${IMAGE}" .
 gcloud docker -- push "${IMAGE}"

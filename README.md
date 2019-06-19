@@ -1,10 +1,10 @@
-# Cluster API Provider Kind
+# Cluster API Provider Docker
 
-A temporary home for CAPK
+A temporary home for CAPD
 
 ## Manager Container Image
 
-A sample is built and hosted at `gcr.io/kubernetes1-226021/capk-manager:latest` 
+A sample is built and hosted at `gcr.io/kubernetes1-226021/capd-manager:latest` 
 
 ### Building the binaries
 
@@ -19,9 +19,9 @@ Requires `gcloud` authenticated and configured.
 
 Requires a google cloud project
 
-`./scripts/publish-capk-manager.sh`
+`./scripts/publish-capd-manager.sh`
 
-# Testing out CAPK
+# Testing out CAPD
 
 Tested on: Linux, OS X
 
@@ -33,7 +33,7 @@ Install capkctl
 
 Start a management kind cluster
 
-`capkctl setup`
+`capdctl setup`
 
 Set up your `kubectl`
 
@@ -41,11 +41,11 @@ Set up your `kubectl`
 
 Install the cluster-api CRDs
 
-`capkctl crds | kubectl apply -f -`
+`capdctl crds | kubectl apply -f -`
 
-Run the capk & capi manager
+Run the capd & capi manager
 
-`capkctl capk | kubectl apply -f -`
+`capdctl capd | kubectl apply -f -`
 
 ## Create a worker cluster
 

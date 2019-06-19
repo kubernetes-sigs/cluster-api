@@ -23,7 +23,7 @@ import (
 	"io/ioutil"
 	"os"
 
-	"github.com/chuckha/cluster-api-provider-kind/execer"
+	"github.com/chuckha/cluster-api-provider-docker/execer"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"sigs.k8s.io/cluster-api/pkg/apis/cluster/v1alpha1"
 )
@@ -46,9 +46,9 @@ func main() {
 
 	// crds takes no args
 
-	capk := flag.NewFlagSet("capk", flag.ExitOnError)
-	capkImage := capk.String("capk-image", "gcr.io/kubernetes1-226021/capk-manager:latest", "The capk manager image to run")
-	capiImage := capk.String("capi-image", "gcr.io/k8s-cluster-api/cluster-api-controller:0.1.1", "The capi manager image to run")
+	capd := flag.NewFlagSet("capd", flag.ExitOnError)
+	capdImage := capd.String("capd-image", "gcr.io/kubernetes1-226021/capd-manager:latest", "The capd manager image to run")
+	capiImage := capd.String("capi-image", "gcr.io/k8s-cluster-api/cluster-api-controller:0.1.1", "The capi manager image to run")
 
 	controlPlane := flag.NewFlagSet("control-plane", flag.ExitOnError)
 	controlPlaneOpts := new(machineOptions)
@@ -75,9 +75,9 @@ func main() {
 		makeManagementCluster(*managementClusterName)
 	case "crds":
 		printCRDs()
-	case "capk":
-		capk.Parse(os.Args[2:])
-		printClusterAPIPlane(*capkImage, *capiImage)
+	case "capd":
+		capd.Parse(os.Args[2:])
+		printClusterAPIPlane(*capdImage, *capiImage)
 	case "control-plane":
 		controlPlane.Parse(os.Args[2:])
 		fmt.Fprintf(os.Stdout, machineYAML(controlPlaneOpts))
@@ -96,27 +96,27 @@ func main() {
 }
 
 func usage() string {
-	return `capkctl gets you up and running with capk
+	return `capdctl gets you up and running with capd
 
 subcommands are:
 
   setup - Create a management cluster
-    example: capkctl setup --name my-management-cluster-name
+    example: capdctl setup --name my-management-cluster-name
 
-  crds - Write Cluster API CRDs required to run capk to stdout
-    example: capkctl crds | kubectl apply -f -
+  crds - Write Cluster API CRDs required to run capd to stdout
+    example: capdctl crds | kubectl apply -f -
 
-  capk - Write capk kubernetes components that run necessary managers to stdout
-    example: capkctl capk -capk-image gcr.io/kubernetes1-226021/capk-manager:latest -capi-image gcr.io/k8s-cluster-api/cluster-api-controller:0.1.2 | kubeclt apply -f -
+  capd - Write capd kubernetes components that run necessary managers to stdout
+    example: capdctl capd -capd-image gcr.io/kubernetes1-226021/capd-manager:latest -capi-image gcr.io/k8s-cluster-api/cluster-api-controller:0.1.2 | kubeclt apply -f -
 
-  control-plane - Write a capk control plane machine to stdout
-    example: capkctl control-plane -name my-control-plane -namespace my-namespace -cluster-name my-cluster -version v1.14.1 | kubectl apply -f - 
+  control-plane - Write a capd control plane machine to stdout
+    example: capdctl control-plane -name my-control-plane -namespace my-namespace -cluster-name my-cluster -version v1.14.1 | kubectl apply -f - 
 
-  worker - Write a capk worker machine to stdout
-    example: capkctl worker -name my-worker -namespace my-namespace -cluster-name my-cluster -version 1.14.2 | kubectl apply -f -
+  worker - Write a capd worker machine to stdout
+    example: capdctl worker -name my-worker -namespace my-namespace -cluster-name my-cluster -version 1.14.2 | kubectl apply -f -
 
-  cluster - Write a capk cluster object to stdout
-    example: capkctl cluster -cluster-name my-cluster -namespace my-namespace | kubectl apply -f -
+  cluster - Write a capd cluster object to stdout
+    example: capdctl cluster -cluster-name my-cluster -namespace my-namespace | kubectl apply -f -
 
 `
 }
@@ -148,7 +148,7 @@ func machineYAML(opts *machineOptions) string {
 			Namespace: *opts.namespace,
 			Labels: map[string]string{
 				"cluster.k8s.io/cluster-name": *opts.clusterName,
-				"set":                         *opts.set,
+				"set": *opts.set,
 			},
 		},
 		Spec: v1alpha1.MachineSpec{
@@ -208,12 +208,12 @@ func printCRDs() {
 	fmt.Fprintln(os.Stdout, crds)
 }
 
-func printClusterAPIPlane(capkImage, capiImage string) {
-	fmt.Fprintln(os.Stdout, getCAPKPlane(capkImage, capiImage))
+func printClusterAPIPlane(capdImage, capiImage string) {
+	fmt.Fprintln(os.Stdout, getCAPDPlane(capdImage, capiImage))
 }
 
-func getCAPKPlane(capkImage, capiImage string) string {
-	return fmt.Sprintf(capiPlane, capkImage, capiImage)
+func getCAPDPlane(capdImage, capiImage string) string {
+	return fmt.Sprintf(capiPlane, capdImage, capiImage)
 }
 
 var capiPlane = `
@@ -249,10 +249,10 @@ spec:
         control-plane: controller-manager
     spec:
       containers:
-      - name: capk-manager
+      - name: capd-manager
         image: %s
         command:
-        - capk-manager
+        - capd-manager
         volumeMounts:
         - mountPath: /var/run/docker.sock
           name: dockersock

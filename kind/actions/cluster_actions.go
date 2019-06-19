@@ -22,8 +22,8 @@ import (
 	"html/template"
 	"strings"
 
-	"github.com/chuckha/cluster-api-provider-kind/kind/kubeadm"
-	"github.com/chuckha/cluster-api-provider-kind/third_party/forked/loadbalancer"
+	"github.com/chuckha/cluster-api-provider-docker/kind/kubeadm"
+	"github.com/chuckha/cluster-api-provider-docker/third_party/forked/loadbalancer"
 	"github.com/pkg/errors"
 	"sigs.k8s.io/kind/pkg/cluster/constants"
 	"sigs.k8s.io/kind/pkg/cluster/nodes"
@@ -177,7 +177,7 @@ func KubeadmInit(clusterName string) error {
 	return nil
 }
 
-func InstallCNI(node *nodes.Node, clusterName string) error {
+func InstallCNI(node *nodes.Node) error {
 	// read the manifest from the node
 	var raw bytes.Buffer
 	if err := node.Command("cat", "/kind/manifests/default-cni.yaml").SetStdout(&raw).Run(); err != nil {
@@ -238,6 +238,37 @@ func KubeadmJoin(clusterName string, node *nodes.Node) error {
 			fmt.Println(line)
 		}
 		return errors.Wrap(err, "failed to join node with kubeadm")
+	}
+
+	return nil
+}
+
+func SetNodeRef(clusterName, nodeName string) error {
+	allNodes, err := nodes.List(fmt.Sprintf("label=%s=%s", constants.ClusterLabelKey, clusterName))
+	if err != nil {
+		return nil
+	}
+
+	node, err := nodes.BootstrapControlPlaneNode(allNodes)
+	if err != nil {
+		return err
+	}
+
+	patch := fmt.Sprintf(`{"spec": {"providerID": "docker://%s"}}`, nodeName)
+	fmt.Println("trying to apply:", patch)
+	cmd := node.Command(
+		"kubectl",
+		"--kubeconfig", "/etc/kubernetes/admin.conf",
+		"patch",
+		"node", nodeName,
+		"--patch", patch,
+	)
+	lines, err := exec.CombinedOutputLines(cmd)
+	if err != nil {
+		for _, line := range lines {
+			fmt.Println(line)
+		}
+		return errors.Wrap(err, "failed update providerID")
 	}
 
 	return nil

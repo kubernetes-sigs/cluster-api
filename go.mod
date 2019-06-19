@@ -1,4 +1,4 @@
-module github.com/chuckha/cluster-api-provider-kind
+module github.com/chuckha/cluster-api-provider-docker
 
 go 1.12
 

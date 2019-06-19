@@ -43,8 +43,9 @@ required = [
 # STANZAS BELOW ARE GENERATED AND MAY BE WRITTEN - DO NOT MODIFY BELOW THIS LINE.
 
 [[constraint]]
-  name="sigs.k8s.io/controller-runtime"
-  revision="96b67f231945a8e8550dbdd8bfbd550a0c68097b"
+  name = "sigs.k8s.io/controller-runtime"
+  # release-0.2 since it imports kubernetes 1.14
+  branch="release-0.2"
 
 [[constraint]]
   name="sigs.k8s.io/controller-tools"

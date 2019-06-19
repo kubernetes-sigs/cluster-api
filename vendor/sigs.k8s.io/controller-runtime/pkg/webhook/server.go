@@ -89,6 +89,12 @@ func (s *Server) setDefaults() {
 	}
 }
 
+// NeedLeaderElection implements the LeaderElectionRunnable interface, which indicates
+// the webhook server doesn't need leader election.
+func (*Server) NeedLeaderElection() bool {
+	return false
+}
+
 // Register marks the given webhook as being served at the given path.
 // It panics if two hooks are registered on the same path.
 func (s *Server) Register(path string, hook http.Handler) {

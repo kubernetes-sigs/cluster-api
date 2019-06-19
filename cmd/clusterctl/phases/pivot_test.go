@@ -22,7 +22,7 @@ import (
 	"testing"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	clusterv1 "sigs.k8s.io/cluster-api/pkg/apis/cluster/v1alpha1"
+	clusterv1 "sigs.k8s.io/cluster-api/pkg/apis/cluster/v1alpha2"
 )
 
 // sourcer map keys are namespaces
@@ -32,7 +32,6 @@ type sourcer struct {
 	machineDeployments map[string][]*clusterv1.MachineDeployment
 	machineSets        map[string][]*clusterv1.MachineSet
 	machines           map[string][]*clusterv1.Machine
-	machineClasses     map[string][]*clusterv1.MachineClass
 }
 
 func newSourcer() *sourcer {
@@ -41,7 +40,6 @@ func newSourcer() *sourcer {
 		machineDeployments: make(map[string][]*clusterv1.MachineDeployment),
 		machineSets:        make(map[string][]*clusterv1.MachineSet),
 		machines:           make(map[string][]*clusterv1.Machine),
-		machineClasses:     make(map[string][]*clusterv1.MachineClass),
 	}
 }
 func (s *sourcer) WithCluster(ns, name string) *sourcer {
@@ -148,29 +146,9 @@ func (s *sourcer) WithMachine(ns, cluster, ms, name string) *sourcer {
 	return s
 }
 
-func (s *sourcer) WithMachineClass(ns, name string) *sourcer {
-	s.machineClasses[ns] = append(s.machineClasses[ns], &clusterv1.MachineClass{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      name,
-			Namespace: ns,
-		},
-	})
-	return s
-}
-
 // Interface implementation below
 
 func (s *sourcer) Delete(string) error {
-	return nil
-}
-func (s *sourcer) DeleteMachineClass(ns, name string) error {
-	newMachineClasses := []*clusterv1.MachineClass{}
-	for _, mc := range s.machineClasses[ns] {
-		if mc.Name != name {
-			newMachineClasses = append(newMachineClasses, mc)
-		}
-	}
-	s.machineClasses[ns] = newMachineClasses
 	return nil
 }
 func (s *sourcer) ForceDeleteCluster(ns, name string) error {
@@ -226,19 +204,7 @@ func (s *sourcer) GetClusters(ns string) ([]*clusterv1.Cluster, error) {
 	}
 	return s.clusters[ns], nil
 }
-func (s *sourcer) GetMachineClasses(ns string) ([]*clusterv1.MachineClass, error) {
-	// empty ns implies all namespaces
-	if ns == "" {
-		out := []*clusterv1.MachineClass{}
-		for _, mcs := range s.machineClasses {
-			for _, mc := range mcs {
-				out = append(out, mc)
-			}
-		}
-		return out, nil
-	}
-	return s.machineClasses[ns], nil
-}
+
 func (s *sourcer) GetMachineDeployments(ns string) ([]*clusterv1.MachineDeployment, error) {
 	// empty ns implies all namespaces
 	if ns == "" {
@@ -335,7 +301,7 @@ func (s *sourcer) GetMachinesForMachineSet(ms *clusterv1.MachineSet) ([]*cluster
 func (s *sourcer) ScaleStatefulSet(string, string, int32) error {
 	return nil
 }
-func (s *sourcer) WaitForClusterV1alpha1Ready() error {
+func (s *sourcer) WaitForClusterV1alpha2Ready() error {
 	return nil
 }
 
@@ -344,7 +310,6 @@ type target struct {
 	machineDeployments map[string][]*clusterv1.MachineDeployment
 	machineSets        map[string][]*clusterv1.MachineSet
 	machines           map[string][]*clusterv1.Machine
-	machineClasses     map[string][]*clusterv1.MachineClass
 }
 
 func (t *target) Apply(string) error {
@@ -352,10 +317,6 @@ func (t *target) Apply(string) error {
 }
 func (t *target) CreateClusterObject(c *clusterv1.Cluster) error {
 	t.clusters[c.Namespace] = append(t.clusters[c.Namespace], c)
-	return nil
-}
-func (t *target) CreateMachineClass(mc *clusterv1.MachineClass) error {
-	t.machineClasses[mc.Namespace] = append(t.machineClasses[mc.Namespace], mc)
 	return nil
 }
 func (t *target) CreateMachineDeployments(deployments []*clusterv1.MachineDeployment, ns string) error {
@@ -390,7 +351,7 @@ func (t *target) GetMachineSet(ns, name string) (*clusterv1.MachineSet, error) {
 	}
 	return nil, fmt.Errorf("no machineset found with name %q in namespace %q", ns, name)
 }
-func (t *target) WaitForClusterV1alpha1Ready() error {
+func (t *target) WaitForClusterV1alpha2Ready() error {
 	return nil
 }
 
@@ -431,7 +392,6 @@ func TestPivot(t *testing.T) {
 		WithMachineSet(ns1, "cluster1", "", "machineset3").
 		WithMachine(ns1, "cluster1", "machineset3", "machine4").
 		WithMachine(ns1, "cluster1", "", "machine5").
-		WithMachineClass(ns1, "my-machine-class").
 		WithMachineDeployment(ns1, "", "deployment2").
 		WithMachineSet(ns1, "", "deployment2", "machineset4").
 		WithMachine(ns1, "", "machineset4", "machine6").
@@ -444,14 +404,12 @@ func TestPivot(t *testing.T) {
 	expectedMachineDeployments := len(source.machineDeployments[ns1]) + len(source.machineDeployments[ns2])
 	expectedMachineSets := len(source.machineSets[ns1]) + len(source.machineSets[ns2])
 	expectedMachines := len(source.machines[ns1]) + len(source.machines[ns2])
-	expectedMachineClasses := len(source.machineClasses[ns1]) + len(source.machineClasses[ns2])
 
 	target := &target{
 		clusters:           make(map[string][]*clusterv1.Cluster),
 		machineDeployments: make(map[string][]*clusterv1.MachineDeployment),
 		machineSets:        make(map[string][]*clusterv1.MachineSet),
 		machines:           make(map[string][]*clusterv1.Machine),
-		machineClasses:     make(map[string][]*clusterv1.MachineClass),
 	}
 
 	if err := Pivot(source, target, pc.String()); err != nil {
@@ -477,11 +435,6 @@ func TestPivot(t *testing.T) {
 		t.Logf("source: %v", source.machines)
 		t.Logf("target: %v", target.machines)
 		t.Fatal("should have deleted all machines from source k8s cluster")
-	}
-	if len(source.machineClasses[ns1])+len(source.machineClasses[ns2]) != 0 {
-		t.Logf("source: %v", source.machineClasses)
-		t.Logf("target: %v", target.machineClasses)
-		t.Fatal("should have deleted all machine classes from source k8s cluster")
 	}
 
 	if len(target.clusters[ns1])+len(target.clusters[ns2]) != expectedClusters {
@@ -514,11 +467,6 @@ func TestPivot(t *testing.T) {
 		}
 		t.Fatal("expected machines to pivot")
 	}
-	if len(target.machineClasses[ns1])+len(target.machineClasses[ns2]) != expectedMachineClasses {
-		t.Logf("source: %v", source.machineClasses)
-		t.Logf("target: %v", target.machineClasses)
-		t.Fatal("expected machine classes to pivot")
-	}
 }
 
 // An example of testing a failure scenario
@@ -528,10 +476,10 @@ type waitFailSourcer struct {
 	*sourcer
 }
 
-func (s *waitFailSourcer) WaitForClusterV1alpha1Ready() error {
+func (s *waitFailSourcer) WaitForClusterV1alpha2Ready() error {
 	return errors.New("failed to wait for ready cluster resources")
 }
-func TestWaitForV1alpha1Failure(t *testing.T) {
+func TestWaitForV1alpha2Failure(t *testing.T) {
 
 	w := &waitFailSourcer{
 		newSourcer(),

@@ -645,6 +645,7 @@ k8s.io/klog/klogr
 k8s.io/kube-openapi/pkg/util/proto
 # k8s.io/utils v0.0.0-20190506122338-8fab8cb257d5
 k8s.io/utils/integer
+k8s.io/utils/pointer
 k8s.io/utils/buffer
 k8s.io/utils/trace
 # sigs.k8s.io/controller-runtime v0.2.0-beta.2

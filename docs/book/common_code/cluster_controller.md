@@ -24,7 +24,7 @@ it's name, namespace, labels, and annotations, etc. `ObjectMeta` contains data
 common to most objects.
 
 {% sample lang="go" %}
-[import:'Cluster'](../../../pkg/apis/cluster/v1alpha1/cluster_types.go)
+[import:'Cluster'](../../../pkg/apis/deprecated/v1alpha1/cluster_types.go)
 {% endmethod %}
 
 {% method %}
@@ -40,7 +40,7 @@ API definitions are meant to live outside of the Cluster API, which will allow
 them to evolve independently of it.
 
 {% sample lang="go" %}
-[import:'ClusterSpec'](../../../pkg/apis/cluster/v1alpha1/cluster_types.go)
+[import:'ClusterSpec'](../../../pkg/apis/deprecated/v1alpha1/cluster_types.go)
 {% endmethod %}
 
 {% method %}
@@ -64,7 +64,7 @@ https://github.com/kubernetes-sigs/cluster-api-provider-gcp/blob/f3145d8810a5c7f
 used in practice.
 
 {% sample lang="go" %}
-[import:'ClusterStatus'](../../../pkg/apis/cluster/v1alpha1/cluster_types.go)
+[import:'ClusterStatus'](../../../pkg/apis/deprecated/v1alpha1/cluster_types.go)
 {% endmethod %}
 
 {% method %}
@@ -93,7 +93,7 @@ If a `Cluster` resource is deleted, the controller will call the actuator's
   - If the `Delete()` method returns true, remove the finalizer, we're done.
 - If the `Cluster` has not been deleted, call the `Reconcile()` method.
 
-[cluster_source]: https://github.com/kubernetes-sigs/cluster-api/blob/master/pkg/apis/cluster/v1alpha1/cluster_types.go
+[cluster_source]: https://github.com/kubernetes-sigs/cluster-api/blob/master/pkg/apis/deprecated/v1alpha1/cluster_types.go
 
 #### cluster object reconciliation logic
 

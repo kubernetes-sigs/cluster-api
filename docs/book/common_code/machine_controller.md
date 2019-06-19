@@ -37,7 +37,7 @@ example, it's name, namespace, labels, and annotations, etc. `ObjectMeta`
 contains data common to most objects.
 
 {% sample lang="go" %}
-[import:'Machine'](../../../pkg/apis/cluster/v1alpha1/machine_types.go)
+[import:'Machine'](../../../pkg/apis/deprecated/v1alpha1/machine_types.go)
 {% endmethod %}
 
 {% method %}
@@ -62,7 +62,7 @@ command does this [here](https://github.com/kubernetes-sigs/cluster-api/blob/a30
 ```
 
 {% sample lang="go" %}
-[import:'MachineSpec'](../../../pkg/apis/cluster/v1alpha1/machine_types.go)
+[import:'MachineSpec'](../../../pkg/apis/deprecated/v1alpha1/machine_types.go)
 {% endmethod %}
 
 {% method %}
@@ -82,7 +82,7 @@ these providers a `Machine` and it's corresponding `Node` may never be within
 the same cluster. **TODO**: There are open issues to address this.
 
 {% sample lang="go" %}
-[import:'MachineStatus'](../../../pkg/apis/cluster/v1alpha1/machine_types.go)
+[import:'MachineStatus'](../../../pkg/apis/deprecated/v1alpha1/machine_types.go)
 {% endmethod %}
 
 {% method %}
@@ -156,4 +156,4 @@ There are two consequences of this:
 [^1] One reason a `Machine` may not be deleted is if it corresponds to the
 node running the Machine controller.
 
-[machine_types_source]: https://github.com/kubernetes-sigs/cluster-api/blob/master/pkg/apis/cluster/v1alpha1/machine_types.go
+[machine_types_source]: https://github.com/kubernetes-sigs/cluster-api/blob/master/pkg/apis/deprecated/v1alpha1/machine_types.go

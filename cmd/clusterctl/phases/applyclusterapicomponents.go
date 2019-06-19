@@ -28,5 +28,5 @@ func ApplyClusterAPIComponents(client clusterclient.Client, providerComponents s
 		return errors.Wrap(err, "unable to apply cluster api controllers")
 	}
 
-	return client.WaitForClusterV1alpha1Ready()
+	return client.WaitForClusterV1alpha2Ready()
 }

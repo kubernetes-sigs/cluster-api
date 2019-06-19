@@ -129,4 +129,4 @@ revisit the specifics when new patterns start to emerge in core.
 
 ## Types
 
-Please see the full types [here](https://github.com/kubernetes-sigs/cluster-api/blob/master/pkg/apis/cluster/v1alpha1/machine_types.go).
+Please see the full types [here](https://github.com/kubernetes-sigs/cluster-api/blob/master/pkg/apis/deprecated/v1alpha1/machine_types.go).

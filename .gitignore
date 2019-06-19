@@ -42,3 +42,5 @@ config/ci/rbac/role_binding.yaml
 config/ci/rbac/role.yaml
 config/ci/manager/manager.yaml
 
+config/crds-v1alpha1
+

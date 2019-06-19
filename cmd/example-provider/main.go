@@ -26,7 +26,6 @@ import (
 	capicluster "sigs.k8s.io/cluster-api/pkg/controller/cluster"
 	capimachine "sigs.k8s.io/cluster-api/pkg/controller/machine"
 	"sigs.k8s.io/cluster-api/pkg/provider/example/actuators/cluster"
-	"sigs.k8s.io/cluster-api/pkg/provider/example/actuators/machine"
 	"sigs.k8s.io/controller-runtime/pkg/client/config"
 	"sigs.k8s.io/controller-runtime/pkg/manager"
 	"sigs.k8s.io/controller-runtime/pkg/runtime/signals"
@@ -53,10 +52,7 @@ func main() {
 	recorder := mgr.GetEventRecorderFor("clusterapi-controller")
 
 	// Initialize cluster actuator.
-	clusterActuator, _ := cluster.NewClusterActuator(cs.ClusterV1alpha1(), recorder)
-
-	// Initialize machine actuator.
-	machineActuator, _ := machine.NewMachineActuator(cs.ClusterV1alpha1(), recorder)
+	clusterActuator, _ := cluster.NewClusterActuator(cs.ClusterV1alpha2(), recorder)
 
 	// Register cluster deployer
 	common.RegisterClusterProvisioner("example", clusterActuator)
@@ -65,7 +61,7 @@ func main() {
 		klog.Fatal(err)
 	}
 
-	capimachine.AddWithActuator(mgr, machineActuator)
+	capimachine.Add(mgr)
 	capicluster.AddWithActuator(mgr, clusterActuator)
 
 	if err := mgr.Start(signals.SetupSignalHandler()); err != nil {

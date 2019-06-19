@@ -31,7 +31,7 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/client-go/tools/record"
 	"k8s.io/klog"
-	clusterv1alpha1 "sigs.k8s.io/cluster-api/pkg/apis/cluster/v1alpha1"
+	clusterv1 "sigs.k8s.io/cluster-api/pkg/apis/cluster/v1alpha2"
 	"sigs.k8s.io/cluster-api/pkg/util"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
@@ -46,7 +46,7 @@ const controllerName = "machineset_controller"
 
 var (
 	// controllerKind contains the schema.GroupVersionKind for this controller type.
-	controllerKind = clusterv1alpha1.SchemeGroupVersion.WithKind("MachineSet")
+	controllerKind = clusterv1.SchemeGroupVersion.WithKind("MachineSet")
 
 	// stateConfirmationTimeout is the amount of time allowed to wait for desired state.
 	stateConfirmationTimeout = 10 * time.Second
@@ -82,7 +82,7 @@ func add(mgr manager.Manager, r reconcile.Reconciler, mapFn handler.ToRequestsFu
 
 	// Watch for changes to MachineSet.
 	err = c.Watch(
-		&source.Kind{Type: &clusterv1alpha1.MachineSet{}},
+		&source.Kind{Type: &clusterv1.MachineSet{}},
 		&handler.EnqueueRequestForObject{},
 	)
 	if err != nil {
@@ -91,8 +91,8 @@ func add(mgr manager.Manager, r reconcile.Reconciler, mapFn handler.ToRequestsFu
 
 	// Watch for changes to Machines and reconcile the owner MachineSet.
 	err = c.Watch(
-		&source.Kind{Type: &clusterv1alpha1.Machine{}},
-		&handler.EnqueueRequestForOwner{IsController: true, OwnerType: &clusterv1alpha1.MachineSet{}},
+		&source.Kind{Type: &clusterv1.Machine{}},
+		&handler.EnqueueRequestForOwner{IsController: true, OwnerType: &clusterv1.MachineSet{}},
 	)
 	if err != nil {
 		return err
@@ -102,7 +102,7 @@ func add(mgr manager.Manager, r reconcile.Reconciler, mapFn handler.ToRequestsFu
 	// This watcher is required for use cases like adoption. In case a Machine doesn't have
 	// a controller reference, it'll look for potential matching MachineSet to reconcile.
 	return c.Watch(
-		&source.Kind{Type: &clusterv1alpha1.Machine{}},
+		&source.Kind{Type: &clusterv1.Machine{}},
 		&handler.EnqueueRequestsFromMapFunc{ToRequests: mapFn},
 	)
 }
@@ -120,7 +120,7 @@ type ReconcileMachineSet struct {
 func (r *ReconcileMachineSet) Reconcile(request reconcile.Request) (reconcile.Result, error) {
 	// Fetch the MachineSet instance
 	ctx := context.TODO()
-	machineSet := &clusterv1alpha1.MachineSet{}
+	machineSet := &clusterv1.MachineSet{}
 	if err := r.Get(ctx, request.NamespacedName, machineSet); err != nil {
 		if apierrors.IsNotFound(err) {
 			// Object not found, return. Created objects are automatically garbage collected.
@@ -145,9 +145,9 @@ func (r *ReconcileMachineSet) Reconcile(request reconcile.Request) (reconcile.Re
 	return result, err
 }
 
-func (r *ReconcileMachineSet) reconcile(ctx context.Context, machineSet *clusterv1alpha1.MachineSet) (reconcile.Result, error) {
+func (r *ReconcileMachineSet) reconcile(ctx context.Context, machineSet *clusterv1.MachineSet) (reconcile.Result, error) {
 	klog.V(4).Infof("Reconcile machineset %v", machineSet.Name)
-	allMachines := &clusterv1alpha1.MachineList{}
+	allMachines := &clusterv1.MachineList{}
 
 	if err := r.Client.List(context.Background(), allMachines, client.InNamespace(machineSet.Namespace)); err != nil {
 		return reconcile.Result{}, errors.Wrap(err, "failed to list machines")
@@ -200,7 +200,7 @@ func (r *ReconcileMachineSet) reconcile(ctx context.Context, machineSet *cluster
 	}
 
 	// Filter out irrelevant machines (deleting/mismatch labels) and claim orphaned machines.
-	filteredMachines := make([]*clusterv1alpha1.Machine, 0, len(allMachines.Items))
+	filteredMachines := make([]*clusterv1.Machine, 0, len(allMachines.Items))
 	for idx := range allMachines.Items {
 		machine := &allMachines.Items[idx]
 		if shouldExcludeMachine(machineSet, machine) {
@@ -262,16 +262,16 @@ func (r *ReconcileMachineSet) reconcile(ctx context.Context, machineSet *cluster
 }
 
 // getCluster reuturns the Cluster associated with the MachineSet, if any.
-func (r *ReconcileMachineSet) getCluster(ms *clusterv1alpha1.MachineSet) (*clusterv1alpha1.Cluster, error) {
-	if ms.Spec.Template.Labels[clusterv1alpha1.MachineClusterLabelName] == "" {
-		klog.Infof("MachineSet %q in namespace %q doesn't specify %q label, assuming nil cluster", ms.Name, ms.Namespace, clusterv1alpha1.MachineClusterLabelName)
+func (r *ReconcileMachineSet) getCluster(ms *clusterv1.MachineSet) (*clusterv1.Cluster, error) {
+	if ms.Spec.Template.Labels[clusterv1.MachineClusterLabelName] == "" {
+		klog.Infof("MachineSet %q in namespace %q doesn't specify %q label, assuming nil cluster", ms.Name, ms.Namespace, clusterv1.MachineClusterLabelName)
 		return nil, nil
 	}
 
-	cluster := &clusterv1alpha1.Cluster{}
+	cluster := &clusterv1.Cluster{}
 	key := client.ObjectKey{
 		Namespace: ms.Namespace,
-		Name:      ms.Spec.Template.Labels[clusterv1alpha1.MachineClusterLabelName],
+		Name:      ms.Spec.Template.Labels[clusterv1.MachineClusterLabelName],
 	}
 
 	if err := r.Client.Get(context.Background(), key, cluster); err != nil {
@@ -282,7 +282,7 @@ func (r *ReconcileMachineSet) getCluster(ms *clusterv1alpha1.MachineSet) (*clust
 }
 
 // syncReplicas scales Machine resources up or down.
-func (r *ReconcileMachineSet) syncReplicas(ms *clusterv1alpha1.MachineSet, machines []*clusterv1alpha1.Machine) error {
+func (r *ReconcileMachineSet) syncReplicas(ms *clusterv1.MachineSet, machines []*clusterv1.Machine) error {
 	if ms.Spec.Replicas == nil {
 		return errors.Errorf("the Replicas field in Spec for machineset %v is nil, this should not be allowed", ms.Name)
 	}
@@ -294,7 +294,7 @@ func (r *ReconcileMachineSet) syncReplicas(ms *clusterv1alpha1.MachineSet, machi
 		klog.Infof("Too few replicas for %v %s/%s, need %d, creating %d",
 			controllerKind, ms.Namespace, ms.Name, *(ms.Spec.Replicas), diff)
 
-		var machineList []*clusterv1alpha1.Machine
+		var machineList []*clusterv1.Machine
 		var errstrings []string
 		for i := 0; i < diff; i++ {
 			klog.Infof("Creating machine %d of %d, ( spec.replicas(%d) > currentMachineCount(%d) )",
@@ -335,7 +335,7 @@ func (r *ReconcileMachineSet) syncReplicas(ms *clusterv1alpha1.MachineSet, machi
 		var wg sync.WaitGroup
 		wg.Add(diff)
 		for _, machine := range machinesToDelete {
-			go func(targetMachine *clusterv1alpha1.Machine) {
+			go func(targetMachine *clusterv1.Machine) {
 				defer wg.Done()
 				err := r.Client.Delete(context.Background(), targetMachine)
 				if err != nil {
@@ -366,9 +366,9 @@ func (r *ReconcileMachineSet) syncReplicas(ms *clusterv1alpha1.MachineSet, machi
 
 // createMachine creates a Machine resource. The name of the newly created resource is going
 // to be created by the API server, we set the generateName field.
-func (r *ReconcileMachineSet) createMachine(machineSet *clusterv1alpha1.MachineSet) *clusterv1alpha1.Machine {
-	gv := clusterv1alpha1.SchemeGroupVersion
-	machine := &clusterv1alpha1.Machine{
+func (r *ReconcileMachineSet) createMachine(machineSet *clusterv1.MachineSet) *clusterv1.Machine {
+	gv := clusterv1.SchemeGroupVersion
+	machine := &clusterv1.Machine{
 		TypeMeta: metav1.TypeMeta{
 			Kind:       gv.WithKind("Machine").Kind,
 			APIVersion: gv.String(),
@@ -386,7 +386,7 @@ func (r *ReconcileMachineSet) createMachine(machineSet *clusterv1alpha1.MachineS
 }
 
 // shouldExcludeMachine returns true if the machine should be filtered out, false otherwise.
-func shouldExcludeMachine(machineSet *clusterv1alpha1.MachineSet, machine *clusterv1alpha1.Machine) bool {
+func shouldExcludeMachine(machineSet *clusterv1.MachineSet, machine *clusterv1.Machine) bool {
 	// Ignore inactive machines.
 	if metav1.GetControllerOf(machine) != nil && !metav1.IsControlledBy(machine, machineSet) {
 		klog.V(4).Infof("%s not controlled by %v", machine.Name, machineSet.Name)
@@ -405,18 +405,18 @@ func shouldExcludeMachine(machineSet *clusterv1alpha1.MachineSet, machine *clust
 }
 
 // adoptOrphan sets the MachineSet as a controller OwnerReference to the Machine.
-func (r *ReconcileMachineSet) adoptOrphan(machineSet *clusterv1alpha1.MachineSet, machine *clusterv1alpha1.Machine) error {
+func (r *ReconcileMachineSet) adoptOrphan(machineSet *clusterv1.MachineSet, machine *clusterv1.Machine) error {
 	newRef := *metav1.NewControllerRef(machineSet, controllerKind)
 	machine.OwnerReferences = append(machine.OwnerReferences, newRef)
 	return r.Client.Update(context.Background(), machine)
 }
 
-func (r *ReconcileMachineSet) waitForMachineCreation(machineList []*clusterv1alpha1.Machine) error {
+func (r *ReconcileMachineSet) waitForMachineCreation(machineList []*clusterv1.Machine) error {
 	for _, machine := range machineList {
 		pollErr := util.PollImmediate(stateConfirmationInterval, stateConfirmationTimeout, func() (bool, error) {
 			key := client.ObjectKey{Namespace: machine.Namespace, Name: machine.Name}
 
-			if err := r.Client.Get(context.Background(), key, &clusterv1alpha1.Machine{}); err != nil {
+			if err := r.Client.Get(context.Background(), key, &clusterv1.Machine{}); err != nil {
 				if apierrors.IsNotFound(err) {
 					return false, nil
 				}
@@ -436,10 +436,10 @@ func (r *ReconcileMachineSet) waitForMachineCreation(machineList []*clusterv1alp
 	return nil
 }
 
-func (r *ReconcileMachineSet) waitForMachineDeletion(machineList []*clusterv1alpha1.Machine) error {
+func (r *ReconcileMachineSet) waitForMachineDeletion(machineList []*clusterv1.Machine) error {
 	for _, machine := range machineList {
 		pollErr := util.PollImmediate(stateConfirmationInterval, stateConfirmationTimeout, func() (bool, error) {
-			m := &clusterv1alpha1.Machine{}
+			m := &clusterv1.Machine{}
 			key := client.ObjectKey{Namespace: machine.Namespace, Name: machine.Name}
 
 			err := r.Client.Get(context.Background(), key, m)
@@ -463,7 +463,7 @@ func (r *ReconcileMachineSet) waitForMachineDeletion(machineList []*clusterv1alp
 func (r *ReconcileMachineSet) MachineToMachineSets(o handler.MapObject) []reconcile.Request {
 	result := []reconcile.Request{}
 
-	m := &clusterv1alpha1.Machine{}
+	m := &clusterv1.Machine{}
 	key := client.ObjectKey{Namespace: o.Meta.GetNamespace(), Name: o.Meta.GetName()}
 	if err := r.Client.Get(context.Background(), key, m); err != nil {
 		if !apierrors.IsNotFound(err) {

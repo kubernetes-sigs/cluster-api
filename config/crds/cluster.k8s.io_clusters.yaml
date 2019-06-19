@@ -13,8 +13,6 @@ spec:
     shortNames:
     - cl
   scope: Namespaced
-  subresources:
-    status: {}
   validation:
     openAPIV3Schema:
       description: / [Cluster] Cluster is the Schema for the clusters API

@@ -29,6 +29,7 @@ import (
 	cache "k8s.io/client-go/tools/cache"
 	clientset "sigs.k8s.io/cluster-api/pkg/client/clientset_generated/clientset"
 	cluster "sigs.k8s.io/cluster-api/pkg/client/informers_generated/externalversions/cluster"
+	deprecated "sigs.k8s.io/cluster-api/pkg/client/informers_generated/externalversions/deprecated"
 	internalinterfaces "sigs.k8s.io/cluster-api/pkg/client/informers_generated/externalversions/internalinterfaces"
 )
 
@@ -173,8 +174,13 @@ type SharedInformerFactory interface {
 	WaitForCacheSync(stopCh <-chan struct{}) map[reflect.Type]bool
 
 	Cluster() cluster.Interface
+	ClusterDeprecated() deprecated.Interface
 }
 
 func (f *sharedInformerFactory) Cluster() cluster.Interface {
 	return cluster.New(f, f.namespace, f.tweakListOptions)
+}
+
+func (f *sharedInformerFactory) ClusterDeprecated() deprecated.Interface {
+	return deprecated.New(f, f.namespace, f.tweakListOptions)
 }

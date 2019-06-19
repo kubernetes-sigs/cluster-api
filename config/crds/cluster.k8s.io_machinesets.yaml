@@ -18,7 +18,6 @@ spec:
       labelSelectorPath: .status.labelSelector
       specReplicasPath: .spec.replicas
       statusReplicasPath: .status.replicas
-    status: {}
   validation:
     openAPIV3Schema:
       description: / [MachineSet] MachineSet ensures that a specified number of machines

@@ -19,21 +19,21 @@ package cluster
 import (
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/client-go/tools/record"
-	clusterv1 "sigs.k8s.io/cluster-api/pkg/apis/cluster/v1alpha1"
-	clusterv1alpha1 "sigs.k8s.io/cluster-api/pkg/client/clientset_generated/clientset/typed/cluster/v1alpha1"
+	clusterv1 "sigs.k8s.io/cluster-api/pkg/apis/cluster/v1alpha2"
+	clusterv1alpha2 "sigs.k8s.io/cluster-api/pkg/client/clientset_generated/clientset/typed/cluster/v1alpha2"
 )
 
 // Actuator is responsible for performing cluster reconciliation
 type Actuator struct {
-	clusterV1alpha1 clusterv1alpha1.ClusterV1alpha1Interface
-	recorder        record.EventRecorder
+	clusterV1 clusterv1alpha2.ClusterV1alpha2Interface
+	recorder  record.EventRecorder
 }
 
 // NewClusterActuator creates a new cluster actuator
-func NewClusterActuator(clusterV1alpha1 clusterv1alpha1.ClusterV1alpha1Interface, recorder record.EventRecorder) (*Actuator, error) {
+func NewClusterActuator(clusterV1 clusterv1alpha2.ClusterV1alpha2Interface, recorder record.EventRecorder) (*Actuator, error) {
 	return &Actuator{
-		clusterV1alpha1: clusterV1alpha1,
-		recorder:        recorder,
+		clusterV1: clusterV1,
+		recorder:  recorder,
 	}, nil
 }
 

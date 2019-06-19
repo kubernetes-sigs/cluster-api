@@ -26,7 +26,7 @@ import (
 	"sigs.k8s.io/cluster-api/cmd/clusterctl/clusterdeployer/clusterclient"
 	"sigs.k8s.io/cluster-api/cmd/clusterctl/clusterdeployer/provider"
 	"sigs.k8s.io/cluster-api/cmd/clusterctl/phases"
-	clusterv1 "sigs.k8s.io/cluster-api/pkg/apis/cluster/v1alpha1"
+	clusterv1 "sigs.k8s.io/cluster-api/pkg/apis/cluster/v1alpha2"
 )
 
 type ClusterDeployer struct {
@@ -235,11 +235,6 @@ func deleteClusterAPIObjectsInAllNamespaces(client clusterclient.Client) error {
 	klog.Infof("Deleting Machines in all namespaces")
 	if err := client.DeleteMachines(""); err != nil {
 		err = errors.Wrap(err, "error deleting Machines")
-		errorList = append(errorList, err.Error())
-	}
-	klog.Infof("Deleting MachineClasses in all namespaces")
-	if err := client.DeleteMachineClasses(""); err != nil {
-		err = errors.Wrap(err, "error deleting MachineClasses")
 		errorList = append(errorList, err.Error())
 	}
 	klog.Infof("Deleting Clusters in all namespaces")

@@ -20,14 +20,12 @@ import (
 	"context"
 	"os"
 
-	"github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/klog"
-	clusterv1 "sigs.k8s.io/cluster-api/pkg/apis/cluster/v1alpha1"
-	controllerError "sigs.k8s.io/cluster-api/pkg/controller/error"
+	clusterv1 "sigs.k8s.io/cluster-api/pkg/apis/cluster/v1alpha2"
 	"sigs.k8s.io/cluster-api/pkg/controller/remote"
 	"sigs.k8s.io/cluster-api/pkg/util"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -42,19 +40,18 @@ const (
 	NodeNameEnvVar = "NODE_NAME"
 )
 
-var DefaultActuator Actuator
-
-func AddWithActuator(mgr manager.Manager, actuator Actuator) error {
-	return add(mgr, newReconciler(mgr, actuator))
+// Add creates a new Machine Controller and adds it to the Manager with default RBAC. The Manager will set fields on the Controller
+// and Start it when the Manager is Started.
+func Add(mgr manager.Manager) error {
+	return add(mgr, newReconciler(mgr))
 }
 
 // newReconciler returns a new reconcile.Reconciler
-func newReconciler(mgr manager.Manager, actuator Actuator) reconcile.Reconciler {
+func newReconciler(mgr manager.Manager) reconcile.Reconciler {
 	r := &ReconcileMachine{
 		Client:   mgr.GetClient(),
 		scheme:   mgr.GetScheme(),
 		nodeName: os.Getenv(NodeNameEnvVar),
-		actuator: actuator,
 	}
 
 	if r.nodeName == "" {
@@ -83,8 +80,6 @@ func add(mgr manager.Manager, r reconcile.Reconciler) error {
 type ReconcileMachine struct {
 	client.Client
 	scheme *runtime.Scheme
-
-	actuator Actuator
 
 	// nodeName is the name of the node on which the machine controller is running, if not present, it is loaded from NODE_NAME.
 	nodeName string
@@ -156,80 +151,80 @@ func (r *ReconcileMachine) Reconcile(request reconcile.Request) (reconcile.Resul
 		}
 	}
 
-	if !m.ObjectMeta.DeletionTimestamp.IsZero() {
-		// no-op if finalizer has been removed.
-		if !util.Contains(m.ObjectMeta.Finalizers, clusterv1.MachineFinalizer) {
-			klog.Infof("Reconciling machine %q causes a no-op as there is no finalizer", name)
-			return reconcile.Result{}, nil
-		}
+	// if !m.ObjectMeta.DeletionTimestamp.IsZero() {
+	// 	// no-op if finalizer has been removed.
+	// 	if !util.Contains(m.ObjectMeta.Finalizers, clusterv1.MachineFinalizer) {
+	// 		klog.Infof("Reconciling machine %q causes a no-op as there is no finalizer", name)
+	// 		return reconcile.Result{}, nil
+	// 	}
 
-		if !r.isDeleteAllowed(m) {
-			klog.Infof("Deleting machine hosting this controller is not allowed. Skipping reconciliation of machine %q", name)
-			return reconcile.Result{}, nil
-		}
+	// 	if !r.isDeleteAllowed(m) {
+	// 		klog.Infof("Deleting machine hosting this controller is not allowed. Skipping reconciliation of machine %q", name)
+	// 		return reconcile.Result{}, nil
+	// 	}
 
-		klog.Infof("Reconciling machine %q triggers delete", name)
-		if err := r.actuator.Delete(ctx, cluster, m); err != nil {
-			if requeueErr, ok := errors.Cause(err).(controllerError.HasRequeueAfterError); ok {
-				klog.Infof("Actuator returned requeue-after error: %v", requeueErr)
-				return reconcile.Result{Requeue: true, RequeueAfter: requeueErr.GetRequeueAfter()}, nil
-			}
+	// 	klog.Infof("Reconciling machine %q triggers delete", name)
+	// 	if err := r.actuator.Delete(ctx, cluster, m); err != nil {
+	// 		if requeueErr, ok := errors.Cause(err).(controllerError.HasRequeueAfterError); ok {
+	// 			klog.Infof("Actuator returned requeue-after error: %v", requeueErr)
+	// 			return reconcile.Result{Requeue: true, RequeueAfter: requeueErr.GetRequeueAfter()}, nil
+	// 		}
 
-			klog.Errorf("Failed to delete machine %q: %v", name, err)
-			return reconcile.Result{}, err
-		}
+	// 		klog.Errorf("Failed to delete machine %q: %v", name, err)
+	// 		return reconcile.Result{}, err
+	// 	}
 
-		if m.Status.NodeRef != nil {
-			klog.Infof("Deleting node %q for machine %q", m.Status.NodeRef.Name, m.Name)
-			if err := r.deleteNode(ctx, cluster, m.Status.NodeRef.Name); err != nil && !apierrors.IsNotFound(err) {
-				klog.Errorf("Error deleting node %q for machine %q: %v", m.Status.NodeRef.Name, name, err)
-				return reconcile.Result{}, err
-			}
-		}
+	// 	if m.Status.NodeRef != nil {
+	// 		klog.Infof("Deleting node %q for machine %q", m.Status.NodeRef.Name, m.Name)
+	// 		if err := r.deleteNode(ctx, cluster, m.Status.NodeRef.Name); err != nil && !apierrors.IsNotFound(err) {
+	// 			klog.Errorf("Error deleting node %q for machine %q: %v", m.Status.NodeRef.Name, name, err)
+	// 			return reconcile.Result{}, err
+	// 		}
+	// 	}
 
-		// Remove finalizer on successful deletion.
-		m.ObjectMeta.Finalizers = util.Filter(m.ObjectMeta.Finalizers, clusterv1.MachineFinalizer)
-		if err := r.Client.Update(context.Background(), m); err != nil {
-			klog.Errorf("Failed to remove finalizer from machine %q: %v", name, err)
-			return reconcile.Result{}, err
-		}
+	// 	// Remove finalizer on successful deletion.
+	// 	m.ObjectMeta.Finalizers = util.Filter(m.ObjectMeta.Finalizers, clusterv1.MachineFinalizer)
+	// 	if err := r.Client.Update(context.Background(), m); err != nil {
+	// 		klog.Errorf("Failed to remove finalizer from machine %q: %v", name, err)
+	// 		return reconcile.Result{}, err
+	// 	}
 
-		klog.Infof("Machine %q deletion successful", name)
-		return reconcile.Result{}, nil
-	}
+	// 	klog.Infof("Machine %q deletion successful", name)
+	// 	return reconcile.Result{}, nil
+	// }
 
-	exist, err := r.actuator.Exists(ctx, cluster, m)
-	if err != nil {
-		klog.Errorf("Failed to check if machine %q exists: %v", name, err)
-		return reconcile.Result{}, err
-	}
+	// exist, err := r.actuator.Exists(ctx, cluster, m)
+	// if err != nil {
+	// 	klog.Errorf("Failed to check if machine %q exists: %v", name, err)
+	// 	return reconcile.Result{}, err
+	// }
 
-	if exist {
-		klog.Infof("Reconciling machine %q triggers idempotent update", name)
-		if err := r.actuator.Update(ctx, cluster, m); err != nil {
-			if requeueErr, ok := errors.Cause(err).(controllerError.HasRequeueAfterError); ok {
-				klog.Infof("Actuator returned requeue-after error: %v", requeueErr)
-				return reconcile.Result{Requeue: true, RequeueAfter: requeueErr.GetRequeueAfter()}, nil
-			}
+	// if exist {
+	// 	klog.Infof("Reconciling machine %q triggers idempotent update", name)
+	// 	if err := r.actuator.Update(ctx, cluster, m); err != nil {
+	// 		if requeueErr, ok := errors.Cause(err).(controllerError.HasRequeueAfterError); ok {
+	// 			klog.Infof("Actuator returned requeue-after error: %v", requeueErr)
+	// 			return reconcile.Result{Requeue: true, RequeueAfter: requeueErr.GetRequeueAfter()}, nil
+	// 		}
 
-			klog.Errorf(`Error updating machine "%s/%s": %v`, m.Namespace, name, err)
-			return reconcile.Result{}, err
-		}
+	// 		klog.Errorf(`Error updating machine "%s/%s": %v`, m.Namespace, name, err)
+	// 		return reconcile.Result{}, err
+	// 	}
 
-		return reconcile.Result{}, nil
-	}
+	// 	return reconcile.Result{}, nil
+	// }
 
-	// Machine resource created. Machine does not yet exist.
-	klog.Infof("Reconciling machine object %v triggers idempotent create.", m.ObjectMeta.Name)
-	if err := r.actuator.Create(ctx, cluster, m); err != nil {
-		if requeueErr, ok := errors.Cause(err).(controllerError.HasRequeueAfterError); ok {
-			klog.Infof("Actuator returned requeue-after error: %v", requeueErr)
-			return reconcile.Result{Requeue: true, RequeueAfter: requeueErr.GetRequeueAfter()}, nil
-		}
+	// // Machine resource created. Machine does not yet exist.
+	// klog.Infof("Reconciling machine object %v triggers idempotent create.", m.ObjectMeta.Name)
+	// if err := r.actuator.Create(ctx, cluster, m); err != nil {
+	// 	if requeueErr, ok := errors.Cause(err).(controllerError.HasRequeueAfterError); ok {
+	// 		klog.Infof("Actuator returned requeue-after error: %v", requeueErr)
+	// 		return reconcile.Result{Requeue: true, RequeueAfter: requeueErr.GetRequeueAfter()}, nil
+	// 	}
 
-		klog.Warningf("Failed to create machine %q: %v", name, err)
-		return reconcile.Result{}, err
-	}
+	// 	klog.Warningf("Failed to create machine %q: %v", name, err)
+	// 	return reconcile.Result{}, err
+	// }
 
 	return reconcile.Result{}, nil
 }

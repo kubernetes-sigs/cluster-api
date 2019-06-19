@@ -21,9 +21,11 @@ import (
 	"time"
 
 	"golang.org/x/net/context"
+	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
-	clusterv1alpha1 "sigs.k8s.io/cluster-api/pkg/apis/cluster/v1alpha1"
+	"k8s.io/utils/pointer"
+	clusterv1alpha2 "sigs.k8s.io/cluster-api/pkg/apis/cluster/v1alpha2"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/manager"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
@@ -37,13 +39,19 @@ const timeout = time.Second * 5
 
 func TestReconcile(t *testing.T) {
 	replicas := int32(2)
-	instance := &clusterv1alpha1.MachineSet{
+	version := "1.14.2"
+	instance := &clusterv1alpha2.MachineSet{
 		ObjectMeta: metav1.ObjectMeta{Name: "foo", Namespace: "default"},
-		Spec: clusterv1alpha1.MachineSetSpec{
+		Spec: clusterv1alpha2.MachineSetSpec{
 			Replicas: &replicas,
-			Template: clusterv1alpha1.MachineTemplateSpec{
-				Spec: clusterv1alpha1.MachineSpec{
-					Versions: clusterv1alpha1.MachineVersionInfo{Kubelet: "1.10.3"},
+			Template: clusterv1alpha2.MachineTemplateSpec{
+				Spec: clusterv1alpha2.MachineSpec{
+					Version: &version,
+					InfrastructureRef: corev1.TypedLocalObjectReference{
+						APIGroup: pointer.StringPtr("infrastructure.clusters.k8s.io"),
+						Kind:     "InfrastructureRef",
+						Name:     "machine-infrastructure",
+					},
 				},
 			},
 		},
@@ -78,7 +86,7 @@ func TestReconcile(t *testing.T) {
 		t.Error("timed out waiting for request")
 	}
 
-	machines := &clusterv1alpha1.MachineList{}
+	machines := &clusterv1alpha2.MachineList{}
 
 	// TODO(joshuarubin) there seems to be a race here. If expectInt sleeps
 	// briefly, even 10ms, the number of replicas is 4 and not 2 as expected
@@ -91,8 +99,8 @@ func TestReconcile(t *testing.T) {
 
 	// Verify that each machine has the desired kubelet version.
 	for _, m := range machines.Items {
-		if k := m.Spec.Versions.Kubelet; k != "1.10.3" {
-			t.Errorf("kubelet was %q not '1.10.3'", k)
+		if k := m.Spec.Version; k == nil || *k != "1.14.2" {
+			t.Errorf("kubelet was %v not '1.14.2'", k)
 		}
 	}
 

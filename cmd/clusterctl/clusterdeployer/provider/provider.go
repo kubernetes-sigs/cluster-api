@@ -18,7 +18,7 @@ package provider
 
 import (
 	"k8s.io/client-go/kubernetes"
-	clusterv1 "sigs.k8s.io/cluster-api/pkg/apis/cluster/v1alpha1"
+	clusterv1 "sigs.k8s.io/cluster-api/pkg/apis/cluster/v1alpha2"
 )
 
 // Deployer is a deprecated interface for Provider specific logic. Please do not extend or add. This interface should be removed

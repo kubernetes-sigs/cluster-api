@@ -28,7 +28,7 @@ import (
 	corev1 "k8s.io/client-go/kubernetes/typed/core/v1"
 	"k8s.io/client-go/tools/record"
 	"k8s.io/klog"
-	"sigs.k8s.io/cluster-api/pkg/apis/cluster/v1alpha1"
+	"sigs.k8s.io/cluster-api/pkg/apis/cluster/v1alpha2"
 	"sigs.k8s.io/cluster-api/pkg/controller/noderefutil"
 	"sigs.k8s.io/cluster-api/pkg/controller/remote"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -70,7 +70,7 @@ func add(mgr manager.Manager, r reconcile.Reconciler) error {
 	}
 
 	// Watch for changes to Machines.
-	return c.Watch(&source.Kind{Type: &v1alpha1.Machine{}}, &handler.EnqueueRequestForObject{})
+	return c.Watch(&source.Kind{Type: &v1alpha2.Machine{}}, &handler.EnqueueRequestForObject{})
 }
 
 var _ reconcile.Reconciler = &ReconcileNodeRef{}
@@ -88,7 +88,7 @@ func (r *ReconcileNodeRef) Reconcile(request reconcile.Request) (reconcile.Resul
 	ctx := context.Background()
 
 	// Fetch the Machine instance.
-	machine := &v1alpha1.Machine{}
+	machine := &v1alpha2.Machine{}
 	err := r.Get(ctx, request.NamespacedName, machine)
 	if err != nil {
 		if apierrors.IsNotFound(err) {
@@ -111,9 +111,9 @@ func (r *ReconcileNodeRef) Reconcile(request reconcile.Request) (reconcile.Resul
 	}
 
 	// Check that the Machine has a cluster label.
-	if machine.Labels[v1alpha1.MachineClusterLabelName] == "" {
+	if machine.Labels[v1alpha2.MachineClusterLabelName] == "" {
 		klog.V(2).Infof("Machine %q in namespace %q doesn't specify %q label, won't reconcile", machine.Name, machine.Namespace,
-			v1alpha1.MachineClusterLabelName)
+			v1alpha2.MachineClusterLabelName)
 		return reconcile.Result{}, nil
 	}
 
@@ -145,7 +145,7 @@ func (r *ReconcileNodeRef) Reconcile(request reconcile.Request) (reconcile.Resul
 	return result, nil
 }
 
-func (r *ReconcileNodeRef) reconcile(ctx context.Context, cluster *v1alpha1.Cluster, machine *v1alpha1.Machine) (reconcile.Result, error) {
+func (r *ReconcileNodeRef) reconcile(ctx context.Context, cluster *v1alpha2.Cluster, machine *v1alpha2.Machine) (reconcile.Result, error) {
 	providerID, err := noderefutil.NewProviderID(*machine.Spec.ProviderID)
 	if err != nil {
 		return reconcile.Result{}, err
@@ -180,11 +180,11 @@ func (r *ReconcileNodeRef) reconcile(ctx context.Context, cluster *v1alpha1.Clus
 	return reconcile.Result{}, nil
 }
 
-func (r *ReconcileNodeRef) getCluster(ctx context.Context, machine *v1alpha1.Machine) (*v1alpha1.Cluster, error) {
-	cluster := &v1alpha1.Cluster{}
+func (r *ReconcileNodeRef) getCluster(ctx context.Context, machine *v1alpha2.Machine) (*v1alpha2.Cluster, error) {
+	cluster := &v1alpha2.Cluster{}
 	key := client.ObjectKey{
 		Namespace: machine.Namespace,
-		Name:      machine.Labels[v1alpha1.MachineClusterLabelName],
+		Name:      machine.Labels[v1alpha2.MachineClusterLabelName],
 	}
 
 	if err := r.Client.Get(ctx, key, cluster); err != nil {

@@ -23,7 +23,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/kubernetes/scheme"
-	"sigs.k8s.io/cluster-api/pkg/apis/cluster/v1alpha1"
+	"sigs.k8s.io/cluster-api/pkg/apis/cluster/v1alpha2"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 )
@@ -33,52 +33,52 @@ var (
 )
 
 func TestReconcileRequest(t *testing.T) {
-	machine1 := v1alpha1.Machine{
+	machine1 := v1alpha2.Machine{
 		TypeMeta: metav1.TypeMeta{
 			Kind: "Machine",
 		},
 		ObjectMeta: metav1.ObjectMeta{
 			Name:       "create",
 			Namespace:  "default",
-			Finalizers: []string{v1alpha1.MachineFinalizer, metav1.FinalizerDeleteDependents},
+			Finalizers: []string{v1alpha2.MachineFinalizer, metav1.FinalizerDeleteDependents},
 			Labels: map[string]string{
-				v1alpha1.MachineClusterLabelName: "testcluster",
+				v1alpha2.MachineClusterLabelName: "testcluster",
 			},
 		},
 	}
-	machine2 := v1alpha1.Machine{
+	machine2 := v1alpha2.Machine{
 		TypeMeta: metav1.TypeMeta{
 			Kind: "Machine",
 		},
 		ObjectMeta: metav1.ObjectMeta{
 			Name:       "update",
 			Namespace:  "default",
-			Finalizers: []string{v1alpha1.MachineFinalizer, metav1.FinalizerDeleteDependents},
+			Finalizers: []string{v1alpha2.MachineFinalizer, metav1.FinalizerDeleteDependents},
 			Labels: map[string]string{
-				v1alpha1.MachineClusterLabelName: "testcluster",
+				v1alpha2.MachineClusterLabelName: "testcluster",
 			},
 		},
 	}
 	time := metav1.Now()
-	machine3 := v1alpha1.Machine{
+	machine3 := v1alpha2.Machine{
 		TypeMeta: metav1.TypeMeta{
 			Kind: "Machine",
 		},
 		ObjectMeta: metav1.ObjectMeta{
 			Name:              "delete",
 			Namespace:         "default",
-			Finalizers:        []string{v1alpha1.MachineFinalizer, metav1.FinalizerDeleteDependents},
+			Finalizers:        []string{v1alpha2.MachineFinalizer, metav1.FinalizerDeleteDependents},
 			DeletionTimestamp: &time,
 			Labels: map[string]string{
-				v1alpha1.MachineClusterLabelName: "testcluster",
+				v1alpha2.MachineClusterLabelName: "testcluster",
 			},
 		},
 	}
-	clusterList := v1alpha1.ClusterList{
+	clusterList := v1alpha2.ClusterList{
 		TypeMeta: metav1.TypeMeta{
 			Kind: "ClusterList",
 		},
-		Items: []v1alpha1.Cluster{
+		Items: []v1alpha2.Cluster{
 			{
 				TypeMeta: metav1.TypeMeta{
 					Kind: "Cluster",
@@ -151,13 +151,11 @@ func TestReconcileRequest(t *testing.T) {
 	}
 
 	for _, tc := range testCases {
-		act := newTestActuator()
-		act.ExistsValue = tc.existsValue
-		v1alpha1.AddToScheme(scheme.Scheme)
+		// act.ExistsValue = tc.existsValue
+		v1alpha2.AddToScheme(scheme.Scheme)
 		r := &ReconcileMachine{
-			Client:   fake.NewFakeClient(&clusterList, &machine1, &machine2, &machine3),
-			scheme:   scheme.Scheme,
-			actuator: act,
+			Client: fake.NewFakeClient(&clusterList, &machine1, &machine2, &machine3),
+			scheme: scheme.Scheme,
 		}
 
 		result, err := r.Reconcile(tc.request)
@@ -174,20 +172,20 @@ func TestReconcileRequest(t *testing.T) {
 			t.Errorf("Case %s. Got: %v, expected %v", tc.request.Name, result, tc.expected.result)
 		}
 
-		if act.CreateCallCount != tc.expected.createCallCount {
-			t.Errorf("Case %s. Got: %d createCallCount, expected %d", tc.request.Name, act.CreateCallCount, tc.expected.createCallCount)
-		}
+		// if act.CreateCallCount != tc.expected.createCallCount {
+		// 	t.Errorf("Case %s. Got: %d createCallCount, expected %d", tc.request.Name, act.CreateCallCount, tc.expected.createCallCount)
+		// }
 
-		if act.UpdateCallCount != tc.expected.updateCallCount {
-			t.Errorf("Case %s. Got: %d updateCallCount, expected %d", tc.request.Name, act.UpdateCallCount, tc.expected.updateCallCount)
-		}
+		// if act.UpdateCallCount != tc.expected.updateCallCount {
+		// 	t.Errorf("Case %s. Got: %d updateCallCount, expected %d", tc.request.Name, act.UpdateCallCount, tc.expected.updateCallCount)
+		// }
 
-		if act.ExistsCallCount != tc.expected.existCallCount {
-			t.Errorf("Case %s. Got: %d existCallCount, expected %d", tc.request.Name, act.ExistsCallCount, tc.expected.existCallCount)
-		}
+		// if act.ExistsCallCount != tc.expected.existCallCount {
+		// 	t.Errorf("Case %s. Got: %d existCallCount, expected %d", tc.request.Name, act.ExistsCallCount, tc.expected.existCallCount)
+		// }
 
-		if act.DeleteCallCount != tc.expected.deleteCallCount {
-			t.Errorf("Case %s. Got: %d deleteCallCount, expected %d", tc.request.Name, act.DeleteCallCount, tc.expected.deleteCallCount)
-		}
+		// if act.DeleteCallCount != tc.expected.deleteCallCount {
+		// 	t.Errorf("Case %s. Got: %d deleteCallCount, expected %d", tc.request.Name, act.DeleteCallCount, tc.expected.deleteCallCount)
+		// }
 	}
 }

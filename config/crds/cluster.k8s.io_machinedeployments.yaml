@@ -18,7 +18,6 @@ spec:
       labelSelectorPath: .status.labelSelector
       specReplicasPath: .spec.replicas
       statusReplicasPath: .status.replicas
-    status: {}
   validation:
     openAPIV3Schema:
       description: / [MachineDeployment] MachineDeployment is the Schema for the machinedeployments

@@ -20,4 +20,4 @@ set -o pipefail
 
 REPO_ROOT=$(dirname "${BASH_SOURCE[0]}")/..
 
-cd "$REPO_ROOT" && make manager clusterctl
+cd "${REPO_ROOT}" && make manager clusterctl

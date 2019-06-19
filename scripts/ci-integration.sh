@@ -85,7 +85,7 @@ wait_pod_running() {
    do
       sleep ${INTERVAL};
       retry=$((retry - 1))
-      if [ $retry -lt 0 ];
+      if [[ $retry -lt 0 ]];
       then
          kubectl describe pod "$1" -n "$2"
          kubectl logs "$1" -n "$2"
@@ -96,7 +96,7 @@ wait_pod_running() {
 }
 
 ensure_docker_in_docker() {
-   if [ -z "${PROW_JOB_ID:-}" ] ; then
+   if [[ -z "${PROW_JOB_ID:-}" ]] ; then
       # start docker service in setup other than Prow
       service docker start
    fi
@@ -121,7 +121,7 @@ main() {
    wait_pod_running "provider-controller-manager-0" "provider-system"
    set -e
 
-   if [ -d "${INTEGRATION_TEST_DIR}" ] ; then
+   if [[ -d "${INTEGRATION_TEST_DIR}" ]] ; then
       go test -v "${INTEGRATION_TEST_DIR}"/...
    fi
 

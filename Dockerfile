@@ -30,5 +30,6 @@ RUN CGO_ENABLED=0 GOOS=linux GOARCH=${ARCH} go build -a -ldflags '-extldflags "-
 FROM gcr.io/distroless/static:latest
 WORKDIR /
 COPY --from=builder /go/src/sigs.k8s.io/cluster-api/manager .
+COPY --from=builder /etc/passwd /etc/passwd
 USER nobody
 ENTRYPOINT ["/manager"]

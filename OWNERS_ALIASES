@@ -5,9 +5,15 @@ aliases:
     - luxas
     - justinsb
     - timothysc
+  cluster-api-admins:
+    - justinsb
+    - detiber
+    - davidewatson
+  cluster-api-maintainers:
+    - justinsb
+    - detiber
+    - vincepri
   cluster-api-provider-docker-admins:
     - chuckha
-    - detiber
   cluster-api-provider-docker-maintainers:
-    - sethp-nr
-    - ashish-amarnath
+    - chuckha

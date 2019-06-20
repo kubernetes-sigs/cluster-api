@@ -4,6 +4,6 @@
 # YAML string, with resources separated by document
 # markers ("---").
 resources:
-- rbac_role_binding.yaml
-- rbac_role.yaml
+- manager_role_binding.yaml
+- manager_role.yaml
 

@@ -57,7 +57,7 @@ func (o *ManifestOptions) RoleName() string {
 // RoleFileName returns the name of the manifest file to use for the role.
 func (o *ManifestOptions) RoleFileName() string {
 	if len(o.RoleFile) == 0 {
-		return o.Name + "_role.yaml"
+		return "rbac_role.yaml"
 	}
 	// TODO: validate file name
 	return o.RoleFile
@@ -71,7 +71,7 @@ func (o *ManifestOptions) RoleBindingName() string {
 // RoleBindingFileName returns the name of the manifest file to use for the role binding.
 func (o *ManifestOptions) RoleBindingFileName() string {
 	if len(o.BindingFile) == 0 {
-		return o.Name + "_role_binding.yaml"
+		return "rbac_role_binding.yaml"
 	}
 	// TODO: validate file name
 	return o.BindingFile

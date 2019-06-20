@@ -155,11 +155,8 @@ Usage:
 			fmt.Printf("CRD manifests generated under '%s' \n", crdGen.OutputDir)
 
 			// RBAC generation
-			rbacOptions := &rbac.ManifestOptions{
-				InputDir:  filepath.Join(projectDir, "pkg"),
-				OutputDir: filepath.Join(projectDir, "config", "rbac"),
-				Name:      "manager",
-			}
+			rbacOptions := &rbac.ManifestOptions{}
+			rbacOptions.SetDefaults()
 			if err := rbac.Generate(rbacOptions); err != nil {
 				log.Fatal(err)
 			}

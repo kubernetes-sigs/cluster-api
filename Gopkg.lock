@@ -1196,7 +1196,7 @@
   version = "v0.1.12"
 
 [[projects]]
-  digest = "1:77a19ea61ca4e01817ad2bc3e91689c5097b4b439668127d1fb5d8b95c3aca03"
+  digest = "1:767ce3278b1fe82e3c713bc701b1ada60c8b9301213472c73f65a8955dec8980"
   name = "sigs.k8s.io/controller-tools"
   packages = [
     "cmd/controller-gen",
@@ -1210,8 +1210,8 @@
     "pkg/webhook",
   ]
   pruneopts = "UT"
-  revision = "b8adde9bc6d7f3fba449d306613a9daed23676c8"
-  version = "v0.1.10"
+  revision = "464fbed97efaced33902e262f09c5eae7315c3e3"
+  version = "v0.1.11"
 
 [[projects]]
   digest = "1:9070222ca967d09b3966552a161dd4420d62315964bf5e1efd8cc4c7c30ebca8"

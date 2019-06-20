@@ -25,23 +25,30 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
-// ClusterClient is a helper struct to connect to remote workload clusters.
-type ClusterClient struct {
+// ClusterClient is an interface encapsulating methods
+// to access a remote cluster.
+type ClusterClient interface {
+	RESTConfig() *restclient.Config
+	CoreV1() (corev1.CoreV1Interface, error)
+}
+
+// clusterClient is a helper struct to connect to remote workload clusters.
+type clusterClient struct {
 	restConfig *restclient.Config
 	cluster    *v1alpha1.Cluster
 }
 
-// NewClusterClient creates a new ClusterClient instance.
-func NewClusterClient(c client.Client, cluster *v1alpha1.Cluster) (*ClusterClient, error) {
+// NewClusterClient creates a new ClusterClient.
+func NewClusterClient(c client.Client, cluster *v1alpha1.Cluster) (ClusterClient, error) {
 	secret, err := GetKubeConfigSecret(c, cluster.Name, cluster.Namespace)
 	if err != nil {
 		return nil, errors.Wrapf(err, "failed to retrieve kubeconfig secret for Cluster %q in namespace %q",
 			cluster.Name, cluster.Namespace)
 	}
 
-	kubeconfig, err := DecodeKubeConfigSecret(secret)
+	kubeconfig, err := KubeConfigFromSecret(secret)
 	if err != nil {
-		return nil, errors.Wrapf(err, "failed to decode kubeconfig secret for Cluster %q in namespace %q",
+		return nil, errors.Wrapf(err, "failed to get kubeconfig from secret for Cluster %q in namespace %q",
 			cluster.Name, cluster.Namespace)
 	}
 
@@ -51,18 +58,18 @@ func NewClusterClient(c client.Client, cluster *v1alpha1.Cluster) (*ClusterClien
 			cluster.Name, cluster.Namespace)
 	}
 
-	return &ClusterClient{
+	return &clusterClient{
 		restConfig: restConfig,
 		cluster:    cluster,
 	}, nil
 }
 
 // RESTConfig returns a configuration instance to be used with a Kubernetes client.
-func (c *ClusterClient) RESTConfig() *restclient.Config {
+func (c *clusterClient) RESTConfig() *restclient.Config {
 	return c.restConfig
 }
 
 // CoreV1 returns a new Kubernetes CoreV1 client.
-func (c *ClusterClient) CoreV1() (corev1.CoreV1Interface, error) {
+func (c *clusterClient) CoreV1() (corev1.CoreV1Interface, error) {
 	return corev1.NewForConfig(c.RESTConfig())
 }

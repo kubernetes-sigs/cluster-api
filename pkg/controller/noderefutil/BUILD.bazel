@@ -2,7 +2,10 @@ load("@io_bazel_rules_go//go:def.bzl", "go_library", "go_test")
 
 go_library(
     name = "go_default_library",
-    srcs = ["util.go"],
+    srcs = [
+        "providerid.go",
+        "util.go",
+    ],
     importpath = "sigs.k8s.io/cluster-api/pkg/controller/noderefutil",
     visibility = ["//visibility:public"],
     deps = [
@@ -13,9 +16,13 @@ go_library(
 
 go_test(
     name = "go_default_test",
-    srcs = ["util_test.go"],
+    srcs = [
+        "providerid_test.go",
+        "util_test.go",
+    ],
     embed = [":go_default_library"],
     deps = [
+        "//vendor/github.com/pkg/errors:go_default_library",
         "//vendor/k8s.io/api/core/v1:go_default_library",
         "//vendor/k8s.io/apimachinery/pkg/apis/meta/v1:go_default_library",
     ],

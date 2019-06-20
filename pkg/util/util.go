@@ -161,13 +161,14 @@ func Copy(m *clusterv1.Machine) *clusterv1.Machine {
 }
 
 // ExecCommand Executes a local command in the current shell.
-func ExecCommand(name string, args ...string) string {
+func ExecCommand(name string, args ...string) (string, error) {
 	cmdOut, err := exec.Command(name, args...).Output()
 	if err != nil {
 		s := strings.Join(append([]string{name}, args...), " ")
-		klog.Errorf("error executing command %q: %v", s, err)
+		klog.Infof("Executing command %q: %v", s, err)
+		return string(""), err
 	}
-	return string(cmdOut)
+	return string(cmdOut), nil
 }
 
 // Filter filters a list for a string.

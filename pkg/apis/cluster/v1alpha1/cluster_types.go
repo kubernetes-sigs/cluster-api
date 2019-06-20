@@ -47,6 +47,7 @@ type Cluster struct {
 // ClusterSpec defines the desired state of Cluster
 type ClusterSpec struct {
 	// Cluster network configuration
+	// +optional
 	ClusterNetwork ClusterNetworkingConfig `json:"clusterNetwork"`
 
 	// Provider-specific serialized configuration to use during

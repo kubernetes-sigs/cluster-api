@@ -28,6 +28,7 @@ import (
 	"k8s.io/klog"
 	clusterv1 "sigs.k8s.io/cluster-api/pkg/apis/cluster/v1alpha1"
 	controllerError "sigs.k8s.io/cluster-api/pkg/controller/error"
+	"sigs.k8s.io/cluster-api/pkg/controller/remote"
 	"sigs.k8s.io/cluster-api/pkg/util"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
@@ -181,8 +182,8 @@ func (r *ReconcileMachine) Reconcile(request reconcile.Request) (reconcile.Resul
 
 		if m.Status.NodeRef != nil {
 			klog.Infof("Deleting node %q for machine %q", m.Status.NodeRef.Name, m.Name)
-			if err := r.deleteNode(ctx, m.Status.NodeRef.Name); err != nil {
-				klog.Errorf("Error deleting node %q for machine %q", name, err)
+			if err := r.deleteNode(ctx, cluster, m.Status.NodeRef.Name); err != nil && !apierrors.IsNotFound(err) {
+				klog.Errorf("Error deleting node %q for machine %q: %v", m.Status.NodeRef.Name, name, err)
 				return reconcile.Result{}, err
 			}
 		}
@@ -253,6 +254,9 @@ func (r *ReconcileMachine) getCluster(ctx context.Context, machine *clusterv1.Ma
 	return cluster, nil
 }
 
+// isDeletedAllowed returns false if the Machine we're trying to delete is the
+// Machine hosting this controller. This method is meant to be functional
+// only when the controllers are running in the workload cluster.
 func (r *ReconcileMachine) isDeleteAllowed(machine *clusterv1.Machine) bool {
 	if r.nodeName == "" || machine.Status.NodeRef == nil {
 		return true
@@ -274,15 +278,30 @@ func (r *ReconcileMachine) isDeleteAllowed(machine *clusterv1.Machine) bool {
 	return node.UID != machine.Status.NodeRef.UID
 }
 
-func (r *ReconcileMachine) deleteNode(ctx context.Context, name string) error {
-	var node corev1.Node
-	if err := r.Client.Get(ctx, client.ObjectKey{Name: name}, &node); err != nil {
-		if apierrors.IsNotFound(err) {
-			klog.V(2).Infof("Node %q not found", name)
-			return nil
+func (r *ReconcileMachine) deleteNode(ctx context.Context, cluster *clusterv1.Cluster, name string) error {
+	if cluster == nil {
+		// Try to retrieve the Node from the local cluster, if no Cluster reference is found.
+		var node corev1.Node
+		if err := r.Client.Get(ctx, client.ObjectKey{Name: name}, &node); err != nil {
+			return err
 		}
-		klog.Errorf("Failed to get node %q: %v", name, err)
-		return err
+		return r.Client.Delete(ctx, &node)
 	}
-	return r.Client.Delete(ctx, &node)
+
+	// Otherwise, proceed to get the remote cluster client and get the Node.
+	remoteClient, err := remote.NewClusterClient(r.Client, cluster)
+	if err != nil {
+		klog.Errorf("Error creating a remote client for cluster %q while deleting Machine %q, won't retry: %v",
+			cluster.Name, name, err)
+		return nil
+	}
+
+	corev1Remote, err := remoteClient.CoreV1()
+	if err != nil {
+		klog.Errorf("Error creating a remote client for cluster %q while deleting Machine %q, won't retry: %v",
+			cluster.Name, name, err)
+		return nil
+	}
+
+	return corev1Remote.Nodes().Delete(name, &metav1.DeleteOptions{})
 }

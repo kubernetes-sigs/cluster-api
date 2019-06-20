@@ -63,9 +63,6 @@ deploy: manifests ## Deploy controller in the configured Kubernetes cluster in ~
 .PHONY: manifests
 manifests: ## Generate manifests e.g. CRD, RBAC etc.
 	go run vendor/sigs.k8s.io/controller-tools/cmd/controller-gen/main.go all
-	# TODO(vincepri) Remove this line. This is a workaround until
-	# https://github.com/kubernetes-sigs/controller-tools/pull/230 is merged.
-	go run vendor/sigs.k8s.io/controller-tools/cmd/controller-gen/main.go rbac
 	cp -f ./config/rbac/manager*.yaml ./config/ci/rbac/
 	cp -f ./config/manager/manager*.yaml ./config/ci/manager/
 

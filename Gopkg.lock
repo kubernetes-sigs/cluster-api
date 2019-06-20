@@ -1053,8 +1053,8 @@
   version = "kubernetes-1.13.4"
 
 [[projects]]
-  branch = "master"
-  digest = "1:b08990af561d72cf4e0a019a1f53ba87377d29c14c6d1d181916b9b9b1f35c7b"
+  branch = "release-1.13"
+  digest = "1:2d4e25d510d99febad7145a01c6fe92037e39cae579d5fc0e23963f7a96d350c"
   name = "k8s.io/code-generator"
   packages = [
     "cmd/client-gen",
@@ -1073,11 +1073,10 @@
     "cmd/lister-gen",
     "cmd/lister-gen/args",
     "cmd/lister-gen/generators",
-    "pkg/namer",
     "pkg/util",
   ]
   pruneopts = "UT"
-  revision = "3a2206dd6a78497deceb3ae058417fdeb2036c7e"
+  revision = "c2090bec4d9b1fb25de3812f868accc2bc9ecbae"
 
 [[projects]]
   branch = "master"

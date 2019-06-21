@@ -16,7 +16,7 @@ metadata:
   name: my-control-plane
   labels:
     cluster.k8s.io/cluster-name: my-cluster
-    set: "control-plane"
+    set: "controlplane"
 spec:
   providerSpec: {}
 ---

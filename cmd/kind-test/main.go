@@ -48,11 +48,11 @@ func main() {
 			if err != nil {
 				panic(fmt.Sprintf("%+v", err))
 			}
-			if _, err := actions.CreateControlPlane(clusterName, ip, version); err != nil {
+			if _, err := actions.CreateControlPlane(clusterName, inputs[1], ip, version); err != nil {
 				panic(fmt.Sprintf("%+v", err))
 			}
 		case "add-worker":
-			if _, err := actions.AddWorker(clusterName, version); err != nil {
+			if _, err := actions.AddWorker(clusterName, inputs[1], version); err != nil {
 				panic(fmt.Sprintf("%+v", err))
 			}
 		case "delete-node":
@@ -65,7 +65,7 @@ func main() {
 				panic(fmt.Sprintf("%+v", err))
 			}
 		case "add-control-plane":
-			if _, err := actions.AddControlPlane(clusterName, version); err != nil {
+			if _, err := actions.AddControlPlane(clusterName, inputs[1], version); err != nil {
 				panic(fmt.Sprintf("%+v", err))
 			}
 		case "set-cluster-name":

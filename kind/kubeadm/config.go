@@ -20,11 +20,10 @@ import (
 	"bytes"
 	"encoding/json"
 
-	"k8s.io/kubernetes/pkg/kubelet/apis/config"
-
 	"github.com/pkg/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	kubeadmv1beta1 "k8s.io/kubernetes/cmd/kubeadm/app/apis/kubeadm/v1beta1"
+	"k8s.io/kubernetes/pkg/kubelet/apis/config"
 )
 
 const (

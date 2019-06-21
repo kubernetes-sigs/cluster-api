@@ -43,13 +43,12 @@ func KubeConfigPath(clusterName string) string {
 }
 
 // AddControlPlane adds a control plane to a given cluster
-func AddControlPlane(clusterName, version string) (*nodes.Node, error) {
+func AddControlPlane(clusterName, machineName, version string) (*nodes.Node, error) {
 	clusterLabel := fmt.Sprintf("%s=%s", constants.ClusterLabelKey, clusterName)
 	kindImage := image(version)
-	nodeName := getName(clusterName, constants.ControlPlaneNodeRoleValue)
 	// This function exposes a port (makes sense for kind) that is not needed in capd scenarios.
 	controlPlane, err := nodes.CreateControlPlaneNode(
-		nodeName,
+		machineName,
 		kindImage,
 		clusterLabel,
 		"127.0.0.1",
@@ -63,7 +62,7 @@ func AddControlPlane(clusterName, version string) (*nodes.Node, error) {
 		return nil, err
 	}
 	fmt.Println("Updating node providerID")
-	if err := SetNodeRef(clusterName, nodeName); err != nil {
+	if err := SetNodeProviderRef(clusterName, machineName); err != nil {
 		return nil, err
 	}
 	if err := ConfigureLoadBalancer(clusterName); err != nil {
@@ -75,8 +74,9 @@ func AddControlPlane(clusterName, version string) (*nodes.Node, error) {
 // SetUpLoadBalancer creates a load balancer but does not configure it.
 func SetUpLoadBalancer(clusterName string) (*nodes.Node, error) {
 	clusterLabel := fmt.Sprintf("%s=%s", constants.ClusterLabelKey, clusterName)
+	name := fmt.Sprintf("%s-%s", clusterName, constants.ExternalLoadBalancerNodeRoleValue)
 	return nodes.CreateExternalLoadBalancerNode(
-		getName(clusterName, constants.ExternalLoadBalancerNodeRoleValue),
+		name,
 		loadbalancer.Image,
 		clusterLabel,
 		"0.0.0.0",
@@ -85,13 +85,12 @@ func SetUpLoadBalancer(clusterName string) (*nodes.Node, error) {
 }
 
 // CreateControlPlane is creating the first control plane and configuring the load balancer.
-func CreateControlPlane(clusterName, lbip, version string) (*nodes.Node, error) {
+func CreateControlPlane(clusterName, machineName, lbip, version string) (*nodes.Node, error) {
 	fmt.Println("Creating control plane node")
 	clusterLabel := fmt.Sprintf("%s=%s", constants.ClusterLabelKey, clusterName)
-	nodeName := getName(clusterName, constants.ControlPlaneNodeRoleValue)
 	kindImage := image(version)
 	controlPlaneNode, err := nodes.CreateControlPlaneNode(
-		nodeName,
+		machineName,
 		kindImage,
 		clusterLabel,
 		"127.0.0.1",
@@ -114,7 +113,7 @@ func CreateControlPlane(clusterName, lbip, version string) (*nodes.Node, error) 
 		return nil, err
 	}
 	fmt.Println("Updating node providerID")
-	if err := SetNodeRef(clusterName, nodeName); err != nil {
+	if err := SetNodeProviderRef(clusterName, machineName); err != nil {
 		return nil, err
 	}
 	fmt.Println("Setting up CNI")
@@ -126,12 +125,11 @@ func CreateControlPlane(clusterName, lbip, version string) (*nodes.Node, error) 
 }
 
 // AddWorker adds a worker to a given cluster.
-func AddWorker(clusterName, version string) (*nodes.Node, error) {
+func AddWorker(clusterName, machineName, version string) (*nodes.Node, error) {
 	clusterLabel := fmt.Sprintf("%s=%s", constants.ClusterLabelKey, clusterName)
 	kindImage := image(version)
-	nodeName := getName(clusterName, constants.WorkerNodeRoleValue)
 	worker, err := nodes.CreateWorkerNode(
-		nodeName,
+		machineName,
 		kindImage,
 		clusterLabel,
 		nil,
@@ -143,15 +141,15 @@ func AddWorker(clusterName, version string) (*nodes.Node, error) {
 		return nil, err
 	}
 	fmt.Println("Updating node providerID")
-	if err := SetNodeRef(clusterName, nodeName); err != nil {
+	if err := SetNodeProviderRef(clusterName, machineName); err != nil {
 		return nil, err
 	}
 
 	return worker, nil
 }
 
-// DeleteNode removes a node from a cluster and cleans up docker.
-func DeleteNode(clusterName, nodeName string) error {
+// DeleteControlPlane will take all steps necessary to remove a control plane node from a cluster.
+func DeleteControlPlane(clusterName, nodeName string) error {
 	nodeList, err := nodes.List(
 		fmt.Sprintf("label=%s=%s", constants.ClusterLabelKey, clusterName),
 		fmt.Sprintf("name=%s$", nodeName),
@@ -160,17 +158,47 @@ func DeleteNode(clusterName, nodeName string) error {
 		return nil
 	}
 
+	// assume it's already deleted
 	if len(nodeList) < 1 {
-		return errors.Errorf("could not find node %q", nodeName)
-	}
-	if len(nodeList) > 1 {
-		return errors.Errorf("duplicate nodes named %q, cannot continue", nodeName)
+		return nil
 	}
 
+	// pick the first one, but there should never be multiples since docker requires name to be unique.
 	node := nodeList[0]
-	if err := RemoveNode(clusterName, nodeName); err != nil {
+	if err := DeleteClusterNode(clusterName, nodeName); err != nil {
 		return err
 	}
+	if err := KubeadmReset(clusterName, nodeName); err != nil {
+		return err
+	}
+
+	// Delete the infrastructure
+	if err := nodes.Delete(node); err != nil {
+		return err
+	}
+	return ConfigureLoadBalancer(clusterName)
+}
+
+func DeleteWorker(clusterName, nodeName string) error {
+	nodeList, err := nodes.List(
+		fmt.Sprintf("label=%s=%s", constants.ClusterLabelKey, clusterName),
+		fmt.Sprintf("name=%s$", nodeName),
+	)
+	if err != nil {
+		return nil
+	}
+
+	// assume it's already deleted
+	if len(nodeList) < 1 {
+		return nil
+	}
+	// pick the first one, but there should never be multiples since docker requires name to be unique.
+	node := nodeList[0]
+
+	if err := DeleteClusterNode(clusterName, nodeName); err != nil {
+		return err
+	}
+	// Delete the infrastructure
 	return nodes.Delete(node)
 }
 
@@ -227,21 +255,6 @@ func writeKubeConfig(n *nodes.Node, dest string, hostAddress string, hostPort in
 	}
 
 	return ioutil.WriteFile(dest, buff.Bytes(), 0600)
-}
-
-func getName(clusterName, role string) string {
-	ns, err := nodes.List(
-		fmt.Sprintf("label=%s=%s", constants.ClusterLabelKey, clusterName),
-		fmt.Sprintf("label=%s=%s", constants.NodeRoleKey, role))
-	if err != nil {
-		panic(err)
-	}
-	count := len(ns)
-	suffix := fmt.Sprintf("%d", count)
-	if count == 0 {
-		suffix = ""
-	}
-	return fmt.Sprintf("%s-%s%s", clusterName, role, suffix)
 }
 
 func image(version string) string {

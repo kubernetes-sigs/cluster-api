@@ -243,10 +243,10 @@ func KubeadmJoin(clusterName string, node *nodes.Node) error {
 	return nil
 }
 
-func SetNodeRef(clusterName, nodeName string) error {
+func SetNodeProviderRef(clusterName, nodeName string) error {
 	allNodes, err := nodes.List(fmt.Sprintf("label=%s=%s", constants.ClusterLabelKey, clusterName))
 	if err != nil {
-		return nil
+		return err
 	}
 
 	node, err := nodes.BootstrapControlPlaneNode(allNodes)
@@ -274,28 +274,90 @@ func SetNodeRef(clusterName, nodeName string) error {
 	return nil
 }
 
-func RemoveNode(clusterName, nodeName string) error {
+func GetNodeRefUID(clusterName, nodeName string) (string, error) {
+	// 	k get nodes my-cluster-worker -o custom-columns=UID:.metadata.uid --no-headers
 	allNodes, err := nodes.List(fmt.Sprintf("label=%s=%s", constants.ClusterLabelKey, clusterName))
 	if err != nil {
-		return nil
+		return "", err
 	}
 
 	node, err := nodes.BootstrapControlPlaneNode(allNodes)
 	if err != nil {
-		return err
+		return "", err
 	}
+
+	patch := fmt.Sprintf(`{"spec": {"providerID": "docker://%s"}}`, nodeName)
+	fmt.Println("trying to apply:", patch)
 	cmd := node.Command(
 		"kubectl",
 		"--kubeconfig", "/etc/kubernetes/admin.conf",
-		"delete",
+		"get",
 		"node", nodeName,
+		"--output=custom-columns=UID:.metadata.uid",
+		"--no-headers",
 	)
 	lines, err := exec.CombinedOutputLines(cmd)
 	if err != nil {
 		for _, line := range lines {
 			fmt.Println(line)
 		}
-		return errors.Wrap(err, "failed to remove node from cluster")
+		return "", errors.Wrap(err, "failed get node ref UID")
+	}
+	return strings.TrimSpace(lines[0]), nil
+}
+
+// DeleteClusterNode will remove the kubernetes node from the list of nodes (during a kubectl get nodes).
+func DeleteClusterNode(clusterName, nodeName string) error {
+	// get all control plane nodes
+	allControlPlanes, err := nodes.List(
+		fmt.Sprintf("label=%s=%s", constants.ClusterLabelKey, clusterName),
+		fmt.Sprintf("label=%s=%s", constants.NodeRoleKey, constants.ControlPlaneNodeRoleValue),
+	)
+	if err != nil {
+		return err
+	}
+	var node nodes.Node
+	// pick one that doesn't match the node name we are trying to delete
+	for _, n := range allControlPlanes {
+		if n.Name() != nodeName {
+			node = n
+			break
+		}
+	}
+	cmd := node.Command(
+		"kubectl",
+		"--kubeconfig", "/etc/kubernetes/admin.conf",
+		"delete", "node", nodeName,
+	)
+	lines, err := exec.CombinedOutputLines(cmd)
+	if err != nil {
+		for _, line := range lines {
+			fmt.Println(line)
+		}
+		return errors.Wrap(err, "failed to delete cluster node")
+	}
+	return nil
+}
+
+// KubeadmReset will run `kubeadm reset` on the control plane to remove.
+func KubeadmReset(clusterName, nodeName string) error {
+	nodeList, err := nodes.List(
+		fmt.Sprintf("label=%s=%s", constants.ClusterLabelKey, clusterName),
+		fmt.Sprintf("label=%s=%s", constants.NodeRoleKey, constants.ControlPlaneNodeRoleValue),
+		fmt.Sprintf("name=^%s$", nodeName),
+	)
+	if len(nodeList) < 1 {
+		return errors.Errorf("could nto find node %q", nodeName)
+	}
+	node := nodeList[0]
+
+	cmd := node.Command("kubeadm", "reset", "--force")
+	lines, err := exec.CombinedOutputLines(cmd)
+	if err != nil {
+		for _, line := range lines {
+			fmt.Println(line)
+		}
+		return errors.Wrap(err, "failed to reset node")
 	}
 
 	return nil

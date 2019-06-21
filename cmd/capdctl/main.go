@@ -28,6 +28,8 @@ import (
 	"sigs.k8s.io/cluster-api/pkg/apis/cluster/v1alpha1"
 )
 
+// TODO: Generate the RBAC stuff from somewhere instead of copy pasta
+
 const (
 	// Important to keep this consistent.
 	controlPlaneSet = "controlplane"
@@ -53,7 +55,7 @@ func main() {
 
 	capd := flag.NewFlagSet("capd", flag.ExitOnError)
 	capdImage := capd.String("capd-image", "gcr.io/kubernetes1-226021/capd-manager:latest", "The capd manager image to run")
-	capiImage := capd.String("capi-image", "gcr.io/k8s-cluster-api/cluster-api-controller:0.1.1", "The capi manager image to run")
+	capiImage := capd.String("capi-image", "gcr.io/k8s-cluster-api/cluster-api-controller:0.1.3", "The capi manager image to run")
 
 	controlPlane := flag.NewFlagSet("control-plane", flag.ExitOnError)
 	controlPlaneOpts := new(machineOptions)
@@ -122,7 +124,6 @@ subcommands are:
 
   cluster - Write a capd cluster object to stdout
     example: capdctl cluster -cluster-name my-cluster -namespace my-namespace | kubectl apply -f -
-
 `
 }
 
@@ -153,14 +154,13 @@ func machineYAML(opts *machineOptions) string {
 			Namespace: *opts.namespace,
 			Labels: map[string]string{
 				"cluster.k8s.io/cluster-name": *opts.clusterName,
-				"set": *opts.set,
+				"set":                         *opts.set,
 			},
 		},
 		Spec: v1alpha1.MachineSpec{
 			ProviderSpec: v1alpha1.ProviderSpec{},
 		},
 	}
-	// TODO: 🤔
 	if *opts.set == controlPlaneSet {
 		machine.Spec.Versions.ControlPlane = *opts.version
 	}

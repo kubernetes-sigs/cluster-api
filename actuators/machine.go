@@ -23,6 +23,7 @@ import (
 	"time"
 
 	"github.com/chuckha/cluster-api-provider-docker/kind/actions"
+	apicorev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/types"
 	corev1 "k8s.io/client-go/kubernetes/typed/core/v1"
 	clusterv1 "sigs.k8s.io/cluster-api/pkg/apis/cluster/v1alpha1"
@@ -78,14 +79,25 @@ func (m *Machine) Create(ctx context.Context, c *clusterv1.Cluster, machine *clu
 	if setValue == clusterAPIControlPlaneSetLabel {
 		if len(controlPlanes) > 0 {
 			fmt.Println("Adding a control plane")
-			controlPlaneNode, err := actions.AddControlPlane(c.Name, machine.Spec.Versions.ControlPlane)
+			controlPlaneNode, err := actions.AddControlPlane(c.Name, machine.GetName(), machine.Spec.Versions.ControlPlane)
 			if err != nil {
 				fmt.Printf("%+v", err)
 				return err
 			}
-			name := providerID(controlPlaneNode.Name())
-			machine.Spec.ProviderID = &name
-			return m.save(old, machine)
+			nodeUID, err := actions.GetNodeRefUID(c.GetName(), controlPlaneNode.Name())
+			if err != nil {
+				fmt.Printf("%+v", err)
+				return err
+			}
+			nodeRef := &apicorev1.ObjectReference{
+				Kind:       "Node",
+				APIVersion: apicorev1.SchemeGroupVersion.String(),
+				Name:       controlPlaneNode.Name(),
+				UID:        types.UID(nodeUID),
+			}
+			providerID := providerID(controlPlaneNode.Name())
+			machine.Spec.ProviderID = &providerID
+			return m.save(old, machine, nodeRef)
 		}
 
 		fmt.Println("Creating a brand new cluster")
@@ -99,16 +111,27 @@ func (m *Machine) Create(ctx context.Context, c *clusterv1.Cluster, machine *clu
 			fmt.Printf("%+v\n", err)
 			return err
 		}
-		controlPlaneNode, err := actions.CreateControlPlane(c.Name, lbip, machine.Spec.Versions.ControlPlane)
+		controlPlaneNode, err := actions.CreateControlPlane(c.Name, machine.GetName(), lbip, machine.Spec.Versions.ControlPlane)
 		if err != nil {
 			fmt.Printf("%+v\n", err)
 			return err
 		}
+		nodeUID, err := actions.GetNodeRefUID(c.GetName(), controlPlaneNode.Name())
+		if err != nil {
+			fmt.Printf("%+v", err)
+			return err
+		}
+		nodeRef := &apicorev1.ObjectReference{
+			Kind:       "Node",
+			APIVersion: apicorev1.SchemeGroupVersion.String(),
+			Name:       controlPlaneNode.Name(),
+			UID:        types.UID(nodeUID),
+		}
 
 		// set the machine's providerID
-		name := providerID(controlPlaneNode.Name())
-		machine.Spec.ProviderID = &name
-		if err := m.save(old, machine); err != nil {
+		providerID := providerID(controlPlaneNode.Name())
+		machine.Spec.ProviderID = &providerID
+		if err := m.save(old, machine, nodeRef); err != nil {
 			fmt.Printf("%+v\n", err)
 			return err
 		}
@@ -132,18 +155,43 @@ func (m *Machine) Create(ctx context.Context, c *clusterv1.Cluster, machine *clu
 	}
 
 	fmt.Println("Creating a new worker node")
-	worker, err := actions.AddWorker(c.Name, machine.Spec.Versions.Kubelet)
+	worker, err := actions.AddWorker(c.Name, machine.GetName(), machine.Spec.Versions.Kubelet)
 	if err != nil {
 		fmt.Printf("%+v", err)
 		return err
 	}
-	name := providerID(worker.Name())
-	machine.Spec.ProviderID = &name
-	return m.save(old, machine)
+	providerID := providerID(worker.Name())
+	machine.Spec.ProviderID = &providerID
+	nodeUID, err := actions.GetNodeRefUID(c.GetName(), worker.Name())
+	if err != nil {
+		fmt.Printf("%+v", err)
+		return err
+	}
+	nodeRef := &apicorev1.ObjectReference{
+		Kind:       "Node",
+		APIVersion: apicorev1.SchemeGroupVersion.String(),
+		Name:       worker.Name(),
+		UID:        types.UID(nodeUID),
+	}
+	return m.save(old, machine, nodeRef)
 }
 
+// Delete returns nil when the machine no longer exists or when a successful delete has happened.
 func (m *Machine) Delete(ctx context.Context, cluster *clusterv1.Cluster, machine *clusterv1.Machine) error {
-	return actions.DeleteNode(cluster.Name, providerNameToLookupID(*machine.Spec.ProviderID))
+	if machine.Status.NodeRef != nil {
+		fmt.Printf("[delete] machine status noderef name: %q/n", machine.Status.NodeRef.Name)
+	} else {
+		fmt.Println("[delete] machine noderef is nil...")
+	}
+
+	exists, err := m.Exists(ctx, cluster, machine)
+	if err != nil {
+		return err
+	}
+	if exists {
+		return actions.DeleteNode(cluster.Name, machine.GetName())
+	}
+	return nil
 }
 
 func (m *Machine) Update(ctx context.Context, cluster *clusterv1.Cluster, machine *clusterv1.Machine) error {
@@ -152,16 +200,16 @@ func (m *Machine) Update(ctx context.Context, cluster *clusterv1.Cluster, machin
 }
 
 func (m *Machine) Exists(ctx context.Context, cluster *clusterv1.Cluster, machine *clusterv1.Machine) (bool, error) {
-	if machine.Spec.ProviderID == nil {
-		return false, nil
+	if machine.Spec.ProviderID != nil {
+		return true, nil
 	}
-	fmt.Println("Looking for a docker container named", providerNameToLookupID(*machine.Spec.ProviderID))
+
 	role := getRole(machine)
 	kindRole := CAPIroleToKindRole(role)
 	labels := []string{
 		fmt.Sprintf("label=%s=%s", constants.NodeRoleKey, kindRole),
 		fmt.Sprintf("label=%s=%s", constants.ClusterLabelKey, cluster.Name),
-		fmt.Sprintf("name=^%s$", providerNameToLookupID(*machine.Spec.ProviderID)),
+		fmt.Sprintf("name=^%s$", machine.GetName()),
 	}
 	fmt.Printf("using labels: %v\n", labels)
 	nodeList, err := nodes.List(labels...)
@@ -172,7 +220,8 @@ func (m *Machine) Exists(ctx context.Context, cluster *clusterv1.Cluster, machin
 	return len(nodeList) >= 1, nil
 }
 
-func (m *Machine) save(old, new *clusterv1.Machine) error {
+// patches the object and saves the status.
+func (m *Machine) save(old, new *clusterv1.Machine, noderef *apicorev1.ObjectReference) error {
 	fmt.Println("updating machine")
 	p, err := patch.NewJSONPatch(old, new)
 	if err != nil {
@@ -186,17 +235,20 @@ func (m *Machine) save(old, new *clusterv1.Machine) error {
 			fmt.Printf("%+v\n", err)
 			return err
 		}
-		if _, err := m.ClusterAPI.Machines(old.Namespace).Patch(new.Name, types.JSONPatchType, pb); err != nil {
+		new, err = m.ClusterAPI.Machines(old.Namespace).Patch(new.Name, types.JSONPatchType, pb)
+		if err != nil {
 			fmt.Printf("%+v\n", err)
 			return err
 		}
 		fmt.Println("updated machine")
 	}
+	// set the noderef after so we don't try and patch it in during the first update
+	new.Status.NodeRef = noderef
+	if _, err := m.ClusterAPI.Machines(old.Namespace).UpdateStatus(new); err != nil {
+		fmt.Printf("%+v\n", err)
+		return err
+	}
 	return nil
-}
-
-func providerNameToLookupID(providerName string) string {
-	return providerName[len("docker://"):]
 }
 
 func providerID(name string) string {

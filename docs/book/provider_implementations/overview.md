@@ -12,23 +12,32 @@ Much of the information here was adapted directly from it. The minimal version o
 - Install [`kubectl`][kubectl-install]
 - Install [`kustomize`][install-kustomize]
 - Install [`kubebuilder`][install-kubebuilder]
+- Install [`minikube`][install-minkube]
 
 ### tl;dr
 
 {% codegroup %}
 ```bash::MacOS
+# Install dep
+brew install dep
+
 # Install kubectl
 brew install kubernetes-cli
 
-# Install minikube
-curl -fLo minikube https://storage.googleapis.com/minikube/releases/v0.30.0/minikube-darwin-amd64 && \
-chmod +x minikube && \
-sudo cp minikube /usr/local/bin/ && \
-rm minikube
-
 # Install kustomize
 brew install kustomize
+
+# Install kubebuilder
+os=$(go env GOOS)
+arch=$(go env GOARCH)
+curl -sL https://go.kubebuilder.io/dl/latest/${os}/${arch} | tar -xz -C /tmp/
+sudo mv /tmp/kubebuilder_master_${os}_${arch} /usr/local/kubebuilder
+export PATH=$PATH:/usr/local/kubebuilder/bin
+
+# Install minikube
+brew cask install minikube
 ```
+
 ```bash::Linux
 # Install kubectl
 KUBECTL_VERSION=$(curl -sf https://storage.googleapis.com/kubernetes-release/release/stable.txt)
@@ -56,5 +65,6 @@ chmod u+x /usr/local/bin/kustomize
 [install-dep]: https://github.com/golang/dep/blob/master/docs/installation.md
 [kubectl-install]: http://kubernetes.io/docs/user-guide/prereqs/
 [install-kustomize]: https://github.com/kubernetes-sigs/kustomize/blob/master/docs/INSTALL.md
-[install-kubebuilder]: https://book.kubebuilder.io/getting_started/installation_and_setup.html
+[install-kubebuilder]: https://book.kubebuilder.io/quick-start.html
+[install-minikube]: https://kubernetes.io/docs/tasks/tools/install-minikube/
 [kubebuilder-1.0.5]: https://github.com/kubernetes-sigs/kubebuilder/releases/tag/v1.0.5

@@ -18,5 +18,4 @@ go_library(
     importmap = "sigs.k8s.io/cluster-api/vendor/github.com/pborman/uuid",
     importpath = "github.com/pborman/uuid",
     visibility = ["//visibility:public"],
-    deps = ["//vendor/github.com/google/uuid:go_default_library"],
 )

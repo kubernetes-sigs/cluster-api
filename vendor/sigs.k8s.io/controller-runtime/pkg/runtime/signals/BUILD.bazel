@@ -2,13 +2,9 @@ load("@io_bazel_rules_go//go:def.bzl", "go_library")
 
 go_library(
     name = "go_default_library",
-    srcs = [
-        "doc.go",
-        "signal.go",
-        "signal_posix.go",
-        "signal_windows.go",
-    ],
+    srcs = ["signal.go"],
     importmap = "sigs.k8s.io/cluster-api/vendor/sigs.k8s.io/controller-runtime/pkg/runtime/signals",
     importpath = "sigs.k8s.io/controller-runtime/pkg/runtime/signals",
     visibility = ["//visibility:public"],
+    deps = ["//vendor/sigs.k8s.io/controller-runtime/pkg/manager/signals:go_default_library"],
 )

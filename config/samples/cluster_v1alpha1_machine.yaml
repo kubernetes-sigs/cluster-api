@@ -7,3 +7,5 @@ metadata:
 spec:
   # Add fields here
   foo: bar
+  providerSpec:
+    test: 1

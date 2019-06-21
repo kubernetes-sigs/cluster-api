@@ -67,15 +67,6 @@ _workspace_binary_script = rule(
 )
 
 # Wraps a binary to be run in the workspace root via bazel run.
-#
-# For example, one might do something like
-#
-# workspace_binary(
-#     name = "dep",
-#     cmd = "//vendor/github.com/golang/dep/cmd/dep",
-# )
-#
-# which would allow running dep with bazel run.
 def workspace_binary(
         name,
         cmd,

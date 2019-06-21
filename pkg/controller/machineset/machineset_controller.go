@@ -42,7 +42,7 @@ import (
 )
 
 // controllerName is the name of this controller
-const controllerName = "machineset-controller"
+const controllerName = "machineset_controller"
 
 var (
 	// controllerKind contains the schema.GroupVersionKind for this controller type.
@@ -65,7 +65,11 @@ func Add(mgr manager.Manager) error {
 
 // newReconciler returns a new reconcile.Reconciler.
 func newReconciler(mgr manager.Manager) *ReconcileMachineSet {
-	return &ReconcileMachineSet{Client: mgr.GetClient(), scheme: mgr.GetScheme(), recorder: mgr.GetRecorder(controllerName)}
+	return &ReconcileMachineSet{
+		Client:   mgr.GetClient(),
+		scheme:   mgr.GetScheme(),
+		recorder: mgr.GetEventRecorderFor(controllerName),
+	}
 }
 
 // add adds a new Controller to mgr with r as the reconcile.Reconciler.
@@ -113,8 +117,6 @@ type ReconcileMachineSet struct {
 // Reconcile reads that state of the cluster for a MachineSet object and makes changes based on the state read
 // and what is in the MachineSet.Spec
 // Automatically generate RBAC rules to allow the Controller to read and write Deployments
-// +kubebuilder:rbac:groups=cluster.k8s.io,resources=machinesets;machinesets/status,verbs=get;list;watch;create;update;patch;delete
-// +kubebuilder:rbac:groups=cluster.k8s.io,resources=machines,verbs=get;list;watch;create;update;patch;delete
 func (r *ReconcileMachineSet) Reconcile(request reconcile.Request) (reconcile.Result, error) {
 	// Fetch the MachineSet instance
 	ctx := context.TODO()
@@ -147,7 +149,7 @@ func (r *ReconcileMachineSet) reconcile(ctx context.Context, machineSet *cluster
 	klog.V(4).Infof("Reconcile machineset %v", machineSet.Name)
 	allMachines := &clusterv1alpha1.MachineList{}
 
-	if err := r.Client.List(context.Background(), client.InNamespace(machineSet.Namespace), allMachines); err != nil {
+	if err := r.Client.List(context.Background(), allMachines, client.InNamespace(machineSet.Namespace)); err != nil {
 		return reconcile.Result{}, errors.Wrap(err, "failed to list machines")
 	}
 

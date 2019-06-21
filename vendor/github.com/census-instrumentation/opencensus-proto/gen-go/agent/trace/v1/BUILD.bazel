@@ -2,7 +2,10 @@ load("@io_bazel_rules_go//go:def.bzl", "go_library")
 
 go_library(
     name = "go_default_library",
-    srcs = ["trace_service.pb.go"],
+    srcs = [
+        "trace_service.pb.go",
+        "trace_service.pb.gw.go",
+    ],
     importmap = "sigs.k8s.io/cluster-api/vendor/github.com/census-instrumentation/opencensus-proto/gen-go/agent/trace/v1",
     importpath = "github.com/census-instrumentation/opencensus-proto/gen-go/agent/trace/v1",
     visibility = ["//visibility:public"],
@@ -11,7 +14,12 @@ go_library(
         "//vendor/github.com/census-instrumentation/opencensus-proto/gen-go/resource/v1:go_default_library",
         "//vendor/github.com/census-instrumentation/opencensus-proto/gen-go/trace/v1:go_default_library",
         "//vendor/github.com/golang/protobuf/proto:go_default_library",
+        "//vendor/github.com/grpc-ecosystem/grpc-gateway/runtime:go_default_library",
+        "//vendor/github.com/grpc-ecosystem/grpc-gateway/utilities:go_default_library",
         "//vendor/golang.org/x/net/context:go_default_library",
         "//vendor/google.golang.org/grpc:go_default_library",
+        "//vendor/google.golang.org/grpc/codes:go_default_library",
+        "//vendor/google.golang.org/grpc/grpclog:go_default_library",
+        "//vendor/google.golang.org/grpc/status:go_default_library",
     ],
 )

@@ -10,6 +10,7 @@ go_library(
     importpath = "github.com/census-instrumentation/opencensus-proto/gen-go/trace/v1",
     visibility = ["//visibility:public"],
     deps = [
+        "//vendor/github.com/census-instrumentation/opencensus-proto/gen-go/resource/v1:go_default_library",
         "//vendor/github.com/golang/protobuf/proto:go_default_library",
         "//vendor/github.com/golang/protobuf/ptypes/timestamp:go_default_library",
         "//vendor/github.com/golang/protobuf/ptypes/wrappers:go_default_library",

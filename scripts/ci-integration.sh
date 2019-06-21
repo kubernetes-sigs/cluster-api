@@ -19,9 +19,9 @@ set -o nounset
 set -o pipefail
 
 MAKE="make"
-KIND_VERSION="0.2.1"
+KIND_VERSION="v0.3.0"
 KUSTOMIZE_VERSION="2.0.3"
-KUBECTL_VERSION="v1.13.2"
+KUBECTL_VERSION="v1.14.1"
 CRD_YAML="crd.yaml"
 BOOTSTRAP_CLUSTER_NAME="clusterapi-bootstrap"
 CONTROLLER_REPO="controller-ci" # use arbitrary repo name since we don't need to publish it

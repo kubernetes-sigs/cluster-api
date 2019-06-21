@@ -40,7 +40,7 @@ import (
 )
 
 // controllerName is the name of this controller
-const controllerName = "noderef-controller"
+const controllerName = "noderef_controller"
 
 var (
 	ErrNodeNotFound = errors.New("cannot find node with matching ProviderID")
@@ -54,7 +54,11 @@ func Add(mgr manager.Manager) error {
 
 // newReconciler returns a new reconcile.Reconciler
 func newReconciler(mgr manager.Manager) reconcile.Reconciler {
-	return &ReconcileNodeRef{Client: mgr.GetClient(), scheme: mgr.GetScheme(), recorder: mgr.GetRecorder(controllerName)}
+	return &ReconcileNodeRef{
+		Client:   mgr.GetClient(),
+		scheme:   mgr.GetScheme(),
+		recorder: mgr.GetEventRecorderFor(controllerName),
+	}
 }
 
 // add adds a new Controller to mgr with r as the reconcile.Reconciler
@@ -79,7 +83,6 @@ type ReconcileNodeRef struct {
 }
 
 // Reconcile responds to Machine events to assign a NodeRef.
-// +kubebuilder:rbac:groups=,resources=secrets,verbs=get;list;watch
 func (r *ReconcileNodeRef) Reconcile(request reconcile.Request) (reconcile.Result, error) {
 	klog.Infof("Reconcile request for Machine %q in namespace %q", request.Name, request.Namespace)
 	ctx := context.Background()

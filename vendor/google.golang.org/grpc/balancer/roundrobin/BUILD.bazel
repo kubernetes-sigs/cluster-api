@@ -10,6 +10,7 @@ go_library(
         "//vendor/google.golang.org/grpc/balancer:go_default_library",
         "//vendor/google.golang.org/grpc/balancer/base:go_default_library",
         "//vendor/google.golang.org/grpc/grpclog:go_default_library",
+        "//vendor/google.golang.org/grpc/internal/grpcrand:go_default_library",
         "//vendor/google.golang.org/grpc/resolver:go_default_library",
     ],
 )

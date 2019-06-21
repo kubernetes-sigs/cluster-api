@@ -46,7 +46,7 @@ help:  ## Display this help
 test: generate lint ## Run tests
 	$(MAKE) test-go
 
-.PHONY: test
+.PHONY: test-go
 test-go: ## Run tests
 	go test -v -tags=integration ./pkg/... ./cmd/...
 
@@ -71,10 +71,10 @@ run: lint ## Run against the configured Kubernetes cluster in ~/.kube/config
 ## --------------------------------------
 
 .PHONY: lint
-lint: dep-ensure ## Lint codebase
+lint: ## Lint codebase
 	bazel run //:lint $(BAZEL_ARGS)
 
-lint-full: dep-ensure ## Run slower linters to detect possible issues
+lint-full: ## Run slower linters to detect possible issues
 	bazel run //:lint-full $(BAZEL_ARGS)
 
 ## --------------------------------------
@@ -88,7 +88,7 @@ generate: ## Generate code
 	$(MAKE) gazelle
 
 .PHONY: generate-full
-generate-full: dep-ensure ## Generate code
+generate-full: vendor ## Generate code
 	$(MAKE) generate-clientset
 	$(MAKE) generate
 
@@ -99,14 +99,18 @@ generate-go: ## Runs go generate
 .PHONY: generate-clientset
 generate-clientset: ## Generate a typed clientset
 	rm -rf pkg/client
-	cd ./vendor/k8s.io/code-generator/cmd && go install ./client-gen ./lister-gen ./informer-gen
-	$$GOPATH/bin/client-gen --clientset-name clientset --input-base sigs.k8s.io/cluster-api/pkg/apis \
-		--input cluster/v1alpha1 --output-package sigs.k8s.io/cluster-api/pkg/client/clientset_generated \
+	go run ./vendor/k8s.io/code-generator/cmd/client-gen/main.go \
+		--clientset-name clientset \
+		--input-base sigs.k8s.io/cluster-api/pkg/apis \
+		--input cluster/v1alpha1 \
+		--output-package sigs.k8s.io/cluster-api/pkg/client/clientset_generated \
 		--go-header-file=./hack/boilerplate/boilerplate.generatego.txt
-	$$GOPATH/bin/lister-gen --input-dirs sigs.k8s.io/cluster-api/pkg/apis/cluster/v1alpha1 \
+	go run ./vendor/k8s.io/code-generator/cmd/lister-gen/main.go \
+		--input-dirs sigs.k8s.io/cluster-api/pkg/apis/cluster/v1alpha1 \
 		--output-package sigs.k8s.io/cluster-api/pkg/client/listers_generated \
 		--go-header-file=./hack/boilerplate/boilerplate.generatego.txt
-	$$GOPATH/bin/informer-gen --input-dirs sigs.k8s.io/cluster-api/pkg/apis/cluster/v1alpha1 \
+	go run ./vendor/k8s.io/code-generator/cmd/informer-gen/main.go \
+		--input-dirs sigs.k8s.io/cluster-api/pkg/apis/cluster/v1alpha1 \
 		--versioned-clientset-package sigs.k8s.io/cluster-api/pkg/client/clientset_generated/clientset \
 		--listers-package sigs.k8s.io/cluster-api/pkg/client/listers_generated \
 		--output-package sigs.k8s.io/cluster-api/pkg/client/informers_generated \
@@ -114,18 +118,21 @@ generate-clientset: ## Generate a typed clientset
 
 .PHONY: generate-manifests
 generate-manifests: ## Generate manifests e.g. CRD, RBAC etc.
-	go run vendor/sigs.k8s.io/controller-tools/cmd/controller-gen/main.go all
-	cp -f ./config/rbac/manager*.yaml ./config/ci/rbac/
+	go run vendor/sigs.k8s.io/controller-tools/cmd/controller-gen/main.go \
+		paths=./pkg/... \
+		crd:trivialVersions=true \
+		rbac:roleName=manager-role \
+		output:crd:dir=./config/crds
+	cp -f ./config/rbac/role*.yaml ./config/ci/rbac/
 	cp -f ./config/manager/manager*.yaml ./config/ci/manager/
 
 .PHONY: gazelle
 gazelle: ## Run Bazel Gazelle
 	(which bazel && ./hack/update-bazel.sh) || true
 
-.PHONY: dep-ensure
-dep-ensure: ## Runs dep-ensure and rebuilds Bazel gazelle files.
-	find vendor -name 'BUILD.bazel' -delete
-	(which dep && dep ensure -v) || true
+.PHONY: vendor
+vendor: ## Runs go mod to ensure proper vendoring.
+	./hack/update-vendor.sh
 	$(MAKE) gazelle
 
 ## --------------------------------------
@@ -187,5 +194,5 @@ clean: ## Remove all generated files
 .PHONY: verify
 verify:
 	./hack/verify-boilerplate.sh
-	./hack/verify_clientset.sh
+	./hack/verify-clientset.sh
 	./hack/verify-bazel.sh

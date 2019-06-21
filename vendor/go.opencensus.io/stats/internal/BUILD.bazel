@@ -2,10 +2,7 @@ load("@io_bazel_rules_go//go:def.bzl", "go_library")
 
 go_library(
     name = "go_default_library",
-    srcs = [
-        "record.go",
-        "validation.go",
-    ],
+    srcs = ["record.go"],
     importmap = "sigs.k8s.io/cluster-api/vendor/go.opencensus.io/stats/internal",
     importpath = "go.opencensus.io/stats/internal",
     visibility = ["//visibility:public"],

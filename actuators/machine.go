@@ -189,7 +189,11 @@ func (m *Machine) Delete(ctx context.Context, cluster *clusterv1.Cluster, machin
 		return err
 	}
 	if exists {
-		return actions.DeleteNode(cluster.Name, machine.GetName())
+		setValue := getRole(machine)
+		if setValue == clusterAPIControlPlaneSetLabel {
+			return actions.DeleteControlPlane(cluster.Name, machine.GetName())
+		}
+		return actions.DeleteWorker(cluster.Name, machine.GetName())
 	}
 	return nil
 }

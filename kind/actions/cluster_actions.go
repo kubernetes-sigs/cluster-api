@@ -308,13 +308,16 @@ func GetNodeRefUID(clusterName, nodeName string) (string, error) {
 
 func DeleteClusterNode(clusterName, nodeName string) error {
 	// get all control plane nodes
-	allNodes, err := nodes.List(fmt.Sprintf("label=%s=%s", constants.ClusterLabelKey, clusterName))
+	allControlPlanes, err := nodes.List(
+		fmt.Sprintf("label=%s=%s", constants.ClusterLabelKey, clusterName),
+		fmt.Sprintf("label=%s=%s", constants.NodeRoleKey, constants.ControlPlaneNodeRoleValue),
+	)
 	if err != nil {
 		return err
 	}
 	var node nodes.Node
 	// pick one that doesn't match the node name we are trying to delete
-	for _, n := range allNodes {
+	for _, n := range allControlPlanes {
 		if n.Name() != nodeName {
 			node = n
 			break
@@ -330,7 +333,28 @@ func DeleteClusterNode(clusterName, nodeName string) error {
 		for _, line := range lines {
 			fmt.Println(line)
 		}
-		return errors.Wrap(err, "failed update providerID")
+		return errors.Wrap(err, "failed to delete cluster node")
+	}
+	return nil
+}
+
+func KubeadmReset(clusterName string) error {
+	allNodes, err := nodes.List(fmt.Sprintf("label=%s=%s", constants.ClusterLabelKey, clusterName))
+	if err != nil {
+		return nil
+	}
+
+	node, err := nodes.BootstrapControlPlaneNode(allNodes)
+	if err != nil {
+		return err
+	}
+	cmd := node.Command("kubeadm", "reset", "--force")
+	lines, err := exec.CombinedOutputLines(cmd)
+	if err != nil {
+		for _, line := range lines {
+			fmt.Println(line)
+		}
+		return errors.Wrap(err, "failed to reset node")
 	}
 
 	return nil

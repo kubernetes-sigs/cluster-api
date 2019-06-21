@@ -1,7 +1,5 @@
 # Cluster API Provider Docker
 
-A temporary home for CAPD
-
 ## Manager Container Image
 
 A sample is built and hosted at `gcr.io/kubernetes1-226021/capd-manager:latest` 
@@ -23,7 +21,7 @@ Requires a google cloud project
 
 # Testing out CAPD
 
-Tested on: Linux, OS X
+Tested on: Linux, works ok on OS X sometimes
 
 Requirements: `kind` and `kubectl`
 
@@ -58,4 +56,3 @@ The kubeconfig is on the management cluster in secrets. Grab it and write it to 
 `kubectl get secrets -o jsonpath='{.data.kubeconfig}' kubeconfig-my-cluster | base64 --decode > ~/.kube/kind-config-my-cluster`
  
 `kubectl get po --all-namespaces --kubeconfig ~/.kube/kind-config-my-cluster`
-

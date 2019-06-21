@@ -148,6 +148,7 @@ func AddWorker(clusterName, machineName, version string) (*nodes.Node, error) {
 	return worker, nil
 }
 
+// DeleteControlPlane will take all steps necessary to remove a control plane node from a cluster.
 func DeleteControlPlane(clusterName, nodeName string) error {
 	nodeList, err := nodes.List(
 		fmt.Sprintf("label=%s=%s", constants.ClusterLabelKey, clusterName),
@@ -164,19 +165,18 @@ func DeleteControlPlane(clusterName, nodeName string) error {
 
 	// pick the first one, but there should never be multiples since docker requires name to be unique.
 	node := nodeList[0]
-	// Delete the infrastructure
 	if err := DeleteClusterNode(clusterName, nodeName); err != nil {
 		return err
 	}
-	if err := KubeadmReset(clusterName); err != nil {
+	if err := KubeadmReset(clusterName, nodeName); err != nil {
 		return err
 	}
 
+	// Delete the infrastructure
 	if err := nodes.Delete(node); err != nil {
 		return err
 	}
 	return ConfigureLoadBalancer(clusterName)
-
 }
 
 func DeleteWorker(clusterName, nodeName string) error {

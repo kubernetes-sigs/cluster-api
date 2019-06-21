@@ -178,12 +178,6 @@ func (m *Machine) Create(ctx context.Context, c *clusterv1.Cluster, machine *clu
 
 // Delete returns nil when the machine no longer exists or when a successful delete has happened.
 func (m *Machine) Delete(ctx context.Context, cluster *clusterv1.Cluster, machine *clusterv1.Machine) error {
-	if machine.Status.NodeRef != nil {
-		fmt.Printf("[delete] machine status noderef name: %q/n", machine.Status.NodeRef.Name)
-	} else {
-		fmt.Println("[delete] machine noderef is nil...")
-	}
-
 	exists, err := m.Exists(ctx, cluster, machine)
 	if err != nil {
 		return err
@@ -191,8 +185,10 @@ func (m *Machine) Delete(ctx context.Context, cluster *clusterv1.Cluster, machin
 	if exists {
 		setValue := getRole(machine)
 		if setValue == clusterAPIControlPlaneSetLabel {
+			fmt.Printf("Deleting a control plane: %q\n", machine.GetName())
 			return actions.DeleteControlPlane(cluster.Name, machine.GetName())
 		}
+		fmt.Printf("Deleting a worker: %q\n", machine.GetName())
 		return actions.DeleteWorker(cluster.Name, machine.GetName())
 	}
 	return nil

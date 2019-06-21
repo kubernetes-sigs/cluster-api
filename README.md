@@ -33,7 +33,7 @@ docker build -t my-repository/capd-manager:latest .
 
 Tested on: Linux, OS X
 
-Requirements: `kind` > 0.30.0 and `kubectl`
+Requirements: `kind` > 0.3.0 and `kubectl`
 
 Install capdctl
 

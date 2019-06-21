@@ -306,7 +306,7 @@ func GetNodeRefUID(clusterName, nodeName string) (string, error) {
 	return strings.TrimSpace(lines[0]), nil
 }
 
-// DeleteClusterNode will remove
+// DeleteClusterNode will remove the kubernetes node from the list of nodes (during a kubectl get nodes).
 func DeleteClusterNode(clusterName, nodeName string) error {
 	// get all control plane nodes
 	allControlPlanes, err := nodes.List(
@@ -339,7 +339,7 @@ func DeleteClusterNode(clusterName, nodeName string) error {
 	return nil
 }
 
-// KubeadmReset will run `kubeadm reset` on the control plane to remove
+// KubeadmReset will run `kubeadm reset` on the control plane to remove.
 func KubeadmReset(clusterName, nodeName string) error {
 	nodeList, err := nodes.List(
 		fmt.Sprintf("label=%s=%s", constants.ClusterLabelKey, clusterName),

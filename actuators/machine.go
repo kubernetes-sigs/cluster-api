@@ -89,15 +89,9 @@ func (m *Machine) Create(ctx context.Context, c *clusterv1.Cluster, machine *clu
 				fmt.Printf("%+v", err)
 				return err
 			}
-			nodeRef := &apicorev1.ObjectReference{
-				Kind:       "Node",
-				APIVersion: apicorev1.SchemeGroupVersion.String(),
-				Name:       controlPlaneNode.Name(),
-				UID:        types.UID(nodeUID),
-			}
 			providerID := providerID(controlPlaneNode.Name())
 			machine.Spec.ProviderID = &providerID
-			return m.save(old, machine, nodeRef)
+			return m.save(old, machine, getNodeRef(controlPlaneNode.Name(), nodeUID))
 		}
 
 		fmt.Println("Creating a brand new cluster")
@@ -121,17 +115,10 @@ func (m *Machine) Create(ctx context.Context, c *clusterv1.Cluster, machine *clu
 			fmt.Printf("%+v", err)
 			return err
 		}
-		nodeRef := &apicorev1.ObjectReference{
-			Kind:       "Node",
-			APIVersion: apicorev1.SchemeGroupVersion.String(),
-			Name:       controlPlaneNode.Name(),
-			UID:        types.UID(nodeUID),
-		}
-
 		// set the machine's providerID
 		providerID := providerID(controlPlaneNode.Name())
 		machine.Spec.ProviderID = &providerID
-		if err := m.save(old, machine, nodeRef); err != nil {
+		if err := m.save(old, machine, getNodeRef(controlPlaneNode.Name(), nodeUID)); err != nil {
 			fmt.Printf("%+v\n", err)
 			return err
 		}
@@ -167,13 +154,7 @@ func (m *Machine) Create(ctx context.Context, c *clusterv1.Cluster, machine *clu
 		fmt.Printf("%+v", err)
 		return err
 	}
-	nodeRef := &apicorev1.ObjectReference{
-		Kind:       "Node",
-		APIVersion: apicorev1.SchemeGroupVersion.String(),
-		Name:       worker.Name(),
-		UID:        types.UID(nodeUID),
-	}
-	return m.save(old, machine, nodeRef)
+	return m.save(old, machine, getNodeRef(worker.Name(), nodeUID))
 }
 
 // Delete returns nil when the machine no longer exists or when a successful delete has happened.
@@ -261,4 +242,13 @@ func CAPIroleToKindRole(CAPIRole string) string {
 		return constants.ControlPlaneNodeRoleValue
 	}
 	return CAPIRole
+}
+
+func getNodeRef(name, uid string) *apicorev1.ObjectReference {
+	return &apicorev1.ObjectReference{
+		Kind:       "Node",
+		APIVersion: apicorev1.SchemeGroupVersion.String(),
+		Name:       name,
+		UID:        types.UID(uid),
+	}
 }

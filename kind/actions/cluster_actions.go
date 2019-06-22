@@ -117,6 +117,7 @@ func ConfigureLoadBalancer(clusterName string) error {
 	return errors.WithStack(docker.Kill("SIGHUP", loadBalancerNode.Name()))
 }
 
+// KubeadmConfig writes the kubeadm config to a node
 func KubeadmConfig(node *nodes.Node, clusterName, lbip string) error {
 	// get installed kubernetes version from the node image
 	kubeVersion, err := node.KubeVersion()
@@ -124,7 +125,7 @@ func KubeadmConfig(node *nodes.Node, clusterName, lbip string) error {
 		return errors.Wrap(err, "failed to get kubernetes version from node")
 	}
 
-	kubeadmConfig, err := kubeadm.InitConifguration(kubeVersion, clusterName, fmt.Sprintf("%s:%d", lbip, 6443))
+	kubeadmConfig, err := kubeadm.InitConfiguration(kubeVersion, clusterName, fmt.Sprintf("%s:%d", lbip, 6443))
 
 	if err != nil {
 		return errors.Wrap(err, "failed to generate kubeadm config content")
@@ -137,6 +138,7 @@ func KubeadmConfig(node *nodes.Node, clusterName, lbip string) error {
 	return nil
 }
 
+// KubeadmInit execute kubeadm init on the boostrap control-plane node of a cluster
 func KubeadmInit(clusterName string) error {
 	allNodes, err := nodes.List(fmt.Sprintf("label=%s=%s", constants.ClusterLabelKey, clusterName))
 	if err != nil {
@@ -177,6 +179,7 @@ func KubeadmInit(clusterName string) error {
 	return nil
 }
 
+// InstallCNI installs a CNI plugin from a node
 func InstallCNI(node *nodes.Node) error {
 	// read the manifest from the node
 	var raw bytes.Buffer
@@ -211,6 +214,7 @@ func InstallCNI(node *nodes.Node) error {
 	return nil
 }
 
+// KubeadmJoin executes kubeadm join on a node
 func KubeadmJoin(clusterName string, node *nodes.Node) error {
 	allNodes, err := nodes.List(fmt.Sprintf("label=%s=%s", constants.ClusterLabelKey, clusterName))
 	if err != nil {
@@ -243,6 +247,7 @@ func KubeadmJoin(clusterName string, node *nodes.Node) error {
 	return nil
 }
 
+// SetNodeProviderRef patches a node with docker://node-name as the providerID
 func SetNodeProviderRef(clusterName, nodeName string) error {
 	allNodes, err := nodes.List(fmt.Sprintf("label=%s=%s", constants.ClusterLabelKey, clusterName))
 	if err != nil {
@@ -274,6 +279,7 @@ func SetNodeProviderRef(clusterName, nodeName string) error {
 	return nil
 }
 
+// GetNodeRefUID returns the node reference UID
 func GetNodeRefUID(clusterName, nodeName string) (string, error) {
 	// 	k get nodes my-cluster-worker -o custom-columns=UID:.metadata.uid --no-headers
 	allNodes, err := nodes.List(fmt.Sprintf("label=%s=%s", constants.ClusterLabelKey, clusterName))

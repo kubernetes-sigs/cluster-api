@@ -27,7 +27,7 @@ import (
 
 	"sigs.k8s.io/kind/pkg/cluster/config/defaults"
 
-	"github.com/chuckha/cluster-api-provider-docker/third_party/forked/loadbalancer"
+	"github.com/kubernetes-sigs/cluster-api-provider-docker/third_party/forked/loadbalancer"
 	"github.com/pkg/errors"
 	"sigs.k8s.io/kind/pkg/cluster/constants"
 	"sigs.k8s.io/kind/pkg/cluster/nodes"

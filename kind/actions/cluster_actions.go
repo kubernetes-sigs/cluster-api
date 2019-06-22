@@ -353,7 +353,7 @@ func KubeadmReset(clusterName, nodeName string) error {
 		fmt.Sprintf("name=^%s$", nodeName),
 	)
 	if len(nodeList) < 1 {
-		return errors.Errorf("could nto find node %q", nodeName)
+		return errors.Errorf("could not find node %q", nodeName)
 	}
 	node := nodeList[0]
 

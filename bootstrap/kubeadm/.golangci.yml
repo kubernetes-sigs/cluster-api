@@ -1,0 +1,21 @@
+linters:
+  enable-all: true
+  disable:
+    - dupl
+    - funlen
+    - gochecknoglobals
+    - gochecknoinits
+    - gocyclo
+    - lll
+  fast: true
+issues:
+  max-same-issues: 0
+  max-issues-per-linter: 0
+  # List of regexps of issue texts to exclude, empty list by default.
+  exclude:
+    - Using the variable on range scope `tc` in function literal
+run:
+  deadline: 2m
+  skip-dirs:
+    - kubeadm
+    - third_party

@@ -55,13 +55,20 @@ func main() {
 			if _, err := actions.AddWorker(clusterName, inputs[1], version); err != nil {
 				panic(fmt.Sprintf("%+v", err))
 			}
-		case "delete-node":
+		case "delete-control-plane":
 			if len(inputs) < 2 {
-				fmt.Println("usage: delete-node my-cluster-worker1")
+				fmt.Println("usage: delete-control-plane my-cluster-control-plane")
 				continue
 			}
-			fmt.Println("Warning: If you are deleting a control plane node your cluster may break.")
-			if err := actions.DeleteNode(clusterName, inputs[1]); err != nil {
+			if err := actions.DeleteControlPlane(clusterName, inputs[1]); err != nil {
+				panic(fmt.Sprintf("%+v", err))
+			}
+		case "delete-worker":
+			if len(inputs) < 2 {
+				fmt.Println("usage: delete-worker my-cluster-worker")
+				continue
+			}
+			if err := actions.DeleteWorker(clusterName, inputs[1]); err != nil {
 				panic(fmt.Sprintf("%+v", err))
 			}
 		case "add-control-plane":

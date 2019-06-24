@@ -1,4 +1,4 @@
-module github.com/kubernetes-sigs/cluster-api-provider-docker
+module sigs.k8s.io/cluster-api-provider-docker
 
 go 1.12
 

@@ -23,8 +23,8 @@ import (
 	"io/ioutil"
 	"os"
 
-	"github.com/kubernetes-sigs/cluster-api-provider-docker/execer"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"sigs.k8s.io/cluster-api-provider-docker/execer"
 	"sigs.k8s.io/cluster-api/pkg/apis/cluster/v1alpha1"
 )
 

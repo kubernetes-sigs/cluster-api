@@ -20,7 +20,7 @@ import (
 	"fmt"
 	"io/ioutil"
 
-	"github.com/kubernetes-sigs/cluster-api-provider-docker/kind/actions"
+	"sigs.k8s.io/cluster-api-provider-docker/kind/actions"
 	"github.com/pkg/errors"
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"

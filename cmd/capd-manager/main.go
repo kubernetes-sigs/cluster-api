@@ -20,8 +20,8 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/kubernetes-sigs/cluster-api-provider-docker/actuators"
 	"k8s.io/client-go/kubernetes"
+	"sigs.k8s.io/cluster-api-provider-docker/actuators"
 	"sigs.k8s.io/cluster-api/pkg/apis"
 	"sigs.k8s.io/cluster-api/pkg/apis/cluster/common"
 	"sigs.k8s.io/cluster-api/pkg/client/clientset_generated/clientset"

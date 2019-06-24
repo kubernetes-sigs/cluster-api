@@ -61,6 +61,6 @@ func RunAlphaPhaseCreateBootstrapCluster(pcbco *AlphaPhaseCreateBootstrapCluster
 func init() {
 	// Optional flags
 	alphaPhaseCreateBootstrapClusterCmd.Flags().StringVarP(&pcbco.KubeconfigOutput, "kubeconfig-out", "", "minikube.kubeconfig", "Where to output the kubeconfig for the bootstrap cluster")
-	pcbco.Bootstrap.AddFlags(alphaPhasesCmd.Flags())
+	pcbco.Bootstrap.AddFlags(alphaPhaseCreateBootstrapClusterCmd.Flags())
 	alphaPhasesCmd.AddCommand(alphaPhaseCreateBootstrapClusterCmd)
 }

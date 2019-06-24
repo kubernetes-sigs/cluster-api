@@ -25,7 +25,7 @@ export KUBEBUILDER_CONTROLPLANE_STOP_TIMEOUT ?=60s
 export DOCKER_CLI_EXPERIMENTAL := enabled
 
 # Image URL to use all building/pushing image targets
-REGISTRY ?= gcr.io/k8s-cluster-api
+REGISTRY ?= gcr.io/$(shell gcloud config get-value project)
 CONTROLLER_IMG ?= $(REGISTRY)/cluster-api-controller
 EXAMPLE_PROVIDER_IMG ?= $(REGISTRY)/example-provider-controller
 

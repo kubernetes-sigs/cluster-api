@@ -32,7 +32,7 @@ For version 0.x.y:
 5. Get the pull request merged
 6. Switch to the release branch and update to pick up the commit.  (e.g. `git
    checkout release 0.x && git pull`).  From there build and push the container
-   images and fat manifest with `make all-push` (on the 0.1 release branch, we
+   images and fat manifest with `REGISTRY="gcr.io/k8s-cluster-api" make all-push` (on the 0.1 release branch, we
    do `make docker-push`)
 7. Create a tag from this same commit `git tag 0.x.y` and push the tag to the github repository `git push origin 0.x.y`
 8. Create a release in github based on the tag created above

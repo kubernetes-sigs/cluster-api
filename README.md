@@ -6,10 +6,16 @@ A sample is built and hosted at `gcr.io/kubernetes1-226021/capd-manager:latest`
 
 ### Building the binaries
 
-Requires go with go modules.
+Requires go 1.12+ with go modules.
 
-* `go build ./cmd/...`
-* `go build ./cmd/`
+```
+# required if `cluster-api-provider-docker` was cloned into $GOPATH
+export GO111MODULE=on
+# build the binaries
+go build ./cmd/capdctl
+go build ./cmd/capd-manager
+go build ./cmd/kind-test
+```
 
 ### Building the image
 

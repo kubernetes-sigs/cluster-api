@@ -22,7 +22,7 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/chuckha/cluster-api-provider-docker/kind/actions"
+	"github.com/kubernetes-sigs/cluster-api-provider-docker/kind/actions"
 	apicorev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/types"
 	corev1 "k8s.io/client-go/kubernetes/typed/core/v1"

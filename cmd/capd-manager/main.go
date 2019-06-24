@@ -20,7 +20,7 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/chuckha/cluster-api-provider-docker/actuators"
+	"github.com/kubernetes-sigs/cluster-api-provider-docker/actuators"
 	"k8s.io/client-go/kubernetes"
 	"sigs.k8s.io/cluster-api/pkg/apis"
 	"sigs.k8s.io/cluster-api/pkg/apis/cluster/common"

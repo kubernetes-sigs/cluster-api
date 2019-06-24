@@ -22,7 +22,7 @@ import (
 	"os"
 	"strings"
 
-	"github.com/chuckha/cluster-api-provider-docker/kind/actions"
+	"github.com/kubernetes-sigs/cluster-api-provider-docker/kind/actions"
 	"sigs.k8s.io/kind/pkg/cluster/constants"
 	"sigs.k8s.io/kind/pkg/cluster/nodes"
 )

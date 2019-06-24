@@ -1,4 +1,4 @@
-module github.com/chuckha/cluster-api-provider-docker
+module github.com/kubernetes-sigs/cluster-api-provider-docker
 
 go 1.12
 

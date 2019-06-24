@@ -4,9 +4,9 @@
 # YAML string, with resources separated by document
 # markers ("---").
 resources:
-- cluster_v1alpha1_cluster.yaml
-- cluster_v1alpha1_machine.yaml
-- cluster_v1alpha1_machineclass.yaml
-- cluster_v1alpha1_machinedeployment.yaml
-- cluster_v1alpha1_machineset.yaml
+- cluster.k8s.io_clusters.yaml
+- cluster.k8s.io_machines.yaml
+- cluster.k8s.io_machinesets.yaml
+- cluster.k8s.io_machineclasses.yaml
+- cluster.k8s.io_machinedeployments.yaml
 

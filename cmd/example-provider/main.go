@@ -50,7 +50,7 @@ func main() {
 		klog.Fatalf("Failed to create client from configuration: %v", err)
 	}
 
-	recorder := mgr.GetRecorder("clusterapi-controller")
+	recorder := mgr.GetEventRecorderFor("clusterapi-controller")
 
 	// Initialize cluster actuator.
 	clusterActuator, _ := cluster.NewClusterActuator(cs.ClusterV1alpha1(), recorder)

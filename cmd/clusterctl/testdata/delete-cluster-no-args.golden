@@ -24,7 +24,7 @@ Global Flags:
       --log-file-max-size uint           Defines the maximum size a log file can grow to. Unit is megabytes. If the value is 0, the maximum file size is unlimited. (default 1800)
       --log-flush-frequency duration     Maximum number of seconds between log flushes (default 5s)
       --logtostderr                      log to standard error instead of files (default true)
-      --master string                    The address of the Kubernetes API server. Overrides any value in kubeconfig. Only required if out-of-cluster.
+      --master --kubeconfig              (Deprecated: switch to --kubeconfig) The address of the Kubernetes API server. Overrides any value in kubeconfig. Only required if out-of-cluster.
       --skip-headers                     If true, avoid header prefixes in the log messages
       --skip-log-headers                 If true, avoid headers when opening log files
       --stderrthreshold severity         logs at or above this threshold go to stderr (default 2)

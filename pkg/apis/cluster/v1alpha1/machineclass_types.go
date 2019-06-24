@@ -29,8 +29,7 @@ import (
 // MachineClass can be used to templatize and re-use provider configuration
 // across multiple Machines / MachineSets / MachineDeployments.
 // +k8s:openapi-gen=true
-// +resource:path=machineclasses
-// +kubebuilder:resource:shortName=mc
+// +kubebuilder:resource:path=machineclasses,shortName=mc
 type MachineClass struct {
 	metav1.TypeMeta `json:",inline"`
 	// +optional

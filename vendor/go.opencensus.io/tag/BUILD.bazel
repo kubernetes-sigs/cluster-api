@@ -15,5 +15,4 @@ go_library(
     importmap = "sigs.k8s.io/cluster-api/vendor/go.opencensus.io/tag",
     importpath = "go.opencensus.io/tag",
     visibility = ["//visibility:public"],
-    deps = ["//vendor/go.opencensus.io/exemplar:go_default_library"],
 )

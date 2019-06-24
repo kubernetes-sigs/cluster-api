@@ -72,7 +72,7 @@ var _ = Describe("Cluster-Controller", func() {
 
 		// Create namespace for test
 		ns := &corev1.Namespace{ObjectMeta: metav1.ObjectMeta{GenerateName: "clusterapi-test-"}}
-		ns, err = client.Core().Namespaces().Create(ns)
+		ns, err = client.CoreV1().Namespaces().Create(ns)
 		Expect(err).ShouldNot(HaveOccurred())
 		testNamespace = ns.ObjectMeta.Name
 
@@ -89,7 +89,7 @@ var _ = Describe("Cluster-Controller", func() {
 
 	AfterEach(func() {
 		close(stopper)
-		client.Core().Namespaces().Delete(testNamespace, &metav1.DeleteOptions{})
+		client.CoreV1().Namespaces().Delete(testNamespace, &metav1.DeleteOptions{})
 	})
 
 	Describe("Create Cluster", func() {

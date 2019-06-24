@@ -66,7 +66,7 @@ func newReconciler(mgr manager.Manager, actuator Actuator) reconcile.Reconciler 
 // add adds a new Controller to mgr with r as the reconcile.Reconciler
 func add(mgr manager.Manager, r reconcile.Reconciler) error {
 	// Create a new controller
-	c, err := controller.New("machine-controller", mgr, controller.Options{Reconciler: r})
+	c, err := controller.New("machine_controller", mgr, controller.Options{Reconciler: r})
 	if err != nil {
 		return err
 	}
@@ -91,7 +91,6 @@ type ReconcileMachine struct {
 
 // Reconcile reads that state of the cluster for a Machine object and makes changes based on the state read
 // and what is in the Machine.Spec
-// +kubebuilder:rbac:groups=cluster.k8s.io,resources=machines;machines/status,verbs=get;list;watch;create;update;patch;delete
 func (r *ReconcileMachine) Reconcile(request reconcile.Request) (reconcile.Result, error) {
 	// TODO(mvladev): Can context be passed from Kubebuilder?
 	ctx := context.TODO()

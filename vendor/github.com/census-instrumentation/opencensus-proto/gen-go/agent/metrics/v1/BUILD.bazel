@@ -1,0 +1,16 @@
+load("@io_bazel_rules_go//go:def.bzl", "go_library")
+
+go_library(
+    name = "go_default_library",
+    srcs = ["metrics_service.pb.go"],
+    importmap = "sigs.k8s.io/cluster-api/vendor/github.com/census-instrumentation/opencensus-proto/gen-go/agent/metrics/v1",
+    importpath = "github.com/census-instrumentation/opencensus-proto/gen-go/agent/metrics/v1",
+    visibility = ["//visibility:public"],
+    deps = [
+        "//vendor/github.com/census-instrumentation/opencensus-proto/gen-go/agent/common/v1:go_default_library",
+        "//vendor/github.com/census-instrumentation/opencensus-proto/gen-go/metrics/v1:go_default_library",
+        "//vendor/github.com/census-instrumentation/opencensus-proto/gen-go/resource/v1:go_default_library",
+        "//vendor/github.com/golang/protobuf/proto:go_default_library",
+        "//vendor/google.golang.org/grpc:go_default_library",
+    ],
+)

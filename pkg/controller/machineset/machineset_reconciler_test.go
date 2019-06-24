@@ -83,7 +83,7 @@ func TestReconcile(t *testing.T) {
 	// TODO(joshuarubin) there seems to be a race here. If expectInt sleeps
 	// briefly, even 10ms, the number of replicas is 4 and not 2 as expected
 	expectInt(t, int(replicas), func(ctx context.Context) int {
-		if err := c.List(ctx, &client.ListOptions{}, machines); err != nil {
+		if err := c.List(ctx, machines); err != nil {
 			return -1
 		}
 		return len(machines.Items)

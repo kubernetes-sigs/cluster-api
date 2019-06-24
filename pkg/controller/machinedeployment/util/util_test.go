@@ -94,7 +94,7 @@ func generateMSWithLabel(labels map[string]string, image string) v1alpha1.Machin
 			Replicas: func(i int32) *int32 { return &i }(1),
 			Selector: metav1.LabelSelector{MatchLabels: labels},
 			Template: v1alpha1.MachineTemplateSpec{
-				ObjectMeta: metav1.ObjectMeta{
+				ObjectMeta: v1alpha1.ObjectMeta{
 					Labels: labels,
 				},
 				Spec: v1alpha1.MachineSpec{},
@@ -148,7 +148,7 @@ func generateDeployment(image string) v1alpha1.MachineDeployment {
 			Replicas: func(i int32) *int32 { return &i }(1),
 			Selector: metav1.LabelSelector{MatchLabels: machineLabels},
 			Template: v1alpha1.MachineTemplateSpec{
-				ObjectMeta: metav1.ObjectMeta{
+				ObjectMeta: v1alpha1.ObjectMeta{
 					Labels: machineLabels,
 				},
 				Spec: v1alpha1.MachineSpec{},
@@ -159,7 +159,7 @@ func generateDeployment(image string) v1alpha1.MachineDeployment {
 
 func generateMachineTemplateSpec(name, nodeName string, annotations, labels map[string]string) v1alpha1.MachineTemplateSpec {
 	return v1alpha1.MachineTemplateSpec{
-		ObjectMeta: metav1.ObjectMeta{
+		ObjectMeta: v1alpha1.ObjectMeta{
 			Name:        name,
 			Annotations: annotations,
 			Labels:      labels,

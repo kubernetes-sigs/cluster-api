@@ -60,7 +60,7 @@ func TestReconcile(t *testing.T) {
 				},
 			},
 			Template: clusterv1alpha1.MachineTemplateSpec{
-				ObjectMeta: metav1.ObjectMeta{
+				ObjectMeta: clusterv1alpha1.ObjectMeta{
 					Labels: labels,
 				},
 				Spec: clusterv1alpha1.MachineSpec{

@@ -35,7 +35,7 @@ cleanup
 mkdir -p "${TMP_DIFFROOT}"
 cp -a "${DIFFROOT}"/* "${TMP_DIFFROOT}"
 
-make clientset
+make generate-clientset gazelle
 
 echo "diffing ${DIFFROOT} against freshly generated codegen"
 ret=0

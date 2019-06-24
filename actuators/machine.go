@@ -22,10 +22,10 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/kubernetes-sigs/cluster-api-provider-docker/kind/actions"
 	apicorev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/types"
 	corev1 "k8s.io/client-go/kubernetes/typed/core/v1"
+	"sigs.k8s.io/cluster-api-provider-docker/kind/actions"
 	clusterv1 "sigs.k8s.io/cluster-api/pkg/apis/cluster/v1alpha1"
 	"sigs.k8s.io/cluster-api/pkg/client/clientset_generated/clientset/typed/cluster/v1alpha1"
 	capierror "sigs.k8s.io/cluster-api/pkg/controller/error"

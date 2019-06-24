@@ -22,9 +22,9 @@ import (
 	"html/template"
 	"strings"
 
-	"github.com/kubernetes-sigs/cluster-api-provider-docker/kind/kubeadm"
-	"github.com/kubernetes-sigs/cluster-api-provider-docker/third_party/forked/loadbalancer"
 	"github.com/pkg/errors"
+	"sigs.k8s.io/cluster-api-provider-docker/kind/kubeadm"
+	"sigs.k8s.io/cluster-api-provider-docker/third_party/forked/loadbalancer"
 	"sigs.k8s.io/kind/pkg/cluster/constants"
 	"sigs.k8s.io/kind/pkg/cluster/nodes"
 	"sigs.k8s.io/kind/pkg/container/docker"

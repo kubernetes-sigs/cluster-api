@@ -25,11 +25,10 @@ export KUBEBUILDER_CONTROLPLANE_STOP_TIMEOUT ?=60s
 export DOCKER_CLI_EXPERIMENTAL := enabled
 
 # Image URL to use all building/pushing image targets
-REGISTRY ?= gcr.io/k8s-cluster-api
+REGISTRY ?= gcr.io/$(shell gcloud config get-value project)
 CONTROLLER_IMG ?= $(REGISTRY)/cluster-api-controller
 EXAMPLE_PROVIDER_IMG ?= $(REGISTRY)/example-provider-controller
-
-TAG ?= latest
+TAG ?= dev
 
 ARCH?=amd64
 ALL_ARCH = amd64 arm arm64 ppc64le s390x

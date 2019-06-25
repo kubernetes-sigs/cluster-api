@@ -27,12 +27,17 @@ import (
 )
 
 const (
-	KnownTokenID     = "abcdef"
+	// KnownTokenID is the kubeadm token ID
+	KnownTokenID = "abcdef"
+	// KnownTokenSecret is the kubeadm token secret
 	KnownTokenSecret = "0123456789abcdef"
-	Token            = KnownTokenID + "." + KnownTokenSecret
+	// Token is the kubeadm token formed by combining the token ID and secret
+	Token = KnownTokenID + "." + KnownTokenSecret
 )
 
-func InitConifguration(version, name, controlPlaneEndpoint string) ([]byte, error) {
+// InitConfiguration accepts a set of paramenters like Kubernetes version and cluster name,
+// and marshals the kubeadm configuration types in a `---` separated JSON document.
+func InitConfiguration(version, name, controlPlaneEndpoint string) ([]byte, error) {
 	configuration := &kubeadmv1beta1.InitConfiguration{
 		TypeMeta: metav1.TypeMeta{
 			Kind:       "InitConfiguration",

@@ -13,13 +13,12 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-set -o errexit
-set -o xtrace
+# get_root_path returns the root path of the project source tree
+get_root_path() {
+    echo "$(git rev-parse --show-toplevel)"
+}
 
-REGISTRY=$(gcloud config get-value project)
-TAG=${TAG:-latest}
-
-IMAGE="gcr.io/${REGISTRY}/capd-manager:${TAG}"
-
-docker build --file Dockerfile -t "${IMAGE}" .
-gcloud docker -- push "${IMAGE}"
+# cd_root_path cds to the root path of the project source tree
+cd_root_path() {
+    cd "$(get_root_path)" || exit
+}

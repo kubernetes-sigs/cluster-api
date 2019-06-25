@@ -41,11 +41,13 @@ const (
 	clusterAPIControlPlaneSetLabel = "controlplane"
 )
 
+// Machine defines a machine actuator type
 type Machine struct {
 	Core       corev1.CoreV1Interface
 	ClusterAPI v1alpha1.ClusterV1alpha1Interface
 }
 
+// NewMachineActuator returns a new machine actuator object
 func NewMachineActuator(clusterapi v1alpha1.ClusterV1alpha1Interface, core corev1.CoreV1Interface) *Machine {
 	return &Machine{
 		Core:       core,
@@ -53,7 +55,8 @@ func NewMachineActuator(clusterapi v1alpha1.ClusterV1alpha1Interface, core corev
 	}
 }
 
-// Have to print all the errors because cluster-api swallows them
+// Create creates a machine for a given cluster
+// Note: have to print all the errors because cluster-api swallows them
 func (m *Machine) Create(ctx context.Context, c *clusterv1.Cluster, machine *clusterv1.Machine) error {
 	old := machine.DeepCopy()
 	fmt.Printf("Creating a machine for cluster %q\n", c.Name)
@@ -175,11 +178,13 @@ func (m *Machine) Delete(ctx context.Context, cluster *clusterv1.Cluster, machin
 	return nil
 }
 
+// Update updates a machine
 func (m *Machine) Update(ctx context.Context, cluster *clusterv1.Cluster, machine *clusterv1.Machine) error {
 	fmt.Println("Update machine is not implemented yet.")
 	return nil
 }
 
+// Exists returns true if a machine exists in the cluster
 func (m *Machine) Exists(ctx context.Context, cluster *clusterv1.Cluster, machine *clusterv1.Machine) (bool, error) {
 	if machine.Spec.ProviderID != nil {
 		return true, nil
@@ -236,6 +241,7 @@ func providerID(name string) string {
 	return fmt.Sprintf("docker://%s", name)
 }
 
+// CAPIroleToKindRole converts a CAPI role to kind role
 // TODO there is a better way to do this.
 func CAPIroleToKindRole(CAPIRole string) string {
 	if CAPIRole == clusterAPIControlPlaneSetLabel {

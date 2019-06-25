@@ -14,12 +14,14 @@
 # limitations under the License.
 
 set -o errexit
-set -o xtrace
+set -o nounset
+set -o pipefail
 
-REGISTRY=$(gcloud config get-value project)
-TAG=${TAG:-latest}
+# shellcheck source=/dev/null
+source "$(dirname "$0")/utils.sh"
+# cd to the root path
+cd_root_path
 
-IMAGE="gcr.io/${REGISTRY}/capd-manager:${TAG}"
-
-docker build --file Dockerfile -t "${IMAGE}" .
-gcloud docker -- push "${IMAGE}"
+# run go test
+export GO111MODULE=on
+go test ./...

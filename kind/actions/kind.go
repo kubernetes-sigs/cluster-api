@@ -179,6 +179,7 @@ func DeleteControlPlane(clusterName, nodeName string) error {
 	return ConfigureLoadBalancer(clusterName)
 }
 
+// DeleteWorker removes a worker node from a cluster
 func DeleteWorker(clusterName, nodeName string) error {
 	nodeList, err := nodes.List(
 		fmt.Sprintf("label=%s=%s", constants.ClusterLabelKey, clusterName),
@@ -202,6 +203,7 @@ func DeleteWorker(clusterName, nodeName string) error {
 	return nodes.Delete(node)
 }
 
+// ListControlPlanes returns the list of control-plane nodes for a cluster
 func ListControlPlanes(clusterName string) ([]nodes.Node, error) {
 	return nodes.List(
 		fmt.Sprintf("label=%s=%s", constants.ClusterLabelKey, clusterName),

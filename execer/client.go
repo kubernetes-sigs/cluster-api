@@ -35,6 +35,7 @@ type Client struct {
 	ExtraEnv []string
 }
 
+// NewClient returns a new client object
 func NewClient(command string) *Client {
 	return &Client{
 		Stdout:   os.Stdout,
@@ -44,6 +45,9 @@ func NewClient(command string) *Client {
 	}
 }
 
+// PipeToCommand pipes a standard input stream to a client command, starts the command and waits
+// until the client command has finished writing its standard output and standard error to the respective
+// client buffers.
 func (c *Client) PipeToCommand(stdin io.Reader, args ...string) error {
 	cmd := exec.Command(c.Command, args...)
 	cmd.Env = append(os.Environ(), c.ExtraEnv...)
@@ -83,6 +87,7 @@ func (c *Client) PipeToCommand(stdin io.Reader, args ...string) error {
 	return nil
 }
 
+// RunCommandReturnOutput runs a client command and returns its output
 func (c *Client) RunCommandReturnOutput(args ...string) (string, error) {
 	cmd := exec.Command(c.Command, args...)
 	cmd.Env = append(os.Environ(), c.ExtraEnv...)
@@ -126,6 +131,7 @@ func (c *Client) RunCommandReturnOutput(args ...string) (string, error) {
 
 }
 
+// RunCommand runs a client command
 func (c *Client) RunCommand(args ...string) error {
 	cmd := exec.Command(c.Command, args...)
 	cmd.Env = append(os.Environ(), c.ExtraEnv...)

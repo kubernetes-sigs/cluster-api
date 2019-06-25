@@ -14,12 +14,18 @@
 # limitations under the License.
 
 set -o errexit
-set -o xtrace
+set -o nounset
+set -o pipefail
 
-REGISTRY=$(gcloud config get-value project)
-TAG=${TAG:-latest}
+# shellcheck source=/dev/null
+source "$(dirname "$0")/utils.sh"
+# cd to the root path
+cd_root_path
 
-IMAGE="gcr.io/${REGISTRY}/capd-manager:${TAG}"
-
-docker build --file Dockerfile -t "${IMAGE}" .
-gcloud docker -- push "${IMAGE}"
+# check for gofmt diffs
+diff=$(git ls-files | grep "\.go" | grep -v "\/vendor" | xargs gofmt -s -d 2>&1)
+if [[ -n "${diff}" ]]; then
+  echo "${diff}"
+  echo
+  echo "Check failed. Please run hack/update-gofmt.sh"
+fi

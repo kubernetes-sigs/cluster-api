@@ -14,12 +14,12 @@
 # limitations under the License.
 
 set -o errexit
-set -o xtrace
+set -o nounset
+set -o pipefail
 
-REGISTRY=$(gcloud config get-value project)
-TAG=${TAG:-latest}
+# shellcheck source=/dev/null
+source "$(dirname "$0")/utils.sh"
+REPO_PATH=$(get_root_path)
 
-IMAGE="gcr.io/${REGISTRY}/capd-manager:${TAG}"
-
-docker build --file Dockerfile -t "${IMAGE}" .
-gcloud docker -- push "${IMAGE}"
+"${REPO_PATH}"/hack/update-deps.sh
+"${REPO_PATH}"/hack/update-gofmt.sh

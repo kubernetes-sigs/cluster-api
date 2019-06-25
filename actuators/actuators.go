@@ -20,10 +20,10 @@ import (
 	"fmt"
 	"io/ioutil"
 
-	"sigs.k8s.io/cluster-api-provider-docker/kind/actions"
 	"github.com/pkg/errors"
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"sigs.k8s.io/cluster-api-provider-docker/kind/actions"
 	clusterv1 "sigs.k8s.io/cluster-api/pkg/apis/cluster/v1alpha1"
 	"sigs.k8s.io/kind/pkg/cluster/constants"
 	"sigs.k8s.io/kind/pkg/cluster/nodes"
@@ -39,12 +39,15 @@ func getRole(machine *clusterv1.Machine) string {
 	return setValue
 }
 
+// Cluster defines a cluster actuator object
 type Cluster struct{}
 
+// NewClusterActuator returns a new cluster actuator object
 func NewClusterActuator() *Cluster {
 	return &Cluster{}
 }
 
+// Reconcile setups an external load balancer for the cluster if needed
 func (c *Cluster) Reconcile(cluster *clusterv1.Cluster) error {
 	elb, err := getExternalLoadBalancerNode(cluster.Name)
 	if err != nil {
@@ -72,11 +75,12 @@ func getExternalLoadBalancerNode(clusterName string) (*nodes.Node, error) {
 		return nil, nil
 	}
 	if len(elb) > 1 {
-		return nil, errors.New("Too many external load balancers.")
+		return nil, errors.New("too many external load balancers")
 	}
 	return &elb[0], nil
 }
 
+// Delete can be used to delete a cluster
 func (c *Cluster) Delete(cluster *clusterv1.Cluster) error {
 	fmt.Println("Cluster delete is not implemented.")
 	return nil

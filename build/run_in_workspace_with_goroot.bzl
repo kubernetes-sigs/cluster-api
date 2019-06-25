@@ -51,18 +51,15 @@ _workspace_binary_script = rule(
     attrs = {
         "cmd": attr.label(
             mandatory = True,
-            allow_files = True,
-            single_file = True,
+            allow_single_file = True,
         ),
         "root_file": attr.label(
             mandatory = True,
-            allow_files = True,
-            single_file = True,
+            allow_single_file = True,
         ),
         "go_bin": attr.label(
             mandatory = True,
-            allow_files = True,
-            single_file = True,
+            allow_single_file = True,
         ),
     },
     executable = True,

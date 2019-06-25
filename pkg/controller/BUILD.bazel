@@ -6,7 +6,8 @@ go_library(
         "add_machinedeployment.go",
         "add_machineset.go",
         "add_node.go",
-        "noderef_controller.go",
+        "add_noderef.go",
+        "controller.go",
     ],
     importpath = "sigs.k8s.io/cluster-api/pkg/controller",
     visibility = ["//visibility:public"],
@@ -14,6 +15,7 @@ go_library(
         "//pkg/controller/machinedeployment:go_default_library",
         "//pkg/controller/machineset:go_default_library",
         "//pkg/controller/node:go_default_library",
+        "//pkg/controller/noderef:go_default_library",
         "//vendor/sigs.k8s.io/controller-runtime/pkg/manager:go_default_library",
     ],
 )

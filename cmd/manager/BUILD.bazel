@@ -10,8 +10,10 @@ go_library(
         "//pkg/controller:go_default_library",
         "//vendor/k8s.io/client-go/plugin/pkg/client/auth/gcp:go_default_library",
         "//vendor/k8s.io/klog:go_default_library",
+        "//vendor/k8s.io/klog/klogr:go_default_library",
         "//vendor/sigs.k8s.io/controller-runtime/pkg/client/config:go_default_library",
         "//vendor/sigs.k8s.io/controller-runtime/pkg/manager:go_default_library",
+        "//vendor/sigs.k8s.io/controller-runtime/pkg/runtime/log:go_default_library",
         "//vendor/sigs.k8s.io/controller-runtime/pkg/runtime/signals:go_default_library",
     ],
 )

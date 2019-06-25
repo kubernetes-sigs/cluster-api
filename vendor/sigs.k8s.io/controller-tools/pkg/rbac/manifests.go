@@ -30,10 +30,14 @@ import (
 
 // ManifestOptions represent options for generating the RBAC manifests.
 type ManifestOptions struct {
-	InputDir  string
-	OutputDir string
-	Name      string
-	Labels    map[string]string
+	InputDir       string
+	OutputDir      string
+	RoleFile       string
+	BindingFile    string
+	Name           string
+	ServiceAccount string
+	Namespace      string
+	Labels         map[string]string
 }
 
 // SetDefaults sets up the default options for RBAC Manifest generator.
@@ -41,6 +45,8 @@ func (o *ManifestOptions) SetDefaults() {
 	o.Name = "manager"
 	o.InputDir = filepath.Join(".", "pkg")
 	o.OutputDir = filepath.Join(".", "config", "rbac")
+	o.ServiceAccount = "default"
+	o.Namespace = "system"
 }
 
 // RoleName returns the RBAC role name to be used in the manifests.
@@ -48,15 +54,27 @@ func (o *ManifestOptions) RoleName() string {
 	return o.Name + "-role"
 }
 
+// RoleFileName returns the name of the manifest file to use for the role.
+func (o *ManifestOptions) RoleFileName() string {
+	if len(o.RoleFile) == 0 {
+		return "rbac_role.yaml"
+	}
+	// TODO: validate file name
+	return o.RoleFile
+}
+
 // RoleBindingName returns the RBAC role binding name to be used in the manifests.
 func (o *ManifestOptions) RoleBindingName() string {
 	return o.Name + "-rolebinding"
 }
 
-// Namespace returns the namespace to be used in the RBAC manifests.
-func (o *ManifestOptions) Namespace() string {
-	// TODO(droot): define this as a constant and share it with scaffold pkg.
-	return "system"
+// RoleBindingFileName returns the name of the manifest file to use for the role binding.
+func (o *ManifestOptions) RoleBindingFileName() string {
+	if len(o.BindingFile) == 0 {
+		return "rbac_role_binding.yaml"
+	}
+	// TODO: validate file name
+	return o.BindingFile
 }
 
 // Validate validates the input options.
@@ -98,12 +116,12 @@ func Generate(o *ManifestOptions) error {
 	if err != nil {
 		return fmt.Errorf("failed to create output dir %v", err)
 	}
-	roleManifestFile := filepath.Join(o.OutputDir, "rbac_role.yaml")
+	roleManifestFile := filepath.Join(o.OutputDir, o.RoleFileName())
 	if err := ioutil.WriteFile(roleManifestFile, roleManifest, 0666); err != nil {
 		return fmt.Errorf("failed to write role manifest YAML file %v", err)
 	}
 
-	roleBindingManifestFile := filepath.Join(o.OutputDir, "rbac_role_binding.yaml")
+	roleBindingManifestFile := filepath.Join(o.OutputDir, o.RoleBindingFileName())
 	if err := ioutil.WriteFile(roleBindingManifestFile, roleBindingManifest, 0666); err != nil {
 		return fmt.Errorf("failed to write role manifest YAML file %v", err)
 	}
@@ -137,8 +155,8 @@ func getClusterRoleBindingManifest(o *ManifestOptions) ([]byte, error) {
 		},
 		Subjects: []rbacv1.Subject{
 			{
-				Name:      "default",
-				Namespace: o.Namespace(),
+				Name:      o.ServiceAccount,
+				Namespace: o.Namespace,
 				Kind:      "ServiceAccount",
 			},
 		},

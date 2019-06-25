@@ -19,7 +19,8 @@ package cluster
 import (
 	"context"
 
-	"k8s.io/apimachinery/pkg/api/errors"
+	"github.com/pkg/errors"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/klog"
@@ -77,7 +78,7 @@ func (r *ReconcileCluster) Reconcile(request reconcile.Request) (reconcile.Resul
 	cluster := &clusterv1alpha1.Cluster{}
 	err := r.Get(context.Background(), request.NamespacedName, cluster)
 	if err != nil {
-		if errors.IsNotFound(err) {
+		if apierrors.IsNotFound(err) {
 			// Object not found, return.  Created objects are automatically garbage collected.
 			// For additional cleanup logic use finalizers.
 			return reconcile.Result{}, nil
@@ -137,11 +138,10 @@ func (r *ReconcileCluster) Reconcile(request reconcile.Request) (reconcile.Resul
 	}
 
 	klog.Infof("reconciling cluster object %v triggers idempotent reconcile.", name)
-	err = r.actuator.Reconcile(cluster)
-	if err != nil {
-		if requeueErr, ok := err.(*controllerError.RequeueAfterError); ok {
-			klog.Infof("Actuator returned requeue after error: %v", requeueErr)
-			return reconcile.Result{Requeue: true, RequeueAfter: requeueErr.RequeueAfter}, nil
+	if err := r.actuator.Reconcile(cluster); err != nil {
+		if requeueErr, ok := errors.Cause(err).(controllerError.HasRequeueAfterError); ok {
+			klog.Infof("Actuator returned requeue-after error: %v", requeueErr)
+			return reconcile.Result{Requeue: true, RequeueAfter: requeueErr.GetRequeueAfter()}, nil
 		}
 		klog.Errorf("Error reconciling cluster object %v; %v", name, err)
 		return reconcile.Result{}, err

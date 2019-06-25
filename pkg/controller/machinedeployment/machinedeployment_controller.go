@@ -210,10 +210,6 @@ func (r *ReconcileMachineDeployment) reconcile(ctx context.Context, d *v1alpha1.
 		return reconcile.Result{}, err
 	}
 
-	if d.DeletionTimestamp != nil {
-		return reconcile.Result{}, r.sync(d, msList, machineMap)
-	}
-
 	if d.Spec.Paused {
 		return reconcile.Result{}, r.sync(d, msList, machineMap)
 	}
@@ -280,9 +276,11 @@ func (r *ReconcileMachineDeployment) getMachineSetsForDeployment(d *v1alpha1.Mac
 		// Attempt to adopt machine if it meets previous conditions and it has no controller references.
 		if metav1.GetControllerOf(ms) == nil {
 			if err := r.adoptOrphan(d, ms); err != nil {
+				r.recorder.Eventf(d, corev1.EventTypeWarning, "FailedAdopt", "Failed to adopt MachineSet %q: %v", ms.Name, err)
 				klog.Warningf("Failed to adopt MachineSet %q into MachineDeployment %q: %v", ms.Name, d.Name, err)
 				continue
 			}
+			r.recorder.Eventf(d, corev1.EventTypeNormal, "SuccessfulAdopt", "Adopted MachineSet %q", ms.Name)
 		}
 
 		if !metav1.IsControlledBy(ms, d) {

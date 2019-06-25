@@ -63,7 +63,7 @@ deploy: manifests ## Deploy controller in the configured Kubernetes cluster in ~
 .PHONY: manifests
 manifests: ## Generate manifests e.g. CRD, RBAC etc.
 	go run vendor/sigs.k8s.io/controller-tools/cmd/controller-gen/main.go all
-	cp -f ./config/rbac/rbac*.yaml ./config/ci/rbac/
+	cp -f ./config/rbac/manager*.yaml ./config/ci/rbac/
 	cp -f ./config/manager/manager*.yaml ./config/ci/manager/
 
 .PHONY: fmt
@@ -92,15 +92,15 @@ clientset: ## Generate a typed clientset
 	cd ./vendor/k8s.io/code-generator/cmd && go install ./client-gen ./lister-gen ./informer-gen
 	$$GOPATH/bin/client-gen --clientset-name clientset --input-base sigs.k8s.io/cluster-api/pkg/apis \
 		--input cluster/v1alpha1 --output-package sigs.k8s.io/cluster-api/pkg/client/clientset_generated \
-		--go-header-file=./hack/boilerplate.go.txt
+		--go-header-file=./hack/boilerplate/boilerplate.generatego.txt
 	$$GOPATH/bin/lister-gen --input-dirs sigs.k8s.io/cluster-api/pkg/apis/cluster/v1alpha1 \
 		--output-package sigs.k8s.io/cluster-api/pkg/client/listers_generated \
-		--go-header-file=./hack/boilerplate.go.txt
+		--go-header-file=./hack/boilerplate/boilerplate.generatego.txt
 	$$GOPATH/bin/informer-gen --input-dirs sigs.k8s.io/cluster-api/pkg/apis/cluster/v1alpha1 \
 		--versioned-clientset-package sigs.k8s.io/cluster-api/pkg/client/clientset_generated/clientset \
 		--listers-package sigs.k8s.io/cluster-api/pkg/client/listers_generated \
 		--output-package sigs.k8s.io/cluster-api/pkg/client/informers_generated \
-		--go-header-file=./hack/boilerplate.go.txt
+		--go-header-file=./hack/boilerplate/boilerplate.generatego.txt
 	$(MAKE) gazelle
 
 .PHONY: clean
@@ -129,6 +129,6 @@ docker-push-ci: docker-build-ci  ## Build the docker image for ci
 
 .PHONY: verify
 verify:
-	./hack/verify_boilerplate.py
+	./hack/verify-boilerplate.sh
 	./hack/verify_clientset.sh
 	./hack/verify-bazel.sh

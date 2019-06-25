@@ -197,11 +197,6 @@ func (r *ReconcileMachineSet) reconcile(ctx context.Context, machineSet *cluster
 		return reconcile.Result{Requeue: true}, nil
 	}
 
-	// Return early if the MachineSet is deleted.
-	if !machineSet.ObjectMeta.DeletionTimestamp.IsZero() {
-		return reconcile.Result{}, nil
-	}
-
 	// Filter out irrelevant machines (deleting/mismatch labels) and claim orphaned machines.
 	filteredMachines := make([]*clusterv1alpha1.Machine, 0, len(allMachines.Items))
 	for idx := range allMachines.Items {
@@ -213,9 +208,12 @@ func (r *ReconcileMachineSet) reconcile(ctx context.Context, machineSet *cluster
 		// Attempt to adopt machine if it meets previous conditions and it has no controller references.
 		if metav1.GetControllerOf(machine) == nil {
 			if err := r.adoptOrphan(machineSet, machine); err != nil {
-				klog.Warningf("Failed to adopt MachineSet %q into MachineSet %q: %v", machine.Name, machineSet.Name, err)
+				klog.Warningf("Failed to adopt Machine %q into MachineSet %q: %v", machine.Name, machineSet.Name, err)
+				r.recorder.Eventf(machineSet, corev1.EventTypeWarning, "FailedAdopt", "Failed to adopt Machine %q: %v", machine.Name, err)
 				continue
 			}
+			klog.Infof("Adopted Machine %q into MachineSet %q", machine.Name, machineSet.Name)
+			r.recorder.Eventf(machineSet, corev1.EventTypeNormal, "SuccessfulAdopt", "Adopted Machine %q", machine.Name)
 		}
 
 		filteredMachines = append(filteredMachines, machine)
@@ -303,9 +301,12 @@ func (r *ReconcileMachineSet) syncReplicas(ms *clusterv1alpha1.MachineSet, machi
 			machine := r.createMachine(ms)
 			if err := r.Client.Create(context.Background(), machine); err != nil {
 				klog.Errorf("Unable to create Machine %q: %v", machine.Name, err)
+				r.recorder.Eventf(ms, corev1.EventTypeWarning, "FailedCreate", "Failed to create machine %q: %v", machine.Name, err)
 				errstrings = append(errstrings, err.Error())
 				continue
 			}
+			klog.Infof("Created machine %d of %d with name %q", i+1, diff, machine.Name)
+			r.recorder.Eventf(ms, corev1.EventTypeNormal, "SuccessfulCreate", "Created machine %q", machine.Name)
 
 			machineList = append(machineList, machine)
 		}
@@ -337,8 +338,11 @@ func (r *ReconcileMachineSet) syncReplicas(ms *clusterv1alpha1.MachineSet, machi
 				err := r.Client.Delete(context.Background(), targetMachine)
 				if err != nil {
 					klog.Errorf("Unable to delete Machine %s: %v", targetMachine.Name, err)
+					r.recorder.Eventf(ms, corev1.EventTypeWarning, "FailedDelete", "Failed to delete machine %q: %v", targetMachine.Name, err)
 					errCh <- err
 				}
+				klog.Infof("Deleted machine %q", targetMachine.Name)
+				r.recorder.Eventf(ms, corev1.EventTypeNormal, "SuccessfulDelete", "Deleted machine %q", targetMachine.Name)
 			}(machine)
 		}
 		wg.Wait()

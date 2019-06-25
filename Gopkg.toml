@@ -23,15 +23,19 @@ required = [
 # STANZAS BELOW ARE GENERATED AND MAY BE WRITTEN - DO NOT MODIFY BELOW THIS LINE.
 
 [[constraint]]
-  name="sigs.k8s.io/controller-runtime"
-  version="v0.1.11"
+  name = "sigs.k8s.io/controller-runtime"
+  version = "v0.1.12"
 
 [[constraint]]
-  name="sigs.k8s.io/controller-tools"
-  version="v0.1.9"
+  name = "sigs.k8s.io/controller-tools"
+  version = "v0.1.11"
+
+[[constraint]]
+  name = "k8s.io/code-generator"
+  branch = "release-1.13"
 
 # For dependency below: Refer to issue https://github.com/golang/dep/issues/1799
 [[override]]
 name = "gopkg.in/fsnotify.v1"
 source = "https://github.com/fsnotify/fsnotify.git"
-version="v1.4.7"
+version = "v1.4.7"

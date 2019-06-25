@@ -39,30 +39,6 @@ func getRole(machine *clusterv1.Machine) string {
 	return setValue
 }
 
-// Cluster defines a cluster actuator object
-type Cluster struct{}
-
-// NewClusterActuator returns a new cluster actuator object
-func NewClusterActuator() *Cluster {
-	return &Cluster{}
-}
-
-// Reconcile setups an external load balancer for the cluster if needed
-func (c *Cluster) Reconcile(cluster *clusterv1.Cluster) error {
-	elb, err := getExternalLoadBalancerNode(cluster.Name)
-	if err != nil {
-		fmt.Printf("%+v\n", err)
-		return err
-	}
-	if elb != nil {
-		fmt.Println("External Load Balancer already exists. Nothing to do for this cluster.")
-		return nil
-	}
-	fmt.Printf("The cluster named %q has been created! Setting up some infrastructure.\n", cluster.Name)
-	_, err = actions.SetUpLoadBalancer(cluster.Name)
-	return err
-}
-
 func getExternalLoadBalancerNode(clusterName string) (*nodes.Node, error) {
 	elb, err := nodes.List(
 		fmt.Sprintf("label=%s=%s", constants.NodeRoleKey, constants.ExternalLoadBalancerNodeRoleValue),
@@ -78,12 +54,6 @@ func getExternalLoadBalancerNode(clusterName string) (*nodes.Node, error) {
 		return nil, errors.New("too many external load balancers")
 	}
 	return &elb[0], nil
-}
-
-// Delete can be used to delete a cluster
-func (c *Cluster) Delete(cluster *clusterv1.Cluster) error {
-	fmt.Println("Cluster delete is not implemented.")
-	return nil
 }
 
 func kubeconfigToSecret(clusterName, namespace string) (*v1.Secret, error) {

@@ -4,9 +4,16 @@
 
 A sample is built and hosted at `gcr.io/kubernetes1-226021/capd-manager:latest`
 
-### Building the binaries
+### External Dependencies
 
-Requires go 1.12+ with go modules.
+- `go,  1.12+` 
+- `kind,  >= 0.3.0`
+- `kubectl`
+- `docker`
+
+### Building Go binaries
+
+Building Go binaries requires `go 1.12+` for go module support.
 
 ```
 # required if `cluster-api-provider-docker` was cloned into $GOPATH
@@ -19,54 +26,53 @@ go build ./cmd/kind-test
 
 ### Building the image
 
-Requires `gcloud` authenticated and configured.
+#### Using Gcloud
 
-Requires a google cloud project
+Make sure `gcloud` is authenticated and configured.
 
-`./scripts/publish-manager.sh`
+You also need to set up a google cloud project.
+
+Run: `./scripts/publish-manager.sh`
 
 #### Using Docker
 
-Alternatively, replace "my-repository" with an appropriate prefix and run:
+Alternatively, run: `docker build -t <MY_REPOSITORY>/capd-manager:latest .`
 
-```
-docker build -t my-repository/capd-manager:latest .
-```
-
-# Testing out CAPD
+## Trying CAPD
 
 Tested on: Linux, works ok on OS X sometimes
 
-Requirements: `kind` > 0.3.0 and `kubectl`
+Make sure you have `kind` > 0.3.0 and `kubectl`.
 
-Install capdctl
+1. Install capdctl: 
 
-`go install ./cmd/capdctl`
+   `go install ./cmd/capdctl`
 
-Start a management kind cluster
+1. Start a management kind cluster
 
-`capdctl setup`
+   `capdctl setup`
 
-Set up your `kubectl`
+1. Set up your `kubectl`
 
-`export KUBECONFIG="$(kind get kubeconfig-path --name="kind")"`
+   `export KUBECONFIG="$(kind get kubeconfig-path --name="kind")"`
 
-Install the cluster-api CRDs
+1. Install the cluster-api CRDs
 
-`capdctl crds | kubectl apply -f -`
+   `capdctl crds | kubectl apply -f -`
 
-Run the capd & capi manager
+1. Run the capd & capi manager
 
-`capdctl capd -capd-image=gcr.io/my-project/capd-manager:latest | kubectl apply -f -`
+   `capdctl capd -capd-image=<YOUR_REGISTRY>/capd-manager:latest | kubectl apply -f -`
 
-## Create a worker cluster
+### Create a worker cluster
 
 `kubectl apply -f examples/simple-cluster.yaml`
 
-### Interact with a worker cluster
+#### Interact with a worker cluster
 
 The kubeconfig is on the management cluster in secrets. Grab it and write it to a file:
 
 `kubectl get secrets -o jsonpath='{.data.kubeconfig}' kubeconfig-my-cluster | base64 --decode > ~/.kube/kind-config-my-cluster`
 
+Look at the pods in your new worker cluster:
 `kubectl get po --all-namespaces --kubeconfig ~/.kube/kind-config-my-cluster`

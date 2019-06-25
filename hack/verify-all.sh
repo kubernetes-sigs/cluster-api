@@ -41,6 +41,12 @@ if [[ "${VERIFY_SPELLING:-true}" == "true" ]]; then
   cd "${REPO_PATH}"
 fi
 
+if [[ "${VERIFY_BOILERPLATE:-true}" == "true" ]]; then
+  echo "[*] Verifying boilerplate..."
+  hack/verify-boilerplate.sh || res=1
+  cd "${REPO_PATH}"
+fi
+
 if [[ "${VERIFY_GOFMT:-true}" == "true" ]]; then
   echo "[*] Verifying gofmt..."
   hack/verify-gofmt.sh || res=1

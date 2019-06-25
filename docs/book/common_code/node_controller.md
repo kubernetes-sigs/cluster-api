@@ -1,5 +1,8 @@
 # Node Controller
 
+> NOTE: This controller is deprecated and going to be removed in v1alpha2,
+> infrastructure providers should switch to noderef controller.
+
 The node controller has one simple job.  It links or unlinks a `Machine` to the underlying
 core k8s `Node` object if an optional annotation `cluster.k8s.io/machine` is present on the `Node`.  The
 decision to add the annotation is left to each infrastructure-specific provider.  When the
@@ -8,7 +11,7 @@ objectRef.
 
 The simplest way for Infrastructure-specific providers to add this support is to annotate
 nodes in their node bootup script as part of the `kubeadm join` operation (via a commandline
-parameter). 
+parameter).
 
 ## Node Controller Semantics
 

@@ -17,39 +17,34 @@ limitations under the License.
 package actuators
 
 import (
-	"fmt"
-
+	"github.com/go-logr/logr"
 	"sigs.k8s.io/cluster-api-provider-docker/kind/actions"
 	clusterv1 "sigs.k8s.io/cluster-api/pkg/apis/cluster/v1alpha1"
 )
 
 // Cluster defines a cluster actuator object
 type Cluster struct {
-}
-
-// NewClusterActuator returns a new cluster actuator object
-func NewClusterActuator() *Cluster {
-	return &Cluster{}
+	Log logr.Logger
 }
 
 // Reconcile setups an external load balancer for the cluster if needed
 func (c *Cluster) Reconcile(cluster *clusterv1.Cluster) error {
 	elb, err := getExternalLoadBalancerNode(cluster.Name)
 	if err != nil {
-		fmt.Printf("%+v\n", err)
+		c.Log.Error(err, "Error getting external load balancer node")
 		return err
 	}
 	if elb != nil {
-		fmt.Println("External Load Balancer already exists. Nothing to do for this cluster.")
+		c.Log.Info("External Load Balancer already exists. Nothing to do for this cluster.")
 		return nil
 	}
-	fmt.Printf("The cluster named %q has been created! Setting up some infrastructure.\n", cluster.Name)
+	c.Log.Info("Cluster has been created! Setting up some infrastructure", "cluster-name", cluster.Name)
 	_, err = actions.SetUpLoadBalancer(cluster.Name)
 	return err
 }
 
 // Delete can be used to delete a cluster
 func (c *Cluster) Delete(cluster *clusterv1.Cluster) error {
-	fmt.Println("Cluster delete is not implemented.")
+	c.Log.Info("Cluster delete is not implemented.")
 	return nil
 }

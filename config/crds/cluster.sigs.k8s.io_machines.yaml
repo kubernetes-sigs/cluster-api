@@ -590,9 +590,9 @@ spec:
                 - address
                 type: object
               type: array
-            bootstrap:
-              description: Bootstrap is the state of the bootstrap provider.
-              type: string
+            bootstrapReady:
+              description: BootstrapReady is the state of the bootstrap provider.
+              type: boolean
             conditions:
               description: 'Conditions lists the conditions synced from the node conditions
                 of the corresponding node-object. Machine-controller is responsible
@@ -658,9 +658,10 @@ spec:
                 can be added as events to the Machine object and/or logged in the
                 controller's output."
               type: string
-            infrastructure:
-              description: Infrastructure is the state of the infrastructure provider.
-              type: string
+            infrastructureReady:
+              description: InfrastructureReady is the state of the infrastructure
+                provider.
+              type: boolean
             lastUpdated:
               description: LastUpdated identifies when this status was last observed.
               format: date-time

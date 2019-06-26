@@ -7,6 +7,7 @@ go_library(
         "common_type.go",
         "defaults.go",
         "doc.go",
+        "machine_phase_types.go",
         "machine_types.go",
         "machinedeployment_types.go",
         "machineset_types.go",

@@ -197,7 +197,7 @@ clean: ## Remove all generated files
 
 .PHONY: clean-bazel
 clean-bazel: ## Remove all generated bazel symlinks
-	rm -rf bazel-*
+	bazel clean
 
 .PHONY: clean-bin
 clean-bin: ## Remove all generated binaries

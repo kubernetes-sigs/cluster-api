@@ -6,7 +6,7 @@ A sample is built and hosted at `gcr.io/kubernetes1-226021/capd-manager:latest`
 
 ### External Dependencies
 
-- `go,  1.12+` 
+- `go,  1.12+`
 - `kind,  >= 0.3.0`
 - `kubectl`
 - `docker`
@@ -44,7 +44,7 @@ Tested on: Linux, works ok on OS X sometimes
 
 Make sure you have `kind` > 0.3.0 and `kubectl`.
 
-1. Install capdctl: 
+1. Install capdctl:
 
    `go install ./cmd/capdctl`
 

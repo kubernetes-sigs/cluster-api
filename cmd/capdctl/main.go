@@ -47,6 +47,19 @@ func (mo *machineOptions) initFlags(fs *flag.FlagSet) {
 	mo.version = fs.String("version", "v1.14.2", "The Kubernetes version to run")
 }
 
+type machineDeyploymentOptions struct {
+	name, namespace, clusterName, kubeletVersion *string
+	replicas                                     *int
+}
+
+func (mo *machineDeyploymentOptions) initFlags(fs *flag.FlagSet) {
+	mo.name = fs.String("name", "my-machine-deployment", "The name of the machine deployment")
+	mo.namespace = fs.String("namespace", "my-namespace", "The namespace of the machine deployment")
+	mo.clusterName = fs.String("cluster-name", "my-cluster", "The name of the cluster the machine deployment creates machines for")
+	mo.kubeletVersion = fs.String("kubelet-version", "v1.14.2", "The Kubernetes kubelet version to run")
+	mo.replicas = fs.Int("replicas", 1, "The number of replicas")
+}
+
 func main() {
 	setup := flag.NewFlagSet("setup", flag.ExitOnError)
 	managementClusterName := setup.String("cluster-name", "kind", "The name of the management cluster")
@@ -71,6 +84,10 @@ func main() {
 	clusterName := cluster.String("cluster-name", "my-cluster", "The name of the cluster")
 	clusterNamespace := cluster.String("namespace", "my-namespace", "The namespace the cluster belongs to")
 
+	machineDeployment := flag.NewFlagSet("machine-deployment", flag.ExitOnError)
+	machineDeploymentOpts := new(machineDeyploymentOptions)
+	machineDeploymentOpts.initFlags(machineDeployment)
+
 	if len(os.Args) < 2 {
 		fmt.Println("At least one subcommand is requied.")
 		fmt.Println(usage())
@@ -94,6 +111,9 @@ func main() {
 	case "cluster":
 		cluster.Parse(os.Args[2:])
 		fmt.Fprintf(os.Stdout, clusterYAML(*clusterName, *clusterNamespace))
+	case "machine-deployment":
+		machineDeployment.Parse(os.Args[2:])
+		fmt.Fprint(os.Stdout, machineDeploymentYAML(machineDeploymentOpts))
 	case "help":
 		fmt.Println(usage())
 	default:
@@ -124,6 +144,9 @@ subcommands are:
 
   cluster - Write a capd cluster object to stdout
     example: capdctl cluster -cluster-name my-cluster -namespace my-namespace | kubectl apply -f -
+
+  machine-deployment - Write a machine deployment object to stdout
+    example: capdctl machine-deployment -name my-machine-deployment -cluster-name my-cluster -namespace my-namespace -kubelet-version v1.14.2 -replicas 1 | kubectl apply -f -
 `
 }
 
@@ -141,6 +164,49 @@ spec:
       cidrBlocks: ["192.168.0.0/16"]
     serviceDomain: "cluster.local"
   providerSpec: {}`, name, namespace)
+}
+
+func machineDeploymentYAML(opts *machineDeyploymentOptions) string {
+	replicas := int32(*opts.replicas)
+	labels := map[string]string{
+		"cluster.k8s.io/cluster-name": *opts.clusterName,
+		"set":                         "node",
+	}
+	deployment := v1alpha1.MachineDeployment{
+		TypeMeta: metav1.TypeMeta{
+			Kind:       "MachineDeployment",
+			APIVersion: "cluster.k8s.io/v1alpha1",
+		},
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      *opts.name,
+			Namespace: *opts.namespace,
+			Labels:    labels,
+		},
+		Spec: v1alpha1.MachineDeploymentSpec{
+			Replicas: &replicas,
+			Selector: metav1.LabelSelector{
+				MatchLabels: labels,
+			},
+			Template: v1alpha1.MachineTemplateSpec{
+				ObjectMeta: metav1.ObjectMeta{
+					Labels: labels,
+				},
+				Spec: v1alpha1.MachineSpec{
+					ProviderSpec: v1alpha1.ProviderSpec{},
+					Versions: v1alpha1.MachineVersionInfo{
+						Kubelet: *opts.kubeletVersion,
+					},
+				},
+			},
+		},
+	}
+
+	b, err := json.Marshal(deployment)
+	// TODO don't panic on the error
+	if err != nil {
+		panic(err)
+	}
+	return string(b)
 }
 
 func machineYAML(opts *machineOptions) string {

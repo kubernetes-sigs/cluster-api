@@ -24,18 +24,16 @@ import (
 	appsv1 "k8s.io/api/apps/v1"
 	"k8s.io/apimachinery/pkg/util/yaml"
 	"k8s.io/klog"
-	clusterv1 "sigs.k8s.io/cluster-api/pkg/apis/cluster/v1alpha1"
+	clusterv1 "sigs.k8s.io/cluster-api/pkg/apis/cluster/v1alpha2"
 )
 
 type sourceClient interface {
 	Delete(string) error
-	DeleteMachineClass(namespace, name string) error
 	ForceDeleteCluster(string, string) error
 	ForceDeleteMachine(string, string) error
 	ForceDeleteMachineDeployment(string, string) error
 	ForceDeleteMachineSet(namespace, name string) error
 	GetClusters(string) ([]*clusterv1.Cluster, error)
-	GetMachineClasses(string) ([]*clusterv1.MachineClass, error)
 	GetMachineDeployments(string) ([]*clusterv1.MachineDeployment, error)
 	GetMachineDeploymentsForCluster(*clusterv1.Cluster) ([]*clusterv1.MachineDeployment, error)
 	GetMachines(namespace string) ([]*clusterv1.Machine, error)
@@ -45,20 +43,19 @@ type sourceClient interface {
 	GetMachinesForCluster(*clusterv1.Cluster) ([]*clusterv1.Machine, error)
 	GetMachinesForMachineSet(*clusterv1.MachineSet) ([]*clusterv1.Machine, error)
 	ScaleStatefulSet(string, string, int32) error
-	WaitForClusterV1alpha1Ready() error
+	WaitForClusterV1alpha2Ready() error
 }
 
 type targetClient interface {
 	Apply(string) error
 	CreateClusterObject(*clusterv1.Cluster) error
-	CreateMachineClass(*clusterv1.MachineClass) error
 	CreateMachineDeployments([]*clusterv1.MachineDeployment, string) error
 	CreateMachines([]*clusterv1.Machine, string) error
 	CreateMachineSets([]*clusterv1.MachineSet, string) error
 	EnsureNamespace(string) error
 	GetMachineDeployment(namespace, name string) (*clusterv1.MachineDeployment, error)
 	GetMachineSet(string, string) (*clusterv1.MachineSet, error)
-	WaitForClusterV1alpha1Ready() error
+	WaitForClusterV1alpha2Ready() error
 }
 
 // Pivot deploys the provided provider components to a target cluster and then migrates
@@ -80,14 +77,14 @@ func Pivot(source sourceClient, target targetClient, providerComponents string) 
 func pivot(from sourceClient, to targetClient, providerComponents string) error {
 	// TODO: Attempt to handle rollback in case of pivot failure
 
-	klog.V(4).Info("Ensuring cluster v1alpha1 resources are available on the source cluster")
-	if err := from.WaitForClusterV1alpha1Ready(); err != nil {
-		return errors.New("cluster v1alpha1 resource not ready on source cluster")
+	klog.V(4).Info("Ensuring cluster v1alpha2 resources are available on the source cluster")
+	if err := from.WaitForClusterV1alpha2Ready(); err != nil {
+		return errors.New("cluster v1alpha2 resource not ready on source cluster")
 	}
 
-	klog.V(4).Info("Ensuring cluster v1alpha1 resources are available on the target cluster")
-	if err := to.WaitForClusterV1alpha1Ready(); err != nil {
-		return errors.New("cluster v1alpha1 resource not ready on target cluster")
+	klog.V(4).Info("Ensuring cluster v1alpha2 resources are available on the target cluster")
+	if err := to.WaitForClusterV1alpha2Ready(); err != nil {
+		return errors.New("cluster v1alpha2 resource not ready on target cluster")
 	}
 
 	klog.V(4).Info("Parsing list of cluster-api controllers from provider components")
@@ -102,16 +99,6 @@ func pivot(from sourceClient, to targetClient, providerComponents string) error 
 		if err := from.ScaleStatefulSet(controller.Namespace, controller.Name, 0); err != nil {
 			return errors.Wrapf(err, "Failed to scale down %s/%s", controller.Namespace, controller.Name)
 		}
-	}
-
-	klog.V(4).Info("Retrieving list of MachineClasses to move")
-	machineClasses, err := from.GetMachineClasses("")
-	if err != nil {
-		return err
-	}
-
-	if err := copyMachineClasses(from, to, machineClasses); err != nil {
-		return err
 	}
 
 	klog.V(4).Info("Retrieving list of Clusters to move")
@@ -151,10 +138,6 @@ func pivot(from sourceClient, to targetClient, providerComponents string) error 
 		return err
 	}
 
-	if err := deleteMachineClasses(from, machineClasses); err != nil {
-		return err
-	}
-
 	klog.V(4).Infof("Deleting provider components from source cluster")
 	if err := from.Delete(providerComponents); err != nil {
 		klog.Warningf("Could not delete the provider components from the source cluster: %v", err)
@@ -175,58 +158,6 @@ func moveClusters(from sourceClient, to targetClient, clusters []*clusterv1.Clus
 			return errors.Wrapf(err, "Failed to move cluster: %s/%s", c.Namespace, c.Name)
 		}
 	}
-	return nil
-}
-
-func deleteMachineClasses(client sourceClient, machineClasses []*clusterv1.MachineClass) error {
-	machineClassNames := make([]string, 0, len(machineClasses))
-	for _, mc := range machineClasses {
-		machineClassNames = append(machineClassNames, mc.Name)
-	}
-	klog.V(4).Infof("Preparing to delete MachineClasses: %v", machineClassNames)
-
-	for _, mc := range machineClasses {
-		if err := deleteMachineClass(client, mc); err != nil {
-			return errors.Wrapf(err, "failed to delete MachineClass %s:%s", mc.Namespace, mc.Name)
-		}
-	}
-	return nil
-}
-
-func deleteMachineClass(client sourceClient, machineClass *clusterv1.MachineClass) error {
-	// New objects cannot have a specified resource version. Clear it out.
-	machineClass.SetResourceVersion("")
-	if err := client.DeleteMachineClass(machineClass.Namespace, machineClass.Name); err != nil {
-		return errors.Wrapf(err, "error deleting MachineClass %s/%s from source cluster", machineClass.Namespace, machineClass.Name)
-	}
-
-	klog.V(4).Infof("Successfully deleted MachineClass %s/%s from source cluster", machineClass.Namespace, machineClass.Name)
-	return nil
-}
-
-func copyMachineClasses(from sourceClient, to targetClient, machineClasses []*clusterv1.MachineClass) error {
-	machineClassNames := make([]string, 0, len(machineClasses))
-	for _, mc := range machineClasses {
-		machineClassNames = append(machineClassNames, mc.Name)
-	}
-	klog.V(4).Infof("Preparing to copy MachineClasses: %v", machineClassNames)
-
-	for _, mc := range machineClasses {
-		if err := copyMachineClass(from, to, mc); err != nil {
-			return errors.Wrapf(err, "failed to copy MachineClass %s:%s", mc.Namespace, mc.Name)
-		}
-	}
-	return nil
-}
-
-func copyMachineClass(from sourceClient, to targetClient, machineClass *clusterv1.MachineClass) error {
-	// New objects cannot have a specified resource version. Clear it out.
-	machineClass.SetResourceVersion("")
-	if err := to.CreateMachineClass(machineClass); err != nil {
-		return errors.Wrapf(err, "error copying MachineClass %s/%s to target cluster", machineClass.Namespace, machineClass.Name)
-	}
-
-	klog.V(4).Infof("Successfully copied MachineClass %s/%s", machineClass.Namespace, machineClass.Name)
 	return nil
 }
 

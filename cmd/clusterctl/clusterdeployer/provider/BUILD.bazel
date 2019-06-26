@@ -6,7 +6,7 @@ go_library(
     importpath = "sigs.k8s.io/cluster-api/cmd/clusterctl/clusterdeployer/provider",
     visibility = ["//visibility:public"],
     deps = [
-        "//pkg/apis/cluster/v1alpha1:go_default_library",
+        "//pkg/apis/cluster/v1alpha2:go_default_library",
         "//vendor/k8s.io/client-go/kubernetes:go_default_library",
     ],
 )

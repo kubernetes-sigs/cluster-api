@@ -23,7 +23,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes/scheme"
 	"k8s.io/client-go/tools/record"
-	"sigs.k8s.io/cluster-api/pkg/apis/cluster/v1alpha1"
+	"sigs.k8s.io/cluster-api/pkg/apis/cluster/v1alpha2"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 	"sigs.k8s.io/controller-runtime/pkg/handler"
@@ -35,29 +35,29 @@ var (
 )
 
 func TestMachineSetToDeployments(t *testing.T) {
-	machineDeployment := v1alpha1.MachineDeployment{
+	machineDeployment := v1alpha2.MachineDeployment{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "withMatchingLabels",
 			Namespace: "test",
 		},
-		Spec: v1alpha1.MachineDeploymentSpec{
+		Spec: v1alpha2.MachineDeploymentSpec{
 			Selector: metav1.LabelSelector{
 				MatchLabels: map[string]string{
 					"foo":                            "bar",
-					v1alpha1.MachineClusterLabelName: "test-cluster",
+					v1alpha2.MachineClusterLabelName: "test-cluster",
 				},
 			},
 		},
 	}
 
-	machineDeplopymentList := &v1alpha1.MachineDeploymentList{
+	machineDeplopymentList := &v1alpha2.MachineDeploymentList{
 		TypeMeta: metav1.TypeMeta{
 			Kind: "MachineDeploymentList",
 		},
-		Items: []v1alpha1.MachineDeployment{machineDeployment},
+		Items: []v1alpha2.MachineDeployment{machineDeployment},
 	}
 
-	ms1 := v1alpha1.MachineSet{
+	ms1 := v1alpha2.MachineSet{
 		TypeMeta: metav1.TypeMeta{
 			Kind: "MachineSet",
 		},
@@ -68,11 +68,11 @@ func TestMachineSetToDeployments(t *testing.T) {
 				*metav1.NewControllerRef(&machineDeployment, controllerKind),
 			},
 			Labels: map[string]string{
-				v1alpha1.MachineClusterLabelName: "test-cluster",
+				v1alpha2.MachineClusterLabelName: "test-cluster",
 			},
 		},
 	}
-	ms2 := v1alpha1.MachineSet{
+	ms2 := v1alpha2.MachineSet{
 		TypeMeta: metav1.TypeMeta{
 			Kind: "MachineSet",
 		},
@@ -80,11 +80,11 @@ func TestMachineSetToDeployments(t *testing.T) {
 			Name:      "noOwnerRefNoLabels",
 			Namespace: "test",
 			Labels: map[string]string{
-				v1alpha1.MachineClusterLabelName: "test-cluster",
+				v1alpha2.MachineClusterLabelName: "test-cluster",
 			},
 		},
 	}
-	ms3 := v1alpha1.MachineSet{
+	ms3 := v1alpha2.MachineSet{
 		TypeMeta: metav1.TypeMeta{
 			Kind: "MachineSet",
 		},
@@ -93,13 +93,13 @@ func TestMachineSetToDeployments(t *testing.T) {
 			Namespace: "test",
 			Labels: map[string]string{
 				"foo":                            "bar",
-				v1alpha1.MachineClusterLabelName: "test-cluster",
+				v1alpha2.MachineClusterLabelName: "test-cluster",
 			},
 		},
 	}
 
 	testsCases := []struct {
-		machineSet v1alpha1.MachineSet
+		machineSet v1alpha2.MachineSet
 		mapObject  handler.MapObject
 		expected   []reconcile.Request
 	}{
@@ -131,7 +131,7 @@ func TestMachineSetToDeployments(t *testing.T) {
 		},
 	}
 
-	v1alpha1.AddToScheme(scheme.Scheme)
+	v1alpha2.AddToScheme(scheme.Scheme)
 	r := &ReconcileMachineDeployment{
 		Client:   fake.NewFakeClient(&ms1, &ms2, &ms3, machineDeplopymentList),
 		scheme:   scheme.Scheme,
@@ -147,12 +147,12 @@ func TestMachineSetToDeployments(t *testing.T) {
 }
 
 func TestGetMachineDeploymentsForMachineSet(t *testing.T) {
-	machineDeployment := v1alpha1.MachineDeployment{
+	machineDeployment := v1alpha2.MachineDeployment{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "withLabels",
 			Namespace: "test",
 		},
-		Spec: v1alpha1.MachineDeploymentSpec{
+		Spec: v1alpha2.MachineDeploymentSpec{
 			Selector: metav1.LabelSelector{
 				MatchLabels: map[string]string{
 					"foo": "bar",
@@ -160,15 +160,15 @@ func TestGetMachineDeploymentsForMachineSet(t *testing.T) {
 			},
 		},
 	}
-	machineDeplopymentList := &v1alpha1.MachineDeploymentList{
+	machineDeplopymentList := &v1alpha2.MachineDeploymentList{
 		TypeMeta: metav1.TypeMeta{
 			Kind: "MachineDeploymentList",
 		},
-		Items: []v1alpha1.MachineDeployment{
+		Items: []v1alpha2.MachineDeployment{
 			machineDeployment,
 		},
 	}
-	ms1 := v1alpha1.MachineSet{
+	ms1 := v1alpha2.MachineSet{
 		TypeMeta: metav1.TypeMeta{
 			Kind: "MachineSet",
 		},
@@ -177,7 +177,7 @@ func TestGetMachineDeploymentsForMachineSet(t *testing.T) {
 			Namespace: "test",
 		},
 	}
-	ms2 := v1alpha1.MachineSet{
+	ms2 := v1alpha2.MachineSet{
 		TypeMeta: metav1.TypeMeta{
 			Kind: "MachineSet",
 		},
@@ -191,9 +191,9 @@ func TestGetMachineDeploymentsForMachineSet(t *testing.T) {
 	}
 
 	testCases := []struct {
-		machineDeploymentList v1alpha1.MachineDeploymentList
-		machineSet            v1alpha1.MachineSet
-		expected              []*v1alpha1.MachineDeployment
+		machineDeploymentList v1alpha2.MachineDeploymentList
+		machineSet            v1alpha2.MachineSet
+		expected              []*v1alpha2.MachineDeployment
 	}{
 		{
 			machineDeploymentList: *machineDeplopymentList,
@@ -203,10 +203,10 @@ func TestGetMachineDeploymentsForMachineSet(t *testing.T) {
 		{
 			machineDeploymentList: *machineDeplopymentList,
 			machineSet:            ms2,
-			expected:              []*v1alpha1.MachineDeployment{&machineDeployment},
+			expected:              []*v1alpha2.MachineDeployment{&machineDeployment},
 		},
 	}
-	v1alpha1.AddToScheme(scheme.Scheme)
+	v1alpha2.AddToScheme(scheme.Scheme)
 	r := &ReconcileMachineDeployment{
 		Client:   fake.NewFakeClient(&ms1, &ms2, machineDeplopymentList),
 		scheme:   scheme.Scheme,
@@ -222,13 +222,13 @@ func TestGetMachineDeploymentsForMachineSet(t *testing.T) {
 }
 
 func TestGetMachineSetsForDeployment(t *testing.T) {
-	machineDeployment1 := v1alpha1.MachineDeployment{
+	machineDeployment1 := v1alpha2.MachineDeployment{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "withMatchingOwnerRefAndLabels",
 			Namespace: "test",
 			UID:       "UID",
 		},
-		Spec: v1alpha1.MachineDeploymentSpec{
+		Spec: v1alpha2.MachineDeploymentSpec{
 			Selector: metav1.LabelSelector{
 				MatchLabels: map[string]string{
 					"foo": "bar",
@@ -236,13 +236,13 @@ func TestGetMachineSetsForDeployment(t *testing.T) {
 			},
 		},
 	}
-	machineDeployment2 := v1alpha1.MachineDeployment{
+	machineDeployment2 := v1alpha2.MachineDeployment{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "withNoMatchingOwnerRef",
 			Namespace: "test",
 			UID:       "unMatchingUID",
 		},
-		Spec: v1alpha1.MachineDeploymentSpec{
+		Spec: v1alpha2.MachineDeploymentSpec{
 			Selector: metav1.LabelSelector{
 				MatchLabels: map[string]string{
 					"foo": "bar2",
@@ -251,7 +251,7 @@ func TestGetMachineSetsForDeployment(t *testing.T) {
 		},
 	}
 
-	ms1 := v1alpha1.MachineSet{
+	ms1 := v1alpha2.MachineSet{
 		TypeMeta: metav1.TypeMeta{
 			Kind: "MachineSet",
 		},
@@ -263,7 +263,7 @@ func TestGetMachineSetsForDeployment(t *testing.T) {
 			},
 		},
 	}
-	ms2 := v1alpha1.MachineSet{
+	ms2 := v1alpha2.MachineSet{
 		TypeMeta: metav1.TypeMeta{
 			Kind: "MachineSet",
 		},
@@ -278,7 +278,7 @@ func TestGetMachineSetsForDeployment(t *testing.T) {
 			},
 		},
 	}
-	ms3 := v1alpha1.MachineSet{
+	ms3 := v1alpha2.MachineSet{
 		TypeMeta: metav1.TypeMeta{
 			Kind: "MachineSet",
 		},
@@ -290,7 +290,7 @@ func TestGetMachineSetsForDeployment(t *testing.T) {
 			},
 		},
 	}
-	ms4 := v1alpha1.MachineSet{
+	ms4 := v1alpha2.MachineSet{
 		TypeMeta: metav1.TypeMeta{
 			Kind: "MachineSet",
 		},
@@ -302,11 +302,11 @@ func TestGetMachineSetsForDeployment(t *testing.T) {
 			},
 		},
 	}
-	machineSetList := &v1alpha1.MachineSetList{
+	machineSetList := &v1alpha2.MachineSetList{
 		TypeMeta: metav1.TypeMeta{
 			Kind: "MachineSetList",
 		},
-		Items: []v1alpha1.MachineSet{
+		Items: []v1alpha2.MachineSet{
 			ms1,
 			ms2,
 			ms3,
@@ -315,20 +315,20 @@ func TestGetMachineSetsForDeployment(t *testing.T) {
 	}
 
 	testCases := []struct {
-		machineDeployment v1alpha1.MachineDeployment
-		expected          []*v1alpha1.MachineSet
+		machineDeployment v1alpha2.MachineDeployment
+		expected          []*v1alpha2.MachineSet
 	}{
 		{
 			machineDeployment: machineDeployment1,
-			expected:          []*v1alpha1.MachineSet{&ms2, &ms3},
+			expected:          []*v1alpha2.MachineSet{&ms2, &ms3},
 		},
 		{
 			machineDeployment: machineDeployment2,
-			expected:          []*v1alpha1.MachineSet{&ms1},
+			expected:          []*v1alpha2.MachineSet{&ms1},
 		},
 	}
 
-	v1alpha1.AddToScheme(scheme.Scheme)
+	v1alpha2.AddToScheme(scheme.Scheme)
 	r := &ReconcileMachineDeployment{
 		Client:   fake.NewFakeClient(machineSetList),
 		scheme:   scheme.Scheme,

@@ -6,20 +6,6 @@ metadata:
   creationTimestamp: null
   name: machines.cluster.k8s.io
 spec:
-  additionalPrinterColumns:
-  - JSONPath: .spec.providerID
-    description: Provider ID
-    name: ProviderID
-    type: string
-  - JSONPath: .status.phase
-    description: Machine status such as Terminating/Pending/Running/Failed etc
-    name: Phase
-    type: string
-  - JSONPath: .status.nodeRef.name
-    description: Node name associated with this machine
-    name: NodeName
-    priority: 1
-    type: string
   group: cluster.k8s.io
   names:
     kind: Machine
@@ -27,8 +13,6 @@ spec:
     shortNames:
     - ma
   scope: Namespaced
-  subresources:
-    status: {}
   validation:
     openAPIV3Schema:
       description: / [Machine] Machine is the Schema for the machines API

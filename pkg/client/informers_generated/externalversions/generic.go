@@ -23,7 +23,8 @@ import (
 
 	schema "k8s.io/apimachinery/pkg/runtime/schema"
 	cache "k8s.io/client-go/tools/cache"
-	v1alpha1 "sigs.k8s.io/cluster-api/pkg/apis/cluster/v1alpha1"
+	v1alpha2 "sigs.k8s.io/cluster-api/pkg/apis/cluster/v1alpha2"
+	v1alpha1 "sigs.k8s.io/cluster-api/pkg/apis/deprecated/v1alpha1"
 )
 
 // GenericInformer is type of SharedIndexInformer which will locate and delegate to other
@@ -54,15 +55,25 @@ func (f *sharedInformerFactory) ForResource(resource schema.GroupVersionResource
 	switch resource {
 	// Group=cluster.k8s.io, Version=v1alpha1
 	case v1alpha1.SchemeGroupVersion.WithResource("clusters"):
-		return &genericInformer{resource: resource.GroupResource(), informer: f.Cluster().V1alpha1().Clusters().Informer()}, nil
+		return &genericInformer{resource: resource.GroupResource(), informer: f.ClusterDeprecated().V1alpha1().Clusters().Informer()}, nil
 	case v1alpha1.SchemeGroupVersion.WithResource("machines"):
-		return &genericInformer{resource: resource.GroupResource(), informer: f.Cluster().V1alpha1().Machines().Informer()}, nil
+		return &genericInformer{resource: resource.GroupResource(), informer: f.ClusterDeprecated().V1alpha1().Machines().Informer()}, nil
 	case v1alpha1.SchemeGroupVersion.WithResource("machineclasses"):
-		return &genericInformer{resource: resource.GroupResource(), informer: f.Cluster().V1alpha1().MachineClasses().Informer()}, nil
+		return &genericInformer{resource: resource.GroupResource(), informer: f.ClusterDeprecated().V1alpha1().MachineClasses().Informer()}, nil
 	case v1alpha1.SchemeGroupVersion.WithResource("machinedeployments"):
-		return &genericInformer{resource: resource.GroupResource(), informer: f.Cluster().V1alpha1().MachineDeployments().Informer()}, nil
+		return &genericInformer{resource: resource.GroupResource(), informer: f.ClusterDeprecated().V1alpha1().MachineDeployments().Informer()}, nil
 	case v1alpha1.SchemeGroupVersion.WithResource("machinesets"):
-		return &genericInformer{resource: resource.GroupResource(), informer: f.Cluster().V1alpha1().MachineSets().Informer()}, nil
+		return &genericInformer{resource: resource.GroupResource(), informer: f.ClusterDeprecated().V1alpha1().MachineSets().Informer()}, nil
+
+		// Group=cluster.sigs.k8s.io, Version=v1alpha2
+	case v1alpha2.SchemeGroupVersion.WithResource("clusters"):
+		return &genericInformer{resource: resource.GroupResource(), informer: f.Cluster().V1alpha2().Clusters().Informer()}, nil
+	case v1alpha2.SchemeGroupVersion.WithResource("machines"):
+		return &genericInformer{resource: resource.GroupResource(), informer: f.Cluster().V1alpha2().Machines().Informer()}, nil
+	case v1alpha2.SchemeGroupVersion.WithResource("machinedeployments"):
+		return &genericInformer{resource: resource.GroupResource(), informer: f.Cluster().V1alpha2().MachineDeployments().Informer()}, nil
+	case v1alpha2.SchemeGroupVersion.WithResource("machinesets"):
+		return &genericInformer{resource: resource.GroupResource(), informer: f.Cluster().V1alpha2().MachineSets().Informer()}, nil
 
 	}
 

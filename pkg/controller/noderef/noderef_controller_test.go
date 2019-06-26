@@ -31,7 +31,8 @@ import (
 	fakeclient "k8s.io/client-go/kubernetes/fake"
 	"k8s.io/client-go/kubernetes/scheme"
 	"k8s.io/client-go/tools/record"
-	"sigs.k8s.io/cluster-api/pkg/apis/cluster/v1alpha1"
+	"k8s.io/utils/pointer"
+	"sigs.k8s.io/cluster-api/pkg/apis/cluster/v1alpha2"
 	"sigs.k8s.io/cluster-api/pkg/controller/noderefutil"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
@@ -47,10 +48,17 @@ const timeout = time.Second * 5
 
 func TestReconcile(t *testing.T) {
 	g := gomega.NewGomegaWithT(t)
-	instance := &v1alpha1.Machine{
+	instance := &v1alpha2.Machine{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "foo",
 			Namespace: "default",
+		},
+		Spec: v1alpha2.MachineSpec{
+			InfrastructureRef: corev1.TypedLocalObjectReference{
+				APIGroup: pointer.StringPtr("infrastructure.clusters.k8s.io"),
+				Kind:     "InfrastructureRef",
+				Name:     "machine-infrastructure",
+			},
 		},
 	}
 
@@ -84,7 +92,7 @@ func TestReconcile(t *testing.T) {
 }
 
 func TestGetNodeReference(t *testing.T) {
-	v1alpha1.AddToScheme(scheme.Scheme)
+	v1alpha2.AddToScheme(scheme.Scheme)
 	r := &ReconcileNodeRef{
 		Client:   fake.NewFakeClient(),
 		scheme:   scheme.Scheme,

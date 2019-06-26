@@ -17,7 +17,7 @@ limitations under the License.
 package apis
 
 import (
-	"sigs.k8s.io/cluster-api/pkg/apis/cluster/v1alpha1"
+	"sigs.k8s.io/cluster-api/pkg/apis/deprecated/v1alpha1"
 )
 
 func init() {

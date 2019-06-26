@@ -25,8 +25,10 @@ import (
 	fakediscovery "k8s.io/client-go/discovery/fake"
 	"k8s.io/client-go/testing"
 	clientset "sigs.k8s.io/cluster-api/pkg/client/clientset_generated/clientset"
-	clusterv1alpha1 "sigs.k8s.io/cluster-api/pkg/client/clientset_generated/clientset/typed/cluster/v1alpha1"
-	fakeclusterv1alpha1 "sigs.k8s.io/cluster-api/pkg/client/clientset_generated/clientset/typed/cluster/v1alpha1/fake"
+	clusterv1alpha2 "sigs.k8s.io/cluster-api/pkg/client/clientset_generated/clientset/typed/cluster/v1alpha2"
+	fakeclusterv1alpha2 "sigs.k8s.io/cluster-api/pkg/client/clientset_generated/clientset/typed/cluster/v1alpha2/fake"
+	clusterdeprecatedv1alpha1 "sigs.k8s.io/cluster-api/pkg/client/clientset_generated/clientset/typed/deprecated/v1alpha1"
+	fakeclusterdeprecatedv1alpha1 "sigs.k8s.io/cluster-api/pkg/client/clientset_generated/clientset/typed/deprecated/v1alpha1/fake"
 )
 
 // NewSimpleClientset returns a clientset that will respond with the provided objects.
@@ -71,7 +73,12 @@ func (c *Clientset) Discovery() discovery.DiscoveryInterface {
 
 var _ clientset.Interface = &Clientset{}
 
-// ClusterV1alpha1 retrieves the ClusterV1alpha1Client
-func (c *Clientset) ClusterV1alpha1() clusterv1alpha1.ClusterV1alpha1Interface {
-	return &fakeclusterv1alpha1.FakeClusterV1alpha1{Fake: &c.Fake}
+// ClusterV1alpha2 retrieves the ClusterV1alpha2Client
+func (c *Clientset) ClusterV1alpha2() clusterv1alpha2.ClusterV1alpha2Interface {
+	return &fakeclusterv1alpha2.FakeClusterV1alpha2{Fake: &c.Fake}
+}
+
+// ClusterDeprecatedV1alpha1 retrieves the ClusterDeprecatedV1alpha1Client
+func (c *Clientset) ClusterDeprecatedV1alpha1() clusterdeprecatedv1alpha1.ClusterDeprecatedV1alpha1Interface {
+	return &fakeclusterdeprecatedv1alpha1.FakeClusterDeprecatedV1alpha1{Fake: &c.Fake}
 }

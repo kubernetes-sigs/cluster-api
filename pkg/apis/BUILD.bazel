@@ -4,12 +4,14 @@ go_library(
     name = "go_default_library",
     srcs = [
         "addtoscheme_cluster_v1alpha1.go",
+        "addtoscheme_cluster_v1alpha2.go",
         "apis.go",
     ],
     importpath = "sigs.k8s.io/cluster-api/pkg/apis",
     visibility = ["//visibility:public"],
     deps = [
-        "//pkg/apis/cluster/v1alpha1:go_default_library",
+        "//pkg/apis/cluster/v1alpha2:go_default_library",
+        "//pkg/apis/deprecated/v1alpha1:go_default_library",
         "//vendor/k8s.io/apimachinery/pkg/runtime:go_default_library",
     ],
 )

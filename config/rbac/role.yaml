@@ -37,7 +37,7 @@ rules:
   - patch
   - delete
 - apiGroups:
-  - cluster.k8s.io
+  - cluster.sigs.k8s.io
   resources:
   - clusters
   verbs:
@@ -49,7 +49,7 @@ rules:
   - patch
   - delete
 - apiGroups:
-  - cluster.k8s.io
+  - cluster.sigs.k8s.io
   resources:
   - machines
   - machines/status
@@ -62,7 +62,7 @@ rules:
   - patch
   - delete
 - apiGroups:
-  - cluster.k8s.io
+  - cluster.sigs.k8s.io
   resources:
   - machinedeployments
   - machinedeployments/status
@@ -75,7 +75,7 @@ rules:
   - patch
   - delete
 - apiGroups:
-  - cluster.k8s.io
+  - cluster.sigs.k8s.io
   resources:
   - machinesets
   - machinesets/status

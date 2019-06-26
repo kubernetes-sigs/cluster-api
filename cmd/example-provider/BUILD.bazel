@@ -12,7 +12,6 @@ go_library(
         "//pkg/controller/cluster:go_default_library",
         "//pkg/controller/machine:go_default_library",
         "//pkg/provider/example/actuators/cluster:go_default_library",
-        "//pkg/provider/example/actuators/machine:go_default_library",
         "//vendor/k8s.io/klog:go_default_library",
         "//vendor/sigs.k8s.io/controller-runtime/pkg/client/config:go_default_library",
         "//vendor/sigs.k8s.io/controller-runtime/pkg/manager:go_default_library",

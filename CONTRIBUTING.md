@@ -65,8 +65,8 @@ The machine controller should be able to act on a subset of machines that form a
 ### Resources
 
 *   [Cluster Management API KEP](https://github.com/kubernetes/enhancements/blob/master/keps/sig-cluster-lifecycle/0003-cluster-api.md)
-*   [Cluster type](https://github.com/kubernetes-sigs/cluster-api/blob/master/pkg/apis/cluster/v1alpha1/cluster_types.go#L40)
-*   [Machine type](https://github.com/kubernetes-sigs/cluster-api/blob/master/pkg/apis/cluster/v1alpha1/machine_types.go#L42)
+*   [Cluster type](https://github.com/kubernetes-sigs/cluster-api/blob/master/pkg/apis/deprecated/v1alpha1/cluster_types.go#L40)
+*   [Machine type](https://github.com/kubernetes-sigs/cluster-api/blob/master/pkg/apis/deprecated/v1alpha1/machine_types.go#L42)
 
 ### Boostrapping
 

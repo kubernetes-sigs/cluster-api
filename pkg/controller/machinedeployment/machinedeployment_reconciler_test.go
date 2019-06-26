@@ -22,12 +22,14 @@ import (
 	"time"
 
 	"golang.org/x/net/context"
+	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/intstr"
+	"k8s.io/utils/pointer"
 	"sigs.k8s.io/cluster-api/pkg/apis/cluster/common"
-	clusterv1alpha1 "sigs.k8s.io/cluster-api/pkg/apis/cluster/v1alpha1"
+	clusterv1 "sigs.k8s.io/cluster-api/pkg/apis/cluster/v1alpha2"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/manager"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
@@ -45,26 +47,32 @@ var (
 
 func TestReconcile(t *testing.T) {
 	labels := map[string]string{"foo": "bar"}
-	deployment := &clusterv1alpha1.MachineDeployment{
+	version := "1.10.3"
+	deployment := &clusterv1.MachineDeployment{
 		ObjectMeta: metav1.ObjectMeta{Name: "foo", Namespace: "default"},
-		Spec: clusterv1alpha1.MachineDeploymentSpec{
+		Spec: clusterv1.MachineDeploymentSpec{
 			MinReadySeconds:      int32Ptr(0),
 			Replicas:             int32Ptr(2),
 			RevisionHistoryLimit: int32Ptr(0),
 			Selector:             metav1.LabelSelector{MatchLabels: labels},
-			Strategy: &clusterv1alpha1.MachineDeploymentStrategy{
+			Strategy: &clusterv1.MachineDeploymentStrategy{
 				Type: common.RollingUpdateMachineDeploymentStrategyType,
-				RollingUpdate: &clusterv1alpha1.MachineRollingUpdateDeployment{
+				RollingUpdate: &clusterv1.MachineRollingUpdateDeployment{
 					MaxUnavailable: intstrPtr(0),
 					MaxSurge:       intstrPtr(1),
 				},
 			},
-			Template: clusterv1alpha1.MachineTemplateSpec{
-				ObjectMeta: clusterv1alpha1.ObjectMeta{
+			Template: clusterv1.MachineTemplateSpec{
+				ObjectMeta: clusterv1.ObjectMeta{
 					Labels: labels,
 				},
-				Spec: clusterv1alpha1.MachineSpec{
-					Versions: clusterv1alpha1.MachineVersionInfo{Kubelet: "1.10.3"},
+				Spec: clusterv1.MachineSpec{
+					Version: &version,
+					InfrastructureRef: corev1.TypedLocalObjectReference{
+						APIGroup: pointer.StringPtr("infrastructure.clusters.k8s.io"),
+						Kind:     "InfrastructureRef",
+						Name:     "machine-infrastructure",
+					},
 				},
 			},
 		},
@@ -93,7 +101,7 @@ func TestReconcile(t *testing.T) {
 	expectReconcile(t, requests, errors)
 
 	// Verify that the MachineSet was created.
-	machineSets := &clusterv1alpha1.MachineSetList{}
+	machineSets := &clusterv1.MachineSetList{}
 	expectInt(t, 1, func(ctx context.Context) int {
 		if err := c.List(ctx, machineSets); err != nil {
 			return -1
@@ -105,8 +113,8 @@ func TestReconcile(t *testing.T) {
 	if r := *ms.Spec.Replicas; r != 2 {
 		t.Errorf("replicas was %d not 2", r)
 	}
-	if k := ms.Spec.Template.Spec.Versions.Kubelet; k != "1.10.3" {
-		t.Errorf("kubelet was %q not '1.10.3'", k)
+	if k := ms.Spec.Template.Spec.Version; k == nil || *k != "1.10.3" {
+		t.Errorf("kubelet was %v not '1.10.3'", k)
 	}
 
 	// Delete a MachineSet and expect Reconcile to be called to replace it.
@@ -122,11 +130,8 @@ func TestReconcile(t *testing.T) {
 	})
 
 	// Scale a MachineDeployment and expect Reconcile to be called
-	if err := updateMachineDeployment(c, deployment, func(d *clusterv1alpha1.MachineDeployment) { d.Spec.Replicas = int32Ptr(5) }); err != nil {
+	if err := updateMachineDeployment(c, deployment, func(d *clusterv1.MachineDeployment) { d.Spec.Replicas = int32Ptr(5) }); err != nil {
 		t.Errorf("error scaling machinedeployment: %v", err)
-	}
-	if err := c.Update(context.TODO(), deployment); err != nil {
-		t.Errorf("error updating instance: %v", err)
 	}
 	expectReconcile(t, requests, errors)
 	expectInt(t, 5, func(ctx context.Context) int {
@@ -140,11 +145,8 @@ func TestReconcile(t *testing.T) {
 	})
 
 	// Update a MachineDeployment, expect Reconcile to be called and a new MachineSet to appear
-	if err := updateMachineDeployment(c, deployment, func(d *clusterv1alpha1.MachineDeployment) { d.Spec.Template.Labels["updated"] = "true" }); err != nil {
+	if err := updateMachineDeployment(c, deployment, func(d *clusterv1.MachineDeployment) { d.Spec.Template.Labels["updated"] = "true" }); err != nil {
 		t.Errorf("error scaling machinedeployment: %v", err)
-	}
-	if err := c.Update(context.TODO(), deployment); err != nil {
-		t.Errorf("error updating instance: %v", err)
 	}
 	expectReconcile(t, requests, errors)
 	expectInt(t, 2, func(ctx context.Context) int {
@@ -156,7 +158,7 @@ func TestReconcile(t *testing.T) {
 
 	// Wait for the new MachineSet to get scaled up and set .Status.Replicas and .Status.AvailableReplicas
 	// at each step
-	var newMachineSet, oldMachineSet *clusterv1alpha1.MachineSet
+	var newMachineSet, oldMachineSet *clusterv1.MachineSet
 	resourceVersion0, err0 := strconv.Atoi(machineSets.Items[0].ResourceVersion)
 	resourceVersion1, err1 := strconv.Atoi(machineSets.Items[1].ResourceVersion)
 	if err0 != nil {

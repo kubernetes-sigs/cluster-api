@@ -31,7 +31,7 @@ import (
         "fmt"
         "log"
 
-        clusterv1 "sigs.k8s.io/cluster-api/pkg/apis/cluster/v1alpha1"
+        clusterv1 "sigs.k8s.io/cluster-api/pkg/apis/cluster/v1alpha2"
         client "sigs.k8s.io/cluster-api/pkg/client/clientset_generated/clientset/typed/cluster/v1alpha1"
 )
 
@@ -97,7 +97,7 @@ import (
         "fmt"
         "log"
 
-        clusterv1 "sigs.k8s.io/cluster-api/pkg/apis/cluster/v1alpha1"
+        clusterv1 "sigs.k8s.io/cluster-api/pkg/apis/cluster/v1alpha2"
         client "sigs.k8s.io/cluster-api/pkg/client/clientset_generated/clientset/typed/cluster/v1alpha1"
 )
 

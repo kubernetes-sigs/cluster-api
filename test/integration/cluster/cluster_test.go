@@ -28,18 +28,18 @@ import (
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/tools/cache"
 	"k8s.io/client-go/tools/clientcmd"
-	clusterv1alpha1 "sigs.k8s.io/cluster-api/pkg/apis/cluster/v1alpha1"
+	clusterv1 "sigs.k8s.io/cluster-api/pkg/apis/cluster/v1alpha2"
 	clientset "sigs.k8s.io/cluster-api/pkg/client/clientset_generated/clientset"
-	client "sigs.k8s.io/cluster-api/pkg/client/clientset_generated/clientset/typed/cluster/v1alpha1"
+	client "sigs.k8s.io/cluster-api/pkg/client/clientset_generated/clientset/typed/cluster/v1alpha2"
 )
 
-var clusterSpec = &clusterv1alpha1.ClusterSpec{
-	ClusterNetwork: clusterv1alpha1.ClusterNetworkingConfig{
+var clusterSpec = &clusterv1.ClusterSpec{
+	ClusterNetwork: &clusterv1.ClusterNetworkingConfig{
 		ServiceDomain: "mydomain.com",
-		Services: clusterv1alpha1.NetworkRanges{
+		Services: clusterv1.NetworkRanges{
 			CIDRBlocks: []string{"10.96.0.0/12"},
 		},
-		Pods: clusterv1alpha1.NetworkRanges{
+		Pods: clusterv1.NetworkRanges{
 			CIDRBlocks: []string{"192.168.0.0/16"},
 		},
 	},
@@ -84,7 +84,7 @@ var _ = Describe("Cluster-Controller", func() {
 		// Create clusterapi client
 		cs, err := clientset.NewForConfig(config)
 		Expect(err).ShouldNot(HaveOccurred())
-		clusterapi = cs.ClusterV1alpha1().Clusters(testNamespace)
+		clusterapi = cs.ClusterV1alpha2().Clusters(testNamespace)
 	})
 
 	AfterEach(func() {
@@ -111,7 +111,7 @@ var _ = Describe("Cluster-Controller", func() {
 			Expect(cache.WaitForCacheSync(stopper, informer.HasSynced)).To(BeTrue())
 
 			// Create Cluster
-			cluster := &clusterv1alpha1.Cluster{
+			cluster := &clusterv1.Cluster{
 				ObjectMeta: metav1.ObjectMeta{
 					GenerateName: "cluster-",
 					Namespace:    testNamespace,

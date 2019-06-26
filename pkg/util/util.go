@@ -34,7 +34,7 @@ import (
 	"k8s.io/apimachinery/pkg/util/json"
 	"k8s.io/apimachinery/pkg/util/yaml"
 	"k8s.io/klog"
-	clusterv1 "sigs.k8s.io/cluster-api/pkg/apis/cluster/v1alpha1"
+	clusterv1 "sigs.k8s.io/cluster-api/pkg/apis/cluster/v1alpha2"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
@@ -133,7 +133,7 @@ func GetMachineIfExists(c client.Client, namespace, name string) (*clusterv1.Mac
 
 // IsControlPlaneMachine checks machine is a control plane node.
 func IsControlPlaneMachine(machine *clusterv1.Machine) bool {
-	return machine.Spec.Versions.ControlPlane != ""
+	return machine.ObjectMeta.Labels[clusterv1.MachineControlPlaneLabelName] != ""
 }
 
 // IsNodeReady returns true if a node is ready.

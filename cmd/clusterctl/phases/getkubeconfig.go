@@ -56,7 +56,7 @@ func waitForKubeconfigReady(bootstrapClient clusterclient.Client, provider provi
 		t, err := strconv.Atoi(v)
 		if err == nil {
 			timeout = time.Duration(t) * time.Minute
-			klog.V(4).Infof("Setting KubeConfg timeout to %v", timeout)
+			klog.V(4).Infof("Setting KubeConfig timeout to %v", timeout)
 		}
 	}
 

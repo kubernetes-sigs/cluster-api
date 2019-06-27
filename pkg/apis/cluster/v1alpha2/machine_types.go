@@ -163,11 +163,40 @@ type MachineStatus struct {
 	// +optional
 	Phase *string `json:"phase,omitempty"`
 
-	// Bootstrap is the state of the bootstrap provider.
-	Bootstrap *string `json:"bootstrap,omitempty"`
+	// BootstrapReady is the state of the bootstrap provider.
+	// +optional
+	BootstrapReady *bool `json:"bootstrapReady,omitempty"`
 
-	// Infrastructure is the state of the infrastructure provider.
-	Infrastructure *string `json:"infrastructure,omitempty"`
+	// InfrastructureReady is the state of the infrastructure provider.
+	// +optional
+	InfrastructureReady *bool `json:"infrastructureReady,omitempty"`
+}
+
+// SetTypedPhase sets the Phase field to the string representation of MachinePhase.
+func (m *MachineStatus) SetTypedPhase(p MachinePhase) {
+	m.Phase = MachinePhaseStringPtr(p)
+}
+
+// GetTypedPhase attempts to parse the Phase field and return
+// the typed MachinePhase representation as described in `machine_phase_types.go`.
+func (m *MachineStatus) GetTypedPhase() MachinePhase {
+	if m.Phase == nil {
+		return MachinePhaseUnknown
+	}
+
+	switch phase := MachinePhase(*m.Phase); phase {
+	case
+		MachinePhasePending,
+		MachinePhaseProvisioning,
+		MachinePhaseProvisioned,
+		MachinePhaseRunning,
+		MachinePhaseDeleting,
+		MachinePhaseDeleted,
+		MachinePhaseFailed:
+		return phase
+	default:
+		return MachinePhaseUnknown
+	}
 }
 
 // Bootstrap capsulates fields to configure the Machine’s bootstrapping mechanism.

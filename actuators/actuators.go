@@ -66,7 +66,8 @@ func kubeconfigToSecret(clusterName, namespace string) (*v1.Secret, error) {
 	// write it to a secret
 	return &v1.Secret{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      fmt.Sprintf("kubeconfig-%s", clusterName),
+			// TODO pull in the kubeconfig secret function from cluster api
+			Name:      fmt.Sprintf("%s-kubeconfig", clusterName),
 			Namespace: namespace,
 		},
 		Data: map[string][]byte{

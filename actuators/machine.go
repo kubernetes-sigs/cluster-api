@@ -238,7 +238,7 @@ func (m *Machine) save(old, new *clusterv1.Machine, noderef *apicorev1.ObjectRef
 }
 
 func providerID(name string) string {
-	return fmt.Sprintf("docker://%s", name)
+	return fmt.Sprintf("docker:////%s", name)
 }
 
 // CAPIroleToKindRole converts a CAPI role to kind role

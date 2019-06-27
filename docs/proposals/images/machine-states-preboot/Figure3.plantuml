@@ -1,0 +1,58 @@
+@startuml
+title Figure 3: User creates a machine with kubeadm bootstrapper
+actor User
+
+' -- GROUPS START ---
+
+box #lightgreen
+participant "API Server"
+end box
+
+box #lightblue
+participant "Cluster API Machine Controller"
+end box
+
+' -- GROUPS END ---
+
+User->"API Server":kubectl apply -f machine.yaml
+"API Server"-->>"Cluster API Machine Controller": New Machine
+
+"Cluster API Machine Controller"-> "Cluster API Machine Controller":Machine Controller Reconcile
+activate "Cluster API Machine Controller"
+
+
+note over "Cluster API Machine Controller": - ✅ Machine.Status.Phase is empty\n- ✅ Machine.Spec.Bootstrap.Data is <nil>\n- ✅ Machine.Spec.Bootstrap.ConfigRef is populated\n- ✅ Machine.Spec.Bootstrap.ConfigRef -> Status.Phase is not "Ready"
+
+opt Required only if the object hasn't been seen before
+"Cluster API Machine Controller"-> "Cluster API Machine Controller":Add watcher for \nMachine.Spec.Bootstrap.ConfigRef.Kind objects
+end
+
+opt Required only if the object hasn't been seen before
+"Cluster API Machine Controller"-> "Cluster API Machine Controller":Add watcher for \nMachine.Spec.InfrastructureRef.Kind objects
+end
+
+opt Required only if the object hasn't been seen before
+"Cluster API Machine Controller"-> "Cluster API Machine Controller":Add watcher for \nMachine.Spec.Bootstrap.ConfigRef.Kind objects
+end
+
+opt Required only if the object doesn't have a Machine owner reference
+"Cluster API Machine Controller"-> "Cluster API Machine Controller":Set Machine.Spec.Bootstrap.ConfigRef -> OwnerReferences[0] to Machine
+"Cluster API Machine Controller"->"API Server": Update KubeadmBootstrapConfig
+"Cluster API Machine Controller"<<--"API Server": Response
+end
+
+opt Required only if the object doesn't have a Machine owner reference
+"Cluster API Machine Controller"-> "Cluster API Machine Controller":Set Machine.Spec.InfrastructureRef -> OwnerReferences[0] to Machine
+"Cluster API Machine Controller"->"API Server": Update AWSInfrastructureConfig
+"Cluster API Machine Controller"<<--"API Server": Response
+end
+
+"Cluster API Machine Controller"-> "Cluster API Machine Controller":Set Machine.Status.Phase = "Pending"
+
+"Cluster API Machine Controller"->"API Server": Update Machine Status
+"Cluster API Machine Controller"<<--"API Server": Response
+
+deactivate "Cluster API Machine Controller"
+
+hide footbox
+@enduml

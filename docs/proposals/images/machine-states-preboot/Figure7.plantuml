@@ -1,0 +1,32 @@
+@startuml
+title Figure 7: User creates a machine with kubeadm bootstrapper
+' -- GROUPS START ---
+
+box #lightgreen
+participant "API Server"
+end box
+
+box #lightblue
+participant "Cluster API Machine Controller"
+end box
+
+
+' -- GROUPS END ---
+
+
+"API Server"-->>"Cluster API Machine Controller": AWSInfrastructureConfig updated
+
+"Cluster API Machine Controller"-> "Cluster API Machine Controller":Machine Controller Reconcile
+activate "Cluster API Machine Controller"
+
+note over "Cluster API Machine Controller": - ✅ Machine.Status.Phase is "Provisioning" \n- ✅ Machine.Spec.InfrastructureRef -> Status.Phase is "Ready"\n- ✅ Machine.Spec.InfrastructureRef -> Status.Addresses is not empty
+
+"Cluster API Machine Controller"->"Cluster API Machine Controller": Set Machine.Status.Phase to "Provisioned"
+
+"Cluster API Machine Controller"->"API Server": Update Machine
+"Cluster API Machine Controller"<--"API Server": Response
+
+deactivate "Cluster API Machine Controller"
+
+hide footbox
+@enduml

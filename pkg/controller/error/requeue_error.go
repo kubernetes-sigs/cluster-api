@@ -19,6 +19,8 @@ package error
 import (
 	"fmt"
 	"time"
+
+	"github.com/pkg/errors"
 )
 
 // HasRequeueAfterError represents that an actuator managed object should
@@ -46,4 +48,10 @@ func (e *RequeueAfterError) Error() string {
 // requeued for further processing.
 func (e *RequeueAfterError) GetRequeueAfter() time.Duration {
 	return e.RequeueAfter
+}
+
+// IsRequeueAfter returns true if the error satisfies the interface HasRequeueAfterError.
+func IsRequeueAfter(err error) bool {
+	_, ok := errors.Cause(err).(HasRequeueAfterError)
+	return ok
 }

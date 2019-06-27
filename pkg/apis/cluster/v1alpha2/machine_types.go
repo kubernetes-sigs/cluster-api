@@ -70,7 +70,7 @@ type MachineSpec struct {
 
 	// InfrastructureRef is a required reference to a custom resource
 	// offered by an infrastructure provider.
-	InfrastructureRef corev1.TypedLocalObjectReference `json:"infrastructureRef"`
+	InfrastructureRef corev1.ObjectReference `json:"infrastructureRef"`
 
 	// Version defines the desired Kubernetes version.
 	// This field is meant to be optionally used by bootstrap providers.
@@ -206,7 +206,7 @@ type Bootstrap struct {
 	// allow users/operators to specify Bootstrap.Data without
 	// the need of a controller.
 	// +optional
-	ConfigRef *corev1.TypedLocalObjectReference `json:"configRef,omitempty"`
+	ConfigRef *corev1.ObjectReference `json:"configRef,omitempty"`
 
 	// Data contains the bootstrap data, such as cloud-init details scripts.
 	// If nil, the Machine should remain in the Pending state.

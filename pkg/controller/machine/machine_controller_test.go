@@ -17,12 +17,16 @@ limitations under the License.
 package machine
 
 import (
-	"reflect"
 	"testing"
 
+	"github.com/onsi/gomega"
+
+	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/kubernetes/scheme"
+	"k8s.io/utils/pointer"
 	"sigs.k8s.io/cluster-api/pkg/apis/cluster/v1alpha2"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
@@ -33,6 +37,27 @@ var (
 )
 
 func TestReconcileRequest(t *testing.T) {
+	g := gomega.NewGomegaWithT(t)
+
+	infraConfig := unstructured.Unstructured{
+		Object: map[string]interface{}{
+			"kind":       "InfrastructureConfig",
+			"apiVersion": "infra.cluster.sigs.k8s.io/v1alpha1",
+			"metadata": map[string]interface{}{
+				"name":      "infra-config1",
+				"namespace": "default",
+			},
+			"spec": map[string]interface{}{},
+			"status": map[string]interface{}{
+				"ready": true,
+				"addresses": []interface{}{
+					map[string]interface{}{
+						"address": "10.0.0.1",
+					},
+				},
+			},
+		},
+	}
 	machine1 := v1alpha2.Machine{
 		TypeMeta: metav1.TypeMeta{
 			Kind: "Machine",
@@ -44,6 +69,14 @@ func TestReconcileRequest(t *testing.T) {
 			Labels: map[string]string{
 				v1alpha2.MachineClusterLabelName: "testcluster",
 			},
+		},
+		Spec: v1alpha2.MachineSpec{
+			InfrastructureRef: corev1.ObjectReference{
+				APIVersion: "infra.cluster.sigs.k8s.io/v1alpha1",
+				Kind:       "InfrastructureConfig",
+				Name:       "infra-config1",
+			},
+			Bootstrap: v1alpha2.Bootstrap{Data: pointer.StringPtr("data")},
 		},
 	}
 	machine2 := v1alpha2.Machine{
@@ -57,6 +90,14 @@ func TestReconcileRequest(t *testing.T) {
 			Labels: map[string]string{
 				v1alpha2.MachineClusterLabelName: "testcluster",
 			},
+		},
+		Spec: v1alpha2.MachineSpec{
+			InfrastructureRef: corev1.ObjectReference{
+				APIVersion: "infra.cluster.sigs.k8s.io/v1alpha1",
+				Kind:       "InfrastructureConfig",
+				Name:       "infra-config1",
+			},
+			Bootstrap: v1alpha2.Bootstrap{Data: pointer.StringPtr("data")},
 		},
 	}
 	time := metav1.Now()
@@ -72,6 +113,14 @@ func TestReconcileRequest(t *testing.T) {
 			Labels: map[string]string{
 				v1alpha2.MachineClusterLabelName: "testcluster",
 			},
+		},
+		Spec: v1alpha2.MachineSpec{
+			InfrastructureRef: corev1.ObjectReference{
+				APIVersion: "infra.cluster.sigs.k8s.io/v1alpha1",
+				Kind:       "InfrastructureConfig",
+				Name:       "infra-config1",
+			},
+			Bootstrap: v1alpha2.Bootstrap{Data: pointer.StringPtr("data")},
 		},
 	}
 	clusterList := v1alpha2.ClusterList{
@@ -101,12 +150,8 @@ func TestReconcileRequest(t *testing.T) {
 	}
 
 	type expected struct {
-		createCallCount int64
-		existCallCount  int64
-		updateCallCount int64
-		deleteCallCount int64
-		result          reconcile.Result
-		error           bool
+		result reconcile.Result
+		err    bool
 	}
 	testCases := []struct {
 		request     reconcile.Request
@@ -114,78 +159,45 @@ func TestReconcileRequest(t *testing.T) {
 		expected    expected
 	}{
 		{
-			request: reconcile.Request{NamespacedName: types.NamespacedName{Name: machine1.Name, Namespace: machine1.Namespace}},
+			request:     reconcile.Request{NamespacedName: types.NamespacedName{Name: machine1.Name, Namespace: machine1.Namespace}},
+			existsValue: false,
 			expected: expected{
-				createCallCount: 1,
-				existCallCount:  1,
-				updateCallCount: 0,
-				deleteCallCount: 0,
-				result:          reconcile.Result{},
-				error:           false,
+				result: reconcile.Result{},
+				err:    false,
 			},
 		},
 		{
 			request:     reconcile.Request{NamespacedName: types.NamespacedName{Name: machine2.Name, Namespace: machine2.Namespace}},
 			existsValue: true,
 			expected: expected{
-				createCallCount: 0,
-				existCallCount:  1,
-				updateCallCount: 1,
-				deleteCallCount: 0,
-				result:          reconcile.Result{},
-				error:           false,
+				result: reconcile.Result{},
+				err:    false,
 			},
 		},
 		{
 			request:     reconcile.Request{NamespacedName: types.NamespacedName{Name: machine3.Name, Namespace: machine3.Namespace}},
 			existsValue: true,
 			expected: expected{
-				createCallCount: 0,
-				existCallCount:  0,
-				updateCallCount: 0,
-				deleteCallCount: 1,
-				result:          reconcile.Result{},
-				error:           false,
+				result: reconcile.Result{},
+				err:    false,
 			},
 		},
 	}
 
 	for _, tc := range testCases {
-		// act.ExistsValue = tc.existsValue
 		v1alpha2.AddToScheme(scheme.Scheme)
 		r := &ReconcileMachine{
-			Client: fake.NewFakeClient(&clusterList, &machine1, &machine2, &machine3),
+			Client: fake.NewFakeClient(&clusterList, &machine1, &machine2, &machine3, &infraConfig),
 			scheme: scheme.Scheme,
 		}
 
 		result, err := r.Reconcile(tc.request)
-		gotError := (err != nil)
-		if tc.expected.error != gotError {
-			var errorExpectation string
-			if !tc.expected.error {
-				errorExpectation = "no"
-			}
-			t.Errorf("Case: %s. Expected %s error, got: %v", tc.request.Name, errorExpectation, err)
+		if tc.expected.err {
+			g.Expect(err).ToNot(gomega.BeNil())
+		} else {
+			g.Expect(err).To(gomega.BeNil())
 		}
 
-		if !reflect.DeepEqual(result, tc.expected.result) {
-			t.Errorf("Case %s. Got: %v, expected %v", tc.request.Name, result, tc.expected.result)
-		}
-
-		// if act.CreateCallCount != tc.expected.createCallCount {
-		// 	t.Errorf("Case %s. Got: %d createCallCount, expected %d", tc.request.Name, act.CreateCallCount, tc.expected.createCallCount)
-		// }
-
-		// if act.UpdateCallCount != tc.expected.updateCallCount {
-		// 	t.Errorf("Case %s. Got: %d updateCallCount, expected %d", tc.request.Name, act.UpdateCallCount, tc.expected.updateCallCount)
-		// }
-
-		// if act.ExistsCallCount != tc.expected.existCallCount {
-		// 	t.Errorf("Case %s. Got: %d existCallCount, expected %d", tc.request.Name, act.ExistsCallCount, tc.expected.existCallCount)
-		// }
-
-		// if act.DeleteCallCount != tc.expected.deleteCallCount {
-		// 	t.Errorf("Case %s. Got: %d deleteCallCount, expected %d", tc.request.Name, act.DeleteCallCount, tc.expected.deleteCallCount)
-		// }
+		g.Expect(result).To(gomega.Equal(tc.expected.result))
 	}
 }

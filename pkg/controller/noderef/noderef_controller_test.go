@@ -31,7 +31,6 @@ import (
 	fakeclient "k8s.io/client-go/kubernetes/fake"
 	"k8s.io/client-go/kubernetes/scheme"
 	"k8s.io/client-go/tools/record"
-	"k8s.io/utils/pointer"
 	"sigs.k8s.io/cluster-api/pkg/apis/cluster/v1alpha2"
 	"sigs.k8s.io/cluster-api/pkg/controller/noderefutil"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -54,10 +53,10 @@ func TestReconcile(t *testing.T) {
 			Namespace: "default",
 		},
 		Spec: v1alpha2.MachineSpec{
-			InfrastructureRef: corev1.TypedLocalObjectReference{
-				APIGroup: pointer.StringPtr("infrastructure.clusters.k8s.io"),
-				Kind:     "InfrastructureRef",
-				Name:     "machine-infrastructure",
+			InfrastructureRef: corev1.ObjectReference{
+				APIVersion: "infrastructure.cluster.sigs.k8s.io/v1alpha1",
+				Kind:       "InfrastructureRef",
+				Name:       "machine-infrastructure",
 			},
 		},
 	}

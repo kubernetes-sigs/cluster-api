@@ -365,11 +365,11 @@ k8s.io/apimachinery/pkg/util/validation/field
 k8s.io/apimachinery/pkg/runtime/serializer
 k8s.io/apimachinery/pkg/util/runtime
 k8s.io/apimachinery/pkg/watch
+k8s.io/apimachinery/pkg/apis/meta/v1/unstructured
 k8s.io/apimachinery/pkg/api/equality
 k8s.io/apimachinery/pkg/util/rand
 k8s.io/apimachinery/pkg/util/sets
 k8s.io/apimachinery/pkg/api/meta
-k8s.io/apimachinery/pkg/apis/meta/v1/unstructured
 k8s.io/apimachinery/pkg/util/json
 k8s.io/apimachinery/pkg/runtime/serializer/streaming
 k8s.io/apimachinery/pkg/util/net
@@ -644,8 +644,8 @@ k8s.io/klog/klogr
 # k8s.io/kube-openapi v0.0.0-20180731170545-e3762e86a74c
 k8s.io/kube-openapi/pkg/util/proto
 # k8s.io/utils v0.0.0-20190506122338-8fab8cb257d5
-k8s.io/utils/integer
 k8s.io/utils/pointer
+k8s.io/utils/integer
 k8s.io/utils/buffer
 k8s.io/utils/trace
 # sigs.k8s.io/controller-runtime v0.2.0-beta.2

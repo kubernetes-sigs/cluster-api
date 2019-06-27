@@ -27,7 +27,6 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/intstr"
-	"k8s.io/utils/pointer"
 	"sigs.k8s.io/cluster-api/pkg/apis/cluster/common"
 	clusterv1 "sigs.k8s.io/cluster-api/pkg/apis/cluster/v1alpha2"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -68,10 +67,10 @@ func TestReconcile(t *testing.T) {
 				},
 				Spec: clusterv1.MachineSpec{
 					Version: &version,
-					InfrastructureRef: corev1.TypedLocalObjectReference{
-						APIGroup: pointer.StringPtr("infrastructure.clusters.k8s.io"),
-						Kind:     "InfrastructureRef",
-						Name:     "machine-infrastructure",
+					InfrastructureRef: corev1.ObjectReference{
+						APIVersion: "infrastructure.cluster.sigs.k8s.io/v1alpha1",
+						Kind:       "InfrastructureRef",
+						Name:       "machine-infrastructure",
 					},
 				},
 			},

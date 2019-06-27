@@ -24,7 +24,6 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
-	"k8s.io/utils/pointer"
 )
 
 func TestStorageMachine(t *testing.T) {
@@ -38,10 +37,10 @@ func TestStorageMachine(t *testing.T) {
 			Namespace: "default",
 		},
 		Spec: MachineSpec{
-			InfrastructureRef: corev1.TypedLocalObjectReference{
-				APIGroup: pointer.StringPtr("infrastructure.clusters.k8s.io"),
-				Kind:     "InfrastructureRef",
-				Name:     "machine-infrastructure",
+			InfrastructureRef: corev1.ObjectReference{
+				APIVersion: "infrastructure.cluster.sigs.k8s.io/v1alpha1",
+				Kind:       "InfrastructureRef",
+				Name:       "machine-infrastructure",
 			},
 		},
 	}

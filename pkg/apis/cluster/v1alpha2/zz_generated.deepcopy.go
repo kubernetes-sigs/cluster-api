@@ -49,8 +49,8 @@ func (in *Bootstrap) DeepCopyInto(out *Bootstrap) {
 	*out = *in
 	if in.ConfigRef != nil {
 		in, out := &in.ConfigRef, &out.ConfigRef
-		*out = new(v1.TypedLocalObjectReference)
-		(*in).DeepCopyInto(*out)
+		*out = new(v1.ObjectReference)
+		**out = **in
 	}
 	if in.Data != nil {
 		in, out := &in.Data, &out.Data
@@ -540,7 +540,7 @@ func (in *MachineSpec) DeepCopyInto(out *MachineSpec) {
 	*out = *in
 	in.ObjectMeta.DeepCopyInto(&out.ObjectMeta)
 	in.Bootstrap.DeepCopyInto(&out.Bootstrap)
-	in.InfrastructureRef.DeepCopyInto(&out.InfrastructureRef)
+	out.InfrastructureRef = in.InfrastructureRef
 	if in.Version != nil {
 		in, out := &in.Version, &out.Version
 		*out = new(string)

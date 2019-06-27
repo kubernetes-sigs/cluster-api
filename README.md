@@ -7,7 +7,7 @@ The Kubernetes Template Project is a template for starting new projects in the G
 - a `CONTRIBUTING.md` outlining how to contribute to the project
 - an unmodified copy of `code-of-conduct.md` from this repo, which outlines community behavior and the consequences of breaking the code
 - a `LICENSE` which must be Apache 2.0 for code projects, or [Creative Commons 4.0] for documentation repositories, without any custom content
-- a `SECURITY_CONTACTS` with the contact points for the Product Security Team 
+- a `SECURITY_CONTACTS` with the contact points for the Product Security Team
   to reach out to for triaging and handling of incoming issues. They must agree to abide by the
   [Embargo Policy](https://git.k8s.io/security/private-distributors-list.md#embargo-policy)
   and will be removed and replaced if they violate that agreement.

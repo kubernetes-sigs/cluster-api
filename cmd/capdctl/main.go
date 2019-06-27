@@ -1302,6 +1302,7 @@ rules:
   - list
   - watch
   - create
+  - patch
 - apiGroups:
   - cluster.k8s.io
   resources:

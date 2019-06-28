@@ -36,7 +36,7 @@ Run: `./scripts/publish-manager.sh`
 
 #### Using Docker
 
-Alternatively, run: `docker build -t <MY_REPOSITORY>/capd-manager:latest .`
+Alternatively, run: `REGISTRY=<MY_REGISTRY> ./scripts/publish-manager.sh`
 
 ## Trying CAPD
 

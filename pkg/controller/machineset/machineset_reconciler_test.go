@@ -24,7 +24,6 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
-	"k8s.io/utils/pointer"
 	clusterv1alpha2 "sigs.k8s.io/cluster-api/pkg/apis/cluster/v1alpha2"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/manager"
@@ -47,10 +46,10 @@ func TestReconcile(t *testing.T) {
 			Template: clusterv1alpha2.MachineTemplateSpec{
 				Spec: clusterv1alpha2.MachineSpec{
 					Version: &version,
-					InfrastructureRef: corev1.TypedLocalObjectReference{
-						APIGroup: pointer.StringPtr("infrastructure.clusters.k8s.io"),
-						Kind:     "InfrastructureRef",
-						Name:     "machine-infrastructure",
+					InfrastructureRef: corev1.ObjectReference{
+						APIVersion: "infrastructure.cluster.sigs.k8s.io/v1alpha1",
+						Kind:       "InfrastructureRef",
+						Name:       "machine-infrastructure",
 					},
 				},
 			},

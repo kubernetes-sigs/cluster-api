@@ -25,11 +25,13 @@ import (
 	"os"
 	"os/exec"
 	"os/user"
+	"reflect"
 	"strings"
 	"time"
 
 	v1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/util/json"
 	"k8s.io/apimachinery/pkg/util/yaml"
@@ -145,6 +147,24 @@ func IsNodeReady(node *v1.Node) bool {
 	}
 
 	return false
+}
+
+// HasOwnerRef returns true if the OwnerReference is already in the slice.
+func HasOwnerRef(ownerReferences []metav1.OwnerReference, ref metav1.OwnerReference) bool {
+	for _, r := range ownerReferences {
+		if reflect.DeepEqual(ref, r) {
+			return true
+		}
+	}
+	return false
+}
+
+// EnsureOwnerRef makes sure the slice contains the OwnerReference.
+func EnsureOwnerRef(ownerReferences []metav1.OwnerReference, ref metav1.OwnerReference) []metav1.OwnerReference {
+	if !HasOwnerRef(ownerReferences, ref) {
+		return append(ownerReferences, ref)
+	}
+	return ownerReferences
 }
 
 // Copy deep copies a Machine object.

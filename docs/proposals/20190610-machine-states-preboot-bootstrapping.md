@@ -10,7 +10,7 @@ reviewers:
   - "@timothysc"
   - "@vincepri"
 creation-date: 2019-06-10
-last-updated: 2019-06-12
+last-updated: 2019-06-28
 status: provisional
 ---
 
@@ -139,7 +139,7 @@ type MachineSpec struct
         - Type: `Bootstrap`
         - Description: Bootstrap is a reference to a local struct which encapsulates fields to configure the Machine’s bootstrapping mechanism.
     - **InfrastructureRef [required]**
-        - Type: `corev1.TypedLocalObjectReference`
+        - Type: `corev1.ObjectReference`
         - Description: InfrastructureRef is a required reference to a Custom Resource Definition offered by an infrastructure provider.
     - **Version [optional]**
         - Type: `string`
@@ -160,19 +160,19 @@ type MachineStatus struct
     - **Version [optional]**
         - Type: `*string`
         - Description: Version specifies the current version of Kubernetes running on the corresponding Node. This is meant to be a means of bubbling up status from the Node to the Machine. It is entirely optional, but useful for end-user UX if it’s present.
-    - **Bootstrap [optional]**
-        - Type: `ControllerPhaseType`
-        - Description: The state of the bootstrap provider.
-    - **Infrastructure [optional]**
-        - Type: `ControllerPhaseType`
-        - Description: The state of the infrastructure provider.
+    - **BootstrapReady [optional]**
+        - Type: `*string`
+        - Description: True when the bootstrap provider status is ready.
+    - **InfrastructureReady [optional]**
+        - Type: `*bool`
+        - Description: True when the infrastructure provider status is ready.
 
 ```go
 type Bootstrap struct
 ```
 - **To add**
     - **ConfigRef [optional]**
-        - Type: `*corev1.TypedLocalObjectReference`
+        - Type: `*corev1.ObjectReference`
         - Description: ConfigRef is a reference to a bootstrap provider-specific resource that holds configuration details. The reference is optional to allow users/operators to specify Bootstrap.Data without the need of a controller.
     - **Data [optional]**
         - Type: `*string`

@@ -207,9 +207,9 @@ func (m *Machine) Exists(ctx context.Context, cluster *clusterv1.Cluster, machin
 }
 
 // patches the object and saves the status.
-func (m *Machine) save(old, new *clusterv1.Machine, noderef *apicorev1.ObjectReference) error {
+func (m *Machine) save(oldMachine, newMachine *clusterv1.Machine, noderef *apicorev1.ObjectReference) error {
 	fmt.Println("updating machine")
-	p, err := patch.NewJSONPatch(old, new)
+	p, err := patch.NewJSONPatch(oldMachine, newMachine)
 	if err != nil {
 		fmt.Printf("%+v\n", err)
 		return err
@@ -221,7 +221,7 @@ func (m *Machine) save(old, new *clusterv1.Machine, noderef *apicorev1.ObjectRef
 			fmt.Printf("%+v\n", err)
 			return err
 		}
-		new, err = m.ClusterAPI.Machines(old.Namespace).Patch(new.Name, types.JSONPatchType, pb)
+		newMachine, err = m.ClusterAPI.Machines(oldMachine.Namespace).Patch(newMachine.Name, types.JSONPatchType, pb)
 		if err != nil {
 			fmt.Printf("%+v\n", err)
 			return err
@@ -229,8 +229,8 @@ func (m *Machine) save(old, new *clusterv1.Machine, noderef *apicorev1.ObjectRef
 		fmt.Println("updated machine")
 	}
 	// set the noderef after so we don't try and patch it in during the first update
-	new.Status.NodeRef = noderef
-	if _, err := m.ClusterAPI.Machines(old.Namespace).UpdateStatus(new); err != nil {
+	newMachine.Status.NodeRef = noderef
+	if _, err := m.ClusterAPI.Machines(oldMachine.Namespace).UpdateStatus(newMachine); err != nil {
 		fmt.Printf("%+v\n", err)
 		return err
 	}

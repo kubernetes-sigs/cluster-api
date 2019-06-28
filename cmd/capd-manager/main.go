@@ -61,7 +61,7 @@ func main() {
 	machineActuator := actuators.NewMachineActuator(cs.ClusterV1alpha1(), k8sclientset.CoreV1())
 
 	// Register our cluster deployer (the interface is in clusterctl and we define the Deployer interface on the actuator)
-	common.RegisterClusterProvisioner("aws", clusterActuator)
+	common.RegisterClusterProvisioner("docker", clusterActuator)
 	if err := apis.AddToScheme(mgr.GetScheme()); err != nil {
 		panic(err)
 	}

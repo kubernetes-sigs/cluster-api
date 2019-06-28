@@ -18,7 +18,6 @@ package machine
 
 import (
 	"context"
-	"path"
 	"time"
 
 	"github.com/pkg/errors"
@@ -30,15 +29,34 @@ import (
 	"k8s.io/utils/pointer"
 	"sigs.k8s.io/cluster-api/pkg/apis/cluster/common"
 	"sigs.k8s.io/cluster-api/pkg/apis/cluster/v1alpha2"
+	clusterv1 "sigs.k8s.io/cluster-api/pkg/apis/cluster/v1alpha2"
 	capierrors "sigs.k8s.io/cluster-api/pkg/controller/error"
 	"sigs.k8s.io/cluster-api/pkg/util"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/handler"
+	"sigs.k8s.io/controller-runtime/pkg/source"
 )
 
-func (r *ReconcileMachine) reconcile(ctx context.Context, m *v1alpha2.Machine) error {
-	bootstrapErr := r.reconcileBootstrap(ctx, m)
-	infrastructureErr := r.reconcileInfrastructure(ctx, m)
+func (r *ReconcileMachine) reconcile(ctx context.Context, m *v1alpha2.Machine) (err error) {
+	// TODO(vincepri): These can be generalized with an interface and possibly a for loop.
+	errors := []error{}
+	errors = append(errors, r.reconcileBootstrap(ctx, m))
+	errors = append(errors, r.reconcileInfrastructure(ctx, m))
+	errors = append(errors, r.reconcilePhase(ctx, m))
 
+	// Determine the return error, giving precedence to the first non-nil and non-requeueAfter errors.
+	for _, e := range errors {
+		if e == nil {
+			continue
+		}
+		if err == nil || capierrors.IsRequeueAfter(err) {
+			err = e
+		}
+	}
+	return err
+}
+
+func (r *ReconcileMachine) reconcilePhase(ctx context.Context, m *v1alpha2.Machine) error {
 	// Set the phase to "pending" if nil.
 	if m.Status.Phase == nil {
 		m.Status.SetTypedPhase(v1alpha2.MachinePhasePending)
@@ -71,29 +89,19 @@ func (r *ReconcileMachine) reconcile(ctx context.Context, m *v1alpha2.Machine) e
 		m.Status.SetTypedPhase(v1alpha2.MachinePhaseDeleting)
 	}
 
-	// Determine the return error, giving precedence to non-nil errors and non-requeueAfter.
-	var err error
-	if bootstrapErr != nil {
-		err = bootstrapErr
-	}
-	if infrastructureErr != nil && (err == nil || capierrors.IsRequeueAfter(err)) {
-		err = infrastructureErr
-	}
-	return err
+	return nil
 }
 
 // reconcileExternal handles generic unstructured objects referenced by a Machine.
 func (r *ReconcileMachine) reconcileExternal(ctx context.Context, m *v1alpha2.Machine, ref *corev1.ObjectReference) (*unstructured.Unstructured, error) {
-	// TODO(vincepri): Handle watching dynamic external objects.
-
 	obj, err := r.getExternal(ctx, ref, m.Namespace)
 	if err != nil {
 		if apierrors.IsNotFound(err) && !m.DeletionTimestamp.IsZero() {
 			return nil, nil
 		} else if apierrors.IsNotFound(err) {
 			return nil, errors.Wrapf(&capierrors.RequeueAfterError{RequeueAfter: 30 * time.Second},
-				"could not find %s %q for Machine %q in namespace %q, requeuing",
-				path.Join(ref.APIVersion, ref.Kind), ref.Name, m.Name, m.Namespace)
+				"could not find %v %q for Machine %q in namespace %q, requeuing",
+				ref.GroupVersionKind(), ref.Name, m.Name, m.Namespace)
 		}
 		return nil, err
 	}
@@ -104,8 +112,8 @@ func (r *ReconcileMachine) reconcileExternal(ctx context.Context, m *v1alpha2.Ma
 	if !m.DeletionTimestamp.IsZero() {
 		if err := r.Delete(ctx, obj); err != nil {
 			return nil, errors.Wrapf(err,
-				"failed to delete %s %q for Machine %q in namespace %q",
-				path.Join(ref.APIVersion, ref.Kind), ref.Name, m.Name, m.Namespace)
+				"failed to delete %v %q for Machine %q in namespace %q",
+				obj.GroupVersionKind(), ref.Name, m.Name, m.Namespace)
 		}
 		return obj, nil
 	}
@@ -122,8 +130,21 @@ func (r *ReconcileMachine) reconcileExternal(ctx context.Context, m *v1alpha2.Ma
 		obj.SetOwnerReferences(util.EnsureOwnerRef(obj.GetOwnerReferences(), machineOwnerRef))
 		if err := r.Patch(ctx, obj, objPatch); err != nil {
 			return nil, errors.Wrapf(err,
-				"failed to set OwnerReference on %s %q for Machine %q in namespace %q",
-				path.Join(ref.APIVersion, ref.Kind), ref.Name, m.Name, m.Namespace)
+				"failed to set OwnerReference on %v %q for Machine %q in namespace %q",
+				obj.GroupVersionKind(), ref.Name, m.Name, m.Namespace)
+		}
+	}
+
+	// Add watcher for external object, if there isn't one already.
+	_, loaded := r.externalWatchers.LoadOrStore(obj.GroupVersionKind().String(), struct{}{})
+	if !loaded && r.controller != nil {
+		err := r.controller.Watch(
+			&source.Kind{Type: obj},
+			&handler.EnqueueRequestForOwner{OwnerType: &clusterv1.Machine{}},
+		)
+		if err != nil {
+			r.externalWatchers.Delete(obj.GroupVersionKind().String())
+			return nil, errors.Wrapf(err, "failed to add watcher on external object %q", obj.GroupVersionKind())
 		}
 	}
 
@@ -226,8 +247,8 @@ func (r *ReconcileMachine) reconcileInfrastructure(ctx context.Context, m *v1alp
 func (r *ReconcileMachine) isExternalReady(obj *unstructured.Unstructured) (bool, error) {
 	ready, found, err := unstructured.NestedBool(obj.Object, "status", "ready")
 	if err != nil {
-		return false, errors.Wrapf(err, "failed to determine %s %q readiness",
-			path.Join(obj.GetAPIVersion(), obj.GetKind()), obj.GetName())
+		return false, errors.Wrapf(err, "failed to determine %v %q readiness",
+			obj.GroupVersionKind(), obj.GetName())
 	}
 	return ready && found, nil
 }
@@ -236,13 +257,13 @@ func (r *ReconcileMachine) isExternalReady(obj *unstructured.Unstructured) (bool
 func (r *ReconcileMachine) getExternalErrors(obj *unstructured.Unstructured) (string, string, error) {
 	errorReason, _, err := unstructured.NestedString(obj.Object, "status", "errorReason")
 	if err != nil {
-		return "", "", errors.Wrapf(err, "failed to determine errorReason on %s %q",
-			path.Join(obj.GetAPIVersion(), obj.GetKind()), obj.GetName())
+		return "", "", errors.Wrapf(err, "failed to determine errorReason on %v %q",
+			obj.GroupVersionKind(), obj.GetName())
 	}
 	errorMessage, _, err := unstructured.NestedString(obj.Object, "status", "errorMessage")
 	if err != nil {
-		return "", "", errors.Wrapf(err, "failed to determine errorMessage on %s %q",
-			path.Join(obj.GetAPIVersion(), obj.GetKind()), obj.GetName())
+		return "", "", errors.Wrapf(err, "failed to determine errorMessage on %v %q",
+			obj.GroupVersionKind(), obj.GetName())
 	}
 	return errorReason, errorMessage, nil
 }

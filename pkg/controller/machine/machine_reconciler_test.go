@@ -25,12 +25,9 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	clusterv1 "sigs.k8s.io/cluster-api/pkg/apis/cluster/v1alpha2"
-	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/manager"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 )
-
-var c client.Client
 
 var expectedRequest = reconcile.Request{NamespacedName: types.NamespacedName{Name: "foo", Namespace: "default"}}
 
@@ -54,12 +51,15 @@ func TestReconcile(t *testing.T) {
 	if err != nil {
 		t.Fatalf("error creating new manager: %v", err)
 	}
-	c = mgr.GetClient()
+	c := mgr.GetClient()
 
-	recFn, requests := SetupTestReconcile(newReconciler(mgr))
-	if err := add(mgr, recFn); err != nil {
+	reconciler := newReconciler(mgr)
+	recFn, requests := SetupTestReconcile(reconciler)
+	controller, err := addController(mgr, recFn)
+	if err != nil {
 		t.Fatalf("error adding controller to manager: %v", err)
 	}
+	reconciler.controller = controller
 	defer close(StartTestManager(mgr, t))
 
 	// Create the Machine object and expect Reconcile and the actuator to be called

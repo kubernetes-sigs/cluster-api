@@ -70,7 +70,8 @@ func kubeconfigToSecret(clusterName, namespace string) (*v1.Secret, error) {
 			Namespace: namespace,
 		},
 		Data: map[string][]byte{
-			"kubeconfig": data,
+			// TODO pull in constant from cluster api
+			"value": data,
 		},
 	}, nil
 }

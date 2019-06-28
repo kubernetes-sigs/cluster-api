@@ -128,7 +128,7 @@ func usage() string {
 subcommands are:
 
   setup - Create a management cluster
-    example: capdctl setup --name my-management-cluster-name
+    example: capdctl setup -cluster-name my-management-cluster-name
 
   crds - Write Cluster API CRDs required to run capd to stdout
     example: capdctl crds | kubectl apply -f -

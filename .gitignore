@@ -1,3 +1,6 @@
 capdctl
 capd-manager
 kind-test
+
+# vscode
+.vscode

@@ -38,7 +38,6 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/recorder"
 	"sigs.k8s.io/controller-runtime/pkg/runtime/inject"
 	"sigs.k8s.io/controller-runtime/pkg/webhook"
-	"sigs.k8s.io/controller-runtime/pkg/webhook/conversion"
 )
 
 const (
@@ -218,7 +217,6 @@ func (cm *controllerManager) GetWebhookServer() *webhook.Server {
 			Port: cm.port,
 			Host: cm.host,
 		}
-		cm.webhookServer.Register("/convert", &conversion.Webhook{})
 		if err := cm.Add(cm.webhookServer); err != nil {
 			panic("unable to add webhookServer to the controller manager")
 		}
@@ -361,7 +359,16 @@ func (cm *controllerManager) startLeaderElection() (err error) {
 		return err
 	}
 
+	ctx, cancel := context.WithCancel(context.Background())
+	go func() {
+		select {
+		case <-cm.internalStop:
+			cancel()
+		case <-ctx.Done():
+		}
+	}()
+
 	// Start the leader elector process
-	go l.Run(context.Background())
+	go l.Run(ctx)
 	return nil
 }

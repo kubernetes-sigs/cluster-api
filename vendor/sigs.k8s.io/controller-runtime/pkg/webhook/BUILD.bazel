@@ -11,7 +11,7 @@ go_library(
     importpath = "sigs.k8s.io/controller-runtime/pkg/webhook",
     visibility = ["//visibility:public"],
     deps = [
-        "//vendor/github.com/appscode/jsonpatch:go_default_library",
+        "//vendor/gomodules.xyz/jsonpatch/v2:go_default_library",
         "//vendor/sigs.k8s.io/controller-runtime/pkg/internal/log:go_default_library",
         "//vendor/sigs.k8s.io/controller-runtime/pkg/runtime/inject:go_default_library",
         "//vendor/sigs.k8s.io/controller-runtime/pkg/webhook/admission:go_default_library",

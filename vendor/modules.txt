@@ -13,8 +13,6 @@ github.com/Azure/go-autorest/autorest/date
 github.com/Azure/go-autorest/logger
 # github.com/Azure/go-autorest/tracing v0.1.0
 github.com/Azure/go-autorest/tracing
-# github.com/appscode/jsonpatch v0.0.0-20190108182946-7c0e3b262f30
-github.com/appscode/jsonpatch
 # github.com/beorn7/perks v0.0.0-20180321164747-3a771d992973
 github.com/beorn7/perks/quantile
 # github.com/census-instrumentation/opencensus-proto v0.2.0
@@ -28,7 +26,7 @@ github.com/census-instrumentation/opencensus-proto/gen-go/trace/v1
 github.com/davecgh/go-spew/spew
 # github.com/dgrijalva/jwt-go v3.2.0+incompatible
 github.com/dgrijalva/jwt-go
-# github.com/evanphx/json-patch v4.1.0+incompatible
+# github.com/evanphx/json-patch v4.5.0+incompatible
 github.com/evanphx/json-patch
 # github.com/go-logr/logr v0.1.0
 github.com/go-logr/logr
@@ -249,6 +247,8 @@ golang.org/x/tools/go/ast/astutil
 golang.org/x/tools/internal/module
 golang.org/x/tools/go/internal/gcimporter
 golang.org/x/tools/internal/fastwalk
+# gomodules.xyz/jsonpatch/v2 v2.0.0
+gomodules.xyz/jsonpatch/v2
 # google.golang.org/api v0.3.1
 google.golang.org/api/support/bundler
 # google.golang.org/appengine v1.4.0
@@ -648,7 +648,7 @@ k8s.io/utils/pointer
 k8s.io/utils/integer
 k8s.io/utils/buffer
 k8s.io/utils/trace
-# sigs.k8s.io/controller-runtime v0.2.0-beta.2
+# sigs.k8s.io/controller-runtime v0.2.0-beta.3
 sigs.k8s.io/controller-runtime/pkg/client
 sigs.k8s.io/controller-runtime/pkg/client/config
 sigs.k8s.io/controller-runtime/pkg/manager
@@ -668,7 +668,6 @@ sigs.k8s.io/controller-runtime/pkg/metrics
 sigs.k8s.io/controller-runtime/pkg/recorder
 sigs.k8s.io/controller-runtime/pkg/runtime/inject
 sigs.k8s.io/controller-runtime/pkg/webhook
-sigs.k8s.io/controller-runtime/pkg/webhook/conversion
 sigs.k8s.io/controller-runtime/pkg/envtest
 sigs.k8s.io/controller-runtime/pkg/manager/signals
 sigs.k8s.io/controller-runtime/pkg/log
@@ -682,7 +681,6 @@ sigs.k8s.io/controller-runtime/pkg/cache/internal
 sigs.k8s.io/controller-runtime/pkg/webhook/admission
 sigs.k8s.io/controller-runtime/pkg/webhook/internal/certwatcher
 sigs.k8s.io/controller-runtime/pkg/webhook/internal/metrics
-sigs.k8s.io/controller-runtime/pkg/conversion
 sigs.k8s.io/controller-runtime/pkg/envtest/printer
 sigs.k8s.io/controller-runtime/pkg/internal/controller/metrics
 sigs.k8s.io/controller-runtime/pkg/internal/objectutil

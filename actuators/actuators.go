@@ -29,6 +29,10 @@ import (
 	"sigs.k8s.io/kind/pkg/cluster/nodes"
 )
 
+const (
+	containerRunningStatus = "running"
+)
+
 func getRole(machine *clusterv1.Machine) string {
 	// Figure out what kind of node we're making
 	labels := machine.GetLabels()
@@ -40,9 +44,11 @@ func getRole(machine *clusterv1.Machine) string {
 }
 
 func getExternalLoadBalancerNode(clusterName string) (*nodes.Node, error) {
+	fmt.Printf("Getting external load balancer node for cluster %q\n", clusterName)
 	elb, err := nodes.List(
 		fmt.Sprintf("label=%s=%s", constants.NodeRoleKey, constants.ExternalLoadBalancerNodeRoleValue),
 		fmt.Sprintf("label=%s=%s", constants.ClusterLabelKey, clusterName),
+		fmt.Sprintf("status=%s", containerRunningStatus),
 	)
 	if err != nil {
 		return nil, err
@@ -53,6 +59,7 @@ func getExternalLoadBalancerNode(clusterName string) (*nodes.Node, error) {
 	if len(elb) > 1 {
 		return nil, errors.New("too many external load balancers")
 	}
+	fmt.Printf("External loadbalancer node for cluster %q is %v\n", clusterName, elb[0])
 	return &elb[0], nil
 }
 

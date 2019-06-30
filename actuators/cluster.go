@@ -29,6 +29,7 @@ type Cluster struct {
 
 // Reconcile setups an external load balancer for the cluster if needed
 func (c *Cluster) Reconcile(cluster *clusterv1.Cluster) error {
+	fmt.Printf("Reconciling cluster %s/%s\n", cluster.Namespace, cluster.Name)
 	elb, err := getExternalLoadBalancerNode(cluster.Name)
 	if err != nil {
 		c.Log.Error(err, "Error getting external load balancer node")

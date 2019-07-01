@@ -46,8 +46,6 @@ import (
 
 const (
 	NodeNameEnvVar = "NODE_NAME"
-	// ExcludeNodeDrainingAnnotation annotation explicitly skips node draining if set
-	ExcludeNodeDrainingAnnotation = "machine.cluster.sigs.k8s.io/exclude-node-draining"
 )
 
 var DefaultActuator Actuator
@@ -163,18 +161,17 @@ func (r *ReconcileMachine) Reconcile(request reconcile.Request) (reconcile.Resul
 			klog.Infof("Deleting machine hosting this controller is not allowed. Skipping reconciliation of machine %q", name)
 			return reconcile.Result{}, nil
 		}
+
+		klog.Infof("Reconciling machine %q triggers delete", name)
+
 		// Drain node before deletion
-		// If a machine is not linked to a node, just delete the machine. Since a node
-		// can be unlinked from a machine when the node goes NotReady and is removed
-		// by cloud controller manager. In that case some machines would never get
-		// deleted without a manual intervention.
-		if _, exists := m.ObjectMeta.Annotations[ExcludeNodeDrainingAnnotation]; !exists && m.Status.NodeRef != nil {
-			if err := r.drainNode(m); err != nil {
+		// If a machine is not linked to a node, just delete the machine.
+		if _, exists := m.ObjectMeta.Annotations[clusterv1.ExcludeNodeDrainingAnnotation]; !exists && m.Status.NodeRef != nil {
+			if err := r.drainNode(cluster, m); err != nil {
 				return reconcile.Result{}, err
 			}
 		}
 
-		klog.Infof("Reconciling machine %q triggers delete", name)
 		if err := r.actuator.Delete(ctx, cluster, m); err != nil {
 			if requeueErr, ok := errors.Cause(err).(controllerError.HasRequeueAfterError); ok {
 				klog.Infof("Actuator returned requeue-after error: %v", requeueErr)
@@ -405,19 +402,45 @@ func (r *ReconcileMachine) getMachinesInCluster(ctx context.Context, namespace, 
 	return machines, nil
 }
 
-func (r *ReconcileMachine) drainNode(machine *clusterv1.Machine) error {
-	kubeClient, err := kubernetes.NewForConfig(r.config)
-	if err != nil {
-		return fmt.Errorf("unable to build kube client: %v", err)
+func (r *ReconcileMachine) drainNode(cluster *clusterv1.Cluster, machine *clusterv1.Machine) error {
+	var kubeClient kubernetes.Interface
+	if cluster == nil {
+		var err error
+		kubeClient, err = kubernetes.NewForConfig(r.config)
+		if err != nil {
+			return fmt.Errorf("unable to build kube client: %v", err)
+		}
+	} else {
+		// Otherwise, proceed to get the remote cluster client and get the Node.
+		remoteClient, err := remote.NewClusterClient(r.Client, cluster)
+		if err != nil {
+			klog.Errorf("Error creating a remote client for cluster %q while deleting Machine %q, won't retry: %v",
+				cluster.Name, machine.Name, err)
+			return nil
+		}
+		var err2 error
+		kubeClient, err2 = kubernetes.NewForConfig(remoteClient.RESTConfig())
+		if err2 != nil {
+			klog.Errorf("Error creating a remote client for cluster %q while deleting Machine %q, won't retry: %v",
+				cluster.Name, machine.Name, err)
+			return nil
+		}
 	}
+
 	node, err := kubeClient.CoreV1().Nodes().Get(machine.Status.NodeRef.Name, metav1.GetOptions{})
 	if err != nil {
+		if apierrors.IsNotFound(err) {
+			// If an admin deletes the node directly, we'll end up here.
+			klog.Infof("Could not find node from noderef, it may have already been deleted: %v", machine.Status.NodeRef.Name)
+			return nil
+		}
 		return fmt.Errorf("unable to get node %q: %v", machine.Status.NodeRef.Name, err)
 	}
 
 	if err := kubedrain.Drain(
 		kubeClient,
 		[]*corev1.Node{node},
+		// TODO: make this configurable by the user.
 		&kubedrain.DrainOptions{
 			Force:              true,
 			IgnoreDaemonsets:   true,
@@ -430,11 +453,11 @@ func (r *ReconcileMachine) drainNode(machine *clusterv1.Machine) error {
 		},
 	); err != nil {
 		// Machine still tries to terminate after drain failure
-		klog.Warningf("drain failed for machine %q: %v", machine.Name, err)
-		return &controllerError.RequeueAfterError{RequeueAfter: 20 * time.Second}
+		klog.Warningf("Drain failed for machine %q: %v", machine.Name, err)
+		return err
 	}
 
-	klog.Infof("drain successful for machine %q", machine.Name)
+	klog.Infof("Drain successful for machine %q", machine.Name)
 
 	return nil
 }

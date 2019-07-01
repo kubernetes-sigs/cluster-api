@@ -29,6 +29,9 @@ const (
 
 	// MachineClusterLabelName is the label set on machines linked to a cluster.
 	MachineClusterLabelName = "cluster.k8s.io/cluster-name"
+
+	// ExcludeNodeDrainingAnnotation annotation explicitly skips node draining if set
+	ExcludeNodeDrainingAnnotation = "cluster.k8s.io/exclude-node-draining"
 )
 
 // +genclient

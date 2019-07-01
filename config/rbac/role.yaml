@@ -40,32 +40,13 @@ rules:
   - cluster.sigs.k8s.io
   resources:
   - clusters
-  verbs:
-  - get
-  - list
-  - watch
-  - create
-  - update
-  - patch
-  - delete
-- apiGroups:
-  - cluster.sigs.k8s.io
-  resources:
+  - clusters/status
   - machines
   - machines/status
-  verbs:
-  - get
-  - list
-  - watch
-  - create
-  - update
-  - patch
-  - delete
-- apiGroups:
-  - cluster.sigs.k8s.io
-  resources:
   - machinedeployments
   - machinedeployments/status
+  - machinesets
+  - machinesets/status
   verbs:
   - get
   - list
@@ -75,10 +56,10 @@ rules:
   - patch
   - delete
 - apiGroups:
-  - cluster.sigs.k8s.io
+  - infrastructure.cluster.sigs.k8s.io
+  - bootstrap.cluster.sigs.k8s.io
   resources:
-  - machinesets
-  - machinesets/status
+  - '*'
   verbs:
   - get
   - list

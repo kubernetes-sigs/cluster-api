@@ -17,7 +17,7 @@ set -o errexit
 set -o xtrace
 
 REGISTRY=$(gcloud config get-value project)
-TAG=${TAG:-latest}
+TAG=${TAG:-dev}
 
 IMAGE="gcr.io/${REGISTRY}/capd-manager:${TAG}"
 

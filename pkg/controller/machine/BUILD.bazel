@@ -12,6 +12,7 @@ go_library(
         "//pkg/apis/cluster/common:go_default_library",
         "//pkg/apis/cluster/v1alpha2:go_default_library",
         "//pkg/controller/error:go_default_library",
+        "//pkg/controller/external:go_default_library",
         "//pkg/controller/remote:go_default_library",
         "//pkg/util:go_default_library",
         "//vendor/github.com/pkg/errors:go_default_library",

@@ -17,15 +17,9 @@ set -o errexit
 set -o nounset
 set -o pipefail
 
-# shellcheck source=/dev/null
-source "$(dirname "$0")/utils.sh"
-# cd to the root path
-cd_root_path
+VERSION=${VERSION:-0.2.0-beta.2}
 
-# check for gofmt diffs
-diff=$(git ls-files | grep "\.go$" | grep -v "\/vendor" | xargs gofmt -s -d 2>&1)
-if [[ -n "${diff}" ]]; then
-  echo "${diff}"
-  echo
-  echo "Check failed. Please run hack/update-gofmt.sh"
-fi
+# get out of the module
+cd /tmp
+GO111MODULE=on go get "sigs.k8s.io/controller-tools/cmd/controller-gen@v${VERSION}"
+cd -

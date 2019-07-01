@@ -72,7 +72,7 @@ Make sure you have `kind` > 0.3.0 and `kubectl`.
 
 The kubeconfig is on the management cluster in secrets. Grab it and write it to a file:
 
-`kubectl get secrets -o jsonpath='{.data.kubeconfig}' kubeconfig-my-cluster | base64 --decode > ~/.kube/kind-config-my-cluster`
+`kubectl get secrets -o jsonpath='{.data.value}' my-cluster-kubeconfig | base64 --decode > ~/.kube/kind-config-my-cluster`
 
 Look at the pods in your new worker cluster:
 `kubectl get po --all-namespaces --kubeconfig ~/.kube/kind-config-my-cluster`

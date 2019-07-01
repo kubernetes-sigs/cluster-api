@@ -138,6 +138,7 @@ func (r *ReconcileMachine) reconcileExternal(ctx context.Context, m *v1alpha2.Ma
 	// Add watcher for external object, if there isn't one already.
 	_, loaded := r.externalWatchers.LoadOrStore(obj.GroupVersionKind().String(), struct{}{})
 	if !loaded && r.controller != nil {
+		klog.Infof("Adding watcher on external object %q", obj.GroupVersionKind())
 		err := r.controller.Watch(
 			&source.Kind{Type: obj},
 			&handler.EnqueueRequestForOwner{OwnerType: &clusterv1.Machine{}},

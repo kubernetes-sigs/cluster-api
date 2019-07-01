@@ -23,7 +23,7 @@ source "$(dirname "$0")/utils.sh"
 cd_root_path
 
 # check for gofmt diffs
-diff=$(git ls-files | grep "\.go" | grep -v "\/vendor" | xargs gofmt -s -d 2>&1)
+diff=$(git ls-files | grep "\.go$" | grep -v "\/vendor" | xargs gofmt -s -d 2>&1)
 if [[ -n "${diff}" ]]; then
   echo "${diff}"
   echo

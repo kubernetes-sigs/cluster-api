@@ -24,6 +24,12 @@ source "$(dirname "$0")/utils.sh"
 REPO_PATH=$(get_root_path)
 cd "${REPO_PATH}"
 
+failure() {
+    if [[ "${1}" = 1 ]]; then
+        echo "${2} failed"
+    fi
+}
+
 # exit code, if a script fails we'll set this to 1
 res=0
 
@@ -32,54 +38,63 @@ res=0
 if [[ "${VERIFY_WHITESPACE:-true}" == "true" ]]; then
   echo "[*] Verifying whitespace..."
   hack/verify-whitespace.sh || res=1
+  failure $res "verify-whitespace.sh"
   cd "${REPO_PATH}"
 fi
 
 if [[ "${VERIFY_SPELLING:-true}" == "true" ]]; then
   echo "[*] Verifying spelling..."
   hack/verify-spelling.sh || res=1
+  failure $res "verify-spelling.sh"
   cd "${REPO_PATH}"
 fi
 
 if [[ "${VERIFY_BOILERPLATE:-true}" == "true" ]]; then
   echo "[*] Verifying boilerplate..."
   hack/verify-boilerplate.sh || res=1
+  failure $res "verify-boilerplate.sh"
   cd "${REPO_PATH}"
 fi
 
 if [[ "${VERIFY_GOFMT:-true}" == "true" ]]; then
   echo "[*] Verifying gofmt..."
   hack/verify-gofmt.sh || res=1
+  failure $res "verify-gofmt.sh"
   cd "${REPO_PATH}"
 fi
 
 if [[ "${VERIFY_GOLINT:-true}" == "true" ]]; then
   echo "[*] Verifying golint..."
   hack/verify-golint.sh || res=1
+  failure $res "verify-golint.sh"
   cd "${REPO_PATH}"
 fi
 
 if [[ "${VERIFY_GOVET:-true}" == "true" ]]; then
   echo "[*] Verifying govet..."
   hack/verify-govet.sh || res=1
+  failure $res "verify-govet.sh"
   cd "${REPO_PATH}"
 fi
 
 if [[ "${VERIFY_DEPS:-true}" == "true" ]]; then
   echo "[*] Verifying deps..."
   hack/verify-deps.sh || res=1
+  failure $res "verify-deps.sh"
   cd "${REPO_PATH}"
 fi
 
 if [[ "${VERIFY_GOTEST:-true}" == "true" ]]; then
   echo "[*] Verifying gotest..."
   hack/verify-gotest.sh || res=1
+  failure $res "verify-gotest.sh"
   cd "${REPO_PATH}"
 fi
 
 if [[ "${VERIFY_BUILD:-true}" == "true" ]]; then
   echo "[*] Verifying build..."
   hack/verify-build.sh || res=1
+  failure $res "verify-build.sh"
   cd "${REPO_PATH}"
 fi
 

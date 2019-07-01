@@ -324,6 +324,14 @@ func TestReconcilePhase(t *testing.T) {
 			if tc.expected != nil {
 				tc.expected(g, tc.machine)
 			}
+
+			// Test that externalWatchers detected the new kinds.
+			if tc.machine.DeletionTimestamp.IsZero() {
+				_, ok := r.externalWatchers.Load(bootstrapConfig.GroupVersionKind().String())
+				g.Expect(ok).To(gomega.BeTrue())
+				_, ok = r.externalWatchers.Load(infraConfig.GroupVersionKind().String())
+				g.Expect(ok).To(gomega.BeTrue())
+			}
 		})
 
 	}

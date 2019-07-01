@@ -19,6 +19,7 @@ package machine
 import (
 	"context"
 	"path"
+	"sync"
 
 	"github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
@@ -42,43 +43,46 @@ import (
 // Add creates a new Machine Controller and adds it to the Manager with default RBAC. The Manager will set fields on the Controller
 // and Start it when the Manager is Started.
 func Add(mgr manager.Manager) error {
-	return add(mgr, newReconciler(mgr))
+	r := newReconciler(mgr)
+	c, err := addController(mgr, r)
+	r.controller = c
+	return err
 }
 
 // newReconciler returns a new reconcile.Reconciler
-func newReconciler(mgr manager.Manager) reconcile.Reconciler {
+func newReconciler(mgr manager.Manager) *ReconcileMachine {
 	return &ReconcileMachine{
 		Client: mgr.GetClient(),
 		scheme: mgr.GetScheme(),
 	}
 }
 
-// add adds a new Controller to mgr with r as the reconcile.Reconciler
-func add(mgr manager.Manager, r reconcile.Reconciler) error {
+// addController adds a new Controller to mgr with r as the reconcile.Reconciler
+func addController(mgr manager.Manager, r reconcile.Reconciler) (controller.Controller, error) {
 	// Create a new controller
 	c, err := controller.New("machine_controller", mgr, controller.Options{Reconciler: r})
 	if err != nil {
-		return err
-	}
-
-	// Store the controller on the ReconcileMachine instance
-	// to dynamically add watchers to external objects at runtime.
-	if r, ok := r.(*ReconcileMachine); ok {
-		r.controller = c
+		return nil, err
 	}
 
 	// Watch for changes to Machine
-	return c.Watch(
+	err = c.Watch(
 		&source.Kind{Type: &clusterv1.Machine{}},
 		&handler.EnqueueRequestForObject{},
 	)
+	if err != nil {
+		return nil, err
+	}
+
+	return c, nil
 }
 
 // ReconcileMachine reconciles a Machine object
 type ReconcileMachine struct {
 	client.Client
-	scheme     *runtime.Scheme
-	controller controller.Controller
+	scheme           *runtime.Scheme
+	controller       controller.Controller
+	externalWatchers sync.Map
 }
 
 // Reconcile reads that state of the cluster for a Machine object and makes changes based on the state read

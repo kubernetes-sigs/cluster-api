@@ -1,0 +1,3 @@
+version: "2"
+domain: bootstrap.cluster.sigs.k8s.io
+repo: sigs.k8s.io/cluster-api-bootstrap-provider-kubeadm

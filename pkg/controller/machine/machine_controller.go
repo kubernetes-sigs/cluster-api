@@ -30,6 +30,7 @@ import (
 	"k8s.io/utils/pointer"
 	clusterv1 "sigs.k8s.io/cluster-api/pkg/apis/cluster/v1alpha2"
 	capierrors "sigs.k8s.io/cluster-api/pkg/controller/error"
+	"sigs.k8s.io/cluster-api/pkg/controller/external"
 	"sigs.k8s.io/cluster-api/pkg/controller/remote"
 	"sigs.k8s.io/cluster-api/pkg/util"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -156,7 +157,7 @@ func (r *ReconcileMachine) Reconcile(request reconcile.Request) (reconcile.Resul
 		// Remove finalizer on machine when both the references to Infrastructure and Bootstrap are non-existent.
 		var bootstrapExists, infrastructureExists bool
 		if m.Spec.Bootstrap.ConfigRef != nil {
-			if _, err := r.getExternal(ctx, m.Spec.Bootstrap.ConfigRef, m.Namespace); err != nil && !apierrors.IsNotFound(err) {
+			if _, err := external.Get(r.Client, m.Spec.Bootstrap.ConfigRef, m.Namespace); err != nil && !apierrors.IsNotFound(err) {
 				return reconcile.Result{}, errors.Wrapf(err, "failed to get %s %q for Machine %q in namespace %q",
 					path.Join(m.Spec.Bootstrap.ConfigRef.APIVersion, m.Spec.Bootstrap.ConfigRef.Kind),
 					m.Spec.Bootstrap.ConfigRef.Name, m.Name, m.Namespace)
@@ -164,7 +165,7 @@ func (r *ReconcileMachine) Reconcile(request reconcile.Request) (reconcile.Resul
 			bootstrapExists = true
 		}
 
-		if _, err := r.getExternal(ctx, &m.Spec.InfrastructureRef, m.Namespace); err != nil && !apierrors.IsNotFound(err) {
+		if _, err := external.Get(r.Client, &m.Spec.InfrastructureRef, m.Namespace); err != nil && !apierrors.IsNotFound(err) {
 			return reconcile.Result{}, errors.Wrapf(err, "failed to get %s %q for Machine %q in namespace %q",
 				path.Join(m.Spec.InfrastructureRef.APIVersion, m.Spec.InfrastructureRef.Kind),
 				m.Spec.InfrastructureRef.Name, m.Name, m.Namespace)

@@ -29,6 +29,7 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/tools/record"
 	"k8s.io/klog"
+	"k8s.io/utils/pointer"
 	"sigs.k8s.io/cluster-api/pkg/apis/cluster/common"
 	"sigs.k8s.io/cluster-api/pkg/apis/cluster/v1alpha2"
 	"sigs.k8s.io/cluster-api/pkg/util"
@@ -175,14 +176,13 @@ func (r *ReconcileMachineDeployment) reconcile(ctx context.Context, d *v1alpha2.
 	}
 
 	// Set the ownerRef with foreground deletion if there is a linked cluster.
-	if cluster != nil && len(d.OwnerReferences) == 0 {
-		blockOwnerDeletion := true
-		d.OwnerReferences = append(d.OwnerReferences, metav1.OwnerReference{
+	if cluster != nil {
+		d.OwnerReferences = util.EnsureOwnerRef(d.OwnerReferences, metav1.OwnerReference{
 			APIVersion:         cluster.APIVersion,
 			Kind:               cluster.Kind,
 			Name:               cluster.Name,
 			UID:                cluster.UID,
-			BlockOwnerDeletion: &blockOwnerDeletion,
+			BlockOwnerDeletion: pointer.BoolPtr(true),
 		})
 	}
 

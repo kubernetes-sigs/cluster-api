@@ -300,7 +300,7 @@ func (r *ReconcileMachineSet) syncReplicas(ms *clusterv1.MachineSet, machines []
 			klog.Infof("Creating machine %d of %d, ( spec.replicas(%d) > currentMachineCount(%d) )",
 				i+1, diff, *(ms.Spec.Replicas), len(machines))
 
-			machine := r.createMachine(ms)
+			machine := r.getNewMachine(ms)
 			if err := r.Client.Create(context.Background(), machine); err != nil {
 				klog.Errorf("Unable to create Machine %q: %v", machine.Name, err)
 				r.recorder.Eventf(ms, corev1.EventTypeWarning, "FailedCreate", "Failed to create machine %q: %v", machine.Name, err)
@@ -364,9 +364,9 @@ func (r *ReconcileMachineSet) syncReplicas(ms *clusterv1.MachineSet, machines []
 	return nil
 }
 
-// createMachine creates a Machine resource. The name of the newly created resource is going
+// getNewMachine creates a new Machine object. The name of the newly created resource is going
 // to be created by the API server, we set the generateName field.
-func (r *ReconcileMachineSet) createMachine(machineSet *clusterv1.MachineSet) *clusterv1.Machine {
+func (r *ReconcileMachineSet) getNewMachine(machineSet *clusterv1.MachineSet) *clusterv1.Machine {
 	gv := clusterv1.SchemeGroupVersion
 	machine := &clusterv1.Machine{
 		TypeMeta: metav1.TypeMeta{

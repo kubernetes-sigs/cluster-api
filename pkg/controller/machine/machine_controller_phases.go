@@ -31,6 +31,7 @@ import (
 	"sigs.k8s.io/cluster-api/pkg/apis/cluster/v1alpha2"
 	clusterv1 "sigs.k8s.io/cluster-api/pkg/apis/cluster/v1alpha2"
 	capierrors "sigs.k8s.io/cluster-api/pkg/controller/error"
+	"sigs.k8s.io/cluster-api/pkg/controller/external"
 	"sigs.k8s.io/cluster-api/pkg/util"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/handler"
@@ -94,7 +95,7 @@ func (r *ReconcileMachine) reconcilePhase(ctx context.Context, m *v1alpha2.Machi
 
 // reconcileExternal handles generic unstructured objects referenced by a Machine.
 func (r *ReconcileMachine) reconcileExternal(ctx context.Context, m *v1alpha2.Machine, ref *corev1.ObjectReference) (*unstructured.Unstructured, error) {
-	obj, err := r.getExternal(ctx, ref, m.Namespace)
+	obj, err := external.Get(r.Client, ref, m.Namespace)
 	if err != nil {
 		if apierrors.IsNotFound(err) && !m.DeletionTimestamp.IsZero() {
 			return nil, nil
@@ -150,7 +151,7 @@ func (r *ReconcileMachine) reconcileExternal(ctx context.Context, m *v1alpha2.Ma
 	}
 
 	// Set error reason and message, if any.
-	errorReason, errorMessage, err := r.getExternalErrors(obj)
+	errorReason, errorMessage, err := external.ErrorsFrom(obj)
 	if err != nil {
 		return nil, err
 	}
@@ -195,7 +196,7 @@ func (r *ReconcileMachine) reconcileBootstrap(ctx context.Context, m *v1alpha2.M
 	}
 
 	// Determine if the bootstrap provider is ready.
-	ready, err := r.isExternalReady(bootstrapConfig)
+	ready, err := external.IsReady(bootstrapConfig)
 	if err != nil {
 		return err
 	} else if !ready {
@@ -232,7 +233,7 @@ func (r *ReconcileMachine) reconcileInfrastructure(ctx context.Context, m *v1alp
 	}
 
 	// Determine if the infrastructure provider is ready
-	ready, err := r.isExternalReady(infraConfig)
+	ready, err := external.IsReady(infraConfig)
 	if err != nil {
 		return err
 	} else if !ready {
@@ -242,42 +243,4 @@ func (r *ReconcileMachine) reconcileInfrastructure(ctx context.Context, m *v1alp
 
 	m.Status.InfrastructureReady = pointer.BoolPtr(true)
 	return nil
-}
-
-// isExternalReady returns true if the Status.Ready field on an external object is true.
-func (r *ReconcileMachine) isExternalReady(obj *unstructured.Unstructured) (bool, error) {
-	ready, found, err := unstructured.NestedBool(obj.Object, "status", "ready")
-	if err != nil {
-		return false, errors.Wrapf(err, "failed to determine %v %q readiness",
-			obj.GroupVersionKind(), obj.GetName())
-	}
-	return ready && found, nil
-}
-
-// getExternalErrors return the ErrorReason and ErrorMessage fields from the external object status.
-func (r *ReconcileMachine) getExternalErrors(obj *unstructured.Unstructured) (string, string, error) {
-	errorReason, _, err := unstructured.NestedString(obj.Object, "status", "errorReason")
-	if err != nil {
-		return "", "", errors.Wrapf(err, "failed to determine errorReason on %v %q",
-			obj.GroupVersionKind(), obj.GetName())
-	}
-	errorMessage, _, err := unstructured.NestedString(obj.Object, "status", "errorMessage")
-	if err != nil {
-		return "", "", errors.Wrapf(err, "failed to determine errorMessage on %v %q",
-			obj.GroupVersionKind(), obj.GetName())
-	}
-	return errorReason, errorMessage, nil
-}
-
-// getExternal takes an ObjectReference and namespace and returns an Unstructured object.
-func (r *ReconcileMachine) getExternal(ctx context.Context, ref *corev1.ObjectReference, namespace string) (*unstructured.Unstructured, error) {
-	obj := new(unstructured.Unstructured)
-	obj.SetAPIVersion(ref.APIVersion)
-	obj.SetKind(ref.Kind)
-	obj.SetName(ref.Name)
-	key := client.ObjectKey{Name: obj.GetName(), Namespace: namespace}
-	if err := r.Get(ctx, key, obj); err != nil {
-		return nil, err
-	}
-	return obj, nil
 }

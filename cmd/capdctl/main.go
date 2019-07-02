@@ -260,7 +260,7 @@ func makeManagementCluster(clusterName string) {
 	cpMounts := []cri.Mount{
 		{
 			ContainerPath: "/var/run/docker.sock",
-			HostPath: "/var/run/docker.sock",
+			HostPath:      "/var/run/docker.sock",
 		},
 	}
 	cp, err := actions.CreateControlPlane(clusterName, "management-control-plane", lbipv4, "v1.14.2", cpMounts)

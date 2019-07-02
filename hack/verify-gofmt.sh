@@ -28,4 +28,5 @@ if [[ -n "${diff}" ]]; then
   echo "${diff}"
   echo
   echo "Check failed. Please run hack/update-gofmt.sh"
+  exit 1
 fi

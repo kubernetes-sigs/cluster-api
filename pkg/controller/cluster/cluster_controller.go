@@ -25,7 +25,7 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/klog"
 	clusterv1 "sigs.k8s.io/cluster-api/pkg/apis/cluster/v1alpha2"
-	controllerError "sigs.k8s.io/cluster-api/pkg/controller/error"
+	controllererror "sigs.k8s.io/cluster-api/pkg/controller/error"
 	"sigs.k8s.io/cluster-api/pkg/util"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
@@ -137,7 +137,7 @@ func (r *ReconcileCluster) Reconcile(request reconcile.Request) (reconcile.Resul
 
 	klog.Infof("reconciling cluster object %v triggers idempotent reconcile.", name)
 	if err := r.actuator.Reconcile(cluster); err != nil {
-		if requeueErr, ok := errors.Cause(err).(controllerError.HasRequeueAfterError); ok {
+		if requeueErr, ok := errors.Cause(err).(controllererror.HasRequeueAfterError); ok {
 			klog.Infof("Actuator returned requeue-after error: %v", requeueErr)
 			return reconcile.Result{Requeue: true, RequeueAfter: requeueErr.GetRequeueAfter()}, nil
 		}

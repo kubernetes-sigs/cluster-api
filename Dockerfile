@@ -21,7 +21,6 @@ RUN  curl -L https://dl.k8s.io/v1.14.3/kubernetes-client-linux-amd64.tar.gz | ta
 ADD cmd cmd
 ADD actuators actuators
 ADD kind kind
-ADD execer execer
 ADD third_party third_party
 
 RUN go install -v ./cmd/capd-manager

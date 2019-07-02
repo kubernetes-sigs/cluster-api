@@ -23,6 +23,8 @@ import (
 	"sync"
 	"time"
 
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
+
 	"github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
@@ -33,6 +35,7 @@ import (
 	"k8s.io/klog"
 	"k8s.io/utils/pointer"
 	clusterv1 "sigs.k8s.io/cluster-api/pkg/apis/cluster/v1alpha2"
+	"sigs.k8s.io/cluster-api/pkg/controller/external"
 	"sigs.k8s.io/cluster-api/pkg/util"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
@@ -301,10 +304,49 @@ func (r *ReconcileMachineSet) syncReplicas(ms *clusterv1.MachineSet, machines []
 				i+1, diff, *(ms.Spec.Replicas), len(machines))
 
 			machine := r.getNewMachine(ms)
-			if err := r.Client.Create(context.Background(), machine); err != nil {
+
+			// Clone and set the infrastructure and bootstrap references.
+			var (
+				infraConfig, bootstrapConfig *unstructured.Unstructured
+				err                          error
+			)
+
+			infraConfig, err = external.Clone(r.Client, &machine.Spec.InfrastructureRef, machine.Namespace)
+			if err != nil {
+				return errors.Wrapf(err, "failed to clone infrastructure configuration for MachineSet %q in namespace %q", ms.Name, ms.Namespace)
+			}
+			machine.Spec.InfrastructureRef = corev1.ObjectReference{
+				APIVersion: infraConfig.GetAPIVersion(),
+				Kind:       infraConfig.GetKind(),
+				Namespace:  infraConfig.GetNamespace(),
+				Name:       infraConfig.GetName(),
+			}
+
+			if machine.Spec.Bootstrap.ConfigRef != nil {
+				bootstrapConfig, err = external.Clone(r.Client, machine.Spec.Bootstrap.ConfigRef, machine.Namespace)
+				if err != nil {
+					return errors.Wrapf(err, "failed to clone bootstrap configuration for MachineSet %q in namespace %q", ms.Name, ms.Namespace)
+				}
+				machine.Spec.Bootstrap.ConfigRef = &corev1.ObjectReference{
+					APIVersion: bootstrapConfig.GetAPIVersion(),
+					Kind:       bootstrapConfig.GetKind(),
+					Namespace:  bootstrapConfig.GetNamespace(),
+					Name:       bootstrapConfig.GetName(),
+				}
+			}
+
+			if err := r.Client.Create(context.TODO(), machine); err != nil {
 				klog.Errorf("Unable to create Machine %q: %v", machine.Name, err)
 				r.recorder.Eventf(ms, corev1.EventTypeWarning, "FailedCreate", "Failed to create machine %q: %v", machine.Name, err)
 				errstrings = append(errstrings, err.Error())
+				if err := r.Client.Delete(context.TODO(), infraConfig); !apierrors.IsNotFound(err) {
+					klog.Errorf("Failed to cleanup infrastructure configuration object after Machine creation error: %v", err)
+				}
+				if bootstrapConfig != nil {
+					if err := r.Client.Delete(context.TODO(), bootstrapConfig); !apierrors.IsNotFound(err) {
+						klog.Errorf("Failed to cleanup bootstrap configuration object after Machine creation error: %v", err)
+					}
+				}
 				continue
 			}
 			klog.Infof("Created machine %d of %d with name %q", i+1, diff, machine.Name)

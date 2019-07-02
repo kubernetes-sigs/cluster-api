@@ -20,7 +20,6 @@ import (
 	"bytes"
 	"fmt"
 	"html/template"
-	"strconv"
 	"strings"
 
 	"github.com/pkg/errors"
@@ -30,6 +29,7 @@ import (
 	"sigs.k8s.io/kind/pkg/cluster/nodes"
 	"sigs.k8s.io/kind/pkg/container/docker"
 	"sigs.k8s.io/kind/pkg/exec"
+	k8sverison "k8s.io/apimachinery/pkg/util/version"
 )
 
 // KubeadmJoinControlPlane joins a control plane to an existing Kubernetes cluster.
@@ -152,12 +152,12 @@ func KubeadmInit(clusterName, version string) error {
 	}
 	// Upload certs flag changed to non-experimental in >= 1.15
 	uploadCertsFlag := "--experimental-upload-certs"
-	parts := strings.Split(version, ".")
-	minor, err := strconv.Atoi(parts[1])
+	parsedVersion, err := k8sverison.ParseGeneric(version)
 	if err != nil {
 		return errors.WithStack(err)
 	}
-	if minor >= 15 {
+
+	if parsedVersion.Minor() >= 15 {
 		uploadCertsFlag = "--upload-certs"
 	}
 

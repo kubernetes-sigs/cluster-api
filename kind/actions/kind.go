@@ -26,7 +26,6 @@ import (
 	"regexp"
 
 	"sigs.k8s.io/kind/pkg/cluster/config/defaults"
-
 	"github.com/pkg/errors"
 	"sigs.k8s.io/cluster-api-provider-docker/third_party/forked/loadbalancer"
 	"sigs.k8s.io/kind/pkg/cluster/constants"
@@ -53,6 +52,7 @@ func AddControlPlane(clusterName, machineName, version string) (*nodes.Node, err
 		clusterLabel,
 		"127.0.0.1",
 		0,
+		nil,
 		nil,
 	)
 	if err != nil {
@@ -85,7 +85,7 @@ func SetUpLoadBalancer(clusterName string) (*nodes.Node, error) {
 }
 
 // CreateControlPlane is creating the first control plane and configuring the load balancer.
-func CreateControlPlane(clusterName, machineName, lbip, version string) (*nodes.Node, error) {
+func CreateControlPlane(clusterName, machineName, lbip, version string, mounts []cri.Mount) (*nodes.Node, error) {
 	fmt.Println("Creating control plane node")
 	clusterLabel := fmt.Sprintf("%s=%s", constants.ClusterLabelKey, clusterName)
 	kindImage := image(version)
@@ -95,7 +95,8 @@ func CreateControlPlane(clusterName, machineName, lbip, version string) (*nodes.
 		clusterLabel,
 		"127.0.0.1",
 		0,
-		[]cri.Mount{},
+		mounts,
+		nil,
 	)
 	if err != nil {
 		return nil, err
@@ -109,7 +110,7 @@ func CreateControlPlane(clusterName, machineName, lbip, version string) (*nodes.
 		return nil, err
 	}
 	fmt.Println("Initializing cluster")
-	if err := KubeadmInit(clusterName); err != nil {
+	if err := KubeadmInit(clusterName, version); err != nil {
 		return nil, err
 	}
 	fmt.Println("Updating node providerID")
@@ -132,6 +133,7 @@ func AddWorker(clusterName, machineName, version string) (*nodes.Node, error) {
 		machineName,
 		kindImage,
 		clusterLabel,
+		nil,
 		nil,
 	)
 	if err != nil {
@@ -260,10 +262,9 @@ func writeKubeConfig(n *nodes.Node, dest string, hostAddress string, hostPort in
 }
 
 func image(version string) string {
-	// valid kindest node versions, but only >= v1.14.0
+	// valid kindest node versions, but only > v1.14.0
 	switch version {
-	case "v1.14.2":
-	case "v1.14.1":
+	case "v1.14.1", "v1.14.2", "v1.14.3", "v1.15.0":
 		return fmt.Sprintf("kindest/node:%s", version)
 	}
 	return defaults.Image

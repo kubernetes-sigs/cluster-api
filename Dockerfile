@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-FROM golang:1.12.5
+FROM golang:1.12.6
 WORKDIR /cluster-api-provider-docker
 ADD go.mod .
 ADD go.sum .
@@ -25,12 +25,10 @@ ADD execer execer
 ADD third_party third_party
 
 RUN go install -v ./cmd/capd-manager
-RUN GO111MODULE="on" go get sigs.k8s.io/kind@v0.3.0
 RUN curl https://get.docker.com | sh
 
 FROM golang:1.12.5
 COPY --from=0 /cluster-api-provider-docker/kubernetes/client/bin/kubectl /usr/local/bin
 COPY --from=0 /go/bin/capd-manager /usr/local/bin
-COPY --from=0 /go/bin/kind /usr/local/bin
 COPY --from=0 /usr/bin/docker /usr/local/bin
 ENTRYPOINT ["capd-manager"]

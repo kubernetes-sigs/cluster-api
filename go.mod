@@ -28,7 +28,7 @@ require (
 	k8s.io/kubernetes v1.13.1
 	sigs.k8s.io/cluster-api v0.0.0-20190607141803-aacb0c613ffb
 	sigs.k8s.io/controller-runtime v0.1.10
-	sigs.k8s.io/kind v0.3.0
+	sigs.k8s.io/kind v0.4.0
 	sigs.k8s.io/testing_frameworks v0.1.1 // indirect
 )
 

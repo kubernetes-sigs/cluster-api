@@ -21,7 +21,9 @@ import (
 	"time"
 
 	"k8s.io/client-go/kubernetes"
+	"k8s.io/klog/klogr"
 	"sigs.k8s.io/cluster-api-provider-docker/actuators"
+	"sigs.k8s.io/cluster-api-provider-docker/logger"
 	"sigs.k8s.io/cluster-api/pkg/apis"
 	"sigs.k8s.io/cluster-api/pkg/apis/cluster/common"
 	"sigs.k8s.io/cluster-api/pkg/client/clientset_generated/clientset"
@@ -57,8 +59,19 @@ func main() {
 		panic(err)
 	}
 
-	clusterActuator := actuators.NewClusterActuator()
-	machineActuator := actuators.NewMachineActuator(cs.ClusterV1alpha1(), k8sclientset.CoreV1())
+	clusterLogger := logger.Log{}
+	clusterLogger.Logger = klogr.New().WithName("[cluster-actuator]")
+	clusterActuator := actuators.Cluster{
+		Log: clusterLogger,
+	}
+
+	machineLogger := logger.Log{}
+	machineLogger.Logger = klogr.New().WithName("[machine-actuator]")
+	machineActuator := actuators.Machine{
+		Core:       k8sclientset.CoreV1(),
+		ClusterAPI: cs.ClusterV1alpha1(),
+		Log:        machineLogger,
+	}
 
 	// Register our cluster deployer (the interface is in clusterctl and we define the Deployer interface on the actuator)
 	common.RegisterClusterProvisioner("docker", clusterActuator)
@@ -66,10 +79,10 @@ func main() {
 		panic(err)
 	}
 
-	if err := capimachine.AddWithActuator(mgr, machineActuator); err != nil {
+	if err := capimachine.AddWithActuator(mgr, &machineActuator); err != nil {
 		panic(err)
 	}
-	if err := capicluster.AddWithActuator(mgr, clusterActuator); err != nil {
+	if err := capicluster.AddWithActuator(mgr, &clusterActuator); err != nil {
 		panic(err)
 	}
 	fmt.Println("starting the controller...!")

@@ -4,7 +4,7 @@ go 1.12
 
 require (
 	github.com/appscode/jsonpatch v0.0.0-20190108182946-7c0e3b262f30 // indirect
-	github.com/go-logr/logr v0.1.0 // indirect
+	github.com/go-logr/logr v0.1.0
 	github.com/go-logr/zapr v0.1.1 // indirect
 	github.com/golang/groupcache v0.0.0-20190129154638-5b532d6fd5ef // indirect
 	github.com/google/btree v1.0.0 // indirect
@@ -25,6 +25,7 @@ require (
 	k8s.io/apimachinery v0.0.0-20190404173353-6a84e37a896d
 	k8s.io/client-go v11.0.0+incompatible
 	k8s.io/cluster-bootstrap v0.0.0-20181213155137-5f9271efc2e7 // indirect
+	k8s.io/klog v0.3.0
 	k8s.io/kubernetes v1.13.1
 	sigs.k8s.io/cluster-api v0.0.0-20190607141803-aacb0c613ffb
 	sigs.k8s.io/controller-runtime v0.1.10

@@ -22,6 +22,7 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/go-logr/logr"
 	apicorev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/types"
 	corev1 "k8s.io/client-go/kubernetes/typed/core/v1"
@@ -45,51 +46,44 @@ const (
 type Machine struct {
 	Core       corev1.CoreV1Interface
 	ClusterAPI v1alpha1.ClusterV1alpha1Interface
-}
-
-// NewMachineActuator returns a new machine actuator object
-func NewMachineActuator(clusterapi v1alpha1.ClusterV1alpha1Interface, core corev1.CoreV1Interface) *Machine {
-	return &Machine{
-		Core:       core,
-		ClusterAPI: clusterapi,
-	}
+	Log        logr.Logger
 }
 
 // Create creates a machine for a given cluster
 // Note: have to print all the errors because cluster-api swallows them
 func (m *Machine) Create(ctx context.Context, c *clusterv1.Cluster, machine *clusterv1.Machine) error {
 	old := machine.DeepCopy()
-	fmt.Printf("Creating a machine for cluster %q\n", c.Name)
+	m.Log.Info("Creating a machine for cluster", "cluster-name", c.Name)
 	clusterExists, err := cluster.IsKnown(c.Name)
 	if err != nil {
-		fmt.Printf("%+v", err)
+		m.Log.Error(err, "Error finding cluster-name", "cluster", c.Name)
 		return err
 	}
 	// If there's no cluster, requeue the request until there is one
 	if !clusterExists {
-		fmt.Println("There is no cluster yet, waiting for a cluster before creating machines")
+		m.Log.Info("There is no cluster yet, waiting for a cluster before creating machines")
 		return &capierror.RequeueAfterError{RequeueAfter: 30 * time.Second}
 	}
 
 	controlPlanes, err := actions.ListControlPlanes(c.Name)
 	if err != nil {
-		fmt.Printf("%+v\n", err)
+		m.Log.Error(err, "Error listing control planes")
 		return err
 	}
-	fmt.Printf("Is there a cluster? %v\n", clusterExists)
+	m.Log.Info("Is there a cluster?", "cluster-exists", clusterExists)
 	setValue := getRole(machine)
-	fmt.Printf("This node has a role of %q\n", setValue)
+	m.Log.Info("This node has a role", "role", setValue)
 	if setValue == clusterAPIControlPlaneSetLabel {
 		if len(controlPlanes) > 0 {
-			fmt.Println("Adding a control plane")
+			m.Log.Info("Adding a control plane")
 			controlPlaneNode, err := actions.AddControlPlane(c.Name, machine.GetName(), machine.Spec.Versions.ControlPlane)
 			if err != nil {
-				fmt.Printf("%+v", err)
+				m.Log.Error(err, "Error adding control plane")
 				return err
 			}
 			nodeUID, err := actions.GetNodeRefUID(c.GetName(), controlPlaneNode.Name())
 			if err != nil {
-				fmt.Printf("%+v", err)
+				m.Log.Error(err, "Error getting node reference UID")
 				return err
 			}
 			providerID := providerID(controlPlaneNode.Name())
@@ -97,42 +91,42 @@ func (m *Machine) Create(ctx context.Context, c *clusterv1.Cluster, machine *clu
 			return m.save(old, machine, getNodeRef(controlPlaneNode.Name(), nodeUID))
 		}
 
-		fmt.Println("Creating a brand new cluster")
+		m.Log.Info("Creating a brand new cluster")
 		elb, err := getExternalLoadBalancerNode(c.Name)
 		if err != nil {
-			fmt.Printf("%+v\n", err)
+			m.Log.Error(err, "Error getting external load balancer node")
 			return err
 		}
 		lbip, err := elb.IP()
 		if err != nil {
-			fmt.Printf("%+v\n", err)
+			m.Log.Error(err, "Error getting node IP address")
 			return err
 		}
 		controlPlaneNode, err := actions.CreateControlPlane(c.Name, machine.GetName(), lbip, machine.Spec.Versions.ControlPlane)
 		if err != nil {
-			fmt.Printf("%+v\n", err)
+			m.Log.Error(err, "Error creating control plane")
 			return err
 		}
 		nodeUID, err := actions.GetNodeRefUID(c.GetName(), controlPlaneNode.Name())
 		if err != nil {
-			fmt.Printf("%+v", err)
+			m.Log.Error(err, "Error getting node reference UID")
 			return err
 		}
 		// set the machine's providerID
 		providerID := providerID(controlPlaneNode.Name())
 		machine.Spec.ProviderID = &providerID
 		if err := m.save(old, machine, getNodeRef(controlPlaneNode.Name(), nodeUID)); err != nil {
-			fmt.Printf("%+v\n", err)
+			m.Log.Error(err, "Error setting machine's provider ID")
 			return err
 		}
 		s, err := kubeconfigToSecret(c.Name, c.Namespace)
 		if err != nil {
-			fmt.Printf("%+v\n", err)
+			m.Log.Error(err, "Error converting kubeconfig to a secret")
 			return err
 		}
 		// Save the secret to the management cluster
 		if _, err := m.Core.Secrets(machine.GetNamespace()).Create(s); err != nil {
-			fmt.Printf("%+v\n", err)
+			m.Log.Error(err, "Error saving secret to management cluster")
 			return err
 		}
 		return nil
@@ -140,21 +134,21 @@ func (m *Machine) Create(ctx context.Context, c *clusterv1.Cluster, machine *clu
 
 	// If there are no control plane then we should hold off on joining workers
 	if len(controlPlanes) == 0 {
-		fmt.Printf("Sending machine %q back since there is no cluster to join\n", machine.Name)
+		m.Log.Info("Sending machine back since there is no cluster to join", "machine", machine.Name)
 		return &capierror.RequeueAfterError{RequeueAfter: 30 * time.Second}
 	}
 
-	fmt.Println("Creating a new worker node")
+	m.Log.Info("Creating a new worker node")
 	worker, err := actions.AddWorker(c.Name, machine.GetName(), machine.Spec.Versions.Kubelet)
 	if err != nil {
-		fmt.Printf("%+v", err)
+		m.Log.Error(err, "Error creating new worker node")
 		return err
 	}
 	providerID := providerID(worker.Name())
 	machine.Spec.ProviderID = &providerID
 	nodeUID, err := actions.GetNodeRefUID(c.GetName(), worker.Name())
 	if err != nil {
-		fmt.Printf("%+v", err)
+		m.Log.Error(err, "Error getting node reference ID")
 		return err
 	}
 	return m.save(old, machine, getNodeRef(worker.Name(), nodeUID))
@@ -169,10 +163,10 @@ func (m *Machine) Delete(ctx context.Context, cluster *clusterv1.Cluster, machin
 	if exists {
 		setValue := getRole(machine)
 		if setValue == clusterAPIControlPlaneSetLabel {
-			fmt.Printf("Deleting a control plane: %q\n", machine.GetName())
+			m.Log.Info("Deleting a control plane", "machine", machine.GetName())
 			return actions.DeleteControlPlane(cluster.Name, machine.GetName())
 		}
-		fmt.Printf("Deleting a worker: %q\n", machine.GetName())
+		m.Log.Info("Deleting a worker", "machine", machine.GetName())
 		return actions.DeleteWorker(cluster.Name, machine.GetName())
 	}
 	return nil
@@ -180,7 +174,7 @@ func (m *Machine) Delete(ctx context.Context, cluster *clusterv1.Cluster, machin
 
 // Update updates a machine
 func (m *Machine) Update(ctx context.Context, cluster *clusterv1.Cluster, machine *clusterv1.Machine) error {
-	fmt.Println("Update machine is not implemented yet.")
+	m.Log.Info("Update machine is not implemented yet")
 	return nil
 }
 
@@ -197,41 +191,41 @@ func (m *Machine) Exists(ctx context.Context, cluster *clusterv1.Cluster, machin
 		fmt.Sprintf("label=%s=%s", constants.ClusterLabelKey, cluster.Name),
 		fmt.Sprintf("name=^%s$", machine.GetName()),
 	}
-	fmt.Printf("using labels: %v\n", labels)
+	m.Log.Info("using labels", "labels", labels)
 	nodeList, err := nodes.List(labels...)
 	if err != nil {
 		return false, err
 	}
-	fmt.Printf("found nodes: %v\n", nodeList)
+	m.Log.Info("found nodes", "nodes", nodeList)
 	return len(nodeList) >= 1, nil
 }
 
 // patches the object and saves the status.
 func (m *Machine) save(oldMachine, newMachine *clusterv1.Machine, noderef *apicorev1.ObjectReference) error {
-	fmt.Println("updating machine")
+	m.Log.Info("updating machine")
 	p, err := patch.NewJSONPatch(oldMachine, newMachine)
 	if err != nil {
-		fmt.Printf("%+v\n", err)
+		m.Log.Error(err, "Error updating machine")
 		return err
 	}
-	fmt.Println("Patches for machine", p)
+	m.Log.Info("Patches for machine", "patches", p)
 	if len(p) != 0 {
 		pb, err := json.MarshalIndent(p, "", "  ")
 		if err != nil {
-			fmt.Printf("%+v\n", err)
+			m.Log.Error(err, "Error marshalling machine")
 			return err
 		}
 		newMachine, err = m.ClusterAPI.Machines(oldMachine.Namespace).Patch(newMachine.Name, types.JSONPatchType, pb)
 		if err != nil {
-			fmt.Printf("%+v\n", err)
+			m.Log.Error(err, "Error patching machine")
 			return err
 		}
-		fmt.Println("updated machine")
+		m.Log.Info("updated machine")
 	}
 	// set the noderef after so we don't try and patch it in during the first update
 	newMachine.Status.NodeRef = noderef
 	if _, err := m.ClusterAPI.Machines(oldMachine.Namespace).UpdateStatus(newMachine); err != nil {
-		fmt.Printf("%+v\n", err)
+		m.Log.Error(err, "Error setting node reference")
 		return err
 	}
 	return nil

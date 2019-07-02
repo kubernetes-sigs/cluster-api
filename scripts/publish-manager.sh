@@ -13,13 +13,19 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+readonly GCP_PROJECT=$(gcloud config get-value project)
+
 set -o errexit
 set -o xtrace
 
-REGISTRY=$(gcloud config get-value project)
-TAG=${TAG:-dev}
+readonly IMAGE_NAME="capd-manager"
 
-IMAGE="gcr.io/${REGISTRY}/capd-manager:${TAG}"
+readonly GCR_REGISTRY="gcr.io/${GCP_PROJECT}"
+readonly TAG=${TAG:-dev}
+
+readonly REGISTRY=${REGISTRY:-$GCR_REGISTRY}
+
+readonly IMAGE=${REGISTRY}/${IMAGE_NAME}:${TAG}
 
 docker build --file Dockerfile -t "${IMAGE}" .
-gcloud docker -- push "${IMAGE}"
+docker push "${IMAGE}"

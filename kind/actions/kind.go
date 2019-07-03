@@ -71,10 +71,34 @@ func AddControlPlane(clusterName, machineName, version string) (*nodes.Node, err
 	return controlPlane, nil
 }
 
+func removeExitedELBWithNameConflict(name string) error {
+	exitedLB, err := nodes.List(
+		fmt.Sprintf("label=%s=%s", constants.NodeRoleKey, constants.ExternalLoadBalancerNodeRoleValue),
+		fmt.Sprintf("name=%s", name),
+		fmt.Sprintf("status=exited"),
+	)
+
+	if err != nil {
+		return errors.Wrapf(err, "failed to list exited external load balancer nodes with name %q", name)
+	}
+
+	if len(exitedLB) > 0 {
+		// only one container with given name should exist, if any.
+		fmt.Printf("Removing exited ELB %q\n", exitedLB[0].Name())
+		return nodes.Delete(exitedLB[0])
+	}
+	return nil
+}
+
 // SetUpLoadBalancer creates a load balancer but does not configure it.
 func SetUpLoadBalancer(clusterName string) (*nodes.Node, error) {
 	clusterLabel := fmt.Sprintf("%s=%s", constants.ClusterLabelKey, clusterName)
 	name := fmt.Sprintf("%s-%s", clusterName, constants.ExternalLoadBalancerNodeRoleValue)
+	err := removeExitedELBWithNameConflict(name)
+	if err != nil {
+		return nil, errors.Wrapf(err, "failed to delete exited load balancer node %q", name)
+	}
+
 	return nodes.CreateExternalLoadBalancerNode(
 		name,
 		loadbalancer.Image,

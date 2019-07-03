@@ -20,6 +20,7 @@ import (
 	"fmt"
 	"io/ioutil"
 
+	"github.com/go-logr/logr"
 	"github.com/pkg/errors"
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -27,6 +28,10 @@ import (
 	clusterv1 "sigs.k8s.io/cluster-api/pkg/apis/cluster/v1alpha1"
 	"sigs.k8s.io/kind/pkg/cluster/constants"
 	"sigs.k8s.io/kind/pkg/cluster/nodes"
+)
+
+const (
+	containerRunningStatus = "running"
 )
 
 func getRole(machine *clusterv1.Machine) string {
@@ -39,10 +44,12 @@ func getRole(machine *clusterv1.Machine) string {
 	return setValue
 }
 
-func getExternalLoadBalancerNode(clusterName string) (*nodes.Node, error) {
+func getExternalLoadBalancerNode(clusterName string, log logr.Logger) (*nodes.Node, error) {
+	log.Info("Getting external load balancer node for cluster", "cluster-name", clusterName)
 	elb, err := nodes.List(
 		fmt.Sprintf("label=%s=%s", constants.NodeRoleKey, constants.ExternalLoadBalancerNodeRoleValue),
 		fmt.Sprintf("label=%s=%s", constants.ClusterLabelKey, clusterName),
+		fmt.Sprintf("status=%s", containerRunningStatus),
 	)
 	if err != nil {
 		return nil, err
@@ -53,6 +60,7 @@ func getExternalLoadBalancerNode(clusterName string) (*nodes.Node, error) {
 	if len(elb) > 1 {
 		return nil, errors.New("too many external load balancers")
 	}
+	log.Info("External loadbalancer node for cluster", "cluster-name", clusterName, "elb", elb[0])
 	return &elb[0], nil
 }
 

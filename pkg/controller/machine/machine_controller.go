@@ -24,6 +24,7 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/klog"
 	clusterv1 "sigs.k8s.io/cluster-api/pkg/apis/cluster/v1alpha1"
@@ -180,7 +181,14 @@ func (r *ReconcileMachine) Reconcile(request reconcile.Request) (reconcile.Resul
 			return reconcile.Result{}, err
 		}
 
-		if m.Status.NodeRef != nil {
+		okToDeleteNode, err := r.isDeleteNodeAllowed(context.Background(), m)
+		if err != nil {
+			klog.Errorf("IsDeleteNodeAllowed check failed for machine %q: %v", name, err)
+			return reconcile.Result{}, err
+		}
+		if !okToDeleteNode {
+			klog.Infof("Deleting node is not allowed for machine %q", name)
+		} else {
 			klog.Infof("Deleting node %q for machine %q", m.Status.NodeRef.Name, m.Name)
 			if err := r.deleteNode(ctx, cluster, m.Status.NodeRef.Name); err != nil && !apierrors.IsNotFound(err) {
 				klog.Errorf("Error deleting node %q for machine %q: %v", m.Status.NodeRef.Name, name, err)
@@ -278,6 +286,34 @@ func (r *ReconcileMachine) isDeleteAllowed(machine *clusterv1.Machine) bool {
 	return node.UID != machine.Status.NodeRef.UID
 }
 
+// isDeleteNodeAllowed returns true only if the Machine's NodeRef is not nil
+// and if the Machine is not the last control plane node in the cluster.
+func (r *ReconcileMachine) isDeleteNodeAllowed(ctx context.Context, machine *clusterv1.Machine) (bool, error) {
+
+	// Cannot delete something that doesn't exist.
+	if machine.Status.NodeRef == nil {
+		return false, nil
+	}
+
+	// Get all of the machines that belong to this cluster.
+	machines, err := r.getMachines(ctx, machine)
+	if err != nil {
+		return false, err
+	}
+
+	controlPlaneMachines := util.GetControlPlaneMachines(machines)
+
+	// If this machine is a control plane node then only delete the NodeRef
+	// if there is another control plane node (besides this machine) left.
+	if util.IsControlPlaneMachine(machine) {
+		return len(controlPlaneMachines) > 1, nil
+	}
+
+	// Otherwise it's okay to delete the NodeRef if there's a single control
+	// plane node left.
+	return len(controlPlaneMachines) > 0, nil
+}
+
 func (r *ReconcileMachine) deleteNode(ctx context.Context, cluster *clusterv1.Cluster, name string) error {
 	if cluster == nil {
 		// Try to retrieve the Node from the local cluster, if no Cluster reference is found.
@@ -304,4 +340,36 @@ func (r *ReconcileMachine) deleteNode(ctx context.Context, cluster *clusterv1.Cl
 	}
 
 	return corev1Remote.Nodes().Delete(name, &metav1.DeleteOptions{})
+}
+
+// getMachines returns all of the Machine objects that belong to the same
+// cluster as the provided Machine
+func (r *ReconcileMachine) getMachines(ctx context.Context, machine *clusterv1.Machine) ([]*clusterv1.Machine, error) {
+	clusterName := machine.Labels[clusterv1.MachineClusterLabelName]
+	if clusterName == "" {
+		klog.Infof("Machine %q in namespace %q doesn't specify %q label, assuming nil cluster", machine.Name, machine.Namespace, clusterv1.MachineClusterLabelName)
+		return nil, nil
+	}
+
+	mlist := &clusterv1.MachineList{}
+	listOptions := &client.ListOptions{
+		Namespace: machine.Namespace,
+		LabelSelector: labels.Set(map[string]string{
+			clusterv1.MachineClusterLabelName: clusterName,
+		}).AsSelector(),
+	}
+
+	if err := r.Client.List(ctx, listOptions, mlist); err != nil {
+		if apierrors.IsNotFound(err) {
+			return nil, nil
+		}
+		return nil, errors.Wrapf(err, "Failed to list machines")
+	}
+
+	machines := make([]*clusterv1.Machine, len(mlist.Items))
+	for i := range mlist.Items {
+		machines[i] = &mlist.Items[i]
+	}
+
+	return machines, nil
 }

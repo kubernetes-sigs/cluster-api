@@ -83,7 +83,7 @@ func getNodeWithReadyStatus(nodeName string, nodeReadyStatus v1.ConditionStatus)
 
 func TestGetClusterObjectWithNoCluster(t *testing.T) {
 	// Setup the Manager and Controller.
-	mgr, err := manager.New(cfg, manager.Options{})
+	mgr, err := manager.New(cfg, manager.Options{MetricsBindAddress: "0"})
 	if err != nil {
 		t.Fatalf("error creating new manager: %v", err)
 	}
@@ -97,7 +97,7 @@ func TestGetClusterObjectWithNoCluster(t *testing.T) {
 
 func TestGetClusterObjectWithOneCluster(t *testing.T) {
 	// Setup the Manager and Controller.
-	mgr, err := manager.New(cfg, manager.Options{})
+	mgr, err := manager.New(cfg, manager.Options{MetricsBindAddress: "0"})
 	if err != nil {
 		t.Fatalf("error creating new manager: %v", err)
 	}
@@ -163,7 +163,7 @@ func TestGetClusterObjectWithOneCluster(t *testing.T) {
 
 func TestGetClusterObjectWithMoreThanOneCluster(t *testing.T) {
 	// Setup the Manager and Controller.
-	mgr, err := manager.New(cfg, manager.Options{})
+	mgr, err := manager.New(cfg, manager.Options{MetricsBindAddress: "0"})
 	if err != nil {
 		t.Fatalf("error creating new manager: %v", err)
 	}
@@ -274,7 +274,7 @@ func TestValidateClusterObject(t *testing.T) {
 
 func TestValidateMachineObjects(t *testing.T) {
 	// Setup the Manager and Controller.
-	mgr, err := manager.New(cfg, manager.Options{})
+	mgr, err := manager.New(cfg, manager.Options{MetricsBindAddress: "0"})
 	if err != nil {
 		t.Fatalf("error creating new manager: %v", err)
 	}
@@ -356,7 +356,7 @@ func TestValidateMachineObjects(t *testing.T) {
 
 func TestValidateMachineObjectWithReferredNode(t *testing.T) {
 	// Setup the Manager and Controller.
-	mgr, err := manager.New(cfg, manager.Options{})
+	mgr, err := manager.New(cfg, manager.Options{MetricsBindAddress: "0"})
 	if err != nil {
 		t.Fatalf("error creating new manager: %v", err)
 	}
@@ -421,7 +421,7 @@ func TestValidateMachineObjectWithReferredNode(t *testing.T) {
 
 func TestValidateClusterAPIObjectsOutput(t *testing.T) {
 	// Setup the Manager and Controller.
-	mgr, err := manager.New(cfg, manager.Options{})
+	mgr, err := manager.New(cfg, manager.Options{MetricsBindAddress: "0"})
 	if err != nil {
 		t.Fatalf("error creating new manager: %v", err)
 	}

@@ -135,7 +135,8 @@ type Options struct {
 	Namespace string
 
 	// MetricsBindAddress is the TCP address that the controller should bind to
-	// for serving prometheus metrics
+	// for serving prometheus metrics.
+	// It can be set to "0" to disable the metrics serving.
 	MetricsBindAddress string
 
 	// Port is the port that the webhook server serves at.

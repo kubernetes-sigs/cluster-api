@@ -44,11 +44,11 @@ func main() {
 			if err != nil {
 				panic(fmt.Sprintf("%+v", err))
 			}
-			ip, err := lb.IP()
+			lbipv4, _, err := lb.IP()
 			if err != nil {
 				panic(fmt.Sprintf("%+v", err))
 			}
-			if _, err := actions.CreateControlPlane(clusterName, inputs[1], ip, version); err != nil {
+			if _, err := actions.CreateControlPlane(clusterName, inputs[1], lbipv4, version, nil); err != nil {
 				panic(fmt.Sprintf("%+v", err))
 			}
 		case "add-worker":

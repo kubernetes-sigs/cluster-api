@@ -23,6 +23,7 @@ import (
 	"strings"
 
 	"github.com/pkg/errors"
+	k8sverison "k8s.io/apimachinery/pkg/util/version"
 	"sigs.k8s.io/cluster-api-provider-docker/kind/kubeadm"
 	"sigs.k8s.io/cluster-api-provider-docker/third_party/forked/loadbalancer"
 	"sigs.k8s.io/kind/pkg/cluster/constants"
@@ -39,7 +40,7 @@ func KubeadmJoinControlPlane(clusterName string, node *nodes.Node) error {
 	}
 
 	// get the join address
-	joinAddress, err := nodes.GetControlPlaneEndpoint(allNodes)
+	joinipv4, _, err := nodes.GetControlPlaneEndpoint(allNodes)
 	if err != nil {
 		return err
 	}
@@ -50,7 +51,7 @@ func KubeadmJoinControlPlane(clusterName string, node *nodes.Node) error {
 
 	cmd := node.Command(
 		"kubeadm", "join",
-		joinAddress,
+		joinipv4,
 		"--experimental-control-plane",
 		"--token", kubeadm.Token,
 		"--discovery-token-unsafe-skip-ca-verification",
@@ -94,11 +95,11 @@ func ConfigureLoadBalancer(clusterName string) error {
 		return errors.WithStack(err)
 	}
 	for _, n := range controlPlaneNodes {
-		controlPlaneIP, err := n.IP()
+		controlPlaneIPv4, _, err := n.IP()
 		if err != nil {
 			return errors.Wrapf(err, "failed to get IP for node %s", n.Name())
 		}
-		backendServers[n.Name()] = fmt.Sprintf("%s:%d", controlPlaneIP, 6443)
+		backendServers[n.Name()] = fmt.Sprintf("%s:%d", controlPlaneIPv4, 6443)
 	}
 
 	// create loadbalancer config data
@@ -139,7 +140,7 @@ func KubeadmConfig(node *nodes.Node, clusterName, lbip string) error {
 }
 
 // KubeadmInit execute kubeadm init on the boostrap control-plane node of a cluster
-func KubeadmInit(clusterName string) error {
+func KubeadmInit(clusterName, version string) error {
 	allNodes, err := nodes.List(fmt.Sprintf("label=%s=%s", constants.ClusterLabelKey, clusterName))
 	if err != nil {
 		return nil
@@ -149,13 +150,23 @@ func KubeadmInit(clusterName string) error {
 	if err != nil {
 		return err
 	}
+	// Upload certs flag changed to non-experimental in >= 1.15
+	uploadCertsFlag := "--experimental-upload-certs"
+	parsedVersion, err := k8sverison.ParseGeneric(version)
+	if err != nil {
+		return errors.WithStack(err)
+	}
+
+	if parsedVersion.Minor() >= 15 {
+		uploadCertsFlag = "--upload-certs"
+	}
 
 	cmd := node.Command(
 		"kubeadm", "init",
 		"--ignore-preflight-errors=all",
 		"--config=/kind/kubeadm.conf",
 		"--skip-token-print",
-		"--experimental-upload-certs",
+		uploadCertsFlag,
 		"--certificate-key", strings.Repeat("a", 32),
 		"--v=6",
 	)
@@ -221,14 +232,14 @@ func KubeadmJoin(clusterName string, node *nodes.Node) error {
 		return nil
 	}
 
-	joinAddress, err := nodes.GetControlPlaneEndpoint(allNodes)
+	joinipv4, _, err := nodes.GetControlPlaneEndpoint(allNodes)
 	if err != nil {
 		return err
 	}
 
 	cmd := node.Command(
 		"kubeadm", "join",
-		joinAddress,
+		joinipv4,
 		"--token", kubeadm.Token,
 		"--discovery-token-unsafe-skip-ca-verification",
 		"--ignore-preflight-errors=all",

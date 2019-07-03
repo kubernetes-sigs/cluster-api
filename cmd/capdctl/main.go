@@ -18,13 +18,18 @@ package main
 
 import (
 	"encoding/json"
+	"errors"
 	"flag"
 	"fmt"
 	"io/ioutil"
 	"os"
+	"sigs.k8s.io/cluster-api-provider-docker/kind/actions"
+	"sigs.k8s.io/kind/pkg/cluster/nodes"
+	"sigs.k8s.io/kind/pkg/container/cri"
+	"sigs.k8s.io/kind/pkg/exec"
+	"time"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"sigs.k8s.io/cluster-api-provider-docker/execer"
 	"sigs.k8s.io/cluster-api/pkg/apis/cluster/v1alpha1"
 )
 
@@ -62,7 +67,7 @@ func (mo *machineDeyploymentOptions) initFlags(fs *flag.FlagSet) {
 
 func main() {
 	setup := flag.NewFlagSet("setup", flag.ExitOnError)
-	managementClusterName := setup.String("cluster-name", "kind", "The name of the management cluster")
+	managementClusterName := setup.String("cluster-name", "management", "The name of the management cluster")
 
 	// crds takes no args
 
@@ -91,6 +96,7 @@ func main() {
 	if len(os.Args) < 2 {
 		fmt.Println("At least one subcommand is requied.")
 		fmt.Println(usage())
+		os.Exit(1)
 	}
 
 	switch os.Args[1] {
@@ -242,37 +248,43 @@ func machineYAML(opts *machineOptions) string {
 }
 
 func makeManagementCluster(clusterName string) {
-	kind := execer.NewClient("kind")
-	// start kind with docker mount
-	kindConfig, err := kindConfigFile()
+	fmt.Println("Creating a brand new cluster")
+	elb, err := actions.SetUpLoadBalancer(clusterName)
 	if err != nil {
 		panic(err)
 	}
-	if err := kind.RunCommand("create", "cluster", "--name", clusterName, "--config", kindConfig); err != nil {
+	lbipv4, _, err := elb.IP()
+	if err != nil {
 		panic(err)
 	}
-}
-
-// TODO if possible, use the kind library instead of the command line tool
-func kindConfigFile() (string, error) {
-	kfg := `kind: Cluster
-apiVersion: kind.sigs.k8s.io/v1alpha3
-nodes:
-- role: control-plane
-  extraMounts:
-  - containerPath: /var/run/docker.sock
-    hostPath: /var/run/docker.sock
-`
-
-	f, err := ioutil.TempFile("", "*-kind-config.yaml")
+	cpMounts := []cri.Mount{
+		{
+			ContainerPath: "/var/run/docker.sock",
+			HostPath:      "/var/run/docker.sock",
+		},
+	}
+	cp, err := actions.CreateControlPlane(clusterName, "management-control-plane", lbipv4, "v1.14.2", cpMounts)
 	if err != nil {
-		return "", err
+		panic(err)
 	}
-	defer f.Close()
-	if _, err := f.WriteString(kfg); err != nil {
-		return "", err
+	if !nodes.WaitForReady(cp, time.Now().Add(5*time.Minute)) {
+		panic(errors.New("control plane was not ready in 5 minutes"))
 	}
-	return f.Name(), nil
+	f, err := ioutil.TempFile("", "crds")
+	if err != nil {
+		panic(err)
+	}
+	defer os.Remove(f.Name())
+	fmt.Fprintln(f, crds)
+	fmt.Fprintln(f, "---")
+	fmt.Fprintln(f, getCAPDPlane("gcr.io/kubernetes1-226021/capd-manager:latest", "gcr.io/k8s-cluster-api/cluster-api-controller:0.1.3"))
+	cmd := exec.Command("kubectl", "apply", "-f", f.Name())
+	cmd.SetEnv(fmt.Sprintf("KUBECONFIG=%s/.kube/kind-config-%s", os.Getenv("HOME"), clusterName))
+	cmd.SetStdout(os.Stdout)
+	cmd.SetStderr(os.Stderr)
+	if err := cmd.Run(); err != nil {
+		panic(err)
+	}
 }
 
 func printCRDs() {
@@ -376,6 +388,17 @@ spec:
         - /manager
         image: %s
         name: manager
+      tolerations:
+      - effect: NoSchedule
+        key: node-role.kubernetes.io/master
+      - key: CriticalAddonsOnly
+        operator: Exists
+      - effect: NoExecute
+        key: node.alpha.kubernetes.io/notReady
+        operator: Exists
+      - effect: NoExecute
+        key: node.alpha.kubernetes.io/unreachable
+        operator: Exists
 `
 
 // TODO generate the CRDs

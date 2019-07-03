@@ -97,12 +97,12 @@ func (m *Machine) Create(ctx context.Context, c *clusterv1.Cluster, machine *clu
 			m.Log.Error(err, "Error getting external load balancer node")
 			return err
 		}
-		lbip, err := elb.IP()
+		lbipv4, _, err := elb.IP()
 		if err != nil {
 			m.Log.Error(err, "Error getting node IP address")
 			return err
 		}
-		controlPlaneNode, err := actions.CreateControlPlane(c.Name, machine.GetName(), lbip, machine.Spec.Versions.ControlPlane)
+		controlPlaneNode, err := actions.CreateControlPlane(c.Name, machine.GetName(), lbipv4, machine.Spec.Versions.ControlPlane, nil)
 		if err != nil {
 			m.Log.Error(err, "Error creating control plane")
 			return err

@@ -277,7 +277,7 @@ func makeManagementCluster(clusterName, capiVersion, capdImage, capiImageOverrid
 		panic(err)
 	}
 	defer os.Remove(f.Name())
-	crds, err := GetCRDs(capiVersion)
+	crds, err := getCRDs(capiVersion)
 	if err != nil {
 		panic(err)
 	}
@@ -401,8 +401,7 @@ spec:
         operator: Exists
 `
 
-// fetch CRDs
-func GetCRDs(version string) (string, error) {
+func getCRDs(version string) (string, error) {
 	crds := []string{"crds", "rbac"}
 	releaseCode := fmt.Sprintf("https://github.com/kubernetes-sigs/cluster-api/archive/%s.tar.gz", version)
 

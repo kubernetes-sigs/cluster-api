@@ -20,6 +20,7 @@ import (
 	"fmt"
 	"io/ioutil"
 
+	"github.com/go-logr/logr"
 	"github.com/pkg/errors"
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -43,8 +44,8 @@ func getRole(machine *clusterv1.Machine) string {
 	return setValue
 }
 
-func getExternalLoadBalancerNode(clusterName string) (*nodes.Node, error) {
-	fmt.Printf("Getting external load balancer node for cluster %q\n", clusterName)
+func getExternalLoadBalancerNode(clusterName string, log logr.Logger) (*nodes.Node, error) {
+	log.Info("Getting external load balancer node for cluster", "cluster-name", clusterName)
 	elb, err := nodes.List(
 		fmt.Sprintf("label=%s=%s", constants.NodeRoleKey, constants.ExternalLoadBalancerNodeRoleValue),
 		fmt.Sprintf("label=%s=%s", constants.ClusterLabelKey, clusterName),
@@ -59,7 +60,7 @@ func getExternalLoadBalancerNode(clusterName string) (*nodes.Node, error) {
 	if len(elb) > 1 {
 		return nil, errors.New("too many external load balancers")
 	}
-	fmt.Printf("External loadbalancer node for cluster %q is %v\n", clusterName, elb[0])
+	log.Info("External loadbalancer node for cluster", "cluster-name", clusterName, "elb", elb[0])
 	return &elb[0], nil
 }
 

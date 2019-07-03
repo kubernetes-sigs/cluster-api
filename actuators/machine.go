@@ -92,7 +92,7 @@ func (m *Machine) Create(ctx context.Context, c *clusterv1.Cluster, machine *clu
 		}
 
 		m.Log.Info("Creating a brand new cluster")
-		elb, err := getExternalLoadBalancerNode(c.Name)
+		elb, err := getExternalLoadBalancerNode(c.Name, m.Log)
 		if err != nil {
 			m.Log.Error(err, "Error getting external load balancer node")
 			return err

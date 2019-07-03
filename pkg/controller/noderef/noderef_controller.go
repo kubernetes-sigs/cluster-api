@@ -134,6 +134,9 @@ func (r *ReconcileNodeRef) Reconcile(request reconcile.Request) (reconcile.Resul
 	}
 
 	result, err := r.reconcile(ctx, cluster, machine)
+	if err == ErrNodeNotFound {
+		return result, nil
+	}
 	if err != nil {
 		klog.Errorf("Failed to assign NodeRef to Machine %q: %v", request.NamespacedName, err)
 		r.recorder.Event(machine, apicorev1.EventTypeWarning, "FailedSetNodeRef", err.Error())
@@ -166,7 +169,7 @@ func (r *ReconcileNodeRef) reconcile(ctx context.Context, cluster *v1alpha2.Clus
 	if err != nil {
 		if err == ErrNodeNotFound {
 			klog.Warningf("Cannot find a matching Node for Machine %q in namespace %q, retrying later", machine.Name, machine.Namespace)
-			return reconcile.Result{RequeueAfter: 10 * time.Second}, nil
+			return reconcile.Result{RequeueAfter: 10 * time.Second}, err
 		}
 		return reconcile.Result{}, err
 	}

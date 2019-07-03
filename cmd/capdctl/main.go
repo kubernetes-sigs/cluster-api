@@ -140,7 +140,7 @@ subcommands are:
     example: capdctl crds | kubectl apply -f -
 
   capd - Write capd kubernetes components that run necessary managers to stdout
-    example: capdctl capd -capd-image gcr.io/kubernetes1-226021/capd-manager:latest -capi-image gcr.io/k8s-cluster-api/cluster-api-controller:0.1.2 | kubeclt apply -f -
+    example: capdctl capd -capd-image gcr.io/kubernetes1-226021/capd-manager:latest -capi-image gcr.io/k8s-cluster-api/cluster-api-controller:0.1.2 | kubectl apply -f -
 
   control-plane - Write a capd control plane machine to stdout
     example: capdctl control-plane -name my-control-plane -namespace my-namespace -cluster-name my-cluster -version v1.14.1 | kubectl apply -f -

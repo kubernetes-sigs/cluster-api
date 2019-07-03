@@ -150,12 +150,7 @@ func (r *ReconcileMachineSet) Reconcile(request reconcile.Request) (reconcile.Re
 }
 
 func (r *ReconcileMachineSet) reconcile(ctx context.Context, machineSet *clusterv1.MachineSet) (reconcile.Result, error) {
-	klog.V(4).Infof("Reconcile machineset %v", machineSet.Name)
-	allMachines := &clusterv1.MachineList{}
-
-	if err := r.Client.List(context.Background(), allMachines, client.InNamespace(machineSet.Namespace)); err != nil {
-		return reconcile.Result{}, errors.Wrap(err, "failed to list machines")
-	}
+	klog.V(4).Infof("Reconcile MachineSet %q in namespace %q", machineSet.Name, machineSet.Namespace)
 
 	// Make sure that label selector can match template's labels.
 	// TODO(vincepri): Move to a validation (admission) webhook when supported.
@@ -166,6 +161,21 @@ func (r *ReconcileMachineSet) reconcile(ctx context.Context, machineSet *cluster
 
 	if !selector.Matches(labels.Set(machineSet.Spec.Template.Labels)) {
 		return reconcile.Result{}, errors.Errorf("failed validation on MachineSet %q label selector, cannot match any machines ", machineSet.Name)
+	}
+
+	selectorMap, err := metav1.LabelSelectorAsMap(&machineSet.Spec.Selector)
+	if err != nil {
+		return reconcile.Result{}, errors.Wrapf(err, "failed to convert MachineSet %q label selector to a map", machineSet.Name)
+	}
+
+	allMachines := &clusterv1.MachineList{}
+	err = r.Client.List(
+		context.Background(), allMachines,
+		client.InNamespace(machineSet.Namespace),
+		client.MatchingLabels(selectorMap),
+	)
+	if err != nil {
+		return reconcile.Result{}, errors.Wrap(err, "failed to list machines")
 	}
 
 	// Cluster might be nil as some providers might not require a cluster object
@@ -429,21 +439,11 @@ func (r *ReconcileMachineSet) getNewMachine(machineSet *clusterv1.MachineSet) *c
 
 // shouldExcludeMachine returns true if the machine should be filtered out, false otherwise.
 func shouldExcludeMachine(machineSet *clusterv1.MachineSet, machine *clusterv1.Machine) bool {
-	// Ignore inactive machines.
 	if metav1.GetControllerOf(machine) != nil && !metav1.IsControlledBy(machine, machineSet) {
 		klog.V(4).Infof("%s not controlled by %v", machine.Name, machineSet.Name)
 		return true
 	}
-
-	if machine.ObjectMeta.DeletionTimestamp != nil {
-		return true
-	}
-
-	if !hasMatchingLabels(machineSet, machine) {
-		return true
-	}
-
-	return false
+	return machine.ObjectMeta.DeletionTimestamp != nil
 }
 
 // adoptOrphan sets the MachineSet as a controller OwnerReference to the Machine.

@@ -154,7 +154,9 @@ func TestShouldExcludeMachine(t *testing.T) {
 		expected   bool
 	}{
 		{
-			machineSet: v1alpha2.MachineSet{},
+			machineSet: v1alpha2.MachineSet{
+				ObjectMeta: metav1.ObjectMeta{UID: "1"},
+			},
 			machine: v1alpha2.Machine{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "withNoMatchingOwnerRef",
@@ -164,11 +166,32 @@ func TestShouldExcludeMachine(t *testing.T) {
 							Name:       "Owner",
 							Kind:       "MachineSet",
 							Controller: &controller,
+							UID:        "not-1",
 						},
 					},
 				},
 			},
 			expected: true,
+		},
+		{
+			machineSet: v1alpha2.MachineSet{
+				ObjectMeta: metav1.ObjectMeta{UID: "1"},
+			},
+			machine: v1alpha2.Machine{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "withMatchingOwnerRef",
+					Namespace: "test",
+					OwnerReferences: []metav1.OwnerReference{
+						{
+							Name:       "Owner",
+							Kind:       "MachineSet",
+							Controller: &controller,
+							UID:        "1",
+						},
+					},
+				},
+			},
+			expected: false,
 		},
 		{
 			machineSet: v1alpha2.MachineSet{

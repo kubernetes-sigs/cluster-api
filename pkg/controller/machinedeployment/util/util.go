@@ -25,16 +25,20 @@ import (
 	"strings"
 
 	"github.com/davecgh/go-spew/spew"
+	"github.com/pkg/errors"
 	v1 "k8s.io/api/core/v1"
 	apiequality "k8s.io/apimachinery/pkg/api/equality"
 	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
 	intstrutil "k8s.io/apimachinery/pkg/util/intstr"
 	"k8s.io/klog"
 	"k8s.io/utils/integer"
 	"sigs.k8s.io/cluster-api/pkg/apis/cluster/common"
 	"sigs.k8s.io/cluster-api/pkg/apis/cluster/v1alpha2"
+	"sigs.k8s.io/cluster-api/pkg/controller/external"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
 const (
@@ -406,16 +410,41 @@ func EqualIgnoreHash(template1, template2 *v1alpha2.MachineTemplateSpec) bool {
 	return apiequality.Semantic.DeepEqual(t1Copy, t2Copy)
 }
 
+func Equals(c client.Client, namespace string, template1, template2 *v1alpha2.MachineTemplateSpec) (bool, error) {
+	t1Copy := template1.DeepCopy()
+	t2Copy := template2.DeepCopy()
+	delete(t1Copy.Labels, DefaultMachineDeploymentUniqueLabelKey)
+	delete(t2Copy.Labels, DefaultMachineDeploymentUniqueLabelKey)
+	h1, err := ComputeHash(c, namespace, t1Copy)
+	if err != nil {
+		return false, err
+	}
+	h2, err := ComputeHash(c, namespace, t2Copy)
+	if err != nil {
+		return false, err
+	}
+	return h1 != "" && h1 == h2, nil
+}
+
 // FindNewMachineSet returns the new MS this given deployment targets (the one with the same machine template).
-func FindNewMachineSet(deployment *v1alpha2.MachineDeployment, msList []*v1alpha2.MachineSet) *v1alpha2.MachineSet {
+func FindNewMachineSet(c client.Client, d *v1alpha2.MachineDeployment, msList []*v1alpha2.MachineSet) *v1alpha2.MachineSet {
 	sort.Sort(MachineSetsByCreationTimestamp(msList))
 	for i := range msList {
-		if EqualIgnoreHash(&msList[i].Spec.Template, &deployment.Spec.Template) {
+
+		if ok, err := Equals(c, d.Namespace, &msList[i].Spec.Template, &d.Spec.Template); ok {
 			// In rare cases, such as after cluster upgrades, Deployment may end up with
 			// having more than one new MachineSets that have the same template,
 			// see https://github.com/kubernetes/kubernetes/issues/40415
 			// We deterministically choose the oldest new MachineSet with matching template hash.
 			return msList[i]
+		} else if err != nil && EqualIgnoreHash(&msList[i].Spec.Template, &d.Spec.Template) {
+			// Fallback to old equal if there is an error.
+			klog.Warningf("Fallback hash occurred for Machine Deployment %q in namespace %q, got error: %v",
+				d.Name, d.Namespace, err)
+			return msList[i]
+		} else if err != nil {
+			klog.Errorf("Error calculating hash for Machine Deployment %q in namespace %q, got error: %v",
+				d.Name, d.Namespace, err)
 		}
 	}
 	// new MachineSet does not exist.
@@ -426,10 +455,10 @@ func FindNewMachineSet(deployment *v1alpha2.MachineDeployment, msList []*v1alpha
 // Returns two list of machine sets
 //  - the first contains all old machine sets with all non-zero replicas
 //  - the second contains all old machine sets
-func FindOldMachineSets(deployment *v1alpha2.MachineDeployment, msList []*v1alpha2.MachineSet) ([]*v1alpha2.MachineSet, []*v1alpha2.MachineSet) {
+func FindOldMachineSets(c client.Client, deployment *v1alpha2.MachineDeployment, msList []*v1alpha2.MachineSet) ([]*v1alpha2.MachineSet, []*v1alpha2.MachineSet) {
 	var requiredMSs []*v1alpha2.MachineSet
 	allMSs := make([]*v1alpha2.MachineSet, 0, len(msList))
-	newMS := FindNewMachineSet(deployment, msList)
+	newMS := FindNewMachineSet(c, deployment, msList)
 	for _, ms := range msList {
 		// Filter out new machine set
 		if newMS != nil && ms.UID == newMS.UID {
@@ -676,7 +705,6 @@ func CloneSelectorAndAddLabel(selector *metav1.LabelSelector, labelKey, labelVal
 // which follows pointers and prints actual values of the nested objects
 // ensuring the hash does not change when a pointer changes.
 func DeepHashObject(hasher hash.Hash, objectToWrite interface{}) {
-	hasher.Reset()
 	printer := spew.ConfigState{
 		Indent:         " ",
 		SortKeys:       true,
@@ -686,9 +714,23 @@ func DeepHashObject(hasher hash.Hash, objectToWrite interface{}) {
 	printer.Fprintf(hasher, "%#v", objectToWrite)
 }
 
-func ComputeHash(template *v1alpha2.MachineTemplateSpec) uint32 {
-	machineTemplateSpecHasher := fnv.New32a()
-	DeepHashObject(machineTemplateSpecHasher, *template)
+func ComputeHash(c client.Client, namespace string, template *v1alpha2.MachineTemplateSpec) (string, error) {
+	hasher := fnv.New32a()
 
-	return machineTemplateSpecHasher.Sum32()
+	// Compute hash of the template.
+	DeepHashObject(hasher, template)
+
+	// Get and compute hash of infrastructure config.
+	infraConfig, err := external.Get(c, &template.Spec.InfrastructureRef, namespace)
+	if err != nil {
+		return "", err
+	}
+	infraSpec, _, err := unstructured.NestedMap(infraConfig.Object, "spec")
+	if err != nil {
+		return "", errors.Wrap(err, "failed to retrieve spec from infrastructure provider object")
+	}
+	DeepHashObject(hasher, infraSpec)
+
+	// Return the hash.
+	return fmt.Sprintf("%d", hasher.Sum32()), nil
 }

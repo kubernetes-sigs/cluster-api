@@ -18,7 +18,6 @@ package machinedeployment
 
 import (
 	"context"
-	"fmt"
 	"reflect"
 	"sort"
 	"strconv"
@@ -72,7 +71,7 @@ func (r *ReconcileMachineDeployment) sync(d *clusterv1.MachineDeployment, msList
 // Note that currently the deployment controller is using caches to avoid querying the server for reads.
 // This may lead to stale reads of machine sets, thus incorrect deployment status.
 func (r *ReconcileMachineDeployment) getAllMachineSetsAndSyncRevision(d *clusterv1.MachineDeployment, msList []*clusterv1.MachineSet, machineMap map[types.UID]*clusterv1.MachineList, createIfNotExisted bool) (*clusterv1.MachineSet, []*clusterv1.MachineSet, error) {
-	_, allOldMSs := dutil.FindOldMachineSets(d, msList)
+	_, allOldMSs := dutil.FindOldMachineSets(r.Client, d, msList)
 
 	// Get new machine set with the updated revision number
 	newMS, err := r.getNewMachineSet(d, msList, allOldMSs, createIfNotExisted)
@@ -89,7 +88,7 @@ func (r *ReconcileMachineDeployment) getAllMachineSetsAndSyncRevision(d *cluster
 // 3. If there's no existing new MS and createIfNotExisted is true, create one with appropriate revision number (maxOldRevision + 1) and replicas.
 // Note that the machine-template-hash will be added to adopted MSes and machines.
 func (r *ReconcileMachineDeployment) getNewMachineSet(d *clusterv1.MachineDeployment, msList, oldMSs []*clusterv1.MachineSet, createIfNotExisted bool) (*clusterv1.MachineSet, error) {
-	existingNewMS := dutil.FindNewMachineSet(d, msList)
+	existingNewMS := dutil.FindNewMachineSet(r.Client, d, msList)
 
 	// Calculate the max revision number among all old MSes
 	maxOldRevision := dutil.MaxRevision(oldMSs)
@@ -124,9 +123,13 @@ func (r *ReconcileMachineDeployment) getNewMachineSet(d *clusterv1.MachineDeploy
 		return nil, nil
 	}
 
-	// new MachineSet does not exist, create one.
+	// New MachineSet does not exist, create one.
 	newMSTemplate := *d.Spec.Template.DeepCopy()
-	machineTemplateSpecHash := fmt.Sprintf("%d", dutil.ComputeHash(&newMSTemplate))
+	machineTemplateSpecHash, err := dutil.ComputeHash(r.Client, d.Namespace, &newMSTemplate)
+	if err != nil {
+		return nil, err
+	}
+
 	newMSTemplate.Labels = dutil.CloneAndAddLabel(d.Spec.Template.Labels,
 		dutil.DefaultMachineDeploymentUniqueLabelKey, machineTemplateSpecHash)
 

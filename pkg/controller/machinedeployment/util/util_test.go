@@ -26,15 +26,39 @@ import (
 	"time"
 
 	"github.com/pkg/errors"
+	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/intstr"
 	"k8s.io/apiserver/pkg/storage/names"
+	"k8s.io/client-go/kubernetes/scheme"
 	core "k8s.io/client-go/testing"
+	"sigs.k8s.io/cluster-api/pkg/apis"
 	"sigs.k8s.io/cluster-api/pkg/apis/cluster/common"
 	"sigs.k8s.io/cluster-api/pkg/apis/cluster/v1alpha2"
 	"sigs.k8s.io/cluster-api/pkg/client/clientset_generated/clientset/fake"
+	fakeruntime "sigs.k8s.io/controller-runtime/pkg/client/fake"
+)
+
+func init() {
+	apis.AddToScheme(scheme.Scheme)
+}
+
+var (
+	infraResource = &unstructured.Unstructured{
+		Object: map[string]interface{}{
+			"kind":       "InfrastructureRef",
+			"apiVersion": "infrastructure.cluster.sigs.k8s.io/v1alpha1",
+			"metadata": map[string]interface{}{
+				"name":      "foo-template",
+				"namespace": "default",
+			},
+			"spec":   map[string]interface{}{},
+			"status": map[string]interface{}{},
+		},
+	}
 )
 
 func addListMSReactor(fakeClient *fake.Clientset, obj runtime.Object) *fake.Clientset {
@@ -151,7 +175,13 @@ func generateDeployment(image string) v1alpha2.MachineDeployment {
 				ObjectMeta: v1alpha2.ObjectMeta{
 					Labels: machineLabels,
 				},
-				Spec: v1alpha2.MachineSpec{},
+				Spec: v1alpha2.MachineSpec{
+					InfrastructureRef: corev1.ObjectReference{
+						Name:       infraResource.GetName(),
+						Kind:       infraResource.GetKind(),
+						APIVersion: infraResource.GetAPIVersion(),
+					},
+				},
 			},
 		},
 	}
@@ -164,7 +194,13 @@ func generateMachineTemplateSpec(name, nodeName string, annotations, labels map[
 			Annotations: annotations,
 			Labels:      labels,
 		},
-		Spec: v1alpha2.MachineSpec{},
+		Spec: v1alpha2.MachineSpec{
+			InfrastructureRef: corev1.ObjectReference{
+				Name:       infraResource.GetName(),
+				Kind:       infraResource.GetKind(),
+				APIVersion: infraResource.GetAPIVersion(),
+			},
+		},
 	}
 }
 
@@ -307,7 +343,12 @@ func TestFindNewMachineSet(t *testing.T) {
 
 	for _, test := range tests {
 		t.Run(test.Name, func(t *testing.T) {
-			if ms := FindNewMachineSet(&test.deployment, test.msList); !reflect.DeepEqual(ms, test.expected) {
+			items := []runtime.Object{infraResource}
+			for _, ms := range test.msList {
+				items = append(items, ms)
+			}
+			c := fakeruntime.NewFakeClient(items...)
+			if ms := FindNewMachineSet(c, &test.deployment, test.msList); !reflect.DeepEqual(ms, test.expected) {
 				t.Errorf("In test case %q, expected %#v, got %#v", test.Name, test.expected, ms)
 			}
 		})
@@ -375,7 +416,12 @@ func TestFindOldMachineSets(t *testing.T) {
 
 	for _, test := range tests {
 		t.Run(test.Name, func(t *testing.T) {
-			requireMS, allMS := FindOldMachineSets(&test.deployment, test.msList)
+			items := []runtime.Object{infraResource}
+			for _, ms := range test.msList {
+				items = append(items, ms)
+			}
+			c := fakeruntime.NewFakeClient(items...)
+			requireMS, allMS := FindOldMachineSets(c, &test.deployment, test.msList)
 			sort.Sort(MachineSetsByCreationTimestamp(allMS))
 			sort.Sort(MachineSetsByCreationTimestamp(test.expected))
 			if !reflect.DeepEqual(allMS, test.expected) {

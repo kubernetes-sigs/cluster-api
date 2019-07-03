@@ -23,6 +23,7 @@ ADD actuators actuators
 ADD kind kind
 ADD execer execer
 ADD third_party third_party
+ADD logger logger
 
 RUN go install -v ./cmd/capd-manager
 RUN GO111MODULE="on" go get sigs.k8s.io/kind@v0.3.0

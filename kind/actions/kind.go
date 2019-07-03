@@ -236,13 +236,18 @@ func ListControlPlanes(clusterName string) ([]nodes.Node, error) {
 		fmt.Sprintf("label=%s=%s", constants.NodeRoleKey, constants.ControlPlaneNodeRoleValue))
 }
 
-// getLoadBalancerPort returns the port on the host on which the APIServer is exposed
-func getLoadBalancerPort(allNodes []nodes.Node) (int32, error) {
+// GetLoadBalancerHostAndPort returns the port on the host on which the APIServer is exposed
+func GetLoadBalancerHostAndPort(allNodes []nodes.Node) (string, int32, error) {
 	node, err := nodes.ExternalLoadBalancerNode(allNodes)
 	if err != nil {
-		return 0, err
+		return "", 0, err
 	}
-	return node.Ports(6443)
+	ipv4, _, err := node.IP()
+	if err != nil {
+		return "", 0, err
+	}
+	port, err := node.Ports(6443)
+	return ipv4, port, err
 }
 
 // matches kubeconfig server entry like:

@@ -17,6 +17,7 @@ limitations under the License.
 package main
 
 import (
+	"flag"
 	"fmt"
 	"time"
 
@@ -35,6 +36,9 @@ import (
 )
 
 func main() {
+	flag.Set("v", "0")
+	flag.Parse()
+
 	cfg, err := config.GetConfig()
 	if err != nil {
 		panic(err)
@@ -67,6 +71,7 @@ func main() {
 
 	machineLogger := logger.Log{}
 	machineLogger.Logger = klogr.New().WithName("[machine-actuator]")
+
 	machineActuator := actuators.Machine{
 		Core:       k8sclientset.CoreV1(),
 		ClusterAPI: cs.ClusterV1alpha1(),

@@ -17,6 +17,7 @@ limitations under the License.
 package actuators
 
 import (
+	"bytes"
 	"fmt"
 	"io/ioutil"
 
@@ -71,6 +72,22 @@ func kubeconfigToSecret(clusterName, namespace string) (*v1.Secret, error) {
 		return nil, errors.WithStack(err)
 	}
 
+	allNodes, err := nodes.List(fmt.Sprintf("label=%s=%s", constants.ClusterLabelKey, clusterName))
+	if err != nil {
+		return nil, errors.WithStack(err)
+	}
+
+	// This is necessary so the management cluster in a container can talk to another container.
+	// They share the same bridged network and the load balancer does respond on 6443 at its docker IP
+	// however, the *HOST* is listening on some random port (the one returned from the GetLoadBalancerHostAndPort).
+	lbip, _, err := actions.GetLoadBalancerHostAndPort(allNodes)
+	lines := bytes.Split(data, []byte("\n"))
+	for i, line := range lines {
+		if bytes.Contains(line, []byte("https://")) {
+			lines[i] = []byte(fmt.Sprintf("    server: https://%s:%d", lbip, 6443))
+		}
+	}
+
 	// write it to a secret
 	return &v1.Secret{
 		ObjectMeta: metav1.ObjectMeta{
@@ -80,7 +97,7 @@ func kubeconfigToSecret(clusterName, namespace string) (*v1.Secret, error) {
 		},
 		Data: map[string][]byte{
 			// TODO pull in constant from cluster api
-			"value": data,
+			"value": bytes.Join(lines, []byte("\n")),
 		},
 	}, nil
 }

@@ -277,7 +277,8 @@ func makeManagementCluster(clusterName, capiVersion, capdImage, capiImageOverrid
 		panic(err)
 	}
 	defer os.Remove(f.Name())
-	crds, err := getCRDs(capiVersion)
+	fmt.Println("Downloading the latest CRDs for CAPI version", capiVersion)
+	crds, err := getCRDs(capiVersion, capiImage)
 	if err != nil {
 		panic(err)
 	}
@@ -285,7 +286,8 @@ func makeManagementCluster(clusterName, capiVersion, capdImage, capiImageOverrid
 	fmt.Fprintln(f, "---")
 	fmt.Fprintln(f, capdRBAC)
 	fmt.Fprintln(f, "---")
-	fmt.Fprintln(f, getCAPDPlane(capdImage, capiImage))
+	fmt.Fprintln(f, getCAPDPlane(capdImage))
+	fmt.Println("Applying the control plane", f.Name())
 	cmd := exec.Command("kubectl", "apply", "-f", f.Name())
 	cmd.SetEnv(fmt.Sprintf("KUBECONFIG=%s/.kube/kind-config-%s", os.Getenv("HOME"), clusterName))
 	cmd.SetStdout(os.Stdout)
@@ -295,8 +297,8 @@ func makeManagementCluster(clusterName, capiVersion, capdImage, capiImageOverrid
 	}
 }
 
-func getCAPDPlane(capdImage, capiImage string) string {
-	return fmt.Sprintf(capiPlane, capdImage, capiImage)
+func getCAPDPlane(capdImage string) string {
+	return fmt.Sprintf(capiPlane, capdImage)
 }
 
 var capiPlane = `
@@ -306,13 +308,6 @@ metadata:
   labels:
     controller-tools.k8s.io: "1.0"
   name: docker-provider-system
----
-apiVersion: v1
-kind: Namespace
-metadata:
-  labels:
-    controller-tools.k8s.io: "1.0"
-  name: cluster-api-system
 ---
 apiVersion: apps/v1
 kind: StatefulSet
@@ -362,47 +357,12 @@ spec:
       - effect: NoExecute
         key: node.alpha.kubernetes.io/unreachable
         operator: Exists
----
-apiVersion: apps/v1
-kind: StatefulSet
-metadata:
-  labels:
-    control-plane: controller-manager
-    controller-tools.k8s.io: "1.0"
-  name: cluster-api-controller-manager
-  namespace: cluster-api-system
-spec:
-  selector:
-    matchLabels:
-      control-plane: controller-manager
-      controller-tools.k8s.io: "1.0"
-  serviceName: cluster-api-controller-manager-service
-  template:
-    metadata:
-      labels:
-        control-plane: controller-manager
-        controller-tools.k8s.io: "1.0"
-    spec:
-      containers:
-      - command:
-        - /manager
-        image: %s
-        name: manager
-      tolerations:
-      - effect: NoSchedule
-        key: node-role.kubernetes.io/master
-      - key: CriticalAddonsOnly
-        operator: Exists
-      - effect: NoExecute
-        key: node.alpha.kubernetes.io/notReady
-        operator: Exists
-      - effect: NoExecute
-        key: node.alpha.kubernetes.io/unreachable
-        operator: Exists
 `
 
-func getCRDs(version string) (string, error) {
-	crds := []string{"crds", "rbac"}
+// getCRDs should actually use kustomize to correctly build the manager yaml.
+// HACK: this is a hacked function
+func getCRDs(version, capiImage string) (string, error) {
+	crds := []string{"crds", "rbac", "manager"}
 	releaseCode := fmt.Sprintf("https://github.com/kubernetes-sigs/cluster-api/archive/%s.tar.gz", version)
 
 	resp, err := http.Get(releaseCode)
@@ -434,10 +394,28 @@ func getCRDs(version string) (string, error) {
 			continue
 		case tar.TypeReg:
 			for _, crd := range crds {
+				// Skip the kustomization files for now. Would like to use kustomize in future
 				if strings.HasSuffix(header.Name, "kustomization.yaml") {
 					continue
 				}
 
+				// This is a poor person's kustomize
+				if strings.HasSuffix(header.Name, "manager.yaml") {
+					var managerBuf bytes.Buffer
+					io.Copy(&managerBuf, tgz)
+					lines := strings.Split(managerBuf.String(), "\n")
+					for _, line := range lines {
+						if strings.Contains(line, "image:") {
+							buf.WriteString(strings.Replace(line, "image: controller:latest", fmt.Sprintf("image: %s", capiImage), 1))
+							buf.WriteString("\n")
+							continue
+						}
+						buf.WriteString(line)
+						buf.WriteString("\n")
+					}
+				}
+
+				// These files don't need kustomize at all.
 				if strings.Contains(header.Name, fmt.Sprintf("config/%s/", crd)) {
 					io.Copy(&buf, tgz)
 					fmt.Fprintln(&buf, "---")

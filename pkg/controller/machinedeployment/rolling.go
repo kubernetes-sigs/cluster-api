@@ -100,11 +100,13 @@ func (r *ReconcileMachineDeployment) reconcileNewMachineSet(allMSs []*v1alpha2.M
 
 func (r *ReconcileMachineDeployment) reconcileOldMachineSets(allMSs []*v1alpha2.MachineSet, oldMSs []*v1alpha2.MachineSet, newMS *v1alpha2.MachineSet, deployment *v1alpha2.MachineDeployment) error {
 	if deployment.Spec.Replicas == nil {
-		return errors.Errorf("spec replicas for deployment set %v is nil, this is unexpected", deployment.Name)
+		return errors.Errorf("spec replicas for MachineDeployment %q/%q is nil, this is unexpected",
+			deployment.Namespace, deployment.Name)
 	}
 
 	if newMS.Spec.Replicas == nil {
-		return errors.Errorf("spec replicas for machine set %v is nil, this is unexpected", newMS.Name)
+		return errors.Errorf("spec replicas for MachineSet %q/%q is nil, this is unexpected",
+			newMS.Namespace, newMS.Name)
 	}
 
 	oldMachinesCount := dutil.GetReplicaCountForMachineSets(oldMSs)

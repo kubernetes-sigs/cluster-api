@@ -117,7 +117,7 @@ func (r *ReconcileMachineDeployment) Reconcile(request reconcile.Request) (recon
 	// Fetch the MachineDeployment instance
 	d := &v1alpha2.MachineDeployment{}
 	ctx := context.TODO()
-	if err := r.Get(context.TODO(), request.NamespacedName, d); err != nil {
+	if err := r.Get(ctx, request.NamespacedName, d); err != nil {
 		if apierrors.IsNotFound(err) {
 			// Object not found, return.  Created objects are automatically garbage collected.
 			// For additional cleanup logic use finalizers.
@@ -148,9 +148,10 @@ func (r *ReconcileMachineDeployment) reconcile(ctx context.Context, d *v1alpha2.
 	everything := metav1.LabelSelector{}
 	if reflect.DeepEqual(d.Spec.Selector, &everything) {
 		if d.Status.ObservedGeneration < d.Generation {
+			patch := client.MergeFrom(d.DeepCopy())
 			d.Status.ObservedGeneration = d.Generation
-			if err := r.Status().Update(context.Background(), d); err != nil {
-				klog.Warningf("Failed to update status for MachineDeployment %q: %v", d.Name, err)
+			if err := r.Status().Patch(ctx, d, patch); err != nil {
+				klog.Warningf("Failed to patch status for MachineDeployment %q: %v", d.Name, err)
 				return reconcile.Result{}, err
 			}
 		}
@@ -191,9 +192,9 @@ func (r *ReconcileMachineDeployment) reconcile(ctx context.Context, d *v1alpha2.
 		d.ObjectMeta.DeletionTimestamp.IsZero() &&
 		!util.Contains(d.Finalizers, metav1.FinalizerDeleteDependents) {
 
+		patch := client.MergeFrom(d.DeepCopy())
 		d.Finalizers = append(d.ObjectMeta.Finalizers, metav1.FinalizerDeleteDependents)
-
-		if err := r.Client.Update(context.Background(), d); err != nil {
+		if err := r.Client.Patch(ctx, d, patch); err != nil {
 			klog.Infof("Failed to add finalizers to MachineSet %q: %v", d.Name, err)
 			return reconcile.Result{}, err
 		}
@@ -296,9 +297,10 @@ func (r *ReconcileMachineDeployment) getMachineSetsForDeployment(d *v1alpha2.Mac
 
 // adoptOrphan sets the MachineDeployment as a controller OwnerReference to the MachineSet.
 func (r *ReconcileMachineDeployment) adoptOrphan(deployment *v1alpha2.MachineDeployment, machineSet *v1alpha2.MachineSet) error {
+	patch := client.MergeFrom(machineSet.DeepCopy())
 	newRef := *metav1.NewControllerRef(deployment, controllerKind)
 	machineSet.OwnerReferences = append(machineSet.OwnerReferences, newRef)
-	return r.Client.Update(context.Background(), machineSet)
+	return r.Client.Patch(context.Background(), machineSet, patch)
 }
 
 // getMachineMapForDeployment returns the Machines managed by a Deployment.

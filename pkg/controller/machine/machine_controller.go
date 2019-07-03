@@ -24,7 +24,6 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/klog"
 	clusterv1 "sigs.k8s.io/cluster-api/pkg/apis/cluster/v1alpha1"
@@ -347,22 +346,14 @@ func (r *ReconcileMachine) deleteNode(ctx context.Context, cluster *clusterv1.Cl
 func (r *ReconcileMachine) getMachines(ctx context.Context, machine *clusterv1.Machine) ([]*clusterv1.Machine, error) {
 	clusterName := machine.Labels[clusterv1.MachineClusterLabelName]
 	if clusterName == "" {
-		klog.Infof("Machine %q in namespace %q doesn't specify %q label, assuming nil cluster", machine.Name, machine.Namespace, clusterv1.MachineClusterLabelName)
 		return nil, nil
 	}
 
 	mlist := &clusterv1.MachineList{}
-	listOptions := &client.ListOptions{
-		Namespace: machine.Namespace,
-		LabelSelector: labels.Set(map[string]string{
-			clusterv1.MachineClusterLabelName: clusterName,
-		}).AsSelector(),
-	}
+	lbls := map[string]string{clusterv1.MachineClusterLabelName: clusterName}
+	listOptions := client.InNamespace(machine.Namespace).MatchingLabels(lbls)
 
 	if err := r.Client.List(ctx, listOptions, mlist); err != nil {
-		if apierrors.IsNotFound(err) {
-			return nil, nil
-		}
 		return nil, errors.Wrapf(err, "Failed to list machines")
 	}
 

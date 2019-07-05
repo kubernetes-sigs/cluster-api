@@ -265,7 +265,7 @@ func makeManagementCluster(clusterName, capiVersion, capdImage, capiImageOverrid
 			HostPath:      "/var/run/docker.sock",
 		},
 	}
-	cp, err := actions.CreateControlPlane(clusterName, "management-control-plane", lbipv4, "v1.14.2", cpMounts)
+	cp, err := actions.CreateControlPlane(clusterName, fmt.Sprintf("%s-control-plane", clusterName), lbipv4, "v1.14.2", cpMounts)
 	if err != nil {
 		panic(err)
 	}
@@ -293,6 +293,8 @@ func makeManagementCluster(clusterName, capiVersion, capdImage, capiImageOverrid
 	cmd.SetStdout(os.Stdout)
 	cmd.SetStderr(os.Stderr)
 	if err := cmd.Run(); err != nil {
+		out, _ := ioutil.ReadFile(f.Name())
+		fmt.Println(out)
 		panic(err)
 	}
 }

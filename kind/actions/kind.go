@@ -24,6 +24,7 @@ import (
 	"os"
 	"path/filepath"
 	"regexp"
+	"strings"
 
 	"github.com/pkg/errors"
 	"sigs.k8s.io/cluster-api-provider-docker/third_party/forked/loadbalancer"
@@ -291,6 +292,9 @@ func writeKubeConfig(n *nodes.Node, dest string, hostAddress string, hostPort in
 }
 
 func image(version string) string {
+	if !strings.HasPrefix(version, "v") {
+		version = fmt.Sprintf("v%s", version)
+	}
 	// valid kindest node versions, but only > v1.14.0
 	switch version {
 	case "v1.14.1", "v1.14.2", "v1.14.3", "v1.15.0":

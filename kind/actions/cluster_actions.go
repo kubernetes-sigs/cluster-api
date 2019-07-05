@@ -143,7 +143,7 @@ func KubeadmConfig(node *nodes.Node, clusterName, lbip string) error {
 func KubeadmInit(clusterName, version string) error {
 	allNodes, err := nodes.List(fmt.Sprintf("label=%s=%s", constants.ClusterLabelKey, clusterName))
 	if err != nil {
-		return nil
+		return err
 	}
 
 	node, err := nodes.BootstrapControlPlaneNode(allNodes)
@@ -179,7 +179,7 @@ func KubeadmInit(clusterName, version string) error {
 	}
 
 	// save the kubeconfig on the host with the loadbalancer endpoint
-	hostPort, err := getLoadBalancerPort(allNodes)
+	_, hostPort, err := GetLoadBalancerHostAndPort(allNodes)
 	if err != nil {
 		return errors.Wrap(err, "failed to get kubeconfig from node")
 	}
@@ -270,7 +270,7 @@ func SetNodeProviderRef(clusterName, nodeName string) error {
 		return err
 	}
 
-	patch := fmt.Sprintf(`{"spec": {"providerID": "docker://%s"}}`, nodeName)
+	patch := fmt.Sprintf(`{"spec": {"providerID": "%s"}}`, ProviderID(nodeName))
 	fmt.Println("trying to apply:", patch)
 	cmd := node.Command(
 		"kubectl",
@@ -288,39 +288,6 @@ func SetNodeProviderRef(clusterName, nodeName string) error {
 	}
 
 	return nil
-}
-
-// GetNodeRefUID returns the node reference UID
-func GetNodeRefUID(clusterName, nodeName string) (string, error) {
-	// 	k get nodes my-cluster-worker -o custom-columns=UID:.metadata.uid --no-headers
-	allNodes, err := nodes.List(fmt.Sprintf("label=%s=%s", constants.ClusterLabelKey, clusterName))
-	if err != nil {
-		return "", err
-	}
-
-	node, err := nodes.BootstrapControlPlaneNode(allNodes)
-	if err != nil {
-		return "", err
-	}
-
-	patch := fmt.Sprintf(`{"spec": {"providerID": "docker://%s"}}`, nodeName)
-	fmt.Println("trying to apply:", patch)
-	cmd := node.Command(
-		"kubectl",
-		"--kubeconfig", "/etc/kubernetes/admin.conf",
-		"get",
-		"node", nodeName,
-		"--output=custom-columns=UID:.metadata.uid",
-		"--no-headers",
-	)
-	lines, err := exec.CombinedOutputLines(cmd)
-	if err != nil {
-		for _, line := range lines {
-			fmt.Println(line)
-		}
-		return "", errors.Wrap(err, "failed get node ref UID")
-	}
-	return strings.TrimSpace(lines[0]), nil
 }
 
 // DeleteClusterNode will remove the kubernetes node from the list of nodes (during a kubectl get nodes).
@@ -378,4 +345,9 @@ func KubeadmReset(clusterName, nodeName string) error {
 	}
 
 	return nil
+}
+
+// ProviderID formats the provider id needed to set on the node
+func ProviderID(name string) string {
+	return fmt.Sprintf("docker:////%s", name)
 }

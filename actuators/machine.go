@@ -23,7 +23,6 @@ import (
 	"time"
 
 	"github.com/go-logr/logr"
-	apicorev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/types"
 	corev1 "k8s.io/client-go/kubernetes/typed/core/v1"
 	"sigs.k8s.io/cluster-api-provider-docker/kind/actions"
@@ -81,14 +80,9 @@ func (m *Machine) Create(ctx context.Context, c *clusterv1.Cluster, machine *clu
 				m.Log.Error(err, "Error adding control plane")
 				return err
 			}
-			nodeUID, err := actions.GetNodeRefUID(c.GetName(), controlPlaneNode.Name())
-			if err != nil {
-				m.Log.Error(err, "Error getting node reference UID")
-				return err
-			}
-			providerID := providerID(controlPlaneNode.Name())
+			providerID := actions.ProviderID(controlPlaneNode.Name())
 			machine.Spec.ProviderID = &providerID
-			return m.save(old, machine, getNodeRef(controlPlaneNode.Name(), nodeUID))
+			return m.save(old, machine)
 		}
 
 		m.Log.Info("Creating a brand new cluster")
@@ -107,15 +101,10 @@ func (m *Machine) Create(ctx context.Context, c *clusterv1.Cluster, machine *clu
 			m.Log.Error(err, "Error creating control plane")
 			return err
 		}
-		nodeUID, err := actions.GetNodeRefUID(c.GetName(), controlPlaneNode.Name())
-		if err != nil {
-			m.Log.Error(err, "Error getting node reference UID")
-			return err
-		}
 		// set the machine's providerID
-		providerID := providerID(controlPlaneNode.Name())
+		providerID := actions.ProviderID(controlPlaneNode.Name())
 		machine.Spec.ProviderID = &providerID
-		if err := m.save(old, machine, getNodeRef(controlPlaneNode.Name(), nodeUID)); err != nil {
+		if err := m.save(old, machine); err != nil {
 			m.Log.Error(err, "Error setting machine's provider ID")
 			return err
 		}
@@ -144,14 +133,9 @@ func (m *Machine) Create(ctx context.Context, c *clusterv1.Cluster, machine *clu
 		m.Log.Error(err, "Error creating new worker node")
 		return err
 	}
-	providerID := providerID(worker.Name())
+	providerID := actions.ProviderID(worker.Name())
 	machine.Spec.ProviderID = &providerID
-	nodeUID, err := actions.GetNodeRefUID(c.GetName(), worker.Name())
-	if err != nil {
-		m.Log.Error(err, "Error getting node reference ID")
-		return err
-	}
-	return m.save(old, machine, getNodeRef(worker.Name(), nodeUID))
+	return m.save(old, machine)
 }
 
 // Delete returns nil when the machine no longer exists or when a successful delete has happened.
@@ -201,7 +185,7 @@ func (m *Machine) Exists(ctx context.Context, cluster *clusterv1.Cluster, machin
 }
 
 // patches the object and saves the status.
-func (m *Machine) save(oldMachine, newMachine *clusterv1.Machine, noderef *apicorev1.ObjectReference) error {
+func (m *Machine) save(oldMachine, newMachine *clusterv1.Machine) error {
 	m.Log.Info("updating machine")
 	p, err := patch.NewJSONPatch(oldMachine, newMachine)
 	if err != nil {
@@ -222,17 +206,7 @@ func (m *Machine) save(oldMachine, newMachine *clusterv1.Machine, noderef *apico
 		}
 		m.Log.Info("updated machine")
 	}
-	// set the noderef after so we don't try and patch it in during the first update
-	newMachine.Status.NodeRef = noderef
-	if _, err := m.ClusterAPI.Machines(oldMachine.Namespace).UpdateStatus(newMachine); err != nil {
-		m.Log.Error(err, "Error setting node reference")
-		return err
-	}
 	return nil
-}
-
-func providerID(name string) string {
-	return fmt.Sprintf("docker:////%s", name)
 }
 
 // CAPIroleToKindRole converts a CAPI role to kind role
@@ -242,13 +216,4 @@ func CAPIroleToKindRole(CAPIRole string) string {
 		return constants.ControlPlaneNodeRoleValue
 	}
 	return CAPIRole
-}
-
-func getNodeRef(name, uid string) *apicorev1.ObjectReference {
-	return &apicorev1.ObjectReference{
-		Kind:       "Node",
-		APIVersion: apicorev1.SchemeGroupVersion.String(),
-		Name:       name,
-		UID:        types.UID(uid),
-	}
 }

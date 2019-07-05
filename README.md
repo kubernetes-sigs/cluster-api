@@ -55,14 +55,6 @@ Make sure you have `kubectl`.
 
    `export KUBECONFIG="${HOME}/.kube/kind-config-management"`
 
-1. Install the cluster-api CRDs
-
-   `capdctl crds | kubectl apply -f -`
-
-1. Run the capd & capi manager
-
-   `capdctl capd -capd-image=<YOUR_REGISTRY>/capd-manager:latest | kubectl apply -f -`
-
 ### Create a worker cluster
 
 `kubectl apply -f examples/simple-cluster.yaml`

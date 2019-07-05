@@ -24,14 +24,39 @@ import (
 var (
 	TestGenericInfrastructureCRD = &apiextensionsv1beta1.CustomResourceDefinition{
 		ObjectMeta: metav1.ObjectMeta{
-			Name: "generic.infrastructure.cluster.sigs.k8s.io",
+			Name: "genericmachines.infrastructure.cluster.sigs.k8s.io",
 		},
 		Spec: apiextensionsv1beta1.CustomResourceDefinitionSpec{
 			Group: "infrastructure.cluster.sigs.k8s.io",
 			Scope: apiextensionsv1beta1.NamespaceScoped,
 			Names: apiextensionsv1beta1.CustomResourceDefinitionNames{
-				Kind:   "InfrastructureRef",
-				Plural: "generic",
+				Kind:   "InfrastructureMachine",
+				Plural: "genericmachines",
+			},
+			Subresources: &apiextensionsv1beta1.CustomResourceSubresources{
+				Status: &apiextensionsv1beta1.CustomResourceSubresourceStatus{},
+			},
+			Validation: &apiextensionsv1beta1.CustomResourceValidation{},
+			Versions: []apiextensionsv1beta1.CustomResourceDefinitionVersion{
+				{
+					Name:    "v1alpha1",
+					Served:  true,
+					Storage: true,
+				},
+			},
+		},
+	}
+
+	TestGenericInfrastructureTemplateCRD = &apiextensionsv1beta1.CustomResourceDefinition{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: "genericmachinetemplates.infrastructure.cluster.sigs.k8s.io",
+		},
+		Spec: apiextensionsv1beta1.CustomResourceDefinitionSpec{
+			Group: "infrastructure.cluster.sigs.k8s.io",
+			Scope: apiextensionsv1beta1.NamespaceScoped,
+			Names: apiextensionsv1beta1.CustomResourceDefinitionNames{
+				Kind:   "InfrastructureMachineTemplate",
+				Plural: "genericmachinetemplates",
 			},
 			Subresources: &apiextensionsv1beta1.CustomResourceSubresources{
 				Status: &apiextensionsv1beta1.CustomResourceSubresourceStatus{},

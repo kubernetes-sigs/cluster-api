@@ -58,7 +58,7 @@ func TestReconcile(t *testing.T) {
 					Version: &version,
 					InfrastructureRef: corev1.ObjectReference{
 						APIVersion: "infrastructure.cluster.sigs.k8s.io/v1alpha1",
-						Kind:       "InfrastructureRef",
+						Kind:       "InfrastructureMachineTemplate",
 						Name:       "foo-template",
 					},
 				},
@@ -73,12 +73,26 @@ func TestReconcile(t *testing.T) {
 	c := mgr.GetClient()
 
 	// Create infrastructure template resource.
-	infraResource := new(unstructured.Unstructured)
-	infraResource.SetKind("InfrastructureRef")
-	infraResource.SetAPIVersion("infrastructure.cluster.sigs.k8s.io/v1alpha1")
-	infraResource.SetName("foo-template")
-	infraResource.SetNamespace("default")
-	Expect(c.Create(ctx, infraResource)).To(BeNil())
+	infraResource := map[string]interface{}{
+		"kind":       "InfrastructureMachine",
+		"apiVersion": "infrastructure.cluster.sigs.k8s.io/v1alpha1",
+		"metadata":   map[string]interface{}{},
+		"spec": map[string]interface{}{
+			"size": "3xlarge",
+		},
+	}
+	infraTmpl := &unstructured.Unstructured{
+		Object: map[string]interface{}{
+			"spec": map[string]interface{}{
+				"template": infraResource,
+			},
+		},
+	}
+	infraTmpl.SetKind("InfrastructureMachineTemplate")
+	infraTmpl.SetAPIVersion("infrastructure.cluster.sigs.k8s.io/v1alpha1")
+	infraTmpl.SetName("foo-template")
+	infraTmpl.SetNamespace("default")
+	Expect(c.Create(ctx, infraTmpl)).To(BeNil())
 
 	r := newReconciler(mgr)
 	if err := add(mgr, r, r.MachineToMachineSets); err != nil {
@@ -110,8 +124,9 @@ func TestReconcile(t *testing.T) {
 		if err := c.Get(ctx, key, &machineToBeDeleted); apierrors.IsNotFound(err) {
 			// The Machine Controller usually deletes external references upon Machine deletion.
 			// Replicate the logic here to make sure there are no leftovers.
-			iref := infraResource.DeepCopy()
+			iref := &unstructured.Unstructured{Object: infraResource}
 			iref.SetName(machineToBeDeleted.Spec.InfrastructureRef.Name)
+			iref.SetNamespace("default")
 			Expect(r.Delete(ctx, iref)).To(BeNil())
 			return true
 		}
@@ -151,16 +166,16 @@ func TestReconcile(t *testing.T) {
 		Expect(c.Status().Update(ctx, &m)).To(BeNil())
 	}
 
-	// Verify that we have 3 infrastructure references: 1 template + 2 machines.
+	// Verify that we have N=replicas infrastructure references.
 	infraConfigs := &unstructured.UnstructuredList{}
-	infraConfigs.SetKind(infraResource.GetKind())
-	infraConfigs.SetAPIVersion(infraResource.GetAPIVersion())
+	infraConfigs.SetKind(infraResource["kind"].(string))
+	infraConfigs.SetAPIVersion(infraResource["apiVersion"].(string))
 	Eventually(func() int {
 		if err := c.List(ctx, infraConfigs, client.InNamespace("default")); err != nil {
 			return -1
 		}
 		return len(infraConfigs.Items)
-	}, timeout).Should(BeEquivalentTo(1 + replicas))
+	}, timeout).Should(BeEquivalentTo(replicas))
 
 	// Verify that all Machines are Ready.
 	Eventually(func() int32 {
@@ -176,5 +191,5 @@ func TestReconcile(t *testing.T) {
 			return -1
 		}
 		return len(infraConfigs.Items)
-	}, timeout).Should(BeEquivalentTo(1 + replicas))
+	}, timeout).Should(BeEquivalentTo(replicas))
 }

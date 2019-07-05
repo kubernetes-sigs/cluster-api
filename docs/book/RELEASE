@@ -12,7 +12,18 @@ content is generated into [./docs/book/_book](../../docs/book/_book) but not
 checked into version control. Netlify will automatically rebuild the 
 documentation on each merge to master.
 
+## Submit a PR
+
+## Testing with Netlify
+
+Each PR to the cluster-api repository causes mutliple CI stages to be run. One
+of the stages is named `deploy/netlify` and by clicking on the `Details` link
+from the PR you can browse the generated content before it is deployed live.
+
 ## Testing locally
+
+This has only been verified to work on OSX. For platform agnostic testing see
+the [Testing with Netlify](#testing-with-netlify) section above.
 
 ```
 hack/build-gitbook.sh
@@ -29,8 +40,6 @@ cd docs/book
 gitbook serve
 # open localhost:4000 in a web browser
 ```
-
-## Finally submit a PR
 
 [markdown]: https://toolchain.gitbook.com/syntax/markdown.html
 [gitbook]: https://toolchain.gitbook.com/

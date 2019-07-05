@@ -25,4 +25,4 @@ cd "${REPO_ROOT}" && \
 	source ./scripts/fetch_ext_bins.sh && \
 	fetch_tools && \
 	setup_envs && \
-	make test
+	make test-go

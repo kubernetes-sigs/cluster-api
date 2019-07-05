@@ -339,8 +339,9 @@ func (r *ReconcileMachineDeployment) syncDeploymentStatus(allMSs []*clusterv1.Ma
 		return nil
 	}
 
+	patch := client.MergeFrom(d.DeepCopy())
 	d.Status = newStatus
-	return r.Status().Update(context.Background(), d)
+	return r.Status().Patch(context.Background(), d, patch)
 }
 
 // calculateStatus calculates the latest status for the provided deployment by looking into the provided machine sets.
@@ -407,10 +408,12 @@ func (r *ReconcileMachineDeployment) scaleMachineSetOperation(ms *clusterv1.Mach
 	)
 
 	if sizeNeedsUpdate || annotationsNeedUpdate {
+		patch := client.MergeFrom(ms.DeepCopy())
+
 		*(ms.Spec.Replicas) = newScale
 		dutil.SetReplicasAnnotations(ms, *(deployment.Spec.Replicas), *(deployment.Spec.Replicas)+dutil.MaxSurge(*deployment))
 
-		err = r.Update(context.Background(), ms)
+		err = r.Patch(context.Background(), ms, patch)
 		if err != nil {
 			r.recorder.Eventf(deployment, corev1.EventTypeWarning, "FailedScale", "Failed to scale MachineSet %q: %v", ms.Name, err)
 		} else if sizeNeedsUpdate {
@@ -511,11 +514,13 @@ func updateMachineDeployment(c client.Client, d *clusterv1.MachineDeployment, mo
 		if err := c.Get(context.Background(), types.NamespacedName{Namespace: d.Namespace, Name: d.Name}, d); err != nil {
 			return err
 		}
+		// Save patch.
+		patch := client.MergeFrom(d.DeepCopy())
 		// Apply defaults.
 		clusterv1.PopulateDefaultsMachineDeployment(d)
 		// Apply modifications.
 		modify(d)
-		// Update the MachineDeployment.
-		return c.Update(context.Background(), d)
+		// Patch the MachineDeployment.
+		return c.Patch(context.Background(), d, patch)
 	})
 }

@@ -17,48 +17,44 @@ limitations under the License.
 package machinedeployment
 
 import (
-	"strconv"
 	"testing"
 	"time"
 
+	. "github.com/onsi/gomega"
 	"golang.org/x/net/context"
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/intstr"
+	"k8s.io/utils/pointer"
 	"sigs.k8s.io/cluster-api/pkg/apis/cluster/common"
 	clusterv1 "sigs.k8s.io/cluster-api/pkg/apis/cluster/v1alpha2"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/manager"
-	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 )
 
-const (
-	timeout         = time.Second * 5
-	pollingInterval = 10 * time.Millisecond
-)
-
-var (
-	c               client.Client
-	expectedRequest = reconcile.Request{NamespacedName: types.NamespacedName{Name: "foo", Namespace: "default"}}
-)
+const timeout = time.Second * 10
 
 func TestReconcile(t *testing.T) {
+	RegisterTestingT(t)
+	ctx := context.TODO()
+
 	labels := map[string]string{"foo": "bar"}
 	version := "1.10.3"
 	deployment := &clusterv1.MachineDeployment{
 		ObjectMeta: metav1.ObjectMeta{Name: "foo", Namespace: "default"},
 		Spec: clusterv1.MachineDeploymentSpec{
-			MinReadySeconds:      int32Ptr(0),
-			Replicas:             int32Ptr(2),
-			RevisionHistoryLimit: int32Ptr(0),
+			MinReadySeconds:      pointer.Int32Ptr(0),
+			Replicas:             pointer.Int32Ptr(2),
+			RevisionHistoryLimit: pointer.Int32Ptr(0),
 			Selector:             metav1.LabelSelector{MatchLabels: labels},
 			Strategy: &clusterv1.MachineDeploymentStrategy{
 				Type: common.RollingUpdateMachineDeploymentStrategyType,
 				RollingUpdate: &clusterv1.MachineRollingUpdateDeployment{
-					MaxUnavailable: intstrPtr(0),
-					MaxSurge:       intstrPtr(1),
+					MaxUnavailable: intOrStrPtr(0),
+					MaxSurge:       intOrStrPtr(1),
 				},
 			},
 			Template: clusterv1.MachineTemplateSpec{
@@ -70,255 +66,167 @@ func TestReconcile(t *testing.T) {
 					InfrastructureRef: corev1.ObjectReference{
 						APIVersion: "infrastructure.cluster.sigs.k8s.io/v1alpha1",
 						Kind:       "InfrastructureRef",
-						Name:       "machine-infrastructure",
+						Name:       "foo-template",
 					},
 				},
 			},
 		},
 	}
+	msListOpts := []client.ListOptionFunc{
+		client.InNamespace("default"),
+		client.MatchingLabels(labels),
+	}
 
 	// Setup the Manager and Controller.  Wrap the Controller Reconcile function so it writes each request to a
 	// channel when it is finished.
 	mgr, err := manager.New(cfg, manager.Options{MetricsBindAddress: "0"})
-	if err != nil {
-		t.Errorf("error creating new manager: %v", err)
-	}
-	c = mgr.GetClient()
+	Expect(err).To(BeNil())
+	c := mgr.GetClient()
 
 	r := newReconciler(mgr)
-	recFn, requests, errors := SetupTestReconcile(r)
-	if err := add(mgr, recFn, r.MachineSetToDeployments); err != nil {
-		t.Errorf("error adding controller to manager: %v", err)
-	}
+	Expect(add(mgr, r, r.MachineSetToDeployments)).To(BeNil())
 	defer close(StartTestManager(mgr, t))
 
+	// Create infrastructure template resource.
+	infraResource := new(unstructured.Unstructured)
+	infraResource.SetKind("InfrastructureRef")
+	infraResource.SetAPIVersion("infrastructure.cluster.sigs.k8s.io/v1alpha1")
+	infraResource.SetName("foo-template")
+	infraResource.SetNamespace("default")
+	Expect(c.Create(ctx, infraResource)).To(BeNil())
+
 	// Create the MachineDeployment object and expect Reconcile to be called.
-	if err := c.Create(context.TODO(), deployment); err != nil {
-		t.Errorf("error creating instance: %v", err)
-	}
-	defer c.Delete(context.TODO(), deployment)
-	expectReconcile(t, requests, errors)
+	Expect(c.Create(ctx, deployment)).To(BeNil())
+	defer c.Delete(ctx, deployment)
 
 	// Verify that the MachineSet was created.
 	machineSets := &clusterv1.MachineSetList{}
-	expectInt(t, 1, func(ctx context.Context) int {
-		if err := c.List(ctx, machineSets); err != nil {
+	Eventually(func() int {
+		if err := c.List(ctx, machineSets, msListOpts...); err != nil {
 			return -1
 		}
 		return len(machineSets.Items)
-	})
+	}, timeout).Should(BeEquivalentTo(1))
 
-	ms := machineSets.Items[0]
-	if r := *ms.Spec.Replicas; r != 2 {
-		t.Errorf("replicas was %d not 2", r)
-	}
-	if k := ms.Spec.Template.Spec.Version; k == nil || *k != "1.10.3" {
-		t.Errorf("kubelet was %v not '1.10.3'", k)
-	}
+	firstMachineSet := machineSets.Items[0]
+	Expect(*firstMachineSet.Spec.Replicas).To(BeEquivalentTo(2))
+	Expect(*firstMachineSet.Spec.Template.Spec.Version).To(BeEquivalentTo("1.10.3"))
 
-	// Delete a MachineSet and expect Reconcile to be called to replace it.
-	if err := c.Delete(context.TODO(), &ms); err != nil {
-		t.Errorf("error deleting machineset: %v", err)
-	}
-	expectReconcile(t, requests, errors)
-	expectInt(t, 1, func(ctx context.Context) int {
-		if err := c.List(ctx, machineSets); err != nil {
-			return -1
+	//
+	// Delete firstMachineSet and expect Reconcile to be called to replace it.
+	//
+	Expect(c.Delete(ctx, &firstMachineSet)).To(BeNil())
+	Eventually(func() bool {
+		if err := c.List(ctx, machineSets, msListOpts...); err != nil {
+			return false
 		}
-		return len(machineSets.Items)
-	})
+		for _, ms := range machineSets.Items {
+			if ms.UID == firstMachineSet.UID {
+				return false
+			}
+		}
+		return len(machineSets.Items) > 0
+	}, timeout).Should(BeTrue())
 
-	// Scale a MachineDeployment and expect Reconcile to be called
-	if err := updateMachineDeployment(c, deployment, func(d *clusterv1.MachineDeployment) { d.Spec.Replicas = int32Ptr(5) }); err != nil {
+	//
+	// Scale the MachineDeployment and expect Reconcile to be called.
+	//
+	secondMachineSet := machineSets.Items[0]
+	if err := updateMachineDeployment(c, deployment, func(d *clusterv1.MachineDeployment) { d.Spec.Replicas = pointer.Int32Ptr(5) }); err != nil {
 		t.Errorf("error scaling machinedeployment: %v", err)
 	}
-	expectReconcile(t, requests, errors)
-	expectInt(t, 5, func(ctx context.Context) int {
-		if err := c.List(ctx, machineSets); err != nil {
+	Eventually(func() int {
+		key := client.ObjectKey{Name: secondMachineSet.Name, Namespace: secondMachineSet.Namespace}
+		if err := c.Get(ctx, key, &secondMachineSet); err != nil {
 			return -1
 		}
-		if len(machineSets.Items) != 1 {
-			return -1
-		}
-		return int(*machineSets.Items[0].Spec.Replicas)
-	})
+		return int(*secondMachineSet.Spec.Replicas)
+	}, timeout).Should(BeEquivalentTo(5))
 
-	// Update a MachineDeployment, expect Reconcile to be called and a new MachineSet to appear
+	//
+	// Update a MachineDeployment, expect Reconcile to be called and a new MachineSet to appear.
+	//
 	if err := updateMachineDeployment(c, deployment, func(d *clusterv1.MachineDeployment) { d.Spec.Template.Labels["updated"] = "true" }); err != nil {
 		t.Errorf("error scaling machinedeployment: %v", err)
 	}
-	expectReconcile(t, requests, errors)
-	expectInt(t, 2, func(ctx context.Context) int {
-		if err := c.List(ctx, machineSets); err != nil {
+	Eventually(func() int {
+		if err := c.List(ctx, machineSets, msListOpts...); err != nil {
 			return -1
 		}
 		return len(machineSets.Items)
-	})
+	}, timeout).Should(BeEquivalentTo(2))
 
-	// Wait for the new MachineSet to get scaled up and set .Status.Replicas and .Status.AvailableReplicas
-	// at each step
+	//
+	// Wait for the new MachineSet to get scaled up and set .Status.Replicas and .Status.AvailableReplicas at each step.
+	//
 	var newMachineSet, oldMachineSet *clusterv1.MachineSet
-	resourceVersion0, err0 := strconv.Atoi(machineSets.Items[0].ResourceVersion)
-	resourceVersion1, err1 := strconv.Atoi(machineSets.Items[1].ResourceVersion)
-	if err0 != nil {
-		t.Fatalf("Unable to convert MS %q ResourceVersion to a number: %v", machineSets.Items[0].Name, err0)
-	}
-	if err1 != nil {
-		t.Fatalf("Unable to convert MS %q ResourceVersion to a number: %v", machineSets.Items[1].Name, err1)
-	}
-
-	if resourceVersion0 > resourceVersion1 {
-		newMachineSet = &machineSets.Items[0]
-		oldMachineSet = &machineSets.Items[1]
-	} else {
-		newMachineSet = &machineSets.Items[1]
-		oldMachineSet = &machineSets.Items[0]
+	for _, ms := range machineSets.Items {
+		if ms.UID == secondMachineSet.UID {
+			oldMachineSet = ms.DeepCopy()
+		} else {
+			newMachineSet = ms.DeepCopy()
+		}
 	}
 
-	// Start off by setting .Status.Replicas and .Status.AvailableReplicas of the old MachineSet
+	// Start off by setting .Status.Replicas and .Status.AvailableReplicas of the old MachineSet.
+	oldMachineSetPatch := client.MergeFrom(oldMachineSet.DeepCopy())
 	oldMachineSet.Status.AvailableReplicas = *oldMachineSet.Spec.Replicas
 	oldMachineSet.Status.Replicas = *oldMachineSet.Spec.Replicas
-	if err := c.Status().Update(context.TODO(), oldMachineSet); err != nil {
-		t.Errorf("error updating machineset: %v", err)
-	}
-	expectReconcile(t, requests, errors)
+	Expect(c.Status().Patch(ctx, oldMachineSet, oldMachineSetPatch)).To(BeNil())
 
-	// Iterate over the scalesteps
+	// Iterate over the scalesteps.
 	step := 1
 	for step < 5 {
 		// Wait for newMachineSet to be scaled up
-		expectTrue(t, func(ctx context.Context) bool {
-			if err = c.Get(ctx, types.NamespacedName{
-				Namespace: newMachineSet.Namespace, Name: newMachineSet.Name}, newMachineSet); err != nil {
+		Eventually(func() bool {
+			key := types.NamespacedName{Namespace: newMachineSet.Namespace, Name: newMachineSet.Name}
+			if err := c.Get(ctx, key, newMachineSet); err != nil {
 				return false
 			}
 
 			currentReplicas := int(*newMachineSet.Spec.Replicas)
 			step = currentReplicas
 			return currentReplicas >= step && currentReplicas < 6
-		})
+		}, timeout).Should(BeTrue())
 
+		newMachineSetPatch := client.MergeFrom(newMachineSet.DeepCopy())
 		newMachineSet.Status.Replicas = *newMachineSet.Spec.Replicas
 		newMachineSet.Status.AvailableReplicas = *newMachineSet.Spec.Replicas
-		if err := c.Status().Update(context.TODO(), newMachineSet); err != nil {
-			t.Logf("error updating machineset: %v", err)
-		}
-		expectReconcile(t, requests, errors)
+		Expect(c.Status().Patch(ctx, newMachineSet, newMachineSetPatch)).To(BeNil())
 
 		// Wait for oldMachineSet to be scaled down
 		updateOldMachineSet := true
-		expectTrue(t, func(ctx context.Context) bool {
-			if err := c.Get(ctx, types.NamespacedName{Namespace: oldMachineSet.Namespace, Name: oldMachineSet.Name}, oldMachineSet); err != nil {
+		Eventually(func() bool {
+			key := types.NamespacedName{Namespace: oldMachineSet.Namespace, Name: oldMachineSet.Name}
+			if err := c.Get(ctx, key, oldMachineSet); err != nil {
 				if apierrors.IsNotFound(err) {
 					updateOldMachineSet = false
 					return true
 				}
 				return false
 			}
-
 			return int(*oldMachineSet.Spec.Replicas) <= 5-step
-		})
+		}, timeout).Should(BeTrue())
 
 		if updateOldMachineSet {
+			oldMachineSetPatch := client.MergeFrom(oldMachineSet.DeepCopy())
 			oldMachineSet.Status.Replicas = *oldMachineSet.Spec.Replicas
 			oldMachineSet.Status.AvailableReplicas = *oldMachineSet.Spec.Replicas
 			oldMachineSet.Status.ObservedGeneration = oldMachineSet.Generation
-			if err := c.Status().Update(context.TODO(), oldMachineSet); err != nil {
-				t.Logf("error updating machineset: %v", err)
-			}
-			expectReconcile(t, requests, errors)
+			Expect(c.Status().Patch(ctx, oldMachineSet, oldMachineSetPatch)).To(BeNil())
 		}
 	}
 
-	// Expect the old MachineSet to be removed
-	expectInt(t, 1, func(ctx context.Context) int {
-		if err := c.List(ctx, machineSets); err != nil {
+	Eventually(func() int {
+		if err := c.List(ctx, machineSets, msListOpts...); err != nil {
 			return -1
 		}
 		return len(machineSets.Items)
-	})
+	}, timeout).Should(BeEquivalentTo(1))
 }
 
-func int32Ptr(i int32) *int32 {
-	return &i
-}
-
-func intstrPtr(i int32) *intstr.IntOrString {
+func intOrStrPtr(i int32) *intstr.IntOrString {
 	// FromInt takes an int that must not be greater than int32...
 	intstr := intstr.FromInt(int(i))
 	return &intstr
-}
-
-func expectReconcile(t *testing.T, requests chan reconcile.Request, errors chan error) {
-	t.Helper()
-
-	ctx, cancel := context.WithTimeout(context.TODO(), timeout)
-	defer cancel()
-
-LOOP:
-	for range time.Tick(pollingInterval) {
-		select {
-		case recv := <-requests:
-			if recv == expectedRequest {
-				break LOOP
-			}
-		case <-ctx.Done():
-			t.Fatalf("timed out waiting reconcile request")
-		}
-	}
-
-	for range time.Tick(pollingInterval) {
-		select {
-		case err := <-errors:
-			if err == nil {
-				return
-			}
-		case <-ctx.Done():
-			t.Fatalf("timed out waiting reconcile error")
-		}
-	}
-}
-
-func expectInt(t *testing.T, expect int, fn func(context.Context) int) {
-	t.Helper()
-
-	ctx, cancel := context.WithTimeout(context.TODO(), timeout)
-	defer cancel()
-
-	for range time.Tick(pollingInterval) {
-		intCh := make(chan int)
-		go func() { intCh <- fn(ctx) }()
-
-		select {
-		case n := <-intCh:
-			if n == expect {
-				return
-			}
-		case <-ctx.Done():
-			t.Fatalf("timed out waiting for value: %d", expect)
-			return
-		}
-	}
-}
-
-func expectTrue(t *testing.T, fn func(context.Context) bool) {
-	t.Helper()
-
-	ctx, cancel := context.WithTimeout(context.TODO(), timeout)
-	defer cancel()
-
-	for range time.Tick(pollingInterval) {
-		boolCh := make(chan bool)
-		go func() { boolCh <- fn(ctx) }()
-
-		select {
-		case n := <-boolCh:
-			if n {
-				return
-			}
-		case <-ctx.Done():
-			t.Fatal("timed out waiting for condition")
-			return
-		}
-	}
 }

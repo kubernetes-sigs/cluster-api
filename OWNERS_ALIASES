@@ -12,4 +12,5 @@ aliases:
   cluster-api-maintainers:
     - justinsb
     - detiber
+    - ncdc
     - vincepri

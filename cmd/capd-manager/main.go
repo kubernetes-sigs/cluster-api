@@ -17,7 +17,6 @@ limitations under the License.
 package main
 
 import (
-	"flag"
 	"fmt"
 	"time"
 
@@ -36,9 +35,6 @@ import (
 )
 
 func main() {
-	flag.Set("v", "0")
-	flag.Parse()
-
 	cfg, err := config.GetConfig()
 	if err != nil {
 		panic(err)

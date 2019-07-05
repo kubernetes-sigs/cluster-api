@@ -77,9 +77,18 @@ func kubeconfigToSecret(clusterName, namespace string) (*v1.Secret, error) {
 		return nil, errors.WithStack(err)
 	}
 
-	// This is necessary so the management cluster in a container can talk to another container.
-	// They share the same bridged network and the load balancer does respond on 6443 at its docker IP
-	// however, the *HOST* is listening on some random port (the one returned from the GetLoadBalancerHostAndPort).
+	// TODO: Clean this up at some point
+	// The Management cluster, running the NodeRef controller, needs to talk to the child clusters.
+	// The management cluster and child cluster must communicate over DockerIP address/ports.
+	// The load balancer listens on <docker_ip>:6443 and exposes a port on the host at some random open port.
+	// Any traffic directed to the nginx container will get round-robined to a control plane node in the cluster.
+	// Since the NodeRef controller is running inside a container, it must reference the child cluster load balancer
+	// host by using the Docker IP address and port 6443, but us, running on the docker host, must use the localhost
+	// and random port the LB is exposing to our system.
+	// Right now the secret that contains the kubeconfig will work only for the node ref controller. In order for *us*
+	// to interact with the child clusters via kubeconfig we must take the secret uploaded,
+	// rewrite the kube-apiserver-address to be 127.0.0.1:<randomly-assigned-by-docker-port>.
+	// It's not perfect but it works to at least play with cluster-api v0.1.4
 	lbip, _, err := actions.GetLoadBalancerHostAndPort(allNodes)
 	lines := bytes.Split(data, []byte("\n"))
 	for i, line := range lines {

@@ -179,12 +179,12 @@ func KubeadmInit(clusterName, version string) error {
 	}
 
 	// save the kubeconfig on the host with the loadbalancer endpoint
-	_, hostPort, err := GetLoadBalancerHostAndPort(allNodes)
+	_, loadBalancerPort, err := GetLoadBalancerHostAndPort(allNodes)
 	if err != nil {
 		return errors.Wrap(err, "failed to get kubeconfig from node")
 	}
 	dest := KubeConfigPath(clusterName)
-	if err := writeKubeConfig(node, dest, "127.0.0.1", hostPort); err != nil {
+	if err := writeKubeConfig(node, dest, "127.0.0.1", loadBalancerPort); err != nil {
 		return errors.Wrap(err, "failed to get kubeconfig from node")
 	}
 	return nil

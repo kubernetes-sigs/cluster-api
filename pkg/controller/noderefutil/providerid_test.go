@@ -17,56 +17,104 @@ limitations under the License.
 package noderefutil
 
 import (
-	"strings"
 	"testing"
-
-	"github.com/pkg/errors"
 )
 
+const aws = "aws"
+
 func TestNewProviderID(t *testing.T) {
-	input1 := "aws:////instance-id"
-	_, err := NewProviderID(input1)
-	if err != nil {
-		t.Fatalf("Expected no errors, got %v", err)
+	tests := []struct {
+		name       string
+		input      string
+		expectedID string
+	}{
+		{
+			name:       "2 slashes after colon, one segment",
+			input:      "aws://instance-id",
+			expectedID: "instance-id",
+		},
+		{
+			name:       "more than 2 slashes after colon, one segment",
+			input:      "aws:////instance-id",
+			expectedID: "instance-id",
+		},
+		{
+			name:       "multiple filled-in segments (aws format)",
+			input:      "aws:///zone/instance-id",
+			expectedID: "instance-id",
+		},
+		{
+			name:       "multiple filled-in segments",
+			input:      "aws://bar/baz/instance-id",
+			expectedID: "instance-id",
+		},
 	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			id, err := NewProviderID(tc.input)
+			if err != nil {
+				t.Fatalf("Expected no errors, got %v", err)
+			}
+
+			if id.CloudProvider() != aws {
+				t.Errorf("Unexpected cloud provider: %q", id.CloudProvider())
+			}
+
+			if e, a := tc.expectedID, id.ID(); e != a {
+				t.Errorf("Expected %q, got %q", e, a)
+			}
+		})
+	}
+
 }
 
 func TestInvalidProviderID(t *testing.T) {
 	testCases := []struct {
+		name  string
 		input string
 		err   error
 	}{
 		{
+			name:  "empty id",
+			input: "",
+			err:   ErrEmptyProviderID,
+		},
+		{
+			name:  "only empty segments",
 			input: "aws:///////",
 			err:   ErrInvalidProviderID,
 		},
 		{
-			input: ":///instance-id",
-			err:   errors.New("missing protocol scheme"),
-		},
-		{
-			input: "///instance-id",
+			name:  "missing cloud provider",
+			input: "://instance-id",
 			err:   ErrInvalidProviderID,
 		},
 		{
+			name:  "missing cloud provider and colon",
+			input: "//instance-id",
+			err:   ErrInvalidProviderID,
+		},
+		{
+			name:  "missing cloud provider, colon, one leading slash",
 			input: "/instance-id",
 			err:   ErrInvalidProviderID,
 		},
 		{
+			name:  "just an id",
 			input: "instance-id",
-			err:   ErrInvalidProviderID,
-		},
-		{
-			input: "#IAmTheSenate",
 			err:   ErrInvalidProviderID,
 		},
 	}
 
 	for _, test := range testCases {
-		_, err := NewProviderID(test.input)
-		if !strings.Contains(err.Error(), test.err.Error()) {
-			t.Fatalf("Expected error %v, got %v", test.err, err)
-		}
+		t.Run(test.name, func(t *testing.T) {
+			_, err := NewProviderID(test.input)
+			if test.err != err {
+				t.Fatalf("Expected error %v, got %v", test.err, err)
+			}
+		})
+
 	}
 }
 
@@ -85,7 +133,7 @@ func TestProviderIDEquals(t *testing.T) {
 		t.Fatalf("Expected valid ID, got %v", parsed1.ID())
 	}
 
-	if parsed1.CloudProvider() != "aws" {
+	if parsed1.CloudProvider() != aws {
 		t.Fatalf("Expected valid CloudProvider, got %v", parsed1.CloudProvider())
 	}
 
@@ -103,12 +151,11 @@ func TestProviderIDEquals(t *testing.T) {
 		t.Fatalf("Expected valid ID, got %v", parsed2.ID())
 	}
 
-	if parsed2.CloudProvider() != "aws" {
+	if parsed2.CloudProvider() != aws {
 		t.Fatalf("Expected valid CloudProvider, got %v", parsed2.CloudProvider())
 	}
 
 	if !parsed1.Equals(parsed2) {
 		t.Fatal("Expected ProviderIDs to be equal")
 	}
-
 }

@@ -14,85 +14,26 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package noderef
+package machine
 
 import (
 	"strings"
 	"testing"
-	"time"
 
-	"github.com/onsi/gomega"
-	"golang.org/x/net/context"
 	corev1 "k8s.io/api/core/v1"
-	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
-	"k8s.io/apimachinery/pkg/types"
 	fakeclient "k8s.io/client-go/kubernetes/fake"
 	"k8s.io/client-go/kubernetes/scheme"
 	"k8s.io/client-go/tools/record"
 	"sigs.k8s.io/cluster-api/pkg/apis/cluster/v1alpha2"
 	"sigs.k8s.io/cluster-api/pkg/controller/noderefutil"
-	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
-	"sigs.k8s.io/controller-runtime/pkg/manager"
-	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 )
-
-var c client.Client
-
-var expectedRequest = reconcile.Request{NamespacedName: types.NamespacedName{Name: "foo", Namespace: "default"}}
-
-const timeout = time.Second * 5
-
-func TestReconcile(t *testing.T) {
-	g := gomega.NewGomegaWithT(t)
-	instance := &v1alpha2.Machine{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      "foo",
-			Namespace: "default",
-		},
-		Spec: v1alpha2.MachineSpec{
-			InfrastructureRef: corev1.ObjectReference{
-				APIVersion: "infrastructure.cluster.sigs.k8s.io/v1alpha1",
-				Kind:       "InfrastructureRef",
-				Name:       "machine-infrastructure",
-			},
-		},
-	}
-
-	// Setup the Manager and Controller.  Wrap the Controller Reconcile function so it writes each request to a
-	// channel when it is finished.
-	mgr, err := manager.New(cfg, manager.Options{MetricsBindAddress: "0"})
-	g.Expect(err).NotTo(gomega.HaveOccurred())
-	c = mgr.GetClient()
-
-	recFn, requests := SetupTestReconcile(newReconciler(mgr))
-	g.Expect(add(mgr, recFn)).NotTo(gomega.HaveOccurred())
-
-	stopMgr, mgrStopped := StartTestManager(mgr, g)
-
-	defer func() {
-		close(stopMgr)
-		mgrStopped.Wait()
-	}()
-
-	// Create the Machine object and expect the Reconcile
-	err = c.Create(context.TODO(), instance)
-	// The instance object may not be a valid object because it might be missing some required fields.
-	// Please modify the instance object by adding required fields and then remove the following if statement.
-	if apierrors.IsInvalid(err) {
-		t.Logf("failed to create object, got an invalid object error: %v", err)
-		return
-	}
-	g.Expect(err).NotTo(gomega.HaveOccurred())
-	defer c.Delete(context.TODO(), instance)
-	g.Eventually(requests, timeout).Should(gomega.Receive(gomega.Equal(expectedRequest)))
-}
 
 func TestGetNodeReference(t *testing.T) {
 	v1alpha2.AddToScheme(scheme.Scheme)
-	r := &ReconcileNodeRef{
+	r := &ReconcileMachine{
 		Client:   fake.NewFakeClient(),
 		scheme:   scheme.Scheme,
 		recorder: record.NewFakeRecorder(32),

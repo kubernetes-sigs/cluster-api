@@ -207,7 +207,7 @@ MachinePhaseProvisioning = MachinePhaseType("provisioning")
 ```
 
 #### Transition Conditions
-- `Machine.Spec.Bootstrap.ConfigRef`->`Status.Phase` is “Ready”
+- `Machine.Spec.Bootstrap.ConfigRef`->`Status.Ready` is true
 - `Machine.Spec.Bootstrap.Data` is not `<nil>`
 
 #### Expectations
@@ -222,8 +222,9 @@ MachinePhaseProvisioned = MachinePhaseType("provisioned")
 ```
 
 #### Transition Conditions
-- `Machine.Spec.InfrastructureRef`->`Status.Phase` is “Ready”
-- `Machine.Spec.ProviderID` is not `<nil>`
+- `Machine.Spec.InfrastructureRef`->`Status.Ready` is true
+- `Machine.Spec.ProviderID` is synced from `Machine.Spec.InfrastructureRef` -> `Spec.ProviderID`
+- (optional) `Machine.Status.Addresses` is synced from `Machine.Spec.InfrastructureRef` -> `Status.Addresses`
 
 #### Expectations
 - Machine’s infrastructure has been created and the compute resource is available to be configured.
@@ -269,7 +270,8 @@ MachinePhaseDeleted = MachinePhaseType("deleted")
 
 #### Transition Conditions
 - `Machine.ObjectMeta.DeletionTimestamp` is not `<nil>`
-- `Machine.Spec.InfrastructureRef`->`Status.Phase` is “Deleted”
+- (optional) `Machine.Bootstrap.ConfigRef` -> `ObjectMeta.DeletionTimestamp` is not `<nil>`
+- `Machine.Spec.InfrastructureRef`-> `ObjectMeta.DeletionTimestamp` is not `<nil>`
 
 #### Expectations
 - Machine controller should remove finalizer.

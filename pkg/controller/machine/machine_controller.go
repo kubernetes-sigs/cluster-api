@@ -26,6 +26,7 @@ import (
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/client-go/tools/record"
 	"k8s.io/klog"
 	"k8s.io/utils/pointer"
 	clusterv1 "sigs.k8s.io/cluster-api/pkg/apis/cluster/v1alpha2"
@@ -41,6 +42,8 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/source"
 )
 
+const controllerName = "machine_controller"
+
 // Add creates a new Machine Controller and adds it to the Manager with default RBAC. The Manager will set fields on the Controller
 // and Start it when the Manager is Started.
 func Add(mgr manager.Manager) error {
@@ -53,15 +56,16 @@ func Add(mgr manager.Manager) error {
 // newReconciler returns a new reconcile.Reconciler
 func newReconciler(mgr manager.Manager) *ReconcileMachine {
 	return &ReconcileMachine{
-		Client: mgr.GetClient(),
-		scheme: mgr.GetScheme(),
+		Client:   mgr.GetClient(),
+		scheme:   mgr.GetScheme(),
+		recorder: mgr.GetEventRecorderFor(controllerName),
 	}
 }
 
 // addController adds a new Controller to mgr with r as the reconcile.Reconciler
 func addController(mgr manager.Manager, r reconcile.Reconciler) (controller.Controller, error) {
 	// Create a new controller
-	c, err := controller.New("machine_controller", mgr, controller.Options{Reconciler: r})
+	c, err := controller.New(controllerName, mgr, controller.Options{Reconciler: r})
 	if err != nil {
 		return nil, err
 	}
@@ -83,6 +87,7 @@ type ReconcileMachine struct {
 	client.Client
 	scheme           *runtime.Scheme
 	controller       controller.Controller
+	recorder         record.EventRecorder
 	externalWatchers sync.Map
 }
 
@@ -137,7 +142,7 @@ func (r *ReconcileMachine) Reconcile(request reconcile.Request) (reconcile.Resul
 		}
 	}
 
-	if err := r.reconcile(ctx, m); err != nil {
+	if err := r.reconcile(ctx, cluster, m); err != nil {
 		if requeueErr, ok := errors.Cause(err).(capierrors.HasRequeueAfterError); ok {
 			klog.Infof("Reconciliation for Machine %q in namespace %q asked to requeue: %v", m.Name, m.Namespace, err)
 			return reconcile.Result{Requeue: true, RequeueAfter: requeueErr.GetRequeueAfter()}, nil

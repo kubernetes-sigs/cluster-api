@@ -10,6 +10,19 @@ feedback on the API types themselves. All of the code here is to experiment with
 the API and demo its abilities, in order to drive more technical feedback to the
 API design. Because of this, all of the prototype code is rapidly changing.
 
+## Getting Started
+
+### Resources
+
+* GitBook: [cluster-api.sigs.k8s.io](https://cluster-api.sigs.k8s.io)
+
+### Prerequisites
+* `kubectl` is required, see [here](http://kubernetes.io/docs/user-guide/prereqs/).
+* `clusterctl` is a SIG-cluster-lifecycle sponsored tool to manage Cluster API clusters. See [here](cmd/clusterctl)
+
+### Using `clusterctl` to create a cluster
+* Doc [here](./docs/how-to-use-clusterctl.md)
+
 ![Cluster API Architecture](./docs/book/common_code/architecture.svg "Cluster API Architecture")
 
 Learn more about the project's [scope, objectives, goals and requirements](./docs/scope-and-objectives.md), [feature proposals](./docs/proposals/) and [reference use cases](./docs/staging-use-cases.md).
@@ -74,15 +87,7 @@ Following are the implementations managed by third-parties adopting the standard
 - The _master_ branch is where development happens, this might include breaking changes.
 - The _release-X_ branches contain stable, backward compatible code. A new _release-X_ branch is created at every major (X) release.
 
-## Getting Started
 
-### Resources
-
-* GitBook: [cluster-api.sigs.k8s.io](https://cluster-api.sigs.k8s.io)
-
-### Prerequisites
-* `kubectl` is required, see [here](http://kubernetes.io/docs/user-guide/prereqs/).
-* `clusterctl` is a SIG-cluster-lifecycle sponsored tool to manage Cluster API clusters. See [here](cmd/clusterctl)
 
 [notes]: https://docs.google.com/document/d/1Ys-DOR5UsgbMEeciuG0HOgDQc8kZsaWIWJeKJ1-UfbY/edit
 [recordings]: https://www.youtube.com/playlist?list=PL69nYSiGNLP29D0nYgAGWt1ZFqS9Z7lw4

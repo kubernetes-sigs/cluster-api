@@ -23,7 +23,7 @@ import (
 	"strings"
 
 	"github.com/pkg/errors"
-	k8sverison "k8s.io/apimachinery/pkg/util/version"
+	k8sversion "k8s.io/apimachinery/pkg/util/version"
 	"sigs.k8s.io/cluster-api-provider-docker/kind/kubeadm"
 	"sigs.k8s.io/cluster-api-provider-docker/third_party/forked/loadbalancer"
 	"sigs.k8s.io/kind/pkg/cluster/constants"
@@ -152,7 +152,7 @@ func KubeadmInit(clusterName, version string) error {
 	}
 	// Upload certs flag changed to non-experimental in >= 1.15
 	uploadCertsFlag := "--experimental-upload-certs"
-	parsedVersion, err := k8sverison.ParseGeneric(version)
+	parsedVersion, err := k8sversion.ParseGeneric(version)
 	if err != nil {
 		return errors.WithStack(err)
 	}

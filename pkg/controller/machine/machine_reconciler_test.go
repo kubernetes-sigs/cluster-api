@@ -20,20 +20,20 @@ import (
 	"testing"
 	"time"
 
+	. "github.com/onsi/gomega"
 	"golang.org/x/net/context"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/types"
 	clusterv1 "sigs.k8s.io/cluster-api/pkg/apis/cluster/v1alpha2"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/manager"
-	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 )
-
-var expectedRequest = reconcile.Request{NamespacedName: types.NamespacedName{Name: "foo", Namespace: "default"}}
 
 const timeout = time.Second * 5
 
 func TestReconcile(t *testing.T) {
+	RegisterTestingT(t)
+	ctx := context.TODO()
 	instance := &clusterv1.Machine{
 		ObjectMeta: metav1.ObjectMeta{Name: "foo", Namespace: "default"},
 		Spec: clusterv1.MachineSpec{
@@ -54,25 +54,21 @@ func TestReconcile(t *testing.T) {
 	c := mgr.GetClient()
 
 	reconciler := newReconciler(mgr)
-	recFn, requests := SetupTestReconcile(reconciler)
-	controller, err := addController(mgr, recFn)
-	if err != nil {
-		t.Fatalf("error adding controller to manager: %v", err)
-	}
+	controller, err := addController(mgr, reconciler)
+	Expect(err).To(BeNil())
 	reconciler.controller = controller
 	defer close(StartTestManager(mgr, t))
 
 	// Create the Machine object and expect Reconcile and the actuator to be called
-	if err := c.Create(context.TODO(), instance); err != nil {
-		t.Fatalf("error creating instance: %v", err)
-	}
-	defer c.Delete(context.TODO(), instance)
-	select {
-	case recv := <-requests:
-		if recv != expectedRequest {
-			t.Error("received request does not match expected request")
+	Expect(c.Create(ctx, instance)).To(BeNil())
+	defer c.Delete(ctx, instance)
+
+	// Make sure the Machine exists.
+	Eventually(func() bool {
+		key := client.ObjectKey{Namespace: instance.Namespace, Name: instance.Name}
+		if err := c.Get(ctx, key, instance); err != nil {
+			return false
 		}
-	case <-time.After(timeout):
-		t.Error("timed out waiting for request")
-	}
+		return true
+	}, timeout).Should(BeTrue())
 }

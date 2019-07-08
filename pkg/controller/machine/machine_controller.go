@@ -349,17 +349,17 @@ func (r *ReconcileMachine) getMachines(ctx context.Context, machine *clusterv1.M
 		return nil, nil
 	}
 
-	mlist := &clusterv1.MachineList{}
-	lbls := map[string]string{clusterv1.MachineClusterLabelName: clusterName}
-	listOptions := client.InNamespace(machine.Namespace).MatchingLabels(lbls)
+	machineList := &clusterv1.MachineList{}
+	labels := map[string]string{clusterv1.MachineClusterLabelName: clusterName}
+	listOptions := client.InNamespace(machine.Namespace).MatchingLabels(labels)
 
-	if err := r.Client.List(ctx, listOptions, mlist); err != nil {
-		return nil, errors.Wrapf(err, "Failed to list machines")
+	if err := r.Client.List(ctx, listOptions, machineList); err != nil {
+		return nil, errors.Wrap(err, "failed to list machines")
 	}
 
-	machines := make([]*clusterv1.Machine, len(mlist.Items))
-	for i := range mlist.Items {
-		machines[i] = &mlist.Items[i]
+	machines := make([]*clusterv1.Machine, len(machineList.Items))
+	for i := range machineList.Items {
+		machines[i] = &machineList.Items[i]
 	}
 
 	return machines, nil

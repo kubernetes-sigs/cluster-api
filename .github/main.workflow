@@ -14,8 +14,14 @@ action "build" {
   args = "build -t docker.pkg.github.com/kubernetes-sigs/cluster-api-provider-docker:latest ."
 }
 
+action "master" {
+  needs = ["build"]
+  uses = "actions/bin/filter@master"
+  args = "branch master"
+}
+
 action "push" {
   uses = "actions/docker/cli@master"
-  needs = ["build"]
+  needs = ["master"]
   args = "push docker.pkg.github.com/kubernetes-sigs/cluster-api-provider-docker:latest"
 }

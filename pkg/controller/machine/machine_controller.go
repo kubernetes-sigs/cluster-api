@@ -180,13 +180,16 @@ func (r *ReconcileMachine) Reconcile(request reconcile.Request) (reconcile.Resul
 			return reconcile.Result{}, err
 		}
 
-		okToDeleteNode, err := r.isDeleteNodeAllowed(context.Background(), m)
-		if err != nil {
-			klog.Errorf("IsDeleteNodeAllowed check failed for machine %q: %v", name, err)
-			return reconcile.Result{}, err
-		}
-		if !okToDeleteNode {
-			klog.Infof("Deleting node is not allowed for machine %q", name)
+		if err := r.isDeleteNodeAllowed(context.Background(), m); err != nil {
+			switch err {
+			case errNilNodeRef:
+				klog.Infof("Deleting node is not allowed for machine %q: %v", m.Name, err)
+			case errNoControlPlaneNodes, errLastControlPlaneNode:
+				klog.Infof("Deleting node %q is not allowed for machine %q: %v", m.Status.NodeRef.Name, m.Name, err)
+			default:
+				klog.Errorf("IsDeleteNodeAllowed check failed for machine %q: %v", name, err)
+				return reconcile.Result{}, err
+			}
 		} else {
 			klog.Infof("Deleting node %q for machine %q", m.Status.NodeRef.Name, m.Name)
 			if err := r.deleteNode(ctx, cluster, m.Status.NodeRef.Name); err != nil && !apierrors.IsNotFound(err) {
@@ -285,32 +288,43 @@ func (r *ReconcileMachine) isDeleteAllowed(machine *clusterv1.Machine) bool {
 	return node.UID != machine.Status.NodeRef.UID
 }
 
-// isDeleteNodeAllowed returns true only if the Machine's NodeRef is not nil
+var (
+	errNilNodeRef           = errors.New("noderef is nil")
+	errLastControlPlaneNode = errors.New("last control plane member")
+	errNoControlPlaneNodes  = errors.New("no control plane members")
+)
+
+// isDeleteNodeAllowed returns nil only if the Machine's NodeRef is not nil
 // and if the Machine is not the last control plane node in the cluster.
-func (r *ReconcileMachine) isDeleteNodeAllowed(ctx context.Context, machine *clusterv1.Machine) (bool, error) {
+func (r *ReconcileMachine) isDeleteNodeAllowed(ctx context.Context, machine *clusterv1.Machine) error {
 
 	// Cannot delete something that doesn't exist.
 	if machine.Status.NodeRef == nil {
-		return false, nil
+		return errNilNodeRef
 	}
 
 	// Get all of the machines that belong to this cluster.
 	machines, err := r.getMachines(ctx, machine)
 	if err != nil {
-		return false, err
+		return err
 	}
 
-	controlPlaneMachines := util.GetControlPlaneMachines(machines)
-
-	// If this machine is a control plane node then only delete the NodeRef
-	// if there is another control plane node (besides this machine) left.
-	if util.IsControlPlaneMachine(machine) {
-		return len(controlPlaneMachines) > 1, nil
+	// Whether or not it is okay to delete the NodeRef depends on the
+	// number of remaining control plane members and whether or not this
+	// machine is one of them.
+	switch numControlPlaneMachines := len(util.GetControlPlaneMachines(machines)); {
+	case numControlPlaneMachines == 0:
+		// Do not delete the NodeRef if there are no remaining members of
+		// the control plane.
+		return errNoControlPlaneNodes
+	case numControlPlaneMachines == 1 && util.IsControlPlaneMachine(machine):
+		// Do not delete the NodeRef if this is the last member of the
+		// control plane.
+		return errLastControlPlaneNode
+	default:
+		// Otherwise it is okay to delete the NodeRef.
+		return nil
 	}
-
-	// Otherwise it's okay to delete the NodeRef if there's a single control
-	// plane node left.
-	return len(controlPlaneMachines) > 0, nil
 }
 
 func (r *ReconcileMachine) deleteNode(ctx context.Context, cluster *clusterv1.Cluster, name string) error {

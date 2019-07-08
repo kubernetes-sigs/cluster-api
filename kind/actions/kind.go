@@ -24,6 +24,7 @@ import (
 	"os"
 	"path/filepath"
 	"regexp"
+	constkind "sigs.k8s.io/cluster-api-provider-docker/kind/constants"
 	"strings"
 
 	"github.com/pkg/errors"
@@ -247,7 +248,7 @@ func GetLoadBalancerHostAndPort(allNodes []nodes.Node) (string, int32, error) {
 	if err != nil {
 		return "", 0, err
 	}
-	port, err := node.Ports(6443)
+	port, err := node.Ports(constkind.APIServerPort)
 	return ipv4, port, err
 }
 

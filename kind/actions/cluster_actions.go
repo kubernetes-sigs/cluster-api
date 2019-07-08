@@ -24,6 +24,7 @@ import (
 
 	"github.com/pkg/errors"
 	k8sversion "k8s.io/apimachinery/pkg/util/version"
+	constkind "sigs.k8s.io/cluster-api-provider-docker/kind/constants"
 	"sigs.k8s.io/cluster-api-provider-docker/kind/kubeadm"
 	"sigs.k8s.io/cluster-api-provider-docker/third_party/forked/loadbalancer"
 	"sigs.k8s.io/kind/pkg/cluster/constants"
@@ -99,7 +100,7 @@ func ConfigureLoadBalancer(clusterName string) error {
 		if err != nil {
 			return errors.Wrapf(err, "failed to get IP for node %s", n.Name())
 		}
-		backendServers[n.Name()] = fmt.Sprintf("%s:%d", controlPlaneIPv4, 6443)
+		backendServers[n.Name()] = fmt.Sprintf("%s:%d", controlPlaneIPv4, constkind.APIServerPort)
 	}
 
 	// create loadbalancer config data
@@ -126,7 +127,8 @@ func KubeadmConfig(node *nodes.Node, clusterName, lbip string) error {
 		return errors.Wrap(err, "failed to get kubernetes version from node")
 	}
 
-	kubeadmConfig, err := kubeadm.InitConfiguration(kubeVersion, clusterName, fmt.Sprintf("%s:%d", lbip, 6443))
+	kubeadmConfig, err := kubeadm.InitConfiguration(kubeVersion, clusterName,
+		fmt.Sprintf("%s:%d", lbip, constkind.APIServerPort))
 
 	if err != nil {
 		return errors.Wrap(err, "failed to generate kubeadm config content")

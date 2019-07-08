@@ -150,14 +150,6 @@ type MachineStatus struct {
 	// +optional
 	Addresses []corev1.NodeAddress `json:"addresses,omitempty"`
 
-	// Conditions lists the conditions synced from the node conditions of the corresponding node-object.
-	// Machine-controller is responsible for keeping conditions up-to-date.
-	// MachineSet controller will be taking these conditions as a signal to decide if
-	// machine is healthy or needs to be replaced.
-	// Refer: https://kubernetes.io/docs/concepts/architecture/nodes/#condition
-	// +optional
-	Conditions []corev1.NodeCondition `json:"conditions,omitempty"`
-
 	// Phase represents the current phase of machine actuation.
 	// E.g. Pending, Running, Terminating, Failed etc.
 	// +optional

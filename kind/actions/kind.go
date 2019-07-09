@@ -24,10 +24,10 @@ import (
 	"os"
 	"path/filepath"
 	"regexp"
-	constkind "sigs.k8s.io/cluster-api-provider-docker/kind/constants"
 	"strings"
 
 	"github.com/pkg/errors"
+	constkind "sigs.k8s.io/cluster-api-provider-docker/kind/constants"
 	"sigs.k8s.io/cluster-api-provider-docker/third_party/forked/loadbalancer"
 	"sigs.k8s.io/kind/pkg/cluster/config/defaults"
 	"sigs.k8s.io/kind/pkg/cluster/constants"

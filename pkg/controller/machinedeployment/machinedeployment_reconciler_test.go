@@ -65,7 +65,7 @@ func TestReconcile(t *testing.T) {
 					Version: &version,
 					InfrastructureRef: corev1.ObjectReference{
 						APIVersion: "infrastructure.cluster.sigs.k8s.io/v1alpha1",
-						Kind:       "InfrastructureRef",
+						Kind:       "InfrastructureMachineTemplate",
 						Name:       "foo-template",
 					},
 				},
@@ -88,12 +88,26 @@ func TestReconcile(t *testing.T) {
 	defer close(StartTestManager(mgr, t))
 
 	// Create infrastructure template resource.
-	infraResource := new(unstructured.Unstructured)
-	infraResource.SetKind("InfrastructureRef")
-	infraResource.SetAPIVersion("infrastructure.cluster.sigs.k8s.io/v1alpha1")
-	infraResource.SetName("foo-template")
-	infraResource.SetNamespace("default")
-	Expect(c.Create(ctx, infraResource)).To(BeNil())
+	infraResource := map[string]interface{}{
+		"kind":       "InfrastructureMachine",
+		"apiVersion": "infrastructure.cluster.sigs.k8s.io/v1alpha1",
+		"metadata":   map[string]interface{}{},
+		"spec": map[string]interface{}{
+			"size": "3xlarge",
+		},
+	}
+	infraTmpl := &unstructured.Unstructured{
+		Object: map[string]interface{}{
+			"spec": map[string]interface{}{
+				"template": infraResource,
+			},
+		},
+	}
+	infraTmpl.SetKind("InfrastructureMachineTemplate")
+	infraTmpl.SetAPIVersion("infrastructure.cluster.sigs.k8s.io/v1alpha1")
+	infraTmpl.SetName("foo-template")
+	infraTmpl.SetNamespace("default")
+	Expect(c.Create(ctx, infraTmpl)).To(BeNil())
 
 	// Create the MachineDeployment object and expect Reconcile to be called.
 	Expect(c.Create(ctx, deployment)).To(BeNil())

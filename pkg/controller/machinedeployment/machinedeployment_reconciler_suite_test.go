@@ -22,7 +22,7 @@ import (
 	"path/filepath"
 	"testing"
 
-	apiextensions "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1beta1"
+	apiextensionsv1beta1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1beta1"
 	"k8s.io/client-go/kubernetes/scheme"
 	"k8s.io/client-go/rest"
 	"sigs.k8s.io/cluster-api/pkg/apis"
@@ -35,7 +35,10 @@ var cfg *rest.Config
 
 func TestMain(m *testing.M) {
 	t := &envtest.Environment{
-		CRDs:              []*apiextensions.CustomResourceDefinition{external.TestGenericInfrastructureCRD},
+		CRDs: []*apiextensionsv1beta1.CustomResourceDefinition{
+			external.TestGenericInfrastructureCRD,
+			external.TestGenericInfrastructureTemplateCRD,
+		},
 		CRDDirectoryPaths: []string{filepath.Join("..", "..", "..", "config", "crds")},
 	}
 	apis.AddToScheme(scheme.Scheme)

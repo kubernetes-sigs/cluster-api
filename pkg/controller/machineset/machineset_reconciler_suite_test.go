@@ -35,7 +35,10 @@ var cfg *rest.Config
 
 func TestMain(m *testing.M) {
 	t := &envtest.Environment{
-		CRDs:              []*apiextensionsv1beta1.CustomResourceDefinition{external.TestGenericInfrastructureCRD},
+		CRDs: []*apiextensionsv1beta1.CustomResourceDefinition{
+			external.TestGenericInfrastructureCRD,
+			external.TestGenericInfrastructureTemplateCRD,
+		},
 		CRDDirectoryPaths: []string{filepath.Join("..", "..", "..", "config", "crds")},
 	}
 	apis.AddToScheme(scheme.Scheme)

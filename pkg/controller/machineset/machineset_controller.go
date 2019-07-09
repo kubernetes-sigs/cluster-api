@@ -321,7 +321,7 @@ func (r *ReconcileMachineSet) syncReplicas(ms *clusterv1.MachineSet, machines []
 				err                          error
 			)
 
-			infraConfig, err = external.Clone(r.Client, &machine.Spec.InfrastructureRef, machine.Namespace)
+			infraConfig, err = external.CloneTemplate(r.Client, &machine.Spec.InfrastructureRef, machine.Namespace)
 			if err != nil {
 				return errors.Wrapf(err, "failed to clone infrastructure configuration for MachineSet %q in namespace %q", ms.Name, ms.Namespace)
 			}
@@ -333,7 +333,7 @@ func (r *ReconcileMachineSet) syncReplicas(ms *clusterv1.MachineSet, machines []
 			}
 
 			if machine.Spec.Bootstrap.ConfigRef != nil {
-				bootstrapConfig, err = external.Clone(r.Client, machine.Spec.Bootstrap.ConfigRef, machine.Namespace)
+				bootstrapConfig, err = external.CloneTemplate(r.Client, machine.Spec.Bootstrap.ConfigRef, machine.Namespace)
 				if err != nil {
 					return errors.Wrapf(err, "failed to clone bootstrap configuration for MachineSet %q in namespace %q", ms.Name, ms.Namespace)
 				}

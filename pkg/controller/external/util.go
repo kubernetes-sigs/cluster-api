@@ -39,13 +39,19 @@ func Get(c client.Client, ref *corev1.ObjectReference, namespace string) (*unstr
 	return obj, nil
 }
 
-// Clone uses the client and the reference to create a new cloned object.
-func Clone(c client.Client, ref *corev1.ObjectReference, namespace string) (*unstructured.Unstructured, error) {
+// CloneTemplate uses the client and the reference to create a new object from the template.
+func CloneTemplate(c client.Client, ref *corev1.ObjectReference, namespace string) (*unstructured.Unstructured, error) {
 	from, err := Get(c, ref, namespace)
 	if err != nil {
 		return nil, err
 	}
-	to := from.DeepCopy()
+	template, found, err := unstructured.NestedMap(from.Object, "spec", "template")
+	if !found {
+		return nil, errors.Errorf("missing Spec.Template on %v %q", from.GroupVersionKind(), from.GetName())
+	} else if err != nil {
+		return nil, errors.Wrapf(err, "failed to retrieve Spec.Template map on %v %q", from.GroupVersionKind(), from.GetName())
+	}
+	to := &unstructured.Unstructured{Object: template}
 	to.SetResourceVersion("")
 	to.SetOwnerReferences(nil)
 	to.SetFinalizers(nil)
@@ -53,6 +59,7 @@ func Clone(c client.Client, ref *corev1.ObjectReference, namespace string) (*uns
 	to.SetSelfLink("")
 	to.SetName("")
 	to.SetGenerateName(fmt.Sprintf("%s-", from.GetName()))
+	to.SetNamespace(namespace)
 	if err := c.Create(context.Background(), to); err != nil {
 		return nil, err
 	}

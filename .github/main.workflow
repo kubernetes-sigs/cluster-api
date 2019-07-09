@@ -11,7 +11,7 @@ action "Docker Registry" {
 action "build" {
   uses = "actions/docker/cli@master"
   needs = ["Docker Registry"]
-  args = "build -t docker.pkg.github.com/kubernetes-sigs/cluster-api-provider-docker:latest ."
+  args = "build -t docker.pkg.github.com/kubernetes-sigs/cluster-api-provider-docker/manager:latest ."
 }
 
 action "master" {
@@ -23,5 +23,5 @@ action "master" {
 action "push" {
   uses = "actions/docker/cli@master"
   needs = ["master"]
-  args = "push docker.pkg.github.com/kubernetes-sigs/cluster-api-provider-docker:latest"
+  args = "push docker.pkg.github.com/kubernetes-sigs/cluster-api-provider-docker/manager:latest"
 }

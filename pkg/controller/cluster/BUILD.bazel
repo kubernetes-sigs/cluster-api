@@ -11,7 +11,7 @@ go_library(
     visibility = ["//visibility:public"],
     deps = [
         "//pkg/apis/cluster/v1alpha2:go_default_library",
-        "//pkg/controller/error:go_default_library",
+        "//pkg/errors:go_default_library",
         "//pkg/util:go_default_library",
         "//vendor/github.com/pkg/errors:go_default_library",
         "//vendor/k8s.io/apimachinery/pkg/api/errors:go_default_library",

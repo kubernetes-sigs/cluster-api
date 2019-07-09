@@ -39,9 +39,6 @@ func TestReconcilePhase(t *testing.T) {
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "machine-test",
 			Namespace: "default",
-			Labels: map[string]string{
-				v1alpha2.MachineClusterLabelName: "test-cluster",
-			},
 		},
 		Spec: v1alpha2.MachineSpec{
 			Bootstrap: v1alpha2.Bootstrap{
@@ -149,15 +146,11 @@ func TestReconcilePhase(t *testing.T) {
 					"name":      "infra-config1",
 					"namespace": "default",
 				},
-				"spec": map[string]interface{}{},
+				"spec": map[string]interface{}{
+					"providerID": "test://id-1",
+				},
 				"status": map[string]interface{}{
 					"ready": true,
-					"addresses": []interface{}{
-						map[string]interface{}{
-							"type":    "InternalIP",
-							"address": "10.0.0.1",
-						},
-					},
 				},
 			},
 			expectError:        false,
@@ -213,7 +206,9 @@ func TestReconcilePhase(t *testing.T) {
 					"name":      "infra-config1",
 					"namespace": "default",
 				},
-				"spec": map[string]interface{}{},
+				"spec": map[string]interface{}{
+					"providerID": "test://id-1",
+				},
 				"status": map[string]interface{}{
 					"ready": true,
 					"addresses": []interface{}{
@@ -278,7 +273,9 @@ func TestReconcilePhase(t *testing.T) {
 					"name":      "infra-config1",
 					"namespace": "default",
 				},
-				"spec": map[string]interface{}{},
+				"spec": map[string]interface{}{
+					"providerID": "test://id-1",
+				},
 				"status": map[string]interface{}{
 					"ready": true,
 					"addresses": []interface{}{
@@ -312,7 +309,7 @@ func TestReconcilePhase(t *testing.T) {
 				scheme: scheme.Scheme,
 			}
 
-			err := r.reconcile(context.Background(), tc.machine)
+			err := r.reconcile(context.Background(), nil, tc.machine)
 			if tc.expectError {
 				g.Expect(err).ToNot(gomega.BeNil())
 			} else if tc.expectRequeueAfter {
@@ -593,7 +590,7 @@ func TestReconcileInfrastructure(t *testing.T) {
 		expected      func(g *gomega.WithT, m *v1alpha2.Machine)
 	}{
 		{
-			name: "new machine, infrastructure config ready with addresses",
+			name: "new machine, infrastructure config ready",
 			infraConfig: map[string]interface{}{
 				"kind":       "InfrastructureConfig",
 				"apiVersion": "infra.cluster.sigs.k8s.io/v1alpha1",
@@ -601,15 +598,11 @@ func TestReconcileInfrastructure(t *testing.T) {
 					"name":      "infra-config1",
 					"namespace": "default",
 				},
-				"spec": map[string]interface{}{},
+				"spec": map[string]interface{}{
+					"providerID": "test://id-1",
+				},
 				"status": map[string]interface{}{
 					"ready": true,
-					"addresses": []interface{}{
-						map[string]interface{}{
-							"type":    "InternalIP",
-							"address": "10.0.0.1",
-						},
-					},
 				},
 			},
 			expectError:   false,

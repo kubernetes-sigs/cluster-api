@@ -47,14 +47,11 @@ func TestReconcileRequest(t *testing.T) {
 				"name":      "infra-config1",
 				"namespace": "default",
 			},
-			"spec": map[string]interface{}{},
+			"spec": map[string]interface{}{
+				"providerID": "test://id-1",
+			},
 			"status": map[string]interface{}{
 				"ready": true,
-				"addresses": []interface{}{
-					map[string]interface{}{
-						"address": "10.0.0.1",
-					},
-				},
 			},
 		},
 	}
@@ -66,9 +63,6 @@ func TestReconcileRequest(t *testing.T) {
 			Name:       "create",
 			Namespace:  "default",
 			Finalizers: []string{v1alpha2.MachineFinalizer, metav1.FinalizerDeleteDependents},
-			Labels: map[string]string{
-				v1alpha2.MachineClusterLabelName: "testcluster",
-			},
 		},
 		Spec: v1alpha2.MachineSpec{
 			InfrastructureRef: corev1.ObjectReference{
@@ -87,9 +81,6 @@ func TestReconcileRequest(t *testing.T) {
 			Name:       "update",
 			Namespace:  "default",
 			Finalizers: []string{v1alpha2.MachineFinalizer, metav1.FinalizerDeleteDependents},
-			Labels: map[string]string{
-				v1alpha2.MachineClusterLabelName: "testcluster",
-			},
 		},
 		Spec: v1alpha2.MachineSpec{
 			InfrastructureRef: corev1.ObjectReference{
@@ -110,9 +101,6 @@ func TestReconcileRequest(t *testing.T) {
 			Namespace:         "default",
 			Finalizers:        []string{v1alpha2.MachineFinalizer, metav1.FinalizerDeleteDependents},
 			DeletionTimestamp: &time,
-			Labels: map[string]string{
-				v1alpha2.MachineClusterLabelName: "testcluster",
-			},
 		},
 		Spec: v1alpha2.MachineSpec{
 			InfrastructureRef: corev1.ObjectReference{

@@ -38,11 +38,12 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/source"
 )
 
-func (r *ReconcileMachine) reconcile(ctx context.Context, m *v1alpha2.Machine) (err error) {
+func (r *ReconcileMachine) reconcile(ctx context.Context, cluster *v1alpha2.Cluster, m *v1alpha2.Machine) (err error) {
 	// TODO(vincepri): These can be generalized with an interface and possibly a for loop.
 	errors := []error{}
 	errors = append(errors, r.reconcileBootstrap(ctx, m))
 	errors = append(errors, r.reconcileInfrastructure(ctx, m))
+	errors = append(errors, r.reconcileNodeRef(ctx, cluster, m))
 	errors = append(errors, r.reconcilePhase(ctx, m))
 
 	// Determine the return error, giving precedence to the first non-nil and non-requeueAfter errors.
@@ -232,7 +233,7 @@ func (r *ReconcileMachine) reconcileInfrastructure(ctx context.Context, m *v1alp
 		return nil
 	}
 
-	// Determine if the infrastructure provider is ready
+	// Determine if the infrastructure provider is ready.
 	ready, err := external.IsReady(infraConfig)
 	if err != nil {
 		return err
@@ -241,6 +242,15 @@ func (r *ReconcileMachine) reconcileInfrastructure(ctx context.Context, m *v1alp
 		return &capierrors.RequeueAfterError{RequeueAfter: 30 * time.Second}
 	}
 
+	// Get and set providerID from the infrastructure provider.
+	providerID, _, err := unstructured.NestedString(infraConfig.Object, "spec", "providerID")
+	if err != nil {
+		return errors.Wrapf(err, "failed to retrieve data from infrastructure provider for Machine %q in namespace %q", m.Name, m.Namespace)
+	} else if providerID == "" {
+		return errors.Errorf("retrieved empty Spec.ProviderID from infrastructure provider for Machine %q in namespace %q", m.Name, m.Namespace)
+	}
+
+	m.Spec.ProviderID = pointer.StringPtr(providerID)
 	m.Status.InfrastructureReady = pointer.BoolPtr(true)
 	return nil
 }

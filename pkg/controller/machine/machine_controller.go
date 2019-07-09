@@ -183,9 +183,9 @@ func (r *ReconcileMachine) Reconcile(request reconcile.Request) (reconcile.Resul
 		if err := r.isDeleteNodeAllowed(context.Background(), m); err != nil {
 			switch err {
 			case errNilNodeRef:
-				klog.Infof("Deleting node is not allowed for machine %q: %v", m.Name, err)
+				klog.V(2).Infof("Deleting node is not allowed for machine %q: %v", m.Name, err)
 			case errNoControlPlaneNodes, errLastControlPlaneNode:
-				klog.Infof("Deleting node %q is not allowed for machine %q: %v", m.Status.NodeRef.Name, m.Name, err)
+				klog.V(2).Infof("Deleting node %q is not allowed for machine %q: %v", m.Status.NodeRef.Name, m.Name, err)
 			default:
 				klog.Errorf("IsDeleteNodeAllowed check failed for machine %q: %v", name, err)
 				return reconcile.Result{}, err
@@ -297,14 +297,13 @@ var (
 // isDeleteNodeAllowed returns nil only if the Machine's NodeRef is not nil
 // and if the Machine is not the last control plane node in the cluster.
 func (r *ReconcileMachine) isDeleteNodeAllowed(ctx context.Context, machine *clusterv1.Machine) error {
-
 	// Cannot delete something that doesn't exist.
 	if machine.Status.NodeRef == nil {
 		return errNilNodeRef
 	}
 
 	// Get all of the machines that belong to this cluster.
-	machines, err := r.getMachines(ctx, machine)
+	machines, err := r.getMachinesInCluster(ctx, machine.Namespace, machine.Labels[clusterv1.MachineClusterLabelName])
 	if err != nil {
 		return err
 	}
@@ -355,17 +354,16 @@ func (r *ReconcileMachine) deleteNode(ctx context.Context, cluster *clusterv1.Cl
 	return corev1Remote.Nodes().Delete(name, &metav1.DeleteOptions{})
 }
 
-// getMachines returns all of the Machine objects that belong to the same
-// cluster as the provided Machine
-func (r *ReconcileMachine) getMachines(ctx context.Context, machine *clusterv1.Machine) ([]*clusterv1.Machine, error) {
-	clusterName := machine.Labels[clusterv1.MachineClusterLabelName]
-	if clusterName == "" {
+// getMachinesInCluster returns all of the Machine objects that belong to the
+// same cluster as the provided Machine
+func (r *ReconcileMachine) getMachinesInCluster(ctx context.Context, namespace, name string) ([]*clusterv1.Machine, error) {
+	if name == "" {
 		return nil, nil
 	}
 
 	machineList := &clusterv1.MachineList{}
-	labels := map[string]string{clusterv1.MachineClusterLabelName: clusterName}
-	listOptions := client.InNamespace(machine.Namespace).MatchingLabels(labels)
+	labels := map[string]string{clusterv1.MachineClusterLabelName: name}
+	listOptions := client.InNamespace(namespace).MatchingLabels(labels)
 
 	if err := r.Client.List(ctx, listOptions, machineList); err != nil {
 		return nil, errors.Wrap(err, "failed to list machines")

@@ -146,11 +146,21 @@ func (r *ReconcileMachine) Reconcile(request reconcile.Request) (reconcile.Resul
 	}
 
 	if !m.ObjectMeta.DeletionTimestamp.IsZero() {
-		if m.Status.NodeRef != nil {
-			klog.Infof("Deleting Node %q for Machine %q in namespace %q", m.Status.NodeRef.Name, m.Name, m.Namespace)
+		if err := r.isDeleteNodeAllowed(context.Background(), m); err != nil {
+			switch err {
+			case errNilNodeRef:
+				klog.V(2).Infof("Deleting node is not allowed for machine %q: %v", m.Name, err)
+			case errNoControlPlaneNodes, errLastControlPlaneNode:
+				klog.V(2).Infof("Deleting node %q is not allowed for machine %q: %v", m.Status.NodeRef.Name, m.Name, err)
+			default:
+				klog.Errorf("IsDeleteNodeAllowed check failed for machine %q: %v", m.Name, err)
+				return reconcile.Result{}, err
+			}
+		} else {
+			klog.Infof("Deleting node %q for machine %q", m.Status.NodeRef.Name, m.Name)
 			if err := r.deleteNode(ctx, cluster, m.Status.NodeRef.Name); err != nil && !apierrors.IsNotFound(err) {
-				return reconcile.Result{}, errors.Wrapf(err, "failed to delete Node %q for Machine %q in namespace %q",
-					m.Status.NodeRef.Namespace, m.Name, m.Namespace)
+				klog.Errorf("Error deleting node %q for machine %q: %v", m.Status.NodeRef.Name, m.Name, err)
+				return reconcile.Result{}, err
 			}
 		}
 
@@ -208,6 +218,44 @@ func (r *ReconcileMachine) getCluster(ctx context.Context, machine *clusterv1.Ma
 	return cluster, nil
 }
 
+var (
+	errNilNodeRef           = errors.New("noderef is nil")
+	errLastControlPlaneNode = errors.New("last control plane member")
+	errNoControlPlaneNodes  = errors.New("no control plane members")
+)
+
+// isDeleteNodeAllowed returns nil only if the Machine's NodeRef is not nil
+// and if the Machine is not the last control plane node in the cluster.
+func (r *ReconcileMachine) isDeleteNodeAllowed(ctx context.Context, machine *clusterv1.Machine) error {
+	// Cannot delete something that doesn't exist.
+	if machine.Status.NodeRef == nil {
+		return errNilNodeRef
+	}
+
+	// Get all of the machines that belong to this cluster.
+	machines, err := r.getMachinesInCluster(ctx, machine.Namespace, machine.Labels[clusterv1.MachineClusterLabelName])
+	if err != nil {
+		return err
+	}
+
+	// Whether or not it is okay to delete the NodeRef depends on the
+	// number of remaining control plane members and whether or not this
+	// machine is one of them.
+	switch numControlPlaneMachines := len(util.GetControlPlaneMachines(machines)); {
+	case numControlPlaneMachines == 0:
+		// Do not delete the NodeRef if there are no remaining members of
+		// the control plane.
+		return errNoControlPlaneNodes
+	case numControlPlaneMachines == 1 && util.IsControlPlaneMachine(machine):
+		// Do not delete the NodeRef if this is the last member of the
+		// control plane.
+		return errLastControlPlaneNode
+	default:
+		// Otherwise it is okay to delete the NodeRef.
+		return nil
+	}
+}
+
 func (r *ReconcileMachine) deleteNode(ctx context.Context, cluster *clusterv1.Cluster, name string) error {
 	if cluster == nil {
 		// Try to retrieve the Node from the local cluster, if no Cluster reference is found.
@@ -234,4 +282,26 @@ func (r *ReconcileMachine) deleteNode(ctx context.Context, cluster *clusterv1.Cl
 	}
 
 	return corev1Remote.Nodes().Delete(name, &metav1.DeleteOptions{})
+}
+
+// getMachinesInCluster returns all of the Machine objects that belong to the
+// same cluster as the provided Machine
+func (r *ReconcileMachine) getMachinesInCluster(ctx context.Context, namespace, name string) ([]*clusterv1.Machine, error) {
+	if name == "" {
+		return nil, nil
+	}
+
+	machineList := &clusterv1.MachineList{}
+	labels := map[string]string{clusterv1.MachineClusterLabelName: name}
+
+	if err := r.Client.List(ctx, machineList, client.InNamespace(namespace), client.MatchingLabels(labels)); err != nil {
+		return nil, errors.Wrap(err, "failed to list machines")
+	}
+
+	machines := make([]*clusterv1.Machine, len(machineList.Items))
+	for i := range machineList.Items {
+		machines[i] = &machineList.Items[i]
+	}
+
+	return machines, nil
 }

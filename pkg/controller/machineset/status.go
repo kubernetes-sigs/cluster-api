@@ -87,7 +87,7 @@ func (c *ReconcileMachineSet) calculateStatus(ms *v1alpha1.MachineSet, filteredM
 // updateMachineSetStatus attempts to update the Status.Replicas of the given MachineSet, with a single GET/PUT retry.
 func updateMachineSetStatus(c client.Client, ms *v1alpha1.MachineSet, newStatus v1alpha1.MachineSetStatus) (*v1alpha1.MachineSet, error) {
 	// This is the steady state. It happens when the MachineSet doesn't have any expectations, since
-	// we do a periodic relist every 30s. If the generations differ but the replicas are
+	// we do a periodic relist every 10 minutes. If the generations differ but the replicas are
 	// the same, a caller might've resized to the same replica count.
 	if ms.Status.Replicas == newStatus.Replicas &&
 		ms.Status.FullyLabeledReplicas == newStatus.FullyLabeledReplicas &&

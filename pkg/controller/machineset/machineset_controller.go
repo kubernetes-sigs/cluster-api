@@ -256,6 +256,12 @@ func (r *ReconcileMachineSet) reconcile(ctx context.Context, machineSet *cluster
 		return reconcile.Result{RequeueAfter: time.Duration(updatedMS.Spec.MinReadySeconds) * time.Second}, nil
 	}
 
+	// Quickly rereconcile until the nodes become Ready.
+	if updatedMS.Status.ReadyReplicas != replicas {
+		klog.V(4).Info("Some nodes are not ready yet, requeuing until they are ready")
+		return reconcile.Result{RequeueAfter: 15 * time.Second}, nil
+	}
+
 	return reconcile.Result{}, nil
 }
 

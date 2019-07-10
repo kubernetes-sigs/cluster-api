@@ -22,6 +22,12 @@ If you're new to the project and want to help, but don't know where to start, we
 
 All changes must be code reviewed. Coding conventions and standards are explained in the official [developer docs](https://github.com/kubernetes/community/tree/master/contributors/devel). Expect reviewers to request that you avoid common [go style mistakes](https://github.com/golang/go/wiki/CodeReviewComments) in your PRs.
 
+## Backporting a Patch
+
+Cluster API ships older versions through `release-X.X` branches, usually backports are reserved to critical bug-fixes.
+Some release branches might ship with both Go modules and dep (e.g. `release-0.1`), users backporting patches should always make sure
+that the vendored Go modules dependencies match the Gopkg.lock and Gopkg.toml ones by running `dep ensure`
+
 ### Merge Approval
 
 Cluster API maintainers may add "LGTM" (Looks Good To Me) or an equivalent comment to indicate that a PR is acceptable. Any change requires at least one LGTM.  No pull requests can be merged until at least one Cluster API maintainer signs off with an LGTM.

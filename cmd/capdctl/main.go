@@ -28,14 +28,12 @@ import (
 	"net/http"
 	"os"
 	"strings"
-	"time"
 
 	"github.com/pkg/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"sigs.k8s.io/cluster-api-provider-docker/kind/actions"
+	"sigs.k8s.io/cluster-api-provider-docker/kind/controlplane"
+	_ "sigs.k8s.io/cluster-api-provider-docker/objects"
 	"sigs.k8s.io/cluster-api/pkg/apis/cluster/v1alpha1"
-	"sigs.k8s.io/kind/pkg/cluster/nodes"
-	"sigs.k8s.io/kind/pkg/container/cri"
 	"sigs.k8s.io/kind/pkg/exec"
 )
 
@@ -251,27 +249,11 @@ func makeManagementCluster(clusterName, capiVersion, capdImage, capiImageOverrid
 	if capiImageOverride != "" {
 		capiImage = capiImageOverride
 	}
-	elb, err := actions.SetUpLoadBalancer(clusterName)
-	if err != nil {
+
+	if err := controlplane.CreateKindCluster(capiImage, clusterName); err != nil {
 		panic(err)
 	}
-	lbipv4, _, err := elb.IP()
-	if err != nil {
-		panic(err)
-	}
-	cpMounts := []cri.Mount{
-		{
-			ContainerPath: "/var/run/docker.sock",
-			HostPath:      "/var/run/docker.sock",
-		},
-	}
-	cp, err := actions.CreateControlPlane(clusterName, fmt.Sprintf("%s-control-plane", clusterName), lbipv4, "v1.14.2", cpMounts)
-	if err != nil {
-		panic(err)
-	}
-	if !nodes.WaitForReady(cp, time.Now().Add(5*time.Minute)) {
-		panic(errors.New("control plane was not ready in 5 minutes"))
-	}
+
 	f, err := ioutil.TempFile("", "crds")
 	if err != nil {
 		panic(err)
@@ -500,5 +482,5 @@ roleRef:
 subjects:
 - kind: ServiceAccount
   name: default
-  namespace: docker-provider-system
+  namespace: docker-provider-syste
 `

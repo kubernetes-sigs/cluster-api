@@ -68,7 +68,7 @@ management cluster and deletes the locally created bootstrap cluster. This step 
 
 ### Creating a workload cluster using the management cluster
 
-The *workload cluster* also sometimes referred to as the *target cluster* is the Kubernetes custer on to which
+The *workload cluster* also sometimes referred to as the *target cluster* is the Kubernetes cluster on to which
 the final application is deployed. The target cluster is responsible for handling the workload of the application,
 not the management cluster.
 

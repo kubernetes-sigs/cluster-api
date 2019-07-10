@@ -1,0 +1,70 @@
+package objects
+
+// getCRDs should actually use kustomize to correctly build the manager yaml.
+// HACK: this is a hacked function
+func getCAPIYAML(version, capiImage string) (string, error) {
+	crds := []string{"crds", "rbac", "manager"}
+	releaseCode := fmt.Sprintf("https://github.com/kubernetes-sigs/cluster-api/archive/%s.tar.gz", version)
+
+	resp, err := http.Get(releaseCode)
+	if err != nil {
+		return "", errors.WithStack(err)
+	}
+
+	gz, err := gzip.NewReader(resp.Body)
+	if err != nil {
+		return "", errors.WithStack(err)
+	}
+
+	tgz := tar.NewReader(gz)
+	var buf bytes.Buffer
+
+	for {
+		header, err := tgz.Next()
+
+		if err == io.EOF {
+			break
+		}
+
+		if err != nil {
+			return "", errors.WithStack(err)
+		}
+
+		switch header.Typeflag {
+		case tar.TypeDir:
+			continue
+		case tar.TypeReg:
+			for _, crd := range crds {
+				// Skip the kustomization files for now. Would like to use kustomize in future
+				if strings.HasSuffix(header.Name, "kustomization.yaml") {
+					continue
+				}
+
+				// This is a poor person's kustomize
+				if strings.HasSuffix(header.Name, "manager.yaml") {
+					var managerBuf bytes.Buffer
+					io.Copy(&managerBuf, tgz)
+					lines := strings.Split(managerBuf.String(), "\n")
+					for _, line := range lines {
+						if strings.Contains(line, "image:") {
+							buf.WriteString(strings.Replace(line, "image: controller:latest", fmt.Sprintf("image: %s", capiImage), 1))
+							buf.WriteString("\n")
+							continue
+						}
+						buf.WriteString(line)
+						buf.WriteString("\n")
+					}
+				}
+
+				// These files don't need kustomize at all.
+				if strings.Contains(header.Name, fmt.Sprintf("config/%s/", crd)) {
+					io.Copy(&buf, tgz)
+					fmt.Fprintln(&buf, "---")
+				}
+			}
+		}
+	}
+	return buf.String(), nil
+}
+
+func getCAPIObjects

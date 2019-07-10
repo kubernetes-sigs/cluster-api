@@ -17,24 +17,23 @@ limitations under the License.
 package main
 
 import (
-	"archive/tar"
-	"bytes"
-	"compress/gzip"
 	"encoding/json"
 	"flag"
 	"fmt"
-	"io"
-	"io/ioutil"
-	"net/http"
 	"os"
-	"strings"
 
 	"github.com/pkg/errors"
+	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/cli-runtime/pkg/genericclioptions/resource"
+	"k8s.io/client-go/discovery"
+	"k8s.io/client-go/rest"
+	"k8s.io/client-go/restmapper"
 	"sigs.k8s.io/cluster-api-provider-docker/kind/controlplane"
+	"sigs.k8s.io/cluster-api-provider-docker/objects"
 	_ "sigs.k8s.io/cluster-api-provider-docker/objects"
 	"sigs.k8s.io/cluster-api/pkg/apis/cluster/v1alpha1"
-	"sigs.k8s.io/kind/pkg/exec"
 )
 
 // TODO: Generate the RBAC stuff from somewhere instead of copy pasta
@@ -254,31 +253,71 @@ func makeManagementCluster(clusterName, capiVersion, capdImage, capiImageOverrid
 		panic(err)
 	}
 
-	f, err := ioutil.TempFile("", "crds")
-	if err != nil {
-		panic(err)
-	}
-	defer os.Remove(f.Name())
 	fmt.Println("Downloading the latest CRDs for CAPI version", capiVersion)
-	crds, err := getCRDs(capiVersion, capiImage)
+	objects, err := objects.GetAll(capiVersion, capiImage, capdImage)
 	if err != nil {
 		panic(err)
 	}
-	fmt.Fprintln(f, crds)
-	fmt.Fprintln(f, "---")
-	fmt.Fprintln(f, capdRBAC)
-	fmt.Fprintln(f, "---")
-	fmt.Fprintln(f, getCAPDPlane(capdImage))
-	fmt.Println("Applying the control plane", f.Name())
-	cmd := exec.Command("kubectl", "apply", "-f", f.Name())
-	cmd.SetEnv(fmt.Sprintf("KUBECONFIG=%s/.kube/kind-config-%s", os.Getenv("HOME"), clusterName))
-	cmd.SetStdout(os.Stdout)
-	cmd.SetStderr(os.Stderr)
-	if err := cmd.Run(); err != nil {
-		out, _ := ioutil.ReadFile(f.Name())
-		fmt.Println(out)
+
+	fmt.Println("Applying the control plane")
+
+	cfg, err := controlplane.GetKubeconfig(clusterName)
+	if err != nil {
 		panic(err)
 	}
+
+	helper, err := NewAPIHelper(cfg)
+	if err != nil {
+		panic(err)
+	}
+
+	for _, obj := range objects {
+		if helper.Create(obj); err != nil {
+			panic(err)
+		}
+	}
+}
+
+type APIHelper struct {
+	client rest.Interface
+	mapper meta.RESTMapper
+}
+
+func NewAPIHelper(cfg *rest.Config) (*APIHelper, error) {
+	discover, err := discovery.NewDiscoveryClientForConfig(cfg)
+	if err != nil {
+		return nil, errors.Wrap(err, "could not create discovery client")
+	}
+	groupResources, err := restmapper.GetAPIGroupResources(discover)
+	if err != nil {
+		return nil, errors.Wrap(err, "could not get api group resources")
+	}
+	mapper := restmapper.NewDiscoveryRESTMapper(groupResources)
+
+	client, err := rest.RESTClientFor(cfg)
+	if err != nil {
+		return nil, errors.Wrap(err, "failed to create REST client")
+	}
+
+	return &APIHelper{
+		client,
+		mapper,
+	}, nil
+}
+
+func (a *APIHelper) Create(obj runtime.Object) error {
+	accessor, err := meta.Accessor(obj)
+	if err != nil {
+		return errors.Wrap(err, "couldn't create accessor")
+	}
+
+	mapping, err := a.mapper.RESTMapping(
+		obj.GetObjectKind().GroupVersionKind().GroupKind(),
+		obj.GetObjectKind().GroupVersionKind().Version,
+	)
+
+	_, err = resource.NewHelper(a.client, mapping).Create(accessor.GetNamespace(), true, obj, nil)
+	return errors.Wrapf(err, "failed to create object %q", accessor.GetName())
 }
 
 func getCAPDPlane(capdImage string) string {
@@ -342,73 +381,6 @@ spec:
         key: node.alpha.kubernetes.io/unreachable
         operator: Exists
 `
-
-// getCRDs should actually use kustomize to correctly build the manager yaml.
-// HACK: this is a hacked function
-func getCRDs(version, capiImage string) (string, error) {
-	crds := []string{"crds", "rbac", "manager"}
-	releaseCode := fmt.Sprintf("https://github.com/kubernetes-sigs/cluster-api/archive/%s.tar.gz", version)
-
-	resp, err := http.Get(releaseCode)
-	if err != nil {
-		return "", errors.WithStack(err)
-	}
-
-	gz, err := gzip.NewReader(resp.Body)
-	if err != nil {
-		return "", errors.WithStack(err)
-	}
-
-	tgz := tar.NewReader(gz)
-	var buf bytes.Buffer
-
-	for {
-		header, err := tgz.Next()
-
-		if err == io.EOF {
-			break
-		}
-
-		if err != nil {
-			return "", errors.WithStack(err)
-		}
-
-		switch header.Typeflag {
-		case tar.TypeDir:
-			continue
-		case tar.TypeReg:
-			for _, crd := range crds {
-				// Skip the kustomization files for now. Would like to use kustomize in future
-				if strings.HasSuffix(header.Name, "kustomization.yaml") {
-					continue
-				}
-
-				// This is a poor person's kustomize
-				if strings.HasSuffix(header.Name, "manager.yaml") {
-					var managerBuf bytes.Buffer
-					io.Copy(&managerBuf, tgz)
-					lines := strings.Split(managerBuf.String(), "\n")
-					for _, line := range lines {
-						if strings.Contains(line, "image:") {
-							buf.WriteString(strings.Replace(line, "image: controller:latest", fmt.Sprintf("image: %s", capiImage), 1))
-							buf.WriteString("\n")
-							continue
-						}
-						buf.WriteString(line)
-						buf.WriteString("\n")
-					}
-				}
-
-				// These files don't need kustomize at all.
-				if strings.Contains(header.Name, fmt.Sprintf("config/%s/", crd)) {
-					io.Copy(&buf, tgz)
-					fmt.Fprintln(&buf, "---")
-				}
-			}
-		}
-	}
-	return buf.String(), nil
-}
 
 var capdRBAC = `apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRole

@@ -21,9 +21,10 @@ require (
 	golang.org/x/oauth2 v0.0.0-20190604053449-0f29369cfe45 // indirect
 	golang.org/x/sys v0.0.0-20190626221950-04f50cda93cb // indirect
 	golang.org/x/time v0.0.0-20190308202827-9d24e82272b4 // indirect
-	k8s.io/api v0.0.0-20190409021203-6e4e0e4f393b
+	k8s.io/api v0.0.0-20190703205437-39734b2a72fe
 	k8s.io/apiextensions-apiserver v0.0.0-20181213153335-0fe22c71c476 // indirect
-	k8s.io/apimachinery v0.0.0-20190404173353-6a84e37a896d
+	k8s.io/apimachinery v0.0.0-20190703205208-4cfb76a8bf76
+	k8s.io/cli-runtime v0.0.0-20190704050804-7ea68ffa02c5
 	k8s.io/client-go v11.0.0+incompatible
 	k8s.io/cluster-bootstrap v0.0.0-20181213155137-5f9271efc2e7 // indirect
 	k8s.io/klog v0.3.0
@@ -37,6 +38,7 @@ require (
 replace (
 	k8s.io/api => k8s.io/api v0.0.0-20181213150558-05914d821849
 	k8s.io/apimachinery => k8s.io/apimachinery v0.0.0-20181127025237-2b1284ed4c93
+	k8s.io/cli-runtime => k8s.io/cli-runtime v0.0.0-20190704050804-bd8686edbd81
 	k8s.io/client-go => k8s.io/client-go v10.0.0+incompatible
 	k8s.io/kubernetes => k8s.io/kubernetes v1.13.1
 )

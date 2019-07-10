@@ -1,4 +1,4 @@
-workflow "New workflow" {
+workflow "Docker image for master" {
   on = "push"
   resolves = ["push"]
 }
@@ -23,7 +23,7 @@ action "build" {
 action "tag" {
   needs = ["build"]
   uses = "actions/docker/tag@master"
-  args = "base docker.pkg.github.com/kubernetes-sigs/cluster-api-provider-docker/manager"
+  args = "base docker.pkg.github.com/kubernetes-sigs/cluster-api-provider-docker/manager --no-sha --no-latest"
 }
 
 action "push" {

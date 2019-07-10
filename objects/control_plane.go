@@ -10,11 +10,13 @@ import (
 
 const namespace = "docker-provider-system"
 
-var Namespace = core.Namespace{
-	ObjectMeta: meta.ObjectMeta{
-		Labels: map[string]string{"controller-tools.k8s.io": "1.0"},
-		Name:   namespace,
-	},
+func GetNamespace() core.Namespace {
+	return core.Namespace{
+		ObjectMeta: meta.ObjectMeta{
+			Labels: map[string]string{"controller-tools.k8s.io": "1.0"},
+			Name:   namespace,
+		},
+	}
 }
 
 var (

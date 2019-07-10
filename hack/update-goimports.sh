@@ -13,14 +13,15 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+# script to run gofmt over our code (not vendor)
 set -o errexit
 set -o nounset
 set -o pipefail
 
 # shellcheck source=/dev/null
 source "$(dirname "$0")/utils.sh"
-REPO_PATH=$(get_root_path)
+# cd to the root path
+cd_root_path
 
-"${REPO_PATH}"/hack/update-deps.sh
-"${REPO_PATH}"/hack/update-gofmt.sh
-"${REPO_PATH}"/hack/update-goimports.sh
+# update go imports
+goimports -w ./

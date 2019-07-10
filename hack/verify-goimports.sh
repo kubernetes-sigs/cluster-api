@@ -19,8 +19,14 @@ set -o pipefail
 
 # shellcheck source=/dev/null
 source "$(dirname "$0")/utils.sh"
-REPO_PATH=$(get_root_path)
+# cd to the root path
+cd_root_path
 
-"${REPO_PATH}"/hack/update-deps.sh
-"${REPO_PATH}"/hack/update-gofmt.sh
-"${REPO_PATH}"/hack/update-goimports.sh
+# check for goimports diffs
+diff=$(git ls-files | grep "\.go" | grep -v "\/vendor" | xargs goimports -d  2>&1)
+if [[ -n "${diff}" ]]; then
+  echo "${diff}"
+  echo
+  echo "Check failed. Please run hack/update-goimports.sh"
+  exit 1
+fi

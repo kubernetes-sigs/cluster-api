@@ -53,6 +53,12 @@ if [[ "${VERIFY_GOFMT:-true}" == "true" ]]; then
   cd "${REPO_PATH}"
 fi
 
+if [[ "${VERIFY_GOIMPORTS:-true}" == "true" ]]; then
+  echo "[*] Verifying goimports..."
+  hack/verify-goimports.sh || res=1
+  cd "${REPO_PATH}"
+fi
+
 if [[ "${VERIFY_GOLINT:-true}" == "true" ]]; then
   echo "[*] Verifying golint..."
   hack/verify-golint.sh || res=1

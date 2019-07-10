@@ -13,7 +13,7 @@ It uses Cluster API provider implementations to provision resources needed by th
 `clusterctl` needs 4 YAML files to start with: `provider-components.yaml`, `cluster.yaml`, `machines.yaml` ,
 `addons.yaml`.
 
-* `provider-components.yaml` constain the *Custom Resource Definitions ([CRDs](https://Kubernetes.io/docs/concepts/extend-Kubernetes/api-extension/custom-resources/))* 
+* `provider-components.yaml` contains the *Custom Resource Definitions ([CRDs](https://Kubernetes.io/docs/concepts/extend-Kubernetes/api-extension/custom-resources/))* 
 of all the resources that are managed by Cluster API. Some examples of these resources
 are: `Cluster`, `Machine`, `MachineSet`, etc. For more details about Cluster API resources
 click [here](https://cluster-api.sigs.k8s.io/common_code/architecture.html#cluster-api-resources).
@@ -22,12 +22,13 @@ click [here](https://cluster-api.sigs.k8s.io/common_code/architecture.html#clust
 that becomes the control-plane.
 * `addons.yaml` contains the addons for the provider.
 
-Many providers implemenatations come with helpful scripts to generate these YAMLS. Provider implementation
+Many providers implementations come with helpful scripts to generate these YAMLS. Provider implementation
 can be found [here](https://github.com/Kubernetes-sigs/cluster-api#provider-implementations).  
 
 `clusterctl` also comes with additional features. Example, `clusterctl` can also take in an optional
 `bootstrap-only-components.yaml` to provide resources to the bootstrap cluster without also providing them
 to the target cluster post-pivot.
+
 For more details about all the supported options run:
 
 ```
@@ -43,7 +44,7 @@ clusterctl create cluster --provider <PROVIDER> --bootstrap-type <BOOTSTRAP CLUS
 Example usage:
 
 ```
-# VMWare VSphere
+# VMWare vSphere
 clusterctl create cluster --provider vsphere --bootstrap-type kind -c cluster.yaml -m machines.yaml -p provider-components.yaml --addon-components addons.yaml
 
 # Amazon AWS
@@ -75,7 +76,10 @@ not the management cluster.
 As the management cluster is up we can create a workload cluster by simply applying the appropriate
 `cluster.yaml`, `machines.yaml` and `machineset.yaml` on the management cluster. This will create the VMs(Nodes)
 as defined in these YAMLs. Following this, a bootstrap mechanism is used to create a Kubernetes cluster on these VMs.
-While any of the several bootstraping mechanisms can be used `kubeadm` is the popular option.
+While any of the several bootstrapping mechanisms can be used `kubeadm` is the popular option.
+
+**NOTE:** Workload clusters do not have any addons applied. Nodes in your workload clusters will be in the `NotReady`
+state until you apply addons for CNI plugin.
   
-Once the target cluster is up the user can create the `Deplyments`, `Services`, etc that handle the workload
+Once the target cluster is up the user can create the `Deployments`, `Services`, etc that handle the workload
 of the application.  

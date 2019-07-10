@@ -35,6 +35,7 @@ type KubeadmBootstrapConfigReconciler struct {
 // +kubebuilder:rbac:groups=kubeadm.bootstrap.cluster.sigs.k8s.io,resources=kubeadmbootstrapconfigs,verbs=get;list;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups=kubeadm.bootstrap.cluster.sigs.k8s.io,resources=kubeadmbootstrapconfigs/status,verbs=get;update;patch
 
+// Reconcile TODO
 func (r *KubeadmBootstrapConfigReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 	_ = context.Background()
 	_ = r.Log.WithValues("kubeadmbootstrapconfig", req.NamespacedName)
@@ -44,6 +45,7 @@ func (r *KubeadmBootstrapConfigReconciler) Reconcile(req ctrl.Request) (ctrl.Res
 	return ctrl.Result{}, nil
 }
 
+// SetupWithManager TODO
 func (r *KubeadmBootstrapConfigReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewControllerManagedBy(mgr).
 		For(&kubeadmv1alpha1.KubeadmBootstrapConfig{}).

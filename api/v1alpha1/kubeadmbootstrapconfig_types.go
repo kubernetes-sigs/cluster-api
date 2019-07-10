@@ -18,21 +18,28 @@ package v1alpha1
 
 import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	kubeadmv1beta1 "k8s.io/kubernetes/cmd/kubeadm/app/apis/kubeadm/v1beta1"
 )
 
-// EDIT THIS FILE!  THIS IS SCAFFOLDING FOR YOU TO OWN!
-// NOTE: json tags are required.  Any new fields you add must have json tags for the fields to be serialized.
+// Phase defines KubeadmBootstrapConfig phases
+type Phase string
+
+// Ready defines the KubeadmBootstrapConfig Ready Phase
+const Ready Phase = "Ready"
 
 // KubeadmBootstrapConfigSpec defines the desired state of KubeadmBootstrapConfig
 type KubeadmBootstrapConfigSpec struct {
-	// INSERT ADDITIONAL SPEC FIELDS - desired state of cluster
-	// Important: Run "make" to regenerate code after modifying this file
+	ClusterConfiguration kubeadmv1beta1.ClusterConfiguration `json:"clusterConfiguration"`
+	InitConfiguration    kubeadmv1beta1.InitConfiguration    `json:"initConfiguration,omitempty"`
+	JoinConfiguration    kubeadmv1beta1.JoinConfiguration    `json:"joinConfiguration,omitempty"`
 }
 
 // KubeadmBootstrapConfigStatus defines the observed state of KubeadmBootstrapConfig
 type KubeadmBootstrapConfigStatus struct {
-	// INSERT ADDITIONAL STATUS FIELD - define observed state of cluster
-	// Important: Run "make" to regenerate code after modifying this file
+	Phase Phase `json:"phase"`
+
+	// BootstrapData will be a cloud-init script for now
+	BootstrapData []byte `json:"bootstrapData"`
 }
 
 // +kubebuilder:object:root=true

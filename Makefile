@@ -34,11 +34,13 @@ help:  ## Display this help
 gazelle: ## Run Bazel Gazelle
 	(which bazel && ./hack/update-bazel.sh) || true
 
-.PHONY: dep-ensure
-dep-ensure: ## Runs dep-ensure and rebuilds Bazel gazelle files.
-	find vendor -name 'BUILD.bazel' -delete
-	(which dep && dep ensure -v) || true
+.PHONY: vendor
+vendor: ## Runs go mod to ensure proper vendoring.
+	./hack/update-vendor.sh
 	$(MAKE) gazelle
+
+bin/%-gen: ./vendor/k8s.io/code-generator/cmd/%-gen ## Build code-generator binaries
+	go build -o $@ ./$<
 
 .PHONY: test
 test: gazelle verify generate fmt vet manifests ## Run tests
@@ -75,28 +77,27 @@ vet: ## Run go vet against code
 	go vet ./pkg/... ./cmd/...
 
 .PHONY: lint
-lint: dep-ensure ## Lint codebase
+lint: ## Lint codebase
 	bazel run //:lint $(BAZEL_ARGS)
 
-lint-full: dep-ensure ## Run slower linters to detect possible issues
+lint-full: ## Run slower linters to detect possible issues
 	bazel run //:lint-full $(BAZEL_ARGS)
 
 .PHONY: generate
-generate: clientset dep-ensure ## Generate code
+generate: clientset ## Generate code
 	go generate ./pkg/... ./cmd/...
 	$(MAKE) gazelle
 
 .PHONY: clientset
-clientset: ## Generate a typed clientset
+clientset: bin/client-gen bin/lister-gen bin/informer-gen ## Generate a typed clientset
 	rm -rf pkg/client
-	cd ./vendor/k8s.io/code-generator/cmd && go install ./client-gen ./lister-gen ./informer-gen
-	$$GOPATH/bin/client-gen --clientset-name clientset --input-base sigs.k8s.io/cluster-api/pkg/apis \
+	bin/client-gen --clientset-name clientset --input-base sigs.k8s.io/cluster-api/pkg/apis \
 		--input cluster/v1alpha1 --output-package sigs.k8s.io/cluster-api/pkg/client/clientset_generated \
 		--go-header-file=./hack/boilerplate/boilerplate.generatego.txt
-	$$GOPATH/bin/lister-gen --input-dirs sigs.k8s.io/cluster-api/pkg/apis/cluster/v1alpha1 \
+	bin/lister-gen --input-dirs sigs.k8s.io/cluster-api/pkg/apis/cluster/v1alpha1 \
 		--output-package sigs.k8s.io/cluster-api/pkg/client/listers_generated \
 		--go-header-file=./hack/boilerplate/boilerplate.generatego.txt
-	$$GOPATH/bin/informer-gen --input-dirs sigs.k8s.io/cluster-api/pkg/apis/cluster/v1alpha1 \
+	bin/informer-gen --input-dirs sigs.k8s.io/cluster-api/pkg/apis/cluster/v1alpha1 \
 		--versioned-clientset-package sigs.k8s.io/cluster-api/pkg/client/clientset_generated/clientset \
 		--listers-package sigs.k8s.io/cluster-api/pkg/client/listers_generated \
 		--output-package sigs.k8s.io/cluster-api/pkg/client/informers_generated \

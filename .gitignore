@@ -40,5 +40,7 @@ docs/book/node_modules/
 # rbac and manager config for example provider
 config/ci/rbac/manager_role_binding.yaml
 config/ci/rbac/manager_role.yaml
+config/ci/rbac/role.yaml
+config/ci/rbac/role_binding.yaml
 config/ci/manager/manager.yaml
 

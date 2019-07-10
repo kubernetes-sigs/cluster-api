@@ -19,9 +19,7 @@ set -o nounset
 set -o pipefail
 
 REPO_ROOT=$(dirname "${BASH_SOURCE[0]}")/..
+source "${REPO_ROOT}/hack/ensure-go.sh"
 
 cd "${REPO_ROOT}"
-find vendor -name 'BUILD.bazel' -delete
-
-go get -u github.com/golang/dep/cmd/dep
-dep check
+go mod verify

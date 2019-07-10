@@ -1,0 +1,20 @@
+load("@io_bazel_rules_go//go:def.bzl", "go_library")
+
+go_library(
+    name = "go_default_library",
+    srcs = ["tools.go"],
+    importpath = "sigs.k8s.io/cluster-api/hack",
+    visibility = ["//visibility:public"],
+    deps = [
+        "//vendor/k8s.io/code-generator/cmd/client-gen:go_default_library",
+        "//vendor/k8s.io/code-generator/cmd/conversion-gen:go_default_library",
+        "//vendor/k8s.io/code-generator/cmd/deepcopy-gen:go_default_library",
+        "//vendor/k8s.io/code-generator/cmd/defaulter-gen:go_default_library",
+        "//vendor/k8s.io/code-generator/cmd/informer-gen:go_default_library",
+        "//vendor/k8s.io/code-generator/cmd/lister-gen:go_default_library",
+        "//vendor/k8s.io/code-generator/cmd/register-gen:go_default_library",
+        "//vendor/k8s.io/code-generator/cmd/set-gen:go_default_library",
+        "//vendor/sigs.k8s.io/controller-tools/cmd/controller-gen:go_default_library",
+        "//vendor/sigs.k8s.io/testing_frameworks/integration:go_default_library",
+    ],
+)

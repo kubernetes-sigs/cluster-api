@@ -83,6 +83,12 @@ if [[ "${VERIFY_BUILD:-true}" == "true" ]]; then
   cd "${REPO_PATH}"
 fi
 
+if [[ "${VERIFY_DOCKER_BUILD:-true}" == "true" ]]; then
+  echo "[*] Verifying capd-manager docker image build..."
+  hack/verify-docker-build.sh || res=1
+  cd "${REPO_PATH}"
+fi
+
 # exit based on verify scripts
 if [[ "${res}" = 0 ]]; then
   echo ""

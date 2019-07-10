@@ -24,6 +24,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	kubeadmv1beta1 "k8s.io/kubernetes/cmd/kubeadm/app/apis/kubeadm/v1beta1"
 	"k8s.io/kubernetes/pkg/kubelet/apis/config"
+	"sigs.k8s.io/cluster-api-provider-docker/kind/constants"
 )
 
 const (
@@ -52,7 +53,7 @@ func InitConfiguration(version, name, controlPlaneEndpoint string) ([]byte, erro
 			},
 		},
 		LocalAPIEndpoint: kubeadmv1beta1.APIEndpoint{
-			BindPort: int32(6443),
+			BindPort: int32(constants.APIServerPort),
 		},
 		NodeRegistration: kubeadmv1beta1.NodeRegistrationOptions{
 			CRISocket: "/run/containerd/containerd.sock",

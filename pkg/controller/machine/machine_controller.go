@@ -133,28 +133,13 @@ func (r *ReconcileMachine) Reconcile(request reconcile.Request) (reconcile.Resul
 		})
 	}
 
-	// If object hasn't been deleted and doesn't have a finalizer, add one
-	// Add a finalizer to newly created objects.
-	if m.ObjectMeta.DeletionTimestamp.IsZero() {
-		finalizerCount := len(m.Finalizers)
-
-		if cluster != nil && !util.Contains(m.Finalizers, metav1.FinalizerDeleteDependents) {
-			m.Finalizers = append(m.ObjectMeta.Finalizers, metav1.FinalizerDeleteDependents)
+	if reconcileFinalizers(m, cluster) {
+		if err := r.Client.Update(ctx, m); err != nil {
+			klog.Infof("Failed to add finalizers to machine %q: %v", name, err)
+			return reconcile.Result{}, err
 		}
-
-		if !util.Contains(m.Finalizers, clusterv1.MachineFinalizer) {
-			m.Finalizers = append(m.ObjectMeta.Finalizers, clusterv1.MachineFinalizer)
-		}
-
-		if len(m.Finalizers) > finalizerCount {
-			if err := r.Client.Update(ctx, m); err != nil {
-				klog.Infof("Failed to add finalizers to machine %q: %v", name, err)
-				return reconcile.Result{}, err
-			}
-
-			// Since adding the finalizer updates the object return to avoid later update issues
-			return reconcile.Result{Requeue: true}, nil
-		}
+		// Since adding the finalizer updates the object return to avoid later update issues
+		return reconcile.Result{Requeue: true}, nil
 	}
 
 	if !m.ObjectMeta.DeletionTimestamp.IsZero() {
@@ -243,6 +228,29 @@ func (r *ReconcileMachine) Reconcile(request reconcile.Request) (reconcile.Resul
 	}
 
 	return reconcile.Result{}, nil
+}
+
+// reconcileFinalizers appends any missing finalizers to the machine
+// and returns true if the api server needs to be updated.
+func reconcileFinalizers(m *clusterv1.Machine, cluster *clusterv1.Cluster) bool {
+	// If object hasn't been deleted and doesn't have a finalizer, add one
+	// Add a finalizer to newly created objects.
+	if m.ObjectMeta.DeletionTimestamp.IsZero() {
+		finalizerCount := len(m.Finalizers)
+
+		if cluster != nil && !util.Contains(m.Finalizers, metav1.FinalizerDeleteDependents) {
+			m.Finalizers = append(m.ObjectMeta.Finalizers, metav1.FinalizerDeleteDependents)
+		}
+
+		if !util.Contains(m.Finalizers, clusterv1.MachineFinalizer) {
+			m.Finalizers = append(m.ObjectMeta.Finalizers, clusterv1.MachineFinalizer)
+		}
+
+		if len(m.Finalizers) > finalizerCount {
+			return true
+		}
+	}
+	return false
 }
 
 func (r *ReconcileMachine) getCluster(ctx context.Context, machine *clusterv1.Machine) (*clusterv1.Cluster, error) {

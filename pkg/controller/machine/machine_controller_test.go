@@ -18,12 +18,14 @@ package machine
 
 import (
 	"reflect"
+	"sort"
 	"testing"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/kubernetes/scheme"
 	"sigs.k8s.io/cluster-api/pkg/apis/cluster/v1alpha1"
+	clusterv1 "sigs.k8s.io/cluster-api/pkg/apis/cluster/v1alpha1"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 )
@@ -188,6 +190,95 @@ func TestReconcileRequest(t *testing.T) {
 
 		if act.DeleteCallCount != tc.expected.deleteCallCount {
 			t.Errorf("Case %s. Got: %d deleteCallCount, expected %d", tc.request.Name, act.DeleteCallCount, tc.expected.deleteCallCount)
+		}
+	}
+}
+
+func TestReconcileFinalizers(t *testing.T) {
+	// If we need to add new finalizer logic later, add them here as well.
+	allFinalizers := []string{metav1.FinalizerDeleteDependents, clusterv1.MachineFinalizer}
+	nilClusterFinalizers := []string{clusterv1.MachineFinalizer}
+
+	cluster1 := v1alpha1.Cluster{}
+
+	testCases := []struct {
+		cluster            *v1alpha1.Cluster
+		startingFinalizers []string
+		deleted            bool
+		expected           bool
+		expectedFinalizers []string
+	}{
+		{
+			cluster:            &cluster1,
+			startingFinalizers: []string{},
+			deleted:            false,
+			expected:           true,
+			expectedFinalizers: allFinalizers,
+		},
+		{
+			cluster:            &cluster1,
+			startingFinalizers: []string{metav1.FinalizerDeleteDependents},
+			deleted:            false,
+			expected:           true,
+			expectedFinalizers: allFinalizers,
+		},
+		{
+			cluster:            &cluster1,
+			startingFinalizers: []string{clusterv1.MachineFinalizer},
+			deleted:            false,
+			expected:           true,
+			expectedFinalizers: allFinalizers,
+		},
+		{
+			cluster:            nil,
+			startingFinalizers: []string{},
+			deleted:            false,
+			expected:           true,
+			expectedFinalizers: nilClusterFinalizers,
+		},
+		{
+			cluster:            nil,
+			startingFinalizers: []string{clusterv1.MachineFinalizer},
+			deleted:            false,
+			expected:           false,
+			expectedFinalizers: nilClusterFinalizers,
+		},
+		{
+			cluster:            &cluster1,
+			startingFinalizers: []string{},
+			deleted:            true,
+			expected:           false,
+			expectedFinalizers: []string{},
+		},
+		{
+			cluster:            &cluster1,
+			startingFinalizers: allFinalizers,
+			deleted:            true,
+			expected:           false,
+			expectedFinalizers: allFinalizers,
+		},
+	}
+
+	for i, tc := range testCases {
+		m := v1alpha1.Machine{
+			ObjectMeta: metav1.ObjectMeta{
+				Finalizers: tc.startingFinalizers,
+			},
+		}
+		if tc.deleted {
+			time := metav1.Now()
+			m.ObjectMeta.DeletionTimestamp = &time
+		}
+		needUpdate := reconcileFinalizers(&m, tc.cluster)
+		if needUpdate != tc.expected {
+			t.Errorf("Case: %d. Expected %v, got: %v", i, tc.expected, needUpdate)
+		}
+		// sort for easier comparison: [a, b] != [b, a] for DeepEqual.
+		sort.Strings(tc.expectedFinalizers)
+		sort.Strings(m.Finalizers)
+
+		if !reflect.DeepEqual(tc.expectedFinalizers, m.Finalizers) {
+			t.Errorf("Case: %d. Expected %v finializers, got: %v", i, tc.expectedFinalizers, m.Finalizers)
 		}
 	}
 }

@@ -226,13 +226,8 @@ func NewAPIHelper(cfg *rest.Config) (*APIHelper, error) {
 	}
 	mapper := restmapper.NewDiscoveryRESTMapper(groupResources)
 
-	client, err := rest.RESTClientFor(cfg)
-	if err != nil {
-		return nil, errors.Wrap(err, "failed to create REST client")
-	}
-
 	return &APIHelper{
-		client,
+		discover.RESTClient(),
 		mapper,
 	}, nil
 }
@@ -243,10 +238,15 @@ func (a *APIHelper) Create(obj runtime.Object) error {
 		return errors.Wrap(err, "couldn't create accessor")
 	}
 
-	mapping, err := a.mapper.RESTMapping(
-		obj.GetObjectKind().GroupVersionKind().GroupKind(),
-		obj.GetObjectKind().GroupVersionKind().Version,
-	)
+	gvk := obj.GetObjectKind().GroupVersionKind()
+
+	mapping, err := a.mapper.RESTMapping(gvk.GroupKind(), gvk.Version)
+
+	if err != nil {
+		return errors.Wrapf(err, "failed to retrieve mapping for %s %s", gvk.String(), accessor.GetName())
+	}
+
+	fmt.Printf("Creating %s %s\n", gvk.String(), accessor.GetName())
 
 	_, err = resource.NewHelper(a.client, mapping).Create(accessor.GetNamespace(), true, obj, nil)
 	return errors.Wrapf(err, "failed to create object %q", accessor.GetName())

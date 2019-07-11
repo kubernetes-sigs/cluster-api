@@ -80,10 +80,7 @@ func getCAPIYAML(version, capiImage string) (io.Reader, error) {
 			}
 		}
 	}
-	s := buf.String()
-	fmt.Printf("<<<<<<>>>>>>\n%s\n<<<<<<<<<>>>>>>>>\n", s)
-
-	return strings.NewReader(s), nil
+	return &buf, nil
 }
 
 func decodeCAPIObjects(yaml io.Reader) ([]runtime.Object, error) {

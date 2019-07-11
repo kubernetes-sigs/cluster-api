@@ -7,5 +7,5 @@ spec:
   template:
     spec:
       containers:
-      - image: k8s.gcr.io/cluster-api/cluster-api-controller:v0.1.5
+      - image: us.gcr.io/k8s-artifacts-prod/cluster-api/cluster-api-controller:v0.1.6
         name: manager

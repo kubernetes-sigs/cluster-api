@@ -25,10 +25,12 @@ import (
 	"github.com/pkg/errors"
 	"k8s.io/apimachinery/pkg/api/meta"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/cli-runtime/pkg/genericclioptions/resource"
 	"k8s.io/client-go/discovery"
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/restmapper"
+	"k8s.io/klog"
 	"sigs.k8s.io/cluster-api-provider-docker/kind/controlplane"
 	"sigs.k8s.io/cluster-api-provider-docker/objects"
 	_ "sigs.k8s.io/cluster-api-provider-docker/objects"
@@ -91,6 +93,9 @@ func main() {
 	machineDeploymentOpts := new(machineDeploymentOptions)
 	machineDeploymentOpts.initFlags(machineDeployment)
 
+	kflags := flag.NewFlagSet("klog", flag.ExitOnError)
+	klog.InitFlags(kflags)
+
 	if len(os.Args) < 2 {
 		fmt.Println("At least one subcommand is requied.")
 		fmt.Println(usage())
@@ -102,6 +107,7 @@ func main() {
 		setup.Parse(os.Args[2:])
 		makeManagementCluster(*managementClusterName, *version, *capdImage, *capiImage)
 	case "apply":
+		kflags.Parse(os.Args[2:])
 		applyControlPlane(*managementClusterName, *version, *capiImage, *capdImage)
 	case "control-plane":
 		controlPlane.Parse(os.Args[2:])
@@ -121,6 +127,8 @@ func main() {
 		fmt.Println(usage())
 		os.Exit(1)
 	}
+
+	klog.Flush()
 }
 
 func usage() string {
@@ -217,7 +225,7 @@ func applyControlPlane(clusterName, capiVersion, capiImage, capdImage string) {
 }
 
 type APIHelper struct {
-	client rest.Interface
+	cfg    *rest.Config
 	mapper meta.RESTMapper
 }
 
@@ -226,6 +234,7 @@ func NewAPIHelper(cfg *rest.Config) (*APIHelper, error) {
 	if err != nil {
 		return nil, errors.Wrap(err, "could not create discovery client")
 	}
+
 	groupResources, err := restmapper.GetAPIGroupResources(discover)
 	if err != nil {
 		return nil, errors.Wrap(err, "could not get api group resources")
@@ -233,18 +242,25 @@ func NewAPIHelper(cfg *rest.Config) (*APIHelper, error) {
 	mapper := restmapper.NewDiscoveryRESTMapper(groupResources)
 
 	return &APIHelper{
-		discover.RESTClient(),
+		cfg,
 		mapper,
 	}, nil
 }
 
 func (a *APIHelper) Create(obj runtime.Object) error {
+	gvk := obj.GetObjectKind().GroupVersionKind()
+
+	a.cfg.ContentConfig = resource.UnstructuredPlusDefaultContentConfig()
+
+	client, err := rest.UnversionedRESTClientFor(a.cfg)
+	if err != nil {
+		return errors.Wrap(err, "couldn't create REST client")
+	}
+
 	accessor, err := meta.Accessor(obj)
 	if err != nil {
 		return errors.Wrap(err, "couldn't create accessor")
 	}
-
-	gvk := obj.GetObjectKind().GroupVersionKind()
 
 	mapping, err := a.mapper.RESTMapping(gvk.GroupKind(), gvk.Version)
 
@@ -252,8 +268,34 @@ func (a *APIHelper) Create(obj runtime.Object) error {
 		return errors.Wrapf(err, "failed to retrieve mapping for %s %s", gvk.String(), accessor.GetName())
 	}
 
-	fmt.Printf("Creating %s %s in %s\n", gvk.String(), accessor.GetName(), accessor.GetNamespace())
+	fmt.Printf("Creating %s %s in %q\n", gvk.String(), accessor.GetName(), accessor.GetNamespace())
 
-	_, err = resource.NewHelper(a.client, mapping).Create(accessor.GetNamespace(), true, obj, nil)
-	return errors.Wrapf(err, "failed to create object %q", accessor.GetName())
+	result := client.
+		Post().
+		AbsPath(makeURLSegments(mapping.Resource, "", accessor.GetNamespace())...).
+		Body(obj).
+		Do()
+
+	return errors.Wrapf(result.Error(), "failed to create object %q", accessor.GetName())
+}
+
+func makeURLSegments(resource schema.GroupVersionResource, name, namespace string) []string {
+	url := []string{}
+	if len(resource.Group) == 0 {
+		url = append(url, "api")
+	} else {
+		url = append(url, "apis", resource.Group)
+	}
+	url = append(url, resource.Version)
+
+	if len(namespace) > 0 {
+		url = append(url, "namespaces", namespace)
+	}
+	url = append(url, resource.Resource)
+
+	if len(name) > 0 {
+		url = append(url, name)
+	}
+
+	return url
 }

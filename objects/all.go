@@ -4,7 +4,7 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 )
 
-func GetAll(version, capiImage, capdImage string) ([]runtime.Object, error) {
+func GetManegementCluster(version, capiImage, capdImage string) ([]runtime.Object, error) {
 	capiObjects, err := GetCAPI(version, capiImage)
 	if err != nil {
 		return []runtime.Object{}, err

@@ -24,7 +24,6 @@ import (
 
 	"github.com/pkg/errors"
 	"k8s.io/apimachinery/pkg/api/meta"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/cli-runtime/pkg/genericclioptions/resource"
 	"k8s.io/client-go/discovery"
@@ -33,7 +32,6 @@ import (
 	"sigs.k8s.io/cluster-api-provider-docker/kind/controlplane"
 	"sigs.k8s.io/cluster-api-provider-docker/objects"
 	_ "sigs.k8s.io/cluster-api-provider-docker/objects"
-	"sigs.k8s.io/cluster-api/pkg/apis/cluster/v1alpha1"
 )
 
 // TODO: Generate the RBAC stuff from somewhere instead of copy pasta
@@ -55,12 +53,12 @@ func (mo *machineOptions) initFlags(fs *flag.FlagSet) {
 	mo.version = fs.String("version", "v1.14.2", "The Kubernetes version to run")
 }
 
-type machineDeyploymentOptions struct {
+type machineDeploymentOptions struct {
 	name, namespace, clusterName, kubeletVersion *string
 	replicas                                     *int
 }
 
-func (mo *machineDeyploymentOptions) initFlags(fs *flag.FlagSet) {
+func (mo *machineDeploymentOptions) initFlags(fs *flag.FlagSet) {
 	mo.name = fs.String("name", "my-machine-deployment", "The name of the machine deployment")
 	mo.namespace = fs.String("namespace", "my-namespace", "The namespace of the machine deployment")
 	mo.clusterName = fs.String("cluster-name", "my-cluster", "The name of the cluster the machine deployment creates machines for")
@@ -90,7 +88,7 @@ func main() {
 	clusterNamespace := cluster.String("namespace", "my-namespace", "The namespace the cluster belongs to")
 
 	machineDeployment := flag.NewFlagSet("machine-deployment", flag.ExitOnError)
-	machineDeploymentOpts := new(machineDeyploymentOptions)
+	machineDeploymentOpts := new(machineDeploymentOptions)
 	machineDeploymentOpts.initFlags(machineDeployment)
 
 	if len(os.Args) < 2 {
@@ -151,90 +149,24 @@ subcommands are:
 `
 }
 
-func clusterYAML(name, namespace string) string {
-	return fmt.Sprintf(`apiVersion: "cluster.k8s.io/v1alpha1"
-kind: Cluster
-metadata:
-  name: %s
-  namespace: %s
-spec:
-  clusterNetwork:
-    services:
-      cidrBlocks: ["10.96.0.0/12"]
-    pods:
-      cidrBlocks: ["192.168.0.0/16"]
-    serviceDomain: "cluster.local"
-  providerSpec: {}`, name, namespace)
-}
-
-func machineDeploymentYAML(opts *machineDeyploymentOptions) string {
-	replicas := int32(*opts.replicas)
-	labels := map[string]string{
-		"cluster.k8s.io/cluster-name": *opts.clusterName,
-		"set":                         "node",
-	}
-	deployment := v1alpha1.MachineDeployment{
-		TypeMeta: metav1.TypeMeta{
-			Kind:       "MachineDeployment",
-			APIVersion: "cluster.k8s.io/v1alpha1",
-		},
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      *opts.name,
-			Namespace: *opts.namespace,
-			Labels:    labels,
-		},
-		Spec: v1alpha1.MachineDeploymentSpec{
-			Replicas: &replicas,
-			Selector: metav1.LabelSelector{
-				MatchLabels: labels,
-			},
-			Template: v1alpha1.MachineTemplateSpec{
-				ObjectMeta: metav1.ObjectMeta{
-					Labels: labels,
-				},
-				Spec: v1alpha1.MachineSpec{
-					ProviderSpec: v1alpha1.ProviderSpec{},
-					Versions: v1alpha1.MachineVersionInfo{
-						Kubelet: *opts.kubeletVersion,
-					},
-				},
-			},
-		},
-	}
-
-	b, err := json.Marshal(deployment)
-	// TODO don't panic on the error
-	if err != nil {
-		panic(err)
-	}
-	return string(b)
+func clusterYAML(clusterName, namespace string) string {
+	cluster := objects.GetCluster(clusterName, namespace)
+	return marshal(&cluster)
 }
 
 func machineYAML(opts *machineOptions) string {
-	machine := v1alpha1.Machine{
-		TypeMeta: metav1.TypeMeta{
-			Kind:       "Machine",
-			APIVersion: "cluster.k8s.io/v1alpha1",
-		},
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      *opts.name,
-			Namespace: *opts.namespace,
-			Labels: map[string]string{
-				"cluster.k8s.io/cluster-name": *opts.clusterName,
-				"set":                         *opts.set,
-			},
-		},
-		Spec: v1alpha1.MachineSpec{
-			ProviderSpec: v1alpha1.ProviderSpec{},
-		},
-	}
-	if *opts.set == controlPlaneSet {
-		machine.Spec.Versions.ControlPlane = *opts.version
-	}
-	if *opts.set == "worker" {
-		machine.Spec.Versions.Kubelet = *opts.version
-	}
-	b, err := json.Marshal(machine)
+	machine := objects.GetMachine(*opts.name, *opts.namespace, *opts.clusterName, *opts.set, *opts.version)
+	return marshal(&machine)
+}
+
+func machineDeploymentYAML(opts *machineDeploymentOptions) string {
+	machineDeploy := objects.GetMachineDeployment(*opts.name, *opts.namespace, *opts.clusterName, *opts.kubeletVersion, int32(*opts.replicas))
+	return marshal(&machineDeploy)
+
+}
+
+func marshal(obj runtime.Object) string {
+	b, err := json.Marshal(obj)
 	// TODO don't panic on the error
 	if err != nil {
 		panic(err)
@@ -254,7 +186,7 @@ func makeManagementCluster(clusterName, capiVersion, capdImage, capiImageOverrid
 	}
 
 	fmt.Println("Downloading the latest CRDs for CAPI version", capiVersion)
-	objects, err := objects.GetAll(capiVersion, capiImage, capdImage)
+	objects, err := objects.GetManegementCluster(capiVersion, capiImage, capdImage)
 	if err != nil {
 		panic(err)
 	}
@@ -319,140 +251,3 @@ func (a *APIHelper) Create(obj runtime.Object) error {
 	_, err = resource.NewHelper(a.client, mapping).Create(accessor.GetNamespace(), true, obj, nil)
 	return errors.Wrapf(err, "failed to create object %q", accessor.GetName())
 }
-
-func getCAPDPlane(capdImage string) string {
-	return fmt.Sprintf(capiPlane, capdImage)
-}
-
-var capiPlane = `
-apiVersion: v1
-kind: Namespace
-metadata:
-  labels:
-    controller-tools.k8s.io: "1.0"
-  name: docker-provider-system
----
-apiVersion: apps/v1
-kind: StatefulSet
-metadata:
-  labels:
-    control-plane: controller-manager
-  name: docker-provider-controller-manager
-  namespace: docker-provider-system
-spec:
-  selector:
-    matchLabels:
-      control-plane: controller-manager
-  serviceName: docker-provider-controller-manager-service
-  template:
-    metadata:
-      labels:
-        control-plane: controller-manager
-    spec:
-      containers:
-      - name: capd-manager
-        image: %s
-        command:
-        - capd-manager
-        volumeMounts:
-        - mountPath: /var/run/docker.sock
-          name: dockersock
-        - mountPath: /var/lib/docker
-          name: dockerlib
-        securityContext:
-          privileged: true
-      volumes:
-      - name: dockersock
-        hostPath:
-          path: /var/run/docker.sock
-          type: Socket
-      - name: dockerlib
-        hostPath:
-          path: /var/lib/docker
-      tolerations:
-      - effect: NoSchedule
-        key: node-role.kubernetes.io/master
-      - key: CriticalAddonsOnly
-        operator: Exists
-      - effect: NoExecute
-        key: node.alpha.kubernetes.io/notReady
-        operator: Exists
-      - effect: NoExecute
-        key: node.alpha.kubernetes.io/unreachable
-        operator: Exists
-`
-
-var capdRBAC = `apiVersion: rbac.authorization.k8s.io/v1
-kind: ClusterRole
-metadata:
-  name: docker-provider-manager-role
-rules:
-- apiGroups:
-  - cluster.k8s.io
-  resources:
-  - clusters
-  - clusters/status
-  verbs:
-  - get
-  - list
-  - watch
-  - create
-  - update
-  - patch
-  - delete
-- apiGroups:
-  - cluster.k8s.io
-  resources:
-  - machines
-  - machines/status
-  - machinedeployments
-  - machinedeployments/status
-  - machinesets
-  - machinesets/status
-  - machineclasses
-  verbs:
-  - get
-  - list
-  - watch
-  - create
-  - update
-  - patch
-  - delete
-- apiGroups:
-  - cluster.k8s.io
-  resources:
-  - clusters
-  - clusters/status
-  verbs:
-  - get
-  - list
-  - watch
-- apiGroups:
-  - ""
-  resources:
-  - nodes
-  - events
-  - secrets
-  verbs:
-  - get
-  - list
-  - watch
-  - create
-  - update
-  - patch
-  - delete
----
-apiVersion: rbac.authorization.k8s.io/v1
-kind: ClusterRoleBinding
-metadata:
-  creationTimestamp: null
-  name: docker-provider-manager-rolebinding
-roleRef:
-  apiGroup: rbac.authorization.k8s.io
-  kind: ClusterRole
-  name: docker-provider-manager-role
-subjects:
-- kind: ServiceAccount
-  name: default
-  namespace: docker-provider-syste
-`

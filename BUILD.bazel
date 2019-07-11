@@ -3,6 +3,7 @@ load("//build:run_in_workspace_with_goroot.bzl", "workspace_binary")
 
 # gazelle:prefix sigs.k8s.io/cluster-api
 # gazelle:proto disable_global
+# gazelle:resolve go github.com/grpc-ecosystem/grpc-gateway/internal //vendor/github.com/grpc-ecosystem/grpc-gateway/internal:go_default_library
 gazelle(
     name = "gazelle",
     external = "vendored",

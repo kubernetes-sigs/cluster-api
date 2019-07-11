@@ -25,8 +25,6 @@ cd_root_path
 # create a temporary directory
 TMP_DIR=$(mktemp -d)
 
-echo $TMP_DIR
-
 # cleanup
 exitHandler() (
   echo "Cleaning up..."

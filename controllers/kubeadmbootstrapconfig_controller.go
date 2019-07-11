@@ -18,12 +18,14 @@ package controllers
 
 import (
 	"context"
+	"fmt"
 
 	"github.com/go-logr/logr"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	kubeadmv1alpha1 "sigs.k8s.io/cluster-api-bootstrap-provider-kubeadm/api/v1alpha1"
+	clusterapiv1alpha2 "sigs.k8s.io/cluster-api/pkg/apis/cluster/v1alpha2"
 )
 
 // KubeadmBootstrapConfigReconciler reconciles a KubeadmBootstrapConfig object
@@ -37,10 +39,13 @@ type KubeadmBootstrapConfigReconciler struct {
 
 // Reconcile TODO
 func (r *KubeadmBootstrapConfigReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
-	_ = context.Background()
-	_ = r.Log.WithValues("kubeadmbootstrapconfig", req.NamespacedName)
+	ctx := context.Background()
+	log := r.Log.WithValues("kubeadmbootstrapconfig", req.NamespacedName)
 
-	// your logic here
+	machine := &clusterapiv1alpha2.Machine{}
+	if err := r.Get(ctx, req.NamespacedName, machine); err != nil {
+		log.Error(err, "stacktrace", fmt.Sprintf("%+v", err))
+	}
 
 	return ctrl.Result{}, nil
 }

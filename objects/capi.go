@@ -2,17 +2,17 @@ package objects
 
 import (
 	"archive/tar"
+	"bufio"
 	"bytes"
 	"compress/gzip"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"net/http"
 	"strings"
 
 	"github.com/pkg/errors"
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
-	"k8s.io/apimachinery/pkg/runtime/serializer/streaming"
 	"k8s.io/kubernetes/pkg/kubectl/scheme"
 )
 
@@ -80,27 +80,46 @@ func getCAPIYAML(version, capiImage string) (io.Reader, error) {
 			}
 		}
 	}
-	return &buf, nil
+	s := buf.String()
+	fmt.Printf("<<<<<<>>>>>>\n%s\n<<<<<<<<<>>>>>>>>\n", s)
+
+	return strings.NewReader(s), nil
 }
 
-func getCAPIObjects(yaml io.Reader) ([]runtime.Object, error) {
+func decodeCAPIObjects(yaml io.Reader) ([]runtime.Object, error) {
 	decoder := scheme.Codecs.UniversalDeserializer()
-	streamingDecoder := streaming.NewDecoder(ioutil.NopCloser(yaml), decoder)
-
-	defer streamingDecoder.Close()
-
 	objects := []runtime.Object{}
+	readbuf := bufio.NewReader(yaml)
+	writebuf := &bytes.Buffer{}
+
 	for {
-		obj, _, err := streamingDecoder.Decode(nil, nil)
-		if err == io.EOF {
-			break
-		}
+		line, err := readbuf.ReadBytes('\n')
+		// End of an object, parse it
+		if err == io.EOF || bytes.Equal(line, []byte("---\n")) {
 
-		if err != nil {
-			return []runtime.Object{}, errors.Wrap(err, "couldn't decode CAPI object")
-		}
+			// Use unstructured because scheme may not know about CRDs
+			if writebuf.Len() > 1 {
+				obj, _, err := decoder.Decode(writebuf.Bytes(), nil, &unstructured.Unstructured{})
+				if err == nil {
+					objects = append(objects, obj)
+				} else {
+					return []runtime.Object{}, errors.Wrap(err, "couldn't decode CAPI object")
+				}
+			}
 
-		objects = append(objects, obj)
+			// previously we didn't care if this was EOF or ---, but now we need to break the loop
+			if err == io.EOF {
+				break
+			}
+
+			// No matter what happened, start over
+			writebuf.Reset()
+		} else if err != nil {
+			return []runtime.Object{}, errors.Wrap(err, "couldn't read YAML")
+		} else {
+			// Just an ordinary line
+			writebuf.Write(line)
+		}
 	}
 
 	return objects, nil
@@ -112,5 +131,5 @@ func GetCAPI(version, capiImage string) ([]runtime.Object, error) {
 		return []runtime.Object{}, err
 	}
 
-	return getCAPIObjects(reader)
+	return decodeCAPIObjects(reader)
 }

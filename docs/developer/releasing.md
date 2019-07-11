@@ -9,10 +9,10 @@
 
 ### Artifact locations
 
-1. The container image is found in the registry `k8s.gcr.io/cluster-api/` with an image
+1. The container image is found in the registry `us.gcr.io/k8s-artifacts-prod/cluster-api/` with an image
    name of `cluster-api-controller` and a tag that matches the release version. For
    example, in the `v0.1.5` release, the container image location is
-   `k8s.gcr.io/cluster-api/cluster-api-controller:v0.1.5`
+   `us.gcr.io/k8s-artifacts-prod/cluster-api/cluster-api-controller:v0.1.5`
 
 2. Prior to the `v0.1.5` release, the container image is found in the registry
    `gcr.io/k8s-cluster-api` with an image name of `cluster-api-controller` and a tag

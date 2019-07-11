@@ -22,8 +22,34 @@ source "$(dirname "$0")/utils.sh"
 # cd to the root path
 cd_root_path
 
+# create a temporary directory
+TMP_DIR=$(mktemp -d)
+
+echo $TMP_DIR
+
+# cleanup
+exitHandler() (
+  echo "Cleaning up..."
+  rm -rf "${TMP_DIR}"
+)
+trap exitHandler EXIT
+
+# pull goimports
+export GO111MODULE=on
+URL="https://github.com/golang/tools.git"
+git clone --quiet --depth=1 "${URL}" "${TMP_DIR}"
+pushd "${TMP_DIR}" > /dev/null
+popd > /dev/null
+
+# build goimports
+BIN_PATH="${TMP_DIR}/cmd/goimports"
+pushd "${BIN_PATH}" > /dev/null
+echo "Building goimports..."
+go build > /dev/null
+popd > /dev/null
+
 # check for goimports diffs
-diff=$(git ls-files | grep "\.go" | grep -v "\/vendor" | xargs goimports -d  2>&1)
+diff=$(git ls-files | grep "\.go" | grep -v "\/vendor" | xargs "${BIN_PATH}/goimports" -d  2>&1)
 if [[ -n "${diff}" ]]; then
   echo "${diff}"
   echo

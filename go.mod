@@ -6,6 +6,7 @@ require (
 	github.com/go-logr/logr v0.1.0
 	github.com/onsi/ginkgo v1.8.0
 	github.com/onsi/gomega v1.5.0
+	github.com/pkg/errors v0.8.1
 	golang.org/x/net v0.0.0-20190613194153-d28f0bde5980
 	k8s.io/api v0.0.0-20190703205437-39734b2a72fe
 	k8s.io/apimachinery v0.0.0-20190704094733-8f6ac2502e51

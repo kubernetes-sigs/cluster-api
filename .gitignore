@@ -22,3 +22,4 @@ bin
 *.swp
 *.swo
 *~
+.vscode

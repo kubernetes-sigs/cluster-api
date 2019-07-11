@@ -19,7 +19,8 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/markbates/inflect"
+	"github.com/gobuffalo/flect"
+
 	apiext "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1beta1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime/schema"
@@ -53,7 +54,7 @@ func (p *Parser) NeedCRDFor(groupKind schema.GroupKind) {
 		packages = append(packages, pkg)
 	}
 
-	defaultPlural := inflect.NewDefaultRuleset().Pluralize(strings.ToLower(groupKind.Kind))
+	defaultPlural := flect.Pluralize(strings.ToLower(groupKind.Kind))
 	crd := apiext.CustomResourceDefinition{
 		TypeMeta: metav1.TypeMeta{
 			APIVersion: apiext.SchemeGroupVersion.String(),
@@ -77,7 +78,7 @@ func (p *Parser) NeedCRDFor(groupKind schema.GroupKind) {
 		if typeInfo == nil {
 			continue
 		}
-		fullSchema := FlattenEmbedded(p.flattener.FlattenType(typeIdent))
+		fullSchema := FlattenEmbedded(p.flattener.FlattenType(typeIdent), pkg)
 		ver := apiext.CustomResourceDefinitionVersion{
 			Name:   p.GroupVersions[pkg].Version,
 			Served: true,

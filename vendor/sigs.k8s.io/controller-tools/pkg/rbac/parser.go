@@ -23,6 +23,9 @@ limitations under the License.
 package rbac
 
 import (
+	"sort"
+	"strings"
+
 	rbacv1 "k8s.io/api/rbac/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
@@ -44,8 +47,57 @@ type Rule struct {
 	URLs      []string `marker:"urls,optional"`
 }
 
+// ruleKey represents the resources and non-resources a Rule applies.
+type ruleKey struct {
+	Groups    string
+	Resources string
+	URLs      string
+}
+
+// key normalizes the Rule and returns a ruleKey object.
+func (r *Rule) key() ruleKey {
+	r.normalize()
+	return ruleKey{
+		Groups:    strings.Join(r.Groups, "&"),
+		Resources: strings.Join(r.Resources, "&"),
+		URLs:      strings.Join(r.URLs, "&"),
+	}
+}
+
+// addVerbs adds new verbs into a Rule.
+// The duplicates in `r.Verbs` will be removed, and then `r.Verbs` will be sorted.
+func (r *Rule) addVerbs(verbs []string) {
+	r.Verbs = removeDupAndSort(append(r.Verbs, verbs...))
+}
+
+// normalize removes duplicates from each field of a Rule, and sorts each field.
+func (r *Rule) normalize() {
+	r.Groups = removeDupAndSort(r.Groups)
+	r.Resources = removeDupAndSort(r.Resources)
+	r.Verbs = removeDupAndSort(r.Verbs)
+	r.URLs = removeDupAndSort(r.URLs)
+}
+
+// removeDupAndSort removes duplicates in strs, sorts the items, and returns a
+// new slice of strings.
+func removeDupAndSort(strs []string) []string {
+	set := make(map[string]bool)
+	for _, str := range strs {
+		if _, ok := set[str]; !ok {
+			set[str] = true
+		}
+	}
+
+	var result []string
+	for str := range set {
+		result = append(result, str)
+	}
+	sort.Strings(result)
+	return result
+}
+
 // ToRule converts this rule to its Kubernetes API form.
-func (r Rule) ToRule() rbacv1.PolicyRule {
+func (r *Rule) ToRule() rbacv1.PolicyRule {
 	// fix the group names first, since letting people type "core" is nice
 	for i, group := range r.Groups {
 		if group == "core" {
@@ -68,20 +120,33 @@ type Generator struct {
 func (Generator) RegisterMarkers(into *markers.Registry) error {
 	return into.Register(RuleDefinition)
 }
+
 func (g Generator) Generate(ctx *genall.GenerationContext) error {
-	var rules []rbacv1.PolicyRule
+	rules := make(map[ruleKey]*Rule)
 	for _, root := range ctx.Roots {
 		markerSet, err := markers.PackageMarkers(ctx.Collector, root)
 		if err != nil {
 			root.AddError(err)
 		}
 
-		for _, rule := range markerSet[RuleDefinition.Name] {
-			rules = append(rules, rule.(Rule).ToRule())
+		for _, markerValue := range markerSet[RuleDefinition.Name] {
+			rule := markerValue.(Rule)
+			key := rule.key()
+			if _, ok := rules[key]; !ok {
+				rules[key] = &rule
+				continue
+			}
+			rules[key].addVerbs(rule.Verbs)
 		}
 	}
 
-	if len(rules) == 0 {
+	var policyRules []rbacv1.PolicyRule
+	for _, rule := range rules {
+		policyRules = append(policyRules, rule.ToRule())
+
+	}
+
+	if len(policyRules) == 0 {
 		return nil
 	}
 
@@ -93,7 +158,7 @@ func (g Generator) Generate(ctx *genall.GenerationContext) error {
 		ObjectMeta: metav1.ObjectMeta{
 			Name: g.RoleName,
 		},
-		Rules: rules,
+		Rules: policyRules,
 	}); err != nil {
 		return err
 	}

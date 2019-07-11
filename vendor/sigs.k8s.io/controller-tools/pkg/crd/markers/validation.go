@@ -58,7 +58,6 @@ var ValidationMarkers = mustMakeAllWithPrefix("kubebuilder:validation", markers.
 	Enum(nil),
 	Format(""),
 	Type(""),
-	Nullable(false),
 )
 
 // FieldOnlyMarkers list field-specific validation markers (i.e. those markers that don't make
@@ -67,6 +66,7 @@ var FieldOnlyMarkers = []*markers.Definition{
 	markers.Must(markers.MakeDefinition("kubebuilder:validation:Required", markers.DescribesField, struct{}{})),
 	markers.Must(markers.MakeDefinition("kubebuilder:validation:Optional", markers.DescribesField, struct{}{})),
 	markers.Must(markers.MakeDefinition("optional", markers.DescribesField, struct{}{})),
+	markers.Must(markers.MakeDefinition("nullable", markers.DescribesField, Nullable{})),
 }
 
 func init() {
@@ -77,6 +77,8 @@ func init() {
 		typDef.Target = markers.DescribesType
 		AllDefinitions = append(AllDefinitions, &typDef)
 	}
+
+	AllDefinitions = append(AllDefinitions, FieldOnlyMarkers...)
 }
 
 type Maximum int
@@ -96,7 +98,7 @@ type UniqueItems bool
 type Enum []interface{}
 type Format string
 type Type string
-type Nullable bool
+type Nullable struct{}
 type Required struct{}
 type Optional struct{}
 
@@ -222,6 +224,6 @@ func (m Type) ApplyToSchema(schema *v1beta1.JSONSchemaProps) error {
 func (m Type) ApplyFirst() {}
 
 func (m Nullable) ApplyToSchema(schema *v1beta1.JSONSchemaProps) error {
-	schema.Nullable = bool(m)
+	schema.Nullable = true
 	return nil
 }

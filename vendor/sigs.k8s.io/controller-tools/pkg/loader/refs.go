@@ -187,6 +187,7 @@ func allReferencedPackages(pkg *Package, filterNodes NodeFilter) []*Package {
 type TypeChecker struct {
 	checkedPackages map[*Package]struct{}
 	filterNodes     NodeFilter
+	sync.Mutex
 }
 
 // Check type-checks the given package and all packages referenced
@@ -224,7 +225,10 @@ func (c *TypeChecker) check(root *Package) {
 	root.Lock()
 	defer root.Unlock()
 
-	if _, ok := c.checkedPackages[root]; ok {
+	c.Lock()
+	_, ok := c.checkedPackages[root]
+	c.Unlock()
+	if ok {
 		return
 	}
 
@@ -244,5 +248,7 @@ func (c *TypeChecker) check(root *Package) {
 	// ...then, we can safely type-check ourself
 	root.NeedTypesInfo()
 
+	c.Lock()
+	defer c.Unlock()
 	c.checkedPackages[root] = struct{}{}
 }

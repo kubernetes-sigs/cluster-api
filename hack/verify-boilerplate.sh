@@ -22,4 +22,4 @@ source "$(dirname "$0")/utils.sh"
 # cd to the root path
 cd_root_path
 
-git ls-files | xargs go run ./hack/verify-boilerplate.go
+git ls-files | grep --invert-match "\.deepcopy\.go" | xargs go run ./hack/verify-boilerplate.go

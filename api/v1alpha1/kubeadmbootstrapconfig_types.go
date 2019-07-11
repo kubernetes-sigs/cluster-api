@@ -18,14 +18,20 @@ package v1alpha1
 
 import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	kubeadmv1beta1 "k8s.io/kubernetes/cmd/kubeadm/app/apis/kubeadm/v1beta1"
+	kubeadmv1beta1 "sigs.k8s.io/cluster-api-bootstrap-provider-kubeadm/kubeadm/v1beta1"
 )
 
 // Phase defines KubeadmBootstrapConfig phases
+// +kubebuilder:validation:Enum=Ready;Unknown
 type Phase string
 
 // Ready defines the KubeadmBootstrapConfig Ready Phase
-const Ready Phase = "Ready"
+const (
+	// Ready indicates the config is ready to be used by a Machine.
+	Ready Phase = "Ready"
+	// Unknown indicates the phase is unknown.
+	Unknown Phase = "Unknown"
+)
 
 // KubeadmBootstrapConfigSpec defines the desired state of KubeadmBootstrapConfig
 type KubeadmBootstrapConfigSpec struct {
@@ -36,10 +42,12 @@ type KubeadmBootstrapConfigSpec struct {
 
 // KubeadmBootstrapConfigStatus defines the observed state of KubeadmBootstrapConfig
 type KubeadmBootstrapConfigStatus struct {
+	// Phase is the state of the KubeadmBootstrapConfig object
 	Phase Phase `json:"phase"`
 
 	// BootstrapData will be a cloud-init script for now
-	BootstrapData []byte `json:"bootstrapData"`
+	// +optional
+	BootstrapData []byte `json:"bootstrapData,omitempty"`
 }
 
 // +kubebuilder:object:root=true

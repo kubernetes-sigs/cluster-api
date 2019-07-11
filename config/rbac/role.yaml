@@ -9,20 +9,20 @@ rules:
 - apiGroups:
   - kubeadm.bootstrap.cluster.sigs.k8s.io
   resources:
-  - kubeadmbootstrapconfigs
-  verbs:
-  - get
-  - list
-  - watch
-  - create
-  - update
-  - patch
-  - delete
-- apiGroups:
-  - kubeadm.bootstrap.cluster.sigs.k8s.io
-  resources:
   - kubeadmbootstrapconfigs/status
   verbs:
   - get
-  - update
   - patch
+  - update
+- apiGroups:
+  - kubeadm.bootstrap.cluster.sigs.k8s.io
+  resources:
+  - kubeadmbootstrapconfigs
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch

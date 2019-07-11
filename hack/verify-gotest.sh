@@ -17,23 +17,7 @@ set -o errexit
 set -o nounset
 set -o pipefail
 
-# fetch k8s API gen tools and make it available under kb_root_dir/bin.
-function fetch_tools {
-  header_text "fetching tools"
-  kb_tools_archive_name="kubebuilder-tools-${k8s_version}-${goos}-${goarch}.tar.gz"
-  kb_tools_download_url="https://storage.googleapis.com/kubebuilder-tools/${kb_tools_archive_name}"
-
-  kb_tools_archive_path="${tmp_root}/${kb_tools_archive_name}"
-  if [[ ! -f ${kb_tools_archive_path} ]]; then
-    curl -fsL ${kb_tools_download_url} -o "${kb_tools_archive_path}"
-  fi
-  tar -zvxf "${kb_tools_archive_path}" -C "${tmp_root}/"
-}
-
-# fetch kubebuilder binary
-tmp_root=/tmp
-kb_root_dir=${tmp_root}/kubebuilder
-
+source "$(dirname "$0")/fetch_bins.sh"
 fetch_tools
 
 # shellcheck source=/dev/null
@@ -42,5 +26,4 @@ source "$(dirname "$0")/utils.sh"
 cd_root_path
 
 # run go test
-export GO111MODULE=on
-go test ./...
+setup_envs && GO111MODULE=on go test ./...

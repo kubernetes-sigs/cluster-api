@@ -646,42 +646,6 @@ spec:
             bootstrapReady:
               description: BootstrapReady is the state of the bootstrap provider.
               type: boolean
-            conditions:
-              description: 'Conditions lists the conditions synced from the node conditions
-                of the corresponding node-object. Machine-controller is responsible
-                for keeping conditions up-to-date. MachineSet controller will be taking
-                these conditions as a signal to decide if machine is healthy or needs
-                to be replaced. Refer: https://kubernetes.io/docs/concepts/architecture/nodes/#condition'
-              items:
-                description: NodeCondition contains condition information for a node.
-                properties:
-                  lastHeartbeatTime:
-                    description: Last time we got an update on a given condition.
-                    format: date-time
-                    type: string
-                  lastTransitionTime:
-                    description: Last time the condition transit from one status to
-                      another.
-                    format: date-time
-                    type: string
-                  message:
-                    description: Human readable message indicating details about last
-                      transition.
-                    type: string
-                  reason:
-                    description: (brief) reason for the condition's last transition.
-                    type: string
-                  status:
-                    description: Status of the condition, one of True, False, Unknown.
-                    type: string
-                  type:
-                    description: Type of node condition.
-                    type: string
-                required:
-                - status
-                - type
-                type: object
-              type: array
             errorMessage:
               description: "ErrorMessage will be set in the event that there is a
                 terminal problem reconciling the Machine and will contain a more verbose

@@ -343,7 +343,7 @@ func runGenerators(rawOptions []string, printMarkersOnly bool) error {
 	rt.OutputRules = outputRules
 
 	if hadErrs := rt.Run(); hadErrs {
-		return fmt.Errorf("not all generators ran succesfully")
+		return fmt.Errorf("not all generators ran successfully")
 	}
 
 	return nil

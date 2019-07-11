@@ -34,6 +34,8 @@ spec:
             submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/api-conventions.md#types-kinds'
           type: string
         metadata:
+          description: ObjectMeta is metadata that all persisted resources must have,
+            which includes all objects users must create.
           properties:
             annotations:
               additionalProperties:
@@ -133,6 +135,8 @@ spec:
                     struct will be set to nil and the object is considered as initialized
                     and visible to all clients.
                   items:
+                    description: Initializer is information about an initializer that
+                      has not yet completed.
                     properties:
                       name:
                         description: name of the process that is responsible for initializing
@@ -169,6 +173,9 @@ spec:
                             with the StatusReason failure. Not all StatusReasons may
                             provide detailed causes.
                           items:
+                            description: StatusCause provides more information about
+                              an api.Status failure, including cases when multiple
+                              errors are encountered.
                             properties:
                               field:
                                 description: "The field of the resource that has caused
@@ -290,6 +297,8 @@ spec:
                 object. \n This field is alpha and can be changed or removed without
                 notice."
               items:
+                description: ManagedFieldsEntry is a workflow-id, a FieldSet and the
+                  group version of the resource that the fieldset applies to.
                 properties:
                   apiVersion:
                     description: APIVersion defines the version of this resource that
@@ -340,6 +349,10 @@ spec:
                 will point to this controller, with the controller field set to true.
                 There cannot be more than one managing controller.
               items:
+                description: OwnerReference contains enough information to let you
+                  identify an owning object. An owning object must be in the same
+                  namespace as the dependent, or be cluster-scoped, so there is no
+                  namespace field.
                 properties:
                   apiVersion:
                     description: API version of the referent.
@@ -392,6 +405,8 @@ spec:
               type: string
           type: object
         spec:
+          description: / [MachineDeploymentSpec] MachineDeploymentSpec defines the
+            desired state of MachineDeployment
           properties:
             minReadySeconds:
               description: Minimum number of seconds for which a newly created machine
@@ -431,6 +446,8 @@ spec:
                   description: matchExpressions is a list of label selector requirements.
                     The requirements are ANDed.
                   items:
+                    description: A label selector requirement is a selector that contains
+                      values, a key, and an operator that relates the key and values.
                     properties:
                       key:
                         description: key is the label key that the selector applies
@@ -572,6 +589,10 @@ spec:
                         with the controller field set to true. There cannot be more
                         than one managing controller.
                       items:
+                        description: OwnerReference contains enough information to
+                          let you identify an owning object. An owning object must
+                          be in the same namespace as the dependent, or be cluster-scoped,
+                          so there is no namespace field.
                         properties:
                           apiVersion:
                             description: API version of the referent.
@@ -645,9 +666,9 @@ spec:
                                 required in Node.Status.
                               type: string
                           required:
-                          - namespace
-                          - name
                           - kubeletConfigKey
+                          - name
+                          - namespace
                           type: object
                       type: object
                     metadata:
@@ -714,6 +735,10 @@ spec:
                             this controller, with the controller field set to true.
                             There cannot be more than one managing controller.
                           items:
+                            description: OwnerReference contains enough information
+                              to let you identify an owning object. An owning object
+                              must be in the same namespace as the dependent, or be
+                              cluster-scoped, so there is no namespace field.
                             properties:
                               apiVersion:
                                 description: API version of the referent.
@@ -836,6 +861,8 @@ spec:
                         manually remove the taint the machine controller will put
                         it back) but not have the machine controller remove any taints
                       items:
+                        description: The node this Taint is attached to has the "effect"
+                          on any pod that does not tolerate the Taint.
                         properties:
                           effect:
                             description: Required. The effect of the taint on pods
@@ -856,8 +883,8 @@ spec:
                               the taint key.
                             type: string
                         required:
-                        - key
                         - effect
+                        - key
                         type: object
                       type: array
                     versions:
@@ -881,8 +908,6 @@ spec:
                       required:
                       - kubelet
                       type: object
-                  required:
-                  - providerSpec
                   type: object
               type: object
           required:
@@ -890,6 +915,8 @@ spec:
           - template
           type: object
         status:
+          description: / [MachineDeploymentStatus] MachineDeploymentStatus defines
+            the observed state of MachineDeployment
           properties:
             availableReplicas:
               description: Total number of available machines (ready for at least

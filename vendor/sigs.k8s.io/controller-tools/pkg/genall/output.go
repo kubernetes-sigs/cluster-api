@@ -132,7 +132,7 @@ func (o OutputArtifacts) Open(pkg *loader.Package, itemPath string) (io.WriteClo
 	}
 
 	if len(pkg.CompiledGoFiles) == 0 {
-		return nil, fmt.Errorf("cannot ouput to a package with no path on disk")
+		return nil, fmt.Errorf("cannot output to a package with no path on disk")
 	}
 	outDir := filepath.Dir(pkg.CompiledGoFiles[0])
 	outPath := filepath.Join(outDir, itemPath)

@@ -101,6 +101,8 @@ func main() {
 	case "setup":
 		setup.Parse(os.Args[2:])
 		makeManagementCluster(*managementClusterName, *version, *capdImage, *capiImage)
+	case "apply":
+		applyControlPlane(*managementClusterName, *version, *capiImage, *capdImage)
 	case "control-plane":
 		controlPlane.Parse(os.Args[2:])
 		fmt.Fprintf(os.Stdout, machineYAML(controlPlaneOpts))
@@ -185,6 +187,10 @@ func makeManagementCluster(clusterName, capiVersion, capdImage, capiImageOverrid
 		panic(err)
 	}
 
+	applyControlPlane(clusterName, capiVersion, capiImage, capdImage)
+}
+
+func applyControlPlane(clusterName, capiVersion, capiImage, capdImage string) {
 	fmt.Println("Downloading the latest CRDs for CAPI version", capiVersion)
 	objects, err := objects.GetManegementCluster(capiVersion, capiImage, capdImage)
 	if err != nil {
@@ -246,7 +252,7 @@ func (a *APIHelper) Create(obj runtime.Object) error {
 		return errors.Wrapf(err, "failed to retrieve mapping for %s %s", gvk.String(), accessor.GetName())
 	}
 
-	fmt.Printf("Creating %s %s\n", gvk.String(), accessor.GetName())
+	fmt.Printf("Creating %s %s in %s\n", gvk.String(), accessor.GetName(), accessor.GetNamespace())
 
 	_, err = resource.NewHelper(a.client, mapping).Create(accessor.GetNamespace(), true, obj, nil)
 	return errors.Wrapf(err, "failed to create object %q", accessor.GetName())

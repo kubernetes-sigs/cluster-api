@@ -23,10 +23,8 @@ write_files:
       ---
 {{.JoinConfiguration | Indent 6}}
 runcmd:
-  - [ kubeadm, join, --config, /tmp/kubeadm-node.yaml ]
-kubeadm:
-  operation: join
-  config: /tmp/kubeadm-node.yaml
+  - 'kubeadm join --config /tmp/kubeadm-node.yaml'
+{{- template "commands" .AdditionalCommands }}
 `
 )
 
@@ -35,7 +33,6 @@ type NodeInput struct {
 	baseUserData
 
 	JoinConfiguration string
-	AdditionalFiles   []Files
 }
 
 // NewNode returns the user data string to be used on a node instance.

@@ -29,7 +29,8 @@ const (
       ---
 {{.InitConfiguration | Indent 6}}
 runcmd:
-  - [ kubeadm, init, --config, /tmp/kubeadm.yaml ]
+  - 'kubeadm init --config /tmp/kubeadm.yaml'
+{{- template "commands" .AdditionalCommands }}
 `
 )
 

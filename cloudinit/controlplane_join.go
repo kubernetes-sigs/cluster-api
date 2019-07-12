@@ -26,7 +26,8 @@ const (
     content: |
 {{.JoinConfiguration | Indent 6}}
 runcmd:
-  - [ kubeadm, join, --config, /tmp/kubeadm-controlplane-join-config.yaml ]
+  - 'kubeadm join --config /tmp/kubeadm-controlplane-join-config.yaml'
+{{- template "commands" .AdditionalCommands }}
 `
 )
 
@@ -35,7 +36,6 @@ type ControlPlaneJoinInput struct {
 	baseUserData
 	Certificates
 
-	AdditionalFiles     []Files
 	BootstrapToken      string
 	ControlPlaneAddress string
 	JoinConfiguration   string

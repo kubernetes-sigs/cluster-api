@@ -39,7 +39,7 @@ runcmd:
 
 // ControlPlaneInput defines the context to generate a controlplane instance user data.
 type ControlPlaneInput struct {
-	baseUserData
+	BaseUserData
 	Certificates
 
 	ClusterConfiguration string

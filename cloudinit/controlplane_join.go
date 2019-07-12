@@ -36,7 +36,7 @@ runcmd:
 
 // ControlPlaneJoinInput defines context to generate controlplane instance user data for controlplane node join.
 type ControlPlaneJoinInput struct {
-	baseUserData
+	BaseUserData
 	Certificates
 
 	BootstrapToken      string

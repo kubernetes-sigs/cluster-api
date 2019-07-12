@@ -33,7 +33,7 @@ runcmd:
 
 // NodeInput defines the context to generate a node user data.
 type NodeInput struct {
-	baseUserData
+	BaseUserData
 
 	JoinConfiguration string
 }

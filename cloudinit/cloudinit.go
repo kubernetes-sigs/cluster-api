@@ -29,7 +29,7 @@ const (
 `
 )
 
-type baseUserData struct {
+type BaseUserData struct {
 	Header             string
 	AdditionalCommands []string
 	AdditionalFiles    []Files

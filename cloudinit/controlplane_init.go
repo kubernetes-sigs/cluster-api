@@ -28,9 +28,8 @@ const (
 {{.ClusterConfiguration | Indent 6}}
       ---
 {{.InitConfiguration | Indent 6}}
-kubeadm:
-  operation: init
-  config: /tmp/kubeadm.yaml
+runcmd:
+  - [ kubeadm, init, --config, /tmp/kubeadm.yaml ]
 `
 )
 

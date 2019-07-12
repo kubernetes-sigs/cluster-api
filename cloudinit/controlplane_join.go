@@ -25,9 +25,8 @@ const (
     permissions: '0640'
     content: |
 {{.JoinConfiguration | Indent 6}}
-kubeadm:
-  operation: join
-  config: /tmp/kubeadm-controlplane-join-config.yaml
+runcmd:
+  - [ kubeadm, join, --config, /tmp/kubeadm-controlplane-join-config.yaml ] 
 `
 )
 

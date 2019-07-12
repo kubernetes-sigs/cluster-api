@@ -22,6 +22,8 @@ write_files:
     content: |
       ---
 {{.JoinConfiguration | Indent 6}}
+runcmd:
+  - [ kubeadm, join, --config, /tmp/kubeadm-node.yaml ]
 kubeadm:
   operation: join
   config: /tmp/kubeadm-node.yaml

@@ -26,6 +26,8 @@ github.com/dgrijalva/jwt-go
 github.com/evanphx/json-patch
 # github.com/ghodss/yaml v1.0.0
 github.com/ghodss/yaml
+# github.com/go-log/log v0.1.0
+github.com/go-log/log
 # github.com/go-logr/logr v0.1.0
 github.com/go-logr/logr
 # github.com/go-logr/zapr v0.1.0
@@ -124,6 +126,8 @@ github.com/onsi/gomega/matchers/support/goraph/bipartitegraph
 github.com/onsi/gomega/matchers/support/goraph/edge
 github.com/onsi/gomega/matchers/support/goraph/node
 github.com/onsi/gomega/matchers/support/goraph/util
+# github.com/openshift/kubernetes-drain v0.0.0-20190712013109-4b061affbd00
+github.com/openshift/kubernetes-drain
 # github.com/pborman/uuid v1.2.0
 github.com/pborman/uuid
 # github.com/peterbourgon/diskv v2.0.1+incompatible

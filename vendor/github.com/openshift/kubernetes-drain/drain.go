@@ -399,7 +399,7 @@ func deleteOrEvictPods(client kubernetes.Interface, pods []corev1.Pod, options *
 	}
 
 	getPodFn := func(namespace, name string) (*corev1.Pod, error) {
-		return client.CoreV1().Pods(options.Namespace).Get(name, metav1.GetOptions{})
+		return client.CoreV1().Pods(namespace).Get(name, metav1.GetOptions{})
 	}
 
 	if len(policyGroupVersion) > 0 {

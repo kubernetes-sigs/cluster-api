@@ -25,7 +25,7 @@ that becomes the control-plane.
 Many providers implementations come with helpful scripts to generate these YAMLS. Provider implementation
 can be found [here](https://github.com/Kubernetes-sigs/cluster-api#provider-implementations).  
 
-`clusterctl` also comes with additional features. Example, `clusterctl` can also take in an optional
+`clusterctl` also comes with additional features. For example, `clusterctl` can also take in an optional
 `bootstrap-only-components.yaml` to provide resources to the bootstrap cluster without also providing them
 to the target cluster post-pivot.
 
@@ -44,7 +44,7 @@ clusterctl create cluster --provider <PROVIDER> --bootstrap-type <BOOTSTRAP CLUS
 Example usage:
 
 ```
-# VMWare vSphere
+# VMware vSphere
 clusterctl create cluster --provider vsphere --bootstrap-type kind -c cluster.yaml -m machines.yaml -p provider-components.yaml --addon-components addons.yaml
 
 # Amazon AWS

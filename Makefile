@@ -1,6 +1,13 @@
 
-# Image URL to use all building/pushing image targets
-IMG ?= controller:latest
+REGISTRY ?= gcr.io/$(shell gcloud config get-value project)
+# A release does not need to define this
+MANAGER_IMAGE_NAME ?= cluster-api-bootstrap-provider-kubeadm
+MANAGER_IMAGE_TAG ?= dev
+PULL_POLICY ?= Always
+
+# Used in docker-* targets.
+MANAGER_IMAGE ?= $(REGISTRY)/$(MANAGER_IMAGE_NAME):$(MANAGER_IMAGE_TAG)
+
 # Produce CRDs that work back to Kubernetes 1.11 (no version conversion)
 CRD_OPTIONS ?= "crd:trivialVersions=true"
 
@@ -45,13 +52,13 @@ generate: controller-gen
 
 # Build the docker image
 docker-build: test
-	docker build . -t ${IMG}
+	docker build . -t ${MANAGER_IMAGE}
 	@echo "updating kustomize image patch file for manager resource"
-	sed -i'' -e 's@image: .*@image: '"${IMG}"'@' ./config/default/manager_image_patch.yaml
+	sed -i'' -e 's@image: .*@image: '"${MANAGER_IMAGE}"'@' ./config/default/manager_image_patch.yaml
 
 # Push the docker image
 docker-push:
-	docker push ${IMG}
+	docker push ${MANAGER_IMAGE}
 
 # find or download controller-gen
 # download controller-gen if necessary

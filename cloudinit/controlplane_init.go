@@ -38,7 +38,6 @@ type ControlPlaneInput struct {
 	baseUserData
 	Certificates
 
-	AdditionalFiles      []Files
 	ClusterConfiguration string
 	InitConfiguration    string
 }

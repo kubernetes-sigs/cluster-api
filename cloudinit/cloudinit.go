@@ -27,8 +27,9 @@ const (
 )
 
 type baseUserData struct {
-	Header     string
-	WriteFiles []Files
+	Header          string
+	AdditionalFiles []Files
+	WriteFiles      []Files
 }
 
 func generate(kind string, tpl string, data interface{}) (string, error) {

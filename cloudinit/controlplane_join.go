@@ -26,7 +26,7 @@ const (
     content: |
 {{.JoinConfiguration | Indent 6}}
 runcmd:
-  - [ kubeadm, join, --config, /tmp/kubeadm-controlplane-join-config.yaml ] 
+  - [ kubeadm, join, --config, /tmp/kubeadm-controlplane-join-config.yaml ]
 `
 )
 
@@ -35,10 +35,10 @@ type ControlPlaneJoinInput struct {
 	baseUserData
 	Certificates
 
-	AdditionalFiles   []Files
-	BootstrapToken    string
-	ELBAddress        string
-	JoinConfiguration string
+	AdditionalFiles     []Files
+	BootstrapToken      string
+	ControlPlaneAddress string
+	JoinConfiguration   string
 }
 
 // NewJoinControlPlane returns the user data string to be used on a new contrplplane instance.

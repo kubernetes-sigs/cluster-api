@@ -58,7 +58,11 @@ var _ = Describe("KubeadmBootstrapConfig", func() {
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "foo",
 					Namespace: "default",
-				}}
+				},
+				Status: KubeadmBootstrapConfigStatus{
+					Phase: Unknown,
+				},
+			}
 
 			By("creating an API obj")
 			Expect(k8sClient.Create(context.TODO(), created)).To(Succeed())

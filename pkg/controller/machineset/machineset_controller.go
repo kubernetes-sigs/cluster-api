@@ -46,7 +46,7 @@ import (
 )
 
 // controllerName is the name of this controller
-const controllerName = "machineset_controller"
+const controllerName = "machineset-controller"
 
 var (
 	// controllerKind contains the schema.GroupVersionKind for this controller type.

@@ -42,7 +42,7 @@ import (
 )
 
 // controllerName is the name of this controller
-const controllerName = "machinedeployment_controller"
+const controllerName = "machinedeployment-controller"
 
 var (
 	// controllerKind contains the schema.GroupVersionKind for this controller type.

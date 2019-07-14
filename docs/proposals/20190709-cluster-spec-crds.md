@@ -46,7 +46,7 @@ In Cluster API (CAPI) v1alpha1 Cluster object contains the `ClusterSpec` and `Cl
 
 The Cluster controller does not handle these fields directly. Instead, the provider-specific actuator receives the `ProviderSpec` as part of the Cluster object and sets the `ProviderStatus` to reflect the status of the cluster infrastructure. 
 
-This proposal outlines the replacement of these provider-specific embedded fields by references to objects managed by a provider controller, effectively eliminating the actuator interface. The new objects are introduced and the cooperation between the Cluster controller and the Cluster Infrastructure Controller is outlined. This process introduces a new field `InfrastructureState` which reflects the state of the provisioning process.
+This proposal outlines the replacement of these provider-specific embedded fields by references to objects managed by a provider controller, effectively eliminating the actuator interface. The new objects are introduced and the cooperation between the Cluster controller and the Cluster Infrastructure Controller is outlined. This process introduces a new field `InfrastructureReady` which reflects the state of the provisioning process.
 
 ## Motivation
 
@@ -95,15 +95,15 @@ type ClusterStatus struct
         - Description:  Provider-specific status. It is recommended that providers maintain their own versioned API types that should be serialized/deserialized from this field.
 
 - **To add**
-    - **InfrastructureState** [optional]
-       - Type: `InfrastructureState`
-       - Description: InfrastructureState indicates the state of the infrastructure provisioning process.
+    - **InfrastructureReady** [optional]
+       - Type: `bool`
+       - Description: InfrastructureReady indicates the state of the infrastructure provisioning process.
 
 ### Controller collaboration
 
 Moving the provider-specific infrastructure specs to a separate object makes a clear separation of responsibilities between the generic Cluster controller and the provider's cluster infrastructure controller, but also introduces the need for coordination as the provider controller will likely require information from the Cluster object during the cluster provisioning process.
 
-It is also necessary to model the state of the cluster along the provisioning process to be able to keep track of its progress. In order to do so, a new `ClusterInfrastructureState` field is introduced as part of the `ClusterStatus` struct. The state and their transitions conditions are explained in detail in section [States and Transition](#states-and-transitions).
+It is also necessary to model the state of the cluster along the provisioning process to be able to keep track of its progress. In order to do so, a new `InfrastructureReady` field is introduced as part of the `ClusterStatus` struct. The state and their transitions conditions are explained in detail in section [States and Transition](#states-and-transitions).
 
 The sequence diagram below describes the high-level process, collaborations and state transitions.  
 
@@ -112,21 +112,9 @@ The sequence diagram below describes the high-level process, collaborations and 
   --|--        |     API    |                |   Cluster  |               |Infrastructure|
    / \         |   Server   |                | Controller |               | Controller   |
     |          +------------+                +------------+               +--------------+
-    | Create          |                             |                             |
-    | Cluster         |                             |                             |
-    |---------------->|  New Cluster                |                             |
-    |                 |---------------------------> |                             |
-    |                 |                            +-+                            |
-    |                 |  +-----------------------------------------+              |    
-    |                 |  | IF InfrastructureRef is | |             |              |    
-    |                 |  |    not set              | |             |              |    
-    |                 |  |                         | |             |              |    
-    |                 |  | Set InfrastructureState | |             |              |    
-    |                 |  | to "Pending"            | |             |              |    
-    |                 |<-+-------------------------| |             |              |    
-    |                 |  +-----------------------------------------+              |
-    |                 |                            +-+                            |
-    |                 |                             |                             |
+    | Create Cluster  |                             |                             |
+    | Infrastructure  |                             |                             |
+    |---------------->|                             |                             |
     |                 |  New Provider Infrastructure|                             |
     |                 |-----------------------------+---------------------------->|
     |                 |                             |                            +-+
@@ -138,38 +126,29 @@ The sequence diagram below describes the high-level process, collaborations and 
     |                 |                             |  |                         | |             |
     |                 |                             |  +-----------------------------------------+
     |                 |                             |                            +-+
-    |                 |                             |                             |
-    |                 |  Cluster create/updated    +-+                            |
+    | Create Cluster  |                             |                             |
+    |---------------->|  Cluster create            +-+                            |
     |                 |--------------------------->| |                            |
-    |                 |  +---------------------------------------------+          |    
-    |                 |  | IF InfrastructureRef    | |                 |          |    
-    |                 |  |    is set               | |                 |          |    
-    |                 |  |                         | |                 |          |    
-    |                 |  | Get Infrastructure      | |                 |          |
-    |                 |<---------------------------| |                 |          |
-    |                 |  | +-----------------------------------------+ |          |    
-    |                 |  | | IF Not seen before    | |               | |          |    
-    |                 |  | |                       | |--+            | |          |    
-    |                 |  | |                       | |  | Watch      | |          |    
-    |                 |  | |                       | |  | Infra-     | |          |    
-    |                 |  | |                       | |  | structure  | |          |    
-    |                 |  | |                       | |<-+            | |          |    
-    |                 |  | +-----------------------------------------+ |          |
-    |                 |  |                         | |                 |          |
-    |                 |  | +-----------------------------------------+ |          |    
-    |                 |  | | IF Infrastructure has | |               | |          |    
-    |                 |  | |    no owner           | |               | |          |    
-    |                 |  | |                       | |               | |          |    
-    |                 |  | | Set Infrastructure's  | |               | |          |    
-    |                 |  | | owner to Cluster      | |               | |          |    
-    |                 |<-+++-----------------------| |               | |          |    
-    |                 |  | |                       | |               | |          |    
-    |                 |  | | Set InfrastructureState |               | |          |    
-    |                 |  | | to "Provisioning"     | |               | |          |    
-    |                 |<-+++-----------------------| |               | |          |    
-    |                 |  | |                       | |               | |          |    
-    |                 |  | +-----------------------------------------+ |          |
-    |                 |  +++-------------------------------------------+          |
+    |                 |    Get Infrastructure      | |                            |
+    |                 |<---------------------------| |                            |
+    |                 |    +-----------------------------------------+            |    
+    |                 |    | IF Not seen before    | |               |            |    
+    |                 |    |                       | |--+            |            |    
+    |                 |    |                       | |  | Watch      |            |    
+    |                 |    |                       | |  | Infra-     |            |    
+    |                 |    |                       | |  | structure  |            |    
+    |                 |    |                       | |<-+            |            |    
+    |                 |    +-----------------------------------------+            |
+    |                 |                            | |                            |
+    |                 |    +-----------------------------------------+            |    
+    |                 |    | IF Infrastructure has | |               |            |    
+    |                 |    |    no owner           | |               |            |    
+    |                 |    |                       | |               |            |    
+    |                 |    | Set Infrastructure's  | |               |            |    
+    |                 |    | owner to Cluster      | |               |            |    
+    |                 |<---+-----------------------| |               |            |    
+    |                 |    |                       | |               |            |    
+    |                 |    +-----------------------------------------+            |
     |                 |                            +-+                            |
     |                 |                             |                             |
     |                 |  Provider Infrastructure update                           |
@@ -197,8 +176,8 @@ The sequence diagram below describes the high-level process, collaborations and 
     |                 |  | from Infrastructuere Status             |              |    
     |                 |<-+-------------------------| |             |              |    
     |                 |  |                         | |             |              |    
-    |                 |  | Set InfrastructureStage | |             |              |    
-    |                 |  | to "Provisioned"        | |             |              |    
+    |                 |  | Set Cluster.Status.InfrastructureReady  |              |    
+    |                 |  | to "True"               | |             |              |    
     |                 |<-+-------------------------| |             |              |    
     |                 |  |                         | |             |              |    
     |                 |  +-----------------------------------------+              |
@@ -209,11 +188,15 @@ Figure 1: Cluster provisioning process
 
 Figure 1 presents the sequence of actions involved in provisioning a cluster, highlighting the coordination required between the CAPI cluster controller and the provider infrastructure controller. 
 
-The creation of the Cluster and provider infrastructure objects are independent events. When a Cluster object is created, if the `InfrastructureRef` is not set, the cluster controller will set the `InfrastructureState` to "Pending". When a provider infrastructure object is created, the provider's controller will do nothing unless its owner reference is set to a cluster. 
+The creation of the Cluster and provider infrastructure objects are independent events. It is expected that the cluster infrastructure object to be created before the cluster object and the reference be set to in the cluster object at creation time. 
 
-When the `InfrastructureRef` is set in the cluster, the cluster controller will retrieve the infrastructure object. If the object has not been seen before, it will start watching it. Also, if the object's owner is not set, it will set to the Cluster object and will set the cluster's `InfrastructureState` to "Provisioning". 
+When a provider infrastructure object is created, the provider's controller will do nothing unless its owner reference is set to a cluster object. 
 
-When an infrastructure object is updated, the provider controller will check the owner reference. If it is set, it will retrieve the cluster object to obtain the required cluster specification and starts the provisioning process. When the process finishes, it sets the `Infrastructure.Status.Ready` to true. When the cluster controller detects the `Infrastructure.Status.Ready` is set to true, it updates the Cluster statatus with informaiton from `Infrastructure.Status` (e.g. the `APIEndpoints`) and sets the status to "Provisioned".
+When the cluster object is created, the cluster controller will retrieve the infrastructure object. If the object has not been seen before, it will start watching it. Also, if the object's owner is not set, it will set to the Cluster object. 
+
+When an infrastructure object is updated, the provider controller will check the owner reference. If it is set, it will retrieve the cluster object to obtain the required cluster specification and starts the provisioning process. When the process finishes, it sets the `Infrastructure.Status.Ready` to true.
+
+When the cluster controller detects the `Infrastructure.Status.Ready` is set to true, it updates the Cluster statatus with informaiton from `Infrastructure.Status` (e.g. the `APIEndpoint`) and sets `Cluster.Status.InfrastructureReady` to true.
 
 ### States and Transitions
 
@@ -221,13 +204,14 @@ The Cluster Controller has the responsibility of managing the state transitions 
 
 #### Pending
 
-The initial state when the Cluster object has been created but there is no provider's infrastructure associated with it. 
+The initial state when the Cluster object has been created but the infrastructure object referenced by `InfrastructureRef` has not yet been associated with it. 
 
 ##### Conditions
-- `Cluster.InsfrastructureRef` is `<nil>`
+- `Cluster.InsfrastructureRef`->Metadata.OwnerRefences is `<nil>`
 
 ##### Expectations
-- When `Cluster.InfrastructureRef` is `<nil>` it is expected to be set by an external entity.
+- `InfrastructureRef->Metadata.OwnerRefences` is expected to be set by the cluster controller to refernce the cluster object.
+- `Cluster.Status.InfrastructureReady` is `False`
 
 #### Provisioning
 
@@ -235,11 +219,11 @@ The cluster has a provider infrastructure object associated. The provider can st
 
 ##### Transition Conditions
 
-- The Cluster object has the `InfrastructureRef` field set 
 - The Infrastructure object referenced by `InfrastructureRef` has its owner set to the Cluster
 
 ##### Expectations
 - The cluster infrastructure is in the process of being provisioned
+- `Cluster.Status.InfrastructureReady` is  `False`
 
 #### Provisioned
 
@@ -250,7 +234,8 @@ The provider has finished provisioning the infrastructure.
 
 ##### Expectations
 - The cluster infrastructure has been provisioned
-- Cluster status can be populated with information from the `Infrastructure.Status` such as the `APIEndpoints`
+- Cluster status has been populated with information from the `Infrastructure.Status` such as the `APIEndpoints`
+- `Cluster.Status.InfrastructureReady` is `True`
 
 ```
                +----------------+
@@ -321,7 +306,7 @@ TODO
 - [x] 03/20/2019 [Issue Opened](https://github.com/kubernetes-sigs/cluster-api/issues/833) proposing the externalization of embeded provider objects as CRDs
 - [x] 06/19/2009 [Discussed](https://github.com/kubernetes-sigs/cluster-api/issues/833#issuecomment-501380522) the inclusion in the scope of v1alpha2.
 - [x] 07/09/2019 initial version of the proposal created
-- [ ] Presentation of proposal to the community
+- [X] 07/11/2019 Presentation of proposal to the community
 - [ ] Feedback
 
 ## Drawbacks [optional]

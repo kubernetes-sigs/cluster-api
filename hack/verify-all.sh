@@ -21,8 +21,15 @@ set -o pipefail
 source "$(dirname "$0")/utils.sh"
 
 # set REPO_PATH
-REPO_PATH=$(get_root_path)
+readonly REPO_PATH=$(get_root_path)
 cd "${REPO_PATH}"
+
+failure() {
+    if [[ "${1}" != 0 ]]; then
+        res=1
+        echo "${2} failed"
+    fi
+}
 
 # exit code, if a script fails we'll set this to 1
 res=0
@@ -31,25 +38,29 @@ res=0
 
 if [[ "${VERIFY_WHITESPACE:-true}" == "true" ]]; then
   echo "[*] Verifying whitespace..."
-  hack/verify-whitespace.sh || res=1
+  hack/verify-whitespace.sh
+  failure $? "verify-whitespace.sh"
   cd "${REPO_PATH}"
 fi
 
 if [[ "${VERIFY_SPELLING:-true}" == "true" ]]; then
   echo "[*] Verifying spelling..."
-  hack/verify-spelling.sh || res=1
+  hack/verify-spelling.sh
+  failure $? "verify-spelling.sh"
   cd "${REPO_PATH}"
 fi
 
 if [[ "${VERIFY_BOILERPLATE:-true}" == "true" ]]; then
   echo "[*] Verifying boilerplate..."
-  hack/verify-boilerplate.sh || res=1
+  hack/verify-boilerplate.sh
+  failure $? "verify-boilerplate.sh"
   cd "${REPO_PATH}"
 fi
 
 if [[ "${VERIFY_GOFMT:-true}" == "true" ]]; then
   echo "[*] Verifying gofmt..."
-  hack/verify-gofmt.sh || res=1
+  hack/verify-gofmt.sh
+  failure $? "verify-gofmt.sh"
   cd "${REPO_PATH}"
 fi
 
@@ -61,7 +72,8 @@ fi
 
 if [[ "${VERIFY_GOLINT:-true}" == "true" ]]; then
   echo "[*] Verifying golint..."
-  hack/verify-golint.sh || res=1
+  hack/verify-golint.sh
+  failure $? "verify-golint.sh"
   cd "${REPO_PATH}"
 fi
 
@@ -73,25 +85,29 @@ fi
 
 if [[ "${VERIFY_DEPS:-true}" == "true" ]]; then
   echo "[*] Verifying deps..."
-  hack/verify-deps.sh || res=1
+  hack/verify-deps.sh
+  failure $? "verify-deps.sh"
   cd "${REPO_PATH}"
 fi
 
 if [[ "${VERIFY_GOTEST:-true}" == "true" ]]; then
   echo "[*] Verifying gotest..."
-  hack/verify-gotest.sh || res=1
+  hack/verify-gotest.sh
+  failure $? "verify-gotest.sh"
   cd "${REPO_PATH}"
 fi
 
 if [[ "${VERIFY_BUILD:-true}" == "true" ]]; then
   echo "[*] Verifying build..."
-  hack/verify-build.sh || res=1
+  hack/verify-build.sh
+  failure $? "verify-build.sh"
   cd "${REPO_PATH}"
 fi
 
 if [[ "${VERIFY_DOCKER_BUILD:-true}" == "true" ]]; then
   echo "[*] Verifying capd-manager docker image build..."
-  hack/verify-docker-build.sh || res=1
+  hack/verify-docker-build.sh
+  failure $? "verify-docker-build.sh"
   cd "${REPO_PATH}"
 fi
 

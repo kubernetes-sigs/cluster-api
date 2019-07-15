@@ -26,6 +26,11 @@ func CreateKindCluster(image, clusterName string) error {
 			ContainerPath: "/var/run/docker.sock",
 			HostPath:      "/var/run/docker.sock",
 		},
+		{
+
+			ContainerPath: "/var/lib/docker",
+			HostPath:      "/var/lib/docker",
+		},
 	}
 
 	cp, err := actions.CreateControlPlane(clusterName, fmt.Sprintf("%s-control-plane", clusterName), lbipv4, "v1.14.2", cpMounts)

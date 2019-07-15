@@ -17,23 +17,18 @@ limitations under the License.
 package main
 
 import (
+	"context"
 	"encoding/json"
 	"flag"
 	"fmt"
 	"os"
 
-	"github.com/pkg/errors"
 	"k8s.io/apimachinery/pkg/api/meta"
 	"k8s.io/apimachinery/pkg/runtime"
-	"k8s.io/apimachinery/pkg/runtime/schema"
-	"k8s.io/cli-runtime/pkg/genericclioptions/resource"
-	"k8s.io/client-go/discovery"
-	"k8s.io/client-go/rest"
-	"k8s.io/client-go/restmapper"
 	"k8s.io/klog"
 	"sigs.k8s.io/cluster-api-provider-docker/kind/controlplane"
 	"sigs.k8s.io/cluster-api-provider-docker/objects"
-	_ "sigs.k8s.io/cluster-api-provider-docker/objects"
+	crclient "sigs.k8s.io/controller-runtime/pkg/client"
 )
 
 // TODO: Generate the RBAC stuff from somewhere instead of copy pasta
@@ -212,90 +207,20 @@ func applyControlPlane(clusterName, capiVersion, capiImage, capdImage string) {
 		panic(err)
 	}
 
-	helper, err := NewAPIHelper(cfg)
+	client, err := crclient.New(cfg, crclient.Options{})
 	if err != nil {
 		panic(err)
 	}
 
 	for _, obj := range objects {
-		if helper.Create(obj); err != nil {
+		accessor, err := meta.Accessor(obj)
+		if err != nil {
+			panic(err)
+		}
+		fmt.Printf("creating %q %q\n", obj.GetObjectKind().GroupVersionKind().String(), accessor.GetName())
+
+		if client.Create(context.Background(), obj); err != nil {
 			panic(err)
 		}
 	}
-}
-
-type APIHelper struct {
-	cfg    *rest.Config
-	mapper meta.RESTMapper
-}
-
-func NewAPIHelper(cfg *rest.Config) (*APIHelper, error) {
-	discover, err := discovery.NewDiscoveryClientForConfig(cfg)
-	if err != nil {
-		return nil, errors.Wrap(err, "could not create discovery client")
-	}
-
-	groupResources, err := restmapper.GetAPIGroupResources(discover)
-	if err != nil {
-		return nil, errors.Wrap(err, "could not get api group resources")
-	}
-	mapper := restmapper.NewDiscoveryRESTMapper(groupResources)
-
-	return &APIHelper{
-		cfg,
-		mapper,
-	}, nil
-}
-
-func (a *APIHelper) Create(obj runtime.Object) error {
-	gvk := obj.GetObjectKind().GroupVersionKind()
-
-	a.cfg.ContentConfig = resource.UnstructuredPlusDefaultContentConfig()
-
-	client, err := rest.UnversionedRESTClientFor(a.cfg)
-	if err != nil {
-		return errors.Wrap(err, "couldn't create REST client")
-	}
-
-	accessor, err := meta.Accessor(obj)
-	if err != nil {
-		return errors.Wrap(err, "couldn't create accessor")
-	}
-
-	mapping, err := a.mapper.RESTMapping(gvk.GroupKind(), gvk.Version)
-
-	if err != nil {
-		return errors.Wrapf(err, "failed to retrieve mapping for %s %s", gvk.String(), accessor.GetName())
-	}
-
-	fmt.Printf("Creating %s %s in %q\n", gvk.String(), accessor.GetName(), accessor.GetNamespace())
-
-	result := client.
-		Post().
-		AbsPath(makeURLSegments(mapping.Resource, "", accessor.GetNamespace())...).
-		Body(obj).
-		Do()
-
-	return errors.Wrapf(result.Error(), "failed to create object %q", accessor.GetName())
-}
-
-func makeURLSegments(resource schema.GroupVersionResource, name, namespace string) []string {
-	url := []string{}
-	if len(resource.Group) == 0 {
-		url = append(url, "api")
-	} else {
-		url = append(url, "apis", resource.Group)
-	}
-	url = append(url, resource.Version)
-
-	if len(namespace) > 0 {
-		url = append(url, "namespaces", namespace)
-	}
-	url = append(url, resource.Resource)
-
-	if len(name) > 0 {
-		url = append(url, name)
-	}
-
-	return url
 }

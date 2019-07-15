@@ -91,7 +91,7 @@ func GetStatefulSet(image string) apps.StatefulSet {
 					Tolerations: []core.Toleration{
 						{
 							Key:    constants.LabelNodeRoleMaster,
-							Effect: core.TaintEffectNoExecute,
+							Effect: core.TaintEffectNoSchedule,
 						},
 						{
 							Key:      "CriticalAddonsOnly",

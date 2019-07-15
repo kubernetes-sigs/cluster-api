@@ -73,6 +73,8 @@ func GetStatefulSet(image string) apps.StatefulSet {
 							Image: image,
 							Command: []string{
 								"capd-manager",
+								"-v=3",
+								"-logtostderr=true",
 							},
 							VolumeMounts: []core.VolumeMount{
 								{

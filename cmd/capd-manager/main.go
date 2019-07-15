@@ -17,10 +17,11 @@ limitations under the License.
 package main
 
 import (
-	"fmt"
+	"flag"
 	"time"
 
 	"k8s.io/client-go/kubernetes"
+	"k8s.io/klog"
 	"k8s.io/klog/klogr"
 	"sigs.k8s.io/cluster-api-provider-docker/actuators"
 	"sigs.k8s.io/cluster-api-provider-docker/logger"
@@ -35,6 +36,9 @@ import (
 )
 
 func main() {
+	klog.InitFlags(flag.CommandLine)
+	flag.Parse()
+
 	cfg, err := config.GetConfig()
 	if err != nil {
 		panic(err)
@@ -86,7 +90,8 @@ func main() {
 	if err := capicluster.AddWithActuator(mgr, &clusterActuator); err != nil {
 		panic(err)
 	}
-	fmt.Println("starting the controller...!")
+
+	klogr.New().Info("Starting the controller")
 
 	if err := mgr.Start(signals.SetupSignalHandler()); err != nil {
 		panic(err)

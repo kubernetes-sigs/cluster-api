@@ -66,22 +66,21 @@ func RandomString(n int) string {
 	return string(result)
 }
 
-// GetControlPlaneMachine returns a control plane machine from input.
-// Deprecated: use GetControlPlaneMachines.
-func GetControlPlaneMachine(machines []*clusterv1.Machine) *clusterv1.Machine {
-	for _, machine := range machines {
-		if IsControlPlaneMachine(machine) {
-			return machine
-		}
-	}
-	return nil
-}
-
 // GetControlPlaneMachines returns a slice containing control plane machines.
 func GetControlPlaneMachines(machines []*clusterv1.Machine) (res []*clusterv1.Machine) {
 	for _, machine := range machines {
 		if IsControlPlaneMachine(machine) {
 			res = append(res, machine)
+		}
+	}
+	return
+}
+
+// GetControlPlaneMachinesFromList returns a slice containing control plane machines.
+func GetControlPlaneMachinesFromList(machineList clusterv1.MachineList) (res []*clusterv1.Machine) {
+	for _, machine := range machineList.Items {
+		if IsControlPlaneMachine(&machine) {
+			res = append(res, &machine)
 		}
 	}
 	return

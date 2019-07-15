@@ -17,26 +17,18 @@ limitations under the License.
 package main
 
 import (
-	"archive/tar"
-	"bytes"
-	"compress/gzip"
+	"context"
 	"encoding/json"
 	"flag"
 	"fmt"
-	"io"
-	"io/ioutil"
-	"net/http"
 	"os"
-	"strings"
-	"time"
 
-	"github.com/pkg/errors"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"sigs.k8s.io/cluster-api-provider-docker/kind/actions"
-	"sigs.k8s.io/cluster-api/pkg/apis/cluster/v1alpha1"
-	"sigs.k8s.io/kind/pkg/cluster/nodes"
-	"sigs.k8s.io/kind/pkg/container/cri"
-	"sigs.k8s.io/kind/pkg/exec"
+	"k8s.io/apimachinery/pkg/api/meta"
+	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/klog"
+	"sigs.k8s.io/cluster-api-provider-docker/kind/controlplane"
+	"sigs.k8s.io/cluster-api-provider-docker/objects"
+	crclient "sigs.k8s.io/controller-runtime/pkg/client"
 )
 
 // TODO: Generate the RBAC stuff from somewhere instead of copy pasta
@@ -58,12 +50,12 @@ func (mo *machineOptions) initFlags(fs *flag.FlagSet) {
 	mo.version = fs.String("version", "v1.14.2", "The Kubernetes version to run")
 }
 
-type machineDeyploymentOptions struct {
+type machineDeploymentOptions struct {
 	name, namespace, clusterName, kubeletVersion *string
 	replicas                                     *int
 }
 
-func (mo *machineDeyploymentOptions) initFlags(fs *flag.FlagSet) {
+func (mo *machineDeploymentOptions) initFlags(fs *flag.FlagSet) {
 	mo.name = fs.String("name", "my-machine-deployment", "The name of the machine deployment")
 	mo.namespace = fs.String("namespace", "my-namespace", "The namespace of the machine deployment")
 	mo.clusterName = fs.String("cluster-name", "my-cluster", "The name of the cluster the machine deployment creates machines for")
@@ -93,8 +85,11 @@ func main() {
 	clusterNamespace := cluster.String("namespace", "my-namespace", "The namespace the cluster belongs to")
 
 	machineDeployment := flag.NewFlagSet("machine-deployment", flag.ExitOnError)
-	machineDeploymentOpts := new(machineDeyploymentOptions)
+	machineDeploymentOpts := new(machineDeploymentOptions)
 	machineDeploymentOpts.initFlags(machineDeployment)
+
+	kflags := flag.NewFlagSet("klog", flag.ExitOnError)
+	klog.InitFlags(kflags)
 
 	if len(os.Args) < 2 {
 		fmt.Println("At least one subcommand is requied.")
@@ -106,6 +101,9 @@ func main() {
 	case "setup":
 		setup.Parse(os.Args[2:])
 		makeManagementCluster(*managementClusterName, *version, *capdImage, *capiImage)
+	case "apply":
+		kflags.Parse(os.Args[2:])
+		applyControlPlane(*managementClusterName, *version, *capiImage, *capdImage)
 	case "control-plane":
 		controlPlane.Parse(os.Args[2:])
 		fmt.Fprintf(os.Stdout, machineYAML(controlPlaneOpts))
@@ -124,6 +122,8 @@ func main() {
 		fmt.Println(usage())
 		os.Exit(1)
 	}
+
+	klog.Flush()
 }
 
 func usage() string {
@@ -154,90 +154,24 @@ subcommands are:
 `
 }
 
-func clusterYAML(name, namespace string) string {
-	return fmt.Sprintf(`apiVersion: "cluster.k8s.io/v1alpha1"
-kind: Cluster
-metadata:
-  name: %s
-  namespace: %s
-spec:
-  clusterNetwork:
-    services:
-      cidrBlocks: ["10.96.0.0/12"]
-    pods:
-      cidrBlocks: ["192.168.0.0/16"]
-    serviceDomain: "cluster.local"
-  providerSpec: {}`, name, namespace)
-}
-
-func machineDeploymentYAML(opts *machineDeyploymentOptions) string {
-	replicas := int32(*opts.replicas)
-	labels := map[string]string{
-		"cluster.k8s.io/cluster-name": *opts.clusterName,
-		"set":                         "node",
-	}
-	deployment := v1alpha1.MachineDeployment{
-		TypeMeta: metav1.TypeMeta{
-			Kind:       "MachineDeployment",
-			APIVersion: "cluster.k8s.io/v1alpha1",
-		},
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      *opts.name,
-			Namespace: *opts.namespace,
-			Labels:    labels,
-		},
-		Spec: v1alpha1.MachineDeploymentSpec{
-			Replicas: &replicas,
-			Selector: metav1.LabelSelector{
-				MatchLabels: labels,
-			},
-			Template: v1alpha1.MachineTemplateSpec{
-				ObjectMeta: metav1.ObjectMeta{
-					Labels: labels,
-				},
-				Spec: v1alpha1.MachineSpec{
-					ProviderSpec: v1alpha1.ProviderSpec{},
-					Versions: v1alpha1.MachineVersionInfo{
-						Kubelet: *opts.kubeletVersion,
-					},
-				},
-			},
-		},
-	}
-
-	b, err := json.Marshal(deployment)
-	// TODO don't panic on the error
-	if err != nil {
-		panic(err)
-	}
-	return string(b)
+func clusterYAML(clusterName, namespace string) string {
+	cluster := objects.GetCluster(clusterName, namespace)
+	return marshal(&cluster)
 }
 
 func machineYAML(opts *machineOptions) string {
-	machine := v1alpha1.Machine{
-		TypeMeta: metav1.TypeMeta{
-			Kind:       "Machine",
-			APIVersion: "cluster.k8s.io/v1alpha1",
-		},
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      *opts.name,
-			Namespace: *opts.namespace,
-			Labels: map[string]string{
-				"cluster.k8s.io/cluster-name": *opts.clusterName,
-				"set":                         *opts.set,
-			},
-		},
-		Spec: v1alpha1.MachineSpec{
-			ProviderSpec: v1alpha1.ProviderSpec{},
-		},
-	}
-	if *opts.set == controlPlaneSet {
-		machine.Spec.Versions.ControlPlane = *opts.version
-	}
-	if *opts.set == "worker" {
-		machine.Spec.Versions.Kubelet = *opts.version
-	}
-	b, err := json.Marshal(machine)
+	machine := objects.GetMachine(*opts.name, *opts.namespace, *opts.clusterName, *opts.set, *opts.version)
+	return marshal(&machine)
+}
+
+func machineDeploymentYAML(opts *machineDeploymentOptions) string {
+	machineDeploy := objects.GetMachineDeployment(*opts.name, *opts.namespace, *opts.clusterName, *opts.kubeletVersion, int32(*opts.replicas))
+	return marshal(&machineDeploy)
+
+}
+
+func marshal(obj runtime.Object) string {
+	b, err := json.Marshal(obj)
 	// TODO don't panic on the error
 	if err != nil {
 		panic(err)
@@ -251,254 +185,42 @@ func makeManagementCluster(clusterName, capiVersion, capdImage, capiImageOverrid
 	if capiImageOverride != "" {
 		capiImage = capiImageOverride
 	}
-	elb, err := actions.SetUpLoadBalancer(clusterName)
-	if err != nil {
+
+	if err := controlplane.CreateKindCluster(capiImage, clusterName); err != nil {
 		panic(err)
 	}
-	lbipv4, _, err := elb.IP()
-	if err != nil {
-		panic(err)
-	}
-	cpMounts := []cri.Mount{
-		{
-			ContainerPath: "/var/run/docker.sock",
-			HostPath:      "/var/run/docker.sock",
-		},
-	}
-	cp, err := actions.CreateControlPlane(clusterName, fmt.Sprintf("%s-control-plane", clusterName), lbipv4, "v1.14.2", cpMounts)
-	if err != nil {
-		panic(err)
-	}
-	if !nodes.WaitForReady(cp, time.Now().Add(5*time.Minute)) {
-		panic(errors.New("control plane was not ready in 5 minutes"))
-	}
-	f, err := ioutil.TempFile("", "crds")
-	if err != nil {
-		panic(err)
-	}
-	defer os.Remove(f.Name())
+
+	applyControlPlane(clusterName, capiVersion, capiImage, capdImage)
+}
+
+func applyControlPlane(clusterName, capiVersion, capiImage, capdImage string) {
 	fmt.Println("Downloading the latest CRDs for CAPI version", capiVersion)
-	crds, err := getCRDs(capiVersion, capiImage)
+	objects, err := objects.GetManegementCluster(capiVersion, capiImage, capdImage)
 	if err != nil {
 		panic(err)
 	}
-	fmt.Fprintln(f, crds)
-	fmt.Fprintln(f, "---")
-	fmt.Fprintln(f, capdRBAC)
-	fmt.Fprintln(f, "---")
-	fmt.Fprintln(f, getCAPDPlane(capdImage))
-	fmt.Println("Applying the control plane", f.Name())
-	cmd := exec.Command("kubectl", "apply", "-f", f.Name())
-	cmd.SetEnv(fmt.Sprintf("KUBECONFIG=%s/.kube/kind-config-%s", os.Getenv("HOME"), clusterName))
-	cmd.SetStdout(os.Stdout)
-	cmd.SetStderr(os.Stderr)
-	if err := cmd.Run(); err != nil {
-		out, _ := ioutil.ReadFile(f.Name())
-		fmt.Println(out)
+
+	fmt.Println("Applying the control plane")
+
+	cfg, err := controlplane.GetKubeconfig(clusterName)
+	if err != nil {
 		panic(err)
 	}
-}
 
-func getCAPDPlane(capdImage string) string {
-	return fmt.Sprintf(capiPlane, capdImage)
-}
-
-var capiPlane = `
-apiVersion: v1
-kind: Namespace
-metadata:
-  labels:
-    controller-tools.k8s.io: "1.0"
-  name: docker-provider-system
----
-apiVersion: apps/v1
-kind: StatefulSet
-metadata:
-  labels:
-    control-plane: controller-manager
-  name: docker-provider-controller-manager
-  namespace: docker-provider-system
-spec:
-  selector:
-    matchLabels:
-      control-plane: controller-manager
-  serviceName: docker-provider-controller-manager-service
-  template:
-    metadata:
-      labels:
-        control-plane: controller-manager
-    spec:
-      containers:
-      - name: capd-manager
-        image: %s
-        command:
-        - capd-manager
-        volumeMounts:
-        - mountPath: /var/run/docker.sock
-          name: dockersock
-        - mountPath: /var/lib/docker
-          name: dockerlib
-        securityContext:
-          privileged: true
-      volumes:
-      - name: dockersock
-        hostPath:
-          path: /var/run/docker.sock
-          type: Socket
-      - name: dockerlib
-        hostPath:
-          path: /var/lib/docker
-      tolerations:
-      - effect: NoSchedule
-        key: node-role.kubernetes.io/master
-      - key: CriticalAddonsOnly
-        operator: Exists
-      - effect: NoExecute
-        key: node.alpha.kubernetes.io/notReady
-        operator: Exists
-      - effect: NoExecute
-        key: node.alpha.kubernetes.io/unreachable
-        operator: Exists
-`
-
-// getCRDs should actually use kustomize to correctly build the manager yaml.
-// HACK: this is a hacked function
-func getCRDs(version, capiImage string) (string, error) {
-	crds := []string{"crds", "rbac", "manager"}
-	releaseCode := fmt.Sprintf("https://github.com/kubernetes-sigs/cluster-api/archive/%s.tar.gz", version)
-
-	resp, err := http.Get(releaseCode)
+	client, err := crclient.New(cfg, crclient.Options{})
 	if err != nil {
-		return "", errors.WithStack(err)
+		panic(err)
 	}
 
-	gz, err := gzip.NewReader(resp.Body)
-	if err != nil {
-		return "", errors.WithStack(err)
-	}
-
-	tgz := tar.NewReader(gz)
-	var buf bytes.Buffer
-
-	for {
-		header, err := tgz.Next()
-
-		if err == io.EOF {
-			break
-		}
-
+	for _, obj := range objects {
+		accessor, err := meta.Accessor(obj)
 		if err != nil {
-			return "", errors.WithStack(err)
+			panic(err)
 		}
+		fmt.Printf("creating %q %q\n", obj.GetObjectKind().GroupVersionKind().String(), accessor.GetName())
 
-		switch header.Typeflag {
-		case tar.TypeDir:
-			continue
-		case tar.TypeReg:
-			for _, crd := range crds {
-				// Skip the kustomization files for now. Would like to use kustomize in future
-				if strings.HasSuffix(header.Name, "kustomization.yaml") {
-					continue
-				}
-
-				// This is a poor person's kustomize
-				if strings.HasSuffix(header.Name, "manager.yaml") {
-					var managerBuf bytes.Buffer
-					io.Copy(&managerBuf, tgz)
-					lines := strings.Split(managerBuf.String(), "\n")
-					for _, line := range lines {
-						if strings.Contains(line, "image:") {
-							buf.WriteString(strings.Replace(line, "image: controller:latest", fmt.Sprintf("image: %s", capiImage), 1))
-							buf.WriteString("\n")
-							continue
-						}
-						buf.WriteString(line)
-						buf.WriteString("\n")
-					}
-				}
-
-				// These files don't need kustomize at all.
-				if strings.Contains(header.Name, fmt.Sprintf("config/%s/", crd)) {
-					io.Copy(&buf, tgz)
-					fmt.Fprintln(&buf, "---")
-				}
-			}
+		if client.Create(context.Background(), obj); err != nil {
+			panic(err)
 		}
 	}
-	return buf.String(), nil
 }
-
-var capdRBAC = `apiVersion: rbac.authorization.k8s.io/v1
-kind: ClusterRole
-metadata:
-  name: docker-provider-manager-role
-rules:
-- apiGroups:
-  - cluster.k8s.io
-  resources:
-  - clusters
-  - clusters/status
-  verbs:
-  - get
-  - list
-  - watch
-  - create
-  - update
-  - patch
-  - delete
-- apiGroups:
-  - cluster.k8s.io
-  resources:
-  - machines
-  - machines/status
-  - machinedeployments
-  - machinedeployments/status
-  - machinesets
-  - machinesets/status
-  - machineclasses
-  verbs:
-  - get
-  - list
-  - watch
-  - create
-  - update
-  - patch
-  - delete
-- apiGroups:
-  - cluster.k8s.io
-  resources:
-  - clusters
-  - clusters/status
-  verbs:
-  - get
-  - list
-  - watch
-- apiGroups:
-  - ""
-  resources:
-  - nodes
-  - events
-  - secrets
-  verbs:
-  - get
-  - list
-  - watch
-  - create
-  - update
-  - patch
-  - delete
----
-apiVersion: rbac.authorization.k8s.io/v1
-kind: ClusterRoleBinding
-metadata:
-  creationTimestamp: null
-  name: docker-provider-manager-rolebinding
-roleRef:
-  apiGroup: rbac.authorization.k8s.io
-  kind: ClusterRole
-  name: docker-provider-manager-role
-subjects:
-- kind: ServiceAccount
-  name: default
-  namespace: docker-provider-system
-`

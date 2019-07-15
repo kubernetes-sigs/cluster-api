@@ -114,8 +114,10 @@ func (r *ReconcileMachine) Reconcile(request reconcile.Request) (reconcile.Resul
 
 	// Cluster might be nil as some providers might not require a cluster object
 	// for machine management.
-	cluster, err := r.getCluster(ctx, m)
-	if err != nil {
+	cluster, err := util.GetClusterFromMetadata(ctx, r.Client, m.ObjectMeta)
+	if errors.Cause(err) == util.ErrNoCluster {
+		klog.Infof("Machine %q in namespace %q doesn't specify %q label, assuming nil cluster", m.Name, m.Namespace, clusterv1.MachineClusterLabelName)
+	} else if err != nil {
 		return reconcile.Result{}, err
 	}
 
@@ -202,25 +204,6 @@ func (r *ReconcileMachine) Reconcile(request reconcile.Request) (reconcile.Resul
 	}
 
 	return reconcile.Result{}, nil
-}
-
-func (r *ReconcileMachine) getCluster(ctx context.Context, machine *clusterv1.Machine) (*clusterv1.Cluster, error) {
-	if machine.Labels[clusterv1.MachineClusterLabelName] == "" {
-		klog.Infof("Machine %q in namespace %q doesn't specify %q label, assuming nil cluster", machine.Name, machine.Namespace, clusterv1.MachineClusterLabelName)
-		return nil, nil
-	}
-
-	cluster := &clusterv1.Cluster{}
-	key := client.ObjectKey{
-		Namespace: machine.Namespace,
-		Name:      machine.Labels[clusterv1.MachineClusterLabelName],
-	}
-
-	if err := r.Client.Get(ctx, key, cluster); err != nil {
-		return nil, err
-	}
-
-	return cluster, nil
 }
 
 var (

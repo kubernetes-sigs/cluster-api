@@ -171,8 +171,10 @@ func (r *ReconcileMachineDeployment) reconcile(ctx context.Context, d *v1alpha2.
 
 	// Cluster might be nil as some providers might not require a cluster object
 	// for machine management.
-	cluster, err := r.getCluster(d)
-	if err != nil {
+	cluster, err := util.GetClusterFromMetadata(ctx, r.Client, d.ObjectMeta)
+	if errors.Cause(err) == util.ErrNoCluster {
+		klog.Infof("MachineDeployment %q in namespace %q doesn't specify %q label, assuming nil cluster", d.Name, d.Namespace, v1alpha2.MachineClusterLabelName)
+	} else if err != nil {
 		return reconcile.Result{}, err
 	}
 
@@ -247,7 +249,6 @@ func (r *ReconcileMachineDeployment) getCluster(d *v1alpha2.MachineDeployment) (
 
 // getMachineSetsForDeployment returns a list of MachineSets associated with a MachineDeployment.
 func (r *ReconcileMachineDeployment) getMachineSetsForDeployment(d *v1alpha2.MachineDeployment) ([]*v1alpha2.MachineSet, error) {
-
 	// List all MachineSets to find those we own but that no longer match our selector.
 	machineSets := &v1alpha2.MachineSetList{}
 	if err := r.Client.List(context.Background(), machineSets, client.InNamespace(d.Namespace)); err != nil {

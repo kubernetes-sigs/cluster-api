@@ -14,31 +14,43 @@ see-also:
 
 # Cluster Spec & Status CRDs
 
-
 ## Table of Contents
 
-- [Title](#title)
-  - [Table of Contents](#table-of-contents)
-  - [Summary](#summary)
-  - [Motivation](#motivation)
-    - [Goals](#goals)
-    - [Non-Goals](#non-goals)
-  - [Proposal](#proposal)
-    * [Data model changes](#data-model-changes)
-    * [Controller collaboration[#controller-collaboration)
-    - [User Stories [optional]](#user-stories-optional)
-    - [Implementation Details/Notes/Constraints [optional]](#implementation-detailsnotesconstraints-optional)
-    - [Risks and Mitigations](#risks-and-mitigations)
-  - [Design Details](#design-details)
-    - [Test Plan](#test-plan)
-    - [Graduation Criteria](#graduation-criteria)
-    - [Upgrade / Downgrade Strategy](#upgrade--downgrade-strategy)
-    - [Version Skew Strategy](#version-skew-strategy)
-  - [Implementation History](#implementation-history)
-  - [Drawbacks [optional]](#drawbacks-optional)
-  - [Alternatives [optional]](#alternatives-optional)
-  - [Infrastructure Needed [optional]](#infrastructure-needed-optional)
-
+   * [Cluster Spec &amp; Status CRDs](#cluster-spec--status-crds)
+      * [Table of Contents](#table-of-contents)
+      * [Summary](#summary)
+      * [Motivation](#motivation)
+         * [Goals](#goals)
+         * [Non-Goals/Future Work](#non-goalsfuture-work)
+      * [Proposal](#proposal)
+         * [Data Model changes](#data-model-changes)
+         * [Controller collaboration](#controller-collaboration)
+         * [States and Transitions](#states-and-transitions)
+            * [Pending](#pending)
+               * [Conditions](#conditions)
+               * [Expectations](#expectations)
+            * [Provisioning](#provisioning)
+               * [Transition Conditions](#transition-conditions)
+               * [Expectations](#expectations-1)
+            * [Provisioned](#provisioned)
+               * [Transition Conditions](#transition-conditions-1)
+               * [Expectations](#expectations-2)
+         * [User Stories](#user-stories)
+            * [As an infrastructure provider author, I would like to take advantage of the Kubernetes API to provide validation for provider-specific data needed to provision a cluster infrastructure.](#as-an-infrastructure-provider-author-i-would-like-to-take-advantage-of-the-kubernetes-api-to-provide-validation-for-provider-specific-data-needed-to-provision-a-cluster-infrastructure)
+            * [As an infrastructure provider author, I would like to build a controller to manage provisioning cluster infrastructure using tools of my own choosing.](#as-an-infrastructure-provider-author-i-would-like-to-build-a-controller-to-manage-provisioning-cluster-infrastructure-using-tools-of-my-own-choosing)
+            * [As an infrastructure provider author, I would like to build a controller to manage provisioning clusters without being restricted to a CRUD API.](#as-an-infrastructure-provider-author-i-would-like-to-build-a-controller-to-manage-provisioning-clusters-without-being-restricted-to-a-crud-api)
+         * [Implementation Details/Notes/Constraints](#implementation-detailsnotesconstraints)
+            * [Role of Cluster Controller](#role-of-cluster-controller)
+            * [Cluster Controller dynamic watchers](#cluster-controller-dynamic-watchers)
+         * [Risks and Mitigations](#risks-and-mitigations)
+      * [Design Details](#design-details)
+         * [Test Plan](#test-plan)
+         * [Graduation Criteria](#graduation-criteria)
+         * [Upgrade / Downgrade Strategy](#upgrade--downgrade-strategy)
+         * [Version Skew Strategy](#version-skew-strategy)
+      * [Implementation History](#implementation-history)
+      * [Drawbacks [optional]](#drawbacks-optional)
+      * [Alternatives [optional]](#alternatives-optional)
 
 ## Summary
 
@@ -173,7 +185,7 @@ The sequence diagram below describes the high-level process, collaborations and 
     |                 |  | IF Infrastructure.Status.Ready          |              |    
     |                 |  |                         | |             |              |    
     |                 |  | Update Cluster Status   | |             |              |    
-    |                 |  | from Infrastructuere Status             |              |    
+    |                 |  | from Infrastructure Status             |              |    
     |                 |<-+-------------------------| |             |              |    
     |                 |  |                         | |             |              |    
     |                 |  | Set Cluster.Status.InfrastructureReady  |              |    
@@ -196,7 +208,7 @@ When the cluster object is created, the cluster controller will retrieve the inf
 
 When an infrastructure object is updated, the provider controller will check the owner reference. If it is set, it will retrieve the cluster object to obtain the required cluster specification and starts the provisioning process. When the process finishes, it sets the `Infrastructure.Status.Ready` to true.
 
-When the cluster controller detects the `Infrastructure.Status.Ready` is set to true, it updates the Cluster statatus with informaiton from `Infrastructure.Status` (e.g. the `APIEndpoint`) and sets `Cluster.Status.InfrastructureReady` to true.
+When the cluster controller detects the `Infrastructure.Status.Ready` is set to true, it updates the Cluster status with information from `Infrastructure.Status` (e.g. `APIEndpoint`) and sets `Cluster.Status.InfrastructureReady` to true.
 
 ### States and Transitions
 
@@ -210,7 +222,7 @@ The initial state when the Cluster object has been created but the infrastructur
 - `Cluster.InsfrastructureRef`->Metadata.OwnerRefences is `<nil>`
 
 ##### Expectations
-- `InfrastructureRef->Metadata.OwnerRefences` is expected to be set by the cluster controller to refernce the cluster object.
+- `InfrastructureRef->Metadata.OwnerRefences` is expected to be set by the cluster controller to reference the cluster object.
 - `Cluster.Status.InfrastructureReady` is `False`
 
 #### Provisioning

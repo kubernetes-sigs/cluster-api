@@ -758,14 +758,6 @@ spec:
                         description: Token is used for establishing bidirectional
                           trust between nodes and control-planes. Used for joining
                           nodes in the cluster.
-                        properties:
-                          id:
-                            type: string
-                          secret:
-                            type: string
-                        required:
-                        - id
-                        - secret
                         type: object
                       ttl:
                         description: TTL defines the time to live for this token.

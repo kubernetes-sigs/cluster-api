@@ -28,5 +28,6 @@ type Log struct {
 }
 
 func (k Log) Error(err error, msg string, keysAndValues ...interface{}) {
-	k.Logger.Error(err, msg, "stacktrace", fmt.Sprintf("%+v", err), keysAndValues)
+	keysAndValues = append(keysAndValues, "stacktrace", fmt.Sprintf("%+v", err))
+	k.Logger.Error(err, msg, keysAndValues...)
 }

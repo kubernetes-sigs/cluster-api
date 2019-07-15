@@ -33,11 +33,14 @@ import (
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
+	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/util/json"
 	"k8s.io/apimachinery/pkg/util/yaml"
 	"k8s.io/klog"
 	clusterv1 "sigs.k8s.io/cluster-api/pkg/apis/cluster/v1alpha2"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/handler"
+	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 )
 
 const (
@@ -78,7 +81,7 @@ func GetControlPlaneMachines(machines []*clusterv1.Machine) (res []*clusterv1.Ma
 }
 
 // GetControlPlaneMachinesFromList returns a slice containing control plane machines.
-func GetControlPlaneMachinesFromList(machineList clusterv1.MachineList) (res []*clusterv1.Machine) {
+func GetControlPlaneMachinesFromList(machineList *clusterv1.MachineList) (res []*clusterv1.Machine) {
 	for _, machine := range machineList.Items {
 		if IsControlPlaneMachine(&machine) {
 			res = append(res, &machine)
@@ -170,6 +173,32 @@ func GetClusterByName(ctx context.Context, c client.Client, namespace, name stri
 	}
 
 	return cluster, nil
+}
+
+// MachineToInfrastructureMapFunc returns a handler.ToRequestsFunc that watches for
+// Machine events and returns reconciliation requests for an infrastructure provider object.
+func MachineToInfrastructureMapFunc(gvk schema.GroupVersionKind) handler.ToRequestsFunc {
+	return func(o handler.MapObject) []reconcile.Request {
+		m, ok := o.Object.(*clusterv1.Machine)
+		if !ok {
+			return nil
+		}
+
+		// Return early if the GroupVersionKind doesn't match what we expect.
+		infraGVK := m.Spec.InfrastructureRef.GroupVersionKind()
+		if gvk != infraGVK {
+			return nil
+		}
+
+		return []reconcile.Request{
+			{
+				NamespacedName: client.ObjectKey{
+					Namespace: m.Namespace,
+					Name:      m.Spec.InfrastructureRef.Name,
+				},
+			},
+		}
+	}
 }
 
 // HasOwnerRef returns true if the OwnerReference is already in the slice.

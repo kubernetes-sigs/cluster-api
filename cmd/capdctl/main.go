@@ -74,7 +74,7 @@ func (mo *machineDeyploymentOptions) initFlags(fs *flag.FlagSet) {
 func main() {
 	setup := flag.NewFlagSet("setup", flag.ExitOnError)
 	managementClusterName := setup.String("cluster-name", "management", "The name of the management cluster")
-	version := setup.String("capi-version", "v0.1.4", "The CRD versions to pull from CAPI")
+	version := setup.String("capi-version", "v0.1.6", "The CRD versions to pull from CAPI. Does not support < v0.1.6.")
 	capdImage := setup.String("capd-image", "gcr.io/kubernetes1-226021/capd-manager:latest", "The capd manager image to run")
 	capiImage := setup.String("capi-image", "", "This is normally left blank and filled in automatically. But this will override the generated image name.")
 
@@ -247,7 +247,7 @@ func machineYAML(opts *machineOptions) string {
 
 func makeManagementCluster(clusterName, capiVersion, capdImage, capiImageOverride string) {
 	fmt.Println("Creating a brand new cluster")
-	capiImage := fmt.Sprintf("gcr.io/k8s-cluster-api/cluster-api-controller:%s", capiVersion)
+	capiImage := fmt.Sprintf("us.gcr.io/k8s-artifacts-prod/cluster-api/cluster-api-controller:%s", capiVersion)
 	if capiImageOverride != "" {
 		capiImage = capiImageOverride
 	}

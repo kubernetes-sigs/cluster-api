@@ -25,6 +25,7 @@ import (
 
 const clusterRoleName = "docker-provider-manager-role"
 
+// GetClusterRole returns the cluster role capi needs to function properly
 func GetClusterRole() rbac.ClusterRole {
 	return rbac.ClusterRole{
 		ObjectMeta: meta.ObjectMeta{
@@ -95,6 +96,7 @@ func GetClusterRole() rbac.ClusterRole {
 	}
 }
 
+// GetClusterRoleBinding returns the binding for the role created by GetClusterRole
 func GetClusterRoleBinding() rbac.ClusterRoleBinding {
 	return rbac.ClusterRoleBinding{
 		ObjectMeta: meta.ObjectMeta{

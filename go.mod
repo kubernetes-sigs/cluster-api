@@ -24,12 +24,9 @@ require (
 	golang.org/x/sys v0.0.0-20190710143415-6ec70d6a5542 // indirect
 	golang.org/x/text v0.3.2 // indirect
 	golang.org/x/time v0.0.0-20190308202827-9d24e82272b4 // indirect
-	golang.org/x/tools v0.0.0-20190710184609-286818132824 // indirect
-	golang.org/x/tools/gopls v0.1.3 // indirect
 	k8s.io/api v0.0.0-20190703205437-39734b2a72fe
 	k8s.io/apiextensions-apiserver v0.0.0-20181213153335-0fe22c71c476 // indirect
 	k8s.io/apimachinery v0.0.0-20190703205208-4cfb76a8bf76
-	k8s.io/cli-runtime v0.0.0-20190704050804-7ea68ffa02c5
 	k8s.io/client-go v11.0.0+incompatible
 	k8s.io/cluster-bootstrap v0.0.0-20181213155137-5f9271efc2e7 // indirect
 	k8s.io/klog v0.3.0

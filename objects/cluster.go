@@ -23,6 +23,7 @@ import (
 
 const controlPlaneSet = "controlplane"
 
+// GetMachineDeployment returns a worker node machine deployment object
 func GetMachineDeployment(name, namespace, clusterName, kubeletVersion string, replicas int32) capi.MachineDeployment {
 	labels := map[string]string{
 		"cluster.k8s.io/cluster-name": clusterName,
@@ -54,6 +55,7 @@ func GetMachineDeployment(name, namespace, clusterName, kubeletVersion string, r
 	}
 }
 
+// GetCluster returns a cluster object with the given name and namespace
 func GetCluster(clusterName, namespace string) capi.Cluster {
 	return capi.Cluster{
 		ObjectMeta: meta.ObjectMeta{
@@ -74,6 +76,7 @@ func GetCluster(clusterName, namespace string) capi.Cluster {
 	}
 }
 
+// GetMachine returns a machine with the given parameters
 func GetMachine(name, namespace, clusterName, set, version string) capi.Machine {
 	machine := capi.Machine{
 		ObjectMeta: meta.ObjectMeta{

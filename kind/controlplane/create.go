@@ -26,6 +26,7 @@ import (
 	"sigs.k8s.io/kind/pkg/container/cri"
 )
 
+// CreateKindCluster sets up a  KIND cluster and turns it into a CAPD control plane
 func CreateKindCluster(image, clusterName string) error {
 	lb, err := actions.SetUpLoadBalancer(clusterName)
 	if err != nil {

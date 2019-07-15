@@ -25,6 +25,7 @@ import (
 // TODO: Add version number?
 const userAgent = "capdctl"
 
+// GetKubeconfig retrieves and parsing the kind cluster config
 func GetKubeconfig(clusterName string) (*rest.Config, error) {
 	ctx := cluster.NewContext(clusterName)
 	path := ctx.KubeConfigPath()

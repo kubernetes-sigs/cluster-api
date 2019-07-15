@@ -26,6 +26,7 @@ import (
 
 const namespace = "docker-provider-system"
 
+// GetNamespace returns a  "docker-provider-system" namespace object
 func GetNamespace() core.Namespace {
 	return core.Namespace{
 		ObjectMeta: meta.ObjectMeta{
@@ -48,6 +49,7 @@ const (
 	dockerLibPath        = "/var/lib/docker"
 )
 
+// GetStatefulSet returns a statefulset for running CAPD with the given image name
 func GetStatefulSet(image string) apps.StatefulSet {
 	return apps.StatefulSet{
 		ObjectMeta: meta.ObjectMeta{

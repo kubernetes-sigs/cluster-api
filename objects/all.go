@@ -20,6 +20,7 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 )
 
+// GetManegementCluster returns all the objects needed to create a working CAPD management cluster
 func GetManegementCluster(version, capiImage, capdImage string) ([]runtime.Object, error) {
 	capiObjects, err := GetCAPI(version, capiImage)
 	if err != nil {

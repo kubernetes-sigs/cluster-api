@@ -138,6 +138,7 @@ func decodeCAPIObjects(yaml io.Reader) ([]runtime.Object, error) {
 	return objects, nil
 }
 
+// GetCAPI retrieves the objects needed to create a CAPI control plane from Github and parses them into runtime.Objects
 func GetCAPI(version, capiImage string) ([]runtime.Object, error) {
 	reader, err := getCAPIYAML(version, capiImage)
 	if err != nil {

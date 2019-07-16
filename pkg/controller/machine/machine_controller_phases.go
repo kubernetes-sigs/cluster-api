@@ -65,19 +65,17 @@ func (r *ReconcileMachine) reconcilePhase(ctx context.Context, m *v1alpha2.Machi
 	}
 
 	// Set the phase to "provisioning" if bootstrap is ready and the infrastructure isn't.
-	if (m.Status.BootstrapReady != nil && *m.Status.BootstrapReady) &&
-		(m.Status.InfrastructureReady == nil || !*m.Status.InfrastructureReady) {
+	if m.Status.BootstrapReady && !m.Status.InfrastructureReady {
 		m.Status.SetTypedPhase(v1alpha2.MachinePhaseProvisioning)
 	}
 
 	// Set the phase to "provisioned" if the infrastructure is ready.
-	if m.Status.InfrastructureReady != nil && *m.Status.InfrastructureReady {
+	if m.Status.InfrastructureReady {
 		m.Status.SetTypedPhase(v1alpha2.MachinePhaseProvisioned)
 	}
 
 	// Set the phase to "running" if there is a NodeRef field.
-	if m.Status.NodeRef != nil &&
-		(m.Status.InfrastructureReady != nil && *m.Status.InfrastructureReady) {
+	if m.Status.NodeRef != nil && m.Status.InfrastructureReady {
 		m.Status.SetTypedPhase(v1alpha2.MachinePhaseRunning)
 	}
 
@@ -178,14 +176,14 @@ func (r *ReconcileMachine) reconcileBootstrap(ctx context.Context, m *v1alpha2.M
 	}
 
 	if m.Spec.Bootstrap.Data != nil {
-		m.Status.BootstrapReady = pointer.BoolPtr(true)
+		m.Status.BootstrapReady = true
 		return nil
 	}
 
 	// Call generic external reconciler.
 	bootstrapConfig, err := r.reconcileExternal(ctx, m, m.Spec.Bootstrap.ConfigRef)
 	if bootstrapConfig == nil && err == nil {
-		m.Status.BootstrapReady = pointer.BoolPtr(false)
+		m.Status.BootstrapReady = false
 		return nil
 	} else if err != nil {
 		return err
@@ -214,7 +212,7 @@ func (r *ReconcileMachine) reconcileBootstrap(ctx context.Context, m *v1alpha2.M
 	}
 
 	m.Spec.Bootstrap.Data = pointer.StringPtr(data)
-	m.Status.BootstrapReady = pointer.BoolPtr(true)
+	m.Status.BootstrapReady = true
 	return nil
 }
 
@@ -228,8 +226,7 @@ func (r *ReconcileMachine) reconcileInfrastructure(ctx context.Context, m *v1alp
 		return err
 	}
 
-	if (m.Status.InfrastructureReady != nil && *m.Status.InfrastructureReady) ||
-		!infraConfig.GetDeletionTimestamp().IsZero() {
+	if m.Status.InfrastructureReady || !infraConfig.GetDeletionTimestamp().IsZero() {
 		return nil
 	}
 
@@ -251,6 +248,6 @@ func (r *ReconcileMachine) reconcileInfrastructure(ctx context.Context, m *v1alp
 	}
 
 	m.Spec.ProviderID = pointer.StringPtr(providerID)
-	m.Status.InfrastructureReady = pointer.BoolPtr(true)
+	m.Status.InfrastructureReady = true
 	return nil
 }

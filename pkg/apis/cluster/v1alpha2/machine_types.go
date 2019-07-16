@@ -157,11 +157,11 @@ type MachineStatus struct {
 
 	// BootstrapReady is the state of the bootstrap provider.
 	// +optional
-	BootstrapReady *bool `json:"bootstrapReady,omitempty"`
+	BootstrapReady bool `json:"bootstrapReady"`
 
 	// InfrastructureReady is the state of the infrastructure provider.
 	// +optional
-	InfrastructureReady *bool `json:"infrastructureReady,omitempty"`
+	InfrastructureReady bool `json:"infrastructureReady"`
 }
 
 // SetTypedPhase sets the Phase field to the string representation of MachinePhase.

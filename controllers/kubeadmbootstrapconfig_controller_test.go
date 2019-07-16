@@ -101,7 +101,7 @@ func TestSuccessfulReconcileShouldNotRequeue(t *testing.T) {
 	}
 	result, err := k.Reconcile(request)
 	if err != nil {
-		t.Fatal(fmt.Sprintf("%+v", err))
+		t.Fatal(fmt.Sprintf("Failed to reconcile:\n %+v", err))
 	}
 	if result.Requeue == true {
 		t.Fatal("did not expect to requeue")
@@ -139,7 +139,7 @@ func TestRequeueIfNoMachineRefIsFound(t *testing.T) {
 	}
 	result, err := k.Reconcile(request)
 	if err != nil {
-		t.Fatal(fmt.Sprintf("%+v", err))
+		t.Fatal(fmt.Sprintf("Failed to reconcile:\n %+v", err))
 	}
 	if result.Requeue == false {
 		t.Fatal("expected to requeue")

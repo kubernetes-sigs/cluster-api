@@ -24,7 +24,7 @@ activate "Cluster API Machine Controller"
 "Cluster API Machine Controller"->"API Server": Get Machine
 "Cluster API Machine Controller"<<--"API Server": Response
 
-note over "Cluster API Machine Controller": - ✅ Machine.Status.Phase is "Pending" \n- ✅ Machine.Spec.Bootstrap.ConfigRef -> Status.Phase is "Ready"\n- ✅ Machine.Bootstrap.ConfigRef -> Status.BootstrapData is populated (not <nil>)
+note over "Cluster API Machine Controller": - ✅ Machine.Status.Phase is "Pending" \n- ✅ Machine.Spec.Bootstrap.ConfigRef -> Status.Ready is true\n- ✅ Machine.Bootstrap.ConfigRef -> Status.BootstrapData is populated (not <nil>)
 
 "Cluster API Machine Controller"-> "Cluster API Machine Controller": Copy Machine.Spec.Bootstrap.ConfigRef -> Status.BootstrapData\nto Machine.Spec.Bootstrap.Data
 

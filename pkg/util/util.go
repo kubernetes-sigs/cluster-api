@@ -18,7 +18,6 @@ package util
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"io"
 	"math/rand"
@@ -29,6 +28,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/pkg/errors"
 	v1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -49,7 +49,8 @@ const (
 )
 
 var (
-	rnd = rand.New(rand.NewSource(time.Now().UnixNano()))
+	rnd          = rand.New(rand.NewSource(time.Now().UnixNano()))
+	ErrNoCluster = fmt.Errorf("no %q label present", clusterv1.MachineClusterLabelName)
 )
 
 // RandomToken returns a random token.
@@ -146,6 +147,29 @@ func IsNodeReady(node *v1.Node) bool {
 	}
 
 	return false
+}
+
+// GetClusterFromMetadata returns the Cluster object (if present) using the object metadata.
+func GetClusterFromMetadata(ctx context.Context, c client.Client, obj metav1.ObjectMeta) (*clusterv1.Cluster, error) {
+	if obj.Labels[clusterv1.MachineClusterLabelName] == "" {
+		return nil, errors.WithStack(ErrNoCluster)
+	}
+	return GetClusterByName(ctx, c, obj.Namespace, obj.Labels[clusterv1.MachineClusterLabelName])
+}
+
+// GetClusterByName finds and return a Cluster object using the specified params.
+func GetClusterByName(ctx context.Context, c client.Client, namespace, name string) (*clusterv1.Cluster, error) {
+	cluster := &clusterv1.Cluster{}
+	key := client.ObjectKey{
+		Namespace: namespace,
+		Name:      name,
+	}
+
+	if err := c.Get(ctx, key, cluster); err != nil {
+		return nil, err
+	}
+
+	return cluster, nil
 }
 
 // HasOwnerRef returns true if the OwnerReference is already in the slice.

@@ -52,15 +52,15 @@ func (r *KubeadmBootstrapConfigReconciler) Reconcile(req ctrl.Request) (ctrl.Res
 
 	// Find the owner reference
 	machineKind := v1alpha2.SchemeGroupVersion.WithKind("Machine").String()
-	var machineRef v1.OwnerReference
+	var machineRef *v1.OwnerReference
 	for _, ref := range config.OwnerReferences {
 		if ref.Kind == machineKind {
-			machineRef = ref
+			machineRef = &ref
 			break
 		}
 	}
-	if machineRef.Kind == "" {
-		log.Info("did not find matching machine reference, requeuing", "config", config)
+	if machineRef == nil {
+		log.Info("did not find matching machine reference, requeuing")
 		return ctrl.Result{Requeue: true}, nil
 	}
 

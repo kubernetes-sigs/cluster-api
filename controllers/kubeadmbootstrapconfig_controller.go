@@ -21,11 +21,10 @@ import (
 	"fmt"
 
 	"github.com/go-logr/logr"
-	ctrl "sigs.k8s.io/controller-runtime"
-	"sigs.k8s.io/controller-runtime/pkg/client"
-
 	kubeadmv1alpha1 "sigs.k8s.io/cluster-api-bootstrap-provider-kubeadm/api/v1alpha1"
 	clusterapiv1alpha2 "sigs.k8s.io/cluster-api/pkg/apis/cluster/v1alpha2"
+	ctrl "sigs.k8s.io/controller-runtime"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
 // KubeadmBootstrapConfigReconciler reconciles a KubeadmBootstrapConfig object
@@ -36,17 +35,21 @@ type KubeadmBootstrapConfigReconciler struct {
 
 // +kubebuilder:rbac:groups=kubeadm.bootstrap.cluster.sigs.k8s.io,resources=kubeadmbootstrapconfigs,verbs=get;list;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups=kubeadm.bootstrap.cluster.sigs.k8s.io,resources=kubeadmbootstrapconfigs/status,verbs=get;update;patch
+// +kubebuilder:rbac:groups=cluster.sigs.k8s.io,resources=clusters;machines,verbs=get;list;watch
 
 // Reconcile TODO
 func (r *KubeadmBootstrapConfigReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 	ctx := context.Background()
 	log := r.Log.WithValues("kubeadmbootstrapconfig", req.NamespacedName)
 
-	machine := &clusterapiv1alpha2.Machine{}
-	if err := r.Get(ctx, req.NamespacedName, machine); err != nil {
+	config := &kubeadmv1alpha1.KubeadmBootstrapConfig{}
+	if err := r.Get(ctx, req.NamespacedName, config); err != nil {
 		log.Error(err, "stacktrace", fmt.Sprintf("%+v", err))
+		return ctrl.Result{}, err
 	}
-
+	// This is for the import until this function is implemented.
+	m := &clusterapiv1alpha2.Machine{}
+	log.Info("debug, remove", "machine", m)
 	return ctrl.Result{}, nil
 }
 

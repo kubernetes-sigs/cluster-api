@@ -20,6 +20,8 @@ import (
 	"path/filepath"
 	"testing"
 
+	"sigs.k8s.io/cluster-api/pkg/apis/cluster/v1alpha2"
+
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 
@@ -61,6 +63,8 @@ var _ = BeforeSuite(func(done Done) {
 	Expect(cfg).ToNot(BeNil())
 
 	err = kubeadmv1alpha1.AddToScheme(scheme.Scheme)
+	Expect(err).NotTo(HaveOccurred())
+	err = v1alpha2.AddToScheme(scheme.Scheme)
 	Expect(err).NotTo(HaveOccurred())
 
 	// +kubebuilder:scaffold:scheme

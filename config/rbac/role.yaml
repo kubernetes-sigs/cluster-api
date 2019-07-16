@@ -9,14 +9,6 @@ rules:
 - apiGroups:
   - kubeadm.bootstrap.cluster.sigs.k8s.io
   resources:
-  - kubeadmbootstrapconfigs/status
-  verbs:
-  - get
-  - patch
-  - update
-- apiGroups:
-  - kubeadm.bootstrap.cluster.sigs.k8s.io
-  resources:
   - kubeadmbootstrapconfigs
   verbs:
   - create
@@ -25,4 +17,21 @@ rules:
   - list
   - patch
   - update
+  - watch
+- apiGroups:
+  - kubeadm.bootstrap.cluster.sigs.k8s.io
+  resources:
+  - kubeadmbootstrapconfigs/status
+  verbs:
+  - get
+  - patch
+  - update
+- apiGroups:
+  - cluster.sigs.k8s.io
+  resources:
+  - clusters
+  - machines
+  verbs:
+  - get
+  - list
   - watch

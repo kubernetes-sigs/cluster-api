@@ -19,7 +19,16 @@ package util
 import (
 	"io/ioutil"
 	"os"
+	"reflect"
 	"testing"
+
+	corev1 "k8s.io/api/core/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime/schema"
+	clusterv1 "sigs.k8s.io/cluster-api/pkg/apis/cluster/v1alpha2"
+	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/handler"
+	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 )
 
 const validCluster = `
@@ -333,4 +342,79 @@ func createTempFile(contents string) (string, error) {
 	defer f.Close()
 	f.WriteString(contents)
 	return f.Name(), nil
+}
+
+func TestMachineToInfrastructureMapFunc(t *testing.T) {
+	var testcases = []struct {
+		name    string
+		input   schema.GroupVersionKind
+		request handler.MapObject
+		output  []reconcile.Request
+	}{
+		{
+			name: "should reconcile infra-1",
+			input: schema.GroupVersionKind{
+				Group:   "foo.cluster.sigs.k8s.io",
+				Version: "v1alpha2",
+				Kind:    "TestMachine",
+			},
+			request: handler.MapObject{
+				Object: &clusterv1.Machine{
+					ObjectMeta: metav1.ObjectMeta{
+						Namespace: "default",
+						Name:      "test-1",
+					},
+					Spec: clusterv1.MachineSpec{
+						InfrastructureRef: corev1.ObjectReference{
+							APIVersion: "foo.cluster.sigs.k8s.io/v1alpha2",
+							Kind:       "TestMachine",
+							Name:       "infra-1",
+						},
+					},
+				},
+			},
+			output: []reconcile.Request{
+				{
+					NamespacedName: client.ObjectKey{
+						Namespace: "default",
+						Name:      "infra-1",
+					},
+				},
+			},
+		},
+		{
+			name: "should return no matching reconcile requests",
+			input: schema.GroupVersionKind{
+				Group:   "foo.cluster.sigs.k8s.io",
+				Version: "v1alpha2",
+				Kind:    "TestMachine",
+			},
+			request: handler.MapObject{
+				Object: &clusterv1.Machine{
+					ObjectMeta: metav1.ObjectMeta{
+						Namespace: "default",
+						Name:      "test-1",
+					},
+					Spec: clusterv1.MachineSpec{
+						InfrastructureRef: corev1.ObjectReference{
+							APIVersion: "bar.cluster.sigs.k8s.io/v1alpha2",
+							Kind:       "TestMachine",
+							Name:       "bar-1",
+						},
+					},
+				},
+			},
+			output: nil,
+		},
+	}
+
+	for _, tc := range testcases {
+		t.Run(tc.name, func(t *testing.T) {
+			fn := MachineToInfrastructureMapFunc(tc.input)
+			out := fn(tc.request)
+			if !reflect.DeepEqual(out, tc.output) {
+				t.Fatalf("Unexpected output. Got: %v, Want: %v", out, tc.output)
+			}
+		})
+	}
 }

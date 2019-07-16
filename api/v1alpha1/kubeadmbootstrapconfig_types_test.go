@@ -19,7 +19,6 @@ package v1alpha1
 import (
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
-
 	"golang.org/x/net/context"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
@@ -58,9 +57,6 @@ var _ = Describe("KubeadmBootstrapConfig", func() {
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "foo",
 					Namespace: "default",
-				},
-				Status: KubeadmBootstrapConfigStatus{
-					Phase: Unknown,
 				},
 			}
 

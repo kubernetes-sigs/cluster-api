@@ -1060,9 +1060,6 @@ spec:
               type: string
             phase:
               description: Phase is the state of the KubeadmBootstrapConfig object
-              enum:
-              - Ready
-              - Unknown
               type: string
           required:
           - phase

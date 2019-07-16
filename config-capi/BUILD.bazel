@@ -1,0 +1,22 @@
+filegroup(
+    name = "kustomize-yaml",
+    srcs = glob([
+        "crds/*.yaml",
+        "rbac/*.yaml",
+        "manager/*.yaml",
+        "default/*.yaml",
+    ]),
+    visibility = ["//visibility:public"],
+)
+
+genrule(
+    name = "cluster-api-yaml",
+    srcs = [
+        ":kustomize-yaml",
+        ":default/kustomization.yaml",
+    ],
+    outs = ["cluster_api.yaml"],
+    cmd = "$(location @io_k8s_sigs_kustomize//:kustomize) build $$(dirname $(location :default/kustomization.yaml)) > $@",
+    tools = ["@io_k8s_sigs_kustomize//:kustomize"],
+    visibility = ["//visibility:public"],
+)

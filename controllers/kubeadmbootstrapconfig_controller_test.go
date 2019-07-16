@@ -71,21 +71,32 @@ func (c *myClient) Status() client.StatusWriter {
 
 func TestSuccessfulReconcileShouldNotRequeue(t *testing.T) {
 	machineKind := v1alpha2.SchemeGroupVersion.WithKind("Machine").String()
-
-	myclient := &myClient{
-		db: map[string]runtime.Object{
-			"ns/cfg": &kubeadmv1alpha1.KubeadmBootstrapConfig{
-				ObjectMeta: metav1.ObjectMeta{
-					Namespace: "ns",
-					Name:      "cfg",
-					OwnerReferences: []metav1.OwnerReference{
-						{
-							Kind: machineKind,
-						},
+	objects := map[string]runtime.Object{
+		"ns/cfg": &kubeadmv1alpha1.KubeadmBootstrapConfig{
+			ObjectMeta: metav1.ObjectMeta{
+				Namespace: "ns",
+				Name:      "cfg",
+				OwnerReferences: []metav1.OwnerReference{
+					{
+						Kind: machineKind,
+						Name: "my-machine",
 					},
 				},
 			},
 		},
+		"ns/my-machine": &v1alpha2.Machine{
+			ObjectMeta: metav1.ObjectMeta{
+				Namespace: "default",
+				Name:      "my-machine",
+				Labels: map[string]string{
+					v1alpha2.MachineClusterLabelName: "my-cluster",
+				},
+			},
+		},
+		"ns/my-cluster": &v1alpha2.Cluster{},
+	}
+	myclient := &myClient{
+		db: objects,
 	}
 
 	k := &KubeadmBootstrapConfigReconciler{

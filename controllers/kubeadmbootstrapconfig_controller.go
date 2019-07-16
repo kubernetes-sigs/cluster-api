@@ -21,8 +21,10 @@ import (
 	"fmt"
 
 	"github.com/go-logr/logr"
+	"github.com/pkg/errors"
+	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	kubeadmv1alpha1 "sigs.k8s.io/cluster-api-bootstrap-provider-kubeadm/api/v1alpha1"
-	clusterapiv1alpha2 "sigs.k8s.io/cluster-api/pkg/apis/cluster/v1alpha2"
+	"sigs.k8s.io/cluster-api/pkg/apis/cluster/v1alpha2"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
@@ -42,14 +44,28 @@ func (r *KubeadmBootstrapConfigReconciler) Reconcile(req ctrl.Request) (ctrl.Res
 	ctx := context.Background()
 	log := r.Log.WithValues("kubeadmbootstrapconfig", req.NamespacedName)
 
-	config := &kubeadmv1alpha1.KubeadmBootstrapConfig{}
-	if err := r.Get(ctx, req.NamespacedName, config); err != nil {
+	config := kubeadmv1alpha1.KubeadmBootstrapConfig{}
+	if err := r.Get(ctx, req.NamespacedName, &config); err != nil {
 		log.Error(err, "stacktrace", fmt.Sprintf("%+v", err))
-		return ctrl.Result{}, err
+		return ctrl.Result{}, errors.WithStack(err)
 	}
-	// This is for the import until this function is implemented.
-	m := &clusterapiv1alpha2.Machine{}
-	log.Info("debug, remove", "machine", m)
+
+	// Find the owner reference
+	machineKind := v1alpha2.SchemeGroupVersion.WithKind("Machine").String()
+	var machineRef *v1.OwnerReference
+	for _, ref := range config.OwnerReferences {
+		if ref.Kind == machineKind {
+			machineRef = &ref
+			break
+		}
+	}
+	if machineRef == nil {
+		log.Info("did not find matching machine reference, requeuing")
+		return ctrl.Result{Requeue: true}, nil
+	}
+
+	// Get the machine
+	// Get the cluster
 	return ctrl.Result{}, nil
 }
 

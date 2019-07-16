@@ -1,0 +1,61 @@
+@startuml
+title Figure 1: State diagram with a generic provider
+
+(*) --> [  Machine Create  ] "Pending"
+
+note right
+- Bootstrap provider watches Machines in "pending" state,
+  generates //BootstrapConfig.Status.BootstrapData// and sets
+  //BootstrapConfig.Status.Ready// = true.
+- Machine controller sets //Machine.Spec.Bootstrap.Data//
+  from //BootstrapConfig.Status.BootstrapData//.
+- Machine controller can now transition to the next state.
+end note
+
+"Pending" --> "Provisioning"
+
+note right
+- Infrastructure provider watches Machines in "provisioning"
+  state and starts creating infrastructure for those Machines.
+- When MachineInfrastructure is ready sets
+  //MachineInfrastructure.Status.Ready// = true.
+- Machine controller sets //Machine.Status.Addresses//
+  from //MachineInfrastructure.Status.Addresses// and other fields.
+end note
+
+"Provisioning" --> "Provisioned"
+
+note right
+- Machine controller watches Machines in "provisioning" state and
+  //MachineInfrastructure.Status.Ready// = true.
+- Machine controller sets //Machine.Status.Phase// = "provisioned".
+end note
+
+"Provisioned" --> "Running"
+
+note right
+- Machine controller transitions to this state when
+  //Machine.ProviderID// is set and a Kubernetes Node with
+  the same //ProviderID// has been found and in Ready state.
+end note
+
+
+"Pending" --> "Deleting"
+"Provisioning" --> "Deleting"
+"Provisioned" --> "Deleting"
+"Running" --> "Deleting"
+
+"Deleting" --> "Deleted"
+
+"Pending" --> "Failed"
+"Provisioning" --> "Failed"
+"Provisioned" --> "Failed"
+"Running" --> "Failed"
+"Deleting" --> "Failed"
+"Deleted" --> "Failed"
+
+"Failed" --> (*)
+"Deleted" --> (*)
+
+hide footbox
+@enduml

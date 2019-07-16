@@ -24,7 +24,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/go-logr/logr"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
@@ -32,16 +31,8 @@ import (
 	"sigs.k8s.io/cluster-api/pkg/apis/cluster/v1alpha2"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/runtime/log"
 )
-
-type log struct{}
-
-func (l *log) Info(msg string, keysAndValues ...interface{})             {}
-func (l *log) Enabled() bool                                             { return false }
-func (l *log) Error(err error, msg string, keysAndValues ...interface{}) {}
-func (l *log) V(level int) logr.InfoLogger                               { return l }
-func (l *log) WithValues(keysAndValues ...interface{}) logr.Logger       { return l }
-func (l *log) WithName(name string) logr.Logger                          { return l }
 
 type myClient struct {
 	db map[string]runtime.Object
@@ -98,7 +89,7 @@ func TestSuccessfulReconcileShouldNotRequeue(t *testing.T) {
 	}
 
 	k := &KubeadmBootstrapConfigReconciler{
-		Log:    &log{},
+		Log:    log.ZapLogger(true),
 		Client: myclient,
 	}
 
@@ -136,7 +127,7 @@ func TestRequeueIfNoMachineRefIsFound(t *testing.T) {
 	}
 
 	k := &KubeadmBootstrapConfigReconciler{
-		Log:    &log{},
+		Log:    log.ZapLogger(true),
 		Client: myclient,
 	}
 

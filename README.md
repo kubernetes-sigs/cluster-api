@@ -4,8 +4,8 @@
 Cluster API bootstrap provider is a component of
 [Cluster API](https://github.com/kubernetes-sigs/cluster-api/blob/master/README.md) 
 that is responsible of generating a cloud-init script to
-turn a Machine into a Kubernetes node; this implementation uses [kubeadm](https://github.com/kubernetes/kubeadm) 
-for K8s bootstrap.
+turn a Machine into a Kubernetes Node; this implementation uses [kubeadm](https://github.com/kubernetes/kubeadm) 
+for kubernetes bootstrap.
 
 ### Resources
 
@@ -48,9 +48,9 @@ Participation in the Kubernetes community is governed by the [Kubernetes Code of
 
 ### Useful links
 
-* notes: https://docs.google.com/document/d/1Ys-DOR5UsgbMEeciuG0HOgDQc8kZsaWIWJeKJ1-UfbY/edit
-* recordings: https://www.youtube.com/playlist?list=PL69nYSiGNLP29D0nYgAGWt1ZFqS9Z7lw4
-* zoomMeeting: https://zoom.us/j/861487554
-* implementerNotes: https://docs.google.com/document/d/1IZ2-AZhe4r3CYiJuttyciS7bGZTTx4iMppcA8_Pr3xE/edit
-* providerZoomMeetingTues: https://zoom.us/j/140808484
-* providerZoomMeetingWed: https://zoom.us/j/424743530
+[notes]: https://docs.google.com/document/d/1Ys-DOR5UsgbMEeciuG0HOgDQc8kZsaWIWJeKJ1-UfbY/edit
+[recordings]: https://www.youtube.com/playlist?list=PL69nYSiGNLP29D0nYgAGWt1ZFqS9Z7lw4
+[zoomMeeting]: https://zoom.us/j/861487554
+[implementerNotes]: https://docs.google.com/document/d/1IZ2-AZhe4r3CYiJuttyciS7bGZTTx4iMppcA8_Pr3xE/edit
+[providerZoomMeetingTues]: https://zoom.us/j/140808484
+[providerZoomMeetingWed]: https://zoom.us/j/424743530

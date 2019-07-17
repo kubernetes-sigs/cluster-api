@@ -210,16 +210,6 @@ func TestParseClusterYaml(t *testing.T) {
 			expectedName: "cluster1",
 		},
 		{
-			name:         "valid unified for cluster with invalid machinelist (only with type info) and a configmap",
-			contents:     invalidUnified1,
-			expectedName: "cluster1",
-		},
-		{
-			name:      "valid unified for cluster with invalid machinelist (old top-level items list) and a configmap",
-			contents:  invalidUnified2,
-			expectErr: true,
-		},
-		{
 			name:      "gibberish in file",
 			contents:  `blah ` + validCluster + ` blah`,
 			expectErr: true,
@@ -235,7 +225,7 @@ func TestParseClusterYaml(t *testing.T) {
 
 			c, err := ParseClusterYaml(file)
 			if (testcase.expectErr && err == nil) || (!testcase.expectErr && err != nil) {
-				t.Fatalf("Unexpected returned error. Got: %v, Want Err: %v", err, testcase.expectErr)
+				t.Fatalf("Unexpected returned error. Got: %+v, Want Err: %v", err, testcase.expectErr)
 			}
 			if err != nil {
 				return

@@ -161,10 +161,10 @@ type MachineStatus struct
         - Type: `*string`
         - Description: Version specifies the current version of Kubernetes running on the corresponding Node. This is meant to be a means of bubbling up status from the Node to the Machine. It is entirely optional, but useful for end-user UX if it’s present.
     - **BootstrapReady [optional]**
-        - Type: `*string`
+        - Type: `bool`
         - Description: True when the bootstrap provider status is ready.
     - **InfrastructureReady [optional]**
-        - Type: `*bool`
+        - Type: `bool`
         - Description: True when the infrastructure provider status is ready.
 
 ```go

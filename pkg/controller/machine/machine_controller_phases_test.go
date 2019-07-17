@@ -181,8 +181,8 @@ func TestReconcilePhase(t *testing.T) {
 					},
 				},
 				Status: v1alpha2.MachineStatus{
-					BootstrapReady:      pointer.BoolPtr(true),
-					InfrastructureReady: pointer.BoolPtr(true),
+					BootstrapReady:      true,
+					InfrastructureReady: true,
 					NodeRef:             &corev1.ObjectReference{Kind: "Node", Name: "machine-test-node"},
 				},
 			},
@@ -248,8 +248,8 @@ func TestReconcilePhase(t *testing.T) {
 					},
 				},
 				Status: v1alpha2.MachineStatus{
-					BootstrapReady:      pointer.BoolPtr(true),
-					InfrastructureReady: pointer.BoolPtr(true),
+					BootstrapReady:      true,
+					InfrastructureReady: true,
 					NodeRef:             &corev1.ObjectReference{Kind: "Node", Name: "machine-test-node"},
 				},
 			},
@@ -379,7 +379,7 @@ func TestReconcileBootstrap(t *testing.T) {
 			},
 			expectError: false,
 			expected: func(g *gomega.WithT, m *v1alpha2.Machine) {
-				g.Expect(*m.Status.BootstrapReady).To(gomega.BeTrue())
+				g.Expect(m.Status.BootstrapReady).To(gomega.BeTrue())
 				g.Expect(m.Spec.Bootstrap.Data).ToNot(gomega.BeNil())
 				g.Expect(*m.Spec.Bootstrap.Data).To(gomega.ContainSubstring("#!/bin/bash"))
 			},
@@ -400,7 +400,7 @@ func TestReconcileBootstrap(t *testing.T) {
 			},
 			expectError: true,
 			expected: func(g *gomega.WithT, m *v1alpha2.Machine) {
-				g.Expect(m.Status.BootstrapReady).To(gomega.BeNil())
+				g.Expect(m.Status.BootstrapReady).To(gomega.BeFalse())
 				g.Expect(m.Spec.Bootstrap.Data).To(gomega.BeNil())
 			},
 		},
@@ -418,7 +418,7 @@ func TestReconcileBootstrap(t *testing.T) {
 			},
 			expectError: true,
 			expected: func(g *gomega.WithT, m *v1alpha2.Machine) {
-				g.Expect(m.Status.BootstrapReady).To(gomega.BeNil())
+				g.Expect(m.Status.BootstrapReady).To(gomega.BeFalse())
 			},
 		},
 		{
@@ -435,7 +435,7 @@ func TestReconcileBootstrap(t *testing.T) {
 			},
 			expectError: true,
 			expected: func(g *gomega.WithT, m *v1alpha2.Machine) {
-				g.Expect(m.Status.BootstrapReady).To(gomega.BeNil())
+				g.Expect(m.Status.BootstrapReady).To(gomega.BeFalse())
 			},
 		},
 		{
@@ -483,12 +483,12 @@ func TestReconcileBootstrap(t *testing.T) {
 					},
 				},
 				Status: v1alpha2.MachineStatus{
-					BootstrapReady: pointer.BoolPtr(true),
+					BootstrapReady: true,
 				},
 			},
 			expectError: false,
 			expected: func(g *gomega.WithT, m *v1alpha2.Machine) {
-				g.Expect(*m.Status.BootstrapReady).To(gomega.BeTrue())
+				g.Expect(m.Status.BootstrapReady).To(gomega.BeTrue())
 				g.Expect(*m.Spec.Bootstrap.Data).To(gomega.Equal("#!/bin/bash ... data"))
 			},
 		},
@@ -523,12 +523,12 @@ func TestReconcileBootstrap(t *testing.T) {
 					},
 				},
 				Status: v1alpha2.MachineStatus{
-					BootstrapReady: pointer.BoolPtr(true),
+					BootstrapReady: true,
 				},
 			},
 			expectError: false,
 			expected: func(g *gomega.WithT, m *v1alpha2.Machine) {
-				g.Expect(*m.Status.BootstrapReady).To(gomega.BeTrue())
+				g.Expect(m.Status.BootstrapReady).To(gomega.BeTrue())
 			},
 		},
 	}
@@ -608,7 +608,7 @@ func TestReconcileInfrastructure(t *testing.T) {
 			expectError:   false,
 			expectChanged: true,
 			expected: func(g *gomega.WithT, m *v1alpha2.Machine) {
-				g.Expect(*m.Status.InfrastructureReady).To(gomega.BeTrue())
+				g.Expect(m.Status.InfrastructureReady).To(gomega.BeTrue())
 			},
 		},
 	}

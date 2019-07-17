@@ -1059,10 +1059,9 @@ spec:
               format: byte
               type: string
             phase:
-              description: Phase is the state of the KubeadmBootstrapConfig object
-              type: string
-          required:
-          - phase
+              description: Ready indicates the BootstrapData field is ready to be
+                consumed
+              type: boolean
           type: object
       type: object
   versions:

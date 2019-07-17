@@ -21,15 +21,6 @@ import (
 	kubeadmv1beta1 "sigs.k8s.io/cluster-api-bootstrap-provider-kubeadm/kubeadm/v1beta1"
 )
 
-// Phase defines KubeadmBootstrapConfig phases
-type Phase string
-
-// Ready defines the KubeadmBootstrapConfig Ready Phase
-const (
-	// Ready indicates the config is ready to be used by a Machine.
-	Ready Phase = "Ready"
-)
-
 // KubeadmBootstrapConfigSpec defines the desired state of KubeadmBootstrapConfig
 type KubeadmBootstrapConfigSpec struct {
 	ClusterConfiguration kubeadmv1beta1.ClusterConfiguration `json:"clusterConfiguration"`
@@ -39,8 +30,8 @@ type KubeadmBootstrapConfigSpec struct {
 
 // KubeadmBootstrapConfigStatus defines the observed state of KubeadmBootstrapConfig
 type KubeadmBootstrapConfigStatus struct {
-	// Phase is the state of the KubeadmBootstrapConfig object
-	Phase Phase `json:"phase"`
+	// Ready indicates the BootstrapData field is ready to be consumed
+	Ready bool `json:"phase,omitempty"`
 
 	// BootstrapData will be a cloud-init script for now
 	// +optional

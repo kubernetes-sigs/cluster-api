@@ -118,7 +118,7 @@ func (r *ReconcileMachine) Reconcile(request reconcile.Request) (reconcile.Resul
 	if errors.Cause(err) == util.ErrNoCluster {
 		klog.Infof("Machine %q in namespace %q doesn't specify %q label, assuming nil cluster", m.Name, m.Namespace, clusterv1.MachineClusterLabelName)
 	} else if err != nil {
-		return reconcile.Result{}, err
+		return reconcile.Result{}, errors.Wrapf(err, "failed to get cluster %q for machine %q in namespace %q", m.Labels[clusterv1.MachineClusterLabelName], m.Name, m.Namespace)
 	}
 
 	// Set the ownerRef with foreground deletion if there is a linked cluster.

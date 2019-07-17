@@ -37,7 +37,7 @@ import (
 
 func main() {
 	// Must set up klog for the cluster api loggers
-	klog.InitFlags(flag.CommandLine)
+	klog.InitFlags(nil)
 	flag.Parse()
 
 	log := klogr.New()

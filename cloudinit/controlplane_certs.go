@@ -18,6 +18,7 @@ package cloudinit
 
 import "errors"
 
+// Certificates is a template struct to hold certificate data
 type Certificates struct {
 	CACert           string
 	CAKey            string

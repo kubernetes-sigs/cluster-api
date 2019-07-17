@@ -29,6 +29,7 @@ const (
 `
 )
 
+// BaseUserData is shared across all the various types of files written to disk.
 type BaseUserData struct {
 	Header             string
 	AdditionalCommands []string

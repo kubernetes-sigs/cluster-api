@@ -17,36 +17,40 @@ limitations under the License.
 package objects
 
 import (
-	meta "k8s.io/apimachinery/pkg/apis/meta/v1"
-	capi "sigs.k8s.io/cluster-api/pkg/apis/cluster/v1alpha1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	clusterv1alpha1 "sigs.k8s.io/cluster-api/pkg/apis/cluster/v1alpha1"
 )
 
 const controlPlaneSet = "controlplane"
 
 // GetMachineDeployment returns a worker node machine deployment object
-func GetMachineDeployment(name, namespace, clusterName, kubeletVersion string, replicas int32) capi.MachineDeployment {
+func GetMachineDeployment(name, namespace, clusterName, kubeletVersion string, replicas int32) clusterv1alpha1.MachineDeployment {
 	labels := map[string]string{
 		"cluster.k8s.io/cluster-name": clusterName,
 		"set":                         "node",
 	}
-	return capi.MachineDeployment{
-		ObjectMeta: meta.ObjectMeta{
+	return clusterv1alpha1.MachineDeployment{
+		TypeMeta: metav1.TypeMeta{
+			Kind:       "MachineDeployment",
+			APIVersion: "cluster.k8s.io/v1alpha1",
+		},
+		ObjectMeta: metav1.ObjectMeta{
 			Name:      name,
 			Namespace: namespace,
 			Labels:    labels,
 		},
-		Spec: capi.MachineDeploymentSpec{
+		Spec: clusterv1alpha1.MachineDeploymentSpec{
 			Replicas: &replicas,
-			Selector: meta.LabelSelector{
+			Selector: metav1.LabelSelector{
 				MatchLabels: labels,
 			},
-			Template: capi.MachineTemplateSpec{
-				ObjectMeta: meta.ObjectMeta{
+			Template: clusterv1alpha1.MachineTemplateSpec{
+				ObjectMeta: metav1.ObjectMeta{
 					Labels: labels,
 				},
-				Spec: capi.MachineSpec{
-					ProviderSpec: capi.ProviderSpec{},
-					Versions: capi.MachineVersionInfo{
+				Spec: clusterv1alpha1.MachineSpec{
+					ProviderSpec: clusterv1alpha1.ProviderSpec{},
+					Versions: clusterv1alpha1.MachineVersionInfo{
 						Kubelet: kubeletVersion,
 					},
 				},
@@ -56,18 +60,22 @@ func GetMachineDeployment(name, namespace, clusterName, kubeletVersion string, r
 }
 
 // GetCluster returns a cluster object with the given name and namespace
-func GetCluster(clusterName, namespace string) capi.Cluster {
-	return capi.Cluster{
-		ObjectMeta: meta.ObjectMeta{
+func GetCluster(clusterName, namespace string) clusterv1alpha1.Cluster {
+	return clusterv1alpha1.Cluster{
+		TypeMeta: metav1.TypeMeta{
+			Kind:       "Cluster",
+			APIVersion: "cluster.k8s.io/v1alpha1",
+		},
+		ObjectMeta: metav1.ObjectMeta{
 			Name:      clusterName,
 			Namespace: namespace,
 		},
-		Spec: capi.ClusterSpec{
-			ClusterNetwork: capi.ClusterNetworkingConfig{
-				Services: capi.NetworkRanges{
+		Spec: clusterv1alpha1.ClusterSpec{
+			ClusterNetwork: clusterv1alpha1.ClusterNetworkingConfig{
+				Services: clusterv1alpha1.NetworkRanges{
 					CIDRBlocks: []string{"10.96.0.0/12"},
 				},
-				Pods: capi.NetworkRanges{
+				Pods: clusterv1alpha1.NetworkRanges{
 					CIDRBlocks: []string{"192.168.0.0/16"},
 				},
 				ServiceDomain: "cluster.local",
@@ -77,9 +85,13 @@ func GetCluster(clusterName, namespace string) capi.Cluster {
 }
 
 // GetMachine returns a machine with the given parameters
-func GetMachine(name, namespace, clusterName, set, version string) capi.Machine {
-	machine := capi.Machine{
-		ObjectMeta: meta.ObjectMeta{
+func GetMachine(name, namespace, clusterName, set, version string) clusterv1alpha1.Machine {
+	machine := clusterv1alpha1.Machine{
+		TypeMeta: metav1.TypeMeta{
+			Kind:       "Machine",
+			APIVersion: "cluster.k8s.io/v1alpha1",
+		},
+		ObjectMeta: metav1.ObjectMeta{
 			Name:      name,
 			Namespace: namespace,
 			Labels: map[string]string{
@@ -87,8 +99,8 @@ func GetMachine(name, namespace, clusterName, set, version string) capi.Machine 
 				"set":                         set,
 			},
 		},
-		Spec: capi.MachineSpec{
-			ProviderSpec: capi.ProviderSpec{},
+		Spec: clusterv1alpha1.MachineSpec{
+			ProviderSpec: clusterv1alpha1.ProviderSpec{},
 		},
 	}
 	if set == controlPlaneSet {

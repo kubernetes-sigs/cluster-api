@@ -22,7 +22,7 @@ export KUBEBUILDER_CONTROLPLANE_START_TIMEOUT ?=60s
 export KUBEBUILDER_CONTROLPLANE_STOP_TIMEOUT ?=60s
 
 # Image URL to use all building/pushing image targets
-export CONTROLLER_IMG ?= gcr.io/k8s-staging-cluster-api/cluster-api-controller:v0.1.6
+export CONTROLLER_IMG ?= gcr.io/k8s-staging-cluster-api/cluster-api-controller:v0.1.7
 export EXAMPLE_PROVIDER_IMG ?= gcr.io/k8s-cluster-api/example-provider-controller:latest
 
 all: test manager clusterctl

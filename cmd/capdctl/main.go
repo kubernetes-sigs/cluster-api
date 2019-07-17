@@ -25,6 +25,7 @@ import (
 
 	"github.com/pkg/errors"
 	"k8s.io/apimachinery/pkg/api/meta"
+	"sigs.k8s.io/cluster-api-provider-docker/cmd/versioninfo"
 	"sigs.k8s.io/cluster-api-provider-docker/kind/controlplane"
 	"sigs.k8s.io/cluster-api-provider-docker/objects"
 	crclient "sigs.k8s.io/controller-runtime/pkg/client"
@@ -33,6 +34,7 @@ import (
 const (
 	// Important to keep this consistent.
 	controlPlaneSet = "controlplane"
+	capdctl         = "capdctl"
 )
 
 type machineOptions struct {
@@ -63,7 +65,7 @@ func (mo *machineDeploymentOptions) initFlags(fs *flag.FlagSet) {
 func main() {
 	setup := flag.NewFlagSet("setup", flag.ExitOnError)
 	managementClusterName := setup.String("cluster-name", "management", "The name of the management cluster")
-	version := setup.String("capi-version", "v0.1.7", "The CRD versions to pull from CAPI. Does not support < v0.1.7.")
+	capiVersion := setup.String("capi-version", "v0.1.7", "The CRD versions to pull from CAPI. Does not support < v0.1.7.")
 	capdImage := setup.String("capd-image", "gcr.io/kubernetes1-226021/capd-manager:latest", "The capd manager image to run")
 	capiImage := setup.String("capi-image", "", "This is normally left blank and filled in automatically. But this will override the generated image name.")
 
@@ -97,12 +99,12 @@ func main() {
 			fmt.Printf("%+v\n", err)
 			os.Exit(1)
 		}
-		if err := makeManagementCluster(*managementClusterName, *version, *capdImage, *capiImage); err != nil {
+		if err := makeManagementCluster(*managementClusterName, *capiVersion, *capdImage, *capiImage); err != nil {
 			fmt.Printf("%+v\n", err)
 			os.Exit(1)
 		}
 	case "apply":
-		if err := applyControlPlane(*managementClusterName, *version, *capiImage, *capdImage); err != nil {
+		if err := applyControlPlane(*managementClusterName, *capiVersion, *capiImage, *capdImage); err != nil {
 			fmt.Printf("%+v\n", err)
 			os.Exit(1)
 		}
@@ -150,6 +152,8 @@ func main() {
 			os.Exit(1)
 		}
 		fmt.Fprint(os.Stdout, md)
+	case "version":
+		fmt.Print(versioninfo.VersionInfo(capdctl))
 	case "help":
 		fmt.Println(usage())
 	default:
@@ -183,6 +187,9 @@ subcommands are:
 
   machine-deployment - Write a machine deployment object to stdout
     example: capdctl machine-deployment -name my-machine-deployment -cluster-name my-cluster -namespace my-namespace -kubelet-version v1.14.2 -replicas 1 | kubectl apply -f -
+
+  version - Print version information for capdctl
+    example: capdctl version
 `
 }
 

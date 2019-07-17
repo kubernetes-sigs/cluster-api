@@ -23,8 +23,6 @@ import (
 	"strings"
 
 	"sigs.k8s.io/cluster-api-provider-docker/kind/actions"
-	"sigs.k8s.io/kind/pkg/cluster/constants"
-	"sigs.k8s.io/kind/pkg/cluster/nodes"
 )
 
 func main() {
@@ -86,19 +84,4 @@ func main() {
 		}
 		fmt.Println("Done!")
 	}
-}
-
-func getName(clusterName, role string) string {
-	ns, err := nodes.List(
-		fmt.Sprintf("label=%s=%s", constants.ClusterLabelKey, clusterName),
-		fmt.Sprintf("label=%s=%s", constants.NodeRoleKey, role))
-	if err != nil {
-		panic(err)
-	}
-	count := len(ns)
-	suffix := fmt.Sprintf("%d", count)
-	if count == 0 {
-		suffix = ""
-	}
-	return fmt.Sprintf("%s-%s%s", clusterName, role, suffix)
 }

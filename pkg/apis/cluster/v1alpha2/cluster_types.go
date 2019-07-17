@@ -23,7 +23,10 @@ import (
 	"sigs.k8s.io/cluster-api/pkg/apis/cluster/common"
 )
 
-const ClusterFinalizer = "cluster.cluster.sigs.k8s.io"
+const (
+	ClusterFinalizer                   = "cluster.cluster.sigs.k8s.io"
+	ClusterAnnotationControlPlaneReady = "cluster.sigs.k8s.io/control-plane-ready"
+)
 
 // +genclient
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object

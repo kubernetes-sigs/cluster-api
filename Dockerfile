@@ -22,7 +22,6 @@ ADD cmd cmd
 ADD actuators actuators
 ADD kind kind
 ADD third_party third_party
-ADD logger logger
 
 RUN go install -v ./cmd/capd-manager
 RUN curl https://get.docker.com | sh

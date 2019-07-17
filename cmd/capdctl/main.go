@@ -23,15 +23,12 @@ import (
 	"fmt"
 	"os"
 
+	"github.com/pkg/errors"
 	"k8s.io/apimachinery/pkg/api/meta"
-	"k8s.io/apimachinery/pkg/runtime"
-	"k8s.io/klog"
 	"sigs.k8s.io/cluster-api-provider-docker/kind/controlplane"
 	"sigs.k8s.io/cluster-api-provider-docker/objects"
 	crclient "sigs.k8s.io/controller-runtime/pkg/client"
 )
-
-// TODO: Generate the RBAC stuff from somewhere instead of copy pasta
 
 const (
 	// Important to keep this consistent.
@@ -88,9 +85,6 @@ func main() {
 	machineDeploymentOpts := new(machineDeploymentOptions)
 	machineDeploymentOpts.initFlags(machineDeployment)
 
-	kflags := flag.NewFlagSet("klog", flag.ExitOnError)
-	klog.InitFlags(kflags)
-
 	if len(os.Args) < 2 {
 		fmt.Println("At least one subcommand is requied.")
 		fmt.Println(usage())
@@ -99,31 +93,69 @@ func main() {
 
 	switch os.Args[1] {
 	case "setup":
-		setup.Parse(os.Args[2:])
-		makeManagementCluster(*managementClusterName, *version, *capdImage, *capiImage)
+		if err := setup.Parse(os.Args[2:]); err != nil {
+			fmt.Printf("%+v\n", err)
+			os.Exit(1)
+		}
+		if err := makeManagementCluster(*managementClusterName, *version, *capdImage, *capiImage); err != nil {
+			fmt.Printf("%+v\n", err)
+			os.Exit(1)
+		}
 	case "apply":
-		kflags.Parse(os.Args[2:])
-		applyControlPlane(*managementClusterName, *version, *capiImage, *capdImage)
+		if err := applyControlPlane(*managementClusterName, *version, *capiImage, *capdImage); err != nil {
+			fmt.Printf("%+v\n", err)
+			os.Exit(1)
+		}
 	case "control-plane":
-		controlPlane.Parse(os.Args[2:])
-		fmt.Fprintf(os.Stdout, machineYAML(controlPlaneOpts))
+		if err := controlPlane.Parse(os.Args[2:]); err != nil {
+			fmt.Printf("%+v\n", err)
+			os.Exit(1)
+		}
+		m, err := machineYAML(controlPlaneOpts)
+		if err != nil {
+			fmt.Printf("%+v\n", err)
+			os.Exit(1)
+		}
+		fmt.Fprintf(os.Stdout, m)
 	case "worker":
-		worker.Parse(os.Args[2:])
-		fmt.Fprintf(os.Stdout, machineYAML(workerOpts))
+		if err := worker.Parse(os.Args[2:]); err != nil {
+			fmt.Printf("%+v\n", err)
+			os.Exit(1)
+		}
+		m, err := machineYAML(workerOpts)
+		if err != nil {
+			fmt.Printf("%+v\n", err)
+			os.Exit(1)
+		}
+		fmt.Fprintf(os.Stdout, m)
 	case "cluster":
-		cluster.Parse(os.Args[2:])
-		fmt.Fprintf(os.Stdout, clusterYAML(*clusterName, *clusterNamespace))
+		if err := cluster.Parse(os.Args[2:]); err != nil {
+			fmt.Printf("%+v\n", err)
+			os.Exit(1)
+		}
+		c, err := clusterYAML(*clusterName, *clusterNamespace)
+		if err != nil {
+			fmt.Printf("%+v", err)
+			os.Exit(1)
+		}
+		fmt.Fprintf(os.Stdout, c)
 	case "machine-deployment":
-		machineDeployment.Parse(os.Args[2:])
-		fmt.Fprint(os.Stdout, machineDeploymentYAML(machineDeploymentOpts))
+		if err := machineDeployment.Parse(os.Args[2:]); err != nil {
+			fmt.Printf("%+v\n", err)
+			os.Exit(1)
+		}
+		md, err := machineDeploymentYAML(machineDeploymentOpts)
+		if err != nil {
+			fmt.Printf("%+v\n", err)
+			os.Exit(1)
+		}
+		fmt.Fprint(os.Stdout, md)
 	case "help":
 		fmt.Println(usage())
 	default:
 		fmt.Println(usage())
 		os.Exit(1)
 	}
-
-	klog.Flush()
 }
 
 func usage() string {
@@ -154,32 +186,35 @@ subcommands are:
 `
 }
 
-func clusterYAML(clusterName, namespace string) string {
+func clusterYAML(clusterName, namespace string) (string, error) {
 	cluster := objects.GetCluster(clusterName, namespace)
-	return marshal(&cluster)
-}
-
-func machineYAML(opts *machineOptions) string {
-	machine := objects.GetMachine(*opts.name, *opts.namespace, *opts.clusterName, *opts.set, *opts.version)
-	return marshal(&machine)
-}
-
-func machineDeploymentYAML(opts *machineDeploymentOptions) string {
-	machineDeploy := objects.GetMachineDeployment(*opts.name, *opts.namespace, *opts.clusterName, *opts.kubeletVersion, int32(*opts.replicas))
-	return marshal(&machineDeploy)
-
-}
-
-func marshal(obj runtime.Object) string {
-	b, err := json.Marshal(obj)
-	// TODO don't panic on the error
+	b, err := json.Marshal(&cluster)
 	if err != nil {
-		panic(err)
+		return "", errors.WithStack(err)
 	}
-	return string(b)
+	return string(b), nil
 }
 
-func makeManagementCluster(clusterName, capiVersion, capdImage, capiImageOverride string) {
+func machineYAML(opts *machineOptions) (string, error) {
+	machine := objects.GetMachine(*opts.name, *opts.namespace, *opts.clusterName, *opts.set, *opts.version)
+	b, err := json.Marshal(&machine)
+	if err != nil {
+		return "", errors.WithStack(err)
+	}
+	return string(b), nil
+}
+
+func machineDeploymentYAML(opts *machineDeploymentOptions) (string, error) {
+	machineDeploy := objects.GetMachineDeployment(*opts.name, *opts.namespace, *opts.clusterName, *opts.kubeletVersion, int32(*opts.replicas))
+	b, err := json.Marshal(&machineDeploy)
+	if err != nil {
+		return "", errors.WithStack(err)
+	}
+	return string(b), nil
+
+}
+
+func makeManagementCluster(clusterName, capiVersion, capdImage, capiImageOverride string) error {
 	fmt.Println("Creating a brand new cluster")
 	capiImage := fmt.Sprintf("us.gcr.io/k8s-artifacts-prod/cluster-api/cluster-api-controller:%s", capiVersion)
 	if capiImageOverride != "" {
@@ -187,40 +222,41 @@ func makeManagementCluster(clusterName, capiVersion, capdImage, capiImageOverrid
 	}
 
 	if err := controlplane.CreateKindCluster(capiImage, clusterName); err != nil {
-		panic(err)
+		return err
 	}
 
-	applyControlPlane(clusterName, capiVersion, capiImage, capdImage)
+	return applyControlPlane(clusterName, capiVersion, capiImage, capdImage)
 }
 
-func applyControlPlane(clusterName, capiVersion, capiImage, capdImage string) {
+func applyControlPlane(clusterName, capiVersion, capiImage, capdImage string) error {
 	fmt.Println("Downloading the latest CRDs for CAPI version", capiVersion)
-	objects, err := objects.GetManegementCluster(capiVersion, capiImage, capdImage)
+	objs, err := objects.GetManegementCluster(capiVersion, capiImage, capdImage)
 	if err != nil {
-		panic(err)
+		return err
 	}
 
 	fmt.Println("Applying the control plane")
 
 	cfg, err := controlplane.GetKubeconfig(clusterName)
 	if err != nil {
-		panic(err)
+		return err
 	}
 
 	client, err := crclient.New(cfg, crclient.Options{})
 	if err != nil {
-		panic(err)
+		return err
 	}
 
-	for _, obj := range objects {
+	for _, obj := range objs {
 		accessor, err := meta.Accessor(obj)
 		if err != nil {
-			panic(err)
+			return err
 		}
 		fmt.Printf("creating %q %q\n", obj.GetObjectKind().GroupVersionKind().String(), accessor.GetName())
 
-		if client.Create(context.Background(), obj); err != nil {
-			panic(err)
+		if err := client.Create(context.Background(), obj); err != nil {
+			return err
 		}
 	}
+	return nil
 }

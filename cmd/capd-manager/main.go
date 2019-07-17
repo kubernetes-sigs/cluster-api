@@ -18,13 +18,13 @@ package main
 
 import (
 	"flag"
+	"os"
 	"time"
 
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/klog"
 	"k8s.io/klog/klogr"
 	"sigs.k8s.io/cluster-api-provider-docker/actuators"
-	"sigs.k8s.io/cluster-api-provider-docker/logger"
 	"sigs.k8s.io/cluster-api/pkg/apis"
 	"sigs.k8s.io/cluster-api/pkg/apis/cluster/common"
 	"sigs.k8s.io/cluster-api/pkg/client/clientset_generated/clientset"
@@ -36,12 +36,17 @@ import (
 )
 
 func main() {
+	// Must set up klog for the cluster api loggers
 	klog.InitFlags(flag.CommandLine)
 	flag.Parse()
 
+	log := klogr.New()
+	setupLogger := log.WithName("setup")
+
 	cfg, err := config.GetConfig()
 	if err != nil {
-		panic(err)
+		setupLogger.Error(err, "failed to get cluster config")
+		os.Exit(1)
 	}
 
 	// Setup a Manager
@@ -52,25 +57,26 @@ func main() {
 
 	mgr, err := manager.New(cfg, opts)
 	if err != nil {
-		panic(err)
+		setupLogger.Error(err, "failed to create a manager")
+		os.Exit(1)
 	}
 	k8sclientset, err := kubernetes.NewForConfig(cfg)
 	if err != nil {
-		panic(err)
+		setupLogger.Error(err, "failed to get a kubernetes clientset")
+		os.Exit(1)
 	}
 	cs, err := clientset.NewForConfig(cfg)
 	if err != nil {
-		panic(err)
+		setupLogger.Error(err, "failed to get a cluster api clientset")
+		os.Exit(1)
 	}
 
-	clusterLogger := logger.Log{}
-	clusterLogger.Logger = klogr.New().WithName("[cluster-actuator]")
+	clusterLogger := log.WithName("cluster-actuator")
 	clusterActuator := actuators.Cluster{
 		Log: clusterLogger,
 	}
 
-	machineLogger := logger.Log{}
-	machineLogger.Logger = klogr.New().WithName("[machine-actuator]")
+	machineLogger := log.WithName("machine-actuator")
 
 	machineActuator := actuators.Machine{
 		Core:       k8sclientset.CoreV1(),
@@ -81,19 +87,23 @@ func main() {
 	// Register our cluster deployer (the interface is in clusterctl and we define the Deployer interface on the actuator)
 	common.RegisterClusterProvisioner("docker", clusterActuator)
 	if err := apis.AddToScheme(mgr.GetScheme()); err != nil {
-		panic(err)
+		setupLogger.Error(err, "failed to apply cluster API types to our scheme")
+		os.Exit(1)
 	}
 
 	if err := capimachine.AddWithActuator(mgr, &machineActuator); err != nil {
-		panic(err)
+		setupLogger.Error(err, "failed to install the machine actuator")
+		os.Exit(1)
 	}
 	if err := capicluster.AddWithActuator(mgr, &clusterActuator); err != nil {
-		panic(err)
+		setupLogger.Error(err, "failed to install the cluster actuator")
+		os.Exit(1)
 	}
 
-	klogr.New().Info("Starting the controller")
+	setupLogger.Info("starting the manager")
 
 	if err := mgr.Start(signals.SetupSignalHandler()); err != nil {
-		panic(err)
+		setupLogger.Error(err, "failed to start the manager")
+		os.Exit(1)
 	}
 }

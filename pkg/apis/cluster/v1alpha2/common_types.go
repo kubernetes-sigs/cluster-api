@@ -20,6 +20,29 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
+// MachineAddressType describes a valid MachineAddress type.
+type MachineAddressType string
+
+const (
+	MachineHostName    MachineAddressType = "Hostname"
+	MachineExternalIP  MachineAddressType = "ExternalIP"
+	MachineInternalIP  MachineAddressType = "InternalIP"
+	MachineExternalDNS MachineAddressType = "ExternalDNS"
+	MachineInternalDNS MachineAddressType = "InternalDNS"
+)
+
+// MachineAddress contains information for the node's address.
+type MachineAddress struct {
+	// Machine address type, one of Hostname, ExternalIP or InternalIP.
+	Type MachineAddressType `json:"type"`
+
+	// The machine address.
+	Address string `json:"address"`
+}
+
+// MachineAddresses is a slice of MachineAddress items to be used by infrastructure providers.
+type MachineAddresses []MachineAddress
+
 // ObjectMeta is metadata that all persisted resources must have, which includes all objects
 // users must create. This is a copy of customizable fields from metav1.ObjectMeta.
 //

@@ -132,6 +132,25 @@ func (c *client) EnsureNamespace(namespaceName string) error {
 		return errors.Wrap(err, "error creating core clientset")
 	}
 
+	_, err = clientset.CoreV1().Namespaces().Get(namespaceName, metav1.GetOptions{})
+	if err == nil {
+		return nil
+	}
+	if apierrors.IsForbidden(err) {
+		namespaces, err := clientset.CoreV1().Namespaces().List(metav1.ListOptions{})
+		if err != nil {
+			return err
+		}
+
+		for _, ns := range namespaces.Items {
+			if ns.Name == namespaceName {
+				return nil
+			}
+		}
+	}
+	if !apierrors.IsNotFound(err) {
+		return err
+	}
 	namespace := apiv1.Namespace{
 		ObjectMeta: metav1.ObjectMeta{
 			Name: namespaceName,

@@ -23,6 +23,7 @@ import (
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/client-go/util/retry"
 	"k8s.io/klog"
 	clusterv1 "sigs.k8s.io/cluster-api/pkg/apis/cluster/v1alpha1"
 	clusterv1alpha1 "sigs.k8s.io/cluster-api/pkg/apis/cluster/v1alpha1"
@@ -127,13 +128,32 @@ func (r *ReconcileCluster) Reconcile(request reconcile.Request) (reconcile.Resul
 			klog.Errorf("Error deleting cluster object %v; %v", name, err)
 			return reconcile.Result{}, err
 		}
+
 		// Remove finalizer on successful deletion.
 		klog.Infof("cluster object %v deletion successful, removing finalizer.", name)
-		cluster.ObjectMeta.Finalizers = util.Filter(cluster.ObjectMeta.Finalizers, clusterv1.ClusterFinalizer)
-		if err := r.Client.Update(context.Background(), cluster); err != nil {
+		err = retry.RetryOnConflict(retry.DefaultRetry, func() error {
+			// It's possible the actuator's Delete call modified the cluster. We can't guarantee that every provider
+			// updated the in memory cluster object with the latest copy of the cluster, so try to get a fresh copy.
+			//
+			// Note, because the get from the client is a cached read from the shared informer's cache, there's still a
+			// chance this could be a stale read.
+			//
+			// Note 2, this is not a Patch call because the version of controller-runtime in the release-0.1 branch
+			// does not support patching.
+			err := r.Get(context.Background(), request.NamespacedName, cluster)
+			if err != nil {
+				return err
+			}
+
+			cluster.ObjectMeta.Finalizers = util.Filter(cluster.ObjectMeta.Finalizers, clusterv1.ClusterFinalizer)
+
+			return r.Client.Update(context.Background(), cluster)
+		})
+		if err != nil {
 			klog.Errorf("Error removing finalizer from cluster object %v; %v", name, err)
 			return reconcile.Result{}, err
 		}
+
 		return reconcile.Result{}, nil
 	}
 

@@ -25,6 +25,7 @@ import (
 	"k8s.io/klog"
 	"k8s.io/klog/klogr"
 	"sigs.k8s.io/cluster-api-provider-docker/actuators"
+	"sigs.k8s.io/cluster-api-provider-docker/cmd/versioninfo"
 	"sigs.k8s.io/cluster-api/pkg/apis"
 	"sigs.k8s.io/cluster-api/pkg/apis/cluster/common"
 	"sigs.k8s.io/cluster-api/pkg/client/clientset_generated/clientset"
@@ -101,6 +102,8 @@ func main() {
 	}
 
 	setupLogger.Info("starting the manager")
+	setupLogger.Info("Starting the controller")
+	setupLogger.Info(versioninfo.VersionInfo("capd-manager"))
 
 	if err := mgr.Start(signals.SetupSignalHandler()); err != nil {
 		setupLogger.Error(err, "failed to start the manager")

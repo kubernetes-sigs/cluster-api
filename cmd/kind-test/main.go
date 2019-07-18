@@ -22,6 +22,7 @@ import (
 	"os"
 	"strings"
 
+	"sigs.k8s.io/cluster-api-provider-docker/cmd/versioninfo"
 	"sigs.k8s.io/cluster-api-provider-docker/kind/actions"
 )
 
@@ -79,6 +80,8 @@ func main() {
 		case "set-version":
 			fmt.Println("setting version")
 			version = inputs[1]
+		case "version":
+			fmt.Print(versioninfo.VersionInfo("kind-test"))
 		default:
 			fmt.Println("Unknown command")
 		}

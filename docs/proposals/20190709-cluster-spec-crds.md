@@ -3,8 +3,10 @@ title: Cluster Provider Spec and Status as CRDs
 authors:
   - "@pablochacin"
 reviewers:
-  - "@ncdc"
-  - "@vincepri"
+    - "@justinsb"
+    - "@detiber"
+    - "@ncdc"
+    - "@vincepri"
 creation-date: 2019-07-09
 last-updated: 2019-07-18
 status: provisional

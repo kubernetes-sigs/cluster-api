@@ -29,6 +29,10 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
+var (
+	machineKind = v1alpha2.SchemeGroupVersion.WithKind("Machine").String()
+)
+
 // KubeadmBootstrapConfigReconciler reconciles a KubeadmBootstrapConfig object
 type KubeadmBootstrapConfigReconciler struct {
 	client.Client
@@ -46,12 +50,11 @@ func (r *KubeadmBootstrapConfigReconciler) Reconcile(req ctrl.Request) (ctrl.Res
 
 	config := kubeadmv1alpha1.KubeadmBootstrapConfig{}
 	if err := r.Get(ctx, req.NamespacedName, &config); err != nil {
-		log.Error(err, "stacktrace", fmt.Sprintf("%+v", err))
-		return ctrl.Result{}, errors.WithStack(err)
+		log.Error(err, "failed to get config", "stacktrace", fmt.Sprintf("%+v", err))
+		return ctrl.Result{}, err
 	}
 
 	// Find the owner reference
-	machineKind := v1alpha2.SchemeGroupVersion.WithKind("Machine").String()
 	var machineRef *v1.OwnerReference
 	for _, ref := range config.OwnerReferences {
 		if ref.Kind == machineKind {
@@ -65,7 +68,31 @@ func (r *KubeadmBootstrapConfigReconciler) Reconcile(req ctrl.Request) (ctrl.Res
 	}
 
 	// Get the machine
+	machine := &v1alpha2.Machine{}
+	machineKey := client.ObjectKey{
+		Namespace: req.Namespace,
+		Name:      machineRef.Name,
+	}
+
+	if err := r.Get(ctx, machineKey, machine); err != nil {
+		log.Error(err, "failed to get machine")
+		return ctrl.Result{}, errors.WithStack(err)
+	}
+
+	if machine.Labels[v1alpha2.MachineClusterLabelName] == "" {
+		return ctrl.Result{}, errors.New("machine has no associated cluster")
+	}
+
 	// Get the cluster
+	cluster := &v1alpha2.Cluster{}
+	clusterKey := client.ObjectKey{
+		Namespace: req.Namespace,
+		Name:      machine.Labels[v1alpha2.MachineClusterLabelName],
+	}
+	if err := r.Get(ctx, clusterKey, cluster); err != nil {
+		log.Error(err, "failed to get cluster")
+		return ctrl.Result{}, errors.WithStack(err)
+	}
 	return ctrl.Result{}, nil
 }
 

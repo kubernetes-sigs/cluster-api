@@ -22,15 +22,12 @@ import (
 )
 
 // Phase defines KubeadmBootstrapConfig phases
-// +kubebuilder:validation:Enum=Ready;Unknown
 type Phase string
 
 // Ready defines the KubeadmBootstrapConfig Ready Phase
 const (
 	// Ready indicates the config is ready to be used by a Machine.
 	Ready Phase = "Ready"
-	// Unknown indicates the phase is unknown.
-	Unknown Phase = "Unknown"
 )
 
 // KubeadmBootstrapConfigSpec defines the desired state of KubeadmBootstrapConfig

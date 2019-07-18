@@ -20,14 +20,12 @@ import (
 	"path/filepath"
 	"testing"
 
-	"sigs.k8s.io/cluster-api/pkg/apis/cluster/v1alpha2"
-
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
-
 	"k8s.io/client-go/kubernetes/scheme"
 	"k8s.io/client-go/rest"
 	kubeadmv1alpha1 "sigs.k8s.io/cluster-api-bootstrap-provider-kubeadm/api/v1alpha1"
+	"sigs.k8s.io/cluster-api/pkg/apis/cluster/v1alpha2"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/envtest"
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
@@ -55,18 +53,19 @@ var _ = BeforeSuite(func(done Done) {
 
 	By("bootstrapping test environment")
 	testEnv = &envtest.Environment{
-		CRDDirectoryPaths: []string{filepath.Join("..", "config", "crd", "bases")},
+		CRDDirectoryPaths: []string{
+			filepath.Join("..", "config", "crd", "bases"),
+			// This is copied in from cluster-api using ./hack/update-capi-crds.sh
+			filepath.Join("..", "config-capi", "crds"),
+		},
 	}
 
 	cfg, err := testEnv.Start()
 	Expect(err).ToNot(HaveOccurred())
 	Expect(cfg).ToNot(BeNil())
 
-	err = kubeadmv1alpha1.AddToScheme(scheme.Scheme)
-	Expect(err).NotTo(HaveOccurred())
-	err = v1alpha2.AddToScheme(scheme.Scheme)
-	Expect(err).NotTo(HaveOccurred())
-
+	Expect(kubeadmv1alpha1.AddToScheme(scheme.Scheme)).NotTo(HaveOccurred())
+	Expect(v1alpha2.AddToScheme(scheme.Scheme)).NotTo(HaveOccurred())
 	// +kubebuilder:scaffold:scheme
 
 	k8sClient, err = client.New(cfg, client.Options{Scheme: scheme.Scheme})

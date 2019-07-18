@@ -17,7 +17,7 @@ limitations under the License.
 package cloudinit
 
 import (
-	"errors"
+	"github.com/pkg/errors"
 	"sigs.k8s.io/cluster-api-bootstrap-provider-kubeadm/api/v1alpha2"
 )
 

@@ -16,10 +16,6 @@ limitations under the License.
 
 package cloudinit
 
-import (
-	"github.com/pkg/errors"
-)
-
 const (
 	controlPlaneCloudInit = `{{.Header}}
 {{template "files" .WriteFiles}}
@@ -42,23 +38,23 @@ type ControlPlaneInput struct {
 	BaseUserData
 	Certificates
 
-	ClusterConfiguration string
-	InitConfiguration    string
+	ClusterConfiguration []byte
+	InitConfiguration    []byte
 }
 
 // NewInitControlPlane returns the user data string to be used on a controlplane instance.
-func NewInitControlPlane(input *ControlPlaneInput) (string, error) {
+func NewInitControlPlane(input *ControlPlaneInput) ([]byte, error) {
 	input.Header = cloudConfigHeader
 	if err := input.Certificates.validate(); err != nil {
-		return "", errors.Wrapf(err, "ControlPlaneInput is invalid")
+		return nil, err
 	}
 
 	input.WriteFiles = certificatesToFiles(input.Certificates)
 	input.WriteFiles = append(input.WriteFiles, input.AdditionalFiles...)
 	userData, err := generate("InitControlplane", controlPlaneCloudInit, input)
 	if err != nil {
-		return "", errors.Wrapf(err, "failed to generate user data for new control plane machine")
+		return nil, err
 	}
 
-	return userData, err
+	return userData, nil
 }

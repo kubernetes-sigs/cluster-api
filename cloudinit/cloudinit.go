@@ -38,25 +38,25 @@ type BaseUserData struct {
 	WriteFiles         []v1alpha2.Files
 }
 
-func generate(kind string, tpl string, data interface{}) (string, error) {
+func generate(kind string, tpl string, data interface{}) ([]byte, error) {
 	tm := template.New(kind).Funcs(defaultTemplateFuncMap)
 	if _, err := tm.Parse(filesTemplate); err != nil {
-		return "", errors.Wrap(err, "failed to parse files template")
+		return nil, errors.Wrap(err, "failed to parse files template")
 	}
 
 	if _, err := tm.Parse(commandsTemplate); err != nil {
-		return "", errors.Wrap(err, "failed to parse commands template")
+		return nil, errors.Wrap(err, "failed to parse commands template")
 	}
 
 	t, err := tm.Parse(tpl)
 	if err != nil {
-		return "", errors.Wrapf(err, "failed to parse %s template", kind)
+		return nil, errors.Wrapf(err, "failed to parse %s template", kind)
 	}
 
 	var out bytes.Buffer
 	if err := t.Execute(&out, data); err != nil {
-		return "", errors.Wrapf(err, "failed to generate %s template", kind)
+		return nil, errors.Wrapf(err, "failed to generate %s template", kind)
 	}
 
-	return out.String(), nil
+	return out.Bytes(), nil
 }

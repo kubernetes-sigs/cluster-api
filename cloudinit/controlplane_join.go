@@ -34,28 +34,28 @@ runcmd:
 `
 )
 
-// ControlPlaneJoinInput defines context to generate controlplane instance user data for controlplane node join.
+// ControlPlaneJoinInput defines context to generate controlplane instance user data for control plane node join.
 type ControlPlaneJoinInput struct {
 	BaseUserData
 	Certificates
 
 	BootstrapToken      string
 	ControlPlaneAddress string
-	JoinConfiguration   string
+	JoinConfiguration   []byte
 }
 
-// NewJoinControlPlane returns the user data string to be used on a new contrplplane instance.
-func NewJoinControlPlane(input *ControlPlaneJoinInput) (string, error) {
+// NewJoinControlPlane returns the user data string to be used on a new control plane instance.
+func NewJoinControlPlane(input *ControlPlaneJoinInput) ([]byte, error) {
 	input.Header = cloudConfigHeader
 	if err := input.Certificates.validate(); err != nil {
-		return "", errors.Wrapf(err, "ControlPlaneInput is invalid")
+		return nil, errors.Wrapf(err, "ControlPlaneInput is invalid")
 	}
 
 	input.WriteFiles = certificatesToFiles(input.Certificates)
 	input.WriteFiles = append(input.WriteFiles, input.AdditionalFiles...)
 	userData, err := generate("JoinControlplane", controlPlaneJoinCloudInit, input)
 	if err != nil {
-		return "", errors.Wrapf(err, "failed to generate user data for machine joining control plane")
+		return nil, errors.Wrapf(err, "failed to generate user data for machine joining control plane")
 	}
 
 	return userData, err

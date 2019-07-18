@@ -20,6 +20,7 @@ import (
 	"bufio"
 	"bytes"
 	"context"
+	"encoding/json"
 	"fmt"
 	"io"
 	"math/rand"
@@ -34,6 +35,7 @@ import (
 	v1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/runtime/serializer/streaming"
@@ -55,8 +57,9 @@ const (
 )
 
 var (
-	rnd          = rand.New(rand.NewSource(time.Now().UnixNano()))
-	ErrNoCluster = fmt.Errorf("no %q label present", clusterv1.MachineClusterLabelName)
+	rnd                          = rand.New(rand.NewSource(time.Now().UnixNano()))
+	ErrNoCluster                 = fmt.Errorf("no %q label present", clusterv1.MachineClusterLabelName)
+	ErrUnstructuredFieldNotFound = fmt.Errorf("field not found")
 )
 
 // RandomToken returns a random token.
@@ -240,6 +243,26 @@ func EnsureOwnerRef(ownerReferences []metav1.OwnerReference, ref metav1.OwnerRef
 		return append(ownerReferences, ref)
 	}
 	return ownerReferences
+}
+
+// UnstructuredUnmarshalField is a wrapper around json and unstructured objects to decode and copy a specific field
+// value into an object.
+func UnstructuredUnmarshalField(obj *unstructured.Unstructured, v interface{}, fields ...string) error {
+	value, found, err := unstructured.NestedFieldNoCopy(obj.Object, fields...)
+	if err != nil {
+		return errors.Wrapf(err, "failed to retrieve field %q from %q", strings.Join(fields, "."), obj.GroupVersionKind())
+	}
+	if !found || value == nil {
+		return ErrUnstructuredFieldNotFound
+	}
+	valueBytes, err := json.Marshal(value)
+	if err != nil {
+		return errors.Wrapf(err, "failed to json-encode field %q value from %q", strings.Join(fields, "."), obj.GroupVersionKind())
+	}
+	if err := json.Unmarshal(valueBytes, v); err != nil {
+		return errors.Wrapf(err, "failed to json-decode field %q value from %q", strings.Join(fields, "."), obj.GroupVersionKind())
+	}
+	return nil
 }
 
 // Copy deep copies a Machine object.

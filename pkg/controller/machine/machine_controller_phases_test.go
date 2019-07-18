@@ -151,12 +151,59 @@ func TestReconcilePhase(t *testing.T) {
 				},
 				"status": map[string]interface{}{
 					"ready": true,
+					"addresses": []interface{}{
+						map[string]interface{}{
+							"type":    "InternalIP",
+							"address": "10.0.0.1",
+						},
+						map[string]interface{}{
+							"type":    "InternalIP",
+							"address": "10.0.0.2",
+						},
+					},
 				},
 			},
 			expectError:        false,
 			expectRequeueAfter: false,
 			expected: func(g *gomega.WithT, m *v1alpha2.Machine) {
 				g.Expect(m.Status.GetTypedPhase()).To(gomega.Equal(v1alpha2.MachinePhaseProvisioned))
+				g.Expect(m.Status.Addresses).To(gomega.HaveLen(2))
+			},
+		},
+		{
+			name: "ready bootstrap and infra, expect error with nil addresses",
+			bootstrapConfig: map[string]interface{}{
+				"kind":       "BootstrapConfig",
+				"apiVersion": "bootstrap.cluster.x-k8s.io/v1alpha1",
+				"metadata": map[string]interface{}{
+					"name":      "bootstrap-config1",
+					"namespace": "default",
+				},
+				"spec": map[string]interface{}{},
+				"status": map[string]interface{}{
+					"ready":         true,
+					"bootstrapData": "...",
+				},
+			},
+			infraConfig: map[string]interface{}{
+				"kind":       "InfrastructureConfig",
+				"apiVersion": "infra.cluster.x-k8s.io/v1alpha1",
+				"metadata": map[string]interface{}{
+					"name":      "infra-config1",
+					"namespace": "default",
+				},
+				"spec": map[string]interface{}{
+					"providerID": "test://id-1",
+				},
+				"status": map[string]interface{}{
+					"ready": true,
+				},
+			},
+			expectError:        true,
+			expectRequeueAfter: false,
+			expected: func(g *gomega.WithT, m *v1alpha2.Machine) {
+				g.Expect(m.Status.GetTypedPhase()).To(gomega.Equal(v1alpha2.MachinePhaseProvisioning))
+				g.Expect(m.Status.Addresses).To(gomega.HaveLen(0))
 			},
 		},
 		{
@@ -603,6 +650,16 @@ func TestReconcileInfrastructure(t *testing.T) {
 				},
 				"status": map[string]interface{}{
 					"ready": true,
+					"addresses": []interface{}{
+						map[string]interface{}{
+							"type":    "InternalIP",
+							"address": "10.0.0.1",
+						},
+						map[string]interface{}{
+							"type":    "InternalIP",
+							"address": "10.0.0.2",
+						},
+					},
 				},
 			},
 			expectError:   false,

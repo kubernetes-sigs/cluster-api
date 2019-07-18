@@ -146,9 +146,10 @@ type MachineStatus struct {
 	// +optional
 	ErrorMessage *string `json:"errorMessage,omitempty"`
 
-	// Addresses is a list of addresses assigned to the machine. Queried from cloud provider, if available.
+	// Addresses is a list of addresses assigned to the machine.
+	// This field is copied from the infrastructure provider reference.
 	// +optional
-	Addresses []corev1.NodeAddress `json:"addresses,omitempty"`
+	Addresses MachineAddresses `json:"addresses,omitempty"`
 
 	// Phase represents the current phase of machine actuation.
 	// E.g. Pending, Running, Terminating, Failed etc.

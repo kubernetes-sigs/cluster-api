@@ -6,7 +6,7 @@ reviewers:
   - "@ncdc"
   - "@vincepri"
 creation-date: 2019-07-09
-last-updated: 2019-07-14
+last-updated: 2019-07-18
 status: provisional
 see-also:
   - "/docs/proposals/20190610-machine-states-preboot-bootstrapping.md"
@@ -185,7 +185,7 @@ The sequence diagram below describes the high-level process, collaborations and 
     |                 |  | IF Infrastructure.Status.Ready          |              |    
     |                 |  |                         | |             |              |    
     |                 |  | Update Cluster Status   | |             |              |    
-    |                 |  | from Infrastructure Status             |              |    
+    |                 |  | from Infrastructure Status              |              |    
     |                 |<-+-------------------------| |             |              |    
     |                 |  |                         | |             |              |    
     |                 |  | Set Cluster.Status.InfrastructureReady  |              |    
@@ -208,7 +208,7 @@ When the cluster object is created, the cluster controller will retrieve the inf
 
 When an infrastructure object is updated, the provider controller will check the owner reference. If it is set, it will retrieve the cluster object to obtain the required cluster specification and starts the provisioning process. When the process finishes, it sets the `Infrastructure.Status.Ready` to true.
 
-When the cluster controller detects the `Infrastructure.Status.Ready` is set to true, it updates the Cluster status with information from `Infrastructure.Status` (e.g. `APIEndpoint`) and sets `Cluster.Status.InfrastructureReady` to true.
+When the cluster controller detects the `Infrastructure.Status.Ready` is set to true, it updates `Cluster.Status.APIEndpoint` from `Infrastructure.Status.APIEndpoint` and sets `Cluster.Status.InfrastructureReady` to true.
 
 ### States and Transitions
 
@@ -319,7 +319,7 @@ TODO
 - [x] 06/19/2009 [Discussed](https://github.com/kubernetes-sigs/cluster-api/issues/833#issuecomment-501380522) the inclusion in the scope of v1alpha2.
 - [x] 07/09/2019 initial version of the proposal created
 - [X] 07/11/2019 Presentation of proposal to the community
-- [ ] Feedback
+- [X] Feedback
 
 ## Drawbacks [optional]
 

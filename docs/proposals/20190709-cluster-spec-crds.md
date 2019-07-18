@@ -118,85 +118,8 @@ Moving the provider-specific infrastructure specs to a separate object makes a c
 It is also necessary to model the state of the cluster along the provisioning process to be able to keep track of its progress. In order to do so, a new `InfrastructureReady` field is introduced as part of the `ClusterStatus` struct. The state and their transitions conditions are explained in detail in section [States and Transition](#states-and-transitions).
 
 The sequence diagram below describes the high-level process, collaborations and state transitions.  
-
-```
-    O          +------------+                +------------+               +--------------+
-  --|--        |     API    |                |   Cluster  |               |Infrastructure|
-   / \         |   Server   |                | Controller |               | Controller   |
-    |          +------------+                +------------+               +--------------+
-    | Create Cluster  |                             |                             |
-    | Infrastructure  |                             |                             |
-    |---------------->|                             |                             |
-    |                 |  New Provider Infrastructure|                             |
-    |                 |-----------------------------+---------------------------->|
-    |                 |                             |                            +-+
-    |                 |                             |  +-----------------------------------------+
-    |                 |                             |  | IF Infrastructure has   | |             |
-    |                 |                             |  |    no owner ref         | |--+          |
-    |                 |                             |  |                         | |  | Do       |
-    |                 |                             |  |                         | |<-+ nothing  |
-    |                 |                             |  |                         | |             |
-    |                 |                             |  +-----------------------------------------+
-    |                 |                             |                            +-+
-    | Create Cluster  |                             |                             |
-    |---------------->|  Cluster create            +-+                            |
-    |                 |--------------------------->| |                            |
-    |                 |    Get Infrastructure      | |                            |
-    |                 |<---------------------------| |                            |
-    |                 |    +-----------------------------------------+            |    
-    |                 |    | IF Not seen before    | |               |            |    
-    |                 |    |                       | |--+            |            |    
-    |                 |    |                       | |  | Watch      |            |    
-    |                 |    |                       | |  | Infra-     |            |    
-    |                 |    |                       | |  | structure  |            |    
-    |                 |    |                       | |<-+            |            |    
-    |                 |    +-----------------------------------------+            |
-    |                 |                            | |                            |
-    |                 |    +-----------------------------------------+            |    
-    |                 |    | IF Infrastructure has | |               |            |    
-    |                 |    |    no owner           | |               |            |    
-    |                 |    |                       | |               |            |    
-    |                 |    | Set Infrastructure's  | |               |            |    
-    |                 |    | owner to Cluster      | |               |            |    
-    |                 |<---+-----------------------| |               |            |    
-    |                 |    |                       | |               |            |    
-    |                 |    +-----------------------------------------+            |
-    |                 |                            +-+                            |
-    |                 |                             |                             |
-    |                 |  Provider Infrastructure update                           |
-    |                 |-----------------------------+---------------------------->|
-    |                 |                             |                            +-+
-    |                 |                             |  +-----------------------------------------+
-    |                 |                             |  | IF Infrastructure has   | |             |
-    |                 |  Get Cluster                |  |    owner ref            | |             |
-    |                 |<----------------------------+--+-------------------------| |             |
-    |                 |                             |  |                         | |--+          |
-    |                 |                             |  |                         | |  | Provision|
-    |                 |                             |  |                         | |  | infra-   |
-    |                 | Set Infrastructure.Status.Ready True                     | |<-+ structure|
-    |                 |<----------------------------+--+-------------------------| |             |
-    |                 |                             |  |                         | |             |
-    |                 |                             |  +-----------------------------------------+
-    |                 |                             |                            +-+
-    |                 |  Infrastructure update      |                             |
-    |                 |---------------------------> |                             |
-    |                 |                            +-+                            |
-    |                 |  +-----------------------------------------+              |    
-    |                 |  | IF Infrastructure.Status.Ready          |              |    
-    |                 |  |                         | |             |              |    
-    |                 |  | Update Cluster Status   | |             |              |    
-    |                 |  | from Infrastructure Status              |              |    
-    |                 |<-+-------------------------| |             |              |    
-    |                 |  |                         | |             |              |    
-    |                 |  | Set Cluster.Status.InfrastructureReady  |              |    
-    |                 |  | to "True"               | |             |              |    
-    |                 |<-+-------------------------| |             |              |    
-    |                 |  |                         | |             |              |    
-    |                 |  +-----------------------------------------+              |
-    |                 |                            +-+                            |
-    |                 |                             |                             |
-```
-Figure 1: Cluster provisioning process
+<!--https://sequencediagram.org/index.html#initialData=C4S2BsFMAIDEQOYFcBOMDMAuaBVAzpCtAMZoCGwke0Z0AtmcQBYgB2MA7mE9ANZIAjSGQAmdaAID2k4HmAoyAB0WEAUKsbBJRfGtUBiaAFoj0AOIAlAPI4ACgGVo9gCoBBC8+Mn1isilDEIL6swAgokkiK0PrgiEyhaJCs0Kq+-iCBwcDQrrYAkk6EAG5qSSI+fgFBZCFhEVExccAC4EgwqZUZ1SHQAMKtcoQ5+dAAsows7H2SIeHgUCiqZeqGJubWdo4AogByACJeRuq6KEYAfLkF9sWEmPxCxBA0yuAAnsYAZvQTbJAAdK8yHRwKpLoUUCVTuczv0kIMiGDxsxftNZpJ5rdoDtIBwxj92OpYfDhgUkZMYL0ZvJ0Qtzn0BpQESMySjKWiMShMCypmzqRzoBZIMQZoEoBpHiAihQKQyhoj8RSqXMFupVKwZDBJJD6XDGSS8cieUqaZjTIBQcgN5L+9mAFDhf1sTDIBGgIGokDoimArwAOqxzZbftaVMQ-gAhaSyeRKP57Ci0N3QAA8rBA4DOfoD3P+9hD4cjcgUij+bI+iEFX0TikkiiQ4GlIkz0At2eDQvzMkLMdL5cgXzpNrteAdTpdifV2QARILRK9J+oa9lBQBHJAgNAiaAzN6ur7AJiagQAKyF2VHrAA5NkhEloARb0IPtpIKoiXr5YbFezaWcdcSP+SqJ8gsmCuCIm4cBQzBDE+RB+q2ubthGnbRsWPYIBWfwANJsJukjHqeeBLKw5SqIuAqQKu66QHhrA7iAe4HluBGPNA55XhIkC3veySPs+r6ykypIKkByqEHSb5ysyIm8mJnJgRBUEHkQsHQPBCptqGeSsB8CiFkgjyoJAmE4SRzEno81DQNZ1nEaR5ErmuG5bnR7wMdA+6HhZZ7Ope15cckPGcbBL6SUJgZGt+4m-mF+rZqJJryeB0CQcA0EqdoamsAhebIVGRYljMZYYX22G4eZhF2QuXoUVRznbm5jFeae0AiJIVB+WxZAlDQEWahw7BEGgHyEEkxChYJcUycaHISZNAGsjNIHXNkOVIQWqGFTpvb9r+VgDYQFajaw414AA2gADAAuh5kh9QJupScJn4JbNFwjNcEKYjgigiNK0BYYIwhiHlXaKOhD3-tJL2yYlSZJiYYKfZC2CCng1asAQVVkTVjnUbR9FNRVrFtR1HFOj1tDxZIB1DX2x3jZD77Q4BsNvX+zPPazS23CtfWaX82m6c68gGcARkVsYe200daAnVQl03Vo92xQtkXAdFSM3JyuC-f9rgAOr2ELemi4ZaAQ6rLOLVFKDw4jH3a6jVAY1jyxM09fWvT+HOe-FbPLZAq0aYO4vDo6zowAAvNAk62GUbAIPOHvhf7POnO9VxO7rf2UF7odwinU0w+n9tGFrX062jrsvqoIjCBKUp51bXM2xrKBAA -->
+![Figure 1](./images/cluster-spec-crds/figure1.png)
 
 Figure 1 presents the sequence of actions involved in provisioning a cluster, highlighting the coordination required between the CAPI cluster controller and the provider infrastructure controller. 
 
@@ -249,28 +172,7 @@ The provider has finished provisioning the infrastructure.
 - Cluster status has been populated with information from the `Infrastructure.Status` such as the `APIEndpoints`
 - `Cluster.Status.InfrastructureReady` is `True`
 
-```
-               +----------------+
-               |                |   Cluster object is created
-               |    Pending     |   but has no associated 
-               |                |   Infrastructure
-               +----------------+
-                       |
-                       V
-               +----------------+
-               |                |   Cluster has an associated
-               |  Provisioning  |   infrastructure. Provider is 
-               |                |   provisioning it.
-               +----------------+
-                       |
-                       V
-               +----------------+
-               |                |   Provider has signaled the
-               |  Provisioned   |   infrastructure is ready
-               |                |   
-               +----------------+
-```
-Figure 2. Cluster State transitions
+![Figure 2](./images/cluster-spec-crds/figure2.png)
 
 ### User Stories 
 

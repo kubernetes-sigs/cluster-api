@@ -1,4 +1,4 @@
-load("@io_bazel_rules_go//go:def.bzl", "go_library", "go_test")
+load("@io_bazel_rules_go//go:def.bzl", "go_library")
 
 go_library(
     name = "go_default_library",
@@ -29,12 +29,10 @@ go_library(
         "//cmd/clusterctl/clusterdeployer:go_default_library",
         "//cmd/clusterctl/clusterdeployer/bootstrap:go_default_library",
         "//cmd/clusterctl/clusterdeployer/clusterclient:go_default_library",
-        "//cmd/clusterctl/clusterdeployer/provider:go_default_library",
         "//cmd/clusterctl/phases:go_default_library",
         "//cmd/clusterctl/providercomponents:go_default_library",
         "//cmd/clusterctl/validation:go_default_library",
         "//pkg/apis:go_default_library",
-        "//pkg/apis/cluster/common:go_default_library",
         "//pkg/util:go_default_library",
         "//vendor/github.com/pkg/errors:go_default_library",
         "//vendor/github.com/spf13/cobra:go_default_library",
@@ -49,10 +47,4 @@ go_library(
         "//vendor/sigs.k8s.io/controller-runtime/pkg/client/config:go_default_library",
         "//vendor/sigs.k8s.io/controller-runtime/pkg/manager:go_default_library",
     ],
-)
-
-go_test(
-    name = "go_default_test",
-    srcs = ["create_cluster_test.go"],
-    embed = [":go_default_library"],
 )

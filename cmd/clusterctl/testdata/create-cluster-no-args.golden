@@ -1,4 +1,4 @@
-Error: required flag(s) "cluster", "machines", "provider", "provider-components" not set
+Error: required flag(s) "cluster", "machines", "provider-components" not set
 Usage:
   clusterctl create cluster [flags]
 
@@ -13,7 +13,6 @@ Flags:
   -h, --help                                  help for cluster
       --kubeconfig-out string                 Where to output the kubeconfig for the provisioned cluster (default "kubeconfig")
   -m, --machines string                       A yaml file containing machine object definition(s). Required.
-      --provider string                       Which provider deployment logic to use. Required.
   -p, --provider-components string            A yaml file containing cluster api provider controllers and supporting objects. Required.
 
 Global Flags:
@@ -32,4 +31,4 @@ Global Flags:
   -v, --v Level                          number for the log level verbosity
       --vmodule moduleSpec               comma-separated list of pattern=N settings for file-filtered logging
 
-required flag(s) "cluster", "machines", "provider", "provider-components" not set
+required flag(s) "cluster", "machines", "provider-components" not set

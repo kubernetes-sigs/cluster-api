@@ -7,7 +7,6 @@ go_library(
     visibility = ["//visibility:private"],
     deps = [
         "//pkg/apis:go_default_library",
-        "//pkg/apis/cluster/common:go_default_library",
         "//pkg/client/clientset_generated/clientset:go_default_library",
         "//pkg/controller/cluster:go_default_library",
         "//pkg/controller/machine:go_default_library",

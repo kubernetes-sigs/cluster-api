@@ -109,7 +109,6 @@ type testClusterClient struct {
 	DeleteMachineDeploymentsErr           error
 	DeleteMachinesErr                     error
 	DeleteMachineSetsErr                  error
-	UpdateClusterObjectEndpointErr        error
 	EnsureNamespaceErr                    error
 	DeleteNamespaceErr                    error
 	CloseErr                              error
@@ -120,6 +119,7 @@ type testClusterClient struct {
 	machineDeployments map[string][]*clusterv1.MachineDeployment
 	machineSets        map[string][]*clusterv1.MachineSet
 	machines           map[string][]*clusterv1.Machine
+	secrets            []*apiv1.Secret
 	namespaces         []string
 	contextNamespace   string
 }
@@ -308,11 +308,18 @@ func (c *testClusterClient) DeleteMachines(ns string) error {
 	return nil
 }
 
-func (c *testClusterClient) UpdateClusterObjectEndpoint(string, string, string) error {
-	return c.UpdateClusterObjectEndpointErr
-}
 func (c *testClusterClient) Close() error {
 	return c.CloseErr
+}
+
+func (c *testClusterClient) GetKubeconfigFromSecret(namespace, clusterName string) (string, error) {
+	for _, secret := range c.secrets {
+		if secret.Namespace == namespace && secret.Name == fmt.Sprintf("%s-kubeconfig", clusterName) {
+			return string(secret.Data["value"]), nil
+		}
+	}
+
+	return "", c.EnsureNamespaceErr
 }
 
 func (c *testClusterClient) EnsureNamespace(nsName string) error {
@@ -722,16 +729,6 @@ func TestClusterCreate(t *testing.T) {
 			expectErr:                           true,
 		},
 		{
-			name:                                "fail update bootstrap cluster endpoint",
-			targetClient:                        &testClusterClient{ApplyFunc: func(yaml string) error { return nil }},
-			bootstrapClient:                     &testClusterClient{UpdateClusterObjectEndpointErr: errors.New("Test failure")},
-			namespaceToExpectedInternalMachines: make(map[string]int),
-			namespaceToInputCluster:             map[string][]*clusterv1.Cluster{metav1.NamespaceDefault: getClustersForNamespace(metav1.NamespaceDefault, 1)},
-			cleanupExternal:                     true,
-			expectExternalCreated:               true,
-			expectErr:                           true,
-		},
-		{
 			name:                                "fail apply yaml to target cluster",
 			targetClient:                        &testClusterClient{ApplyErr: errors.New("Test failure")},
 			bootstrapClient:                     &testClusterClient{},
@@ -772,16 +769,6 @@ func TestClusterCreate(t *testing.T) {
 			expectErr:                           true,
 		},
 		{
-			name:                                "fail update cluster endpoint target",
-			targetClient:                        &testClusterClient{UpdateClusterObjectEndpointErr: errors.New("Test failure")},
-			bootstrapClient:                     &testClusterClient{},
-			namespaceToExpectedInternalMachines: make(map[string]int),
-			namespaceToInputCluster:             map[string][]*clusterv1.Cluster{metav1.NamespaceDefault: getClustersForNamespace(metav1.NamespaceDefault, 1)},
-			cleanupExternal:                     true,
-			expectExternalCreated:               true,
-			expectErr:                           true,
-		},
-		{
 			name: "success bootstrap_only components not applied to target cluster",
 			targetClient: &testClusterClient{ApplyFunc: func(yaml string) error {
 				if yaml == bootstrapComponent {
@@ -809,8 +796,6 @@ func TestClusterCreate(t *testing.T) {
 				err:        testcase.provisionExternalErr,
 				kubeconfig: bootstrapKubeconfig,
 			}
-			pd := &testProviderDeployer{}
-			pd.kubeconfig = targetKubeconfig
 			f := newTestClusterClientFactory()
 			f.clusterClients[bootstrapKubeconfig] = testcase.bootstrapClient
 			f.clusterClients[targetKubeconfig] = testcase.targetClient
@@ -832,7 +817,20 @@ func TestClusterCreate(t *testing.T) {
 				for _, inputCluster := range inputClusters {
 					inputCluster.Name = fmt.Sprintf("%s-cluster", ns)
 					inputMachines[inputCluster.Name] = generateMachines(inputCluster, ns)
-					err = d.Create(inputCluster, inputMachines[inputCluster.Name], pd, kubeconfigOut, &pcFactory)
+
+					kubeconfigSecret := &apiv1.Secret{
+						ObjectMeta: metav1.ObjectMeta{
+							Name:      fmt.Sprintf("%s-kubeconfig", inputCluster.Name),
+							Namespace: ns,
+						},
+						Data: map[string][]byte{
+							"value": []byte(targetKubeconfig),
+						},
+					}
+					testcase.bootstrapClient.secrets = append(testcase.bootstrapClient.secrets, kubeconfigSecret)
+					testcase.targetClient.secrets = append(testcase.bootstrapClient.secrets, kubeconfigSecret)
+
+					err = d.Create(inputCluster, inputMachines[inputCluster.Name], kubeconfigOut, &pcFactory)
 					if err != nil {
 						break
 					}
@@ -917,11 +915,24 @@ func TestCreateProviderComponentsScenarios(t *testing.T) {
 			p := &testClusterProvisioner{
 				kubeconfig: bootstrapKubeconfig,
 			}
-			pd := &testProviderDeployer{}
-			pd.kubeconfig = targetKubeconfig
+
+			kubeconfigSecret := &apiv1.Secret{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "test-cluster-kubeconfig",
+					Namespace: metav1.NamespaceDefault,
+				},
+				Data: map[string][]byte{
+					"value": []byte(targetKubeconfig),
+				},
+			}
+
 			f := newTestClusterClientFactory()
-			f.clusterClients[bootstrapKubeconfig] = &testClusterClient{}
-			f.clusterClients[targetKubeconfig] = &testClusterClient{}
+			f.clusterClients[bootstrapKubeconfig] = &testClusterClient{
+				secrets: []*apiv1.Secret{kubeconfigSecret},
+			}
+			f.clusterClients[targetKubeconfig] = &testClusterClient{
+				secrets: []*apiv1.Secret{kubeconfigSecret},
+			}
 
 			inputCluster := &clusterv1.Cluster{
 				ObjectMeta: metav1.ObjectMeta{
@@ -934,7 +945,7 @@ func TestCreateProviderComponentsScenarios(t *testing.T) {
 			providerComponentsYaml := "---\nyaml: definition"
 			addonsYaml := "---\nyaml: definition"
 			d := New(p, f, providerComponentsYaml, addonsYaml, "", false)
-			err := d.Create(inputCluster, inputMachines, pd, kubeconfigOut, &pcFactory)
+			err := d.Create(inputCluster, inputMachines, kubeconfigOut, &pcFactory)
 			if err == nil && tc.expectedError != "" {
 				t.Fatalf("error mismatch: got '%v', want '%v'", err, tc.expectedError)
 			}

@@ -56,7 +56,7 @@ func New(
 }
 
 // Create the cluster from the provided cluster definition and machine list.
-func (d *ClusterDeployer) Create(cluster *clusterv1.Cluster, machines []*clusterv1.Machine, provider provider.Deployer, kubeconfigOutput string, providerComponentsStoreFactory provider.ComponentsStoreFactory) error {
+func (d *ClusterDeployer) Create(cluster *clusterv1.Cluster, machines []*clusterv1.Machine, kubeconfigOutput string, providerComponentsStoreFactory provider.ComponentsStoreFactory) error {
 	controlPlaneMachines, nodes, err := clusterclient.ExtractControlPlaneMachines(machines)
 	if err != nil {
 		return errors.Wrap(err, "unable to separate control plane machines from node machines")
@@ -94,13 +94,8 @@ func (d *ClusterDeployer) Create(cluster *clusterv1.Cluster, machines []*cluster
 		return errors.Wrap(err, "unable to create control plane machine")
 	}
 
-	klog.Infof("Updating bootstrap cluster object for cluster %v in namespace %q with control plane endpoint running on machine", cluster.Name, cluster.Namespace)
-	if err := d.updateClusterEndpoint(bootstrapClient, provider, cluster.Name, cluster.Namespace); err != nil {
-		return errors.Wrap(err, "unable to update bootstrap cluster endpoint")
-	}
-
 	klog.Info("Creating target cluster")
-	targetKubeconfig, err := phases.GetKubeconfig(bootstrapClient, provider, kubeconfigOutput, cluster.Name, cluster.Namespace)
+	targetKubeconfig, err := phases.GetKubeconfig(bootstrapClient, kubeconfigOutput, cluster.Name, cluster.Namespace)
 	if err != nil {
 		return fmt.Errorf("unable to create target cluster kubeconfig: %v", err)
 	}
@@ -126,13 +121,6 @@ func (d *ClusterDeployer) Create(cluster *clusterv1.Cluster, machines []*cluster
 	err = d.saveProviderComponentsToCluster(providerComponentsStoreFactory, kubeconfigOutput)
 	if err != nil {
 		return errors.Wrap(err, "unable to save provider components to target cluster")
-	}
-
-	// For some reason, endpoint doesn't get updated in bootstrap cluster sometimes. So we
-	// update the target cluster endpoint as well to be sure.
-	klog.Info("Updating target cluster object with control plane endpoint running on machine")
-	if err := d.updateClusterEndpoint(targetClient, provider, cluster.Name, cluster.Namespace); err != nil {
-		return errors.Wrap(err, "unable to update target cluster endpoint")
 	}
 
 	if len(controlPlaneMachines) > 1 {
@@ -185,25 +173,6 @@ func (d *ClusterDeployer) Delete(targetClient clusterclient.Client) error {
 	return nil
 }
 
-func (d *ClusterDeployer) updateClusterEndpoint(client clusterclient.Client, provider provider.Deployer, clusterName, namespace string) error {
-	// Update cluster endpoint. Needed till this logic moves into cluster controller.
-	// TODO: https://github.com/kubernetes-sigs/cluster-api/issues/158
-	// Fetch fresh objects.
-	cluster, controlPlane, _, err := clusterclient.GetClusterAPIObject(client, clusterName, namespace)
-	if err != nil {
-		return err
-	}
-	clusterEndpoint, err := provider.GetIP(cluster, controlPlane)
-	if err != nil {
-		return errors.Wrap(err, "unable to get cluster endpoint")
-	}
-	err = client.UpdateClusterObjectEndpoint(clusterEndpoint, clusterName, namespace)
-	if err != nil {
-		return errors.Wrap(err, "unable to update cluster endpoint")
-	}
-	return nil
-}
-
 func (d *ClusterDeployer) saveProviderComponentsToCluster(factory provider.ComponentsStoreFactory, kubeconfigPath string) error {
 	clientset, err := d.clientFactory.NewCoreClientsetFromKubeconfigFile(kubeconfigPath)
 	if err != nil {
@@ -249,7 +218,9 @@ func deleteClusterAPIObjectsInAllNamespaces(client clusterclient.Client) error {
 }
 
 func closeClient(client clusterclient.Client, name string) {
-	if err := client.Close(); err != nil {
-		klog.Errorf("Could not close %v client: %v", name, err)
+	if client != nil {
+		if err := client.Close(); err != nil {
+			klog.Errorf("Could not close %v client: %v", name, err)
+		}
 	}
 }

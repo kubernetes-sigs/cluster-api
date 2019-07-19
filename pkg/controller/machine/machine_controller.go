@@ -20,6 +20,7 @@ import (
 	"context"
 	"path"
 	"sync"
+	"time"
 
 	"github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
@@ -29,6 +30,7 @@ import (
 	"k8s.io/client-go/tools/record"
 	"k8s.io/klog"
 	"k8s.io/utils/pointer"
+	"sigs.k8s.io/cluster-api/pkg/apis/cluster/v1alpha2"
 	clusterv1 "sigs.k8s.io/cluster-api/pkg/apis/cluster/v1alpha2"
 	"sigs.k8s.io/cluster-api/pkg/controller/external"
 	"sigs.k8s.io/cluster-api/pkg/controller/remote"
@@ -112,6 +114,17 @@ func (r *ReconcileMachine) Reconcile(request reconcile.Request) (reconcile.Resul
 	// Store Machine early state to allow patching.
 	patchMachine := client.MergeFrom(m.DeepCopy())
 
+	// Always issue a Patch for the Machine object and its status after each reconciliation.
+	// TODO(vincepri): Figure out if we should bubble up the errors from Patch to the controller.
+	defer func() {
+		if err := r.Client.Patch(ctx, m, patchMachine); err != nil {
+			klog.Errorf("Error Patching Machine %q in namespace %q: %v", m.Name, m.Namespace, err)
+		}
+		if err := r.Client.Status().Patch(ctx, m, patchMachine); err != nil {
+			klog.Errorf("Error Patching Machine status %q in namespace %q: %v", m.Name, m.Namespace, err)
+		}
+	}()
+
 	// Cluster might be nil as some providers might not require a cluster object
 	// for machine management.
 	cluster, err := util.GetClusterFromMetadata(ctx, r.Client, m.ObjectMeta)
@@ -171,36 +184,15 @@ func (r *ReconcileMachine) Reconcile(request reconcile.Request) (reconcile.Resul
 			}
 		}
 
-		// Remove finalizer on machine when both the references to Infrastructure and Bootstrap are non-existent.
-		var bootstrapExists, infrastructureExists bool
-		if m.Spec.Bootstrap.ConfigRef != nil {
-			if _, err := external.Get(r.Client, m.Spec.Bootstrap.ConfigRef, m.Namespace); err != nil && !apierrors.IsNotFound(err) {
-				return reconcile.Result{}, errors.Wrapf(err, "failed to get %s %q for Machine %q in namespace %q",
-					path.Join(m.Spec.Bootstrap.ConfigRef.APIVersion, m.Spec.Bootstrap.ConfigRef.Kind),
-					m.Spec.Bootstrap.ConfigRef.Name, m.Name, m.Namespace)
+		if err := r.isDeleteReady(ctx, m); err != nil {
+			if requeueErr, ok := errors.Cause(err).(capierrors.HasRequeueAfterError); ok {
+				klog.Infof("Reconciliation for Machine %q in namespace %q asked to requeue: %v", m.Name, m.Namespace, err)
+				return reconcile.Result{Requeue: true, RequeueAfter: requeueErr.GetRequeueAfter()}, nil
 			}
-			bootstrapExists = true
+			return reconcile.Result{}, err
 		}
 
-		if _, err := external.Get(r.Client, &m.Spec.InfrastructureRef, m.Namespace); err != nil && !apierrors.IsNotFound(err) {
-			return reconcile.Result{}, errors.Wrapf(err, "failed to get %s %q for Machine %q in namespace %q",
-				path.Join(m.Spec.InfrastructureRef.APIVersion, m.Spec.InfrastructureRef.Kind),
-				m.Spec.InfrastructureRef.Name, m.Name, m.Namespace)
-		} else if err == nil {
-			infrastructureExists = true
-		}
-
-		if !bootstrapExists && !infrastructureExists {
-			m.ObjectMeta.Finalizers = util.Filter(m.ObjectMeta.Finalizers, clusterv1.MachineFinalizer)
-		}
-	}
-
-	// Patch the Machine and its status.
-	if err := r.Client.Patch(ctx, m, patchMachine); err != nil {
-		return reconcile.Result{}, err
-	}
-	if err := r.Client.Status().Patch(ctx, m, patchMachine); err != nil {
-		return reconcile.Result{}, err
+		m.ObjectMeta.Finalizers = util.Filter(m.ObjectMeta.Finalizers, clusterv1.MachineFinalizer)
 	}
 
 	return reconcile.Result{}, nil
@@ -292,4 +284,26 @@ func (r *ReconcileMachine) getMachinesInCluster(ctx context.Context, namespace, 
 	}
 
 	return machines, nil
+}
+
+// isDeleteReady returns an error if any of Boostrap.ConfigRef or InfrastructureRef referenced objects still exists.
+func (r *ReconcileMachine) isDeleteReady(ctx context.Context, m *v1alpha2.Machine) error {
+	if m.Spec.Bootstrap.ConfigRef != nil {
+		if _, err := external.Get(r.Client, m.Spec.Bootstrap.ConfigRef, m.Namespace); err != nil && !apierrors.IsNotFound(err) {
+			return errors.Wrapf(err, "failed to get %s %q for Machine %q in namespace %q",
+				path.Join(m.Spec.Bootstrap.ConfigRef.APIVersion, m.Spec.Bootstrap.ConfigRef.Kind),
+				m.Spec.Bootstrap.ConfigRef.Name, m.Name, m.Namespace)
+		}
+		return &capierrors.RequeueAfterError{RequeueAfter: 10 * time.Second}
+	}
+
+	if _, err := external.Get(r.Client, &m.Spec.InfrastructureRef, m.Namespace); err != nil && !apierrors.IsNotFound(err) {
+		return errors.Wrapf(err, "failed to get %s %q for Machine %q in namespace %q",
+			path.Join(m.Spec.InfrastructureRef.APIVersion, m.Spec.InfrastructureRef.Kind),
+			m.Spec.InfrastructureRef.Name, m.Name, m.Namespace)
+	} else if err == nil {
+		return &capierrors.RequeueAfterError{RequeueAfter: 10 * time.Second}
+	}
+
+	return nil
 }

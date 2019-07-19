@@ -6,6 +6,7 @@ go_library(
         "doc.go",
         "gen.go",
         "traverse.go",
+        "zz_generated.markerhelp.go",
     ],
     importmap = "sigs.k8s.io/cluster-api/vendor/sigs.k8s.io/controller-tools/pkg/deepcopy",
     importpath = "sigs.k8s.io/controller-tools/pkg/deepcopy",

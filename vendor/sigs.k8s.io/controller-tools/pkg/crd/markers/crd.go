@@ -26,12 +26,22 @@ import (
 
 // CRDMarkers lists all markers that directly modify the CRD (not validation
 // schemas).
-var CRDMarkers = []*markers.Definition{
-	markers.Must(markers.MakeDefinition("kubebuilder:subresource:status", markers.DescribesType, SubresourceStatus{})),
-	markers.Must(markers.MakeDefinition("kubebuilder:subresource:scale", markers.DescribesType, SubresourceScale{})),
-	markers.Must(markers.MakeDefinition("kubebuilder:printcolumn", markers.DescribesType, PrintColumn{})),
-	markers.Must(markers.MakeDefinition("kubebuilder:resource", markers.DescribesType, Resource{})),
-	markers.Must(markers.MakeDefinition("kubebuilder:storageversion", markers.DescribesType, StorageVersion{})),
+var CRDMarkers = []*definitionWithHelp{
+	// TODO(directxman12): more detailed help
+	must(markers.MakeDefinition("kubebuilder:subresource:status", markers.DescribesType, SubresourceStatus{})).
+		WithHelp(SubresourceStatus{}.Help()),
+
+	must(markers.MakeDefinition("kubebuilder:subresource:scale", markers.DescribesType, SubresourceScale{})).
+		WithHelp(SubresourceScale{}.Help()),
+
+	must(markers.MakeDefinition("kubebuilder:printcolumn", markers.DescribesType, PrintColumn{})).
+		WithHelp(PrintColumn{}.Help()),
+
+	must(markers.MakeDefinition("kubebuilder:resource", markers.DescribesType, Resource{})).
+		WithHelp(Resource{}.Help()),
+
+	must(markers.MakeDefinition("kubebuilder:storageversion", markers.DescribesType, StorageVersion{})).
+		WithHelp(StorageVersion{}.Help()),
 }
 
 // TODO: categories and singular used to be annotations types
@@ -41,7 +51,9 @@ func init() {
 	AllDefinitions = append(AllDefinitions, CRDMarkers...)
 }
 
-// SubresourceStatus defines "+kubebuilder:subresource:status"
+// +controllertools:marker:generateHelp:category=CRD
+
+// SubresourceStatus enables the "/status" subresource on a CRD.
 type SubresourceStatus struct{}
 
 func (s SubresourceStatus) ApplyToCRD(crd *apiext.CustomResourceDefinitionSpec, version string) error {
@@ -73,11 +85,22 @@ func (s SubresourceStatus) ApplyToCRD(crd *apiext.CustomResourceDefinitionSpec, 
 	return nil
 }
 
-// SubresourceScale defines "+kubebuilder:subresource:scale"
+// +controllertools:marker:generateHelp:category=CRD
+
+// SubresourceScale enables the "/scale" subresource on a CRD.
 type SubresourceScale struct {
 	// marker names are leftover legacy cruft
-	SpecPath     string  `marker:"specpath"`
-	StatusPath   string  `marker:"statuspath"`
+
+	// SpecPath specifies the jsonpath to the replicas field for the scale's spec.
+	SpecPath string `marker:"specpath"`
+
+	// StatusPath specifies the jsonpath to the replicas field for the scale's status.
+	StatusPath string `marker:"statuspath"`
+
+	// SelectorPath specifies the jsonpath to the pod label selector field for the scale's status.
+	//
+	// The selector field must be the *string* form (serialized form) of a selector.
+	// Setting a pod label selector is necessary for your type to work with the HorizontalPodAutoscaler.
 	SelectorPath *string `marker:"selectorpath"`
 }
 
@@ -114,7 +137,13 @@ func (s SubresourceScale) ApplyToCRD(crd *apiext.CustomResourceDefinitionSpec, v
 	return nil
 }
 
-// StorageVersion defines "+kubebuilder:storageversion"
+// +controllertools:marker:generateHelp:category=CRD
+
+// StorageVersion marks this version as the "storage version" for the CRD for conversion.
+//
+// When conversion is enabled for a CRD (i.e. it's not a trivial-versions/single-version CRD),
+// one version is set as the "storage version" to be stored in etcd.  Attempting to store any
+// other version will result in conversion to the storage version via a conversion webhook.
 type StorageVersion struct{}
 
 func (s StorageVersion) ApplyToCRD(crd *apiext.CustomResourceDefinitionSpec, version string) error {
@@ -134,14 +163,36 @@ func (s StorageVersion) ApplyToCRD(crd *apiext.CustomResourceDefinitionSpec, ver
 	return nil
 }
 
-// PrintColumn defines "+kubebuilder:printcolumn"
+// +controllertools:marker:generateHelp:category=CRD
+
+// PrintColumn adds a column to "kubectl get" output for this CRD.
 type PrintColumn struct {
-	Name        string
-	Type        string
-	JSONPath    string `marker:"JSONPath"` // legacy cruft
+	// Name specifies the name of the column.
+	Name string
+
+	// Type indicates the type of the column.
+	//
+	// It may be any OpenAPI data type listed at
+	// https://github.com/OAI/OpenAPI-Specification/blob/master/versions/2.0.md#data-types.
+	Type string
+
+	// JSONPath specifies the jsonpath expression used to extract the value of the column.
+	JSONPath string `marker:"JSONPath"` // legacy cruft
+
+	// Description specifies the help/description for this column.
 	Description string `marker:",optional"`
-	Format      string `marker:",optional"`
-	Priority    int32  `marker:",optional"`
+
+	// Format specifies the format of the column.
+	//
+	// It may be any OpenAPI data format corresponding to the type, listed at
+	// https://github.com/OAI/OpenAPI-Specification/blob/master/versions/2.0.md#data-types.
+	Format string `marker:",optional"`
+
+	// Priority indicates how important it is that this column be displayed.
+	//
+	// Lower priority (*higher* numbered) columns will be hidden if the terminal
+	// width is too small.
+	Priority int32 `marker:",optional"`
 }
 
 func (s PrintColumn) ApplyToCRD(crd *apiext.CustomResourceDefinitionSpec, version string) error {
@@ -177,17 +228,46 @@ func (s PrintColumn) ApplyToCRD(crd *apiext.CustomResourceDefinitionSpec, versio
 	return nil
 }
 
-// Resource defines "+kubebuilder:resource"
+// +controllertools:marker:generateHelp:category=CRD
+
+// Resource configures naming and scope for a CRD.
 type Resource struct {
-	Path       string
-	ShortName  []string `marker:",optional"`
+	// Path specifies the plural "resource" for this CRD.
+	//
+	// It generally corresponds to a plural, lower-cased version of the Kind.
+	// See https://book.kubebuilder.io/cronjob-tutorial/gvks.html.
+	Path string `marker:",optional"`
+
+	// ShortName specifies aliases for this CRD.
+	//
+	// Short names are often used when people have work with your resource
+	// over and over again.  For instance, "rs" for "replicaset" or
+	// "crd" for customresourcedefinition.
+	ShortName []string `marker:",optional"`
+
+	// Categories specifies which group aliases this resource is part of.
+	//
+	// Group aliases are used to work with groups of resources at once.
+	// The most common one is "all" which covers about a third of the base
+	// resources in Kubernetes, and is generally used for "user-facing" resources.
 	Categories []string `marker:",optional"`
-	Singular   string   `marker:",optional"`
-	Scope      string   `marker:",optional"`
+
+	// Singular overrides the singular form of your resource.
+	//
+	// The singular form is otherwise defaulted off the plural (path).
+	Singular string `marker:",optional"`
+
+	// Scope overrides the scope of the CRD (cluster vs namespaced).
+	//
+	// Scope defaults to "namespaced".  Cluster-scoped ("cluster") resources
+	// don't exist in namespaces.
+	Scope string `marker:",optional"`
 }
 
 func (s Resource) ApplyToCRD(crd *apiext.CustomResourceDefinitionSpec, version string) error {
-	crd.Names.Plural = s.Path
+	if s.Path != "" {
+		crd.Names.Plural = s.Path
+	}
 	crd.Names.ShortNames = s.ShortName
 	crd.Names.Categories = s.Categories
 

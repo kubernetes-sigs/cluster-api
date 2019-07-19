@@ -83,11 +83,16 @@ type OutputRule interface {
 // OutputToNothing skips outputting anything.
 var OutputToNothing = outputToNothing{}
 
+// +controllertools:marker:generateHelp:category=""
+
+// outputToNothing skips outputting anything.
 type outputToNothing struct{}
 
 func (o outputToNothing) Open(_ *loader.Package, _ string) (io.WriteCloser, error) {
 	return nopCloser{ioutil.Discard}, nil
 }
+
+// +controllertools:marker:generateHelp:category=""
 
 // OutputToDirectory outputs each artifact to the given directory, regardless
 // of if it's package-associated or not.
@@ -103,23 +108,35 @@ func (o OutputToDirectory) Open(_ *loader.Package, itemPath string) (io.WriteClo
 }
 
 // OutputToStdout outputs everything to standard-out, with no separation.
+//
 // Generally useful for single-artifact outputs.
 var OutputToStdout = outputToStdout{}
 
+// +controllertools:marker:generateHelp:category=""
+
+// outputToStdout outputs everything to standard-out, with no separation.
+//
+// Generally useful for single-artifact outputs.
 type outputToStdout struct{}
 
 func (o outputToStdout) Open(_ *loader.Package, itemPath string) (io.WriteCloser, error) {
 	return nopCloser{os.Stdout}, nil
 }
 
+// +controllertools:marker:generateHelp:category=""
+
 // OutputArtifacts outputs artifacts to different locations, depending on
-// whether they're package-associated or not.  Non-package associated artifacts
+// whether they're package-associated or not.
+//
+// Non-package associated artifacts
 // are output to the Config directory, while package-associated ones are output
 // to their package's source files' directory, unless an alternate path is
 // specified in Code.
 type OutputArtifacts struct {
+	// Config points to the directory to which to write configuration.
 	Config OutputToDirectory
-	Code   OutputToDirectory `marker:",optional"`
+	// Code overrides the directory in which to write new code (defaults to where the existing code lives).
+	Code OutputToDirectory `marker:",optional"`
 }
 
 func (o OutputArtifacts) Open(pkg *loader.Package, itemPath string) (io.WriteCloser, error) {

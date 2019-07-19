@@ -8,6 +8,7 @@ go_library(
         "package.go",
         "register.go",
         "validation.go",
+        "zz_generated.markerhelp.go",
     ],
     importmap = "sigs.k8s.io/cluster-api/vendor/sigs.k8s.io/controller-tools/pkg/crd/markers",
     importpath = "sigs.k8s.io/controller-tools/pkg/crd/markers",

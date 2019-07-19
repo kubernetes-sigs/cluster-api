@@ -29,11 +29,15 @@ import (
 	"sigs.k8s.io/controller-tools/pkg/markers"
 )
 
-// Generator is a genall.Generator that generates CRDs.
+// +controllertools:marker:generateHelp
+
+// Generator generates CustomResourceDefinition objects.
 type Generator struct {
-	// TrivialVersions indicates that we should produce a legacy
-	// "trival-version" CRD compatible with older (pre 1.13) Kubernetes API
-	// servers.  The storage version's schema will be used as the CRD's schema.
+	// TrivialVersions indicates that we should produce a single-version CRD.
+	//
+	// Single "trivial-version" CRDs are compatible with older (pre 1.13)
+	// Kubernetes API servers.  The storage version's schema will be used as
+	// the CRD's schema.
 	TrivialVersions bool `marker:",optional"`
 }
 

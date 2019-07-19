@@ -62,11 +62,16 @@ var ValidationMarkers = mustMakeAllWithPrefix("kubebuilder:validation", markers.
 
 // FieldOnlyMarkers list field-specific validation markers (i.e. those markers that don't make
 // sense on a type, and thus aren't in ValidationMarkers).
-var FieldOnlyMarkers = []*markers.Definition{
-	markers.Must(markers.MakeDefinition("kubebuilder:validation:Required", markers.DescribesField, struct{}{})),
-	markers.Must(markers.MakeDefinition("kubebuilder:validation:Optional", markers.DescribesField, struct{}{})),
-	markers.Must(markers.MakeDefinition("optional", markers.DescribesField, struct{}{})),
-	markers.Must(markers.MakeDefinition("nullable", markers.DescribesField, Nullable{})),
+var FieldOnlyMarkers = []*definitionWithHelp{
+	must(markers.MakeDefinition("kubebuilder:validation:Required", markers.DescribesField, struct{}{})).
+		WithHelp(markers.SimpleHelp("CRD validation", "specifies that this field is required, if fields are optional by default.")),
+	must(markers.MakeDefinition("kubebuilder:validation:Optional", markers.DescribesField, struct{}{})).
+		WithHelp(markers.SimpleHelp("CRD validation", "specifies that this field is optional, if fields are required by default.")),
+	must(markers.MakeDefinition("optional", markers.DescribesField, struct{}{})).
+		WithHelp(markers.SimpleHelp("CRD validation", "specifies that this field is optional, if fields are required by default.")),
+
+	must(markers.MakeDefinition("nullable", markers.DescribesField, Nullable{})).
+		WithHelp(Nullable{}.Help()),
 }
 
 func init() {
@@ -81,26 +86,73 @@ func init() {
 	AllDefinitions = append(AllDefinitions, FieldOnlyMarkers...)
 }
 
+// +controllertools:marker:generateHelp:category="CRD validation"
+// Maximum specifies the maximum numeric value that this field can have.
 type Maximum int
+
+// +controllertools:marker:generateHelp:category="CRD validation"
+// Minimum specifies the minimum numeric value that this field can have.
 type Minimum int
+
+// +controllertools:marker:generateHelp:category="CRD validation"
+// ExclusiveMinimum indicates that the minimum is "up to" but not including that value.
 type ExclusiveMinimum bool
+
+// +controllertools:marker:generateHelp:category="CRD validation"
+// ExclusiveMaximum indicates that the maximum is "up to" but not including that value.
 type ExclusiveMaximum bool
+
+// +controllertools:marker:generateHelp:category="CRD validation"
+// MultipleOf specifies that this field must have a numeric value that's a multiple of this one.
 type MultipleOf int
 
+// +controllertools:marker:generateHelp:category="CRD validation"
+// MaxLength specifies the maximum length for this string.
 type MaxLength int
+
+// +controllertools:marker:generateHelp:category="CRD validation"
+// MinLength specifies the minimum length for this string.
 type MinLength int
+
+// +controllertools:marker:generateHelp:category="CRD validation"
+// Pattern specifies that this string must match the given regular expression.
 type Pattern string
 
+// +controllertools:marker:generateHelp:category="CRD validation"
+// MaxItems specifies the maximum length for this list.
 type MaxItems int
+
+// +controllertools:marker:generateHelp:category="CRD validation"
+// MinItems specifies the minimun length for this list.
 type MinItems int
+
+// +controllertools:marker:generateHelp:category="CRD validation"
+// UniqueItems specifies that all items in this list must be unique.
 type UniqueItems bool
 
+// +controllertools:marker:generateHelp:category="CRD validation"
+// Enum specifies that this (scalar) field is restricted to the *exact* values specified here.
 type Enum []interface{}
+
+// +controllertools:marker:generateHelp:category="CRD validation"
+// Format specifies additional "complex" formatting for this field.
+//
+// For example, a date-time field would be marked as "type: string" and
+// "format: date-time".
 type Format string
+
+// +controllertools:marker:generateHelp:category="CRD validation"
+// Type overrides the type for this field (which defaults to the equivalent of the Go type).
+//
+// This generally must be paired with custom serialization.  For example, the
+// metav1.Time field would be marked as "type: string" and "format: date-time".
 type Type string
+
+// +controllertools:marker:generateHelp:category="CRD validation"
+// Nullable marks this field as allowing the "null" value.
+//
+// This is often not necessary, but may be helpful with custom serialization.
 type Nullable struct{}
-type Required struct{}
-type Optional struct{}
 
 func (m Maximum) ApplyToSchema(schema *v1beta1.JSONSchemaProps) error {
 	if schema.Type != "integer" {

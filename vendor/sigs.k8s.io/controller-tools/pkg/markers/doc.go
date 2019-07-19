@@ -92,4 +92,22 @@ limitations under the License.
 // associated.
 //
 // PackageMarkers can be used to fetch just package-level markers.
+//
+// Help
+//
+// Help can be defined for each marker using the DefinitionHelp struct.  It's
+// mostly intended to be generated off of godocs using cmd/helpgen, which takes
+// the first line as summary (removing the type/field name), and considers the
+// rest as details.  It looks for the
+//
+//   +controllertools:generateHelp[:category=<string>]
+//
+// marker to start generation.
+//
+// If you can't use godoc-based generation for whatever reasons (e.g.
+// primitive-typed markers), you can use the SimpleHelp and DeprecatedHelp
+// helper functions to generate help structs.
+//
+// Help is then registered into a registry as associated with the actual
+// definition, and can then be later retrieved from the registry.
 package markers

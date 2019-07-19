@@ -34,40 +34,49 @@ import (
 // so any time we check for existing deepcopy functions, we only seen manually written ones.
 
 const (
-	objName    = "kubebuilder:object:root"
-	enableName = "kubebuilder:object:generate"
-
-	legacyEnableName = "k8s:deepcopy-gen"
-	legacyObjName    = "k8s:deepcopy-gen:interfaces"
-	runtimeObjPath   = "k8s.io/apimachinery/pkg/runtime.Object"
+	runtimeObjPath = "k8s.io/apimachinery/pkg/runtime.Object"
 )
 
-// Generator generates code code containing DeepCopy, DeepCopyInto, and
+var (
+	enablePkgMarker  = markers.Must(markers.MakeDefinition("kubebuilder:object:generate", markers.DescribesPackage, false))
+	enableTypeMarker = markers.Must(markers.MakeDefinition("kubebuilder:object:generate", markers.DescribesType, false))
+	isObjectMarker   = markers.Must(markers.MakeDefinition("kubebuilder:object:root", markers.DescribesType, false))
+
+	legacyEnablePkgMarker  = markers.Must(markers.MakeDefinition("k8s:deepcopy-gen", markers.DescribesPackage, markers.RawArguments(nil)))
+	legacyEnableTypeMarker = markers.Must(markers.MakeDefinition("k8s:deepcopy-gen", markers.DescribesType, markers.RawArguments(nil)))
+	legacyIsObjectMarker   = markers.Must(markers.MakeDefinition("k8s:deepcopy-gen:interfaces", markers.DescribesType, ""))
+)
+
+// +controllertools:marker:generateHelp
+
+// Generator generates code containing DeepCopy, DeepCopyInto, and
 // DeepCopyObject method implementations.
 type Generator struct {
+	// HeaderFile specifies the header text (e.g. license) to prepend to generated files.
 	HeaderFile string `marker:",optional"`
-	Year       string `marker:",optional"`
+	// Year specifies the year to substitute for " YEAR" in the header file.
+	Year string `marker:",optional"`
 }
 
 func (Generator) RegisterMarkers(into *markers.Registry) error {
-	if err := into.Define(enableName, markers.DescribesPackage, false); err != nil {
+	if err := markers.RegisterAll(into,
+		enablePkgMarker, legacyEnablePkgMarker, enableTypeMarker,
+		legacyEnableTypeMarker, isObjectMarker, legacyIsObjectMarker); err != nil {
 		return err
 	}
-	if err := into.Define(legacyEnableName, markers.DescribesPackage, markers.RawArguments(nil)); err != nil {
-		return err
-	}
-	if err := into.Define(enableName, markers.DescribesType, false); err != nil {
-		return err
-	}
-	if err := into.Define(legacyEnableName, markers.DescribesType, markers.RawArguments(nil)); err != nil {
-		return err
-	}
-	if err := into.Define(objName, markers.DescribesType, false); err != nil {
-		return err
-	}
-	if err := into.Define(legacyObjName, markers.DescribesType, ""); err != nil {
-		return err
-	}
+	into.AddHelp(enablePkgMarker,
+		markers.SimpleHelp("object", "enables or disables object interface & deepcopy implementation generation for this package"))
+	into.AddHelp(
+		enableTypeMarker, markers.SimpleHelp("object", "overrides enabling or disabling deepcopy generation for this type"))
+	into.AddHelp(isObjectMarker,
+		markers.SimpleHelp("object", "enables object interface implementation generation for this type"))
+
+	into.AddHelp(legacyEnablePkgMarker,
+		markers.DeprecatedHelp(enablePkgMarker.Name, "object", "enables or disables object interface & deepcopy implementation generation for this package"))
+	into.AddHelp(legacyEnableTypeMarker,
+		markers.DeprecatedHelp(enableTypeMarker.Name, "object", "overrides enabling or disabling deepcopy generation for this type"))
+	into.AddHelp(legacyIsObjectMarker,
+		markers.DeprecatedHelp(isObjectMarker.Name, "object", "enables object interface implementation generation for this type"))
 	return nil
 }
 
@@ -76,11 +85,11 @@ func enabledOnPackage(col *markers.Collector, pkg *loader.Package) (bool, error)
 	if err != nil {
 		return false, err
 	}
-	pkgMarker := pkgMarkers.Get(enableName)
+	pkgMarker := pkgMarkers.Get(enablePkgMarker.Name)
 	if pkgMarker != nil {
 		return pkgMarker.(bool), nil
 	}
-	legacyMarker := pkgMarkers.Get(legacyEnableName)
+	legacyMarker := pkgMarkers.Get(legacyEnablePkgMarker.Name)
 	if legacyMarker != nil {
 		legacyMarkerVal := string(legacyMarker.(markers.RawArguments))
 		firstArg := strings.Split(legacyMarkerVal, ",")[0]
@@ -91,10 +100,10 @@ func enabledOnPackage(col *markers.Collector, pkg *loader.Package) (bool, error)
 }
 
 func enabledOnType(allTypes bool, info *markers.TypeInfo) bool {
-	if typeMarker := info.Markers.Get(enableName); typeMarker != nil {
+	if typeMarker := info.Markers.Get(enableTypeMarker.Name); typeMarker != nil {
 		return typeMarker.(bool)
 	}
-	legacyMarker := info.Markers.Get(legacyEnableName)
+	legacyMarker := info.Markers.Get(legacyEnableTypeMarker.Name)
 	if legacyMarker != nil {
 		legacyMarkerVal := string(legacyMarker.(markers.RawArguments))
 		return legacyMarkerVal == "true"
@@ -103,12 +112,12 @@ func enabledOnType(allTypes bool, info *markers.TypeInfo) bool {
 }
 
 func genObjectInterface(info *markers.TypeInfo) bool {
-	objectEnabled := info.Markers.Get(objName)
+	objectEnabled := info.Markers.Get(isObjectMarker.Name)
 	if objectEnabled != nil {
 		return objectEnabled.(bool)
 	}
 
-	for _, legacyEnabled := range info.Markers[legacyObjName] {
+	for _, legacyEnabled := range info.Markers[legacyIsObjectMarker.Name] {
 		if legacyEnabled == runtimeObjPath {
 			return true
 		}

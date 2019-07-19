@@ -26,6 +26,11 @@ import (
 var KnownPackages = map[string]PackageOverride{
 
 	"k8s.io/apimachinery/pkg/apis/meta/v1": func(p *Parser, pkg *loader.Package) {
+		// ObjectMeta is managed by the Kubernetes API server, so no need to
+		// generate validation for it.
+		p.Schemata[TypeIdent{Name: "ObjectMeta", Package: pkg}] = apiext.JSONSchemaProps{
+			Type: "object",
+		}
 		p.Schemata[TypeIdent{Name: "Time", Package: pkg}] = apiext.JSONSchemaProps{
 			Type:   "string",
 			Format: "date-time",

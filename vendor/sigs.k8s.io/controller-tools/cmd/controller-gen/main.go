@@ -16,19 +16,24 @@ limitations under the License.
 package main
 
 import (
+	"encoding/json"
 	"fmt"
+	"io"
 	"os"
-	"sort"
-	"strings"
 
 	"github.com/spf13/cobra"
+
 	"sigs.k8s.io/controller-tools/pkg/crd"
 	"sigs.k8s.io/controller-tools/pkg/deepcopy"
 	"sigs.k8s.io/controller-tools/pkg/genall"
+	"sigs.k8s.io/controller-tools/pkg/genall/help"
+	prettyhelp "sigs.k8s.io/controller-tools/pkg/genall/help/pretty"
 	"sigs.k8s.io/controller-tools/pkg/markers"
 	"sigs.k8s.io/controller-tools/pkg/rbac"
 	"sigs.k8s.io/controller-tools/pkg/webhook"
 )
+
+//go:generate go run ../helpgen/main.go paths=../../pkg/... generate:headerFile=../../boilerplate.go.txt,year=2019
 
 // Options are specified to controller-gen by turning generators and output rules into
 // markers, and then parsing them using the standard registry logic (without the "+").
@@ -62,143 +67,55 @@ var (
 	optionsRegistry = &markers.Registry{}
 )
 
-// rootPaths is the marker value for the "paths" option
-type rootPaths []string
-
 func init() {
 	for genName, gen := range allGenerators {
 		// make the generator options marker itself
-		if err := optionsRegistry.Define(genName, markers.DescribesPackage, gen); err != nil {
+		defn := markers.Must(markers.MakeDefinition(genName, markers.DescribesPackage, gen))
+		if err := optionsRegistry.Register(defn); err != nil {
 			panic(err)
+		}
+		if helpGiver, hasHelp := gen.(genall.HasHelp); hasHelp {
+			if help := helpGiver.Help(); help != nil {
+				optionsRegistry.AddHelp(defn, help)
+			}
 		}
 
 		// make per-generation output rule markers
 		for ruleName, rule := range allOutputRules {
-			if err := optionsRegistry.Define(fmt.Sprintf("output:%s:%s", genName, ruleName), markers.DescribesPackage, rule); err != nil {
+			ruleMarker := markers.Must(markers.MakeDefinition(fmt.Sprintf("output:%s:%s", genName, ruleName), markers.DescribesPackage, rule))
+			if err := optionsRegistry.Register(ruleMarker); err != nil {
 				panic(err)
+			}
+			if helpGiver, hasHelp := rule.(genall.HasHelp); hasHelp {
+				if help := helpGiver.Help(); help != nil {
+					optionsRegistry.AddHelp(ruleMarker, help)
+				}
 			}
 		}
 	}
 
 	// make "default output" output rule markers
 	for ruleName, rule := range allOutputRules {
-		if err := optionsRegistry.Define("output:"+ruleName, markers.DescribesPackage, rule); err != nil {
+		ruleMarker := markers.Must(markers.MakeDefinition("output:"+ruleName, markers.DescribesPackage, rule))
+		if err := optionsRegistry.Register(ruleMarker); err != nil {
 			panic(err)
+		}
+		if helpGiver, hasHelp := rule.(genall.HasHelp); hasHelp {
+			if help := helpGiver.Help(); help != nil {
+				optionsRegistry.AddHelp(ruleMarker, help)
+			}
 		}
 	}
 
-	// make the "paths" rule
-	if err := optionsRegistry.Define("paths", markers.DescribesPackage, rootPaths(nil)); err != nil {
+	// add in the common options markers
+	if err := genall.RegisterOptionsMarkers(optionsRegistry); err != nil {
 		panic(err)
 	}
 }
 
-// fieldHelp prints the help for a particular marker argument.
-func fieldHelp(name string, arg markers.Argument, first bool, out *strings.Builder) {
-	if arg.Optional {
-		out.WriteString("[")
-	}
-
-	if !first {
-		out.WriteRune(',')
-	} else if name != "" {
-		out.WriteRune(':')
-	}
-
-	if name != "" {
-		out.WriteString(name)
-	}
-	out.WriteRune('=')
-
-	out.WriteRune('<')
-	out.WriteString(arg.TypeString())
-	out.WriteRune('>')
-
-	if arg.Optional {
-		out.WriteString("]")
-	}
-}
-
-// optionHelp assembles help for a given named option (specified via marker).
-func optionHelp(def *markers.Definition, out *strings.Builder) {
-	out.WriteString(def.Name)
-	if def.Empty() {
-		return
-	}
-
-	first := true
-	for argName, arg := range def.Fields {
-		fieldHelp(argName, arg, first, out)
-		first = false
-	}
-}
-
-// allOptionsHelp documents all accepted options
-func allOptionsHelp(reg *markers.Registry, descTarget bool, sortFunc func(string, string) bool) string {
-	out := &strings.Builder{}
-	allMarkers := reg.AllDefinitions()
-	sort.Slice(allMarkers, func(i, j int) bool {
-		// sort grouping marker options together
-		iName, jName := allMarkers[i].Name, allMarkers[j].Name
-		return sortFunc(iName, jName)
-	})
-	for _, def := range allMarkers {
-		out.WriteString("  ")
-		optionHelp(def, out)
-		if descTarget {
-			switch def.Target {
-			case markers.DescribesPackage:
-				out.WriteString(" (package)")
-			case markers.DescribesType:
-				out.WriteString(" (type)")
-			case markers.DescribesField:
-				out.WriteString(" (struct field)")
-			}
-		}
-		out.WriteRune('\n')
-	}
-	return out.String()
-}
-
-func compOptionsForSort(iName, jName string) bool {
-	iParts := strings.Split(iName, ":")
-	jParts := strings.Split(jName, ":")
-
-	iGen := ""
-	iRule := ""
-	jGen := ""
-	jRule := ""
-
-	switch len(iParts) {
-	case 1:
-		iGen = iParts[0]
-	// two means a default output rule, so ignore
-	case 2:
-		iRule = iParts[1]
-	case 3:
-		iGen = iParts[1]
-		iRule = iParts[2]
-	}
-	switch len(jParts) {
-	case 1:
-		jGen = jParts[0]
-	// two means a default output rule, so ignore
-	case 2:
-		jRule = jParts[1]
-	case 3:
-		jGen = jParts[1]
-		jRule = jParts[2]
-	}
-
-	if iGen != jGen {
-		return iGen > jGen
-	}
-
-	return iRule < jRule
-}
-
 func main() {
-	printMarkersOnly := false
+	helpLevel := 0
+	whichLevel := 0
 	cmd := &cobra.Command{
 		Use:   "controller-gen",
 		Short: "Generate Kubernetes API extension resources and code.",
@@ -213,12 +130,27 @@ func main() {
 	# Run all the generators for a given project
 	controller-gen paths=./apis/...
 `,
-		RunE: func(_ *cobra.Command, rawOpts []string) error {
-			return runGenerators(rawOpts, printMarkersOnly)
+		RunE: func(c *cobra.Command, rawOpts []string) error {
+			if helpLevel > 0 {
+				return c.Usage()
+			}
+			return runGenerators(c, rawOpts, whichLevel)
 		},
 	}
-	cmd.Flags().BoolVarP(&printMarkersOnly, "which-markers", "w", false, "print out all markers available with the requested generators")
-	cmd.SetUsageTemplate(cmd.UsageTemplate() + "\n\nOptions\n\n" + allOptionsHelp(optionsRegistry, false, compOptionsForSort))
+	cmd.Flags().CountVarP(&whichLevel, "which-markers", "w", "print out all markers available with the requested generators (passing more times yields more detailed information)")
+	cmd.Flags().CountVarP(&helpLevel, "detailed-help", "h", "print out more detailed help (passing more times yields more detailed information about options)")
+	cmd.Flags().Bool("help", false, "print out usage and a summary of options")
+	oldUsage := cmd.UsageFunc()
+	cmd.SetUsageFunc(func(c *cobra.Command) error {
+		if err := oldUsage(c); err != nil {
+			return err
+		}
+		if helpLevel == 0 {
+			helpLevel = summaryHelp
+		}
+		fmt.Fprintf(c.OutOrStderr(), "\n\nOptions\n\n")
+		return helpForLevels(c.OutOrStdout(), c.OutOrStderr(), helpLevel, optionsRegistry, help.SortByOption)
+	})
 
 	if err := cmd.Execute(); err != nil {
 		fmt.Fprintln(os.Stderr, err)
@@ -226,121 +158,22 @@ func main() {
 	}
 }
 
-// splitOutputRuleName splits a marker name of "output:rule:gen" or "output:rule"
-// into its compontent rule and generator name.
-func splitOutputRuleOption(name string) (ruleName string, genName string) {
-	parts := strings.SplitN(name, ":", 3)
-	if len(parts) == 3 {
-		// output:<generator>:<rule>
-		return parts[2], parts[1]
-	}
-	// output:<rule>
-	return parts[1], ""
-}
-
-// parseOptions parses out options as markers into generators and output rules
-// (the only current types of options).
-func parseOptions(options []string) (genall.Generators, genall.OutputRules, []string, error) {
-	var gens genall.Generators
-	rules := genall.OutputRules{
-		ByGenerator: make(map[genall.Generator]genall.OutputRule),
-	}
-	var paths []string
-
-	// collect the generators first, so that we can key the output on the actual
-	// generator, which matters if there's settings in the gen object and it's not a pointer.
-	outputByGen := make(map[string]genall.OutputRule)
-	gensByName := make(map[string]genall.Generator)
-
-	for _, rawOpt := range options {
-		rawOpt = "+" + rawOpt // add a `+` to make it acceptable for usage with the registry
-		defn := optionsRegistry.Lookup(rawOpt, markers.DescribesPackage)
-		if defn == nil {
-			return nil, genall.OutputRules{}, nil, fmt.Errorf("unknown option %q", rawOpt[1:])
-		}
-
-		val, err := defn.Parse(rawOpt)
+func runGenerators(c *cobra.Command, rawOptions []string, whichLevel int) error {
+	if whichLevel > 0 {
+		// just grab a registry so we don't lag while trying to load roots
+		// (like we'd do if we just constructed the full runtime).
+		reg, err := genall.RegistryFromOptions(optionsRegistry, rawOptions)
 		if err != nil {
-			return nil, genall.OutputRules{}, nil, fmt.Errorf("unable to parse option %q: %v", rawOpt[1:], err)
-		}
-
-		switch val := val.(type) {
-		case genall.Generator:
-			gens = append(gens, val)
-			gensByName[defn.Name] = val
-		case genall.OutputRule:
-			_, genName := splitOutputRuleOption(defn.Name)
-			if genName == "" {
-				// it's a default rule
-				rules.Default = val
-				continue
-			}
-
-			outputByGen[genName] = val
-			continue
-		case rootPaths:
-			paths = val
-		default:
-			return nil, genall.OutputRules{}, nil, fmt.Errorf("unknown option marker %q", defn.Name)
-		}
-	}
-
-	// if no generators were specified, we want all of them
-	if len(gens) == 0 {
-		for genName, gen := range allGenerators {
-			gens = append(gens, gen)
-			gensByName[genName] = gen
-		}
-	}
-
-	// actually associate the rules now that we know the generators
-	for genName, outputRule := range outputByGen {
-		gen, knownGen := gensByName[genName]
-		if !knownGen {
-			return nil, genall.OutputRules{}, nil, fmt.Errorf("non-invoked generator %q", genName)
-		}
-
-		rules.ByGenerator[gen] = outputRule
-	}
-
-	// attempt to figure out what the user wants without a lot of verbose specificity:
-	// if the user specifies a default rule, assume that they probably want to fall back
-	// to that.  Otherwise, assume that they just wanted to customize one option from the
-	// set, and leave the rest in the standard configuration.
-	outRules := genall.DirectoryPerGenerator("config", gensByName)
-	if rules.Default != nil {
-		return gens, rules, paths, nil
-	}
-
-	for gen, rule := range rules.ByGenerator {
-		outRules.ByGenerator[gen] = rule
-	}
-
-	return gens, outRules, paths, nil
-}
-
-func runGenerators(rawOptions []string, printMarkersOnly bool) error {
-	gens, outputRules, rootPaths, err := parseOptions(rawOptions)
-	if err != nil {
-
-		return err
-	}
-
-	if printMarkersOnly {
-		reg := &markers.Registry{}
-		if err := gens.RegisterMarkers(reg); err != nil {
 			return err
 		}
-		sortFunc := func(iName string, jName string) bool { return iName < jName }
-		fmt.Println(allOptionsHelp(reg, true, sortFunc))
-		return nil
+
+		return helpForLevels(c.OutOrStdout(), c.OutOrStderr(), whichLevel, reg, help.SortByCategory)
 	}
 
-	rt, err := gens.ForRoots(rootPaths...)
+	rt, err := genall.FromOptions(optionsRegistry, rawOptions)
 	if err != nil {
 		return err
 	}
-	rt.OutputRules = outputRules
 
 	if hadErrs := rt.Run(); hadErrs {
 		return fmt.Errorf("not all generators ran successfully")
@@ -348,3 +181,43 @@ func runGenerators(rawOptions []string, printMarkersOnly bool) error {
 
 	return nil
 }
+
+func helpForLevels(mainOut io.Writer, errOut io.Writer, whichLevel int, reg *markers.Registry, sorter help.SortGroup) error {
+	helpInfo := help.ByCategory(reg, sorter)
+	switch whichLevel {
+	case jsonHelp:
+		if err := json.NewEncoder(mainOut).Encode(helpInfo); err != nil {
+			return err
+		}
+	case detailedHelp, fullHelp:
+		fullDetail := whichLevel == fullHelp
+		for _, cat := range helpInfo {
+			if cat.Category == "" {
+				continue
+			}
+			contents := prettyhelp.MarkersDetails(fullDetail, cat.Category, cat.Markers)
+			if err := contents.WriteTo(errOut); err != nil {
+				return err
+			}
+		}
+	case summaryHelp:
+		for _, cat := range helpInfo {
+			if cat.Category == "" {
+				continue
+			}
+			contents := prettyhelp.MarkersSummary(cat.Category, cat.Markers)
+			if err := contents.WriteTo(errOut); err != nil {
+				return err
+			}
+		}
+	}
+	return nil
+}
+
+const (
+	_ = iota
+	summaryHelp
+	detailedHelp
+	fullHelp
+	jsonHelp
+)

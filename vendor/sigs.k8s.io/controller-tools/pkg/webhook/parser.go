@@ -38,17 +38,40 @@ var (
 	ConfigDefinition = markers.Must(markers.MakeDefinition("kubebuilder:webhook", markers.DescribesPackage, Config{}))
 )
 
-// Config is a marker value that describes a kubernetes Webhook config.
+// +controllertools:marker:generateHelp:category=Webhook
+
+// Config specifies how a webhook should be served.
+//
+// It specifies only the details that are intrinsic to the application serving
+// it (e.g. the resources it can handle, or the path it serves on).
 type Config struct {
-	Mutating      bool
+	// Mutating marks this as a mutating webhook (it's validating only if false)
+	//
+	// Mutating webhooks are allowed to change the object in their response,
+	// and are called *after* all validating webhooks.  Mutating webhooks may
+	// choose to reject an object, similarly to a validating webhook.
+	Mutating bool
+	// FailurePolicy specifies what should happen if the API server cannot reach the webhook.
+	//
+	// It may be either "ignore" (to skip the webhook and continue on) or "fail" (to reject
+	// the object in question).
 	FailurePolicy string
 
-	Groups    []string
+	// Groups specifies the API groups that this webhook receives requests for.
+	Groups []string
+	// Resources specifies the API resources that this webhook receives requests for.
 	Resources []string
-	Verbs     []string
-	Versions  []string
+	// Verbs specifies the Kubernetes API verbs that this webhook receives requests for.
+	//
+	// Only modification-like verbs may be specified.
+	// May be "create", "update", "delete", "connect", or "*" (for all).
+	Verbs []string
+	// Versions specifies the API versions that this webhook receives requests for.
+	Versions []string
 
+	// Name indicates the name of this webhook configuration.
 	Name string
+	// Path specifies that path that the API server should connect to this webhook on.
 	Path string
 }
 
@@ -121,11 +144,17 @@ func (c Config) ToWebhook() admissionreg.Webhook {
 	}
 }
 
-// Generator is a genall.Generator that generates Webhook manifests.
+// +controllertools:marker:generateHelp
+
+// Generator generates (partial) {Mutating,Validating}WebhookConfiguration objects.
 type Generator struct{}
 
 func (Generator) RegisterMarkers(into *markers.Registry) error {
-	return into.Register(ConfigDefinition)
+	if err := into.Register(ConfigDefinition); err != nil {
+		return err
+	}
+	into.AddHelp(ConfigDefinition, Config{}.Help())
+	return nil
 }
 
 func (Generator) Generate(ctx *genall.GenerationContext) error {

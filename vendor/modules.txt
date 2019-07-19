@@ -28,6 +28,8 @@ github.com/davecgh/go-spew/spew
 github.com/dgrijalva/jwt-go
 # github.com/evanphx/json-patch v4.5.0+incompatible
 github.com/evanphx/json-patch
+# github.com/fatih/color v1.7.0
+github.com/fatih/color
 # github.com/go-logr/logr v0.1.0
 github.com/go-logr/logr
 # github.com/go-logr/zapr v0.1.0
@@ -85,6 +87,10 @@ github.com/imdario/mergo
 github.com/inconshreveable/mousetrap
 # github.com/json-iterator/go v1.1.6
 github.com/json-iterator/go
+# github.com/mattn/go-colorable v0.1.2
+github.com/mattn/go-colorable
+# github.com/mattn/go-isatty v0.0.8
+github.com/mattn/go-isatty
 # github.com/matttproud/golang_protobuf_extensions v1.0.1
 github.com/matttproud/golang_protobuf_extensions/pbutil
 # github.com/modern-go/concurrent v0.0.0-20180306012644-bacd9c7ef1dd
@@ -362,7 +368,6 @@ k8s.io/apimachinery/pkg/api/equality
 k8s.io/apimachinery/pkg/util/rand
 k8s.io/apimachinery/pkg/util/sets
 k8s.io/apimachinery/pkg/api/meta
-k8s.io/apimachinery/pkg/util/json
 k8s.io/apimachinery/pkg/runtime/serializer/streaming
 k8s.io/apimachinery/pkg/util/net
 k8s.io/apimachinery/pkg/util/errors
@@ -371,6 +376,7 @@ k8s.io/apimachinery/pkg/api/resource
 k8s.io/apimachinery/pkg/conversion
 k8s.io/apimachinery/pkg/fields
 k8s.io/apimachinery/pkg/selection
+k8s.io/apimachinery/pkg/util/json
 k8s.io/apimachinery/pkg/conversion/queryparams
 k8s.io/apimachinery/pkg/util/naming
 k8s.io/apimachinery/pkg/version
@@ -676,11 +682,13 @@ sigs.k8s.io/controller-runtime/pkg/webhook/internal/metrics
 sigs.k8s.io/controller-runtime/pkg/envtest/printer
 sigs.k8s.io/controller-runtime/pkg/internal/controller/metrics
 sigs.k8s.io/controller-runtime/pkg/internal/objectutil
-# sigs.k8s.io/controller-tools v0.2.0-beta.3
+# sigs.k8s.io/controller-tools v0.2.0-beta.4
 sigs.k8s.io/controller-tools/cmd/controller-gen
 sigs.k8s.io/controller-tools/pkg/crd
 sigs.k8s.io/controller-tools/pkg/deepcopy
 sigs.k8s.io/controller-tools/pkg/genall
+sigs.k8s.io/controller-tools/pkg/genall/help
+sigs.k8s.io/controller-tools/pkg/genall/help/pretty
 sigs.k8s.io/controller-tools/pkg/markers
 sigs.k8s.io/controller-tools/pkg/rbac
 sigs.k8s.io/controller-tools/pkg/webhook

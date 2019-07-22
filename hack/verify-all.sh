@@ -13,7 +13,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-set -o errexit
 set -o nounset
 set -o pipefail
 
@@ -27,87 +26,92 @@ cd "${REPO_PATH}"
 failure() {
     if [[ "${1}" != 0 ]]; then
         res=1
-        echo "${2} failed"
+        failed+=("${2}")
+        outputs+=("${3}")
     fi
 }
 
 # exit code, if a script fails we'll set this to 1
 res=0
+failed=()
+outputs=()
 
 # run all verify scripts, optionally skipping any of them
 
 if [[ "${VERIFY_WHITESPACE:-true}" == "true" ]]; then
   echo "[*] Verifying whitespace..."
-  hack/verify-whitespace.sh
-  failure $? "verify-whitespace.sh"
+  out=$(hack/verify-whitespace.sh 2>&1)
+  failure $? "verify-whitespace.sh" "${out}"
   cd "${REPO_PATH}"
 fi
 
 if [[ "${VERIFY_SPELLING:-true}" == "true" ]]; then
   echo "[*] Verifying spelling..."
-  hack/verify-spelling.sh
-  failure $? "verify-spelling.sh"
+  out=$(hack/verify-spelling.sh 2>&1)
+  failure $? "verify-spelling.sh" "${out}"
   cd "${REPO_PATH}"
 fi
 
 if [[ "${VERIFY_BOILERPLATE:-true}" == "true" ]]; then
   echo "[*] Verifying boilerplate..."
-  hack/verify-boilerplate.sh
-  failure $? "verify-boilerplate.sh"
+  out=$(hack/verify-boilerplate.sh 2>&1)
+  failure $? "verify-boilerplate.sh" "${out}"
   cd "${REPO_PATH}"
 fi
 
 if [[ "${VERIFY_GOFMT:-true}" == "true" ]]; then
   echo "[*] Verifying gofmt..."
-  hack/verify-gofmt.sh
-  failure $? "verify-gofmt.sh"
+  out=$(hack/verify-gofmt.sh 2>&1)
+  failure $? "verify-gofmt.sh" "${out}"
   cd "${REPO_PATH}"
 fi
 
 if [[ "${VERIFY_GOIMPORTS:-true}" == "true" ]]; then
   echo "[*] Verifying goimports..."
-  hack/verify-goimports.sh || res=1
+  out=$(hack/verify-goimports.sh 2>&1)
+  failure $? "verify-goimports.sh" "${out}"
   cd "${REPO_PATH}"
 fi
 
 if [[ "${VERIFY_GOLINT:-true}" == "true" ]]; then
   echo "[*] Verifying golint..."
-  hack/verify-golint.sh
-  failure $? "verify-golint.sh"
+  out=$(hack/verify-golint.sh 2>&1)
+  failure $? "verify-golint.sh" "${out}"
   cd "${REPO_PATH}"
 fi
 
 if [[ "${VERIFY_GOVET:-true}" == "true" ]]; then
   echo "[*] Verifying govet..."
-  hack/verify-govet.sh || res=1
+  out=$(hack/verify-govet.sh 2>&1)
+  failure $? "verify-govet.sh" "${out}"
   cd "${REPO_PATH}"
 fi
 
 if [[ "${VERIFY_DEPS:-true}" == "true" ]]; then
   echo "[*] Verifying deps..."
-  hack/verify-deps.sh
-  failure $? "verify-deps.sh"
+  out=$(hack/verify-deps.sh 2>&1)
+  failure $? "verify-deps.sh" "${out}"
   cd "${REPO_PATH}"
 fi
 
 if [[ "${VERIFY_GOTEST:-true}" == "true" ]]; then
   echo "[*] Verifying gotest..."
-  hack/verify-gotest.sh
-  failure $? "verify-gotest.sh"
+  out=$(hack/verify-gotest.sh 2>&1)
+  failure $? "verify-gotest.sh" "${out}"
   cd "${REPO_PATH}"
 fi
 
 if [[ "${VERIFY_BUILD:-true}" == "true" ]]; then
   echo "[*] Verifying build..."
-  hack/verify-build.sh
-  failure $? "verify-build.sh"
+  out=$(hack/verify-build.sh 2>&1)
+  failure $? "verify-build.sh" "${out}"
   cd "${REPO_PATH}"
 fi
 
 if [[ "${VERIFY_DOCKER_BUILD:-true}" == "true" ]]; then
   echo "[*] Verifying capd-manager docker image build..."
-  hack/verify-docker-build.sh
-  failure $? "verify-docker-build.sh"
+  out=$(hack/verify-docker-build.sh 2>&1)
+  failure $? "verify-docker-build.sh" "${out}"
   cd "${REPO_PATH}"
 fi
 
@@ -117,6 +121,11 @@ if [[ "${res}" = 0 ]]; then
   echo "All verify checks passed, congrats!"
 else
   echo ""
-  echo "One or more verify checks failed! See output above..."
+  echo "Some of the verify scripts failed:"
+  for i in "${!failed[@]}"; do
+      echo "- ${failed[$i]}:"
+      echo "${outputs[$i]}"
+      echo
+  done
 fi
 exit "${res}"

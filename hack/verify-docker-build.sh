@@ -23,4 +23,7 @@ source "$(dirname "$0")/utils.sh"
 # check if manager docker image builds
 cd_root_path
 
+export GO111MODULE=on
+go mod download
+go build -o capd-manager ./cmd/capd-manager
 docker build --file Dockerfile -t capd-manager:pr-verify .

@@ -47,7 +47,7 @@ go build > /dev/null
 popd > /dev/null
 
 # check for goimports diffs
-diff=$(git ls-files | grep "\.go" | grep -v "\/vendor" | xargs "${BIN_PATH}/goimports" -d  2>&1)
+diff=$(git ls-files | grep "\.go$" | xargs "${BIN_PATH}/goimports" -d  2>&1)
 if [[ -n "${diff}" ]]; then
   echo "${diff}"
   echo

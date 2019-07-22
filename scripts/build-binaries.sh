@@ -16,6 +16,9 @@
 set -o errexit
 set -o xtrace
 
+VERSION=${VERSION:-}
+SHORT=${SHORT:-}
+
 # shellcheck source=/dev/null
 source "$(dirname "$0")/../hack/utils.sh"
 readonly REPO_PATH=$(get_root_path)
@@ -28,15 +31,12 @@ readonly CAPDMGR_SRC=${REPO_PATH}/cmd/capd-manager
 readonly KIND_TEST_BIN=${REPO_PATH}/bin/kind-test
 readonly KIND_TEST_SRC=${REPO_PATH}/cmd/kind-test
 
+# this sets VERSION and SHORT if they are not already set
 source "${REPO_PATH}/hack/set-workspace-status.sh"
 
-LDFLAGS="-X sigs.k8s.io/cluster-api-provider-docker/cmd/versioninfo.GitBranch=${GIT_BRANCH} \
--X sigs.k8s.io/cluster-api-provider-docker/cmd/versioninfo.GitReleaseTag=${GIT_RELEASE_TAG} \
--X sigs.k8s.io/cluster-api-provider-docker/cmd/versioninfo.GitReleaseCommit=${GIT_RELEASE_COMMIT} \
--X sigs.k8s.io/cluster-api-provider-docker/cmd/versioninfo.GitTreeState=${GIT_TREE_STATE} \
--X sigs.k8s.io/cluster-api-provider-docker/cmd/versioninfo.GitCommit=${GIT_COMMIT} \
--X sigs.k8s.io/cluster-api-provider-docker/cmd/versioninfo.GitMajor=${GIT_MAJOR} \
--X sigs.k8s.io/cluster-api-provider-docker/cmd/versioninfo.GitMinor=${GIT_MINOR}"
+LDFLAGS="-s -w \
+-X sigs.k8s.io/cluster-api-provider-docker/cmd/versioninfo.version=${VERSION} \
+-X sigs.k8s.io/cluster-api-provider-docker/cmd/versioninfo.shortHash=${SHORT}"
 
 # build capdctl
 go build -ldflags "${LDFLAGS}" -o ${CAPDCTL_BIN} ${CAPDCTL_SRC}

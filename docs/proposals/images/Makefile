@@ -12,19 +12,21 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-SOURCES := $(shell ls *.plantuml)
-FIGURES := $(SOURCES:%.plantuml=%.png)
+ROOT_DIR:=$(shell dirname $(realpath $(lastword $(MAKEFILE_LIST))))
 
-figures: $(FIGURES)
+SOURCES := $(shell find ${ROOT_DIR} -name \*.plantuml)
+DIAGRAMS := $(SOURCES:%.plantuml=%.png)
+
+diagrams: $(DIAGRAMS)
 
 # --user ensures the output files are owned by the user invoking docker on the host
 # TODO: Publish docker image owned by CAPI project: https://github.com/kubernetes-sigs/cluster-api/issues/1070
 %.png: %.plantuml
 	docker run \
 		--rm \
-		--volume ${PWD}:/figures \
-		--user $(shell id --user):$(shell id --group) \
+		--volume ${ROOT_DIR}:/diagrams \
+		--user $(shell id -u):$(shell id -g) \
 		dpf9/plantuml:1.2019.6 \
-		-v /figures/$^
+		-v /diagrams/$(shell basename $(shell dirname $^))/$(notdir $^)
 
-.PHONY: figures
+.PHONY: diagrams

@@ -212,3 +212,10 @@ verify:
 	./hack/verify-boilerplate.sh
 	./hack/verify-clientset.sh
 	./hack/verify-bazel.sh
+
+## --------------------------------------
+## Others / Utilities
+## --------------------------------------
+
+diagrams:
+	$(MAKE) -C docs/proposals/images

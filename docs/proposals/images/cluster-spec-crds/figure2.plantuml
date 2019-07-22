@@ -1,13 +1,12 @@
 @startuml
-
-title Figure 2: Cluster State Transitions 
+title Figure 2: Cluster State Transitions
 
 start
 
 :Pending;
 
 note right
-Cluster object is created but 
+Cluster object is created but
 has no associated Infrastructure
 end note
 
@@ -26,4 +25,5 @@ end note
 
 stop
 
+hide footbox
 @enduml

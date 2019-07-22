@@ -24,7 +24,7 @@ REPO_PATH=$(get_root_path)
 cd "${REPO_PATH}"
 
 failure() {
-    if [[ "${1}" = 1 ]]; then
+    if [[ "${1}" != 0 ]]; then
         res=1
         failed+=("${2}")
         outputs+=("${3}")

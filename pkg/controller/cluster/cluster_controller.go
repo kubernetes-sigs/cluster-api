@@ -131,7 +131,7 @@ func (r *ReconcileCluster) Reconcile(request reconcile.Request) (reconcile.Resul
 		}
 
 		if len(children) > 0 {
-			klog.Infof("%d children still exist, will requeue", len(children))
+			klog.Infof("deleting cluster %s: %d children still exist, will requeue", name, len(children))
 			for _, child := range children {
 
 				accessor, err := meta.Accessor(child)
@@ -145,9 +145,9 @@ func (r *ReconcileCluster) Reconcile(request reconcile.Request) (reconcile.Resul
 
 				gvk := child.GetObjectKind().GroupVersionKind().String()
 
-				klog.V(4).Infof("Deleting %s %s", gvk, accessor.GetName())
+				klog.V(4).Infof("deleting cluster %s: Deleting %s %s", name, gvk, accessor.GetName())
 				if err := r.Delete(context.Background(), child, client.PropagationPolicy(metav1.DeletePropagationForeground)); err != nil {
-					return reconcile.Result{}, errors.Wrapf(err, "failed to delete %s %s", gvk, accessor.GetName())
+					return reconcile.Result{}, errors.Wrapf(err, "deleting cluster %s: failed to delete %s %s", name, gvk, accessor.GetName())
 				}
 			}
 
@@ -200,6 +200,7 @@ func (r *ReconcileCluster) Reconcile(request reconcile.Request) (reconcile.Resul
 	return reconcile.Result{}, nil
 }
 
+// listChildren returns a list of Deployments, Sets, and Machines than have an ownerref to the given cluster
 func (r *ReconcileCluster) listChildren(ctx context.Context, cluster *clusterv1.Cluster) ([]runtime.Object, error) {
 	var (
 		deployments clusterv1.MachineDeploymentList
@@ -247,6 +248,7 @@ func (r *ReconcileCluster) listChildren(ctx context.Context, cluster *clusterv1.
 }
 
 func pointsTo(pointer *metav1.ObjectMeta, target *metav1.ObjectMeta) bool {
+
 	for _, ref := range pointer.OwnerReferences {
 		if ref.UID == target.UID {
 			return true

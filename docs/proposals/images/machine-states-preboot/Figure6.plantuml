@@ -33,14 +33,14 @@ note over "AWS Infrastructure Controller": - ✅ AWSInfrastructureConfig.OwnerRe
 "AWS Infrastructure Controller"->"API Server": Get Cluster
 "AWS Infrastructure Controller"<<--"API Server": Response
 
-note over "AWS Infrastructure Controller": - ✅ Machine.Status.Phase is "Provisioning" \n- ✅ Machine.Spec.Bootstrap.Data is populated (not <nil>)\n- ✅ AWS supports user-data\n- ✅ AWSInfrastructureConfig is valid\n- ✅ AWSInfrastructureConfig.Status.Phase is empty or <nil>
+note over "AWS Infrastructure Controller": - ✅ Machine.Status.Phase is "Provisioning" \n- ✅ Machine.Spec.Bootstrap.Data is populated (not <nil>)\n- ✅ AWS supports user-data\n- ✅ AWSInfrastructureConfig is valid\n- ✅ AWSInfrastructureConfig.Status.Ready is false
 
 "AWS Infrastructure Controller"-> "AWS Infrastructure Controller": Copy Machine.Spec.Bootstrap.Data to *ec2.RunInstancesInput
 
 "AWS Infrastructure Controller"-> AWS: RunInstances(*ec2.RunInstancesInput)
 "AWS Infrastructure Controller"<<--AWS: Response
 
-"AWS Infrastructure Controller"-> "AWS Infrastructure Controller":Set AWSInfrastructureConfig.Status.Phase = "Ready"
+"AWS Infrastructure Controller"-> "AWS Infrastructure Controller":Set AWSInfrastructureConfig.Status.Ready = true
 
 "AWS Infrastructure Controller"->"API Server": Update AWSInfrastructureConfig
 "AWS Infrastructure Controller"<<--"API Server": Response

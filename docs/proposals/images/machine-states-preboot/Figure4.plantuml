@@ -36,7 +36,7 @@ note over "Kubeadm Bootstrap Controller": Uses Cluster and Machine information\n
 
 "Kubeadm Bootstrap Controller"-> "Kubeadm Bootstrap Controller":Generate bootstrap data and set\nKubeadmBootstrapConfig.Status.BootstrapData
 
-"Kubeadm Bootstrap Controller"-> "Kubeadm Bootstrap Controller":Set KubeadmBootstrapConfig.Status.Phase = "Ready"
+"Kubeadm Bootstrap Controller"-> "Kubeadm Bootstrap Controller":Set KubeadmBootstrapConfig.Status.Ready = true
 
 "Kubeadm Bootstrap Controller"->"API Server": Update KubeadmBootstrapConfig
 "Kubeadm Bootstrap Controller"<<--"API Server": Response

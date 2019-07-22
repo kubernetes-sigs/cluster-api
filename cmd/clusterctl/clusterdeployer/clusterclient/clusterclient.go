@@ -20,7 +20,6 @@ import (
 	"fmt"
 	"io"
 	"io/ioutil"
-	"net"
 	"os"
 	"os/exec"
 	"reflect"
@@ -44,7 +43,6 @@ import (
 )
 
 const (
-	defaultAPIServerPort        = "443"
 	retryIntervalKubectlApply   = 10 * time.Second
 	retryIntervalResourceReady  = 10 * time.Second
 	retryIntervalResourceDelete = 10 * time.Second
@@ -78,6 +76,7 @@ type Client interface {
 	ForceDeleteMachineSet(namespace, name string) error
 	ForceDeleteMachineDeployment(namespace, name string) error
 	EnsureNamespace(string) error
+	GetKubeconfigFromSecret(namespace, clusterName string) (string, error)
 	GetClusters(string) ([]*clusterv1.Cluster, error)
 	GetCluster(string, string) (*clusterv1.Cluster, error)
 	GetContextNamespace() string
@@ -93,7 +92,6 @@ type Client interface {
 	GetMachinesForMachineSet(*clusterv1.MachineSet) ([]*clusterv1.Machine, error)
 	ScaleStatefulSet(namespace, name string, scale int32) error
 	WaitForClusterV1alpha2Ready() error
-	UpdateClusterObjectEndpoint(string, string, string) error
 	WaitForResourceStatuses() error
 }
 
@@ -140,6 +138,20 @@ func (c *client) EnsureNamespace(namespaceName string) error {
 		return err
 	}
 	return nil
+}
+
+func (c *client) GetKubeconfigFromSecret(namespace, clusterName string) (string, error) {
+	clientset, err := clientcmd.NewCoreClientSetForDefaultSearchPath(c.kubeconfigFile, clientcmd.NewConfigOverrides())
+	if err != nil {
+		return "", errors.Wrap(err, "error creating core clientset")
+	}
+
+	secretName := fmt.Sprintf("%s-kubeconfig", clusterName)
+	secret, err := clientset.CoreV1().Secrets(namespace).Get(secretName, metav1.GetOptions{})
+	if err != nil {
+		return "", err
+	}
+	return string(secret.Data["value"]), nil
 }
 
 func (c *client) ScaleStatefulSet(ns string, name string, scale int32) error {
@@ -646,34 +658,6 @@ func newDeleteOptions() *metav1.DeleteOptions {
 	return &metav1.DeleteOptions{
 		PropagationPolicy: &propagationPolicy,
 	}
-}
-
-// UpdateClusterObjectEndpoint updates the status of a cluster API endpoint, clusterEndpoint
-// can be passed as hostname or hostname:port, if port is not present the default port 443 is applied.
-// TODO: Test this function
-func (c *client) UpdateClusterObjectEndpoint(clusterEndpoint, clusterName, namespace string) error {
-	cluster, err := c.GetCluster(clusterName, namespace)
-	if err != nil {
-		return err
-	}
-	endpointHost, endpointPort, err := net.SplitHostPort(clusterEndpoint)
-	if err != nil {
-		// We rely on provider.GetControlPlaneEndpoint to provide a correct hostname/IP, no
-		// further validation is done.
-		endpointHost = clusterEndpoint
-		endpointPort = defaultAPIServerPort
-	}
-	endpointPortInt, err := strconv.Atoi(endpointPort)
-	if err != nil {
-		return errors.Wrapf(err, "error while converting cluster endpoint port %q", endpointPort)
-	}
-	cluster.Status.APIEndpoints = append(cluster.Status.APIEndpoints,
-		clusterv1.APIEndpoint{
-			Host: endpointHost,
-			Port: endpointPortInt,
-		})
-	_, err = c.clientSet.ClusterV1alpha2().Clusters(namespace).UpdateStatus(cluster)
-	return err
 }
 
 func (c *client) WaitForClusterV1alpha2Ready() error {

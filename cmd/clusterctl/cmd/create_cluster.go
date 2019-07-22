@@ -25,8 +25,6 @@ import (
 	"sigs.k8s.io/cluster-api/cmd/clusterctl/clusterdeployer"
 	"sigs.k8s.io/cluster-api/cmd/clusterctl/clusterdeployer/bootstrap"
 	"sigs.k8s.io/cluster-api/cmd/clusterctl/clusterdeployer/clusterclient"
-	"sigs.k8s.io/cluster-api/cmd/clusterctl/clusterdeployer/provider"
-	clustercommon "sigs.k8s.io/cluster-api/pkg/apis/cluster/common"
 	"sigs.k8s.io/cluster-api/pkg/util"
 )
 
@@ -78,10 +76,6 @@ func RunCreate(co *CreateOptions) error {
 		return err
 	}
 
-	pd, err := getProvider(co.Provider)
-	if err != nil {
-		return err
-	}
 	pc, err := ioutil.ReadFile(co.ProviderComponents)
 	if err != nil {
 		return errors.Wrapf(err, "error loading provider components file %q", co.ProviderComponents)
@@ -109,7 +103,7 @@ func RunCreate(co *CreateOptions) error {
 		string(bc),
 		co.BootstrapFlags.Cleanup)
 
-	return d.Create(c, m, pd, co.KubeconfigOutput, pcsFactory)
+	return d.Create(c, m, co.KubeconfigOutput, pcsFactory)
 }
 
 func init() {
@@ -120,9 +114,6 @@ func init() {
 	createClusterCmd.MarkFlagRequired("machines")
 	createClusterCmd.Flags().StringVarP(&co.ProviderComponents, "provider-components", "p", "", "A yaml file containing cluster api provider controllers and supporting objects. Required.")
 	createClusterCmd.MarkFlagRequired("provider-components")
-	// TODO: Remove as soon as code allows https://github.com/kubernetes-sigs/cluster-api/issues/157
-	createClusterCmd.Flags().StringVarP(&co.Provider, "provider", "", "", "Which provider deployment logic to use. Required.")
-	createClusterCmd.MarkFlagRequired("provider")
 
 	// Optional flags
 	createClusterCmd.Flags().StringVarP(&co.AddonComponents, "addon-components", "a", "", "A yaml file containing cluster addons to apply to the internal cluster")
@@ -131,16 +122,4 @@ func init() {
 
 	co.BootstrapFlags.AddFlags(createClusterCmd.Flags())
 	createCmd.AddCommand(createClusterCmd)
-}
-
-func getProvider(name string) (provider.Deployer, error) {
-	provisioner, err := clustercommon.ClusterProvisioner(name)
-	if err != nil {
-		return nil, err
-	}
-	provider, ok := provisioner.(provider.Deployer)
-	if !ok {
-		return nil, errors.Errorf("provider for %s does not implement provider.Deployer interface", name)
-	}
-	return provider, nil
 }

@@ -21,7 +21,6 @@ import (
 
 	"k8s.io/klog"
 	clusterapis "sigs.k8s.io/cluster-api/pkg/apis"
-	"sigs.k8s.io/cluster-api/pkg/apis/cluster/common"
 	"sigs.k8s.io/cluster-api/pkg/client/clientset_generated/clientset"
 	capicluster "sigs.k8s.io/cluster-api/pkg/controller/cluster"
 	capimachine "sigs.k8s.io/cluster-api/pkg/controller/machine"
@@ -53,9 +52,6 @@ func main() {
 
 	// Initialize cluster actuator.
 	clusterActuator, _ := cluster.NewClusterActuator(cs.ClusterV1alpha2(), recorder)
-
-	// Register cluster deployer
-	common.RegisterClusterProvisioner("example", clusterActuator)
 
 	if err := clusterapis.AddToScheme(mgr.GetScheme()); err != nil {
 		klog.Fatal(err)

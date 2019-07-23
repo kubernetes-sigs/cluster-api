@@ -18,16 +18,20 @@ package cluster
 
 import (
 	"context"
+	"fmt"
 
 	"github.com/pkg/errors"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/client-go/tools/pager"
 	"k8s.io/client-go/util/retry"
 	"k8s.io/klog"
 	clusterv1 "sigs.k8s.io/cluster-api/pkg/apis/cluster/v1alpha1"
 	clusterv1alpha1 "sigs.k8s.io/cluster-api/pkg/apis/cluster/v1alpha1"
+	"sigs.k8s.io/cluster-api/pkg/client/clientset_generated/clientset/typed/cluster/v1alpha1"
 	controllerError "sigs.k8s.io/cluster-api/pkg/controller/error"
 	"sigs.k8s.io/cluster-api/pkg/util"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -41,12 +45,25 @@ import (
 var DefaultActuator Actuator
 
 func AddWithActuator(mgr manager.Manager, actuator Actuator) error {
-	return add(mgr, newReconciler(mgr, actuator))
+	reconciler, err := newReconciler(mgr, actuator)
+	if err != nil {
+		return err
+	}
+
+	return add(mgr, reconciler)
 }
 
 // newReconciler returns a new reconcile.Reconciler
-func newReconciler(mgr manager.Manager, actuator Actuator) reconcile.Reconciler {
-	return &ReconcileCluster{Client: mgr.GetClient(), scheme: mgr.GetScheme(), actuator: actuator}
+func newReconciler(mgr manager.Manager, actuator Actuator) (reconcile.Reconciler, error) {
+	cclient, err := v1alpha1.NewForConfig(mgr.GetConfig())
+	if err != nil {
+		return nil, err
+	}
+	return &ReconcileCluster{
+		Client:        mgr.GetClient(),
+		clusterClient: cclient,
+		scheme:        mgr.GetScheme(),
+		actuator:      actuator}, nil
 }
 
 // add adds a new Controller to mgr with r as the reconcile.Reconciler
@@ -71,8 +88,9 @@ var _ reconcile.Reconciler = &ReconcileCluster{}
 // ReconcileCluster reconciles a Cluster object
 type ReconcileCluster struct {
 	client.Client
-	scheme   *runtime.Scheme
-	actuator Actuator
+	clusterClient v1alpha1.ClusterV1alpha1Interface
+	scheme        *runtime.Scheme
+	actuator      Actuator
 }
 
 // +kubebuilder:rbac:groups=cluster.k8s.io,resources=clusters,verbs=get;list;watch;create;update;patch;delete
@@ -120,7 +138,7 @@ func (r *ReconcileCluster) Reconcile(request reconcile.Request) (reconcile.Resul
 	if !cluster.ObjectMeta.DeletionTimestamp.IsZero() {
 		// no-op if finalizer has been removed.
 		if !util.Contains(cluster.ObjectMeta.Finalizers, clusterv1.ClusterFinalizer) {
-			klog.Infof("reconciling cluster object %v causes a no-op as there is no finalizer.", name)
+			klog.Infof("Reconciling cluster object %v causes a no-op as there is no finalizer.", name)
 			return reconcile.Result{}, nil
 		}
 
@@ -131,7 +149,7 @@ func (r *ReconcileCluster) Reconcile(request reconcile.Request) (reconcile.Resul
 		}
 
 		if len(children) > 0 {
-			klog.Infof("deleting cluster %s: %d children still exist, will requeue", name, len(children))
+			klog.Infof("Deleting cluster %s: %d children still exist, will requeue", name, len(children))
 			for _, child := range children {
 
 				accessor, err := meta.Accessor(child)
@@ -145,7 +163,7 @@ func (r *ReconcileCluster) Reconcile(request reconcile.Request) (reconcile.Resul
 
 				gvk := child.GetObjectKind().GroupVersionKind().String()
 
-				klog.V(4).Infof("deleting cluster %s: Deleting %s %s", name, gvk, accessor.GetName())
+				klog.V(4).Infof("Deleting cluster %s: Deleting %s %s", name, gvk, accessor.GetName())
 				if err := r.Delete(context.Background(), child, client.PropagationPolicy(metav1.DeletePropagationForeground)); err != nil {
 					return reconcile.Result{}, errors.Wrapf(err, "deleting cluster %s: failed to delete %s %s", name, gvk, accessor.GetName())
 				}
@@ -154,14 +172,14 @@ func (r *ReconcileCluster) Reconcile(request reconcile.Request) (reconcile.Resul
 			return reconcile.Result{Requeue: true}, nil
 		}
 
-		klog.Infof("reconciling cluster object %v triggers delete.", name)
+		klog.Infof("Reconciling cluster object %v triggers delete.", name)
 		if err := r.actuator.Delete(cluster); err != nil {
 			klog.Errorf("Error deleting cluster object %v; %v", name, err)
 			return reconcile.Result{}, err
 		}
 
 		// Remove finalizer on successful deletion.
-		klog.Infof("cluster object %v deletion successful, removing finalizer.", name)
+		klog.Infof("Cluster object %v deletion successful, removing finalizer.", name)
 		err = retry.RetryOnConflict(retry.DefaultRetry, func() error {
 			// It's possible the actuator's Delete call modified the cluster. We can't guarantee that every provider
 			// updated the in memory cluster object with the latest copy of the cluster, so try to get a fresh copy.
@@ -188,7 +206,7 @@ func (r *ReconcileCluster) Reconcile(request reconcile.Request) (reconcile.Resul
 		return reconcile.Result{}, nil
 	}
 
-	klog.Infof("reconciling cluster object %v triggers idempotent reconcile.", name)
+	klog.Infof("Reconciling cluster object %v triggers idempotent reconcile.", name)
 	if err := r.actuator.Reconcile(cluster); err != nil {
 		if requeueErr, ok := errors.Cause(err).(controllerError.HasRequeueAfterError); ok {
 			klog.Infof("Actuator returned requeue-after error: %v", requeueErr)
@@ -202,43 +220,65 @@ func (r *ReconcileCluster) Reconcile(request reconcile.Request) (reconcile.Resul
 
 // listChildren returns a list of Deployments, Sets, and Machines than have an ownerref to the given cluster
 func (r *ReconcileCluster) listChildren(ctx context.Context, cluster *clusterv1.Cluster) ([]runtime.Object, error) {
-	var (
-		deployments clusterv1.MachineDeploymentList
-		sets        clusterv1.MachineSetList
-		machines    clusterv1.MachineList
-		children    []runtime.Object
-	)
+	var children []runtime.Object
 
 	ns := cluster.GetNamespace()
+	opts := metav1.ListOptions{
+		LabelSelector: labels.FormatLabels(
+			map[string]string{clusterv1.MachineClusterLabelName: cluster.GetName()},
+		),
+	}
 
-	err := r.List(ctx, client.InNamespace(ns), &deployments)
+	dfunc := func(_ context.Context, m metav1.ListOptions) (runtime.Object, error) {
+		return r.clusterClient.MachineDeployments(ns).List(m)
+	}
+	sfunc := func(_ context.Context, m metav1.ListOptions) (runtime.Object, error) {
+		return r.clusterClient.MachineSets(ns).List(m)
+	}
+	mfunc := func(_ context.Context, m metav1.ListOptions) (runtime.Object, error) {
+		return r.clusterClient.Machines(ns).List(m)
+	}
+
+	deployments, err := pager.New(dfunc).List(ctx, opts)
 	if err != nil {
 		return []runtime.Object{}, errors.Wrapf(err, "Failed to list MachineDeployments in %s", ns)
 	}
+	dlist, ok := deployments.(*clusterv1.MachineDeploymentList)
+	if !ok {
+		return []runtime.Object{}, fmt.Errorf("Expected MachineDeploymentList, got %T", deployments)
+	}
 
-	err = r.List(ctx, client.InNamespace(ns), &sets)
+	sets, err := pager.New(sfunc).List(ctx, opts)
 	if err != nil {
 		return []runtime.Object{}, errors.Wrapf(err, "Failed to list MachineSets in %s", ns)
 	}
-
-	err = r.List(ctx, client.InNamespace(ns), &machines)
-	if err != nil {
-		return []runtime.Object{}, errors.Wrapf(err, "Failed to list Machines in %s", ns)
+	slist, ok := sets.(*clusterv1.MachineSetList)
+	if !ok {
+		return []runtime.Object{}, fmt.Errorf("Expected MachineSetList, got %T", sets)
 	}
 
-	for _, d := range deployments.Items {
+	machines, err := pager.New(mfunc).List(ctx, opts)
+	if err != nil {
+		return []runtime.Object{}, errors.Wrapf(err, "Failed to list MachineSets in %s", ns)
+	}
+	mlist, ok := machines.(*clusterv1.MachineList)
+	if !ok {
+		return []runtime.Object{}, fmt.Errorf("Expected MachineList, got %T", machines)
+	}
+
+	for _, d := range dlist.Items {
 		if pointsTo(&d.ObjectMeta, &cluster.ObjectMeta) {
 			children = append(children, d.DeepCopyObject())
 		}
 	}
 
-	for _, s := range sets.Items {
+	for _, s := range slist.Items {
 		if pointsTo(&s.ObjectMeta, &cluster.ObjectMeta) {
 			children = append(children, s.DeepCopyObject())
 		}
 	}
 
-	for _, m := range machines.Items {
+	for _, m := range mlist.Items {
 		if pointsTo(&m.ObjectMeta, &cluster.ObjectMeta) {
 			children = append(children, m.DeepCopyObject())
 		}
@@ -247,9 +287,9 @@ func (r *ReconcileCluster) listChildren(ctx context.Context, cluster *clusterv1.
 	return children, nil
 }
 
-func pointsTo(pointer *metav1.ObjectMeta, target *metav1.ObjectMeta) bool {
+func pointsTo(refs *metav1.ObjectMeta, target *metav1.ObjectMeta) bool {
 
-	for _, ref := range pointer.OwnerReferences {
+	for _, ref := range refs.OwnerReferences {
 		if ref.UID == target.UID {
 			return true
 		}

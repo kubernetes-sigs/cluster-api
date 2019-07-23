@@ -13,9 +13,15 @@ action "is-tag" {
   args = "tag"
 }
 
+action "Set Credential Helper for Docker" {
+  needs = ["Setup Google Cloud"]
+  uses = "actions/gcloud/cli@master"
+  args = ["auth", "configure-docker", "--quiet"]
+}
+
 action "goreleaser" {
   uses = "docker://goreleaser/goreleaser"
   secrets = ["GORELEASER_GITHUB_TOKEN"]
   args = "release"
-  needs = ["is-tag", "Setup Google Cloud"]
+  needs = ["is-tag", "Setup Google Cloud", "Set Credential Helper for Docker"]
 }

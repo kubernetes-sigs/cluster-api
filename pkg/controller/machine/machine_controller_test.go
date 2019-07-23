@@ -52,6 +52,12 @@ func TestReconcileRequest(t *testing.T) {
 			},
 			"status": map[string]interface{}{
 				"ready": true,
+				"addresses": []interface{}{
+					map[string]interface{}{
+						"type":    "InternalIP",
+						"address": "10.0.0.1",
+					},
+				},
 			},
 		},
 	}

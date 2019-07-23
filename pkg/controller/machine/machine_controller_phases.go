@@ -240,12 +240,17 @@ func (r *ReconcileMachine) reconcileInfrastructure(ctx context.Context, m *v1alp
 		return &capierrors.RequeueAfterError{RequeueAfter: 30 * time.Second}
 	}
 
-	// Get and set providerID from the infrastructure provider.
-	providerID, _, err := unstructured.NestedString(infraConfig.Object, "spec", "providerID")
-	if err != nil {
+	// Get Spec.ProviderID from the infrastructure provider.
+	var providerID string
+	if err := util.UnstructuredUnmarshalField(infraConfig, &providerID, "spec", "providerID"); err != nil {
 		return errors.Wrapf(err, "failed to retrieve data from infrastructure provider for Machine %q in namespace %q", m.Name, m.Namespace)
 	} else if providerID == "" {
 		return errors.Errorf("retrieved empty Spec.ProviderID from infrastructure provider for Machine %q in namespace %q", m.Name, m.Namespace)
+	}
+
+	// Get and set Status.Addresses from the infrastructure provider.
+	if err := util.UnstructuredUnmarshalField(infraConfig, &m.Status.Addresses, "status", "addresses"); err != nil {
+		return errors.Wrapf(err, "failed to retrieve addresses from infrastructure provider for Machine %q in namespace %q", m.Name, m.Namespace)
 	}
 
 	m.Spec.ProviderID = pointer.StringPtr(providerID)

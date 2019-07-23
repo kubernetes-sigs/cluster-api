@@ -364,6 +364,7 @@ k8s.io/apimachinery/pkg/runtime/serializer
 k8s.io/apimachinery/pkg/util/runtime
 k8s.io/apimachinery/pkg/watch
 k8s.io/apimachinery/pkg/apis/meta/v1/unstructured
+k8s.io/apimachinery/pkg/util/json
 k8s.io/apimachinery/pkg/api/equality
 k8s.io/apimachinery/pkg/util/rand
 k8s.io/apimachinery/pkg/util/sets

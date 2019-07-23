@@ -629,7 +629,7 @@ func (in *MachineStatus) DeepCopyInto(out *MachineStatus) {
 	}
 	if in.Addresses != nil {
 		in, out := &in.Addresses, &out.Addresses
-		*out = make([]v1.NodeAddress, len(*in))
+		*out = make(MachineAddresses, len(*in))
 		copy(*out, *in)
 	}
 	if in.Phase != nil {

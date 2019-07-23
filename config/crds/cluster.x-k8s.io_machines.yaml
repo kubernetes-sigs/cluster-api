@@ -258,16 +258,16 @@ spec:
           properties:
             addresses:
               description: Addresses is a list of addresses assigned to the machine.
-                Queried from cloud provider, if available.
+                This field is copied from the infrastructure provider reference.
               items:
-                description: NodeAddress contains information for the node's address.
+                description: MachineAddress contains information for the node's address.
                 properties:
                   address:
-                    description: The node address.
+                    description: The machine address.
                     type: string
                   type:
-                    description: Node address type, one of Hostname, ExternalIP or
-                      InternalIP.
+                    description: Machine address type, one of Hostname, ExternalIP
+                      or InternalIP.
                     type: string
                 required:
                 - address

@@ -1,6 +1,6 @@
 workflow "Release" {
   on = "push"
-  resolves = ["Setup Google Cloud"]
+  resolves = ["goreleaser"]
 }
 
 action "Setup Google Cloud" {

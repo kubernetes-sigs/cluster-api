@@ -40,7 +40,7 @@ func TestStorageMachineDeployment(t *testing.T) {
 			Template: MachineTemplateSpec{
 				Spec: MachineSpec{
 					InfrastructureRef: corev1.ObjectReference{
-						APIVersion: "infrastructure.cluster.sigs.k8s.io/v1alpha1",
+						APIVersion: "infrastructure.cluster.x-k8s.io/v1alpha1",
 						Kind:       "InfrastructureRef",
 						Name:       "machine-infrastructure",
 					},

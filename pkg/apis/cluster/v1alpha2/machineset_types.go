@@ -84,19 +84,19 @@ type MachineSetDeletePolicy string
 
 const (
 	// RandomMachineSetDeletePolicy prioritizes both Machines that have the annotation
-	// "cluster.sigs.k8s.io/delete-machine=yes" and Machines that are unhealthy
+	// "cluster.x-k8s.io/delete-machine=yes" and Machines that are unhealthy
 	// (Status.ErrorReason or Status.ErrorMessage are set to a non-empty value).
 	// Finally, it picks Machines at random to delete.
 	RandomMachineSetDeletePolicy MachineSetDeletePolicy = "Random"
 
 	// NewestMachineSetDeletePolicy prioritizes both Machines that have the annotation
-	// "cluster.sigs.k8s.io/delete-machine=yes" and Machines that are unhealthy
+	// "cluster.x-k8s.io/delete-machine=yes" and Machines that are unhealthy
 	// (Status.ErrorReason or Status.ErrorMessage are set to a non-empty value).
 	// It then prioritizes the newest Machines for deletion based on the Machine's CreationTimestamp.
 	NewestMachineSetDeletePolicy MachineSetDeletePolicy = "Newest"
 
 	// OldestMachineSetDeletePolicy prioritizes both Machines that have the annotation
-	// "cluster.sigs.k8s.io/delete-machine=yes" and Machines that are unhealthy
+	// "cluster.x-k8s.io/delete-machine=yes" and Machines that are unhealthy
 	// (Status.ErrorReason or Status.ErrorMessage are set to a non-empty value).
 	// It then prioritizes the oldest Machines for deletion based on the Machine's CreationTimestamp.
 	OldestMachineSetDeletePolicy MachineSetDeletePolicy = "Oldest"

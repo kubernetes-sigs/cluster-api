@@ -42,7 +42,7 @@ func TestReconcileRequest(t *testing.T) {
 	infraConfig := unstructured.Unstructured{
 		Object: map[string]interface{}{
 			"kind":       "InfrastructureConfig",
-			"apiVersion": "infra.cluster.sigs.k8s.io/v1alpha1",
+			"apiVersion": "infra.cluster.x-k8s.io/v1alpha1",
 			"metadata": map[string]interface{}{
 				"name":      "infra-config1",
 				"namespace": "default",
@@ -66,7 +66,7 @@ func TestReconcileRequest(t *testing.T) {
 		},
 		Spec: v1alpha2.MachineSpec{
 			InfrastructureRef: corev1.ObjectReference{
-				APIVersion: "infra.cluster.sigs.k8s.io/v1alpha1",
+				APIVersion: "infra.cluster.x-k8s.io/v1alpha1",
 				Kind:       "InfrastructureConfig",
 				Name:       "infra-config1",
 			},
@@ -84,7 +84,7 @@ func TestReconcileRequest(t *testing.T) {
 		},
 		Spec: v1alpha2.MachineSpec{
 			InfrastructureRef: corev1.ObjectReference{
-				APIVersion: "infra.cluster.sigs.k8s.io/v1alpha1",
+				APIVersion: "infra.cluster.x-k8s.io/v1alpha1",
 				Kind:       "InfrastructureConfig",
 				Name:       "infra-config1",
 			},
@@ -104,7 +104,7 @@ func TestReconcileRequest(t *testing.T) {
 		},
 		Spec: v1alpha2.MachineSpec{
 			InfrastructureRef: corev1.ObjectReference{
-				APIVersion: "infra.cluster.sigs.k8s.io/v1alpha1",
+				APIVersion: "infra.cluster.x-k8s.io/v1alpha1",
 				Kind:       "InfrastructureConfig",
 				Name:       "infra-config1",
 			},

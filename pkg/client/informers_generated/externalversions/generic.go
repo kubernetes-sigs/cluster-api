@@ -65,7 +65,7 @@ func (f *sharedInformerFactory) ForResource(resource schema.GroupVersionResource
 	case v1alpha1.SchemeGroupVersion.WithResource("machinesets"):
 		return &genericInformer{resource: resource.GroupResource(), informer: f.ClusterDeprecated().V1alpha1().MachineSets().Informer()}, nil
 
-		// Group=cluster.sigs.k8s.io, Version=v1alpha2
+		// Group=cluster.x-k8s.io, Version=v1alpha2
 	case v1alpha2.SchemeGroupVersion.WithResource("clusters"):
 		return &genericInformer{resource: resource.GroupResource(), informer: f.Cluster().V1alpha2().Clusters().Informer()}, nil
 	case v1alpha2.SchemeGroupVersion.WithResource("machines"):

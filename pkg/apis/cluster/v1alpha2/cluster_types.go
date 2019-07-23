@@ -24,8 +24,8 @@ import (
 )
 
 const (
-	ClusterFinalizer                   = "cluster.cluster.sigs.k8s.io"
-	ClusterAnnotationControlPlaneReady = "cluster.sigs.k8s.io/control-plane-ready"
+	ClusterFinalizer                   = "cluster.cluster.x-k8s.io"
+	ClusterAnnotationControlPlaneReady = "cluster.x-k8s.io/control-plane-ready"
 )
 
 // +genclient

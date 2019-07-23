@@ -34,9 +34,9 @@ type FakeMachineDeployments struct {
 	ns   string
 }
 
-var machinedeploymentsResource = schema.GroupVersionResource{Group: "cluster.sigs.k8s.io", Version: "v1alpha2", Resource: "machinedeployments"}
+var machinedeploymentsResource = schema.GroupVersionResource{Group: "cluster.x-k8s.io", Version: "v1alpha2", Resource: "machinedeployments"}
 
-var machinedeploymentsKind = schema.GroupVersionKind{Group: "cluster.sigs.k8s.io", Version: "v1alpha2", Kind: "MachineDeployment"}
+var machinedeploymentsKind = schema.GroupVersionKind{Group: "cluster.x-k8s.io", Version: "v1alpha2", Kind: "MachineDeployment"}
 
 // Get takes name of the machineDeployment, and returns the corresponding machineDeployment object, and an error if there is any.
 func (c *FakeMachineDeployments) Get(name string, options v1.GetOptions) (result *v1alpha2.MachineDeployment, err error) {

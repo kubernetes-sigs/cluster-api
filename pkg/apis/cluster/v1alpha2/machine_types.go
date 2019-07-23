@@ -24,13 +24,13 @@ import (
 
 const (
 	// MachineFinalizer is set on PrepareForCreate callback.
-	MachineFinalizer = "machine.cluster.sigs.k8s.io"
+	MachineFinalizer = "machine.cluster.x-k8s.io"
 
 	// MachineClusterLabelName is the label set on machines linked to a cluster.
-	MachineClusterLabelName = "cluster.sigs.k8s.io/cluster-name"
+	MachineClusterLabelName = "cluster.x-k8s.io/cluster-name"
 
 	// MachineControlPlaneLabelName is the label set on machines part of a control plane.
-	MachineControlPlaneLabelName = "cluster.sigs.k8s.io/control-plane"
+	MachineControlPlaneLabelName = "cluster.x-k8s.io/control-plane"
 )
 
 // +genclient

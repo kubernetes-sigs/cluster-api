@@ -33,7 +33,7 @@ type ClusterV1alpha2Interface interface {
 	MachineSetsGetter
 }
 
-// ClusterV1alpha2Client is used to interact with features provided by the cluster.sigs.k8s.io group.
+// ClusterV1alpha2Client is used to interact with features provided by the cluster.x-k8s.io group.
 type ClusterV1alpha2Client struct {
 	restClient rest.Interface
 }

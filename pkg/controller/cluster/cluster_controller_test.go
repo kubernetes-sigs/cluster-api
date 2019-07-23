@@ -68,7 +68,7 @@ func TestPointsTo(t *testing.T) {
 				})
 			}
 
-			result := pointsTo(pointer, &meta)
+			result := pointsTo(pointer.OwnerReferences, &meta)
 			if result != test.expected {
 				t.Errorf("expected %v, got %v", test.expected, result)
 			}

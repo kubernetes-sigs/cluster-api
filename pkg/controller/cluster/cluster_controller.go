@@ -18,7 +18,6 @@ package cluster
 
 import (
 	"context"
-	"fmt"
 	"time"
 
 	"github.com/pkg/errors"
@@ -155,7 +154,6 @@ func (r *ReconcileCluster) Reconcile(request reconcile.Request) (reconcile.Resul
 		if len(children) > 0 {
 			klog.Infof("Deleting cluster %s: %d children still exist, will requeue", name, len(children))
 			for _, child := range children {
-
 				accessor, err := meta.Accessor(child)
 				if err != nil {
 					return reconcile.Result{}, errors.Wrapf(err, "couldn't create accessor for %T", child)
@@ -243,56 +241,48 @@ func (r *ReconcileCluster) listChildren(ctx context.Context, cluster *clusterv1.
 		return r.clusterClient.Machines(ns).List(m)
 	}
 
+	eachFunc := func(o runtime.Object) error {
+		acc, err := meta.Accessor(o)
+		if err != nil {
+			return err
+		}
+
+		if pointsTo(acc.GetOwnerReferences(), &cluster.ObjectMeta) {
+			children = append(children, o.DeepCopyObject())
+		}
+
+		return nil
+	}
+
 	deployments, err := pager.New(dfunc).List(ctx, opts)
 	if err != nil {
-		return []runtime.Object{}, errors.Wrapf(err, "failed to list MachineDeployments in %s for cluster %s", ns, cluster.Name)
+		return []runtime.Object{}, errors.Wrapf(err, "failed to list MachineDeployments in %s/%s", ns, cluster.Name)
 	}
-	dlist, ok := deployments.(*clusterv1.MachineDeploymentList)
-	if !ok {
-		return []runtime.Object{}, fmt.Errorf("Expected MachineDeploymentList, got %T", deployments)
+	if err := meta.EachListItem(deployments, eachFunc); err != nil {
+		return []runtime.Object{}, errors.Wrapf(err, "couldn't iterate MachinesDeployments for cluster %s/%s", ns, cluster.Name)
 	}
 
 	sets, err := pager.New(sfunc).List(ctx, opts)
 	if err != nil {
-		return []runtime.Object{}, errors.Wrapf(err, "Failed to list MachineSets in %s", ns)
+		return []runtime.Object{}, errors.Wrapf(err, "failed to list MachineSets in %s/%s", ns, cluster.Name)
 	}
-	slist, ok := sets.(*clusterv1.MachineSetList)
-	if !ok {
-		return []runtime.Object{}, fmt.Errorf("Expected MachineSetList, got %T", sets)
+	if err := meta.EachListItem(sets, eachFunc); err != nil {
+		return []runtime.Object{}, errors.Wrapf(err, "couldn't iterate MachineSets for cluster %s/%s", ns, cluster.Name)
 	}
 
 	machines, err := pager.New(mfunc).List(ctx, opts)
 	if err != nil {
-		return []runtime.Object{}, errors.Wrapf(err, "Failed to list MachineSets in %s", ns)
+		return []runtime.Object{}, errors.Wrapf(err, "failed to list Machines in %s/%s", ns, cluster.Name)
 	}
-	mlist, ok := machines.(*clusterv1.MachineList)
-	if !ok {
-		return []runtime.Object{}, fmt.Errorf("Expected MachineList, got %T", machines)
-	}
-
-	for _, d := range dlist.Items {
-		if pointsTo(&d.ObjectMeta, &cluster.ObjectMeta) {
-			children = append(children, d.DeepCopyObject())
-		}
-	}
-
-	for _, s := range slist.Items {
-		if pointsTo(&s.ObjectMeta, &cluster.ObjectMeta) {
-			children = append(children, s.DeepCopyObject())
-		}
-	}
-
-	for _, m := range mlist.Items {
-		if pointsTo(&m.ObjectMeta, &cluster.ObjectMeta) {
-			children = append(children, m.DeepCopyObject())
-		}
+	if err := meta.EachListItem(machines, eachFunc); err != nil {
+		return []runtime.Object{}, errors.Wrapf(err, "couldn't iterate Machines for cluster %s/%s", ns, cluster.Name)
 	}
 
 	return children, nil
 }
 
-func pointsTo(refs *metav1.ObjectMeta, target *metav1.ObjectMeta) bool {
-	for _, ref := range refs.OwnerReferences {
+func pointsTo(refs []metav1.OwnerReference, target *metav1.ObjectMeta) bool {
+	for _, ref := range refs {
 		if ref.UID == target.UID {
 			return true
 		}

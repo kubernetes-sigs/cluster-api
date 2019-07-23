@@ -60,7 +60,7 @@ func AddWithActuator(mgr manager.Manager, actuator Actuator) error {
 func newReconciler(mgr manager.Manager, actuator Actuator) (reconcile.Reconciler, error) {
 	cclient, err := v1alpha1.NewForConfig(mgr.GetConfig())
 	if err != nil {
-		return nil, err
+		return nil, errors.WithStack(err)
 	}
 	return &ReconcileCluster{
 		Client:        mgr.GetClient(),
@@ -91,6 +91,7 @@ var _ reconcile.Reconciler = &ReconcileCluster{}
 // ReconcileCluster reconciles a Cluster object
 type ReconcileCluster struct {
 	client.Client
+	// TODO: remove this once the controller-runtime Client has pagination support
 	clusterClient v1alpha1.ClusterV1alpha1Interface
 	scheme        *runtime.Scheme
 	actuator      Actuator
@@ -107,7 +108,7 @@ func (r *ReconcileCluster) Reconcile(request reconcile.Request) (reconcile.Resul
 			return reconcile.Result{}, nil
 		}
 		// Error reading the object - requeue the request.
-		return reconcile.Result{}, err
+		return reconcile.Result{}, errors.WithStack(err)
 	}
 
 	name := cluster.Name
@@ -129,7 +130,7 @@ func (r *ReconcileCluster) Reconcile(request reconcile.Request) (reconcile.Resul
 		if len(cluster.Finalizers) > finalizerCount {
 			if err := r.Update(context.Background(), cluster); err != nil {
 				klog.Infof("Failed to add finalizer to cluster %q: %v", name, err)
-				return reconcile.Result{}, err
+				return reconcile.Result{}, errors.WithStack(err)
 			}
 
 			// Since adding the finalizer updates the object return to avoid later update issues.
@@ -148,7 +149,7 @@ func (r *ReconcileCluster) Reconcile(request reconcile.Request) (reconcile.Resul
 		children, err := r.listChildren(context.Background(), cluster)
 		if err != nil {
 			klog.Infof("Failed to list dependent objects of cluster %s/%s: %v", cluster.ObjectMeta.Namespace, cluster.ObjectMeta.Name, err)
-			return reconcile.Result{}, err
+			return reconcile.Result{}, errors.WithStack(err)
 		}
 
 		if len(children) > 0 {
@@ -178,7 +179,7 @@ func (r *ReconcileCluster) Reconcile(request reconcile.Request) (reconcile.Resul
 		klog.Infof("Reconciling cluster object %v triggers delete.", name)
 		if err := r.actuator.Delete(cluster); err != nil {
 			klog.Errorf("Error deleting cluster object %v; %v", name, err)
-			return reconcile.Result{}, err
+			return reconcile.Result{}, errors.WithStack(err)
 		}
 
 		// Remove finalizer on successful deletion.
@@ -203,7 +204,7 @@ func (r *ReconcileCluster) Reconcile(request reconcile.Request) (reconcile.Resul
 		})
 		if err != nil {
 			klog.Errorf("Error removing finalizer from cluster object %v; %v", name, err)
-			return reconcile.Result{}, err
+			return reconcile.Result{}, errors.WithStack(err)
 		}
 
 		return reconcile.Result{}, nil
@@ -216,7 +217,7 @@ func (r *ReconcileCluster) Reconcile(request reconcile.Request) (reconcile.Resul
 			return reconcile.Result{Requeue: true, RequeueAfter: requeueErr.GetRequeueAfter()}, nil
 		}
 		klog.Errorf("Error reconciling cluster object %v; %v", name, err)
-		return reconcile.Result{}, err
+		return reconcile.Result{}, errors.WithStack(err)
 	}
 	return reconcile.Result{}, nil
 }
@@ -232,19 +233,19 @@ func (r *ReconcileCluster) listChildren(ctx context.Context, cluster *clusterv1.
 		),
 	}
 
-	dfunc := func(_ context.Context, m metav1.ListOptions) (runtime.Object, error) {
+	dfunc := func(ctx context.Context, m metav1.ListOptions) (runtime.Object, error) {
 		return r.clusterClient.MachineDeployments(ns).List(m)
 	}
-	sfunc := func(_ context.Context, m metav1.ListOptions) (runtime.Object, error) {
+	sfunc := func(ctx context.Context, m metav1.ListOptions) (runtime.Object, error) {
 		return r.clusterClient.MachineSets(ns).List(m)
 	}
-	mfunc := func(_ context.Context, m metav1.ListOptions) (runtime.Object, error) {
+	mfunc := func(ctx context.Context, m metav1.ListOptions) (runtime.Object, error) {
 		return r.clusterClient.Machines(ns).List(m)
 	}
 
 	deployments, err := pager.New(dfunc).List(ctx, opts)
 	if err != nil {
-		return []runtime.Object{}, errors.Wrapf(err, "Failed to list MachineDeployments in %s", ns)
+		return []runtime.Object{}, errors.Wrapf(err, "failed to list MachineDeployments in %s for cluster %s", ns, cluster.Name)
 	}
 	dlist, ok := deployments.(*clusterv1.MachineDeploymentList)
 	if !ok {
@@ -291,7 +292,6 @@ func (r *ReconcileCluster) listChildren(ctx context.Context, cluster *clusterv1.
 }
 
 func pointsTo(refs *metav1.ObjectMeta, target *metav1.ObjectMeta) bool {
-
 	for _, ref := range refs.OwnerReferences {
 		if ref.UID == target.UID {
 			return true

@@ -26,6 +26,10 @@ import (
 func TestPointsTo(t *testing.T) {
 	targetID := "fri3ndsh1p"
 
+	meta := metav1.ObjectMeta{
+		UID: types.UID(targetID),
+	}
+
 	tests := []struct {
 		name     string
 		refIDs   []string
@@ -56,24 +60,17 @@ func TestPointsTo(t *testing.T) {
 
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-
 			pointer := &metav1.ObjectMeta{}
-
-			target := &metav1.ObjectMeta{
-				UID: types.UID(targetID),
-			}
 
 			for _, ref := range test.refIDs {
 				pointer.OwnerReferences = append(pointer.OwnerReferences, metav1.OwnerReference{
-					UID:  types.UID(ref),
-					Kind: "Cluster",
+					UID: types.UID(ref),
 				})
 			}
 
-			result := pointsTo(pointer, target)
+			result := pointsTo(pointer, &meta)
 			if result != test.expected {
 				t.Errorf("expected %v, got %v", test.expected, result)
-
 			}
 		})
 	}

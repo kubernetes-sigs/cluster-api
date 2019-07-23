@@ -32,6 +32,7 @@ TAG ?= dev
 
 ARCH?=amd64
 ALL_ARCH = amd64 arm arm64 ppc64le s390x
+GOOS?=linux
 
 all: test manager clusterctl
 
@@ -57,6 +58,16 @@ test-go: ## Run tests
 .PHONY: manager
 manager: lint-full ## Build manager binary
 	go build -o bin/manager sigs.k8s.io/cluster-api/cmd/manager
+
+.PHONY: docker-build-manager
+docker-build-manager: lint-full ## Build manager binary in docker
+	docker run --rm \
+	-v "${PWD}:/go/src/sigs.k8s.io/cluster-api" \
+	-v "${PWD}/bin:/go/bin" \
+	-w "/go/src/sigs.k8s.io/cluster-api" \
+	-e CGO_ENABLED=0 -e GOOS=${GOOS} -e GOARCH=${ARCH} -e GO111MODULE=on -e GOFLAGS="-mod=vendor" \
+	golang:1.12.6 \
+	go build -a -ldflags '-extldflags "-static"' -o /go/bin/manager sigs.k8s.io/cluster-api/cmd/manager
 
 .PHONY: clusterctl
 clusterctl: lint-full ## Build clusterctl binary

@@ -57,7 +57,7 @@ func TestReconcile(t *testing.T) {
 				Spec: clusterv1alpha2.MachineSpec{
 					Version: &version,
 					InfrastructureRef: corev1.ObjectReference{
-						APIVersion: "infrastructure.cluster.x-k8s.io/v1alpha1",
+						APIVersion: "infrastructure.cluster.x-k8s.io/v1alpha2",
 						Kind:       "InfrastructureMachineTemplate",
 						Name:       "foo-template",
 					},
@@ -75,7 +75,7 @@ func TestReconcile(t *testing.T) {
 	// Create infrastructure template resource.
 	infraResource := map[string]interface{}{
 		"kind":       "InfrastructureMachine",
-		"apiVersion": "infrastructure.cluster.x-k8s.io/v1alpha1",
+		"apiVersion": "infrastructure.cluster.x-k8s.io/v1alpha2",
 		"metadata":   map[string]interface{}{},
 		"spec": map[string]interface{}{
 			"size": "3xlarge",
@@ -89,7 +89,7 @@ func TestReconcile(t *testing.T) {
 		},
 	}
 	infraTmpl.SetKind("InfrastructureMachineTemplate")
-	infraTmpl.SetAPIVersion("infrastructure.cluster.x-k8s.io/v1alpha1")
+	infraTmpl.SetAPIVersion("infrastructure.cluster.x-k8s.io/v1alpha2")
 	infraTmpl.SetName("foo-template")
 	infraTmpl.SetNamespace("default")
 	Expect(c.Create(ctx, infraTmpl)).To(BeNil())

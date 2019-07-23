@@ -19,6 +19,7 @@ package cluster
 import (
 	"context"
 	"fmt"
+	"time"
 
 	"github.com/pkg/errors"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
@@ -41,6 +42,8 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 	"sigs.k8s.io/controller-runtime/pkg/source"
 )
+
+const deleteRequeueAfter = 5 * time.Second
 
 var DefaultActuator Actuator
 
@@ -169,7 +172,7 @@ func (r *ReconcileCluster) Reconcile(request reconcile.Request) (reconcile.Resul
 				}
 			}
 
-			return reconcile.Result{Requeue: true}, nil
+			return reconcile.Result{Requeue: true, RequeueAfter: deleteRequeueAfter}, nil
 		}
 
 		klog.Infof("Reconciling cluster object %v triggers delete.", name)

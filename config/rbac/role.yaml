@@ -7,9 +7,9 @@ metadata:
   name: manager-role
 rules:
 - apiGroups:
-  - kubeadm.bootstrap.cluster.sigs.k8s.io
+  - bootstrap.cluster.x-k8s.io
   resources:
-  - kubeadmbootstrapconfigs
+  - kubeadmconfigs
   verbs:
   - create
   - delete
@@ -19,9 +19,9 @@ rules:
   - update
   - watch
 - apiGroups:
-  - kubeadm.bootstrap.cluster.sigs.k8s.io
+  - bootstrap.cluster.x-k8s.io
   resources:
-  - kubeadmbootstrapconfigs/status
+  - kubeadmconfigs/status
   verbs:
   - get
   - patch

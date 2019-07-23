@@ -72,7 +72,7 @@ func (c *myClient) Status() client.StatusWriter {
 func TestSuccessfulReconcileShouldNotRequeue(t *testing.T) {
 	machineKind := v1alpha2.SchemeGroupVersion.WithKind("Machine").String()
 	objects := map[string]runtime.Object{
-		"ns/cfg": &kubeadmv1alpha1.KubeadmBootstrapConfig{
+		"ns/cfg": &kubeadmv1alpha1.KubeadmConfig{
 			ObjectMeta: metav1.ObjectMeta{
 				Namespace: "ns",
 				Name:      "cfg",
@@ -99,7 +99,7 @@ func TestSuccessfulReconcileShouldNotRequeue(t *testing.T) {
 		db: objects,
 	}
 
-	k := &KubeadmBootstrapConfigReconciler{
+	k := &KubeadmConfigReconciler{
 		Log:    log.ZapLogger(true),
 		Client: myclient,
 	}
@@ -125,7 +125,7 @@ func TestSuccessfulReconcileShouldNotRequeue(t *testing.T) {
 func TestRequeueIfNoMachineRefIsFound(t *testing.T) {
 	myclient := &myClient{
 		db: map[string]runtime.Object{
-			"ns/cfg": &kubeadmv1alpha1.KubeadmBootstrapConfig{
+			"ns/cfg": &kubeadmv1alpha1.KubeadmConfig{
 				ObjectMeta: metav1.ObjectMeta{
 					OwnerReferences: []metav1.OwnerReference{
 						{
@@ -137,7 +137,7 @@ func TestRequeueIfNoMachineRefIsFound(t *testing.T) {
 		},
 	}
 
-	k := &KubeadmBootstrapConfigReconciler{
+	k := &KubeadmConfigReconciler{
 		Log:    log.ZapLogger(true),
 		Client: myclient,
 	}

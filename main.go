@@ -56,7 +56,7 @@ func main() {
 		os.Exit(1)
 	}
 
-	if err := (&controllers.KubeadmBootstrapConfigReconciler{
+	if err := (&controllers.KubeadmConfigReconciler{
 		Client: mgr.GetClient(),
 		Log:    ctrl.Log.WithName("reconciler"),
 	}).SetupWithManager(mgr); err != nil {

@@ -72,13 +72,12 @@ func main() {
 		os.Exit(1)
 	}
 
-	clusterLogger := log.WithName("cluster-actuator")
+	clusterLogger := klogr.New().WithName("cluster-actuator")
 	clusterActuator := actuators.Cluster{
 		Log: clusterLogger,
 	}
 
-	machineLogger := log.WithName("machine-actuator")
-
+	machineLogger := klogr.New().WithName("machine-actuator")
 	machineActuator := actuators.Machine{
 		Core:       k8sclientset.CoreV1(),
 		ClusterAPI: cs.ClusterV1alpha1(),

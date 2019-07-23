@@ -4,3 +4,9 @@ kind-test
 
 # vscode
 .vscode
+
+# goland
+.idea
+
+# ignore build output
+dist

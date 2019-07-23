@@ -29,11 +29,11 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/runtime/log"
 )
 
-var _ = Describe("KubeadmBootstrapConfigReconciler", func() {
+var _ = Describe("KubeadmConfigReconciler", func() {
 	BeforeEach(func() {})
 	AfterEach(func() {})
 
-	Context("Reconcile a KubeadmBootstrapConfig", func() {
+	Context("Reconcile a KubeadmConfig", func() {
 		It("should successfully run through the reconcile function", func() {
 			cluster := &v1alpha2.Cluster{
 				ObjectMeta: metav1.ObjectMeta{
@@ -50,7 +50,7 @@ var _ = Describe("KubeadmBootstrapConfigReconciler", func() {
 					},
 				},
 			}
-			config := &v1alpha1.KubeadmBootstrapConfig{
+			config := &v1alpha1.KubeadmConfig{
 				ObjectMeta: metav1.ObjectMeta{
 					Namespace: "default",
 					Name:      "my-config",
@@ -68,7 +68,7 @@ var _ = Describe("KubeadmBootstrapConfigReconciler", func() {
 			Expect(k8sClient.Create(context.Background(), machine)).To(Succeed())
 			Expect(k8sClient.Create(context.Background(), config)).To(Succeed())
 
-			reconciler := KubeadmBootstrapConfigReconciler{
+			reconciler := KubeadmConfigReconciler{
 				Log:    log.ZapLogger(true),
 				Client: k8sClient,
 			}

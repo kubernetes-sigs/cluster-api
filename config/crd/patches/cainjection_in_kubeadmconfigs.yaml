@@ -5,4 +5,4 @@ kind: CustomResourceDefinition
 metadata:
   annotations:
     certmanager.k8s.io/inject-ca-from: $(NAMESPACE)/$(CERTIFICATENAME)
-  name: kubeadmbootstrapconfigs.kubeadm.bootstrap.cluster.sigs.k8s.io
+  name: kubeadmconfigs.bootstrap.cluster.x-k8s.io

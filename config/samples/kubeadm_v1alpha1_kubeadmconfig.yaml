@@ -1,0 +1,7 @@
+apiVersion: bootstrap.cluster.sigs.k8s.io/v1alpha1
+kind: KubeadmConfig
+metadata:
+  name: kubeadmconfig-sample
+spec:
+  # Add fields here
+  foo: bar

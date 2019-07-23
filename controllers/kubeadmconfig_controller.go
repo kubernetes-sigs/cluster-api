@@ -33,22 +33,22 @@ var (
 	machineKind = v1alpha2.SchemeGroupVersion.WithKind("Machine").String()
 )
 
-// KubeadmBootstrapConfigReconciler reconciles a KubeadmBootstrapConfig object
-type KubeadmBootstrapConfigReconciler struct {
+// KubeadmConfigReconciler reconciles a KubeadmConfig object
+type KubeadmConfigReconciler struct {
 	client.Client
 	Log logr.Logger
 }
 
-// +kubebuilder:rbac:groups=kubeadm.bootstrap.cluster.sigs.k8s.io,resources=kubeadmbootstrapconfigs,verbs=get;list;watch;create;update;patch;delete
-// +kubebuilder:rbac:groups=kubeadm.bootstrap.cluster.sigs.k8s.io,resources=kubeadmbootstrapconfigs/status,verbs=get;update;patch
+// +kubebuilder:rbac:groups=bootstrap.cluster.x-k8s.io,resources=kubeadmconfigs,verbs=get;list;watch;create;update;patch;delete
+// +kubebuilder:rbac:groups=bootstrap.cluster.x-k8s.io,resources=kubeadmconfigs/status,verbs=get;update;patch
 // +kubebuilder:rbac:groups=cluster.sigs.k8s.io,resources=clusters;machines,verbs=get;list;watch
 
 // Reconcile TODO
-func (r *KubeadmBootstrapConfigReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
+func (r *KubeadmConfigReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 	ctx := context.Background()
-	log := r.Log.WithValues("kubeadmbootstrapconfig", req.NamespacedName)
+	log := r.Log.WithValues("kubeadmconfig", req.NamespacedName)
 
-	config := kubeadmv1alpha1.KubeadmBootstrapConfig{}
+	config := kubeadmv1alpha1.KubeadmConfig{}
 	if err := r.Get(ctx, req.NamespacedName, &config); err != nil {
 		log.Error(err, "failed to get config", "stacktrace", fmt.Sprintf("%+v", err))
 		return ctrl.Result{}, err
@@ -97,8 +97,8 @@ func (r *KubeadmBootstrapConfigReconciler) Reconcile(req ctrl.Request) (ctrl.Res
 }
 
 // SetupWithManager TODO
-func (r *KubeadmBootstrapConfigReconciler) SetupWithManager(mgr ctrl.Manager) error {
+func (r *KubeadmConfigReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewControllerManagedBy(mgr).
-		For(&kubeadmv1alpha1.KubeadmBootstrapConfig{}).
+		For(&kubeadmv1alpha1.KubeadmConfig{}).
 		Complete(r)
 }

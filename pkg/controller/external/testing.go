@@ -39,7 +39,7 @@ var (
 			Validation: &apiextensionsv1beta1.CustomResourceValidation{},
 			Versions: []apiextensionsv1beta1.CustomResourceDefinitionVersion{
 				{
-					Name:    "v1alpha1",
+					Name:    "v1alpha2",
 					Served:  true,
 					Storage: true,
 				},
@@ -64,7 +64,7 @@ var (
 			Validation: &apiextensionsv1beta1.CustomResourceValidation{},
 			Versions: []apiextensionsv1beta1.CustomResourceDefinitionVersion{
 				{
-					Name:    "v1alpha1",
+					Name:    "v1alpha2",
 					Served:  true,
 					Storage: true,
 				},

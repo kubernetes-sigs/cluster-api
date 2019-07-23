@@ -59,7 +59,7 @@ func getMachineWithError(machineName, namespace string, nodeRef *v1.ObjectRefere
 		},
 		Spec: v1alpha2.MachineSpec{
 			InfrastructureRef: corev1.ObjectReference{
-				APIVersion: "infrastructure.cluster.sigs.k8s.io/v1alpha1",
+				APIVersion: "infrastructure.cluster.x-k8s.io/v1alpha1",
 				Kind:       "InfrastructureRef",
 				Name:       "machine-infrastructure",
 			},

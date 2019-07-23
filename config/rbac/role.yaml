@@ -7,8 +7,8 @@ metadata:
   name: manager-role
 rules:
 - apiGroups:
-  - bootstrap.cluster.sigs.k8s.io
-  - infrastructure.cluster.sigs.k8s.io
+  - bootstrap.cluster.x-k8s.io
+  - infrastructure.cluster.x-k8s.io
   resources:
   - '*'
   verbs:
@@ -20,7 +20,7 @@ rules:
   - update
   - watch
 - apiGroups:
-  - cluster.sigs.k8s.io
+  - cluster.x-k8s.io
   resources:
   - clusters
   - clusters/status

@@ -32,7 +32,7 @@ import (
 )
 
 const validCluster = `
-apiVersion: "cluster.sigs.k8s.io/v1alpha2"
+apiVersion: "cluster.x-k8s.io/v1alpha2"
 kind: Cluster
 metadata:
   name: cluster1
@@ -40,42 +40,42 @@ spec:`
 
 const validMachines1 = `
 ---
-apiVersion: "cluster.sigs.k8s.io/v1alpha2"
+apiVersion: "cluster.x-k8s.io/v1alpha2"
 kind: Machine
 metadata:
   name: machine1
 ---
-apiVersion: "cluster.sigs.k8s.io/v1alpha2"
+apiVersion: "cluster.x-k8s.io/v1alpha2"
 kind: Machine
 metadata:
   name: machine2`
 
 const validUnified1 = `
-apiVersion: "cluster.sigs.k8s.io/v1alpha2"
+apiVersion: "cluster.x-k8s.io/v1alpha2"
 kind: Cluster
 metadata:
   name: cluster1
 ---
-apiVersion: "cluster.sigs.k8s.io/v1alpha2"
+apiVersion: "cluster.x-k8s.io/v1alpha2"
 kind: MachineList
 items:
-- apiVersion: "cluster.sigs.k8s.io/v1alpha2"
+- apiVersion: "cluster.x-k8s.io/v1alpha2"
   kind: Machine
   metadata:
     name: machine1`
 
 const validUnified2 = `
-apiVersion: "cluster.sigs.k8s.io/v1alpha2"
+apiVersion: "cluster.x-k8s.io/v1alpha2"
 kind: Cluster
 metadata:
   name: cluster1
 ---
-apiVersion: "cluster.sigs.k8s.io/v1alpha2"
+apiVersion: "cluster.x-k8s.io/v1alpha2"
 kind: Machine
 metadata:
   name: machine1
 ---
-apiVersion: "cluster.sigs.k8s.io/v1alpha2"
+apiVersion: "cluster.x-k8s.io/v1alpha2"
 kind: Machine
 metadata:
   name: machine2`
@@ -92,24 +92,24 @@ metadata:
   name: cluster-api-shared-configuration
   namespace: cluster-api-test
 ---
-apiVersion: "cluster.sigs.k8s.io/v1alpha2"
+apiVersion: "cluster.x-k8s.io/v1alpha2"
 kind: Cluster
 metadata:
   name: cluster1
 ---
-apiVersion: "cluster.sigs.k8s.io/v1alpha2"
+apiVersion: "cluster.x-k8s.io/v1alpha2"
 kind: Machine
 metadata:
   name: machine1
 ---
-apiVersion: "cluster.sigs.k8s.io/v1alpha2"
+apiVersion: "cluster.x-k8s.io/v1alpha2"
 kind: Machine
 metadata:
   name: machine2`
 
 const invalidMachines1 = `
 items:
-- apiVersion: "cluster.sigs.k8s.io/v1alpha2"
+- apiVersion: "cluster.x-k8s.io/v1alpha2"
   kind: Machine
   metadata:
     name: machine1
@@ -136,12 +136,12 @@ metadata:
   name: cluster-api-shared-configuration
   namespace: cluster-api-test
 ---
-apiVersion: "cluster.sigs.k8s.io/v1alpha2"
+apiVersion: "cluster.x-k8s.io/v1alpha2"
 kind: Cluster
 metadata:
   name: cluster1
 ---
-apiVersion: "cluster.sigs.k8s.io/v1alpha2"
+apiVersion: "cluster.x-k8s.io/v1alpha2"
 kind: MachineList
 items:
 - metadata:
@@ -163,7 +163,7 @@ metadata:
   name: cluster-api-shared-configuration
   namespace: cluster-api-test
 ---
-apiVersion: "cluster.sigs.k8s.io/v1alpha2"
+apiVersion: "cluster.x-k8s.io/v1alpha2"
 kind: Cluster
 metadata:
   name: cluster1
@@ -344,7 +344,7 @@ func TestMachineToInfrastructureMapFunc(t *testing.T) {
 		{
 			name: "should reconcile infra-1",
 			input: schema.GroupVersionKind{
-				Group:   "foo.cluster.sigs.k8s.io",
+				Group:   "foo.cluster.x-k8s.io",
 				Version: "v1alpha2",
 				Kind:    "TestMachine",
 			},
@@ -356,7 +356,7 @@ func TestMachineToInfrastructureMapFunc(t *testing.T) {
 					},
 					Spec: clusterv1.MachineSpec{
 						InfrastructureRef: corev1.ObjectReference{
-							APIVersion: "foo.cluster.sigs.k8s.io/v1alpha2",
+							APIVersion: "foo.cluster.x-k8s.io/v1alpha2",
 							Kind:       "TestMachine",
 							Name:       "infra-1",
 						},
@@ -375,7 +375,7 @@ func TestMachineToInfrastructureMapFunc(t *testing.T) {
 		{
 			name: "should return no matching reconcile requests",
 			input: schema.GroupVersionKind{
-				Group:   "foo.cluster.sigs.k8s.io",
+				Group:   "foo.cluster.x-k8s.io",
 				Version: "v1alpha2",
 				Kind:    "TestMachine",
 			},
@@ -387,7 +387,7 @@ func TestMachineToInfrastructureMapFunc(t *testing.T) {
 					},
 					Spec: clusterv1.MachineSpec{
 						InfrastructureRef: corev1.ObjectReference{
-							APIVersion: "bar.cluster.sigs.k8s.io/v1alpha2",
+							APIVersion: "bar.cluster.x-k8s.io/v1alpha2",
 							Kind:       "TestMachine",
 							Name:       "bar-1",
 						},

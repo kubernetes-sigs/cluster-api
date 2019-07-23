@@ -19,5 +19,5 @@ limitations under the License.
 // +k8s:deepcopy-gen=package,register
 // +k8s:conversion-gen=sigs.k8s.io/cluster-api/pkg/apis/cluster
 // +k8s:defaulter-gen=TypeMeta
-// +groupName=cluster.sigs.k8s.io
+// +groupName=cluster.x-k8s.io
 package v1alpha2

@@ -24,10 +24,10 @@ import (
 var (
 	TestGenericInfrastructureCRD = &apiextensionsv1beta1.CustomResourceDefinition{
 		ObjectMeta: metav1.ObjectMeta{
-			Name: "genericmachines.infrastructure.cluster.sigs.k8s.io",
+			Name: "genericmachines.infrastructure.cluster.x-k8s.io",
 		},
 		Spec: apiextensionsv1beta1.CustomResourceDefinitionSpec{
-			Group: "infrastructure.cluster.sigs.k8s.io",
+			Group: "infrastructure.cluster.x-k8s.io",
 			Scope: apiextensionsv1beta1.NamespaceScoped,
 			Names: apiextensionsv1beta1.CustomResourceDefinitionNames{
 				Kind:   "InfrastructureMachine",
@@ -49,10 +49,10 @@ var (
 
 	TestGenericInfrastructureTemplateCRD = &apiextensionsv1beta1.CustomResourceDefinition{
 		ObjectMeta: metav1.ObjectMeta{
-			Name: "genericmachinetemplates.infrastructure.cluster.sigs.k8s.io",
+			Name: "genericmachinetemplates.infrastructure.cluster.x-k8s.io",
 		},
 		Spec: apiextensionsv1beta1.CustomResourceDefinitionSpec{
-			Group: "infrastructure.cluster.sigs.k8s.io",
+			Group: "infrastructure.cluster.x-k8s.io",
 			Scope: apiextensionsv1beta1.NamespaceScoped,
 			Names: apiextensionsv1beta1.CustomResourceDefinitionNames{
 				Kind:   "InfrastructureMachineTemplate",

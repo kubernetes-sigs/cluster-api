@@ -4,7 +4,7 @@ apiVersion: apiextensions.k8s.io/v1beta1
 kind: CustomResourceDefinition
 metadata:
   creationTimestamp: null
-  name: machines.cluster.sigs.k8s.io
+  name: machines.cluster.x-k8s.io
 spec:
   additionalPrinterColumns:
   - JSONPath: .spec.providerID
@@ -20,7 +20,7 @@ spec:
     name: NodeName
     priority: 1
     type: string
-  group: cluster.sigs.k8s.io
+  group: cluster.x-k8s.io
   names:
     kind: Machine
     plural: machines

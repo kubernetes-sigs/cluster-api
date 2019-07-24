@@ -273,7 +273,7 @@ func (r *ReconcileCluster) listChildren(ctx context.Context, cluster *clusterv1.
 		return nil, errors.Wrapf(err, "failed to list MachineDeployments in %s/%s", ns, cluster.Name)
 	}
 	if err := meta.EachListItem(deployments, eachFunc); err != nil {
-		return []runtime.Object{}, errors.Wrapf(err, "couldn't iterate MachinesDeployments for cluster %s/%s", ns, cluster.Name)
+		return nil, errors.Wrapf(err, "couldn't iterate MachinesDeployments for cluster %s/%s", ns, cluster.Name)
 	}
 
 	sets, err := pager.New(sfunc).List(ctx, opts)

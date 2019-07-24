@@ -26,7 +26,7 @@ diagrams: $(DIAGRAMS)
 		--rm \
 		--volume ${ROOT_DIR}:/diagrams \
 		--user $(shell id -u):$(shell id -g) \
-		dpf9/plantuml:1.2019.6 \
+		us.gcr.io/k8s-artifacts-prod/cluster-api/plantuml:1.2019.6 \
 		-v /diagrams/$(shell basename $(shell dirname $^))/$(notdir $^)
 
 .PHONY: diagrams

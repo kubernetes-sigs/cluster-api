@@ -33,7 +33,6 @@ import (
 	intstrutil "k8s.io/apimachinery/pkg/util/intstr"
 	"k8s.io/klog"
 	"k8s.io/utils/integer"
-	"sigs.k8s.io/cluster-api/pkg/apis/cluster/common"
 	"sigs.k8s.io/cluster-api/pkg/apis/cluster/v1alpha2"
 )
 
@@ -489,7 +488,7 @@ func GetAvailableReplicaCountForMachineSets(machineSets []*v1alpha2.MachineSet) 
 
 // IsRollingUpdate returns true if the strategy type is a rolling update.
 func IsRollingUpdate(deployment *v1alpha2.MachineDeployment) bool {
-	return deployment.Spec.Strategy.Type == common.RollingUpdateMachineDeploymentStrategyType
+	return deployment.Spec.Strategy.Type == v1alpha2.RollingUpdateMachineDeploymentStrategyType
 }
 
 // DeploymentComplete considers a deployment to be complete once all of its desired replicas
@@ -507,7 +506,7 @@ func DeploymentComplete(deployment *v1alpha2.MachineDeployment, newStatus *v1alp
 // 2) Max number of machines allowed is reached: deployment's replicas + maxSurge == all MSs' replicas
 func NewMSNewReplicas(deployment *v1alpha2.MachineDeployment, allMSs []*v1alpha2.MachineSet, newMS *v1alpha2.MachineSet) (int32, error) {
 	switch deployment.Spec.Strategy.Type {
-	case common.RollingUpdateMachineDeploymentStrategyType:
+	case v1alpha2.RollingUpdateMachineDeploymentStrategyType:
 		// Check if we can scale up.
 		maxSurge, err := intstrutil.GetValueFromIntOrPercent(deployment.Spec.Strategy.RollingUpdate.MaxSurge, int(*(deployment.Spec.Replicas)), true)
 		if err != nil {

@@ -33,7 +33,6 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/client-go/tools/record"
 	"k8s.io/klog"
-	"k8s.io/utils/pointer"
 	clusterv1 "sigs.k8s.io/cluster-api/pkg/apis/cluster/v1alpha2"
 	"sigs.k8s.io/cluster-api/pkg/controller/external"
 	"sigs.k8s.io/cluster-api/pkg/util"
@@ -187,31 +186,13 @@ func (r *ReconcileMachineSet) reconcile(ctx context.Context, machineSet *cluster
 		return reconcile.Result{}, err
 	}
 
-	// Set the ownerRef with foreground deletion if there is a linked cluster.
 	if cluster != nil {
 		machineSet.OwnerReferences = util.EnsureOwnerRef(machineSet.OwnerReferences, metav1.OwnerReference{
-			APIVersion:         cluster.APIVersion,
-			Kind:               cluster.Kind,
-			Name:               cluster.Name,
-			UID:                cluster.UID,
-			BlockOwnerDeletion: pointer.BoolPtr(true),
+			APIVersion: cluster.APIVersion,
+			Kind:       cluster.Kind,
+			Name:       cluster.Name,
+			UID:        cluster.UID,
 		})
-	}
-
-	// Add foregroundDeletion finalizer if MachineSet isn't deleted and linked to a cluster.
-	if cluster != nil &&
-		machineSet.ObjectMeta.DeletionTimestamp.IsZero() &&
-		!util.Contains(machineSet.Finalizers, metav1.FinalizerDeleteDependents) {
-
-		machineSet.Finalizers = append(machineSet.ObjectMeta.Finalizers, metav1.FinalizerDeleteDependents)
-
-		if err := r.Client.Update(context.Background(), machineSet); err != nil {
-			klog.Infof("Failed to add finalizers to MachineSet %q: %v", machineSet.Name, err)
-			return reconcile.Result{}, err
-		}
-
-		// Since adding the finalizer updates the object return to avoid later update issues
-		return reconcile.Result{Requeue: true}, nil
 	}
 
 	// Filter out irrelevant machines (deleting/mismatch labels) and claim orphaned machines.

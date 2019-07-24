@@ -21,8 +21,8 @@ import (
 	"testing"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"sigs.k8s.io/cluster-api/pkg/apis/cluster/common"
 	"sigs.k8s.io/cluster-api/pkg/apis/cluster/v1alpha2"
+	capierrors "sigs.k8s.io/cluster-api/pkg/errors"
 )
 
 func TestMachineToDelete(t *testing.T) {
@@ -161,7 +161,7 @@ func TestMachineToDelete(t *testing.T) {
 func TestMachineNewestDelete(t *testing.T) {
 
 	currentTime := metav1.Now()
-	statusError := common.MachineStatusError("I'm unhealthy!")
+	statusError := capierrors.MachineStatusError("I'm unhealthy!")
 	mustDeleteMachine := &v1alpha2.Machine{ObjectMeta: metav1.ObjectMeta{DeletionTimestamp: &currentTime}}
 	newest := &v1alpha2.Machine{ObjectMeta: metav1.ObjectMeta{CreationTimestamp: metav1.NewTime(currentTime.Time.AddDate(0, 0, -1))}}
 	new := &v1alpha2.Machine{ObjectMeta: metav1.ObjectMeta{CreationTimestamp: metav1.NewTime(currentTime.Time.AddDate(0, 0, -5))}}
@@ -229,7 +229,7 @@ func TestMachineNewestDelete(t *testing.T) {
 func TestMachineOldestDelete(t *testing.T) {
 
 	currentTime := metav1.Now()
-	statusError := common.MachineStatusError("I'm unhealthy!")
+	statusError := capierrors.MachineStatusError("I'm unhealthy!")
 	empty := &v1alpha2.Machine{}
 	newest := &v1alpha2.Machine{ObjectMeta: metav1.ObjectMeta{CreationTimestamp: metav1.NewTime(currentTime.Time.AddDate(0, 0, -1))}}
 	new := &v1alpha2.Machine{ObjectMeta: metav1.ObjectMeta{CreationTimestamp: metav1.NewTime(currentTime.Time.AddDate(0, 0, -5))}}

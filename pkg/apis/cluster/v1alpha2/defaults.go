@@ -19,7 +19,6 @@ package v1alpha2
 import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/intstr"
-	"sigs.k8s.io/cluster-api/pkg/apis/cluster/common"
 )
 
 // PopulateDefaultsMachineDeployment fills in default field values
@@ -50,11 +49,11 @@ func PopulateDefaultsMachineDeployment(d *MachineDeployment) {
 	}
 
 	if d.Spec.Strategy.Type == "" {
-		d.Spec.Strategy.Type = common.RollingUpdateMachineDeploymentStrategyType
+		d.Spec.Strategy.Type = RollingUpdateMachineDeploymentStrategyType
 	}
 
 	// Default RollingUpdate strategy only if strategy type is RollingUpdate.
-	if d.Spec.Strategy.Type == common.RollingUpdateMachineDeploymentStrategyType {
+	if d.Spec.Strategy.Type == RollingUpdateMachineDeploymentStrategyType {
 		if d.Spec.Strategy.RollingUpdate == nil {
 			d.Spec.Strategy.RollingUpdate = &MachineRollingUpdateDeployment{}
 		}

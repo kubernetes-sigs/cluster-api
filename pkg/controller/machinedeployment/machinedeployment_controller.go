@@ -29,8 +29,6 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/tools/record"
 	"k8s.io/klog"
-	"k8s.io/utils/pointer"
-	"sigs.k8s.io/cluster-api/pkg/apis/cluster/common"
 	"sigs.k8s.io/cluster-api/pkg/apis/cluster/v1alpha2"
 	"sigs.k8s.io/cluster-api/pkg/util"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -178,31 +176,13 @@ func (r *ReconcileMachineDeployment) reconcile(ctx context.Context, d *v1alpha2.
 		return reconcile.Result{}, err
 	}
 
-	// Set the ownerRef with foreground deletion if there is a linked cluster.
 	if cluster != nil {
 		d.OwnerReferences = util.EnsureOwnerRef(d.OwnerReferences, metav1.OwnerReference{
-			APIVersion:         cluster.APIVersion,
-			Kind:               cluster.Kind,
-			Name:               cluster.Name,
-			UID:                cluster.UID,
-			BlockOwnerDeletion: pointer.BoolPtr(true),
+			APIVersion: cluster.APIVersion,
+			Kind:       cluster.Kind,
+			Name:       cluster.Name,
+			UID:        cluster.UID,
 		})
-	}
-
-	// Add foregroundDeletion finalizer if MachineDeployment isn't deleted and linked to a cluster.
-	if cluster != nil &&
-		d.ObjectMeta.DeletionTimestamp.IsZero() &&
-		!util.Contains(d.Finalizers, metav1.FinalizerDeleteDependents) {
-
-		patch := client.MergeFrom(d.DeepCopy())
-		d.Finalizers = append(d.ObjectMeta.Finalizers, metav1.FinalizerDeleteDependents)
-		if err := r.Client.Patch(ctx, d, patch); err != nil {
-			klog.Infof("Failed to add finalizers to MachineSet %q: %v", d.Name, err)
-			return reconcile.Result{}, err
-		}
-
-		// Since adding the finalizer updates the object return to avoid later update issues
-		return reconcile.Result{Requeue: true}, nil
 	}
 
 	msList, err := r.getMachineSetsForDeployment(d)
@@ -220,7 +200,7 @@ func (r *ReconcileMachineDeployment) reconcile(ctx context.Context, d *v1alpha2.
 	}
 
 	switch d.Spec.Strategy.Type {
-	case common.RollingUpdateMachineDeploymentStrategyType:
+	case v1alpha2.RollingUpdateMachineDeploymentStrategyType:
 		return reconcile.Result{}, r.rolloutRolling(d, msList, machineMap)
 	}
 

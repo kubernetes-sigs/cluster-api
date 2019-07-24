@@ -29,7 +29,6 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/client-go/tools/record"
 	"k8s.io/klog"
-	"k8s.io/utils/pointer"
 	"sigs.k8s.io/cluster-api/pkg/apis/cluster/v1alpha2"
 	clusterv1 "sigs.k8s.io/cluster-api/pkg/apis/cluster/v1alpha2"
 	"sigs.k8s.io/cluster-api/pkg/controller/external"
@@ -129,19 +128,19 @@ func (r *ReconcileMachine) Reconcile(request reconcile.Request) (reconcile.Resul
 	// for machine management.
 	cluster, err := util.GetClusterFromMetadata(ctx, r.Client, m.ObjectMeta)
 	if errors.Cause(err) == util.ErrNoCluster {
-		klog.Infof("Machine %q in namespace %q doesn't specify %q label, assuming nil cluster", m.Name, m.Namespace, clusterv1.MachineClusterLabelName)
+		klog.Infof("Machine %q in namespace %q doesn't specify %q label, assuming nil cluster",
+			m.Name, m.Namespace, clusterv1.MachineClusterLabelName)
 	} else if err != nil {
-		return reconcile.Result{}, errors.Wrapf(err, "failed to get cluster %q for machine %q in namespace %q", m.Labels[clusterv1.MachineClusterLabelName], m.Name, m.Namespace)
+		return reconcile.Result{}, errors.Wrapf(err, "failed to get cluster %q for machine %q in namespace %q",
+			m.Labels[clusterv1.MachineClusterLabelName], m.Name, m.Namespace)
 	}
 
-	// Set the ownerRef with foreground deletion if there is a linked cluster.
 	if cluster != nil {
 		m.OwnerReferences = util.EnsureOwnerRef(m.OwnerReferences, metav1.OwnerReference{
-			APIVersion:         cluster.APIVersion,
-			Kind:               cluster.Kind,
-			Name:               cluster.Name,
-			UID:                cluster.UID,
-			BlockOwnerDeletion: pointer.BoolPtr(true),
+			APIVersion: cluster.APIVersion,
+			Kind:       cluster.Kind,
+			Name:       cluster.Name,
+			UID:        cluster.UID,
 		})
 	}
 

@@ -18,8 +18,6 @@ package errors
 
 import (
 	"fmt"
-
-	commonerrors "sigs.k8s.io/cluster-api/pkg/apis/cluster/common"
 )
 
 // A more descriptive kind of error that represents an error condition that
@@ -27,7 +25,7 @@ import (
 // enum-style constants meant to be interpreted by machines. The "Message"
 // field is meant to be read by humans.
 type MachineError struct {
-	Reason  commonerrors.MachineStatusError
+	Reason  MachineStatusError
 	Message string
 }
 
@@ -41,28 +39,28 @@ func (e *MachineError) Error() string {
 
 func InvalidMachineConfiguration(msg string, args ...interface{}) *MachineError {
 	return &MachineError{
-		Reason:  commonerrors.InvalidConfigurationMachineError,
+		Reason:  InvalidConfigurationMachineError,
 		Message: fmt.Sprintf(msg, args...),
 	}
 }
 
 func CreateMachine(msg string, args ...interface{}) *MachineError {
 	return &MachineError{
-		Reason:  commonerrors.CreateMachineError,
+		Reason:  CreateMachineError,
 		Message: fmt.Sprintf(msg, args...),
 	}
 }
 
 func UpdateMachine(msg string, args ...interface{}) *MachineError {
 	return &MachineError{
-		Reason:  commonerrors.UpdateMachineError,
+		Reason:  UpdateMachineError,
 		Message: fmt.Sprintf(msg, args...),
 	}
 }
 
 func DeleteMachine(msg string, args ...interface{}) *MachineError {
 	return &MachineError{
-		Reason:  commonerrors.DeleteMachineError,
+		Reason:  DeleteMachineError,
 		Message: fmt.Sprintf(msg, args...),
 	}
 }

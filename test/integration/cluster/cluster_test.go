@@ -24,9 +24,7 @@ import (
 	. "github.com/onsi/gomega"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	informers "k8s.io/client-go/informers"
 	"k8s.io/client-go/kubernetes"
-	"k8s.io/client-go/tools/cache"
 	"k8s.io/client-go/tools/clientcmd"
 	clusterv1 "sigs.k8s.io/cluster-api/pkg/apis/cluster/v1alpha2"
 	clientset "sigs.k8s.io/cluster-api/pkg/client/clientset_generated/clientset"
@@ -56,8 +54,6 @@ func TestCluster(t *testing.T) {
 var _ = Describe("Cluster-Controller", func() {
 	var clusterapi client.ClusterInterface
 	var client *kubernetes.Clientset
-	var stopper chan struct{}
-	var informer cache.SharedIndexInformer
 	var testNamespace string
 
 	BeforeEach(func() {
@@ -76,11 +72,6 @@ var _ = Describe("Cluster-Controller", func() {
 		Expect(err).ShouldNot(HaveOccurred())
 		testNamespace = ns.ObjectMeta.Name
 
-		// Create  informer for events in the namespace
-		factory := informers.NewSharedInformerFactoryWithOptions(client, 0, informers.WithNamespace(testNamespace))
-		informer = factory.Core().V1().Events().Informer()
-		stopper = make(chan struct{})
-
 		// Create clusterapi client
 		cs, err := clientset.NewForConfig(config)
 		Expect(err).ShouldNot(HaveOccurred())
@@ -88,28 +79,11 @@ var _ = Describe("Cluster-Controller", func() {
 	})
 
 	AfterEach(func() {
-		close(stopper)
 		client.CoreV1().Namespaces().Delete(testNamespace, &metav1.DeleteOptions{})
 	})
 
 	Describe("Create Cluster", func() {
-		It("Should trigger an event", func(done Done) {
-			// Register handler for cluster events
-			events := make(chan *corev1.Event, 0)
-			informer.AddEventHandler(cache.ResourceEventHandlerFuncs{
-				AddFunc: func(obj interface{}) {
-					// Guard against miscofigured informer not listening to Events
-					Expect(obj).Should(BeAssignableToTypeOf(&corev1.Event{}))
-
-					e := obj.(*corev1.Event)
-					if e.InvolvedObject.Kind == "Cluster" {
-						events <- e
-					}
-				},
-			})
-			go informer.Run(stopper)
-			Expect(cache.WaitForCacheSync(stopper, informer.HasSynced)).To(BeTrue())
-
+		It("Should reach to pending phase after creation", func(done Done) {
 			// Create Cluster
 			cluster := &clusterv1.Cluster{
 				ObjectMeta: metav1.ObjectMeta{
@@ -118,10 +92,17 @@ var _ = Describe("Cluster-Controller", func() {
 				},
 				Spec: *clusterSpec.DeepCopy(),
 			}
-			_, err := clusterapi.Create(cluster)
-			Expect(err).ShouldNot(HaveOccurred())
 
-			Expect(<-events).ShouldNot(BeNil())
+			var err error
+			cluster, err = clusterapi.Create(cluster)
+			Expect(err).ShouldNot(HaveOccurred())
+			Eventually(func() bool {
+				cluster, err = clusterapi.Get(cluster.Name, metav1.GetOptions{})
+				if err != nil {
+					return false
+				}
+				return cluster.Status.Phase != nil && *cluster.Status.Phase == "pending"
+			}).Should(BeTrue())
 
 			close(done)
 		}, TIMEOUT)

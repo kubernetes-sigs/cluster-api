@@ -4,14 +4,13 @@ go_library(
     name = "go_default_library",
     srcs = [
         "clusters.go",
+        "consts.go",
         "controllers.go",
         "deployer.go",
         "machines.go",
+        "pointer.go",
     ],
     importpath = "sigs.k8s.io/cluster-api/pkg/errors",
     visibility = ["//visibility:public"],
-    deps = [
-        "//pkg/apis/cluster/common:go_default_library",
-        "//vendor/github.com/pkg/errors:go_default_library",
-    ],
+    deps = ["//vendor/github.com/pkg/errors:go_default_library"],
 )

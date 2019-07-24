@@ -29,7 +29,6 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/intstr"
 	"k8s.io/utils/pointer"
-	"sigs.k8s.io/cluster-api/pkg/apis/cluster/common"
 	clusterv1 "sigs.k8s.io/cluster-api/pkg/apis/cluster/v1alpha2"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/manager"
@@ -51,7 +50,7 @@ func TestReconcile(t *testing.T) {
 			RevisionHistoryLimit: pointer.Int32Ptr(0),
 			Selector:             metav1.LabelSelector{MatchLabels: labels},
 			Strategy: &clusterv1.MachineDeploymentStrategy{
-				Type: common.RollingUpdateMachineDeploymentStrategyType,
+				Type: clusterv1.RollingUpdateMachineDeploymentStrategyType,
 				RollingUpdate: &clusterv1.MachineRollingUpdateDeployment{
 					MaxUnavailable: intOrStrPtr(0),
 					MaxSurge:       intOrStrPtr(1),

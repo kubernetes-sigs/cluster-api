@@ -18,8 +18,6 @@ package errors
 
 import (
 	"fmt"
-
-	commonerrors "sigs.k8s.io/cluster-api/pkg/apis/cluster/common"
 )
 
 // A more descriptive kind of error that represents an error condition that
@@ -27,7 +25,7 @@ import (
 // enum-style constants meant to be interpreted by clusters. The "Message"
 // field is meant to be read by humans.
 type ClusterError struct {
-	Reason  commonerrors.ClusterStatusError
+	Reason  ClusterStatusError
 	Message string
 }
 
@@ -41,21 +39,21 @@ func (e *ClusterError) Error() string {
 
 func InvalidClusterConfiguration(format string, args ...interface{}) *ClusterError {
 	return &ClusterError{
-		Reason:  commonerrors.InvalidConfigurationClusterError,
+		Reason:  InvalidConfigurationClusterError,
 		Message: fmt.Sprintf(format, args...),
 	}
 }
 
 func CreateCluster(format string, args ...interface{}) *ClusterError {
 	return &ClusterError{
-		Reason:  commonerrors.CreateClusterError,
+		Reason:  CreateClusterError,
 		Message: fmt.Sprintf(format, args...),
 	}
 }
 
 func DeleteCluster(format string, args ...interface{}) *ClusterError {
 	return &ClusterError{
-		Reason:  commonerrors.DeleteClusterError,
+		Reason:  DeleteClusterError,
 		Message: fmt.Sprintf(format, args...),
 	}
 }

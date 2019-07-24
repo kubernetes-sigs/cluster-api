@@ -24,10 +24,10 @@ import (
 	"github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/types"
-	"sigs.k8s.io/cluster-api/pkg/apis/cluster/common"
 	"sigs.k8s.io/cluster-api/pkg/apis/cluster/v1alpha2"
 	clusterv1alpha2 "sigs.k8s.io/cluster-api/pkg/apis/cluster/v1alpha2"
 	"sigs.k8s.io/cluster-api/pkg/controller/noderefutil"
+	capierrors "sigs.k8s.io/cluster-api/pkg/errors"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
@@ -73,9 +73,17 @@ func getClusterObject(ctx context.Context, c client.Reader, clusterName string, 
 
 func validateClusterObject(w io.Writer, cluster *v1alpha2.Cluster) error {
 	fmt.Fprintf(w, "Checking cluster object %q... ", cluster.Name)
-	if cluster.Status.ErrorReason != "" || cluster.Status.ErrorMessage != "" {
+	if cluster.Status.ErrorReason != nil || cluster.Status.ErrorMessage != nil {
+		var reason capierrors.ClusterStatusError
+		if cluster.Status.ErrorReason != nil {
+			reason = *cluster.Status.ErrorReason
+		}
+		var message string
+		if cluster.Status.ErrorMessage != nil {
+			message = *cluster.Status.ErrorMessage
+		}
 		fmt.Fprintf(w, "FAIL\n")
-		fmt.Fprintf(w, "\t[%v]: %s\n", cluster.Status.ErrorReason, cluster.Status.ErrorMessage)
+		fmt.Fprintf(w, "\t[%v]: %s\n", reason, message)
 		return errors.Errorf("cluster %q failed the validation", cluster.Name)
 	}
 	fmt.Fprintf(w, "PASS\n")
@@ -98,7 +106,7 @@ func validateMachineObjects(ctx context.Context, w io.Writer, machines *v1alpha2
 func validateMachineObject(ctx context.Context, w io.Writer, machine v1alpha2.Machine, client client.Client) bool {
 	fmt.Fprintf(w, "Checking machine object %q... ", machine.Name)
 	if machine.Status.ErrorReason != nil || machine.Status.ErrorMessage != nil {
-		var reason common.MachineStatusError
+		var reason capierrors.MachineStatusError
 		if machine.Status.ErrorReason != nil {
 			reason = *machine.Status.ErrorReason
 		}

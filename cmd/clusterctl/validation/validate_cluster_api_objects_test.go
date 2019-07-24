@@ -27,23 +27,24 @@ import (
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
-	"sigs.k8s.io/cluster-api/pkg/apis/cluster/common"
+	"k8s.io/utils/pointer"
 	"sigs.k8s.io/cluster-api/pkg/apis/cluster/v1alpha2"
 	"sigs.k8s.io/cluster-api/pkg/apis/cluster/v1alpha2/testutil"
+	capierrors "sigs.k8s.io/cluster-api/pkg/errors"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/manager"
 )
 
 var c client.Client
 
-func newClusterStatus(errorReason common.ClusterStatusError, errorMessage string) v1alpha2.ClusterStatus {
+func newClusterStatus(errorReason *capierrors.ClusterStatusError, errorMessage *string) v1alpha2.ClusterStatus {
 	return v1alpha2.ClusterStatus{
 		ErrorReason:  errorReason,
 		ErrorMessage: errorMessage,
 	}
 }
 
-func newMachineStatus(nodeRef *v1.ObjectReference, errorReason *common.MachineStatusError, errorMessage *string) v1alpha2.MachineStatus {
+func newMachineStatus(nodeRef *v1.ObjectReference, errorReason *capierrors.MachineStatusError, errorMessage *string) v1alpha2.MachineStatus {
 	return v1alpha2.MachineStatus{
 		NodeRef:      nodeRef,
 		ErrorReason:  errorReason,
@@ -51,7 +52,7 @@ func newMachineStatus(nodeRef *v1.ObjectReference, errorReason *common.MachineSt
 	}
 }
 
-func getMachineWithError(machineName, namespace string, nodeRef *v1.ObjectReference, errorReason *common.MachineStatusError, errorMessage *string) v1alpha2.Machine {
+func getMachineWithError(machineName, namespace string, nodeRef *v1.ObjectReference, errorReason *capierrors.MachineStatusError, errorMessage *string) v1alpha2.Machine {
 	return v1alpha2.Machine{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      machineName,
@@ -225,32 +226,32 @@ func TestGetClusterObjectWithMoreThanOneCluster(t *testing.T) {
 func TestValidateClusterObject(t *testing.T) {
 	var testcases = []struct {
 		name         string
-		errorReason  common.ClusterStatusError
-		errorMessage string
+		errorReason  *capierrors.ClusterStatusError
+		errorMessage *string
 		expectErr    bool
 	}{
 		{
 			name:         "Cluster has no error",
-			errorReason:  "",
-			errorMessage: "",
+			errorReason:  nil,
+			errorMessage: nil,
 			expectErr:    false,
 		},
 		{
 			name:         "Cluster has error reason",
-			errorReason:  common.CreateClusterError,
-			errorMessage: "",
+			errorReason:  capierrors.ClusterStatusErrorPtr(capierrors.CreateClusterError),
+			errorMessage: nil,
 			expectErr:    true,
 		},
 		{
 			name:         "Cluster has error message",
-			errorReason:  "",
-			errorMessage: "Failed to create cluster",
+			errorReason:  nil,
+			errorMessage: pointer.StringPtr("Failed to create cluster"),
 			expectErr:    true,
 		},
 		{
 			name:         "Cluster has error reason and message",
-			errorReason:  common.CreateClusterError,
-			errorMessage: "Failed to create cluster",
+			errorReason:  capierrors.ClusterStatusErrorPtr(capierrors.CreateClusterError),
+			errorMessage: pointer.StringPtr("Failed to create cluster"),
 			expectErr:    true,
 		},
 	}
@@ -289,12 +290,12 @@ func TestValidateMachineObjects(t *testing.T) {
 	defer c.Delete(context.TODO(), &testNode)
 
 	testNodeRef := v1.ObjectReference{Kind: "Node", Name: testNodeName}
-	machineErrorReason := common.CreateMachineError
+	machineErrorReason := capierrors.CreateMachineError
 	machineErrorMessage := "Failed to create machine"
 	var testcases = []struct {
 		name         string
 		nodeRef      *v1.ObjectReference
-		errorReason  *common.MachineStatusError
+		errorReason  *capierrors.MachineStatusError
 		errorMessage *string
 		expectErr    bool
 	}{
@@ -443,7 +444,7 @@ func TestValidateClusterAPIObjectsOutput(t *testing.T) {
 	testNodeRef2 := v1.ObjectReference{Kind: "Node", Name: testNode2Name}
 	testNodeRefNotReady := v1.ObjectReference{Kind: "Node", Name: testNodeNotReadyName}
 	testNodeRefNotExist := v1.ObjectReference{Kind: "Node", Name: "test-node-not-exist"}
-	machineErrorReason := common.CreateMachineError
+	machineErrorReason := capierrors.CreateMachineError
 	machineErrorMessage := "Failed to create machine"
 
 	var testcases = []struct {
@@ -465,9 +466,12 @@ func TestValidateClusterAPIObjectsOutput(t *testing.T) {
 			outputFileName: "validate-cluster-api-object-output-pass.golden",
 		},
 		{
-			name:           "Failed to validate cluster object",
-			namespace:      "validate-cluster-objects-errors",
-			clusterStatus:  newClusterStatus(common.CreateClusterError, "Failed to create cluster"),
+			name:      "Failed to validate cluster object",
+			namespace: "validate-cluster-objects-errors",
+			clusterStatus: newClusterStatus(
+				capierrors.ClusterStatusErrorPtr(capierrors.CreateClusterError),
+				pointer.StringPtr("Failed to create cluster"),
+			),
 			machine1Status: newMachineStatus(&testNodeRef1, nil, nil),
 			machine2Status: newMachineStatus(&testNodeRef2, nil, nil),
 			expectErr:      true,

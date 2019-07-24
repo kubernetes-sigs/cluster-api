@@ -160,7 +160,8 @@ func (r *ReconcileCluster) Reconcile(request reconcile.Request) (reconcile.Resul
 			for _, child := range children {
 				accessor, err := meta.Accessor(child)
 				if err != nil {
-					return reconcile.Result{}, errors.Wrapf(err, "couldn't create accessor for %T", child)
+					klog.Errorf("cluster %s: couldn't create accessor for %T: %v", name, child, err)
+					continue
 				}
 
 				if accessor.GetDeletionTimestamp() != nil {
@@ -253,9 +254,11 @@ func (r *ReconcileCluster) listChildren(ctx context.Context, cluster *clusterv1.
 	}
 
 	eachFunc := func(o runtime.Object) error {
+
 		acc, err := meta.Accessor(o)
 		if err != nil {
-			return err
+			klog.Errorf("cluster %s: couldn't create accessor for %T: %v", cluster.Name, o, err)
+			return nil
 		}
 
 		if util.PointsTo(acc.GetOwnerReferences(), &cluster.ObjectMeta) {

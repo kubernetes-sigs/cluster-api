@@ -25,3 +25,9 @@ action "goreleaser" {
   args = "release"
   needs = ["is-tag", "Setup Google Cloud", "Set Credential Helper for Docker"]
 }
+
+action "push images" {
+  uses = "actions/docker/cli@master"
+  args = "images --filter reference=gcr.io/kubernetes1-226021/capd-manager --format '{{.Repository}}:{{.Tag}}' | xargs -n1 docker push"
+  needs = ["goreleaser"]
+}

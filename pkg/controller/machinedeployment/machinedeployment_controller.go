@@ -173,7 +173,8 @@ func (r *ReconcileMachineDeployment) reconcile(ctx context.Context, d *v1alpha1.
 	}
 
 	// Set the ownerRef with foreground deletion if there is a linked cluster.
-	if cluster != nil && len(d.OwnerReferences) == 0 {
+	if cluster != nil && shouldAdopt(d) {
+		klog.Infof("Cluster %s/%s is adopting MachineDeployment %s", cluster.Namespace, cluster.Name, d.Name)
 		blockOwnerDeletion := true
 		d.OwnerReferences = append(d.OwnerReferences, metav1.OwnerReference{
 			APIVersion:         cluster.APIVersion,
@@ -411,4 +412,8 @@ func (r *ReconcileMachineDeployment) MachineSetToDeployments(o handler.MapObject
 	}
 
 	return result
+}
+
+func shouldAdopt(md *v1alpha1.MachineDeployment) bool {
+	return !util.HasOwner(md.OwnerReferences, v1alpha1.SchemeGroupVersion.String(), []string{"Cluster"})
 }

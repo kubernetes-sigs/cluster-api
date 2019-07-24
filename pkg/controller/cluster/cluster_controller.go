@@ -258,7 +258,7 @@ func (r *ReconcileCluster) listChildren(ctx context.Context, cluster *clusterv1.
 			return err
 		}
 
-		if pointsTo(acc.GetOwnerReferences(), &cluster.ObjectMeta) {
+		if util.PointsTo(acc.GetOwnerReferences(), &cluster.ObjectMeta) {
 			children = append(children, o)
 		}
 
@@ -267,7 +267,7 @@ func (r *ReconcileCluster) listChildren(ctx context.Context, cluster *clusterv1.
 
 	deployments, err := pager.New(dfunc).List(ctx, opts)
 	if err != nil {
-		return []runtime.Object{}, errors.Wrapf(err, "failed to list MachineDeployments in %s/%s", ns, cluster.Name)
+		return nil, errors.Wrapf(err, "failed to list MachineDeployments in %s/%s", ns, cluster.Name)
 	}
 	if err := meta.EachListItem(deployments, eachFunc); err != nil {
 		return []runtime.Object{}, errors.Wrapf(err, "couldn't iterate MachinesDeployments for cluster %s/%s", ns, cluster.Name)
@@ -275,29 +275,19 @@ func (r *ReconcileCluster) listChildren(ctx context.Context, cluster *clusterv1.
 
 	sets, err := pager.New(sfunc).List(ctx, opts)
 	if err != nil {
-		return []runtime.Object{}, errors.Wrapf(err, "failed to list MachineSets in %s/%s", ns, cluster.Name)
+		return nil, errors.Wrapf(err, "failed to list MachineSets in %s/%s", ns, cluster.Name)
 	}
 	if err := meta.EachListItem(sets, eachFunc); err != nil {
-		return []runtime.Object{}, errors.Wrapf(err, "couldn't iterate MachineSets for cluster %s/%s", ns, cluster.Name)
+		return nil, errors.Wrapf(err, "couldn't iterate MachineSets for cluster %s/%s", ns, cluster.Name)
 	}
 
 	machines, err := pager.New(mfunc).List(ctx, opts)
 	if err != nil {
-		return []runtime.Object{}, errors.Wrapf(err, "failed to list Machines in %s/%s", ns, cluster.Name)
+		return nil, errors.Wrapf(err, "failed to list Machines in %s/%s", ns, cluster.Name)
 	}
 	if err := meta.EachListItem(machines, eachFunc); err != nil {
-		return []runtime.Object{}, errors.Wrapf(err, "couldn't iterate Machines for cluster %s/%s", ns, cluster.Name)
+		return nil, errors.Wrapf(err, "couldn't iterate Machines for cluster %s/%s", ns, cluster.Name)
 	}
 
 	return children, nil
-}
-
-func pointsTo(refs []metav1.OwnerReference, target *metav1.ObjectMeta) bool {
-	for _, ref := range refs {
-		if ref.UID == target.UID {
-			return true
-		}
-	}
-
-	return false
 }

@@ -26,6 +26,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/runtime"
+	errorag "k8s.io/apimachinery/pkg/util/errors"
 	"k8s.io/client-go/tools/pager"
 	"k8s.io/client-go/util/retry"
 	"k8s.io/klog"
@@ -147,12 +148,15 @@ func (r *ReconcileCluster) Reconcile(request reconcile.Request) (reconcile.Resul
 
 		children, err := r.listChildren(context.Background(), cluster)
 		if err != nil {
-			klog.Infof("Failed to list dependent objects of cluster %s/%s: %v", cluster.ObjectMeta.Namespace, cluster.ObjectMeta.Name, err)
-			return reconcile.Result{}, errors.WithStack(err)
+			klog.Errorf("Failed to list dependent objects of cluster %s/%s: %v", cluster.ObjectMeta.Namespace, cluster.ObjectMeta.Name, err)
+			return reconcile.Result{}, err
 		}
 
 		if len(children) > 0 {
 			klog.Infof("Deleting cluster %s: %d children still exist, will requeue", name, len(children))
+
+			var errList []error
+
 			for _, child := range children {
 				accessor, err := meta.Accessor(child)
 				if err != nil {
@@ -167,8 +171,15 @@ func (r *ReconcileCluster) Reconcile(request reconcile.Request) (reconcile.Resul
 
 				klog.V(4).Infof("Deleting cluster %s: Deleting %s %s", name, gvk, accessor.GetName())
 				if err := r.Delete(context.Background(), child, client.PropagationPolicy(metav1.DeletePropagationForeground)); err != nil {
-					return reconcile.Result{}, errors.Wrapf(err, "deleting cluster %s: failed to delete %s %s", name, gvk, accessor.GetName())
+					err = errors.Wrapf(err, "deleting cluster %s: failed to delete %s %s", name, gvk, accessor.GetName())
+					klog.Errorf("Deletion error: %v", err)
+					errList = append(errList, err)
 				}
+			}
+
+			if len(errList) > 0 {
+				return reconcile.Result{}, errorag.NewAggregate(errList)
+
 			}
 
 			return reconcile.Result{Requeue: true, RequeueAfter: deleteRequeueAfter}, nil
@@ -248,7 +259,7 @@ func (r *ReconcileCluster) listChildren(ctx context.Context, cluster *clusterv1.
 		}
 
 		if pointsTo(acc.GetOwnerReferences(), &cluster.ObjectMeta) {
-			children = append(children, o.DeepCopyObject())
+			children = append(children, o)
 		}
 
 		return nil

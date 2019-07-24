@@ -26,10 +26,16 @@ action "goreleaser" {
   needs = ["is-tag"]
 }
 
+action "docker build" {
+  uses = "actions/docker/cli@master"
+  args = "build -t capd-manager ."
+  needs = ["goreleaser"]
+}
+
 action "tag images" {
   uses = "actions/docker/tag@master"
   args = "capd-manager gcr.io/kubernetes1-226021/capd-manager"
-  needs = ["goreleaser"]
+  needs = ["docker build"]
 }
 
 action "push images" {

@@ -23,7 +23,7 @@ import (
 	metav1validation "k8s.io/apimachinery/pkg/apis/meta/v1/validation"
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/util/validation/field"
-	"sigs.k8s.io/cluster-api/pkg/apis/cluster/common"
+	capierrors "sigs.k8s.io/cluster-api/pkg/errors"
 )
 
 // +genclient
@@ -161,7 +161,7 @@ type MachineSetStatus struct {
 	// can be added as events to the MachineSet object and/or logged in the
 	// controller's output.
 	// +optional
-	ErrorReason *common.MachineSetStatusError `json:"errorReason,omitempty"`
+	ErrorReason *capierrors.MachineSetStatusError `json:"errorReason,omitempty"`
 	// +optional
 	ErrorMessage *string `json:"errorMessage,omitempty"`
 }

@@ -20,7 +20,6 @@ set -o pipefail
 
 MAKE="make"
 KIND_VERSION="v0.4.0"
-KUSTOMIZE_VERSION="2.0.3"
 KUBECTL_VERSION="v1.15.0"
 CRD_YAML="crd.yaml"
 BOOTSTRAP_CLUSTER_NAME="clusterapi-bootstrap"
@@ -30,12 +29,6 @@ INTEGRATION_TEST_DIR="./test/integration"
 
 GOOS=$(go env GOOS)
 GOARCH=$(go env GOARCH)
-
-install_kustomize() {
-   wget "https://github.com/kubernetes-sigs/kustomize/releases/download/v${KUSTOMIZE_VERSION}/kustomize_${KUSTOMIZE_VERSION}_${GOOS}_${GOARCH}" \
-     --no-verbose -O /usr/local/bin/kustomize
-   chmod +x /usr/local/bin/kustomize
-}
 
 install_kind() {
    wget "https://github.com/kubernetes-sigs/kind/releases/download/${KIND_VERSION}/kind-${GOOS}-${GOARCH}" \
@@ -60,9 +53,9 @@ build_containers() {
 
 prepare_crd_yaml() {
    CLUSTER_API_CONFIG_PATH="./config"
-   kustomize build "${CLUSTER_API_CONFIG_PATH}/default/" > "${CRD_YAML}"
+   kubectl kustomize "${CLUSTER_API_CONFIG_PATH}/default/" > "${CRD_YAML}"
    echo "---" >> "${CRD_YAML}"
-   kustomize build "${CLUSTER_API_CONFIG_PATH}/ci/" >> "${CRD_YAML}"
+   kubectl kustomize "${CLUSTER_API_CONFIG_PATH}/ci/" >> "${CRD_YAML}"
 }
 
 create_bootstrap() {
@@ -107,11 +100,9 @@ main() {
    ensure_docker_in_docker
    build_containers
 
-   install_kustomize
-   prepare_crd_yaml
-
    install_kubectl
    install_kind
+   prepare_crd_yaml
    create_bootstrap
 
    kubectl create -f "${CRD_YAML}"

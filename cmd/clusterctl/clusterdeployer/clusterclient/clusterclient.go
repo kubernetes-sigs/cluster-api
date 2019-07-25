@@ -680,8 +680,8 @@ func (c *client) WaitForResourceStatuses() error {
 				klog.V(10).Info("retrying: cluster status is empty")
 				return false, nil
 			}
-			if cluster.Status.ProviderStatus == nil {
-				klog.V(10).Info("retrying: cluster.Status.ProviderStatus is not set")
+			if !cluster.Status.InfrastructureReady {
+				klog.V(10).Info("retrying: cluster.Status.InfrastructureReady is false")
 				return false, nil
 			}
 		}

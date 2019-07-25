@@ -32,7 +32,6 @@ import (
 	"k8s.io/apimachinery/pkg/util/intstr"
 	"k8s.io/apiserver/pkg/storage/names"
 	core "k8s.io/client-go/testing"
-	"sigs.k8s.io/cluster-api/pkg/apis/cluster/common"
 	"sigs.k8s.io/cluster-api/pkg/apis/cluster/v1alpha2"
 	"sigs.k8s.io/cluster-api/pkg/client/clientset_generated/clientset/fake"
 )
@@ -515,7 +514,7 @@ func TestResolveFenceposts(t *testing.T) {
 func TestNewMSNewReplicas(t *testing.T) {
 	tests := []struct {
 		Name          string
-		strategyType  common.MachineDeploymentStrategyType
+		strategyType  v1alpha2.MachineDeploymentStrategyType
 		depReplicas   int32
 		newMSReplicas int32
 		maxSurge      int
@@ -523,12 +522,12 @@ func TestNewMSNewReplicas(t *testing.T) {
 	}{
 		{
 			"can not scale up - to newMSReplicas",
-			common.RollingUpdateMachineDeploymentStrategyType,
+			v1alpha2.RollingUpdateMachineDeploymentStrategyType,
 			1, 5, 1, 5,
 		},
 		{
 			"scale up - to depReplicas",
-			common.RollingUpdateMachineDeploymentStrategyType,
+			v1alpha2.RollingUpdateMachineDeploymentStrategyType,
 			6, 2, 10, 6,
 		},
 	}
@@ -573,7 +572,7 @@ func TestDeploymentComplete(t *testing.T) {
 						MaxUnavailable: func(i int) *intstr.IntOrString { x := intstr.FromInt(i); return &x }(int(maxUnavailable)),
 						MaxSurge:       func(i int) *intstr.IntOrString { x := intstr.FromInt(i); return &x }(int(maxSurge)),
 					},
-					Type: common.RollingUpdateMachineDeploymentStrategyType,
+					Type: v1alpha2.RollingUpdateMachineDeploymentStrategyType,
 				},
 			},
 			Status: v1alpha2.MachineDeploymentStatus{
@@ -650,7 +649,7 @@ func TestMaxUnavailable(t *testing.T) {
 						MaxSurge:       func(i int) *intstr.IntOrString { x := intstr.FromInt(i); return &x }(int(1)),
 						MaxUnavailable: &maxUnavailable,
 					},
-					Type: common.RollingUpdateMachineDeploymentStrategyType,
+					Type: v1alpha2.RollingUpdateMachineDeploymentStrategyType,
 				},
 			},
 		}

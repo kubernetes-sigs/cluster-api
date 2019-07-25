@@ -20,7 +20,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/validation/field"
-	"sigs.k8s.io/cluster-api/pkg/apis/cluster/common"
+	capierrors "sigs.k8s.io/cluster-api/pkg/errors"
 )
 
 const ClusterFinalizer = "cluster.cluster.k8s.io"
@@ -98,7 +98,7 @@ type ClusterStatus struct {
 	// state, and will be set to a token value suitable for
 	// programmatic interpretation.
 	// +optional
-	ErrorReason common.ClusterStatusError `json:"errorReason,omitempty"`
+	ErrorReason capierrors.ClusterStatusError `json:"errorReason,omitempty"`
 
 	// If set, indicates that there is a problem reconciling the
 	// state, and will be set to a descriptive error message.

@@ -19,7 +19,14 @@ package v1alpha2
 import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/intstr"
-	"sigs.k8s.io/cluster-api/pkg/apis/cluster/common"
+)
+
+type MachineDeploymentStrategyType string
+
+const (
+	// Replace the old MachineSet by new one using rolling update
+	// i.e. gradually scale down the old MachineSet and scale up the new one.
+	RollingUpdateMachineDeploymentStrategyType MachineDeploymentStrategyType = "RollingUpdate"
 )
 
 /// [MachineDeploymentSpec]
@@ -77,7 +84,7 @@ type MachineDeploymentStrategy struct {
 	// "RollingUpdate".
 	// Default is RollingUpdate.
 	// +optional
-	Type common.MachineDeploymentStrategyType `json:"type,omitempty"`
+	Type MachineDeploymentStrategyType `json:"type,omitempty"`
 
 	// Rolling update config params. Present only if
 	// MachineDeploymentStrategyType = RollingUpdate.

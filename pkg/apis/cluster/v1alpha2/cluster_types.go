@@ -17,10 +17,9 @@ limitations under the License.
 package v1alpha2
 
 import (
+	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/runtime"
-	"k8s.io/apimachinery/pkg/util/validation/field"
-	"sigs.k8s.io/cluster-api/pkg/apis/cluster/common"
+	capierrors "sigs.k8s.io/cluster-api/pkg/errors"
 )
 
 const (
@@ -54,25 +53,10 @@ type ClusterSpec struct {
 	// +optional
 	ClusterNetwork *ClusterNetworkingConfig `json:"clusterNetwork,omitempty"`
 
-	// Provider-specific serialized configuration to use during
-	// cluster creation. It is recommended that providers maintain
-	// their own versioned API types that should be
-	// serialized/deserialized from this field.
+	// InfrastructureRef is a reference to a provider-specific resource that holds the details
+	// for provisioning infrastructure for a cluster in said provider.
 	// +optional
-	ProviderSpec ProviderSpec `json:"providerSpec,omitempty"`
-}
-
-// ProviderSpec defines the configuration to use during node creation.
-type ProviderSpec struct {
-
-	// No more than one of the following may be specified.
-
-	// Value is an inlined, serialized representation of the resource
-	// configuration. It is recommended that providers maintain their own
-	// versioned API types that should be serialized/deserialized from this
-	// field, akin to component config.
-	// +optional
-	Value *runtime.RawExtension `json:"value,omitempty"`
+	InfrastructureRef *corev1.ObjectReference `json:"infrastructureRef,omitempty"`
 }
 
 /// [ClusterSpec]
@@ -104,31 +88,54 @@ type NetworkRanges struct {
 /// [ClusterStatus]
 // ClusterStatus defines the observed state of Cluster
 type ClusterStatus struct {
-	// APIEndpoint represents the endpoint to communicate with the IP.
+	// APIEndpoints represents the endpoints to communicate with the control plane.
 	// +optional
 	APIEndpoints []APIEndpoint `json:"apiEndpoints,omitempty"`
 
-	// NB: Eventually we will redefine ErrorReason as ClusterStatusError once the
-	// following issue is fixed.
-	// https://github.com/kubernetes-incubator/apiserver-builder/issues/176
-
-	// If set, indicates that there is a problem reconciling the
+	// ErrorReason indicates that there is a problem reconciling the
 	// state, and will be set to a token value suitable for
 	// programmatic interpretation.
 	// +optional
-	ErrorReason common.ClusterStatusError `json:"errorReason,omitempty"`
+	ErrorReason *capierrors.ClusterStatusError `json:"errorReason,omitempty"`
 
-	// If set, indicates that there is a problem reconciling the
+	// ErrorMessage indicates that there is a problem reconciling the
 	// state, and will be set to a descriptive error message.
 	// +optional
-	ErrorMessage string `json:"errorMessage,omitempty"`
+	ErrorMessage *string `json:"errorMessage,omitempty"`
 
-	// Provider-specific status.
-	// It is recommended that providers maintain their
-	// own versioned API types that should be
-	// serialized/deserialized from this field.
+	// Phase represents the current phase of cluster actuation.
+	// E.g. Pending, Running, Terminating, Failed etc.
 	// +optional
-	ProviderStatus *runtime.RawExtension `json:"providerStatus,omitempty"`
+	Phase *string `json:"phase,omitempty"`
+
+	// InfrastructureReady is the state of the infrastructure provider.
+	// +optional
+	InfrastructureReady bool `json:"infrastructureReady"`
+}
+
+// SetTypedPhase sets the Phase field to the string representation of ClusterPhase.
+func (c *ClusterStatus) SetTypedPhase(p ClusterPhase) {
+	c.Phase = ClusterPhaseStringPtr(p)
+}
+
+// GetTypedPhase attempts to parse the Phase field and return
+// the typed ClusterPhase representation as described in `machine_phase_types.go`.
+func (c *ClusterStatus) GetTypedPhase() ClusterPhase {
+	if c.Phase == nil {
+		return ClusterPhaseUnknown
+	}
+
+	switch phase := ClusterPhase(*c.Phase); phase {
+	case
+		ClusterPhasePending,
+		ClusterPhaseProvisioning,
+		ClusterPhaseProvisioned,
+		ClusterPhaseDeleting,
+		ClusterPhaseFailed:
+		return phase
+	default:
+		return ClusterPhaseUnknown
+	}
 }
 
 /// [ClusterStatus]
@@ -144,30 +151,6 @@ type APIEndpoint struct {
 }
 
 /// [APIEndpoint]
-
-func (o *Cluster) Validate() field.ErrorList {
-	errors := field.ErrorList{}
-	// perform validation here and add to errors using field.Invalid
-	if o.Spec.ClusterNetwork.ServiceDomain == "" {
-		errors = append(errors, field.Invalid(
-			field.NewPath("Spec", "ClusterNetwork", "ServiceDomain"),
-			o.Spec.ClusterNetwork.ServiceDomain,
-			"invalid cluster configuration: missing Cluster.Spec.ClusterNetwork.ServiceDomain"))
-	}
-	if len(o.Spec.ClusterNetwork.Pods.CIDRBlocks) == 0 {
-		errors = append(errors, field.Invalid(
-			field.NewPath("Spec", "ClusterNetwork", "Pods"),
-			o.Spec.ClusterNetwork.Pods,
-			"invalid cluster configuration: missing Cluster.Spec.ClusterNetwork.Pods"))
-	}
-	if len(o.Spec.ClusterNetwork.Services.CIDRBlocks) == 0 {
-		errors = append(errors, field.Invalid(
-			field.NewPath("Spec", "ClusterNetwork", "Services"),
-			o.Spec.ClusterNetwork.Services,
-			"invalid cluster configuration: missing Cluster.Spec.ClusterNetwork.Services"))
-	}
-	return errors
-}
 
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
 

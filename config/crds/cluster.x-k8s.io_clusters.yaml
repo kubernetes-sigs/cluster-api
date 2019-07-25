@@ -65,18 +65,43 @@ spec:
               - serviceDomain
               - services
               type: object
-            providerSpec:
-              description: Provider-specific serialized configuration to use during
-                cluster creation. It is recommended that providers maintain their
-                own versioned API types that should be serialized/deserialized from
-                this field.
+            infrastructureRef:
+              description: InfrastructureRef is a reference to a provider-specific
+                resource that holds the details for provisioning infrastructure for
+                a cluster in said provider.
               properties:
-                value:
-                  description: Value is an inlined, serialized representation of the
-                    resource configuration. It is recommended that providers maintain
-                    their own versioned API types that should be serialized/deserialized
-                    from this field, akin to component config.
-                  type: object
+                apiVersion:
+                  description: API version of the referent.
+                  type: string
+                fieldPath:
+                  description: 'If referring to a piece of an object instead of an
+                    entire object, this string should contain a valid JSON/Go field
+                    access statement, such as desiredState.manifest.containers[2].
+                    For example, if the object reference is to a container within
+                    a pod, this would take on a value like: "spec.containers{name}"
+                    (where "name" refers to the name of the container that triggered
+                    the event) or if no container name is specified "spec.containers[2]"
+                    (container with index 2 in this pod). This syntax is chosen only
+                    to have some well-defined way of referencing a part of an object.
+                    TODO: this design is not final and this field is subject to change
+                    in the future.'
+                  type: string
+                kind:
+                  description: 'Kind of the referent. More info: https://git.k8s.io/community/contributors/devel/api-conventions.md#types-kinds'
+                  type: string
+                name:
+                  description: 'Name of the referent. More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names'
+                  type: string
+                namespace:
+                  description: 'Namespace of the referent. More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/namespaces/'
+                  type: string
+                resourceVersion:
+                  description: 'Specific resourceVersion to which this reference is
+                    made, if any. More info: https://git.k8s.io/community/contributors/devel/api-conventions.md#concurrency-control-and-consistency'
+                  type: string
+                uid:
+                  description: 'UID of the referent. More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#uids'
+                  type: string
               type: object
           type: object
         status:
@@ -84,8 +109,8 @@ spec:
             of Cluster
           properties:
             apiEndpoints:
-              description: APIEndpoint represents the endpoint to communicate with
-                the IP.
+              description: APIEndpoints represents the endpoints to communicate with
+                the control plane.
               items:
                 description: / [APIEndpoint] APIEndpoint represents a reachable Kubernetes
                   API endpoint.
@@ -102,19 +127,22 @@ spec:
                 type: object
               type: array
             errorMessage:
-              description: If set, indicates that there is a problem reconciling the
-                state, and will be set to a descriptive error message.
+              description: ErrorMessage indicates that there is a problem reconciling
+                the state, and will be set to a descriptive error message.
               type: string
             errorReason:
-              description: If set, indicates that there is a problem reconciling the
-                state, and will be set to a token value suitable for programmatic
+              description: ErrorReason indicates that there is a problem reconciling
+                the state, and will be set to a token value suitable for programmatic
                 interpretation.
               type: string
-            providerStatus:
-              description: Provider-specific status. It is recommended that providers
-                maintain their own versioned API types that should be serialized/deserialized
-                from this field.
-              type: object
+            infrastructureReady:
+              description: InfrastructureReady is the state of the infrastructure
+                provider.
+              type: boolean
+            phase:
+              description: Phase represents the current phase of cluster actuation.
+                E.g. Pending, Running, Terminating, Failed etc.
+              type: string
           type: object
       type: object
   versions:

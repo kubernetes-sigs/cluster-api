@@ -27,7 +27,6 @@ import (
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/klog"
 	"k8s.io/utils/pointer"
-	"sigs.k8s.io/cluster-api/pkg/apis/cluster/common"
 	"sigs.k8s.io/cluster-api/pkg/apis/cluster/v1alpha2"
 	clusterv1 "sigs.k8s.io/cluster-api/pkg/apis/cluster/v1alpha2"
 	"sigs.k8s.io/cluster-api/pkg/controller/external"
@@ -156,7 +155,7 @@ func (r *ReconcileMachine) reconcileExternal(ctx context.Context, m *v1alpha2.Ma
 		return nil, err
 	}
 	if errorReason != "" {
-		machineStatusError := common.MachineStatusError(errorReason)
+		machineStatusError := capierrors.MachineStatusError(errorReason)
 		m.Status.ErrorReason = &machineStatusError
 	}
 	if errorMessage != "" {

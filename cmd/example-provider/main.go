@@ -21,10 +21,8 @@ import (
 
 	"k8s.io/klog"
 	clusterapis "sigs.k8s.io/cluster-api/pkg/apis"
-	"sigs.k8s.io/cluster-api/pkg/client/clientset_generated/clientset"
 	capicluster "sigs.k8s.io/cluster-api/pkg/controller/cluster"
 	capimachine "sigs.k8s.io/cluster-api/pkg/controller/machine"
-	"sigs.k8s.io/cluster-api/pkg/provider/example/actuators/cluster"
 	"sigs.k8s.io/controller-runtime/pkg/client/config"
 	"sigs.k8s.io/controller-runtime/pkg/manager"
 	"sigs.k8s.io/controller-runtime/pkg/runtime/signals"
@@ -32,7 +30,6 @@ import (
 
 func main() {
 	klog.InitFlags(nil)
-	flag.Set("logtostderr", "true")
 	flag.Parse()
 
 	cfg := config.GetConfigOrDie()
@@ -43,22 +40,12 @@ func main() {
 		klog.Fatalf("Failed to set up controller manager: %v", err)
 	}
 
-	cs, err := clientset.NewForConfig(cfg)
-	if err != nil {
-		klog.Fatalf("Failed to create client from configuration: %v", err)
-	}
-
-	recorder := mgr.GetEventRecorderFor("clusterapi-controller")
-
-	// Initialize cluster actuator.
-	clusterActuator, _ := cluster.NewClusterActuator(cs.ClusterV1alpha2(), recorder)
-
 	if err := clusterapis.AddToScheme(mgr.GetScheme()); err != nil {
 		klog.Fatal(err)
 	}
 
 	capimachine.Add(mgr)
-	capicluster.AddWithActuator(mgr, clusterActuator)
+	capicluster.Add(mgr)
 
 	if err := mgr.Start(signals.SetupSignalHandler()); err != nil {
 		klog.Fatalf("Failed to run manager: %v", err)

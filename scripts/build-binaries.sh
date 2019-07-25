@@ -25,8 +25,8 @@ readonly REPO_PATH=$(get_root_path)
 readonly CAPDCTL_BIN=${REPO_PATH}/bin/capdctl
 readonly CAPDCTL_SRC=${REPO_PATH}/cmd/capdctl
 
-readonly CAPDMGR_BIN=${REPO_PATH}/bin/capd-manager
-readonly CAPDMGR_SRC=${REPO_PATH}/cmd/capd-manager
+readonly CAPDMGR_BIN=${REPO_PATH}/bin/manager
+readonly CAPDMGR_SRC=${REPO_PATH}/cmd/manager
 
 readonly KIND_TEST_BIN=${REPO_PATH}/bin/kind-test
 readonly KIND_TEST_SRC=${REPO_PATH}/cmd/kind-test
@@ -40,7 +40,7 @@ LDFLAGS="-s -w \
 
 # build capdctl
 go build -ldflags "${LDFLAGS}" -o ${CAPDCTL_BIN} ${CAPDCTL_SRC}
-# build capd-manager
+# build manager
 go build -ldflags "${LDFLAGS}" -o ${CAPDMGR_BIN} ${CAPDMGR_SRC}
 # build kind-test
 go build -ldflags "${LDFLAGS}" -o ${KIND_TEST_BIN} ${KIND_TEST_SRC}

@@ -18,7 +18,7 @@ readonly GCP_PROJECT=$(gcloud config get-value project)
 set -o errexit
 set -o xtrace
 
-readonly IMAGE_NAME="capd-manager"
+readonly IMAGE_NAME="manager"
 
 readonly GCR_REGISTRY="gcr.io/${GCP_PROJECT}"
 readonly TAG=${TAG:-dev}

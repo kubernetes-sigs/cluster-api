@@ -26,7 +26,7 @@ import (
 	"sigs.k8s.io/kind/pkg/container/cri"
 )
 
-// CreateKindCluster sets up a  KIND cluster and turns it into a CAPD control plane
+// CreateKindCluster sets up a KIND cluster
 func CreateKindCluster(clusterName string) error {
 	lb, err := actions.SetUpLoadBalancer(clusterName)
 	if err != nil {
@@ -53,6 +53,11 @@ func CreateKindCluster(clusterName string) error {
 	cp, err := actions.CreateControlPlane(clusterName, fmt.Sprintf("%s-control-plane", clusterName), lbipv4, "v1.14.2", cpMounts)
 	if err != nil {
 		return errors.Wrap(err, "couldn't create control plane")
+	}
+
+	// Remove taint from the management cluster
+	if err := cp.Command("kubectl", "--kubeconfig=/etc/kubernetes/admin.conf", "taint", "nodes", "--all", "node-role.kubernetes.io/master-").Run(); err != nil {
+		return errors.Wrap(err, "failed to remove taint from master")
 	}
 
 	if !nodes.WaitForReady(cp, time.Now().Add(5*time.Minute)) {

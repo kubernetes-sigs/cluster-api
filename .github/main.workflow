@@ -40,10 +40,9 @@ action "tag images" {
 
 action "push images" {
   uses = "actions/docker/cli@master"
-  runs = "sh -c"
   env = {
     IMAGE_NAME = "gcr.io/kubernetes1-226021/capd-manager"
   }
-  args = "source $HOME/.profile && docker push $IMAGE_NAME:latest && docker push $IMAGE_NAME:$IMAGE_REF && docker push $IMAGE_NAME:$IMAGE_SHA && docker push $IMAGE_NAME:$IMAGE_VERSION"
+  args = ["source $HOME/.profile && docker push $IMAGE_NAME:latest && docker push $IMAGE_NAME:$IMAGE_REF && docker push $IMAGE_NAME:$IMAGE_SHA && docker push $IMAGE_NAME:$IMAGE_VERSION"]
   needs = ["tag images", "Set Credential Helper for Docker"]
 }

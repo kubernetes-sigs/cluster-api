@@ -44,8 +44,8 @@ dockers:
     binaries:
       - capd-manager
     image_templates:
-      - "gcr.io/kubernetes1-226021/capd-manager:{{.Version}}"
-      - "gcr.io/kubernetes1-226021/capd-manager:{{.Major}}.{{.Minor}}"
+      - "gcr.io/kubernetes1-226021/capd-manager:{{.Tag}}"
+      - "gcr.io/kubernetes1-226021/capd-manager:v{{.Major}}.{{.Minor}}"
       - "gcr.io/kubernetes1-226021/capd-manager:latest"
 changelog:
   filters:

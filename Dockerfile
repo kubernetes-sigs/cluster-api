@@ -17,6 +17,6 @@ WORKDIR /tmp
 RUN curl -L https://dl.k8s.io/v1.14.4/kubernetes-client-linux-amd64.tar.gz | tar xvz
 RUN mv /tmp/kubernetes/client/bin/kubectl /usr/local/bin
 RUN curl https://get.docker.com | sh
-COPY dist/capd-manager_linux_amd64/capd-manager /usr/local/bin
+COPY capd-manager /usr/local/bin
 
 ENTRYPOINT ["capd-manager"]

@@ -26,7 +26,7 @@ import (
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"sigs.k8s.io/cluster-api-provider-docker/kind/actions"
-	clusterv1 "sigs.k8s.io/cluster-api/pkg/apis/cluster/v1alpha1"
+	capiv1alpha2 "sigs.k8s.io/cluster-api/pkg/apis/cluster/v1alpha2"
 	"sigs.k8s.io/kind/pkg/cluster/constants"
 	"sigs.k8s.io/kind/pkg/cluster/nodes"
 )
@@ -35,7 +35,7 @@ const (
 	containerRunningStatus = "running"
 )
 
-func getRole(machine *clusterv1.Machine) string {
+func getRole(machine *capiv1alpha2.Machine) string {
 	// Figure out what kind of node we're making
 	labels := machine.GetLabels()
 	setValue, ok := labels["set"]

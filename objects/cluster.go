@@ -18,18 +18,18 @@ package objects
 
 import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	clusterv1alpha1 "sigs.k8s.io/cluster-api/pkg/apis/cluster/v1alpha1"
+	clusterv1alpha2 "sigs.k8s.io/cluster-api/pkg/apis/cluster/v1alpha2"
 )
 
 const controlPlaneSet = "controlplane"
 
 // GetMachineDeployment returns a worker node machine deployment object
-func GetMachineDeployment(name, namespace, clusterName, kubeletVersion string, replicas int32) clusterv1alpha1.MachineDeployment {
+func GetMachineDeployment(name, namespace, clusterName, kubeletVersion string, replicas int32) clusterv1alpha2.MachineDeployment {
 	labels := map[string]string{
 		"cluster.k8s.io/cluster-name": clusterName,
 		"set":                         "node",
 	}
-	return clusterv1alpha1.MachineDeployment{
+	return clusterv1alpha2.MachineDeployment{
 		TypeMeta: metav1.TypeMeta{
 			Kind:       "MachineDeployment",
 			APIVersion: "cluster.k8s.io/v1alpha1",
@@ -39,20 +39,17 @@ func GetMachineDeployment(name, namespace, clusterName, kubeletVersion string, r
 			Namespace: namespace,
 			Labels:    labels,
 		},
-		Spec: clusterv1alpha1.MachineDeploymentSpec{
+		Spec: clusterv1alpha2.MachineDeploymentSpec{
 			Replicas: &replicas,
 			Selector: metav1.LabelSelector{
 				MatchLabels: labels,
 			},
-			Template: clusterv1alpha1.MachineTemplateSpec{
-				ObjectMeta: metav1.ObjectMeta{
+			Template: clusterv1alpha2.MachineTemplateSpec{
+				ObjectMeta: clusterv1alpha2.ObjectMeta{
 					Labels: labels,
 				},
-				Spec: clusterv1alpha1.MachineSpec{
-					ProviderSpec: clusterv1alpha1.ProviderSpec{},
-					Versions: clusterv1alpha1.MachineVersionInfo{
-						Kubelet: kubeletVersion,
-					},
+				Spec: clusterv1alpha2.MachineSpec{
+					// TODO: FILL THIS IN
 				},
 			},
 		},
@@ -60,8 +57,8 @@ func GetMachineDeployment(name, namespace, clusterName, kubeletVersion string, r
 }
 
 // GetCluster returns a cluster object with the given name and namespace
-func GetCluster(clusterName, namespace string) clusterv1alpha1.Cluster {
-	return clusterv1alpha1.Cluster{
+func GetCluster(clusterName, namespace string) clusterv1alpha2.Cluster {
+	return clusterv1alpha2.Cluster{
 		TypeMeta: metav1.TypeMeta{
 			Kind:       "Cluster",
 			APIVersion: "cluster.k8s.io/v1alpha1",
@@ -70,12 +67,12 @@ func GetCluster(clusterName, namespace string) clusterv1alpha1.Cluster {
 			Name:      clusterName,
 			Namespace: namespace,
 		},
-		Spec: clusterv1alpha1.ClusterSpec{
-			ClusterNetwork: clusterv1alpha1.ClusterNetworkingConfig{
-				Services: clusterv1alpha1.NetworkRanges{
+		Spec: clusterv1alpha2.ClusterSpec{
+			ClusterNetwork: &clusterv1alpha2.ClusterNetworkingConfig{
+				Services: clusterv1alpha2.NetworkRanges{
 					CIDRBlocks: []string{"10.96.0.0/12"},
 				},
-				Pods: clusterv1alpha1.NetworkRanges{
+				Pods: clusterv1alpha2.NetworkRanges{
 					CIDRBlocks: []string{"192.168.0.0/16"},
 				},
 				ServiceDomain: "cluster.local",
@@ -85,8 +82,8 @@ func GetCluster(clusterName, namespace string) clusterv1alpha1.Cluster {
 }
 
 // GetMachine returns a machine with the given parameters
-func GetMachine(name, namespace, clusterName, set, version string) clusterv1alpha1.Machine {
-	machine := clusterv1alpha1.Machine{
+func GetMachine(name, namespace, clusterName, set, version string) clusterv1alpha2.Machine {
+	machine := clusterv1alpha2.Machine{
 		TypeMeta: metav1.TypeMeta{
 			Kind:       "Machine",
 			APIVersion: "cluster.k8s.io/v1alpha1",
@@ -99,15 +96,15 @@ func GetMachine(name, namespace, clusterName, set, version string) clusterv1alph
 				"set":                         set,
 			},
 		},
-		Spec: clusterv1alpha1.MachineSpec{
-			ProviderSpec: clusterv1alpha1.ProviderSpec{},
+		Spec: clusterv1alpha2.MachineSpec{
+			// TODO
 		},
 	}
 	if set == controlPlaneSet {
-		machine.Spec.Versions.ControlPlane = version
+		*machine.Spec.Version = version
 	}
 	if set == "worker" {
-		machine.Spec.Versions.Kubelet = version
+		*machine.Spec.Version = version
 	}
 
 	return machine

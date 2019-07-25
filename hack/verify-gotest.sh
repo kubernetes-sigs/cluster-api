@@ -17,6 +17,10 @@ set -o errexit
 set -o nounset
 set -o pipefail
 
+# install kubebuilder tools for tests
+source "$(dirname "$0")/fetch_bins.sh"
+fetch_tools
+
 # shellcheck source=/dev/null
 source "$(dirname "$0")/utils.sh"
 # cd to the root path
@@ -24,4 +28,4 @@ cd_root_path
 
 # run go test
 export GO111MODULE=on
-go test ./...
+setup_envs && go test ./...

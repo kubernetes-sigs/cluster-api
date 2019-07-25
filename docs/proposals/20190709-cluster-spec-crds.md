@@ -133,7 +133,7 @@ When the cluster object is created, the cluster controller will retrieve the inf
 
 When an infrastructure object is updated, the provider controller will check the owner reference. If it is set, it will retrieve the cluster object to obtain the required cluster specification and starts the provisioning process. When the process finishes, it sets the `Infrastructure.Status.Ready` to true.
 
-When the cluster controller detects the `Infrastructure.Status.Ready` is set to true, it updates `Cluster.Status.APIEndpoint` from `Infrastructure.Status.APIEndpoint` and sets `Cluster.Status.InfrastructureReady` to true.
+When the cluster controller detects the `Infrastructure.Status.Ready` is set to true, it updates `Cluster.Status.APIEndpoints` from `Infrastructure.Status.APIEndpoints` and sets `Cluster.Status.InfrastructureReady` to true.
 
 ### States and Transitions
 

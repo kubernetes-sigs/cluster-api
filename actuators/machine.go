@@ -18,18 +18,15 @@ package actuators
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"time"
 
 	"github.com/go-logr/logr"
-	"k8s.io/apimachinery/pkg/types"
 	corev1 "k8s.io/client-go/kubernetes/typed/core/v1"
 	"sigs.k8s.io/cluster-api-provider-docker/kind/actions"
-	clusterv1 "sigs.k8s.io/cluster-api/pkg/apis/cluster/v1alpha1"
-	"sigs.k8s.io/cluster-api/pkg/client/clientset_generated/clientset/typed/cluster/v1alpha1"
-	capierror "sigs.k8s.io/cluster-api/pkg/controller/error"
-	"sigs.k8s.io/controller-runtime/pkg/patch"
+	capiv1alpha2 "sigs.k8s.io/cluster-api/pkg/apis/cluster/v1alpha2"
+	"sigs.k8s.io/cluster-api/pkg/client/clientset_generated/clientset/typed/cluster/v1alpha2"
+	capierror "sigs.k8s.io/cluster-api/pkg/errors"
 	"sigs.k8s.io/kind/pkg/cluster"
 	"sigs.k8s.io/kind/pkg/cluster/constants"
 	"sigs.k8s.io/kind/pkg/cluster/nodes"
@@ -44,14 +41,14 @@ const (
 // Machine defines a machine actuator type
 type Machine struct {
 	Core       corev1.CoreV1Interface
-	ClusterAPI v1alpha1.ClusterV1alpha1Interface
+	ClusterAPI v1alpha2.ClusterV1alpha2Interface
 	Log        logr.Logger
 }
 
 // Create creates a machine for a given cluster
 // Note: have to print all the errors because cluster-api swallows them
-func (m *Machine) Create(ctx context.Context, c *clusterv1.Cluster, machine *clusterv1.Machine) error {
-	old := machine.DeepCopy()
+func (m *Machine) Create(ctx context.Context, c *capiv1alpha2.Cluster, machine *capiv1alpha2.Machine) error {
+	_ = machine.DeepCopy()
 	m.Log.Info("Creating a machine for cluster", "cluster-name", c.Name)
 	clusterExists, err := cluster.IsKnown(c.Name)
 	if err != nil {
@@ -75,14 +72,14 @@ func (m *Machine) Create(ctx context.Context, c *clusterv1.Cluster, machine *clu
 	if setValue == clusterAPIControlPlaneSetLabel {
 		if len(controlPlanes) > 0 {
 			m.Log.Info("Adding a control plane")
-			controlPlaneNode, err := actions.AddControlPlane(c.Name, machine.GetName(), machine.Spec.Versions.ControlPlane)
+			controlPlaneNode, err := actions.AddControlPlane(c.Name, machine.GetName(), *machine.Spec.Version)
 			if err != nil {
 				m.Log.Error(err, "Error adding control plane")
 				return err
 			}
 			providerID := actions.ProviderID(controlPlaneNode.Name())
 			machine.Spec.ProviderID = &providerID
-			return m.save(old, machine)
+			return nil
 		}
 
 		m.Log.Info("Creating a brand new cluster")
@@ -96,7 +93,7 @@ func (m *Machine) Create(ctx context.Context, c *clusterv1.Cluster, machine *clu
 			m.Log.Error(err, "Error getting node IP address")
 			return err
 		}
-		controlPlaneNode, err := actions.CreateControlPlane(c.Name, machine.GetName(), lbipv4, machine.Spec.Versions.ControlPlane, nil)
+		controlPlaneNode, err := actions.CreateControlPlane(c.Name, machine.GetName(), lbipv4, *machine.Spec.Version, nil)
 		if err != nil {
 			m.Log.Error(err, "Error creating control plane")
 			return err
@@ -104,10 +101,7 @@ func (m *Machine) Create(ctx context.Context, c *clusterv1.Cluster, machine *clu
 		// set the machine's providerID
 		providerID := actions.ProviderID(controlPlaneNode.Name())
 		machine.Spec.ProviderID = &providerID
-		if err := m.save(old, machine); err != nil {
-			m.Log.Error(err, "Error setting machine's provider ID")
-			return err
-		}
+
 		s, err := kubeconfigToSecret(c.Name, c.Namespace)
 		if err != nil {
 			m.Log.Error(err, "Error converting kubeconfig to a secret")
@@ -128,18 +122,18 @@ func (m *Machine) Create(ctx context.Context, c *clusterv1.Cluster, machine *clu
 	}
 
 	m.Log.Info("Creating a new worker node")
-	worker, err := actions.AddWorker(c.Name, machine.GetName(), machine.Spec.Versions.Kubelet)
+	worker, err := actions.AddWorker(c.Name, machine.GetName(), *machine.Spec.Version)
 	if err != nil {
 		m.Log.Error(err, "Error creating new worker node")
 		return err
 	}
 	providerID := actions.ProviderID(worker.Name())
 	machine.Spec.ProviderID = &providerID
-	return m.save(old, machine)
+	return nil
 }
 
 // Delete returns nil when the machine no longer exists or when a successful delete has happened.
-func (m *Machine) Delete(ctx context.Context, cluster *clusterv1.Cluster, machine *clusterv1.Machine) error {
+func (m *Machine) Delete(ctx context.Context, cluster *capiv1alpha2.Cluster, machine *capiv1alpha2.Machine) error {
 	exists, err := m.Exists(ctx, cluster, machine)
 	if err != nil {
 		return err
@@ -157,13 +151,13 @@ func (m *Machine) Delete(ctx context.Context, cluster *clusterv1.Cluster, machin
 }
 
 // Update updates a machine
-func (m *Machine) Update(ctx context.Context, cluster *clusterv1.Cluster, machine *clusterv1.Machine) error {
+func (m *Machine) Update(ctx context.Context, cluster *capiv1alpha2.Cluster, machine *capiv1alpha2.Machine) error {
 	m.Log.Info("Update machine is not implemented yet")
 	return nil
 }
 
 // Exists returns true if a machine exists in the cluster
-func (m *Machine) Exists(ctx context.Context, cluster *clusterv1.Cluster, machine *clusterv1.Machine) (bool, error) {
+func (m *Machine) Exists(ctx context.Context, cluster *capiv1alpha2.Cluster, machine *capiv1alpha2.Machine) (bool, error) {
 	if machine.Spec.ProviderID != nil {
 		return true, nil
 	}
@@ -185,29 +179,6 @@ func (m *Machine) Exists(ctx context.Context, cluster *clusterv1.Cluster, machin
 }
 
 // patches the object and saves the status.
-func (m *Machine) save(oldMachine, newMachine *clusterv1.Machine) error {
-	m.Log.Info("updating machine")
-	p, err := patch.NewJSONPatch(oldMachine, newMachine)
-	if err != nil {
-		m.Log.Error(err, "Error updating machine")
-		return err
-	}
-	m.Log.Info("Patches for machine", "patches", p)
-	if len(p) != 0 {
-		pb, err := json.MarshalIndent(p, "", "  ")
-		if err != nil {
-			m.Log.Error(err, "Error marshalling machine")
-			return err
-		}
-		newMachine, err = m.ClusterAPI.Machines(oldMachine.Namespace).Patch(newMachine.Name, types.JSONPatchType, pb)
-		if err != nil {
-			m.Log.Error(err, "Error patching machine")
-			return err
-		}
-		m.Log.Info("updated machine")
-	}
-	return nil
-}
 
 // CAPIroleToKindRole converts a CAPI role to kind role
 // TODO there is a better way to do this.

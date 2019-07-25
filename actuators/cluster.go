@@ -19,7 +19,7 @@ package actuators
 import (
 	"github.com/go-logr/logr"
 	"sigs.k8s.io/cluster-api-provider-docker/kind/actions"
-	clusterv1 "sigs.k8s.io/cluster-api/pkg/apis/cluster/v1alpha1"
+	capiv1alpha2 "sigs.k8s.io/cluster-api/pkg/apis/cluster/v1alpha2"
 )
 
 // Cluster defines a cluster actuator object
@@ -28,7 +28,7 @@ type Cluster struct {
 }
 
 // Reconcile setups an external load balancer for the cluster if needed
-func (c *Cluster) Reconcile(cluster *clusterv1.Cluster) error {
+func (c *Cluster) Reconcile(cluster *capiv1alpha2.Cluster) error {
 	c.Log.Info("Reconciling cluster", "cluster-namespace", cluster.Namespace, "cluster-name", cluster.Name)
 	elb, err := getExternalLoadBalancerNode(cluster.Name, c.Log)
 	if err != nil {
@@ -45,7 +45,7 @@ func (c *Cluster) Reconcile(cluster *clusterv1.Cluster) error {
 }
 
 // Delete can be used to delete a cluster
-func (c *Cluster) Delete(cluster *clusterv1.Cluster) error {
+func (c *Cluster) Delete(cluster *capiv1alpha2.Cluster) error {
 	c.Log.Info("Cluster delete is not implemented.")
 	return nil
 }

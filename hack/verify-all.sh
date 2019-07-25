@@ -110,7 +110,7 @@ fi
 
 # comment out for now
 #if [[ "${VERIFY_DOCKER_BUILD:-true}" == "true" ]]; then
-#  echo "[*] Verifying capd-manager docker image build..."
+#  echo "[*] Verifying manager docker image build..."
 #  out=$(hack/verify-docker-build.sh 2>&1)
 #  failure $? "verify-docker-build.sh" "${out}"
 #  cd "${REPO_PATH}"

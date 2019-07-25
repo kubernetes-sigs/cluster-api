@@ -25,5 +25,5 @@ cd_root_path
 
 export GO111MODULE=on
 go mod download
-go build -o capd-manager ./cmd/capd-manager
-docker build --file Dockerfile -t capd-manager:pr-verify .
+go build -o manager ./cmd/manager
+docker build --file Dockerfile -t manager:pr-verify .

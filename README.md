@@ -2,7 +2,7 @@
 
 ## Manager Container Image
 
-A sample is built and hosted at `gcr.io/kubernetes1-226021/capd-manager:latest`
+A sample is built and hosted at `gcr.io/kubernetes1-226021/manager:latest`
 
 ### External Dependencies
 

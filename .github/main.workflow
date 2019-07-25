@@ -40,6 +40,7 @@ action "tag images" {
 
 action "push images" {
   uses = "actions/docker/cli@master"
+  runs = "sh -c"
   env = {
     IMAGE_NAME = "gcr.io/kubernetes1-226021/capd-manager"
   }

@@ -94,7 +94,7 @@ type ReconcileMachine struct {
 
 // Reconcile reads that state of the cluster for a Machine object and makes changes based on the state read
 // and what is in the Machine.Spec
-func (r *ReconcileMachine) Reconcile(request reconcile.Request) (reconcile.Result, error) {
+func (r *ReconcileMachine) Reconcile(request reconcile.Request) (_ reconcile.Result, reterr error) {
 	ctx := context.TODO()
 
 	// Fetch the Machine instance
@@ -116,11 +116,22 @@ func (r *ReconcileMachine) Reconcile(request reconcile.Request) (reconcile.Resul
 	// Always issue a Patch for the Machine object and its status after each reconciliation.
 	// TODO(vincepri): Figure out if we should bubble up the errors from Patch to the controller.
 	defer func() {
+		gvk := m.GroupVersionKind()
 		if err := r.Client.Patch(ctx, m, patchMachine); err != nil {
 			klog.Errorf("Error Patching Machine %q in namespace %q: %v", m.Name, m.Namespace, err)
+			if reterr == nil {
+				reterr = err
+			}
+			return
 		}
+		// TODO(vincepri): This is a hack because after a Patch, the object loses TypeMeta information.
+		// Remove when https://github.com/kubernetes-sigs/controller-runtime/issues/526 is fixed.
+		m.SetGroupVersionKind(gvk)
 		if err := r.Client.Status().Patch(ctx, m, patchMachine); err != nil {
 			klog.Errorf("Error Patching Machine status %q in namespace %q: %v", m.Name, m.Namespace, err)
+			if reterr == nil {
+				reterr = err
+			}
 		}
 	}()
 

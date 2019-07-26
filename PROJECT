@@ -1,0 +1,7 @@
+version: "2"
+domain: cluster.x-k8s.io
+repo: sigs.k8s.io/cluster-api-provider-docker
+resources:
+- group: infrastructure
+  version: v1alpha1
+  kind: DockerMachine

@@ -2,6 +2,9 @@ capdctl
 capd-manager
 kind-test
 
+# invalid samples.
+config/samples
+
 # vscode
 .vscode
 

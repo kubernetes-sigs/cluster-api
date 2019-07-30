@@ -212,3 +212,24 @@ verify:
 	./hack/verify-boilerplate.sh
 	./hack/verify-clientset.sh
 	./hack/verify-bazel.sh
+	./hack/verify-doctoc.sh
+
+.PHONY: clean-book
+clean-book: ## Remove all generated GitBook files
+	rm -rf ./docs/book/_book
+
+## --------------------------------------
+## Others / Utilities
+## --------------------------------------
+
+.PHONY: diagrams
+diagrams: ## Build proposal diagrams
+	$(MAKE) -C docs/proposals/images
+
+.PHONY: book
+book: ## Build the GitBook
+	./hack/build-gitbook.sh
+
+.PHONY: serve-book
+serve-book: ## Build and serve the GitBook with live-reloading enabled
+	(cd ./docs/book && gitbook serve --live --open)

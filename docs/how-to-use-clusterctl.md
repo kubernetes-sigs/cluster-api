@@ -1,4 +1,13 @@
 # Using `clusterctl` to create a cluster from scratch
+<!-- START doctoc generated TOC please keep comment here to allow auto update -->
+<!-- DON'T EDIT THIS SECTION, INSTEAD RE-RUN doctoc TO UPDATE -->
+
+
+- [What is `clusterctl`?](#what-is-clusterctl)
+- [Creating a cluster](#creating-a-cluster)
+  - [Creating a workload cluster using the management cluster](#creating-a-workload-cluster-using-the-management-cluster)
+
+<!-- END doctoc generated TOC please keep comment here to allow auto update -->
 
 This document provides an overview of how `clusterctl` works and explains how one can use `clusterctl`
 to create a Kubernetes cluster from scratch.

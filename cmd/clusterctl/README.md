@@ -1,4 +1,20 @@
 # clusterctl
+<!-- START doctoc generated TOC please keep comment here to allow auto update -->
+<!-- DON'T EDIT THIS SECTION, INSTEAD RE-RUN doctoc TO UPDATE -->
+
+
+- [Getting Started](#getting-started)
+  - [Prerequisites](#prerequisites)
+  - [Limitations](#limitations)
+  - [Creating a cluster](#creating-a-cluster)
+  - [Interacting with your cluster](#interacting-with-your-cluster)
+    - [Scaling your cluster](#scaling-your-cluster)
+    - [Upgrading your cluster](#upgrading-your-cluster)
+    - [Node repair](#node-repair)
+  - [Deleting a cluster](#deleting-a-cluster)
+- [Contributing](#contributing)
+
+<!-- END doctoc generated TOC please keep comment here to allow auto update -->
 
 `clusterctl` is the SIG-cluster-lifecycle sponsored tool that implements the Cluster API.
 

@@ -1,4 +1,11 @@
 # Figures with PlantUML
+<!-- START doctoc generated TOC please keep comment here to allow auto update -->
+<!-- DON'T EDIT THIS SECTION, INSTEAD RE-RUN doctoc TO UPDATE -->
+
+
+- [Generating figures](#generating-figures)
+
+<!-- END doctoc generated TOC please keep comment here to allow auto update -->
 
 Most of the figures for this proposal are generated with [PlantUML](http://plantuml.com/), an [open-source](https://sourceforge.net/projects/plantuml/) tool that can generate sequence, use case, class, activity, state, object, and other kinds of UML digrams.
 

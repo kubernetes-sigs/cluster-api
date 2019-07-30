@@ -1,4 +1,19 @@
 # Cluster API
+<!-- START doctoc generated TOC please keep comment here to allow auto update -->
+<!-- DON'T EDIT THIS SECTION, INSTEAD RE-RUN doctoc TO UPDATE -->
+
+
+- [What is the Cluster API?](#what-is-the-cluster-api)
+- [Getting Started](#getting-started)
+  - [Resources](#resources)
+  - [Prerequisites](#prerequisites)
+  - [Using `clusterctl` to create a cluster](#using-clusterctl-to-create-a-cluster)
+  - [How does Cluster API compare to Kubernetes Cloud Providers?](#how-does-cluster-api-compare-to-kubernetes-cloud-providers)
+- [Get involved!](#get-involved)
+- [Provider Implementations](#provider-implementations)
+- [API Adoption](#api-adoption)
+
+<!-- END doctoc generated TOC please keep comment here to allow auto update -->
 ## What is the Cluster API?
 
 The Cluster API is a Kubernetes project to bring declarative, Kubernetes-style

@@ -68,13 +68,31 @@ func (mo *machineDeploymentOptions) initFlags(fs *flag.FlagSet) {
 }
 
 type platformOptions struct {
-	capiImage, capdImage, capiVersion *string
+	bootstrapRef, bootstrapImage           *string
+	clusterAPIRef, clusterAPIImage         *string
+	infrastructureRef, infrastructureImage *string
+}
+
+func gitRefUsage(kind string) string {
+	return fmt.Sprintf("The git ref of the %s provider to use", kind)
+}
+func imageUsage(kind string) string {
+	return fmt.Sprintf("A custom image for the %s provider", kind)
 }
 
 func (po *platformOptions) initFlags(fs *flag.FlagSet) {
-	po.capiVersion = fs.String("capi-version", "v0.1.8", "The CRD versions to pull from CAPI. Does not support < v0.1.8.")
-	po.capdImage = fs.String("capd-image", "gcr.io/kubernetes1-226021/capd-manager:latest", "The capd manager image to run")
-	po.capiImage = fs.String("capi-image", "", "This is normally left blank and filled in automatically. But this will override the generated image name.")
+	fs.StringVar(po.bootstrapRef, "bootstrap-provider-ref", "master", gitRefUsage("bootstrap"))
+	fs.StringVar(po.bootstrapRef, "bp-ref", "master", gitRefUsage("bootstrap")+" (shorthand)")
+	fs.StringVar(po.bootstrapImage, "bootstrap-provider-image", "", imageUsage("bootstrap"))
+	fs.StringVar(po.bootstrapImage, "bp-image", "", imageUsage("bootstrap")+" (shorthand)")
+	fs.StringVar(po.clusterAPIRef, "cluster-api-ref", "master", gitRefUsage("Cluster API"))
+	fs.StringVar(po.clusterAPIRef, "capi-ref", "master", gitRefUsage("Cluster API")+" (shorthand)")
+	fs.StringVar(po.clusterAPIImage, "cluster-api-image", "", imageUsage("Cluster API"))
+	fs.StringVar(po.clusterAPIImage, "capi-image", "", imageUsage("Cluster API")+" (shorthand)")
+	fs.StringVar(po.infrastructureRef, "infrastructure-provider-ref", "master", gitRefUsage("infrastructure"))
+	fs.StringVar(po.infrastructureRef, "ip-ref", "master", gitRefUsage("infrastructure")+" (shorthand)")
+	fs.StringVar(po.infrastructureImage, "infrastructure-provider-image", "", imageUsage("infrastructure"))
+	fs.StringVar(po.infrastructureImage, "ip-image", "", imageUsage("infrastructure")+" (shorthand)")
 }
 
 func addClusterName(fs *flag.FlagSet) *string {
@@ -83,7 +101,7 @@ func addClusterName(fs *flag.FlagSet) *string {
 
 func checkErr(err error) {
 	if err != nil {
-		fmt.Printf("%+v\n", err)
+		fmt.Fprintf(os.Stderr, "%+v\n", err)
 		os.Exit(1)
 	}
 }
@@ -127,25 +145,21 @@ func main() {
 
 	switch os.Args[1] {
 	case "setup":
-		if err := setup.Parse(os.Args[2:]); err != nil {
-			fmt.Fprintf(os.Stderr, "%+v\n", err)
-			os.Exit(1)
-		}
-		if err := makeManagementCluster(
-			*managementClusterName,
-			*setupPlatformOpts.capiVersion,
-			*setupPlatformOpts.capdImage,
-			*setupPlatformOpts.capiImage); err != nil {
-			fmt.Printf("%+v\n", err)
-			os.Exit(1)
-		}
+		checkErr(setup.Parse(os.Args[2:]))
+		checkErr(makeManagementCluster(*managementClusterName, setupPlatformOpts))
 	case "kind":
 		checkErr(kindSet.Parse(os.Args[2:]))
 		checkErr(controlplane.CreateKindCluster(*kindClusterName))
 		fmt.Printf("to use your new cluster:\nexport KUBECONFIG=%s\n", kindcluster.NewContext(*kindClusterName).KubeConfigPath())
 	case "platform":
 		checkErr(platform.Parse(os.Args[2:]))
-		objs, err := getControlPlaneObjects(*platformOpts.capiVersion, *platformOpts.capdImage, *platformOpts.capiImage)
+		objs, err := objects.GetManagementCluster(
+			*platformOpts.clusterAPIImage,
+			*platformOpts.clusterAPIRef,
+			*platformOpts.infrastructureImage,
+			*platformOpts.infrastructureRef,
+			*platformOpts.bootstrapImage,
+			*platformOpts.bootstrapRef)
 		checkErr(err)
 		checkErr(printAll(objs))
 	case "control-plane":
@@ -234,39 +248,26 @@ func machineDeploymentYAML(opts *machineDeploymentOptions) (string, error) {
 		return "", errors.WithStack(err)
 	}
 	return string(b), nil
-
 }
 
-func getControlPlaneObjects(capiVersion, capdImage, capiImageOverride string) ([]runtime.Object, error) {
-	capiImage := fmt.Sprintf("us.gcr.io/k8s-artifacts-prod/cluster-api/cluster-api-controller:%s", capiVersion)
-	if capiImageOverride != "" {
-		capiImage = capiImageOverride
-	}
-
-	objs, err := objects.GetManegementCluster(capiVersion, capiImage, capdImage)
-	if err != nil {
-		return nil, err
-	}
-
-	return objs, nil
-}
-
-func makeManagementCluster(clusterName, capiVersion, capdImage, capiImageOverride string) error {
-	fmt.Println("Creating a brand new cluster")
+func makeManagementCluster(clusterName string, options *platformOptions) error {
 	if err := controlplane.CreateKindCluster(clusterName); err != nil {
 		return err
 	}
+	fmt.Println("Creating a brand new cluster")
+	return applyControlPlane(clusterName, options)
+}
 
+func applyControlPlane(clusterName string, options *platformOptions) error {
+	fmt.Println("Applying the control plane")
 	cfg, err := controlplane.GetKubeconfig(clusterName)
 	if err != nil {
 		return err
 	}
-
-	objs, err := getControlPlaneObjects(capiVersion, capdImage, capiImageOverride)
+	objs, err := objects.GetManagementCluster(*options.clusterAPIImage, *options.clusterAPIRef, *options.infrastructureImage, *options.infrastructureRef, *options.bootstrapImage, *options.bootstrapRef)
 	if err != nil {
 		return err
 	}
-
 	return apply(cfg, objs)
 }
 
@@ -275,7 +276,6 @@ func apply(cfg *rest.Config, objs []runtime.Object) error {
 	if err != nil {
 		return err
 	}
-
 	for _, obj := range objs {
 		accessor, err := meta.Accessor(obj)
 		if err != nil {
@@ -293,7 +293,6 @@ func apply(cfg *rest.Config, objs []runtime.Object) error {
 func printAll(objs []runtime.Object) error {
 	// Stolen from https://github.com/kubernetes/kubernetes/blob/664edf832777cb7d6d00d38ccbcd4acba1497dc1/staging/src/k8s.io/kubectl/pkg/scheme/scheme.go#L37
 	encoder := unstructured.JSONFallbackEncoder{Encoder: scheme.Codecs.LegacyCodec(scheme.Scheme.PrioritizedVersionsAllGroups()...)}
-
 	for _, obj := range objs {
 		if err := encoder.Encode(obj, os.Stdout); err != nil {
 			return errors.WithStack(err)

@@ -146,7 +146,7 @@ func (r *ReconcileMachine) Reconcile(request reconcile.Request) (_ reconcile.Res
 			m.Labels[clusterv1.MachineClusterLabelName], m.Name, m.Namespace)
 	}
 
-	if cluster != nil {
+	if cluster != nil && shouldAdopt(m) {
 		m.OwnerReferences = util.EnsureOwnerRef(m.OwnerReferences, metav1.OwnerReference{
 			APIVersion: cluster.APIVersion,
 			Kind:       cluster.Kind,
@@ -316,4 +316,8 @@ func (r *ReconcileMachine) isDeleteReady(ctx context.Context, m *v1alpha2.Machin
 	}
 
 	return nil
+}
+
+func shouldAdopt(m *v1alpha2.Machine) bool {
+	return !util.HasOwner(m.OwnerReferences, v1alpha2.SchemeGroupVersion.String(), []string{"MachineSet", "Cluster"})
 }

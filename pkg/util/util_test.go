@@ -483,3 +483,79 @@ func TestClusterToInfrastructureMapFunc(t *testing.T) {
 		})
 	}
 }
+
+func TestHasOwner(t *testing.T) {
+	tests := []struct {
+		name     string
+		refList  []metav1.OwnerReference
+		expected bool
+	}{
+		{
+			name: "no ownership",
+		},
+		{
+			name: "owned by cluster",
+			refList: []metav1.OwnerReference{
+				{
+					Kind:       "Cluster",
+					APIVersion: clusterv1.SchemeGroupVersion.String(),
+				},
+			},
+			expected: true,
+		},
+		{
+			name: "owned by something else",
+			refList: []metav1.OwnerReference{
+				{
+					Kind:       "Pod",
+					APIVersion: "v1",
+				},
+				{
+					Kind:       "Deployment",
+					APIVersion: "apps/v1",
+				},
+			},
+		},
+		{
+			name: "owner by a deployment",
+			refList: []metav1.OwnerReference{
+				{
+					Kind:       "MachineDeployment",
+					APIVersion: clusterv1.SchemeGroupVersion.String(),
+				},
+			},
+			expected: true,
+		},
+		{
+			name: "right kind, wrong apiversion",
+			refList: []metav1.OwnerReference{
+				{
+					Kind:       "MachineDeployment",
+					APIVersion: "wrong/v2",
+				},
+			},
+		},
+		{
+			name: "right apiversion, wrong kind",
+			refList: []metav1.OwnerReference{
+				{
+					Kind:       "Machine",
+					APIVersion: clusterv1.SchemeGroupVersion.String(),
+				},
+			},
+		},
+	}
+
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			result := HasOwner(
+				test.refList,
+				clusterv1.SchemeGroupVersion.String(),
+				[]string{"MachineDeployment", "Cluster"},
+			)
+			if test.expected != result {
+				t.Errorf("expected hasOwner to be %v, got %v", test.expected, result)
+			}
+		})
+	}
+}

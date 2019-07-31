@@ -486,3 +486,19 @@ func NewYAMLDecoder(r io.ReadCloser) streaming.Decoder {
 		close:   r.Close,
 	}
 }
+
+// HasOwner checks if any of the references in the passed list match the given apiVersion and one of the given kinds
+func HasOwner(refList []metav1.OwnerReference, apiVersion string, kinds []string) bool {
+	kMap := make(map[string]bool)
+	for _, kind := range kinds {
+		kMap[kind] = true
+	}
+
+	for _, mr := range refList {
+		if mr.APIVersion == apiVersion && kMap[mr.Kind] {
+			return true
+		}
+	}
+
+	return false
+}

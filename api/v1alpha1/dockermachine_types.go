@@ -22,6 +22,9 @@ import (
 
 // DockerMachineSpec defines the desired state of DockerMachine
 type DockerMachineSpec struct {
+	// ProviderID will be the container name in ProviderID format (docker:////<containername>)
+	// +optional
+	ProviderID *string `json:"providerID,omitempty"`
 }
 
 // DockerMachineStatus defines the observed state of DockerMachine

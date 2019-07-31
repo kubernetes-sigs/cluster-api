@@ -166,6 +166,16 @@ func GetClusterFromMetadata(ctx context.Context, c client.Client, obj metav1.Obj
 	return GetClusterByName(ctx, c, obj.Namespace, obj.Labels[clusterv1.MachineClusterLabelName])
 }
 
+// GetOwnerCluster returns the Cluster object owning the current resource.
+func GetOwnerCluster(ctx context.Context, c client.Client, obj metav1.ObjectMeta) (*clusterv1.Cluster, error) {
+	for _, ref := range obj.OwnerReferences {
+		if ref.Kind == "Cluster" && ref.APIVersion == clusterv1.SchemeGroupVersion.String() {
+			return GetClusterByName(ctx, c, obj.Namespace, obj.Name)
+		}
+	}
+	return nil, nil
+}
+
 // GetClusterByName finds and return a Cluster object using the specified params.
 func GetClusterByName(ctx context.Context, c client.Client, namespace, name string) (*clusterv1.Cluster, error) {
 	cluster := &clusterv1.Cluster{}
@@ -179,6 +189,32 @@ func GetClusterByName(ctx context.Context, c client.Client, namespace, name stri
 	}
 
 	return cluster, nil
+}
+
+// ClusterToInfrastructureMapFunc returns a handler.ToRequestsFunc that watches for
+// Cluster events and returns reconciliation requests for an infrastructure provider object.
+func ClusterToInfrastructureMapFunc(gvk schema.GroupVersionKind) handler.ToRequestsFunc {
+	return func(o handler.MapObject) []reconcile.Request {
+		c, ok := o.Object.(*clusterv1.Cluster)
+		if !ok {
+			return nil
+		}
+
+		// Return early if the GroupVersionKind doesn't match what we expect.
+		infraGVK := c.Spec.InfrastructureRef.GroupVersionKind()
+		if gvk != infraGVK {
+			return nil
+		}
+
+		return []reconcile.Request{
+			{
+				NamespacedName: client.ObjectKey{
+					Namespace: c.Namespace,
+					Name:      c.Spec.InfrastructureRef.Name,
+				},
+			},
+		}
+	}
 }
 
 // GetOwnerMachine returns the Machine object owning the current resource.

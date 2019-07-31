@@ -408,3 +408,78 @@ func TestMachineToInfrastructureMapFunc(t *testing.T) {
 		})
 	}
 }
+
+func TestClusterToInfrastructureMapFunc(t *testing.T) {
+	var testcases = []struct {
+		name    string
+		input   schema.GroupVersionKind
+		request handler.MapObject
+		output  []reconcile.Request
+	}{
+		{
+			name: "should reconcile infra-1",
+			input: schema.GroupVersionKind{
+				Group:   "foo.cluster.x-k8s.io",
+				Version: "v1alpha2",
+				Kind:    "TestCluster",
+			},
+			request: handler.MapObject{
+				Object: &clusterv1.Cluster{
+					ObjectMeta: metav1.ObjectMeta{
+						Namespace: "default",
+						Name:      "test-1",
+					},
+					Spec: clusterv1.ClusterSpec{
+						InfrastructureRef: &corev1.ObjectReference{
+							APIVersion: "foo.cluster.x-k8s.io/v1alpha2",
+							Kind:       "TestCluster",
+							Name:       "infra-1",
+						},
+					},
+				},
+			},
+			output: []reconcile.Request{
+				{
+					NamespacedName: client.ObjectKey{
+						Namespace: "default",
+						Name:      "infra-1",
+					},
+				},
+			},
+		},
+		{
+			name: "should return no matching reconcile requests",
+			input: schema.GroupVersionKind{
+				Group:   "foo.cluster.x-k8s.io",
+				Version: "v1alpha2",
+				Kind:    "TestCluster",
+			},
+			request: handler.MapObject{
+				Object: &clusterv1.Cluster{
+					ObjectMeta: metav1.ObjectMeta{
+						Namespace: "default",
+						Name:      "test-1",
+					},
+					Spec: clusterv1.ClusterSpec{
+						InfrastructureRef: &corev1.ObjectReference{
+							APIVersion: "bar.cluster.x-k8s.io/v1alpha2",
+							Kind:       "TestCluster",
+							Name:       "bar-1",
+						},
+					},
+				},
+			},
+			output: nil,
+		},
+	}
+
+	for _, tc := range testcases {
+		t.Run(tc.name, func(t *testing.T) {
+			fn := ClusterToInfrastructureMapFunc(tc.input)
+			out := fn(tc.request)
+			if !reflect.DeepEqual(out, tc.output) {
+				t.Fatalf("Unexpected output. Got: %v, Want: %v", out, tc.output)
+			}
+		})
+	}
+}

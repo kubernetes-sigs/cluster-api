@@ -1,3 +1,4 @@
+export GOPROXY=https://proxy.golang.org
 
 REGISTRY ?= gcr.io/$(shell gcloud config get-value project)
 # Image URL to use all building/pushing image targets

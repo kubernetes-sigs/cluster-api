@@ -23,6 +23,7 @@ import (
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
+	"sigs.k8s.io/cluster-api/pkg/apis/cluster/v1alpha1"
 )
 
 const validCluster = `
@@ -386,6 +387,85 @@ func TestPointsTo(t *testing.T) {
 			result := PointsTo(pointer.OwnerReferences, &meta)
 			if result != test.expected {
 				t.Errorf("expected %v, got %v", test.expected, result)
+			}
+		})
+	}
+}
+
+func TestHasOwner(t *testing.T) {
+
+	tests := []struct {
+		name     string
+		refList  []metav1.OwnerReference
+		expected bool
+	}{
+		{
+			name: "no ownership",
+		},
+		{
+			name: "owned by cluster",
+			refList: []metav1.OwnerReference{
+				{
+					Kind:       "Cluster",
+					APIVersion: v1alpha1.SchemeGroupVersion.String(),
+				},
+			},
+			expected: true,
+		},
+
+		{
+			name: "owned by something else",
+			refList: []metav1.OwnerReference{
+				{
+					Kind:       "Pod",
+					APIVersion: "v1",
+				},
+				{
+					Kind:       "Deployment",
+					APIVersion: "apps/v1",
+				},
+			},
+		},
+		{
+			name: "owner by a deployment",
+			refList: []metav1.OwnerReference{
+				{
+					Kind:       "MachineDeployment",
+					APIVersion: v1alpha1.SchemeGroupVersion.String(),
+				},
+			},
+			expected: true,
+		},
+		{
+			name: "right kind, wrong apiversion",
+			refList: []metav1.OwnerReference{
+				{
+					Kind:       "MachineDeployment",
+					APIVersion: "wrong/v2",
+				},
+			},
+		},
+		{
+
+			name: "right apiversion, wrong kind",
+			refList: []metav1.OwnerReference{
+				{
+					Kind:       "Machine",
+					APIVersion: v1alpha1.SchemeGroupVersion.String(),
+				},
+			},
+		},
+	}
+
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			result := HasOwner(
+				test.refList,
+				v1alpha1.SchemeGroupVersion.String(),
+				[]string{"MachineDeployment", "Cluster"},
+			)
+			if test.expected != result {
+				t.Errorf("expected hasOwner to be %v, got %v", test.expected, result)
 			}
 		})
 	}

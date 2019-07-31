@@ -26,6 +26,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/klog"
+	"sigs.k8s.io/cluster-api/pkg/apis/cluster/v1alpha1"
 	clusterv1 "sigs.k8s.io/cluster-api/pkg/apis/cluster/v1alpha1"
 	controllerError "sigs.k8s.io/cluster-api/pkg/controller/error"
 	"sigs.k8s.io/cluster-api/pkg/controller/remote"
@@ -122,7 +123,8 @@ func (r *ReconcileMachine) Reconcile(request reconcile.Request) (reconcile.Resul
 	}
 
 	// Set the ownerRef with foreground deletion if there is a linked cluster.
-	if cluster != nil && len(m.OwnerReferences) == 0 {
+	if cluster != nil && shouldAdopt(m) {
+		klog.Infof("Cluster %s/%s is adopting Machine %s", cluster.Namespace, cluster.Name, m.Name)
 		blockOwnerDeletion := true
 		m.OwnerReferences = append(m.OwnerReferences, metav1.OwnerReference{
 			APIVersion:         cluster.APIVersion,
@@ -383,4 +385,8 @@ func (r *ReconcileMachine) getMachinesInCluster(ctx context.Context, namespace, 
 	}
 
 	return machines, nil
+}
+
+func shouldAdopt(m *v1alpha1.Machine) bool {
+	return !util.HasOwner(m.OwnerReferences, v1alpha1.SchemeGroupVersion.String(), []string{"MachineSet", "MachineDeployment", "Cluster"})
 }

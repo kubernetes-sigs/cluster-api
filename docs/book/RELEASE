@@ -26,7 +26,7 @@ This has only been verified to work on OSX. For platform agnostic testing see
 the [Testing with Netlify](#testing-with-netlify) section above.
 
 ```
-hack/build-gitbook.sh
+make book
 ```
 
 ## Verify the contents of the GitBook are correct by viewing the pages which 
@@ -36,9 +36,7 @@ should include new or changed content and:
 1) They are rendered as expected.
 
 ```
-cd docs/book
-gitbook serve
-# open localhost:4000 in a web browser
+make serve-book
 ```
 
 [markdown]: https://toolchain.gitbook.com/syntax/markdown.html

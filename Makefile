@@ -205,6 +205,7 @@ docker-push-manifest: ## Push the fat manifest docker image. TODO: Update bazel 
 clean: ## Remove all generated files
 	$(MAKE) clean-bazel
 	$(MAKE) clean-bin
+	$(MAKE) clean-book
 
 .PHONY: clean-bazel
 clean-bazel: ## Remove all generated bazel symlinks
@@ -224,9 +225,22 @@ verify:
 	./hack/verify-clientset.sh
 	./hack/verify-bazel.sh
 
+.PHONY: clean-book
+clean-book: ## Remove all generated GitBook files
+	rm -rf ./docs/book/_book
+
 ## --------------------------------------
 ## Others / Utilities
 ## --------------------------------------
 
-diagrams:
+.PHONY: diagrams
+diagrams: ## Build proposal diagrams
 	$(MAKE) -C docs/proposals/images
+
+.PHONY: book
+book: ## Build the GitBook
+	./hack/build-gitbook.sh
+
+.PHONY: serve-book
+serve-book: ## Build and serve the GitBook with live-reloading enabled
+	(cd ./docs/book && gitbook serve --live --open)

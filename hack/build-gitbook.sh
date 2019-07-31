@@ -19,9 +19,7 @@ set -o pipefail
 
 export KUBE_ROOT=$(dirname "${BASH_SOURCE}")/..
 
-cd $KUBE_ROOT
-
-pushd docs/book/
+pushd "${KUBE_ROOT}/docs/book/"
 npm install gitbook-cli -g
 npm install phantomjs-prebuilt
 npm ci

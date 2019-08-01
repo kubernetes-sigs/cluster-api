@@ -22,7 +22,7 @@ import (
 	"github.com/go-logr/logr"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/types"
-	infrastructurev1alpha1 "sigs.k8s.io/cluster-api-provider-docker/api/v1alpha1"
+	infrastructurev1alpha2 "sigs.k8s.io/cluster-api-provider-docker/api/v1alpha2"
 	capiv1alpha2 "sigs.k8s.io/cluster-api/pkg/apis/cluster/v1alpha2"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -45,7 +45,7 @@ func (r *DockerMachineReconciler) Reconcile(req ctrl.Request) (ctrl.Result, erro
 	ctx := context.Background()
 	log := r.Log.WithValues("dockermachine", req.NamespacedName)
 
-	dockerMachine := &infrastructurev1alpha1.DockerMachine{}
+	dockerMachine := &infrastructurev1alpha2.DockerMachine{}
 	if err := r.Client.Get(ctx, req.NamespacedName, dockerMachine); err != nil {
 		log.Error(err, "failed to get dockerMachine")
 	}
@@ -61,9 +61,9 @@ func (r *DockerMachineReconciler) Reconcile(req ctrl.Request) (ctrl.Result, erro
 // SetupWithManager will add watches for this controller
 func (r *DockerMachineReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewControllerManagedBy(mgr).
-		For(&infrastructurev1alpha1.DockerMachine{}).
+		For(&infrastructurev1alpha2.DockerMachine{}).
 		Watches(
-			&source.Kind{Type: &infrastructurev1alpha1.DockerMachine{}},
+			&source.Kind{Type: &infrastructurev1alpha2.DockerMachine{}},
 			&handler.EnqueueRequestsFromMapFunc{
 				ToRequests: MachineToDockerMachine(capiv1alpha2.SchemeGroupVersion.WithKind("Machine")),
 			},

@@ -4,16 +4,16 @@ apiVersion: apiextensions.k8s.io/v1beta1
 kind: CustomResourceDefinition
 metadata:
   creationTimestamp: null
-  name: dockermachines.infrastructure.cluster.x-k8s.io
+  name: dockerclusters.infrastructure.cluster.x-k8s.io
 spec:
   group: infrastructure.cluster.x-k8s.io
   names:
-    kind: DockerMachine
-    plural: dockermachines
+    kind: DockerCluster
+    plural: dockerclusters
   scope: ""
   validation:
     openAPIV3Schema:
-      description: DockerMachine is the Schema for the dockermachines API
+      description: DockerCluster is the Schema for the dockerclusters API
       properties:
         apiVersion:
           description: 'APIVersion defines the versioned schema of this representation
@@ -28,15 +28,10 @@ spec:
         metadata:
           type: object
         spec:
-          description: DockerMachineSpec defines the desired state of DockerMachine
-          properties:
-            providerID:
-              description: ProviderID will be the container name in ProviderID format
-                (docker:////<containername>)
-              type: string
+          description: DockerClusterSpec defines the desired state of DockerCluster
           type: object
         status:
-          description: DockerMachineStatus defines the observed state of DockerMachine
+          description: DockerClusterStatus defines the observed state of DockerCluster
           type: object
       type: object
   versions:

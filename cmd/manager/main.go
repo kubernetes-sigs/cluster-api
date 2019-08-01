@@ -25,6 +25,7 @@ import (
 	_ "k8s.io/client-go/plugin/pkg/client/auth/gcp"
 	"k8s.io/klog/klogr"
 	"sigs.k8s.io/cluster-api-provider-docker/api/v1alpha1"
+	infrastructurev1alpha2 "sigs.k8s.io/cluster-api-provider-docker/api/v1alpha2"
 	"sigs.k8s.io/cluster-api-provider-docker/controllers"
 	ctrl "sigs.k8s.io/controller-runtime"
 	// +kubebuilder:scaffold:imports
@@ -38,6 +39,7 @@ var (
 func init() {
 	_ = scheme.AddToScheme(myscheme)
 	_ = v1alpha1.AddToScheme(myscheme)
+	_ = infrastructurev1alpha2.AddToScheme(myscheme)
 	// +kubebuilder:scaffold:scheme
 }
 
@@ -66,6 +68,14 @@ func main() {
 		Log:    ctrl.Log.WithName("reconciler"),
 	}).SetupWithManager(mgr); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "reconciler")
+		os.Exit(1)
+	}
+
+	if err = (&controllers.DockerClusterReconciler{
+		Client: mgr.GetClient(),
+		Log:    ctrl.Log.WithName("controllers").WithName("DockerCluster"),
+	}).SetupWithManager(mgr); err != nil {
+		setupLog.Error(err, "unable to create controller", "controller", "DockerCluster")
 		os.Exit(1)
 	}
 	// +kubebuilder:scaffold:builder

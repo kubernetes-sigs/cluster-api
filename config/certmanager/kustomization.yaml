@@ -14,7 +14,7 @@ vars:
   objref:
     kind: Certificate
     group: certmanager.k8s.io
-    version: v1alpha1
+    version: v1alpha2
     name: serving-cert # this name should match the one in certificate.yaml
 - name: SERVICENAME
   objref:

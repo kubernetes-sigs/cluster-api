@@ -26,7 +26,7 @@ import (
 	"k8s.io/client-go/kubernetes/scheme"
 	_ "k8s.io/client-go/plugin/pkg/client/auth/gcp"
 	"k8s.io/klog/klogr"
-	"sigs.k8s.io/cluster-api-bootstrap-provider-kubeadm/api/v1alpha1"
+	"sigs.k8s.io/cluster-api-bootstrap-provider-kubeadm/api/v1alpha2"
 	"sigs.k8s.io/cluster-api-bootstrap-provider-kubeadm/controllers"
 	ctrl "sigs.k8s.io/controller-runtime"
 	// +kubebuilder:scaffold:imports
@@ -39,7 +39,7 @@ var (
 
 func init() {
 	_ = scheme.AddToScheme(myscheme)
-	_ = v1alpha1.AddToScheme(myscheme)
+	_ = v1alpha2.AddToScheme(myscheme)
 	// +kubebuilder:scaffold:scheme
 }
 

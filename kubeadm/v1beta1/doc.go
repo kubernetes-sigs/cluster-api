@@ -40,7 +40,7 @@ limitations under the License.
 //
 // Please convert your v1alpha3 configuration files to v1beta1 using the "kubeadm config migrate" command of kubeadm v1.13.x
 // (conversion from older releases of kubeadm config files requires older release of kubeadm as well e.g.
-//	kubeadm v1.11 should be used to migrate v1alpha1 to v1alpha2; kubeadm v1.12 should be used to translate v1alpha2 to v1alpha3)
+//	kubeadm v1.11 should be used to migrate v1alpha2 to v1alpha2; kubeadm v1.12 should be used to translate v1alpha2 to v1alpha3)
 //
 // Nevertheless, kubeadm v1.13.x will support reading from v1alpha3 version of the kubeadm config file format, but this support
 // will be dropped in the v1.14 release.
@@ -64,7 +64,7 @@ limitations under the License.
 //     apiVersion: kubelet.config.k8s.io/v1beta1
 //     kind: KubeletConfiguration
 //
-//     apiVersion: kubeproxy.config.k8s.io/v1alpha1
+//     apiVersion: kubeproxy.config.k8s.io/v1alpha2
 //     kind: KubeProxyConfiguration
 //
 //     apiVersion: kubeadm.k8s.io/v1beta1
@@ -136,7 +136,7 @@ limitations under the License.
 // - kube-apiserver, kube-scheduler, kube-controller-manager configurations; use it to customize control-plane
 // components by adding customized setting or overriding kubeadm default settings.
 //
-//    apiVersion: kubeproxy.config.k8s.io/v1alpha1
+//    apiVersion: kubeproxy.config.k8s.io/v1alpha2
 //    kind: KubeProxyConfiguration
 //       ...
 //
@@ -252,7 +252,7 @@ limitations under the License.
 // 	kind: KubeletConfiguration
 // 	# kubelet specific options here
 // 	---
-// 	apiVersion: kubeproxy.config.k8s.io/v1alpha1
+// 	apiVersion: kubeproxy.config.k8s.io/v1alpha2
 // 	kind: KubeProxyConfiguration
 // 	# kube-proxy specific options here
 //

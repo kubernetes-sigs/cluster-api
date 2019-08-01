@@ -27,7 +27,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
-	kubeadmv1alpha1 "sigs.k8s.io/cluster-api-bootstrap-provider-kubeadm/api/v1alpha1"
+	kubeadmv1alpha2 "sigs.k8s.io/cluster-api-bootstrap-provider-kubeadm/api/v1alpha2"
 	"sigs.k8s.io/cluster-api/pkg/apis/cluster/v1alpha2"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -72,7 +72,7 @@ func (c *myClient) Status() client.StatusWriter {
 func TestSuccessfulReconcileShouldNotRequeue(t *testing.T) {
 	machineKind := v1alpha2.SchemeGroupVersion.WithKind("Machine").String()
 	objects := map[string]runtime.Object{
-		"ns/cfg": &kubeadmv1alpha1.KubeadmConfig{
+		"ns/cfg": &kubeadmv1alpha2.KubeadmConfig{
 			ObjectMeta: metav1.ObjectMeta{
 				Namespace: "ns",
 				Name:      "cfg",
@@ -125,7 +125,7 @@ func TestSuccessfulReconcileShouldNotRequeue(t *testing.T) {
 func TestRequeueIfNoMachineRefIsFound(t *testing.T) {
 	myclient := &myClient{
 		db: map[string]runtime.Object{
-			"ns/cfg": &kubeadmv1alpha1.KubeadmConfig{
+			"ns/cfg": &kubeadmv1alpha2.KubeadmConfig{
 				ObjectMeta: metav1.ObjectMeta{
 					OwnerReferences: []metav1.OwnerReference{
 						{

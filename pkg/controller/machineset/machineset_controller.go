@@ -186,7 +186,7 @@ func (r *ReconcileMachineSet) reconcile(ctx context.Context, machineSet *cluster
 		return reconcile.Result{}, err
 	}
 
-	if cluster != nil {
+	if cluster != nil && shouldAdopt(machineSet) {
 		machineSet.OwnerReferences = util.EnsureOwnerRef(machineSet.OwnerReferences, metav1.OwnerReference{
 			APIVersion: cluster.APIVersion,
 			Kind:       cluster.Kind,
@@ -523,4 +523,8 @@ func (r *ReconcileMachineSet) MachineToMachineSets(o handler.MapObject) []reconc
 	}
 
 	return result
+}
+
+func shouldAdopt(ms *clusterv1.MachineSet) bool {
+	return !util.HasOwner(ms.OwnerReferences, clusterv1.SchemeGroupVersion.String(), []string{"MachineDeployment", "Cluster"})
 }

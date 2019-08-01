@@ -27,7 +27,7 @@ rules:
   - patch
   - update
 - apiGroups:
-  - cluster.sigs.k8s.io
+  - cluster.x-k8s.io
   resources:
   - clusters
   - machines

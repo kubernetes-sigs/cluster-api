@@ -13,5 +13,5 @@ bases:
 - ../rbac/
 - ../manager/
 
-patches:
+patchesStrategicMerge:
 - manager_image_patch.yaml

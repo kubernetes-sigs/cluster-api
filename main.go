@@ -28,6 +28,7 @@ import (
 	"k8s.io/klog/klogr"
 	"sigs.k8s.io/cluster-api-bootstrap-provider-kubeadm/api/v1alpha2"
 	"sigs.k8s.io/cluster-api-bootstrap-provider-kubeadm/controllers"
+	clusterv1alpha2 "sigs.k8s.io/cluster-api/pkg/apis/cluster/v1alpha2"
 	ctrl "sigs.k8s.io/controller-runtime"
 	// +kubebuilder:scaffold:imports
 )
@@ -40,6 +41,7 @@ var (
 func init() {
 	_ = scheme.AddToScheme(myscheme)
 	_ = v1alpha2.AddToScheme(myscheme)
+	_ = clusterv1alpha2.AddToScheme(myscheme)
 	// +kubebuilder:scaffold:scheme
 }
 

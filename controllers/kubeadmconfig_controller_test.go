@@ -70,7 +70,6 @@ func (c *myClient) Status() client.StatusWriter {
 }
 
 func TestSuccessfulReconcileShouldNotRequeue(t *testing.T) {
-	machineKind := v1alpha2.SchemeGroupVersion.WithKind("Machine").String()
 	objects := map[string]runtime.Object{
 		"ns/cfg": &kubeadmv1alpha2.KubeadmConfig{
 			ObjectMeta: metav1.ObjectMeta{
@@ -78,7 +77,8 @@ func TestSuccessfulReconcileShouldNotRequeue(t *testing.T) {
 				Name:      "cfg",
 				OwnerReferences: []metav1.OwnerReference{
 					{
-						Kind: machineKind,
+						Kind: "Machine",
+						APIVersion: v1alpha2.SchemeGroupVersion.String(),
 						Name: "my-machine",
 					},
 				},
@@ -122,7 +122,7 @@ func TestSuccessfulReconcileShouldNotRequeue(t *testing.T) {
 	}
 }
 
-func TestRequeueIfNoMachineRefIsFound(t *testing.T) {
+func TestNoErrorIfNoMachineRefIsFound(t *testing.T) {
 	myclient := &myClient{
 		db: map[string]runtime.Object{
 			"ns/cfg": &kubeadmv1alpha2.KubeadmConfig{
@@ -152,8 +152,8 @@ func TestRequeueIfNoMachineRefIsFound(t *testing.T) {
 	if err != nil {
 		t.Fatal(fmt.Sprintf("Failed to reconcile:\n %+v", err))
 	}
-	if result.Requeue == false {
-		t.Fatal("expected to requeue")
+	if result.Requeue == true {
+		t.Fatal("did not expected to requeue")
 	}
 	if result.RequeueAfter != time.Duration(0) {
 		t.Fatal("did not expect to requeue after")

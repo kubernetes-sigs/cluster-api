@@ -4,15 +4,31 @@ apiVersion: apiextensions.k8s.io/v1beta1
 kind: CustomResourceDefinition
 metadata:
   creationTimestamp: null
-  name: machines.cluster.k8s.io
+  name: machines.cluster.x-k8s.io
 spec:
-  group: cluster.k8s.io
+  additionalPrinterColumns:
+  - JSONPath: .spec.providerID
+    description: Provider ID
+    name: ProviderID
+    type: string
+  - JSONPath: .status.phase
+    description: Machine status such as Terminating/Pending/Running/Failed etc
+    name: Phase
+    type: string
+  - JSONPath: .status.nodeRef.name
+    description: Node name associated with this machine
+    name: NodeName
+    priority: 1
+    type: string
+  group: cluster.x-k8s.io
   names:
     kind: Machine
     plural: machines
     shortNames:
     - ma
   scope: Namespaced
+  subresources:
+    status: {}
   validation:
     openAPIV3Schema:
       description: / [Machine] Machine is the Schema for the machines API
@@ -32,43 +48,91 @@ spec:
         spec:
           description: / [MachineSpec] MachineSpec defines the desired state of Machine
           properties:
-            configSource:
-              description: ConfigSource is used to populate in the associated Node
-                for dynamic kubelet config. This field already exists in Node, so
-                any updates to it in the Machine spec will be automatically copied
-                to the linked NodeRef from the status. The rest of dynamic kubelet
-                config support should then work as-is.
+            bootstrap:
+              description: Bootstrap is a reference to a local struct which encapsulates
+                fields to configure the Machine’s bootstrapping mechanism.
               properties:
-                configMap:
-                  description: ConfigMap is a reference to a Node's ConfigMap
+                configRef:
+                  description: ConfigRef is a reference to a bootstrap provider-specific
+                    resource that holds configuration details. The reference is optional
+                    to allow users/operators to specify Bootstrap.Data without the
+                    need of a controller.
                   properties:
-                    kubeletConfigKey:
-                      description: KubeletConfigKey declares which key of the referenced
-                        ConfigMap corresponds to the KubeletConfiguration structure
-                        This field is required in all cases.
+                    apiVersion:
+                      description: API version of the referent.
+                      type: string
+                    fieldPath:
+                      description: 'If referring to a piece of an object instead of
+                        an entire object, this string should contain a valid JSON/Go
+                        field access statement, such as desiredState.manifest.containers[2].
+                        For example, if the object reference is to a container within
+                        a pod, this would take on a value like: "spec.containers{name}"
+                        (where "name" refers to the name of the container that triggered
+                        the event) or if no container name is specified "spec.containers[2]"
+                        (container with index 2 in this pod). This syntax is chosen
+                        only to have some well-defined way of referencing a part of
+                        an object. TODO: this design is not final and this field is
+                        subject to change in the future.'
+                      type: string
+                    kind:
+                      description: 'Kind of the referent. More info: https://git.k8s.io/community/contributors/devel/api-conventions.md#types-kinds'
                       type: string
                     name:
-                      description: Name is the metadata.name of the referenced ConfigMap.
-                        This field is required in all cases.
+                      description: 'Name of the referent. More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names'
                       type: string
                     namespace:
-                      description: Namespace is the metadata.namespace of the referenced
-                        ConfigMap. This field is required in all cases.
+                      description: 'Namespace of the referent. More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/namespaces/'
                       type: string
                     resourceVersion:
-                      description: ResourceVersion is the metadata.ResourceVersion
-                        of the referenced ConfigMap. This field is forbidden in Node.Spec,
-                        and required in Node.Status.
+                      description: 'Specific resourceVersion to which this reference
+                        is made, if any. More info: https://git.k8s.io/community/contributors/devel/api-conventions.md#concurrency-control-and-consistency'
                       type: string
                     uid:
-                      description: UID is the metadata.UID of the referenced ConfigMap.
-                        This field is forbidden in Node.Spec, and required in Node.Status.
+                      description: 'UID of the referent. More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#uids'
                       type: string
-                  required:
-                  - kubeletConfigKey
-                  - name
-                  - namespace
                   type: object
+                data:
+                  description: Data contains the bootstrap data, such as cloud-init
+                    details scripts. If nil, the Machine should remain in the Pending
+                    state.
+                  type: string
+              type: object
+            infrastructureRef:
+              description: InfrastructureRef is a required reference to a custom resource
+                offered by an infrastructure provider.
+              properties:
+                apiVersion:
+                  description: API version of the referent.
+                  type: string
+                fieldPath:
+                  description: 'If referring to a piece of an object instead of an
+                    entire object, this string should contain a valid JSON/Go field
+                    access statement, such as desiredState.manifest.containers[2].
+                    For example, if the object reference is to a container within
+                    a pod, this would take on a value like: "spec.containers{name}"
+                    (where "name" refers to the name of the container that triggered
+                    the event) or if no container name is specified "spec.containers[2]"
+                    (container with index 2 in this pod). This syntax is chosen only
+                    to have some well-defined way of referencing a part of an object.
+                    TODO: this design is not final and this field is subject to change
+                    in the future.'
+                  type: string
+                kind:
+                  description: 'Kind of the referent. More info: https://git.k8s.io/community/contributors/devel/api-conventions.md#types-kinds'
+                  type: string
+                name:
+                  description: 'Name of the referent. More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names'
+                  type: string
+                namespace:
+                  description: 'Namespace of the referent. More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/namespaces/'
+                  type: string
+                resourceVersion:
+                  description: 'Specific resourceVersion to which this reference is
+                    made, if any. More info: https://git.k8s.io/community/contributors/devel/api-conventions.md#concurrency-control-and-consistency'
+                  type: string
+                uid:
+                  description: 'UID of the referent. More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#uids'
+                  type: string
               type: object
             metadata:
               description: ObjectMeta will autopopulate the Node created. Use this
@@ -181,175 +245,38 @@ spec:
                 higher level entities like autoscaler that will be interfacing with
                 cluster-api as generic provider.
               type: string
-            providerSpec:
-              description: ProviderSpec details Provider-specific configuration to
-                use during node creation.
-              properties:
-                value:
-                  description: Value is an inlined, serialized representation of the
-                    resource configuration. It is recommended that providers maintain
-                    their own versioned API types that should be serialized/deserialized
-                    from this field, akin to component config.
-                  type: object
-                valueFrom:
-                  description: Source for the provider configuration. Cannot be used
-                    if value is not empty.
-                  properties:
-                    machineClass:
-                      description: The machine class from which the provider config
-                        should be sourced.
-                      properties:
-                        apiVersion:
-                          description: API version of the referent.
-                          type: string
-                        fieldPath:
-                          description: 'If referring to a piece of an object instead
-                            of an entire object, this string should contain a valid
-                            JSON/Go field access statement, such as desiredState.manifest.containers[2].
-                            For example, if the object reference is to a container
-                            within a pod, this would take on a value like: "spec.containers{name}"
-                            (where "name" refers to the name of the container that
-                            triggered the event) or if no container name is specified
-                            "spec.containers[2]" (container with index 2 in this pod).
-                            This syntax is chosen only to have some well-defined way
-                            of referencing a part of an object. TODO: this design
-                            is not final and this field is subject to change in the
-                            future.'
-                          type: string
-                        kind:
-                          description: 'Kind of the referent. More info: https://git.k8s.io/community/contributors/devel/api-conventions.md#types-kinds'
-                          type: string
-                        name:
-                          description: 'Name of the referent. More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names'
-                          type: string
-                        namespace:
-                          description: 'Namespace of the referent. More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/namespaces/'
-                          type: string
-                        provider:
-                          description: Provider is the name of the cloud-provider
-                            which MachineClass is intended for.
-                          type: string
-                        resourceVersion:
-                          description: 'Specific resourceVersion to which this reference
-                            is made, if any. More info: https://git.k8s.io/community/contributors/devel/api-conventions.md#concurrency-control-and-consistency'
-                          type: string
-                        uid:
-                          description: 'UID of the referent. More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#uids'
-                          type: string
-                      type: object
-                  type: object
-              type: object
-            taints:
-              description: The list of the taints to be applied to the corresponding
-                Node in additive manner. This list will not overwrite any other taints
-                added to the Node on an ongoing basis by other entities. These taints
-                should be actively reconciled e.g. if you ask the machine controller
-                to apply a taint and then manually remove the taint the machine controller
-                will put it back) but not have the machine controller remove any taints
-              items:
-                description: The node this Taint is attached to has the "effect" on
-                  any pod that does not tolerate the Taint.
-                properties:
-                  effect:
-                    description: Required. The effect of the taint on pods that do
-                      not tolerate the taint. Valid effects are NoSchedule, PreferNoSchedule
-                      and NoExecute.
-                    type: string
-                  key:
-                    description: Required. The taint key to be applied to a node.
-                    type: string
-                  timeAdded:
-                    description: TimeAdded represents the time at which the taint
-                      was added. It is only written for NoExecute taints.
-                    format: date-time
-                    type: string
-                  value:
-                    description: Required. The taint value corresponding to the taint
-                      key.
-                    type: string
-                required:
-                - effect
-                - key
-                type: object
-              type: array
-            versions:
-              description: Versions of key software to use. This field is optional
-                at cluster creation time, and omitting the field indicates that the
-                cluster installation tool should select defaults for the user. These
-                defaults may differ based on the cluster installer, but the tool should
-                populate the values it uses when persisting Machine objects. A Machine
-                spec missing this field at runtime is invalid.
-              properties:
-                controlPlane:
-                  description: ControlPlane is the semantic version of the Kubernetes
-                    control plane to run. This should only be populated when the machine
-                    is a control plane.
-                  type: string
-                kubelet:
-                  description: Kubelet is the semantic version of kubelet to run
-                  type: string
-              required:
-              - kubelet
-              type: object
+            version:
+              description: Version defines the desired Kubernetes version. This field
+                is meant to be optionally used by bootstrap providers.
+              type: string
+          required:
+          - bootstrap
+          - infrastructureRef
           type: object
         status:
-          description: / [MachineStatus] MachineStatus defines the observed state
-            of Machine
+          description: MachineStatus defines the observed state of Machine
           properties:
             addresses:
               description: Addresses is a list of addresses assigned to the machine.
-                Queried from cloud provider, if available.
+                This field is copied from the infrastructure provider reference.
               items:
-                description: NodeAddress contains information for the node's address.
+                description: MachineAddress contains information for the node's address.
                 properties:
                   address:
-                    description: The node address.
+                    description: The machine address.
                     type: string
                   type:
-                    description: Node address type, one of Hostname, ExternalIP or
-                      InternalIP.
+                    description: Machine address type, one of Hostname, ExternalIP
+                      or InternalIP.
                     type: string
                 required:
                 - address
                 - type
                 type: object
               type: array
-            conditions:
-              description: 'Conditions lists the conditions synced from the node conditions
-                of the corresponding node-object. Machine-controller is responsible
-                for keeping conditions up-to-date. MachineSet controller will be taking
-                these conditions as a signal to decide if machine is healthy or needs
-                to be replaced. Refer: https://kubernetes.io/docs/concepts/architecture/nodes/#condition'
-              items:
-                description: NodeCondition contains condition information for a node.
-                properties:
-                  lastHeartbeatTime:
-                    description: Last time we got an update on a given condition.
-                    format: date-time
-                    type: string
-                  lastTransitionTime:
-                    description: Last time the condition transit from one status to
-                      another.
-                    format: date-time
-                    type: string
-                  message:
-                    description: Human readable message indicating details about last
-                      transition.
-                    type: string
-                  reason:
-                    description: (brief) reason for the condition's last transition.
-                    type: string
-                  status:
-                    description: Status of the condition, one of True, False, Unknown.
-                    type: string
-                  type:
-                    description: Type of node condition.
-                    type: string
-                required:
-                - status
-                - type
-                type: object
-              type: array
+            bootstrapReady:
+              description: BootstrapReady is the state of the bootstrap provider.
+              type: boolean
             errorMessage:
               description: "ErrorMessage will be set in the event that there is a
                 terminal problem reconciling the Machine and will contain a more verbose
@@ -380,31 +307,10 @@ spec:
                 can be added as events to the Machine object and/or logged in the
                 controller's output."
               type: string
-            lastOperation:
-              description: LastOperation describes the last-operation performed by
-                the machine-controller. This API should be useful as a history in
-                terms of the latest operation performed on the specific machine. It
-                should also convey the state of the latest-operation for example if
-                it is still on-going, failed or completed successfully.
-              properties:
-                description:
-                  description: Description is the human-readable description of the
-                    last operation.
-                  type: string
-                lastUpdated:
-                  description: LastUpdated is the timestamp at which LastOperation
-                    API was last-updated.
-                  format: date-time
-                  type: string
-                state:
-                  description: State is the current status of the last performed operation.
-                    E.g. Processing, Failed, Successful etc
-                  type: string
-                type:
-                  description: Type is the type of operation which was last performed.
-                    E.g. Create, Delete, Update etc
-                  type: string
-              type: object
+            infrastructureReady:
+              description: InfrastructureReady is the state of the infrastructure
+                provider.
+              type: boolean
             lastUpdated:
               description: LastUpdated identifies when this status was last observed.
               format: date-time
@@ -449,39 +355,16 @@ spec:
               description: Phase represents the current phase of machine actuation.
                 E.g. Pending, Running, Terminating, Failed etc.
               type: string
-            providerStatus:
-              description: ProviderStatus details a Provider-specific status. It is
-                recommended that providers maintain their own versioned API types
-                that should be serialized/deserialized from this field.
-              type: object
-            versions:
-              description: "Versions specifies the current versions of software on
-                the corresponding Node (if it exists). This is provided for a few
-                reasons: \n 1) It is more convenient than checking the NodeRef, traversing
-                it to    the Node, and finding the appropriate field in Node.Status.NodeInfo
-                \   (which uses different field names and formatting). 2) It removes
-                some of the dependency on the structure of the Node,    so that if
-                the structure of Node.Status.NodeInfo changes, only    machine controllers
-                need to be updated, rather than every client    of the Machines API.
-                3) There is no other simple way to check the control plane    version.
-                A client would have to connect directly to the apiserver    running
-                on the target node in order to find out its version."
-              properties:
-                controlPlane:
-                  description: ControlPlane is the semantic version of the Kubernetes
-                    control plane to run. This should only be populated when the machine
-                    is a control plane.
-                  type: string
-                kubelet:
-                  description: Kubelet is the semantic version of kubelet to run
-                  type: string
-              required:
-              - kubelet
-              type: object
+            version:
+              description: Version specifies the current version of Kubernetes running
+                on the corresponding Node. This is meant to be a means of bubbling
+                up status from the Node to the Machine. It is entirely optional, but
+                useful for end-user UX if it’s present.
+              type: string
           type: object
       type: object
   versions:
-  - name: v1alpha1
+  - name: v1alpha2
     served: true
     storage: true
 status:

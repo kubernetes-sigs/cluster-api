@@ -171,7 +171,7 @@ func TestReconcilePhase(t *testing.T) {
 			},
 		},
 		{
-			name: "ready bootstrap and infra, expect error with nil addresses",
+			name: "ready bootstrap and infra, allow nil addresses as they are optional",
 			bootstrapConfig: map[string]interface{}{
 				"kind":       "BootstrapConfig",
 				"apiVersion": "bootstrap.cluster.x-k8s.io/v1alpha2",
@@ -199,10 +199,10 @@ func TestReconcilePhase(t *testing.T) {
 					"ready": true,
 				},
 			},
-			expectError:        true,
+			expectError:        false,
 			expectRequeueAfter: false,
 			expected: func(g *gomega.WithT, m *v1alpha2.Machine) {
-				g.Expect(m.Status.GetTypedPhase()).To(gomega.Equal(v1alpha2.MachinePhaseProvisioning))
+				g.Expect(m.Status.GetTypedPhase()).To(gomega.Equal(v1alpha2.MachinePhaseProvisioned))
 				g.Expect(m.Status.Addresses).To(gomega.HaveLen(0))
 			},
 		},

@@ -35,7 +35,6 @@ cp go.mod go.mod.old || exit
 cp go.sum go.sum.old || exit
 
 # run update-deps.sh
-export GO111MODULE="on"
 ./hack/update-deps.sh
 
 # compare the old and new files

@@ -24,4 +24,6 @@ source "$(dirname "$0")/utils.sh"
 cd_root_path
 
 export GO111MODULE="on"
+GOPROXY=$(go env GOPROXY)
+export GOPROXY="${GOPROXY:-https://proxy.golang.org}"
 go mod tidy

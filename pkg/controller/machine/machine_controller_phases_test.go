@@ -442,13 +442,14 @@ func TestReconcileBootstrap(t *testing.T) {
 				},
 				"spec": map[string]interface{}{},
 				"status": map[string]interface{}{
-					"ready": true,
+					"ready":         true,
+					"bootstrapData": "",
 				},
 			},
-			expectError: true,
+			expectError: false,
 			expected: func(g *gomega.WithT, m *v1alpha2.Machine) {
-				g.Expect(m.Status.BootstrapReady).To(gomega.BeFalse())
-				g.Expect(m.Spec.Bootstrap.Data).To(gomega.BeNil())
+				g.Expect(m.Status.BootstrapReady).To(gomega.BeTrue())
+				g.Expect(*m.Spec.Bootstrap.Data).To(gomega.BeEmpty())
 			},
 		},
 		{

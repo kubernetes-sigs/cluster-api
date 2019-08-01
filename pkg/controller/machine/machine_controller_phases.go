@@ -207,8 +207,6 @@ func (r *ReconcileMachine) reconcileBootstrap(ctx context.Context, m *v1alpha2.M
 	data, _, err := unstructured.NestedString(bootstrapConfig.Object, "status", "bootstrapData")
 	if err != nil {
 		return errors.Wrapf(err, "failed to retrieve data from bootstrap provider for Machine %q in namespace %q", m.Name, m.Namespace)
-	} else if data == "" {
-		return errors.Errorf("retrieved empty data from bootstrap provider for Machine %q in namespace %q", m.Name, m.Namespace)
 	}
 
 	m.Spec.Bootstrap.Data = pointer.StringPtr(data)

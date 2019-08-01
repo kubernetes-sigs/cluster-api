@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package v1alpha1
+package v1alpha2
 
 import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -31,7 +31,7 @@ type KubeadmConfigSpec struct {
 // KubeadmConfigStatus defines the observed state of KubeadmConfig
 type KubeadmConfigStatus struct {
 	// Ready indicates the BootstrapData field is ready to be consumed
-	Ready bool `json:"phase,omitempty"`
+	Ready bool `json:"ready,omitempty"`
 
 	// BootstrapData will be a cloud-init script for now
 	// +optional

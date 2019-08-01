@@ -23,8 +23,8 @@ import (
 	. "github.com/onsi/gomega"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
-	"sigs.k8s.io/cluster-api-bootstrap-provider-kubeadm/api/v1alpha1"
-	"sigs.k8s.io/cluster-api/pkg/apis/cluster/v1alpha2"
+	"sigs.k8s.io/cluster-api-bootstrap-provider-kubeadm/api/v1alpha2"
+	clusterv1alpha2 "sigs.k8s.io/cluster-api/pkg/apis/cluster/v1alpha2"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/runtime/log"
 )
@@ -35,22 +35,22 @@ var _ = Describe("KubeadmConfigReconciler", func() {
 
 	Context("Reconcile a KubeadmConfig", func() {
 		It("should successfully run through the reconcile function", func() {
-			cluster := &v1alpha2.Cluster{
+			cluster := &clusterv1alpha2.Cluster{
 				ObjectMeta: metav1.ObjectMeta{
 					Namespace: "default",
 					Name:      "my-cluster",
 				},
 			}
-			machine := &v1alpha2.Machine{
+			machine := &clusterv1alpha2.Machine{
 				ObjectMeta: metav1.ObjectMeta{
 					Namespace: "default",
 					Name:      "my-machine",
 					Labels: map[string]string{
-						v1alpha2.MachineClusterLabelName: "my-cluster",
+						clusterv1alpha2.MachineClusterLabelName: "my-cluster",
 					},
 				},
 			}
-			config := &v1alpha1.KubeadmConfig{
+			config := &v1alpha2.KubeadmConfig{
 				ObjectMeta: metav1.ObjectMeta{
 					Namespace: "default",
 					Name:      "my-config",

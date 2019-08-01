@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package v1alpha1
+package v1alpha2
 
 import (
 	"path/filepath"
@@ -42,7 +42,7 @@ func TestAPIs(t *testing.T) {
 	RegisterFailHandler(Fail)
 
 	RunSpecsWithDefaultAndCustomReporters(t,
-		"v1alpha1 Suite",
+		"v1alpha2 Suite",
 		[]Reporter{envtest.NewlineReporter{}})
 }
 

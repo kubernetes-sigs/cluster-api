@@ -23,7 +23,7 @@ import (
 	"github.com/go-logr/logr"
 	"github.com/pkg/errors"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	kubeadmv1alpha1 "sigs.k8s.io/cluster-api-bootstrap-provider-kubeadm/api/v1alpha1"
+	kubeadmv1alpha2 "sigs.k8s.io/cluster-api-bootstrap-provider-kubeadm/api/v1alpha2"
 	"sigs.k8s.io/cluster-api/pkg/apis/cluster/v1alpha2"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -48,7 +48,7 @@ func (r *KubeadmConfigReconciler) Reconcile(req ctrl.Request) (ctrl.Result, erro
 	ctx := context.Background()
 	log := r.Log.WithValues("kubeadmconfig", req.NamespacedName)
 
-	config := kubeadmv1alpha1.KubeadmConfig{}
+	config := kubeadmv1alpha2.KubeadmConfig{}
 	if err := r.Get(ctx, req.NamespacedName, &config); err != nil {
 		log.Error(err, "failed to get config", "stacktrace", fmt.Sprintf("%+v", err))
 		return ctrl.Result{}, err
@@ -99,6 +99,6 @@ func (r *KubeadmConfigReconciler) Reconcile(req ctrl.Request) (ctrl.Result, erro
 // SetupWithManager TODO
 func (r *KubeadmConfigReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewControllerManagedBy(mgr).
-		For(&kubeadmv1alpha1.KubeadmConfig{}).
+		For(&kubeadmv1alpha2.KubeadmConfig{}).
 		Complete(r)
 }

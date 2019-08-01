@@ -3,5 +3,5 @@ domain: cluster.x-k8s.io
 repo: sigs.k8s.io/cluster-api-bootstrap-provider-kubeadm
 resources:
 - group: bootstrap
-  version: v1alpha1
+  version: v1alpha2
   kind: KubeadmConfig

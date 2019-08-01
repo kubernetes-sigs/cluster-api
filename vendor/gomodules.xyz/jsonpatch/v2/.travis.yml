@@ -1,0 +1,17 @@
+language: go
+go:
+ - 1.x
+ - tip
+
+go_import_path: gomodules.xyz/jsonpatch
+
+cache:
+  directories:
+  - $HOME/.cache/go-build
+  - $GOPATH/pkg/mod
+
+env:
+  - GO111MODULE=on
+
+script:
+ - go test -v

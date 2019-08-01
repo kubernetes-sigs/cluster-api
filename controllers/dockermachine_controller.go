@@ -20,14 +20,12 @@ import (
 	"context"
 
 	"github.com/go-logr/logr"
-	"k8s.io/apimachinery/pkg/runtime/schema"
-	"k8s.io/apimachinery/pkg/types"
 	infrastructurev1alpha2 "sigs.k8s.io/cluster-api-provider-docker/api/v1alpha2"
 	capiv1alpha2 "sigs.k8s.io/cluster-api/pkg/apis/cluster/v1alpha2"
+	"sigs.k8s.io/cluster-api/pkg/util"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/handler"
-	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 	"sigs.k8s.io/controller-runtime/pkg/source"
 )
 
@@ -63,34 +61,10 @@ func (r *DockerMachineReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewControllerManagedBy(mgr).
 		For(&infrastructurev1alpha2.DockerMachine{}).
 		Watches(
-			&source.Kind{Type: &infrastructurev1alpha2.DockerMachine{}},
+			&source.Kind{Type: &capiv1alpha2.Machine{}},
 			&handler.EnqueueRequestsFromMapFunc{
-				ToRequests: MachineToDockerMachine(capiv1alpha2.SchemeGroupVersion.WithKind("Machine")),
+				ToRequests: util.MachineToInfrastructureMapFunc(infrastructurev1alpha2.GroupVersion.WithKind("DockerMachine")),
 			},
 		).
 		Complete(r)
-}
-
-// MachineToDockerMachine watches v1alpha2 machines and enqueues associated DockerMachines
-func MachineToDockerMachine(gvk schema.GroupVersionKind) handler.ToRequestsFunc {
-	return func(mo handler.MapObject) []reconcile.Request {
-		m, ok := mo.Object.(*capiv1alpha2.Machine)
-		if !ok {
-			return nil
-		}
-
-		infraRef := m.Spec.InfrastructureRef
-
-		if gvk != infraRef.GroupVersionKind() {
-			return nil
-		}
-		return []reconcile.Request{
-			{
-				NamespacedName: types.NamespacedName{
-					Namespace: m.Namespace,
-					Name:      m.Spec.InfrastructureRef.Name,
-				},
-			},
-		}
-	}
 }

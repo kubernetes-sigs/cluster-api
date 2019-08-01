@@ -281,6 +281,17 @@ func EnsureOwnerRef(ownerReferences []metav1.OwnerReference, ref metav1.OwnerRef
 	return ownerReferences
 }
 
+// PointsTo returns true if any of the owner references point to the given target
+func PointsTo(refs []metav1.OwnerReference, target *metav1.ObjectMeta) bool {
+	for _, ref := range refs {
+		if ref.UID == target.UID {
+			return true
+		}
+	}
+
+	return false
+}
+
 // UnstructuredUnmarshalField is a wrapper around json and unstructured objects to decode and copy a specific field
 // value into an object.
 func UnstructuredUnmarshalField(obj *unstructured.Unstructured, v interface{}, fields ...string) error {

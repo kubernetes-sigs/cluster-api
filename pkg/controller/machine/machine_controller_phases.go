@@ -248,8 +248,12 @@ func (r *ReconcileMachine) reconcileInfrastructure(ctx context.Context, m *v1alp
 	}
 
 	// Get and set Status.Addresses from the infrastructure provider.
-	if err := util.UnstructuredUnmarshalField(infraConfig, &m.Status.Addresses, "status", "addresses"); err != nil {
-		return errors.Wrapf(err, "failed to retrieve addresses from infrastructure provider for Machine %q in namespace %q", m.Name, m.Namespace)
+	err = util.UnstructuredUnmarshalField(infraConfig, &m.Status.Addresses, "status", "addresses")
+
+	if err != nil {
+		if err != util.ErrUnstructuredFieldNotFound {
+			return errors.Wrapf(err, "failed to retrieve addresses from infrastructure provider for Machine %q in namespace %q", m.Name, m.Namespace)
+		}
 	}
 
 	m.Spec.ProviderID = pointer.StringPtr(providerID)

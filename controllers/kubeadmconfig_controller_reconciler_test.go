@@ -21,6 +21,7 @@ import (
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
+	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/cluster-api-bootstrap-provider-kubeadm/api/v1alpha2"
@@ -49,6 +50,14 @@ var _ = Describe("KubeadmConfigReconciler", func() {
 						clusterv1alpha2.MachineClusterLabelName: "my-cluster",
 					},
 				},
+				Spec: clusterv1alpha2.MachineSpec{
+					Bootstrap: clusterv1alpha2.Bootstrap{
+						ConfigRef: &v1.ObjectReference{
+							Kind: "KubeadmConfig",
+							APIVersion: "v1alpha2",
+						},
+					},
+				},
 			}
 			config := &v1alpha2.KubeadmConfig{
 				ObjectMeta: metav1.ObjectMeta{
@@ -56,8 +65,8 @@ var _ = Describe("KubeadmConfigReconciler", func() {
 					Name:      "my-config",
 					OwnerReferences: []metav1.OwnerReference{
 						{
-							Kind:       machineKind,
-							APIVersion: "v1alpha2",
+							Kind:       "Machine",
+							APIVersion: clusterv1alpha2.SchemeGroupVersion.String(),
 							Name:       "my-machine",
 							UID:        "a uid",
 						},

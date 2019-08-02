@@ -1,8 +1,13 @@
 # Build the manager binary
-FROM golang:1.12.6 as builder
+FROM golang:1.12.7
+
+# default the go proxy
+ARG goproxy=https://proxy.golang.org
+
+# run this with docker build --build_arg $(go env GOPROXY) to override the goproxy
+ENV GOPROXY=$goproxy
 
 WORKDIR /workspace
-# Copy the Go Modules manifests
 COPY go.mod go.mod
 COPY go.sum go.sum
 # cache deps before building and copying source so that we don't need to re-download as much
@@ -15,12 +20,12 @@ COPY api/ api/
 COPY controllers/ controllers/
 COPY kubeadm/ kubeadm/
 
-# Build
-RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 GO111MODULE=on go build -a -o manager main.go
+# Allow containerd to restart pods by calling /restart.sh (mostly for tilt + fast dev cycles)
+# TODO: Remove this on prod and use a multi-stage build
+COPY third_party/forked/rerun-process-wrapper/start.sh /start.sh
+COPY third_party/forked/rerun-process-wrapper/restart.sh /restart.sh
 
-# Use distroless as minimal base image to package the manager binary
-# Refer to https://github.com/GoogleContainerTools/distroless for more details
-FROM gcr.io/distroless/static:latest
-WORKDIR /
-COPY --from=builder /workspace/manager .
-ENTRYPOINT ["/manager"]
+# Build and run
+RUN go install -v .
+RUN mv /go/bin/cluster-api-bootstrap-provider-kubeadm /manager
+ENTRYPOINT ["/start.sh", "/manager"]

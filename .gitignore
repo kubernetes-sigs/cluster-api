@@ -17,6 +17,7 @@ bin
 
 !vendor/**/zz_generated.*
 config/samples
+manager_image_patch.yaml-e
 
 # editor and IDE paraphernalia
 .idea

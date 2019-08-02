@@ -1,3 +1,7 @@
+# TODO: use go env GOPROXY here
+# Allow users to override during make or default if unset
+GOPROXY ?= https://proxy.golang.org
+export GOPROXY
 
 REGISTRY ?= gcr.io/$(shell gcloud config get-value project)
 # A release does not need to define this
@@ -80,7 +84,7 @@ docker-push:
 .PHONY: controller-gen
 controller-gen:
 ifeq (, $(shell which controller-gen))
-	./hack/install-controller-runtime.sh
+	GO111MODULE=on go get sigs.k8s.io/controller-tools/cmd/controller-gen@$(shell go mod download -json sigs.k8s.io/controller-runtime | jq -r .Version)
 CONTROLLER_GEN=$(shell go env GOPATH)/bin/controller-gen
 else
 CONTROLLER_GEN=$(shell which controller-gen)

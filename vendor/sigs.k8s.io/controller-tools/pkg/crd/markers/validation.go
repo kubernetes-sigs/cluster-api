@@ -78,7 +78,12 @@ func init() {
 	AllDefinitions = append(AllDefinitions, ValidationMarkers...)
 
 	for _, def := range ValidationMarkers {
-		typDef := *def
+		newDef := *def.Definition
+		// copy both parts so we don't change the definition
+		typDef := definitionWithHelp{
+			Definition: &newDef,
+			Help:       def.Help,
+		}
 		typDef.Target = markers.DescribesType
 		AllDefinitions = append(AllDefinitions, &typDef)
 	}

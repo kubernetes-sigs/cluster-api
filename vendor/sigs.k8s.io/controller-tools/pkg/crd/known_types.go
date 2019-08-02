@@ -35,6 +35,10 @@ var KnownPackages = map[string]PackageOverride{
 			Type:   "string",
 			Format: "date-time",
 		}
+		p.Schemata[TypeIdent{Name: "MicroTime", Package: pkg}] = apiext.JSONSchemaProps{
+			Type:   "string",
+			Format: "date-time",
+		}
 		p.Schemata[TypeIdent{Name: "Duration", Package: pkg}] = apiext.JSONSchemaProps{
 			// TODO(directxman12): regexp validation for this (or get kube to support it as a format value)
 			Type: "string",

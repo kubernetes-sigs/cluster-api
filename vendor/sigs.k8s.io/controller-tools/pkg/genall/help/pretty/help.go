@@ -164,6 +164,7 @@ func MarkerSyntaxHelp(def help.MarkerDoc) Span {
 
 	for _, arg := range def.Fields {
 		out.Print(fieldStyle.Containing(fieldSyntaxHelp(arg, sep)))
+		sep = ","
 	}
 
 	return out

@@ -200,6 +200,11 @@ func ClusterToInfrastructureMapFunc(gvk schema.GroupVersionKind) handler.ToReque
 			return nil
 		}
 
+		// Return early if the InfrastructureRef is nil.
+		if c.Spec.InfrastructureRef == nil {
+			return nil
+		}
+
 		// Return early if the GroupVersionKind doesn't match what we expect.
 		infraGVK := c.Spec.InfrastructureRef.GroupVersionKind()
 		if gvk != infraGVK {

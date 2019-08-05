@@ -68,9 +68,9 @@ func (mo *machineDeploymentOptions) initFlags(fs *flag.FlagSet) {
 }
 
 type platformOptions struct {
-	bootstrapRef, bootstrapImage           *string
-	clusterAPIRef, clusterAPIImage         *string
-	infrastructureRef, infrastructureImage *string
+	bootstrapRef, bootstrapImage           string
+	clusterAPIRef, clusterAPIImage         string
+	infrastructureRef, infrastructureImage string
 }
 
 func gitRefUsage(kind string) string {
@@ -81,18 +81,12 @@ func imageUsage(kind string) string {
 }
 
 func (po *platformOptions) initFlags(fs *flag.FlagSet) {
-	fs.StringVar(po.bootstrapRef, "bootstrap-provider-ref", "master", gitRefUsage("bootstrap"))
-	fs.StringVar(po.bootstrapRef, "bp-ref", "master", gitRefUsage("bootstrap")+" (shorthand)")
-	fs.StringVar(po.bootstrapImage, "bootstrap-provider-image", "", imageUsage("bootstrap"))
-	fs.StringVar(po.bootstrapImage, "bp-image", "", imageUsage("bootstrap")+" (shorthand)")
-	fs.StringVar(po.clusterAPIRef, "cluster-api-ref", "master", gitRefUsage("Cluster API"))
-	fs.StringVar(po.clusterAPIRef, "capi-ref", "master", gitRefUsage("Cluster API")+" (shorthand)")
-	fs.StringVar(po.clusterAPIImage, "cluster-api-image", "", imageUsage("Cluster API"))
-	fs.StringVar(po.clusterAPIImage, "capi-image", "", imageUsage("Cluster API")+" (shorthand)")
-	fs.StringVar(po.infrastructureRef, "infrastructure-provider-ref", "master", gitRefUsage("infrastructure"))
-	fs.StringVar(po.infrastructureRef, "ip-ref", "master", gitRefUsage("infrastructure")+" (shorthand)")
-	fs.StringVar(po.infrastructureImage, "infrastructure-provider-image", "", imageUsage("infrastructure"))
-	fs.StringVar(po.infrastructureImage, "ip-image", "", imageUsage("infrastructure")+" (shorthand)")
+	fs.StringVar(&po.bootstrapRef, "bootstrap-provider-ref", "master", gitRefUsage("bootstrap"))
+	fs.StringVar(&po.bootstrapImage, "bootstrap-provider-image", "", imageUsage("bootstrap"))
+	fs.StringVar(&po.clusterAPIRef, "cluster-api-ref", "master", gitRefUsage("Cluster API"))
+	fs.StringVar(&po.clusterAPIImage, "cluster-api-image", "", imageUsage("Cluster API"))
+	fs.StringVar(&po.infrastructureRef, "infrastructure-provider-ref", "master", gitRefUsage("infrastructure"))
+	fs.StringVar(&po.infrastructureImage, "infrastructure-provider-image", "", imageUsage("infrastructure"))
 }
 
 func addClusterName(fs *flag.FlagSet) *string {
@@ -154,12 +148,12 @@ func main() {
 	case "platform":
 		checkErr(platform.Parse(os.Args[2:]))
 		objs, err := objects.GetManagementCluster(
-			*platformOpts.clusterAPIImage,
-			*platformOpts.clusterAPIRef,
-			*platformOpts.infrastructureImage,
-			*platformOpts.infrastructureRef,
-			*platformOpts.bootstrapImage,
-			*platformOpts.bootstrapRef)
+			platformOpts.clusterAPIImage,
+			platformOpts.clusterAPIRef,
+			platformOpts.infrastructureImage,
+			platformOpts.infrastructureRef,
+			platformOpts.bootstrapImage,
+			platformOpts.bootstrapRef)
 		checkErr(err)
 		checkErr(printAll(objs))
 	case "control-plane":
@@ -264,7 +258,7 @@ func applyControlPlane(clusterName string, options *platformOptions) error {
 	if err != nil {
 		return err
 	}
-	objs, err := objects.GetManagementCluster(*options.clusterAPIImage, *options.clusterAPIRef, *options.infrastructureImage, *options.infrastructureRef, *options.bootstrapImage, *options.bootstrapRef)
+	objs, err := objects.GetManagementCluster(options.clusterAPIImage, options.clusterAPIRef, options.infrastructureImage, options.infrastructureRef, options.bootstrapImage, options.bootstrapRef)
 	if err != nil {
 		return err
 	}

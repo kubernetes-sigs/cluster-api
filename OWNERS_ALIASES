@@ -13,3 +13,12 @@ aliases:
     - justinsb
     - detiber
     - vincepri
+  cluster-api-bootstrap-provider-kubeadm-maintainers:
+    - chuckha
+    - fabriziopandini
+    - ncdc
+  cluster-api-bootstrap-provider-kubeadm-reviewers:
+    - chuckha
+    - fabriziopandini
+    - ncdc
+    - SataQiu

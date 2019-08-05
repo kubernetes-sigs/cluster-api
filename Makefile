@@ -15,7 +15,9 @@ MANAGER_IMAGE ?= $(REGISTRY)/$(MANAGER_IMAGE_NAME):$(MANAGER_IMAGE_TAG)
 # Produce CRDs that work back to Kubernetes 1.11 (no version conversion)
 CRD_OPTIONS ?= "crd:trivialVersions=true"
 
-CONTROLLER_GEN := bin/controller-gen
+TOOLS_DIR := hack/tools
+CONTROLLER_GEN_BIN := bin/controller-gen
+CONTROLLER_GEN := $(TOOLS_DIR)/$(CONTROLLER_GEN_BIN)
 
 # Active module mode, as we use go modules to manage dependencies
 export GO111MODULE=on
@@ -82,7 +84,5 @@ docker-push:
 	docker push ${MANAGER_IMAGE}
 
 # Build controller-gen
-# Marking this as PHONY so it will build every time (so you always have the correct version locally)
-.PHONY: $(CONTROLLER_GEN)
-$(CONTROLLER_GEN):
-	go build -o $(CONTROLLER_GEN) sigs.k8s.io/controller-tools/cmd/controller-gen
+$(CONTROLLER_GEN): $(TOOLS_DIR)/go.mod
+	cd $(TOOLS_DIR) && go build -o $(CONTROLLER_GEN_BIN) sigs.k8s.io/controller-tools/cmd/controller-gen

@@ -29,6 +29,8 @@ type DockerMachineSpec struct {
 
 // DockerMachineStatus defines the observed state of DockerMachine
 type DockerMachineStatus struct {
+	// Ready denotes that the docker infrastructure is ready
+	Ready bool `json:"ready"`
 }
 
 // +kubebuilder:object:root=true

@@ -11,38 +11,53 @@ rules:
   resources:
   - dockerclusters
   verbs:
-  - create
-  - delete
   - get
   - list
-  - patch
-  - update
   - watch
+  - create
+  - update
+  - patch
+  - delete
 - apiGroups:
   - infrastructure.cluster.x-k8s.io
   resources:
   - dockerclusters/status
   verbs:
   - get
-  - patch
   - update
+  - patch
 - apiGroups:
   - infrastructure.cluster.x-k8s.io
   resources:
   - dockermachines
   verbs:
-  - create
-  - delete
   - get
   - list
-  - patch
-  - update
   - watch
+  - create
+  - update
+  - patch
+  - delete
 - apiGroups:
   - infrastructure.cluster.x-k8s.io
   resources:
   - dockermachines/status
   verbs:
   - get
-  - patch
   - update
+  - patch
+- apiGroups:
+  - cluster.x-k8s.io
+  resources:
+  - clusters
+  - machines
+  verbs:
+  - get
+  - list
+  - watch
+- apiGroups:
+  - ""
+  resources:
+  - secrets
+  verbs:
+  - create

@@ -108,15 +108,30 @@ func (r *KubeadmConfigReconciler) Reconcile(req ctrl.Request) (ctrl.Result, erro
 		return ctrl.Result{}, err
 	}
 
+	// Store Config's state, pre-modifications, to allow patching
+	patchConfig := client.MergeFrom(config.DeepCopy())
+
 	// maybe do something with cluster some day
 	// maybe do something interesting here some day
 	config.Status.BootstrapData = []byte("hello world")
 	config.Status.Ready = true
 
-	if err := r.Update(ctx, &config); err != nil {
+	// TODO(ncdc): remove this once we've updated to a version of controller-runtime with
+	// https://github.com/kubernetes-sigs/controller-runtime/issues/526.
+	gvk := config.GroupVersionKind()
+	if err := r.Patch(ctx, &config, patchConfig); err != nil {
 		log.Error(err, "failed to update config")
 		return ctrl.Result{}, err
 	}
+
+	// TODO(ncdc): remove this once we've updated to a version of controller-runtime with
+	// https://github.com/kubernetes-sigs/controller-runtime/issues/526.
+	config.SetGroupVersionKind(gvk)
+	if err := r.Status().Patch(ctx, &config, patchConfig); err != nil {
+		log.Error(err, "failed to update config status")
+		return ctrl.Result{}, err
+	}
+
 	log.Info("Updated config with bootstrap data")
 	return ctrl.Result{}, nil
 }

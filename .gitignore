@@ -1,7 +1,3 @@
-capdctl
-capd-manager
-kind-test
-
 # invalid samples.
 config/samples
 
@@ -13,3 +9,4 @@ config/samples
 
 # ignore build output
 dist
+bin

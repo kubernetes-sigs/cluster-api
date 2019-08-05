@@ -19,6 +19,12 @@ TOOLS_DIR := hack/tools
 CONTROLLER_GEN_BIN := bin/controller-gen
 CONTROLLER_GEN := $(TOOLS_DIR)/$(CONTROLLER_GEN_BIN)
 
+# Allow overriding manifest generation destination directory
+MANIFEST_ROOT ?= "config"
+CRD_ROOT ?= "$(MANIFEST_ROOT)/crd/bases"
+WEBHOOK_ROOT ?= "$(MANIFEST_ROOT)/webhook"
+RBAC_ROOT ?= "$(MANIFEST_ROOT)/rbac"
+
 # Active module mode, as we use go modules to manage dependencies
 export GO111MODULE=on
 
@@ -54,7 +60,7 @@ deploy: manifests
 # Generate manifests e.g. CRD, RBAC etc.
 .PHONY: manifests
 manifests: $(CONTROLLER_GEN)
-	$(CONTROLLER_GEN) $(CRD_OPTIONS) rbac:roleName=manager-role webhook paths="./..." output:crd:artifacts:config=config/crd/bases
+	$(CONTROLLER_GEN) $(CRD_OPTIONS) rbac:roleName=manager-role webhook paths="./..." output:crd:dir=$(CRD_ROOT) output:webhook:dir=$(WEBHOOK_ROOT) output:rbac:dir=$(RBAC_ROOT)
 
 # Run go fmt against code
 .PHONY: fmt

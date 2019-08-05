@@ -30,6 +30,32 @@ spec:
         spec:
           description: KubeadmConfigSpec defines the desired state of KubeadmConfig
           properties:
+            additionalUserDataFiles:
+              description: AdditionalUserDataFiles specifies extra files to be passed
+                to user_data upon creation.
+              items:
+                description: Files defines the input for generating write_files in
+                  cloud-init.
+                properties:
+                  content:
+                    description: Content is the actual content of the file.
+                    type: string
+                  owner:
+                    description: Owner specifies the ownership of the file, e.g. "root:root".
+                    type: string
+                  path:
+                    description: Path specifies the full path on disk where to store
+                      the file.
+                    type: string
+                  permissions:
+                    description: Permissions specifies the permissions to assign to
+                      the file, e.g. "0640".
+                    type: string
+                required:
+                - content
+                - path
+                type: object
+              type: array
             clusterConfiguration:
               description: ClusterConfiguration contains cluster-wide configuration
                 for a kubeadm cluster

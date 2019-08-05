@@ -18,6 +18,7 @@ package cloudinit
 
 import (
 	"bytes"
+	"sigs.k8s.io/cluster-api-bootstrap-provider-kubeadm/api/v1alpha2"
 	"text/template"
 
 	"github.com/pkg/errors"
@@ -33,8 +34,8 @@ const (
 type BaseUserData struct {
 	Header             string
 	AdditionalCommands []string
-	AdditionalFiles    []Files
-	WriteFiles         []Files
+	AdditionalFiles    []v1alpha2.Files
+	WriteFiles         []v1alpha2.Files
 }
 
 func generate(kind string, tpl string, data interface{}) (string, error) {

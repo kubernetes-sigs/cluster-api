@@ -26,6 +26,9 @@ type KubeadmConfigSpec struct {
 	ClusterConfiguration kubeadmv1beta1.ClusterConfiguration `json:"clusterConfiguration"`
 	InitConfiguration    kubeadmv1beta1.InitConfiguration    `json:"initConfiguration,omitempty"`
 	JoinConfiguration    kubeadmv1beta1.JoinConfiguration    `json:"joinConfiguration,omitempty"`
+	// AdditionalUserDataFiles specifies extra files to be passed to user_data upon creation.
+	// +optional
+	AdditionalUserDataFiles []Files `json:"additionalUserDataFiles,omitempty"`
 }
 
 // KubeadmConfigStatus defines the observed state of KubeadmConfig
@@ -60,4 +63,21 @@ type KubeadmConfigList struct {
 
 func init() {
 	SchemeBuilder.Register(&KubeadmConfig{}, &KubeadmConfigList{})
+}
+
+// Files defines the input for generating write_files in cloud-init.
+type Files struct {
+	// Path specifies the full path on disk where to store the file.
+	Path string `json:"path"`
+
+	// Owner specifies the ownership of the file, e.g. "root:root".
+	// +optional
+	Owner string `json:"owner,omitempty"`
+
+	// Permissions specifies the permissions to assign to the file, e.g. "0640".
+	// +optional
+	Permissions string `json:"permissions,omitempty"`
+
+	// Content is the actual content of the file.
+	Content string `json:"content"`
 }

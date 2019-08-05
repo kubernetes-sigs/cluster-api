@@ -16,7 +16,10 @@ limitations under the License.
 
 package cloudinit
 
-import "errors"
+import (
+	"errors"
+	"sigs.k8s.io/cluster-api-bootstrap-provider-kubeadm/api/v1alpha2"
+)
 
 // Certificates is a template struct to hold certificate data
 type Certificates struct {
@@ -50,8 +53,8 @@ func (cpi *Certificates) validate() error {
 	return nil
 }
 
-func certificatesToFiles(input Certificates) []Files {
-	return []Files{
+func certificatesToFiles(input Certificates) []v1alpha2.Files {
+	return []v1alpha2.Files{
 		{
 			Path:        "/etc/kubernetes/pki/ca.crt",
 			Owner:       rootOwnerValue,

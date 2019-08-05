@@ -1,5 +1,5 @@
-# TODO: use go env GOPROXY here
-# Allow users to override during make or default if unset
+# Use GOPROXY environment variable if set
+GOPROXY := $(shell go env GOPROXY)
 GOPROXY ?= https://proxy.golang.org
 export GOPROXY
 

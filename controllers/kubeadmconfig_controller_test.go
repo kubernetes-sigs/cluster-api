@@ -77,9 +77,9 @@ func TestSuccessfulReconcileShouldNotRequeue(t *testing.T) {
 				Name:      "cfg",
 				OwnerReferences: []metav1.OwnerReference{
 					{
-						Kind: "Machine",
+						Kind:       "Machine",
 						APIVersion: v1alpha2.SchemeGroupVersion.String(),
-						Name: "my-machine",
+						Name:       "my-machine",
 					},
 				},
 			},

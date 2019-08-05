@@ -53,7 +53,7 @@ var _ = Describe("KubeadmConfigReconciler", func() {
 				Spec: clusterv1alpha2.MachineSpec{
 					Bootstrap: clusterv1alpha2.Bootstrap{
 						ConfigRef: &v1.ObjectReference{
-							Kind: "KubeadmConfig",
+							Kind:       "KubeadmConfig",
 							APIVersion: "v1alpha2",
 						},
 					},

@@ -15,6 +15,8 @@ MANAGER_IMAGE ?= $(REGISTRY)/$(MANAGER_IMAGE_NAME):$(MANAGER_IMAGE_TAG)
 # Produce CRDs that work back to Kubernetes 1.11 (no version conversion)
 CRD_OPTIONS ?= "crd:trivialVersions=true"
 
+CONTROLLER_GEN := bin/controller-gen
+
 # Active module mode, as we use go modules to manage dependencies
 export GO111MODULE=on
 
@@ -49,7 +51,7 @@ deploy: manifests
 
 # Generate manifests e.g. CRD, RBAC etc.
 .PHONY: manifests
-manifests: controller-gen
+manifests: $(CONTROLLER_GEN)
 	$(CONTROLLER_GEN) $(CRD_OPTIONS) rbac:roleName=manager-role webhook paths="./..." output:crd:artifacts:config=config/crd/bases
 
 # Run go fmt against code
@@ -64,7 +66,7 @@ vet:
 
 # Generate code
 .PHONY: generate
-generate: controller-gen
+generate: $(CONTROLLER_GEN)
 	$(CONTROLLER_GEN) object:headerFile=./hack/boilerplate.go.txt paths=./api/...
 
 # Build the docker image
@@ -79,13 +81,8 @@ docker-build: test
 docker-push:
 	docker push ${MANAGER_IMAGE}
 
-# find or download controller-gen
-# download controller-gen if necessary
-.PHONY: controller-gen
-controller-gen:
-ifeq (, $(shell which controller-gen))
-	GO111MODULE=on go get sigs.k8s.io/controller-tools/cmd/controller-gen@$(shell go mod download -json sigs.k8s.io/controller-runtime | jq -r .Version)
-CONTROLLER_GEN=$(shell go env GOPATH)/bin/controller-gen
-else
-CONTROLLER_GEN=$(shell which controller-gen)
-endif
+# Build controller-gen
+# Marking this as PHONY so it will build every time (so you always have the correct version locally)
+.PHONY: $(CONTROLLER_GEN)
+$(CONTROLLER_GEN):
+	go build -o $(CONTROLLER_GEN) sigs.k8s.io/controller-tools/cmd/controller-gen

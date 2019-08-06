@@ -33,7 +33,10 @@ Run: `./scripts/publish-manager.sh`
 
 #### Using Docker
 
-Alternatively, run: `REGISTRY=<MY_REGISTRY> ./scripts/publish-manager.sh`
+Alternatively, to publish the manager container image to your pre-existing custom container registry, run:
+`REGISTRY=<MY_REGISTRY> ./scripts/publish-manager.sh`
+
+_NOTE_: You should have run `docker login` to login to your custom container registry.
 
 ## Trying CAPD
 

@@ -33,6 +33,9 @@ type KubeadmConfigSpec struct {
 	// JoinConfiguration is the kubeadm configuration for the join command
 	// +optional
 	JoinConfiguration *kubeadmv1beta1.JoinConfiguration `json:"joinConfiguration,omitempty"`
+	// AdditionalUserDataFiles specifies extra files to be passed to user_data upon creation.
+	// +optional
+	AdditionalUserDataFiles []Files `json:"additionalUserDataFiles,omitempty"`
 }
 
 // KubeadmConfigStatus defines the observed state of KubeadmConfig

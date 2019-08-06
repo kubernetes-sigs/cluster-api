@@ -7,46 +7,6 @@ metadata:
   name: manager-role
 rules:
 - apiGroups:
-  - infrastructure.cluster.x-k8s.io
-  resources:
-  - dockerclusters
-  verbs:
-  - get
-  - list
-  - watch
-  - create
-  - update
-  - patch
-  - delete
-- apiGroups:
-  - infrastructure.cluster.x-k8s.io
-  resources:
-  - dockerclusters/status
-  verbs:
-  - get
-  - update
-  - patch
-- apiGroups:
-  - infrastructure.cluster.x-k8s.io
-  resources:
-  - dockermachines
-  verbs:
-  - get
-  - list
-  - watch
-  - create
-  - update
-  - patch
-  - delete
-- apiGroups:
-  - infrastructure.cluster.x-k8s.io
-  resources:
-  - dockermachines/status
-  verbs:
-  - get
-  - update
-  - patch
-- apiGroups:
   - cluster.x-k8s.io
   resources:
   - clusters
@@ -61,3 +21,43 @@ rules:
   - secrets
   verbs:
   - create
+- apiGroups:
+  - infrastructure.cluster.x-k8s.io
+  resources:
+  - dockerclusters
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - infrastructure.cluster.x-k8s.io
+  resources:
+  - dockerclusters/status
+  verbs:
+  - get
+  - patch
+  - update
+- apiGroups:
+  - infrastructure.cluster.x-k8s.io
+  resources:
+  - dockermachines
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - infrastructure.cluster.x-k8s.io
+  resources:
+  - dockermachines/status
+  verbs:
+  - get
+  - patch
+  - update

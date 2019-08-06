@@ -31,8 +31,8 @@ type DockerClusterSpec struct {
 
 // DockerClusterStatus defines the observed state of DockerCluster
 type DockerClusterStatus struct {
-	// INSERT ADDITIONAL STATUS FIELD - define observed state of cluster
-	// Important: Run "make" to regenerate code after modifying this file
+	// Ready denotes that the docker cluster (infrastructure) is ready
+	Ready bool `json:"ready"`
 }
 
 // +kubebuilder:object:root=true

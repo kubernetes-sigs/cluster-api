@@ -29,7 +29,7 @@ type DockerMachineSpec struct {
 
 // DockerMachineStatus defines the observed state of DockerMachine
 type DockerMachineStatus struct {
-	// Ready denotes that the docker infrastructure is ready
+	// Ready denotes that the machine (docker container) is ready
 	Ready bool `json:"ready"`
 }
 

@@ -17,10 +17,7 @@ limitations under the License.
 package controllers
 
 import (
-	"context"
-	"errors"
 	"fmt"
-	"reflect"
 	"testing"
 	"time"
 
@@ -30,50 +27,22 @@ import (
 	kubeadmv1alpha2 "sigs.k8s.io/cluster-api-bootstrap-provider-kubeadm/api/v1alpha2"
 	"sigs.k8s.io/cluster-api/pkg/apis/cluster/v1alpha2"
 	ctrl "sigs.k8s.io/controller-runtime"
-	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 	"sigs.k8s.io/controller-runtime/pkg/runtime/log"
 )
 
-type myClient struct {
-	db map[string]runtime.Object
-}
-
-// Very basic implementation of copying pointers of interfaces around, stolen from controller runtime
-func (c *myClient) Get(ctx context.Context, key client.ObjectKey, out runtime.Object) error {
-	obj, ok := c.db[key.String()]
-	if !ok {
-		return errors.New("object not found")
-	}
-	obj = obj.(runtime.Object).DeepCopyObject()
-	outVal := reflect.ValueOf(out)
-	objVal := reflect.ValueOf(obj)
-	reflect.Indirect(outVal).Set(reflect.Indirect(objVal))
-	return nil
-}
-func (c *myClient) List(ctx context.Context, list runtime.Object, opts ...client.ListOptionFunc) error {
-	return nil
-}
-func (c *myClient) Create(ctx context.Context, obj runtime.Object, opts ...client.CreateOptionFunc) error {
-	return nil
-}
-func (c *myClient) Delete(ctx context.Context, obj runtime.Object, opts ...client.DeleteOptionFunc) error {
-	return nil
-}
-func (c *myClient) Update(ctx context.Context, obj runtime.Object, opts ...client.UpdateOptionFunc) error {
-	return nil
-}
-func (c *myClient) Patch(ctx context.Context, obj runtime.Object, patch client.Patch, opts ...client.PatchOptionFunc) error {
-	return nil
-}
-func (c *myClient) Status() client.StatusWriter {
-	return c
+func setupScheme() *runtime.Scheme {
+	scheme := runtime.NewScheme()
+	v1alpha2.AddToScheme(scheme)
+	kubeadmv1alpha2.AddToScheme(scheme)
+	return scheme
 }
 
 func TestSuccessfulReconcileShouldNotRequeue(t *testing.T) {
-	objects := map[string]runtime.Object{
-		"ns/cfg": &kubeadmv1alpha2.KubeadmConfig{
+	objects := []runtime.Object{
+		&kubeadmv1alpha2.KubeadmConfig{
 			ObjectMeta: metav1.ObjectMeta{
-				Namespace: "ns",
+				Namespace: "default",
 				Name:      "cfg",
 				OwnerReferences: []metav1.OwnerReference{
 					{
@@ -84,7 +53,7 @@ func TestSuccessfulReconcileShouldNotRequeue(t *testing.T) {
 				},
 			},
 		},
-		"ns/my-machine": &v1alpha2.Machine{
+		&v1alpha2.Machine{
 			ObjectMeta: metav1.ObjectMeta{
 				Namespace: "default",
 				Name:      "my-machine",
@@ -93,8 +62,13 @@ func TestSuccessfulReconcileShouldNotRequeue(t *testing.T) {
 				},
 			},
 		},
-		"ns/my-cluster": &v1alpha2.Cluster{
+		&v1alpha2.Cluster{
+			ObjectMeta: metav1.ObjectMeta{
+				Namespace: "default",
+				Name:      "my-cluster",
+			},
 			Status: v1alpha2.ClusterStatus{
+				InfrastructureReady: true,
 				APIEndpoints: []v1alpha2.APIEndpoint{
 					{
 						Host: "example.com",
@@ -104,9 +78,7 @@ func TestSuccessfulReconcileShouldNotRequeue(t *testing.T) {
 			},
 		},
 	}
-	myclient := &myClient{
-		db: objects,
-	}
+	myclient := fake.NewFakeClientWithScheme(setupScheme(), objects...)
 
 	k := &KubeadmConfigReconciler{
 		Log:    log.ZapLogger(true),
@@ -115,7 +87,7 @@ func TestSuccessfulReconcileShouldNotRequeue(t *testing.T) {
 
 	request := ctrl.Request{
 		NamespacedName: types.NamespacedName{
-			Namespace: "ns",
+			Namespace: "default",
 			Name:      "cfg",
 		},
 	}
@@ -132,19 +104,18 @@ func TestSuccessfulReconcileShouldNotRequeue(t *testing.T) {
 }
 
 func TestNoErrorIfNoMachineRefIsFound(t *testing.T) {
-	myclient := &myClient{
-		db: map[string]runtime.Object{
-			"ns/cfg": &kubeadmv1alpha2.KubeadmConfig{
-				ObjectMeta: metav1.ObjectMeta{
-					OwnerReferences: []metav1.OwnerReference{
-						{
-							Kind: "some non machine kind",
-						},
+	objects := []runtime.Object{
+		&kubeadmv1alpha2.KubeadmConfig{
+			ObjectMeta: metav1.ObjectMeta{
+				OwnerReferences: []metav1.OwnerReference{
+					{
+						Kind: "some non machine kind",
 					},
 				},
 			},
 		},
 	}
+	myclient := fake.NewFakeClientWithScheme(setupScheme(), objects...)
 
 	k := &KubeadmConfigReconciler{
 		Log:    log.ZapLogger(true),

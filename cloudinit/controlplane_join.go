@@ -41,7 +41,7 @@ type ControlPlaneJoinInput struct {
 
 	BootstrapToken      string
 	ControlPlaneAddress string
-	JoinConfiguration   []byte
+	JoinConfiguration   string
 }
 
 // NewJoinControlPlane returns the user data string to be used on a new control plane instance.

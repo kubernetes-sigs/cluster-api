@@ -18,6 +18,7 @@ package controllers
 
 import (
 	"context"
+	"time"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -57,7 +58,8 @@ var _ = Describe("KubeadmConfigReconciler", func() {
 					Bootstrap: clusterv1alpha2.Bootstrap{
 						ConfigRef: &v1.ObjectReference{
 							Kind:       "KubeadmConfig",
-							APIVersion: "v1alpha2",
+							APIVersion: v1alpha2.GroupVersion.String(),
+							Name:       "my-config",
 						},
 					},
 				},
@@ -93,7 +95,7 @@ var _ = Describe("KubeadmConfigReconciler", func() {
 			})
 			Expect(err).To(Succeed())
 			Expect(result.Requeue).To(BeFalse())
-			Expect(result.RequeueAfter).To(BeZero())
+			Expect(result.RequeueAfter).To(Equal(30 * time.Second))
 		})
 	})
 })

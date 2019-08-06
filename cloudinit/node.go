@@ -35,7 +35,7 @@ runcmd:
 type NodeInput struct {
 	BaseUserData
 
-	JoinConfiguration []byte
+	JoinConfiguration string
 }
 
 // NewNode returns the user data string to be used on a node instance.

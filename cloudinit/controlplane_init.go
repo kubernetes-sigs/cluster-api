@@ -38,8 +38,8 @@ type ControlPlaneInput struct {
 	BaseUserData
 	Certificates
 
-	ClusterConfiguration []byte
-	InitConfiguration    []byte
+	ClusterConfiguration string
+	InitConfiguration    string
 }
 
 // NewInitControlPlane returns the user data string to be used on a controlplane instance.

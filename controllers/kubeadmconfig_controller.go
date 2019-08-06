@@ -77,7 +77,7 @@ func (r *KubeadmConfigReconciler) Reconcile(req ctrl.Request) (ctrl.Result, erro
 	// Find the owner reference
 	var machineRef *v1.OwnerReference
 	for _, ref := range config.OwnerReferences {
-		if ref.Kind == machineKind.Kind && ref.APIVersion == machineKind.Version {
+		if ref.Kind == machineKind.Kind && ref.APIVersion == machineKind.GroupVersion().String() {
 			machineRef = &ref
 			break
 		}
@@ -137,8 +137,8 @@ func (r *KubeadmConfigReconciler) Reconcile(req ctrl.Request) (ctrl.Result, erro
 		}
 
 		cloudInitData, err := cloudinit.NewInitControlPlane(&cloudinit.ControlPlaneInput{
-			InitConfiguration:    initdata,
-			ClusterConfiguration: clusterdata,
+			InitConfiguration:    string(initdata),
+			ClusterConfiguration: string(clusterdata),
 		})
 		if err != nil {
 			log.Error(err, "failed to generate cloud init for bootstrap control plane")
@@ -173,7 +173,7 @@ func (r *KubeadmConfigReconciler) Reconcile(req ctrl.Request) (ctrl.Result, erro
 		joinData, err := cloudinit.NewJoinControlPlane(&cloudinit.ControlPlaneJoinInput{
 			// TODO do a len check or something here
 			ControlPlaneAddress: fmt.Sprintf("https://%s:%d", cluster.Status.APIEndpoints[0].Host, cluster.Status.APIEndpoints[0].Port),
-			JoinConfiguration:   joinBytes,
+			JoinConfiguration:   string(joinBytes),
 		})
 		if err != nil {
 			log.Error(err, "failed to create a control plane join configuration")
@@ -190,7 +190,7 @@ func (r *KubeadmConfigReconciler) Reconcile(req ctrl.Request) (ctrl.Result, erro
 	}
 
 	joinData, err := cloudinit.NewNode(&cloudinit.NodeInput{
-		JoinConfiguration: joinBytes,
+		JoinConfiguration: string(joinBytes),
 	})
 	if err != nil {
 		log.Error(err, "failed to create a worker join configuration")

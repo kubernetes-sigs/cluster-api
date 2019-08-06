@@ -24,6 +24,7 @@ import (
 
 	"github.com/pkg/errors"
 	k8sversion "k8s.io/apimachinery/pkg/util/version"
+	"sigs.k8s.io/cluster-api-provider-docker/cloudinit"
 	constkind "sigs.k8s.io/cluster-api-provider-docker/kind/constants"
 	"sigs.k8s.io/cluster-api-provider-docker/kind/kubeadm"
 	"sigs.k8s.io/cluster-api-provider-docker/third_party/forked/loadbalancer"
@@ -50,7 +51,8 @@ func KubeadmJoinControlPlane(clusterName string, node *nodes.Node) error {
 		return errors.Wrap(err, "failed to join node with kubeadm")
 	}
 
-	cmd := node.Command(
+	//TODO: cloudConfig should flow here from CPBPK or in case of the management cluster, from a constant
+	cmd := []string{
 		"kubeadm", "join",
 		joinipv4,
 		"--experimental-control-plane",
@@ -60,8 +62,10 @@ func KubeadmJoinControlPlane(clusterName string, node *nodes.Node) error {
 		"--certificate-key", strings.Repeat("a", 32),
 		"--v=6",
 		"--cri-socket=/run/containerd/containerd.sock",
-	)
-	lines, err := exec.CombinedOutputLines(cmd)
+	}
+	cloudConfig := []byte(fmt.Sprintf("runcmd:\n- [ %s ]", strings.Join(cmd, ", ")))
+
+	lines, err := cloudinit.Run(cloudConfig, node.Cmder())
 	if err != nil {
 		for _, line := range lines {
 			fmt.Println(line)
@@ -163,7 +167,8 @@ func KubeadmInit(clusterName, version string) error {
 		uploadCertsFlag = "--upload-certs"
 	}
 
-	cmd := node.Command(
+	//TODO: cloudConfig should flow here from CPBPK or in case of the management cluster, from a constant
+	cmd := []string{
 		"kubeadm", "init",
 		"--ignore-preflight-errors=all",
 		"--config=/kind/kubeadm.conf",
@@ -171,8 +176,10 @@ func KubeadmInit(clusterName, version string) error {
 		uploadCertsFlag,
 		"--certificate-key", strings.Repeat("a", 32),
 		"--v=6",
-	)
-	lines, err := exec.CombinedOutputLines(cmd)
+	}
+	cloudConfig := []byte(fmt.Sprintf("runcmd:\n- [ %s ]", strings.Join(cmd, ", ")))
+
+	lines, err := cloudinit.Run(cloudConfig, node.Cmder())
 	if err != nil {
 		for _, line := range lines {
 			fmt.Println(line)
@@ -239,7 +246,8 @@ func KubeadmJoin(clusterName string, node *nodes.Node) error {
 		return err
 	}
 
-	cmd := node.Command(
+	//TODO: cloudConfig should flow here from CPBPK or in case of the management cluster, from a constant
+	cmd := []string{
 		"kubeadm", "join",
 		joinipv4,
 		"--token", kubeadm.Token,
@@ -248,8 +256,10 @@ func KubeadmJoin(clusterName string, node *nodes.Node) error {
 		"--certificate-key", strings.Repeat("a", 32),
 		"--v=6",
 		"--cri-socket=/run/containerd/containerd.sock",
-	)
-	lines, err := exec.CombinedOutputLines(cmd)
+	}
+	cloudConfig := []byte(fmt.Sprintf("runcmd:\n- [ %s ]", strings.Join(cmd, ", ")))
+
+	lines, err := cloudinit.Run(cloudConfig, node.Cmder())
 	if err != nil {
 		for _, line := range lines {
 			fmt.Println(line)

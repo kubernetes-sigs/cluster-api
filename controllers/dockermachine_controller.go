@@ -78,7 +78,7 @@ func (r *DockerMachineReconciler) Reconcile(req ctrl.Request) (ctrl.Result, erro
 	// Find the owner reference
 	var machineRef *metav1.OwnerReference
 	for _, ref := range dockerMachine.OwnerReferences {
-		if ref.Kind == machineKind.Kind && ref.APIVersion == machineKind.Version {
+		if ref.Kind == machineKind.Kind && ref.APIVersion == machineKind.GroupVersion().String() {
 			machineRef = &ref
 			break
 		}

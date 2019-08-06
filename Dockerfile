@@ -22,10 +22,10 @@ COPY kubeadm/ kubeadm/
 
 # Allow containerd to restart pods by calling /restart.sh (mostly for tilt + fast dev cycles)
 # TODO: Remove this on prod and use a multi-stage build
-COPY third_party/forked/rerun-process-wrapper/start.sh /start.sh
-COPY third_party/forked/rerun-process-wrapper/restart.sh /restart.sh
+COPY third_party/forked/rerun-process-wrapper/start.sh .
+COPY third_party/forked/rerun-process-wrapper/restart.sh .
 
 # Build and run
 RUN go install -v .
 RUN mv /go/bin/cluster-api-bootstrap-provider-kubeadm /manager
-ENTRYPOINT ["/start.sh", "/manager"]
+ENTRYPOINT ["./start.sh", "/manager"]

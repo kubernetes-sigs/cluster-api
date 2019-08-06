@@ -15,7 +15,7 @@ set -u
 
 touch restart.txt
 PID="$(cat process.txt)"
-if [[ $? -ne 0 ]]; then
+if [ $? -ne 0 ]; then
   echo "unable to read process.txt. was your process started with start.sh?"
   exit 1
 fi

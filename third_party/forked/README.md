@@ -3,4 +3,4 @@
 
 Repo: https://github.com/windmilleng/rerun-process-wrapper
 
-Commit: `ddbd322bf4d1f74c0cd7cd0e8fd29260ada6c9fb`
+Commit: `fbdb45b229df173f862ee856b3070bf649d9dc0b`

@@ -42,8 +42,6 @@ import (
 )
 
 const (
-	containerRunningStatus = "running"
-
 	// label "set:controlplane" indicates a control plane node
 	clusterAPIControlPlaneSetLabel = "controlplane"
 )
@@ -115,21 +113,6 @@ func (r *DockerMachineReconciler) Reconcile(req ctrl.Request) (ctrl.Result, erro
 		return ctrl.Result{}, err
 	}
 
-	// creating loadbalancer
-	log.Info("Reconciling cluster")
-	elb, err := getExternalLoadBalancerNode(cluster.Name, log)
-	if err != nil {
-		log.Error(err, "Error getting external load balancer node")
-		return ctrl.Result{}, err
-	}
-	if elb == nil {
-		log.Info("External Load Balancer does not exist. Create ELB.")
-		_, err = actions.SetUpLoadBalancer(cluster.Name)
-		if err != nil {
-			return ctrl.Result{}, err
-		}
-	}
-
 	// create docker node
 	if dockerMachine.Spec.ProviderID != nil {
 		return ctrl.Result{}, nil
@@ -186,7 +169,7 @@ func (r *DockerMachineReconciler) create(
 	if setValue == clusterAPIControlPlaneSetLabel {
 		// joining controlplane
 		if len(controlPlanes) > 0 {
-			r.Log.Info("Adding a control plane")
+			r.Log.Info("Adding a control plane node", "machine-name", machine.GetName(), "cluster-name", c.Name)
 			controlPlaneNode, err := actions.AddControlPlane(c.Name, machine.GetName(), *machine.Spec.Version)
 			if err != nil {
 				r.Log.Error(err, "Error adding control plane")
@@ -198,16 +181,20 @@ func (r *DockerMachineReconciler) create(
 			return ctrl.Result{}, nil
 		}
 
-		// create a control plane
-		r.Log.Info("Creating a brand new cluster")
-		elb, err := getExternalLoadBalancerNode(c.Name, r.Log)
+		r.Log.Info("Creating a brand new controlplane node")
+		elb, err := actions.GetExternalLoadBalancerNode(c.Name)
 		if err != nil {
 			r.Log.Error(err, "Error getting external load balancer node")
 			return ctrl.Result{}, err
 		}
+		if elb == nil {
+			r.Log.Info("Cluster has no ELB yet, waiting for cluster network to be reconciled")
+			return ctrl.Result{RequeueAfter: time.Second * 30}, nil
+		}
+
 		lbipv4, _, err := elb.IP()
 		if err != nil {
-			r.Log.Error(err, "Error getting node IP address")
+			r.Log.Error(err, "Error getting IP address for ELB")
 			return ctrl.Result{}, err
 		}
 		controlPlaneNode, err := actions.CreateControlPlane(c.Name, machine.GetName(), lbipv4, *machine.Spec.Version, nil)
@@ -295,26 +282,6 @@ func kubeconfigToSecret(clusterName, namespace string) (*v1.Secret, error) {
 			"value": bytes.Join(lines, []byte("\n")),
 		},
 	}, nil
-}
-
-func getExternalLoadBalancerNode(clusterName string, log logr.Logger) (*nodes.Node, error) {
-	log.Info("Getting external load balancer node for cluster", "cluster-name", clusterName)
-	elb, err := nodes.List(
-		fmt.Sprintf("label=%s=%s", constants.NodeRoleKey, constants.ExternalLoadBalancerNodeRoleValue),
-		fmt.Sprintf("label=%s=%s", constants.ClusterLabelKey, clusterName),
-		fmt.Sprintf("status=%s", containerRunningStatus),
-	)
-	if err != nil {
-		return nil, err
-	}
-	if len(elb) == 0 {
-		return nil, nil
-	}
-	if len(elb) > 1 {
-		return nil, errors.New("too many external load balancers")
-	}
-	log.Info("External loadbalancer node for cluster", "cluster-name", clusterName, "elb", elb[0])
-	return &elb[0], nil
 }
 
 // SetupWithManager will add watches for this controller

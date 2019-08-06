@@ -22,6 +22,7 @@ import (
 	"github.com/go-logr/logr"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	infrastructurev1alpha2 "sigs.k8s.io/cluster-api-provider-docker/api/v1alpha2"
+	"sigs.k8s.io/cluster-api-provider-docker/kind/actions"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
@@ -39,13 +40,14 @@ type DockerClusterReconciler struct {
 func (r *DockerClusterReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 	ctx := context.Background()
 	log := r.Log.WithValues("dockercluster", req.NamespacedName)
+	log.Info("Reconciling cluster")
 
 	dockerCluster := &infrastructurev1alpha2.DockerCluster{}
 	if err := r.Client.Get(ctx, req.NamespacedName, dockerCluster); err != nil {
 		if apierrors.IsNotFound(err) {
 			return ctrl.Result{}, nil
 		}
-		log.Error(err, "failed to get dockerMachine")
+		log.Error(err, "failed to get cluster")
 		return ctrl.Result{}, err
 	}
 
@@ -53,13 +55,13 @@ func (r *DockerClusterReconciler) Reconcile(req ctrl.Request) (ctrl.Result, erro
 		return ctrl.Result{}, nil
 	}
 
+	if err := r.reconcileNetwork(dockerCluster.Name, r.Log); err != nil {
+		log.Error(err, "Failed to reconcile network for cluster")
+		return ctrl.Result{}, err
+	}
+
 	// Store Config's state, pre-modifications, to allow patching
 	patchCluster := client.MergeFrom(dockerCluster.DeepCopy())
-
-	// modify dockerCluster here
-
-	// TODO actually do something before setting this ready
-	dockerCluster.Status.Ready = true
 
 	// TODO(ncdc): remove this once we've updated to a version of controller-runtime with
 	// https://github.com/kubernetes-sigs/controller-runtime/issues/526.
@@ -77,7 +79,30 @@ func (r *DockerClusterReconciler) Reconcile(req ctrl.Request) (ctrl.Result, erro
 		return ctrl.Result{}, err
 	}
 
+	dockerCluster.Status.Ready = true
+
 	return ctrl.Result{}, nil
+}
+
+func (r *DockerClusterReconciler) reconcileNetwork(clusterName string, log logr.Logger) error {
+	// reconcile elb
+	log.Info("Reconciling ELB for cluster", "cluster-name", clusterName)
+	elb, err := actions.GetExternalLoadBalancerNode(clusterName)
+	if err != nil {
+		log.Error(err, "Failed to get ELB for cluster")
+		return err
+	}
+
+	if elb == nil {
+		log.Info("External loadbalancer does not exist for cluster, creating ELB", "cluster-name", clusterName)
+		elb, err = actions.SetUpLoadBalancer(clusterName)
+		if err != nil {
+			log.Error(err, "Failed to setup ELB for cluster")
+			return err
+		}
+	}
+	log.Info("External loadbalancer node for cluster", "cluster-name", clusterName, "elb", elb)
+	return nil
 }
 
 // SetupWithManager will add watches for this controller

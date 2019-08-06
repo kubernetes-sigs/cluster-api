@@ -17,12 +17,15 @@ limitations under the License.
 package util
 
 import (
+	"context"
 	"io/ioutil"
 	"os"
 	"reflect"
 	"testing"
 
+	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
+	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -612,5 +615,39 @@ func TestPointsTo(t *testing.T) {
 				t.Errorf("expected %v, got %v", test.expected, result)
 			}
 		})
+	}
+}
+
+func TestGetOwnerClusterSuccessByName(t *testing.T) {
+	scheme := runtime.NewScheme()
+	if err := clusterv1.AddToScheme(scheme); err != nil {
+		t.Fatal("failed to register cluster api objects to scheme")
+	}
+
+	myCluster := &clusterv1.Cluster{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "my-cluster",
+			Namespace: "my-ns",
+		},
+	}
+
+	c := fake.NewFakeClientWithScheme(scheme, myCluster)
+	objm := metav1.ObjectMeta{
+		OwnerReferences: []metav1.OwnerReference{
+			{
+				Kind:       "Cluster",
+				APIVersion: clusterv1.SchemeGroupVersion.String(),
+				Name:       "my-cluster",
+			},
+		},
+		Namespace: "my-ns",
+		Name:      "my-resource-owned-by-cluster",
+	}
+	cluster, err := GetOwnerCluster(context.TODO(), c, objm)
+	if err != nil {
+		t.Fatalf("did not expect an error but found one: %v", err)
+	}
+	if cluster == nil {
+		t.Fatal("expected a cluster but got nil")
 	}
 }

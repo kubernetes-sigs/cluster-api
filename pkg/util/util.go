@@ -170,7 +170,7 @@ func GetClusterFromMetadata(ctx context.Context, c client.Client, obj metav1.Obj
 func GetOwnerCluster(ctx context.Context, c client.Client, obj metav1.ObjectMeta) (*clusterv1.Cluster, error) {
 	for _, ref := range obj.OwnerReferences {
 		if ref.Kind == "Cluster" && ref.APIVersion == clusterv1.SchemeGroupVersion.String() {
-			return GetClusterByName(ctx, c, obj.Namespace, obj.Name)
+			return GetClusterByName(ctx, c, obj.Namespace, ref.Name)
 		}
 	}
 	return nil, nil

@@ -41,6 +41,9 @@ var _ = Describe("KubeadmConfigReconciler", func() {
 					Namespace: "default",
 					Name:      "my-cluster",
 				},
+				Status: clusterv1alpha2.ClusterStatus{
+					InfrastructureReady: true,
+				},
 			}
 			machine := &clusterv1alpha2.Machine{
 				ObjectMeta: metav1.ObjectMeta{

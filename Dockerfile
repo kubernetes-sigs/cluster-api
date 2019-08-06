@@ -19,6 +19,7 @@ COPY main.go main.go
 COPY api/ api/
 COPY controllers/ controllers/
 COPY kubeadm/ kubeadm/
+COPY cloudinit/ cloudinit/
 
 # Allow containerd to restart pods by calling /restart.sh (mostly for tilt + fast dev cycles)
 # TODO: Remove this on prod and use a multi-stage build

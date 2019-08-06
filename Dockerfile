@@ -13,10 +13,39 @@
 # limitations under the License.
 
 FROM golang:1.12.7
+
+# default the go proxy
+ARG goproxy=https://proxy.golang.org
+
+# run this with docker build --build_arg $(go env GOPROXY) to override the goproxy
+ENV GOPROXY=$goproxy
+
 WORKDIR /tmp
+# install a couple of dependencies
 RUN curl -L https://dl.k8s.io/v1.14.4/kubernetes-client-linux-amd64.tar.gz | tar xvz
 RUN mv /tmp/kubernetes/client/bin/kubectl /usr/local/bin
 RUN curl https://get.docker.com | sh
-COPY manager /
 
-ENTRYPOINT ["manager"]
+WORKDIR /workspace
+COPY go.mod go.mod
+COPY go.sum go.sum
+# cache deps before building and copying source so that we don't need to re-download as much
+# and so that source changes don't invalidate our downloaded layer
+RUN go mod download
+
+# Copy the go source
+COPY cmd/ cmd/
+COPY api/ api/
+COPY controllers/ controllers/
+COPY kind/ kind/
+COPY third_party/ third_party/
+
+# Allow containerd to restart pods by calling /restart.sh (mostly for tilt + fast dev cycles)
+# TODO: Remove this on prod and use a multi-stage build
+COPY third_party/forked/rerun-process-wrapper/start.sh .
+COPY third_party/forked/rerun-process-wrapper/restart.sh .
+
+RUN go install -v ./cmd/manager
+RUN mv /go/bin/manager /manager
+
+ENTRYPOINT ["./start.sh", "/manager"]

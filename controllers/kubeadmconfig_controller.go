@@ -155,14 +155,8 @@ func (r *KubeadmConfigReconciler) Reconcile(req ctrl.Request) (ctrl.Result, erro
 		return ctrl.Result{}, nil
 	}
 
-	// Check for control-plane ready. If it's not ready then we will requeue the machine until it is.
-	// The infrastructure provider *must* set this value to use this bootstrap provider.
-	if cluster.Annotations == nil {
-		log.Info("No annotation exists on the cluster yet. Requeing until infrastructure is ready.")
-		return ctrl.Result{RequeueAfter: 30 * time.Second}, nil
-	}
-	if cluster.Annotations[InfrastructureReadyAnnotationKey] != "true" {
-		log.Info("Infrastructure is not ready, requeing until ready.")
+	// Requeue until the machine is ready
+	if !cluster.Status.InfrastructureReady {
 		return ctrl.Result{RequeueAfter: 30 * time.Second}, nil
 	}
 

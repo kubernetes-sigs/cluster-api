@@ -38,6 +38,13 @@ outputs=()
 
 # run all verify scripts, optionally skipping any of them
 
+if [[ "${VERIFY_MANIFESTS:-true}" == "true" ]]; then
+  echo "[*] Verifying manifests..."
+  out=$(hack/verify-manifests.sh 2>&1)
+  failure $? "verify-manifests.sh" "${out}"
+  cd "${REPO_PATH}"
+fi
+
 if [[ "${VERIFY_WHITESPACE:-true}" == "true" ]]; then
   echo "[*] Verifying whitespace..."
   out=$(hack/verify-whitespace.sh 2>&1)

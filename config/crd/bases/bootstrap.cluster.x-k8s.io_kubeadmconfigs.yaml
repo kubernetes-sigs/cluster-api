@@ -28,7 +28,9 @@ spec:
         metadata:
           type: object
         spec:
-          description: KubeadmConfigSpec defines the desired state of KubeadmConfig
+          description: KubeadmConfigSpec defines the desired state of KubeadmConfig.
+            Either ClusterConfiguration and InitConfiguration should be defined or
+            the JoinConfiguration should be defined.
           properties:
             additionalUserDataFiles:
               description: AdditionalUserDataFiles specifies extra files to be passed
@@ -57,8 +59,8 @@ spec:
                 type: object
               type: array
             clusterConfiguration:
-              description: ClusterConfiguration contains cluster-wide configuration
-                for a kubeadm cluster
+              description: ClusterConfiguration along with InitConfiguration are the
+                configurations necessary for the init command
               properties:
                 apiServer:
                   description: APIServer contains extra settings for the API server
@@ -375,8 +377,8 @@ spec:
               - networking
               type: object
             initConfiguration:
-              description: InitConfiguration contains a list of elements that is specific
-                "kubeadm init"-only runtime information.
+              description: InitConfiguration along with ClusterConfiguration are the
+                configurations necessary for the init command
               properties:
                 apiVersion:
                   description: 'APIVersion defines the versioned schema of this representation
@@ -525,8 +527,8 @@ spec:
                   type: object
               type: object
             joinConfiguration:
-              description: JoinConfiguration contains elements describing a particular
-                node.
+              description: JoinConfiguration is the kubeadm configuration for the
+                join command
               properties:
                 apiVersion:
                   description: 'APIVersion defines the versioned schema of this representation
@@ -703,8 +705,6 @@ spec:
               - discovery
               - nodeRegistration
               type: object
-          required:
-          - clusterConfiguration
           type: object
         status:
           description: KubeadmConfigStatus defines the observed state of KubeadmConfig

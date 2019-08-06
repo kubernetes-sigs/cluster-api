@@ -21,14 +21,18 @@ import (
 	kubeadmv1beta1 "sigs.k8s.io/cluster-api-bootstrap-provider-kubeadm/kubeadm/v1beta1"
 )
 
-// KubeadmConfigSpec defines the desired state of KubeadmConfig
+// KubeadmConfigSpec defines the desired state of KubeadmConfig.
+// Either ClusterConfiguration and InitConfiguration should be defined or the JoinConfiguration should be defined.
 type KubeadmConfigSpec struct {
-	ClusterConfiguration kubeadmv1beta1.ClusterConfiguration `json:"clusterConfiguration"`
-	InitConfiguration    kubeadmv1beta1.InitConfiguration    `json:"initConfiguration,omitempty"`
-	JoinConfiguration    kubeadmv1beta1.JoinConfiguration    `json:"joinConfiguration,omitempty"`
-	// AdditionalUserDataFiles specifies extra files to be passed to user_data upon creation.
+	// ClusterConfiguration along with InitConfiguration are the configurations necessary for the init command
 	// +optional
-	AdditionalUserDataFiles []Files `json:"additionalUserDataFiles,omitempty"`
+	ClusterConfiguration *kubeadmv1beta1.ClusterConfiguration `json:"clusterConfiguration,omitempty"`
+	// InitConfiguration along with ClusterConfiguration are the configurations necessary for the init command
+	// +optional
+	InitConfiguration *kubeadmv1beta1.InitConfiguration `json:"initConfiguration,omitempty"`
+	// JoinConfiguration is the kubeadm configuration for the join command
+	// +optional
+	JoinConfiguration *kubeadmv1beta1.JoinConfiguration `json:"joinConfiguration,omitempty"`
 }
 
 // KubeadmConfigStatus defines the observed state of KubeadmConfig

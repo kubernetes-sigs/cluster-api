@@ -93,7 +93,16 @@ func TestSuccessfulReconcileShouldNotRequeue(t *testing.T) {
 				},
 			},
 		},
-		"ns/my-cluster": &v1alpha2.Cluster{},
+		"ns/my-cluster": &v1alpha2.Cluster{
+			Status: v1alpha2.ClusterStatus{
+				APIEndpoints: []v1alpha2.APIEndpoint{
+					{
+						Host: "example.com",
+						Port: 6443,
+					},
+				},
+			},
+		},
 	}
 	myclient := &myClient{
 		db: objects,

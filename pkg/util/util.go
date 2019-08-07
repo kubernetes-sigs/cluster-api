@@ -226,7 +226,7 @@ func ClusterToInfrastructureMapFunc(gvk schema.GroupVersionKind) handler.ToReque
 func GetOwnerMachine(ctx context.Context, c client.Client, obj metav1.ObjectMeta) (*clusterv1.Machine, error) {
 	for _, ref := range obj.OwnerReferences {
 		if ref.Kind == "Machine" && ref.APIVersion == clusterv1.SchemeGroupVersion.String() {
-			return GetMachineByName(ctx, c, obj.Namespace, obj.Name)
+			return GetMachineByName(ctx, c, obj.Namespace, ref.Name)
 		}
 	}
 	return nil, nil

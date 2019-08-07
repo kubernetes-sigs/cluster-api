@@ -651,3 +651,37 @@ func TestGetOwnerClusterSuccessByName(t *testing.T) {
 		t.Fatal("expected a cluster but got nil")
 	}
 }
+
+func TestGetOwnerMachineSuccessByName(t *testing.T) {
+	scheme := runtime.NewScheme()
+	if err := clusterv1.AddToScheme(scheme); err != nil {
+		t.Fatal("failed to register cluster api objects to scheme")
+	}
+
+	myMachine := &clusterv1.Machine{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "my-machine",
+			Namespace: "my-ns",
+		},
+	}
+
+	c := fake.NewFakeClientWithScheme(scheme, myMachine)
+	objm := metav1.ObjectMeta{
+		OwnerReferences: []metav1.OwnerReference{
+			{
+				Kind:       "Machine",
+				APIVersion: clusterv1.SchemeGroupVersion.String(),
+				Name:       "my-machine",
+			},
+		},
+		Namespace: "my-ns",
+		Name:      "my-resource-owned-by-machine",
+	}
+	machine, err := GetOwnerMachine(context.TODO(), c, objm)
+	if err != nil {
+		t.Fatalf("did not expect an error but found one: %v", err)
+	}
+	if machine == nil {
+		t.Fatal("expected a machine but got nil")
+	}
+}

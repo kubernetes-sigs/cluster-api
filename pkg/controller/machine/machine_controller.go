@@ -299,7 +299,11 @@ func (r *ReconcileMachine) getMachinesInCluster(ctx context.Context, namespace, 
 // isDeleteReady returns an error if any of Boostrap.ConfigRef or InfrastructureRef referenced objects still exists.
 func (r *ReconcileMachine) isDeleteReady(ctx context.Context, m *v1alpha2.Machine) error {
 	if m.Spec.Bootstrap.ConfigRef != nil {
-		if _, err := external.Get(r.Client, m.Spec.Bootstrap.ConfigRef, m.Namespace); err != nil && !apierrors.IsNotFound(err) {
+		_, err := external.Get(r.Client, m.Spec.Bootstrap.ConfigRef, m.Namespace)
+		if apierrors.IsNotFound(err) {
+			return nil
+		}
+		if err != nil {
 			return errors.Wrapf(err, "failed to get %s %q for Machine %q in namespace %q",
 				path.Join(m.Spec.Bootstrap.ConfigRef.APIVersion, m.Spec.Bootstrap.ConfigRef.Kind),
 				m.Spec.Bootstrap.ConfigRef.Name, m.Name, m.Namespace)

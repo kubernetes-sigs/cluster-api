@@ -33,10 +33,11 @@ type Cmd struct {
 }
 
 // UnmarshalJSON a runcmd command
-//// It can be either a list or a string. If the item is a
-//// list, it will be properly executed (with the first arg as the command).
-//// If the item is a string, it will be written to a file and interpreted using ``sh``.
+// It can be either a list or a string. If the item is a
+// list, it will be properly executed (with the first arg as the command).
+// If the item is a string, it will be written to a file and interpreted using ``sh``.
 func (c *Cmd) UnmarshalJSON(data []byte) error {
+	// try to decode the command into a list
 	var s1 []string
 	if err := json.Unmarshal(data, &s1); err == nil {
 		c.Cmd = s1[0]
@@ -44,9 +45,11 @@ func (c *Cmd) UnmarshalJSON(data []byte) error {
 		return nil
 	}
 
+	// if decode into a list didn't worked,
+	// try to decode the command into a string
 	var s2 string
 	if err := json.Unmarshal(data, &s2); err != nil {
-		return err
+		return errors.WithStack(err)
 	}
 	c.Cmd = "/bin/sh"
 	c.Args = []string{s2}
@@ -68,7 +71,7 @@ func newRunCmdAction() cloudCongfigAction {
 // Unmarshal the runCmdAction
 func (a *runCmdAction) Unmarshal(userData []byte) error {
 	if err := yaml.Unmarshal(userData, a); err != nil {
-		return errors.Wrapf(err, "error parsing write_files action: %s", userData)
+		return errors.Wrapf(errors.WithStack(err), "error parsing write_files action: %s", userData)
 	}
 	return nil
 }
@@ -94,7 +97,7 @@ func (a *runCmdAction) Run(cmder exec.Cmder) ([]string, error) {
 		if err != nil {
 			// Add a line in the output with the error message and exit
 			lines = append(lines, fmt.Sprintf("%s %v", errorPrefix, err))
-			return lines, errors.Wrapf(err, "error running %+v", c)
+			return lines, errors.Wrapf(errors.WithStack(err), "error running %+v", c)
 		}
 	}
 	return lines, nil

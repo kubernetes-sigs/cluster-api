@@ -53,7 +53,7 @@ func Run(userData []byte, cmder exec.Cmder) ([]string, error) {
 	// validate userData is a valid yaml, as required by the cloud config specification
 	var m map[string]interface{}
 	if err := yaml.Unmarshal(userData, &m); err != nil {
-		return nil, errors.Wrapf(err, "userData should be a valid yaml, as required by the cloud config specification")
+		return nil, errors.Wrapf(errors.WithStack(err), "userData should be a valid yaml, as required by the cloud config specification")
 	}
 
 	// parse the cloud config yaml into a slice of cloud config actions.
@@ -98,7 +98,7 @@ func getCloudCongfigActionSlices(userData []byte) ([]cloudCongfigAction, error) 
 			if action != nil {
 				actionBlock := strings.Join(lines, "\n")
 				if err := action.Unmarshal([]byte(actionBlock)); err != nil {
-					return nil, err
+					return nil, errors.WithStack(err)
 				}
 				actionSlice = append(actionSlice, action)
 				lines = lines[:0]
@@ -119,7 +119,7 @@ func getCloudCongfigActionSlices(userData []byte) ([]cloudCongfigAction, error) 
 	if action != nil {
 		actionBlock := strings.Join(lines, "\n")
 		if err := action.Unmarshal([]byte(actionBlock)); err != nil {
-			return nil, err
+			return nil, errors.WithStack(err)
 		}
 		actionSlice = append(actionSlice, action)
 	}

@@ -51,7 +51,7 @@ func newWriteFilesAction() cloudCongfigAction {
 
 func (a *writeFilesAction) Unmarshal(userData []byte) error {
 	if err := yaml.Unmarshal(userData, a); err != nil {
-		return errors.Wrapf(err, "error parsing write_files action: %s", userData)
+		return errors.Wrapf(errors.WithStack(err), "error parsing write_files action: %s", userData)
 	}
 	return nil
 }
@@ -84,7 +84,7 @@ func (a *writeFilesAction) Run(cmder exec.Cmder) ([]string, error) {
 		).Run(); err != nil {
 			// Add a line in the output with the error message and exit
 			lines = append(lines, fmt.Sprintf("%s %v", errorPrefix, err))
-			return lines, errors.Wrapf(err, "error writing file content to %s", path)
+			return lines, errors.Wrapf(errors.WithStack(err), "error writing file content to %s", path)
 		}
 
 		// if permissions is different by default ownership in kind, sets file permissions
@@ -96,7 +96,7 @@ func (a *writeFilesAction) Run(cmder exec.Cmder) ([]string, error) {
 			).Run(); err != nil {
 				// Add a line in the output with the error message and exit
 				lines = append(lines, fmt.Sprintf("%s %v", errorPrefix, err))
-				return lines, errors.Wrapf(err, "error setting permissions for %s", path)
+				return lines, errors.Wrapf(errors.WithStack(err), "error setting permissions for %s", path)
 			}
 		}
 
@@ -109,7 +109,7 @@ func (a *writeFilesAction) Run(cmder exec.Cmder) ([]string, error) {
 			).Run(); err != nil {
 				// Add a line in the output with the error message and exit
 				lines = append(lines, fmt.Sprintf("%s %v", errorPrefix, err))
-				return lines, errors.Wrapf(err, "error setting ownership for %s", path)
+				return lines, errors.Wrapf(errors.WithStack(err), "error setting ownership for %s", path)
 			}
 		}
 	}
@@ -158,7 +158,7 @@ func fixContent(content string, encodings []string) (string, error) {
 		case "application/base64":
 			rByte, err := base64.StdEncoding.DecodeString(contentString)
 			if err != nil {
-				return contentString, err
+				return contentString, errors.WithStack(err)
 			}
 			contentString = string(rByte)
 		case "application/x-gzip":
@@ -180,13 +180,13 @@ func gUnzipData(data []byte) ([]byte, error) {
 	b := bytes.NewBuffer(data)
 	r, err = gzip.NewReader(b)
 	if err != nil {
-		return nil, err
+		return nil, errors.WithStack(err)
 	}
 
 	var resB bytes.Buffer
 	_, err = resB.ReadFrom(r)
 	if err != nil {
-		return nil, err
+		return nil, errors.WithStack(err)
 	}
 
 	return resB.Bytes(), nil

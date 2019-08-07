@@ -12,8 +12,10 @@ aliases:
   cluster-api-maintainers:
     - justinsb
     - detiber
+    - ncdc
     - vincepri
   cluster-api-provider-docker-admins:
     - chuckha
   cluster-api-provider-docker-maintainers:
     - chuckha
+    - ncdc

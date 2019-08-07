@@ -28,14 +28,31 @@ spec:
         metadata:
           type: object
         spec:
-          description: DockerClusterSpec defines the desired state of DockerCluster
+          description: DockerClusterSpec defines the desired state of DockerCluster.
           type: object
         status:
-          description: DockerClusterStatus defines the observed state of DockerCluster
+          description: DockerClusterStatus defines the observed state of DockerCluster.
           properties:
+            apiEndpoints:
+              description: APIEndpoints represents the endpoints to communicate with
+                the control plane.
+              items:
+                description: APIEndpoint represents a reachable Kubernetes API endpoint.
+                properties:
+                  host:
+                    description: Host is the hostname on which the API server is serving.
+                    type: string
+                  port:
+                    description: Port is the port on which the API server is serving.
+                    type: integer
+                required:
+                - host
+                - port
+                type: object
+              type: array
             ready:
               description: Ready denotes that the docker cluster (infrastructure)
-                is ready
+                is ready.
               type: boolean
           required:
           - ready

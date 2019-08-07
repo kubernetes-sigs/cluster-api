@@ -39,7 +39,11 @@ type Cmd struct {
 func (c *Cmd) UnmarshalJSON(data []byte) error {
 	// try to decode the command into a list
 	var s1 []string
-	if err := json.Unmarshal(data, &s1); err == nil {
+	if err := json.Unmarshal(data, &s1); err != nil {
+		if _, ok := err.(*json.UnmarshalTypeError); !ok {
+			return errors.WithStack(err)
+		}
+	} else {
 		c.Cmd = s1[0]
 		c.Args = s1[1:]
 		return nil

@@ -180,6 +180,11 @@ func (r *ReconcileCluster) reconcileDelete(ctx context.Context, cluster *v1alpha
 				continue
 			}
 
+			if !accessor.GetDeletionTimestamp().IsZero() {
+				// Don't handle deleted child
+				continue
+			}
+
 			gvk := child.GetObjectKind().GroupVersionKind().String()
 
 			klog.Infof("Cluster %s/%s: deleting child %s %s", cluster.Namespace, cluster.Name, gvk, accessor.GetName())
@@ -246,11 +251,6 @@ func (r *ReconcileCluster) listChildren(ctx context.Context, cluster *v1alpha2.C
 		acc, err := meta.Accessor(o)
 		if err != nil {
 			klog.Errorf("Cluster %s/%s: couldn't create accessor for type %T: %v", cluster.Namespace, cluster.Name, o, err)
-			return nil
-		}
-
-		if !acc.GetDeletionTimestamp().IsZero() {
-			// Don't add deleted children
 			return nil
 		}
 

@@ -23,16 +23,29 @@ import (
 // EDIT THIS FILE!  THIS IS SCAFFOLDING FOR YOU TO OWN!
 // NOTE: json tags are required.  Any new fields you add must have json tags for the fields to be serialized.
 
-// DockerClusterSpec defines the desired state of DockerCluster
+// DockerClusterSpec defines the desired state of DockerCluster.
 type DockerClusterSpec struct {
 	// INSERT ADDITIONAL SPEC FIELDS - desired state of cluster
 	// Important: Run "make" to regenerate code after modifying this file
 }
 
-// DockerClusterStatus defines the observed state of DockerCluster
+// DockerClusterStatus defines the observed state of DockerCluster.
 type DockerClusterStatus struct {
-	// Ready denotes that the docker cluster (infrastructure) is ready
+	// Ready denotes that the docker cluster (infrastructure) is ready.
 	Ready bool `json:"ready"`
+
+	// APIEndpoints represents the endpoints to communicate with the control plane.
+	// +optional
+	APIEndpoints []APIEndpoint `json:"apiEndpoints,omitempty"`
+}
+
+// APIEndpoint represents a reachable Kubernetes API endpoint.
+type APIEndpoint struct {
+	// Host is the hostname on which the API server is serving.
+	Host string `json:"host"`
+
+	// Port is the port on which the API server is serving.
+	Port int `json:"port"`
 }
 
 // +kubebuilder:object:root=true

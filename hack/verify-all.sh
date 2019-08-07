@@ -108,13 +108,12 @@ if [[ "${VERIFY_BUILD:-true}" == "true" ]]; then
   cd "${REPO_PATH}"
 fi
 
-# comment out for now
-#if [[ "${VERIFY_DOCKER_BUILD:-true}" == "true" ]]; then
-#  echo "[*] Verifying manager docker image build..."
-#  out=$(hack/verify-docker-build.sh 2>&1)
-#  failure $? "verify-docker-build.sh" "${out}"
-#  cd "${REPO_PATH}"
-#fi
+if [[ "${VERIFY_DOCKER_BUILD:-true}" == "true" ]]; then
+ echo "[*] Verifying manager docker image build..."
+ out=$(hack/verify-docker-build.sh 2>&1)
+ failure $? "verify-docker-build.sh" "${out}"
+ cd "${REPO_PATH}"
+fi
 
 # exit based on verify scripts
 if [[ "${res}" = 0 ]]; then

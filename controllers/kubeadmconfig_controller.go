@@ -41,7 +41,7 @@ var (
 )
 
 const (
-	// InfrastructureReadyAnnotationKey identifies when the infrastructure is ready for use such as joining new nodes.
+	// ControlPlaneReadyAnnotationKey identifies when the infrastructure is ready for use such as joining new nodes.
 	// TODO move this into cluster-api to be imported by providers
 	ControlPlaneReadyAnnotationKey = "cluster.x-k8s.io/control-plane-ready"
 )
@@ -181,6 +181,7 @@ func (r *KubeadmConfigReconciler) Reconcile(req ctrl.Request) (ctrl.Result, erro
 			}
 		}
 		// If there is a control plane endpoint defined at cluster in cluster status, use it as a control plane endpoint for the K8s cluster
+		// NB. we are only using the first one defined if there are multiple defined.
 		if len(cluster.Status.APIEndpoints) > 0 {
 			config.Spec.ClusterConfiguration.ControlPlaneEndpoint = fmt.Sprintf("https://%s:%d", cluster.Status.APIEndpoints[0].Host, cluster.Status.APIEndpoints[0].Port)
 		}
@@ -191,23 +192,13 @@ func (r *KubeadmConfigReconciler) Reconcile(req ctrl.Request) (ctrl.Result, erro
 			return ctrl.Result{}, err
 		}
 
-		//TODO(fp) check what is the expected flow for certificates
-		certificates, _ := NewCertificates()
+		//TODO(fp) Implement the expected flow for certificates
+		certificates, _ := r.getCertificates()
 
 		cloudInitData, err := cloudinit.NewInitControlPlane(&cloudinit.ControlPlaneInput{
-			//TODO(fp) if defined, cluster.Status.APIEndpoints[0] should override ClusterConfiguration.ControlPlaneEndpoint
 			InitConfiguration:    string(initdata),
 			ClusterConfiguration: string(clusterdata),
-			Certificates: cloudinit.Certificates{
-				CACert:           string(certificates.ClusterCA.Cert),
-				CAKey:            string(certificates.ClusterCA.Key),
-				EtcdCACert:       string(certificates.EtcdCA.Cert),
-				EtcdCAKey:        string(certificates.EtcdCA.Key),
-				FrontProxyCACert: string(certificates.FrontProxyCA.Cert),
-				FrontProxyCAKey:  string(certificates.FrontProxyCA.Key),
-				SaCert:           string(certificates.ServiceAccount.Cert),
-				SaKey:            string(certificates.ServiceAccount.Key),
-			},
+			Certificates:         certificates,
 		})
 		if err != nil {
 			log.Error(err, "failed to generate cloud init for bootstrap control plane")
@@ -260,8 +251,12 @@ func (r *KubeadmConfigReconciler) Reconcile(req ctrl.Request) (ctrl.Result, erro
 			return ctrl.Result{}, errors.New("Machine is a ControlPlane, but JoinConfiguration.ControlPlane is not set in the KubeadmConfig object")
 		}
 
+		//TODO(fp) Implement the expected flow for certificates
+		certificates, _ := r.getCertificates()
+
 		joinData, err := cloudinit.NewJoinControlPlane(&cloudinit.ControlPlaneJoinInput{
 			JoinConfiguration: string(joinBytes),
+			Certificates:      certificates,
 		})
 		if err != nil {
 			log.Error(err, "failed to create a control plane join configuration")
@@ -294,6 +289,22 @@ func (r *KubeadmConfigReconciler) Reconcile(req ctrl.Request) (ctrl.Result, erro
 
 	log.Info("Updated config with bootstrap data")
 	return ctrl.Result{}, nil
+}
+
+func (r *KubeadmConfigReconciler) getCertificates() (cloudinit.Certificates, error) {
+	//TODO(fp) check what is the expected flow for certificates
+	certificates, _ := NewCertificates()
+
+	return cloudinit.Certificates{
+		CACert:           string(certificates.ClusterCA.Cert),
+		CAKey:            string(certificates.ClusterCA.Key),
+		EtcdCACert:       string(certificates.EtcdCA.Cert),
+		EtcdCAKey:        string(certificates.EtcdCA.Key),
+		FrontProxyCACert: string(certificates.FrontProxyCA.Cert),
+		FrontProxyCAKey:  string(certificates.FrontProxyCA.Key),
+		SaCert:           string(certificates.ServiceAccount.Cert),
+		SaKey:            string(certificates.ServiceAccount.Key),
+	}, nil
 }
 
 // SetupWithManager TODO

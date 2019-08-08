@@ -36,7 +36,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/handler"
 	"sigs.k8s.io/controller-runtime/pkg/source"
-	"sigs.k8s.io/kind/pkg/cluster"
+	kindcluster "sigs.k8s.io/kind/pkg/cluster"
 	"sigs.k8s.io/kind/pkg/cluster/constants"
 	"sigs.k8s.io/kind/pkg/cluster/nodes"
 )
@@ -75,44 +75,21 @@ func (r *DockerMachineReconciler) Reconcile(req ctrl.Request) (ctrl.Result, erro
 		return ctrl.Result{}, err
 	}
 
-	// Find the owner reference
-	var machineRef *metav1.OwnerReference
-	for _, ref := range dockerMachine.OwnerReferences {
-		if ref.Kind == machineKind.Kind && ref.APIVersion == machineKind.GroupVersion().String() {
-			machineRef = &ref
-			break
-		}
-	}
-	if machineRef == nil {
-		log.Info("did not find matching machine reference")
+	// Get the cluster api machine
+	machine, err := util.GetOwnerMachine(ctx, r.Client, dockerMachine.ObjectMeta)
+
+	if err != nil {
 		return ctrl.Result{}, nil
 	}
-
-	// Get the cluster api machine
-	machine := &capiv1alpha2.Machine{}
-	machineKey := client.ObjectKey{
-		Namespace: req.Namespace,
-		Name:      machineRef.Name,
-	}
-
-	if err := r.Get(ctx, machineKey, machine); err != nil {
-		log.Error(err, "failed to get machine")
-		return ctrl.Result{}, err
-	}
-
-	if machine.Labels[capiv1alpha2.MachineClusterLabelName] == "" {
-		return ctrl.Result{}, errors.New("machine has no associated cluster")
+	if machine == nil {
+		log.Info("Waiting for Machine Controller to set OwnerRef on DockerMachine")
+		return ctrl.Result{RequeueAfter: 10 * time.Second}, nil
 	}
 
 	// Get the cluster
-	cluster := &capiv1alpha2.Cluster{}
-	clusterKey := client.ObjectKey{
-		Namespace: req.Namespace,
-		Name:      machine.Labels[capiv1alpha2.MachineClusterLabelName],
-	}
-	if err := r.Get(ctx, clusterKey, cluster); err != nil {
+	cluster, err := util.GetClusterFromMetadata(ctx, r.Client, machine.ObjectMeta)
+	if err != nil {
 		log.Error(err, "failed to get cluster")
-		return ctrl.Result{}, err
 	}
 
 	// creating loadbalancer
@@ -165,7 +142,7 @@ func (r *DockerMachineReconciler) create(
 	dockerMachine *infrastructurev1alpha2.DockerMachine,
 ) (ctrl.Result, error) {
 	r.Log.Info("Creating a machine for cluster", "cluster-name", c.Name)
-	clusterExists, err := cluster.IsKnown(c.Name)
+	clusterExists, err := kindcluster.IsKnown(c.Name)
 	if err != nil {
 		r.Log.Error(err, "Error finding cluster-name", "cluster", c.Name)
 		return ctrl.Result{}, err

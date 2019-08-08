@@ -92,6 +92,12 @@ func (r *DockerMachineReconciler) Reconcile(req ctrl.Request) (ctrl.Result, erro
 		log.Error(err, "failed to get cluster")
 	}
 
+	//delete dockerMachine
+	if !machine.ObjectMeta.DeletionTimestamp.IsZero() {
+		log.Info("Start delete dockerMachine")
+		return r.delete(ctx, cluster, machine, dockerMachine)
+	}
+
 	// creating loadbalancer
 	log.Info("Reconciling cluster")
 	elb, err := getExternalLoadBalancerNode(cluster.Name, log)
@@ -119,8 +125,6 @@ func (r *DockerMachineReconciler) Reconcile(req ctrl.Request) (ctrl.Result, erro
 	if err := r.Client.Update(ctx, dockerMachine); err != nil {
 		return ctrl.Result{}, err
 	}
-
-	// TODO should the cluster be deleted?
 
 	return result, nil
 }
@@ -305,4 +309,41 @@ func (r *DockerMachineReconciler) SetupWithManager(mgr ctrl.Manager) error {
 			},
 		).
 		Complete(r)
+}
+
+func (r *DockerMachineReconciler) delete(
+	ctx context.Context,
+	cluster *capiv1alpha2.Cluster,
+	machine *capiv1alpha2.Machine,
+	dockerMachine *infrastructurev1alpha2.DockerMachine,
+) (ctrl.Result, error) {
+
+	if isControllerPlaneMachine(machine) {
+		err := actions.DeleteControlPlane(cluster.GetName(), machine.GetName())
+		if err != nil {
+			r.Log.Error(err, "Error deleting control plane node", "nodeName", machine.GetName())
+			return ctrl.Result{RequeueAfter: time.Second * 30}, err
+		}
+	} else {
+		err := actions.DeleteWorker(cluster.GetName(), machine.GetName())
+		if err != nil {
+			r.Log.Error(err, "Error deleting worker node", "nodeName", machine.GetName())
+			return ctrl.Result{RequeueAfter: time.Second * 30}, nil
+		}
+	}
+	err := r.Client.Delete(ctx, dockerMachine)
+	if err != nil {
+		r.Log.Error(err, "Error deleting DockerMachine", "name", dockerMachine.GetName())
+		return ctrl.Result{RequeueAfter: time.Second * 30}, nil
+	}
+
+	return ctrl.Result{}, nil
+}
+
+func isControllerPlaneMachine(machine *capiv1alpha2.Machine) bool {
+	setValue := getRole(machine)
+	if setValue == clusterAPIControlPlaneSetLabel {
+		return true
+	}
+	return false
 }

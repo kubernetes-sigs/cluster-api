@@ -71,7 +71,7 @@ func TestReconcile(t *testing.T) {
 			},
 		},
 	}
-	msListOpts := []client.ListOptionFunc{
+	msListOpts := []client.ListOption{
 		client.InNamespace("default"),
 		client.MatchingLabels(labels),
 	}

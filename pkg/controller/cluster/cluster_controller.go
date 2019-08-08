@@ -226,7 +226,7 @@ func (r *ReconcileCluster) reconcileDelete(ctx context.Context, cluster *v1alpha
 
 // listChildren returns a list of MachineDeployments, MachineSets, and Machines than have an owner reference to cluster
 func (r *ReconcileCluster) listChildren(ctx context.Context, cluster *v1alpha2.Cluster) ([]runtime.Object, error) {
-	listOptions := []client.ListOptionFunc{
+	listOptions := []client.ListOption{
 		client.InNamespace(cluster.Namespace),
 		client.MatchingLabels(map[string]string{clusterv1.MachineClusterLabelName: cluster.Name}),
 	}

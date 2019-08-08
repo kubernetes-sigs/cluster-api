@@ -14,7 +14,9 @@
 
 # Use GOPROXY environment variable if set
 GOPROXY := $(shell go env GOPROXY)
-GOPROXY ?= https://proxy.golang.org
+ifeq ($(GOPROXY),)
+GOPROXY := https://proxy.golang.org
+endif
 export GOPROXY
 
 REGISTRY ?= gcr.io/$(shell gcloud config get-value project)

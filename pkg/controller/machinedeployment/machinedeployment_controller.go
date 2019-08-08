@@ -30,6 +30,7 @@ import (
 	"k8s.io/client-go/tools/record"
 	"k8s.io/klog"
 	"sigs.k8s.io/cluster-api/pkg/apis/cluster/v1alpha2"
+	clusterv1 "sigs.k8s.io/cluster-api/pkg/apis/cluster/v1alpha2"
 	"sigs.k8s.io/cluster-api/pkg/util"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
@@ -171,7 +172,7 @@ func (r *ReconcileMachineDeployment) reconcile(ctx context.Context, d *v1alpha2.
 	// for machine management.
 	cluster, err := util.GetClusterFromMetadata(ctx, r.Client, d.ObjectMeta)
 	if errors.Cause(err) == util.ErrNoCluster {
-		klog.Infof("MachineDeployment %q in namespace %q doesn't specify %q label, assuming nil cluster", d.Name, d.Namespace, v1alpha2.MachineClusterLabelName)
+		klog.Infof("MachineDeployment %q in namespace %q doesn't specify %q label, assuming nil Cluster", d.Name, d.Namespace, v1alpha2.MachineClusterLabelName)
 	} else if err != nil {
 		return reconcile.Result{}, err
 	}
@@ -331,13 +332,13 @@ func (r *ReconcileMachineDeployment) getMachineMapForDeployment(d *v1alpha2.Mach
 // getMachineDeploymentsForMachineSet returns a list of MachineDeployments that could potentially match a MachineSet.
 func (r *ReconcileMachineDeployment) getMachineDeploymentsForMachineSet(ms *v1alpha2.MachineSet) []*v1alpha2.MachineDeployment {
 	if len(ms.Labels) == 0 {
-		klog.Warningf("No machine deployments found for MachineSet %q because it has no labels", ms.Name)
+		klog.Warningf("No MachineDeployments found for MachineSet %q because it has no labels", ms.Name)
 		return nil
 	}
 
 	dList := &v1alpha2.MachineDeploymentList{}
 	if err := r.Client.List(context.Background(), dList, client.InNamespace(ms.Namespace)); err != nil {
-		klog.Warningf("Failed to list machine deployments: %v", err)
+		klog.Warningf("Failed to list MachineDeployments: %v", err)
 		return nil
 	}
 
@@ -364,12 +365,9 @@ func (r *ReconcileMachineDeployment) getMachineDeploymentsForMachineSet(ms *v1al
 func (r *ReconcileMachineDeployment) MachineSetToDeployments(o handler.MapObject) []reconcile.Request {
 	result := []reconcile.Request{}
 
-	ms := &v1alpha2.MachineSet{}
-	key := client.ObjectKey{Namespace: o.Meta.GetNamespace(), Name: o.Meta.GetName()}
-	if err := r.Client.Get(context.Background(), key, ms); err != nil {
-		if !apierrors.IsNotFound(err) {
-			klog.Errorf("Unable to retrieve MachineSet %q for possible MachineDeployment adoption: %v", key, err)
-		}
+	ms, ok := o.Object.(*clusterv1.MachineSet)
+	if !ok {
+		klog.Errorf("Expected a MachineSet but got %T instead: %v", o.Object, o.Object)
 		return nil
 	}
 
@@ -383,7 +381,7 @@ func (r *ReconcileMachineDeployment) MachineSetToDeployments(o handler.MapObject
 
 	mds := r.getMachineDeploymentsForMachineSet(ms)
 	if len(mds) == 0 {
-		klog.V(4).Infof("Found no machine set for machine: %v", ms.Name)
+		klog.V(4).Infof("Found no MachineDeployment for MachineSet: %v", ms.Name)
 		return nil
 	}
 

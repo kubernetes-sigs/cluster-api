@@ -196,6 +196,9 @@ func (r *KubeadmConfigReconciler) Reconcile(req ctrl.Request) (ctrl.Result, erro
 		certificates, _ := r.getCertificates()
 
 		cloudInitData, err := cloudinit.NewInitControlPlane(&cloudinit.ControlPlaneInput{
+			BaseUserData: cloudinit.BaseUserData{
+				AdditionalFiles: config.Spec.AdditionalUserDataFiles,
+			},
 			InitConfiguration:    string(initdata),
 			ClusterConfiguration: string(clusterdata),
 			Certificates:         certificates,
@@ -257,6 +260,9 @@ func (r *KubeadmConfigReconciler) Reconcile(req ctrl.Request) (ctrl.Result, erro
 		joinData, err := cloudinit.NewJoinControlPlane(&cloudinit.ControlPlaneJoinInput{
 			JoinConfiguration: string(joinBytes),
 			Certificates:      certificates,
+			BaseUserData: cloudinit.BaseUserData{
+				AdditionalFiles: config.Spec.AdditionalUserDataFiles,
+			},
 		})
 		if err != nil {
 			log.Error(err, "failed to create a control plane join configuration")
@@ -273,6 +279,9 @@ func (r *KubeadmConfigReconciler) Reconcile(req ctrl.Request) (ctrl.Result, erro
 	}
 
 	joinData, err := cloudinit.NewNode(&cloudinit.NodeInput{
+		BaseUserData: cloudinit.BaseUserData{
+			AdditionalFiles: config.Spec.AdditionalUserDataFiles,
+		},
 		JoinConfiguration: string(joinBytes),
 	})
 	if err != nil {

@@ -145,8 +145,7 @@ func (r *DockerMachineReconciler) create(
 	ctx context.Context,
 	c *capiv1alpha2.Cluster,
 	machine *capiv1alpha2.Machine,
-	dockerMachine *infrastructurev1alpha2.DockerMachine,
-) (ctrl.Result, error) {
+	dockerMachine *infrastructurev1alpha2.DockerMachine) (ctrl.Result, error) {
 	r.Log.Info("Creating a machine for cluster", "cluster-name", c.Name)
 	clusterExists, err := cluster.IsKnown(c.Name)
 	if err != nil {
@@ -158,14 +157,16 @@ func (r *DockerMachineReconciler) create(
 		r.Log.Info("There is no cluster yet, waiting for a cluster before creating machines")
 		return ctrl.Result{RequeueAfter: time.Second * 30}, nil
 	}
+	r.Log.Info("Is there a cluster?", "cluster-exists", clusterExists)
+
 	controlPlanes, err := actions.ListControlPlanes(c.Name)
 	if err != nil {
 		r.Log.Error(err, "Error listing control planes")
 		return ctrl.Result{}, err
 	}
-	r.Log.Info("Is there a cluster?", "cluster-exists", clusterExists)
+
 	setValue := getRole(machine)
-	r.Log.Info("This node has a role", "role", setValue)
+	r.Log.Info("Creating node with role", "role", setValue)
 	if setValue == clusterAPIControlPlaneSetLabel {
 		// joining controlplane
 		if len(controlPlanes) > 0 {
@@ -181,23 +182,14 @@ func (r *DockerMachineReconciler) create(
 			return ctrl.Result{}, nil
 		}
 
-		r.Log.Info("Creating a brand new controlplane node")
-		elb, err := actions.GetExternalLoadBalancerNode(c.Name)
-		if err != nil {
-			r.Log.Error(err, "Error getting external load balancer node")
-			return ctrl.Result{}, err
-		}
-		if elb == nil {
+		r.Log.Info("Creating a new controlplane node")
+
+		if len(c.Status.APIEndpoints) == 0 {
 			r.Log.Info("Cluster has no ELB yet, waiting for cluster network to be reconciled")
 			return ctrl.Result{RequeueAfter: time.Second * 30}, nil
 		}
 
-		lbipv4, _, err := elb.IP()
-		if err != nil {
-			r.Log.Error(err, "Error getting IP address for ELB")
-			return ctrl.Result{}, err
-		}
-		controlPlaneNode, err := actions.CreateControlPlane(c.Name, machine.GetName(), lbipv4, *machine.Spec.Version, nil)
+		controlPlaneNode, err := actions.CreateControlPlane(c.Name, machine.GetName(), c.Status.APIEndpoints[0].Host, *machine.Spec.Version, nil)
 		if err != nil {
 			r.Log.Error(err, "Error creating control plane")
 			return ctrl.Result{}, err

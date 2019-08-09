@@ -47,21 +47,20 @@ func (r *DockerClusterReconciler) Reconcile(req ctrl.Request) (ctrl.Result, erro
 		if apierrors.IsNotFound(err) {
 			return ctrl.Result{}, nil
 		}
-		log.Error(err, "failed to get cluster")
-		return ctrl.Result{}, err
-	}
-
-	if dockerCluster.Status.Ready {
-		return ctrl.Result{}, nil
-	}
-
-	if err := r.reconcileNetwork(dockerCluster.Name, r.Log); err != nil {
-		log.Error(err, "Failed to reconcile network for cluster")
+		log.Error(err, "failed to get DockerCluster")
 		return ctrl.Result{}, err
 	}
 
 	// Store Config's state, pre-modifications, to allow patching
 	patchCluster := client.MergeFrom(dockerCluster.DeepCopy())
+
+	if err := r.reconcileNetwork(dockerCluster, r.Log); err != nil {
+		log.Error(err, "Failed to reconcile network for cluster")
+		return ctrl.Result{}, err
+	}
+	log.Info("Reconcile network for cluster successful", "APIEndPoint", dockerCluster.Status.APIEndpoints[0])
+
+	dockerCluster.Status.Ready = true
 
 	// TODO(ncdc): remove this once we've updated to a version of controller-runtime with
 	// https://github.com/kubernetes-sigs/controller-runtime/issues/526.
@@ -79,29 +78,39 @@ func (r *DockerClusterReconciler) Reconcile(req ctrl.Request) (ctrl.Result, erro
 		return ctrl.Result{}, err
 	}
 
-	dockerCluster.Status.Ready = true
-
 	return ctrl.Result{}, nil
 }
 
-func (r *DockerClusterReconciler) reconcileNetwork(clusterName string, log logr.Logger) error {
+func (r *DockerClusterReconciler) reconcileNetwork(cluster *infrastructurev1alpha2.DockerCluster, log logr.Logger) error {
 	// reconcile elb
+	clusterName := cluster.Name
 	log.Info("Reconciling ELB for cluster", "cluster-name", clusterName)
-	elb, err := actions.GetExternalLoadBalancerNode(clusterName)
-	if err != nil {
-		log.Error(err, "Failed to get ELB for cluster")
-		return err
-	}
 
-	if elb == nil {
-		log.Info("External loadbalancer does not exist for cluster, creating ELB", "cluster-name", clusterName)
-		elb, err = actions.SetUpLoadBalancer(clusterName)
+	if len(cluster.Status.APIEndpoints) == 0 {
+		log.Info("Cluster has no ELB, creating ELB", "cluster-name", clusterName)
+		elb, err := actions.SetUpLoadBalancer(clusterName)
 		if err != nil {
-			log.Error(err, "Failed to setup ELB for cluster")
+			log.Error(err, "Failed to create ELB for cluster")
 			return err
 		}
+
+		elbIP, _, err := elb.IP()
+		if err != nil {
+			//TODO(ashish-amarnath) don't leak containers, delete created ELB
+			log.Error(err, "failed to  get ELB host and port")
+			return err
+		}
+		elbPort, err := elb.Ports(6443)
+		if err != nil {
+			//TODO(ashish-amarnath) don't leak containers, delete created ELB
+			log.Error(err, "failed to get container port mapped to port 6443")
+		}
+
+		cluster.Status.APIEndpoints = append(cluster.Status.APIEndpoints, infrastructurev1alpha2.APIEndpoint{
+			Host: elbIP,
+			Port: int(elbPort),
+		})
 	}
-	log.Info("External loadbalancer node for cluster", "cluster-name", clusterName, "elb", elb)
 	return nil
 }
 

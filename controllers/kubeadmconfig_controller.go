@@ -271,8 +271,8 @@ func (r *KubeadmConfigReconciler) Reconcile(req ctrl.Request) (ctrl.Result, erro
 
 		config.Status.BootstrapData = joinData
 		config.Status.Ready = true
-		if err := r.Update(ctx, &config); err != nil {
-			log.Error(err, "failed to update config")
+		if err := r.patchConfig(ctx, &config, patchConfig); err != nil {
+			log.Error(err, "failed to patch config")
 			return ctrl.Result{}, err
 		}
 		return ctrl.Result{}, nil

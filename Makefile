@@ -73,9 +73,6 @@ docker-build-manager: lint-full ## Build manager binary in docker
 clusterctl: lint-full ## Build clusterctl binary
 	go build -o bin/clusterctl sigs.k8s.io/cluster-api/cmd/clusterctl
 
-bin/%-gen: ./vendor/k8s.io/code-generator/cmd/%-gen ## Build code-generator binaries
-	go build -o $@ ./$<
-
 .PHONY: run
 run: lint ## Run against the configured Kubernetes cluster in ~/.kube/config
 	go run ./cmd/manager/main.go
@@ -101,33 +98,9 @@ generate: ## Generate code
 	$(MAKE) generate-go
 	$(MAKE) gazelle
 
-.PHONY: generate-full
-generate-full: vendor ## Generate code
-	$(MAKE) generate-clientset
-	$(MAKE) generate
-
 .PHONY: generate-go
 generate-go: ## Runs go generate
 	go generate ./pkg/... ./cmd/...
-
-.PHONY: generate-clientset
-generate-clientset: clean-clientset bin/client-gen bin/lister-gen bin/informer-gen ## Generate a typed clientset
-	bin/client-gen \
-		--clientset-name clientset \
-		--input-base sigs.k8s.io/cluster-api/pkg/apis \
-		--input deprecated/v1alpha1,cluster/v1alpha2 \
-		--output-package sigs.k8s.io/cluster-api/pkg/client/clientset_generated \
-		--go-header-file=./hack/boilerplate/boilerplate.generatego.txt
-	bin/lister-gen \
-		--input-dirs sigs.k8s.io/cluster-api/pkg/apis/deprecated/v1alpha1,sigs.k8s.io/cluster-api/pkg/apis/cluster/v1alpha2 \
-		--output-package sigs.k8s.io/cluster-api/pkg/client/listers_generated \
-		--go-header-file=./hack/boilerplate/boilerplate.generatego.txt
-	bin/informer-gen \
-		--input-dirs sigs.k8s.io/cluster-api/pkg/apis/deprecated/v1alpha1,sigs.k8s.io/cluster-api/pkg/apis/cluster/v1alpha2 \
-		--versioned-clientset-package sigs.k8s.io/cluster-api/pkg/client/clientset_generated/clientset \
-		--listers-package sigs.k8s.io/cluster-api/pkg/client/listers_generated \
-		--output-package sigs.k8s.io/cluster-api/pkg/client/informers_generated \
-		--go-header-file=./hack/boilerplate/boilerplate.generatego.txt
 
 .PHONY: generate-manifests
 generate-manifests: ## Generate manifests e.g. CRD, RBAC etc.

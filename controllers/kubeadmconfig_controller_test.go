@@ -74,7 +74,7 @@ func TestBailIfKubeadmConfigStatusReady(t *testing.T) {
 	}
 }
 
-func TestBailIfNoMachineRefIsSet(t *testing.T) {
+func TestRequeueIfNoMachineRefIsSet(t *testing.T) {
 	config := newKubeadmConfig(nil, "cfg") // intentionally omitting machine
 	objects := []runtime.Object{
 		config,
@@ -99,8 +99,8 @@ func TestBailIfNoMachineRefIsSet(t *testing.T) {
 	if result.Requeue == true {
 		t.Fatal("did not expected to requeue")
 	}
-	if result.RequeueAfter != time.Duration(0) {
-		t.Fatal("did not expected to requeue after")
+	if result.RequeueAfter == time.Duration(0) {
+		t.Fatal("Expected a requeue but did not get one")
 	}
 }
 

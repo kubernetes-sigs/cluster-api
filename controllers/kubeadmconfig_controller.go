@@ -77,30 +77,14 @@ func (r *KubeadmConfigReconciler) Reconcile(req ctrl.Request) (_ ctrl.Result, re
 		return ctrl.Result{}, nil
 	}
 
-	// Find the owner reference
-	// The cluster-api machine controller set this value.
-	var machineRef *v1.OwnerReference
-	for _, ref := range config.OwnerReferences {
-		if ref.Kind == machineKind.Kind && ref.APIVersion == machineKind.GroupVersion().String() {
-			machineRef = &ref
-			break
-		}
-	}
-	if machineRef == nil {
-		log.Info("did not find matching machine reference")
-		return ctrl.Result{}, nil
-	}
-
-	// Get the machine
-	machine := &capiv1alpha2.Machine{}
-	machineKey := client.ObjectKey{
-		Namespace: req.Namespace,
-		Name:      machineRef.Name,
-	}
-
-	if err := r.Get(ctx, machineKey, machine); err != nil {
-		log.Error(err, "failed to get machine")
+	machine, err := util.GetOwnerMachine(ctx, r.Client, config.ObjectMeta)
+	if err != nil {
+		log.Error(err, "could not get owner machine")
 		return ctrl.Result{}, err
+	}
+	if machine == nil {
+		log.Info("Waiting for Machine Controller to set OwnerRef on the KubeadmConfig")
+		return ctrl.Result{RequeueAfter: 10 * time.Second}, nil
 	}
 
 	// Ignore machines that already have bootstrap data
@@ -108,18 +92,9 @@ func (r *KubeadmConfigReconciler) Reconcile(req ctrl.Request) (_ ctrl.Result, re
 		return ctrl.Result{}, nil
 	}
 
-	if machine.Labels[capiv1alpha2.MachineClusterLabelName] == "" {
-		return ctrl.Result{}, errors.New("machine has no associated cluster")
-	}
-
-	// Get the cluster
-	cluster := &capiv1alpha2.Cluster{}
-	clusterKey := client.ObjectKey{
-		Namespace: req.Namespace,
-		Name:      machine.Labels[capiv1alpha2.MachineClusterLabelName],
-	}
-	if err := r.Get(ctx, clusterKey, cluster); err != nil {
-		log.Error(err, "failed to get cluster")
+	cluster, err := util.GetClusterFromMetadata(ctx, r.Client, machine.ObjectMeta)
+	if err != nil {
+		log.Error(err, "could not get cluster by machine metadata")
 		return ctrl.Result{}, err
 	}
 

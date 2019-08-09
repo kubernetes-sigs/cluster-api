@@ -145,6 +145,7 @@ spec:
               type: string
           type: object
       type: object
+  version: v1alpha2
   versions:
   - name: v1alpha2
     served: true

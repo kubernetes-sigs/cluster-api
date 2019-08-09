@@ -33,6 +33,42 @@ import (
 
 func TestControlPlaneInitLockerAcquire(t *testing.T) {
 	tests := []struct {
+		name     string
+		getError error
+	}{
+		{
+			name:     "create succeeds",
+			getError: apierrors.NewNotFound(schema.GroupResource{Group: "", Resource: "configmaps"}, "uid1-configmap"),
+		},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			l := &controlPlaneInitLocker{
+				log: log.ZapLogger(true),
+				configMapClient: &configMapsGetter{
+					getError: tc.getError,
+				},
+			}
+
+			cluster := &clusterv2.Cluster{
+				ObjectMeta: metav1.ObjectMeta{
+					Namespace: "ns1",
+					Name:      "name1",
+					UID:       types.UID("uid1"),
+				},
+			}
+
+			acquired := l.Acquire(cluster)
+			if !acquired {
+				t.Fatal("acquired was false but it should have been true")
+			}
+		})
+	}
+}
+
+func TestControlPlaneInitLockerAcquireErrors(t *testing.T) {
+	tests := []struct {
 		name          string
 		configMap     *v1.ConfigMap
 		getError      error
@@ -48,11 +84,6 @@ func TestControlPlaneInitLockerAcquire(t *testing.T) {
 			name:          "error getting configmap",
 			getError:      errors.New("get error"),
 			expectAcquire: false,
-		},
-		{
-			name:          "create succeeds",
-			getError:      apierrors.NewNotFound(schema.GroupResource{Group: "", Resource: "configmaps"}, "uid1-configmap"),
-			expectAcquire: true,
 		},
 		{
 			name:          "create fails",
@@ -82,8 +113,8 @@ func TestControlPlaneInitLockerAcquire(t *testing.T) {
 			}
 
 			acquired := l.Acquire(cluster)
-			if tc.expectAcquire != acquired {
-				t.Errorf("expected %t, got %t", tc.expectAcquire, acquired)
+			if acquired {
+				t.Fatal("expected acquired to be false but it is true")
 			}
 		})
 	}

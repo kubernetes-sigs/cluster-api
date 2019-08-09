@@ -43,6 +43,10 @@ spec:
               description: DeletePolicy defines the policy used to identify nodes
                 to delete when downscaling. Defaults to "Random".  Valid values are
                 "Random, "Newest", "Oldest"
+              enum:
+              - Random
+              - Newest
+              - Oldest
               type: string
             minReadySeconds:
               description: MinReadySeconds is the minimum number of seconds for which
@@ -540,6 +544,7 @@ spec:
           - replicas
           type: object
       type: object
+  version: v1alpha1
   versions:
   - name: v1alpha1
     served: true

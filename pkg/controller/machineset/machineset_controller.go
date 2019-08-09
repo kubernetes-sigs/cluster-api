@@ -494,12 +494,9 @@ func (r *ReconcileMachineSet) waitForMachineDeletion(machineList []*clusterv1.Ma
 func (r *ReconcileMachineSet) MachineToMachineSets(o handler.MapObject) []reconcile.Request {
 	result := []reconcile.Request{}
 
-	m := &clusterv1.Machine{}
-	key := client.ObjectKey{Namespace: o.Meta.GetNamespace(), Name: o.Meta.GetName()}
-	if err := r.Client.Get(context.Background(), key, m); err != nil {
-		if !apierrors.IsNotFound(err) {
-			klog.Errorf("Unable to retrieve Machine %q for possible MachineSet adoption: %v", key, err)
-		}
+	m, ok := o.Object.(*clusterv1.Machine)
+	if !ok {
+		klog.Errorf("expected a Machine but got a %T", o.Object)
 		return nil
 	}
 

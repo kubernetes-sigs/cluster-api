@@ -267,11 +267,12 @@ func (c *client) ForceDeleteCluster(namespace, name string) error {
 	return nil
 }
 
-func (c *client) GetClusters(namespace string) (items []*clusterv1.Cluster, _ error) {
+func (c *client) GetClusters(namespace string) ([]*clusterv1.Cluster, error) {
 	clusters := &clusterv1.ClusterList{}
 	if err := c.clientSet.List(ctx, clusters); err != nil {
 		return nil, errors.Wrapf(err, "error listing cluster objects in namespace %q", namespace)
 	}
+	items := []*clusterv1.Cluster{}
 	for i := 0; i < len(clusters.Items); i++ {
 		items = append(items, &clusters.Items[i])
 	}
@@ -639,76 +640,6 @@ func (c *client) WaitForResourceStatuses() error {
 	})
 }
 
-// func (c *client) waitForClusterDelete(namespace string) error {
-// 	return util.PollImmediate(retryIntervalResourceDelete, timeoutResourceDelete, func() (bool, error) {
-// 		klog.V(2).Infof("Waiting for Clusters to be deleted...")
-// 		response, err := c.clientSet.ClusterV1alpha2().Clusters(namespace).List(metav1.ListOptions{})
-// 		if err != nil {
-// 			return false, nil
-// 		}
-// 		if len(response.Items) > 0 {
-// 			return false, nil
-// 		}
-// 		return true, nil
-// 	})
-// }
-
-// func (c *client) waitForMachineDeploymentsDelete(namespace string) error {
-// 	return util.PollImmediate(retryIntervalResourceDelete, timeoutResourceDelete, func() (bool, error) {
-// 		klog.V(2).Infof("Waiting for MachineDeployments to be deleted...")
-// 		response, err := c.clientSet.ClusterV1alpha2().MachineDeployments(namespace).List(metav1.ListOptions{})
-// 		if err != nil {
-// 			return false, nil
-// 		}
-// 		if len(response.Items) > 0 {
-// 			return false, nil
-// 		}
-// 		return true, nil
-// 	})
-// }
-
-// func (c *client) waitForMachineSetsDelete(namespace string) error {
-// 	return util.PollImmediate(retryIntervalResourceDelete, timeoutResourceDelete, func() (bool, error) {
-// 		klog.V(2).Infof("Waiting for MachineSets to be deleted...")
-// 		response, err := c.clientSet.ClusterV1alpha2().MachineSets(namespace).List(metav1.ListOptions{})
-// 		if err != nil {
-// 			return false, nil
-// 		}
-// 		if len(response.Items) > 0 {
-// 			return false, nil
-// 		}
-// 		return true, nil
-// 	})
-// }
-
-// func (c *client) waitForMachinesDelete(namespace string) error {
-// 	return util.PollImmediate(retryIntervalResourceDelete, timeoutResourceDelete, func() (bool, error) {
-// 		klog.V(2).Infof("Waiting for Machines to be deleted...")
-// 		response, err := c.clientSet.ClusterV1alpha2().Machines(namespace).List(metav1.ListOptions{})
-// 		if err != nil {
-// 			return false, nil
-// 		}
-// 		if len(response.Items) > 0 {
-// 			return false, nil
-// 		}
-// 		return true, nil
-// 	})
-// }
-
-// func (c *client) waitForMachineDelete(namespace, name string) error {
-// 	return util.PollImmediate(retryIntervalResourceDelete, timeoutResourceDelete, func() (bool, error) {
-// 		klog.V(2).Infof("Waiting for Machine %s/%s to be deleted...", namespace, name)
-// 		response, err := c.clientSet.ClusterV1alpha2().Machines(namespace).Get(name, metav1.GetOptions{})
-// 		if err != nil {
-// 			return false, nil
-// 		}
-// 		if response != nil {
-// 			return false, nil
-// 		}
-// 		return true, nil
-// 	})
-// }
-
 func (c *client) kubectlDelete(manifest string) error {
 	return c.kubectlManifestCmd("delete", manifest)
 }
@@ -774,19 +705,6 @@ func (c *client) waitForKubectlApply(manifest string) error {
 
 func waitForClusterResourceReady(cs ctrlclient.Client) error {
 	deadline := time.Now().Add(timeoutResourceReady)
-	// err := util.PollImmediate(retryIntervalResourceReady, timeoutResourceReady, func() (bool, error) {
-	// 	klog.V(2).Info("Waiting for Cluster v1alpha resources to become available...")
-	// 	cs.
-	// 	_, err := cs.Discovery().ServerResourcesForGroupVersion("cluster.k8s.io/v1alpha2")
-	// 	if err == nil {
-	// 		return true, nil
-	// 	}
-	// 	return false, nil
-	// })
-
-	// if err != nil {
-	// 	return err
-	// }
 	timeout := time.Until(deadline)
 	return util.PollImmediate(retryIntervalResourceReady, timeout, func() (bool, error) {
 		klog.V(2).Info("Waiting for Cluster resources to be listable...")

@@ -95,12 +95,14 @@ lint-full: ## Run slower linters to detect possible issues
 .PHONY: generate
 generate: ## Generate code
 	$(MAKE) generate-manifests
-	$(MAKE) generate-go
+	$(MAKE) generate-deepcopy
 	$(MAKE) gazelle
 
-.PHONY: generate-go
-generate-go: ## Runs go generate
-	go generate ./pkg/... ./cmd/...
+.PHONY: generate-deepcopy
+generate-deepcopy: ## Runs controller-gen to generate deepcopy files
+	go run vendor/sigs.k8s.io/controller-tools/cmd/controller-gen/main.go \
+	object:headerFile=./hack/boilerplate/boilerplate.generatego.txt \
+	paths=./pkg/...
 
 .PHONY: generate-manifests
 generate-manifests: ## Generate manifests e.g. CRD, RBAC etc.

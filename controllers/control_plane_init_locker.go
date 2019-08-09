@@ -17,14 +17,15 @@ limitations under the License.
 package controllers
 
 import (
+	"context"
 	"fmt"
 
 	"github.com/go-logr/logr"
 	apicorev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	corev1 "k8s.io/client-go/kubernetes/typed/core/v1"
 	clusterv2 "sigs.k8s.io/cluster-api/pkg/apis/cluster/v1alpha2"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
 // ControlPlaneInitLocker provides a locking mechanism for cluster initialization.
@@ -35,16 +36,18 @@ type ControlPlaneInitLocker interface {
 
 // controlPlaneInitLocker uses a ConfigMap to synchronize cluster initialization.
 type controlPlaneInitLocker struct {
-	log             logr.Logger
-	configMapClient corev1.ConfigMapsGetter
+	log    logr.Logger
+	client client.Client
+	ctx    context.Context
 }
 
 var _ ControlPlaneInitLocker = &controlPlaneInitLocker{}
 
-func newControlPlaneInitLocker(log logr.Logger, configMapClient corev1.ConfigMapsGetter) *controlPlaneInitLocker {
+func newControlPlaneInitLocker(ctx context.Context, log logr.Logger, client client.Client) *controlPlaneInitLocker {
 	return &controlPlaneInitLocker{
-		log:             log,
-		configMapClient: configMapClient,
+		ctx:    ctx,
+		log:    log,
+		client: client,
 	}
 }
 
@@ -77,7 +80,7 @@ func (l *controlPlaneInitLocker) Acquire(cluster *clusterv2.Cluster) bool {
 	}
 
 	log.Info("Attempting to create control plane configmap lock")
-	_, err = l.configMapClient.ConfigMaps(cluster.Namespace).Create(controlPlaneConfigMap)
+	err = l.client.Create(l.ctx, controlPlaneConfigMap)
 	if err != nil {
 		if apierrors.IsAlreadyExists(err) {
 			// Someone else beat us to it
@@ -99,7 +102,11 @@ func (l *controlPlaneInitLocker) Release(cluster *clusterv2.Cluster) bool {
 	log := l.log.WithValues("namespace", cluster.Namespace, "cluster-name", cluster.Name, "configmap-name", configMapName)
 
 	log.Info("Checking for existence of control plane configmap lock", "configmap-name", configMapName)
-	_, err := l.configMapClient.ConfigMaps(cluster.Namespace).Get(configMapName, metav1.GetOptions{})
+	cfg := &apicorev1.ConfigMap{}
+	err := l.client.Get(l.ctx, client.ObjectKey{
+		Namespace: cluster.Name,
+		Name:      configMapName,
+	}, cfg)
 	switch {
 	case apierrors.IsNotFound(err):
 		log.Info("Control plane configmap lock not found, it may have been released already", "configmap-name", configMapName)
@@ -107,7 +114,8 @@ func (l *controlPlaneInitLocker) Release(cluster *clusterv2.Cluster) bool {
 		log.Error(err, "Error retrieving control plane configmap lock", "configmap-name", configMapName)
 		return false
 	default:
-		if err := l.configMapClient.ConfigMaps(cluster.Namespace).Delete(configMapName, nil); err != nil {
+		// If no error delete the config map
+		if err := l.client.Delete(l.ctx, cfg); err != nil {
 			log.Error(err, "Error deleting control plane configmap lock", "configmap-name", configMapName)
 			return false
 		}
@@ -117,7 +125,12 @@ func (l *controlPlaneInitLocker) Release(cluster *clusterv2.Cluster) bool {
 }
 
 func (l *controlPlaneInitLocker) configMapExists(namespace, name string) (bool, error) {
-	_, err := l.configMapClient.ConfigMaps(namespace).Get(name, metav1.GetOptions{})
+	// _, err := l.configMapClient.ConfigMaps(namespace).Get(name, metav1.GetOptions{})
+	cfg := &apicorev1.ConfigMap{}
+	err := l.client.Get(l.ctx, client.ObjectKey{
+		Namespace: namespace,
+		Name:      name,
+	}, cfg)
 	if apierrors.IsNotFound(err) {
 		return false, nil
 	}

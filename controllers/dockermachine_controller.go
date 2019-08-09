@@ -62,7 +62,7 @@ type DockerMachineReconciler struct {
 // +kubebuilder:rbac:groups=core,resources=secrets,verbs=create
 
 // Reconcile handles DockerMachine events
-func (r *DockerMachineReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
+func (r *DockerMachineReconciler) Reconcile(req ctrl.Request) (_ ctrl.Result, reterr error) {
 	ctx := context.Background()
 	log := r.Log.WithValues("dockermachine", req.NamespacedName)
 
@@ -75,9 +75,18 @@ func (r *DockerMachineReconciler) Reconcile(req ctrl.Request) (ctrl.Result, erro
 		return ctrl.Result{}, err
 	}
 
-
 	// Store Docker Machine early state to allow patching.
 	patch := client.MergeFrom(dockerMachine.DeepCopy())
+
+	defer func() {
+		if err := r.patchMachine(ctx, dockerMachine, patch); err != nil {
+			r.Log.Error(err, "Error Patching DockerMachine", "name", dockerMachine.GetName())
+			if reterr == nil {
+				reterr = err
+			}
+		}
+		return
+	}()
 
 	// Get the cluster api machine
 	machine, err := util.GetOwnerMachine(ctx, r.Client, dockerMachine.ObjectMeta)
@@ -96,37 +105,16 @@ func (r *DockerMachineReconciler) Reconcile(req ctrl.Request) (ctrl.Result, erro
 		log.Error(err, "failed to get cluster")
 	}
 
-
 	// If the DockerMachine doesn't have finalizer, add it.
 	if !util.Contains(dockerMachine.Finalizers, capiv1alpha2.MachineFinalizer) {
-		dockerMachine.Finalizers = append(dockerMachine.Finalizers, capiv1alpha2.MachineFinalizer)
-		if err := r.Client.Patch(ctx, dockerMachine, patch) ; err!= nil {
-
-			return ctrl.Result{}, errors.Wrapf(err, "failed to add finalizer to DockerMachine %q in namespace %q",
-				dockerMachine.Name, dockerMachine.Namespace)
-		}
-
-		// Since adding the finalizer updates the object return to avoid later update issues
-		return ctrl.Result{Requeue: true}, nil
+		dockerMachine.Finalizers = append(dockerMachine.Finalizers, infrastructurev1alpha2.MachineFinalizer)
 	}
 
 	//reconcileDelete dockerMachine
 	if !machine.ObjectMeta.DeletionTimestamp.IsZero() {
 		log.Info("Start reconcileDelete dockerMachine")
-		result, err := r.reconcileDelete(ctx, cluster, machine, dockerMachine)
-		if err != nil {
-			return result, err
-		}
-
-		err = r.Client.Patch(ctx, dockerMachine, patch)
-		if err != nil {
-			r.Log.Error(err, "Error deleting DockerMachine", "name", dockerMachine.GetName())
-			return ctrl.Result{RequeueAfter: time.Second * 30}, nil
-		}
-		return ctrl.Result{}, nil
-
+		return r.reconcileDelete(ctx, cluster, machine, dockerMachine)
 	}
-
 
 	// creating loadbalancer
 	log.Info("Reconciling cluster")
@@ -351,7 +339,6 @@ func (r *DockerMachineReconciler) reconcileDelete(
 	if isControlPlaneMachine(machine) {
 		err := actions.DeleteControlPlane(cluster.GetName(), machine.GetName())
 		if err != nil {
-			r.Log.Error(err, "Error deleting control plane node", "nodeName", machine.GetName())
 			return ctrl.Result{RequeueAfter: time.Second * 30}, err
 		}
 	} else {
@@ -362,7 +349,7 @@ func (r *DockerMachineReconciler) reconcileDelete(
 		}
 	}
 
-	dockerMachine.ObjectMeta.Finalizers = util.Filter(dockerMachine.ObjectMeta.Finalizers, capiv1alpha2.MachineFinalizer)
+	dockerMachine.ObjectMeta.Finalizers = util.Filter(dockerMachine.ObjectMeta.Finalizers, infrastructurev1alpha2.MachineFinalizer)
 
 	return ctrl.Result{}, nil
 }
@@ -373,4 +360,21 @@ func isControlPlaneMachine(machine *capiv1alpha2.Machine) bool {
 		return true
 	}
 	return false
+}
+
+func (r *DockerMachineReconciler) patchMachine(ctx context.Context,
+	dockerMachine *infrastructurev1alpha2.DockerMachine, patchConfig client.Patch) error {
+	// TODO(ncdc): remove this once we've updated to a version of controller-runtime with
+	// https://github.com/kubernetes-sigs/controller-runtime/issues/526.
+	gvk := dockerMachine.GroupVersionKind()
+	if err := r.Patch(ctx, dockerMachine, patchConfig); err != nil {
+		return err
+	}
+	// TODO(ncdc): remove this once we've updated to a version of controller-runtime with
+	// https://github.com/kubernetes-sigs/controller-runtime/issues/526.
+	dockerMachine.SetGroupVersionKind(gvk)
+	if err := r.Status().Patch(ctx, dockerMachine, patchConfig); err != nil {
+		return err
+	}
+	return nil
 }

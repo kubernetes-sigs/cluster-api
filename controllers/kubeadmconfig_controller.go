@@ -57,12 +57,13 @@ type KubeadmConfigReconciler struct {
 // +kubebuilder:rbac:groups=cluster.x-k8s.io,resources=clusters;machines,verbs=get;list;watch
 
 // Reconcile TODO
-func (r *KubeadmConfigReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
+func (r *KubeadmConfigReconciler) Reconcile(req ctrl.Request) (_ ctrl.Result, rerr error) {
+
 	ctx := context.Background()
 	log := r.Log.WithValues("kubeadmconfig", req.NamespacedName)
 
-	config := cabpkv1alpha2.KubeadmConfig{}
-	if err := r.Get(ctx, req.NamespacedName, &config); err != nil {
+	config := &cabpkv1alpha2.KubeadmConfig{}
+	if err := r.Get(ctx, req.NamespacedName, config); err != nil {
 		if apierrors.IsNotFound(err) {
 			return ctrl.Result{}, nil
 		}
@@ -131,6 +132,13 @@ func (r *KubeadmConfigReconciler) Reconcile(req ctrl.Request) (ctrl.Result, erro
 
 	// Store Config's state, pre-modifications, to allow patching
 	patchConfig := client.MergeFrom(config.DeepCopy())
+	defer func() {
+		err := r.patchConfig(ctx, config, patchConfig)
+		if err != nil {
+			log.Error(err, "failed to patch config")
+			rerr = err
+		}
+	}()
 
 	// Check for control plane ready. If it's not ready then we will requeue the machine until it is.
 	// The cluster-api machine controller set this value.
@@ -210,15 +218,7 @@ func (r *KubeadmConfigReconciler) Reconcile(req ctrl.Request) (ctrl.Result, erro
 
 		config.Status.BootstrapData = cloudInitData
 		config.Status.Ready = true
-
-		if err := r.patchConfig(ctx, &config, patchConfig); err != nil {
-			log.Error(err, "failed to patch config")
-			return ctrl.Result{}, err
-		}
-		log.Info("KubeadmConfig updated with BootstrapData for kubeadm init; Status.Ready=true")
-
 		return ctrl.Result{}, nil
-
 	}
 
 	// Every other case it's a join scenario
@@ -271,10 +271,6 @@ func (r *KubeadmConfigReconciler) Reconcile(req ctrl.Request) (ctrl.Result, erro
 
 		config.Status.BootstrapData = joinData
 		config.Status.Ready = true
-		if err := r.patchConfig(ctx, &config, patchConfig); err != nil {
-			log.Error(err, "failed to patch config")
-			return ctrl.Result{}, err
-		}
 		return ctrl.Result{}, nil
 	}
 
@@ -290,13 +286,6 @@ func (r *KubeadmConfigReconciler) Reconcile(req ctrl.Request) (ctrl.Result, erro
 	}
 	config.Status.BootstrapData = joinData
 	config.Status.Ready = true
-
-	if err := r.patchConfig(ctx, &config, patchConfig); err != nil {
-		log.Error(err, "failed to patch config")
-		return ctrl.Result{}, err
-	}
-
-	log.Info("Updated config with bootstrap data")
 	return ctrl.Result{}, nil
 }
 

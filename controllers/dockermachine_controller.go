@@ -75,6 +75,10 @@ func (r *DockerMachineReconciler) Reconcile(req ctrl.Request) (ctrl.Result, erro
 		return ctrl.Result{}, err
 	}
 
+
+	// Store Docker Machine early state to allow patching.
+	patch := client.MergeFrom(dockerMachine.DeepCopy())
+
 	// Get the cluster api machine
 	machine, err := util.GetOwnerMachine(ctx, r.Client, dockerMachine.ObjectMeta)
 
@@ -92,11 +96,37 @@ func (r *DockerMachineReconciler) Reconcile(req ctrl.Request) (ctrl.Result, erro
 		log.Error(err, "failed to get cluster")
 	}
 
-	//delete dockerMachine
-	if !machine.ObjectMeta.DeletionTimestamp.IsZero() {
-		log.Info("Start delete dockerMachine")
-		return r.delete(ctx, cluster, machine, dockerMachine)
+
+	// If the DockerMachine doesn't have finalizer, add it.
+	if !util.Contains(dockerMachine.Finalizers, capiv1alpha2.MachineFinalizer) {
+		dockerMachine.Finalizers = append(dockerMachine.Finalizers, capiv1alpha2.MachineFinalizer)
+		if err := r.Client.Patch(ctx, dockerMachine, patch) ; err!= nil {
+
+			return ctrl.Result{}, errors.Wrapf(err, "failed to add finalizer to DockerMachine %q in namespace %q",
+				dockerMachine.Name, dockerMachine.Namespace)
+		}
+
+		// Since adding the finalizer updates the object return to avoid later update issues
+		return ctrl.Result{Requeue: true}, nil
 	}
+
+	//reconcileDelete dockerMachine
+	if !machine.ObjectMeta.DeletionTimestamp.IsZero() {
+		log.Info("Start reconcileDelete dockerMachine")
+		result, err := r.reconcileDelete(ctx, cluster, machine, dockerMachine)
+		if err != nil {
+			return result, err
+		}
+
+		err = r.Client.Patch(ctx, dockerMachine, patch)
+		if err != nil {
+			r.Log.Error(err, "Error deleting DockerMachine", "name", dockerMachine.GetName())
+			return ctrl.Result{RequeueAfter: time.Second * 30}, nil
+		}
+		return ctrl.Result{}, nil
+
+	}
+
 
 	// creating loadbalancer
 	log.Info("Reconciling cluster")
@@ -311,14 +341,14 @@ func (r *DockerMachineReconciler) SetupWithManager(mgr ctrl.Manager) error {
 		Complete(r)
 }
 
-func (r *DockerMachineReconciler) delete(
+func (r *DockerMachineReconciler) reconcileDelete(
 	ctx context.Context,
 	cluster *capiv1alpha2.Cluster,
 	machine *capiv1alpha2.Machine,
 	dockerMachine *infrastructurev1alpha2.DockerMachine,
 ) (ctrl.Result, error) {
 
-	if isControllerPlaneMachine(machine) {
+	if isControlPlaneMachine(machine) {
 		err := actions.DeleteControlPlane(cluster.GetName(), machine.GetName())
 		if err != nil {
 			r.Log.Error(err, "Error deleting control plane node", "nodeName", machine.GetName())
@@ -331,16 +361,13 @@ func (r *DockerMachineReconciler) delete(
 			return ctrl.Result{RequeueAfter: time.Second * 30}, nil
 		}
 	}
-	err := r.Client.Delete(ctx, dockerMachine)
-	if err != nil {
-		r.Log.Error(err, "Error deleting DockerMachine", "name", dockerMachine.GetName())
-		return ctrl.Result{RequeueAfter: time.Second * 30}, nil
-	}
+
+	dockerMachine.ObjectMeta.Finalizers = util.Filter(dockerMachine.ObjectMeta.Finalizers, capiv1alpha2.MachineFinalizer)
 
 	return ctrl.Result{}, nil
 }
 
-func isControllerPlaneMachine(machine *capiv1alpha2.Machine) bool {
+func isControlPlaneMachine(machine *capiv1alpha2.Machine) bool {
 	setValue := getRole(machine)
 	if setValue == clusterAPIControlPlaneSetLabel {
 		return true

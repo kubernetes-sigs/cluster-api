@@ -20,6 +20,12 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
+const (
+	// MachineFinalizer allows ReconcileDockerMachine to clean up resources associated with AWSMachine before
+	// removing it from the apiserver.
+	MachineFinalizer = "dockermachine.infrastructure.cluster.x-k8s.io"
+)
+
 // DockerMachineSpec defines the desired state of DockerMachine
 type DockerMachineSpec struct {
 	// ProviderID will be the container name in ProviderID format (docker:////<containername>)

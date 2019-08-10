@@ -11,6 +11,8 @@ spec:
     kind: DockerCluster
     plural: dockerclusters
   scope: ""
+  subresources:
+    status: {}
   validation:
     openAPIV3Schema:
       description: DockerCluster is the Schema for the dockerclusters API

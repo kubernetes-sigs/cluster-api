@@ -49,6 +49,7 @@ type APIEndpoint struct {
 }
 
 // +kubebuilder:object:root=true
+// +kubebuilder:subresource:status
 
 // DockerCluster is the Schema for the dockerclusters API
 type DockerCluster struct {

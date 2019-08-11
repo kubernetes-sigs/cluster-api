@@ -113,6 +113,8 @@ func (r *ReconcileMachine) Reconcile(request reconcile.Request) (_ reconcile.Res
 	// Store Machine early state to allow patching.
 	patchMachine := client.MergeFrom(m.DeepCopy())
 
+	isDelete := false
+
 	// Always issue a Patch for the Machine object and its status after each reconciliation.
 	// TODO(vincepri): Figure out if we should bubble up the errors from Patch to the controller.
 	defer func() {
@@ -124,6 +126,13 @@ func (r *ReconcileMachine) Reconcile(request reconcile.Request) (_ reconcile.Res
 			}
 			return
 		}
+
+		if isDelete {
+			// don't try to patch status because we're deleting, and once we remove our finalizer
+			// the Machine most likely will be removed from storage.
+			return
+		}
+
 		// TODO(vincepri): This is a hack because after a Patch, the object loses TypeMeta information.
 		// Remove when https://github.com/kubernetes-sigs/controller-runtime/issues/526 is fixed.
 		m.SetGroupVersionKind(gvk)
@@ -201,6 +210,8 @@ func (r *ReconcileMachine) Reconcile(request reconcile.Request) (_ reconcile.Res
 			}
 			return reconcile.Result{}, err
 		}
+
+		isDelete = true
 
 		m.ObjectMeta.Finalizers = util.Filter(m.ObjectMeta.Finalizers, clusterv1.MachineFinalizer)
 	}

@@ -116,6 +116,8 @@ func (r *ReconcileCluster) Reconcile(request reconcile.Request) (_ reconcile.Res
 	// Store Cluster early state to allow patching.
 	patchCluster := client.MergeFrom(cluster.DeepCopy())
 
+	isDelete := false
+
 	// Always issue a Patch for the Cluster object and its status after each reconciliation.
 	defer func() {
 		gvk := cluster.GroupVersionKind()
@@ -126,6 +128,13 @@ func (r *ReconcileCluster) Reconcile(request reconcile.Request) (_ reconcile.Res
 			}
 			return
 		}
+
+		if isDelete {
+			// don't try to patch status because we're deleting, and once we remove our finalizer
+			// the Cluster most likely will be removed from storage.
+			return
+		}
+
 		// TODO(vincepri): This is a hack because after a Patch, the object loses TypeMeta information.
 		// Remove when https://github.com/kubernetes-sigs/controller-runtime/issues/526 is fixed.
 		cluster.SetGroupVersionKind(gvk)
@@ -153,6 +162,7 @@ func (r *ReconcileCluster) Reconcile(request reconcile.Request) (_ reconcile.Res
 	}
 
 	if !cluster.ObjectMeta.DeletionTimestamp.IsZero() {
+		isDelete = true
 		return r.reconcileDelete(ctx, cluster)
 	}
 

@@ -91,7 +91,7 @@ vet:
 # Generate code
 .PHONY: generate
 generate: $(CONTROLLER_GEN)
-	$(CONTROLLER_GEN) object:headerFile=./hack/boilerplate.go.txt paths=./api/...
+	$(CONTROLLER_GEN) object:headerFile=./hack/boilerplate/boilerplate.generatego.txt paths=./api/...
 
 # Build the docker image
 .PHONY: docker-build

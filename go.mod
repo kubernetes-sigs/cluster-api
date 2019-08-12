@@ -5,6 +5,7 @@ go 1.12
 require (
 	github.com/Azure/go-autorest/autorest v0.2.0 // indirect
 	github.com/davecgh/go-spew v1.1.1
+	github.com/go-logr/logr v0.1.0
 	github.com/gophercloud/gophercloud v0.2.0 // indirect
 	github.com/onsi/ginkgo v1.8.0
 	github.com/onsi/gomega v1.5.0
@@ -12,7 +13,7 @@ require (
 	github.com/sergi/go-diff v1.0.0
 	github.com/spf13/cobra v0.0.3
 	github.com/spf13/pflag v1.0.3
-	golang.org/x/net v0.0.0-20190501004415-9ce7a6920f09
+	golang.org/x/net v0.0.0-20190613194153-d28f0bde5980
 	k8s.io/api v0.0.0-20190409021203-6e4e0e4f393b
 	k8s.io/apiextensions-apiserver v0.0.0-20190409022649-727a075fdec8
 	k8s.io/apimachinery v0.0.0-20190404173353-6a84e37a896d

@@ -1,0 +1,81 @@
+@startuml
+actor Client as C
+participant "API Server" as A
+participant "Core Manager" as core
+participant "Infrastructure Manager" as infra
+participant "Bootstrap Manager" as boot
+
+core --> A: watch for machines and clusters
+infra --> A: watch for InfraMachines, InfraClusters, Machines, and Clusters
+boot --> A: watch for BootstrapConfigs and Machines
+
+C -> A: Create a Cluster
+A -> core: Cluster has been created
+activate core
+note right of core
+    Cluster Controller
+endnote
+core -> core: Requeue until InfraCluster is marked as ready
+
+C -> A: Create an InfraCluster
+A -> infra: InfraCluster created
+activate infra
+note right of infra
+    InfraCluster Controller
+endnote
+infra -> infra: Requeue until there\nis an associated Cluster
+
+C -> A: Add an InfrastructureRef to Cluster
+infra -> infra: InfraCluster has associated Cluster
+infra -> infra: Provision necessary Cluster-level\ninfrastructure
+infra -> A: Update InfraCluster as Ready
+deactivate infra
+
+core -> core: Cluster marked as ready
+core -> A: Update Cluster
+deactivate core
+
+C -> A: Create a Machine
+A -> core: Machine has been created
+activate core
+note right of core
+    Machine Controller
+endnote
+core -> core: Requeue until Machine has BootstrapConfig data
+
+C -> A: Create a BootstrapConfig
+A -> boot: BootstrapConfig created
+activate boot
+note right of boot
+    BootstrapConfig Controller
+endnote
+boot -> boot: Requeue unitl there\nis an associated Machine
+
+C -> A: Add a BootstrapRef to Machine
+boot -> boot: Generate bootstrap data for Machine
+boot -> A: Update BootstrapConfig
+deactivate boot
+
+core -> core: Machine has Bootstrap Data
+core -> core: Requeue until InfraMachine is ready
+
+C -> A: Create InfraMachine
+A -> infra: InfraMachine created
+activate infra
+note right of infra
+    InfraMachine controller
+endnote
+infra -> infra: Requeue until there\nis an associated Machine
+
+C -> A: Add an InfrastructureRef to Machine
+infra -> infra: InfraMachine has associated Machine
+infra -> infra: Provision necessary infrastructure\nrepresenting a Machine
+infra -> A: Update InfraMachine as ready
+deactivate infra
+
+core -> core: InfraMachine marked as ready
+core -> core: Get a reference to the node
+core -> A: Mark Machine as ready
+deactivate core
+
+@enduml

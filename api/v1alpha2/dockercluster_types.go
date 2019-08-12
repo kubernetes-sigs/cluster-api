@@ -48,6 +48,7 @@ type APIEndpoint struct {
 	Port int `json:"port"`
 }
 
+// +kubebuilder:subresource:status
 // +kubebuilder:object:root=true
 
 // DockerCluster is the Schema for the dockerclusters API

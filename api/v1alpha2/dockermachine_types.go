@@ -33,6 +33,7 @@ type DockerMachineStatus struct {
 	Ready bool `json:"ready"`
 }
 
+// +kubebuilder:subresource:status
 // +kubebuilder:object:root=true
 
 // DockerMachine is the Schema for the dockermachines API

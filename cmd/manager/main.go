@@ -67,7 +67,7 @@ func main() {
 
 	if err := (&controllers.DockerMachineReconciler{
 		Client: mgr.GetClient(),
-		Log:    ctrl.Log.WithName("reconciler"),
+		Log:    ctrl.Log.WithName("controllers").WithName("DockerMachine"),
 	}).SetupWithManager(mgr); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "reconciler")
 		os.Exit(1)

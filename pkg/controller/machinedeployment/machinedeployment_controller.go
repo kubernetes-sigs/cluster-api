@@ -29,8 +29,8 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/tools/record"
 	"k8s.io/klog"
-	"sigs.k8s.io/cluster-api/pkg/apis/cluster/v1alpha2"
-	clusterv1 "sigs.k8s.io/cluster-api/pkg/apis/cluster/v1alpha2"
+	"sigs.k8s.io/cluster-api/api/v1alpha2"
+	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha2"
 	"sigs.k8s.io/cluster-api/pkg/util"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
@@ -45,7 +45,7 @@ const controllerName = "machinedeployment-controller"
 
 var (
 	// controllerKind contains the schema.GroupVersionKind for this controller type.
-	controllerKind = v1alpha2.SchemeGroupVersion.WithKind("MachineDeployment")
+	controllerKind = v1alpha2.GroupVersion.WithKind("MachineDeployment")
 )
 
 // ReconcileMachineDeployment reconciles a MachineDeployment object.
@@ -394,5 +394,5 @@ func (r *ReconcileMachineDeployment) MachineSetToDeployments(o handler.MapObject
 }
 
 func shouldAdopt(md *v1alpha2.MachineDeployment) bool {
-	return !util.HasOwner(md.OwnerReferences, v1alpha2.SchemeGroupVersion.String(), []string{"Cluster"})
+	return !util.HasOwner(md.OwnerReferences, v1alpha2.GroupVersion.String(), []string{"Cluster"})
 }

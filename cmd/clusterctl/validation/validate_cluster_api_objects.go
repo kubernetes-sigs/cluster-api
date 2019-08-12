@@ -24,8 +24,7 @@ import (
 	"github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/types"
-	"sigs.k8s.io/cluster-api/pkg/apis/cluster/v1alpha2"
-	clusterv1alpha2 "sigs.k8s.io/cluster-api/pkg/apis/cluster/v1alpha2"
+	"sigs.k8s.io/cluster-api/api/v1alpha2"
 	"sigs.k8s.io/cluster-api/pkg/controller/noderefutil"
 	capierrors "sigs.k8s.io/cluster-api/pkg/errors"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -42,7 +41,7 @@ func ValidateClusterAPIObjects(ctx context.Context, w io.Writer, c client.Client
 		return err
 	}
 
-	machines := &clusterv1alpha2.MachineList{}
+	machines := &v1alpha2.MachineList{}
 	if err := c.List(ctx, machines, client.InNamespace(namespace)); err != nil {
 		return errors.Wrapf(err, "failed to get the machines from the apiserver in namespace %q", namespace)
 	}
@@ -52,12 +51,12 @@ func ValidateClusterAPIObjects(ctx context.Context, w io.Writer, c client.Client
 
 func getClusterObject(ctx context.Context, c client.Reader, clusterName string, namespace string) (*v1alpha2.Cluster, error) {
 	if clusterName != "" {
-		cluster := &clusterv1alpha2.Cluster{}
+		cluster := &v1alpha2.Cluster{}
 		err := c.Get(ctx, types.NamespacedName{Name: clusterName, Namespace: namespace}, cluster)
 		return cluster, err
 	}
 
-	clusters := &clusterv1alpha2.ClusterList{}
+	clusters := &v1alpha2.ClusterList{}
 	if err := c.List(ctx, clusters, client.InNamespace(namespace)); err != nil {
 		return nil, errors.Wrapf(err, "failed to get the clusters from the apiserver in namespace %q", namespace)
 	}

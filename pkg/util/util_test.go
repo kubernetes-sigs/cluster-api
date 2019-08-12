@@ -30,7 +30,7 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime/schema"
-	clusterv1 "sigs.k8s.io/cluster-api/pkg/apis/cluster/v1alpha2"
+	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha2"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/handler"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
@@ -503,7 +503,7 @@ func TestHasOwner(t *testing.T) {
 			refList: []metav1.OwnerReference{
 				{
 					Kind:       "Cluster",
-					APIVersion: clusterv1.SchemeGroupVersion.String(),
+					APIVersion: clusterv1.GroupVersion.String(),
 				},
 			},
 			expected: true,
@@ -526,7 +526,7 @@ func TestHasOwner(t *testing.T) {
 			refList: []metav1.OwnerReference{
 				{
 					Kind:       "MachineDeployment",
-					APIVersion: clusterv1.SchemeGroupVersion.String(),
+					APIVersion: clusterv1.GroupVersion.String(),
 				},
 			},
 			expected: true,
@@ -545,7 +545,7 @@ func TestHasOwner(t *testing.T) {
 			refList: []metav1.OwnerReference{
 				{
 					Kind:       "Machine",
-					APIVersion: clusterv1.SchemeGroupVersion.String(),
+					APIVersion: clusterv1.GroupVersion.String(),
 				},
 			},
 		},
@@ -555,7 +555,7 @@ func TestHasOwner(t *testing.T) {
 		t.Run(test.name, func(t *testing.T) {
 			result := HasOwner(
 				test.refList,
-				clusterv1.SchemeGroupVersion.String(),
+				clusterv1.GroupVersion.String(),
 				[]string{"MachineDeployment", "Cluster"},
 			)
 			if test.expected != result {
@@ -636,7 +636,7 @@ func TestGetOwnerClusterSuccessByName(t *testing.T) {
 		OwnerReferences: []metav1.OwnerReference{
 			{
 				Kind:       "Cluster",
-				APIVersion: clusterv1.SchemeGroupVersion.String(),
+				APIVersion: clusterv1.GroupVersion.String(),
 				Name:       "my-cluster",
 			},
 		},
@@ -670,7 +670,7 @@ func TestGetOwnerMachineSuccessByName(t *testing.T) {
 		OwnerReferences: []metav1.OwnerReference{
 			{
 				Kind:       "Machine",
-				APIVersion: clusterv1.SchemeGroupVersion.String(),
+				APIVersion: clusterv1.GroupVersion.String(),
 				Name:       "my-machine",
 			},
 		},

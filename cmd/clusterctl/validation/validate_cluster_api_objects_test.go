@@ -28,8 +28,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/utils/pointer"
-	"sigs.k8s.io/cluster-api/pkg/apis/cluster/v1alpha2"
-	"sigs.k8s.io/cluster-api/pkg/apis/cluster/v1alpha2/testutil"
+	"sigs.k8s.io/cluster-api/api/v1alpha2"
 	capierrors "sigs.k8s.io/cluster-api/pkg/errors"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/manager"
@@ -107,7 +106,7 @@ func TestGetClusterObjectWithOneCluster(t *testing.T) {
 
 	const testClusterName = "test-cluster"
 	const testNamespace = "get-cluster-object-with-one-cluster"
-	cluster := testutil.GetVanillaCluster()
+	cluster := v1alpha2.Cluster{}
 	cluster.Name = testClusterName
 	cluster.Namespace = testNamespace
 	if err := c.Create(context.TODO(), &cluster); err != nil {
@@ -174,7 +173,7 @@ func TestGetClusterObjectWithMoreThanOneCluster(t *testing.T) {
 	const testNamespace = "get-cluster-object-with-more-than-one-cluster"
 
 	const testClusterName1 = "test-cluster1"
-	cluster1 := testutil.GetVanillaCluster()
+	cluster1 := v1alpha2.Cluster{}
 	cluster1.Name = testClusterName1
 	cluster1.Namespace = testNamespace
 	if err := c.Create(context.TODO(), &cluster1); err != nil {
@@ -183,7 +182,7 @@ func TestGetClusterObjectWithMoreThanOneCluster(t *testing.T) {
 	defer c.Delete(context.TODO(), &cluster1)
 
 	const testClusterName2 = "test-cluster2"
-	cluster2 := testutil.GetVanillaCluster()
+	cluster2 := v1alpha2.Cluster{}
 	cluster2.Name = testClusterName2
 	cluster2.Namespace = testNamespace
 	if err := c.Create(context.TODO(), &cluster2); err != nil {
@@ -257,7 +256,7 @@ func TestValidateClusterObject(t *testing.T) {
 	}
 	for _, testcase := range testcases {
 		t.Run(testcase.name, func(t *testing.T) {
-			cluster := testutil.GetVanillaCluster()
+			cluster := v1alpha2.Cluster{}
 			cluster.Name = "test-cluster"
 			cluster.Namespace = "default"
 			cluster.Status = newClusterStatus(testcase.errorReason, testcase.errorMessage)
@@ -498,7 +497,7 @@ func TestValidateClusterAPIObjectsOutput(t *testing.T) {
 	}
 	for _, testcase := range testcases {
 		t.Run(testcase.name, func(t *testing.T) {
-			cluster := testutil.GetVanillaCluster()
+			cluster := v1alpha2.Cluster{}
 			cluster.Name = testClusterName
 			cluster.Namespace = testcase.namespace
 			if err := c.Create(context.TODO(), &cluster); err != nil {

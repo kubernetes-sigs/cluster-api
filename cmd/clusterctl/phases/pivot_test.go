@@ -22,7 +22,7 @@ import (
 	"testing"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	clusterv1 "sigs.k8s.io/cluster-api/pkg/apis/cluster/v1alpha2"
+	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha2"
 )
 
 // sourcer map keys are namespaces
@@ -65,7 +65,7 @@ func (s *sourcer) WithMachineDeployment(ns, cluster, name string) *sourcer {
 		blockOwnerDeletion := true
 		md.OwnerReferences = []metav1.OwnerReference{
 			{
-				APIVersion:         clusterv1.SchemeGroupVersion.Version,
+				APIVersion:         clusterv1.GroupVersion.Version,
 				Kind:               "Cluster",
 				Name:               cluster,
 				BlockOwnerDeletion: &blockOwnerDeletion,
@@ -88,7 +88,7 @@ func (s *sourcer) WithMachineSet(ns, cluster, md, name string) *sourcer {
 		blockOwnerDeletion := true
 		ms.OwnerReferences = []metav1.OwnerReference{
 			{
-				APIVersion:         clusterv1.SchemeGroupVersion.Version,
+				APIVersion:         clusterv1.GroupVersion.Version,
 				Kind:               "Cluster",
 				Name:               cluster,
 				BlockOwnerDeletion: &blockOwnerDeletion,
@@ -99,7 +99,7 @@ func (s *sourcer) WithMachineSet(ns, cluster, md, name string) *sourcer {
 		isController := true
 		ms.OwnerReferences = []metav1.OwnerReference{
 			{
-				APIVersion: clusterv1.SchemeGroupVersion.Version,
+				APIVersion: clusterv1.GroupVersion.Version,
 				Kind:       "MachineDeployment",
 				Name:       md,
 				Controller: &isController,
@@ -123,7 +123,7 @@ func (s *sourcer) WithMachine(ns, cluster, ms, name string) *sourcer {
 		blockOwnerDeletion := true
 		m.OwnerReferences = []metav1.OwnerReference{
 			{
-				APIVersion:         clusterv1.SchemeGroupVersion.Version,
+				APIVersion:         clusterv1.GroupVersion.Version,
 				Kind:               "Cluster",
 				Name:               cluster,
 				BlockOwnerDeletion: &blockOwnerDeletion,
@@ -134,7 +134,7 @@ func (s *sourcer) WithMachine(ns, cluster, ms, name string) *sourcer {
 		isController := true
 		m.OwnerReferences = []metav1.OwnerReference{
 			{
-				APIVersion: clusterv1.SchemeGroupVersion.Version,
+				APIVersion: clusterv1.GroupVersion.Version,
 				Kind:       "MachineSet",
 				Name:       ms,
 				Controller: &isController,

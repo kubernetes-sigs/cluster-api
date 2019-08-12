@@ -25,8 +25,8 @@ import (
 	"github.com/spf13/cobra"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	tcmd "k8s.io/client-go/tools/clientcmd"
+	"sigs.k8s.io/cluster-api/api/v1alpha2"
 	"sigs.k8s.io/cluster-api/cmd/clusterctl/validation"
-	"sigs.k8s.io/cluster-api/pkg/apis"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/config"
 	"sigs.k8s.io/controller-runtime/pkg/manager"
@@ -67,7 +67,7 @@ func RunValidateCluster() error {
 		return errors.Wrap(err, "failed to create manager")
 	}
 	// Setup Scheme for all resources
-	if err := apis.AddToScheme(mgr.GetScheme()); err != nil {
+	if err := v1alpha2.AddToScheme(mgr.GetScheme()); err != nil {
 		return errors.Wrap(err, "failed to add APIs to manager")
 	}
 

@@ -23,7 +23,7 @@ import (
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes/scheme"
-	"sigs.k8s.io/cluster-api/pkg/apis/cluster/v1alpha2"
+	"sigs.k8s.io/cluster-api/api/v1alpha2"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 	"sigs.k8s.io/controller-runtime/pkg/handler"
@@ -261,7 +261,7 @@ func TestAdoptOrphan(t *testing.T) {
 			machineSet: ms,
 			expected: []metav1.OwnerReference{
 				{
-					APIVersion:         v1alpha2.SchemeGroupVersion.String(),
+					APIVersion:         v1alpha2.GroupVersion.String(),
 					Kind:               "MachineSet",
 					Name:               "adoptOrphanMachine",
 					UID:                "",

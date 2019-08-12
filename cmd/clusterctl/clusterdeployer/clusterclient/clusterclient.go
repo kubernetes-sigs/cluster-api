@@ -37,8 +37,8 @@ import (
 	_ "k8s.io/client-go/plugin/pkg/client/auth" // nolint
 	tcmd "k8s.io/client-go/tools/clientcmd"
 	"k8s.io/klog"
+	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha2"
 	"sigs.k8s.io/cluster-api/cmd/clusterctl/clientcmd"
-	clusterv1 "sigs.k8s.io/cluster-api/pkg/apis/cluster/v1alpha2"
 	"sigs.k8s.io/cluster-api/pkg/util"
 	ctrlclient "sigs.k8s.io/controller-runtime/pkg/client"
 )

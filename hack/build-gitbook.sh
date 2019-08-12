@@ -17,7 +17,8 @@ set -o errexit
 set -o nounset
 set -o pipefail
 
-export KUBE_ROOT=$(dirname "${BASH_SOURCE}")/..
+KUBE_ROOT=$(dirname "${BASH_SOURCE[0]}")/..
+export KUBE_ROOT
 
 pushd "${KUBE_ROOT}/docs/book/"
 npm install gitbook-cli -g

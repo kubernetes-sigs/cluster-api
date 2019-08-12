@@ -33,6 +33,6 @@ while IFS= read -r dep; do
     dst="${KUBE_ROOT}/vendor/${dep}"
     cp -af "${src}/" "${dst}"
     chmod -R +w "${dst}"
-done < "${KUBE_ROOT}/go.vendor" 
+done < "${KUBE_ROOT}/go.vendor"
 
 go mod verify

@@ -36,6 +36,10 @@ import (
 	"sigs.k8s.io/kind/pkg/exec"
 )
 
+const (
+	containerRunningStatus = "running"
+)
+
 // KubeConfigPath returns the path to the kubeconfig file for the given cluster name.
 func KubeConfigPath(clusterName string) string {
 	configDir := filepath.Join(os.Getenv("HOME"), ".kube")
@@ -108,6 +112,25 @@ func SetUpLoadBalancer(clusterName string) (*nodes.Node, error) {
 		"0.0.0.0",
 		0,
 	)
+}
+
+// GetExternalLoadBalancerNode is returning the nginx container running as ELB for the cluster
+func GetExternalLoadBalancerNode(clusterName string) (*nodes.Node, error) {
+	elb, err := nodes.List(
+		fmt.Sprintf("label=%s=%s", constants.NodeRoleKey, constants.ExternalLoadBalancerNodeRoleValue),
+		fmt.Sprintf("label=%s=%s", constants.ClusterLabelKey, clusterName),
+		fmt.Sprintf("status=%s", containerRunningStatus),
+	)
+	if err != nil {
+		return nil, err
+	}
+	if len(elb) == 0 {
+		return nil, nil
+	}
+	if len(elb) > 1 {
+		return nil, errors.New("too many external load balancers")
+	}
+	return &elb[0], nil
 }
 
 // CreateControlPlane is creating the first control plane and configuring the load balancer.

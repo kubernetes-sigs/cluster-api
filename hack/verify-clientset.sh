@@ -19,12 +19,15 @@ set -o nounset
 set -o pipefail
 
 REPO_ROOT=$(dirname "${BASH_SOURCE[0]}")/..
+# shellcheck source=./ensure-go.sh
 source "${REPO_ROOT}/hack/ensure-go.sh"
 
 DIFFROOT="${REPO_ROOT}/pkg/client"
 TMP_DIFFROOT="${REPO_ROOT}/_tmp/pkg"
 _tmp="${REPO_ROOT}/_tmp"
-export GOPATH=$(go env GOPATH)
+
+GOPATH=$(go env GOPATH)
+export GOPATH
 
 cleanup() {
     rm -rf "${_tmp}"

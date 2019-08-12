@@ -123,9 +123,6 @@ func (r *DockerMachineReconciler) Reconcile(req ctrl.Request) (_ ctrl.Result, re
 	if err != nil {
 		return ctrl.Result{}, err
 	}
-	if err := r.Client.Update(ctx, dockerMachine); err != nil {
-		return ctrl.Result{}, err
-	}
 
 	return result, nil
 }

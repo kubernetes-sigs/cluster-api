@@ -48,6 +48,7 @@ type APIEndpoint struct {
 	Port int `json:"port"`
 }
 
+// +kubebuilder:subresource:status
 // +kubebuilder:object:root=true
 // +kubebuilder:subresource:status
 

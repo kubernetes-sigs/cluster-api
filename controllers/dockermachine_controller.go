@@ -161,69 +161,71 @@ func (r *DockerMachineReconciler) create(
 		return ctrl.Result{}, err
 	}
 
-	setValue := getRole(machine)
-	r.Log.Info("Creating node with role", "role", setValue)
-	if setValue == clusterAPIControlPlaneSetLabel {
-		// joining controlplane
-		if len(controlPlanes) > 0 {
-			r.Log.Info("Adding a control plane node", "machine-name", machine.GetName(), "cluster-name", c.Name)
-			controlPlaneNode, err := actions.AddControlPlane(c.Name, machine.GetName(), *machine.Spec.Version)
-			if err != nil {
-				r.Log.Error(err, "Error adding control plane")
-				return ctrl.Result{}, err
-			}
-			providerID := actions.ProviderID(controlPlaneNode.Name())
-			dockerMachine.Spec.ProviderID = &providerID
-			dockerMachine.Status.Ready = true
-			return ctrl.Result{}, nil
-		}
-
-		r.Log.Info("Creating a new controlplane node")
-
+	var node *nodes.Node
+	switch {
+	case isControlPlaneMachine(machine) && len(controlPlanes) == 0:
 		if len(c.Status.APIEndpoints) == 0 {
 			r.Log.Info("Cluster has no ELB yet, waiting for cluster network to be reconciled")
 			return ctrl.Result{RequeueAfter: time.Second * 30}, nil
 		}
-
-		controlPlaneNode, err := actions.CreateControlPlane(c.Name, machine.GetName(), c.Status.APIEndpoints[0].Host, *machine.Spec.Version, nil)
+		node, err = r.createFirstControlPlaneNode(ctx, c, machine)
 		if err != nil {
-			r.Log.Error(err, "Error creating control plane")
+			r.Log.Error(err, "Error creating first control plane node")
 			return ctrl.Result{}, err
 		}
-		// set the machine's providerID
-		providerID := actions.ProviderID(controlPlaneNode.Name())
-		dockerMachine.Spec.ProviderID = &providerID
-		dockerMachine.Status.Ready = true
 
-		s, err := kubeconfigToSecret(c.Name, c.Namespace)
+	case isControlPlaneMachine(machine) && len(controlPlanes) > 0:
+		r.Log.Info("Adding a control plane node", "machine-name", machine.GetName(), "cluster-name", c.Name)
+		node, err = actions.AddControlPlane(c.Name, machine.GetName(), *machine.Spec.Version)
 		if err != nil {
-			r.Log.Error(err, "Error converting kubeconfig to a secret")
+			r.Log.Error(err, "Error adding control plane")
 			return ctrl.Result{}, err
 		}
-		// Save the secret to the management cluster
-		if err := r.Client.Create(ctx, s); err != nil {
-			r.Log.Error(err, "Error saving secret to management cluster")
-			return ctrl.Result{}, err
-		}
-		return ctrl.Result{}, nil
-	}
 
-	// If there are no control plane then we should hold off on joining workers
-	if len(controlPlanes) == 0 {
+	case !isControlPlaneMachine(machine) && len(controlPlanes) == 0:
 		r.Log.Info("Sending machine back since there is no cluster to join", "machine", machine.Name)
 		return ctrl.Result{RequeueAfter: time.Second * 30}, nil
-	}
 
-	r.Log.Info("Creating a new worker node")
-	worker, err := actions.AddWorker(c.Name, machine.GetName(), *machine.Spec.Version)
-	if err != nil {
-		r.Log.Error(err, "Error creating new worker node")
-		return ctrl.Result{}, err
+	case !isControlPlaneMachine(machine) && len(controlPlanes) > 0:
+		r.Log.Info("Creating a new worker node")
+		node, err = actions.AddWorker(c.Name, machine.GetName(), *machine.Spec.Version)
+		if err != nil {
+			r.Log.Error(err, "Error creating new worker node")
+			return ctrl.Result{}, err
+		}
 	}
-	providerID := actions.ProviderID(worker.Name())
+	// set the machine's providerID
+	providerID := actions.ProviderID(node.Name())
 	dockerMachine.Spec.ProviderID = &providerID
 	dockerMachine.Status.Ready = true
 	return ctrl.Result{}, nil
+
+}
+
+func (r *DockerMachineReconciler) createFirstControlPlaneNode(
+	ctx context.Context,
+	c *capiv1alpha2.Cluster,
+	machine *capiv1alpha2.Machine) (*nodes.Node, error) {
+
+	r.Log.Info("Creating first controlplane node")
+
+	node, err := actions.CreateControlPlane(c.Name, machine.GetName(), c.Status.APIEndpoints[0].Host, *machine.Spec.Version, nil)
+	if err != nil {
+		r.Log.Error(err, "Error creating control plane")
+		return nil, err
+	}
+
+	s, err := kubeconfigToSecret(c.Name, c.Namespace)
+	if err != nil {
+		r.Log.Error(err, "Error converting kubeconfig to a secret")
+		return nil, err
+	}
+	// Save the secret to the management cluster
+	if err := r.Client.Create(ctx, s); err != nil {
+		r.Log.Error(err, "Error saving secret to management cluster")
+		return nil, err
+	}
+	return node, nil
 }
 
 func kubeconfigToSecret(clusterName, namespace string) (*v1.Secret, error) {

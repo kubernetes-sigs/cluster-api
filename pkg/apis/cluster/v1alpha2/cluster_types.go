@@ -106,7 +106,7 @@ type ClusterStatus struct {
 	// Phase represents the current phase of cluster actuation.
 	// E.g. Pending, Running, Terminating, Failed etc.
 	// +optional
-	Phase *string `json:"phase,omitempty"`
+	Phase string `json:"phase,omitempty"`
 
 	// InfrastructureReady is the state of the infrastructure provider.
 	// +optional
@@ -115,17 +115,13 @@ type ClusterStatus struct {
 
 // SetTypedPhase sets the Phase field to the string representation of ClusterPhase.
 func (c *ClusterStatus) SetTypedPhase(p ClusterPhase) {
-	c.Phase = ClusterPhaseStringPtr(p)
+	c.Phase = string(p)
 }
 
 // GetTypedPhase attempts to parse the Phase field and return
 // the typed ClusterPhase representation as described in `machine_phase_types.go`.
 func (c *ClusterStatus) GetTypedPhase() ClusterPhase {
-	if c.Phase == nil {
-		return ClusterPhaseUnknown
-	}
-
-	switch phase := ClusterPhase(*c.Phase); phase {
+	switch phase := ClusterPhase(c.Phase); phase {
 	case
 		ClusterPhasePending,
 		ClusterPhaseProvisioning,

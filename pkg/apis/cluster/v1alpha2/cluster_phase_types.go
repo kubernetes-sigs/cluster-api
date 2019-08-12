@@ -53,9 +53,3 @@ var (
 	// ClusterPhaseUnknown is returned if the Cluster state cannot be determined.
 	ClusterPhaseUnknown = ClusterPhase("")
 )
-
-// ClusterPhaseStringPtr is a helper method to convert ClusterPhase to a string pointer.
-func ClusterPhaseStringPtr(p ClusterPhase) *string {
-	s := string(p)
-	return &s
-}

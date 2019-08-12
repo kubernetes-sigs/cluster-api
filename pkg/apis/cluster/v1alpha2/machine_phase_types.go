@@ -62,9 +62,3 @@ var (
 	// MachinePhaseUnknown is returned if the Machine state cannot be determined.
 	MachinePhaseUnknown = MachinePhase("")
 )
-
-// MachinePhaseStringPtr is a helper method to convert MachinePhase to a string pointer.
-func MachinePhaseStringPtr(p MachinePhase) *string {
-	s := string(p)
-	return &s
-}

@@ -33,7 +33,6 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/client-go/tools/record"
 	"k8s.io/klog"
-	"k8s.io/utils/pointer"
 	clusterv1 "sigs.k8s.io/cluster-api/pkg/apis/cluster/v1alpha2"
 	"sigs.k8s.io/cluster-api/pkg/controller/external"
 	"sigs.k8s.io/cluster-api/pkg/util"
@@ -180,36 +179,20 @@ func (r *ReconcileMachineSet) reconcile(ctx context.Context, machineSet *cluster
 
 	// Cluster might be nil as some providers might not require a cluster object
 	// for machine management.
-	cluster, err := r.getCluster(machineSet)
-	if err != nil {
+	cluster, err := util.GetClusterFromMetadata(ctx, r.Client, machineSet.ObjectMeta)
+	if errors.Cause(err) == util.ErrNoCluster {
+		klog.Infof("MachineSet %q in namespace %q doesn't specify %q label, assuming nil cluster", machineSet.Name, machineSet.Namespace, clusterv1.MachineClusterLabelName)
+	} else if err != nil {
 		return reconcile.Result{}, err
 	}
 
-	// Set the ownerRef with foreground deletion if there is a linked cluster.
-	if cluster != nil {
+	if cluster != nil && shouldAdopt(machineSet) {
 		machineSet.OwnerReferences = util.EnsureOwnerRef(machineSet.OwnerReferences, metav1.OwnerReference{
-			APIVersion:         cluster.APIVersion,
-			Kind:               cluster.Kind,
-			Name:               cluster.Name,
-			UID:                cluster.UID,
-			BlockOwnerDeletion: pointer.BoolPtr(true),
+			APIVersion: cluster.APIVersion,
+			Kind:       cluster.Kind,
+			Name:       cluster.Name,
+			UID:        cluster.UID,
 		})
-	}
-
-	// Add foregroundDeletion finalizer if MachineSet isn't deleted and linked to a cluster.
-	if cluster != nil &&
-		machineSet.ObjectMeta.DeletionTimestamp.IsZero() &&
-		!util.Contains(machineSet.Finalizers, metav1.FinalizerDeleteDependents) {
-
-		machineSet.Finalizers = append(machineSet.ObjectMeta.Finalizers, metav1.FinalizerDeleteDependents)
-
-		if err := r.Client.Update(context.Background(), machineSet); err != nil {
-			klog.Infof("Failed to add finalizers to MachineSet %q: %v", machineSet.Name, err)
-			return reconcile.Result{}, err
-		}
-
-		// Since adding the finalizer updates the object return to avoid later update issues
-		return reconcile.Result{Requeue: true}, nil
 	}
 
 	// Filter out irrelevant machines (deleting/mismatch labels) and claim orphaned machines.
@@ -511,12 +494,9 @@ func (r *ReconcileMachineSet) waitForMachineDeletion(machineList []*clusterv1.Ma
 func (r *ReconcileMachineSet) MachineToMachineSets(o handler.MapObject) []reconcile.Request {
 	result := []reconcile.Request{}
 
-	m := &clusterv1.Machine{}
-	key := client.ObjectKey{Namespace: o.Meta.GetNamespace(), Name: o.Meta.GetName()}
-	if err := r.Client.Get(context.Background(), key, m); err != nil {
-		if !apierrors.IsNotFound(err) {
-			klog.Errorf("Unable to retrieve Machine %q for possible MachineSet adoption: %v", key, err)
-		}
+	m, ok := o.Object.(*clusterv1.Machine)
+	if !ok {
+		klog.Errorf("expected a Machine but got a %T", o.Object)
 		return nil
 	}
 
@@ -540,4 +520,8 @@ func (r *ReconcileMachineSet) MachineToMachineSets(o handler.MapObject) []reconc
 	}
 
 	return result
+}
+
+func shouldAdopt(ms *clusterv1.MachineSet) bool {
+	return !util.HasOwner(ms.OwnerReferences, clusterv1.SchemeGroupVersion.String(), []string{"MachineDeployment", "Cluster"})
 }

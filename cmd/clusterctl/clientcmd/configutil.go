@@ -23,7 +23,7 @@ import (
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/clientcmd"
 	"k8s.io/client-go/tools/clientcmd/api"
-	"sigs.k8s.io/cluster-api/pkg/client/clientset_generated/clientset"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
 // This is a convenience method to prevent the need of importing both this version of clientcmd and the client-go version
@@ -31,9 +31,11 @@ func NewConfigOverrides() clientcmd.ConfigOverrides {
 	return clientcmd.ConfigOverrides{}
 }
 
-// NewCoreClientSetForDefaultSearchPath creates a core kubernetes clientset. If the kubeconfigPath is specified then the configuration is loaded from that path.
-// Otherwise the default kubeconfig search path is used.
-// The overrides parameter is used to select a specific context of the config, for example, select the context with a given cluster name or namespace.
+// NewCoreClientSetForDefaultSearchPath creates a core kubernetes clientset.
+// If the kubeconfigPath is specified then the configuration is loaded from that path,
+// otherwise the default kubeconfig search path is used.
+// The overrides parameter is used to select a specific context of the config, for example,
+// select the context with a given cluster name or namespace.
 func NewCoreClientSetForDefaultSearchPath(kubeconfigPath string, overrides clientcmd.ConfigOverrides) (*kubernetes.Clientset, error) {
 	config, err := newRestConfigForDefaultSearchPath(kubeconfigPath, overrides)
 	if err != nil {
@@ -42,19 +44,23 @@ func NewCoreClientSetForDefaultSearchPath(kubeconfigPath string, overrides clien
 	return kubernetes.NewForConfig(config)
 }
 
-// NewClusterAPIClientForDefaultSearchPath creates a Cluster API clientset. If the kubeconfigPath is specified then the configuration is loaded from that path.
-// Otherwise the default kubeconfig search path is used.
-// The overrides parameter is used to select a specific context of the config, for example, select the context with a given cluster name or namespace.
-func NewClusterAPIClientForDefaultSearchPath(kubeconfigPath string, overrides clientcmd.ConfigOverrides) (*clientset.Clientset, error) {
+// NewControllerRuntimeClient creates a controller-runtime Client.
+// If the kubeconfigPath is specified then the configuration is loaded from that path,
+// otherwise the default kubeconfig search path is used.
+// The overrides parameter is used to select a specific context of the config, for example,
+// select the context with a given cluster name or namespace.
+func NewControllerRuntimeClient(kubeconfigPath string, overrides clientcmd.ConfigOverrides) (client.Client, error) {
 	config, err := newRestConfigForDefaultSearchPath(kubeconfigPath, overrides)
 	if err != nil {
 		return nil, err
 	}
-	return clientset.NewForConfig(config)
+
+	return client.New(config, client.Options{})
 }
 
 // newRestConfig creates a rest.Config for the given apiConfig
-// The overrides parameter is used to select a specific context of the config, for example, select the context with a given cluster name or namespace.
+// The overrides parameter is used to select a specific context of the config, for example,
+// select the context with a given cluster name or namespace.
 func newRestConfig(apiConfig *api.Config, overrides clientcmd.ConfigOverrides) (*rest.Config, error) {
 	return clientcmd.NewDefaultClientConfig(*apiConfig, &overrides).ClientConfig()
 }

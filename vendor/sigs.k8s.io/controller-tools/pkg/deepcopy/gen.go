@@ -34,40 +34,49 @@ import (
 // so any time we check for existing deepcopy functions, we only seen manually written ones.
 
 const (
-	objName    = "kubebuilder:object:root"
-	enableName = "kubebuilder:object:generate"
-
-	legacyEnableName = "k8s:deepcopy-gen"
-	legacyObjName    = "k8s:deepcopy-gen:interfaces"
-	runtimeObjPath   = "k8s.io/apimachinery/pkg/runtime.Object"
+	runtimeObjPath = "k8s.io/apimachinery/pkg/runtime.Object"
 )
 
-// Generator generates code code containing DeepCopy, DeepCopyInto, and
+var (
+	enablePkgMarker  = markers.Must(markers.MakeDefinition("kubebuilder:object:generate", markers.DescribesPackage, false))
+	enableTypeMarker = markers.Must(markers.MakeDefinition("kubebuilder:object:generate", markers.DescribesType, false))
+	isObjectMarker   = markers.Must(markers.MakeDefinition("kubebuilder:object:root", markers.DescribesType, false))
+
+	legacyEnablePkgMarker  = markers.Must(markers.MakeDefinition("k8s:deepcopy-gen", markers.DescribesPackage, markers.RawArguments(nil)))
+	legacyEnableTypeMarker = markers.Must(markers.MakeDefinition("k8s:deepcopy-gen", markers.DescribesType, markers.RawArguments(nil)))
+	legacyIsObjectMarker   = markers.Must(markers.MakeDefinition("k8s:deepcopy-gen:interfaces", markers.DescribesType, ""))
+)
+
+// +controllertools:marker:generateHelp
+
+// Generator generates code containing DeepCopy, DeepCopyInto, and
 // DeepCopyObject method implementations.
 type Generator struct {
+	// HeaderFile specifies the header text (e.g. license) to prepend to generated files.
 	HeaderFile string `marker:",optional"`
-	Year       string `marker:",optional"`
+	// Year specifies the year to substitute for " YEAR" in the header file.
+	Year string `marker:",optional"`
 }
 
 func (Generator) RegisterMarkers(into *markers.Registry) error {
-	if err := into.Define(enableName, markers.DescribesPackage, false); err != nil {
+	if err := markers.RegisterAll(into,
+		enablePkgMarker, legacyEnablePkgMarker, enableTypeMarker,
+		legacyEnableTypeMarker, isObjectMarker, legacyIsObjectMarker); err != nil {
 		return err
 	}
-	if err := into.Define(legacyEnableName, markers.DescribesPackage, markers.RawArguments(nil)); err != nil {
-		return err
-	}
-	if err := into.Define(enableName, markers.DescribesType, false); err != nil {
-		return err
-	}
-	if err := into.Define(legacyEnableName, markers.DescribesType, markers.RawArguments(nil)); err != nil {
-		return err
-	}
-	if err := into.Define(objName, markers.DescribesType, false); err != nil {
-		return err
-	}
-	if err := into.Define(legacyObjName, markers.DescribesType, ""); err != nil {
-		return err
-	}
+	into.AddHelp(enablePkgMarker,
+		markers.SimpleHelp("object", "enables or disables object interface & deepcopy implementation generation for this package"))
+	into.AddHelp(
+		enableTypeMarker, markers.SimpleHelp("object", "overrides enabling or disabling deepcopy generation for this type"))
+	into.AddHelp(isObjectMarker,
+		markers.SimpleHelp("object", "enables object interface implementation generation for this type"))
+
+	into.AddHelp(legacyEnablePkgMarker,
+		markers.DeprecatedHelp(enablePkgMarker.Name, "object", "enables or disables object interface & deepcopy implementation generation for this package"))
+	into.AddHelp(legacyEnableTypeMarker,
+		markers.DeprecatedHelp(enableTypeMarker.Name, "object", "overrides enabling or disabling deepcopy generation for this type"))
+	into.AddHelp(legacyIsObjectMarker,
+		markers.DeprecatedHelp(isObjectMarker.Name, "object", "enables object interface implementation generation for this type"))
 	return nil
 }
 
@@ -76,11 +85,11 @@ func enabledOnPackage(col *markers.Collector, pkg *loader.Package) (bool, error)
 	if err != nil {
 		return false, err
 	}
-	pkgMarker := pkgMarkers.Get(enableName)
+	pkgMarker := pkgMarkers.Get(enablePkgMarker.Name)
 	if pkgMarker != nil {
 		return pkgMarker.(bool), nil
 	}
-	legacyMarker := pkgMarkers.Get(legacyEnableName)
+	legacyMarker := pkgMarkers.Get(legacyEnablePkgMarker.Name)
 	if legacyMarker != nil {
 		legacyMarkerVal := string(legacyMarker.(markers.RawArguments))
 		firstArg := strings.Split(legacyMarkerVal, ",")[0]
@@ -91,10 +100,10 @@ func enabledOnPackage(col *markers.Collector, pkg *loader.Package) (bool, error)
 }
 
 func enabledOnType(allTypes bool, info *markers.TypeInfo) bool {
-	if typeMarker := info.Markers.Get(enableName); typeMarker != nil {
+	if typeMarker := info.Markers.Get(enableTypeMarker.Name); typeMarker != nil {
 		return typeMarker.(bool)
 	}
-	legacyMarker := info.Markers.Get(legacyEnableName)
+	legacyMarker := info.Markers.Get(legacyEnableTypeMarker.Name)
 	if legacyMarker != nil {
 		legacyMarkerVal := string(legacyMarker.(markers.RawArguments))
 		return legacyMarkerVal == "true"
@@ -103,12 +112,12 @@ func enabledOnType(allTypes bool, info *markers.TypeInfo) bool {
 }
 
 func genObjectInterface(info *markers.TypeInfo) bool {
-	objectEnabled := info.Markers.Get(objName)
+	objectEnabled := info.Markers.Get(isObjectMarker.Name)
 	if objectEnabled != nil {
 		return objectEnabled.(bool)
 	}
 
-	for _, legacyEnabled := range info.Markers[legacyObjName] {
+	for _, legacyEnabled := range info.Markers[legacyIsObjectMarker.Name] {
 		if legacyEnabled == runtimeObjPath {
 			return true
 		}
@@ -119,8 +128,6 @@ func genObjectInterface(info *markers.TypeInfo) bool {
 func (d Generator) Generate(ctx *genall.GenerationContext) error {
 	var headerText string
 
-	checker := ctx.Checker
-
 	if d.HeaderFile != "" {
 		headerBytes, err := ctx.ReadFile(d.HeaderFile)
 		if err != nil {
@@ -128,75 +135,33 @@ func (d Generator) Generate(ctx *genall.GenerationContext) error {
 		}
 		headerText = string(headerBytes)
 	}
-	headerText = strings.ReplaceAll(headerText, " YEAR", d.Year)
+	headerText = strings.ReplaceAll(headerText, " YEAR", " "+d.Year)
+
+	objGenCtx := ObjectGenCtx{
+		Collector:  ctx.Collector,
+		Checker:    ctx.Checker,
+		HeaderText: headerText,
+	}
 
 	for _, root := range ctx.Roots {
-		allTypes, err := enabledOnPackage(ctx.Collector, root)
-		if err != nil {
-			root.AddError(err)
+		outContents := objGenCtx.GenerateForPackage(root)
+		if outContents == nil {
 			continue
 		}
 
-		checker.Check(root, func(node ast.Node) bool {
-			// ignore interfaces
-			_, isIface := node.(*ast.InterfaceType)
-			return !isIface
-		})
-
-		root.NeedTypesInfo()
-
-		byType := make(map[string][]byte)
-		imports := &importsList{
-			byPath:  make(map[string]string),
-			byAlias: make(map[string]string),
-			pkg:     root,
-		}
-		// avoid confusing aliases by "reserving" the root package's name as an alias
-		imports.byAlias[root.Name] = ""
-
-		if err := markers.EachType(ctx.Collector, root, func(info *markers.TypeInfo) {
-			outContent := new(bytes.Buffer)
-
-			// copy when nabled for all types and not disabled, or enabled
-			// specifically on this type
-			if !enabledOnType(allTypes, info) {
-				return
-			}
-
-			// avoid copying non-exported types, etc
-			if !shouldBeCopied(root, info) {
-				return
-			}
-
-			copyCtx := &copyMethodMaker{
-				pkg:         root,
-				importsList: imports,
-				codeWriter:  &codeWriter{out: outContent},
-			}
-
-			copyCtx.GenerateMethodsFor(root, info)
-
-			outBytes := outContent.Bytes()
-			if len(outBytes) > 0 {
-				byType[info.Name] = outBytes
-			}
-		}); err != nil {
-			root.AddError(err)
-			continue
-		}
-
-		if len(byType) == 0 {
-			continue
-		}
-
-		outContent := new(bytes.Buffer)
-		writeHeader(root, outContent, root.Name, imports, headerText)
-		writeMethods(root, outContent, byType)
-
-		writeFormatted(ctx, root, outContent.Bytes())
+		writeOut(ctx, root, outContents)
 	}
 
 	return nil
+}
+
+// ObjectGenCtx contains the common info for generating deepcopy implementations.
+// It mostly exists so that generating for a package can be easily tested without
+// requiring a full set of output rules, etc.
+type ObjectGenCtx struct {
+	Collector  *markers.Collector
+	Checker    *loader.TypeChecker
+	HeaderText string
 }
 
 // writeHeader writes out the build tag, package declaration, and imports
@@ -221,6 +186,84 @@ import (
 
 }
 
+// GenerateForPackage generates DeepCopy and runtime.Object implementations for
+// types in the given package, writing the formatted result to given writer.
+// May return nil if source could not be generated.
+func (ctx *ObjectGenCtx) GenerateForPackage(root *loader.Package) []byte {
+	allTypes, err := enabledOnPackage(ctx.Collector, root)
+	if err != nil {
+		root.AddError(err)
+		return nil
+	}
+
+	ctx.Checker.Check(root, func(node ast.Node) bool {
+		// ignore interfaces
+		_, isIface := node.(*ast.InterfaceType)
+		return !isIface
+	})
+
+	root.NeedTypesInfo()
+
+	byType := make(map[string][]byte)
+	imports := &importsList{
+		byPath:  make(map[string]string),
+		byAlias: make(map[string]string),
+		pkg:     root,
+	}
+	// avoid confusing aliases by "reserving" the root package's name as an alias
+	imports.byAlias[root.Name] = ""
+
+	if err := markers.EachType(ctx.Collector, root, func(info *markers.TypeInfo) {
+		outContent := new(bytes.Buffer)
+
+		// copy when nabled for all types and not disabled, or enabled
+		// specifically on this type
+		if !enabledOnType(allTypes, info) {
+			return
+		}
+
+		// avoid copying non-exported types, etc
+		if !shouldBeCopied(root, info) {
+			return
+		}
+
+		copyCtx := &copyMethodMaker{
+			pkg:         root,
+			importsList: imports,
+			codeWriter:  &codeWriter{out: outContent},
+		}
+
+		copyCtx.GenerateMethodsFor(root, info)
+
+		outBytes := outContent.Bytes()
+		if len(outBytes) > 0 {
+			byType[info.Name] = outBytes
+		}
+	}); err != nil {
+		root.AddError(err)
+		return nil
+	}
+
+	if len(byType) == 0 {
+		return nil
+	}
+
+	outContent := new(bytes.Buffer)
+	writeHeader(root, outContent, root.Name, imports, ctx.HeaderText)
+	writeMethods(root, outContent, byType)
+
+	outBytes := outContent.Bytes()
+	formattedBytes, err := format.Source(outBytes)
+	if err != nil {
+		root.AddError(err)
+		// we still write the invalid source to disk to figure out what went wrong
+	} else {
+		outBytes = formattedBytes
+	}
+
+	return outBytes
+}
+
 // writeMethods writes each method to the file, sorted by type name.
 func writeMethods(pkg *loader.Package, out io.Writer, byType map[string][]byte) {
 	sortedNames := make([]string, 0, len(byType))
@@ -239,15 +282,7 @@ func writeMethods(pkg *loader.Package, out io.Writer, byType map[string][]byte) 
 
 // writeFormatted outputs the given code, after gofmt-ing it.  If we couldn't gofmt,
 // we write the unformatted code for debugging purposes.
-func writeFormatted(ctx *genall.GenerationContext, root *loader.Package, outBytes []byte) {
-	formattedBytes, err := format.Source(outBytes)
-	if err != nil {
-		root.AddError(err)
-		// we still write the invalid source to disk to figure out what went wrong
-	} else {
-		outBytes = formattedBytes
-	}
-
+func writeOut(ctx *genall.GenerationContext, root *loader.Package, outBytes []byte) {
 	outputFile, err := ctx.Open(root, "zz_generated.deepcopy.go")
 	if err != nil {
 		root.AddError(err)

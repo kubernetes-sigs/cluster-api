@@ -7,27 +7,10 @@ metadata:
   name: manager-role
 rules:
 - apiGroups:
-  - ""
+  - bootstrap.cluster.x-k8s.io
+  - infrastructure.cluster.x-k8s.io
   resources:
-  - events
-  verbs:
-  - create
-  - get
-  - list
-  - patch
-  - watch
-- apiGroups:
-  - ""
-  resources:
-  - secrets
-  verbs:
-  - get
-  - list
-  - watch
-- apiGroups:
-  - ""
-  resources:
-  - nodes
+  - '*'
   verbs:
   - create
   - delete
@@ -37,7 +20,7 @@ rules:
   - update
   - watch
 - apiGroups:
-  - cluster.sigs.k8s.io
+  - cluster.x-k8s.io
   resources:
   - clusters
   - clusters/status
@@ -56,10 +39,19 @@ rules:
   - update
   - watch
 - apiGroups:
-  - bootstrap.cluster.sigs.k8s.io
-  - infrastructure.cluster.sigs.k8s.io
+  - ""
   resources:
-  - '*'
+  - events
+  verbs:
+  - create
+  - get
+  - list
+  - patch
+  - watch
+- apiGroups:
+  - ""
+  resources:
+  - nodes
   verbs:
   - create
   - delete
@@ -67,4 +59,12 @@ rules:
   - list
   - patch
   - update
+  - watch
+- apiGroups:
+  - ""
+  resources:
+  - secrets
+  verbs:
+  - get
+  - list
   - watch

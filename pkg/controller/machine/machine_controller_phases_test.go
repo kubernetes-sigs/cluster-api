@@ -43,13 +43,13 @@ func TestReconcilePhase(t *testing.T) {
 		Spec: v1alpha2.MachineSpec{
 			Bootstrap: v1alpha2.Bootstrap{
 				ConfigRef: &corev1.ObjectReference{
-					APIVersion: "bootstrap.cluster.sigs.k8s.io/v1alpha1",
+					APIVersion: "bootstrap.cluster.x-k8s.io/v1alpha2",
 					Kind:       "BootstrapConfig",
 					Name:       "bootstrap-config1",
 				},
 			},
 			InfrastructureRef: corev1.ObjectReference{
-				APIVersion: "infra.cluster.sigs.k8s.io/v1alpha1",
+				APIVersion: "infrastructure.cluster.x-k8s.io/v1alpha2",
 				Kind:       "InfrastructureConfig",
 				Name:       "infra-config1",
 			},
@@ -69,7 +69,7 @@ func TestReconcilePhase(t *testing.T) {
 			name: "new machine, expect pending",
 			bootstrapConfig: map[string]interface{}{
 				"kind":       "BootstrapConfig",
-				"apiVersion": "bootstrap.cluster.sigs.k8s.io/v1alpha1",
+				"apiVersion": "bootstrap.cluster.x-k8s.io/v1alpha2",
 				"metadata": map[string]interface{}{
 					"name":      "bootstrap-config1",
 					"namespace": "default",
@@ -79,7 +79,7 @@ func TestReconcilePhase(t *testing.T) {
 			},
 			infraConfig: map[string]interface{}{
 				"kind":       "InfrastructureConfig",
-				"apiVersion": "infra.cluster.sigs.k8s.io/v1alpha1",
+				"apiVersion": "infrastructure.cluster.x-k8s.io/v1alpha2",
 				"metadata": map[string]interface{}{
 					"name":      "infra-config1",
 					"namespace": "default",
@@ -97,7 +97,7 @@ func TestReconcilePhase(t *testing.T) {
 			name: "ready bootstrap, expect provisioning",
 			bootstrapConfig: map[string]interface{}{
 				"kind":       "BootstrapConfig",
-				"apiVersion": "bootstrap.cluster.sigs.k8s.io/v1alpha1",
+				"apiVersion": "bootstrap.cluster.x-k8s.io/v1alpha2",
 				"metadata": map[string]interface{}{
 					"name":      "bootstrap-config1",
 					"namespace": "default",
@@ -110,7 +110,7 @@ func TestReconcilePhase(t *testing.T) {
 			},
 			infraConfig: map[string]interface{}{
 				"kind":       "InfrastructureConfig",
-				"apiVersion": "infra.cluster.sigs.k8s.io/v1alpha1",
+				"apiVersion": "infrastructure.cluster.x-k8s.io/v1alpha2",
 				"metadata": map[string]interface{}{
 					"name":      "infra-config1",
 					"namespace": "default",
@@ -128,7 +128,7 @@ func TestReconcilePhase(t *testing.T) {
 			name: "ready bootstrap and infra, expect provisioned",
 			bootstrapConfig: map[string]interface{}{
 				"kind":       "BootstrapConfig",
-				"apiVersion": "bootstrap.cluster.sigs.k8s.io/v1alpha1",
+				"apiVersion": "bootstrap.cluster.x-k8s.io/v1alpha2",
 				"metadata": map[string]interface{}{
 					"name":      "bootstrap-config1",
 					"namespace": "default",
@@ -141,7 +141,53 @@ func TestReconcilePhase(t *testing.T) {
 			},
 			infraConfig: map[string]interface{}{
 				"kind":       "InfrastructureConfig",
-				"apiVersion": "infra.cluster.sigs.k8s.io/v1alpha1",
+				"apiVersion": "infrastructure.cluster.x-k8s.io/v1alpha2",
+				"metadata": map[string]interface{}{
+					"name":      "infra-config1",
+					"namespace": "default",
+				},
+				"spec": map[string]interface{}{
+					"providerID": "test://id-1",
+				},
+				"status": map[string]interface{}{
+					"ready": true,
+					"addresses": []interface{}{
+						map[string]interface{}{
+							"type":    "InternalIP",
+							"address": "10.0.0.1",
+						},
+						map[string]interface{}{
+							"type":    "InternalIP",
+							"address": "10.0.0.2",
+						},
+					},
+				},
+			},
+			expectError:        false,
+			expectRequeueAfter: false,
+			expected: func(g *gomega.WithT, m *v1alpha2.Machine) {
+				g.Expect(m.Status.GetTypedPhase()).To(gomega.Equal(v1alpha2.MachinePhaseProvisioned))
+				g.Expect(m.Status.Addresses).To(gomega.HaveLen(2))
+			},
+		},
+		{
+			name: "ready bootstrap and infra, allow nil addresses as they are optional",
+			bootstrapConfig: map[string]interface{}{
+				"kind":       "BootstrapConfig",
+				"apiVersion": "bootstrap.cluster.x-k8s.io/v1alpha2",
+				"metadata": map[string]interface{}{
+					"name":      "bootstrap-config1",
+					"namespace": "default",
+				},
+				"spec": map[string]interface{}{},
+				"status": map[string]interface{}{
+					"ready":         true,
+					"bootstrapData": "...",
+				},
+			},
+			infraConfig: map[string]interface{}{
+				"kind":       "InfrastructureConfig",
+				"apiVersion": "infrastructure.cluster.x-k8s.io/v1alpha2",
 				"metadata": map[string]interface{}{
 					"name":      "infra-config1",
 					"namespace": "default",
@@ -157,6 +203,7 @@ func TestReconcilePhase(t *testing.T) {
 			expectRequeueAfter: false,
 			expected: func(g *gomega.WithT, m *v1alpha2.Machine) {
 				g.Expect(m.Status.GetTypedPhase()).To(gomega.Equal(v1alpha2.MachinePhaseProvisioned))
+				g.Expect(m.Status.Addresses).To(gomega.HaveLen(0))
 			},
 		},
 		{
@@ -169,26 +216,26 @@ func TestReconcilePhase(t *testing.T) {
 				Spec: v1alpha2.MachineSpec{
 					Bootstrap: v1alpha2.Bootstrap{
 						ConfigRef: &corev1.ObjectReference{
-							APIVersion: "bootstrap.cluster.sigs.k8s.io/v1alpha1",
+							APIVersion: "bootstrap.cluster.x-k8s.io/v1alpha2",
 							Kind:       "BootstrapConfig",
 							Name:       "bootstrap-config1",
 						},
 					},
 					InfrastructureRef: corev1.ObjectReference{
-						APIVersion: "infra.cluster.sigs.k8s.io/v1alpha1",
+						APIVersion: "infrastructure.cluster.x-k8s.io/v1alpha2",
 						Kind:       "InfrastructureConfig",
 						Name:       "infra-config1",
 					},
 				},
 				Status: v1alpha2.MachineStatus{
-					BootstrapReady:      pointer.BoolPtr(true),
-					InfrastructureReady: pointer.BoolPtr(true),
+					BootstrapReady:      true,
+					InfrastructureReady: true,
 					NodeRef:             &corev1.ObjectReference{Kind: "Node", Name: "machine-test-node"},
 				},
 			},
 			bootstrapConfig: map[string]interface{}{
 				"kind":       "BootstrapConfig",
-				"apiVersion": "bootstrap.cluster.sigs.k8s.io/v1alpha1",
+				"apiVersion": "bootstrap.cluster.x-k8s.io/v1alpha2",
 				"metadata": map[string]interface{}{
 					"name":      "bootstrap-config1",
 					"namespace": "default",
@@ -201,7 +248,7 @@ func TestReconcilePhase(t *testing.T) {
 			},
 			infraConfig: map[string]interface{}{
 				"kind":       "InfrastructureConfig",
-				"apiVersion": "infra.cluster.sigs.k8s.io/v1alpha1",
+				"apiVersion": "infrastructure.cluster.x-k8s.io/v1alpha2",
 				"metadata": map[string]interface{}{
 					"name":      "infra-config1",
 					"namespace": "default",
@@ -236,26 +283,26 @@ func TestReconcilePhase(t *testing.T) {
 				Spec: v1alpha2.MachineSpec{
 					Bootstrap: v1alpha2.Bootstrap{
 						ConfigRef: &corev1.ObjectReference{
-							APIVersion: "bootstrap.cluster.sigs.k8s.io/v1alpha1",
+							APIVersion: "bootstrap.cluster.x-k8s.io/v1alpha2",
 							Kind:       "BootstrapConfig",
 							Name:       "bootstrap-config1",
 						},
 					},
 					InfrastructureRef: corev1.ObjectReference{
-						APIVersion: "infra.cluster.sigs.k8s.io/v1alpha1",
+						APIVersion: "infrastructure.cluster.x-k8s.io/v1alpha2",
 						Kind:       "InfrastructureConfig",
 						Name:       "infra-config1",
 					},
 				},
 				Status: v1alpha2.MachineStatus{
-					BootstrapReady:      pointer.BoolPtr(true),
-					InfrastructureReady: pointer.BoolPtr(true),
+					BootstrapReady:      true,
+					InfrastructureReady: true,
 					NodeRef:             &corev1.ObjectReference{Kind: "Node", Name: "machine-test-node"},
 				},
 			},
 			bootstrapConfig: map[string]interface{}{
 				"kind":       "BootstrapConfig",
-				"apiVersion": "bootstrap.cluster.sigs.k8s.io/v1alpha1",
+				"apiVersion": "bootstrap.cluster.x-k8s.io/v1alpha2",
 				"metadata": map[string]interface{}{
 					"name":      "bootstrap-config1",
 					"namespace": "default",
@@ -268,7 +315,7 @@ func TestReconcilePhase(t *testing.T) {
 			},
 			infraConfig: map[string]interface{}{
 				"kind":       "InfrastructureConfig",
-				"apiVersion": "infra.cluster.sigs.k8s.io/v1alpha1",
+				"apiVersion": "infrastructure.cluster.x-k8s.io/v1alpha2",
 				"metadata": map[string]interface{}{
 					"name":      "infra-config1",
 					"namespace": "default",
@@ -347,7 +394,7 @@ func TestReconcileBootstrap(t *testing.T) {
 		Spec: v1alpha2.MachineSpec{
 			Bootstrap: v1alpha2.Bootstrap{
 				ConfigRef: &corev1.ObjectReference{
-					APIVersion: "bootstrap.cluster.sigs.k8s.io/v1alpha1",
+					APIVersion: "bootstrap.cluster.x-k8s.io/v1alpha2",
 					Kind:       "BootstrapConfig",
 					Name:       "bootstrap-config1",
 				},
@@ -366,7 +413,7 @@ func TestReconcileBootstrap(t *testing.T) {
 			name: "new machine, bootstrap config ready with data",
 			bootstrapConfig: map[string]interface{}{
 				"kind":       "BootstrapConfig",
-				"apiVersion": "bootstrap.cluster.sigs.k8s.io/v1alpha1",
+				"apiVersion": "bootstrap.cluster.x-k8s.io/v1alpha2",
 				"metadata": map[string]interface{}{
 					"name":      "bootstrap-config1",
 					"namespace": "default",
@@ -379,7 +426,7 @@ func TestReconcileBootstrap(t *testing.T) {
 			},
 			expectError: false,
 			expected: func(g *gomega.WithT, m *v1alpha2.Machine) {
-				g.Expect(*m.Status.BootstrapReady).To(gomega.BeTrue())
+				g.Expect(m.Status.BootstrapReady).To(gomega.BeTrue())
 				g.Expect(m.Spec.Bootstrap.Data).ToNot(gomega.BeNil())
 				g.Expect(*m.Spec.Bootstrap.Data).To(gomega.ContainSubstring("#!/bin/bash"))
 			},
@@ -388,7 +435,7 @@ func TestReconcileBootstrap(t *testing.T) {
 			name: "new machine, bootstrap config ready with no data",
 			bootstrapConfig: map[string]interface{}{
 				"kind":       "BootstrapConfig",
-				"apiVersion": "bootstrap.cluster.sigs.k8s.io/v1alpha1",
+				"apiVersion": "bootstrap.cluster.x-k8s.io/v1alpha2",
 				"metadata": map[string]interface{}{
 					"name":      "bootstrap-config1",
 					"namespace": "default",
@@ -400,7 +447,7 @@ func TestReconcileBootstrap(t *testing.T) {
 			},
 			expectError: true,
 			expected: func(g *gomega.WithT, m *v1alpha2.Machine) {
-				g.Expect(m.Status.BootstrapReady).To(gomega.BeNil())
+				g.Expect(m.Status.BootstrapReady).To(gomega.BeFalse())
 				g.Expect(m.Spec.Bootstrap.Data).To(gomega.BeNil())
 			},
 		},
@@ -408,7 +455,7 @@ func TestReconcileBootstrap(t *testing.T) {
 			name: "new machine, bootstrap config not ready",
 			bootstrapConfig: map[string]interface{}{
 				"kind":       "BootstrapConfig",
-				"apiVersion": "bootstrap.cluster.sigs.k8s.io/v1alpha1",
+				"apiVersion": "bootstrap.cluster.x-k8s.io/v1alpha2",
 				"metadata": map[string]interface{}{
 					"name":      "bootstrap-config1",
 					"namespace": "default",
@@ -418,14 +465,14 @@ func TestReconcileBootstrap(t *testing.T) {
 			},
 			expectError: true,
 			expected: func(g *gomega.WithT, m *v1alpha2.Machine) {
-				g.Expect(m.Status.BootstrapReady).To(gomega.BeNil())
+				g.Expect(m.Status.BootstrapReady).To(gomega.BeFalse())
 			},
 		},
 		{
 			name: "new machine, bootstrap config is not found",
 			bootstrapConfig: map[string]interface{}{
 				"kind":       "BootstrapConfig",
-				"apiVersion": "bootstrap.cluster.sigs.k8s.io/v1alpha1",
+				"apiVersion": "bootstrap.cluster.x-k8s.io/v1alpha2",
 				"metadata": map[string]interface{}{
 					"name":      "bootstrap-config1",
 					"namespace": "wrong-namespace",
@@ -435,14 +482,14 @@ func TestReconcileBootstrap(t *testing.T) {
 			},
 			expectError: true,
 			expected: func(g *gomega.WithT, m *v1alpha2.Machine) {
-				g.Expect(m.Status.BootstrapReady).To(gomega.BeNil())
+				g.Expect(m.Status.BootstrapReady).To(gomega.BeFalse())
 			},
 		},
 		{
 			name: "new machine, no bootstrap config or data",
 			bootstrapConfig: map[string]interface{}{
 				"kind":       "BootstrapConfig",
-				"apiVersion": "bootstrap.cluster.sigs.k8s.io/v1alpha1",
+				"apiVersion": "bootstrap.cluster.x-k8s.io/v1alpha2",
 				"metadata": map[string]interface{}{
 					"name":      "bootstrap-config1",
 					"namespace": "wrong-namespace",
@@ -456,7 +503,7 @@ func TestReconcileBootstrap(t *testing.T) {
 			name: "existing machine, bootstrap data should not change",
 			bootstrapConfig: map[string]interface{}{
 				"kind":       "BootstrapConfig",
-				"apiVersion": "bootstrap.cluster.sigs.k8s.io/v1alpha1",
+				"apiVersion": "bootstrap.cluster.x-k8s.io/v1alpha2",
 				"metadata": map[string]interface{}{
 					"name":      "bootstrap-config1",
 					"namespace": "default",
@@ -475,7 +522,7 @@ func TestReconcileBootstrap(t *testing.T) {
 				Spec: v1alpha2.MachineSpec{
 					Bootstrap: v1alpha2.Bootstrap{
 						ConfigRef: &corev1.ObjectReference{
-							APIVersion: "bootstrap.cluster.sigs.k8s.io/v1alpha1",
+							APIVersion: "bootstrap.cluster.x-k8s.io/v1alpha2",
 							Kind:       "BootstrapConfig",
 							Name:       "bootstrap-config1",
 						},
@@ -483,12 +530,12 @@ func TestReconcileBootstrap(t *testing.T) {
 					},
 				},
 				Status: v1alpha2.MachineStatus{
-					BootstrapReady: pointer.BoolPtr(true),
+					BootstrapReady: true,
 				},
 			},
 			expectError: false,
 			expected: func(g *gomega.WithT, m *v1alpha2.Machine) {
-				g.Expect(*m.Status.BootstrapReady).To(gomega.BeTrue())
+				g.Expect(m.Status.BootstrapReady).To(gomega.BeTrue())
 				g.Expect(*m.Spec.Bootstrap.Data).To(gomega.Equal("#!/bin/bash ... data"))
 			},
 		},
@@ -496,7 +543,7 @@ func TestReconcileBootstrap(t *testing.T) {
 			name: "existing machine, bootstrap provider is to not ready",
 			bootstrapConfig: map[string]interface{}{
 				"kind":       "BootstrapConfig",
-				"apiVersion": "bootstrap.cluster.sigs.k8s.io/v1alpha1",
+				"apiVersion": "bootstrap.cluster.x-k8s.io/v1alpha2",
 				"metadata": map[string]interface{}{
 					"name":      "bootstrap-config1",
 					"namespace": "default",
@@ -515,7 +562,7 @@ func TestReconcileBootstrap(t *testing.T) {
 				Spec: v1alpha2.MachineSpec{
 					Bootstrap: v1alpha2.Bootstrap{
 						ConfigRef: &corev1.ObjectReference{
-							APIVersion: "bootstrap.cluster.sigs.k8s.io/v1alpha1",
+							APIVersion: "bootstrap.cluster.x-k8s.io/v1alpha2",
 							Kind:       "BootstrapConfig",
 							Name:       "bootstrap-config1",
 						},
@@ -523,12 +570,12 @@ func TestReconcileBootstrap(t *testing.T) {
 					},
 				},
 				Status: v1alpha2.MachineStatus{
-					BootstrapReady: pointer.BoolPtr(true),
+					BootstrapReady: true,
 				},
 			},
 			expectError: false,
 			expected: func(g *gomega.WithT, m *v1alpha2.Machine) {
-				g.Expect(*m.Status.BootstrapReady).To(gomega.BeTrue())
+				g.Expect(m.Status.BootstrapReady).To(gomega.BeTrue())
 			},
 		},
 	}
@@ -574,7 +621,7 @@ func TestReconcileInfrastructure(t *testing.T) {
 		},
 		Spec: v1alpha2.MachineSpec{
 			InfrastructureRef: corev1.ObjectReference{
-				APIVersion: "infra.cluster.sigs.k8s.io/v1alpha1",
+				APIVersion: "infrastructure.cluster.x-k8s.io/v1alpha2",
 				Kind:       "InfrastructureConfig",
 				Name:       "infra-config1",
 			},
@@ -593,7 +640,7 @@ func TestReconcileInfrastructure(t *testing.T) {
 			name: "new machine, infrastructure config ready",
 			infraConfig: map[string]interface{}{
 				"kind":       "InfrastructureConfig",
-				"apiVersion": "infra.cluster.sigs.k8s.io/v1alpha1",
+				"apiVersion": "infrastructure.cluster.x-k8s.io/v1alpha2",
 				"metadata": map[string]interface{}{
 					"name":      "infra-config1",
 					"namespace": "default",
@@ -603,12 +650,22 @@ func TestReconcileInfrastructure(t *testing.T) {
 				},
 				"status": map[string]interface{}{
 					"ready": true,
+					"addresses": []interface{}{
+						map[string]interface{}{
+							"type":    "InternalIP",
+							"address": "10.0.0.1",
+						},
+						map[string]interface{}{
+							"type":    "InternalIP",
+							"address": "10.0.0.2",
+						},
+					},
 				},
 			},
 			expectError:   false,
 			expectChanged: true,
 			expected: func(g *gomega.WithT, m *v1alpha2.Machine) {
-				g.Expect(*m.Status.InfrastructureReady).To(gomega.BeTrue())
+				g.Expect(m.Status.InfrastructureReady).To(gomega.BeTrue())
 			},
 		},
 	}

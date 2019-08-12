@@ -21,7 +21,7 @@ User->"API Server":kubectl apply -f machine.yaml
 activate "Cluster API Machine Controller"
 
 
-note over "Cluster API Machine Controller": - ✅ Machine.Status.Phase is empty\n- ✅ Machine.Spec.Bootstrap.Data is <nil>\n- ✅ Machine.Spec.Bootstrap.ConfigRef is populated\n- ✅ Machine.Spec.Bootstrap.ConfigRef -> Status.Phase is not "Ready"
+note over "Cluster API Machine Controller": - ✅ Machine.Status.Phase is empty\n- ✅ Machine.Spec.Bootstrap.Data is <nil>\n- ✅ Machine.Spec.Bootstrap.ConfigRef is populated\n- ✅ Machine.Spec.Bootstrap.ConfigRef -> Status.Ready is false
 
 opt Required only if the object hasn't been seen before
 "Cluster API Machine Controller"-> "Cluster API Machine Controller":Add watcher for \nMachine.Spec.Bootstrap.ConfigRef.Kind objects

@@ -5,6 +5,7 @@
 ## Getting Started
 
 * [Glossary](GLOSSARY.md)
+* [Abbreviations](ABBREVIATIONS.md)
 * [Existing Providers](getting_started/existing_providers.md)
 
 ## Common Code

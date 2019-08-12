@@ -23,6 +23,7 @@ limitations under the License.
 package rbac
 
 import (
+	"fmt"
 	"sort"
 	"strings"
 
@@ -39,12 +40,18 @@ var (
 	RuleDefinition = markers.Must(markers.MakeDefinition("kubebuilder:rbac", markers.DescribesPackage, Rule{}))
 )
 
-// Rule is a marker value that describes a kubernetes RBAC rule.
+// +controllertools:marker:generateHelp:category=RBAC
+
+// Rule specifies an RBAC rule to all access to some resources or non-resource URLs.
 type Rule struct {
-	Groups    []string `marker:",optional"`
+	// Groups specifies the API groups that this rule encompasses.
+	Groups []string `marker:",optional"`
+	// Resources specifies the API resources that this rule encompasses.
 	Resources []string `marker:",optional"`
-	Verbs     []string
-	URLs      []string `marker:"urls,optional"`
+	// Verbs specifies the (lowercase) kubernetes API verbs that this rule encompasses.
+	Verbs []string
+	// URL specifies the non-resource URLs that this rule encompasses.
+	URLs []string `marker:"urls,optional"`
 }
 
 // ruleKey represents the resources and non-resources a Rule applies.
@@ -53,6 +60,17 @@ type ruleKey struct {
 	Resources string
 	URLs      string
 }
+
+func (key ruleKey) String() string {
+	return fmt.Sprintf("%s + %s + %s", key.Groups, key.Resources, key.URLs)
+}
+
+// ruleKeys implements sort.Interface
+type ruleKeys []ruleKey
+
+func (keys ruleKeys) Len() int           { return len(keys) }
+func (keys ruleKeys) Swap(i, j int)      { keys[i], keys[j] = keys[j], keys[i] }
+func (keys ruleKeys) Less(i, j int) bool { return keys[i].String() < keys[j].String() }
 
 // key normalizes the Rule and returns a ruleKey object.
 func (r *Rule) key() ruleKey {
@@ -112,16 +130,24 @@ func (r *Rule) ToRule() rbacv1.PolicyRule {
 	}
 }
 
-// Generator is a genall.Generator that generated RBAC manifests..
+// +controllertools:marker:generateHelp
+
+// Generator generates ClusterRole objects.
 type Generator struct {
+	// RoleName sets the name of the generated ClusterRole.
 	RoleName string
 }
 
 func (Generator) RegisterMarkers(into *markers.Registry) error {
-	return into.Register(RuleDefinition)
+	if err := into.Register(RuleDefinition); err != nil {
+		return err
+	}
+	into.AddHelp(RuleDefinition, Rule{}.Help())
+	return nil
 }
 
-func (g Generator) Generate(ctx *genall.GenerationContext) error {
+// GenerateClusterRole generates a rbacv1.ClusterRole object
+func GenerateClusterRole(ctx *genall.GenerationContext, roleName string) (*rbacv1.ClusterRole, error) {
 	rules := make(map[ruleKey]*Rule)
 	for _, root := range ctx.Roots {
 		markerSet, err := markers.PackageMarkers(ctx.Collector, root)
@@ -129,6 +155,7 @@ func (g Generator) Generate(ctx *genall.GenerationContext) error {
 			root.AddError(err)
 		}
 
+		// all the Rules having the same ruleKey will be merged into the first Rule
 		for _, markerValue := range markerSet[RuleDefinition.Name] {
 			rule := markerValue.(Rule)
 			key := rule.key()
@@ -140,26 +167,46 @@ func (g Generator) Generate(ctx *genall.GenerationContext) error {
 		}
 	}
 
+	if len(rules) == 0 {
+		return nil, nil
+	}
+
+	// sort the Rules in rules according to their ruleKeys
+	keys := make([]ruleKey, 0)
+	for key := range rules {
+		keys = append(keys, key)
+	}
+	sort.Sort(ruleKeys(keys))
+
 	var policyRules []rbacv1.PolicyRule
-	for _, rule := range rules {
-		policyRules = append(policyRules, rule.ToRule())
+	for _, key := range keys {
+		policyRules = append(policyRules, rules[key].ToRule())
 
 	}
 
-	if len(policyRules) == 0 {
-		return nil
-	}
-
-	if err := ctx.WriteYAML("role.yaml", rbacv1.ClusterRole{
+	return &rbacv1.ClusterRole{
 		TypeMeta: metav1.TypeMeta{
 			Kind:       "ClusterRole",
 			APIVersion: rbacv1.SchemeGroupVersion.String(),
 		},
 		ObjectMeta: metav1.ObjectMeta{
-			Name: g.RoleName,
+			Name: roleName,
 		},
 		Rules: policyRules,
-	}); err != nil {
+	}, nil
+}
+
+func (g Generator) Generate(ctx *genall.GenerationContext) error {
+	clusterRole, err := GenerateClusterRole(ctx, g.RoleName)
+	if err != nil {
+		return err
+	}
+
+	if clusterRole == nil {
+		return nil
+	}
+
+	if err := ctx.WriteYAML("role.yaml", *clusterRole); err != nil {
 		return err
 	}
 

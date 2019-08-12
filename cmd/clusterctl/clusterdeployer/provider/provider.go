@@ -18,17 +18,7 @@ package provider
 
 import (
 	"k8s.io/client-go/kubernetes"
-	clusterv1 "sigs.k8s.io/cluster-api/pkg/apis/cluster/v1alpha2"
 )
-
-// Deployer is a deprecated interface for Provider specific logic. Please do not extend or add. This interface should be removed
-// once issues/158 and issues/160 below are fixed.
-type Deployer interface {
-	// TODO: This requirement can be removed once after: https://github.com/kubernetes-sigs/cluster-api/issues/158
-	GetIP(cluster *clusterv1.Cluster, machine *clusterv1.Machine) (string, error)
-	// TODO: This requirement can be removed after: https://github.com/kubernetes-sigs/cluster-api/issues/160
-	GetKubeConfig(cluster *clusterv1.Cluster, master *clusterv1.Machine) (string, error)
-}
 
 // ComponentsStore is an interface for saving and loading Provider Components
 type ComponentsStore interface {

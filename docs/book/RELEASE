@@ -26,7 +26,7 @@ This has only been verified to work on OSX. For platform agnostic testing see
 the [Testing with Netlify](#testing-with-netlify) section above.
 
 ```
-hack/build-gitbook.sh
+make book
 ```
 
 ## Verify the contents of the GitBook are correct by viewing the pages which 
@@ -36,10 +36,41 @@ should include new or changed content and:
 1) They are rendered as expected.
 
 ```
-cd docs/book
-gitbook serve
-# open localhost:4000 in a web browser
+make serve-book
 ```
+
+## Finally submit a PR
+
+# Creating a new book
+
+Each major and minor release should get a new version of the book. Netlify is
+already configured to deploy each branch to a Netlify site at
+`https://<branch-name-with-dashes>--kubernetes-sigs-cluster-api.netlify.com`.
+Note that dots in the branch name will be replaced by dashes in the domain
+name. For example, `release-0-1--kubernetes-sigs-cluster-api.netlify.com` is
+the domain name for the branch named `release-0.1`. It remains to:
+
+1) Create a subdomain for the branch. Subdomains are of the form
+`<branch-name-with-dashes>.cluster-api.sigs.k8s.io`. To create one submit a PR
+to the  kubernetes/k8s.io repository similar to this one:
+https://github.com/kubernetes/k8s.io/pull/324
+
+2) Request for the Netlify SSL cert to be extended to the new subdomain. For 
+example:
+
+Submit a request [here](https://www.netlify.com/support/) with the following
+information:
+
+Topic: SSL ISSUE
+Site Name: kubernetes-sigs-cluster-api
+Subject: Extend SSL certificate to new subdomain
+How can we help you?:
+
+>I am at step 4) "Contact Netlify Technical Support to get the SSL certificate extended to the new sub-domain." of [how to use Netlify’s branch deploy feature without Netlify DNS](https://community.netlify.com/t/common-issue-how-to-use-netlify-s-branch-deploy-feature-without-netlify-dns/128).
+>
+>Can you please extend the SSL cert for the kubernetes-sigs-cluster-api site to the subdomain: <branch-name-with-dashes>.cluster-api.sigs.k8s.io?
+>
+>Thank you!
 
 [markdown]: https://toolchain.gitbook.com/syntax/markdown.html
 [gitbook]: https://toolchain.gitbook.com/

@@ -189,7 +189,7 @@ func CreateCRDs(config *rest.Config, crds []*apiextensionsv1beta1.CustomResource
 
 	// Create each CRD
 	for _, crd := range crds {
-		log.V(1).Info("installing CRD", "crd", crd)
+		log.V(1).Info("installing CRD", "crd", crd.Name)
 		if _, err := cs.ApiextensionsV1beta1().CustomResourceDefinitions().Create(crd); err != nil {
 			return err
 		}

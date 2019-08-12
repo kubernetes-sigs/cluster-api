@@ -17,6 +17,7 @@ package crd
 
 import (
 	"fmt"
+	"sort"
 	"strings"
 
 	"github.com/gobuffalo/flect"
@@ -118,6 +119,11 @@ func (p *Parser) NeedCRDFor(groupKind schema.GroupKind) {
 	if len(crd.Spec.Versions) == 0 {
 		return
 	}
+
+	// it is necessary to make sure the order of CRD versions in crd.Spec.Versions is stable and explicitly set crd.Spec.Version.
+	// Otherwise, crd.Spec.Version may point to different CRD versions across different runs.
+	sort.Slice(crd.Spec.Versions, func(i, j int) bool { return crd.Spec.Versions[i].Name < crd.Spec.Versions[j].Name })
+	crd.Spec.Version = crd.Spec.Versions[0].Name
 
 	// make sure we have *a* storage version
 	// (default it if we only have one, otherwise, bail)

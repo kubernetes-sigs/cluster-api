@@ -29,9 +29,8 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/tools/record"
 	"k8s.io/klog"
-	"k8s.io/utils/pointer"
-	"sigs.k8s.io/cluster-api/pkg/apis/cluster/common"
 	"sigs.k8s.io/cluster-api/pkg/apis/cluster/v1alpha2"
+	clusterv1 "sigs.k8s.io/cluster-api/pkg/apis/cluster/v1alpha2"
 	"sigs.k8s.io/cluster-api/pkg/util"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
@@ -171,36 +170,20 @@ func (r *ReconcileMachineDeployment) reconcile(ctx context.Context, d *v1alpha2.
 
 	// Cluster might be nil as some providers might not require a cluster object
 	// for machine management.
-	cluster, err := r.getCluster(d)
-	if err != nil {
+	cluster, err := util.GetClusterFromMetadata(ctx, r.Client, d.ObjectMeta)
+	if errors.Cause(err) == util.ErrNoCluster {
+		klog.Infof("MachineDeployment %q in namespace %q doesn't specify %q label, assuming nil Cluster", d.Name, d.Namespace, v1alpha2.MachineClusterLabelName)
+	} else if err != nil {
 		return reconcile.Result{}, err
 	}
 
-	// Set the ownerRef with foreground deletion if there is a linked cluster.
-	if cluster != nil {
+	if cluster != nil && shouldAdopt(d) {
 		d.OwnerReferences = util.EnsureOwnerRef(d.OwnerReferences, metav1.OwnerReference{
-			APIVersion:         cluster.APIVersion,
-			Kind:               cluster.Kind,
-			Name:               cluster.Name,
-			UID:                cluster.UID,
-			BlockOwnerDeletion: pointer.BoolPtr(true),
+			APIVersion: cluster.APIVersion,
+			Kind:       cluster.Kind,
+			Name:       cluster.Name,
+			UID:        cluster.UID,
 		})
-	}
-
-	// Add foregroundDeletion finalizer if MachineDeployment isn't deleted and linked to a cluster.
-	if cluster != nil &&
-		d.ObjectMeta.DeletionTimestamp.IsZero() &&
-		!util.Contains(d.Finalizers, metav1.FinalizerDeleteDependents) {
-
-		patch := client.MergeFrom(d.DeepCopy())
-		d.Finalizers = append(d.ObjectMeta.Finalizers, metav1.FinalizerDeleteDependents)
-		if err := r.Client.Patch(ctx, d, patch); err != nil {
-			klog.Infof("Failed to add finalizers to MachineSet %q: %v", d.Name, err)
-			return reconcile.Result{}, err
-		}
-
-		// Since adding the finalizer updates the object return to avoid later update issues
-		return reconcile.Result{Requeue: true}, nil
 	}
 
 	msList, err := r.getMachineSetsForDeployment(d)
@@ -218,7 +201,7 @@ func (r *ReconcileMachineDeployment) reconcile(ctx context.Context, d *v1alpha2.
 	}
 
 	switch d.Spec.Strategy.Type {
-	case common.RollingUpdateMachineDeploymentStrategyType:
+	case v1alpha2.RollingUpdateMachineDeploymentStrategyType:
 		return reconcile.Result{}, r.rolloutRolling(d, msList, machineMap)
 	}
 
@@ -247,7 +230,6 @@ func (r *ReconcileMachineDeployment) getCluster(d *v1alpha2.MachineDeployment) (
 
 // getMachineSetsForDeployment returns a list of MachineSets associated with a MachineDeployment.
 func (r *ReconcileMachineDeployment) getMachineSetsForDeployment(d *v1alpha2.MachineDeployment) ([]*v1alpha2.MachineSet, error) {
-
 	// List all MachineSets to find those we own but that no longer match our selector.
 	machineSets := &v1alpha2.MachineSetList{}
 	if err := r.Client.List(context.Background(), machineSets, client.InNamespace(d.Namespace)); err != nil {
@@ -350,13 +332,13 @@ func (r *ReconcileMachineDeployment) getMachineMapForDeployment(d *v1alpha2.Mach
 // getMachineDeploymentsForMachineSet returns a list of MachineDeployments that could potentially match a MachineSet.
 func (r *ReconcileMachineDeployment) getMachineDeploymentsForMachineSet(ms *v1alpha2.MachineSet) []*v1alpha2.MachineDeployment {
 	if len(ms.Labels) == 0 {
-		klog.Warningf("No machine deployments found for MachineSet %q because it has no labels", ms.Name)
+		klog.Warningf("No MachineDeployments found for MachineSet %q because it has no labels", ms.Name)
 		return nil
 	}
 
 	dList := &v1alpha2.MachineDeploymentList{}
 	if err := r.Client.List(context.Background(), dList, client.InNamespace(ms.Namespace)); err != nil {
-		klog.Warningf("Failed to list machine deployments: %v", err)
+		klog.Warningf("Failed to list MachineDeployments: %v", err)
 		return nil
 	}
 
@@ -383,12 +365,9 @@ func (r *ReconcileMachineDeployment) getMachineDeploymentsForMachineSet(ms *v1al
 func (r *ReconcileMachineDeployment) MachineSetToDeployments(o handler.MapObject) []reconcile.Request {
 	result := []reconcile.Request{}
 
-	ms := &v1alpha2.MachineSet{}
-	key := client.ObjectKey{Namespace: o.Meta.GetNamespace(), Name: o.Meta.GetName()}
-	if err := r.Client.Get(context.Background(), key, ms); err != nil {
-		if !apierrors.IsNotFound(err) {
-			klog.Errorf("Unable to retrieve MachineSet %q for possible MachineDeployment adoption: %v", key, err)
-		}
+	ms, ok := o.Object.(*clusterv1.MachineSet)
+	if !ok {
+		klog.Errorf("Expected a MachineSet but got %T instead: %v", o.Object, o.Object)
 		return nil
 	}
 
@@ -402,7 +381,7 @@ func (r *ReconcileMachineDeployment) MachineSetToDeployments(o handler.MapObject
 
 	mds := r.getMachineDeploymentsForMachineSet(ms)
 	if len(mds) == 0 {
-		klog.V(4).Infof("Found no machine set for machine: %v", ms.Name)
+		klog.V(4).Infof("Found no MachineDeployment for MachineSet: %v", ms.Name)
 		return nil
 	}
 
@@ -412,4 +391,8 @@ func (r *ReconcileMachineDeployment) MachineSetToDeployments(o handler.MapObject
 	}
 
 	return result
+}
+
+func shouldAdopt(md *v1alpha2.MachineDeployment) bool {
+	return !util.HasOwner(md.OwnerReferences, v1alpha2.SchemeGroupVersion.String(), []string{"Cluster"})
 }

@@ -19,17 +19,20 @@ set -o nounset
 set -o pipefail
 
 KUBE_ROOT=$(dirname "${BASH_SOURCE[0]}")/..
+# shellcheck source=./ensure-go.sh
 source "${KUBE_ROOT}/hack/ensure-go.sh"
 
+GOPROXY=$(go env GOPROXY)
+export GOPROXY="${GOPROXY:-https://proxy.golang.org}"
 go mod tidy
 go mod vendor
 
 # Copy full dependencies if needed.
-for dep in $(cat ${KUBE_ROOT}/go.vendor); do
-    src=$(go mod download -json ${dep} | jq -r .Dir)
+while IFS= read -r dep; do
+    src="$(go mod download -json "${dep}" | jq -r .Dir)"
     dst="${KUBE_ROOT}/vendor/${dep}"
     cp -af "${src}/" "${dst}"
-    chmod -R +w ${dst}
-done
+    chmod -R +w "${dst}"
+done < "${KUBE_ROOT}/go.vendor"
 
 go mod verify

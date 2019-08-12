@@ -34,6 +34,9 @@ import (
 // I've tried to clean it up a bit from the original in deepcopy-gen,
 // but parts remain a bit convoluted.  Exercise caution when changing.
 // It's perhaps a tad over-commented now, but better safe than sorry.
+// It also seriously needs auditing for sanity -- there's parts where we
+// copy the original deepcopy-gen's output just to be safe, but some of that
+// could be simplified away if we're careful.
 
 // codeWriter assists in writing out Go code lines and blocks to a writer.
 type codeWriter struct {
@@ -152,6 +155,53 @@ func (l *importsList) ImportSpecs() []string {
 	return res
 }
 
+// namingInfo holds package and syntax for referencing a field, type,
+// etc.  It's used to allow lazily marking import usage.
+// You should generally retrieve the syntax using Syntax.
+type namingInfo struct {
+	// typeInfo is the type being named.
+	typeInfo     types.Type
+	nameOverride string
+}
+
+// Syntax calculates the code representation of the given type or name,
+// and marks that is used (potentially marking an import as used).
+func (n *namingInfo) Syntax(basePkg *loader.Package, imports *importsList) string {
+	if n.nameOverride != "" {
+		return n.nameOverride
+	}
+
+	// NB(directxman12): typeInfo.String gets us most of the way there,
+	// but fails (for us) on named imports, since it uses the full package path.
+	switch typeInfo := n.typeInfo.(type) {
+	case *types.Named:
+		// register that we need an import for this type,
+		// so we can get the appropriate alias to use.
+		typeName := typeInfo.Obj()
+		otherPkg := typeName.Pkg()
+		if otherPkg == basePkg.Types {
+			// local import
+			return typeName.Name()
+		}
+		alias := imports.NeedImport(loader.NonVendorPath(otherPkg.Path()))
+		return alias + "." + typeName.Name()
+	case *types.Basic:
+		return typeInfo.String()
+	case *types.Pointer:
+		return "*" + (&namingInfo{typeInfo: typeInfo.Elem()}).Syntax(basePkg, imports)
+	case *types.Slice:
+		return "[]" + (&namingInfo{typeInfo: typeInfo.Elem()}).Syntax(basePkg, imports)
+	case *types.Map:
+		return fmt.Sprintf(
+			"map[%s]%s",
+			(&namingInfo{typeInfo: typeInfo.Key()}).Syntax(basePkg, imports),
+			(&namingInfo{typeInfo: typeInfo.Elem()}).Syntax(basePkg, imports))
+	default:
+		basePkg.AddError(fmt.Errorf("name requested for invalid type %s", typeInfo))
+		return typeInfo.String()
+	}
+}
+
 // copyMethodMakers makes DeepCopy (and related) methods for Go types,
 // writing them to its codeWriter.
 type copyMethodMaker struct {
@@ -163,7 +213,7 @@ type copyMethodMaker struct {
 // GenerateMethodsFor makes DeepCopy, DeepCopyInto, and DeepCopyObject methods
 // for the given type, when appropriate
 func (c *copyMethodMaker) GenerateMethodsFor(root *loader.Package, info *markers.TypeInfo) {
-	typeInfo := root.TypesInfo.TypeOf(info.RawSpec.Type)
+	typeInfo := root.TypesInfo.TypeOf(info.RawSpec.Name)
 	if typeInfo == types.Typ[types.Invalid] {
 		root.AddError(loader.ErrFromNode(fmt.Errorf("unknown type %s", info.Name), info.RawSpec))
 	}
@@ -183,21 +233,24 @@ func (c *copyMethodMaker) GenerateMethodsFor(root *loader.Package, info *markers
 			c.Linef("func (in *%s) DeepCopyInto(out *%s) {", info.Name, info.Name)
 		} else {
 			c.Linef("func (in %s) DeepCopyInto(out *%s) {", info.Name, info.Name)
-			c.Line("in := &in")
+			c.Line("{in := &in") // add an extra block so that we can redefine `in` without type issues
 		}
 
 		// just wrap the existing deepcopy if present
 		if hasManualDeepCopy {
 			if deepCopyOnPtr {
 				c.Line("clone := in.DeepCopy()")
-				c.Line("*out := *clone")
+				c.Line("*out = *clone")
 			} else {
-				c.Line("*out := in.DeepCopy()")
+				c.Line("*out = in.DeepCopy()")
 			}
 		} else {
-			c.genDeepCopyIntoBlock(info.Name, typeInfo)
+			c.genDeepCopyIntoBlock(&namingInfo{nameOverride: info.Name}, typeInfo)
 		}
 
+		if !ptrReceiver {
+			c.Line("}") // close our extra "in redefinition" block
+		}
 		c.Line("}")
 	}
 
@@ -224,17 +277,19 @@ func (c *copyMethodMaker) GenerateMethodsFor(root *loader.Package, info *markers
 
 // genDeepCopyBody generates a DeepCopyInto block for the given type.  The
 // block is *not* wrapped in curly braces.
-func (c *copyMethodMaker) genDeepCopyIntoBlock(actualName string, typeInfo types.Type) {
-	// we might hit a type that has a manual deepcopy method written on non-root types
-	// (this case is handled for root types in GenerateMethodFor)
-	if hasAnyDeepCopyMethod(c.pkg, typeInfo) {
-		c.Line("*out = in.DeepCopy()")
-		return
-	}
-
+func (c *copyMethodMaker) genDeepCopyIntoBlock(actualName *namingInfo, typeInfo types.Type) {
 	// we calculate *how* we should copy mostly based on the "eventual" type of
 	// a given type (i.e. the type that results from following all aliases)
 	last := eventualUnderlyingType(typeInfo)
+
+	// we might hit a type that has a manual deepcopy method written on non-root types
+	// (this case is handled for root types in GenerateMethodFor).
+	// In that case (when we're not dealing with a pointer, since those need special handling
+	// to match 1-to-1 with k8s deepcopy-gen), just use that.
+	if _, isPtr := last.(*types.Pointer); !isPtr && hasAnyDeepCopyMethod(c.pkg, typeInfo) {
+		c.Line("*out = in.DeepCopy()")
+		return
+	}
 
 	switch last := last.(type) {
 	case *types.Basic:
@@ -263,7 +318,7 @@ func (c *copyMethodMaker) genDeepCopyIntoBlock(actualName string, typeInfo types
 
 // genMapDeepCopy generates DeepCopy code for the given named type whose eventual
 // type is the given map type.
-func (c *copyMethodMaker) genMapDeepCopy(actualName string, mapType *types.Map) {
+func (c *copyMethodMaker) genMapDeepCopy(actualName *namingInfo, mapType *types.Map) {
 	// maps *must* have shallow-copiable types, since we just iterate
 	// through the keys, only trying to deepcopy the values.
 	if !fineToShallowCopy(mapType.Key()) {
@@ -272,7 +327,7 @@ func (c *copyMethodMaker) genMapDeepCopy(actualName string, mapType *types.Map) 
 	}
 
 	// make our actual type (not the underlying one)...
-	c.Linef("*out = make(%[1]s, len(*in))", actualName)
+	c.Linef("*out = make(%[1]s, len(*in))", actualName.Syntax(c.pkg, c.importsList))
 
 	// ...and copy each element appropriately
 	c.For("key, val := range *in", func() {
@@ -283,17 +338,19 @@ func (c *copyMethodMaker) genMapDeepCopy(actualName string, mapType *types.Map) 
 		switch {
 		case hasDeepCopyInto || hasDeepCopy:
 			// use the manually-written methods
-			_, outNeedsPtr := mapType.Elem().(*types.Pointer) // is "out" actually a pointer
-			inIsPtr := usePtrReceiver(mapType.Elem())         // does copying "in" produce a pointer
+			_, fieldIsPtr := mapType.Elem().(*types.Pointer)                       // is "out" actually a pointer
+			inIsPtr := resultWillBePointer(mapType.Elem(), hasDeepCopy, copyOnPtr) // does copying "in" produce a pointer
 			if hasDeepCopy {
 				// If we're calling DeepCopy, check if it's receiver needs a pointer
 				inIsPtr = copyOnPtr
 			}
-			if inIsPtr == outNeedsPtr {
+			if inIsPtr == fieldIsPtr {
 				c.Line("(*out)[key] = val.DeepCopy()")
-			} else if outNeedsPtr {
+			} else if fieldIsPtr {
+				c.Line("{") // use a block because we use `x` as a temporary
 				c.Line("x := val.DeepCopy()")
 				c.Line("(*out)[key] = &x")
+				c.Line("}")
 			} else {
 				c.Line("(*out)[key] = *val.DeepCopy()")
 			}
@@ -308,12 +365,12 @@ func (c *copyMethodMaker) genMapDeepCopy(actualName string, mapType *types.Map) 
 
 			// if it passes by reference, let the main switch handle it
 			if passesByReference(underlyingElem) {
-				c.Linef("var outVal %[1]s", c.syntaxFor(underlyingElem))
+				c.Linef("var outVal %[1]s", (&namingInfo{typeInfo: underlyingElem}).Syntax(c.pkg, c.importsList))
 				c.IfElse("val == nil", func() {
 					c.Line("(*out)[key] = nil")
 				}, func() {
 					c.Line("in, out := &val, &outVal")
-					c.genDeepCopyIntoBlock(c.syntaxFor(mapType.Elem()), mapType.Elem())
+					c.genDeepCopyIntoBlock(&namingInfo{typeInfo: mapType.Elem()}, mapType.Elem())
 				})
 				c.Line("(*out)[key] = outVal")
 
@@ -335,18 +392,18 @@ func (c *copyMethodMaker) genMapDeepCopy(actualName string, mapType *types.Map) 
 
 // genSliceDeepCopy generates DeepCopy code for the given named type whose
 // underlying type is the given slice.
-func (c *copyMethodMaker) genSliceDeepCopy(actualName string, sliceType *types.Slice) {
+func (c *copyMethodMaker) genSliceDeepCopy(actualName *namingInfo, sliceType *types.Slice) {
 	underlyingElem := eventualUnderlyingType(sliceType.Elem())
 
 	// make the actual type (not the underlying)
-	c.Linef("*out = make(%[1]s, len(*in))", actualName)
+	c.Linef("*out = make(%[1]s, len(*in))", actualName.Syntax(c.pkg, c.importsList))
 
 	// check if we need to do anything special, or just copy each element appropriately
 	switch {
 	case hasAnyDeepCopyMethod(c.pkg, sliceType.Elem()):
 		// just use deepcopy if it's present (deepcopyinto will be filled in by our code)
 		c.For("i := range *in", func() {
-			c.Line("(*in)[1].DeepCopyInto(&(*out)[i]")
+			c.Line("(*in)[i].DeepCopyInto(&(*out)[i])")
 		})
 	case fineToShallowCopy(underlyingElem):
 		// shallow copy if ok
@@ -358,7 +415,7 @@ func (c *copyMethodMaker) genSliceDeepCopy(actualName string, sliceType *types.S
 			if passesByReference(underlyingElem) || hasAnyDeepCopyMethod(c.pkg, sliceType.Elem()) {
 				c.If("(*in)[i] != nil", func() {
 					c.Line("in, out := &(*in)[i], &(*out)[i]")
-					c.genDeepCopyIntoBlock(c.syntaxFor(sliceType.Elem()), sliceType.Elem())
+					c.genDeepCopyIntoBlock(&namingInfo{typeInfo: sliceType.Elem()}, sliceType.Elem())
 				})
 				return
 			}
@@ -376,7 +433,7 @@ func (c *copyMethodMaker) genSliceDeepCopy(actualName string, sliceType *types.S
 
 // genStructDeepCopy generates DeepCopy code for the given named type whose
 // underlying type is the given struct.
-func (c *copyMethodMaker) genStructDeepCopy(_ string, structType *types.Struct) {
+func (c *copyMethodMaker) genStructDeepCopy(_ *namingInfo, structType *types.Struct) {
 	c.Line("*out = *in")
 
 	for i := 0; i < structType.NumFields(); i++ {
@@ -386,18 +443,29 @@ func (c *copyMethodMaker) genStructDeepCopy(_ string, structType *types.Struct) 
 		hasDeepCopy, copyOnPtr := hasDeepCopyMethod(c.pkg, field.Type())
 		hasDeepCopyInto := hasDeepCopyIntoMethod(c.pkg, field.Type())
 		if hasDeepCopyInto || hasDeepCopy {
-			_, outNeedsPtr := field.Type().(*types.Pointer)
-			inIsPtr := usePtrReceiver(field.Type())
-			if hasDeepCopy {
-				inIsPtr = copyOnPtr
-			}
-			if inIsPtr == outNeedsPtr {
-				c.Linef("out.%[1]s = in.%[1]s.DeepCopy()", field.Name())
-			} else if outNeedsPtr {
-				c.Linef("x := in.%[1]s.DeepCopy()", field.Name())
-				c.Linef("out.%[1]s = &x", field.Name())
+			// NB(directxman12): yes, I know this is kind-of weird that we
+			// have all this special-casing here, but it's nice for testing
+			// purposes to be 1-to-1 with deepcopy-gen, which does all sorts of
+			// stuff like this (I'm pretty sure I found some codepaths that
+			// never execute there, because they're pretty clearly invalid
+			// syntax).
+
+			_, fieldIsPtr := field.Type().(*types.Pointer)
+			inIsPtr := resultWillBePointer(field.Type(), hasDeepCopy, copyOnPtr)
+			if fieldIsPtr {
+				// we'll need a if block to check for nilness
+				// we'll let genDeepCopyIntoBlock handle the details, we just needed the setup
+				c.If(fmt.Sprintf("in.%s != nil", field.Name()), func() {
+					c.Linef("in, out := &in.%[1]s, &out.%[1]s", field.Name())
+					c.genDeepCopyIntoBlock(&namingInfo{typeInfo: field.Type()}, field.Type())
+				})
 			} else {
-				c.Linef("in.%[1]s.DeepCopyInto(&out.%[1]s)", field.Name())
+				// special-case for compatibility with deepcopy-gen
+				if inIsPtr == fieldIsPtr {
+					c.Linef("out.%[1]s = in.%[1]s.DeepCopy()", field.Name())
+				} else {
+					c.Linef("in.%[1]s.DeepCopyInto(&out.%[1]s)", field.Name())
+				}
 			}
 			continue
 		}
@@ -407,7 +475,7 @@ func (c *copyMethodMaker) genStructDeepCopy(_ string, structType *types.Struct) 
 		if passesByReference(underlyingField) {
 			c.If(fmt.Sprintf("in.%s != nil", field.Name()), func() {
 				c.Linef("in, out := &in.%[1]s, &out.%[1]s", field.Name())
-				c.genDeepCopyIntoBlock(c.syntaxFor(field.Type()), field.Type())
+				c.genDeepCopyIntoBlock(&namingInfo{typeInfo: field.Type()}, field.Type())
 			})
 			continue
 		}
@@ -431,14 +499,14 @@ func (c *copyMethodMaker) genStructDeepCopy(_ string, structType *types.Struct) 
 
 // genPointerDeepCopy generates DeepCopy code for the given named type whose
 // underlying type is the given struct.
-func (c *copyMethodMaker) genPointerDeepCopy(_ string, pointerType *types.Pointer) {
+func (c *copyMethodMaker) genPointerDeepCopy(_ *namingInfo, pointerType *types.Pointer) {
 	underlyingElem := eventualUnderlyingType(pointerType.Elem())
 
 	// if we have a manually written deepcopy, just use that
 	hasDeepCopy, copyOnPtr := hasDeepCopyMethod(c.pkg, pointerType.Elem())
 	hasDeepCopyInto := hasDeepCopyIntoMethod(c.pkg, pointerType.Elem())
 	if hasDeepCopyInto || hasDeepCopy {
-		outNeedsPtr := usePtrReceiver(pointerType.Elem())
+		outNeedsPtr := resultWillBePointer(pointerType.Elem(), hasDeepCopy, copyOnPtr)
 		if hasDeepCopy {
 			outNeedsPtr = copyOnPtr
 		}
@@ -453,17 +521,17 @@ func (c *copyMethodMaker) genPointerDeepCopy(_ string, pointerType *types.Pointe
 
 	// shallow-copiable types are pretty easy
 	if fineToShallowCopy(underlyingElem) {
-		c.Linef("*out = new(%[1]s)", c.syntaxFor(pointerType.Elem()))
+		c.Linef("*out = new(%[1]s)", (&namingInfo{typeInfo: pointerType.Elem()}).Syntax(c.pkg, c.importsList))
 		c.Line("**out = **in")
 		return
 	}
 
 	// pass-by-reference types get delegated to the main switch
 	if passesByReference(underlyingElem) {
-		c.Linef("*out = new(%s)", c.syntaxFor(underlyingElem))
+		c.Linef("*out = new(%s)", (&namingInfo{typeInfo: underlyingElem}).Syntax(c.pkg, c.importsList))
 		c.If("**in != nil", func() {
 			c.Line("in, out := *in, *out")
-			c.genDeepCopyIntoBlock(c.syntaxFor(underlyingElem), eventualUnderlyingType(underlyingElem))
+			c.genDeepCopyIntoBlock(&namingInfo{typeInfo: underlyingElem}, eventualUnderlyingType(underlyingElem))
 		})
 		return
 	}
@@ -471,41 +539,11 @@ func (c *copyMethodMaker) genPointerDeepCopy(_ string, pointerType *types.Pointe
 	// otherwise...
 	switch underlyingElem := underlyingElem.(type) {
 	case *types.Struct:
-		c.Linef("*out = new(%[1]s)", c.syntaxFor(pointerType.Elem()))
+		c.Linef("*out = new(%[1]s)", (&namingInfo{typeInfo: pointerType.Elem()}).Syntax(c.pkg, c.importsList))
 		c.Line("(*in).DeepCopyInto(*out)")
 	default:
 		c.pkg.AddError(fmt.Errorf("invalid pointer element type %s", underlyingElem))
 		return
-	}
-}
-
-// syntaxFor returns the Go syntax-utal representation of the given type.
-func (c *copyMethodMaker) syntaxFor(typeInfo types.Type) string {
-	// NB(directxman12): typeInfo.String gets us most of the way there,
-	// but fails (for us) on named imports, since it uses the full package path.
-	switch typeInfo := typeInfo.(type) {
-	case *types.Named:
-		// register that we need an import for this type,
-		// so we can get the appropriate alias to use.
-		typeName := typeInfo.Obj()
-		otherPkg := typeName.Pkg()
-		if otherPkg == c.pkg.Types {
-			// local import
-			return typeName.Name()
-		}
-		alias := c.NeedImport(loader.NonVendorPath(otherPkg.Path()))
-		return alias + "." + typeName.Name()
-	case *types.Basic:
-		return typeInfo.String()
-	case *types.Pointer:
-		return "*" + c.syntaxFor(typeInfo.Elem())
-	case *types.Slice:
-		return "[]" + c.syntaxFor(typeInfo.Elem())
-	case *types.Map:
-		return fmt.Sprintf("map[%s]%s", c.syntaxFor(typeInfo.Key()), c.syntaxFor(typeInfo.Elem()))
-	default:
-		c.pkg.AddError(fmt.Errorf("name requested for invalid type %s", typeInfo))
-		return typeInfo.String()
 	}
 }
 
@@ -526,6 +564,31 @@ func usePtrReceiver(typeInfo types.Type) bool {
 	}
 }
 
+func resultWillBePointer(typeInfo types.Type, hasDeepCopy, deepCopyOnPtr bool) bool {
+	// if we have a manual deepcopy, we can just check what that returns
+	if hasDeepCopy {
+		return deepCopyOnPtr
+	}
+
+	// otherwise, we'll need to check its type
+	switch typeInfo := typeInfo.(type) {
+	case *types.Pointer:
+		// NB(directxman12): we don't have to worry about the elem having a deepcopy,
+		// since hasManualDeepCopy would've caught that.
+
+		// we'll be calling on the elem, so check that
+		return resultWillBePointer(typeInfo.Elem(), false, false)
+	case *types.Map:
+		return false
+	case *types.Slice:
+		return false
+	case *types.Named:
+		return resultWillBePointer(typeInfo.Underlying(), false, false)
+	default:
+		return true
+	}
+}
+
 // shouldBeCopied checks if we're supposed to make deepcopy methods the given type.
 //
 // This is the case if it's exported *and* either:
@@ -537,22 +600,36 @@ func shouldBeCopied(pkg *loader.Package, info *markers.TypeInfo) bool {
 		return false
 	}
 
-	typeInfo := pkg.TypesInfo.TypeOf(info.RawSpec.Type)
+	typeInfo := pkg.TypesInfo.TypeOf(info.RawSpec.Name)
 	if typeInfo == types.Typ[types.Invalid] {
 		pkg.AddError(loader.ErrFromNode(fmt.Errorf("unknown type %s", info.Name), info.RawSpec))
 		return false
 	}
-	var lastType types.Type
-	for underlyingType := typeInfo; underlyingType != lastType; lastType, underlyingType = underlyingType, underlyingType.Underlying() {
-		// aliases to other things besides basics need copy methods
-		// (basics can be straight-up shallow-copied)
-		if _, isBasic := underlyingType.(*types.Basic); !isBasic {
+
+	// according to gengo, everything named is an alias, except for an alias to a pointer,
+	// which is just a pointer, afaict.  Just roll with it.
+	if asPtr, isPtr := typeInfo.(*types.Named).Underlying().(*types.Pointer); isPtr {
+		typeInfo = asPtr
+	}
+
+	lastType := typeInfo
+	if _, isNamed := typeInfo.(*types.Named); isNamed {
+		// if it has a manual deepcopy or deepcopyinto, we're fine
+		if hasAnyDeepCopyMethod(pkg, typeInfo) {
 			return true
 		}
 
-		// if it has a manual deepcopy or deepcopyinto, we're fine
-		if hasAnyDeepCopyMethod(pkg, underlyingType) {
-			return true
+		for underlyingType := typeInfo.Underlying(); underlyingType != lastType; lastType, underlyingType = underlyingType, underlyingType.Underlying() {
+			// if it has a manual deepcopy or deepcopyinto, we're fine
+			if hasAnyDeepCopyMethod(pkg, underlyingType) {
+				return true
+			}
+
+			// aliases to other things besides basics need copy methods
+			// (basics can be straight-up shallow-copied)
+			if _, isBasic := underlyingType.(*types.Basic); !isBasic {
+				return true
+			}
 		}
 	}
 
@@ -564,8 +641,11 @@ func shouldBeCopied(pkg *loader.Package, info *markers.TypeInfo) bool {
 // hasDeepCopyMethod checks if this type has a manual DeepCopy method and if
 // the method has a pointer receiver.
 func hasDeepCopyMethod(pkg *loader.Package, typeInfo types.Type) (bool, bool) {
-	methods := types.NewMethodSet(typeInfo)
-	deepCopyMethod := methods.Lookup(pkg.Types, "DeepCopy")
+	deepCopyMethod, ind, _ := types.LookupFieldOrMethod(typeInfo, true /* check pointers too */, pkg.Types, "DeepCopy")
+	if len(ind) != 1 {
+		// ignore embedded methods
+		return false, false
+	}
 	if deepCopyMethod == nil {
 		return false, false
 	}
@@ -577,18 +657,37 @@ func hasDeepCopyMethod(pkg *loader.Package, typeInfo types.Type) (bool, bool) {
 	if methodSig.Results() == nil || methodSig.Results().Len() != 1 {
 		return false, false
 	}
-	if methodSig.Results().At(0).Type() != methodSig.Recv().Type() {
+
+	recvAsPtr, recvIsPtr := methodSig.Recv().Type().(*types.Pointer)
+	if recvIsPtr {
+		// NB(directxman12): the pointer type returned here isn't comparable even though they
+		// have the same underlying type, for some reason (probably that
+		// LookupFieldOrMethod calls types.NewPointer for us), so check the
+		// underlying values.
+
+		resultPtr, resultIsPtr := methodSig.Results().At(0).Type().(*types.Pointer)
+		if !resultIsPtr {
+			// pointer vs non-pointer are different types
+			return false, false
+		}
+
+		if recvAsPtr.Elem() != resultPtr.Elem() {
+			return false, false
+		}
+	} else if methodSig.Results().At(0).Type() != methodSig.Recv().Type() {
 		return false, false
 	}
 
-	_, recvIsPtr := methodSig.Results().At(0).Type().(*types.Pointer)
 	return true, recvIsPtr
 }
 
 // hasDeepCopyIntoMethod checks if this type has a manual DeepCopyInto method.
 func hasDeepCopyIntoMethod(pkg *loader.Package, typeInfo types.Type) bool {
-	methods := types.NewMethodSet(typeInfo) // todo: recalculating this could be slow, keep across both invocations
-	deepCopyMethod := methods.Lookup(pkg.Types, "DeepCopyInto")
+	deepCopyMethod, ind, _ := types.LookupFieldOrMethod(typeInfo, true /* check pointers too */, pkg.Types, "DeepCopyInto")
+	if len(ind) != 1 {
+		// ignore embedded methods
+		return false
+	}
 	if deepCopyMethod == nil {
 		return false
 	}
@@ -606,9 +705,13 @@ func hasDeepCopyIntoMethod(pkg *loader.Package, typeInfo types.Type) bool {
 	}
 
 	if recvPtr, recvIsPtr := methodSig.Recv().Type().(*types.Pointer); recvIsPtr {
-		return methodSig.Params().At(0).Type() == recvPtr
+		// NB(directxman12): the pointer type returned here isn't comparable even though they
+		// have the same underlying type, for some reason (probably that
+		// LookupFieldOrMethod calls types.NewPointer for us), so check the
+		// underlying values.
+		return paramPtr.Elem() == recvPtr.Elem()
 	}
-	return methodSig.Params().At(0).Type() == paramPtr.Elem()
+	return methodSig.Recv().Type() == paramPtr.Elem()
 }
 
 // hasAnyDeepCopyMethod checks if the given method has DeepCopy or DeepCopyInto

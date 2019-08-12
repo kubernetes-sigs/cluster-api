@@ -32,6 +32,7 @@ TAG ?= dev
 
 ARCH?=amd64
 ALL_ARCH = amd64 arm arm64 ppc64le s390x
+GOOS?=linux
 
 all: test manager clusterctl
 
@@ -58,12 +59,19 @@ test-go: ## Run tests
 manager: lint-full ## Build manager binary
 	go build -o bin/manager sigs.k8s.io/cluster-api/cmd/manager
 
+.PHONY: docker-build-manager
+docker-build-manager: lint-full ## Build manager binary in docker
+	docker run --rm \
+	-v "${PWD}:/go/src/sigs.k8s.io/cluster-api" \
+	-v "${PWD}/bin:/go/bin" \
+	-w "/go/src/sigs.k8s.io/cluster-api" \
+	-e CGO_ENABLED=0 -e GOOS=${GOOS} -e GOARCH=${ARCH} -e GO111MODULE=on -e GOFLAGS="-mod=vendor" \
+	golang:1.12.6 \
+	go build -a -ldflags '-extldflags "-static"' -o /go/bin/manager sigs.k8s.io/cluster-api/cmd/manager
+
 .PHONY: clusterctl
 clusterctl: lint-full ## Build clusterctl binary
 	go build -o bin/clusterctl sigs.k8s.io/cluster-api/cmd/clusterctl
-
-bin/%-gen: ./vendor/k8s.io/code-generator/cmd/%-gen ## Build code-generator binaries
-	go build -o $@ ./$<
 
 .PHONY: run
 run: lint ## Run against the configured Kubernetes cluster in ~/.kube/config
@@ -87,36 +95,14 @@ lint-full: ## Run slower linters to detect possible issues
 .PHONY: generate
 generate: ## Generate code
 	$(MAKE) generate-manifests
-	$(MAKE) generate-go
+	$(MAKE) generate-deepcopy
 	$(MAKE) gazelle
 
-.PHONY: generate-full
-generate-full: vendor ## Generate code
-	$(MAKE) generate-clientset
-	$(MAKE) generate
-
-.PHONY: generate-go
-generate-go: ## Runs go generate
-	go generate ./pkg/... ./cmd/...
-
-.PHONY: generate-clientset
-generate-clientset: clean-clientset bin/client-gen bin/lister-gen bin/informer-gen ## Generate a typed clientset
-	bin/client-gen \
-		--clientset-name clientset \
-		--input-base sigs.k8s.io/cluster-api/pkg/apis \
-		--input deprecated/v1alpha1,cluster/v1alpha2 \
-		--output-package sigs.k8s.io/cluster-api/pkg/client/clientset_generated \
-		--go-header-file=./hack/boilerplate/boilerplate.generatego.txt
-	bin/lister-gen \
-		--input-dirs sigs.k8s.io/cluster-api/pkg/apis/deprecated/v1alpha1,sigs.k8s.io/cluster-api/pkg/apis/cluster/v1alpha2 \
-		--output-package sigs.k8s.io/cluster-api/pkg/client/listers_generated \
-		--go-header-file=./hack/boilerplate/boilerplate.generatego.txt
-	bin/informer-gen \
-		--input-dirs sigs.k8s.io/cluster-api/pkg/apis/deprecated/v1alpha1,sigs.k8s.io/cluster-api/pkg/apis/cluster/v1alpha2 \
-		--versioned-clientset-package sigs.k8s.io/cluster-api/pkg/client/clientset_generated/clientset \
-		--listers-package sigs.k8s.io/cluster-api/pkg/client/listers_generated \
-		--output-package sigs.k8s.io/cluster-api/pkg/client/informers_generated \
-		--go-header-file=./hack/boilerplate/boilerplate.generatego.txt
+.PHONY: generate-deepcopy
+generate-deepcopy: ## Runs controller-gen to generate deepcopy files
+	go run vendor/sigs.k8s.io/controller-tools/cmd/controller-gen/main.go \
+	object:headerFile=./hack/boilerplate/boilerplate.generatego.txt \
+	paths=./pkg/...
 
 .PHONY: generate-manifests
 generate-manifests: ## Generate manifests e.g. CRD, RBAC etc.
@@ -194,6 +180,7 @@ docker-push-manifest: ## Push the fat manifest docker image. TODO: Update bazel 
 clean: ## Remove all generated files
 	$(MAKE) clean-bazel
 	$(MAKE) clean-bin
+	$(MAKE) clean-book
 
 .PHONY: clean-bazel
 clean-bazel: ## Remove all generated bazel symlinks

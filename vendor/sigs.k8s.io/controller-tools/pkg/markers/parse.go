@@ -23,7 +23,6 @@ import (
 	"reflect"
 	"strconv"
 	"strings"
-	"sync"
 	sc "text/scanner"
 	"unicode"
 
@@ -474,6 +473,19 @@ const (
 	DescribesField
 )
 
+func (t TargetType) String() string {
+	switch t {
+	case DescribesPackage:
+		return "package"
+	case DescribesType:
+		return "type"
+	case DescribesField:
+		return "field"
+	default:
+		return "(unknown)"
+	}
+}
+
 // Definition is a parsed definition of a marker.
 type Definition struct {
 	// Output is the deserialized Go type of the marker.
@@ -511,6 +523,28 @@ func (d *Definition) Empty() bool {
 	return len(d.Fields) == 0
 }
 
+// argumentInfo returns information about an argument field as the marker parser's field loader
+// would see it.  This can be useful if you have to interact with marker definition structs
+// externally (e.g. at compile time).
+func argumentInfo(fieldName string, tag reflect.StructTag) (argName string, optionalOpt bool) {
+	argName = lowerCamelCase(fieldName)
+	markerTag, tagSpecified := tag.Lookup("marker")
+	markerTagParts := strings.Split(markerTag, ",")
+	if tagSpecified && markerTagParts[0] != "" {
+		// allow overriding to support legacy cases where we don't follow camelCase conventions
+		argName = markerTagParts[0]
+	}
+	optionalOpt = false
+	for _, tagOption := range markerTagParts[1:] {
+		switch tagOption {
+		case "optional":
+			optionalOpt = true
+		}
+	}
+
+	return argName, optionalOpt
+}
+
 // loadFields uses reflection to populate argument information from the Output type.
 func (d *Definition) loadFields() error {
 	if d.Fields == nil {
@@ -535,14 +569,7 @@ func (d *Definition) loadFields() error {
 			// so non-empty package path means a private field, which we should skip
 			continue
 		}
-		argName := lowerCamelCase(field.Name)
-		markerTag, tagSpecified := field.Tag.Lookup("marker")
-		markerTagParts := strings.Split(markerTag, ",")
-
-		if tagSpecified && markerTagParts[0] != "" {
-			// allow overriding to support legacy cases where we don't follow camelCase conventions
-			argName = markerTagParts[0]
-		}
+		argName, optionalOpt := argumentInfo(field.Name, field.Tag)
 
 		argType, err := ArgumentFromType(field.Type)
 		if err != nil {
@@ -553,12 +580,7 @@ func (d *Definition) loadFields() error {
 			return fmt.Errorf("RawArguments must be the direct type of a marker, and not a field")
 		}
 
-		for _, tagOption := range markerTagParts[1:] {
-			switch tagOption {
-			case "optional":
-				argType.Optional = true
-			}
-		}
+		argType.Optional = optionalOpt || argType.Optional
 
 		d.Fields[argName] = argType
 		d.FieldNames[argName] = field.Name
@@ -702,118 +724,4 @@ func splitMarker(raw string) (name string, anonymousName string, restFields stri
 		name = strings.Join(nameParts[:len(nameParts)-1], ":")
 	}
 	return name, anonymousName, restFields
-}
-
-// Registry keeps track of registered definitions, and allows for easy lookup.
-// It's thread-safe, and the zero-value can be safely used.
-type Registry struct {
-	forPkg   map[string]*Definition
-	forType  map[string]*Definition
-	forField map[string]*Definition
-
-	mu       sync.RWMutex
-	initOnce sync.Once
-}
-
-func (r *Registry) init() {
-	r.initOnce.Do(func() {
-		if r.forPkg == nil {
-			r.forPkg = make(map[string]*Definition)
-		}
-		if r.forType == nil {
-			r.forType = make(map[string]*Definition)
-		}
-		if r.forField == nil {
-			r.forField = make(map[string]*Definition)
-		}
-	})
-}
-
-// Define defines a new marker with the given name, target, and output type.
-// It's a shortcut around
-//  r.Register(MakeDefinition(name, target, obj))
-func (r *Registry) Define(name string, target TargetType, obj interface{}) error {
-	def, err := MakeDefinition(name, target, obj)
-	if err != nil {
-		return err
-	}
-	return r.Register(def)
-}
-
-// Register registers the given marker definition with this registry for later lookup.
-func (r *Registry) Register(def *Definition) error {
-	r.init()
-
-	r.mu.Lock()
-	defer r.mu.Unlock()
-
-	switch def.Target {
-	case DescribesPackage:
-		r.forPkg[def.Name] = def
-	case DescribesType:
-		r.forType[def.Name] = def
-	case DescribesField:
-		r.forField[def.Name] = def
-	default:
-		return fmt.Errorf("unknown target type %v", def.Target)
-	}
-	return nil
-}
-
-// Lookup fetches the definition corresponding to the given name and target type.
-func (r *Registry) Lookup(name string, target TargetType) *Definition {
-	r.init()
-
-	r.mu.RLock()
-	defer r.mu.RUnlock()
-
-	switch target {
-	case DescribesPackage:
-		return tryAnonLookup(name, r.forPkg)
-	case DescribesType:
-		return tryAnonLookup(name, r.forType)
-	case DescribesField:
-		return tryAnonLookup(name, r.forField)
-	default:
-		return nil
-	}
-}
-
-// AllDefinitions returns all marker definitions known to this registry.
-func (r *Registry) AllDefinitions() []*Definition {
-	res := make([]*Definition, 0, len(r.forPkg)+len(r.forType)+len(r.forField))
-	for _, def := range r.forPkg {
-		res = append(res, def)
-	}
-	for _, def := range r.forType {
-		res = append(res, def)
-	}
-	for _, def := range r.forField {
-		res = append(res, def)
-	}
-	return res
-}
-
-// tryAnonLookup tries looking up the given marker as both an struct-based
-// marker and an anonymous marker, returning whichever format matches first,
-// preferring the longer (anonymous) name in case of conflicts.
-func tryAnonLookup(name string, defs map[string]*Definition) *Definition {
-	// NB(directxman12): we look up anonymous names first to work with
-	// legacy style marker definitions that have a namespaced approach
-	// (e.g. deepcopy-gen, which uses `+k8s:deepcopy-gen=foo,bar` *and*
-	// `+k8s.io:deepcopy-gen:interfaces=foo`).
-	name, anonName, _ := splitMarker(name)
-	if def, exists := defs[anonName]; exists {
-		return def
-	}
-
-	return defs[name]
-}
-
-// Must panics on errors creating definitions.
-func Must(def *Definition, err error) *Definition {
-	if err != nil {
-		panic(err)
-	}
-	return def
 }

@@ -1,0 +1,29 @@
+@startuml
+title Figure 2: Cluster State Transitions
+
+start
+
+:Pending;
+
+note right
+Cluster object is created but
+has no associated Infrastructure
+end note
+
+:Provisioning;
+
+note right
+Cluster has associated Infrastructure.
+Provider is provisioning it
+end note
+
+:Provisioned;
+note right
+Infrastructureis ready.
+APIEndpoint is set.
+end note
+
+stop
+
+hide footbox
+@enduml

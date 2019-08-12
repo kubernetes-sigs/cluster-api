@@ -23,7 +23,7 @@ import (
 	metav1validation "k8s.io/apimachinery/pkg/apis/meta/v1/validation"
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/util/validation/field"
-	"sigs.k8s.io/cluster-api/pkg/apis/cluster/common"
+	capierrors "sigs.k8s.io/cluster-api/pkg/errors"
 )
 
 // +genclient
@@ -84,19 +84,19 @@ type MachineSetDeletePolicy string
 
 const (
 	// RandomMachineSetDeletePolicy prioritizes both Machines that have the annotation
-	// "cluster.sigs.k8s.io/delete-machine=yes" and Machines that are unhealthy
+	// "cluster.x-k8s.io/delete-machine=yes" and Machines that are unhealthy
 	// (Status.ErrorReason or Status.ErrorMessage are set to a non-empty value).
 	// Finally, it picks Machines at random to delete.
 	RandomMachineSetDeletePolicy MachineSetDeletePolicy = "Random"
 
 	// NewestMachineSetDeletePolicy prioritizes both Machines that have the annotation
-	// "cluster.sigs.k8s.io/delete-machine=yes" and Machines that are unhealthy
+	// "cluster.x-k8s.io/delete-machine=yes" and Machines that are unhealthy
 	// (Status.ErrorReason or Status.ErrorMessage are set to a non-empty value).
 	// It then prioritizes the newest Machines for deletion based on the Machine's CreationTimestamp.
 	NewestMachineSetDeletePolicy MachineSetDeletePolicy = "Newest"
 
 	// OldestMachineSetDeletePolicy prioritizes both Machines that have the annotation
-	// "cluster.sigs.k8s.io/delete-machine=yes" and Machines that are unhealthy
+	// "cluster.x-k8s.io/delete-machine=yes" and Machines that are unhealthy
 	// (Status.ErrorReason or Status.ErrorMessage are set to a non-empty value).
 	// It then prioritizes the oldest Machines for deletion based on the Machine's CreationTimestamp.
 	OldestMachineSetDeletePolicy MachineSetDeletePolicy = "Oldest"
@@ -161,7 +161,7 @@ type MachineSetStatus struct {
 	// can be added as events to the MachineSet object and/or logged in the
 	// controller's output.
 	// +optional
-	ErrorReason *common.MachineSetStatusError `json:"errorReason,omitempty"`
+	ErrorReason *capierrors.MachineSetStatusError `json:"errorReason,omitempty"`
 	// +optional
 	ErrorMessage *string `json:"errorMessage,omitempty"`
 }

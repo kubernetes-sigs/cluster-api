@@ -18,12 +18,10 @@ require (
 	k8s.io/apimachinery v0.0.0-20190404173353-6a84e37a896d
 	k8s.io/apiserver v0.0.0-20190409021813-1ec86e4da56c
 	k8s.io/client-go v11.0.1-0.20190409021438-1a26190bd76a+incompatible
-	k8s.io/code-generator v0.0.0-20190311093542-50b561225d70
 	k8s.io/component-base v0.0.0-20190409021516-bd2732e5c3f7
-	k8s.io/gengo v0.0.0-20190327210449-e17681d19d3a // indirect
 	k8s.io/klog v0.3.1
 	k8s.io/utils v0.0.0-20190506122338-8fab8cb257d5
-	sigs.k8s.io/controller-runtime v0.2.0-beta.4
-	sigs.k8s.io/controller-tools v0.2.0-beta.3
+	sigs.k8s.io/controller-runtime v0.2.0-beta.5
+	sigs.k8s.io/controller-tools v0.2.0-beta.5
 	sigs.k8s.io/testing_frameworks v0.1.2-0.20190130140139-57f07443c2d4
 )

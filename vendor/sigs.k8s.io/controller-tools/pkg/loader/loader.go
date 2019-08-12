@@ -243,6 +243,18 @@ func (l *loader) typeCheck(pkg *Package) {
 
 		// The imports map is keyed by import path.
 		importedPkg := pkg.Imports()[path]
+
+		// it's possible to have a call to check in parallel to a call to this
+		// if one package in the package graph gets its dependency filtered out,
+		// but another doesn't (so one wants a "dummy" package here, and another
+		// wants the full check).
+		//
+		// Thus, we need to lock here (at least for the time being) to avoid
+		// races between the above write to `pkg.Types` and this checking of
+		// importedPkg.Types.
+		importedPkg.Lock()
+		defer importedPkg.Unlock()
+
 		if importedPkg == nil {
 			return nil, fmt.Errorf("no package information for %q", path)
 		}

@@ -19,18 +19,18 @@ package v1alpha2
 import (
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"sigs.k8s.io/cluster-api/pkg/apis/cluster/common"
+	capierrors "sigs.k8s.io/cluster-api/pkg/errors"
 )
 
 const (
 	// MachineFinalizer is set on PrepareForCreate callback.
-	MachineFinalizer = "machine.cluster.sigs.k8s.io"
+	MachineFinalizer = "machine.cluster.x-k8s.io"
 
 	// MachineClusterLabelName is the label set on machines linked to a cluster.
-	MachineClusterLabelName = "cluster.sigs.k8s.io/cluster-name"
+	MachineClusterLabelName = "cluster.x-k8s.io/cluster-name"
 
 	// MachineControlPlaneLabelName is the label set on machines part of a control plane.
-	MachineControlPlaneLabelName = "cluster.sigs.k8s.io/control-plane"
+	MachineControlPlaneLabelName = "cluster.x-k8s.io/control-plane"
 )
 
 // +genclient
@@ -125,7 +125,7 @@ type MachineStatus struct {
 	// can be added as events to the Machine object and/or logged in the
 	// controller's output.
 	// +optional
-	ErrorReason *common.MachineStatusError `json:"errorReason,omitempty"`
+	ErrorReason *capierrors.MachineStatusError `json:"errorReason,omitempty"`
 
 	// ErrorMessage will be set in the event that there is a terminal problem
 	// reconciling the Machine and will contain a more verbose string suitable
@@ -146,9 +146,10 @@ type MachineStatus struct {
 	// +optional
 	ErrorMessage *string `json:"errorMessage,omitempty"`
 
-	// Addresses is a list of addresses assigned to the machine. Queried from cloud provider, if available.
+	// Addresses is a list of addresses assigned to the machine.
+	// This field is copied from the infrastructure provider reference.
 	// +optional
-	Addresses []corev1.NodeAddress `json:"addresses,omitempty"`
+	Addresses MachineAddresses `json:"addresses,omitempty"`
 
 	// Phase represents the current phase of machine actuation.
 	// E.g. Pending, Running, Terminating, Failed etc.
@@ -157,11 +158,11 @@ type MachineStatus struct {
 
 	// BootstrapReady is the state of the bootstrap provider.
 	// +optional
-	BootstrapReady *bool `json:"bootstrapReady,omitempty"`
+	BootstrapReady bool `json:"bootstrapReady"`
 
 	// InfrastructureReady is the state of the infrastructure provider.
 	// +optional
-	InfrastructureReady *bool `json:"infrastructureReady,omitempty"`
+	InfrastructureReady bool `json:"infrastructureReady"`
 }
 
 // SetTypedPhase sets the Phase field to the string representation of MachinePhase.

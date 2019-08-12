@@ -133,7 +133,7 @@ func TestMachineSetToDeployments(t *testing.T) {
 
 	v1alpha2.AddToScheme(scheme.Scheme)
 	r := &ReconcileMachineDeployment{
-		Client:   fake.NewFakeClient(&ms1, &ms2, &ms3, machineDeplopymentList),
+		Client:   fake.NewFakeClient(machineDeplopymentList),
 		scheme:   scheme.Scheme,
 		recorder: record.NewFakeRecorder(32),
 	}

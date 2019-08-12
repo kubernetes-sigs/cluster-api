@@ -20,7 +20,7 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
-	"sigs.k8s.io/cluster-api/pkg/apis/cluster/common"
+	capierrors "sigs.k8s.io/cluster-api/pkg/errors"
 )
 
 const (
@@ -147,7 +147,7 @@ type MachineStatus struct {
 	// can be added as events to the Machine object and/or logged in the
 	// controller's output.
 	// +optional
-	ErrorReason *common.MachineStatusError `json:"errorReason,omitempty"`
+	ErrorReason *capierrors.MachineStatusError `json:"errorReason,omitempty"`
 
 	// ErrorMessage will be set in the event that there is a terminal problem
 	// reconciling the Machine and will contain a more verbose string suitable

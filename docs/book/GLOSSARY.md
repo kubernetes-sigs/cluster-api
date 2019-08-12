@@ -26,7 +26,7 @@ last-updated: 2019-06-10
 
 # Table of Contents
 
-[A](#a) | [B](#b) | [C](#c) | [D](#d) | [H](#h) | [I](#i) | [K](#k) | [M](#m) | [O](#o) | [P](#p) | [S](#s) | [W](#w)
+[A](#a) | [B](#b) | [C](#c) | [D](#d) | [H](#h) | [I](#i) | [K](#k) | [M](#m) | [N](#n) | [O](#o) | [P](#p) | [S](#s) | [T](#t) | [W](#w)
 
 # A
 
@@ -37,9 +37,17 @@ Services beyond the fundamental components of Kubernetes.
 * __Core Add-ons__: Addons that are required to deploy a Kubernetes-conformant cluster: DNS, kube-proxy, CNI.
 * __Additional Add-ons__: Addons that are not required for a Kubernetes-conformant cluster (e.g. metrics/Heapster, Dashboard).
 
+# B
+
 ## Bootstrap
 
 The process of turning a server into a Kubernetes node. This may involve assembling data to provide when creating the server that backs the Machine, as well as runtime configuration of the software running on that server.
+
+## Bootstrap cluster
+
+A temporary cluster that is used to provision a Target Management cluster.
+
+# C
 
 ## Cluster
 
@@ -118,6 +126,12 @@ Perform create, scale, upgrade, or destroy operations on the cluster.
 
 The cluster where one or more Infrastructure Providers run, and where resources (e.g. Machines) are stored.  Typically referred to when you are provisioning multiple clusters.
 
+# N
+
+## Node pools
+
+A node pool is a group of nodes within a cluster that all have the same configuration.
+
 # O
 
 ## Operating system
@@ -127,6 +141,12 @@ Or __OS__
 A generically understood combination of a kernel and system-level userspace interface, such as Linux or Windows, as opposed to a particular distribution.
 
 # P
+
+## Pivot
+
+Pivot is a process for moving the provider components and declared cluster-api resources from a Source Management cluster to a Target Management cluster.
+
+The pivot process is also used for deleting a management cluster and could also be used during an upgrade of the management cluster.
 
 ## Provider
 
@@ -145,6 +165,14 @@ Unless otherwise specified, this refers to horizontal scaling.
 ## Server
 
 The infrastructure that backs a [Machine Resource](#user-content-machine), typically either a cloud instance, virtual machine, or physical host.
+
+# T
+
+## Target Management cluster
+
+The declared cluster we intend to create and manage using cluster-api when running `clusterctl create cluster`.
+
+When running `clusterctl alpha phases pivot` this refers to the cluster that will be the new management cluster.
 
 # W
 

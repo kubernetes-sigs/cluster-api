@@ -49,4 +49,10 @@ limitations under the License.
 // It will run all associated generators, printing errors and automatically
 // skipping type-checking errors (since those are commonly caused by the
 // partial type-checking of loader.TypeChecker).
+//
+// Options
+//
+// The FromOptions (and associated helpers) function makes it easy to use generators
+// and output rules as markers that can be parsed from the command line, producing
+// a registry from command line args.
 package genall

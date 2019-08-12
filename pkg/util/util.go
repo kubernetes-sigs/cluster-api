@@ -17,8 +17,10 @@ limitations under the License.
 package util
 
 import (
+	"bufio"
+	"bytes"
 	"context"
-	"errors"
+	"encoding/json"
 	"fmt"
 	"io"
 	"math/rand"
@@ -29,15 +31,22 @@ import (
 	"strings"
 	"time"
 
+	"github.com/pkg/errors"
 	v1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
-	"k8s.io/apimachinery/pkg/util/json"
+	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/runtime/schema"
+	"k8s.io/apimachinery/pkg/runtime/serializer/streaming"
 	"k8s.io/apimachinery/pkg/util/yaml"
+	"k8s.io/client-go/kubernetes/scheme"
 	"k8s.io/klog"
+	"sigs.k8s.io/cluster-api/pkg/apis"
 	clusterv1 "sigs.k8s.io/cluster-api/pkg/apis/cluster/v1alpha2"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/handler"
+	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 )
 
 const (
@@ -49,8 +58,14 @@ const (
 )
 
 var (
-	rnd = rand.New(rand.NewSource(time.Now().UnixNano()))
+	rnd                          = rand.New(rand.NewSource(time.Now().UnixNano()))
+	ErrNoCluster                 = fmt.Errorf("no %q label present", clusterv1.MachineClusterLabelName)
+	ErrUnstructuredFieldNotFound = fmt.Errorf("field not found")
 )
+
+func init() {
+	apis.AddToScheme(scheme.Scheme)
+}
 
 // RandomToken returns a random token.
 func RandomToken() string {
@@ -66,22 +81,21 @@ func RandomString(n int) string {
 	return string(result)
 }
 
-// GetControlPlaneMachine returns a control plane machine from input.
-// Deprecated: use GetControlPlaneMachines.
-func GetControlPlaneMachine(machines []*clusterv1.Machine) *clusterv1.Machine {
-	for _, machine := range machines {
-		if IsControlPlaneMachine(machine) {
-			return machine
-		}
-	}
-	return nil
-}
-
 // GetControlPlaneMachines returns a slice containing control plane machines.
 func GetControlPlaneMachines(machines []*clusterv1.Machine) (res []*clusterv1.Machine) {
 	for _, machine := range machines {
 		if IsControlPlaneMachine(machine) {
 			res = append(res, machine)
+		}
+	}
+	return
+}
+
+// GetControlPlaneMachinesFromList returns a slice containing control plane machines.
+func GetControlPlaneMachinesFromList(machineList *clusterv1.MachineList) (res []*clusterv1.Machine) {
+	for _, machine := range machineList.Items {
+		if IsControlPlaneMachine(&machine) {
+			res = append(res, &machine)
 		}
 	}
 	return
@@ -149,6 +163,116 @@ func IsNodeReady(node *v1.Node) bool {
 	return false
 }
 
+// GetClusterFromMetadata returns the Cluster object (if present) using the object metadata.
+func GetClusterFromMetadata(ctx context.Context, c client.Client, obj metav1.ObjectMeta) (*clusterv1.Cluster, error) {
+	if obj.Labels[clusterv1.MachineClusterLabelName] == "" {
+		return nil, errors.WithStack(ErrNoCluster)
+	}
+	return GetClusterByName(ctx, c, obj.Namespace, obj.Labels[clusterv1.MachineClusterLabelName])
+}
+
+// GetOwnerCluster returns the Cluster object owning the current resource.
+func GetOwnerCluster(ctx context.Context, c client.Client, obj metav1.ObjectMeta) (*clusterv1.Cluster, error) {
+	for _, ref := range obj.OwnerReferences {
+		if ref.Kind == "Cluster" && ref.APIVersion == clusterv1.SchemeGroupVersion.String() {
+			return GetClusterByName(ctx, c, obj.Namespace, ref.Name)
+		}
+	}
+	return nil, nil
+}
+
+// GetClusterByName finds and return a Cluster object using the specified params.
+func GetClusterByName(ctx context.Context, c client.Client, namespace, name string) (*clusterv1.Cluster, error) {
+	cluster := &clusterv1.Cluster{}
+	key := client.ObjectKey{
+		Namespace: namespace,
+		Name:      name,
+	}
+
+	if err := c.Get(ctx, key, cluster); err != nil {
+		return nil, err
+	}
+
+	return cluster, nil
+}
+
+// ClusterToInfrastructureMapFunc returns a handler.ToRequestsFunc that watches for
+// Cluster events and returns reconciliation requests for an infrastructure provider object.
+func ClusterToInfrastructureMapFunc(gvk schema.GroupVersionKind) handler.ToRequestsFunc {
+	return func(o handler.MapObject) []reconcile.Request {
+		c, ok := o.Object.(*clusterv1.Cluster)
+		if !ok {
+			return nil
+		}
+
+		// Return early if the InfrastructureRef is nil.
+		if c.Spec.InfrastructureRef == nil {
+			return nil
+		}
+
+		// Return early if the GroupVersionKind doesn't match what we expect.
+		infraGVK := c.Spec.InfrastructureRef.GroupVersionKind()
+		if gvk != infraGVK {
+			return nil
+		}
+
+		return []reconcile.Request{
+			{
+				NamespacedName: client.ObjectKey{
+					Namespace: c.Namespace,
+					Name:      c.Spec.InfrastructureRef.Name,
+				},
+			},
+		}
+	}
+}
+
+// GetOwnerMachine returns the Machine object owning the current resource.
+func GetOwnerMachine(ctx context.Context, c client.Client, obj metav1.ObjectMeta) (*clusterv1.Machine, error) {
+	for _, ref := range obj.OwnerReferences {
+		if ref.Kind == "Machine" && ref.APIVersion == clusterv1.SchemeGroupVersion.String() {
+			return GetMachineByName(ctx, c, obj.Namespace, ref.Name)
+		}
+	}
+	return nil, nil
+}
+
+// GetMachineByName finds and return a Machine object using the specified params.
+func GetMachineByName(ctx context.Context, c client.Client, namespace, name string) (*clusterv1.Machine, error) {
+	m := &clusterv1.Machine{}
+	key := client.ObjectKey{Name: name, Namespace: namespace}
+	if err := c.Get(ctx, key, m); err != nil {
+		return nil, err
+	}
+	return m, nil
+}
+
+// MachineToInfrastructureMapFunc returns a handler.ToRequestsFunc that watches for
+// Machine events and returns reconciliation requests for an infrastructure provider object.
+func MachineToInfrastructureMapFunc(gvk schema.GroupVersionKind) handler.ToRequestsFunc {
+	return func(o handler.MapObject) []reconcile.Request {
+		m, ok := o.Object.(*clusterv1.Machine)
+		if !ok {
+			return nil
+		}
+
+		// Return early if the GroupVersionKind doesn't match what we expect.
+		infraGVK := m.Spec.InfrastructureRef.GroupVersionKind()
+		if gvk != infraGVK {
+			return nil
+		}
+
+		return []reconcile.Request{
+			{
+				NamespacedName: client.ObjectKey{
+					Namespace: m.Namespace,
+					Name:      m.Spec.InfrastructureRef.Name,
+				},
+			},
+		}
+	}
+}
+
 // HasOwnerRef returns true if the OwnerReference is already in the slice.
 func HasOwnerRef(ownerReferences []metav1.OwnerReference, ref metav1.OwnerReference) bool {
 	for _, r := range ownerReferences {
@@ -165,6 +289,37 @@ func EnsureOwnerRef(ownerReferences []metav1.OwnerReference, ref metav1.OwnerRef
 		return append(ownerReferences, ref)
 	}
 	return ownerReferences
+}
+
+// PointsTo returns true if any of the owner references point to the given target
+func PointsTo(refs []metav1.OwnerReference, target *metav1.ObjectMeta) bool {
+	for _, ref := range refs {
+		if ref.UID == target.UID {
+			return true
+		}
+	}
+
+	return false
+}
+
+// UnstructuredUnmarshalField is a wrapper around json and unstructured objects to decode and copy a specific field
+// value into an object.
+func UnstructuredUnmarshalField(obj *unstructured.Unstructured, v interface{}, fields ...string) error {
+	value, found, err := unstructured.NestedFieldNoCopy(obj.Object, fields...)
+	if err != nil {
+		return errors.Wrapf(err, "failed to retrieve field %q from %q", strings.Join(fields, "."), obj.GroupVersionKind())
+	}
+	if !found || value == nil {
+		return ErrUnstructuredFieldNotFound
+	}
+	valueBytes, err := json.Marshal(value)
+	if err != nil {
+		return errors.Wrapf(err, "failed to json-encode field %q value from %q", strings.Join(fields, "."), obj.GroupVersionKind())
+	}
+	if err := json.Unmarshal(valueBytes, v); err != nil {
+		return errors.Wrapf(err, "failed to json-decode field %q value from %q", strings.Join(fields, "."), obj.GroupVersionKind())
+	}
+	return nil
 }
 
 // Copy deep copies a Machine object.
@@ -227,77 +382,86 @@ func ParseClusterYaml(file string) (*clusterv1.Cluster, error) {
 		return nil, err
 	}
 
-	defer reader.Close()
+	decoder := NewYAMLDecoder(reader)
 
-	decoder := yaml.NewYAMLOrJSONDecoder(reader, 32)
+	for {
+		var cluster clusterv1.Cluster
+		_, gvk, err := decoder.Decode(nil, &cluster)
+		if err == io.EOF {
+			break
+		}
 
-	bytes, err := decodeClusterV1Kinds(decoder, "Cluster")
-	if err != nil {
-		return nil, err
+		if runtime.IsNotRegisteredError(err) {
+			continue
+		}
+
+		if err != nil {
+			return nil, err
+		}
+
+		if gvk.Kind == "Cluster" {
+			return &cluster, nil
+		}
 	}
 
-	var cluster clusterv1.Cluster
-	if err := json.Unmarshal(bytes[0], &cluster); err != nil {
-		return nil, err
-	}
+	return nil, errors.New("Did not find a cluster")
 
-	return &cluster, nil
 }
 
 // ParseMachinesYaml extracts machine objects from a file.
 func ParseMachinesYaml(file string) ([]*clusterv1.Machine, error) {
 	reader, err := os.Open(file)
+
 	if err != nil {
 		return nil, err
 	}
 
-	defer reader.Close()
-
-	decoder := yaml.NewYAMLOrJSONDecoder(reader, 32)
-
 	var (
-		bytes       [][]byte
-		machineList clusterv1.MachineList
-		machines    = []*clusterv1.Machine{}
+		machines []*clusterv1.Machine
 	)
 
-	// TODO: use the universal decoder instead of doing this.
-	if bytes, err = decodeClusterV1Kinds(decoder, "MachineList"); err != nil {
-		if isMissingKind(err) {
-			err = errors.New(MachineListFormatDeprecationMessage)
-		}
-		return nil, err
-	}
+	decoder := NewYAMLDecoder(reader)
+	defer decoder.Close()
 
-	// TODO: this is O(n^2) and must be optimized
-	for _, ml := range bytes {
-		if err := json.Unmarshal(ml, &machineList); err != nil {
+	for {
+		obj, gvk, err := decoder.Decode(nil, nil)
+
+		if err == io.EOF {
+			break
+		}
+
+		if runtime.IsNotRegisteredError(err) {
+			continue
+		}
+
+		if err != nil {
 			return nil, err
 		}
-		for i := range machineList.Items {
-			machine := &machineList.Items[i]
-			if machine.APIVersion == "" || machine.Kind == "" {
-				return nil, errors.New(MachineListFormatDeprecationMessage)
+
+		switch gvk.Kind {
+
+		case "MachineList":
+			ml, ok := obj.(*clusterv1.MachineList)
+			if !ok {
+				return nil, fmt.Errorf("Expected MachineList, got %t", obj)
 			}
-			machines = append(machines, machine)
+
+			for i := range ml.Items {
+				machine := &ml.Items[i]
+				if machine.APIVersion == "" || machine.Kind == "" {
+					return nil, errors.New(MachineListFormatDeprecationMessage)
+				}
+				machines = append(machines, machine)
+			}
+		case "Machine":
+			m, ok := obj.(*clusterv1.Machine)
+			if !ok {
+				return nil, fmt.Errorf("Expected Machine, got %t", obj)
+			}
+
+			machines = append(machines, m)
 		}
-	}
 
-	// reset reader to search for discrete Machine definitions
-	if _, err := reader.Seek(0, 0); err != nil {
-		return nil, err
-	}
-
-	if bytes, err = decodeClusterV1Kinds(decoder, "Machine"); err != nil {
-		return nil, err
-	}
-
-	for _, m := range bytes {
-		machine := &clusterv1.Machine{}
-		if err := json.Unmarshal(m, machine); err != nil {
-			return nil, err
-		}
-		machines = append(machines, machine)
 	}
 
 	return machines, nil
@@ -309,27 +473,53 @@ func isMissingKind(err error) bool {
 	return strings.Contains(err.Error(), "Object 'Kind' is missing in")
 }
 
-// decodeClusterV1Kinds returns a slice of objects matching the clusterv1 kind.
-func decodeClusterV1Kinds(decoder *yaml.YAMLOrJSONDecoder, kind string) ([][]byte, error) {
-	outs := [][]byte{}
+type yamlDecoder struct {
+	reader  *yaml.YAMLReader
+	decoder runtime.Decoder
+	close   func() error
+}
 
+func (d *yamlDecoder) Decode(defaults *schema.GroupVersionKind, into runtime.Object) (runtime.Object, *schema.GroupVersionKind, error) {
 	for {
-		var out unstructured.Unstructured
-
-		if err := decoder.Decode(&out); err == io.EOF {
-			break
-		} else if err != nil {
-			return nil, err
+		doc, err := d.reader.Read()
+		if err != nil {
+			return nil, nil, err
 		}
 
-		if out.GetKind() == kind && out.GetAPIVersion() == clusterv1.SchemeGroupVersion.String() {
-			marshaled, err := out.MarshalJSON()
-			if err != nil {
-				return outs, err
-			}
-			outs = append(outs, marshaled)
+		//  Skip over empty documents, i.e. a leading `---`
+		if len(bytes.TrimSpace(doc)) == 0 {
+			continue
+		}
+
+		return d.decoder.Decode(doc, defaults, into)
+	}
+
+}
+
+func (d *yamlDecoder) Close() error {
+	return d.close()
+}
+
+func NewYAMLDecoder(r io.ReadCloser) streaming.Decoder {
+	return &yamlDecoder{
+		reader:  yaml.NewYAMLReader(bufio.NewReader(r)),
+		decoder: scheme.Codecs.UniversalDeserializer(),
+		close:   r.Close,
+	}
+}
+
+// HasOwner checks if any of the references in the passed list match the given apiVersion and one of the given kinds
+func HasOwner(refList []metav1.OwnerReference, apiVersion string, kinds []string) bool {
+	kMap := make(map[string]bool)
+	for _, kind := range kinds {
+		kMap[kind] = true
+	}
+
+	for _, mr := range refList {
+		if mr.APIVersion == apiVersion && kMap[mr.Kind] {
+			return true
 		}
 	}
 
-	return outs, nil
+	return false
 }

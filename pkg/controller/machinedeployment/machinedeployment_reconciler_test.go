@@ -29,7 +29,6 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/intstr"
 	"k8s.io/utils/pointer"
-	"sigs.k8s.io/cluster-api/pkg/apis/cluster/common"
 	clusterv1 "sigs.k8s.io/cluster-api/pkg/apis/cluster/v1alpha2"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/manager"
@@ -51,7 +50,7 @@ func TestReconcile(t *testing.T) {
 			RevisionHistoryLimit: pointer.Int32Ptr(0),
 			Selector:             metav1.LabelSelector{MatchLabels: labels},
 			Strategy: &clusterv1.MachineDeploymentStrategy{
-				Type: common.RollingUpdateMachineDeploymentStrategyType,
+				Type: clusterv1.RollingUpdateMachineDeploymentStrategyType,
 				RollingUpdate: &clusterv1.MachineRollingUpdateDeployment{
 					MaxUnavailable: intOrStrPtr(0),
 					MaxSurge:       intOrStrPtr(1),
@@ -64,7 +63,7 @@ func TestReconcile(t *testing.T) {
 				Spec: clusterv1.MachineSpec{
 					Version: &version,
 					InfrastructureRef: corev1.ObjectReference{
-						APIVersion: "infrastructure.cluster.sigs.k8s.io/v1alpha1",
+						APIVersion: "infrastructure.cluster.x-k8s.io/v1alpha2",
 						Kind:       "InfrastructureMachineTemplate",
 						Name:       "foo-template",
 					},
@@ -72,7 +71,7 @@ func TestReconcile(t *testing.T) {
 			},
 		},
 	}
-	msListOpts := []client.ListOptionFunc{
+	msListOpts := []client.ListOption{
 		client.InNamespace("default"),
 		client.MatchingLabels(labels),
 	}
@@ -90,7 +89,7 @@ func TestReconcile(t *testing.T) {
 	// Create infrastructure template resource.
 	infraResource := map[string]interface{}{
 		"kind":       "InfrastructureMachine",
-		"apiVersion": "infrastructure.cluster.sigs.k8s.io/v1alpha1",
+		"apiVersion": "infrastructure.cluster.x-k8s.io/v1alpha2",
 		"metadata":   map[string]interface{}{},
 		"spec": map[string]interface{}{
 			"size": "3xlarge",
@@ -104,7 +103,7 @@ func TestReconcile(t *testing.T) {
 		},
 	}
 	infraTmpl.SetKind("InfrastructureMachineTemplate")
-	infraTmpl.SetAPIVersion("infrastructure.cluster.sigs.k8s.io/v1alpha1")
+	infraTmpl.SetAPIVersion("infrastructure.cluster.x-k8s.io/v1alpha2")
 	infraTmpl.SetName("foo-template")
 	infraTmpl.SetNamespace("default")
 	Expect(c.Create(ctx, infraTmpl)).To(BeNil())

@@ -25,63 +25,12 @@ import (
 	"testing"
 	"time"
 
-	"github.com/pkg/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/intstr"
 	"k8s.io/apiserver/pkg/storage/names"
-	core "k8s.io/client-go/testing"
 	"sigs.k8s.io/cluster-api/pkg/apis/cluster/v1alpha2"
-	"sigs.k8s.io/cluster-api/pkg/client/clientset_generated/clientset/fake"
 )
-
-func addListMSReactor(fakeClient *fake.Clientset, obj runtime.Object) *fake.Clientset {
-	fakeClient.AddReactor("list", "machinesets", func(action core.Action) (handled bool, ret runtime.Object, err error) {
-		return true, obj, nil
-	})
-	return fakeClient
-}
-
-func addListMachinesReactor(fakeClient *fake.Clientset, obj runtime.Object) *fake.Clientset {
-	fakeClient.AddReactor("list", "machines", func(action core.Action) (handled bool, ret runtime.Object, err error) {
-		return true, obj, nil
-	})
-	return fakeClient
-}
-
-func addGetMSReactor(fakeClient *fake.Clientset, obj runtime.Object) *fake.Clientset {
-	msList, ok := obj.(*v1alpha2.MachineSetList)
-	fakeClient.AddReactor("get", "machinesets", func(action core.Action) (handled bool, ret runtime.Object, err error) {
-		name := action.(core.GetAction).GetName()
-		if ok {
-			for _, ms := range msList.Items {
-				if ms.Name == name {
-					return true, &ms, nil
-				}
-			}
-		}
-		return false, nil, errors.Errorf("could not find the requested machine set: %s", name)
-
-	})
-	return fakeClient
-}
-
-func addUpdateMSReactor(fakeClient *fake.Clientset) *fake.Clientset {
-	fakeClient.AddReactor("update", "machinesets", func(action core.Action) (handled bool, ret runtime.Object, err error) {
-		obj := action.(core.UpdateAction).GetObject().(*v1alpha2.MachineSet)
-		return true, obj, nil
-	})
-	return fakeClient
-}
-
-func addUpdateMachinesReactor(fakeClient *fake.Clientset) *fake.Clientset {
-	fakeClient.AddReactor("update", "machines", func(action core.Action) (handled bool, ret runtime.Object, err error) {
-		obj := action.(core.UpdateAction).GetObject().(*v1alpha2.Machine)
-		return true, obj, nil
-	})
-	return fakeClient
-}
 
 func generateMSWithLabel(labels map[string]string, image string) v1alpha2.MachineSet {
 	return v1alpha2.MachineSet{

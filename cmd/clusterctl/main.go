@@ -16,8 +16,13 @@ limitations under the License.
 
 package main
 
-import "sigs.k8s.io/cluster-api/cmd/clusterctl/cmd"
+import (
+	"k8s.io/client-go/kubernetes/scheme"
+	"sigs.k8s.io/cluster-api/cmd/clusterctl/cmd"
+	"sigs.k8s.io/cluster-api/pkg/apis"
+)
 
 func main() {
+	apis.AddToScheme(scheme.Scheme)
 	cmd.Execute()
 }

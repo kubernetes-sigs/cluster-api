@@ -17,6 +17,7 @@ limitations under the License.
 package clusterclient
 
 import (
+	"context"
 	"fmt"
 	"io"
 	"io/ioutil"
@@ -38,23 +39,26 @@ import (
 	"k8s.io/klog"
 	"sigs.k8s.io/cluster-api/cmd/clusterctl/clientcmd"
 	clusterv1 "sigs.k8s.io/cluster-api/pkg/apis/cluster/v1alpha2"
-	"sigs.k8s.io/cluster-api/pkg/client/clientset_generated/clientset"
 	"sigs.k8s.io/cluster-api/pkg/util"
+	ctrlclient "sigs.k8s.io/controller-runtime/pkg/client"
 )
 
 const (
-	retryIntervalKubectlApply   = 10 * time.Second
-	retryIntervalResourceReady  = 10 * time.Second
-	retryIntervalResourceDelete = 10 * time.Second
-	timeoutKubectlApply         = 15 * time.Minute
-	timeoutResourceReady        = 15 * time.Minute
-	timeoutMachineReady         = 30 * time.Minute
-	timeoutResourceDelete       = 15 * time.Minute
-	machineClusterLabelName     = "cluster.k8s.io/cluster-name"
+	retryIntervalKubectlApply  = 10 * time.Second
+	retryIntervalResourceReady = 10 * time.Second
+	timeoutKubectlApply        = 15 * time.Minute
+	timeoutResourceReady       = 15 * time.Minute
+	timeoutMachineReady        = 30 * time.Minute
+	machineClusterLabelName    = "cluster.k8s.io/cluster-name"
 )
 
 const (
 	TimeoutMachineReady = "CLUSTER_API_MACHINE_READY_TIMEOUT"
+)
+
+var (
+	ctx                     = context.Background()
+	deletePropagationPolicy = ctrlclient.PropagationPolicy(metav1.DeletePropagationForeground)
 )
 
 // Provides interaction with a cluster
@@ -96,7 +100,7 @@ type Client interface {
 }
 
 type client struct {
-	clientSet       clientset.Interface
+	clientSet       ctrlclient.Client
 	kubeconfigFile  string
 	configOverrides tcmd.ConfigOverrides
 	closeFn         func() error
@@ -194,7 +198,7 @@ func (c *client) DeleteNamespace(namespaceName string) error {
 // NewFromDefaultSearchPath creates and returns a Client.  The kubeconfigFile argument is expected to be the path to a
 // valid kubeconfig file.
 func NewFromDefaultSearchPath(kubeconfigFile string, overrides tcmd.ConfigOverrides) (*client, error) { //nolint
-	c, err := clientcmd.NewClusterAPIClientForDefaultSearchPath(kubeconfigFile, overrides)
+	c, err := clientcmd.NewControllerRuntimeClient(kubeconfigFile, overrides)
 	if err != nil {
 		return nil, err
 	}
@@ -246,18 +250,17 @@ func (c *client) GetCluster(name, ns string) (*clusterv1.Cluster, error) {
 
 // ForceDeleteCluster removes the finalizer for a Cluster prior to deleting, this is used during pivot
 func (c *client) ForceDeleteCluster(namespace, name string) error {
-	cluster, err := c.clientSet.ClusterV1alpha2().Clusters(namespace).Get(name, metav1.GetOptions{})
-	if err != nil {
+	cluster := &clusterv1.Cluster{}
+	if err := c.clientSet.Get(ctx, ctrlclient.ObjectKey{Name: name, Namespace: namespace}, cluster); err != nil {
 		return errors.Wrapf(err, "error getting cluster %s/%s", namespace, name)
 	}
 
 	cluster.ObjectMeta.SetFinalizers([]string{})
-
-	if _, err := c.clientSet.ClusterV1alpha2().Clusters(namespace).Update(cluster); err != nil {
+	if err := c.clientSet.Update(ctx, cluster); err != nil {
 		return errors.Wrapf(err, "error removing finalizer on cluster %s/%s", namespace, name)
 	}
 
-	if err := c.clientSet.ClusterV1alpha2().Clusters(namespace).Delete(name, &metav1.DeleteOptions{}); err != nil {
+	if err := c.clientSet.Delete(ctx, cluster); err != nil {
 		return errors.Wrapf(err, "error deleting cluster %s/%s", namespace, name)
 	}
 
@@ -265,33 +268,38 @@ func (c *client) ForceDeleteCluster(namespace, name string) error {
 }
 
 func (c *client) GetClusters(namespace string) ([]*clusterv1.Cluster, error) {
-	clusters := []*clusterv1.Cluster{}
-	clusterlist, err := c.clientSet.ClusterV1alpha2().Clusters(namespace).List(metav1.ListOptions{})
-	if err != nil {
+	clusters := &clusterv1.ClusterList{}
+	if err := c.clientSet.List(ctx, clusters); err != nil {
 		return nil, errors.Wrapf(err, "error listing cluster objects in namespace %q", namespace)
 	}
-
-	for i := 0; i < len(clusterlist.Items); i++ {
-		clusters = append(clusters, &clusterlist.Items[i])
+	items := []*clusterv1.Cluster{}
+	for i := 0; i < len(clusters.Items); i++ {
+		items = append(items, &clusters.Items[i])
 	}
-	return clusters, nil
+	return items, nil
 }
 
 func (c *client) GetMachineDeployment(namespace, name string) (*clusterv1.MachineDeployment, error) {
-	machineDeployment, err := c.clientSet.ClusterV1alpha2().MachineDeployments(namespace).Get(name, metav1.GetOptions{})
-	if err != nil {
-		return nil, errors.Wrapf(err, "error getting MachineDeployment: %s/%s", namespace, name)
+	obj := &clusterv1.MachineDeployment{}
+	if err := c.clientSet.Get(ctx, ctrlclient.ObjectKey{Name: name, Namespace: namespace}, obj); err != nil {
+		return nil, errors.Wrapf(err, "error getting MachineDeployment %s/%s", namespace, name)
 	}
-	return machineDeployment, nil
+	return obj, nil
 }
 
 func (c *client) GetMachineDeploymentsForCluster(cluster *clusterv1.Cluster) ([]*clusterv1.MachineDeployment, error) {
-	machineDeploymentList, err := c.clientSet.ClusterV1alpha2().MachineDeployments(cluster.Namespace).List(metav1.ListOptions{
-		LabelSelector: fmt.Sprintf("%s=%s", machineClusterLabelName, cluster.Name),
-	})
-	if err != nil {
-		return nil, errors.Wrapf(err, "error listing MachineDeployments for Cluster %s/%s", cluster.Namespace, cluster.Name)
+	selectors := []ctrlclient.ListOption{
+		ctrlclient.MatchingLabels{
+			machineClusterLabelName: cluster.Name,
+		},
+		ctrlclient.InNamespace(cluster.Namespace),
 	}
+	machineDeploymentList := &clusterv1.MachineDeploymentList{}
+	if err := c.clientSet.List(ctx, machineDeploymentList, selectors...); err != nil {
+		return nil, errors.Wrapf(err, "error listing MachineDeployments for Cluster %s/%s", cluster.Namespace, cluster.Name)
+
+	}
+
 	var machineDeployments []*clusterv1.MachineDeployment
 	for _, md := range machineDeploymentList.Items {
 		for _, or := range md.GetOwnerReferences() {
@@ -305,8 +313,8 @@ func (c *client) GetMachineDeploymentsForCluster(cluster *clusterv1.Cluster) ([]
 }
 
 func (c *client) GetMachineDeployments(namespace string) ([]*clusterv1.MachineDeployment, error) {
-	machineDeploymentList, err := c.clientSet.ClusterV1alpha2().MachineDeployments(namespace).List(metav1.ListOptions{})
-	if err != nil {
+	machineDeploymentList := &clusterv1.MachineDeploymentList{}
+	if err := c.clientSet.List(ctx, machineDeploymentList, ctrlclient.InNamespace(namespace)); err != nil {
 		return nil, errors.Wrapf(err, "error listing machine deployment objects in namespace %q", namespace)
 	}
 	var machineDeployments []*clusterv1.MachineDeployment
@@ -317,16 +325,16 @@ func (c *client) GetMachineDeployments(namespace string) ([]*clusterv1.MachineDe
 }
 
 func (c *client) GetMachineSet(namespace, name string) (*clusterv1.MachineSet, error) {
-	machineSet, err := c.clientSet.ClusterV1alpha2().MachineSets(namespace).Get(name, metav1.GetOptions{})
-	if err != nil {
+	obj := &clusterv1.MachineSet{}
+	if err := c.clientSet.Get(ctx, ctrlclient.ObjectKey{Name: name, Namespace: namespace}, obj); err != nil {
 		return nil, errors.Wrapf(err, "error getting MachineSet: %s/%s", namespace, name)
 	}
-	return machineSet, nil
+	return obj, nil
 }
 
 func (c *client) GetMachineSets(namespace string) ([]*clusterv1.MachineSet, error) {
-	machineSetList, err := c.clientSet.ClusterV1alpha2().MachineSets(namespace).List(metav1.ListOptions{})
-	if err != nil {
+	machineSetList := &clusterv1.MachineSetList{}
+	if err := c.clientSet.List(ctx, machineSetList, ctrlclient.InNamespace(namespace)); err != nil {
 		return nil, errors.Wrapf(err, "error listing MachineSets in namespace %q", namespace)
 	}
 	var machineSets []*clusterv1.MachineSet
@@ -337,10 +345,14 @@ func (c *client) GetMachineSets(namespace string) ([]*clusterv1.MachineSet, erro
 }
 
 func (c *client) GetMachineSetsForCluster(cluster *clusterv1.Cluster) ([]*clusterv1.MachineSet, error) {
-	machineSetList, err := c.clientSet.ClusterV1alpha2().MachineSets(cluster.Namespace).List(metav1.ListOptions{
-		LabelSelector: fmt.Sprintf("%s=%s", machineClusterLabelName, cluster.Name),
-	})
-	if err != nil {
+	selectors := []ctrlclient.ListOption{
+		ctrlclient.MatchingLabels{
+			machineClusterLabelName: cluster.Name,
+		},
+		ctrlclient.InNamespace(cluster.Namespace),
+	}
+	machineSetList := &clusterv1.MachineSetList{}
+	if err := c.clientSet.List(ctx, machineSetList, selectors...); err != nil {
 		return nil, errors.Wrapf(err, "error listing MachineSets for Cluster %s/%s", cluster.Namespace, cluster.Name)
 	}
 	var machineSets []*clusterv1.MachineSet
@@ -369,28 +381,29 @@ func (c *client) GetMachineSetsForMachineDeployment(md *clusterv1.MachineDeploym
 	return controlledMachineSets, nil
 }
 
-func (c *client) GetMachines(namespace string) ([]*clusterv1.Machine, error) {
-	machines := []*clusterv1.Machine{}
-	machineslist, err := c.clientSet.ClusterV1alpha2().Machines(namespace).List(metav1.ListOptions{})
-	if err != nil {
+func (c *client) GetMachines(namespace string) (machines []*clusterv1.Machine, _ error) {
+	machineslist := &clusterv1.MachineList{}
+	if err := c.clientSet.List(ctx, machineslist, ctrlclient.InNamespace(namespace)); err != nil {
 		return nil, errors.Wrapf(err, "error listing Machines in namespace %q", namespace)
 	}
-
 	for i := 0; i < len(machineslist.Items); i++ {
 		machines = append(machines, &machineslist.Items[i])
 	}
-	return machines, nil
+	return
 }
 
 func (c *client) GetMachinesForCluster(cluster *clusterv1.Cluster) ([]*clusterv1.Machine, error) {
-	machineslist, err := c.clientSet.ClusterV1alpha2().Machines(cluster.Namespace).List(metav1.ListOptions{
-		LabelSelector: fmt.Sprintf("%s=%s", machineClusterLabelName, cluster.Name),
-	})
-	if err != nil {
+	selectors := []ctrlclient.ListOption{
+		ctrlclient.MatchingLabels{
+			machineClusterLabelName: cluster.Name,
+		},
+		ctrlclient.InNamespace(cluster.Namespace),
+	}
+	machineslist := &clusterv1.MachineList{}
+	if err := c.clientSet.List(ctx, machineslist, selectors...); err != nil {
 		return nil, errors.Wrapf(err, "error listing Machines for Cluster %s/%s", cluster.Namespace, cluster.Name)
 	}
 	var machines []*clusterv1.Machine
-
 	for i := 0; i < len(machineslist.Items); i++ {
 		m := &machineslist.Items[i]
 
@@ -424,9 +437,7 @@ func (c *client) CreateClusterObject(cluster *clusterv1.Cluster) error {
 	if cluster.Namespace != "" {
 		namespace = cluster.Namespace
 	}
-
-	_, err := c.clientSet.ClusterV1alpha2().Clusters(namespace).Create(cluster)
-	if err != nil {
+	if err := c.clientSet.Create(ctx, cluster); err != nil {
 		return errors.Wrapf(err, "error creating cluster in namespace %v", namespace)
 	}
 	return nil
@@ -435,8 +446,7 @@ func (c *client) CreateClusterObject(cluster *clusterv1.Cluster) error {
 func (c *client) CreateMachineDeployments(deployments []*clusterv1.MachineDeployment, namespace string) error {
 	for _, deploy := range deployments {
 		// TODO: Run in parallel https://github.com/kubernetes-sigs/cluster-api/issues/258
-		_, err := c.clientSet.ClusterV1alpha2().MachineDeployments(namespace).Create(deploy)
-		if err != nil {
+		if err := c.clientSet.Create(ctx, deploy); err != nil {
 			return errors.Wrapf(err, "error creating a machine deployment object in namespace %q", namespace)
 		}
 	}
@@ -446,8 +456,7 @@ func (c *client) CreateMachineDeployments(deployments []*clusterv1.MachineDeploy
 func (c *client) CreateMachineSets(machineSets []*clusterv1.MachineSet, namespace string) error {
 	for _, ms := range machineSets {
 		// TODO: Run in parallel https://github.com/kubernetes-sigs/cluster-api/issues/258
-		_, err := c.clientSet.ClusterV1alpha2().MachineSets(namespace).Create(ms)
-		if err != nil {
+		if err := c.clientSet.Create(ctx, ms); err != nil {
 			return errors.Wrapf(err, "error creating a machine set object in namespace %q", namespace)
 		}
 	}
@@ -467,15 +476,14 @@ func (c *client) CreateMachines(machines []*clusterv1.Machine, namespace string)
 		go func(machine *clusterv1.Machine) {
 			defer wg.Done()
 
-			createdMachine, err := c.clientSet.ClusterV1alpha2().Machines(namespace).Create(machine)
-			if err != nil {
+			if err := c.clientSet.Create(ctx, machine); err != nil {
 				errOnce.Do(func() {
 					gerr = errors.Wrapf(err, "error creating a machine object in namespace %v", namespace)
 				})
 				return
 			}
 
-			if err := waitForMachineReady(c.clientSet, createdMachine); err != nil {
+			if err := waitForMachineReady(c.clientSet, machine); err != nil {
 				errOnce.Do(func() { gerr = err })
 			}
 		}(machine)
@@ -486,178 +494,79 @@ func (c *client) CreateMachines(machines []*clusterv1.Machine, namespace string)
 
 // DeleteClusters deletes all Clusters in a namespace. If the namespace is empty then all Clusters in all namespaces are deleted.
 func (c *client) DeleteClusters(namespace string) error {
-	seen := make(map[string]bool)
-
-	if namespace != "" {
-		seen[namespace] = true
-	} else {
-		clusters, err := c.clientSet.ClusterV1alpha2().Clusters("").List(metav1.ListOptions{})
-		if err != nil {
-			return errors.Wrap(err, "error listing Clusters in all namespaces")
-		}
-		for _, cluster := range clusters.Items {
-			if _, ok := seen[cluster.Namespace]; !ok {
-				seen[cluster.Namespace] = true
-			}
-		}
+	if err := c.clientSet.DeleteAllOf(ctx, &clusterv1.Cluster{}, ctrlclient.InNamespace(namespace)); err != nil {
+		return errors.Wrapf(err, "error deleting Clusters in namespace %q", namespace)
 	}
-	for ns := range seen {
-		err := c.clientSet.ClusterV1alpha2().Clusters(ns).DeleteCollection(newDeleteOptions(), metav1.ListOptions{})
-		if err != nil {
-			return errors.Wrapf(err, "error deleting Clusters in namespace %q", ns)
-		}
-		err = c.waitForClusterDelete(ns)
-		if err != nil {
-			return errors.Wrapf(err, "error waiting for Cluster(s) deletion to complete in namespace %q", ns)
-		}
-	}
-
 	return nil
 }
 
 // DeleteMachineDeployments deletes all MachineDeployments in a namespace. If the namespace is empty then all MachineDeployments in all namespaces are deleted.
 func (c *client) DeleteMachineDeployments(namespace string) error {
-	seen := make(map[string]bool)
-
-	if namespace != "" {
-		seen[namespace] = true
-	} else {
-		machineDeployments, err := c.clientSet.ClusterV1alpha2().MachineDeployments("").List(metav1.ListOptions{})
-		if err != nil {
-			return errors.Wrap(err, "error listing MachineDeployments in all namespaces")
-		}
-		for _, md := range machineDeployments.Items {
-			if _, ok := seen[md.Namespace]; !ok {
-				seen[md.Namespace] = true
-			}
-		}
+	if err := c.clientSet.DeleteAllOf(ctx, &clusterv1.MachineDeployment{}, ctrlclient.InNamespace(namespace)); err != nil {
+		return errors.Wrapf(err, "error deleting Clusters in namespace %q", namespace)
 	}
-	for ns := range seen {
-		err := c.clientSet.ClusterV1alpha2().MachineDeployments(ns).DeleteCollection(newDeleteOptions(), metav1.ListOptions{})
-		if err != nil {
-			return errors.Wrapf(err, "error deleting MachineDeployments in namespace %q", ns)
-		}
-		err = c.waitForMachineDeploymentsDelete(ns)
-		if err != nil {
-			return errors.Wrapf(err, "error waiting for MachineDeployment(s) deletion to complete in namespace %q", ns)
-		}
-	}
-
 	return nil
 }
 
 // DeleteMachineSets deletes all MachineSets in a namespace. If the namespace is empty then all MachineSets in all namespaces are deleted.
 func (c *client) DeleteMachineSets(namespace string) error {
-	seen := make(map[string]bool)
-
-	if namespace != "" {
-		seen[namespace] = true
-	} else {
-		machineSets, err := c.clientSet.ClusterV1alpha2().MachineSets("").List(metav1.ListOptions{})
-		if err != nil {
-			return errors.Wrap(err, "error listing MachineSets in all namespaces")
-		}
-		for _, ms := range machineSets.Items {
-			if _, ok := seen[ms.Namespace]; !ok {
-				seen[ms.Namespace] = true
-			}
-		}
+	if err := c.clientSet.DeleteAllOf(ctx, &clusterv1.MachineSet{}, ctrlclient.InNamespace(namespace)); err != nil {
+		return errors.Wrapf(err, "error deleting Clusters in namespace %q", namespace)
 	}
-	for ns := range seen {
-		err := c.clientSet.ClusterV1alpha2().MachineSets(ns).DeleteCollection(newDeleteOptions(), metav1.ListOptions{})
-		if err != nil {
-			return errors.Wrapf(err, "error deleting MachineSets in namespace %q", ns)
-		}
-		err = c.waitForMachineSetsDelete(ns)
-		if err != nil {
-			return errors.Wrapf(err, "error waiting for MachineSet(s) deletion to complete in namespace %q", ns)
-		}
-	}
-
 	return nil
 }
 
 // DeleteMachines deletes all Machines in a namespace. If the namespace is empty then all Machines in all namespaces are deleted.
 func (c *client) DeleteMachines(namespace string) error {
-	seen := make(map[string]bool)
-
-	if namespace != "" {
-		seen[namespace] = true
-	} else {
-		machines, err := c.clientSet.ClusterV1alpha2().Machines("").List(metav1.ListOptions{})
-		if err != nil {
-			return errors.Wrap(err, "error listing Machines in all namespaces")
-		}
-		for _, m := range machines.Items {
-			if _, ok := seen[m.Namespace]; !ok {
-				seen[m.Namespace] = true
-			}
-		}
+	if err := c.clientSet.DeleteAllOf(ctx, &clusterv1.Machine{}, ctrlclient.InNamespace(namespace)); err != nil {
+		return errors.Wrapf(err, "error deleting Clusters in namespace %q", namespace)
 	}
-	for ns := range seen {
-		err := c.clientSet.ClusterV1alpha2().Machines(ns).DeleteCollection(newDeleteOptions(), metav1.ListOptions{})
-		if err != nil {
-			return errors.Wrapf(err, "error deleting Machines in namespace %q", ns)
-		}
-		err = c.waitForMachinesDelete(ns)
-		if err != nil {
-			return errors.Wrapf(err, "error waiting for Machine(s) deletion to complete in namespace %q", ns)
-		}
-	}
-
 	return nil
 }
 
 func (c *client) ForceDeleteMachine(namespace, name string) error {
-	machine, err := c.clientSet.ClusterV1alpha2().Machines(namespace).Get(name, metav1.GetOptions{})
-	if err != nil {
+	machine := &clusterv1.Machine{}
+	if err := c.clientSet.Get(ctx, ctrlclient.ObjectKey{Name: name, Namespace: namespace}, machine); err != nil {
 		return errors.Wrapf(err, "error getting Machine %s/%s", namespace, name)
 	}
 	machine.SetFinalizers([]string{})
-	if _, err := c.clientSet.ClusterV1alpha2().Machines(namespace).Update(machine); err != nil {
+	if err := c.clientSet.Update(ctx, machine); err != nil {
 		return errors.Wrapf(err, "error removing finalizer for Machine %s/%s", namespace, name)
 	}
-	if err := c.clientSet.ClusterV1alpha2().Machines(namespace).Delete(name, newDeleteOptions()); err != nil {
+	if err := c.clientSet.Delete(ctx, machine, deletePropagationPolicy); err != nil {
 		return errors.Wrapf(err, "error deleting Machine %s/%s", namespace, name)
 	}
 	return nil
 }
 
 func (c *client) ForceDeleteMachineSet(namespace, name string) error {
-	ms, err := c.clientSet.ClusterV1alpha2().MachineSets(namespace).Get(name, metav1.GetOptions{})
-	if err != nil {
+	ms := &clusterv1.MachineSet{}
+	if err := c.clientSet.Get(ctx, ctrlclient.ObjectKey{Name: name, Namespace: namespace}, ms); err != nil {
 		return errors.Wrapf(err, "error getting MachineSet %s/%s", namespace, name)
 	}
 	ms.SetFinalizers([]string{})
-	if _, err := c.clientSet.ClusterV1alpha2().MachineSets(namespace).Update(ms); err != nil {
+	if err := c.clientSet.Update(ctx, ms); err != nil {
 		return errors.Wrapf(err, "error removing finalizer for MachineSet %s/%s", namespace, name)
 	}
-	if err := c.clientSet.ClusterV1alpha2().MachineSets(namespace).Delete(name, newDeleteOptions()); err != nil {
+	if err := c.clientSet.Delete(ctx, ms, deletePropagationPolicy); err != nil {
 		return errors.Wrapf(err, "error deleting MachineSet %s/%s", namespace, name)
 	}
 	return nil
 }
 
 func (c *client) ForceDeleteMachineDeployment(namespace, name string) error {
-	md, err := c.clientSet.ClusterV1alpha2().MachineDeployments(namespace).Get(name, metav1.GetOptions{})
-	if err != nil {
+	md := &clusterv1.MachineDeployment{}
+	if err := c.clientSet.Get(ctx, ctrlclient.ObjectKey{Name: name, Namespace: namespace}, md); err != nil {
 		return errors.Wrapf(err, "error getting MachineDeployment %s/%s", namespace, name)
 	}
 	md.SetFinalizers([]string{})
-	if _, err := c.clientSet.ClusterV1alpha2().MachineDeployments(namespace).Update(md); err != nil {
+	if err := c.clientSet.Update(ctx, md); err != nil {
 		return errors.Wrapf(err, "error removing finalizer for MachineDeployment %s/%s", namespace, name)
 	}
-	if err := c.clientSet.ClusterV1alpha2().MachineDeployments(namespace).Delete(name, newDeleteOptions()); err != nil {
+	if err := c.clientSet.Delete(ctx, md, deletePropagationPolicy); err != nil {
 		return errors.Wrapf(err, "error deleting MachineDeployment %s/%s", namespace, name)
 	}
 	return nil
-}
-
-func newDeleteOptions() *metav1.DeleteOptions {
-	propagationPolicy := metav1.DeletePropagationForeground
-	return &metav1.DeleteOptions{
-		PropagationPolicy: &propagationPolicy,
-	}
 }
 
 func (c *client) WaitForClusterV1alpha2Ready() error {
@@ -670,8 +579,9 @@ func (c *client) WaitForResourceStatuses() error {
 	timeout := time.Until(deadline)
 	return util.PollImmediate(retryIntervalResourceReady, timeout, func() (bool, error) {
 		klog.V(2).Info("Waiting for Cluster API resources to have statuses...")
-		clusters, err := c.clientSet.ClusterV1alpha2().Clusters("").List(metav1.ListOptions{})
-		if err != nil {
+
+		clusters := &clusterv1.ClusterList{}
+		if err := c.clientSet.List(ctx, clusters); err != nil {
 			klog.V(10).Infof("retrying: failed to list clusters: %v", err)
 			return false, nil
 		}
@@ -685,8 +595,9 @@ func (c *client) WaitForResourceStatuses() error {
 				return false, nil
 			}
 		}
-		machineDeployments, err := c.clientSet.ClusterV1alpha2().MachineDeployments("").List(metav1.ListOptions{})
-		if err != nil {
+
+		machineDeployments := &clusterv1.MachineDeploymentList{}
+		if err := c.clientSet.List(ctx, machineDeployments); err != nil {
 			klog.V(10).Infof("retrying: failed to list machine deployment: %v", err)
 			return false, nil
 		}
@@ -696,8 +607,9 @@ func (c *client) WaitForResourceStatuses() error {
 				return false, nil
 			}
 		}
-		machineSets, err := c.clientSet.ClusterV1alpha2().MachineSets("").List(metav1.ListOptions{})
-		if err != nil {
+
+		machineSets := &clusterv1.MachineSetList{}
+		if err := c.clientSet.List(ctx, machineSets); err != nil {
 			klog.V(10).Infof("retrying: failed to list machinesets: %v", err)
 			return false, nil
 		}
@@ -707,8 +619,9 @@ func (c *client) WaitForResourceStatuses() error {
 				return false, nil
 			}
 		}
-		machines, err := c.clientSet.ClusterV1alpha2().Machines("").List(metav1.ListOptions{})
-		if err != nil {
+
+		machines := &clusterv1.MachineList{}
+		if err := c.clientSet.List(ctx, machines); err != nil {
 			klog.V(10).Infof("retrying: failed to list machines: %v", err)
 			return false, nil
 		}
@@ -723,76 +636,6 @@ func (c *client) WaitForResourceStatuses() error {
 			// }
 		}
 
-		return true, nil
-	})
-}
-
-func (c *client) waitForClusterDelete(namespace string) error {
-	return util.PollImmediate(retryIntervalResourceDelete, timeoutResourceDelete, func() (bool, error) {
-		klog.V(2).Infof("Waiting for Clusters to be deleted...")
-		response, err := c.clientSet.ClusterV1alpha2().Clusters(namespace).List(metav1.ListOptions{})
-		if err != nil {
-			return false, nil
-		}
-		if len(response.Items) > 0 {
-			return false, nil
-		}
-		return true, nil
-	})
-}
-
-func (c *client) waitForMachineDeploymentsDelete(namespace string) error {
-	return util.PollImmediate(retryIntervalResourceDelete, timeoutResourceDelete, func() (bool, error) {
-		klog.V(2).Infof("Waiting for MachineDeployments to be deleted...")
-		response, err := c.clientSet.ClusterV1alpha2().MachineDeployments(namespace).List(metav1.ListOptions{})
-		if err != nil {
-			return false, nil
-		}
-		if len(response.Items) > 0 {
-			return false, nil
-		}
-		return true, nil
-	})
-}
-
-func (c *client) waitForMachineSetsDelete(namespace string) error {
-	return util.PollImmediate(retryIntervalResourceDelete, timeoutResourceDelete, func() (bool, error) {
-		klog.V(2).Infof("Waiting for MachineSets to be deleted...")
-		response, err := c.clientSet.ClusterV1alpha2().MachineSets(namespace).List(metav1.ListOptions{})
-		if err != nil {
-			return false, nil
-		}
-		if len(response.Items) > 0 {
-			return false, nil
-		}
-		return true, nil
-	})
-}
-
-func (c *client) waitForMachinesDelete(namespace string) error {
-	return util.PollImmediate(retryIntervalResourceDelete, timeoutResourceDelete, func() (bool, error) {
-		klog.V(2).Infof("Waiting for Machines to be deleted...")
-		response, err := c.clientSet.ClusterV1alpha2().Machines(namespace).List(metav1.ListOptions{})
-		if err != nil {
-			return false, nil
-		}
-		if len(response.Items) > 0 {
-			return false, nil
-		}
-		return true, nil
-	})
-}
-
-func (c *client) waitForMachineDelete(namespace, name string) error {
-	return util.PollImmediate(retryIntervalResourceDelete, timeoutResourceDelete, func() (bool, error) {
-		klog.V(2).Infof("Waiting for Machine %s/%s to be deleted...", namespace, name)
-		response, err := c.clientSet.ClusterV1alpha2().Machines(namespace).Get(name, metav1.GetOptions{})
-		if err != nil {
-			return false, nil
-		}
-		if response != nil {
-			return false, nil
-		}
 		return true, nil
 	})
 }
@@ -860,32 +703,20 @@ func (c *client) waitForKubectlApply(manifest string) error {
 	return err
 }
 
-func waitForClusterResourceReady(cs clientset.Interface) error {
+func waitForClusterResourceReady(cs ctrlclient.Client) error {
 	deadline := time.Now().Add(timeoutResourceReady)
-	err := util.PollImmediate(retryIntervalResourceReady, timeoutResourceReady, func() (bool, error) {
-		klog.V(2).Info("Waiting for Cluster v1alpha resources to become available...")
-		_, err := cs.Discovery().ServerResourcesForGroupVersion("cluster.k8s.io/v1alpha2")
-		if err == nil {
-			return true, nil
-		}
-		return false, nil
-	})
-
-	if err != nil {
-		return err
-	}
 	timeout := time.Until(deadline)
 	return util.PollImmediate(retryIntervalResourceReady, timeout, func() (bool, error) {
-		klog.V(2).Info("Waiting for Cluster v1alpha resources to be listable...")
-		_, err := cs.ClusterV1alpha2().Clusters(apiv1.NamespaceDefault).List(metav1.ListOptions{})
-		if err == nil {
+		klog.V(2).Info("Waiting for Cluster resources to be listable...")
+		clusterList := &clusterv1.ClusterList{}
+		if err := cs.List(ctx, clusterList); err == nil {
 			return true, nil
 		}
 		return false, nil
 	})
 }
 
-func waitForMachineReady(cs clientset.Interface, machine *clusterv1.Machine) error {
+func waitForMachineReady(cs ctrlclient.Client, machine *clusterv1.Machine) error {
 	timeout := timeoutMachineReady
 	if p := os.Getenv(TimeoutMachineReady); p != "" {
 		t, err := strconv.Atoi(p)
@@ -898,15 +729,14 @@ func waitForMachineReady(cs clientset.Interface, machine *clusterv1.Machine) err
 
 	err := util.PollImmediate(retryIntervalResourceReady, timeout, func() (bool, error) {
 		klog.V(2).Infof("Waiting for Machine %v to become ready...", machine.Name)
-		m, err := cs.ClusterV1alpha2().Machines(machine.Namespace).Get(machine.Name, metav1.GetOptions{})
-		if err != nil {
+		if err := cs.Get(ctx, ctrlclient.ObjectKey{Name: machine.Name, Namespace: machine.Namespace}, machine); err != nil {
 			return false, nil
 		}
 
 		// TODO: update once machine controllers have a way to indicate a machine has been provisoned. https://github.com/kubernetes-sigs/cluster-api/issues/253
 		// Seeing a node cannot be purely relied upon because the provisioned control plane will not be registering with
 		// the stack that provisions it.
-		ready := m.Status.NodeRef != nil || len(m.Annotations) > 0
+		ready := machine.Status.NodeRef != nil || len(machine.Annotations) > 0
 		return ready, nil
 	})
 

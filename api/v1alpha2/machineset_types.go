@@ -26,26 +26,6 @@ import (
 	capierrors "sigs.k8s.io/cluster-api/pkg/errors"
 )
 
-// +genclient
-// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
-
-/// [MachineSet]
-// MachineSet ensures that a specified number of machines replicas are running at any given time.
-// +k8s:openapi-gen=true
-// +kubebuilder:resource:path=machinesets,shortName=ms
-// +kubebuilder:storageversion
-// +kubebuilder:subresource:status
-// +kubebuilder:subresource:scale:specpath=.spec.replicas,statuspath=.status.replicas,selectorpath=.status.labelSelector
-type MachineSet struct {
-	metav1.TypeMeta   `json:",inline"`
-	metav1.ObjectMeta `json:"metadata,omitempty"`
-
-	Spec   MachineSetSpec   `json:"spec,omitempty"`
-	Status MachineSetStatus `json:"status,omitempty"`
-}
-
-/// [MachineSet]
-
 /// [MachineSetSpec]
 // MachineSetSpec defines the desired state of MachineSet
 type MachineSetSpec struct {
@@ -78,6 +58,24 @@ type MachineSetSpec struct {
 	Template MachineTemplateSpec `json:"template,omitempty"`
 }
 
+/// [MachineSetSpec]
+
+/// [MachineTemplateSpec]
+// MachineTemplateSpec describes the data needed to create a Machine from a template
+type MachineTemplateSpec struct {
+	// Standard object's metadata.
+	// More info: https://git.k8s.io/community/contributors/devel/api-conventions.md#metadata
+	// +optional
+	ObjectMeta `json:"metadata,omitempty"`
+
+	// Specification of the desired behavior of the machine.
+	// More info: https://git.k8s.io/community/contributors/devel/api-conventions.md#spec-and-status
+	// +optional
+	Spec MachineSpec `json:"spec,omitempty"`
+}
+
+/// [MachineTemplateSpec]
+
 // MachineSetDeletePolicy defines how priority is assigned to nodes to delete when
 // downscaling a MachineSet. Defaults to "Random".
 type MachineSetDeletePolicy string
@@ -101,24 +99,6 @@ const (
 	// It then prioritizes the oldest Machines for deletion based on the Machine's CreationTimestamp.
 	OldestMachineSetDeletePolicy MachineSetDeletePolicy = "Oldest"
 )
-
-/// [MachineSetSpec] // doxygen marker
-
-/// [MachineTemplateSpec] // doxygen marker
-// MachineTemplateSpec describes the data needed to create a Machine from a template
-type MachineTemplateSpec struct {
-	// Standard object's metadata.
-	// More info: https://git.k8s.io/community/contributors/devel/api-conventions.md#metadata
-	// +optional
-	ObjectMeta `json:"metadata,omitempty"`
-
-	// Specification of the desired behavior of the machine.
-	// More info: https://git.k8s.io/community/contributors/devel/api-conventions.md#spec-and-status
-	// +optional
-	Spec MachineSpec `json:"spec,omitempty"`
-}
-
-/// [MachineTemplateSpec]
 
 /// [MachineSetStatus]
 // MachineSetStatus defines the observed state of MachineSet
@@ -166,8 +146,7 @@ type MachineSetStatus struct {
 	ErrorMessage *string `json:"errorMessage,omitempty"`
 }
 
-/// [MachineSetStatus]
-
+// Validate validates the MachineSet fields.
 func (m *MachineSet) Validate() field.ErrorList {
 	errors := field.ErrorList{}
 
@@ -190,7 +169,7 @@ func (m *MachineSet) Validate() field.ErrorList {
 	return errors
 }
 
-// DefaultingFunction sets default MachineSet field values
+// DefaultingFunction sets default MachineSet field values.
 func (m *MachineSet) Default() {
 	log.Printf("Defaulting fields for MachineSet %s\n", m.Name)
 
@@ -210,7 +189,27 @@ func (m *MachineSet) Default() {
 	}
 }
 
-// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
+/// [MachineSetStatus]
+
+// +kubebuilder:object:root=true
+// +kubebuilder:resource:path=machinesets,shortName=ms,scope=Namespaced
+// +kubebuilder:storageversion
+// +kubebuilder:subresource:status
+// +kubebuilder:subresource:scale:specpath=.spec.replicas,statuspath=.status.replicas,selectorpath=.status.labelSelector
+
+/// [MachineSet]
+// MachineSet is the Schema for the machinesets API
+type MachineSet struct {
+	metav1.TypeMeta   `json:",inline"`
+	metav1.ObjectMeta `json:"metadata,omitempty"`
+
+	Spec   MachineSetSpec   `json:"spec,omitempty"`
+	Status MachineSetStatus `json:"status,omitempty"`
+}
+
+/// [MachineSet]
+
+// +kubebuilder:object:root=true
 
 // MachineSetList contains a list of MachineSet
 type MachineSetList struct {

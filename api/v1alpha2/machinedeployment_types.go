@@ -168,16 +168,14 @@ type MachineDeploymentStatus struct {
 
 /// [MachineDeploymentStatus]
 
-// +genclient
-// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
-
-/// [MachineDeployment]
-// MachineDeployment is the Schema for the machinedeployments API
-// +k8s:openapi-gen=true
-// +kubebuilder:resource:path=machinedeployments,shortName=md
+// +kubebuilder:object:root=true
+// +kubebuilder:resource:path=machinedeployments,shortName=md,scope=Namespaced
 // +kubebuilder:storageversion
 // +kubebuilder:subresource:status
 // +kubebuilder:subresource:scale:specpath=.spec.replicas,statuspath=.status.replicas,selectorpath=.status.labelSelector
+
+/// [MachineDeployment]
+// MachineDeployment is the Schema for the machinedeployments API
 type MachineDeployment struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
@@ -188,7 +186,7 @@ type MachineDeployment struct {
 
 /// [MachineDeployment]
 
-// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
+// +kubebuilder:object:root=true
 
 // MachineDeploymentList contains a list of MachineDeployment
 type MachineDeploymentList struct {

@@ -38,8 +38,6 @@ var (
 	SchemeBuilder = &scheme.Builder{GroupVersion: SchemeGroupVersion}
 
 	// AddToScheme adds registered types to the builder.
-	// Required by pkg/client/...
-	// TODO(pwittrock): Remove this after removing pkg/client/...
 	AddToScheme = SchemeBuilder.AddToScheme
 )
 

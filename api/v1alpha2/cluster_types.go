@@ -27,25 +27,6 @@ const (
 	ClusterAnnotationControlPlaneReady = "cluster.x-k8s.io/control-plane-ready"
 )
 
-// +genclient
-// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
-
-/// [Cluster]
-// Cluster is the Schema for the clusters API
-// +k8s:openapi-gen=true
-// +kubebuilder:resource:path=clusters,shortName=cl
-// +kubebuilder:storageversion
-// +kubebuilder:subresource:status
-type Cluster struct {
-	metav1.TypeMeta   `json:",inline"`
-	metav1.ObjectMeta `json:"metadata,omitempty"`
-
-	Spec   ClusterSpec   `json:"spec,omitempty"`
-	Status ClusterStatus `json:"status,omitempty"`
-}
-
-/// [Cluster]
-
 /// [ClusterSpec]
 // ClusterSpec defines the desired state of Cluster
 type ClusterSpec struct {
@@ -148,7 +129,21 @@ type APIEndpoint struct {
 
 /// [APIEndpoint]
 
-// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
+// +kubebuilder:object:root=true
+// +kubebuilder:resource:path=clusters,shortName=cl,scope=Namespaced
+// +kubebuilder:storageversion
+// +kubebuilder:subresource:status
+
+// Cluster is the Schema for the clusters API
+type Cluster struct {
+	metav1.TypeMeta   `json:",inline"`
+	metav1.ObjectMeta `json:"metadata,omitempty"`
+
+	Spec   ClusterSpec   `json:"spec,omitempty"`
+	Status ClusterStatus `json:"status,omitempty"`
+}
+
+// +kubebuilder:object:root=true
 
 // ClusterList contains a list of Cluster
 type ClusterList struct {

@@ -33,28 +33,6 @@ const (
 	MachineControlPlaneLabelName = "cluster.x-k8s.io/control-plane"
 )
 
-// +genclient
-// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
-
-/// [Machine]
-// Machine is the Schema for the machines API
-// +k8s:openapi-gen=true
-// +kubebuilder:resource:path=machines,shortName=ma
-// +kubebuilder:subresource:status
-// +kubebuilder:storageversion
-// +kubebuilder:printcolumn:name="ProviderID",type="string",JSONPath=".spec.providerID",description="Provider ID"
-// +kubebuilder:printcolumn:name="Phase",type="string",JSONPath=".status.phase",description="Machine status such as Terminating/Pending/Running/Failed etc"
-// +kubebuilder:printcolumn:name="NodeName",type="string",JSONPath=".status.nodeRef.name",description="Node name associated with this machine",priority=1
-type Machine struct {
-	metav1.TypeMeta   `json:",inline"`
-	metav1.ObjectMeta `json:"metadata,omitempty"`
-
-	Spec   MachineSpec   `json:"spec,omitempty"`
-	Status MachineStatus `json:"status,omitempty"`
-}
-
-/// [Machine]
-
 /// [MachineSpec]
 // MachineSpec defines the desired state of Machine
 type MachineSpec struct {
@@ -91,6 +69,9 @@ type MachineSpec struct {
 	ProviderID *string `json:"providerID,omitempty"`
 }
 
+/// [MachineSpec]
+
+/// [MachineStatus]
 // MachineStatus defines the observed state of Machine
 type MachineStatus struct {
 	// NodeRef will point to the corresponding Node if it exists.
@@ -188,6 +169,9 @@ func (m *MachineStatus) GetTypedPhase() MachinePhase {
 	}
 }
 
+/// [MachineStatus]
+
+/// [Bootstrap]
 // Bootstrap capsulates fields to configure the Machine’s bootstrapping mechanism.
 type Bootstrap struct {
 	// ConfigRef is a reference to a bootstrap provider-specific resource
@@ -203,7 +187,29 @@ type Bootstrap struct {
 	Data *string `json:"data,omitempty"`
 }
 
-// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
+/// [Bootstrap]
+
+// +kubebuilder:object:root=true
+// +kubebuilder:resource:path=machines,shortName=ma,scope=Namespaced
+// +kubebuilder:subresource:status
+// +kubebuilder:storageversion
+// +kubebuilder:printcolumn:name="ProviderID",type="string",JSONPath=".spec.providerID",description="Provider ID"
+// +kubebuilder:printcolumn:name="Phase",type="string",JSONPath=".status.phase",description="Machine status such as Terminating/Pending/Running/Failed etc"
+// +kubebuilder:printcolumn:name="NodeName",type="string",JSONPath=".status.nodeRef.name",description="Node name associated with this machine",priority=1
+
+/// [Machine]
+// Machine is the Schema for the machines API
+type Machine struct {
+	metav1.TypeMeta   `json:",inline"`
+	metav1.ObjectMeta `json:"metadata,omitempty"`
+
+	Spec   MachineSpec   `json:"spec,omitempty"`
+	Status MachineStatus `json:"status,omitempty"`
+}
+
+/// [Machine]
+
+// +kubebuilder:object:root=true
 
 // MachineList contains a list of Machine
 type MachineList struct {

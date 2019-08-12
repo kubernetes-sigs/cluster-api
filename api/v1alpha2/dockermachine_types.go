@@ -40,6 +40,7 @@ type DockerMachineStatus struct {
 }
 
 // +kubebuilder:object:root=true
+// +kubebuilder:subresource:status
 
 // DockerMachine is the Schema for the dockermachines API
 type DockerMachine struct {

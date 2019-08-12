@@ -11,6 +11,8 @@ spec:
     kind: DockerMachine
     plural: dockermachines
   scope: ""
+  subresources:
+    status: {}
   validation:
     openAPIV3Schema:
       description: DockerMachine is the Schema for the dockermachines API

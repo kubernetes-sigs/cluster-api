@@ -9,8 +9,8 @@ go_library(
     importpath = "sigs.k8s.io/cluster-api/cmd/clusterctl/clusterdeployer/clusterclient",
     visibility = ["//visibility:public"],
     deps = [
+        "//api/v1alpha2:go_default_library",
         "//cmd/clusterctl/clientcmd:go_default_library",
-        "//pkg/apis/cluster/v1alpha2:go_default_library",
         "//pkg/util:go_default_library",
         "//vendor/github.com/pkg/errors:go_default_library",
         "//vendor/k8s.io/api/autoscaling/v1:go_default_library",

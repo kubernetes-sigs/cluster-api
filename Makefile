@@ -101,16 +101,17 @@ generate: ## Generate code
 .PHONY: generate-deepcopy
 generate-deepcopy: ## Runs controller-gen to generate deepcopy files
 	go run vendor/sigs.k8s.io/controller-tools/cmd/controller-gen/main.go \
-	object:headerFile=./hack/boilerplate/boilerplate.generatego.txt \
-	paths=./pkg/...
+		object:headerFile=./hack/boilerplate/boilerplate.generatego.txt \
+		paths=./api/...
 
 .PHONY: generate-manifests
 generate-manifests: ## Generate manifests e.g. CRD, RBAC etc.
 	go run vendor/sigs.k8s.io/controller-tools/cmd/controller-gen/main.go \
-		paths=./pkg/... \
+		paths=./api/... \
+		paths=./pkg/controller/... \
 		crd:trivialVersions=true \
 		rbac:roleName=manager-role \
-		output:crd:dir=./config/crds
+		output:crd:dir=./config/crd/bases
 	## Copy files in CI folders.
 	cp -f ./config/rbac/role*.yaml ./config/ci/rbac/
 	cp -f ./config/manager/manager*.yaml ./config/ci/manager/

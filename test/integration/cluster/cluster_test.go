@@ -28,13 +28,12 @@ import (
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/kubernetes/scheme"
 	"k8s.io/client-go/tools/clientcmd"
-	"sigs.k8s.io/cluster-api/api/v1alpha2"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha2"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
 func init() {
-	v1alpha2.AddToScheme(scheme.Scheme)
+	clusterv1.AddToScheme(scheme.Scheme)
 }
 
 var clusterSpec = &clusterv1.ClusterSpec{
@@ -79,7 +78,7 @@ var _ = Describe("Cluster-Controller", func() {
 		testNamespace = ns.ObjectMeta.Name
 
 		// Create a new client
-		apiclient, err = client.New(config, client.Options{})
+		apiclient, err = client.New(config, client.Options{Scheme: scheme.Scheme})
 		Expect(err).ShouldNot(HaveOccurred())
 	})
 

@@ -18,7 +18,6 @@ package controllers
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"time"
 
@@ -149,7 +148,7 @@ func (r *KubeadmConfigReconciler) Reconcile(req ctrl.Request) (_ ctrl.Result, re
 				},
 			}
 		}
-		initdata, err := json.Marshal(config.Spec.InitConfiguration)
+		initdata, err := kubeadmv1beta1.ConfigurationToYAML(config.Spec.InitConfiguration)
 		if err != nil {
 			log.Error(err, "failed to marshal init configuration")
 			return ctrl.Result{}, err
@@ -166,10 +165,10 @@ func (r *KubeadmConfigReconciler) Reconcile(req ctrl.Request) (_ ctrl.Result, re
 		// If there is a control plane endpoint defined at cluster in cluster status, use it as a control plane endpoint for the K8s cluster
 		// NB. we are only using the first one defined if there are multiple defined.
 		if len(cluster.Status.APIEndpoints) > 0 {
-			config.Spec.ClusterConfiguration.ControlPlaneEndpoint = fmt.Sprintf("https://%s:%d", cluster.Status.APIEndpoints[0].Host, cluster.Status.APIEndpoints[0].Port)
+			config.Spec.ClusterConfiguration.ControlPlaneEndpoint = fmt.Sprintf("%s:%d", cluster.Status.APIEndpoints[0].Host, cluster.Status.APIEndpoints[0].Port)
 		}
 
-		clusterdata, err := json.Marshal(config.Spec.ClusterConfiguration)
+		clusterdata, err := kubeadmv1beta1.ConfigurationToYAML(config.Spec.ClusterConfiguration)
 		if err != nil {
 			log.Error(err, "failed to marshal cluster configuration")
 			return ctrl.Result{}, err
@@ -215,7 +214,7 @@ func (r *KubeadmConfigReconciler) Reconcile(req ctrl.Request) (_ ctrl.Result, re
 
 	config.Spec.JoinConfiguration.Discovery.BootstrapToken.APIServerEndpoint = fmt.Sprintf("https://%s:%d", cluster.Status.APIEndpoints[0].Host, cluster.Status.APIEndpoints[0].Port)
 
-	joinBytes, err := json.Marshal(config.Spec.JoinConfiguration)
+	joinBytes, err := kubeadmv1beta1.ConfigurationToYAML(config.Spec.JoinConfiguration)
 	if err != nil {
 		log.Error(err, "failed to marshal join configuration")
 		return ctrl.Result{}, err

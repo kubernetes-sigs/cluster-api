@@ -21,8 +21,6 @@ import (
 
 	"k8s.io/klog"
 	"sigs.k8s.io/cluster-api/api/v1alpha2"
-	capicluster "sigs.k8s.io/cluster-api/pkg/controller/cluster"
-	capimachine "sigs.k8s.io/cluster-api/pkg/controller/machine"
 	"sigs.k8s.io/controller-runtime/pkg/client/config"
 	"sigs.k8s.io/controller-runtime/pkg/manager"
 	"sigs.k8s.io/controller-runtime/pkg/runtime/signals"
@@ -43,9 +41,6 @@ func main() {
 	if err := v1alpha2.AddToScheme(mgr.GetScheme()); err != nil {
 		klog.Fatal(err)
 	}
-
-	capimachine.Add(mgr)
-	capicluster.Add(mgr)
 
 	if err := mgr.Start(signals.SetupSignalHandler()); err != nil {
 		klog.Fatalf("Failed to run manager: %v", err)

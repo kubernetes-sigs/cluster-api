@@ -125,7 +125,6 @@ func (l *controlPlaneInitLocker) Release(cluster *clusterv2.Cluster) bool {
 }
 
 func (l *controlPlaneInitLocker) configMapExists(namespace, name string) (bool, error) {
-	// _, err := l.configMapClient.ConfigMaps(namespace).Get(name, metav1.GetOptions{})
 	cfg := &apicorev1.ConfigMap{}
 	err := l.client.Get(l.ctx, client.ObjectKey{
 		Namespace: namespace,

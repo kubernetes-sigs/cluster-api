@@ -10,7 +10,9 @@ spec:
   names:
     kind: KubeadmConfig
     plural: kubeadmconfigs
-  scope: ""
+  scope: Namespaced
+  subresources:
+    status: {}
   validation:
     openAPIV3Schema:
       description: KubeadmConfig is the Schema for the kubeadmconfigs API

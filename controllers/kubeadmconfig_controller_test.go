@@ -18,17 +18,22 @@ package controllers
 
 import (
 	"fmt"
+	"reflect"
 	"testing"
 	"time"
 
+	"github.com/pkg/errors"
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
+	fakeclient "k8s.io/client-go/kubernetes/fake"
+	corev1 "k8s.io/client-go/kubernetes/typed/core/v1"
 	cabpkV1alpha2 "sigs.k8s.io/cluster-api-bootstrap-provider-kubeadm/api/v1alpha2"
 	kubeadmv1beta1 "sigs.k8s.io/cluster-api-bootstrap-provider-kubeadm/kubeadm/v1beta1"
 	capiv1alpha2 "sigs.k8s.io/cluster-api/pkg/apis/cluster/v1alpha2"
 	ctrl "sigs.k8s.io/controller-runtime"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 	"sigs.k8s.io/controller-runtime/pkg/runtime/log"
 )
@@ -408,6 +413,7 @@ func TestFailIfJoinConfigurationInconsistentWithMachineRole(t *testing.T) {
 	cluster := newCluster("cluster")
 	cluster.Status.InfrastructureReady = true
 	cluster.Annotations = map[string]string{ControlPlaneReadyAnnotationKey: "true"}
+	cluster.Status.APIEndpoints = []capiv1alpha2.APIEndpoint{{Host: "100.105.150.1", Port: 6443}}
 
 	controlPaneMachine := newControlPlaneMachine(cluster, "control-plane-machine")
 	controlPaneJoinConfig := newControlPlaneJoinKubeadmConfig(controlPaneMachine, "control-plane-join-cfg")
@@ -421,8 +427,9 @@ func TestFailIfJoinConfigurationInconsistentWithMachineRole(t *testing.T) {
 	myclient := fake.NewFakeClientWithScheme(setupScheme(), objects...)
 
 	k := &KubeadmConfigReconciler{
-		Log:    log.Log,
-		Client: myclient,
+		Log:                  log.Log,
+		Client:               myclient,
+		SecretsClientFactory: newFakeSecretFactory(),
 	}
 
 	request := ctrl.Request{
@@ -437,7 +444,7 @@ func TestFailIfJoinConfigurationInconsistentWithMachineRole(t *testing.T) {
 	}
 }
 
-func TestFailIfMissingControlPaneEndpointAndControlPlaneIsReady(t *testing.T) {
+func TestRequeueIfMissingControlPaneEndpointAndControlPlaneIsReady(t *testing.T) {
 	cluster := newCluster("cluster")
 	cluster.Status.InfrastructureReady = true
 	cluster.Annotations = map[string]string{ControlPlaneReadyAnnotationKey: "true"}
@@ -463,9 +470,15 @@ func TestFailIfMissingControlPaneEndpointAndControlPlaneIsReady(t *testing.T) {
 			Name:      "worker-join-cfg",
 		},
 	}
-	_, err := k.Reconcile(request)
-	if err == nil {
-		t.Fatal("Expected error, got nil")
+	result, err := k.Reconcile(request)
+	if err != nil {
+		t.Fatal(fmt.Sprintf("Failed to reconcile:\n %+v", err))
+	}
+	if result.Requeue == true {
+		t.Fatal("did not expected to requeue")
+	}
+	if result.RequeueAfter != time.Duration(10*time.Second) {
+		t.Fatal("expected to requeue after 10s")
 	}
 }
 
@@ -491,8 +504,9 @@ func TestReconcileIfJoinNodesAndControlPlaneIsReady(t *testing.T) {
 	myclient := fake.NewFakeClientWithScheme(setupScheme(), objects...)
 
 	k := &KubeadmConfigReconciler{
-		Log:    log.Log,
-		Client: myclient,
+		Log:                  log.Log,
+		Client:               myclient,
+		SecretsClientFactory: newFakeSecretFactory(),
 	}
 
 	request := ctrl.Request{
@@ -554,6 +568,199 @@ func TestReconcileIfJoinNodesAndControlPlaneIsReady(t *testing.T) {
 	if cfg.Status.BootstrapData == nil {
 		t.Fatal("Expected status ready")
 	}
+
+	myremoteclient, _ := k.SecretsClientFactory.NewSecretsClient(nil, nil)
+	l, err := myremoteclient.List(metav1.ListOptions{})
+	if err != nil {
+		t.Fatal(fmt.Sprintf("Failed to reconcile:\n %+v", err))
+	}
+
+	if len(l.Items) != 2 {
+		t.Fatal(fmt.Sprintf("Failed to reconcile:\n %+v", err))
+	}
+}
+
+func TestReconcileDiscoverySuccces(t *testing.T) {
+	k := &KubeadmConfigReconciler{
+		Log:                  log.Log,
+		Client:               nil,
+		SecretsClientFactory: newFakeSecretFactory(),
+	}
+
+	dummyCAHash := []string{"...."}
+	goodcluster := &capiv1alpha2.Cluster{
+		Status: capiv1alpha2.ClusterStatus{
+			APIEndpoints: []capiv1alpha2.APIEndpoint{
+				{
+					Host: "foo.com",
+					Port: 6443,
+				},
+			},
+		},
+	}
+	var useCases = []struct {
+		name              string
+		cluster           *capiv1alpha2.Cluster
+		config            *cabpkV1alpha2.KubeadmConfig
+		validateDiscovery func(*cabpkV1alpha2.KubeadmConfig) error
+	}{
+		{
+			name:    "Automatically generate token if discovery not specified",
+			cluster: goodcluster,
+			config: &cabpkV1alpha2.KubeadmConfig{
+				Spec: cabpkV1alpha2.KubeadmConfigSpec{
+					JoinConfiguration: &kubeadmv1beta1.JoinConfiguration{},
+				},
+			},
+			validateDiscovery: func(c *cabpkV1alpha2.KubeadmConfig) error {
+				d := c.Spec.JoinConfiguration.Discovery
+				if d.BootstrapToken == nil {
+					return errors.Errorf("BootstrapToken expected, got nil")
+				}
+				if d.BootstrapToken.Token == "" {
+					return errors.Errorf(("BootstrapToken.Token expected, got empty string"))
+				}
+				if d.BootstrapToken.APIServerEndpoint != "foo.com:6443" {
+					return errors.Errorf("BootstrapToken.APIServerEndpoint=foo.com:6443 expected, got %q", d.BootstrapToken.APIServerEndpoint)
+				}
+				if d.BootstrapToken.UnsafeSkipCAVerification != true {
+					return errors.Errorf("BootstrapToken.UnsafeSkipCAVerification=true expected, got false")
+				}
+				return nil
+			},
+		},
+		{
+			name:    "Respect discoveryConfiguration.File",
+			cluster: goodcluster,
+			config: &cabpkV1alpha2.KubeadmConfig{
+				Spec: cabpkV1alpha2.KubeadmConfigSpec{
+					JoinConfiguration: &kubeadmv1beta1.JoinConfiguration{
+						Discovery: kubeadmv1beta1.Discovery{
+							File: &kubeadmv1beta1.FileDiscovery{},
+						},
+					},
+				},
+			},
+			validateDiscovery: func(c *cabpkV1alpha2.KubeadmConfig) error {
+				d := c.Spec.JoinConfiguration.Discovery
+				if d.BootstrapToken != nil {
+					return errors.Errorf("BootstrapToken should not be created when DiscoveryFile is defined")
+				}
+				return nil
+			},
+		},
+		{
+			name:    "Respect discoveryConfiguration.BootstrapToken.APIServerEndpoint",
+			cluster: goodcluster,
+			config: &cabpkV1alpha2.KubeadmConfig{
+				Spec: cabpkV1alpha2.KubeadmConfigSpec{
+					JoinConfiguration: &kubeadmv1beta1.JoinConfiguration{
+						Discovery: kubeadmv1beta1.Discovery{
+							BootstrapToken: &kubeadmv1beta1.BootstrapTokenDiscovery{
+								APIServerEndpoint: "bar.com:6443",
+							},
+						},
+					},
+				},
+			},
+			validateDiscovery: func(c *cabpkV1alpha2.KubeadmConfig) error {
+				d := c.Spec.JoinConfiguration.Discovery
+				if d.BootstrapToken.APIServerEndpoint != "bar.com:6443" {
+					return errors.Errorf("BootstrapToken.APIServerEndpoint=https://bar.com:6443 expected, got %s", d.BootstrapToken.APIServerEndpoint)
+				}
+				return nil
+			},
+		},
+		{
+			name:    "Respect discoveryConfiguration.BootstrapToken.Token",
+			cluster: goodcluster,
+			config: &cabpkV1alpha2.KubeadmConfig{
+				Spec: cabpkV1alpha2.KubeadmConfigSpec{
+					JoinConfiguration: &kubeadmv1beta1.JoinConfiguration{
+						Discovery: kubeadmv1beta1.Discovery{
+							BootstrapToken: &kubeadmv1beta1.BootstrapTokenDiscovery{
+								Token: "abcdef.0123456789abcdef",
+							},
+						},
+					},
+				},
+			},
+			validateDiscovery: func(c *cabpkV1alpha2.KubeadmConfig) error {
+				d := c.Spec.JoinConfiguration.Discovery
+				if d.BootstrapToken.Token != "abcdef.0123456789abcdef" {
+					return errors.Errorf("BootstrapToken.Token=abcdef.0123456789abcdef expected, got %s", d.BootstrapToken.Token)
+				}
+				return nil
+			},
+		},
+		{
+			name:    "Respect discoveryConfiguration.BootstrapToken.CACertHashes",
+			cluster: goodcluster,
+			config: &cabpkV1alpha2.KubeadmConfig{
+				Spec: cabpkV1alpha2.KubeadmConfigSpec{
+					JoinConfiguration: &kubeadmv1beta1.JoinConfiguration{
+						Discovery: kubeadmv1beta1.Discovery{
+							BootstrapToken: &kubeadmv1beta1.BootstrapTokenDiscovery{
+								CACertHashes: dummyCAHash,
+							},
+						},
+					},
+				},
+			},
+			validateDiscovery: func(c *cabpkV1alpha2.KubeadmConfig) error {
+				d := c.Spec.JoinConfiguration.Discovery
+				if !reflect.DeepEqual(d.BootstrapToken.CACertHashes, dummyCAHash) {
+					return errors.Errorf("BootstrapToken.CACertHashes=%s expected, got %s", dummyCAHash, d.BootstrapToken.Token)
+				}
+				return nil
+			},
+		},
+	}
+
+	for _, rt := range useCases {
+		t.Run(rt.name, func(t *testing.T) {
+			err := k.reconcileDiscovery(rt.cluster, rt.config)
+			if err != nil {
+				t.Errorf("expected nil, got error %v", err)
+			}
+
+			if err := rt.validateDiscovery(rt.config); err != nil {
+				t.Fatal(err)
+			}
+		})
+	}
+}
+
+func TestReconcileDiscoveryErrors(t *testing.T) {
+	k := &KubeadmConfigReconciler{
+		Log:    log.Log,
+		Client: nil,
+	}
+
+	var useCases = []struct {
+		name    string
+		cluster *capiv1alpha2.Cluster
+		config  *cabpkV1alpha2.KubeadmConfig
+	}{
+		{
+			name:    "Fail if cluster has not APIEndpoints",
+			cluster: &capiv1alpha2.Cluster{}, // cluster without endpoints
+			config: &cabpkV1alpha2.KubeadmConfig{
+				Spec: cabpkV1alpha2.KubeadmConfigSpec{
+					JoinConfiguration: &kubeadmv1beta1.JoinConfiguration{},
+				},
+			},
+		},
+	}
+
+	for _, rt := range useCases {
+		t.Run(rt.name, func(t *testing.T) {
+			err := k.reconcileDiscovery(rt.cluster, rt.config)
+			if err == nil {
+				t.Error("expected error, got nil")
+			}
+		})
+	}
 }
 
 // test utils
@@ -605,7 +812,7 @@ func newWorkerMachine(cluster *capiv1alpha2.Cluster, name string) *capiv1alpha2.
 }
 
 func newControlPlaneMachine(cluster *capiv1alpha2.Cluster, name string) *capiv1alpha2.Machine {
-	m := newMachine(cluster, "control-plane-machine")
+	m := newMachine(cluster, name)
 	m.Labels[capiv1alpha2.MachineControlPlaneLabelName] = "true"
 	return m
 }
@@ -660,4 +867,18 @@ func newControlPlaneInitKubeadmConfig(machine *capiv1alpha2.Machine, name string
 
 func stringPtr(s string) *string {
 	return &s
+}
+
+func newFakeSecretFactory() FakeSecretFactory {
+	return FakeSecretFactory{
+		client: fakeclient.NewSimpleClientset().CoreV1().Secrets(metav1.NamespaceSystem),
+	}
+}
+
+type FakeSecretFactory struct {
+	client corev1.SecretInterface
+}
+
+func (f FakeSecretFactory) NewSecretsClient(client client.Client, cluster *capiv1alpha2.Cluster) (corev1.SecretInterface, error) {
+	return f.client, nil
 }

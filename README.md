@@ -18,7 +18,7 @@ Building Go binaries requires `go 1.12+` for go module support.
 # required if `cluster-api-provider-docker` was cloned into $GOPATH
 export GO111MODULE=on
 # build the binaries into ${PWD}/bin
-./script/build-binaries.sh
+./scripts/build-binaries.sh
 ```
 
 ### Building the image

@@ -21,13 +21,12 @@ import (
 	"testing"
 
 	"github.com/onsi/gomega"
-	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
-	"k8s.io/utils/pointer"
-
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/client-go/kubernetes/scheme"
-	"sigs.k8s.io/cluster-api/pkg/apis/cluster/v1alpha2"
+	"k8s.io/utils/pointer"
+	"sigs.k8s.io/cluster-api/api/v1alpha2"
 	capierrors "sigs.k8s.io/cluster-api/pkg/errors"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 )

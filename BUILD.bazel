@@ -1,3 +1,4 @@
+load("@io_bazel_rules_go//go:def.bzl", "go_binary", "go_library")
 load("@bazel_gazelle//:def.bzl", "gazelle")
 load("//build:run_in_workspace_with_goroot.bzl", "workspace_binary")
 
@@ -19,4 +20,26 @@ workspace_binary(
     name = "lint-full",
     args = ["run --fast=false"],
     cmd = "@com_github_golangci_golangci-lint//cmd/golangci-lint",
+)
+
+go_library(
+    name = "go_default_library",
+    srcs = ["main.go"],
+    importpath = "sigs.k8s.io/cluster-api",
+    visibility = ["//visibility:private"],
+    deps = [
+        "//api/v1alpha2:go_default_library",
+        "//controllers:go_default_library",
+        "//vendor/k8s.io/apimachinery/pkg/runtime:go_default_library",
+        "//vendor/k8s.io/client-go/kubernetes/scheme:go_default_library",
+        "//vendor/k8s.io/klog:go_default_library",
+        "//vendor/k8s.io/klog/klogr:go_default_library",
+        "//vendor/sigs.k8s.io/controller-runtime:go_default_library",
+    ],
+)
+
+go_binary(
+    name = "cluster-api-manager",
+    embed = [":go_default_library"],
+    visibility = ["//visibility:public"],
 )

@@ -20,7 +20,7 @@ import (
 	"flag"
 
 	"k8s.io/klog"
-	clusterapis "sigs.k8s.io/cluster-api/pkg/apis"
+	"sigs.k8s.io/cluster-api/api/v1alpha2"
 	capicluster "sigs.k8s.io/cluster-api/pkg/controller/cluster"
 	capimachine "sigs.k8s.io/cluster-api/pkg/controller/machine"
 	"sigs.k8s.io/controller-runtime/pkg/client/config"
@@ -40,7 +40,7 @@ func main() {
 		klog.Fatalf("Failed to set up controller manager: %v", err)
 	}
 
-	if err := clusterapis.AddToScheme(mgr.GetScheme()); err != nil {
+	if err := v1alpha2.AddToScheme(mgr.GetScheme()); err != nil {
 		klog.Fatal(err)
 	}
 

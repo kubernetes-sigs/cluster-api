@@ -33,7 +33,7 @@ import (
 	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/client-go/util/retry"
 	"k8s.io/klog"
-	clusterv1 "sigs.k8s.io/cluster-api/pkg/apis/cluster/v1alpha2"
+	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha2"
 	dutil "sigs.k8s.io/cluster-api/pkg/controller/machinedeployment/util"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )

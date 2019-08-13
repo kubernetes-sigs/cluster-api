@@ -10,7 +10,7 @@ go_library(
     importpath = "sigs.k8s.io/cluster-api/pkg/controller/machine",
     visibility = ["//visibility:public"],
     deps = [
-        "//pkg/apis/cluster/v1alpha2:go_default_library",
+        "//api/v1alpha2:go_default_library",
         "//pkg/controller/external:go_default_library",
         "//pkg/controller/noderefutil:go_default_library",
         "//pkg/controller/remote:go_default_library",
@@ -46,8 +46,7 @@ go_test(
     ],
     embed = [":go_default_library"],
     deps = [
-        "//pkg/apis:go_default_library",
-        "//pkg/apis/cluster/v1alpha2:go_default_library",
+        "//api/v1alpha2:go_default_library",
         "//pkg/controller/noderefutil:go_default_library",
         "//pkg/errors:go_default_library",
         "//vendor/github.com/onsi/gomega:go_default_library",

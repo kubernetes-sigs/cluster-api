@@ -23,7 +23,7 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/klog"
 	"k8s.io/utils/integer"
-	"sigs.k8s.io/cluster-api/pkg/apis/cluster/v1alpha2"
+	"sigs.k8s.io/cluster-api/api/v1alpha2"
 	dutil "sigs.k8s.io/cluster-api/pkg/controller/machinedeployment/util"
 )
 

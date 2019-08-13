@@ -33,7 +33,7 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/client-go/tools/record"
 	"k8s.io/klog"
-	clusterv1 "sigs.k8s.io/cluster-api/pkg/apis/cluster/v1alpha2"
+	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha2"
 	"sigs.k8s.io/cluster-api/pkg/controller/external"
 	"sigs.k8s.io/cluster-api/pkg/util"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -49,7 +49,7 @@ const controllerName = "machineset-controller"
 
 var (
 	// controllerKind contains the schema.GroupVersionKind for this controller type.
-	controllerKind = clusterv1.SchemeGroupVersion.WithKind("MachineSet")
+	controllerKind = clusterv1.GroupVersion.WithKind("MachineSet")
 
 	// stateConfirmationTimeout is the amount of time allowed to wait for desired state.
 	stateConfirmationTimeout = 10 * time.Second
@@ -408,7 +408,7 @@ func (r *ReconcileMachineSet) syncReplicas(ms *clusterv1.MachineSet, machines []
 // getNewMachine creates a new Machine object. The name of the newly created resource is going
 // to be created by the API server, we set the generateName field.
 func (r *ReconcileMachineSet) getNewMachine(machineSet *clusterv1.MachineSet) *clusterv1.Machine {
-	gv := clusterv1.SchemeGroupVersion
+	gv := clusterv1.GroupVersion
 	machine := &clusterv1.Machine{
 		TypeMeta: metav1.TypeMeta{
 			Kind:       gv.WithKind("Machine").Kind,
@@ -523,5 +523,5 @@ func (r *ReconcileMachineSet) MachineToMachineSets(o handler.MapObject) []reconc
 }
 
 func shouldAdopt(ms *clusterv1.MachineSet) bool {
-	return !util.HasOwner(ms.OwnerReferences, clusterv1.SchemeGroupVersion.String(), []string{"MachineDeployment", "Cluster"})
+	return !util.HasOwner(ms.OwnerReferences, clusterv1.GroupVersion.String(), []string{"MachineDeployment", "Cluster"})
 }

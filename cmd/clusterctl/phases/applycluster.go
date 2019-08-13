@@ -19,8 +19,8 @@ package phases
 import (
 	"github.com/pkg/errors"
 	"k8s.io/klog"
+	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha2"
 	"sigs.k8s.io/cluster-api/cmd/clusterctl/clusterdeployer/clusterclient"
-	clusterv1 "sigs.k8s.io/cluster-api/pkg/apis/cluster/v1alpha2"
 )
 
 func ApplyCluster(client clusterclient.Client, cluster *clusterv1.Cluster) error {

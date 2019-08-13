@@ -23,7 +23,7 @@ import (
 	_ "k8s.io/client-go/plugin/pkg/client/auth/gcp"
 	"k8s.io/klog"
 	"k8s.io/klog/klogr"
-	"sigs.k8s.io/cluster-api/pkg/apis"
+	"sigs.k8s.io/cluster-api/api/v1alpha2"
 	"sigs.k8s.io/cluster-api/pkg/controller"
 	"sigs.k8s.io/controller-runtime/pkg/client/config"
 	"sigs.k8s.io/controller-runtime/pkg/manager"
@@ -65,7 +65,7 @@ func main() {
 	klog.Info("Registering Components")
 
 	// Setup Scheme for all resources.
-	if err := apis.AddToScheme(mgr.GetScheme()); err != nil {
+	if err := v1alpha2.AddToScheme(mgr.GetScheme()); err != nil {
 		klog.Fatal(err)
 	}
 

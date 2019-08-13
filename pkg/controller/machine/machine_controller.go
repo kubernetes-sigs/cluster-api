@@ -29,8 +29,8 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/client-go/tools/record"
 	"k8s.io/klog"
-	"sigs.k8s.io/cluster-api/pkg/apis/cluster/v1alpha2"
-	clusterv1 "sigs.k8s.io/cluster-api/pkg/apis/cluster/v1alpha2"
+	"sigs.k8s.io/cluster-api/api/v1alpha2"
+	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha2"
 	"sigs.k8s.io/cluster-api/pkg/controller/external"
 	"sigs.k8s.io/cluster-api/pkg/controller/remote"
 	capierrors "sigs.k8s.io/cluster-api/pkg/errors"
@@ -323,5 +323,5 @@ func (r *ReconcileMachine) isDeleteReady(ctx context.Context, m *v1alpha2.Machin
 }
 
 func shouldAdopt(m *v1alpha2.Machine) bool {
-	return !util.HasOwner(m.OwnerReferences, v1alpha2.SchemeGroupVersion.String(), []string{"MachineSet", "Cluster"})
+	return !util.HasOwner(m.OwnerReferences, v1alpha2.GroupVersion.String(), []string{"MachineSet", "Cluster"})
 }

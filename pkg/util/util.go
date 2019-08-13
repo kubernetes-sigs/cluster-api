@@ -42,8 +42,7 @@ import (
 	"k8s.io/apimachinery/pkg/util/yaml"
 	"k8s.io/client-go/kubernetes/scheme"
 	"k8s.io/klog"
-	"sigs.k8s.io/cluster-api/pkg/apis"
-	clusterv1 "sigs.k8s.io/cluster-api/pkg/apis/cluster/v1alpha2"
+	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha2"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/handler"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
@@ -64,7 +63,7 @@ var (
 )
 
 func init() {
-	apis.AddToScheme(scheme.Scheme)
+	clusterv1.AddToScheme(scheme.Scheme)
 }
 
 // RandomToken returns a random token.
@@ -174,7 +173,7 @@ func GetClusterFromMetadata(ctx context.Context, c client.Client, obj metav1.Obj
 // GetOwnerCluster returns the Cluster object owning the current resource.
 func GetOwnerCluster(ctx context.Context, c client.Client, obj metav1.ObjectMeta) (*clusterv1.Cluster, error) {
 	for _, ref := range obj.OwnerReferences {
-		if ref.Kind == "Cluster" && ref.APIVersion == clusterv1.SchemeGroupVersion.String() {
+		if ref.Kind == "Cluster" && ref.APIVersion == clusterv1.GroupVersion.String() {
 			return GetClusterByName(ctx, c, obj.Namespace, ref.Name)
 		}
 	}
@@ -230,7 +229,7 @@ func ClusterToInfrastructureMapFunc(gvk schema.GroupVersionKind) handler.ToReque
 // GetOwnerMachine returns the Machine object owning the current resource.
 func GetOwnerMachine(ctx context.Context, c client.Client, obj metav1.ObjectMeta) (*clusterv1.Machine, error) {
 	for _, ref := range obj.OwnerReferences {
-		if ref.Kind == "Machine" && ref.APIVersion == clusterv1.SchemeGroupVersion.String() {
+		if ref.Kind == "Machine" && ref.APIVersion == clusterv1.GroupVersion.String() {
 			return GetMachineByName(ctx, c, obj.Namespace, ref.Name)
 		}
 	}

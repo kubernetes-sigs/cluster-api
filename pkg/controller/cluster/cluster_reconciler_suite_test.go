@@ -24,7 +24,7 @@ import (
 
 	"k8s.io/client-go/kubernetes/scheme"
 	"k8s.io/client-go/rest"
-	"sigs.k8s.io/cluster-api/pkg/apis"
+	"sigs.k8s.io/cluster-api/api/v1alpha2"
 	"sigs.k8s.io/controller-runtime/pkg/envtest"
 	"sigs.k8s.io/controller-runtime/pkg/manager"
 )
@@ -33,9 +33,9 @@ var cfg *rest.Config
 
 func TestMain(m *testing.M) {
 	t := &envtest.Environment{
-		CRDDirectoryPaths: []string{filepath.Join("..", "..", "..", "config", "crds")},
+		CRDDirectoryPaths: []string{filepath.Join("..", "..", "..", "config", "crd", "bases")},
 	}
-	apis.AddToScheme(scheme.Scheme)
+	v1alpha2.AddToScheme(scheme.Scheme)
 
 	var err error
 	if cfg, err = t.Start(); err != nil {

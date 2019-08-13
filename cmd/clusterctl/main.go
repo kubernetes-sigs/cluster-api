@@ -18,11 +18,11 @@ package main
 
 import (
 	"k8s.io/client-go/kubernetes/scheme"
+	"sigs.k8s.io/cluster-api/api/v1alpha2"
 	"sigs.k8s.io/cluster-api/cmd/clusterctl/cmd"
-	"sigs.k8s.io/cluster-api/pkg/apis"
 )
 
 func main() {
-	apis.AddToScheme(scheme.Scheme)
+	v1alpha2.AddToScheme(scheme.Scheme)
 	cmd.Execute()
 }

@@ -1,0 +1,36 @@
+load("@io_bazel_rules_go//go:def.bzl", "go_library", "go_test")
+
+go_library(
+    name = "go_default_library",
+    srcs = [
+        "cluster_controller.go",
+        "machine_controller.go",
+        "machinedeployment_controller.go",
+        "machineset_controller.go",
+    ],
+    importpath = "sigs.k8s.io/cluster-api/controllers",
+    visibility = ["//visibility:public"],
+    deps = [
+        "//api/v1alpha2:go_default_library",
+        "//vendor/github.com/go-logr/logr:go_default_library",
+        "//vendor/sigs.k8s.io/controller-runtime:go_default_library",
+        "//vendor/sigs.k8s.io/controller-runtime/pkg/client:go_default_library",
+    ],
+)
+
+go_test(
+    name = "go_default_test",
+    srcs = ["suite_test.go"],
+    embed = [":go_default_library"],
+    deps = [
+        "//api/v1alpha2:go_default_library",
+        "//vendor/github.com/onsi/ginkgo:go_default_library",
+        "//vendor/github.com/onsi/gomega:go_default_library",
+        "//vendor/k8s.io/client-go/kubernetes/scheme:go_default_library",
+        "//vendor/k8s.io/client-go/rest:go_default_library",
+        "//vendor/sigs.k8s.io/controller-runtime/pkg/client:go_default_library",
+        "//vendor/sigs.k8s.io/controller-runtime/pkg/envtest:go_default_library",
+        "//vendor/sigs.k8s.io/controller-runtime/pkg/log:go_default_library",
+        "//vendor/sigs.k8s.io/controller-runtime/pkg/log/zap:go_default_library",
+    ],
+)

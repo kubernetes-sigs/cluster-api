@@ -33,7 +33,7 @@ import (
 	intstrutil "k8s.io/apimachinery/pkg/util/intstr"
 	"k8s.io/klog"
 	"k8s.io/utils/integer"
-	"sigs.k8s.io/cluster-api/pkg/apis/cluster/v1alpha2"
+	"sigs.k8s.io/cluster-api/api/v1alpha2"
 )
 
 const (

@@ -45,7 +45,7 @@ func TestControlPlaneInitLockerAcquire(t *testing.T) {
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
 			l := &controlPlaneInitLocker{
-				log: log.ZapLogger(true),
+				log: log.Log,
 				configMapClient: &configMapsGetter{
 					getError: tc.getError,
 				},
@@ -96,7 +96,7 @@ func TestControlPlaneInitLockerAcquireErrors(t *testing.T) {
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
 			l := &controlPlaneInitLocker{
-				log: log.ZapLogger(true),
+				log: log.Log,
 				configMapClient: &configMapsGetter{
 					configMap:   tc.configMap,
 					getError:    tc.getError,
@@ -152,7 +152,7 @@ func TestControlPlaneInitLockerRelease(t *testing.T) {
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
 			l := &controlPlaneInitLocker{
-				log: log.ZapLogger(true),
+				log: log.Log,
 				configMapClient: &configMapsGetter{
 					configMap:   tc.configMap,
 					getError:    tc.getError,

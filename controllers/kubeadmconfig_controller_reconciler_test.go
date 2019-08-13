@@ -46,7 +46,7 @@ var _ = Describe("KubeadmConfigReconciler", func() {
 			Expect(k8sClient.Create(context.Background(), config)).To(Succeed())
 
 			reconciler := KubeadmConfigReconciler{
-				Log:    log.ZapLogger(true),
+				Log:    log.Log,
 				Client: k8sClient,
 			}
 			By("Calling reconcile should requeue")
@@ -91,7 +91,7 @@ var _ = Describe("KubeadmConfigReconciler", func() {
 					Expect(k8sClient.Create(context.Background(), workerConfig)).To(Succeed())
 
 					reconciler := KubeadmConfigReconciler{
-						Log:    log.ZapLogger(true),
+						Log:    log.Log,
 						Client: k8sClient,
 					}
 

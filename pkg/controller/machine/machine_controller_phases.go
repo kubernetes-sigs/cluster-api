@@ -60,7 +60,7 @@ func (r *ReconcileMachine) reconcile(ctx context.Context, cluster *v1alpha2.Clus
 
 func (r *ReconcileMachine) reconcilePhase(ctx context.Context, m *v1alpha2.Machine) error {
 	// Set the phase to "pending" if nil.
-	if m.Status.Phase == nil {
+	if m.Status.Phase == "" {
 		m.Status.SetTypedPhase(v1alpha2.MachinePhasePending)
 	}
 

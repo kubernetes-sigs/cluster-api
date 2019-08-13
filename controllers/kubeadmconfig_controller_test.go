@@ -52,7 +52,7 @@ func TestBailIfKubeadmConfigStatusReady(t *testing.T) {
 	myclient := fake.NewFakeClientWithScheme(setupScheme(), objects...)
 
 	k := &KubeadmConfigReconciler{
-		Log:    log.ZapLogger(true),
+		Log:    log.Log,
 		Client: myclient,
 	}
 
@@ -82,7 +82,7 @@ func TestRequeueIfNoMachineRefIsSet(t *testing.T) {
 	myclient := fake.NewFakeClientWithScheme(setupScheme(), objects...)
 
 	k := &KubeadmConfigReconciler{
-		Log:    log.ZapLogger(true),
+		Log:    log.Log,
 		Client: myclient,
 	}
 
@@ -115,7 +115,7 @@ func TestFailsIfMachineRefIsNotFound(t *testing.T) {
 	myclient := fake.NewFakeClientWithScheme(setupScheme(), objects...)
 
 	k := &KubeadmConfigReconciler{
-		Log:    log.ZapLogger(true),
+		Log:    log.Log,
 		Client: myclient,
 	}
 
@@ -143,7 +143,7 @@ func TestBailIfMachineAlreadyHasBootstrapData(t *testing.T) {
 	myclient := fake.NewFakeClientWithScheme(setupScheme(), objects...)
 
 	k := &KubeadmConfigReconciler{
-		Log:    log.ZapLogger(true),
+		Log:    log.Log,
 		Client: myclient,
 	}
 
@@ -176,7 +176,7 @@ func TestFailsNoClusterRefIsSet(t *testing.T) {
 	myclient := fake.NewFakeClientWithScheme(setupScheme(), objects...)
 
 	k := &KubeadmConfigReconciler{
-		Log:    log.ZapLogger(true),
+		Log:    log.Log,
 		Client: myclient,
 	}
 
@@ -205,7 +205,7 @@ func TestFailsIfClusterIsNotFound(t *testing.T) {
 	myclient := fake.NewFakeClientWithScheme(setupScheme(), objects...)
 
 	k := &KubeadmConfigReconciler{
-		Log:    log.ZapLogger(true),
+		Log:    log.Log,
 		Client: myclient,
 	}
 
@@ -236,7 +236,7 @@ func TestRequeueIfInfrastructureIsNotReady(t *testing.T) {
 	myclient := fake.NewFakeClientWithScheme(setupScheme(), objects...)
 
 	k := &KubeadmConfigReconciler{
-		Log:    log.ZapLogger(true),
+		Log:    log.Log,
 		Client: myclient,
 	}
 
@@ -280,7 +280,7 @@ func TestRequeueKubeadmConfigForJoinNodesIfControlPlaneIsNotReady(t *testing.T) 
 	myclient := fake.NewFakeClientWithScheme(setupScheme(), objects...)
 
 	k := &KubeadmConfigReconciler{
-		Log:    log.ZapLogger(true),
+		Log:    log.Log,
 		Client: myclient,
 	}
 
@@ -334,7 +334,7 @@ func TestReconcileKubeadmConfigForInitNodesIfControlPlaneIsNotReady(t *testing.T
 	myclient := fake.NewFakeClientWithScheme(setupScheme(), objects...)
 
 	k := &KubeadmConfigReconciler{
-		Log:    log.ZapLogger(true),
+		Log:    log.Log,
 		Client: myclient,
 	}
 
@@ -388,7 +388,7 @@ func TestFailIfNotJoinConfigurationAndControlPlaneIsReady(t *testing.T) {
 	myclient := fake.NewFakeClientWithScheme(setupScheme(), objects...)
 
 	k := &KubeadmConfigReconciler{
-		Log:    log.ZapLogger(true),
+		Log:    log.Log,
 		Client: myclient,
 	}
 
@@ -421,7 +421,7 @@ func TestFailIfJoinConfigurationInconsistentWithMachineRole(t *testing.T) {
 	myclient := fake.NewFakeClientWithScheme(setupScheme(), objects...)
 
 	k := &KubeadmConfigReconciler{
-		Log:    log.ZapLogger(true),
+		Log:    log.Log,
 		Client: myclient,
 	}
 
@@ -453,7 +453,7 @@ func TestFailIfMissingControlPaneEndpointAndControlPlaneIsReady(t *testing.T) {
 	myclient := fake.NewFakeClientWithScheme(setupScheme(), objects...)
 
 	k := &KubeadmConfigReconciler{
-		Log:    log.ZapLogger(true),
+		Log:    log.Log,
 		Client: myclient,
 	}
 
@@ -491,7 +491,7 @@ func TestReconcileIfJoinNodesAndControlPlaneIsReady(t *testing.T) {
 	myclient := fake.NewFakeClientWithScheme(setupScheme(), objects...)
 
 	k := &KubeadmConfigReconciler{
-		Log:    log.ZapLogger(true),
+		Log:    log.Log,
 		Client: myclient,
 	}
 

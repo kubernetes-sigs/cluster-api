@@ -6,7 +6,7 @@ metadata:
     prometheus.io/scheme: https
     prometheus.io/scrape: "true"
   labels:
-    control-plane: controller-manager
+    control-plane: cabpk-controller-manager
   name: controller-manager-metrics-service
   namespace: system
 spec:
@@ -15,4 +15,4 @@ spec:
     port: 8443
     targetPort: https
   selector:
-    control-plane: controller-manager
+    control-plane: cabpk-controller-manager

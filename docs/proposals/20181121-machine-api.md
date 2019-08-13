@@ -1,6 +1,20 @@
 Minimalistic Machines API
 =========================
+<!-- START doctoc generated TOC please keep comment here to allow auto update -->
+<!-- DON'T EDIT THIS SECTION, INSTEAD RE-RUN doctoc TO UPDATE -->
+ 
 
+- [Capabilities](#capabilities)
+- [Proposal](#proposal)
+- [In-place vs. Replace](#in-place-vs-replace)
+- [Omitted Capabilities](#omitted-capabilities)
+  - [A provider-agnostic mechanism to request new nodes](#a-provider-agnostic-mechanism-to-request-new-nodes)
+  - [Dynamic API endpoint](#dynamic-api-endpoint)
+- [Conditions](#conditions)
+- [Types](#types)
+
+<!-- END doctoc generated TOC please keep comment here to allow auto update -->
+ 
 This proposal is for a minimalistic start to a new Machines API, as part of the
 overall Cluster API project. It is intended to live outside of core Kubernetes
 and add optional machine management features to Kubernetes clusters.

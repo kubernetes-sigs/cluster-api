@@ -200,6 +200,7 @@ verify:
 	./hack/verify-boilerplate.sh
 	./hack/verify-clientset.sh
 	./hack/verify-bazel.sh
+	./hack/verify-doctoc.sh
 
 .PHONY: clean-book
 clean-book: ## Remove all generated GitBook files

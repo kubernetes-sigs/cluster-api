@@ -1,5 +1,26 @@
 ---
 title: Cluster API Scope and Objectives
+<!-- START doctoc generated TOC please keep comment here to allow auto update -->
+<!-- DON'T EDIT THIS SECTION, INSTEAD RE-RUN doctoc TO UPDATE -->
+
+
+- [Cluster API Scope and Objectives](#cluster-api-scope-and-objectives)
+  - [Table of Contents](#table-of-contents)
+  - [Summary](#summary)
+      - [What is Cluster API?](#what-is-cluster-api)
+  - [Glossary](#glossary)
+  - [Motivation](#motivation)
+    - [Goals](#goals)
+    - [Non-goals](#non-goals)
+  - [Requirements](#requirements)
+      - [Foundation](#foundation)
+      - [User Experience](#user-experience)
+      - [Organization](#organization)
+      - [Validation](#validation)
+      - [Extension](#extension)
+
+<!-- END doctoc generated TOC please keep comment here to allow auto update -->
+
 authors:
   - "@vincepri"
   - "@ncdc"

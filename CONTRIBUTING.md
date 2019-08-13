@@ -1,4 +1,27 @@
 # Contributing Guidelines
+<!-- START doctoc generated TOC please keep comment here to allow auto update -->
+<!-- DON'T EDIT THIS SECTION, INSTEAD RE-RUN doctoc TO UPDATE -->
+
+
+- [Contributor License Agreements](#contributor-license-agreements)
+- [Finding Things That Need Help](#finding-things-that-need-help)
+- [Contributing a Patch](#contributing-a-patch)
+- [Backporting a Patch](#backporting-a-patch)
+  - [Merge Approval](#merge-approval)
+  - [Google Doc Viewing Permissions](#google-doc-viewing-permissions)
+  - [Issue and Pull Request Management](#issue-and-pull-request-management)
+- [Cloud Provider Developer Guide](#cloud-provider-developer-guide)
+  - [Overview](#overview)
+  - [Resources](#resources)
+  - [Boostrapping](#boostrapping)
+  - [A new Machine can be created in a declarative way](#a-new-machine-can-be-created-in-a-declarative-way)
+    - [Configurable Machine Setup](#configurable-machine-setup)
+      - [GCE Implementation](#gce-implementation)
+  - [A specific Machine can be deleted, freeing external resources associated with it.](#a-specific-machine-can-be-deleted-freeing-external-resources-associated-with-it)
+  - [A specific Machine can be upgraded or downgraded](#a-specific-machine-can-be-upgraded-or-downgraded)
+- [Support Channels](#support-channels)
+
+<!-- END doctoc generated TOC please keep comment here to allow auto update -->
 
 Read the following guide if you're interested in contributing to cluster-api.
 

@@ -1,5 +1,36 @@
 ---
 title: proposal Template
+<!-- START doctoc generated TOC please keep comment here to allow auto update -->
+<!-- DON'T EDIT THIS SECTION, INSTEAD RE-RUN doctoc TO UPDATE -->
+
+
+- [Title](#title)
+  - [Table of Contents](#table-of-contents)
+  - [Summary](#summary)
+  - [Motivation](#motivation)
+    - [Goals](#goals)
+    - [Non-Goals](#non-goals)
+  - [Proposal](#proposal)
+    - [User Stories [optional]](#user-stories-optional)
+      - [Story 1](#story-1)
+      - [Story 2](#story-2)
+    - [Implementation Details/Notes/Constraints [optional]](#implementation-detailsnotesconstraints-optional)
+    - [Risks and Mitigations](#risks-and-mitigations)
+  - [Design Details](#design-details)
+    - [Test Plan](#test-plan)
+    - [Graduation Criteria](#graduation-criteria)
+      - [Examples](#examples)
+        - [Alpha -> Beta Graduation](#alpha---beta-graduation)
+        - [Beta -> GA Graduation](#beta---ga-graduation)
+        - [Removing a deprecated flag](#removing-a-deprecated-flag)
+    - [Upgrade / Downgrade Strategy](#upgrade--downgrade-strategy)
+    - [Version Skew Strategy](#version-skew-strategy)
+  - [Implementation History](#implementation-history)
+  - [Drawbacks [optional]](#drawbacks-optional)
+  - [Alternatives [optional]](#alternatives-optional)
+
+<!-- END doctoc generated TOC please keep comment here to allow auto update -->
+
 authors:
   - "@janedoe"
 reviewers:

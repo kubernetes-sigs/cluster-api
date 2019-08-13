@@ -287,15 +287,9 @@ func (r *KubeadmConfigReconciler) SetupWithManager(mgr ctrl.Manager) error {
 }
 
 func (r *KubeadmConfigReconciler) patchConfig(ctx context.Context, config *cabpkv1alpha2.KubeadmConfig, patchConfig client.Patch) error {
-	// TODO(ncdc): remove this once we've updated to a version of controller-runtime with
-	// https://github.com/kubernetes-sigs/controller-runtime/issues/526.
-	gvk := config.GroupVersionKind()
 	if err := r.Patch(ctx, config, patchConfig); err != nil {
 		return err
 	}
-	// TODO(ncdc): remove this once we've updated to a version of controller-runtime with
-	// https://github.com/kubernetes-sigs/controller-runtime/issues/526.
-	config.SetGroupVersionKind(gvk)
 	if err := r.Status().Patch(ctx, config, patchConfig); err != nil {
 		return err
 	}

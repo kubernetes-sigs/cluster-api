@@ -49,7 +49,7 @@ all: manager
 
 # Run tests
 .PHONY: test
-test: generate fmt vet manifests
+test: generate fmt vet
 	go test ./api/... ./controllers/... -coverprofile cover.out
 
 # Build manager binary
@@ -64,19 +64,14 @@ run: generate fmt vet
 
 # Install CRDs into a cluster
 .PHONY: install
-install: manifests
+install: generate
 	kubectl apply -f config/crd/bases
 
 # Deploy controller in the configured Kubernetes cluster in ~/.kube/config
 .PHONY: deploy
-deploy: manifests
+deploy: generate
 	kubectl apply -f config/crd/bases
 	kubectl kustomize config/default | kubectl apply -f -
-
-# Generate manifests e.g. CRD, RBAC etc.
-.PHONY: manifests
-manifests: $(CONTROLLER_GEN)
-	$(CONTROLLER_GEN) $(CRD_OPTIONS) rbac:roleName=manager-role webhook paths="./..." output:crd:dir=$(CRD_ROOT) output:webhook:dir=$(WEBHOOK_ROOT) output:rbac:dir=$(RBAC_ROOT)
 
 # Run go fmt against code
 .PHONY: fmt
@@ -91,7 +86,18 @@ vet:
 # Generate code
 .PHONY: generate
 generate: $(CONTROLLER_GEN)
+	$(MAKE) generate-manifests
+	$(MAKE) generate-deepcopy
+
+# Generate deepcopy files.
+.PHONY: generate-deepcopy
+generate-deepcopy: $(CONTROLLER_GEN)
 	$(CONTROLLER_GEN) object:headerFile=./hack/boilerplate/boilerplate.generatego.txt paths=./api/...
+
+# Generate manifests e.g. CRD, RBAC etc.
+.PHONY: generate-manifests
+generate-manifests: $(CONTROLLER_GEN)
+	$(CONTROLLER_GEN) $(CRD_OPTIONS) rbac:roleName=manager-role webhook paths="./..." output:crd:dir=$(CRD_ROOT) output:webhook:dir=$(WEBHOOK_ROOT) output:rbac:dir=$(RBAC_ROOT)
 
 # Build the docker image
 .PHONY: docker-build

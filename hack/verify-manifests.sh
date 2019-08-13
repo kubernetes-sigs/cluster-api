@@ -28,7 +28,7 @@ cleanup() {
 trap "cleanup" EXIT SIGINT
 cleanup
 
-MANIFEST_ROOT=$TMP_ROOT make manifests
+MANIFEST_ROOT=$TMP_ROOT make generate-manifests
 
 echo "diffing ${DIFFROOT} against freshly generated manifests"
 ret=0
@@ -37,6 +37,6 @@ if [[ $ret -eq 0 ]]
 then
     echo "Manifests in ${DIFFROOT} are up to date."
 else
-    echo "Manifests in ${DIFFROOT} are out of date. Please run \`make manifests\`"
+    echo "Manifests in ${DIFFROOT} are out of date. Please run \`make generate-manifests\`"
     exit 1
 fi

@@ -67,8 +67,9 @@ func main() {
 	}
 
 	if err := (&controllers.KubeadmConfigReconciler{
-		Client: mgr.GetClient(),
-		Log:    ctrl.Log.WithName("reconciler"),
+		Client:               mgr.GetClient(),
+		SecretsClientFactory: controllers.ClusterSecretsClientFactory{},
+		Log:                  ctrl.Log.WithName("reconciler"),
 	}).SetupWithManager(mgr); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "reconciler")
 		os.Exit(1)

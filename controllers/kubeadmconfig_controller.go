@@ -25,18 +25,15 @@ import (
 	"github.com/pkg/errors"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	capiv1alpha2 "sigs.k8s.io/cluster-api/pkg/apis/cluster/v1alpha2"
-	"sigs.k8s.io/cluster-api/pkg/util"
-	ctrl "sigs.k8s.io/controller-runtime"
-	"sigs.k8s.io/controller-runtime/pkg/client"
-
+	corev1 "k8s.io/client-go/kubernetes/typed/core/v1"
 	cabpkv1alpha2 "sigs.k8s.io/cluster-api-bootstrap-provider-kubeadm/api/v1alpha2"
 	"sigs.k8s.io/cluster-api-bootstrap-provider-kubeadm/cloudinit"
 	kubeadmv1beta1 "sigs.k8s.io/cluster-api-bootstrap-provider-kubeadm/kubeadm/v1beta1"
-)
-
-var (
-	machineKind = capiv1alpha2.SchemeGroupVersion.WithKind("Machine")
+	capiv1alpha2 "sigs.k8s.io/cluster-api/pkg/apis/cluster/v1alpha2"
+	capierrors "sigs.k8s.io/cluster-api/pkg/errors"
+	"sigs.k8s.io/cluster-api/pkg/util"
+	ctrl "sigs.k8s.io/controller-runtime"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
 const (
@@ -48,7 +45,14 @@ const (
 // KubeadmConfigReconciler reconciles a KubeadmConfig object
 type KubeadmConfigReconciler struct {
 	client.Client
-	Log logr.Logger
+	SecretsClientFactory SecretsClientFactory
+	Log                  logr.Logger
+}
+
+// SecretsClientFactory define behaviour for creating a secrets client
+type SecretsClientFactory interface {
+	// NewSecretsClient returns a new client supporting SecretInterface
+	NewSecretsClient(client.Client, *capiv1alpha2.Cluster) (corev1.SecretInterface, error)
 }
 
 // +kubebuilder:rbac:groups=bootstrap.cluster.x-k8s.io,resources=kubeadmconfigs,verbs=get;list;watch;create;update;patch;delete
@@ -132,12 +136,12 @@ func (r *KubeadmConfigReconciler) Reconcile(req ctrl.Request) (_ ctrl.Result, re
 		//TODO(fp) use init lock so only the first machine configured as control plane get processed, everything else gets requeued
 
 		// otherwise it is a init control plane
-		// Nb. in this case JoinConfiguration should not be defined by users, but in case of misconfigurations, CAPBK simply ignore it
+		// Nb. in this case JoinConfiguration should not be defined by users, but in case of misconfigurations, CABPK simply ignore it
 
 		log.Info("Creating BootstrapData for the init control plane")
 
 		// get both of ClusterConfiguration and InitConfiguration strings to pass to the cloud init control plane generator
-		// kubeadm allows one this values to be empty; cabpk replace missing values with an empty config, so the cloud init generation
+		// kubeadm allows one of these values to be empty; CABPK replace missing values with an empty config, so the cloud init generation
 		// should not handle special cases.
 
 		if config.Spec.InitConfiguration == nil {
@@ -162,10 +166,13 @@ func (r *KubeadmConfigReconciler) Reconcile(req ctrl.Request) (_ ctrl.Result, re
 				},
 			}
 		}
-		// If there is a control plane endpoint defined at cluster in cluster status, use it as a control plane endpoint for the K8s cluster
-		// NB. we are only using the first one defined if there are multiple defined.
-		if len(cluster.Status.APIEndpoints) > 0 {
+
+		// If there no ControlPlaneEndpoint defined in ClusterConfiguration but there are APIEndpoints defined at cluster level (e.g. the load balancer endpoint),
+		// then use cluster APIEndpoints as a control plane endpoint for the K8s cluster
+		if config.Spec.ClusterConfiguration.ControlPlaneEndpoint == "" && len(cluster.Status.APIEndpoints) > 0 {
+			// NB. CABPK only uses the first APIServerEndpoint defined in cluster status if there are multiple defined.
 			config.Spec.ClusterConfiguration.ControlPlaneEndpoint = fmt.Sprintf("%s:%d", cluster.Status.APIEndpoints[0].Host, cluster.Status.APIEndpoints[0].Port)
+			log.Info("Altering ClusterConfiguration", "ControlPlaneEndpoint", config.Spec.ClusterConfiguration.ControlPlaneEndpoint)
 		}
 
 		clusterdata, err := kubeadmv1beta1.ConfigurationToYAML(config.Spec.ClusterConfiguration)
@@ -196,23 +203,20 @@ func (r *KubeadmConfigReconciler) Reconcile(req ctrl.Request) (_ ctrl.Result, re
 	}
 
 	// Every other case it's a join scenario
-	// Nb. in this case ClusterConfiguration and JoinConfiguration should not be defined by users, but in case of misconfigurations, CAPBK simply ignore them
+	// Nb. in this case ClusterConfiguration and JoinConfiguration should not be defined by users, but in case of misconfigurations, CABPK simply ignore them
 
 	if config.Spec.JoinConfiguration == nil {
 		return ctrl.Result{}, errors.New("Control plane already exists for the cluster, only KubeadmConfig objects with JoinConfiguration are allowed")
 	}
 
-	if len(cluster.Status.APIEndpoints) == 0 {
-		return ctrl.Result{}, errors.New("Control plane already exists for the cluster but cluster.Status.APIEndpoints are not set")
+	// ensure that joinConfiguration.Discovery is properly set for joining node on the current cluster
+	if err := r.reconcileDiscovery(cluster, config); err != nil {
+		if requeueErr, ok := errors.Cause(err).(capierrors.HasRequeueAfterError); ok {
+			log.Info(err.Error())
+			return ctrl.Result{RequeueAfter: requeueErr.GetRequeueAfter()}, nil
+		}
+		return ctrl.Result{}, err
 	}
-
-	// Injects the controlplane endpoint address
-	// NB. this assumes nodes using token discovery
-	if config.Spec.JoinConfiguration.Discovery.BootstrapToken == nil {
-		config.Spec.JoinConfiguration.Discovery.BootstrapToken = &kubeadmv1beta1.BootstrapTokenDiscovery{}
-	}
-
-	config.Spec.JoinConfiguration.Discovery.BootstrapToken.APIServerEndpoint = fmt.Sprintf("https://%s:%d", cluster.Status.APIEndpoints[0].Host, cluster.Status.APIEndpoints[0].Port)
 
 	joinBytes, err := kubeadmv1beta1.ConfigurationToYAML(config.Spec.JoinConfiguration)
 	if err != nil {
@@ -248,6 +252,11 @@ func (r *KubeadmConfigReconciler) Reconcile(req ctrl.Request) (_ ctrl.Result, re
 		return ctrl.Result{}, nil
 	}
 
+	// otherwise it is a node
+	if config.Spec.JoinConfiguration.ControlPlane != nil {
+		return ctrl.Result{}, errors.New("Machine is a Worker, but JoinConfiguration.ControlPlane is set in the KubeadmConfig object")
+	}
+
 	joinData, err := cloudinit.NewNode(&cloudinit.NodeInput{
 		BaseUserData: cloudinit.BaseUserData{
 			AdditionalFiles: config.Spec.AdditionalUserDataFiles,
@@ -261,6 +270,64 @@ func (r *KubeadmConfigReconciler) Reconcile(req ctrl.Request) (_ ctrl.Result, re
 	config.Status.BootstrapData = joinData
 	config.Status.Ready = true
 	return ctrl.Result{}, nil
+}
+
+// reconcileDiscovery ensure that config.JoinConfiguration.Discovery is properly set for the joining node.
+// The implementation func respect user provided discovery configurations, but in case some of them are missing, a valid BootstrapToken object
+// is automatically injected into config.JoinConfiguration.Discovery.
+// This allows to simplify configuration UX, by providing the option to delegate to CABPK the configuration of kubeadm join discovery.
+func (r *KubeadmConfigReconciler) reconcileDiscovery(cluster *capiv1alpha2.Cluster, config *cabpkv1alpha2.KubeadmConfig) error {
+	log := r.Log.WithValues("kubeadmconfig", fmt.Sprintf("%s/%s", config.Namespace, config.Name))
+
+	// if config already contains a file discovery configuration, respect it without further validations
+	if config.Spec.JoinConfiguration.Discovery.File != nil {
+		return nil
+	}
+
+	// otherwise it is necessary to ensure token discovery is properly configured
+	if config.Spec.JoinConfiguration.Discovery.BootstrapToken == nil {
+		config.Spec.JoinConfiguration.Discovery.BootstrapToken = &kubeadmv1beta1.BootstrapTokenDiscovery{}
+	}
+
+	// if BootstrapToken already contains an APIServerEndpoint, respect it; otherwise inject the APIServerEndpoint endpoint defined in cluster status
+	//TODO(fp) might be we want to validate user provided APIServerEndpoint and warn/error if it doesn't match the api endpoint defined at cluster level
+	apiServerEndpoint := config.Spec.JoinConfiguration.Discovery.BootstrapToken.APIServerEndpoint
+	if apiServerEndpoint == "" {
+		if len(cluster.Status.APIEndpoints) == 0 {
+			return errors.Wrap(&capierrors.RequeueAfterError{RequeueAfter: 10 * time.Second}, "Waiting for Cluster Controller to set cluster.Status.APIEndpoints")
+		}
+
+		// NB. CABPK only uses the first APIServerEndpoint defined in cluster status if there are multiple defined.
+		apiServerEndpoint = fmt.Sprintf("%s:%d", cluster.Status.APIEndpoints[0].Host, cluster.Status.APIEndpoints[0].Port)
+		config.Spec.JoinConfiguration.Discovery.BootstrapToken.APIServerEndpoint = apiServerEndpoint
+		log.Info("Altering JoinConfiguration.Discovery.BootstrapToken", "APIServerEndpoint", apiServerEndpoint)
+	}
+
+	// if BootstrapToken already contains a token, respect it; otherwise create a new bootstrap token for the node to join
+	if config.Spec.JoinConfiguration.Discovery.BootstrapToken.Token == "" {
+		// gets the remote secret interface client for the current cluster
+		secretsClient, err := r.SecretsClientFactory.NewSecretsClient(r.Client, cluster)
+		if err != nil {
+			return err
+		}
+
+		token, err := createToken(secretsClient)
+		if err != nil {
+			return errors.Wrapf(err, "failed to create new bootstrap token")
+		}
+
+		config.Spec.JoinConfiguration.Discovery.BootstrapToken.Token = token
+		log.Info("Altering JoinConfiguration.Discovery.BootstrapToken", "Token", token)
+	}
+
+	// if BootstrapToken already contains a CACertHashes or UnsafeSkipCAVerification, respect it; otherwise set for UnsafeSkipCAVerification
+	// TODO: set CACertHashes instead of UnsafeSkipCAVerification
+	if len(config.Spec.JoinConfiguration.Discovery.BootstrapToken.CACertHashes) == 0 && config.Spec.JoinConfiguration.Discovery.BootstrapToken.UnsafeSkipCAVerification == false {
+		config.Spec.JoinConfiguration.Discovery.BootstrapToken.UnsafeSkipCAVerification = true
+		log.Info("Altering JoinConfiguration.Discovery.BootstrapToken", "UnsafeSkipCAVerification", true)
+	}
+
+	return nil
 }
 
 func (r *KubeadmConfigReconciler) getCertificates() (cloudinit.Certificates, error) {

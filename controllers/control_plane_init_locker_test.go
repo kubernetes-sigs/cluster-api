@@ -17,219 +17,207 @@ limitations under the License.
 package controllers
 
 import (
+	"context"
+	"errors"
+	"fmt"
 	"testing"
 
-	"github.com/pkg/errors"
-	v1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/types"
-	"k8s.io/apimachinery/pkg/watch"
-	corev1client "k8s.io/client-go/kubernetes/typed/core/v1"
 	clusterv2 "sigs.k8s.io/cluster-api/pkg/apis/cluster/v1alpha2"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/runtime/log"
 )
 
 func TestControlPlaneInitLockerAcquire(t *testing.T) {
-	tests := []struct {
-		name     string
-		getError error
-	}{
-		{
-			name:     "create succeeds",
-			getError: apierrors.NewNotFound(schema.GroupResource{Group: "", Resource: "configmaps"}, "uid1-configmap"),
-		},
-	}
 
-	for _, tc := range tests {
-		t.Run(tc.name, func(t *testing.T) {
-			l := &controlPlaneInitLocker{
-				log: log.Log,
-				configMapClient: &configMapsGetter{
-					getError: tc.getError,
-				},
-			}
+	clusterName := "test-cluster"
+	clusterNamespace := "test-namespace"
+	uid := types.UID("test-uid")
 
-			cluster := &clusterv2.Cluster{
-				ObjectMeta: metav1.ObjectMeta{
-					Namespace: "ns1",
-					Name:      "name1",
-					UID:       types.UID("uid1"),
-				},
-			}
-
-			acquired := l.Acquire(cluster)
-			if !acquired {
-				t.Fatal("acquired was false but it should have been true")
-			}
-		})
-	}
-}
-
-func TestControlPlaneInitLockerAcquireErrors(t *testing.T) {
 	tests := []struct {
 		name          string
-		configMap     *v1.ConfigMap
-		getError      error
-		createError   error
-		expectAcquire bool
+		context       context.Context
+		client        client.Client
+		shouldAcquire bool
 	}{
 		{
-			name:          "configmap already exists",
-			configMap:     &v1.ConfigMap{},
-			expectAcquire: false,
+			name:    "acquire lock",
+			context: context.Background(),
+			client: &fakeClient{
+				getError: apierrors.NewNotFound(schema.GroupResource{Group: "", Resource: "configmaps"}, fmt.Sprintf("%s-controlplane", uid)),
+			},
+			shouldAcquire: true,
 		},
 		{
-			name:          "error getting configmap",
-			getError:      errors.New("get error"),
-			expectAcquire: false,
+			name:          "should not acquire lock if already exits",
+			context:       context.Background(),
+			client:        &fakeClient{},
+			shouldAcquire: false,
 		},
 		{
-			name:          "create fails",
-			getError:      apierrors.NewNotFound(schema.GroupResource{Group: "", Resource: "configmaps"}, "uid1-configmap"),
-			createError:   errors.New("create error"),
-			expectAcquire: false,
+			name:    "shoult not acquire lock if cannot create config map",
+			context: context.Background(),
+			client: &fakeClient{
+				getError:    apierrors.NewNotFound(schema.GroupResource{Group: "", Resource: "configmaps"}, fmt.Sprintf("%s-controlplane", uid)),
+				createError: errors.New("create error"),
+			},
+			shouldAcquire: false,
+		},
+		{
+			name:    "should not acquire lock if config map alredy exists while creating",
+			context: context.Background(),
+			client: &fakeClient{
+				getError:    apierrors.NewNotFound(schema.GroupResource{Group: "", Resource: "configmaps"}, fmt.Sprintf("%s-controlplane", uid)),
+				createError: apierrors.NewAlreadyExists(schema.GroupResource{Group: "", Resource: "configmaps"}, fmt.Sprintf("%s-controlplane", uid)),
+			},
+			shouldAcquire: false,
 		},
 	}
 
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
 			l := &controlPlaneInitLocker{
-				log: log.Log,
-				configMapClient: &configMapsGetter{
-					configMap:   tc.configMap,
-					getError:    tc.getError,
-					createError: tc.createError,
-				},
+				log:    log.ZapLogger(true),
+				ctx:    context.Background(),
+				client: tc.client,
 			}
 
 			cluster := &clusterv2.Cluster{
 				ObjectMeta: metav1.ObjectMeta{
-					Namespace: "ns1",
-					Name:      "name1",
-					UID:       types.UID("uid1"),
+					Namespace: clusterNamespace,
+					Name:      clusterName,
+					UID:       uid,
 				},
 			}
 
 			acquired := l.Acquire(cluster)
-			if acquired {
-				t.Fatal("expected acquired to be false but it is true")
+			if acquired != tc.shouldAcquire {
+				t.Fatalf("acquired was %v, but it should be %v\n", acquired, tc.shouldAcquire)
 			}
+
 		})
 	}
 }
 
 func TestControlPlaneInitLockerRelease(t *testing.T) {
+
+	clusterName := "test-cluster"
+	clusterNamespace := "test-namespace"
+	uid := types.UID("test-uid")
+
 	tests := []struct {
 		name          string
-		configMap     *v1.ConfigMap
-		getError      error
-		deleteError   error
-		expectRelease bool
+		context       context.Context
+		client        client.Client
+		shouldRelease bool
 	}{
 		{
-			name:          "error getting configmap",
-			getError:      errors.New("get error"),
-			expectRelease: false,
+			name:          "should release lock by deleting config map",
+			context:       context.Background(),
+			client:        &fakeClient{},
+			shouldRelease: true,
 		},
 		{
-			name:          "configmap not found",
-			getError:      apierrors.NewNotFound(schema.GroupResource{Group: "", Resource: "configmaps"}, "uid1-configmap"),
-			expectRelease: true,
+			name:    "should not release lock if cannot delete config map",
+			context: context.Background(),
+			client: &fakeClient{
+				deleteError: errors.New("delete error"),
+			},
+			shouldRelease: false,
 		},
 		{
-			name:          "delete succeeds",
-			expectRelease: true,
+			name:    "should release lock if config map does not exist",
+			context: context.Background(),
+			client: &fakeClient{
+				getError: apierrors.NewNotFound(schema.GroupResource{Group: "", Resource: "configmaps"}, fmt.Sprintf("%s-controlplane", uid)),
+			},
+			shouldRelease: true,
 		},
 		{
-			name:          "delete fails",
-			deleteError:   errors.New("delete error"),
-			expectRelease: false,
+			name:    "should not release lock if error while getting config map",
+			context: context.Background(),
+			client: &fakeClient{
+				getError: errors.New("get error"),
+			},
+			shouldRelease: false,
 		},
 	}
 
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
 			l := &controlPlaneInitLocker{
-				log: log.Log,
-				configMapClient: &configMapsGetter{
-					configMap:   tc.configMap,
-					getError:    tc.getError,
-					deleteError: tc.deleteError,
-				},
+				log:    log.ZapLogger(true),
+				ctx:    context.Background(),
+				client: tc.client,
 			}
 
 			cluster := &clusterv2.Cluster{
 				ObjectMeta: metav1.ObjectMeta{
-					Namespace: "ns1",
-					Name:      "name1",
-					UID:       types.UID("uid1"),
+					Namespace: clusterNamespace,
+					Name:      clusterName,
+					UID:       uid,
 				},
 			}
 
 			released := l.Release(cluster)
-			if tc.expectRelease != released {
-				t.Errorf("expected %t, got %t", tc.expectRelease, released)
+			if released != tc.shouldRelease {
+				t.Fatalf("released was %v, but it should be %v\n", released, tc.shouldRelease)
 			}
+
 		})
 	}
 }
 
-type configMapsGetter struct {
-	configMap   *v1.ConfigMap
+type fakeStatusWriter struct{}
+
+func (fsw *fakeStatusWriter) Update(ctx context.Context, obj runtime.Object, opts ...client.UpdateOption) error {
+	panic("not implemented")
+}
+
+func (fsw *fakeStatusWriter) Patch(ctx context.Context, obj runtime.Object, patch client.Patch, opts ...client.PatchOption) error {
+	panic("not implemented")
+}
+
+var _ client.Client = &fakeClient{}
+
+type fakeClient struct {
 	getError    error
 	createError error
 	deleteError error
 }
 
-func (c *configMapsGetter) ConfigMaps(namespace string) corev1client.ConfigMapInterface {
-	return &configMapClient{
-		configMap:   c.configMap,
-		getError:    c.getError,
-		createError: c.createError,
-		deleteError: c.deleteError,
-	}
+func (fc *fakeClient) Get(ctx context.Context, key client.ObjectKey, obj runtime.Object) error {
+	return fc.getError
 }
 
-type configMapClient struct {
-	configMap   *v1.ConfigMap
-	getError    error
-	createError error
-	deleteError error
-}
-
-func (c *configMapClient) Create(configMap *v1.ConfigMap) (*v1.ConfigMap, error) {
-	return c.configMap, c.createError
-}
-
-func (c *configMapClient) Get(name string, getOptions metav1.GetOptions) (*v1.ConfigMap, error) {
-	if c.getError != nil {
-		return nil, c.getError
-	}
-	return c.configMap, nil
-}
-
-func (c *configMapClient) Update(*v1.ConfigMap) (*v1.ConfigMap, error) {
+func (fc *fakeClient) List(ctx context.Context, list runtime.Object, opts ...client.ListOption) error {
 	panic("not implemented")
 }
 
-func (c *configMapClient) Delete(name string, options *metav1.DeleteOptions) error {
-	return c.deleteError
+func (fc *fakeClient) Create(ctx context.Context, obj runtime.Object, opts ...client.CreateOption) error {
+	return fc.createError
 }
 
-func (c *configMapClient) DeleteCollection(options *metav1.DeleteOptions, listOptions metav1.ListOptions) error {
+func (fc *fakeClient) Delete(ctx context.Context, obj runtime.Object, opts ...client.DeleteOption) error {
+	return fc.deleteError
+}
+
+func (fc *fakeClient) Update(ctx context.Context, obj runtime.Object, opts ...client.UpdateOption) error {
 	panic("not implemented")
 }
 
-func (c *configMapClient) List(opts metav1.ListOptions) (*v1.ConfigMapList, error) {
+func (fc *fakeClient) Patch(ctx context.Context, obj runtime.Object, patch client.Patch, opts ...client.PatchOption) error {
 	panic("not implemented")
 }
 
-func (c *configMapClient) Watch(opts metav1.ListOptions) (watch.Interface, error) {
+func (fc *fakeClient) DeleteAllOf(ctx context.Context, obj runtime.Object, opts ...client.DeleteAllOfOption) error {
 	panic("not implemented")
 }
 
-func (c *configMapClient) Patch(name string, pt types.PatchType, data []byte, subresources ...string) (result *v1.ConfigMap, err error) {
-	panic("not implemented")
+func (fc *fakeClient) Status() client.StatusWriter {
+	return &fakeStatusWriter{}
 }

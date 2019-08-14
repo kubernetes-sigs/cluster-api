@@ -52,6 +52,10 @@ type Rule struct {
 	Verbs []string
 	// URL specifies the non-resource URLs that this rule encompasses.
 	URLs []string `marker:"urls,optional"`
+	// Namespace specifies the scope of the Rule.
+	// If not set, the Rule belongs to the generated ClusterRole.
+	// If set, the Rule belongs to a Role, whose namespace is specified by this field.
+	Namespace string `marker:",optional"`
 }
 
 // ruleKey represents the resources and non-resources a Rule applies.
@@ -146,69 +150,109 @@ func (Generator) RegisterMarkers(into *markers.Registry) error {
 	return nil
 }
 
-// GenerateClusterRole generates a rbacv1.ClusterRole object
-func GenerateClusterRole(ctx *genall.GenerationContext, roleName string) (*rbacv1.ClusterRole, error) {
-	rules := make(map[ruleKey]*Rule)
+// GenerateRoles generate a slice of objs representing either a ClusterRole or a Role object
+// The order of the objs in the returned slice is stable and determined by their namespaces.
+func GenerateRoles(ctx *genall.GenerationContext, roleName string) ([]interface{}, error) {
+	rulesByNS := make(map[string][]*Rule)
 	for _, root := range ctx.Roots {
 		markerSet, err := markers.PackageMarkers(ctx.Collector, root)
 		if err != nil {
 			root.AddError(err)
 		}
 
-		// all the Rules having the same ruleKey will be merged into the first Rule
+		// group RBAC markers by namespace
 		for _, markerValue := range markerSet[RuleDefinition.Name] {
 			rule := markerValue.(Rule)
-			key := rule.key()
-			if _, ok := rules[key]; !ok {
-				rules[key] = &rule
-				continue
+			namespace := rule.Namespace
+			if _, ok := rulesByNS[namespace]; !ok {
+				rules := make([]*Rule, 0)
+				rulesByNS[namespace] = rules
 			}
-			rules[key].addVerbs(rule.Verbs)
+			rulesByNS[namespace] = append(rulesByNS[namespace], &rule)
 		}
 	}
 
-	if len(rules) == 0 {
-		return nil, nil
+	// NormalizeRules merge Rule with the same ruleKey and sort the Rules
+	NormalizeRules := func(rules []*Rule) []rbacv1.PolicyRule {
+		ruleMap := make(map[ruleKey]*Rule)
+		// all the Rules having the same ruleKey will be merged into the first Rule
+		for _, rule := range rules {
+			key := rule.key()
+			if _, ok := ruleMap[key]; !ok {
+				ruleMap[key] = rule
+				continue
+			}
+			ruleMap[key].addVerbs(rule.Verbs)
+		}
+
+		// sort the Rules in rules according to their ruleKeys
+		keys := make([]ruleKey, 0, len(ruleMap))
+		for key := range ruleMap {
+			keys = append(keys, key)
+		}
+		sort.Sort(ruleKeys(keys))
+
+		var policyRules []rbacv1.PolicyRule
+		for _, key := range keys {
+			policyRules = append(policyRules, ruleMap[key].ToRule())
+
+		}
+		return policyRules
 	}
 
-	// sort the Rules in rules according to their ruleKeys
-	keys := make([]ruleKey, 0)
-	for key := range rules {
-		keys = append(keys, key)
+	// collect all the namespaces and sort them
+	var namespaces []string
+	for ns := range rulesByNS {
+		namespaces = append(namespaces, ns)
 	}
-	sort.Sort(ruleKeys(keys))
+	sort.Strings(namespaces)
 
-	var policyRules []rbacv1.PolicyRule
-	for _, key := range keys {
-		policyRules = append(policyRules, rules[key].ToRule())
-
+	// process the items in rulesByNS by the order specified in `namespaces` to make sure that the Role order is stable
+	var objs []interface{}
+	for _, ns := range namespaces {
+		rules := rulesByNS[ns]
+		policyRules := NormalizeRules(rules)
+		if len(policyRules) == 0 {
+			continue
+		}
+		if ns == "" {
+			objs = append(objs, rbacv1.ClusterRole{
+				TypeMeta: metav1.TypeMeta{
+					Kind:       "ClusterRole",
+					APIVersion: rbacv1.SchemeGroupVersion.String(),
+				},
+				ObjectMeta: metav1.ObjectMeta{
+					Name: roleName,
+				},
+				Rules: policyRules,
+			})
+		} else {
+			objs = append(objs, rbacv1.Role{
+				TypeMeta: metav1.TypeMeta{
+					Kind:       "Role",
+					APIVersion: rbacv1.SchemeGroupVersion.String(),
+				},
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      roleName,
+					Namespace: ns,
+				},
+				Rules: policyRules,
+			})
+		}
 	}
 
-	return &rbacv1.ClusterRole{
-		TypeMeta: metav1.TypeMeta{
-			Kind:       "ClusterRole",
-			APIVersion: rbacv1.SchemeGroupVersion.String(),
-		},
-		ObjectMeta: metav1.ObjectMeta{
-			Name: roleName,
-		},
-		Rules: policyRules,
-	}, nil
+	return objs, nil
 }
 
 func (g Generator) Generate(ctx *genall.GenerationContext) error {
-	clusterRole, err := GenerateClusterRole(ctx, g.RoleName)
+	objs, err := GenerateRoles(ctx, g.RoleName)
 	if err != nil {
 		return err
 	}
 
-	if clusterRole == nil {
+	if len(objs) == 0 {
 		return nil
 	}
 
-	if err := ctx.WriteYAML("role.yaml", *clusterRole); err != nil {
-		return err
-	}
-
-	return nil
+	return ctx.WriteYAML("role.yaml", objs...)
 }

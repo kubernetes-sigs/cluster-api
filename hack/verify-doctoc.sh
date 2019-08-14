@@ -18,6 +18,8 @@ set -o errexit
 set -o nounset
 set -o pipefail
 
+command -v doctoc || echo "doctoc is not available on your system, skipping verification" && exit 0
+
 doctoc_files="README.md \
               CONTRIBUTING.md \
               cmd/clusterctl/README.md \
@@ -33,24 +35,24 @@ function check_doctoc(){
     changed_files=""
     for file in $doctoc_files
     do
-        res=$(git diff --cached $file)
+        res=$(git diff --cached "$file")
         if [ "$res" ]
         then
             changed_files="$changed_files\n$file"
         fi
     done
 
-    if [ $changed_files ];then
+    if [ "${changed_files}" ];then
         echo -e "Please update these files: $changed_files."
         echo "Update with doctoc FILENAME."
         echo "Re-commit with -n/--no-verify option."
-        exit -1
+        exit 1
     fi
 
 }
 
-doctoc $doctoc_files >/dev/null 2>&1
+doctoc "${doctoc_files}" >/dev/null 2>&1
 check=$(git diff)
-if [ ! -z "$check" ];then
+if [ -n "$check" ];then
     check_doctoc
 fi

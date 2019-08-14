@@ -198,7 +198,6 @@ clean-clientset: ## Remove all generated clientset files
 .PHONY: verify
 verify:
 	./hack/verify-boilerplate.sh
-	./hack/verify-clientset.sh
 	./hack/verify-bazel.sh
 	./hack/verify-doctoc.sh
 

@@ -113,7 +113,7 @@ main() {
    set -e
 
    if [[ -d "${INTEGRATION_TEST_DIR}" ]] ; then
-      go test -v "${INTEGRATION_TEST_DIR}"/...
+      go test -v -tags=e2e "${INTEGRATION_TEST_DIR}"/...
    fi
 
    delete_bootstrap

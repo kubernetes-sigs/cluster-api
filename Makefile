@@ -49,7 +49,7 @@ test: generate lint ## Run tests
 
 .PHONY: test-go
 test-go: ## Run tests
-	go test -v -tags=integration ./pkg/... ./cmd/...
+	go test -v -tags=integration ./...
 
 ## --------------------------------------
 ## Binaries
@@ -158,7 +158,7 @@ sub-docker-push-%:
 
 .PHONY: docker-build-ci
 docker-build-ci: generate lint-full ## Build the docker image for example provider
-	docker build --pull --build-arg ARCH=$(ARCH) . -f ./pkg/provider/example/container/Dockerfile -t $(EXAMPLE_PROVIDER_IMG)-$(ARCH):$(TAG)
+	docker build --pull --build-arg ARCH=$(ARCH) . -f ./cmd/example-provider/Dockerfile -t $(EXAMPLE_PROVIDER_IMG)-$(ARCH):$(TAG)
 	@echo "updating kustomize image patch file for ci"
 	hack/sed.sh -i.tmp -e 's@image: .*@image: '"${EXAMPLE_PROVIDER_IMG}-$(ARCH):$(TAG)"'@' ./config/ci/manager_image_patch.yaml
 

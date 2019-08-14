@@ -23,9 +23,7 @@ spec:
         control-plane: cabpk-controller-manager
     spec:
       containers:
-      - args:
-        - --enable-leader-election
-        image: controller:latest
+      - image: controller:latest
         imagePullPolicy: Always
         name: manager
       terminationGracePeriodSeconds: 10

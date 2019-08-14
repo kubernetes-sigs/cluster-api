@@ -33,7 +33,7 @@ go_library(
         "//cmd/clusterctl/phases:go_default_library",
         "//cmd/clusterctl/providercomponents:go_default_library",
         "//cmd/clusterctl/validation:go_default_library",
-        "//pkg/util:go_default_library",
+        "//util:go_default_library",
         "//vendor/github.com/pkg/errors:go_default_library",
         "//vendor/github.com/spf13/cobra:go_default_library",
         "//vendor/github.com/spf13/pflag:go_default_library",

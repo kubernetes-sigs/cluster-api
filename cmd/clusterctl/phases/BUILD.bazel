@@ -18,7 +18,7 @@ go_library(
         "//api/v1alpha2:go_default_library",
         "//cmd/clusterctl/clusterdeployer/bootstrap:go_default_library",
         "//cmd/clusterctl/clusterdeployer/clusterclient:go_default_library",
-        "//pkg/util:go_default_library",
+        "//util:go_default_library",
         "//vendor/github.com/pkg/errors:go_default_library",
         "//vendor/k8s.io/api/apps/v1:go_default_library",
         "//vendor/k8s.io/apimachinery/pkg/util/yaml:go_default_library",

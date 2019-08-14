@@ -14,94 +14,64 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package cloudinit
+package certs
 
-import (
-	"github.com/pkg/errors"
-	"sigs.k8s.io/cluster-api-bootstrap-provider-kubeadm/api/v1alpha2"
+import "sigs.k8s.io/cluster-api-bootstrap-provider-kubeadm/api/v1alpha2"
+
+const (
+	rootOwnerValue = "root:root"
 )
 
-// Certificates is a template struct to hold certificate data
-type Certificates struct {
-	CACert           string
-	CAKey            string
-	EtcdCACert       string
-	EtcdCAKey        string
-	FrontProxyCACert string
-	FrontProxyCAKey  string
-	SaCert           string
-	SaKey            string
-}
-
-func (cpi *Certificates) validate() error {
-	if !isKeyPairValid(cpi.CACert, cpi.CAKey) {
-		return errors.New("CA cert material in the ControlPlaneInput is missing cert/key")
-	}
-
-	if !isKeyPairValid(cpi.EtcdCACert, cpi.EtcdCAKey) {
-		return errors.New("ETCD CA cert material in the ControlPlaneInput is  missing cert/key")
-	}
-
-	if !isKeyPairValid(cpi.FrontProxyCACert, cpi.FrontProxyCAKey) {
-		return errors.New("FrontProxy CA cert material in ControlPlaneInput is  missing cert/key")
-	}
-
-	if !isKeyPairValid(cpi.SaCert, cpi.SaKey) {
-		return errors.New("ServiceAccount cert material in ControlPlaneInput is  missing cert/key")
-	}
-
-	return nil
-}
-
-func certificatesToFiles(input Certificates) []v1alpha2.Files {
+// CertificatesToFiles writes Certificates to files
+func CertificatesToFiles(input Certificates) []v1alpha2.Files {
 	return []v1alpha2.Files{
 		{
 			Path:        "/etc/kubernetes/pki/ca.crt",
 			Owner:       rootOwnerValue,
 			Permissions: "0640",
-			Content:     input.CACert,
+			Content:     string(input.ClusterCA.Cert),
 		},
 		{
 			Path:        "/etc/kubernetes/pki/ca.key",
 			Owner:       rootOwnerValue,
 			Permissions: "0600",
-			Content:     input.CAKey,
+			Content:     string(input.ClusterCA.Key),
 		},
 		{
 			Path:        "/etc/kubernetes/pki/etcd/ca.crt",
 			Owner:       rootOwnerValue,
 			Permissions: "0640",
-			Content:     input.EtcdCACert,
+			Content:     string(input.EtcdCA.Cert),
 		},
 		{
 			Path:        "/etc/kubernetes/pki/etcd/ca.key",
 			Owner:       rootOwnerValue,
 			Permissions: "0600",
-			Content:     input.EtcdCAKey,
+			Content:     string(input.EtcdCA.Key),
 		},
 		{
 			Path:        "/etc/kubernetes/pki/front-proxy-ca.crt",
 			Owner:       rootOwnerValue,
 			Permissions: "0640",
-			Content:     input.FrontProxyCACert,
+			Content:     string(input.FrontProxyCA.Cert),
 		},
 		{
 			Path:        "/etc/kubernetes/pki/front-proxy-ca.key",
 			Owner:       rootOwnerValue,
 			Permissions: "0600",
-			Content:     input.FrontProxyCAKey,
+			Content:     string(input.FrontProxyCA.Key),
 		},
 		{
 			Path:        "/etc/kubernetes/pki/sa.pub",
 			Owner:       rootOwnerValue,
 			Permissions: "0640",
-			Content:     input.SaCert,
+			Content:     string(input.ServiceAccount.Cert),
 		},
 		{
 			Path:        "/etc/kubernetes/pki/sa.key",
 			Owner:       rootOwnerValue,
 			Permissions: "0600",
-			Content:     input.SaKey,
+			Content:     string(input.ServiceAccount.Key),
 		},
 	}
 }

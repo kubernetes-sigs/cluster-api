@@ -155,51 +155,30 @@ func (r *DockerMachineReconciler) create(
 	}
 	r.Log.Info("Is there a cluster?", "cluster-exists", clusterExists)
 
-	controlPlanes, err := actions.ListControlPlanes(c.Name)
-	if err != nil {
-		r.Log.Error(err, "Error listing control planes")
-		return ctrl.Result{}, err
+	if machine.Spec.Bootstrap.Data != nil {
+		var node *nodes.Node
+		if isControlPlaneMachine(machine) {
+			r.Log.Info("Adding a control plane node", "machine-name", machine.GetName(), "cluster-name", c.Name)
+			node, err = actions.AddControlPlane(c.Name, machine.GetName(), *machine.Spec.Version)
+			if err != nil {
+				r.Log.Error(err, "Error adding control plane")
+				return ctrl.Result{}, err
+			}
+		} else {
+			r.Log.Info("Creating a new worker node")
+			node, err = actions.AddWorker(c.Name, machine.GetName(), *machine.Spec.Version)
+			if err != nil {
+				r.Log.Error(err, "Error creating new worker node")
+				return ctrl.Result{}, err
+			}
+		}
+		// set the machine's providerID
+		providerID := actions.ProviderID(node.Name())
+		dockerMachine.Spec.ProviderID = &providerID
+		dockerMachine.Status.Ready = true
+		return ctrl.Result{}, nil
 	}
-
-	var node *nodes.Node
-	switch {
-	case isControlPlaneMachine(machine) && len(controlPlanes) == 0:
-		if len(c.Status.APIEndpoints) == 0 {
-			r.Log.Info("Cluster has no ELB yet, waiting for cluster network to be reconciled")
-			return ctrl.Result{RequeueAfter: time.Second * 30}, nil
-		}
-		node, err = r.createFirstControlPlaneNode(ctx, c, machine)
-		if err != nil {
-			r.Log.Error(err, "Error creating first control plane node")
-			return ctrl.Result{}, err
-		}
-
-	case isControlPlaneMachine(machine) && len(controlPlanes) > 0:
-		r.Log.Info("Adding a control plane node", "machine-name", machine.GetName(), "cluster-name", c.Name)
-		node, err = actions.AddControlPlane(c.Name, machine.GetName(), *machine.Spec.Version)
-		if err != nil {
-			r.Log.Error(err, "Error adding control plane")
-			return ctrl.Result{}, err
-		}
-
-	case !isControlPlaneMachine(machine) && len(controlPlanes) == 0:
-		r.Log.Info("Sending machine back since there is no cluster to join", "machine", machine.Name)
-		return ctrl.Result{RequeueAfter: time.Second * 30}, nil
-
-	case !isControlPlaneMachine(machine) && len(controlPlanes) > 0:
-		r.Log.Info("Creating a new worker node")
-		node, err = actions.AddWorker(c.Name, machine.GetName(), *machine.Spec.Version)
-		if err != nil {
-			r.Log.Error(err, "Error creating new worker node")
-			return ctrl.Result{}, err
-		}
-	}
-	// set the machine's providerID
-	providerID := actions.ProviderID(node.Name())
-	dockerMachine.Spec.ProviderID = &providerID
-	dockerMachine.Status.Ready = true
 	return ctrl.Result{}, nil
-
 }
 
 func (r *DockerMachineReconciler) createFirstControlPlaneNode(

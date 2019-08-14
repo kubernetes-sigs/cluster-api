@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package cluster
+package controllers
 
 import (
 	"context"
@@ -37,7 +37,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/source"
 )
 
-func (r *ReconcileCluster) reconcile(ctx context.Context, cluster *v1alpha2.Cluster) (err error) {
+func (r *ClusterReconciler) reconcile(ctx context.Context, cluster *v1alpha2.Cluster) (err error) {
 	// TODO(vincepri): These can be generalized with an interface and possibly a for loop.
 	errors := []error{}
 	errors = append(errors, r.reconcileInfrastructure(ctx, cluster))
@@ -55,7 +55,7 @@ func (r *ReconcileCluster) reconcile(ctx context.Context, cluster *v1alpha2.Clus
 	return err
 }
 
-func (r *ReconcileCluster) reconcilePhase(ctx context.Context, cluster *v1alpha2.Cluster) error {
+func (r *ClusterReconciler) reconcilePhase(ctx context.Context, cluster *v1alpha2.Cluster) error {
 	// Set the phase to "pending" if nil.
 	if cluster.Status.Phase == "" {
 		cluster.Status.SetTypedPhase(v1alpha2.ClusterPhasePending)
@@ -85,7 +85,7 @@ func (r *ReconcileCluster) reconcilePhase(ctx context.Context, cluster *v1alpha2
 }
 
 // reconcileExternal handles generic unstructured objects referenced by a Cluster.
-func (r *ReconcileCluster) reconcileExternal(ctx context.Context, cluster *v1alpha2.Cluster, ref *corev1.ObjectReference) (*unstructured.Unstructured, error) {
+func (r *ClusterReconciler) reconcileExternal(ctx context.Context, cluster *v1alpha2.Cluster, ref *corev1.ObjectReference) (*unstructured.Unstructured, error) {
 	obj, err := external.Get(r.Client, ref, cluster.Namespace)
 	if err != nil {
 		if apierrors.IsNotFound(err) && !cluster.DeletionTimestamp.IsZero() {
@@ -158,7 +158,7 @@ func (r *ReconcileCluster) reconcileExternal(ctx context.Context, cluster *v1alp
 }
 
 // reconcileInfrastructure reconciles the Spec.InfrastructureRef object on a Cluster.
-func (r *ReconcileCluster) reconcileInfrastructure(ctx context.Context, cluster *v1alpha2.Cluster) error {
+func (r *ClusterReconciler) reconcileInfrastructure(ctx context.Context, cluster *v1alpha2.Cluster) error {
 	if cluster.Spec.InfrastructureRef == nil {
 		return nil
 	}

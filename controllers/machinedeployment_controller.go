@@ -32,9 +32,6 @@ type MachineDeploymentReconciler struct {
 	Log logr.Logger
 }
 
-// +kubebuilder:rbac:groups=cluster.x-k8s.io,resources=machinedeployments,verbs=get;list;watch;create;update;patch;delete
-// +kubebuilder:rbac:groups=cluster.x-k8s.io,resources=machinedeployments/status,verbs=get;update;patch
-
 func (r *MachineDeploymentReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 	_ = context.Background()
 	_ = r.Log.WithValues("machinedeployment", req.NamespacedName)

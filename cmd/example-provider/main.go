@@ -18,24 +18,22 @@ package main
 
 import (
 	"flag"
+	"os"
 
 	"k8s.io/klog"
 	"sigs.k8s.io/cluster-api/api/v1alpha2"
-	capicluster "sigs.k8s.io/cluster-api/pkg/controller/cluster"
-	capimachine "sigs.k8s.io/cluster-api/pkg/controller/machine"
-	"sigs.k8s.io/controller-runtime/pkg/client/config"
-	"sigs.k8s.io/controller-runtime/pkg/manager"
-	"sigs.k8s.io/controller-runtime/pkg/runtime/signals"
+	"sigs.k8s.io/cluster-api/controllers"
+	ctrl "sigs.k8s.io/controller-runtime"
 )
 
 func main() {
 	klog.InitFlags(nil)
 	flag.Parse()
 
-	cfg := config.GetConfigOrDie()
+	cfg := ctrl.GetConfigOrDie()
 
 	// Setup a Manager
-	mgr, err := manager.New(cfg, manager.Options{})
+	mgr, err := ctrl.NewManager(cfg, ctrl.Options{})
 	if err != nil {
 		klog.Fatalf("Failed to set up controller manager: %v", err)
 	}
@@ -44,10 +42,20 @@ func main() {
 		klog.Fatal(err)
 	}
 
-	capimachine.Add(mgr)
-	capicluster.Add(mgr)
+	if err = (&controllers.ClusterReconciler{
+		Client: mgr.GetClient(),
+		Log:    ctrl.Log.WithName("controllers").WithName("Cluster"),
+	}).SetupWithManager(mgr); err != nil {
+		os.Exit(1)
+	}
+	if err = (&controllers.MachineReconciler{
+		Client: mgr.GetClient(),
+		Log:    ctrl.Log.WithName("controllers").WithName("Machine"),
+	}).SetupWithManager(mgr); err != nil {
+		os.Exit(1)
+	}
 
-	if err := mgr.Start(signals.SetupSignalHandler()); err != nil {
+	if err := mgr.Start(ctrl.SetupSignalHandler()); err != nil {
 		klog.Fatalf("Failed to run manager: %v", err)
 	}
 }

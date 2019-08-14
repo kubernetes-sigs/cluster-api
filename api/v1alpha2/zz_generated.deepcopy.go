@@ -117,9 +117,19 @@ func (in *KubeadmConfigSpec) DeepCopyInto(out *KubeadmConfigSpec) {
 		*out = new(v1beta1.JoinConfiguration)
 		(*in).DeepCopyInto(*out)
 	}
-	if in.AdditionalUserDataFiles != nil {
-		in, out := &in.AdditionalUserDataFiles, &out.AdditionalUserDataFiles
+	if in.Files != nil {
+		in, out := &in.Files, &out.Files
 		*out = make([]Files, len(*in))
+		copy(*out, *in)
+	}
+	if in.PreKubeadmCommands != nil {
+		in, out := &in.PreKubeadmCommands, &out.PreKubeadmCommands
+		*out = make([]string, len(*in))
+		copy(*out, *in)
+	}
+	if in.PostKubeadmCommands != nil {
+		in, out := &in.PostKubeadmCommands, &out.PostKubeadmCommands
+		*out = make([]string, len(*in))
 		copy(*out, *in)
 	}
 }

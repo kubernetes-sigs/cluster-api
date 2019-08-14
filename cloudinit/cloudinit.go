@@ -18,10 +18,10 @@ package cloudinit
 
 import (
 	"bytes"
-	"sigs.k8s.io/cluster-api-bootstrap-provider-kubeadm/api/v1alpha2"
 	"text/template"
 
 	"github.com/pkg/errors"
+	"sigs.k8s.io/cluster-api-bootstrap-provider-kubeadm/api/v1alpha2"
 )
 
 const (
@@ -32,10 +32,11 @@ const (
 
 // BaseUserData is shared across all the various types of files written to disk.
 type BaseUserData struct {
-	Header             string
-	AdditionalCommands []string
-	AdditionalFiles    []v1alpha2.Files
-	WriteFiles         []v1alpha2.Files
+	Header              string
+	PreKubeadmCommands  []string
+	PostKubeadmCommands []string
+	AdditionalFiles     []v1alpha2.Files
+	WriteFiles          []v1alpha2.Files
 }
 
 func generate(kind string, tpl string, data interface{}) ([]byte, error) {

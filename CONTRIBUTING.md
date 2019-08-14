@@ -42,6 +42,8 @@ If you're new to the project and want to help, but don't know where to start, we
 1. If you haven't already done so, sign a Contributor License Agreement (see details above).
 1. Fork the desired repo, develop and test your code changes.
 1. Submit a pull request.
+  1. All code PR must be labeled with
+    ⚠️ (:warning:, major or breaking changes), ✨ (:sparkles:, minor or feature additions), 🐛 (:bug:, patch and bugfixes), 📖 (:book:, documentation or proposals), or 🏃 (:running:, other)
 
 All changes must be code reviewed. Coding conventions and standards are explained in the official [developer docs](https://github.com/kubernetes/community/tree/master/contributors/devel). Expect reviewers to request that you avoid common [go style mistakes](https://github.com/golang/go/wiki/CodeReviewComments) in your PRs.
 

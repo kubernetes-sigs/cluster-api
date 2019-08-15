@@ -49,7 +49,7 @@ test: generate lint ## Run tests
 
 .PHONY: test-go
 test-go: ## Run tests
-	go test -v -tags=integration ./...
+	go test -v ./...
 
 ## --------------------------------------
 ## Binaries

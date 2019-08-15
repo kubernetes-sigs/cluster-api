@@ -128,7 +128,13 @@ func (r *KubeadmConfigReconciler) Reconcile(req ctrl.Request) (_ ctrl.Result, re
 		}
 	}()
 
+	holdLock := false
 	initLocker := newControlPlaneInitLocker(ctx, log, r.Client)
+	defer func() {
+		if !holdLock {
+			initLocker.Release(cluster)
+		}
+	}()
 
 	// Check for control plane ready. If it's not ready then we will requeue the machine until it is.
 	// The cluster-api machine controller set this value.
@@ -170,7 +176,6 @@ func (r *KubeadmConfigReconciler) Reconcile(req ctrl.Request) (_ ctrl.Result, re
 		initdata, err := kubeadmv1beta1.ConfigurationToYAML(config.Spec.InitConfiguration)
 		if err != nil {
 			log.Error(err, "failed to marshal init configuration")
-			initLocker.Release(cluster)
 			return ctrl.Result{}, err
 		}
 
@@ -194,7 +199,6 @@ func (r *KubeadmConfigReconciler) Reconcile(req ctrl.Request) (_ ctrl.Result, re
 		clusterdata, err := kubeadmv1beta1.ConfigurationToYAML(config.Spec.ClusterConfiguration)
 		if err != nil {
 			log.Error(err, "failed to marshal cluster configuration")
-			initLocker.Release(cluster)
 			return ctrl.Result{}, err
 		}
 
@@ -228,12 +232,13 @@ func (r *KubeadmConfigReconciler) Reconcile(req ctrl.Request) (_ ctrl.Result, re
 		})
 		if err != nil {
 			log.Error(err, "failed to generate cloud init for bootstrap control plane")
-			initLocker.Release(cluster)
 			return ctrl.Result{}, err
 		}
 
 		config.Status.BootstrapData = cloudInitData
 		config.Status.Ready = true
+
+		holdLock = true
 
 		return ctrl.Result{}, nil
 	}

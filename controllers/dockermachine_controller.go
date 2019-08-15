@@ -158,25 +158,26 @@ func (r *DockerMachineReconciler) create(
 	machine *capiv1alpha2.Machine,
 	dockerMachine *infrastructurev1alpha2.DockerMachine) (ctrl.Result, error) {
 
-	log := r.Log.WithValues("cluster", c.Name)
+	log := r.Log.WithName("machine-create").WithValues("cluster", c.Name, "machine", machine.Name)
 	log.Info("Creating a machine for cluster")
 	var node *nodes.Node
 	var err error
-	if isControlPlaneMachine(machine) {
-		r.Log.Info("Adding a control plane node", "machine-name", machine.GetName(), "cluster-name", c.Name)
+	if util.IsControlPlaneMachine(machine) {
+		log.Info("Adding a control plane node")
 		node, err = actions.AddControlPlane(c.Name, machine.GetName(), *machine.Spec.Version)
 		if err != nil {
-			r.Log.Error(err, "Error adding control plane")
+			log.Error(err, "Error adding control plane")
 			return ctrl.Result{}, err
 		}
 	} else {
-		r.Log.Info("Creating a new worker node")
+		log.Info("Creating a new worker node")
 		node, err = actions.AddWorker(c.Name, machine.GetName(), *machine.Spec.Version)
 		if err != nil {
-			r.Log.Error(err, "Error creating new worker node")
+			log.Error(err, "Error creating new worker node")
 			return ctrl.Result{}, err
 		}
 	}
+	log.Info("Setting the providerID", "provider-id", node.Name())
 	// set the machine's providerID
 	providerID := actions.ProviderID(node.Name())
 	dockerMachine.Spec.ProviderID = &providerID
@@ -204,7 +205,7 @@ func (r *DockerMachineReconciler) reconcileDelete(
 	dockerMachine *infrastructurev1alpha2.DockerMachine,
 ) (ctrl.Result, error) {
 	log := r.Log.WithValues("cluster", cluster.Name, "machine", machine.Name)
-	if isControlPlaneMachine(machine) {
+	if util.IsControlPlaneMachine(machine) {
 		err := actions.DeleteControlPlane(cluster.Name, machine.Name)
 		if err != nil {
 			log.Error(err, "Error deleting control-plane machine")
@@ -221,14 +222,6 @@ func (r *DockerMachineReconciler) reconcileDelete(
 	dockerMachine.ObjectMeta.Finalizers = util.Filter(dockerMachine.ObjectMeta.Finalizers, infrastructurev1alpha2.MachineFinalizer)
 
 	return ctrl.Result{}, nil
-}
-
-func isControlPlaneMachine(machine *capiv1alpha2.Machine) bool {
-	setValue := getRole(machine)
-	if setValue == clusterAPIControlPlaneSetLabel {
-		return true
-	}
-	return false
 }
 
 func (r *DockerMachineReconciler) patchMachine(ctx context.Context,

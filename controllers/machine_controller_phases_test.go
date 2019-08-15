@@ -19,6 +19,7 @@ package controllers
 import (
 	"context"
 	"testing"
+	"time"
 
 	"github.com/onsi/gomega"
 	corev1 "k8s.io/api/core/v1"
@@ -30,6 +31,10 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 	"sigs.k8s.io/controller-runtime/pkg/log"
 )
+
+func init() {
+	externalReadyWait = 1 * time.Second
+}
 
 func TestReconcilePhase(t *testing.T) {
 	deletionTimestamp := metav1.Now()

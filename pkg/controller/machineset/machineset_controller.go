@@ -522,6 +522,51 @@ func (r *ReconcileMachineSet) MachineToMachineSets(o handler.MapObject) []reconc
 	return result
 }
 
+func (c *ReconcileMachineSet) getMachineSetsForMachine(m *clusterv1.Machine) []*clusterv1.MachineSet {
+	if len(m.Labels) == 0 {
+		klog.Warningf("No machine sets found for Machine %v because it has no labels", m.Name)
+		return nil
+	}
+
+	msList := &clusterv1.MachineSetList{}
+	err := c.Client.List(context.Background(), msList, client.InNamespace(m.Namespace))
+	if err != nil {
+		klog.Errorf("Failed to list machine sets, %v", err)
+		return nil
+	}
+
+	var mss []*clusterv1.MachineSet
+	for idx := range msList.Items {
+		ms := &msList.Items[idx]
+		if hasMatchingLabels(ms, m) {
+			mss = append(mss, ms)
+		}
+	}
+
+	return mss
+}
+
+func hasMatchingLabels(machineSet *clusterv1.MachineSet, machine *clusterv1.Machine) bool {
+	selector, err := metav1.LabelSelectorAsSelector(&machineSet.Spec.Selector)
+	if err != nil {
+		klog.Warningf("unable to convert selector: %v", err)
+		return false
+	}
+
+	// If a deployment with a nil or empty selector creeps in, it should match nothing, not everything.
+	if selector.Empty() {
+		klog.V(2).Infof("%v machineset has empty selector", machineSet.Name)
+		return false
+	}
+
+	if !selector.Matches(labels.Set(machine.Labels)) {
+		klog.V(4).Infof("%v machine has mismatch labels", machine.Name)
+		return false
+	}
+
+	return true
+}
+
 func shouldAdopt(ms *clusterv1.MachineSet) bool {
 	return !util.HasOwner(ms.OwnerReferences, clusterv1.GroupVersion.String(), []string{"MachineDeployment", "Cluster"})
 }

@@ -103,7 +103,7 @@ func (r *MachineReconciler) Reconcile(req ctrl.Request) (_ ctrl.Result, reterr e
 			m.Labels[clusterv1.MachineClusterLabelName], m.Name, m.Namespace)
 	}
 
-	if cluster != nil && shouldAdopt(m) {
+	if cluster != nil && r.shouldAdopt(m) {
 		m.OwnerReferences = util.EnsureOwnerRef(m.OwnerReferences, metav1.OwnerReference{
 			APIVersion: cluster.APIVersion,
 			Kind:       cluster.Kind,
@@ -286,6 +286,6 @@ func (r *MachineReconciler) patchMachine(ctx context.Context, machine *clusterv1
 	return nil
 }
 
-func shouldAdopt(m *clusterv1.Machine) bool {
+func (r *MachineReconciler) shouldAdopt(m *clusterv1.Machine) bool {
 	return !util.HasOwner(m.OwnerReferences, clusterv1.GroupVersion.String(), []string{"MachineSet", "Cluster"})
 }

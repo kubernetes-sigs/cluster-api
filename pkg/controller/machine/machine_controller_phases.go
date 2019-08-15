@@ -275,7 +275,7 @@ func (r *ReconcileMachine) reconcileClusterAnnotations(ctx context.Context, clus
 		}
 
 		if _, ok := cluster.Annotations[v1alpha2.ClusterAnnotationControlPlaneReady]; !ok {
-			clusterPatch := client.MergeFrom(cluster)
+			clusterPatch := client.MergeFrom(cluster.DeepCopy())
 			cluster.Annotations[v1alpha2.ClusterAnnotationControlPlaneReady] = "true"
 			if err := r.Client.Patch(ctx, cluster, clusterPatch); err != nil {
 				return errors.Wrapf(err, "failed to set control-plane-ready annotation on Cluster %q in namespace %q",

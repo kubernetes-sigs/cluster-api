@@ -96,7 +96,7 @@ func (r *MachineReconciler) Reconcile(req ctrl.Request) (_ ctrl.Result, reterr e
 	// for machine management.
 	cluster, err := util.GetClusterFromMetadata(ctx, r.Client, m.ObjectMeta)
 	if errors.Cause(err) == util.ErrNoCluster {
-		klog.Infof("Machine %q in namespace %q doesn't specify %q label, assuming nil cluster",
+		klog.V(2).Infof("Machine %q in namespace %q doesn't specify %q label, assuming nil cluster",
 			m.Name, m.Namespace, clusterv1.MachineClusterLabelName)
 	} else if err != nil {
 		return ctrl.Result{}, errors.Wrapf(err, "failed to get cluster %q for machine %q in namespace %q",

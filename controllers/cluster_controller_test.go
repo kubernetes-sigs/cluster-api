@@ -38,11 +38,11 @@ var _ = Describe("Cluster Reconciler", func() {
 
 		// Create the Cluster object and expect the Reconcile and Deployment to be created
 		Expect(k8sClient.Create(ctx, instance)).ToNot(HaveOccurred())
+		key := client.ObjectKey{Namespace: instance.Namespace, Name: instance.Name}
 		defer k8sClient.Delete(ctx, instance)
 
 		// Make sure the Cluster exists.
 		Eventually(func() bool {
-			key := client.ObjectKey{Namespace: instance.Namespace, Name: instance.Name}
 			if err := k8sClient.Get(ctx, key, instance); err != nil {
 				return false
 			}
@@ -54,15 +54,23 @@ var _ = Describe("Cluster Reconciler", func() {
 		// Setup
 		cluster := &clusterv1.Cluster{
 			ObjectMeta: metav1.ObjectMeta{
-				Name:      "test-cluster",
-				Namespace: "default",
+				GenerateName: "test-",
+				Namespace:    "default",
 			},
 		}
-		key := client.ObjectKey{Name: "test-cluster", Namespace: "default"}
 		Expect(k8sClient.Create(ctx, cluster)).To(BeNil())
+		key := client.ObjectKey{Name: cluster.Name, Namespace: cluster.Namespace}
 		defer k8sClient.Delete(ctx, cluster)
 
-		// Reconcile
+		// Wait for reconciliation to happen.
+		Eventually(func() bool {
+			if err := k8sClient.Get(ctx, key, cluster); err != nil {
+				return false
+			}
+			return len(cluster.Finalizers) > 0
+		}, timeout).Should(BeTrue())
+
+		// Patch
 		Eventually(func() bool {
 			patch := client.MergeFrom(cluster.DeepCopy())
 			cluster.Spec.InfrastructureRef = &v1.ObjectReference{Name: "test"}
@@ -73,9 +81,11 @@ var _ = Describe("Cluster Reconciler", func() {
 		// Assertions
 		Eventually(func() bool {
 			instance := &clusterv1.Cluster{}
-			Expect(k8sClient.Get(ctx, key, instance)).To(BeNil())
-			Expect(instance.Spec.InfrastructureRef.Name).To(BeEquivalentTo("test"))
-			return true
+			if err := k8sClient.Get(ctx, key, instance); err != nil {
+				return false
+			}
+			return instance.Spec.InfrastructureRef != nil &&
+				instance.Spec.InfrastructureRef.Name == "test"
 		}, timeout).Should(BeTrue())
 	})
 
@@ -83,15 +93,23 @@ var _ = Describe("Cluster Reconciler", func() {
 		// Setup
 		cluster := &clusterv1.Cluster{
 			ObjectMeta: metav1.ObjectMeta{
-				Name:      "test-cluster",
-				Namespace: "default",
+				GenerateName: "test-",
+				Namespace:    "default",
 			},
 		}
-		key := client.ObjectKey{Name: "test-cluster", Namespace: "default"}
 		Expect(k8sClient.Create(ctx, cluster)).To(BeNil())
+		key := client.ObjectKey{Name: cluster.Name, Namespace: cluster.Namespace}
 		defer k8sClient.Delete(ctx, cluster)
 
-		// Reconcile
+		// Wait for reconciliation to happen.
+		Eventually(func() bool {
+			if err := k8sClient.Get(ctx, key, cluster); err != nil {
+				return false
+			}
+			return len(cluster.Finalizers) > 0
+		}, timeout).Should(BeTrue())
+
+		// Patch
 		Eventually(func() bool {
 			patch := client.MergeFrom(cluster.DeepCopy())
 			cluster.Status.InfrastructureReady = true
@@ -102,9 +120,10 @@ var _ = Describe("Cluster Reconciler", func() {
 		// Assertions
 		Eventually(func() bool {
 			instance := &clusterv1.Cluster{}
-			Expect(k8sClient.Get(ctx, key, instance)).To(BeNil())
-			Expect(instance.Status.InfrastructureReady).To(BeTrue())
-			return true
+			if err := k8sClient.Get(ctx, key, instance); err != nil {
+				return false
+			}
+			return instance.Status.InfrastructureReady
 		}, timeout).Should(BeTrue())
 	})
 
@@ -112,15 +131,23 @@ var _ = Describe("Cluster Reconciler", func() {
 		// Setup
 		cluster := &clusterv1.Cluster{
 			ObjectMeta: metav1.ObjectMeta{
-				Name:      "test-cluster",
-				Namespace: "default",
+				GenerateName: "test-",
+				Namespace:    "default",
 			},
 		}
-		key := client.ObjectKey{Name: "test-cluster", Namespace: "default"}
 		Expect(k8sClient.Create(ctx, cluster)).To(BeNil())
+		key := client.ObjectKey{Name: cluster.Name, Namespace: cluster.Namespace}
 		defer k8sClient.Delete(ctx, cluster)
 
-		// Reconcile
+		// Wait for reconciliation to happen.
+		Eventually(func() bool {
+			if err := k8sClient.Get(ctx, key, cluster); err != nil {
+				return false
+			}
+			return len(cluster.Finalizers) > 0
+		}, timeout).Should(BeTrue())
+
+		// Patch
 		Eventually(func() bool {
 			patch := client.MergeFrom(cluster.DeepCopy())
 			cluster.Status.InfrastructureReady = true
@@ -132,10 +159,12 @@ var _ = Describe("Cluster Reconciler", func() {
 		// Assertions
 		Eventually(func() bool {
 			instance := &clusterv1.Cluster{}
-			Expect(k8sClient.Get(ctx, key, instance)).To(BeNil())
-			Expect(instance.Status.InfrastructureReady).To(BeTrue())
-			Expect(instance.Spec.InfrastructureRef.Name).To(BeEquivalentTo("test"))
-			return true
+			if err := k8sClient.Get(ctx, key, instance); err != nil {
+				return false
+			}
+			return instance.Status.InfrastructureReady &&
+				instance.Spec.InfrastructureRef != nil &&
+				instance.Spec.InfrastructureRef.Name == "test"
 		}, timeout).Should(BeTrue())
 	})
 })

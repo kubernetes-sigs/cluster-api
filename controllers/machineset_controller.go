@@ -136,7 +136,7 @@ func (r *MachineSetReconciler) reconcile(ctx context.Context, machineSet *cluste
 	// for machine management.
 	cluster, err := util.GetClusterFromMetadata(ctx, r.Client, machineSet.ObjectMeta)
 	if errors.Cause(err) == util.ErrNoCluster {
-		klog.Infof("MachineSet %q in namespace %q doesn't specify %q label, assuming nil cluster", machineSet.Name, machineSet.Namespace, clusterv1.MachineClusterLabelName)
+		klog.V(2).Infof("MachineSet %q in namespace %q doesn't specify %q label, assuming nil cluster", machineSet.Name, machineSet.Namespace, clusterv1.MachineClusterLabelName)
 	} else if err != nil {
 		return ctrl.Result{}, err
 	}
@@ -216,26 +216,6 @@ func (r *MachineSetReconciler) reconcile(ctx context.Context, machineSet *cluste
 	}
 
 	return ctrl.Result{}, nil
-}
-
-// getCluster reuturns the Cluster associated with the MachineSet, if any.
-func (r *MachineSetReconciler) getCluster(ms *clusterv1.MachineSet) (*clusterv1.Cluster, error) {
-	if ms.Spec.Template.Labels[clusterv1.MachineClusterLabelName] == "" {
-		klog.Infof("MachineSet %q in namespace %q doesn't specify %q label, assuming nil cluster", ms.Name, ms.Namespace, clusterv1.MachineClusterLabelName)
-		return nil, nil
-	}
-
-	cluster := &clusterv1.Cluster{}
-	key := client.ObjectKey{
-		Namespace: ms.Namespace,
-		Name:      ms.Spec.Template.Labels[clusterv1.MachineClusterLabelName],
-	}
-
-	if err := r.Client.Get(context.Background(), key, cluster); err != nil {
-		return nil, err
-	}
-
-	return cluster, nil
 }
 
 // syncReplicas scales Machine resources up or down.

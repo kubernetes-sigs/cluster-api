@@ -27,6 +27,7 @@ import (
 	"sigs.k8s.io/cluster-api/api/v1alpha2"
 	"sigs.k8s.io/cluster-api/controllers/noderefutil"
 	"sigs.k8s.io/cluster-api/controllers/remote"
+	"sigs.k8s.io/cluster-api/util"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
@@ -35,7 +36,7 @@ const (
 	statusUpdateRetries = 1
 )
 
-func (c *MachineSetReconciler) calculateStatus(ms *v1alpha2.MachineSet, filteredMachines []*v1alpha2.Machine) v1alpha2.MachineSetStatus {
+func (r *MachineSetReconciler) calculateStatus(ms *v1alpha2.MachineSet, filteredMachines []*v1alpha2.Machine) v1alpha2.MachineSetStatus {
 	newStatus := ms.Status
 
 	// Count the number of machines that have labels matching the labels of the machine
@@ -49,7 +50,7 @@ func (c *MachineSetReconciler) calculateStatus(ms *v1alpha2.MachineSet, filtered
 	templateLabel := labels.Set(ms.Spec.Template.Labels).AsSelectorPreValidated()
 
 	// Retrieve Cluster, if any.
-	cluster, _ := c.getCluster(ms)
+	cluster, _ := util.GetClusterFromMetadata(context.Background(), r.Client, ms.ObjectMeta)
 
 	for _, machine := range filteredMachines {
 		if templateLabel.Matches(labels.Set(machine.Labels)) {
@@ -62,7 +63,7 @@ func (c *MachineSetReconciler) calculateStatus(ms *v1alpha2.MachineSet, filtered
 			continue
 		}
 
-		node, err := c.getMachineNode(cluster, machine)
+		node, err := r.getMachineNode(cluster, machine)
 		if err != nil {
 			klog.Warningf("Unable to retrieve Node status for Machine %q in namespace %q: %v",
 				machine.Name, machine.Namespace, err)
@@ -136,16 +137,16 @@ func updateMachineSetStatus(c client.Client, ms *v1alpha2.MachineSet, newStatus 
 	return nil, updateErr
 }
 
-func (c *MachineSetReconciler) getMachineNode(cluster *v1alpha2.Cluster, machine *v1alpha2.Machine) (*corev1.Node, error) {
+func (r *MachineSetReconciler) getMachineNode(cluster *v1alpha2.Cluster, machine *v1alpha2.Machine) (*corev1.Node, error) {
 	if cluster == nil {
 		// Try to retrieve the Node from the local cluster, if no Cluster reference is found.
 		node := &corev1.Node{}
-		err := c.Client.Get(context.Background(), client.ObjectKey{Name: machine.Status.NodeRef.Name}, node)
+		err := r.Client.Get(context.Background(), client.ObjectKey{Name: machine.Status.NodeRef.Name}, node)
 		return node, err
 	}
 
 	// Otherwise, proceed to get the remote cluster client and get the Node.
-	remoteClient, err := remote.NewClusterClient(c.Client, cluster)
+	remoteClient, err := remote.NewClusterClient(r.Client, cluster)
 	if err != nil {
 		return nil, err
 	}

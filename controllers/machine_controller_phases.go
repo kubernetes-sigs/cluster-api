@@ -20,7 +20,6 @@ import (
 	"context"
 	"time"
 
-	"github.com/davecgh/go-spew/spew"
 	"github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
@@ -231,8 +230,6 @@ func (r *MachineReconciler) reconcileInfrastructure(ctx context.Context, m *v1al
 		return err
 	}
 
-	spew.Dump(m.GetDeletionTimestamp())
-	spew.Dump(infraConfig.GetDeletionTimestamp())
 	if m.Status.InfrastructureReady || !infraConfig.GetDeletionTimestamp().IsZero() {
 		return nil
 	}

@@ -471,7 +471,6 @@ k8s.io/client-go/tools/clientcmd/api/v1
 k8s.io/client-go/restmapper
 k8s.io/client-go/tools/cache
 k8s.io/client-go/third_party/forked/golang/template
-k8s.io/client-go/testing
 k8s.io/client-go/discovery/fake
 k8s.io/client-go/kubernetes/typed/admissionregistration/v1beta1/fake
 k8s.io/client-go/kubernetes/typed/apps/v1/fake
@@ -509,6 +508,7 @@ k8s.io/client-go/kubernetes/typed/settings/v1alpha1/fake
 k8s.io/client-go/kubernetes/typed/storage/v1/fake
 k8s.io/client-go/kubernetes/typed/storage/v1alpha1/fake
 k8s.io/client-go/kubernetes/typed/storage/v1beta1/fake
+k8s.io/client-go/testing
 k8s.io/client-go/tools/pager
 # k8s.io/component-base v0.0.0-20190409021516-bd2732e5c3f7
 k8s.io/component-base/cli/flag

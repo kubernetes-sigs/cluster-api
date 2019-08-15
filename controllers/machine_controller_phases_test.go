@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package machine
+package controllers
 
 import (
 	"context"
@@ -24,11 +24,11 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
-	"k8s.io/client-go/kubernetes/scheme"
 	"k8s.io/utils/pointer"
 	"sigs.k8s.io/cluster-api/api/v1alpha2"
 	capierrors "sigs.k8s.io/cluster-api/errors"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
+	"sigs.k8s.io/controller-runtime/pkg/log"
 )
 
 func TestReconcilePhase(t *testing.T) {
@@ -350,9 +350,9 @@ func TestReconcilePhase(t *testing.T) {
 
 			bootstrapConfig := &unstructured.Unstructured{Object: tc.bootstrapConfig}
 			infraConfig := &unstructured.Unstructured{Object: tc.infraConfig}
-			r := &ReconcileMachine{
+			r := &MachineReconciler{
 				Client: fake.NewFakeClient(tc.machine, bootstrapConfig, infraConfig),
-				scheme: scheme.Scheme,
+				Log:    log.Log,
 			}
 
 			err := r.reconcile(context.Background(), nil, tc.machine)
@@ -588,9 +588,9 @@ func TestReconcileBootstrap(t *testing.T) {
 			}
 
 			bootstrapConfig := &unstructured.Unstructured{Object: tc.bootstrapConfig}
-			r := &ReconcileMachine{
+			r := &MachineReconciler{
 				Client: fake.NewFakeClient(tc.machine, bootstrapConfig),
-				scheme: scheme.Scheme,
+				Log:    log.Log,
 			}
 
 			err := r.reconcileBootstrap(context.Background(), tc.machine)
@@ -678,9 +678,9 @@ func TestReconcileInfrastructure(t *testing.T) {
 			}
 
 			infraConfig := &unstructured.Unstructured{Object: tc.infraConfig}
-			r := &ReconcileMachine{
+			r := &MachineReconciler{
 				Client: fake.NewFakeClient(tc.machine, infraConfig),
-				scheme: scheme.Scheme,
+				Log:    log.Log,
 			}
 
 			err := r.reconcileInfrastructure(context.Background(), tc.machine)

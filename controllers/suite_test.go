@@ -94,6 +94,10 @@ var _ = BeforeSuite(func(done Done) {
 		Client: mgr.GetClient(),
 		Log:    log.Log,
 	}).SetupWithManager(mgr)).NotTo(HaveOccurred())
+	Expect((&MachineReconciler{
+		Client: mgr.GetClient(),
+		Log:    log.Log,
+	}).SetupWithManager(mgr)).NotTo(HaveOccurred())
 
 	By("starting the manager")
 	go func() {

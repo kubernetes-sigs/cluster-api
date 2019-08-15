@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package machine
+package controllers
 
 import (
 	"context"
@@ -35,7 +35,7 @@ var (
 	ErrNodeNotFound = errors.New("cannot find node with matching ProviderID")
 )
 
-func (r *ReconcileMachine) reconcileNodeRef(ctx context.Context, cluster *v1alpha2.Cluster, machine *v1alpha2.Machine) error {
+func (r *MachineReconciler) reconcileNodeRef(ctx context.Context, cluster *v1alpha2.Cluster, machine *v1alpha2.Machine) error {
 	// Check that the Machine hasn't been deleted or in the process.
 	if !machine.DeletionTimestamp.IsZero() {
 		return nil
@@ -93,7 +93,7 @@ func (r *ReconcileMachine) reconcileNodeRef(ctx context.Context, cluster *v1alph
 	return nil
 }
 
-func (r *ReconcileMachine) getNodeReference(client corev1.NodesGetter, providerID *noderefutil.ProviderID) (*apicorev1.ObjectReference, error) {
+func (r *MachineReconciler) getNodeReference(client corev1.NodesGetter, providerID *noderefutil.ProviderID) (*apicorev1.ObjectReference, error) {
 	listOpt := metav1.ListOptions{}
 
 	for {

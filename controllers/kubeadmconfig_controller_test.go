@@ -17,19 +17,21 @@ limitations under the License.
 package controllers
 
 import (
+	"context"
 	"fmt"
 	"reflect"
 	"testing"
 	"time"
 
 	"github.com/pkg/errors"
-	v1 "k8s.io/api/core/v1"
+	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	fakeclient "k8s.io/client-go/kubernetes/fake"
-	corev1 "k8s.io/client-go/kubernetes/typed/core/v1"
+	typedcorev1 "k8s.io/client-go/kubernetes/typed/core/v1"
 	cabpkV1alpha2 "sigs.k8s.io/cluster-api-bootstrap-provider-kubeadm/api/v1alpha2"
+	"sigs.k8s.io/cluster-api-bootstrap-provider-kubeadm/certs"
 	kubeadmv1beta1 "sigs.k8s.io/cluster-api-bootstrap-provider-kubeadm/kubeadm/v1beta1"
 	capiv1alpha2 "sigs.k8s.io/cluster-api/pkg/apis/cluster/v1alpha2"
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -42,6 +44,7 @@ func setupScheme() *runtime.Scheme {
 	scheme := runtime.NewScheme()
 	capiv1alpha2.AddToScheme(scheme)
 	cabpkV1alpha2.AddToScheme(scheme)
+	corev1.AddToScheme(scheme)
 	return scheme
 }
 
@@ -328,13 +331,13 @@ func TestReconcileKubeadmConfigForInitNodesIfControlPlaneIsNotReady(t *testing.T
 	cluster := newCluster("cluster")
 	cluster.Status.InfrastructureReady = true
 
-	controlPaneMachine := newControlPlaneMachine(cluster, "control-plane-machine")
-	controlPaneInitConfig := newControlPlaneInitKubeadmConfig(controlPaneMachine, "control-plane-init-cfg")
+	controlPlaneMachine := newControlPlaneMachine(cluster, "control-plane-machine")
+	controlPlaneInitConfig := newControlPlaneInitKubeadmConfig(controlPlaneMachine, "control-plane-init-cfg")
 
 	objects := []runtime.Object{
 		cluster,
-		controlPaneMachine,
-		controlPaneInitConfig,
+		controlPlaneMachine,
+		controlPlaneInitConfig,
 	}
 	myclient := fake.NewFakeClientWithScheme(setupScheme(), objects...)
 
@@ -371,6 +374,17 @@ func TestReconcileKubeadmConfigForInitNodesIfControlPlaneIsNotReady(t *testing.T
 
 	if cfg.Status.BootstrapData == nil {
 		t.Fatal("Expected status ready")
+	}
+
+	certsSecret, err := getCertsSecret(myclient, cluster.GetName())
+	if err != nil {
+		t.Fatal(fmt.Sprintf("Failed to locate certs secret:\n %+v", err))
+	}
+
+	certsMap := certs.NewCertificatesFromMap(certsSecret.Data)
+	err = certsMap.Validate()
+	if err != nil {
+		t.Fatal(fmt.Sprintf("Certificates not valid:\n %+v", err))
 	}
 }
 
@@ -502,6 +516,17 @@ func TestReconcileIfJoinNodesAndControlPlaneIsReady(t *testing.T) {
 		controlPaneJoinConfig,
 	}
 	myclient := fake.NewFakeClientWithScheme(setupScheme(), objects...)
+
+	// stage a secret for certs
+	certificates, _ := certs.NewCertificates()
+	secret := &corev1.Secret{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      ClusterCertificatesSecretName(cluster.GetName()),
+			Namespace: controlPaneJoinConfig.GetNamespace(),
+		},
+		Data: certificates.ToMap(),
+	}
+	_ = myclient.Create(context.Background(), secret)
 
 	k := &KubeadmConfigReconciler{
 		Log:                  log.Log,
@@ -792,7 +817,7 @@ func newMachine(cluster *capiv1alpha2.Cluster, name string) *capiv1alpha2.Machin
 		},
 		Spec: capiv1alpha2.MachineSpec{
 			Bootstrap: capiv1alpha2.Bootstrap{
-				ConfigRef: &v1.ObjectReference{
+				ConfigRef: &corev1.ObjectReference{
 					Kind:       "KubeadmConfig",
 					APIVersion: "v1alpha2",
 				},
@@ -865,6 +890,18 @@ func newControlPlaneInitKubeadmConfig(machine *capiv1alpha2.Machine, name string
 	return c
 }
 
+// getCertsSecret returns a Secret object from the cluster containing certificates
+func getCertsSecret(c client.Client, clusterName string) (*corev1.Secret, error) {
+	ctx := context.Background()
+	certSecretKey := client.ObjectKey{
+		Namespace: "default",
+		Name:      ClusterCertificatesSecretName(clusterName),
+	}
+	certSecret := &corev1.Secret{}
+	err := c.Get(ctx, certSecretKey, certSecret)
+	return certSecret, err
+}
+
 func stringPtr(s string) *string {
 	return &s
 }
@@ -876,9 +913,9 @@ func newFakeSecretFactory() FakeSecretFactory {
 }
 
 type FakeSecretFactory struct {
-	client corev1.SecretInterface
+	client typedcorev1.SecretInterface
 }
 
-func (f FakeSecretFactory) NewSecretsClient(client client.Client, cluster *capiv1alpha2.Cluster) (corev1.SecretInterface, error) {
+func (f FakeSecretFactory) NewSecretsClient(client client.Client, cluster *capiv1alpha2.Cluster) (typedcorev1.SecretInterface, error) {
 	return f.client, nil
 }

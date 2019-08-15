@@ -50,7 +50,7 @@ all: manager
 # Run tests
 .PHONY: test
 test: generate fmt vet
-	go test ./api/... ./controllers/... -coverprofile cover.out
+	go test ./api/... ./certs/... ./controllers/... -coverprofile cover.out
 
 # Build manager binary
 .PHONY: manager

@@ -24,4 +24,4 @@ issue:
 run:
   deadline: 2m
   skip-files:
-    - ".*\\.deepcopy\\.go$"
+    - "zz_generated.*\\.go$"

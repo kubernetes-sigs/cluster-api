@@ -138,10 +138,6 @@ modules: ## Runs go mod to ensure modules are up to date.
 	go mod tidy
 	cd $(TOOLS_DIR); go mod tidy
 
-.PHONY: gazelle
-gazelle: ## Run Bazel Gazelle
-	(which bazel && ./hack/update-bazel.sh) || true
-
 ## --------------------------------------
 ## Docker
 ## --------------------------------------

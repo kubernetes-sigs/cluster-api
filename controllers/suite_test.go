@@ -51,12 +51,13 @@ const (
 )
 
 var (
-	cfg       *rest.Config
-	k8sClient client.Client
-	testEnv   *envtest.Environment
-	mgr       manager.Manager
-	doneMgr   = make(chan struct{})
-	ctx       = context.Background()
+	cfg               *rest.Config
+	k8sClient         client.Client
+	testEnv           *envtest.Environment
+	mgr               manager.Manager
+	clusterReconciler *ClusterReconciler
+	doneMgr           = make(chan struct{})
+	ctx               = context.Background()
 )
 
 func TestAPIs(t *testing.T) {
@@ -90,14 +91,11 @@ var _ = BeforeSuite(func(done Done) {
 	By("setting up a new manager")
 	mgr, err = manager.New(cfg, manager.Options{Scheme: scheme.Scheme, MetricsBindAddress: "0"})
 	Expect(err).NotTo(HaveOccurred())
-	Expect((&ClusterReconciler{
+	clusterReconciler = &ClusterReconciler{
 		Client: mgr.GetClient(),
 		Log:    log.Log,
-	}).SetupWithManager(mgr)).NotTo(HaveOccurred())
-	Expect((&MachineReconciler{
-		Client: mgr.GetClient(),
-		Log:    log.Log,
-	}).SetupWithManager(mgr)).NotTo(HaveOccurred())
+	}
+	Expect(clusterReconciler.SetupWithManager(mgr)).NotTo(HaveOccurred())
 
 	By("starting the manager")
 	go func() {

@@ -89,15 +89,7 @@ func (r *ClusterReconciler) Reconcile(req ctrl.Request) (_ ctrl.Result, reterr e
 
 	// Always issue a Patch for the Cluster object and its status after each reconciliation.
 	defer func() {
-		if err := r.Client.Patch(ctx, cluster, patchCluster); err != nil {
-			klog.Errorf("Error Patching Cluster %q in namespace %q: %v", cluster.Name, cluster.Namespace, err)
-			if reterr == nil {
-				reterr = err
-			}
-			return
-		}
-		if err := r.Client.Status().Patch(ctx, cluster, patchCluster); err != nil {
-			klog.Errorf("Error Patching Cluster status %q in namespace %q: %v", cluster.Name, cluster.Namespace, err)
+		if err := r.patchCluster(ctx, cluster, patchCluster); err != nil {
 			if reterr == nil {
 				reterr = err
 			}
@@ -240,4 +232,18 @@ func (r *ClusterReconciler) listChildren(ctx context.Context, cluster *clusterv1
 	}
 
 	return children, nil
+}
+
+func (r *ClusterReconciler) patchCluster(ctx context.Context, cluster *clusterv1.Cluster, patch client.Patch) error {
+	log := r.Log.WithValues("cluster-namespace", cluster.Namespace, "cluster-name", cluster.Name)
+	// Always patch the status before the spec
+	if err := r.Client.Status().Patch(ctx, cluster, patch); err != nil {
+		log.Error(err, "Error patching cluster status")
+		return err
+	}
+	if err := r.Client.Patch(ctx, cluster, patch); err != nil {
+		log.Error(err, "Error patching cluster")
+		return err
+	}
+	return nil
 }

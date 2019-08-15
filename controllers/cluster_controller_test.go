@@ -19,6 +19,7 @@ package controllers
 import (
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
+	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha2"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -49,4 +50,92 @@ var _ = Describe("Cluster Reconciler", func() {
 		}, timeout).Should(BeTrue())
 	})
 
+	It("Should successfully patch a cluster object if the status diff is empty but the spec diff is not", func() {
+		// Setup
+		cluster := &clusterv1.Cluster{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      "test-cluster",
+				Namespace: "default",
+			},
+		}
+		key := client.ObjectKey{Name: "test-cluster", Namespace: "default"}
+		Expect(k8sClient.Create(ctx, cluster)).To(BeNil())
+		defer k8sClient.Delete(ctx, cluster)
+
+		// Reconcile
+		Eventually(func() bool {
+			patch := client.MergeFrom(cluster.DeepCopy())
+			cluster.Spec.InfrastructureRef = &v1.ObjectReference{Name: "test"}
+			Expect(clusterReconciler.patchCluster(ctx, cluster, patch)).To(BeNil())
+			return true
+		}, timeout).Should(BeTrue())
+
+		// Assertions
+		Eventually(func() bool {
+			instance := &clusterv1.Cluster{}
+			Expect(k8sClient.Get(ctx, key, instance)).To(BeNil())
+			Expect(instance.Spec.InfrastructureRef.Name).To(BeEquivalentTo("test"))
+			return true
+		}, timeout).Should(BeTrue())
+	})
+
+	It("Should successfully patch a cluster object if the spec diff is empty but the status diff is not", func() {
+		// Setup
+		cluster := &clusterv1.Cluster{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      "test-cluster",
+				Namespace: "default",
+			},
+		}
+		key := client.ObjectKey{Name: "test-cluster", Namespace: "default"}
+		Expect(k8sClient.Create(ctx, cluster)).To(BeNil())
+		defer k8sClient.Delete(ctx, cluster)
+
+		// Reconcile
+		Eventually(func() bool {
+			patch := client.MergeFrom(cluster.DeepCopy())
+			cluster.Status.InfrastructureReady = true
+			Expect(clusterReconciler.patchCluster(ctx, cluster, patch)).To(BeNil())
+			return true
+		}, timeout).Should(BeTrue())
+
+		// Assertions
+		Eventually(func() bool {
+			instance := &clusterv1.Cluster{}
+			Expect(k8sClient.Get(ctx, key, instance)).To(BeNil())
+			Expect(instance.Status.InfrastructureReady).To(BeTrue())
+			return true
+		}, timeout).Should(BeTrue())
+	})
+
+	It("Should successfully patch a cluster object if both the spec diff and status diff are non empty", func() {
+		// Setup
+		cluster := &clusterv1.Cluster{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      "test-cluster",
+				Namespace: "default",
+			},
+		}
+		key := client.ObjectKey{Name: "test-cluster", Namespace: "default"}
+		Expect(k8sClient.Create(ctx, cluster)).To(BeNil())
+		defer k8sClient.Delete(ctx, cluster)
+
+		// Reconcile
+		Eventually(func() bool {
+			patch := client.MergeFrom(cluster.DeepCopy())
+			cluster.Status.InfrastructureReady = true
+			cluster.Spec.InfrastructureRef = &v1.ObjectReference{Name: "test"}
+			Expect(clusterReconciler.patchCluster(ctx, cluster, patch)).To(BeNil())
+			return true
+		}, timeout).Should(BeTrue())
+
+		// Assertions
+		Eventually(func() bool {
+			instance := &clusterv1.Cluster{}
+			Expect(k8sClient.Get(ctx, key, instance)).To(BeNil())
+			Expect(instance.Status.InfrastructureReady).To(BeTrue())
+			Expect(instance.Spec.InfrastructureRef.Name).To(BeEquivalentTo("test"))
+			return true
+		}, timeout).Should(BeTrue())
+	})
 })

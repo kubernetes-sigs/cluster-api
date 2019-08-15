@@ -200,3 +200,25 @@ func EncodePublicKeyPEM(key *rsa.PublicKey) ([]byte, error) {
 	}
 	return pem.EncodeToMemory(&block), nil
 }
+
+// DecodeCertPEM attempts to return a decoded certificate or nil
+// if the encoded input does not contain a certificate.
+func DecodeCertPEM(encoded []byte) (*x509.Certificate, error) {
+	block, _ := pem.Decode(encoded)
+	if block == nil {
+		return nil, nil
+	}
+
+	return x509.ParseCertificate(block.Bytes)
+}
+
+// DecodePrivateKeyPEM attempts to return a decoded key or nil
+// if the encoded input does not contain a private key.
+func DecodePrivateKeyPEM(encoded []byte) (*rsa.PrivateKey, error) {
+	block, _ := pem.Decode(encoded)
+	if block == nil {
+		return nil, nil
+	}
+
+	return x509.ParsePKCS1PrivateKey(block.Bytes)
+}

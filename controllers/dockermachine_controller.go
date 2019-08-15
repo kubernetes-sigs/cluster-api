@@ -24,8 +24,8 @@ import (
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	infrastructurev1alpha2 "sigs.k8s.io/cluster-api-provider-docker/api/v1alpha2"
 	"sigs.k8s.io/cluster-api-provider-docker/kind/actions"
-	capiv1alpha2 "sigs.k8s.io/cluster-api/pkg/apis/cluster/v1alpha2"
-	"sigs.k8s.io/cluster-api/pkg/util"
+	capiv1alpha2 "sigs.k8s.io/cluster-api/api/v1alpha2"
+	"sigs.k8s.io/cluster-api/util"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/handler"
@@ -39,8 +39,6 @@ const (
 	// label "set:controlplane" indicates a control plane node
 	clusterAPIControlPlaneSetLabel = "controlplane"
 )
-
-var machineKind = capiv1alpha2.SchemeGroupVersion.WithKind("Machine")
 
 // DockerMachineReconciler reconciles a DockerMachine object
 type DockerMachineReconciler struct {
@@ -77,7 +75,6 @@ func (r *DockerMachineReconciler) Reconcile(req ctrl.Request) (_ ctrl.Result, re
 				reterr = err
 			}
 		}
-		return
 	}()
 
 	// Get the cluster api machine
@@ -136,7 +133,10 @@ func (r *DockerMachineReconciler) create(
 	c *capiv1alpha2.Cluster,
 	machine *capiv1alpha2.Machine,
 	dockerMachine *infrastructurev1alpha2.DockerMachine) (ctrl.Result, error) {
-	r.Log.Info("Creating a machine for cluster", "cluster-name", c.Name)
+
+	log := r.Log.WithValues("cluster", c.Name)
+
+	log.Info("Creating a machine for cluster")
 	clusterExists, err := kindcluster.IsKnown(c.Name)
 	if err != nil {
 		r.Log.Error(err, "Error finding cluster-name", "cluster", c.Name)
@@ -223,16 +223,10 @@ func isControlPlaneMachine(machine *capiv1alpha2.Machine) bool {
 
 func (r *DockerMachineReconciler) patchMachine(ctx context.Context,
 	dockerMachine *infrastructurev1alpha2.DockerMachine, patchConfig client.Patch) error {
-	// TODO(ncdc): remove this once we've updated to a version of controller-runtime with
-	// https://github.com/kubernetes-sigs/controller-runtime/issues/526.
-	gvk := dockerMachine.GroupVersionKind()
-	if err := r.Patch(ctx, dockerMachine, patchConfig); err != nil {
+	if err := r.Status().Patch(ctx, dockerMachine, patchConfig); err != nil {
 		return err
 	}
-	// TODO(ncdc): remove this once we've updated to a version of controller-runtime with
-	// https://github.com/kubernetes-sigs/controller-runtime/issues/526.
-	dockerMachine.SetGroupVersionKind(gvk)
-	if err := r.Status().Patch(ctx, dockerMachine, patchConfig); err != nil {
+	if err := r.Patch(ctx, dockerMachine, patchConfig); err != nil {
 		return err
 	}
 	return nil

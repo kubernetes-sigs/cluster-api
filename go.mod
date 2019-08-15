@@ -11,8 +11,8 @@ require (
 	k8s.io/cluster-bootstrap v0.0.0-20190516232516-d7d78ab2cfe7 // indirect
 	k8s.io/klog v0.4.0
 	k8s.io/kubernetes v1.14.2
-	sigs.k8s.io/cluster-api v0.0.0-20190725170330-835ee872f98d
-	sigs.k8s.io/controller-runtime v0.2.0-beta.4
+	sigs.k8s.io/cluster-api v0.0.0-20190815162035-27d548311363
+	sigs.k8s.io/controller-runtime v0.2.0-beta.5
 	sigs.k8s.io/kind v0.4.0
 	sigs.k8s.io/kustomize/v3 v3.0.3
 )

@@ -18,11 +18,13 @@ package controllers
 
 import (
 	"context"
+	"time"
 
 	"github.com/go-logr/logr"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	infrastructurev1alpha2 "sigs.k8s.io/cluster-api-provider-docker/api/v1alpha2"
 	"sigs.k8s.io/cluster-api-provider-docker/kind/actions"
+	"sigs.k8s.io/cluster-api/util"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
@@ -37,7 +39,7 @@ type DockerClusterReconciler struct {
 // +kubebuilder:rbac:groups=infrastructure.cluster.x-k8s.io,resources=dockerclusters/status,verbs=get;update;patch
 
 // Reconcile handles DockerCluster events
-func (r *DockerClusterReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
+func (r *DockerClusterReconciler) Reconcile(req ctrl.Request) (_ ctrl.Result, rerr error) {
 	ctx := context.Background()
 	log := r.Log.WithValues("dockercluster", req.NamespacedName)
 	log.Info("Reconciling cluster")
@@ -51,44 +53,40 @@ func (r *DockerClusterReconciler) Reconcile(req ctrl.Request) (ctrl.Result, erro
 		return ctrl.Result{}, err
 	}
 
+	cluster, err := util.GetOwnerCluster(ctx, r.Client, dockerCluster.ObjectMeta)
+	if err != nil {
+		log.Error(err, "Waiting for an OwnerReference to appear")
+		return ctrl.Result{RequeueAfter: 30 * time.Second}, nil
+	}
+
 	// Store Config's state, pre-modifications, to allow patching
 	patchCluster := client.MergeFrom(dockerCluster.DeepCopy())
+	defer func() {
+		if err := r.patchCluster(ctx, dockerCluster, patchCluster); rerr != nil {
+			if rerr == nil {
+				rerr = err
+			}
+		}
+	}()
 
-	if err := r.reconcileNetwork(dockerCluster, r.Log); err != nil {
+	if err := r.reconcileNetwork(dockerCluster, cluster.Name); err != nil {
 		log.Error(err, "Failed to reconcile network for cluster")
 		return ctrl.Result{}, err
 	}
 	log.Info("Reconcile network for cluster successful", "APIEndPoint", dockerCluster.Status.APIEndpoints[0])
 
 	dockerCluster.Status.Ready = true
-
-	// TODO(ncdc): remove this once we've updated to a version of controller-runtime with
-	// https://github.com/kubernetes-sigs/controller-runtime/issues/526.
-	gvk := dockerCluster.GroupVersionKind()
-	if err := r.Patch(ctx, dockerCluster, patchCluster); err != nil {
-		log.Error(err, "failed to update dockerCluster")
-		return ctrl.Result{}, err
-	}
-
-	// TODO(ncdc): remove this once we've updated to a version of controller-runtime with
-	// https://github.com/kubernetes-sigs/controller-runtime/issues/526.
-	dockerCluster.SetGroupVersionKind(gvk)
-	if err := r.Status().Patch(ctx, dockerCluster, patchCluster); err != nil {
-		log.Error(err, "failed to update docker cluster status")
-		return ctrl.Result{}, err
-	}
-
 	return ctrl.Result{}, nil
 }
 
-func (r *DockerClusterReconciler) reconcileNetwork(cluster *infrastructurev1alpha2.DockerCluster, log logr.Logger) error {
+func (r *DockerClusterReconciler) reconcileNetwork(cluster *infrastructurev1alpha2.DockerCluster, name string) error {
 	// reconcile elb
-	clusterName := cluster.Name
-	log.Info("Reconciling ELB for cluster", "cluster-name", clusterName)
+	log := r.Log.WithValues("cluster", name)
+	log.Info("Reconciling ELB for cluster")
 
 	if len(cluster.Status.APIEndpoints) == 0 {
-		log.Info("Cluster has no ELB, creating ELB", "cluster-name", clusterName)
-		elb, err := actions.SetUpLoadBalancer(clusterName)
+		log.Info("Cluster has no ELB, creating ELB")
+		elb, err := actions.SetUpLoadBalancer(name)
 		if err != nil {
 			log.Error(err, "Failed to create ELB for cluster")
 			return err
@@ -119,4 +117,15 @@ func (r *DockerClusterReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewControllerManagedBy(mgr).
 		For(&infrastructurev1alpha2.DockerCluster{}).
 		Complete(r)
+}
+
+func (r *DockerClusterReconciler) patchCluster(ctx context.Context,
+	dockerCluster *infrastructurev1alpha2.DockerCluster, patchConfig client.Patch) error {
+	if err := r.Status().Patch(ctx, dockerCluster, patchConfig); err != nil {
+		return err
+	}
+	if err := r.Patch(ctx, dockerCluster, patchConfig); err != nil {
+		return err
+	}
+	return nil
 }

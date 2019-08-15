@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package machine
+package controllers
 
 import (
 	"context"
@@ -37,7 +37,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/source"
 )
 
-func (r *ReconcileMachine) reconcile(ctx context.Context, cluster *v1alpha2.Cluster, m *v1alpha2.Machine) (err error) {
+func (r *MachineReconciler) reconcile(ctx context.Context, cluster *v1alpha2.Cluster, m *v1alpha2.Machine) (err error) {
 	// TODO(vincepri): These can be generalized with an interface and possibly a for loop.
 	errors := []error{}
 	errors = append(errors, r.reconcileBootstrap(ctx, m))
@@ -58,7 +58,7 @@ func (r *ReconcileMachine) reconcile(ctx context.Context, cluster *v1alpha2.Clus
 	return err
 }
 
-func (r *ReconcileMachine) reconcilePhase(ctx context.Context, m *v1alpha2.Machine) error {
+func (r *MachineReconciler) reconcilePhase(ctx context.Context, m *v1alpha2.Machine) error {
 	// Set the phase to "pending" if nil.
 	if m.Status.Phase == "" {
 		m.Status.SetTypedPhase(v1alpha2.MachinePhasePending)
@@ -93,7 +93,7 @@ func (r *ReconcileMachine) reconcilePhase(ctx context.Context, m *v1alpha2.Machi
 }
 
 // reconcileExternal handles generic unstructured objects referenced by a Machine.
-func (r *ReconcileMachine) reconcileExternal(ctx context.Context, m *v1alpha2.Machine, ref *corev1.ObjectReference) (*unstructured.Unstructured, error) {
+func (r *MachineReconciler) reconcileExternal(ctx context.Context, m *v1alpha2.Machine, ref *corev1.ObjectReference) (*unstructured.Unstructured, error) {
 	obj, err := external.Get(r.Client, ref, m.Namespace)
 	if err != nil {
 		if apierrors.IsNotFound(err) && !m.DeletionTimestamp.IsZero() {
@@ -166,7 +166,7 @@ func (r *ReconcileMachine) reconcileExternal(ctx context.Context, m *v1alpha2.Ma
 }
 
 // reconcileBootstrap reconciles the Spec.Bootstrap.ConfigRef object on a Machine.
-func (r *ReconcileMachine) reconcileBootstrap(ctx context.Context, m *v1alpha2.Machine) error {
+func (r *MachineReconciler) reconcileBootstrap(ctx context.Context, m *v1alpha2.Machine) error {
 	// TODO(vincepri): Move this validation in kubebuilder / webhook.
 	if m.Spec.Bootstrap.ConfigRef == nil && m.Spec.Bootstrap.Data == nil {
 		return errors.Errorf(
@@ -217,7 +217,7 @@ func (r *ReconcileMachine) reconcileBootstrap(ctx context.Context, m *v1alpha2.M
 }
 
 // reconcileInfrastructure reconciles the Spec.InfrastructureRef object on a Machine.
-func (r *ReconcileMachine) reconcileInfrastructure(ctx context.Context, m *v1alpha2.Machine) error {
+func (r *MachineReconciler) reconcileInfrastructure(ctx context.Context, m *v1alpha2.Machine) error {
 	// Call generic external reconciler.
 	infraConfig, err := r.reconcileExternal(ctx, m, &m.Spec.InfrastructureRef)
 	if infraConfig == nil && err == nil {
@@ -263,7 +263,7 @@ func (r *ReconcileMachine) reconcileInfrastructure(ctx context.Context, m *v1alp
 
 // reconcileClusterAnnotations reconciles the annotations on the Cluster associated with Machines.
 // TODO(vincepri): Move to cluster controller once the proposal merges.
-func (r *ReconcileMachine) reconcileClusterAnnotations(ctx context.Context, cluster *v1alpha2.Cluster, m *v1alpha2.Machine) error {
+func (r *MachineReconciler) reconcileClusterAnnotations(ctx context.Context, cluster *v1alpha2.Cluster, m *v1alpha2.Machine) error {
 	if !m.DeletionTimestamp.IsZero() || cluster == nil {
 		return nil
 	}

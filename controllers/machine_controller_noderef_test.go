@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package machine
+package controllers
 
 import (
 	"strings"
@@ -29,13 +29,14 @@ import (
 	"sigs.k8s.io/cluster-api/api/v1alpha2"
 	"sigs.k8s.io/cluster-api/controllers/noderefutil"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
+	"sigs.k8s.io/controller-runtime/pkg/log"
 )
 
 func TestGetNodeReference(t *testing.T) {
 	v1alpha2.AddToScheme(scheme.Scheme)
-	r := &ReconcileMachine{
+	r := &MachineReconciler{
 		Client:   fake.NewFakeClient(),
-		scheme:   scheme.Scheme,
+		Log:      log.Log,
 		recorder: record.NewFakeRecorder(32),
 	}
 

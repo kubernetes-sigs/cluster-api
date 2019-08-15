@@ -1,5 +1,5 @@
 /*
-Copyright 2018 The Kubernetes Authors.
+Copyright 2019 The Kubernetes Authors.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -14,13 +14,13 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package machine
+package controllers
 
 import (
 	"testing"
 
-	"github.com/onsi/gomega"
-
+	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/gomega"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
@@ -29,15 +29,18 @@ import (
 	"k8s.io/utils/pointer"
 	"sigs.k8s.io/cluster-api/api/v1alpha2"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
+	"sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 )
 
-var (
-	_ reconcile.Reconciler = &ReconcileMachine{}
-)
+var _ = Describe("Machine Reconciler", func() {
+	It("Should create a Machine", func() {
+		// TODO
+	})
+})
 
 func TestReconcileRequest(t *testing.T) {
-	g := gomega.NewGomegaWithT(t)
+	RegisterTestingT(t)
 
 	infraConfig := unstructured.Unstructured{
 		Object: map[string]interface{}{
@@ -180,18 +183,18 @@ func TestReconcileRequest(t *testing.T) {
 
 	for _, tc := range testCases {
 		v1alpha2.AddToScheme(scheme.Scheme)
-		r := &ReconcileMachine{
+		r := &MachineReconciler{
 			Client: fake.NewFakeClient(&clusterList, &machine1, &machine2, &machine3, &infraConfig),
-			scheme: scheme.Scheme,
+			Log:    log.Log,
 		}
 
 		result, err := r.Reconcile(tc.request)
 		if tc.expected.err {
-			g.Expect(err).ToNot(gomega.BeNil())
+			Expect(err).ToNot(BeNil())
 		} else {
-			g.Expect(err).To(gomega.BeNil())
+			Expect(err).To(BeNil())
 		}
 
-		g.Expect(result).To(gomega.Equal(tc.expected.result))
+		Expect(result).To(Equal(tc.expected.result))
 	}
 }

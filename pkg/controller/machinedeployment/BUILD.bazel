@@ -12,7 +12,7 @@ go_library(
     deps = [
         "//api/v1alpha2:go_default_library",
         "//pkg/controller/machinedeployment/util:go_default_library",
-        "//pkg/util:go_default_library",
+        "//util:go_default_library",
         "//vendor/github.com/pkg/errors:go_default_library",
         "//vendor/k8s.io/api/core/v1:go_default_library",
         "//vendor/k8s.io/apimachinery/pkg/api/equality:go_default_library",
@@ -46,7 +46,7 @@ go_test(
     embed = [":go_default_library"],
     deps = [
         "//api/v1alpha2:go_default_library",
-        "//pkg/controller/external:go_default_library",
+        "//controllers/external:go_default_library",
         "//vendor/github.com/onsi/gomega:go_default_library",
         "//vendor/golang.org/x/net/context:go_default_library",
         "//vendor/k8s.io/api/core/v1:go_default_library",

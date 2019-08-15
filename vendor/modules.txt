@@ -404,7 +404,6 @@ k8s.io/client-go/plugin/pkg/client/auth
 k8s.io/client-go/kubernetes/typed/core/v1
 k8s.io/client-go/plugin/pkg/client/auth/gcp
 k8s.io/client-go/tools/record
-k8s.io/client-go/tools/leaderelection/resourcelock
 k8s.io/client-go/util/retry
 k8s.io/client-go/discovery
 k8s.io/client-go/kubernetes/typed/admissionregistration/v1beta1
@@ -457,6 +456,7 @@ k8s.io/client-go/plugin/pkg/client/auth/azure
 k8s.io/client-go/plugin/pkg/client/auth/oidc
 k8s.io/client-go/plugin/pkg/client/auth/openstack
 k8s.io/client-go/tools/leaderelection
+k8s.io/client-go/tools/leaderelection/resourcelock
 k8s.io/client-go/tools/reference
 k8s.io/client-go/util/jsonpath
 k8s.io/client-go/tools/record/util
@@ -471,6 +471,7 @@ k8s.io/client-go/tools/clientcmd/api/v1
 k8s.io/client-go/restmapper
 k8s.io/client-go/tools/cache
 k8s.io/client-go/third_party/forked/golang/template
+k8s.io/client-go/testing
 k8s.io/client-go/discovery/fake
 k8s.io/client-go/kubernetes/typed/admissionregistration/v1beta1/fake
 k8s.io/client-go/kubernetes/typed/apps/v1/fake
@@ -508,7 +509,6 @@ k8s.io/client-go/kubernetes/typed/settings/v1alpha1/fake
 k8s.io/client-go/kubernetes/typed/storage/v1/fake
 k8s.io/client-go/kubernetes/typed/storage/v1alpha1/fake
 k8s.io/client-go/kubernetes/typed/storage/v1beta1/fake
-k8s.io/client-go/testing
 k8s.io/client-go/tools/pager
 # k8s.io/component-base v0.0.0-20190409021516-bd2732e5c3f7
 k8s.io/component-base/cli/flag

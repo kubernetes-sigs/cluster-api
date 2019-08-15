@@ -23,7 +23,7 @@ import (
 	metav1validation "k8s.io/apimachinery/pkg/apis/meta/v1/validation"
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/util/validation/field"
-	capierrors "sigs.k8s.io/cluster-api/pkg/errors"
+	capierrors "sigs.k8s.io/cluster-api/errors"
 )
 
 /// [MachineSetSpec]

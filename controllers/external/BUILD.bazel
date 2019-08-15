@@ -6,7 +6,7 @@ go_library(
         "testing.go",
         "util.go",
     ],
-    importpath = "sigs.k8s.io/cluster-api/pkg/controller/external",
+    importpath = "sigs.k8s.io/cluster-api/controllers/external",
     visibility = ["//visibility:public"],
     deps = [
         "//vendor/github.com/pkg/errors:go_default_library",

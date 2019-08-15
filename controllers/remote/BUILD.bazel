@@ -6,7 +6,7 @@ go_library(
         "cluster.go",
         "util.go",
     ],
-    importpath = "sigs.k8s.io/cluster-api/pkg/controller/remote",
+    importpath = "sigs.k8s.io/cluster-api/controllers/remote",
     visibility = ["//visibility:public"],
     deps = [
         "//api/v1alpha2:go_default_library",

@@ -10,7 +10,7 @@ go_library(
         "machines.go",
         "pointer.go",
     ],
-    importpath = "sigs.k8s.io/cluster-api/pkg/errors",
+    importpath = "sigs.k8s.io/cluster-api/errors",
     visibility = ["//visibility:public"],
     deps = ["//vendor/github.com/pkg/errors:go_default_library"],
 )

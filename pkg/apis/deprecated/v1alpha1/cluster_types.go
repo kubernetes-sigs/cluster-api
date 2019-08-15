@@ -20,7 +20,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/validation/field"
-	capierrors "sigs.k8s.io/cluster-api/pkg/errors"
+	capierrors "sigs.k8s.io/cluster-api/errors"
 )
 
 const ClusterFinalizer = "cluster.cluster.k8s.io"

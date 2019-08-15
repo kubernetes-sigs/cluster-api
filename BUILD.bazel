@@ -1,6 +1,6 @@
 load("@io_bazel_rules_go//go:def.bzl", "go_binary", "go_library")
 load("@bazel_gazelle//:def.bzl", "gazelle")
-load("//build:run_in_workspace_with_goroot.bzl", "workspace_binary")
+load("//hack/bazel:run_in_workspace_with_goroot.bzl", "workspace_binary")
 
 # gazelle:prefix sigs.k8s.io/cluster-api
 # gazelle:proto disable_global

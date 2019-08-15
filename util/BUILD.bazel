@@ -6,7 +6,7 @@ go_library(
         "retry.go",
         "util.go",
     ],
-    importpath = "sigs.k8s.io/cluster-api/pkg/util",
+    importpath = "sigs.k8s.io/cluster-api/util",
     visibility = ["//visibility:public"],
     deps = [
         "//api/v1alpha2:go_default_library",

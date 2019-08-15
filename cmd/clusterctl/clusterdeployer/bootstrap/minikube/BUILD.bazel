@@ -6,7 +6,7 @@ go_library(
     importpath = "sigs.k8s.io/cluster-api/cmd/clusterctl/clusterdeployer/bootstrap/minikube",
     visibility = ["//visibility:public"],
     deps = [
-        "//pkg/util:go_default_library",
+        "//util:go_default_library",
         "//vendor/github.com/pkg/errors:go_default_library",
         "//vendor/k8s.io/klog:go_default_library",
     ],

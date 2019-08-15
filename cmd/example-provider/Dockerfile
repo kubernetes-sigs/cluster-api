@@ -19,12 +19,7 @@ ARG ARCH
 
 # Copy in the go src
 WORKDIR $GOPATH/src/sigs.k8s.io/cluster-api
-COPY pkg/    pkg/
-COPY vendor/ vendor/
-COPY cmd/    cmd/
-COPY api/ api/
-COPY controllers/ controllers/
-COPY vendor/ vendor/
+COPY ./ ./
 
 # Build
 RUN CGO_ENABLED=0 GOOS=linux GOARCH=${ARCH} \

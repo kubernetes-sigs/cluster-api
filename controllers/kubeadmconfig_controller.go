@@ -128,12 +128,11 @@ func (r *KubeadmConfigReconciler) Reconcile(req ctrl.Request) (_ ctrl.Result, re
 		}
 	}()
 
-	// Check for control plane ready. If it's not ready then we will requeue the machine until it is.
-	// The cluster-api machine controller set this value.
+	// Init the control plane
 	if cluster.Annotations[ControlPlaneReadyAnnotationKey] != "true" {
 		// if it's NOT a control plane machine, requeue
 		if !util.IsControlPlaneMachine(machine) {
-			log.Info("Control plane is not ready, requeing worker nodes until ready.")
+			log.Info(fmt.Sprintf("Machine is not a control plane. If it should be a control plane, add `%s: true` as a label to the Machine", capiv1alpha2.MachineControlPlaneLabelName))
 			return ctrl.Result{RequeueAfter: 30 * time.Second}, nil
 		}
 

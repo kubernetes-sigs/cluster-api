@@ -50,7 +50,7 @@ func init() {
 }
 
 const (
-	timeout = time.Second * 5
+	timeout = time.Second * 10
 )
 
 var (
@@ -118,6 +118,11 @@ var _ = BeforeSuite(func(done Done) {
 		Client:   k8sClient,
 		Log:      log.Log,
 		recorder: mgr.GetEventRecorderFor("machineset-controller"),
+	}).SetupWithManager(mgr)).NotTo(HaveOccurred())
+	Expect((&MachineDeploymentReconciler{
+		Client:   k8sClient,
+		Log:      log.Log,
+		recorder: mgr.GetEventRecorderFor("machinedeployment-controller"),
 	}).SetupWithManager(mgr)).NotTo(HaveOccurred())
 
 	By("starting the manager")

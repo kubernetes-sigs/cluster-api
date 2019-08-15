@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package machinedeployment
+package controllers
 
 import (
 	"sort"
@@ -23,12 +23,12 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/klog"
 	"k8s.io/utils/integer"
-	"sigs.k8s.io/cluster-api/api/v1alpha2"
-	dutil "sigs.k8s.io/cluster-api/pkg/controller/machinedeployment/util"
+	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha2"
+	"sigs.k8s.io/cluster-api/controllers/mdutil"
 )
 
 // rolloutRolling implements the logic for rolling a new machine set.
-func (r *ReconcileMachineDeployment) rolloutRolling(d *v1alpha2.MachineDeployment, msList []*v1alpha2.MachineSet, machineMap map[types.UID]*v1alpha2.MachineList) error {
+func (r *MachineDeploymentReconciler) rolloutRolling(d *clusterv1.MachineDeployment, msList []*clusterv1.MachineSet, machineMap map[types.UID]*clusterv1.MachineList) error {
 	newMS, oldMSs, err := r.getAllMachineSetsAndSyncRevision(d, msList, machineMap, true)
 	if err != nil {
 		return err
@@ -61,7 +61,7 @@ func (r *ReconcileMachineDeployment) rolloutRolling(d *v1alpha2.MachineDeploymen
 		return err
 	}
 
-	if dutil.DeploymentComplete(d, &d.Status) {
+	if mdutil.DeploymentComplete(d, &d.Status) {
 		if err := r.cleanupDeployment(oldMSs, d); err != nil {
 			return err
 		}
@@ -70,7 +70,7 @@ func (r *ReconcileMachineDeployment) rolloutRolling(d *v1alpha2.MachineDeploymen
 	return nil
 }
 
-func (r *ReconcileMachineDeployment) reconcileNewMachineSet(allMSs []*v1alpha2.MachineSet, newMS *v1alpha2.MachineSet, deployment *v1alpha2.MachineDeployment) error {
+func (r *MachineDeploymentReconciler) reconcileNewMachineSet(allMSs []*clusterv1.MachineSet, newMS *clusterv1.MachineSet, deployment *clusterv1.MachineDeployment) error {
 	if deployment.Spec.Replicas == nil {
 		return errors.Errorf("spec replicas for deployment set %v is nil, this is unexpected", deployment.Name)
 	}
@@ -90,7 +90,7 @@ func (r *ReconcileMachineDeployment) reconcileNewMachineSet(allMSs []*v1alpha2.M
 		return err
 	}
 
-	newReplicasCount, err := dutil.NewMSNewReplicas(deployment, allMSs, newMS)
+	newReplicasCount, err := mdutil.NewMSNewReplicas(deployment, allMSs, newMS)
 	if err != nil {
 		return err
 	}
@@ -98,7 +98,7 @@ func (r *ReconcileMachineDeployment) reconcileNewMachineSet(allMSs []*v1alpha2.M
 	return err
 }
 
-func (r *ReconcileMachineDeployment) reconcileOldMachineSets(allMSs []*v1alpha2.MachineSet, oldMSs []*v1alpha2.MachineSet, newMS *v1alpha2.MachineSet, deployment *v1alpha2.MachineDeployment) error {
+func (r *MachineDeploymentReconciler) reconcileOldMachineSets(allMSs []*clusterv1.MachineSet, oldMSs []*clusterv1.MachineSet, newMS *clusterv1.MachineSet, deployment *clusterv1.MachineDeployment) error {
 	if deployment.Spec.Replicas == nil {
 		return errors.Errorf("spec replicas for MachineDeployment %q/%q is nil, this is unexpected",
 			deployment.Namespace, deployment.Name)
@@ -109,15 +109,15 @@ func (r *ReconcileMachineDeployment) reconcileOldMachineSets(allMSs []*v1alpha2.
 			newMS.Namespace, newMS.Name)
 	}
 
-	oldMachinesCount := dutil.GetReplicaCountForMachineSets(oldMSs)
+	oldMachinesCount := mdutil.GetReplicaCountForMachineSets(oldMSs)
 	if oldMachinesCount == 0 {
 		// Can't scale down further
 		return nil
 	}
 
-	allMachinesCount := dutil.GetReplicaCountForMachineSets(allMSs)
+	allMachinesCount := mdutil.GetReplicaCountForMachineSets(allMSs)
 	klog.V(4).Infof("New machine set %s/%s has %d available machines.", newMS.Namespace, newMS.Name, newMS.Status.AvailableReplicas)
-	maxUnavailable := dutil.MaxUnavailable(*deployment)
+	maxUnavailable := mdutil.MaxUnavailable(*deployment)
 
 	// Check if we can scale down. We can scale down in the following 2 cases:
 	// * Some old machine sets have unhealthy replicas, we could safely scale down those unhealthy replicas since that won't further
@@ -177,8 +177,8 @@ func (r *ReconcileMachineDeployment) reconcileOldMachineSets(allMSs []*v1alpha2.
 }
 
 // cleanupUnhealthyReplicas will scale down old machine sets with unhealthy replicas, so that all unhealthy replicas will be deleted.
-func (r *ReconcileMachineDeployment) cleanupUnhealthyReplicas(oldMSs []*v1alpha2.MachineSet, deployment *v1alpha2.MachineDeployment, maxCleanupCount int32) ([]*v1alpha2.MachineSet, int32, error) {
-	sort.Sort(dutil.MachineSetsByCreationTimestamp(oldMSs))
+func (r *MachineDeploymentReconciler) cleanupUnhealthyReplicas(oldMSs []*clusterv1.MachineSet, deployment *clusterv1.MachineDeployment, maxCleanupCount int32) ([]*clusterv1.MachineSet, int32, error) {
+	sort.Sort(mdutil.MachineSetsByCreationTimestamp(oldMSs))
 
 	// Safely scale down all old machine sets with unhealthy replicas. Replica set will sort the machines in the order
 	// such that not-ready < ready, unscheduled < scheduled, and pending < running. This ensures that unhealthy replicas will
@@ -228,18 +228,18 @@ func (r *ReconcileMachineDeployment) cleanupUnhealthyReplicas(oldMSs []*v1alpha2
 
 // scaleDownOldMachineSetsForRollingUpdate scales down old machine sets when deployment strategy is "RollingUpdate".
 // Need check maxUnavailable to ensure availability
-func (r *ReconcileMachineDeployment) scaleDownOldMachineSetsForRollingUpdate(allMSs []*v1alpha2.MachineSet, oldMSs []*v1alpha2.MachineSet, deployment *v1alpha2.MachineDeployment) (int32, error) {
+func (r *MachineDeploymentReconciler) scaleDownOldMachineSetsForRollingUpdate(allMSs []*clusterv1.MachineSet, oldMSs []*clusterv1.MachineSet, deployment *clusterv1.MachineDeployment) (int32, error) {
 	if deployment.Spec.Replicas == nil {
 		return 0, errors.Errorf("spec replicas for deployment %v is nil, this is unexpected", deployment.Name)
 	}
 
-	maxUnavailable := dutil.MaxUnavailable(*deployment)
+	maxUnavailable := mdutil.MaxUnavailable(*deployment)
 
 	// Check if we can scale down.
 	minAvailable := *(deployment.Spec.Replicas) - maxUnavailable
 
 	// Find the number of available machines.
-	availableMachineCount := dutil.GetAvailableReplicaCountForMachineSets(allMSs)
+	availableMachineCount := mdutil.GetAvailableReplicaCountForMachineSets(allMSs)
 	if availableMachineCount <= minAvailable {
 		// Cannot scale down.
 		return 0, nil
@@ -247,7 +247,7 @@ func (r *ReconcileMachineDeployment) scaleDownOldMachineSetsForRollingUpdate(all
 
 	klog.V(4).Infof("Found %d available machines in deployment %s, scaling down old MSes", availableMachineCount, deployment.Name)
 
-	sort.Sort(dutil.MachineSetsByCreationTimestamp(oldMSs))
+	sort.Sort(mdutil.MachineSetsByCreationTimestamp(oldMSs))
 
 	totalScaledDown := int32(0)
 	totalScaleDownCount := availableMachineCount - minAvailable

@@ -40,13 +40,23 @@ import (
 var _ reconcile.Reconciler = &MachineSetReconciler{}
 
 var _ = Describe("MachineSet Reconciler", func() {
+	namespace := &corev1.Namespace{ObjectMeta: metav1.ObjectMeta{Name: "ms-test"}}
+
+	BeforeEach(func() {
+		Expect(k8sClient.Create(ctx, namespace)).NotTo(HaveOccurred())
+	})
+
+	AfterEach(func() {
+		Expect(k8sClient.Delete(ctx, namespace)).NotTo(HaveOccurred())
+	})
+
 	It("Should reconcile a MachineSet", func() {
 		replicas := int32(2)
 		version := "1.14.2"
 		instance := &v1alpha2.MachineSet{
 			ObjectMeta: metav1.ObjectMeta{
-				GenerateName: "foo-",
-				Namespace:    "default",
+				GenerateName: "ms-",
+				Namespace:    namespace.Name,
 			},
 			Spec: v1alpha2.MachineSetSpec{
 				Replicas: &replicas,
@@ -69,7 +79,7 @@ var _ = Describe("MachineSet Reconciler", func() {
 						InfrastructureRef: corev1.ObjectReference{
 							APIVersion: "infrastructure.cluster.x-k8s.io/v1alpha2",
 							Kind:       "InfrastructureMachineTemplate",
-							Name:       "foo-template",
+							Name:       "ms-template",
 						},
 					},
 				},
@@ -95,8 +105,8 @@ var _ = Describe("MachineSet Reconciler", func() {
 		}
 		infraTmpl.SetKind("InfrastructureMachineTemplate")
 		infraTmpl.SetAPIVersion("infrastructure.cluster.x-k8s.io/v1alpha2")
-		infraTmpl.SetName("foo-template")
-		infraTmpl.SetNamespace("default")
+		infraTmpl.SetName("ms-template")
+		infraTmpl.SetNamespace(namespace.Name)
 		Expect(k8sClient.Create(ctx, infraTmpl)).To(BeNil())
 
 		// Create the MachineSet.
@@ -107,7 +117,7 @@ var _ = Describe("MachineSet Reconciler", func() {
 
 		// Verify that we have 2 replicas.
 		Eventually(func() int {
-			if err := k8sClient.List(ctx, machines); err != nil {
+			if err := k8sClient.List(ctx, machines, client.InNamespace(namespace.Name)); err != nil {
 				return -1
 			}
 			return len(machines.Items)
@@ -115,7 +125,9 @@ var _ = Describe("MachineSet Reconciler", func() {
 
 		// Set the infrastructure reference as ready.
 		for _, m := range machines.Items {
-			setInfrastructureRefReady(m.Spec.InfrastructureRef, infraResource)
+			Eventually(func() error {
+				return fakeInfrastructureRefReady(m.Spec.InfrastructureRef, infraResource)
+			}, timeout).ShouldNot(HaveOccurred())
 		}
 
 		// Try to delete 1 machine and check the MachineSet scales back up.
@@ -133,7 +145,7 @@ var _ = Describe("MachineSet Reconciler", func() {
 
 		// Verify that we have 2 replicas.
 		Eventually(func() (ready int) {
-			if err := k8sClient.List(ctx, machines); err != nil {
+			if err := k8sClient.List(ctx, machines, client.InNamespace(namespace.Name)); err != nil {
 				return -1
 			}
 			for _, m := range machines.Items {
@@ -145,47 +157,14 @@ var _ = Describe("MachineSet Reconciler", func() {
 			return
 		}, timeout*3).Should(BeEquivalentTo(replicas))
 
-		// Set the infrastructure reference as ready.
-		for _, m := range machines.Items {
-			setInfrastructureRefReady(m.Spec.InfrastructureRef, infraResource)
-		}
-
 		// Verify that each machine has the desired kubelet version,
 		// create a fake node in Ready state, update NodeRef, and wait for a reconciliation request.
 		for _, m := range machines.Items {
 			Expect(m.Spec.Version).ToNot(BeNil())
 			Expect(*m.Spec.Version).To(BeEquivalentTo("1.14.2"))
-
-			node := &corev1.Node{
-				ObjectMeta: metav1.ObjectMeta{
-					GenerateName: "test-",
-				},
-			}
-			Expect(k8sClient.Create(ctx, node))
-			patchNode := client.MergeFrom(node.DeepCopy())
-			node.Status.Conditions = append(node.Status.Conditions, corev1.NodeCondition{Type: corev1.NodeReady, Status: corev1.ConditionTrue})
-			Expect(k8sClient.Status().Patch(ctx, node, patchNode)).To(BeNil())
-
-			patchMachine := client.MergeFrom(m.DeepCopy())
-			m.Status.NodeRef = &corev1.ObjectReference{
-				APIVersion: node.APIVersion,
-				Kind:       node.Kind,
-				Name:       node.Name,
-				UID:        node.UID,
-			}
-			Expect(k8sClient.Status().Patch(ctx, &m, patchMachine)).To(BeNil())
+			fakeInfrastructureRefReady(m.Spec.InfrastructureRef, infraResource)
+			fakeMachineNodeRef(&m)
 		}
-
-		// Verify that we have N=replicas infrastructure references.
-		infraConfigs := &unstructured.UnstructuredList{}
-		infraConfigs.SetKind(infraResource["kind"].(string))
-		infraConfigs.SetAPIVersion(infraResource["apiVersion"].(string))
-		Eventually(func() int {
-			if err := k8sClient.List(ctx, infraConfigs, client.InNamespace("default")); err != nil {
-				return -1
-			}
-			return len(infraConfigs.Items)
-		}, timeout).Should(BeEquivalentTo(replicas))
 
 		// Verify that all Machines are Ready.
 		Eventually(func() int32 {
@@ -195,28 +174,8 @@ var _ = Describe("MachineSet Reconciler", func() {
 			}
 			return instance.Status.AvailableReplicas
 		}, timeout).Should(BeEquivalentTo(replicas))
-
-		Eventually(func() int {
-			if err := k8sClient.List(ctx, infraConfigs, client.InNamespace("default")); err != nil {
-				return -1
-			}
-			return len(infraConfigs.Items)
-		}, timeout).Should(BeEquivalentTo(replicas))
 	})
 })
-
-func setInfrastructureRefReady(ref corev1.ObjectReference, base map[string]interface{}) {
-	Eventually(func() bool {
-		iref := (&unstructured.Unstructured{Object: base}).DeepCopy()
-		if err := k8sClient.Get(ctx, client.ObjectKey{Name: ref.Name, Namespace: "default"}, iref); err != nil {
-			return false
-		}
-		irefPatch := client.MergeFrom(iref.DeepCopy())
-		unstructured.SetNestedField(iref.Object, true, "status", "ready")
-		Expect(k8sClient.Status().Patch(ctx, iref, irefPatch)).ToNot(HaveOccurred())
-		return true
-	}, timeout).Should(BeTrue())
-}
 
 func TestMachineSetToMachines(t *testing.T) {
 	machineSetList := &v1alpha2.MachineSetList{

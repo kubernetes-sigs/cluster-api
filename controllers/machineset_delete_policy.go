@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package machineset
+package controllers
 
 import (
 	"math"
@@ -31,7 +31,6 @@ type (
 )
 
 const (
-
 	// DeleteNodeAnnotation marks nodes that will be given priority for deletion
 	// when a machineset scales down. This annotation is given top priority on all delete policies.
 	DeleteNodeAnnotation = "cluster.k8s.io/delete-machine"

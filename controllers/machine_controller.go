@@ -96,14 +96,14 @@ func (r *MachineReconciler) Reconcile(req ctrl.Request) (_ ctrl.Result, reterr e
 	// for machine management.
 	cluster, err := util.GetClusterFromMetadata(ctx, r.Client, m.ObjectMeta)
 	if errors.Cause(err) == util.ErrNoCluster {
-		klog.Infof("Machine %q in namespace %q doesn't specify %q label, assuming nil cluster",
+		klog.V(2).Infof("Machine %q in namespace %q doesn't specify %q label, assuming nil cluster",
 			m.Name, m.Namespace, clusterv1.MachineClusterLabelName)
 	} else if err != nil {
 		return ctrl.Result{}, errors.Wrapf(err, "failed to get cluster %q for machine %q in namespace %q",
 			m.Labels[clusterv1.MachineClusterLabelName], m.Name, m.Namespace)
 	}
 
-	if cluster != nil && shouldAdopt(m) {
+	if cluster != nil && r.shouldAdopt(m) {
 		m.OwnerReferences = util.EnsureOwnerRef(m.OwnerReferences, metav1.OwnerReference{
 			APIVersion: cluster.APIVersion,
 			Kind:       cluster.Kind,
@@ -286,6 +286,6 @@ func (r *MachineReconciler) patchMachine(ctx context.Context, machine *clusterv1
 	return nil
 }
 
-func shouldAdopt(m *clusterv1.Machine) bool {
+func (r *MachineReconciler) shouldAdopt(m *clusterv1.Machine) bool {
 	return !util.HasOwner(m.OwnerReferences, clusterv1.GroupVersion.String(), []string{"MachineSet", "Cluster"})
 }

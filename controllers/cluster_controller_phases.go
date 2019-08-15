@@ -112,8 +112,8 @@ func (r *ClusterReconciler) reconcileExternal(ctx context.Context, cluster *v1al
 
 	// Set external object OwnerReference to the Cluster.
 	ownerRef := metav1.OwnerReference{
-		APIVersion: cluster.APIVersion,
-		Kind:       cluster.Kind,
+		APIVersion: clusterv1.GroupVersion.String(),
+		Kind:       "Cluster",
 		Name:       cluster.Name,
 		UID:        cluster.UID,
 	}

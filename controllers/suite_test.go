@@ -25,11 +25,14 @@ import (
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 
+	apiextensionsv1beta1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1beta1"
 	"k8s.io/client-go/kubernetes/scheme"
 	"k8s.io/client-go/rest"
 	"k8s.io/klog"
 	"k8s.io/klog/klogr"
 	clusterv1alpha2 "sigs.k8s.io/cluster-api/api/v1alpha2"
+	"sigs.k8s.io/cluster-api/controllers/external"
+	"sigs.k8s.io/controller-runtime/pkg/cache"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/envtest"
 	"sigs.k8s.io/controller-runtime/pkg/log"
@@ -71,6 +74,10 @@ func TestAPIs(t *testing.T) {
 var _ = BeforeSuite(func(done Done) {
 	By("bootstrapping test environment")
 	testEnv = &envtest.Environment{
+		CRDs: []*apiextensionsv1beta1.CustomResourceDefinition{
+			external.TestGenericInfrastructureCRD,
+			external.TestGenericInfrastructureTemplateCRD,
+		},
 		CRDDirectoryPaths: []string{filepath.Join("..", "config", "crd", "bases")},
 	}
 
@@ -84,18 +91,34 @@ var _ = BeforeSuite(func(done Done) {
 
 	// +kubebuilder:scaffold:scheme
 
-	k8sClient, err = client.New(cfg, client.Options{Scheme: scheme.Scheme})
-	Expect(err).ToNot(HaveOccurred())
-	Expect(k8sClient).ToNot(BeNil())
-
 	By("setting up a new manager")
-	mgr, err = manager.New(cfg, manager.Options{Scheme: scheme.Scheme, MetricsBindAddress: "0"})
+	mgr, err = manager.New(cfg, manager.Options{
+		Scheme:             scheme.Scheme,
+		MetricsBindAddress: "0",
+		NewCache: func(config *rest.Config, opts cache.Options) (cache.Cache, error) {
+			syncPeriod := 1 * time.Second
+			opts.Resync = &syncPeriod
+			return cache.New(config, opts)
+		},
+	})
 	Expect(err).NotTo(HaveOccurred())
+	k8sClient = mgr.GetClient()
 	clusterReconciler = &ClusterReconciler{
-		Client: mgr.GetClient(),
-		Log:    log.Log,
+		Client:   k8sClient,
+		Log:      log.Log,
+		recorder: mgr.GetEventRecorderFor("cluster-controller"),
 	}
 	Expect(clusterReconciler.SetupWithManager(mgr)).NotTo(HaveOccurred())
+	Expect((&MachineReconciler{
+		Client:   k8sClient,
+		Log:      log.Log,
+		recorder: mgr.GetEventRecorderFor("machine-controller"),
+	}).SetupWithManager(mgr)).NotTo(HaveOccurred())
+	Expect((&MachineSetReconciler{
+		Client:   k8sClient,
+		Log:      log.Log,
+		recorder: mgr.GetEventRecorderFor("machineset-controller"),
+	}).SetupWithManager(mgr)).NotTo(HaveOccurred())
 
 	By("starting the manager")
 	go func() {

@@ -4,14 +4,12 @@ go_library(
     name = "go_default_library",
     srcs = [
         "add_machinedeployment.go",
-        "add_machineset.go",
         "controller.go",
     ],
     importpath = "sigs.k8s.io/cluster-api/pkg/controller",
     visibility = ["//visibility:public"],
     deps = [
         "//pkg/controller/machinedeployment:go_default_library",
-        "//pkg/controller/machineset:go_default_library",
         "//vendor/sigs.k8s.io/controller-runtime/pkg/manager:go_default_library",
     ],
 )

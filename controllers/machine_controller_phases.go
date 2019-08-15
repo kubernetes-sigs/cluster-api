@@ -37,6 +37,10 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/source"
 )
 
+var (
+	externalReadyWait = 30 * time.Second
+)
+
 func (r *MachineReconciler) reconcile(ctx context.Context, cluster *v1alpha2.Cluster, m *v1alpha2.Machine) (err error) {
 	// TODO(vincepri): These can be generalized with an interface and possibly a for loop.
 	errors := []error{}
@@ -99,7 +103,7 @@ func (r *MachineReconciler) reconcileExternal(ctx context.Context, m *v1alpha2.M
 		if apierrors.IsNotFound(err) && !m.DeletionTimestamp.IsZero() {
 			return nil, nil
 		} else if apierrors.IsNotFound(err) {
-			return nil, errors.Wrapf(&capierrors.RequeueAfterError{RequeueAfter: 30 * time.Second},
+			return nil, errors.Wrapf(&capierrors.RequeueAfterError{RequeueAfter: externalReadyWait},
 				"could not find %v %q for Machine %q in namespace %q, requeuing",
 				ref.GroupVersionKind(), ref.Name, m.Name, m.Namespace)
 		}
@@ -120,8 +124,8 @@ func (r *MachineReconciler) reconcileExternal(ctx context.Context, m *v1alpha2.M
 
 	// Set external object OwnerReference to the Machine.
 	machineOwnerRef := metav1.OwnerReference{
-		APIVersion: m.APIVersion,
-		Kind:       m.Kind,
+		APIVersion: clusterv1.GroupVersion.String(),
+		Kind:       "Machine",
 		Name:       m.Name,
 		UID:        m.UID,
 	}
@@ -199,8 +203,8 @@ func (r *MachineReconciler) reconcileBootstrap(ctx context.Context, m *v1alpha2.
 	if err != nil {
 		return err
 	} else if !ready {
-		klog.V(3).Infof("Bootstrap provider for Machine %q in namespace %q is not ready, requeuing", m.Name, m.Namespace)
-		return &capierrors.RequeueAfterError{RequeueAfter: 30 * time.Second}
+		return errors.Wrapf(&capierrors.RequeueAfterError{RequeueAfter: externalReadyWait},
+			"Bootstrap provider for Machine %q in namespace %q is not ready, requeuing", m.Name, m.Namespace)
 	}
 
 	// Get and set data from the bootstrap provider.
@@ -235,8 +239,9 @@ func (r *MachineReconciler) reconcileInfrastructure(ctx context.Context, m *v1al
 	if err != nil {
 		return err
 	} else if !ready {
-		klog.V(3).Infof("Infrastructure provider for Machine %q in namespace %q is not ready, requeuing", m.Name, m.Namespace)
-		return &capierrors.RequeueAfterError{RequeueAfter: 30 * time.Second}
+		return errors.Wrapf(&capierrors.RequeueAfterError{RequeueAfter: externalReadyWait},
+			"Infrastructure provider for Machine %q in namespace %q is not ready, requeuing", m.Name, m.Namespace,
+		)
 	}
 
 	// Get Spec.ProviderID from the infrastructure provider.

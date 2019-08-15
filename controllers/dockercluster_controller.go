@@ -55,6 +55,10 @@ func (r *DockerClusterReconciler) Reconcile(req ctrl.Request) (_ ctrl.Result, re
 
 	cluster, err := util.GetOwnerCluster(ctx, r.Client, dockerCluster.ObjectMeta)
 	if err != nil {
+		log.Error(err, "Failed to get owning cluster")
+		return ctrl.Result{}, err
+	}
+	if cluster == nil {
 		log.Error(err, "Waiting for an OwnerReference to appear")
 		return ctrl.Result{RequeueAfter: 30 * time.Second}, nil
 	}

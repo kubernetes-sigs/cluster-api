@@ -14,14 +14,14 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package kind
+package docker
 
 import (
 	"fmt"
 
 	"github.com/go-logr/logr"
 	"github.com/pkg/errors"
-	"sigs.k8s.io/cluster-api-provider-docker/kind/actions"
+	"sigs.k8s.io/cluster-api-provider-docker/docker/actions"
 	"sigs.k8s.io/cluster-api-provider-docker/third_party/forked/loadbalancer"
 	"sigs.k8s.io/kind/pkg/cluster/constants"
 	"sigs.k8s.io/kind/pkg/cluster/nodes"
@@ -136,10 +136,10 @@ func NewNode(cluster, machine, role, version string, log logr.Logger) (*Node, er
 }
 
 // Create figures out what kind of node to make and does the right thing
-func (n *Node) Create() (*nodes.Node, error) {
+func (n *Node) Create(cloudConfig []byte) (*nodes.Node, error) {
 	log := n.Logger.WithName("node-create")
 	switch n.Role {
-	case "control-plane":
+	case constants.ControlPlaneNodeRoleValue:
 		// Node length includes ELB which must already exist
 		if len(n.Nodes) == 1 {
 			log.Info("Creating the first control plane node")
@@ -153,13 +153,13 @@ func (n *Node) Create() (*nodes.Node, error) {
 				log.Error(err, "Failed to get node's IP", "node-name", node.Name())
 				return nil, err
 			}
-			return n.MachineActions.CreateControlPlane(n.Cluster, n.Machine, ipv4, n.Version, nil)
+			return n.MachineActions.CreateControlPlane(n.Cluster, n.Machine, ipv4, n.Version, nil, cloudConfig)
 		}
 		log.Info("Adding an additional control plane node")
-		return n.MachineActions.AddControlPlane(n.Cluster, n.Machine, n.Version)
-	case "worker":
+		return n.MachineActions.AddControlPlane(n.Cluster, n.Machine, n.Version, cloudConfig)
+	case constants.WorkerNodeRoleValue:
 		log.Info("Adding a worker")
-		return n.MachineActions.AddWorker(n.Cluster, n.Machine, n.Version)
+		return n.MachineActions.AddWorker(n.Cluster, n.Machine, n.Version, cloudConfig)
 	default:
 		log.Info("Unknown role", "role", n.Role)
 		return nil, errors.Errorf("Unknown role: %q", n.Role)
@@ -170,9 +170,9 @@ func (n *Node) Create() (*nodes.Node, error) {
 func (n *Node) Delete() error {
 	log := n.Logger.WithName("node-delete")
 	switch n.Role {
-	case "control-plane":
+	case constants.ControlPlaneNodeRoleValue:
 		return n.MachineActions.DeleteControlPlane(n.Cluster, n.Machine)
-	case "worker":
+	case constants.WorkerNodeRoleValue:
 		return n.MachineActions.DeleteWorker(n.Cluster, n.Machine)
 	default:
 		log.Info("Unknown role", "role", n.Role)

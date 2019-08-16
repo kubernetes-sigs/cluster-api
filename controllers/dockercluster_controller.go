@@ -23,7 +23,7 @@ import (
 	"github.com/go-logr/logr"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	infrastructurev1alpha2 "sigs.k8s.io/cluster-api-provider-docker/api/v1alpha2"
-	"sigs.k8s.io/cluster-api-provider-docker/kind"
+	"sigs.k8s.io/cluster-api-provider-docker/docker"
 	"sigs.k8s.io/cluster-api/util"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -74,7 +74,7 @@ func (r *DockerClusterReconciler) Reconcile(req ctrl.Request) (_ ctrl.Result, re
 	}()
 
 	if len(dockerCluster.Status.APIEndpoints) == 0 {
-		lb, err := kind.NewLoadBalancer(cluster.Name, r.Log.WithName("new-load-balancer"))
+		lb, err := docker.NewLoadBalancer(cluster.Name, r.Log.WithName("new-load-balancer"))
 		if err != nil {
 			log.Error(err, "failed to create load balancer initializer")
 			return ctrl.Result{}, err

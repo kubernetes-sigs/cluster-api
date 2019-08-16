@@ -104,26 +104,35 @@ write_files:
 
 	expectedlinesStarts := []string{
 		// ca
+		fmt.Sprintf("%s mkdir -p /etc/kubernetes/pki", prompt),
 		fmt.Sprintf("%s cat > /etc/kubernetes/pki/ca.crt", prompt),
 		fmt.Sprintf("%s chmod 0640 /etc/kubernetes/pki/ca.crt", prompt),
+		fmt.Sprintf("%s mkdir -p /etc/kubernetes/pki", prompt),
 		fmt.Sprintf("%s cat > /etc/kubernetes/pki/ca.key", prompt),
 		fmt.Sprintf("%s chmod 0600 /etc/kubernetes/pki/ca.key", prompt),
 		// etcd/ca
+		fmt.Sprintf("%s mkdir -p /etc/kubernetes/pki/etcd", prompt),
 		fmt.Sprintf("%s cat > /etc/kubernetes/pki/etcd/ca.crt", prompt),
 		fmt.Sprintf("%s chmod 0640 /etc/kubernetes/pki/etcd/ca.crt", prompt),
+		fmt.Sprintf("%s mkdir -p /etc/kubernetes/pki/etcd", prompt),
 		fmt.Sprintf("%s cat > /etc/kubernetes/pki/etcd/ca.key", prompt),
 		fmt.Sprintf("%s chmod 0600 /etc/kubernetes/pki/etcd/ca.key", prompt),
 		// front-proxy-ca
+		fmt.Sprintf("%s mkdir -p /etc/kubernetes/pki", prompt),
 		fmt.Sprintf("%s cat > /etc/kubernetes/pki/front-proxy-ca.crt", prompt),
 		fmt.Sprintf("%s chmod 0640 /etc/kubernetes/pki/front-proxy-ca.crt", prompt),
+		fmt.Sprintf("%s mkdir -p /etc/kubernetes/pki", prompt),
 		fmt.Sprintf("%s cat > /etc/kubernetes/pki/front-proxy-ca.key", prompt),
 		fmt.Sprintf("%s chmod 0600 /etc/kubernetes/pki/front-proxy-ca.key", prompt),
 		// sa
+		fmt.Sprintf("%s mkdir -p /etc/kubernetes/pki", prompt),
 		fmt.Sprintf("%s cat > /etc/kubernetes/pki/sa.pub", prompt),
 		fmt.Sprintf("%s chmod 0640 /etc/kubernetes/pki/sa.pub", prompt),
+		fmt.Sprintf("%s mkdir -p /etc/kubernetes/pki", prompt),
 		fmt.Sprintf("%s cat > /etc/kubernetes/pki/sa.key", prompt),
 		fmt.Sprintf("%s chmod 0600 /etc/kubernetes/pki/sa.key", prompt),
 		// /tmp/kubeadm.yaml
+		fmt.Sprintf("%s mkdir -p /tmp", prompt),
 		fmt.Sprintf("%s cat > /tmp/kubeadm.yaml", prompt),
 		fmt.Sprintf("%s chmod 0640 /tmp/kubeadm.yaml", prompt),
 	}

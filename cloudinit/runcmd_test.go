@@ -47,7 +47,7 @@ runcmd:
 		t.Errorf("Expected %+v commands, found %+v", expected0, r.Cmds[0])
 	}
 
-	expected1 := Cmd{Cmd: "/bin/sh", Args: []string{"ls -l /"}}
+	expected1 := Cmd{Cmd: "/bin/sh", Args: []string{"-c", "ls -l /"}}
 	if !reflect.DeepEqual(r.Cmds[1], expected1) {
 		t.Errorf("Expected %+v commands, found %+v", expected1, r.Cmds[1])
 	}

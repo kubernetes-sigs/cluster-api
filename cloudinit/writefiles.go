@@ -22,6 +22,7 @@ import (
 	"encoding/base64"
 	"fmt"
 	"io"
+	"path/filepath"
 	"strings"
 
 	"github.com/ghodss/yaml"
@@ -69,7 +70,13 @@ func (a *writeFilesAction) Run(cmder exec.Cmder) ([]string, error) {
 			return lines, errors.Wrapf(err, "error decoding content for %s", path)
 		}
 
-		// Writing the files
+		// Make the directory
+		directory := filepath.Dir(path)
+		lines = append(lines, fmt.Sprintf("%s mkdir -p %s\n", prompt, directory))
+		if err := cmder.Command("/bin/sh", "-c", fmt.Sprintf("mkdir -p %q", directory)).Run(); err != nil {
+			return lines, errors.Wrapf(err, fmt.Sprintf("failed to create directory"))
+		}
+
 		// Add a line in the output that mimics the command being issues at the command line
 		redirects := ">"
 		if f.Append {
@@ -77,14 +84,12 @@ func (a *writeFilesAction) Run(cmder exec.Cmder) ([]string, error) {
 		}
 		lines = append(lines, fmt.Sprintf("%s cat %s %s << END\n%s\nEND\n", prompt, redirects, path, content))
 
-		if err := cmder.Command(
-			"cat", redirects, path, "/dev/stdin",
-		).SetStdin(
-			strings.NewReader(content),
-		).Run(); err != nil {
+		if err := cmder.Command("/bin/sh", "-c", fmt.Sprintf("cat %s %s /dev/stdin", redirects, path)).
+			SetStdin(strings.NewReader(content)).
+			Run(); err != nil {
 			// Add a line in the output with the error message and exit
 			lines = append(lines, fmt.Sprintf("%s %v", errorPrefix, err))
-			return lines, errors.Wrapf(errors.WithStack(err), "error writing file content to %s", path)
+			return lines, errors.Wrapf(err, "error writing file content to %s", path)
 		}
 
 		// if permissions is different by default ownership in kind, sets file permissions

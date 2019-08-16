@@ -56,7 +56,7 @@ func (c *Cmd) UnmarshalJSON(data []byte) error {
 		return errors.WithStack(err)
 	}
 	c.Cmd = "/bin/sh"
-	c.Args = []string{s2}
+	c.Args = []string{"-c", s2}
 
 	return nil
 }
@@ -80,7 +80,7 @@ func (a *runCmdAction) Unmarshal(userData []byte) error {
 	return nil
 }
 
-const prompt = "capd@kind$"
+const prompt = "capd@docker$"
 const errorPrefix = "ERROR!"
 
 // Run the runCmdAction

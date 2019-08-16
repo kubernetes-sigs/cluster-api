@@ -37,7 +37,7 @@ RUN go mod download
 COPY cmd/ cmd/
 COPY api/ api/
 COPY controllers/ controllers/
-COPY kind/ kind/
+COPY docker docker/
 COPY third_party/ third_party/
 COPY cloudinit/ cloudinit/
 

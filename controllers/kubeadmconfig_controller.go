@@ -128,7 +128,16 @@ func (r *KubeadmConfigReconciler) Reconcile(req ctrl.Request) (_ ctrl.Result, re
 		}
 	}()
 
-	// Init the control plane
+	holdLock := false
+	initLocker := newControlPlaneInitLocker(ctx, log, r.Client)
+	defer func() {
+		if !holdLock {
+			initLocker.Release(cluster)
+		}
+	}()
+
+	// Check for control plane ready. If it's not ready then we will requeue the machine until it is.
+	// The cluster-api machine controller set this value.
 	if cluster.Annotations[ControlPlaneReadyAnnotationKey] != "true" {
 		// if it's NOT a control plane machine, requeue
 		if !util.IsControlPlaneMachine(machine) {
@@ -142,10 +151,13 @@ func (r *KubeadmConfigReconciler) Reconcile(req ctrl.Request) (_ ctrl.Result, re
 			return ctrl.Result{RequeueAfter: 30 * time.Second}, nil
 		}
 
-		//TODO(fp) use init lock so only the first machine configured as control plane get processed, everything else gets requeued
-
-		// otherwise it is a init control plane
-		// Nb. in this case JoinConfiguration should not be defined by users, but in case of misconfigurations, CABPK simply ignore it
+		// acquire the init lock so that only the first machine configured
+		// as control plane get processed here
+		// if not the first, requeue
+		if !initLocker.Acquire(cluster) {
+			log.Info("A control plane is already being initialized, requeing until control plane is ready")
+			return ctrl.Result{RequeueAfter: 30 * time.Second}, nil
+		}
 
 		log.Info("Creating BootstrapData for the init control plane")
 
@@ -225,11 +237,17 @@ func (r *KubeadmConfigReconciler) Reconcile(req ctrl.Request) (_ ctrl.Result, re
 
 		config.Status.BootstrapData = cloudInitData
 		config.Status.Ready = true
+
+		holdLock = true
+
 		return ctrl.Result{}, nil
 	}
 
 	// Every other case it's a join scenario
 	// Nb. in this case ClusterConfiguration and JoinConfiguration should not be defined by users, but in case of misconfigurations, CABPK simply ignore them
+
+	// Release any locks that might have been set during init process
+	initLocker.Release(cluster)
 
 	if config.Spec.JoinConfiguration == nil {
 		return ctrl.Result{}, errors.New("Control plane already exists for the cluster, only KubeadmConfig objects with JoinConfiguration are allowed")

@@ -24,7 +24,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	kubeadmv1beta1 "k8s.io/kubernetes/cmd/kubeadm/app/apis/kubeadm/v1beta1"
 	"k8s.io/kubernetes/pkg/kubelet/apis/config"
-	"sigs.k8s.io/cluster-api-provider-docker/kind/constants"
+	"sigs.k8s.io/cluster-api-provider-docker/docker/constants"
 )
 
 const (

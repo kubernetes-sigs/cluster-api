@@ -18,14 +18,15 @@ package controllers
 
 import (
 	"context"
+	"encoding/base64"
 	"fmt"
 	"time"
 
 	"github.com/go-logr/logr"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	infrastructurev1alpha2 "sigs.k8s.io/cluster-api-provider-docker/api/v1alpha2"
-	"sigs.k8s.io/cluster-api-provider-docker/kind"
-	"sigs.k8s.io/cluster-api-provider-docker/kind/actions"
+	"sigs.k8s.io/cluster-api-provider-docker/docker"
+	"sigs.k8s.io/cluster-api-provider-docker/docker/actions"
 	capiv1alpha2 "sigs.k8s.io/cluster-api/api/v1alpha2"
 	"sigs.k8s.io/cluster-api/util"
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -192,7 +193,7 @@ func (r *DockerMachineReconciler) create(
 	if util.IsControlPlaneMachine(machine) {
 		role = constants.ControlPlaneNodeRoleValue
 	}
-	node, err := kind.NewNode(c.Name, machine.Name, role, *machine.Spec.Version, log)
+	node, err := docker.NewNode(c.Name, machine.Name, role, *machine.Spec.Version, log)
 	if err != nil {
 		// TODO: This log line is confusing.
 		log.Error(err, "Failed to initialize a node")
@@ -236,7 +237,7 @@ func (r *DockerMachineReconciler) reconcileDelete(
 	if util.IsControlPlaneMachine(machine) {
 		role = constants.ControlPlaneNodeRoleValue
 	}
-	node, err := kind.NewNode(cluster.Name, machine.Name, role, *machine.Spec.Version, log)
+	node, err := docker.NewNode(cluster.Name, machine.Name, role, *machine.Spec.Version, log)
 	if err != nil {
 		// TODO: This log line is confusing.
 		log.Error(err, "Failed to initialize a node")

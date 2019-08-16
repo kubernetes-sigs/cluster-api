@@ -24,6 +24,7 @@ import (
 	"github.com/go-logr/logr"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	infrastructurev1alpha2 "sigs.k8s.io/cluster-api-provider-docker/api/v1alpha2"
+	"sigs.k8s.io/cluster-api-provider-docker/kind"
 	"sigs.k8s.io/cluster-api-provider-docker/kind/actions"
 	capiv1alpha2 "sigs.k8s.io/cluster-api/api/v1alpha2"
 	"sigs.k8s.io/cluster-api/util"
@@ -33,7 +34,6 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/source"
 	kindcluster "sigs.k8s.io/kind/pkg/cluster"
 	"sigs.k8s.io/kind/pkg/cluster/constants"
-	"sigs.k8s.io/kind/pkg/cluster/nodes"
 )
 
 const (
@@ -50,7 +50,6 @@ type DockerMachineReconciler struct {
 // +kubebuilder:rbac:groups=infrastructure.cluster.x-k8s.io,resources=dockermachines,verbs=get;list;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups=infrastructure.cluster.x-k8s.io,resources=dockermachines/status,verbs=get;update;patch
 // +kubebuilder:rbac:groups=cluster.x-k8s.io,resources=clusters;machines,verbs=get;list;watch
-// +kubebuilder:rbac:groups=core,resources=secrets,verbs=create
 
 // Reconcile handles DockerMachine events
 func (r *DockerMachineReconciler) Reconcile(req ctrl.Request) (_ ctrl.Result, reterr error) {
@@ -102,54 +101,83 @@ func (r *DockerMachineReconciler) Reconcile(req ctrl.Request) (_ ctrl.Result, re
 	if !util.Contains(dockerMachine.Finalizers, capiv1alpha2.MachineFinalizer) {
 		dockerMachine.Finalizers = append(dockerMachine.Finalizers, infrastructurev1alpha2.MachineFinalizer)
 	}
-
-	// If this is the delete case, delete the container and remove the finalizer
-	if !machine.ObjectMeta.DeletionTimestamp.IsZero() {
+	state := getState(machine, dockerMachine)
+	log = log.WithValues("state", state.String())
+	// TODO: consider setting the key pieces in this function, such as ProviderID and deleting finalizers
+	switch state {
+	case Deleted:
 		log.Info("Start reconcileDelete dockerMachine")
 		return r.reconcileDelete(ctx, cluster, machine, dockerMachine)
-	}
-
-	// If the machine already has a ProviderID then there is no action to take
-	if machine.Spec.ProviderID != nil {
+	case Provisioned:
 		return ctrl.Result{}, nil
-	}
-
-	// If there is no provider id and no bootstrap data we are waiting for the bootstrap data
-	if machine.Spec.Bootstrap.Data == nil {
+	case Pending:
 		log.Info("Waiting for machine bootstrap")
 		return ctrl.Result{RequeueAfter: 10 * time.Second}, nil
-	}
+	case Provisioning:
+		log.Info("Provisioning machine")
+		// Ensuring cluster is ready for joining
+		clusterExists, err := kindcluster.IsKnown(cluster.Name)
+		if err != nil {
+			log.Error(err, "Error finding cluster-name", "cluster", cluster.Name)
+			return ctrl.Result{}, err
+		}
 
-	// Ensuring cluster is ready for joining
-	clusterExists, err := kindcluster.IsKnown(cluster.Name)
-	if err != nil {
-		log.Error(err, "Error finding cluster-name", "cluster", cluster.Name)
-		return ctrl.Result{}, err
-	}
-
-	// If there's no cluster, requeue the request until there is one
-	if !clusterExists {
-		r.Log.Info("There is no cluster yet, waiting for a cluster before creating machines")
-		return ctrl.Result{RequeueAfter: time.Second * 30}, nil
-	}
-
-	// At this point the machine is not yet provisioned. Create if possible.
-	if machine.Spec.Bootstrap.Data != nil {
+		// If there's no cluster, requeue the request until there is one
+		if !clusterExists {
+			r.Log.Info("There is no cluster yet, waiting for a cluster before creating machines")
+			return ctrl.Result{RequeueAfter: time.Second * 30}, nil
+		}
+		log.Info("Creating machine")
 		return r.create(ctx, cluster, machine, dockerMachine)
+	default:
+		log.Info("Unknown state", "state", state)
+		return ctrl.Result{}, nil
 	}
-
-	// We are waiting for bootstrap data
-	return ctrl.Result{RequeueAfter: 30 * time.Second}, nil
 }
 
-func getRole(machine *capiv1alpha2.Machine) string {
-	// Figure out what kind of node we're making
-	labels := machine.GetLabels()
-	setValue, ok := labels["set"]
-	if !ok {
-		setValue = constants.WorkerNodeRoleValue
+// State is the state our machine object is in
+type State int
+
+const (
+	// Provisioned is the state that happens after the machine is part of a cluster.
+	// Technically it should be Running but this controller sees no difference between the two.
+	Provisioned State = iota
+	// Pending is when the machine is waiting for bootstrap data to exist.
+	Pending
+	// Deleted is when the machine has been deleted.
+	Deleted
+	// Provisioning is when bootstrap data exists but it's not finished being provisioned.
+	Provisioning
+)
+
+// String is a helper function to print a human-readable form of the state.
+func (s State) String() string {
+	switch s {
+	case Provisioning:
+		return "Provisioning"
+	case Deleted:
+		return "Deleted"
+	case Provisioned:
+		return "Provisioned"
+	case Pending:
+		return "Pending"
+	default:
+		return "Unknown"
 	}
-	return setValue
+}
+
+func getState(machine *capiv1alpha2.Machine, dockerMachine *infrastructurev1alpha2.DockerMachine) State {
+	// Deleted takes precedence
+	if !machine.ObjectMeta.DeletionTimestamp.IsZero() {
+		return Deleted
+	}
+	if dockerMachine.Spec.ProviderID != nil {
+		return Provisioned
+	}
+	if machine.Spec.Bootstrap.Data == nil {
+		return Pending
+	}
+	return Provisioning
 }
 
 func (r *DockerMachineReconciler) create(
@@ -158,28 +186,26 @@ func (r *DockerMachineReconciler) create(
 	machine *capiv1alpha2.Machine,
 	dockerMachine *infrastructurev1alpha2.DockerMachine) (ctrl.Result, error) {
 
-	log := r.Log.WithName("machine-create").WithValues("cluster", c.Name, "machine", machine.Name)
-	log.Info("Creating a machine for cluster")
-	var node *nodes.Node
-	var err error
+	log := r.Log.WithName("machine-create")
+
+	role := constants.WorkerNodeRoleValue
 	if util.IsControlPlaneMachine(machine) {
-		log.Info("Adding a control plane node")
-		node, err = actions.AddControlPlane(c.Name, machine.GetName(), *machine.Spec.Version)
-		if err != nil {
-			log.Error(err, "Error adding control plane")
-			return ctrl.Result{}, err
-		}
-	} else {
-		log.Info("Creating a new worker node")
-		node, err = actions.AddWorker(c.Name, machine.GetName(), *machine.Spec.Version)
-		if err != nil {
-			log.Error(err, "Error creating new worker node")
-			return ctrl.Result{}, err
-		}
+		role = constants.ControlPlaneNodeRoleValue
 	}
-	log.Info("Setting the providerID", "provider-id", node.Name())
+	node, err := kind.NewNode(c.Name, machine.Name, role, *machine.Spec.Version, log)
+	if err != nil {
+		// TODO: This log line is confusing.
+		log.Error(err, "Failed to initialize a node")
+		return ctrl.Result{}, err
+	}
+	newNode, err := node.Create()
+	if err != nil {
+		log.Error(err, "Failed to create node")
+		return ctrl.Result{}, err
+	}
+	log.Info("Setting the providerID", "provider-id", newNode.Name())
 	// set the machine's providerID
-	providerID := actions.ProviderID(node.Name())
+	providerID := actions.ProviderID(newNode.Name())
 	dockerMachine.Spec.ProviderID = &providerID
 	dockerMachine.Status.Ready = true
 	return ctrl.Result{}, nil
@@ -205,22 +231,23 @@ func (r *DockerMachineReconciler) reconcileDelete(
 	dockerMachine *infrastructurev1alpha2.DockerMachine,
 ) (ctrl.Result, error) {
 	log := r.Log.WithValues("cluster", cluster.Name, "machine", machine.Name)
+
+	role := constants.WorkerNodeRoleValue
 	if util.IsControlPlaneMachine(machine) {
-		err := actions.DeleteControlPlane(cluster.Name, machine.Name)
-		if err != nil {
-			log.Error(err, "Error deleting control-plane machine")
-			return ctrl.Result{RequeueAfter: time.Second * 30}, err
-		}
-	} else {
-		err := actions.DeleteWorker(cluster.Name, machine.Name)
-		if err != nil {
-			log.Error(err, "Error deleting worker node")
-			return ctrl.Result{RequeueAfter: time.Second * 30}, nil
-		}
+		role = constants.ControlPlaneNodeRoleValue
 	}
-
+	node, err := kind.NewNode(cluster.Name, machine.Name, role, *machine.Spec.Version, log)
+	if err != nil {
+		// TODO: This log line is confusing.
+		log.Error(err, "Failed to initialize a node")
+		return ctrl.Result{}, err
+	}
+	if err := node.Delete(); err != nil {
+		log.Error(err, "Error deleting a node")
+		return ctrl.Result{}, err
+	}
+	// Remove the finalizer
 	dockerMachine.ObjectMeta.Finalizers = util.Filter(dockerMachine.ObjectMeta.Finalizers, infrastructurev1alpha2.MachineFinalizer)
-
 	return ctrl.Result{}, nil
 }
 

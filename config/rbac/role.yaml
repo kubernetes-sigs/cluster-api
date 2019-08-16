@@ -9,6 +9,7 @@ rules:
 - apiGroups:
   - ""
   resources:
+  - events
   - secrets
   verbs:
   - create

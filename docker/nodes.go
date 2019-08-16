@@ -136,7 +136,7 @@ func NewNode(cluster, machine, role, version string, log logr.Logger) (*Node, er
 }
 
 // Create figures out what kind of node to make and does the right thing
-func (n *Node) Create() (*nodes.Node, error) {
+func (n *Node) Create(cloudConfig []byte) (*nodes.Node, error) {
 	log := n.Logger.WithName("node-create")
 	switch n.Role {
 	case constants.ControlPlaneNodeRoleValue:
@@ -153,13 +153,13 @@ func (n *Node) Create() (*nodes.Node, error) {
 				log.Error(err, "Failed to get node's IP", "node-name", node.Name())
 				return nil, err
 			}
-			return n.MachineActions.CreateControlPlane(n.Cluster, n.Machine, ipv4, n.Version, nil)
+			return n.MachineActions.CreateControlPlane(n.Cluster, n.Machine, ipv4, n.Version, nil, cloudConfig)
 		}
 		log.Info("Adding an additional control plane node")
-		return n.MachineActions.AddControlPlane(n.Cluster, n.Machine, n.Version)
+		return n.MachineActions.AddControlPlane(n.Cluster, n.Machine, n.Version, cloudConfig)
 	case constants.WorkerNodeRoleValue:
 		log.Info("Adding a worker")
-		return n.MachineActions.AddWorker(n.Cluster, n.Machine, n.Version)
+		return n.MachineActions.AddWorker(n.Cluster, n.Machine, n.Version, cloudConfig)
 	default:
 		log.Info("Unknown role", "role", n.Role)
 		return nil, errors.Errorf("Unknown role: %q", n.Role)

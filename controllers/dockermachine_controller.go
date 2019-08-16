@@ -187,7 +187,7 @@ func (r *DockerMachineReconciler) create(
 	machine *capiv1alpha2.Machine,
 	dockerMachine *infrastructurev1alpha2.DockerMachine) (ctrl.Result, error) {
 
-	log := r.Log.WithName("machine-create")
+	log := r.Log.WithName("machine-create").WithValues("machine", machine.Name)
 
 	role := constants.WorkerNodeRoleValue
 	if util.IsControlPlaneMachine(machine) {
@@ -199,9 +199,15 @@ func (r *DockerMachineReconciler) create(
 		log.Error(err, "Failed to initialize a node")
 		return ctrl.Result{}, err
 	}
-	newNode, err := node.Create()
+	// Data must be populated if we've made it this far
+	cloudConfig, err := base64.StdEncoding.DecodeString(*machine.Spec.Bootstrap.Data)
 	if err != nil {
-		log.Error(err, "Failed to create node")
+		log.Error(err, "Failed to decode machine's bootstrap data")
+	}
+
+	newNode, err := node.Create(cloudConfig)
+	if err != nil {
+		log.Error(err, "Failed to create node", "stacktrace", fmt.Sprintf("%+v", err))
 		return ctrl.Result{}, err
 	}
 	log.Info("Setting the providerID", "provider-id", newNode.Name())

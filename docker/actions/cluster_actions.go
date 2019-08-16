@@ -22,8 +22,8 @@ import (
 	"html/template"
 	"strings"
 
+	"github.com/go-logr/logr"
 	"github.com/pkg/errors"
-	k8sversion "k8s.io/apimachinery/pkg/util/version"
 	"sigs.k8s.io/cluster-api-provider-docker/cloudinit"
 	constkind "sigs.k8s.io/cluster-api-provider-docker/docker/constants"
 	"sigs.k8s.io/cluster-api-provider-docker/docker/kubeadm"
@@ -34,37 +34,7 @@ import (
 	"sigs.k8s.io/kind/pkg/exec"
 )
 
-// KubeadmJoinControlPlane joins a control plane to an existing Kubernetes cluster.
-func KubeadmJoinControlPlane(clusterName string, node *nodes.Node) error {
-	allNodes, err := nodes.List(fmt.Sprintf("label=%s=%s", constants.ClusterLabelKey, clusterName))
-	if err != nil {
-		return err
-	}
-
-	// get the join address
-	joinipv4, _, err := nodes.GetControlPlaneEndpoint(allNodes)
-	if err != nil {
-		return err
-	}
-
-	if err := node.Command("mkdir", "-p", "/etc/kubernetes/pki/etcd").Run(); err != nil {
-		return errors.Wrap(err, "failed to join node with kubeadm")
-	}
-
-	//TODO: cloudConfig should flow here from CPBPK or in case of the management cluster, from a constant
-	cmd := []string{
-		"kubeadm", "join",
-		joinipv4,
-		"--experimental-control-plane",
-		"--token", kubeadm.Token,
-		"--discovery-token-unsafe-skip-ca-verification",
-		"--ignore-preflight-errors=all",
-		"--certificate-key", strings.Repeat("a", 32),
-		"--v=6",
-		"--cri-socket=/run/containerd/containerd.sock",
-	}
-	cloudConfig := []byte(fmt.Sprintf("runcmd:\n- [ %s ]", strings.Join(cmd, ", ")))
-
+func NodeCloudConfig(node *nodes.Node, cloudConfig []byte) error {
 	lines, err := cloudinit.Run(cloudConfig, node.Cmder())
 	if err != nil {
 		for _, line := range lines {
@@ -146,45 +116,19 @@ func KubeadmConfig(node *nodes.Node, clusterName, lbip string) error {
 }
 
 // KubeadmInit execute kubeadm init on the boostrap control-plane node of a cluster
-func KubeadmInit(clusterName, version string) error {
+func KubeadmInit(clusterName string, node *nodes.Node, cloudConfig []byte, log logr.Logger) error {
 	allNodes, err := nodes.List(fmt.Sprintf("label=%s=%s", constants.ClusterLabelKey, clusterName))
 	if err != nil {
 		return err
 	}
 
-	node, err := nodes.BootstrapControlPlaneNode(allNodes)
+	log = log.WithName("kubeadm-init")
+	lines, err := cloudinit.Run(cloudConfig, node.Cmder())
+	for _, line := range lines {
+		log.Info(line)
+	}
 	if err != nil {
 		return err
-	}
-	// Upload certs flag changed to non-experimental in >= 1.15
-	uploadCertsFlag := "--experimental-upload-certs"
-	parsedVersion, err := k8sversion.ParseGeneric(version)
-	if err != nil {
-		return errors.WithStack(err)
-	}
-
-	if parsedVersion.Minor() >= 15 {
-		uploadCertsFlag = "--upload-certs"
-	}
-
-	//TODO: cloudConfig should flow here from CPBPK or in case of the management cluster, from a constant
-	cmd := []string{
-		"kubeadm", "init",
-		"--ignore-preflight-errors=all",
-		"--config=/kind/kubeadm.conf",
-		"--skip-token-print",
-		uploadCertsFlag,
-		"--certificate-key", strings.Repeat("a", 32),
-		"--v=6",
-	}
-	cloudConfig := []byte(fmt.Sprintf("runcmd:\n- [ %s ]", strings.Join(cmd, ", ")))
-
-	lines, err := cloudinit.Run(cloudConfig, node.Cmder())
-	if err != nil {
-		for _, line := range lines {
-			fmt.Println(line)
-		}
-		return errors.Wrap(err, "failed to init node with kubeadm")
 	}
 
 	// save the kubeconfig on the host with the loadbalancer endpoint
@@ -234,42 +178,6 @@ func InstallCNI(node *nodes.Node) error {
 	return nil
 }
 
-// KubeadmJoin executes kubeadm join on a node
-func KubeadmJoin(clusterName string, node *nodes.Node) error {
-	allNodes, err := nodes.List(fmt.Sprintf("label=%s=%s", constants.ClusterLabelKey, clusterName))
-	if err != nil {
-		return nil
-	}
-
-	joinipv4, _, err := nodes.GetControlPlaneEndpoint(allNodes)
-	if err != nil {
-		return err
-	}
-
-	//TODO: cloudConfig should flow here from CPBPK or in case of the management cluster, from a constant
-	cmd := []string{
-		"kubeadm", "join",
-		joinipv4,
-		"--token", kubeadm.Token,
-		"--discovery-token-unsafe-skip-ca-verification",
-		"--ignore-preflight-errors=all",
-		"--certificate-key", strings.Repeat("a", 32),
-		"--v=6",
-		"--cri-socket=/run/containerd/containerd.sock",
-	}
-	cloudConfig := []byte(fmt.Sprintf("runcmd:\n- [ %s ]", strings.Join(cmd, ", ")))
-
-	lines, err := cloudinit.Run(cloudConfig, node.Cmder())
-	if err != nil {
-		for _, line := range lines {
-			fmt.Println(line)
-		}
-		return errors.Wrap(err, "failed to join node with kubeadm")
-	}
-
-	return nil
-}
-
 // SetNodeProviderRef patches a node with docker://node-name as the providerID
 func SetNodeProviderRef(clusterName, nodeName string) error {
 	allNodes, err := nodes.List(fmt.Sprintf("label=%s=%s", constants.ClusterLabelKey, clusterName))
@@ -310,7 +218,7 @@ func DeleteClusterNode(clusterName, nodeName string) error {
 		fmt.Sprintf("label=%s=%s", constants.NodeRoleKey, constants.ControlPlaneNodeRoleValue),
 	)
 	if err != nil {
-		return err
+		return errors.Wrap(err, "failed to list all control planes")
 	}
 	var node nodes.Node
 	// pick one that doesn't match the node name we are trying to delete

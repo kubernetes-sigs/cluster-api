@@ -50,7 +50,7 @@ func KubeConfigPath(clusterName string) string {
 }
 
 // AddControlPlane adds a control plane to a given cluster
-func (m *MachineActions) AddControlPlane(clusterName, machineName, version string) (*nodes.Node, error) {
+func (m *MachineActions) AddControlPlane(clusterName, machineName, version string, cloudConfig []byte) (*nodes.Node, error) {
 	log := m.Logger.WithName("add-control-plane").WithValues("cluster-name", clusterName, "machine-name", machineName, "version", version)
 	clusterLabel := fmt.Sprintf("%s=%s", constants.ClusterLabelKey, clusterName)
 	kindImage := image(version)
@@ -67,7 +67,7 @@ func (m *MachineActions) AddControlPlane(clusterName, machineName, version strin
 	if err != nil {
 		return nil, err
 	}
-	if err := KubeadmJoinControlPlane(clusterName, controlPlane); err != nil {
+	if err := NodeCloudConfig(controlPlane, cloudConfig); err != nil {
 		return nil, err
 	}
 	log.Info("Updating node providerID")
@@ -81,7 +81,7 @@ func (m *MachineActions) AddControlPlane(clusterName, machineName, version strin
 }
 
 // CreateControlPlane is creating the first control plane and configuring the load balancer.
-func (m *MachineActions) CreateControlPlane(clusterName, machineName, lbip, version string, mounts []cri.Mount) (*nodes.Node, error) {
+func (m *MachineActions) CreateControlPlane(clusterName, machineName, lbip, version string, mounts []cri.Mount, cloudConfig []byte) (*nodes.Node, error) {
 	log := m.Logger.WithName("create-control-plane").WithValues("cluster-name", clusterName, "machine-name", machineName, "load-balancer-ip", lbip, "version", version)
 	log.Info("Creating control plane node")
 	clusterLabel := fmt.Sprintf("%s=%s", constants.ClusterLabelKey, clusterName)
@@ -107,7 +107,7 @@ func (m *MachineActions) CreateControlPlane(clusterName, machineName, lbip, vers
 		return nil, err
 	}
 	log.Info("Initializing cluster")
-	if err := KubeadmInit(clusterName, version); err != nil {
+	if err := KubeadmInit(clusterName, controlPlaneNode, cloudConfig, log); err != nil {
 		return nil, err
 	}
 	log.Info("Updating node providerID")
@@ -123,7 +123,7 @@ func (m *MachineActions) CreateControlPlane(clusterName, machineName, lbip, vers
 }
 
 // AddWorker adds a worker to a given cluster.
-func (m *MachineActions) AddWorker(clusterName, machineName, version string) (*nodes.Node, error) {
+func (m *MachineActions) AddWorker(clusterName, machineName, version string, cloudConfig []byte) (*nodes.Node, error) {
 	log := m.Logger.WithName("add-worker").WithValues("cluster-name", clusterName, "machine-name", machineName, "version", version)
 	clusterLabel := fmt.Sprintf("%s=%s", constants.ClusterLabelKey, clusterName)
 	kindImage := image(version)
@@ -137,7 +137,7 @@ func (m *MachineActions) AddWorker(clusterName, machineName, version string) (*n
 	if err != nil {
 		return nil, err
 	}
-	if err := KubeadmJoin(clusterName, worker); err != nil {
+	if err := NodeCloudConfig(worker, cloudConfig); err != nil {
 		return nil, err
 	}
 	log.Info("Updating node providerID")

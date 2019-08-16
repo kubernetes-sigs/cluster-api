@@ -196,6 +196,10 @@ func (r *KubeadmConfigReconciler) Reconcile(req ctrl.Request) (_ ctrl.Result, re
 			log.Info("Altering ClusterConfiguration", "ControlPlaneEndpoint", config.Spec.ClusterConfiguration.ControlPlaneEndpoint)
 		}
 
+		if config.Spec.ClusterConfiguration.ClusterName == "" {
+			config.Spec.ClusterConfiguration.ClusterName = cluster.Name
+		}
+
 		clusterdata, err := kubeadmv1beta1.ConfigurationToYAML(config.Spec.ClusterConfiguration)
 		if err != nil {
 			log.Error(err, "failed to marshal cluster configuration")

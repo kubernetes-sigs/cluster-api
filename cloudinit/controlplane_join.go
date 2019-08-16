@@ -30,8 +30,9 @@ const (
     content: |
 {{.JoinConfiguration | Indent 6}}
 runcmd:
+{{- template "commands" .PreKubeadmCommands }}
   - 'kubeadm join --config /tmp/kubeadm-controlplane-join-config.yaml'
-{{- template "commands" .AdditionalCommands }}
+{{- template "commands" .PostKubeadmCommands }}
 `
 )
 

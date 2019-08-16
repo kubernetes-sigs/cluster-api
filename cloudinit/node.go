@@ -26,8 +26,9 @@ write_files:
       ---
 {{.JoinConfiguration | Indent 6}}
 runcmd:
+{{- template "commands" .PreKubeadmCommands }}
   - 'kubeadm join --config /tmp/kubeadm-node.yaml'
-{{- template "commands" .AdditionalCommands }}
+{{- template "commands" .PostKubeadmCommands }}
 `
 )
 

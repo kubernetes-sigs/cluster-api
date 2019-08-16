@@ -57,7 +57,7 @@ test-go: ## Run tests
 
 .PHONY: manager
 manager: lint-full ## Build manager binary
-	go build -o bin/manager sigs.k8s.io/cluster-api/cmd/manager
+	go build -o bin/manager sigs.k8s.io/cluster-api
 
 .PHONY: docker-build-manager
 docker-build-manager: lint-full ## Build manager binary in docker
@@ -67,7 +67,7 @@ docker-build-manager: lint-full ## Build manager binary in docker
 	-w "/go/src/sigs.k8s.io/cluster-api" \
 	-e CGO_ENABLED=0 -e GOOS=${GOOS} -e GOARCH=${ARCH} -e GO111MODULE=on -e GOFLAGS="-mod=vendor" \
 	golang:1.12.6 \
-	go build -a -ldflags '-extldflags "-static"' -o /go/bin/manager sigs.k8s.io/cluster-api/cmd/manager
+	go build -a -ldflags '-extldflags "-static"' -o /go/bin/manager sigs.k8s.io/cluster-api
 
 .PHONY: clusterctl
 clusterctl: lint-full ## Build clusterctl binary
@@ -75,7 +75,7 @@ clusterctl: lint-full ## Build clusterctl binary
 
 .PHONY: run
 run: lint ## Run against the configured Kubernetes cluster in ~/.kube/config
-	go run ./cmd/manager/main.go
+	go run ./main.go
 
 ## --------------------------------------
 ## Linting
@@ -108,7 +108,7 @@ generate-deepcopy: ## Runs controller-gen to generate deepcopy files
 generate-manifests: ## Generate manifests e.g. CRD, RBAC etc.
 	go run vendor/sigs.k8s.io/controller-tools/cmd/controller-gen/main.go \
 		paths=./api/... \
-		paths=./pkg/controller/... \
+		paths=./controllers/... \
 		crd:trivialVersions=true \
 		rbac:roleName=manager-role \
 		output:crd:dir=./config/crd/bases

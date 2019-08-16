@@ -302,7 +302,7 @@ func (r *MachineSetReconciler) syncReplicas(ms *clusterv1.MachineSet, machines [
 		if err != nil {
 			return err
 		}
-		klog.Infof("Found %s delete policy", ms.Spec.DeletePolicy)
+		klog.Infof("Found %q delete policy", ms.Spec.DeletePolicy)
 		// Choose which Machines to delete.
 		machinesToDelete := getMachinesToDeletePrioritized(machines, diff, deletePriorityFunc)
 

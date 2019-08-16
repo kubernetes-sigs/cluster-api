@@ -34,6 +34,7 @@ import (
 	"sigs.k8s.io/kind/pkg/exec"
 )
 
+// NodeCloudConfig runs cloud-config on a node, this is generally `kubeadm <init|join>`
 func NodeCloudConfig(node *nodes.Node, cloudConfig []byte) error {
 	lines, err := cloudinit.Run(cloudConfig, node.Cmder())
 	if err != nil {

@@ -26,6 +26,7 @@ import (
 	"regexp"
 	"strings"
 
+	"github.com/go-logr/logr"
 	"github.com/pkg/errors"
 	constkind "sigs.k8s.io/cluster-api-provider-docker/kind/constants"
 	"sigs.k8s.io/cluster-api-provider-docker/third_party/forked/loadbalancer"
@@ -36,9 +37,10 @@ import (
 	"sigs.k8s.io/kind/pkg/exec"
 )
 
-const (
-	containerRunningStatus = "running"
-)
+// MachineActions are the actions related to machines, Create and Delete namely.
+type MachineActions struct {
+	Logger logr.Logger
+}
 
 // KubeConfigPath returns the path to the kubeconfig file for the given cluster name.
 func KubeConfigPath(clusterName string) string {
@@ -48,7 +50,8 @@ func KubeConfigPath(clusterName string) string {
 }
 
 // AddControlPlane adds a control plane to a given cluster
-func AddControlPlane(clusterName, machineName, version string) (*nodes.Node, error) {
+func (m *MachineActions) AddControlPlane(clusterName, machineName, version string) (*nodes.Node, error) {
+	log := m.Logger.WithName("add-control-plane").WithValues("cluster-name", clusterName, "machine-name", machineName, "version", version)
 	clusterLabel := fmt.Sprintf("%s=%s", constants.ClusterLabelKey, clusterName)
 	kindImage := image(version)
 	// This function exposes a port (makes sense for kind) that is not needed in capd scenarios.
@@ -67,7 +70,7 @@ func AddControlPlane(clusterName, machineName, version string) (*nodes.Node, err
 	if err := KubeadmJoinControlPlane(clusterName, controlPlane); err != nil {
 		return nil, err
 	}
-	fmt.Println("Updating node providerID")
+	log.Info("Updating node providerID")
 	if err := SetNodeProviderRef(clusterName, machineName); err != nil {
 		return nil, err
 	}
@@ -77,65 +80,10 @@ func AddControlPlane(clusterName, machineName, version string) (*nodes.Node, err
 	return controlPlane, nil
 }
 
-func removeExitedELBWithNameConflict(name string) error {
-	exitedLB, err := nodes.List(
-		fmt.Sprintf("label=%s=%s", constants.NodeRoleKey, constants.ExternalLoadBalancerNodeRoleValue),
-		fmt.Sprintf("name=%s", name),
-		fmt.Sprintf("status=exited"),
-	)
-
-	if err != nil {
-		return errors.Wrapf(err, "failed to list exited external load balancer nodes with name %q", name)
-	}
-
-	if len(exitedLB) > 0 {
-		// only one container with given name should exist, if any.
-		fmt.Printf("Removing exited ELB %q\n", exitedLB[0].Name())
-		return nodes.Delete(exitedLB[0])
-	}
-	return nil
-}
-
-// SetUpLoadBalancer creates a load balancer but does not configure it.
-func SetUpLoadBalancer(clusterName string) (*nodes.Node, error) {
-	clusterLabel := fmt.Sprintf("%s=%s", constants.ClusterLabelKey, clusterName)
-	name := fmt.Sprintf("%s-%s", clusterName, constants.ExternalLoadBalancerNodeRoleValue)
-	err := removeExitedELBWithNameConflict(name)
-	if err != nil {
-		return nil, errors.Wrapf(err, "failed to delete exited load balancer node %q", name)
-	}
-
-	return nodes.CreateExternalLoadBalancerNode(
-		name,
-		loadbalancer.Image,
-		clusterLabel,
-		"0.0.0.0",
-		0,
-	)
-}
-
-// GetExternalLoadBalancerNode is returning the nginx container running as ELB for the cluster
-func GetExternalLoadBalancerNode(clusterName string) (*nodes.Node, error) {
-	elb, err := nodes.List(
-		fmt.Sprintf("label=%s=%s", constants.NodeRoleKey, constants.ExternalLoadBalancerNodeRoleValue),
-		fmt.Sprintf("label=%s=%s", constants.ClusterLabelKey, clusterName),
-		fmt.Sprintf("status=%s", containerRunningStatus),
-	)
-	if err != nil {
-		return nil, err
-	}
-	if len(elb) == 0 {
-		return nil, nil
-	}
-	if len(elb) > 1 {
-		return nil, errors.New("too many external load balancers")
-	}
-	return &elb[0], nil
-}
-
 // CreateControlPlane is creating the first control plane and configuring the load balancer.
-func CreateControlPlane(clusterName, machineName, lbip, version string, mounts []cri.Mount) (*nodes.Node, error) {
-	fmt.Println("Creating control plane node")
+func (m *MachineActions) CreateControlPlane(clusterName, machineName, lbip, version string, mounts []cri.Mount) (*nodes.Node, error) {
+	log := m.Logger.WithName("create-control-plane").WithValues("cluster-name", clusterName, "machine-name", machineName, "load-balancer-ip", lbip, "version", version)
+	log.Info("Creating control plane node")
 	clusterLabel := fmt.Sprintf("%s=%s", constants.ClusterLabelKey, clusterName)
 	kindImage := image(version)
 	controlPlaneNode, err := nodes.CreateControlPlaneNode(
@@ -150,32 +98,33 @@ func CreateControlPlane(clusterName, machineName, lbip, version string, mounts [
 	if err != nil {
 		return nil, err
 	}
-	fmt.Println("Configuring load balancer")
+	log.Info("Configuring load balancer")
 	if err := ConfigureLoadBalancer(clusterName); err != nil {
 		return nil, err
 	}
-	fmt.Println("Configuring kubeadm")
+	log.Info("Configuring kubeadm")
 	if err := KubeadmConfig(controlPlaneNode, clusterName, lbip); err != nil {
 		return nil, err
 	}
-	fmt.Println("Initializing cluster")
+	log.Info("Initializing cluster")
 	if err := KubeadmInit(clusterName, version); err != nil {
 		return nil, err
 	}
-	fmt.Println("Updating node providerID")
+	log.Info("Updating node providerID")
 	if err := SetNodeProviderRef(clusterName, machineName); err != nil {
 		return nil, err
 	}
-	fmt.Println("Setting up CNI")
+	log.Info("Setting up CNI")
 	if err := InstallCNI(controlPlaneNode); err != nil {
 		return nil, err
 	}
-	fmt.Println("Created a cluster!")
+	log.Info("Created a cluster!")
 	return controlPlaneNode, nil
 }
 
 // AddWorker adds a worker to a given cluster.
-func AddWorker(clusterName, machineName, version string) (*nodes.Node, error) {
+func (m *MachineActions) AddWorker(clusterName, machineName, version string) (*nodes.Node, error) {
+	log := m.Logger.WithName("add-worker").WithValues("cluster-name", clusterName, "machine-name", machineName, "version", version)
 	clusterLabel := fmt.Sprintf("%s=%s", constants.ClusterLabelKey, clusterName)
 	kindImage := image(version)
 	worker, err := nodes.CreateWorkerNode(
@@ -191,7 +140,7 @@ func AddWorker(clusterName, machineName, version string) (*nodes.Node, error) {
 	if err := KubeadmJoin(clusterName, worker); err != nil {
 		return nil, err
 	}
-	fmt.Println("Updating node providerID")
+	log.Info("Updating node providerID")
 	if err := SetNodeProviderRef(clusterName, machineName); err != nil {
 		return nil, err
 	}
@@ -200,7 +149,8 @@ func AddWorker(clusterName, machineName, version string) (*nodes.Node, error) {
 }
 
 // DeleteControlPlane will take all steps necessary to remove a control plane node from a cluster.
-func DeleteControlPlane(clusterName, nodeName string) error {
+func (m *MachineActions) DeleteControlPlane(clusterName, nodeName string) error {
+	log := m.Logger.WithName("delete-control-plane").WithValues("cluster-name", clusterName, "node-name", nodeName)
 	nodeList, err := nodes.List(
 		fmt.Sprintf("label=%s=%s", constants.ClusterLabelKey, clusterName),
 		fmt.Sprintf("name=%s$", nodeName),
@@ -224,6 +174,7 @@ func DeleteControlPlane(clusterName, nodeName string) error {
 	}
 
 	// Delete the infrastructure
+	log.Info("Deleting node")
 	if err := nodes.Delete(node); err != nil {
 		return err
 	}
@@ -231,13 +182,16 @@ func DeleteControlPlane(clusterName, nodeName string) error {
 }
 
 // DeleteWorker removes a worker node from a cluster
-func DeleteWorker(clusterName, nodeName string) error {
+// TODO: machineName ... should not be the name of the node
+func (m *MachineActions) DeleteWorker(clusterName, machineName string) error {
+	log := m.Logger.WithName("delete-worker").WithValues("cluster-name", clusterName, "node-name", machineName)
 	nodeList, err := nodes.List(
 		fmt.Sprintf("label=%s=%s", constants.ClusterLabelKey, clusterName),
-		fmt.Sprintf("name=%s$", nodeName),
+		fmt.Sprintf("name=%s$", machineName),
 	)
 	if err != nil {
-		return nil
+		log.Error(err, "failed to list nodes")
+		return err
 	}
 
 	// assume it's already deleted
@@ -247,18 +201,12 @@ func DeleteWorker(clusterName, nodeName string) error {
 	// pick the first one, but there should never be multiples since docker requires name to be unique.
 	node := nodeList[0]
 
-	if err := DeleteClusterNode(clusterName, nodeName); err != nil {
+	if err := DeleteClusterNode(clusterName, machineName); err != nil {
 		return err
 	}
 	// Delete the infrastructure
+	log.Info("Deleting node")
 	return nodes.Delete(node)
-}
-
-// ListControlPlanes returns the list of control-plane nodes for a cluster
-func ListControlPlanes(clusterName string) ([]nodes.Node, error) {
-	return nodes.List(
-		fmt.Sprintf("label=%s=%s", constants.ClusterLabelKey, clusterName),
-		fmt.Sprintf("label=%s=%s", constants.NodeRoleKey, constants.ControlPlaneNodeRoleValue))
 }
 
 // GetLoadBalancerHostAndPort returns the port on the host on which the APIServer is exposed
@@ -325,4 +273,41 @@ func image(version string) string {
 		return fmt.Sprintf("kindest/node:%s", version)
 	}
 	return defaults.Image
+}
+
+func removeExitedELBWithNameConflict(name string) error {
+	exitedLB, err := nodes.List(
+		fmt.Sprintf("label=%s=%s", constants.NodeRoleKey, constants.ExternalLoadBalancerNodeRoleValue),
+		fmt.Sprintf("name=%s", name),
+		fmt.Sprintf("status=exited"),
+	)
+
+	if err != nil {
+		return errors.Wrapf(err, "failed to list exited external load balancer nodes with name %q", name)
+	}
+
+	if len(exitedLB) > 0 {
+		// only one container with given name should exist, if any.
+		fmt.Printf("Removing exited ELB %q\n", exitedLB[0].Name())
+		return nodes.Delete(exitedLB[0])
+	}
+	return nil
+}
+
+// SetUpLoadBalancer creates a load balancer but does not configure it.
+func SetUpLoadBalancer(clusterName string) (*nodes.Node, error) {
+	clusterLabel := fmt.Sprintf("%s=%s", constants.ClusterLabelKey, clusterName)
+	name := fmt.Sprintf("%s-%s", clusterName, constants.ExternalLoadBalancerNodeRoleValue)
+	err := removeExitedELBWithNameConflict(name)
+	if err != nil {
+		return nil, errors.Wrapf(err, "failed to delete exited load balancer node %q", name)
+	}
+
+	return nodes.CreateExternalLoadBalancerNode(
+		name,
+		loadbalancer.Image,
+		clusterLabel,
+		"0.0.0.0",
+		0,
+	)
 }

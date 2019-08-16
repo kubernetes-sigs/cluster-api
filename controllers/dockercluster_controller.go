@@ -23,7 +23,7 @@ import (
 	"github.com/go-logr/logr"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	infrastructurev1alpha2 "sigs.k8s.io/cluster-api-provider-docker/api/v1alpha2"
-	"sigs.k8s.io/cluster-api-provider-docker/kind/actions"
+	"sigs.k8s.io/cluster-api-provider-docker/kind"
 	"sigs.k8s.io/cluster-api/util"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -73,47 +73,37 @@ func (r *DockerClusterReconciler) Reconcile(req ctrl.Request) (_ ctrl.Result, re
 		}
 	}()
 
-	if err := r.reconcileNetwork(dockerCluster, cluster.Name); err != nil {
-		log.Error(err, "Failed to reconcile network for cluster")
-		return ctrl.Result{}, err
+	if len(dockerCluster.Status.APIEndpoints) == 0 {
+		lb, err := kind.NewLoadBalancer(cluster.Name, r.Log.WithName("new-load-balancer"))
+		if err != nil {
+			log.Error(err, "failed to create load balancer initializer")
+			return ctrl.Result{}, err
+		}
+		if err := lb.Create(); err != nil {
+			log.Error(err, "Failed to create load balancer infrastructure")
+			return ctrl.Result{}, err
+		}
+		ipv4, _, err := lb.Node.IP()
+		if err != nil {
+			log.Error(err, "Failed to get load balancer IP")
+			return ctrl.Result{}, err
+		}
+		port, err := lb.Node.Ports(6443)
+		if err != nil {
+			log.Error(err, "Failed to get load balancer port")
+			return ctrl.Result{}, err
+		}
+		dockerCluster.Status.APIEndpoints = []infrastructurev1alpha2.APIEndpoint{
+			{
+				Host: ipv4,
+				Port: int(port),
+			},
+		}
 	}
-	log.Info("Reconcile network for cluster successful", "APIEndPoint", dockerCluster.Status.APIEndpoints[0])
 
+	log.Info("Reconcile network for cluster successful", "APIEndPoint", dockerCluster.Status.APIEndpoints[0])
 	dockerCluster.Status.Ready = true
 	return ctrl.Result{}, nil
-}
-
-func (r *DockerClusterReconciler) reconcileNetwork(cluster *infrastructurev1alpha2.DockerCluster, name string) error {
-	// reconcile elb
-	log := r.Log.WithValues("cluster", name)
-	log.Info("Reconciling ELB for cluster")
-
-	if len(cluster.Status.APIEndpoints) == 0 {
-		log.Info("Cluster has no ELB, creating ELB")
-		elb, err := actions.SetUpLoadBalancer(name)
-		if err != nil {
-			log.Error(err, "Failed to create ELB for cluster")
-			return err
-		}
-
-		elbIP, _, err := elb.IP()
-		if err != nil {
-			//TODO(ashish-amarnath) don't leak containers, delete created ELB
-			log.Error(err, "failed to  get ELB host and port")
-			return err
-		}
-		elbPort, err := elb.Ports(6443)
-		if err != nil {
-			//TODO(ashish-amarnath) don't leak containers, delete created ELB
-			log.Error(err, "failed to get container port mapped to port 6443")
-		}
-
-		cluster.Status.APIEndpoints = append(cluster.Status.APIEndpoints, infrastructurev1alpha2.APIEndpoint{
-			Host: elbIP,
-			Port: int(elbPort),
-		})
-	}
-	return nil
 }
 
 // SetupWithManager will add watches for this controller

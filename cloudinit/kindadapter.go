@@ -67,7 +67,7 @@ func Run(userData []byte, cmder exec.Cmder) ([]string, error) {
 	for _, a := range actions {
 		actionLines, err := a.Run(cmder)
 		if err != nil {
-			return nil, err
+			return actionLines, err
 		}
 		lines = append(lines, actionLines...)
 	}

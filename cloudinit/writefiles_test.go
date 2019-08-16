@@ -40,7 +40,9 @@ func TestWriteFiles(t *testing.T) {
 				},
 			},
 			expectedlines: []string{
+				fmt.Sprintf("%s mkdir -p .\n", prompt),
 				fmt.Sprintf("%s cat > foo << END\nbar\nEND\n", prompt),
+				fmt.Sprintf("%s mkdir -p .\n", prompt),
 				fmt.Sprintf("%s cat > baz << END\nqux\nEND\n", prompt),
 			},
 		},
@@ -53,6 +55,7 @@ func TestWriteFiles(t *testing.T) {
 				},
 			},
 			expectedlines: []string{
+				fmt.Sprintf("%s mkdir -p .\n", prompt),
 				fmt.Sprintf("%s cat > fail << END\nbar\nEND\n", prompt),
 				fmt.Sprintf("%s command fail is failed", errorPrefix),
 				// there should not be a second file!
@@ -68,7 +71,9 @@ func TestWriteFiles(t *testing.T) {
 				},
 			},
 			expectedlines: []string{
+				fmt.Sprintf("%s mkdir -p .\n", prompt),
 				fmt.Sprintf("%s cat > foo << END\nbar\nEND\n", prompt),
+				fmt.Sprintf("%s mkdir -p .\n", prompt),
 				fmt.Sprintf("%s cat > fail << END\nqux\nEND\n", prompt),
 				fmt.Sprintf("%s command fail is failed", errorPrefix),
 			},
@@ -82,6 +87,7 @@ func TestWriteFiles(t *testing.T) {
 				},
 			},
 			expectedlines: []string{
+				fmt.Sprintf("%s mkdir -p .\n", prompt),
 				fmt.Sprintf("%s cat > foo << END\nbar\nEND\n", prompt),
 				fmt.Sprintf("%s chown baz:baz foo", prompt),
 			},
@@ -94,6 +100,7 @@ func TestWriteFiles(t *testing.T) {
 				},
 			},
 			expectedlines: []string{
+				fmt.Sprintf("%s mkdir -p .\n", prompt),
 				fmt.Sprintf("%s cat > foo << END\nbar\nEND\n", prompt),
 				fmt.Sprintf("%s chown fail:fail foo", prompt),
 				fmt.Sprintf("%s command fail is failed", errorPrefix),
@@ -108,6 +115,7 @@ func TestWriteFiles(t *testing.T) {
 				},
 			},
 			expectedlines: []string{
+				fmt.Sprintf("%s mkdir -p .\n", prompt),
 				fmt.Sprintf("%s cat > foo << END\nbar\nEND\n", prompt),
 				fmt.Sprintf("%s chmod 755 foo", prompt),
 			},
@@ -120,6 +128,7 @@ func TestWriteFiles(t *testing.T) {
 				},
 			},
 			expectedlines: []string{
+				fmt.Sprintf("%s mkdir -p .\n", prompt),
 				fmt.Sprintf("%s cat > foo << END\nbar\nEND\n", prompt),
 				fmt.Sprintf("%s chmod fail foo", prompt),
 				fmt.Sprintf("%s command fail is failed", errorPrefix),
@@ -134,6 +143,7 @@ func TestWriteFiles(t *testing.T) {
 				},
 			},
 			expectedlines: []string{
+				fmt.Sprintf("%s mkdir -p .\n", prompt),
 				fmt.Sprintf("%s cat >> foo << END\nbar\nEND\n", prompt),
 			},
 		},

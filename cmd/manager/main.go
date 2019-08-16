@@ -18,6 +18,8 @@ package main
 
 import (
 	"flag"
+	"net/http"
+	_ "net/http/pprof"
 	"time"
 
 	_ "k8s.io/client-go/plugin/pkg/client/auth/gcp"
@@ -36,10 +38,18 @@ func main() {
 	klog.InitFlags(nil)
 	watchNamespace := flag.String("namespace", "",
 		"Namespace that the controller watches to reconcile cluster-api objects. If unspecified, the controller watches for cluster-api objects across all namespaces.")
+	profilerAddress := flag.String("profiler-address", "", "Bind address to expose the pprof profiler (e.g. localhost:6060)")
 
 	flag.Parse()
 	if *watchNamespace != "" {
 		klog.Infof("Watching cluster-api objects only in namespace %q for reconciliation", *watchNamespace)
+	}
+
+	if *profilerAddress != "" {
+		klog.Infof("Profiler listening for requests at %s", *profilerAddress)
+		go func() {
+			klog.Info(http.ListenAndServe(*profilerAddress, nil))
+		}()
 	}
 
 	// Setup controller-runtime logger.

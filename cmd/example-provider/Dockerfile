@@ -24,10 +24,10 @@ COPY ./ ./
 # Build
 RUN CGO_ENABLED=0 GOOS=linux GOARCH=${ARCH} \
     go build -a -ldflags '-extldflags "-static"' \
-    -o ./cmd/example-provider/manager sigs.k8s.io/cluster-api/cmd/example-provider
+    -o manager sigs.k8s.io/cluster-api/cmd/example-provider
 
 # Copy the controller-manager into a thin image
 FROM gcr.io/distroless/static:latest
 WORKDIR /
-COPY --from=builder /go/src/sigs.k8s.io/cluster-api/cmd/example-provider/manager .
+COPY --from=builder /go/src/sigs.k8s.io/cluster-api/manager .
 ENTRYPOINT ["/manager"]

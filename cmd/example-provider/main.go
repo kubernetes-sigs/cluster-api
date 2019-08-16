@@ -20,6 +20,7 @@ import (
 	"flag"
 	"os"
 
+	"k8s.io/client-go/kubernetes/scheme"
 	"k8s.io/klog"
 	"sigs.k8s.io/cluster-api/api/v1alpha2"
 	"sigs.k8s.io/cluster-api/controllers"
@@ -28,12 +29,18 @@ import (
 
 func main() {
 	klog.InitFlags(nil)
+	var enableLeaderElection bool
+	flag.BoolVar(&enableLeaderElection, "enable-leader-election", false,
+		"Enable leader election for controller manager. Enabling this will ensure there is only one active controller manager.")
 	flag.Parse()
 
 	cfg := ctrl.GetConfigOrDie()
 
 	// Setup a Manager
-	mgr, err := ctrl.NewManager(cfg, ctrl.Options{})
+	mgr, err := ctrl.NewManager(cfg, ctrl.Options{
+		Scheme:         scheme.Scheme,
+		LeaderElection: enableLeaderElection,
+	})
 	if err != nil {
 		klog.Fatalf("Failed to set up controller manager: %v", err)
 	}

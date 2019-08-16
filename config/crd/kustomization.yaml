@@ -8,7 +8,7 @@ resources:
 - bases/cluster.x-k8s.io_machinedeployments.yaml
 # +kubebuilder:scaffold:crdkustomizeresource
 
-patches:
+# patches:
 # [WEBHOOK] To enable webhook, uncomment all the sections with [WEBHOOK] prefix.
 # patches here are for enabling the conversion webhook for each CRD
 #- patches/webhook_in_clusters.yaml

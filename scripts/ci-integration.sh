@@ -71,6 +71,21 @@ delete_bootstrap() {
    kind delete cluster --name "${BOOTSTRAP_CLUSTER_NAME}"
 }
 
+wait_deployment_available() {
+   retry=30
+   INTERVAL=6
+   until kubectl describe deployment "$1" -n "$2" | grep "1 available"
+   do
+      sleep ${INTERVAL};
+      retry=$((retry - 1))
+      if [[ $retry -lt 0 ]];
+      then
+         kubectl describe deployment "$1" -n "$2"
+         exit 1
+      fi;
+   done;
+}
+
 wait_pod_running() {
    retry=30
    INTERVAL=6
@@ -108,8 +123,8 @@ main() {
    kubectl create -f "${CRD_YAML}"
 
    set +e
-   wait_pod_running "cluster-api-controller-manager-0" "cluster-api-system"
-   wait_pod_running "provider-controller-manager-0" "provider-system"
+   wait_deployment_available "cluster-api-controller-manager" "cluster-api-system"
+   wait_deployment_available "provider-controller-manager" "provider-system"
    set -e
 
    if [[ -d "${INTEGRATION_TEST_DIR}" ]] ; then

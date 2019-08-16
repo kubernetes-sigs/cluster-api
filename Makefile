@@ -113,7 +113,7 @@ generate-manifests: ## Generate manifests e.g. CRD, RBAC etc.
 		rbac:roleName=manager-role \
 		output:crd:dir=./config/crd/bases
 	## Copy files in CI folders.
-	cp -f ./config/rbac/role*.yaml ./config/ci/rbac/
+	cp -f ./config/rbac/*.yaml ./config/ci/rbac/
 	cp -f ./config/manager/manager*.yaml ./config/ci/manager/
 
 .PHONY: gazelle

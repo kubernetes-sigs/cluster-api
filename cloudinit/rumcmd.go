@@ -55,6 +55,9 @@ func (c *Cmd) UnmarshalJSON(data []byte) error {
 	if err := json.Unmarshal(data, &s2); err != nil {
 		return errors.WithStack(err)
 	}
+	if strings.HasPrefix(s2, "kubeadm") {
+		s2 = strings.Replace(s2, "kubeadm", "kubeadm --ignore-preflight-errors=all", 1)
+	}
 	c.Cmd = "/bin/sh"
 	c.Args = []string{"-c", s2}
 

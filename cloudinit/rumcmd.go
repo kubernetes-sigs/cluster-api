@@ -55,9 +55,7 @@ func (c *Cmd) UnmarshalJSON(data []byte) error {
 	if err := json.Unmarshal(data, &s2); err != nil {
 		return errors.WithStack(err)
 	}
-	if strings.HasPrefix(s2, "kubeadm") {
-		s2 = strings.Replace(s2, "kubeadm", "kubeadm --ignore-preflight-errors=all", 1)
-	}
+
 	c.Cmd = "/bin/sh"
 	c.Args = []string{"-c", s2}
 
@@ -90,6 +88,9 @@ const errorPrefix = "ERROR!"
 func (a *runCmdAction) Run(cmder exec.Cmder) ([]string, error) {
 	var lines []string
 	for _, c := range a.Cmds {
+		// kubeadm in docker requires to ignore some errors, and this requires to modify the cmd generate by CABPK by default...
+		c = hackKubeadmIgnoreErrors(c)
+
 		// Add a line in the output that mimics the command being issues at the command line
 		lines = append(lines, fmt.Sprintf("%s %s %s", prompt, c.Cmd, strings.Join(c.Args, " ")))
 
@@ -108,4 +109,22 @@ func (a *runCmdAction) Run(cmder exec.Cmder) ([]string, error) {
 		}
 	}
 	return lines, nil
+}
+
+func hackKubeadmIgnoreErrors(c Cmd) Cmd {
+	// case kubeadm commands are defined as a string
+	if c.Cmd == "/bin/sh" && len(c.Args) >= 2 {
+		if c.Args[0] == "-c" && (strings.Contains(c.Args[1], "kubeadm init") || strings.Contains(c.Args[1], "kubeadm join")) {
+			c.Args[1] = fmt.Sprintf("%s %s", c.Args[1], "--ignore-preflight-errors=all")
+		}
+	}
+
+	// case kubeadm commands are defined as a list
+	if c.Cmd == "kubeadm" && len(c.Args) >= 1 {
+		if c.Args[0] == "init" || c.Args[0] == "join" {
+			c.Args = append(c.Args, "--ignore-preflight-errors=all")
+		}
+	}
+
+	return c
 }

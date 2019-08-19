@@ -32,18 +32,23 @@ func intOrStrPtr(i int32) *intstr.IntOrString {
 	return &intstr
 }
 
-func fakeInfrastructureRefReady(ref corev1.ObjectReference, base map[string]interface{}) error {
+func fakeInfrastructureRefReady(ref corev1.ObjectReference, base map[string]interface{}) {
 	iref := (&unstructured.Unstructured{Object: base}).DeepCopy()
-	if err := k8sClient.Get(ctx, client.ObjectKey{Name: ref.Name, Namespace: ref.Namespace}, iref); err != nil {
-		return err
-	}
+	Eventually(func() error {
+		return k8sClient.Get(ctx, client.ObjectKey{Name: ref.Name, Namespace: ref.Namespace}, iref)
+	}, timeout).ShouldNot(HaveOccurred())
+
 	irefPatch := client.MergeFrom(iref.DeepCopy())
 	unstructured.SetNestedField(iref.Object, true, "status", "ready")
 	Expect(k8sClient.Status().Patch(ctx, iref, irefPatch)).ToNot(HaveOccurred())
-	return nil
 }
 
 func fakeMachineNodeRef(m *clusterv1.Machine) {
+	Eventually(func() error {
+		key := client.ObjectKey{Name: m.Name, Namespace: m.Namespace}
+		return k8sClient.Get(ctx, key, &clusterv1.Machine{})
+	}, timeout).ShouldNot(HaveOccurred())
+
 	if m.Status.NodeRef != nil {
 		return
 	}
@@ -54,7 +59,12 @@ func fakeMachineNodeRef(m *clusterv1.Machine) {
 			GenerateName: "test-",
 		},
 	}
-	Expect(k8sClient.Create(ctx, node))
+	Expect(k8sClient.Create(ctx, node)).ShouldNot(HaveOccurred())
+
+	Eventually(func() error {
+		key := client.ObjectKey{Name: node.Name, Namespace: node.Namespace}
+		return k8sClient.Get(ctx, key, &corev1.Node{})
+	}, timeout).ShouldNot(HaveOccurred())
 
 	// Patch the node and make it look like ready.
 	patchNode := client.MergeFrom(node.DeepCopy())

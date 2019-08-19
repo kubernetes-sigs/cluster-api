@@ -125,9 +125,7 @@ var _ = Describe("MachineSet Reconciler", func() {
 
 		// Set the infrastructure reference as ready.
 		for _, m := range machines.Items {
-			Eventually(func() error {
-				return fakeInfrastructureRefReady(m.Spec.InfrastructureRef, infraResource)
-			}, timeout).ShouldNot(HaveOccurred())
+			fakeInfrastructureRefReady(m.Spec.InfrastructureRef, infraResource)
 		}
 
 		// Try to delete 1 machine and check the MachineSet scales back up.

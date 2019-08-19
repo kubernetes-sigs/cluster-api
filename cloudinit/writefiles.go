@@ -44,15 +44,13 @@ type files struct {
 	Append      bool   `json:"append,"`
 }
 
-var _ cloudCongfigAction = &writeFilesAction{}
-
-func newWriteFilesAction() cloudCongfigAction {
+func newWriteFilesAction() action {
 	return &writeFilesAction{}
 }
 
 func (a *writeFilesAction) Unmarshal(userData []byte) error {
 	if err := yaml.Unmarshal(userData, a); err != nil {
-		return errors.Wrapf(errors.WithStack(err), "error parsing write_files action: %s", userData)
+		return errors.Wrapf(err, "error parsing write_files action: %s", userData)
 	}
 	return nil
 }
@@ -70,23 +68,24 @@ func (a *writeFilesAction) Run(cmder exec.Cmder) ([]string, error) {
 			return lines, errors.Wrapf(err, "error decoding content for %s", path)
 		}
 
-		// Make the directory
+		// Make the directory so cat + redirection will work
 		directory := filepath.Dir(path)
 		lines = append(lines, fmt.Sprintf("%s mkdir -p %s\n", prompt, directory))
 		if err := cmder.Command("/bin/sh", "-c", fmt.Sprintf("mkdir -p %q", directory)).Run(); err != nil {
 			return lines, errors.Wrapf(err, fmt.Sprintf("failed to create directory"))
 		}
 
-		// Add a line in the output that mimics the command being issues at the command line
 		redirects := ">"
 		if f.Append {
 			redirects = ">>"
 		}
-		lines = append(lines, fmt.Sprintf("%s cat %s %s << END\n%s\nEND\n", prompt, redirects, path, content))
 
+		// Add a line in the output that mimics the command being issues at the command line
+		lines = append(lines, fmt.Sprintf("%s cat %s %s << END\n%s\nEND\n", prompt, redirects, path, content))
 		if err := cmder.Command("/bin/sh", "-c", fmt.Sprintf("cat %s %s /dev/stdin", redirects, path)).
 			SetStdin(strings.NewReader(content)).
 			Run(); err != nil {
+			// TODO Consider returning stdout or stderr or both instead of lines or in addition to lines
 			// Add a line in the output with the error message and exit
 			lines = append(lines, fmt.Sprintf("%s %v", errorPrefix, err))
 			return lines, errors.Wrapf(err, "error writing file content to %s", path)
@@ -96,9 +95,7 @@ func (a *writeFilesAction) Run(cmder exec.Cmder) ([]string, error) {
 		if permissions != "0644" {
 			// Add a line in the output that mimics the command being issues at the command line
 			lines = append(lines, fmt.Sprintf("%s chmod %s %s", prompt, permissions, path))
-			if err := cmder.Command(
-				"chmod", permissions, path,
-			).Run(); err != nil {
+			if err := cmder.Command("chmod", permissions, path).Run(); err != nil {
 				// Add a line in the output with the error message and exit
 				lines = append(lines, fmt.Sprintf("%s %v", errorPrefix, err))
 				return lines, errors.Wrapf(errors.WithStack(err), "error setting permissions for %s", path)
@@ -109,9 +106,7 @@ func (a *writeFilesAction) Run(cmder exec.Cmder) ([]string, error) {
 		if owner != "root:root" {
 			// Add a line in the output that mimics the command being issues at the command line
 			lines = append(lines, fmt.Sprintf("%s chown %s %s", prompt, owner, path))
-			if err := cmder.Command(
-				"chown", owner, path,
-			).Run(); err != nil {
+			if err := cmder.Command("chown", owner, path).Run(); err != nil {
 				// Add a line in the output with the error message and exit
 				lines = append(lines, fmt.Sprintf("%s %v", errorPrefix, err))
 				return lines, errors.Wrapf(errors.WithStack(err), "error setting ownership for %s", path)
@@ -157,26 +152,27 @@ func fixEncoding(e string) []string {
 }
 
 func fixContent(content string, encodings []string) (string, error) {
-	var contentString = content
 	for _, e := range encodings {
 		switch e {
 		case "application/base64":
-			rByte, err := base64.StdEncoding.DecodeString(contentString)
+			rByte, err := base64.StdEncoding.DecodeString(content)
 			if err != nil {
-				return contentString, errors.WithStack(err)
+				return content, errors.WithStack(err)
 			}
-			contentString = string(rByte)
+			return string(rByte), nil
 		case "application/x-gzip":
-			rByte, err := gUnzipData([]byte(contentString))
+			rByte, err := gUnzipData([]byte(content))
 			if err != nil {
-				return contentString, err
+				return content, err
 			}
-			contentString = string(rByte)
+			return string(rByte), nil
 		case "text/plain":
-			// NOP
+			return content, nil
+		default:
+			return content, errors.Errorf("Unknown bootstrap data encoding: %q", content)
 		}
 	}
-	return contentString, nil
+	return content, nil
 }
 
 func gUnzipData(data []byte) ([]byte, error) {

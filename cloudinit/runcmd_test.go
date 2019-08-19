@@ -32,7 +32,7 @@ func TestRunCmdUnmarshal(t *testing.T) {
 runcmd:
 - [ ls, -l, / ]
 - "ls -l /"`
-	r := runCmdAction{}
+	r := runCmd{}
 	err := r.Unmarshal([]byte(cloudData))
 	if err != nil {
 		t.Fatal(err)
@@ -56,13 +56,13 @@ runcmd:
 func TestRunCmdRun(t *testing.T) {
 	var useCases = []struct {
 		name          string
-		r             runCmdAction
+		r             runCmd
 		expectedlines []string
 		expectedError bool
 	}{
 		{
 			name: "two command pass",
-			r: runCmdAction{
+			r: runCmd{
 				Cmds: []Cmd{
 					{Cmd: "foo", Args: []string{"bar"}},
 					{Cmd: "baz", Args: []string{"bbb"}},
@@ -77,7 +77,7 @@ func TestRunCmdRun(t *testing.T) {
 		},
 		{
 			name: "first command fails",
-			r: runCmdAction{
+			r: runCmd{
 				Cmds: []Cmd{
 					{Cmd: "fail", Args: []string{"bar"}}, // fail force fakeCmd to fail
 					{Cmd: "baz", Args: []string{"bbb"}},
@@ -92,7 +92,7 @@ func TestRunCmdRun(t *testing.T) {
 		},
 		{
 			name: "second command fails",
-			r: runCmdAction{
+			r: runCmd{
 				Cmds: []Cmd{
 					{Cmd: "foo", Args: []string{"bar"}},
 					{Cmd: "fail", Args: []string{"qux"}}, // fail force fakeCmd to fail
@@ -108,7 +108,7 @@ func TestRunCmdRun(t *testing.T) {
 		},
 		{
 			name: "hack kubeadm ingore errors",
-			r: runCmdAction{
+			r: runCmd{
 				Cmds: []Cmd{
 					{Cmd: "/bin/sh", Args: []string{"-c", "kubeadm init --config /tmp/kubeadm.yaml"}},
 				},
@@ -200,7 +200,7 @@ func TestHackKubeadmIgnoreErrors(t *testing.T) {
 runcmd:
 - kubeadm init --config=/tmp/kubeadm.yaml
 - [ kubeadm, join, --config=/tmp/kubeadm-controlplane-join-config.yaml ]`
-	r := runCmdAction{}
+	r := runCmd{}
 	err := r.Unmarshal([]byte(cloudData))
 	if err != nil {
 		t.Fatal(err)

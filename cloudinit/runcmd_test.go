@@ -106,6 +106,18 @@ func TestRunCmdRun(t *testing.T) {
 			},
 			expectedError: true,
 		},
+		{
+			name: "hack kubeadm ingore errors",
+			r: runCmdAction{
+				Cmds: []Cmd{
+					{Cmd: "/bin/sh", Args: []string{"-c", "kubeadm init --config /tmp/kubeadm.yaml"}},
+				},
+			},
+			expectedlines: []string{
+				fmt.Sprintf("%s /bin/sh -c kubeadm init --config /tmp/kubeadm.yaml --ignore-preflight-errors=all", prompt),
+				"command [/bin/sh -c kubeadm init --config /tmp/kubeadm.yaml --ignore-preflight-errors=all] completed",
+			},
+		},
 	}
 
 	for _, rt := range useCases {
@@ -180,5 +192,35 @@ func (cmd *fakeCmd) Write(s string) {
 		if err != nil {
 
 		}
+	}
+}
+
+func TestHackKubeadmIgnoreErrors(t *testing.T) {
+	cloudData := `
+runcmd:
+- kubeadm init --config=/tmp/kubeadm.yaml
+- [ kubeadm, join, --config=/tmp/kubeadm-controlplane-join-config.yaml ]`
+	r := runCmdAction{}
+	err := r.Unmarshal([]byte(cloudData))
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if len(r.Cmds) != 2 {
+		t.Errorf("Expected 2 commands, found %d", len(r.Cmds))
+	}
+
+	r.Cmds[0] = hackKubeadmIgnoreErrors(r.Cmds[0])
+
+	expected0 := Cmd{Cmd: "/bin/sh", Args: []string{"-c", "kubeadm init --config=/tmp/kubeadm.yaml --ignore-preflight-errors=all"}}
+	if !reflect.DeepEqual(r.Cmds[0], expected0) {
+		t.Errorf("Expected %+v commands, found %+v", expected0, r.Cmds[0])
+	}
+
+	r.Cmds[1] = hackKubeadmIgnoreErrors(r.Cmds[1])
+
+	expected1 := Cmd{Cmd: "kubeadm", Args: []string{"join", "--config=/tmp/kubeadm-controlplane-join-config.yaml", "--ignore-preflight-errors=all"}}
+	if !reflect.DeepEqual(r.Cmds[1], expected1) {
+		t.Errorf("Expected %+v commands, found %+v", expected1, r.Cmds[1])
 	}
 }

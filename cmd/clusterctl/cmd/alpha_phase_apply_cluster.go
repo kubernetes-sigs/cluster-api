@@ -73,7 +73,12 @@ func RunAlphaPhaseApplyCluster(paco *AlphaPhaseApplyClusterOptions) error {
 		return errors.Wrap(err, "unable to create cluster client")
 	}
 
-	if err := phases.ApplyCluster(client, out.Clusters[0]); err != nil {
+	cluster := out.Clusters[0]
+	if err := phases.ApplyCluster(
+		client,
+		cluster,
+		yaml.ExtractClusterReferences(out, cluster)...,
+	); err != nil {
 		return errors.Wrap(err, "unable to apply cluster")
 	}
 

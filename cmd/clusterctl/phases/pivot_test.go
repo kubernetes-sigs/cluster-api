@@ -16,39 +16,88 @@ limitations under the License.
 package phases
 
 import (
-	"errors"
 	"fmt"
 	"strings"
 	"testing"
 
+	"github.com/davecgh/go-spew/spew"
+	"github.com/pkg/errors"
+	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha2"
+)
+
+const (
+	InfrastructureAPIVersion    = "infrastructure.cluster.x-k8s.io/v1alpha2"
+	KindProviderMachineTemplate = "ProviderMachineTemplate"
+	KindProviderMachine         = "ProviderMachine"
+	KindProviderCluster         = "ProviderCluster"
 )
 
 // sourcer map keys are namespaces
 // This is intentionally a different implementation than clusterclient
 type sourcer struct {
-	clusters           map[string][]*clusterv1.Cluster
-	machineDeployments map[string][]*clusterv1.MachineDeployment
-	machineSets        map[string][]*clusterv1.MachineSet
-	machines           map[string][]*clusterv1.Machine
+	clusters         map[string][]*clusterv1.Cluster
+	clusterResources map[string][]*unstructured.Unstructured
+
+	machines         map[string][]*clusterv1.Machine
+	machineResources map[string][]*unstructured.Unstructured
+
+	machineDeployments       map[string][]*clusterv1.MachineDeployment
+	machineSets              map[string][]*clusterv1.MachineSet
+	machineTemplateResources map[string][]*unstructured.Unstructured
+
+	secrets map[string][]*corev1.Secret
 }
 
 func newSourcer() *sourcer {
 	return &sourcer{
-		clusters:           make(map[string][]*clusterv1.Cluster),
-		machineDeployments: make(map[string][]*clusterv1.MachineDeployment),
-		machineSets:        make(map[string][]*clusterv1.MachineSet),
-		machines:           make(map[string][]*clusterv1.Machine),
+		clusters:                 make(map[string][]*clusterv1.Cluster),
+		clusterResources:         make(map[string][]*unstructured.Unstructured),
+		machines:                 make(map[string][]*clusterv1.Machine),
+		machineResources:         make(map[string][]*unstructured.Unstructured),
+		machineDeployments:       make(map[string][]*clusterv1.MachineDeployment),
+		machineSets:              make(map[string][]*clusterv1.MachineSet),
+		machineTemplateResources: make(map[string][]*unstructured.Unstructured),
+		secrets:                  make(map[string][]*corev1.Secret),
 	}
 }
+
 func (s *sourcer) WithCluster(ns, name string) *sourcer {
 	s.clusters[ns] = append(s.clusters[ns], &clusterv1.Cluster{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      name,
 			Namespace: ns,
 		},
+		Spec: clusterv1.ClusterSpec{
+			InfrastructureRef: &corev1.ObjectReference{
+				APIVersion: InfrastructureAPIVersion,
+				Kind:       KindProviderCluster,
+				Name:       name,
+				Namespace:  ns,
+			},
+		},
 	})
+
+	s.clusterResources[ns] = append(s.clusterResources[ns], &unstructured.Unstructured{
+		Object: map[string]interface{}{
+			"apiVersion": InfrastructureAPIVersion,
+			"kind":       KindProviderCluster,
+			"metadata": map[string]interface{}{
+				"name":      name,
+				"namespace": ns,
+			},
+		},
+	})
+
+	s.secrets[ns] = append(s.secrets[ns], &corev1.Secret{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      name + "-kubeconfig",
+			Namespace: ns,
+		},
+	})
+
 	return s
 }
 
@@ -57,6 +106,18 @@ func (s *sourcer) WithMachineDeployment(ns, cluster, name string) *sourcer {
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      name,
 			Namespace: ns,
+		},
+		Spec: clusterv1.MachineDeploymentSpec{
+			Template: clusterv1.MachineTemplateSpec{
+				Spec: clusterv1.MachineSpec{
+					InfrastructureRef: corev1.ObjectReference{
+						APIVersion: InfrastructureAPIVersion,
+						Kind:       KindProviderMachineTemplate,
+						Name:       name,
+						Namespace:  ns,
+					},
+				},
+			},
 		},
 	}
 
@@ -72,6 +133,17 @@ func (s *sourcer) WithMachineDeployment(ns, cluster, name string) *sourcer {
 			},
 		}
 	}
+
+	s.machineTemplateResources[ns] = append(s.machineTemplateResources[ns], &unstructured.Unstructured{
+		Object: map[string]interface{}{
+			"apiVersion": InfrastructureAPIVersion,
+			"kind":       KindProviderMachineTemplate,
+			"metadata": map[string]interface{}{
+				"name":      name,
+				"namespace": ns,
+			},
+		},
+	})
 	s.machineDeployments[ns] = append(s.machineDeployments[ns], &md)
 	return s
 }
@@ -83,6 +155,7 @@ func (s *sourcer) WithMachineSet(ns, cluster, md, name string) *sourcer {
 			Namespace: ns,
 		},
 	}
+
 	if cluster != "" {
 		ms.Labels = map[string]string{clusterv1.MachineClusterLabelName: cluster}
 		blockOwnerDeletion := true
@@ -95,6 +168,7 @@ func (s *sourcer) WithMachineSet(ns, cluster, md, name string) *sourcer {
 			},
 		}
 	}
+
 	if md != "" {
 		isController := true
 		ms.OwnerReferences = []metav1.OwnerReference{
@@ -105,8 +179,24 @@ func (s *sourcer) WithMachineSet(ns, cluster, md, name string) *sourcer {
 				Controller: &isController,
 			},
 		}
+	} else {
+		ms.Spec.Template.Spec.InfrastructureRef = corev1.ObjectReference{
+			APIVersion: InfrastructureAPIVersion,
+			Kind:       KindProviderMachineTemplate,
+			Name:       name,
+			Namespace:  ns,
+		}
+		s.machineTemplateResources[ns] = append(s.machineTemplateResources[ns], &unstructured.Unstructured{
+			Object: map[string]interface{}{
+				"apiVersion": InfrastructureAPIVersion,
+				"kind":       KindProviderMachineTemplate,
+				"metadata": map[string]interface{}{
+					"name":      name,
+					"namespace": ns,
+				},
+			},
+		})
 	}
-
 	s.machineSets[ns] = append(s.machineSets[ns], &ms)
 	return s
 }
@@ -117,7 +207,16 @@ func (s *sourcer) WithMachine(ns, cluster, ms, name string) *sourcer {
 			Name:      name,
 			Namespace: ns,
 		},
+		Spec: clusterv1.MachineSpec{
+			InfrastructureRef: corev1.ObjectReference{
+				APIVersion: InfrastructureAPIVersion,
+				Kind:       KindProviderMachine,
+				Name:       name,
+				Namespace:  ns,
+			},
+		},
 	}
+
 	if cluster != "" {
 		m.Labels = map[string]string{clusterv1.MachineClusterLabelName: cluster}
 		blockOwnerDeletion := true
@@ -142,6 +241,16 @@ func (s *sourcer) WithMachine(ns, cluster, ms, name string) *sourcer {
 		}
 	}
 
+	s.machineResources[ns] = append(s.machineResources[ns], &unstructured.Unstructured{
+		Object: map[string]interface{}{
+			"apiVersion": InfrastructureAPIVersion,
+			"kind":       KindProviderMachine,
+			"metadata": map[string]interface{}{
+				"name":      name,
+				"namespace": ns,
+			},
+		},
+	})
 	s.machines[ns] = append(s.machines[ns], &m)
 	return s
 }
@@ -151,6 +260,7 @@ func (s *sourcer) WithMachine(ns, cluster, ms, name string) *sourcer {
 func (s *sourcer) Delete(string) error {
 	return nil
 }
+
 func (s *sourcer) ForceDeleteCluster(ns, name string) error {
 	newClusters := []*clusterv1.Cluster{}
 	for _, d := range s.clusters[ns] {
@@ -161,6 +271,7 @@ func (s *sourcer) ForceDeleteCluster(ns, name string) error {
 	s.clusters[ns] = newClusters
 	return nil
 }
+
 func (s *sourcer) ForceDeleteMachine(ns, name string) error {
 	newMachines := []*clusterv1.Machine{}
 	for _, d := range s.machines[ns] {
@@ -171,6 +282,7 @@ func (s *sourcer) ForceDeleteMachine(ns, name string) error {
 	s.machines[ns] = newMachines
 	return nil
 }
+
 func (s *sourcer) ForceDeleteMachineDeployment(ns, name string) error {
 	newDeployments := []*clusterv1.MachineDeployment{}
 	for _, d := range s.machineDeployments[ns] {
@@ -181,6 +293,7 @@ func (s *sourcer) ForceDeleteMachineDeployment(ns, name string) error {
 	s.machineDeployments[ns] = newDeployments
 	return nil
 }
+
 func (s *sourcer) ForceDeleteMachineSet(ns, name string) error {
 	newSets := []*clusterv1.MachineSet{}
 	for _, d := range s.machineSets[ns] {
@@ -191,6 +304,7 @@ func (s *sourcer) ForceDeleteMachineSet(ns, name string) error {
 	s.machineSets[ns] = newSets
 	return nil
 }
+
 func (s *sourcer) GetClusters(ns string) ([]*clusterv1.Cluster, error) {
 	// empty ns implies all namespaces
 	if ns == "" {
@@ -218,6 +332,7 @@ func (s *sourcer) GetMachineDeployments(ns string) ([]*clusterv1.MachineDeployme
 	}
 	return s.machineDeployments[ns], nil
 }
+
 func (s *sourcer) GetMachineDeploymentsForCluster(cluster *clusterv1.Cluster) ([]*clusterv1.MachineDeployment, error) {
 	var mds []*clusterv1.MachineDeployment
 	for _, md := range s.machineDeployments[cluster.Namespace] {
@@ -227,6 +342,7 @@ func (s *sourcer) GetMachineDeploymentsForCluster(cluster *clusterv1.Cluster) ([
 	}
 	return mds, nil
 }
+
 func (s *sourcer) GetMachines(ns string) ([]*clusterv1.Machine, error) {
 	// empty ns implies all namespaces
 	if ns == "" {
@@ -274,6 +390,7 @@ func (s *sourcer) GetMachinesForCluster(cluster *clusterv1.Cluster) ([]*clusterv
 	}
 	return machines, nil
 }
+
 func (s *sourcer) GetMachineSetsForMachineDeployment(d *clusterv1.MachineDeployment) ([]*clusterv1.MachineSet, error) {
 	var machineSets []*clusterv1.MachineSet
 	for _, ms := range s.machineSets[d.Namespace] {
@@ -284,6 +401,34 @@ func (s *sourcer) GetMachineSetsForMachineDeployment(d *clusterv1.MachineDeploym
 		}
 	}
 	return machineSets, nil
+}
+
+func (s *sourcer) GetUnstructuredObject(u *unstructured.Unstructured) error {
+	ns := u.GetNamespace()
+	switch u.GetKind() {
+	case KindProviderCluster:
+		for _, d := range s.clusterResources[ns] {
+			if d.GetName() == u.GetName() {
+				d.DeepCopyInto(u)
+				return nil
+			}
+		}
+	case KindProviderMachine:
+		for _, d := range s.machineResources[ns] {
+			if d.GetName() == u.GetName() {
+				d.DeepCopyInto(u)
+				return nil
+			}
+		}
+	case KindProviderMachineTemplate:
+		for _, d := range s.machineTemplateResources[ns] {
+			if d.GetName() == u.GetName() {
+				d.DeepCopyInto(u)
+				return nil
+			}
+		}
+	}
+	return errors.New("not found")
 }
 
 func (s *sourcer) GetMachinesForMachineSet(ms *clusterv1.MachineSet) ([]*clusterv1.Machine, error) {
@@ -298,43 +443,127 @@ func (s *sourcer) GetMachinesForMachineSet(ms *clusterv1.MachineSet) ([]*cluster
 	return machines, nil
 }
 
-func (s *sourcer) ScaleStatefulSet(string, string, int32) error {
+func (s *sourcer) ScaleDeployment(string, string, int32) error {
 	return nil
 }
+
 func (s *sourcer) WaitForClusterV1alpha2Ready() error {
 	return nil
 }
 
+func (s *sourcer) ForceDeleteUnstructuredObject(u *unstructured.Unstructured) error {
+	ns := u.GetNamespace()
+
+	newResources := []*unstructured.Unstructured{}
+
+	switch u.GetKind() {
+	case KindProviderCluster:
+		for _, d := range s.clusterResources[ns] {
+			if d.GetName() != u.GetName() {
+				newResources = append(newResources, d)
+			}
+		}
+		s.clusterResources[ns] = newResources
+	case KindProviderMachine:
+		for _, d := range s.machineResources[ns] {
+			if d.GetName() != u.GetName() {
+				newResources = append(newResources, d)
+			}
+		}
+		s.machineResources[ns] = newResources
+	case KindProviderMachineTemplate:
+		for _, d := range s.machineTemplateResources[ns] {
+			if d.GetName() != u.GetName() {
+				newResources = append(newResources, d)
+			}
+		}
+		s.machineTemplateResources[ns] = newResources
+	}
+
+	return nil
+}
+
+func (s *sourcer) GetClusterSecrets(c *clusterv1.Cluster) ([]*corev1.Secret, error) {
+	res := []*corev1.Secret{}
+	for _, d := range s.secrets[c.Namespace] {
+		if strings.HasPrefix(d.Name, c.Name) {
+			res = append(res, d)
+		}
+	}
+	return res, nil
+}
+
+func (s *sourcer) ForceDeleteSecret(ns, name string) error {
+	newSecrets := []*corev1.Secret{}
+	for _, d := range s.secrets[ns] {
+		if d.Name != name {
+			newSecrets = append(newSecrets, d)
+		}
+	}
+	s.secrets[ns] = newSecrets
+	return nil
+}
+
 type target struct {
-	clusters           map[string][]*clusterv1.Cluster
-	machineDeployments map[string][]*clusterv1.MachineDeployment
-	machineSets        map[string][]*clusterv1.MachineSet
-	machines           map[string][]*clusterv1.Machine
+	clusters         map[string][]*clusterv1.Cluster
+	clusterResources map[string][]*unstructured.Unstructured
+
+	machines         map[string][]*clusterv1.Machine
+	machineResources map[string][]*unstructured.Unstructured
+
+	machineDeployments       map[string][]*clusterv1.MachineDeployment
+	machineSets              map[string][]*clusterv1.MachineSet
+	machineTemplateResources map[string][]*unstructured.Unstructured
+
+	secrets map[string][]*corev1.Secret
+}
+
+func newTarget() *target {
+	return &target{
+		clusters:                 make(map[string][]*clusterv1.Cluster),
+		clusterResources:         make(map[string][]*unstructured.Unstructured),
+		machines:                 make(map[string][]*clusterv1.Machine),
+		machineResources:         make(map[string][]*unstructured.Unstructured),
+		machineDeployments:       make(map[string][]*clusterv1.MachineDeployment),
+		machineSets:              make(map[string][]*clusterv1.MachineSet),
+		machineTemplateResources: make(map[string][]*unstructured.Unstructured),
+		secrets:                  make(map[string][]*corev1.Secret),
+	}
 }
 
 func (t *target) Apply(string) error {
 	return nil
 }
+
 func (t *target) CreateClusterObject(c *clusterv1.Cluster) error {
 	t.clusters[c.Namespace] = append(t.clusters[c.Namespace], c)
 	return nil
 }
+
 func (t *target) CreateMachineDeployments(deployments []*clusterv1.MachineDeployment, ns string) error {
 	t.machineDeployments[ns] = append(t.machineDeployments[ns], deployments...)
 	return nil
 }
+
 func (t *target) CreateMachines(machines []*clusterv1.Machine, ns string) error {
 	t.machines[ns] = append(t.machines[ns], machines...)
 	return nil
 }
+
 func (t *target) CreateMachineSets(ms []*clusterv1.MachineSet, ns string) error {
 	t.machineSets[ns] = append(t.machineSets[ns], ms...)
+	return nil
+}
+
+func (t *target) CreateSecret(secret *corev1.Secret) error {
+	t.secrets[secret.Namespace] = append(t.secrets[secret.Namespace], secret)
 	return nil
 }
 
 func (t *target) EnsureNamespace(string) error {
 	return nil
 }
+
 func (t *target) GetMachineDeployment(ns, name string) (*clusterv1.MachineDeployment, error) {
 	for _, deployment := range t.machineDeployments[ns] {
 		if deployment.Name == name {
@@ -343,6 +572,7 @@ func (t *target) GetMachineDeployment(ns, name string) (*clusterv1.MachineDeploy
 	}
 	return nil, fmt.Errorf("no machine deployment found in ns %q with name %q", ns, name)
 }
+
 func (t *target) GetMachineSet(ns, name string) (*clusterv1.MachineSet, error) {
 	for _, ms := range t.machineSets[ns] {
 		if ms.Name == name {
@@ -351,8 +581,27 @@ func (t *target) GetMachineSet(ns, name string) (*clusterv1.MachineSet, error) {
 	}
 	return nil, fmt.Errorf("no machineset found with name %q in namespace %q", ns, name)
 }
+
 func (t *target) WaitForClusterV1alpha2Ready() error {
 	return nil
+}
+
+func (t *target) CreateUnstructuredObject(u *unstructured.Unstructured) error {
+	ns := u.GetNamespace()
+
+	switch u.GetKind() {
+	case KindProviderCluster:
+		t.clusterResources[ns] = append(t.clusterResources[ns], u)
+		return nil
+	case KindProviderMachine:
+		t.machineResources[ns] = append(t.machineResources[ns], u)
+		return nil
+	case KindProviderMachineTemplate:
+		t.machineTemplateResources[ns] = append(t.machineTemplateResources[ns], u)
+		return nil
+	}
+
+	return errors.Errorf("unknown object kind %s", u.GetKind())
 }
 
 type providerComponents struct {
@@ -400,72 +649,107 @@ func TestPivot(t *testing.T) {
 		WithMachine(ns1, "", "", "machine8").
 		WithMachine(ns2, "", "", "machine9")
 
+	target := newTarget()
+
 	expectedClusters := len(source.clusters[ns1]) + len(source.clusters[ns2])
 	expectedMachineDeployments := len(source.machineDeployments[ns1]) + len(source.machineDeployments[ns2])
 	expectedMachineSets := len(source.machineSets[ns1]) + len(source.machineSets[ns2])
+	expectedProviderMachineTemplates := len(source.machineTemplateResources[ns1]) + len(source.machineTemplateResources[ns2])
 	expectedMachines := len(source.machines[ns1]) + len(source.machines[ns2])
-
-	target := &target{
-		clusters:           make(map[string][]*clusterv1.Cluster),
-		machineDeployments: make(map[string][]*clusterv1.MachineDeployment),
-		machineSets:        make(map[string][]*clusterv1.MachineSet),
-		machines:           make(map[string][]*clusterv1.Machine),
-	}
 
 	if err := Pivot(source, target, pc.String()); err != nil {
 		t.Fatalf("did not expect err but got %v", err)
 	}
 
 	if len(source.clusters[ns1])+len(source.clusters[ns2]) != 0 {
-		t.Logf("source: %v", source.clusters)
-		t.Logf("target: %v", target.clusters)
+		t.Logf("source: %v", spew.Sdump(source.clusters))
+		t.Logf("target: %v", spew.Sdump(target.clusters))
 		t.Fatal("should have deleted all capi clusters from the source k8s cluster")
 	}
+	if len(source.clusterResources[ns1])+len(source.clusterResources[ns2]) != 0 {
+		t.Logf("source: %v", spew.Sdump(source.clusterResources))
+		t.Logf("target: %v", spew.Sdump(target.clusterResources))
+		t.Fatal("should have deleted all capi cluster unstructured objects from the source k8s cluster")
+	}
+	if len(source.secrets[ns1])+len(source.secrets[ns2]) != 0 {
+		t.Logf("source: %v", spew.Sdump(source.secrets))
+		t.Logf("target: %v", spew.Sdump(target.secrets))
+		t.Fatal("should have deleted all capi cluster secrets from the source k8s cluster")
+	}
+
 	if len(source.machineDeployments[ns1])+len(source.machineDeployments[ns2]) != 0 {
-		t.Logf("source: %v", source.machineDeployments)
-		t.Logf("target: %v", target.machineDeployments)
+		t.Logf("source: %v", spew.Sdump(source.machineDeployments))
+		t.Logf("target: %v", spew.Sdump(target.machineDeployments))
 		t.Fatal("should have deleted all machine deployments from the source k8s cluster")
 	}
 	if len(source.machineSets[ns1])+len(source.machineSets[ns2]) != 0 {
-		t.Logf("source: %v", source.machineSets)
-		t.Logf("target: %v", target.machineSets)
+		t.Logf("source: %v", spew.Sdump(source.machineSets))
+		t.Logf("target: %v", spew.Sdump(target.machineSets))
 		t.Fatal("should have deleted all machine sets from source k8s cluster")
 	}
+	if len(source.machineTemplateResources[ns1])+len(source.machineTemplateResources[ns2]) != 0 {
+		t.Logf("source: %v", spew.Sdump(source.machineTemplateResources))
+		t.Logf("target: %v", spew.Sdump(target.machineTemplateResources))
+		t.Fatal("should have deleted all machine template unstructured objects from source k8s cluster")
+	}
+
 	if len(source.machines[ns1])+len(source.machines[ns2]) != 0 {
-		t.Logf("source: %v", source.machines)
-		t.Logf("target: %v", target.machines)
+		t.Logf("source: %v", spew.Sdump(source.machines))
+		t.Logf("target: %v", spew.Sdump(target.machines))
 		t.Fatal("should have deleted all machines from source k8s cluster")
+	}
+	if len(source.machineResources[ns1])+len(source.machineResources[ns2]) != 0 {
+		t.Logf("source: %v", spew.Sdump(source.machineResources))
+		t.Logf("target: %v", spew.Sdump(target.machineResources))
+		t.Fatal("should have deleted all machine unstructured objects from source k8s cluster")
 	}
 
 	if len(target.clusters[ns1])+len(target.clusters[ns2]) != expectedClusters {
-		t.Logf("source: %v", source.clusters)
-		t.Logf("target: %v", target.clusters)
-		t.Fatal("expected clusters to pivot")
+		t.Logf("source: %v", spew.Sdump(source.clusters))
+		t.Logf("target: %v", spew.Sdump(target.clusters))
+		t.Fatalf("expected %d clusters to pivot", expectedClusters)
 	}
+	if len(target.clusterResources[ns1])+len(target.clusterResources[ns2]) != expectedClusters {
+		t.Logf("source: %v", spew.Sdump(source.clusterResources))
+		t.Logf("target: %v", spew.Sdump(target.clusterResources))
+		t.Fatalf("expected %d cluster unstructured objects to pivot", expectedClusters)
+	}
+
 	if len(target.machineDeployments[ns1])+len(target.machineDeployments[ns2]) != expectedMachineDeployments {
-		t.Logf("source: %v", source.machineDeployments)
-		t.Logf("target: %v", target.machineDeployments)
-		t.Fatal("expected machinedeployments for cluster to pivot")
+		t.Logf("source: %v", spew.Sdump(source.machineDeployments))
+		t.Logf("target: %v", spew.Sdump(target.machineDeployments))
+		t.Fatalf("expected %d machinedeployments for cluster to pivot", expectedMachineDeployments)
 	}
 	if len(target.machineSets[ns1])+len(target.machineSets[ns2]) != expectedMachineSets {
-		t.Logf("source: %v", source.machineSets)
-		t.Logf("target: %v", target.machineSets)
+		t.Logf("source: %v", spew.Sdump(source.machineSets))
+		t.Logf("target: %v", spew.Sdump(target.machineSets))
 		for _, machineSets := range target.machineSets {
 			for _, ms := range machineSets {
 				t.Logf("machineSet: %v", ms)
 			}
 		}
-		t.Fatal("expected machines sets to pivot")
+		t.Fatalf("expected %d machinesets to pivot", expectedMachineSets)
 	}
+	if len(target.machineTemplateResources[ns1])+len(target.machineTemplateResources[ns2]) != expectedProviderMachineTemplates {
+		t.Logf("source: %v", spew.Sdump(source.machineTemplateResources))
+		t.Logf("target: %v", spew.Sdump(target.machineTemplateResources))
+		t.Fatalf("expected %d machine template unstructured objects to pivot", expectedProviderMachineTemplates)
+	}
+
 	if len(target.machines[ns1])+len(target.machines[ns2]) != expectedMachines {
-		t.Logf("source: %v", source.machines)
-		t.Logf("target: %v", target.machines)
+		t.Logf("source: %v", spew.Sdump(source.machines))
+		t.Logf("target: %v", spew.Sdump(target.machines))
 		for _, machines := range target.machines {
 			for _, m := range machines {
 				t.Logf("machine: %v", m)
 			}
 		}
-		t.Fatal("expected machines to pivot")
+		t.Fatalf("expected %d machines to pivot", expectedMachines)
+	}
+	if len(target.machineResources[ns1])+len(target.machineResources[ns2]) != expectedMachines {
+		t.Logf("source: %v", spew.Sdump(source.machineResources))
+		t.Logf("target: %v", spew.Sdump(target.machineResources))
+		t.Fatalf("expected %d machine unstructured objects to pivot", expectedMachines)
 	}
 }
 
@@ -484,7 +768,7 @@ func TestWaitForV1alpha2Failure(t *testing.T) {
 	w := &waitFailSourcer{
 		newSourcer(),
 	}
-	err := Pivot(w, &target{}, "")
+	err := Pivot(w, newTarget(), "")
 	if err == nil {
 		t.Fatal("expected an error but got nil")
 	}

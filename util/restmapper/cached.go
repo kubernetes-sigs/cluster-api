@@ -28,7 +28,7 @@ import (
 )
 
 func NewCached(config *rest.Config) meta.RESTMapper {
-	c := &Cached{
+	c := &cached{
 		limiter: rate.NewLimiter(rate.Limit(1), 2),
 		factory: func() (meta.RESTMapper, error) {
 			return apiutil.NewDiscoveryRESTMapper(config)
@@ -38,7 +38,7 @@ func NewCached(config *rest.Config) meta.RESTMapper {
 	return c
 }
 
-type Cached struct {
+type cached struct {
 	sync.Mutex
 
 	limiter *rate.Limiter
@@ -46,7 +46,7 @@ type Cached struct {
 	mapper  meta.RESTMapper
 }
 
-func (c *Cached) flush() error {
+func (c *cached) flush() error {
 	c.Lock()
 	defer c.Unlock()
 
@@ -57,7 +57,7 @@ func (c *Cached) flush() error {
 	return err
 }
 
-func (c *Cached) shouldFlushOn(err error) bool {
+func (c *cached) shouldFlushOn(err error) bool {
 	switch err.(type) {
 	case *meta.NoKindMatchError:
 		return true
@@ -65,7 +65,7 @@ func (c *Cached) shouldFlushOn(err error) bool {
 	return false
 }
 
-func (c *Cached) onError(err error) bool {
+func (c *cached) onError(err error) bool {
 	if !c.shouldFlushOn(err) {
 		return false
 	}
@@ -76,7 +76,7 @@ func (c *Cached) onError(err error) bool {
 	return true
 }
 
-func (c *Cached) KindFor(resource schema.GroupVersionResource) (schema.GroupVersionKind, error) {
+func (c *cached) KindFor(resource schema.GroupVersionResource) (schema.GroupVersionKind, error) {
 	gvk, err := c.mapper.KindFor(resource)
 	if c.onError(err) {
 		gvk, err = c.mapper.KindFor(resource)
@@ -84,7 +84,7 @@ func (c *Cached) KindFor(resource schema.GroupVersionResource) (schema.GroupVers
 	return gvk, err
 }
 
-func (c *Cached) KindsFor(resource schema.GroupVersionResource) ([]schema.GroupVersionKind, error) {
+func (c *cached) KindsFor(resource schema.GroupVersionResource) ([]schema.GroupVersionKind, error) {
 	gvks, err := c.mapper.KindsFor(resource)
 	if c.onError(err) {
 		gvks, err = c.mapper.KindsFor(resource)
@@ -92,7 +92,7 @@ func (c *Cached) KindsFor(resource schema.GroupVersionResource) ([]schema.GroupV
 	return gvks, err
 }
 
-func (c *Cached) ResourceFor(input schema.GroupVersionResource) (schema.GroupVersionResource, error) {
+func (c *cached) ResourceFor(input schema.GroupVersionResource) (schema.GroupVersionResource, error) {
 	gvr, err := c.mapper.ResourceFor(input)
 	if c.onError(err) {
 		gvr, err = c.mapper.ResourceFor(input)
@@ -100,7 +100,7 @@ func (c *Cached) ResourceFor(input schema.GroupVersionResource) (schema.GroupVer
 	return gvr, err
 }
 
-func (c *Cached) ResourcesFor(input schema.GroupVersionResource) ([]schema.GroupVersionResource, error) {
+func (c *cached) ResourcesFor(input schema.GroupVersionResource) ([]schema.GroupVersionResource, error) {
 	gvrs, err := c.mapper.ResourcesFor(input)
 	if c.onError(err) {
 		gvrs, err = c.mapper.ResourcesFor(input)
@@ -108,7 +108,7 @@ func (c *Cached) ResourcesFor(input schema.GroupVersionResource) ([]schema.Group
 	return gvrs, err
 }
 
-func (c *Cached) RESTMapping(gk schema.GroupKind, versions ...string) (*meta.RESTMapping, error) {
+func (c *cached) RESTMapping(gk schema.GroupKind, versions ...string) (*meta.RESTMapping, error) {
 	m, err := c.mapper.RESTMapping(gk, versions...)
 	if c.onError(err) {
 		m, err = c.mapper.RESTMapping(gk, versions...)
@@ -116,7 +116,7 @@ func (c *Cached) RESTMapping(gk schema.GroupKind, versions ...string) (*meta.RES
 	return m, err
 }
 
-func (c *Cached) RESTMappings(gk schema.GroupKind, versions ...string) ([]*meta.RESTMapping, error) {
+func (c *cached) RESTMappings(gk schema.GroupKind, versions ...string) ([]*meta.RESTMapping, error) {
 	ms, err := c.mapper.RESTMappings(gk, versions...)
 	if c.onError(err) {
 		ms, err = c.mapper.RESTMappings(gk, versions...)
@@ -124,7 +124,7 @@ func (c *Cached) RESTMappings(gk schema.GroupKind, versions ...string) ([]*meta.
 	return ms, err
 }
 
-func (c *Cached) ResourceSingularizer(resource string) (singular string, err error) {
+func (c *cached) ResourceSingularizer(resource string) (singular string, err error) {
 	s, err := c.mapper.ResourceSingularizer(resource)
 	if c.onError(err) {
 		s, err = c.mapper.ResourceSingularizer(resource)

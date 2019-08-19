@@ -21,12 +21,14 @@ import (
 	"strings"
 
 	"github.com/pkg/errors"
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/klog"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha2"
 	"sigs.k8s.io/cluster-api/cmd/clusterctl/clusterdeployer/bootstrap"
 	"sigs.k8s.io/cluster-api/cmd/clusterctl/clusterdeployer/clusterclient"
 	"sigs.k8s.io/cluster-api/cmd/clusterctl/clusterdeployer/provider"
 	"sigs.k8s.io/cluster-api/cmd/clusterctl/phases"
+	"sigs.k8s.io/cluster-api/util/yaml"
 )
 
 type ClusterDeployer struct {
@@ -56,7 +58,10 @@ func New(
 }
 
 // Create the cluster from the provided cluster definition and machine list.
-func (d *ClusterDeployer) Create(cluster *clusterv1.Cluster, machines []*clusterv1.Machine, kubeconfigOutput string, providerComponentsStoreFactory provider.ComponentsStoreFactory) error {
+func (d *ClusterDeployer) Create(resources *yaml.ParseOutput, kubeconfigOutput string, providerComponentsStoreFactory provider.ComponentsStoreFactory) error {
+	cluster := resources.Clusters[0]
+	machines := resources.Machines
+
 	controlPlaneMachines, nodes, err := clusterclient.ExtractControlPlaneMachines(machines)
 	if err != nil {
 		return errors.Wrap(err, "unable to separate control plane machines from node machines")
@@ -81,7 +86,10 @@ func (d *ClusterDeployer) Create(cluster *clusterv1.Cluster, machines []*cluster
 	}
 
 	klog.Info("Provisioning target cluster via bootstrap cluster")
-	if err := phases.ApplyCluster(bootstrapClient, cluster); err != nil {
+	if err := phases.ApplyCluster(
+		bootstrapClient,
+		cluster,
+		yaml.ExtractClusterReferences(resources, cluster)...); err != nil {
 		return errors.Wrapf(err, "unable to create cluster %q in bootstrap cluster", cluster.Name)
 	}
 
@@ -89,8 +97,13 @@ func (d *ClusterDeployer) Create(cluster *clusterv1.Cluster, machines []*cluster
 		cluster.Namespace = bootstrapClient.GetContextNamespace()
 	}
 
-	klog.Infof("Creating control plane machine in namespace %q", cluster.Namespace)
-	if err := phases.ApplyMachines(bootstrapClient, cluster.Namespace, []*clusterv1.Machine{controlPlaneMachines[0]}); err != nil {
+	firstControlPlane := controlPlaneMachines[0]
+	klog.Infof("Creating control plane machine %q in namespace %q", firstControlPlane.Name, cluster.Namespace)
+	if err := phases.ApplyMachines(
+		bootstrapClient,
+		cluster.Namespace,
+		[]*clusterv1.Machine{firstControlPlane},
+		yaml.ExtractMachineReferences(resources, firstControlPlane)...); err != nil {
 		return errors.Wrap(err, "unable to create control plane machine")
 	}
 
@@ -128,19 +141,32 @@ func (d *ClusterDeployer) Create(cluster *clusterv1.Cluster, machines []*cluster
 		// supported versions of k8s we are deploying (using kubeadm) have the fix.
 		klog.Info("Creating additional control plane machines in target cluster.")
 		for _, controlPlaneMachine := range controlPlaneMachines[1:] {
-			if err := phases.ApplyMachines(targetClient, cluster.Namespace, []*clusterv1.Machine{controlPlaneMachine}); err != nil {
+			if err := phases.ApplyMachines(
+				targetClient,
+				cluster.Namespace,
+				[]*clusterv1.Machine{controlPlaneMachine},
+				yaml.ExtractMachineReferences(resources, controlPlaneMachine)...,
+			); err != nil {
 				return errors.Wrap(err, "unable to create additional control plane machines")
 			}
 		}
 	}
 
 	klog.Info("Creating node machines in target cluster.")
-	if err := phases.ApplyMachines(targetClient, cluster.Namespace, nodes); err != nil {
+	extraMachineResources := []*unstructured.Unstructured{}
+	for _, m := range nodes {
+		extraMachineResources = append(extraMachineResources, yaml.ExtractMachineReferences(resources, m)...)
+	}
+	if err := phases.ApplyMachines(
+		targetClient,
+		cluster.Namespace,
+		nodes,
+		extraMachineResources...,
+	); err != nil {
 		return errors.Wrap(err, "unable to create node machines")
 	}
 
 	klog.Infof("Done provisioning cluster. You can now access your cluster with kubectl --kubeconfig %v", kubeconfigOutput)
-
 	return nil
 }
 

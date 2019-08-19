@@ -23,6 +23,7 @@ import (
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/clientcmd"
 	"k8s.io/client-go/tools/clientcmd/api"
+	"sigs.k8s.io/cluster-api/util/restmapper"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
@@ -55,7 +56,9 @@ func NewControllerRuntimeClient(kubeconfigPath string, overrides clientcmd.Confi
 		return nil, err
 	}
 
-	return client.New(config, client.Options{})
+	return client.New(config, client.Options{
+		Mapper: restmapper.NewCached(config),
+	})
 }
 
 // newRestConfig creates a rest.Config for the given apiConfig

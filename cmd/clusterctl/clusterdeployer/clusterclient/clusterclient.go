@@ -30,9 +30,10 @@ import (
 
 	"github.com/pkg/errors"
 	autoscalingv1 "k8s.io/api/autoscaling/v1"
-	apiv1 "k8s.io/api/core/v1"
+	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	_ "k8s.io/client-go/plugin/pkg/client/auth" // nolint
 	tcmd "k8s.io/client-go/tools/clientcmd"
 	"k8s.io/klog"
@@ -51,7 +52,6 @@ const (
 	timeoutKubectlApply        = 15 * time.Minute
 	timeoutResourceReady       = 15 * time.Minute
 	timeoutMachineReady        = 30 * time.Minute
-	machineClusterLabelName    = "cluster.k8s.io/cluster-name"
 )
 
 const (
@@ -67,22 +67,27 @@ var (
 type Client interface {
 	Apply(string) error
 	Close() error
+	CreateSecret(*corev1.Secret) error
 	CreateClusterObject(*clusterv1.Cluster) error
 	CreateMachineDeployments([]*clusterv1.MachineDeployment, string) error
 	CreateMachineSets([]*clusterv1.MachineSet, string) error
 	CreateMachines([]*clusterv1.Machine, string) error
+	CreateUnstructuredObject(*unstructured.Unstructured) error
 	Delete(string) error
 	DeleteClusters(string) error
 	DeleteNamespace(string) error
 	DeleteMachineDeployments(string) error
 	DeleteMachineSets(string) error
 	DeleteMachines(string) error
+	ForceDeleteSecret(namespace, name string) error
 	ForceDeleteCluster(namespace, name string) error
 	ForceDeleteMachine(namespace, name string) error
 	ForceDeleteMachineSet(namespace, name string) error
 	ForceDeleteMachineDeployment(namespace, name string) error
+	ForceDeleteUnstructuredObject(*unstructured.Unstructured) error
 	EnsureNamespace(string) error
 	GetKubeconfigFromSecret(namespace, clusterName string) (string, error)
+	GetClusterSecrets(*clusterv1.Cluster) ([]*corev1.Secret, error)
 	GetClusters(string) ([]*clusterv1.Cluster, error)
 	GetCluster(string, string) (*clusterv1.Cluster, error)
 	GetContextNamespace() string
@@ -96,7 +101,8 @@ type Client interface {
 	GetMachines(namespace string) ([]*clusterv1.Machine, error)
 	GetMachinesForCluster(*clusterv1.Cluster) ([]*clusterv1.Machine, error)
 	GetMachinesForMachineSet(*clusterv1.MachineSet) ([]*clusterv1.Machine, error)
-	ScaleStatefulSet(namespace, name string, scale int32) error
+	GetUnstructuredObject(*unstructured.Unstructured) error
+	ScaleDeployment(namespace, name string, scale int32) error
 	WaitForClusterV1alpha2Ready() error
 	WaitForResourceStatuses() error
 }
@@ -153,7 +159,7 @@ func (c *client) EnsureNamespace(namespaceName string) error {
 	if !apierrors.IsNotFound(err) {
 		return err
 	}
-	namespace := apiv1.Namespace{
+	namespace := corev1.Namespace{
 		ObjectMeta: metav1.ObjectMeta{
 			Name: namespaceName,
 		},
@@ -178,29 +184,42 @@ func (c *client) GetKubeconfigFromSecret(namespace, clusterName string) (string,
 	return string(data), nil
 }
 
-func (c *client) ScaleStatefulSet(ns string, name string, scale int32) error {
+func (c *client) ScaleDeployment(ns string, name string, scale int32) error {
 	clientset, err := clientcmd.NewCoreClientSetForDefaultSearchPath(c.kubeconfigFile, clientcmd.NewConfigOverrides())
 	if err != nil {
 		return errors.Wrap(err, "error creating core clientset")
 	}
 
-	_, err = clientset.AppsV1().StatefulSets(ns).UpdateScale(name, &autoscalingv1.Scale{
-		ObjectMeta: metav1.ObjectMeta{
-			Namespace: ns,
-			Name:      name,
-		},
-		Spec: autoscalingv1.ScaleSpec{
-			Replicas: scale,
-		},
-	})
-	if err != nil && !apierrors.IsNotFound(err) {
-		return err
+	deploymentClient := clientset.AppsV1().Deployments(ns)
+
+	if err := util.PollImmediate(retryAcquireClient, timeoutAcquireClient, func() (bool, error) {
+		_, err := deploymentClient.UpdateScale(name, &autoscalingv1.Scale{
+			ObjectMeta: metav1.ObjectMeta{
+				Namespace: ns,
+				Name:      name,
+			},
+			Spec: autoscalingv1.ScaleSpec{
+				Replicas: scale,
+			},
+		})
+		if err != nil && !apierrors.IsNotFound(err) {
+			return false, err
+		}
+
+		d, err := deploymentClient.Get(name, metav1.GetOptions{})
+		if err != nil {
+			return false, err
+		}
+		return d.Status.Replicas == scale && d.Status.AvailableReplicas == scale && d.Status.ReadyReplicas == scale, nil
+	}); err != nil {
+		return errors.Wrapf(err, "failed to scale deployment")
 	}
+
 	return nil
 }
 
 func (c *client) DeleteNamespace(namespaceName string) error {
-	if namespaceName == apiv1.NamespaceDefault {
+	if namespaceName == corev1.NamespaceDefault {
 		return nil
 	}
 	clientset, err := clientcmd.NewCoreClientSetForDefaultSearchPath(c.kubeconfigFile, clientcmd.NewConfigOverrides())
@@ -230,11 +249,6 @@ func NewFromDefaultSearchPath(kubeconfigFile string, overrides tcmd.ConfigOverri
 		return nil, errors.Wrapf(err, "failed to acquire new client")
 	}
 
-	c, err := clientcmd.NewControllerRuntimeClient(kubeconfigFile, overrides)
-	if err != nil {
-		return nil, err
-	}
-
 	return &client{
 		kubeconfigFile:  kubeconfigFile,
 		clientSet:       c,
@@ -260,7 +274,7 @@ func (c *client) Apply(manifest string) error {
 
 func (c *client) GetContextNamespace() string {
 	if c.configOverrides.Context.Namespace == "" {
-		return apiv1.NamespaceDefault
+		return corev1.NamespaceDefault
 	}
 	return c.configOverrides.Context.Namespace
 }
@@ -322,7 +336,7 @@ func (c *client) GetMachineDeployment(namespace, name string) (*clusterv1.Machin
 func (c *client) GetMachineDeploymentsForCluster(cluster *clusterv1.Cluster) ([]*clusterv1.MachineDeployment, error) {
 	selectors := []ctrlclient.ListOption{
 		ctrlclient.MatchingLabels{
-			machineClusterLabelName: cluster.Name,
+			clusterv1.MachineClusterLabelName: cluster.Name,
 		},
 		ctrlclient.InNamespace(cluster.Namespace),
 	}
@@ -379,7 +393,7 @@ func (c *client) GetMachineSets(namespace string) ([]*clusterv1.MachineSet, erro
 func (c *client) GetMachineSetsForCluster(cluster *clusterv1.Cluster) ([]*clusterv1.MachineSet, error) {
 	selectors := []ctrlclient.ListOption{
 		ctrlclient.MatchingLabels{
-			machineClusterLabelName: cluster.Name,
+			clusterv1.MachineClusterLabelName: cluster.Name,
 		},
 		ctrlclient.InNamespace(cluster.Namespace),
 	}
@@ -427,7 +441,7 @@ func (c *client) GetMachines(namespace string) (machines []*clusterv1.Machine, _
 func (c *client) GetMachinesForCluster(cluster *clusterv1.Cluster) ([]*clusterv1.Machine, error) {
 	selectors := []ctrlclient.ListOption{
 		ctrlclient.MatchingLabels{
-			machineClusterLabelName: cluster.Name,
+			clusterv1.MachineClusterLabelName: cluster.Name,
 		},
 		ctrlclient.InNamespace(cluster.Namespace),
 	}
@@ -437,16 +451,8 @@ func (c *client) GetMachinesForCluster(cluster *clusterv1.Cluster) ([]*clusterv1
 	}
 	var machines []*clusterv1.Machine
 	for i := 0; i < len(machineslist.Items); i++ {
-		m := &machineslist.Items[i]
-
-		for _, or := range m.GetOwnerReferences() {
-			if or.Kind == cluster.Kind && or.Name == cluster.Name {
-				machines = append(machines, m)
-				break
-			}
-		}
+		machines = append(machines, &machineslist.Items[i])
 	}
-
 	return machines, nil
 }
 
@@ -662,14 +668,80 @@ func (c *client) WaitForResourceStatuses() error {
 				klog.V(10).Info("retrying: machine status is empty")
 				return false, nil
 			}
-			// if m.Status.ProviderStatus == nil {
-			// 	klog.V(10).Info("retrying: machine.Status.ProviderStatus is not set")
-			// 	return false, nil
-			// }
 		}
 
 		return true, nil
 	})
+}
+
+func (c *client) GetClusterSecrets(cluster *clusterv1.Cluster) ([]*corev1.Secret, error) {
+	list := &corev1.SecretList{}
+	if err := c.clientSet.List(ctx, list, ctrlclient.InNamespace(cluster.Namespace)); err != nil {
+		return nil, errors.Wrapf(err, "error listing Secrets for Cluster %s/%s", cluster.Namespace, cluster.Name)
+	}
+
+	res := []*corev1.Secret{}
+	for i, secret := range list.Items {
+		if strings.HasPrefix(secret.Name, cluster.Name) {
+			res = append(res, &list.Items[i])
+		}
+	}
+	return res, nil
+}
+
+func (c *client) CreateSecret(s *corev1.Secret) error {
+	if err := c.clientSet.Create(context.Background(), s); err != nil {
+		return errors.Wrapf(err, "error creating Secret %s/%s", s.Namespace, s.Name)
+	}
+	return nil
+}
+
+func (c *client) ForceDeleteSecret(namespace, name string) error {
+	secret := &corev1.Secret{}
+	if err := c.clientSet.Get(ctx, ctrlclient.ObjectKey{Namespace: namespace, Name: name}, secret); apierrors.IsNotFound(err) {
+		return nil
+	} else if err != nil {
+		return errors.Wrapf(err, "error getting Secret %s/%s", namespace, name)
+	}
+	if err := c.clientSet.Delete(context.Background(), secret); err != nil {
+		return errors.Wrapf(err, "error deleting Secret %s/%s", secret.Namespace, secret.Name)
+	}
+	return nil
+}
+
+func (c *client) GetUnstructuredObject(u *unstructured.Unstructured) error {
+	key := ctrlclient.ObjectKey{Namespace: u.GetNamespace(), Name: u.GetName()}
+	if err := c.clientSet.Get(context.Background(), key, u); err != nil {
+		return errors.Wrapf(err, "error fetching unstructured object %q %v", u.GroupVersionKind(), key)
+	}
+	return nil
+}
+
+func (c *client) CreateUnstructuredObject(u *unstructured.Unstructured) error {
+	if err := c.clientSet.Create(context.Background(), u); err != nil {
+		return errors.Wrapf(err, "error creating unstructured object %q %s/%s",
+			u.GroupVersionKind(), u.GetNamespace(), u.GetName())
+	}
+	return nil
+}
+
+func (c *client) ForceDeleteUnstructuredObject(u *unstructured.Unstructured) error {
+	if err := c.clientSet.Get(ctx, ctrlclient.ObjectKey{Namespace: u.GetNamespace(), Name: u.GetName()}, u); apierrors.IsNotFound(err) {
+		return nil
+	} else if err != nil {
+		return errors.Wrapf(err, "error retrieving unstructured object %q %s/%s",
+			u.GroupVersionKind(), u.GetNamespace(), u.GetName())
+	}
+	u.SetFinalizers([]string{})
+	if err := c.clientSet.Update(ctx, u); err != nil {
+		return errors.Wrapf(err, "error removing finalizer for unstructured object %q %s/%s",
+			u.GroupVersionKind(), u.GetNamespace(), u.GetName())
+	}
+	if err := c.clientSet.Delete(ctx, u); err != nil {
+		return errors.Wrapf(err, "error deleting unstructured object %q %s/%s",
+			u.GroupVersionKind(), u.GetNamespace(), u.GetName())
+	}
+	return nil
 }
 
 func (c *client) kubectlDelete(manifest string) error {
@@ -765,11 +837,8 @@ func waitForMachineReady(cs ctrlclient.Client, machine *clusterv1.Machine) error
 			return false, nil
 		}
 
-		// TODO: update once machine controllers have a way to indicate a machine has been provisoned. https://github.com/kubernetes-sigs/cluster-api/issues/253
-		// Seeing a node cannot be purely relied upon because the provisioned control plane will not be registering with
-		// the stack that provisions it.
-		ready := machine.Status.NodeRef != nil || len(machine.Annotations) > 0
-		return ready, nil
+		// Return true if the Machine has a reference to a Node.
+		return machine.Status.NodeRef != nil, nil
 	})
 
 	return err

@@ -18,12 +18,13 @@ package phases
 
 import (
 	"github.com/pkg/errors"
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/klog"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha2"
 	"sigs.k8s.io/cluster-api/cmd/clusterctl/clusterdeployer/clusterclient"
 )
 
-func ApplyMachines(client clusterclient.Client, namespace string, machines []*clusterv1.Machine) error {
+func ApplyMachines(client clusterclient.Client, namespace string, machines []*clusterv1.Machine, extra ...*unstructured.Unstructured) error {
 	if namespace == "" {
 		namespace = client.GetContextNamespace()
 	}
@@ -31,6 +32,13 @@ func ApplyMachines(client clusterclient.Client, namespace string, machines []*cl
 	err := client.EnsureNamespace(namespace)
 	if err != nil {
 		return errors.Wrapf(err, "unable to ensure namespace %q", namespace)
+	}
+
+	for _, e := range extra {
+		klog.Infof("Creating Machine referenced object %q with name %q in namespace %q", e.GroupVersionKind(), e.GetName(), e.GetNamespace())
+		if err := client.CreateUnstructuredObject(e); err != nil {
+			return err
+		}
 	}
 
 	klog.Infof("Creating machines in namespace %q", namespace)

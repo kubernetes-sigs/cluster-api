@@ -80,6 +80,6 @@ func init() {
 
 	// Optional flags
 	alphaPhaseGetKubeconfigCmd.Flags().StringVarP(&pgko.KubeconfigOutput, "kubeconfig-out", "", "kubeconfig", "Where to output the kubeconfig for the provisioned cluster")
-	alphaPhaseGetKubeconfigCmd.Flags().StringVarP(&pgko.Namespace, "namespace", "n", "", "Namespace")
+	alphaPhaseGetKubeconfigCmd.Flags().StringVarP(&pgko.Namespace, "namespace", "n", "default", "Namespace")
 	alphaPhasesCmd.AddCommand(alphaPhaseGetKubeconfigCmd)
 }

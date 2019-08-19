@@ -21,6 +21,15 @@ import (
 	kubeadmv1beta1 "sigs.k8s.io/cluster-api-bootstrap-provider-kubeadm/kubeadm/v1beta1"
 )
 
+// Format specifies the output format of the bootstrap data
+// +kubebuilder:validation:Enum=cloud-config
+type Format string
+
+const (
+	// CloudConfig make the bootstrap data to be of cloud-config format
+	CloudConfig Format = "cloud-config"
+)
+
 // KubeadmConfigSpec defines the desired state of KubeadmConfig.
 // Either ClusterConfiguration and InitConfiguration should be defined or the JoinConfiguration should be defined.
 type KubeadmConfigSpec struct {
@@ -42,6 +51,9 @@ type KubeadmConfigSpec struct {
 	// PostKubeadmCommands specifies extra commands to run after kubeadm runs
 	// +optional
 	PostKubeadmCommands []string `json:"postKubeadmCommands,omitempty"`
+	// Format specifies the output format of the bootstrap data
+	// +optional
+	Format Format `json:"format,omitempty"`
 }
 
 // KubeadmConfigStatus defines the observed state of KubeadmConfig

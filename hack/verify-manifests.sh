@@ -32,7 +32,7 @@ MANIFEST_ROOT=$TMP_ROOT make generate-manifests
 
 echo "diffing ${DIFFROOT} against freshly generated manifests"
 ret=0
-git diff --no-index --diff-filter=MD  --stat ${TMP_ROOT} ${DIFFROOT} || ret=$?
+git diff --no-index --diff-filter=MD ${TMP_ROOT} ${DIFFROOT} || ret=$?
 if [[ $ret -eq 0 ]]
 then
     echo "Manifests in ${DIFFROOT} are up to date."

@@ -380,6 +380,11 @@ spec:
                 - path
                 type: object
               type: array
+            format:
+              description: Format specifies the output format of the bootstrap data
+              enum:
+              - cloud-config
+              type: string
             initConfiguration:
               description: InitConfiguration along with ClusterConfiguration are the
                 configurations necessary for the init command

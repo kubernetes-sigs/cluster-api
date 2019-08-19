@@ -29,7 +29,6 @@ import (
 	"github.com/go-logr/logr"
 	"github.com/pkg/errors"
 	constkind "sigs.k8s.io/cluster-api-provider-docker/docker/constants"
-	"sigs.k8s.io/cluster-api-provider-docker/third_party/forked/loadbalancer"
 	"sigs.k8s.io/kind/pkg/cluster/config/defaults"
 	"sigs.k8s.io/kind/pkg/cluster/constants"
 	"sigs.k8s.io/kind/pkg/cluster/nodes"
@@ -52,6 +51,7 @@ func KubeConfigPath(clusterName string) string {
 // AddControlPlane adds a control plane to a given cluster
 func (m *MachineActions) AddControlPlane(clusterName, machineName, version string, cloudConfig []byte) (*nodes.Node, error) {
 	log := m.Logger.WithName("add-control-plane").WithValues("cluster-name", clusterName, "machine-name", machineName, "version", version)
+	log.Info("Creating control plane node")
 	clusterLabel := fmt.Sprintf("%s=%s", constants.ClusterLabelKey, clusterName)
 	kindImage := image(version)
 	// This function exposes a port (makes sense for kind) that is not needed in capd scenarios.
@@ -67,6 +67,7 @@ func (m *MachineActions) AddControlPlane(clusterName, machineName, version strin
 	if err != nil {
 		return nil, err
 	}
+	log.Info("Running cloud init")
 	if err := NodeCloudConfig(controlPlane, cloudConfig); err != nil {
 		return nil, err
 	}
@@ -81,8 +82,8 @@ func (m *MachineActions) AddControlPlane(clusterName, machineName, version strin
 }
 
 // CreateControlPlane is creating the first control plane and configuring the load balancer.
-func (m *MachineActions) CreateControlPlane(clusterName, machineName, lbip, version string, mounts []cri.Mount, cloudConfig []byte) (*nodes.Node, error) {
-	log := m.Logger.WithName("create-control-plane").WithValues("cluster-name", clusterName, "machine-name", machineName, "load-balancer-ip", lbip, "version", version)
+func (m *MachineActions) CreateControlPlane(clusterName, machineName, version string, mounts []cri.Mount, cloudConfig []byte) (*nodes.Node, error) {
+	log := m.Logger.WithName("create-control-plane").WithValues("cluster-name", clusterName, "machine-name", machineName, "version", version)
 	log.Info("Creating control plane node")
 	clusterLabel := fmt.Sprintf("%s=%s", constants.ClusterLabelKey, clusterName)
 	kindImage := image(version)
@@ -102,12 +103,8 @@ func (m *MachineActions) CreateControlPlane(clusterName, machineName, lbip, vers
 	if err := ConfigureLoadBalancer(clusterName); err != nil {
 		return nil, err
 	}
-	log.Info("Configuring kubeadm")
-	if err := KubeadmConfig(controlPlaneNode, clusterName, lbip); err != nil {
-		return nil, err
-	}
-	log.Info("Initializing cluster")
-	if err := KubeadmInit(clusterName, controlPlaneNode, cloudConfig, log); err != nil {
+	log.Info("Running cloud init")
+	if err := NodeCloudConfig(controlPlaneNode, cloudConfig); err != nil {
 		return nil, err
 	}
 	log.Info("Updating node providerID")
@@ -125,6 +122,7 @@ func (m *MachineActions) CreateControlPlane(clusterName, machineName, lbip, vers
 // AddWorker adds a worker to a given cluster.
 func (m *MachineActions) AddWorker(clusterName, machineName, version string, cloudConfig []byte) (*nodes.Node, error) {
 	log := m.Logger.WithName("add-worker").WithValues("cluster-name", clusterName, "machine-name", machineName, "version", version)
+	log.Info("Creating worker node")
 	clusterLabel := fmt.Sprintf("%s=%s", constants.ClusterLabelKey, clusterName)
 	kindImage := image(version)
 	worker, err := nodes.CreateWorkerNode(
@@ -137,6 +135,7 @@ func (m *MachineActions) AddWorker(clusterName, machineName, version string, clo
 	if err != nil {
 		return nil, err
 	}
+	log.Info("Running cloud init")
 	if err := NodeCloudConfig(worker, cloudConfig); err != nil {
 		return nil, err
 	}
@@ -229,12 +228,12 @@ func GetLoadBalancerHostAndPort(allNodes []nodes.Node) (string, int32, error) {
 //    server: https://$ADDRESS:$PORT
 var serverAddressRE = regexp.MustCompile(`^(\s+server:) https://.*:\d+$`)
 
-// writeKubeConfig writes a fixed KUBECONFIG to dest
+// GetKubeConfig writes a fixed KUBECONFIG to dest
 // this should only be called on a control plane node
 // While copyng to the host machine the control plane address
 // is replaced with local host and the control plane port with
 // a randomly generated port reserved during node creation.
-func writeKubeConfig(n *nodes.Node, dest string, hostAddress string, hostPort int32) error {
+func GetKubeConfig(n *nodes.Node, dest string, hostAddress string, hostPort int32) error {
 	cmd := n.Command("cat", "/etc/kubernetes/admin.conf")
 	lines, err := exec.CombinedOutputLines(cmd)
 	if err != nil {
@@ -273,41 +272,4 @@ func image(version string) string {
 		return fmt.Sprintf("kindest/node:%s", version)
 	}
 	return defaults.Image
-}
-
-func removeExitedELBWithNameConflict(name string) error {
-	exitedLB, err := nodes.List(
-		fmt.Sprintf("label=%s=%s", constants.NodeRoleKey, constants.ExternalLoadBalancerNodeRoleValue),
-		fmt.Sprintf("name=%s", name),
-		fmt.Sprintf("status=exited"),
-	)
-
-	if err != nil {
-		return errors.Wrapf(err, "failed to list exited external load balancer nodes with name %q", name)
-	}
-
-	if len(exitedLB) > 0 {
-		// only one container with given name should exist, if any.
-		fmt.Printf("Removing exited ELB %q\n", exitedLB[0].Name())
-		return nodes.Delete(exitedLB[0])
-	}
-	return nil
-}
-
-// SetUpLoadBalancer creates a load balancer but does not configure it.
-func SetUpLoadBalancer(clusterName string) (*nodes.Node, error) {
-	clusterLabel := fmt.Sprintf("%s=%s", constants.ClusterLabelKey, clusterName)
-	name := fmt.Sprintf("%s-%s", clusterName, constants.ExternalLoadBalancerNodeRoleValue)
-	err := removeExitedELBWithNameConflict(name)
-	if err != nil {
-		return nil, errors.Wrapf(err, "failed to delete exited load balancer node %q", name)
-	}
-
-	return nodes.CreateExternalLoadBalancerNode(
-		name,
-		loadbalancer.Image,
-		clusterLabel,
-		"0.0.0.0",
-		0,
-	)
 }

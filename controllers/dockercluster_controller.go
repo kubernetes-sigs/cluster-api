@@ -24,6 +24,7 @@ import (
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	infrastructurev1alpha2 "sigs.k8s.io/cluster-api-provider-docker/api/v1alpha2"
 	"sigs.k8s.io/cluster-api-provider-docker/docker"
+	"sigs.k8s.io/cluster-api-provider-docker/third_party/forked/loadbalancer"
 	"sigs.k8s.io/cluster-api/util"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -88,20 +89,16 @@ func (r *DockerClusterReconciler) Reconcile(req ctrl.Request) (_ ctrl.Result, re
 			log.Error(err, "Failed to get load balancer IP")
 			return ctrl.Result{}, err
 		}
-		port, err := lb.Node.Ports(6443)
-		if err != nil {
-			log.Error(err, "Failed to get load balancer port")
-			return ctrl.Result{}, err
-		}
+
 		dockerCluster.Status.APIEndpoints = []infrastructurev1alpha2.APIEndpoint{
 			{
 				Host: ipv4,
-				Port: int(port),
+				Port: loadbalancer.ControlPlanePort, // this is the controller port used internally by node/containers to communicate with the load balancer/container; from the host the port mapping should be used instead
 			},
 		}
 	}
 
-	log.Info("Reconcile network for cluster successful", "APIEndPoint", dockerCluster.Status.APIEndpoints[0])
+	log.Info("Reconcile cluster successful", "APIEndPoint", dockerCluster.Status.APIEndpoints[0])
 	dockerCluster.Status.Ready = true
 	return ctrl.Result{}, nil
 }

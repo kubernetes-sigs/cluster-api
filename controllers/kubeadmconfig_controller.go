@@ -19,6 +19,7 @@ package controllers
 import (
 	"context"
 	"fmt"
+	"strings"
 	"time"
 
 	"github.com/go-logr/logr"
@@ -188,17 +189,8 @@ func (r *KubeadmConfigReconciler) Reconcile(req ctrl.Request) (_ ctrl.Result, re
 			}
 		}
 
-		// If there no ControlPlaneEndpoint defined in ClusterConfiguration but there are APIEndpoints defined at cluster level (e.g. the load balancer endpoint),
-		// then use cluster APIEndpoints as a control plane endpoint for the K8s cluster
-		if config.Spec.ClusterConfiguration.ControlPlaneEndpoint == "" && len(cluster.Status.APIEndpoints) > 0 {
-			// NB. CABPK only uses the first APIServerEndpoint defined in cluster status if there are multiple defined.
-			config.Spec.ClusterConfiguration.ControlPlaneEndpoint = fmt.Sprintf("%s:%d", cluster.Status.APIEndpoints[0].Host, cluster.Status.APIEndpoints[0].Port)
-			log.Info("Altering ClusterConfiguration", "ControlPlaneEndpoint", config.Spec.ClusterConfiguration.ControlPlaneEndpoint)
-		}
-
-		if config.Spec.ClusterConfiguration.ClusterName == "" {
-			config.Spec.ClusterConfiguration.ClusterName = cluster.Name
-		}
+		// injects into config.ClusterConfiguration values from top level object
+		r.reconcileTopLevelObjectSettings(cluster, machine, config)
 
 		clusterdata, err := kubeadmv1beta1.ConfigurationToYAML(config.Spec.ClusterConfiguration)
 		if err != nil {
@@ -273,8 +265,6 @@ func (r *KubeadmConfigReconciler) Reconcile(req ctrl.Request) (_ ctrl.Result, re
 		log.Error(err, "failed to marshal join configuration")
 		return ctrl.Result{}, err
 	}
-
-	//TODO(fp) remove init lock
 
 	// it's a control plane join
 	if util.IsControlPlaneMachine(machine) {
@@ -392,6 +382,48 @@ func (r *KubeadmConfigReconciler) reconcileDiscovery(cluster *capiv1alpha2.Clust
 	}
 
 	return nil
+}
+
+// reconcileTopLevelObjectSettings injects into config.ClusterConfiguration values from top level objects like cluster and machine.
+// The implementation func respect user provided config values, but in case some of them are missing, values from top level objects are used.
+func (r *KubeadmConfigReconciler) reconcileTopLevelObjectSettings(cluster *capiv1alpha2.Cluster, machine *capiv1alpha2.Machine, config *cabpkv1alpha2.KubeadmConfig) {
+	log := r.Log.WithValues("kubeadmconfig", fmt.Sprintf("%s/%s", config.Namespace, config.Name))
+
+	// If there are no ControlPlaneEndpoint defined in ClusterConfiguration but there are APIEndpoints defined at cluster level (e.g. the load balancer endpoint),
+	// then use cluster APIEndpoints as a control plane endpoint for the K8s cluster
+	if config.Spec.ClusterConfiguration.ControlPlaneEndpoint == "" && len(cluster.Status.APIEndpoints) > 0 {
+		// NB. CABPK only uses the first APIServerEndpoint defined in cluster status if there are multiple defined.
+		config.Spec.ClusterConfiguration.ControlPlaneEndpoint = fmt.Sprintf("%s:%d", cluster.Status.APIEndpoints[0].Host, cluster.Status.APIEndpoints[0].Port)
+		log.Info("Altering ClusterConfiguration", "ControlPlaneEndpoint", config.Spec.ClusterConfiguration.ControlPlaneEndpoint)
+	}
+
+	// If there are no ClusterName defined in ClusterConfiguration, use Cluster.Name
+	if config.Spec.ClusterConfiguration.ClusterName == "" {
+		config.Spec.ClusterConfiguration.ClusterName = cluster.Name
+		log.Info("Altering ClusterConfiguration", "ClusterName", config.Spec.ClusterConfiguration.ClusterName)
+	}
+
+	// If there are no Network settings defined in ClusterConfiguration, use ClusterNetwork settings, if defined
+	if cluster.Spec.ClusterNetwork != nil {
+		if config.Spec.ClusterConfiguration.Networking.DNSDomain == "" && cluster.Spec.ClusterNetwork.ServiceDomain != "" {
+			config.Spec.ClusterConfiguration.Networking.DNSDomain = cluster.Spec.ClusterNetwork.ServiceDomain
+			log.Info("Altering ClusterConfiguration", "DNSDomain", config.Spec.ClusterConfiguration.Networking.DNSDomain)
+		}
+		if config.Spec.ClusterConfiguration.Networking.ServiceSubnet == "" && len(cluster.Spec.ClusterNetwork.Services.CIDRBlocks) > 0 {
+			config.Spec.ClusterConfiguration.Networking.ServiceSubnet = strings.Join(cluster.Spec.ClusterNetwork.Services.CIDRBlocks, "")
+			log.Info("Altering ClusterConfiguration", "ServiceSubnet", config.Spec.ClusterConfiguration.Networking.ServiceSubnet)
+		}
+		if config.Spec.ClusterConfiguration.Networking.PodSubnet == "" && len(cluster.Spec.ClusterNetwork.Pods.CIDRBlocks) > 0 {
+			config.Spec.ClusterConfiguration.Networking.PodSubnet = strings.Join(cluster.Spec.ClusterNetwork.Pods.CIDRBlocks, "")
+			log.Info("Altering ClusterConfiguration", "PodSubnet", config.Spec.ClusterConfiguration.Networking.PodSubnet)
+		}
+	}
+
+	// If there are no KubernetesVersion settings defined in ClusterConfiguration, use Version from machine, if defined
+	if config.Spec.ClusterConfiguration.KubernetesVersion == "" && machine.Spec.Version != nil {
+		config.Spec.ClusterConfiguration.KubernetesVersion = *machine.Spec.Version
+		log.Info("Altering ClusterConfiguration", "KubernetesVersion", config.Spec.ClusterConfiguration.KubernetesVersion)
+	}
 }
 
 func (r *KubeadmConfigReconciler) getClusterCertificates(ctx context.Context, clusterName, namespace string) (*certs.Certificates, error) {

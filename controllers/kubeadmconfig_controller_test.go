@@ -788,6 +788,111 @@ func TestReconcileDiscoveryErrors(t *testing.T) {
 	}
 }
 
+func TestReconcileTopLevelObjectSettings(t *testing.T) {
+	k := &KubeadmConfigReconciler{
+		Log:    log.Log,
+		Client: nil,
+	}
+
+	var useCases = []struct {
+		name    string
+		cluster *capiv1alpha2.Cluster
+		machine *capiv1alpha2.Machine
+		config  *cabpkV1alpha2.KubeadmConfig
+	}{
+		{
+			name: "Config settings have precedence",
+			config: &cabpkV1alpha2.KubeadmConfig{
+				Spec: cabpkV1alpha2.KubeadmConfigSpec{
+					ClusterConfiguration: &kubeadmv1beta1.ClusterConfiguration{
+						ClusterName:       "mycluster",
+						KubernetesVersion: "myversion",
+						Networking: kubeadmv1beta1.Networking{
+							PodSubnet:     "myPodSubnet",
+							ServiceSubnet: "myServiceSubnet",
+							DNSDomain:     "myDNSDomain",
+						},
+						ControlPlaneEndpoint: "myControlPlaneEndpoint:6443",
+					},
+				},
+			},
+			cluster: &capiv1alpha2.Cluster{
+				ObjectMeta: metav1.ObjectMeta{
+					Name: "OtherName",
+				},
+				Spec: capiv1alpha2.ClusterSpec{
+					ClusterNetwork: &capiv1alpha2.ClusterNetworkingConfig{
+						Services:      capiv1alpha2.NetworkRanges{CIDRBlocks: []string{"otherServicesCidr"}},
+						Pods:          capiv1alpha2.NetworkRanges{CIDRBlocks: []string{"otherPodsCidr"}},
+						ServiceDomain: "otherServiceDomain",
+					},
+				},
+				Status: capiv1alpha2.ClusterStatus{
+					APIEndpoints: []capiv1alpha2.APIEndpoint{{Host: "otherVersion", Port: 0}},
+				},
+			},
+			machine: &capiv1alpha2.Machine{
+				Spec: capiv1alpha2.MachineSpec{
+					Version: stringPtr("otherVersion"),
+				},
+			},
+		},
+		{
+			name: "Top level object settings are used in case config settings are missing",
+			config: &cabpkV1alpha2.KubeadmConfig{
+				Spec: cabpkV1alpha2.KubeadmConfigSpec{
+					ClusterConfiguration: &kubeadmv1beta1.ClusterConfiguration{},
+				},
+			},
+			cluster: &capiv1alpha2.Cluster{
+				ObjectMeta: metav1.ObjectMeta{
+					Name: "mycluster",
+				},
+				Spec: capiv1alpha2.ClusterSpec{
+					ClusterNetwork: &capiv1alpha2.ClusterNetworkingConfig{
+						Services:      capiv1alpha2.NetworkRanges{CIDRBlocks: []string{"myServiceSubnet"}},
+						Pods:          capiv1alpha2.NetworkRanges{CIDRBlocks: []string{"myPodSubnet"}},
+						ServiceDomain: "myDNSDomain",
+					},
+				},
+				Status: capiv1alpha2.ClusterStatus{
+					APIEndpoints: []capiv1alpha2.APIEndpoint{{Host: "myControlPlaneEndpoint", Port: 6443}},
+				},
+			},
+			machine: &capiv1alpha2.Machine{
+				Spec: capiv1alpha2.MachineSpec{
+					Version: stringPtr("myversion"),
+				},
+			},
+		},
+	}
+
+	for _, rt := range useCases {
+		t.Run(rt.name, func(t *testing.T) {
+			k.reconcileTopLevelObjectSettings(rt.cluster, rt.machine, rt.config)
+
+			if rt.config.Spec.ClusterConfiguration.ControlPlaneEndpoint != "myControlPlaneEndpoint:6443" {
+				t.Fatalf("expected ClusterConfiguration.ControlPlaneEndpoint %q, got %q", "myControlPlaneEndpoint:6443", rt.config.Spec.ClusterConfiguration.ControlPlaneEndpoint)
+			}
+			if rt.config.Spec.ClusterConfiguration.ClusterName != "mycluster" {
+				t.Fatalf("expected ClusterConfiguration.ClusterName %q, got %q", "mycluster", rt.config.Spec.ClusterConfiguration.ClusterName)
+			}
+			if rt.config.Spec.ClusterConfiguration.Networking.PodSubnet != "myPodSubnet" {
+				t.Fatalf("expected ClusterConfiguration.Networking.PodSubnet  %q, got %q", "myPodSubnet", rt.config.Spec.ClusterConfiguration.Networking.PodSubnet)
+			}
+			if rt.config.Spec.ClusterConfiguration.Networking.ServiceSubnet != "myServiceSubnet" {
+				t.Fatalf("expected ClusterConfiguration.Networking.ServiceSubnet  %q, got %q", "myServiceSubnet", rt.config.Spec.ClusterConfiguration.Networking.ServiceSubnet)
+			}
+			if rt.config.Spec.ClusterConfiguration.Networking.DNSDomain != "myDNSDomain" {
+				t.Fatalf("expected ClusterConfiguration.Networking.DNSDomain  %q, got %q", "myDNSDomain", rt.config.Spec.ClusterConfiguration.Networking.DNSDomain)
+			}
+			if rt.config.Spec.ClusterConfiguration.KubernetesVersion != "myversion" {
+				t.Fatalf("expected ClusterConfiguration.KubernetesVersion %q, got %q", "myversion", rt.config.Spec.ClusterConfiguration.KubernetesVersion)
+			}
+		})
+	}
+}
+
 // test utils
 
 // newCluster return a CAPI cluster object

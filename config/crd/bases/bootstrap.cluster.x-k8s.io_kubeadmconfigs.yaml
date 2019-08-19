@@ -539,9 +539,10 @@ spec:
                     info: https://git.k8s.io/community/contributors/devel/api-conventions.md#resources'
                   type: string
                 caCertPath:
-                  description: CACertPath is the path to the SSL certificate authority
+                  description: 'CACertPath is the path to the SSL certificate authority
                     used to secure comunications between node and control-plane. Defaults
-                    to "/etc/kubernetes/pki/ca.crt".
+                    to "/etc/kubernetes/pki/ca.crt". TODO: revisit when there is defaulting
+                    from k/k'
                   type: string
                 controlPlane:
                   description: ControlPlane defines the additional control plane instance
@@ -567,8 +568,9 @@ spec:
                       type: object
                   type: object
                 discovery:
-                  description: Discovery specifies the options for the kubelet to
-                    use during the TLS Bootstrap process
+                  description: 'Discovery specifies the options for the kubelet to
+                    use during the TLS Bootstrap process TODO: revisit when there
+                    is defaulting from k/k'
                   properties:
                     bootstrapToken:
                       description: BootstrapToken is used to set the options for bootstrap
@@ -625,14 +627,13 @@ spec:
                       description: Timeout modifies the discovery timeout
                       type: string
                     tlsBootstrapToken:
-                      description: TLSBootstrapToken is a token used for TLS bootstrapping.
+                      description: 'TLSBootstrapToken is a token used for TLS bootstrapping.
                         If .BootstrapToken is set, this field is defaulted to .BootstrapToken.Token,
                         but can be overridden. If .File is set, this field **must
                         be set** in case the KubeConfigFile does not contain any other
-                        authentication information
+                        authentication information TODO: revisit when there is defaulting
+                        from k/k'
                       type: string
-                  required:
-                  - tlsBootstrapToken
                   type: object
                 kind:
                   description: 'Kind is a string value representing the REST resource
@@ -703,8 +704,6 @@ spec:
                       type: array
                   type: object
               required:
-              - caCertPath
-              - discovery
               - nodeRegistration
               type: object
             postKubeadmCommands:

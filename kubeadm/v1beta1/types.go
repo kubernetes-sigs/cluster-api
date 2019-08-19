@@ -17,7 +17,7 @@ limitations under the License.
 package v1beta1
 
 import (
-	"k8s.io/api/core/v1"
+	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
@@ -307,10 +307,14 @@ type JoinConfiguration struct {
 	// CACertPath is the path to the SSL certificate authority used to
 	// secure comunications between node and control-plane.
 	// Defaults to "/etc/kubernetes/pki/ca.crt".
-	CACertPath string `json:"caCertPath"`
+	// +optional
+	// TODO: revisit when there is defaulting from k/k
+	CACertPath string `json:"caCertPath,omitempty"`
 
 	// Discovery specifies the options for the kubelet to use during the TLS Bootstrap process
-	Discovery Discovery `json:"discovery"`
+	// +optional
+	// TODO: revisit when there is defaulting from k/k
+	Discovery Discovery `json:"discovery,omitempty"`
 
 	// ControlPlane defines the additional control plane instance to be deployed on the joining node.
 	// If nil, no additional control plane instance will be deployed.
@@ -336,7 +340,9 @@ type Discovery struct {
 	// TLSBootstrapToken is a token used for TLS bootstrapping.
 	// If .BootstrapToken is set, this field is defaulted to .BootstrapToken.Token, but can be overridden.
 	// If .File is set, this field **must be set** in case the KubeConfigFile does not contain any other authentication information
-	TLSBootstrapToken string `json:"tlsBootstrapToken"`
+	// +optional
+	// TODO: revisit when there is defaulting from k/k
+	TLSBootstrapToken string `json:"tlsBootstrapToken,omitempty"`
 
 	// Timeout modifies the discovery timeout
 	Timeout *metav1.Duration `json:"timeout,omitempty"`

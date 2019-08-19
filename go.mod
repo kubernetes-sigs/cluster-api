@@ -14,6 +14,7 @@ require (
 	github.com/spf13/cobra v0.0.3
 	github.com/spf13/pflag v1.0.3
 	golang.org/x/net v0.0.0-20190613194153-d28f0bde5980
+	golang.org/x/time v0.0.0-20180412165947-fbb02b2291d2
 	k8s.io/api v0.0.0-20190409021203-6e4e0e4f393b
 	k8s.io/apiextensions-apiserver v0.0.0-20190409022649-727a075fdec8
 	k8s.io/apimachinery v0.0.0-20190404173353-6a84e37a896d

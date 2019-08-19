@@ -71,6 +71,7 @@ func (r *MachineSetReconciler) SetupWithManager(mgr ctrl.Manager) error {
 		).
 		Complete(r)
 
+	r.recorder = mgr.GetEventRecorderFor("machineset-controller")
 	return err
 }
 

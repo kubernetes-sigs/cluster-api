@@ -16,6 +16,7 @@ aliases:
     - vincepri
   cluster-api-provider-docker-admins:
     - chuckha
+    - detiber
   cluster-api-provider-docker-maintainers:
     - chuckha
     - ncdc

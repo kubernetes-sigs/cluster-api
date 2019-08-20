@@ -33,7 +33,7 @@ import (
 	cabpkV1alpha2 "sigs.k8s.io/cluster-api-bootstrap-provider-kubeadm/api/v1alpha2"
 	"sigs.k8s.io/cluster-api-bootstrap-provider-kubeadm/certs"
 	kubeadmv1beta1 "sigs.k8s.io/cluster-api-bootstrap-provider-kubeadm/kubeadm/v1beta1"
-	capiv1alpha2 "sigs.k8s.io/cluster-api/pkg/apis/cluster/v1alpha2"
+	capiv1alpha2 "sigs.k8s.io/cluster-api/api/v1alpha2"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
@@ -42,8 +42,11 @@ import (
 
 func setupScheme() *runtime.Scheme {
 	scheme := runtime.NewScheme()
+	//nolint:errcheck
 	capiv1alpha2.AddToScheme(scheme)
+	//nolint:errcheck
 	cabpkV1alpha2.AddToScheme(scheme)
+	//nolint:errcheck
 	corev1.AddToScheme(scheme)
 	return scheme
 }
@@ -900,7 +903,7 @@ func newCluster(name string) *capiv1alpha2.Cluster {
 	return &capiv1alpha2.Cluster{
 		TypeMeta: metav1.TypeMeta{
 			Kind:       "Cluster",
-			APIVersion: capiv1alpha2.SchemeGroupVersion.String(),
+			APIVersion: capiv1alpha2.GroupVersion.String(),
 		},
 		ObjectMeta: metav1.ObjectMeta{
 			Namespace: "default",
@@ -914,7 +917,7 @@ func newMachine(cluster *capiv1alpha2.Cluster, name string) *capiv1alpha2.Machin
 	machine := &capiv1alpha2.Machine{
 		TypeMeta: metav1.TypeMeta{
 			Kind:       "Machine",
-			APIVersion: capiv1alpha2.SchemeGroupVersion.String(),
+			APIVersion: capiv1alpha2.GroupVersion.String(),
 		},
 		ObjectMeta: metav1.ObjectMeta{
 			Namespace: "default",
@@ -963,7 +966,7 @@ func newKubeadmConfig(machine *capiv1alpha2.Machine, name string) *cabpkV1alpha2
 		config.ObjectMeta.OwnerReferences = []metav1.OwnerReference{
 			{
 				Kind:       "Machine",
-				APIVersion: capiv1alpha2.SchemeGroupVersion.String(),
+				APIVersion: capiv1alpha2.GroupVersion.String(),
 				Name:       machine.Name,
 				UID:        types.UID(fmt.Sprintf("%s uid", machine.Name)),
 			},

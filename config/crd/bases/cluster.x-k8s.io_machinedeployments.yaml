@@ -8,6 +8,8 @@ metadata:
 spec:
   group: cluster.x-k8s.io
   names:
+    categories:
+    - cluster-api
     kind: MachineDeployment
     plural: machinedeployments
     shortNames:

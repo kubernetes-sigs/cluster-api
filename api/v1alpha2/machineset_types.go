@@ -192,7 +192,7 @@ func (m *MachineSet) Default() {
 /// [MachineSetStatus]
 
 // +kubebuilder:object:root=true
-// +kubebuilder:resource:path=machinesets,shortName=ms,scope=Namespaced
+// +kubebuilder:resource:path=machinesets,shortName=ms,scope=Namespaced,categories=cluster-api
 // +kubebuilder:storageversion
 // +kubebuilder:subresource:status
 // +kubebuilder:subresource:scale:specpath=.spec.replicas,statuspath=.status.replicas,selectorpath=.status.labelSelector

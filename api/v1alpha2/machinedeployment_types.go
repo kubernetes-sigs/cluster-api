@@ -169,7 +169,7 @@ type MachineDeploymentStatus struct {
 /// [MachineDeploymentStatus]
 
 // +kubebuilder:object:root=true
-// +kubebuilder:resource:path=machinedeployments,shortName=md,scope=Namespaced
+// +kubebuilder:resource:path=machinedeployments,shortName=md,scope=Namespaced,categories=cluster-api
 // +kubebuilder:storageversion
 // +kubebuilder:subresource:status
 // +kubebuilder:subresource:scale:specpath=.spec.replicas,statuspath=.status.replicas,selectorpath=.status.labelSelector

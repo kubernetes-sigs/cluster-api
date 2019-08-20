@@ -22,6 +22,8 @@ spec:
     type: string
   group: cluster.x-k8s.io
   names:
+    categories:
+    - cluster-api
     kind: Machine
     plural: machines
     shortNames:

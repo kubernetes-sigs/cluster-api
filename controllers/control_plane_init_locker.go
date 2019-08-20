@@ -103,7 +103,7 @@ func (l *controlPlaneInitLocker) Release(cluster *clusterv2.Cluster) bool {
 	log.Info("Checking for existence of control plane configmap lock", "configmap-name", configMapName)
 	cfg := &apicorev1.ConfigMap{}
 	err := l.client.Get(l.ctx, client.ObjectKey{
-		Namespace: cluster.Name,
+		Namespace: cluster.Namespace,
 		Name:      configMapName,
 	}, cfg)
 	switch {

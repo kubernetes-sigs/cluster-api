@@ -247,7 +247,7 @@ func (r *MachineReconciler) getMachinesInCluster(ctx context.Context, namespace,
 	return machines, nil
 }
 
-// isDeleteReady returns an error if any of Boostrap.ConfigRef or InfrastructureRef referenced objects still exists.
+// isDeleteReady returns an error if any of Boostrap.ConfigRef or InfrastructureRef referenced objects still exist.
 func (r *MachineReconciler) isDeleteReady(ctx context.Context, m *clusterv1.Machine) error {
 	if m.Spec.Bootstrap.ConfigRef != nil {
 		_, err := external.Get(r.Client, m.Spec.Bootstrap.ConfigRef, m.Namespace)
@@ -259,7 +259,8 @@ func (r *MachineReconciler) isDeleteReady(ctx context.Context, m *clusterv1.Mach
 				path.Join(m.Spec.Bootstrap.ConfigRef.APIVersion, m.Spec.Bootstrap.ConfigRef.Kind),
 				m.Spec.Bootstrap.ConfigRef.Name, m.Name, m.Namespace)
 		}
-		return &capierrors.RequeueAfterError{RequeueAfter: 10 * time.Second}
+		return errors.Wrapf(&capierrors.RequeueAfterError{RequeueAfter: 10 * time.Second},
+			"delete is not ready, Bootstrap configuration still exists")
 	}
 
 	if _, err := external.Get(r.Client, &m.Spec.InfrastructureRef, m.Namespace); err != nil && !apierrors.IsNotFound(err) {
@@ -267,7 +268,8 @@ func (r *MachineReconciler) isDeleteReady(ctx context.Context, m *clusterv1.Mach
 			path.Join(m.Spec.InfrastructureRef.APIVersion, m.Spec.InfrastructureRef.Kind),
 			m.Spec.InfrastructureRef.Name, m.Name, m.Namespace)
 	} else if err == nil {
-		return &capierrors.RequeueAfterError{RequeueAfter: 10 * time.Second}
+		return errors.Wrapf(&capierrors.RequeueAfterError{RequeueAfter: 10 * time.Second},
+			"delete is not ready, Infrastructure configuration still exists")
 	}
 
 	return nil

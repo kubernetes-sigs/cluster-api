@@ -179,18 +179,22 @@ func (r *MachineReconciler) reconcileBootstrap(ctx context.Context, m *v1alpha2.
 		)
 	}
 
+	// Call generic external reconciler if we have an external reference.
+	var bootstrapConfig *unstructured.Unstructured
+	if m.Spec.Bootstrap.ConfigRef != nil {
+		var err error
+		bootstrapConfig, err = r.reconcileExternal(ctx, m, m.Spec.Bootstrap.ConfigRef)
+		if bootstrapConfig == nil && err == nil {
+			return nil
+		} else if err != nil {
+			return err
+		}
+	}
+
+	// If the bootstrap data is populated, set ready and return.
 	if m.Spec.Bootstrap.Data != nil {
 		m.Status.BootstrapReady = true
 		return nil
-	}
-
-	// Call generic external reconciler.
-	bootstrapConfig, err := r.reconcileExternal(ctx, m, m.Spec.Bootstrap.ConfigRef)
-	if bootstrapConfig == nil && err == nil {
-		m.Status.BootstrapReady = false
-		return nil
-	} else if err != nil {
-		return err
 	}
 
 	// If the bootstrap config is being deleted, return early.

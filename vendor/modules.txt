@@ -499,7 +499,7 @@ k8s.io/client-go/third_party/forked/golang/template
 k8s.io/client-go/tools/pager
 # k8s.io/component-base v0.0.0-20190409021516-bd2732e5c3f7
 k8s.io/component-base/cli/flag
-# k8s.io/klog v0.3.1
+# k8s.io/klog v0.4.0
 k8s.io/klog
 k8s.io/klog/klogr
 # k8s.io/kube-openapi v0.0.0-20180731170545-e3762e86a74c

@@ -20,7 +20,7 @@ require (
 	k8s.io/apiserver v0.0.0-20190409021813-1ec86e4da56c
 	k8s.io/client-go v11.0.1-0.20190409021438-1a26190bd76a+incompatible
 	k8s.io/component-base v0.0.0-20190409021516-bd2732e5c3f7
-	k8s.io/klog v0.3.1
+	k8s.io/klog v0.4.0
 	k8s.io/utils v0.0.0-20190506122338-8fab8cb257d5
 	sigs.k8s.io/controller-runtime v0.2.0-rc.0
 	sigs.k8s.io/controller-tools v0.2.0-rc.0

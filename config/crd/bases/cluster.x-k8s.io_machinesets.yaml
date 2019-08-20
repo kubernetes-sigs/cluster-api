@@ -17,7 +17,7 @@ spec:
   scope: Namespaced
   subresources:
     scale:
-      labelSelectorPath: .status.labelSelector
+      labelSelectorPath: .status.selector
       specReplicasPath: .spec.replicas
       statusReplicasPath: .status.replicas
     status: {}
@@ -481,6 +481,12 @@ spec:
               description: Replicas is the most recently observed number of replicas.
               format: int32
               type: integer
+            selector:
+              description: 'Selector is the same as the label selector but in the
+                string format to avoid introspection by clients. The string will be
+                in the same format as the query-param syntax. More info about label
+                selectors: http://kubernetes.io/docs/user-guide/labels#label-selectors'
+              type: string
           required:
           - replicas
           type: object

@@ -130,7 +130,7 @@ type APIEndpoint struct {
 /// [APIEndpoint]
 
 // +kubebuilder:object:root=true
-// +kubebuilder:resource:path=clusters,shortName=cl,scope=Namespaced
+// +kubebuilder:resource:path=clusters,shortName=cl,scope=Namespaced,categories=cluster-api
 // +kubebuilder:storageversion
 // +kubebuilder:subresource:status
 

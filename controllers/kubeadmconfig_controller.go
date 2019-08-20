@@ -34,9 +34,10 @@ import (
 	"sigs.k8s.io/cluster-api-bootstrap-provider-kubeadm/certs"
 	"sigs.k8s.io/cluster-api-bootstrap-provider-kubeadm/cloudinit"
 	kubeadmv1beta1 "sigs.k8s.io/cluster-api-bootstrap-provider-kubeadm/kubeadm/v1beta1"
-	capiv1alpha2 "sigs.k8s.io/cluster-api/pkg/apis/cluster/v1alpha2"
-	capierrors "sigs.k8s.io/cluster-api/pkg/errors"
-	"sigs.k8s.io/cluster-api/pkg/util"
+	capiv1alpha2 "sigs.k8s.io/cluster-api/api/v1alpha2"
+	capierrors "sigs.k8s.io/cluster-api/errors"
+	"sigs.k8s.io/cluster-api/util"
+	"sigs.k8s.io/cluster-api/util/patch"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
@@ -114,18 +115,23 @@ func (r *KubeadmConfigReconciler) Reconcile(req ctrl.Request) (_ ctrl.Result, re
 
 	// Check for infrastructure ready. If it's not ready then we will requeue the machine until it is.
 	// The cluster-api machine controller set this value.
-	if cluster.Status.InfrastructureReady != true {
+	if !cluster.Status.InfrastructureReady {
 		log.Info("Infrastructure is not ready, requeing until ready.")
 		return ctrl.Result{RequeueAfter: 30 * time.Second}, nil
 	}
 
-	// Store Config's state, pre-modifications, to allow patching
-	patchConfig := client.MergeFrom(config.DeepCopy())
+	// Initialize the patch helper
+	patchHelper, err := patch.NewHelper(config, r)
+	if err != nil {
+		return ctrl.Result{}, err
+	}
+	// Always attempt to Patch the KubeadmConfig object and status after each reconciliation.
 	defer func() {
-		err := r.patchConfig(ctx, config, patchConfig)
-		if err != nil {
+		if err := patchHelper.Patch(ctx, config); err != nil {
 			log.Error(err, "failed to patch config")
-			rerr = err
+			if rerr == nil {
+				rerr = err
+			}
 		}
 	}()
 
@@ -376,7 +382,7 @@ func (r *KubeadmConfigReconciler) reconcileDiscovery(cluster *capiv1alpha2.Clust
 
 	// if BootstrapToken already contains a CACertHashes or UnsafeSkipCAVerification, respect it; otherwise set for UnsafeSkipCAVerification
 	// TODO: set CACertHashes instead of UnsafeSkipCAVerification
-	if len(config.Spec.JoinConfiguration.Discovery.BootstrapToken.CACertHashes) == 0 && config.Spec.JoinConfiguration.Discovery.BootstrapToken.UnsafeSkipCAVerification == false {
+	if len(config.Spec.JoinConfiguration.Discovery.BootstrapToken.CACertHashes) == 0 && !config.Spec.JoinConfiguration.Discovery.BootstrapToken.UnsafeSkipCAVerification {
 		config.Spec.JoinConfiguration.Discovery.BootstrapToken.UnsafeSkipCAVerification = true
 		log.Info("Altering JoinConfiguration.Discovery.BootstrapToken", "UnsafeSkipCAVerification", true)
 	}
@@ -500,14 +506,4 @@ func (r *KubeadmConfigReconciler) createKubeconfigSecret(ctx context.Context, cl
 	secret.StringData = map[string]string{"value": string(yaml)}
 
 	return r.Create(ctx, secret)
-}
-
-func (r *KubeadmConfigReconciler) patchConfig(ctx context.Context, config *cabpkv1alpha2.KubeadmConfig, patchConfig client.Patch) error {
-	if err := r.Patch(ctx, config, patchConfig); err != nil {
-		return err
-	}
-	if err := r.Status().Patch(ctx, config, patchConfig); err != nil {
-		return err
-	}
-	return nil
 }

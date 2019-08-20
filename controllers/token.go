@@ -25,8 +25,8 @@ import (
 	corev1 "k8s.io/client-go/kubernetes/typed/core/v1"
 	bootstrapapi "k8s.io/cluster-bootstrap/token/api"
 	bootstraputil "k8s.io/cluster-bootstrap/token/util"
-	capiv1alpha2 "sigs.k8s.io/cluster-api/pkg/apis/cluster/v1alpha2"
-	capiremote "sigs.k8s.io/cluster-api/pkg/controller/remote"
+	capiv1alpha2 "sigs.k8s.io/cluster-api/api/v1alpha2"
+	capiremote "sigs.k8s.io/cluster-api/controllers/remote"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 

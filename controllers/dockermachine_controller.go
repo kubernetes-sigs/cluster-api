@@ -69,7 +69,7 @@ func (r *DockerMachineReconciler) Reconcile(req ctrl.Request) (_ ctrl.Result, re
 	}
 	if machine == nil {
 		log.Info("Waiting for Machine Controller to set OwnerRef on DockerMachine")
-		return ctrl.Result{RequeueAfter: 10 * time.Second}, nil
+		return ctrl.Result{}, nil
 	}
 
 	// Get the Cluster API Cluster
@@ -80,7 +80,7 @@ func (r *DockerMachineReconciler) Reconcile(req ctrl.Request) (_ ctrl.Result, re
 	}
 	if cluster == nil {
 		log.Info(fmt.Sprintf("Please associate this machine with a cluster using the label %s: <name of cluster>", clusterv1.MachineClusterLabelName))
-		return ctrl.Result{RequeueAfter: 30 * time.Second}, nil
+		return ctrl.Result{}, nil
 	}
 
 	// Initialize the patch helper
@@ -113,7 +113,7 @@ func (r *DockerMachineReconciler) Reconcile(req ctrl.Request) (_ ctrl.Result, re
 		return ctrl.Result{}, nil
 	case Pending:
 		log.Info("Waiting for machine bootstrap")
-		return ctrl.Result{RequeueAfter: 10 * time.Second}, nil
+		return ctrl.Result{}, nil
 	case Provisioning:
 		log.Info("Provisioning machine")
 		// Ensuring cluster is ready for joining

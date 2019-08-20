@@ -11,6 +11,7 @@ Available Commands:
   validate    Validate an API resource created by cluster API.
 
 Flags:
+      --add-dir-header                   If true, adds the file directory to the header
       --alsologtostderr                  log to standard error as well as files
   -h, --help                             help for clusterctl
       --kubeconfig string                Paths to a kubeconfig. Only required if out-of-cluster.

@@ -10,6 +10,7 @@ Flags:
   -h, --help   help for delete
 
 Global Flags:
+      --add-dir-header                   If true, adds the file directory to the header
       --alsologtostderr                  log to standard error as well as files
       --kubeconfig string                Paths to a kubeconfig. Only required if out-of-cluster.
       --log-backtrace-at traceLocation   when logging hits line file:N, emit a stack trace (default :0)

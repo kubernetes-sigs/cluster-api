@@ -24,10 +24,10 @@ import (
 
 	"github.com/go-logr/logr"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
-	infrastructurev1alpha2 "sigs.k8s.io/cluster-api-provider-docker/api/v1alpha2"
+	infrav1 "sigs.k8s.io/cluster-api-provider-docker/api/v1alpha2"
 	"sigs.k8s.io/cluster-api-provider-docker/docker"
 	"sigs.k8s.io/cluster-api-provider-docker/docker/actions"
-	capiv1alpha2 "sigs.k8s.io/cluster-api/api/v1alpha2"
+	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha2"
 	"sigs.k8s.io/cluster-api/util"
 	"sigs.k8s.io/cluster-api/util/patch"
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -53,7 +53,7 @@ func (r *DockerMachineReconciler) Reconcile(req ctrl.Request) (_ ctrl.Result, re
 	ctx := context.Background()
 	log := r.Log.WithValues("dockermachine", req.NamespacedName)
 
-	dockerMachine := &infrastructurev1alpha2.DockerMachine{}
+	dockerMachine := &infrav1.DockerMachine{}
 	if err := r.Client.Get(ctx, req.NamespacedName, dockerMachine); err != nil {
 		if apierrors.IsNotFound(err) {
 			return ctrl.Result{}, nil
@@ -79,7 +79,7 @@ func (r *DockerMachineReconciler) Reconcile(req ctrl.Request) (_ ctrl.Result, re
 		return ctrl.Result{}, err
 	}
 	if cluster == nil {
-		log.Info(fmt.Sprintf("Please associate this machine with a cluster using the label %s: <name of cluster>", capiv1alpha2.MachineClusterLabelName))
+		log.Info(fmt.Sprintf("Please associate this machine with a cluster using the label %s: <name of cluster>", clusterv1.MachineClusterLabelName))
 		return ctrl.Result{RequeueAfter: 30 * time.Second}, nil
 	}
 
@@ -99,8 +99,8 @@ func (r *DockerMachineReconciler) Reconcile(req ctrl.Request) (_ ctrl.Result, re
 	}()
 
 	// If the DockerMachine doesn't have finalizer, add it.
-	if !util.Contains(dockerMachine.Finalizers, capiv1alpha2.MachineFinalizer) {
-		dockerMachine.Finalizers = append(dockerMachine.Finalizers, infrastructurev1alpha2.MachineFinalizer)
+	if !util.Contains(dockerMachine.Finalizers, infrav1.MachineFinalizer) {
+		dockerMachine.Finalizers = append(dockerMachine.Finalizers, infrav1.MachineFinalizer)
 	}
 	state := getState(machine, dockerMachine)
 	log = log.WithValues("state", state.String())
@@ -167,7 +167,7 @@ func (s State) String() string {
 	}
 }
 
-func getState(machine *capiv1alpha2.Machine, dockerMachine *infrastructurev1alpha2.DockerMachine) State {
+func getState(machine *clusterv1.Machine, dockerMachine *infrav1.DockerMachine) State {
 	// Deleted takes precedence
 	if !machine.ObjectMeta.DeletionTimestamp.IsZero() {
 		return Deleted
@@ -183,9 +183,9 @@ func getState(machine *capiv1alpha2.Machine, dockerMachine *infrastructurev1alph
 
 func (r *DockerMachineReconciler) create(
 	ctx context.Context,
-	c *capiv1alpha2.Cluster,
-	machine *capiv1alpha2.Machine,
-	dockerMachine *infrastructurev1alpha2.DockerMachine) (ctrl.Result, error) {
+	c *clusterv1.Cluster,
+	machine *clusterv1.Machine,
+	dockerMachine *infrav1.DockerMachine) (ctrl.Result, error) {
 
 	log := r.Log.WithName("machine-create").WithValues("machine", machine.Name)
 
@@ -221,11 +221,11 @@ func (r *DockerMachineReconciler) create(
 // SetupWithManager will add watches for this controller
 func (r *DockerMachineReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewControllerManagedBy(mgr).
-		For(&infrastructurev1alpha2.DockerMachine{}).
+		For(&infrav1.DockerMachine{}).
 		Watches(
-			&source.Kind{Type: &capiv1alpha2.Machine{}},
+			&source.Kind{Type: &clusterv1.Machine{}},
 			&handler.EnqueueRequestsFromMapFunc{
-				ToRequests: util.MachineToInfrastructureMapFunc(infrastructurev1alpha2.GroupVersion.WithKind("DockerMachine")),
+				ToRequests: util.MachineToInfrastructureMapFunc(infrav1.GroupVersion.WithKind("DockerMachine")),
 			},
 		).
 		Complete(r)
@@ -233,9 +233,9 @@ func (r *DockerMachineReconciler) SetupWithManager(mgr ctrl.Manager) error {
 
 func (r *DockerMachineReconciler) reconcileDelete(
 	ctx context.Context,
-	cluster *capiv1alpha2.Cluster,
-	machine *capiv1alpha2.Machine,
-	dockerMachine *infrastructurev1alpha2.DockerMachine,
+	cluster *clusterv1.Cluster,
+	machine *clusterv1.Machine,
+	dockerMachine *infrav1.DockerMachine,
 ) (ctrl.Result, error) {
 	log := r.Log.WithValues("cluster", cluster.Name, "machine", machine.Name)
 
@@ -254,6 +254,6 @@ func (r *DockerMachineReconciler) reconcileDelete(
 		return ctrl.Result{}, err
 	}
 	// Remove the finalizer
-	dockerMachine.ObjectMeta.Finalizers = util.Filter(dockerMachine.ObjectMeta.Finalizers, infrastructurev1alpha2.MachineFinalizer)
+	dockerMachine.ObjectMeta.Finalizers = util.Filter(dockerMachine.ObjectMeta.Finalizers, infrav1.MachineFinalizer)
 	return ctrl.Result{}, nil
 }

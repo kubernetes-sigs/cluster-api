@@ -41,7 +41,7 @@ type RequeueAfterError struct {
 
 // Error implements the error interface
 func (e *RequeueAfterError) Error() string {
-	return fmt.Sprintf("requeue in: %s", e.RequeueAfter)
+	return fmt.Sprintf("requeue in %v", e.RequeueAfter)
 }
 
 // GetRequeueAfter gets the duration to wait until the managed object is

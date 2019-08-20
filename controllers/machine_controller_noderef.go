@@ -18,9 +18,9 @@ package controllers
 
 import (
 	"context"
-	"errors"
 	"time"
 
+	"github.com/pkg/errors"
 	apicorev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	corev1 "k8s.io/client-go/kubernetes/typed/core/v1"
@@ -48,7 +48,7 @@ func (r *MachineReconciler) reconcileNodeRef(ctx context.Context, cluster *v1alp
 
 	// Check that Cluster isn't nil.
 	if cluster == nil {
-		klog.Warningf("Machine %q in namespace %q doesn't have a linked cluster, won't assign NodeRef", machine.Name, machine.Namespace)
+		klog.V(2).Infof("Machine %q in namespace %q doesn't have a linked cluster, won't assign NodeRef", machine.Name, machine.Namespace)
 		return nil
 	}
 
@@ -77,9 +77,8 @@ func (r *MachineReconciler) reconcileNodeRef(ctx context.Context, cluster *v1alp
 	nodeRef, err := r.getNodeReference(corev1Client, providerID)
 	if err != nil {
 		if err == ErrNodeNotFound {
-			klog.V(2).Infof("Cannot assign NodeRef to Machine %q in namespace %q: cannot find a matching Node, retrying later",
-				machine.Name, machine.Namespace)
-			return &capierrors.RequeueAfterError{RequeueAfter: 10 * time.Second}
+			return errors.Wrapf(&capierrors.RequeueAfterError{RequeueAfter: 10 * time.Second},
+				"cannot assign NodeRef to Machine %q in namespace %q, no matching Node", machine.Name, machine.Namespace)
 		}
 		klog.Errorf("Failed to assign NodeRef to Machine %q in namespace %q: %v", machine.Name, machine.Namespace, err)
 		r.recorder.Event(machine, apicorev1.EventTypeWarning, "FailedSetNodeRef", err.Error())

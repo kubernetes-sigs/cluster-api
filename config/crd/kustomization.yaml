@@ -6,7 +6,7 @@ resources:
 - bases/bootstrap.cluster.x-k8s.io_kubeadmconfigtemplates.yaml
 # +kubebuilder:scaffold:crdkustomizeresource
 
-patches:
+# patches:
 # [WEBHOOK] patches here are for enabling the conversion webhook for each CRD
 #- patches/webhook_in_kubeadmconfigs.yaml
 #- patches/webhook_in_kubeadmconfigtemplates.yaml

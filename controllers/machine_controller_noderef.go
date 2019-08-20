@@ -54,8 +54,8 @@ func (r *MachineReconciler) reconcileNodeRef(ctx context.Context, cluster *v1alp
 
 	// Check that the Machine has a valid ProviderID.
 	if machine.Spec.ProviderID == nil || *machine.Spec.ProviderID == "" {
-		klog.Warningf("Machine %q in namespace %q doesn't have a valid ProviderID, retrying later", machine.Name, machine.Namespace)
-		return &capierrors.RequeueAfterError{RequeueAfter: 30 * time.Second}
+		klog.Warningf("Machine %q in namespace %q doesn't have a valid ProviderID yet", machine.Name, machine.Namespace)
+		return nil
 	}
 
 	providerID, err := noderefutil.NewProviderID(*machine.Spec.ProviderID)

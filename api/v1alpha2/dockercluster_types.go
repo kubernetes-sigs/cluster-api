@@ -20,9 +20,6 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-// EDIT THIS FILE!  THIS IS SCAFFOLDING FOR YOU TO OWN!
-// NOTE: json tags are required.  Any new fields you add must have json tags for the fields to be serialized.
-
 const (
 	// ClusterFinalizer allows DockerClusterReconciler to clean up resources associated with DockerCluster before
 	// removing it from the apiserver.
@@ -54,9 +51,9 @@ type APIEndpoint struct {
 	Port int `json:"port"`
 }
 
+// +kubebuilder:resource:path=dockerclusters,scope=Namespaced,categories=cluster-api
 // +kubebuilder:subresource:status
 // +kubebuilder:object:root=true
-// +kubebuilder:subresource:status
 
 // DockerCluster is the Schema for the dockerclusters API
 type DockerCluster struct {

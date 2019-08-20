@@ -17,98 +17,12 @@ limitations under the License.
 package docker
 
 import (
-	"fmt"
-
 	"github.com/go-logr/logr"
 	"github.com/pkg/errors"
 	"sigs.k8s.io/cluster-api-provider-docker/docker/actions"
-	"sigs.k8s.io/cluster-api-provider-docker/third_party/forked/loadbalancer"
 	"sigs.k8s.io/kind/pkg/cluster/constants"
 	"sigs.k8s.io/kind/pkg/cluster/nodes"
 )
-
-// LoadBalancer can do things with load balancers
-type LoadBalancer struct {
-	Cluster string
-	Node    *nodes.Node
-	Logger  logr.Logger
-}
-
-// NewLoadBalancer is a node balancer initializer
-func NewLoadBalancer(cluster string, log logr.Logger) (*LoadBalancer, error) {
-	allNodes, err := nodes.List()
-	if err != nil {
-		log.Error(err, "Failed to list all nodes in cluster")
-		return nil, err
-	}
-	node, err := nodes.ExternalLoadBalancerNode(allNodes)
-	if err != nil {
-		log.Error(err, "Failed to get external load balancer node")
-		return nil, err
-	}
-	return &LoadBalancer{
-		Cluster: cluster,
-		Node:    node,
-		Logger:  log,
-	}, nil
-}
-
-// Create creates a load balancer but does not configure it.
-func (l *LoadBalancer) Create() error {
-	name := l.Name()
-	log := l.Logger.WithName("load-balancer-create").WithValues("cluster", l.Cluster, "name", name)
-	clusterLabel := fmt.Sprintf("%s=%s", constants.ClusterLabelKey, l.Cluster)
-
-	if err := l.Cleanup(); err != nil {
-		log.Error(err, "Failed to cleanup environment")
-		return err
-	}
-	// Now that the environment is clean, create
-	log.Info("Creating load balancer")
-	lb, err := nodes.CreateExternalLoadBalancerNode(
-		name,
-		// TODO: make this configurable
-		loadbalancer.Image,
-		clusterLabel,
-		"0.0.0.0",
-		0,
-	)
-	if err != nil {
-		return err
-	}
-	l.Node = lb
-	return nil
-}
-
-// Cleanup cleans up exited containers
-func (l *LoadBalancer) Cleanup() error {
-	name := l.Name()
-	log := l.Logger.WithName("cleanup").WithValues("cluster", l.Cluster, "name", name)
-	// if there is already a container with our name but it's exited then remove it
-	exitedLB, err := nodes.List(
-		fmt.Sprintf("label=%s=%s", constants.NodeRoleKey, constants.ExternalLoadBalancerNodeRoleValue),
-		fmt.Sprintf("name=%s", name),
-		fmt.Sprintf("status=exited"),
-	)
-	if err != nil {
-		log.Error(err, "Failed to list exited external load balancer nodes")
-		return err
-	}
-
-	if len(exitedLB) > 0 {
-		// only one container with given name should exist, if any.
-		log.Info("Cleaning up exited load balancer")
-		return nodes.Delete(exitedLB[0])
-	}
-	return nil
-}
-
-// Name is the name of the load balancer
-func (l *LoadBalancer) Name() string {
-	return fmt.Sprintf("%s-%s", l.Cluster, constants.ExternalLoadBalancerNodeRoleValue)
-}
-
-// TODO: Delete load balancer?
 
 // Node is a node initializer. It knows how to build every kind of node
 type Node struct {

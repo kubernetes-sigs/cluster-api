@@ -28,7 +28,7 @@ package v1alpha2
 // Controllers should always look at the actual state of the Machine’s fields to make those decisions.
 type MachinePhase string
 
-var (
+const (
 	// MachinePhasePending is the first state a Machine is assigned by
 	// Cluster API Machine controller after being created.
 	MachinePhasePending = MachinePhase("pending")

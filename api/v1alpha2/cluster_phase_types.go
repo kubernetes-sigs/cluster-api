@@ -28,7 +28,7 @@ package v1alpha2
 // Controllers should always look at the actual state of the Cluster’s fields to make those decisions.
 type ClusterPhase string
 
-var (
+const (
 	// ClusterPhasePending is the first state a Cluster is assigned by
 	// Cluster API Cluster controller after being created.
 	ClusterPhasePending = ClusterPhase("pending")

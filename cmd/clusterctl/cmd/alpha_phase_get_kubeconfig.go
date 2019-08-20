@@ -31,7 +31,6 @@ type AlphaPhaseGetKubeconfigOptions struct {
 	Kubeconfig       string
 	KubeconfigOutput string
 	Namespace        string
-	Provider         string
 }
 
 var pgko = &AlphaPhaseGetKubeconfigOptions{}
@@ -43,10 +42,6 @@ var alphaPhaseGetKubeconfigCmd = &cobra.Command{
 	Run: func(cmd *cobra.Command, args []string) {
 		if pgko.Kubeconfig == "" {
 			exitWithHelp(cmd, "Please provide a kubeconfig file.")
-		}
-
-		if pgko.Provider == "" {
-			exitWithHelp(cmd, "Please specify a provider.")
 		}
 
 		if pgko.ClusterName == "" {

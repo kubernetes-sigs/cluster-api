@@ -17,12 +17,9 @@ limitations under the License.
 package util
 
 import (
-	"bufio"
-	"bytes"
 	"context"
 	"encoding/json"
 	"fmt"
-	"io"
 	"math/rand"
 	"os"
 	"os/exec"
@@ -36,10 +33,7 @@ import (
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
-	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
-	"k8s.io/apimachinery/pkg/runtime/serializer/streaming"
-	"k8s.io/apimachinery/pkg/util/yaml"
 	"k8s.io/client-go/kubernetes/scheme"
 	"k8s.io/klog"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha2"
@@ -372,139 +366,6 @@ func GetNamespaceOrDefault(namespace string) string {
 		return v1.NamespaceDefault
 	}
 	return namespace
-}
-
-// ParseClusterYaml parses a YAML file for cluster objects.
-func ParseClusterYaml(file string) (*clusterv1.Cluster, error) {
-	reader, err := os.Open(file)
-	if err != nil {
-		return nil, err
-	}
-
-	decoder := NewYAMLDecoder(reader)
-
-	for {
-		var cluster clusterv1.Cluster
-		_, gvk, err := decoder.Decode(nil, &cluster)
-		if err == io.EOF {
-			break
-		}
-
-		if runtime.IsNotRegisteredError(err) {
-			continue
-		}
-
-		if err != nil {
-			return nil, err
-		}
-
-		if gvk.Kind == "Cluster" {
-			return &cluster, nil
-		}
-	}
-
-	return nil, errors.New("Did not find a cluster")
-
-}
-
-// ParseMachinesYaml extracts machine objects from a file.
-func ParseMachinesYaml(file string) ([]*clusterv1.Machine, error) {
-	reader, err := os.Open(file)
-
-	if err != nil {
-		return nil, err
-	}
-
-	var (
-		machines []*clusterv1.Machine
-	)
-
-	decoder := NewYAMLDecoder(reader)
-	defer decoder.Close()
-
-	for {
-		obj, gvk, err := decoder.Decode(nil, nil)
-
-		if err == io.EOF {
-			break
-		}
-
-		if runtime.IsNotRegisteredError(err) {
-			continue
-		}
-
-		if err != nil {
-			return nil, err
-		}
-
-		switch gvk.Kind {
-
-		case "MachineList":
-			ml, ok := obj.(*clusterv1.MachineList)
-			if !ok {
-				return nil, fmt.Errorf("Expected MachineList, got %t", obj)
-			}
-
-			for i := range ml.Items {
-				machine := &ml.Items[i]
-				if machine.APIVersion == "" || machine.Kind == "" {
-					return nil, errors.New(MachineListFormatDeprecationMessage)
-				}
-				machines = append(machines, machine)
-			}
-		case "Machine":
-			m, ok := obj.(*clusterv1.Machine)
-			if !ok {
-				return nil, fmt.Errorf("Expected Machine, got %t", obj)
-			}
-
-			machines = append(machines, m)
-		}
-
-	}
-
-	return machines, nil
-}
-
-// isMissingKind reimplements runtime.IsMissingKind as the YAMLOrJSONDecoder
-// hides the error type.
-func isMissingKind(err error) bool {
-	return strings.Contains(err.Error(), "Object 'Kind' is missing in")
-}
-
-type yamlDecoder struct {
-	reader  *yaml.YAMLReader
-	decoder runtime.Decoder
-	close   func() error
-}
-
-func (d *yamlDecoder) Decode(defaults *schema.GroupVersionKind, into runtime.Object) (runtime.Object, *schema.GroupVersionKind, error) {
-	for {
-		doc, err := d.reader.Read()
-		if err != nil {
-			return nil, nil, err
-		}
-
-		//  Skip over empty documents, i.e. a leading `---`
-		if len(bytes.TrimSpace(doc)) == 0 {
-			continue
-		}
-
-		return d.decoder.Decode(doc, defaults, into)
-	}
-
-}
-
-func (d *yamlDecoder) Close() error {
-	return d.close()
-}
-
-func NewYAMLDecoder(r io.ReadCloser) streaming.Decoder {
-	return &yamlDecoder{
-		reader:  yaml.NewYAMLReader(bufio.NewReader(r)),
-		decoder: scheme.Codecs.UniversalDeserializer(),
-		close:   r.Close,
-	}
 }
 
 // HasOwner checks if any of the references in the passed list match the given apiVersion and one of the given kinds

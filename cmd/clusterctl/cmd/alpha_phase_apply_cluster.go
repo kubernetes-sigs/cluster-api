@@ -24,7 +24,7 @@ import (
 	"k8s.io/klog"
 	"sigs.k8s.io/cluster-api/cmd/clusterctl/clusterdeployer/clusterclient"
 	"sigs.k8s.io/cluster-api/cmd/clusterctl/phases"
-	"sigs.k8s.io/cluster-api/util"
+	"sigs.k8s.io/cluster-api/util/yaml"
 )
 
 type AlphaPhaseApplyClusterOptions struct {
@@ -59,9 +59,12 @@ func RunAlphaPhaseApplyCluster(paco *AlphaPhaseApplyClusterOptions) error {
 		return err
 	}
 
-	cluster, err := util.ParseClusterYaml(paco.Cluster)
+	out, err := yaml.Parse(yaml.ParseInput{File: paco.Cluster})
 	if err != nil {
 		return err
+	}
+	if len(out.Clusters) == 0 {
+		return errors.Errorf("no Cluster object found in file %q", paco.Cluster)
 	}
 
 	clientFactory := clusterclient.NewFactory()
@@ -70,7 +73,7 @@ func RunAlphaPhaseApplyCluster(paco *AlphaPhaseApplyClusterOptions) error {
 		return errors.Wrap(err, "unable to create cluster client")
 	}
 
-	if err := phases.ApplyCluster(client, cluster); err != nil {
+	if err := phases.ApplyCluster(client, out.Clusters[0]); err != nil {
 		return errors.Wrap(err, "unable to apply cluster")
 	}
 

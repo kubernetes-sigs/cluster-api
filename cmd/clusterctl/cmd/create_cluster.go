@@ -25,7 +25,7 @@ import (
 	"sigs.k8s.io/cluster-api/cmd/clusterctl/clusterdeployer"
 	"sigs.k8s.io/cluster-api/cmd/clusterctl/clusterdeployer/bootstrap"
 	"sigs.k8s.io/cluster-api/cmd/clusterctl/clusterdeployer/clusterclient"
-	"sigs.k8s.io/cluster-api/util"
+	"sigs.k8s.io/cluster-api/util/yaml"
 )
 
 type CreateOptions struct {
@@ -62,11 +62,15 @@ var createClusterCmd = &cobra.Command{
 }
 
 func RunCreate(co *CreateOptions) error {
-	c, err := util.ParseClusterYaml(co.Cluster)
+	clusterOut, err := yaml.Parse(yaml.ParseInput{File: co.Cluster})
 	if err != nil {
 		return err
 	}
-	m, err := util.ParseMachinesYaml(co.Machine)
+	if len(clusterOut.Clusters) == 0 {
+		return errors.Errorf("no Cluster object found in file %q", paco.Cluster)
+	}
+
+	machineOut, err := yaml.Parse(yaml.ParseInput{File: co.Machine})
 	if err != nil {
 		return err
 	}
@@ -103,7 +107,7 @@ func RunCreate(co *CreateOptions) error {
 		string(bc),
 		co.BootstrapFlags.Cleanup)
 
-	return d.Create(c, m, co.KubeconfigOutput, pcsFactory)
+	return d.Create(clusterOut.Clusters[0], machineOut.Machines, co.KubeconfigOutput, pcsFactory)
 }
 
 func init() {

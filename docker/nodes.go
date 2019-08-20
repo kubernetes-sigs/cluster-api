@@ -120,7 +120,7 @@ type Node struct {
 
 // NewNode creates a node initializer
 func NewNode(cluster, machine, role, version string, log logr.Logger) (*Node, error) {
-	clusterNodes, err := nodes.List()
+	clusterNodes, err := nodes.List("label=" + constants.ClusterLabelKey + "=" + cluster)
 	if err != nil {
 		return nil, errors.Wrap(err, "Failed to list nodes")
 	}
@@ -143,17 +143,22 @@ func (n *Node) Create(cloudConfig []byte) (*nodes.Node, error) {
 		// Node length includes ELB which must already exist
 		if len(n.Nodes) == 1 {
 			log.Info("Creating the first control plane node")
-			node, err := nodes.ExternalLoadBalancerNode(n.Nodes)
+			cp, err := n.MachineActions.CreateControlPlane(n.Cluster, n.Machine, n.Version, nil, cloudConfig)
 			if err != nil {
-				log.Error(err, "Failed to get external load balancer node")
-				return nil, err
+				return nil, errors.Wrap(err, "failed to create control plane")
 			}
-			ipv4, _, err := node.IP()
+
+			// save the kubeconfig on the host with the loadbalancer endpoint
+			dest := actions.KubeConfigPath(n.Cluster)
+			hostAddress := "127.0.0.1"
+			_, hostPort, err := actions.GetLoadBalancerHostAndPort(n.Nodes)
 			if err != nil {
-				log.Error(err, "Failed to get node's IP", "node-name", node.Name())
-				return nil, err
+				return nil, errors.Wrap(err, "failed to get load balancer port")
 			}
-			return n.MachineActions.CreateControlPlane(n.Cluster, n.Machine, ipv4, n.Version, nil, cloudConfig)
+
+			if err := actions.GetKubeConfig(cp, dest, hostAddress, hostPort); err != nil {
+				return nil, errors.Wrap(err, "failed to get kubeconfig from node")
+			}
 		}
 		log.Info("Adding an additional control plane node")
 		return n.MachineActions.AddControlPlane(n.Cluster, n.Machine, n.Version, cloudConfig)

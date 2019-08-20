@@ -22,11 +22,9 @@ import (
 	"html/template"
 	"strings"
 
-	"github.com/go-logr/logr"
 	"github.com/pkg/errors"
 	"sigs.k8s.io/cluster-api-provider-docker/cloudinit"
 	constkind "sigs.k8s.io/cluster-api-provider-docker/docker/constants"
-	"sigs.k8s.io/cluster-api-provider-docker/docker/kubeadm"
 	"sigs.k8s.io/cluster-api-provider-docker/third_party/forked/loadbalancer"
 	"sigs.k8s.io/kind/pkg/cluster/constants"
 	"sigs.k8s.io/kind/pkg/cluster/nodes"
@@ -92,56 +90,6 @@ func ConfigureLoadBalancer(clusterName string) error {
 	}
 
 	return errors.WithStack(docker.Kill("SIGHUP", loadBalancerNode.Name()))
-}
-
-// KubeadmConfig writes the kubeadm config to a node
-func KubeadmConfig(node *nodes.Node, clusterName, lbip string) error {
-	// get installed kubernetes version from the node image
-	kubeVersion, err := node.KubeVersion()
-	if err != nil {
-		return errors.Wrap(err, "failed to get kubernetes version from node")
-	}
-
-	kubeadmConfig, err := kubeadm.InitConfiguration(kubeVersion, clusterName,
-		fmt.Sprintf("%s:%d", lbip, constkind.APIServerPort))
-
-	if err != nil {
-		return errors.Wrap(err, "failed to generate kubeadm config content")
-	}
-
-	if err := node.WriteFile("/kind/kubeadm.conf", string(kubeadmConfig)); err != nil {
-		return errors.Wrap(err, "failed to copy kubeadm config to node")
-	}
-
-	return nil
-}
-
-// KubeadmInit execute kubeadm init on the boostrap control-plane node of a cluster
-func KubeadmInit(clusterName string, node *nodes.Node, cloudConfig []byte, log logr.Logger) error {
-	allNodes, err := nodes.List(fmt.Sprintf("label=%s=%s", constants.ClusterLabelKey, clusterName))
-	if err != nil {
-		return err
-	}
-
-	log = log.WithName("kubeadm-init")
-	lines, err := cloudinit.Run(cloudConfig, node.Cmder())
-	for _, line := range lines {
-		log.Info(line)
-	}
-	if err != nil {
-		return err
-	}
-
-	// save the kubeconfig on the host with the loadbalancer endpoint
-	_, loadBalancerPort, err := GetLoadBalancerHostAndPort(allNodes)
-	if err != nil {
-		return errors.Wrap(err, "failed to get kubeconfig from node")
-	}
-	dest := KubeConfigPath(clusterName)
-	if err := writeKubeConfig(node, dest, "127.0.0.1", loadBalancerPort); err != nil {
-		return errors.Wrap(err, "failed to get kubeconfig from node")
-	}
-	return nil
 }
 
 // InstallCNI installs a CNI plugin from a node

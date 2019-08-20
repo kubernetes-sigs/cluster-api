@@ -728,6 +728,12 @@ spec:
               description: BootstrapData will be a cloud-init script for now
               format: byte
               type: string
+            errorMessage:
+              description: ErrorMessage will be set on non-retryable errors
+              type: string
+            errorReason:
+              description: ErrorReason will be set on non-retryable errors
+              type: string
             ready:
               description: Ready indicates the BootstrapData field is ready to be
                 consumed

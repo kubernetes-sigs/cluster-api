@@ -55,7 +55,7 @@ type KubeadmConfigStatus struct {
 }
 
 // +kubebuilder:object:root=true
-// +kubebuilder:resource:path=kubeadmconfigs,scope=Namespaced
+// +kubebuilder:resource:path=kubeadmconfigs,scope=Namespaced,categories=cluster-api
 // +kubebuilder:storageversion
 // +kubebuilder:subresource:status
 

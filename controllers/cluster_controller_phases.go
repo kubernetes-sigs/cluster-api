@@ -180,8 +180,8 @@ func (r *ClusterReconciler) reconcileInfrastructure(ctx context.Context, cluster
 	if err != nil {
 		return err
 	} else if !ready {
-		klog.V(3).Infof("Infrastructure provider for Cluster %q in namespace %q is not ready, requeuing", cluster.Name, cluster.Namespace)
-		return &capierrors.RequeueAfterError{RequeueAfter: 30 * time.Second}
+		klog.V(3).Infof("Infrastructure provider for Cluster %q in namespace %q is not ready yet", cluster.Name, cluster.Namespace)
+		return nil
 	}
 
 	// Get and parse Status.APIEndpoint field from the infrastructure provider.

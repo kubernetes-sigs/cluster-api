@@ -155,7 +155,7 @@ func (m *MachineActions) DeleteControlPlane(clusterName, nodeName string) error 
 		fmt.Sprintf("name=%s$", nodeName),
 	)
 	if err != nil {
-		return nil
+		return errors.WithStack(err)
 	}
 
 	// assume it's already deleted
@@ -175,7 +175,7 @@ func (m *MachineActions) DeleteControlPlane(clusterName, nodeName string) error 
 	// Delete the infrastructure
 	log.Info("Deleting node")
 	if err := nodes.Delete(node); err != nil {
-		return err
+		return errors.WithStack(err)
 	}
 	return ConfigureLoadBalancer(clusterName)
 }

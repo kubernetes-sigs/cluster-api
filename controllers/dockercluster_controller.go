@@ -26,6 +26,7 @@ import (
 	"sigs.k8s.io/cluster-api-provider-docker/docker"
 	"sigs.k8s.io/cluster-api-provider-docker/third_party/forked/loadbalancer"
 	"sigs.k8s.io/cluster-api/util"
+	"sigs.k8s.io/cluster-api/util/patch"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
@@ -64,10 +65,15 @@ func (r *DockerClusterReconciler) Reconcile(req ctrl.Request) (_ ctrl.Result, re
 		return ctrl.Result{RequeueAfter: 30 * time.Second}, nil
 	}
 
-	// Store Config's state, pre-modifications, to allow patching
-	patchCluster := client.MergeFrom(dockerCluster.DeepCopy())
+	// Initialize the patch helper
+	patchHelper, err := patch.NewHelper(dockerCluster, r)
+	if err != nil {
+		return ctrl.Result{}, err
+	}
+	// Always attempt to Patch the DockerCluster object and status after each reconciliation.
 	defer func() {
-		if err := r.patchCluster(ctx, dockerCluster, patchCluster); rerr != nil {
+		if err := patchHelper.Patch(ctx, dockerCluster); err != nil {
+			log.Error(err, "failed to patch DockerCluster")
 			if rerr == nil {
 				rerr = err
 			}
@@ -108,15 +114,4 @@ func (r *DockerClusterReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewControllerManagedBy(mgr).
 		For(&infrastructurev1alpha2.DockerCluster{}).
 		Complete(r)
-}
-
-func (r *DockerClusterReconciler) patchCluster(ctx context.Context,
-	dockerCluster *infrastructurev1alpha2.DockerCluster, patchConfig client.Patch) error {
-	if err := r.Status().Patch(ctx, dockerCluster, patchConfig); err != nil {
-		return err
-	}
-	if err := r.Patch(ctx, dockerCluster, patchConfig); err != nil {
-		return err
-	}
-	return nil
 }

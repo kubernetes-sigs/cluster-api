@@ -29,17 +29,13 @@ import (
 	"sigs.k8s.io/cluster-api-provider-docker/docker/actions"
 	capiv1alpha2 "sigs.k8s.io/cluster-api/api/v1alpha2"
 	"sigs.k8s.io/cluster-api/util"
+	"sigs.k8s.io/cluster-api/util/patch"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/handler"
 	"sigs.k8s.io/controller-runtime/pkg/source"
 	kindcluster "sigs.k8s.io/kind/pkg/cluster"
 	"sigs.k8s.io/kind/pkg/cluster/constants"
-)
-
-const (
-	// label "set:controlplane" indicates a control plane node
-	clusterAPIControlPlaneSetLabel = "controlplane"
 )
 
 // DockerMachineReconciler reconciles a DockerMachine object
@@ -87,11 +83,15 @@ func (r *DockerMachineReconciler) Reconcile(req ctrl.Request) (_ ctrl.Result, re
 		return ctrl.Result{RequeueAfter: 30 * time.Second}, nil
 	}
 
-	// Store Docker Machine early state to allow patching.
-	patch := client.MergeFrom(dockerMachine.DeepCopy())
+	// Initialize the patch helper
+	patchHelper, err := patch.NewHelper(dockerMachine, r)
+	if err != nil {
+		return ctrl.Result{}, err
+	}
+	// Always attempt to Patch the DockerMachine object and status after each reconciliation.
 	defer func() {
-		if err := r.patchMachine(ctx, dockerMachine, patch); err != nil {
-			r.Log.Error(err, "Error Patching DockerMachine", "name", dockerMachine.GetName())
+		if err := patchHelper.Patch(ctx, dockerMachine); err != nil {
+			log.Error(err, "failed to patch DockerCluster")
 			if reterr == nil {
 				reterr = err
 			}
@@ -256,15 +256,4 @@ func (r *DockerMachineReconciler) reconcileDelete(
 	// Remove the finalizer
 	dockerMachine.ObjectMeta.Finalizers = util.Filter(dockerMachine.ObjectMeta.Finalizers, infrastructurev1alpha2.MachineFinalizer)
 	return ctrl.Result{}, nil
-}
-
-func (r *DockerMachineReconciler) patchMachine(ctx context.Context,
-	dockerMachine *infrastructurev1alpha2.DockerMachine, patchConfig client.Patch) error {
-	if err := r.Status().Patch(ctx, dockerMachine, patchConfig); err != nil {
-		return err
-	}
-	if err := r.Patch(ctx, dockerMachine, patchConfig); err != nil {
-		return err
-	}
-	return nil
 }

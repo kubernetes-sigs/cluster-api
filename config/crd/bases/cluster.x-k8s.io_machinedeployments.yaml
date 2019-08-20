@@ -17,7 +17,7 @@ spec:
   scope: Namespaced
   subresources:
     scale:
-      labelSelectorPath: .status.labelSelector
+      labelSelectorPath: .status.selector
       specReplicasPath: .spec.replicas
       statusReplicasPath: .status.replicas
     status: {}
@@ -508,6 +508,12 @@ spec:
                 deployment (their labels match the selector).
               format: int32
               type: integer
+            selector:
+              description: 'Selector is the same as the label selector but in the
+                string format to avoid introspection by clients. The string will be
+                in the same format as the query-param syntax. More info about label
+                selectors: http://kubernetes.io/docs/user-guide/labels#label-selectors'
+              type: string
             unavailableReplicas:
               description: Total number of unavailable machines targeted by this deployment.
                 This is the total number of machines that are still required for the

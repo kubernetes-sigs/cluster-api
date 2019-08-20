@@ -123,6 +123,11 @@ func (r *MachineSetReconciler) reconcile(ctx context.Context, machineSet *cluste
 		return ctrl.Result{}, errors.Wrapf(err, "failed to convert MachineSet %q label selector to a map", machineSet.Name)
 	}
 
+	// Copy label selector to its status counterpart in string format.
+	// This is necessary for CRDs including scale subresources.
+	machineSet.Status.Selector = selector.String()
+
+	// Get all Machines linked to this MachineSet.
 	allMachines := &clusterv1.MachineList{}
 	err = r.Client.List(
 		context.Background(), allMachines,

@@ -61,12 +61,17 @@ type ClusterConfiguration struct {
 	metav1.TypeMeta `json:",inline"`
 
 	// Etcd holds configuration for etcd.
+	// +optional
 	Etcd Etcd `json:"etcd"`
 
 	// Networking holds configuration for the networking topology of the cluster.
+	// NB: This value defaults to the Cluster object spec.clusterNetwork.
+	// +optional
 	Networking Networking `json:"networking"`
 
 	// KubernetesVersion is the target version of the control plane.
+	// NB: This value defaults to the Machine object spec.kuberentesVersion
+	// +optional
 	KubernetesVersion string `json:"kubernetesVersion"`
 
 	// ControlPlaneEndpoint sets a stable IP address or DNS name for the control plane; it
@@ -80,6 +85,8 @@ type ClusterConfiguration struct {
 	// control plane instances.
 	// e.g.  in environments with enforced node recycling, the ControlPlaneEndpoint
 	// could be used for assigning a stable DNS to the control plane.
+	// NB: This value defaults to the first value in the Cluster object status.apiEndpoints array.
+	// +optional
 	ControlPlaneEndpoint string `json:"controlPlaneEndpoint"`
 
 	// APIServer contains extra settings for the API server control plane component
@@ -92,15 +99,18 @@ type ClusterConfiguration struct {
 	Scheduler ControlPlaneComponent `json:"scheduler,omitempty"`
 
 	// DNS defines the options for the DNS add-on installed in the cluster.
+	// +optional
 	DNS DNS `json:"dns"`
 
 	// CertificatesDir specifies where to store or look for all required certificates.
+	// +optional
 	CertificatesDir string `json:"certificatesDir"`
 
 	// ImageRepository sets the container registry to pull images from.
 	// If empty, `k8s.gcr.io` will be used by default; in case of kubernetes version is a CI build (kubernetes version starts with `ci/` or `ci-cross/`)
 	// `gcr.io/kubernetes-ci-images` will be used as a default for control plane components and for kube-proxy, while `k8s.gcr.io`
 	// will be used for all the other images.
+	// +optional
 	ImageRepository string `json:"imageRepository"`
 
 	// UseHyperKubeImage controls if hyperkube should be used for Kubernetes components instead of their respective separate images
@@ -110,6 +120,7 @@ type ClusterConfiguration struct {
 	FeatureGates map[string]bool `json:"featureGates,omitempty"`
 
 	// The cluster name
+	// +optional
 	ClusterName string `json:"clusterName,omitempty"`
 }
 

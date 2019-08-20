@@ -19,6 +19,9 @@ bin
 .idea/
 *.iml
 
+# VSCode
+.vscode/
+
 # Bazel symlinks
 bazel-bin
 bazel-cluster-api

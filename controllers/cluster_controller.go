@@ -34,6 +34,7 @@ import (
 	"sigs.k8s.io/cluster-api/controllers/external"
 	capierrors "sigs.k8s.io/cluster-api/errors"
 	"sigs.k8s.io/cluster-api/util"
+	"sigs.k8s.io/cluster-api/util/patch"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
@@ -84,12 +85,14 @@ func (r *ClusterReconciler) Reconcile(req ctrl.Request) (_ ctrl.Result, reterr e
 		return ctrl.Result{}, err
 	}
 
-	// Store Cluster early state to allow patching.
-	patchCluster := client.MergeFrom(cluster.DeepCopy())
-
-	// Always issue a Patch for the Cluster object and its status after each reconciliation.
+	// Initialize the patch helper
+	patchHelper, err := patch.NewHelper(cluster, r)
+	if err != nil {
+		return ctrl.Result{}, err
+	}
+	// Always attempt to Patch the Cluster object and status after each reconciliation.
 	defer func() {
-		if err := r.patchCluster(ctx, cluster, patchCluster); err != nil {
+		if err := patchHelper.Patch(ctx, cluster); err != nil {
 			if reterr == nil {
 				reterr = err
 			}
@@ -232,18 +235,4 @@ func (r *ClusterReconciler) listChildren(ctx context.Context, cluster *clusterv1
 	}
 
 	return children, nil
-}
-
-func (r *ClusterReconciler) patchCluster(ctx context.Context, cluster *clusterv1.Cluster, patch client.Patch) error {
-	log := r.Log.WithValues("cluster-namespace", cluster.Namespace, "cluster-name", cluster.Name)
-	// Always patch the status before the spec
-	if err := r.Client.Status().Patch(ctx, cluster, patch); err != nil {
-		log.Error(err, "Error patching cluster status")
-		return err
-	}
-	if err := r.Client.Patch(ctx, cluster, patch); err != nil {
-		log.Error(err, "Error patching cluster")
-		return err
-	}
-	return nil
 }

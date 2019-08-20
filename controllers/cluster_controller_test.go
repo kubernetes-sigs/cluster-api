@@ -22,6 +22,7 @@ import (
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha2"
+	"sigs.k8s.io/cluster-api/util/patch"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
@@ -72,9 +73,10 @@ var _ = Describe("Cluster Reconciler", func() {
 
 		// Patch
 		Eventually(func() bool {
-			patch := client.MergeFrom(cluster.DeepCopy())
+			ph, err := patch.NewHelper(cluster, k8sClient)
+			Expect(err).ShouldNot(HaveOccurred())
 			cluster.Spec.InfrastructureRef = &v1.ObjectReference{Name: "test"}
-			Expect(clusterReconciler.patchCluster(ctx, cluster, patch)).To(BeNil())
+			Expect(ph.Patch(ctx, cluster)).ShouldNot(HaveOccurred())
 			return true
 		}, timeout).Should(BeTrue())
 
@@ -111,9 +113,10 @@ var _ = Describe("Cluster Reconciler", func() {
 
 		// Patch
 		Eventually(func() bool {
-			patch := client.MergeFrom(cluster.DeepCopy())
+			ph, err := patch.NewHelper(cluster, k8sClient)
+			Expect(err).ShouldNot(HaveOccurred())
 			cluster.Status.InfrastructureReady = true
-			Expect(clusterReconciler.patchCluster(ctx, cluster, patch)).To(BeNil())
+			Expect(ph.Patch(ctx, cluster)).ShouldNot(HaveOccurred())
 			return true
 		}, timeout).Should(BeTrue())
 
@@ -149,10 +152,11 @@ var _ = Describe("Cluster Reconciler", func() {
 
 		// Patch
 		Eventually(func() bool {
-			patch := client.MergeFrom(cluster.DeepCopy())
+			ph, err := patch.NewHelper(cluster, k8sClient)
+			Expect(err).ShouldNot(HaveOccurred())
 			cluster.Status.InfrastructureReady = true
 			cluster.Spec.InfrastructureRef = &v1.ObjectReference{Name: "test"}
-			Expect(clusterReconciler.patchCluster(ctx, cluster, patch)).To(BeNil())
+			Expect(ph.Patch(ctx, cluster)).ShouldNot(HaveOccurred())
 			return true
 		}, timeout).Should(BeTrue())
 
@@ -166,5 +170,45 @@ var _ = Describe("Cluster Reconciler", func() {
 				instance.Spec.InfrastructureRef != nil &&
 				instance.Spec.InfrastructureRef.Name == "test"
 		}, timeout).Should(BeTrue())
+	})
+	It("Should successfully patch a cluster object if only removing finalizers", func() {
+		// Setup
+		cluster := &clusterv1.Cluster{
+			ObjectMeta: metav1.ObjectMeta{
+				GenerateName: "test-",
+				Namespace:    "default",
+			},
+		}
+		Expect(k8sClient.Create(ctx, cluster)).To(BeNil())
+		key := client.ObjectKey{Name: cluster.Name, Namespace: cluster.Namespace}
+		defer k8sClient.Delete(ctx, cluster)
+
+		// Wait for reconciliation to happen.
+		Eventually(func() bool {
+			if err := k8sClient.Get(ctx, key, cluster); err != nil {
+				return false
+			}
+			return len(cluster.Finalizers) > 0
+		}, timeout).Should(BeTrue())
+
+		// Patch
+		Eventually(func() bool {
+			ph, err := patch.NewHelper(cluster, k8sClient)
+			Expect(err).ShouldNot(HaveOccurred())
+			cluster.SetFinalizers([]string{})
+			Expect(ph.Patch(ctx, cluster)).ShouldNot(HaveOccurred())
+			return true
+		}, timeout).Should(BeTrue())
+
+		Expect(cluster.Finalizers).Should(BeEmpty())
+
+		// Assertions
+		Eventually(func() []string {
+			instance := &clusterv1.Cluster{}
+			if err := k8sClient.Get(ctx, key, instance); err != nil {
+				return []string{"not-empty"}
+			}
+			return instance.Finalizers
+		}, timeout).Should(BeEmpty())
 	})
 })

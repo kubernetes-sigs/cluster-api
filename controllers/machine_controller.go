@@ -34,6 +34,7 @@ import (
 	"sigs.k8s.io/cluster-api/controllers/remote"
 	capierrors "sigs.k8s.io/cluster-api/errors"
 	"sigs.k8s.io/cluster-api/util"
+	"sigs.k8s.io/cluster-api/util/patch"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
@@ -82,13 +83,17 @@ func (r *MachineReconciler) Reconcile(req ctrl.Request) (_ ctrl.Result, reterr e
 		return ctrl.Result{}, err
 	}
 
-	// Store Machine early state to allow patching.
-	patchMachine := client.MergeFrom(m.DeepCopy())
-
-	// Always issue a Patch for the Machine object and its status after each reconciliation.
+	// Initialize the patch helper
+	patchHelper, err := patch.NewHelper(m, r)
+	if err != nil {
+		return ctrl.Result{}, err
+	}
+	// Always attempt to Patch the Machine object and status after each reconciliation.
 	defer func() {
-		if err := r.patchMachine(ctx, m, patchMachine); err != nil {
-			reterr = err
+		if err := patchHelper.Patch(ctx, m); err != nil {
+			if reterr == nil {
+				reterr = err
+			}
 		}
 	}()
 
@@ -116,11 +121,6 @@ func (r *MachineReconciler) Reconcile(req ctrl.Request) (_ ctrl.Result, reterr e
 	if m.ObjectMeta.DeletionTimestamp.IsZero() {
 		if !util.Contains(m.Finalizers, clusterv1.MachineFinalizer) {
 			m.Finalizers = append(m.ObjectMeta.Finalizers, clusterv1.MachineFinalizer)
-			if err := r.Client.Patch(ctx, m, patchMachine); err != nil {
-				return ctrl.Result{}, errors.Wrapf(err, "failed to add finalizer to Machine %q in namespace %q", m.Name, m.Namespace)
-			}
-			// Since adding the finalizer updates the object return to avoid later update issues
-			return ctrl.Result{Requeue: true}, nil
 		}
 	}
 
@@ -270,19 +270,6 @@ func (r *MachineReconciler) isDeleteReady(ctx context.Context, m *clusterv1.Mach
 		return &capierrors.RequeueAfterError{RequeueAfter: 10 * time.Second}
 	}
 
-	return nil
-}
-
-func (r *MachineReconciler) patchMachine(ctx context.Context, machine *clusterv1.Machine, patch client.Patch) error {
-	// Always patch the status before the spec
-	if err := r.Client.Status().Patch(ctx, machine, patch); err != nil {
-		klog.Errorf("Error Patching Machine status %q in namespace %q: %v", machine.Name, machine.Namespace, err)
-		return err
-	}
-	if err := r.Client.Patch(ctx, machine, patch); err != nil {
-		klog.Errorf("Error Patching Machine %q in namespace %q: %v", machine.Name, machine.Namespace, err)
-		return err
-	}
 	return nil
 }
 

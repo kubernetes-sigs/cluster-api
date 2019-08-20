@@ -24,7 +24,7 @@ import (
 	"k8s.io/klog"
 	"sigs.k8s.io/cluster-api/cmd/clusterctl/clusterdeployer/clusterclient"
 	"sigs.k8s.io/cluster-api/cmd/clusterctl/phases"
-	"sigs.k8s.io/cluster-api/util"
+	"sigs.k8s.io/cluster-api/util/yaml"
 )
 
 type AlphaPhaseApplyMachinesOptions struct {
@@ -60,7 +60,7 @@ func RunAlphaPhaseApplyMachines(pamo *AlphaPhaseApplyMachinesOptions) error {
 		return err
 	}
 
-	machines, err := util.ParseMachinesYaml(pamo.Machines)
+	out, err := yaml.Parse(yaml.ParseInput{File: pamo.Machines})
 	if err != nil {
 		return err
 	}
@@ -71,7 +71,7 @@ func RunAlphaPhaseApplyMachines(pamo *AlphaPhaseApplyMachinesOptions) error {
 		return errors.Wrap(err, "unable to create cluster client")
 	}
 
-	if err := phases.ApplyMachines(client, pamo.Namespace, machines); err != nil {
+	if err := phases.ApplyMachines(client, pamo.Namespace, out.Machines); err != nil {
 		return errors.Wrap(err, "unable to apply machines")
 	}
 

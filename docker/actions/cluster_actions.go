@@ -169,6 +169,10 @@ func DeleteClusterNode(clusterName, nodeName string) error {
 	if err != nil {
 		return errors.Wrap(err, "failed to list all control planes")
 	}
+	// If there is only one control plane being deleted do not update the corev1.Node list
+	if len(allControlPlanes) == 1 {
+		return nil
+	}
 	var node nodes.Node
 	// pick one that doesn't match the node name we are trying to delete
 	for _, n := range allControlPlanes {

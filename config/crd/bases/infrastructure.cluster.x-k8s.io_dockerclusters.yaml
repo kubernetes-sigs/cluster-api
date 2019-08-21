@@ -8,9 +8,11 @@ metadata:
 spec:
   group: infrastructure.cluster.x-k8s.io
   names:
+    categories:
+    - cluster-api
     kind: DockerCluster
     plural: dockerclusters
-  scope: ""
+  scope: Namespaced
   subresources:
     status: {}
   validation:

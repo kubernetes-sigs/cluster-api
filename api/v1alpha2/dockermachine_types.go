@@ -39,7 +39,7 @@ type DockerMachineStatus struct {
 	Ready bool `json:"ready"`
 }
 
-// +kubebuilder:subresource:status
+// +kubebuilder:resource:path=dockermachines,scope=Namespaced,categories=cluster-api
 // +kubebuilder:object:root=true
 // +kubebuilder:subresource:status
 

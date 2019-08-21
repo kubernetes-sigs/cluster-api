@@ -47,13 +47,13 @@ const deleteRequeueAfter = 5 * time.Second
 
 var DefaultActuator Actuator
 
-func AddWithActuator(mgr manager.Manager, actuator Actuator) error {
+func AddWithActuator(mgr manager.Manager, actuator Actuator, concurrency int) error {
 	reconciler, err := newReconciler(mgr, actuator)
 	if err != nil {
 		return err
 	}
 
-	return add(mgr, reconciler)
+	return add(mgr, reconciler, concurrency)
 }
 
 // newReconciler returns a new reconcile.Reconciler
@@ -70,9 +70,9 @@ func newReconciler(mgr manager.Manager, actuator Actuator) (reconcile.Reconciler
 }
 
 // add adds a new Controller to mgr with r as the reconcile.Reconciler
-func add(mgr manager.Manager, r reconcile.Reconciler) error {
+func add(mgr manager.Manager, r reconcile.Reconciler, concurrency int) error {
 	// Create a new controller
-	c, err := controller.New("cluster-controller", mgr, controller.Options{Reconciler: r})
+	c, err := controller.New("cluster-controller", mgr, controller.Options{Reconciler: r, MaxConcurrentReconciles: concurrency})
 	if err != nil {
 		return err
 	}

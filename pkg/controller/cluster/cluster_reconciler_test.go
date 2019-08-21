@@ -60,7 +60,7 @@ func TestReconcile(t *testing.T) {
 		t.Fatalf("Couldn't create controller: %v", err)
 	}
 	recFn, requests := SetupTestReconcile(r)
-	if err := add(mgr, recFn); err != nil {
+	if err := add(mgr, recFn, 1); err != nil {
 		t.Fatalf("error adding controller to manager: %v", err)
 	}
 	defer close(StartTestManager(mgr, t))

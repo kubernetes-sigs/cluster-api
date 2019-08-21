@@ -33,8 +33,15 @@ import (
 )
 
 func main() {
+	var (
+		clusterConcurrency int
+		machineConcurrency int
+	)
+
 	klog.InitFlags(nil)
 	flag.Set("logtostderr", "true")
+	flag.IntVar(&clusterConcurrency, "cluster-concurrency", 1, "Number of clusters to process simultaneously")
+	flag.IntVar(&machineConcurrency, "machine-concurrency", 1, "Number of machines to process simultaneously")
 	flag.Parse()
 
 	cfg := config.GetConfigOrDie()
@@ -65,8 +72,8 @@ func main() {
 		klog.Fatal(err)
 	}
 
-	capimachine.AddWithActuator(mgr, machineActuator)
-	capicluster.AddWithActuator(mgr, clusterActuator)
+	capimachine.AddWithActuator(mgr, machineActuator, machineConcurrency)
+	capicluster.AddWithActuator(mgr, clusterActuator, clusterConcurrency)
 
 	if err := mgr.Start(signals.SetupSignalHandler()); err != nil {
 		klog.Fatalf("Failed to run manager: %v", err)

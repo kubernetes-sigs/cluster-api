@@ -45,8 +45,8 @@ const (
 
 var DefaultActuator Actuator
 
-func AddWithActuator(mgr manager.Manager, actuator Actuator) error {
-	return add(mgr, newReconciler(mgr, actuator))
+func AddWithActuator(mgr manager.Manager, actuator Actuator, concurrency int) error {
+	return add(mgr, newReconciler(mgr, actuator), concurrency)
 }
 
 // newReconciler returns a new reconcile.Reconciler
@@ -66,9 +66,9 @@ func newReconciler(mgr manager.Manager, actuator Actuator) reconcile.Reconciler 
 }
 
 // add adds a new Controller to mgr with r as the reconcile.Reconciler
-func add(mgr manager.Manager, r reconcile.Reconciler) error {
+func add(mgr manager.Manager, r reconcile.Reconciler, concurrency int) error {
 	// Create a new controller
-	c, err := controller.New("machine-controller", mgr, controller.Options{Reconciler: r})
+	c, err := controller.New("machine-controller", mgr, controller.Options{Reconciler: r, MaxConcurrentReconciles: concurrency})
 	if err != nil {
 		return err
 	}

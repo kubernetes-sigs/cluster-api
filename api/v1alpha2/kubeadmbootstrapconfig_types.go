@@ -51,6 +51,12 @@ type KubeadmConfigSpec struct {
 	// PostKubeadmCommands specifies extra commands to run after kubeadm runs
 	// +optional
 	PostKubeadmCommands []string `json:"postKubeadmCommands,omitempty"`
+	// Users specifies extra users to add
+	// +optional
+	Users []User `json:"users,omitempty"`
+	// NTP specifies NTP configuration
+	// +optional
+	NTP *NTP `json:"ntp,omitempty"`
 	// Format specifies the output format of the bootstrap data
 	// +optional
 	Format Format `json:"format,omitempty"`
@@ -108,4 +114,61 @@ type Files struct {
 
 	// Content is the actual content of the file.
 	Content string `json:"content"`
+}
+
+// User defines the input for a generated user in cloud-init.
+type User struct {
+	// Name specifies the user name
+	Name string `json:"name"`
+
+	// Gecos specifies the gecos to use for the user
+	// +optional
+	Gecos *string `json:"gecos,omitempty"`
+
+	// Groups specifies the additional groups for the user
+	// +optional
+	Groups *string `json:"groups,omitempty"`
+
+	// HomeDir specifies the home directory to use for the user
+	// +optional
+	HomeDir *string `json:"homeDir,omitempty"`
+
+	// Inactive specifies whether to mark the user as inactive
+	// +optional
+	Inactive *bool `json:"inactive,omitempty"`
+
+	// Shell specifies the user's shell
+	// +optional
+	Shell *string `json:"shell,omitempty"`
+
+	// Passwd specifies a hashed password for the user
+	// +optional
+	Passwd *string `json:"passwd"`
+
+	// PrimaryGroup specifies the primary group for the user
+	// +optional
+	PrimaryGroup *string `json:"primaryGroup,omitempty"`
+
+	// LockPassword specifies if password login should be disabled
+	// +optional
+	LockPassword *bool `json:"lockPassword,omitempty"`
+
+	// Sudo specifies a sudo role for the user
+	// +optional
+	Sudo *string `json:"sudo,omitempty"`
+
+	// SSHAuthorizedKeys specifies a list of ssh authorized keys for the user
+	// +optional
+	SSHAuthorizedKeys []string `json:"sshAuthorizedKeys,omitempty"`
+}
+
+// NTP defines input for generated ntp in cloud-init
+type NTP struct {
+	// Servers specifies which NTP servers to use
+	// +optional
+	Servers []string `json:"servers,omitempty"`
+
+	// Enabled specifies whether NTP should be enabled
+	// +optional
+	Enabled *bool `json:"enabled,omitempty"`
 }

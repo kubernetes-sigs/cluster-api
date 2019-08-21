@@ -708,6 +708,18 @@ spec:
               required:
               - nodeRegistration
               type: object
+            ntp:
+              description: NTP specifies NTP configuration
+              properties:
+                enabled:
+                  description: Enabled specifies whether NTP should be enabled
+                  type: boolean
+                servers:
+                  description: Servers specifies which NTP servers to use
+                  items:
+                    type: string
+                  type: array
+              type: object
             postKubeadmCommands:
               description: PostKubeadmCommands specifies extra commands to run after
                 kubeadm runs
@@ -719,6 +731,54 @@ spec:
                 kubeadm runs
               items:
                 type: string
+              type: array
+            users:
+              description: Users specifies extra users to add
+              items:
+                description: User defines the input for a generated user in cloud-init.
+                properties:
+                  gecos:
+                    description: Gecos specifies the gecos to use for the user
+                    type: string
+                  groups:
+                    description: Groups specifies the additional groups for the user
+                    type: string
+                  homeDir:
+                    description: HomeDir specifies the home directory to use for the
+                      user
+                    type: string
+                  inactive:
+                    description: Inactive specifies whether to mark the user as inactive
+                    type: boolean
+                  lockPassword:
+                    description: LockPassword specifies if password login should be
+                      disabled
+                    type: boolean
+                  name:
+                    description: Name specifies the user name
+                    type: string
+                  passwd:
+                    description: Passwd specifies a hashed password for the user
+                    type: string
+                  primaryGroup:
+                    description: PrimaryGroup specifies the primary group for the
+                      user
+                    type: string
+                  shell:
+                    description: Shell specifies the user's shell
+                    type: string
+                  sshAuthorizedKeys:
+                    description: SSHAuthorizedKeys specifies a list of ssh authorized
+                      keys for the user
+                    items:
+                      type: string
+                    type: array
+                  sudo:
+                    description: Sudo specifies a sudo role for the user
+                    type: string
+                required:
+                - name
+                type: object
               type: array
           type: object
         status:

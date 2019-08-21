@@ -16,25 +16,17 @@ limitations under the License.
 
 package cloudinit
 
-import (
-	"encoding/base64"
-	"strings"
-	"text/template"
+const (
+	ntpTemplate = `{{ define "ntp" -}}
+{{- if . }}
+ntp:
+  {{ if .Enabled -}}
+  enabled: true
+  {{ end -}}
+  servers:{{ range .Servers }}
+    - {{ . }}
+  {{- end -}}
+{{- end -}}
+{{- end -}}
+`
 )
-
-var (
-	defaultTemplateFuncMap = template.FuncMap{
-		"Base64Encode": templateBase64Encode,
-		"Indent":       templateYAMLIndent,
-	}
-)
-
-func templateBase64Encode(s string) string {
-	return base64.StdEncoding.EncodeToString([]byte(s))
-}
-
-func templateYAMLIndent(i int, input string) string {
-	split := strings.Split(input, "\n")
-	ident := "\n" + strings.Repeat(" ", i)
-	return strings.Repeat(" ", i) + strings.Join(split, ident)
-}

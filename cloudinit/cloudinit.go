@@ -37,6 +37,8 @@ type BaseUserData struct {
 	PostKubeadmCommands []string
 	AdditionalFiles     []v1alpha2.Files
 	WriteFiles          []v1alpha2.Files
+	Users               []v1alpha2.User
+	NTP                 *v1alpha2.NTP
 }
 
 func generate(kind string, tpl string, data interface{}) ([]byte, error) {
@@ -47,6 +49,14 @@ func generate(kind string, tpl string, data interface{}) ([]byte, error) {
 
 	if _, err := tm.Parse(commandsTemplate); err != nil {
 		return nil, errors.Wrap(err, "failed to parse commands template")
+	}
+
+	if _, err := tm.Parse(ntpTemplate); err != nil {
+		return nil, errors.Wrap(err, "failed to parse ntp template")
+	}
+
+	if _, err := tm.Parse(usersTemplate); err != nil {
+		return nil, errors.Wrap(err, "failed to parse users template")
 	}
 
 	t, err := tm.Parse(tpl)

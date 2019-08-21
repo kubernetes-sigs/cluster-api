@@ -227,8 +227,10 @@ func (r *KubeadmConfigReconciler) Reconcile(req ctrl.Request) (_ ctrl.Result, re
 		cloudInitData, err := cloudinit.NewInitControlPlane(&cloudinit.ControlPlaneInput{
 			BaseUserData: cloudinit.BaseUserData{
 				AdditionalFiles:     config.Spec.Files,
+				NTP:                 config.Spec.NTP,
 				PreKubeadmCommands:  config.Spec.PreKubeadmCommands,
 				PostKubeadmCommands: config.Spec.PostKubeadmCommands,
+				Users:               config.Spec.Users,
 			},
 			InitConfiguration:    string(initdata),
 			ClusterConfiguration: string(clusterdata),
@@ -289,8 +291,10 @@ func (r *KubeadmConfigReconciler) Reconcile(req ctrl.Request) (_ ctrl.Result, re
 			Certificates:      *certificates,
 			BaseUserData: cloudinit.BaseUserData{
 				AdditionalFiles:     config.Spec.Files,
+				NTP:                 config.Spec.NTP,
 				PreKubeadmCommands:  config.Spec.PreKubeadmCommands,
 				PostKubeadmCommands: config.Spec.PostKubeadmCommands,
+				Users:               config.Spec.Users,
 			},
 		})
 		if err != nil {
@@ -311,8 +315,10 @@ func (r *KubeadmConfigReconciler) Reconcile(req ctrl.Request) (_ ctrl.Result, re
 	joinData, err := cloudinit.NewNode(&cloudinit.NodeInput{
 		BaseUserData: cloudinit.BaseUserData{
 			AdditionalFiles:     config.Spec.Files,
+			NTP:                 config.Spec.NTP,
 			PreKubeadmCommands:  config.Spec.PreKubeadmCommands,
 			PostKubeadmCommands: config.Spec.PostKubeadmCommands,
+			Users:               config.Spec.Users,
 		},
 		JoinConfiguration: string(joinBytes),
 	})

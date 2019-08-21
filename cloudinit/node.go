@@ -29,6 +29,8 @@ runcmd:
 {{- template "commands" .PreKubeadmCommands }}
   - 'kubeadm join --config /tmp/kubeadm-node.yaml'
 {{- template "commands" .PostKubeadmCommands }}
+{{- template "ntp" .NTP }}
+{{- template "users" .Users }}
 `
 )
 

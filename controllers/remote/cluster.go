@@ -22,6 +22,7 @@ import (
 	restclient "k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/clientcmd"
 	"sigs.k8s.io/cluster-api/api/v1alpha2"
+	kcfg "sigs.k8s.io/cluster-api/util/kubeconfig"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
@@ -40,13 +41,13 @@ type clusterClient struct {
 
 // NewClusterClient creates a new ClusterClient.
 func NewClusterClient(c client.Client, cluster *v1alpha2.Cluster) (ClusterClient, error) {
-	secret, err := GetKubeConfigSecret(c, cluster.Name, cluster.Namespace)
+	secret, err := kcfg.GetSecret(c, cluster.Name, cluster.Namespace)
 	if err != nil {
 		return nil, errors.Wrapf(err, "failed to retrieve kubeconfig secret for Cluster %q in namespace %q",
 			cluster.Name, cluster.Namespace)
 	}
 
-	kubeconfig, err := KubeConfigFromSecret(secret)
+	kubeconfig, err := kcfg.Extract(secret)
 	if err != nil {
 		return nil, errors.Wrapf(err, "failed to get kubeconfig from secret for Cluster %q in namespace %q",
 			cluster.Name, cluster.Namespace)

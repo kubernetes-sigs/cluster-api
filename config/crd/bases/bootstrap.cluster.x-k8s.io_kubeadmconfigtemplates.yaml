@@ -253,7 +253,8 @@ spec:
                             in front of the control plane instances. e.g.  in environments
                             with enforced node recycling, the ControlPlaneEndpoint
                             could be used for assigning a stable DNS to the control
-                            plane.'
+                            plane. NB: This value defaults to the first value in the
+                            Cluster object status.apiEndpoints array.'
                           type: string
                         controllerManager:
                           description: ControllerManager contains extra settings for
@@ -420,12 +421,14 @@ spec:
                             be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/api-conventions.md#types-kinds'
                           type: string
                         kubernetesVersion:
-                          description: KubernetesVersion is the target version of
-                            the control plane.
+                          description: 'KubernetesVersion is the target version of
+                            the control plane. NB: This value defaults to the Machine
+                            object spec.kuberentesVersion'
                           type: string
                         networking:
-                          description: Networking holds configuration for the networking
-                            topology of the cluster.
+                          description: 'Networking holds configuration for the networking
+                            topology of the cluster. NB: This value defaults to the
+                            Cluster object spec.clusterNetwork.'
                           properties:
                             dnsDomain:
                               description: DNSDomain is the dns domain used by k8s
@@ -493,14 +496,6 @@ spec:
                             be used for Kubernetes components instead of their respective
                             separate images
                           type: boolean
-                      required:
-                      - certificatesDir
-                      - controlPlaneEndpoint
-                      - dns
-                      - etcd
-                      - imageRepository
-                      - kubernetesVersion
-                      - networking
                       type: object
                     files:
                       description: Files specifies extra files to be passed to user_data

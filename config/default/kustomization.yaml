@@ -1,3 +1,5 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
 # Adds namespace to all resources.
 namespace: cluster-api-system
 
@@ -8,10 +10,6 @@ namespace: cluster-api-system
 # field above.
 namePrefix: cluster-api-
 
-bases:
-- ../crd
-- ../rbac
-- ../manager
 # [WEBHOOK] To enable webhook, uncomment all the sections with [WEBHOOK] prefix including the one in crd/kustomization.yaml
 #- ../webhook
 # [CERTMANAGER] To enable cert-manager, uncomment all sections with 'CERTMANAGER'. 'WEBHOOK' components are required.
@@ -58,3 +56,7 @@ patchesStrategicMerge:
 #    kind: Service
 #    version: v1
 #    name: webhook-service
+resources:
+- ../crd
+- ../rbac
+- ../manager

@@ -1,3 +1,5 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
 # Adds namespace to all resources.
 namespace: provider-system
 
@@ -8,10 +10,10 @@ namespace: provider-system
 # field above.
 namePrefix: provider-
 
-bases:
-- ./rbac/
-- ./manager/
 
 patchesStrategicMerge:
 - manager_image_patch.yaml
 - manager_label_patch.yaml
+resources:
+- ./rbac/
+- ./manager/

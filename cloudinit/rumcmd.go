@@ -26,6 +26,11 @@ import (
 	"sigs.k8s.io/kind/pkg/exec"
 )
 
+const (
+	prompt      = "capd@docker$"
+	errorPrefix = "ERROR!"
+)
+
 // Cmd defines a runcmd command
 type Cmd struct {
 	Cmd  string
@@ -62,30 +67,25 @@ func (c *Cmd) UnmarshalJSON(data []byte) error {
 	return nil
 }
 
-// runCmdAction defines a cloud init action that replicates the behavior of the cloud init rundcmd module
-type runCmdAction struct {
+// runCmd defines a cloud init action that replicates the behavior of the cloud init rundcmd module
+type runCmd struct {
 	Cmds []Cmd `json:"runcmd,"`
 }
 
-var _ cloudCongfigAction = &runCmdAction{}
-
-func newRunCmdAction() cloudCongfigAction {
-	return &runCmdAction{}
+func newRunCmdAction() action {
+	return &runCmd{}
 }
 
-// Unmarshal the runCmdAction
-func (a *runCmdAction) Unmarshal(userData []byte) error {
+// Unmarshal the runCmd
+func (a *runCmd) Unmarshal(userData []byte) error {
 	if err := yaml.Unmarshal(userData, a); err != nil {
-		return errors.Wrapf(errors.WithStack(err), "error parsing write_files action: %s", userData)
+		return errors.Wrapf(err, "error parsing run_cmd action: %s", userData)
 	}
 	return nil
 }
 
-const prompt = "capd@docker$"
-const errorPrefix = "ERROR!"
-
-// Run the runCmdAction
-func (a *runCmdAction) Run(cmder exec.Cmder) ([]string, error) {
+// Run the runCmd
+func (a *runCmd) Run(cmder exec.Cmder) ([]string, error) {
 	var lines []string
 	for _, c := range a.Cmds {
 		// kubeadm in docker requires to ignore some errors, and this requires to modify the cmd generate by CABPK by default...

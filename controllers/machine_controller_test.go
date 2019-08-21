@@ -24,6 +24,7 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
+	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/kubernetes/scheme"
 	"k8s.io/utils/pointer"
@@ -196,5 +197,104 @@ func TestReconcileRequest(t *testing.T) {
 		}
 
 		Expect(result).To(Equal(tc.expected.result))
+	}
+}
+
+func TestIsDeletionReady(t *testing.T) {
+	RegisterTestingT(t)
+
+	bootstrapConfig := &unstructured.Unstructured{
+		Object: map[string]interface{}{
+			"kind":       "BootstrapConfig",
+			"apiVersion": "bootstrap.cluster.x-k8s.io/v1alpha2",
+			"metadata": map[string]interface{}{
+				"name":      "delete-bootstrap",
+				"namespace": "default",
+			},
+		},
+	}
+
+	infraConfig := &unstructured.Unstructured{
+		Object: map[string]interface{}{
+			"kind":       "InfrastructureConfig",
+			"apiVersion": "infrastructure.cluster.x-k8s.io/v1alpha2",
+			"metadata": map[string]interface{}{
+				"name":      "delete-infra",
+				"namespace": "default",
+			},
+		},
+	}
+
+	machine := v1alpha2.Machine{
+		TypeMeta: metav1.TypeMeta{
+			Kind: "Machine",
+		},
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "delete",
+			Namespace: "default",
+		},
+		Spec: v1alpha2.MachineSpec{
+			InfrastructureRef: corev1.ObjectReference{
+				APIVersion: "infrastructure.cluster.x-k8s.io/v1alpha2",
+				Kind:       "InfrastructureConfig",
+				Name:       "delete-infra",
+			},
+			Bootstrap: v1alpha2.Bootstrap{
+				ConfigRef: &corev1.ObjectReference{
+					APIVersion: "bootstrap.cluster.x-k8s.io/v1alpha2",
+					Kind:       "BootstrapConfig",
+					Name:       "delete-bootstrap",
+				},
+			},
+		},
+	}
+
+	testCases := []struct {
+		bootstrapExists bool
+		infraExists     bool
+		expected        bool
+	}{
+		{
+			bootstrapExists: true,
+			infraExists:     true,
+			expected:        false,
+		},
+		{
+			bootstrapExists: false,
+			infraExists:     true,
+			expected:        false,
+		},
+		{
+			bootstrapExists: true,
+			infraExists:     false,
+			expected:        false,
+		},
+		{
+			bootstrapExists: false,
+			infraExists:     false,
+			expected:        true,
+		},
+	}
+
+	for _, tc := range testCases {
+		myscheme := runtime.NewScheme()
+		v1alpha2.AddToScheme(myscheme)
+
+		objs := []runtime.Object{&machine}
+
+		if tc.bootstrapExists {
+			objs = append(objs, bootstrapConfig)
+		}
+
+		if tc.infraExists {
+			objs = append(objs, infraConfig)
+		}
+
+		r := &MachineReconciler{
+			Client: fake.NewFakeClientWithScheme(myscheme, objs...),
+			Log:    log.Log,
+		}
+
+		Expect(r.isDeleteReady(ctx, &machine)).To(Equal(tc.expected))
 	}
 }

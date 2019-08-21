@@ -1,3 +1,5 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
 # Adds namespace to all resources.
 namespace: capd-system
 
@@ -12,10 +14,6 @@ namePrefix: capd-
 #commonLabels:
 #  someName: someValue
 
-bases:
-- ../crd
-- ../rbac
-- ../manager
 # [WEBHOOK] To enable webhook, uncomment all the sections with [WEBHOOK] prefix including the one in crd/kustomization.yaml
 #- ../webhook
 # [CERTMANAGER] To enable cert-manager, uncomment all sections with 'CERTMANAGER'. 'WEBHOOK' components are required.
@@ -43,7 +41,7 @@ patchesStrategicMerge:
 #- webhookcainjection_patch.yaml
 
 # the following config is for teaching kustomize how to do var substitution
-vars:
+# vars:
 # [CERTMANAGER] To enable cert-manager, uncomment all sections with 'CERTMANAGER' prefix.
 #- name: CERTIFICATE_NAMESPACE # namespace of the certificate CR
 #  objref:
@@ -71,3 +69,7 @@ vars:
 #    kind: Service
 #    version: v1
 #    name: webhook-service
+resources:
+- ../crd
+- ../rbac
+- ../manager

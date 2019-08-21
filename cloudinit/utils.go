@@ -22,10 +22,6 @@ import (
 	"text/template"
 )
 
-const (
-	rootOwnerValue = "root:root"
-)
-
 var (
 	defaultTemplateFuncMap = template.FuncMap{
 		"Base64Encode": templateBase64Encode,

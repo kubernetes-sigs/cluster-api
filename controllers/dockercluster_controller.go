@@ -25,19 +25,18 @@ import (
 	infrav1 "sigs.k8s.io/cluster-api-provider-docker/api/v1alpha2"
 	"sigs.k8s.io/cluster-api-provider-docker/docker"
 	"sigs.k8s.io/cluster-api-provider-docker/third_party/forked/loadbalancer"
-	capiv1alpha2 "sigs.k8s.io/cluster-api/api/v1alpha2"
+	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha2"
 	"sigs.k8s.io/cluster-api/util"
 	"sigs.k8s.io/cluster-api/util/patch"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/handler"
 	"sigs.k8s.io/controller-runtime/pkg/log"
-	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 	"sigs.k8s.io/controller-runtime/pkg/source"
 )
 
 const (
-	controllerName = "DockerCluster-controller"
+	clusterControllerName = "DockerCluster-controller"
 )
 
 // DockerClusterReconciler reconciles a DockerCluster object
@@ -53,7 +52,7 @@ type DockerClusterReconciler struct {
 // and what is in the DockerCluster.Spec
 func (r *DockerClusterReconciler) Reconcile(req ctrl.Request) (_ ctrl.Result, rerr error) {
 	ctx := context.Background()
-	log := log.Log.WithName(controllerName).WithValues("dockerCluster", req.NamespacedName)
+	log := log.Log.WithName(clusterControllerName).WithValues("docker-cluster", req.NamespacedName)
 
 	// Fetch the DockerCluster instance
 	dockerCluster := &infrav1.DockerCluster{}
@@ -67,19 +66,19 @@ func (r *DockerClusterReconciler) Reconcile(req ctrl.Request) (_ ctrl.Result, re
 	// Fetch the Cluster.
 	cluster, err := util.GetOwnerCluster(ctx, r.Client, dockerCluster.ObjectMeta)
 	if err != nil {
-		return reconcile.Result{}, err
+		return ctrl.Result{}, err
 	}
 	if cluster == nil {
 		log.Info("Waiting for Cluster Controller to set OwnerRef on DockerCluster")
-		return reconcile.Result{}, nil
+		return ctrl.Result{}, nil
 	}
 
 	log = log.WithValues("cluster", cluster.Name)
 
-	// Create a service for managing the docker loadbalancer.
-	lbsvc, err := docker.NewLoadBalancer(cluster.Name, log)
+	// Create a helper for managing a docker container hosting the loadbalancer.
+	externalLoadBalancer, err := docker.NewLoadBalancer(cluster.Name, log)
 	if err != nil {
-		return reconcile.Result{}, errors.Errorf("failed to create scope: %+v", err)
+		return ctrl.Result{}, errors.Wrapf(err, "failed to create helper for managing the externalLoadBalancer")
 	}
 
 	// Initialize the patch helper
@@ -99,29 +98,28 @@ func (r *DockerClusterReconciler) Reconcile(req ctrl.Request) (_ ctrl.Result, re
 
 	// Handle deleted clusters
 	if !dockerCluster.DeletionTimestamp.IsZero() {
-		return reconcileDelete(dockerCluster, lbsvc)
+		return reconcileDelete(dockerCluster, externalLoadBalancer)
 	}
 
 	// Handle non-deleted clusters
-	return reconcileNormal(dockerCluster, lbsvc)
+	return reconcileNormal(dockerCluster, externalLoadBalancer)
 }
 
-func reconcileNormal(dockerCluster *infrav1.DockerCluster, lbsvc *docker.LoadBalancer) (reconcile.Result, error) {
+func reconcileNormal(dockerCluster *infrav1.DockerCluster, externalLoadBalancer *docker.LoadBalancer) (ctrl.Result, error) {
 	// If the DockerCluster doesn't have finalizer, add it.
 	if !util.Contains(dockerCluster.Finalizers, infrav1.ClusterFinalizer) {
 		dockerCluster.Finalizers = append(dockerCluster.Finalizers, infrav1.ClusterFinalizer)
 	}
 
 	//Create the docker container hosting the load balancer
-	n, err := lbsvc.Create()
-	if err != nil {
-		return reconcile.Result{}, errors.Wrapf(err, "failed to reconcile load balancer for DockerCluster %s/%s", dockerCluster.Namespace, dockerCluster.Name)
+	if err := externalLoadBalancer.Create(); err != nil {
+		return ctrl.Result{}, errors.Wrap(err, "failed to create load balancer")
 	}
 
-	// Set APIEndpoints with the load balancer IP so the Cluster API Cluster Controller can pull them
-	lbip4, _, err := n.IP()
+	// Set APIEndpoints with the load balancer IP so the Cluster API Cluster Controller can pull it
+	lbip4, err := externalLoadBalancer.IP()
 	if err != nil {
-		return reconcile.Result{}, errors.Wrapf(err, "failed to get ip for the load balancer for DockerCluster %s/%s", dockerCluster.Namespace, dockerCluster.Name)
+		return ctrl.Result{}, errors.Wrap(err, "failed to get ip for the load balancer")
 	}
 
 	dockerCluster.Status.APIEndpoints = []infrav1.APIEndpoint{
@@ -134,19 +132,19 @@ func reconcileNormal(dockerCluster *infrav1.DockerCluster, lbsvc *docker.LoadBal
 	// Mark the dockerCluster ready
 	dockerCluster.Status.Ready = true
 
-	return reconcile.Result{}, nil
+	return ctrl.Result{}, nil
 }
 
-func reconcileDelete(dockerCluster *infrav1.DockerCluster, lbsvc *docker.LoadBalancer) (reconcile.Result, error) {
+func reconcileDelete(dockerCluster *infrav1.DockerCluster, externalLoadBalancer *docker.LoadBalancer) (ctrl.Result, error) {
 	// Delete the docker container hosting the load balancer
-	if err := lbsvc.Delete(); err != nil {
-		return reconcile.Result{}, errors.Wrapf(err, "error deleting load balancer for DockerCluster %s/%s", dockerCluster.Namespace, dockerCluster.Name)
+	if err := externalLoadBalancer.Delete(); err != nil {
+		return ctrl.Result{}, errors.Wrap(err, "failed to delete load balancer")
 	}
 
 	// Cluster is deleted so remove the finalizer.
 	dockerCluster.Finalizers = util.Filter(dockerCluster.Finalizers, infrav1.ClusterFinalizer)
 
-	return reconcile.Result{}, nil
+	return ctrl.Result{}, nil
 }
 
 // SetupWithManager will add watches for this controller
@@ -154,7 +152,7 @@ func (r *DockerClusterReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewControllerManagedBy(mgr).
 		For(&infrav1.DockerCluster{}).
 		Watches(
-			&source.Kind{Type: &capiv1alpha2.Cluster{}},
+			&source.Kind{Type: &clusterv1.Cluster{}},
 			&handler.EnqueueRequestsFromMapFunc{
 				ToRequests: util.ClusterToInfrastructureMapFunc(infrav1.GroupVersion.WithKind("DockerCluster")),
 			},

@@ -24,104 +24,125 @@ import (
 	"sigs.k8s.io/cluster-api-provider-docker/third_party/forked/loadbalancer"
 	"sigs.k8s.io/kind/pkg/cluster/constants"
 	"sigs.k8s.io/kind/pkg/cluster/nodes"
+	"sigs.k8s.io/kind/pkg/container/docker"
 )
 
 // LoadBalancer manages the load balancer for a specific docker cluster.
 type LoadBalancer struct {
-	logr.Logger
-	Name string
+	log       logr.Logger
+	name      string
+	container *nodes.Node
 }
 
-// NewLoadBalancer returns a new LoadBalancer with a given name.
+// NewLoadBalancer returns a new helper for managing a docker loadbalancer with a given name.
 func NewLoadBalancer(name string, logger logr.Logger) (*LoadBalancer, error) {
 	if name == "" {
-		return nil, errors.New("name is required when creating a LoadBalancer")
+		return nil, errors.New("name is required when creating a docker.LoadBalancer")
 	}
 	if logger == nil {
-		return nil, errors.New("logger is required when creating a LoadBalancer")
+		return nil, errors.New("logger is required when creating a docker.LoadBalancer")
 	}
 
-	return &LoadBalancer{
-		Name:   name,
-		Logger: logger,
-	}, nil
-}
-
-// Create creates a docker container hosting a load balancer for the cluster.
-func (s *LoadBalancer) Create() (*nodes.Node, error) {
-	// Describe and create if not exists.
-	lb, err := s.container()
+	container, err := getContainer(
+		withLabel(clusterLabel(name)),
+		withLabel(roleLabel(constants.ExternalLoadBalancerNodeRoleValue)),
+	)
 	if err != nil {
 		return nil, err
 	}
 
-	if lb == nil {
-		s.Info("Creating load balancer container")
-		lb, err = nodes.CreateExternalLoadBalancerNode(
+	return &LoadBalancer{
+		name:      name,
+		container: container,
+		log:       logger,
+	}, nil
+}
+
+// ContainerName is the name of the docker container with the load balancer
+func (s *LoadBalancer) containerName() string {
+	return fmt.Sprintf("%s-lb", s.name)
+}
+
+// Create creates a docker container hosting a load balancer for the cluster.
+func (s *LoadBalancer) Create() error {
+	// Create if not exists.
+	if s.container == nil {
+		var err error
+		s.log.Info("Creating load balancer container")
+		s.container, err = nodes.CreateExternalLoadBalancerNode(
 			s.containerName(),
 			loadbalancer.Image,
-			s.ClusterLabel(),
+			clusterLabel(s.name),
 			"0.0.0.0",
 			0,
 		)
 		if err != nil {
-			return nil, err
-		}
-	}
-
-	return lb, nil
-}
-
-// Delete the docker containers hosting a loadbalancer for the cluster.
-func (s *LoadBalancer) Delete() error {
-	// Describe and delete if exists.
-	lb, err := s.container()
-	if err != nil {
-		return err
-	}
-
-	if lb != nil {
-		s.Info("Deleting load balancer container")
-		if err := nodes.Delete(*lb); err != nil {
-			return err
+			return errors.WithStack(err)
 		}
 	}
 
 	return nil
 }
 
-// containerName is the name of the docker container with the load balancer
-func (s *LoadBalancer) containerName() string {
-	return fmt.Sprintf("%s-lb", s.Name)
-}
+// UpdateConfiguration updates the external load balancer configuration with new control plane nodes.
+func (s *LoadBalancer) UpdateConfiguration() error {
+	if s.container == nil {
+		return errors.New("unable to configure load balancer: load balancer container does not exists")
+	}
 
-// ClusterLabel is the label of the docker containers for this cluster
-func (s *LoadBalancer) ClusterLabel() string {
-	return fmt.Sprintf("%s=%s", constants.ClusterLabelKey, s.Name)
-}
-
-// roleLabel is the label of the docker container with the load balancer
-func (s *LoadBalancer) roleLabel() string {
-	return fmt.Sprintf("%s=%s", constants.NodeRoleKey, constants.ExternalLoadBalancerNodeRoleValue)
-}
-
-// container returns the docker container with the load balancer
-func (s *LoadBalancer) container() (*nodes.Node, error) {
-	n, err := nodes.List(
-		fmt.Sprintf("label=%s", s.ClusterLabel()),
-		fmt.Sprintf("label=%s", s.roleLabel()),
-		fmt.Sprintf("name=%s", s.containerName()),
+	// collect info about the existing controlplane nodes
+	controlPlaneNodes, err := listContainers(
+		withLabel(clusterLabel(s.name)),
+		withLabel(roleLabel(constants.ControlPlaneNodeRoleValue)),
 	)
 	if err != nil {
-		return nil, errors.Wrapf(err, "failed to list load balancer containers")
+		return errors.WithStack(err)
 	}
 
-	switch len(n) {
-	case 0:
-		return nil, nil
-	case 1:
-		return &n[0], nil
-	default:
-		return nil, errors.Errorf("expected 0 or 1 load balancer container, got %d", len(n))
+	var backendServers = map[string]string{}
+	for _, n := range controlPlaneNodes {
+		controlPlaneIPv4, _, err := n.IP()
+		if err != nil {
+			return errors.Wrapf(err, "failed to get IP for container %s", n.Name())
+		}
+		backendServers[n.Name()] = fmt.Sprintf("%s:%d", controlPlaneIPv4, 6443)
 	}
+
+	// create loadbalancer config data
+	loadbalancerConfig, err := loadbalancer.Config(&loadbalancer.ConfigData{
+		ControlPlanePort: loadbalancer.ControlPlanePort,
+		BackendServers:   backendServers,
+	})
+	if err != nil {
+		return errors.WithStack(err)
+	}
+
+	s.log.Info("Updating load balancer configuration")
+	if err := s.container.WriteFile(loadbalancer.ConfigPath, loadbalancerConfig); err != nil {
+		return errors.WithStack(err)
+	}
+
+	return errors.WithStack(docker.Kill("SIGHUP", s.containerName()))
+}
+
+// IP returns the load balancer IP address
+func (s *LoadBalancer) IP() (string, error) {
+	lbip4, _, err := s.container.IP()
+	if err != nil {
+		return "", errors.WithStack(err)
+	}
+	return lbip4, nil
+}
+
+// Delete the docker containers hosting a loadbalancer for the cluster.
+func (s *LoadBalancer) Delete() error {
+	// Delete if exists.
+	if s.container != nil {
+		s.log.Info("Deleting load balancer container")
+		if err := nodes.Delete(*s.container); err != nil {
+			return err
+		}
+	}
+
+	return nil
 }

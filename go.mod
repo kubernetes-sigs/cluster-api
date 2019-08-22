@@ -3,13 +3,11 @@ module sigs.k8s.io/cluster-api-provider-docker
 go 1.12
 
 require (
-	github.com/emicklei/go-restful v2.9.6+incompatible // indirect
 	github.com/ghodss/yaml v1.0.0
 	github.com/go-logr/logr v0.1.0
-	github.com/go-openapi/spec v0.19.2 // indirect
 	github.com/googleapis/gnostic v0.3.0 // indirect
-	github.com/mailru/easyjson v0.0.0-20190620125010-da37f6c1e481 // indirect
 	github.com/pkg/errors v0.8.1
+	golang.org/x/crypto v0.0.0-20190611184440-5c40567a22f8 // indirect
 	golang.org/x/net v0.0.0-20190620200207-3b0461eec859 // indirect
 	golang.org/x/sys v0.0.0-20190621203818-d432491b9138 // indirect
 	k8s.io/apimachinery v0.0.0-20190404173353-6a84e37a896d

@@ -32,25 +32,6 @@ import (
 	"sigs.k8s.io/cluster-api/api/v1alpha2"
 )
 
-func generateMSWithLabel(labels map[string]string, image string) v1alpha2.MachineSet {
-	return v1alpha2.MachineSet{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:   names.SimpleNameGenerator.GenerateName("machineset"),
-			Labels: labels,
-		},
-		Spec: v1alpha2.MachineSetSpec{
-			Replicas: func(i int32) *int32 { return &i }(1),
-			Selector: metav1.LabelSelector{MatchLabels: labels},
-			Template: v1alpha2.MachineTemplateSpec{
-				ObjectMeta: v1alpha2.ObjectMeta{
-					Labels: labels,
-				},
-				Spec: v1alpha2.MachineSpec{},
-			},
-		},
-	}
-}
-
 func newDControllerRef(d *v1alpha2.MachineDeployment) *metav1.OwnerReference {
 	isController := true
 	return &metav1.OwnerReference{
@@ -335,26 +316,6 @@ func TestFindOldMachineSets(t *testing.T) {
 			}
 		})
 	}
-}
-
-// equal compares the equality of two MachineSet slices regardless of their ordering
-func equal(mss1, mss2 []*v1alpha2.MachineSet) bool {
-	if reflect.DeepEqual(mss1, mss2) {
-		return true
-	}
-	if mss1 == nil || mss2 == nil || len(mss1) != len(mss2) {
-		return false
-	}
-	count := 0
-	for _, ms1 := range mss1 {
-		for _, ms2 := range mss2 {
-			if reflect.DeepEqual(ms1, ms2) {
-				count++
-				break
-			}
-		}
-	}
-	return count == len(mss1)
 }
 
 func TestGetReplicaCountForMachineSets(t *testing.T) {

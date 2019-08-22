@@ -203,6 +203,9 @@ func KubeadmReset(clusterName, nodeName string) error {
 		fmt.Sprintf("label=%s=%s", constants.NodeRoleKey, constants.ControlPlaneNodeRoleValue),
 		fmt.Sprintf("name=^%s$", nodeName),
 	)
+	if err != nil {
+		return errors.Wrap(err, "could not list nodes")
+	}
 	if len(nodeList) < 1 {
 		return errors.Errorf("could not find node %q", nodeName)
 	}

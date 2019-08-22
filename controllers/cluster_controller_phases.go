@@ -37,25 +37,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/source"
 )
 
-func (r *ClusterReconciler) reconcile(ctx context.Context, cluster *v1alpha2.Cluster) (err error) {
-	// TODO(vincepri): These can be generalized with an interface and possibly a for loop.
-	errors := []error{}
-	errors = append(errors, r.reconcileInfrastructure(ctx, cluster))
-	errors = append(errors, r.reconcilePhase(ctx, cluster))
-
-	// Determine the return error, giving precedence to the first non-nil and non-requeueAfter errors.
-	for _, e := range errors {
-		if e == nil {
-			continue
-		}
-		if err == nil || capierrors.IsRequeueAfter(err) {
-			err = e
-		}
-	}
-	return err
-}
-
-func (r *ClusterReconciler) reconcilePhase(ctx context.Context, cluster *v1alpha2.Cluster) error {
+func (r *ClusterReconciler) reconcilePhase(ctx context.Context, cluster *v1alpha2.Cluster) {
 	// Set the phase to "pending" if nil.
 	if cluster.Status.Phase == "" {
 		cluster.Status.SetTypedPhase(v1alpha2.ClusterPhasePending)
@@ -80,17 +62,13 @@ func (r *ClusterReconciler) reconcilePhase(ctx context.Context, cluster *v1alpha
 	if !cluster.DeletionTimestamp.IsZero() {
 		cluster.Status.SetTypedPhase(v1alpha2.ClusterPhaseDeleting)
 	}
-
-	return nil
 }
 
 // reconcileExternal handles generic unstructured objects referenced by a Cluster.
 func (r *ClusterReconciler) reconcileExternal(ctx context.Context, cluster *v1alpha2.Cluster, ref *corev1.ObjectReference) (*unstructured.Unstructured, error) {
 	obj, err := external.Get(r.Client, ref, cluster.Namespace)
 	if err != nil {
-		if apierrors.IsNotFound(err) && !cluster.DeletionTimestamp.IsZero() {
-			return nil, nil
-		} else if apierrors.IsNotFound(err) {
+		if apierrors.IsNotFound(err) {
 			return nil, errors.Wrapf(&capierrors.RequeueAfterError{RequeueAfter: 30 * time.Second},
 				"could not find %v %q for Cluster %q in namespace %q, requeuing",
 				ref.GroupVersionKind(), ref.Name, cluster.Name, cluster.Namespace)
@@ -99,16 +77,6 @@ func (r *ClusterReconciler) reconcileExternal(ctx context.Context, cluster *v1al
 	}
 
 	objPatch := client.MergeFrom(obj.DeepCopy())
-
-	// Delete the external object if the Cluster is being deleted.
-	if !cluster.DeletionTimestamp.IsZero() {
-		if err := r.Delete(ctx, obj); err != nil {
-			return nil, errors.Wrapf(err,
-				"failed to delete %v %q for Cluster %q in namespace %q",
-				obj.GroupVersionKind(), ref.Name, cluster.Name, cluster.Namespace)
-		}
-		return obj, nil
-	}
 
 	// Set external object OwnerReference to the Cluster.
 	ownerRef := metav1.OwnerReference{
@@ -165,9 +133,7 @@ func (r *ClusterReconciler) reconcileInfrastructure(ctx context.Context, cluster
 
 	// Call generic external reconciler.
 	infraConfig, err := r.reconcileExternal(ctx, cluster, cluster.Spec.InfrastructureRef)
-	if infraConfig == nil && err == nil {
-		return nil
-	} else if err != nil {
+	if err != nil {
 		return err
 	}
 

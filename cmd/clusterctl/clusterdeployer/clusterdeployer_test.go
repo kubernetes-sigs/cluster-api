@@ -1495,13 +1495,6 @@ func newMachineDeploymentsFixture(ns string) []*clusterv1.MachineDeployment {
 	}
 }
 
-func newClustersFixture(ns string) []*clusterv1.Cluster {
-	return []*clusterv1.Cluster{
-		{ObjectMeta: metav1.ObjectMeta{Name: "cluster-name-1", Namespace: ns}},
-		{ObjectMeta: metav1.ObjectMeta{Name: "cluster-name-2", Namespace: ns}},
-	}
-}
-
 func newTempFile(t *testing.T) string {
 	kubeconfigOutFile, err := ioutil.TempFile("", "")
 	if err != nil {

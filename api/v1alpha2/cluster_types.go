@@ -47,13 +47,16 @@ type ClusterSpec struct {
 // parameters for a cluster.
 type ClusterNetworkingConfig struct {
 	// The network ranges from which service VIPs are allocated.
-	Services NetworkRanges `json:"services"`
+	// +optional
+	Services NetworkRanges `json:"services,omitempty"`
 
 	// The network ranges from which Pod networks are allocated.
-	Pods NetworkRanges `json:"pods"`
+	// +optional
+	Pods NetworkRanges `json:"pods,omitempty"`
 
 	// Domain name for services.
-	ServiceDomain string `json:"serviceDomain"`
+	// +optional
+	ServiceDomain string `json:"serviceDomain,omitempty"`
 }
 
 /// [ClusterNetworkingConfig]

@@ -67,10 +67,6 @@ spec:
                   required:
                   - cidrBlocks
                   type: object
-              required:
-              - pods
-              - serviceDomain
-              - services
               type: object
             infrastructureRef:
               description: InfrastructureRef is a reference to a provider-specific

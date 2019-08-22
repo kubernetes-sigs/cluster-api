@@ -64,6 +64,14 @@ type KubeadmConfigStatus struct {
 	// BootstrapData will be a cloud-init script for now
 	// +optional
 	BootstrapData []byte `json:"bootstrapData,omitempty"`
+
+	// ErrorReason will be set on non-retryable errors
+	// +optional
+	ErrorReason string `json:"errorReason,omitempty"`
+
+	// ErrorMessage will be set on non-retryable errors
+	// +optional
+	ErrorMessage string `json:"errorMessage,omitempty"`
 }
 
 // +kubebuilder:object:root=true

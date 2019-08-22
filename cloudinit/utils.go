@@ -38,7 +38,3 @@ func templateYAMLIndent(i int, input string) string {
 	ident := "\n" + strings.Repeat(" ", i)
 	return strings.Repeat(" ", i) + strings.Join(split, ident)
 }
-
-func isKeyPairValid(cert, key string) bool {
-	return cert != "" && key != ""
-}

@@ -17,7 +17,7 @@ limitations under the License.
 package v1beta2
 
 import (
-	"k8s.io/api/core/v1"
+	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
@@ -201,9 +201,9 @@ type NodeRegistrationOptions struct {
 	CRISocket string `json:"criSocket,omitempty"`
 
 	// Taints specifies the taints the Node API object should be registered with. If this field is unset, i.e. nil, in the `kubeadm init` process
-	// it will be defaulted to []v1.Taint{'node-role.kubernetes.io/master=""'}. If you don't want to taint your control-plane node, set this field to an
+	// it will be defaulted to []corev1.Taint{'node-role.kubernetes.io/master=""'}. If you don't want to taint your control-plane node, set this field to an
 	// empty slice, i.e. `taints: {}` in the YAML file. This field is solely used for Node registration.
-	Taints []v1.Taint `json:"taints"`
+	Taints []corev1.Taint `json:"taints"`
 
 	// KubeletExtraArgs passes through extra arguments to the kubelet. The arguments here are passed to the kubelet command line via the environment file
 	// kubeadm writes at runtime for the kubelet to source. This overrides the generic base-level configuration in the kubelet-config-1.X ConfigMap
@@ -391,5 +391,5 @@ type HostPathMount struct {
 	// ReadOnly controls write access to the volume
 	ReadOnly bool `json:"readOnly,omitempty"`
 	// PathType is the type of the HostPath.
-	PathType v1.HostPathType `json:"pathType,omitempty"`
+	PathType corev1.HostPathType `json:"pathType,omitempty"`
 }

@@ -73,6 +73,7 @@ func (n *Node) Create(cloudConfig []byte) (*nodes.Node, error) {
 			if err := actions.GetKubeConfig(cp, dest, hostAddress, hostPort); err != nil {
 				return nil, errors.Wrap(err, "failed to get kubeconfig from node")
 			}
+			return cp, nil
 		}
 		log.Info("Adding an additional control plane node")
 		return n.MachineActions.AddControlPlane(n.Cluster, n.Machine, n.Version, cloudConfig)

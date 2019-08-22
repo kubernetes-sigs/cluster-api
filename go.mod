@@ -22,7 +22,7 @@ require (
 	k8s.io/component-base v0.0.0-20190409021516-bd2732e5c3f7
 	k8s.io/klog v0.4.0
 	k8s.io/utils v0.0.0-20190506122338-8fab8cb257d5
-	sigs.k8s.io/controller-runtime v0.2.0-rc.0
-	sigs.k8s.io/controller-tools v0.2.0-rc.0
+	sigs.k8s.io/controller-runtime v0.2.0
+	sigs.k8s.io/controller-tools v0.2.0
 	sigs.k8s.io/testing_frameworks v0.1.2-0.20190130140139-57f07443c2d4
 )

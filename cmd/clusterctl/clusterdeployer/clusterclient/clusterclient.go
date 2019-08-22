@@ -18,7 +18,6 @@ package clusterclient
 
 import (
 	"context"
-	"fmt"
 	"io"
 	"io/ioutil"
 	"os"
@@ -40,6 +39,7 @@ import (
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha2"
 	"sigs.k8s.io/cluster-api/cmd/clusterctl/clientcmd"
 	"sigs.k8s.io/cluster-api/util"
+	kcfg "sigs.k8s.io/cluster-api/util/kubeconfig"
 	ctrlclient "sigs.k8s.io/controller-runtime/pkg/client"
 )
 
@@ -166,17 +166,16 @@ func (c *client) EnsureNamespace(namespaceName string) error {
 }
 
 func (c *client) GetKubeconfigFromSecret(namespace, clusterName string) (string, error) {
-	clientset, err := clientcmd.NewCoreClientSetForDefaultSearchPath(c.kubeconfigFile, clientcmd.NewConfigOverrides())
-	if err != nil {
-		return "", errors.Wrap(err, "error creating core clientset")
-	}
-
-	secretName := fmt.Sprintf("%s-kubeconfig", clusterName)
-	secret, err := clientset.CoreV1().Secrets(namespace).Get(secretName, metav1.GetOptions{})
+	secret, err := kcfg.GetSecret(c.clientSet, clusterName, namespace)
 	if err != nil {
 		return "", err
 	}
-	return string(secret.Data["value"]), nil
+
+	data, err := kcfg.Extract(secret)
+	if err != nil {
+		return "", err
+	}
+	return string(data), nil
 }
 
 func (c *client) ScaleStatefulSet(ns string, name string, scale int32) error {

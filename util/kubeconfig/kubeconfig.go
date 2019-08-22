@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package remote
+package kubeconfig
 
 import (
 	"context"
@@ -27,7 +27,9 @@ import (
 )
 
 const (
-	kubeconfigSecretKey = "value"
+	// SecretKey is the key used for accessing contents of the KubeConfig
+	// Secret.
+	SecretKey = "value"
 )
 
 var (
@@ -35,19 +37,19 @@ var (
 	ErrSecretMissingValue = errors.New("missing value in secret")
 )
 
-// KubeConfigSecretName generates the expected name for the Kubeconfig secret
-// to access a remote cluster given the cluster's name.
-func KubeConfigSecretName(cluster string) string {
+// SecretName generates the expected name for the KubeConfig Secret to access
+// a remote cluster given the cluster's name.
+func SecretName(cluster string) string {
 	return fmt.Sprintf("%s-kubeconfig", cluster)
 }
 
-// GetKubeConfigSecret retrieves the KubeConfig Secret (if any)
-// from the given cluster name and namespace.
-func GetKubeConfigSecret(c client.Client, cluster, namespace string) (*corev1.Secret, error) {
+// GetSecret retrieves the KubeConfig Secret (if any) from the given
+// cluster name and namespace.
+func GetSecret(c client.Client, cluster, namespace string) (*corev1.Secret, error) {
 	secret := &corev1.Secret{}
 	secretKey := client.ObjectKey{
 		Namespace: namespace,
-		Name:      KubeConfigSecretName(cluster),
+		Name:      SecretName(cluster),
 	}
 
 	if err := c.Get(context.TODO(), secretKey, secret); err != nil {
@@ -60,9 +62,9 @@ func GetKubeConfigSecret(c client.Client, cluster, namespace string) (*corev1.Se
 	return secret, nil
 }
 
-// KubeConfigFromSecret uses the Secret to retrieve the KubeConfig.
-func KubeConfigFromSecret(secret *corev1.Secret) ([]byte, error) {
-	data, ok := secret.Data[kubeconfigSecretKey]
+// Extract uses the Secret to retrieve the KubeConfig.
+func Extract(secret *corev1.Secret) ([]byte, error) {
+	data, ok := secret.Data[SecretKey]
 	if !ok {
 		return nil, ErrSecretMissingValue
 	}

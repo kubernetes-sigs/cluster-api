@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package remote
+package kubeconfig
 
 import (
 	"reflect"
@@ -53,24 +53,14 @@ users:
 			Namespace: "test",
 		},
 		Data: map[string][]byte{
-			kubeconfigSecretKey: []byte(validKubeConfig),
-		},
-	}
-
-	invalidSecret = &corev1.Secret{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      "test2-kubeconfig",
-			Namespace: "test",
-		},
-		Data: map[string][]byte{
-			kubeconfigSecretKey: []byte("Not valid!!1"),
+			SecretKey: []byte(validKubeConfig),
 		},
 	}
 )
 
 func TestGetKubeConfigSecret(t *testing.T) {
 	client := fake.NewFakeClient(validSecret)
-	found, err := GetKubeConfigSecret(client, "test1", "test")
+	found, err := GetSecret(client, "test1", "test")
 	if err != nil {
 		t.Fatalf("Expected no error, got %v", err)
 	}
@@ -82,7 +72,7 @@ func TestGetKubeConfigSecret(t *testing.T) {
 
 func TestKubeConfigFromSecret(t *testing.T) {
 	t.Run("with valid secret", func(t *testing.T) {
-		out, err := KubeConfigFromSecret(validSecret)
+		out, err := Extract(validSecret)
 		if err != nil {
 			t.Fatalf("Expected no error, got %v", err)
 		}

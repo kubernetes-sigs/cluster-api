@@ -33,6 +33,8 @@ runcmd:
 {{- template "commands" .PreKubeadmCommands }}
   - 'kubeadm join --config /tmp/kubeadm-controlplane-join-config.yaml'
 {{- template "commands" .PostKubeadmCommands }}
+{{- template "ntp" .NTP }}
+{{- template "users" .Users }}
 `
 )
 

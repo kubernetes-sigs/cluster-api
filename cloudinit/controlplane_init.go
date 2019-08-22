@@ -33,6 +33,8 @@ runcmd:
 {{- template "commands" .PreKubeadmCommands }}
   - 'kubeadm init --config /tmp/kubeadm.yaml'
 {{- template "commands" .PostKubeadmCommands }}
+{{- template "ntp" .NTP }}
+{{- template "users" .Users }}
 `
 )
 

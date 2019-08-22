@@ -295,6 +295,7 @@ func TestIsDeletionReady(t *testing.T) {
 			Log:    log.Log,
 		}
 
-		Expect(r.isDeleteReady(ctx, &machine)).To(Equal(tc.expected))
+		ok, _ := r.reconcileDeleteExternal(ctx, &machine)
+		Expect(ok).To(Equal(tc.expected))
 	}
 }

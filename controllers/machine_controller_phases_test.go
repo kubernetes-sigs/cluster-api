@@ -27,7 +27,6 @@ import (
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/utils/pointer"
 	"sigs.k8s.io/cluster-api/api/v1alpha2"
-	capierrors "sigs.k8s.io/cluster-api/errors"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 	"sigs.k8s.io/controller-runtime/pkg/log"
 )
@@ -360,11 +359,13 @@ func TestReconcilePhase(t *testing.T) {
 				Log:    log.Log,
 			}
 
-			err := r.reconcile(context.Background(), nil, tc.machine)
+			res, err := r.reconcile(context.Background(), nil, tc.machine)
+			r.reconcilePhase(context.Background(), tc.machine)
 			if tc.expectError {
 				g.Expect(err).ToNot(gomega.BeNil())
 			} else if tc.expectRequeueAfter {
-				g.Expect(capierrors.IsRequeueAfter(err)).To(gomega.BeTrue())
+				g.Expect(res.Requeue).To(gomega.BeTrue())
+				g.Expect(res.RequeueAfter.Seconds() > 0).To(gomega.BeTrue())
 			} else if !tc.expectError {
 				g.Expect(err).To(gomega.BeNil())
 			}

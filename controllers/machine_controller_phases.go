@@ -41,28 +41,7 @@ var (
 	externalReadyWait = 30 * time.Second
 )
 
-func (r *MachineReconciler) reconcile(ctx context.Context, cluster *v1alpha2.Cluster, m *v1alpha2.Machine) (err error) {
-	// TODO(vincepri): These can be generalized with an interface and possibly a for loop.
-	errors := []error{}
-	errors = append(errors, r.reconcileBootstrap(ctx, m))
-	errors = append(errors, r.reconcileInfrastructure(ctx, m))
-	errors = append(errors, r.reconcileNodeRef(ctx, cluster, m))
-	errors = append(errors, r.reconcilePhase(ctx, m))
-	errors = append(errors, r.reconcileClusterAnnotations(ctx, cluster, m))
-
-	// Determine the return error, giving precedence to the first non-nil and non-requeueAfter errors.
-	for _, e := range errors {
-		if e == nil {
-			continue
-		}
-		if err == nil || capierrors.IsRequeueAfter(err) {
-			err = e
-		}
-	}
-	return err
-}
-
-func (r *MachineReconciler) reconcilePhase(ctx context.Context, m *v1alpha2.Machine) error {
+func (r *MachineReconciler) reconcilePhase(ctx context.Context, m *v1alpha2.Machine) {
 	// Set the phase to "pending" if nil.
 	if m.Status.Phase == "" {
 		m.Status.SetTypedPhase(v1alpha2.MachinePhasePending)
@@ -92,17 +71,13 @@ func (r *MachineReconciler) reconcilePhase(ctx context.Context, m *v1alpha2.Mach
 	if !m.DeletionTimestamp.IsZero() {
 		m.Status.SetTypedPhase(v1alpha2.MachinePhaseDeleting)
 	}
-
-	return nil
 }
 
 // reconcileExternal handles generic unstructured objects referenced by a Machine.
 func (r *MachineReconciler) reconcileExternal(ctx context.Context, m *v1alpha2.Machine, ref *corev1.ObjectReference) (*unstructured.Unstructured, error) {
 	obj, err := external.Get(r.Client, ref, m.Namespace)
 	if err != nil {
-		if apierrors.IsNotFound(err) && !m.DeletionTimestamp.IsZero() {
-			return nil, nil
-		} else if apierrors.IsNotFound(err) {
+		if apierrors.IsNotFound(err) {
 			return nil, errors.Wrapf(&capierrors.RequeueAfterError{RequeueAfter: externalReadyWait},
 				"could not find %v %q for Machine %q in namespace %q, requeuing",
 				ref.GroupVersionKind(), ref.Name, m.Name, m.Namespace)
@@ -111,16 +86,6 @@ func (r *MachineReconciler) reconcileExternal(ctx context.Context, m *v1alpha2.M
 	}
 
 	objPatch := client.MergeFrom(obj.DeepCopy())
-
-	// Delete the external object if the Machine is being deleted.
-	if !m.DeletionTimestamp.IsZero() {
-		if err := r.Delete(ctx, obj); err != nil {
-			return nil, errors.Wrapf(err,
-				"failed to delete %v %q for Machine %q in namespace %q",
-				obj.GroupVersionKind(), ref.Name, m.Name, m.Namespace)
-		}
-		return obj, nil
-	}
 
 	// Set external object OwnerReference to the Machine.
 	machineOwnerRef := metav1.OwnerReference{
@@ -184,9 +149,7 @@ func (r *MachineReconciler) reconcileBootstrap(ctx context.Context, m *v1alpha2.
 	if m.Spec.Bootstrap.ConfigRef != nil {
 		var err error
 		bootstrapConfig, err = r.reconcileExternal(ctx, m, m.Spec.Bootstrap.ConfigRef)
-		if bootstrapConfig == nil && err == nil {
-			return nil
-		} else if err != nil {
+		if err != nil {
 			return err
 		}
 	}
@@ -273,12 +236,12 @@ func (r *MachineReconciler) reconcileInfrastructure(ctx context.Context, m *v1al
 // reconcileClusterAnnotations reconciles the annotations on the Cluster associated with Machines.
 // TODO(vincepri): Move to cluster controller once the proposal merges.
 func (r *MachineReconciler) reconcileClusterAnnotations(ctx context.Context, cluster *v1alpha2.Cluster, m *v1alpha2.Machine) error {
-	if !m.DeletionTimestamp.IsZero() || cluster == nil {
+	if cluster == nil {
 		return nil
 	}
 
 	// If the Machine is a control plane, it has a NodeRef and it's ready, set an annotation on the Cluster.
-	if util.IsControlPlaneMachine(m) && m.Status.NodeRef != nil && m.Status.InfrastructureReady {
+	if util.IsControlPlaneMachine(m) && m.Status.NodeRef != nil {
 		if cluster.Annotations == nil {
 			cluster.SetAnnotations(map[string]string{})
 		}

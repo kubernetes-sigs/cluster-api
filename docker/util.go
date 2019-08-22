@@ -36,7 +36,7 @@ func roleLabel(role string) string {
 
 // withName returns a filter on name for listContainers & getContainer
 func withName(name string) string {
-	return fmt.Sprintf("name=%s", name)
+	return fmt.Sprintf("name=^%s$", name)
 }
 
 // withLabel returns a filter on labels for listContainers & getContainer

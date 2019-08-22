@@ -35,6 +35,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/handler"
 	"sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/source"
+	"sigs.k8s.io/kind/pkg/cluster/constants"
 )
 
 const (
@@ -53,8 +54,8 @@ type DockerMachineReconciler struct {
 
 // Reconcile handles DockerMachine events
 func (r *DockerMachineReconciler) Reconcile(req ctrl.Request) (_ ctrl.Result, rerr error) {
-	ctx := context.TODO()
-	log := log.Log.WithName(machineControllerName).WithValues("dockerMachine", req.NamespacedName)
+	ctx := context.Background()
+	log := log.Log.WithName(machineControllerName).WithValues("docker-machine", req.NamespacedName)
 
 	// Fetch the DockerMachine instance.
 	dockerMachine := &infrav1.DockerMachine{}
@@ -107,21 +108,21 @@ func (r *DockerMachineReconciler) Reconcile(req ctrl.Request) (_ ctrl.Result, re
 		return ctrl.Result{RequeueAfter: 10 * time.Second}, nil
 	}
 
-	log = log.WithValues("dockerCluster", dockerCluster.Name)
+	log = log.WithValues("docker-cluster", dockerCluster.Name)
 
-	// Create a service for managing the docker machine.
+	// Create a helper for managing the docker container hosting the machine.
 	externalMachine, err := docker.NewMachine(cluster.Name, machine.Name, log)
 	if err != nil {
-		return ctrl.Result{}, errors.Wrapf(err, "failed to create docker machine service")
+		return ctrl.Result{}, errors.Wrapf(err, "failed to create helper for managing the externalMachine")
 	}
 
-	// Create a service for managing the docker loadbalancer.
-	// NB. the machine controller have to manage the cluster load balancer because the current implementation of the
+	// Create a helper for managing a docker container hosting the loadbalancer.
+	// NB. the machine controller has to manage the cluster load balancer because the current implementation of the
 	// docker load balancer does not support auto-discovery of control plane nodes, so CAPD should take care of
 	// updating the cluster load balancer configuration when control plane machines are added/removed
 	externalLoadBalancer, err := docker.NewLoadBalancer(cluster.Name, log)
 	if err != nil {
-		return ctrl.Result{}, errors.Wrapf(err, "failed to create docker loadbalancer service")
+		return ctrl.Result{}, errors.Wrapf(err, "failed to create helper for managing the externalLoadBalancer")
 	}
 
 	// Initialize the patch helper
@@ -145,10 +146,10 @@ func (r *DockerMachineReconciler) Reconcile(req ctrl.Request) (_ ctrl.Result, re
 	}
 
 	// Handle non-deleted machines
-	return r.reconcileNormal(machine, dockerMachine, externalMachine, externalLoadBalancer)
+	return r.reconcileNormal(machine, dockerMachine, externalMachine, externalLoadBalancer, log)
 }
 
-func (r *DockerMachineReconciler) reconcileNormal(machine *clusterv1.Machine, dockerMachine *infrav1.DockerMachine, externalMachine *docker.Machine, externalLoadBalancer *docker.LoadBalancer) (ctrl.Result, error) {
+func (r *DockerMachineReconciler) reconcileNormal(machine *clusterv1.Machine, dockerMachine *infrav1.DockerMachine, externalMachine *docker.Machine, externalLoadBalancer *docker.LoadBalancer, log logr.Logger) (ctrl.Result, error) {
 	// If the DockerMachine doesn't have finalizer, add it.
 	if !util.Contains(dockerMachine.Finalizers, infrav1.MachineFinalizer) {
 		dockerMachine.Finalizers = append(dockerMachine.Finalizers, infrav1.MachineFinalizer)
@@ -161,27 +162,22 @@ func (r *DockerMachineReconciler) reconcileNormal(machine *clusterv1.Machine, do
 
 	// Make sure bootstrap data is available and populated.
 	if machine.Spec.Bootstrap.Data == nil {
-		externalMachine.Info("Waiting for the Bootstrap provider controller to set bootstrap data")
+		log.Info("Waiting for the Bootstrap provider controller to set bootstrap data")
 		return ctrl.Result{}, nil
 	}
 
-	// Determine if the machine is the first control plane joining the cluster
-	isFirstControlPlane := util.IsControlPlaneMachine(machine) //&& m.Cluster.Annotations[clusterv1.ClusterAnnotationControlPlaneReady] != "true"
-
-	//Create the docker container hosting the load balancer
+	//Create the docker container hosting the machine
+	role := constants.WorkerNodeRoleValue
 	if util.IsControlPlaneMachine(machine) {
-		if err := externalMachine.CreateControlPlane(machine.Spec.Version); err != nil {
-			return ctrl.Result{}, errors.Wrap(err, "failed to create control plane DockerMachine")
-		}
-	} else {
-		if err := externalMachine.CreateWorker(machine.Spec.Version); err != nil {
-			return ctrl.Result{}, errors.Wrap(err, "failed to create worker DockerMachine")
-		}
+		role = constants.ControlPlaneNodeRoleValue
 	}
 
-	// if the machine is the first control plane added to the cluster, update the load balancer configuration
-	// NB. in case of the first control plane node this step must be executed before kubeadm init
-	if isFirstControlPlane {
+	if err := externalMachine.Create(role, machine.Spec.Version); err != nil {
+		return ctrl.Result{}, errors.Wrap(err, "failed to create worker DockerMachine")
+	}
+
+	// if the machine is a control plane added, update the load balancer configuration
+	if util.IsControlPlaneMachine(machine) {
 		if err := externalLoadBalancer.UpdateConfiguration(); err != nil {
 			return ctrl.Result{}, errors.Wrap(err, "failed to update DockerCluster.loadbalancer configuration")
 		}
@@ -194,17 +190,8 @@ func (r *DockerMachineReconciler) reconcileNormal(machine *clusterv1.Machine, do
 		return ctrl.Result{}, errors.Wrap(err, "failed to exec DockerMachine bootstrap")
 	}
 
-	// if the new machine is an additional control-plane node, update the load balancer configuration
-	// NB. in case of additional control plane nodes this step is executed after kubeadm join in order
-	// to not redirect traffic to an API server instance not yet ready.
-	if util.IsControlPlaneMachine(machine) && !isFirstControlPlane {
-		if err := externalLoadBalancer.UpdateConfiguration(); err != nil {
-			return ctrl.Result{}, errors.Wrap(err, "failed to update DockerCluster.loadbalancer configuration")
-		}
-	}
-
 	// Set the provider ID on the Kubernetes node corresponding to the external machine
-	// NB. this step is necessary because there is no a cloudcontroller for docker that executes this step
+	// NB. this step is necessary because there is no a cloud controller for docker that executes this step
 	if err := externalMachine.SetNodeProviderID(); err != nil {
 		return ctrl.Result{}, errors.Wrap(err, "failed to patch the Kubernetes node with the machine providerID")
 	}
@@ -250,20 +237,6 @@ func (r *DockerMachineReconciler) reconcileDelete(machine *clusterv1.Machine, do
 func (r *DockerMachineReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewControllerManagedBy(mgr).
 		For(&infrav1.DockerMachine{}).
-		/*
-			Watches(
-				&source.Kind{Type: &clusterv1.Cluster{}},
-				&handler.EnqueueRequestsFromMapFunc{
-					ToRequests: util.ClusterToInfrastructureMapFunc(infrav1.GroupVersion.WithKind("DockerMachine")),
-				},
-			).
-			Watches(
-				&source.Kind{Type: &infrav1.DockerCluster{}},
-				&handler.EnqueueRequestsFromMapFunc{
-					ToRequests: util.MachineToInfrastructureMapFunc(infrav1.GroupVersion.WithKind("DockerMachine")),
-				},
-			).
-		*/
 		Watches(
 			&source.Kind{Type: &clusterv1.Machine{}},
 			&handler.EnqueueRequestsFromMapFunc{

@@ -35,7 +35,7 @@ const (
 
 // Machine implement a service for managing the docker containers hosting a kubernetes nodes.
 type Machine struct {
-	logr.Logger
+	log       logr.Logger
 	cluster   string
 	machine   string
 	container *nodes.Node
@@ -64,8 +64,8 @@ func NewMachine(cluster, machine string, logger logr.Logger) (*Machine, error) {
 	return &Machine{
 		cluster:   cluster,
 		machine:   machine,
-		Logger:    logger,
 		container: container,
+		log:       logger,
 	}, nil
 }
 
@@ -79,50 +79,39 @@ func (m *Machine) ProviderID() string {
 	return fmt.Sprintf("docker:////%s", m.ContainerName())
 }
 
-// NodeName return the name of the Kubernetes node corresponding to this machine
-func (m *Machine) NodeName() string {
-	return m.ContainerName()
-}
-
 func machineContainerName(cluster, machine string) string {
 	return fmt.Sprintf("%s-%s", cluster, machine)
 }
 
-// CreateControlPlane creates a docker container hosting a Kubernetes node.
-func (m *Machine) CreateControlPlane(version *string) error {
+// Create creates a docker container hosting a Kubernetes node.
+func (m *Machine) Create(role string, version *string) error {
 	// Create if not exists.
 	if m.container == nil {
 		var err error
-		m.Info("Creating controlplane machine container")
-		m.container, err = nodes.CreateControlPlaneNode(
-			m.ContainerName(),
-			machineImage(version),
-			clusterLabel(m.cluster),
-			"127.0.0.1",
-			0,
-			nil,
-			nil,
-		)
-		if err != nil {
-			return errors.WithStack(err)
+		switch role {
+		case constants.ControlPlaneNodeRoleValue:
+			m.log.Info("Creating control plane machine container")
+			m.container, err = nodes.CreateControlPlaneNode(
+				m.ContainerName(),
+				machineImage(version),
+				clusterLabel(m.cluster),
+				"127.0.0.1",
+				0,
+				nil,
+				nil,
+			)
+		case constants.WorkerNodeRoleValue:
+			m.log.Info("Creating worker machine container")
+			m.container, err = nodes.CreateWorkerNode(
+				m.ContainerName(),
+				machineImage(version),
+				clusterLabel(m.cluster),
+				nil,
+				nil,
+			)
+		default:
+			return errors.Errorf("unable to create machine for role %s", role)
 		}
-	}
-	return nil
-}
-
-// CreateWorker creates a docker container hosting a Kubernetes node.
-func (m *Machine) CreateWorker(version *string) error {
-	// Create if not exists.
-	if m.container == nil {
-		var err error
-		m.Info("Creating worker machine container")
-		m.container, err = nodes.CreateWorkerNode(
-			m.ContainerName(),
-			machineImage(version),
-			clusterLabel(m.cluster),
-			nil,
-			nil,
-		)
 		if err != nil {
 			return errors.WithStack(err)
 		}
@@ -133,7 +122,7 @@ func (m *Machine) CreateWorker(version *string) error {
 // ExecBootstrap runs bootstrap on a node, this is generally `kubeadm <init|join>`
 func (m *Machine) ExecBootstrap(data string) error {
 	if m.container == nil {
-
+		return errors.New("unable to set ExecBootstrap. the container hosting this machine does not exists")
 	}
 
 	cloudConfig, err := base64.StdEncoding.DecodeString(data)
@@ -141,19 +130,17 @@ func (m *Machine) ExecBootstrap(data string) error {
 		return errors.Wrap(err, "failed to decode machine's bootstrap data")
 	}
 
-	m.Info("Running machine bootstrap scripts")
+	m.log.Info("Running machine bootstrap scripts")
 	lines, err := cloudinit.Run(cloudConfig, m.container.Cmder())
 	if err != nil {
-		for _, line := range lines {
-			fmt.Println(line)
-		}
+		m.log.Error(err, strings.Join(lines, "\n"))
 		return errors.Wrap(err, "failed to join a control plane node with kubeadm")
 	}
 
 	return nil
 }
 
-// SetNodeProviderID patches a node with docker://node-name as the providerID
+// SetNodeProviderID sets the docker provider ID for the kubernetes node
 func (m *Machine) SetNodeProviderID() error {
 	kubectlNode, err := m.getKubectlNode()
 	if err != nil {
@@ -163,20 +150,18 @@ func (m *Machine) SetNodeProviderID() error {
 		return errors.New("unable to set NodeProviderID. there are no kubectl node available")
 	}
 
-	m.Info("Setting Kubernetes node providerID")
+	m.log.Info("Setting Kubernetes node providerID")
 	patch := fmt.Sprintf(`{"spec": {"providerID": "%s"}}`, m.ProviderID())
 	cmd := kubectlNode.Command(
 		"kubectl",
 		"--kubeconfig", "/etc/kubernetes/admin.conf",
 		"patch",
-		"node", m.NodeName(),
+		"node", m.ContainerName(),
 		"--patch", patch,
 	)
 	lines, err := exec.CombinedOutputLines(cmd)
 	if err != nil {
-		for _, line := range lines {
-			fmt.Println(line)
-		}
+		m.log.Error(err, strings.Join(lines, "\n"))
 		return errors.Wrap(err, "failed update providerID")
 	}
 
@@ -202,13 +187,11 @@ func (m *Machine) getKubectlNode() (*nodes.Node, error) {
 // KubeadmReset will run `kubeadm reset` on the machine.
 func (m *Machine) KubeadmReset() error {
 	if m.container != nil {
-		m.Info("Running kubeadm reset on the machine")
+		m.log.Info("Running kubeadm reset on the machine")
 		cmd := m.container.Command("kubeadm", "reset", "--force")
 		lines, err := exec.CombinedOutputLines(cmd)
 		if err != nil {
-			for _, line := range lines {
-				fmt.Println(line)
-			}
+			m.log.Error(err, strings.Join(lines, "\n"))
 			return errors.Wrap(err, "failed to reset node")
 		}
 	}
@@ -220,7 +203,7 @@ func (m *Machine) KubeadmReset() error {
 func (m *Machine) Delete() error {
 	// Delete if exists.
 	if m.container != nil {
-		m.Info("Deleting machine container")
+		m.log.Info("Deleting machine container")
 		if err := nodes.Delete(*m.container); err != nil {
 			return err
 		}

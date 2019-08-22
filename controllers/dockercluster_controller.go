@@ -52,7 +52,7 @@ type DockerClusterReconciler struct {
 // and what is in the DockerCluster.Spec
 func (r *DockerClusterReconciler) Reconcile(req ctrl.Request) (_ ctrl.Result, rerr error) {
 	ctx := context.Background()
-	log := log.Log.WithName(clusterControllerName).WithValues("dockerCluster", req.NamespacedName)
+	log := log.Log.WithName(clusterControllerName).WithValues("docker-cluster", req.NamespacedName)
 
 	// Fetch the DockerCluster instance
 	dockerCluster := &infrav1.DockerCluster{}
@@ -75,10 +75,10 @@ func (r *DockerClusterReconciler) Reconcile(req ctrl.Request) (_ ctrl.Result, re
 
 	log = log.WithValues("cluster", cluster.Name)
 
-	// Create a helper for managing a docker loadbalancer.
+	// Create a helper for managing a docker container hosting the loadbalancer.
 	externalLoadBalancer, err := docker.NewLoadBalancer(cluster.Name, log)
 	if err != nil {
-		return ctrl.Result{}, errors.Wrapf(err, "failed to create docker.LoadBalancer service")
+		return ctrl.Result{}, errors.Wrapf(err, "failed to create helper for managing the externalLoadBalancer")
 	}
 
 	// Initialize the patch helper

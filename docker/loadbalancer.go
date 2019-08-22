@@ -29,7 +29,7 @@ import (
 
 // LoadBalancer manages the load balancer for a specific docker cluster.
 type LoadBalancer struct {
-	logr.Logger
+	log       logr.Logger
 	name      string
 	container *nodes.Node
 }
@@ -54,7 +54,7 @@ func NewLoadBalancer(name string, logger logr.Logger) (*LoadBalancer, error) {
 	return &LoadBalancer{
 		name:      name,
 		container: container,
-		Logger:    logger,
+		log:       logger,
 	}, nil
 }
 
@@ -68,7 +68,7 @@ func (s *LoadBalancer) Create() error {
 	// Create if not exists.
 	if s.container == nil {
 		var err error
-		s.Info("Creating load balancer container")
+		s.log.Info("Creating load balancer container")
 		s.container, err = nodes.CreateExternalLoadBalancerNode(
 			s.containerName(),
 			loadbalancer.Image,
@@ -117,7 +117,7 @@ func (s *LoadBalancer) UpdateConfiguration() error {
 		return errors.WithStack(err)
 	}
 
-	s.Info("Updating load balancer configuration")
+	s.log.Info("Updating load balancer configuration")
 	if err := s.container.WriteFile(loadbalancer.ConfigPath, loadbalancerConfig); err != nil {
 		return errors.WithStack(err)
 	}
@@ -136,9 +136,9 @@ func (s *LoadBalancer) IP() (string, error) {
 
 // Delete the docker containers hosting a loadbalancer for the cluster.
 func (s *LoadBalancer) Delete() error {
-	// Describe and delete if exists.
+	// Delete if exists.
 	if s.container != nil {
-		s.Info("Deleting load balancer container")
+		s.log.Info("Deleting load balancer container")
 		if err := nodes.Delete(*s.container); err != nil {
 			return err
 		}

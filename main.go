@@ -25,9 +25,10 @@ import (
 	_ "k8s.io/client-go/plugin/pkg/client/auth/gcp"
 	"k8s.io/klog"
 	"k8s.io/klog/klogr"
-	"sigs.k8s.io/cluster-api-bootstrap-provider-kubeadm/api/v1alpha2"
+	bootstrapv1 "sigs.k8s.io/cluster-api-bootstrap-provider-kubeadm/api/v1alpha2"
 	"sigs.k8s.io/cluster-api-bootstrap-provider-kubeadm/controllers"
-	clusterv1alpha2 "sigs.k8s.io/cluster-api/api/v1alpha2"
+	"sigs.k8s.io/cluster-api-bootstrap-provider-kubeadm/internal/locking"
+	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha2"
 	ctrl "sigs.k8s.io/controller-runtime"
 	// +kubebuilder:scaffold:imports
 )
@@ -39,8 +40,8 @@ var (
 
 func init() {
 	_ = scheme.AddToScheme(myscheme)
-	_ = v1alpha2.AddToScheme(myscheme)
-	_ = clusterv1alpha2.AddToScheme(myscheme)
+	_ = bootstrapv1.AddToScheme(myscheme)
+	_ = clusterv1.AddToScheme(myscheme)
 	// +kubebuilder:scaffold:scheme
 }
 
@@ -70,6 +71,7 @@ func main() {
 		Client:               mgr.GetClient(),
 		SecretsClientFactory: controllers.ClusterSecretsClientFactory{},
 		Log:                  ctrl.Log.WithName("reconciler"),
+		KubeadmInitLock:      locking.NewControlPlaneInitMutex(ctrl.Log.WithName("init-locker"), mgr.GetClient()),
 	}).SetupWithManager(mgr); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "reconciler")
 		os.Exit(1)

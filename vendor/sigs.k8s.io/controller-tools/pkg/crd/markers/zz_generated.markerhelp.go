@@ -235,6 +235,17 @@ func (Resource) Help() *markers.DefinitionHelp {
 	}
 }
 
+func (SkipVersion) Help() *markers.DefinitionHelp {
+	return &markers.DefinitionHelp{
+		Category: "CRD",
+		DetailedHelp: markers.DetailedHelp{
+			Summary: "removes the particular version of the CRD from the CRDs spec. ",
+			Details: " This is useful if you need to skip generating and listing version entries for 'internal' resource versions, which typically exist if using the Kubernetes upstream conversion-gen tool.",
+		},
+		FieldHelp: map[string]markers.DetailedHelp{},
+	}
+}
+
 func (StorageVersion) Help() *markers.DefinitionHelp {
 	return &markers.DefinitionHelp{
 		Category: "CRD",

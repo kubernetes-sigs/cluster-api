@@ -42,6 +42,9 @@ var CRDMarkers = []*definitionWithHelp{
 
 	must(markers.MakeDefinition("kubebuilder:storageversion", markers.DescribesType, StorageVersion{})).
 		WithHelp(StorageVersion{}.Help()),
+
+	must(markers.MakeDefinition("kubebuilder:skipversion", markers.DescribesType, SkipVersion{})).
+		WithHelp(SkipVersion{}.Help()),
 }
 
 // TODO: categories and singular used to be annotations types
@@ -160,6 +163,34 @@ func (s StorageVersion) ApplyToCRD(crd *apiext.CustomResourceDefinitionSpec, ver
 		ver.Storage = true
 		break
 	}
+	return nil
+}
+
+// +controllertools:marker:generateHelp:category=CRD
+
+// SkipVersion removes the particular version of the CRD from the CRDs spec.
+//
+// This is useful if you need to skip generating and listing version entries
+// for 'internal' resource versions, which typically exist if using the
+// Kubernetes upstream conversion-gen tool.
+type SkipVersion struct{}
+
+func (s SkipVersion) ApplyToCRD(crd *apiext.CustomResourceDefinitionSpec, version string) error {
+	if version == "" {
+		// single-version, this is an invalid state
+		return fmt.Errorf("cannot skip a version if there is only a single version")
+	}
+	var versions []apiext.CustomResourceDefinitionVersion
+	// multi-version
+	for i := range crd.Versions {
+		ver := crd.Versions[i]
+		if ver.Name == version {
+			// skip the skipped version
+			continue
+		}
+		versions = append(versions, ver)
+	}
+	crd.Versions = versions
 	return nil
 }
 

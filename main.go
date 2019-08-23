@@ -27,6 +27,7 @@ import (
 	"sigs.k8s.io/cluster-api/api/v1alpha2"
 	"sigs.k8s.io/cluster-api/controllers"
 	ctrl "sigs.k8s.io/controller-runtime"
+	"sigs.k8s.io/controller-runtime/pkg/controller"
 	// +kubebuilder:scaffold:imports
 )
 
@@ -44,18 +45,37 @@ func init() {
 }
 
 func main() {
-	var metricsAddr string
-	var enableLeaderElection bool
-	var watchNamespace string
-	var profilerAddress string
+	var (
+		metricsAddr                  string
+		enableLeaderElection         bool
+		watchNamespace               string
+		profilerAddress              string
+		clusterConcurrency           int
+		machineConcurrency           int
+		machineSetConcurrency        int
+		machineDeploymentConcurrency int
+	)
+
 	flag.StringVar(&metricsAddr, "metrics-addr", ":8080",
 		"The address the metric endpoint binds to.")
+
 	flag.BoolVar(&enableLeaderElection, "enable-leader-election", false,
 		"Enable leader election for controller manager. Enabling this will ensure there is only one active controller manager.")
+
 	flag.StringVar(&watchNamespace, "namespace", "",
 		"Namespace that the controller watches to reconcile cluster-api objects. If unspecified, the controller watches for cluster-api objects across all namespaces.")
+
 	flag.StringVar(&profilerAddress, "profiler-address", "",
 		"Bind address to expose the pprof profiler (e.g. localhost:6060)")
+
+	flag.IntVar(&clusterConcurrency, "cluster-concurrency", 1, "Number of clusters to process simultaneously")
+
+	flag.IntVar(&machineConcurrency, "machine-concurrency", 1, "Number of machines to process simultaneously")
+
+	flag.IntVar(&machineSetConcurrency, "machineset-concurrency", 1, "Number of machine sets to process simultaneously")
+
+	flag.IntVar(&machineDeploymentConcurrency, "machinedeployment-concurrency", 1, "Number of machine deployments to process simultaneously")
+
 	flag.Parse()
 
 	ctrl.SetLogger(klogr.New())
@@ -81,28 +101,28 @@ func main() {
 	if err = (&controllers.ClusterReconciler{
 		Client: mgr.GetClient(),
 		Log:    ctrl.Log.WithName("controllers").WithName("Cluster"),
-	}).SetupWithManager(mgr); err != nil {
+	}).SetupWithManager(mgr, concurrency(clusterConcurrency)); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "Cluster")
 		os.Exit(1)
 	}
 	if err = (&controllers.MachineReconciler{
 		Client: mgr.GetClient(),
 		Log:    ctrl.Log.WithName("controllers").WithName("Machine"),
-	}).SetupWithManager(mgr); err != nil {
+	}).SetupWithManager(mgr, concurrency(machineConcurrency)); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "Machine")
 		os.Exit(1)
 	}
 	if err = (&controllers.MachineSetReconciler{
 		Client: mgr.GetClient(),
 		Log:    ctrl.Log.WithName("controllers").WithName("MachineSet"),
-	}).SetupWithManager(mgr); err != nil {
+	}).SetupWithManager(mgr, concurrency(machineSetConcurrency)); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "MachineSet")
 		os.Exit(1)
 	}
 	if err = (&controllers.MachineDeploymentReconciler{
 		Client: mgr.GetClient(),
 		Log:    ctrl.Log.WithName("controllers").WithName("MachineDeployment"),
-	}).SetupWithManager(mgr); err != nil {
+	}).SetupWithManager(mgr, concurrency(machineDeploymentConcurrency)); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "MachineDeployment")
 		os.Exit(1)
 	}
@@ -113,4 +133,8 @@ func main() {
 		setupLog.Error(err, "problem running manager")
 		os.Exit(1)
 	}
+}
+
+func concurrency(c int) controller.Options {
+	return controller.Options{MaxConcurrentReconciles: c}
 }

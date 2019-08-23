@@ -62,9 +62,10 @@ type MachineReconciler struct {
 	externalWatchers sync.Map
 }
 
-func (r *MachineReconciler) SetupWithManager(mgr ctrl.Manager) error {
+func (r *MachineReconciler) SetupWithManager(mgr ctrl.Manager, options controller.Options) error {
 	c, err := ctrl.NewControllerManagedBy(mgr).
 		For(&clusterv1.Machine{}).
+		WithOptions(options).
 		Build(r)
 
 	r.controller = c

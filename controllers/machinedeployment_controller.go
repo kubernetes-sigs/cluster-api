@@ -33,6 +33,7 @@ import (
 	"sigs.k8s.io/cluster-api/util"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/controller"
 	"sigs.k8s.io/controller-runtime/pkg/handler"
 	"sigs.k8s.io/controller-runtime/pkg/source"
 )
@@ -51,7 +52,7 @@ type MachineDeploymentReconciler struct {
 	recorder record.EventRecorder
 }
 
-func (r *MachineDeploymentReconciler) SetupWithManager(mgr ctrl.Manager) error {
+func (r *MachineDeploymentReconciler) SetupWithManager(mgr ctrl.Manager, options controller.Options) error {
 	err := ctrl.NewControllerManagedBy(mgr).
 		For(&clusterv1.MachineDeployment{}).
 		Owns(&clusterv1.MachineSet{}).
@@ -59,6 +60,7 @@ func (r *MachineDeploymentReconciler) SetupWithManager(mgr ctrl.Manager) error {
 			&source.Kind{Type: &clusterv1.MachineSet{}},
 			&handler.EnqueueRequestsFromMapFunc{ToRequests: handler.ToRequestsFunc(r.MachineSetToDeployments)},
 		).
+		WithOptions(options).
 		Complete(r)
 
 	r.recorder = mgr.GetEventRecorderFor("machinedeployment-controller")

@@ -22,6 +22,8 @@ import (
 	"testing"
 	"time"
 
+	"sigs.k8s.io/controller-runtime/pkg/controller"
+
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 
@@ -108,22 +110,22 @@ var _ = BeforeSuite(func(done Done) {
 		Log:      log.Log,
 		recorder: mgr.GetEventRecorderFor("cluster-controller"),
 	}
-	Expect(clusterReconciler.SetupWithManager(mgr)).NotTo(HaveOccurred())
+	Expect(clusterReconciler.SetupWithManager(mgr, controller.Options{MaxConcurrentReconciles: 1})).NotTo(HaveOccurred())
 	Expect((&MachineReconciler{
 		Client:   k8sClient,
 		Log:      log.Log,
 		recorder: mgr.GetEventRecorderFor("machine-controller"),
-	}).SetupWithManager(mgr)).NotTo(HaveOccurred())
+	}).SetupWithManager(mgr, controller.Options{MaxConcurrentReconciles: 1})).NotTo(HaveOccurred())
 	Expect((&MachineSetReconciler{
 		Client:   k8sClient,
 		Log:      log.Log,
 		recorder: mgr.GetEventRecorderFor("machineset-controller"),
-	}).SetupWithManager(mgr)).NotTo(HaveOccurred())
+	}).SetupWithManager(mgr, controller.Options{MaxConcurrentReconciles: 1})).NotTo(HaveOccurred())
 	Expect((&MachineDeploymentReconciler{
 		Client:   k8sClient,
 		Log:      log.Log,
 		recorder: mgr.GetEventRecorderFor("machinedeployment-controller"),
-	}).SetupWithManager(mgr)).NotTo(HaveOccurred())
+	}).SetupWithManager(mgr, controller.Options{MaxConcurrentReconciles: 1})).NotTo(HaveOccurred())
 
 	By("starting the manager")
 	go func() {

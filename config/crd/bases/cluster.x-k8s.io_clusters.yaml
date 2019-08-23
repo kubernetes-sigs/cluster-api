@@ -44,6 +44,11 @@ spec:
             clusterNetwork:
               description: Cluster network configuration
               properties:
+                apiServerPort:
+                  description: APIServerPort specifies the port the API Server should
+                    bind to. Defaults to 6443.
+                  format: int32
+                  type: integer
                 pods:
                   description: The network ranges from which Pod networks are allocated.
                   properties:

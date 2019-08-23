@@ -39,7 +39,7 @@ func init() {
 }
 
 var clusterSpec = &clusterv1.ClusterSpec{
-	ClusterNetwork: &clusterv1.ClusterNetworkingConfig{
+	ClusterNetwork: &clusterv1.ClusterNetwork{
 		ServiceDomain: "mydomain.com",
 		Pods: &clusterv1.NetworkRanges{
 			CIDRBlocks: []string{"192.168.0.0/16"},

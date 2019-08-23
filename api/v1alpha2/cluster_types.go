@@ -32,7 +32,7 @@ const (
 type ClusterSpec struct {
 	// Cluster network configuration
 	// +optional
-	ClusterNetwork *ClusterNetworkingConfig `json:"clusterNetwork,omitempty"`
+	ClusterNetwork *ClusterNetwork `json:"clusterNetwork,omitempty"`
 
 	// InfrastructureRef is a reference to a provider-specific resource that holds the details
 	// for provisioning infrastructure for a cluster in said provider.
@@ -42,10 +42,15 @@ type ClusterSpec struct {
 
 /// [ClusterSpec]
 
-/// [ClusterNetworkingConfig]
-// ClusterNetworkingConfig specifies the different networking
+/// [ClusterNetwork]
+// ClusterNetwork specifies the different networking
 // parameters for a cluster.
-type ClusterNetworkingConfig struct {
+type ClusterNetwork struct {
+	// APIServerPort specifies the port the API Server should bind to.
+	// Defaults to 6443.
+	// +optional
+	APIServerPort *int32 `json:"apiServerPort,omitempty"`
+
 	// The network ranges from which service VIPs are allocated.
 	// +optional
 	Services *NetworkRanges `json:"services,omitempty"`
@@ -59,7 +64,7 @@ type ClusterNetworkingConfig struct {
 	ServiceDomain string `json:"serviceDomain,omitempty"`
 }
 
-/// [ClusterNetworkingConfig]
+/// [ClusterNetwork]
 
 /// [NetworkRanges]
 // NetworkRanges represents ranges of network addresses.

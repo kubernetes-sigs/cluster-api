@@ -63,9 +63,10 @@ type ClusterReconciler struct {
 	externalWatchers sync.Map
 }
 
-func (r *ClusterReconciler) SetupWithManager(mgr ctrl.Manager) error {
+func (r *ClusterReconciler) SetupWithManager(mgr ctrl.Manager, options controller.Options) error {
 	c, err := ctrl.NewControllerManagedBy(mgr).
 		For(&clusterv1.Cluster{}).
+		WithOptions(options).
 		Build(r)
 
 	r.controller = c

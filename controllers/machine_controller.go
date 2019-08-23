@@ -18,9 +18,7 @@ package controllers
 
 import (
 	"context"
-	"path"
 	"sync"
-	"time"
 
 	"github.com/go-logr/logr"
 	"github.com/pkg/errors"
@@ -157,12 +155,9 @@ func (r *MachineReconciler) Reconcile(req ctrl.Request) (_ ctrl.Result, reterr e
 			}
 		}
 
-		if err := r.isDeleteReady(ctx, m); err != nil {
-			if requeueErr, ok := errors.Cause(err).(capierrors.HasRequeueAfterError); ok {
-				klog.Infof("Reconciliation for Machine %q in namespace %q asked to requeue: %v", m.Name, m.Namespace, err)
-				return ctrl.Result{Requeue: true, RequeueAfter: requeueErr.GetRequeueAfter()}, nil
-			}
-			return ctrl.Result{}, err
+		if !r.isDeleteReady(ctx, m) {
+			klog.Infof("Deletion not ready for machine %q: Bootstrap configuration or Infrastructure configuration still exists", m.Name)
+			return ctrl.Result{}, nil
 		}
 
 		m.ObjectMeta.Finalizers = util.Filter(m.ObjectMeta.Finalizers, clusterv1.MachineFinalizer)
@@ -254,31 +249,28 @@ func (r *MachineReconciler) getMachinesInCluster(ctx context.Context, namespace,
 }
 
 // isDeleteReady returns an error if any of Boostrap.ConfigRef or InfrastructureRef referenced objects still exist.
-func (r *MachineReconciler) isDeleteReady(ctx context.Context, m *clusterv1.Machine) error {
-	if m.Spec.Bootstrap.ConfigRef != nil {
-		_, err := external.Get(r.Client, m.Spec.Bootstrap.ConfigRef, m.Namespace)
-		if apierrors.IsNotFound(err) {
-			return nil
-		}
-		if err != nil {
-			return errors.Wrapf(err, "failed to get %s %q for Machine %q in namespace %q",
-				path.Join(m.Spec.Bootstrap.ConfigRef.APIVersion, m.Spec.Bootstrap.ConfigRef.Kind),
-				m.Spec.Bootstrap.ConfigRef.Name, m.Name, m.Namespace)
-		}
-		return errors.Wrapf(&capierrors.RequeueAfterError{RequeueAfter: 10 * time.Second},
-			"delete is not ready, Bootstrap configuration still exists")
+func (r *MachineReconciler) isDeleteReady(ctx context.Context, m *clusterv1.Machine) bool {
+	bootstrapConfigReady := r.isExternalDeleteReady(ctx, m.Namespace, m.Spec.Bootstrap.ConfigRef)
+	infraReady := r.isExternalDeleteReady(ctx, m.Namespace, &m.Spec.InfrastructureRef)
+
+	return bootstrapConfigReady && infraReady
+}
+
+func (r *MachineReconciler) isExternalDeleteReady(ctx context.Context, namespace string, ref *corev1.ObjectReference) bool {
+	if ref == nil {
+		return true
 	}
 
-	if _, err := external.Get(r.Client, &m.Spec.InfrastructureRef, m.Namespace); err != nil && !apierrors.IsNotFound(err) {
-		return errors.Wrapf(err, "failed to get %s %q for Machine %q in namespace %q",
-			path.Join(m.Spec.InfrastructureRef.APIVersion, m.Spec.InfrastructureRef.Kind),
-			m.Spec.InfrastructureRef.Name, m.Name, m.Namespace)
-	} else if err == nil {
-		return errors.Wrapf(&capierrors.RequeueAfterError{RequeueAfter: 10 * time.Second},
-			"delete is not ready, Infrastructure configuration still exists")
+	_, err := external.Get(r.Client, ref, namespace)
+	if apierrors.IsNotFound(err) {
+		return true
 	}
 
-	return nil
+	if err != nil {
+		klog.Errorf("Error getting external %s %q: %v", ref.Kind, ref.Name, err)
+	}
+
+	return false
 }
 
 func (r *MachineReconciler) shouldAdopt(m *clusterv1.Machine) bool {

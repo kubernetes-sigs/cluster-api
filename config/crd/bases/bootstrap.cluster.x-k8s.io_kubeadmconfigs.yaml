@@ -353,7 +353,7 @@ spec:
               description: Files specifies extra files to be passed to user_data upon
                 creation.
               items:
-                description: Files defines the input for generating write_files in
+                description: File defines the input for generating write_files in
                   cloud-init.
                 properties:
                   content:

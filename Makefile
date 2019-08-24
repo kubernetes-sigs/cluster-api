@@ -1,3 +1,8 @@
+# If you update this file, please follow:
+# https://suva.sh/posts/well-documented-makefiles/
+
+.DEFAULT_GOAL:=help
+
 # Use GOPROXY environment variable if set
 GOPROXY := $(shell go env GOPROXY)
 GOPROXY ?= https://proxy.golang.org
@@ -28,51 +33,43 @@ export GO111MODULE=on
 
 all: manager
 
-# Run tests
-test: generate fmt vet manifests
+help:  ## Display this help
+	@awk 'BEGIN {FS = ":.*##"; printf "\nUsage:\n  make \033[36m<target>\033[0m\n"} /^[a-zA-Z_-]+:.*?##/ { printf "  \033[36m%-15s\033[0m %s\n", $$1, $$2 } /^##@/ { printf "\n\033[1m%s\033[0m\n", substr($$0, 5) } ' $(MAKEFILE_LIST)
+
+test: generate fmt vet manifests ## Run tests
 	go test ./api/... ./controllers/... -coverprofile cover.out
 
-# Build manager binary
-manager: generate fmt vet
+manager: generate fmt vet ## Build manager binary
 	go build -o bin/manager cmd/manager/main.go
 
-# Run against the configured Kubernetes cluster in ~/.kube/config
-run: generate fmt vet
+run: generate fmt vet ## Run against the configured Kubernetes cluster in ~/.kube/config
 	go run ./cmd/manager/main.go
 
-# Install CRDs into a cluster
-install: manifests
+install: manifests ## Install CRDs into a cluster
 	kubectl apply -f config/crd/bases
 
-# Deploy controller in the configured Kubernetes cluster in ~/.kube/config
-deploy: manifests
+deploy: manifests ## Deploy controller in the configured Kubernetes cluster in ~/.kube/config
 	kubectl apply -f config/crd/bases
 	kustomize build config/default | kubectl apply -f -
 
-# Generate manifests e.g. CRD, RBAC etc.
-manifests: $(CONTROLLER_GEN)
+manifests: $(CONTROLLER_GEN) ## Generate manifests e.g. CRD, RBAC etc.
 	$(CONTROLLER_GEN) $(CRD_OPTIONS) rbac:roleName=manager-role webhook paths="./..." output:crd:artifacts:config=config/crd/bases
 
-# Run go fmt against code
-fmt:
+fmt: ## Run go fmt against code
 	go fmt ./...
 
-# Run go vet against code
-vet:
+vet: ## Run go vet against code
 	go vet ./...
 
-# Generate code
-generate: $(CONTROLLER_GEN)
+generate: $(CONTROLLER_GEN) ## Generate code
 	$(CONTROLLER_GEN) object:headerFile=./hack/boilerplate.go.txt paths=./api/...
 
-# Build the docker image
-docker-build: test
+docker-build: test ## Build the docker image
 	docker build . -t ${IMG}
 	@echo "updating kustomize image patch file for manager resource"
 	sed -i'' -e 's@image: .*@image: '"${IMG}"'@' ./config/default/manager_image_patch.yaml
 
-# Push the docker image
-docker-push:
+docker-push: ## Push the docker image
 	docker push ${IMG}
 
 # Build controller-gen

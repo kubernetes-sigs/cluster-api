@@ -34,7 +34,7 @@ COPY go.sum go.sum
 RUN go mod download
 
 # Copy the go source
-COPY cmd/ cmd/
+COPY main.go main.go
 COPY api/ api/
 COPY controllers/ controllers/
 COPY docker docker/
@@ -46,7 +46,7 @@ COPY cloudinit/ cloudinit/
 COPY third_party/forked/rerun-process-wrapper/start.sh .
 COPY third_party/forked/rerun-process-wrapper/restart.sh .
 
-RUN go install -v ./cmd/manager
-RUN mv /go/bin/manager /manager
+RUN go build -v -o manager main.go
+RUN mv /workspace/manager /manager
 
 ENTRYPOINT ["./start.sh", "/manager"]

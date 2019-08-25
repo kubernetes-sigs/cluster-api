@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
-# Copyright 2018 The Kubernetes Authors.
+
+# Copyright 2019 The Kubernetes Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -18,7 +19,11 @@ set -o nounset
 set -o pipefail
 
 KUBE_ROOT=$(dirname "${BASH_SOURCE[0]}")/..
-export KUBE_ROOT
+# shellcheck source=./ensure-go.sh
+source "${KUBE_ROOT}/hack/ensure-go.sh"
 
-cd "${KUBE_ROOT}"
-bazel run //:gazelle
+GOPROXY=$(go env GOPROXY)
+export GOPROXY="${GOPROXY:-https://proxy.golang.org}"
+go mod tidy
+
+(cd "${KUBE_ROOT}/hack/tools" && go mod tidy)

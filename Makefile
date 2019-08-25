@@ -24,15 +24,21 @@ export KUBEBUILDER_CONTROLPLANE_STOP_TIMEOUT ?=60s
 # This option is for running docker manifest command
 export DOCKER_CLI_EXPERIMENTAL := enabled
 
+# Directories.
+ROOT_DIR := $(shell dirname $(realpath $(lastword $(MAKEFILE_LIST))))
+TOOLS_DIR := hack/tools
+BIN_DIR := bin/
+
 # Image URL to use all building/pushing image targets
 REGISTRY ?= gcr.io/$(shell gcloud config get-value project)
 CONTROLLER_IMG ?= $(REGISTRY)/cluster-api-controller
 EXAMPLE_PROVIDER_IMG ?= $(REGISTRY)/example-provider-controller
 TAG ?= dev
 
-ARCH?=amd64
+# Archs
+ARCH ?= amd64
 ALL_ARCH = amd64 arm arm64 ppc64le s390x
-GOOS?=linux
+GOOS ?= linux
 
 all: test manager clusterctl
 
@@ -57,7 +63,7 @@ test-go: ## Run tests
 
 .PHONY: manager
 manager: lint-full ## Build manager binary
-	go build -o bin/manager sigs.k8s.io/cluster-api
+	go build -o $(BIN_DIR)/manager sigs.k8s.io/cluster-api
 
 .PHONY: docker-build-manager
 docker-build-manager: lint-full ## Build manager binary in docker
@@ -65,7 +71,7 @@ docker-build-manager: lint-full ## Build manager binary in docker
 	-v "${PWD}:/go/src/sigs.k8s.io/cluster-api" \
 	-v "${PWD}/bin:/go/bin" \
 	-w "/go/src/sigs.k8s.io/cluster-api" \
-	-e CGO_ENABLED=0 -e GOOS=${GOOS} -e GOARCH=${ARCH} -e GO111MODULE=on -e GOFLAGS="-mod=vendor" \
+	-e CGO_ENABLED=0 -e GOOS=${GOOS} -e GOARCH=${ARCH} -e GO111MODULE=on \
 	golang:1.12.6 \
 	go build -a -ldflags '-extldflags "-static"' -o /go/bin/manager sigs.k8s.io/cluster-api
 
@@ -76,6 +82,9 @@ clusterctl: lint-full ## Build clusterctl binary
 .PHONY: run
 run: lint ## Run against the configured Kubernetes cluster in ~/.kube/config
 	go run ./main.go
+
+bin/controller-gen: $(TOOLS_DIR)/go.mod # Build controller-gen from tools folder.
+	cd $(TOOLS_DIR) && go build -tags=tools -o $(ROOT_DIR)/$(BIN_DIR)/controller-gen sigs.k8s.io/controller-tools/cmd/controller-gen
 
 ## --------------------------------------
 ## Linting
@@ -93,20 +102,20 @@ lint-full: ## Run slower linters to detect possible issues
 ## --------------------------------------
 
 .PHONY: generate
-generate: ## Generate code
+generate: bin/controller-gen ## Generate code
 	$(MAKE) generate-manifests
 	$(MAKE) generate-deepcopy
 	$(MAKE) gazelle
 
 .PHONY: generate-deepcopy
-generate-deepcopy: ## Runs controller-gen to generate deepcopy files
-	go run vendor/sigs.k8s.io/controller-tools/cmd/controller-gen/main.go \
+generate-deepcopy: bin/controller-gen ## Runs controller-gen to generate deepcopy files
+	bin/controller-gen \
 		object:headerFile=./hack/boilerplate/boilerplate.generatego.txt \
 		paths=./api/...
 
 .PHONY: generate-manifests
-generate-manifests: ## Generate manifests e.g. CRD, RBAC etc.
-	go run vendor/sigs.k8s.io/controller-tools/cmd/controller-gen/main.go \
+generate-manifests: bin/controller-gen ## Generate manifests e.g. CRD, RBAC etc.
+	bin/controller-gen \
 		paths=./api/... \
 		paths=./controllers/... \
 		crd:trivialVersions=true \
@@ -120,9 +129,9 @@ generate-manifests: ## Generate manifests e.g. CRD, RBAC etc.
 gazelle: ## Run Bazel Gazelle
 	(which bazel && ./hack/update-bazel.sh) || true
 
-.PHONY: vendor
-vendor: ## Runs go mod to ensure proper vendoring.
-	./hack/update-vendor.sh
+.PHONY: modules
+modules: ## Runs go mod to ensure modules are up to date.
+	./hack/update-modules.sh
 	$(MAKE) gazelle
 
 ## --------------------------------------

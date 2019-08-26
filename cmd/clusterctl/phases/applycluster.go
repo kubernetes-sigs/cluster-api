@@ -18,12 +18,13 @@ package phases
 
 import (
 	"github.com/pkg/errors"
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/klog"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha2"
 	"sigs.k8s.io/cluster-api/cmd/clusterctl/clusterdeployer/clusterclient"
 )
 
-func ApplyCluster(client clusterclient.Client, cluster *clusterv1.Cluster) error {
+func ApplyCluster(client clusterclient.Client, cluster *clusterv1.Cluster, extra ...*unstructured.Unstructured) error {
 	if cluster.Namespace == "" {
 		cluster.Namespace = client.GetContextNamespace()
 	}
@@ -31,6 +32,13 @@ func ApplyCluster(client clusterclient.Client, cluster *clusterv1.Cluster) error
 	err := client.EnsureNamespace(cluster.Namespace)
 	if err != nil {
 		return errors.Wrapf(err, "unable to ensure namespace %q", cluster.Namespace)
+	}
+
+	for _, e := range extra {
+		klog.Infof("Creating Cluster referenced object %q with name %q in namespace %q", e.GroupVersionKind(), e.GetName(), e.GetNamespace())
+		if err := client.CreateUnstructuredObject(e); err != nil {
+			return err
+		}
 	}
 
 	klog.Infof("Creating cluster object %v in namespace %q", cluster.Name, cluster.Namespace)

@@ -23,6 +23,7 @@ import (
 	"os"
 
 	"github.com/pkg/errors"
+	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
@@ -31,6 +32,28 @@ import (
 	"k8s.io/client-go/kubernetes/scheme"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha2"
 )
+
+func ExtractClusterReferences(out *ParseOutput, c *clusterv1.Cluster) (res []*unstructured.Unstructured) {
+	if c.Spec.InfrastructureRef == nil {
+		return nil
+	}
+	if obj := out.FindUnstructuredReference(c.Spec.InfrastructureRef); obj != nil {
+		res = append(res, obj)
+	}
+	return
+}
+
+func ExtractMachineReferences(out *ParseOutput, m *clusterv1.Machine) (res []*unstructured.Unstructured) {
+	if obj := out.FindUnstructuredReference(&m.Spec.InfrastructureRef); obj != nil {
+		res = append(res, obj)
+	}
+	if m.Spec.Bootstrap.ConfigRef != nil {
+		if obj := out.FindUnstructuredReference(m.Spec.Bootstrap.ConfigRef); obj != nil {
+			res = append(res, obj)
+		}
+	}
+	return
+}
 
 type ParseInput struct {
 	File string
@@ -42,6 +65,28 @@ type ParseOutput struct {
 	MachineSets         []*clusterv1.MachineSet
 	MachineDeployments  []*clusterv1.MachineDeployment
 	UnstructuredObjects []*unstructured.Unstructured
+}
+
+// Add adds the other ParseOutput slices to this instance.
+func (p *ParseOutput) Add(o *ParseOutput) *ParseOutput {
+	p.Clusters = append(p.Clusters, o.Clusters...)
+	p.Machines = append(p.Machines, o.Machines...)
+	p.MachineSets = append(p.MachineSets, o.MachineSets...)
+	p.MachineDeployments = append(p.MachineDeployments, o.MachineDeployments...)
+	p.UnstructuredObjects = append(p.UnstructuredObjects, o.UnstructuredObjects...)
+	return p
+}
+
+// FindUnstructuredReference takes in an ObjectReference and tries to find an Unstructured object.
+func (p *ParseOutput) FindUnstructuredReference(ref *corev1.ObjectReference) *unstructured.Unstructured {
+	for _, obj := range p.UnstructuredObjects {
+		if obj.GroupVersionKind() == ref.GroupVersionKind() &&
+			ref.Namespace == obj.GetNamespace() &&
+			ref.Name == obj.GetName() {
+			return obj
+		}
+	}
+	return nil
 }
 
 // Parse extracts runtime objects from a file.

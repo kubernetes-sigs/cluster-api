@@ -69,7 +69,6 @@ func RunCreate(co *CreateOptions) error {
 	if len(clusterOut.Clusters) == 0 {
 		return errors.Errorf("no Cluster object found in file %q", paco.Cluster)
 	}
-
 	machineOut, err := yaml.Parse(yaml.ParseInput{File: co.Machine})
 	if err != nil {
 		return err
@@ -107,7 +106,7 @@ func RunCreate(co *CreateOptions) error {
 		string(bc),
 		co.BootstrapFlags.Cleanup)
 
-	return d.Create(clusterOut.Clusters[0], machineOut.Machines, co.KubeconfigOutput, pcsFactory)
+	return d.Create(clusterOut.Add(machineOut), co.KubeconfigOutput, pcsFactory)
 }
 
 func init() {

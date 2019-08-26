@@ -21,6 +21,7 @@ import (
 
 	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/klog"
 	"sigs.k8s.io/cluster-api/cmd/clusterctl/clusterdeployer/clusterclient"
 	"sigs.k8s.io/cluster-api/cmd/clusterctl/phases"
@@ -71,7 +72,12 @@ func RunAlphaPhaseApplyMachines(pamo *AlphaPhaseApplyMachinesOptions) error {
 		return errors.Wrap(err, "unable to create cluster client")
 	}
 
-	if err := phases.ApplyMachines(client, pamo.Namespace, out.Machines); err != nil {
+	extraResources := []*unstructured.Unstructured{}
+	for _, m := range out.Machines {
+		extraResources = append(extraResources, yaml.ExtractMachineReferences(out, m)...)
+	}
+
+	if err := phases.ApplyMachines(client, pamo.Namespace, out.Machines, extraResources...); err != nil {
 		return errors.Wrap(err, "unable to apply machines")
 	}
 

@@ -20,16 +20,26 @@ import (
 	"fmt"
 	"io/ioutil"
 	"os"
+	"strings"
 	"testing"
 
 	"github.com/pkg/errors"
-	apiv1 "k8s.io/api/core/v1"
+	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/client-go/kubernetes"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha2"
 	"sigs.k8s.io/cluster-api/cmd/clusterctl/clusterdeployer/clusterclient"
 	"sigs.k8s.io/cluster-api/cmd/clusterctl/clusterdeployer/provider"
 	kcfg "sigs.k8s.io/cluster-api/util/kubeconfig"
+	"sigs.k8s.io/cluster-api/util/yaml"
+)
+
+const (
+	InfrastructureAPIVersion    = "infrastructure.cluster.x-k8s.io/v1alpha2"
+	KindProviderMachineTemplate = "ProviderMachineTemplate"
+	KindProviderMachine         = "ProviderMachine"
+	KindProviderCluster         = "ProviderCluster"
 )
 
 type testClusterProvisioner struct {
@@ -105,6 +115,8 @@ type testClusterClient struct {
 	CreateMachinesErr                     error
 	CreateMachineSetsErr                  error
 	CreateMachineDeploymentsErr           error
+	CreateSecretErr                       error
+	CreateUnstructuredObjectErr           error
 	DeleteClustersErr                     error
 	DeleteMachineClassesErr               error
 	DeleteMachineDeploymentsErr           error
@@ -116,13 +128,14 @@ type testClusterClient struct {
 
 	ApplyFunc stringCheckFunc
 
-	clusters           map[string][]*clusterv1.Cluster
-	machineDeployments map[string][]*clusterv1.MachineDeployment
-	machineSets        map[string][]*clusterv1.MachineSet
-	machines           map[string][]*clusterv1.Machine
-	secrets            []*apiv1.Secret
-	namespaces         []string
-	contextNamespace   string
+	clusters            map[string][]*clusterv1.Cluster
+	machineDeployments  map[string][]*clusterv1.MachineDeployment
+	machineSets         map[string][]*clusterv1.MachineSet
+	machines            map[string][]*clusterv1.Machine
+	unstructuredObjects map[string][]*unstructured.Unstructured
+	secrets             []*corev1.Secret
+	namespaces          []string
+	contextNamespace    string
 }
 
 func (c *testClusterClient) Apply(yaml string) error {
@@ -331,7 +344,7 @@ func (c *testClusterClient) EnsureNamespace(nsName string) error {
 }
 
 func (c *testClusterClient) DeleteNamespace(namespaceName string) error {
-	if namespaceName == apiv1.NamespaceDefault {
+	if namespaceName == corev1.NamespaceDefault {
 		return nil
 	}
 
@@ -347,8 +360,47 @@ func (c *testClusterClient) DeleteNamespace(namespaceName string) error {
 	return c.DeleteNamespaceErr
 }
 
-func (c *testClusterClient) ScaleStatefulSet(ns string, name string, scale int32) error {
+func (c *testClusterClient) ScaleDeployment(ns string, name string, scale int32) error {
 	return nil
+}
+
+func (c *testClusterClient) GetUnstructuredObject(u *unstructured.Unstructured) error {
+	if c.unstructuredObjects == nil {
+		c.unstructuredObjects = make(map[string][]*unstructured.Unstructured)
+	}
+
+	ns := u.GetNamespace()
+	for _, d := range c.unstructuredObjects[ns] {
+		if d.GroupVersionKind() == u.GroupVersionKind() && d.GetName() == u.GetName() {
+			d.DeepCopyInto(u)
+			return nil
+		}
+	}
+
+	// For test simplicity, we create a fake one if we can't find it.
+	obj := &unstructured.Unstructured{
+		Object: map[string]interface{}{
+			"apiVersion": u.GetAPIVersion(),
+			"kind":       u.GetKind(),
+			"metadata": map[string]interface{}{
+				"name":      u.GetName(),
+				"namespace": u.GetNamespace(),
+			},
+		},
+	}
+	c.unstructuredObjects[ns] = append(c.unstructuredObjects[ns], obj)
+	obj.DeepCopyInto(u)
+	return nil
+}
+
+func (c *testClusterClient) GetClusterSecrets(cluster *clusterv1.Cluster) ([]*corev1.Secret, error) {
+	var result []*corev1.Secret
+	for _, secret := range c.secrets {
+		if strings.HasPrefix(secret.Name, cluster.Name) {
+			result = append(result, secret)
+		}
+	}
+	return result, nil
 }
 
 func (c *testClusterClient) GetMachineSetsForCluster(cluster *clusterv1.Cluster) ([]*clusterv1.MachineSet, error) {
@@ -397,6 +449,29 @@ func (c *testClusterClient) GetMachineSet(namespace, name string) (*clusterv1.Ma
 		}
 	}
 	return nil, nil
+}
+
+func (c *testClusterClient) ForceDeleteSecret(namespace, name string) error {
+	var newSecrets []*corev1.Secret
+	for _, secret := range c.secrets {
+		if secret.Namespace != namespace || secret.Name != name {
+			newSecrets = append(newSecrets, secret)
+		}
+	}
+	c.secrets = newSecrets
+	return nil
+}
+
+func (c *testClusterClient) ForceDeleteUnstructuredObject(u *unstructured.Unstructured) error {
+	ns := u.GetNamespace()
+	var newObjects []*unstructured.Unstructured
+	for i, d := range c.unstructuredObjects[ns] {
+		if d.GroupVersionKind() != u.GroupVersionKind() || d.GetName() != u.GetName() {
+			newObjects = append(newObjects, c.unstructuredObjects[ns][i])
+		}
+	}
+	c.unstructuredObjects[ns] = newObjects
+	return nil
 }
 
 func (c *testClusterClient) ForceDeleteCluster(namespace, name string) error {
@@ -483,6 +558,25 @@ func (c *testClusterClient) GetMachinesForMachineSet(ms *clusterv1.MachineSet) (
 
 func (c *testClusterClient) WaitForResourceStatuses() error {
 	return nil
+}
+
+func (c *testClusterClient) CreateSecret(secret *corev1.Secret) error {
+	if c.CreateSecretErr == nil {
+		c.secrets = append(c.secrets, secret)
+		return nil
+	}
+	return c.CreateSecretErr
+}
+
+func (c *testClusterClient) CreateUnstructuredObject(u *unstructured.Unstructured) error {
+	if c.CreateUnstructuredObjectErr == nil {
+		if c.unstructuredObjects == nil {
+			c.unstructuredObjects = make(map[string][]*unstructured.Unstructured)
+		}
+		c.unstructuredObjects[u.GetNamespace()] = append(c.unstructuredObjects[u.GetNamespace()], u)
+		return nil
+	}
+	return c.CreateUnstructuredObjectErr
 }
 
 func contains(s []string, e string) bool {
@@ -819,7 +913,7 @@ func TestClusterCreate(t *testing.T) {
 					inputCluster.Name = fmt.Sprintf("%s-cluster", ns)
 					inputMachines[inputCluster.Name] = generateMachines(inputCluster, ns)
 
-					kubeconfigSecret := &apiv1.Secret{
+					kubeconfigSecret := &corev1.Secret{
 						ObjectMeta: metav1.ObjectMeta{
 							Name:      kcfg.SecretName(inputCluster.Name),
 							Namespace: ns,
@@ -831,7 +925,12 @@ func TestClusterCreate(t *testing.T) {
 					testcase.bootstrapClient.secrets = append(testcase.bootstrapClient.secrets, kubeconfigSecret)
 					testcase.targetClient.secrets = append(testcase.bootstrapClient.secrets, kubeconfigSecret)
 
-					err = d.Create(inputCluster, inputMachines[inputCluster.Name], kubeconfigOut, &pcFactory)
+					resources := &yaml.ParseOutput{
+						Clusters: []*clusterv1.Cluster{inputCluster},
+						Machines: inputMachines[inputCluster.Name],
+					}
+
+					err = d.Create(resources, kubeconfigOut, &pcFactory)
 					if err != nil {
 						break
 					}
@@ -917,7 +1016,7 @@ func TestCreateProviderComponentsScenarios(t *testing.T) {
 				kubeconfig: bootstrapKubeconfig,
 			}
 
-			kubeconfigSecret := &apiv1.Secret{
+			kubeconfigSecret := &corev1.Secret{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "test-cluster-kubeconfig",
 					Namespace: metav1.NamespaceDefault,
@@ -929,10 +1028,10 @@ func TestCreateProviderComponentsScenarios(t *testing.T) {
 
 			f := newTestClusterClientFactory()
 			f.clusterClients[bootstrapKubeconfig] = &testClusterClient{
-				secrets: []*apiv1.Secret{kubeconfigSecret},
+				secrets: []*corev1.Secret{kubeconfigSecret},
 			}
 			f.clusterClients[targetKubeconfig] = &testClusterClient{
-				secrets: []*apiv1.Secret{kubeconfigSecret},
+				secrets: []*corev1.Secret{kubeconfigSecret},
 			}
 
 			inputCluster := &clusterv1.Cluster{
@@ -942,11 +1041,18 @@ func TestCreateProviderComponentsScenarios(t *testing.T) {
 				},
 			}
 			inputMachines := generateMachines(inputCluster, metav1.NamespaceDefault)
+			resources := &yaml.ParseOutput{
+				Clusters: []*clusterv1.Cluster{
+					inputCluster,
+				},
+				Machines: inputMachines,
+			}
+
 			pcFactory := mockProviderComponentsStoreFactory{NewFromCoreclientsetPCStore: &tc.pcStore}
 			providerComponentsYaml := "---\nyaml: definition"
 			addonsYaml := "---\nyaml: definition"
 			d := New(p, f, providerComponentsYaml, addonsYaml, "", false)
-			err := d.Create(inputCluster, inputMachines, kubeconfigOut, &pcFactory)
+			err := d.Create(resources, kubeconfigOut, &pcFactory)
 			if err == nil && tc.expectedError != "" {
 				t.Fatalf("error mismatch: got '%v', want '%v'", err, tc.expectedError)
 			}
@@ -1425,6 +1531,14 @@ func generateTestNodeMachine(cluster *clusterv1.Cluster, ns, name string) *clust
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      name,
 			Namespace: ns,
+		},
+		Spec: clusterv1.MachineSpec{
+			InfrastructureRef: corev1.ObjectReference{
+				APIVersion: InfrastructureAPIVersion,
+				Kind:       KindProviderMachine,
+				Name:       name,
+				Namespace:  ns,
+			},
 		},
 	}
 	if cluster != nil {

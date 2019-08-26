@@ -31,7 +31,7 @@ RUN go mod download
 COPY ./ ./
 
 # Build
-RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 GO111MODULE=on go build -a -o manager ./cmd/manager/main.go
+RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 GO111MODULE=on go build -a -o manager main.go
 
 # Use alpine:latest as minimal base image to package the manager binary and its dependencies
 FROM alpine:latest

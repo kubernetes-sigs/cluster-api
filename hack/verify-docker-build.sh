@@ -23,7 +23,4 @@ source "$(dirname "$0")/utils.sh"
 # check if manager docker image builds
 cd_root_path
 
-export GO111MODULE=on
-go mod download
-go build -o manager ./cmd/manager
 docker build --file Dockerfile -t manager:pr-verify .

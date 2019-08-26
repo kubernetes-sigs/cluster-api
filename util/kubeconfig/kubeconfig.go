@@ -70,3 +70,17 @@ func Extract(secret *corev1.Secret) ([]byte, error) {
 	}
 	return data, nil
 }
+
+// Fetching Kubeconfig
+func FetchKubeconfigFromSecret(c client.Client, namespace, clusterName string) (string, error) {
+	secret, err := GetSecret(c, clusterName, namespace)
+	if err != nil {
+		return "", err
+	}
+
+	data, err := Extract(secret)
+	if err != nil {
+		return "", err
+	}
+	return string(data), nil
+}

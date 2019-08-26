@@ -18,7 +18,7 @@ package cloudinit
 
 const (
 	nodeCloudInit = `{{.Header}}
-write_files:
+{{template "files" .WriteFiles}}
 -   path: /tmp/kubeadm-node.yaml
     owner: root:root
     permissions: '0640'

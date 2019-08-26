@@ -56,7 +56,7 @@ patchesStrategicMerge:
 #    kind: Service
 #    version: v1
 #    name: webhook-service
-resources:
+bases:
 - ../crd
 - ../rbac
 - ../manager

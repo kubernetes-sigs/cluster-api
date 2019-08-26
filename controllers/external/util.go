@@ -19,6 +19,7 @@ package external
 import (
 	"context"
 	"fmt"
+	"strings"
 
 	"github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
@@ -51,6 +52,8 @@ func CloneTemplate(c client.Client, ref *corev1.ObjectReference, namespace strin
 	} else if err != nil {
 		return nil, errors.Wrapf(err, "failed to retrieve Spec.Template map on %v %q", from.GroupVersionKind(), from.GetName())
 	}
+
+	// Create the unstructured object from the template.
 	to := &unstructured.Unstructured{Object: template}
 	to.SetResourceVersion("")
 	to.SetOwnerReferences(nil)
@@ -60,6 +63,18 @@ func CloneTemplate(c client.Client, ref *corev1.ObjectReference, namespace strin
 	to.SetName("")
 	to.SetGenerateName(fmt.Sprintf("%s-", from.GetName()))
 	to.SetNamespace(namespace)
+
+	// Set the object APIVersion.
+	if to.GetAPIVersion() == "" {
+		to.SetAPIVersion(ref.APIVersion)
+	}
+
+	// Set the object Kind and strip the word "Template" if it's a suffix.
+	if to.GetKind() == "" {
+		to.SetKind(strings.TrimSuffix(ref.Kind, "Template"))
+	}
+
+	// Create the external clone.
 	if err := c.Create(context.Background(), to); err != nil {
 		return nil, err
 	}

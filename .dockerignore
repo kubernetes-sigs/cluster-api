@@ -1,0 +1,10 @@
+.git
+.github
+.vscode
+bin/
+config/
+hack/
+docs/
+logos/
+scripts/
+**/.md

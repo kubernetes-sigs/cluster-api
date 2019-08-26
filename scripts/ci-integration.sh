@@ -18,6 +18,10 @@ set -o errexit
 set -o nounset
 set -o pipefail
 
+REPO_ROOT=$(dirname "${BASH_SOURCE[0]}")/..
+# shellcheck source=../hack/ensure-go.sh
+source "${REPO_ROOT}/hack/ensure-go.sh"
+
 MAKE="make"
 KIND_VERSION="v0.5.0"
 KUBECTL_VERSION="v1.15.3"

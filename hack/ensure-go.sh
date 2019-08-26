@@ -46,4 +46,3 @@ verify_go_version
 
 # Explicitly opt into go modules, even though we're inside a GOPATH directory
 export GO111MODULE=on
-export GOFLAGS="-mod=vendor"

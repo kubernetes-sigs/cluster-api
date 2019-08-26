@@ -5,6 +5,7 @@
 *.dylib
 cmd/clusterctl/clusterctl
 bin
+hack/tools/bin
 
 # Test binary, build with `go test -c`
 *.test

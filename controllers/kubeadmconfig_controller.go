@@ -117,8 +117,6 @@ func (r *KubeadmConfigReconciler) Reconcile(req ctrl.Request) (_ ctrl.Result, re
 		return ctrl.Result{}, err
 	}
 
-	// Check for infrastructure ready. If it's not ready then we will requeue the machine until it is.
-	// The cluster-api machine controller set this value.
 	if !cluster.Status.InfrastructureReady {
 		log.Info("Infrastructure is not ready, waiting until ready.")
 		return ctrl.Result{}, nil
@@ -207,14 +205,13 @@ func (r *KubeadmConfigReconciler) Reconcile(req ctrl.Request) (_ ctrl.Result, re
 
 		certificates, err := r.getClusterCertificates(ctx, cluster.GetName(), config.GetNamespace())
 		if err != nil {
-			if apierrors.IsNotFound(err) {
-				certificates, err = r.createClusterCertificates(ctx, cluster.GetName(), config)
-				if err != nil {
-					log.Error(err, "unable to create cluster certificates")
-					return ctrl.Result{}, err
-				}
-			} else {
-				log.Error(err, "unable to lookup cluster certificates")
+			log.Error(err, "unable to lookup cluster certificates")
+			return ctrl.Result{}, err
+		}
+		if certificates == nil {
+			certificates, err = r.createClusterCertificates(ctx, cluster.GetName(), config)
+			if err != nil {
+				log.Error(err, "unable to create cluster certificates")
 				return ctrl.Result{}, err
 			}
 		}
@@ -260,6 +257,21 @@ func (r *KubeadmConfigReconciler) Reconcile(req ctrl.Request) (_ ctrl.Result, re
 		return ctrl.Result{}, errors.New("Control plane already exists for the cluster, only KubeadmConfig objects with JoinConfiguration are allowed")
 	}
 
+	// Get certificates to improve security of discovery
+	certificates, err := r.getClusterCertificates(ctx, cluster.GetName(), config.GetNamespace())
+	if err != nil {
+		log.Error(err, "unable to lookup cluster certificates")
+		return ctrl.Result{}, err
+	}
+	if certificates != nil {
+		hashes, err := certs.CertificateHashes(certificates.ClusterCA.Cert)
+		if err == nil {
+			config.Spec.JoinConfiguration.Discovery.BootstrapToken = &kubeadmv1beta1.BootstrapTokenDiscovery{
+				CACertHashes: hashes,
+			}
+		}
+	}
+
 	// ensure that joinConfiguration.Discovery is properly set for joining node on the current cluster
 	if err := r.reconcileDiscovery(cluster, config); err != nil {
 		if requeueErr, ok := errors.Cause(err).(capierrors.HasRequeueAfterError); ok {
@@ -285,6 +297,10 @@ func (r *KubeadmConfigReconciler) Reconcile(req ctrl.Request) (_ ctrl.Result, re
 		if err != nil {
 			log.Error(err, "unable to locate cluster certificates")
 			return ctrl.Result{}, err
+		}
+		if certificates == nil {
+			log.Info("Cluster CAs have not been created; requeuing to try again")
+			return ctrl.Result{RequeueAfter: 10 * time.Second}, nil
 		}
 
 		cloudJoinData, err := cloudinit.NewJoinControlPlane(&cloudinit.ControlPlaneJoinInput{
@@ -429,8 +445,8 @@ func (r *KubeadmConfigReconciler) reconcileDiscovery(cluster *clusterv1.Cluster,
 	// if BootstrapToken already contains a CACertHashes or UnsafeSkipCAVerification, respect it; otherwise set for UnsafeSkipCAVerification
 	// TODO: set CACertHashes instead of UnsafeSkipCAVerification
 	if len(config.Spec.JoinConfiguration.Discovery.BootstrapToken.CACertHashes) == 0 && !config.Spec.JoinConfiguration.Discovery.BootstrapToken.UnsafeSkipCAVerification {
+		log.Info("No CAs were provided. Falling back to insecure discover method by skipping CA Cert validation")
 		config.Spec.JoinConfiguration.Discovery.BootstrapToken.UnsafeSkipCAVerification = true
-		log.Info("Altering JoinConfiguration.Discovery.BootstrapToken", "UnsafeSkipCAVerification", true)
 	}
 
 	return nil
@@ -482,11 +498,14 @@ func (r *KubeadmConfigReconciler) getClusterCertificates(ctx context.Context, cl
 	secret := &corev1.Secret{}
 
 	err := r.Get(ctx, types.NamespacedName{Name: ClusterCertificatesSecretName(clusterName), Namespace: namespace}, secret)
-	if err != nil {
+	switch {
+	case apierrors.IsNotFound(err):
+		return nil, nil
+	case err != nil:
 		return nil, err
+	default:
+		return certs.NewCertificatesFromMap(secret.Data), nil
 	}
-
-	return certs.NewCertificatesFromMap(secret.Data), nil
 }
 
 func (r *KubeadmConfigReconciler) createClusterCertificates(ctx context.Context, clusterName string, config *bootstrapv1.KubeadmConfig) (*certs.Certificates, error) {

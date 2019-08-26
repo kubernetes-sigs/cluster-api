@@ -30,6 +30,7 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 	fakeclient "k8s.io/client-go/kubernetes/fake"
 	typedcorev1 "k8s.io/client-go/kubernetes/typed/core/v1"
+	"k8s.io/klog/klogr"
 	bootstrapv1 "sigs.k8s.io/cluster-api-bootstrap-provider-kubeadm/api/v1alpha2"
 	"sigs.k8s.io/cluster-api-bootstrap-provider-kubeadm/certs"
 	kubeadmv1beta1 "sigs.k8s.io/cluster-api-bootstrap-provider-kubeadm/kubeadm/v1beta1"
@@ -835,6 +836,58 @@ func TestReconcileTopLevelObjectSettings(t *testing.T) {
 				t.Fatalf("expected ClusterConfiguration.KubernetesVersion %q, got %q", "myversion", rt.config.Spec.ClusterConfiguration.KubernetesVersion)
 			}
 		})
+	}
+}
+
+func TestCACertHashesAndUnsafeCAVerifySkip(t *testing.T) {
+	namespace := "default" // hardcoded in the new* functions
+	clusterName := "my-cluster"
+	cluster := newCluster(clusterName)
+	cluster.Status.ControlPlaneInitialized = true
+	cluster.Status.InfrastructureReady = true
+
+	controlPlaneMachineName := "my-machine"
+	machine := newMachine(cluster, controlPlaneMachineName)
+
+	workerMachineName := "my-worker"
+	workerMachine := newMachine(cluster, workerMachineName)
+
+	controlPlaneConfigName := "my-config"
+	config := newKubeadmConfig(machine, controlPlaneConfigName)
+
+	workerConfigName := "worker-join-cfg"
+	workerConfig := newWorkerJoinKubeadmConfig(workerMachine)
+
+	certificates, _ := certs.NewCertificates()
+	secret := &corev1.Secret{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      ClusterCertificatesSecretName(cluster.GetName()),
+			Namespace: namespace,
+		},
+		Data: certificates.ToMap(),
+	}
+
+	myclient := fake.NewFakeClientWithScheme(setupScheme(), cluster, machine, workerMachine, config, workerConfig, secret)
+
+	reconciler := KubeadmConfigReconciler{
+		Client:               myclient,
+		SecretsClientFactory: newFakeSecretFactory(),
+		KubeadmInitLock:      &myInitLocker{},
+		Log:                  klogr.New(),
+	}
+
+	req := ctrl.Request{
+		NamespacedName: types.NamespacedName{Name: workerConfigName, Namespace: namespace},
+	}
+	if _, err := reconciler.Reconcile(req); err != nil {
+		t.Fatalf("reconciled an error: %v", err)
+	}
+	cfg := &bootstrapv1.KubeadmConfig{}
+	if err := myclient.Get(context.Background(), req.NamespacedName, cfg); err != nil {
+		t.Fatal(err)
+	}
+	if cfg.Spec.JoinConfiguration.Discovery.BootstrapToken.UnsafeSkipCAVerification == true {
+		t.Fatal("Should not skip unsafe")
 	}
 }
 

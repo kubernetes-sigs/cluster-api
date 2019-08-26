@@ -158,6 +158,11 @@ var _ = Describe("MachineSet Reconciler", func() {
 		// Verify that each machine has the desired kubelet version,
 		// create a fake node in Ready state, update NodeRef, and wait for a reconciliation request.
 		for _, m := range machines.Items {
+			if !m.DeletionTimestamp.IsZero() {
+				// Skip deleted Machines
+				continue
+			}
+
 			Expect(m.Spec.Version).ToNot(BeNil())
 			Expect(*m.Spec.Version).To(BeEquivalentTo("1.14.2"))
 			fakeInfrastructureRefReady(m.Spec.InfrastructureRef, infraResource)

@@ -19,7 +19,6 @@ package controllers
 import (
 	"context"
 	"fmt"
-	"time"
 
 	"github.com/go-logr/logr"
 	"github.com/pkg/errors"
@@ -94,7 +93,7 @@ func (r *DockerMachineReconciler) Reconcile(req ctrl.Request) (_ ctrl.Result, re
 	// Make sure infrastructure is ready
 	if !cluster.Status.InfrastructureReady {
 		log.Info("Waiting for DockerCluster Controller to create cluster infrastructure")
-		return ctrl.Result{RequeueAfter: 10 * time.Second}, nil
+		return ctrl.Result{}, nil
 	}
 
 	// Fetch the Docker Cluster.
@@ -104,8 +103,8 @@ func (r *DockerMachineReconciler) Reconcile(req ctrl.Request) (_ ctrl.Result, re
 		Name:      cluster.Spec.InfrastructureRef.Name,
 	}
 	if err := r.Client.Get(ctx, dockerClusterName, dockerCluster); err != nil {
-		log.Info("Waiting for DockerCluster")
-		return ctrl.Result{RequeueAfter: 10 * time.Second}, nil
+		log.Info("DockerCluster is not available yet")
+		return ctrl.Result{}, nil
 	}
 
 	log = log.WithValues("docker-cluster", dockerCluster.Name)
@@ -243,5 +242,36 @@ func (r *DockerMachineReconciler) SetupWithManager(mgr ctrl.Manager) error {
 				ToRequests: util.MachineToInfrastructureMapFunc(infrav1.GroupVersion.WithKind("DockerMachine")),
 			},
 		).
+		Watches(
+			&source.Kind{Type: &infrav1.DockerCluster{}},
+			&handler.EnqueueRequestsFromMapFunc{
+				ToRequests: handler.ToRequestsFunc(r.DockerClusterToDockerMachines),
+			},
+		).
 		Complete(r)
+}
+
+// DockerClusterToDockerMachines is a handler.ToRequestsFunc to be used to enqeue
+// requests for reconciliation of DockerMachines.
+func (r *DockerMachineReconciler) DockerClusterToDockerMachines(o handler.MapObject) []ctrl.Request {
+	result := []ctrl.Request{}
+
+	c, ok := o.Object.(*infrav1.DockerCluster)
+	if !ok {
+		r.Log.Error(errors.Errorf("expected a DockerCluster but got a %T", o.Object), "failed to get DockerMachine for DockerCluster")
+		return nil
+	}
+
+	labels := map[string]string{clusterv1.MachineClusterLabelName: c.Name}
+	machineList := &infrav1.DockerMachineList{}
+	if err := r.Client.List(context.Background(), machineList, client.InNamespace(c.Namespace), client.MatchingLabels(labels)); err != nil {
+		r.Log.Error(err, "failed to list DockerMachines", "DockerCluster", c.Name, "Namespace", c.Namespace)
+		return nil
+	}
+	for _, m := range machineList.Items {
+		name := client.ObjectKey{Namespace: m.Namespace, Name: m.Name}
+		result = append(result, ctrl.Request{NamespacedName: name})
+	}
+
+	return result
 }

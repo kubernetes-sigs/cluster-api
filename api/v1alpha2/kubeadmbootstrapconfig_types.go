@@ -44,7 +44,7 @@ type KubeadmConfigSpec struct {
 	JoinConfiguration *kubeadmv1beta1.JoinConfiguration `json:"joinConfiguration,omitempty"`
 	// Files specifies extra files to be passed to user_data upon creation.
 	// +optional
-	Files []Files `json:"files,omitempty"`
+	Files []File `json:"files,omitempty"`
 	// PreKubeadmCommands specifies extra commands to run before kubeadm runs
 	// +optional
 	PreKubeadmCommands []string `json:"preKubeadmCommands,omitempty"`
@@ -107,8 +107,8 @@ func init() {
 	SchemeBuilder.Register(&KubeadmConfig{}, &KubeadmConfigList{})
 }
 
-// Files defines the input for generating write_files in cloud-init.
-type Files struct {
+// File defines the input for generating write_files in cloud-init.
+type File struct {
 	// Path specifies the full path on disk where to store the file.
 	Path string `json:"path"`
 

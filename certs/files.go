@@ -23,8 +23,8 @@ const (
 )
 
 // CertificatesToFiles writes Certificates to files
-func CertificatesToFiles(input Certificates) []v1alpha2.Files {
-	return []v1alpha2.Files{
+func CertificatesToFiles(input Certificates) []v1alpha2.File {
+	return []v1alpha2.File{
 		{
 			Path:        "/etc/kubernetes/pki/ca.crt",
 			Owner:       rootOwnerValue,

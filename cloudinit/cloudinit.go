@@ -35,8 +35,8 @@ type BaseUserData struct {
 	Header              string
 	PreKubeadmCommands  []string
 	PostKubeadmCommands []string
-	AdditionalFiles     []v1alpha2.Files
-	WriteFiles          []v1alpha2.Files
+	AdditionalFiles     []v1alpha2.File
+	WriteFiles          []v1alpha2.File
 	Users               []v1alpha2.User
 	NTP                 *v1alpha2.NTP
 }

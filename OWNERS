@@ -5,5 +5,9 @@ approvers:
   - cluster-api-admins
   - cluster-api-maintainers
 
+emeritus_approvers:
+  - roberthbailey
+  - kris-nova
+
 reviewers:
   - cluster-api-maintainers

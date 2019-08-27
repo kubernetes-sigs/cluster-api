@@ -18,6 +18,7 @@ package controllers
 
 import (
 	"context"
+	"fmt"
 	"time"
 
 	"github.com/pkg/errors"
@@ -128,7 +129,10 @@ func (r *MachineReconciler) reconcileExternal(ctx context.Context, m *v1alpha2.M
 		m.Status.ErrorReason = &machineStatusError
 	}
 	if errorMessage != "" {
-		m.Status.ErrorMessage = pointer.StringPtr(errorMessage)
+		m.Status.ErrorMessage = pointer.StringPtr(
+			fmt.Sprintf("Failure detected from referenced resource %v with name %q: %s",
+				obj.GroupVersionKind(), obj.GetName(), errorMessage),
+		)
 	}
 
 	return obj, nil

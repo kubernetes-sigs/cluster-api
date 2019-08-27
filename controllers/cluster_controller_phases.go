@@ -18,6 +18,7 @@ package controllers
 
 import (
 	"context"
+	"fmt"
 	"time"
 
 	"github.com/pkg/errors"
@@ -119,7 +120,10 @@ func (r *ClusterReconciler) reconcileExternal(ctx context.Context, cluster *v1al
 		cluster.Status.ErrorReason = &clusterStatusError
 	}
 	if errorMessage != "" {
-		cluster.Status.ErrorMessage = pointer.StringPtr(errorMessage)
+		cluster.Status.ErrorMessage = pointer.StringPtr(
+			fmt.Sprintf("Failure detected from referenced resource %v with name %q: %s",
+				obj.GroupVersionKind(), obj.GetName(), errorMessage),
+		)
 	}
 
 	return obj, nil

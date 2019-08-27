@@ -135,7 +135,7 @@ type MachineStatus struct {
 	// Phase represents the current phase of machine actuation.
 	// E.g. Pending, Running, Terminating, Failed etc.
 	// +optional
-	Phase string `json:"phase,omitempty"`
+	Phase MachinePhase `json:"phase,omitempty"`
 
 	// BootstrapReady is the state of the bootstrap provider.
 	// +optional
@@ -148,13 +148,13 @@ type MachineStatus struct {
 
 // SetTypedPhase sets the Phase field to the string representation of MachinePhase.
 func (m *MachineStatus) SetTypedPhase(p MachinePhase) {
-	m.Phase = string(p)
+	m.Phase = p
 }
 
 // GetTypedPhase attempts to parse the Phase field and return
 // the typed MachinePhase representation as described in `machine_phase_types.go`.
 func (m *MachineStatus) GetTypedPhase() MachinePhase {
-	switch phase := MachinePhase(m.Phase); phase {
+	switch m.Phase {
 	case
 		MachinePhasePending,
 		MachinePhaseProvisioning,
@@ -163,7 +163,7 @@ func (m *MachineStatus) GetTypedPhase() MachinePhase {
 		MachinePhaseDeleting,
 		MachinePhaseDeleted,
 		MachinePhaseFailed:
-		return phase
+		return m.Phase
 	default:
 		return MachinePhaseUnknown
 	}

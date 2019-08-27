@@ -30,11 +30,11 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 	typedcorev1 "k8s.io/client-go/kubernetes/typed/core/v1"
 	"k8s.io/client-go/tools/clientcmd"
-	cabpkv1alpha2 "sigs.k8s.io/cluster-api-bootstrap-provider-kubeadm/api/v1alpha2"
+	bootstrapv1 "sigs.k8s.io/cluster-api-bootstrap-provider-kubeadm/api/v1alpha2"
 	"sigs.k8s.io/cluster-api-bootstrap-provider-kubeadm/certs"
 	"sigs.k8s.io/cluster-api-bootstrap-provider-kubeadm/cloudinit"
 	kubeadmv1beta1 "sigs.k8s.io/cluster-api-bootstrap-provider-kubeadm/kubeadm/v1beta1"
-	capiv1alpha2 "sigs.k8s.io/cluster-api/api/v1alpha2"
+	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha2"
 	capierrors "sigs.k8s.io/cluster-api/errors"
 	"sigs.k8s.io/cluster-api/util"
 	"sigs.k8s.io/cluster-api/util/patch"
@@ -52,13 +52,20 @@ const (
 type KubeadmConfigReconciler struct {
 	client.Client
 	SecretsClientFactory SecretsClientFactory
+	KubeadmInitLock      InitLocker
 	Log                  logr.Logger
+}
+
+// InitLocker is a lock that is used around kubeadm init
+type InitLocker interface {
+	Lock(ctx context.Context, cluster *clusterv1.Cluster, machine *clusterv1.Machine) bool
+	Unlock(ctx context.Context, cluster *clusterv1.Cluster) bool
 }
 
 // SecretsClientFactory define behaviour for creating a secrets client
 type SecretsClientFactory interface {
 	// NewSecretsClient returns a new client supporting SecretInterface
-	NewSecretsClient(client.Client, *capiv1alpha2.Cluster) (typedcorev1.SecretInterface, error)
+	NewSecretsClient(client.Client, *clusterv1.Cluster) (typedcorev1.SecretInterface, error)
 }
 
 // ClusterCertificatesSecretName returns the name of the certificates secret, given a cluster name
@@ -77,7 +84,7 @@ func (r *KubeadmConfigReconciler) Reconcile(req ctrl.Request) (_ ctrl.Result, re
 	ctx := context.Background()
 	log := r.Log.WithValues("kubeadmconfig", req.NamespacedName)
 
-	config := &cabpkv1alpha2.KubeadmConfig{}
+	config := &bootstrapv1.KubeadmConfig{}
 	if err := r.Get(ctx, req.NamespacedName, config); err != nil {
 		if apierrors.IsNotFound(err) {
 			return ctrl.Result{}, nil
@@ -101,6 +108,7 @@ func (r *KubeadmConfigReconciler) Reconcile(req ctrl.Request) (_ ctrl.Result, re
 		log.Info("Waiting for Machine Controller to set OwnerRef on the KubeadmConfig")
 		return ctrl.Result{RequeueAfter: 10 * time.Second}, nil
 	}
+	log = log.WithValues("machine-name", machine.Name)
 
 	// Ignore machines that already have bootstrap data
 	if machine.Spec.Bootstrap.Data != nil {
@@ -136,10 +144,9 @@ func (r *KubeadmConfigReconciler) Reconcile(req ctrl.Request) (_ ctrl.Result, re
 	}()
 
 	holdLock := false
-	initLocker := newControlPlaneInitLocker(ctx, log, r.Client)
 	defer func() {
 		if !holdLock {
-			initLocker.Release(cluster)
+			r.KubeadmInitLock.Unlock(ctx, cluster)
 		}
 	}()
 
@@ -148,7 +155,7 @@ func (r *KubeadmConfigReconciler) Reconcile(req ctrl.Request) (_ ctrl.Result, re
 	if cluster.Annotations[ControlPlaneReadyAnnotationKey] != "true" {
 		// if it's NOT a control plane machine, requeue
 		if !util.IsControlPlaneMachine(machine) {
-			log.Info(fmt.Sprintf("Machine is not a control plane. If it should be a control plane, add `%s: true` as a label to the Machine", capiv1alpha2.MachineControlPlaneLabelName))
+			log.Info(fmt.Sprintf("Machine is not a control plane. If it should be a control plane, add `%s: true` as a label to the Machine", clusterv1.MachineControlPlaneLabelName))
 			return ctrl.Result{RequeueAfter: 30 * time.Second}, nil
 		}
 
@@ -161,7 +168,7 @@ func (r *KubeadmConfigReconciler) Reconcile(req ctrl.Request) (_ ctrl.Result, re
 		// acquire the init lock so that only the first machine configured
 		// as control plane get processed here
 		// if not the first, requeue
-		if !initLocker.Acquire(cluster) {
+		if !r.KubeadmInitLock.Lock(ctx, cluster, machine) {
 			log.Info("A control plane is already being initialized, requeing until control plane is ready")
 			return ctrl.Result{RequeueAfter: 30 * time.Second}, nil
 		}
@@ -252,8 +259,8 @@ func (r *KubeadmConfigReconciler) Reconcile(req ctrl.Request) (_ ctrl.Result, re
 	// Every other case it's a join scenario
 	// Nb. in this case ClusterConfiguration and JoinConfiguration should not be defined by users, but in case of misconfigurations, CABPK simply ignore them
 
-	// Release any locks that might have been set during init process
-	initLocker.Release(cluster)
+	// Unlock any locks that might have been set during init process
+	r.KubeadmInitLock.Unlock(ctx, cluster)
 
 	if config.Spec.JoinConfiguration == nil {
 		return ctrl.Result{}, errors.New("Control plane already exists for the cluster, only KubeadmConfig objects with JoinConfiguration are allowed")
@@ -334,7 +341,7 @@ func (r *KubeadmConfigReconciler) Reconcile(req ctrl.Request) (_ ctrl.Result, re
 // SetupWithManager TODO
 func (r *KubeadmConfigReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewControllerManagedBy(mgr).
-		For(&cabpkv1alpha2.KubeadmConfig{}).
+		For(&bootstrapv1.KubeadmConfig{}).
 		Complete(r)
 }
 
@@ -342,7 +349,7 @@ func (r *KubeadmConfigReconciler) SetupWithManager(mgr ctrl.Manager) error {
 // The implementation func respect user provided discovery configurations, but in case some of them are missing, a valid BootstrapToken object
 // is automatically injected into config.JoinConfiguration.Discovery.
 // This allows to simplify configuration UX, by providing the option to delegate to CABPK the configuration of kubeadm join discovery.
-func (r *KubeadmConfigReconciler) reconcileDiscovery(cluster *capiv1alpha2.Cluster, config *cabpkv1alpha2.KubeadmConfig) error {
+func (r *KubeadmConfigReconciler) reconcileDiscovery(cluster *clusterv1.Cluster, config *bootstrapv1.KubeadmConfig) error {
 	log := r.Log.WithValues("kubeadmconfig", fmt.Sprintf("%s/%s", config.Namespace, config.Name))
 
 	// if config already contains a file discovery configuration, respect it without further validations
@@ -398,7 +405,7 @@ func (r *KubeadmConfigReconciler) reconcileDiscovery(cluster *capiv1alpha2.Clust
 
 // reconcileTopLevelObjectSettings injects into config.ClusterConfiguration values from top level objects like cluster and machine.
 // The implementation func respect user provided config values, but in case some of them are missing, values from top level objects are used.
-func (r *KubeadmConfigReconciler) reconcileTopLevelObjectSettings(cluster *capiv1alpha2.Cluster, machine *capiv1alpha2.Machine, config *cabpkv1alpha2.KubeadmConfig) {
+func (r *KubeadmConfigReconciler) reconcileTopLevelObjectSettings(cluster *clusterv1.Cluster, machine *clusterv1.Machine, config *bootstrapv1.KubeadmConfig) {
 	log := r.Log.WithValues("kubeadmconfig", fmt.Sprintf("%s/%s", config.Namespace, config.Name))
 
 	// If there are no ControlPlaneEndpoint defined in ClusterConfiguration but there are APIEndpoints defined at cluster level (e.g. the load balancer endpoint),
@@ -449,7 +456,7 @@ func (r *KubeadmConfigReconciler) getClusterCertificates(ctx context.Context, cl
 	return certs.NewCertificatesFromMap(secret.Data), nil
 }
 
-func (r *KubeadmConfigReconciler) createClusterCertificates(ctx context.Context, clusterName string, config *cabpkv1alpha2.KubeadmConfig) (*certs.Certificates, error) {
+func (r *KubeadmConfigReconciler) createClusterCertificates(ctx context.Context, clusterName string, config *bootstrapv1.KubeadmConfig) (*certs.Certificates, error) {
 	certificates, err := certs.NewCertificates()
 	if err != nil {
 		return nil, err
@@ -461,7 +468,7 @@ func (r *KubeadmConfigReconciler) createClusterCertificates(ctx context.Context,
 			Namespace: config.GetNamespace(),
 			OwnerReferences: []v1.OwnerReference{
 				{
-					APIVersion: cabpkv1alpha2.GroupVersion.String(),
+					APIVersion: bootstrapv1.GroupVersion.String(),
 					Kind:       "KubeadmConfig",
 					Name:       config.GetName(),
 					UID:        config.GetUID(),

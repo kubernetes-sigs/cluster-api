@@ -7,6 +7,6 @@ spec:
   template:
     spec:
       containers:
-      # Change the value of image field below to your controller image URL
-      - image: IMAGE_URL
+      # Change the value of image field to the new version before a release
+      - image: gcr.io/k8s-staging-capi-kubeadm/manager:latest
         name: manager

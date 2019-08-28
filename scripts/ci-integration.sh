@@ -58,7 +58,7 @@ build_containers() {
    export EXAMPLE_PROVIDER_IMG="${EXAMPLE_PROVIDER_REPO}"
 
    "${MAKE}" docker-build TAG="${VERSION}" ARCH="${GOARCH}"
-   "${MAKE}" docker-build-ci TAG="${VERSION}" ARCH="${GOARCH}"
+   "${MAKE}" docker-build-example-provider TAG="${VERSION}" ARCH="${GOARCH}"
 }
 
 prepare_crd_yaml() {

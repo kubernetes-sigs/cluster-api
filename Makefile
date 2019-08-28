@@ -47,11 +47,9 @@ CONVERSION_GEN := $(TOOLS_BIN_DIR)/conversion-gen
 # Define Docker related variables. Releases should modify and double check these vars.
 REGISTRY ?= gcr.io/$(shell gcloud config get-value project)
 CONTROLLER_IMG ?= $(REGISTRY)/cluster-api-controller
-EXAMPLE_PROVIDER_IMG ?= $(REGISTRY)/example-provider-controller
 TAG ?= dev
 ARCH ?= amd64
 ALL_ARCH = amd64 arm arm64 ppc64le s390x
-GOOS ?= linux
 
 all: test manager clusterctl
 
@@ -152,32 +150,22 @@ docker-build: ## Build the docker image for controller-manager
 docker-push: ## Push the docker image
 	docker push $(CONTROLLER_IMG)-$(ARCH):$(TAG)
 
-.PHONY: all-docker-build
-all-docker-build: $(addprefix sub-docker-build-,$(ALL_ARCH))
-	@echo "updating kustomize image patch file for manager resource"
-	hack/sed.sh -i.tmp -e 's@image: .*@image: '"$(CONTROLLER_IMG):$(TAG)"'@' ./config/default/manager_image_patch.yaml
+## --------------------------------------
+## Docker — All ARCH
+## --------------------------------------
 
-sub-docker-build-%:
+.PHONY: docker-build-all ## Build all the architecture docker images
+docker-build-all: $(addprefix docker-build-,$(ALL_ARCH))
+
+docker-build-%:
 	$(MAKE) ARCH=$* docker-build
 
-.PHONY:all-push ## Push all the architecture docker images and fat manifest docker image
-all-push: all-docker-push docker-push-manifest
+.PHONY: docker-push-all ## Push all the architecture docker images
+docker-push-all: $(addprefix docker-push-,$(ALL_ARCH))
+	$(MAKE) docker-push-manifest
 
-.PHONY:all-docker-push ## Push all the architecture docker images
-all-docker-push: $(addprefix sub-docker-push-,$(ALL_ARCH))
-
-sub-docker-push-%:
+docker-push-%:
 	$(MAKE) ARCH=$* docker-push
-
-.PHONY: docker-build-ci
-docker-build-ci: generate lint-full ## Build the docker image for example provider
-	docker build --pull --build-arg ARCH=$(ARCH) . -f ./cmd/example-provider/Dockerfile -t $(EXAMPLE_PROVIDER_IMG)-$(ARCH):$(TAG)
-	@echo "updating kustomize image patch file for ci"
-	hack/sed.sh -i.tmp -e 's@image: .*@image: '"${EXAMPLE_PROVIDER_IMG}-$(ARCH):$(TAG)"'@' ./config/ci/manager_image_patch.yaml
-
-.PHONY: docker-push-ci
-docker-push-ci: docker-build-ci  ## Build the docker image for ci
-	docker push "$(EXAMPLE_PROVIDER_IMG)-$(ARCH):$(TAG)"
 
 .PHONY: docker-push-manifest
 docker-push-manifest: ## Push the fat manifest docker image.
@@ -185,6 +173,18 @@ docker-push-manifest: ## Push the fat manifest docker image.
 	docker manifest create --amend $(CONTROLLER_IMG):$(TAG) $(shell echo $(ALL_ARCH) | sed -e "s~[^ ]*~$(CONTROLLER_IMG)\-&:$(TAG)~g")
 	@for arch in $(ALL_ARCH); do docker manifest annotate --arch $${arch} ${CONTROLLER_IMG}:${TAG} ${CONTROLLER_IMG}-$${arch}:${TAG}; done
 	docker manifest push --purge ${CONTROLLER_IMG}:${TAG}
+
+## --------------------------------------
+## Docker - Example Provider
+## --------------------------------------
+
+EXAMPLE_PROVIDER_IMG ?= $(REGISTRY)/example-provider-controller
+
+.PHONY: docker-build-example-provider
+docker-build-example-provider: generate lint-full ## Build the docker image for example provider
+	docker build --pull --build-arg ARCH=$(ARCH) . -f ./cmd/example-provider/Dockerfile -t $(EXAMPLE_PROVIDER_IMG)-$(ARCH):$(TAG)
+	@echo "updating kustomize image patch file for ci"
+	hack/sed.sh -i.tmp -e 's@image: .*@image: '"${EXAMPLE_PROVIDER_IMG}-$(ARCH):$(TAG)"'@' ./config/ci/manager_image_patch.yaml
 
 ## --------------------------------------
 ## Cleanup / Verification

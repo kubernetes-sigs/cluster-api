@@ -134,7 +134,7 @@ main() {
    kubectl create -f "${CRD_YAML}"
 
    set +e
-   wait_deployment_available "cluster-api-controller-manager" "cluster-api-system"
+   wait_deployment_available "capi-controller-manager" "capi-system"
    wait_deployment_available "provider-controller-manager" "provider-system"
    set -e
 

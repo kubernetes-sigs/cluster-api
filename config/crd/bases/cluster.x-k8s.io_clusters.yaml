@@ -134,6 +134,10 @@ spec:
                 - port
                 type: object
               type: array
+            controlPlaneInitialized:
+              description: ControlPlaneInitialized defines if the control plane has
+                been initialized.
+              type: boolean
             errorMessage:
               description: ErrorMessage indicates that there is a problem reconciling
                 the state, and will be set to a descriptive error message.

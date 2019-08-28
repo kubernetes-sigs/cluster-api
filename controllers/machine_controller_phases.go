@@ -32,6 +32,7 @@ import (
 	"sigs.k8s.io/cluster-api/controllers/external"
 	capierrors "sigs.k8s.io/cluster-api/errors"
 	"sigs.k8s.io/cluster-api/util"
+	"sigs.k8s.io/cluster-api/util/patch"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/handler"
 	"sigs.k8s.io/controller-runtime/pkg/source"
@@ -233,24 +234,24 @@ func (r *MachineReconciler) reconcileInfrastructure(ctx context.Context, m *v1al
 	return nil
 }
 
-// reconcileClusterAnnotations reconciles the annotations on the Cluster associated with Machines.
-// TODO(vincepri): Move to cluster controller once the proposal merges.
-func (r *MachineReconciler) reconcileClusterAnnotations(ctx context.Context, cluster *v1alpha2.Cluster, m *v1alpha2.Machine) error {
+// reconcileClusterStatus reconciles the status on the Cluster associated with Machines.
+func (r *MachineReconciler) reconcileClusterStatus(ctx context.Context, cluster *v1alpha2.Cluster, m *v1alpha2.Machine) error {
 	if cluster == nil {
 		return nil
 	}
 
-	// If the Machine is a control plane, it has a NodeRef and it's ready, set an annotation on the Cluster.
+	// If the Machine is a control plane, it has a NodeRef and it's ready,
+	// set the Status.ControlPlaneInitialized on the Cluster.
 	if util.IsControlPlaneMachine(m) && m.Status.NodeRef != nil {
-		if cluster.Annotations == nil {
-			cluster.SetAnnotations(map[string]string{})
-		}
-
-		if _, ok := cluster.Annotations[v1alpha2.ClusterAnnotationControlPlaneReady]; !ok {
-			clusterPatch := client.MergeFrom(cluster.DeepCopy())
-			cluster.Annotations[v1alpha2.ClusterAnnotationControlPlaneReady] = "true"
-			if err := r.Client.Patch(ctx, cluster, clusterPatch); err != nil {
-				return errors.Wrapf(err, "failed to set control-plane-ready annotation on Cluster %q in namespace %q",
+		if !cluster.Status.ControlPlaneInitialized {
+			patchHelper, err := patch.NewHelper(cluster, r)
+			if err != nil {
+				return errors.Wrapf(err, "failed to create patch helper for Cluster %q in namespace %q",
+					cluster.Name, cluster.Namespace)
+			}
+			cluster.Status.ControlPlaneInitialized = true
+			if err := patchHelper.Patch(ctx, cluster); err != nil {
+				return errors.Wrapf(err, "failed to set Status.ControlPlaneInitialized on Cluster %q in namespace %q",
 					cluster.Name, cluster.Namespace)
 			}
 		}

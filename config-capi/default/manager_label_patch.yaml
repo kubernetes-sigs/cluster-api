@@ -1,0 +1,22 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  labels:
+    control-plane: cluster-api-controller-manager
+  name: system
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: controller-manager
+  namespace: system
+  labels:
+    control-plane: cluster-api-controller-manager
+spec:
+  selector:
+    matchLabels:
+      control-plane: cluster-api-controller-manager
+  template:
+    metadata:
+      labels:
+        control-plane: cluster-api-controller-manager

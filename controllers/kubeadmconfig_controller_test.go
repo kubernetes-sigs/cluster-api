@@ -397,7 +397,7 @@ func TestReconcileKubeadmConfigForInitNodesIfControlPlaneIsNotReady(t *testing.T
 func TestFailIfNotJoinConfigurationAndControlPlaneIsReady(t *testing.T) {
 	cluster := newCluster("cluster")
 	cluster.Status.InfrastructureReady = true
-	cluster.Annotations = map[string]string{ControlPlaneReadyAnnotationKey: "true"}
+	cluster.Status.ControlPlaneInitialized = true
 
 	workerMachine := newWorkerMachine(cluster, "worker-machine")
 	workerJoinConfig := newWorkerJoinKubeadmConfig(workerMachine, "worker-join-cfg")
@@ -431,7 +431,7 @@ func TestFailIfNotJoinConfigurationAndControlPlaneIsReady(t *testing.T) {
 func TestFailIfJoinConfigurationInconsistentWithMachineRole(t *testing.T) {
 	cluster := newCluster("cluster")
 	cluster.Status.InfrastructureReady = true
-	cluster.Annotations = map[string]string{ControlPlaneReadyAnnotationKey: "true"}
+	cluster.Status.ControlPlaneInitialized = true
 	cluster.Status.APIEndpoints = []clusterv1.APIEndpoint{{Host: "100.105.150.1", Port: 6443}}
 
 	controlPaneMachine := newControlPlaneMachine(cluster, "control-plane-machine")
@@ -467,7 +467,7 @@ func TestFailIfJoinConfigurationInconsistentWithMachineRole(t *testing.T) {
 func TestRequeueIfMissingControlPaneEndpointAndControlPlaneIsReady(t *testing.T) {
 	cluster := newCluster("cluster")
 	cluster.Status.InfrastructureReady = true
-	cluster.Annotations = map[string]string{ControlPlaneReadyAnnotationKey: "true"}
+	cluster.Status.ControlPlaneInitialized = true
 
 	workerMachine := newWorkerMachine(cluster, "worker-machine")
 	workerJoinConfig := newWorkerJoinKubeadmConfig(workerMachine, "worker-join-cfg")
@@ -506,7 +506,7 @@ func TestRequeueIfMissingControlPaneEndpointAndControlPlaneIsReady(t *testing.T)
 func TestReconcileIfJoinNodesAndControlPlaneIsReady(t *testing.T) {
 	cluster := newCluster("cluster")
 	cluster.Status.InfrastructureReady = true
-	cluster.Annotations = map[string]string{ControlPlaneReadyAnnotationKey: "true"}
+	cluster.Status.ControlPlaneInitialized = true
 	cluster.Status.APIEndpoints = []clusterv1.APIEndpoint{{Host: "100.105.150.1", Port: 6443}}
 
 	workerMachine := newWorkerMachine(cluster, "worker-machine")
@@ -830,9 +830,9 @@ func TestReconcileTopLevelObjectSettings(t *testing.T) {
 					Name: "OtherName",
 				},
 				Spec: clusterv1.ClusterSpec{
-					ClusterNetwork: &clusterv1.ClusterNetworkingConfig{
-						Services:      clusterv1.NetworkRanges{CIDRBlocks: []string{"otherServicesCidr"}},
-						Pods:          clusterv1.NetworkRanges{CIDRBlocks: []string{"otherPodsCidr"}},
+					ClusterNetwork: &clusterv1.ClusterNetwork{
+						Services:      &clusterv1.NetworkRanges{CIDRBlocks: []string{"otherServicesCidr"}},
+						Pods:          &clusterv1.NetworkRanges{CIDRBlocks: []string{"otherPodsCidr"}},
 						ServiceDomain: "otherServiceDomain",
 					},
 				},
@@ -858,9 +858,9 @@ func TestReconcileTopLevelObjectSettings(t *testing.T) {
 					Name: "mycluster",
 				},
 				Spec: clusterv1.ClusterSpec{
-					ClusterNetwork: &clusterv1.ClusterNetworkingConfig{
-						Services:      clusterv1.NetworkRanges{CIDRBlocks: []string{"myServiceSubnet"}},
-						Pods:          clusterv1.NetworkRanges{CIDRBlocks: []string{"myPodSubnet"}},
+					ClusterNetwork: &clusterv1.ClusterNetwork{
+						Services:      &clusterv1.NetworkRanges{CIDRBlocks: []string{"myServiceSubnet"}},
+						Pods:          &clusterv1.NetworkRanges{CIDRBlocks: []string{"myPodSubnet"}},
 						ServiceDomain: "myDNSDomain",
 					},
 				},

@@ -42,12 +42,6 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
-const (
-	// ControlPlaneReadyAnnotationKey identifies when the infrastructure is ready for use such as joining new nodes.
-	// TODO move this into cluster-api to be imported by providers
-	ControlPlaneReadyAnnotationKey = "cluster.x-k8s.io/control-plane-ready"
-)
-
 // KubeadmConfigReconciler reconciles a KubeadmConfig object
 type KubeadmConfigReconciler struct {
 	client.Client
@@ -150,9 +144,7 @@ func (r *KubeadmConfigReconciler) Reconcile(req ctrl.Request) (_ ctrl.Result, re
 		}
 	}()
 
-	// Check for control plane ready. If it's not ready then we will requeue the machine until it is.
-	// The cluster-api machine controller set this value.
-	if cluster.Annotations[ControlPlaneReadyAnnotationKey] != "true" {
+	if !cluster.Status.ControlPlaneInitialized {
 		// if it's NOT a control plane machine, requeue
 		if !util.IsControlPlaneMachine(machine) {
 			log.Info(fmt.Sprintf("Machine is not a control plane. If it should be a control plane, add `%s: true` as a label to the Machine", clusterv1.MachineControlPlaneLabelName))

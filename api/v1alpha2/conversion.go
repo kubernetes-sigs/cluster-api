@@ -118,6 +118,10 @@ func Convert_v1alpha1_MachineStatus_To_v1alpha2_MachineStatus(in *v1alpha1.Machi
 		return err
 	}
 
+	if in.Versions == nil {
+		return nil
+	}
+
 	if in.Versions.ControlPlane != "" {
 		out.Version = &in.Versions.ControlPlane
 	} else if in.Versions.Kubelet != "" {

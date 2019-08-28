@@ -433,6 +433,7 @@ func autoConvert_v1alpha2_ClusterStatus_To_v1alpha1_ClusterStatus(in *ClusterSta
 	}
 	// WARNING: in.Phase requires manual conversion: does not exist in peer-type
 	// WARNING: in.InfrastructureReady requires manual conversion: does not exist in peer-type
+	// WARNING: in.ControlPlaneInitialized requires manual conversion: does not exist in peer-type
 	return nil
 }
 

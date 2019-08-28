@@ -23,8 +23,7 @@ import (
 )
 
 const (
-	ClusterFinalizer                   = "cluster.cluster.x-k8s.io"
-	ClusterAnnotationControlPlaneReady = "cluster.x-k8s.io/control-plane-ready"
+	ClusterFinalizer = "cluster.cluster.x-k8s.io"
 )
 
 /// [ClusterSpec]
@@ -100,6 +99,10 @@ type ClusterStatus struct {
 	// InfrastructureReady is the state of the infrastructure provider.
 	// +optional
 	InfrastructureReady bool `json:"infrastructureReady"`
+
+	// ControlPlaneInitialized defines if the control plane has been initialized.
+	// +optional
+	ControlPlaneInitialized bool `json:"controlPlaneInitialized"`
 }
 
 // SetTypedPhase sets the Phase field to the string representation of ClusterPhase.

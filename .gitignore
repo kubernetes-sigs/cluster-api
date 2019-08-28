@@ -5,6 +5,7 @@
 *.dylib
 cmd/clusterctl/clusterctl
 bin
+hack/tools/bin
 
 # Test binary, build with `go test -c`
 *.test
@@ -21,13 +22,6 @@ bin
 
 # VSCode
 .vscode/
-
-# Bazel symlinks
-bazel-bin
-bazel-cluster-api
-bazel-genfiles
-bazel-out
-bazel-testlogs
 
 # kubeconfigs
 minikube.kubeconfig

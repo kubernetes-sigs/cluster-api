@@ -18,6 +18,10 @@ set -o errexit
 set -o nounset
 set -o pipefail
 
+REPO_ROOT=$(dirname "${BASH_SOURCE[0]}")/..
+# shellcheck source=../hack/ensure-go.sh
+source "${REPO_ROOT}/hack/ensure-go.sh"
+
 MAKE="make"
 KIND_VERSION="v0.5.0"
 KUBECTL_VERSION="v1.15.3"
@@ -26,7 +30,6 @@ CRD_YAML="crd.yaml"
 BOOTSTRAP_CLUSTER_NAME="clusterapi-bootstrap"
 CONTROLLER_REPO="controller-ci" # use arbitrary repo name since we don't need to publish it
 EXAMPLE_PROVIDER_REPO="example-provider-ci"
-INTEGRATION_TEST_DIR="./test/integration"
 
 GOOS=$(go env GOOS)
 GOARCH=$(go env GOARCH)
@@ -135,9 +138,7 @@ main() {
    wait_deployment_available "provider-controller-manager" "provider-system"
    set -e
 
-   if [[ -d "${INTEGRATION_TEST_DIR}" ]] ; then
-      go test -v -tags=integration "${INTEGRATION_TEST_DIR}"/...
-   fi
+   make test-integration
 
    delete_bootstrap
 

@@ -13,15 +13,13 @@
 # limitations under the License.
 
 # Build the manager binary
-FROM golang:1.12.7 as builder
+FROM golang:1.12.9 as builder
+WORKDIR /workspace
 
-# default the go proxy
+# Run this with docker build --build_arg $(go env GOPROXY) to override the goproxy
 ARG goproxy=https://proxy.golang.org
-
-# run this with docker build --build_arg $(go env GOPROXY) to override the goproxy
 ENV GOPROXY=$goproxy
 
-WORKDIR /workspace
 # Copy the Go Modules manifests
 COPY go.mod go.mod
 COPY go.sum go.sum
@@ -33,7 +31,10 @@ RUN go mod download
 COPY ./ ./
 
 # Build
-RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 GO111MODULE=on go build -a -o manager main.go
+ARG ARCH
+RUN CGO_ENABLED=0 GOOS=linux GOARCH=${ARCH} \
+    go build -a -ldflags '-extldflags "-static"' \
+    -o manager .
 
 # Use distroless as minimal base image to package the manager binary
 # Refer to https://github.com/GoogleContainerTools/distroless for more details

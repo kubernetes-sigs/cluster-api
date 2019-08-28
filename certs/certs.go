@@ -30,8 +30,18 @@ import (
 )
 
 const (
-	rsaKeySize   = 2048
 	duration365d = time.Hour * 24 * 365
+	rsaKeySize   = 2048
+	tlsKey       = "tls.key"
+	tlsCrt       = "tls.crt"
+	//ClusterCAName is the secret name suffix for apiserver CA
+	ClusterCAName = "ca"
+	//EtcdCAName is the secret name suffix for the Etcd CA
+	EtcdCAName = "etcd"
+	//ServiceAccountName is the secret name suffix for the Service Account keys
+	ServiceAccountName = "sa"
+	//FrontProxyCAName is the secret name suffix for Front Proxy CA
+	FrontProxyCAName = "proxy"
 )
 
 // Certificates hold all the certificates necessary for a Kubernetes cluster
@@ -40,6 +50,36 @@ type Certificates struct {
 	EtcdCA         *KeyPair
 	FrontProxyCA   *KeyPair
 	ServiceAccount *KeyPair
+}
+
+// Set sets a certificate by name, ignoring unknown names
+func (certs *Certificates) Set(name string, keyPair *KeyPair) {
+	switch name {
+	case ClusterCAName:
+		certs.ClusterCA = keyPair
+	case EtcdCAName:
+		certs.EtcdCA = keyPair
+	case ServiceAccountName:
+		certs.ServiceAccount = keyPair
+	case FrontProxyCAName:
+		certs.FrontProxyCA = keyPair
+	}
+
+}
+
+// Get returns a certificate by name or nil for unknown certificate types
+func (certs *Certificates) Get(name string) *KeyPair {
+	switch name {
+	case ClusterCAName:
+		return certs.ClusterCA
+	case EtcdCAName:
+		return certs.EtcdCA
+	case ServiceAccountName:
+		return certs.ServiceAccount
+	case FrontProxyCAName:
+		return certs.FrontProxyCA
+	}
+	return nil
 }
 
 // NewCertificates generates all the necessary CAs and KeyPairs for a Kubernetes cluster.

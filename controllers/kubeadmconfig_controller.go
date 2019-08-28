@@ -27,7 +27,6 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/types"
 	typedcorev1 "k8s.io/client-go/kubernetes/typed/core/v1"
 	bootstrapv1 "sigs.k8s.io/cluster-api-bootstrap-provider-kubeadm/api/v1alpha2"
 	"sigs.k8s.io/cluster-api-bootstrap-provider-kubeadm/certs"
@@ -53,11 +52,6 @@ type InitLocker interface {
 type SecretsClientFactory interface {
 	// NewSecretsClient returns a new client supporting SecretInterface
 	NewSecretsClient(client.Client, *clusterv1.Cluster) (typedcorev1.SecretInterface, error)
-}
-
-// ClusterCertificatesSecretName returns the name of the certificates secret, given a cluster name
-func ClusterCertificatesSecretName(clusterName string) string {
-	return fmt.Sprintf("%s-certs", clusterName)
 }
 
 // +kubebuilder:rbac:groups=bootstrap.cluster.x-k8s.io,resources=kubeadmconfigs;kubeadmconfigs/status,verbs=get;list;watch;create;update;patch;delete
@@ -220,17 +214,10 @@ func (r *KubeadmConfigReconciler) Reconcile(req ctrl.Request) (_ ctrl.Result, re
 			return ctrl.Result{}, err
 		}
 
-		certificates, err := r.getClusterCertificates(ctx, cluster.GetName(), config.GetNamespace())
+		certificates, err := r.getOrCreateClusterCertificates(ctx, cluster.GetName(), config)
 		if err != nil {
-			log.Error(err, "unable to lookup cluster certificates")
+			log.Error(err, "unable to lookup or create cluster certificates")
 			return ctrl.Result{}, err
-		}
-		if certificates == nil {
-			certificates, err = r.createClusterCertificates(ctx, cluster.GetName(), config)
-			if err != nil {
-				log.Error(err, "unable to create cluster certificates")
-				return ctrl.Result{}, err
-			}
 		}
 
 		cloudInitData, err := cloudinit.NewInitControlPlane(&cloudinit.ControlPlaneInput{
@@ -304,9 +291,9 @@ func (r *KubeadmConfigReconciler) Reconcile(req ctrl.Request) (_ ctrl.Result, re
 			return ctrl.Result{}, errors.New("Machine is a ControlPlane, but JoinConfiguration.ControlPlane is not set in the KubeadmConfig object")
 		}
 
-		certificates, err := r.getClusterCertificates(ctx, cluster.GetName(), config.GetNamespace())
+		certificates, err := r.getOrCreateClusterCertificates(ctx, cluster.GetName(), config)
 		if err != nil {
-			log.Error(err, "unable to locate cluster certificates")
+			log.Error(err, "unable to locate or create cluster certificates")
 			return ctrl.Result{}, err
 		}
 		if certificates == nil {
@@ -498,18 +485,35 @@ func (r *KubeadmConfigReconciler) reconcileTopLevelObjectSettings(cluster *clust
 	}
 }
 
-func (r *KubeadmConfigReconciler) getClusterCertificates(ctx context.Context, clusterName, namespace string) (*certs.Certificates, error) {
-	secret := &corev1.Secret{}
-
-	err := r.Get(ctx, types.NamespacedName{Name: ClusterCertificatesSecretName(clusterName), Namespace: namespace}, secret)
-	switch {
-	case apierrors.IsNotFound(err):
-		return nil, nil
-	case err != nil:
+func (r *KubeadmConfigReconciler) getOrCreateClusterCertificates(ctx context.Context, clusterName string, config *bootstrapv1.KubeadmConfig) (*certs.Certificates, error) {
+	certificates, err := r.getClusterCertificates(ctx, clusterName, config.GetNamespace())
+	if err != nil {
+		r.Log.Error(err, "unable to lookup cluster certificates")
 		return nil, err
-	default:
-		return certs.NewCertificatesFromMap(secret.Data), nil
 	}
+	if certificates == nil {
+		certificates, err = r.createClusterCertificates(ctx, clusterName, config)
+		if err != nil {
+			r.Log.Error(err, "unable to create cluster certificates")
+			return nil, err
+		}
+	}
+	return certificates, nil
+}
+
+func (r *KubeadmConfigReconciler) getClusterCertificates(ctx context.Context, clusterName, namespace string) (*certs.Certificates, error) {
+	secrets := &corev1.SecretList{}
+
+	err := r.Client.List(ctx, secrets, client.MatchingLabels{clusterv1.MachineClusterLabelName: clusterName})
+	if err != nil {
+		return nil, err
+	}
+
+	// TODO(moshloop) define the contract on what certificates can be created, some or all
+	if len(secrets.Items) < 4 {
+		return nil, nil
+	}
+	return certs.NewCertificatesFromSecrets(secrets)
 }
 
 func (r *KubeadmConfigReconciler) createClusterCertificates(ctx context.Context, clusterName string, config *bootstrapv1.KubeadmConfig) (*certs.Certificates, error) {
@@ -518,25 +522,30 @@ func (r *KubeadmConfigReconciler) createClusterCertificates(ctx context.Context,
 		return nil, err
 	}
 
-	secret := &corev1.Secret{
-		ObjectMeta: v1.ObjectMeta{
-			Name:      ClusterCertificatesSecretName(clusterName),
-			Namespace: config.GetNamespace(),
-			OwnerReferences: []v1.OwnerReference{
-				{
-					APIVersion: bootstrapv1.GroupVersion.String(),
-					Kind:       "KubeadmConfig",
-					Name:       config.GetName(),
-					UID:        config.GetUID(),
-				},
-			},
-		},
-		Data: certificates.ToMap(),
+	for _, secret := range certs.NewSecretsFromCertificates(certificates) {
+		secret.ObjectMeta.Namespace = config.GetNamespace()
+		secret.ObjectMeta.OwnerReferences = createOwnerReferences(config)
+		secret.ObjectMeta.Labels[clusterv1.MachineClusterLabelName] = clusterName
+		secret.ObjectMeta.Name = prefixByClusterName(clusterName, secret.ObjectMeta.Name)
+		r.Log.Info("Creating secret for certificate", "name", secret.ObjectMeta.Name)
+		if err := r.Create(ctx, secret); err != nil {
+			return nil, err
+		}
 	}
-
-	if err := r.Create(ctx, secret); err != nil {
-		return nil, err
-	}
-
 	return certificates, nil
+}
+
+func createOwnerReferences(config *bootstrapv1.KubeadmConfig) []v1.OwnerReference {
+	return []v1.OwnerReference{
+		{
+			APIVersion: bootstrapv1.GroupVersion.String(),
+			Kind:       "KubeadmConfig",
+			Name:       config.GetName(),
+			UID:        config.GetUID(),
+		},
+	}
+}
+
+func prefixByClusterName(clusterName, name string) string {
+	return fmt.Sprintf("%s-%s", clusterName, name)
 }

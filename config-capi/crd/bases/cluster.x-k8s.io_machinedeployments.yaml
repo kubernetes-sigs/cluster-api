@@ -4,24 +4,25 @@ apiVersion: apiextensions.k8s.io/v1beta1
 kind: CustomResourceDefinition
 metadata:
   creationTimestamp: null
-  name: machinesets.cluster.k8s.io
+  name: machinedeployments.cluster.x-k8s.io
 spec:
-  group: cluster.k8s.io
+  group: cluster.x-k8s.io
   names:
-    kind: MachineSet
-    plural: machinesets
+    kind: MachineDeployment
+    plural: machinedeployments
     shortNames:
-    - ms
+    - md
   scope: Namespaced
   subresources:
     scale:
       labelSelectorPath: .status.labelSelector
       specReplicasPath: .spec.replicas
       statusReplicasPath: .status.replicas
+    status: {}
   validation:
     openAPIV3Schema:
-      description: / [MachineSet] MachineSet ensures that a specified number of machines
-        replicas are running at any given time.
+      description: / [MachineDeployment] MachineDeployment is the Schema for the machinedeployments
+        API
       properties:
         apiVersion:
           description: 'APIVersion defines the versioned schema of this representation
@@ -36,35 +37,42 @@ spec:
         metadata:
           type: object
         spec:
-          description: / [MachineSetSpec] MachineSetSpec defines the desired state
-            of MachineSet
+          description: / [MachineDeploymentSpec] MachineDeploymentSpec defines the
+            desired state of MachineDeployment
           properties:
-            deletePolicy:
-              description: DeletePolicy defines the policy used to identify nodes
-                to delete when downscaling. Defaults to "Random".  Valid values are
-                "Random, "Newest", "Oldest"
-              enum:
-              - Random
-              - Newest
-              - Oldest
-              type: string
             minReadySeconds:
-              description: MinReadySeconds is the minimum number of seconds for which
-                a newly created machine should be ready. Defaults to 0 (machine will
-                be considered available as soon as it is ready)
+              description: Minimum number of seconds for which a newly created machine
+                should be ready. Defaults to 0 (machine will be considered available
+                as soon as it is ready)
+              format: int32
+              type: integer
+            paused:
+              description: Indicates that the deployment is paused.
+              type: boolean
+            progressDeadlineSeconds:
+              description: The maximum time in seconds for a deployment to make progress
+                before it is considered to be failed. The deployment controller will
+                continue to process failed deployments and a condition with a ProgressDeadlineExceeded
+                reason will be surfaced in the deployment status. Note that progress
+                will not be estimated during the time a deployment is paused. Defaults
+                to 600s.
               format: int32
               type: integer
             replicas:
-              description: Replicas is the number of desired replicas. This is a pointer
-                to distinguish between explicit zero and unspecified. Defaults to
-                1.
+              description: Number of desired machines. Defaults to 1. This is a pointer
+                to distinguish between explicit zero and not specified.
+              format: int32
+              type: integer
+            revisionHistoryLimit:
+              description: The number of old MachineSets to retain to allow rollback.
+                This is a pointer to distinguish between explicit zero and not specified.
+                Defaults to 1.
               format: int32
               type: integer
             selector:
-              description: 'Selector is a label query over machines that should match
-                the replica count. Label keys and values that must match in order
-                to be controlled by this MachineSet. It must match the machine template''s
-                labels. More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/labels/#label-selectors'
+              description: Label selector for machines. Existing MachineSets whose
+                machines are selected by this will be the ones affected by this deployment.
+                It must match the machine template's labels.
               properties:
                 matchExpressions:
                   description: matchExpressions is a list of label selector requirements.
@@ -106,9 +114,53 @@ spec:
                     are ANDed.
                   type: object
               type: object
+            strategy:
+              description: The deployment strategy to use to replace existing machines
+                with new ones.
+              properties:
+                rollingUpdate:
+                  description: Rolling update config params. Present only if MachineDeploymentStrategyType
+                    = RollingUpdate.
+                  properties:
+                    maxSurge:
+                      anyOf:
+                      - type: string
+                      - type: integer
+                      description: 'The maximum number of machines that can be scheduled
+                        above the desired number of machines. Value can be an absolute
+                        number (ex: 5) or a percentage of desired machines (ex: 10%).
+                        This can not be 0 if MaxUnavailable is 0. Absolute number
+                        is calculated from percentage by rounding up. Defaults to
+                        1. Example: when this is set to 30%, the new MachineSet can
+                        be scaled up immediately when the rolling update starts, such
+                        that the total number of old and new machines do not exceed
+                        130% of desired machines. Once old machines have been killed,
+                        new MachineSet can be scaled up further, ensuring that total
+                        number of machines running at any time during the update is
+                        at most 130% of desired machines.'
+                    maxUnavailable:
+                      anyOf:
+                      - type: string
+                      - type: integer
+                      description: 'The maximum number of machines that can be unavailable
+                        during the update. Value can be an absolute number (ex: 5)
+                        or a percentage of desired machines (ex: 10%). Absolute number
+                        is calculated from percentage by rounding down. This can not
+                        be 0 if MaxSurge is 0. Defaults to 0. Example: when this is
+                        set to 30%, the old MachineSet can be scaled down to 70% of
+                        desired machines immediately when the rolling update starts.
+                        Once new machines are ready, old MachineSet can be scaled
+                        down further, followed by scaling up the new MachineSet, ensuring
+                        that the total number of machines available at all times during
+                        the update is at least 70% of desired machines.'
+                  type: object
+                type:
+                  description: Type of deployment. Currently the only supported strategy
+                    is "RollingUpdate". Default is RollingUpdate.
+                  type: string
+              type: object
             template:
-              description: Template is the object that describes the machine that
-                will be created if insufficient replicas are detected.
+              description: Template describes the machines that will be created.
               properties:
                 metadata:
                   description: 'Standard object''s metadata. More info: https://git.k8s.io/community/contributors/devel/api-conventions.md#metadata'
@@ -210,46 +262,95 @@ spec:
                   description: 'Specification of the desired behavior of the machine.
                     More info: https://git.k8s.io/community/contributors/devel/api-conventions.md#spec-and-status'
                   properties:
-                    configSource:
-                      description: ConfigSource is used to populate in the associated
-                        Node for dynamic kubelet config. This field already exists
-                        in Node, so any updates to it in the Machine spec will be
-                        automatically copied to the linked NodeRef from the status.
-                        The rest of dynamic kubelet config support should then work
-                        as-is.
+                    bootstrap:
+                      description: Bootstrap is a reference to a local struct which
+                        encapsulates fields to configure the Machine’s bootstrapping
+                        mechanism.
                       properties:
-                        configMap:
-                          description: ConfigMap is a reference to a Node's ConfigMap
+                        configRef:
+                          description: ConfigRef is a reference to a bootstrap provider-specific
+                            resource that holds configuration details. The reference
+                            is optional to allow users/operators to specify Bootstrap.Data
+                            without the need of a controller.
                           properties:
-                            kubeletConfigKey:
-                              description: KubeletConfigKey declares which key of
-                                the referenced ConfigMap corresponds to the KubeletConfiguration
-                                structure This field is required in all cases.
+                            apiVersion:
+                              description: API version of the referent.
+                              type: string
+                            fieldPath:
+                              description: 'If referring to a piece of an object instead
+                                of an entire object, this string should contain a
+                                valid JSON/Go field access statement, such as desiredState.manifest.containers[2].
+                                For example, if the object reference is to a container
+                                within a pod, this would take on a value like: "spec.containers{name}"
+                                (where "name" refers to the name of the container
+                                that triggered the event) or if no container name
+                                is specified "spec.containers[2]" (container with
+                                index 2 in this pod). This syntax is chosen only to
+                                have some well-defined way of referencing a part of
+                                an object. TODO: this design is not final and this
+                                field is subject to change in the future.'
+                              type: string
+                            kind:
+                              description: 'Kind of the referent. More info: https://git.k8s.io/community/contributors/devel/api-conventions.md#types-kinds'
                               type: string
                             name:
-                              description: Name is the metadata.name of the referenced
-                                ConfigMap. This field is required in all cases.
+                              description: 'Name of the referent. More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names'
                               type: string
                             namespace:
-                              description: Namespace is the metadata.namespace of
-                                the referenced ConfigMap. This field is required in
-                                all cases.
+                              description: 'Namespace of the referent. More info:
+                                https://kubernetes.io/docs/concepts/overview/working-with-objects/namespaces/'
                               type: string
                             resourceVersion:
-                              description: ResourceVersion is the metadata.ResourceVersion
-                                of the referenced ConfigMap. This field is forbidden
-                                in Node.Spec, and required in Node.Status.
+                              description: 'Specific resourceVersion to which this
+                                reference is made, if any. More info: https://git.k8s.io/community/contributors/devel/api-conventions.md#concurrency-control-and-consistency'
                               type: string
                             uid:
-                              description: UID is the metadata.UID of the referenced
-                                ConfigMap. This field is forbidden in Node.Spec, and
-                                required in Node.Status.
+                              description: 'UID of the referent. More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#uids'
                               type: string
-                          required:
-                          - kubeletConfigKey
-                          - name
-                          - namespace
                           type: object
+                        data:
+                          description: Data contains the bootstrap data, such as cloud-init
+                            details scripts. If nil, the Machine should remain in
+                            the Pending state.
+                          type: string
+                      type: object
+                    infrastructureRef:
+                      description: InfrastructureRef is a required reference to a
+                        custom resource offered by an infrastructure provider.
+                      properties:
+                        apiVersion:
+                          description: API version of the referent.
+                          type: string
+                        fieldPath:
+                          description: 'If referring to a piece of an object instead
+                            of an entire object, this string should contain a valid
+                            JSON/Go field access statement, such as desiredState.manifest.containers[2].
+                            For example, if the object reference is to a container
+                            within a pod, this would take on a value like: "spec.containers{name}"
+                            (where "name" refers to the name of the container that
+                            triggered the event) or if no container name is specified
+                            "spec.containers[2]" (container with index 2 in this pod).
+                            This syntax is chosen only to have some well-defined way
+                            of referencing a part of an object. TODO: this design
+                            is not final and this field is subject to change in the
+                            future.'
+                          type: string
+                        kind:
+                          description: 'Kind of the referent. More info: https://git.k8s.io/community/contributors/devel/api-conventions.md#types-kinds'
+                          type: string
+                        name:
+                          description: 'Name of the referent. More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names'
+                          type: string
+                        namespace:
+                          description: 'Namespace of the referent. More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/namespaces/'
+                          type: string
+                        resourceVersion:
+                          description: 'Specific resourceVersion to which this reference
+                            is made, if any. More info: https://git.k8s.io/community/contributors/devel/api-conventions.md#concurrency-control-and-consistency'
+                          type: string
+                        uid:
+                          description: 'UID of the referent. More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#uids'
+                          type: string
                       type: object
                     metadata:
                       description: ObjectMeta will autopopulate the Node created.
@@ -370,183 +471,59 @@ spec:
                         level entities like autoscaler that will be interfacing with
                         cluster-api as generic provider.
                       type: string
-                    providerSpec:
-                      description: ProviderSpec details Provider-specific configuration
-                        to use during node creation.
-                      properties:
-                        value:
-                          description: Value is an inlined, serialized representation
-                            of the resource configuration. It is recommended that
-                            providers maintain their own versioned API types that
-                            should be serialized/deserialized from this field, akin
-                            to component config.
-                          type: object
-                        valueFrom:
-                          description: Source for the provider configuration. Cannot
-                            be used if value is not empty.
-                          properties:
-                            machineClass:
-                              description: The machine class from which the provider
-                                config should be sourced.
-                              properties:
-                                apiVersion:
-                                  description: API version of the referent.
-                                  type: string
-                                fieldPath:
-                                  description: 'If referring to a piece of an object
-                                    instead of an entire object, this string should
-                                    contain a valid JSON/Go field access statement,
-                                    such as desiredState.manifest.containers[2]. For
-                                    example, if the object reference is to a container
-                                    within a pod, this would take on a value like:
-                                    "spec.containers{name}" (where "name" refers to
-                                    the name of the container that triggered the event)
-                                    or if no container name is specified "spec.containers[2]"
-                                    (container with index 2 in this pod). This syntax
-                                    is chosen only to have some well-defined way of
-                                    referencing a part of an object. TODO: this design
-                                    is not final and this field is subject to change
-                                    in the future.'
-                                  type: string
-                                kind:
-                                  description: 'Kind of the referent. More info: https://git.k8s.io/community/contributors/devel/api-conventions.md#types-kinds'
-                                  type: string
-                                name:
-                                  description: 'Name of the referent. More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names'
-                                  type: string
-                                namespace:
-                                  description: 'Namespace of the referent. More info:
-                                    https://kubernetes.io/docs/concepts/overview/working-with-objects/namespaces/'
-                                  type: string
-                                provider:
-                                  description: Provider is the name of the cloud-provider
-                                    which MachineClass is intended for.
-                                  type: string
-                                resourceVersion:
-                                  description: 'Specific resourceVersion to which
-                                    this reference is made, if any. More info: https://git.k8s.io/community/contributors/devel/api-conventions.md#concurrency-control-and-consistency'
-                                  type: string
-                                uid:
-                                  description: 'UID of the referent. More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#uids'
-                                  type: string
-                              type: object
-                          type: object
-                      type: object
-                    taints:
-                      description: The list of the taints to be applied to the corresponding
-                        Node in additive manner. This list will not overwrite any
-                        other taints added to the Node on an ongoing basis by other
-                        entities. These taints should be actively reconciled e.g.
-                        if you ask the machine controller to apply a taint and then
-                        manually remove the taint the machine controller will put
-                        it back) but not have the machine controller remove any taints
-                      items:
-                        description: The node this Taint is attached to has the "effect"
-                          on any pod that does not tolerate the Taint.
-                        properties:
-                          effect:
-                            description: Required. The effect of the taint on pods
-                              that do not tolerate the taint. Valid effects are NoSchedule,
-                              PreferNoSchedule and NoExecute.
-                            type: string
-                          key:
-                            description: Required. The taint key to be applied to
-                              a node.
-                            type: string
-                          timeAdded:
-                            description: TimeAdded represents the time at which the
-                              taint was added. It is only written for NoExecute taints.
-                            format: date-time
-                            type: string
-                          value:
-                            description: Required. The taint value corresponding to
-                              the taint key.
-                            type: string
-                        required:
-                        - effect
-                        - key
-                        type: object
-                      type: array
-                    versions:
-                      description: Versions of key software to use. This field is
-                        optional at cluster creation time, and omitting the field
-                        indicates that the cluster installation tool should select
-                        defaults for the user. These defaults may differ based on
-                        the cluster installer, but the tool should populate the values
-                        it uses when persisting Machine objects. A Machine spec missing
-                        this field at runtime is invalid.
-                      properties:
-                        controlPlane:
-                          description: ControlPlane is the semantic version of the
-                            Kubernetes control plane to run. This should only be populated
-                            when the machine is a control plane.
-                          type: string
-                        kubelet:
-                          description: Kubelet is the semantic version of kubelet
-                            to run
-                          type: string
-                      required:
-                      - kubelet
-                      type: object
+                    version:
+                      description: Version defines the desired Kubernetes version.
+                        This field is meant to be optionally used by bootstrap providers.
+                      type: string
+                  required:
+                  - bootstrap
+                  - infrastructureRef
                   type: object
               type: object
           required:
           - selector
+          - template
           type: object
         status:
-          description: / [MachineSetStatus] MachineSetStatus defines the observed
-            state of MachineSet
+          description: / [MachineDeploymentStatus] MachineDeploymentStatus defines
+            the observed state of MachineDeployment
           properties:
             availableReplicas:
-              description: The number of available replicas (ready for at least minReadySeconds)
-                for this MachineSet.
-              format: int32
-              type: integer
-            errorMessage:
-              type: string
-            errorReason:
-              description: "In the event that there is a terminal problem reconciling
-                the replicas, both ErrorReason and ErrorMessage will be set. ErrorReason
-                will be populated with a succinct value suitable for machine interpretation,
-                while ErrorMessage will contain a more verbose string suitable for
-                logging and human consumption. \n These fields should not be set for
-                transitive errors that a controller faces that are expected to be
-                fixed automatically over time (like service outages), but instead
-                indicate that something is fundamentally wrong with the MachineTemplate's
-                spec or the configuration of the machine controller, and that manual
-                intervention is required. Examples of terminal errors would be invalid
-                combinations of settings in the spec, values that are unsupported
-                by the machine controller, or the responsible machine controller itself
-                being critically misconfigured. \n Any transient errors that occur
-                during the reconciliation of Machines can be added as events to the
-                MachineSet object and/or logged in the controller's output."
-              type: string
-            fullyLabeledReplicas:
-              description: The number of replicas that have labels matching the labels
-                of the machine template of the MachineSet.
+              description: Total number of available machines (ready for at least
+                minReadySeconds) targeted by this deployment.
               format: int32
               type: integer
             observedGeneration:
-              description: ObservedGeneration reflects the generation of the most
-                recently observed MachineSet.
+              description: The generation observed by the deployment controller.
               format: int64
               type: integer
             readyReplicas:
-              description: The number of ready replicas for this MachineSet. A machine
-                is considered ready when the node has been created and is "Ready".
+              description: Total number of ready machines targeted by this deployment.
               format: int32
               type: integer
             replicas:
-              description: Replicas is the most recently observed number of replicas.
+              description: Total number of non-terminated machines targeted by this
+                deployment (their labels match the selector).
               format: int32
               type: integer
-          required:
-          - replicas
+            unavailableReplicas:
+              description: Total number of unavailable machines targeted by this deployment.
+                This is the total number of machines that are still required for the
+                deployment to have 100% available capacity. They may either be machines
+                that are running but not yet available or machines that still have
+                not been created.
+              format: int32
+              type: integer
+            updatedReplicas:
+              description: Total number of non-terminated machines targeted by this
+                deployment that have the desired template spec.
+              format: int32
+              type: integer
           type: object
       type: object
-  version: v1alpha1
+  version: v1alpha2
   versions:
-  - name: v1alpha1
+  - name: v1alpha2
     served: true
     storage: true
 status:

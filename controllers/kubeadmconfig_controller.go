@@ -484,11 +484,15 @@ func (r *KubeadmConfigReconciler) reconcileTopLevelObjectSettings(cluster *clust
 			config.Spec.ClusterConfiguration.Networking.DNSDomain = cluster.Spec.ClusterNetwork.ServiceDomain
 			log.Info("Altering ClusterConfiguration", "DNSDomain", config.Spec.ClusterConfiguration.Networking.DNSDomain)
 		}
-		if config.Spec.ClusterConfiguration.Networking.ServiceSubnet == "" && len(cluster.Spec.ClusterNetwork.Services.CIDRBlocks) > 0 {
+		if config.Spec.ClusterConfiguration.Networking.ServiceSubnet == "" &&
+			cluster.Spec.ClusterNetwork.Services != nil &&
+			len(cluster.Spec.ClusterNetwork.Services.CIDRBlocks) > 0 {
 			config.Spec.ClusterConfiguration.Networking.ServiceSubnet = strings.Join(cluster.Spec.ClusterNetwork.Services.CIDRBlocks, "")
 			log.Info("Altering ClusterConfiguration", "ServiceSubnet", config.Spec.ClusterConfiguration.Networking.ServiceSubnet)
 		}
-		if config.Spec.ClusterConfiguration.Networking.PodSubnet == "" && len(cluster.Spec.ClusterNetwork.Pods.CIDRBlocks) > 0 {
+		if config.Spec.ClusterConfiguration.Networking.PodSubnet == "" &&
+			cluster.Spec.ClusterNetwork.Pods != nil &&
+			len(cluster.Spec.ClusterNetwork.Pods.CIDRBlocks) > 0 {
 			config.Spec.ClusterConfiguration.Networking.PodSubnet = strings.Join(cluster.Spec.ClusterNetwork.Pods.CIDRBlocks, "")
 			log.Info("Altering ClusterConfiguration", "PodSubnet", config.Spec.ClusterConfiguration.Networking.PodSubnet)
 		}

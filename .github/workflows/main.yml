@@ -25,6 +25,7 @@ jobs:
       uses: actions/gcloud/cli@master
       env:
         REGISTRY: gcr.io/k8s-staging-capi-kubeadm
+        TAG: latest
       with:
         entrypoint: /bin/bash
         args: |

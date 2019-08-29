@@ -19,15 +19,19 @@ package certs
 import (
 	"crypto/rand"
 	"crypto/rsa"
+	"crypto/sha256"
 	"crypto/x509"
 	"crypto/x509/pkix"
+	"encoding/hex"
 	"fmt"
 	"math"
 	"math/big"
+	"strings"
 	"time"
 
 	"github.com/pkg/errors"
 	"k8s.io/client-go/tools/clientcmd/api"
+	"k8s.io/client-go/util/cert"
 )
 
 const (
@@ -171,4 +175,23 @@ func (cfg *Config) NewSignedCert(key *rsa.PrivateKey, caCert *x509.Certificate, 
 	}
 
 	return x509.ParseCertificate(b)
+}
+
+// CertificateHashes hash all the certificates stored in a CA certificate.
+func CertificateHashes(certData []byte) ([]string, error) {
+	certificates, err := cert.ParseCertsPEM(certData)
+	if err != nil {
+		return nil, errors.Wrap(err, "unable to parse Cluster CA Certificate")
+	}
+	out := make([]string, 0)
+	for _, c := range certificates {
+		out = append(out, HashCert(c))
+	}
+	return out, nil
+}
+
+// HashCert will calculate the sha256 of the incoming certificate.
+func HashCert(certificate *x509.Certificate) string {
+	spkiHash := sha256.Sum256(certificate.RawSubjectPublicKeyInfo)
+	return "sha256:" + strings.ToLower(hex.EncodeToString(spkiHash[:]))
 }

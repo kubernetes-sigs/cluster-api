@@ -37,6 +37,11 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/runtime/log"
 )
 
+const (
+	clusterName      = "test-cluster"
+	clusterNamespace = "test-namespace"
+)
+
 func init() {
 	klog.InitFlags(nil)
 }
@@ -49,8 +54,6 @@ func TestControlPlaneInitMutex_Lock(t *testing.T) {
 	if err := corev1.AddToScheme(scheme); err != nil {
 		t.Fatal(err)
 	}
-	clusterName := "test-cluster"
-	clusterNamespace := "test-namespace"
 	uid := types.UID("test-uid")
 
 	tests := []struct {
@@ -104,6 +107,7 @@ func TestControlPlaneInitMutex_Lock(t *testing.T) {
 	}
 
 	for _, tc := range tests {
+		tc := tc
 		t.Run(tc.name, func(t *testing.T) {
 			l := &ControlPlaneInitMutex{
 				log:    log.Log,
@@ -138,8 +142,6 @@ func TestControlPlaneInitMutex_UnLock(t *testing.T) {
 	if err := corev1.AddToScheme(scheme); err != nil {
 		t.Fatal(err)
 	}
-	clusterName := "test-cluster"
-	clusterNamespace := "test-namespace"
 	uid := types.UID("test-uid")
 	configMap := &corev1.ConfigMap{
 		ObjectMeta: metav1.ObjectMeta{
@@ -191,6 +193,7 @@ func TestControlPlaneInitMutex_UnLock(t *testing.T) {
 	}
 
 	for _, tc := range tests {
+		tc := tc
 		t.Run(tc.name, func(t *testing.T) {
 			l := &ControlPlaneInitMutex{
 				log:    log.Log,
@@ -222,8 +225,6 @@ func TestInfoLines_Lock(t *testing.T) {
 	if err := corev1.AddToScheme(scheme); err != nil {
 		t.Fatal(err)
 	}
-	clusterName := "test-cluster"
-	clusterNamespace := "test-namespace"
 	uid := types.UID("test-uid")
 	info := information{MachineName: "my-control-plane"}
 	b, err := json.Marshal(info)

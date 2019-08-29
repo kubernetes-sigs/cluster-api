@@ -14,9 +14,11 @@
 
 # Build the manager binary
 FROM golang:1.12.9 as builder
-
-ENV GOPROXY=https://proxy.golang.org
 WORKDIR /workspace
+
+# Run this with docker build --build_arg $(go env GOPROXY) to override the goproxy
+ARG goproxy=https://proxy.golang.org
+ENV GOPROXY=$goproxy
 
 # Copy the Go Modules manifests
 COPY go.mod go.mod

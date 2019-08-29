@@ -109,7 +109,7 @@ func run() int {
 			key = bugs
 		case strings.HasPrefix(firstWord, ":book:"), strings.HasPrefix(firstWord, "📖"):
 			key = documentation
-		case strings.HasPrefix(firstWord, ":running:"), strings.HasPrefix(firstWord, "🏃‍️"):
+		case strings.HasPrefix(firstWord, ":running:"), strings.HasPrefix(firstWord, "🏃"):
 			key = other
 		case strings.HasPrefix(firstWord, ":warning:"), strings.HasPrefix(firstWord, "⚠️"):
 			key = warning

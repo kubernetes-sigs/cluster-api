@@ -44,14 +44,6 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/source"
 )
 
-// KubeadmConfigReconciler reconciles a KubeadmConfig object
-type KubeadmConfigReconciler struct {
-	client.Client
-	SecretsClientFactory SecretsClientFactory
-	KubeadmInitLock      InitLocker
-	Log                  logr.Logger
-}
-
 // InitLocker is a lock that is used around kubeadm init
 type InitLocker interface {
 	Lock(ctx context.Context, cluster *clusterv1.Cluster, machine *clusterv1.Machine) bool
@@ -69,10 +61,36 @@ func ClusterCertificatesSecretName(clusterName string) string {
 	return fmt.Sprintf("%s-certs", clusterName)
 }
 
-// +kubebuilder:rbac:groups=bootstrap.cluster.x-k8s.io,resources=kubeadmconfigs,verbs=get;list;watch;create;update;patch;delete
-// +kubebuilder:rbac:groups=bootstrap.cluster.x-k8s.io,resources=kubeadmconfigs/status,verbs=get;update;patch
-// +kubebuilder:rbac:groups=cluster.x-k8s.io,resources=clusters;machines,verbs=get;list;watch
+// +kubebuilder:rbac:groups=bootstrap.cluster.x-k8s.io,resources=kubeadmconfigs;kubeadmconfigs/status,verbs=get;list;watch;create;update;patch;delete
+// +kubebuilder:rbac:groups=cluster.x-k8s.io,resources=clusters;clusters/status;machines;machines/status,verbs=get;list;watch
 // +kubebuilder:rbac:groups="",resources=secrets;events;configmaps,verbs=get;list;watch;create;update;patch;delete
+
+// KubeadmConfigReconciler reconciles a KubeadmConfig object
+type KubeadmConfigReconciler struct {
+	client.Client
+	SecretsClientFactory SecretsClientFactory
+	KubeadmInitLock      InitLocker
+	Log                  logr.Logger
+}
+
+// SetupWithManager sets up the reconciler with the Manager.
+func (r *KubeadmConfigReconciler) SetupWithManager(mgr ctrl.Manager) error {
+	return ctrl.NewControllerManagedBy(mgr).
+		For(&bootstrapv1.KubeadmConfig{}).
+		Watches(
+			&source.Kind{Type: &clusterv1.Machine{}},
+			&handler.EnqueueRequestsFromMapFunc{
+				ToRequests: util.MachineToInfrastructureMapFunc(bootstrapv1.GroupVersion.WithKind("KubeadmConfig")),
+			},
+		).
+		Watches(
+			&source.Kind{Type: &clusterv1.Cluster{}},
+			&handler.EnqueueRequestsFromMapFunc{
+				ToRequests: handler.ToRequestsFunc(r.ClusterToKubeadmConfigs),
+			},
+		).
+		Complete(r)
+}
 
 // Reconcile TODO
 func (r *KubeadmConfigReconciler) Reconcile(req ctrl.Request) (_ ctrl.Result, rerr error) {
@@ -348,25 +366,6 @@ func (r *KubeadmConfigReconciler) Reconcile(req ctrl.Request) (_ ctrl.Result, re
 	return ctrl.Result{}, nil
 }
 
-// SetupWithManager TODO
-func (r *KubeadmConfigReconciler) SetupWithManager(mgr ctrl.Manager) error {
-	return ctrl.NewControllerManagedBy(mgr).
-		For(&bootstrapv1.KubeadmConfig{}).
-		Watches(
-			&source.Kind{Type: &clusterv1.Machine{}},
-			&handler.EnqueueRequestsFromMapFunc{
-				ToRequests: util.MachineToInfrastructureMapFunc(bootstrapv1.GroupVersion.WithKind("KubeadmConfig")),
-			},
-		).
-		Watches(
-			&source.Kind{Type: &clusterv1.Cluster{}},
-			&handler.EnqueueRequestsFromMapFunc{
-				ToRequests: handler.ToRequestsFunc(r.ClusterToKubeadmConfigs),
-			},
-		).
-		Complete(r)
-}
-
 // ClusterToKubeadmConfigs is a handler.ToRequestsFunc to be used to enqeue
 // requests for reconciliation of KubeadmConfigs.
 func (r *KubeadmConfigReconciler) ClusterToKubeadmConfigs(o handler.MapObject) []ctrl.Request {
@@ -378,15 +377,23 @@ func (r *KubeadmConfigReconciler) ClusterToKubeadmConfigs(o handler.MapObject) [
 		return nil
 	}
 
-	labels := map[string]string{clusterv1.MachineClusterLabelName: c.Name}
+	selectors := []client.ListOption{
+		client.InNamespace(c.Namespace),
+		client.MatchingLabels{
+			clusterv1.MachineClusterLabelName: c.Name,
+		},
+	}
+
 	machineList := &clusterv1.MachineList{}
-	if err := r.List(context.Background(), machineList, client.InNamespace(c.Namespace), client.MatchingLabels(labels)); err != nil {
+	if err := r.List(context.Background(), machineList, selectors...); err != nil {
 		r.Log.Error(err, "failed to list Machines", "Cluster", c.Name, "Namespace", c.Namespace)
 		return nil
 	}
+
 	for _, m := range machineList.Items {
-		if m.Spec.InfrastructureRef.GroupVersionKind() == bootstrapv1.GroupVersion.WithKind("KubeadmConfig") {
-			name := client.ObjectKey{Namespace: m.Namespace, Name: m.Spec.InfrastructureRef.Name}
+		if m.Spec.Bootstrap.ConfigRef != nil &&
+			m.Spec.Bootstrap.ConfigRef.GroupVersionKind() == bootstrapv1.GroupVersion.WithKind("KubeadmConfig") {
+			name := client.ObjectKey{Namespace: m.Namespace, Name: m.Spec.Bootstrap.ConfigRef.Name}
 			result = append(result, ctrl.Request{NamespacedName: name})
 		}
 	}

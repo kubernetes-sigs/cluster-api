@@ -149,6 +149,7 @@ func (r *ClusterReconciler) reconcileInfrastructure(ctx context.Context, cluster
 		klog.V(3).Infof("Infrastructure provider for Cluster %q in namespace %q is not ready yet", cluster.Name, cluster.Namespace)
 		return nil
 	}
+	cluster.Status.InfrastructureReady = true
 
 	// Get and parse Status.APIEndpoint field from the infrastructure provider.
 	if err := util.UnstructuredUnmarshalField(infraConfig, &cluster.Status.APIEndpoints, "status", "apiEndpoints"); err != nil {
@@ -159,6 +160,5 @@ func (r *ClusterReconciler) reconcileInfrastructure(ctx context.Context, cluster
 			cluster.Name, cluster.Namespace)
 	}
 
-	cluster.Status.InfrastructureReady = true
 	return nil
 }

@@ -144,7 +144,7 @@ modules: ## Runs go mod to ensure modules are up to date.
 docker-build: ## Build the docker image for controller-manager
 	docker build --pull --build-arg ARCH=$(ARCH) . -t $(CONTROLLER_IMG)-$(ARCH):$(TAG)
 	@echo "updating kustomize image patch file for manager resource"
-	hack/sed.sh -i.tmp -e 's@image: .*@image: '"${CONTROLLER_IMG}-$(ARCH):$(TAG)"'@' ./config/default/manager_image_patch.yaml
+	sed -i'' -e 's@image: .*@image: '"${CONTROLLER_IMG}-$(ARCH):$(TAG)"'@' ./config/default/manager_image_patch.yaml
 
 .PHONY: docker-push
 docker-push: ## Push the docker image
@@ -183,8 +183,7 @@ EXAMPLE_PROVIDER_IMG ?= $(REGISTRY)/example-provider-controller
 .PHONY: docker-build-example-provider
 docker-build-example-provider: generate lint-full ## Build the docker image for example provider
 	docker build --pull --build-arg ARCH=$(ARCH) . -f ./cmd/example-provider/Dockerfile -t $(EXAMPLE_PROVIDER_IMG)-$(ARCH):$(TAG)
-	@echo "updating kustomize image patch file for ci"
-	hack/sed.sh -i.tmp -e 's@image: .*@image: '"${EXAMPLE_PROVIDER_IMG}-$(ARCH):$(TAG)"'@' ./config/ci/manager_image_patch.yaml
+	sed -i'' -e 's@image: .*@image: '"${EXAMPLE_PROVIDER_IMG}-$(ARCH):$(TAG)"'@' ./config/ci/manager_image_patch.yaml
 
 ## --------------------------------------
 ## Cleanup / Verification

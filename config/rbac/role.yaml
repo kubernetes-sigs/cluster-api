@@ -24,6 +24,7 @@ rules:
   - bootstrap.cluster.x-k8s.io
   resources:
   - kubeadmconfigs
+  - kubeadmconfigs/status
   verbs:
   - create
   - delete
@@ -33,18 +34,12 @@ rules:
   - update
   - watch
 - apiGroups:
-  - bootstrap.cluster.x-k8s.io
-  resources:
-  - kubeadmconfigs/status
-  verbs:
-  - get
-  - patch
-  - update
-- apiGroups:
   - cluster.x-k8s.io
   resources:
   - clusters
+  - clusters/status
   - machines
+  - machines/status
   verbs:
   - get
   - list

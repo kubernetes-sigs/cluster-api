@@ -55,6 +55,7 @@ func main() {
 		machineConcurrency           int
 		machineSetConcurrency        int
 		machineDeploymentConcurrency int
+		syncPeriod                   time.Duration
 	)
 
 	flag.StringVar(&metricsAddr, "metrics-addr", ":8080",
@@ -81,6 +82,9 @@ func main() {
 	flag.IntVar(&machineDeploymentConcurrency, "machinedeployment-concurrency", 1,
 		"Number of machine deployments to process simultaneously")
 
+	flag.DurationVar(&syncPeriod, "sync-period", 10*time.Minute,
+		"The minimum interval at which watched resources are reconciled (e.g. 15m)")
+
 	flag.Parse()
 
 	ctrl.SetLogger(klogr.New())
@@ -91,8 +95,6 @@ func main() {
 			klog.Info(http.ListenAndServe(profilerAddress, nil))
 		}()
 	}
-
-	syncPeriod := 10 * time.Minute
 
 	mgr, err := ctrl.NewManager(ctrl.GetConfigOrDie(), ctrl.Options{
 		Scheme:             scheme,

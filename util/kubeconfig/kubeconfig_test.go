@@ -22,6 +22,8 @@ import (
 
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha2"
+	"sigs.k8s.io/cluster-api/util/secret"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 )
 
@@ -53,32 +55,21 @@ users:
 			Namespace: "test",
 		},
 		Data: map[string][]byte{
-			SecretKey: []byte(validKubeConfig),
+			secret.KubeconfigDataName: []byte(validKubeConfig),
 		},
 	}
 )
 
 func TestGetKubeConfigSecret(t *testing.T) {
 	client := fake.NewFakeClient(validSecret)
-	found, err := GetSecret(client, "test1", "test")
+	found, err := FetchKubeconfigFromSecret(client, &clusterv1.Cluster{
+		ObjectMeta: metav1.ObjectMeta{Name: "test1", Namespace: "test"},
+	})
 	if err != nil {
 		t.Fatalf("Expected no error, got %v", err)
 	}
 
-	if !reflect.DeepEqual(validSecret, found) {
+	if !reflect.DeepEqual(validSecret.Data[secret.KubeconfigDataName], found) {
 		t.Fatalf("Expected found secret to be equal to input")
 	}
-}
-
-func TestKubeConfigFromSecret(t *testing.T) {
-	t.Run("with valid secret", func(t *testing.T) {
-		out, err := Extract(validSecret)
-		if err != nil {
-			t.Fatalf("Expected no error, got %v", err)
-		}
-
-		if string(out) != validKubeConfig {
-			t.Fatalf("Expected decoded KubeConfig to match input")
-		}
-	})
 }

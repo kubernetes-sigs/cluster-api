@@ -1,70 +1,9 @@
-# Cluster API Provider Docker
+# Cluster API Provider Docker (CAPD)
 
-## Manager Container Image
+This project is a small part of the Cluster API project.
 
-A sample is built and hosted at `gcr.io/kubernetes1-226021/manager:latest`
+This is one out of three components needed to run a Cluster API management cluster.
 
-### External Dependencies
+To get a complete overview, look at the documentation in the bootstrap provider that uses CAPD as an example infrastructure provider.
 
-- `go,  1.12+`
-- `kubectl`
-- `docker`
-
-### Building Go binaries
-
-Building Go binaries requires `go 1.12+` for go module support.
-
-```(bash)
-# required if `cluster-api-provider-docker` was cloned into $GOPATH
-export GO111MODULE=on
-# build the binaries into ${PWD}/bin
-./scripts/build-binaries.sh
-```
-
-### Building the image
-
-#### Using Gcloud
-
-Make sure `gcloud` is authenticated and configured.
-
-You also need to set up a google cloud project.
-
-Run: `./scripts/publish-manager.sh`
-
-#### Using Docker
-
-Alternatively, to publish the manager container image to your pre-existing custom container registry, run:
-`REGISTRY=<MY_REGISTRY> ./scripts/publish-manager.sh`
-
-_NOTE_: You should have run `docker login` to login to your custom container registry.
-
-## Trying CAPD
-
-Tested on: Linux, works ok on OS X sometimes
-
-Make sure you have `kubectl`.
-
-1. Install capdctl:
-
-   `go install ./cmd/capdctl`
-
-1. Start a management kind cluster
-
-   `capdctl setup`
-
-1. Set up your `kubectl`
-
-   `export KUBECONFIG="${HOME}/.kube/kind-config-management"`
-
-### Create a worker cluster
-
-`kubectl apply -f examples/simple-cluster.yaml`
-
-#### Interact with a worker cluster
-
-The kubeconfig is on the management cluster in secrets. Grab it and write it to a file:
-
-`kubectl get secrets -o jsonpath='{.data.value}' my-cluster-kubeconfig | base64 --decode > ~/.kube/kind-config-my-cluster`
-
-Look at the pods in your new worker cluster:
-`kubectl get po --all-namespaces --kubeconfig ~/.kube/kind-config-my-cluster`
+https://github.com/kubernetes-sigs/cluster-api-bootstrap-provider-kubeadm#cluster-api-bootstrap-provider-kubeadm

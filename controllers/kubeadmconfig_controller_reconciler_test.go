@@ -26,7 +26,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/runtime/log"
 
-	"sigs.k8s.io/cluster-api-bootstrap-provider-kubeadm/api/v1alpha2"
+	bootstrapv1 "sigs.k8s.io/cluster-api-bootstrap-provider-kubeadm/api/v1alpha2"
 )
 
 var _ = Describe("KubeadmConfigReconciler", func() {
@@ -127,13 +127,13 @@ var _ = Describe("KubeadmConfigReconciler", func() {
 // test utils
 
 // getKubeadmConfig returns a KubeadmConfig object from the cluster
-func getKubeadmConfig(c client.Client, name string) (*v1alpha2.KubeadmConfig, error) {
+func getKubeadmConfig(c client.Client, name string) (*bootstrapv1.KubeadmConfig, error) {
 	ctx := context.Background()
 	controlplaneConfigKey := client.ObjectKey{
 		Namespace: "default",
 		Name:      name,
 	}
-	config := &v1alpha2.KubeadmConfig{}
+	config := &bootstrapv1.KubeadmConfig{}
 	err := c.Get(ctx, controlplaneConfigKey, config)
 	return config, err
 }

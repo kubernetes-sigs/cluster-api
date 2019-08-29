@@ -25,7 +25,7 @@ import (
 	corev1 "k8s.io/client-go/kubernetes/typed/core/v1"
 	bootstrapapi "k8s.io/cluster-bootstrap/token/api"
 	bootstraputil "k8s.io/cluster-bootstrap/token/util"
-	capiv1alpha2 "sigs.k8s.io/cluster-api/api/v1alpha2"
+	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha2"
 	capiremote "sigs.k8s.io/cluster-api/controllers/remote"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
@@ -38,7 +38,7 @@ const (
 type ClusterSecretsClientFactory struct{}
 
 // NewSecretsClient returns a new client supporting SecretInterface for the cluster
-func (f ClusterSecretsClientFactory) NewSecretsClient(client client.Client, cluster *capiv1alpha2.Cluster) (corev1.SecretInterface, error) {
+func (f ClusterSecretsClientFactory) NewSecretsClient(client client.Client, cluster *clusterv1.Cluster) (corev1.SecretInterface, error) {
 	remoteClient, err := capiremote.NewClusterClient(client, cluster)
 	if err != nil {
 		return nil, err

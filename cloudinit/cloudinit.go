@@ -21,7 +21,7 @@ import (
 	"text/template"
 
 	"github.com/pkg/errors"
-	"sigs.k8s.io/cluster-api-bootstrap-provider-kubeadm/api/v1alpha2"
+	bootstrapv1 "sigs.k8s.io/cluster-api-bootstrap-provider-kubeadm/api/v1alpha2"
 )
 
 const (
@@ -35,10 +35,10 @@ type BaseUserData struct {
 	Header              string
 	PreKubeadmCommands  []string
 	PostKubeadmCommands []string
-	AdditionalFiles     []v1alpha2.File
-	WriteFiles          []v1alpha2.File
-	Users               []v1alpha2.User
-	NTP                 *v1alpha2.NTP
+	AdditionalFiles     []bootstrapv1.File
+	WriteFiles          []bootstrapv1.File
+	Users               []bootstrapv1.User
+	NTP                 *bootstrapv1.NTP
 }
 
 func generate(kind string, tpl string, data interface{}) ([]byte, error) {

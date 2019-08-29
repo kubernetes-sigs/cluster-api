@@ -16,15 +16,15 @@ limitations under the License.
 
 package certs
 
-import "sigs.k8s.io/cluster-api-bootstrap-provider-kubeadm/api/v1alpha2"
+import bootstrapv1 "sigs.k8s.io/cluster-api-bootstrap-provider-kubeadm/api/v1alpha2"
 
 const (
 	rootOwnerValue = "root:root"
 )
 
 // CertificatesToFiles writes Certificates to files
-func CertificatesToFiles(input Certificates) []v1alpha2.File {
-	return []v1alpha2.File{
+func CertificatesToFiles(input Certificates) []bootstrapv1.File {
+	return []bootstrapv1.File{
 		{
 			Path:        "/etc/kubernetes/pki/ca.crt",
 			Owner:       rootOwnerValue,

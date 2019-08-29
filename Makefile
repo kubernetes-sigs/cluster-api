@@ -20,6 +20,8 @@ CRD_OPTIONS ?= "crd:trivialVersions=true"
 TOOLS_DIR := hack/tools
 CONTROLLER_GEN_BIN := bin/controller-gen
 CONTROLLER_GEN := $(TOOLS_DIR)/$(CONTROLLER_GEN_BIN)
+RELEASE_NOTES_BIN := bin/release-notes
+RELEASE_NOTES := $(TOOLS_DIR)/$(RELEASE_NOTES_BIN)
 
 # Get the currently used golang install path (in GOPATH/bin, unless GOBIN is set)
 ifeq (,$(shell go env GOBIN))
@@ -75,3 +77,10 @@ docker-push: ## Push the docker image
 # Build controller-gen
 $(CONTROLLER_GEN): $(TOOLS_DIR)/go.mod
 	cd $(TOOLS_DIR) && go build -o $(CONTROLLER_GEN_BIN) sigs.k8s.io/controller-tools/cmd/controller-gen
+
+$(RELEASE_NOTES) : $(TOOLS_DIR)/go.mod
+	cd $(TOOLS_DIR) && go build -o $(RELEASE_NOTES_BIN) -tags tools sigs.k8s.io/cluster-api/hack/tools/release
+
+.PHONY: release-notes
+release-notes: $(RELEASE_NOTES)
+	$(RELEASE_NOTES)

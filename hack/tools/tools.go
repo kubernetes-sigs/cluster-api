@@ -20,5 +20,6 @@ limitations under the License.
 package tools
 
 import (
+	_ "sigs.k8s.io/cluster-api/hack/tools/release"      // nolint
 	_ "sigs.k8s.io/controller-tools/cmd/controller-gen" // nolint
 )

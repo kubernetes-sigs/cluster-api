@@ -18,12 +18,12 @@ require (
 	k8s.io/cluster-bootstrap v0.0.0-20190516232516-d7d78ab2cfe7
 	k8s.io/klog v0.4.0
 	k8s.io/utils v0.0.0-20190809000727-6c36bc71fc4a // indirect
-	sigs.k8s.io/cluster-api v0.0.0-20190828194156-129916a68fcc
+	sigs.k8s.io/cluster-api v0.0.0-20190829154355-58b8460b80c5
 	sigs.k8s.io/controller-runtime v0.2.0
 )
 
 replace (
 	k8s.io/api => k8s.io/api v0.0.0-20190704095032-f4ca3d3bdf1d
 	k8s.io/apimachinery => k8s.io/apimachinery v0.0.0-20190704094733-8f6ac2502e51
-	sigs.k8s.io/cluster-api => sigs.k8s.io/cluster-api v0.0.0-20190828194156-129916a68fcc
+	sigs.k8s.io/cluster-api => sigs.k8s.io/cluster-api v0.0.0-20190829154355-58b8460b80c5
 )

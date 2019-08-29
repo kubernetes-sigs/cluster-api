@@ -28,7 +28,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/utils/pointer"
-	"sigs.k8s.io/cluster-api/api/v1alpha2"
+	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha2"
 	capierrors "sigs.k8s.io/cluster-api/errors"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/manager"
@@ -36,28 +36,28 @@ import (
 
 var c client.Client
 
-func newClusterStatus(errorReason *capierrors.ClusterStatusError, errorMessage *string) v1alpha2.ClusterStatus {
-	return v1alpha2.ClusterStatus{
+func newClusterStatus(errorReason *capierrors.ClusterStatusError, errorMessage *string) clusterv1.ClusterStatus {
+	return clusterv1.ClusterStatus{
 		ErrorReason:  errorReason,
 		ErrorMessage: errorMessage,
 	}
 }
 
-func newMachineStatus(nodeRef *v1.ObjectReference, errorReason *capierrors.MachineStatusError, errorMessage *string) v1alpha2.MachineStatus {
-	return v1alpha2.MachineStatus{
+func newMachineStatus(nodeRef *v1.ObjectReference, errorReason *capierrors.MachineStatusError, errorMessage *string) clusterv1.MachineStatus {
+	return clusterv1.MachineStatus{
 		NodeRef:      nodeRef,
 		ErrorReason:  errorReason,
 		ErrorMessage: errorMessage,
 	}
 }
 
-func getMachineWithError(machineName, namespace string, nodeRef *v1.ObjectReference, errorReason *capierrors.MachineStatusError, errorMessage *string) v1alpha2.Machine {
-	return v1alpha2.Machine{
+func getMachineWithError(machineName, namespace string, nodeRef *v1.ObjectReference, errorReason *capierrors.MachineStatusError, errorMessage *string) clusterv1.Machine {
+	return clusterv1.Machine{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      machineName,
 			Namespace: namespace,
 		},
-		Spec: v1alpha2.MachineSpec{
+		Spec: clusterv1.MachineSpec{
 			InfrastructureRef: corev1.ObjectReference{
 				APIVersion: "infrastructure.cluster.x-k8s.io/v1alpha2",
 				Kind:       "InfrastructureRef",
@@ -106,7 +106,7 @@ func TestGetClusterObjectWithOneCluster(t *testing.T) {
 
 	const testClusterName = "test-cluster"
 	const testNamespace = "get-cluster-object-with-one-cluster"
-	cluster := v1alpha2.Cluster{}
+	cluster := clusterv1.Cluster{}
 	cluster.Name = testClusterName
 	cluster.Namespace = testNamespace
 	if err := c.Create(context.TODO(), &cluster); err != nil {
@@ -173,7 +173,7 @@ func TestGetClusterObjectWithMoreThanOneCluster(t *testing.T) {
 	const testNamespace = "get-cluster-object-with-more-than-one-cluster"
 
 	const testClusterName1 = "test-cluster1"
-	cluster1 := v1alpha2.Cluster{}
+	cluster1 := clusterv1.Cluster{}
 	cluster1.Name = testClusterName1
 	cluster1.Namespace = testNamespace
 	if err := c.Create(context.TODO(), &cluster1); err != nil {
@@ -182,7 +182,7 @@ func TestGetClusterObjectWithMoreThanOneCluster(t *testing.T) {
 	defer c.Delete(context.TODO(), &cluster1)
 
 	const testClusterName2 = "test-cluster2"
-	cluster2 := v1alpha2.Cluster{}
+	cluster2 := clusterv1.Cluster{}
 	cluster2.Name = testClusterName2
 	cluster2.Namespace = testNamespace
 	if err := c.Create(context.TODO(), &cluster2); err != nil {
@@ -256,7 +256,7 @@ func TestValidateClusterObject(t *testing.T) {
 	}
 	for _, testcase := range testcases {
 		t.Run(testcase.name, func(t *testing.T) {
-			cluster := v1alpha2.Cluster{}
+			cluster := clusterv1.Cluster{}
 			cluster.Name = "test-cluster"
 			cluster.Namespace = "default"
 			cluster.Status = newClusterStatus(testcase.errorReason, testcase.errorMessage)
@@ -336,8 +336,8 @@ func TestValidateMachineObjects(t *testing.T) {
 	}
 	for _, testcase := range testcases {
 		t.Run(testcase.name, func(t *testing.T) {
-			machines := v1alpha2.MachineList{
-				Items: []v1alpha2.Machine{
+			machines := clusterv1.MachineList{
+				Items: []clusterv1.Machine{
 					getMachineWithError("test-machine-with-no-error", "default", &testNodeRef, nil, nil),
 					getMachineWithError("test-machine", "default", testcase.nodeRef, testcase.errorReason, testcase.errorMessage),
 				},
@@ -402,8 +402,8 @@ func TestValidateMachineObjectWithReferredNode(t *testing.T) {
 	}
 	for _, testcase := range testcases {
 		t.Run(testcase.name, func(t *testing.T) {
-			machines := v1alpha2.MachineList{
-				Items: []v1alpha2.Machine{
+			machines := clusterv1.MachineList{
+				Items: []clusterv1.Machine{
 					getMachineWithError("test-machine", "default", &testcase.nodeRef, nil, nil),
 				},
 			}
@@ -449,16 +449,16 @@ func TestValidateClusterAPIObjectsOutput(t *testing.T) {
 	var testcases = []struct {
 		name           string
 		namespace      string
-		clusterStatus  v1alpha2.ClusterStatus
-		machine1Status v1alpha2.MachineStatus
-		machine2Status v1alpha2.MachineStatus
+		clusterStatus  clusterv1.ClusterStatus
+		machine1Status clusterv1.MachineStatus
+		machine2Status clusterv1.MachineStatus
 		expectErr      bool
 		outputFileName string
 	}{
 		{
 			name:           "Pass",
 			namespace:      "validate-cluster-objects",
-			clusterStatus:  v1alpha2.ClusterStatus{},
+			clusterStatus:  clusterv1.ClusterStatus{},
 			machine1Status: newMachineStatus(&testNodeRef1, nil, nil),
 			machine2Status: newMachineStatus(&testNodeRef2, nil, nil),
 			expectErr:      false,
@@ -479,16 +479,16 @@ func TestValidateClusterAPIObjectsOutput(t *testing.T) {
 		{
 			name:           "Failed to validate machine objects with errors",
 			namespace:      "validate-machine-objects-errors",
-			clusterStatus:  v1alpha2.ClusterStatus{},
+			clusterStatus:  clusterv1.ClusterStatus{},
 			machine1Status: newMachineStatus(&testNodeRef1, &machineErrorReason, &machineErrorMessage),
-			machine2Status: v1alpha2.MachineStatus{}, // newMachineStatus(nil, nil, nil),
+			machine2Status: clusterv1.MachineStatus{}, // newMachineStatus(nil, nil, nil),
 			expectErr:      true,
 			outputFileName: "fail-to-validate-machine-objects-with-errors.golden",
 		},
 		{
 			name:           "Failed to validate machine objects with node ref errors",
 			namespace:      "validate-machine-objects-node-ref-errors",
-			clusterStatus:  v1alpha2.ClusterStatus{},
+			clusterStatus:  clusterv1.ClusterStatus{},
 			machine1Status: newMachineStatus(&testNodeRefNotReady, nil, nil),
 			machine2Status: newMachineStatus(&testNodeRefNotExist, nil, nil),
 			expectErr:      true,
@@ -497,7 +497,7 @@ func TestValidateClusterAPIObjectsOutput(t *testing.T) {
 	}
 	for _, testcase := range testcases {
 		t.Run(testcase.name, func(t *testing.T) {
-			cluster := v1alpha2.Cluster{}
+			cluster := clusterv1.Cluster{}
 			cluster.Name = testClusterName
 			cluster.Namespace = testcase.namespace
 			if err := c.Create(context.TODO(), &cluster); err != nil {

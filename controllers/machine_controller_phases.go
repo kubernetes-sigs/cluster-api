@@ -27,7 +27,6 @@ import (
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/klog"
 	"k8s.io/utils/pointer"
-	"sigs.k8s.io/cluster-api/api/v1alpha2"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha2"
 	"sigs.k8s.io/cluster-api/controllers/external"
 	capierrors "sigs.k8s.io/cluster-api/errors"
@@ -42,40 +41,40 @@ var (
 	externalReadyWait = 30 * time.Second
 )
 
-func (r *MachineReconciler) reconcilePhase(ctx context.Context, m *v1alpha2.Machine) {
+func (r *MachineReconciler) reconcilePhase(ctx context.Context, m *clusterv1.Machine) {
 	// Set the phase to "pending" if nil.
 	if m.Status.Phase == "" {
-		m.Status.SetTypedPhase(v1alpha2.MachinePhasePending)
+		m.Status.SetTypedPhase(clusterv1.MachinePhasePending)
 	}
 
 	// Set the phase to "provisioning" if bootstrap is ready and the infrastructure isn't.
 	if m.Status.BootstrapReady && !m.Status.InfrastructureReady {
-		m.Status.SetTypedPhase(v1alpha2.MachinePhaseProvisioning)
+		m.Status.SetTypedPhase(clusterv1.MachinePhaseProvisioning)
 	}
 
 	// Set the phase to "provisioned" if the infrastructure is ready.
 	if m.Status.InfrastructureReady {
-		m.Status.SetTypedPhase(v1alpha2.MachinePhaseProvisioned)
+		m.Status.SetTypedPhase(clusterv1.MachinePhaseProvisioned)
 	}
 
 	// Set the phase to "running" if there is a NodeRef field.
 	if m.Status.NodeRef != nil && m.Status.InfrastructureReady {
-		m.Status.SetTypedPhase(v1alpha2.MachinePhaseRunning)
+		m.Status.SetTypedPhase(clusterv1.MachinePhaseRunning)
 	}
 
 	// Set the phase to "failed" if any of Status.ErrorReason or Status.ErrorMessage is not-nil.
 	if m.Status.ErrorReason != nil || m.Status.ErrorMessage != nil {
-		m.Status.SetTypedPhase(v1alpha2.MachinePhaseFailed)
+		m.Status.SetTypedPhase(clusterv1.MachinePhaseFailed)
 	}
 
 	// Set the phase to "deleting" if the deletion timestamp is set.
 	if !m.DeletionTimestamp.IsZero() {
-		m.Status.SetTypedPhase(v1alpha2.MachinePhaseDeleting)
+		m.Status.SetTypedPhase(clusterv1.MachinePhaseDeleting)
 	}
 }
 
 // reconcileExternal handles generic unstructured objects referenced by a Machine.
-func (r *MachineReconciler) reconcileExternal(ctx context.Context, m *v1alpha2.Machine, ref *corev1.ObjectReference) (*unstructured.Unstructured, error) {
+func (r *MachineReconciler) reconcileExternal(ctx context.Context, m *clusterv1.Machine, ref *corev1.ObjectReference) (*unstructured.Unstructured, error) {
 	obj, err := external.Get(r.Client, ref, m.Namespace)
 	if err != nil {
 		if apierrors.IsNotFound(err) {
@@ -136,7 +135,7 @@ func (r *MachineReconciler) reconcileExternal(ctx context.Context, m *v1alpha2.M
 }
 
 // reconcileBootstrap reconciles the Spec.Bootstrap.ConfigRef object on a Machine.
-func (r *MachineReconciler) reconcileBootstrap(ctx context.Context, m *v1alpha2.Machine) error {
+func (r *MachineReconciler) reconcileBootstrap(ctx context.Context, m *clusterv1.Machine) error {
 	// TODO(vincepri): Move this validation in kubebuilder / webhook.
 	if m.Spec.Bootstrap.ConfigRef == nil && m.Spec.Bootstrap.Data == nil {
 		return errors.Errorf(
@@ -189,7 +188,7 @@ func (r *MachineReconciler) reconcileBootstrap(ctx context.Context, m *v1alpha2.
 }
 
 // reconcileInfrastructure reconciles the Spec.InfrastructureRef object on a Machine.
-func (r *MachineReconciler) reconcileInfrastructure(ctx context.Context, m *v1alpha2.Machine) error {
+func (r *MachineReconciler) reconcileInfrastructure(ctx context.Context, m *clusterv1.Machine) error {
 	// Call generic external reconciler.
 	infraConfig, err := r.reconcileExternal(ctx, m, &m.Spec.InfrastructureRef)
 	if infraConfig == nil && err == nil {
@@ -235,7 +234,7 @@ func (r *MachineReconciler) reconcileInfrastructure(ctx context.Context, m *v1al
 }
 
 // reconcileClusterStatus reconciles the status on the Cluster associated with Machines.
-func (r *MachineReconciler) reconcileClusterStatus(ctx context.Context, cluster *v1alpha2.Cluster, m *v1alpha2.Machine) error {
+func (r *MachineReconciler) reconcileClusterStatus(ctx context.Context, cluster *clusterv1.Cluster, m *clusterv1.Machine) error {
 	if cluster == nil {
 		return nil
 	}

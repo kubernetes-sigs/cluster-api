@@ -25,7 +25,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	corev1 "k8s.io/client-go/kubernetes/typed/core/v1"
 	"k8s.io/klog"
-	"sigs.k8s.io/cluster-api/api/v1alpha2"
+	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha2"
 	"sigs.k8s.io/cluster-api/controllers/noderefutil"
 	"sigs.k8s.io/cluster-api/controllers/remote"
 	capierrors "sigs.k8s.io/cluster-api/errors"
@@ -35,7 +35,7 @@ var (
 	ErrNodeNotFound = errors.New("cannot find node with matching ProviderID")
 )
 
-func (r *MachineReconciler) reconcileNodeRef(ctx context.Context, cluster *v1alpha2.Cluster, machine *v1alpha2.Machine) error {
+func (r *MachineReconciler) reconcileNodeRef(ctx context.Context, cluster *clusterv1.Cluster, machine *clusterv1.Machine) error {
 	// Check that the Machine hasn't been deleted or in the process.
 	if !machine.DeletionTimestamp.IsZero() {
 		return nil

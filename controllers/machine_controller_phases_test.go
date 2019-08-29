@@ -26,7 +26,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/utils/pointer"
-	"sigs.k8s.io/cluster-api/api/v1alpha2"
+	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha2"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 	"sigs.k8s.io/controller-runtime/pkg/log"
 )
@@ -38,13 +38,13 @@ func init() {
 func TestReconcilePhase(t *testing.T) {
 	deletionTimestamp := metav1.Now()
 
-	defaultMachine := v1alpha2.Machine{
+	defaultMachine := clusterv1.Machine{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "machine-test",
 			Namespace: "default",
 		},
-		Spec: v1alpha2.MachineSpec{
-			Bootstrap: v1alpha2.Bootstrap{
+		Spec: clusterv1.MachineSpec{
+			Bootstrap: clusterv1.Bootstrap{
 				ConfigRef: &corev1.ObjectReference{
 					APIVersion: "bootstrap.cluster.x-k8s.io/v1alpha2",
 					Kind:       "BootstrapConfig",
@@ -63,10 +63,10 @@ func TestReconcilePhase(t *testing.T) {
 		name               string
 		bootstrapConfig    map[string]interface{}
 		infraConfig        map[string]interface{}
-		machine            *v1alpha2.Machine
+		machine            *clusterv1.Machine
 		expectError        bool
 		expectRequeueAfter bool
-		expected           func(g *gomega.WithT, m *v1alpha2.Machine)
+		expected           func(g *gomega.WithT, m *clusterv1.Machine)
 	}{
 		{
 			name: "new machine, expect pending",
@@ -92,8 +92,8 @@ func TestReconcilePhase(t *testing.T) {
 			},
 			expectError:        false,
 			expectRequeueAfter: true,
-			expected: func(g *gomega.WithT, m *v1alpha2.Machine) {
-				g.Expect(m.Status.GetTypedPhase()).To(gomega.Equal(v1alpha2.MachinePhasePending))
+			expected: func(g *gomega.WithT, m *clusterv1.Machine) {
+				g.Expect(m.Status.GetTypedPhase()).To(gomega.Equal(clusterv1.MachinePhasePending))
 			},
 		},
 		{
@@ -123,8 +123,8 @@ func TestReconcilePhase(t *testing.T) {
 			},
 			expectError:        false,
 			expectRequeueAfter: true,
-			expected: func(g *gomega.WithT, m *v1alpha2.Machine) {
-				g.Expect(m.Status.GetTypedPhase()).To(gomega.Equal(v1alpha2.MachinePhaseProvisioning))
+			expected: func(g *gomega.WithT, m *clusterv1.Machine) {
+				g.Expect(m.Status.GetTypedPhase()).To(gomega.Equal(clusterv1.MachinePhaseProvisioning))
 			},
 		},
 		{
@@ -168,8 +168,8 @@ func TestReconcilePhase(t *testing.T) {
 			},
 			expectError:        false,
 			expectRequeueAfter: false,
-			expected: func(g *gomega.WithT, m *v1alpha2.Machine) {
-				g.Expect(m.Status.GetTypedPhase()).To(gomega.Equal(v1alpha2.MachinePhaseProvisioned))
+			expected: func(g *gomega.WithT, m *clusterv1.Machine) {
+				g.Expect(m.Status.GetTypedPhase()).To(gomega.Equal(clusterv1.MachinePhaseProvisioned))
 				g.Expect(m.Status.Addresses).To(gomega.HaveLen(2))
 			},
 		},
@@ -204,20 +204,20 @@ func TestReconcilePhase(t *testing.T) {
 			},
 			expectError:        false,
 			expectRequeueAfter: false,
-			expected: func(g *gomega.WithT, m *v1alpha2.Machine) {
-				g.Expect(m.Status.GetTypedPhase()).To(gomega.Equal(v1alpha2.MachinePhaseProvisioned))
+			expected: func(g *gomega.WithT, m *clusterv1.Machine) {
+				g.Expect(m.Status.GetTypedPhase()).To(gomega.Equal(clusterv1.MachinePhaseProvisioned))
 				g.Expect(m.Status.Addresses).To(gomega.HaveLen(0))
 			},
 		},
 		{
 			name: "ready bootstrap, infra, and nodeRef, expect running",
-			machine: &v1alpha2.Machine{
+			machine: &clusterv1.Machine{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "machine-test",
 					Namespace: "default",
 				},
-				Spec: v1alpha2.MachineSpec{
-					Bootstrap: v1alpha2.Bootstrap{
+				Spec: clusterv1.MachineSpec{
+					Bootstrap: clusterv1.Bootstrap{
 						ConfigRef: &corev1.ObjectReference{
 							APIVersion: "bootstrap.cluster.x-k8s.io/v1alpha2",
 							Kind:       "BootstrapConfig",
@@ -230,7 +230,7 @@ func TestReconcilePhase(t *testing.T) {
 						Name:       "infra-config1",
 					},
 				},
-				Status: v1alpha2.MachineStatus{
+				Status: clusterv1.MachineStatus{
 					BootstrapReady:      true,
 					InfrastructureReady: true,
 					NodeRef:             &corev1.ObjectReference{Kind: "Node", Name: "machine-test-node"},
@@ -271,20 +271,20 @@ func TestReconcilePhase(t *testing.T) {
 			},
 			expectError:        false,
 			expectRequeueAfter: false,
-			expected: func(g *gomega.WithT, m *v1alpha2.Machine) {
-				g.Expect(m.Status.GetTypedPhase()).To(gomega.Equal(v1alpha2.MachinePhaseRunning))
+			expected: func(g *gomega.WithT, m *clusterv1.Machine) {
+				g.Expect(m.Status.GetTypedPhase()).To(gomega.Equal(clusterv1.MachinePhaseRunning))
 			},
 		},
 		{
 			name: "ready bootstrap, infra, and nodeRef, machine being deleted, expect deleting",
-			machine: &v1alpha2.Machine{
+			machine: &clusterv1.Machine{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:              "machine-test",
 					Namespace:         "default",
 					DeletionTimestamp: &deletionTimestamp,
 				},
-				Spec: v1alpha2.MachineSpec{
-					Bootstrap: v1alpha2.Bootstrap{
+				Spec: clusterv1.MachineSpec{
+					Bootstrap: clusterv1.Bootstrap{
 						ConfigRef: &corev1.ObjectReference{
 							APIVersion: "bootstrap.cluster.x-k8s.io/v1alpha2",
 							Kind:       "BootstrapConfig",
@@ -297,7 +297,7 @@ func TestReconcilePhase(t *testing.T) {
 						Name:       "infra-config1",
 					},
 				},
-				Status: v1alpha2.MachineStatus{
+				Status: clusterv1.MachineStatus{
 					BootstrapReady:      true,
 					InfrastructureReady: true,
 					NodeRef:             &corev1.ObjectReference{Kind: "Node", Name: "machine-test-node"},
@@ -338,8 +338,8 @@ func TestReconcilePhase(t *testing.T) {
 			},
 			expectError:        false,
 			expectRequeueAfter: false,
-			expected: func(g *gomega.WithT, m *v1alpha2.Machine) {
-				g.Expect(m.Status.GetTypedPhase()).To(gomega.Equal(v1alpha2.MachinePhaseDeleting))
+			expected: func(g *gomega.WithT, m *clusterv1.Machine) {
+				g.Expect(m.Status.GetTypedPhase()).To(gomega.Equal(clusterv1.MachinePhaseDeleting))
 			},
 		},
 	}
@@ -388,16 +388,16 @@ func TestReconcilePhase(t *testing.T) {
 }
 
 func TestReconcileBootstrap(t *testing.T) {
-	defaultMachine := v1alpha2.Machine{
+	defaultMachine := clusterv1.Machine{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "machine-test",
 			Namespace: "default",
 			Labels: map[string]string{
-				v1alpha2.MachineClusterLabelName: "test-cluster",
+				clusterv1.MachineClusterLabelName: "test-cluster",
 			},
 		},
-		Spec: v1alpha2.MachineSpec{
-			Bootstrap: v1alpha2.Bootstrap{
+		Spec: clusterv1.MachineSpec{
+			Bootstrap: clusterv1.Bootstrap{
 				ConfigRef: &corev1.ObjectReference{
 					APIVersion: "bootstrap.cluster.x-k8s.io/v1alpha2",
 					Kind:       "BootstrapConfig",
@@ -410,9 +410,9 @@ func TestReconcileBootstrap(t *testing.T) {
 	testCases := []struct {
 		name            string
 		bootstrapConfig map[string]interface{}
-		machine         *v1alpha2.Machine
+		machine         *clusterv1.Machine
 		expectError     bool
-		expected        func(g *gomega.WithT, m *v1alpha2.Machine)
+		expected        func(g *gomega.WithT, m *clusterv1.Machine)
 	}{
 		{
 			name: "new machine, bootstrap config ready with data",
@@ -430,7 +430,7 @@ func TestReconcileBootstrap(t *testing.T) {
 				},
 			},
 			expectError: false,
-			expected: func(g *gomega.WithT, m *v1alpha2.Machine) {
+			expected: func(g *gomega.WithT, m *clusterv1.Machine) {
 				g.Expect(m.Status.BootstrapReady).To(gomega.BeTrue())
 				g.Expect(m.Spec.Bootstrap.Data).ToNot(gomega.BeNil())
 				g.Expect(*m.Spec.Bootstrap.Data).To(gomega.ContainSubstring("#!/bin/bash"))
@@ -451,7 +451,7 @@ func TestReconcileBootstrap(t *testing.T) {
 				},
 			},
 			expectError: true,
-			expected: func(g *gomega.WithT, m *v1alpha2.Machine) {
+			expected: func(g *gomega.WithT, m *clusterv1.Machine) {
 				g.Expect(m.Status.BootstrapReady).To(gomega.BeFalse())
 				g.Expect(m.Spec.Bootstrap.Data).To(gomega.BeNil())
 			},
@@ -469,7 +469,7 @@ func TestReconcileBootstrap(t *testing.T) {
 				"status": map[string]interface{}{},
 			},
 			expectError: true,
-			expected: func(g *gomega.WithT, m *v1alpha2.Machine) {
+			expected: func(g *gomega.WithT, m *clusterv1.Machine) {
 				g.Expect(m.Status.BootstrapReady).To(gomega.BeFalse())
 			},
 		},
@@ -486,7 +486,7 @@ func TestReconcileBootstrap(t *testing.T) {
 				"status": map[string]interface{}{},
 			},
 			expectError: true,
-			expected: func(g *gomega.WithT, m *v1alpha2.Machine) {
+			expected: func(g *gomega.WithT, m *clusterv1.Machine) {
 				g.Expect(m.Status.BootstrapReady).To(gomega.BeFalse())
 			},
 		},
@@ -519,13 +519,13 @@ func TestReconcileBootstrap(t *testing.T) {
 					"data":  "#!/bin/bash ... data with change",
 				},
 			},
-			machine: &v1alpha2.Machine{
+			machine: &clusterv1.Machine{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "bootstrap-test-existing",
 					Namespace: "default",
 				},
-				Spec: v1alpha2.MachineSpec{
-					Bootstrap: v1alpha2.Bootstrap{
+				Spec: clusterv1.MachineSpec{
+					Bootstrap: clusterv1.Bootstrap{
 						ConfigRef: &corev1.ObjectReference{
 							APIVersion: "bootstrap.cluster.x-k8s.io/v1alpha2",
 							Kind:       "BootstrapConfig",
@@ -534,12 +534,12 @@ func TestReconcileBootstrap(t *testing.T) {
 						Data: pointer.StringPtr("#!/bin/bash ... data"),
 					},
 				},
-				Status: v1alpha2.MachineStatus{
+				Status: clusterv1.MachineStatus{
 					BootstrapReady: true,
 				},
 			},
 			expectError: false,
-			expected: func(g *gomega.WithT, m *v1alpha2.Machine) {
+			expected: func(g *gomega.WithT, m *clusterv1.Machine) {
 				g.Expect(m.Status.BootstrapReady).To(gomega.BeTrue())
 				g.Expect(*m.Spec.Bootstrap.Data).To(gomega.Equal("#!/bin/bash ... data"))
 			},
@@ -559,13 +559,13 @@ func TestReconcileBootstrap(t *testing.T) {
 					"data":  "#!/bin/bash ... data",
 				},
 			},
-			machine: &v1alpha2.Machine{
+			machine: &clusterv1.Machine{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "bootstrap-test-existing",
 					Namespace: "default",
 				},
-				Spec: v1alpha2.MachineSpec{
-					Bootstrap: v1alpha2.Bootstrap{
+				Spec: clusterv1.MachineSpec{
+					Bootstrap: clusterv1.Bootstrap{
 						ConfigRef: &corev1.ObjectReference{
 							APIVersion: "bootstrap.cluster.x-k8s.io/v1alpha2",
 							Kind:       "BootstrapConfig",
@@ -574,12 +574,12 @@ func TestReconcileBootstrap(t *testing.T) {
 						Data: pointer.StringPtr("#!/bin/bash ... data"),
 					},
 				},
-				Status: v1alpha2.MachineStatus{
+				Status: clusterv1.MachineStatus{
 					BootstrapReady: true,
 				},
 			},
 			expectError: false,
-			expected: func(g *gomega.WithT, m *v1alpha2.Machine) {
+			expected: func(g *gomega.WithT, m *clusterv1.Machine) {
 				g.Expect(m.Status.BootstrapReady).To(gomega.BeTrue())
 			},
 		},
@@ -616,15 +616,15 @@ func TestReconcileBootstrap(t *testing.T) {
 }
 
 func TestReconcileInfrastructure(t *testing.T) {
-	defaultMachine := v1alpha2.Machine{
+	defaultMachine := clusterv1.Machine{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "machine-test",
 			Namespace: "default",
 			Labels: map[string]string{
-				v1alpha2.MachineClusterLabelName: "test-cluster",
+				clusterv1.MachineClusterLabelName: "test-cluster",
 			},
 		},
-		Spec: v1alpha2.MachineSpec{
+		Spec: clusterv1.MachineSpec{
 			InfrastructureRef: corev1.ObjectReference{
 				APIVersion: "infrastructure.cluster.x-k8s.io/v1alpha2",
 				Kind:       "InfrastructureConfig",
@@ -636,10 +636,10 @@ func TestReconcileInfrastructure(t *testing.T) {
 	testCases := []struct {
 		name          string
 		infraConfig   map[string]interface{}
-		machine       *v1alpha2.Machine
+		machine       *clusterv1.Machine
 		expectError   bool
 		expectChanged bool
-		expected      func(g *gomega.WithT, m *v1alpha2.Machine)
+		expected      func(g *gomega.WithT, m *clusterv1.Machine)
 	}{
 		{
 			name: "new machine, infrastructure config ready",
@@ -669,7 +669,7 @@ func TestReconcileInfrastructure(t *testing.T) {
 			},
 			expectError:   false,
 			expectChanged: true,
-			expected: func(g *gomega.WithT, m *v1alpha2.Machine) {
+			expected: func(g *gomega.WithT, m *clusterv1.Machine) {
 				g.Expect(m.Status.InfrastructureReady).To(gomega.BeTrue())
 			},
 		},

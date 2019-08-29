@@ -24,7 +24,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/klog"
-	"sigs.k8s.io/cluster-api/api/v1alpha2"
+	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha2"
 	"sigs.k8s.io/cluster-api/controllers/noderefutil"
 	"sigs.k8s.io/cluster-api/controllers/remote"
 	"sigs.k8s.io/cluster-api/util"
@@ -36,7 +36,7 @@ const (
 	statusUpdateRetries = 1
 )
 
-func (r *MachineSetReconciler) calculateStatus(ms *v1alpha2.MachineSet, filteredMachines []*v1alpha2.Machine) v1alpha2.MachineSetStatus {
+func (r *MachineSetReconciler) calculateStatus(ms *clusterv1.MachineSet, filteredMachines []*clusterv1.Machine) clusterv1.MachineSetStatus {
 	newStatus := ms.Status
 
 	// Count the number of machines that have labels matching the labels of the machine
@@ -86,7 +86,7 @@ func (r *MachineSetReconciler) calculateStatus(ms *v1alpha2.MachineSet, filtered
 }
 
 // updateMachineSetStatus attempts to update the Status.Replicas of the given MachineSet, with a single GET/PUT retry.
-func updateMachineSetStatus(c client.Client, ms *v1alpha2.MachineSet, newStatus v1alpha2.MachineSetStatus) (*v1alpha2.MachineSet, error) {
+func updateMachineSetStatus(c client.Client, ms *clusterv1.MachineSet, newStatus clusterv1.MachineSetStatus) (*clusterv1.MachineSet, error) {
 	// This is the steady state. It happens when the MachineSet doesn't have any expectations, since
 	// we do a periodic relist every 10 minutes. If the generations differ but the replicas are
 	// the same, a caller might've resized to the same replica count.
@@ -137,7 +137,7 @@ func updateMachineSetStatus(c client.Client, ms *v1alpha2.MachineSet, newStatus 
 	return nil, updateErr
 }
 
-func (r *MachineSetReconciler) getMachineNode(cluster *v1alpha2.Cluster, machine *v1alpha2.Machine) (*corev1.Node, error) {
+func (r *MachineSetReconciler) getMachineNode(cluster *clusterv1.Cluster, machine *clusterv1.Machine) (*corev1.Node, error) {
 	if cluster == nil {
 		// Try to retrieve the Node from the local cluster, if no Cluster reference is found.
 		node := &corev1.Node{}

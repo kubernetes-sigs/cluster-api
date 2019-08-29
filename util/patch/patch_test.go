@@ -27,7 +27,7 @@ import (
 	"k8s.io/client-go/kubernetes/scheme"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 
-	"sigs.k8s.io/cluster-api/api/v1alpha2"
+	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha2"
 )
 
 func TestHelperPatch(t *testing.T) {
@@ -39,16 +39,16 @@ func TestHelperPatch(t *testing.T) {
 	}{
 		{
 			name: "Only remove finalizer update",
-			before: &v1alpha2.Cluster{
+			before: &clusterv1.Cluster{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "test-cluster",
 					Namespace: "test-namespace",
 					Finalizers: []string{
-						v1alpha2.ClusterFinalizer,
+						clusterv1.ClusterFinalizer,
 					},
 				},
 			},
-			after: &v1alpha2.Cluster{
+			after: &clusterv1.Cluster{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "test-cluster",
 					Namespace: "test-namespace",
@@ -57,36 +57,36 @@ func TestHelperPatch(t *testing.T) {
 		},
 		{
 			name: "Only status update",
-			before: &v1alpha2.Cluster{
+			before: &clusterv1.Cluster{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "test-cluster",
 					Namespace: "test-namespace",
 				},
 			},
-			after: &v1alpha2.Cluster{
+			after: &clusterv1.Cluster{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "test-cluster",
 					Namespace: "test-namespace",
 				},
-				Status: v1alpha2.ClusterStatus{
+				Status: clusterv1.ClusterStatus{
 					InfrastructureReady: true,
 				},
 			},
 		},
 		{
 			name: "Only spec update",
-			before: &v1alpha2.Cluster{
+			before: &clusterv1.Cluster{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "test-cluster",
 					Namespace: "test-namespace",
 				},
 			},
-			after: &v1alpha2.Cluster{
+			after: &clusterv1.Cluster{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "test-cluster",
 					Namespace: "test-namespace",
 				},
-				Spec: v1alpha2.ClusterSpec{
+				Spec: clusterv1.ClusterSpec{
 					InfrastructureRef: &corev1.ObjectReference{
 						Kind:      "test-kind",
 						Name:      "test-ref",
@@ -97,43 +97,43 @@ func TestHelperPatch(t *testing.T) {
 		},
 		{
 			name: "Both spec and status update",
-			before: &v1alpha2.Cluster{
+			before: &clusterv1.Cluster{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "test-cluster",
 					Namespace: "test-namespace",
 				},
 			},
-			after: &v1alpha2.Cluster{
+			after: &clusterv1.Cluster{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "test-cluster",
 					Namespace: "test-namespace",
 				},
-				Spec: v1alpha2.ClusterSpec{
+				Spec: clusterv1.ClusterSpec{
 					InfrastructureRef: &corev1.ObjectReference{
 						Kind:      "test-kind",
 						Name:      "test-ref",
 						Namespace: "test-namespace",
 					},
 				},
-				Status: v1alpha2.ClusterStatus{
+				Status: clusterv1.ClusterStatus{
 					InfrastructureReady: true,
 				},
 			},
 		},
 		{
 			name: "Only add finalizer update",
-			before: &v1alpha2.Cluster{
+			before: &clusterv1.Cluster{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "test-cluster",
 					Namespace: "test-namespace",
 				},
 			},
-			after: &v1alpha2.Cluster{
+			after: &clusterv1.Cluster{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "test-cluster",
 					Namespace: "test-namespace",
 					Finalizers: []string{
-						v1alpha2.ClusterFinalizer,
+						clusterv1.ClusterFinalizer,
 					},
 				},
 			},
@@ -141,7 +141,7 @@ func TestHelperPatch(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			v1alpha2.AddToScheme(scheme.Scheme)
+			clusterv1.AddToScheme(scheme.Scheme)
 			ctx := context.Background()
 			fakeClient := fake.NewFakeClient()
 

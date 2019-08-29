@@ -24,7 +24,7 @@ import (
 	"github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/types"
-	"sigs.k8s.io/cluster-api/api/v1alpha2"
+	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha2"
 	"sigs.k8s.io/cluster-api/controllers/noderefutil"
 	capierrors "sigs.k8s.io/cluster-api/errors"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -41,7 +41,7 @@ func ValidateClusterAPIObjects(ctx context.Context, w io.Writer, c client.Client
 		return err
 	}
 
-	machines := &v1alpha2.MachineList{}
+	machines := &clusterv1.MachineList{}
 	if err := c.List(ctx, machines, client.InNamespace(namespace)); err != nil {
 		return errors.Wrapf(err, "failed to get the machines from the apiserver in namespace %q", namespace)
 	}
@@ -49,14 +49,14 @@ func ValidateClusterAPIObjects(ctx context.Context, w io.Writer, c client.Client
 	return validateMachineObjects(ctx, w, machines, c)
 }
 
-func getClusterObject(ctx context.Context, c client.Reader, clusterName string, namespace string) (*v1alpha2.Cluster, error) {
+func getClusterObject(ctx context.Context, c client.Reader, clusterName string, namespace string) (*clusterv1.Cluster, error) {
 	if clusterName != "" {
-		cluster := &v1alpha2.Cluster{}
+		cluster := &clusterv1.Cluster{}
 		err := c.Get(ctx, types.NamespacedName{Name: clusterName, Namespace: namespace}, cluster)
 		return cluster, err
 	}
 
-	clusters := &v1alpha2.ClusterList{}
+	clusters := &clusterv1.ClusterList{}
 	if err := c.List(ctx, clusters, client.InNamespace(namespace)); err != nil {
 		return nil, errors.Wrapf(err, "failed to get the clusters from the apiserver in namespace %q", namespace)
 	}
@@ -70,7 +70,7 @@ func getClusterObject(ctx context.Context, c client.Reader, clusterName string, 
 	return &clusters.Items[0], nil
 }
 
-func validateClusterObject(w io.Writer, cluster *v1alpha2.Cluster) error {
+func validateClusterObject(w io.Writer, cluster *clusterv1.Cluster) error {
 	fmt.Fprintf(w, "Checking cluster object %q... ", cluster.Name)
 	if cluster.Status.ErrorReason != nil || cluster.Status.ErrorMessage != nil {
 		var reason capierrors.ClusterStatusError
@@ -89,7 +89,7 @@ func validateClusterObject(w io.Writer, cluster *v1alpha2.Cluster) error {
 	return nil
 }
 
-func validateMachineObjects(ctx context.Context, w io.Writer, machines *v1alpha2.MachineList, client client.Client) error {
+func validateMachineObjects(ctx context.Context, w io.Writer, machines *clusterv1.MachineList, client client.Client) error {
 	pass := true
 	for _, machine := range machines.Items {
 		if !validateMachineObject(ctx, w, machine, client) {
@@ -102,7 +102,7 @@ func validateMachineObjects(ctx context.Context, w io.Writer, machines *v1alpha2
 	return nil
 }
 
-func validateMachineObject(ctx context.Context, w io.Writer, machine v1alpha2.Machine, client client.Client) bool {
+func validateMachineObject(ctx context.Context, w io.Writer, machine clusterv1.Machine, client client.Client) bool {
 	fmt.Fprintf(w, "Checking machine object %q... ", machine.Name)
 	if machine.Status.ErrorReason != nil || machine.Status.ErrorMessage != nil {
 		var reason capierrors.MachineStatusError

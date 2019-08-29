@@ -21,7 +21,7 @@ import (
 	corev1 "k8s.io/client-go/kubernetes/typed/core/v1"
 	restclient "k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/clientcmd"
-	"sigs.k8s.io/cluster-api/api/v1alpha2"
+	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha2"
 	kcfg "sigs.k8s.io/cluster-api/util/kubeconfig"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
@@ -36,11 +36,11 @@ type ClusterClient interface {
 // clusterClient is a helper struct to connect to remote workload clusters.
 type clusterClient struct {
 	restConfig *restclient.Config
-	cluster    *v1alpha2.Cluster
+	cluster    *clusterv1.Cluster
 }
 
 // NewClusterClient creates a new ClusterClient.
-func NewClusterClient(c client.Client, cluster *v1alpha2.Cluster) (ClusterClient, error) {
+func NewClusterClient(c client.Client, cluster *clusterv1.Cluster) (ClusterClient, error) {
 	kubeconfig, err := kcfg.FetchKubeconfigFromSecret(c, cluster)
 	if err != nil {
 		return nil, errors.Wrapf(err, "failed to retrieve kubeconfig secret for Cluster %q in namespace %q",

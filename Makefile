@@ -43,6 +43,8 @@ CRD_OPTIONS ?= "crd:trivialVersions=true"
 TOOLS_DIR := hack/tools
 CONTROLLER_GEN_BIN := bin/controller-gen
 CONTROLLER_GEN := $(TOOLS_DIR)/$(CONTROLLER_GEN_BIN)
+GOLANGCI_LINT_BIN := bin/golangci-lint
+GOLANGCI_LINT := $(TOOLS_DIR)/$(GOLANGCI_LINT_BIN)
 
 # Allow overriding manifest generation destination directory
 MANIFEST_ROOT ?= "config"
@@ -88,6 +90,10 @@ fmt: ## Run go fmt against code
 vet: ## Run go vet against code
 	go vet ./...
 
+.PHONY: golangci-lint
+golangci-lint: $(GOLANGCI_LINT) ## Run golangci-lint against code
+	$(GOLANGCI_LINT) run
+
 .PHONY: generate
 generate: $(CONTROLLER_GEN) ## Generate code
 	$(MAKE) generate-manifests
@@ -104,6 +110,9 @@ generate-manifests: $(CONTROLLER_GEN) ## Generate manifests e.g. CRD, RBAC etc.
 # Build controller-gen
 $(CONTROLLER_GEN): $(TOOLS_DIR)/go.mod
 	cd $(TOOLS_DIR) && go build -o $(CONTROLLER_GEN_BIN) sigs.k8s.io/controller-tools/cmd/controller-gen
+# Build golangci-lint
+$(GOLANGCI_LINT): $(TOOLS_DIR)/go.mod
+	cd $(TOOLS_DIR) && go build -o $(GOLANGCI_LINT_BIN) github.com/golangci/golangci-lint/cmd/golangci-lint
 
 ## --------------------------------------
 ## Docker

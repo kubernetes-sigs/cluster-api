@@ -1,0 +1,36 @@
+linters:
+  enable:
+    - deadcode
+    - goconst
+    - gofmt
+    - goimports
+    - golint
+    - gosec
+    - govet
+    - ineffassign
+    - interfacer
+    - maligned
+    - misspell
+    - nakedret
+    - prealloc
+    - scopelint
+    - staticcheck
+    - structcheck
+    - unconvert
+    - unparam
+    - varcheck
+  disable:
+    - dupl
+    - gochecknoglobals
+    - gochecknoinits
+    - gocyclo
+    - lll
+  fast: true
+issue:
+  max-same-issues: 0
+  max-per-linter: 0
+run:
+  deadline: 2m
+  skip-dirs:
+    - kubeadm
+    - third_party

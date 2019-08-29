@@ -16,15 +16,7 @@ limitations under the License.
 
 package v1alpha2
 
-import (
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	clusterv2 "sigs.k8s.io/cluster-api/api/v1alpha2"
-)
-
 // KubeadmConfigTemplateResource defines the Template structure
 type KubeadmConfigTemplateResource struct {
-	metav1.TypeMeta      `json:",inline"`
-	clusterv2.ObjectMeta `json:"metadata,omitempty"`
-
 	Spec KubeadmConfigSpec `json:"spec,omitempty"`
 }

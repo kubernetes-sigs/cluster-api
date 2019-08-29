@@ -27,7 +27,6 @@ import (
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/klog"
 	"k8s.io/utils/pointer"
-	"sigs.k8s.io/cluster-api/api/v1alpha2"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha2"
 	"sigs.k8s.io/cluster-api/controllers/external"
 	capierrors "sigs.k8s.io/cluster-api/errors"
@@ -37,35 +36,35 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/source"
 )
 
-func (r *ClusterReconciler) reconcilePhase(ctx context.Context, cluster *v1alpha2.Cluster) {
+func (r *ClusterReconciler) reconcilePhase(ctx context.Context, cluster *clusterv1.Cluster) {
 	// Set the phase to "pending" if nil.
 	if cluster.Status.Phase == "" {
-		cluster.Status.SetTypedPhase(v1alpha2.ClusterPhasePending)
+		cluster.Status.SetTypedPhase(clusterv1.ClusterPhasePending)
 	}
 
 	// Set the phase to "provisioning" if the Cluster has an InfrastructureRef object associated.
 	if cluster.Spec.InfrastructureRef != nil {
-		cluster.Status.SetTypedPhase(v1alpha2.ClusterPhaseProvisioning)
+		cluster.Status.SetTypedPhase(clusterv1.ClusterPhaseProvisioning)
 	}
 
 	// Set the phase to "provisioned" if the infrastructure is ready.
 	if cluster.Status.InfrastructureReady {
-		cluster.Status.SetTypedPhase(v1alpha2.ClusterPhaseProvisioned)
+		cluster.Status.SetTypedPhase(clusterv1.ClusterPhaseProvisioned)
 	}
 
 	// Set the phase to "failed" if any of Status.ErrorReason or Status.ErrorMessage is not-nil.
 	if cluster.Status.ErrorReason != nil || cluster.Status.ErrorMessage != nil {
-		cluster.Status.SetTypedPhase(v1alpha2.ClusterPhaseFailed)
+		cluster.Status.SetTypedPhase(clusterv1.ClusterPhaseFailed)
 	}
 
 	// Set the phase to "deleting" if the deletion timestamp is set.
 	if !cluster.DeletionTimestamp.IsZero() {
-		cluster.Status.SetTypedPhase(v1alpha2.ClusterPhaseDeleting)
+		cluster.Status.SetTypedPhase(clusterv1.ClusterPhaseDeleting)
 	}
 }
 
 // reconcileExternal handles generic unstructured objects referenced by a Cluster.
-func (r *ClusterReconciler) reconcileExternal(ctx context.Context, cluster *v1alpha2.Cluster, ref *corev1.ObjectReference) (*unstructured.Unstructured, error) {
+func (r *ClusterReconciler) reconcileExternal(ctx context.Context, cluster *clusterv1.Cluster, ref *corev1.ObjectReference) (*unstructured.Unstructured, error) {
 	obj, err := external.Get(r.Client, ref, cluster.Namespace)
 	if err != nil {
 		if apierrors.IsNotFound(err) {
@@ -126,7 +125,7 @@ func (r *ClusterReconciler) reconcileExternal(ctx context.Context, cluster *v1al
 }
 
 // reconcileInfrastructure reconciles the Spec.InfrastructureRef object on a Cluster.
-func (r *ClusterReconciler) reconcileInfrastructure(ctx context.Context, cluster *v1alpha2.Cluster) error {
+func (r *ClusterReconciler) reconcileInfrastructure(ctx context.Context, cluster *clusterv1.Cluster) error {
 	if cluster.Spec.InfrastructureRef == nil {
 		return nil
 	}

@@ -23,27 +23,27 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"sigs.k8s.io/cluster-api/api/v1alpha2"
+	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha2"
 	"sigs.k8s.io/cluster-api/util/secret"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 )
 
 var (
-	clusterWithValidKubeConfig = &v1alpha2.Cluster{
+	clusterWithValidKubeConfig = &clusterv1.Cluster{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "test1",
 			Namespace: "test",
 		},
 	}
 
-	clusterWithInvalidKubeConfig = &v1alpha2.Cluster{
+	clusterWithInvalidKubeConfig = &clusterv1.Cluster{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "test2",
 			Namespace: "test",
 		},
 	}
 
-	clusterWithNoKubeConfig = &v1alpha2.Cluster{
+	clusterWithNoKubeConfig = &clusterv1.Cluster{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "test3",
 			Namespace: "test",

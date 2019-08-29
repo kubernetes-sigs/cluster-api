@@ -264,7 +264,7 @@ func TestRequeueIfInfrastructureIsNotReady(t *testing.T) {
 	if result.Requeue == true {
 		t.Fatal("did not expected to requeue")
 	}
-	if result.RequeueAfter != time.Duration(30*time.Second) {
+	if result.RequeueAfter != 30*time.Second {
 		t.Fatal("expected to requeue after 30s")
 	}
 }
@@ -274,10 +274,10 @@ func TestRequeueKubeadmConfigForJoinNodesIfControlPlaneIsNotReady(t *testing.T) 
 	cluster := newCluster("cluster")
 	cluster.Status.InfrastructureReady = true
 
-	workerMachine := newWorkerMachine(cluster, "worker-machine")
-	workerJoinConfig := newWorkerJoinKubeadmConfig(workerMachine, "worker-join-cfg")
+	workerMachine := newWorkerMachine(cluster)
+	workerJoinConfig := newWorkerJoinKubeadmConfig(workerMachine)
 
-	controlPaneMachine := newControlPlaneMachine(cluster, "control-plane-machine")
+	controlPaneMachine := newControlPlaneMachine(cluster)
 	controlPaneJoinConfig := newControlPlaneJoinKubeadmConfig(controlPaneMachine, "control-plane-join-cfg")
 
 	objects := []runtime.Object{
@@ -308,7 +308,7 @@ func TestRequeueKubeadmConfigForJoinNodesIfControlPlaneIsNotReady(t *testing.T) 
 	if result.Requeue == true {
 		t.Fatal("did not expected to requeue")
 	}
-	if result.RequeueAfter != time.Duration(30*time.Second) {
+	if result.RequeueAfter != 30*time.Second {
 		t.Fatal("expected to requeue after 30s")
 	}
 
@@ -325,7 +325,7 @@ func TestRequeueKubeadmConfigForJoinNodesIfControlPlaneIsNotReady(t *testing.T) 
 	if result.Requeue == true {
 		t.Fatal("did not expected to requeue")
 	}
-	if result.RequeueAfter != time.Duration(30*time.Second) {
+	if result.RequeueAfter != 30*time.Second {
 		t.Fatal("expected to requeue after 30s")
 	}
 }
@@ -334,7 +334,7 @@ func TestReconcileKubeadmConfigForInitNodesIfControlPlaneIsNotReady(t *testing.T
 	cluster := newCluster("cluster")
 	cluster.Status.InfrastructureReady = true
 
-	controlPlaneMachine := newControlPlaneMachine(cluster, "control-plane-machine")
+	controlPlaneMachine := newControlPlaneMachine(cluster)
 	controlPlaneInitConfig := newControlPlaneInitKubeadmConfig(controlPlaneMachine, "control-plane-init-cfg")
 
 	objects := []runtime.Object{
@@ -399,8 +399,8 @@ func TestFailIfNotJoinConfigurationAndControlPlaneIsReady(t *testing.T) {
 	cluster.Status.InfrastructureReady = true
 	cluster.Status.ControlPlaneInitialized = true
 
-	workerMachine := newWorkerMachine(cluster, "worker-machine")
-	workerJoinConfig := newWorkerJoinKubeadmConfig(workerMachine, "worker-join-cfg")
+	workerMachine := newWorkerMachine(cluster)
+	workerJoinConfig := newWorkerJoinKubeadmConfig(workerMachine)
 	workerJoinConfig.Spec.JoinConfiguration = nil // Makes workerJoinConfig invalid
 
 	objects := []runtime.Object{
@@ -434,7 +434,7 @@ func TestFailIfJoinConfigurationInconsistentWithMachineRole(t *testing.T) {
 	cluster.Status.ControlPlaneInitialized = true
 	cluster.Status.APIEndpoints = []clusterv1.APIEndpoint{{Host: "100.105.150.1", Port: 6443}}
 
-	controlPaneMachine := newControlPlaneMachine(cluster, "control-plane-machine")
+	controlPaneMachine := newControlPlaneMachine(cluster)
 	controlPaneJoinConfig := newControlPlaneJoinKubeadmConfig(controlPaneMachine, "control-plane-join-cfg")
 	controlPaneJoinConfig.Spec.JoinConfiguration.ControlPlane = nil // Makes controlPaneJoinConfig invalid for a control plane machine
 
@@ -469,8 +469,8 @@ func TestRequeueIfMissingControlPaneEndpointAndControlPlaneIsReady(t *testing.T)
 	cluster.Status.InfrastructureReady = true
 	cluster.Status.ControlPlaneInitialized = true
 
-	workerMachine := newWorkerMachine(cluster, "worker-machine")
-	workerJoinConfig := newWorkerJoinKubeadmConfig(workerMachine, "worker-join-cfg")
+	workerMachine := newWorkerMachine(cluster)
+	workerJoinConfig := newWorkerJoinKubeadmConfig(workerMachine)
 
 	objects := []runtime.Object{
 		cluster,
@@ -498,7 +498,7 @@ func TestRequeueIfMissingControlPaneEndpointAndControlPlaneIsReady(t *testing.T)
 	if result.Requeue == true {
 		t.Fatal("did not expected to requeue")
 	}
-	if result.RequeueAfter != time.Duration(10*time.Second) {
+	if result.RequeueAfter != 10*time.Second {
 		t.Fatal("expected to requeue after 10s")
 	}
 }
@@ -509,10 +509,10 @@ func TestReconcileIfJoinNodesAndControlPlaneIsReady(t *testing.T) {
 	cluster.Status.ControlPlaneInitialized = true
 	cluster.Status.APIEndpoints = []clusterv1.APIEndpoint{{Host: "100.105.150.1", Port: 6443}}
 
-	workerMachine := newWorkerMachine(cluster, "worker-machine")
-	workerJoinConfig := newWorkerJoinKubeadmConfig(workerMachine, "worker-join-cfg")
+	workerMachine := newWorkerMachine(cluster)
+	workerJoinConfig := newWorkerJoinKubeadmConfig(workerMachine)
 
-	controlPaneMachine := newControlPlaneMachine(cluster, "control-plane-machine")
+	controlPaneMachine := newControlPlaneMachine(cluster)
 	controlPaneJoinConfig := newControlPlaneJoinKubeadmConfig(controlPaneMachine, "control-plane-join-cfg")
 
 	objects := []runtime.Object{
@@ -752,6 +752,7 @@ func TestReconcileDiscoverySuccces(t *testing.T) {
 	}
 
 	for _, rt := range useCases {
+		rt := rt
 		t.Run(rt.name, func(t *testing.T) {
 			err := k.reconcileDiscovery(rt.cluster, rt.config)
 			if err != nil {
@@ -788,6 +789,7 @@ func TestReconcileDiscoveryErrors(t *testing.T) {
 	}
 
 	for _, rt := range useCases {
+		rt := rt
 		t.Run(rt.name, func(t *testing.T) {
 			err := k.reconcileDiscovery(rt.cluster, rt.config)
 			if err == nil {
@@ -877,6 +879,7 @@ func TestReconcileTopLevelObjectSettings(t *testing.T) {
 	}
 
 	for _, rt := range useCases {
+		rt := rt
 		t.Run(rt.name, func(t *testing.T) {
 			k.reconcileTopLevelObjectSettings(rt.cluster, rt.machine, rt.config)
 
@@ -946,12 +949,12 @@ func newMachine(cluster *clusterv1.Cluster, name string) *clusterv1.Machine {
 	return machine
 }
 
-func newWorkerMachine(cluster *clusterv1.Cluster, name string) *clusterv1.Machine {
-	return newMachine(cluster, name) // machine by default is a worker node (not the boostrapNode)
+func newWorkerMachine(cluster *clusterv1.Cluster) *clusterv1.Machine {
+	return newMachine(cluster, "worker-machine") // machine by default is a worker node (not the boostrapNode)
 }
 
-func newControlPlaneMachine(cluster *clusterv1.Cluster, name string) *clusterv1.Machine {
-	m := newMachine(cluster, name)
+func newControlPlaneMachine(cluster *clusterv1.Cluster) *clusterv1.Machine {
+	m := newMachine(cluster, "control-plane-machine")
 	m.Labels[clusterv1.MachineControlPlaneLabelName] = "true"
 	return m
 }
@@ -981,8 +984,8 @@ func newKubeadmConfig(machine *clusterv1.Machine, name string) *bootstrapv1.Kube
 	return config
 }
 
-func newWorkerJoinKubeadmConfig(machine *clusterv1.Machine, name string) *bootstrapv1.KubeadmConfig {
-	c := newKubeadmConfig(machine, name)
+func newWorkerJoinKubeadmConfig(machine *clusterv1.Machine) *bootstrapv1.KubeadmConfig {
+	c := newKubeadmConfig(machine, "worker-join-cfg")
 	c.Spec.JoinConfiguration = &kubeadmv1beta1.JoinConfiguration{
 		ControlPlane: nil,
 	}

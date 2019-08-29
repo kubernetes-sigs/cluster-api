@@ -94,6 +94,13 @@ if [[ "${VERIFY_DEPS:-true}" == "true" ]]; then
   cd "${REPO_PATH}"
 fi
 
+if [[ "${VERIFY_GOLANGCI_LINT:-true}" == "true" ]]; then
+  echo "[*] Verifying golangci-lint..."
+  out=$(hack/verify-golangci-lint.sh 2>&1)
+  failure $? "hack/verify-golangci-lint.sh " "${out}"
+  cd "${REPO_PATH}"
+fi
+
 if [[ "${VERIFY_GOTEST:-true}" == "true" ]]; then
   echo "[*] Verifying gotest..."
   out=$(hack/verify-gotest.sh 2>&1)

@@ -231,8 +231,8 @@ func (r *KubeadmConfigReconciler) Reconcile(req ctrl.Request) (_ ctrl.Result, re
 				PostKubeadmCommands: config.Spec.PostKubeadmCommands,
 				Users:               config.Spec.Users,
 			},
-			InitConfiguration:    string(initdata),
-			ClusterConfiguration: string(clusterdata),
+			InitConfiguration:    initdata,
+			ClusterConfiguration: clusterdata,
 			Certificates:         *certificates,
 		})
 		if err != nil {
@@ -267,7 +267,7 @@ func (r *KubeadmConfigReconciler) Reconcile(req ctrl.Request) (_ ctrl.Result, re
 		return ctrl.Result{}, err
 	}
 
-	joinBytes, err := kubeadmv1beta1.ConfigurationToYAML(config.Spec.JoinConfiguration)
+	joindata, err := kubeadmv1beta1.ConfigurationToYAML(config.Spec.JoinConfiguration)
 	if err != nil {
 		log.Error(err, "failed to marshal join configuration")
 		return ctrl.Result{}, err
@@ -285,8 +285,8 @@ func (r *KubeadmConfigReconciler) Reconcile(req ctrl.Request) (_ ctrl.Result, re
 			return ctrl.Result{}, err
 		}
 
-		joinData, err := cloudinit.NewJoinControlPlane(&cloudinit.ControlPlaneJoinInput{
-			JoinConfiguration: string(joinBytes),
+		cloudJoinData, err := cloudinit.NewJoinControlPlane(&cloudinit.ControlPlaneJoinInput{
+			JoinConfiguration: joindata,
 			Certificates:      *certificates,
 			BaseUserData: cloudinit.BaseUserData{
 				AdditionalFiles:     config.Spec.Files,
@@ -301,7 +301,7 @@ func (r *KubeadmConfigReconciler) Reconcile(req ctrl.Request) (_ ctrl.Result, re
 			return ctrl.Result{}, err
 		}
 
-		config.Status.BootstrapData = joinData
+		config.Status.BootstrapData = cloudJoinData
 		config.Status.Ready = true
 		return ctrl.Result{}, nil
 	}
@@ -311,7 +311,7 @@ func (r *KubeadmConfigReconciler) Reconcile(req ctrl.Request) (_ ctrl.Result, re
 		return ctrl.Result{}, errors.New("Machine is a Worker, but JoinConfiguration.ControlPlane is set in the KubeadmConfig object")
 	}
 
-	joinData, err := cloudinit.NewNode(&cloudinit.NodeInput{
+	cloudJoinData, err := cloudinit.NewNode(&cloudinit.NodeInput{
 		BaseUserData: cloudinit.BaseUserData{
 			AdditionalFiles:     config.Spec.Files,
 			NTP:                 config.Spec.NTP,
@@ -319,13 +319,13 @@ func (r *KubeadmConfigReconciler) Reconcile(req ctrl.Request) (_ ctrl.Result, re
 			PostKubeadmCommands: config.Spec.PostKubeadmCommands,
 			Users:               config.Spec.Users,
 		},
-		JoinConfiguration: string(joinBytes),
+		JoinConfiguration: joindata,
 	})
 	if err != nil {
 		log.Error(err, "failed to create a worker join configuration")
 		return ctrl.Result{}, err
 	}
-	config.Status.BootstrapData = joinData
+	config.Status.BootstrapData = cloudJoinData
 	config.Status.Ready = true
 	return ctrl.Result{}, nil
 }

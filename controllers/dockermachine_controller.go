@@ -111,7 +111,7 @@ func (r *DockerMachineReconciler) Reconcile(req ctrl.Request) (_ ctrl.Result, re
 	log = log.WithValues("docker-cluster", dockerCluster.Name)
 
 	// Create a helper for managing the docker container hosting the machine.
-	externalMachine, err := docker.NewMachine(cluster.Name, machine.Name, log)
+	externalMachine, err := docker.NewMachine(cluster.Name, machine.Name, dockerMachine.Spec.CustomImage, log)
 	if err != nil {
 		return ctrl.Result{}, errors.Wrapf(err, "failed to create helper for managing the externalMachine")
 	}

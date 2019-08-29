@@ -34,6 +34,10 @@ spec:
         spec:
           description: DockerMachineSpec defines the desired state of DockerMachine
           properties:
+            customImage:
+              description: CustomImage allows customizing the container image that
+                is used for running the machine
+              type: string
             providerID:
               description: ProviderID will be the container name in ProviderID format
                 (docker:////<containername>)

@@ -30,7 +30,8 @@ import (
 )
 
 const (
-	defaultImage = "kindest/node:v1.15.0"
+	defaultImageName = "kindest/node"
+	defaultImageTag  = "v1.15.3"
 )
 
 // Machine implement a service for managing the docker containers hosting a kubernetes nodes.
@@ -38,11 +39,12 @@ type Machine struct {
 	log       logr.Logger
 	cluster   string
 	machine   string
+	image     string
 	container *nodes.Node
 }
 
 // NewMachine returns a new Machine service for the given Cluster/DockerCluster pair.
-func NewMachine(cluster, machine string, logger logr.Logger) (*Machine, error) {
+func NewMachine(cluster, machine, image string, logger logr.Logger) (*Machine, error) {
 	if cluster == "" {
 		return nil, errors.New("cluster is required when creating a docker.Machine")
 	}
@@ -64,6 +66,7 @@ func NewMachine(cluster, machine string, logger logr.Logger) (*Machine, error) {
 	return &Machine{
 		cluster:   cluster,
 		machine:   machine,
+		image:     image,
 		container: container,
 		log:       logger,
 	}, nil
@@ -88,12 +91,18 @@ func (m *Machine) Create(role string, version *string) error {
 	// Create if not exists.
 	if m.container == nil {
 		var err error
+
+		machineImage := machineImage(version)
+		if m.image != "" {
+			machineImage = m.image
+		}
+
 		switch role {
 		case constants.ControlPlaneNodeRoleValue:
 			m.log.Info("Creating control plane machine container")
 			m.container, err = nodes.CreateControlPlaneNode(
 				m.ContainerName(),
-				machineImage(version),
+				machineImage,
 				clusterLabel(m.cluster),
 				"127.0.0.1",
 				0,
@@ -104,7 +113,7 @@ func (m *Machine) Create(role string, version *string) error {
 			m.log.Info("Creating worker machine container")
 			m.container, err = nodes.CreateWorkerNode(
 				m.ContainerName(),
-				machineImage(version),
+				machineImage,
 				clusterLabel(m.cluster),
 				nil,
 				nil,
@@ -214,7 +223,7 @@ func (m *Machine) Delete() error {
 // machineImage is the image of the container node with the machine
 func machineImage(version *string) string {
 	if version == nil {
-		return defaultImage
+		return fmt.Sprintf("%s:%s", defaultImageName, defaultImageTag)
 	}
 
 	//TODO(fp) make this smarter
@@ -225,5 +234,5 @@ func machineImage(version *string) string {
 		versionString = fmt.Sprintf("v%s", versionString)
 	}
 
-	return fmt.Sprintf("kindest/node:%s", versionString)
+	return fmt.Sprintf("%s:%s", defaultImageName, versionString)
 }

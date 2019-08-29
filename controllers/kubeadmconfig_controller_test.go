@@ -85,36 +85,6 @@ func TestBailIfKubeadmConfigStatusReady(t *testing.T) {
 	}
 }
 
-func TestRequeueIfNoMachineRefIsSet(t *testing.T) {
-	config := newKubeadmConfig(nil, "cfg") // intentionally omitting machine
-	objects := []runtime.Object{
-		config,
-	}
-	myclient := fake.NewFakeClientWithScheme(setupScheme(), objects...)
-
-	k := &KubeadmConfigReconciler{
-		Log:    log.Log,
-		Client: myclient,
-	}
-
-	request := ctrl.Request{
-		NamespacedName: types.NamespacedName{
-			Namespace: "default",
-			Name:      "cfg",
-		},
-	}
-	result, err := k.Reconcile(request)
-	if err != nil {
-		t.Fatal(fmt.Sprintf("Failed to reconcile:\n %+v", err))
-	}
-	if result.Requeue == true {
-		t.Fatal("did not expected to requeue")
-	}
-	if result.RequeueAfter == time.Duration(0) {
-		t.Fatal("Expected a requeue but did not get one")
-	}
-}
-
 func TestFailsIfMachineRefIsNotFound(t *testing.T) {
 	machine := newMachine(nil, "machine") // NB. passing a cluster is not relevant for this test
 	config := newKubeadmConfig(machine, "cfg")
@@ -229,43 +199,6 @@ func TestFailsIfClusterIsNotFound(t *testing.T) {
 	_, err := k.Reconcile(request)
 	if err == nil {
 		t.Fatal("Expected error, got nil")
-	}
-}
-
-// Tests for cluster with infrastructure not ready yet
-
-func TestRequeueIfInfrastructureIsNotReady(t *testing.T) {
-	cluster := newCluster("cluster") // cluster by default has infrastructure not ready
-	machine := newMachine(cluster, "machine")
-	config := newKubeadmConfig(machine, "cfg")
-
-	objects := []runtime.Object{
-		cluster,
-		machine,
-		config,
-	}
-	myclient := fake.NewFakeClientWithScheme(setupScheme(), objects...)
-
-	k := &KubeadmConfigReconciler{
-		Log:    log.Log,
-		Client: myclient,
-	}
-
-	request := ctrl.Request{
-		NamespacedName: types.NamespacedName{
-			Namespace: "default",
-			Name:      "cfg",
-		},
-	}
-	result, err := k.Reconcile(request)
-	if err != nil {
-		t.Fatal(fmt.Sprintf("Failed to reconcile:\n %+v", err))
-	}
-	if result.Requeue == true {
-		t.Fatal("did not expected to requeue")
-	}
-	if result.RequeueAfter != 30*time.Second {
-		t.Fatal("expected to requeue after 30s")
 	}
 }
 

@@ -40,6 +40,8 @@ import (
 	"sigs.k8s.io/cluster-api/util/patch"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/handler"
+	"sigs.k8s.io/controller-runtime/pkg/source"
 )
 
 // KubeadmConfigReconciler reconciles a KubeadmConfig object
@@ -100,7 +102,7 @@ func (r *KubeadmConfigReconciler) Reconcile(req ctrl.Request) (_ ctrl.Result, re
 	}
 	if machine == nil {
 		log.Info("Waiting for Machine Controller to set OwnerRef on the KubeadmConfig")
-		return ctrl.Result{RequeueAfter: 10 * time.Second}, nil
+		return ctrl.Result{}, nil
 	}
 	log = log.WithValues("machine-name", machine.Name)
 
@@ -118,8 +120,8 @@ func (r *KubeadmConfigReconciler) Reconcile(req ctrl.Request) (_ ctrl.Result, re
 	// Check for infrastructure ready. If it's not ready then we will requeue the machine until it is.
 	// The cluster-api machine controller set this value.
 	if !cluster.Status.InfrastructureReady {
-		log.Info("Infrastructure is not ready, requeing until ready.")
-		return ctrl.Result{RequeueAfter: 30 * time.Second}, nil
+		log.Info("Infrastructure is not ready, waiting until ready.")
+		return ctrl.Result{}, nil
 	}
 
 	// Initialize the patch helper
@@ -334,7 +336,46 @@ func (r *KubeadmConfigReconciler) Reconcile(req ctrl.Request) (_ ctrl.Result, re
 func (r *KubeadmConfigReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewControllerManagedBy(mgr).
 		For(&bootstrapv1.KubeadmConfig{}).
+		Watches(
+			&source.Kind{Type: &clusterv1.Machine{}},
+			&handler.EnqueueRequestsFromMapFunc{
+				ToRequests: util.MachineToInfrastructureMapFunc(bootstrapv1.GroupVersion.WithKind("KubeadmConfig")),
+			},
+		).
+		Watches(
+			&source.Kind{Type: &clusterv1.Cluster{}},
+			&handler.EnqueueRequestsFromMapFunc{
+				ToRequests: handler.ToRequestsFunc(r.ClusterToKubeadmConfigs),
+			},
+		).
 		Complete(r)
+}
+
+// ClusterToKubeadmConfigs is a handler.ToRequestsFunc to be used to enqeue
+// requests for reconciliation of KubeadmConfigs.
+func (r *KubeadmConfigReconciler) ClusterToKubeadmConfigs(o handler.MapObject) []ctrl.Request {
+	result := []ctrl.Request{}
+
+	c, ok := o.Object.(*clusterv1.Cluster)
+	if !ok {
+		r.Log.Error(errors.Errorf("expected a Cluster but got a %T", o.Object), "failed to get Machine for Cluster")
+		return nil
+	}
+
+	labels := map[string]string{clusterv1.MachineClusterLabelName: c.Name}
+	machineList := &clusterv1.MachineList{}
+	if err := r.List(context.Background(), machineList, client.InNamespace(c.Namespace), client.MatchingLabels(labels)); err != nil {
+		r.Log.Error(err, "failed to list Machines", "Cluster", c.Name, "Namespace", c.Namespace)
+		return nil
+	}
+	for _, m := range machineList.Items {
+		if m.Spec.InfrastructureRef.GroupVersionKind() == bootstrapv1.GroupVersion.WithKind("KubeadmConfig") {
+			name := client.ObjectKey{Namespace: m.Namespace, Name: m.Spec.InfrastructureRef.Name}
+			result = append(result, ctrl.Request{NamespacedName: name})
+		}
+	}
+
+	return result
 }
 
 // reconcileDiscovery ensure that config.JoinConfiguration.Discovery is properly set for the joining node.

@@ -18,7 +18,6 @@ package controllers
 
 import (
 	"context"
-	"time"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -58,7 +57,6 @@ var _ = Describe("KubeadmConfigReconciler", func() {
 			})
 			Expect(err).To(Succeed())
 			Expect(result.Requeue).To(BeFalse())
-			Expect(result.RequeueAfter).To(Equal(30 * time.Second))
 		})
 		/*
 				When apimachinery decodes into a typed struct, the decoder strips the TypeMeta from the object;

@@ -17,70 +17,71 @@ limitations under the License.
 package kubeconfig
 
 import (
-	"context"
+	"crypto/rsa"
+	"crypto/x509"
 	"fmt"
 
 	"github.com/pkg/errors"
-	corev1 "k8s.io/api/core/v1"
-	apierrors "k8s.io/apimachinery/pkg/api/errors"
+	"k8s.io/client-go/tools/clientcmd/api"
+	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha2"
+	"sigs.k8s.io/cluster-api/util/certs"
+	"sigs.k8s.io/cluster-api/util/secret"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
-const (
-	// SecretKey is the key used for accessing contents of the KubeConfig
-	// Secret.
-	SecretKey = "value"
-)
-
-var (
-	ErrSecretNotFound     = errors.New("secret not found")
-	ErrSecretMissingValue = errors.New("missing value in secret")
-)
-
-// SecretName generates the expected name for the KubeConfig Secret to access
-// a remote cluster given the cluster's name.
-func SecretName(cluster string) string {
-	return fmt.Sprintf("%s-kubeconfig", cluster)
-}
-
-// GetSecret retrieves the KubeConfig Secret (if any) from the given
-// cluster name and namespace.
-func GetSecret(c client.Client, cluster, namespace string) (*corev1.Secret, error) {
-	secret := &corev1.Secret{}
-	secretKey := client.ObjectKey{
-		Namespace: namespace,
-		Name:      SecretName(cluster),
-	}
-
-	if err := c.Get(context.TODO(), secretKey, secret); err != nil {
-		if apierrors.IsNotFound(err) {
-			return nil, ErrSecretNotFound
-		}
+// FetchKubeconfigFromSecret fetches the Kubeconfig for a Cluster.
+func FetchKubeconfigFromSecret(c client.Client, cluster *clusterv1.Cluster) ([]byte, error) {
+	out, err := secret.Get(c, cluster, secret.Kubeconfig)
+	if err != nil {
 		return nil, err
 	}
-
-	return secret, nil
-}
-
-// Extract uses the Secret to retrieve the KubeConfig.
-func Extract(secret *corev1.Secret) ([]byte, error) {
-	data, ok := secret.Data[SecretKey]
+	data, ok := out.Data[secret.KubeconfigDataName]
 	if !ok {
-		return nil, ErrSecretMissingValue
+		return nil, errors.Errorf("missing key %q in secret data", secret.KubeconfigDataName)
 	}
 	return data, nil
 }
 
-// Fetching Kubeconfig
-func FetchKubeconfigFromSecret(c client.Client, namespace, clusterName string) (string, error) {
-	secret, err := GetSecret(c, clusterName, namespace)
-	if err != nil {
-		return "", err
+// NewKubeconfig creates a new Kubeconfig where endpoint is the ELB endpoint.
+func NewKubeconfig(clusterName, endpoint string, caCert *x509.Certificate, caKey *rsa.PrivateKey) (*api.Config, error) {
+	cfg := &certs.Config{
+		CommonName:   "kubernetes-admin",
+		Organization: []string{"system:masters"},
+		Usages:       []x509.ExtKeyUsage{x509.ExtKeyUsageClientAuth},
 	}
 
-	data, err := Extract(secret)
+	clientKey, err := certs.NewPrivateKey()
 	if err != nil {
-		return "", err
+		return nil, errors.Wrap(err, "unable to create private key")
 	}
-	return string(data), nil
+
+	clientCert, err := cfg.NewSignedCert(clientKey, caCert, caKey)
+	if err != nil {
+		return nil, errors.Wrap(err, "unable to sign certificate")
+	}
+
+	userName := "kubernetes-admin"
+	contextName := fmt.Sprintf("%s@%s", userName, clusterName)
+
+	return &api.Config{
+		Clusters: map[string]*api.Cluster{
+			clusterName: {
+				Server:                   endpoint,
+				CertificateAuthorityData: certs.EncodeCertPEM(caCert),
+			},
+		},
+		Contexts: map[string]*api.Context{
+			contextName: {
+				Cluster:  clusterName,
+				AuthInfo: userName,
+			},
+		},
+		AuthInfos: map[string]*api.AuthInfo{
+			userName: {
+				ClientKeyData:         certs.EncodePrivateKeyPEM(clientKey),
+				ClientCertificateData: certs.EncodeCertPEM(clientCert),
+			},
+		},
+		CurrentContext: contextName,
+	}, nil
 }

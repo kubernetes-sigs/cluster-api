@@ -31,7 +31,7 @@ import (
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha2"
 	"sigs.k8s.io/cluster-api/cmd/clusterctl/clusterdeployer/clusterclient"
 	"sigs.k8s.io/cluster-api/cmd/clusterctl/clusterdeployer/provider"
-	kcfg "sigs.k8s.io/cluster-api/util/kubeconfig"
+	"sigs.k8s.io/cluster-api/util/secret"
 	"sigs.k8s.io/cluster-api/util/yaml"
 )
 
@@ -327,9 +327,9 @@ func (c *testClusterClient) Close() error {
 }
 
 func (c *testClusterClient) GetKubeconfigFromSecret(namespace, clusterName string) (string, error) {
-	for _, secret := range c.secrets {
-		if secret.Namespace == namespace && secret.Name == kcfg.SecretName(clusterName) {
-			return string(secret.Data[kcfg.SecretKey]), nil
+	for _, s := range c.secrets {
+		if s.Namespace == namespace && s.Name == secret.Name(clusterName, secret.Kubeconfig) {
+			return string(s.Data[secret.KubeconfigDataName]), nil
 		}
 	}
 
@@ -915,11 +915,11 @@ func TestClusterCreate(t *testing.T) {
 
 					kubeconfigSecret := &corev1.Secret{
 						ObjectMeta: metav1.ObjectMeta{
-							Name:      kcfg.SecretName(inputCluster.Name),
+							Name:      secret.Name(inputCluster.Name, secret.Kubeconfig),
 							Namespace: ns,
 						},
 						Data: map[string][]byte{
-							kcfg.SecretKey: []byte(targetKubeconfig),
+							secret.KubeconfigDataName: []byte(targetKubeconfig),
 						},
 					}
 					testcase.bootstrapClient.secrets = append(testcase.bootstrapClient.secrets, kubeconfigSecret)
@@ -1022,7 +1022,7 @@ func TestCreateProviderComponentsScenarios(t *testing.T) {
 					Namespace: metav1.NamespaceDefault,
 				},
 				Data: map[string][]byte{
-					kcfg.SecretKey: []byte(targetKubeconfig),
+					secret.KubeconfigDataName: []byte(targetKubeconfig),
 				},
 			}
 

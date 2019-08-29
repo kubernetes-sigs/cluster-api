@@ -26,7 +26,7 @@ import (
 	"k8s.io/klog"
 	"sigs.k8s.io/cluster-api/cmd/clusterctl/clusterdeployer/clusterclient"
 	"sigs.k8s.io/cluster-api/util"
-	kcfg "sigs.k8s.io/cluster-api/util/kubeconfig"
+	"sigs.k8s.io/cluster-api/util/secret"
 )
 
 const (
@@ -62,7 +62,8 @@ func waitForKubeconfigReady(bootstrapClient clusterclient.Client, clusterName, n
 
 	kubeconfig := ""
 	err := util.PollImmediate(retryKubeConfigReady, timeout, func() (bool, error) {
-		klog.V(2).Infof("Waiting for kubeconfig from Secret %q in namespace %q to become available...", kcfg.SecretName(clusterName), namespace)
+		klog.V(2).Infof("Waiting for kubeconfig from Secret %q in namespace %q to become available...",
+			secret.Name(clusterName, secret.Kubeconfig), namespace)
 		k, err := bootstrapClient.GetKubeconfigFromSecret(namespace, clusterName)
 		if err != nil {
 			klog.V(4).Infof("error getting kubeconfig: %v", err)

@@ -41,15 +41,9 @@ type clusterClient struct {
 
 // NewClusterClient creates a new ClusterClient.
 func NewClusterClient(c client.Client, cluster *v1alpha2.Cluster) (ClusterClient, error) {
-	secret, err := kcfg.GetSecret(c, cluster.Name, cluster.Namespace)
+	kubeconfig, err := kcfg.FetchKubeconfigFromSecret(c, cluster)
 	if err != nil {
 		return nil, errors.Wrapf(err, "failed to retrieve kubeconfig secret for Cluster %q in namespace %q",
-			cluster.Name, cluster.Namespace)
-	}
-
-	kubeconfig, err := kcfg.Extract(secret)
-	if err != nil {
-		return nil, errors.Wrapf(err, "failed to get kubeconfig from secret for Cluster %q in namespace %q",
 			cluster.Name, cluster.Namespace)
 	}
 

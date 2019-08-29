@@ -936,7 +936,7 @@ func newMachine(cluster *clusterv1.Cluster, name string) *clusterv1.Machine {
 }
 
 func newWorkerMachine(cluster *clusterv1.Cluster) *clusterv1.Machine {
-	return newMachine(cluster, "worker-machine") // machine by default is a worker node (not the boostrapNode)
+	return newMachine(cluster, "worker-machine") // machine by default is a worker node (not the bootstrapNode)
 }
 
 func newControlPlaneMachine(cluster *clusterv1.Cluster) *clusterv1.Machine {

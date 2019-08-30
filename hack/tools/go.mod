@@ -4,7 +4,7 @@ go 1.12
 
 require (
 	github.com/golangci/golangci-lint v1.17.1
-	sigs.k8s.io/controller-tools v0.2.0-rc.0
+	sigs.k8s.io/controller-tools v0.2.0
 )
 
 replace (

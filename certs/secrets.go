@@ -17,73 +17,65 @@ limitations under the License.
 package certs
 
 import (
+	"fmt"
+
 	"github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"strings"
+	bootstrapv1 "sigs.k8s.io/cluster-api-bootstrap-provider-kubeadm/api/v1alpha2"
+	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha2"
+	"sigs.k8s.io/cluster-api/util/secret"
 )
 
-// NewSecretsFromCertificates returns a list of new secrets, 1 for each certificate
-func NewSecretsFromCertificates(input *Certificates) []*corev1.Secret {
+// NewSecretsFromCertificates returns a list of secrets, 1 for each certificate.
+func NewSecretsFromCertificates(cluster *clusterv1.Cluster, config *bootstrapv1.KubeadmConfig, c *Certificates) []*corev1.Secret {
 	return []*corev1.Secret{
-		toSecret(ClusterCAName, input.ClusterCA),
-		toSecret(EtcdCAName, input.EtcdCA),
-		toSecret(ServiceAccountName, input.ServiceAccount),
-		toSecret(FrontProxyCAName, input.FrontProxyCA),
+		KeyPairToSecret(cluster, config, string(secret.ClusterCA), c.ClusterCA),
+		KeyPairToSecret(cluster, config, EtcdCAName, c.EtcdCA),
+		KeyPairToSecret(cluster, config, FrontProxyCAName, c.FrontProxyCA),
+		KeyPairToSecret(cluster, config, ServiceAccountName, c.ServiceAccount),
 	}
 }
 
-// NewCertificatesFromSecrets returns the certificates for the cluster by retrieving
-// each certificate from 1 secret
-func NewCertificatesFromSecrets(secrets *corev1.SecretList) (*Certificates, error) {
-	var certs Certificates
-	for _, secret := range secrets.Items {
-		certs.Set(getCertName(secret.ObjectMeta.Name), getKeyPair(secret))
+// SecretToKeyPair extracts a KeyPair from a Secret.
+func SecretToKeyPair(s *corev1.Secret) (*KeyPair, error) {
+	cert, exists := s.Data[secret.TLSCrtDataName]
+	if !exists {
+		return nil, errors.Errorf("missing data for key %s", secret.TLSCrtDataName)
 	}
-	if certs.ClusterCA == nil {
-		return nil, errors.Errorf("unable to find secret for ClusterCA, got secrets: %s", getSecretNames(secrets))
-	}
-	if certs.EtcdCA == nil {
-		return nil, errors.Errorf("unable to find secret for EtcdCA, got secrets: %s", getSecretNames(secrets))
-	}
-	if certs.FrontProxyCA == nil {
-		return nil, errors.Errorf("unable to find secret for FrontProxyCA, got secrets: %s", getSecretNames(secrets))
-	}
-	if certs.ServiceAccount == nil {
-		return nil, errors.Errorf("unable to find secret for ServiceAccount, got secrets: %s", getSecretNames(secrets))
-	}
-	return &certs, nil
-}
 
-func getSecretNames(secrets *corev1.SecretList) string {
-	var names []string
-	for _, secret := range secrets.Items {
-		names = append(names, secret.ObjectMeta.Name)
+	key, exists := s.Data[secret.TLSKeyDataName]
+	if !exists {
+		return nil, errors.Errorf("missing data for key %s", secret.TLSKeyDataName)
 	}
-	return strings.Join(names, ", ")
-}
 
-func getKeyPair(secret corev1.Secret) *KeyPair {
 	return &KeyPair{
-		Cert: secret.Data[tlsCrt],
-		Key:  secret.Data[tlsKey],
-	}
+		Cert: cert,
+		Key:  key,
+	}, nil
 }
 
-func getCertName(name string) string {
-	parts := strings.Split(name, "-")
-	return parts[len(parts)-1]
-}
-
-func toSecret(name string, keyPair *KeyPair) *corev1.Secret {
+// KeyPairToSecret creates a Secret from a KeyPair.
+func KeyPairToSecret(cluster *clusterv1.Cluster, config *bootstrapv1.KubeadmConfig, name string, keyPair *KeyPair) *corev1.Secret {
 	return &corev1.Secret{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:   name,
-			Labels: make(map[string]string),
+			Namespace: cluster.Namespace,
+			Name:      fmt.Sprintf("%s-%s", cluster.Name, name),
+			OwnerReferences: []metav1.OwnerReference{
+				{
+					APIVersion: bootstrapv1.GroupVersion.String(),
+					Kind:       "KubeadmConfig",
+					Name:       config.Name,
+					UID:        config.UID,
+				},
+			},
+			Labels: map[string]string{
+				clusterv1.MachineClusterLabelName: cluster.Name,
+			},
 		},
 		Data: map[string][]byte{
-			tlsKey: keyPair.Key,
-			tlsCrt: keyPair.Cert,
+			secret.TLSKeyDataName: keyPair.Key,
+			secret.TLSCrtDataName: keyPair.Cert,
 		},
 	}
 }

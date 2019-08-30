@@ -278,6 +278,12 @@ func TestReconcileKubeadmConfigForInitNodesIfControlPlaneIsNotReady(t *testing.T
 	}
 	myclient := fake.NewFakeClientWithScheme(setupScheme(), objects...)
 
+	// stage secrets for certs
+	certificates, _ := certs.NewCertificates()
+	for _, secret := range certs.NewSecretsFromCertificates(cluster, &bootstrapv1.KubeadmConfig{}, certificates) {
+		_ = myclient.Create(context.Background(), secret)
+	}
+
 	k := &KubeadmConfigReconciler{
 		Log:             log.Log,
 		Client:          myclient,
@@ -314,13 +320,7 @@ func TestReconcileKubeadmConfigForInitNodesIfControlPlaneIsNotReady(t *testing.T
 		t.Fatal("Expected status ready")
 	}
 
-	secrets := &corev1.SecretList{}
-
-	if err := k.Client.List(context.Background(), secrets, client.MatchingLabels{clusterv1.MachineClusterLabelName: cluster.Name}); err != nil {
-		t.Fatalf("Failed to list secrets for cluster:\n %+v", err)
-	}
-
-	certs, err := certs.NewCertificatesFromSecrets(secrets)
+	certs, err := k.getClusterCertificates(cluster)
 	if err != nil {
 		t.Fatalf("Failed to locate certs secret:\n %+v", err)
 	}
@@ -463,9 +463,7 @@ func TestReconcileIfJoinNodesAndControlPlaneIsReady(t *testing.T) {
 
 	// stage secrets for certs
 	certificates, _ := certs.NewCertificates()
-	for _, secret := range certs.NewSecretsFromCertificates(certificates) {
-		secret.ObjectMeta.Name = controlPaneJoinConfig.GetNamespace()
-		secret.ObjectMeta.Labels["cluster"] = cluster.GetName()
+	for _, secret := range certs.NewSecretsFromCertificates(cluster, &bootstrapv1.KubeadmConfig{}, certificates) {
 		_ = myclient.Create(context.Background(), secret)
 	}
 
@@ -858,16 +856,13 @@ func TestCACertHashesAndUnsafeCAVerifySkip(t *testing.T) {
 	workerConfigName := "worker-join-cfg"
 	workerConfig := newWorkerJoinKubeadmConfig(workerMachine)
 
-	certificates, _ := certs.NewCertificates()
-	secret := &corev1.Secret{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      ClusterCertificatesSecretName(cluster.GetName()),
-			Namespace: namespace,
-		},
-		Data: certificates.ToMap(),
-	}
+	myclient := fake.NewFakeClientWithScheme(setupScheme(), cluster, machine, workerMachine, config, workerConfig)
 
-	myclient := fake.NewFakeClientWithScheme(setupScheme(), cluster, machine, workerMachine, config, workerConfig, secret)
+	// stage secrets for certs
+	certificates, _ := certs.NewCertificates()
+	for _, secret := range certs.NewSecretsFromCertificates(cluster, &bootstrapv1.KubeadmConfig{}, certificates) {
+		_ = myclient.Create(context.Background(), secret)
+	}
 
 	reconciler := KubeadmConfigReconciler{
 		Client:               myclient,

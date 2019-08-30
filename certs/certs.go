@@ -32,15 +32,17 @@ import (
 const (
 	duration365d = time.Hour * 24 * 365
 	rsaKeySize   = 2048
-	tlsKey       = "tls.key"
-	tlsCrt       = "tls.crt"
-	//ClusterCAName is the secret name suffix for apiserver CA
+
+	// ClusterCAName is the secret name suffix for apiserver CA
 	ClusterCAName = "ca"
-	//EtcdCAName is the secret name suffix for the Etcd CA
+
+	// EtcdCAName is the secret name suffix for the Etcd CA
 	EtcdCAName = "etcd"
-	//ServiceAccountName is the secret name suffix for the Service Account keys
+
+	// ServiceAccountName is the secret name suffix for the Service Account keys
 	ServiceAccountName = "sa"
-	//FrontProxyCAName is the secret name suffix for Front Proxy CA
+
+	// FrontProxyCAName is the secret name suffix for Front Proxy CA
 	FrontProxyCAName = "proxy"
 )
 

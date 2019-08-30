@@ -8,6 +8,8 @@ metadata:
 spec:
   group: bootstrap.cluster.x-k8s.io
   names:
+    categories:
+    - cluster-api
     kind: KubeadmConfigTemplate
     plural: kubeadmconfigtemplates
   scope: Namespaced

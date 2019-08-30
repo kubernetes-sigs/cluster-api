@@ -39,7 +39,18 @@ const (
 	documentation = ":book: Documentation"
 	warning       = ":warning: Breaking Changes"
 	other         = ":running: Others"
-	unknown       = ":question: sort these by hand"
+	unknown       = ":question: Sort these by hand"
+)
+
+var (
+	outputOrder = []string{
+		warning,
+		features,
+		bugs,
+		documentation,
+		other,
+		unknown,
+	}
 )
 
 func main() {
@@ -116,14 +127,20 @@ func run() int {
 		default:
 			key = unknown
 		}
+
+		if key != unknown {
+			c.body = c.body[len(firstWord):]
+		}
+		c.body = fmt.Sprintf("    - %s", strings.TrimSpace(c.body))
 		fmt.Sscanf(c.merge, "Merge pull request %s from %s", &prNumber, &fork)
 		merges[key] = append(merges[key], formatMerge(c.body, prNumber))
 	}
 
 	// TODO Turn this into a link (requires knowing the project name + organization)
-	fmt.Printf("Changes since %v\n", lastTag)
+	fmt.Printf("Changes since %v\n---\n", lastTag)
 
-	for key, mergeslice := range merges {
+	for _, key := range outputOrder {
+		mergeslice := merges[key]
 		fmt.Println("## " + key)
 		for _, merge := range mergeslice {
 			fmt.Println(merge)

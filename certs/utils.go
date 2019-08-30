@@ -23,14 +23,12 @@ import (
 	"crypto/x509"
 	"crypto/x509/pkix"
 	"encoding/hex"
-	"fmt"
 	"math"
 	"math/big"
 	"strings"
 	"time"
 
 	"github.com/pkg/errors"
-	"k8s.io/client-go/tools/clientcmd/api"
 	"k8s.io/client-go/util/cert"
 )
 
@@ -94,50 +92,6 @@ func (c *Certificates) ToMap() map[string][]byte {
 		serviceAccountPrivateKey: c.ServiceAccount.Key,
 		serviceAccountPublicKey:  c.ServiceAccount.Cert,
 	}
-}
-
-// NewKubeconfig creates a new Kubeconfig where endpoint is the ELB endpoint.
-func NewKubeconfig(clusterName, endpoint string, caCert *x509.Certificate, caKey *rsa.PrivateKey) (*api.Config, error) {
-	cfg := &Config{
-		CommonName:   "kubernetes-admin",
-		Organization: []string{"system:masters"},
-		Usages:       []x509.ExtKeyUsage{x509.ExtKeyUsageClientAuth},
-	}
-
-	clientKey, err := NewPrivateKey()
-	if err != nil {
-		return nil, errors.Wrap(err, "unable to create private key")
-	}
-
-	clientCert, err := cfg.NewSignedCert(clientKey, caCert, caKey)
-	if err != nil {
-		return nil, errors.Wrap(err, "unable to sign certificate")
-	}
-
-	userName := "kubernetes-admin"
-	contextName := fmt.Sprintf("%s@%s", userName, clusterName)
-
-	return &api.Config{
-		Clusters: map[string]*api.Cluster{
-			clusterName: {
-				Server:                   endpoint,
-				CertificateAuthorityData: EncodeCertPEM(caCert),
-			},
-		},
-		Contexts: map[string]*api.Context{
-			contextName: {
-				Cluster:  clusterName,
-				AuthInfo: userName,
-			},
-		},
-		AuthInfos: map[string]*api.AuthInfo{
-			userName: {
-				ClientKeyData:         EncodePrivateKeyPEM(clientKey),
-				ClientCertificateData: EncodeCertPEM(clientCert),
-			},
-		},
-		CurrentContext: contextName,
-	}, nil
 }
 
 // NewSignedCert creates a signed certificate using the given CA certificate and key

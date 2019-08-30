@@ -63,7 +63,7 @@ help:  ## Display this help
 
 .PHONY: test
 test: generate fmt vet ## Run tests
-	go test ./api/... ./certs/... ./controllers/... -coverprofile cover.out
+	go test ./... -coverprofile cover.out
 
 .PHONY: manager
 manager: generate fmt vet ## Build manager binary

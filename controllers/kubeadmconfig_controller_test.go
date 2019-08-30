@@ -278,6 +278,12 @@ func TestReconcileKubeadmConfigForInitNodesIfControlPlaneIsNotReady(t *testing.T
 	}
 	myclient := fake.NewFakeClientWithScheme(setupScheme(), objects...)
 
+	// stage secrets for certs
+	certificates, _ := certs.NewCertificates()
+	for _, secret := range certs.NewSecretsFromCertificates(cluster, &bootstrapv1.KubeadmConfig{}, certificates) {
+		_ = myclient.Create(context.Background(), secret)
+	}
+
 	k := &KubeadmConfigReconciler{
 		Log:             log.Log,
 		Client:          myclient,
@@ -292,7 +298,7 @@ func TestReconcileKubeadmConfigForInitNodesIfControlPlaneIsNotReady(t *testing.T
 	}
 	result, err := k.Reconcile(request)
 	if err != nil {
-		t.Fatal(fmt.Sprintf("Failed to reconcile:\n %+v", err))
+		t.Fatalf("Failed to reconcile:\n %+v", err)
 	}
 	if result.Requeue == true {
 		t.Fatal("did not expected to requeue")
@@ -303,7 +309,7 @@ func TestReconcileKubeadmConfigForInitNodesIfControlPlaneIsNotReady(t *testing.T
 
 	cfg, err := getKubeadmConfig(myclient, "control-plane-init-cfg")
 	if err != nil {
-		t.Fatal(fmt.Sprintf("Failed to reconcile:\n %+v", err))
+		t.Fatalf("Failed to reconcile:\n %+v", err)
 	}
 
 	if cfg.Status.Ready != true {
@@ -314,20 +320,17 @@ func TestReconcileKubeadmConfigForInitNodesIfControlPlaneIsNotReady(t *testing.T
 		t.Fatal("Expected status ready")
 	}
 
-	certsSecret, err := getCertsSecret(myclient, cluster.GetName())
+	certs, err := k.getClusterCertificates(cluster)
 	if err != nil {
-		t.Fatal(fmt.Sprintf("Failed to locate certs secret:\n %+v", err))
+		t.Fatalf("Failed to locate certs secret:\n %+v", err)
+	}
+	if err := certs.Validate(); err != nil {
+		t.Fatalf("Failed to validate certs: %+v", err)
 	}
 
-	certsMap := certs.NewCertificatesFromMap(certsSecret.Data)
-	err = certsMap.Validate()
-	if err != nil {
-		t.Fatal(fmt.Sprintf("Certificates not valid:\n %+v", err))
-	}
 }
 
 // Tests for cluster with infrastructure ready, control pane ready
-
 func TestFailIfNotJoinConfigurationAndControlPlaneIsReady(t *testing.T) {
 	cluster := newCluster("cluster")
 	cluster.Status.InfrastructureReady = true
@@ -458,16 +461,11 @@ func TestReconcileIfJoinNodesAndControlPlaneIsReady(t *testing.T) {
 	}
 	myclient := fake.NewFakeClientWithScheme(setupScheme(), objects...)
 
-	// stage a secret for certs
+	// stage secrets for certs
 	certificates, _ := certs.NewCertificates()
-	secret := &corev1.Secret{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      ClusterCertificatesSecretName(cluster.GetName()),
-			Namespace: controlPaneJoinConfig.GetNamespace(),
-		},
-		Data: certificates.ToMap(),
+	for _, secret := range certs.NewSecretsFromCertificates(cluster, &bootstrapv1.KubeadmConfig{}, certificates) {
+		_ = myclient.Create(context.Background(), secret)
 	}
-	_ = myclient.Create(context.Background(), secret)
 
 	k := &KubeadmConfigReconciler{
 		Log:                  log.Log,
@@ -858,16 +856,13 @@ func TestCACertHashesAndUnsafeCAVerifySkip(t *testing.T) {
 	workerConfigName := "worker-join-cfg"
 	workerConfig := newWorkerJoinKubeadmConfig(workerMachine)
 
-	certificates, _ := certs.NewCertificates()
-	secret := &corev1.Secret{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      ClusterCertificatesSecretName(cluster.GetName()),
-			Namespace: namespace,
-		},
-		Data: certificates.ToMap(),
-	}
+	myclient := fake.NewFakeClientWithScheme(setupScheme(), cluster, machine, workerMachine, config, workerConfig)
 
-	myclient := fake.NewFakeClientWithScheme(setupScheme(), cluster, machine, workerMachine, config, workerConfig, secret)
+	// stage secrets for certs
+	certificates, _ := certs.NewCertificates()
+	for _, secret := range certs.NewSecretsFromCertificates(cluster, &bootstrapv1.KubeadmConfig{}, certificates) {
+		_ = myclient.Create(context.Background(), secret)
+	}
 
 	reconciler := KubeadmConfigReconciler{
 		Client:               myclient,
@@ -991,18 +986,6 @@ func newControlPlaneInitKubeadmConfig(machine *clusterv1.Machine, name string) *
 	c.Spec.ClusterConfiguration = &kubeadmv1beta1.ClusterConfiguration{}
 	c.Spec.InitConfiguration = &kubeadmv1beta1.InitConfiguration{}
 	return c
-}
-
-// getCertsSecret returns a Secret object from the cluster containing certificates
-func getCertsSecret(c client.Client, clusterName string) (*corev1.Secret, error) {
-	ctx := context.Background()
-	certSecretKey := client.ObjectKey{
-		Namespace: "default",
-		Name:      ClusterCertificatesSecretName(clusterName),
-	}
-	certSecret := &corev1.Secret{}
-	err := c.Get(ctx, certSecretKey, certSecret)
-	return certSecret, err
 }
 
 func stringPtr(s string) *string {

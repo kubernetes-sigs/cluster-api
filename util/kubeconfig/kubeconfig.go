@@ -17,11 +17,15 @@ limitations under the License.
 package kubeconfig
 
 import (
+	"context"
 	"crypto/rsa"
 	"crypto/x509"
 	"fmt"
 
 	"github.com/pkg/errors"
+	corev1 "k8s.io/api/core/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/client-go/tools/clientcmd"
 	"k8s.io/client-go/tools/clientcmd/api"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha2"
 	"sigs.k8s.io/cluster-api/util/certs"
@@ -29,8 +33,8 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
-// FetchKubeconfigFromSecret fetches the Kubeconfig for a Cluster.
-func FetchKubeconfigFromSecret(c client.Client, cluster *clusterv1.Cluster) ([]byte, error) {
+// FromSecret fetches the Kubeconfig for a Cluster.
+func FromSecret(c client.Client, cluster *clusterv1.Cluster) ([]byte, error) {
 	out, err := secret.Get(c, cluster, secret.Kubeconfig)
 	if err != nil {
 		return nil, err
@@ -42,8 +46,8 @@ func FetchKubeconfigFromSecret(c client.Client, cluster *clusterv1.Cluster) ([]b
 	return data, nil
 }
 
-// NewKubeconfig creates a new Kubeconfig where endpoint is the ELB endpoint.
-func NewKubeconfig(clusterName, endpoint string, caCert *x509.Certificate, caKey *rsa.PrivateKey) (*api.Config, error) {
+// New creates a new Kubeconfig using the cluster name and specified endpoint.
+func New(clusterName, endpoint string, caCert *x509.Certificate, caKey *rsa.PrivateKey) (*api.Config, error) {
 	cfg := &certs.Config{
 		CommonName:   "kubernetes-admin",
 		Organization: []string{"system:masters"},
@@ -84,4 +88,48 @@ func NewKubeconfig(clusterName, endpoint string, caCert *x509.Certificate, caKey
 		},
 		CurrentContext: contextName,
 	}, nil
+}
+
+// CreateSecret creates the Kubeconfig secret for the given cluster.
+func CreateSecret(ctx context.Context, c client.Client, cluster *clusterv1.Cluster) error {
+	clusterCA, err := secret.Get(c, cluster, secret.ClusterCA)
+	if err != nil {
+		return err
+	}
+
+	cert, err := certs.DecodeCertPEM(clusterCA.Data[secret.TLSCrtDataName])
+	if err != nil {
+		return errors.Wrap(err, "failed to decode CA Cert")
+	} else if cert == nil {
+		return errors.New("certificate not found in config")
+	}
+
+	key, err := certs.DecodePrivateKeyPEM(clusterCA.Data[secret.TLSKeyDataName])
+	if err != nil {
+		return errors.Wrap(err, "failed to decode private key")
+	} else if key == nil {
+		return errors.New("CA private key not found")
+	}
+
+	server := fmt.Sprintf("https://%s:%d", cluster.Status.APIEndpoints[0].Host, cluster.Status.APIEndpoints[0].Port)
+	cfg, err := New(cluster.Name, server, cert, key)
+	if err != nil {
+		return errors.Wrap(err, "failed to generate a kubeconfig")
+	}
+
+	out, err := clientcmd.Write(*cfg)
+	if err != nil {
+		return errors.Wrap(err, "failed to serialize config to yaml")
+	}
+
+	s := &corev1.Secret{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      secret.Name(cluster.Name, secret.Kubeconfig),
+			Namespace: cluster.Namespace,
+		},
+		Data: map[string][]byte{
+			secret.KubeconfigDataName: out,
+		},
+	}
+	return c.Create(ctx, s)
 }

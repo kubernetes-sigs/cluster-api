@@ -31,6 +31,8 @@ import (
 	"sigs.k8s.io/cluster-api/controllers/external"
 	capierrors "sigs.k8s.io/cluster-api/errors"
 	"sigs.k8s.io/cluster-api/util"
+	"sigs.k8s.io/cluster-api/util/kubeconfig"
+	"sigs.k8s.io/cluster-api/util/secret"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/handler"
 	"sigs.k8s.io/controller-runtime/pkg/source"
@@ -159,5 +161,20 @@ func (r *ClusterReconciler) reconcileInfrastructure(ctx context.Context, cluster
 			cluster.Name, cluster.Namespace)
 	}
 
+	return nil
+}
+
+func (r *ClusterReconciler) reconcileKubeconfig(ctx context.Context, cluster *clusterv1.Cluster) error {
+	if len(cluster.Status.APIEndpoints) == 0 {
+		return nil
+	}
+
+	_, err := secret.Get(r.Client, cluster, secret.Kubeconfig)
+	switch {
+	case apierrors.IsNotFound(err):
+		return kubeconfig.CreateSecret(ctx, r.Client, cluster)
+	case err != nil:
+		return errors.Wrapf(err, "failed to retrieve Kubeconfig Secret for Cluster %q in namespace %q", cluster.Name, cluster.Namespace)
+	}
 	return nil
 }

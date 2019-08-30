@@ -274,11 +274,13 @@ func (r *MachineReconciler) getMachinesInCluster(ctx context.Context, namespace,
 		return nil, errors.Wrap(err, "failed to list machines")
 	}
 
-	machines := make([]*clusterv1.Machine, len(machineList.Items))
+	machines := []*clusterv1.Machine{}
 	for i := range machineList.Items {
-		machines[i] = &machineList.Items[i]
+		m := &machineList.Items[i]
+		if m.DeletionTimestamp.IsZero() {
+			machines = append(machines, m)
+		}
 	}
-
 	return machines, nil
 }
 
@@ -299,7 +301,7 @@ func (r *MachineReconciler) reconcileDeleteExternal(ctx context.Context, m *clus
 		obj, err := external.Get(r.Client, ref, m.Namespace)
 		if err != nil && !apierrors.IsNotFound(err) {
 			return false, errors.Wrapf(err, "failed to get %s %q for Machine %q in namespace %q",
-				obj.GroupVersionKind(), obj.GetName(), m.Name, m.Namespace)
+				ref.GroupVersionKind(), ref.Name, m.Name, m.Namespace)
 		}
 		if obj != nil {
 			objects = append(objects, obj)

@@ -418,7 +418,7 @@ func (r *MachineDeploymentReconciler) scaleMachineSetOperation(ms *clusterv1.Mac
 			r.recorder.Eventf(deployment, corev1.EventTypeWarning, "FailedScale", "Failed to scale MachineSet %q: %v", ms.Name, err)
 		} else if sizeNeedsUpdate {
 			scaled = true
-			r.recorder.Eventf(deployment, corev1.EventTypeNormal, "SuccessfulScale", "Scaled %d MachineSet %q to %d", scaleOperation, ms.Name, newScale)
+			r.recorder.Eventf(deployment, corev1.EventTypeNormal, "SuccessfulScale", "Scaled %s MachineSet %q to %d", scaleOperation, ms.Name, newScale)
 		}
 	}
 

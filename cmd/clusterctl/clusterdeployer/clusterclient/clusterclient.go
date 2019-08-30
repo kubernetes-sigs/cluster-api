@@ -173,7 +173,7 @@ func (c *client) EnsureNamespace(namespaceName string) error {
 
 func (c *client) GetKubeconfigFromSecret(namespace, clusterName string) (string, error) {
 	cluster := &clusterv1.Cluster{ObjectMeta: metav1.ObjectMeta{Namespace: namespace, Name: clusterName}}
-	out, err := kcfg.FetchKubeconfigFromSecret(c.clientSet, cluster)
+	out, err := kcfg.FromSecret(c.clientSet, cluster)
 	return string(out), err
 }
 

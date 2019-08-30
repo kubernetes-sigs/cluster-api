@@ -62,7 +62,7 @@ users:
 
 func TestGetKubeConfigSecret(t *testing.T) {
 	client := fake.NewFakeClient(validSecret)
-	found, err := FetchKubeconfigFromSecret(client, &clusterv1.Cluster{
+	found, err := FromSecret(client, &clusterv1.Cluster{
 		ObjectMeta: metav1.ObjectMeta{Name: "test1", Namespace: "test"},
 	})
 	if err != nil {

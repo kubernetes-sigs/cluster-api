@@ -237,10 +237,11 @@ func (r *ClusterReconciler) listChildren(ctx context.Context, cluster *clusterv1
 		return nil, errors.Wrapf(err, "failed to list MachineSets for cluster %s/%s", cluster.Namespace, cluster.Name)
 	}
 
-	machines := &clusterv1.MachineList{}
-	if err := r.Client.List(ctx, machines, listOptions...); err != nil {
+	allMachines := &clusterv1.MachineList{}
+	if err := r.Client.List(ctx, allMachines, listOptions...); err != nil {
 		return nil, errors.Wrapf(err, "failed to list Machines for cluster %s/%s", cluster.Namespace, cluster.Name)
 	}
+	controlPlaneMachines, machines := splitMachineList(allMachines)
 
 	var children []runtime.Object
 	eachFunc := func(o runtime.Object) error {
@@ -257,16 +258,32 @@ func (r *ClusterReconciler) listChildren(ctx context.Context, cluster *clusterv1
 		return nil
 	}
 
-	lists := map[string]runtime.Object{
-		"MachineDeployment": machineDeployments,
-		"MachineSet":        machineSets,
-		"Machine":           machines,
+	lists := []runtime.Object{
+		machineDeployments,
+		machineSets,
+		machines,
+		controlPlaneMachines,
 	}
-	for name, list := range lists {
+	for _, list := range lists {
 		if err := meta.EachListItem(list, eachFunc); err != nil {
-			return nil, errors.Wrapf(err, "error finding %s children of cluster %s/%s", name, cluster.Namespace, cluster.Name)
+			return nil, errors.Wrapf(err, "error finding children of cluster %s/%s", cluster.Namespace, cluster.Name)
 		}
 	}
 
 	return children, nil
+}
+
+// splitMachineList separates the machines running the control plane from other worker nodes.
+func splitMachineList(list *clusterv1.MachineList) (*clusterv1.MachineList, *clusterv1.MachineList) {
+	nodes := &clusterv1.MachineList{}
+	controlplanes := &clusterv1.MachineList{}
+	for i := range list.Items {
+		machine := &list.Items[i]
+		if util.IsControlPlaneMachine(machine) {
+			controlplanes.Items = append(controlplanes.Items, *machine)
+		} else {
+			nodes.Items = append(nodes.Items, *machine)
+		}
+	}
+	return controlplanes, nodes
 }

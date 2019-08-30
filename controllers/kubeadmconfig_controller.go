@@ -29,7 +29,6 @@ import (
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	typedcorev1 "k8s.io/client-go/kubernetes/typed/core/v1"
-	"k8s.io/client-go/tools/clientcmd"
 	bootstrapv1 "sigs.k8s.io/cluster-api-bootstrap-provider-kubeadm/api/v1alpha2"
 	"sigs.k8s.io/cluster-api-bootstrap-provider-kubeadm/certs"
 	"sigs.k8s.io/cluster-api-bootstrap-provider-kubeadm/cloudinit"
@@ -232,12 +231,6 @@ func (r *KubeadmConfigReconciler) Reconcile(req ctrl.Request) (_ ctrl.Result, re
 				log.Error(err, "unable to create cluster certificates")
 				return ctrl.Result{}, err
 			}
-		}
-
-		err = r.createKubeconfigSecret(ctx, config.Spec.ClusterConfiguration.ClusterName, config.Spec.ClusterConfiguration.ControlPlaneEndpoint, req.Namespace, certificates)
-		if err != nil {
-			log.Error(err, "unable to create and write kubeconfig as a Secret")
-			return ctrl.Result{}, err
 		}
 
 		cloudInitData, err := cloudinit.NewInitControlPlane(&cloudinit.ControlPlaneInput{
@@ -546,40 +539,4 @@ func (r *KubeadmConfigReconciler) createClusterCertificates(ctx context.Context,
 	}
 
 	return certificates, nil
-}
-
-func (r *KubeadmConfigReconciler) createKubeconfigSecret(ctx context.Context, clusterName, endpoint, namespace string, certificates *certs.Certificates) error {
-	cert, err := certs.DecodeCertPEM(certificates.ClusterCA.Cert)
-	if err != nil {
-		return errors.Wrap(err, "failed to decode CA Cert")
-	} else if cert == nil {
-		return errors.New("certificate not found in config")
-	}
-
-	key, err := certs.DecodePrivateKeyPEM(certificates.ClusterCA.Key)
-	if err != nil {
-		return errors.Wrap(err, "failed to decode private key")
-	} else if key == nil {
-		return errors.New("CA private key not found")
-	}
-
-	server := fmt.Sprintf("https://%s", endpoint)
-	cfg, err := certs.NewKubeconfig(clusterName, server, cert, key)
-	if err != nil {
-		return errors.Wrap(err, "failed to generate a kubeconfig")
-	}
-
-	yaml, err := clientcmd.Write(*cfg)
-	if err != nil {
-		return errors.Wrap(err, "failed to serialize config to yaml")
-	}
-
-	secret := &corev1.Secret{}
-	secretName := fmt.Sprintf("%s-kubeconfig", clusterName)
-
-	secret.ObjectMeta.Name = secretName
-	secret.ObjectMeta.Namespace = namespace
-	secret.StringData = map[string]string{"value": string(yaml)}
-
-	return r.Create(ctx, secret)
 }

@@ -31,6 +31,11 @@ type DockerMachineSpec struct {
 	// ProviderID will be the container name in ProviderID format (docker:////<containername>)
 	// +optional
 	ProviderID *string `json:"providerID,omitempty"`
+
+	// CustomImage allows customizing the container image that is used for
+	// running the machine
+	// +optional
+	CustomImage string `json:"customImage,omitempty"`
 }
 
 // DockerMachineStatus defines the observed state of DockerMachine

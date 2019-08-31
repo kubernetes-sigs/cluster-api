@@ -40,6 +40,7 @@ import (
 	"sigs.k8s.io/cluster-api/cmd/clusterctl/clientcmd"
 	clusterv1 "sigs.k8s.io/cluster-api/pkg/apis/cluster/v1alpha1"
 	"sigs.k8s.io/cluster-api/pkg/client/clientset_generated/clientset"
+	"sigs.k8s.io/cluster-api/pkg/controller/remote"
 	"sigs.k8s.io/cluster-api/pkg/util"
 )
 
@@ -68,6 +69,7 @@ type Client interface {
 	CreateMachineDeployments([]*clusterv1.MachineDeployment, string) error
 	CreateMachineSets([]*clusterv1.MachineSet, string) error
 	CreateMachines([]*clusterv1.Machine, string) error
+	CreateSecret(secret *apiv1.Secret) error
 	Delete(string) error
 	DeleteClusters(string) error
 	DeleteNamespace(string) error
@@ -80,6 +82,7 @@ type Client interface {
 	ForceDeleteMachine(namespace, name string) error
 	ForceDeleteMachineSet(namespace, name string) error
 	ForceDeleteMachineDeployment(namespace, name string) error
+	ForceDeleteSecret(namespace, name string) error
 	EnsureNamespace(string) error
 	GetClusters(string) ([]*clusterv1.Cluster, error)
 	GetCluster(string, string) (*clusterv1.Cluster, error)
@@ -95,6 +98,7 @@ type Client interface {
 	GetMachines(namespace string) ([]*clusterv1.Machine, error)
 	GetMachinesForCluster(*clusterv1.Cluster) ([]*clusterv1.Machine, error)
 	GetMachinesForMachineSet(*clusterv1.MachineSet) ([]*clusterv1.Machine, error)
+	GetKubeconfigSecretForCluster(cluster *clusterv1.Cluster) (*apiv1.Secret, error)
 	ScaleStatefulSet(namespace, name string, scale int32) error
 	WaitForClusterV1alpha1Ready() error
 	UpdateClusterObjectEndpoint(string, string, string) error
@@ -126,6 +130,53 @@ func New(kubeconfig string) (*client, error) { //nolint
 
 func (c *client) removeKubeconfigFile() error {
 	return os.Remove(c.kubeconfigFile)
+}
+
+func (c *client) GetKubeconfigSecretForCluster(cluster *clusterv1.Cluster) (*apiv1.Secret, error) {
+	clientset, err := clientcmd.NewCoreClientSetForDefaultSearchPath(c.kubeconfigFile, clientcmd.NewConfigOverrides())
+	if err != nil {
+		return nil, errors.Wrap(err, "error creating core clientset")
+	}
+
+	secret, err := clientset.CoreV1().Secrets(cluster.Namespace).Get(remote.KubeConfigSecretName(cluster.Name), metav1.GetOptions{})
+	if err != nil && !apierrors.IsNotFound(err) {
+		return nil, errors.Wrapf(err, "failed to get secret for cluster %s", cluster.Name)
+	}
+	return secret, nil
+}
+
+func (c *client) CreateSecret(secret *apiv1.Secret) error {
+	clientset, err := clientcmd.NewCoreClientSetForDefaultSearchPath(c.kubeconfigFile, clientcmd.NewConfigOverrides())
+	if err != nil {
+		return errors.Wrap(err, "error creating core clientset")
+	}
+	_, err = clientset.CoreV1().Secrets(secret.Namespace).Create(secret)
+	if err != nil {
+		return errors.Wrapf(err, "error creating Secret %s/%s", secret.Namespace, secret.Name)
+	}
+	return nil
+}
+
+func (c *client) ForceDeleteSecret(namespace, name string) error {
+	clientset, err := clientcmd.NewCoreClientSetForDefaultSearchPath(c.kubeconfigFile, clientcmd.NewConfigOverrides())
+	if err != nil {
+		return errors.Wrap(err, "error creating core clientset")
+	}
+	secret, err := clientset.CoreV1().Secrets(namespace).Get(name, metav1.GetOptions{})
+	if err != nil && !apierrors.IsNotFound(err) {
+		return errors.Wrapf(err, "error getting Secret %s/%s", namespace, name)
+	}
+	secret.SetFinalizers([]string{})
+
+	if _, err := clientset.CoreV1().Secrets(namespace).Update(secret); err != nil {
+		return errors.Wrapf(err, "error removing finalizer for Secret %s/%s", namespace, name)
+	}
+
+	if err := clientset.CoreV1().Secrets(namespace).Delete(namespace, newDeleteOptions()); err != nil {
+		return errors.Wrapf(err, "error deleting secret %s/%s", namespace, name)
+	}
+
+	return nil
 }
 
 func (c *client) EnsureNamespace(namespaceName string) error {

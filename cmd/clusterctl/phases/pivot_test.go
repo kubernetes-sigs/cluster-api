@@ -21,8 +21,10 @@ import (
 	"strings"
 	"testing"
 
+	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	clusterv1 "sigs.k8s.io/cluster-api/pkg/apis/cluster/v1alpha1"
+	"sigs.k8s.io/cluster-api/pkg/controller/remote"
 )
 
 // sourcer map keys are namespaces
@@ -33,6 +35,7 @@ type sourcer struct {
 	machineSets        map[string][]*clusterv1.MachineSet
 	machines           map[string][]*clusterv1.Machine
 	machineClasses     map[string][]*clusterv1.MachineClass
+	secrets            map[string][]*v1.Secret
 }
 
 func newSourcer() *sourcer {
@@ -42,6 +45,7 @@ func newSourcer() *sourcer {
 		machineSets:        make(map[string][]*clusterv1.MachineSet),
 		machines:           make(map[string][]*clusterv1.Machine),
 		machineClasses:     make(map[string][]*clusterv1.MachineClass),
+		secrets:            make(map[string][]*v1.Secret),
 	}
 }
 func (s *sourcer) WithCluster(ns, name string) *sourcer {
@@ -51,6 +55,14 @@ func (s *sourcer) WithCluster(ns, name string) *sourcer {
 			Namespace: ns,
 		},
 	})
+
+	s.secrets[ns] = append(s.secrets[ns], &v1.Secret{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      remote.KubeConfigSecretName(name),
+			Namespace: ns,
+		},
+	})
+
 	return s
 }
 
@@ -213,6 +225,27 @@ func (s *sourcer) ForceDeleteMachineSet(ns, name string) error {
 	s.machineSets[ns] = newSets
 	return nil
 }
+
+func (s *sourcer) ForceDeleteSecret(ns, name string) error {
+	newList := []*v1.Secret{}
+	for _, secret := range s.secrets[ns] {
+		if secret.Name != name {
+			newList = append(newList, secret)
+		}
+	}
+	s.secrets[ns] = newList
+	return nil
+}
+
+func (s *sourcer) GetKubeconfigSecretForCluster(cluster *clusterv1.Cluster) (*v1.Secret, error) {
+	for _, secret := range s.secrets[cluster.Namespace] {
+		if secret.Name == remote.KubeConfigSecretName(cluster.Name) {
+			return secret, nil
+		}
+	}
+	return nil, nil
+}
+
 func (s *sourcer) GetClusters(ns string) ([]*clusterv1.Cluster, error) {
 	// empty ns implies all namespaces
 	if ns == "" {
@@ -345,6 +378,7 @@ type target struct {
 	machineSets        map[string][]*clusterv1.MachineSet
 	machines           map[string][]*clusterv1.Machine
 	machineClasses     map[string][]*clusterv1.MachineClass
+	secrets            map[string][]*v1.Secret
 }
 
 func (t *target) Apply(string) error {
@@ -368,6 +402,10 @@ func (t *target) CreateMachines(machines []*clusterv1.Machine, ns string) error 
 }
 func (t *target) CreateMachineSets(ms []*clusterv1.MachineSet, ns string) error {
 	t.machineSets[ns] = append(t.machineSets[ns], ms...)
+	return nil
+}
+func (t *target) CreateSecret(secret *v1.Secret) error {
+	t.secrets[secret.Namespace] = append(t.secrets[secret.Namespace], secret)
 	return nil
 }
 
@@ -445,6 +483,7 @@ func TestPivot(t *testing.T) {
 	expectedMachineSets := len(source.machineSets[ns1]) + len(source.machineSets[ns2])
 	expectedMachines := len(source.machines[ns1]) + len(source.machines[ns2])
 	expectedMachineClasses := len(source.machineClasses[ns1]) + len(source.machineClasses[ns2])
+	expectedSecrets := len(source.secrets[ns1]) + len(source.secrets[ns2])
 
 	target := &target{
 		clusters:           make(map[string][]*clusterv1.Cluster),
@@ -452,6 +491,7 @@ func TestPivot(t *testing.T) {
 		machineSets:        make(map[string][]*clusterv1.MachineSet),
 		machines:           make(map[string][]*clusterv1.Machine),
 		machineClasses:     make(map[string][]*clusterv1.MachineClass),
+		secrets:            make(map[string][]*v1.Secret),
 	}
 
 	if err := Pivot(source, target, pc.String()); err != nil {
@@ -482,6 +522,11 @@ func TestPivot(t *testing.T) {
 		t.Logf("source: %v", source.machineClasses)
 		t.Logf("target: %v", target.machineClasses)
 		t.Fatal("should have deleted all machine classes from source k8s cluster")
+	}
+	if len(source.secrets[ns1])+len(source.secrets[ns2]) != 0 {
+		t.Logf("source: %v", source.secrets)
+		t.Logf("target: %v", target.secrets)
+		t.Fatal("should have deleted all secrets from source k8s cluster")
 	}
 
 	if len(target.clusters[ns1])+len(target.clusters[ns2]) != expectedClusters {
@@ -518,6 +563,11 @@ func TestPivot(t *testing.T) {
 		t.Logf("source: %v", source.machineClasses)
 		t.Logf("target: %v", target.machineClasses)
 		t.Fatal("expected machine classes to pivot")
+	}
+	if len(target.secrets[ns1])+len(target.secrets[ns2]) != expectedSecrets {
+		t.Logf("source: %v", source.secrets)
+		t.Logf("target: %v", target.secrets)
+		t.Fatal("expected kubeconfig secrets to pivot")
 	}
 }
 

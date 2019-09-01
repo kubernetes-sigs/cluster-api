@@ -235,6 +235,67 @@ var _ = Describe("MachineDeployment Reconciler", func() {
 			return len(machineSets.Items)
 		}, timeout*3).Should(BeEquivalentTo(1))
 
+		//
+		// Update a MachineDeployment spec.Selector.Matchlabels spec.Template.Labels
+		// expect Reconcile to be called and a new MachineSet to appear
+		// expect old MachineSets with old labels to be deleted
+		//
+		oldLabels := deployment.Spec.Selector.MatchLabels
+		newLabels := map[string]string{
+			"new-key": "new-value",
+		}
+
+		By("Updating MachineDeployment label")
+		err = updateMachineDeployment(k8sClient, deployment, func(d *clusterv1.MachineDeployment) {
+			d.Spec.Selector.MatchLabels = newLabels
+			d.Spec.Template.Labels = newLabels
+		})
+		Expect(err).ToNot(HaveOccurred())
+
+		By("Verifying if a new MachineSet with updated labels are created")
+		Eventually(func() int {
+			listOpts := client.MatchingLabels(newLabels)
+			if err := k8sClient.List(ctx, machineSets, listOpts); err != nil {
+				return -1
+			}
+			return len(machineSets.Items)
+		}, timeout).Should(BeEquivalentTo(1))
+		newms := machineSets.Items[0]
+
+		By("Verifying new MachineSet has desired number of replicas")
+		Eventually(func() bool {
+			// Set the all non-deleted machines as ready with a NodeRef, so the MachineSet controller can proceed
+			// to properly set AvailableReplicas.
+			machines := &clusterv1.MachineList{}
+			Expect(k8sClient.List(ctx, machines, client.InNamespace(namespace.Name))).NotTo(HaveOccurred())
+			for _, m := range machines.Items {
+				if !m.DeletionTimestamp.IsZero() {
+					continue
+				}
+				// Skip over Machines controlled by other (previous) MachineSets
+				if !metav1.IsControlledBy(&m, &newms) {
+					continue
+				}
+				fakeInfrastructureRefReady(m.Spec.InfrastructureRef, infraResource)
+				fakeMachineNodeRef(&m)
+			}
+
+			listOpts := client.MatchingLabels(newLabels)
+			if err := k8sClient.List(ctx, machineSets, listOpts); err != nil {
+				return false
+			}
+			return machineSets.Items[0].Status.Replicas == *deployment.Spec.Replicas
+		}, timeout*5).Should(BeTrue())
+
+		By("Verifying MachineSets with old labels are deleted")
+		Eventually(func() int {
+			listOpts := client.MatchingLabels(oldLabels)
+			if err := k8sClient.List(ctx, machineSets, listOpts); err != nil {
+				return -1
+			}
+
+			return len(machineSets.Items)
+		}, timeout*5).Should(BeEquivalentTo(0))
 	})
 })
 

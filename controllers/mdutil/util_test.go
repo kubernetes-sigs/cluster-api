@@ -264,6 +264,13 @@ func TestFindOldMachineSets(t *testing.T) {
 	oldMS.Status.FullyLabeledReplicas = *(oldMS.Spec.Replicas)
 	oldMS.CreationTimestamp = before
 
+	oldDeployment = generateDeployment("nginx")
+	oldDeployment.Spec.Selector.MatchLabels["old-label"] = "old-value"
+	oldDeployment.Spec.Template.Labels["old-label"] = "old-value"
+	oldMSwithOldLabel := generateMS(oldDeployment)
+	oldMSwithOldLabel.Status.FullyLabeledReplicas = *(oldMSwithOldLabel.Spec.Replicas)
+	oldMSwithOldLabel.CreationTimestamp = before
+
 	tests := []struct {
 		Name            string
 		deployment      clusterv1.MachineDeployment
@@ -298,6 +305,13 @@ func TestFindOldMachineSets(t *testing.T) {
 			deployment:      deployment,
 			msList:          []*clusterv1.MachineSet{&newMS},
 			expected:        []*clusterv1.MachineSet{},
+			expectedRequire: nil,
+		},
+		{
+			Name:            "Get old MachineSets after label changed in MachineDeployments",
+			deployment:      deployment,
+			msList:          []*clusterv1.MachineSet{&newMS, &oldMSwithOldLabel},
+			expected:        []*clusterv1.MachineSet{&oldMSwithOldLabel},
 			expectedRequire: nil,
 		},
 	}

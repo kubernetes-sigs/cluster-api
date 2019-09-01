@@ -454,6 +454,20 @@ func TestGetMachineSetsForDeployment(t *testing.T) {
 			},
 		},
 	}
+	machineDeployment3 := clusterv1.MachineDeployment{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "withMatchingOwnerRefAndNoMatchingLabels",
+			Namespace: "test",
+			UID:       "UID3",
+		},
+		Spec: clusterv1.MachineDeploymentSpec{
+			Selector: metav1.LabelSelector{
+				MatchLabels: map[string]string{
+					"foo": "bar",
+				},
+			},
+		},
+	}
 
 	ms1 := clusterv1.MachineSet{
 		TypeMeta: metav1.TypeMeta{
@@ -506,6 +520,21 @@ func TestGetMachineSetsForDeployment(t *testing.T) {
 			},
 		},
 	}
+	ms5 := clusterv1.MachineSet{
+		TypeMeta: metav1.TypeMeta{
+			Kind: "MachineSet",
+		},
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "withOwnerRefAndNoMatchLabels",
+			Namespace: "test",
+			OwnerReferences: []metav1.OwnerReference{
+				*metav1.NewControllerRef(&machineDeployment3, machineDeploymentKind),
+			},
+			Labels: map[string]string{
+				"foo": "nomatch",
+			},
+		},
+	}
 	machineSetList := &clusterv1.MachineSetList{
 		TypeMeta: metav1.TypeMeta{
 			Kind: "MachineSetList",
@@ -515,43 +544,55 @@ func TestGetMachineSetsForDeployment(t *testing.T) {
 			ms2,
 			ms3,
 			ms4,
+			ms5,
 		},
 	}
 
 	testCases := []struct {
+		name              string
 		machineDeployment clusterv1.MachineDeployment
 		expected          []*clusterv1.MachineSet
 	}{
 		{
+			name:              "matching ownerRef and labels",
 			machineDeployment: machineDeployment1,
 			expected:          []*clusterv1.MachineSet{&ms2, &ms3},
 		},
 		{
+			name:              "no matching ownerRef, matching labels",
 			machineDeployment: machineDeployment2,
 			expected:          []*clusterv1.MachineSet{&ms1},
 		},
+		{
+			name:              "matching ownerRef, mismatch labels",
+			machineDeployment: machineDeployment3,
+			expected:          []*clusterv1.MachineSet{&ms3, &ms5},
+		},
 	}
 
-	clusterv1.AddToScheme(scheme.Scheme)
-	r := &MachineDeploymentReconciler{
-		Client:   fake.NewFakeClient(machineSetList),
-		Log:      log.Log,
-		recorder: record.NewFakeRecorder(32),
-	}
 	for _, tc := range testCases {
-		got, err := r.getMachineSetsForDeployment(&tc.machineDeployment)
-		if err != nil {
-			t.Errorf("Failed running getMachineSetsForDeployment: %v", err)
-		}
-
-		if len(tc.expected) != len(got) {
-			t.Errorf("Case %s. Expected to get %d MachineSets but got %d", tc.machineDeployment.Name, len(tc.expected), len(got))
-		}
-
-		for idx, res := range got {
-			if res.Name != tc.expected[idx].Name || res.Namespace != tc.expected[idx].Namespace {
-				t.Errorf("Case %s. Expected %q found %q", tc.machineDeployment.Name, res.Name, tc.expected[idx].Name)
+		t.Run(tc.name, func(t *testing.T) {
+			clusterv1.AddToScheme(scheme.Scheme)
+			r := &MachineDeploymentReconciler{
+				Client:   fake.NewFakeClient(machineSetList),
+				Log:      log.Log,
+				recorder: record.NewFakeRecorder(32),
 			}
-		}
+
+			got, err := r.getMachineSetsForDeployment(&tc.machineDeployment)
+			if err != nil {
+				t.Errorf("Failed running getMachineSetsForDeployment: %v", err)
+			}
+
+			if len(tc.expected) != len(got) {
+				t.Errorf("Case %s. Expected to get %d MachineSets but got %d", tc.machineDeployment.Name, len(tc.expected), len(got))
+			}
+
+			for idx, res := range got {
+				if res.Name != tc.expected[idx].Name || res.Namespace != tc.expected[idx].Namespace {
+					t.Errorf("Case %s. Expected %q found %q", tc.machineDeployment.Name, res.Name, tc.expected[idx].Name)
+				}
+			}
+		})
 	}
 }

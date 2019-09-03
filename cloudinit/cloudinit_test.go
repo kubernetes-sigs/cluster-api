@@ -73,7 +73,7 @@ func TestNewInitControlPlaneAdditionalFileEncodings(t *testing.T) {
 	}
 	expectedFiles := []string{
 		`-   path: /tmp/my-path
-    encoding: "b64"
+    encoding: "base64"
     content: |
       aGk=`,
 		`-   path: /tmp/my-other-path

@@ -108,16 +108,16 @@ func init() {
 }
 
 // Encoding specifies the cloud-init file encoding.
-// +kubebuilder:validation:Enum=b64;gzip;gz+b64
+// +kubebuilder:validation:Enum=base64;gzip;gzip+base64
 type Encoding string
 
 const (
 	// Base64 implies the contents of the file are encoded as base64.
-	Base64 Encoding = "b64"
+	Base64 Encoding = "base64"
 	// Gzip implies the contents of the file are encoded with gzip.
 	Gzip Encoding = "gzip"
 	// GzipBase64 implies the contents of the file are first base64 encoded and then gzip encoded.
-	GzipBase64 Encoding = "gz+b64"
+	GzipBase64 Encoding = "gzip+base64"
 )
 
 // File defines the input for generating write_files in cloud-init.

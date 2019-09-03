@@ -362,9 +362,9 @@ spec:
                   encoding:
                     description: Encoding specifies the encoding of the file contents.
                     enum:
-                    - b64
+                    - base64
                     - gzip
-                    - gz+b64
+                    - gzip+base64
                     type: string
                   owner:
                     description: Owner specifies the ownership of the file, e.g. "root:root".

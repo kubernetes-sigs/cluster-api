@@ -23,8 +23,7 @@ spec:
     status: {}
   validation:
     openAPIV3Schema:
-      description: / [MachineDeployment] MachineDeployment is the Schema for the machinedeployments
-        API
+      description: MachineDeployment is the Schema for the machinedeployments API
       properties:
         apiVersion:
           description: 'APIVersion defines the versioned schema of this representation
@@ -39,8 +38,7 @@ spec:
         metadata:
           type: object
         spec:
-          description: / [MachineDeploymentSpec] MachineDeploymentSpec defines the
-            desired state of MachineDeployment
+          description: MachineDeploymentSpec defines the desired state of MachineDeployment
           properties:
             minReadySeconds:
               description: Minimum number of seconds for which a newly created machine
@@ -487,8 +485,7 @@ spec:
           - template
           type: object
         status:
-          description: / [MachineDeploymentStatus] MachineDeploymentStatus defines
-            the observed state of MachineDeployment
+          description: MachineDeploymentStatus defines the observed state of MachineDeployment
           properties:
             availableReplicas:
               description: Total number of available machines (ready for at least

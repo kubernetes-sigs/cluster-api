@@ -23,7 +23,7 @@ spec:
     status: {}
   validation:
     openAPIV3Schema:
-      description: / [MachineSet] MachineSet is the Schema for the machinesets API
+      description: MachineSet is the Schema for the machinesets API
       properties:
         apiVersion:
           description: 'APIVersion defines the versioned schema of this representation
@@ -38,8 +38,7 @@ spec:
         metadata:
           type: object
         spec:
-          description: / [MachineSetSpec] MachineSetSpec defines the desired state
-            of MachineSet
+          description: MachineSetSpec defines the desired state of MachineSet
           properties:
             deletePolicy:
               description: DeletePolicy defines the policy used to identify nodes
@@ -435,8 +434,7 @@ spec:
           - selector
           type: object
         status:
-          description: / [MachineSetStatus] MachineSetStatus defines the observed
-            state of MachineSet
+          description: MachineSetStatus defines the observed state of MachineSet
           properties:
             availableReplicas:
               description: The number of available replicas (ready for at least minReadySeconds)

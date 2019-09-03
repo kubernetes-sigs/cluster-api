@@ -26,7 +26,8 @@ const (
 	ClusterFinalizer = "cluster.cluster.x-k8s.io"
 )
 
-/// [ClusterSpec]
+// ANCHOR: ClusterSpec
+
 // ClusterSpec defines the desired state of Cluster
 type ClusterSpec struct {
 	// Cluster network configuration
@@ -39,9 +40,10 @@ type ClusterSpec struct {
 	InfrastructureRef *corev1.ObjectReference `json:"infrastructureRef,omitempty"`
 }
 
-/// [ClusterSpec]
+// ANCHOR_END: ClusterSpec
 
-/// [ClusterNetwork]
+// ANCHOR: ClusterNetwork
+
 // ClusterNetwork specifies the different networking
 // parameters for a cluster.
 type ClusterNetwork struct {
@@ -63,17 +65,18 @@ type ClusterNetwork struct {
 	ServiceDomain string `json:"serviceDomain,omitempty"`
 }
 
-/// [ClusterNetwork]
+// ANCHOR_END: ClusterNetwork
 
-/// [NetworkRanges]
+// ANCHOR: NetworkRanges
 // NetworkRanges represents ranges of network addresses.
 type NetworkRanges struct {
 	CIDRBlocks []string `json:"cidrBlocks"`
 }
 
-/// [NetworkRanges]
+// ANCHOR_END: NetworkRanges
 
-/// [ClusterStatus]
+// ANCHOR: ClusterStatus
+
 // ClusterStatus defines the observed state of Cluster
 type ClusterStatus struct {
 	// APIEndpoints represents the endpoints to communicate with the control plane.
@@ -105,6 +108,8 @@ type ClusterStatus struct {
 	ControlPlaneInitialized bool `json:"controlPlaneInitialized"`
 }
 
+// ANCHOR_END: ClusterStatus
+
 // SetTypedPhase sets the Phase field to the string representation of ClusterPhase.
 func (c *ClusterStatus) SetTypedPhase(p ClusterPhase) {
 	c.Phase = string(p)
@@ -126,9 +131,8 @@ func (c *ClusterStatus) GetTypedPhase() ClusterPhase {
 	}
 }
 
-/// [ClusterStatus]
+// ANCHOR: APIEndpoint
 
-/// [APIEndpoint]
 // APIEndpoint represents a reachable Kubernetes API endpoint.
 type APIEndpoint struct {
 	// The hostname on which the API server is serving.
@@ -138,7 +142,7 @@ type APIEndpoint struct {
 	Port int `json:"port"`
 }
 
-/// [APIEndpoint]
+// ANCHOR_END: APIEndpoint
 
 // +kubebuilder:object:root=true
 // +kubebuilder:resource:path=clusters,shortName=cl,scope=Namespaced,categories=cluster-api

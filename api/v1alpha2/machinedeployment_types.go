@@ -29,7 +29,8 @@ const (
 	RollingUpdateMachineDeploymentStrategyType MachineDeploymentStrategyType = "RollingUpdate"
 )
 
-/// [MachineDeploymentSpec]
+// ANCHOR: MachineDeploymentSpec
+
 // MachineDeploymentSpec defines the desired state of MachineDeployment
 type MachineDeploymentSpec struct {
 	// Number of desired machines. Defaults to 1.
@@ -74,9 +75,10 @@ type MachineDeploymentSpec struct {
 	ProgressDeadlineSeconds *int32 `json:"progressDeadlineSeconds,omitempty"`
 }
 
-/// [MachineDeploymentSpec]
+// ANCHOR_END: MachineDeploymentSpec
 
-/// [MachineDeploymentStrategy]
+// ANCHOR: MachineDeploymentStrategy
+
 // MachineDeploymentStrategy describes how to replace existing machines
 // with new ones.
 type MachineDeploymentStrategy struct {
@@ -92,10 +94,11 @@ type MachineDeploymentStrategy struct {
 	RollingUpdate *MachineRollingUpdateDeployment `json:"rollingUpdate,omitempty"`
 }
 
-/// [MachineDeploymentStrategy]
+// ANCHOR_END: MachineDeploymentStrategy
 
-/// [MachineRollingUpdateDeployment]
-// Spec to control the desired behavior of rolling update.
+// ANCHOR: MachineRollingUpdateDeployment
+
+// MachineRollingUpdateDeployment is used to control the desired behavior of rolling update.
 type MachineRollingUpdateDeployment struct {
 	// The maximum number of machines that can be unavailable during the update.
 	// Value can be an absolute number (ex: 5) or a percentage of desired
@@ -129,9 +132,10 @@ type MachineRollingUpdateDeployment struct {
 	MaxSurge *intstr.IntOrString `json:"maxSurge,omitempty" protobuf:"bytes,2,opt,name=maxSurge"`
 }
 
-/// [MachineRollingUpdateDeployment]
+// ANCHOR_END: MachineRollingUpdateDeployment
 
-/// [MachineDeploymentStatus]
+// ANCHOR: MachineDeploymentStatus
+
 // MachineDeploymentStatus defines the observed state of MachineDeployment
 type MachineDeploymentStatus struct {
 	// The generation observed by the deployment controller.
@@ -172,7 +176,7 @@ type MachineDeploymentStatus struct {
 	UnavailableReplicas int32 `json:"unavailableReplicas,omitempty" protobuf:"varint,5,opt,name=unavailableReplicas"`
 }
 
-/// [MachineDeploymentStatus]
+// ANCHOR_END: MachineDeploymentStatus
 
 // +kubebuilder:object:root=true
 // +kubebuilder:resource:path=machinedeployments,shortName=md,scope=Namespaced,categories=cluster-api
@@ -180,7 +184,6 @@ type MachineDeploymentStatus struct {
 // +kubebuilder:subresource:status
 // +kubebuilder:subresource:scale:specpath=.spec.replicas,statuspath=.status.replicas,selectorpath=.status.selector
 
-/// [MachineDeployment]
 // MachineDeployment is the Schema for the machinedeployments API
 type MachineDeployment struct {
 	metav1.TypeMeta   `json:",inline"`
@@ -189,8 +192,6 @@ type MachineDeployment struct {
 	Spec   MachineDeploymentSpec   `json:"spec,omitempty"`
 	Status MachineDeploymentStatus `json:"status,omitempty"`
 }
-
-/// [MachineDeployment]
 
 // +kubebuilder:object:root=true
 

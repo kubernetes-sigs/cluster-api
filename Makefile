@@ -46,7 +46,10 @@ CONVERSION_GEN := $(TOOLS_BIN_DIR)/conversion-gen
 
 # Define Docker related variables. Releases should modify and double check these vars.
 REGISTRY ?= gcr.io/$(shell gcloud config get-value project)
-CONTROLLER_IMG ?= $(REGISTRY)/cluster-api-controller
+STAGING_REGISTRY := gcr.io/k8s-staging-cluster-api
+PROD_REGISTRY := us.gcr.io/k8s-artifacts-prod/cluster-api
+IMAGE_NAME ?= cluster-api-controller
+CONTROLLER_IMG ?= $(REGISTRY)/$(IMAGE_NAME)
 TAG ?= dev
 ARCH ?= amd64
 ALL_ARCH = amd64 arm arm64 ppc64le s390x
@@ -171,6 +174,7 @@ docker-push-manifest: ## Push the fat manifest docker image.
 	## Minimum docker version 18.06.0 is required for creating and pushing manifest images.
 	docker manifest create --amend $(CONTROLLER_IMG):$(TAG) $(shell echo $(ALL_ARCH) | sed -e "s~[^ ]*~$(CONTROLLER_IMG)\-&:$(TAG)~g")
 	@for arch in $(ALL_ARCH); do docker manifest annotate --arch $${arch} ${CONTROLLER_IMG}:${TAG} ${CONTROLLER_IMG}-$${arch}:${TAG}; done
+	docker manifest push --purge $(CONTROLLER_IMG):$(TAG)
 	MANIFEST_IMG=$(CONTROLLER_IMG) MANIFEST_TAG=$(TAG) $(MAKE) set-manifest-image
 
 .PHONY: set-manifest-image
@@ -188,18 +192,18 @@ RELEASE_TAG := $(shell git describe --abbrev=0 2>/dev/null)
 release:  ## Builds and push container images using the latest git tag for the commit.
 	@if [ -z "${RELEASE_TAG}" ]; then echo "RELEASE_TAG is not set"; exit 1; fi
 	# Push the release image to the staging bucket first.
-	REGISTRY=gcr.io/k8s-staging-cluster-api TAG=$(RELEASE_TAG) \
+	REGISTRY=$(STAGING_REGISTRY) TAG=$(RELEASE_TAG) \
 		$(MAKE) docker-build-all docker-push-all
 	# Set the manifest image to the production bucket.
-	REGISTRY=us.gcr.io/k8s-artifacts-prod/cluster-api TAG=$(RELEASE_TAG) \
-		set-manifest-image
+	MANIFEST_IMG=$(PROD_REGISTRY)/$(IMAGE_NAME) MANIFEST_TAG=$(RELEASE_TAG) \
+		$(MAKE) set-manifest-image
 	# Generate release artifacts.
 	mkdir out/
 	kustomize build config/default > out/cluster-api-components.yaml
 
 .PHONY: release-staging-latest
 release-staging-latest: ## Builds and push container images to the staging bucket using "latest" tag.
-	REGISTRY=gcr.io/k8s-staging-cluster-api TAG=latest \
+	REGISTRY=$(STAGING_REGISTRY) TAG=latest \
 		$(MAKE) docker-build-all docker-push-all
 
 ## --------------------------------------

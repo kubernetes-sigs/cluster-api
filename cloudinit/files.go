@@ -20,7 +20,9 @@ const (
 	filesTemplate = `{{ define "files" -}}
 write_files:{{ range . }}
 -   path: {{.Path}}
-    encoding: "base64"
+    {{ if ne .Encoding "" -}}
+    encoding: "{{.Encoding}}"
+    {{ end -}}
     {{ if ne .Owner "" -}}
     owner: {{.Owner}}
     {{ end -}}
@@ -28,7 +30,7 @@ write_files:{{ range . }}
     permissions: '{{.Permissions}}'
     {{ end -}}
     content: |
-{{.Content | Base64Encode | Indent 6}}
+{{.Content | Indent 6}}
 {{- end -}}
 {{- end -}}
 `

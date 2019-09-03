@@ -107,6 +107,19 @@ func init() {
 	SchemeBuilder.Register(&KubeadmConfig{}, &KubeadmConfigList{})
 }
 
+// Encoding specifies the cloud-init file encoding.
+// +kubebuilder:validation:Enum=base64;gzip;gzip+base64
+type Encoding string
+
+const (
+	// Base64 implies the contents of the file are encoded as base64.
+	Base64 Encoding = "base64"
+	// Gzip implies the contents of the file are encoded with gzip.
+	Gzip Encoding = "gzip"
+	// GzipBase64 implies the contents of the file are first base64 encoded and then gzip encoded.
+	GzipBase64 Encoding = "gzip+base64"
+)
+
 // File defines the input for generating write_files in cloud-init.
 type File struct {
 	// Path specifies the full path on disk where to store the file.
@@ -119,6 +132,10 @@ type File struct {
 	// Permissions specifies the permissions to assign to the file, e.g. "0640".
 	// +optional
 	Permissions string `json:"permissions,omitempty"`
+
+	// Encoding specifies the encoding of the file contents.
+	// +optional
+	Encoding Encoding `json:"encoding,omitempty"`
 
 	// Content is the actual content of the file.
 	Content string `json:"content"`

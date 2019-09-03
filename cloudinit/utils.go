@@ -17,21 +17,15 @@ limitations under the License.
 package cloudinit
 
 import (
-	"encoding/base64"
 	"strings"
 	"text/template"
 )
 
 var (
 	defaultTemplateFuncMap = template.FuncMap{
-		"Base64Encode": templateBase64Encode,
-		"Indent":       templateYAMLIndent,
+		"Indent": templateYAMLIndent,
 	}
 )
-
-func templateBase64Encode(s string) string {
-	return base64.StdEncoding.EncodeToString([]byte(s))
-}
 
 func templateYAMLIndent(i int, input string) string {
 	split := strings.Split(input, "\n")

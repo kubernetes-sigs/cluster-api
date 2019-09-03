@@ -10,7 +10,6 @@ support v1alpha2 API types.
 
 ## Infrastructure
 - [**AWS**](https://github.com/kubernetes-sigs/cluster-api-provider-aws)
-- [**vSphere**](https://github.com/kubernetes-sigs/cluster-api-provider-vsphere)
 - [Azure](https://github.com/kubernetes-sigs/cluster-api-provider-azure)
 - [Baidu Cloud](https://github.com/baidu/cluster-api-provider-baiducloud)
 - [Bare Metal](https://github.com/metal3-io/cluster-api-provider-baremetal)
@@ -22,3 +21,12 @@ support v1alpha2 API types.
 - [Packet](https://github.com/packethost/cluster-api-provider-packet)
 - [Talos](https://github.com/talos-systems/cluster-api-provider-talos)
 - [Tencent Cloud](https://github.com/TencentCloud/cluster-api-provider-tencent)
+- [**vSphere**](https://github.com/kubernetes-sigs/cluster-api-provider-vsphere)
+
+## API Adopters
+
+Following are the implementations managed by third-parties adopting the standard cluster-api and/or machine-api being developed here.
+
+  * Kubermatic machine-controller, https://github.com/kubermatic/machine-controller/tree/master
+  * Machine API Operator, https://github.com/openshift/machine-api-operator/tree/master
+  * Machine-controller-manager, https://github.com/gardener/machine-controller-manager/tree/cluster-api

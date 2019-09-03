@@ -84,6 +84,9 @@ We are building a set of Kubernetes cluster management APIs to enable common clu
 Kubernetes has a common set of APIs (see the [Kubernetes API Conventions](https://github.com/kubernetes/community/blob/master/contributors/devel/sig-architecture/api-conventions.md)) to orchestrate containers regardless of deployment mechanism or cloud provider. Kubernetes also has APIs for handling some infrastructure, like load-balancers, ingress rules, or persistent volumes, but not for creating new machines.
 As a result, existing popular deployment mechanisms that manage Kubernetes clusters each have unique APIs and implementations for how to handle lifecycle events like cluster creation or deletion, control plane upgrades, and node upgrades.
 
+
+<!-- ANCHOR: Goals -->
+
 ### Goals
 
 - To manage the lifecycle (create, scale, upgrade, destroy) of Kubernetes-conformant clusters using a declarative API.
@@ -102,6 +105,8 @@ As a result, existing popular deployment mechanisms that manage Kubernetes clust
 - To manage a single cluster spanning multiple infrastructure providers.
 - To configure a machine at any time other than create or upgrade.
 - To duplicate functionality that exists or is coming to other tooling, e.g., updating kubelet configuration (c.f. dynamic kubelet configuration), or updating apiserver, controller-manager, scheduler configuration (c.f. component-config effort) after the cluster is deployed.
+
+<!-- ANCHOR_END: Goals -->
 
 ## Requirements
 

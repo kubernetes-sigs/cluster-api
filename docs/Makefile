@@ -19,14 +19,12 @@ DIAGRAMS := $(SOURCES:%.plantuml=%.png)
 
 diagrams: $(DIAGRAMS)
 
-# --user ensures the output files are owned by the user invoking docker on the host
-# TODO: Publish docker image owned by CAPI project: https://github.com/kubernetes-sigs/cluster-api/issues/1070
 %.png: %.plantuml
 	docker run \
 		--rm \
-		--volume ${ROOT_DIR}:/diagrams \
+		--volume ${ROOT_DIR}:/workdir \
 		--user $(shell id -u):$(shell id -g) \
 		us.gcr.io/k8s-artifacts-prod/cluster-api/plantuml:1.2019.6 \
-		-v /diagrams/$(shell basename $(shell dirname $^))/$(notdir $^)
+		-v /workdir/$(shell echo '$^' | sed -e 's,.*docs/,,g' )
 
 .PHONY: diagrams

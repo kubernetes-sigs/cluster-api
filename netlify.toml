@@ -1,7 +1,7 @@
-# Netlify build instructions 
+# Netlify build instructions
 [build]
-    command = "./hack/build-gitbook.sh"
-    publish = "docs/book/_book"
+    command = "./docs/book/install-and-build.sh"
+    publish = "docs/book/book"
 
 # Standard Netlify redirects
 [[redirects]]

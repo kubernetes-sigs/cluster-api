@@ -138,27 +138,32 @@ func (r *ClusterReconciler) reconcileInfrastructure(ctx context.Context, cluster
 		return err
 	}
 
-	if cluster.Status.InfrastructureReady || !infraConfig.GetDeletionTimestamp().IsZero() {
+	// There's no need to go any further if the Cluster is marked for deletion.
+	if !infraConfig.GetDeletionTimestamp().IsZero() {
 		return nil
 	}
 
 	// Determine if the infrastructure provider is ready.
-	ready, err := external.IsReady(infraConfig)
-	if err != nil {
-		return err
-	} else if !ready {
-		klog.V(3).Infof("Infrastructure provider for Cluster %q in namespace %q is not ready yet", cluster.Name, cluster.Namespace)
-		return nil
+	if !cluster.Status.InfrastructureReady {
+		ready, err := external.IsReady(infraConfig)
+		if err != nil {
+			return err
+		} else if !ready {
+			klog.V(3).Infof("Infrastructure provider for Cluster %q in namespace %q is not ready yet", cluster.Name, cluster.Namespace)
+			return nil
+		}
+		cluster.Status.InfrastructureReady = true
 	}
-	cluster.Status.InfrastructureReady = true
 
 	// Get and parse Status.APIEndpoint field from the infrastructure provider.
-	if err := util.UnstructuredUnmarshalField(infraConfig, &cluster.Status.APIEndpoints, "status", "apiEndpoints"); err != nil {
-		return errors.Wrapf(err, "failed to retrieve Status.APIEndpoints from infrastructure provider for Cluster %q in namespace %q",
-			cluster.Name, cluster.Namespace)
-	} else if len(cluster.Status.APIEndpoints) == 0 {
-		return errors.Wrapf(err, "retrieved empty Status.APIEndpoints from infrastructure provider for Cluster %q in namespace %q",
-			cluster.Name, cluster.Namespace)
+	if len(cluster.Status.APIEndpoints) == 0 {
+		if err := util.UnstructuredUnmarshalField(infraConfig, &cluster.Status.APIEndpoints, "status", "apiEndpoints"); err != nil {
+			return errors.Wrapf(err, "failed to retrieve Status.APIEndpoints from infrastructure provider for Cluster %q in namespace %q",
+				cluster.Name, cluster.Namespace)
+		} else if len(cluster.Status.APIEndpoints) == 0 {
+			return errors.Wrapf(err, "retrieved empty Status.APIEndpoints from infrastructure provider for Cluster %q in namespace %q",
+				cluster.Name, cluster.Namespace)
+		}
 	}
 
 	return nil

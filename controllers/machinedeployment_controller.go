@@ -38,6 +38,11 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/source"
 )
 
+var (
+	// machineDeploymentKind contains the schema.GroupVersionKind for the MachineDeployment type.
+	machineDeploymentKind = clusterv1.GroupVersion.WithKind("MachineDeployment")
+)
+
 // +kubebuilder:rbac:groups=core,resources=events,verbs=get;list;watch;create;patch
 // +kubebuilder:rbac:groups=core,resources=secrets,verbs=get;list;watch
 // +kubebuilder:rbac:groups=core,resources=nodes,verbs=get;list;watch;create;update;patch;delete
@@ -221,7 +226,7 @@ func (r *MachineDeploymentReconciler) getMachineSetsForDeployment(d *clusterv1.M
 // adoptOrphan sets the MachineDeployment as a controller OwnerReference to the MachineSet.
 func (r *MachineDeploymentReconciler) adoptOrphan(deployment *clusterv1.MachineDeployment, machineSet *clusterv1.MachineSet) error {
 	patch := client.MergeFrom(machineSet.DeepCopy())
-	newRef := *metav1.NewControllerRef(deployment, controllerKind)
+	newRef := *metav1.NewControllerRef(deployment, machineDeploymentKind)
 	machineSet.OwnerReferences = append(machineSet.OwnerReferences, newRef)
 	return r.Client.Patch(context.Background(), machineSet, patch)
 }

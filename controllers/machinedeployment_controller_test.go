@@ -174,6 +174,19 @@ var _ = Describe("MachineDeployment Reconciler", func() {
 			return len(machineSets.Items)
 		}, timeout).Should(BeEquivalentTo(2))
 
+		// Verify that all the MachineSets have the expected OwnerRef.
+		Eventually(func() bool {
+			if err := k8sClient.List(ctx, machineSets, msListOpts...); err != nil {
+				return false
+			}
+			for _, ms := range machineSets.Items {
+				if !metav1.IsControlledBy(&ms, deployment) || metav1.GetControllerOf(&ms).Kind != "MachineDeployment" {
+					return false
+				}
+			}
+			return true
+		}, timeout).Should(BeTrue())
+
 		Eventually(func() int {
 			// Set the all non-deleted machines as ready with a NodeRef, so the MachineSet controller can proceed
 			// to properly set AvailableReplicas.
@@ -227,7 +240,7 @@ func TestMachineSetToDeployments(t *testing.T) {
 			Name:      "withOwnerRef",
 			Namespace: "test",
 			OwnerReferences: []metav1.OwnerReference{
-				*metav1.NewControllerRef(&machineDeployment, controllerKind),
+				*metav1.NewControllerRef(&machineDeployment, machineDeploymentKind),
 			},
 			Labels: map[string]string{
 				clusterv1.MachineClusterLabelName: "test-cluster",
@@ -433,7 +446,7 @@ func TestGetMachineSetsForDeployment(t *testing.T) {
 			Name:      "withOwnerRefAndLabels",
 			Namespace: "test",
 			OwnerReferences: []metav1.OwnerReference{
-				*metav1.NewControllerRef(&machineDeployment1, controllerKind),
+				*metav1.NewControllerRef(&machineDeployment1, machineDeploymentKind),
 			},
 			Labels: map[string]string{
 				"foo": "bar",

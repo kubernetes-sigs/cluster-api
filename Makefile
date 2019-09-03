@@ -191,6 +191,8 @@ RELEASE_TAG := $(shell git describe --abbrev=0 2>/dev/null)
 .PHONY: release
 release:  ## Builds and push container images using the latest git tag for the commit.
 	@if [ -z "${RELEASE_TAG}" ]; then echo "RELEASE_TAG is not set"; exit 1; fi
+	@if ! [ -z "$$(git status --porcelain)" ]; then echo "Your local git repository contains uncommitted changes, use git clean before proceeding."; exit 1; fi
+	git checkout "${RELEASE_TAG}"
 	# Push the release image to the staging bucket first.
 	REGISTRY=$(STAGING_REGISTRY) TAG=$(RELEASE_TAG) \
 		$(MAKE) docker-build-all docker-push-all

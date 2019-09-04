@@ -1,3 +1,5 @@
+#!/bin/bash
+
 # Copyright 2019 The Kubernetes Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -12,18 +14,10 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-ROOT_DIR:=$(shell dirname $(realpath $(lastword $(MAKEFILE_LIST))))
+set -o errexit
+set -o nounset
+set -o pipefail
 
-SOURCES := $(shell find ${ROOT_DIR} -name \*.plantuml)
-DIAGRAMS := $(SOURCES:%.plantuml=%.png)
-
-.PHONY: diagrams
-diagrams: $(DIAGRAMS)
-
-%.png: %.plantuml
-	docker run \
-		--rm \
-		--volume ${ROOT_DIR}:/workdir \
-		--user $(shell id -u):$(shell id -g) \
-		us.gcr.io/k8s-artifacts-prod/cluster-api/plantuml:1.2019.6 \
-		-v /workdir/$(shell echo '$^' | sed -e 's,.*docs/,,g' )
+TABULATE="../../hack/tools/bin/tabulate"
+make ${TABULATE} &>/dev/null
+${TABULATE} "$@"

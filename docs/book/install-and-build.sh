@@ -60,4 +60,5 @@ curl -sL -o /tmp/mdbook.${ext} "https://github.com/rust-lang-nursery/mdBook/rele
 ${cmd} /tmp/mdbook.${ext}
 chmod +x /tmp/mdbook
 
-/tmp/mdbook build docs/book
+# Finally build the book.
+(cd docs/book && /tmp/mdbook build)

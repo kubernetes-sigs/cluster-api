@@ -12,7 +12,7 @@
 - [Scope, objectives, goals and requirements](./docs/scope-and-objectives.md)
 - [Feature proposals](./docs/proposals)
 - [Reference use cases](./docs/staging-use-cases.md)
-- [Quick Start](https://cluster-api.sigs.k8s.io/quick-start.html)
+- [Quick Start](https://cluster-api.sigs.k8s.io/user/quick-start.html)
 
 ## What is the Cluster API?
 

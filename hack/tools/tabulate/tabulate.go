@@ -36,22 +36,23 @@ func (l Tabulate) Process(input *plugin.Input) error {
 	if err := plugin.EachCommand(&input.Book, "tabs", func(chapter *plugin.BookChapter, args string) (string, error) {
 		var bld strings.Builder
 		tags := reflect.StructTag(strings.TrimSpace(args))
-		name := tags.Get("name")
+		groupName := tags.Get("name")
 
 		bld.WriteString(`<div id="`)
-		bld.WriteString(name)
+		bld.WriteString(groupName)
 		bld.WriteString(`" class="tabset">`)
 		for i, tabName := range strings.Split(tags.Get("tabs"), ",") {
+			groupTabId := fmt.Sprintf("%s-%s", groupName, tabName)
 			checked := ""
 			if i == 0 {
 				checked = "checked"
 			}
 
-			bld.WriteString(fmt.Sprintf(`<input type="radio" name="%s" id="%s" aria-controls="%s" %s>`, name, tabName, tabName, checked))
-			bld.WriteString(fmt.Sprintf(`<label for="%s">%s</label>`, tabName, tabName))
+			bld.WriteString(fmt.Sprintf(`<input type="radio" name="%s" id="%s" aria-controls="%s" %s>`, groupName, groupTabId, groupTabId, checked))
+			bld.WriteString(fmt.Sprintf(`<label for="%s">%s</label>`, groupTabId, tabName))
 		}
-		// bld.WriteString(`</ul>`)
 		bld.WriteString(`<div class="tab-panels">`)
+
 		return bld.String(), nil
 	}); err != nil {
 		return err

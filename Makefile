@@ -187,9 +187,13 @@ set-manifest-image:
 ## --------------------------------------
 
 RELEASE_TAG := $(shell git describe --abbrev=0 2>/dev/null)
+RELEASE_DIR := out
+
+$(RELEASE_DIR):
+	mkdir -p $(RELEASE_DIR)/
 
 .PHONY: release
-release:  ## Builds and push container images using the latest git tag for the commit.
+release: clean-release ## Builds and push container images using the latest git tag for the commit.
 	@if [ -z "${RELEASE_TAG}" ]; then echo "RELEASE_TAG is not set"; exit 1; fi
 	# Push the release image to the staging bucket first.
 	REGISTRY=$(STAGING_REGISTRY) TAG=$(RELEASE_TAG) \
@@ -197,9 +201,28 @@ release:  ## Builds and push container images using the latest git tag for the c
 	# Set the manifest image to the production bucket.
 	MANIFEST_IMG=$(PROD_REGISTRY)/$(IMAGE_NAME) MANIFEST_TAG=$(RELEASE_TAG) \
 		$(MAKE) set-manifest-image
-	# Generate release artifacts.
-	mkdir out/
-	kustomize build config/default > out/cluster-api-components.yaml
+	$(MAKE) release-manifests
+	$(MAKE) release-binaries
+
+.PHONY: release-manifests
+release-manifests: $(RELEASE_DIR) ## Builds the manifests to publish with a release
+	kustomize build config/default > $(RELEASE_DIR)/cluster-api-components.yaml
+
+release-binaries: ## Builds the binaries to publish with a release
+	RELEASE_BINARY=./cmd/clusterctl GOOS=linux GOARCH=amd64 $(MAKE) release-binary
+	RELEASE_BINARY=./cmd/clusterctl GOOS=darwin GOARCH=amd64 $(MAKE) release-binary
+
+release-binary: $(RELEASE_DIR)
+	docker run \
+		--rm \
+		-e CGO_ENABLED=0 \
+		-e GOOS=$(GOOS) \
+		-e GOARCH=$(GOARCH) \
+		-v "$$(pwd):/workspace" \
+		-w /workspace \
+		golang:1.12.9 \
+		go build -a -ldflags '-extldflags "-static"' \
+		-o $(RELEASE_DIR)/$(notdir $(RELEASE_BINARY))-$(GOOS)-$(GOARCH) $(RELEASE_BINARY)
 
 .PHONY: release-staging-latest
 release-staging-latest: ## Builds and push container images to the staging bucket using "latest" tag.
@@ -231,9 +254,9 @@ clean-bin: ## Remove all generated binaries
 	rm -rf bin
 	rm -rf hack/tools/bin
 
-.PHONY: clean-clientset
-clean-clientset: ## Remove all generated clientset files
-	rm -rf pkg/client
+.PHONY: clean-release
+clean-release: ## Remove the release folder
+	rm -rf $(RELEASE_DIR)
 
 .PHONY: verify
 verify:

@@ -34,6 +34,7 @@ docs/book/_book/
 # Common editor / temporary files
 *~
 *.tmp
+.DS_Store
 
 # rbac and manager config for example provider
 config/ci/rbac/role_binding.yaml

@@ -6,6 +6,7 @@ kind: Kustomization
 resources:
 - bases/infrastructure.cluster.x-k8s.io_dockermachines.yaml
 - bases/infrastructure.cluster.x-k8s.io_dockerclusters.yaml
+- bases/infrastructure.cluster.x-k8s.io_dockermachinetemplates.yaml
 # +kubebuilder:scaffold:crdkustomizeresource
 
 patchesStrategicMerge: []

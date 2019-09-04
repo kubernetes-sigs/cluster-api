@@ -38,6 +38,12 @@ func fakeInfrastructureRefReady(ref corev1.ObjectReference, base map[string]inte
 		return k8sClient.Get(ctx, client.ObjectKey{Name: ref.Name, Namespace: ref.Namespace}, iref)
 	}, timeout).ShouldNot(HaveOccurred())
 
+	ready, found, err := unstructured.NestedBool(iref.Object, "status", "ready")
+	Expect(err).To(BeNil())
+	if found && ready {
+		return
+	}
+
 	irefPatch := client.MergeFrom(iref.DeepCopy())
 	unstructured.SetNestedField(iref.Object, true, "status", "ready")
 	Expect(k8sClient.Status().Patch(ctx, iref, irefPatch)).ToNot(HaveOccurred())

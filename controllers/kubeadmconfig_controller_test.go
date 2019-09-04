@@ -43,19 +43,21 @@ import (
 
 func setupScheme() *runtime.Scheme {
 	scheme := runtime.NewScheme()
-	//nolint:errcheck
-	clusterv1.AddToScheme(scheme)
-	//nolint:errcheck
-	bootstrapv1.AddToScheme(scheme)
-	//nolint:errcheck
-	corev1.AddToScheme(scheme)
+	if err := clusterv1.AddToScheme(scheme); err != nil {
+		panic(err)
+	}
+	if err := bootstrapv1.AddToScheme(scheme); err != nil {
+		panic(err)
+	}
+	if err := corev1.AddToScheme(scheme); err != nil {
+		panic(err)
+	}
 	return scheme
 }
 
-// Tests for misconfigurations / initial checks
-
-func TestBailIfKubeadmConfigStatusReady(t *testing.T) {
-	config := newKubeadmConfig(nil, "cfg") // NB. passing a machine is not relevant for this test
+// Reconcile returns early if the kubeadm config is ready because it should never re-generate bootstrap data.
+func TestKubeadmConfigReconciler_Reconcile_ReturnEarlyIfKubeadmConfigIsReady(t *testing.T) {
+	config := newKubeadmConfig(nil, "cfg")
 	config.Status.Ready = true
 
 	objects := []runtime.Object{
@@ -86,8 +88,9 @@ func TestBailIfKubeadmConfigStatusReady(t *testing.T) {
 	}
 }
 
-func TestFailsIfMachineRefIsNotFound(t *testing.T) {
-	machine := newMachine(nil, "machine") // NB. passing a cluster is not relevant for this test
+// Reconcile returns an error in this case because the owning machine should not go away before the things it owns.
+func TestKubeadmConfigReconciler_Reconcile_ReturnErrorIfReferencedMachineIsNotFound(t *testing.T) {
+	machine := newMachine(nil, "machine")
 	config := newKubeadmConfig(machine, "cfg")
 
 	objects := []runtime.Object{
@@ -113,8 +116,9 @@ func TestFailsIfMachineRefIsNotFound(t *testing.T) {
 	}
 }
 
-func TestBailIfMachineAlreadyHasBootstrapData(t *testing.T) {
-	machine := newMachine(nil, "machine") // NB. passing a cluster is not relevant for this test
+// If the machine has bootstrap data already then there is no need to generate more bootstrap data. The work is done.
+func TestKubeadmConfigReconciler_Reconcile_ReturnEarlyIfMachineHasBootstrapData(t *testing.T) {
+	machine := newMachine(nil, "machine")
 	machine.Spec.Bootstrap.Data = stringPtr("something")
 
 	config := newKubeadmConfig(machine, "cfg")
@@ -147,7 +151,9 @@ func TestBailIfMachineAlreadyHasBootstrapData(t *testing.T) {
 	}
 }
 
-func TestFailsNoClusterRefIsSet(t *testing.T) {
+// This returns an error since nothing can proceed without an associated cluster.
+// TODO: This should probably not return an error
+func TestKubeadmConfigReconciler_Reconcile_ReturnErrorIfMachineDoesNotHaveAssociatedCluster(t *testing.T) {
 	machine := newMachine(nil, "machine") // intentionally omitting cluster
 	config := newKubeadmConfig(machine, "cfg")
 
@@ -174,7 +180,9 @@ func TestFailsNoClusterRefIsSet(t *testing.T) {
 	}
 }
 
-func TestFailsIfClusterIsNotFound(t *testing.T) {
+// If the associated cluster is not found then there is no way to proceed.
+// TODO: This should probably not be an error
+func TestKubeadmConfigReconciler_Reconcile_ReturnErrorIfAssociatedClusterIsNotFound(t *testing.T) {
 	cluster := newCluster("cluster")
 	machine := newMachine(cluster, "machine")
 	config := newKubeadmConfig(machine, "cfg")
@@ -203,8 +211,8 @@ func TestFailsIfClusterIsNotFound(t *testing.T) {
 	}
 }
 
-// Tests for cluster with infrastructure ready, but control pane not ready yet
-func TestRequeueKubeadmConfigForJoinNodesIfControlPlaneIsNotReady(t *testing.T) {
+// If the control plane isn't initialized then there is no cluster for either a worker or control plane node to join.
+func TestKubeadmConfigReconciler_Reconcile_RequeueJoiningNodesIfControlPlaneNotInitialized(t *testing.T) {
 	cluster := newCluster("cluster")
 	cluster.Status.InfrastructureReady = true
 
@@ -214,57 +222,65 @@ func TestRequeueKubeadmConfigForJoinNodesIfControlPlaneIsNotReady(t *testing.T) 
 	controlPaneMachine := newControlPlaneMachine(cluster)
 	controlPaneJoinConfig := newControlPlaneJoinKubeadmConfig(controlPaneMachine, "control-plane-join-cfg")
 
-	objects := []runtime.Object{
-		cluster,
-		workerMachine,
-		workerJoinConfig,
-		controlPaneMachine,
-		controlPaneJoinConfig,
-	}
-	myclient := fake.NewFakeClientWithScheme(setupScheme(), objects...)
-
-	k := &KubeadmConfigReconciler{
-		Log:             log.Log,
-		Client:          myclient,
-		KubeadmInitLock: &myInitLocker{},
-	}
-
-	request := ctrl.Request{
-		NamespacedName: types.NamespacedName{
-			Namespace: "default",
-			Name:      "worker-join-cfg",
+	testcases := []struct {
+		name    string
+		request ctrl.Request
+		objects []runtime.Object
+	}{
+		{
+			name: "requeue worker when control plane is not yet initialiezd",
+			request: ctrl.Request{
+				NamespacedName: types.NamespacedName{
+					Namespace: workerJoinConfig.Namespace,
+					Name:      workerJoinConfig.Name,
+				},
+			},
+			objects: []runtime.Object{
+				cluster,
+				workerMachine,
+				workerJoinConfig,
+			},
+		},
+		{
+			name: "requeue a secondary control plane when the control plane is not yet initialized",
+			request: ctrl.Request{
+				NamespacedName: types.NamespacedName{
+					Namespace: controlPaneJoinConfig.Namespace,
+					Name:      controlPaneJoinConfig.Name,
+				},
+			},
+			objects: []runtime.Object{
+				cluster,
+				controlPaneMachine,
+				controlPaneJoinConfig,
+			},
 		},
 	}
-	result, err := k.Reconcile(request)
-	if err != nil {
-		t.Fatal(fmt.Sprintf("Failed to reconcile:\n %+v", err))
-	}
-	if result.Requeue == true {
-		t.Fatal("did not expected to requeue")
-	}
-	if result.RequeueAfter != 30*time.Second {
-		t.Fatal("expected to requeue after 30s")
-	}
+	for _, tc := range testcases {
+		t.Run(tc.name, func(t *testing.T) {
+			myclient := fake.NewFakeClientWithScheme(setupScheme(), tc.objects...)
 
-	request = ctrl.Request{
-		NamespacedName: types.NamespacedName{
-			Namespace: "default",
-			Name:      "control-plane-join-cfg",
-		},
-	}
-	result, err = k.Reconcile(request)
-	if err != nil {
-		t.Fatal(fmt.Sprintf("Failed to reconcile:\n %+v", err))
-	}
-	if result.Requeue == true {
-		t.Fatal("did not expected to requeue")
-	}
-	if result.RequeueAfter != 30*time.Second {
-		t.Fatal("expected to requeue after 30s")
+			k := &KubeadmConfigReconciler{
+				Log:             log.Log,
+				Client:          myclient,
+				KubeadmInitLock: &myInitLocker{},
+			}
+
+			result, err := k.Reconcile(tc.request)
+			if err != nil {
+				t.Fatalf("Failed to reconcile:\n %+v", err)
+			}
+			if result.Requeue == true {
+				t.Fatal("did not expect to requeue")
+			}
+			if result.RequeueAfter != 30*time.Second {
+				t.Fatal("expected to requeue after 30s")
+			}
+		})
 	}
 }
 
-func TestReconcileKubeadmConfigForInitNodesIfControlPlaneIsNotReady(t *testing.T) {
+func TestKubeadmConfigReconciler_Reconcile_GenerateCloudConfigData(t *testing.T) {
 	cluster := newCluster("cluster")
 	cluster.Status.InfrastructureReady = true
 
@@ -276,13 +292,9 @@ func TestReconcileKubeadmConfigForInitNodesIfControlPlaneIsNotReady(t *testing.T
 		controlPlaneMachine,
 		controlPlaneInitConfig,
 	}
-	myclient := fake.NewFakeClientWithScheme(setupScheme(), objects...)
+	objects = append(objects, createSecrets(t, cluster)...)
 
-	// stage secrets for certs
-	certificates, _ := certs.NewCertificates()
-	for _, secret := range certs.NewSecretsFromCertificates(cluster, &bootstrapv1.KubeadmConfig{}, certificates) {
-		_ = myclient.Create(context.Background(), secret)
-	}
+	myclient := fake.NewFakeClientWithScheme(setupScheme(), objects...)
 
 	k := &KubeadmConfigReconciler{
 		Log:             log.Log,
@@ -300,7 +312,7 @@ func TestReconcileKubeadmConfigForInitNodesIfControlPlaneIsNotReady(t *testing.T
 	if err != nil {
 		t.Fatalf("Failed to reconcile:\n %+v", err)
 	}
-	if result.Requeue == true {
+	if result.Requeue != false {
 		t.Fatal("did not expected to requeue")
 	}
 	if result.RequeueAfter != time.Duration(0) {
@@ -311,27 +323,23 @@ func TestReconcileKubeadmConfigForInitNodesIfControlPlaneIsNotReady(t *testing.T
 	if err != nil {
 		t.Fatalf("Failed to reconcile:\n %+v", err)
 	}
-
 	if cfg.Status.Ready != true {
 		t.Fatal("Expected status ready")
 	}
-
 	if cfg.Status.BootstrapData == nil {
 		t.Fatal("Expected status ready")
 	}
 
-	certs, err := k.getClusterCertificates(cluster)
+	c, err := k.getClusterCertificates(cluster)
 	if err != nil {
 		t.Fatalf("Failed to locate certs secret:\n %+v", err)
 	}
-	if err := certs.Validate(); err != nil {
+	if err := c.Validate(); err != nil {
 		t.Fatalf("Failed to validate certs: %+v", err)
 	}
-
 }
 
-// Tests for cluster with infrastructure ready, control pane ready
-func TestFailIfNotJoinConfigurationAndControlPlaneIsReady(t *testing.T) {
+func TestKubeadmConfigReconciler_Reconcile_ErrorIfAWorkerHasNoJoinConfigurationAndTheControlPlaneIsInitialized(t *testing.T) {
 	cluster := newCluster("cluster")
 	cluster.Status.InfrastructureReady = true
 	cluster.Status.ControlPlaneInitialized = true
@@ -365,7 +373,9 @@ func TestFailIfNotJoinConfigurationAndControlPlaneIsReady(t *testing.T) {
 	}
 }
 
-func TestFailIfJoinConfigurationInconsistentWithMachineRole(t *testing.T) {
+// If a controlplane has an invalid JoinConfiguration then user intervention is required.
+// TODO: Could potentially requeue instead of error.
+func TestKubeadmConfigReconciler_Reconcile_ErrorIfJoiningControlPlaneHasInvalidConfiguration(t *testing.T) {
 	cluster := newCluster("cluster")
 	cluster.Status.InfrastructureReady = true
 	cluster.Status.ControlPlaneInitialized = true
@@ -401,7 +411,8 @@ func TestFailIfJoinConfigurationInconsistentWithMachineRole(t *testing.T) {
 	}
 }
 
-func TestRequeueIfMissingControlPaneEndpointAndControlPlaneIsReady(t *testing.T) {
+// If there is no APIEndpoint but everything is ready then requeue in hopes of a new APIEndpoint showing up eventually.
+func TestKubeadmConfigReconciler_Reconcile_RequeueIfControlPlaneIsMissingAPIEndpoints(t *testing.T) {
 	cluster := newCluster("cluster")
 	cluster.Status.InfrastructureReady = true
 	cluster.Status.ControlPlaneInitialized = true
@@ -459,14 +470,8 @@ func TestReconcileIfJoinNodesAndControlPlaneIsReady(t *testing.T) {
 		controlPaneMachine,
 		controlPaneJoinConfig,
 	}
+	objects = append(objects, createSecrets(t, cluster)...)
 	myclient := fake.NewFakeClientWithScheme(setupScheme(), objects...)
-
-	// stage secrets for certs
-	certificates, _ := certs.NewCertificates()
-	for _, secret := range certs.NewSecretsFromCertificates(cluster, &bootstrapv1.KubeadmConfig{}, certificates) {
-		_ = myclient.Create(context.Background(), secret)
-	}
-
 	k := &KubeadmConfigReconciler{
 		Log:                  log.Log,
 		Client:               myclient,
@@ -856,13 +861,11 @@ func TestCACertHashesAndUnsafeCAVerifySkip(t *testing.T) {
 	workerConfigName := "worker-join-cfg"
 	workerConfig := newWorkerJoinKubeadmConfig(workerMachine)
 
-	myclient := fake.NewFakeClientWithScheme(setupScheme(), cluster, machine, workerMachine, config, workerConfig)
-
-	// stage secrets for certs
-	certificates, _ := certs.NewCertificates()
-	for _, secret := range certs.NewSecretsFromCertificates(cluster, &bootstrapv1.KubeadmConfig{}, certificates) {
-		_ = myclient.Create(context.Background(), secret)
+	objects := []runtime.Object{
+		cluster, machine, workerMachine, config, workerConfig,
 	}
+	objects = append(objects, createSecrets(t, cluster)...)
+	myclient := fake.NewFakeClientWithScheme(setupScheme(), objects...)
 
 	reconciler := KubeadmConfigReconciler{
 		Client:               myclient,
@@ -988,10 +991,24 @@ func newControlPlaneInitKubeadmConfig(machine *clusterv1.Machine, name string) *
 	return c
 }
 
+func createSecrets(t *testing.T, cluster *clusterv1.Cluster) []runtime.Object {
+	certificates, err := certs.NewCertificates()
+	if err != nil {
+		t.Fatalf("Failed to create new certificates:\n %+v", err)
+	}
+	out := []runtime.Object{}
+	for _, secret := range certs.NewSecretsFromCertificates(cluster, &bootstrapv1.KubeadmConfig{}, certificates) {
+		out = append(out, secret)
+	}
+	return out
+}
+
 func stringPtr(s string) *string {
 	return &s
 }
 
+// TODO this is not a fake but an actual client whose behavior we cannot control.
+// TODO remove this, probably when https://github.com/kubernetes-sigs/cluster-api-bootstrap-provider-kubeadm/issues/127 is closed.
 func newFakeSecretFactory() FakeSecretFactory {
 	return FakeSecretFactory{
 		client: fakeclient.NewSimpleClientset().CoreV1().Secrets(metav1.NamespaceSystem),

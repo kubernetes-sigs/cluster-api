@@ -90,6 +90,7 @@ func (r *KubeadmConfigReconciler) Reconcile(req ctrl.Request) (_ ctrl.Result, re
 	ctx := context.Background()
 	log := r.Log.WithValues("kubeadmconfig", req.NamespacedName)
 
+	// Lookup the kubeadm config
 	config := &bootstrapv1.KubeadmConfig{}
 	if err := r.Get(ctx, req.NamespacedName, config); err != nil {
 		if apierrors.IsNotFound(err) {
@@ -105,6 +106,7 @@ func (r *KubeadmConfigReconciler) Reconcile(req ctrl.Request) (_ ctrl.Result, re
 		return ctrl.Result{}, nil
 	}
 
+	// Look up the Machine that owns this KubeConfig if there is one
 	machine, err := util.GetOwnerMachine(ctx, r.Client, config.ObjectMeta)
 	if err != nil {
 		log.Error(err, "could not get owner machine")
@@ -118,15 +120,18 @@ func (r *KubeadmConfigReconciler) Reconcile(req ctrl.Request) (_ ctrl.Result, re
 
 	// Ignore machines that already have bootstrap data
 	if machine.Spec.Bootstrap.Data != nil {
+		// TODO: mark the config as ready?
 		return ctrl.Result{}, nil
 	}
 
+	// Lookup the cluster the machine is associated with
 	cluster, err := util.GetClusterFromMetadata(ctx, r.Client, machine.ObjectMeta)
 	if err != nil {
 		log.Error(err, "could not get cluster by machine metadata")
 		return ctrl.Result{}, err
 	}
 
+	// Wait patiently for the infrastructure to be ready
 	if !cluster.Status.InfrastructureReady {
 		log.Info("Infrastructure is not ready, waiting until ready.")
 		return ctrl.Result{}, nil

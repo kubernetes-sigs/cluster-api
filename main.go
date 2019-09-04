@@ -22,7 +22,7 @@ import (
 	"time"
 
 	"k8s.io/apimachinery/pkg/runtime"
-	"k8s.io/client-go/kubernetes/scheme"
+	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
 	_ "k8s.io/client-go/plugin/pkg/client/auth/gcp"
 	"k8s.io/klog"
 	"k8s.io/klog/klogr"
@@ -35,14 +35,14 @@ import (
 )
 
 var (
-	myscheme = runtime.NewScheme()
+	scheme   = runtime.NewScheme()
 	setupLog = ctrl.Log.WithName("setup")
 )
 
 func init() {
-	_ = scheme.AddToScheme(myscheme)
-	_ = bootstrapv1.AddToScheme(myscheme)
-	_ = clusterv1.AddToScheme(myscheme)
+	_ = clientgoscheme.AddToScheme(scheme)
+	_ = bootstrapv1.AddToScheme(scheme)
+	_ = clusterv1.AddToScheme(scheme)
 	// +kubebuilder:scaffold:scheme
 }
 
@@ -54,17 +54,34 @@ func main() {
 		enableLeaderElection bool
 		syncPeriod           time.Duration
 	)
-	flag.StringVar(&metricsAddr, "metrics-addr", ":8080", "The address the metric endpoint binds to.")
-	flag.BoolVar(&enableLeaderElection, "enable-leader-election", false,
-		"Enable leader election for controller manager. Enabling this will ensure there is only one active controller manager.")
-	flag.DurationVar(&syncPeriod, "sync-period", 10*time.Minute,
-		"The minimum interval at which watched resources are reconciled (e.g. 10m)")
+
+	flag.StringVar(
+		&metricsAddr,
+		"metrics-addr",
+		":8080",
+		"The address the metric endpoint binds to.",
+	)
+
+	flag.BoolVar(
+		&enableLeaderElection,
+		"enable-leader-election",
+		false,
+		"Enable leader election for controller manager. Enabling this will ensure there is only one active controller manager.",
+	)
+
+	flag.DurationVar(
+		&syncPeriod,
+		"sync-period",
+		10*time.Minute,
+		"The minimum interval at which watched resources are reconciled (e.g. 10m)",
+	)
+
 	flag.Parse()
 
 	ctrl.SetLogger(klogr.New())
 
 	mgr, err := ctrl.NewManager(ctrl.GetConfigOrDie(), ctrl.Options{
-		Scheme:             myscheme,
+		Scheme:             scheme,
 		MetricsBindAddress: metricsAddr,
 		LeaderElection:     enableLeaderElection,
 		SyncPeriod:         &syncPeriod,
@@ -77,10 +94,10 @@ func main() {
 	if err := (&controllers.KubeadmConfigReconciler{
 		Client:               mgr.GetClient(),
 		SecretsClientFactory: controllers.ClusterSecretsClientFactory{},
-		Log:                  ctrl.Log.WithName("reconciler"),
+		Log:                  ctrl.Log.WithName("KubeadmConfigReconciler"),
 		KubeadmInitLock:      locking.NewControlPlaneInitMutex(ctrl.Log.WithName("init-locker"), mgr.GetClient()),
 	}).SetupWithManager(mgr); err != nil {
-		setupLog.Error(err, "unable to create controller", "controller", "reconciler")
+		setupLog.Error(err, "unable to create controller", "controller", "KubeadmConfigReconciler")
 		os.Exit(1)
 	}
 	// +kubebuilder:scaffold:builder

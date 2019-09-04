@@ -62,7 +62,7 @@ export GO111MODULE=on
 all: manager
 
 help:  ## Display this help
-	@awk 'BEGIN {FS = ":.*##"; printf "\nUsage:\n  make \033[36m<target>\033[0m\n"} /^[a-zA-Z_-]+:.*?##/ { printf "  \033[36m%-20s\033[0m %s\n", $$1, $$2 } /^##@/ { printf "\n\033[1m%s\033[0m\n", substr($$0, 5) } ' $(MAKEFILE_LIST)
+	@awk 'BEGIN {FS = ":.*##"; printf "\nUsage:\n  make \033[36m<target>\033[0m\n"} /^[a-zA-Z_-]+:.*?##/ { printf "  \033[36m%-22s\033[0m %s\n", $$1, $$2 } /^##@/ { printf "\n\033[1m%s\033[0m\n", substr($$0, 5) } ' $(MAKEFILE_LIST)
 
 .PHONY: test
 test: generate fmt vet ## Run tests
@@ -103,11 +103,11 @@ generate: $(CONTROLLER_GEN) ## Generate code
 	$(MAKE) generate-deepcopy
 
 .PHONY: generate-deepcopy
-generate-deepcopy: $(CONTROLLER_GEN) ## Generate deepcopy files.
+generate-deepcopy: $(CONTROLLER_GEN) ## Generate deepcopy files
 	$(CONTROLLER_GEN) object:headerFile=./hack/boilerplate/boilerplate.generatego.txt paths=./api/...
 
 .PHONY: generate-manifests
-generate-manifests: $(CONTROLLER_GEN) ## Generate manifests e.g. CRD, RBAC etc.
+generate-manifests: $(CONTROLLER_GEN) ## Generate manifests e.g. CRD, RBAC etc
 	$(CONTROLLER_GEN) $(CRD_OPTIONS) rbac:roleName=manager-role webhook paths="./..." output:crd:dir=$(CRD_ROOT) output:webhook:dir=$(WEBHOOK_ROOT) output:rbac:dir=$(RBAC_ROOT)
 
 # Build controller-gen
@@ -148,7 +148,7 @@ docker-push-%:
 	$(MAKE) ARCH=$* docker-push
 
 .PHONY: docker-push-manifest
-docker-push-manifest: ## Push the fat manifest docker image.
+docker-push-manifest: ## Push the fat manifest docker image
 	## Minimum docker version 18.06.0 is required for creating and pushing manifest images.
 	docker manifest create --amend $(CONTROLLER_IMG):$(TAG) $(shell echo $(ALL_ARCH) | sed -e "s~[^ ]*~$(CONTROLLER_IMG)\-&:$(TAG)~g")
 	@for arch in $(ALL_ARCH); do docker manifest annotate --arch $${arch} ${CONTROLLER_IMG}:${TAG} ${CONTROLLER_IMG}-$${arch}:${TAG}; done
@@ -167,7 +167,7 @@ set-manifest-image:
 RELEASE_TAG := $(shell git describe --abbrev=0 2>/dev/null)
 
 .PHONY: release
-release:  ## Builds and push container images using the latest git tag for the commit.
+release:  ## Builds and push container images using the latest git tag for the commit
 	@if [ -z "${RELEASE_TAG}" ]; then echo "RELEASE_TAG is not set"; exit 1; fi
 	# Push the release image to the staging bucket first.
 	REGISTRY=$(STAGING_REGISTRY) TAG=$(RELEASE_TAG) \
@@ -180,6 +180,6 @@ release:  ## Builds and push container images using the latest git tag for the c
 	kustomize build config/default > out/bootstrap-components.yaml
 
 .PHONY: release-staging-latest
-release-staging-latest: ## Builds and push container images to the staging bucket using "latest" tag.
+release-staging-latest: ## Builds and push container images to the staging bucket using "latest" tag
 	REGISTRY=$(STAGING_REGISTRY) TAG=latest \
 		$(MAKE) docker-build-all docker-push-all

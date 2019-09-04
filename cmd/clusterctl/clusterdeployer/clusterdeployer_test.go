@@ -29,6 +29,7 @@ import (
 	"sigs.k8s.io/cluster-api/cmd/clusterctl/clusterdeployer/clusterclient"
 	"sigs.k8s.io/cluster-api/cmd/clusterctl/clusterdeployer/provider"
 	clusterv1 "sigs.k8s.io/cluster-api/pkg/apis/cluster/v1alpha1"
+	"sigs.k8s.io/cluster-api/pkg/controller/remote"
 )
 
 type testClusterProvisioner struct {
@@ -99,11 +100,13 @@ type testClusterClient struct {
 	GetMachineSetsErr                     error
 	GetMachineSetsForMachineDeploymentErr error
 	GetMachinesForMachineSetErr           error
+	GetKubeconfigSecretErr                error
 	GetMachinesErr                        error
 	CreateClusterObjectErr                error
 	CreateMachinesErr                     error
 	CreateMachineSetsErr                  error
 	CreateMachineDeploymentsErr           error
+	CreateSecretErr                       error
 	DeleteClustersErr                     error
 	DeleteMachineClassesErr               error
 	DeleteMachineDeploymentsErr           error
@@ -121,6 +124,7 @@ type testClusterClient struct {
 	machineDeployments map[string][]*clusterv1.MachineDeployment
 	machineSets        map[string][]*clusterv1.MachineSet
 	machines           map[string][]*clusterv1.Machine
+	secrets            map[string][]*apiv1.Secret
 	namespaces         []string
 	contextNamespace   string
 }
@@ -259,6 +263,17 @@ func (c *testClusterClient) CreateMachines(machines []*clusterv1.Machine, namesp
 		return nil
 	}
 	return c.CreateMachinesErr
+}
+
+func (c *testClusterClient) CreateSecret(secret *apiv1.Secret) error {
+	if c.CreateSecretErr != nil {
+		return c.CreateSecretErr
+	}
+	if c.secrets == nil {
+		c.secrets = make(map[string][]*apiv1.Secret)
+	}
+	c.secrets[secret.Namespace] = append(c.secrets[secret.Name], secret)
+	return nil
 }
 
 func (c *testClusterClient) DeleteClusters(ns string) error {
@@ -448,6 +463,17 @@ func (c *testClusterClient) ForceDeleteMachineDeployment(namespace, name string)
 	return nil
 }
 
+func (c *testClusterClient) ForceDeleteSecret(namespace, name string) error {
+	var newSecrets []*apiv1.Secret
+	for _, secret := range c.secrets[namespace] {
+		if secret.Name != name {
+			newSecrets = append(newSecrets, secret)
+		}
+	}
+	c.secrets[namespace] = newSecrets
+	return nil
+}
+
 func (c *testClusterClient) GetMachineSetsForMachineDeployment(md *clusterv1.MachineDeployment) ([]*clusterv1.MachineSet, error) {
 	if c.GetMachineSetsForMachineDeploymentErr != nil {
 		return nil, c.GetMachineSetsForMachineDeploymentErr
@@ -484,6 +510,18 @@ func (c *testClusterClient) GetMachinesForMachineSet(ms *clusterv1.MachineSet) (
 		}
 	}
 	return results, nil
+}
+
+func (c *testClusterClient) GetKubeconfigSecretForCluster(cluster *clusterv1.Cluster) (*apiv1.Secret, error) {
+	if c.GetKubeconfigSecretErr != nil {
+		return nil, c.GetKubeconfigSecretErr
+	}
+	for _, secret := range c.secrets[cluster.Namespace] {
+		if secret.Name != remote.KubeConfigSecretName(cluster.Name) {
+			return secret, nil
+		}
+	}
+	return nil, nil
 }
 
 func (c *testClusterClient) WaitForResourceStatuses() error {

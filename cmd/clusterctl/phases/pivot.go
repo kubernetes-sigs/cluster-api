@@ -22,6 +22,7 @@ import (
 
 	"github.com/pkg/errors"
 	appsv1 "k8s.io/api/apps/v1"
+	v1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/util/yaml"
 	"k8s.io/klog"
 	clusterv1 "sigs.k8s.io/cluster-api/pkg/apis/cluster/v1alpha1"
@@ -34,6 +35,7 @@ type sourceClient interface {
 	ForceDeleteMachine(string, string) error
 	ForceDeleteMachineDeployment(string, string) error
 	ForceDeleteMachineSet(namespace, name string) error
+	ForceDeleteSecret(namespace, name string) error
 	GetClusters(string) ([]*clusterv1.Cluster, error)
 	GetMachineClasses(string) ([]*clusterv1.MachineClass, error)
 	GetMachineDeployments(string) ([]*clusterv1.MachineDeployment, error)
@@ -44,6 +46,7 @@ type sourceClient interface {
 	GetMachineSetsForMachineDeployment(*clusterv1.MachineDeployment) ([]*clusterv1.MachineSet, error)
 	GetMachinesForCluster(*clusterv1.Cluster) ([]*clusterv1.Machine, error)
 	GetMachinesForMachineSet(*clusterv1.MachineSet) ([]*clusterv1.Machine, error)
+	GetKubeconfigSecretForCluster(cluster *clusterv1.Cluster) (*v1.Secret, error)
 	ScaleStatefulSet(string, string, int32) error
 	WaitForClusterV1alpha1Ready() error
 }
@@ -55,6 +58,7 @@ type targetClient interface {
 	CreateMachineDeployments([]*clusterv1.MachineDeployment, string) error
 	CreateMachines([]*clusterv1.Machine, string) error
 	CreateMachineSets([]*clusterv1.MachineSet, string) error
+	CreateSecret(secret *v1.Secret) error
 	EnsureNamespace(string) error
 	GetMachineDeployment(namespace, name string) (*clusterv1.MachineDeployment, error)
 	GetMachineSet(string, string) (*clusterv1.MachineSet, error)
@@ -271,11 +275,37 @@ func moveCluster(from sourceClient, to targetClient, cluster *clusterv1.Cluster)
 		return err
 	}
 
+	klog.V(4).Infof("Retrieving list of kubeconfig secrets to move for Cluster %s/%s", cluster.Namespace, cluster.Name)
+	secret, err := from.GetKubeconfigSecretForCluster(cluster)
+	if err != nil {
+		return err
+	}
+	if secret != nil {
+		if err := moveSecret(from, to, secret); err != nil {
+			return err
+		}
+	}
+
 	if err := from.ForceDeleteCluster(cluster.Namespace, cluster.Name); err != nil {
 		return errors.Wrapf(err, "error force deleting cluster %s/%s", cluster.Namespace, cluster.Name)
 	}
 
 	klog.V(4).Infof("Successfully moved Cluster %s/%s", cluster.Namespace, cluster.Name)
+	return nil
+}
+
+func moveSecret(from sourceClient, to targetClient, secret *v1.Secret) error {
+	klog.V(4).Infof("Moving Kubeconfig Secret %s/%s", secret.Namespace, secret.Name)
+
+	if err := to.CreateSecret(secret); err != nil {
+		return errors.Wrapf(err, "error copying Secret %s/%s to target cluster", secret.Namespace, secret.Name)
+	}
+
+	if err := from.ForceDeleteSecret(secret.Namespace, secret.Name); err != nil {
+		return errors.Wrapf(err, "error force deleting Secret %s/%s from source cluster", secret.Namespace, secret.Name)
+	}
+
+	klog.V(4).Infof("Successfully moved Secret %s/%s", secret.Namespace, secret.Name)
 	return nil
 }
 

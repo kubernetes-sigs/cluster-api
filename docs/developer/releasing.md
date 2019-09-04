@@ -39,27 +39,19 @@
 
 For version v0.x.y:
 
-1. We will target a branch called `release-0.x`.  If this is `v0.x.0` then we'll create a branch from master using `git push origin master:release-0.x`, otherwise simply checkout the existing branch `git checkout release-0.x`
-2. Make two changes:
-   1. Change [the cluster api controller manager image tag][managerimg] from `:latest` to whatever version is being released
-   1. Change the `CONTROLLER_IMG` variable in the [Makefile][makefile] to the version being released (Note that we do not release the example-provider image, so we don't tag that)
-3. Commit it using `git commit -m "Release v0.x.y"`
-4. Submit a PR to the `release-0.x` branch, e.g. `git push $USER; hub pull-request -b release-0.x`
-5. Get the pull request merged
-6. Switch to the release branch and update to pick up the commit.  (e.g. `git checkout release 0.x && git pull`).  
-7. Create an annotated tag from this same commit `git tag -a v0.x.y -m v0.x.y` and push the tag to the github repository `git push origin v0.x.y`
-8. Build and push the container images and fat manifest with `REGISTRY="gcr.io/k8s-staging-cluster-api" make all-push` (on the 0.1 release branch, we do `make docker-push`)
-9. Follow the [Image Promotion process](https://github.com/kubernetes/k8s.io/tree/master/k8s.gcr.io#image-promoter) to promote the image from the staging repo to `k8s.gcr.io/cluster-api`
-10. Create a release in github based on the tag created above
-11. Manually create the release notes by going through the merged PRs since the last release
-
-[managerimg]: https://github.com/kubernetes-sigs/cluster-api/blob/fab4c07ea9fb0f124a5abe3dd7fcfffc23f2a1b3/config/default/manager_image_patch.yaml
-[makefile]: https://github.com/kubernetes-sigs/cluster-api/blob/fab4c07ea9fb0f124a5abe3dd7fcfffc23f2a1b3/Makefile
+1. Create an annotated tag `git tag -a v0.x.y -m v0.x.y`
+    1. To use your GPG signature when pushing the tag, use `git tag -s [...]` instead
+1. Push the tag to the GitHub repository `git push origin v0.x.y`
+    1. NB: `origin` should be the name of the remote pointing to `github.com/kubernetes-sigs/cluster-api`
+1. Run `make release` to build artifacts and push the images to the staging bucket
+1. Follow the [Image Promotion process](https://github.com/kubernetes/k8s.io/tree/master/k8s.gcr.io#image-promoter) to promote the image from the staging repo to `k8s.gcr.io/cluster-api`
+1. Create a release in GitHub based on the tag created above
+1. Manually create the release notes by going through the merged PRs since the last release
 
 ### Permissions
 
 Releasing requires a particular set of permissions.
 
-* push access to the gcr bucket
-* tag push access to the github repository
-* release creation
+* Push access to the staging gcr bucket
+* Tag push access to the GitHub repository
+* GitHub Release creation access

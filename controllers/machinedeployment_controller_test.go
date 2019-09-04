@@ -42,10 +42,12 @@ var _ = Describe("MachineDeployment Reconciler", func() {
 	namespace := &corev1.Namespace{ObjectMeta: metav1.ObjectMeta{Name: "md-test"}}
 
 	BeforeEach(func() {
+		By("Creating the namespace")
 		Expect(k8sClient.Create(ctx, namespace)).NotTo(HaveOccurred())
 	})
 
 	AfterEach(func() {
+		By("Deleting the namespace")
 		Expect(k8sClient.Delete(ctx, namespace)).NotTo(HaveOccurred())
 	})
 
@@ -113,13 +115,19 @@ var _ = Describe("MachineDeployment Reconciler", func() {
 		infraTmpl.SetAPIVersion("infrastructure.cluster.x-k8s.io/v1alpha2")
 		infraTmpl.SetName("md-template")
 		infraTmpl.SetNamespace(namespace.Name)
+		By("Creating the infrastructure template")
 		Expect(k8sClient.Create(ctx, infraTmpl)).To(BeNil())
 
 		// Create the MachineDeployment object and expect Reconcile to be called.
+		By("Creating the MachineDeployment")
 		Expect(k8sClient.Create(ctx, deployment)).To(BeNil())
-		defer k8sClient.Delete(ctx, deployment)
+		defer func() {
+			By("Deleting the MachineDeployment")
+			k8sClient.Delete(ctx, deployment)
+		}()
 
 		// Verify that the MachineSet was created.
+		By("Verifying the MachineSet was created")
 		machineSets := &clusterv1.MachineSetList{}
 		Eventually(func() int {
 			if err := k8sClient.List(ctx, machineSets, msListOpts...); err != nil {
@@ -135,6 +143,7 @@ var _ = Describe("MachineDeployment Reconciler", func() {
 		//
 		// Delete firstMachineSet and expect Reconcile to be called to replace it.
 		//
+		By("Deleting the initial MachineSet")
 		Expect(k8sClient.Delete(ctx, &firstMachineSet)).To(BeNil())
 		Eventually(func() bool {
 			if err := k8sClient.List(ctx, machineSets, msListOpts...); err != nil {
@@ -152,6 +161,7 @@ var _ = Describe("MachineDeployment Reconciler", func() {
 		// Scale the MachineDeployment and expect Reconcile to be called.
 		//
 		secondMachineSet := machineSets.Items[0]
+		By("Scaling the MachineDeployment to 3 replicas")
 		err := updateMachineDeployment(k8sClient, deployment, func(d *clusterv1.MachineDeployment) { d.Spec.Replicas = pointer.Int32Ptr(3) })
 		Expect(err).ToNot(HaveOccurred())
 		Eventually(func() int {
@@ -165,6 +175,7 @@ var _ = Describe("MachineDeployment Reconciler", func() {
 		//
 		// Update a MachineDeployment, expect Reconcile to be called and a new MachineSet to appear.
 		//
+		By("Setting a label on the MachineDeployment")
 		err = updateMachineDeployment(k8sClient, deployment, func(d *clusterv1.MachineDeployment) { d.Spec.Template.Labels["updated"] = "true" })
 		Expect(err).ToNot(HaveOccurred())
 		Eventually(func() int {
@@ -175,6 +186,7 @@ var _ = Describe("MachineDeployment Reconciler", func() {
 		}, timeout).Should(BeEquivalentTo(2))
 
 		// Verify that all the MachineSets have the expected OwnerRef.
+		By("Verifying MachineSet owner references")
 		Eventually(func() bool {
 			if err := k8sClient.List(ctx, machineSets, msListOpts...); err != nil {
 				return false
@@ -187,13 +199,30 @@ var _ = Describe("MachineDeployment Reconciler", func() {
 			return true
 		}, timeout).Should(BeTrue())
 
+		By("Locating the newest MachineSet")
+		var thirdMachineSet *clusterv1.MachineSet
+		for i := range machineSets.Items {
+			ms := &machineSets.Items[i]
+			if ms.UID != secondMachineSet.UID {
+				thirdMachineSet = ms
+				break
+			}
+		}
+		Expect(thirdMachineSet).NotTo(BeNil())
+
+		By("Verifying the initial MachineSet is deleted")
 		Eventually(func() int {
 			// Set the all non-deleted machines as ready with a NodeRef, so the MachineSet controller can proceed
 			// to properly set AvailableReplicas.
 			machines := &clusterv1.MachineList{}
 			Expect(k8sClient.List(ctx, machines, client.InNamespace(namespace.Name))).NotTo(HaveOccurred())
 			for _, m := range machines.Items {
+				// Skip over deleted Machines
 				if !m.DeletionTimestamp.IsZero() {
+					continue
+				}
+				// Skip over Machines controlled by other (previous) MachineSets
+				if !metav1.IsControlledBy(&m, thirdMachineSet) {
 					continue
 				}
 				fakeInfrastructureRefReady(m.Spec.InfrastructureRef, infraResource)

@@ -43,8 +43,8 @@ import (
 )
 
 var (
-	// controllerKind contains the schema.GroupVersionKind for this controller type.
-	controllerKind = clusterv1.GroupVersion.WithKind("MachineSet")
+	// machineSetKind contains the schema.GroupVersionKind for the MachineSet type.
+	machineSetKind = clusterv1.GroupVersion.WithKind("MachineSet")
 
 	// stateConfirmationTimeout is the amount of time allowed to wait for desired state.
 	stateConfirmationTimeout = 10 * time.Second
@@ -243,7 +243,7 @@ func (r *MachineSetReconciler) syncReplicas(ms *clusterv1.MachineSet, machines [
 	if diff < 0 {
 		diff *= -1
 		klog.Infof("Too few replicas for %v %s/%s, need %d, creating %d",
-			controllerKind, ms.Namespace, ms.Name, *(ms.Spec.Replicas), diff)
+			machineSetKind, ms.Namespace, ms.Name, *(ms.Spec.Replicas), diff)
 
 		var machineList []*clusterv1.Machine
 		var errstrings []string
@@ -310,7 +310,7 @@ func (r *MachineSetReconciler) syncReplicas(ms *clusterv1.MachineSet, machines [
 		return r.waitForMachineCreation(machineList)
 	} else if diff > 0 {
 		klog.Infof("Too many replicas for %v %s/%s, need %d, deleting %d",
-			controllerKind, ms.Namespace, ms.Name, *(ms.Spec.Replicas), diff)
+			machineSetKind, ms.Namespace, ms.Name, *(ms.Spec.Replicas), diff)
 
 		deletePriorityFunc, err := getDeletePriorityFunc(ms)
 		if err != nil {
@@ -370,7 +370,7 @@ func (r *MachineSetReconciler) getNewMachine(machineSet *clusterv1.MachineSet) *
 		Spec: machineSet.Spec.Template.Spec,
 	}
 	machine.ObjectMeta.GenerateName = fmt.Sprintf("%s-", machineSet.Name)
-	machine.ObjectMeta.OwnerReferences = []metav1.OwnerReference{*metav1.NewControllerRef(machineSet, controllerKind)}
+	machine.ObjectMeta.OwnerReferences = []metav1.OwnerReference{*metav1.NewControllerRef(machineSet, machineSetKind)}
 	machine.Namespace = machineSet.Namespace
 	return machine
 }
@@ -386,7 +386,7 @@ func shouldExcludeMachine(machineSet *clusterv1.MachineSet, machine *clusterv1.M
 
 // adoptOrphan sets the MachineSet as a controller OwnerReference to the Machine.
 func (r *MachineSetReconciler) adoptOrphan(machineSet *clusterv1.MachineSet, machine *clusterv1.Machine) error {
-	newRef := *metav1.NewControllerRef(machineSet, controllerKind)
+	newRef := *metav1.NewControllerRef(machineSet, machineSetKind)
 	machine.OwnerReferences = append(machine.OwnerReferences, newRef)
 	return r.Client.Update(context.Background(), machine)
 }

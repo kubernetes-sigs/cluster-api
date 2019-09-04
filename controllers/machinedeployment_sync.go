@@ -146,7 +146,7 @@ func (r *MachineDeploymentReconciler) getNewMachineSet(d *clusterv1.MachineDeplo
 			Name:            d.Name + "-" + apirand.SafeEncodeString(machineTemplateSpecHash),
 			Namespace:       d.Namespace,
 			Labels:          newMSTemplate.Labels,
-			OwnerReferences: []metav1.OwnerReference{*metav1.NewControllerRef(d, controllerKind)},
+			OwnerReferences: []metav1.OwnerReference{*metav1.NewControllerRef(d, machineDeploymentKind)},
 		},
 		Spec: clusterv1.MachineSetSpec{
 			Replicas:        new(int32),

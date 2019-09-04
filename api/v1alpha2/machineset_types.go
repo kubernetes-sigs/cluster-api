@@ -26,7 +26,8 @@ import (
 	capierrors "sigs.k8s.io/cluster-api/errors"
 )
 
-/// [MachineSetSpec]
+// ANCHOR: MachineSetSpec
+
 // MachineSetSpec defines the desired state of MachineSet
 type MachineSetSpec struct {
 	// Replicas is the number of desired replicas.
@@ -58,9 +59,10 @@ type MachineSetSpec struct {
 	Template MachineTemplateSpec `json:"template,omitempty"`
 }
 
-/// [MachineSetSpec]
+// ANCHOR_END: MachineSetSpec
 
-/// [MachineTemplateSpec]
+// ANCHOR: MachineTemplateSpec
+
 // MachineTemplateSpec describes the data needed to create a Machine from a template
 type MachineTemplateSpec struct {
 	// Standard object's metadata.
@@ -74,7 +76,7 @@ type MachineTemplateSpec struct {
 	Spec MachineSpec `json:"spec,omitempty"`
 }
 
-/// [MachineTemplateSpec]
+// ANCHOR_END: MachineTemplateSpec
 
 // MachineSetDeletePolicy defines how priority is assigned to nodes to delete when
 // downscaling a MachineSet. Defaults to "Random".
@@ -100,7 +102,8 @@ const (
 	OldestMachineSetDeletePolicy MachineSetDeletePolicy = "Oldest"
 )
 
-/// [MachineSetStatus]
+// ANCHOR: MachineSetStatus
+
 // MachineSetStatus defines the observed state of MachineSet
 type MachineSetStatus struct {
 	// Selector is the same as the label selector but in the string format to avoid introspection
@@ -152,6 +155,8 @@ type MachineSetStatus struct {
 	ErrorMessage *string `json:"errorMessage,omitempty"`
 }
 
+// ANCHOR_END: MachineSetStatus
+
 // Validate validates the MachineSet fields.
 func (m *MachineSet) Validate() field.ErrorList {
 	errors := field.ErrorList{}
@@ -195,15 +200,12 @@ func (m *MachineSet) Default() {
 	}
 }
 
-/// [MachineSetStatus]
-
 // +kubebuilder:object:root=true
 // +kubebuilder:resource:path=machinesets,shortName=ms,scope=Namespaced,categories=cluster-api
 // +kubebuilder:storageversion
 // +kubebuilder:subresource:status
 // +kubebuilder:subresource:scale:specpath=.spec.replicas,statuspath=.status.replicas,selectorpath=.status.selector
 
-/// [MachineSet]
 // MachineSet is the Schema for the machinesets API
 type MachineSet struct {
 	metav1.TypeMeta   `json:",inline"`
@@ -212,8 +214,6 @@ type MachineSet struct {
 	Spec   MachineSetSpec   `json:"spec,omitempty"`
 	Status MachineSetStatus `json:"status,omitempty"`
 }
-
-/// [MachineSet]
 
 // +kubebuilder:object:root=true
 

@@ -2,30 +2,11 @@
 
 ## TL;DR:
 
-### Users
-
-- We follow [Semantic Versioning (semver)](https://semver.org)
-- Use releases with your dependency management to ensure that you get
-  compatible code
-- The master branch contains all the latest code, some of which may break
-  compatibility (so "normal" `go get` is not recommended)
-
-### Contributors
-
-- All code PR must be labeled with :bug: (patch fixes), :sparkles:
-  (backwards-compatible features), or :warning: (breaking changes)
-
-- Breaking changes will find their way into the next major release, other
-  changes will go into an semi-immediate patch or minor release
-
-- Please *try* to avoid breaking changes when you can.  They make users
-  face difficult decisions ("when do I go through the pain of
-  upgrading?"), and make life hard for maintainers and contributors
-  (dealing with differences on stable branches).
-
-### Mantainers
-
-Don't be lazy, read the rest of this doc :-)
+- We follow [Semantic Versioning (semver)](https://semver.org/).
+- Cluster API release cadence is Kubernetes Release + 6 weeks.
+- The cadence is subject to change if necessary, refer to the [Milestones](https://github.com/kubernetes-sigs/cluster-api/milestones) page for up-to-date information.
+- The _master_ branch is where development happens, this might include breaking changes.
+- The _release-X_ branches contain stable, backward compatible code. A new _release-X_ branch is created at every major (X) release.
 
 ## Overview
 

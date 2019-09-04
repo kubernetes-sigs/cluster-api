@@ -276,12 +276,8 @@ clean-book: ## Remove all generated GitBook files
 
 .PHONY: diagrams
 diagrams: ## Build proposal diagrams
-	$(MAKE) -C docs/proposals/images
-
-.PHONY: book
-book: ## Build the GitBook
-	./hack/build-gitbook.sh
+	$(MAKE) -C docs diagrams
 
 .PHONY: serve-book
-serve-book: ## Build and serve the GitBook with live-reloading enabled
-	(cd ./docs/book && gitbook serve --live --open)
+serve-book: ## Build and serve the book with live-reloading enabled
+	(cd ./docs/book && mdbook serve)

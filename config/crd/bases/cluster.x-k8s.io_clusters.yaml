@@ -39,7 +39,7 @@ spec:
         metadata:
           type: object
         spec:
-          description: / [ClusterSpec] ClusterSpec defines the desired state of Cluster
+          description: ClusterSpec defines the desired state of Cluster
           properties:
             clusterNetwork:
               description: Cluster network configuration
@@ -113,15 +113,13 @@ spec:
               type: object
           type: object
         status:
-          description: / [ClusterStatus] ClusterStatus defines the observed state
-            of Cluster
+          description: ClusterStatus defines the observed state of Cluster
           properties:
             apiEndpoints:
               description: APIEndpoints represents the endpoints to communicate with
                 the control plane.
               items:
-                description: / [APIEndpoint] APIEndpoint represents a reachable Kubernetes
-                  API endpoint.
+                description: APIEndpoint represents a reachable Kubernetes API endpoint.
                 properties:
                   host:
                     description: The hostname on which the API server is serving.

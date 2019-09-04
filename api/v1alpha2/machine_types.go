@@ -33,7 +33,8 @@ const (
 	MachineControlPlaneLabelName = "cluster.x-k8s.io/control-plane"
 )
 
-/// [MachineSpec]
+// ANCHOR: MachineSpec
+
 // MachineSpec defines the desired state of Machine
 type MachineSpec struct {
 	// ObjectMeta will autopopulate the Node created. Use this to
@@ -69,9 +70,10 @@ type MachineSpec struct {
 	ProviderID *string `json:"providerID,omitempty"`
 }
 
-/// [MachineSpec]
+// ANCHOR_END: MachineSpec
 
-/// [MachineStatus]
+// ANCHOR: MachineStatus
+
 // MachineStatus defines the observed state of Machine
 type MachineStatus struct {
 	// NodeRef will point to the corresponding Node if it exists.
@@ -146,6 +148,8 @@ type MachineStatus struct {
 	InfrastructureReady bool `json:"infrastructureReady"`
 }
 
+// ANCHOR_END: MachineStatus
+
 // SetTypedPhase sets the Phase field to the string representation of MachinePhase.
 func (m *MachineStatus) SetTypedPhase(p MachinePhase) {
 	m.Phase = string(p)
@@ -169,9 +173,8 @@ func (m *MachineStatus) GetTypedPhase() MachinePhase {
 	}
 }
 
-/// [MachineStatus]
+// ANCHOR: Bootstrap
 
-/// [Bootstrap]
 // Bootstrap capsulates fields to configure the Machine’s bootstrapping mechanism.
 type Bootstrap struct {
 	// ConfigRef is a reference to a bootstrap provider-specific resource
@@ -187,7 +190,7 @@ type Bootstrap struct {
 	Data *string `json:"data,omitempty"`
 }
 
-/// [Bootstrap]
+// ANCHOR_END: Bootstrap
 
 // +kubebuilder:object:root=true
 // +kubebuilder:resource:path=machines,shortName=ma,scope=Namespaced,categories=cluster-api
@@ -197,7 +200,6 @@ type Bootstrap struct {
 // +kubebuilder:printcolumn:name="Phase",type="string",JSONPath=".status.phase",description="Machine status such as Terminating/Pending/Running/Failed etc"
 // +kubebuilder:printcolumn:name="NodeName",type="string",JSONPath=".status.nodeRef.name",description="Node name associated with this machine",priority=1
 
-/// [Machine]
 // Machine is the Schema for the machines API
 type Machine struct {
 	metav1.TypeMeta   `json:",inline"`
@@ -206,8 +208,6 @@ type Machine struct {
 	Spec   MachineSpec   `json:"spec,omitempty"`
 	Status MachineStatus `json:"status,omitempty"`
 }
-
-/// [Machine]
 
 // +kubebuilder:object:root=true
 

@@ -55,8 +55,8 @@ const (
 
 // ClusterReconciler reconciles a Cluster object
 type ClusterReconciler struct {
-	client.Client
-	Log logr.Logger
+	Client client.Client
+	Log    logr.Logger
 
 	controller       controller.Controller
 	recorder         record.EventRecorder
@@ -80,7 +80,7 @@ func (r *ClusterReconciler) Reconcile(req ctrl.Request) (_ ctrl.Result, reterr e
 
 	// Fetch the Cluster instance.
 	cluster := &clusterv1.Cluster{}
-	if err := r.Get(ctx, req.NamespacedName, cluster); err != nil {
+	if err := r.Client.Get(ctx, req.NamespacedName, cluster); err != nil {
 		if apierrors.IsNotFound(err) {
 			// Object not found, return.  Created objects are automatically garbage collected.
 			// For additional cleanup logic use finalizers.
@@ -92,7 +92,7 @@ func (r *ClusterReconciler) Reconcile(req ctrl.Request) (_ ctrl.Result, reterr e
 	}
 
 	// Initialize the patch helper.
-	patchHelper, err := patch.NewHelper(cluster, r)
+	patchHelper, err := patch.NewHelper(cluster, r.Client)
 	if err != nil {
 		return ctrl.Result{}, err
 	}
@@ -178,7 +178,7 @@ func (r *ClusterReconciler) reconcileDelete(ctx context.Context, cluster *cluste
 			gvk := child.GetObjectKind().GroupVersionKind().String()
 
 			klog.Infof("Cluster %s/%s: deleting child %s %s", cluster.Namespace, cluster.Name, gvk, accessor.GetName())
-			if err := r.Delete(context.Background(), child); err != nil {
+			if err := r.Client.Delete(context.Background(), child); err != nil {
 				err = errors.Wrapf(err, "error deleting cluster %s/%s: failed to delete %s %s", cluster.Namespace, cluster.Name, gvk, accessor.GetName())
 				klog.Errorf(err.Error())
 				errs = append(errs, err)
@@ -205,7 +205,7 @@ func (r *ClusterReconciler) reconcileDelete(ctx context.Context, cluster *cluste
 		default:
 			// Issue a deletion request for the infrastructure object.
 			// Once it's been deleted, the cluster will get processed again.
-			if err := r.Delete(ctx, obj); err != nil {
+			if err := r.Client.Delete(ctx, obj); err != nil {
 				return ctrl.Result{}, errors.Wrapf(err,
 					"failed to delete %v %q for Cluster %q in namespace %q",
 					obj.GroupVersionKind(), obj.GetName(), cluster.Name, cluster.Namespace)

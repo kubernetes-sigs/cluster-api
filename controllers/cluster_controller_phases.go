@@ -90,7 +90,7 @@ func (r *ClusterReconciler) reconcileExternal(ctx context.Context, cluster *clus
 
 	if !util.HasOwnerRef(obj.GetOwnerReferences(), ownerRef) {
 		obj.SetOwnerReferences(util.EnsureOwnerRef(obj.GetOwnerReferences(), ownerRef))
-		if err := r.Patch(ctx, obj, objPatch); err != nil {
+		if err := r.Client.Patch(ctx, obj, objPatch); err != nil {
 			return nil, errors.Wrapf(err,
 				"failed to set OwnerReference on %v %q for Cluster %q in namespace %q",
 				obj.GroupVersionKind(), ref.Name, cluster.Name, cluster.Namespace)

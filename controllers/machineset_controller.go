@@ -62,8 +62,8 @@ var (
 
 // MachineSetReconciler reconciles a MachineSet object
 type MachineSetReconciler struct {
-	client.Client
-	Log logr.Logger
+	Client client.Client
+	Log    logr.Logger
 
 	recorder record.EventRecorder
 }
@@ -88,7 +88,7 @@ func (r *MachineSetReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) 
 	_ = r.Log.WithValues("machineset", req.NamespacedName)
 
 	machineSet := &clusterv1.MachineSet{}
-	if err := r.Get(ctx, req.NamespacedName, machineSet); err != nil {
+	if err := r.Client.Get(ctx, req.NamespacedName, machineSet); err != nil {
 		if apierrors.IsNotFound(err) {
 			// Object not found, return. Created objects are automatically garbage collected.
 			// For additional cleanup logic use finalizers.

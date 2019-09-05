@@ -85,7 +85,7 @@ func (r *KubeadmConfigReconciler) SetupWithManager(mgr ctrl.Manager) error {
 		Complete(r)
 }
 
-// Reconcile TODO
+// Reconcile handles KubeadmConfig events
 func (r *KubeadmConfigReconciler) Reconcile(req ctrl.Request) (_ ctrl.Result, rerr error) {
 	ctx := context.Background()
 	log := r.Log.WithValues("kubeadmconfig", req.NamespacedName)
@@ -380,7 +380,7 @@ func (r *KubeadmConfigReconciler) ClusterToKubeadmConfigs(o handler.MapObject) [
 	return result
 }
 
-// reconcileDiscovery ensure that config.JoinConfiguration.Discovery is properly set for the joining node.
+// reconcileDiscovery ensures that config.JoinConfiguration.Discovery is properly set for the joining node.
 // The implementation func respect user provided discovery configurations, but in case some of them are missing, a valid BootstrapToken object
 // is automatically injected into config.JoinConfiguration.Discovery.
 // This allows to simplify configuration UX, by providing the option to delegate to CABPK the configuration of kubeadm join discovery.
@@ -398,7 +398,6 @@ func (r *KubeadmConfigReconciler) reconcileDiscovery(cluster *clusterv1.Cluster,
 	}
 
 	// if BootstrapToken already contains an APIServerEndpoint, respect it; otherwise inject the APIServerEndpoint endpoint defined in cluster status
-	//TODO(fp) might be we want to validate user provided APIServerEndpoint and warn/error if it doesn't match the api endpoint defined at cluster level
 	apiServerEndpoint := config.Spec.JoinConfiguration.Discovery.BootstrapToken.APIServerEndpoint
 	if apiServerEndpoint == "" {
 		if len(cluster.Status.APIEndpoints) == 0 {

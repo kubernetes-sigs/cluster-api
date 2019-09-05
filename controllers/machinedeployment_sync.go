@@ -110,7 +110,7 @@ func (r *MachineDeploymentReconciler) getNewMachineSet(d *clusterv1.MachineDeplo
 		minReadySecondsNeedsUpdate := msCopy.Spec.MinReadySeconds != *d.Spec.MinReadySeconds
 		if annotationsUpdated || minReadySecondsNeedsUpdate {
 			msCopy.Spec.MinReadySeconds = *d.Spec.MinReadySeconds
-			return nil, r.Update(context.Background(), msCopy)
+			return nil, r.Client.Update(context.Background(), msCopy)
 		}
 
 		// Apply revision annotation from existingNewMS if it is missing from the deployment.
@@ -175,7 +175,7 @@ func (r *MachineDeploymentReconciler) getNewMachineSet(d *clusterv1.MachineDeplo
 	// hash collisions. If there is any other error, we need to report it in the status of
 	// the Deployment.
 	alreadyExists := false
-	err = r.Create(context.Background(), &newMS)
+	err = r.Client.Create(context.Background(), &newMS)
 	createdMS := &newMS
 	switch {
 	// We may end up hitting this due to a slow cache or a fast resync of the Deployment.
@@ -183,7 +183,7 @@ func (r *MachineDeploymentReconciler) getNewMachineSet(d *clusterv1.MachineDeplo
 		alreadyExists = true
 
 		ms := &clusterv1.MachineSet{}
-		msErr := r.Get(context.Background(), client.ObjectKey{Namespace: newMS.Namespace, Name: newMS.Name}, ms)
+		msErr := r.Client.Get(context.Background(), client.ObjectKey{Namespace: newMS.Namespace, Name: newMS.Name}, ms)
 		if msErr != nil {
 			return nil, msErr
 		}
@@ -341,7 +341,7 @@ func (r *MachineDeploymentReconciler) syncDeploymentStatus(allMSs []*clusterv1.M
 
 	patch := client.MergeFrom(d.DeepCopy())
 	d.Status = newStatus
-	return r.Status().Patch(context.Background(), d, patch)
+	return r.Client.Status().Patch(context.Background(), d, patch)
 }
 
 // calculateStatus calculates the latest status for the provided deployment by looking into the provided machine sets.
@@ -413,7 +413,7 @@ func (r *MachineDeploymentReconciler) scaleMachineSetOperation(ms *clusterv1.Mac
 		*(ms.Spec.Replicas) = newScale
 		mdutil.SetReplicasAnnotations(ms, *(deployment.Spec.Replicas), *(deployment.Spec.Replicas)+mdutil.MaxSurge(*deployment))
 
-		err = r.Patch(context.Background(), ms, patch)
+		err = r.Client.Patch(context.Background(), ms, patch)
 		if err != nil {
 			r.recorder.Eventf(deployment, corev1.EventTypeWarning, "FailedScale", "Failed to scale MachineSet %q: %v", ms.Name, err)
 		} else if sizeNeedsUpdate {
@@ -460,7 +460,7 @@ func (r *MachineDeploymentReconciler) cleanupDeployment(oldMSs []*clusterv1.Mach
 		}
 
 		klog.V(4).Infof("Trying to cleanup machine set %q for deployment %q", ms.Name, deployment.Name)
-		if err := r.Delete(context.Background(), ms); err != nil && !apierrors.IsNotFound(err) {
+		if err := r.Client.Delete(context.Background(), ms); err != nil && !apierrors.IsNotFound(err) {
 			// Return error instead of aggregating and continuing DELETEs on the theory
 			// that we may be overloading the api server.
 			r.recorder.Eventf(deployment, corev1.EventTypeWarning, "FailedDelete", "Failed to delete MachineSet %q: %v", ms.Name, err)

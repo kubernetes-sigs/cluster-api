@@ -51,8 +51,8 @@ var (
 
 // MachineDeploymentReconciler reconciles a MachineDeployment object
 type MachineDeploymentReconciler struct {
-	client.Client
-	Log logr.Logger
+	Client client.Client
+	Log    logr.Logger
 
 	recorder record.EventRecorder
 }
@@ -78,7 +78,7 @@ func (r *MachineDeploymentReconciler) Reconcile(req ctrl.Request) (ctrl.Result, 
 
 	// Fetch the MachineDeployment instance
 	d := &clusterv1.MachineDeployment{}
-	if err := r.Get(ctx, req.NamespacedName, d); err != nil {
+	if err := r.Client.Get(ctx, req.NamespacedName, d); err != nil {
 		if apierrors.IsNotFound(err) {
 			// Object not found, return.  Created objects are automatically garbage collected.
 			// For additional cleanup logic use finalizers.
@@ -111,7 +111,7 @@ func (r *MachineDeploymentReconciler) reconcile(ctx context.Context, d *clusterv
 		if d.Status.ObservedGeneration < d.Generation {
 			patch := client.MergeFrom(d.DeepCopy())
 			d.Status.ObservedGeneration = d.Generation
-			if err := r.Status().Patch(ctx, d, patch); err != nil {
+			if err := r.Client.Status().Patch(ctx, d, patch); err != nil {
 				klog.Warningf("Failed to patch status for MachineDeployment %q: %v", d.Name, err)
 				return ctrl.Result{}, err
 			}

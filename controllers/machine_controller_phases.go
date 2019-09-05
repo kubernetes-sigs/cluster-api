@@ -98,7 +98,7 @@ func (r *MachineReconciler) reconcileExternal(ctx context.Context, m *clusterv1.
 
 	if !util.HasOwnerRef(obj.GetOwnerReferences(), machineOwnerRef) {
 		obj.SetOwnerReferences(util.EnsureOwnerRef(obj.GetOwnerReferences(), machineOwnerRef))
-		if err := r.Patch(ctx, obj, objPatch); err != nil {
+		if err := r.Client.Patch(ctx, obj, objPatch); err != nil {
 			return nil, errors.Wrapf(err,
 				"failed to set OwnerReference on %v %q for Machine %q in namespace %q",
 				obj.GroupVersionKind(), ref.Name, m.Name, m.Namespace)
@@ -247,7 +247,7 @@ func (r *MachineReconciler) reconcileClusterStatus(ctx context.Context, cluster 
 	// set the Status.ControlPlaneInitialized on the Cluster.
 	if util.IsControlPlaneMachine(m) && m.Status.NodeRef != nil {
 		if !cluster.Status.ControlPlaneInitialized {
-			patchHelper, err := patch.NewHelper(cluster, r)
+			patchHelper, err := patch.NewHelper(cluster, r.Client)
 			if err != nil {
 				return errors.Wrapf(err, "failed to create patch helper for Cluster %q in namespace %q",
 					cluster.Name, cluster.Namespace)

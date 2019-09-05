@@ -54,8 +54,8 @@ var (
 
 // MachineReconciler reconciles a Machine object
 type MachineReconciler struct {
-	client.Client
-	Log logr.Logger
+	Client client.Client
+	Log    logr.Logger
 
 	controller       controller.Controller
 	recorder         record.EventRecorder
@@ -91,7 +91,7 @@ func (r *MachineReconciler) Reconcile(req ctrl.Request) (_ ctrl.Result, reterr e
 	}
 
 	// Initialize the patch helper
-	patchHelper, err := patch.NewHelper(m, r)
+	patchHelper, err := patch.NewHelper(m, r.Client)
 	if err != nil {
 		return ctrl.Result{}, err
 	}
@@ -310,7 +310,7 @@ func (r *MachineReconciler) reconcileDeleteExternal(ctx context.Context, m *clus
 
 	// Issue a delete request for any object that has been found.
 	for _, obj := range objects {
-		if err := r.Delete(ctx, obj); err != nil && !apierrors.IsNotFound(err) {
+		if err := r.Client.Delete(ctx, obj); err != nil && !apierrors.IsNotFound(err) {
 			return false, errors.Wrapf(err,
 				"failed to delete %v %q for Machine %q in namespace %q",
 				obj.GroupVersionKind(), obj.GetName(), m.Name, m.Namespace)

@@ -5,15 +5,16 @@ In this tutorial we'll cover the basics of how to use Cluster API to create one 
 ## Prerequisites
 
 - Install and setup [kubectl] in your local environment.
-- A Kubernetes cluster to be used as [management cluster](../reference/glossary.md#management-cluster), for the purpose of this quick start, we suggest you to use [kind].
-    ```bash
-    kind create cluster --name=clusterapi
-    export KUBECONFIG="$(kind get kubeconfig-path --name="clusterapi")"
-    ```
+- A Kubernetes cluster to be used as [management cluster].
+  For the purpose of this quick start we suggest you to use [kind] as a _non production-ready_ solution.
+  ```bash
+  kind create cluster --name=clusterapi
+  export KUBECONFIG="$(kind get kubeconfig-path --name="clusterapi")"
+  ```
 
 ## Installation
 
-Using [kubectl], let's create the components on the management cluster:
+Using [kubectl], let's create the components on the [management cluster]:
 
 #### Install Cluster API Components
 
@@ -45,7 +46,7 @@ kubectl create -f https://github.com/kubernetes-sigs/cluster-api-bootstrap-provi
 
 Check the [AWS provider releases](https://github.com/kubernetes-sigs/cluster-api-provider-aws/releases) for an up-to-date components file.
 
-For more information about prerequisites, credentials management, and or permissions for AWS, visit the [getting started guide](https://github.com/kubernetes-sigs/cluster-api-provider-aws/blob/master/docs/getting-started.md).
+For more information about prerequisites, credentials management, or permissions for AWS, visit the [getting started guide](https://github.com/kubernetes-sigs/cluster-api-provider-aws/blob/master/docs/getting-started.md).
 
 ```bash
 kubectl create -f https://github.com/kubernetes-sigs/cluster-api-provider-aws/releases/download/v0.4.0/infrastructure-components.yaml
@@ -56,7 +57,7 @@ kubectl create -f https://github.com/kubernetes-sigs/cluster-api-provider-aws/re
 
 Check the [vSphere provider releases](https://github.com/kubernetes-sigs/cluster-api-provider-vsphere/releases) for an up-to-date components file.
 
-For more information about prerequisites, credentials management, and or permissions for vSphere, visit the [getting started guide](https://github.com/kubernetes-sigs/cluster-api-provider-vsphere/blob/master/docs/getting_started.md).
+For more information about prerequisites, credentials management, or permissions for vSphere, visit the [getting started guide](https://github.com/kubernetes-sigs/cluster-api-provider-vsphere/blob/master/docs/getting_started.md).
 
 ```bash
 kubectl create -f https://github.com/kubernetes-sigs/cluster-api-provider-vsphere/releases/download/v0.5.0/infrastructure-components.yaml
@@ -80,7 +81,6 @@ For the purpose of this tutorial, we'll name our cluster `capi-quickstart`.
 {{#tab AWS}}
 
 ```yaml
----
 apiVersion: cluster.x-k8s.io/v1alpha2
 kind: Cluster
 metadata:
@@ -99,8 +99,10 @@ kind: AWSCluster
 metadata:
   name: capi-quickstart
 spec:
-  region: us-east-1 # Change this value to the region you want to deploy the cluster in.
-  sshKeyName: default # Change this value to a valid SSH Key Pair present in your AWS Account.
+  # Change this value to the region you want to deploy the cluster in.
+  region: us-east-1
+  # Change this value to a valid SSH Key Pair present in your AWS Account.
+  sshKeyName: default
 ```
 {{#/tab }}
 {{#tab vSphere}}
@@ -114,7 +116,6 @@ These examples include environment variables that you should substitute before c
 </aside>
 
 ```yaml
----
 apiVersion: cluster.x-k8s.io/v1alpha2
 kind: Cluster
 metadata:
@@ -159,7 +160,6 @@ Now that we've created the cluster object, we can create a control plane Machine
 {{#tab AWS}}
 
 ```yaml
----
 apiVersion: cluster.x-k8s.io/v1alpha2
 kind: Machine
 metadata:
@@ -185,14 +185,18 @@ metadata:
   name: capi-quickstart-controlplane-0
 spec:
   instanceType: t3.large
-  iamInstanceProfile: "controllers.cluster-api-provider-aws.sigs.k8s.io" # This IAM profile is part of the pre-requisites.
-  sshKeyName: default # Change this value to a valid SSH Key Pair present in your AWS Account.
+  # This IAM profile is part of the pre-requisites.
+  iamInstanceProfile: "controllers.cluster-api-provider-aws.sigs.k8s.io"
+  # Change this value to a valid SSH Key Pair present in your AWS Account.
+  sshKeyName: default
 ---
 apiVersion: bootstrap.cluster.x-k8s.io/v1alpha2
 kind: KubeadmConfig
 metadata:
   name: capi-quickstart-controlplane-0
 spec:
+  # For more information about these values,
+  # refer to the Kubeadm Bootstrap Provider documentation.
   initConfiguration:
     nodeRegistration:
       name: '{{ ds.meta_data.hostname }}'
@@ -218,7 +222,6 @@ These examples include environment variables that you should substitute before c
 </aside>
 
 ```yaml
----
 apiVersion: cluster.x-k8s.io/v1alpha2
 kind: Machine
 metadata:
@@ -259,6 +262,8 @@ kind: KubeadmConfig
 metadata:
   name: capi-quickstart-controlplane-0
 spec:
+  # For more information about these values,
+  # refer to the Kubeadm Bootstrap Provider documentation.
   initConfiguration:
     nodeRegistration:
       name: "{{ ds.meta_data.hostname }}"
@@ -307,10 +312,201 @@ spec:
 {{#/tab }}
 {{#/tabs }}
 
+After the controlplane is up and running, let's retrieve the [target cluster] Kubeconfig:
+
+```bash
+kubectl --namespace=default get secret/capi-quickstart-kubeconfig -o json \
+  | jq -r .data.value \
+  | base64 --decode \
+  > ./capi-quickstart.kubeconfig
+```
+
+Deploy a CNI solution, Calico is used here as an example.
+
+{{#tabs name:"tab-usage-addons" tabs:"Calico"}}
+{{#tab Calico}}
+
+```bash
+kubectl --kubeconfig=./capi-quickstart.kubeconfig \
+  apply -f https://docs.projectcalico.org/v3.8/manifests/calico.yaml
+```
+
+{{#/tab }}
+{{#/tabs }}
+
+After a short while, our control plane should be up and in `Ready` state,
+let's check the status using `kubectl get nodes`:
+
+```bash
+kubectl --kubeconfig=./capi-quickstart.kubeconfig get nodes
+```
+
+Finishing up, we'll create a single node _MachineDeployment_.
+
+{{#tabs name:"tab-usage-machinedeployment" tabs:"AWS,vSphere"}}
+{{#tab AWS}}
+
+```yaml
+apiVersion: cluster.x-k8s.io/v1alpha2
+kind: MachineDeployment
+metadata:
+  name: capi-quickstart-worker
+  labels:
+    cluster.x-k8s.io/cluster-name: capi-quickstart
+    # Labels beyond this point are for example purposes,
+    # feel free to add more or change with something more meaningful.
+    # Sync these values with spec.selector.matchLabels and spec.template.metadata.labels.
+    nodepool: nodepool-0
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      cluster.x-k8s.io/cluster-name: capi-quickstart
+      nodepool: nodepool-0
+  template:
+    metadata:
+      labels:
+        cluster.x-k8s.io/cluster-name: capi-quickstart
+        nodepool: nodepool-0
+    spec:
+      version: v1.15.3
+      bootstrap:
+        configRef:
+          name: capi-quickstart-worker
+          apiVersion: bootstrap.cluster.x-k8s.io/v1alpha2
+          kind: KubeadmConfigTemplate
+      infrastructureRef:
+        name: capi-quickstart-worker
+        apiVersion: infrastructure.cluster.x-k8s.io/v1alpha2
+        kind: AWSMachineTemplate
+---
+apiVersion: infrastructure.cluster.x-k8s.io/v1alpha2
+kind: AWSMachineTemplate
+metadata:
+  name: capi-quickstart-worker
+spec:
+  template:
+    spec:
+      instanceType: t3.large
+      # This IAM profile is part of the pre-requisites.
+      iamInstanceProfile: "nodes.cluster-api-provider-aws.sigs.k8s.io"
+      # Change this value to a valid SSH Key Pair present in your AWS Account.
+      sshKeyName: default
+---
+apiVersion: bootstrap.cluster.x-k8s.io/v1alpha2
+kind: KubeadmConfigTemplate
+metadata:
+  name: capi-quickstart-worker
+spec:
+  template:
+    spec:
+      # For more information about these values,
+      # refer to the Kubeadm Bootstrap Provider documentation.
+      joinConfiguration:
+        nodeRegistration:
+          name: '{{ ds.meta_data.hostname }}'
+          kubeletExtraArgs:
+            cloud-provider: aws
+```
+
+{{#/tab }}
+{{#tab vSphere}}
+
+<aside class="note warning">
+
+<h1>Action Required</h1>
+
+These examples include environment variables that you should substitute before creating the resources.
+
+</aside>
+
+```yaml
+apiVersion: cluster.x-k8s.io/v1alpha2
+kind: MachineDeployment
+metadata:
+  name: capi-quickstart-worker
+  labels:
+    cluster.x-k8s.io/cluster-name: capi-quickstart
+    # Labels beyond this point are for example purposes,
+    # feel free to add more or change with something more meaningful.
+    # Sync these values with spec.selector.matchLabels and spec.template.metadata.labels.
+    nodepool: nodepool-0
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      cluster.x-k8s.io/cluster-name: capi-quickstart
+      nodepool: nodepool-0
+  template:
+    metadata:
+      labels:
+        cluster.x-k8s.io/cluster-name: capi-quickstart
+        nodepool: nodepool-0
+    spec:
+      version: v1.15.3
+      bootstrap:
+        configRef:
+          apiVersion: bootstrap.cluster.x-k8s.io/v1alpha2
+          kind: KubeadmConfigTemplate
+          name: capi-quickstart-worker
+      infrastructureRef:
+        apiVersion: infrastructure.cluster.x-k8s.io/v1alpha2
+        kind: VSphereMachineTemplate
+        name: capi-quickstart-worker
+---
+apiVersion: infrastructure.cluster.x-k8s.io/v1alpha2
+kind: VSphereMachineTemplate
+metadata:
+  name: capi-quickstart-worker
+spec:
+  template:
+    spec:
+      datacenter: "${VSPHERE_DATACENTER}"
+      network:
+        devices:
+        - networkName: "${VSPHERE_NETWORK}"
+          dhcp4: true
+          dhcp6: false
+      numCPUs: ${VSPHERE_NUM_CPUS}
+      memoryMiB: ${VSPHERE_MEM_MIB}
+      diskGiB: ${VSPHERE_DISK_GIB}
+      template: "${VSPHERE_TEMPLATE}"
+---
+apiVersion: bootstrap.cluster.x-k8s.io/v1alpha2
+kind: KubeadmConfigTemplate
+metadata:
+  name: capi-quickstart-worker
+spec:
+  template:
+    spec:
+      # For more information about these values,
+      # refer to the Kubeadm Bootstrap Provider documentation.
+      joinConfiguration:
+        nodeRegistration:
+          name: "{{ ds.meta_data.hostname }}"
+          criSocket: "/var/run/containerd/containerd.sock"
+          kubeletExtraArgs:
+            cloud-provider: vsphere
+      users:
+      - name: capv
+        sudo: "ALL=(ALL) NOPASSWD:ALL"
+        sshAuthorizedKeys:
+        - "${SSH_AUTHORIZED_KEY}"
+      preKubeadmCommands:
+      - hostname "{{ ds.meta_data.hostname }}"
+      - echo "::1         ipv6-localhost ipv6-loopback" >/etc/hosts
+      - echo "127.0.0.1   localhost {{ ds.meta_data.hostname }}" >>/etc/hosts
+      - echo "{{ ds.meta_data.hostname }}" >/etc/hostname
+```
+
+{{#/tab }}
+{{#/tabs }}
 
 <!-- links -->
 [kubectl]: https://kubernetes.io/docs/tasks/tools/install-kubectl/
 [components]: ../reference/glossary.md#provider-components
 [kind]: https://sigs.k8s.io/kind
+[management cluster]: ../reference/glossary.md#management-cluster
+[target cluster]: ../reference/glossary.md#target-cluster
 
 

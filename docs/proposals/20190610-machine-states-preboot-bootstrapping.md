@@ -80,8 +80,8 @@ reviewers:
   - "@timothysc"
   - "@vincepri"
 creation-date: 2019-06-10
-last-updated: 2019-06-28
-status: provisional
+last-updated: 2019-09-06
+status: implemented
 ---
 
 # Machine States & Preboot Bootstrapping

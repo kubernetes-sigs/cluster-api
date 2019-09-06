@@ -23,7 +23,6 @@ command -v doctoc || echo "doctoc is not available on your system, skipping veri
 doctoc_files="README.md \
               CONTRIBUTING.md \
               cmd/clusterctl/README.md \
-              docs/how-to-use-clusterctl.md \
               docs/scope-and-objectives.md \
               docs/staging-use-cases.md \
               docs/developer/releasing.md \

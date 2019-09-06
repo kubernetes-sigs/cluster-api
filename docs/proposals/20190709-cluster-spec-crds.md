@@ -1,5 +1,5 @@
 ---
-title: Cluster Provider Spec and Status as CRDs 
+title: Cluster Provider Spec and Status as CRDs
 authors:
   - "@pablochacin"
 reviewers:
@@ -8,8 +8,8 @@ reviewers:
     - "@ncdc"
     - "@vincepri"
 creation-date: 2019-07-09
-last-updated: 2019-07-18
-status: provisional
+last-updated: 2019-09-06
+status: implemented
 see-also:
   - "/docs/proposals/20190610-machine-states-preboot-bootstrapping.md"
 ---
@@ -58,16 +58,16 @@ see-also:
 
 In Cluster API (CAPI) v1alpha1 Cluster object contains the `ClusterSpec` and `ClusterStatus` structs. Both structs contain provider-specific fields, `ProviderSpec` and `ProviderStatus` respectively, embedded as opaque [RawExtensions](https://godoc.org/k8s.io/apimachinery/pkg/runtime#RawExtension).
 
-The Cluster controller does not handle these fields directly. Instead, the provider-specific actuator receives the `ProviderSpec` as part of the Cluster object and sets the `ProviderStatus` to reflect the status of the cluster infrastructure. 
+The Cluster controller does not handle these fields directly. Instead, the provider-specific actuator receives the `ProviderSpec` as part of the Cluster object and sets the `ProviderStatus` to reflect the status of the cluster infrastructure.
 
 This proposal outlines the replacement of these provider-specific embedded fields by references to objects managed by a provider controller, effectively eliminating the actuator interface. The new objects are introduced and the cooperation between the Cluster controller and the Cluster Infrastructure Controller is outlined. This process introduces a new field `InfrastructureReady` which reflects the state of the provisioning process.
 
 ## Motivation
 
-Embedding opaque provider-specific information has some disadvantages: 
+Embedding opaque provider-specific information has some disadvantages:
 - Using an embedded provider spec as a `RawExtension` means its content is not validated as part of the Cluster object validation
-- Embedding the provider spec makes difficult implementing the logic of the provider as an independent controller watching for changes in the specs. Instead, providers implement cluster controllers which embed the generic logic and a provider-specific actuator which implements the logic for handling events in the Cluster object.  
-- Embedding the provider status as part of the Cluster requires that either the generic cluster controller be responsible for pulling this state from the provider (e.g. by invoking a provider actuator) or the provider updating this field, incurring in overlapping responsibilities. 
+- Embedding the provider spec makes difficult implementing the logic of the provider as an independent controller watching for changes in the specs. Instead, providers implement cluster controllers which embed the generic logic and a provider-specific actuator which implements the logic for handling events in the Cluster object.
+- Embedding the provider status as part of the Cluster requires that either the generic cluster controller be responsible for pulling this state from the provider (e.g. by invoking a provider actuator) or the provider updating this field, incurring in overlapping responsibilities.
 
 ### Goals
 
@@ -83,7 +83,7 @@ Embedding opaque provider-specific information has some disadvantages:
 
 ## Proposal
 
-This proposal introduces changes in the Cluster data model and describes a collaboration model between the Cluster controller and the provider infrastructure controller, including a model for managing the state transition during the provisioning process. 
+This proposal introduces changes in the Cluster data model and describes a collaboration model between the Cluster controller and the provider infrastructure controller, including a model for managing the state transition during the provisioning process.
 
 ### Data Model changes
 
@@ -96,7 +96,7 @@ type ClusterSpec struct
         - Description:  Provider-specific serialized configuration to use during cluster creation. It is recommended that providers maintain  their own versioned API types that should be  serialized/deserialized from this field.
 
 - **To add**
-    - **InfrastructureRef** 
+    - **InfrastructureRef**
         - Type: `*corev1.ObjectReference`
         - Description: InfrastructureRef is a reference to a provider-specific resource that holds the details for provisioning infrastructure for a cluster in said provider.
 
@@ -119,17 +119,17 @@ Moving the provider-specific infrastructure specs to a separate object makes a c
 
 It is also necessary to model the state of the cluster along the provisioning process to be able to keep track of its progress. In order to do so, a new `InfrastructureReady` field is introduced as part of the `ClusterStatus` struct. The state and their transitions conditions are explained in detail in section [States and Transition](#states-and-transitions).
 
-The sequence diagram below describes the high-level process, collaborations and state transitions.  
+The sequence diagram below describes the high-level process, collaborations and state transitions.
 <!--https://sequencediagram.org/index.html#initialData=C4S2BsFMAIDEQOYFcBOMDMAuaBVAzpCtAMZoCGwke0Z0AtmcQBYgB2MA7mE9ANZIAjSGQAmdaAID2k4HmAoyAB0WEAUKsbBJRfGtUBiaAFoj0AOIAlAPI4ACgGVo9gCoBBC8+Mn1isilDEIL6swAgokkiK0PrgiEyhaJCs0Kq+-iCBwcDQrrYAkk6EAG5qSSI+fgFBZCFhEVExccAC4EgwqZUZ1SHQAMKtcoQ5+dAAsows7H2SIeHgUCiqZeqGJubWdo4AogByACJeRuq6KEYAfLkF9sWEmPxCxBA0yuAAnsYAZvQTbJAAdK8yHRwKpLoUUCVTuczv0kIMiGDxsxftNZpJ5rdoDtIBwxj92OpYfDhgUkZMYL0ZvJ0Qtzn0BpQESMySjKWiMShMCypmzqRzoBZIMQZoEoBpHiAihQKQyhoj8RSqXMFupVKwZDBJJD6XDGSS8cieUqaZjTIBQcgN5L+9mAFDhf1sTDIBGgIGokDoimArwAOqxzZbftaVMQ-gAhaSyeRKP57Ci0N3QAA8rBA4DOfoD3P+9hD4cjcgUij+bI+iEFX0TikkiiQ4GlIkz0At2eDQvzMkLMdL5cgXzpNrteAdTpdifV2QARILRK9J+oa9lBQBHJAgNAiaAzN6ur7AJiagQAKyF2VHrAA5NkhEloARb0IPtpIKoiXr5YbFezaWcdcSP+SqJ8gsmCuCIm4cBQzBDE+RB+q2ubthGnbRsWPYIBWfwANJsJukjHqeeBLKw5SqIuAqQKu66QHhrA7iAe4HluBGPNA55XhIkC3veySPs+r6ykypIKkByqEHSb5ysyIm8mJnJgRBUEHkQsHQPBCptqGeSsB8CiFkgjyoJAmE4SRzEno81DQNZ1nEaR5ErmuG5bnR7wMdA+6HhZZ7Ope15cckPGcbBL6SUJgZGt+4m-mF+rZqJJryeB0CQcA0EqdoamsAhebIVGRYljMZYYX22G4eZhF2QuXoUVRznbm5jFeae0AiJIVB+WxZAlDQEWahw7BEGgHyEEkxChYJcUycaHISZNAGsjNIHXNkOVIQWqGFTpvb9r+VgDYQFajaw414AA2gADAAuh5kh9QJupScJn4JbNFwjNcEKYjgigiNK0BYYIwhiHlXaKOhD3-tJL2yYlSZJiYYKfZC2CCng1asAQVVkTVjnUbR9FNRVrFtR1HFOj1tDxZIB1DX2x3jZD77Q4BsNvX+zPPazS23CtfWaX82m6c68gGcARkVsYe200daAnVQl03Vo92xQtkXAdFSM3JyuC-f9rgAOr2ELemi4ZaAQ6rLOLVFKDw4jH3a6jVAY1jyxM09fWvT+HOe-FbPLZAq0aYO4vDo6zowAAvNAk62GUbAIPOHvhf7POnO9VxO7rf2UF7odwinU0w+n9tGFrX062jrsvqoIjCBKUp51bXM2xrKBAA -->
 ![Figure 1](./images/cluster-spec-crds/figure1.png)
 
-Figure 1 presents the sequence of actions involved in provisioning a cluster, highlighting the coordination required between the CAPI cluster controller and the provider infrastructure controller. 
+Figure 1 presents the sequence of actions involved in provisioning a cluster, highlighting the coordination required between the CAPI cluster controller and the provider infrastructure controller.
 
-The creation of the Cluster and provider infrastructure objects are independent events. It is expected that the cluster infrastructure object to be created before the cluster object and the reference be set to in the cluster object at creation time. 
+The creation of the Cluster and provider infrastructure objects are independent events. It is expected that the cluster infrastructure object to be created before the cluster object and the reference be set to in the cluster object at creation time.
 
-When a provider infrastructure object is created, the provider's controller will do nothing unless its owner reference is set to a cluster object. 
+When a provider infrastructure object is created, the provider's controller will do nothing unless its owner reference is set to a cluster object.
 
-When the cluster object is created, the cluster controller will retrieve the infrastructure object. If the object has not been seen before, it will start watching it. Also, if the object's owner is not set, it will set to the Cluster object. 
+When the cluster object is created, the cluster controller will retrieve the infrastructure object. If the object has not been seen before, it will start watching it. Also, if the object's owner is not set, it will set to the Cluster object.
 
 When an infrastructure object is updated, the provider controller will check the owner reference. If it is set, it will retrieve the cluster object to obtain the required cluster specification and starts the provisioning process. When the process finishes, it sets the `Infrastructure.Status.Ready` to true.
 
@@ -137,11 +137,11 @@ When the cluster controller detects the `Infrastructure.Status.Ready` is set to 
 
 ### States and Transitions
 
-The Cluster Controller has the responsibility of managing the state transitions during cluster lifecycle. In order to do so, it requires collaboration with the provider's controller to clearly signal the state transitions without requiring knowledge of the internals of the provider. 
+The Cluster Controller has the responsibility of managing the state transitions during cluster lifecycle. In order to do so, it requires collaboration with the provider's controller to clearly signal the state transitions without requiring knowledge of the internals of the provider.
 
 #### Pending
 
-The initial state when the Cluster object has been created but the infrastructure object referenced by `InfrastructureRef` has not yet been associated with it. 
+The initial state when the Cluster object has been created but the infrastructure object referenced by `InfrastructureRef` has not yet been associated with it.
 
 ##### Conditions
 - `Cluster.InsfrastructureRef`->Metadata.OwnerRefences is `<nil>`
@@ -167,7 +167,7 @@ The cluster has a provider infrastructure object associated. The provider can st
 The provider has finished provisioning the infrastructure.
 
 ##### Transition Conditions
-- The Infrastructure object referenced by `InfrastructureRef` has the `Status.Ready` field set to true 
+- The Infrastructure object referenced by `InfrastructureRef` has the `Status.Ready` field set to true
 
 ##### Expectations
 - The cluster infrastructure has been provisioned
@@ -176,7 +176,7 @@ The provider has finished provisioning the infrastructure.
 
 ![Figure 2](./images/cluster-spec-crds/figure2.png)
 
-### User Stories 
+### User Stories
 
 #### As an infrastructure provider author, I would like to take advantage of the Kubernetes API to provide validation for provider-specific data needed to provision a cluster infrastructure.
 
@@ -185,10 +185,10 @@ The provider has finished provisioning the infrastructure.
 #### As an infrastructure provider author, I would like to build a controller to manage provisioning clusters without being restricted to a CRUD API.
 
 
-### Implementation Details/Notes/Constraints 
+### Implementation Details/Notes/Constraints
 
 #### Role of Cluster Controller
-The Cluster Controller should be the only controller having write permissions to the Cluster objects. Its main responsibility is to 
+The Cluster Controller should be the only controller having write permissions to the Cluster objects. Its main responsibility is to
 - Manage cluster finalizers
 - Set provider's infrastructure object's OwnerRef to Cluster
 - Update the state of the infrastructure provisioning

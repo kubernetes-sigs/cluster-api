@@ -226,10 +226,15 @@ release-binary: $(RELEASE_DIR)
 		go build -a -ldflags '-extldflags "-static"' \
 		-o $(RELEASE_DIR)/$(notdir $(RELEASE_BINARY))-$(GOOS)-$(GOARCH) $(RELEASE_BINARY)
 
-.PHONY: release-staging-latest
-release-staging-latest: ## Builds and push container images to the staging bucket using "latest" tag.
-	REGISTRY=$(STAGING_REGISTRY) TAG=latest \
-		$(MAKE) docker-build-all docker-push-all
+.PHONY: release-staging
+release-staging: ## Builds and push container images to the staging bucket.
+	REGISTRY=$(STAGING_REGISTRY) $(MAKE) docker-build-all docker-push-all release-tag-latest
+
+
+.PHONY: release-tag-latest
+release-tag-latest: ## Adds the latest tag to the last build tag.
+	## TODO(vincepri): Only do this when we're on master.
+	gcloud container images add-tag $(CONTROLLER_IMG):$(TAG) $(CONTROLLER_IMG):latest
 
 ## --------------------------------------
 ## Docker - Example Provider

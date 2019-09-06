@@ -44,12 +44,26 @@ kubectl create -f https://github.com/kubernetes-sigs/cluster-api-bootstrap-provi
 {{#tabs name:"tab-installation-infrastructure" tabs:"AWS,vSphere"}}
 {{#tab AWS}}
 
-Check the [AWS provider releases](https://github.com/kubernetes-sigs/cluster-api-provider-aws/releases) for an up-to-date components file.
-
 For more information about prerequisites, credentials management, or permissions for AWS, visit the [getting started guide](https://github.com/kubernetes-sigs/cluster-api-provider-aws/blob/master/docs/getting-started.md).
 
+#### Install clusterawsadm
+
+Download the latest binary of `clusterawsadm` from the [AWS provider releases] and make sure to place it in your path.
+
+##### Create the components
+
+Check the [AWS provider releases] for an up-to-date components file.
+
 ```bash
-kubectl create -f https://github.com/kubernetes-sigs/cluster-api-provider-aws/releases/download/v0.4.0/infrastructure-components.yaml
+# Create the base64 encoded credentials using clusterawsadm.
+# This command uses your environment variables and encodes
+# them in a value to be stored in a Kubernetes Secret.
+export AWS_B64ENCODED_CREDENTIALS=$(clusterawsadm alpha bootstrap encode-aws-credentials)
+
+# Create the components.
+curl -L https://github.com/kubernetes-sigs/cluster-api-provider-aws/releases/download/v0.4.0/infrastructure-components.yaml \
+  | envsubst \
+  | kubectl create -f -
 ```
 
 {{#/tab }}
@@ -508,5 +522,5 @@ spec:
 [kind]: https://sigs.k8s.io/kind
 [management cluster]: ../reference/glossary.md#management-cluster
 [target cluster]: ../reference/glossary.md#target-cluster
-
+[AWS provider releases]: https://github.com/kubernetes-sigs/cluster-api-provider-aws/releases
 

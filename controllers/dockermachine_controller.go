@@ -32,7 +32,6 @@ import (
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/handler"
-	"sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/source"
 	"sigs.k8s.io/kind/pkg/cluster/constants"
 )
@@ -54,7 +53,7 @@ type DockerMachineReconciler struct {
 // Reconcile handles DockerMachine events
 func (r *DockerMachineReconciler) Reconcile(req ctrl.Request) (_ ctrl.Result, rerr error) {
 	ctx := context.Background()
-	log := log.Log.WithName(machineControllerName).WithValues("docker-machine", req.NamespacedName)
+	log := r.Log.WithName(machineControllerName).WithValues("docker-machine", req.NamespacedName)
 
 	// Fetch the DockerMachine instance.
 	dockerMachine := &infrav1.DockerMachine{}
@@ -255,20 +254,32 @@ func (r *DockerMachineReconciler) SetupWithManager(mgr ctrl.Manager) error {
 // requests for reconciliation of DockerMachines.
 func (r *DockerMachineReconciler) DockerClusterToDockerMachines(o handler.MapObject) []ctrl.Request {
 	result := []ctrl.Request{}
-
 	c, ok := o.Object.(*infrav1.DockerCluster)
 	if !ok {
 		r.Log.Error(errors.Errorf("expected a DockerCluster but got a %T", o.Object), "failed to get DockerMachine for DockerCluster")
 		return nil
 	}
+	log := r.Log.WithValues("DockerCluster", c.Name, "Namespace", c.Namespace)
 
-	labels := map[string]string{clusterv1.MachineClusterLabelName: c.Name}
-	machineList := &infrav1.DockerMachineList{}
-	if err := r.Client.List(context.Background(), machineList, client.InNamespace(c.Namespace), client.MatchingLabels(labels)); err != nil {
-		r.Log.Error(err, "failed to list DockerMachines", "DockerCluster", c.Name, "Namespace", c.Namespace)
+	cluster, err := util.GetOwnerCluster(context.TODO(), r.Client, c.ObjectMeta)
+	switch {
+	case apierrors.IsNotFound(err) || cluster == nil:
+		return result
+	case err != nil:
+		log.Error(err, "failed to get owning cluster")
+		return result
+	}
+
+	labels := map[string]string{clusterv1.MachineClusterLabelName: cluster.Name}
+	machineList := &clusterv1.MachineList{}
+	if err := r.Client.List(context.TODO(), machineList, client.InNamespace(c.Namespace), client.MatchingLabels(labels)); err != nil {
+		log.Error(err, "failed to list DockerMachines")
 		return nil
 	}
 	for _, m := range machineList.Items {
+		if m.Spec.InfrastructureRef.Name == "" {
+			continue
+		}
 		name := client.ObjectKey{Namespace: m.Namespace, Name: m.Name}
 		result = append(result, ctrl.Request{NamespacedName: name})
 	}

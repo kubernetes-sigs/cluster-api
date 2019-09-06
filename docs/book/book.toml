@@ -8,3 +8,6 @@ title = "The Cluster API Book"
 [output.html]
 curly-quotes = true
 git-repository-url = "https://sigs.k8s.io/cluster-api"
+
+[preprocessor.foo]
+command = "./tabulate.sh"

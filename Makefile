@@ -285,4 +285,4 @@ diagrams: ## Build proposal diagrams
 
 .PHONY: serve-book
 serve-book: ## Build and serve the book with live-reloading enabled
-	(cd ./docs/book && mdbook serve)
+	$(MAKE) -C docs/book serve

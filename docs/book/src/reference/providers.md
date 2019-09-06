@@ -27,6 +27,6 @@ support v1alpha2 API types.
 
 Following are the implementations managed by third-parties adopting the standard cluster-api and/or machine-api being developed here.
 
-  * Kubermatic machine-controller, https://github.com/kubermatic/machine-controller/tree/master
-  * Machine API Operator, https://github.com/openshift/machine-api-operator/tree/master
-  * Machine-controller-manager, https://github.com/gardener/machine-controller-manager/tree/cluster-api
+  * [Kubermatic machine controller](https://github.com/kubermatic/machine-controller/tree/master)
+  * [Machine API Operator](https://github.com/openshift/machine-api-operator/tree/master)
+  * [Machine controller manager](https://github.com/gardener/machine-controller-manager/tree/cluster-api)

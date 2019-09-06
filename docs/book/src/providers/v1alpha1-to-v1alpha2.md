@@ -25,7 +25,6 @@ controllers that are responsible for the core types:
 * Machine
 * MachineSet
 * MachineDeployment
-* [plus a few more](../../pkg/apis/cluster/v1alpha2)
 
 Bootstrap providers are an entirely new concept aimed at reducing the amount of kubeadm boilerplate that every provider
 reimplemented in v1alpha1. The Bootstrap provider is responsible for running a controller that generates data necessary
@@ -41,7 +40,7 @@ bootstrap data to turn the infrastructure into a Kubernetes cluster.
 
 Actuators are interfaces that the Cluster API controller calls. A provider pulls in the generic Cluster API controller
 and then registers actuators to run specific infrastructure logic (calls to the provider cloud).
- 
+
 ### v1alpha2
 
 Actuators are not used in this version. Cluster API's controllers are no longer shared across providers and therefore
@@ -57,11 +56,11 @@ create a cloud instance for Kubernetes to run on.
 
 `clusterctl` was a command line tool packaged with v1alpha1 providers. The goal of this tool was to go from nothing to a
 running management cluster in whatever environment the provider was built for. For example, Cluster-API-Provider-AWS
-packaged a `clusterctl` that created a Kubernetes cluster in EC2 and installed the necessary controllers to respond to 
+packaged a `clusterctl` that created a Kubernetes cluster in EC2 and installed the necessary controllers to respond to
 Cluster API's APIs.
 
 ### v1alpha2
 
-`clusterctl` is likely becoming provider-agnostic meaning one clusterctl is bundled with Cluster API and can be reused 
+`clusterctl` is likely becoming provider-agnostic meaning one clusterctl is bundled with Cluster API and can be reused
 across providers. Work here is still being figured out but providers will not be packaging their own `clusterctl`
 anymore.

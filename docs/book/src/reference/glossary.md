@@ -137,7 +137,12 @@ The pivot process is also used for deleting a management cluster and could also 
 
 See [Infrastructure Provider](#user-content-infrastructure-provider)
 
-##### Provider implementation
+### Provider components
+
+Refers to the YAML artifact a provider publishes as part of their releases which is required to use the provider components,
+it usually contains Custom Resource Definitions (CRDs), Deployments (to run the controller manager), RBAC, etc.
+
+### Provider implementation
 
 Existing Cluster API implementations consist of generic and infrastructure provider-specific logic. The [infrastructure provider](#infrastructure-provider)-specific logic is currently maintained in infrastructure provider repositories.
 

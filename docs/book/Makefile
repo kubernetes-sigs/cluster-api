@@ -12,18 +12,18 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+# Directories.
 ROOT_DIR:=$(shell dirname $(realpath $(lastword $(MAKEFILE_LIST))))
+TOOLS_DIR := ../../hack/tools
+TOOLS_BIN_DIR := $(TOOLS_DIR)/bin
+BIN_DIR := bin
 
-SOURCES := $(shell find ${ROOT_DIR} -name \*.plantuml)
-DIAGRAMS := $(SOURCES:%.plantuml=%.png)
+# Binaries.
+TABULATE := $(TOOLS_BIN_DIR)/tabulate
 
-.PHONY: diagrams
-diagrams: $(DIAGRAMS)
+$(TABULATE): $(TOOLS_DIR)/go.mod
+	cd $(TOOLS_DIR); go build -tags=tools -o $(BIN_DIR)/tabulate ./tabulate
 
-%.png: %.plantuml
-	docker run \
-		--rm \
-		--volume ${ROOT_DIR}:/workdir \
-		--user $(shell id -u):$(shell id -g) \
-		us.gcr.io/k8s-artifacts-prod/cluster-api/plantuml:1.2019.6 \
-		-v /workdir/$(shell echo '$^' | sed -e 's,.*docs/,,g' )
+.PHONY: serve
+serve:
+	mdbook serve

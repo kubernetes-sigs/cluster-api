@@ -99,13 +99,13 @@ func run() int {
 	for i := 0; i < len(outLines); i++ {
 		line := strings.TrimSpace(outLines[i])
 		switch {
-		case line == "":
+		case strings.HasPrefix(line, "commit"):
 			commits = append(commits, c)
 			c = commit{}
 		case strings.HasPrefix(line, "Merge"):
 			c.merge = line
-		case strings.HasPrefix(line, "commit"):
 			continue
+		case line == "":
 		default:
 			c.body = line
 		}
@@ -131,7 +131,10 @@ func run() int {
 		if key != unknown {
 			c.body = c.body[len(firstWord):]
 		}
-		c.body = fmt.Sprintf("    - %s", strings.TrimSpace(c.body))
+		if strings.TrimSpace(c.body) == "" {
+			continue
+		}
+		c.body = fmt.Sprintf("- %s", strings.TrimSpace(c.body))
 		fmt.Sscanf(c.merge, "Merge pull request %s from %s", &prNumber, &fork)
 		merges[key] = append(merges[key], formatMerge(c.body, prNumber))
 	}

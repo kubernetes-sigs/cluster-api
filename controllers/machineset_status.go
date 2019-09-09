@@ -151,10 +151,13 @@ func (r *MachineSetReconciler) getMachineNode(cluster *clusterv1.Cluster, machin
 		return nil, err
 	}
 
-	corev1Remote, err := remoteClient.CoreV1()
-	if err != nil {
-		return nil, err
+	node := &corev1.Node{}
+	key := client.ObjectKey{
+		Name: machine.Status.NodeRef.Name,
 	}
 
-	return corev1Remote.Nodes().Get(machine.Status.NodeRef.Name, metav1.GetOptions{})
+	if err := remoteClient.Get(context.TODO(), key, node); err != nil {
+		return nil, err
+	}
+	return node, nil
 }

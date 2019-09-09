@@ -17,12 +17,16 @@ limitations under the License.
 package remote
 
 import (
+	"fmt"
+	"net/http"
+	"net/http/httptest"
 	"strings"
 	"testing"
 
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/client-go/kubernetes/scheme"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha2"
 	"sigs.k8s.io/cluster-api/util/secret"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
@@ -53,7 +57,7 @@ var (
 	validKubeConfig = `
 clusters:
 - cluster:
-    server: https://test-cluster-api:6443
+    server: %s
   name: test-cluster-api
 contexts:
 - context:
@@ -66,17 +70,6 @@ preferences: {}
 users:
 - name: kubernetes-admin
 `
-
-	validSecret = &corev1.Secret{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      "test1-kubeconfig",
-			Namespace: "test",
-		},
-		Data: map[string][]byte{
-			secret.KubeconfigDataName: []byte(validKubeConfig),
-		},
-	}
-
 	invalidSecret = &corev1.Secret{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "test2-kubeconfig",
@@ -88,9 +81,32 @@ users:
 	}
 )
 
+func kubeconfigSecret(apiendpoint string) *corev1.Secret {
+	return &corev1.Secret{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "test1-kubeconfig",
+			Namespace: "test",
+		},
+		Data: map[string][]byte{
+			secret.KubeconfigDataName: []byte(fmt.Sprintf(validKubeConfig, apiendpoint)),
+		},
+	}
+}
+
 func TestNewClusterClient(t *testing.T) {
+	// The most minimal APIServer ever
+	mux := http.NewServeMux()
+	mux.HandleFunc("/api", func(w http.ResponseWriter, r *http.Request) {
+		fmt.Fprintf(w, `{"apiVersion": "v1", "kind": "APIVersions"}`)
+	})
+	mux.HandleFunc("/apis", func(w http.ResponseWriter, r *http.Request) {
+		fmt.Fprintf(w, `{"apiVersion": "v1", "kind": "APIGroupList"}`)
+	})
+	ts := httptest.NewServer(mux)
+	defer ts.Close()
+	vs := kubeconfigSecret(ts.URL)
 	t.Run("cluster with valid kubeconfig", func(t *testing.T) {
-		client := fake.NewFakeClient(validSecret)
+		client := fake.NewFakeClientWithScheme(scheme.Scheme, vs)
 		c, err := NewClusterClient(client, clusterWithValidKubeConfig)
 		if err != nil {
 			t.Fatalf("Expected no errors, got %v", err)
@@ -99,15 +115,10 @@ func TestNewClusterClient(t *testing.T) {
 		if c == nil {
 			t.Fatal("Expected actual client, got nil")
 		}
-
-		restConfig := c.RESTConfig()
-		if restConfig.Host != "https://test-cluster-api:6443" {
-			t.Fatalf("Unexpected Host value in RESTConfig: %q", restConfig.Host)
-		}
 	})
 
 	t.Run("cluster with no kubeconfig", func(t *testing.T) {
-		client := fake.NewFakeClient()
+		client := fake.NewFakeClientWithScheme(scheme.Scheme)
 		_, err := NewClusterClient(client, clusterWithNoKubeConfig)
 		if !strings.Contains(err.Error(), "not found") {
 			t.Fatalf("Expected not found error, got %v", err)
@@ -115,7 +126,7 @@ func TestNewClusterClient(t *testing.T) {
 	})
 
 	t.Run("cluster with invalid kubeconfig", func(t *testing.T) {
-		client := fake.NewFakeClient(invalidSecret)
+		client := fake.NewFakeClientWithScheme(scheme.Scheme, invalidSecret)
 		_, err := NewClusterClient(client, clusterWithInvalidKubeConfig)
 		if err == nil || apierrors.IsNotFound(err) {
 			t.Fatalf("Expected error, got %v", err)

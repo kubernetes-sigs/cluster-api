@@ -23,12 +23,12 @@ import (
 	"github.com/pkg/errors"
 	apicorev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	corev1 "k8s.io/client-go/kubernetes/typed/core/v1"
 	"k8s.io/klog"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha2"
 	"sigs.k8s.io/cluster-api/controllers/noderefutil"
 	"sigs.k8s.io/cluster-api/controllers/remote"
 	capierrors "sigs.k8s.io/cluster-api/errors"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
 var (
@@ -68,13 +68,8 @@ func (r *MachineReconciler) reconcileNodeRef(ctx context.Context, cluster *clust
 		return err
 	}
 
-	corev1Client, err := clusterClient.CoreV1()
-	if err != nil {
-		return err
-	}
-
 	// Get the Node reference.
-	nodeRef, err := r.getNodeReference(corev1Client, providerID)
+	nodeRef, err := r.getNodeReference(clusterClient, providerID)
 	if err != nil {
 		if err == ErrNodeNotFound {
 			return errors.Wrapf(&capierrors.RequeueAfterError{RequeueAfter: 10 * time.Second},
@@ -92,12 +87,19 @@ func (r *MachineReconciler) reconcileNodeRef(ctx context.Context, cluster *clust
 	return nil
 }
 
-func (r *MachineReconciler) getNodeReference(client corev1.NodesGetter, providerID *noderefutil.ProviderID) (*apicorev1.ObjectReference, error) {
-	listOpt := metav1.ListOptions{}
+// Continue will apply the continue option
+type Continue string
 
+// ApplyToList satisfies the client.ListOptions interface
+func (c Continue) ApplyToList(opts *client.ListOptions) {
+	opts.Raw = &metav1.ListOptions{Continue: string(c)}
+}
+
+func (r *MachineReconciler) getNodeReference(c client.Client, providerID *noderefutil.ProviderID) (*apicorev1.ObjectReference, error) {
+	cont := ""
 	for {
-		nodeList, err := client.Nodes().List(listOpt)
-		if err != nil {
+		nodeList := &apicorev1.NodeList{}
+		if err := c.List(context.TODO(), nodeList, Continue(cont)); err != nil {
 			return nil, err
 		}
 
@@ -118,8 +120,8 @@ func (r *MachineReconciler) getNodeReference(client corev1.NodesGetter, provider
 			}
 		}
 
-		listOpt.Continue = nodeList.Continue
-		if listOpt.Continue == "" {
+		cont = nodeList.Continue
+		if cont == "" {
 			break
 		}
 	}

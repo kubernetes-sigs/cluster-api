@@ -250,14 +250,12 @@ func (r *MachineReconciler) deleteNode(ctx context.Context, cluster *clusterv1.C
 		return nil
 	}
 
-	corev1Remote, err := remoteClient.CoreV1()
-	if err != nil {
-		klog.Errorf("Error creating a remote client for cluster %q while deleting Machine %q, won't retry: %v",
-			cluster.Name, name, err)
-		return nil
+	node := &corev1.Node{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: name,
+		},
 	}
-
-	return corev1Remote.Nodes().Delete(name, &metav1.DeleteOptions{})
+	return remoteClient.Delete(ctx, node)
 }
 
 // getMachinesInCluster returns all of the Machine objects that belong to the

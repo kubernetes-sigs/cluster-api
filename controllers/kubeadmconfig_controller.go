@@ -267,10 +267,15 @@ func (r *KubeadmConfigReconciler) Reconcile(req ctrl.Request) (_ ctrl.Result, re
 	}
 	if certificates != nil {
 		hashes, err := certs.CertificateHashes(certificates.ClusterCA.Cert)
-		if err == nil {
-			config.Spec.JoinConfiguration.Discovery.BootstrapToken = &kubeadmv1beta1.BootstrapTokenDiscovery{
-				CACertHashes: hashes,
+		if err != nil {
+			log.Error(err, "Unable to generate certificate hashes")
+			return ctrl.Result{}, err
+		}
+		if hashes != nil {
+			if config.Spec.JoinConfiguration.Discovery.BootstrapToken == nil {
+				config.Spec.JoinConfiguration.Discovery.BootstrapToken = &kubeadmv1beta1.BootstrapTokenDiscovery{}
 			}
+			config.Spec.JoinConfiguration.Discovery.BootstrapToken.CACertHashes = hashes
 		}
 	}
 
@@ -432,9 +437,8 @@ func (r *KubeadmConfigReconciler) reconcileDiscovery(cluster *clusterv1.Cluster,
 		log.Info("Altering JoinConfiguration.Discovery.BootstrapToken", "Token", token)
 	}
 
-	// if BootstrapToken already contains a CACertHashes or UnsafeSkipCAVerification, respect it; otherwise set for UnsafeSkipCAVerification
-	// TODO: set CACertHashes instead of UnsafeSkipCAVerification
-	if len(config.Spec.JoinConfiguration.Discovery.BootstrapToken.CACertHashes) == 0 && !config.Spec.JoinConfiguration.Discovery.BootstrapToken.UnsafeSkipCAVerification {
+	// If the BootstrapToken does not contain any CACertHashes then force skip CA Verification
+	if len(config.Spec.JoinConfiguration.Discovery.BootstrapToken.CACertHashes) == 0 {
 		log.Info("No CAs were provided. Falling back to insecure discover method by skipping CA Cert validation")
 		config.Spec.JoinConfiguration.Discovery.BootstrapToken.UnsafeSkipCAVerification = true
 	}

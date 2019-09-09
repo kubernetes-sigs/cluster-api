@@ -286,6 +286,9 @@ func (r *MachineSetReconciler) syncReplicas(ctx context.Context, ms *clusterv1.M
 			if machine.Spec.Bootstrap.ConfigRef != nil {
 				bootstrapConfig, err = external.CloneTemplate(ctx, r.Client, machine.Spec.Bootstrap.ConfigRef, machine.Namespace)
 				if err != nil {
+					if err := r.Client.Delete(context.TODO(), infraConfig); !apierrors.IsNotFound(err) {
+						klog.Errorf("Failed to cleanup infrastructure configuration object after bootstrap clone error: %v", err)
+					}
 					return errors.Wrapf(err, "failed to clone bootstrap configuration for MachineSet %q in namespace %q", ms.Name, ms.Namespace)
 				}
 				machine.Spec.Bootstrap.ConfigRef = &corev1.ObjectReference{

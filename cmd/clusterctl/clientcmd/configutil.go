@@ -56,8 +56,13 @@ func NewControllerRuntimeClient(kubeconfigPath string, overrides clientcmd.Confi
 		return nil, err
 	}
 
+	mapper, err := restmapper.NewCached(config)
+	if err != nil {
+		return nil, err
+	}
+
 	return client.New(config, client.Options{
-		Mapper: restmapper.NewCached(config),
+		Mapper: mapper,
 	})
 }
 

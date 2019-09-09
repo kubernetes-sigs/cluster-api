@@ -27,6 +27,7 @@ import (
 	"k8s.io/klog/klogr"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha2"
 	"sigs.k8s.io/cluster-api/controllers"
+	"sigs.k8s.io/cluster-api/util/restmapper"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
 	// +kubebuilder:scaffold:imports
@@ -99,6 +100,7 @@ func main() {
 	mgr, err := ctrl.NewManager(ctrl.GetConfigOrDie(), ctrl.Options{
 		Scheme:             scheme,
 		MetricsBindAddress: metricsAddr,
+		MapperProvider:     restmapper.NewCached,
 		LeaderElection:     enableLeaderElection,
 		Namespace:          watchNamespace,
 		SyncPeriod:         &syncPeriod,

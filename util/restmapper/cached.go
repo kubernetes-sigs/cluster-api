@@ -27,28 +27,28 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/log"
 )
 
-func NewCached(config *rest.Config) meta.RESTMapper {
+func NewCached(config *rest.Config) (meta.RESTMapper, error) {
 	c := &cached{
 		limiter: rate.NewLimiter(rate.Limit(1), 2),
 		factory: func() (meta.RESTMapper, error) {
 			return apiutil.NewDiscoveryRESTMapper(config)
 		},
 	}
-	c.flush()
-	return c
+	return c, c.flush()
 }
 
 type cached struct {
-	sync.Mutex
-
 	limiter *rate.Limiter
 	factory func() (meta.RESTMapper, error)
-	mapper  meta.RESTMapper
+
+	// lock guards mapper
+	lock   sync.Mutex
+	mapper meta.RESTMapper
 }
 
 func (c *cached) flush() error {
-	c.Lock()
-	defer c.Unlock()
+	c.lock.Lock()
+	defer c.lock.Unlock()
 
 	var err error
 	if c.mapper == nil || c.limiter.Allow() {

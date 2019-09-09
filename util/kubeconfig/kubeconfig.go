@@ -126,6 +126,14 @@ func CreateSecret(ctx context.Context, c client.Client, cluster *clusterv1.Clust
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      secret.Name(cluster.Name, secret.Kubeconfig),
 			Namespace: cluster.Namespace,
+			OwnerReferences: []metav1.OwnerReference{
+				{
+					APIVersion: clusterv1.GroupVersion.String(),
+					Kind:       "Cluster",
+					Name:       cluster.Name,
+					UID:        cluster.UID,
+				},
+			},
 		},
 		Data: map[string][]byte{
 			secret.KubeconfigDataName: out,

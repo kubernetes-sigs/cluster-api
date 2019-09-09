@@ -44,7 +44,13 @@ kubectl create -f https://github.com/kubernetes-sigs/cluster-api-bootstrap-provi
 {{#tabs name:"tab-installation-infrastructure" tabs:"AWS,vSphere"}}
 {{#tab AWS}}
 
-For more information about prerequisites, credentials management, or permissions for AWS, visit the [getting started guide](https://github.com/kubernetes-sigs/cluster-api-provider-aws/blob/master/docs/getting-started.md).
+<aside class="note warning">
+
+<h1>Action Required</h1>
+
+For more information about credentials management, IAM, or requirements for AWS, visit the [AWS Provider Prerequisites](https://github.com/kubernetes-sigs/cluster-api-provider-aws/blob/master/docs/prerequisites.md) document.
+
+</aside>
 
 #### Install clusterawsadm
 

@@ -9,5 +9,8 @@ title = "The Cluster API Book"
 curly-quotes = true
 git-repository-url = "https://sigs.k8s.io/cluster-api"
 
-[preprocessor.foo]
-command = "./tabulate.sh"
+[preprocessor.tabulate]
+command = "./util-tabulate.sh"
+
+[preprocessor.embed]
+command = "./util-embed.sh"

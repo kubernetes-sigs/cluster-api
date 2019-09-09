@@ -1,3 +1,5 @@
+#!/bin/bash
+
 # Copyright 2019 The Kubernetes Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -12,21 +14,10 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# Directories.
-ROOT_DIR:=$(shell dirname $(realpath $(lastword $(MAKEFILE_LIST))))
-TOOLS_DIR := ../../hack/tools
-TOOLS_BIN_DIR := $(TOOLS_DIR)/bin
-BIN_DIR := bin
+set -o errexit
+set -o nounset
+set -o pipefail
 
-# Binaries.
-TABULATE := $(TOOLS_BIN_DIR)/mdbook-tabulate
-$(TABULATE): $(TOOLS_DIR)/go.mod
-	cd $(TOOLS_DIR); go build -tags=tools -o $(BIN_DIR)/mdbook-tabulate ./mdbook/tabulate
-
-EMBED := $(TOOLS_BIN_DIR)/mdbook-embed
-$(EMBED): $(TOOLS_DIR)/go.mod
-	cd $(TOOLS_DIR); go build -tags=tools -o $(BIN_DIR)/mdbook-embed ./mdbook/embed
-
-.PHONY: serve
-serve:
-	mdbook serve
+EMBED="../../hack/tools/bin/mdbook-embed"
+make ${EMBED} &>/dev/null
+${EMBED} "$@"

@@ -103,6 +103,7 @@ func (r *MachineDeploymentReconciler) getNewMachineSet(d *clusterv1.MachineDeplo
 	// latest revision.
 	if existingNewMS != nil {
 		msCopy := existingNewMS.DeepCopy()
+		patch := client.MergeFrom(msCopy)
 
 		// Set existing new machine set's annotation
 		annotationsUpdated := mdutil.SetNewMachineSetAnnotations(d, msCopy, newRevision, true)
@@ -110,7 +111,7 @@ func (r *MachineDeploymentReconciler) getNewMachineSet(d *clusterv1.MachineDeplo
 		minReadySecondsNeedsUpdate := msCopy.Spec.MinReadySeconds != *d.Spec.MinReadySeconds
 		if annotationsUpdated || minReadySecondsNeedsUpdate {
 			msCopy.Spec.MinReadySeconds = *d.Spec.MinReadySeconds
-			return nil, r.Client.Update(context.Background(), msCopy)
+			return nil, r.Client.Patch(context.Background(), msCopy, patch)
 		}
 
 		// Apply revision annotation from existingNewMS if it is missing from the deployment.
@@ -341,7 +342,8 @@ func (r *MachineDeploymentReconciler) syncDeploymentStatus(allMSs []*clusterv1.M
 
 	patch := client.MergeFrom(d.DeepCopy())
 	d.Status = newStatus
-	return r.Client.Status().Patch(context.Background(), d, patch)
+	// Patch using a deep copy to avoid overwriting any unexpected Spec/Metadata changes from the returned result
+	return r.Client.Status().Patch(context.Background(), d.DeepCopy(), patch)
 }
 
 // calculateStatus calculates the latest status for the provided deployment by looking into the provided machine sets.
@@ -520,7 +522,7 @@ func updateMachineDeployment(c client.Client, d *clusterv1.MachineDeployment, mo
 		clusterv1.PopulateDefaultsMachineDeployment(d)
 		// Apply modifications.
 		modify(d)
-		// Patch the MachineDeployment.
-		return c.Patch(context.Background(), d, patch)
+		// Patch using a deep copy to avoid overwriting any unexpected Spec/Metadata changes from the returned result
+		return c.Patch(context.Background(), d.DeepCopy(), patch)
 	})
 }

@@ -38,6 +38,7 @@ import (
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
+	"sigs.k8s.io/controller-runtime/pkg/handler"
 	"sigs.k8s.io/controller-runtime/pkg/runtime/log"
 )
 
@@ -889,6 +890,45 @@ func TestCACertHashesAndUnsafeCAVerifySkip(t *testing.T) {
 	}
 }
 
+// If a cluster object changes then all associated KubeadmConfigs should be re-reconciled.
+// This allows us to not requeue a kubeadm config while we wait for InfrastructureReady.
+func TestKubeadmConfigReconciler_ClusterToKubeadmConfigs(t *testing.T) {
+	cluster := newCluster("my-cluster")
+	objs := []runtime.Object{cluster}
+	expectedNames := []string{}
+	for i := 0; i < 3; i++ {
+		m := newMachine(cluster, fmt.Sprintf("my-machine-%d", i))
+		configName := fmt.Sprintf("my-config-%d", i)
+		c := newKubeadmConfig(m, configName)
+		expectedNames = append(expectedNames, configName)
+		objs = append(objs, m, c)
+	}
+	fakeClient := fake.NewFakeClientWithScheme(setupScheme(), objs...)
+	reconciler := &KubeadmConfigReconciler{
+		Log:    log.Log,
+		Client: fakeClient,
+	}
+	o := handler.MapObject{
+		Object: cluster,
+	}
+	configs := reconciler.ClusterToKubeadmConfigs(o)
+	names := make([]string, 3)
+	for i := range configs {
+		names[i] = configs[i].Name
+	}
+	for _, name := range expectedNames {
+		found := false
+		for _, foundName := range names {
+			if foundName == name {
+				found = true
+			}
+		}
+		if !found {
+			t.Fatalf("did not find %s in %v", name, names)
+		}
+	}
+}
+
 // test utils
 
 // newCluster return a CAPI cluster object
@@ -920,7 +960,7 @@ func newMachine(cluster *clusterv1.Cluster, name string) *clusterv1.Machine {
 			Bootstrap: clusterv1.Bootstrap{
 				ConfigRef: &corev1.ObjectReference{
 					Kind:       "KubeadmConfig",
-					APIVersion: "v1alpha2",
+					APIVersion: bootstrapv1.GroupVersion.String(),
 				},
 			},
 		},
@@ -964,6 +1004,8 @@ func newKubeadmConfig(machine *clusterv1.Machine, name string) *bootstrapv1.Kube
 				UID:        types.UID(fmt.Sprintf("%s uid", machine.Name)),
 			},
 		}
+		machine.Spec.Bootstrap.ConfigRef.Name = config.Name
+		machine.Spec.Bootstrap.ConfigRef.Namespace = config.Namespace
 	}
 	return config
 }

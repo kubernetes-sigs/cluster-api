@@ -22,7 +22,7 @@ document for more information. For the remainder of this document we will be ref
 [cluster-api-provider-docker](https://github.com/kubernetes-sigs/cluster-api-provider-docker)
 (CAPD) as our infrastructure provider.
 
-A convenient way to set up infrastructure for testing is to use [kind]((https://kind.sigs.k8s.io/)
+A convenient way to set up infrastructure for testing is to use [kind](https://kind.sigs.k8s.io/)
 as the platform cluster to install the controllers and CRDs into. Then use a tool like
 [tilt](https://tilt.dev/) or [skaffold](ttps://skaffold.dev/) to manage your dev environment.
 A minimal example of a Tiltfile looks like this:

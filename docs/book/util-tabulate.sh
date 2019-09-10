@@ -18,6 +18,6 @@ set -o errexit
 set -o nounset
 set -o pipefail
 
-TABULATE="../../hack/tools/bin/tabulate"
+TABULATE="../../hack/tools/bin/mdbook-tabulate"
 make ${TABULATE} &>/dev/null
 ${TABULATE} "$@"

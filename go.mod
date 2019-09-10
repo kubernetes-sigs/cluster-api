@@ -9,7 +9,6 @@ require (
 	github.com/gogo/protobuf v1.2.1 // indirect
 	github.com/googleapis/gnostic v0.3.1 // indirect
 	github.com/gophercloud/gophercloud v0.3.0 // indirect
-	github.com/hashicorp/golang-lru v0.5.0 // indirect
 	github.com/imdario/mergo v0.3.7 // indirect
 	github.com/inconshreveable/mousetrap v1.0.0 // indirect
 	github.com/json-iterator/go v1.1.6 // indirect
@@ -21,10 +20,7 @@ require (
 	github.com/sergi/go-diff v1.0.0
 	github.com/spf13/cobra v0.0.3
 	github.com/spf13/pflag v1.0.3
-	golang.org/x/net v0.0.0-20190613194153-d28f0bde5980
-	golang.org/x/oauth2 v0.0.0-20190604053449-0f29369cfe45 // indirect
-	golang.org/x/sys v0.0.0-20190429190828-d89cdac9e872 // indirect
-	golang.org/x/text v0.3.2 // indirect
+	golang.org/x/net v0.0.0-20190125091013-d26f9f9a57f3
 	golang.org/x/time v0.0.0-20190308202827-9d24e82272b4
 	k8s.io/api v0.0.0-20190409021203-6e4e0e4f393b
 	k8s.io/apiextensions-apiserver v0.0.0-20190409022649-727a075fdec8

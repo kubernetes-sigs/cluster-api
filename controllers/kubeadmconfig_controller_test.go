@@ -220,8 +220,8 @@ func TestKubeadmConfigReconciler_Reconcile_RequeueJoiningNodesIfControlPlaneNotI
 	workerMachine := newWorkerMachine(cluster)
 	workerJoinConfig := newWorkerJoinKubeadmConfig(workerMachine)
 
-	controlPaneMachine := newControlPlaneMachine(cluster)
-	controlPaneJoinConfig := newControlPlaneJoinKubeadmConfig(controlPaneMachine, "control-plane-join-cfg")
+	controlPlaneMachine := newControlPlaneMachine(cluster)
+	controlPlaneJoinConfig := newControlPlaneJoinKubeadmConfig(controlPlaneMachine, "control-plane-join-cfg")
 
 	testcases := []struct {
 		name    string
@@ -246,14 +246,14 @@ func TestKubeadmConfigReconciler_Reconcile_RequeueJoiningNodesIfControlPlaneNotI
 			name: "requeue a secondary control plane when the control plane is not yet initialized",
 			request: ctrl.Request{
 				NamespacedName: types.NamespacedName{
-					Namespace: controlPaneJoinConfig.Namespace,
-					Name:      controlPaneJoinConfig.Name,
+					Namespace: controlPlaneJoinConfig.Namespace,
+					Name:      controlPlaneJoinConfig.Name,
 				},
 			},
 			objects: []runtime.Object{
 				cluster,
-				controlPaneMachine,
-				controlPaneJoinConfig,
+				controlPlaneMachine,
+				controlPlaneJoinConfig,
 			},
 		},
 	}
@@ -384,14 +384,14 @@ func TestKubeadmConfigReconciler_Reconcile_ErrorIfJoiningControlPlaneHasInvalidC
 	cluster.Status.ControlPlaneInitialized = true
 	cluster.Status.APIEndpoints = []clusterv1.APIEndpoint{{Host: "100.105.150.1", Port: 6443}}
 
-	controlPaneMachine := newControlPlaneMachine(cluster)
-	controlPaneJoinConfig := newControlPlaneJoinKubeadmConfig(controlPaneMachine, "control-plane-join-cfg")
-	controlPaneJoinConfig.Spec.JoinConfiguration.ControlPlane = nil // Makes controlPaneJoinConfig invalid for a control plane machine
+	controlPlaneMachine := newControlPlaneMachine(cluster)
+	controlPlaneJoinConfig := newControlPlaneJoinKubeadmConfig(controlPlaneMachine, "control-plane-join-cfg")
+	controlPlaneJoinConfig.Spec.JoinConfiguration.ControlPlane = nil // Makes controlPlaneJoinConfig invalid for a control plane machine
 
 	objects := []runtime.Object{
 		cluster,
-		controlPaneMachine,
-		controlPaneJoinConfig,
+		controlPlaneMachine,
+		controlPlaneJoinConfig,
 	}
 	myclient := fake.NewFakeClientWithScheme(setupScheme(), objects...)
 
@@ -463,15 +463,15 @@ func TestReconcileIfJoinNodesAndControlPlaneIsReady(t *testing.T) {
 	workerMachine := newWorkerMachine(cluster)
 	workerJoinConfig := newWorkerJoinKubeadmConfig(workerMachine)
 
-	controlPaneMachine := newControlPlaneMachine(cluster)
-	controlPaneJoinConfig := newControlPlaneJoinKubeadmConfig(controlPaneMachine, "control-plane-join-cfg")
+	controlPlaneMachine := newControlPlaneMachine(cluster)
+	controlPlaneJoinConfig := newControlPlaneJoinKubeadmConfig(controlPlaneMachine, "control-plane-join-cfg")
 
 	objects := []runtime.Object{
 		cluster,
 		workerMachine,
 		workerJoinConfig,
-		controlPaneMachine,
-		controlPaneJoinConfig,
+		controlPlaneMachine,
+		controlPlaneJoinConfig,
 	}
 	objects = append(objects, createSecrets(t, cluster)...)
 	myclient := fake.NewFakeClientWithScheme(setupScheme(), objects...)

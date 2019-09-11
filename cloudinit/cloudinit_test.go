@@ -21,7 +21,8 @@ import (
 	"testing"
 
 	infrav1 "sigs.k8s.io/cluster-api-bootstrap-provider-kubeadm/api/v1alpha2"
-	"sigs.k8s.io/cluster-api-bootstrap-provider-kubeadm/internal"
+	"sigs.k8s.io/cluster-api-bootstrap-provider-kubeadm/internal/cluster"
+	"sigs.k8s.io/cluster-api/util/certs"
 )
 
 func TestNewInitControlPlaneAdditionalFileEncodings(t *testing.T) {
@@ -45,14 +46,16 @@ func TestNewInitControlPlaneAdditionalFileEncodings(t *testing.T) {
 			Users:      nil,
 			NTP:        nil,
 		},
-		Certificates:         internal.NewCertificates(),
+		Certificates:         cluster.NewCertificates(),
 		ClusterConfiguration: "my-cluster-config",
 		InitConfiguration:    "my-init-config",
 	}
 
 	for _, certificate := range cpinput.Certificates {
-		certificate.KeyPair.Cert = []byte("some certificate")
-		certificate.KeyPair.Key = []byte("some key")
+		certificate.KeyPair = &certs.KeyPair{
+			Cert: []byte("some certificate"),
+			Key:  []byte("some key"),
+		}
 	}
 
 	out, err := NewInitControlPlane(cpinput)

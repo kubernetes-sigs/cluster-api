@@ -29,12 +29,13 @@ import (
 	typedcorev1 "k8s.io/client-go/kubernetes/typed/core/v1"
 	bootstrapv1 "sigs.k8s.io/cluster-api-bootstrap-provider-kubeadm/api/v1alpha2"
 	"sigs.k8s.io/cluster-api-bootstrap-provider-kubeadm/cloudinit"
-	"sigs.k8s.io/cluster-api-bootstrap-provider-kubeadm/internal"
+	internalcluster "sigs.k8s.io/cluster-api-bootstrap-provider-kubeadm/internal/cluster"
 	kubeadmv1beta1 "sigs.k8s.io/cluster-api-bootstrap-provider-kubeadm/kubeadm/v1beta1"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha2"
 	capierrors "sigs.k8s.io/cluster-api/errors"
 	"sigs.k8s.io/cluster-api/util"
 	"sigs.k8s.io/cluster-api/util/patch"
+	"sigs.k8s.io/cluster-api/util/secret"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/handler"
@@ -217,8 +218,8 @@ func (r *KubeadmConfigReconciler) Reconcile(req ctrl.Request) (_ ctrl.Result, re
 			return ctrl.Result{}, err
 		}
 
-		certificates := internal.NewCertificates()
-		if err := certificates.GetOrCreateCertificates(ctx, r.Client, cluster, config); err != nil {
+		certificates := internalcluster.NewCertificates()
+		if err := certificates.LookupOrGenerate(ctx, r.Client, cluster, config); err != nil {
 			log.Error(err, "unable to lookup or create cluster certificates")
 			return ctrl.Result{}, err
 		}
@@ -258,22 +259,25 @@ func (r *KubeadmConfigReconciler) Reconcile(req ctrl.Request) (_ ctrl.Result, re
 		return ctrl.Result{}, errors.New("Control plane already exists for the cluster, only KubeadmConfig objects with JoinConfiguration are allowed")
 	}
 
-	certificates := internal.NewCertificates()
-	if err := certificates.GetCertificates(ctx, r.Client, cluster); err != nil {
+	certificates := internalcluster.NewCertificates()
+	if err := certificates.Lookup(ctx, r.Client, cluster); err != nil {
 		log.Error(err, "unable to lookup cluster certificates")
 		return ctrl.Result{}, err
 	}
-	hashes, err := certificates.GetCertificateByName(internal.ClusterCAName).Hashes()
+	if err := certificates.EnsureAllExist(); err != nil {
+		return ctrl.Result{}, err
+	}
+
+	hashes, err := certificates.GetByPurpose(secret.ClusterCA).Hashes()
 	if err != nil {
 		log.Error(err, "Unable to generate Cluster CA certificate hashes")
 		return ctrl.Result{}, err
 	}
-	if hashes != nil {
-		if config.Spec.JoinConfiguration.Discovery.BootstrapToken == nil {
-			config.Spec.JoinConfiguration.Discovery.BootstrapToken = &kubeadmv1beta1.BootstrapTokenDiscovery{}
-		}
-		config.Spec.JoinConfiguration.Discovery.BootstrapToken.CACertHashes = hashes
+	// TODO: move this into reconcile.Discovery so that defaults for the Discovery are all in the same place
+	if config.Spec.JoinConfiguration.Discovery.BootstrapToken == nil {
+		config.Spec.JoinConfiguration.Discovery.BootstrapToken = &kubeadmv1beta1.BootstrapTokenDiscovery{}
 	}
+	config.Spec.JoinConfiguration.Discovery.BootstrapToken.CACertHashes = hashes
 
 	// ensure that joinConfiguration.Discovery is properly set for joining node on the current cluster
 	if err := r.reconcileDiscovery(cluster, config); err != nil {

@@ -205,7 +205,8 @@ func (r *MachineDeploymentReconciler) getMachineSetsForDeployment(d *clusterv1.M
 			continue
 		}
 
-		if !selector.Matches(labels.Set(ms.Labels)) {
+		// Skip this MachineSet unless either selector matches or it has a controller ref pointing to this MachineDeployment
+		if !selector.Matches(labels.Set(ms.Labels)) && !metav1.IsControlledBy(ms, d) {
 			klog.V(4).Infof("Skipping MachineSet %v, label mismatch", ms.Name)
 			continue
 		}

@@ -16,7 +16,9 @@ limitations under the License.
 
 package cloudinit
 
-import "sigs.k8s.io/cluster-api-bootstrap-provider-kubeadm/certs"
+import (
+	"sigs.k8s.io/cluster-api-bootstrap-provider-kubeadm/internal"
+)
 
 const (
 	controlPlaneCloudInit = `{{.Header}}
@@ -41,7 +43,7 @@ runcmd:
 // ControlPlaneInput defines the context to generate a controlplane instance user data.
 type ControlPlaneInput struct {
 	BaseUserData
-	certs.Certificates
+	internal.Certificates
 
 	ClusterConfiguration string
 	InitConfiguration    string
@@ -54,7 +56,7 @@ func NewInitControlPlane(input *ControlPlaneInput) ([]byte, error) {
 		return nil, err
 	}
 
-	input.WriteFiles = certs.CertificatesToFiles(input.Certificates)
+	input.WriteFiles = input.Certificates.AsFiles()
 	input.WriteFiles = append(input.WriteFiles, input.AdditionalFiles...)
 	userData, err := generate("InitControlplane", controlPlaneCloudInit, input)
 	if err != nil {

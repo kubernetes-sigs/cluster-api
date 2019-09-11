@@ -18,7 +18,7 @@ package cloudinit
 
 import (
 	"github.com/pkg/errors"
-	"sigs.k8s.io/cluster-api-bootstrap-provider-kubeadm/certs"
+	"sigs.k8s.io/cluster-api-bootstrap-provider-kubeadm/internal"
 )
 
 const (
@@ -41,7 +41,7 @@ runcmd:
 // ControlPlaneJoinInput defines context to generate controlplane instance user data for control plane node join.
 type ControlPlaneJoinInput struct {
 	BaseUserData
-	certs.Certificates
+	internal.Certificates
 
 	BootstrapToken    string
 	JoinConfiguration string
@@ -54,7 +54,7 @@ func NewJoinControlPlane(input *ControlPlaneJoinInput) ([]byte, error) {
 		return nil, errors.Wrapf(err, "ControlPlaneInput is invalid")
 	}
 
-	input.WriteFiles = certs.CertificatesToFiles(input.Certificates)
+	input.WriteFiles = input.Certificates.AsFiles()
 	input.WriteFiles = append(input.WriteFiles, input.AdditionalFiles...)
 	userData, err := generate("JoinControlplane", controlPlaneJoinCloudInit, input)
 	if err != nil {

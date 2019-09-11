@@ -32,7 +32,7 @@ import (
 	typedcorev1 "k8s.io/client-go/kubernetes/typed/core/v1"
 	"k8s.io/klog/klogr"
 	bootstrapv1 "sigs.k8s.io/cluster-api-bootstrap-provider-kubeadm/api/v1alpha2"
-	"sigs.k8s.io/cluster-api-bootstrap-provider-kubeadm/certs"
+	"sigs.k8s.io/cluster-api-bootstrap-provider-kubeadm/internal"
 	kubeadmv1beta1 "sigs.k8s.io/cluster-api-bootstrap-provider-kubeadm/kubeadm/v1beta1"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha2"
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -294,7 +294,7 @@ func TestKubeadmConfigReconciler_Reconcile_GenerateCloudConfigData(t *testing.T)
 		controlPlaneMachine,
 		controlPlaneInitConfig,
 	}
-	objects = append(objects, createSecrets(t, cluster)...)
+	objects = append(objects, createSecrets(t, cluster, controlPlaneInitConfig)...)
 
 	myclient := fake.NewFakeClientWithScheme(setupScheme(), objects...)
 
@@ -330,14 +330,6 @@ func TestKubeadmConfigReconciler_Reconcile_GenerateCloudConfigData(t *testing.T)
 	}
 	if cfg.Status.BootstrapData == nil {
 		t.Fatal("Expected status ready")
-	}
-
-	c, err := k.getClusterCertificates(cluster)
-	if err != nil {
-		t.Fatalf("Failed to locate certs secret:\n %+v", err)
-	}
-	if err := c.Validate(); err != nil {
-		t.Fatalf("Failed to validate certs: %+v", err)
 	}
 }
 
@@ -459,6 +451,8 @@ func TestReconcileIfJoinNodesAndControlPlaneIsReady(t *testing.T) {
 	cluster.Status.InfrastructureReady = true
 	cluster.Status.ControlPlaneInitialized = true
 	cluster.Status.APIEndpoints = []clusterv1.APIEndpoint{{Host: "100.105.150.1", Port: 6443}}
+	controlPlaneInitMachine := newControlPlaneMachine(cluster)
+	initConfig := newControlPlaneInitKubeadmConfig(controlPlaneInitMachine, "my-control-plane-init-config")
 
 	workerMachine := newWorkerMachine(cluster)
 	workerJoinConfig := newWorkerJoinKubeadmConfig(workerMachine)
@@ -473,7 +467,7 @@ func TestReconcileIfJoinNodesAndControlPlaneIsReady(t *testing.T) {
 		controlPlaneMachine,
 		controlPlaneJoinConfig,
 	}
-	objects = append(objects, createSecrets(t, cluster)...)
+	objects = append(objects, createSecrets(t, cluster, initConfig)...)
 	myclient := fake.NewFakeClientWithScheme(setupScheme(), objects...)
 	k := &KubeadmConfigReconciler{
 		Log:                  log.Log,
@@ -858,6 +852,8 @@ func TestKubeadmConfigReconciler_Reconcile_AlwaysCheckCAVerificationUnlessReques
 			Port: 6443,
 		},
 	}
+	controlPlaneInitMachine := newControlPlaneMachine(cluster)
+	initConfig := newControlPlaneInitKubeadmConfig(controlPlaneInitMachine, "my-control-plane-init-config")
 
 	controlPlaneMachineName := "my-machine"
 	machine := newMachine(cluster, controlPlaneMachineName)
@@ -871,7 +867,7 @@ func TestKubeadmConfigReconciler_Reconcile_AlwaysCheckCAVerificationUnlessReques
 	objects := []runtime.Object{
 		cluster, machine, workerMachine, config,
 	}
-	objects = append(objects, createSecrets(t, cluster)...)
+	objects = append(objects, createSecrets(t, cluster, initConfig)...)
 
 	testcases := []struct {
 		name               string
@@ -1074,14 +1070,14 @@ func newControlPlaneInitKubeadmConfig(machine *clusterv1.Machine, name string) *
 	return c
 }
 
-func createSecrets(t *testing.T, cluster *clusterv1.Cluster) []runtime.Object {
-	certificates, err := certs.NewCertificates()
-	if err != nil {
-		t.Fatalf("Failed to create new certificates:\n %+v", err)
-	}
+func createSecrets(t *testing.T, cluster *clusterv1.Cluster, owner *bootstrapv1.KubeadmConfig) []runtime.Object {
 	out := []runtime.Object{}
-	for _, secret := range certs.NewSecretsFromCertificates(cluster, &bootstrapv1.KubeadmConfig{}, certificates) {
-		out = append(out, secret)
+	certificates := internal.NewCertificates()
+	if err := certificates.GenerateCertificates(); err != nil {
+		t.Fatal(err)
+	}
+	for _, certificate := range certificates {
+		out = append(out, certificate.AsSecret(cluster, owner))
 	}
 	return out
 }

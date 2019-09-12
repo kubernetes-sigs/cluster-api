@@ -18,6 +18,7 @@ package controllers
 
 import (
 	"context"
+	"fmt"
 	"path"
 	"sync"
 	"time"
@@ -27,6 +28,7 @@ import (
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/api/meta"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/types"
 	kerrors "k8s.io/apimachinery/pkg/util/errors"
 	"k8s.io/client-go/tools/record"
 	"k8s.io/klog"
@@ -38,7 +40,9 @@ import (
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
+	"sigs.k8s.io/controller-runtime/pkg/handler"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
+	"sigs.k8s.io/controller-runtime/pkg/source"
 )
 
 const (
@@ -66,6 +70,10 @@ type ClusterReconciler struct {
 func (r *ClusterReconciler) SetupWithManager(mgr ctrl.Manager, options controller.Options) error {
 	c, err := ctrl.NewControllerManagedBy(mgr).
 		For(&clusterv1.Cluster{}).
+		Watches(
+			&source.Kind{Type: &clusterv1.Machine{}},
+			&handler.EnqueueRequestsFromMapFunc{ToRequests: handler.ToRequestsFunc(r.controlPlaneMachineToCluster)},
+		).
 		WithOptions(options).
 		Build(r)
 
@@ -129,6 +137,7 @@ func (r *ClusterReconciler) reconcile(ctx context.Context, cluster *clusterv1.Cl
 	reconciliationErrors := []error{
 		r.reconcileInfrastructure(ctx, cluster),
 		r.reconcileKubeconfig(ctx, cluster),
+		r.reconcileControlPlaneInitialized(ctx, cluster),
 	}
 
 	// Parse the errors, making sure we record if there is a RequeueAfterError.
@@ -286,4 +295,81 @@ func splitMachineList(list *clusterv1.MachineList) (*clusterv1.MachineList, *clu
 		}
 	}
 	return controlplanes, nodes
+}
+
+func (r *ClusterReconciler) reconcileControlPlaneInitialized(ctx context.Context, cluster *clusterv1.Cluster) error {
+	if cluster.Status.ControlPlaneInitialized {
+		return nil
+	}
+
+	machines, err := r.getMachinesInCluster(ctx, cluster.Namespace, cluster.Name)
+	if err != nil {
+		r.Log.Error(err, "error getting machines in cluster", "cluster", cluster.Name, "namespace", cluster.Namespace)
+		return err
+	}
+
+	for _, m := range machines {
+		if util.IsControlPlaneMachine(m) && m.Status.NodeRef != nil {
+			cluster.Status.ControlPlaneInitialized = true
+			return nil
+		}
+	}
+
+	return nil
+}
+
+// getMachinesInCluster returns all of the Machine objects that belong to the cluster
+func (r *ClusterReconciler) getMachinesInCluster(ctx context.Context, namespace, name string) ([]*clusterv1.Machine, error) {
+	if name == "" {
+		return nil, nil
+	}
+
+	machineList := &clusterv1.MachineList{}
+	labels := map[string]string{clusterv1.MachineClusterLabelName: name}
+
+	if err := r.Client.List(ctx, machineList, client.InNamespace(namespace), client.MatchingLabels(labels)); err != nil {
+		return nil, errors.Wrap(err, "failed to list machines")
+	}
+
+	machines := []*clusterv1.Machine{}
+	for i := range machineList.Items {
+		m := &machineList.Items[i]
+		if m.DeletionTimestamp.IsZero() {
+			machines = append(machines, m)
+		}
+	}
+	return machines, nil
+}
+
+// controlPlaneMachineToCluster is a handler.ToRequestsFunc to be used to enqueue requests for reconciliation
+// for Cluster to update its status.controlPlaneInitialized field
+func (r *ClusterReconciler) controlPlaneMachineToCluster(o handler.MapObject) []ctrl.Request {
+	m, ok := o.Object.(*clusterv1.Machine)
+	if !ok {
+		r.Log.Error(errors.New("did not get machine"), "got", fmt.Sprintf("%T", o.Object))
+		return nil
+	}
+	if !util.IsControlPlaneMachine(m) {
+		return nil
+	}
+	if m.Status.NodeRef == nil {
+		return nil
+	}
+
+	cluster, err := util.GetClusterFromMetadata(context.TODO(), r.Client, m.ObjectMeta)
+	if err != nil {
+		r.Log.Error(err, "failed to get cluster", "machine", m.Name, "cluster", m.ClusterName, "namespace", m.Namespace)
+		return nil
+	}
+
+	if cluster.Status.ControlPlaneInitialized {
+		return nil
+	}
+
+	return []ctrl.Request{{
+		NamespacedName: types.NamespacedName{
+			Namespace: cluster.Namespace,
+			Name:      cluster.Name,
+		},
+	}}
 }

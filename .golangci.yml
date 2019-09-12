@@ -1,26 +1,22 @@
 linters:
-  enable:
-    - govet
-    - golint
-    - gofmt
-    - goimports
-    - structcheck
-    - varcheck
-    - interfacer
-    - unconvert
-    - ineffassign
-    - goconst
-    - gocyclo
-    - misspell
-    - nakedret
-    - prealloc
-    - gosec
-  disable-all: true
+  enable-all: true
+  disable:
+    - dupl
+    - errcheck
+    - funlen
+    - gochecknoglobals
+    - gochecknoinits
+    - gocritic
+    - lll
+    - scopelint
+    - staticcheck
+    - unparam
+    - unused
   # Run with --fast=false for more extensive checks
   fast: true
-issue:
+issues:
   max-same-issues: 0
-  max-per-linter: 0
+  max-issues-per-linter: 0
 run:
   deadline: 2m
   skip-files:

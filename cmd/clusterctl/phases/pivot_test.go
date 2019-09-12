@@ -310,9 +310,7 @@ func (s *sourcer) GetClusters(ns string) ([]*clusterv1.Cluster, error) {
 	if ns == "" {
 		out := []*clusterv1.Cluster{}
 		for _, clusters := range s.clusters {
-			for _, cluster := range clusters {
-				out = append(out, cluster)
-			}
+			out = append(out, clusters...)
 		}
 		return out, nil
 	}
@@ -324,9 +322,7 @@ func (s *sourcer) GetMachineDeployments(ns string) ([]*clusterv1.MachineDeployme
 	if ns == "" {
 		out := []*clusterv1.MachineDeployment{}
 		for _, mds := range s.machineDeployments {
-			for _, md := range mds {
-				out = append(out, md)
-			}
+			out = append(out, mds...)
 		}
 		return out, nil
 	}
@@ -348,9 +344,7 @@ func (s *sourcer) GetMachines(ns string) ([]*clusterv1.Machine, error) {
 	if ns == "" {
 		out := []*clusterv1.Machine{}
 		for _, machines := range s.machines {
-			for _, m := range machines {
-				out = append(out, m)
-			}
+			out = append(out, machines...)
 		}
 		return out, nil
 	}
@@ -362,9 +356,7 @@ func (s *sourcer) GetMachineSets(ns string) ([]*clusterv1.MachineSet, error) {
 	if ns == "" {
 		out := []*clusterv1.MachineSet{}
 		for _, machineSets := range s.machineSets {
-			for _, ms := range machineSets {
-				out = append(out, ms)
-			}
+			out = append(out, machineSets...)
 		}
 		return out, nil
 	}

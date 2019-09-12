@@ -19,4 +19,4 @@ set -o nounset
 set -o pipefail
 
 # run golangci-lint
-make golangci-lint
+make lint-full

@@ -253,8 +253,10 @@ func moveSecret(from sourceClient, to targetClient, secret *corev1.Secret) error
 	// New objects cannot have a specified resource version. Clear it out.
 	secret.SetResourceVersion("")
 
-	// Remove owner reference.
-	secret.SetOwnerReferences(nil)
+	// remove the UID from ownerReferences as it will be different across clusters
+	for i := 0; i < len(secret.OwnerReferences); i++ {
+		secret.OwnerReferences[i].UID = ""
+	}
 
 	if err := to.CreateSecret(secret); err != nil {
 		return errors.Wrapf(err, "error copying Secret %s/%s to target cluster", secret.Namespace, secret.Name)

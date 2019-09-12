@@ -93,9 +93,13 @@ fmt: ## Run go fmt against code
 vet: ## Run go vet against code
 	go vet ./...
 
-.PHONY: golangci-lint
-golangci-lint: $(GOLANGCI_LINT) ## Run golangci-lint against code
-	$(GOLANGCI_LINT) run
+.PHONY: lint
+lint: $(GOLANGCI_LINT) ## Lint quickly using `golangci-lint --fast=true`
+	$(GOLANGCI_LINT) run -v --fast=true
+
+.PHONY: lint-full
+lint-full: $(GOLANGCI_LINT) ## Lint thoroughly using `golangci-lint --fase=false`
+	$(GOLANGCI_LINT) run -v --fast=false
 
 .PHONY: generate
 generate: $(CONTROLLER_GEN) ## Generate code
@@ -113,6 +117,7 @@ generate-manifests: $(CONTROLLER_GEN) ## Generate manifests e.g. CRD, RBAC etc
 # Build controller-gen
 $(CONTROLLER_GEN): $(TOOLS_DIR)/go.mod
 	cd $(TOOLS_DIR) && go build -o $(CONTROLLER_GEN_BIN) sigs.k8s.io/controller-tools/cmd/controller-gen
+
 # Build golangci-lint
 $(GOLANGCI_LINT): $(TOOLS_DIR)/go.mod
 	cd $(TOOLS_DIR) && go build -o $(GOLANGCI_LINT_BIN) github.com/golangci/golangci-lint/cmd/golangci-lint

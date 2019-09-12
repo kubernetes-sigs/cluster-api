@@ -208,7 +208,7 @@ func (r *MachineReconciler) isDeleteNodeAllowed(ctx context.Context, machine *cl
 	}
 
 	// Get all of the machines that belong to this cluster.
-	machines, err := r.getMachinesInCluster(ctx, machine.Namespace, machine.Labels[clusterv1.MachineClusterLabelName])
+	machines, err := getActiveMachinesInCluster(ctx, r.Client, machine.Namespace, machine.Labels[clusterv1.MachineClusterLabelName])
 	if err != nil {
 		return err
 	}
@@ -257,30 +257,6 @@ func (r *MachineReconciler) deleteNode(ctx context.Context, cluster *clusterv1.C
 	}
 
 	return corev1Remote.Nodes().Delete(name, &metav1.DeleteOptions{})
-}
-
-// getMachinesInCluster returns all of the Machine objects that belong to the
-// same cluster as the provided Machine
-func (r *MachineReconciler) getMachinesInCluster(ctx context.Context, namespace, name string) ([]*clusterv1.Machine, error) {
-	if name == "" {
-		return nil, nil
-	}
-
-	machineList := &clusterv1.MachineList{}
-	labels := map[string]string{clusterv1.MachineClusterLabelName: name}
-
-	if err := r.Client.List(ctx, machineList, client.InNamespace(namespace), client.MatchingLabels(labels)); err != nil {
-		return nil, errors.Wrap(err, "failed to list machines")
-	}
-
-	machines := []*clusterv1.Machine{}
-	for i := range machineList.Items {
-		m := &machineList.Items[i]
-		if m.DeletionTimestamp.IsZero() {
-			machines = append(machines, m)
-		}
-	}
-	return machines, nil
 }
 
 // reconcileDeleteExternal tries to delete external references, returning true if it cannot find any.

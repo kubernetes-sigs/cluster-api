@@ -32,7 +32,6 @@ import (
 	"sigs.k8s.io/cluster-api/controllers/external"
 	capierrors "sigs.k8s.io/cluster-api/errors"
 	"sigs.k8s.io/cluster-api/util"
-	"sigs.k8s.io/cluster-api/util/patch"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/handler"
 	"sigs.k8s.io/controller-runtime/pkg/source"
@@ -234,31 +233,5 @@ func (r *MachineReconciler) reconcileInfrastructure(ctx context.Context, m *clus
 
 	m.Spec.ProviderID = pointer.StringPtr(providerID)
 	m.Status.InfrastructureReady = true
-	return nil
-}
-
-// reconcileClusterStatus reconciles the status on the Cluster associated with Machines.
-func (r *MachineReconciler) reconcileClusterStatus(ctx context.Context, cluster *clusterv1.Cluster, m *clusterv1.Machine) error {
-	if cluster == nil {
-		return nil
-	}
-
-	// If the Machine is a control plane, it has a NodeRef and it's ready,
-	// set the Status.ControlPlaneInitialized on the Cluster.
-	if util.IsControlPlaneMachine(m) && m.Status.NodeRef != nil {
-		if !cluster.Status.ControlPlaneInitialized {
-			patchHelper, err := patch.NewHelper(cluster, r.Client)
-			if err != nil {
-				return errors.Wrapf(err, "failed to create patch helper for Cluster %q in namespace %q",
-					cluster.Name, cluster.Namespace)
-			}
-			cluster.Status.ControlPlaneInitialized = true
-			if err := patchHelper.Patch(ctx, cluster); err != nil {
-				return errors.Wrapf(err, "failed to set Status.ControlPlaneInitialized on Cluster %q in namespace %q",
-					cluster.Name, cluster.Namespace)
-			}
-		}
-	}
-
 	return nil
 }

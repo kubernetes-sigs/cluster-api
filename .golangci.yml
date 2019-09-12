@@ -1,26 +1,8 @@
 linters:
-  enable:
-    - deadcode
-    - goconst
-    - gofmt
-    - goimports
-    - golint
-    - gosec
-    - govet
-    - ineffassign
-    - interfacer
-    - maligned
-    - misspell
-    - nakedret
-    - prealloc
-    - scopelint
-    - staticcheck
-    - structcheck
-    - unconvert
-    - unparam
-    - varcheck
+  enable-all: true
   disable:
     - dupl
+    - funlen
     - gochecknoglobals
     - gochecknoinits
     - gocyclo

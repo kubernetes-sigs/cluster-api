@@ -27,6 +27,10 @@ EMBED := $(TOOLS_BIN_DIR)/mdbook-embed
 $(EMBED): $(TOOLS_DIR)/go.mod
 	cd $(TOOLS_DIR); go build -tags=tools -o $(BIN_DIR)/mdbook-embed ./mdbook/embed
 
+RELEASELINK := $(TOOLS_BIN_DIR)/mdbook-releaselink
+$(RELEASELINK): $(TOOLS_DIR)/go.mod
+	cd $(TOOLS_DIR); go build -tags=tools -o $(BIN_DIR)/mdbook-releaselink ./mdbook/releaselink
+
 .PHONY: serve
 serve:
 	mdbook serve

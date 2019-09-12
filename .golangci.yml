@@ -14,9 +14,9 @@ linters:
     - unused
   # Run with --fast=false for more extensive checks
   fast: true
-issue:
+issues:
   max-same-issues: 0
-  max-per-linter: 0
+  max-issues-per-linter: 0
 run:
   deadline: 2m
   skip-files:

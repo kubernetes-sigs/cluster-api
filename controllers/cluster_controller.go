@@ -302,7 +302,7 @@ func (r *ClusterReconciler) reconcileControlPlaneInitialized(ctx context.Context
 		return nil
 	}
 
-	machines, err := r.getMachinesInCluster(ctx, cluster.Namespace, cluster.Name)
+	machines, err := getActiveMachinesInCluster(ctx, r.Client, cluster.Namespace, cluster.Name)
 	if err != nil {
 		r.Log.Error(err, "error getting machines in cluster", "cluster", cluster.Name, "namespace", cluster.Namespace)
 		return err
@@ -316,29 +316,6 @@ func (r *ClusterReconciler) reconcileControlPlaneInitialized(ctx context.Context
 	}
 
 	return nil
-}
-
-// getMachinesInCluster returns all of the Machine objects that belong to the cluster
-func (r *ClusterReconciler) getMachinesInCluster(ctx context.Context, namespace, name string) ([]*clusterv1.Machine, error) {
-	if name == "" {
-		return nil, nil
-	}
-
-	machineList := &clusterv1.MachineList{}
-	labels := map[string]string{clusterv1.MachineClusterLabelName: name}
-
-	if err := r.Client.List(ctx, machineList, client.InNamespace(namespace), client.MatchingLabels(labels)); err != nil {
-		return nil, errors.Wrap(err, "failed to list machines")
-	}
-
-	machines := []*clusterv1.Machine{}
-	for i := range machineList.Items {
-		m := &machineList.Items[i]
-		if m.DeletionTimestamp.IsZero() {
-			machines = append(machines, m)
-		}
-	}
-	return machines, nil
 }
 
 // controlPlaneMachineToCluster is a handler.ToRequestsFunc to be used to enqueue requests for reconciliation

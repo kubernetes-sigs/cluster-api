@@ -14,3 +14,6 @@ command = "./util-tabulate.sh"
 
 [preprocessor.embed]
 command = "./util-embed.sh"
+
+[preprocessor.releaselink]
+command = "./util-releaselink.sh"

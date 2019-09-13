@@ -18,10 +18,8 @@ Using [kubectl], let's create the components on the [management cluster]:
 
 #### Install Cluster API Components
 
-Check the [releases](https://github.com/kubernetes-sigs/cluster-api/releases) for an up-to-date components file.
-
 ```bash
-kubectl create -f https://github.com/kubernetes-sigs/cluster-api/releases/download/v0.2.1/cluster-api-components.yaml
+kubectl create -f {{#releaselink gomodule:"sigs.k8s.io/cluster-api" asset:"cluster-api-components.yaml" version:"0.2.x"}}
 ```
 
 #### Install the Bootstrap Provider Components
@@ -32,7 +30,7 @@ kubectl create -f https://github.com/kubernetes-sigs/cluster-api/releases/downlo
 Check the [Kubeadm provider releases](https://github.com/kubernetes-sigs/cluster-api-bootstrap-provider-kubeadm/releases) for an up-to-date components file.
 
 ```bash
-kubectl create -f https://github.com/kubernetes-sigs/cluster-api-bootstrap-provider-kubeadm/releases/download/v0.1.0/bootstrap-components.yaml
+kubectl create -f {{#releaselink gomodule:"sigs.k8s.io/cluster-api-bootstrap-provider-kubeadm" asset:"bootstrap-components.yaml" version:"0.1.x"}}
 ```
 
 {{#/tab }}
@@ -67,7 +65,7 @@ Check the [AWS provider releases] for an up-to-date components file.
 export AWS_B64ENCODED_CREDENTIALS=$(clusterawsadm alpha bootstrap encode-aws-credentials)
 
 # Create the components.
-curl -L https://github.com/kubernetes-sigs/cluster-api-provider-aws/releases/download/v0.4.0/infrastructure-components.yaml \
+curl -L {{#releaselink gomodule:"sigs.k8s.io/cluster-api-provider-aws" asset:"infrastructure-components.yaml" version:"0.4.x"}} \
   | envsubst \
   | kubectl create -f -
 ```
@@ -80,7 +78,7 @@ Check the [vSphere provider releases](https://github.com/kubernetes-sigs/cluster
 For more information about prerequisites, credentials management, or permissions for vSphere, visit the [getting started guide](https://github.com/kubernetes-sigs/cluster-api-provider-vsphere/blob/master/docs/getting_started.md).
 
 ```bash
-kubectl create -f https://github.com/kubernetes-sigs/cluster-api-provider-vsphere/releases/download/v0.5.0/infrastructure-components.yaml
+kubectl create -f {{#releaselink gomodule:"sigs.k8s.io/cluster-api-provider-vsphere" asset:"infrastructure-components.yaml" version:"0.5.x"}}
 ```
 
 {{#/tab }}

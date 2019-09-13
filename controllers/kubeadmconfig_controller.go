@@ -127,6 +127,16 @@ func (r *KubeadmConfigReconciler) Reconcile(req ctrl.Request) (_ ctrl.Result, re
 	// Lookup the cluster the machine is associated with
 	cluster, err := util.GetClusterFromMetadata(ctx, r.Client, machine.ObjectMeta)
 	if err != nil {
+		if errors.Cause(err) == util.ErrNoCluster {
+			log.Info("Machine does not belong to a cluster yet, waiting until its part of a cluster")
+			return ctrl.Result{}, nil
+		}
+
+		if apierrors.IsNotFound(err) {
+			log.Info("Cluster does not exist yet , waiting until it is created")
+			return ctrl.Result{}, nil
+		}
+
 		log.Error(err, "could not get cluster by machine metadata")
 		return ctrl.Result{}, err
 	}

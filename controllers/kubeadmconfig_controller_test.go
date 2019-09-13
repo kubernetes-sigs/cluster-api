@@ -152,9 +152,8 @@ func TestKubeadmConfigReconciler_Reconcile_ReturnEarlyIfMachineHasBootstrapData(
 	}
 }
 
-// This returns an error since nothing can proceed without an associated cluster.
-// TODO: This should probably not return an error
-func TestKubeadmConfigReconciler_Reconcile_ReturnErrorIfMachineDoesNotHaveAssociatedCluster(t *testing.T) {
+// This does not expect an error, hoping the machine gets updated with a cluster
+func TestKubeadmConfigReconciler_Reconcile_ReturnNilIfMachineDoesNotHaveAssociatedCluster(t *testing.T) {
 	machine := newMachine(nil, "machine") // intentionally omitting cluster
 	config := newKubeadmConfig(machine, "cfg")
 
@@ -176,14 +175,13 @@ func TestKubeadmConfigReconciler_Reconcile_ReturnErrorIfMachineDoesNotHaveAssoci
 		},
 	}
 	_, err := k.Reconcile(request)
-	if err == nil {
-		t.Fatal("Expected error, got nil")
+	if err != nil {
+		t.Fatal("Not Expecting error, got an error")
 	}
 }
 
-// If the associated cluster is not found then there is no way to proceed.
-// TODO: This should probably not be an error
-func TestKubeadmConfigReconciler_Reconcile_ReturnErrorIfAssociatedClusterIsNotFound(t *testing.T) {
+// This does not expect an error, hoping that the associated cluster will be created
+func TestKubeadmConfigReconciler_Reconcile_ReturnNilIfAssociatedClusterIsNotFound(t *testing.T) {
 	cluster := newCluster("cluster")
 	machine := newMachine(cluster, "machine")
 	config := newKubeadmConfig(machine, "cfg")
@@ -207,8 +205,8 @@ func TestKubeadmConfigReconciler_Reconcile_ReturnErrorIfAssociatedClusterIsNotFo
 		},
 	}
 	_, err := k.Reconcile(request)
-	if err == nil {
-		t.Fatal("Expected error, got nil")
+	if err != nil {
+		t.Fatal("Not Expecting error, got an error")
 	}
 }
 

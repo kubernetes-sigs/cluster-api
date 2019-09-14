@@ -53,6 +53,7 @@ func main() {
 		metricsAddr          string
 		enableLeaderElection bool
 		syncPeriod           time.Duration
+		watchNamespace       string
 	)
 
 	flag.StringVar(
@@ -76,6 +77,13 @@ func main() {
 		"The minimum interval at which watched resources are reconciled (e.g. 10m)",
 	)
 
+	flag.StringVar(
+		&watchNamespace,
+		"namespace",
+		"",
+		"Namespace that the controller watches to reconcile cluster-api objects. If unspecified, the controller watches for cluster-api objects across all namespaces.",
+	)
+
 	flag.Parse()
 
 	ctrl.SetLogger(klogr.New())
@@ -84,6 +92,7 @@ func main() {
 		Scheme:             scheme,
 		MetricsBindAddress: metricsAddr,
 		LeaderElection:     enableLeaderElection,
+		Namespace:          watchNamespace,
 		SyncPeriod:         &syncPeriod,
 	})
 	if err != nil {

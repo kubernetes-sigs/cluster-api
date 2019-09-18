@@ -56,6 +56,46 @@ func setupScheme() *runtime.Scheme {
 	return scheme
 }
 
+// MachineToBootstrapMapFunc return kubeadm bootstrap configref name when configref exists
+func TestKubeadmConfigReconciler_MachineToBootstrapMapFuncReturn(t *testing.T) {
+	cluster := newCluster("my-cluster")
+	objs := []runtime.Object{cluster}
+	machineObjs := []runtime.Object{}
+	var expectedConfigName string
+	for i := 0; i < 3; i++ {
+		m := newMachine(cluster, fmt.Sprintf("my-machine-%d", i))
+		configName := fmt.Sprintf("my-config-%d", i)
+		if i == 1 {
+			c := newKubeadmConfig(m, configName)
+			objs = append(objs, m, c)
+			expectedConfigName = configName
+		} else {
+			objs = append(objs, m)
+		}
+		machineObjs = append(machineObjs, m)
+	}
+	fakeClient := fake.NewFakeClientWithScheme(setupScheme(), objs...)
+	reconciler := &KubeadmConfigReconciler{
+		Log:    log.Log,
+		Client: fakeClient,
+	}
+	for i := 0; i < 3; i++ {
+		o := handler.MapObject{
+			Object: machineObjs[i],
+		}
+		configs := reconciler.MachineToBootstrapMapFunc(o)
+		if i == 1 {
+			if configs[0].Name != expectedConfigName {
+				t.Fatalf("unexpected config name: %s", configs[0].Name)
+			}
+		} else {
+			if configs[0].Name != "" {
+				t.Fatalf("unexpected config name: %s", configs[0].Name)
+			}
+		}
+	}
+}
+
 // Reconcile returns early if the kubeadm config is ready because it should never re-generate bootstrap data.
 func TestKubeadmConfigReconciler_Reconcile_ReturnEarlyIfKubeadmConfigIsReady(t *testing.T) {
 	config := newKubeadmConfig(nil, "cfg")

@@ -73,7 +73,7 @@ func (r *KubeadmConfigReconciler) SetupWithManager(mgr ctrl.Manager) error {
 		Watches(
 			&source.Kind{Type: &clusterv1.Machine{}},
 			&handler.EnqueueRequestsFromMapFunc{
-				ToRequests: util.MachineToInfrastructureMapFunc(bootstrapv1.GroupVersion.WithKind("KubeadmConfig")),
+				ToRequests: handler.ToRequestsFunc(r.MachineToBootstrapMapFunc),
 			},
 		).
 		Watches(
@@ -136,7 +136,6 @@ func (r *KubeadmConfigReconciler) Reconcile(req ctrl.Request) (_ ctrl.Result, re
 			log.Info("Cluster does not exist yet , waiting until it is created")
 			return ctrl.Result{}, nil
 		}
-
 		log.Error(err, "could not get cluster by machine metadata")
 		return ctrl.Result{}, err
 	}
@@ -397,6 +396,22 @@ func (r *KubeadmConfigReconciler) ClusterToKubeadmConfigs(o handler.MapObject) [
 		}
 	}
 
+	return result
+}
+
+// MachineToBootstrapMapFunc is a handler.ToRequestsFunc to be used to enqeue
+// request for reconciliation of KubeadmConfig.
+func (r *KubeadmConfigReconciler) MachineToBootstrapMapFunc(o handler.MapObject) []ctrl.Request {
+	result := []ctrl.Request{}
+
+	m, ok := o.Object.(*clusterv1.Machine)
+	if !ok {
+		return nil
+	}
+	if m.Spec.Bootstrap.ConfigRef != nil && m.Spec.Bootstrap.ConfigRef.GroupVersionKind() == bootstrapv1.GroupVersion.WithKind("KubeadmConfig") {
+		name := client.ObjectKey{Namespace: m.Namespace, Name: m.Spec.Bootstrap.ConfigRef.Name}
+		result = append(result, ctrl.Request{NamespacedName: name})
+	}
 	return result
 }
 

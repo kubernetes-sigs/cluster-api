@@ -61,6 +61,7 @@ func main() {
 		machineConcurrency           int
 		machineSetConcurrency        int
 		machineDeploymentConcurrency int
+		machinePoolConcurrency       int
 		syncPeriod                   time.Duration
 	)
 
@@ -87,6 +88,9 @@ func main() {
 
 	flag.IntVar(&machineDeploymentConcurrency, "machinedeployment-concurrency", 1,
 		"Number of machine deployments to process simultaneously")
+
+	flag.IntVar(&machinePoolConcurrency, "machinepool-concurrency", 1,
+		"Number of machine sets to process simultaneously")
 
 	flag.DurationVar(&syncPeriod, "sync-period", 10*time.Minute,
 		"The minimum interval at which watched resources are reconciled (e.g. 15m)")
@@ -146,6 +150,13 @@ func main() {
 		Log:    ctrl.Log.WithName("controllers").WithName("MachineDeployment"),
 	}).SetupWithManager(mgr, concurrency(machineDeploymentConcurrency)); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "MachineDeployment")
+		os.Exit(1)
+	}
+	if err = (&controllers.MachinePoolReconciler{
+		Client: mgr.GetClient(),
+		Log:    ctrl.Log.WithName("controllers").WithName("MachinePool"),
+	}).SetupWithManager(mgr, concurrency(machinePoolConcurrency)); err != nil {
+		setupLog.Error(err, "unable to create controller", "controller", "MachinePool")
 		os.Exit(1)
 	}
 	// +kubebuilder:scaffold:builder

@@ -111,3 +111,12 @@ const (
 	// Example: the ProviderSpec specifies an instance type that doesn't exist.
 	InvalidConfigurationMachineSetError MachineSetStatusError = "InvalidConfiguration"
 )
+
+type MachinePoolStatusError string
+
+const (
+	// Represents that the configuration in the MachineTemplateSpec is not
+	// supported by this machine pool. This is not a transient error, but
+	// indicates a state that must be fixed before progress can be made.
+	InvalidConfigurationMachinePoolError MachinePoolStatusError = "InvalidConfiguration"
+)

@@ -216,6 +216,52 @@ func ClusterToInfrastructureMapFunc(gvk schema.GroupVersionKind) handler.ToReque
 	}
 }
 
+// GetOwnerMachinePool returns the MachinePool object owning the current resource.
+func GetOwnerMachinePool(ctx context.Context, c client.Client, obj metav1.ObjectMeta) (*clusterv1.MachinePool, error) {
+	for _, ref := range obj.OwnerReferences {
+		if ref.Kind == "MachinePool" && ref.APIVersion == clusterv1.GroupVersion.String() {
+			return GetMachinePoolByName(ctx, c, obj.Namespace, ref.Name)
+		}
+	}
+	return nil, nil
+}
+
+// GetMachinePoolByName finds and return a MachinePool object using the specified params.
+func GetMachinePoolByName(ctx context.Context, c client.Client, namespace, name string) (*clusterv1.MachinePool, error) {
+	m := &clusterv1.MachinePool{}
+	key := client.ObjectKey{Name: name, Namespace: namespace}
+	if err := c.Get(ctx, key, m); err != nil {
+		return nil, err
+	}
+	return m, nil
+}
+
+// MachinePoolToInfrastructureMapFunc returns a handler.ToRequestsFunc that watches for
+// MachinePool events and returns reconciliation requests for an infrastructure provider object.
+func MachinePoolToInfrastructureMapFunc(gvk schema.GroupVersionKind) handler.ToRequestsFunc {
+	return func(o handler.MapObject) []reconcile.Request {
+		m, ok := o.Object.(*clusterv1.MachinePool)
+		if !ok {
+			return nil
+		}
+
+		// Return early if the GroupVersionKind doesn't match what we expect.
+		infraGVK := m.Spec.Template.Spec.InfrastructureRef.GroupVersionKind()
+		if gvk != infraGVK {
+			return nil
+		}
+
+		return []reconcile.Request{
+			{
+				NamespacedName: client.ObjectKey{
+					Namespace: m.Namespace,
+					Name:      m.Spec.Template.Spec.InfrastructureRef.Name,
+				},
+			},
+		}
+	}
+}
+
 // GetOwnerMachine returns the Machine object owning the current resource.
 func GetOwnerMachine(ctx context.Context, c client.Client, obj metav1.ObjectMeta) (*clusterv1.Machine, error) {
 	for _, ref := range obj.OwnerReferences {

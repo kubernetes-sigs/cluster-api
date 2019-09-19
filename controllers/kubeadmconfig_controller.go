@@ -161,13 +161,6 @@ func (r *KubeadmConfigReconciler) Reconcile(req ctrl.Request) (_ ctrl.Result, re
 		}
 	}()
 
-	holdLock := false
-	defer func() {
-		if !holdLock {
-			r.KubeadmInitLock.Unlock(ctx, cluster)
-		}
-	}()
-
 	if !cluster.Status.ControlPlaneInitialized {
 		// if it's NOT a control plane machine, requeue
 		if !util.IsControlPlaneMachine(machine) {
@@ -188,6 +181,12 @@ func (r *KubeadmConfigReconciler) Reconcile(req ctrl.Request) (_ ctrl.Result, re
 			log.Info("A control plane is already being initialized, requeing until control plane is ready")
 			return ctrl.Result{RequeueAfter: 30 * time.Second}, nil
 		}
+
+		defer func() {
+			if rerr != nil {
+				r.KubeadmInitLock.Unlock(ctx, cluster)
+			}
+		}()
 
 		log.Info("Creating BootstrapData for the init control plane")
 
@@ -252,8 +251,6 @@ func (r *KubeadmConfigReconciler) Reconcile(req ctrl.Request) (_ ctrl.Result, re
 
 		config.Status.BootstrapData = cloudInitData
 		config.Status.Ready = true
-
-		holdLock = true
 
 		return ctrl.Result{}, nil
 	}

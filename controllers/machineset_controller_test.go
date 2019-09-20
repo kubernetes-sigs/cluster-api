@@ -17,6 +17,7 @@ limitations under the License.
 package controllers
 
 import (
+	"context"
 	"reflect"
 	"testing"
 	"time"
@@ -387,6 +388,8 @@ func TestShouldExcludeMachine(t *testing.T) {
 }
 
 func TestAdoptOrphan(t *testing.T) {
+	RegisterTestingT(t)
+
 	m := clusterv1.Machine{
 		ObjectMeta: metav1.ObjectMeta{
 			Name: "orphanMachine",
@@ -426,7 +429,13 @@ func TestAdoptOrphan(t *testing.T) {
 		Log:    log.Log,
 	}
 	for _, tc := range testCases {
-		r.adoptOrphan(&tc.machineSet, &tc.machine)
+		err := r.adoptOrphan(tc.machineSet.DeepCopy(), tc.machine.DeepCopy())
+		Expect(err).ToNot(HaveOccurred())
+
+		key := client.ObjectKey{Namespace: tc.machine.Namespace, Name: tc.machine.Name}
+		err = r.Client.Get(context.Background(), key, &tc.machine)
+		Expect(err).ToNot(HaveOccurred())
+
 		got := tc.machine.GetOwnerReferences()
 		if !reflect.DeepEqual(got, tc.expected) {
 			t.Errorf("Case %s. Got: %+v, expected: %+v", tc.machine.Name, got, tc.expected)

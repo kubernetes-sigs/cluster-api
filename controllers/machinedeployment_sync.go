@@ -103,7 +103,7 @@ func (r *MachineDeploymentReconciler) getNewMachineSet(d *clusterv1.MachineDeplo
 	// latest revision.
 	if existingNewMS != nil {
 		msCopy := existingNewMS.DeepCopy()
-		patch := client.MergeFrom(msCopy)
+		patch := client.MergeFrom(msCopy.DeepCopy())
 
 		// Set existing new machine set's annotation
 		annotationsUpdated := mdutil.SetNewMachineSetAnnotations(d, msCopy, newRevision, true)

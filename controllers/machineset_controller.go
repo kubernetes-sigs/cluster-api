@@ -386,7 +386,7 @@ func shouldExcludeMachine(machineSet *clusterv1.MachineSet, machine *clusterv1.M
 
 // adoptOrphan sets the MachineSet as a controller OwnerReference to the Machine.
 func (r *MachineSetReconciler) adoptOrphan(machineSet *clusterv1.MachineSet, machine *clusterv1.Machine) error {
-	patch := client.MergeFrom(machine)
+	patch := client.MergeFrom(machine.DeepCopy())
 	newRef := *metav1.NewControllerRef(machineSet, machineSetKind)
 	machine.OwnerReferences = append(machine.OwnerReferences, newRef)
 	return r.Client.Patch(context.Background(), machine, patch)

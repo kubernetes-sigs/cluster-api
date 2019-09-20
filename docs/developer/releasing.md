@@ -44,7 +44,7 @@ For version v0.x.y:
 1. Push the tag to the GitHub repository `git push origin v0.x.y`
     1. NB: `origin` should be the name of the remote pointing to `github.com/kubernetes-sigs/cluster-api`
 1. Run `make release` to build artifacts and push the images to the staging bucket
-1. Follow the [Image Promotion process](https://github.com/kubernetes/k8s.io/tree/master/k8s.gcr.io#image-promoter) to promote the image from the staging repo to `k8s.gcr.io/cluster-api`
+1. Follow the [Image Promotion process](https://github.com/kubernetes/k8s.io/tree/master/k8s.gcr.io#image-promoter) to promote the image from the staging repo to `us.gcr.io/k8s-artifacts-prod/cluster-api`
 1. Create a release in GitHub based on the tag created above
 1. Manually create the release notes by going through the merged PRs since the last release
 

@@ -119,13 +119,13 @@ func TestKubeadmConfigReconciler_Reconcile_ReturnEarlyIfKubeadmConfigIsReady(t *
 	}
 	result, err := k.Reconcile(request)
 	if err != nil {
-		t.Fatal(fmt.Sprintf("Failed to reconcile:\n %+v", err))
+		t.Fatalf("Failed to reconcile:\n %+v", err)
 	}
 	if result.Requeue == true {
-		t.Fatal("did not expected to requeue")
+		t.Fatal("did not expect to requeue")
 	}
 	if result.RequeueAfter != time.Duration(0) {
-		t.Fatal("did not expected to requeue after")
+		t.Fatal("did not expect to requeue after")
 	}
 }
 
@@ -182,13 +182,13 @@ func TestKubeadmConfigReconciler_Reconcile_ReturnEarlyIfMachineHasBootstrapData(
 	}
 	result, err := k.Reconcile(request)
 	if err != nil {
-		t.Fatal(fmt.Sprintf("Failed to reconcile:\n %+v", err))
+		t.Fatalf("Failed to reconcile:\n %+v", err)
 	}
 	if result.Requeue == true {
-		t.Fatal("did not expected to requeue")
+		t.Fatal("did not expect to requeue")
 	}
 	if result.RequeueAfter != time.Duration(0) {
-		t.Fatal("did not expected to requeue after")
+		t.Fatal("did not expect to requeue after")
 	}
 }
 
@@ -258,8 +258,8 @@ func TestKubeadmConfigReconciler_Reconcile_RequeueJoiningNodesIfControlPlaneNotI
 	workerMachine := newWorkerMachine(cluster)
 	workerJoinConfig := newWorkerJoinKubeadmConfig(workerMachine)
 
-	controlPlaneMachine := newControlPlaneMachine(cluster)
-	controlPlaneJoinConfig := newControlPlaneJoinKubeadmConfig(controlPlaneMachine, "control-plane-join-cfg")
+	controlPlaneJoinMachine := newControlPlaneMachine(cluster, "control-plane-join-machine")
+	controlPlaneJoinConfig := newControlPlaneJoinKubeadmConfig(controlPlaneJoinMachine, "control-plane-join-cfg")
 
 	testcases := []struct {
 		name    string
@@ -290,7 +290,7 @@ func TestKubeadmConfigReconciler_Reconcile_RequeueJoiningNodesIfControlPlaneNotI
 			},
 			objects: []runtime.Object{
 				cluster,
-				controlPlaneMachine,
+				controlPlaneJoinMachine,
 				controlPlaneJoinConfig,
 			},
 		},
@@ -324,12 +324,12 @@ func TestKubeadmConfigReconciler_Reconcile_GenerateCloudConfigData(t *testing.T)
 	cluster := newCluster("cluster")
 	cluster.Status.InfrastructureReady = true
 
-	controlPlaneMachine := newControlPlaneMachine(cluster)
-	controlPlaneInitConfig := newControlPlaneInitKubeadmConfig(controlPlaneMachine, "control-plane-init-cfg")
+	controlPlaneInitMachine := newControlPlaneMachine(cluster, "control-plane-init-machine")
+	controlPlaneInitConfig := newControlPlaneInitKubeadmConfig(controlPlaneInitMachine, "control-plane-init-cfg")
 
 	objects := []runtime.Object{
 		cluster,
-		controlPlaneMachine,
+		controlPlaneInitMachine,
 		controlPlaneInitConfig,
 	}
 	objects = append(objects, createSecrets(t, cluster, controlPlaneInitConfig)...)
@@ -353,10 +353,10 @@ func TestKubeadmConfigReconciler_Reconcile_GenerateCloudConfigData(t *testing.T)
 		t.Fatalf("Failed to reconcile:\n %+v", err)
 	}
 	if result.Requeue != false {
-		t.Fatal("did not expected to requeue")
+		t.Fatal("did not expect to requeue")
 	}
 	if result.RequeueAfter != time.Duration(0) {
-		t.Fatal("did not expected to requeue after")
+		t.Fatal("did not expect to requeue after")
 	}
 
 	cfg, err := getKubeadmConfig(myclient, "control-plane-init-cfg")
@@ -414,10 +414,10 @@ func TestKubeadmConfigReconciler_Reconcile_ErrorIfJoiningControlPlaneHasInvalidC
 	cluster.Status.InfrastructureReady = true
 	cluster.Status.ControlPlaneInitialized = true
 	cluster.Status.APIEndpoints = []clusterv1.APIEndpoint{{Host: "100.105.150.1", Port: 6443}}
-	controlPlaneMachine := newControlPlaneMachine(cluster)
-	controlPlaneInitConfig := newControlPlaneInitKubeadmConfig(controlPlaneMachine, "control-plane-init-cfg")
+	controlPlaneInitMachine := newControlPlaneMachine(cluster, "control-plane-init-machine")
+	controlPlaneInitConfig := newControlPlaneInitKubeadmConfig(controlPlaneInitMachine, "control-plane-init-cfg")
 
-	controlPlaneJoinMachine := newControlPlaneMachine(cluster)
+	controlPlaneJoinMachine := newControlPlaneMachine(cluster, "control-plane-join-machine")
 	controlPlaneJoinConfig := newControlPlaneJoinKubeadmConfig(controlPlaneJoinMachine, "control-plane-join-cfg")
 	controlPlaneJoinConfig.Spec.JoinConfiguration.ControlPlane = nil // Makes controlPlaneJoinConfig invalid for a control plane machine
 
@@ -453,8 +453,8 @@ func TestKubeadmConfigReconciler_Reconcile_RequeueIfControlPlaneIsMissingAPIEndp
 	cluster := newCluster("cluster")
 	cluster.Status.InfrastructureReady = true
 	cluster.Status.ControlPlaneInitialized = true
-	controlPlaneMachine := newControlPlaneMachine(cluster)
-	controlPlaneInitConfig := newControlPlaneInitKubeadmConfig(controlPlaneMachine, "control-plane-init-cfg")
+	controlPlaneInitMachine := newControlPlaneMachine(cluster, "control-plane-init-machine")
+	controlPlaneInitConfig := newControlPlaneInitKubeadmConfig(controlPlaneInitMachine, "control-plane-init-cfg")
 
 	workerMachine := newWorkerMachine(cluster)
 	workerJoinConfig := newWorkerJoinKubeadmConfig(workerMachine)
@@ -482,10 +482,10 @@ func TestKubeadmConfigReconciler_Reconcile_RequeueIfControlPlaneIsMissingAPIEndp
 	}
 	result, err := k.Reconcile(request)
 	if err != nil {
-		t.Fatal(fmt.Sprintf("Failed to reconcile:\n %+v", err))
+		t.Fatalf("Failed to reconcile:\n %+v", err)
 	}
 	if result.Requeue == true {
-		t.Fatal("did not expected to requeue")
+		t.Fatal("did not expect to requeue")
 	}
 	if result.RequeueAfter != 10*time.Second {
 		t.Fatal("expected to requeue after 10s")
@@ -497,20 +497,20 @@ func TestReconcileIfJoinNodesAndControlPlaneIsReady(t *testing.T) {
 	cluster.Status.InfrastructureReady = true
 	cluster.Status.ControlPlaneInitialized = true
 	cluster.Status.APIEndpoints = []clusterv1.APIEndpoint{{Host: "100.105.150.1", Port: 6443}}
-	controlPlaneInitMachine := newControlPlaneMachine(cluster)
-	initConfig := newControlPlaneInitKubeadmConfig(controlPlaneInitMachine, "my-control-plane-init-config")
+	controlPlaneInitMachine := newControlPlaneMachine(cluster, "control-plane-init-machine")
+	initConfig := newControlPlaneInitKubeadmConfig(controlPlaneInitMachine, "control-plane-init-config")
 
 	workerMachine := newWorkerMachine(cluster)
 	workerJoinConfig := newWorkerJoinKubeadmConfig(workerMachine)
 
-	controlPlaneMachine := newControlPlaneMachine(cluster)
-	controlPlaneJoinConfig := newControlPlaneJoinKubeadmConfig(controlPlaneMachine, "control-plane-join-cfg")
+	controlPlaneJoinMachine := newControlPlaneMachine(cluster, "control-plane-join-machine")
+	controlPlaneJoinConfig := newControlPlaneJoinKubeadmConfig(controlPlaneJoinMachine, "control-plane-join-cfg")
 
 	objects := []runtime.Object{
 		cluster,
 		workerMachine,
 		workerJoinConfig,
-		controlPlaneMachine,
+		controlPlaneJoinMachine,
 		controlPlaneJoinConfig,
 	}
 	objects = append(objects, createSecrets(t, cluster, initConfig)...)
@@ -530,18 +530,18 @@ func TestReconcileIfJoinNodesAndControlPlaneIsReady(t *testing.T) {
 	}
 	result, err := k.Reconcile(request)
 	if err != nil {
-		t.Fatal(fmt.Sprintf("Failed to reconcile:\n %+v", err))
+		t.Fatalf("Failed to reconcile:\n %+v", err)
 	}
 	if result.Requeue == true {
-		t.Fatal("did not expected to requeue")
+		t.Fatal("did not expect to requeue")
 	}
 	if result.RequeueAfter != time.Duration(0) {
-		t.Fatal("did not expected to requeue after")
+		t.Fatal("did not expect to requeue after")
 	}
 
 	cfg, err := getKubeadmConfig(myclient, "worker-join-cfg")
 	if err != nil {
-		t.Fatal(fmt.Sprintf("Failed to reconcile:\n %+v", err))
+		t.Fatalf("Failed to reconcile:\n %+v", err)
 	}
 
 	if cfg.Status.Ready != true {
@@ -560,18 +560,18 @@ func TestReconcileIfJoinNodesAndControlPlaneIsReady(t *testing.T) {
 	}
 	result, err = k.Reconcile(request)
 	if err != nil {
-		t.Fatal(fmt.Sprintf("Failed to reconcile:\n %+v", err))
+		t.Fatalf("Failed to reconcile:\n %+v", err)
 	}
 	if result.Requeue == true {
-		t.Fatal("did not expected to requeue")
+		t.Fatal("did not expect to requeue")
 	}
 	if result.RequeueAfter != time.Duration(0) {
-		t.Fatal("did not expected to requeue after")
+		t.Fatal("did not expect to requeue after")
 	}
 
 	cfg, err = getKubeadmConfig(myclient, "control-plane-join-cfg")
 	if err != nil {
-		t.Fatal(fmt.Sprintf("Failed to reconcile:\n %+v", err))
+		t.Fatalf("Failed to reconcile:\n %+v", err)
 	}
 
 	if cfg.Status.Ready != true {
@@ -585,11 +585,11 @@ func TestReconcileIfJoinNodesAndControlPlaneIsReady(t *testing.T) {
 	myremoteclient, _ := k.SecretsClientFactory.NewSecretsClient(nil, nil)
 	l, err := myremoteclient.List(metav1.ListOptions{})
 	if err != nil {
-		t.Fatal(fmt.Sprintf("Failed to reconcile:\n %+v", err))
+		t.Fatalf("Failed to reconcile:\n %+v", err)
 	}
 
 	if len(l.Items) != 2 {
-		t.Fatal(fmt.Sprintf("Failed to reconcile:\n %+v", err))
+		t.Fatalf("Failed to reconcile:\n %+v", err)
 	}
 }
 
@@ -898,7 +898,7 @@ func TestKubeadmConfigReconciler_Reconcile_AlwaysCheckCAVerificationUnlessReques
 			Port: 6443,
 		},
 	}
-	controlPlaneInitMachine := newControlPlaneMachine(cluster)
+	controlPlaneInitMachine := newControlPlaneMachine(cluster, "my-control-plane-init-machine")
 	initConfig := newControlPlaneInitKubeadmConfig(controlPlaneInitMachine, "my-control-plane-init-config")
 
 	controlPlaneMachineName := "my-machine"
@@ -1017,7 +1017,7 @@ func TestKubeadmConfigReconciler_Reconcile_DoesNotFailIfCASecretsAlreadyExist(t 
 	cluster := newCluster("my-cluster")
 	cluster.Status.InfrastructureReady = true
 	cluster.Status.ControlPlaneInitialized = false
-	m := newControlPlaneMachine(cluster)
+	m := newControlPlaneMachine(cluster, "control-plane-machine")
 	configName := "my-config"
 	c := newControlPlaneInitKubeadmConfig(m, configName)
 	scrt := &corev1.Secret{
@@ -1041,6 +1041,67 @@ func TestKubeadmConfigReconciler_Reconcile_DoesNotFailIfCASecretsAlreadyExist(t 
 	}
 	if _, err := reconciler.Reconcile(req); err != nil {
 		t.Fatal(err)
+	}
+}
+
+// Exactly one control plane machine initializes if there are multiple control plane machines defined
+func TestKubeadmConfigReconciler_Reconcile_ExactlyOneControlPlaneMachineInitializes(t *testing.T) {
+	cluster := newCluster("cluster")
+	cluster.Status.InfrastructureReady = true
+
+	controlPlaneInitMachineFirst := newControlPlaneMachine(cluster, "control-plane-init-machine-first")
+	controlPlaneInitConfigFirst := newControlPlaneInitKubeadmConfig(controlPlaneInitMachineFirst, "control-plane-init-cfg-first")
+
+	controlPlaneInitMachineSecond := newControlPlaneMachine(cluster, "control-plane-init-machine-second")
+	controlPlaneInitConfigSecond := newControlPlaneInitKubeadmConfig(controlPlaneInitMachineSecond, "control-plane-init-cfg-second")
+
+	objects := []runtime.Object{
+		cluster,
+		controlPlaneInitMachineFirst,
+		controlPlaneInitConfigFirst,
+		controlPlaneInitMachineSecond,
+		controlPlaneInitConfigSecond,
+	}
+	myclient := fake.NewFakeClientWithScheme(setupScheme(), objects...)
+	k := &KubeadmConfigReconciler{
+		Log:                  log.Log,
+		Client:               myclient,
+		SecretsClientFactory: newFakeSecretFactory(),
+		KubeadmInitLock:      &myInitLocker{},
+	}
+
+	request := ctrl.Request{
+		NamespacedName: types.NamespacedName{
+			Namespace: "default",
+			Name:      "control-plane-init-cfg-first",
+		},
+	}
+	result, err := k.Reconcile(request)
+	if err != nil {
+		t.Fatalf("Failed to reconcile:\n %+v", err)
+	}
+	if result.Requeue == true {
+		t.Fatal("did not expect to requeue")
+	}
+	if result.RequeueAfter != time.Duration(0) {
+		t.Fatal("did not expect to requeue after")
+	}
+
+	request = ctrl.Request{
+		NamespacedName: types.NamespacedName{
+			Namespace: "default",
+			Name:      "control-plane-init-cfg-second",
+		},
+	}
+	result, err = k.Reconcile(request)
+	if err != nil {
+		t.Fatalf("Failed to reconcile:\n %+v", err)
+	}
+	if result.Requeue == true {
+		t.Fatal("did not expect to requeue")
+	}
+	if result.RequeueAfter != 30*time.Second {
+		t.Fatal("expected to requeue after 30s")
 	}
 }
 
@@ -1092,8 +1153,8 @@ func newWorkerMachine(cluster *clusterv1.Cluster) *clusterv1.Machine {
 	return newMachine(cluster, "worker-machine") // machine by default is a worker node (not the bootstrapNode)
 }
 
-func newControlPlaneMachine(cluster *clusterv1.Cluster) *clusterv1.Machine {
-	m := newMachine(cluster, "control-plane-machine")
+func newControlPlaneMachine(cluster *clusterv1.Cluster, name string) *clusterv1.Machine {
+	m := newMachine(cluster, name)
 	m.Labels[clusterv1.MachineControlPlaneLabelName] = "true"
 	return m
 }
@@ -1180,9 +1241,21 @@ func (f FakeSecretFactory) NewSecretsClient(client client.Client, cluster *clust
 	return f.client, nil
 }
 
-type myInitLocker struct{}
+type myInitLocker struct {
+	locked bool
+}
 
 func (m *myInitLocker) Lock(_ context.Context, _ *clusterv1.Cluster, _ *clusterv1.Machine) bool {
+	if !m.locked {
+		m.locked = true
+		return true
+	}
+	return false
+}
+
+func (m *myInitLocker) Unlock(_ context.Context, _ *clusterv1.Cluster) bool {
+	if m.locked {
+		m.locked = false
+	}
 	return true
 }
-func (m *myInitLocker) Unlock(_ context.Context, _ *clusterv1.Cluster) bool { return true }

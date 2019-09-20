@@ -192,6 +192,34 @@ func TestKubeadmConfigReconciler_Reconcile_ReturnEarlyIfMachineHasBootstrapData(
 	}
 }
 
+// Return early If the owning machine does not have an associated cluster
+func TestKubeadmConfigReconciler_Reconcile_ReturnEarlyIfMachineHasNoCluster(t *testing.T) {
+	machine := newMachine(nil, "machine") // Machine without a cluster
+	config := newKubeadmConfig(machine, "cfg")
+
+	objects := []runtime.Object{
+		machine,
+		config,
+	}
+	myclient := fake.NewFakeClientWithScheme(setupScheme(), objects...)
+
+	k := &KubeadmConfigReconciler{
+		Log:    log.Log,
+		Client: myclient,
+	}
+
+	request := ctrl.Request{
+		NamespacedName: types.NamespacedName{
+			Namespace: "default",
+			Name:      "cfg",
+		},
+	}
+	_, err := k.Reconcile(request)
+	if err != nil {
+		t.Fatalf("Not Expecting error, got an error: %+v", err)
+	}
+}
+
 // This does not expect an error, hoping the machine gets updated with a cluster
 func TestKubeadmConfigReconciler_Reconcile_ReturnNilIfMachineDoesNotHaveAssociatedCluster(t *testing.T) {
 	machine := newMachine(nil, "machine") // intentionally omitting cluster

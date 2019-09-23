@@ -77,6 +77,13 @@ func main() {
 		"The minimum interval at which watched resources are reconciled (e.g. 10m)",
 	)
 
+	flag.DurationVar(
+		&controllers.DefaultTokenTTL,
+		"bootstrap-token-ttl",
+		15*time.Minute,
+		"The amount of time the bootstrap token will be valid",
+	)
+
 	flag.StringVar(
 		&watchNamespace,
 		"namespace",
@@ -87,6 +94,10 @@ func main() {
 	flag.Parse()
 
 	ctrl.SetLogger(klogr.New())
+
+	if controllers.DefaultTokenTTL-syncPeriod < 1*time.Minute {
+		setupLog.Info("warning: the sync interval is close to the configured token TTL, tokens may expire temporarily before being refreshed")
+	}
 
 	mgr, err := ctrl.NewManager(ctrl.GetConfigOrDie(), ctrl.Options{
 		Scheme:             scheme,

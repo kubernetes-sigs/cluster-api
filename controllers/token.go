@@ -30,8 +30,9 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
-const (
-	defaultTokenTTL = 10 * time.Minute
+var (
+	// DefaultTokenTTL is the amount of time a bootstrap token (and therefore a KubeadmConfig) will be valid
+	DefaultTokenTTL = 15 * time.Minute
 )
 
 // ClusterSecretsClientFactory support creation of secrets client for clusters
@@ -76,7 +77,7 @@ func createToken(client corev1.SecretInterface) (string, error) {
 		Data: map[string][]byte{
 			bootstrapapi.BootstrapTokenIDKey:               []byte(tokenID),
 			bootstrapapi.BootstrapTokenSecretKey:           []byte(tokenSecret),
-			bootstrapapi.BootstrapTokenExpirationKey:       []byte(time.Now().UTC().Add(defaultTokenTTL).Format(time.RFC3339)),
+			bootstrapapi.BootstrapTokenExpirationKey:       []byte(time.Now().UTC().Add(DefaultTokenTTL).Format(time.RFC3339)),
 			bootstrapapi.BootstrapTokenUsageSigningKey:     []byte("true"),
 			bootstrapapi.BootstrapTokenUsageAuthentication: []byte("true"),
 			bootstrapapi.BootstrapTokenExtraGroupsKey:      []byte("system:bootstrappers:kubeadm:default-node-token"),
@@ -88,4 +89,27 @@ func createToken(client corev1.SecretInterface) (string, error) {
 		return "", err
 	}
 	return token, nil
+}
+
+// refreshToken extends the TTL for an existing token
+func refreshToken(client corev1.SecretInterface, token string) error {
+	substrs := bootstraputil.BootstrapTokenRegexp.FindStringSubmatch(token)
+	if len(substrs) != 3 {
+		return errors.Errorf("the bootstrap token %q was not of the form %q", token, bootstrapapi.BootstrapTokenPattern)
+	}
+	tokenID := substrs[1]
+
+	secretName := bootstraputil.BootstrapTokenSecretName(tokenID)
+	secret, err := client.Get(secretName, metav1.GetOptions{})
+	if err != nil {
+		return err
+	}
+
+	if secret.Data == nil {
+		return errors.Errorf("Invalid bootstrap secret %q, remove the token from the kubadm config to re-create", secretName)
+	}
+	secret.Data[bootstrapapi.BootstrapTokenExpirationKey] = []byte(time.Now().UTC().Add(DefaultTokenTTL).Format(time.RFC3339))
+
+	_, err = client.Update(secret)
+	return err
 }

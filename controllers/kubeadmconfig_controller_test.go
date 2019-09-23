@@ -17,6 +17,7 @@ limitations under the License.
 package controllers
 
 import (
+	"bytes"
 	"context"
 	"fmt"
 	"reflect"
@@ -30,6 +31,7 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 	fakeclient "k8s.io/client-go/kubernetes/fake"
 	typedcorev1 "k8s.io/client-go/kubernetes/typed/core/v1"
+	bootstrapapi "k8s.io/cluster-bootstrap/token/api"
 	"k8s.io/klog/klogr"
 	bootstrapv1 "sigs.k8s.io/cluster-api-bootstrap-provider-kubeadm/api/v1alpha2"
 	internalcluster "sigs.k8s.io/cluster-api-bootstrap-provider-kubeadm/internal/cluster"
@@ -577,7 +579,7 @@ func TestReconcileIfJoinNodesAndControlPlaneIsReady(t *testing.T) {
 			myremoteclient, _ := k.SecretsClientFactory.NewSecretsClient(nil, nil)
 			l, err := myremoteclient.List(metav1.ListOptions{})
 			if err != nil {
-				t.Fatal(fmt.Sprintf("Failed to get secrets after reconcyle:\n %+v", err))
+				t.Fatal(fmt.Sprintf("Failed to get secrets after reconcile:\n %+v", err))
 			}
 
 			if len(l.Items) != 1 {
@@ -585,6 +587,204 @@ func TestReconcileIfJoinNodesAndControlPlaneIsReady(t *testing.T) {
 			}
 		})
 
+	}
+}
+
+func TestBootstrapTokenTTLExtension(t *testing.T) {
+	cluster := newCluster("cluster")
+	cluster.Status.InfrastructureReady = true
+	cluster.Status.ControlPlaneInitialized = true
+	cluster.Status.APIEndpoints = []clusterv1.APIEndpoint{{Host: "100.105.150.1", Port: 6443}}
+
+	controlPlaneInitMachine := newControlPlaneMachine(cluster, "control-plane-init-machine")
+	initConfig := newControlPlaneInitKubeadmConfig(controlPlaneInitMachine, "control-plane-init-config")
+	workerMachine := newWorkerMachine(cluster)
+	workerJoinConfig := newWorkerJoinKubeadmConfig(workerMachine)
+	controlPlaneJoinMachine := newControlPlaneMachine(cluster, "control-plane-join-machine")
+	controlPlaneJoinConfig := newControlPlaneJoinKubeadmConfig(controlPlaneJoinMachine, "control-plane-join-cfg")
+	objects := []runtime.Object{
+		cluster,
+		workerMachine,
+		workerJoinConfig,
+		controlPlaneJoinMachine,
+		controlPlaneJoinConfig,
+	}
+
+	objects = append(objects, createSecrets(t, cluster, initConfig)...)
+	myclient := fake.NewFakeClientWithScheme(setupScheme(), objects...)
+	k := &KubeadmConfigReconciler{
+		Log:                  log.Log,
+		Client:               myclient,
+		SecretsClientFactory: newFakeSecretFactory(),
+		KubeadmInitLock:      &myInitLocker{},
+	}
+	request := ctrl.Request{
+		NamespacedName: types.NamespacedName{
+			Namespace: "default",
+			Name:      "worker-join-cfg",
+		},
+	}
+	result, err := k.Reconcile(request)
+	if err != nil {
+		t.Fatalf("Failed to reconcile:\n %+v", err)
+	}
+	if result.Requeue == true {
+		t.Fatal("did not expect to requeue")
+	}
+	if result.RequeueAfter != time.Duration(0) {
+		t.Fatal("did not expect to requeue after")
+	}
+	cfg, err := getKubeadmConfig(myclient, "worker-join-cfg")
+	if err != nil {
+		t.Fatalf("Failed to reconcile:\n %+v", err)
+	}
+	if cfg.Status.Ready != true {
+		t.Fatal("Expected status ready")
+	}
+	if cfg.Status.BootstrapData == nil {
+		t.Fatal("Expected status ready")
+	}
+	request = ctrl.Request{
+		NamespacedName: types.NamespacedName{
+			Namespace: "default",
+			Name:      "control-plane-join-cfg",
+		},
+	}
+	result, err = k.Reconcile(request)
+	if err != nil {
+		t.Fatalf("Failed to reconcile:\n %+v", err)
+	}
+	if result.Requeue == true {
+		t.Fatal("did not expect to requeue")
+	}
+	if result.RequeueAfter != time.Duration(0) {
+		t.Fatal("did not expect to requeue after")
+	}
+	cfg, err = getKubeadmConfig(myclient, "control-plane-join-cfg")
+	if err != nil {
+		t.Fatalf("Failed to reconcile:\n %+v", err)
+	}
+	if cfg.Status.Ready != true {
+		t.Fatal("Expected status ready")
+	}
+	if cfg.Status.BootstrapData == nil {
+		t.Fatal("Expected status ready")
+	}
+
+	myremoteclient, _ := k.SecretsClientFactory.NewSecretsClient(nil, nil)
+	l, err := myremoteclient.List(metav1.ListOptions{})
+	if err != nil {
+		t.Fatalf("Failed to read secrets:\n %+v", err)
+	}
+
+	if len(l.Items) != 2 {
+		t.Fatalf("Expected two bootstrap tokens, saw:\n %+d", len(l.Items))
+	}
+
+	// ensure that the token is refreshed...
+	tokenExpires := make([][]byte, len(l.Items))
+
+	for i, item := range l.Items {
+		tokenExpires[i] = item.Data[bootstrapapi.BootstrapTokenExpirationKey]
+	}
+
+	<-time.After(1 * time.Second)
+
+	for _, req := range []ctrl.Request{
+		{
+			NamespacedName: types.NamespacedName{
+				Namespace: "default",
+				Name:      "worker-join-cfg",
+			},
+		},
+		{
+			NamespacedName: types.NamespacedName{
+				Namespace: "default",
+				Name:      "control-plane-join-cfg",
+			},
+		},
+	} {
+
+		result, err := k.Reconcile(req)
+		if err != nil {
+			t.Fatalf("Failed to reconcile:\n %+v", err)
+		}
+		if result.RequeueAfter >= DefaultTokenTTL {
+			t.Fatal("expected a requeue duration less than the token TTL")
+		}
+	}
+
+	l, err = myremoteclient.List(metav1.ListOptions{})
+	if err != nil {
+		t.Fatalf("Failed to read secrets:\n %+v", err)
+	}
+
+	if len(l.Items) != 2 {
+		t.Fatalf("Expected two bootstrap tokens, saw:\n %+d", len(l.Items))
+	}
+
+	for i, item := range l.Items {
+		if bytes.Equal(tokenExpires[i], item.Data[bootstrapapi.BootstrapTokenExpirationKey]) {
+			t.Fatal("Reconcile should have refreshed bootstrap token's expiration until the infrastructure was ready")
+		}
+		tokenExpires[i] = item.Data[bootstrapapi.BootstrapTokenExpirationKey]
+	}
+
+	// ...until the infrastructure is marked "ready"
+	workerMachine.Status.InfrastructureReady = true
+	err = myclient.Update(context.Background(), workerMachine)
+	if err != nil {
+		t.Fatalf("unable to set machine infrastructure ready: %v", err)
+	}
+
+	controlPlaneJoinMachine.Status.InfrastructureReady = true
+	err = myclient.Update(context.Background(), controlPlaneJoinMachine)
+	if err != nil {
+		t.Fatalf("unable to set machine infrastructure ready: %v", err)
+	}
+
+	<-time.After(1 * time.Second)
+
+	for _, req := range []ctrl.Request{
+		{
+			NamespacedName: types.NamespacedName{
+				Namespace: "default",
+				Name:      "worker-join-cfg",
+			},
+		},
+		{
+			NamespacedName: types.NamespacedName{
+				Namespace: "default",
+				Name:      "control-plane-join-cfg",
+			},
+		},
+	} {
+
+		result, err := k.Reconcile(req)
+		if err != nil {
+			t.Fatalf("Failed to reconcile:\n %+v", err)
+		}
+		if result.Requeue == true {
+			t.Fatal("did not expect to requeue")
+		}
+		if result.RequeueAfter != time.Duration(0) {
+			t.Fatal("did not expect to requeue after")
+		}
+	}
+
+	l, err = myremoteclient.List(metav1.ListOptions{})
+	if err != nil {
+		t.Fatalf("Failed to read secrets:\n %+v", err)
+	}
+
+	if len(l.Items) != 2 {
+		t.Fatalf("Expected two bootstrap tokens, saw:\n %+d", len(l.Items))
+	}
+
+	for i, item := range l.Items {
+		if !bytes.Equal(tokenExpires[i], item.Data[bootstrapapi.BootstrapTokenExpirationKey]) {
+			t.Fatal("Reconcile should have let the bootstrap token expire after the infrastructure was ready")
+		}
 	}
 }
 

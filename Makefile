@@ -153,7 +153,7 @@ docker-push-%:
 	$(MAKE) ARCH=$* docker-push
 
 .PHONY: docker-push-manifest
-docker-push-manifest: ## Push the fat manifest docker image
+docker-push-manifest: ## Push the fat manifest docker image.
 	## Minimum docker version 18.06.0 is required for creating and pushing manifest images.
 	docker manifest create --amend $(CONTROLLER_IMG):$(TAG) $(shell echo $(ALL_ARCH) | sed -e "s~[^ ]*~$(CONTROLLER_IMG)\-&:$(TAG)~g")
 	@for arch in $(ALL_ARCH); do docker manifest annotate --arch $${arch} ${CONTROLLER_IMG}:${TAG} ${CONTROLLER_IMG}-$${arch}:${TAG}; done
@@ -170,9 +170,13 @@ set-manifest-image:
 ## --------------------------------------
 
 RELEASE_TAG := $(shell git describe --abbrev=0 2>/dev/null)
+RELEASE_DIR := out
+
+$(RELEASE_DIR):
+	mkdir -p $(RELEASE_DIR)/
 
 .PHONY: release
-release:  ## Builds and push container images using the latest git tag for the commit
+release: clean-release  ## Builds and push container images using the latest git tag for the commit.
 	@if [ -z "${RELEASE_TAG}" ]; then echo "RELEASE_TAG is not set"; exit 1; fi
 	# Push the release image to the staging bucket first.
 	REGISTRY=$(STAGING_REGISTRY) TAG=$(RELEASE_TAG) \
@@ -180,11 +184,25 @@ release:  ## Builds and push container images using the latest git tag for the c
 	# Set the manifest image to the production bucket.
 	MANIFEST_IMG=$(PROD_REGISTRY)/$(IMAGE_NAME) MANIFEST_TAG=$(RELEASE_TAG) \
 		$(MAKE) set-manifest-image
-	# Generate release artifacts.
-	mkdir -p out/
-	kustomize build config/default > out/bootstrap-components.yaml
+	$(MAKE) release-manifests
 
-.PHONY: release-staging-latest
-release-staging-latest: ## Builds and push container images to the staging bucket using "latest" tag
-	REGISTRY=$(STAGING_REGISTRY) TAG=latest \
-		$(MAKE) docker-build-all docker-push-all
+.PHONY: release-manifests
+release-manifests: $(RELEASE_DIR) ## Builds the manifests to publish with a release
+	kustomize build config/default > $(RELEASE_DIR)/bootstrap-components.yaml
+
+.PHONY: release-staging
+release-staging: ## Builds and push container images to the staging bucket.
+	REGISTRY=$(STAGING_REGISTRY) $(MAKE) docker-build-all docker-push-all release-tag-latest
+
+
+.PHONY: release-tag-latest
+release-tag-latest: ## Adds the latest tag to the last build tag.
+	## TODO(vincepri): Only do this when we're on master.
+	gcloud container images add-tag $(CONTROLLER_IMG):$(TAG) $(CONTROLLER_IMG):latest
+
+## --------------------------------------
+## Cleanup / Verification
+## --------------------------------------
+.PHONY: clean-release
+clean-release: ## Remove the release folder
+	rm -rf $(RELEASE_DIR)

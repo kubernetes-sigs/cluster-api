@@ -151,12 +151,11 @@ func (r *KubeadmConfigReconciler) Reconcile(req ctrl.Request) (_ ctrl.Result, re
 	if err != nil {
 		return ctrl.Result{}, err
 	}
-	// Always attempt to Patch the KubeadmConfig object and status after each reconciliation.
+	// Attempt to Patch the KubeadmConfig object and status after each reconciliation if no error occurs.
 	defer func() {
-		if err := patchHelper.Patch(ctx, config); err != nil {
-			log.Error(err, "failed to patch config")
-			if rerr == nil {
-				rerr = err
+		if rerr == nil {
+			if rerr = patchHelper.Patch(ctx, config); rerr != nil {
+				log.Error(rerr, "failed to patch config")
 			}
 		}
 	}()

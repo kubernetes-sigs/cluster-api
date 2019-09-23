@@ -45,45 +45,10 @@ if [[ "${VERIFY_MANIFESTS:-true}" == "true" ]]; then
   cd "${REPO_PATH}"
 fi
 
-if [[ "${VERIFY_WHITESPACE:-true}" == "true" ]]; then
-  echo "[*] Verifying whitespace..."
-  out=$(hack/verify-whitespace.sh 2>&1)
-  failure $? "verify-whitespace.sh" "${out}"
-  cd "${REPO_PATH}"
-fi
-
-if [[ "${VERIFY_SPELLING:-true}" == "true" ]]; then
-  echo "[*] Verifying spelling..."
-  out=$(hack/verify-spelling.sh 2>&1)
-  failure $? "verify-spelling.sh" "${out}"
-  cd "${REPO_PATH}"
-fi
-
 if [[ "${VERIFY_BOILERPLATE:-true}" == "true" ]]; then
   echo "[*] Verifying boilerplate..."
   out=$(hack/verify-boilerplate.sh 2>&1)
   failure $? "verify-boilerplate.sh" "${out}"
-  cd "${REPO_PATH}"
-fi
-
-if [[ "${VERIFY_GOFMT:-true}" == "true" ]]; then
-  echo "[*] Verifying gofmt..."
-  out=$(hack/verify-gofmt.sh 2>&1)
-  failure $? "verify-gofmt.sh" "${out}"
-  cd "${REPO_PATH}"
-fi
-
-if [[ "${VERIFY_GOLINT:-true}" == "true" ]]; then
-  echo "[*] Verifying golint..."
-  out=$(hack/verify-golint.sh 2>&1)
-  failure $? "verify-golint.sh" "${out}"
-  cd "${REPO_PATH}"
-fi
-
-if [[ "${VERIFY_GOVET:-true}" == "true" ]]; then
-  echo "[*] Verifying govet..."
-  out=$(hack/verify-govet.sh 2>&1)
-  failure $? "verify-govet.sh" "${out}"
   cd "${REPO_PATH}"
 fi
 

@@ -24,6 +24,7 @@ import (
 
 	"github.com/go-logr/logr"
 	"github.com/pkg/errors"
+	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/api/meta"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -243,6 +244,14 @@ func (r *ClusterReconciler) listChildren(ctx context.Context, cluster *clusterv1
 	}
 	controlPlaneMachines, machines := splitMachineList(allMachines)
 
+	secrets := &corev1.SecretList{}
+	secretsListOptions := []client.ListOption{
+		client.InNamespace(cluster.Namespace),
+	}
+	if err := r.Client.List(ctx, secrets, secretsListOptions...); err != nil {
+		return nil, errors.Wrapf(err, "failed to list Secrets for cluster %s/%s", cluster.Namespace, cluster.Name)
+	}
+
 	var children []runtime.Object
 	eachFunc := func(o runtime.Object) error {
 		acc, err := meta.Accessor(o)
@@ -263,6 +272,7 @@ func (r *ClusterReconciler) listChildren(ctx context.Context, cluster *clusterv1
 		machineSets,
 		machines,
 		controlPlaneMachines,
+		secrets,
 	}
 	for _, list := range lists {
 		if err := meta.EachListItem(list, eachFunc); err != nil {

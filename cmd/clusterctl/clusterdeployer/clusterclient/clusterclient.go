@@ -32,8 +32,10 @@ import (
 	autoscalingv1 "k8s.io/api/autoscaling/v1"
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
+	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
+	"k8s.io/apimachinery/pkg/runtime"
 	_ "k8s.io/client-go/plugin/pkg/client/auth" // nolint
 	tcmd "k8s.io/client-go/tools/clientcmd"
 	"k8s.io/klog"
@@ -105,6 +107,7 @@ type Client interface {
 	ScaleDeployment(namespace, name string, scale int32) error
 	WaitForClusterV1alpha2Ready() error
 	WaitForResourceStatuses() error
+	SetClusterOwnerRef(runtime.Object, *clusterv1.Cluster) error
 }
 
 type client struct {
@@ -674,6 +677,29 @@ func (c *client) WaitForResourceStatuses() error {
 
 		return true, nil
 	})
+}
+
+func (c *client) SetClusterOwnerRef(obj runtime.Object, cluster *clusterv1.Cluster) error {
+	meta, err := meta.Accessor(obj)
+	if err != nil {
+		return err
+	}
+
+	meta.SetOwnerReferences([]metav1.OwnerReference{
+		{
+			APIVersion: clusterv1.GroupVersion.String(),
+			Kind:       "Cluster",
+			Name:       cluster.Name,
+			UID:        cluster.UID,
+		},
+	})
+
+	if err := c.clientSet.Update(ctx, obj); err != nil {
+		return errors.Wrapf(err, "error updating object [%s] %s/%s with cluster OwnerRef",
+			obj.GetObjectKind().GroupVersionKind(), meta.GetNamespace(), meta.GetName())
+	}
+
+	return nil
 }
 
 func (c *client) GetClusterSecrets(cluster *clusterv1.Cluster) ([]*corev1.Secret, error) {

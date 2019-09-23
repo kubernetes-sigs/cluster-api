@@ -25,6 +25,7 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
+	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/yaml"
 	"k8s.io/klog"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha2"
@@ -61,10 +62,12 @@ type targetClient interface {
 	CreateMachines([]*clusterv1.Machine, string) error
 	CreateMachineSets([]*clusterv1.MachineSet, string) error
 	CreateUnstructuredObject(*unstructured.Unstructured) error
+	GetCluster(string, string) (*clusterv1.Cluster, error)
 	EnsureNamespace(string) error
 	GetMachineDeployment(namespace, name string) (*clusterv1.MachineDeployment, error)
 	GetMachineSet(string, string) (*clusterv1.MachineSet, error)
 	WaitForClusterV1alpha2Ready() error
+	SetClusterOwnerRef(runtime.Object, *clusterv1.Cluster) error
 }
 
 // Pivot deploys the provided provider components to a target cluster and then migrates
@@ -178,11 +181,6 @@ func moveCluster(from sourceClient, to targetClient, cluster *clusterv1.Cluster)
 		return errors.Wrapf(err, "unable to ensure namespace %q in target cluster", cluster.Namespace)
 	}
 
-	// Move the cluster's secrets first.
-	if err := moveClusterSecrets(from, to, cluster); err != nil {
-		return errors.Wrapf(err, "failed to move Secrets for Cluster %s/%s to target cluster", cluster.Namespace, cluster.Name)
-	}
-
 	// New objects cannot have a specified resource version. Clear it out.
 	cluster.SetResourceVersion("")
 	if err := to.CreateClusterObject(cluster); err != nil {
@@ -195,6 +193,12 @@ func moveCluster(from sourceClient, to targetClient, cluster *clusterv1.Cluster)
 			return errors.Wrapf(err, "error copying Cluster %s/%s infrastructure reference to target cluster",
 				cluster.Namespace, cluster.Name)
 		}
+	}
+
+	// Move the cluster's secrets only after the target cluster resource is created
+	// since we have to update the Secret's OwnerRef
+	if err := moveClusterSecrets(from, to, cluster); err != nil {
+		return errors.Wrapf(err, "failed to move Secrets for Cluster %s/%s to target cluster", cluster.Namespace, cluster.Name)
 	}
 
 	klog.V(4).Infof("Retrieving list of MachineDeployments to move for Cluster %s/%s", cluster.Namespace, cluster.Name)
@@ -239,24 +243,26 @@ func moveClusterSecrets(from sourceClient, to targetClient, cluster *clusterv1.C
 		return err
 	}
 
+	toCluster, err := to.GetCluster(cluster.Name, cluster.Namespace)
+	if err != nil {
+		return err
+	}
+
 	for _, secret := range secrets {
-		if err := moveSecret(from, to, secret); err != nil {
+		if err := moveSecret(from, to, secret, toCluster); err != nil {
 			return errors.Wrapf(err, "failed to move Secret %s/%s", secret.Namespace, secret.Name)
 		}
 	}
 	return nil
 }
 
-func moveSecret(from sourceClient, to targetClient, secret *corev1.Secret) error {
+func moveSecret(from sourceClient, to targetClient, secret *corev1.Secret, toCluster *clusterv1.Cluster) error {
 	klog.V(4).Infof("Moving secret %s/%s", secret.Namespace, secret.Name)
 
 	// New objects cannot have a specified resource version. Clear it out.
 	secret.SetResourceVersion("")
-
-	// remove the UID from ownerReferences as it will be different across clusters
-	for i := 0; i < len(secret.OwnerReferences); i++ {
-		secret.OwnerReferences[i].UID = ""
-	}
+	// Set the cluster owner ref based on target cluster's Cluster resource
+	to.SetClusterOwnerRef(secret, toCluster)
 
 	if err := to.CreateSecret(secret); err != nil {
 		return errors.Wrapf(err, "error copying Secret %s/%s to target cluster", secret.Namespace, secret.Name)

@@ -15,7 +15,10 @@
 # If you update this file, please follow:
 # https://suva.sh/posts/well-documented-makefiles/
 
-.DEFAULT_GOAL:=help
+.DEFAULT_GOAL := help
+
+# Active go module, as we use it to manage dependencies
+export GO111MODULE := on
 
 # Use GOPROXY environment variable if set
 GOPROXY := $(shell go env GOPROXY)
@@ -54,9 +57,6 @@ MANIFEST_ROOT ?= "config"
 CRD_ROOT ?= "$(MANIFEST_ROOT)/crd/bases"
 WEBHOOK_ROOT ?= "$(MANIFEST_ROOT)/webhook"
 RBAC_ROOT ?= "$(MANIFEST_ROOT)/rbac"
-
-# Active module mode, as we use go modules to manage dependencies
-export GO111MODULE=on
 
 .PHONY: all
 all: manager

@@ -305,6 +305,8 @@ gopkg.in/yaml.v2 v2.0.0-20170812160011-eb3733d160e7/go.mod h1:JAlM8MvJe8wmxCU4Bl
 gopkg.in/yaml.v2 v2.2.1/go.mod h1:hI93XBmqTisBFMUTm0b8Fm+jr3Dg1NNxqwp+5A1VGuI=
 gopkg.in/yaml.v2 v2.2.2 h1:ZCJp+EgiOT7lHqUV2J862kp8Qj64Jo6az82+3Td9dZw=
 gopkg.in/yaml.v2 v2.2.2/go.mod h1:hI93XBmqTisBFMUTm0b8Fm+jr3Dg1NNxqwp+5A1VGuI=
+gopkg.in/yaml.v3 v3.0.0-20190709130402-674ba3eaed22 h1:0efs3hwEZhFKsCoP8l6dDB1AZWMgnEl3yWXWRZTOaEA=
+gopkg.in/yaml.v3 v3.0.0-20190709130402-674ba3eaed22/go.mod h1:K4uyk7z7BCEPqu6E+C64Yfv1cQ7kz7rIZviUmN+EgEM=
 k8s.io/api v0.0.0-20190409021203-6e4e0e4f393b h1:aBGgKJUM9Hk/3AE8WaZIApnTxG35kbuQba2w+SXqezo=
 k8s.io/api v0.0.0-20190409021203-6e4e0e4f393b/go.mod h1:iuAfoD4hCxJ8Onx9kaTIt30j7jUFS00AXQi6QMi99vA=
 k8s.io/apiextensions-apiserver v0.0.0-20190409022649-727a075fdec8 h1:q1Qvjzs/iEdXF6A1a8H3AKVFDzJNcJn3nXMs6R6qFtA=
@@ -332,8 +334,8 @@ mvdan.cc/lint v0.0.0-20170908181259-adc824a0674b h1:DxJ5nJdkhDlLok9K6qO+5290kphD
 mvdan.cc/lint v0.0.0-20170908181259-adc824a0674b/go.mod h1:2odslEg/xrtNQqCYg2/jCoyKnw3vv5biOc3JnIcYfL4=
 mvdan.cc/unparam v0.0.0-20190209190245-fbb59629db34 h1:duVSyluuJA+u0BnkcLR01smoLrGgDTfWt5c8ODYG8fU=
 mvdan.cc/unparam v0.0.0-20190209190245-fbb59629db34/go.mod h1:H6SUd1XjIs+qQCyskXg5OFSrilMRUkD8ePJpHKDPaeY=
-sigs.k8s.io/controller-tools v0.2.0 h1:AmQ/0JKBJAjyAiPAkrAf9QW06jkx2lc5hpxMjamsFpw=
-sigs.k8s.io/controller-tools v0.2.0/go.mod h1:8t/X+FVWvk6TaBcsa+UKUBbn7GMtvyBKX30SGl4em6Y=
+sigs.k8s.io/controller-tools v0.2.1 h1:HoCik83vXOpPi7KSJWdPRmiGntyOzK0v0BTV4U+pl8o=
+sigs.k8s.io/controller-tools v0.2.1/go.mod h1:cenyhL7t2e7izk/Zy7ZxDqQ9YEj0niU5VDL1PWMgZ5s=
 sigs.k8s.io/kubebuilder/docs/book/utils v0.0.0-20190903174343-de03361a00cb h1:/PSFBsX8LZH9QTXWZghxMtn2DIARMd7Ud8yPs/KBs64=
 sigs.k8s.io/kubebuilder/docs/book/utils v0.0.0-20190903174343-de03361a00cb/go.mod h1:zSW4yXo5uN/rRueruOtX8TWM8wBPJippG9OAOygomc8=
 sigs.k8s.io/structured-merge-diff v0.0.0-20190525122527-15d366b2352e/go.mod h1:wWxsB5ozmmv/SG7nM11ayaAW51xMvak/t1r0CSlcokI=

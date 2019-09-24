@@ -93,4 +93,5 @@ metadata:
   name: worker-0-config
   namespace: default
 spec:
-  joinConfiguration: {}
+  joinConfiguration:
+    nodeRegistration: {}

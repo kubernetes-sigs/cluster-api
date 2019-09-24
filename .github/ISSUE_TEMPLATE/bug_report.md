@@ -4,10 +4,8 @@ about: Tell us about a problem you are experiencing
 
 ---
 
-/kind bug
-
 **What steps did you take and what happened:**
-[A clear and concise description of what the bug is.]
+[A clear and concise description on how to REPRODUCE the bug.]
 
 
 **What did you expect to happen:**
@@ -23,3 +21,5 @@ about: Tell us about a problem you are experiencing
 - Minikube/KIND version:
 - Kubernetes version: (use `kubectl version`):
 - OS (e.g. from `/etc/os-release`):
+
+/kind bug

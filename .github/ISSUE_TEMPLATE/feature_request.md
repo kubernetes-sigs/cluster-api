@@ -1,5 +1,5 @@
 ---
-name: RFE: Feature enhancement request
+name: RFE Feature enhancement request
 about: Suggest an idea for this project
 
 ---

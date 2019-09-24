@@ -25,9 +25,11 @@ spec:
     categories:
     - cluster-api
     kind: Machine
+    listKind: MachineList
     plural: machines
     shortNames:
     - ma
+    singular: machine
   scope: Namespaced
   subresources:
     status: {}

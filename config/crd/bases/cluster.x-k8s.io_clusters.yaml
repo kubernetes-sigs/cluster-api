@@ -16,9 +16,11 @@ spec:
     categories:
     - cluster-api
     kind: Cluster
+    listKind: ClusterList
     plural: clusters
     shortNames:
     - cl
+    singular: cluster
   scope: Namespaced
   subresources:
     status: {}

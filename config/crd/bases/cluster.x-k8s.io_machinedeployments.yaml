@@ -11,9 +11,11 @@ spec:
     categories:
     - cluster-api
     kind: MachineDeployment
+    listKind: MachineDeploymentList
     plural: machinedeployments
     shortNames:
     - md
+    singular: machinedeployment
   scope: Namespaced
   subresources:
     scale:

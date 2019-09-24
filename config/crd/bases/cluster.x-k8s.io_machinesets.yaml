@@ -11,9 +11,11 @@ spec:
     categories:
     - cluster-api
     kind: MachineSet
+    listKind: MachineSetList
     plural: machinesets
     shortNames:
     - ms
+    singular: machineset
   scope: Namespaced
   subresources:
     scale:

@@ -40,17 +40,18 @@ var alphaPhasePivotCmd = &cobra.Command{
 	Long:  `Pivot`,
 	Run: func(cmd *cobra.Command, args []string) {
 		if ppo.ProviderComponents == "" {
-			exitWithHelp(cmd, "Please provide yaml file for provider components definition.")
+			exitWithHelp(cmd, "Please provide yaml file for provider components definition.\n")
 		}
 
 		if ppo.SourceKubeconfig == "" {
-			exitWithHelp(cmd, "Please provide a source kubeconfig file.")
+			exitWithHelp(cmd, "Please provide a source kubeconfig file.\n")
 		}
 
 		if ppo.TargetKubeconfig == "" {
-			exitWithHelp(cmd, "Please provide a target kubeconfig file.")
+			exitWithHelp(cmd, "Please provide a target kubeconfig file.\n")
 		}
 
+		fmt.Println(deprecationMsg)
 		if err := RunAlphaPhasePivot(ppo); err != nil {
 			klog.Exit(err)
 		}

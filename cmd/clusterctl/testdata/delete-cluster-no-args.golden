@@ -1,4 +1,6 @@
 Please provide kubeconfig file for cluster to delete.
+
+NOTICE: clusterctl has been deprecated in v1alpha2 and will be removed in a future version.
 Delete a kubernetes cluster with one command
 
 Usage:

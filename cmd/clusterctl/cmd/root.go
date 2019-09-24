@@ -26,12 +26,18 @@ import (
 	"k8s.io/klog"
 )
 
+const deprecationMsg string = "NOTICE: clusterctl has been deprecated in v1alpha2 and will be removed in a future version."
+
+var helpTemplate = fmt.Sprintf(`%s
+{{with (or .Long .Short)}}{{. | trimTrailingWhitespaces}}
+
+{{end}}{{if or .Runnable .HasSubCommands}}{{.UsageString}}{{end}}`, deprecationMsg)
+
 var RootCmd = &cobra.Command{
 	Use:   "clusterctl",
 	Short: "cluster management",
 	Long:  `Simple kubernetes cluster management`,
 	Run: func(cmd *cobra.Command, args []string) {
-		// Do Stuff Here
 		cmd.Help()
 	},
 }
@@ -53,5 +59,6 @@ func init() {
 	klog.InitFlags(flag.CommandLine)
 	RootCmd.SetGlobalNormalizationFunc(cliflag.WordSepNormalizeFunc)
 	RootCmd.PersistentFlags().AddGoFlagSet(flag.CommandLine)
+	RootCmd.SetHelpTemplate(helpTemplate)
 	InitLogs()
 }

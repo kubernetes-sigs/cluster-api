@@ -41,13 +41,14 @@ var alphaPhaseGetKubeconfigCmd = &cobra.Command{
 	Long:  `Get Kubeconfig`,
 	Run: func(cmd *cobra.Command, args []string) {
 		if pgko.Kubeconfig == "" {
-			exitWithHelp(cmd, "Please provide a kubeconfig file.")
+			exitWithHelp(cmd, "Please provide a kubeconfig file.\n")
 		}
 
 		if pgko.ClusterName == "" {
-			exitWithHelp(cmd, "Please specify a cluster name.")
+			exitWithHelp(cmd, "Please specify a cluster name.\n")
 		}
 
+		fmt.Println(deprecationMsg)
 		if err := RunAlphaPhaseGetKubeconfig(pgko); err != nil {
 			klog.Exit(err)
 		}

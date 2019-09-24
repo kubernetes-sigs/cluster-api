@@ -17,6 +17,8 @@ limitations under the License.
 package cmd
 
 import (
+	"fmt"
+
 	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
 	v1 "k8s.io/api/core/v1"
@@ -44,14 +46,16 @@ var deleteClusterCmd = &cobra.Command{
 	Long:  `Delete a kubernetes cluster with one command`,
 	Run: func(cmd *cobra.Command, args []string) {
 		if do.KubeconfigPath == "" {
-			exitWithHelp(cmd, "Please provide kubeconfig file for cluster to delete.")
+			exitWithHelp(cmd, "Please provide kubeconfig file for cluster to delete.\n")
 		}
 		if do.ProviderComponents == "" {
-			exitWithHelp(cmd, "Please provide yaml file for provider component definition.")
+			exitWithHelp(cmd, "Please provide yaml file for provider component definition.\n")
 		}
+		fmt.Println(deprecationMsg)
 		if err := RunDelete(); err != nil {
 			klog.Exit(err)
 		}
+
 	},
 }
 

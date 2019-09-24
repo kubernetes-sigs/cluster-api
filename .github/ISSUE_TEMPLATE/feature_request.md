@@ -1,7 +1,9 @@
 ---
 name: RFE: Feature enhancement request
 about: Suggest an idea for this project
+
 ---
+
 **User Story**
 
 As a [developer/user/operator] I would like to [high level description] for [reasons]

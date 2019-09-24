@@ -25,6 +25,7 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
+	"k8s.io/apimachinery/pkg/runtime"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha2"
 )
 
@@ -556,6 +557,10 @@ func (t *target) EnsureNamespace(string) error {
 	return nil
 }
 
+func (t *target) GetCluster(name, ns string) (*clusterv1.Cluster, error) {
+	return nil, nil
+}
+
 func (t *target) GetMachineDeployment(ns, name string) (*clusterv1.MachineDeployment, error) {
 	for _, deployment := range t.machineDeployments[ns] {
 		if deployment.Name == name {
@@ -575,6 +580,10 @@ func (t *target) GetMachineSet(ns, name string) (*clusterv1.MachineSet, error) {
 }
 
 func (t *target) WaitForClusterV1alpha2Ready() error {
+	return nil
+}
+
+func (t *target) SetClusterOwnerRef(obj runtime.Object, cluster *clusterv1.Cluster) error {
 	return nil
 }
 

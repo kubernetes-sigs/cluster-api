@@ -17,6 +17,8 @@ limitations under the License.
 package cmd
 
 import (
+	"fmt"
+
 	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
 	"k8s.io/klog"
@@ -37,6 +39,7 @@ var alphaPhaseCreateBootstrapClusterCmd = &cobra.Command{
 	Short: "Create a bootstrap cluster",
 	Long:  `Create a bootstrap cluster`,
 	Run: func(cmd *cobra.Command, args []string) {
+		fmt.Println(deprecationMsg)
 		if err := RunAlphaPhaseCreateBootstrapCluster(pcbco); err != nil {
 			klog.Exit(err)
 		}

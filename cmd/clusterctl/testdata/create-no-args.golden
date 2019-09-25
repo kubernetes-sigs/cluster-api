@@ -1,3 +1,4 @@
+NOTICE: clusterctl has been deprecated in v1alpha2 and will be removed in a future version.
 Create a cluster API resource with one command
 
 Usage:

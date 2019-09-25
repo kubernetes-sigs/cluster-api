@@ -17,6 +17,7 @@ limitations under the License.
 package cmd
 
 import (
+	"fmt"
 	"io/ioutil"
 
 	"github.com/pkg/errors"
@@ -39,13 +40,14 @@ var alphaPhaseApplyClusterAPIComponentsCmd = &cobra.Command{
 	Long:  `Apply Cluster API components`,
 	Run: func(cmd *cobra.Command, args []string) {
 		if pacaso.ProviderComponents == "" {
-			exitWithHelp(cmd, "Please provide yaml file for provider component definition.")
+			exitWithHelp(cmd, "Please provide yaml file for provider component definition.\n")
 		}
 
 		if pacaso.Kubeconfig == "" {
-			exitWithHelp(cmd, "Please provide a kubeconfig file.")
+			exitWithHelp(cmd, "Please provide a kubeconfig file.\n")
 		}
 
+		fmt.Println(deprecationMsg)
 		if err := RunAlphaPhaseApplyClusterAPIComponents(pacaso); err != nil {
 			klog.Exit(err)
 		}

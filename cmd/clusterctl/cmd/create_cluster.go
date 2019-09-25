@@ -17,6 +17,7 @@ limitations under the License.
 package cmd
 
 import (
+	"fmt"
 	"io/ioutil"
 
 	"github.com/pkg/errors"
@@ -47,14 +48,15 @@ var createClusterCmd = &cobra.Command{
 	Long:  `Create a kubernetes cluster with one command`,
 	Run: func(cmd *cobra.Command, args []string) {
 		if co.Cluster == "" {
-			exitWithHelp(cmd, "Please provide yaml file for cluster definition.")
+			exitWithHelp(cmd, "Please provide yaml file for cluster definition.\n")
 		}
 		if co.Machine == "" {
-			exitWithHelp(cmd, "Please provide yaml file for machine definition.")
+			exitWithHelp(cmd, "Please provide yaml file for machine definition.\n")
 		}
 		if co.ProviderComponents == "" {
-			exitWithHelp(cmd, "Please provide yaml file for provider component definition.")
+			exitWithHelp(cmd, "Please provide yaml file for provider component definition.\n")
 		}
+		fmt.Println(deprecationMsg)
 		if err := RunCreate(co); err != nil {
 			klog.Exit(err)
 		}

@@ -43,6 +43,7 @@ var validateClusterCmd = &cobra.Command{
 	Short: "Validate a cluster created by cluster API.",
 	Long:  `Validate a cluster created by cluster API.`,
 	Run: func(cmd *cobra.Command, args []string) {
+		fmt.Println(deprecationMsg)
 		if err := RunValidateCluster(); err != nil {
 			os.Stdout.Sync()
 			fmt.Fprintf(os.Stderr, "ERROR: %v\n", err)

@@ -17,6 +17,7 @@ limitations under the License.
 package cmd
 
 import (
+	"fmt"
 	"io/ioutil"
 
 	"github.com/pkg/errors"
@@ -39,13 +40,14 @@ var alphaPhaseApplyBootstrapComponentsCmd = &cobra.Command{
 	Long:  `Apply bootstrap components`,
 	Run: func(cmd *cobra.Command, args []string) {
 		if pabco.BootstrapComponents == "" {
-			exitWithHelp(cmd, "Please provide yaml file for bootstrap component definition.")
+			exitWithHelp(cmd, "Please provide yaml file for bootstrap component definition.\n")
 		}
 
 		if pabco.Kubeconfig == "" {
-			exitWithHelp(cmd, "Please provide a kubeconfig file.")
+			exitWithHelp(cmd, "Please provide a kubeconfig file.\n")
 		}
 
+		fmt.Println(deprecationMsg)
 		if err := RunAlphaPhaseApplyBootstrapComponents(pabco); err != nil {
 			klog.Exit(err)
 		}

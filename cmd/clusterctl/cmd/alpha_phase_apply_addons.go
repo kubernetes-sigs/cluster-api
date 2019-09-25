@@ -39,13 +39,14 @@ var alphaPhaseApplyAddonsCmd = &cobra.Command{
 	Long:  `Apply Addons`,
 	Run: func(cmd *cobra.Command, args []string) {
 		if paao.Addons == "" {
-			exitWithHelp(cmd, "Please provide yaml file for addons definition.")
+			exitWithHelp(cmd, "Please provide yaml file for addons definition.\n")
 		}
 
 		if paao.Kubeconfig == "" {
-			exitWithHelp(cmd, "Please provide a kubeconfig file.")
+			exitWithHelp(cmd, "Please provide a kubeconfig file.\n")
 		}
 
+		fmt.Println(deprecationMsg)
 		if err := RunAlphaPhaseApplyAddons(paao); err != nil {
 			klog.Exit(err)
 		}

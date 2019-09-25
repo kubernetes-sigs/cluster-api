@@ -17,6 +17,7 @@ limitations under the License.
 package cmd
 
 import (
+	"fmt"
 	"io/ioutil"
 
 	"github.com/pkg/errors"
@@ -42,13 +43,14 @@ var alphaPhaseApplyMachinesCmd = &cobra.Command{
 	Long:  `Apply Machines`,
 	Run: func(cmd *cobra.Command, args []string) {
 		if pamo.Machines == "" {
-			exitWithHelp(cmd, "Please provide yaml file for machines definition.")
+			exitWithHelp(cmd, "Please provide yaml file for machines definition.\n")
 		}
 
 		if pamo.Kubeconfig == "" {
-			exitWithHelp(cmd, "Please provide a kubeconfig file.")
+			exitWithHelp(cmd, "Please provide a kubeconfig file.\n")
 		}
 
+		fmt.Println(deprecationMsg)
 		if err := RunAlphaPhaseApplyMachines(pamo); err != nil {
 			klog.Exit(err)
 		}

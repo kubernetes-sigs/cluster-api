@@ -17,8 +17,8 @@ aliases:
     - chuckha
     - fabriziopandini
     - ncdc
+    - SataQiu
   cluster-api-bootstrap-provider-kubeadm-reviewers:
     - chuckha
     - fabriziopandini
     - ncdc
-    - SataQiu

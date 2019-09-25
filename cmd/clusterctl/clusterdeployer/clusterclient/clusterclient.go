@@ -541,34 +541,22 @@ func (c *client) CreateMachines(machines []*clusterv1.Machine, namespace string)
 
 // DeleteClusters deletes all Clusters in a namespace. If the namespace is empty then all Clusters in all namespaces are deleted.
 func (c *client) DeleteClusters(namespace string) error {
-	if err := c.clientSet.DeleteAllOf(ctx, &clusterv1.Cluster{}, ctrlclient.InNamespace(namespace)); err != nil {
-		return errors.Wrapf(err, "error deleting Clusters in namespace %q", namespace)
-	}
-	return nil
+	return c.kubectlDeleteAll(namespace, "clusters")
 }
 
 // DeleteMachineDeployments deletes all MachineDeployments in a namespace. If the namespace is empty then all MachineDeployments in all namespaces are deleted.
 func (c *client) DeleteMachineDeployments(namespace string) error {
-	if err := c.clientSet.DeleteAllOf(ctx, &clusterv1.MachineDeployment{}, ctrlclient.InNamespace(namespace)); err != nil {
-		return errors.Wrapf(err, "error deleting Clusters in namespace %q", namespace)
-	}
-	return nil
+	return c.kubectlDeleteAll(namespace, "machinedeployments")
 }
 
 // DeleteMachineSets deletes all MachineSets in a namespace. If the namespace is empty then all MachineSets in all namespaces are deleted.
 func (c *client) DeleteMachineSets(namespace string) error {
-	if err := c.clientSet.DeleteAllOf(ctx, &clusterv1.MachineSet{}, ctrlclient.InNamespace(namespace)); err != nil {
-		return errors.Wrapf(err, "error deleting Clusters in namespace %q", namespace)
-	}
-	return nil
+	return c.kubectlDeleteAll(namespace, "machinesets")
 }
 
 // DeleteMachines deletes all Machines in a namespace. If the namespace is empty then all Machines in all namespaces are deleted.
 func (c *client) DeleteMachines(namespace string) error {
-	if err := c.clientSet.DeleteAllOf(ctx, &clusterv1.Machine{}, ctrlclient.InNamespace(namespace)); err != nil {
-		return errors.Wrapf(err, "error deleting Clusters in namespace %q", namespace)
-	}
-	return nil
+	return c.kubectlDeleteAll(namespace, "machines")
 }
 
 func (c *client) ForceDeleteMachine(namespace, name string) error {
@@ -796,12 +784,21 @@ func (c *client) kubectlDelete(manifest string) error {
 	return c.kubectlManifestCmd("delete", manifest)
 }
 
+func (c *client) kubectlDeleteAll(namespace, resource string) error {
+	cmd := exec.Command("kubectl", c.buildKubectlDeleteAllArgs(namespace, resource)...) //nolint:gosec
+	out, err := cmd.CombinedOutput()
+	if err != nil {
+		return errors.Wrapf(err, "couldn't kubectl delete %s --all, output: %s", resource, string(out))
+	}
+	return nil
+}
+
 func (c *client) kubectlApply(manifest string) error {
 	return c.kubectlManifestCmd("apply", manifest)
 }
 
 func (c *client) kubectlManifestCmd(commandName, manifest string) error {
-	cmd := exec.Command("kubectl", c.buildKubectlArgs(commandName)...) //nolint:gosec
+	cmd := exec.Command("kubectl", c.buildKubectlManifestArgs(commandName)...) //nolint:gosec
 	cmd.Stdin = strings.NewReader(manifest)
 	out, err := cmd.CombinedOutput()
 	if err != nil {
@@ -810,21 +807,38 @@ func (c *client) kubectlManifestCmd(commandName, manifest string) error {
 	return nil
 }
 
-func (c *client) buildKubectlArgs(commandName string) []string {
+func (c *client) buildKubectlManifestArgs(commandName string) []string {
 	args := []string{commandName}
+	if c.configOverrides.Context.Namespace != "" {
+		args = append(args, "--namespace", c.configOverrides.Context.Namespace)
+	}
+	args = append(args, c.buildKubectlArgs()...)
+	return append(args, "-f", "-")
+}
+
+func (c *client) buildKubectlDeleteAllArgs(namespace, resource string) []string {
+	args := []string{"delete", resource}
+	if namespace == "" {
+		args = append(args, "--all-namespaces")
+	} else {
+		args = append(args, "--namespace", namespace)
+	}
+	args = append(args, c.buildKubectlArgs()...)
+	return append(args, "--all")
+}
+
+func (c *client) buildKubectlArgs() []string {
+	var args []string
 	if c.kubeconfigFile != "" {
 		args = append(args, "--kubeconfig", c.kubeconfigFile)
 	}
 	if c.configOverrides.Context.Cluster != "" {
 		args = append(args, "--cluster", c.configOverrides.Context.Cluster)
 	}
-	if c.configOverrides.Context.Namespace != "" {
-		args = append(args, "--namespace", c.configOverrides.Context.Namespace)
-	}
 	if c.configOverrides.Context.AuthInfo != "" {
 		args = append(args, "--user", c.configOverrides.Context.AuthInfo)
 	}
-	return append(args, "-f", "-")
+	return args
 }
 
 func (c *client) waitForKubectlApply(manifest string) error {

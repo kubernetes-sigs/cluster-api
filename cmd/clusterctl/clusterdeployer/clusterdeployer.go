@@ -18,7 +18,6 @@ package clusterdeployer
 
 import (
 	"fmt"
-	"strings"
 
 	"github.com/pkg/errors"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
@@ -212,29 +211,9 @@ func (d *ClusterDeployer) saveProviderComponentsToCluster(factory provider.Compo
 }
 
 func deleteClusterAPIObjectsInAllNamespaces(client clusterclient.Client) error {
-	var errorList []string
-	klog.Infof("Deleting MachineDeployments in all namespaces")
-	if err := client.DeleteMachineDeployments(""); err != nil {
-		err = errors.Wrap(err, "error deleting MachineDeployments")
-		errorList = append(errorList, err.Error())
-	}
-	klog.Infof("Deleting MachineSets in all namespaces")
-	if err := client.DeleteMachineSets(""); err != nil {
-		err = errors.Wrap(err, "error deleting MachineSets")
-		errorList = append(errorList, err.Error())
-	}
-	klog.Infof("Deleting Machines in all namespaces")
-	if err := client.DeleteMachines(""); err != nil {
-		err = errors.Wrap(err, "error deleting Machines")
-		errorList = append(errorList, err.Error())
-	}
 	klog.Infof("Deleting Clusters in all namespaces")
 	if err := client.DeleteClusters(""); err != nil {
-		err = errors.Wrap(err, "error deleting Clusters")
-		errorList = append(errorList, err.Error())
-	}
-	if len(errorList) > 0 {
-		return errors.Errorf("error(s) encountered deleting objects from bootstrap cluster: [%v]", strings.Join(errorList, ", "))
+		return errors.Errorf("error encountered deleting objects from bootstrap cluster: [error deleting Clusters: %v]", err)
 	}
 	return nil
 }

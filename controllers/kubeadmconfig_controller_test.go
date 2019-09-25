@@ -35,6 +35,7 @@ import (
 	internalcluster "sigs.k8s.io/cluster-api-bootstrap-provider-kubeadm/internal/cluster"
 	kubeadmv1beta1 "sigs.k8s.io/cluster-api-bootstrap-provider-kubeadm/kubeadm/v1beta1"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha2"
+	"sigs.k8s.io/cluster-api/util/secret"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
@@ -1130,6 +1131,67 @@ func TestKubeadmConfigReconciler_Reconcile_ExactlyOneControlPlaneMachineInitiali
 	}
 	if result.RequeueAfter != 30*time.Second {
 		t.Fatal("expected to requeue after 30s")
+	}
+}
+
+// No patch should be applied if there is an error in reconcile
+func TestKubeadmConfigReconciler_Reconcile_DoNotPatchWhenErrorOccurred(t *testing.T) {
+	cluster := newCluster("cluster")
+	cluster.Status.InfrastructureReady = true
+
+	controlPlaneInitMachine := newControlPlaneMachine(cluster, "control-plane-init-machine")
+	controlPlaneInitConfig := newControlPlaneInitKubeadmConfig(controlPlaneInitMachine, "control-plane-init-cfg")
+
+	// set InitConfiguration as nil, we will check this to determine if the kubeadm config has been patched
+	controlPlaneInitConfig.Spec.InitConfiguration = nil
+
+	objects := []runtime.Object{
+		cluster,
+		controlPlaneInitMachine,
+		controlPlaneInitConfig,
+	}
+
+	secrets := createSecrets(t, cluster, controlPlaneInitConfig)
+	for _, obj := range secrets {
+		s := obj.(*corev1.Secret)
+		delete(s.Data, secret.TLSCrtDataName) // destroy the secrets, which will cause Reconcile to fail
+		objects = append(objects, s)
+	}
+
+	myclient := fake.NewFakeClientWithScheme(setupScheme(), objects...)
+	k := &KubeadmConfigReconciler{
+		Log:                  log.Log,
+		Client:               myclient,
+		SecretsClientFactory: newFakeSecretFactory(),
+		KubeadmInitLock:      &myInitLocker{},
+	}
+
+	request := ctrl.Request{
+		NamespacedName: types.NamespacedName{
+			Namespace: "default",
+			Name:      "control-plane-init-cfg",
+		},
+	}
+
+	result, err := k.Reconcile(request)
+	if err == nil {
+		t.Fatal("Expected error, got nil")
+	}
+	if result.Requeue != false {
+		t.Fatal("did not expect to requeue")
+	}
+	if result.RequeueAfter != time.Duration(0) {
+		t.Fatal("did not expect to requeue after")
+	}
+
+	cfg, err := getKubeadmConfig(myclient, "control-plane-init-cfg")
+	if err != nil {
+		t.Fatalf("Failed to reconcile:\n %+v", err)
+	}
+
+	// check if the kubeadm config has been patched
+	if cfg.Spec.InitConfiguration != nil {
+		t.Fatal("did not expect to patch the kubeadm config if there was an error in Reconcile")
 	}
 }
 

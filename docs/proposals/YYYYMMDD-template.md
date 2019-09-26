@@ -58,12 +58,11 @@ The title should be lowercased and spaces/punctuation should be replaced with `-
 To get started with this template:
 1. **Make a copy of this template.**
   Copy this template into `docs/enhacements` and name it `YYYYMMDD-my-title.md`, where `YYYYMMDD` is the date the proposal was first drafted.
-1. **Fill out the "overview" sections.**
-  This includes the Summary and Motivation sections.
+1. **Fill out the Summary and Motivation sections.**
 1. **Create a PR.**
 1. **Merge early.**
   Avoid getting hung up on specific details and instead aim to get the goal of the proposal merged quickly.
-  The best way to do this is to just start with the "Overview" sections and fill out details incrementally in follow on PRs.
+  The best way to do this is to just start with the Summary and Motivation sections and fill out details incrementally in follow on PRs.
   View anything marked as a `provisional` as a working document and subject to change.
   Aim for single topic PRs to keep discussions focused.
   If you disagree with what is already in a document, open a new PR with suggested changes.

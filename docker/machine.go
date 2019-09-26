@@ -92,7 +92,7 @@ func (m *Machine) Create(role string, version *string) error {
 	if m.container == nil {
 		var err error
 
-		machineImage := machineImage(version)
+		machineImage := m.machineImage(version)
 		if m.image != "" {
 			machineImage = m.image
 		}
@@ -221,9 +221,11 @@ func (m *Machine) Delete() error {
 }
 
 // machineImage is the image of the container node with the machine
-func machineImage(version *string) string {
+func (m *Machine) machineImage(version *string) string {
 	if version == nil {
-		return fmt.Sprintf("%s:%s", defaultImageName, defaultImageTag)
+		defaultImage := fmt.Sprintf("%s:%s", defaultImageName, defaultImageTag)
+		m.log.Info("Image for machine container not specified, using default comtainer image", defaultImage)
+		return defaultImage
 	}
 
 	//TODO(fp) make this smarter

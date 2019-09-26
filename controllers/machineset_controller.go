@@ -320,7 +320,6 @@ func (r *MachineSetReconciler) syncReplicas(ms *clusterv1.MachineSet, machines [
 		// Choose which Machines to delete.
 		machinesToDelete := getMachinesToDeletePrioritized(machines, diff, deletePriorityFunc)
 
-		// TODO: Add cap to limit concurrent delete calls.
 		errCh := make(chan error, diff)
 		var wg sync.WaitGroup
 		wg.Add(diff)

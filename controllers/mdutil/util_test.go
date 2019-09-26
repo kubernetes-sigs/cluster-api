@@ -204,7 +204,7 @@ func TestFindNewMachineSet(t *testing.T) {
 	newMSDup.CreationTimestamp = now
 
 	oldDeployment := generateDeployment("nginx")
-	oldDeployment.Spec.Template.Spec.Name = "nginx-old-1"
+	oldDeployment.Spec.Template.Name = "nginx-old-1"
 	oldMS := generateMS(oldDeployment)
 	oldMS.Status.FullyLabeledReplicas = *(oldMS.Spec.Replicas)
 
@@ -259,7 +259,7 @@ func TestFindOldMachineSets(t *testing.T) {
 	newMSDup.CreationTimestamp = now
 
 	oldDeployment := generateDeployment("nginx")
-	oldDeployment.Spec.Template.Spec.Name = "nginx-old-1"
+	oldDeployment.Spec.Template.Name = "nginx-old-1"
 	oldMS := generateMS(oldDeployment)
 	oldMS.Status.FullyLabeledReplicas = *(oldMS.Spec.Replicas)
 	oldMS.CreationTimestamp = before

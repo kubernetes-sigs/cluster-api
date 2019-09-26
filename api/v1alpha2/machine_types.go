@@ -37,9 +37,7 @@ const (
 
 // MachineSpec defines the desired state of Machine
 type MachineSpec struct {
-	// ObjectMeta will autopopulate the Node created. Use this to
-	// indicate what labels, annotations, name prefix, etc., should be used
-	// when creating the Node.
+	// DEPRECATED: ObjectMeta has no function and isn't used anywhere.
 	// +optional
 	ObjectMeta `json:"metadata,omitempty"`
 

@@ -78,7 +78,7 @@ a.header:target h4:before {
 }
 
 table {
-    margin: 0 auto;
+    width: 100%;
     border-collapse: collapse;
 }
 table td {

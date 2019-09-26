@@ -228,13 +228,13 @@ release-binary: $(RELEASE_DIR)
 
 .PHONY: release-staging
 release-staging: ## Builds and push container images to the staging bucket.
-	REGISTRY=$(STAGING_REGISTRY) $(MAKE) docker-build-all docker-push-all release-tag-latest
+	REGISTRY=$(STAGING_REGISTRY) $(MAKE) docker-build-all docker-push-all release-alias-tag
 
+RELEASE_ALIAS_TAG=$(shell if [ "$(PULL_BASE_REF)" = "master" ]; then echo "latest"; else echo "$(PULL_BASE_REF)"; fi)
 
-.PHONY: release-tag-latest
-release-tag-latest: ## Adds the latest tag to the last build tag.
-	## TODO(vincepri): Only do this when we're on master.
-	gcloud container images add-tag $(CONTROLLER_IMG):$(TAG) $(CONTROLLER_IMG):latest
+.PHONY: release-alias-tag
+release-alias-tag: # Adds the tag to the last build tag.
+	gcloud container images add-tag $(CONTROLLER_IMG):$(TAG) $(CONTROLLER_IMG):$(RELEASE_ALIAS_TAG)
 
 ## --------------------------------------
 ## Docker - Example Provider

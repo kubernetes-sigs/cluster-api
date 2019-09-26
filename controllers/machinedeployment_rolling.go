@@ -21,7 +21,6 @@ import (
 
 	"github.com/pkg/errors"
 	"k8s.io/apimachinery/pkg/types"
-	"k8s.io/klog"
 	"k8s.io/utils/integer"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha3"
 	"sigs.k8s.io/cluster-api/controllers/mdutil"
@@ -99,6 +98,8 @@ func (r *MachineDeploymentReconciler) reconcileNewMachineSet(allMSs []*clusterv1
 }
 
 func (r *MachineDeploymentReconciler) reconcileOldMachineSets(allMSs []*clusterv1.MachineSet, oldMSs []*clusterv1.MachineSet, newMS *clusterv1.MachineSet, deployment *clusterv1.MachineDeployment) error {
+	logger := r.Log.WithValues("machinedeployment", deployment.Name, "namespace", deployment.Namespace)
+
 	if deployment.Spec.Replicas == nil {
 		return errors.Errorf("spec replicas for MachineDeployment %q/%q is nil, this is unexpected",
 			deployment.Namespace, deployment.Name)
@@ -116,7 +117,8 @@ func (r *MachineDeploymentReconciler) reconcileOldMachineSets(allMSs []*clusterv
 	}
 
 	allMachinesCount := mdutil.GetReplicaCountForMachineSets(allMSs)
-	klog.V(4).Infof("New machine set %s/%s has %d available machines.", newMS.Namespace, newMS.Name, newMS.Status.AvailableReplicas)
+	logger.V(4).Info("New machine set has available machines",
+		"machineset", newMS.Name, "count", newMS.Status.AvailableReplicas)
 	maxUnavailable := mdutil.MaxUnavailable(*deployment)
 
 	// Check if we can scale down. We can scale down in the following 2 cases:
@@ -163,7 +165,7 @@ func (r *MachineDeploymentReconciler) reconcileOldMachineSets(allMSs []*clusterv
 		return nil
 	}
 
-	klog.V(4).Infof("Cleaned up unhealthy replicas from old MachineSets by %d", cleanupCount)
+	logger.V(4).Info("Cleaned up unhealthy replicas from old MachineSets", "count", cleanupCount)
 
 	// Scale down old machine sets, need check maxUnavailable to ensure we can scale down
 	allMSs = append(oldMSs, newMS)
@@ -172,12 +174,14 @@ func (r *MachineDeploymentReconciler) reconcileOldMachineSets(allMSs []*clusterv
 		return err
 	}
 
-	klog.V(4).Infof("Scaled down old MachineSets of deployment %s by %d", deployment.Name, scaledDownCount)
+	logger.V(4).Info("Scaled down old MachineSets of deployment", "count", scaledDownCount)
 	return nil
 }
 
 // cleanupUnhealthyReplicas will scale down old machine sets with unhealthy replicas, so that all unhealthy replicas will be deleted.
 func (r *MachineDeploymentReconciler) cleanupUnhealthyReplicas(oldMSs []*clusterv1.MachineSet, deployment *clusterv1.MachineDeployment, maxCleanupCount int32) ([]*clusterv1.MachineSet, int32, error) {
+	logger := r.Log.WithValues("machinedeployment", deployment.Name, "namespace", deployment.Namespace)
+
 	sort.Sort(mdutil.MachineSetsByCreationTimestamp(oldMSs))
 
 	// Safely scale down all old machine sets with unhealthy replicas. Replica set will sort the machines in the order
@@ -201,7 +205,7 @@ func (r *MachineDeploymentReconciler) cleanupUnhealthyReplicas(oldMSs []*cluster
 		}
 
 		oldMSAvailableReplicas := targetMS.Status.AvailableReplicas
-		klog.V(4).Infof("Found %d available machines in old MS %s/%s", oldMSAvailableReplicas, targetMS.Namespace, targetMS.Name)
+		logger.V(4).Info("Found available machines in old MS", "count", oldMSAvailableReplicas, "target-machineset", targetMS.Name)
 		if oldMSReplicas == oldMSAvailableReplicas {
 			// no unhealthy replicas found, no scaling required.
 			continue
@@ -229,6 +233,8 @@ func (r *MachineDeploymentReconciler) cleanupUnhealthyReplicas(oldMSs []*cluster
 // scaleDownOldMachineSetsForRollingUpdate scales down old machine sets when deployment strategy is "RollingUpdate".
 // Need check maxUnavailable to ensure availability
 func (r *MachineDeploymentReconciler) scaleDownOldMachineSetsForRollingUpdate(allMSs []*clusterv1.MachineSet, oldMSs []*clusterv1.MachineSet, deployment *clusterv1.MachineDeployment) (int32, error) {
+	logger := r.Log.WithValues("machinedeployment", deployment.Name, "namespace", deployment.Namespace)
+
 	if deployment.Spec.Replicas == nil {
 		return 0, errors.Errorf("spec replicas for deployment %v is nil, this is unexpected", deployment.Name)
 	}
@@ -245,7 +251,7 @@ func (r *MachineDeploymentReconciler) scaleDownOldMachineSetsForRollingUpdate(al
 		return 0, nil
 	}
 
-	klog.V(4).Infof("Found %d available machines in deployment %s, scaling down old MSes", availableMachineCount, deployment.Name)
+	logger.V(4).Info("Found available machines in deployment, scaling down old MSes", "count", availableMachineCount)
 
 	sort.Sort(mdutil.MachineSetsByCreationTimestamp(oldMSs))
 

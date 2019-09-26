@@ -20,10 +20,10 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/go-logr/logr"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
-	"k8s.io/klog"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha3"
 	"sigs.k8s.io/cluster-api/controllers/noderefutil"
 	"sigs.k8s.io/cluster-api/controllers/remote"
@@ -37,6 +37,8 @@ const (
 )
 
 func (r *MachineSetReconciler) calculateStatus(ms *clusterv1.MachineSet, filteredMachines []*clusterv1.Machine) clusterv1.MachineSetStatus {
+	logger := r.Log.WithValues("machineset", ms.Name, "namespace", ms.Namespace)
+
 	newStatus := ms.Status
 
 	// Count the number of machines that have labels matching the labels of the machine
@@ -58,15 +60,13 @@ func (r *MachineSetReconciler) calculateStatus(ms *clusterv1.MachineSet, filtere
 		}
 
 		if machine.Status.NodeRef == nil {
-			klog.Warningf("Unable to retrieve Node status for Machine %q in namespace %q: missing NodeRef",
-				machine.Name, machine.Namespace)
+			logger.Info("Unable to retrieve Node status,missing NodeRef", "machine", machine.Name)
 			continue
 		}
 
 		node, err := r.getMachineNode(cluster, machine)
 		if err != nil {
-			klog.Warningf("Unable to retrieve Node status for Machine %q in namespace %q: %v",
-				machine.Name, machine.Namespace, err)
+			logger.Error(err, "Unable to retrieve Node status")
 			continue
 		}
 
@@ -86,7 +86,7 @@ func (r *MachineSetReconciler) calculateStatus(ms *clusterv1.MachineSet, filtere
 }
 
 // updateMachineSetStatus attempts to update the Status.Replicas of the given MachineSet, with a single GET/PUT retry.
-func updateMachineSetStatus(c client.Client, ms *clusterv1.MachineSet, newStatus clusterv1.MachineSetStatus) (*clusterv1.MachineSet, error) {
+func updateMachineSetStatus(c client.Client, ms *clusterv1.MachineSet, newStatus clusterv1.MachineSetStatus, logger logr.Logger) (*clusterv1.MachineSet, error) {
 	// This is the steady state. It happens when the MachineSet doesn't have any expectations, since
 	// we do a periodic relist every 10 minutes. If the generations differ but the replicas are
 	// the same, a caller might've resized to the same replica count.
@@ -110,7 +110,7 @@ func updateMachineSetStatus(c client.Client, ms *clusterv1.MachineSet, newStatus
 		if ms.Spec.Replicas != nil {
 			replicas = *ms.Spec.Replicas
 		}
-		klog.V(4).Infof(fmt.Sprintf("Updating status for %v: %s/%s, ", ms.Kind, ms.Namespace, ms.Name) +
+		logger.V(4).Info(fmt.Sprintf("Updating status for %v: %s/%s, ", ms.Kind, ms.Namespace, ms.Name) +
 			fmt.Sprintf("replicas %d->%d (need %d), ", ms.Status.Replicas, newStatus.Replicas, replicas) +
 			fmt.Sprintf("fullyLabeledReplicas %d->%d, ", ms.Status.FullyLabeledReplicas, newStatus.FullyLabeledReplicas) +
 			fmt.Sprintf("readyReplicas %d->%d, ", ms.Status.ReadyReplicas, newStatus.ReadyReplicas) +

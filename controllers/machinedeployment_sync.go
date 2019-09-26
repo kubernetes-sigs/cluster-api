@@ -32,7 +32,6 @@ import (
 	apirand "k8s.io/apimachinery/pkg/util/rand"
 	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/client-go/util/retry"
-	"k8s.io/klog"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha3"
 	"sigs.k8s.io/cluster-api/controllers/mdutil"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -89,10 +88,12 @@ func (r *MachineDeploymentReconciler) getAllMachineSetsAndSyncRevision(d *cluste
 // 3. If there's no existing new MS and createIfNotExisted is true, create one with appropriate revision number (maxOldRevision + 1) and replicas.
 // Note that the machine-template-hash will be added to adopted MSes and machines.
 func (r *MachineDeploymentReconciler) getNewMachineSet(d *clusterv1.MachineDeployment, msList, oldMSs []*clusterv1.MachineSet, createIfNotExisted bool) (*clusterv1.MachineSet, error) {
+	logger := r.Log.WithValues("machinedeployment", d.Name, "namespace", d.Namespace)
+
 	existingNewMS := mdutil.FindNewMachineSet(d, msList)
 
 	// Calculate the max revision number among all old MSes
-	maxOldRevision := mdutil.MaxRevision(oldMSs)
+	maxOldRevision := mdutil.MaxRevision(oldMSs, logger)
 
 	// Calculate revision number for this new machine set
 	newRevision := strconv.FormatInt(maxOldRevision+1, 10)
@@ -106,7 +107,7 @@ func (r *MachineDeploymentReconciler) getNewMachineSet(d *clusterv1.MachineDeplo
 		patch := client.MergeFrom(msCopy.DeepCopy())
 
 		// Set existing new machine set's annotation
-		annotationsUpdated := mdutil.SetNewMachineSetAnnotations(d, msCopy, newRevision, true)
+		annotationsUpdated := mdutil.SetNewMachineSetAnnotations(d, msCopy, newRevision, true, logger)
 
 		minReadySecondsNeedsUpdate := msCopy.Spec.MinReadySeconds != *d.Spec.MinReadySeconds
 		if annotationsUpdated || minReadySecondsNeedsUpdate {
@@ -172,7 +173,7 @@ func (r *MachineDeploymentReconciler) getNewMachineSet(d *clusterv1.MachineDeplo
 	*(newMS.Spec.Replicas) = newReplicasCount
 
 	// Set new machine set's annotation
-	mdutil.SetNewMachineSetAnnotations(d, &newMS, newRevision, false)
+	mdutil.SetNewMachineSetAnnotations(d, &newMS, newRevision, false, logger)
 	// Create the new MachineSet. If it already exists, then we need to check for possible
 	// hash collisions. If there is any other error, we need to report it in the status of
 	// the Deployment.
@@ -202,13 +203,13 @@ func (r *MachineDeploymentReconciler) getNewMachineSet(d *clusterv1.MachineDeplo
 
 		return nil, err
 	case err != nil:
-		klog.V(4).Infof("Failed to create new machine set %q: %v", newMS.Name, err)
+		logger.Error(err, "Failed to create new machine set", "machineset", newMS.Name)
 		r.recorder.Eventf(d, corev1.EventTypeWarning, "FailedCreate", "Failed to create MachineSet %q: %v", newMS.Name, err)
 		return nil, err
 	}
 
 	if !alreadyExists {
-		klog.V(4).Infof("Created new machine set %q", createdMS.Name)
+		logger.V(4).Info("Created new machine set", "machineset", createdMS.Name)
 		r.recorder.Eventf(d, corev1.EventTypeNormal, "SuccessfulCreate", "Created MachineSet %q", newMS.Name)
 	}
 
@@ -225,6 +226,8 @@ func (r *MachineDeploymentReconciler) getNewMachineSet(d *clusterv1.MachineDeplo
 // replicas in the event of a problem with the rolled out template. Should run only on scaling events or
 // when a deployment is paused and not during the normal rollout process.
 func (r *MachineDeploymentReconciler) scale(deployment *clusterv1.MachineDeployment, newMS *clusterv1.MachineSet, oldMSs []*clusterv1.MachineSet) error {
+	logger := r.Log.WithValues("machinedeployment", deployment.Name, "namespace", deployment.Namespace)
+
 	if deployment.Spec.Replicas == nil {
 		return errors.Errorf("spec replicas for deployment %v is nil, this is unexpected", deployment.Name)
 	}
@@ -295,14 +298,14 @@ func (r *MachineDeploymentReconciler) scale(deployment *clusterv1.MachineDeploym
 		for i := range allMSs {
 			ms := allMSs[i]
 			if ms.Spec.Replicas == nil {
-				klog.Errorf("spec replicas for machine set %v is nil, this is unexpected.", ms.Name)
+				logger.Info("Spec.Replicas for machine set is nil, this is unexpected.", "machineset", ms.Name)
 				continue
 			}
 
 			// Estimate proportions if we have replicas to add, otherwise simply populate
 			// nameToSize with the current sizes for each machine set.
 			if deploymentReplicasToAdd != 0 {
-				proportion := mdutil.GetProportion(ms, *deployment, deploymentReplicasToAdd, deploymentReplicasAdded)
+				proportion := mdutil.GetProportion(ms, *deployment, deploymentReplicasToAdd, deploymentReplicasAdded, logger)
 				nameToSize[ms.Name] = *(ms.Spec.Replicas) + proportion
 				deploymentReplicasAdded += proportion
 			} else {
@@ -432,6 +435,8 @@ func (r *MachineDeploymentReconciler) scaleMachineSetOperation(ms *clusterv1.Mac
 // where N=d.Spec.RevisionHistoryLimit. Old machine sets are older versions of the machinetemplate of a deployment kept
 // around by default 1) for historical reasons and 2) for the ability to rollback a deployment.
 func (r *MachineDeploymentReconciler) cleanupDeployment(oldMSs []*clusterv1.MachineSet, deployment *clusterv1.MachineDeployment) error {
+	logger := r.Log.WithValues("machinedeployment", deployment.Name, "namespace", deployment.Namespace)
+
 	if deployment.Spec.RevisionHistoryLimit == nil {
 		return nil
 	}
@@ -449,7 +454,7 @@ func (r *MachineDeploymentReconciler) cleanupDeployment(oldMSs []*clusterv1.Mach
 	}
 
 	sort.Sort(mdutil.MachineSetsByCreationTimestamp(cleanableMSes))
-	klog.V(4).Infof("Looking to cleanup old machine sets for deployment %q", deployment.Name)
+	logger.V(4).Info("Looking to cleanup old machine sets for deployment")
 
 	for i := int32(0); i < diff; i++ {
 		ms := cleanableMSes[i]
@@ -462,7 +467,7 @@ func (r *MachineDeploymentReconciler) cleanupDeployment(oldMSs []*clusterv1.Mach
 			continue
 		}
 
-		klog.V(4).Infof("Trying to cleanup machine set %q for deployment %q", ms.Name, deployment.Name)
+		logger.V(4).Info("Trying to cleanup machine set for deployment", "machineset", ms.Name)
 		if err := r.Client.Delete(context.Background(), ms); err != nil && !apierrors.IsNotFound(err) {
 			// Return error instead of aggregating and continuing DELETEs on the theory
 			// that we may be overloading the api server.

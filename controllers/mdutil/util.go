@@ -25,13 +25,13 @@ import (
 	"strings"
 
 	"github.com/davecgh/go-spew/spew"
+	"github.com/go-logr/logr"
 	v1 "k8s.io/api/core/v1"
 	apiequality "k8s.io/apimachinery/pkg/api/equality"
 	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	intstrutil "k8s.io/apimachinery/pkg/util/intstr"
-	"k8s.io/klog"
 	"k8s.io/utils/integer"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha3"
 )
@@ -124,12 +124,13 @@ func SetDeploymentRevision(deployment *clusterv1.MachineDeployment, revision str
 }
 
 // MaxRevision finds the highest revision in the machine sets
-func MaxRevision(allMSs []*clusterv1.MachineSet) int64 {
+func MaxRevision(allMSs []*clusterv1.MachineSet, logger logr.Logger) int64 {
 	max := int64(0)
 	for _, ms := range allMSs {
 		if v, err := Revision(ms); err != nil {
 			// Skip the machine sets when it failed to parse their revision information
-			klog.V(4).Infof("Error: %v. Couldn't parse revision for machine set %#v, deployment controller will skip it when reconciling revisions.", err, ms)
+			logger.Error(err, "Couldn't parse revision for machine set, deployment controller will skip it when reconciling revisions",
+				"machineset", ms.Name)
 		} else if v > max {
 			max = v
 		}
@@ -186,18 +187,20 @@ func copyDeploymentAnnotationsToMachineSet(deployment *clusterv1.MachineDeployme
 	return msAnnotationsChanged
 }
 
-func getMaxReplicasAnnotation(ms *clusterv1.MachineSet) (int32, bool) {
-	return getIntFromAnnotation(ms, MaxReplicasAnnotation)
+func getMaxReplicasAnnotation(ms *clusterv1.MachineSet, logger logr.Logger) (int32, bool) {
+	return getIntFromAnnotation(ms, MaxReplicasAnnotation, logger)
 }
 
-func getIntFromAnnotation(ms *clusterv1.MachineSet, annotationKey string) (int32, bool) {
+func getIntFromAnnotation(ms *clusterv1.MachineSet, annotationKey string, logger logr.Logger) (int32, bool) {
+	logger = logger.WithValues("machineset", ms.Name, "annotationKey", annotationKey)
+
 	annotationValue, ok := ms.Annotations[annotationKey]
 	if !ok {
 		return int32(0), false
 	}
 	intValue, err := strconv.Atoi(annotationValue)
 	if err != nil {
-		klog.V(2).Infof("Cannot convert the value %q with annotation key %q for the machine set %q", annotationValue, annotationKey, ms.Name)
+		logger.V(2).Info("Cannot convert the value to integer", "annotationValue", annotationValue)
 		return int32(0), false
 	}
 	return int32(intValue), true
@@ -205,7 +208,9 @@ func getIntFromAnnotation(ms *clusterv1.MachineSet, annotationKey string) (int32
 
 // SetNewMachineSetAnnotations sets new machine set's annotations appropriately by updating its revision and
 // copying required deployment annotations to it; it returns true if machine set's annotation is changed.
-func SetNewMachineSetAnnotations(deployment *clusterv1.MachineDeployment, newMS *clusterv1.MachineSet, newRevision string, exists bool) bool {
+func SetNewMachineSetAnnotations(deployment *clusterv1.MachineDeployment, newMS *clusterv1.MachineSet, newRevision string, exists bool, logger logr.Logger) bool {
+	logger = logger.WithValues("machineset", newMS.Name)
+
 	// First, copy deployment's annotations (except for apply and revision annotations)
 	annotationChanged := copyDeploymentAnnotationsToMachineSet(deployment, newMS)
 	// Then, update machine set's revision annotation
@@ -220,7 +225,7 @@ func SetNewMachineSetAnnotations(deployment *clusterv1.MachineDeployment, newMS 
 	oldRevisionInt, err := strconv.ParseInt(oldRevision, 10, 64)
 	if err != nil {
 		if oldRevision != "" {
-			klog.Warningf("Updating machine set revision OldRevision not int %s", err)
+			logger.Error(err, "Updating machine set revision OldRevision not int")
 			return false
 		}
 		//If the MS annotation is empty then initialise it to 0
@@ -228,13 +233,13 @@ func SetNewMachineSetAnnotations(deployment *clusterv1.MachineDeployment, newMS 
 	}
 	newRevisionInt, err := strconv.ParseInt(newRevision, 10, 64)
 	if err != nil {
-		klog.Warningf("Updating machine set revision NewRevision not int %s", err)
+		logger.Error(err, "Updating machine set revision NewRevision not int")
 		return false
 	}
 	if oldRevisionInt < newRevisionInt {
 		newMS.Annotations[RevisionAnnotation] = newRevision
 		annotationChanged = true
-		klog.V(4).Infof("Updating machine set %q revision to %s", newMS.Name, newRevision)
+		logger.V(4).Info("Updating machine set revision", "revision", newRevision)
 	}
 	// If a revision annotation already existed and this machine set was updated with a new revision
 	// then that means we are rolling back to this machine set. We need to preserve the old revisions
@@ -342,12 +347,12 @@ func MaxSurge(deployment clusterv1.MachineDeployment) int32 {
 // GetProportion will estimate the proportion for the provided machine set using 1. the current size
 // of the parent deployment, 2. the replica count that needs be added on the machine sets of the
 // deployment, and 3. the total replicas added in the machine sets of the deployment so far.
-func GetProportion(ms *clusterv1.MachineSet, d clusterv1.MachineDeployment, deploymentReplicasToAdd, deploymentReplicasAdded int32) int32 {
+func GetProportion(ms *clusterv1.MachineSet, d clusterv1.MachineDeployment, deploymentReplicasToAdd, deploymentReplicasAdded int32, logger logr.Logger) int32 {
 	if ms == nil || *(ms.Spec.Replicas) == 0 || deploymentReplicasToAdd == 0 || deploymentReplicasToAdd == deploymentReplicasAdded {
 		return int32(0)
 	}
 
-	msFraction := getMachineSetFraction(*ms, d)
+	msFraction := getMachineSetFraction(*ms, d, logger)
 	allowed := deploymentReplicasToAdd - deploymentReplicasAdded
 
 	if deploymentReplicasToAdd > 0 {
@@ -364,14 +369,14 @@ func GetProportion(ms *clusterv1.MachineSet, d clusterv1.MachineDeployment, depl
 
 // getMachineSetFraction estimates the fraction of replicas a machine set can have in
 // 1. a scaling event during a rollout or 2. when scaling a paused deployment.
-func getMachineSetFraction(ms clusterv1.MachineSet, d clusterv1.MachineDeployment) int32 {
+func getMachineSetFraction(ms clusterv1.MachineSet, d clusterv1.MachineDeployment, logger logr.Logger) int32 {
 	// If we are scaling down to zero then the fraction of this machine set is its whole size (negative)
 	if *(d.Spec.Replicas) == int32(0) {
 		return -*(ms.Spec.Replicas)
 	}
 
 	deploymentReplicas := *(d.Spec.Replicas) + MaxSurge(d)
-	annotatedReplicas, ok := getMaxReplicasAnnotation(&ms)
+	annotatedReplicas, ok := getMaxReplicasAnnotation(&ms, logger)
 	if !ok {
 		// If we cannot find the annotation then fallback to the current deployment size. Note that this
 		// will not be an accurate proportion estimation in case other machine sets have different values

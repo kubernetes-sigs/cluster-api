@@ -31,7 +31,6 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 	kerrors "k8s.io/apimachinery/pkg/util/errors"
 	"k8s.io/client-go/tools/record"
-	"k8s.io/klog"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha3"
 	"sigs.k8s.io/cluster-api/controllers/external"
 	capierrors "sigs.k8s.io/cluster-api/errors"
@@ -84,7 +83,6 @@ func (r *ClusterReconciler) SetupWithManager(mgr ctrl.Manager, options controlle
 
 func (r *ClusterReconciler) Reconcile(req ctrl.Request) (_ ctrl.Result, reterr error) {
 	ctx := context.Background()
-	_ = r.Log.WithValues("cluster", req.NamespacedName)
 
 	// Fetch the Cluster instance.
 	cluster := &clusterv1.Cluster{}
@@ -128,6 +126,8 @@ func (r *ClusterReconciler) Reconcile(req ctrl.Request) (_ ctrl.Result, reterr e
 
 // reconcile handles cluster reconciliation.
 func (r *ClusterReconciler) reconcile(ctx context.Context, cluster *clusterv1.Cluster) (ctrl.Result, error) {
+	logger := r.Log.WithValues("cluster", cluster.Name, "namespace", cluster.Namespace)
+
 	// If object doesn't have a finalizer, add one.
 	if !util.Contains(cluster.Finalizers, clusterv1.ClusterFinalizer) {
 		cluster.Finalizers = append(cluster.ObjectMeta.Finalizers, clusterv1.ClusterFinalizer)
@@ -149,7 +149,7 @@ func (r *ClusterReconciler) reconcile(ctx context.Context, cluster *clusterv1.Cl
 			if !res.Requeue {
 				res.Requeue = true
 				res.RequeueAfter = requeueErr.GetRequeueAfter()
-				klog.Infof("Reconciliation for Cluster %q in namespace %q asked to requeue: %v", cluster.Name, cluster.Namespace, err)
+				logger.Error(err, "Reconciliation for Cluster asked to requeue")
 			}
 			continue
 		}
@@ -161,21 +161,23 @@ func (r *ClusterReconciler) reconcile(ctx context.Context, cluster *clusterv1.Cl
 
 // reconcileDelete handles cluster deletion.
 func (r *ClusterReconciler) reconcileDelete(ctx context.Context, cluster *clusterv1.Cluster) (reconcile.Result, error) {
+	logger := r.Log.WithValues("cluster", cluster.Name, "namespace", cluster.Namespace)
+
 	children, err := r.listChildren(ctx, cluster)
 	if err != nil {
-		klog.Errorf("Failed to list children of cluster %s/%s: %v", cluster.Namespace, cluster.Name, err)
+		logger.Error(err, "Failed to list children")
 		return reconcile.Result{}, err
 	}
 
 	if len(children) > 0 {
-		klog.Infof("Cluster %s/%s still has %d children - deleting them first", cluster.Namespace, cluster.Name, len(children))
+		logger.Info("Cluster still has children - deleting them first", "count", len(children))
 
 		var errs []error
 
 		for _, child := range children {
 			accessor, err := meta.Accessor(child)
 			if err != nil {
-				klog.Errorf("Cluster %s/%s: couldn't create accessor for type %T: %v", cluster.Namespace, cluster.Name, child, err)
+				logger.Error(err, "Couldn't create accessor", "type", fmt.Sprintf("%T", child))
 				continue
 			}
 
@@ -186,10 +188,10 @@ func (r *ClusterReconciler) reconcileDelete(ctx context.Context, cluster *cluste
 
 			gvk := child.GetObjectKind().GroupVersionKind().String()
 
-			klog.Infof("Cluster %s/%s: deleting child %s %s", cluster.Namespace, cluster.Name, gvk, accessor.GetName())
+			logger.Info("Deleting child", "gvk", gvk, "name", accessor.GetName())
 			if err := r.Client.Delete(context.Background(), child); err != nil {
 				err = errors.Wrapf(err, "error deleting cluster %s/%s: failed to delete %s %s", cluster.Namespace, cluster.Name, gvk, accessor.GetName())
-				klog.Errorf(err.Error())
+				logger.Error(err, "Error deleting resource", "gvk", gvk, "name", accessor.GetName())
 				errs = append(errs, err)
 			}
 		}
@@ -231,6 +233,8 @@ func (r *ClusterReconciler) reconcileDelete(ctx context.Context, cluster *cluste
 
 // listChildren returns a list of MachineDeployments, MachineSets, and Machines than have an owner reference to cluster
 func (r *ClusterReconciler) listChildren(ctx context.Context, cluster *clusterv1.Cluster) ([]runtime.Object, error) {
+	logger := r.Log.WithValues("cluster", cluster.Name, "namespace", cluster.Namespace)
+
 	listOptions := []client.ListOption{
 		client.InNamespace(cluster.Namespace),
 		client.MatchingLabels(map[string]string{clusterv1.MachineClusterLabelName: cluster.Name}),
@@ -256,7 +260,7 @@ func (r *ClusterReconciler) listChildren(ctx context.Context, cluster *clusterv1
 	eachFunc := func(o runtime.Object) error {
 		acc, err := meta.Accessor(o)
 		if err != nil {
-			klog.Errorf("Cluster %s/%s: couldn't create accessor for type %T: %v", cluster.Namespace, cluster.Name, o, err)
+			logger.Error(err, "Couldn't create accessor", "type", fmt.Sprintf("%T", o))
 			return nil
 		}
 
@@ -298,13 +302,15 @@ func splitMachineList(list *clusterv1.MachineList) (*clusterv1.MachineList, *clu
 }
 
 func (r *ClusterReconciler) reconcileControlPlaneInitialized(ctx context.Context, cluster *clusterv1.Cluster) error {
+	logger := r.Log.WithValues("cluster", cluster.Name, "namespace", cluster.Namespace)
+
 	if cluster.Status.ControlPlaneInitialized {
 		return nil
 	}
 
 	machines, err := getActiveMachinesInCluster(ctx, r.Client, cluster.Namespace, cluster.Name)
 	if err != nil {
-		r.Log.Error(err, "error getting machines in cluster", "cluster", cluster.Name, "namespace", cluster.Namespace)
+		logger.Error(err, "Error getting machines in cluster")
 		return err
 	}
 
@@ -323,7 +329,7 @@ func (r *ClusterReconciler) reconcileControlPlaneInitialized(ctx context.Context
 func (r *ClusterReconciler) controlPlaneMachineToCluster(o handler.MapObject) []ctrl.Request {
 	m, ok := o.Object.(*clusterv1.Machine)
 	if !ok {
-		r.Log.Error(errors.New("did not get machine"), "got", fmt.Sprintf("%T", o.Object))
+		r.Log.Error(nil, fmt.Sprintf("Expected a Machine but got a %T", o.Object))
 		return nil
 	}
 	if !util.IsControlPlaneMachine(m) {
@@ -335,7 +341,7 @@ func (r *ClusterReconciler) controlPlaneMachineToCluster(o handler.MapObject) []
 
 	cluster, err := util.GetClusterFromMetadata(context.TODO(), r.Client, m.ObjectMeta)
 	if err != nil {
-		r.Log.Error(err, "failed to get cluster", "machine", m.Name, "cluster", m.ClusterName, "namespace", m.Namespace)
+		r.Log.Error(err, "Failed to get cluster", "machine", m.Name, "cluster", m.ClusterName, "namespace", m.Namespace)
 		return nil
 	}
 

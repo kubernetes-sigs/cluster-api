@@ -270,6 +270,13 @@ verify:
 	./hack/verify-boilerplate.sh
 	./hack/verify-doctoc.sh
 	./hack/verify-generated-files.sh
+	$(MAKE) verify-modules
+
+.PHONY: verify-modules
+verify-modules: modules
+	@if !(git diff --quiet HEAD -- go.sum go.mod hack/tools/go.mod hack/tools/go.sum); then \
+		echo "go module files are out of date"; exit 1; \
+	fi
 
 .PHONY: clean-book
 clean-book: ## Remove all generated GitBook files

@@ -19,6 +19,7 @@ package controllers
 import (
 	"context"
 	"sync"
+	"time"
 
 	"github.com/go-logr/logr"
 	"github.com/pkg/errors"
@@ -27,6 +28,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	kerrors "k8s.io/apimachinery/pkg/util/errors"
+	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/client-go/tools/record"
 	"k8s.io/klog"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha2"
@@ -183,9 +185,18 @@ func (r *MachineReconciler) reconcileDelete(ctx context.Context, cluster *cluste
 		}
 	} else {
 		klog.Infof("Deleting node %q for machine %q", m.Status.NodeRef.Name, m.Name)
-		if err := r.deleteNode(ctx, cluster, m.Status.NodeRef.Name); err != nil && !apierrors.IsNotFound(err) {
-			klog.Errorf("Error deleting node %q for machine %q: %v", m.Status.NodeRef.Name, m.Name, err)
-			return ctrl.Result{}, err
+
+		var deleteNodeErr error
+		waitErr := wait.PollImmediate(2*time.Second, 10*time.Second, func() (bool, error) {
+			if deleteNodeErr = r.deleteNode(ctx, cluster, m.Status.NodeRef.Name); deleteNodeErr != nil && !apierrors.IsNotFound(deleteNodeErr) {
+				return false, nil
+			}
+			return true, nil
+		})
+		if waitErr != nil {
+			// TODO: remove m.Name after #1203
+			r.Log.Error(deleteNodeErr, "timed out deleting Machine's node, moving on", "node", m.Status.NodeRef.Name, "machine", m.Name)
+			r.recorder.Eventf(m, corev1.EventTypeWarning, "FailedDeleteNode", "error deleting Machine's node: %v", deleteNodeErr)
 		}
 	}
 

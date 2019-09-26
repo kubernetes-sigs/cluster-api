@@ -305,9 +305,8 @@ spec:
                           type: string
                       type: object
                     metadata:
-                      description: ObjectMeta will autopopulate the Node created.
-                        Use this to indicate what labels, annotations, name prefix,
-                        etc., should be used when creating the Node.
+                      description: 'DEPRECATED: ObjectMeta has no function and isn''t
+                        used anywhere.'
                       properties:
                         annotations:
                           additionalProperties:

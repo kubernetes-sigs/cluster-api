@@ -50,10 +50,7 @@ type ControlPlaneJoinInput struct {
 // NewJoinControlPlane returns the user data string to be used on a new control plane instance.
 func NewJoinControlPlane(input *ControlPlaneJoinInput) ([]byte, error) {
 	input.Header = cloudConfigHeader
-	if err := input.Certificates.EnsureAllExist(); err != nil {
-		return nil, err
-	}
-
+	// TODO: Consider validating that the correct certificates exist. It is different for external/stacked etcd
 	input.WriteFiles = input.Certificates.AsFiles()
 	input.WriteFiles = append(input.WriteFiles, input.AdditionalFiles...)
 	userData, err := generate("JoinControlplane", controlPlaneJoinCloudInit, input)

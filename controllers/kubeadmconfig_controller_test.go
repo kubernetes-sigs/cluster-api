@@ -1267,7 +1267,10 @@ func newControlPlaneInitKubeadmConfig(machine *clusterv1.Machine, name string) *
 
 func createSecrets(t *testing.T, cluster *clusterv1.Cluster, owner *bootstrapv1.KubeadmConfig) []runtime.Object {
 	out := []runtime.Object{}
-	certificates := internalcluster.NewCertificates()
+	if owner.Spec.ClusterConfiguration == nil {
+		owner.Spec.ClusterConfiguration = &kubeadmv1beta1.ClusterConfiguration{}
+	}
+	certificates := internalcluster.NewCertificatesForControlPlane(owner.Spec.ClusterConfiguration)
 	if err := certificates.Generate(); err != nil {
 		t.Fatal(err)
 	}

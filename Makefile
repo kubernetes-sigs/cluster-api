@@ -51,6 +51,8 @@ CONTROLLER_GEN_BIN := bin/controller-gen
 CONTROLLER_GEN := $(TOOLS_DIR)/$(CONTROLLER_GEN_BIN)
 GOLANGCI_LINT_BIN := bin/golangci-lint
 GOLANGCI_LINT := $(TOOLS_DIR)/$(GOLANGCI_LINT_BIN)
+RELEASE_NOTES_BIN := bin/release-notes
+RELEASE_NOTES := $(TOOLS_DIR)/$(RELEASE_NOTES_BIN)
 
 # Allow overriding manifest generation destination directory
 MANIFEST_ROOT ?= "config"
@@ -175,6 +177,9 @@ RELEASE_DIR := out
 $(RELEASE_DIR):
 	mkdir -p $(RELEASE_DIR)/
 
+$(RELEASE_NOTES) : $(TOOLS_DIR)/go.mod
+	cd $(TOOLS_DIR) && go build -o $(RELEASE_NOTES_BIN) -tags tools sigs.k8s.io/cluster-api/hack/tools/release
+
 .PHONY: release
 release: clean-release  ## Builds and push container images using the latest git tag for the commit.
 	@if [ -z "${RELEASE_TAG}" ]; then echo "RELEASE_TAG is not set"; exit 1; fi
@@ -194,6 +199,9 @@ release-manifests: $(RELEASE_DIR) ## Builds the manifests to publish with a rele
 release-staging: ## Builds and push container images to the staging bucket.
 	REGISTRY=$(STAGING_REGISTRY) $(MAKE) docker-build-all docker-push-all release-tag-latest
 
+.PHONY: release-notes
+release-notes: $(RELEASE_NOTES)
+	$(RELEASE_NOTES)
 
 .PHONY: release-tag-latest
 release-tag-latest: ## Adds the latest tag to the last build tag.

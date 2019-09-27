@@ -88,7 +88,7 @@ type ObjectMeta struct {
 	// should retry (optionally after the time indicated in the Retry-After header).
 	//
 	// Applied only if Name is not specified.
-	// More info: https://git.k8s.io/community/contributors/devel/api-conventions.md#idempotency
+	// More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#idempotency
 	// +optional
 	GenerateName string `json:"generateName,omitempty" protobuf:"bytes,2,opt,name=generateName"`
 

@@ -164,7 +164,7 @@ spec:
                     name could not be found in the time allotted, and the client should
                     retry (optionally after the time indicated in the Retry-After
                     header). \n Applied only if Name is not specified. More info:
-                    https://git.k8s.io/community/contributors/devel/api-conventions.md#idempotency"
+                    https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#idempotency"
                   type: string
                 labels:
                   additionalProperties:

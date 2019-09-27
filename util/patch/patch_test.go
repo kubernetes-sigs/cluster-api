@@ -31,6 +31,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha2"
+	"sigs.k8s.io/cluster-api/controllers/external"
 )
 
 func TestHelperUnstructuredPatch(t *testing.T) {
@@ -44,6 +45,9 @@ func TestHelperUnstructuredPatch(t *testing.T) {
 			"metadata": map[string]interface{}{
 				"name":      "test-bootstrap",
 				"namespace": "default",
+			},
+			"status": map[string]interface{}{
+				"ready": true,
 			},
 		},
 	}
@@ -67,10 +71,15 @@ func TestHelperUnstructuredPatch(t *testing.T) {
 	err = h.Patch(ctx, obj)
 	Expect(err).ToNot(HaveOccurred())
 
+	// Make sure that the status has been preserved.
+	ready, err := external.IsReady(obj)
+	Expect(err).ToNot(HaveOccurred())
+	Expect(ready).To(BeTrue())
+
+	// Make sure that the object has been patched properly.
 	afterObj := obj.DeepCopy()
 	err = fakeClient.Get(ctx, client.ObjectKey{Namespace: "default", Name: "test-bootstrap"}, afterObj)
 	Expect(err).ToNot(HaveOccurred())
-
 	Expect(afterObj.GetOwnerReferences()).To(Equal(refs))
 }
 

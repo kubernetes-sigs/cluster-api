@@ -86,7 +86,14 @@ func (h *Helper) Patch(ctx context.Context, resource runtime.Object) error {
 		return errors.Errorf("expected non-nil resource")
 	}
 
-	// convert the resource to unstructured to compare against our before copy
+	// If the object is already unstructured, we need to perform a deepcopy first
+	// because the `DefaultUnstructuredConverter.ToUnstructured` function returns
+	// the underlying unstructured object map without making a copy.
+	if _, ok := resource.(runtime.Unstructured); ok {
+		resource = resource.DeepCopyObject()
+	}
+
+	// Convert the resource to unstructured to compare against our before copy.
 	after, err := runtime.DefaultUnstructuredConverter.ToUnstructured(resource)
 	if err != nil {
 		return err

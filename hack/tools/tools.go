@@ -21,5 +21,6 @@ package tools
 
 import (
 	_ "github.com/golangci/golangci-lint/cmd/golangci-lint" // nolint
+	_ "sigs.k8s.io/cluster-api/hack/tools/release"          //nolint
 	_ "sigs.k8s.io/controller-tools/cmd/controller-gen"     // nolint
 )

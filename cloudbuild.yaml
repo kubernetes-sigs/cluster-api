@@ -8,7 +8,7 @@ steps:
     env:
     - DOCKER_CLI_EXPERIMENTAL=enabled
     - TAG=$_GIT_TAG
-    - ADDITIONAL_TAG=$_PULL_BASE_REF
+    - PULL_BASE_REF=$_PULL_BASE_REF
     args:
     - release-staging
 substitutions:

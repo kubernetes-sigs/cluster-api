@@ -11,7 +11,9 @@ spec:
     categories:
     - cluster-api
     kind: KubeadmConfig
+    listKind: KubeadmConfigList
     plural: kubeadmconfigs
+    singular: kubeadmconfig
   scope: Namespaced
   subresources:
     status: {}

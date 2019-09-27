@@ -11,7 +11,9 @@ spec:
     categories:
     - cluster-api
     kind: KubeadmConfigTemplate
+    listKind: KubeadmConfigTemplateList
     plural: kubeadmconfigtemplates
+    singular: kubeadmconfigtemplate
   scope: Namespaced
   validation:
     openAPIV3Schema:

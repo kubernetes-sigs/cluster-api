@@ -186,11 +186,6 @@ func copyDeploymentAnnotationsToMachineSet(deployment *clusterv1.MachineDeployme
 	return msAnnotationsChanged
 }
 
-// GetDesiredReplicasAnnotation returns the number of desired replicas
-func GetDesiredReplicasAnnotation(ms *clusterv1.MachineSet) (int32, bool) {
-	return getIntFromAnnotation(ms, DesiredReplicasAnnotation)
-}
-
 func getMaxReplicasAnnotation(ms *clusterv1.MachineSet) (int32, bool) {
 	return getIntFromAnnotation(ms, MaxReplicasAnnotation)
 }

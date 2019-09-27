@@ -44,7 +44,14 @@ func NewHelper(resource runtime.Object, crClient client.Client) (*Helper, error)
 		return nil, errors.Errorf("expected non-nil resource")
 	}
 
-	// convert the resource to unstructured for easier comparison later
+	// If the object is already unstructured, we need to perform a deepcopy first
+	// because the `DefaultUnstructuredConverter.ToUnstructured` function returns
+	// the underlying unstructured object map without making a copy.
+	if _, ok := resource.(runtime.Unstructured); ok {
+		resource = resource.DeepCopyObject()
+	}
+
+	// Convert the resource to unstructured for easier comparison later.
 	before, err := runtime.DefaultUnstructuredConverter.ToUnstructured(resource)
 	if err != nil {
 		return nil, err

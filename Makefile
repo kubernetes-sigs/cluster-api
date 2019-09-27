@@ -71,7 +71,7 @@ help:  ## Display this help
 ## --------------------------------------
 
 .PHONY: test
-test: generate fmt vet lint ## Run tests
+test: generate lint ## Run tests
 	go test ./... -coverprofile cover.out
 
 ## --------------------------------------
@@ -79,7 +79,7 @@ test: generate fmt vet lint ## Run tests
 ## --------------------------------------
 
 .PHONY: manager
-manager: generate fmt vet ## Build manager binary
+manager: generate lint ## Build manager binary
 	go build -o bin/manager main.go
 
 # Build controller-gen
@@ -226,7 +226,7 @@ clean-release: ## Remove the release folder
 ## --------------------------------------
 
 .PHONY: run
-run: generate fmt vet ## Run against the configured Kubernetes cluster in ~/.kube/config
+run: generate lint ## Run against the configured Kubernetes cluster in ~/.kube/config
 	go run ./main.go
 
 .PHONY: install

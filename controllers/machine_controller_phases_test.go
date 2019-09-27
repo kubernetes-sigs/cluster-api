@@ -625,6 +625,13 @@ func TestReconcileInfrastructure(t *testing.T) {
 			},
 		},
 		Spec: clusterv1.MachineSpec{
+			Bootstrap: clusterv1.Bootstrap{
+				ConfigRef: &corev1.ObjectReference{
+					APIVersion: "bootstrap.cluster.x-k8s.io/v1alpha2",
+					Kind:       "BootstrapConfig",
+					Name:       "bootstrap-config1",
+				},
+			},
 			InfrastructureRef: corev1.ObjectReference{
 				APIVersion: "infrastructure.cluster.x-k8s.io/v1alpha2",
 				Kind:       "InfrastructureConfig",
@@ -634,12 +641,14 @@ func TestReconcileInfrastructure(t *testing.T) {
 	}
 
 	testCases := []struct {
-		name          string
-		infraConfig   map[string]interface{}
-		machine       *clusterv1.Machine
-		expectError   bool
-		expectChanged bool
-		expected      func(g *gomega.WithT, m *clusterv1.Machine)
+		name               string
+		bootstrapConfig    map[string]interface{}
+		infraConfig        map[string]interface{}
+		machine            *clusterv1.Machine
+		expectError        bool
+		expectChanged      bool
+		expectRequeueAfter bool
+		expected           func(g *gomega.WithT, m *clusterv1.Machine)
 	}{
 		{
 			name: "new machine, infrastructure config ready",
@@ -673,6 +682,60 @@ func TestReconcileInfrastructure(t *testing.T) {
 				g.Expect(m.Status.InfrastructureReady).To(gomega.BeTrue())
 			},
 		},
+		{
+			name: "ready bootstrap, infra, and nodeRef, machine is running, infra object is deleted, expect failed",
+			machine: &clusterv1.Machine{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "machine-test",
+					Namespace: "default",
+				},
+				Spec: clusterv1.MachineSpec{
+					Bootstrap: clusterv1.Bootstrap{
+						ConfigRef: &corev1.ObjectReference{
+							APIVersion: "bootstrap.cluster.x-k8s.io/v1alpha2",
+							Kind:       "BootstrapConfig",
+							Name:       "bootstrap-config1",
+						},
+					},
+					InfrastructureRef: corev1.ObjectReference{
+						APIVersion: "infrastructure.cluster.x-k8s.io/v1alpha2",
+						Kind:       "InfrastructureConfig",
+						Name:       "infra-config1",
+					},
+				},
+				Status: clusterv1.MachineStatus{
+					BootstrapReady:      true,
+					InfrastructureReady: true,
+					NodeRef:             &corev1.ObjectReference{Kind: "Node", Name: "machine-test-node"},
+				},
+			},
+			bootstrapConfig: map[string]interface{}{
+				"kind":       "BootstrapConfig",
+				"apiVersion": "bootstrap.cluster.x-k8s.io/v1alpha2",
+				"metadata": map[string]interface{}{
+					"name":      "bootstrap-config1",
+					"namespace": "default",
+				},
+				"spec": map[string]interface{}{},
+				"status": map[string]interface{}{
+					"ready":         true,
+					"bootstrapData": "...",
+				},
+			},
+			infraConfig: map[string]interface{}{
+				"kind":       "InfrastructureConfig",
+				"apiVersion": "infrastructure.cluster.x-k8s.io/v1alpha2",
+				"metadata":   map[string]interface{}{},
+			},
+			expectError:        true,
+			expectRequeueAfter: true,
+			expected: func(g *gomega.WithT, m *clusterv1.Machine) {
+				g.Expect(m.Status.InfrastructureReady).To(gomega.BeTrue())
+				g.Expect(m.Status.ErrorMessage).ToNot(gomega.BeNil())
+				g.Expect(m.Status.ErrorReason).ToNot(gomega.BeNil())
+				g.Expect(m.Status.GetTypedPhase()).To(gomega.Equal(clusterv1.MachinePhaseFailed))
+			},
+		},
 	}
 
 	for _, tc := range testCases {
@@ -690,6 +753,7 @@ func TestReconcileInfrastructure(t *testing.T) {
 			}
 
 			err := r.reconcileInfrastructure(context.Background(), tc.machine)
+			r.reconcilePhase(context.Background(), tc.machine)
 			if tc.expectError {
 				g.Expect(err).ToNot(gomega.BeNil())
 			} else {

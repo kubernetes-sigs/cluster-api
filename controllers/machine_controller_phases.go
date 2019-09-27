@@ -19,6 +19,7 @@ package controllers
 import (
 	"context"
 	"fmt"
+	"strings"
 	"time"
 
 	"github.com/pkg/errors"
@@ -197,6 +198,13 @@ func (r *MachineReconciler) reconcileInfrastructure(ctx context.Context, m *clus
 	if infraConfig == nil && err == nil {
 		return nil
 	} else if err != nil {
+		if m.Status.InfrastructureReady && strings.Contains(err.Error(), "could not find") {
+			// Infra object went missing after the machine was up and running
+			r.Log.Error(err, "Machine infrastructure reference has been deleted after being ready, setting failure state")
+			m.Status.ErrorReason = capierrors.MachineStatusErrorPtr(capierrors.InvalidConfigurationMachineError)
+			m.Status.ErrorMessage = pointer.StringPtr(fmt.Sprintf("Machine infrastructure resource %v with name %q has been deleted after being ready",
+				m.Spec.InfrastructureRef.GroupVersionKind(), m.Spec.InfrastructureRef.Name))
+		}
 		return err
 	}
 

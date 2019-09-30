@@ -165,7 +165,7 @@ spec:
               description: Template describes the machines that will be created.
               properties:
                 metadata:
-                  description: 'Standard object''s metadata. More info: https://git.k8s.io/community/contributors/devel/api-conventions.md#metadata'
+                  description: 'Standard object''s metadata. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#metadata'
                   properties:
                     annotations:
                       additionalProperties:
@@ -189,7 +189,7 @@ spec:
                         with Reason ServerTimeout indicating a unique name could not
                         be found in the time allotted, and the client should retry
                         (optionally after the time indicated in the Retry-After header).
-                        \n Applied only if Name is not specified. More info: https://git.k8s.io/community/contributors/devel/api-conventions.md#idempotency"
+                        \n Applied only if Name is not specified. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#idempotency"
                       type: string
                     labels:
                       additionalProperties:
@@ -262,7 +262,7 @@ spec:
                   type: object
                 spec:
                   description: 'Specification of the desired behavior of the machine.
-                    More info: https://git.k8s.io/community/contributors/devel/api-conventions.md#spec-and-status'
+                    More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#spec-and-status'
                   properties:
                     bootstrap:
                       description: Bootstrap is a reference to a local struct which
@@ -382,7 +382,7 @@ spec:
                             indicating a unique name could not be found in the time
                             allotted, and the client should retry (optionally after
                             the time indicated in the Retry-After header). \n Applied
-                            only if Name is not specified. More info: https://git.k8s.io/community/contributors/devel/api-conventions.md#idempotency"
+                            only if Name is not specified. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#idempotency"
                           type: string
                         labels:
                           additionalProperties:

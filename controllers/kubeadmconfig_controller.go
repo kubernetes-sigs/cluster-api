@@ -190,6 +190,8 @@ func (r *KubeadmConfigReconciler) Reconcile(req ctrl.Request) (_ ctrl.Result, re
 
 		log.Info("Creating BootstrapData for the init control plane")
 
+		// Nb. in this case JoinConfiguration should not be defined by users, but in case of misconfigurations, CABPK simply ignore it
+
 		// get both of ClusterConfiguration and InitConfiguration strings to pass to the cloud init control plane generator
 		// kubeadm allows one of these values to be empty; CABPK replace missing values with an empty config, so the cloud init generation
 		// should not handle special cases.
@@ -256,13 +258,18 @@ func (r *KubeadmConfigReconciler) Reconcile(req ctrl.Request) (_ ctrl.Result, re
 	}
 
 	// Every other case it's a join scenario
-	// Nb. in this case ClusterConfiguration and JoinConfiguration should not be defined by users, but in case of misconfigurations, CABPK simply ignore them
+	// Nb. in this case ClusterConfiguration and InitConfiguration should not be defined by users, but in case of misconfigurations, CABPK simply ignore them
 
 	// Unlock any locks that might have been set during init process
 	r.KubeadmInitLock.Unlock(ctx, cluster)
 
+	// if the JoinConfiguration is missing, create a default one
 	if config.Spec.JoinConfiguration == nil {
-		return ctrl.Result{}, errors.New("Control plane already exists for the cluster, only KubeadmConfig objects with JoinConfiguration are allowed")
+		log.Info("Creating default JoinConfiguration")
+		config.Spec.JoinConfiguration = &kubeadmv1beta1.JoinConfiguration{}
+		if util.IsControlPlaneMachine(machine) {
+			config.Spec.JoinConfiguration.ControlPlane = &kubeadmv1beta1.JoinControlPlane{}
+		}
 	}
 
 	certificates := internalcluster.NewCertificates()
@@ -306,6 +313,8 @@ func (r *KubeadmConfigReconciler) Reconcile(req ctrl.Request) (_ ctrl.Result, re
 			return ctrl.Result{}, errors.New("Machine is a ControlPlane, but JoinConfiguration.ControlPlane is not set in the KubeadmConfig object")
 		}
 
+		log.Info("Creating BootstrapData for the join control plane")
+
 		cloudJoinData, err := cloudinit.NewJoinControlPlane(&cloudinit.ControlPlaneJoinInput{
 			JoinConfiguration: joindata,
 			Certificates:      certificates,
@@ -331,6 +340,8 @@ func (r *KubeadmConfigReconciler) Reconcile(req ctrl.Request) (_ ctrl.Result, re
 	if config.Spec.JoinConfiguration.ControlPlane != nil {
 		return ctrl.Result{}, errors.New("Machine is a Worker, but JoinConfiguration.ControlPlane is set in the KubeadmConfig object")
 	}
+
+	log.Info("Creating BootstrapData for the worker node")
 
 	cloudJoinData, err := cloudinit.NewNode(&cloudinit.NodeInput{
 		BaseUserData: cloudinit.BaseUserData{

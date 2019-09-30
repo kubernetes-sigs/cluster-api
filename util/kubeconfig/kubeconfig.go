@@ -24,6 +24,7 @@ import (
 
 	"github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/tools/clientcmd"
 	"k8s.io/client-go/tools/clientcmd/api"
@@ -31,6 +32,10 @@ import (
 	"sigs.k8s.io/cluster-api/util/certs"
 	"sigs.k8s.io/cluster-api/util/secret"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+)
+
+var (
+	ErrDependentCertificateNotFound = errors.New("could not find secret ca")
 )
 
 // FromSecret fetches the Kubeconfig for a Cluster.
@@ -94,6 +99,9 @@ func New(clusterName, endpoint string, caCert *x509.Certificate, caKey *rsa.Priv
 func CreateSecret(ctx context.Context, c client.Client, cluster *clusterv1.Cluster) error {
 	clusterCA, err := secret.Get(c, cluster, secret.ClusterCA)
 	if err != nil {
+		if apierrors.IsNotFound(err) {
+			return ErrDependentCertificateNotFound
+		}
 		return err
 	}
 

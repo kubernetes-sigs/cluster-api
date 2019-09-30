@@ -184,7 +184,14 @@ func (r *ClusterReconciler) reconcileKubeconfig(ctx context.Context, cluster *cl
 	_, err := secret.Get(r.Client, cluster, secret.Kubeconfig)
 	switch {
 	case apierrors.IsNotFound(err):
-		return kubeconfig.CreateSecret(ctx, r.Client, cluster)
+		if err := kubeconfig.CreateSecret(ctx, r.Client, cluster); err != nil {
+			if err == kubeconfig.ErrDependentCertificateNotFound {
+				return errors.Wrapf(&capierrors.RequeueAfterError{RequeueAfter: 30 * time.Second},
+					"could not find secret %q for Cluster %q in namespace %q, requeuing",
+					secret.ClusterCA, cluster.Name, cluster.Namespace)
+			}
+			return err
+		}
 	case err != nil:
 		return errors.Wrapf(err, "failed to retrieve Kubeconfig Secret for Cluster %q in namespace %q", cluster.Name, cluster.Namespace)
 	}

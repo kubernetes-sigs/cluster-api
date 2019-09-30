@@ -1,7 +1,15 @@
-apiVersion: "cluster.k8s.io/v1alpha1"
+# Creates a cluster with one control-plane node and one worker node
+apiVersion: infrastructure.cluster.x-k8s.io/v1alpha2
+kind: DockerCluster
+metadata:
+  name: my-cluster
+  namespace: default
+---
+apiVersion: cluster.x-k8s.io/v1alpha2
 kind: Cluster
 metadata:
   name: my-cluster
+  namespace: default
 spec:
   clusterNetwork:
     services:
@@ -9,30 +17,89 @@ spec:
     pods:
       cidrBlocks: ["192.168.0.0/16"]
     serviceDomain: "cluster.local"
+  infrastructureRef:
+    apiVersion: infrastructure.cluster.x-k8s.io/v1alpha2
+    kind: DockerCluster
+    name: my-cluster
+    namespace: default
 ---
-apiVersion: "cluster.k8s.io/v1alpha1"
+apiVersion: infrastructure.cluster.x-k8s.io/v1alpha2
+kind: DockerMachine
+metadata:
+  name: controlplane-0
+  namespace: default
+---
+apiVersion: cluster.x-k8s.io/v1alpha2
 kind: Machine
 metadata:
-  name: my-control-plane
   labels:
-    cluster.k8s.io/cluster-name: my-cluster
-    set: "controlplane"
+    cluster.x-k8s.io/cluster-name: my-cluster
+    cluster.x-k8s.io/control-plane: "true"
+  name: controlplane-0
+  namespace: default
 spec:
-  providerSpec: {}
-  versions:
-    controlPlane: "v1.14.2"
-    kubelet: "v1.14.2"
+  version: "v1.14.2"
+  bootstrap:
+    configRef:
+      apiVersion: bootstrap.cluster.x-k8s.io/v1alpha2
+      kind: KubeadmConfig
+      name: controlplane-0-config
+      namespace: default
+  infrastructureRef:
+    apiVersion: infrastructure.cluster.x-k8s.io/v1alpha2
+    kind: DockerMachine
+    name: controlplane-0
+    namespace: default
 ---
-apiVersion: "cluster.k8s.io/v1alpha1"
+apiVersion: bootstrap.cluster.x-k8s.io/v1alpha2
+kind: KubeadmConfig
+metadata:
+  name: controlplane-0-config
+  namespace: default
+spec:
+  clusterConfiguration:
+    controllerManager:
+      extraArgs:
+        enable-hostpath-provisioner: "true"
+  initConfiguration:
+    nodeRegistration:
+      kubeletExtraArgs:
+        eviction-hard: nodefs.available<0%,nodefs.inodesFree<0%,imagefs.available<0%
+---
+apiVersion: infrastructure.cluster.x-k8s.io/v1alpha2
+kind: DockerMachine
+metadata:
+  name: worker-0
+  namespace: default
+---
+apiVersion: cluster.x-k8s.io/v1alpha2
 kind: Machine
 metadata:
-  name: worker
   labels:
-    cluster.k8s.io/cluster-name: my-cluster
-    set: "worker"
-  annotations:
-    name: "my-cluster-worker"
+    cluster.x-k8s.io/cluster-name: my-cluster
+  name: worker-0
+  namespace: default
 spec:
-  providerSpec: {}
-  versions:
-    kubelet: "v1.14.2"
+  version: "v1.14.2"
+  bootstrap:
+    configRef:
+      apiVersion: bootstrap.cluster.x-k8s.io/v1alpha2
+      kind: KubeadmConfig
+      name: worker-0-config
+      namespace: default
+  infrastructureRef:
+    apiVersion: infrastructure.cluster.x-k8s.io/v1alpha2
+    kind: DockerMachine
+    name: worker-0
+    namespace: default
+---
+apiVersion: bootstrap.cluster.x-k8s.io/v1alpha2
+kind: KubeadmConfig
+metadata:
+  name: worker-0-config
+  namespace: default
+spec:
+  joinConfiguration:
+    nodeRegistration:
+      kubeletExtraArgs:
+        eviction-hard: nodefs.available<0%,nodefs.inodesFree<0%,imagefs.available<0%

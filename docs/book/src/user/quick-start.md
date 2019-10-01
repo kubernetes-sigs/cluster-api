@@ -42,17 +42,7 @@ kubectl create -f {{#releaselink gomodule:"sigs.k8s.io/cluster-api-bootstrap-pro
 {{#tabs name:"tab-installation-infrastructure" tabs:"AWS,vSphere"}}
 {{#tab AWS}}
 
-<aside class="note warning">
-
-<h1>Action Required</h1>
-
-For more information about credentials management, IAM, or requirements for AWS, visit the [AWS Provider Prerequisites](https://github.com/kubernetes-sigs/cluster-api-provider-aws/blob/master/docs/prerequisites.md) document.
-
-</aside>
-
-#### Install clusterawsadm
-
-Download the latest binary of `clusterawsadm` from the [AWS provider releases] and make sure to place it in your path.
+{{#embed-github repo:"kubernetes-sigs/cluster-api-provider-aws" path:"docs/prerequisites.md"}}
 
 ##### Create the components
 

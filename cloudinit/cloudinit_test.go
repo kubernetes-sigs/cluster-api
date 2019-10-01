@@ -46,7 +46,7 @@ func TestNewInitControlPlaneAdditionalFileEncodings(t *testing.T) {
 			Users:      nil,
 			NTP:        nil,
 		},
-		Certificates:         cluster.NewCertificates(),
+		Certificates:         cluster.Certificates{},
 		ClusterConfiguration: "my-cluster-config",
 		InitConfiguration:    "my-init-config",
 	}

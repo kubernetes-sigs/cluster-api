@@ -25,6 +25,7 @@ import (
 	"crypto/x509/pkix"
 	"encoding/hex"
 	"math/big"
+	"path/filepath"
 	"strings"
 	"time"
 
@@ -34,6 +35,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/util/cert"
 	bootstrapv1 "sigs.k8s.io/cluster-api-bootstrap-provider-kubeadm/api/v1alpha2"
+	"sigs.k8s.io/cluster-api-bootstrap-provider-kubeadm/kubeadm/v1beta1"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha2"
 	"sigs.k8s.io/cluster-api/util/certs"
 	"sigs.k8s.io/cluster-api/util/secret"
@@ -51,6 +53,11 @@ const (
 
 	// FrontProxyCA is the secret name suffix for Front Proxy CA
 	FrontProxyCA secret.Purpose = "proxy"
+
+	// APIServerEtcdClient is the secret name of user-supplied secret containing the apiserver-etcd-client key/cert
+	APIServerEtcdClient secret.Purpose = "apiserver-etcd-client"
+
+	defaultCertificatesDir = "/etc/kubernetes/pki"
 )
 
 var (
@@ -67,13 +74,65 @@ var (
 // Certificates are the certificates necessary to bootstrap a cluster.
 type Certificates []*Certificate
 
-// NewCertificates return an initialized but empty set of CA certificates needed to bootstrap a cluster.
-func NewCertificates() Certificates {
+// NewCertificatesForControlPlane returns a list of certificates configured for a control plane node
+func NewCertificatesForControlPlane(config *v1beta1.ClusterConfiguration) Certificates {
+	if config.CertificatesDir == "" {
+		config.CertificatesDir = defaultCertificatesDir
+	}
+
+	certificates := Certificates{
+		&Certificate{
+			Purpose:  secret.ClusterCA,
+			CertFile: filepath.Join(config.CertificatesDir, "ca.crt"),
+			KeyFile:  filepath.Join(config.CertificatesDir, "ca.key"),
+		},
+		&Certificate{
+			Purpose:  ServiceAccount,
+			CertFile: filepath.Join(config.CertificatesDir, "sa.pub"),
+			KeyFile:  filepath.Join(config.CertificatesDir, "sa.key"),
+		},
+		&Certificate{
+			Purpose:  FrontProxyCA,
+			CertFile: filepath.Join(config.CertificatesDir, "front-proxy-ca.crt"),
+			KeyFile:  filepath.Join(config.CertificatesDir, "front-proxy-ca.key"),
+		},
+	}
+
+	etcdCert := &Certificate{
+		Purpose:  EtcdCA,
+		CertFile: filepath.Join(config.CertificatesDir, "etcd", "ca.crt"),
+		KeyFile:  filepath.Join(config.CertificatesDir, "etcd", "ca.key"),
+	}
+
+	// TODO make sure all the fields are actually defined and return an error if not
+	if config.Etcd.External != nil {
+		etcdCert = &Certificate{
+			Purpose:  EtcdCA,
+			CertFile: config.Etcd.External.CAFile,
+		}
+		apiserverEtcdClientCert := &Certificate{
+			Purpose:  APIServerEtcdClient,
+			CertFile: config.Etcd.External.CertFile,
+			KeyFile:  config.Etcd.External.KeyFile,
+		}
+		certificates = append(certificates, apiserverEtcdClientCert)
+	}
+
+	certificates = append(certificates, etcdCert)
+	return certificates
+}
+
+// NewCertificatesForWorker return an initialized but empty set of CA certificates needed to bootstrap a cluster.
+func NewCertificatesForWorker(caCertPath string) Certificates {
+	if caCertPath == "" {
+		caCertPath = filepath.Join(defaultCertificatesDir, "ca.crt")
+	}
+
 	return Certificates{
-		&Certificate{Purpose: secret.ClusterCA},
-		&Certificate{Purpose: EtcdCA},
-		&Certificate{Purpose: ServiceAccount},
-		&Certificate{Purpose: FrontProxyCA},
+		&Certificate{
+			Purpose:  secret.ClusterCA,
+			CertFile: caCertPath,
+		},
 	}
 }
 
@@ -138,6 +197,8 @@ func (c Certificates) Generate() error {
 		if certificate.KeyPair == nil {
 			var generator certGenerator
 			switch certificate.Purpose {
+			case APIServerEtcdClient: // Do not generate the APIServerEtcdClient key pair. It is user supplied
+				continue
 			case ServiceAccount:
 				generator = generateServiceAccountKeys
 			default:
@@ -191,9 +252,10 @@ func (c Certificates) LookupOrGenerate(ctx context.Context, ctrlclient client.Cl
 
 // Certificate represents a single certificate CA.
 type Certificate struct {
-	Generated bool
-	Purpose   secret.Purpose
-	KeyPair   *certs.KeyPair
+	Generated         bool
+	Purpose           secret.Purpose
+	KeyPair           *certs.KeyPair
+	CertFile, KeyFile string
 }
 
 // Hashes hashes all the certificates stored in a CA certificate.
@@ -244,6 +306,28 @@ func (c *Certificate) AsSecret(cluster *clusterv1.Cluster, config *bootstrapv1.K
 	return s
 }
 
+// AsFiles converts the certificate to a slice of Files that may have 0, 1 or 2 Files.
+func (c *Certificate) AsFiles() []bootstrapv1.File {
+	out := make([]bootstrapv1.File, 0)
+	if len(c.KeyPair.Cert) > 0 {
+		out = append(out, bootstrapv1.File{
+			Path:        c.CertFile,
+			Owner:       rootOwnerValue,
+			Permissions: "0640",
+			Content:     string(c.KeyPair.Cert),
+		})
+	}
+	if len(c.KeyPair.Key) > 0 {
+		out = append(out, bootstrapv1.File{
+			Path:        c.KeyFile,
+			Owner:       rootOwnerValue,
+			Permissions: "0600",
+			Content:     string(c.KeyPair.Key),
+		})
+	}
+	return out
+}
+
 // AsFiles converts a slice of certificates into bootstrap files.
 func (c Certificates) AsFiles() []bootstrapv1.File {
 	clusterCA := c.GetByPurpose(secret.ClusterCA)
@@ -251,56 +335,27 @@ func (c Certificates) AsFiles() []bootstrapv1.File {
 	frontProxyCA := c.GetByPurpose(FrontProxyCA)
 	serviceAccountKey := c.GetByPurpose(ServiceAccount)
 
-	return []bootstrapv1.File{
-		{
-			Path:        "/etc/kubernetes/pki/ca.crt",
-			Owner:       rootOwnerValue,
-			Permissions: "0640",
-			Content:     string(clusterCA.KeyPair.Cert),
-		},
-		{
-			Path:        "/etc/kubernetes/pki/ca.key",
-			Owner:       rootOwnerValue,
-			Permissions: "0600",
-			Content:     string(clusterCA.KeyPair.Key),
-		},
-		{
-			Path:        "/etc/kubernetes/pki/etcd/ca.crt",
-			Owner:       rootOwnerValue,
-			Permissions: "0640",
-			Content:     string(etcdCA.KeyPair.Cert),
-		},
-		{
-			Path:        "/etc/kubernetes/pki/etcd/ca.key",
-			Owner:       rootOwnerValue,
-			Permissions: "0600",
-			Content:     string(etcdCA.KeyPair.Key),
-		},
-		{
-			Path:        "/etc/kubernetes/pki/front-proxy-ca.crt",
-			Owner:       rootOwnerValue,
-			Permissions: "0640",
-			Content:     string(frontProxyCA.KeyPair.Cert),
-		},
-		{
-			Path:        "/etc/kubernetes/pki/front-proxy-ca.key",
-			Owner:       rootOwnerValue,
-			Permissions: "0600",
-			Content:     string(frontProxyCA.KeyPair.Key),
-		},
-		{
-			Path:        "/etc/kubernetes/pki/sa.pub",
-			Owner:       rootOwnerValue,
-			Permissions: "0640",
-			Content:     string(serviceAccountKey.KeyPair.Cert),
-		},
-		{
-			Path:        "/etc/kubernetes/pki/sa.key",
-			Owner:       rootOwnerValue,
-			Permissions: "0600",
-			Content:     string(serviceAccountKey.KeyPair.Key),
-		},
+	certFiles := make([]bootstrapv1.File, 0)
+	if clusterCA != nil {
+		certFiles = append(certFiles, clusterCA.AsFiles()...)
 	}
+	if etcdCA != nil {
+		certFiles = append(certFiles, etcdCA.AsFiles()...)
+	}
+	if frontProxyCA != nil {
+		certFiles = append(certFiles, frontProxyCA.AsFiles()...)
+	}
+	if serviceAccountKey != nil {
+		certFiles = append(certFiles, serviceAccountKey.AsFiles()...)
+	}
+
+	// these will only exist if external etcd was defined and supplied by the user
+	apiserverEtcdClientCert := c.GetByPurpose(APIServerEtcdClient)
+	if apiserverEtcdClientCert != nil {
+		certFiles = append(certFiles, apiserverEtcdClientCert.AsFiles()...)
+	}
+
+	return certFiles
 }
 
 func secretToKeyPair(s *corev1.Secret) (*certs.KeyPair, error) {
@@ -309,9 +364,11 @@ func secretToKeyPair(s *corev1.Secret) (*certs.KeyPair, error) {
 		return nil, errors.Errorf("missing data for key %s", secret.TLSCrtDataName)
 	}
 
+	// In some cases (external etcd) it's ok if the etcd.key does not exist.
+	// TODO: some other function should ensure that the certificates we need exist.
 	key, exists := s.Data[secret.TLSKeyDataName]
 	if !exists {
-		return nil, errors.Errorf("missing data for key %s", secret.TLSKeyDataName)
+		key = []byte("")
 	}
 
 	return &certs.KeyPair{

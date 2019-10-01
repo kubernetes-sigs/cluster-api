@@ -227,7 +227,7 @@ func (r *KubeadmConfigReconciler) Reconcile(req ctrl.Request) (_ ctrl.Result, re
 			return ctrl.Result{}, err
 		}
 
-		certificates := internalcluster.NewCertificates()
+		certificates := internalcluster.NewCertificatesForControlPlane(config.Spec.ClusterConfiguration)
 		if err := certificates.LookupOrGenerate(ctx, r.Client, cluster, config); err != nil {
 			log.Error(err, "unable to lookup or create cluster certificates")
 			return ctrl.Result{}, err
@@ -271,7 +271,7 @@ func (r *KubeadmConfigReconciler) Reconcile(req ctrl.Request) (_ ctrl.Result, re
 		}
 	}
 
-	certificates := internalcluster.NewCertificates()
+	certificates := internalcluster.NewCertificatesForWorker(config.Spec.JoinConfiguration.CACertPath)
 	if err := certificates.Lookup(ctx, r.Client, cluster); err != nil {
 		log.Error(err, "unable to lookup cluster certificates")
 		return ctrl.Result{}, err

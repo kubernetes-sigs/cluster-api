@@ -29,7 +29,7 @@ one endpoint that is a load balancer for all control plane nodes.
 
 #### Optional `status` fields
 
-The `status` object **may** define several fields that do not affect functionality if missing.
+The `status` object **may** define several fields that do not affect functionality if missing:
 
 * `errorReason` - is a string that explains why an error has occurred, if possible.
 * `errorMessage` - is a string that holds the message contained by the error.

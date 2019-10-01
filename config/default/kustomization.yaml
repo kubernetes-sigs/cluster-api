@@ -18,6 +18,7 @@ namePrefix: capi-
 patchesStrategicMerge:
 - manager_image_patch.yaml
 - manager_label_patch.yaml
+- manager_pull_policy.yaml
 
 # [WEBHOOK] To enable webhook, uncomment all the sections with [WEBHOOK] prefix including the one in crd/kustomization.yaml
 #- manager_webhook_patch.yaml

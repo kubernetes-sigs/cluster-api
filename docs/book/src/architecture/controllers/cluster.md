@@ -5,7 +5,7 @@ The Cluster controller's main responsibilities are:
 * Setting an OwnerReference on the infrastructure object referenced in `Cluster.Spec.InfrastructureRef`.
 * Cleanup of all owned objects so that nothing is dangling after deletion.
 * Keeping the Cluster's status in sync with the infrastructure Cluster's status.
-* Creating a kubeconfig secret for [target clusters](../reference/glossary#Workload cluster).
+* Creating a kubeconfig secret for [workload clusters](../../reference/glossary.html#workload-cluster).
 
 ## Contracts
 
@@ -41,8 +41,11 @@ apiVersion: infrastructure.cluster.x-k8s.io/v1alpha2
 status:
     ready: true
     apiEndpoints:
-    - example.com:3333
-    - example.com:3334
+    - host: example.com
+      port: 3333
+    - host: example.com
+      port: 3334
+
 ```
 
 ### Secrets

@@ -1,0 +1,10 @@
+# See the OWNERS docs at https://go.k8s.io/owners
+
+approvers:
+  - cluster-api-admins
+  - cluster-api-maintainers
+  - sig-cluster-lifecycle-leads
+  - cluster-api-bootstrap-provider-kubeadm-maintainers
+
+reviewers:
+  - cluster-api-bootstrap-provider-kubeadm-reviewers

@@ -1,0 +1,24 @@
+# See the OWNERS docs at https://go.k8s.io/owners#owners_aliases
+
+aliases:
+  sig-cluster-lifecycle-leads:
+    - luxas
+    - justinsb
+    - timothysc
+  cluster-api-admins:
+    - justinsb
+    - detiber
+    - davidewatson
+  cluster-api-maintainers:
+    - justinsb
+    - detiber
+    - vincepri
+  cluster-api-bootstrap-provider-kubeadm-maintainers:
+    - chuckha
+    - fabriziopandini
+    - ncdc
+    - SataQiu
+  cluster-api-bootstrap-provider-kubeadm-reviewers:
+    - chuckha
+    - fabriziopandini
+    - ncdc

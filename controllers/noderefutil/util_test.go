@@ -51,7 +51,7 @@ func TestIsNodeAvaialble(t *testing.T) {
 			node: &corev1.Node{Status: corev1.NodeStatus{
 				Conditions: []corev1.NodeCondition{
 					{
-						Type:   corev1.NodeOutOfDisk,
+						Type:   corev1.NodeDiskPressure,
 						Status: corev1.ConditionTrue,
 					},
 				}},
@@ -166,7 +166,7 @@ func TestGetReadyCondition(t *testing.T) {
 			nodeStatus: &corev1.NodeStatus{
 				Conditions: []corev1.NodeCondition{
 					{
-						Type:   corev1.NodeOutOfDisk,
+						Type:   corev1.NodeDiskPressure,
 						Status: corev1.ConditionTrue,
 					},
 				},
@@ -254,7 +254,7 @@ func TestIsNodeReady(t *testing.T) {
 			node: &corev1.Node{Status: corev1.NodeStatus{
 				Conditions: []corev1.NodeCondition{
 					{
-						Type:   corev1.NodeOutOfDisk,
+						Type:   corev1.NodeDiskPressure,
 						Status: corev1.ConditionTrue,
 					},
 				}},

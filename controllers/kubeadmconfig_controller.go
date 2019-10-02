@@ -100,12 +100,6 @@ func (r *KubeadmConfigReconciler) Reconcile(req ctrl.Request) (_ ctrl.Result, re
 		return ctrl.Result{}, err
 	}
 
-	// bail super early if it's already ready
-	if config.Status.Ready {
-		log.Info("ignoring an already ready config")
-		return ctrl.Result{}, nil
-	}
-
 	// Look up the Machine that owns this KubeConfig if there is one
 	machine, err := util.GetOwnerMachine(ctx, r.Client, config.ObjectMeta)
 	if err != nil {
@@ -117,12 +111,6 @@ func (r *KubeadmConfigReconciler) Reconcile(req ctrl.Request) (_ ctrl.Result, re
 		return ctrl.Result{}, nil
 	}
 	log = log.WithValues("machine-name", machine.Name)
-
-	// Ignore machines that already have bootstrap data
-	if machine.Spec.Bootstrap.Data != nil {
-		// TODO: mark the config as ready?
-		return ctrl.Result{}, nil
-	}
 
 	// Lookup the cluster the machine is associated with
 	cluster, err := util.GetClusterFromMetadata(ctx, r.Client, machine.ObjectMeta)
@@ -140,10 +128,45 @@ func (r *KubeadmConfigReconciler) Reconcile(req ctrl.Request) (_ ctrl.Result, re
 		return ctrl.Result{}, err
 	}
 
+	switch {
 	// Wait patiently for the infrastructure to be ready
-	if !cluster.Status.InfrastructureReady {
+	case !cluster.Status.InfrastructureReady:
 		log.Info("Infrastructure is not ready, waiting until ready.")
 		return ctrl.Result{}, nil
+	// bail super early if it's already ready
+	case config.Status.Ready && machine.Status.InfrastructureReady:
+		log.Info("ignoring config for an already ready machine")
+		return ctrl.Result{}, nil
+	// Reconcile status for machines that have already copied bootstrap data
+	case machine.Spec.Bootstrap.Data != nil && !config.Status.Ready:
+		config.Status.Ready = true
+		// Initialize the patch helper
+		patchHelper, err := patch.NewHelper(config, r)
+		if err != nil {
+			return ctrl.Result{}, err
+		}
+		err = patchHelper.Patch(ctx, config)
+		return ctrl.Result{}, err
+	// If we've already embedded a time-limited join token into a config, but are still waiting for the token to be used, refresh it
+	case config.Status.Ready:
+		token := config.Spec.JoinConfiguration.Discovery.BootstrapToken.Token
+
+		// gets the remote secret interface client for the current cluster
+		secretsClient, err := r.SecretsClientFactory.NewSecretsClient(r.Client, cluster)
+		if err != nil {
+			return ctrl.Result{}, err
+		}
+
+		log.Info("refreshing token until the infrastructure has a chance to consume it")
+		err = refreshToken(secretsClient, token)
+		if err != nil {
+			// It would be nice to re-create the bootstrap token if the error was "not found", but we have no way to update the Machine's bootstrap data
+			return ctrl.Result{}, errors.Wrapf(err, "failed to refresh bootstrap token")
+		}
+		// NB: this may not be sufficient to keep the token live if we don't see it before it expires, but when we generate a config we will set the status to "ready" which should generate an update event
+		return ctrl.Result{
+			RequeueAfter: DefaultTokenTTL / 2,
+		}, nil
 	}
 
 	// Initialize the patch helper

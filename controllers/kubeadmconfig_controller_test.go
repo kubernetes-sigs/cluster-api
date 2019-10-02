@@ -400,7 +400,7 @@ func TestKubeadmConfigReconciler_Reconcile_GenerateCloudConfigData(t *testing.T)
 	}
 }
 
-// If a controlplane has an invalid JoinConfiguration then user intervention is required.
+// If a control plane has no JoinConfiguration, then we will create a default and no error will occur
 func TestKubeadmConfigReconciler_Reconcile_ErrorIfJoiningControlPlaneHasInvalidConfiguration(t *testing.T) {
 	// TODO: extract this kind of code into a setup function that puts the state of objects into an initialized controlplane (implies secrets exist)
 	cluster := newCluster("cluster")
@@ -436,8 +436,8 @@ func TestKubeadmConfigReconciler_Reconcile_ErrorIfJoiningControlPlaneHasInvalidC
 		},
 	}
 	_, err := k.Reconcile(request)
-	if err == nil {
-		t.Fatal("Expected error, got nil")
+	if err != nil {
+		t.Fatalf("Expected no error but got %v", err)
 	}
 }
 
@@ -598,6 +598,11 @@ func TestKubeadmConfigReconciler_Reconcile_DisocveryReconcileBehaviors(t *testin
 	}
 
 	dummyCAHash := []string{"...."}
+	bootstrapToken := kubeadmv1beta1.Discovery{
+		BootstrapToken: &kubeadmv1beta1.BootstrapTokenDiscovery{
+			CACertHashes: dummyCAHash,
+		},
+	}
 	goodcluster := &clusterv1.Cluster{
 		Status: clusterv1.ClusterStatus{
 			APIEndpoints: []clusterv1.APIEndpoint{
@@ -619,7 +624,9 @@ func TestKubeadmConfigReconciler_Reconcile_DisocveryReconcileBehaviors(t *testin
 			cluster: goodcluster,
 			config: &bootstrapv1.KubeadmConfig{
 				Spec: bootstrapv1.KubeadmConfigSpec{
-					JoinConfiguration: &kubeadmv1beta1.JoinConfiguration{},
+					JoinConfiguration: &kubeadmv1beta1.JoinConfiguration{
+						Discovery: bootstrapToken,
+					},
 				},
 			},
 			validateDiscovery: func(c *bootstrapv1.KubeadmConfig) error {
@@ -633,8 +640,8 @@ func TestKubeadmConfigReconciler_Reconcile_DisocveryReconcileBehaviors(t *testin
 				if d.BootstrapToken.APIServerEndpoint != "example.com:6443" {
 					return errors.Errorf("BootstrapToken.APIServerEndpoint=example.com:6443 expected, got %q", d.BootstrapToken.APIServerEndpoint)
 				}
-				if d.BootstrapToken.UnsafeSkipCAVerification != true {
-					return errors.Errorf("BootstrapToken.UnsafeSkipCAVerification=true expected, got false")
+				if d.BootstrapToken.UnsafeSkipCAVerification == true {
+					return errors.Errorf("BootstrapToken.UnsafeSkipCAVerification=false expected, got true")
 				}
 				return nil
 			},
@@ -667,6 +674,7 @@ func TestKubeadmConfigReconciler_Reconcile_DisocveryReconcileBehaviors(t *testin
 					JoinConfiguration: &kubeadmv1beta1.JoinConfiguration{
 						Discovery: kubeadmv1beta1.Discovery{
 							BootstrapToken: &kubeadmv1beta1.BootstrapTokenDiscovery{
+								CACertHashes:      dummyCAHash,
 								APIServerEndpoint: "bar.com:6443",
 							},
 						},
@@ -689,7 +697,8 @@ func TestKubeadmConfigReconciler_Reconcile_DisocveryReconcileBehaviors(t *testin
 					JoinConfiguration: &kubeadmv1beta1.JoinConfiguration{
 						Discovery: kubeadmv1beta1.Discovery{
 							BootstrapToken: &kubeadmv1beta1.BootstrapTokenDiscovery{
-								Token: "abcdef.0123456789abcdef",
+								CACertHashes: dummyCAHash,
+								Token:        "abcdef.0123456789abcdef",
 							},
 						},
 					},
@@ -729,7 +738,7 @@ func TestKubeadmConfigReconciler_Reconcile_DisocveryReconcileBehaviors(t *testin
 
 	for _, tc := range testcases {
 		t.Run(tc.name, func(t *testing.T) {
-			err := k.reconcileDiscovery(tc.cluster, tc.config)
+			err := k.reconcileDiscovery(tc.cluster, tc.config, internalcluster.Certificates{})
 			if err != nil {
 				t.Errorf("expected nil, got error %v", err)
 			}
@@ -758,7 +767,13 @@ func TestKubeadmConfigReconciler_Reconcile_DisocveryReconcileFailureBehaviors(t 
 			cluster: &clusterv1.Cluster{}, // cluster without endpoints
 			config: &bootstrapv1.KubeadmConfig{
 				Spec: bootstrapv1.KubeadmConfigSpec{
-					JoinConfiguration: &kubeadmv1beta1.JoinConfiguration{},
+					JoinConfiguration: &kubeadmv1beta1.JoinConfiguration{
+						Discovery: kubeadmv1beta1.Discovery{
+							BootstrapToken: &kubeadmv1beta1.BootstrapTokenDiscovery{
+								CACertHashes: []string{"item"},
+							},
+						},
+					},
 				},
 			},
 		},
@@ -766,7 +781,7 @@ func TestKubeadmConfigReconciler_Reconcile_DisocveryReconcileFailureBehaviors(t 
 
 	for _, tc := range testcases {
 		t.Run(tc.name, func(t *testing.T) {
-			err := k.reconcileDiscovery(tc.cluster, tc.config)
+			err := k.reconcileDiscovery(tc.cluster, tc.config, internalcluster.Certificates{})
 			if err == nil {
 				t.Error("expected error, got nil")
 			}
@@ -1270,7 +1285,7 @@ func createSecrets(t *testing.T, cluster *clusterv1.Cluster, owner *bootstrapv1.
 	if owner.Spec.ClusterConfiguration == nil {
 		owner.Spec.ClusterConfiguration = &kubeadmv1beta1.ClusterConfiguration{}
 	}
-	certificates := internalcluster.NewCertificatesForControlPlane(owner.Spec.ClusterConfiguration)
+	certificates := internalcluster.NewCertificatesForInitialControlPlane(owner.Spec.ClusterConfiguration)
 	if err := certificates.Generate(); err != nil {
 		t.Fatal(err)
 	}

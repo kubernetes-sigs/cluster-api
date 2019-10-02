@@ -24,7 +24,7 @@ import (
 
 func TestNewCertificatesForControlPlane_Stacked(t *testing.T) {
 	config := &v1beta1.ClusterConfiguration{}
-	certs := NewCertificatesForControlPlane(config)
+	certs := NewCertificatesForInitialControlPlane(config)
 	if certs.GetByPurpose(EtcdCA).KeyFile == "" {
 		t.Fatal("stacked control planes must define etcd CA key file")
 	}
@@ -37,7 +37,7 @@ func TestNewCertificatesForControlPlane_External(t *testing.T) {
 		},
 	}
 
-	certs := NewCertificatesForControlPlane(config)
+	certs := NewCertificatesForInitialControlPlane(config)
 	if certs.GetByPurpose(EtcdCA).KeyFile != "" {
 		t.Fatal("control planes with external etcd must *not* define the etcd key file")
 	}

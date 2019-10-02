@@ -74,8 +74,8 @@ var (
 // Certificates are the certificates necessary to bootstrap a cluster.
 type Certificates []*Certificate
 
-// NewCertificatesForControlPlane returns a list of certificates configured for a control plane node
-func NewCertificatesForControlPlane(config *v1beta1.ClusterConfiguration) Certificates {
+// NewCertificatesForInitialControlPlane returns a list of certificates configured for a control plane node
+func NewCertificatesForInitialControlPlane(config *v1beta1.ClusterConfiguration) Certificates {
 	if config.CertificatesDir == "" {
 		config.CertificatesDir = defaultCertificatesDir
 	}
@@ -120,6 +120,32 @@ func NewCertificatesForControlPlane(config *v1beta1.ClusterConfiguration) Certif
 
 	certificates = append(certificates, etcdCert)
 	return certificates
+}
+
+// NewCertificatesForJoiningControlPlane gets any certs that exist and writes them to disk
+func NewCertificatesForJoiningControlPlane() Certificates {
+	return Certificates{
+		&Certificate{
+			Purpose:  secret.ClusterCA,
+			CertFile: filepath.Join(defaultCertificatesDir, "ca.crt"),
+			KeyFile:  filepath.Join(defaultCertificatesDir, "ca.key"),
+		},
+		&Certificate{
+			Purpose:  ServiceAccount,
+			CertFile: filepath.Join(defaultCertificatesDir, "sa.pub"),
+			KeyFile:  filepath.Join(defaultCertificatesDir, "sa.key"),
+		},
+		&Certificate{
+			Purpose:  FrontProxyCA,
+			CertFile: filepath.Join(defaultCertificatesDir, "front-proxy-ca.crt"),
+			KeyFile:  filepath.Join(defaultCertificatesDir, "front-proxy-ca.key"),
+		},
+		&Certificate{
+			Purpose:  EtcdCA,
+			CertFile: filepath.Join(defaultCertificatesDir, "etcd", "ca.crt"),
+			KeyFile:  filepath.Join(defaultCertificatesDir, "etcd", "ca.key"),
+		},
+	}
 }
 
 // NewCertificatesForWorker return an initialized but empty set of CA certificates needed to bootstrap a cluster.

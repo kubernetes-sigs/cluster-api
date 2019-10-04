@@ -35,3 +35,6 @@ spec:
           requests:
             memory: 100Mi
       terminationGracePeriodSeconds: 10
+      tolerations:
+        - effect: NoSchedule
+          key: node-role.kubernetes.io/master

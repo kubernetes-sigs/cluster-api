@@ -102,6 +102,7 @@ func main() {
 		MetricsBindAddress: metricsAddr,
 		MapperProvider:     restmapper.NewCached,
 		LeaderElection:     enableLeaderElection,
+		LeaderElectionID:   "controller-leader-election-capi",
 		Namespace:          watchNamespace,
 		SyncPeriod:         &syncPeriod,
 	})

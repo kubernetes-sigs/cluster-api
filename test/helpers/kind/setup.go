@@ -133,9 +133,9 @@ func (c *Cluster) run(cmd *exec.Cmd) {
 		go captureOutput(&wg, outPipe, "stdout")
 	}
 
-	gomega.Expect(cmd.Start()).NotTo(gomega.HaveOccurred())
+	gomega.Expect(cmd.Start()).To(gomega.Succeed())
 	wg.Wait()
-	gomega.Expect(cmd.Wait()).NotTo(gomega.HaveOccurred())
+	gomega.Expect(cmd.Wait()).To(gomega.Succeed())
 }
 
 func captureOutput(wg *sync.WaitGroup, r io.Reader, label string) {

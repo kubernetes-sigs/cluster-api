@@ -57,7 +57,7 @@ build_containers() {
    export CONTROLLER_IMG="${CONTROLLER_REPO}"
    export EXAMPLE_PROVIDER_IMG="${EXAMPLE_PROVIDER_REPO}"
 
-   "${MAKE}" docker-build TAG="${VERSION}" ARCH="${GOARCH}"
+   "${MAKE}" docker-build TAG="${VERSION}" ARCH="${GOARCH}" PULL_POLICY=IfNotPresent
    "${MAKE}" docker-build-example-provider TAG="${VERSION}" ARCH="${GOARCH}"
 }
 

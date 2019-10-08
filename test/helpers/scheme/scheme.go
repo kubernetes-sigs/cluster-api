@@ -25,7 +25,7 @@ import (
 
 func SetupScheme() *runtime.Scheme {
 	scheme := runtime.NewScheme()
-	gomega.Expect(clientgoscheme.AddToScheme(scheme)).NotTo(gomega.HaveOccurred())
-	gomega.Expect(clusterv1.AddToScheme(scheme)).NotTo(gomega.HaveOccurred())
+	gomega.Expect(clientgoscheme.AddToScheme(scheme)).To(gomega.Succeed())
+	gomega.Expect(clusterv1.AddToScheme(scheme)).To(gomega.Succeed())
 	return scheme
 }

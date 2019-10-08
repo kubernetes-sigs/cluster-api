@@ -134,7 +134,7 @@ func deployCAPIComponents(kindCluster kind.Cluster) {
 
 	// write out the manifests
 	manifestFile := path.Join(suiteTmpDir, "cluster-api-components.yaml")
-	gomega.Expect(ioutil.WriteFile(manifestFile, capiManifests, 0644)).NotTo(gomega.HaveOccurred())
+	gomega.Expect(ioutil.WriteFile(manifestFile, capiManifests, 0644)).To(gomega.Succeed())
 
 	// apply generated manifests
 	applyManifests(kindCluster, &manifestFile)

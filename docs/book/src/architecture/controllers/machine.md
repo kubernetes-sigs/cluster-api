@@ -18,7 +18,12 @@ The Machine controller's main responsibilities are:
 
 Cluster associations are made via labels.
 
-A machine must have a label with a key of `cluster.x-k8s.io/cluster-name` and a value of the core Cluster's name.
+#### Expected labels
+
+| what | label | value | meaning |
+| --- | --- | --- | --- |
+| Machine | `cluster.x-k8s.io/cluster-name` | `<cluster-name>` | Identify a machine as belonging to a cluster with the name `<cluster-name>`|
+| Machine | `cluster.x-k8s.io/control-plane` | `true` | Identifies a machine as a control-plane node |
 
 ### Bootstrap provider
 

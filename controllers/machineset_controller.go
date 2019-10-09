@@ -100,7 +100,7 @@ func (r *MachineSetReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) 
 
 	// Ignore deleted MachineSets, this can happen when foregroundDeletion
 	// is enabled
-	if machineSet.DeletionTimestamp != nil {
+	if !machineSet.DeletionTimestamp.IsZero() {
 		return ctrl.Result{}, nil
 	}
 
@@ -184,7 +184,7 @@ func (r *MachineSetReconciler) reconcile(ctx context.Context, machineSet *cluste
 
 		// Attempt to adopt machine if it meets previous conditions and it has no controller references.
 		if metav1.GetControllerOf(machine) == nil {
-			if err := r.adoptOrphan(machineSet, machine); err != nil {
+			if err := r.adoptOrphan(ctx, machineSet, machine); err != nil {
 				klog.Warningf("Failed to adopt Machine %q into MachineSet %q: %v", machine.Name, machineSet.Name, err)
 				r.recorder.Eventf(machineSet, corev1.EventTypeWarning, "FailedAdopt", "Failed to adopt Machine %q: %v", machine.Name, err)
 				continue
@@ -394,11 +394,11 @@ func shouldExcludeMachine(machineSet *clusterv1.MachineSet, machine *clusterv1.M
 }
 
 // adoptOrphan sets the MachineSet as a controller OwnerReference to the Machine.
-func (r *MachineSetReconciler) adoptOrphan(machineSet *clusterv1.MachineSet, machine *clusterv1.Machine) error {
+func (r *MachineSetReconciler) adoptOrphan(ctx context.Context, machineSet *clusterv1.MachineSet, machine *clusterv1.Machine) error {
 	patch := client.MergeFrom(machine.DeepCopy())
 	newRef := *metav1.NewControllerRef(machineSet, machineSetKind)
 	machine.OwnerReferences = append(machine.OwnerReferences, newRef)
-	return r.Client.Patch(context.Background(), machine, patch)
+	return r.Client.Patch(ctx, machine, patch)
 }
 
 func (r *MachineSetReconciler) waitForMachineCreation(machineList []*clusterv1.Machine) error {

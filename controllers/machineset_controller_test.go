@@ -18,7 +18,6 @@ package controllers
 
 import (
 	"context"
-	"reflect"
 	"testing"
 	"time"
 
@@ -305,6 +304,60 @@ func TestMachineSetOwnerReference(t *testing.T) {
 	}
 }
 
+func TestMachineSetReconcile(t *testing.T) {
+	t.Run("ignore machine sets marked for deletion", func(t *testing.T) {
+		RegisterTestingT(t)
+		dt := metav1.Now()
+		ms := &clusterv1.MachineSet{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:              "machineset1",
+				Namespace:         "default",
+				DeletionTimestamp: &dt,
+			},
+		}
+		request := reconcile.Request{
+			NamespacedName: types.NamespacedName{
+				Name:      ms.Name,
+				Namespace: ms.Namespace,
+			},
+		}
+		clusterv1.AddToScheme(scheme.Scheme)
+		msr := &MachineSetReconciler{
+			Client:   fake.NewFakeClientWithScheme(scheme.Scheme, ms),
+			Log:      log.Log,
+			recorder: record.NewFakeRecorder(32),
+		}
+		result, err := msr.Reconcile(request)
+		Expect(err).To(BeNil())
+		Expect(result).To(Equal(reconcile.Result{}))
+	})
+
+	t.Run("records event if reconcile fails", func(t *testing.T) {
+		RegisterTestingT(t)
+		ms := &clusterv1.MachineSet{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      "machineset1",
+				Namespace: "default",
+			},
+		}
+		request := reconcile.Request{
+			NamespacedName: types.NamespacedName{
+				Name:      ms.Name,
+				Namespace: ms.Namespace,
+			},
+		}
+		clusterv1.AddToScheme(scheme.Scheme)
+		rec := record.NewFakeRecorder(32)
+		msr := &MachineSetReconciler{
+			Client:   fake.NewFakeClientWithScheme(scheme.Scheme, ms),
+			Log:      log.Log,
+			recorder: rec,
+		}
+		msr.Reconcile(request)
+		Eventually(rec.Events).Should(Receive())
+	})
+}
+
 func TestMachineSetToMachines(t *testing.T) {
 	machineSetList := &clusterv1.MachineSetList{
 		TypeMeta: metav1.TypeMeta{
@@ -329,9 +382,6 @@ func TestMachineSetToMachines(t *testing.T) {
 	}
 	controller := true
 	m := clusterv1.Machine{
-		TypeMeta: metav1.TypeMeta{
-			Kind: "Machine",
-		},
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "withOwnerRef",
 			Namespace: "test",
@@ -348,9 +398,6 @@ func TestMachineSetToMachines(t *testing.T) {
 		},
 	}
 	m2 := clusterv1.Machine{
-		TypeMeta: metav1.TypeMeta{
-			Kind: "Machine",
-		},
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "noOwnerRefNoLabels",
 			Namespace: "test",
@@ -360,9 +407,6 @@ func TestMachineSetToMachines(t *testing.T) {
 		},
 	}
 	m3 := clusterv1.Machine{
-		TypeMeta: metav1.TypeMeta{
-			Kind: "Machine",
-		},
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "withMatchingLabels",
 			Namespace: "test",
@@ -373,12 +417,12 @@ func TestMachineSetToMachines(t *testing.T) {
 		},
 	}
 	testsCases := []struct {
-		machine   clusterv1.Machine
+		name      string
 		mapObject handler.MapObject
 		expected  []reconcile.Request
 	}{
 		{
-			machine: m,
+			name: "should return empty request when controller is set",
 			mapObject: handler.MapObject{
 				Meta:   m.GetObjectMeta(),
 				Object: &m,
@@ -386,7 +430,7 @@ func TestMachineSetToMachines(t *testing.T) {
 			expected: []reconcile.Request{},
 		},
 		{
-			machine: m2,
+			name: "should return nil if machine has no owner reference",
 			mapObject: handler.MapObject{
 				Meta:   m2.GetObjectMeta(),
 				Object: &m2,
@@ -394,7 +438,7 @@ func TestMachineSetToMachines(t *testing.T) {
 			expected: nil,
 		},
 		{
-			machine: m3,
+			name: "should return request if machine set's labels matches machine's labels",
 			mapObject: handler.MapObject{
 				Meta:   m3.GetObjectMeta(),
 				Object: &m3,
@@ -412,14 +456,16 @@ func TestMachineSetToMachines(t *testing.T) {
 	}
 
 	for _, tc := range testsCases {
-		got := r.MachineToMachineSets(tc.mapObject)
-		if !reflect.DeepEqual(got, tc.expected) {
-			t.Errorf("Case %s. Got: %v, expected: %v", tc.machine.Name, got, tc.expected)
-		}
+		t.Run(tc.name, func(t *testing.T) {
+			RegisterTestingT(t)
+			got := r.MachineToMachineSets(tc.mapObject)
+			Expect(got).To(Equal(tc.expected))
+		})
 	}
 }
 
 func TestShouldExcludeMachine(t *testing.T) {
+	RegisterTestingT(t)
 	controller := true
 	testCases := []struct {
 		machineSet clusterv1.MachineSet
@@ -505,15 +551,13 @@ func TestShouldExcludeMachine(t *testing.T) {
 
 	for _, tc := range testCases {
 		got := shouldExcludeMachine(&tc.machineSet, &tc.machine)
-		if got != tc.expected {
-			t.Errorf("Case %s. Got: %v, expected: %v", tc.machine.Name, got, tc.expected)
-		}
+		Expect(got).To(Equal(tc.expected))
 	}
 }
 
 func TestAdoptOrphan(t *testing.T) {
 	RegisterTestingT(t)
-
+	ctx := context.Background()
 	m := clusterv1.Machine{
 		ObjectMeta: metav1.ObjectMeta{
 			Name: "orphanMachine",
@@ -553,17 +597,15 @@ func TestAdoptOrphan(t *testing.T) {
 		Log:    log.Log,
 	}
 	for _, tc := range testCases {
-		err := r.adoptOrphan(tc.machineSet.DeepCopy(), tc.machine.DeepCopy())
+		err := r.adoptOrphan(ctx, tc.machineSet.DeepCopy(), tc.machine.DeepCopy())
 		Expect(err).ToNot(HaveOccurred())
 
 		key := client.ObjectKey{Namespace: tc.machine.Namespace, Name: tc.machine.Name}
-		err = r.Client.Get(context.Background(), key, &tc.machine)
+		err = r.Client.Get(ctx, key, &tc.machine)
 		Expect(err).ToNot(HaveOccurred())
 
 		got := tc.machine.GetOwnerReferences()
-		if !reflect.DeepEqual(got, tc.expected) {
-			t.Errorf("Case %s. Got: %+v, expected: %+v", tc.machine.Name, got, tc.expected)
-		}
+		Expect(got).To(Equal(tc.expected))
 	}
 }
 
@@ -571,11 +613,13 @@ func TestHasMatchingLabels(t *testing.T) {
 	r := &MachineSetReconciler{}
 
 	testCases := []struct {
+		name       string
 		machineSet clusterv1.MachineSet
 		machine    clusterv1.Machine
 		expected   bool
 	}{
 		{
+			name: "machine set and machine have matching labels",
 			machineSet: clusterv1.MachineSet{
 				Spec: clusterv1.MachineSetSpec{
 					Selector: metav1.LabelSelector{
@@ -596,6 +640,7 @@ func TestHasMatchingLabels(t *testing.T) {
 			expected: true,
 		},
 		{
+			name: "machine set and machine do not have matching labels",
 			machineSet: clusterv1.MachineSet{
 				Spec: clusterv1.MachineSetSpec{
 					Selector: metav1.LabelSelector{
@@ -615,13 +660,54 @@ func TestHasMatchingLabels(t *testing.T) {
 			},
 			expected: false,
 		},
+		{
+			name: "machine set has empty selector",
+			machineSet: clusterv1.MachineSet{
+				Spec: clusterv1.MachineSetSpec{
+					Selector: metav1.LabelSelector{},
+				},
+			},
+			machine: clusterv1.Machine{
+				ObjectMeta: metav1.ObjectMeta{
+					Name: "doesNotMatter",
+				},
+			},
+			expected: false,
+		},
+		{
+			name: "machine set has bad selector",
+			machineSet: clusterv1.MachineSet{
+				Spec: clusterv1.MachineSetSpec{
+					Selector: metav1.LabelSelector{
+						MatchLabels: map[string]string{
+							"foo": "bar",
+						},
+						MatchExpressions: []metav1.LabelSelectorRequirement{
+							{
+								Operator: "bad-operator",
+							},
+						},
+					},
+				},
+			},
+			machine: clusterv1.Machine{
+				ObjectMeta: metav1.ObjectMeta{
+					Name: "match",
+					Labels: map[string]string{
+						"foo": "bar",
+					},
+				},
+			},
+			expected: false,
+		},
 	}
 
 	for _, tc := range testCases {
-		got := r.hasMatchingLabels(&tc.machineSet, &tc.machine)
-		if tc.expected != got {
-			t.Errorf("Case %s. Got: %v, expected %v", tc.machine.Name, got, tc.expected)
-		}
+		t.Run(tc.name, func(t *testing.T) {
+			RegisterTestingT(t)
+			got := r.hasMatchingLabels(&tc.machineSet, &tc.machine)
+			Expect(got).To(Equal(tc.expected))
+		})
 	}
 }
 

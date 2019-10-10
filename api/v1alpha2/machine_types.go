@@ -31,6 +31,9 @@ const (
 
 	// MachineControlPlaneLabelName is the label set on machines part of a control plane.
 	MachineControlPlaneLabelName = "cluster.x-k8s.io/control-plane"
+
+	// ExcludeNodeDrainingAnnotation annotation explicitly skips node draining if set
+	ExcludeNodeDrainingAnnotation = "machine.cluster.x-k8s.io.io/exclude-node-draining"
 )
 
 // ANCHOR: MachineSpec

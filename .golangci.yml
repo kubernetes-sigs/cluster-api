@@ -21,3 +21,5 @@ run:
   deadline: 2m
   skip-files:
     - "zz_generated.*\\.go$"
+  skip-dirs:
+    - external-libs

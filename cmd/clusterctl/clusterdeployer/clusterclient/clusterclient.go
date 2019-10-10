@@ -237,7 +237,7 @@ func NewFromDefaultSearchPath(kubeconfigFile string, overrides tcmd.ConfigOverri
 	if err := util.PollImmediate(retryAcquireClient, timeoutAcquireClient, func() (_ bool, err error) {
 		c, err = clientcmd.NewControllerRuntimeClient(kubeconfigFile, overrides)
 		if err != nil {
-			if strings.Contains(err.Error(), io.EOF.Error()) || strings.Contains(err.Error(), "refused") || strings.Contains(err.Error(), "no such host") {
+			if strings.Contains(err.Error(), io.EOF.Error()) || strings.Contains(err.Error(), "refused") || strings.Contains(err.Error(), "no such host") || strings.Contains(err.Error(), "i/o timeout") {
 				// Connection was refused, probably because the API server is not ready yet.
 				klog.V(2).Infof("Waiting to acquire client... server not yet available: %v", err)
 				return false, nil

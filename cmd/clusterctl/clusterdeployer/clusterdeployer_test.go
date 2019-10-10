@@ -557,6 +557,10 @@ func (c *testClusterClient) GetMachinesForMachineSet(ms *clusterv1.MachineSet) (
 	return results, nil
 }
 
+func (c *testClusterClient) WaitForCertManagerReady() error {
+	return nil
+}
+
 func (c *testClusterClient) WaitForResourceStatuses() error {
 	return nil
 }

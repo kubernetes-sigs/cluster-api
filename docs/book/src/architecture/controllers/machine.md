@@ -1,5 +1,7 @@
 # Machine  Controller
 
+![](../../images/cluster-admission-machine-controller.svg)
+
 The Machine controller's main responsibilities are:
 
 * Setting an OwnerReference on:
@@ -9,6 +11,7 @@ The Machine controller's main responsibilities are:
 * Copy data from `BootstrapConfig.Status.BootstrapData` to `Machine.Spec.Bootstrap.Data` if
 `Machine.Spec.Bootstrap.Data` is empty.
 * Setting NodeRefs to be able to associate machines and kubernetes nodes.
+* Deleting Nodes in the target cluster when the associated machine is deleted.
 * Cleanup of related objects.
 * Keeping the Machine's Status object up to date with the InfrastructureMachine's Status object.
 
@@ -95,3 +98,5 @@ The Machine controller will create a secret or use an existing secret in the fol
 | secret name | field name | content |
 |:---:|:---:|---|
 |`<cluster-name>-kubeconfig`|`value`|base64 encoded kubeconfig that is authenticated with the child cluster|
+
+

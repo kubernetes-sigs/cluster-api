@@ -26,6 +26,31 @@ A temporary cluster that is used to provision a Target Management cluster.
 # C
 ---
 
+### CAPI
+Core Cluster API
+
+### CAPA
+Cluster API Provider AWS
+
+### CABPK
+Cluster API Bootstrap Provider Kubeadm
+
+### CAPD
+Cluster API Provider Docker
+
+### CAPG
+Cluster API Google Cloud Provider
+
+### CAPO
+Cluster API Provider OpenStack
+
+### CAPV
+Cluster API Provider vSphere
+
+### CAPZ
+Cluster API Provider Azure
+
+
 ### Cluster
 
 A full Kubernetes deployment. See Management Cluster and Workload Cluster
@@ -169,6 +194,4 @@ When running `clusterctl alpha phases pivot` this refers to the cluster that wil
 # W
 ---
 
-### Workload cluster
 
-A cluster whose lifecycle is managed by the Management cluster.

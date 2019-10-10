@@ -12,73 +12,11 @@ In this tutorial we'll cover the basics of how to use Cluster API to create one 
   export KUBECONFIG="$(kind get kubeconfig-path --name="clusterapi")"
   ```
 
-## Installation
 
-Using [kubectl], let's create the components on the [management cluster]:
+{{#include ../tasks/installation.md}}
 
-#### Install Cluster API Components
-
-```bash
-kubectl create -f {{#releaselink gomodule:"sigs.k8s.io/cluster-api" asset:"cluster-api-components.yaml" version:"0.2.x"}}
-```
-
-#### Install the Bootstrap Provider Components
-
-{{#tabs name:"tab-installation-bootstrap" tabs:"Kubeadm"}}
-{{#tab Kubeadm}}
-
-Check the [Kubeadm provider releases](https://github.com/kubernetes-sigs/cluster-api-bootstrap-provider-kubeadm/releases) for an up-to-date components file.
-
-```bash
-kubectl create -f {{#releaselink gomodule:"sigs.k8s.io/cluster-api-bootstrap-provider-kubeadm" asset:"bootstrap-components.yaml" version:"0.1.x"}}
-```
-
-{{#/tab }}
-{{#/tabs }}
-
-
-#### Install Infrastructure Provider Components
-
-{{#tabs name:"tab-installation-infrastructure" tabs:"AWS,vSphere"}}
-{{#tab AWS}}
-
-{{#embed-github repo:"kubernetes-sigs/cluster-api-provider-aws" path:"docs/prerequisites.md"}}
-
-##### Create the components
-
-Check the [AWS provider releases] for an up-to-date components file.
-
-```bash
-# Create the base64 encoded credentials using clusterawsadm.
-# This command uses your environment variables and encodes
-# them in a value to be stored in a Kubernetes Secret.
-export AWS_B64ENCODED_CREDENTIALS=$(clusterawsadm alpha bootstrap encode-aws-credentials)
-
-# Create the components.
-curl -L {{#releaselink gomodule:"sigs.k8s.io/cluster-api-provider-aws" asset:"infrastructure-components.yaml" version:"0.4.x"}} \
-  | envsubst \
-  | kubectl create -f -
-```
-
-{{#/tab }}
-{{#tab vSphere}}
-
-Check the [vSphere provider releases](https://github.com/kubernetes-sigs/cluster-api-provider-vsphere/releases) for an up-to-date components file.
-
-For more information about prerequisites, credentials management, or permissions for vSphere, visit the [getting started guide](https://github.com/kubernetes-sigs/cluster-api-provider-vsphere/blob/master/docs/getting_started.md).
-
-```bash
-kubectl create -f {{#releaselink gomodule:"sigs.k8s.io/cluster-api-provider-vsphere" asset:"infrastructure-components.yaml" version:"0.5.x"}}
-```
-
-{{#/tab }}
-{{#/tabs }}
 
 ## Usage
-
-The Cluster API resources are now installed.
-
-![](../images/management-cluster.svg)
 
 Now that we've got Cluster API, Bootstrap and Infrastructure resources installed,
 let's proceed to create a single node cluster.

@@ -1,5 +1,7 @@
 # Cluster Controller
 
+![](../../images/cluster-admission-cluster-controller.svg)
+
 The Cluster controller's main responsibilities are:
 
 * Setting an OwnerReference on the infrastructure object referenced in `Cluster.Spec.InfrastructureRef`.
@@ -67,3 +69,4 @@ formatted as described below.
 | Secret name | Field name | Content |
 |:---:|:---:|:---:|
 |`<cluster-name>-kubeconfig`|`value`|base64 encoded kubeconfig|
+

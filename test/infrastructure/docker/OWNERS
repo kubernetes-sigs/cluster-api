@@ -4,8 +4,7 @@ approvers:
   - sig-cluster-lifecycle-leads
   - cluster-api-admins
   - cluster-api-maintainers
-  - cluster-api-provider-docker-admins
+  - cluster-api-provider-docker-maintainers
 
 reviewers:
   - cluster-api-maintainers
-  - cluster-api-provider-docker-maintainers

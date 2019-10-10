@@ -1,0 +1,37 @@
+@startuml cluster-admission-machine-controller
+
+start;
+:Machine controller;
+
+repeat
+  :Machine controller enqueues a Create call;
+  if (Cluster has ready annotation) then (yes)
+    if (Machine has control plane role) then (yes)
+      #LightBlue:Join as control plane member;
+    else (no)
+      #LightBlue:Join as worker node;
+    endif
+  else (no)
+    if (Machine has control plane role) then (yes)
+      #LightBlue:Create control plane config map;
+      if (Control plane config map already exists) then (yes)
+        #Pink:Return RequeueError;
+      else (no)
+        #LightBlue:Init control plane;
+        #LightBlue:Set ready status on Machine annotation;
+        #LightBlue:Patch Machine back to API server;
+      endif
+    else (no)
+      #Pink:Return RequeueError;
+    endif
+  endif
+repeat while (Create returned RequeueError) is (yes)
+-> no;
+if (Create returned error) then (yes)
+  #Pink:Error creating machine;
+else (no)
+  #LightBlue:Machine has initialized or joined the cluster;
+endif
+stop;
+
+@enduml

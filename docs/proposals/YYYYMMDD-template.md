@@ -1,36 +1,5 @@
 ---
 title: proposal Template
-<!-- START doctoc generated TOC please keep comment here to allow auto update -->
-<!-- DON'T EDIT THIS SECTION, INSTEAD RE-RUN doctoc TO UPDATE -->
-
-
-- [Title](#title)
-  - [Table of Contents](#table-of-contents)
-  - [Summary](#summary)
-  - [Motivation](#motivation)
-    - [Goals](#goals)
-    - [Non-Goals](#non-goals)
-  - [Proposal](#proposal)
-    - [User Stories [optional]](#user-stories-optional)
-      - [Story 1](#story-1)
-      - [Story 2](#story-2)
-    - [Implementation Details/Notes/Constraints [optional]](#implementation-detailsnotesconstraints-optional)
-    - [Risks and Mitigations](#risks-and-mitigations)
-  - [Design Details](#design-details)
-    - [Test Plan](#test-plan)
-    - [Graduation Criteria](#graduation-criteria)
-      - [Examples](#examples)
-        - [Alpha -> Beta Graduation](#alpha---beta-graduation)
-        - [Beta -> GA Graduation](#beta---ga-graduation)
-        - [Removing a deprecated flag](#removing-a-deprecated-flag)
-    - [Upgrade / Downgrade Strategy](#upgrade--downgrade-strategy)
-    - [Version Skew Strategy](#version-skew-strategy)
-  - [Implementation History](#implementation-history)
-  - [Drawbacks [optional]](#drawbacks-optional)
-  - [Alternatives [optional]](#alternatives-optional)
-
-<!-- END doctoc generated TOC please keep comment here to allow auto update -->
-
 authors:
   - "@janedoe"
 reviewers:
@@ -48,22 +17,15 @@ superseded-by:
 ---
 
 # Title
+- Keep it simple and descriptive.
+- A good title can help communicate what the proposal is and should be considered as part of any review.
 
-This is the title of the proposal.
-Keep it simple and descriptive.
-A good title can help communicate what the proposal is and should be considered as part of any review.
-
-The title should be lowercased and spaces/punctuation should be replaced with `-`.
-
+<!-- BEGIN Remove before PR -->
 To get started with this template:
 1. **Make a copy of this template.**
   Copy this template into `docs/enhacements` and name it `YYYYMMDD-my-title.md`, where `YYYYMMDD` is the date the proposal was first drafted.
-1. **Fill out the Summary and Motivation sections.**
+1. **Fill out the required sections.**
 1. **Create a PR.**
-1. **Merge early.**
-  Avoid getting hung up on specific details and instead aim to get the goal of the proposal merged quickly.
-  The best way to do this is to just start with the Summary and Motivation sections and fill out details incrementally in follow on PRs.
-  View anything marked as a `provisional` as a working document and subject to change.
   Aim for single topic PRs to keep discussions focused.
   If you disagree with what is already in a document, open a new PR with suggested changes.
 
@@ -73,10 +35,13 @@ The `Metadata` section above is intended to support the creation of tooling arou
 This will be a YAML section that is fenced as a code block.
 See the proposal process for details on each of these items.
 
+<!-- END Remove before PR -->
+
 ## Table of Contents
 
-A table of contents is helpful for quickly jumping to sections of a proposal and for highlighting any additional information provided beyond the standard proposal template.
-[Tools for generating][] a table of contents from markdown are available.
+A table of contents is helpful for quickly jumping to sections of a proposal and for highlighting
+any additional information provided beyond the standard proposal template.
+[Tools for generating](https://github.com/ekalinin/github-markdown-toc) a table of contents from markdown are available.
 
 - [Title](#title)
   - [Table of Contents](#table-of-contents)
@@ -104,7 +69,11 @@ A table of contents is helpful for quickly jumping to sections of a proposal and
   - [Alternatives [optional]](#alternatives-optional)
   - [Infrastructure Needed [optional]](#infrastructure-needed-optional)
 
-[Tools for generating]: https://github.com/ekalinin/github-markdown-toc
+## Glossary
+
+Refer to the [Cluster API Book Glossary](https://cluster-api.sigs.k8s.io/reference/glossary.html).
+
+If this proposal adds new terms, or defines some, make the changes to the book's glossary when in PR stage.
 
 ## Summary
 
@@ -116,56 +85,72 @@ A good summary is probably at least a paragraph in length.
 ## Motivation
 
 This section is for explicitly listing the motivation, goals and non-goals of this proposal.
-Describe why the change is important and the benefits to users.
-The motivation section can optionally provide links to [experience reports][] to demonstrate the interest in a proposal within the wider Kubernetes community.
 
-[experience reports]: https://github.com/golang/go/wiki/ExperienceReports
+- Describe why the change is important and the benefits to users.
+- The motivation section can optionally provide links to [experience reports](https://github.com/golang/go/wiki/ExperienceReports)
+to demonstrate the interest in a proposal within the wider Kubernetes community.
 
 ### Goals
 
-List the specific goals of the proposal.
-How will we know that this has succeeded?
+- List the specific goals of the proposal.
+- How will we know that this has succeeded?
 
-### Non-Goals
+### Non-Goals/Future Work
 
-What is out of scope for this proposal?
-Listing non-goals helps to focus discussion and make progress.
+- What is out of scope for this proposal?
+- Listing non-goals helps to focus discussion and make progress.
 
 ## Proposal
 
 This is where we get down to the nitty gritty of what the proposal actually is.
 
-### User Stories [optional]
+- What is the plan for implementing this feature?
+- What data model changes, additions, or removals are required?
+- Provide a scenario, or example.
+- Use diagrams to communicate concepts, flows of execution, and states.
 
-Detail the things that people will be able to do if this proposal is implemented.
-Include as much detail as possible so that people can understand the "how" of the system.
-The goal here is to make this feel real for users without getting bogged down.
+[PlantUML](http://plantuml.com) is the preferred tool to generate diagrams,
+place your `.plantuml` files under `images/` and run `make diagrams` from the docs folder.
+
+### User Stories
+
+- Detail the things that people will be able to do if this proposal is implemented.
+- Include as much detail as possible so that people can understand the "how" of the system.
+- The goal here is to make this feel real for users without getting bogged down.
 
 #### Story 1
 
 #### Story 2
 
-### Implementation Details/Notes/Constraints [optional]
+### Implementation Details/Notes/Constraints
 
-What are the caveats to the implementation?
-What are some important details that didn't come across above.
-Go in to as much detail as necessary here.
-This might be a good place to talk about core concepts and how they releate.
+- What are some important details that didn't come across above.
+- What are the caveats to the implementation?
+- Go in to as much detail as necessary here.
+- Talk about core concepts and how they releate.
 
 ### Risks and Mitigations
 
-What are the risks of this proposal and how do we mitigate.
-Think broadly.
-For example, consider both security and how this will impact the larger kubernetes ecosystem.
+- What are the risks of this proposal and how do we mitigate? Think broadly.
+- How will UX be reviewed and by whom?
+- How will security be reviewed and by whom?
+- Consider including folks that also work outside the SIG or subproject.
 
-How will security be reviewed and by whom?
-How will UX be reviewed and by whom?
+## Alternatives
 
-Consider including folks that also work outside the SIG or subproject.
+The `Alternatives` section is used to highlight and record other possible approaches to delivering the value proposed by a proposal.
 
-## Design Details
+## Upgrade Strategy
 
-### Test Plan
+If applicable, how will the component be upgraded? Make sure this is in the test plan.
+
+Consider the following in developing an upgrade strategy for this enhancement:
+- What changes (in invocations, configurations, API use, etc.) is an existing cluster required to make on upgrade in order to keep previous behavior?
+- What changes (in invocations, configurations, API use, etc.) is an existing cluster required to make on upgrade in order to make use of the enhancement?
+
+## Additional Details
+
+### Test Plan [optional]
 
 **Note:** *Section not required until targeted at a release.*
 
@@ -181,7 +166,7 @@ Please adhere to the [Kubernetes testing guidelines][testing-guidelines] when dr
 
 [testing-guidelines]: https://git.k8s.io/community/contributors/devel/sig-testing/testing.md
 
-### Graduation Criteria
+### Graduation Criteria [optional]
 
 **Note:** *Section not required until targeted at a release.*
 
@@ -202,45 +187,7 @@ In general, we try to use the same stages (alpha, beta, GA), regardless how the 
 [maturity-levels]: https://git.k8s.io/community/contributors/devel/sig-architecture/api_changes.md#alpha-beta-and-stable-versions
 [deprecation-policy]: https://kubernetes.io/docs/reference/using-api/deprecation-policy/
 
-#### Examples
-
-These are generalized examples to consider, in addition to the aforementioned [maturity levels][maturity-levels].
-
-##### Alpha -> Beta Graduation
-
-- Gather feedback from developers and surveys
-- Complete features A, B, C
-- Tests are in Testgrid and linked in proposal
-
-##### Beta -> GA Graduation
-
-- N examples of real world usage
-- N installs
-- More rigorous forms of testing e.g., downgrade tests and scalability tests
-- Allowing time for feedback
-
-**Note:** Generally we also wait at least 2 releases between beta and GA/stable, since there's no opportunity for user feedback, or even bug reports, in back-to-back releases.
-
-##### Removing a deprecated flag
-
-- Announce deprecation and support policy of the existing flag
-- Two versions passed since introducing the functionality which deprecates the flag (to address version skew)
-- Address feedback on usage/changed behavior, provided on GitHub issues
-- Deprecate the flag
-
-**For non-optional features moving to GA, the graduation criteria must include [conformance tests].**
-
-[conformance tests]: https://github.com/kubernetes/community/blob/master/contributors/devel/conformance-tests.md
-
-### Upgrade / Downgrade Strategy
-
-If applicable, how will the component be upgraded and downgraded? Make sure this is in the test plan.
-
-Consider the following in developing an upgrade/downgrade strategy for this enhancement:
-- What changes (in invocations, configurations, API use, etc.) is an existing cluster required to make on upgrade in order to keep previous behavior?
-- What changes (in invocations, configurations, API use, etc.) is an existing cluster required to make on upgrade in order to make use of the enhancement?
-
-### Version Skew Strategy
+### Version Skew Strategy [optional]
 
 If applicable, how will the component handle version skew with other components? What are the guarantees? Make sure
 this is in the test plan.
@@ -251,20 +198,11 @@ Consider the following in developing a version skew strategy for this enhancemen
 
 ## Implementation History
 
-Major milestones in the life cycle of a proposal should be tracked in `Implementation History`.
-Major milestones might include
+- [ ] MM/DD/YYYY: Proposed idea in an issue or [community meeting]
+- [ ] MM/DD/YYYY: Compile a Google Doc following the CAEP template (link here)
+- [ ] MM/DD/YYYY: First round of feedback from community
+- [ ] MM/DD/YYYY: Present proposal at a [community meeting]
+- [ ] MM/DD/YYYY: Open proposal PR
 
-- the `Summary` and `Motivation` sections being merged signaling acceptance
-- the `Proposal` section being merged signaling agreement on a proposed design
-- the date implementation started
-- the first Kubernetes release where an initial version of the proposal was available
-- the version of Kubernetes where the proposal graduated to general availability
-- when the proposal was retired or superseded
-
-## Drawbacks [optional]
-
-Why should this proposal _not_ be implemented.
-
-## Alternatives [optional]
-
-Similar to the `Drawbacks` section the `Alternatives` section is used to highlight and record other possible approaches to delivering the value proposed by a proposal.
+<!-- Links -->
+[community meeting]: https://docs.google.com/document/d/1Ys-DOR5UsgbMEeciuG0HOgDQc8kZsaWIWJeKJ1-UfbY

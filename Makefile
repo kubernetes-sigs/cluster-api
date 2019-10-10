@@ -246,7 +246,7 @@ release-binary: $(RELEASE_DIR)
 release-staging: ## Builds and push container images to the staging bucket.
 	REGISTRY=$(STAGING_REGISTRY) $(MAKE) docker-build-all docker-push-all release-alias-tag
 
-RELEASE_ALIAS_TAG=$(shell if [ "$(PULL_BASE_REF)" = "master" ]; then echo "latest"; else echo "$(PULL_BASE_REF)"; fi)
+RELEASE_ALIAS_TAG=$(PULL_BASE_REF)
 
 .PHONY: release-alias-tag
 release-alias-tag: # Adds the tag to the last build tag.

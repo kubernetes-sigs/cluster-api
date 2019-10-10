@@ -22,4 +22,4 @@ run:
   skip-files:
     - "zz_generated.*\\.go$"
   skip-dirs:
-    - external-libs
+    - third_party

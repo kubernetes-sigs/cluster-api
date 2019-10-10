@@ -37,7 +37,7 @@ import (
 	"sigs.k8s.io/cluster-api/controllers/external"
 	"sigs.k8s.io/cluster-api/controllers/remote"
 	capierrors "sigs.k8s.io/cluster-api/errors"
-	kubedrain "sigs.k8s.io/cluster-api/external-libs/kubernetes-drain"
+	kubedrain "sigs.k8s.io/cluster-api/third_party/kubernetes-drain"
 	"sigs.k8s.io/cluster-api/util"
 	"sigs.k8s.io/cluster-api/util/patch"
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -193,12 +193,12 @@ func (r *MachineReconciler) reconcileDelete(ctx context.Context, cluster *cluste
 		if _, exists := m.ObjectMeta.Annotations[clusterv1.ExcludeNodeDrainingAnnotation]; !exists {
 			klog.Infof("Draining node %q for machine %q", m.Status.NodeRef.Name, m.Name)
 			if err := r.drainNode(ctx, cluster, m.Status.NodeRef.Name, m.Name); err != nil {
-				r.recorder.Eventf(m, corev1.EventTypeWarning, "FailedDrainNode", "error draining Machine's node: %v", err)
+				r.recorder.Eventf(m, corev1.EventTypeWarning, "FailedDrainNode", "error draining Machine's node %q: %v", m.Status.NodeRef.Name, err)
 				return ctrl.Result{}, err
 			}
-			r.recorder.Eventf(m, corev1.EventTypeNormal, "SuccessfulDrainNode", "success draining Machine %q node %q", m.Name, m.Status.NodeRef.Name)
+			r.recorder.Eventf(m, corev1.EventTypeNormal, "SuccessfulDrainNode", "success draining Machine's node %q", m.Status.NodeRef.Name)
 		}
-		klog.Infof("Deleting node %q for machine %q", m.Status.NodeRef.Name, m.Name)
+		klog.Infof("Deleting node %q for Machine %s/%s", m.Status.NodeRef.Name, m.Namespace, m.Name)
 
 		var deleteNodeErr error
 		waitErr := wait.PollImmediate(2*time.Second, 10*time.Second, func() (bool, error) {
@@ -268,15 +268,14 @@ func (r *MachineReconciler) drainNode(ctx context.Context, cluster *clusterv1.Cl
 		// Otherwise, proceed to get the remote cluster client and get the Node.
 		remoteClient, err := remote.NewClusterClient(r.Client, cluster)
 		if err != nil {
-			klog.Errorf("Error creating a remote client for cluster %q while deleting Machine %q, won't retry: %v",
-				cluster.Name, nodeName, err)
+			klog.Errorf("Error creating a remote client for Cluster %q while deleting Machine %s/%s, won't retry: %v",
+				cluster.Name, cluster.Namespace, machineName, err)
 			return nil
 		}
-		var err2 error
-		kubeClient, err2 = kubernetes.NewForConfig(remoteClient.RESTConfig())
-		if err2 != nil {
-			klog.Errorf("Error creating a remote client for cluster %q while deleting Machine %q, won't retry: %v",
-				cluster.Name, nodeName, err)
+		kubeClient, err = kubernetes.NewForConfig(remoteClient.RESTConfig())
+		if err != nil {
+			klog.Errorf("Error creating a remote client for Cluster %q while deleting Machine %s/%s, won't retry: %v",
+				cluster.Name, cluster.Namespace, machineName, err)
 			return nil
 		}
 	}
@@ -285,7 +284,8 @@ func (r *MachineReconciler) drainNode(ctx context.Context, cluster *clusterv1.Cl
 	if err != nil {
 		if apierrors.IsNotFound(err) {
 			// If an admin deletes the node directly, we'll end up here.
-			klog.Infof("Machine %v: Could not find node %v from noderef, it may have already been deleted: %v", machineName, nodeName, cluster.Name)
+			klog.Infof("Machine %s/%s: Could not find node %v from noderef, it may have already been deleted: %v",
+				cluster.Namespace, machineName, nodeName, err)
 			return nil
 		}
 		return errors.Errorf("unable to get node %q: %v", nodeName, err)
@@ -297,29 +297,34 @@ func (r *MachineReconciler) drainNode(ctx context.Context, cluster *clusterv1.Cl
 		IgnoreAllDaemonSets: true,
 		DeleteLocalData:     true,
 		GracePeriodSeconds:  -1,
-		// If a pod is not evicted in 20 second, retry the eviction next time the
-		// machine gets reconciled again (to allow other machines to be reconciled)
-		Timeout:               20 * time.Second,
-		OnPodDeletedOrEvicted: onPodDeletedOrEvicted,
-		Out:                   writer{klog.Info},
-		ErrOut:                writer{klog.Error},
-		DryRun:                false,
+		// If a pod is not evicted in 20 seconds, retry the eviction next time the
+		// machine gets reconciled again (to allow other machines to be reconciled).
+		Timeout: 20 * time.Second,
+		OnPodDeletedOrEvicted: func(pod *corev1.Pod, usingEviction bool) {
+			verbStr := "Deleted"
+			if usingEviction {
+				verbStr = "Evicted"
+			}
+			klog.Infof("Machine %s/%s: %s pod %s/%s from Node %q", cluster.Namespace, machineName, verbStr, pod.Namespace, pod.Name, nodeName)
+		},
+		Out:    writer{klog.Info},
+		ErrOut: writer{klog.Error},
+		DryRun: false,
 	}
 
 	if err := kubedrain.RunCordonOrUncordon(drainer, node, true); err != nil {
-		// Machine still tries to terminate after drain failure
-		klog.Errorf("%q: node cordon failed %q; %v", cluster.Name, nodeName, err)
+		// Machine will be re-reconciled after a cordon failure.
+		klog.Errorf("Machine %s/%s: Cordon failed for node %q: %v", cluster.Namespace, machineName, nodeName, err)
 		return errors.Errorf("unable to cordon node %s: %v", node.Name, err)
 	}
 
 	if err := kubedrain.RunNodeDrain(drainer, node.Name); err != nil {
-		// Machine still tries to terminate after drain failure
-		klog.Warningf("%q: drain failed for node %q; %v", cluster.Name, nodeName, err)
+		// Machine will be re-reconciled after a drain failure.
+		klog.Warningf("Machine %s/%s: Drain failed for node %q: %v", cluster.Namespace, machineName, nodeName, err)
 		return &capierrors.RequeueAfterError{RequeueAfter: 20 * time.Second}
 	}
 
-	klog.Infof("Drain successful for machine %q", cluster.Name)
-
+	klog.Infof("Drain successful for Machine %s/%s", cluster.Namespace, machineName)
 	return nil
 }
 
@@ -401,15 +406,4 @@ type writer struct {
 func (w writer) Write(p []byte) (n int, err error) {
 	w.logFunc(string(p))
 	return len(p), nil
-}
-
-// onPodDeletedOrEvicted is called by drain.Helper, when the pod has been deleted or evicted
-func onPodDeletedOrEvicted(pod *corev1.Pod, usingEviction bool) {
-	var verbStr string
-	if usingEviction {
-		verbStr = "evicted"
-	} else {
-		verbStr = "deleted"
-	}
-	klog.Infof("pod %s/%s %s\n", pod.Namespace, pod.Name, verbStr)
 }

@@ -178,15 +178,60 @@ type MachineDeploymentStatus struct {
 	// that still have not been created.
 	// +optional
 	UnavailableReplicas int32 `json:"unavailableReplicas,omitempty" protobuf:"varint,5,opt,name=unavailableReplicas"`
+
+	// Phase represents the current phase of a MachineDeployment (ScalingUp, ScalingDown, Running, Failed, or Unknown).
+	// +optional
+	Phase string `json:"phase,omitempty"`
 }
 
 // ANCHOR_END: MachineDeploymentStatus
+
+// MachineDeploymentPhase indicates the progress of the machine deployment
+type MachineDeploymentPhase string
+
+const (
+	// MachineDeploymentPhaseScalingUp indicates the MachineDeployment is scaling up.
+	MachineDeploymentPhaseScalingUp = MachineDeploymentPhase("ScalingUp")
+
+	// MachineDeploymentPhaseScalingDown indicates the MachineDeployment is scaling down.
+	MachineDeploymentPhaseScalingDown = MachineDeploymentPhase("ScalingDown")
+
+	// MachineDeploymentPhaseRunning indicates scaling has completed and all Machines are running.
+	MachineDeploymentPhaseRunning = MachineDeploymentPhase("Running")
+
+	// MachineDeploymentPhaseFailed indicates there was a problem scaling and user intervention might be required.
+	MachineDeploymentPhaseFailed = MachineDeploymentPhase("Failed")
+
+	// MachineDeploymentPhaseUnknown indicates the state of the MachineDeployment cannot be determined.
+	MachineDeploymentPhaseUnknown = MachineDeploymentPhase("Unknown")
+)
+
+// SetTypedPhase sets the Phase field to the string representation of MachineDeploymentPhase.
+func (md *MachineDeploymentStatus) SetTypedPhase(p MachineDeploymentPhase) {
+	md.Phase = string(p)
+}
+
+// GetTypedPhase attempts to parse the Phase field and return
+// the typed MachineDeploymentPhase representation.
+func (md *MachineDeploymentStatus) GetTypedPhase() MachineDeploymentPhase {
+	switch phase := MachineDeploymentPhase(md.Phase); phase {
+	case
+		MachineDeploymentPhaseScalingDown,
+		MachineDeploymentPhaseScalingUp,
+		MachineDeploymentPhaseRunning,
+		MachineDeploymentPhaseFailed:
+		return phase
+	default:
+		return MachineDeploymentPhaseUnknown
+	}
+}
 
 // +kubebuilder:object:root=true
 // +kubebuilder:resource:path=machinedeployments,shortName=md,scope=Namespaced,categories=cluster-api
 // +kubebuilder:storageversion
 // +kubebuilder:subresource:status
 // +kubebuilder:subresource:scale:specpath=.spec.replicas,statuspath=.status.replicas,selectorpath=.status.selector
+// +kubebuilder:printcolumn:name="Phase",type="string",JSONPath=".status.phase",description="MachineDeployment status such as ScalingUp/ScalingDown/Running/Failed/Unknown"
 
 // MachineDeployment is the Schema for the machinedeployments API
 type MachineDeployment struct {

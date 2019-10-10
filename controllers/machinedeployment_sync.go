@@ -369,6 +369,25 @@ func calculateStatus(allMSs []*clusterv1.MachineSet, newMS *clusterv1.MachineSet
 		UnavailableReplicas: unavailableReplicas,
 	}
 
+	if *deployment.Spec.Replicas == status.ReadyReplicas {
+		status.Phase = string(clusterv1.MachineDeploymentPhaseRunning)
+	}
+	if *deployment.Spec.Replicas > status.ReadyReplicas {
+		status.Phase = string(clusterv1.MachineDeploymentPhaseScalingUp)
+	}
+	// This is the same as unavailableReplicas, but we have to recalculate because unavailableReplicas
+	// would have been reset to zero above if it was negative
+	if totalReplicas-availableReplicas < 0 {
+		status.Phase = string(clusterv1.MachineDeploymentPhaseScalingDown)
+	}
+	for _, ms := range allMSs {
+		if ms != nil {
+			if ms.Status.ErrorReason != nil || ms.Status.ErrorMessage != nil {
+				status.Phase = string(clusterv1.MachineDeploymentPhaseFailed)
+				break
+			}
+		}
+	}
 	return status
 }
 

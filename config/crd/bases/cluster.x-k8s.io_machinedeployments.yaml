@@ -539,7 +539,12 @@ spec:
         type: object
     served: true
     storage: false
-  - name: v1alpha3
+  - additionalPrinterColumns:
+    - JSONPath: .status.phase
+      description: MachineDeployment status such as ScalingUp/ScalingDown/Running/Failed/Unknown
+      name: Phase
+      type: string
+    name: v1alpha3
     schema:
       openAPIV3Schema:
         description: MachineDeployment is the Schema for the machinedeployments API
@@ -932,6 +937,10 @@ spec:
                 description: The generation observed by the deployment controller.
                 format: int64
                 type: integer
+              phase:
+                description: Phase represents the current phase of a MachineDeployment
+                  (ScalingUp, ScalingDown, Running, Failed, or Unknown).
+                type: string
               readyReplicas:
                 description: Total number of ready machines targeted by this deployment.
                 format: int32

@@ -1,4 +1,4 @@
-module sigs.k8s.io/cluster-api-provider-docker/hack/tools
+module sigs.k8s.io/cluster-api/test/infrastructure/docker/hack/tools
 
 go 1.12
 

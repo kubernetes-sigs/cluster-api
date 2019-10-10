@@ -1,6 +1,6 @@
 version: "2"
 domain: cluster.x-k8s.io
-repo: sigs.k8s.io/cluster-api-provider-docker
+repo: sigs.k8s.io/cluster-api/test/infrastructure/docker
 resources:
 - group: infrastructure
   version: v1alpha2

@@ -1,4 +1,4 @@
-module sigs.k8s.io/cluster-api-provider-docker
+module sigs.k8s.io/cluster-api/test/infrastructure/docker
 
 go 1.12
 

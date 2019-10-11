@@ -135,7 +135,7 @@ generate-manifests: $(CONTROLLER_GEN) ## Generate manifests e.g. CRD, RBAC etc.
 	$(CONTROLLER_GEN) \
 		paths=./api/... \
 		paths=./controllers/... \
-		crd:trivialVersions=true \
+		crd \
 		rbac:roleName=manager-role \
 		output:crd:dir=./config/crd/bases
 	## Copy files in CI folders.

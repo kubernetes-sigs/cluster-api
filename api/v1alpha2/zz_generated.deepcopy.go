@@ -99,7 +99,7 @@ func (in *Cluster) DeepCopyObject() runtime.Object {
 func (in *ClusterList) DeepCopyInto(out *ClusterList) {
 	*out = *in
 	out.TypeMeta = in.TypeMeta
-	out.ListMeta = in.ListMeta
+	in.ListMeta.DeepCopyInto(&out.ListMeta)
 	if in.Items != nil {
 		in, out := &in.Items, &out.Items
 		*out = make([]Cluster, len(*in))
@@ -304,7 +304,7 @@ func (in *MachineDeployment) DeepCopyObject() runtime.Object {
 func (in *MachineDeploymentList) DeepCopyInto(out *MachineDeploymentList) {
 	*out = *in
 	out.TypeMeta = in.TypeMeta
-	out.ListMeta = in.ListMeta
+	in.ListMeta.DeepCopyInto(&out.ListMeta)
 	if in.Items != nil {
 		in, out := &in.Items, &out.Items
 		*out = make([]MachineDeployment, len(*in))
@@ -413,7 +413,7 @@ func (in *MachineDeploymentStrategy) DeepCopy() *MachineDeploymentStrategy {
 func (in *MachineList) DeepCopyInto(out *MachineList) {
 	*out = *in
 	out.TypeMeta = in.TypeMeta
-	out.ListMeta = in.ListMeta
+	in.ListMeta.DeepCopyInto(&out.ListMeta)
 	if in.Items != nil {
 		in, out := &in.Items, &out.Items
 		*out = make([]Machine, len(*in))
@@ -497,7 +497,7 @@ func (in *MachineSet) DeepCopyObject() runtime.Object {
 func (in *MachineSetList) DeepCopyInto(out *MachineSetList) {
 	*out = *in
 	out.TypeMeta = in.TypeMeta
-	out.ListMeta = in.ListMeta
+	in.ListMeta.DeepCopyInto(&out.ListMeta)
 	if in.Items != nil {
 		in, out := &in.Items, &out.Items
 		*out = make([]MachineSet, len(*in))

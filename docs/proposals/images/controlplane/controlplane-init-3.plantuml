@@ -1,0 +1,51 @@
+@startuml
+title User creates a Cluster with KubeadmControlPlane
+
+' -- GROUPS START ---
+
+box #lightgreen
+participant "API Server"
+end box
+
+box #violet
+participant "KubeadmControlPlane Controller"
+end box
+
+' -- GROUPS END ---
+
+note right of "KubeadmControlPlane Controller":Watches KubeadmControlPlanes,\nClusters, and owned Machines
+
+"API Server"-->>"KubeadmControlPlane Controller": Machine Updated
+
+"KubeadmControlPlane Controller"-> "KubeadmControlPlane Controller":Enqueues KubeadmControlPlane Reconcile
+
+"KubeadmControlPlane Controller"-> "KubeadmControlPlane Controller":KubeadmControlPlane Controller Reconcile
+activate "KubeadmControlPlane Controller"
+
+note over "KubeadmControlPlane Controller": - ✅ KubeadmControlPlane.OwnerReferences \ncontains a Cluster
+
+"KubeadmControlPlane Controller"->"API Server": Get Cluster
+"KubeadmControlPlane Controller"<<--"API Server": Response
+
+note over "KubeadmControlPlane Controller": - ✅ Cluster.Status.InfrastructureReady is true\n- ✅ KubeadmControlPlane instance is valid
+
+"KubeadmControlPlane Controller"->"API Server": Get Machines maching label selector
+"KubeadmControlPlane Controller"<<--"API Server": Response
+
+opt KubeadmControlPlane.Spec.Replicas >= 1, 1 or more existing Machines found that is "Ready"
+
+"KubeadmControlPlane Controller"-> "KubeadmControlPlane Controller":Set KubeadmControlPlane.Status.Initialized = true
+
+opt num Machines matches Replicas, and all Machines "Ready"
+
+"KubeadmControlPlane Controller"-> "KubeadmControlPlane Controller":Set KubeadmControlPlane.Status.Ready = true
+
+end
+
+end
+
+"KubeadmControlPlane Controller"->"API Server": Patch KubeadmControlPlane
+"KubeadmControlPlane Controller"<<--"API Server": Response
+
+hide footbox
+@enduml

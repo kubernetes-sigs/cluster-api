@@ -28,7 +28,9 @@ import (
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
+	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/kubernetes/scheme"
+	"k8s.io/client-go/tools/record"
 	"k8s.io/utils/pointer"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha3"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -180,6 +182,128 @@ var _ = Describe("MachineSet Reconciler", func() {
 		}, timeout).Should(BeEquivalentTo(replicas))
 	})
 })
+
+func TestMachineSetOwnerReference(t *testing.T) {
+	ml := &clusterv1.MachineList{}
+
+	clusterIncorrectMeta := &unstructured.Unstructured{
+		Object: map[string]interface{}{
+			"kind":       "my-kind",
+			"apiVersion": "my-api-version",
+			"metadata": map[string]interface{}{
+				"name":      "invalid-cluster",
+				"namespace": "default",
+			},
+		},
+	}
+
+	clusterCorrectMeta := &clusterv1.Cluster{
+		TypeMeta:   metav1.TypeMeta{Kind: "Cluster", APIVersion: clusterv1.GroupVersion.String()},
+		ObjectMeta: metav1.ObjectMeta{Namespace: "default", Name: "valid-cluster"},
+	}
+
+	ms1 := newMachineSet("machineset1", "valid-cluster")
+	ms2 := newMachineSet("machineset2", "invalid-cluster")
+	ms3 := newMachineSet("machineset3", "valid-cluster")
+	ms3.OwnerReferences = []metav1.OwnerReference{
+		{
+			APIVersion: clusterv1.GroupVersion.String(),
+			Kind:       "MachineDeployment",
+			Name:       "valid-machinedeployment",
+		},
+	}
+
+	testCases := []struct {
+		name               string
+		request            reconcile.Request
+		ms                 *clusterv1.MachineSet
+		expectReconcileErr bool
+		expectedOR         []metav1.OwnerReference
+	}{
+		{
+			name: "should add cluster owner reference to machine set",
+			request: reconcile.Request{
+				NamespacedName: types.NamespacedName{
+					Name:      ms1.Name,
+					Namespace: ms1.Namespace,
+				},
+			},
+			ms: ms1,
+			expectedOR: []metav1.OwnerReference{
+				{
+					APIVersion: clusterCorrectMeta.APIVersion,
+					Kind:       clusterCorrectMeta.Kind,
+					Name:       clusterCorrectMeta.Name,
+					UID:        clusterCorrectMeta.UID,
+				},
+			},
+		},
+		{
+			name: "should add not add cluster owner reference with incorrect meta",
+			request: reconcile.Request{
+				NamespacedName: types.NamespacedName{
+					Name:      ms2.Name,
+					Namespace: ms2.Namespace,
+				},
+			},
+			ms:                 ms2,
+			expectReconcileErr: true,
+		},
+		{
+			name: "should not add cluster owner reference if machine is owned by a machine deployment",
+			request: reconcile.Request{
+				NamespacedName: types.NamespacedName{
+					Name:      ms3.Name,
+					Namespace: ms3.Namespace,
+				},
+			},
+			ms: ms3,
+			expectedOR: []metav1.OwnerReference{
+				{
+					APIVersion: clusterv1.GroupVersion.String(),
+					Kind:       "MachineDeployment",
+					Name:       "valid-machinedeployment",
+				},
+			},
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			RegisterTestingT(t)
+			clusterv1.AddToScheme(scheme.Scheme)
+			msr := &MachineSetReconciler{
+				Client: fake.NewFakeClientWithScheme(
+					scheme.Scheme,
+					ml,
+					clusterCorrectMeta,
+					clusterIncorrectMeta,
+					ms1,
+					ms2,
+					ms3,
+				),
+				Log:      log.Log,
+				recorder: record.NewFakeRecorder(32),
+			}
+
+			_, err := msr.Reconcile(tc.request)
+			if tc.expectReconcileErr {
+				Expect(err).ToNot(BeNil())
+			} else {
+				Expect(err).To(BeNil())
+			}
+
+			key := client.ObjectKey{Namespace: tc.ms.Namespace, Name: tc.ms.Name}
+			var actual clusterv1.MachineSet
+			if len(tc.expectedOR) > 0 {
+				Expect(msr.Client.Get(ctx, key, &actual)).ToNot(HaveOccurred())
+				Expect(actual.OwnerReferences).To(Equal(tc.expectedOR))
+			} else {
+				Expect(actual.OwnerReferences).To(BeEmpty())
+			}
+		})
+	}
+}
 
 func TestMachineSetToMachines(t *testing.T) {
 	machineSetList := &clusterv1.MachineSetList{
@@ -498,5 +622,33 @@ func TestHasMatchingLabels(t *testing.T) {
 		if tc.expected != got {
 			t.Errorf("Case %s. Got: %v, expected %v", tc.machine.Name, got, tc.expected)
 		}
+	}
+}
+
+func newMachineSet(name, cluster string) *clusterv1.MachineSet {
+	var replicas int32
+	return &clusterv1.MachineSet{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      name,
+			Namespace: "default",
+			Labels: map[string]string{
+				clusterv1.MachineClusterLabelName: cluster,
+			},
+		},
+		Spec: clusterv1.MachineSetSpec{
+			Replicas: &replicas,
+			Template: clusterv1.MachineTemplateSpec{
+				ObjectMeta: clusterv1.ObjectMeta{
+					Labels: map[string]string{
+						clusterv1.MachineClusterLabelName: cluster,
+					},
+				},
+			},
+			Selector: metav1.LabelSelector{
+				MatchLabels: map[string]string{
+					clusterv1.MachineClusterLabelName: cluster,
+				},
+			},
+		},
 	}
 }

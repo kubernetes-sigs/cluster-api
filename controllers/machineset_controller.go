@@ -156,12 +156,22 @@ func (r *MachineSetReconciler) reconcile(ctx context.Context, machineSet *cluste
 	}
 
 	if cluster != nil && r.shouldAdopt(machineSet) {
+		patch := client.MergeFrom(machineSet.DeepCopy())
 		machineSet.OwnerReferences = util.EnsureOwnerRef(machineSet.OwnerReferences, metav1.OwnerReference{
 			APIVersion: cluster.APIVersion,
 			Kind:       cluster.Kind,
 			Name:       cluster.Name,
 			UID:        cluster.UID,
 		})
+		// Patch using a deep copy to avoid overwriting any unexpected Status changes from the returned result
+		if err := r.Client.Patch(ctx, machineSet.DeepCopy(), patch); err != nil {
+			return ctrl.Result{}, errors.Wrapf(
+				err,
+				"failed to add OwnerReference to MachineSet %s/%s",
+				machineSet.Namespace,
+				machineSet.Name,
+			)
+		}
 	}
 
 	// Filter out irrelevant machines (deleting/mismatch labels) and claim orphaned machines.

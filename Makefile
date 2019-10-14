@@ -225,6 +225,7 @@ release: clean-release ## Builds and push container images using the latest git 
 .PHONY: release-manifests
 release-manifests: $(RELEASE_DIR) ## Builds the manifests to publish with a release
 	kustomize build config/default > $(RELEASE_DIR)/cluster-api-components.yaml
+	cat config/certmanager/cert-manager.yaml >> $(RELEASE_DIR)/cluster-api-components.yaml
 
 release-binaries: ## Builds the binaries to publish with a release
 	RELEASE_BINARY=./cmd/clusterctl GOOS=linux GOARCH=amd64 $(MAKE) release-binary

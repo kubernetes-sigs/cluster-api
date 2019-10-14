@@ -107,6 +107,7 @@ type Client interface {
 	ScaleDeployment(namespace, name string, scale int32) error
 	WaitForClusterV1alpha2Ready() error
 	WaitForResourceStatuses() error
+	WaitForCertManagerReady() error
 	SetClusterOwnerRef(runtime.Object, *clusterv1.Cluster) error
 }
 
@@ -614,6 +615,22 @@ func (c *client) ForceDeleteMachineDeployment(namespace, name string) error {
 
 func (c *client) WaitForClusterV1alpha2Ready() error {
 	return waitForClusterResourceReady(c.clientSet)
+}
+
+func (c *client) WaitForCertManagerReady() error {
+	return util.PollImmediate(retryIntervalResourceReady, timeoutKubectlApply, func() (bool, error) {
+		pods := &corev1.PodList{}
+		if err := c.clientSet.List(ctx, pods, ctrlclient.ListOption(ctrlclient.InNamespace("cert-manager"))); err != nil {
+			klog.V(10).Infof("retrying: failed to list pods: %v", err)
+			return false, nil
+		}
+		for _, pod := range pods.Items {
+			if pod.Status.Phase != corev1.PodRunning {
+				return false, nil
+			}
+		}
+		return true, nil
+	})
 }
 
 func (c *client) WaitForResourceStatuses() error {

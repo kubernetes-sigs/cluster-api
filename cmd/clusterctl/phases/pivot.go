@@ -67,15 +67,34 @@ type targetClient interface {
 	GetMachineDeployment(namespace, name string) (*clusterv1.MachineDeployment, error)
 	GetMachineSet(string, string) (*clusterv1.MachineSet, error)
 	WaitForClusterV1alpha2Ready() error
+	WaitForCertManagerReady() error
 	SetClusterOwnerRef(runtime.Object, *clusterv1.Cluster) error
+}
+
+func deployProviderComponent(target targetClient, providerComponents string) error {
+	// deploy provider components, it'll also deploy cert-manager
+	// we're ignoring the errors, as components dependent on cert-manager will fail
+	target.Apply(providerComponents)
+
+	// wait for cert-manager pods to be ready
+	if err := target.WaitForCertManagerReady(); err != nil {
+		return errors.Wrap(err, "timed out waiting for cert-manager to be deployed")
+	}
+
+	// deploy provider components again, it'll create resources dependent on cert-manager
+	if err := target.Apply(providerComponents); err != nil {
+		return errors.Wrap(err, "unable to apply cluster api provider components")
+	}
+
+	return nil
 }
 
 // Pivot deploys the provided provider components to a target cluster and then migrates
 // all cluster-api resources from the source cluster to the target cluster
 func Pivot(source sourceClient, target targetClient, providerComponents string) error {
 	klog.Info("Applying Cluster API Provider Components to Target Cluster")
-	if err := target.Apply(providerComponents); err != nil {
-		return errors.Wrap(err, "unable to apply cluster api controllers")
+	if err := deployProviderComponent(target, providerComponents); err != nil {
+		return err
 	}
 
 	klog.Info("Pivoting Cluster API objects from bootstrap to target cluster.")

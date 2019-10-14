@@ -440,6 +440,10 @@ func (s *sourcer) ScaleDeployment(string, string, int32) error {
 	return nil
 }
 
+func (s *sourcer) WaitForCertManagerReady() error {
+	return nil
+}
+
 func (s *sourcer) WaitForClusterV1alpha2Ready() error {
 	return nil
 }
@@ -577,6 +581,10 @@ func (t *target) GetMachineSet(ns, name string) (*clusterv1.MachineSet, error) {
 		}
 	}
 	return nil, fmt.Errorf("no machineset found with name %q in namespace %q", ns, name)
+}
+
+func (t *target) WaitForCertManagerReady() error {
+	return nil
 }
 
 func (t *target) WaitForClusterV1alpha2Ready() error {

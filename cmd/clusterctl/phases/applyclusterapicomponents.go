@@ -17,15 +17,14 @@ limitations under the License.
 package phases
 
 import (
-	"github.com/pkg/errors"
 	"k8s.io/klog"
 	"sigs.k8s.io/cluster-api/cmd/clusterctl/clusterdeployer/clusterclient"
 )
 
 func ApplyClusterAPIComponents(client clusterclient.Client, providerComponents string) error {
 	klog.Info("Applying Cluster API Provider Components")
-	if err := client.Apply(providerComponents); err != nil {
-		return errors.Wrap(err, "unable to apply cluster api controllers")
+	if err := deployProviderComponent(client, providerComponents); err != nil {
+		return err
 	}
 
 	return client.WaitForClusterV1alpha2Ready()

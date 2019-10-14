@@ -31,25 +31,25 @@ type ClusterPhase string
 const (
 	// ClusterPhasePending is the first state a Cluster is assigned by
 	// Cluster API Cluster controller after being created.
-	ClusterPhasePending = ClusterPhase("pending")
+	ClusterPhasePending = ClusterPhase("Pending")
 
 	// ClusterPhaseProvisioning is the state when the Cluster has a provider infrastructure
 	// object associated and can start provisioning.
-	ClusterPhaseProvisioning = ClusterPhase("provisioning")
+	ClusterPhaseProvisioning = ClusterPhase("Provisioning")
 
 	// ClusterPhaseProvisioned is the state when its
 	// infrastructure has been created and configured.
-	ClusterPhaseProvisioned = ClusterPhase("provisioned")
+	ClusterPhaseProvisioned = ClusterPhase("Provisioned")
 
 	// ClusterPhaseDeleting is the Cluster state when a delete
 	// request has been sent to the API Server,
 	// but its infrastructure has not yet been fully deleted.
-	ClusterPhaseDeleting = ClusterPhase("deleting")
+	ClusterPhaseDeleting = ClusterPhase("Deleting")
 
 	// ClusterPhaseFailed is the Cluster state when the system
 	// might require user intervention.
-	ClusterPhaseFailed = ClusterPhase("failed")
+	ClusterPhaseFailed = ClusterPhase("Failed")
 
 	// ClusterPhaseUnknown is returned if the Cluster state cannot be determined.
-	ClusterPhaseUnknown = ClusterPhase("")
+	ClusterPhaseUnknown = ClusterPhase("Unknown")
 )

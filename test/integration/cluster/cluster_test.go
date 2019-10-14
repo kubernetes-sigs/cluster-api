@@ -102,7 +102,7 @@ var _ = Describe("Cluster-Controller", func() {
 				if err := apiclient.Get(ctx, client.ObjectKey{Name: cluster.Name, Namespace: cluster.Namespace}, cluster); err != nil {
 					return false
 				}
-				return cluster.Status.Phase == "pending"
+				return cluster.Status.Phase == string(clusterv1.ClusterPhasePending)
 			}).Should(BeTrue())
 
 			close(done)

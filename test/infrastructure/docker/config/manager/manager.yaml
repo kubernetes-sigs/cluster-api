@@ -30,8 +30,6 @@ spec:
         volumeMounts:
           - mountPath: /var/run/docker.sock
             name: dockersock
-          - mountPath: /var/lib/docker
-            name: dockerlib
         securityContext:
           privileged: true
       terminationGracePeriodSeconds: 10
@@ -39,7 +37,3 @@ spec:
         - name: dockersock
           hostPath:
             path: /var/run/docker.sock
-            type: Socket
-        - name: dockerlib
-          hostPath:
-            path: /var/lib/docker

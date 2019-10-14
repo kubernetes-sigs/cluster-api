@@ -1,5 +1,5 @@
 /*
-Copyright 2018 The Kubernetes Authors.
+Copyright 2019 The Kubernetes Authors.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -14,18 +14,4 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package scheme
-
-import (
-	"github.com/onsi/gomega"
-	"k8s.io/apimachinery/pkg/runtime"
-	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
-	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha3"
-)
-
-func SetupScheme() *runtime.Scheme {
-	scheme := runtime.NewScheme()
-	gomega.Expect(clientgoscheme.AddToScheme(scheme)).To(gomega.Succeed())
-	gomega.Expect(clusterv1.AddToScheme(scheme)).To(gomega.Succeed())
-	return scheme
-}
+package v1alpha3

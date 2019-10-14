@@ -31,34 +31,34 @@ type MachinePhase string
 const (
 	// MachinePhasePending is the first state a Machine is assigned by
 	// Cluster API Machine controller after being created.
-	MachinePhasePending = MachinePhase("pending")
+	MachinePhasePending = MachinePhase("Pending")
 
 	// MachinePhaseProvisioning is the state when the
 	// Machine infrastructure is being created.
-	MachinePhaseProvisioning = MachinePhase("provisioning")
+	MachinePhaseProvisioning = MachinePhase("Provisioning")
 
 	// MachinePhaseProvisioned is the state when its
 	// infrastructure has been created and configured.
-	MachinePhaseProvisioned = MachinePhase("provisioned")
+	MachinePhaseProvisioned = MachinePhase("Provisioned")
 
 	// MachinePhaseRunning is the Machine state when it has
 	// become a Kubernetes Node in a Ready state.
-	MachinePhaseRunning = MachinePhase("running")
+	MachinePhaseRunning = MachinePhase("Running")
 
 	// MachinePhaseDeleting is the Machine state when a delete
 	// request has been sent to the API Server,
 	// but its infrastructure has not yet been fully deleted.
-	MachinePhaseDeleting = MachinePhase("deleting")
+	MachinePhaseDeleting = MachinePhase("Deleting")
 
 	// MachinePhaseDeleted is the Machine state when the object
 	// and the related infrastructure is deleted and
 	// ready to be garbage collected by the API Server.
-	MachinePhaseDeleted = MachinePhase("deleted")
+	MachinePhaseDeleted = MachinePhase("Deleted")
 
 	// MachinePhaseFailed is the Machine state when the system
 	// might require user intervention.
-	MachinePhaseFailed = MachinePhase("failed")
+	MachinePhaseFailed = MachinePhase("Failed")
 
 	// MachinePhaseUnknown is returned if the Machine state cannot be determined.
-	MachinePhaseUnknown = MachinePhase("")
+	MachinePhaseUnknown = MachinePhase("Unknown")
 )

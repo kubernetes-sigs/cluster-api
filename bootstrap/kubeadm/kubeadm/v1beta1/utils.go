@@ -50,7 +50,7 @@ func ConfigurationToYAML(obj runtime.Object) (string, error) {
 // MarshalToYamlForCodecs marshals an object into yaml using the specified codec
 // TODO: Is specifying the gv really needed here?
 // TODO: Can we support json out of the box easily here?
-func MarshalToYamlForCodecs(obj runtime.Object, gv schema.GroupVersion, codecs serializer.CodecFactory) ([]byte, error) {
+func MarshalToYamlForCodecs(obj runtime.Object, gv schema.GroupVersion, codecs serializer.CodecFactory) ([]byte, error) { //nolint
 	mediaType := "application/yaml"
 	info, ok := runtime.SerializerInfoForMediaType(codecs.SupportedMediaTypes(), mediaType)
 	if !ok {

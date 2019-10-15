@@ -25,7 +25,7 @@ import (
 	"k8s.io/klog"
 	"k8s.io/klog/klogr"
 	infrav1 "sigs.k8s.io/cluster-api/test/infrastructure/docker/api/v1alpha2"
-	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha2"
+	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha3"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 	"sigs.k8s.io/controller-runtime/pkg/handler"
 )

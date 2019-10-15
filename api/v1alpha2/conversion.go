@@ -17,6 +17,9 @@ limitations under the License.
 package v1alpha2
 
 import (
+	"errors"
+	"fmt"
+
 	apiconversion "k8s.io/apimachinery/pkg/conversion"
 	"sigs.k8s.io/cluster-api/api/v1alpha3"
 	"sigs.k8s.io/controller-runtime/pkg/conversion"
@@ -28,6 +31,7 @@ func (src *Cluster) ConvertTo(dstRaw conversion.Hub) error {
 	return Convert_v1alpha2_Cluster_To_v1alpha3_Cluster(src, dst, nil)
 }
 
+// nolint
 func (dst *Cluster) ConvertFrom(srcRaw conversion.Hub) error {
 	src := srcRaw.(*v1alpha3.Cluster)
 
@@ -40,6 +44,7 @@ func (src *ClusterList) ConvertTo(dstRaw conversion.Hub) error {
 	return Convert_v1alpha2_ClusterList_To_v1alpha3_ClusterList(src, dst, nil)
 }
 
+// nolint
 func (dst *ClusterList) ConvertFrom(srcRaw conversion.Hub) error {
 	src := srcRaw.(*v1alpha3.ClusterList)
 
@@ -52,6 +57,7 @@ func (src *Machine) ConvertTo(dstRaw conversion.Hub) error {
 	return Convert_v1alpha2_Machine_To_v1alpha3_Machine(src, dst, nil)
 }
 
+// nolint
 func (dst *Machine) ConvertFrom(srcRaw conversion.Hub) error {
 	src := srcRaw.(*v1alpha3.Machine)
 
@@ -64,6 +70,7 @@ func (src *MachineList) ConvertTo(dstRaw conversion.Hub) error {
 	return Convert_v1alpha2_MachineList_To_v1alpha3_MachineList(src, dst, nil)
 }
 
+// nolint
 func (dst *MachineList) ConvertFrom(srcRaw conversion.Hub) error {
 	src := srcRaw.(*v1alpha3.MachineList)
 
@@ -76,6 +83,7 @@ func (src *MachineSet) ConvertTo(dstRaw conversion.Hub) error {
 	return Convert_v1alpha2_MachineSet_To_v1alpha3_MachineSet(src, dst, nil)
 }
 
+// nolint
 func (dst *MachineSet) ConvertFrom(srcRaw conversion.Hub) error {
 	src := srcRaw.(*v1alpha3.MachineSet)
 
@@ -88,6 +96,7 @@ func (src *MachineSetList) ConvertTo(dstRaw conversion.Hub) error {
 	return Convert_v1alpha2_MachineSetList_To_v1alpha3_MachineSetList(src, dst, nil)
 }
 
+// nolint
 func (dst *MachineSetList) ConvertFrom(srcRaw conversion.Hub) error {
 	src := srcRaw.(*v1alpha3.MachineSetList)
 
@@ -100,6 +109,7 @@ func (src *MachineDeployment) ConvertTo(dstRaw conversion.Hub) error {
 	return Convert_v1alpha2_MachineDeployment_To_v1alpha3_MachineDeployment(src, dst, nil)
 }
 
+// nolint
 func (dst *MachineDeployment) ConvertFrom(srcRaw conversion.Hub) error {
 	src := srcRaw.(*v1alpha3.MachineDeployment)
 
@@ -112,6 +122,7 @@ func (src *MachineDeploymentList) ConvertTo(dstRaw conversion.Hub) error {
 	return Convert_v1alpha2_MachineDeploymentList_To_v1alpha3_MachineDeploymentList(src, dst, nil)
 }
 
+// nolint
 func (dst *MachineDeploymentList) ConvertFrom(srcRaw conversion.Hub) error {
 	src := srcRaw.(*v1alpha3.MachineDeploymentList)
 
@@ -126,4 +137,20 @@ func Convert_v1alpha2_MachineSpec_To_v1alpha3_MachineSpec(in *MachineSpec, out *
 	// Discards unused ObjectMeta
 
 	return nil
+}
+
+func Convert_v1alpha3_MachineDeploymentSpec_To_v1alpha2_MachineDeploymentSpec(in *v1alpha3.MachineDeploymentSpec, out *MachineDeploymentSpec, s apiconversion.Scope) error {
+	return errors.New("cannot recover removed MachineDeploymentSpec Cluster Name")
+}
+
+func Convert_v1alpha3_MachineDeploymentStatus_To_v1alpha2_MachineDeploymentStatus(in *v1alpha3.MachineDeploymentStatus, out *MachineDeploymentStatus, s apiconversion.Scope) error {
+	return fmt.Errorf("cannot recover removed MachineDeploymentStatus field Phase")
+}
+
+func Convert_v1alpha3_MachineSetSpec_To_v1alpha2_MachineSetSpec(in *v1alpha3.MachineSetSpec, out *MachineSetSpec, s apiconversion.Scope) error {
+	return errors.New("cannot recover removed MachineSetSpec Cluster Name")
+}
+
+func Convert_v1alpha3_MachineSpec_To_v1alpha2_MachineSpec(in *v1alpha3.MachineSpec, out *MachineSpec, s apiconversion.Scope) error {
+	return errors.New("cannot recover removed MachineSpec Cluster Name")
 }

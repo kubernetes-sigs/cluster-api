@@ -19,3 +19,12 @@ aliases:
   cluster-api-provider-docker-maintainers:
     - chuckha
     - ncdc
+  cluster-api-bootstrap-provider-kubeadm-maintainers:
+    - chuckha
+    - fabriziopandini
+    - ncdc
+    - SataQiu
+  cluster-api-bootstrap-provider-kubeadm-reviewers:
+    - chuckha
+    - fabriziopandini
+    - ncdc

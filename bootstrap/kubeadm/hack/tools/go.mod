@@ -1,4 +1,4 @@
-module sigs.k8s.io/cluster-api-bootstrap-provider-kubeadm/hack/tools
+module sigs.k8s.io/cluster-api/bootstrap/kubeadm/hack/tools
 
 go 1.12
 

@@ -1,4 +1,4 @@
-module sigs.k8s.io/cluster-api-bootstrap-provider-kubeadm
+module sigs.k8s.io/cluster-api/bootstrap/kubeadm
 
 go 1.12
 

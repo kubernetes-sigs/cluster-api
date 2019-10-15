@@ -21,7 +21,7 @@ import (
 	"text/template"
 
 	"github.com/pkg/errors"
-	bootstrapv1 "sigs.k8s.io/cluster-api-bootstrap-provider-kubeadm/api/v1alpha2"
+	bootstrapv1 "sigs.k8s.io/cluster-api/bootstrap/kubeadm/api/v1alpha2"
 )
 
 const (

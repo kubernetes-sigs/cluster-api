@@ -19,7 +19,7 @@ package cluster
 import (
 	"testing"
 
-	"sigs.k8s.io/cluster-api-bootstrap-provider-kubeadm/kubeadm/v1beta1"
+	"sigs.k8s.io/cluster-api/bootstrap/kubeadm/kubeadm/v1beta1"
 )
 
 func TestNewCertificatesForControlPlane_Stacked(t *testing.T) {

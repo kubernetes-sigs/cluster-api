@@ -8,6 +8,8 @@ resources:
 - bases/cluster.x-k8s.io_machines.yaml
 - bases/cluster.x-k8s.io_machinesets.yaml
 - bases/cluster.x-k8s.io_machinedeployments.yaml
+- bases/bootstrap.cluster.x-k8s.io_kubeadmconfigs.yaml
+- bases/bootstrap.cluster.x-k8s.io_kubeadmconfigtemplates.yaml
 # +kubebuilder:scaffold:crdkustomizeresource
 
 # patches:

@@ -1,0 +1,10 @@
+# Each entry in this list must resolve to an existing
+# resource definition in YAML.  These are the resource
+# files that kustomize reads, modifies and emits as a
+# YAML string, with resources separated by document
+# markers ("---").
+resources:
+- role_binding.yaml
+- role.yaml
+- leader_election_role.yaml
+- leader_election_role_binding.yaml

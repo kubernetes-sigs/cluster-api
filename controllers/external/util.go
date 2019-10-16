@@ -28,13 +28,13 @@ import (
 )
 
 // Get uses the client and reference to get an external, unstructured object.
-func Get(c client.Client, ref *corev1.ObjectReference, namespace string) (*unstructured.Unstructured, error) {
+func Get(ctx context.Context, c client.Client, ref *corev1.ObjectReference, namespace string) (*unstructured.Unstructured, error) {
 	obj := new(unstructured.Unstructured)
 	obj.SetAPIVersion(ref.APIVersion)
 	obj.SetKind(ref.Kind)
 	obj.SetName(ref.Name)
 	key := client.ObjectKey{Name: obj.GetName(), Namespace: namespace}
-	if err := c.Get(context.Background(), key, obj); err != nil {
+	if err := c.Get(ctx, key, obj); err != nil {
 		return nil, err
 	}
 	return obj, nil
@@ -42,7 +42,7 @@ func Get(c client.Client, ref *corev1.ObjectReference, namespace string) (*unstr
 
 // CloneTemplate uses the client and the reference to create a new object from the template.
 func CloneTemplate(c client.Client, ref *corev1.ObjectReference, namespace string) (*unstructured.Unstructured, error) {
-	from, err := Get(c, ref, namespace)
+	from, err := Get(context.TODO(), c, ref, namespace)
 	if err != nil {
 		return nil, err
 	}

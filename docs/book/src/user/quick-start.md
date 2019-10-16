@@ -2,19 +2,7 @@
 
 In this tutorial we'll cover the basics of how to use Cluster API to create one or more Kubernetes clusters.
 
-## Prerequisites
-
-- Install and setup [kubectl] in your local environment.
-- A Kubernetes cluster to be used as [management cluster].
-  For the purpose of this quick start we suggest you to use [kind] as a _non production-ready_ solution.
-  ```bash
-  kind create cluster --name=clusterapi
-  export KUBECONFIG="$(kind get kubeconfig-path --name="clusterapi")"
-  ```
-
-
 {{#include ../tasks/installation.md}}
-
 
 ## Usage
 
@@ -23,7 +11,7 @@ let's proceed to create a single node cluster.
 
 For the purpose of this tutorial, we'll name our cluster `capi-quickstart`.
 
-{{#tabs name:"tab-usage-cluster-resource" tabs:"AWS,vSphere"}}
+{{#tabs name:"tab-usage-cluster-resource" tabs:"AWS,Docker,vSphere"}}
 {{#tab AWS}}
 
 ```yaml
@@ -49,6 +37,28 @@ spec:
   region: us-east-1
   # Change this value to a valid SSH Key Pair present in your AWS Account.
   sshKeyName: default
+```
+{{#/tab }}
+{{#tab Docker}}
+
+```yaml
+apiVersion: cluster.x-k8s.io/v1alpha2
+kind: Cluster
+metadata:
+  name: capi-quickstart
+spec:
+  clusterNetwork:
+    pods:
+      cidrBlocks: ["192.168.0.0/16"]
+  infrastructureRef:
+    apiVersion: infrastructure.cluster.x-k8s.io/v1alpha2
+    kind: DockerCluster
+    name: capi-quickstart
+---
+apiVersion: infrastructure.cluster.x-k8s.io/v1alpha2
+kind: DockerCluster
+metadata:
+  name: capi-quickstart
 ```
 {{#/tab }}
 {{#tab vSphere}}
@@ -102,7 +112,7 @@ spec:
 
 Now that we've created the cluster object, we can create a control plane Machine.
 
-{{#tabs name:"tab-usage-controlplane-resource" tabs:"AWS,vSphere"}}
+{{#tabs name:"tab-usage-controlplane-resource" tabs:"AWS,Docker,vSphere"}}
 {{#tab AWS}}
 
 ```yaml
@@ -155,6 +165,54 @@ spec:
     controllerManager:
       extraArgs:
         cloud-provider: aws
+```
+{{#/tab }}
+{{#tab Docker}}
+
+```yaml
+apiVersion: cluster.x-k8s.io/v1alpha2
+kind: Machine
+metadata:
+  name: capi-quickstart-controlplane-0
+  labels:
+    cluster.x-k8s.io/control-plane: "true"
+    cluster.x-k8s.io/cluster-name: "capi-quickstart"
+spec:
+  version: v1.15.3
+  bootstrap:
+    configRef:
+      apiVersion: bootstrap.cluster.x-k8s.io/v1alpha2
+      kind: KubeadmConfig
+      name: capi-quickstart-controlplane-0
+  infrastructureRef:
+    kind: DockerMachine
+    apiVersion: infrastructure.cluster.x-k8s.io/v1alpha2
+    name: capi-quickstart-controlplane-0
+---
+apiVersion: infrastructure.cluster.x-k8s.io/v1alpha2
+kind: DockerMachine
+metadata:
+  name: capi-quickstart-controlplane-0
+---
+apiVersion: bootstrap.cluster.x-k8s.io/v1alpha2
+kind: KubeadmConfig
+metadata:
+  name: capi-quickstart-controlplane-0
+spec:
+  initConfiguration:
+    nodeRegistration:
+      kubeletExtraArgs:
+        # Default thresholds are higher to provide a buffer before resources
+        # are completely depleted, at the cost of requiring more total
+        # resources. These low thresholds allow running with fewer resources.
+        # Appropriate for testing or development only.
+        eviction-hard: nodefs.available<0%,nodefs.inodesFree<0%,imagefs.available<0%
+  clusterConfiguration:
+    controllerManager:
+      extraArgs:
+        # Enables dynamic storage provisioning without a cloud provider.
+        # Appropriate for testing or development only.
+        enable-hostpath-provisioner: "true"
 ```
 {{#/tab }}
 {{#tab vSphere}}
@@ -277,6 +335,26 @@ kubectl --kubeconfig=./capi-quickstart.kubeconfig \
   apply -f https://docs.projectcalico.org/v3.8/manifests/calico.yaml
 ```
 
+<aside class="note warning">
+<h1>Action Required (Docker provider v0.2.0 only)</h1>
+
+A [known issue](https://github.com/kubernetes-sigs/kind/issues/891) affects Calico with the Docker provider v0.2.0. After you deploy Calico, apply this patch to work around the issue:
+
+```bash
+kubectl --kubeconfig=./capi-quickstart.kubeconfig \
+  -n kube-system patch daemonset calico-node \
+  --type=strategic --patch='
+spec:
+  template:
+    spec:
+      containers:
+      - name: calico-node
+        env:
+        - name: FELIX_IGNORELOOSERPF
+          value: "true"
+'
+```
+</aside>
 {{#/tab }}
 {{#/tabs }}
 
@@ -289,7 +367,7 @@ kubectl --kubeconfig=./capi-quickstart.kubeconfig get nodes
 
 Finishing up, we'll create a single node _MachineDeployment_.
 
-{{#tabs name:"tab-usage-machinedeployment" tabs:"AWS,vSphere"}}
+{{#tabs name:"tab-usage-machinedeployment" tabs:"AWS,Docker,vSphere"}}
 {{#tab AWS}}
 
 ```yaml
@@ -355,6 +433,69 @@ spec:
             cloud-provider: aws
 ```
 
+{{#/tab }}
+{{#tab Docker}}
+
+```yaml
+apiVersion: cluster.x-k8s.io/v1alpha2
+kind: MachineDeployment
+metadata:
+  name: capi-quickstart-worker
+  labels:
+    cluster.x-k8s.io/cluster-name: capi-quickstart
+    # Labels beyond this point are for example purposes,
+    # feel free to add more or change with something more meaningful.
+    # Sync these values with spec.selector.matchLabels and spec.template.metadata.labels.
+    nodepool: nodepool-0
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      cluster.x-k8s.io/cluster-name: capi-quickstart
+      nodepool: nodepool-0
+  template:
+    metadata:
+      labels:
+        cluster.x-k8s.io/cluster-name: capi-quickstart
+        nodepool: nodepool-0
+    spec:
+      version: v1.15.3
+      bootstrap:
+        configRef:
+          name: capi-quickstart-worker
+          apiVersion: bootstrap.cluster.x-k8s.io/v1alpha2
+          kind: KubeadmConfigTemplate
+      infrastructureRef:
+        name: capi-quickstart-worker
+        apiVersion: infrastructure.cluster.x-k8s.io/v1alpha2
+        kind: DockerMachineTemplate
+---
+apiVersion: infrastructure.cluster.x-k8s.io/v1alpha2
+kind: DockerMachineTemplate
+metadata:
+  name: capi-quickstart-worker
+spec:
+  template:
+    spec: {}
+---
+apiVersion: bootstrap.cluster.x-k8s.io/v1alpha2
+kind: KubeadmConfigTemplate
+metadata:
+  name: capi-quickstart-worker
+spec:
+  template:
+    spec:
+      # For more information about these values,
+      # refer to the Kubeadm Bootstrap Provider documentation.
+      joinConfiguration:
+        nodeRegistration:
+          kubeletExtraArgs:
+            eviction-hard: nodefs.available<0%,nodefs.inodesFree<0%,imagefs.available<0%
+      clusterConfiguration:
+        controllerManager:
+          extraArgs:
+            enable-hostpath-provisioner: "true"
+```
 {{#/tab }}
 {{#tab vSphere}}
 
@@ -449,10 +590,4 @@ spec:
 {{#/tabs }}
 
 <!-- links -->
-[kubectl]: https://kubernetes.io/docs/tasks/tools/install-kubectl/
-[components]: ../reference/glossary.md#provider-components
-[kind]: https://sigs.k8s.io/kind
-[management cluster]: ../reference/glossary.md#management-cluster
 [target cluster]: ../reference/glossary.md#target-cluster
-[AWS provider releases]: https://github.com/kubernetes-sigs/cluster-api-provider-aws/releases
-

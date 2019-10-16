@@ -11,18 +11,81 @@ Cluster API requires an existing kubernetes cluster accessible via kubectl, choo
 
 1. **Kind**
 
-```bash
-kind create cluster --name=clusterapi
-export KUBECONFIG="$(kind get kubeconfig-path --name="clusterapi")"
-```
+{{#tabs name:"kind-cluster" tabs:"AWS,Docker,vSphere"}}
+{{#tab AWS}}
 
 <aside class="note warning">
 
 <h1>Warning</h1>
 
-[kind] is not designed for production use and is intended for development environments only
+[kind] is not designed for production use, and is intended for development environments only.
 
 </aside>
+
+  ```bash
+  kind create cluster --name=clusterapi
+  export KUBECONFIG="$(kind get kubeconfig-path --name="clusterapi")"
+  ```
+{{#/tab }}
+{{#tab Docker}}
+
+<aside class="note warning">
+
+<h1>Warning</h1>
+
+[kind] is not designed for production use, and is intended for development environments only.
+
+</aside>
+
+<aside class="note warning">
+
+<h1>Warning</h1>
+
+The Docker provider is not designed for production use and is intended for development environments only.
+
+</aside>
+
+<aside class="note warning">
+
+<h1>Docker Provider on MacOS</h1>
+
+Instructions for using the Docker provider on MacOS will be added soon.
+
+</aside>
+
+  Because the Docker provider needs to access Docker on the host, a custom kind cluster configuration is required:
+
+  ```bash
+  cat > kind-cluster-with-extramounts.yaml <<EOF
+kind: Cluster
+apiVersion: kind.sigs.k8s.io/v1alpha3
+nodes:
+  - role: control-plane
+    extraMounts:
+      - hostPath: /var/run/docker.sock
+        containerPath: /var/run/docker.sock
+EOF
+  kind create cluster --config ./kind-cluster-with-extramounts.yaml --name clusterapi
+  export KUBECONFIG="$(kind get kubeconfig-path --name="clusterapi")"
+  ```
+{{#/tab }}
+{{#tab vSphere}}
+
+<aside class="note warning">
+
+<h1>Warning</h1>
+
+[kind] is not designed for production use, and is intended for development environments only.
+
+</aside>
+
+  ```bash
+  kind create cluster --name=clusterapi
+  export KUBECONFIG="$(kind get kubeconfig-path --name="clusterapi")"
+  ```
+{{#/tab }}
+{{#/tabs }}
+
 
 2. **Existing Management Cluster**
 
@@ -32,7 +95,7 @@ For production use-cases a "real" kubernetes cluster should be used with apropri
 export KUBECONFIG=<...>
 ```
 
-3. Pivoting
+3. **Pivoting**
 
 Pivoting is the process of taking an initial kind cluster to create a new workload cluster, and then converting the workload cluster into a management cluster by migrating the Cluster API CRD's.
 
@@ -64,7 +127,7 @@ kubectl create -f {{#releaselink gomodule:"sigs.k8s.io/cluster-api-bootstrap-pro
 
 #### Install Infrastructure Provider
 
-{{#tabs name:"tab-installation-infrastructure" tabs:"AWS,vSphere"}}
+{{#tabs name:"tab-installation-infrastructure" tabs:"AWS,Docker,vSphere"}}
 {{#tab AWS}}
 
 <aside class="note warning">
@@ -93,6 +156,15 @@ export AWS_B64ENCODED_CREDENTIALS=$(clusterawsadm alpha bootstrap encode-aws-cre
 curl -L {{#releaselink gomodule:"sigs.k8s.io/cluster-api-provider-aws" asset:"infrastructure-components.yaml" version:"0.4.x"}} \
   | envsubst \
   | kubectl create -f -
+```
+
+{{#/tab }}
+{{#tab Docker}}
+
+Check the [Docker provider releases](https://github.com/kubernetes-sigs/cluster-api-provider-docker/releases) for an up-to-date components file.
+
+```bash
+kubectl create -f {{#releaselink gomodule:"sigs.k8s.io/cluster-api-provider-docker" asset:"provider_components.yaml" version:"0.2.x"}}
 ```
 
 {{#/tab }}

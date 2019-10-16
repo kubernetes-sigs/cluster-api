@@ -76,7 +76,7 @@ func (r *MachineReconciler) reconcilePhase(ctx context.Context, m *clusterv1.Mac
 
 // reconcileExternal handles generic unstructured objects referenced by a Machine.
 func (r *MachineReconciler) reconcileExternal(ctx context.Context, m *clusterv1.Machine, ref *corev1.ObjectReference) (*unstructured.Unstructured, error) {
-	obj, err := external.Get(r.Client, ref, m.Namespace)
+	obj, err := external.Get(ctx, r.Client, ref, m.Namespace)
 	if err != nil {
 		if apierrors.IsNotFound(err) {
 			return nil, errors.Wrapf(&capierrors.RequeueAfterError{RequeueAfter: externalReadyWait},

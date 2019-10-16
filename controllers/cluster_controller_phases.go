@@ -68,7 +68,7 @@ func (r *ClusterReconciler) reconcilePhase(ctx context.Context, cluster *cluster
 
 // reconcileExternal handles generic unstructured objects referenced by a Cluster.
 func (r *ClusterReconciler) reconcileExternal(ctx context.Context, cluster *clusterv1.Cluster, ref *corev1.ObjectReference) (*unstructured.Unstructured, error) {
-	obj, err := external.Get(r.Client, ref, cluster.Namespace)
+	obj, err := external.Get(ctx, r.Client, ref, cluster.Namespace)
 	if err != nil {
 		if apierrors.IsNotFound(err) {
 			return nil, errors.Wrapf(&capierrors.RequeueAfterError{RequeueAfter: 30 * time.Second},

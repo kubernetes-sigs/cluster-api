@@ -17,7 +17,11 @@
 
 ## Context is now required for `external.CloneTemplate` function.
 
-- Pass a context as first argument to calls to `external.CloneTemplate`.
+- Pass a context as the first argument to calls to `external.CloneTemplate`.
+
+## Context is now required for `external.Get` function.
+
+- Pass a context as the first argument to calls to `external.Get`.
 
 ## Cluster and Machine `Status.Phase` field values now start with an uppercase letter.
 

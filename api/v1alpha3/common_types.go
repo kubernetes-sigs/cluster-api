@@ -20,6 +20,12 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
+const (
+	// ClusterLabelName is the label set on machines linked to a cluster and
+	// external objects(bootstrap and infrastructure providers)
+	ClusterLabelName = "cluster.x-k8s.io/cluster-name"
+)
+
 // MachineAddressType describes a valid MachineAddress type.
 type MachineAddressType string
 

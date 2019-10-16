@@ -96,6 +96,14 @@ func (r *ClusterReconciler) reconcileExternal(ctx context.Context, cluster *clus
 	// Add ownerRef to object.
 	obj.SetOwnerReferences(util.EnsureOwnerRef(obj.GetOwnerReferences(), ownerRef))
 
+	// Set the Cluster label.
+	labels := obj.GetLabels()
+	if labels == nil {
+		labels = make(map[string]string)
+	}
+	labels[clusterv1.ClusterLabelName] = cluster.Name
+	obj.SetLabels(labels)
+
 	// Always attempt to Patch the external object.
 	if err := patchHelper.Patch(ctx, obj); err != nil {
 		return nil, err

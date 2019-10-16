@@ -32,3 +32,7 @@
 
 - The variable name is renamed as this label isn't applied only to machines anymore.
 - This label is also applied to external objects(bootstrap provider, infrastructure provider)
+
+## Cluster and Machine controllers now set `cluster.x-k8s.io/cluster-name` to external objects.
+
+- In addition to the OwnerReference back to the Cluster, a label is now added as well to any external objects, for example objects such as KubeadmConfig (bootstrap provider), AWSCluster (infrastructure provider), AWSMachine (infrastructure provider), etc.

@@ -26,10 +26,6 @@ const (
 	// MachineFinalizer is set on PrepareForCreate callback.
 	MachineFinalizer = "machine.cluster.x-k8s.io"
 
-	// ClusterLabelName is the label set on machines linked to a cluster and
-	// external objects(bootstrap and infrastructure providers)
-	ClusterLabelName = "cluster.x-k8s.io/cluster-name"
-
 	// MachineControlPlaneLabelName is the label set on machines part of a control plane.
 	MachineControlPlaneLabelName = "cluster.x-k8s.io/control-plane"
 

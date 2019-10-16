@@ -21,12 +21,15 @@ import (
 	"testing"
 	"time"
 
+	. "github.com/onsi/ginkgo"
 	"github.com/onsi/gomega"
+	. "github.com/onsi/gomega"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/utils/pointer"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha3"
+	"sigs.k8s.io/cluster-api/util/kubeconfig"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 	"sigs.k8s.io/controller-runtime/pkg/log"
 )
@@ -35,15 +38,27 @@ func init() {
 	externalReadyWait = 1 * time.Second
 }
 
-func TestReconcilePhase(t *testing.T) {
+var _ = Describe("Reconcile Machine Phases", func() {
 	deletionTimestamp := metav1.Now()
+
+	var defaultKubeconfigSecret *corev1.Secret
+	defaultCluster := &clusterv1.Cluster{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "test-cluster",
+			Namespace: metav1.NamespaceDefault,
+		},
+	}
 
 	defaultMachine := clusterv1.Machine{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "machine-test",
 			Namespace: "default",
+			Labels: map[string]string{
+				clusterv1.MachineControlPlaneLabelName: "true",
+			},
 		},
 		Spec: clusterv1.MachineSpec{
+			ClusterName: defaultCluster.Name,
 			Bootstrap: clusterv1.Bootstrap{
 				ConfigRef: &corev1.ObjectReference{
 					APIVersion: "bootstrap.cluster.x-k8s.io/v1alpha2",
@@ -59,333 +74,221 @@ func TestReconcilePhase(t *testing.T) {
 		},
 	}
 
-	testCases := []struct {
-		name               string
-		bootstrapConfig    map[string]interface{}
-		infraConfig        map[string]interface{}
-		machine            *clusterv1.Machine
-		expectError        bool
-		expectRequeueAfter bool
-		expected           func(g *gomega.WithT, m *clusterv1.Machine)
-	}{
-		{
-			name: "new machine, expect pending",
-			bootstrapConfig: map[string]interface{}{
-				"kind":       "BootstrapConfig",
-				"apiVersion": "bootstrap.cluster.x-k8s.io/v1alpha2",
-				"metadata": map[string]interface{}{
-					"name":      "bootstrap-config1",
-					"namespace": "default",
-				},
-				"spec":   map[string]interface{}{},
-				"status": map[string]interface{}{},
+	defaultBootstrap := &unstructured.Unstructured{
+		Object: map[string]interface{}{
+			"kind":       "BootstrapConfig",
+			"apiVersion": "bootstrap.cluster.x-k8s.io/v1alpha2",
+			"metadata": map[string]interface{}{
+				"name":      "bootstrap-config1",
+				"namespace": "default",
 			},
-			infraConfig: map[string]interface{}{
-				"kind":       "InfrastructureConfig",
-				"apiVersion": "infrastructure.cluster.x-k8s.io/v1alpha2",
-				"metadata": map[string]interface{}{
-					"name":      "infra-config1",
-					"namespace": "default",
-				},
-				"spec":   map[string]interface{}{},
-				"status": map[string]interface{}{},
-			},
-			expectError:        false,
-			expectRequeueAfter: true,
-			expected: func(g *gomega.WithT, m *clusterv1.Machine) {
-				g.Expect(m.Status.GetTypedPhase()).To(gomega.Equal(clusterv1.MachinePhasePending))
-			},
-		},
-		{
-			name: "ready bootstrap, expect provisioning",
-			bootstrapConfig: map[string]interface{}{
-				"kind":       "BootstrapConfig",
-				"apiVersion": "bootstrap.cluster.x-k8s.io/v1alpha2",
-				"metadata": map[string]interface{}{
-					"name":      "bootstrap-config1",
-					"namespace": "default",
-				},
-				"spec": map[string]interface{}{},
-				"status": map[string]interface{}{
-					"ready":         true,
-					"bootstrapData": "...",
-				},
-			},
-			infraConfig: map[string]interface{}{
-				"kind":       "InfrastructureConfig",
-				"apiVersion": "infrastructure.cluster.x-k8s.io/v1alpha2",
-				"metadata": map[string]interface{}{
-					"name":      "infra-config1",
-					"namespace": "default",
-				},
-				"spec":   map[string]interface{}{},
-				"status": map[string]interface{}{},
-			},
-			expectError:        false,
-			expectRequeueAfter: true,
-			expected: func(g *gomega.WithT, m *clusterv1.Machine) {
-				g.Expect(m.Status.GetTypedPhase()).To(gomega.Equal(clusterv1.MachinePhaseProvisioning))
-			},
-		},
-		{
-			name: "ready bootstrap and infra, expect provisioned",
-			bootstrapConfig: map[string]interface{}{
-				"kind":       "BootstrapConfig",
-				"apiVersion": "bootstrap.cluster.x-k8s.io/v1alpha2",
-				"metadata": map[string]interface{}{
-					"name":      "bootstrap-config1",
-					"namespace": "default",
-				},
-				"spec": map[string]interface{}{},
-				"status": map[string]interface{}{
-					"ready":         true,
-					"bootstrapData": "...",
-				},
-			},
-			infraConfig: map[string]interface{}{
-				"kind":       "InfrastructureConfig",
-				"apiVersion": "infrastructure.cluster.x-k8s.io/v1alpha2",
-				"metadata": map[string]interface{}{
-					"name":      "infra-config1",
-					"namespace": "default",
-				},
-				"spec": map[string]interface{}{
-					"providerID": "test://id-1",
-				},
-				"status": map[string]interface{}{
-					"ready": true,
-					"addresses": []interface{}{
-						map[string]interface{}{
-							"type":    "InternalIP",
-							"address": "10.0.0.1",
-						},
-						map[string]interface{}{
-							"type":    "InternalIP",
-							"address": "10.0.0.2",
-						},
-					},
-				},
-			},
-			expectError:        false,
-			expectRequeueAfter: false,
-			expected: func(g *gomega.WithT, m *clusterv1.Machine) {
-				g.Expect(m.Status.GetTypedPhase()).To(gomega.Equal(clusterv1.MachinePhaseProvisioned))
-				g.Expect(m.Status.Addresses).To(gomega.HaveLen(2))
-			},
-		},
-		{
-			name: "ready bootstrap and infra, allow nil addresses as they are optional",
-			bootstrapConfig: map[string]interface{}{
-				"kind":       "BootstrapConfig",
-				"apiVersion": "bootstrap.cluster.x-k8s.io/v1alpha2",
-				"metadata": map[string]interface{}{
-					"name":      "bootstrap-config1",
-					"namespace": "default",
-				},
-				"spec": map[string]interface{}{},
-				"status": map[string]interface{}{
-					"ready":         true,
-					"bootstrapData": "...",
-				},
-			},
-			infraConfig: map[string]interface{}{
-				"kind":       "InfrastructureConfig",
-				"apiVersion": "infrastructure.cluster.x-k8s.io/v1alpha2",
-				"metadata": map[string]interface{}{
-					"name":      "infra-config1",
-					"namespace": "default",
-				},
-				"spec": map[string]interface{}{
-					"providerID": "test://id-1",
-				},
-				"status": map[string]interface{}{
-					"ready": true,
-				},
-			},
-			expectError:        false,
-			expectRequeueAfter: false,
-			expected: func(g *gomega.WithT, m *clusterv1.Machine) {
-				g.Expect(m.Status.GetTypedPhase()).To(gomega.Equal(clusterv1.MachinePhaseProvisioned))
-				g.Expect(m.Status.Addresses).To(gomega.HaveLen(0))
-			},
-		},
-		{
-			name: "ready bootstrap, infra, and nodeRef, expect running",
-			machine: &clusterv1.Machine{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      "machine-test",
-					Namespace: "default",
-				},
-				Spec: clusterv1.MachineSpec{
-					Bootstrap: clusterv1.Bootstrap{
-						ConfigRef: &corev1.ObjectReference{
-							APIVersion: "bootstrap.cluster.x-k8s.io/v1alpha2",
-							Kind:       "BootstrapConfig",
-							Name:       "bootstrap-config1",
-						},
-					},
-					InfrastructureRef: corev1.ObjectReference{
-						APIVersion: "infrastructure.cluster.x-k8s.io/v1alpha2",
-						Kind:       "InfrastructureConfig",
-						Name:       "infra-config1",
-					},
-				},
-				Status: clusterv1.MachineStatus{
-					BootstrapReady:      true,
-					InfrastructureReady: true,
-					NodeRef:             &corev1.ObjectReference{Kind: "Node", Name: "machine-test-node"},
-				},
-			},
-			bootstrapConfig: map[string]interface{}{
-				"kind":       "BootstrapConfig",
-				"apiVersion": "bootstrap.cluster.x-k8s.io/v1alpha2",
-				"metadata": map[string]interface{}{
-					"name":      "bootstrap-config1",
-					"namespace": "default",
-				},
-				"spec": map[string]interface{}{},
-				"status": map[string]interface{}{
-					"ready":         true,
-					"bootstrapData": "...",
-				},
-			},
-			infraConfig: map[string]interface{}{
-				"kind":       "InfrastructureConfig",
-				"apiVersion": "infrastructure.cluster.x-k8s.io/v1alpha2",
-				"metadata": map[string]interface{}{
-					"name":      "infra-config1",
-					"namespace": "default",
-				},
-				"spec": map[string]interface{}{
-					"providerID": "test://id-1",
-				},
-				"status": map[string]interface{}{
-					"ready": true,
-					"addresses": []interface{}{
-						map[string]interface{}{
-							"type":    "InternalIP",
-							"address": "10.0.0.1",
-						},
-					},
-				},
-			},
-			expectError:        false,
-			expectRequeueAfter: false,
-			expected: func(g *gomega.WithT, m *clusterv1.Machine) {
-				g.Expect(m.Status.GetTypedPhase()).To(gomega.Equal(clusterv1.MachinePhaseRunning))
-			},
-		},
-		{
-			name: "ready bootstrap, infra, and nodeRef, machine being deleted, expect deleting",
-			machine: &clusterv1.Machine{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:              "machine-test",
-					Namespace:         "default",
-					DeletionTimestamp: &deletionTimestamp,
-				},
-				Spec: clusterv1.MachineSpec{
-					Bootstrap: clusterv1.Bootstrap{
-						ConfigRef: &corev1.ObjectReference{
-							APIVersion: "bootstrap.cluster.x-k8s.io/v1alpha2",
-							Kind:       "BootstrapConfig",
-							Name:       "bootstrap-config1",
-						},
-					},
-					InfrastructureRef: corev1.ObjectReference{
-						APIVersion: "infrastructure.cluster.x-k8s.io/v1alpha2",
-						Kind:       "InfrastructureConfig",
-						Name:       "infra-config1",
-					},
-				},
-				Status: clusterv1.MachineStatus{
-					BootstrapReady:      true,
-					InfrastructureReady: true,
-					NodeRef:             &corev1.ObjectReference{Kind: "Node", Name: "machine-test-node"},
-				},
-			},
-			bootstrapConfig: map[string]interface{}{
-				"kind":       "BootstrapConfig",
-				"apiVersion": "bootstrap.cluster.x-k8s.io/v1alpha2",
-				"metadata": map[string]interface{}{
-					"name":      "bootstrap-config1",
-					"namespace": "default",
-				},
-				"spec": map[string]interface{}{},
-				"status": map[string]interface{}{
-					"ready":         true,
-					"bootstrapData": "...",
-				},
-			},
-			infraConfig: map[string]interface{}{
-				"kind":       "InfrastructureConfig",
-				"apiVersion": "infrastructure.cluster.x-k8s.io/v1alpha2",
-				"metadata": map[string]interface{}{
-					"name":      "infra-config1",
-					"namespace": "default",
-				},
-				"spec": map[string]interface{}{
-					"providerID": "test://id-1",
-				},
-				"status": map[string]interface{}{
-					"ready": true,
-					"addresses": []interface{}{
-						map[string]interface{}{
-							"type":    "InternalIP",
-							"address": "10.0.0.1",
-						},
-					},
-				},
-			},
-			expectError:        false,
-			expectRequeueAfter: false,
-			expected: func(g *gomega.WithT, m *clusterv1.Machine) {
-				g.Expect(m.Status.GetTypedPhase()).To(gomega.Equal(clusterv1.MachinePhaseDeleting))
-			},
+			"spec":   map[string]interface{}{},
+			"status": map[string]interface{}{},
 		},
 	}
 
-	for _, tc := range testCases {
-		t.Run(tc.name, func(t *testing.T) {
-			g := gomega.NewGomegaWithT(t)
-
-			if tc.machine == nil {
-				tc.machine = defaultMachine.DeepCopy()
-			}
-
-			bootstrapConfig := &unstructured.Unstructured{Object: tc.bootstrapConfig}
-			infraConfig := &unstructured.Unstructured{Object: tc.infraConfig}
-			r := &MachineReconciler{
-				Client: fake.NewFakeClient(tc.machine, bootstrapConfig, infraConfig),
-				Log:    log.Log,
-			}
-
-			res, err := r.reconcile(context.Background(), nil, tc.machine)
-			r.reconcilePhase(context.Background(), tc.machine)
-			if tc.expectError {
-				g.Expect(err).ToNot(gomega.BeNil())
-			} else if tc.expectRequeueAfter {
-				g.Expect(res.Requeue).To(gomega.BeTrue())
-				g.Expect(res.RequeueAfter.Seconds() > 0).To(gomega.BeTrue())
-			} else if !tc.expectError {
-				g.Expect(err).To(gomega.BeNil())
-			}
-
-			if tc.expected != nil {
-				tc.expected(g, tc.machine)
-			}
-
-			// Test that externalWatchers detected the new kinds.
-			if tc.machine.DeletionTimestamp.IsZero() {
-				_, ok := r.externalWatchers.Load(bootstrapConfig.GroupVersionKind().String())
-				g.Expect(ok).To(gomega.BeTrue())
-				_, ok = r.externalWatchers.Load(infraConfig.GroupVersionKind().String())
-				g.Expect(ok).To(gomega.BeTrue())
-			}
-		})
-
+	defaultInfra := &unstructured.Unstructured{
+		Object: map[string]interface{}{
+			"kind":       "InfrastructureConfig",
+			"apiVersion": "infrastructure.cluster.x-k8s.io/v1alpha2",
+			"metadata": map[string]interface{}{
+				"name":      "infra-config1",
+				"namespace": "default",
+			},
+			"spec":   map[string]interface{}{},
+			"status": map[string]interface{}{},
+		},
 	}
 
-}
+	BeforeEach(func() {
+		defaultKubeconfigSecret = kubeconfig.GenerateSecret(defaultCluster, kubeconfig.FromEnvTestConfig(cfg, defaultCluster))
+	})
+
+	It("Should set `Pending` with a new Machine", func() {
+		machine := defaultMachine.DeepCopy()
+		bootstrapConfig := defaultBootstrap.DeepCopy()
+		infraConfig := defaultInfra.DeepCopy()
+
+		r := &MachineReconciler{
+			Client: fake.NewFakeClient(defaultCluster, defaultKubeconfigSecret, machine, bootstrapConfig, infraConfig),
+			Log:    log.Log,
+		}
+
+		res, err := r.reconcile(context.Background(), defaultCluster, machine)
+		Expect(err).NotTo(HaveOccurred())
+		Expect(res.Requeue).To(BeTrue())
+
+		r.reconcilePhase(context.Background(), machine)
+		Expect(machine.Status.GetTypedPhase()).To(Equal(clusterv1.MachinePhasePending))
+	})
+
+	It("Should set `Provisioning` when bootstrap is ready", func() {
+		machine := defaultMachine.DeepCopy()
+		bootstrapConfig := defaultBootstrap.DeepCopy()
+		infraConfig := defaultInfra.DeepCopy()
+
+		// Set bootstrap ready.
+		unstructured.SetNestedField(bootstrapConfig.Object, true, "status", "ready")
+		unstructured.SetNestedField(bootstrapConfig.Object, "...", "status", "bootstrapData")
+
+		r := &MachineReconciler{
+			Client: fake.NewFakeClient(defaultCluster, defaultKubeconfigSecret, machine, bootstrapConfig, infraConfig),
+			Log:    log.Log,
+		}
+
+		res, err := r.reconcile(context.Background(), defaultCluster, machine)
+		Expect(err).NotTo(HaveOccurred())
+		Expect(res.Requeue).To(BeTrue())
+
+		r.reconcilePhase(context.Background(), machine)
+		Expect(machine.Status.GetTypedPhase()).To(Equal(clusterv1.MachinePhaseProvisioning))
+	})
+
+	It("Should set `Provisioned` when bootstrap and infra is ready", func() {
+		machine := defaultMachine.DeepCopy()
+		bootstrapConfig := defaultBootstrap.DeepCopy()
+		infraConfig := defaultInfra.DeepCopy()
+
+		// Set bootstrap ready.
+		unstructured.SetNestedField(bootstrapConfig.Object, true, "status", "ready")
+		unstructured.SetNestedField(bootstrapConfig.Object, "...", "status", "bootstrapData")
+
+		// Set infra ready.
+		unstructured.SetNestedField(infraConfig.Object, true, "status", "ready")
+		unstructured.SetNestedField(infraConfig.Object, "test://id-1", "spec", "providerID")
+		unstructured.SetNestedField(infraConfig.Object, []interface{}{
+			map[string]interface{}{
+				"type":    "InternalIP",
+				"address": "10.0.0.1",
+			},
+			map[string]interface{}{
+				"type":    "InternalIP",
+				"address": "10.0.0.2",
+			},
+		}, "status", "addresses")
+
+		r := &MachineReconciler{
+			Client: fake.NewFakeClient(defaultCluster, defaultKubeconfigSecret, machine, bootstrapConfig, infraConfig),
+			Log:    log.Log,
+		}
+
+		res, err := r.reconcile(context.Background(), defaultCluster, machine)
+		Expect(err).NotTo(HaveOccurred())
+		Expect(res.Requeue).To(BeTrue())
+		Expect(machine.Status.Addresses).To(HaveLen(2))
+
+		r.reconcilePhase(context.Background(), machine)
+		Expect(machine.Status.GetTypedPhase()).To(Equal(clusterv1.MachinePhaseProvisioned))
+	})
+
+	It("Should set `Provisioned` when bootstrap and infra is ready with no Status.Addresses", func() {
+		machine := defaultMachine.DeepCopy()
+		bootstrapConfig := defaultBootstrap.DeepCopy()
+		infraConfig := defaultInfra.DeepCopy()
+
+		// Set bootstrap ready.
+		unstructured.SetNestedField(bootstrapConfig.Object, true, "status", "ready")
+		unstructured.SetNestedField(bootstrapConfig.Object, "...", "status", "bootstrapData")
+
+		// Set infra ready.
+		unstructured.SetNestedField(infraConfig.Object, true, "status", "ready")
+		unstructured.SetNestedField(infraConfig.Object, "test://id-1", "spec", "providerID")
+
+		r := &MachineReconciler{
+			Client: fake.NewFakeClient(defaultCluster, defaultKubeconfigSecret, machine, bootstrapConfig, infraConfig),
+			Log:    log.Log,
+		}
+
+		res, err := r.reconcile(context.Background(), defaultCluster, machine)
+		Expect(err).NotTo(HaveOccurred())
+		Expect(res.Requeue).To(BeTrue())
+		Expect(machine.Status.Addresses).To(HaveLen(0))
+
+		r.reconcilePhase(context.Background(), machine)
+		Expect(machine.Status.GetTypedPhase()).To(Equal(clusterv1.MachinePhaseProvisioned))
+	})
+
+	It("Should set `Running` when bootstrap, infra, and NodeRef is ready", func() {
+		machine := defaultMachine.DeepCopy()
+		bootstrapConfig := defaultBootstrap.DeepCopy()
+		infraConfig := defaultInfra.DeepCopy()
+
+		// Set bootstrap ready.
+		unstructured.SetNestedField(bootstrapConfig.Object, true, "status", "ready")
+		unstructured.SetNestedField(bootstrapConfig.Object, "...", "status", "bootstrapData")
+
+		// Set infra ready.
+		unstructured.SetNestedField(infraConfig.Object, "test://id-1", "spec", "providerID")
+		unstructured.SetNestedField(infraConfig.Object, true, "status", "ready")
+		unstructured.SetNestedField(infraConfig.Object, []interface{}{
+			map[string]interface{}{
+				"type":    "InternalIP",
+				"address": "10.0.0.1",
+			},
+			map[string]interface{}{
+				"type":    "InternalIP",
+				"address": "10.0.0.2",
+			},
+		}, "addresses")
+
+		// Set NodeRef.
+		machine.Status.NodeRef = &corev1.ObjectReference{Kind: "Node", Name: "machine-test-node"}
+
+		r := &MachineReconciler{
+			Client: fake.NewFakeClient(defaultCluster, defaultKubeconfigSecret, machine, bootstrapConfig, infraConfig),
+			Log:    log.Log,
+		}
+
+		res, err := r.reconcile(context.Background(), defaultCluster, machine)
+		Expect(err).NotTo(HaveOccurred())
+		Expect(res.Requeue).To(BeFalse())
+
+		r.reconcilePhase(context.Background(), machine)
+		Expect(machine.Status.GetTypedPhase()).To(Equal(clusterv1.MachinePhaseRunning))
+	})
+
+	It("Should set `Deleting` when Machine is being deleted", func() {
+		machine := defaultMachine.DeepCopy()
+		bootstrapConfig := defaultBootstrap.DeepCopy()
+		infraConfig := defaultInfra.DeepCopy()
+
+		// Set bootstrap ready.
+		unstructured.SetNestedField(bootstrapConfig.Object, true, "status", "ready")
+		unstructured.SetNestedField(bootstrapConfig.Object, "...", "status", "bootstrapData")
+
+		// Set infra ready.
+		unstructured.SetNestedField(infraConfig.Object, "test://id-1", "spec", "providerID")
+		unstructured.SetNestedField(infraConfig.Object, true, "status", "ready")
+		unstructured.SetNestedField(infraConfig.Object, []interface{}{
+			map[string]interface{}{
+				"type":    "InternalIP",
+				"address": "10.0.0.1",
+			},
+			map[string]interface{}{
+				"type":    "InternalIP",
+				"address": "10.0.0.2",
+			},
+		}, "addresses")
+
+		// Set NodeRef.
+		machine.Status.NodeRef = &corev1.ObjectReference{Kind: "Node", Name: "machine-test-node"}
+
+		// Set Deletion Timestamp.
+		machine.SetDeletionTimestamp(&deletionTimestamp)
+
+		r := &MachineReconciler{
+			Client: fake.NewFakeClient(defaultCluster, defaultKubeconfigSecret, machine, bootstrapConfig, infraConfig),
+			Log:    log.Log,
+		}
+
+		res, err := r.reconcile(context.Background(), defaultCluster, machine)
+		Expect(err).NotTo(HaveOccurred())
+		Expect(res.Requeue).To(BeFalse())
+
+		r.reconcilePhase(context.Background(), machine)
+		Expect(machine.Status.GetTypedPhase()).To(Equal(clusterv1.MachinePhaseDeleting))
+	})
+})
 
 func TestReconcileBootstrap(t *testing.T) {
 	defaultMachine := clusterv1.Machine{

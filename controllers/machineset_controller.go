@@ -146,20 +146,22 @@ func (r *MachineSetReconciler) reconcile(ctx context.Context, machineSet *cluste
 		return ctrl.Result{}, errors.Wrap(err, "failed to list machines")
 	}
 
-	// Cluster might be nil as some providers might not require a cluster object
-	// for machine management.
+	// Reconcile and retrieve the Cluster object.
+	if machineSet.Labels == nil {
+		machineSet.Labels = make(map[string]string)
+	}
+	machineSet.Labels[clusterv1.MachineClusterLabelName] = machineSet.Spec.ClusterName
+
 	cluster, err := util.GetClusterFromMetadata(ctx, r.Client, machineSet.ObjectMeta)
-	if errors.Cause(err) == util.ErrNoCluster {
-		klog.V(2).Infof("MachineSet %q in namespace %q doesn't specify %q label, assuming nil cluster", machineSet.Name, machineSet.Namespace, clusterv1.MachineClusterLabelName)
-	} else if err != nil {
+	if err != nil {
 		return ctrl.Result{}, err
 	}
 
-	if cluster != nil && r.shouldAdopt(machineSet) {
+	if r.shouldAdopt(machineSet) {
 		patch := client.MergeFrom(machineSet.DeepCopy())
 		machineSet.OwnerReferences = util.EnsureOwnerRef(machineSet.OwnerReferences, metav1.OwnerReference{
-			APIVersion: cluster.APIVersion,
-			Kind:       cluster.Kind,
+			APIVersion: clusterv1.GroupVersion.String(),
+			Kind:       "Cluster",
 			Name:       cluster.Name,
 			UID:        cluster.UID,
 		})
@@ -381,6 +383,7 @@ func (r *MachineSetReconciler) getNewMachine(machineSet *clusterv1.MachineSet) *
 	machine.ObjectMeta.GenerateName = fmt.Sprintf("%s-", machineSet.Name)
 	machine.ObjectMeta.OwnerReferences = []metav1.OwnerReference{*metav1.NewControllerRef(machineSet, machineSetKind)}
 	machine.Namespace = machineSet.Namespace
+	machine.Spec.ClusterName = machineSet.Spec.ClusterName
 	return machine
 }
 

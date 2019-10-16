@@ -150,6 +150,7 @@ func (r *MachineDeploymentReconciler) getNewMachineSet(d *clusterv1.MachineDeplo
 			OwnerReferences: []metav1.OwnerReference{*metav1.NewControllerRef(d, machineDeploymentKind)},
 		},
 		Spec: clusterv1.MachineSetSpec{
+			ClusterName:     d.Spec.ClusterName,
 			Replicas:        new(int32),
 			MinReadySeconds: minReadySeconds,
 			Selector:        *newMSSelector,

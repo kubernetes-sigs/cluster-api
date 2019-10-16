@@ -115,13 +115,14 @@ func (r *MachineReconciler) Reconcile(req ctrl.Request) (_ ctrl.Result, reterr e
 		}
 	}()
 
-	// Cluster might be nil as some providers might not require a cluster object
-	// for machine management.
+	// Reconcile and retrieve the Cluster object.
+	if m.Labels == nil {
+		m.Labels = make(map[string]string)
+	}
+	m.Labels[clusterv1.MachineClusterLabelName] = m.Spec.ClusterName
+
 	cluster, err := util.GetClusterFromMetadata(ctx, r.Client, m.ObjectMeta)
-	if errors.Cause(err) == util.ErrNoCluster {
-		klog.V(2).Infof("Machine %q in namespace %q doesn't specify %q label, assuming nil cluster",
-			m.Name, m.Namespace, clusterv1.MachineClusterLabelName)
-	} else if err != nil {
+	if err != nil {
 		return ctrl.Result{}, errors.Wrapf(err, "failed to get cluster %q for machine %q in namespace %q",
 			m.Labels[clusterv1.MachineClusterLabelName], m.Name, m.Namespace)
 	}
@@ -137,10 +138,10 @@ func (r *MachineReconciler) Reconcile(req ctrl.Request) (_ ctrl.Result, reterr e
 
 func (r *MachineReconciler) reconcile(ctx context.Context, cluster *clusterv1.Cluster, m *clusterv1.Machine) (ctrl.Result, error) {
 	// If the Machine belongs to a cluster, add an owner reference.
-	if cluster != nil && r.shouldAdopt(m) {
+	if r.shouldAdopt(m) {
 		m.OwnerReferences = util.EnsureOwnerRef(m.OwnerReferences, metav1.OwnerReference{
-			APIVersion: cluster.APIVersion,
-			Kind:       cluster.Kind,
+			APIVersion: clusterv1.GroupVersion.String(),
+			Kind:       "Cluster",
 			Name:       cluster.Name,
 			UID:        cluster.UID,
 		})

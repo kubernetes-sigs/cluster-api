@@ -442,6 +442,11 @@ spec:
                       state.
                     type: string
                 type: object
+              clusterName:
+                description: ClusterName is the name of the Cluster this object belongs
+                  to.
+                minLength: 1
+                type: string
               infrastructureRef:
                 description: InfrastructureRef is a required reference to a custom
                   resource offered by an infrastructure provider.
@@ -501,6 +506,7 @@ spec:
                 type: string
             required:
             - bootstrap
+            - clusterName
             - infrastructureRef
             type: object
           status:

@@ -136,23 +136,26 @@ func (r *MachineDeploymentReconciler) reconcile(ctx context.Context, d *clusterv
 	// This is necessary for CRDs including scale subresources.
 	d.Status.Selector = selector.String()
 
-	// Cluster might be nil as some providers might not require a cluster object
-	// for machine management.
+	// Reconcile and retrieve the Cluster object.
+	if d.Labels == nil {
+		d.Labels = make(map[string]string)
+	}
+	d.Labels[clusterv1.MachineClusterLabelName] = d.Spec.ClusterName
+
 	cluster, err := util.GetClusterFromMetadata(ctx, r.Client, d.ObjectMeta)
-	if errors.Cause(err) == util.ErrNoCluster {
-		klog.V(2).Infof("MachineDeployment %q in namespace %q doesn't specify %q label, assuming nil Cluster", d.Name, d.Namespace, clusterv1.MachineClusterLabelName)
-	} else if err != nil {
+	if err != nil {
 		return ctrl.Result{}, err
 	}
 
-	if cluster != nil && r.shouldAdopt(d) {
+	if r.shouldAdopt(d) {
 		patch := client.MergeFrom(d.DeepCopy())
 		d.OwnerReferences = util.EnsureOwnerRef(d.OwnerReferences, metav1.OwnerReference{
-			APIVersion: cluster.APIVersion,
-			Kind:       cluster.Kind,
+			APIVersion: clusterv1.GroupVersion.String(),
+			Kind:       "Cluster",
 			Name:       cluster.Name,
 			UID:        cluster.UID,
 		})
+
 		// Patch using a deep copy to avoid overwriting any unexpected Status changes from the returned result
 		if err := r.Client.Patch(ctx, d.DeepCopy(), patch); err != nil {
 			return ctrl.Result{}, errors.Wrapf(err, "Failed to add OwnerReference to MachineDeployment %s/%s", d.Namespace, d.Name)

@@ -294,6 +294,7 @@ verify:
 	./hack/verify-doctoc.sh
 	$(MAKE) verify-modules
 	$(MAKE) verify-gen
+	$(MAKE) verify-modules
 
 .PHONY: verify-modules
 verify-modules: modules

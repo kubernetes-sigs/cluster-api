@@ -522,6 +522,11 @@ spec:
           spec:
             description: MachineSetSpec defines the desired state of MachineSet
             properties:
+              clusterName:
+                description: ClusterName is the name of the Cluster this object belongs
+                  to.
+                minLength: 1
+                type: string
               deletePolicy:
                 description: DeletePolicy defines the policy used to identify nodes
                   to delete when downscaling. Defaults to "Random".  Valid values
@@ -751,6 +756,11 @@ spec:
                               remain in the Pending state.
                             type: string
                         type: object
+                      clusterName:
+                        description: ClusterName is the name of the Cluster this object
+                          belongs to.
+                        minLength: 1
+                        type: string
                       infrastructureRef:
                         description: InfrastructureRef is a required reference to
                           a custom resource offered by an infrastructure provider.
@@ -813,10 +823,12 @@ spec:
                         type: string
                     required:
                     - bootstrap
+                    - clusterName
                     - infrastructureRef
                     type: object
                 type: object
             required:
+            - clusterName
             - selector
             type: object
           status:

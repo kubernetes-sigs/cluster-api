@@ -225,7 +225,7 @@ func (r *MachineReconciler) reconcileInfrastructure(ctx context.Context, m *clus
 	// Get Spec.ProviderID from the infrastructure provider.
 	var providerID string
 	if err := util.UnstructuredUnmarshalField(infraConfig, &providerID, "spec", "providerID"); err != nil {
-		return errors.Wrapf(err, "failed to retrieve data from infrastructure provider for Machine %q in namespace %q", m.Name, m.Namespace)
+		return errors.Wrapf(err, "failed to retrieve Spec.ProviderID from infrastructure provider for Machine %q in namespace %q", m.Name, m.Namespace)
 	} else if providerID == "" {
 		return errors.Errorf("retrieved empty Spec.ProviderID from infrastructure provider for Machine %q in namespace %q", m.Name, m.Namespace)
 	}

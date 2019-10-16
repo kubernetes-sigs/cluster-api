@@ -7,6 +7,8 @@ support v1alpha2 API types.
 
 ## Bootstrap
 - [**Kubeadm**](https://github.com/kubernetes-sigs/cluster-api-bootstrap-provider-kubeadm)
+- [**Talos**](https://github.com/talos-systems/cluster-api-bootstrap-provider-talos)
+
 
 ## Infrastructure
 - [**AWS**](https://github.com/kubernetes-sigs/cluster-api-provider-aws)
@@ -19,7 +21,6 @@ support v1alpha2 API types.
 - [IBM Cloud](https://github.com/kubernetes-sigs/cluster-api-provider-ibmcloud)
 - [OpenStack](https://github.com/kubernetes-sigs/cluster-api-provider-openstack)
 - [Packet](https://github.com/packethost/cluster-api-provider-packet)
-- [Talos](https://github.com/talos-systems/cluster-api-provider-talos)
 - [Tencent Cloud](https://github.com/TencentCloud/cluster-api-provider-tencent)
 - [**vSphere**](https://github.com/kubernetes-sigs/cluster-api-provider-vsphere)
 

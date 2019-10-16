@@ -559,6 +559,11 @@ spec:
           spec:
             description: MachineDeploymentSpec defines the desired state of MachineDeployment
             properties:
+              clusterName:
+                description: ClusterName is the name of the Cluster this object belongs
+                  to.
+                minLength: 1
+                type: string
               minReadySeconds:
                 description: Minimum number of seconds for which a newly created machine
                   should be ready. Defaults to 0 (machine will be considered available
@@ -839,6 +844,11 @@ spec:
                               remain in the Pending state.
                             type: string
                         type: object
+                      clusterName:
+                        description: ClusterName is the name of the Cluster this object
+                          belongs to.
+                        minLength: 1
+                        type: string
                       infrastructureRef:
                         description: InfrastructureRef is a required reference to
                           a custom resource offered by an infrastructure provider.
@@ -901,10 +911,12 @@ spec:
                         type: string
                     required:
                     - bootstrap
+                    - clusterName
                     - infrastructureRef
                     type: object
                 type: object
             required:
+            - clusterName
             - selector
             - template
             type: object

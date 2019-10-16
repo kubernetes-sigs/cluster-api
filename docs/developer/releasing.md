@@ -3,6 +3,9 @@
 <!-- DON'T EDIT THIS SECTION, INSTEAD RE-RUN doctoc TO UPDATE -->
 
 
+- [Prerequisites](#prerequisites)
+  - [`gcloud`](#gcloud)
+  - [`docker`](#docker)
 - [Output](#output)
   - [Expected artifacts](#expected-artifacts)
   - [Artifact locations](#artifact-locations)
@@ -10,6 +13,20 @@
   - [Permissions](#permissions)
 
 <!-- END doctoc generated TOC please keep comment here to allow auto update -->
+
+## Prerequisites
+
+### `gcloud`
+
+With gcloud, run `gcloud auth login` and select your account [listed here](https://github.com/kubernetes/k8s.io/blob/05ada8c9ff90e7921e10d86ac5d59f5c1f4f74dc/groups/groups.yaml#L113). Open a PR if your account is not listed there but you believe it should be.
+
+### `docker`
+
+Enable the [experimental features for the docker CLI](https://docs.docker.com/engine/reference/commandline/cli/#environment-variables) by setting the appropriate environment variable.
+
+```
+export DOCKER_CLI_EXPERIMENTAL=enabled
+```
 
 ## Output
 

@@ -124,11 +124,12 @@ generate: $(CONTROLLER_GEN) ## Generate code
 generate-go: $(CONTROLLER_GEN) $(CONVERSION_GEN) ## Runs Go related generate targets
 	$(CONTROLLER_GEN) \
 		object:headerFile=./hack/boilerplate/boilerplate.generatego.txt \
-		paths=./api/...
+		paths=./api/... \
+		paths=./bootstrap/kubeadm/api/...
 	$(CONVERSION_GEN) \
-    --input-dirs=./api/v1alpha2 \
-    --output-file-base=zz_generated.conversion \
-    --go-header-file=./hack/boilerplate/boilerplate.generatego.txt
+		--input-dirs=./api/v1alpha2 \
+		--output-file-base=zz_generated.conversion \
+		--go-header-file=./hack/boilerplate/boilerplate.generatego.txt
 
 .PHONY: generate-manifests
 generate-manifests: $(CONTROLLER_GEN) ## Generate manifests e.g. CRD, RBAC etc.
@@ -137,6 +138,11 @@ generate-manifests: $(CONTROLLER_GEN) ## Generate manifests e.g. CRD, RBAC etc.
 		paths=./controllers/... \
 		crd \
 		rbac:roleName=manager-role \
+		output:crd:dir=./config/crd/bases
+	$(CONTROLLER_GEN) \
+		paths=./bootstrap/kubeadm/api/... \
+		paths=./bootstrap/kubeadm/controllers/... \
+		crd:trivialVersions=true \
 		output:crd:dir=./config/crd/bases
 	## Copy files in CI folders.
 	cp -f ./config/rbac/*.yaml ./config/ci/rbac/
@@ -286,7 +292,6 @@ clean-release: ## Remove the release folder
 verify:
 	./hack/verify-boilerplate.sh
 	./hack/verify-doctoc.sh
-	./hack/verify-generated-files.sh
 	$(MAKE) verify-modules
 	$(MAKE) verify-gen
 

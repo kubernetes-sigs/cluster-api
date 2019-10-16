@@ -41,8 +41,8 @@ func Get(ctx context.Context, c client.Client, ref *corev1.ObjectReference, name
 }
 
 // CloneTemplate uses the client and the reference to create a new object from the template.
-func CloneTemplate(c client.Client, ref *corev1.ObjectReference, namespace string) (*unstructured.Unstructured, error) {
-	from, err := Get(context.TODO(), c, ref, namespace)
+func CloneTemplate(ctx context.Context, c client.Client, ref *corev1.ObjectReference, namespace string) (*unstructured.Unstructured, error) {
+	from, err := Get(ctx, c, ref, namespace)
 	if err != nil {
 		return nil, err
 	}

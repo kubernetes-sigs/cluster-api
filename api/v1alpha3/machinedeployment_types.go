@@ -33,6 +33,10 @@ const (
 
 // MachineDeploymentSpec defines the desired state of MachineDeployment
 type MachineDeploymentSpec struct {
+	// ClusterName is the name of the Cluster this object belongs to.
+	// +kubebuilder:validation:MinLength=1
+	ClusterName string `json:"clusterName"`
+
 	// Number of desired machines. Defaults to 1.
 	// This is a pointer to distinguish between explicit zero and not specified.
 	Replicas *int32 `json:"replicas,omitempty"`

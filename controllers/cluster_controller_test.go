@@ -26,6 +26,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/utils/pointer"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha3"
+	"sigs.k8s.io/cluster-api/util/kubeconfig"
 	"sigs.k8s.io/cluster-api/util/patch"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -231,6 +232,7 @@ var _ = Describe("Cluster Reconciler", func() {
 		Expect(k8sClient.Create(ctx, cluster)).To(BeNil())
 		key := client.ObjectKey{Name: cluster.Name, Namespace: cluster.Namespace}
 		defer k8sClient.Delete(ctx, cluster)
+		Expect(kubeconfig.CreateEnvTestSecret(k8sClient, cfg, cluster)).To(Succeed())
 
 		// Wait for reconciliation to happen.
 		Eventually(func() bool {
@@ -245,12 +247,12 @@ var _ = Describe("Cluster Reconciler", func() {
 				GenerateName: "test-",
 				Namespace:    v1.NamespaceDefault,
 				Labels: map[string]string{
-					clusterv1.MachineControlPlaneLabelName: cluster.Name,
-					clusterv1.MachineClusterLabelName:      cluster.Name,
+					clusterv1.MachineControlPlaneLabelName: "true",
 				},
 			},
 			Spec: clusterv1.MachineSpec{
-				ProviderID: pointer.StringPtr("aws:///id-node-1"),
+				ClusterName: cluster.Name,
+				ProviderID:  pointer.StringPtr("aws:///id-node-1"),
 				Bootstrap: clusterv1.Bootstrap{
 					Data: pointer.StringPtr(""),
 				},

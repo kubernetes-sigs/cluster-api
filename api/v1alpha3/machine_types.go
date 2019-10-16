@@ -40,6 +40,9 @@ const (
 
 // MachineSpec defines the desired state of Machine
 type MachineSpec struct {
+	// ClusterName is the name of the Cluster this object belongs to.
+	// +kubebuilder:validation:MinLength=1
+	ClusterName string `json:"clusterName"`
 
 	// Bootstrap is a reference to a local struct which encapsulates
 	// fields to configure the Machine’s bootstrapping mechanism.

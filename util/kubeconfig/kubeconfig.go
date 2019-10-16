@@ -130,7 +130,12 @@ func CreateSecret(ctx context.Context, c client.Client, cluster *clusterv1.Clust
 		return errors.Wrap(err, "failed to serialize config to yaml")
 	}
 
-	s := &corev1.Secret{
+	return c.Create(ctx, GenerateSecret(cluster, out))
+}
+
+// GenerateSecret returns a Kubernetes secret for the given Cluster and kubeconfig data.
+func GenerateSecret(cluster *clusterv1.Cluster, data []byte) *corev1.Secret {
+	return &corev1.Secret{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      secret.Name(cluster.Name, secret.Kubeconfig),
 			Namespace: cluster.Namespace,
@@ -144,8 +149,7 @@ func CreateSecret(ctx context.Context, c client.Client, cluster *clusterv1.Clust
 			},
 		},
 		Data: map[string][]byte{
-			secret.KubeconfigDataName: out,
+			secret.KubeconfigDataName: data,
 		},
 	}
-	return c.Create(ctx, s)
 }

@@ -30,6 +30,10 @@ import (
 
 // MachineSetSpec defines the desired state of MachineSet
 type MachineSetSpec struct {
+	// ClusterName is the name of the Cluster this object belongs to.
+	// +kubebuilder:validation:MinLength=1
+	ClusterName string `json:"clusterName"`
+
 	// Replicas is the number of desired replicas.
 	// This is a pointer to distinguish between explicit zero and unspecified.
 	// Defaults to 1.

@@ -33,6 +33,7 @@ import (
 	"k8s.io/client-go/tools/record"
 	"k8s.io/utils/pointer"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha3"
+	"sigs.k8s.io/cluster-api/util/kubeconfig"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 	"sigs.k8s.io/controller-runtime/pkg/handler"
@@ -44,13 +45,22 @@ var _ reconcile.Reconciler = &MachineSetReconciler{}
 
 var _ = Describe("MachineSet Reconciler", func() {
 	namespace := &corev1.Namespace{ObjectMeta: metav1.ObjectMeta{Name: "ms-test"}}
+	testCluster := &clusterv1.Cluster{ObjectMeta: metav1.ObjectMeta{Namespace: namespace.Name, Name: "test-cluster"}}
 
 	BeforeEach(func() {
-		Expect(k8sClient.Create(ctx, namespace)).NotTo(HaveOccurred())
+		By("Creating the namespace")
+		Expect(k8sClient.Create(ctx, namespace)).To(Succeed())
+		By("Creating the Cluster")
+		Expect(k8sClient.Create(ctx, testCluster)).To(Succeed())
+		By("Creating the Cluster Kubeconfig Secret")
+		Expect(kubeconfig.CreateEnvTestSecret(k8sClient, cfg, testCluster)).To(Succeed())
 	})
 
 	AfterEach(func() {
-		Expect(k8sClient.Delete(ctx, namespace)).NotTo(HaveOccurred())
+		By("Deleting the Cluster")
+		Expect(k8sClient.Delete(ctx, testCluster)).To(Succeed())
+		By("Deleting the namespace")
+		Expect(k8sClient.Delete(ctx, namespace)).To(Succeed())
 	})
 
 	It("Should reconcile a MachineSet", func() {
@@ -62,7 +72,8 @@ var _ = Describe("MachineSet Reconciler", func() {
 				Namespace:    namespace.Name,
 			},
 			Spec: clusterv1.MachineSetSpec{
-				Replicas: &replicas,
+				ClusterName: testCluster.Name,
+				Replicas:    &replicas,
 				Selector: metav1.LabelSelector{
 					MatchLabels: map[string]string{
 						"label-1": "true",
@@ -186,20 +197,9 @@ var _ = Describe("MachineSet Reconciler", func() {
 func TestMachineSetOwnerReference(t *testing.T) {
 	ml := &clusterv1.MachineList{}
 
-	clusterIncorrectMeta := &unstructured.Unstructured{
-		Object: map[string]interface{}{
-			"kind":       "my-kind",
-			"apiVersion": "my-api-version",
-			"metadata": map[string]interface{}{
-				"name":      "invalid-cluster",
-				"namespace": "default",
-			},
-		},
-	}
-
-	clusterCorrectMeta := &clusterv1.Cluster{
+	testCluster := &clusterv1.Cluster{
 		TypeMeta:   metav1.TypeMeta{Kind: "Cluster", APIVersion: clusterv1.GroupVersion.String()},
-		ObjectMeta: metav1.ObjectMeta{Namespace: "default", Name: "valid-cluster"},
+		ObjectMeta: metav1.ObjectMeta{Namespace: "default", Name: "test-cluster"},
 	}
 
 	ms1 := newMachineSet("machineset1", "valid-cluster")
@@ -231,23 +231,12 @@ func TestMachineSetOwnerReference(t *testing.T) {
 			ms: ms1,
 			expectedOR: []metav1.OwnerReference{
 				{
-					APIVersion: clusterCorrectMeta.APIVersion,
-					Kind:       clusterCorrectMeta.Kind,
-					Name:       clusterCorrectMeta.Name,
-					UID:        clusterCorrectMeta.UID,
+					APIVersion: testCluster.APIVersion,
+					Kind:       testCluster.Kind,
+					Name:       testCluster.Name,
+					UID:        testCluster.UID,
 				},
 			},
-		},
-		{
-			name: "should add not add cluster owner reference with incorrect meta",
-			request: reconcile.Request{
-				NamespacedName: types.NamespacedName{
-					Name:      ms2.Name,
-					Namespace: ms2.Namespace,
-				},
-			},
-			ms:                 ms2,
-			expectReconcileErr: true,
 		},
 		{
 			name: "should not add cluster owner reference if machine is owned by a machine deployment",
@@ -275,9 +264,8 @@ func TestMachineSetOwnerReference(t *testing.T) {
 			msr := &MachineSetReconciler{
 				Client: fake.NewFakeClientWithScheme(
 					scheme.Scheme,
+					testCluster,
 					ml,
-					clusterCorrectMeta,
-					clusterIncorrectMeta,
 					ms1,
 					ms2,
 					ms3,
@@ -636,7 +624,8 @@ func newMachineSet(name, cluster string) *clusterv1.MachineSet {
 			},
 		},
 		Spec: clusterv1.MachineSetSpec{
-			Replicas: &replicas,
+			ClusterName: "test-cluster",
+			Replicas:    &replicas,
 			Template: clusterv1.MachineTemplateSpec{
 				ObjectMeta: clusterv1.ObjectMeta{
 					Labels: map[string]string{

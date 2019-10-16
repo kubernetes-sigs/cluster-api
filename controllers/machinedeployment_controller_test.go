@@ -29,6 +29,7 @@ import (
 	"k8s.io/client-go/tools/record"
 	"k8s.io/utils/pointer"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha3"
+	"sigs.k8s.io/cluster-api/util/kubeconfig"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 	"sigs.k8s.io/controller-runtime/pkg/handler"
@@ -40,13 +41,20 @@ var _ reconcile.Reconciler = &MachineDeploymentReconciler{}
 
 var _ = Describe("MachineDeployment Reconciler", func() {
 	namespace := &corev1.Namespace{ObjectMeta: metav1.ObjectMeta{Name: "md-test"}}
+	testCluster := &clusterv1.Cluster{ObjectMeta: metav1.ObjectMeta{Namespace: namespace.Name, Name: "test-cluster"}}
 
 	BeforeEach(func() {
 		By("Creating the namespace")
 		Expect(k8sClient.Create(ctx, namespace)).NotTo(HaveOccurred())
+		By("Creating the Cluster")
+		Expect(k8sClient.Create(ctx, testCluster)).NotTo(HaveOccurred())
+		By("Creating the Cluster Kubeconfig Secret")
+		Expect(kubeconfig.CreateEnvTestSecret(k8sClient, cfg, testCluster)).To(Succeed())
 	})
 
 	AfterEach(func() {
+		By("Deleting the Cluster")
+		Expect(k8sClient.Delete(ctx, testCluster)).NotTo(HaveOccurred())
 		By("Deleting the namespace")
 		Expect(k8sClient.Delete(ctx, namespace)).NotTo(HaveOccurred())
 	})
@@ -60,6 +68,7 @@ var _ = Describe("MachineDeployment Reconciler", func() {
 				Namespace:    namespace.Name,
 			},
 			Spec: clusterv1.MachineDeploymentSpec{
+				ClusterName:          testCluster.Name,
 				MinReadySeconds:      pointer.Int32Ptr(0),
 				Replicas:             pointer.Int32Ptr(2),
 				RevisionHistoryLimit: pointer.Int32Ptr(0),

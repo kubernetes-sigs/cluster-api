@@ -47,20 +47,20 @@ func TestMachineFinalizer(t *testing.T) {
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "machine1",
 			Namespace: "default",
-			Labels: map[string]string{
-				clusterv1.MachineClusterLabelName: "valid-cluster",
-			},
+		},
+		Spec: clusterv1.MachineSpec{
+			ClusterName: "valid-cluster",
 		},
 	}
 
 	machineWithFinalizer := &clusterv1.Machine{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      "machine2",
-			Namespace: "default",
-			Labels: map[string]string{
-				clusterv1.MachineClusterLabelName: "valid-cluster",
-			},
+			Name:       "machine2",
+			Namespace:  "default",
 			Finalizers: []string{"some-other-finalizer"},
+		},
+		Spec: clusterv1.MachineSpec{
+			ClusterName: "valid-cluster",
 		},
 	}
 
@@ -124,29 +124,18 @@ func TestMachineFinalizer(t *testing.T) {
 
 func TestMachineOwnerReference(t *testing.T) {
 	RegisterTestingT(t)
-	clusterIncorrectMeta := &unstructured.Unstructured{
-		Object: map[string]interface{}{
-			"kind":       "my-kind",
-			"apiVersion": "my-api-version",
-			"metadata": map[string]interface{}{
-				"name":      "invalid-cluster",
-				"namespace": "default",
-			},
-		},
-	}
-
-	clusterCorrectMeta := &clusterv1.Cluster{
+	testCluster := &clusterv1.Cluster{
 		TypeMeta:   metav1.TypeMeta{Kind: "Cluster", APIVersion: clusterv1.GroupVersion.String()},
-		ObjectMeta: metav1.ObjectMeta{Namespace: "default", Name: "valid-cluster"},
+		ObjectMeta: metav1.ObjectMeta{Namespace: "default", Name: "test-cluster"},
 	}
 
 	machineInvalidCluster := &clusterv1.Machine{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "machine1",
 			Namespace: "default",
-			Labels: map[string]string{
-				clusterv1.MachineClusterLabelName: "invalid-cluster",
-			},
+		},
+		Spec: clusterv1.MachineSpec{
+			ClusterName: "invalid",
 		},
 	}
 
@@ -154,11 +143,10 @@ func TestMachineOwnerReference(t *testing.T) {
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "machine2",
 			Namespace: "default",
-			Labels: map[string]string{
-				clusterv1.MachineClusterLabelName: "valid-cluster",
-			},
 		},
-		Spec: clusterv1.MachineSpec{},
+		Spec: clusterv1.MachineSpec{
+			ClusterName: "test-cluster",
+		},
 	}
 
 	machineValidMachine := &clusterv1.Machine{
@@ -176,7 +164,9 @@ func TestMachineOwnerReference(t *testing.T) {
 				},
 			},
 		},
-		Spec: clusterv1.MachineSpec{},
+		Spec: clusterv1.MachineSpec{
+			ClusterName: "test-cluster",
+		},
 	}
 
 	testCases := []struct {
@@ -185,16 +175,6 @@ func TestMachineOwnerReference(t *testing.T) {
 		m          *clusterv1.Machine
 		expectedOR []metav1.OwnerReference
 	}{
-		{
-			name: "should not add owner reference to machine referencing a cluster with incorrect type meta",
-			request: reconcile.Request{
-				NamespacedName: types.NamespacedName{
-					Name:      machineInvalidCluster.Name,
-					Namespace: machineInvalidCluster.Namespace,
-				},
-			},
-			m: machineInvalidCluster,
-		},
 		{
 			name: "should add owner reference to machine referencing a cluster with correct type meta",
 			request: reconcile.Request{
@@ -206,10 +186,10 @@ func TestMachineOwnerReference(t *testing.T) {
 			m: machineValidCluster,
 			expectedOR: []metav1.OwnerReference{
 				{
-					APIVersion: clusterCorrectMeta.APIVersion,
-					Kind:       clusterCorrectMeta.Kind,
-					Name:       clusterCorrectMeta.Name,
-					UID:        clusterCorrectMeta.UID,
+					APIVersion: testCluster.APIVersion,
+					Kind:       testCluster.Kind,
+					Name:       testCluster.Name,
+					UID:        testCluster.UID,
 				},
 			},
 		},
@@ -238,9 +218,8 @@ func TestMachineOwnerReference(t *testing.T) {
 			mr := &MachineReconciler{
 				Client: fake.NewFakeClientWithScheme(
 					scheme.Scheme,
-					clusterIncorrectMeta,
+					testCluster,
 					machineInvalidCluster,
-					clusterCorrectMeta,
 					machineValidCluster,
 					machineValidMachine,
 				),
@@ -263,6 +242,7 @@ func TestMachineOwnerReference(t *testing.T) {
 
 func TestReconcileRequest(t *testing.T) {
 	RegisterTestingT(t)
+	clusterv1.AddToScheme(scheme.Scheme)
 
 	infraConfig := unstructured.Unstructured{
 		Object: map[string]interface{}{
@@ -287,70 +267,12 @@ func TestReconcileRequest(t *testing.T) {
 		},
 	}
 
-	machine1 := clusterv1.Machine{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:       "create",
-			Namespace:  "default",
-			Finalizers: []string{clusterv1.MachineFinalizer, metav1.FinalizerDeleteDependents},
-		},
-		Spec: clusterv1.MachineSpec{
-			InfrastructureRef: corev1.ObjectReference{
-				APIVersion: "infrastructure.cluster.x-k8s.io/v1alpha2",
-				Kind:       "InfrastructureConfig",
-				Name:       "infra-config1",
-			},
-			Bootstrap: clusterv1.Bootstrap{Data: pointer.StringPtr("data")},
-		},
-	}
-
-	machine2 := clusterv1.Machine{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:       "update",
-			Namespace:  "default",
-			Finalizers: []string{clusterv1.MachineFinalizer, metav1.FinalizerDeleteDependents},
-		},
-		Spec: clusterv1.MachineSpec{
-			InfrastructureRef: corev1.ObjectReference{
-				APIVersion: "infrastructure.cluster.x-k8s.io/v1alpha2",
-				Kind:       "InfrastructureConfig",
-				Name:       "infra-config1",
-			},
-			Bootstrap: clusterv1.Bootstrap{Data: pointer.StringPtr("data")},
-		},
-	}
-
 	time := metav1.Now()
-	machine3 := clusterv1.Machine{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:              "delete",
-			Namespace:         "default",
-			Finalizers:        []string{clusterv1.MachineFinalizer, metav1.FinalizerDeleteDependents},
-			DeletionTimestamp: &time,
-		},
-		Spec: clusterv1.MachineSpec{
-			InfrastructureRef: corev1.ObjectReference{
-				APIVersion: "infrastructure.cluster.x-k8s.io/v1alpha2",
-				Kind:       "InfrastructureConfig",
-				Name:       "infra-config1",
-			},
-			Bootstrap: clusterv1.Bootstrap{Data: pointer.StringPtr("data")},
-		},
-	}
 
-	clusterList := clusterv1.ClusterList{
-		Items: []clusterv1.Cluster{
-			{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      "testcluster",
-					Namespace: "default",
-				},
-			},
-			{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      "rainbow",
-					Namespace: "foo",
-				},
-			},
+	testCluster := clusterv1.Cluster{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "test-cluster",
+			Namespace: "default",
 		},
 	}
 
@@ -359,25 +281,84 @@ func TestReconcileRequest(t *testing.T) {
 		err    bool
 	}
 	testCases := []struct {
-		request  reconcile.Request
+		machine  clusterv1.Machine
 		expected expected
 	}{
 		{
-			request: reconcile.Request{NamespacedName: types.NamespacedName{Name: machine1.Name, Namespace: machine1.Namespace}},
+			machine: clusterv1.Machine{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:       "created",
+					Namespace:  "default",
+					Finalizers: []string{clusterv1.MachineFinalizer, metav1.FinalizerDeleteDependents},
+				},
+				Spec: clusterv1.MachineSpec{
+					ClusterName: "test-cluster",
+					InfrastructureRef: corev1.ObjectReference{
+						APIVersion: "infrastructure.cluster.x-k8s.io/v1alpha2",
+						Kind:       "InfrastructureConfig",
+						Name:       "infra-config1",
+					},
+					Bootstrap: clusterv1.Bootstrap{Data: pointer.StringPtr("data")},
+				},
+				Status: clusterv1.MachineStatus{
+					NodeRef: &corev1.ObjectReference{
+						Name: "test",
+					},
+				},
+			},
 			expected: expected{
 				result: reconcile.Result{},
 				err:    false,
 			},
 		},
 		{
-			request: reconcile.Request{NamespacedName: types.NamespacedName{Name: machine2.Name, Namespace: machine2.Namespace}},
+			machine: clusterv1.Machine{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:       "updated",
+					Namespace:  "default",
+					Finalizers: []string{clusterv1.MachineFinalizer, metav1.FinalizerDeleteDependents},
+				},
+				Spec: clusterv1.MachineSpec{
+					ClusterName: "test-cluster",
+					InfrastructureRef: corev1.ObjectReference{
+						APIVersion: "infrastructure.cluster.x-k8s.io/v1alpha2",
+						Kind:       "InfrastructureConfig",
+						Name:       "infra-config1",
+					},
+					Bootstrap: clusterv1.Bootstrap{Data: pointer.StringPtr("data")},
+				},
+				Status: clusterv1.MachineStatus{
+					NodeRef: &corev1.ObjectReference{
+						Name: "test",
+					},
+				},
+			},
 			expected: expected{
 				result: reconcile.Result{},
 				err:    false,
 			},
 		},
 		{
-			request: reconcile.Request{NamespacedName: types.NamespacedName{Name: machine3.Name, Namespace: machine3.Namespace}},
+			machine: clusterv1.Machine{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "deleted",
+					Namespace: "default",
+					Labels: map[string]string{
+						clusterv1.MachineControlPlaneLabelName: "true",
+					},
+					Finalizers:        []string{clusterv1.MachineFinalizer, metav1.FinalizerDeleteDependents},
+					DeletionTimestamp: &time,
+				},
+				Spec: clusterv1.MachineSpec{
+					ClusterName: "test-cluster",
+					InfrastructureRef: corev1.ObjectReference{
+						APIVersion: "infrastructure.cluster.x-k8s.io/v1alpha2",
+						Kind:       "InfrastructureConfig",
+						Name:       "infra-config1",
+					},
+					Bootstrap: clusterv1.Bootstrap{Data: pointer.StringPtr("data")},
+				},
+			},
 			expected: expected{
 				result: reconcile.Result{},
 				err:    false,
@@ -386,31 +367,36 @@ func TestReconcileRequest(t *testing.T) {
 	}
 
 	for _, tc := range testCases {
-		clusterv1.AddToScheme(scheme.Scheme)
-		r := &MachineReconciler{
-			Client: fake.NewFakeClient(
-				&clusterList,
-				&machine1,
-				&machine2,
-				&machine3,
+		t.Run("machine should be "+tc.machine.Name, func(t *testing.T) {
+			client := fake.NewFakeClient(
+				&testCluster,
+				&tc.machine,
 				&infraConfig,
-			),
-			Log: log.Log,
-		}
+			)
 
-		result, err := r.Reconcile(tc.request)
-		if tc.expected.err {
-			Expect(err).ToNot(BeNil())
-		} else {
-			Expect(err).To(BeNil())
-		}
+			r := &MachineReconciler{
+				Client: client,
+				Log:    log.Log,
+			}
 
-		Expect(result).To(Equal(tc.expected.result))
+			result, err := r.Reconcile(reconcile.Request{NamespacedName: types.NamespacedName{Namespace: tc.machine.Namespace, Name: tc.machine.Name}})
+			if tc.expected.err {
+				Expect(err).ToNot(BeNil())
+			} else {
+				Expect(err).To(BeNil())
+			}
+
+			Expect(result).To(Equal(tc.expected.result))
+		})
 	}
 }
 
 func TestReconcileDeleteExternal(t *testing.T) {
 	RegisterTestingT(t)
+
+	testCluster := &clusterv1.Cluster{
+		ObjectMeta: metav1.ObjectMeta{Namespace: "default", Name: "test-cluster"},
+	}
 
 	bootstrapConfig := &unstructured.Unstructured{
 		Object: map[string]interface{}{
@@ -440,6 +426,7 @@ func TestReconcileDeleteExternal(t *testing.T) {
 			Namespace: "default",
 		},
 		Spec: clusterv1.MachineSpec{
+			ClusterName: "test-cluster",
 			InfrastructureRef: corev1.ObjectReference{
 				APIVersion: "infrastructure.cluster.x-k8s.io/v1alpha2",
 				Kind:       "InfrastructureConfig",
@@ -496,7 +483,7 @@ func TestReconcileDeleteExternal(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			clusterv1.AddToScheme(scheme.Scheme)
 
-			objs := []runtime.Object{machine}
+			objs := []runtime.Object{testCluster, machine}
 
 			if tc.bootstrapExists {
 				objs = append(objs, bootstrapConfig)
@@ -526,6 +513,11 @@ func TestRemoveMachineFinalizerAfterDeleteReconcile(t *testing.T) {
 	RegisterTestingT(t)
 	clusterv1.AddToScheme(scheme.Scheme)
 	dt := metav1.Now()
+
+	testCluster := &clusterv1.Cluster{
+		ObjectMeta: metav1.ObjectMeta{Namespace: "default", Name: "test-cluster"},
+	}
+
 	m := &clusterv1.Machine{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:              "delete123",
@@ -534,6 +526,7 @@ func TestRemoveMachineFinalizerAfterDeleteReconcile(t *testing.T) {
 			DeletionTimestamp: &dt,
 		},
 		Spec: clusterv1.MachineSpec{
+			ClusterName: "test-cluster",
 			InfrastructureRef: corev1.ObjectReference{
 				APIVersion: "infrastructure.cluster.x-k8s.io/v1alpha2",
 				Kind:       "InfrastructureConfig",
@@ -544,7 +537,7 @@ func TestRemoveMachineFinalizerAfterDeleteReconcile(t *testing.T) {
 	}
 	key := client.ObjectKey{Namespace: m.Namespace, Name: m.Name}
 	mr := &MachineReconciler{
-		Client: fake.NewFakeClientWithScheme(scheme.Scheme, m),
+		Client: fake.NewFakeClientWithScheme(scheme.Scheme, testCluster, m),
 		Log:    log.Log,
 	}
 	_, err := mr.Reconcile(reconcile.Request{NamespacedName: key})

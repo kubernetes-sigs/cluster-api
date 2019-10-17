@@ -63,7 +63,7 @@ func fakeMachineNodeRef(m *clusterv1.Machine) {
 	// Create a new fake Node.
 	node := &corev1.Node{
 		ObjectMeta: metav1.ObjectMeta{
-			GenerateName: "test-",
+			GenerateName: m.Name + "-",
 		},
 	}
 	Expect(k8sClient.Create(ctx, node)).ShouldNot(HaveOccurred())

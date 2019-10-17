@@ -40,7 +40,7 @@ var _ = Describe("Cluster Reconciler", func() {
 	It("Should create a Cluster", func() {
 		instance := &clusterv1.Cluster{
 			ObjectMeta: metav1.ObjectMeta{
-				GenerateName: "foo-",
+				GenerateName: "test1-",
 				Namespace:    "default",
 			},
 			Spec: clusterv1.ClusterSpec{},
@@ -67,7 +67,7 @@ var _ = Describe("Cluster Reconciler", func() {
 		// Setup
 		cluster := &clusterv1.Cluster{
 			ObjectMeta: metav1.ObjectMeta{
-				GenerateName: "test-",
+				GenerateName: "test2-",
 				Namespace:    "default",
 			},
 		}
@@ -110,7 +110,7 @@ var _ = Describe("Cluster Reconciler", func() {
 		// Setup
 		cluster := &clusterv1.Cluster{
 			ObjectMeta: metav1.ObjectMeta{
-				GenerateName: "test-",
+				GenerateName: "test3-",
 				Namespace:    "default",
 			},
 		}
@@ -152,7 +152,7 @@ var _ = Describe("Cluster Reconciler", func() {
 		// Setup
 		cluster := &clusterv1.Cluster{
 			ObjectMeta: metav1.ObjectMeta{
-				GenerateName: "test-",
+				GenerateName: "test4-",
 				Namespace:    "default",
 			},
 		}
@@ -196,7 +196,7 @@ var _ = Describe("Cluster Reconciler", func() {
 		// Setup
 		cluster := &clusterv1.Cluster{
 			ObjectMeta: metav1.ObjectMeta{
-				GenerateName: "test-",
+				GenerateName: "test5-",
 				Namespace:    "default",
 			},
 		}
@@ -239,7 +239,7 @@ var _ = Describe("Cluster Reconciler", func() {
 	It("Should successfully set Status.ControlPlaneInitialized on the cluster object if controlplane is ready", func() {
 		cluster := &clusterv1.Cluster{
 			ObjectMeta: metav1.ObjectMeta{
-				GenerateName: "test-",
+				GenerateName: "test6-",
 				Namespace:    v1.NamespaceDefault,
 			},
 		}
@@ -260,9 +260,22 @@ var _ = Describe("Cluster Reconciler", func() {
 			return len(cluster.Finalizers) > 0
 		}, timeout).Should(BeTrue())
 
+		// Create a node so we can speed up reconciliation. Otherwise, the machine reconciler will requeue the machine
+		// after 10 seconds, potentially slowing down this test.
+		node := &v1.Node{
+			ObjectMeta: metav1.ObjectMeta{
+				Name: "id-node-1",
+			},
+			Spec: v1.NodeSpec{
+				ProviderID: "aws:///id-node-1",
+			},
+		}
+
+		Expect(k8sClient.Create(ctx, node)).To(Succeed())
+
 		machine := &clusterv1.Machine{
 			ObjectMeta: metav1.ObjectMeta{
-				GenerateName: "test-",
+				GenerateName: "test6-",
 				Namespace:    v1.NamespaceDefault,
 				Labels: map[string]string{
 					clusterv1.MachineControlPlaneLabelName: "true",
@@ -291,13 +304,6 @@ var _ = Describe("Cluster Reconciler", func() {
 			}
 			return len(machine.Finalizers) > 0
 		}, timeout).Should(BeTrue())
-
-		// patch machine noderef
-		patchHelper, err := patch.NewHelper(machine, k8sClient)
-		Expect(err).NotTo(HaveOccurred())
-
-		machine.Status.NodeRef = &v1.ObjectReference{Kind: "Node", Name: "test-node"}
-		Expect(patchHelper.Patch(ctx, machine)).Should(BeNil())
 
 		// Assertion
 		key = client.ObjectKey{Name: cluster.Name, Namespace: cluster.Namespace}

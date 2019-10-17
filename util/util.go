@@ -52,7 +52,7 @@ const (
 
 var (
 	rnd                          = rand.New(rand.NewSource(time.Now().UnixNano()))
-	ErrNoCluster                 = fmt.Errorf("no %q label present", clusterv1.MachineClusterLabelName)
+	ErrNoCluster                 = fmt.Errorf("no %q label present", clusterv1.ClusterLabelName)
 	ErrUnstructuredFieldNotFound = fmt.Errorf("field not found")
 )
 
@@ -158,10 +158,10 @@ func IsNodeReady(node *v1.Node) bool {
 
 // GetClusterFromMetadata returns the Cluster object (if present) using the object metadata.
 func GetClusterFromMetadata(ctx context.Context, c client.Client, obj metav1.ObjectMeta) (*clusterv1.Cluster, error) {
-	if obj.Labels[clusterv1.MachineClusterLabelName] == "" {
+	if obj.Labels[clusterv1.ClusterLabelName] == "" {
 		return nil, errors.WithStack(ErrNoCluster)
 	}
-	return GetClusterByName(ctx, c, obj.Namespace, obj.Labels[clusterv1.MachineClusterLabelName])
+	return GetClusterByName(ctx, c, obj.Namespace, obj.Labels[clusterv1.ClusterLabelName])
 }
 
 // GetOwnerCluster returns the Cluster object owning the current resource.

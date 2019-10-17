@@ -309,7 +309,7 @@ func TestClusterReconciler_machineToCluster(t *testing.T) {
 		ObjectMeta: metav1.ObjectMeta{
 			Name: "controlPlaneWithNoderef",
 			Labels: map[string]string{
-				clusterv1.MachineClusterLabelName:      cluster.Name,
+				clusterv1.ClusterLabelName:             cluster.Name,
 				clusterv1.MachineControlPlaneLabelName: cluster.Name,
 			},
 		},
@@ -327,7 +327,7 @@ func TestClusterReconciler_machineToCluster(t *testing.T) {
 		ObjectMeta: metav1.ObjectMeta{
 			Name: "controlPlaneWithoutNoderef",
 			Labels: map[string]string{
-				clusterv1.MachineClusterLabelName:      cluster.Name,
+				clusterv1.ClusterLabelName:             cluster.Name,
 				clusterv1.MachineControlPlaneLabelName: cluster.Name,
 			},
 		},
@@ -339,7 +339,7 @@ func TestClusterReconciler_machineToCluster(t *testing.T) {
 		ObjectMeta: metav1.ObjectMeta{
 			Name: "nonControlPlaneWitNoderef",
 			Labels: map[string]string{
-				clusterv1.MachineClusterLabelName: cluster.Name,
+				clusterv1.ClusterLabelName: cluster.Name,
 			},
 		},
 		Status: clusterv1.MachineStatus{
@@ -356,7 +356,7 @@ func TestClusterReconciler_machineToCluster(t *testing.T) {
 		ObjectMeta: metav1.ObjectMeta{
 			Name: "nonControlPlaneWithoutNoderef",
 			Labels: map[string]string{
-				clusterv1.MachineClusterLabelName: cluster.Name,
+				clusterv1.ClusterLabelName: cluster.Name,
 			},
 		},
 	}

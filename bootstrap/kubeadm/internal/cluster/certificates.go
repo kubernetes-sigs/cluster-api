@@ -310,7 +310,7 @@ func (c *Certificate) AsSecret(cluster *clusterv1.Cluster, config *bootstrapv1.K
 			Namespace: cluster.Namespace,
 			Name:      secret.Name(cluster.Name, c.Purpose),
 			Labels: map[string]string{
-				clusterv1.MachineClusterLabelName: cluster.Name,
+				clusterv1.ClusterLabelName: cluster.Name,
 			},
 		},
 		Data: map[string][]byte{

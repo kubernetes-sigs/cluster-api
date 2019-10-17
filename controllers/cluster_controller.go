@@ -233,7 +233,7 @@ func (r *ClusterReconciler) reconcileDelete(ctx context.Context, cluster *cluste
 func (r *ClusterReconciler) listChildren(ctx context.Context, cluster *clusterv1.Cluster) ([]runtime.Object, error) {
 	listOptions := []client.ListOption{
 		client.InNamespace(cluster.Namespace),
-		client.MatchingLabels(map[string]string{clusterv1.MachineClusterLabelName: cluster.Name}),
+		client.MatchingLabels(map[string]string{clusterv1.ClusterLabelName: cluster.Name}),
 	}
 
 	machineDeployments := &clusterv1.MachineDeploymentList{}

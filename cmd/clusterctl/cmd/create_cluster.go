@@ -114,11 +114,11 @@ func RunCreate(co *CreateOptions) error {
 func init() {
 	// Required flags
 	createClusterCmd.Flags().StringVarP(&co.Cluster, "cluster", "c", "", "A yaml file containing cluster object definition. Required.")
-	createClusterCmd.MarkFlagRequired("cluster")
+	_ = createClusterCmd.MarkFlagRequired("cluster")
 	createClusterCmd.Flags().StringVarP(&co.Machine, "machines", "m", "", "A yaml file containing machine object definition(s). Required.")
-	createClusterCmd.MarkFlagRequired("machines")
+	_ = createClusterCmd.MarkFlagRequired("machines")
 	createClusterCmd.Flags().StringVarP(&co.ProviderComponents, "provider-components", "p", "", "A yaml file containing cluster api provider controllers and supporting objects. Required.")
-	createClusterCmd.MarkFlagRequired("provider-components")
+	_ = createClusterCmd.MarkFlagRequired("provider-components")
 
 	// Optional flags
 	createClusterCmd.Flags().StringVarP(&co.AddonComponents, "addon-components", "a", "", "A yaml file containing cluster addons to apply to the internal cluster")

@@ -49,7 +49,10 @@ var _ = Describe("Cluster Reconciler", func() {
 		// Create the Cluster object and expect the Reconcile and Deployment to be created
 		Expect(k8sClient.Create(ctx, instance)).ToNot(HaveOccurred())
 		key := client.ObjectKey{Namespace: instance.Namespace, Name: instance.Name}
-		defer k8sClient.Delete(ctx, instance)
+		defer func() {
+			err := k8sClient.Delete(ctx, instance)
+			Expect(err).NotTo(HaveOccurred())
+		}()
 
 		// Make sure the Cluster exists.
 		Eventually(func() bool {
@@ -70,7 +73,10 @@ var _ = Describe("Cluster Reconciler", func() {
 		}
 		Expect(k8sClient.Create(ctx, cluster)).To(BeNil())
 		key := client.ObjectKey{Name: cluster.Name, Namespace: cluster.Namespace}
-		defer k8sClient.Delete(ctx, cluster)
+		defer func() {
+			err := k8sClient.Delete(ctx, cluster)
+			Expect(err).NotTo(HaveOccurred())
+		}()
 
 		// Wait for reconciliation to happen.
 		Eventually(func() bool {
@@ -110,7 +116,10 @@ var _ = Describe("Cluster Reconciler", func() {
 		}
 		Expect(k8sClient.Create(ctx, cluster)).To(BeNil())
 		key := client.ObjectKey{Name: cluster.Name, Namespace: cluster.Namespace}
-		defer k8sClient.Delete(ctx, cluster)
+		defer func() {
+			err := k8sClient.Delete(ctx, cluster)
+			Expect(err).NotTo(HaveOccurred())
+		}()
 
 		// Wait for reconciliation to happen.
 		Eventually(func() bool {
@@ -149,7 +158,10 @@ var _ = Describe("Cluster Reconciler", func() {
 		}
 		Expect(k8sClient.Create(ctx, cluster)).To(BeNil())
 		key := client.ObjectKey{Name: cluster.Name, Namespace: cluster.Namespace}
-		defer k8sClient.Delete(ctx, cluster)
+		defer func() {
+			err := k8sClient.Delete(ctx, cluster)
+			Expect(err).NotTo(HaveOccurred())
+		}()
 
 		// Wait for reconciliation to happen.
 		Eventually(func() bool {
@@ -190,7 +202,10 @@ var _ = Describe("Cluster Reconciler", func() {
 		}
 		Expect(k8sClient.Create(ctx, cluster)).To(BeNil())
 		key := client.ObjectKey{Name: cluster.Name, Namespace: cluster.Namespace}
-		defer k8sClient.Delete(ctx, cluster)
+		defer func() {
+			err := k8sClient.Delete(ctx, cluster)
+			Expect(err).NotTo(HaveOccurred())
+		}()
 
 		// Wait for reconciliation to happen.
 		Eventually(func() bool {
@@ -231,7 +246,10 @@ var _ = Describe("Cluster Reconciler", func() {
 
 		Expect(k8sClient.Create(ctx, cluster)).To(BeNil())
 		key := client.ObjectKey{Name: cluster.Name, Namespace: cluster.Namespace}
-		defer k8sClient.Delete(ctx, cluster)
+		defer func() {
+			err := k8sClient.Delete(ctx, cluster)
+			Expect(err).NotTo(HaveOccurred())
+		}()
 		Expect(kubeconfig.CreateEnvTestSecret(k8sClient, cfg, cluster)).To(Succeed())
 
 		// Wait for reconciliation to happen.
@@ -261,7 +279,10 @@ var _ = Describe("Cluster Reconciler", func() {
 
 		Expect(k8sClient.Create(ctx, machine)).To(BeNil())
 		key = client.ObjectKey{Name: machine.Name, Namespace: machine.Namespace}
-		defer k8sClient.Delete(ctx, machine)
+		defer func() {
+			err := k8sClient.Delete(ctx, machine)
+			Expect(err).NotTo(HaveOccurred())
+		}()
 
 		// wait for machine to be ready
 		Eventually(func() bool {

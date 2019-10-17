@@ -2,7 +2,6 @@ linters:
   enable-all: true
   disable:
     - dupl
-    - errcheck
     - funlen
     - gochecknoglobals
     - gochecknoinits

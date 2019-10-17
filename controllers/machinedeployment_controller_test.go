@@ -132,7 +132,8 @@ var _ = Describe("MachineDeployment Reconciler", func() {
 		Expect(k8sClient.Create(ctx, deployment)).To(BeNil())
 		defer func() {
 			By("Deleting the MachineDeployment")
-			k8sClient.Delete(ctx, deployment)
+			err := k8sClient.Delete(ctx, deployment)
+			Expect(err).NotTo(HaveOccurred())
 		}()
 
 		// Verify that the MachineSet was created.
@@ -405,7 +406,8 @@ func TestMachineSetToDeployments(t *testing.T) {
 		},
 	}
 
-	clusterv1.AddToScheme(scheme.Scheme)
+	err := clusterv1.AddToScheme(scheme.Scheme)
+	Expect(err).NotTo(HaveOccurred())
 	r := &MachineDeploymentReconciler{
 		Client:   fake.NewFakeClient(machineDeplopymentList),
 		Log:      log.Log,
@@ -480,7 +482,8 @@ func TestGetMachineDeploymentsForMachineSet(t *testing.T) {
 			expected:              []*clusterv1.MachineDeployment{&machineDeployment},
 		},
 	}
-	clusterv1.AddToScheme(scheme.Scheme)
+	err := clusterv1.AddToScheme(scheme.Scheme)
+	Expect(err).NotTo(HaveOccurred())
 	r := &MachineDeploymentReconciler{
 		Client:   fake.NewFakeClient(&ms1, &ms2, machineDeplopymentList),
 		Log:      log.Log,
@@ -642,7 +645,8 @@ func TestGetMachineSetsForDeployment(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			clusterv1.AddToScheme(scheme.Scheme)
+			err := clusterv1.AddToScheme(scheme.Scheme)
+			Expect(err).NotTo(HaveOccurred())
 			r := &MachineDeploymentReconciler{
 				Client:   fake.NewFakeClient(machineSetList),
 				Log:      log.Log,

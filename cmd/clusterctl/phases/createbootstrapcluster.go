@@ -23,18 +23,18 @@ import (
 	"sigs.k8s.io/cluster-api/cmd/clusterctl/clusterdeployer/clusterclient"
 )
 
-func CreateBootstrapCluster(provisioner bootstrap.ClusterProvisioner, cleanupBootstrapCluster bool, clientFactory clusterclient.Factory) (clusterclient.Client, func(), error) {
+func CreateBootstrapCluster(provisioner bootstrap.ClusterProvisioner, cleanupBootstrapCluster bool, clientFactory clusterclient.Factory) (clusterclient.Client, func() error, error) {
 	klog.Info("Preparing bootstrap cluster")
 
-	cleanupFn := func() {}
+	cleanupFn := func() error { return nil }
 	if err := provisioner.Create(); err != nil {
 		return nil, cleanupFn, errors.Wrap(err, "could not create bootstrap control plane")
 	}
 
 	if cleanupBootstrapCluster {
-		cleanupFn = func() {
+		cleanupFn = func() error {
 			klog.Info("Cleaning up bootstrap cluster.")
-			provisioner.Delete()
+			return provisioner.Delete()
 		}
 	}
 

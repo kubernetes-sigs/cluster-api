@@ -96,7 +96,8 @@ func TestMachineFinalizer(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			clusterv1.AddToScheme(scheme.Scheme)
+			err := clusterv1.AddToScheme(scheme.Scheme)
+			Expect(err).NotTo(HaveOccurred())
 			mr := &MachineReconciler{
 				Client: fake.NewFakeClientWithScheme(
 					scheme.Scheme,
@@ -107,7 +108,7 @@ func TestMachineFinalizer(t *testing.T) {
 				Log: log.Log,
 			}
 
-			mr.Reconcile(tc.request)
+			_, _ = mr.Reconcile(tc.request)
 
 			key := client.ObjectKey{Namespace: tc.m.Namespace, Name: tc.m.Name}
 			var actual clusterv1.Machine
@@ -214,7 +215,8 @@ func TestMachineOwnerReference(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			clusterv1.AddToScheme(scheme.Scheme)
+			err := clusterv1.AddToScheme(scheme.Scheme)
+			Expect(err).NotTo(HaveOccurred())
 			mr := &MachineReconciler{
 				Client: fake.NewFakeClientWithScheme(
 					scheme.Scheme,
@@ -226,7 +228,7 @@ func TestMachineOwnerReference(t *testing.T) {
 				Log: log.Log,
 			}
 
-			mr.Reconcile(tc.request)
+			_, _ = mr.Reconcile(tc.request)
 
 			key := client.ObjectKey{Namespace: tc.m.Namespace, Name: tc.m.Name}
 			var actual clusterv1.Machine
@@ -242,7 +244,8 @@ func TestMachineOwnerReference(t *testing.T) {
 
 func TestReconcileRequest(t *testing.T) {
 	RegisterTestingT(t)
-	clusterv1.AddToScheme(scheme.Scheme)
+	err := clusterv1.AddToScheme(scheme.Scheme)
+	Expect(err).NotTo(HaveOccurred())
 
 	infraConfig := unstructured.Unstructured{
 		Object: map[string]interface{}{
@@ -481,7 +484,8 @@ func TestReconcileDeleteExternal(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			clusterv1.AddToScheme(scheme.Scheme)
+			err := clusterv1.AddToScheme(scheme.Scheme)
+			Expect(err).NotTo(HaveOccurred())
 
 			objs := []runtime.Object{testCluster, machine}
 
@@ -511,7 +515,10 @@ func TestReconcileDeleteExternal(t *testing.T) {
 
 func TestRemoveMachineFinalizerAfterDeleteReconcile(t *testing.T) {
 	RegisterTestingT(t)
-	clusterv1.AddToScheme(scheme.Scheme)
+
+	err := clusterv1.AddToScheme(scheme.Scheme)
+	Expect(err).NotTo(HaveOccurred())
+
 	dt := metav1.Now()
 
 	testCluster := &clusterv1.Cluster{
@@ -540,7 +547,7 @@ func TestRemoveMachineFinalizerAfterDeleteReconcile(t *testing.T) {
 		Client: fake.NewFakeClientWithScheme(scheme.Scheme, testCluster, m),
 		Log:    log.Log,
 	}
-	_, err := mr.Reconcile(reconcile.Request{NamespacedName: key})
+	_, err = mr.Reconcile(reconcile.Request{NamespacedName: key})
 	Expect(err).ToNot(HaveOccurred())
 
 	Expect(mr.Client.Get(ctx, key, m)).ToNot(HaveOccurred())

@@ -74,7 +74,7 @@ type targetClient interface {
 func deployProviderComponent(target targetClient, providerComponents string) error {
 	// deploy provider components, it'll also deploy cert-manager
 	// we're ignoring the errors, as components dependent on cert-manager will fail
-	target.Apply(providerComponents)
+	_ = target.Apply(providerComponents)
 
 	// wait for cert-manager pods to be ready
 	if err := target.WaitForCertManagerReady(); err != nil {
@@ -281,7 +281,9 @@ func moveSecret(from sourceClient, to targetClient, secret *corev1.Secret, toClu
 	// New objects cannot have a specified resource version. Clear it out.
 	secret.SetResourceVersion("")
 	// Set the cluster owner ref based on target cluster's Cluster resource
-	to.SetClusterOwnerRef(secret, toCluster)
+	if err := to.SetClusterOwnerRef(secret, toCluster); err != nil {
+		return errors.Wrap(err, "failed to set ownerref to secret")
+	}
 
 	if err := to.CreateSecret(secret); err != nil {
 		return errors.Wrapf(err, "error copying Secret %s/%s to target cluster", secret.Namespace, secret.Name)

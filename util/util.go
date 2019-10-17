@@ -57,7 +57,7 @@ var (
 )
 
 func init() {
-	clusterv1.AddToScheme(scheme.Scheme)
+	_ = clusterv1.AddToScheme(scheme.Scheme)
 }
 
 // RandomToken returns a random token.

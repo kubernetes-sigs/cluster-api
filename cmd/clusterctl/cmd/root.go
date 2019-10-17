@@ -37,8 +37,8 @@ var RootCmd = &cobra.Command{
 	Use:   "clusterctl",
 	Short: "cluster management",
 	Long:  `Simple kubernetes cluster management`,
-	Run: func(cmd *cobra.Command, args []string) {
-		cmd.Help()
+	RunE: func(cmd *cobra.Command, args []string) error {
+		return cmd.Help()
 	},
 }
 
@@ -50,8 +50,8 @@ func Execute() {
 }
 
 func exitWithHelp(cmd *cobra.Command, err string) {
-	fmt.Fprintln(os.Stderr, err)
-	cmd.Help()
+	_, _ = fmt.Fprintln(os.Stderr, err)
+	_ = cmd.Help()
 	os.Exit(1)
 }
 

@@ -35,15 +35,17 @@ func TestMain(m *testing.M) {
 	t := &envtest.Environment{
 		CRDDirectoryPaths: []string{filepath.Join("..", "..", "..", "config", "crd", "bases")},
 	}
-	clusterv1.AddToScheme(scheme.Scheme)
+	err := clusterv1.AddToScheme(scheme.Scheme)
+	if err != nil {
+		log.Fatal(err)
+	}
 
-	var err error
 	if cfg, err = t.Start(); err != nil {
 		log.Fatal(err)
 	}
 
 	code := m.Run()
-	t.Stop()
+	_ = t.Stop()
 	os.Exit(code)
 }
 

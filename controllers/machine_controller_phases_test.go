@@ -156,8 +156,11 @@ var _ = Describe("Reconcile Machine Phases", func() {
 		infraConfig := defaultInfra.DeepCopy()
 
 		// Set bootstrap ready.
-		unstructured.SetNestedField(bootstrapConfig.Object, true, "status", "ready")
-		unstructured.SetNestedField(bootstrapConfig.Object, "...", "status", "bootstrapData")
+		err := unstructured.SetNestedField(bootstrapConfig.Object, true, "status", "ready")
+		Expect(err).NotTo(HaveOccurred())
+
+		err = unstructured.SetNestedField(bootstrapConfig.Object, "...", "status", "bootstrapData")
+		Expect(err).NotTo(HaveOccurred())
 
 		r := &MachineReconciler{
 			Client: fake.NewFakeClient(defaultCluster, defaultKubeconfigSecret, machine, bootstrapConfig, infraConfig),
@@ -178,13 +181,20 @@ var _ = Describe("Reconcile Machine Phases", func() {
 		infraConfig := defaultInfra.DeepCopy()
 
 		// Set bootstrap ready.
-		unstructured.SetNestedField(bootstrapConfig.Object, true, "status", "ready")
-		unstructured.SetNestedField(bootstrapConfig.Object, "...", "status", "bootstrapData")
+		err := unstructured.SetNestedField(bootstrapConfig.Object, true, "status", "ready")
+		Expect(err).NotTo(HaveOccurred())
+
+		err = unstructured.SetNestedField(bootstrapConfig.Object, "...", "status", "bootstrapData")
+		Expect(err).NotTo(HaveOccurred())
 
 		// Set infra ready.
-		unstructured.SetNestedField(infraConfig.Object, true, "status", "ready")
-		unstructured.SetNestedField(infraConfig.Object, "test://id-1", "spec", "providerID")
-		unstructured.SetNestedField(infraConfig.Object, []interface{}{
+		err = unstructured.SetNestedField(infraConfig.Object, true, "status", "ready")
+		Expect(err).NotTo(HaveOccurred())
+
+		err = unstructured.SetNestedField(infraConfig.Object, "test://id-1", "spec", "providerID")
+		Expect(err).NotTo(HaveOccurred())
+
+		err = unstructured.SetNestedField(infraConfig.Object, []interface{}{
 			map[string]interface{}{
 				"type":    "InternalIP",
 				"address": "10.0.0.1",
@@ -194,6 +204,7 @@ var _ = Describe("Reconcile Machine Phases", func() {
 				"address": "10.0.0.2",
 			},
 		}, "status", "addresses")
+		Expect(err).NotTo(HaveOccurred())
 
 		r := &MachineReconciler{
 			Client: fake.NewFakeClient(defaultCluster, defaultKubeconfigSecret, machine, bootstrapConfig, infraConfig),
@@ -215,12 +226,18 @@ var _ = Describe("Reconcile Machine Phases", func() {
 		infraConfig := defaultInfra.DeepCopy()
 
 		// Set bootstrap ready.
-		unstructured.SetNestedField(bootstrapConfig.Object, true, "status", "ready")
-		unstructured.SetNestedField(bootstrapConfig.Object, "...", "status", "bootstrapData")
+		err := unstructured.SetNestedField(bootstrapConfig.Object, true, "status", "ready")
+		Expect(err).NotTo(HaveOccurred())
+
+		err = unstructured.SetNestedField(bootstrapConfig.Object, "...", "status", "bootstrapData")
+		Expect(err).NotTo(HaveOccurred())
 
 		// Set infra ready.
-		unstructured.SetNestedField(infraConfig.Object, true, "status", "ready")
-		unstructured.SetNestedField(infraConfig.Object, "test://id-1", "spec", "providerID")
+		err = unstructured.SetNestedField(infraConfig.Object, true, "status", "ready")
+		Expect(err).NotTo(HaveOccurred())
+
+		err = unstructured.SetNestedField(infraConfig.Object, "test://id-1", "spec", "providerID")
+		Expect(err).NotTo(HaveOccurred())
 
 		r := &MachineReconciler{
 			Client: fake.NewFakeClient(defaultCluster, defaultKubeconfigSecret, machine, bootstrapConfig, infraConfig),
@@ -242,13 +259,20 @@ var _ = Describe("Reconcile Machine Phases", func() {
 		infraConfig := defaultInfra.DeepCopy()
 
 		// Set bootstrap ready.
-		unstructured.SetNestedField(bootstrapConfig.Object, true, "status", "ready")
-		unstructured.SetNestedField(bootstrapConfig.Object, "...", "status", "bootstrapData")
+		err := unstructured.SetNestedField(bootstrapConfig.Object, true, "status", "ready")
+		Expect(err).NotTo(HaveOccurred())
+
+		err = unstructured.SetNestedField(bootstrapConfig.Object, "...", "status", "bootstrapData")
+		Expect(err).NotTo(HaveOccurred())
 
 		// Set infra ready.
-		unstructured.SetNestedField(infraConfig.Object, "test://id-1", "spec", "providerID")
-		unstructured.SetNestedField(infraConfig.Object, true, "status", "ready")
-		unstructured.SetNestedField(infraConfig.Object, []interface{}{
+		err = unstructured.SetNestedField(infraConfig.Object, "test://id-1", "spec", "providerID")
+		Expect(err).NotTo(HaveOccurred())
+
+		err = unstructured.SetNestedField(infraConfig.Object, true, "status", "ready")
+		Expect(err).NotTo(HaveOccurred())
+
+		err = unstructured.SetNestedField(infraConfig.Object, []interface{}{
 			map[string]interface{}{
 				"type":    "InternalIP",
 				"address": "10.0.0.1",
@@ -258,6 +282,7 @@ var _ = Describe("Reconcile Machine Phases", func() {
 				"address": "10.0.0.2",
 			},
 		}, "addresses")
+		Expect(err).NotTo(HaveOccurred())
 
 		// Set NodeRef.
 		machine.Status.NodeRef = &corev1.ObjectReference{Kind: "Node", Name: "machine-test-node"}
@@ -281,13 +306,20 @@ var _ = Describe("Reconcile Machine Phases", func() {
 		infraConfig := defaultInfra.DeepCopy()
 
 		// Set bootstrap ready.
-		unstructured.SetNestedField(bootstrapConfig.Object, true, "status", "ready")
-		unstructured.SetNestedField(bootstrapConfig.Object, "...", "status", "bootstrapData")
+		err := unstructured.SetNestedField(bootstrapConfig.Object, true, "status", "ready")
+		Expect(err).NotTo(HaveOccurred())
+
+		err = unstructured.SetNestedField(bootstrapConfig.Object, "...", "status", "bootstrapData")
+		Expect(err).NotTo(HaveOccurred())
 
 		// Set infra ready.
-		unstructured.SetNestedField(infraConfig.Object, "test://id-1", "spec", "providerID")
-		unstructured.SetNestedField(infraConfig.Object, true, "status", "ready")
-		unstructured.SetNestedField(infraConfig.Object, []interface{}{
+		err = unstructured.SetNestedField(infraConfig.Object, "test://id-1", "spec", "providerID")
+		Expect(err).NotTo(HaveOccurred())
+
+		err = unstructured.SetNestedField(infraConfig.Object, true, "status", "ready")
+		Expect(err).NotTo(HaveOccurred())
+
+		err = unstructured.SetNestedField(infraConfig.Object, []interface{}{
 			map[string]interface{}{
 				"type":    "InternalIP",
 				"address": "10.0.0.1",
@@ -297,6 +329,7 @@ var _ = Describe("Reconcile Machine Phases", func() {
 				"address": "10.0.0.2",
 			},
 		}, "addresses")
+		Expect(err).NotTo(HaveOccurred())
 
 		// Set NodeRef.
 		machine.Status.NodeRef = &corev1.ObjectReference{Kind: "Node", Name: "machine-test-node"}

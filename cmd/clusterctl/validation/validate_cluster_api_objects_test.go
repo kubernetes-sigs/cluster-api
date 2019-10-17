@@ -23,6 +23,7 @@ import (
 	"path"
 	"testing"
 
+	. "github.com/onsi/gomega"
 	corev1 "k8s.io/api/core/v1"
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -96,6 +97,7 @@ func TestGetClusterObjectWithNoCluster(t *testing.T) {
 }
 
 func TestGetClusterObjectWithOneCluster(t *testing.T) {
+	RegisterTestingT(t)
 	// Setup the Manager and Controller.
 	mgr, err := manager.New(cfg, manager.Options{MetricsBindAddress: "0"})
 	if err != nil {
@@ -112,7 +114,10 @@ func TestGetClusterObjectWithOneCluster(t *testing.T) {
 	if err := c.Create(context.TODO(), &cluster); err != nil {
 		t.Fatalf("error creating cluster: %v", err)
 	}
-	defer c.Delete(context.TODO(), &cluster)
+	defer func() {
+		err := c.Delete(context.TODO(), &cluster)
+		Expect(err).NotTo(HaveOccurred())
+	}()
 
 	var testcases = []struct {
 		name        string
@@ -179,7 +184,10 @@ func TestGetClusterObjectWithMoreThanOneCluster(t *testing.T) {
 	if err := c.Create(context.TODO(), &cluster1); err != nil {
 		t.Fatalf("error creating cluster1: %v", err)
 	}
-	defer c.Delete(context.TODO(), &cluster1)
+	defer func() {
+		err := c.Delete(context.TODO(), &cluster1)
+		Expect(err).NotTo(HaveOccurred())
+	}()
 
 	const testClusterName2 = "test-cluster2"
 	cluster2 := clusterv1.Cluster{}
@@ -188,7 +196,10 @@ func TestGetClusterObjectWithMoreThanOneCluster(t *testing.T) {
 	if err := c.Create(context.TODO(), &cluster2); err != nil {
 		t.Fatalf("error creating cluster2: %v", err)
 	}
-	defer c.Delete(context.TODO(), &cluster2)
+	defer func() {
+		err := c.Delete(context.TODO(), &cluster2)
+		Expect(err).NotTo(HaveOccurred())
+	}()
 
 	var testcases = []struct {
 		name        string
@@ -286,7 +297,10 @@ func TestValidateMachineObjects(t *testing.T) {
 	if err := c.Create(context.TODO(), &testNode); err != nil {
 		t.Fatalf("error creating node: %v", err)
 	}
-	defer c.Delete(context.TODO(), &testNode)
+	defer func() {
+		err := c.Delete(context.TODO(), &testNode)
+		Expect(err).NotTo(HaveOccurred())
+	}()
 
 	testNodeRef := v1.ObjectReference{Kind: "Node", Name: testNodeName}
 	machineErrorReason := capierrors.CreateMachineError
@@ -368,14 +382,20 @@ func TestValidateMachineObjectWithReferredNode(t *testing.T) {
 	if err := c.Create(context.TODO(), &testNodeReady); err != nil {
 		t.Fatalf("error creating node: %v", err)
 	}
-	defer c.Delete(context.TODO(), &testNodeReady)
+	defer func() {
+		err := c.Delete(context.TODO(), &testNodeReady)
+		Expect(err).NotTo(HaveOccurred())
+	}()
 
 	const testNodeNotReadyName = "test-node-not-ready"
 	testNodeNotReady := getNodeWithReadyStatus(testNodeNotReadyName, v1.ConditionFalse)
 	if err := c.Create(context.TODO(), &testNodeNotReady); err != nil {
 		t.Fatalf("error creating node: %v", err)
 	}
-	defer c.Delete(context.TODO(), &testNodeNotReady)
+	defer func() {
+		err := c.Delete(context.TODO(), &testNodeNotReady)
+		Expect(err).NotTo(HaveOccurred())
+	}()
 
 	const testNodeNotExistName = "test-node-not-exist"
 
@@ -503,37 +523,55 @@ func TestValidateClusterAPIObjectsOutput(t *testing.T) {
 			if err := c.Create(context.TODO(), &cluster); err != nil {
 				t.Fatalf("error creating cluster: %v", err)
 			}
-			defer c.Delete(context.TODO(), &cluster)
+			defer func() {
+				err := c.Delete(context.TODO(), &cluster)
+				Expect(err).NotTo(HaveOccurred())
+			}()
 
 			machine1 := getMachineWithError(testMachine1Name, testcase.namespace, nil, nil, nil) // machine with no error
 			if err := c.Create(context.TODO(), &machine1); err != nil {
 				t.Fatalf("error creating machine1: %v", err)
 			}
-			defer c.Delete(context.TODO(), &machine1)
+			defer func() {
+				err := c.Delete(context.TODO(), &machine1)
+				Expect(err).NotTo(HaveOccurred())
+			}()
 
 			machine2 := getMachineWithError(testMachine2Name, testcase.namespace, nil, nil, nil) // machine with no error
 			if err := c.Create(context.TODO(), &machine2); err != nil {
 				t.Fatalf("error creating machine2: %v", err)
 			}
-			defer c.Delete(context.TODO(), &machine2)
+			defer func() {
+				err := c.Delete(context.TODO(), &machine2)
+				Expect(err).NotTo(HaveOccurred())
+			}()
 
 			testNode1 := getNodeWithReadyStatus(testNode1Name, v1.ConditionTrue)
 			if err := c.Create(context.TODO(), &testNode1); err != nil {
 				t.Fatalf("error creating node1: %v", err)
 			}
-			defer c.Delete(context.TODO(), &testNode1)
+			defer func() {
+				err := c.Delete(context.TODO(), &testNode1)
+				Expect(err).NotTo(HaveOccurred())
+			}()
 
 			testNode2 := getNodeWithReadyStatus(testNode2Name, v1.ConditionTrue)
 			if err := c.Create(context.TODO(), &testNode2); err != nil {
 				t.Fatalf("error creating node2: %v", err)
 			}
-			defer c.Delete(context.TODO(), &testNode2)
+			defer func() {
+				err := c.Delete(context.TODO(), &testNode2)
+				Expect(err).NotTo(HaveOccurred())
+			}()
 
 			testNodeNotReady := getNodeWithReadyStatus(testNodeNotReadyName, v1.ConditionFalse)
 			if err := c.Create(context.TODO(), &testNodeNotReady); err != nil {
 				t.Fatalf("error creating node: %v", err)
 			}
-			defer c.Delete(context.TODO(), &testNodeNotReady)
+			defer func() {
+				err := c.Delete(context.TODO(), &testNodeNotReady)
+				Expect(err).NotTo(HaveOccurred())
+			}()
 
 			if err := c.Get(context.TODO(), types.NamespacedName{Name: testClusterName, Namespace: testcase.namespace}, &cluster); err != nil {
 				t.Fatalf("Unable to get cluster: %v", err)

@@ -34,7 +34,6 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime/schema"
-	"k8s.io/client-go/kubernetes/scheme"
 	"k8s.io/klog"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha3"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -55,10 +54,6 @@ var (
 	ErrNoCluster                 = fmt.Errorf("no %q label present", clusterv1.ClusterLabelName)
 	ErrUnstructuredFieldNotFound = fmt.Errorf("field not found")
 )
-
-func init() {
-	_ = clusterv1.AddToScheme(scheme.Scheme)
-}
 
 // RandomToken returns a random token.
 func RandomToken() string {

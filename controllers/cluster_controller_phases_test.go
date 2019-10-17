@@ -23,6 +23,7 @@ import (
 	"github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/client-go/kubernetes/scheme"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha3"
 	capierrors "sigs.k8s.io/cluster-api/errors"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
@@ -82,6 +83,11 @@ func TestClusterReconciler_reconcileKubeconfig(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			err := clusterv1.AddToScheme(scheme.Scheme)
+			if err != nil {
+				t.Fatal(err)
+			}
+
 			c := fake.NewFakeClient(tt.cluster)
 			if tt.secret != nil {
 				c = fake.NewFakeClient(tt.cluster, tt.secret)
@@ -89,7 +95,7 @@ func TestClusterReconciler_reconcileKubeconfig(t *testing.T) {
 			r := &ClusterReconciler{
 				Client: c,
 			}
-			err := r.reconcileKubeconfig(context.Background(), tt.cluster)
+			err = r.reconcileKubeconfig(context.Background(), tt.cluster)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("reconcileKubeconfig() error = %v, wantErr %v", err, tt.wantErr)
 			}

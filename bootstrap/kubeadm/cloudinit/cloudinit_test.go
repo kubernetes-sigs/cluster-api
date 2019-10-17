@@ -77,3 +77,41 @@ func TestNewInitControlPlaneAdditionalFileEncodings(t *testing.T) {
 		}
 	}
 }
+
+func TestNewInitControlPlaneCommands(t *testing.T) {
+	cpinput := &ControlPlaneInput{
+		BaseUserData: BaseUserData{
+			Header:              "test",
+			PreKubeadmCommands:  []string{`"echo $(date) ': hello world!'"`},
+			PostKubeadmCommands: []string{"echo $(date) ': hello world!'"},
+			AdditionalFiles:     nil,
+			WriteFiles:          nil,
+			Users:               nil,
+			NTP:                 nil,
+		},
+		Certificates:         cluster.Certificates{},
+		ClusterConfiguration: "my-cluster-config",
+		InitConfiguration:    "my-init-config",
+	}
+
+	for _, certificate := range cpinput.Certificates {
+		certificate.KeyPair = &certs.KeyPair{
+			Cert: []byte("some certificate"),
+			Key:  []byte("some key"),
+		}
+	}
+
+	out, err := NewInitControlPlane(cpinput)
+	if err != nil {
+		t.Fatal(err)
+	}
+	expectedCommands := []string{
+		`"\"echo $(date) ': hello world!'\""`,
+		`"echo $(date) ': hello world!'"`,
+	}
+	for _, f := range expectedCommands {
+		if !bytes.Contains(out, []byte(f)) {
+			t.Errorf("%s\ndid not contain\n%s", out, f)
+		}
+	}
+}

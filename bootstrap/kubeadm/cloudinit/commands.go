@@ -19,7 +19,7 @@ package cloudinit
 const (
 	commandsTemplate = `{{- define "commands" -}}
 {{ range . }}
-  - '{{.}}'
+  - {{printf "%q" .}}
 {{- end -}}
 {{- end -}}
 `

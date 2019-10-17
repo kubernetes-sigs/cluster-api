@@ -8,7 +8,6 @@ linters:
     - lll
     - godox
     - wsl
-    - gosec
     - whitespace
     - gocognit
   # Run with --fast=false for more extensive checks

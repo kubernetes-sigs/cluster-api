@@ -49,6 +49,7 @@ type Cluster struct {
 }
 
 // Setup creates a kind cluster and returns a path to the kubeconfig
+// nolint:gosec
 func (c *Cluster) Setup() {
 	var err error
 	c.tmpDir, err = ioutil.TempDir("", "kind-home")
@@ -63,7 +64,7 @@ func (c *Cluster) Setup() {
 
 // Teardown attempts to delete the KIND cluster
 func (c *Cluster) Teardown() {
-	c.run(exec.Command(*kindBinary, "delete", "cluster", "--name", c.Name))
+	c.run(exec.Command(*kindBinary, "delete", "cluster", "--name", c.Name)) //nolint:gosec
 	os.RemoveAll(c.tmpDir)
 }
 
@@ -73,12 +74,12 @@ func (c *Cluster) LoadImage(image string) {
 		ginkgo.GinkgoWriter,
 		"loading image %q into Kind node\n",
 		image)
-	c.run(exec.Command(*kindBinary, "load", "docker-image", "--name", c.Name, image))
+	c.run(exec.Command(*kindBinary, "load", "docker-image", "--name", c.Name, image)) //nolint:gosec
 }
 
 // ApplyYAML applies the provided manifest to the kind cluster
 func (c *Cluster) ApplyYAML(manifestPath string) {
-	c.run(exec.Command(
+	c.run(exec.Command( //nolint:gosec
 		*kubectlBinary,
 		"create",
 		"--kubeconfig="+c.kubepath,

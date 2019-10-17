@@ -800,7 +800,7 @@ func (c *client) kubectlApply(manifest string) error {
 }
 
 func (c *client) kubectlManifestCmd(commandName, manifest string) error {
-	cmd := exec.Command("kubectl", c.buildKubectlArgs(commandName)...)
+	cmd := exec.Command("kubectl", c.buildKubectlArgs(commandName)...) //nolint:gosec
 	cmd.Stdin = strings.NewReader(manifest)
 	out, err := cmd.CombinedOutput()
 	if err != nil {

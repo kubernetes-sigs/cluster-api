@@ -35,6 +35,8 @@ func ApplyMachines(client clusterclient.Client, namespace string, machines []*cl
 	}
 
 	for _, e := range extra {
+		e.SetNamespace(namespace)
+
 		klog.Infof("Creating Machine referenced object %q with name %q in namespace %q", e.GroupVersionKind(), e.GetName(), e.GetNamespace())
 		if err := client.CreateUnstructuredObject(e); err != nil {
 			return err

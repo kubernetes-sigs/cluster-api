@@ -317,8 +317,8 @@ func TestMachineSetToDeployments(t *testing.T) {
 		Spec: clusterv1.MachineDeploymentSpec{
 			Selector: metav1.LabelSelector{
 				MatchLabels: map[string]string{
-					"foo":                             "bar",
-					clusterv1.MachineClusterLabelName: "test-cluster",
+					"foo":                      "bar",
+					clusterv1.ClusterLabelName: "test-cluster",
 				},
 			},
 		},
@@ -342,7 +342,7 @@ func TestMachineSetToDeployments(t *testing.T) {
 				*metav1.NewControllerRef(&machineDeployment, machineDeploymentKind),
 			},
 			Labels: map[string]string{
-				clusterv1.MachineClusterLabelName: "test-cluster",
+				clusterv1.ClusterLabelName: "test-cluster",
 			},
 		},
 	}
@@ -354,7 +354,7 @@ func TestMachineSetToDeployments(t *testing.T) {
 			Name:      "noOwnerRefNoLabels",
 			Namespace: "test",
 			Labels: map[string]string{
-				clusterv1.MachineClusterLabelName: "test-cluster",
+				clusterv1.ClusterLabelName: "test-cluster",
 			},
 		},
 	}
@@ -366,8 +366,8 @@ func TestMachineSetToDeployments(t *testing.T) {
 			Name:      "withMatchingLabels",
 			Namespace: "test",
 			Labels: map[string]string{
-				"foo":                             "bar",
-				clusterv1.MachineClusterLabelName: "test-cluster",
+				"foo":                      "bar",
+				clusterv1.ClusterLabelName: "test-cluster",
 			},
 		},
 	}

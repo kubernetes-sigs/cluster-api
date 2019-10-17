@@ -27,3 +27,8 @@
 
 - To be consistent with Pod phases in k/k.
 - More details in https://github.com/kubernetes-sigs/cluster-api/pull/1532/files.
+
+## `MachineClusterLabelName` is renamed to `ClusterLabelName`
+
+- The variable name is renamed as this label isn't applied only to machines anymore.
+- This label is also applied to external objects(bootstrap provider, infrastructure provider)

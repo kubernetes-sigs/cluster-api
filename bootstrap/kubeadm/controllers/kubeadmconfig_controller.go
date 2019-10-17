@@ -416,7 +416,7 @@ func (r *KubeadmConfigReconciler) ClusterToKubeadmConfigs(o handler.MapObject) [
 	selectors := []client.ListOption{
 		client.InNamespace(c.Namespace),
 		client.MatchingLabels{
-			clusterv1.MachineClusterLabelName: c.Name,
+			clusterv1.ClusterLabelName: c.Name,
 		},
 	}
 

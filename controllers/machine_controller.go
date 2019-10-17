@@ -119,12 +119,12 @@ func (r *MachineReconciler) Reconcile(req ctrl.Request) (_ ctrl.Result, reterr e
 	if m.Labels == nil {
 		m.Labels = make(map[string]string)
 	}
-	m.Labels[clusterv1.MachineClusterLabelName] = m.Spec.ClusterName
+	m.Labels[clusterv1.ClusterLabelName] = m.Spec.ClusterName
 
 	cluster, err := util.GetClusterFromMetadata(ctx, r.Client, m.ObjectMeta)
 	if err != nil {
 		return ctrl.Result{}, errors.Wrapf(err, "failed to get cluster %q for machine %q in namespace %q",
-			m.Labels[clusterv1.MachineClusterLabelName], m.Name, m.Namespace)
+			m.Labels[clusterv1.ClusterLabelName], m.Name, m.Namespace)
 	}
 
 	// Handle deletion reconciliation loop.
@@ -243,7 +243,7 @@ func (r *MachineReconciler) isDeleteNodeAllowed(ctx context.Context, machine *cl
 	}
 
 	// Get all of the machines that belong to this cluster.
-	machines, err := getActiveMachinesInCluster(ctx, r.Client, machine.Namespace, machine.Labels[clusterv1.MachineClusterLabelName])
+	machines, err := getActiveMachinesInCluster(ctx, r.Client, machine.Namespace, machine.Labels[clusterv1.ClusterLabelName])
 	if err != nil {
 		return err
 	}

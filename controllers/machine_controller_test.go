@@ -154,7 +154,7 @@ func TestMachineOwnerReference(t *testing.T) {
 			Name:      "machine3",
 			Namespace: "default",
 			Labels: map[string]string{
-				clusterv1.MachineClusterLabelName: "valid-cluster",
+				clusterv1.ClusterLabelName: "valid-cluster",
 			},
 			OwnerReferences: []metav1.OwnerReference{
 				{

@@ -296,7 +296,7 @@ func TestReconcileBootstrap(t *testing.T) {
 			Name:      "machine-test",
 			Namespace: "default",
 			Labels: map[string]string{
-				clusterv1.MachineClusterLabelName: "test-cluster",
+				clusterv1.ClusterLabelName: "test-cluster",
 			},
 		},
 		Spec: clusterv1.MachineSpec{
@@ -524,7 +524,7 @@ func TestReconcileInfrastructure(t *testing.T) {
 			Name:      "machine-test",
 			Namespace: "default",
 			Labels: map[string]string{
-				clusterv1.MachineClusterLabelName: "test-cluster",
+				clusterv1.ClusterLabelName: "test-cluster",
 			},
 		},
 		Spec: clusterv1.MachineSpec{

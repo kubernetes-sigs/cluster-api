@@ -361,8 +361,8 @@ func TestMachineSetToMachines(t *testing.T) {
 				Spec: clusterv1.MachineSetSpec{
 					Selector: metav1.LabelSelector{
 						MatchLabels: map[string]string{
-							"foo":                             "bar",
-							clusterv1.MachineClusterLabelName: "test-cluster",
+							"foo":                      "bar",
+							clusterv1.ClusterLabelName: "test-cluster",
 						},
 					},
 				},
@@ -375,7 +375,7 @@ func TestMachineSetToMachines(t *testing.T) {
 			Name:      "withOwnerRef",
 			Namespace: "test",
 			Labels: map[string]string{
-				clusterv1.MachineClusterLabelName: "test-cluster",
+				clusterv1.ClusterLabelName: "test-cluster",
 			},
 			OwnerReferences: []metav1.OwnerReference{
 				{
@@ -391,7 +391,7 @@ func TestMachineSetToMachines(t *testing.T) {
 			Name:      "noOwnerRefNoLabels",
 			Namespace: "test",
 			Labels: map[string]string{
-				clusterv1.MachineClusterLabelName: "test-cluster",
+				clusterv1.ClusterLabelName: "test-cluster",
 			},
 		},
 	}
@@ -400,8 +400,8 @@ func TestMachineSetToMachines(t *testing.T) {
 			Name:      "withMatchingLabels",
 			Namespace: "test",
 			Labels: map[string]string{
-				"foo":                             "bar",
-				clusterv1.MachineClusterLabelName: "test-cluster",
+				"foo":                      "bar",
+				clusterv1.ClusterLabelName: "test-cluster",
 			},
 		},
 	}
@@ -710,7 +710,7 @@ func newMachineSet(name, cluster string) *clusterv1.MachineSet {
 			Name:      name,
 			Namespace: "default",
 			Labels: map[string]string{
-				clusterv1.MachineClusterLabelName: cluster,
+				clusterv1.ClusterLabelName: cluster,
 			},
 		},
 		Spec: clusterv1.MachineSetSpec{
@@ -719,13 +719,13 @@ func newMachineSet(name, cluster string) *clusterv1.MachineSet {
 			Template: clusterv1.MachineTemplateSpec{
 				ObjectMeta: clusterv1.ObjectMeta{
 					Labels: map[string]string{
-						clusterv1.MachineClusterLabelName: cluster,
+						clusterv1.ClusterLabelName: cluster,
 					},
 				},
 			},
 			Selector: metav1.LabelSelector{
 				MatchLabels: map[string]string{
-					clusterv1.MachineClusterLabelName: cluster,
+					clusterv1.ClusterLabelName: cluster,
 				},
 			},
 		},

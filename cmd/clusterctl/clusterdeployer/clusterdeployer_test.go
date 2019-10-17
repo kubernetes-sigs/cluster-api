@@ -416,7 +416,7 @@ func (c *testClusterClient) GetClusterSecrets(cluster *clusterv1.Cluster) ([]*co
 func (c *testClusterClient) GetMachineSetsForCluster(cluster *clusterv1.Cluster) ([]*clusterv1.MachineSet, error) {
 	var result []*clusterv1.MachineSet
 	for _, ms := range c.machineSets[cluster.Namespace] {
-		if ms.Labels[clusterv1.MachineClusterLabelName] == cluster.Name {
+		if ms.Labels[clusterv1.ClusterLabelName] == cluster.Name {
 			result = append(result, ms)
 		}
 	}
@@ -426,7 +426,7 @@ func (c *testClusterClient) GetMachineSetsForCluster(cluster *clusterv1.Cluster)
 func (c *testClusterClient) GetMachineDeploymentsForCluster(cluster *clusterv1.Cluster) ([]*clusterv1.MachineDeployment, error) {
 	var result []*clusterv1.MachineDeployment
 	for _, md := range c.machineDeployments[cluster.Namespace] {
-		if md.Labels[clusterv1.MachineClusterLabelName] == cluster.Name {
+		if md.Labels[clusterv1.ClusterLabelName] == cluster.Name {
 			result = append(result, md)
 		}
 	}
@@ -436,7 +436,7 @@ func (c *testClusterClient) GetMachineDeploymentsForCluster(cluster *clusterv1.C
 func (c *testClusterClient) GetMachinesForCluster(cluster *clusterv1.Cluster) ([]*clusterv1.Machine, error) {
 	var result []*clusterv1.Machine
 	for _, m := range c.machines[cluster.Namespace] {
-		if m.Labels[clusterv1.MachineClusterLabelName] == cluster.Name {
+		if m.Labels[clusterv1.ClusterLabelName] == cluster.Name {
 			result = append(result, m)
 		}
 	}
@@ -1559,7 +1559,7 @@ func generateTestNodeMachine(cluster *clusterv1.Cluster, ns, name string) *clust
 			},
 		},
 	}
-	machine.Labels = map[string]string{clusterv1.MachineClusterLabelName: cluster.Name}
+	machine.Labels = map[string]string{clusterv1.ClusterLabelName: cluster.Name}
 	machine.OwnerReferences = []metav1.OwnerReference{
 		{
 			APIVersion: clusterv1.GroupVersion.String(),

@@ -123,7 +123,7 @@ func (s *sourcer) WithMachineDeployment(ns, cluster, name string) *sourcer {
 	}
 
 	if cluster != "" {
-		md.Labels = map[string]string{clusterv1.MachineClusterLabelName: cluster}
+		md.Labels = map[string]string{clusterv1.ClusterLabelName: cluster}
 		blockOwnerDeletion := true
 		md.OwnerReferences = []metav1.OwnerReference{
 			{
@@ -158,7 +158,7 @@ func (s *sourcer) WithMachineSet(ns, cluster, md, name string) *sourcer {
 	}
 
 	if cluster != "" {
-		ms.Labels = map[string]string{clusterv1.MachineClusterLabelName: cluster}
+		ms.Labels = map[string]string{clusterv1.ClusterLabelName: cluster}
 		blockOwnerDeletion := true
 		ms.OwnerReferences = []metav1.OwnerReference{
 			{
@@ -219,7 +219,7 @@ func (s *sourcer) WithMachine(ns, cluster, ms, name string) *sourcer {
 	}
 
 	if cluster != "" {
-		m.Labels = map[string]string{clusterv1.MachineClusterLabelName: cluster}
+		m.Labels = map[string]string{clusterv1.ClusterLabelName: cluster}
 		blockOwnerDeletion := true
 		m.OwnerReferences = []metav1.OwnerReference{
 			{
@@ -333,7 +333,7 @@ func (s *sourcer) GetMachineDeployments(ns string) ([]*clusterv1.MachineDeployme
 func (s *sourcer) GetMachineDeploymentsForCluster(cluster *clusterv1.Cluster) ([]*clusterv1.MachineDeployment, error) {
 	var mds []*clusterv1.MachineDeployment
 	for _, md := range s.machineDeployments[cluster.Namespace] {
-		if md.Labels[clusterv1.MachineClusterLabelName] == cluster.Name {
+		if md.Labels[clusterv1.ClusterLabelName] == cluster.Name {
 			mds = append(mds, md)
 		}
 	}
@@ -367,7 +367,7 @@ func (s *sourcer) GetMachineSets(ns string) ([]*clusterv1.MachineSet, error) {
 func (s *sourcer) GetMachineSetsForCluster(cluster *clusterv1.Cluster) ([]*clusterv1.MachineSet, error) {
 	var machineSets []*clusterv1.MachineSet
 	for _, ms := range s.machineSets[cluster.Namespace] {
-		if ms.Labels[clusterv1.MachineClusterLabelName] == cluster.Name {
+		if ms.Labels[clusterv1.ClusterLabelName] == cluster.Name {
 			machineSets = append(machineSets, ms)
 		}
 	}
@@ -377,7 +377,7 @@ func (s *sourcer) GetMachineSetsForCluster(cluster *clusterv1.Cluster) ([]*clust
 func (s *sourcer) GetMachinesForCluster(cluster *clusterv1.Cluster) ([]*clusterv1.Machine, error) {
 	var machines []*clusterv1.Machine
 	for _, m := range s.machines[cluster.Namespace] {
-		if m.Labels[clusterv1.MachineClusterLabelName] == cluster.Name {
+		if m.Labels[clusterv1.ClusterLabelName] == cluster.Name {
 			machines = append(machines, m)
 		}
 	}

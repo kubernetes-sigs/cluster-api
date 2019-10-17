@@ -1420,7 +1420,7 @@ func newMachine(cluster *clusterv1.Cluster, name string) *clusterv1.Machine {
 	}
 	if cluster != nil {
 		machine.ObjectMeta.Labels = map[string]string{
-			clusterv1.MachineClusterLabelName: cluster.Name,
+			clusterv1.ClusterLabelName: cluster.Name,
 		}
 	}
 	return machine

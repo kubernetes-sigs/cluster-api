@@ -35,7 +35,7 @@ func Test_getActiveMachinesInCluster(t *testing.T) {
 			Name:      "ns1cluster1",
 			Namespace: "test-ns-1",
 			Labels: map[string]string{
-				clusterv1.MachineClusterLabelName: "test-cluster-1",
+				clusterv1.ClusterLabelName: "test-cluster-1",
 			},
 		},
 	}
@@ -47,7 +47,7 @@ func Test_getActiveMachinesInCluster(t *testing.T) {
 			Name:      "ns1cluster2",
 			Namespace: "test-ns-1",
 			Labels: map[string]string{
-				clusterv1.MachineClusterLabelName: "test-cluster-2",
+				clusterv1.ClusterLabelName: "test-cluster-2",
 			},
 		},
 	}
@@ -60,7 +60,7 @@ func Test_getActiveMachinesInCluster(t *testing.T) {
 			Name:      "ns1cluster1deleted",
 			Namespace: "test-ns-1",
 			Labels: map[string]string{
-				clusterv1.MachineClusterLabelName: "test-cluster-2",
+				clusterv1.ClusterLabelName: "test-cluster-2",
 			},
 			DeletionTimestamp: &time,
 		},
@@ -73,7 +73,7 @@ func Test_getActiveMachinesInCluster(t *testing.T) {
 			Name:      "ns2cluster2",
 			Namespace: "test-ns-2",
 			Labels: map[string]string{
-				clusterv1.MachineClusterLabelName: "test-cluster-2",
+				clusterv1.ClusterLabelName: "test-cluster-2",
 			},
 		},
 	}

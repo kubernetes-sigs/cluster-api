@@ -342,7 +342,7 @@ func (c *client) GetMachineDeployment(namespace, name string) (*clusterv1.Machin
 func (c *client) GetMachineDeploymentsForCluster(cluster *clusterv1.Cluster) ([]*clusterv1.MachineDeployment, error) {
 	selectors := []ctrlclient.ListOption{
 		ctrlclient.MatchingLabels{
-			clusterv1.MachineClusterLabelName: cluster.Name,
+			clusterv1.ClusterLabelName: cluster.Name,
 		},
 		ctrlclient.InNamespace(cluster.Namespace),
 	}
@@ -399,7 +399,7 @@ func (c *client) GetMachineSets(namespace string) ([]*clusterv1.MachineSet, erro
 func (c *client) GetMachineSetsForCluster(cluster *clusterv1.Cluster) ([]*clusterv1.MachineSet, error) {
 	selectors := []ctrlclient.ListOption{
 		ctrlclient.MatchingLabels{
-			clusterv1.MachineClusterLabelName: cluster.Name,
+			clusterv1.ClusterLabelName: cluster.Name,
 		},
 		ctrlclient.InNamespace(cluster.Namespace),
 	}
@@ -447,7 +447,7 @@ func (c *client) GetMachines(namespace string) (machines []*clusterv1.Machine, _
 func (c *client) GetMachinesForCluster(cluster *clusterv1.Cluster) ([]*clusterv1.Machine, error) {
 	selectors := []ctrlclient.ListOption{
 		ctrlclient.MatchingLabels{
-			clusterv1.MachineClusterLabelName: cluster.Name,
+			clusterv1.ClusterLabelName: cluster.Name,
 		},
 		ctrlclient.InNamespace(cluster.Namespace),
 	}

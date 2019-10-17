@@ -93,10 +93,6 @@ func (d *ClusterDeployer) Create(resources *yaml.ParseOutput, kubeconfigOutput s
 		return errors.Wrapf(err, "unable to create cluster %q in bootstrap cluster", cluster.Name)
 	}
 
-	if cluster.Namespace == "" {
-		cluster.Namespace = bootstrapClient.GetContextNamespace()
-	}
-
 	firstControlPlane := controlPlaneMachines[0]
 	klog.Infof("Creating control plane machine %q in namespace %q", firstControlPlane.Name, cluster.Namespace)
 	if err := phases.ApplyMachines(

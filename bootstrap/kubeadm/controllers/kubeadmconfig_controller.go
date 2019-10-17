@@ -26,6 +26,7 @@ import (
 	"github.com/pkg/errors"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/client-go/tools/clientcmd"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha3"
 	bootstrapv1 "sigs.k8s.io/cluster-api/bootstrap/kubeadm/api/v1alpha2"
 	"sigs.k8s.io/cluster-api/bootstrap/kubeadm/cloudinit"
@@ -34,6 +35,7 @@ import (
 	kubeadmv1beta1 "sigs.k8s.io/cluster-api/bootstrap/kubeadm/kubeadm/v1beta1"
 	capierrors "sigs.k8s.io/cluster-api/errors"
 	"sigs.k8s.io/cluster-api/util"
+	"sigs.k8s.io/cluster-api/util/kubeconfig"
 	"sigs.k8s.io/cluster-api/util/patch"
 	"sigs.k8s.io/cluster-api/util/secret"
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -57,12 +59,18 @@ type KubeadmConfigReconciler struct {
 	Client          client.Client
 	KubeadmInitLock InitLocker
 	Log             logr.Logger
+
+	// for testing
+	remoteClient func(client.Client, *clusterv1.Cluster) (client.Client, error)
 }
 
 // SetupWithManager sets up the reconciler with the Manager.
 func (r *KubeadmConfigReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	if r.KubeadmInitLock == nil {
 		r.KubeadmInitLock = locking.NewControlPlaneInitMutex(ctrl.Log.WithName("init-locker"), mgr.GetClient())
+	}
+	if r.remoteClient == nil {
+		r.remoteClient = defaultRemoteClient
 	}
 
 	return ctrl.NewControllerManagedBy(mgr).
@@ -148,8 +156,15 @@ func (r *KubeadmConfigReconciler) Reconcile(req ctrl.Request) (_ ctrl.Result, re
 	case config.Status.Ready && (config.Spec.JoinConfiguration != nil && config.Spec.JoinConfiguration.Discovery.BootstrapToken != nil):
 		token := config.Spec.JoinConfiguration.Discovery.BootstrapToken.Token
 
+		// TODO replace with remote.NewClusterClient once it returns a client.Client
+		remoteClient, err := r.remoteClient(r.Client, cluster)
+		if err != nil {
+			log.Error(err, "error creating remote cluster client")
+			return ctrl.Result{}, err
+		}
+
 		log.Info("refreshing token until the infrastructure has a chance to consume it")
-		err = refreshToken(r.Client, token)
+		err = refreshToken(remoteClient, token)
 		if err != nil {
 			// It would be nice to re-create the bootstrap token if the error was "not found", but we have no way to update the Machine's bootstrap data
 			return ctrl.Result{}, errors.Wrapf(err, "failed to refresh bootstrap token")
@@ -478,8 +493,13 @@ func (r *KubeadmConfigReconciler) reconcileDiscovery(cluster *clusterv1.Cluster,
 
 	// if BootstrapToken already contains a token, respect it; otherwise create a new bootstrap token for the node to join
 	if config.Spec.JoinConfiguration.Discovery.BootstrapToken.Token == "" {
-		// gets the remote secret interface client for the current cluster
-		token, err := createToken(r.Client)
+		// TODO replace with remote.NewClusterClient once it returns a client.Client
+		remoteClient, err := r.remoteClient(r.Client, cluster)
+		if err != nil {
+			return err
+		}
+
+		token, err := createToken(remoteClient)
 		if err != nil {
 			return errors.Wrapf(err, "failed to create new bootstrap token")
 		}
@@ -541,4 +561,24 @@ func (r *KubeadmConfigReconciler) reconcileTopLevelObjectSettings(cluster *clust
 		config.Spec.ClusterConfiguration.KubernetesVersion = *machine.Spec.Version
 		log.Info("Altering ClusterConfiguration", "KubernetesVersion", config.Spec.ClusterConfiguration.KubernetesVersion)
 	}
+}
+
+// TODO remove this when remote.NewClusterClient returns a client.Client
+func defaultRemoteClient(c client.Client, cluster *clusterv1.Cluster) (client.Client, error) {
+	kubeConfig, err := kubeconfig.FromSecret(c, cluster)
+	if err != nil {
+		return nil, errors.Wrapf(err, "failed to retrieve kubeconfig secret for Cluster %s/%s", cluster.Namespace, cluster.Name)
+	}
+
+	restConfig, err := clientcmd.RESTConfigFromKubeConfig(kubeConfig)
+	if err != nil {
+		return nil, errors.Wrapf(err, "failed to create client configuration for Cluster %s/%s", cluster.Namespace, cluster.Name)
+	}
+
+	ret, err := client.New(restConfig, client.Options{})
+	if err != nil {
+		return nil, errors.Wrapf(err, "failed to create client for Cluster %s/%s", cluster.Namespace, cluster.Name)
+	}
+
+	return ret, nil
 }

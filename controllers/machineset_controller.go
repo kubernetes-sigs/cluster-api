@@ -153,7 +153,7 @@ func (r *MachineSetReconciler) reconcile(ctx context.Context, machineSet *cluste
 	}
 	machineSet.Labels[clusterv1.ClusterLabelName] = machineSet.Spec.ClusterName
 
-	cluster, err := util.GetClusterFromMetadata(ctx, r.Client, machineSet.ObjectMeta)
+	cluster, err := util.GetClusterByName(ctx, r.Client, machineSet.ObjectMeta.Namespace, machineSet.Spec.ClusterName)
 	if err != nil {
 		return ctrl.Result{}, err
 	}

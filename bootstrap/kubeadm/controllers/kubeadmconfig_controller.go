@@ -118,7 +118,7 @@ func (r *KubeadmConfigReconciler) Reconcile(req ctrl.Request) (_ ctrl.Result, re
 	log = log.WithValues("machine-name", machine.Name)
 
 	// Lookup the cluster the machine is associated with
-	cluster, err := util.GetClusterFromMetadata(ctx, r.Client, machine.ObjectMeta)
+	cluster, err := util.GetClusterByName(ctx, r.Client, machine.ObjectMeta.Namespace, machine.Spec.ClusterName)
 	if err != nil {
 		if errors.Cause(err) == util.ErrNoCluster {
 			log.Info("Machine does not belong to a cluster yet, waiting until its part of a cluster")

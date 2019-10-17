@@ -32,7 +32,7 @@ import (
 	"sigs.k8s.io/cluster-api/controllers/external"
 	capierrors "sigs.k8s.io/cluster-api/errors"
 	"sigs.k8s.io/cluster-api/util"
-	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/cluster-api/util/patch"
 	"sigs.k8s.io/controller-runtime/pkg/handler"
 	"sigs.k8s.io/controller-runtime/pkg/source"
 )
@@ -87,23 +87,34 @@ func (r *MachineReconciler) reconcileExternal(ctx context.Context, m *clusterv1.
 		return nil, err
 	}
 
-	objPatch := client.MergeFrom(obj.DeepCopy())
+	// Initialize the patch helper.
+	patchHelper, err := patch.NewHelper(obj, r.Client)
+	if err != nil {
+		return nil, err
+	}
 
 	// Set external object OwnerReference to the Machine.
-	machineOwnerRef := metav1.OwnerReference{
+	ownerRef := metav1.OwnerReference{
 		APIVersion: clusterv1.GroupVersion.String(),
 		Kind:       "Machine",
 		Name:       m.Name,
 		UID:        m.UID,
 	}
 
-	if !util.HasOwnerRef(obj.GetOwnerReferences(), machineOwnerRef) {
-		obj.SetOwnerReferences(util.EnsureOwnerRef(obj.GetOwnerReferences(), machineOwnerRef))
-		if err := r.Client.Patch(ctx, obj, objPatch); err != nil {
-			return nil, errors.Wrapf(err,
-				"failed to set OwnerReference on %v %q for Machine %q in namespace %q",
-				obj.GroupVersionKind(), ref.Name, m.Name, m.Namespace)
-		}
+	// Add ownerRef to object.
+	obj.SetOwnerReferences(util.EnsureOwnerRef(obj.GetOwnerReferences(), ownerRef))
+
+	// Set the Cluster label.
+	labels := obj.GetLabels()
+	if labels == nil {
+		labels = make(map[string]string)
+	}
+	labels[clusterv1.ClusterLabelName] = m.Spec.ClusterName
+	obj.SetLabels(labels)
+
+	// Always attempt to Patch the external object.
+	if err := patchHelper.Patch(ctx, obj); err != nil {
+		return nil, err
 	}
 
 	// Add watcher for external object, if there isn't one already.

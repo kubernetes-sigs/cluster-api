@@ -27,6 +27,7 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
+	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/utils/pointer"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha3"
 	"sigs.k8s.io/cluster-api/util/kubeconfig"
@@ -102,6 +103,33 @@ var _ = Describe("Reconcile Machine Phases", func() {
 
 	BeforeEach(func() {
 		defaultKubeconfigSecret = kubeconfig.GenerateSecret(defaultCluster, kubeconfig.FromEnvTestConfig(cfg, defaultCluster))
+	})
+
+	It("Should set OwnerReference and cluster name label on external objects", func() {
+		machine := defaultMachine.DeepCopy()
+		bootstrapConfig := defaultBootstrap.DeepCopy()
+		infraConfig := defaultInfra.DeepCopy()
+
+		r := &MachineReconciler{
+			Client: fake.NewFakeClient(defaultCluster, defaultKubeconfigSecret, machine, bootstrapConfig, infraConfig),
+			Log:    log.Log,
+		}
+
+		res, err := r.reconcile(context.Background(), defaultCluster, machine)
+		Expect(err).NotTo(HaveOccurred())
+		Expect(res.Requeue).To(BeTrue())
+
+		r.reconcilePhase(context.Background(), machine)
+
+		Expect(r.Client.Get(ctx, types.NamespacedName{Name: bootstrapConfig.GetName(), Namespace: bootstrapConfig.GetNamespace()}, bootstrapConfig)).To(Succeed())
+
+		Expect(bootstrapConfig.GetOwnerReferences()).To(HaveLen(1))
+		Expect(bootstrapConfig.GetLabels()[clusterv1.ClusterLabelName]).To(BeEquivalentTo("test-cluster"))
+
+		Expect(r.Client.Get(ctx, types.NamespacedName{Name: infraConfig.GetName(), Namespace: infraConfig.GetNamespace()}, infraConfig)).To(Succeed())
+
+		Expect(infraConfig.GetOwnerReferences()).To(HaveLen(1))
+		Expect(infraConfig.GetLabels()[clusterv1.ClusterLabelName]).To(BeEquivalentTo("test-cluster"))
 	})
 
 	It("Should set `Pending` with a new Machine", func() {

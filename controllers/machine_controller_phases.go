@@ -27,7 +27,6 @@ import (
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
-	"k8s.io/klog"
 	"k8s.io/utils/pointer"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha3"
 	"sigs.k8s.io/cluster-api/controllers/external"
@@ -76,6 +75,8 @@ func (r *MachineReconciler) reconcilePhase(ctx context.Context, m *clusterv1.Mac
 
 // reconcileExternal handles generic unstructured objects referenced by a Machine.
 func (r *MachineReconciler) reconcileExternal(ctx context.Context, m *clusterv1.Machine, ref *corev1.ObjectReference) (*unstructured.Unstructured, error) {
+	logger := r.Log.WithValues("machine", m.Name, "namespace", m.Namespace)
+
 	obj, err := external.Get(ctx, r.Client, ref, m.Namespace)
 	if err != nil {
 		if apierrors.IsNotFound(err) {
@@ -108,7 +109,7 @@ func (r *MachineReconciler) reconcileExternal(ctx context.Context, m *clusterv1.
 	// Add watcher for external object, if there isn't one already.
 	_, loaded := r.externalWatchers.LoadOrStore(obj.GroupVersionKind().String(), struct{}{})
 	if !loaded && r.controller != nil {
-		klog.Infof("Adding watcher on external object %q", obj.GroupVersionKind())
+		logger.Info("Adding watcher on external object", "gvk", obj.GroupVersionKind())
 		err := r.controller.Watch(
 			&source.Kind{Type: obj},
 			&handler.EnqueueRequestForOwner{OwnerType: &clusterv1.Machine{}},

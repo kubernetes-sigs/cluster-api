@@ -26,7 +26,6 @@ import (
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
-	"k8s.io/klog"
 	"k8s.io/utils/pointer"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha3"
 	"sigs.k8s.io/cluster-api/controllers/external"
@@ -68,6 +67,8 @@ func (r *ClusterReconciler) reconcilePhase(ctx context.Context, cluster *cluster
 
 // reconcileExternal handles generic unstructured objects referenced by a Cluster.
 func (r *ClusterReconciler) reconcileExternal(ctx context.Context, cluster *clusterv1.Cluster, ref *corev1.ObjectReference) (*unstructured.Unstructured, error) {
+	logger := r.Log.WithValues("cluster", cluster.Name, "namespace", cluster.Namespace)
+
 	obj, err := external.Get(ctx, r.Client, ref, cluster.Namespace)
 	if err != nil {
 		if apierrors.IsNotFound(err) {
@@ -103,7 +104,7 @@ func (r *ClusterReconciler) reconcileExternal(ctx context.Context, cluster *clus
 	// Add watcher for external object, if there isn't one already.
 	_, loaded := r.externalWatchers.LoadOrStore(obj.GroupVersionKind().String(), struct{}{})
 	if !loaded && r.controller != nil {
-		klog.Infof("Adding watcher on external object %q", obj.GroupVersionKind())
+		logger.Info("Adding watcher on external object", "gvk", obj.GroupVersionKind())
 		err := r.controller.Watch(
 			&source.Kind{Type: obj},
 			&handler.EnqueueRequestForOwner{OwnerType: &clusterv1.Cluster{}},
@@ -135,6 +136,8 @@ func (r *ClusterReconciler) reconcileExternal(ctx context.Context, cluster *clus
 
 // reconcileInfrastructure reconciles the Spec.InfrastructureRef object on a Cluster.
 func (r *ClusterReconciler) reconcileInfrastructure(ctx context.Context, cluster *clusterv1.Cluster) error {
+	logger := r.Log.WithValues("cluster", cluster.Name, "namespace", cluster.Namespace)
+
 	if cluster.Spec.InfrastructureRef == nil {
 		return nil
 	}
@@ -156,7 +159,7 @@ func (r *ClusterReconciler) reconcileInfrastructure(ctx context.Context, cluster
 		if err != nil {
 			return err
 		} else if !ready {
-			klog.V(3).Infof("Infrastructure provider for Cluster %q in namespace %q is not ready yet", cluster.Name, cluster.Namespace)
+			logger.V(3).Info("Infrastructure provider is not ready yet")
 			return nil
 		}
 		cluster.Status.InfrastructureReady = true

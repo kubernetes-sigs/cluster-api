@@ -24,7 +24,6 @@ import (
 	apicorev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	corev1 "k8s.io/client-go/kubernetes/typed/core/v1"
-	"k8s.io/klog"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha3"
 	"sigs.k8s.io/cluster-api/controllers/noderefutil"
 	"sigs.k8s.io/cluster-api/controllers/remote"
@@ -36,6 +35,8 @@ var (
 )
 
 func (r *MachineReconciler) reconcileNodeRef(ctx context.Context, cluster *clusterv1.Cluster, machine *clusterv1.Machine) error {
+	logger := r.Log.WithValues("machine", machine.Name, "namespace", machine.Namespace)
+
 	// Check that the Machine hasn't been deleted or in the process.
 	if !machine.DeletionTimestamp.IsZero() {
 		return nil
@@ -48,13 +49,15 @@ func (r *MachineReconciler) reconcileNodeRef(ctx context.Context, cluster *clust
 
 	// Check that Cluster isn't nil.
 	if cluster == nil {
-		klog.V(2).Infof("Machine %q in namespace %q doesn't have a linked cluster, won't assign NodeRef", machine.Name, machine.Namespace)
+		logger.V(2).Info("Machine doesn't have a linked cluster, won't assign NodeRef")
 		return nil
 	}
 
+	logger = logger.WithValues("cluster", cluster.Name)
+
 	// Check that the Machine has a valid ProviderID.
 	if machine.Spec.ProviderID == nil || *machine.Spec.ProviderID == "" {
-		klog.Warningf("Machine %q in namespace %q doesn't have a valid ProviderID yet", machine.Name, machine.Namespace)
+		logger.Info("Machine doesn't have a valid ProviderID yet")
 		return nil
 	}
 
@@ -80,19 +83,21 @@ func (r *MachineReconciler) reconcileNodeRef(ctx context.Context, cluster *clust
 			return errors.Wrapf(&capierrors.RequeueAfterError{RequeueAfter: 10 * time.Second},
 				"cannot assign NodeRef to Machine %q in namespace %q, no matching Node", machine.Name, machine.Namespace)
 		}
-		klog.Errorf("Failed to assign NodeRef to Machine %q in namespace %q: %v", machine.Name, machine.Namespace, err)
+		logger.Error(err, "Failed to assign NodeRef")
 		r.recorder.Event(machine, apicorev1.EventTypeWarning, "FailedSetNodeRef", err.Error())
 		return err
 	}
 
 	// Set the Machine NodeRef.
 	machine.Status.NodeRef = nodeRef
-	klog.Infof("Set Machine's (%q in namespace %q) NodeRef to %q", machine.Name, machine.Namespace, machine.Status.NodeRef.Name)
+	logger.Info("Set Machine's NodeRef", "noderef", machine.Status.NodeRef.Name)
 	r.recorder.Event(machine, apicorev1.EventTypeNormal, "SuccessfulSetNodeRef", machine.Status.NodeRef.Name)
 	return nil
 }
 
 func (r *MachineReconciler) getNodeReference(client corev1.NodesGetter, providerID *noderefutil.ProviderID) (*apicorev1.ObjectReference, error) {
+	logger := r.Log.WithValues("providerID", providerID)
+
 	listOpt := metav1.ListOptions{}
 
 	for {
@@ -104,7 +109,7 @@ func (r *MachineReconciler) getNodeReference(client corev1.NodesGetter, provider
 		for _, node := range nodeList.Items {
 			nodeProviderID, err := noderefutil.NewProviderID(node.Spec.ProviderID)
 			if err != nil {
-				klog.V(3).Infof("Failed to parse ProviderID for Node %q: %v", node.Name, err)
+				logger.Error(err, "Failed to parse ProviderID", "node", node.Name)
 				continue
 			}
 

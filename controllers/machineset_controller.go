@@ -31,7 +31,6 @@ import (
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/client-go/tools/record"
-	"k8s.io/klog"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha3"
 	"sigs.k8s.io/cluster-api/controllers/external"
 	"sigs.k8s.io/cluster-api/util"
@@ -85,7 +84,7 @@ func (r *MachineSetReconciler) SetupWithManager(mgr ctrl.Manager, options contro
 
 func (r *MachineSetReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 	ctx := context.Background()
-	_ = r.Log.WithValues("machineset", req.NamespacedName)
+	logger := r.Log.WithValues("machineset", req.Name, "namespace", req.Namespace)
 
 	machineSet := &clusterv1.MachineSet{}
 	if err := r.Client.Get(ctx, req.NamespacedName, machineSet); err != nil {
@@ -106,14 +105,16 @@ func (r *MachineSetReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) 
 
 	result, err := r.reconcile(ctx, machineSet)
 	if err != nil {
-		klog.Errorf("Failed to reconcile MachineSet %q: %v", req.NamespacedName, err)
+		logger.Error(err, "Failed to reconcile MachineSet")
 		r.recorder.Eventf(machineSet, corev1.EventTypeWarning, "ReconcileError", "%v", err)
 	}
 	return result, err
 }
 
 func (r *MachineSetReconciler) reconcile(ctx context.Context, machineSet *clusterv1.MachineSet) (ctrl.Result, error) {
-	klog.V(4).Infof("Reconcile MachineSet %q in namespace %q", machineSet.Name, machineSet.Namespace)
+	logger := r.Log.WithValues("machineset", machineSet.Name, "namespace", machineSet.Namespace)
+
+	logger.V(4).Info("Reconcile MachineSet")
 
 	// Make sure that label selector can match template's labels.
 	// TODO(vincepri): Move to a validation (admission) webhook when supported.
@@ -180,18 +181,18 @@ func (r *MachineSetReconciler) reconcile(ctx context.Context, machineSet *cluste
 	filteredMachines := make([]*clusterv1.Machine, 0, len(allMachines.Items))
 	for idx := range allMachines.Items {
 		machine := &allMachines.Items[idx]
-		if shouldExcludeMachine(machineSet, machine) {
+		if shouldExcludeMachine(machineSet, machine, logger) {
 			continue
 		}
 
 		// Attempt to adopt machine if it meets previous conditions and it has no controller references.
 		if metav1.GetControllerOf(machine) == nil {
 			if err := r.adoptOrphan(ctx, machineSet, machine); err != nil {
-				klog.Warningf("Failed to adopt Machine %q into MachineSet %q: %v", machine.Name, machineSet.Name, err)
+				logger.Error(err, "Failed to adopt Machine", "machine", machine.Name)
 				r.recorder.Eventf(machineSet, corev1.EventTypeWarning, "FailedAdopt", "Failed to adopt Machine %q: %v", machine.Name, err)
 				continue
 			}
-			klog.Infof("Adopted Machine %q into MachineSet %q", machine.Name, machineSet.Name)
+			logger.Info("Adopted Machine", "machine", machine.Name)
 			r.recorder.Eventf(machineSet, corev1.EventTypeNormal, "SuccessfulAdopt", "Adopted Machine %q", machine.Name)
 		}
 
@@ -204,7 +205,7 @@ func (r *MachineSetReconciler) reconcile(ctx context.Context, machineSet *cluste
 	newStatus := r.calculateStatus(ms, filteredMachines)
 
 	// Always updates status as machines come up or die.
-	updatedMS, err := updateMachineSetStatus(r.Client, machineSet, newStatus)
+	updatedMS, err := updateMachineSetStatus(r.Client, machineSet, newStatus, logger)
 	if err != nil {
 		if syncErr != nil {
 			return ctrl.Result{}, errors.Wrapf(err, "failed to sync machines: %v. failed to update machine set status", syncErr)
@@ -237,7 +238,7 @@ func (r *MachineSetReconciler) reconcile(ctx context.Context, machineSet *cluste
 
 	// Quickly rereconcile until the nodes become Ready.
 	if updatedMS.Status.ReadyReplicas != replicas {
-		klog.V(4).Info("Some nodes are not ready yet, requeuing until they are ready")
+		logger.V(4).Info("Some nodes are not ready yet, requeuing until they are ready")
 		return ctrl.Result{RequeueAfter: 15 * time.Second}, nil
 	}
 
@@ -246,6 +247,7 @@ func (r *MachineSetReconciler) reconcile(ctx context.Context, machineSet *cluste
 
 // syncReplicas scales Machine resources up or down.
 func (r *MachineSetReconciler) syncReplicas(ctx context.Context, ms *clusterv1.MachineSet, machines []*clusterv1.Machine) error {
+	logger := r.Log.WithValues("machineset", ms.Name, "namespace", ms.Namespace)
 	if ms.Spec.Replicas == nil {
 		return errors.Errorf("the Replicas field in Spec for machineset %v is nil, this should not be allowed", ms.Name)
 	}
@@ -254,14 +256,13 @@ func (r *MachineSetReconciler) syncReplicas(ctx context.Context, ms *clusterv1.M
 
 	if diff < 0 {
 		diff *= -1
-		klog.Infof("Too few replicas for %v %s/%s, need %d, creating %d",
-			machineSetKind, ms.Namespace, ms.Name, *(ms.Spec.Replicas), diff)
+		logger.Info("Too few replicas", "need", *(ms.Spec.Replicas), "creating", diff)
 
 		var machineList []*clusterv1.Machine
 		var errstrings []string
 		for i := 0; i < diff; i++ {
-			klog.Infof("Creating machine %d of %d, ( spec.replicas(%d) > currentMachineCount(%d) )",
-				i+1, diff, *(ms.Spec.Replicas), len(machines))
+			logger.Info(fmt.Sprintf("Creating machine %d of %d, ( spec.replicas(%d) > currentMachineCount(%d) )",
+				i+1, diff, *(ms.Spec.Replicas), len(machines)))
 
 			machine := r.getNewMachine(ms)
 
@@ -296,20 +297,20 @@ func (r *MachineSetReconciler) syncReplicas(ctx context.Context, ms *clusterv1.M
 			}
 
 			if err := r.Client.Create(context.TODO(), machine); err != nil {
-				klog.Errorf("Unable to create Machine %q: %v", machine.Name, err)
+				logger.Error(err, "Unable to create Machine", "machine", machine.Name)
 				r.recorder.Eventf(ms, corev1.EventTypeWarning, "FailedCreate", "Failed to create machine %q: %v", machine.Name, err)
 				errstrings = append(errstrings, err.Error())
 				if err := r.Client.Delete(context.TODO(), infraConfig); !apierrors.IsNotFound(err) {
-					klog.Errorf("Failed to cleanup infrastructure configuration object after Machine creation error: %v", err)
+					logger.Error(err, "Failed to cleanup infrastructure configuration object after Machine creation error")
 				}
 				if bootstrapConfig != nil {
 					if err := r.Client.Delete(context.TODO(), bootstrapConfig); !apierrors.IsNotFound(err) {
-						klog.Errorf("Failed to cleanup bootstrap configuration object after Machine creation error: %v", err)
+						logger.Error(err, "Failed to cleanup bootstrap configuration object after Machine creation error")
 					}
 				}
 				continue
 			}
-			klog.Infof("Created machine %d of %d with name %q", i+1, diff, machine.Name)
+			logger.Info(fmt.Sprintf("Created machine %d of %d with name %q", i+1, diff, machine.Name))
 			r.recorder.Eventf(ms, corev1.EventTypeNormal, "SuccessfulCreate", "Created machine %q", machine.Name)
 
 			machineList = append(machineList, machine)
@@ -321,14 +322,13 @@ func (r *MachineSetReconciler) syncReplicas(ctx context.Context, ms *clusterv1.M
 
 		return r.waitForMachineCreation(machineList)
 	} else if diff > 0 {
-		klog.Infof("Too many replicas for %v %s/%s, need %d, deleting %d",
-			machineSetKind, ms.Namespace, ms.Name, *(ms.Spec.Replicas), diff)
+		logger.Info("Too many replicas", "need", *(ms.Spec.Replicas), "deleting", diff)
 
 		deletePriorityFunc, err := getDeletePriorityFunc(ms)
 		if err != nil {
 			return err
 		}
-		klog.Infof("Found %q delete policy", ms.Spec.DeletePolicy)
+		logger.Info("Found delete policy", "delete-policy", ms.Spec.DeletePolicy)
 		// Choose which Machines to delete.
 		machinesToDelete := getMachinesToDeletePrioritized(machines, diff, deletePriorityFunc)
 
@@ -340,11 +340,11 @@ func (r *MachineSetReconciler) syncReplicas(ctx context.Context, ms *clusterv1.M
 				defer wg.Done()
 				err := r.Client.Delete(context.Background(), targetMachine)
 				if err != nil {
-					klog.Errorf("Unable to delete Machine %s: %v", targetMachine.Name, err)
+					logger.Error(err, "Unable to delete Machine", "machine", targetMachine.Name)
 					r.recorder.Eventf(ms, corev1.EventTypeWarning, "FailedDelete", "Failed to delete machine %q: %v", targetMachine.Name, err)
 					errCh <- err
 				}
-				klog.Infof("Deleted machine %q", targetMachine.Name)
+				logger.Info("Deleted machine", "machine", targetMachine.Name)
 				r.recorder.Eventf(ms, corev1.EventTypeNormal, "SuccessfulDelete", "Deleted machine %q", targetMachine.Name)
 			}(machine)
 		}
@@ -388,9 +388,9 @@ func (r *MachineSetReconciler) getNewMachine(machineSet *clusterv1.MachineSet) *
 }
 
 // shouldExcludeMachine returns true if the machine should be filtered out, false otherwise.
-func shouldExcludeMachine(machineSet *clusterv1.MachineSet, machine *clusterv1.Machine) bool {
+func shouldExcludeMachine(machineSet *clusterv1.MachineSet, machine *clusterv1.Machine, logger logr.Logger) bool {
 	if metav1.GetControllerOf(machine) != nil && !metav1.IsControlledBy(machine, machineSet) {
-		klog.V(4).Infof("%s not controlled by %v", machine.Name, machineSet.Name)
+		logger.V(4).Info("Machine is not controlled by machineset", "machine", machine.Name)
 		return true
 	}
 	return machine.ObjectMeta.DeletionTimestamp != nil
@@ -413,7 +413,7 @@ func (r *MachineSetReconciler) waitForMachineCreation(machineList []*clusterv1.M
 				if apierrors.IsNotFound(err) {
 					return false, nil
 				}
-				klog.Error(err)
+				r.Log.Error(err, "Error getting machines")
 				return false, err
 			}
 
@@ -421,7 +421,7 @@ func (r *MachineSetReconciler) waitForMachineCreation(machineList []*clusterv1.M
 		})
 
 		if pollErr != nil {
-			klog.Error(pollErr)
+			r.Log.Error(pollErr, "Failed waiting for machine object to be created")
 			return errors.Wrap(pollErr, "failed waiting for machine object to be created")
 		}
 	}
@@ -444,7 +444,7 @@ func (r *MachineSetReconciler) waitForMachineDeletion(machineList []*clusterv1.M
 		})
 
 		if pollErr != nil {
-			klog.Error(pollErr)
+			r.Log.Error(pollErr, "Failed waiting for machine object to be deleted")
 			return errors.Wrap(pollErr, "failed waiting for machine object to be deleted")
 		}
 	}
@@ -458,7 +458,7 @@ func (r *MachineSetReconciler) MachineToMachineSets(o handler.MapObject) []ctrl.
 
 	m, ok := o.Object.(*clusterv1.Machine)
 	if !ok {
-		klog.Errorf("expected a Machine but got a %T", o.Object)
+		r.Log.Error(nil, fmt.Sprintf("Expected a Machine but got a %T", o.Object))
 		return nil
 	}
 
@@ -472,7 +472,7 @@ func (r *MachineSetReconciler) MachineToMachineSets(o handler.MapObject) []ctrl.
 
 	mss := r.getMachineSetsForMachine(m)
 	if len(mss) == 0 {
-		klog.V(4).Infof("Found no MachineSet for Machine %q", m.Name)
+		r.Log.V(4).Info("Found no MachineSet for Machine", "machine", m.Name)
 		return nil
 	}
 
@@ -485,15 +485,17 @@ func (r *MachineSetReconciler) MachineToMachineSets(o handler.MapObject) []ctrl.
 }
 
 func (r *MachineSetReconciler) getMachineSetsForMachine(m *clusterv1.Machine) []*clusterv1.MachineSet {
+	logger := r.Log.WithValues("machine", m.Name, "namespace", m.Namespace)
+
 	if len(m.Labels) == 0 {
-		klog.Warningf("No machine sets found for Machine %v because it has no labels", m.Name)
+		logger.Info("No machine sets found because it has no labels")
 		return nil
 	}
 
 	msList := &clusterv1.MachineSetList{}
 	err := r.Client.List(context.Background(), msList, client.InNamespace(m.Namespace))
 	if err != nil {
-		klog.Errorf("Failed to list machine sets, %v", err)
+		logger.Error(err, "Failed to list machine sets")
 		return nil
 	}
 
@@ -509,20 +511,22 @@ func (r *MachineSetReconciler) getMachineSetsForMachine(m *clusterv1.Machine) []
 }
 
 func (r *MachineSetReconciler) hasMatchingLabels(machineSet *clusterv1.MachineSet, machine *clusterv1.Machine) bool {
+	logger := r.Log.WithValues("machineset", machineSet.Name, "namespace", machineSet.Namespace, "machine", machine.Name)
+
 	selector, err := metav1.LabelSelectorAsSelector(&machineSet.Spec.Selector)
 	if err != nil {
-		klog.Warningf("unable to convert selector: %v", err)
+		logger.Error(err, "Unable to convert selector")
 		return false
 	}
 
 	// If a deployment with a nil or empty selector creeps in, it should match nothing, not everything.
 	if selector.Empty() {
-		klog.V(2).Infof("%v machineset has empty selector", machineSet.Name)
+		logger.V(2).Info("Machineset has empty selector")
 		return false
 	}
 
 	if !selector.Matches(labels.Set(machine.Labels)) {
-		klog.V(4).Infof("%v machine has mismatch labels", machine.Name)
+		logger.V(4).Info("Machine has mismatch labels")
 		return false
 	}
 

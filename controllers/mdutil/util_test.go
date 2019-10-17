@@ -29,6 +29,7 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/intstr"
 	"k8s.io/apiserver/pkg/storage/names"
+	"k8s.io/klog/klogr"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha3"
 )
 
@@ -637,6 +638,7 @@ func TestAnnotationUtils(t *testing.T) {
 	tDeployment := generateDeployment("nginx")
 	tMS := generateMS(tDeployment)
 	tDeployment.Annotations[RevisionAnnotation] = "1"
+	logger := klogr.New()
 
 	//Test Case 1: Check if anotations are copied properly from deployment to MS
 	t.Run("SetNewMachineSetAnnotations", func(t *testing.T) {
@@ -644,7 +646,7 @@ func TestAnnotationUtils(t *testing.T) {
 		for i := 0; i < 20; i++ {
 
 			nextRevision := fmt.Sprintf("%d", i+1)
-			SetNewMachineSetAnnotations(&tDeployment, &tMS, nextRevision, true)
+			SetNewMachineSetAnnotations(&tDeployment, &tMS, nextRevision, true, logger)
 			//Now the MachineSets Revision Annotation should be i+1
 
 			if tMS.Annotations[RevisionAnnotation] != nextRevision {

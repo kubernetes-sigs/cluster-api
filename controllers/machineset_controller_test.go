@@ -30,6 +30,7 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/kubernetes/scheme"
 	"k8s.io/client-go/tools/record"
+	"k8s.io/klog/klogr"
 	"k8s.io/utils/pointer"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha3"
 	"sigs.k8s.io/cluster-api/util/kubeconfig"
@@ -537,8 +538,9 @@ func TestShouldExcludeMachine(t *testing.T) {
 		},
 	}
 
+	logger := klogr.New()
 	for _, tc := range testCases {
-		got := shouldExcludeMachine(&tc.machineSet, &tc.machine)
+		got := shouldExcludeMachine(&tc.machineSet, &tc.machine, logger)
 		Expect(got).To(Equal(tc.expected))
 	}
 }
@@ -598,7 +600,9 @@ func TestAdoptOrphan(t *testing.T) {
 }
 
 func TestHasMatchingLabels(t *testing.T) {
-	r := &MachineSetReconciler{}
+	r := &MachineSetReconciler{
+		Log: klogr.New(),
+	}
 
 	testCases := []struct {
 		name       string

@@ -18,6 +18,7 @@ package controllers
 
 import (
 	"context"
+	"fmt"
 	"sync"
 	"time"
 
@@ -82,7 +83,6 @@ func (r *MachineReconciler) SetupWithManager(mgr ctrl.Manager, options controlle
 
 func (r *MachineReconciler) Reconcile(req ctrl.Request) (_ ctrl.Result, reterr error) {
 	ctx := context.Background()
-	_ = r.Log.WithValues("machine", req.NamespacedName)
 
 	// Fetch the Machine instance
 	m := &clusterv1.Machine{}
@@ -137,6 +137,11 @@ func (r *MachineReconciler) Reconcile(req ctrl.Request) (_ ctrl.Result, reterr e
 }
 
 func (r *MachineReconciler) reconcile(ctx context.Context, cluster *clusterv1.Cluster, m *clusterv1.Machine) (ctrl.Result, error) {
+	logger := r.Log.WithValues("machine", m.Name, "namespace", m.Namespace)
+	if cluster != nil {
+		logger = logger.WithValues("cluster", cluster.Name)
+	}
+
 	// If the Machine belongs to a cluster, add an owner reference.
 	if r.shouldAdopt(m) {
 		m.OwnerReferences = util.EnsureOwnerRef(m.OwnerReferences, metav1.OwnerReference{
@@ -168,7 +173,7 @@ func (r *MachineReconciler) reconcile(ctx context.Context, cluster *clusterv1.Cl
 			if !res.Requeue {
 				res.Requeue = true
 				res.RequeueAfter = requeueErr.GetRequeueAfter()
-				klog.Infof("Reconciliation for Machine %q in namespace %q asked to requeue: %v", m.Name, m.Namespace, err)
+				logger.Error(err, "Reconciliation for Machine asked to requeue")
 			}
 			continue
 		}
@@ -179,27 +184,32 @@ func (r *MachineReconciler) reconcile(ctx context.Context, cluster *clusterv1.Cl
 }
 
 func (r *MachineReconciler) reconcileDelete(ctx context.Context, cluster *clusterv1.Cluster, m *clusterv1.Machine) (ctrl.Result, error) {
+	logger := r.Log.WithValues("machine", m.Name, "namespace", m.Namespace)
+	if cluster != nil {
+		logger = logger.WithValues("cluster", cluster.Name)
+	}
+
 	if err := r.isDeleteNodeAllowed(ctx, m); err != nil {
 		switch err {
 		case errNilNodeRef:
-			klog.V(2).Infof("Deleting node is not allowed for machine %q: %v", m.Name, err)
+			logger.Error(err, "Deleting node is not allowed")
 		case errNoControlPlaneNodes, errLastControlPlaneNode:
-			klog.V(2).Infof("Deleting node %q is not allowed for machine %q: %v", m.Status.NodeRef.Name, m.Name, err)
+			logger.Error(err, "Deleting node is not allowed", "node", m.Status.NodeRef.Name)
 		default:
-			klog.Errorf("IsDeleteNodeAllowed check failed for machine %q: %v", m.Name, err)
+			logger.Error(err, "IsDeleteNodeAllowed check failed")
 			return ctrl.Result{}, err
 		}
 	} else {
 		// Drain node before deletion
 		if _, exists := m.ObjectMeta.Annotations[clusterv1.ExcludeNodeDrainingAnnotation]; !exists {
-			klog.Infof("Draining node %q for machine %q", m.Status.NodeRef.Name, m.Name)
+			logger.Info("Draining node", "node", m.Status.NodeRef.Name)
 			if err := r.drainNode(ctx, cluster, m.Status.NodeRef.Name, m.Name); err != nil {
 				r.recorder.Eventf(m, corev1.EventTypeWarning, "FailedDrainNode", "error draining Machine's node %q: %v", m.Status.NodeRef.Name, err)
 				return ctrl.Result{}, err
 			}
 			r.recorder.Eventf(m, corev1.EventTypeNormal, "SuccessfulDrainNode", "success draining Machine's node %q", m.Status.NodeRef.Name)
 		}
-		klog.Infof("Deleting node %q for Machine %s/%s", m.Status.NodeRef.Name, m.Namespace, m.Name)
+		logger.Info("Deleting node", "node", m.Status.NodeRef.Name)
 
 		var deleteNodeErr error
 		waitErr := wait.PollImmediate(2*time.Second, 10*time.Second, func() (bool, error) {
@@ -209,8 +219,7 @@ func (r *MachineReconciler) reconcileDelete(ctx context.Context, cluster *cluste
 			return true, nil
 		})
 		if waitErr != nil {
-			// TODO: remove m.Name after #1203
-			r.Log.Error(deleteNodeErr, "timed out deleting Machine's node, moving on", "node", m.Status.NodeRef.Name, "machine", m.Name)
+			logger.Error(deleteNodeErr, "Timed out deleting node, moving on", "node", m.Status.NodeRef.Name)
 			r.recorder.Eventf(m, corev1.EventTypeWarning, "FailedDeleteNode", "error deleting Machine's node: %v", deleteNodeErr)
 		}
 	}
@@ -258,6 +267,8 @@ func (r *MachineReconciler) isDeleteNodeAllowed(ctx context.Context, machine *cl
 }
 
 func (r *MachineReconciler) drainNode(ctx context.Context, cluster *clusterv1.Cluster, nodeName string, machineName string) error {
+	logger := r.Log.WithValues("machine", machineName, "node", nodeName, "cluster", cluster.Name, "namespace", cluster.Namespace)
+
 	var kubeClient kubernetes.Interface
 	if cluster == nil {
 		var err error
@@ -269,14 +280,12 @@ func (r *MachineReconciler) drainNode(ctx context.Context, cluster *clusterv1.Cl
 		// Otherwise, proceed to get the remote cluster client and get the Node.
 		remoteClient, err := remote.NewClusterClient(r.Client, cluster)
 		if err != nil {
-			klog.Errorf("Error creating a remote client for Cluster %q while deleting Machine %s/%s, won't retry: %v",
-				cluster.Name, cluster.Namespace, machineName, err)
+			logger.Error(err, "Error creating a remote client while deleting Machine, won't retry")
 			return nil
 		}
 		kubeClient, err = kubernetes.NewForConfig(remoteClient.RESTConfig())
 		if err != nil {
-			klog.Errorf("Error creating a remote client for Cluster %q while deleting Machine %s/%s, won't retry: %v",
-				cluster.Name, cluster.Namespace, machineName, err)
+			logger.Error(err, "Error creating a remote client while deleting Machine, won't retry")
 			return nil
 		}
 	}
@@ -285,8 +294,7 @@ func (r *MachineReconciler) drainNode(ctx context.Context, cluster *clusterv1.Cl
 	if err != nil {
 		if apierrors.IsNotFound(err) {
 			// If an admin deletes the node directly, we'll end up here.
-			klog.Infof("Machine %s/%s: Could not find node %v from noderef, it may have already been deleted: %v",
-				cluster.Namespace, machineName, nodeName, err)
+			logger.Error(err, "Could not find node from noderef, it may have already been deleted")
 			return nil
 		}
 		return errors.Errorf("unable to get node %q: %v", nodeName, err)
@@ -306,7 +314,8 @@ func (r *MachineReconciler) drainNode(ctx context.Context, cluster *clusterv1.Cl
 			if usingEviction {
 				verbStr = "Evicted"
 			}
-			klog.Infof("Machine %s/%s: %s pod %s/%s from Node %q", cluster.Namespace, machineName, verbStr, pod.Namespace, pod.Name, nodeName)
+			logger.Info(fmt.Sprintf("%s pod from Node", verbStr),
+				"pod", fmt.Sprintf("%s/%s", pod.Name, pod.Namespace))
 		},
 		Out:    writer{klog.Info},
 		ErrOut: writer{klog.Error},
@@ -315,21 +324,23 @@ func (r *MachineReconciler) drainNode(ctx context.Context, cluster *clusterv1.Cl
 
 	if err := kubedrain.RunCordonOrUncordon(drainer, node, true); err != nil {
 		// Machine will be re-reconciled after a cordon failure.
-		klog.Errorf("Machine %s/%s: Cordon failed for node %q: %v", cluster.Namespace, machineName, nodeName, err)
+		logger.Error(err, "Cordon failed")
 		return errors.Errorf("unable to cordon node %s: %v", node.Name, err)
 	}
 
 	if err := kubedrain.RunNodeDrain(drainer, node.Name); err != nil {
 		// Machine will be re-reconciled after a drain failure.
-		klog.Warningf("Machine %s/%s: Drain failed for node %q: %v", cluster.Namespace, machineName, nodeName, err)
+		logger.Error(err, "Drain failed")
 		return &capierrors.RequeueAfterError{RequeueAfter: 20 * time.Second}
 	}
 
-	klog.Infof("Drain successful for Machine %s/%s", cluster.Namespace, machineName)
+	logger.Info("Drain successful")
 	return nil
 }
 
 func (r *MachineReconciler) deleteNode(ctx context.Context, cluster *clusterv1.Cluster, name string) error {
+	logger := r.Log.WithValues("machine", name)
+
 	if cluster == nil {
 		// Try to retrieve the Node from the local cluster, if no Cluster reference is found.
 		var node corev1.Node
@@ -339,18 +350,18 @@ func (r *MachineReconciler) deleteNode(ctx context.Context, cluster *clusterv1.C
 		return r.Client.Delete(ctx, &node)
 	}
 
+	logger = logger.WithValues("cluster", cluster.Name, "namespace", cluster.Namespace)
+
 	// Otherwise, proceed to get the remote cluster client and get the Node.
 	remoteClient, err := remote.NewClusterClient(r.Client, cluster)
 	if err != nil {
-		klog.Errorf("Error creating a remote client for cluster %q while deleting Machine %q, won't retry: %v",
-			cluster.Name, name, err)
+		logger.Error(err, "Error creating a remote client for cluster while deleting Machine, won't retry")
 		return nil
 	}
 
 	corev1Remote, err := remoteClient.CoreV1()
 	if err != nil {
-		klog.Errorf("Error creating a remote client for cluster %q while deleting Machine %q, won't retry: %v",
-			cluster.Name, name, err)
+		logger.Error(err, "Error creating a remote client for cluster while deleting Machine, won't retry")
 		return nil
 	}
 

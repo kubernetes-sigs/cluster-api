@@ -417,7 +417,7 @@ func TestResolveFenceposts(t *testing.T) {
 		},
 	}
 
-	for num, test := range tests {
+	for _, test := range tests {
 		t.Run("maxSurge="+test.maxSurge, func(t *testing.T) {
 			maxSurge := intstr.FromString(test.maxSurge)
 			maxUnavail := intstr.FromString(test.maxUnavailable)
@@ -429,7 +429,7 @@ func TestResolveFenceposts(t *testing.T) {
 				t.Error("expected error")
 			}
 			if surge != test.expectSurge || unavail != test.expectUnavailable {
-				t.Errorf("#%v got %v:%v, want %v:%v", num, surge, unavail, test.expectSurge, test.expectUnavailable)
+				t.Errorf("got %v:%v, want %v:%v", surge, unavail, test.expectSurge, test.expectUnavailable)
 			}
 		})
 	}
@@ -754,11 +754,11 @@ func TestReplicasAnnotationsNeedUpdate(t *testing.T) {
 		},
 	}
 
-	for i, test := range tests {
+	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
 			result := ReplicasAnnotationsNeedUpdate(test.machineSet, 10, 20)
 			if result != test.expected {
-				t.Errorf("case[%d]:%s Expected %v, Got: %v", i, test.name, test.expected, result)
+				t.Errorf("Expected %v, Got: %v", test.expected, result)
 			}
 		})
 	}

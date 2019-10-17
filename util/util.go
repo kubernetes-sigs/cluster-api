@@ -86,7 +86,8 @@ func GetControlPlaneMachines(machines []*clusterv1.Machine) (res []*clusterv1.Ma
 
 // GetControlPlaneMachinesFromList returns a slice containing control plane machines.
 func GetControlPlaneMachinesFromList(machineList *clusterv1.MachineList) (res []*clusterv1.Machine) {
-	for _, machine := range machineList.Items {
+	for i := 0; i < len(machineList.Items); i++ {
+		machine := machineList.Items[i]
 		if IsControlPlaneMachine(&machine) {
 			res = append(res, &machine)
 		}

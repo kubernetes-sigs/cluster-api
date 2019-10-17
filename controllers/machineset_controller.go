@@ -405,7 +405,8 @@ func (r *MachineSetReconciler) adoptOrphan(ctx context.Context, machineSet *clus
 }
 
 func (r *MachineSetReconciler) waitForMachineCreation(machineList []*clusterv1.Machine) error {
-	for _, machine := range machineList {
+	for i := 0; i < len(machineList); i++ {
+		machine := machineList[i]
 		pollErr := util.PollImmediate(stateConfirmationInterval, stateConfirmationTimeout, func() (bool, error) {
 			key := client.ObjectKey{Namespace: machine.Namespace, Name: machine.Name}
 
@@ -430,7 +431,8 @@ func (r *MachineSetReconciler) waitForMachineCreation(machineList []*clusterv1.M
 }
 
 func (r *MachineSetReconciler) waitForMachineDeletion(machineList []*clusterv1.Machine) error {
-	for _, machine := range machineList {
+	for i := 0; i < len(machineList); i++ {
+		machine := machineList[i]
 		pollErr := util.PollImmediate(stateConfirmationInterval, stateConfirmationTimeout, func() (bool, error) {
 			m := &clusterv1.Machine{}
 			key := client.ObjectKey{Namespace: machine.Namespace, Name: machine.Name}

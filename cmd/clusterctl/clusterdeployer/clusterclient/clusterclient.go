@@ -353,7 +353,8 @@ func (c *client) GetMachineDeploymentsForCluster(cluster *clusterv1.Cluster) ([]
 	}
 
 	var machineDeployments []*clusterv1.MachineDeployment
-	for _, md := range machineDeploymentList.Items {
+	for i := 0; i < len(machineDeploymentList.Items); i++ {
+		md := machineDeploymentList.Items[i]
 		for _, or := range md.GetOwnerReferences() {
 			if or.Kind == cluster.Kind && or.Name == cluster.Name {
 				machineDeployments = append(machineDeployments, &md)
@@ -408,7 +409,8 @@ func (c *client) GetMachineSetsForCluster(cluster *clusterv1.Cluster) ([]*cluste
 		return nil, errors.Wrapf(err, "error listing MachineSets for Cluster %s/%s", cluster.Namespace, cluster.Name)
 	}
 	var machineSets []*clusterv1.MachineSet
-	for _, ms := range machineSetList.Items {
+	for i := 0; i < len(machineSetList.Items); i++ {
+		ms := machineSetList.Items[i]
 		for _, or := range ms.GetOwnerReferences() {
 			if or.Kind == cluster.Kind && or.Name == cluster.Name {
 				machineSets = append(machineSets, &ms)

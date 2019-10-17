@@ -125,10 +125,10 @@ var _ = Describe("MachineSet Reconciler", func() {
 
 		// Create the MachineSet.
 		Expect(k8sClient.Create(ctx, instance)).To(BeNil())
-		defer func() {
-			err := k8sClient.Delete(ctx, instance)
-			Expect(err).NotTo(HaveOccurred())
-		}()
+		// defer func() {
+		// 	err := k8sClient.Delete(ctx, instance)
+		// 	Expect(err).NotTo(HaveOccurred())
+		// }()
 
 		machines := &clusterv1.MachineList{}
 
@@ -174,7 +174,8 @@ var _ = Describe("MachineSet Reconciler", func() {
 
 		// Verify that each machine has the desired kubelet version,
 		// create a fake node in Ready state, update NodeRef, and wait for a reconciliation request.
-		for _, m := range machines.Items {
+		for i := 0; i < len(machines.Items); i++ {
+			m := machines.Items[i]
 			if !m.DeletionTimestamp.IsZero() {
 				// Skip deleted Machines
 				continue

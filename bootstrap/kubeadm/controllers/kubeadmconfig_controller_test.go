@@ -29,8 +29,6 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
-	fakeclient "k8s.io/client-go/kubernetes/fake"
-	typedcorev1 "k8s.io/client-go/kubernetes/typed/core/v1"
 	bootstrapapi "k8s.io/cluster-bootstrap/token/api"
 	"k8s.io/klog/klogr"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha3"
@@ -431,10 +429,9 @@ func TestKubeadmConfigReconciler_Reconcile_ErrorIfJoiningControlPlaneHasInvalidC
 	myclient := fake.NewFakeClientWithScheme(setupScheme(), objects...)
 
 	k := &KubeadmConfigReconciler{
-		Log:                  log.Log,
-		Client:               myclient,
-		SecretsClientFactory: newFakeSecretFactory(),
-		KubeadmInitLock:      &myInitLocker{},
+		Log:             log.Log,
+		Client:          myclient,
+		KubeadmInitLock: &myInitLocker{},
 	}
 
 	request := ctrl.Request{
@@ -546,10 +543,9 @@ func TestReconcileIfJoinNodesAndControlPlaneIsReady(t *testing.T) {
 			objects = append(objects, createSecrets(t, cluster, config)...)
 			myclient := fake.NewFakeClientWithScheme(setupScheme(), objects...)
 			k := &KubeadmConfigReconciler{
-				Log:                  log.Log,
-				Client:               myclient,
-				SecretsClientFactory: newFakeSecretFactory(),
-				KubeadmInitLock:      &myInitLocker{},
+				Log:             log.Log,
+				Client:          myclient,
+				KubeadmInitLock: &myInitLocker{},
 			}
 
 			request := ctrl.Request{
@@ -582,10 +578,9 @@ func TestReconcileIfJoinNodesAndControlPlaneIsReady(t *testing.T) {
 				t.Fatal("Expected status ready")
 			}
 
-			myremoteclient, _ := k.SecretsClientFactory.NewSecretsClient(nil, nil)
-			l, err := myremoteclient.List(metav1.ListOptions{})
-			if err != nil {
-				t.Fatal(fmt.Sprintf("Failed to get secrets after reconcile:\n %+v", err))
+			l := &corev1.SecretList{}
+			if err := k.Client.List(context.TODO(), l, client.ListOption(client.InNamespace(metav1.NamespaceSystem))); err != nil {
+				t.Fatal(errors.Wrap(err, "failed to get l after reconcile"))
 			}
 
 			if len(l.Items) != 1 {
@@ -619,10 +614,9 @@ func TestBootstrapTokenTTLExtension(t *testing.T) { //nolint
 	objects = append(objects, createSecrets(t, cluster, initConfig)...)
 	myclient := fake.NewFakeClientWithScheme(setupScheme(), objects...)
 	k := &KubeadmConfigReconciler{
-		Log:                  log.Log,
-		Client:               myclient,
-		SecretsClientFactory: newFakeSecretFactory(),
-		KubeadmInitLock:      &myInitLocker{},
+		Log:             log.Log,
+		Client:          myclient,
+		KubeadmInitLock: &myInitLocker{},
 	}
 	request := ctrl.Request{
 		NamespacedName: types.NamespacedName{
@@ -677,10 +671,9 @@ func TestBootstrapTokenTTLExtension(t *testing.T) { //nolint
 		t.Fatal("Expected status ready")
 	}
 
-	myremoteclient, _ := k.SecretsClientFactory.NewSecretsClient(nil, nil)
-	l, err := myremoteclient.List(metav1.ListOptions{})
-	if err != nil {
-		t.Fatalf("Failed to read secrets:\n %+v", err)
+	l := &corev1.SecretList{}
+	if err := k.Client.List(context.TODO(), l, client.ListOption(client.InNamespace(metav1.NamespaceSystem))); err != nil {
+		t.Fatal(errors.Wrap(err, "failed to get l after reconcile"))
 	}
 
 	if len(l.Items) != 2 {
@@ -720,9 +713,9 @@ func TestBootstrapTokenTTLExtension(t *testing.T) { //nolint
 		}
 	}
 
-	l, err = myremoteclient.List(metav1.ListOptions{})
-	if err != nil {
-		t.Fatalf("Failed to read secrets:\n %+v", err)
+	l = &corev1.SecretList{}
+	if err := k.Client.List(context.TODO(), l, client.ListOption(client.InNamespace(metav1.NamespaceSystem))); err != nil {
+		t.Fatal(errors.Wrap(err, "failed to get l after reconcile"))
 	}
 
 	if len(l.Items) != 2 {
@@ -778,9 +771,9 @@ func TestBootstrapTokenTTLExtension(t *testing.T) { //nolint
 		}
 	}
 
-	l, err = myremoteclient.List(metav1.ListOptions{})
-	if err != nil {
-		t.Fatalf("Failed to read secrets:\n %+v", err)
+	l = &corev1.SecretList{}
+	if err := k.Client.List(context.TODO(), l, client.ListOption(client.InNamespace(metav1.NamespaceSystem))); err != nil {
+		t.Fatal(errors.Wrap(err, "failed to get l after reconcile"))
 	}
 
 	if len(l.Items) != 2 {
@@ -797,10 +790,9 @@ func TestBootstrapTokenTTLExtension(t *testing.T) { //nolint
 // Ensure the discovery portion of the JoinConfiguration gets generated correctly.
 func TestKubeadmConfigReconciler_Reconcile_DisocveryReconcileBehaviors(t *testing.T) {
 	k := &KubeadmConfigReconciler{
-		Log:                  log.Log,
-		Client:               nil,
-		SecretsClientFactory: newFakeSecretFactory(),
-		KubeadmInitLock:      &myInitLocker{},
+		Log:             log.Log,
+		Client:          fake.NewFakeClientWithScheme(setupScheme()),
+		KubeadmInitLock: &myInitLocker{},
 	}
 
 	dummyCAHash := []string{"...."}
@@ -1162,10 +1154,9 @@ func TestKubeadmConfigReconciler_Reconcile_AlwaysCheckCAVerificationUnlessReques
 		t.Run(tc.name, func(t *testing.T) {
 			myclient := fake.NewFakeClientWithScheme(setupScheme(), objects...)
 			reconciler := KubeadmConfigReconciler{
-				Client:               myclient,
-				SecretsClientFactory: newFakeSecretFactory(),
-				KubeadmInitLock:      &myInitLocker{},
-				Log:                  klogr.New(),
+				Client:          myclient,
+				KubeadmInitLock: &myInitLocker{},
+				Log:             klogr.New(),
 			}
 
 			wc := newWorkerJoinKubeadmConfig(workerMachine)
@@ -1280,10 +1271,9 @@ func TestKubeadmConfigReconciler_Reconcile_ExactlyOneControlPlaneMachineInitiali
 	}
 	myclient := fake.NewFakeClientWithScheme(setupScheme(), objects...)
 	k := &KubeadmConfigReconciler{
-		Log:                  log.Log,
-		Client:               myclient,
-		SecretsClientFactory: newFakeSecretFactory(),
-		KubeadmInitLock:      &myInitLocker{},
+		Log:             log.Log,
+		Client:          myclient,
+		KubeadmInitLock: &myInitLocker{},
 	}
 
 	request := ctrl.Request{
@@ -1347,10 +1337,9 @@ func TestKubeadmConfigReconciler_Reconcile_DoNotPatchWhenErrorOccurred(t *testin
 
 	myclient := fake.NewFakeClientWithScheme(setupScheme(), objects...)
 	k := &KubeadmConfigReconciler{
-		Log:                  log.Log,
-		Client:               myclient,
-		SecretsClientFactory: newFakeSecretFactory(),
-		KubeadmInitLock:      &myInitLocker{},
+		Log:             log.Log,
+		Client:          myclient,
+		KubeadmInitLock: &myInitLocker{},
 	}
 
 	request := ctrl.Request{
@@ -1503,22 +1492,6 @@ func createSecrets(t *testing.T, cluster *clusterv1.Cluster, owner *bootstrapv1.
 
 func stringPtr(s string) *string {
 	return &s
-}
-
-// TODO this is not a fake but an actual client whose behavior we cannot control.
-// TODO remove this, probably when https://github.com/kubernetes-sigs/cluster-api-bootstrap-provider-kubeadm/issues/127 is closed.
-func newFakeSecretFactory() FakeSecretFactory {
-	return FakeSecretFactory{
-		client: fakeclient.NewSimpleClientset().CoreV1().Secrets(metav1.NamespaceSystem),
-	}
-}
-
-type FakeSecretFactory struct {
-	client typedcorev1.SecretInterface
-}
-
-func (f FakeSecretFactory) NewSecretsClient(client client.Client, cluster *clusterv1.Cluster) (typedcorev1.SecretInterface, error) {
-	return f.client, nil
 }
 
 type myInitLocker struct {

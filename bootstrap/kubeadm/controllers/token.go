@@ -17,16 +17,14 @@ limitations under the License.
 package controllers
 
 import (
+	"context"
 	"time"
 
 	"github.com/pkg/errors"
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	corev1 "k8s.io/client-go/kubernetes/typed/core/v1"
 	bootstrapapi "k8s.io/cluster-bootstrap/token/api"
 	bootstraputil "k8s.io/cluster-bootstrap/token/util"
-	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha3"
-	capiremote "sigs.k8s.io/cluster-api/controllers/remote"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
@@ -35,26 +33,8 @@ var (
 	DefaultTokenTTL = 15 * time.Minute
 )
 
-// ClusterSecretsClientFactory support creation of secrets client for clusters
-type ClusterSecretsClientFactory struct{}
-
-// NewSecretsClient returns a new client supporting SecretInterface for the cluster
-func (f ClusterSecretsClientFactory) NewSecretsClient(client client.Client, cluster *clusterv1.Cluster) (corev1.SecretInterface, error) {
-	remoteClient, err := capiremote.NewClusterClient(client, cluster)
-	if err != nil {
-		return nil, err
-	}
-
-	corev1Client, err := remoteClient.CoreV1()
-	if err != nil {
-		return nil, err
-	}
-
-	return corev1Client.Secrets(metav1.NamespaceSystem), nil
-}
-
 // createToken attempts to create a token with the given ID.
-func createToken(client corev1.SecretInterface) (string, error) {
+func createToken(c client.Client) (string, error) {
 	token, err := bootstraputil.GenerateBootstrapToken()
 	if err != nil {
 		return "", errors.Wrap(err, "unable to generate bootstrap token")
@@ -85,14 +65,14 @@ func createToken(client corev1.SecretInterface) (string, error) {
 		},
 	}
 
-	if _, err = client.Create(secretToken); err != nil {
+	if err = c.Create(context.TODO(), secretToken); err != nil {
 		return "", err
 	}
 	return token, nil
 }
 
 // refreshToken extends the TTL for an existing token
-func refreshToken(client corev1.SecretInterface, token string) error {
+func refreshToken(c client.Client, token string) error {
 	substrs := bootstraputil.BootstrapTokenRegexp.FindStringSubmatch(token)
 	if len(substrs) != 3 {
 		return errors.Errorf("the bootstrap token %q was not of the form %q", token, bootstrapapi.BootstrapTokenPattern)
@@ -100,8 +80,8 @@ func refreshToken(client corev1.SecretInterface, token string) error {
 	tokenID := substrs[1]
 
 	secretName := bootstraputil.BootstrapTokenSecretName(tokenID)
-	secret, err := client.Get(secretName, metav1.GetOptions{})
-	if err != nil {
+	secret := &v1.Secret{}
+	if err := c.Get(context.TODO(), client.ObjectKey{Name: secretName, Namespace: metav1.NamespaceSystem}, secret); err != nil {
 		return err
 	}
 
@@ -110,6 +90,5 @@ func refreshToken(client corev1.SecretInterface, token string) error {
 	}
 	secret.Data[bootstrapapi.BootstrapTokenExpirationKey] = []byte(time.Now().UTC().Add(DefaultTokenTTL).Format(time.RFC3339))
 
-	_, err = client.Update(secret)
-	return err
+	return c.Update(context.TODO(), secret)
 }

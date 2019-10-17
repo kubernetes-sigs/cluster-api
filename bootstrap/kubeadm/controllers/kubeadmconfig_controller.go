@@ -26,7 +26,6 @@ import (
 	"github.com/pkg/errors"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	typedcorev1 "k8s.io/client-go/kubernetes/typed/core/v1"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha3"
 	bootstrapv1 "sigs.k8s.io/cluster-api/bootstrap/kubeadm/api/v1alpha2"
 	"sigs.k8s.io/cluster-api/bootstrap/kubeadm/cloudinit"
@@ -49,31 +48,21 @@ type InitLocker interface {
 	Unlock(ctx context.Context, cluster *clusterv1.Cluster) bool
 }
 
-// SecretsClientFactory define behaviour for creating a secrets client
-type SecretsClientFactory interface {
-	// NewSecretsClient returns a new client supporting SecretInterface
-	NewSecretsClient(client.Client, *clusterv1.Cluster) (typedcorev1.SecretInterface, error)
-}
-
 // +kubebuilder:rbac:groups=bootstrap.cluster.x-k8s.io,resources=kubeadmconfigs;kubeadmconfigs/status,verbs=get;list;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups=cluster.x-k8s.io,resources=clusters;clusters/status;machines;machines/status,verbs=get;list;watch
 // +kubebuilder:rbac:groups="",resources=secrets;events;configmaps,verbs=get;list;watch;create;update;patch;delete
 
 // KubeadmConfigReconciler reconciles a KubeadmConfig object
 type KubeadmConfigReconciler struct {
-	client.Client
-	SecretsClientFactory SecretsClientFactory
-	KubeadmInitLock      InitLocker
-	Log                  logr.Logger
+	Client          client.Client
+	KubeadmInitLock InitLocker
+	Log             logr.Logger
 }
 
 // SetupWithManager sets up the reconciler with the Manager.
 func (r *KubeadmConfigReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	if r.KubeadmInitLock == nil {
 		r.KubeadmInitLock = locking.NewControlPlaneInitMutex(ctrl.Log.WithName("init-locker"), mgr.GetClient())
-	}
-	if r.SecretsClientFactory == nil {
-		r.SecretsClientFactory = ClusterSecretsClientFactory{}
 	}
 
 	return ctrl.NewControllerManagedBy(mgr).
@@ -100,7 +89,7 @@ func (r *KubeadmConfigReconciler) Reconcile(req ctrl.Request) (_ ctrl.Result, re
 
 	// Lookup the kubeadm config
 	config := &bootstrapv1.KubeadmConfig{}
-	if err := r.Get(ctx, req.NamespacedName, config); err != nil {
+	if err := r.Client.Get(ctx, req.NamespacedName, config); err != nil {
 		if apierrors.IsNotFound(err) {
 			return ctrl.Result{}, nil
 		}
@@ -149,7 +138,7 @@ func (r *KubeadmConfigReconciler) Reconcile(req ctrl.Request) (_ ctrl.Result, re
 	case machine.Spec.Bootstrap.Data != nil && !config.Status.Ready:
 		config.Status.Ready = true
 		// Initialize the patch helper
-		patchHelper, err := patch.NewHelper(config, r)
+		patchHelper, err := patch.NewHelper(config, r.Client)
 		if err != nil {
 			return ctrl.Result{}, err
 		}
@@ -159,14 +148,8 @@ func (r *KubeadmConfigReconciler) Reconcile(req ctrl.Request) (_ ctrl.Result, re
 	case config.Status.Ready && (config.Spec.JoinConfiguration != nil && config.Spec.JoinConfiguration.Discovery.BootstrapToken != nil):
 		token := config.Spec.JoinConfiguration.Discovery.BootstrapToken.Token
 
-		// gets the remote secret interface client for the current cluster
-		secretsClient, err := r.SecretsClientFactory.NewSecretsClient(r.Client, cluster)
-		if err != nil {
-			return ctrl.Result{}, err
-		}
-
 		log.Info("refreshing token until the infrastructure has a chance to consume it")
-		err = refreshToken(secretsClient, token)
+		err = refreshToken(r.Client, token)
 		if err != nil {
 			// It would be nice to re-create the bootstrap token if the error was "not found", but we have no way to update the Machine's bootstrap data
 			return ctrl.Result{}, errors.Wrapf(err, "failed to refresh bootstrap token")
@@ -178,7 +161,7 @@ func (r *KubeadmConfigReconciler) Reconcile(req ctrl.Request) (_ ctrl.Result, re
 	}
 
 	// Initialize the patch helper
-	patchHelper, err := patch.NewHelper(config, r)
+	patchHelper, err := patch.NewHelper(config, r.Client)
 	if err != nil {
 		return ctrl.Result{}, err
 	}
@@ -421,7 +404,7 @@ func (r *KubeadmConfigReconciler) ClusterToKubeadmConfigs(o handler.MapObject) [
 	}
 
 	machineList := &clusterv1.MachineList{}
-	if err := r.List(context.Background(), machineList, selectors...); err != nil {
+	if err := r.Client.List(context.Background(), machineList, selectors...); err != nil {
 		r.Log.Error(err, "failed to list Machines", "Cluster", c.Name, "Namespace", c.Namespace)
 		return nil
 	}
@@ -496,12 +479,7 @@ func (r *KubeadmConfigReconciler) reconcileDiscovery(cluster *clusterv1.Cluster,
 	// if BootstrapToken already contains a token, respect it; otherwise create a new bootstrap token for the node to join
 	if config.Spec.JoinConfiguration.Discovery.BootstrapToken.Token == "" {
 		// gets the remote secret interface client for the current cluster
-		secretsClient, err := r.SecretsClientFactory.NewSecretsClient(r.Client, cluster)
-		if err != nil {
-			return err
-		}
-
-		token, err := createToken(secretsClient)
+		token, err := createToken(r.Client)
 		if err != nil {
 			return errors.Wrapf(err, "failed to create new bootstrap token")
 		}

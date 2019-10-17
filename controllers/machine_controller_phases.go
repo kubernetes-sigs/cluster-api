@@ -41,7 +41,7 @@ var (
 	externalReadyWait = 30 * time.Second
 )
 
-func (r *MachineReconciler) reconcilePhase(ctx context.Context, m *clusterv1.Machine) {
+func (r *MachineReconciler) reconcilePhase(_ context.Context, m *clusterv1.Machine) {
 	// Set the phase to "pending" if nil.
 	if m.Status.Phase == "" {
 		m.Status.SetTypedPhase(clusterv1.MachinePhasePending)

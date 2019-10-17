@@ -59,10 +59,8 @@ func TestLoadFromConfigMap(t *testing.T) {
 				if value != providerComponentsContent {
 					t.Errorf("provider components content mismatch: got %q, want %q", value, providerComponentsContent)
 				}
-			} else {
-				if err.Error() != tc.expectedErrorMessage {
-					t.Errorf("error message mismatch: got %q, want %q", err, tc.expectedErrorMessage)
-				}
+			} else if err.Error() != tc.expectedErrorMessage {
+				t.Errorf("error message mismatch: got %q, want %q", err, tc.expectedErrorMessage)
 			}
 		})
 	}

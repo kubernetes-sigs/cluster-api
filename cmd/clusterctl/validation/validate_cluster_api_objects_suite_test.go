@@ -54,7 +54,7 @@ func StartTestManager(mgr manager.Manager, t *testing.T) chan struct{} {
 	stop := make(chan struct{})
 	go func() {
 		if err := mgr.Start(stop); err != nil {
-			t.Fatalf("error starting test manager: %v", err)
+			t.Errorf("error starting test manager: %v", err)
 		}
 	}()
 	return stop

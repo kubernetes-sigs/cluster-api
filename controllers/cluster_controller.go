@@ -130,7 +130,7 @@ func (r *ClusterReconciler) reconcile(ctx context.Context, cluster *clusterv1.Cl
 
 	// If object doesn't have a finalizer, add one.
 	if !util.Contains(cluster.Finalizers, clusterv1.ClusterFinalizer) {
-		cluster.Finalizers = append(cluster.ObjectMeta.Finalizers, clusterv1.ClusterFinalizer)
+		cluster.Finalizers = append(cluster.Finalizers, clusterv1.ClusterFinalizer)
 	}
 
 	// Call the inner reconciliation methods.

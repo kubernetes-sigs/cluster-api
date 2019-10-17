@@ -6,13 +6,8 @@ linters:
     - funlen
     - gochecknoglobals
     - gochecknoinits
-    - gocritic
     - lll
     - scopelint
-    - staticcheck
-    - unparam
-    - unused
-    - depguard
   # Run with --fast=false for more extensive checks
   fast: true
 issues:

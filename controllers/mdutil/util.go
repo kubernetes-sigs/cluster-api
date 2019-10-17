@@ -605,11 +605,11 @@ func FilterActiveMachineSets(machineSets []*clusterv1.MachineSet) []*clusterv1.M
 type filterMS func(ms *clusterv1.MachineSet) bool
 
 // FilterMachineSets returns machine sets that are filtered by filterFn (all returned ones should match filterFn).
-func FilterMachineSets(MSes []*clusterv1.MachineSet, filterFn filterMS) []*clusterv1.MachineSet {
+func FilterMachineSets(mSes []*clusterv1.MachineSet, filterFn filterMS) []*clusterv1.MachineSet {
 	var filtered []*clusterv1.MachineSet
-	for i := range MSes {
-		if filterFn(MSes[i]) {
-			filtered = append(filtered, MSes[i])
+	for i := range mSes {
+		if filterFn(mSes[i]) {
+			filtered = append(filtered, mSes[i])
 		}
 	}
 	return filtered

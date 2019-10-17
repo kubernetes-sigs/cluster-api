@@ -39,8 +39,8 @@ import (
 
 // sync is responsible for reconciling deployments on scaling events or when they
 // are paused.
-func (r *MachineDeploymentReconciler) sync(d *clusterv1.MachineDeployment, msList []*clusterv1.MachineSet, machineMap map[types.UID]*clusterv1.MachineList) error {
-	newMS, oldMSs, err := r.getAllMachineSetsAndSyncRevision(d, msList, machineMap, false)
+func (r *MachineDeploymentReconciler) sync(d *clusterv1.MachineDeployment, msList []*clusterv1.MachineSet) error {
+	newMS, oldMSs, err := r.getAllMachineSetsAndSyncRevision(d, msList, false)
 	if err != nil {
 		return err
 	}
@@ -70,7 +70,7 @@ func (r *MachineDeploymentReconciler) sync(d *clusterv1.MachineDeployment, msLis
 //
 // Note that currently the deployment controller is using caches to avoid querying the server for reads.
 // This may lead to stale reads of machine sets, thus incorrect deployment status.
-func (r *MachineDeploymentReconciler) getAllMachineSetsAndSyncRevision(d *clusterv1.MachineDeployment, msList []*clusterv1.MachineSet, machineMap map[types.UID]*clusterv1.MachineList, createIfNotExisted bool) (*clusterv1.MachineSet, []*clusterv1.MachineSet, error) {
+func (r *MachineDeploymentReconciler) getAllMachineSetsAndSyncRevision(d *clusterv1.MachineDeployment, msList []*clusterv1.MachineSet, createIfNotExisted bool) (*clusterv1.MachineSet, []*clusterv1.MachineSet, error) {
 	_, allOldMSs := mdutil.FindOldMachineSets(d, msList)
 
 	// Get new machine set with the updated revision number
@@ -320,7 +320,7 @@ func (r *MachineDeploymentReconciler) scale(deployment *clusterv1.MachineDeploym
 			// Add/remove any leftovers to the largest machine set.
 			if i == 0 && deploymentReplicasToAdd != 0 {
 				leftover := deploymentReplicasToAdd - deploymentReplicasAdded
-				nameToSize[ms.Name] = nameToSize[ms.Name] + leftover
+				nameToSize[ms.Name] += leftover
 				if nameToSize[ms.Name] < 0 {
 					nameToSize[ms.Name] = 0
 				}

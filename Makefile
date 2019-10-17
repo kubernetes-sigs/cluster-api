@@ -136,12 +136,12 @@ generate-manifests: $(CONTROLLER_GEN) ## Generate manifests e.g. CRD, RBAC etc.
 	$(CONTROLLER_GEN) \
 		paths=./api/... \
 		paths=./controllers/... \
+		paths=./bootstrap/kubeadm/controllers/... \
 		crd \
 		rbac:roleName=manager-role \
 		output:crd:dir=./config/crd/bases
 	$(CONTROLLER_GEN) \
 		paths=./bootstrap/kubeadm/api/... \
-		paths=./bootstrap/kubeadm/controllers/... \
 		crd:trivialVersions=true \
 		output:crd:dir=./config/crd/bases
 	## Copy files in CI folders.

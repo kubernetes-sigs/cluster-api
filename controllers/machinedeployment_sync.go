@@ -243,7 +243,7 @@ func (r *MachineDeploymentReconciler) scale(deployment *clusterv1.MachineDeploym
 			return nil
 		}
 
-		_, err := r.scaleMachineSet(activeOrLatest, *(deployment.Spec.Replicas), deployment)
+		err := r.scaleMachineSet(activeOrLatest, *(deployment.Spec.Replicas), deployment)
 		return err
 	}
 
@@ -251,7 +251,7 @@ func (r *MachineDeploymentReconciler) scale(deployment *clusterv1.MachineDeploym
 	// This case handles machine set adoption during a saturated new machine set.
 	if mdutil.IsSaturated(deployment, newMS) {
 		for _, old := range mdutil.FilterActiveMachineSets(oldMSs) {
-			if _, err := r.scaleMachineSet(old, 0, deployment); err != nil {
+			if err := r.scaleMachineSet(old, 0, deployment); err != nil {
 				return err
 			}
 		}
@@ -327,7 +327,7 @@ func (r *MachineDeploymentReconciler) scale(deployment *clusterv1.MachineDeploym
 			}
 
 			// TODO: Use transactions when we have them.
-			if _, err := r.scaleMachineSetOperation(ms, nameToSize[ms.Name], deployment, scalingOperation); err != nil {
+			if err := r.scaleMachineSetOperation(ms, nameToSize[ms.Name], deployment, scalingOperation); err != nil {
 				// Return as soon as we fail, the deployment is requeued
 				return err
 			}
@@ -394,14 +394,14 @@ func calculateStatus(allMSs []*clusterv1.MachineSet, newMS *clusterv1.MachineSet
 	return status
 }
 
-func (r *MachineDeploymentReconciler) scaleMachineSet(ms *clusterv1.MachineSet, newScale int32, deployment *clusterv1.MachineDeployment) (bool, error) {
+func (r *MachineDeploymentReconciler) scaleMachineSet(ms *clusterv1.MachineSet, newScale int32, deployment *clusterv1.MachineDeployment) error {
 	if ms.Spec.Replicas == nil {
-		return false, errors.Errorf("spec replicas for machine set %v is nil, this is unexpected", ms.Name)
+		return errors.Errorf("spec replicas for machine set %v is nil, this is unexpected", ms.Name)
 	}
 
 	// No need to scale
 	if *(ms.Spec.Replicas) == newScale {
-		return false, nil
+		return nil
 	}
 
 	var scalingOperation string
@@ -414,9 +414,9 @@ func (r *MachineDeploymentReconciler) scaleMachineSet(ms *clusterv1.MachineSet, 
 	return r.scaleMachineSetOperation(ms, newScale, deployment, scalingOperation)
 }
 
-func (r *MachineDeploymentReconciler) scaleMachineSetOperation(ms *clusterv1.MachineSet, newScale int32, deployment *clusterv1.MachineDeployment, scaleOperation string) (bool, error) {
+func (r *MachineDeploymentReconciler) scaleMachineSetOperation(ms *clusterv1.MachineSet, newScale int32, deployment *clusterv1.MachineDeployment, scaleOperation string) error {
 	if ms.Spec.Replicas == nil {
-		return false, errors.Errorf("spec replicas for machine set %v is nil, this is unexpected", ms.Name)
+		return errors.Errorf("spec replicas for machine set %v is nil, this is unexpected", ms.Name)
 	}
 
 	sizeNeedsUpdate := *(ms.Spec.Replicas) != newScale
@@ -428,8 +428,7 @@ func (r *MachineDeploymentReconciler) scaleMachineSetOperation(ms *clusterv1.Mac
 	)
 
 	var (
-		scaled bool
-		err    error
+		err error
 	)
 
 	if sizeNeedsUpdate || annotationsNeedUpdate {
@@ -442,12 +441,11 @@ func (r *MachineDeploymentReconciler) scaleMachineSetOperation(ms *clusterv1.Mac
 		if err != nil {
 			r.recorder.Eventf(deployment, corev1.EventTypeWarning, "FailedScale", "Failed to scale MachineSet %q: %v", ms.Name, err)
 		} else if sizeNeedsUpdate {
-			scaled = true
 			r.recorder.Eventf(deployment, corev1.EventTypeNormal, "SuccessfulScale", "Scaled %s MachineSet %q to %d", scaleOperation, ms.Name, newScale)
 		}
 	}
 
-	return scaled, err
+	return err
 }
 
 // cleanupDeployment is responsible for cleaning up a deployment i.e. retains all but the latest N old machine sets

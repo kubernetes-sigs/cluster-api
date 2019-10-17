@@ -125,7 +125,10 @@ var _ = Describe("MachineSet Reconciler", func() {
 
 		// Create the MachineSet.
 		Expect(k8sClient.Create(ctx, instance)).To(BeNil())
-		defer k8sClient.Delete(ctx, instance)
+		// defer func() {
+		// 	err := k8sClient.Delete(ctx, instance)
+		// 	Expect(err).NotTo(HaveOccurred())
+		// }()
 
 		machines := &clusterv1.MachineList{}
 
@@ -171,7 +174,8 @@ var _ = Describe("MachineSet Reconciler", func() {
 
 		// Verify that each machine has the desired kubelet version,
 		// create a fake node in Ready state, update NodeRef, and wait for a reconciliation request.
-		for _, m := range machines.Items {
+		for i := 0; i < len(machines.Items); i++ {
+			m := machines.Items[i]
 			if !m.DeletionTimestamp.IsZero() {
 				// Skip deleted Machines
 				continue
@@ -260,7 +264,8 @@ func TestMachineSetOwnerReference(t *testing.T) {
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
 			RegisterTestingT(t)
-			clusterv1.AddToScheme(scheme.Scheme)
+			err := clusterv1.AddToScheme(scheme.Scheme)
+			Expect(err).NotTo(HaveOccurred())
 			msr := &MachineSetReconciler{
 				Client: fake.NewFakeClientWithScheme(
 					scheme.Scheme,
@@ -274,7 +279,7 @@ func TestMachineSetOwnerReference(t *testing.T) {
 				recorder: record.NewFakeRecorder(32),
 			}
 
-			_, err := msr.Reconcile(tc.request)
+			_, err = msr.Reconcile(tc.request)
 			if tc.expectReconcileErr {
 				Expect(err).ToNot(BeNil())
 			} else {
@@ -310,7 +315,8 @@ func TestMachineSetReconcile(t *testing.T) {
 				Namespace: ms.Namespace,
 			},
 		}
-		clusterv1.AddToScheme(scheme.Scheme)
+		err := clusterv1.AddToScheme(scheme.Scheme)
+		Expect(err).NotTo(HaveOccurred())
 		msr := &MachineSetReconciler{
 			Client:   fake.NewFakeClientWithScheme(scheme.Scheme, ms),
 			Log:      log.Log,
@@ -335,14 +341,15 @@ func TestMachineSetReconcile(t *testing.T) {
 				Namespace: ms.Namespace,
 			},
 		}
-		clusterv1.AddToScheme(scheme.Scheme)
+		err := clusterv1.AddToScheme(scheme.Scheme)
+		Expect(err).NotTo(HaveOccurred())
 		rec := record.NewFakeRecorder(32)
 		msr := &MachineSetReconciler{
 			Client:   fake.NewFakeClientWithScheme(scheme.Scheme, ms),
 			Log:      log.Log,
 			recorder: rec,
 		}
-		msr.Reconcile(request)
+		_, _ = msr.Reconcile(request)
 		Eventually(rec.Events).Should(Receive())
 	})
 }
@@ -438,7 +445,8 @@ func TestMachineSetToMachines(t *testing.T) {
 		},
 	}
 
-	clusterv1.AddToScheme(scheme.Scheme)
+	err := clusterv1.AddToScheme(scheme.Scheme)
+	Expect(err).NotTo(HaveOccurred())
 	r := &MachineSetReconciler{
 		Client: fake.NewFakeClient(&m, &m2, &m3, machineSetList),
 		Log:    log.Log,
@@ -581,7 +589,8 @@ func TestAdoptOrphan(t *testing.T) {
 		},
 	}
 
-	clusterv1.AddToScheme(scheme.Scheme)
+	err := clusterv1.AddToScheme(scheme.Scheme)
+	Expect(err).NotTo(HaveOccurred())
 	r := &MachineSetReconciler{
 		Client: fake.NewFakeClient(&m),
 		Log:    log.Log,

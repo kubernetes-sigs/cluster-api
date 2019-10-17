@@ -20,6 +20,7 @@ import (
 	"strings"
 	"testing"
 
+	. "github.com/onsi/gomega"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -33,7 +34,9 @@ import (
 )
 
 func TestGetNodeReference(t *testing.T) {
-	clusterv1.AddToScheme(scheme.Scheme)
+	RegisterTestingT(t)
+	err := clusterv1.AddToScheme(scheme.Scheme)
+	Expect(err).NotTo(HaveOccurred())
 	r := &MachineReconciler{
 		Client:   fake.NewFakeClient(),
 		Log:      log.Log,

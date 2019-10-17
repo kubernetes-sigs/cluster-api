@@ -2,22 +2,18 @@ linters:
   enable-all: true
   disable:
     - dupl
-    - errcheck
     - funlen
     - gochecknoglobals
     - gochecknoinits
-    - gocritic
     - lll
-    - scopelint
-    - staticcheck
-    - unparam
-    - unused
-    - depguard
   # Run with --fast=false for more extensive checks
   fast: true
 issues:
   max-same-issues: 0
   max-issues-per-linter: 0
+  # List of regexps of issue texts to exclude, empty list by default.
+  exclude:
+    - Using the variable on range scope `(tc)|(rt)|(tt)|(test)|(testcase)|(testCase)` in function literal
 run:
   deadline: 4m
   skip-files:

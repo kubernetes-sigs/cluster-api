@@ -58,7 +58,7 @@ func New(
 }
 
 // Create the cluster from the provided cluster definition and machine list.
-func (d *ClusterDeployer) Create(resources *yaml.ParseOutput, kubeconfigOutput string, providerComponentsStoreFactory provider.ComponentsStoreFactory) error {
+func (d *ClusterDeployer) Create(resources *yaml.ParseOutput, kubeconfigOutput string, providerComponentsStoreFactory provider.ComponentsStoreFactory) (reterr error) {
 	cluster := resources.Clusters[0]
 	machines := resources.Machines
 
@@ -68,7 +68,11 @@ func (d *ClusterDeployer) Create(resources *yaml.ParseOutput, kubeconfigOutput s
 	}
 
 	bootstrapClient, cleanupBootstrapCluster, err := phases.CreateBootstrapCluster(d.bootstrapProvisioner, d.cleanupBootstrapCluster, d.clientFactory)
-	defer cleanupBootstrapCluster()
+	defer func() {
+		if err := cleanupBootstrapCluster(); err != nil && reterr == nil {
+			reterr = err
+		}
+	}()
 	if err != nil {
 		return errors.Wrap(err, "could not create bootstrap cluster")
 	}
@@ -170,10 +174,14 @@ func (d *ClusterDeployer) Create(resources *yaml.ParseOutput, kubeconfigOutput s
 	return nil
 }
 
-func (d *ClusterDeployer) Delete(targetClient clusterclient.Client) error {
+func (d *ClusterDeployer) Delete(targetClient clusterclient.Client) (reterr error) {
 	klog.Info("Creating bootstrap cluster")
 	bootstrapClient, cleanupBootstrapCluster, err := phases.CreateBootstrapCluster(d.bootstrapProvisioner, d.cleanupBootstrapCluster, d.clientFactory)
-	defer cleanupBootstrapCluster()
+	defer func() {
+		if err := cleanupBootstrapCluster(); err != nil && reterr == nil {
+			reterr = err
+		}
+	}()
 	if err != nil {
 		return errors.Wrap(err, "could not create bootstrap cluster")
 	}

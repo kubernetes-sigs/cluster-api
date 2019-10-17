@@ -87,7 +87,7 @@ func generateDeployment(image string) clusterv1.MachineDeployment {
 	}
 }
 
-func generateMachineTemplateSpec(name, nodeName string, annotations, labels map[string]string) clusterv1.MachineTemplateSpec {
+func generateMachineTemplateSpec(name string, annotations, labels map[string]string) clusterv1.MachineTemplateSpec {
 	return clusterv1.MachineTemplateSpec{
 		ObjectMeta: clusterv1.ObjectMeta{
 			Name:        name,
@@ -106,62 +106,62 @@ func TestEqualIgnoreHash(t *testing.T) {
 	}{
 		{
 			"Same spec, same labels",
-			generateMachineTemplateSpec("foo", "foo-node", map[string]string{}, map[string]string{DefaultMachineDeploymentUniqueLabelKey: "value-1", "something": "else"}),
-			generateMachineTemplateSpec("foo", "foo-node", map[string]string{}, map[string]string{DefaultMachineDeploymentUniqueLabelKey: "value-1", "something": "else"}),
+			generateMachineTemplateSpec("foo", map[string]string{}, map[string]string{DefaultMachineDeploymentUniqueLabelKey: "value-1", "something": "else"}),
+			generateMachineTemplateSpec("foo", map[string]string{}, map[string]string{DefaultMachineDeploymentUniqueLabelKey: "value-1", "something": "else"}),
 			true,
 		},
 		{
 			"Same spec, only machine-template-hash label value is different",
-			generateMachineTemplateSpec("foo", "foo-node", map[string]string{}, map[string]string{DefaultMachineDeploymentUniqueLabelKey: "value-1", "something": "else"}),
-			generateMachineTemplateSpec("foo", "foo-node", map[string]string{}, map[string]string{DefaultMachineDeploymentUniqueLabelKey: "value-2", "something": "else"}),
+			generateMachineTemplateSpec("foo", map[string]string{}, map[string]string{DefaultMachineDeploymentUniqueLabelKey: "value-1", "something": "else"}),
+			generateMachineTemplateSpec("foo", map[string]string{}, map[string]string{DefaultMachineDeploymentUniqueLabelKey: "value-2", "something": "else"}),
 			true,
 		},
 		{
 			"Same spec, the former doesn't have machine-template-hash label",
-			generateMachineTemplateSpec("foo", "foo-node", map[string]string{}, map[string]string{"something": "else"}),
-			generateMachineTemplateSpec("foo", "foo-node", map[string]string{}, map[string]string{DefaultMachineDeploymentUniqueLabelKey: "value-2", "something": "else"}),
+			generateMachineTemplateSpec("foo", map[string]string{}, map[string]string{"something": "else"}),
+			generateMachineTemplateSpec("foo", map[string]string{}, map[string]string{DefaultMachineDeploymentUniqueLabelKey: "value-2", "something": "else"}),
 			true,
 		},
 		{
 			"Same spec, the label is different, the former doesn't have machine-template-hash label, same number of labels",
-			generateMachineTemplateSpec("foo", "foo-node", map[string]string{}, map[string]string{"something": "else"}),
-			generateMachineTemplateSpec("foo", "foo-node", map[string]string{}, map[string]string{DefaultMachineDeploymentUniqueLabelKey: "value-2"}),
+			generateMachineTemplateSpec("foo", map[string]string{}, map[string]string{"something": "else"}),
+			generateMachineTemplateSpec("foo", map[string]string{}, map[string]string{DefaultMachineDeploymentUniqueLabelKey: "value-2"}),
 			false,
 		},
 		{
 			"Same spec, the label is different, the latter doesn't have machine-template-hash label, same number of labels",
-			generateMachineTemplateSpec("foo", "foo-node", map[string]string{}, map[string]string{DefaultMachineDeploymentUniqueLabelKey: "value-1"}),
-			generateMachineTemplateSpec("foo", "foo-node", map[string]string{}, map[string]string{"something": "else"}),
+			generateMachineTemplateSpec("foo", map[string]string{}, map[string]string{DefaultMachineDeploymentUniqueLabelKey: "value-1"}),
+			generateMachineTemplateSpec("foo", map[string]string{}, map[string]string{"something": "else"}),
 			false,
 		},
 		{
 			"Same spec, the label is different, and the machine-template-hash label value is the same",
-			generateMachineTemplateSpec("foo", "foo-node", map[string]string{}, map[string]string{DefaultMachineDeploymentUniqueLabelKey: "value-1"}),
-			generateMachineTemplateSpec("foo", "foo-node", map[string]string{}, map[string]string{DefaultMachineDeploymentUniqueLabelKey: "value-1", "something": "else"}),
+			generateMachineTemplateSpec("foo", map[string]string{}, map[string]string{DefaultMachineDeploymentUniqueLabelKey: "value-1"}),
+			generateMachineTemplateSpec("foo", map[string]string{}, map[string]string{DefaultMachineDeploymentUniqueLabelKey: "value-1", "something": "else"}),
 			false,
 		},
 		{
 			"Different spec, same labels",
-			generateMachineTemplateSpec("foo", "foo-node", map[string]string{"former": "value"}, map[string]string{DefaultMachineDeploymentUniqueLabelKey: "value-1", "something": "else"}),
-			generateMachineTemplateSpec("foo", "foo-node", map[string]string{"latter": "value"}, map[string]string{DefaultMachineDeploymentUniqueLabelKey: "value-1", "something": "else"}),
+			generateMachineTemplateSpec("foo", map[string]string{"former": "value"}, map[string]string{DefaultMachineDeploymentUniqueLabelKey: "value-1", "something": "else"}),
+			generateMachineTemplateSpec("foo", map[string]string{"latter": "value"}, map[string]string{DefaultMachineDeploymentUniqueLabelKey: "value-1", "something": "else"}),
 			false,
 		},
 		{
 			"Different spec, different machine-template-hash label value",
-			generateMachineTemplateSpec("foo-1", "foo-node", map[string]string{}, map[string]string{DefaultMachineDeploymentUniqueLabelKey: "value-1", "something": "else"}),
-			generateMachineTemplateSpec("foo-2", "foo-node", map[string]string{}, map[string]string{DefaultMachineDeploymentUniqueLabelKey: "value-2", "something": "else"}),
+			generateMachineTemplateSpec("foo-1", map[string]string{}, map[string]string{DefaultMachineDeploymentUniqueLabelKey: "value-1", "something": "else"}),
+			generateMachineTemplateSpec("foo-2", map[string]string{}, map[string]string{DefaultMachineDeploymentUniqueLabelKey: "value-2", "something": "else"}),
 			false,
 		},
 		{
 			"Different spec, the former doesn't have machine-template-hash label",
-			generateMachineTemplateSpec("foo-1", "foo-node-1", map[string]string{}, map[string]string{"something": "else"}),
-			generateMachineTemplateSpec("foo-2", "foo-node-2", map[string]string{}, map[string]string{DefaultMachineDeploymentUniqueLabelKey: "value-2", "something": "else"}),
+			generateMachineTemplateSpec("foo-1", map[string]string{}, map[string]string{"something": "else"}),
+			generateMachineTemplateSpec("foo-2", map[string]string{}, map[string]string{DefaultMachineDeploymentUniqueLabelKey: "value-2", "something": "else"}),
 			false,
 		},
 		{
 			"Different spec, different labels",
-			generateMachineTemplateSpec("foo", "foo-node-1", map[string]string{}, map[string]string{"something": "else"}),
-			generateMachineTemplateSpec("foo", "foo-node-2", map[string]string{}, map[string]string{"nothing": "else"}),
+			generateMachineTemplateSpec("foo", map[string]string{}, map[string]string{"something": "else"}),
+			generateMachineTemplateSpec("foo", map[string]string{}, map[string]string{"nothing": "else"}),
 			false,
 		},
 	}
@@ -276,7 +276,6 @@ func TestFindOldMachineSets(t *testing.T) {
 		Name            string
 		deployment      clusterv1.MachineDeployment
 		msList          []*clusterv1.MachineSet
-		machineList     *clusterv1.MachineList
 		expected        []*clusterv1.MachineSet
 		expectedRequire []*clusterv1.MachineSet
 	}{
@@ -418,7 +417,7 @@ func TestResolveFenceposts(t *testing.T) {
 		},
 	}
 
-	for num, test := range tests {
+	for _, test := range tests {
 		t.Run("maxSurge="+test.maxSurge, func(t *testing.T) {
 			maxSurge := intstr.FromString(test.maxSurge)
 			maxUnavail := intstr.FromString(test.maxUnavailable)
@@ -430,7 +429,7 @@ func TestResolveFenceposts(t *testing.T) {
 				t.Error("expected error")
 			}
 			if surge != test.expectSurge || unavail != test.expectUnavailable {
-				t.Errorf("#%v got %v:%v, want %v:%v", num, surge, unavail, test.expectSurge, test.expectUnavailable)
+				t.Errorf("got %v:%v, want %v:%v", surge, unavail, test.expectSurge, test.expectUnavailable)
 			}
 		})
 	}
@@ -755,11 +754,11 @@ func TestReplicasAnnotationsNeedUpdate(t *testing.T) {
 		},
 	}
 
-	for i, test := range tests {
+	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
 			result := ReplicasAnnotationsNeedUpdate(test.machineSet, 10, 20)
 			if result != test.expected {
-				t.Errorf("case[%d]:%s Expected %v, Got: %v", i, test.name, test.expected, result)
+				t.Errorf("Expected %v, Got: %v", test.expected, result)
 			}
 		})
 	}

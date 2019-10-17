@@ -37,10 +37,8 @@ import (
 )
 
 const (
-	InfrastructureAPIVersion    = "infrastructure.cluster.x-k8s.io/v1alpha2"
-	KindProviderMachineTemplate = "ProviderMachineTemplate"
-	KindProviderMachine         = "ProviderMachine"
-	KindProviderCluster         = "ProviderCluster"
+	InfrastructureAPIVersion = "infrastructure.cluster.x-k8s.io/v1alpha2"
+	KindProviderMachine      = "ProviderMachine"
 )
 
 var (
@@ -632,20 +630,6 @@ func (f *testClusterClientFactory) NewClientFromKubeconfig(kubeconfig string) (c
 	return f.clusterClients[kubeconfig], nil
 }
 
-type testProviderDeployer struct {
-	GetIPErr         error
-	GetKubeConfigErr error
-	ip               string
-	kubeconfig       string
-}
-
-func (d *testProviderDeployer) GetIP(_ *clusterv1.Cluster, _ *clusterv1.Machine) (string, error) {
-	return d.ip, d.GetIPErr
-}
-func (d *testProviderDeployer) GetKubeConfig(_ *clusterv1.Cluster, _ *clusterv1.Machine) (string, error) {
-	return d.kubeconfig, d.GetKubeConfigErr
-}
-
 func TestClusterCreate(t *testing.T) {
 	const bootstrapKubeconfig = "bootstrap"
 	const targetKubeconfig = "target"
@@ -941,7 +925,7 @@ func TestClusterCreate(t *testing.T) {
 						},
 					}
 					testcase.bootstrapClient.secrets = append(testcase.bootstrapClient.secrets, kubeconfigSecret)
-					testcase.targetClient.secrets = append(testcase.bootstrapClient.secrets, kubeconfigSecret)
+					testcase.targetClient.secrets = append(testcase.targetClient.secrets, kubeconfigSecret)
 
 					resources := &yaml.ParseOutput{
 						Clusters: []*clusterv1.Cluster{inputCluster},
@@ -952,7 +936,7 @@ func TestClusterCreate(t *testing.T) {
 					if err != nil {
 						break
 					}
-					testcase.namespaceToExpectedInternalMachines[ns] = testcase.namespaceToExpectedInternalMachines[ns] + len(inputMachines[inputCluster.Name])
+					testcase.namespaceToExpectedInternalMachines[ns] += len(inputMachines[inputCluster.Name])
 				}
 				if (testcase.expectErr && err == nil) || (!testcase.expectErr && err != nil) {
 					t.Fatalf("Unexpected error returned. Got: %v, Want Err: %v", err, testcase.expectErr)
@@ -1228,7 +1212,6 @@ func TestDeleteCleanupExternalCluster(t *testing.T) {
 
 func TestClusterDelete(t *testing.T) {
 	const bootstrapKubeconfig = "bootstrap"
-	const targetKubeconfig = "target"
 
 	testCases := []struct {
 		name                                   string
@@ -1473,28 +1456,28 @@ func TestClusterDelete(t *testing.T) {
 					targetClusters, targetMachines, targetMachineDeployments, targetMachineSets, targetMachineClasses                int
 				)
 				for _, clusters := range testCase.bootstrapClient.clusters {
-					bootstrapClusters = bootstrapClusters + len(clusters)
+					bootstrapClusters += len(clusters)
 				}
 				for _, machines := range testCase.bootstrapClient.machines {
-					bootstrapMachines = bootstrapMachines + len(machines)
+					bootstrapMachines += len(machines)
 				}
 				for _, machineDeployments := range testCase.bootstrapClient.machineDeployments {
-					bootstrapMachineDeployments = bootstrapMachineDeployments + len(machineDeployments)
+					bootstrapMachineDeployments += len(machineDeployments)
 				}
 				for _, machineSets := range testCase.bootstrapClient.machineSets {
-					bootstrapMachineSets = bootstrapMachineSets + len(machineSets)
+					bootstrapMachineSets += len(machineSets)
 				}
 				for _, clusters := range testCase.targetClient.clusters {
-					targetClusters = targetClusters + len(clusters)
+					targetClusters += len(clusters)
 				}
 				for _, machines := range testCase.targetClient.machines {
-					targetMachines = targetMachines + len(machines)
+					targetMachines += len(machines)
 				}
 				for _, machineDeployments := range testCase.targetClient.machineDeployments {
-					targetMachineDeployments = targetMachineDeployments + len(machineDeployments)
+					targetMachineDeployments += len(machineDeployments)
 				}
 				for _, machineSets := range testCase.targetClient.machineSets {
-					targetMachineSets = targetMachineSets + len(machineSets)
+					targetMachineSets += len(machineSets)
 				}
 
 				if bootstrapClusters != 0 {

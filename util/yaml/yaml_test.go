@@ -307,12 +307,16 @@ func TestParseMachineYaml(t *testing.T) {
 	}
 }
 
-func createTempFile(contents string) (string, error) {
+func createTempFile(contents string) (filename string, reterr error) {
 	f, err := ioutil.TempFile("", "")
 	if err != nil {
 		return "", err
 	}
-	defer f.Close()
-	f.WriteString(contents)
+	defer func() {
+		if err := f.Close(); err != nil && reterr == nil {
+			reterr = err
+		}
+	}()
+	_, _ = f.WriteString(contents)
 	return f.Name(), nil
 }

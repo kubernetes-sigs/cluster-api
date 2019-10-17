@@ -58,11 +58,8 @@ func (c *cached) flush() error {
 }
 
 func (c *cached) shouldFlushOn(err error) bool {
-	switch err.(type) {
-	case *meta.NoKindMatchError:
-		return true
-	}
-	return false
+	_, ok := err.(*meta.NoKindMatchError)
+	return ok
 }
 
 func (c *cached) onError(err error) bool {

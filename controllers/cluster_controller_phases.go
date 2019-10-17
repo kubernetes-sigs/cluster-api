@@ -38,7 +38,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/source"
 )
 
-func (r *ClusterReconciler) reconcilePhase(ctx context.Context, cluster *clusterv1.Cluster) {
+func (r *ClusterReconciler) reconcilePhase(_ context.Context, cluster *clusterv1.Cluster) {
 	// Set the phase to "pending" if nil.
 	if cluster.Status.Phase == "" {
 		cluster.Status.SetTypedPhase(clusterv1.ClusterPhasePending)

@@ -52,7 +52,8 @@ func TestHelperUnstructuredPatch(t *testing.T) {
 		},
 	}
 	fakeClient := fake.NewFakeClient()
-	fakeClient.Create(ctx, obj)
+	err := fakeClient.Create(ctx, obj)
+	Expect(err).NotTo(HaveOccurred())
 
 	h, err := NewHelper(obj, fakeClient)
 	if err != nil {
@@ -225,12 +226,14 @@ func TestHelperPatch(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			clusterv1.AddToScheme(scheme.Scheme)
+			err := clusterv1.AddToScheme(scheme.Scheme)
+			Expect(err).NotTo(HaveOccurred())
 			ctx := context.Background()
 			fakeClient := fake.NewFakeClient()
 
 			beforeCopy := tt.before.DeepCopyObject()
-			fakeClient.Create(ctx, beforeCopy)
+			err = fakeClient.Create(ctx, beforeCopy)
+			Expect(err).NotTo(HaveOccurred())
 
 			h, err := NewHelper(beforeCopy, fakeClient)
 			if err != nil {

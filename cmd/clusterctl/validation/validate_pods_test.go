@@ -24,7 +24,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-func podWithStatus(podName, namespace string, podPhase corev1.PodPhase, containerReadyStatus bool) corev1.Pod {
+func podWithStatus(podName, namespace string, podPhase corev1.PodPhase, containerReadyStatus bool) corev1.Pod { //nolint:unparam
 	return corev1.Pod{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      podName,

@@ -132,7 +132,8 @@ var _ = Describe("MachineDeployment Reconciler", func() {
 		Expect(k8sClient.Create(ctx, deployment)).To(BeNil())
 		defer func() {
 			By("Deleting the MachineDeployment")
-			k8sClient.Delete(ctx, deployment)
+			err := k8sClient.Delete(ctx, deployment)
+			Expect(err).NotTo(HaveOccurred())
 		}()
 
 		// Verify that the MachineSet was created.
@@ -200,7 +201,8 @@ var _ = Describe("MachineDeployment Reconciler", func() {
 			if err := k8sClient.List(ctx, machineSets, msListOpts...); err != nil {
 				return false
 			}
-			for _, ms := range machineSets.Items {
+			for i := 0; i < len(machineSets.Items); i++ {
+				ms := machineSets.Items[0]
 				if !metav1.IsControlledBy(&ms, deployment) || metav1.GetControllerOf(&ms).Kind != "MachineDeployment" {
 					return false
 				}
@@ -225,7 +227,8 @@ var _ = Describe("MachineDeployment Reconciler", func() {
 			// to properly set AvailableReplicas.
 			machines := &clusterv1.MachineList{}
 			Expect(k8sClient.List(ctx, machines, client.InNamespace(namespace.Name))).NotTo(HaveOccurred())
-			for _, m := range machines.Items {
+			for i := 0; i < len(machines.Items); i++ {
+				m := machines.Items[i]
 				// Skip over deleted Machines
 				if !m.DeletionTimestamp.IsZero() {
 					continue
@@ -277,7 +280,8 @@ var _ = Describe("MachineDeployment Reconciler", func() {
 			// to properly set AvailableReplicas.
 			machines := &clusterv1.MachineList{}
 			Expect(k8sClient.List(ctx, machines, client.InNamespace(namespace.Name))).NotTo(HaveOccurred())
-			for _, m := range machines.Items {
+			for i := 0; i < len(machines.Items); i++ {
+				m := machines.Items[i]
 				if !m.DeletionTimestamp.IsZero() {
 					continue
 				}
@@ -405,7 +409,8 @@ func TestMachineSetToDeployments(t *testing.T) {
 		},
 	}
 
-	clusterv1.AddToScheme(scheme.Scheme)
+	err := clusterv1.AddToScheme(scheme.Scheme)
+	Expect(err).NotTo(HaveOccurred())
 	r := &MachineDeploymentReconciler{
 		Client:   fake.NewFakeClient(machineDeplopymentList),
 		Log:      log.Log,
@@ -480,7 +485,8 @@ func TestGetMachineDeploymentsForMachineSet(t *testing.T) {
 			expected:              []*clusterv1.MachineDeployment{&machineDeployment},
 		},
 	}
-	clusterv1.AddToScheme(scheme.Scheme)
+	err := clusterv1.AddToScheme(scheme.Scheme)
+	Expect(err).NotTo(HaveOccurred())
 	r := &MachineDeploymentReconciler{
 		Client:   fake.NewFakeClient(&ms1, &ms2, machineDeplopymentList),
 		Log:      log.Log,
@@ -642,7 +648,8 @@ func TestGetMachineSetsForDeployment(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			clusterv1.AddToScheme(scheme.Scheme)
+			err := clusterv1.AddToScheme(scheme.Scheme)
+			Expect(err).NotTo(HaveOccurred())
 			r := &MachineDeploymentReconciler{
 				Client:   fake.NewFakeClient(machineSetList),
 				Log:      log.Log,

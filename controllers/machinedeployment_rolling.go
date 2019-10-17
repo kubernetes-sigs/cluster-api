@@ -84,7 +84,7 @@ func (r *MachineDeploymentReconciler) reconcileNewMachineSet(allMSs []*clusterv1
 
 	if *(newMS.Spec.Replicas) > *(deployment.Spec.Replicas) {
 		// Scale down.
-		_, err := r.scaleMachineSet(newMS, *(deployment.Spec.Replicas), deployment)
+		err := r.scaleMachineSet(newMS, *(deployment.Spec.Replicas), deployment)
 		return err
 	}
 
@@ -92,7 +92,7 @@ func (r *MachineDeploymentReconciler) reconcileNewMachineSet(allMSs []*clusterv1
 	if err != nil {
 		return err
 	}
-	_, err = r.scaleMachineSet(newMS, newReplicasCount, deployment)
+	err = r.scaleMachineSet(newMS, newReplicasCount, deployment)
 	return err
 }
 
@@ -220,7 +220,7 @@ func (r *MachineDeploymentReconciler) cleanupUnhealthyReplicas(oldMSs []*cluster
 			return nil, 0, errors.Errorf("when cleaning up unhealthy replicas, got invalid request to scale down %s/%s %d -> %d", targetMS.Namespace, targetMS.Name, oldMSReplicas, newReplicasCount)
 		}
 
-		if _, err := r.scaleMachineSet(targetMS, newReplicasCount, deployment); err != nil {
+		if err := r.scaleMachineSet(targetMS, newReplicasCount, deployment); err != nil {
 			return nil, totalScaledDown, err
 		}
 
@@ -279,7 +279,7 @@ func (r *MachineDeploymentReconciler) scaleDownOldMachineSetsForRollingUpdate(al
 			return totalScaledDown, errors.Errorf("when scaling down old MS, got invalid request to scale down %s/%s %d -> %d", targetMS.Namespace, targetMS.Name, *(targetMS.Spec.Replicas), newReplicasCount)
 		}
 
-		if _, err := r.scaleMachineSet(targetMS, newReplicasCount, deployment); err != nil {
+		if err := r.scaleMachineSet(targetMS, newReplicasCount, deployment); err != nil {
 			return totalScaledDown, err
 		}
 

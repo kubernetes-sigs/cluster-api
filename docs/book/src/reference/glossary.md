@@ -41,6 +41,9 @@ Cluster API Provider Docker
 ### CAPG
 Cluster API Google Cloud Provider
 
+### CAPIBM
+Cluster API Provider IBM Cloud
+
 ### CAPO
 Cluster API Provider OpenStack
 

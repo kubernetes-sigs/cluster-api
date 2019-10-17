@@ -161,7 +161,7 @@ func (r *MachineReconciler) reconcile(ctx context.Context, cluster *clusterv1.Cl
 	reconciliationErrors := []error{
 		r.reconcileBootstrap(ctx, m),
 		r.reconcileInfrastructure(ctx, m),
-		r.reconcileNodeRef(cluster, m),
+		r.reconcileNodeRef(ctx, cluster, m),
 	}
 
 	// Parse the errors, making sure we record if there is a RequeueAfterError.

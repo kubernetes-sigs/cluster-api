@@ -125,10 +125,10 @@ var _ = Describe("MachineSet Reconciler", func() {
 
 		// Create the MachineSet.
 		Expect(k8sClient.Create(ctx, instance)).To(BeNil())
-		// defer func() {
-		// 	err := k8sClient.Delete(ctx, instance)
-		// 	Expect(err).NotTo(HaveOccurred())
-		// }()
+		defer func() {
+			err := k8sClient.Delete(ctx, instance)
+			Expect(err).NotTo(HaveOccurred())
+		}()
 
 		machines := &clusterv1.MachineList{}
 

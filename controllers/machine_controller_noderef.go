@@ -17,6 +17,7 @@ limitations under the License.
 package controllers
 
 import (
+	"context"
 	"time"
 
 	"github.com/pkg/errors"
@@ -33,7 +34,7 @@ var (
 	ErrNodeNotFound = errors.New("cannot find node with matching ProviderID")
 )
 
-func (r *MachineReconciler) reconcileNodeRef(cluster *clusterv1.Cluster, machine *clusterv1.Machine) error {
+func (r *MachineReconciler) reconcileNodeRef(_ context.Context, cluster *clusterv1.Cluster, machine *clusterv1.Machine) error {
 	logger := r.Log.WithValues("machine", machine.Name, "namespace", machine.Namespace)
 	// Check that the Machine hasn't been deleted or in the process.
 	if !machine.DeletionTimestamp.IsZero() {

@@ -35,6 +35,10 @@ func ApplyCluster(client clusterclient.Client, cluster *clusterv1.Cluster, extra
 	}
 
 	for _, e := range extra {
+		if e.GetNamespace() == "" {
+			e.SetNamespace(client.GetContextNamespace())
+		}
+
 		klog.Infof("Creating Cluster referenced object %q with name %q in namespace %q", e.GroupVersionKind(), e.GetName(), e.GetNamespace())
 		if err := client.CreateUnstructuredObject(e); err != nil {
 			return err

@@ -522,6 +522,7 @@ func (c *client) CreateMachines(machines []*clusterv1.Machine, namespace string)
 		go func(machine *clusterv1.Machine) {
 			defer wg.Done()
 
+			machine.Namespace = namespace
 			if err := c.clientSet.Create(ctx, machine); err != nil {
 				errOnce.Do(func() {
 					gerr = errors.Wrapf(err, "error creating a machine object in namespace %v", namespace)

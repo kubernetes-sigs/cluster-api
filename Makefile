@@ -300,6 +300,7 @@ clean-release: ## Remove the release folder
 verify:
 	./hack/verify-boilerplate.sh
 	./hack/verify-doctoc.sh
+	./hack/verify-shellcheck.sh
 	$(MAKE) verify-modules
 	$(MAKE) verify-gen
 	$(MAKE) verify-modules

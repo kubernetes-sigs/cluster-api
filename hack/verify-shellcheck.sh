@@ -17,7 +17,14 @@
 set -o nounset
 set -o pipefail
 
-# shellcheck source=./test/infrastructure/docker/hack/utils.sh
+OS="unknown"
+if [[ "${OSTYPE}" == "linux"* ]]; then
+  OS="linux"
+elif [[ "${OSTYPE}" == "darwin"* ]]; then
+  OS="darwin"
+fi
+
+# shellcheck source=./hack/utils.sh
 source "$(dirname "$0")/utils.sh"
 ROOT_PATH=$(get_root_path)
 
@@ -31,20 +38,22 @@ cleanup() {
 }
 trap cleanup EXIT
 
-# install shellcheck (Linux-x64 only!)
+# install shellcheck (x64 only!)
 cd "${TMP_DIR}" || exit
-VERSION="shellcheck-v0.6.0"
-DOWNLOAD_FILE="${VERSION}.linux.x86_64.tar.xz"
-wget https://storage.googleapis.com/shellcheck/"${DOWNLOAD_FILE}"
+VERSION="shellcheck-v0.7.0"
+DOWNLOAD_FILE="${VERSION}.${OS}.x86_64.tar.xz"
+curl https://storage.googleapis.com/shellcheck/"${DOWNLOAD_FILE}" -O ${DOWNLOAD_FILE}
 tar xf "${DOWNLOAD_FILE}"
 cd "${VERSION}" || exit
 
 echo "Running shellcheck..."
 cd "${ROOT_PATH}" || exit
 OUT="${TMP_DIR}/out.log"
-FILES=$(find . -name "*.sh")
+IGNORE_FILES=$(find . -name "*.sh" | grep third_party)
+echo "Ignoring shellcheck on ${IGNORE_FILES}"
+FILES=$(find . -name "*.sh" | grep -v third_party)
 while read -r file; do
-    "${TMP_DIR}/${VERSION}/shellcheck" "$file" >> "${OUT}" 2>&1
+    "${TMP_DIR}/${VERSION}/shellcheck" -x "$file" >> "${OUT}" 2>&1
 done <<< "$FILES"
 
 if [[ -s "${OUT}" ]]; then

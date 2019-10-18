@@ -30,8 +30,9 @@ RUN go mod download
 # Copy the sources
 COPY ./ ./
 
-RUN wget --output-file /restart.sh --quiet https://raw.githubusercontent.com/windmilleng/rerun-process-wrapper/master/restart.sh  && \
-    wget --output-file /start.sh --quiet https://raw.githubusercontent.com/windmilleng/rerun-process-wrapper/master/start.sh
+RUN wget --output-document /restart.sh --quiet https://raw.githubusercontent.com/windmilleng/rerun-process-wrapper/master/restart.sh  && \
+    wget --output-document /start.sh --quiet https://raw.githubusercontent.com/windmilleng/rerun-process-wrapper/master/start.sh && \
+    chmod +x /start.sh && chmod +x /restart.sh
 
 # Build
 ARG ARCH

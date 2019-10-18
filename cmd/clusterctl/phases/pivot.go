@@ -189,7 +189,7 @@ func moveCluster(from sourceClient, to targetClient, cluster *clusterv1.Cluster)
 
 	// Move infrastructure reference, if any.
 	if cluster.Spec.InfrastructureRef != nil {
-		if err := moveReference(from, to, cluster.Spec.InfrastructureRef); err != nil {
+		if err := moveReference(from, to, cluster.Spec.InfrastructureRef, cluster.Namespace); err != nil {
 			return errors.Wrapf(err, "error copying Cluster %s/%s infrastructure reference to target cluster",
 				cluster.Namespace, cluster.Name)
 		}
@@ -303,7 +303,7 @@ func moveMachineDeployment(from sourceClient, to targetClient, md *clusterv1.Mac
 	}
 
 	// Move infrastructure reference.
-	if err := moveReference(from, to, &md.Spec.Template.Spec.InfrastructureRef); err != nil {
+	if err := moveReference(from, to, &md.Spec.Template.Spec.InfrastructureRef, md.Namespace); err != nil {
 		return errors.Wrapf(err, "error copying MachineSet %s/%s infrastructure reference to target cluster",
 			md.Namespace, md.Name)
 	}
@@ -356,7 +356,7 @@ func moveMachineSet(from sourceClient, to targetClient, ms *clusterv1.MachineSet
 	// When a MachineSet is owned by a MachineDeployment, the referenced template has already been moved
 	// by the time this function is called.
 	if metav1.GetControllerOf(ms) == nil {
-		if err := moveReference(from, to, &ms.Spec.Template.Spec.InfrastructureRef); err != nil {
+		if err := moveReference(from, to, &ms.Spec.Template.Spec.InfrastructureRef, ms.Namespace); err != nil {
 			return errors.Wrapf(err, "error copying MachineSet %s/%s infrastructure reference to target cluster",
 				ms.Namespace, ms.Name)
 		}
@@ -405,14 +405,14 @@ func moveMachine(from sourceClient, to targetClient, m *clusterv1.Machine) error
 
 	// Move bootstrap reference, if any.
 	if m.Spec.Bootstrap.ConfigRef != nil {
-		if err := moveReference(from, to, m.Spec.Bootstrap.ConfigRef); err != nil {
+		if err := moveReference(from, to, m.Spec.Bootstrap.ConfigRef, m.Namespace); err != nil {
 			return errors.Wrapf(err, "error copying Machine %s/%s bootstrap reference to target cluster",
 				m.Namespace, m.Name)
 		}
 	}
 
 	// Move infrastructure reference.
-	if err := moveReference(from, to, &m.Spec.InfrastructureRef); err != nil {
+	if err := moveReference(from, to, &m.Spec.InfrastructureRef, m.Namespace); err != nil {
 		return errors.Wrapf(err, "error copying Machine %s/%s infrastructure reference to target cluster",
 			m.Namespace, m.Name)
 	}
@@ -434,11 +434,11 @@ func moveMachine(from sourceClient, to targetClient, m *clusterv1.Machine) error
 	return nil
 }
 
-func moveReference(from sourceClient, to targetClient, ref *corev1.ObjectReference) error {
+func moveReference(from sourceClient, to targetClient, ref *corev1.ObjectReference, namespace string) error {
 	u := &unstructured.Unstructured{}
 	u.SetAPIVersion(ref.APIVersion)
 	u.SetKind(ref.Kind)
-	u.SetNamespace(ref.Namespace)
+	u.SetNamespace(namespace)
 	u.SetName(ref.Name)
 	if err := from.GetUnstructuredObject(u); err != nil {
 		return errors.Wrapf(err, "error fetching unstructured object %q %s/%s",

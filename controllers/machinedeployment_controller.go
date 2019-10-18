@@ -143,7 +143,7 @@ func (r *MachineDeploymentReconciler) reconcile(ctx context.Context, d *clusterv
 	}
 	d.Labels[clusterv1.ClusterLabelName] = d.Spec.ClusterName
 
-	cluster, err := util.GetClusterFromMetadata(ctx, r.Client, d.ObjectMeta)
+	cluster, err := util.GetClusterByName(ctx, r.Client, d.ObjectMeta.Namespace, d.Spec.ClusterName)
 	if err != nil {
 		return ctrl.Result{}, err
 	}

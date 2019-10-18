@@ -121,7 +121,7 @@ func (r *MachineReconciler) Reconcile(req ctrl.Request) (_ ctrl.Result, reterr e
 	}
 	m.Labels[clusterv1.ClusterLabelName] = m.Spec.ClusterName
 
-	cluster, err := util.GetClusterFromMetadata(ctx, r.Client, m.ObjectMeta)
+	cluster, err := util.GetClusterByName(ctx, r.Client, m.ObjectMeta.Namespace, m.Spec.ClusterName)
 	if err != nil {
 		return ctrl.Result{}, errors.Wrapf(err, "failed to get cluster %q for machine %q in namespace %q",
 			m.Labels[clusterv1.ClusterLabelName], m.Name, m.Namespace)

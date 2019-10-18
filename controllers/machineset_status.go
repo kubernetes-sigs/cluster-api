@@ -52,7 +52,7 @@ func (r *MachineSetReconciler) calculateStatus(ms *clusterv1.MachineSet, filtere
 	templateLabel := labels.Set(ms.Spec.Template.Labels).AsSelectorPreValidated()
 
 	// Retrieve Cluster, if any.
-	cluster, _ := util.GetClusterFromMetadata(context.Background(), r.Client, ms.ObjectMeta)
+	cluster, _ := util.GetClusterByName(context.Background(), r.Client, ms.ObjectMeta.Namespace, ms.Spec.ClusterName)
 
 	for _, machine := range filteredMachines {
 		if templateLabel.Matches(labels.Set(machine.Labels)) {

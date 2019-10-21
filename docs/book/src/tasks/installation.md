@@ -18,7 +18,7 @@ Cluster API requires an existing kubernetes cluster accessible via kubectl, choo
 
 <h1>Warning</h1>
 
-[kind] is not designed for production use, and is intended for development environments only.
+[kind] is not designed for production use; it is intended for development and testing environments.
 
 </aside>
 
@@ -33,7 +33,7 @@ Cluster API requires an existing kubernetes cluster accessible via kubectl, choo
 
 <h1>Warning</h1>
 
-[kind] is not designed for production use, and is intended for development environments only.
+[kind] is not designed for production use; it is intended for development and testing environments.
 
 </aside>
 

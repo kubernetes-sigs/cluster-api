@@ -320,6 +320,7 @@ After the controlplane is up and running, let's retrieve the [target cluster] Ku
 
 {{#tabs name:"tab-getting-kubeconfig" tabs:"AWS,Docker,vSphere"}}
 {{#tab AWS}}
+
 ```bash
 kubectl --namespace=default get secret/capi-quickstart-kubeconfig -o json \
   | jq -r .data.value \
@@ -328,6 +329,7 @@ kubectl --namespace=default get secret/capi-quickstart-kubeconfig -o json \
 ```
 {{#/tab }}
 {{#tab Docker}}
+
 ```bash
 kubectl --namespace=default get secret/capi-quickstart-kubeconfig -o json \
   | jq -r .data.value \
@@ -347,6 +349,7 @@ sed -i -e "s/certificate-authority-data:.*/insecure-skip-tls-verify: true/g" ./c
 ```  
 {{#/tab }}
 {{#tab vSphere}}
+
 ```bash
 kubectl --namespace=default get secret/capi-quickstart-kubeconfig -o json \
   | jq -r .data.value \

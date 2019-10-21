@@ -181,6 +181,11 @@ Existing Cluster API implementations consist of generic and infrastructure provi
 
 Unless otherwise specified, this refers to horizontal scaling.
 
+### Stacked control plane
+
+A control plane node where etcd is colocated with the Kubernetes API server, and
+is running as a static pod.
+
 ### Server
 
 The infrastructure that backs a [Machine Resource](#user-content-machine), typically either a cloud instance, virtual machine, or physical host.
@@ -188,7 +193,7 @@ The infrastructure that backs a [Machine Resource](#user-content-machine), typic
 # T
 ---
 
-### Target Management cluster
+### Target management cluster
 
 The declared cluster we intend to create and manage using cluster-api when running `clusterctl create cluster`.
 

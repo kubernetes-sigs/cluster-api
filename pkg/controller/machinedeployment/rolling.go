@@ -21,8 +21,8 @@ import (
 
 	"github.com/pkg/errors"
 	"k8s.io/apimachinery/pkg/types"
-	"k8s.io/client-go/util/integer"
 	"k8s.io/klog"
+	"k8s.io/utils/integer"
 	"sigs.k8s.io/cluster-api/pkg/apis/cluster/v1alpha1"
 	dutil "sigs.k8s.io/cluster-api/pkg/controller/machinedeployment/util"
 )

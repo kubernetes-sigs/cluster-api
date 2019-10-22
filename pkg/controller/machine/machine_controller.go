@@ -373,9 +373,7 @@ func (r *ReconcileMachine) getMachinesInCluster(ctx context.Context, namespace, 
 
 	machineList := &clusterv1.MachineList{}
 	labels := map[string]string{clusterv1.MachineClusterLabelName: name}
-	listOptions := client.InNamespace(namespace).MatchingLabels(labels)
-
-	if err := r.Client.List(ctx, listOptions, machineList); err != nil {
+	if err := r.Client.List(ctx, machineList, client.InNamespace(namespace), client.MatchingLabels(labels)); err != nil {
 		return nil, errors.Wrap(err, "failed to list machines")
 	}
 

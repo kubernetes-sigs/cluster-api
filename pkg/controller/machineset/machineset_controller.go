@@ -66,7 +66,7 @@ func Add(mgr manager.Manager) error {
 
 // newReconciler returns a new reconcile.Reconciler.
 func newReconciler(mgr manager.Manager) *ReconcileMachineSet {
-	return &ReconcileMachineSet{Client: mgr.GetClient(), scheme: mgr.GetScheme(), recorder: mgr.GetRecorder(controllerName)}
+	return &ReconcileMachineSet{Client: mgr.GetClient(), scheme: mgr.GetScheme(), recorder: mgr.GetEventRecorderFor(controllerName)}
 }
 
 // add adds a new Controller to mgr with r as the reconcile.Reconciler.
@@ -148,7 +148,7 @@ func (r *ReconcileMachineSet) reconcile(ctx context.Context, machineSet *cluster
 	klog.V(4).Infof("Reconcile machineset %v", machineSet.Name)
 	allMachines := &clusterv1alpha1.MachineList{}
 
-	if err := r.Client.List(context.Background(), client.InNamespace(machineSet.Namespace), allMachines); err != nil {
+	if err := r.Client.List(context.Background(), allMachines, client.InNamespace(machineSet.Namespace)); err != nil {
 		return reconcile.Result{}, errors.Wrap(err, "failed to list machines")
 	}
 

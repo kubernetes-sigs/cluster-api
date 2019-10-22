@@ -43,7 +43,7 @@ func ValidateClusterAPIObjects(ctx context.Context, w io.Writer, c client.Client
 	}
 
 	machines := &clusterv1alpha1.MachineList{}
-	if err := c.List(ctx, client.InNamespace(namespace), machines); err != nil {
+	if err := c.List(ctx, machines, client.InNamespace(namespace)); err != nil {
 		return errors.Wrapf(err, "failed to get the machines from the apiserver in namespace %q", namespace)
 	}
 
@@ -58,7 +58,7 @@ func getClusterObject(ctx context.Context, c client.Reader, clusterName string, 
 	}
 
 	clusters := &clusterv1alpha1.ClusterList{}
-	if err := c.List(ctx, &client.ListOptions{Namespace: namespace}, clusters); err != nil {
+	if err := c.List(ctx, clusters, client.InNamespace(namespace)); err != nil {
 		return nil, errors.Wrapf(err, "failed to get the clusters from the apiserver in namespace %q", namespace)
 	}
 

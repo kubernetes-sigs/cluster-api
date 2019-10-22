@@ -64,7 +64,12 @@ deploy: manifests ## Deploy controller in the configured Kubernetes cluster in ~
 
 .PHONY: manifests
 manifests: ## Generate manifests e.g. CRD, RBAC etc.
-	go run vendor/sigs.k8s.io/controller-tools/cmd/controller-gen/main.go all
+	go run vendor/sigs.k8s.io/controller-tools/cmd/controller-gen/main.go \
+		paths=./pkg/api/... \
+		paths=./pkg/controller/... \
+		crd \
+		rbac:roleName=manager-role \
+		output:crd:dir=./config/crds
 	cp -f ./config/rbac/manager*.yaml ./config/ci/rbac/
 	cp -f ./config/manager/manager*.yaml ./config/ci/manager/
 

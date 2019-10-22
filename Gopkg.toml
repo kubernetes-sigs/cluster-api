@@ -13,7 +13,6 @@ required = [
     "sigs.k8s.io/controller-runtime/pkg/runtime/signals",
     "sigs.k8s.io/controller-runtime/pkg/source",
     "sigs.k8s.io/testing_frameworks/integration", # for integration testing
-    "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1beta1",
     ]
 
 [prune]
@@ -24,15 +23,32 @@ required = [
 
 [[constraint]]
   name = "sigs.k8s.io/controller-runtime"
-  version = "v0.1.12"
+  version = "v0.3.0"
 
 [[constraint]]
   name = "sigs.k8s.io/controller-tools"
-  version = "v0.1.11"
+  version = "v0.2.2"
 
 [[constraint]]
   name = "k8s.io/code-generator"
-  branch = "release-1.13"
+  branch = "release-1.16"
+
+[[constraint]]
+  name = "k8s.io/apimachinery"
+  branch = "release-1.16"
+
+[[constraint]]
+  name = "k8s.io/api"
+  branch = "release-1.16"
+
+[[constraint]]
+  name = "k8s.io/client-go"
+  version = "kubernetes-1.16.2"
+
+[[constraint]]
+  name = "k8s.io/apiserver"
+  branch = "release-1.16"
+
 
 # For dependency below: Refer to issue https://github.com/golang/dep/issues/1799
 [[override]]

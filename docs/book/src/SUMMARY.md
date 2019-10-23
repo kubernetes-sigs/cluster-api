@@ -16,7 +16,6 @@
         - [Machine](./architecture/controllers/machine.md)
         - [MachineSet](./architecture/controllers/machine-set.md)
         - [MachineDeployment](./architecture/controllers/machine-deployment.md)
-        - [Node](./architecture/controllers/node.md)
     - [Provider Implementers](./providers/implementers.md)
         - [v1alpha1 to v1alpha2](./providers/v1alpha1-to-v1alpha2.md)
 

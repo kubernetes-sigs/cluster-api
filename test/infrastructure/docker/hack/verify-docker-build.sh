@@ -17,7 +17,7 @@ set -o errexit
 set -o nounset
 set -o pipefail
 
-# shellcheck source=/dev/null
+# shellcheck source=./test/infrastructure/docker/hack/utils.sh
 source "$(dirname "$0")/utils.sh"
 
 # check if manager docker image builds

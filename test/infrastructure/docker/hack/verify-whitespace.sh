@@ -16,7 +16,7 @@
 set -o nounset
 set -o pipefail
 
-# shellcheck source=/dev/null
+# shellcheck source=./test/infrastructure/docker/hack/utils.sh
 source "$(dirname "$0")/utils.sh"
 # cd to the root path
 cd_root_path
@@ -25,7 +25,7 @@ echo "Verifying trailing whitespace..."
 TRAILING="$(grep -rnI '[[:blank:]]$' . | grep -v -e .git)"
 
 ERR="0"
-if [[ ! -z "$TRAILING" ]]; then
+if [[ -n "$TRAILING" ]]; then
     echo "Found trailing whitespace in the follow files:"
     echo "${TRAILING}"
     ERR="1"

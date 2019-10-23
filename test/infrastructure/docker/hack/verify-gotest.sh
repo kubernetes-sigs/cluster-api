@@ -18,10 +18,11 @@ set -o nounset
 set -o pipefail
 
 # install kubebuilder tools for tests
+# shellcheck source=./test/infrastructure/docker/hack/fetch_bins.sh
 source "$(dirname "$0")/fetch_bins.sh"
 fetch_tools
 
-# shellcheck source=/dev/null
+# shellcheck source=./test/infrastructure/docker/hack/utils.sh
 source "$(dirname "$0")/utils.sh"
 # cd to the root path
 cd_root_path

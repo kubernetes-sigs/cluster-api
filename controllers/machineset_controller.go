@@ -272,6 +272,19 @@ func (r *MachineSetReconciler) syncReplicas(ctx context.Context, ms *clusterv1.M
 				err                          error
 			)
 
+			if machine.Spec.Bootstrap.ConfigRef != nil {
+				bootstrapConfig, err = external.CloneTemplate(ctx, r.Client, machine.Spec.Bootstrap.ConfigRef, machine.Namespace)
+				if err != nil {
+					return errors.Wrapf(err, "failed to clone bootstrap configuration for MachineSet %q in namespace %q", ms.Name, ms.Namespace)
+				}
+				machine.Spec.Bootstrap.ConfigRef = &corev1.ObjectReference{
+					APIVersion: bootstrapConfig.GetAPIVersion(),
+					Kind:       bootstrapConfig.GetKind(),
+					Namespace:  bootstrapConfig.GetNamespace(),
+					Name:       bootstrapConfig.GetName(),
+				}
+			}
+
 			infraConfig, err = external.CloneTemplate(ctx, r.Client, &machine.Spec.InfrastructureRef, machine.Namespace)
 			if err != nil {
 				return errors.Wrapf(err, "failed to clone infrastructure configuration for MachineSet %q in namespace %q", ms.Name, ms.Namespace)
@@ -281,22 +294,6 @@ func (r *MachineSetReconciler) syncReplicas(ctx context.Context, ms *clusterv1.M
 				Kind:       infraConfig.GetKind(),
 				Namespace:  infraConfig.GetNamespace(),
 				Name:       infraConfig.GetName(),
-			}
-
-			if machine.Spec.Bootstrap.ConfigRef != nil {
-				bootstrapConfig, err = external.CloneTemplate(ctx, r.Client, machine.Spec.Bootstrap.ConfigRef, machine.Namespace)
-				if err != nil {
-					if err := r.Client.Delete(context.TODO(), infraConfig); !apierrors.IsNotFound(err) {
-						klog.Errorf("Failed to cleanup infrastructure configuration object after bootstrap clone error: %v", err)
-					}
-					return errors.Wrapf(err, "failed to clone bootstrap configuration for MachineSet %q in namespace %q", ms.Name, ms.Namespace)
-				}
-				machine.Spec.Bootstrap.ConfigRef = &corev1.ObjectReference{
-					APIVersion: bootstrapConfig.GetAPIVersion(),
-					Kind:       bootstrapConfig.GetKind(),
-					Namespace:  bootstrapConfig.GetNamespace(),
-					Name:       bootstrapConfig.GetName(),
-				}
 			}
 
 			if err := r.Client.Create(context.TODO(), machine); err != nil {

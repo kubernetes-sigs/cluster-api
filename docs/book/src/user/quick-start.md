@@ -318,12 +318,46 @@ spec:
 
 After the controlplane is up and running, let's retrieve the [target cluster] Kubeconfig:
 
+{{#tabs name:"tab-getting-kubeconfig" tabs:"AWS,Docker,vSphere"}}
+{{#tab AWS}}
+
 ```bash
 kubectl --namespace=default get secret/capi-quickstart-kubeconfig -o json \
   | jq -r .data.value \
   | base64 --decode \
   > ./capi-quickstart.kubeconfig
 ```
+{{#/tab }}
+{{#tab Docker}}
+
+```bash
+kubectl --namespace=default get secret/capi-quickstart-kubeconfig -o json \
+  | jq -r .data.value \
+  | base64 --decode \
+  > ./capi-quickstart.kubeconfig
+```
+
+When using docker-for-mac MacOS, you will need to do a couple of additional
+steps to get the correct kubeconfig:
+
+```bash
+# Point the kubeconfig to the exposed port of the load balancer, rather than the inaccessible container IP.
+sed -i -e "s/server:.*/server: https:\/\/$(docker port capi-quickstart-lb 6443/tcp | sed "s/0.0.0.0/127.0.0.1/")/g" ./capi-quickstart.kubeconfig
+
+# Ignore the CA, because it is not signed for 127.0.0.1
+sed -i -e "s/certificate-authority-data:.*/insecure-skip-tls-verify: true/g" ./capi-quickstart.kubeconfig
+```  
+{{#/tab }}
+{{#tab vSphere}}
+
+```bash
+kubectl --namespace=default get secret/capi-quickstart-kubeconfig -o json \
+  | jq -r .data.value \
+  | base64 --decode \
+  > ./capi-quickstart.kubeconfig
+```
+{{#/tab }}
+{{#/tabs }}
 
 Deploy a CNI solution, Calico is used here as an example.
 

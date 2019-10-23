@@ -164,7 +164,7 @@ metadata:
 spec:
   instanceType: t3.large
   # This IAM profile is part of the pre-requisites.
-  iamInstanceProfile: "controllers.cluster-api-provider-aws.sigs.k8s.io"
+  iamInstanceProfile: "control-plane.cluster-api-provider-aws.sigs.k8s.io"
   # Change this value to a valid SSH Key Pair present in your AWS Account.
   sshKeyName: default
 ---

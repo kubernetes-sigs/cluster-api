@@ -272,17 +272,6 @@ func (r *MachineSetReconciler) syncReplicas(ctx context.Context, ms *clusterv1.M
 				err                          error
 			)
 
-			infraConfig, err = external.CloneTemplate(ctx, r.Client, &machine.Spec.InfrastructureRef, machine.Namespace)
-			if err != nil {
-				return errors.Wrapf(err, "failed to clone infrastructure configuration for MachineSet %q in namespace %q", ms.Name, ms.Namespace)
-			}
-			machine.Spec.InfrastructureRef = corev1.ObjectReference{
-				APIVersion: infraConfig.GetAPIVersion(),
-				Kind:       infraConfig.GetKind(),
-				Namespace:  infraConfig.GetNamespace(),
-				Name:       infraConfig.GetName(),
-			}
-
 			if machine.Spec.Bootstrap.ConfigRef != nil {
 				bootstrapConfig, err = external.CloneTemplate(ctx, r.Client, machine.Spec.Bootstrap.ConfigRef, machine.Namespace)
 				if err != nil {
@@ -294,6 +283,17 @@ func (r *MachineSetReconciler) syncReplicas(ctx context.Context, ms *clusterv1.M
 					Namespace:  bootstrapConfig.GetNamespace(),
 					Name:       bootstrapConfig.GetName(),
 				}
+			}
+
+			infraConfig, err = external.CloneTemplate(ctx, r.Client, &machine.Spec.InfrastructureRef, machine.Namespace)
+			if err != nil {
+				return errors.Wrapf(err, "failed to clone infrastructure configuration for MachineSet %q in namespace %q", ms.Name, ms.Namespace)
+			}
+			machine.Spec.InfrastructureRef = corev1.ObjectReference{
+				APIVersion: infraConfig.GetAPIVersion(),
+				Kind:       infraConfig.GetKind(),
+				Namespace:  infraConfig.GetNamespace(),
+				Name:       infraConfig.GetName(),
 			}
 
 			if err := r.Client.Create(context.TODO(), machine); err != nil {

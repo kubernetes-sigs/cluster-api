@@ -274,7 +274,7 @@ limitations under the License.
 //
 // - APIEndpoint, that represents the endpoint of the instance of the API server to be eventually deployed on this node.
 //
-package v1beta1 // import "sigs.k8s.io/cluster-api/bootstrap/kubeadm/kubeadm/v1beta1"
+package v1beta1 // import "sigs.k8s.io/cluster-api/bootstrap/kubeadm/types/v1beta1"
 
 //TODO: The BootstrapTokenString object should move out to either k8s.io/client-go or k8s.io/api in the future
 //(probably as part of Bootstrap Tokens going GA). It should not be staged under the kubeadm API as it is now.

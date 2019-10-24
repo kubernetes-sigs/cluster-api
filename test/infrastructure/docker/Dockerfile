@@ -16,19 +16,15 @@ FROM golang:1.12.10 as builder
 
 # default the go proxy
 ARG goproxy=https://proxy.golang.org
+ARG project=test/infrastructure/docker
 
 # run this with docker build --build_arg $(go env GOPROXY) to override the goproxy
 ENV GOPROXY=$goproxy
 
-WORKDIR /workspace
-COPY go.mod go.mod
-COPY go.sum go.sum
-# cache deps before building and copying source so that we don't need to re-download as much
-# and so that source changes don't invalidate our downloaded layer
-RUN go mod download
-
 # Copy the go source
 COPY ./ ./
+WORKDIR /workspace/$project
+RUN go mod download
 
 # Build
 RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 GO111MODULE=on go build -a -o manager main.go
@@ -51,6 +47,6 @@ RUN curl -LO https://download.docker.com/linux/static/stable/x86_64/docker-19.03
     rm docker-19.03.1.tgz
 
 WORKDIR /
-COPY --from=builder /workspace/manager .
+COPY --from=builder /workspace/$project/manager .
 
 ENTRYPOINT ["/manager"]

@@ -11,7 +11,9 @@ spec:
     categories:
     - cluster-api
     kind: DockerMachine
+    listKind: DockerMachineList
     plural: dockermachines
+    singular: dockermachine
   scope: Namespaced
   subresources:
     status: {}

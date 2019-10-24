@@ -297,13 +297,19 @@ var _ = Describe("Cluster Reconciler", func() {
 			Expect(err).NotTo(HaveOccurred())
 		}()
 
-		// wait for machine to be ready
+		// Wait for machine to be ready.
+		//
+		// [ncdc] Note, we're using an increased timeout because we've been seeing failures
+		// in Prow for this particular block. It looks like it's sometimes taking more than 10 seconds (the value of
+		// timeout) for the machine reconciler to add the finalizer and for the change to be persisted to etcd. If
+		// we continue to see test timeouts here, that will likely point to something else being the problem, but
+		// I've yet to determine any other possibility for the test flakes.
 		Eventually(func() bool {
 			if err := k8sClient.Get(ctx, key, machine); err != nil {
 				return false
 			}
 			return len(machine.Finalizers) > 0
-		}, timeout).Should(BeTrue())
+		}, timeout*3).Should(BeTrue())
 
 		// Assertion
 		key = client.ObjectKey{Name: cluster.Name, Namespace: cluster.Namespace}

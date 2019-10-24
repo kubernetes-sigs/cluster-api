@@ -24,6 +24,7 @@ import (
 	. "github.com/onsi/gomega"
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/utils/pointer"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha3"
 	"sigs.k8s.io/cluster-api/util/kubeconfig"
@@ -447,5 +448,166 @@ func TestClusterReconciler_machineToCluster(t *testing.T) {
 				t.Errorf("controlPlaneMachineToCluster() = %v, want %v", got, tt.want)
 			}
 		})
+	}
+}
+
+type machineDeploymentBuilder struct {
+	md clusterv1.MachineDeployment
+}
+
+func newMachineDeploymentBuilder() *machineDeploymentBuilder {
+	return &machineDeploymentBuilder{}
+}
+
+func (b *machineDeploymentBuilder) named(name string) *machineDeploymentBuilder {
+	b.md.Name = name
+	return b
+}
+
+func (b *machineDeploymentBuilder) ownedBy(c *clusterv1.Cluster) *machineDeploymentBuilder {
+	b.md.OwnerReferences = append(b.md.OwnerReferences, metav1.OwnerReference{
+		APIVersion: clusterv1.GroupVersion.String(),
+		Kind:       "Cluster",
+		Name:       c.Name,
+	})
+	return b
+}
+
+func (b *machineDeploymentBuilder) build() clusterv1.MachineDeployment {
+	return b.md
+}
+
+type machineSetBuilder struct {
+	ms clusterv1.MachineSet
+}
+
+func newMachineSetBuilder() *machineSetBuilder {
+	return &machineSetBuilder{}
+}
+
+func (b *machineSetBuilder) named(name string) *machineSetBuilder {
+	b.ms.Name = name
+	return b
+}
+
+func (b *machineSetBuilder) ownedBy(c *clusterv1.Cluster) *machineSetBuilder {
+	b.ms.OwnerReferences = append(b.ms.OwnerReferences, metav1.OwnerReference{
+		APIVersion: clusterv1.GroupVersion.String(),
+		Kind:       "Cluster",
+		Name:       c.Name,
+	})
+	return b
+}
+
+func (b *machineSetBuilder) build() clusterv1.MachineSet {
+	return b.ms
+}
+
+type machineBuilder struct {
+	m clusterv1.Machine
+}
+
+func newMachineBuilder() *machineBuilder {
+	return &machineBuilder{}
+}
+
+func (b *machineBuilder) named(name string) *machineBuilder {
+	b.m.Name = name
+	return b
+}
+
+func (b *machineBuilder) ownedBy(c *clusterv1.Cluster) *machineBuilder {
+	b.m.OwnerReferences = append(b.m.OwnerReferences, metav1.OwnerReference{
+		APIVersion: clusterv1.GroupVersion.String(),
+		Kind:       "Cluster",
+		Name:       c.Name,
+	})
+	return b
+}
+
+func (b *machineBuilder) controlPlane() *machineBuilder {
+	b.m.Labels = map[string]string{clusterv1.MachineControlPlaneLabelName: "true"}
+	return b
+}
+
+func (b *machineBuilder) build() clusterv1.Machine {
+	return b.m
+}
+
+func TestFilterOwnedDescendants(t *testing.T) {
+	c := clusterv1.Cluster{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: "c",
+		},
+	}
+
+	md1NotOwnedByCluster := newMachineDeploymentBuilder().named("md1").build()
+	md2OwnedByCluster := newMachineDeploymentBuilder().named("md2").ownedBy(&c).build()
+	md3NotOwnedByCluster := newMachineDeploymentBuilder().named("md3").build()
+	md4OwnedByCluster := newMachineDeploymentBuilder().named("md4").ownedBy(&c).build()
+
+	ms1NotOwnedByCluster := newMachineSetBuilder().named("ms1").build()
+	ms2OwnedByCluster := newMachineSetBuilder().named("ms2").ownedBy(&c).build()
+	ms3NotOwnedByCluster := newMachineSetBuilder().named("ms3").build()
+	ms4OwnedByCluster := newMachineSetBuilder().named("ms4").ownedBy(&c).build()
+
+	m1NotOwnedByCluster := newMachineBuilder().named("m1").build()
+	m2OwnedByCluster := newMachineBuilder().named("m2").ownedBy(&c).build()
+	m3ControlPlaneOwnedByCluster := newMachineBuilder().named("m3").ownedBy(&c).controlPlane().build()
+	m4NotOwnedByCluster := newMachineBuilder().named("m4").build()
+	m5OwnedByCluster := newMachineBuilder().named("m5").ownedBy(&c).build()
+	m6ControlPlaneOwnedByCluster := newMachineBuilder().named("m6").ownedBy(&c).controlPlane().build()
+
+	d := clusterDescendants{
+		machineDeployments: clusterv1.MachineDeploymentList{
+			Items: []clusterv1.MachineDeployment{
+				md1NotOwnedByCluster,
+				md2OwnedByCluster,
+				md3NotOwnedByCluster,
+				md4OwnedByCluster,
+			},
+		},
+		machineSets: clusterv1.MachineSetList{
+			Items: []clusterv1.MachineSet{
+				ms1NotOwnedByCluster,
+				ms2OwnedByCluster,
+				ms3NotOwnedByCluster,
+				ms4OwnedByCluster,
+			},
+		},
+		controlPlaneMachines: clusterv1.MachineList{
+			Items: []clusterv1.Machine{
+				m3ControlPlaneOwnedByCluster,
+				m6ControlPlaneOwnedByCluster,
+			},
+		},
+		workerMachines: clusterv1.MachineList{
+			Items: []clusterv1.Machine{
+				m1NotOwnedByCluster,
+				m2OwnedByCluster,
+				m4NotOwnedByCluster,
+				m5OwnedByCluster,
+			},
+		},
+	}
+
+	actual, err := d.filterOwnedDescendants(&c)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	expected := []runtime.Object{
+		&md2OwnedByCluster,
+		&md4OwnedByCluster,
+		&ms2OwnedByCluster,
+		&ms4OwnedByCluster,
+		&m2OwnedByCluster,
+		&m5OwnedByCluster,
+		&m3ControlPlaneOwnedByCluster,
+		&m6ControlPlaneOwnedByCluster,
+	}
+
+	if !reflect.DeepEqual(expected, actual) {
+		t.Errorf("expected %v, got %v", expected, actual)
 	}
 }

@@ -24,8 +24,8 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/klog"
 	"k8s.io/klog/klogr"
-	infrav1 "sigs.k8s.io/cluster-api/test/infrastructure/docker/api/v1alpha2"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha3"
+	infrav1 "sigs.k8s.io/cluster-api/test/infrastructure/docker/api/v1alpha2"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 	"sigs.k8s.io/controller-runtime/pkg/handler"
 )
@@ -120,7 +120,7 @@ func newMachine(clusterName, machineName string, dockerMachine *infrav1.DockerMa
 		ObjectMeta: metav1.ObjectMeta{
 			Name: machineName,
 			Labels: map[string]string{
-				clusterv1.MachineClusterLabelName: clusterName,
+				clusterv1.ClusterLabelName: clusterName,
 			},
 		},
 	}

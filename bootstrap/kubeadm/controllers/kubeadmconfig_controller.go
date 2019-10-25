@@ -32,7 +32,7 @@ import (
 	"sigs.k8s.io/cluster-api/bootstrap/kubeadm/cloudinit"
 	internalcluster "sigs.k8s.io/cluster-api/bootstrap/kubeadm/internal/cluster"
 	"sigs.k8s.io/cluster-api/bootstrap/kubeadm/internal/locking"
-	kubeadmv1beta1 "sigs.k8s.io/cluster-api/bootstrap/kubeadm/kubeadm/v1beta1"
+	kubeadmv1beta1 "sigs.k8s.io/cluster-api/bootstrap/kubeadm/types/v1beta1"
 	capierrors "sigs.k8s.io/cluster-api/errors"
 	"sigs.k8s.io/cluster-api/util"
 	"sigs.k8s.io/cluster-api/util/kubeconfig"

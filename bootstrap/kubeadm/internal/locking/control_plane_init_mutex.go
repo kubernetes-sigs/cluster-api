@@ -54,7 +54,7 @@ func (c *ControlPlaneInitMutex) Lock(ctx context.Context, cluster *clusterv1.Clu
 	err := c.client.Get(ctx, client.ObjectKey{
 		Namespace: cluster.Namespace,
 		Name:      cmName,
-	}, &sema.ConfigMap)
+	}, sema.ConfigMap)
 	switch {
 	case apierrors.IsNotFound(err):
 		break
@@ -84,7 +84,7 @@ func (c *ControlPlaneInitMutex) Lock(ctx context.Context, cluster *clusterv1.Clu
 	}
 
 	log.Info("Attempting to acquire the lock")
-	err = c.client.Create(ctx, &sema.ConfigMap)
+	err = c.client.Create(ctx, sema.ConfigMap)
 	switch {
 	case apierrors.IsAlreadyExists(err):
 		log.Info("Cannot acquire the lock. The lock has been acquired by someone else")
@@ -106,7 +106,7 @@ func (c *ControlPlaneInitMutex) Unlock(ctx context.Context, cluster *clusterv1.C
 	err := c.client.Get(ctx, client.ObjectKey{
 		Namespace: cluster.Namespace,
 		Name:      cmName,
-	}, &sema.ConfigMap)
+	}, sema.ConfigMap)
 	switch {
 	case apierrors.IsNotFound(err):
 		log.Info("Control plane init lock not found, it may have been released already")
@@ -116,7 +116,7 @@ func (c *ControlPlaneInitMutex) Unlock(ctx context.Context, cluster *clusterv1.C
 		return false
 	default:
 		// Delete the config map semaphore if there is no error fetching it
-		if err := c.client.Delete(ctx, &sema.ConfigMap); err != nil {
+		if err := c.client.Delete(ctx, sema.ConfigMap); err != nil {
 			// TODO: return true on apierrors.IsNotFound
 			log.Error(err, "Error deleting the config map underlying the control plane init lock")
 			return false
@@ -130,11 +130,11 @@ type information struct {
 }
 
 type semaphore struct {
-	apicorev1.ConfigMap
+	*apicorev1.ConfigMap
 }
 
 func newSemaphore() *semaphore {
-	return &semaphore{apicorev1.ConfigMap{}}
+	return &semaphore{&apicorev1.ConfigMap{}}
 }
 
 func configMapName(clusterName string) string {

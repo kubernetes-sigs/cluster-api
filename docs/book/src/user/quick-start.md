@@ -11,7 +11,7 @@ let's proceed to create a single node cluster.
 
 For the purpose of this tutorial, we'll name our cluster `capi-quickstart`.
 
-{{#tabs name:"tab-usage-cluster-resource" tabs:"AWS,Docker,vSphere"}}
+{{#tabs name:"tab-usage-cluster-resource" tabs:"AWS,Docker,vSphere,OpenStack"}}
 {{#tab AWS}}
 
 ```yaml
@@ -130,11 +130,62 @@ spec:
   server: 10.0.0.1
 ```
 {{#/tab }}
+{{#tab OpenStack}}
+
+<aside class="note warning">
+
+<h1>Action Required</h1>
+
+These examples include environment variables that you should substitute before creating the resources.
+
+</aside>
+
+```yaml
+apiVersion: cluster.x-k8s.io/v1alpha2
+kind: Cluster
+metadata:
+  name: capi-quickstart
+spec:
+  clusterNetwork:
+    services:
+      cidrBlocks: ["10.96.0.0/12"]
+    pods:
+      cidrBlocks: ["192.168.0.0/16"] # CIDR block used by Calico.
+    serviceDomain: "cluster.local"
+  infrastructureRef:
+    apiVersion: infrastructure.cluster.x-k8s.io/v1alpha2
+    kind: OpenStackCluster
+    name: capi-quickstart
+---
+apiVersion: infrastructure.cluster.x-k8s.io/v1alpha2
+kind: OpenStackCluster
+metadata:
+  name: capi-quickstart
+spec:
+  cloudName: ${OPENSTACK_CLOUD}
+  cloudsSecret:
+    name: cloud-config
+  nodeCidr: ${NODE_CIDR}
+  externalNetworkId: ${OPENSTACK_EXTERNAL_NETWORK_ID}
+  disablePortSecurity: true
+  disableServerTags: true
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: cloud-config
+type: Opaque
+data:
+  # This file has to be in the regular OpenStack cloud.yaml format
+  clouds.yaml: ${OPENSTACK_CLOUD_CONFIG_B64ENCODED}
+  cacert: ${OPENSTACK_CLOUD_CACERT_B64ENCODED}
+```
+{{#/tab }}
 {{#/tabs }}
 
 Now that we've created the cluster object, we can create a control plane Machine.
 
-{{#tabs name:"tab-usage-controlplane-resource" tabs:"AWS,Docker,vSphere"}}
+{{#tabs name:"tab-usage-controlplane-resource" tabs:"AWS,Docker,vSphere,OpenStack"}}
 {{#tab AWS}}
 
 ```yaml
@@ -324,6 +375,112 @@ spec:
   - echo "{{ ds.meta_data.hostname }}" >/etc/hostname
 ```
 {{#/tab }}
+{{#tab OpenStack}}
+
+<aside class="note warning">
+
+<h1>Action Required</h1>
+
+These examples include environment variables that you should substitute before creating the resources.
+
+</aside>
+
+```yaml
+apiVersion: cluster.x-k8s.io/v1alpha2
+kind: Machine
+metadata:
+  name: capi-quickstart-controlplane-0
+  labels:
+    cluster.x-k8s.io/control-plane: "true"
+    cluster.x-k8s.io/cluster-name: "capi-quickstart"
+spec:
+  version: v1.15.3
+  bootstrap:
+    configRef:
+      apiVersion: bootstrap.cluster.x-k8s.io/v1alpha2
+      kind: KubeadmConfig
+      name: capi-quickstart-controlplane-0
+  infrastructureRef:
+    apiVersion: infrastructure.cluster.x-k8s.io/v1alpha2
+    kind: OpenStackMachine
+    name: capi-quickstart-controlplane-0
+---
+apiVersion: infrastructure.cluster.x-k8s.io/v1alpha2
+kind: OpenStackMachine
+metadata:
+  name: capi-quickstart-controlplane-0
+spec:
+  flavor: m1.medium
+  image: ${IMAGE_NAME}
+  availabilityZone: nova
+  floatingIP: ${FLOATING_IP}
+  cloudName: ${OPENSTACK_CLOUD}
+  cloudsSecret:
+    name: cloud-config
+---
+apiVersion: bootstrap.cluster.x-k8s.io/v1alpha2
+kind: KubeadmConfig
+metadata:
+  name: capi-quickstart-controlplane-0
+spec:
+  # For more information about these values,
+  # refer to the Kubeadm Bootstrap Provider documentation.
+  initConfiguration:
+    localAPIEndpoint:
+      advertiseAddress: '{{ ds.ec2_metadata.local_ipv4 }}'
+      bindPort: 6443
+    nodeRegistration:
+      name: '{{ local_hostname }}'
+      criSocket: "/var/run/containerd/containerd.sock"
+      kubeletExtraArgs:
+        cloud-provider: openstack
+        cloud-config: /etc/kubernetes/cloud.conf
+  clusterConfiguration:
+    controlPlaneEndpoint: "${FLOATING_IP}:6443"
+    imageRepository: k8s.gcr.io
+    apiServer:
+      extraArgs:
+        cloud-provider: openstack
+        cloud-config: /etc/kubernetes/cloud.conf
+      extraVolumes:
+      - name: cloud
+        hostPath: /etc/kubernetes/cloud.conf
+        mountPath: /etc/kubernetes/cloud.conf
+        readOnly: true
+    controllerManager:
+      extraArgs:
+        cloud-provider: openstack
+        cloud-config: /etc/kubernetes/cloud.conf
+      extraVolumes:
+      - name: cloud
+        hostPath: /etc/kubernetes/cloud.conf
+        mountPath: /etc/kubernetes/cloud.conf
+        readOnly: true
+      - name: cacerts
+        hostPath: /etc/certs/cacert
+        mountPath: /etc/certs/cacert
+        readOnly: true
+  files:
+  - path: /etc/kubernetes/cloud.conf
+    owner: root
+    permissions: "0600"
+    encoding: base64
+    # This file has to be in the format of the
+    # OpenStack cloud provider 
+    content: |-
+      ${OPENSTACK_CLOUD_CONFIG_B64ENCODED}
+  - path: /etc/certs/cacert
+    owner: root
+    permissions: "0600"
+    content: |
+      ${OPENSTACK_CLOUD_CACERT_B64ENCODED}
+  users:
+  - name: capo
+    sudo: "ALL=(ALL) NOPASSWD:ALL"
+    sshAuthorizedKeys:
+    - "${SSH_AUTHORIZED_KEY}"
+```
+{{#/tab }}
 {{#/tabs }}
 
 After the controlplane is up and running, let's retrieve the [target cluster] Kubeconfig:
@@ -377,7 +534,7 @@ kubectl --kubeconfig=./capi-quickstart.kubeconfig get nodes
 
 Finishing up, we'll create a single node _MachineDeployment_.
 
-{{#tabs name:"tab-usage-machinedeployment" tabs:"AWS,Docker,vSphere"}}
+{{#tabs name:"tab-usage-machinedeployment" tabs:"AWS,Docker,vSphere,OpenStack"}}
 {{#tab AWS}}
 
 ```yaml
@@ -599,6 +756,102 @@ spec:
       - echo "::1         ipv6-localhost ipv6-loopback" >/etc/hosts
       - echo "127.0.0.1   localhost {{ ds.meta_data.hostname }}" >>/etc/hosts
       - echo "{{ ds.meta_data.hostname }}" >/etc/hostname
+```
+
+{{#/tab }}
+{{#tab OpenStack}}
+
+<aside class="note warning">
+
+<h1>Action Required</h1>
+
+These examples include environment variables that you should substitute before creating the resources.
+
+</aside>
+
+```yaml
+apiVersion: cluster.x-k8s.io/v1alpha2
+kind: MachineDeployment
+metadata:
+  name: capi-quickstart-worker
+  labels:
+    cluster.x-k8s.io/cluster-name: capi-quickstart
+    # Labels beyond this point are for example purposes,
+    # feel free to add more or change with something more meaningful.
+    # Sync these values with spec.selector.matchLabels and spec.template.metadata.labels.
+    nodepool: nodepool-0
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      cluster.x-k8s.io/cluster-name: capi-quickstart
+      nodepool: nodepool-0
+  template:
+    metadata:
+      labels:
+        cluster.x-k8s.io/cluster-name: capi-quickstart
+        nodepool: nodepool-0
+    spec:
+      version: v1.15.3
+      bootstrap:
+        configRef:
+          apiVersion: bootstrap.cluster.x-k8s.io/v1alpha2
+          kind: KubeadmConfigTemplate
+          name: capi-quickstart-worker
+      infrastructureRef:
+        apiVersion: infrastructure.cluster.x-k8s.io/v1alpha2
+        kind: OpenStackMachineTemplate
+        name: capi-quickstart-worker
+---
+apiVersion: infrastructure.cluster.x-k8s.io/v1alpha2
+kind: OpenStackMachineTemplate
+metadata:
+  name: capi-quickstart-worker
+spec:
+  template:
+    spec:
+      availabilityZone: nova
+      cloudName: ${OPENSTACK_CLOUD}
+      cloudsSecret:
+        name: cloud-config
+      flavor: m1.medium
+      image: ${IMAGE_NAME}
+---
+apiVersion: bootstrap.cluster.x-k8s.io/v1alpha2
+kind: KubeadmConfigTemplate
+metadata:
+  name: capi-quickstart-worker
+spec:
+  template:
+    spec:
+      # For more information about these values,
+      # refer to the Kubeadm Bootstrap Provider documentation.
+      joinConfiguration:
+        nodeRegistration:
+          name: '{{ local_hostname }}'
+          criSocket: "/var/run/containerd/containerd.sock"
+          kubeletExtraArgs:
+            cloud-config: /etc/kubernetes/cloud.conf
+            cloud-provider: openstack
+      files:
+      - path: /etc/kubernetes/cloud.conf
+        owner: root
+        permissions: "0600"
+        encoding: base64
+        # This file has to be in the format of the
+        # OpenStack cloud provider 
+        content: |-
+          ${OPENSTACK_CLOUD_CONFIG_B64ENCODED}
+      - path: /etc/certs/cacert
+        owner: root
+        permissions: "0600"
+        content: |
+          ${OPENSTACK_CLOUD_CACERT_B64ENCODED}
+      users:
+      - name: capo
+        sudo: "ALL=(ALL) NOPASSWD:ALL"
+        sshAuthorizedKeys:
+        - "${SSH_AUTHORIZED_KEY}"
 ```
 
 {{#/tab }}

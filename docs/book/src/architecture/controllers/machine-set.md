@@ -4,7 +4,7 @@ A MachineSet is an immutable abstraction over [Machines](./machine.html).
 
 Its main responsibilities are:
 * Adopting unowned Machines that aren't assigned to a MachineSet
-* Adopting unmanaged MachineSets that aren't assigned a Cluster
+* Adopting unmanaged Machines that aren't assigned a Cluster
 * Booting a group of N machines
   * Monitor the status of those booted machines
 

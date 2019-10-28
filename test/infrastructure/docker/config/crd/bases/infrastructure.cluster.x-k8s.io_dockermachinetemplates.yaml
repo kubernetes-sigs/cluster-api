@@ -11,7 +11,9 @@ spec:
     categories:
     - cluster-api
     kind: DockerMachineTemplate
+    listKind: DockerMachineTemplateList
     plural: dockermachinetemplates
+    singular: dockermachinetemplate
   scope: Namespaced
   validation:
     openAPIV3Schema:

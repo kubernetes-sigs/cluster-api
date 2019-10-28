@@ -1,30 +1,10 @@
 # Creating a release
 
-Tag the repository with the version you want
+Releases for CAPD are very similar to Cluster API.
 
-`git tag -a v0.1.2 -m 'a patch release'`
+The differences:
 
-then push the tag
+* Tags take the form of `test/infrastructure/docker/v0.0.0`
+* Make commands happen from the top level like this: `make -C test/infrastructure/docker release`
 
-`git push origin refs/tags/v0.1.2`
-
-Github actions will take care of the rest.
-
-Please edit the generated change log.
-
-## Container Images
-
-Container images must be pushed from your local machine.
-
-### via Goreleaser
-
-If you have [goreleaser](https://goreleaser.com/) installed you can run
-`goreleaser --skip-publish` and push the generated images.
-
-### manually
-
-Manually build the Dockerfile using `docker build`. The tag pattern is:
-
-* `:latest` - This is the latest release
-* `:<major>.<minor>` - This is the latest minor release in the series
-* `:<major>.<minor>.<patch>` - This is the specific version
+Otherwise the process is the same. Please refer to [the Cluster API release document](../../../../docs/developer/releasing.md).

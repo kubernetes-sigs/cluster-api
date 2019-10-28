@@ -11,7 +11,9 @@ spec:
     categories:
     - cluster-api
     kind: DockerCluster
+    listKind: DockerClusterList
     plural: dockerclusters
+    singular: dockercluster
   scope: Namespaced
   subresources:
     status: {}

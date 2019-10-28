@@ -1,0 +1,41 @@
+@startuml cluster-admission-machinedeployment-controller
+
+start;
+:MachineSet controller;
+
+repeat
+  :MachineDeployment controller enqueues a Reconcile call;
+  :List all MachineSets in namespace;
+  repeat
+    if (MachineSet matches MachineDeployment's selector) then (yes)
+      if (MachineSet Owned by this MachineDeployment) then (yes)
+        #LightBlue:Add to List;
+      elseif (Not Owned By Any MachineDeployment) then (yes)
+        :Adopt MachineSet;
+        #LightBlue:Add to List;
+      endif
+    endif
+  repeat while (More MachineSets) then (yes)
+  if (Paused) then (yes)
+   #LightBlue:Update status and exit;
+  else 
+    if (RollingUpdate Deployment Strategy) then (yes)
+      :Select newest MachineSet;
+      if (Too Many replicas) then (yes)
+        #LightBlue:Scale machineSet down;
+      elseif (Not Enough Replicas)
+        #LightBlue:Create new replicas;
+      endif
+      if (Old MachineSet Replicas are Unhealthy) then (yes)
+        #LightBlue:Cleanup Unhealthy Replicas;
+      elseif (New MachineSets Replicas available) then (yes)
+        #LightBlue:Scale MachineSet down;
+      endif
+    else (no)
+      #Pink:Unknown strategy;
+    endif
+  endif
+repeat while (More updates to MachineDeployments) then (yes)
+stop;
+
+@enduml

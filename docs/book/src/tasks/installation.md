@@ -170,13 +170,35 @@ kubectl create -f {{#releaselink gomodule:"sigs.k8s.io/cluster-api-provider-dock
 {{#/tab }}
 {{#tab vSphere}}
 
+It is required to use an official CAPV machine image for your vSphere VM templates. See [Uploading CAPV Machine Images](https://github.com/kubernetes-sigs/cluster-api-provider-vsphere/blob/master/docs/getting_started.md#uploading-the-capv-machine-image) for instructions on how to do this.
+
+```bash
+# Upload vCenter credentials as a Kubernetes secret
+$ cat <<EOF | kubectl apply -f -
+apiVersion: v1
+kind: Namespace
+metadata:
+  labels:
+    control-plane: controller-manager
+  name: capv-system
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: capv-manager-bootstrap-credentials
+  namespace: capv-system
+type: Opaque
+data:
+  username: "<my vCenter username>"
+  password: "<my vCenter password>"
+EOF
+
+$ kubectl create -f {{#releaselink gomodule:"sigs.k8s.io/cluster-api-provider-vsphere" asset:"infrastructure-components.yaml" version:"0.5.x"}}
+```
+
 Check the [vSphere provider releases](https://github.com/kubernetes-sigs/cluster-api-provider-vsphere/releases) for an up-to-date components file.
 
 For more information about prerequisites, credentials management, or permissions for vSphere, visit the [getting started guide](https://github.com/kubernetes-sigs/cluster-api-provider-vsphere/blob/master/docs/getting_started.md).
-
-```bash
-kubectl create -f {{#releaselink gomodule:"sigs.k8s.io/cluster-api-provider-vsphere" asset:"infrastructure-components.yaml" version:"0.5.x"}}
-```
 
 {{#/tab }}
 {{#/tabs }}

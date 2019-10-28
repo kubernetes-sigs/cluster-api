@@ -67,7 +67,17 @@ metadata:
 
 <h1>Action Required</h1>
 
-These examples include environment variables that you should substitute before creating the resources.
+This quick start assumes the following vSphere environment which you should replace based on your own environment.
+
+| Property       | Value                    | Description                                                                                                                                                           |
+|----------------|--------------------------|-----------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| vCenter Server | 10.0.0.1                 | The IP address or fully-qualified domain name (FQDN) of the vCenter server                                                                                            |
+| Datacenter     | SDDC-Datacenter          | The datacenter to which VMs will be deployed                                                                                                                          |
+| Datastore      | DefaultDatastore         | The datastore to use for VMs                                                                                                                                          |
+| Resource Pool  | '*/Resources'            | The resource pool in which the VMs will be located. Please note that when using an * character in part of the inventory path, the entire value must be single quoted. |
+| VM Network     | vm-network-1             | The VM network to use for VMs                                                                                                                                         |
+| VM Folder      | vm                       | The VM folder in which VMs will be located                                                                                                                            |
+| VM Template    | ubuntu-1804-kube-v1.15.3 | The VM template to use for VMs                                                                                                                                        |
 
 </aside>
 
@@ -90,22 +100,34 @@ kind: VSphereCluster
 metadata:
   name: capi-quickstart
 spec:
-  server: "${VSPHERE_SERVER}"
   cloudProviderConfiguration:
     global:
-      secretName: "cloud-provider-vsphere-credentials"
-      secretNamespace: "kube-system"
-    virtualCenter:
-      "${VSPHERE_SERVER}":
-        datacenters: "${VSPHERE_DATACENTER}"
+      insecure: true
+      secretName: cloud-provider-vsphere-credentials
+      secretNamespace: kube-system
     network:
-      name: "${VSPHERE_NETWORK}"
+      name: vm-network-1
+    providerConfig:
+      cloud:
+        controllerImage: gcr.io/cloud-provider-vsphere/cpi/release/manager:v1.0.0
+      storage:
+        attacherImage: quay.io/k8scsi/csi-attacher:v1.1.1
+        controllerImage: gcr.io/cloud-provider-vsphere/csi/release/driver:v1.0.1
+        livenessProbeImage: quay.io/k8scsi/livenessprobe:v1.1.0
+        metadataSyncerImage: gcr.io/cloud-provider-vsphere/csi/release/syncer:v1.0.1
+        nodeDriverImage: gcr.io/cloud-provider-vsphere/csi/release/driver:v1.0.1
+        provisionerImage: quay.io/k8scsi/csi-provisioner:v1.2.1
+        registrarImage: quay.io/k8scsi/csi-node-driver-registrar:v1.1.0
+    virtualCenter:
+      10.0.0.1:
+        datacenters: SDDC-Datacenter
     workspace:
-      server: "${VSPHERE_SERVER}"
-      datacenter: "${VSPHERE_DATACENTER}"
-      datastore: "${VSPHERE_DATASTORE}"
-      resourcePool: "${VSPHERE_RESOURCE_POOL}"
-      folder: "${VSPHERE_FOLDER}"
+      datacenter: SDDC-Datacenter
+      datastore: DefaultDatastore
+      folder: vm
+      resourcePool: '*/Resources'
+      server: 10.0.0.1
+  server: 10.0.0.1
 ```
 {{#/tab }}
 {{#/tabs }}
@@ -221,7 +243,17 @@ spec:
 
 <h1>Action Required</h1>
 
-These examples include environment variables that you should substitute before creating the resources.
+This quick start assumes the following vSphere environment which you should replace based on your own environment:
+
+| Property       | Value                    | Description                                                                                                                                                           |
+|----------------|--------------------------|-----------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| vCenter Server | 10.0.0.1                 | The IP address or fully-qualified domain name (FQDN) of the vCenter server                                                                                            |
+| Datacenter     | SDDC-Datacenter          | The datacenter to which VMs will be deployed                                                                                                                          |
+| Datastore      | DefaultDatastore         | The datastore to use for VMs                                                                                                                                          |
+| Resource Pool  | '*/Resources'            | The resource pool in which the VMs will be located. Please note that when using an * character in part of the inventory path, the entire value must be single quoted. |
+| VM Network     | vm-network-1             | The VM network to use for VMs                                                                                                                                         |
+| VM Folder      | vm                       | The VM folder in which VMs will be located                                                                                                                            |
+| VM Template    | ubuntu-1804-kube-v1.15.3 | The VM template to use for VMs                                                                                                                                        |
 
 </aside>
 
@@ -248,65 +280,43 @@ spec:
 apiVersion: infrastructure.cluster.x-k8s.io/v1alpha2
 kind: VSphereMachine
 metadata:
+  labels:
+    cluster.x-k8s.io/cluster-name: capi-quickstart
+    cluster.x-k8s.io/control-plane: "true"
   name: capi-quickstart-controlplane-0
+  namespace: default
 spec:
-  datacenter: "${VSPHERE_DATACENTER}"
+  datacenter: SDDC-Datacenter
+  diskGiB: 50
+  memoryMiB: 2048
   network:
     devices:
-    - networkName: "${VSPHERE_NETWORK}"
-      dhcp4: true
+    - dhcp4: true
       dhcp6: false
-  numCPUs: ${VSPHERE_NUM_CPUS}
-  memoryMiB: ${VSPHERE_MEM_MIB}
-  diskGiB: ${VSPHERE_DISK_GIB}
-  template: "${VSPHERE_TEMPLATE}"
+      networkName: vm-network-1
+  numCPUs: 2
+  template: ubuntu-1804-kube-v1.15.3
 ---
 apiVersion: bootstrap.cluster.x-k8s.io/v1alpha2
 kind: KubeadmConfig
 metadata:
   name: capi-quickstart-controlplane-0
+  namespace: default
 spec:
-  # For more information about these values,
-  # refer to the Kubeadm Bootstrap Provider documentation.
-  initConfiguration:
-    nodeRegistration:
-      name: "{{ ds.meta_data.hostname }}"
-      criSocket: "/var/run/containerd/containerd.sock"
-      kubeletExtraArgs:
-        cloud-provider: vsphere
   clusterConfiguration:
     apiServer:
       extraArgs:
-        cloud-provider: vsphere
-        cloud-config: /etc/kubernetes/vsphere.conf
-      extraVolumes:
-      - name: "cloud-config"
-        hostPath: /etc/kubernetes/vsphere.conf
-        mountPath: /etc/kubernetes/vsphere.conf
-        readOnly: true
-        pathType: File
+        cloud-provider: external
     controllerManager:
       extraArgs:
-        cloud-provider: vsphere
-        cloud-config: /etc/kubernetes/vsphere.conf
-      extraVolumes:
-      - name: "cloud-config"
-        hostPath: /etc/kubernetes/vsphere.conf
-        mountPath: /etc/kubernetes/vsphere.conf
-        readOnly: true
-        pathType: File
-  files:
-  - path: /etc/kubernetes/vsphere.conf
-    owner: root:root
-    permissions: "0600"
-    encoding: base64
-    content: |
-      ${CLOUD_CONFIG_B64ENCODED}
-  users:
-  - name: capv
-    sudo: "ALL=(ALL) NOPASSWD:ALL"
-    sshAuthorizedKeys:
-    - "${SSH_AUTHORIZED_KEY}"
+        cloud-provider: external
+    imageRepository: k8s.gcr.io
+  initConfiguration:
+    nodeRegistration:
+      criSocket: /var/run/containerd/containerd.sock
+      kubeletExtraArgs:
+        cloud-provider: external
+      name: '{{ ds.meta_data.hostname }}'
   preKubeadmCommands:
   - hostname "{{ ds.meta_data.hostname }}"
   - echo "::1         ipv6-localhost ipv6-loopback" >/etc/hosts
@@ -537,7 +547,17 @@ spec:
 
 <h1>Action Required</h1>
 
-These examples include environment variables that you should substitute before creating the resources.
+This quick start assumes the following vSphere environment which you should replace based on your own environment:
+
+| Property       | Value                    | Description                                                                                                                                                           |
+|----------------|--------------------------|-----------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| vCenter Server | 10.0.0.1                 | The IP address or fully-qualified domain name (FQDN) of the vCenter server                                                                                            |
+| Datacenter     | SDDC-Datacenter          | The datacenter to which VMs will be deployed                                                                                                                          |
+| Datastore      | DefaultDatastore         | The datastore to use for VMs                                                                                                                                          |
+| Resource Pool  | '*/Resources'            | The resource pool in which the VMs will be located. Please note that when using an * character in part of the inventory path, the entire value must be single quoted. |
+| VM Network     | vm-network-1             | The VM network to use for VMs                                                                                                                                         |
+| VM Folder      | vm                       | The VM folder in which VMs will be located                                                                                                                            |
+| VM Template    | ubuntu-1804-kube-v1.15.3 | The VM template to use for VMs                                                                                                                                        |
 
 </aside>
 
@@ -578,41 +598,36 @@ spec:
 apiVersion: infrastructure.cluster.x-k8s.io/v1alpha2
 kind: VSphereMachineTemplate
 metadata:
-  name: capi-quickstart-worker
+  name: capi-quickstart-md-0
+  namespace: default
 spec:
   template:
     spec:
-      datacenter: "${VSPHERE_DATACENTER}"
+      datacenter: SDDC-Datacenter
+      diskGiB: 50
+      memoryMiB: 2048
       network:
         devices:
-        - networkName: "${VSPHERE_NETWORK}"
-          dhcp4: true
+        - dhcp4: true
           dhcp6: false
-      numCPUs: ${VSPHERE_NUM_CPUS}
-      memoryMiB: ${VSPHERE_MEM_MIB}
-      diskGiB: ${VSPHERE_DISK_GIB}
-      template: "${VSPHERE_TEMPLATE}"
+          networkName: vm-network-1
+      numCPUs: 2
+      template: ubuntu-1804-kube-v1.15.3
 ---
 apiVersion: bootstrap.cluster.x-k8s.io/v1alpha2
 kind: KubeadmConfigTemplate
 metadata:
-  name: capi-quickstart-worker
+  name: capi-quickstart-md-0
+  namespace: default
 spec:
   template:
     spec:
-      # For more information about these values,
-      # refer to the Kubeadm Bootstrap Provider documentation.
       joinConfiguration:
         nodeRegistration:
-          name: "{{ ds.meta_data.hostname }}"
-          criSocket: "/var/run/containerd/containerd.sock"
+          criSocket: /var/run/containerd/containerd.sock
           kubeletExtraArgs:
-            cloud-provider: vsphere
-      users:
-      - name: capv
-        sudo: "ALL=(ALL) NOPASSWD:ALL"
-        sshAuthorizedKeys:
-        - "${SSH_AUTHORIZED_KEY}"
+            cloud-provider: external
+          name: '{{ ds.meta_data.hostname }}'
       preKubeadmCommands:
       - hostname "{{ ds.meta_data.hostname }}"
       - echo "::1         ipv6-localhost ipv6-loopback" >/etc/hosts

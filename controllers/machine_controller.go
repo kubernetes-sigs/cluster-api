@@ -138,9 +138,7 @@ func (r *MachineReconciler) Reconcile(req ctrl.Request) (_ ctrl.Result, reterr e
 
 func (r *MachineReconciler) reconcile(ctx context.Context, cluster *clusterv1.Cluster, m *clusterv1.Machine) (ctrl.Result, error) {
 	logger := r.Log.WithValues("machine", m.Name, "namespace", m.Namespace)
-	if cluster != nil {
-		logger = logger.WithValues("cluster", cluster.Name)
-	}
+	logger = logger.WithValues("cluster", cluster.Name)
 
 	// If the Machine belongs to a cluster, add an owner reference.
 	if r.shouldAdopt(m) {
@@ -185,9 +183,7 @@ func (r *MachineReconciler) reconcile(ctx context.Context, cluster *clusterv1.Cl
 
 func (r *MachineReconciler) reconcileDelete(ctx context.Context, cluster *clusterv1.Cluster, m *clusterv1.Machine) (ctrl.Result, error) {
 	logger := r.Log.WithValues("machine", m.Name, "namespace", m.Namespace)
-	if cluster != nil {
-		logger = logger.WithValues("cluster", cluster.Name)
-	}
+	logger = logger.WithValues("cluster", cluster.Name)
 
 	if err := r.isDeleteNodeAllowed(ctx, m); err != nil {
 		switch err {

@@ -188,7 +188,7 @@ metadata:
   name: capv-manager-bootstrap-credentials
   namespace: capv-system
 type: Opaque
-data:
+stringData:
   username: "<my vCenter username>"
   password: "<my vCenter password>"
 EOF

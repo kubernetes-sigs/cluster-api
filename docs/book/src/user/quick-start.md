@@ -77,7 +77,7 @@ This quick start assumes the following vSphere environment which you should repl
 | Resource Pool  | '*/Resources'            | The resource pool in which the VMs will be located. Please note that when using an * character in part of the inventory path, the entire value must be single quoted. |
 | VM Network     | vm-network-1             | The VM network to use for VMs                                                                                                                                         |
 | VM Folder      | vm                       | The VM folder in which VMs will be located                                                                                                                            |
-| VM Template    | ubuntu-1804-kube-v1.15.3 | The VM template to use for VMs                                                                                                                                        |
+| VM Template    | ubuntu-1804-kube-v1.16.2 | The VM template to use for VMs                                                                                                                                        |
 
 </aside>
 
@@ -253,7 +253,7 @@ This quick start assumes the following vSphere environment which you should repl
 | Resource Pool  | '*/Resources'            | The resource pool in which the VMs will be located. Please note that when using an * character in part of the inventory path, the entire value must be single quoted. |
 | VM Network     | vm-network-1             | The VM network to use for VMs                                                                                                                                         |
 | VM Folder      | vm                       | The VM folder in which VMs will be located                                                                                                                            |
-| VM Template    | ubuntu-1804-kube-v1.15.3 | The VM template to use for VMs                                                                                                                                        |
+| VM Template    | ubuntu-1804-kube-v1.16.2 | The VM template to use for VMs                                                                                                                                        |
 
 </aside>
 
@@ -266,7 +266,7 @@ metadata:
     cluster.x-k8s.io/control-plane: "true"
     cluster.x-k8s.io/cluster-name: "capi-quickstart"
 spec:
-  version: v1.15.3
+  version: v1.16.2
   bootstrap:
     configRef:
       apiVersion: bootstrap.cluster.x-k8s.io/v1alpha2
@@ -295,7 +295,7 @@ spec:
       dhcp6: false
       networkName: vm-network-1
   numCPUs: 2
-  template: ubuntu-1804-kube-v1.15.3
+  template: ubuntu-1804-kube-v1.16.2
 ---
 apiVersion: bootstrap.cluster.x-k8s.io/v1alpha2
 kind: KubeadmConfig
@@ -523,7 +523,7 @@ This quick start assumes the following vSphere environment which you should repl
 | Resource Pool  | '*/Resources'            | The resource pool in which the VMs will be located. Please note that when using an * character in part of the inventory path, the entire value must be single quoted. |
 | VM Network     | vm-network-1             | The VM network to use for VMs                                                                                                                                         |
 | VM Folder      | vm                       | The VM folder in which VMs will be located                                                                                                                            |
-| VM Template    | ubuntu-1804-kube-v1.15.3 | The VM template to use for VMs                                                                                                                                        |
+| VM Template    | ubuntu-1804-kube-v1.16.2 | The VM template to use for VMs                                                                                                                                        |
 
 </aside>
 
@@ -550,7 +550,7 @@ spec:
         cluster.x-k8s.io/cluster-name: capi-quickstart
         nodepool: nodepool-0
     spec:
-      version: v1.15.3
+      version: v1.16.2
       bootstrap:
         configRef:
           apiVersion: bootstrap.cluster.x-k8s.io/v1alpha2
@@ -578,7 +578,7 @@ spec:
           dhcp6: false
           networkName: vm-network-1
       numCPUs: 2
-      template: ubuntu-1804-kube-v1.15.3
+      template: ubuntu-1804-kube-v1.16.2
 ---
 apiVersion: bootstrap.cluster.x-k8s.io/v1alpha2
 kind: KubeadmConfigTemplate

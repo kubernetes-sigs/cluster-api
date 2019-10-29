@@ -85,7 +85,8 @@ var _ = Describe("MachineDeployment Reconciler", func() {
 						Labels: labels,
 					},
 					Spec: clusterv1.MachineSpec{
-						Version: &version,
+						ClusterName: testCluster.Name,
+						Version:     &version,
 						InfrastructureRef: corev1.ObjectReference{
 							APIVersion: "infrastructure.cluster.x-k8s.io/v1alpha2",
 							Kind:       "InfrastructureMachineTemplate",

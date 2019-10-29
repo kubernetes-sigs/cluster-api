@@ -59,6 +59,7 @@ func getMachineWithError(machineName, namespace string, nodeRef *v1.ObjectRefere
 			Namespace: namespace,
 		},
 		Spec: clusterv1.MachineSpec{
+			ClusterName: "test-cluster",
 			InfrastructureRef: corev1.ObjectReference{
 				APIVersion: "infrastructure.cluster.x-k8s.io/v1alpha2",
 				Kind:       "InfrastructureRef",

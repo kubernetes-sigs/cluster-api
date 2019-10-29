@@ -86,7 +86,8 @@ var _ = Describe("MachineSet Reconciler", func() {
 						},
 					},
 					Spec: clusterv1.MachineSpec{
-						Version: &version,
+						ClusterName: testCluster.Name,
+						Version:     &version,
 						Bootstrap: clusterv1.Bootstrap{
 							Data: pointer.StringPtr("x"),
 						},

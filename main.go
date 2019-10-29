@@ -23,6 +23,7 @@ import (
 
 	"k8s.io/apimachinery/pkg/runtime"
 	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
+	"k8s.io/client-go/rest"
 	"k8s.io/klog"
 	"k8s.io/klog/klogr"
 	clusterv1alpha2 "sigs.k8s.io/cluster-api/api/v1alpha2"
@@ -32,6 +33,8 @@ import (
 	"sigs.k8s.io/cluster-api/controllers"
 	"sigs.k8s.io/cluster-api/util/restmapper"
 	ctrl "sigs.k8s.io/controller-runtime"
+	"sigs.k8s.io/controller-runtime/pkg/cache"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
 	// +kubebuilder:scaffold:imports
 )
@@ -114,6 +117,7 @@ func main() {
 		LeaderElectionID:   "controller-leader-election-capi",
 		Namespace:          watchNamespace,
 		SyncPeriod:         &syncPeriod,
+		NewClient:          newClientFunc,
 	})
 	if err != nil {
 		setupLog.Error(err, "unable to start manager")
@@ -168,4 +172,21 @@ func main() {
 
 func concurrency(c int) controller.Options {
 	return controller.Options{MaxConcurrentReconciles: c}
+}
+
+// newClientFunc returns a client reads from cache and write directly to the server
+// this avoid get unstructured object directly from the server
+// see issue: https://github.com/kubernetes-sigs/cluster-api/issues/1663
+func newClientFunc(cache cache.Cache, config *rest.Config, options client.Options) (client.Client, error) {
+	// Create the Client for Write operations.
+	c, err := client.New(config, options)
+	if err != nil {
+		return nil, err
+	}
+
+	return &client.DelegatingClient{
+		Reader:       cache,
+		Writer:       c,
+		StatusClient: c,
+	}, nil
 }

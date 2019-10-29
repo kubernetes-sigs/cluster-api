@@ -11,8 +11,8 @@ Cluster API requires an existing kubernetes cluster accessible via kubectl, choo
 
 1. **Kind**
 
-{{#tabs name:"kind-cluster" tabs:"AWS,Docker,vSphere"}}
-{{#tab AWS}}
+{{#tabs name:"kind-cluster" tabs:"AWS|vSphere|OpenStack,Docker"}}
+{{#tab AWS|vSphere|OpenStack}}
 
 <aside class="note warning">
 
@@ -69,21 +69,6 @@ EOF
   export KUBECONFIG="$(kind get kubeconfig-path --name="clusterapi")"
   ```
 {{#/tab }}
-{{#tab vSphere}}
-
-<aside class="note warning">
-
-<h1>Warning</h1>
-
-[kind] is not designed for production use, and is intended for development environments only.
-
-</aside>
-
-  ```bash
-  kind create cluster --name=clusterapi
-  export KUBECONFIG="$(kind get kubeconfig-path --name="clusterapi")"
-  ```
-{{#/tab }}
 {{#/tabs }}
 
 
@@ -127,7 +112,7 @@ kubectl create -f {{#releaselink gomodule:"sigs.k8s.io/cluster-api-bootstrap-pro
 
 #### Install Infrastructure Provider
 
-{{#tabs name:"tab-installation-infrastructure" tabs:"AWS,Docker,vSphere"}}
+{{#tabs name:"tab-installation-infrastructure" tabs:"AWS,Docker,vSphere,OpenStack"}}
 {{#tab AWS}}
 
 <aside class="note warning">
@@ -199,6 +184,17 @@ $ kubectl create -f {{#releaselink gomodule:"sigs.k8s.io/cluster-api-provider-vs
 Check the [vSphere provider releases](https://github.com/kubernetes-sigs/cluster-api-provider-vsphere/releases) for an up-to-date components file.
 
 For more information about prerequisites, credentials management, or permissions for vSphere, visit the [getting started guide](https://github.com/kubernetes-sigs/cluster-api-provider-vsphere/blob/master/docs/getting_started.md).
+
+{{#/tab }}
+{{#tab OpenStack}}
+
+Check the [OpenStack provider releases](https://github.com/kubernetes-sigs/cluster-api-provider-openstack/releases) for an up-to-date components file.
+
+For more detailed information, e.g. about prerequisites visit the [getting started guide](https://github.com/kubernetes-sigs/cluster-api-provider-openstack/blob/master/docs/getting-started.md).
+
+```bash
+kubectl create -f {{#releaselink gomodule:"sigs.k8s.io/cluster-api-provider-openstack" asset:"infrastructure-components.yaml" version:"0.2.x"}}
+```
 
 {{#/tab }}
 {{#/tabs }}

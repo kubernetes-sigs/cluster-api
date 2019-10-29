@@ -19,7 +19,12 @@
     - [Provider Implementers](./providers/implementers.md)
         - [v1alpha1 to v1alpha2](./providers/v1alpha1-to-v1alpha2.md)
         - [Cluster Infrastructure](./providers/cluster-infrastructure.md)
-
+        - [Implementer's Guide](./providers/implementers-guide/overview.md)
+          - [Naming](./providers/implementers-guide/naming.md)
+          - [Create Repo and Generate CRDs](./providers/implementers-guide/generate_crds.md)
+          - [Create API](./providers/implementers-guide/create_api.md)
+          - [Controllers and Reconciliation](./providers/implementers-guide/controllers_and_reconciliation.md)
+          - [Building, Running, Testing](./providers/implementers-guide/building_running_and_testing.md)
 - [Reference](./reference/reference.md)
     - [Glossary](./reference/glossary.md)
     - [Provider List](./reference/providers.md)

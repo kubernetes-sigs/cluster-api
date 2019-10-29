@@ -30,7 +30,6 @@ import (
 	kubeadmbootstrapv1 "sigs.k8s.io/cluster-api/bootstrap/kubeadm/api/v1alpha2"
 	kubeadmcontrollers "sigs.k8s.io/cluster-api/bootstrap/kubeadm/controllers"
 	"sigs.k8s.io/cluster-api/controllers"
-	"sigs.k8s.io/cluster-api/util/restmapper"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
 	// +kubebuilder:scaffold:imports
@@ -109,7 +108,6 @@ func main() {
 	mgr, err := ctrl.NewManager(ctrl.GetConfigOrDie(), ctrl.Options{
 		Scheme:             scheme,
 		MetricsBindAddress: metricsAddr,
-		MapperProvider:     restmapper.NewCached,
 		LeaderElection:     enableLeaderElection,
 		LeaderElectionID:   "controller-leader-election-capi",
 		Namespace:          watchNamespace,

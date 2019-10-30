@@ -132,10 +132,6 @@ func (r *MachineDeploymentReconciler) reconcile(ctx context.Context, d *clusterv
 		return ctrl.Result{}, errors.Errorf("failed validation on MachineDeployment %q label selector, cannot match Machine template labels", d.Name)
 	}
 
-	// Copy label selector to its status counterpart in string format.
-	// This is necessary for CRDs including scale subresources.
-	d.Status.Selector = selector.String()
-
 	// Cluster might be nil as some providers might not require a cluster object
 	// for machine management.
 	cluster, err := util.GetClusterFromMetadata(ctx, r.Client, d.ObjectMeta)

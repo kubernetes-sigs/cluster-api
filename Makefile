@@ -38,6 +38,8 @@ export DOCKER_CLI_EXPERIMENTAL := enabled
 TOOLS_DIR := hack/tools
 TOOLS_BIN_DIR := $(TOOLS_DIR)/bin
 BIN_DIR := bin
+RELEASE_NOTES_BIN := bin/release-notes
+RELEASE_NOTES := $(TOOLS_DIR)/$(RELEASE_NOTES_BIN)
 
 # Binaries.
 CONTROLLER_GEN := $(TOOLS_BIN_DIR)/controller-gen
@@ -103,6 +105,9 @@ $(CONVERSION_GEN): $(TOOLS_DIR)/go.mod
 
 $(CERTMANAGER_UPDATE): $(TOOLS_DIR)/go.mod
 	cd $(TOOLS_DIR); go build -tags=tools -o $(BIN_DIR)/certmanager-update ./certmanager
+
+$(RELEASE_NOTES) : $(TOOLS_DIR)/go.mod
+	cd $(TOOLS_DIR) && go build -o $(RELEASE_NOTES_BIN) -tags tools ./release
 
 ## --------------------------------------
 ## Linting
@@ -266,6 +271,10 @@ RELEASE_ALIAS_TAG=$(PULL_BASE_REF)
 .PHONY: release-alias-tag
 release-alias-tag: # Adds the tag to the last build tag.
 	gcloud container images add-tag $(CONTROLLER_IMG):$(TAG) $(CONTROLLER_IMG):$(RELEASE_ALIAS_TAG)
+
+.PHONY: release-notes
+release-notes:  ## Generates a release notes template to be used with a release.
+	$(RELEASE_NOTES)
 
 ## --------------------------------------
 ## Docker - Example Provider

@@ -63,7 +63,8 @@ For version v0.x.y:
 1. Run `make release` to build artifacts and push the images to the staging bucket
 1. Follow the [Image Promotion process](https://github.com/kubernetes/k8s.io/tree/master/k8s.gcr.io#image-promoter) to promote the image from the staging repo to `us.gcr.io/k8s-artifacts-prod/cluster-api`
 1. Create a release in GitHub based on the tag created above
-1. Manually create the release notes by going through the merged PRs since the last release
+1. Release notes can be created by running `make release-notes`, which will generate an output that can be copied to the drafted release in GitHub.
+   Pay close attention to the `## :question: Sort these by hand` section, as it contains items that need to be manually sorted.
 
 ### Permissions
 

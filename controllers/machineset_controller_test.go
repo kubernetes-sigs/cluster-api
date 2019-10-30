@@ -201,6 +201,9 @@ var _ = Describe("MachineSet Reconciler", func() {
 			}
 			return instance.Status.AvailableReplicas
 		}, timeout).Should(BeEquivalentTo(replicas))
+
+		// Validate that the controller set the cluster name label in selector.
+		Expect(instance.Status.Selector).To(ContainSubstring(testCluster.Name))
 	})
 })
 

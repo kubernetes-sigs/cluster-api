@@ -327,6 +327,9 @@ var _ = Describe("MachineDeployment Reconciler", func() {
 
 			return len(machineSets.Items)
 		}, timeout*5).Should(BeEquivalentTo(0))
+
+		// Validate that the controller set the cluster name label in selector.
+		Expect(deployment.Status.Selector).To(ContainSubstring(testCluster.Name))
 	})
 })
 

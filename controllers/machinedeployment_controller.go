@@ -19,7 +19,6 @@ package controllers
 import (
 	"context"
 	"fmt"
-	"reflect"
 
 	"github.com/go-logr/logr"
 	"github.com/pkg/errors"
@@ -109,38 +108,10 @@ func (r *MachineDeploymentReconciler) Reconcile(req ctrl.Request) (ctrl.Result, 
 
 func (r *MachineDeploymentReconciler) reconcile(ctx context.Context, d *clusterv1.MachineDeployment) (ctrl.Result, error) {
 	logger := r.Log.WithValues("machinedeployment", d.Name, "namespace", d.Namespace)
+	logger.V(4).Info("Reconcile MachineDeployment")
 
+	// Reconcile defaults.
 	clusterv1.PopulateDefaultsMachineDeployment(d)
-
-	// Test for an empty LabelSelector and short circuit if that is the case
-	// TODO: When we have validation webhooks, we should likely reject on an empty LabelSelector
-	everything := metav1.LabelSelector{}
-	if reflect.DeepEqual(d.Spec.Selector, &everything) {
-		if d.Status.ObservedGeneration < d.Generation {
-			patch := client.MergeFrom(d.DeepCopy())
-			d.Status.ObservedGeneration = d.Generation
-			if err := r.Client.Status().Patch(ctx, d, patch); err != nil {
-				logger.Error(err, "Failed to patch status")
-				return ctrl.Result{}, err
-			}
-		}
-		return ctrl.Result{}, nil
-	}
-
-	// Make sure that label selector can match the template's labels.
-	// TODO(vincepri): Move to a validation (admission) webhook when supported.
-	selector, err := metav1.LabelSelectorAsSelector(&d.Spec.Selector)
-	if err != nil {
-		return ctrl.Result{}, errors.Wrapf(err, "failed to parse MachineDeployment %q label selector", d.Name)
-	}
-
-	if !selector.Matches(labels.Set(d.Spec.Template.Labels)) {
-		return ctrl.Result{}, errors.Errorf("failed validation on MachineDeployment %q label selector, cannot match Machine template labels", d.Name)
-	}
-
-	// Copy label selector to its status counterpart in string format.
-	// This is necessary for CRDs including scale subresources.
-	d.Status.Selector = selector.String()
 
 	// Reconcile and retrieve the Cluster object.
 	if d.Labels == nil {
@@ -148,10 +119,15 @@ func (r *MachineDeploymentReconciler) reconcile(ctx context.Context, d *clusterv
 	}
 	d.Labels[clusterv1.ClusterLabelName] = d.Spec.ClusterName
 
-	// Add MachineDeploymentLabelName label to machines
+	// Make sure selector and template to be in the same cluster.
+	d.Spec.Selector.MatchLabels[clusterv1.ClusterLabelName] = d.Spec.ClusterName
+	d.Spec.Template.Labels[clusterv1.ClusterLabelName] = d.Spec.ClusterName
+
+	// Add label and selector based on the MachineDeployment's name.
 	d.Spec.Selector.MatchLabels[clusterv1.MachineDeploymentLabelName] = d.Name
 	d.Spec.Template.Labels[clusterv1.MachineDeploymentLabelName] = d.Name
 
+	// Check for Cluster ownership.
 	cluster, err := util.GetClusterByName(ctx, r.Client, d.ObjectMeta.Namespace, d.Spec.ClusterName)
 	if err != nil {
 		return ctrl.Result{}, err
@@ -170,6 +146,17 @@ func (r *MachineDeploymentReconciler) reconcile(ctx context.Context, d *clusterv
 		if err := r.Client.Patch(ctx, d.DeepCopy(), patch); err != nil {
 			return ctrl.Result{}, errors.Wrapf(err, "Failed to add OwnerReference to MachineDeployment %s/%s", d.Namespace, d.Name)
 		}
+	}
+
+	// Make sure that label selector can match the template's labels.
+	// TODO(vincepri): Move to a validation (admission) webhook when supported.
+	selector, err := metav1.LabelSelectorAsSelector(&d.Spec.Selector)
+	if err != nil {
+		return ctrl.Result{}, errors.Wrapf(err, "failed to parse MachineDeployment %q label selector", d.Name)
+	}
+
+	if !selector.Matches(labels.Set(d.Spec.Template.Labels)) {
+		return ctrl.Result{}, errors.Errorf("failed validation on MachineDeployment %q label selector, cannot match Machine template labels", d.Name)
 	}
 
 	msList, err := r.getMachineSetsForDeployment(d)

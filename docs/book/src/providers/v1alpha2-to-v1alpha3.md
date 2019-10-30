@@ -36,3 +36,7 @@
 ## Cluster and Machine controllers now set `cluster.x-k8s.io/cluster-name` to external objects.
 
 - In addition to the OwnerReference back to the Cluster, a label is now added as well to any external objects, for example objects such as KubeadmConfig (bootstrap provider), AWSCluster (infrastructure provider), AWSMachine (infrastructure provider), etc.
+
+## The `util/restmapper` package has been removed
+
+- Controller runtime has native support for a [DynamicRESTMapper](https://github.com/kubernetes-sigs/controller-runtime/pull/554/files), which is used by default when creating a new Manager.

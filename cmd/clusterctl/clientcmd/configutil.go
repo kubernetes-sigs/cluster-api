@@ -23,8 +23,8 @@ import (
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/clientcmd"
 	"k8s.io/client-go/tools/clientcmd/api"
-	"sigs.k8s.io/cluster-api/util/restmapper"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/client/apiutil"
 )
 
 // This is a convenience method to prevent the need of importing both this version of clientcmd and the client-go version
@@ -56,7 +56,7 @@ func NewControllerRuntimeClient(kubeconfigPath string, overrides clientcmd.Confi
 		return nil, err
 	}
 
-	mapper, err := restmapper.NewCached(config)
+	mapper, err := apiutil.NewDynamicRESTMapper(config)
 	if err != nil {
 		return nil, err
 	}

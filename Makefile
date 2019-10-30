@@ -70,7 +70,7 @@ help:  ## Display this help
 ## --------------------------------------
 
 .PHONY: test
-test: generate lint ## Run tests
+test: ## Run tests
 	go test -v ./...
 
 .PHONY: test-integration
@@ -87,11 +87,11 @@ test-e2e: ## Run e2e tests
 ## --------------------------------------
 
 .PHONY: manager
-manager: lint-full ## Build manager binary
+manager: ## Build manager binary
 	go build -o $(BIN_DIR)/manager sigs.k8s.io/cluster-api
 
 .PHONY: clusterctl
-clusterctl: lint-full ## Build clusterctl binary
+clusterctl: ## Build clusterctl binary
 	go build -o bin/clusterctl sigs.k8s.io/cluster-api/cmd/clusterctl
 
 $(CONTROLLER_GEN): $(TOOLS_DIR)/go.mod # Build controller-gen from tools folder.

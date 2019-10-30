@@ -1,0 +1,18 @@
+@startuml
+
+participant User
+participant clusterctl
+participant "Provider Repositories" as Repositories
+participant "Management Cluster" as Cluster
+
+note over User:has $KUBECONFIG set to\n  Management AWSCluster
+
+User -> clusterctl: clusterctl init\n--infrastructure=aws\n--boostrap=kubeadm (default)
+clusterctl -> Repositories:Fetch yaml for installing components for:\n- cluster API (installed by default)\n- aws infrastructure provider\n- kubeadm bootstrap provider
+Repositories -> clusterctl:yaml for installing components
+clusterctl -> clusterctl:Kustomize yaml:\n- apply "clusterctl.cluster.x-k8s.io" labels\n- replace env variables
+clusterctl -> Cluster:Create\n- provider components\n- "clusterctl.cluster.x-k8s.io.Provider" metadata object
+Cluster -> clusterctl:
+clusterctl -> User: Management cluster initialized
+
+@enduml

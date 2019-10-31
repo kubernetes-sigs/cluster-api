@@ -78,16 +78,16 @@ func main() {
 	flag.StringVar(&profilerAddress, "profiler-address", "",
 		"Bind address to expose the pprof profiler (e.g. localhost:6060)")
 
-	flag.IntVar(&clusterConcurrency, "cluster-concurrency", 1,
+	flag.IntVar(&clusterConcurrency, "cluster-concurrency", 10,
 		"Number of clusters to process simultaneously")
 
-	flag.IntVar(&machineConcurrency, "machine-concurrency", 1,
+	flag.IntVar(&machineConcurrency, "machine-concurrency", 10,
 		"Number of machines to process simultaneously")
 
-	flag.IntVar(&machineSetConcurrency, "machineset-concurrency", 1,
+	flag.IntVar(&machineSetConcurrency, "machineset-concurrency", 10,
 		"Number of machine sets to process simultaneously")
 
-	flag.IntVar(&machineDeploymentConcurrency, "machinedeployment-concurrency", 1,
+	flag.IntVar(&machineDeploymentConcurrency, "machinedeployment-concurrency", 10,
 		"Number of machine deployments to process simultaneously")
 
 	flag.DurationVar(&syncPeriod, "sync-period", 10*time.Minute,

@@ -296,6 +296,9 @@ var _ = Describe("MachineDeployment Reconciler", func() {
 
 			return len(machineSets.Items)
 		}, timeout*5).Should(BeEquivalentTo(0))
+
+		// Make sure the deployment selector is being populated.
+		Expect(deployment.Status.Selector).ToNot(BeEmpty())
 	})
 })
 

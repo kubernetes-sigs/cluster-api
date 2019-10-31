@@ -1391,36 +1391,12 @@ func TestClusterDelete(t *testing.T) {
 			expectedExternalClusterCount: 1,
 		},
 		{
-			name:                 "error deleting machines",
-			provisionExternalErr: nil,
-			NewCoreClientsetErr:  nil,
-			bootstrapClient:      &testClusterClient{DeleteMachinesErr: errors.New("delete machines error")},
-			targetClient:         &testClusterClient{},
-			expectedErrorMessage: "error(s) encountered deleting objects from bootstrap cluster: [error deleting Machines: delete machines error]",
-		},
-		{
-			name:                 "error deleting machine sets",
-			provisionExternalErr: nil,
-			NewCoreClientsetErr:  nil,
-			bootstrapClient:      &testClusterClient{DeleteMachineSetsErr: errors.New("delete machine sets error")},
-			targetClient:         &testClusterClient{},
-			expectedErrorMessage: "error(s) encountered deleting objects from bootstrap cluster: [error deleting MachineSets: delete machine sets error]",
-		},
-		{
-			name:                 "error deleting machine deployments",
-			provisionExternalErr: nil,
-			NewCoreClientsetErr:  nil,
-			bootstrapClient:      &testClusterClient{DeleteMachineDeploymentsErr: errors.New("delete machine deployments error")},
-			targetClient:         &testClusterClient{},
-			expectedErrorMessage: "error(s) encountered deleting objects from bootstrap cluster: [error deleting MachineDeployments: delete machine deployments error]",
-		},
-		{
 			name:                 "error deleting clusters",
 			provisionExternalErr: nil,
 			NewCoreClientsetErr:  nil,
 			bootstrapClient:      &testClusterClient{DeleteClustersErr: errors.New("delete clusters error")},
 			targetClient:         &testClusterClient{},
-			expectedErrorMessage: "error(s) encountered deleting objects from bootstrap cluster: [error deleting Clusters: delete clusters error]",
+			expectedErrorMessage: "error encountered deleting objects from bootstrap cluster: [error deleting Clusters: delete clusters error]",
 		},
 		{
 			name:                 "error deleting machines and clusters",
@@ -1428,7 +1404,7 @@ func TestClusterDelete(t *testing.T) {
 			NewCoreClientsetErr:  nil,
 			bootstrapClient:      &testClusterClient{DeleteMachinesErr: errors.New("delete machines error"), DeleteClustersErr: errors.New("delete clusters error")},
 			targetClient:         &testClusterClient{},
-			expectedErrorMessage: "error(s) encountered deleting objects from bootstrap cluster: [error deleting Machines: delete machines error, error deleting Clusters: delete clusters error]",
+			expectedErrorMessage: "error encountered deleting objects from bootstrap cluster: [error deleting Clusters: delete clusters error]",
 		},
 	}
 
@@ -1456,20 +1432,11 @@ func TestClusterDelete(t *testing.T) {
 
 			if !testCase.expectError {
 				var (
-					bootstrapClusters, bootstrapMachines, bootstrapMachineDeployments, bootstrapMachineSets, bootstrapMachineClasses int
-					targetClusters, targetMachines, targetMachineDeployments, targetMachineSets, targetMachineClasses                int
+					bootstrapClusters, bootstrapMachineClasses                                                        int
+					targetClusters, targetMachines, targetMachineDeployments, targetMachineSets, targetMachineClasses int
 				)
 				for _, clusters := range testCase.bootstrapClient.clusters {
 					bootstrapClusters = bootstrapClusters + len(clusters)
-				}
-				for _, machines := range testCase.bootstrapClient.machines {
-					bootstrapMachines = bootstrapMachines + len(machines)
-				}
-				for _, machineDeployments := range testCase.bootstrapClient.machineDeployments {
-					bootstrapMachineDeployments = bootstrapMachineDeployments + len(machineDeployments)
-				}
-				for _, machineSets := range testCase.bootstrapClient.machineSets {
-					bootstrapMachineSets = bootstrapMachineSets + len(machineSets)
 				}
 				for _, clusters := range testCase.targetClient.clusters {
 					targetClusters = targetClusters + len(clusters)
@@ -1486,15 +1453,6 @@ func TestClusterDelete(t *testing.T) {
 
 				if bootstrapClusters != 0 {
 					t.Fatalf("Unexpected Cluster count in bootstrap cluster. Got: %d, Want: 0", bootstrapClusters)
-				}
-				if bootstrapMachines != 0 {
-					t.Fatalf("Unexpected Machine count in bootstrap cluster. Got: %d, Want: 0", bootstrapMachines)
-				}
-				if bootstrapMachineSets != 0 {
-					t.Fatalf("Unexpected MachineSet count in bootstrap cluster. Got: %d, Want: 0", bootstrapMachineSets)
-				}
-				if bootstrapMachineDeployments != 0 {
-					t.Fatalf("Unexpected MachineDeployment count in bootstrap cluster. Got: %d, Want: 0", bootstrapMachineDeployments)
 				}
 				if bootstrapMachineClasses != 0 {
 					t.Fatalf("Unexpected MachineClass count in bootstrap cluster. Got: %d, Want: 0", bootstrapMachineClasses)

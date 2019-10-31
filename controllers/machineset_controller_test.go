@@ -141,6 +141,11 @@ var _ = Describe("MachineSet Reconciler", func() {
 			return len(machines.Items)
 		}, timeout).Should(BeEquivalentTo(replicas))
 
+		// Verify that machines has MachineSetLabelName label
+		for _, m := range machines.Items {
+			Expect(m.Labels[clusterv1.MachineSetLabelName]).To(Equal(instance.Name))
+		}
+
 		// Set the infrastructure reference as ready.
 		for _, m := range machines.Items {
 			fakeInfrastructureRefReady(m.Spec.InfrastructureRef, infraResource)

@@ -13,7 +13,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# set -o errexit
+set -o errexit
 set -o nounset
 set -o pipefail
 
@@ -42,7 +42,7 @@ trap cleanup EXIT
 cd "${TMP_DIR}" || exit
 VERSION="shellcheck-v0.7.0"
 DOWNLOAD_FILE="${VERSION}.${OS}.x86_64.tar.xz"
-curl https://storage.googleapis.com/shellcheck/"${DOWNLOAD_FILE}" -O ${DOWNLOAD_FILE}
+curl https://storage.googleapis.com/shellcheck/"${DOWNLOAD_FILE}" -o ${DOWNLOAD_FILE}
 tar xf "${DOWNLOAD_FILE}"
 cd "${VERSION}" || exit
 

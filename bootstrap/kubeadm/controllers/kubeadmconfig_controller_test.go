@@ -642,7 +642,7 @@ func TestReconcileIfJoinNodesAndControlPlaneIsReady(t *testing.T) {
 	}
 }
 
-func TestBootstrapTokenTTLExtension(t *testing.T) { //nolint
+func TestBootstrapTokenTTLExtension(t *testing.T) {
 	cluster := newCluster("cluster")
 	cluster.Status.InfrastructureReady = true
 	cluster.Status.ControlPlaneInitialized = true

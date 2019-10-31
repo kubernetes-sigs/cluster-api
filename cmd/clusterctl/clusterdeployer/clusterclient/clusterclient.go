@@ -120,7 +120,7 @@ type client struct {
 
 // New creates and returns a Client, the kubeconfig argument is expected to be the string representation
 // of a valid kubeconfig.
-func New(kubeconfig string) (*client, error) { //nolint
+func New(kubeconfig string) (*client, error) {
 	f, err := createTempFile(kubeconfig)
 	if err != nil {
 		return nil, err
@@ -233,7 +233,7 @@ func (c *client) DeleteNamespace(namespaceName string) error {
 
 // NewFromDefaultSearchPath creates and returns a Client.  The kubeconfigFile argument is expected to be the path to a
 // valid kubeconfig file.
-func NewFromDefaultSearchPath(kubeconfigFile string, overrides tcmd.ConfigOverrides) (*client, error) { //nolint
+func NewFromDefaultSearchPath(kubeconfigFile string, overrides tcmd.ConfigOverrides) (*client, error) {
 	var c ctrlclient.Client
 	if err := util.PollImmediate(retryAcquireClient, timeoutAcquireClient, func() (_ bool, err error) {
 		c, err = clientcmd.NewControllerRuntimeClient(kubeconfigFile, overrides)

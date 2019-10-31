@@ -19,7 +19,6 @@ package v1beta1
 import (
 	"github.com/pkg/errors"
 	runtime "k8s.io/apimachinery/pkg/runtime"
-	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/runtime/serializer"
 	"sigs.k8s.io/controller-runtime/pkg/scheme"
 )
@@ -50,7 +49,7 @@ func ConfigurationToYAML(obj runtime.Object) (string, error) {
 // MarshalToYamlForCodecs marshals an object into yaml using the specified codec
 // TODO: Is specifying the gv really needed here?
 // TODO: Can we support json out of the box easily here?
-func MarshalToYamlForCodecs(obj runtime.Object, gv schema.GroupVersion, codecs serializer.CodecFactory) ([]byte, error) { //nolint
+func MarshalToYamlForCodecs(obj runtime.Object, gv runtime.GroupVersioner, codecs serializer.CodecFactory) ([]byte, error) {
 	mediaType := "application/yaml"
 	info, ok := runtime.SerializerInfoForMediaType(codecs.SupportedMediaTypes(), mediaType)
 	if !ok {

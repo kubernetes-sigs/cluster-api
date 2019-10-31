@@ -17,12 +17,20 @@ limitations under the License.
 package kubeconfig
 
 import (
+	"crypto/rand"
+	"crypto/rsa"
+	"crypto/x509"
+	"crypto/x509/pkix"
+	"math/big"
 	"reflect"
 	"testing"
+	"time"
 
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/client-go/tools/clientcmd/api"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha3"
+	"sigs.k8s.io/cluster-api/util/certs"
 	"sigs.k8s.io/cluster-api/util/secret"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 )
@@ -71,5 +79,110 @@ func TestGetKubeConfigSecret(t *testing.T) {
 
 	if !reflect.DeepEqual(validSecret.Data[secret.KubeconfigDataName], found) {
 		t.Fatalf("Expected found secret to be equal to input")
+	}
+}
+
+func getTestCACert(key *rsa.PrivateKey) (*x509.Certificate, error) {
+	cfg := certs.Config{
+		CommonName: "kubernetes",
+	}
+
+	now := time.Now().UTC()
+
+	tmpl := x509.Certificate{
+		SerialNumber: new(big.Int).SetInt64(0),
+		Subject: pkix.Name{
+			CommonName:   cfg.CommonName,
+			Organization: cfg.Organization,
+		},
+		NotBefore:             now.Add(time.Minute * -5),
+		NotAfter:              now.Add(time.Hour * 24), // 1 day
+		KeyUsage:              x509.KeyUsageKeyEncipherment | x509.KeyUsageDigitalSignature | x509.KeyUsageCertSign,
+		MaxPathLenZero:        true,
+		BasicConstraintsValid: true,
+		MaxPathLen:            0,
+		IsCA:                  true,
+	}
+
+	b, err := x509.CreateCertificate(rand.Reader, &tmpl, &tmpl, key.Public(), key)
+	if err != nil {
+		return nil, err
+	}
+
+	c, err := x509.ParseCertificate(b)
+	return c, err
+}
+
+func TestNew(t *testing.T) {
+	testCases := []struct {
+		cluster        string
+		endpoint       string
+		expectedConfig api.Config
+		expectError    bool
+	}{
+		{
+			cluster:  "foo",
+			endpoint: "https://127:0.0.1:4003",
+			expectedConfig: api.Config{
+				Clusters: map[string]*api.Cluster{
+					"foo": {
+						Server: "https://127:0.0.1:4003",
+					},
+				},
+				Contexts: map[string]*api.Context{
+					"foo-admin@foo": {
+						Cluster:  "foo",
+						AuthInfo: "foo-admin",
+					},
+				},
+				CurrentContext: "foo-admin@foo",
+			},
+			expectError: false,
+		},
+	}
+
+	for _, tc := range testCases {
+		caKey, err := certs.NewPrivateKey()
+		if err != nil {
+			t.Fatalf("Failed to generate private key for ca cert, %v", err)
+		}
+
+		caCert, err := getTestCACert(caKey)
+		if err != nil {
+			t.Fatalf("Failed to generate test ca cert, %v", err)
+		}
+
+		actualConfig, actualError := New(tc.cluster, tc.endpoint, caCert, caKey)
+		if tc.expectError {
+			if actualError == nil {
+				t.Fatalf("Expected error but go nil error")
+			} else {
+				continue
+			}
+		}
+
+		if len(actualConfig.Clusters) != len(tc.expectedConfig.Clusters) {
+			t.Fatalf("Unexpected number of clusters in generated kubeconfig, Want: %d, Got: %d",
+				len(tc.expectedConfig.Clusters), len(actualConfig.Clusters))
+		}
+		if len(actualConfig.Contexts) != len(tc.expectedConfig.Contexts) {
+			t.Fatalf("Unexpected number of contexts in generated kubeconfig, Want: %d, Got: %d",
+				len(tc.expectedConfig.Contexts), len(actualConfig.Contexts))
+		}
+		if _, found := actualConfig.Clusters[tc.cluster]; !found {
+			t.Fatalf("Cluster %q not found in generated kubeconfig", tc.cluster)
+		}
+		if _, found := actualConfig.Contexts[tc.expectedConfig.CurrentContext]; !found {
+			t.Fatalf("Context %q not found in generated kubeconfig", tc.expectedConfig.CurrentContext)
+		}
+		if actualConfig.CurrentContext != tc.expectedConfig.CurrentContext {
+			t.Fatalf("Unexpected value for current config in generated kubeconfig, Want: %q, Got :%q",
+				tc.expectedConfig.CurrentContext, actualConfig.CurrentContext)
+		}
+		if actualConfig.Contexts[tc.expectedConfig.CurrentContext].AuthInfo != tc.expectedConfig.Contexts[tc.expectedConfig.CurrentContext].AuthInfo {
+			t.Fatalf("Unexpected AuthInfo in context for cluter %q in generated kubeconfig, Want: %q, Got: %q",
+				tc.cluster, tc.expectedConfig.Contexts[tc.expectedConfig.CurrentContext].AuthInfo,
+				actualConfig.Contexts[tc.expectedConfig.CurrentContext].AuthInfo)
+		}
 	}
 }

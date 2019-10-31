@@ -10,7 +10,7 @@
 - The field has been unused for quite some time and didn't have any function.
 - If you have been using this field to setup MachineSet or MachineDeployment, switch to MachineTemplate's metadata instead.
 
-## Set `spec.clusterName` on Machine, MachineSet, MachineDeployments.
+## Set `spec.clusterName` on Machine, MachineSet, MachineDeployments
 
 - The field is now required on all Cluster dependant objects.
 - The `cluster.x-k8s.io/cluster-name` label is created automatically by each respective controller.
@@ -23,7 +23,7 @@
 
 - Pass a context as the first argument to calls to `external.Get`.
 
-## Cluster and Machine `Status.Phase` field values now start with an uppercase letter.
+## Cluster and Machine `Status.Phase` field values now start with an uppercase letter
 
 - To be consistent with Pod phases in k/k.
 - More details in https://github.com/kubernetes-sigs/cluster-api/pull/1532/files.
@@ -40,3 +40,7 @@
 ## The `util/restmapper` package has been removed
 
 - Controller runtime has native support for a [DynamicRESTMapper](https://github.com/kubernetes-sigs/controller-runtime/pull/554/files), which is used by default when creating a new Manager.
+
+## Generated kubeconfig admin username changed from `kubernetes-admin` to `<cluster-name>-admin`
+
+- The kubeconfig secret shipped with Cluster API now uses the cluster name as prefix to the `username` field.

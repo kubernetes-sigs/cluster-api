@@ -45,7 +45,6 @@ RELEASE_NOTES := $(TOOLS_DIR)/$(RELEASE_NOTES_BIN)
 CONTROLLER_GEN := $(TOOLS_BIN_DIR)/controller-gen
 GOLANGCI_LINT := $(TOOLS_BIN_DIR)/golangci-lint
 CONVERSION_GEN := $(TOOLS_BIN_DIR)/conversion-gen
-CERTMANAGER_UPDATE := $(TOOLS_BIN_DIR)/certmanager-update
 
 # Define Docker related variables. Releases should modify and double check these vars.
 REGISTRY ?= gcr.io/$(shell gcloud config get-value project)
@@ -103,9 +102,6 @@ $(GOLANGCI_LINT): $(TOOLS_DIR)/go.mod # Build golangci-lint from tools folder.
 $(CONVERSION_GEN): $(TOOLS_DIR)/go.mod
 	cd $(TOOLS_DIR); go build -tags=tools -o $(BIN_DIR)/conversion-gen k8s.io/code-generator/cmd/conversion-gen
 
-$(CERTMANAGER_UPDATE): $(TOOLS_DIR)/go.mod
-	cd $(TOOLS_DIR); go build -tags=tools -o $(BIN_DIR)/certmanager-update ./certmanager
-
 $(RELEASE_NOTES) : $(TOOLS_DIR)/go.mod
 	cd $(TOOLS_DIR) && go build -o $(RELEASE_NOTES_BIN) -tags tools ./release
 
@@ -161,10 +157,6 @@ generate-manifests: $(CONTROLLER_GEN) ## Generate manifests e.g. CRD, RBAC etc.
 modules: ## Runs go mod to ensure modules are up to date.
 	go mod tidy
 	cd $(TOOLS_DIR); go mod tidy
-
-.PHONY: update-certmanager
-update-certmanager: $(CERTMANAGER_UPDATE)
-	VERSION=$(CERTMANAGER_VERSION) $(CERTMANAGER_UPDATE) > config/certmanager/cert-manager.yaml
 
 ## --------------------------------------
 ## Docker
@@ -244,7 +236,6 @@ release: clean-release ## Builds and push container images using the latest git 
 .PHONY: release-manifests
 release-manifests: $(RELEASE_DIR) ## Builds the manifests to publish with a release
 	kustomize build config/default > $(RELEASE_DIR)/cluster-api-components.yaml
-	cat config/certmanager/cert-manager.yaml >> $(RELEASE_DIR)/cluster-api-components.yaml
 
 release-binaries: ## Builds the binaries to publish with a release
 	RELEASE_BINARY=./cmd/clusterctl GOOS=linux GOARCH=amd64 $(MAKE) release-binary

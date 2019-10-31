@@ -17,6 +17,8 @@ limitations under the License.
 package controllers
 
 import (
+	"context"
+	"reflect"
 	"testing"
 
 	. "github.com/onsi/gomega"
@@ -26,6 +28,7 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/kubernetes/scheme"
+	"k8s.io/klog/klogr"
 	"k8s.io/utils/pointer"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha3"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -552,4 +555,126 @@ func TestRemoveMachineFinalizerAfterDeleteReconcile(t *testing.T) {
 
 	Expect(mr.Client.Get(ctx, key, m)).ToNot(HaveOccurred())
 	Expect(m.ObjectMeta.Finalizers).To(Equal([]string{metav1.FinalizerDeleteDependents}))
+}
+
+func TestMachineReconciler_reconcileLables(t *testing.T) {
+	RegisterTestingT(t)
+
+	err := clusterv1.AddToScheme(scheme.Scheme)
+	Expect(err).NotTo(HaveOccurred())
+
+	tests := []struct {
+		name           string
+		m              *clusterv1.Machine
+		ms             *clusterv1.MachineSet
+		md             *clusterv1.MachineDeployment
+		expectedLabels map[string]string
+		wantErr        bool
+	}{
+		{
+			name: "no controller, machine should not have labels",
+			m: &clusterv1.Machine{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "test-machine",
+					Namespace: corev1.NamespaceDefault,
+				},
+			},
+			expectedLabels: map[string]string{},
+			wantErr:        false,
+		},
+		{
+			name: "controlled by machineset",
+			m: &clusterv1.Machine{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "test-machine",
+					Namespace: corev1.NamespaceDefault,
+					OwnerReferences: []metav1.OwnerReference{
+						{
+							APIVersion:         clusterv1.GroupVersion.String(),
+							Kind:               machineSetKind.String(),
+							Name:               "test-ms",
+							Controller:         pointer.BoolPtr(true),
+							BlockOwnerDeletion: nil,
+						},
+					},
+				},
+			},
+			ms: &clusterv1.MachineSet{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "test-ms",
+					Namespace: corev1.NamespaceDefault,
+				},
+			},
+			expectedLabels: map[string]string{
+				clusterv1.MachineSetLabelName: "test-ms",
+			},
+			wantErr: false,
+		},
+		{
+			name: "controlled by machinedeployment",
+			m: &clusterv1.Machine{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "test-machine",
+					Namespace: corev1.NamespaceDefault,
+					OwnerReferences: []metav1.OwnerReference{
+						{
+							APIVersion:         clusterv1.GroupVersion.String(),
+							Kind:               machineSetKind.String(),
+							Name:               "test-ms",
+							Controller:         pointer.BoolPtr(true),
+							BlockOwnerDeletion: nil,
+						},
+					},
+				},
+			},
+			ms: &clusterv1.MachineSet{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "test-ms",
+					Namespace: corev1.NamespaceDefault,
+					OwnerReferences: []metav1.OwnerReference{
+						{
+							APIVersion:         clusterv1.GroupVersion.String(),
+							Kind:               machineDeploymentKind.String(),
+							Name:               "test-md",
+							Controller:         pointer.BoolPtr(true),
+							BlockOwnerDeletion: nil,
+						},
+					},
+				},
+			},
+			md: &clusterv1.MachineDeployment{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "test-md",
+					Namespace: corev1.NamespaceDefault,
+				},
+			},
+			expectedLabels: map[string]string{
+				clusterv1.MachineSetLabelName:        "test-ms",
+				clusterv1.MachineDeploymentLabelName: "test-md",
+			},
+			wantErr: false,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			c := fake.NewFakeClientWithScheme(scheme.Scheme, tt.m)
+			if tt.ms != nil {
+				c = fake.NewFakeClientWithScheme(scheme.Scheme, tt.m, tt.ms)
+			}
+			if tt.md != nil {
+				c = fake.NewFakeClientWithScheme(scheme.Scheme, tt.m, tt.ms, tt.md)
+			}
+
+			r := &MachineReconciler{
+				Log:    klogr.New(),
+				Client: c,
+			}
+			if err := r.reconcileLabels(context.Background(), tt.m); (err != nil) != tt.wantErr {
+				t.Errorf("reconcileLabels() error = %v, wantErr %v", err, tt.wantErr)
+			}
+			if !reflect.DeepEqual(tt.m.Labels, tt.expectedLabels) {
+				t.Errorf("expected labels %v, got %v", tt.expectedLabels, tt.m.Labels)
+			}
+		})
+	}
 }

@@ -157,6 +157,7 @@ func (r *MachineReconciler) reconcile(ctx context.Context, cluster *clusterv1.Cl
 
 	// Call the inner reconciliation methods.
 	reconciliationErrors := []error{
+		r.reconcileLabels(ctx, m),
 		r.reconcileBootstrap(ctx, m),
 		r.reconcileInfrastructure(ctx, m),
 		r.reconcileNodeRef(ctx, cluster, m),
@@ -179,6 +180,42 @@ func (r *MachineReconciler) reconcile(ctx context.Context, cluster *clusterv1.Cl
 		errs = append(errs, err)
 	}
 	return res, kerrors.NewAggregate(errs)
+}
+
+func (r *MachineReconciler) reconcileLabels(ctx context.Context, m *clusterv1.Machine) error {
+	logger := r.Log.WithValues("machine", m.Name, "namespace", m.Namespace)
+
+	if m.Labels == nil {
+		m.Labels = make(map[string]string)
+	}
+
+	// return early if machine already has both the labels for machineSet and machineDeployment controller
+	if m.Labels[clusterv1.MachineDeploymentLabelName] != "" || m.Labels[clusterv1.MachineSetLabelName] != "" {
+		return nil
+	}
+
+	machineControllerRef := metav1.GetControllerOf(m)
+	// return early if machine is not controlled by any machineSet
+	if machineControllerRef == nil {
+		return nil
+	}
+
+	ms := &clusterv1.MachineSet{}
+	err := r.Client.Get(ctx, client.ObjectKey{
+		Namespace: m.Namespace,
+		Name:      machineControllerRef.Name,
+	}, ms)
+	if err != nil {
+		logger.Error(err, "failed to get owner machineset", "machineset", machineControllerRef.Name)
+		return err
+	}
+	m.Labels[clusterv1.MachineSetLabelName] = machineControllerRef.Name
+
+	if machineSetControllerRef := metav1.GetControllerOf(ms); machineSetControllerRef != nil {
+		m.Labels[clusterv1.MachineDeploymentLabelName] = machineSetControllerRef.Name
+	}
+
+	return nil
 }
 
 func (r *MachineReconciler) reconcileDelete(ctx context.Context, cluster *clusterv1.Cluster, m *clusterv1.Machine) (ctrl.Result, error) {

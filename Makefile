@@ -108,7 +108,7 @@ $(CERTMANAGER_UPDATE): $(TOOLS_DIR)/go.mod
 ## Linting
 ## --------------------------------------
 
-.PHONY: lint
+.PHONY: lint lint-full
 lint: $(GOLANGCI_LINT) ## Lint codebase
 	$(GOLANGCI_LINT) run -v
 

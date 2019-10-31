@@ -40,6 +40,7 @@ import (
 	"sigs.k8s.io/cluster-api/util/secret"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/controller"
 	"sigs.k8s.io/controller-runtime/pkg/handler"
 	"sigs.k8s.io/controller-runtime/pkg/source"
 )
@@ -65,7 +66,7 @@ type KubeadmConfigReconciler struct {
 }
 
 // SetupWithManager sets up the reconciler with the Manager.
-func (r *KubeadmConfigReconciler) SetupWithManager(mgr ctrl.Manager) error {
+func (r *KubeadmConfigReconciler) SetupWithManager(mgr ctrl.Manager, option controller.Options) error {
 	if r.KubeadmInitLock == nil {
 		r.KubeadmInitLock = locking.NewControlPlaneInitMutex(ctrl.Log.WithName("init-locker"), mgr.GetClient())
 	}
@@ -87,6 +88,7 @@ func (r *KubeadmConfigReconciler) SetupWithManager(mgr ctrl.Manager) error {
 				ToRequests: handler.ToRequestsFunc(r.ClusterToKubeadmConfigs),
 			},
 		).
+		WithOptions(option).
 		Complete(r)
 }
 

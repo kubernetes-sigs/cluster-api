@@ -63,6 +63,7 @@ func main() {
 		machineConcurrency           int
 		machineSetConcurrency        int
 		machineDeploymentConcurrency int
+		kubeadmConfigConcurrency     int
 		syncPeriod                   time.Duration
 	)
 
@@ -89,6 +90,9 @@ func main() {
 
 	flag.IntVar(&machineDeploymentConcurrency, "machinedeployment-concurrency", 10,
 		"Number of machine deployments to process simultaneously")
+
+	flag.IntVar(&kubeadmConfigConcurrency, "kubeadmconfig-concurrency", 10,
+		"Number of kubeadm configs to process simultaneously")
 
 	flag.DurationVar(&syncPeriod, "sync-period", 10*time.Minute,
 		"The minimum interval at which watched resources are reconciled (e.g. 15m)")
@@ -156,7 +160,7 @@ func main() {
 	if err = (&kubeadmcontrollers.KubeadmConfigReconciler{
 		Client: mgr.GetClient(),
 		Log:    ctrl.Log.WithName("controllers").WithName("KubeadmConfigReconciler"),
-	}).SetupWithManager(mgr); err != nil {
+	}).SetupWithManager(mgr, concurrency(kubeadmConfigConcurrency)); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "KubeadmConfig")
 		os.Exit(1)
 	}

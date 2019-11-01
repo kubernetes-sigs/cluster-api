@@ -22,9 +22,11 @@ import (
 
 	"github.com/go-logr/logr"
 	"github.com/pkg/errors"
+	v1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/types"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha3"
+	"sigs.k8s.io/cluster-api/controllers/noderefutil"
 	infrav1 "sigs.k8s.io/cluster-api/test/infrastructure/docker/api/v1alpha2"
 	"sigs.k8s.io/cluster-api/test/infrastructure/docker/docker"
 	"sigs.k8s.io/cluster-api/util"
@@ -49,6 +51,7 @@ type DockerMachineReconciler struct {
 // +kubebuilder:rbac:groups=infrastructure.cluster.x-k8s.io,resources=dockermachines,verbs=get;list;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups=infrastructure.cluster.x-k8s.io,resources=dockermachines/status,verbs=get;update;patch
 // +kubebuilder:rbac:groups=cluster.x-k8s.io,resources=clusters;machines,verbs=get;list;watch
+// +kubebuilder:rbac:groups=core,resources=nodes,verbs=get;list;watch;create;update;patch;delete
 
 // Reconcile handles DockerMachine events
 func (r *DockerMachineReconciler) Reconcile(req ctrl.Request) (_ ctrl.Result, rerr error) {
@@ -144,10 +147,11 @@ func (r *DockerMachineReconciler) Reconcile(req ctrl.Request) (_ ctrl.Result, re
 	}
 
 	// Handle non-deleted machines
-	return r.reconcileNormal(machine, dockerMachine, externalMachine, externalLoadBalancer, log)
+	return r.reconcileNormal(ctx, machine, dockerMachine, externalMachine, externalLoadBalancer, log)
+
 }
 
-func (r *DockerMachineReconciler) reconcileNormal(machine *clusterv1.Machine, dockerMachine *infrav1.DockerMachine, externalMachine *docker.Machine, externalLoadBalancer *docker.LoadBalancer, log logr.Logger) (ctrl.Result, error) {
+func (r *DockerMachineReconciler) reconcileNormal(ctx context.Context, machine *clusterv1.Machine, dockerMachine *infrav1.DockerMachine, externalMachine *docker.Machine, externalLoadBalancer *docker.LoadBalancer, log logr.Logger) (ctrl.Result, error) {
 	// If the DockerMachine doesn't have finalizer, add it.
 	if !util.Contains(dockerMachine.Finalizers, infrav1.MachineFinalizer) {
 		dockerMachine.Finalizers = append(dockerMachine.Finalizers, infrav1.MachineFinalizer)
@@ -197,6 +201,32 @@ func (r *DockerMachineReconciler) reconcileNormal(machine *clusterv1.Machine, do
 	// Set ProviderID so the Cluster API Machine Controller can pull it
 	providerID := externalMachine.ProviderID()
 	dockerMachine.Spec.ProviderID = &providerID
+
+	// Set the nodeRef on the machine
+	nodeList := &v1.NodeList{}
+	if err := r.Client.List(ctx, nodeList); err != nil {
+		return ctrl.Result{}, errors.Wrap(err, "failed to list noderef")
+	}
+	pid, err := noderefutil.NewProviderID(providerID)
+	if err != nil {
+		r.Log.Error(err, "failed to parse node's provider spec")
+		return ctrl.Result{}, err
+	}
+	for _, node := range nodeList.Items {
+		npid, err := noderefutil.NewProviderID(node.Spec.ProviderID)
+		if err != nil {
+			r.Log.Error(err, "failed to parse node's provider spec")
+			continue
+		}
+		if pid.Equals(npid) {
+			machine.Status.NodeRef = &v1.ObjectReference{
+				APIVersion: node.APIVersion,
+				Kind:       node.Kind,
+				Name:       node.GetName(),
+				UID:        node.GetUID(),
+			}
+		}
+	}
 
 	// Mark the dockerMachine ready
 	dockerMachine.Status.Ready = true

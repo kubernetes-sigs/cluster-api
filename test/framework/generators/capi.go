@@ -17,6 +17,7 @@ limitations under the License.
 package generators
 
 import (
+	"context"
 	"fmt"
 	"io/ioutil"
 	"net/http"
@@ -47,14 +48,14 @@ func (g *ClusterAPI) releaseYAMLPath() string {
 }
 
 // Manifests return the generated components and any error if there is one.
-func (g *ClusterAPI) Manifests() ([]byte, error) {
+func (g *ClusterAPI) Manifests(ctx context.Context) ([]byte, error) {
 	// TODO: this is not very nice
 	if g.GitRef != "" {
 		kustomize := exec.NewCommand(
 			exec.WithCommand("kustomize"),
 			exec.WithArgs("build", g.kustomizePath("default")),
 		)
-		stdout, stderr, err := kustomize.Run()
+		stdout, stderr, err := kustomize.Run(ctx)
 		if err != nil {
 			fmt.Println(string(stderr))
 			return nil, errors.WithStack(err)

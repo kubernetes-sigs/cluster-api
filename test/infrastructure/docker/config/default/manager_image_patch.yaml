@@ -8,5 +8,5 @@ spec:
     spec:
       containers:
       # Change the value of image field below to your controller image URL
-      - image: gcr.io/kubernetes1-226021/manager:dev
+      - image: gcr.io/k8s-staging-capi-docker/capd-manager:dev
         name: manager

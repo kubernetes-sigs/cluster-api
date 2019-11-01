@@ -17,6 +17,7 @@ limitations under the License.
 package framework
 
 import (
+	"context"
 	"fmt"
 
 	. "github.com/onsi/ginkgo"
@@ -24,20 +25,20 @@ import (
 )
 
 // InstallComponents is a helper function that applies components, generally to a management cluster.
-func InstallComponents(mgmt Applier, components ...ComponentGenerator) {
+func InstallComponents(ctx context.Context, mgmt Applier, components ...ComponentGenerator) {
 	Describe("Installing the provider components", func() {
 		for _, component := range components {
 			By(fmt.Sprintf("installing %s", component.GetName()))
-			c, err := component.Manifests()
+			c, err := component.Manifests(ctx)
 			Expect(err).NotTo(HaveOccurred())
-			Expect(mgmt.Apply(c)).NotTo(HaveOccurred())
+			Expect(mgmt.Apply(ctx, c)).NotTo(HaveOccurred())
 		}
 	})
 }
 
 // WaitForAPIServiceAvailable will wait for an an APIService to be available.
 // For example, kubectl wait --for=condition=Available --timeout=300s apiservice v1beta1.webhook.cert-manager.io
-func WaitForAPIServiceAvailable(mgmt Waiter, serviceName string) {
-	err := mgmt.Wait("--for", "condition=Available", "--timeout", "300s", "apiservice", serviceName)
+func WaitForAPIServiceAvailable(ctx context.Context, mgmt Waiter, serviceName string) {
+	err := mgmt.Wait(ctx, "--for", "condition=Available", "--timeout", "300s", "apiservice", serviceName)
 	Expect(err).NotTo(HaveOccurred(), "stack: %+v", err)
 }

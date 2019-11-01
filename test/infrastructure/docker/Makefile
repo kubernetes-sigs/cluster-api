@@ -67,6 +67,11 @@ help:  ## Display this help
 test: generate lint ## Run tests
 	go test -v ./...
 
+test-e2e: ## Run the end-to-end tests
+	$(MAKE) docker-build REGISTRY=$(STAGING_REGISTRY)
+	MANAGER_IMAGE=$(STAGING_REGISTRY)/$(IMAGE_NAME)-$(ARCH):$(TAG) go test ./e2e -v -ginkgo.v -ginkgo.trace -count=1 -timeout=20m
+
+
 ## --------------------------------------
 ## Binaries
 ## --------------------------------------
@@ -120,7 +125,7 @@ modules: ## Runs go mod to ensure modules are up to date.
 
 .PHONY: docker-build
 docker-build: ## Build the docker image for controller-manager
-	docker build --pull --build-arg ARCH=$(ARCH) ../../.. -t $(CONTROLLER_IMG)-$(ARCH):$(TAG)
+	docker build --pull --build-arg ARCH=$(ARCH) ../../.. -t $(CONTROLLER_IMG)-$(ARCH):$(TAG) --file Dockerfile
 	MANIFEST_IMG=$(CONTROLLER_IMG)-$(ARCH) MANIFEST_TAG=$(TAG) $(MAKE) set-manifest-image
 	$(MAKE) set-manifest-pull-policy
 

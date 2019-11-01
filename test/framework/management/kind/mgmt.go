@@ -46,38 +46,25 @@ type Cluster struct {
 }
 
 // NewCluster sets up a new cluster to be used as the management cluster.
-func NewCluster(ctx context.Context, name string, scheme *runtime.Scheme) (*Cluster, error) {
-	createCmd := exec.NewCommand(
+func NewCluster(ctx context.Context, name string, scheme *runtime.Scheme, images ...string) (*Cluster, error) {
+	cmd := exec.NewCommand(
 		exec.WithCommand("kind"),
 		exec.WithArgs("create", "cluster", "--name", name),
 	)
-	stdout, stderr, err := createCmd.Run(ctx)
-	if err != nil {
-		fmt.Println(string(stdout))
-		fmt.Println(string(stderr))
-		return nil, err
-	}
-	kubeconfig, err := getKubeconfigPath(ctx, name)
-	if err != nil {
-		return nil, err
-	}
-
-	return &Cluster{
-		Name:                       name,
-		KubeconfigPath:             kubeconfig,
-		Scheme:                     scheme,
-		WorkloadClusterKubeconfigs: make(map[string]string),
-	}, nil
+	return create(ctx, cmd, name, scheme, images...)
 }
 
 // NewClusterWithConfig creates a kind cluster using a kind-config file.
-// TODO: Remove duplication between this and NewCluster
-func NewClusterWithConfig(ctx context.Context, name, configFile string, scheme *runtime.Scheme) (*Cluster, error) {
-	createCmd := exec.NewCommand(
+func NewClusterWithConfig(ctx context.Context, name, configFile string, scheme *runtime.Scheme, images ...string) (*Cluster, error) {
+	cmd := exec.NewCommand(
 		exec.WithCommand("kind"),
 		exec.WithArgs("create", "cluster", "--name", name, "--config", configFile),
 	)
-	stdout, stderr, err := createCmd.Run(ctx)
+	return create(ctx, cmd, name, scheme, images...)
+}
+
+func create(ctx context.Context, cmd *exec.Command, name string, scheme *runtime.Scheme, images ...string) (*Cluster, error) {
+	stdout, stderr, err := cmd.Run(ctx)
 	if err != nil {
 		fmt.Println(string(stdout))
 		fmt.Println(string(stderr))
@@ -88,12 +75,19 @@ func NewClusterWithConfig(ctx context.Context, name, configFile string, scheme *
 		return nil, err
 	}
 
-	return &Cluster{
+	c := &Cluster{
 		Name:                       name,
 		KubeconfigPath:             kubeconfig,
 		Scheme:                     scheme,
 		WorkloadClusterKubeconfigs: make(map[string]string),
-	}, nil
+	}
+	for _, image := range images {
+		fmt.Printf("Loading image %q on to the management cluster\n", image)
+		if err := c.LoadImage(ctx, image); err != nil {
+			return nil, err
+		}
+	}
+	return c, nil
 }
 
 // GetName returns the name of the cluster
@@ -103,7 +97,6 @@ func (c *Cluster) GetName() string {
 
 // LoadImage will put a local image onto the kind node
 func (c *Cluster) LoadImage(ctx context.Context, image string) error {
-	fmt.Println(image)
 	loadCmd := exec.NewCommand(
 		exec.WithCommand("kind"),
 		exec.WithArgs("load", "docker-image", image, "--name", c.Name),

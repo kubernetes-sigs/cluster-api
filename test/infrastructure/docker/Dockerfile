@@ -21,6 +21,7 @@ ARG project=test/infrastructure/docker
 # run this with docker build --build_arg $(go env GOPROXY) to override the goproxy
 ENV GOPROXY=$goproxy
 
+WORKDIR /workspace
 # Copy the go source
 COPY ./ ./
 WORKDIR /workspace/$project
@@ -31,6 +32,8 @@ RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 GO111MODULE=on go build -a -o manager 
 
 # Use alpine:latest as minimal base image to package the manager binary and its dependencies
 FROM alpine:latest
+
+ARG project=test/infrastructure/docker
 
 # install a couple of dependencies
 WORKDIR /tmp

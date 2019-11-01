@@ -27,7 +27,7 @@ type ComponentGenerator interface {
 	// GetName returns the name of the component.
 	GetName() string
 	// Manifests return the YAML bundle.
-	Manifests() ([]byte, error)
+	Manifests(context.Context) ([]byte, error)
 }
 
 // Applier is an interface around applying YAML to a cluster

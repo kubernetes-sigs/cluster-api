@@ -23,11 +23,11 @@ import (
 	"github.com/pkg/errors"
 	apicorev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	corev1 "k8s.io/client-go/kubernetes/typed/core/v1"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha3"
 	"sigs.k8s.io/cluster-api/controllers/noderefutil"
 	"sigs.k8s.io/cluster-api/controllers/remote"
 	capierrors "sigs.k8s.io/cluster-api/errors"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
 var (
@@ -65,18 +65,13 @@ func (r *MachineReconciler) reconcileNodeRef(_ context.Context, cluster *cluster
 		return err
 	}
 
-	clusterClient, err := remote.NewClusterClient(r.Client, cluster)
-	if err != nil {
-		return err
-	}
-
-	corev1Client, err := clusterClient.CoreV1()
+	clusterClient, err := remote.NewClusterClient(r.Client, cluster, r.scheme)
 	if err != nil {
 		return err
 	}
 
 	// Get the Node reference.
-	nodeRef, err := r.getNodeReference(corev1Client, providerID)
+	nodeRef, err := r.getNodeReference(clusterClient, providerID)
 	if err != nil {
 		if err == ErrNodeNotFound {
 			return errors.Wrapf(&capierrors.RequeueAfterError{RequeueAfter: 10 * time.Second},
@@ -94,13 +89,15 @@ func (r *MachineReconciler) reconcileNodeRef(_ context.Context, cluster *cluster
 	return nil
 }
 
-func (r *MachineReconciler) getNodeReference(client corev1.NodesGetter, providerID *noderefutil.ProviderID) (*apicorev1.ObjectReference, error) {
+func (r *MachineReconciler) getNodeReference(client client.Client, providerID *noderefutil.ProviderID) (*apicorev1.ObjectReference, error) {
 	logger := r.Log.WithValues("providerID", providerID)
 
 	listOpt := metav1.ListOptions{}
 
 	for {
-		nodeList, err := client.Nodes().List(listOpt)
+		nodeList := apicorev1.NodeList{}
+		// TODO Add a context to this method
+		err := client.List(context.TODO(), &nodeList)
 		if err != nil {
 			return nil, err
 		}

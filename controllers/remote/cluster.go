@@ -18,53 +18,45 @@ package remote
 
 import (
 	"github.com/pkg/errors"
-	corev1 "k8s.io/client-go/kubernetes/typed/core/v1"
+	"k8s.io/apimachinery/pkg/runtime"
 	restclient "k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/clientcmd"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha3"
 	kcfg "sigs.k8s.io/cluster-api/util/kubeconfig"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/client/apiutil"
 )
 
-// ClusterClient is an interface encapsulating methods
-// to access a remote cluster.
-type ClusterClient interface {
-	RESTConfig() *restclient.Config
-	CoreV1() (corev1.CoreV1Interface, error)
-}
+// NewClusterClient returns a Client for interacting with a remote Cluster using the given scheme for encoding and decoding objects.
+func NewClusterClient(c client.Client, cluster *clusterv1.Cluster, scheme *runtime.Scheme) (client.Client, error) {
 
-// clusterClient is a helper struct to connect to remote workload clusters.
-type clusterClient struct {
-	restConfig *restclient.Config
-	cluster    *clusterv1.Cluster
-}
-
-// NewClusterClient creates a new ClusterClient.
-func NewClusterClient(c client.Client, cluster *clusterv1.Cluster) (ClusterClient, error) {
-	kubeconfig, err := kcfg.FromSecret(c, cluster)
+	restConfig, err := RESTConfig(c, cluster)
 	if err != nil {
-		return nil, errors.Wrapf(err, "failed to retrieve kubeconfig secret for Cluster %q in namespace %q",
-			cluster.Name, cluster.Namespace)
+		return nil, err
+	}
+	mapper, err := apiutil.NewDynamicRESTMapper(restConfig, apiutil.WithLazyDiscovery)
+	if err != nil {
+		return nil, errors.Wrapf(err, "failed to create a DynamicRESTMapper for Cluster %s/%s", cluster.Namespace, cluster.Name)
+	}
+	ret, err := client.New(restConfig, client.Options{Scheme: scheme, Mapper: mapper})
+	if err != nil {
+		return nil, errors.Wrapf(err, "failed to create client for Cluster %s/%s", cluster.Namespace, cluster.Name)
 	}
 
-	restConfig, err := clientcmd.RESTConfigFromKubeConfig(kubeconfig)
-	if err != nil {
-		return nil, errors.Wrapf(err, "failed to create client configuration for Cluster %q in namespace %q",
-			cluster.Name, cluster.Namespace)
-	}
-
-	return &clusterClient{
-		restConfig: restConfig,
-		cluster:    cluster,
-	}, nil
+	return ret, nil
 }
 
 // RESTConfig returns a configuration instance to be used with a Kubernetes client.
-func (c *clusterClient) RESTConfig() *restclient.Config {
-	return c.restConfig
-}
+func RESTConfig(c client.Client, cluster *clusterv1.Cluster) (*restclient.Config, error) {
+	kubeConfig, err := kcfg.FromSecret(c, cluster)
+	if err != nil {
+		return nil, errors.Wrapf(err, "failed to retrieve kubeconfig secret for Cluster %s/%s", cluster.Namespace, cluster.Name)
+	}
 
-// CoreV1 returns a new Kubernetes CoreV1 client.
-func (c *clusterClient) CoreV1() (corev1.CoreV1Interface, error) {
-	return corev1.NewForConfig(c.RESTConfig())
+	restConfig, err := clientcmd.RESTConfigFromKubeConfig(kubeConfig)
+	if err != nil {
+		return nil, errors.Wrapf(err, "failed to create REST configuration for Cluster %s/%s", cluster.Namespace, cluster.Name)
+	}
+
+	return restConfig, nil
 }

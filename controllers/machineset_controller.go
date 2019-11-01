@@ -30,6 +30,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/labels"
+	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/client-go/tools/record"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha3"
 	"sigs.k8s.io/cluster-api/controllers/external"
@@ -65,6 +66,7 @@ type MachineSetReconciler struct {
 	Log    logr.Logger
 
 	recorder record.EventRecorder
+	scheme   *runtime.Scheme
 }
 
 func (r *MachineSetReconciler) SetupWithManager(mgr ctrl.Manager, options controller.Options) error {
@@ -78,8 +80,14 @@ func (r *MachineSetReconciler) SetupWithManager(mgr ctrl.Manager, options contro
 		WithOptions(options).
 		Complete(r)
 
+	if err != nil {
+		return errors.Wrap(err, "failed setting up with a controller manager")
+	}
+
 	r.recorder = mgr.GetEventRecorderFor("machineset-controller")
-	return err
+
+	r.scheme = mgr.GetScheme()
+	return nil
 }
 
 func (r *MachineSetReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {

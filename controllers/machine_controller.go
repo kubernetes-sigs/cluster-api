@@ -28,6 +28,7 @@ import (
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
+	"k8s.io/apimachinery/pkg/runtime"
 	kerrors "k8s.io/apimachinery/pkg/util/errors"
 	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/client-go/kubernetes"
@@ -67,6 +68,7 @@ type MachineReconciler struct {
 	controller       controller.Controller
 	recorder         record.EventRecorder
 	externalWatchers sync.Map
+	scheme           *runtime.Scheme
 }
 
 func (r *MachineReconciler) SetupWithManager(mgr ctrl.Manager, options controller.Options) error {
@@ -75,10 +77,16 @@ func (r *MachineReconciler) SetupWithManager(mgr ctrl.Manager, options controlle
 		WithOptions(options).
 		Build(r)
 
+	if err != nil {
+		return errors.Wrap(err, "failed setting up with a controller manager")
+	}
+
 	r.controller = c
 	r.recorder = mgr.GetEventRecorderFor("machine-controller")
 	r.config = mgr.GetConfig()
-	return err
+
+	r.scheme = mgr.GetScheme()
+	return nil
 }
 
 func (r *MachineReconciler) Reconcile(req ctrl.Request) (_ ctrl.Result, reterr error) {
@@ -273,12 +281,12 @@ func (r *MachineReconciler) drainNode(cluster *clusterv1.Cluster, nodeName strin
 		}
 	} else {
 		// Otherwise, proceed to get the remote cluster client and get the Node.
-		remoteClient, err := remote.NewClusterClient(r.Client, cluster)
+		restConfig, err := remote.RESTConfig(r.Client, cluster)
 		if err != nil {
 			logger.Error(err, "Error creating a remote client while deleting Machine, won't retry")
 			return nil
 		}
-		kubeClient, err = kubernetes.NewForConfig(remoteClient.RESTConfig())
+		kubeClient, err = kubernetes.NewForConfig(restConfig)
 		if err != nil {
 			logger.Error(err, "Error creating a remote client while deleting Machine, won't retry")
 			return nil
@@ -334,33 +342,25 @@ func (r *MachineReconciler) drainNode(cluster *clusterv1.Cluster, nodeName strin
 }
 
 func (r *MachineReconciler) deleteNode(ctx context.Context, cluster *clusterv1.Cluster, name string) error {
-	logger := r.Log.WithValues("machine", name)
+	logger := r.Log.WithValues("machine", name, "cluster", cluster.Name, "namespace", cluster.Namespace)
 
-	if cluster == nil {
-		// Try to retrieve the Node from the local cluster, if no Cluster reference is found.
-		var node corev1.Node
-		if err := r.Client.Get(ctx, client.ObjectKey{Name: name}, &node); err != nil {
-			return err
-		}
-		return r.Client.Delete(ctx, &node)
-	}
-
-	logger = logger.WithValues("cluster", cluster.Name, "namespace", cluster.Namespace)
-
-	// Otherwise, proceed to get the remote cluster client and get the Node.
-	remoteClient, err := remote.NewClusterClient(r.Client, cluster)
+	// Create a remote client to delete the node
+	c, err := remote.NewClusterClient(r.Client, cluster, r.scheme)
 	if err != nil {
 		logger.Error(err, "Error creating a remote client for cluster while deleting Machine, won't retry")
 		return nil
 	}
 
-	corev1Remote, err := remoteClient.CoreV1()
-	if err != nil {
-		logger.Error(err, "Error creating a remote client for cluster while deleting Machine, won't retry")
-		return nil
+	node := &corev1.Node{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: name,
+		},
 	}
 
-	return corev1Remote.Nodes().Delete(name, &metav1.DeleteOptions{})
+	if err := c.Delete(ctx, node); err != nil {
+		return errors.Wrapf(err, "error deleting node %s", name)
+	}
+	return nil
 }
 
 // reconcileDeleteExternal tries to delete external references, returning true if it cannot find any.

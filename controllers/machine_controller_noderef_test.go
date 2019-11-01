@@ -24,7 +24,6 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
-	fakeclient "k8s.io/client-go/kubernetes/fake"
 	"k8s.io/client-go/kubernetes/scheme"
 	"k8s.io/client-go/tools/record"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha3"
@@ -70,7 +69,7 @@ func TestGetNodeReference(t *testing.T) {
 		},
 	}
 
-	coreV1Client := fakeclient.NewSimpleClientset(nodeList...).CoreV1()
+	client := fake.NewFakeClientWithScheme(scheme.Scheme, nodeList...)
 
 	testCases := []struct {
 		name       string
@@ -108,7 +107,7 @@ func TestGetNodeReference(t *testing.T) {
 				t.Fatalf("Expected no error parsing provider id %q, got %v", test.providerID, err)
 			}
 
-			reference, err := r.getNodeReference(coreV1Client, providerID)
+			reference, err := r.getNodeReference(client, providerID)
 			if err != nil {
 				if (test.err != nil && !strings.Contains(err.Error(), test.err.Error())) || test.err == nil {
 					t.Fatalf("Expected error %v, got %v", test.err, err)

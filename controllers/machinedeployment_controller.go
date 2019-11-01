@@ -67,8 +67,13 @@ func (r *MachineDeploymentReconciler) SetupWithManager(mgr ctrl.Manager, options
 		WithOptions(options).
 		Complete(r)
 
+	if err != nil {
+		return errors.Wrap(err, "failed setting up with a controller manager")
+	}
+
 	r.recorder = mgr.GetEventRecorderFor("machinedeployment-controller")
-	return err
+
+	return nil
 }
 
 func (r *MachineDeploymentReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {

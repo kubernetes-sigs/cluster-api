@@ -69,7 +69,7 @@ func New(clusterName, endpoint string, caCert *x509.Certificate, caKey *rsa.Priv
 		return nil, errors.Wrap(err, "unable to sign certificate")
 	}
 
-	userName := "kubernetes-admin"
+	userName := fmt.Sprintf("%s-admin", clusterName)
 	contextName := fmt.Sprintf("%s@%s", userName, clusterName)
 
 	return &api.Config{

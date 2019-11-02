@@ -16,11 +16,11 @@
 set -o nounset
 set -o pipefail
 
-# shellcheck source=./test/infrastructure/docker/hack/utils.sh
-source "$(dirname "$0")/utils.sh"
+# shellcheck source=./hack/utils.sh
+source "$(git rev-parse --show-toplevel)/hack/utils.sh"
 
 # set REPO_PATH
-readonly REPO_PATH=$(get_root_path)
+readonly REPO_PATH=$(get_capd_root_path)
 cd "${REPO_PATH}" || exit
 
 failure() {
@@ -49,13 +49,6 @@ if [[ "${VERIFY_SPELLING:-true}" == "true" ]]; then
   echo "[*] Verifying spelling..."
   out=$(hack/verify-spelling.sh 2>&1)
   failure $? "verify-spelling.sh" "${out}"
-  cd "${REPO_PATH}" || exit
-fi
-
-if [[ "${VERIFY_BOILERPLATE:-true}" == "true" ]]; then
-  echo "[*] Verifying boilerplate..."
-  out=$(hack/verify-boilerplate.sh 2>&1)
-  failure $? "verify-boilerplate.sh" "${out}"
   cd "${REPO_PATH}" || exit
 fi
 

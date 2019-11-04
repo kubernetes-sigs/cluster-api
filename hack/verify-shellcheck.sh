@@ -33,8 +33,15 @@ TMP_DIR=$(mktemp -d)
 
 # cleanup on exit
 cleanup() {
+  ret=0
+  if [[ -s "${OUT}" ]]; then
+    echo "Found errors:"
+    cat "${OUT}"
+    ret=1
+  fi
   echo "Cleaning up..."
   rm -rf "${TMP_DIR}"
+  exit ${ret}
 }
 trap cleanup EXIT
 
@@ -55,9 +62,3 @@ FILES=$(find . -name "*.sh" | grep -v third_party)
 while read -r file; do
     "${TMP_DIR}/${VERSION}/shellcheck" -x "$file" >> "${OUT}" 2>&1
 done <<< "$FILES"
-
-if [[ -s "${OUT}" ]]; then
-  echo "Found errors:"
-  cat "${OUT}"
-  exit 1
-fi

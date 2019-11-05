@@ -19,6 +19,7 @@ package controllers
 import (
 	"context"
 	"testing"
+	"time"
 
 	. "github.com/onsi/gomega"
 	"github.com/pkg/errors"
@@ -212,4 +213,143 @@ func TestClusterReconcilePhases(t *testing.T) {
 			})
 		}
 	})
+}
+
+func TestClusterReconciler_reconcilePhase(t *testing.T) {
+	cluster := &clusterv1.Cluster{
+		ObjectMeta: v1.ObjectMeta{
+			Name: "test-cluster",
+		},
+		Status: clusterv1.ClusterStatus{},
+		Spec:   clusterv1.ClusterSpec{},
+	}
+	createClusterError := capierrors.CreateClusterError
+	errorMsg := "Create failed"
+
+	tests := []struct {
+		name      string
+		cluster   *clusterv1.Cluster
+		wantPhase clusterv1.ClusterPhase
+	}{
+		{
+			name:      "cluster not provisioned",
+			cluster:   cluster,
+			wantPhase: clusterv1.ClusterPhasePending,
+		},
+		{
+			name: "cluster has infrastructureRef",
+			cluster: &clusterv1.Cluster{
+				ObjectMeta: v1.ObjectMeta{
+					Name: "test-cluster",
+				},
+				Status: clusterv1.ClusterStatus{},
+				Spec: clusterv1.ClusterSpec{
+					InfrastructureRef: &corev1.ObjectReference{},
+				},
+			},
+
+			wantPhase: clusterv1.ClusterPhaseProvisioning,
+		},
+		{
+			name: "cluster infrastructure is ready",
+			cluster: &clusterv1.Cluster{
+				ObjectMeta: v1.ObjectMeta{
+					Name: "test-cluster",
+				},
+				Status: clusterv1.ClusterStatus{
+					InfrastructureReady: true,
+				},
+				Spec: clusterv1.ClusterSpec{
+					InfrastructureRef: &corev1.ObjectReference{},
+				},
+			},
+
+			wantPhase: clusterv1.ClusterPhaseProvisioning,
+		},
+		{
+			name: "cluster infrastructure is ready and APIEndpoints is set",
+			cluster: &clusterv1.Cluster{
+				ObjectMeta: v1.ObjectMeta{
+					Name: "test-cluster",
+				},
+				Status: clusterv1.ClusterStatus{
+					InfrastructureReady: true,
+					APIEndpoints: []clusterv1.APIEndpoint{{
+						Host: "1.2.3.4",
+						Port: 0,
+					}},
+				},
+				Spec: clusterv1.ClusterSpec{
+					InfrastructureRef: &corev1.ObjectReference{},
+				},
+			},
+
+			wantPhase: clusterv1.ClusterPhaseProvisioned,
+		},
+		{
+			name: "cluster status has ErrorReason",
+			cluster: &clusterv1.Cluster{
+				ObjectMeta: v1.ObjectMeta{
+					Name: "test-cluster",
+				},
+				Status: clusterv1.ClusterStatus{
+					InfrastructureReady: true,
+					ErrorReason:         &createClusterError,
+				},
+				Spec: clusterv1.ClusterSpec{
+					InfrastructureRef: &corev1.ObjectReference{},
+				},
+			},
+
+			wantPhase: clusterv1.ClusterPhaseFailed,
+		},
+		{
+			name: "cluster status has ErrorMessage",
+			cluster: &clusterv1.Cluster{
+				ObjectMeta: v1.ObjectMeta{
+					Name: "test-cluster",
+				},
+				Status: clusterv1.ClusterStatus{
+					InfrastructureReady: true,
+					ErrorMessage:        &errorMsg,
+				},
+				Spec: clusterv1.ClusterSpec{
+					InfrastructureRef: &corev1.ObjectReference{},
+				},
+			},
+
+			wantPhase: clusterv1.ClusterPhaseFailed,
+		},
+		{
+			name: "cluster has deletion timestamp",
+			cluster: &clusterv1.Cluster{
+				ObjectMeta: v1.ObjectMeta{
+					Name:              "test-cluster",
+					DeletionTimestamp: &v1.Time{Time: time.Now().UTC()},
+				},
+				Status: clusterv1.ClusterStatus{
+					InfrastructureReady: true,
+				},
+				Spec: clusterv1.ClusterSpec{
+					InfrastructureRef: &corev1.ObjectReference{},
+				},
+			},
+
+			wantPhase: clusterv1.ClusterPhaseDeleting,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+
+			c := fake.NewFakeClient(tt.cluster)
+
+			r := &ClusterReconciler{
+				Client: c,
+			}
+			r.reconcilePhase(context.TODO(), tt.cluster)
+			if tt.wantPhase != tt.cluster.Status.GetTypedPhase() {
+				t.Errorf("expected cluster phase  = %s, got %s", tt.wantPhase, tt.cluster.Status.GetTypedPhase())
+			}
+		})
+	}
 }

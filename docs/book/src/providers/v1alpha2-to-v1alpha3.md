@@ -78,3 +78,8 @@
 
   They can be accessed by default via the `8080` metrics port on the cluster
   api controller manager.
+
+## Cluster `Status.Phase` transition to `Provisioned` after at least one APIEndpoint is available.
+
+- Cosmetic change to set Cluster `Status.Phase` to `Provisioned` after at least one APIEndpoint is available. Previously only InfrastructureReady was being used to transition to `Provisioned`, this change now requires at least one APIEndpoint as well.
+- See https://github.com/kubernetes-sigs/cluster-api/pull/1721/files.

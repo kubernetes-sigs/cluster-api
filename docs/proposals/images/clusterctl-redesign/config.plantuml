@@ -1,0 +1,20 @@
+@startuml
+
+participant User
+participant clusterctl
+participant "Provider Repositories" as Repositories
+participant "Management Cluster" as Cluster
+
+note over User:has $KUBECONFIG set to\n  Management AWSCluster
+
+User -> clusterctl: clusterctl create cluster my-cluster
+clusterctl -> Cluster: Get installed providers
+Cluster -> clusterctl: cluster API, aws, kubeadm
+clusterctl -> Repositories:Fetch template for creating a cluster on\naws using kubeadm as bootstrap provider
+Repositories -> clusterctl:
+clusterctl -> clusterctl:Process template:\n- replace env variables\n- execute template with default values for\nn° of control-planes, n° of workers etc.
+clusterctl -> User:yaml for my-cluster
+User -> Cluster:kubectl apply
+Cluster -> User: Cluster, AWSCluster, Machines etc. created
+
+@enduml

@@ -384,6 +384,10 @@ func (r *MachineSetReconciler) getNewMachine(machineSet *clusterv1.MachineSet) *
 	machine.ObjectMeta.OwnerReferences = []metav1.OwnerReference{*metav1.NewControllerRef(machineSet, machineSetKind)}
 	machine.Namespace = machineSet.Namespace
 	machine.Spec.ClusterName = machineSet.Spec.ClusterName
+	if machine.Labels == nil {
+		machine.Labels = make(map[string]string)
+	}
+	machine.Labels[clusterv1.MachineSetLabelName] = machineSet.Name
 	return machine
 }
 

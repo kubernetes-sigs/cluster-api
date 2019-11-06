@@ -147,6 +147,23 @@ var _ = Describe("MachineDeployment Reconciler", func() {
 			return len(machineSets.Items)
 		}, timeout).Should(BeEquivalentTo(1))
 
+		// Verify that expected number of machines are created
+		By("Verify expected number of machines are created")
+		machines := &clusterv1.MachineList{}
+		Eventually(func() int {
+			if err := k8sClient.List(ctx, machines, client.InNamespace(namespace.Name)); err != nil {
+				return -1
+			}
+			return len(machines.Items)
+		}, timeout).Should(BeEquivalentTo(*deployment.Spec.Replicas))
+
+		// Verify that machines has MachineSetLabelName and MachineDeploymentLabelName labels
+		By("Verify machines have expected MachineSetLabelName and MachineDeploymentLabelName")
+		for _, m := range machines.Items {
+			Expect(m.Labels[clusterv1.MachineDeploymentLabelName]).To(Equal(deployment.Name))
+			Expect(m.Labels[clusterv1.MachineSetLabelName]).To(Equal(machineSets.Items[0].Name))
+		}
+
 		firstMachineSet := machineSets.Items[0]
 		Expect(*firstMachineSet.Spec.Replicas).To(BeEquivalentTo(2))
 		Expect(*firstMachineSet.Spec.Template.Spec.Version).To(BeEquivalentTo("1.10.3"))

@@ -143,6 +143,10 @@ func (r *MachineDeploymentReconciler) reconcile(ctx context.Context, d *clusterv
 	}
 	d.Labels[clusterv1.ClusterLabelName] = d.Spec.ClusterName
 
+	// Add MachineDeploymentLabelName label to machines
+	d.Spec.Selector.MatchLabels[clusterv1.MachineDeploymentLabelName] = d.Name
+	d.Spec.Template.Labels[clusterv1.MachineDeploymentLabelName] = d.Name
+
 	cluster, err := util.GetClusterByName(ctx, r.Client, d.ObjectMeta.Namespace, d.Spec.ClusterName)
 	if err != nil {
 		return ctrl.Result{}, err

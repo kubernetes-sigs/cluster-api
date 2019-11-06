@@ -21,6 +21,7 @@ import (
 	"fmt"
 
 	"github.com/go-logr/logr"
+	"github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
@@ -138,23 +139,14 @@ func updateMachineSetStatus(c client.Client, ms *clusterv1.MachineSet, newStatus
 }
 
 func (r *MachineSetReconciler) getMachineNode(cluster *clusterv1.Cluster, machine *clusterv1.Machine) (*corev1.Node, error) {
-	if cluster == nil {
-		// Try to retrieve the Node from the local cluster, if no Cluster reference is found.
-		node := &corev1.Node{}
-		err := r.Client.Get(context.Background(), client.ObjectKey{Name: machine.Status.NodeRef.Name}, node)
-		return node, err
-	}
-
-	// Otherwise, proceed to get the remote cluster client and get the Node.
-	remoteClient, err := remote.NewClusterClient(r.Client, cluster)
+	c, err := remote.NewClusterClient(r.Client, cluster, r.scheme)
 	if err != nil {
 		return nil, err
 	}
-
-	corev1Remote, err := remoteClient.CoreV1()
+	node := &corev1.Node{}
+	err = c.Get(context.TODO(), client.ObjectKey{Name: machine.Status.NodeRef.Name}, node)
 	if err != nil {
-		return nil, err
+		return nil, errors.Wrapf(err, "error retrieving node %s for machine %s/%s", machine.Status.NodeRef.Name, machine.Namespace, machine.Name)
 	}
-
-	return corev1Remote.Nodes().Get(machine.Status.NodeRef.Name, metav1.GetOptions{})
+	return node, nil
 }

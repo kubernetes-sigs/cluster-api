@@ -44,3 +44,14 @@
 ## Generated kubeconfig admin username changed from `kubernetes-admin` to `<cluster-name>-admin`
 
 - The kubeconfig secret shipped with Cluster API now uses the cluster name as prefix to the `username` field.
+
+## Changes to `sigs.k8s.io/cluster-api/controllers/remote`
+
+-  The `ClusterClient` interface has been removed.
+- `remote.NewClusterClient` now returns a `sigs.k8s.io/controller-runtime/pkg/client` Client. The signature changed from 
+
+    `func NewClusterClient(c client.Client, cluster *clusterv1.Cluster) (ClusterClient, error)`
+
+    to
+
+    `func NewClusterClient(c client.Client, cluster *clusterv1.Cluster, scheme runtime.Scheme) (client.Client, error)`

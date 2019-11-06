@@ -26,16 +26,16 @@ import (
 	"github.com/pkg/errors"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/client-go/tools/clientcmd"
+	"k8s.io/apimachinery/pkg/runtime"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha3"
 	bootstrapv1 "sigs.k8s.io/cluster-api/bootstrap/kubeadm/api/v1alpha2"
 	"sigs.k8s.io/cluster-api/bootstrap/kubeadm/cloudinit"
 	internalcluster "sigs.k8s.io/cluster-api/bootstrap/kubeadm/internal/cluster"
 	"sigs.k8s.io/cluster-api/bootstrap/kubeadm/internal/locking"
 	kubeadmv1beta1 "sigs.k8s.io/cluster-api/bootstrap/kubeadm/types/v1beta1"
+	"sigs.k8s.io/cluster-api/controllers/remote"
 	capierrors "sigs.k8s.io/cluster-api/errors"
 	"sigs.k8s.io/cluster-api/util"
-	"sigs.k8s.io/cluster-api/util/kubeconfig"
 	"sigs.k8s.io/cluster-api/util/patch"
 	"sigs.k8s.io/cluster-api/util/secret"
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -60,9 +60,10 @@ type KubeadmConfigReconciler struct {
 	Client          client.Client
 	KubeadmInitLock InitLocker
 	Log             logr.Logger
+	scheme          *runtime.Scheme
 
 	// for testing
-	remoteClient func(client.Client, *clusterv1.Cluster) (client.Client, error)
+	remoteClient func(client.Client, *clusterv1.Cluster, *runtime.Scheme) (client.Client, error)
 }
 
 // SetupWithManager sets up the reconciler with the Manager.
@@ -71,10 +72,12 @@ func (r *KubeadmConfigReconciler) SetupWithManager(mgr ctrl.Manager, option cont
 		r.KubeadmInitLock = locking.NewControlPlaneInitMutex(ctrl.Log.WithName("init-locker"), mgr.GetClient())
 	}
 	if r.remoteClient == nil {
-		r.remoteClient = defaultRemoteClient
+		r.remoteClient = remote.NewClusterClient
 	}
 
-	return ctrl.NewControllerManagedBy(mgr).
+	r.scheme = mgr.GetScheme()
+
+	err := ctrl.NewControllerManagedBy(mgr).
 		For(&bootstrapv1.KubeadmConfig{}).
 		Watches(
 			&source.Kind{Type: &clusterv1.Machine{}},
@@ -90,6 +93,12 @@ func (r *KubeadmConfigReconciler) SetupWithManager(mgr ctrl.Manager, option cont
 		).
 		WithOptions(option).
 		Complete(r)
+
+	if err != nil {
+		return errors.Wrap(err, "failed setting up with a controller manager")
+	}
+
+	return nil
 }
 
 // Reconcile handles KubeadmConfig events.
@@ -158,8 +167,7 @@ func (r *KubeadmConfigReconciler) Reconcile(req ctrl.Request) (_ ctrl.Result, re
 	case config.Status.Ready && (config.Spec.JoinConfiguration != nil && config.Spec.JoinConfiguration.Discovery.BootstrapToken != nil):
 		token := config.Spec.JoinConfiguration.Discovery.BootstrapToken.Token
 
-		// TODO replace with remote.NewClusterClient once it returns a client.Client
-		remoteClient, err := r.remoteClient(r.Client, cluster)
+		remoteClient, err := r.remoteClient(r.Client, cluster, r.scheme)
 		if err != nil {
 			log.Error(err, "error creating remote cluster client")
 			return ctrl.Result{}, err
@@ -495,8 +503,7 @@ func (r *KubeadmConfigReconciler) reconcileDiscovery(cluster *clusterv1.Cluster,
 
 	// if BootstrapToken already contains a token, respect it; otherwise create a new bootstrap token for the node to join
 	if config.Spec.JoinConfiguration.Discovery.BootstrapToken.Token == "" {
-		// TODO replace with remote.NewClusterClient once it returns a client.Client
-		remoteClient, err := r.remoteClient(r.Client, cluster)
+		remoteClient, err := r.remoteClient(r.Client, cluster, r.scheme)
 		if err != nil {
 			return err
 		}
@@ -563,24 +570,4 @@ func (r *KubeadmConfigReconciler) reconcileTopLevelObjectSettings(cluster *clust
 		config.Spec.ClusterConfiguration.KubernetesVersion = *machine.Spec.Version
 		log.Info("Altering ClusterConfiguration", "KubernetesVersion", config.Spec.ClusterConfiguration.KubernetesVersion)
 	}
-}
-
-// TODO remove this when remote.NewClusterClient returns a client.Client
-func defaultRemoteClient(c client.Client, cluster *clusterv1.Cluster) (client.Client, error) {
-	kubeConfig, err := kubeconfig.FromSecret(c, cluster)
-	if err != nil {
-		return nil, errors.Wrapf(err, "failed to retrieve kubeconfig secret for Cluster %s/%s", cluster.Namespace, cluster.Name)
-	}
-
-	restConfig, err := clientcmd.RESTConfigFromKubeConfig(kubeConfig)
-	if err != nil {
-		return nil, errors.Wrapf(err, "failed to create client configuration for Cluster %s/%s", cluster.Namespace, cluster.Name)
-	}
-
-	ret, err := client.New(restConfig, client.Options{})
-	if err != nil {
-		return nil, errors.Wrapf(err, "failed to create client for Cluster %s/%s", cluster.Namespace, cluster.Name)
-	}
-
-	return ret, nil
 }

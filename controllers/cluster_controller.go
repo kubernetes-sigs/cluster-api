@@ -76,9 +76,14 @@ func (r *ClusterReconciler) SetupWithManager(mgr ctrl.Manager, options controlle
 		WithOptions(options).
 		Build(r)
 
+	if err != nil {
+		return errors.Wrap(err, "failed setting up with a controller manager")
+	}
+
 	r.controller = c
 	r.recorder = mgr.GetEventRecorderFor("cluster-controller")
-	return err
+
+	return nil
 }
 
 func (r *ClusterReconciler) Reconcile(req ctrl.Request) (_ ctrl.Result, reterr error) {

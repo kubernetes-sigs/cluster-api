@@ -533,8 +533,8 @@ func TestKubeadmConfigReconciler_Reconcile_RequeueIfControlPlaneIsMissingAPIEndp
 	}
 }
 
-func testRemoteClient(c client.Client) func(client.Client, *clusterv1.Cluster) (client.Client, error) {
-	return func(client.Client, *clusterv1.Cluster) (client.Client, error) {
+func testRemoteClient(c client.Client) func(client.Client, *clusterv1.Cluster, *runtime.Scheme) (client.Client, error) {
+	return func(client.Client, *clusterv1.Cluster, *runtime.Scheme) (client.Client, error) {
 		return c, nil
 	}
 }

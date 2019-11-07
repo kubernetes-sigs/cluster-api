@@ -138,7 +138,8 @@ func GetMachineIfExists(c client.Client, namespace, name string) (*clusterv1.Mac
 
 // IsControlPlaneMachine checks machine is a control plane node.
 func IsControlPlaneMachine(machine *clusterv1.Machine) bool {
-	return machine.ObjectMeta.Labels[clusterv1.MachineControlPlaneLabelName] != ""
+	_, ok := machine.ObjectMeta.Labels[clusterv1.MachineControlPlaneLabelName]
+	return ok
 }
 
 // IsNodeReady returns true if a node is ready.

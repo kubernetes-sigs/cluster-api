@@ -1477,7 +1477,7 @@ func newWorkerMachine(cluster *clusterv1.Cluster) *clusterv1.Machine {
 
 func newControlPlaneMachine(cluster *clusterv1.Cluster, name string) *clusterv1.Machine {
 	m := newMachine(cluster, name)
-	m.Labels[clusterv1.MachineControlPlaneLabelName] = "true"
+	m.Labels[clusterv1.MachineControlPlaneLabelName] = ""
 	return m
 }
 

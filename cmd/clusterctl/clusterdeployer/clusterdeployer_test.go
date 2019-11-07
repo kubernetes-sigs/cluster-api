@@ -1478,7 +1478,7 @@ func generateTestControlPlaneMachines(cluster *clusterv1.Cluster, ns string, nam
 	for _, name := range names {
 		machine := generateTestNodeMachine(cluster, ns, name)
 		machine.ObjectMeta.Labels = map[string]string{
-			clusterv1.MachineControlPlaneLabelName: "true",
+			clusterv1.MachineControlPlaneLabelName: "",
 		}
 		machines = append(machines, machine)
 	}

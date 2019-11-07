@@ -55,7 +55,7 @@ var _ = Describe("Reconcile Machine Phases", func() {
 			Name:      "machine-test",
 			Namespace: "default",
 			Labels: map[string]string{
-				clusterv1.MachineControlPlaneLabelName: "true",
+				clusterv1.MachineControlPlaneLabelName: "",
 			},
 		},
 		Spec: clusterv1.MachineSpec{

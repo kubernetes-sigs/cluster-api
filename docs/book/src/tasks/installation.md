@@ -45,14 +45,6 @@ The Docker provider is not designed for production use and is intended for devel
 
 </aside>
 
-<aside class="note warning">
-
-<h1>Docker Provider on MacOS</h1>
-
-Instructions for using the Docker provider on MacOS will be added soon.
-
-</aside>
-
   Because the Docker provider needs to access Docker on the host, a custom kind cluster configuration is required:
 
   ```bash
@@ -74,7 +66,7 @@ EOF
 
 2. **Existing Management Cluster**
 
-For production use-cases a "real" kubernetes cluster should be used with apropriate backup and DR policies and procedures in place.
+For production use-cases a "real" kubernetes cluster should be used with appropriate backup and DR policies and procedures in place.
 
 ```bash
 export KUBECONFIG=<...>

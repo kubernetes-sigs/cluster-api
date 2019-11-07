@@ -249,7 +249,7 @@ release-binary: $(RELEASE_DIR)
 		-e GOARCH=$(GOARCH) \
 		-v "$$(pwd):/workspace" \
 		-w /workspace \
-		golang:1.12.10 \
+		golang:1.13.4 \
 		go build -a -ldflags '-extldflags "-static"' \
 		-o $(RELEASE_DIR)/$(notdir $(RELEASE_BINARY))-$(GOOS)-$(GOARCH) $(RELEASE_BINARY)
 
@@ -298,6 +298,7 @@ clean-release: ## Remove the release folder
 
 .PHONY: verify
 verify:
+	./hack/ensure-go.sh
 	./hack/verify-boilerplate.sh
 	./hack/verify-doctoc.sh
 	./hack/verify-shellcheck.sh

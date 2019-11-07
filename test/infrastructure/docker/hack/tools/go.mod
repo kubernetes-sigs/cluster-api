@@ -1,6 +1,6 @@
 module sigs.k8s.io/cluster-api/test/infrastructure/docker/hack/tools
 
-go 1.12
+go 1.13
 
 require (
 	sigs.k8s.io/cluster-api/hack/tools v0.0.0-20190830181856-67d897059593

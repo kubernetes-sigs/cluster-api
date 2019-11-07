@@ -13,7 +13,7 @@
 # limitations under the License.
 
 # Build the manager binary
-FROM golang:1.12.10 as builder
+FROM golang:1.13.4 as builder
 
 ENV GOPROXY=https://proxy.golang.org
 WORKDIR /workspace

@@ -11,7 +11,7 @@ let's proceed to create a single node cluster.
 
 For the purpose of this tutorial, we'll name our cluster `capi-quickstart`.
 
-{{#tabs name:"tab-usage-cluster-resource" tabs:"AWS,Docker,vSphere,OpenStack"}}
+{{#tabs name:"tab-usage-cluster-resource" tabs:"AWS,Azure,Docker,vSphere,OpenStack"}}
 {{#tab AWS}}
 
 ```yaml
@@ -37,6 +37,37 @@ spec:
   region: us-east-1
   # Change this value to a valid SSH Key Pair present in your AWS Account.
   sshKeyName: default
+```
+{{#/tab }}
+{{#tab Azure}}
+
+```yaml
+apiVersion: cluster.x-k8s.io/v1alpha2
+kind: Cluster
+metadata:
+  name: capi-quickstart
+spec:
+  clusterNetwork:
+    pods:
+      cidrBlocks:
+      - 192.168.0.0/16
+  infrastructureRef:
+    apiVersion: infrastructure.cluster.x-k8s.io/v1alpha2
+    kind: AzureCluster
+    name: capi-quickstart
+---
+apiVersion: infrastructure.cluster.x-k8s.io/v1alpha2
+kind: AzureCluster
+metadata:
+  name: capi-quickstart
+spec:
+  # Change this value to the region you want to deploy the cluster in.
+  location: southcentralus
+  networkSpec:
+    vnet:
+      name: capi-quickstart-vnet
+  # Change this value to the resource group you want to deploy the cluster in.
+  resourceGroup: capi-quickstart
 ```
 {{#/tab }}
 {{#tab Docker}}
@@ -185,7 +216,7 @@ data:
 
 Now that we've created the cluster object, we can create a control plane Machine.
 
-{{#tabs name:"tab-usage-controlplane-resource" tabs:"AWS,Docker,vSphere,OpenStack"}}
+{{#tabs name:"tab-usage-controlplane-resource" tabs:"AWS,Azure,Docker,vSphere,OpenStack"}}
 {{#tab AWS}}
 
 ```yaml
@@ -238,6 +269,132 @@ spec:
     controllerManager:
       extraArgs:
         cloud-provider: aws
+```
+{{#/tab }}
+{{#tab Azure}}
+
+<aside class="note warning">
+
+<h1>Action Required</h1>
+
+These examples include environment variables that you should substitute before creating the resources. After pasting the content of the below yaml into `controlplane.yaml` you can run the following commands to inject the necessary variables and create the resources:
+
+```bash
+export AZURE_SUBSCRIPTION_ID_B64="$(echo -n "$AZURE_SUBSCRIPTION_ID" | base64 | tr -d '\n')"
+export AZURE_TENANT_ID_B64="$(echo -n "$AZURE_TENANT_ID" | base64 | tr -d '\n')"
+export AZURE_CLIENT_ID_B64="$(echo -n "$AZURE_CLIENT_ID" | base64 | tr -d '\n')"
+export AZURE_CLIENT_SECRET_B64="$(echo -n "$AZURE_CLIENT_SECRET" | base64 | tr -d '\n')"
+SSH_KEY_FILE="capi-quickstart.ssh-key"
+ssh-keygen -t rsa -b 2048 -f "${SSH_KEY_FILE}" -N '' 1>/dev/null
+export SSH_PUBLIC_KEY=$(cat "${SSH_KEY_FILE}.pub" | base64 | tr -d '\r\n')
+```
+
+```bash
+cat controlplane.yaml \
+  | envsubst \
+  | kubectl create -f -
+```
+
+</aside>
+
+```yaml
+apiVersion: cluster.x-k8s.io/v1alpha2
+kind: Machine
+metadata:
+  name: capi-quickstart-controlplane-0
+  labels:
+    cluster.x-k8s.io/control-plane: "true"
+    cluster.x-k8s.io/cluster-name: "capi-quickstart"
+spec:
+  version: v1.16.1
+  bootstrap:
+    configRef:
+      apiVersion: bootstrap.cluster.x-k8s.io/v1alpha2
+      kind: KubeadmConfig
+      name: capi-quickstart-controlplane-0
+  infrastructureRef:
+    apiVersion: infrastructure.cluster.x-k8s.io/v1alpha2
+    kind: AzureMachine
+    name: capi-quickstart-controlplane-0
+---
+apiVersion: infrastructure.cluster.x-k8s.io/v1alpha2
+kind: AzureMachine
+metadata:
+  name: capi-quickstart-controlplane-0
+spec:
+  image:
+    offer: capi
+    publisher: cncf-upstream
+    sku: k8s-1dot16-ubuntu-1804
+    version: latest
+  location: southcentralus
+  osDisk:
+    diskSizeGB: 30
+    managedDisk:
+      storageAccountType: Premium_LRS
+    osType: Linux
+  sshPublicKey: ${SSH_PUBLIC_KEY}
+  vmSize: Standard_B2ms
+---
+apiVersion: bootstrap.cluster.x-k8s.io/v1alpha2
+kind: KubeadmConfig
+metadata:
+  name: capi-quickstart-controlplane-0
+spec:
+  # For more information about these values,
+  # refer to the Kubeadm Bootstrap Provider documentation.
+  clusterConfiguration:
+    apiServer:
+      extraArgs:
+        cloud-config: /etc/kubernetes/azure.json
+        cloud-provider: azure
+      extraVolumes:
+      - hostPath: /etc/kubernetes/azure.json
+        mountPath: /etc/kubernetes/azure.json
+        name: cloud-config
+        readOnly: true
+      timeoutForControlPlane: 20m
+    controllerManager:
+      extraArgs:
+        allocate-node-cidrs: "false"
+        cloud-config: /etc/kubernetes/azure.json
+        cloud-provider: azure
+      extraVolumes:
+      - hostPath: /etc/kubernetes/azure.json
+        mountPath: /etc/kubernetes/azure.json
+        name: cloud-config
+        readOnly: true
+  files:
+  - content: |
+      {
+        "cloud": "AzurePublicCloud",
+        "tenantId": "${AZURE_TENANT_ID}",
+        "subscriptionId": "${AZURE_SUBSCRIPTION_ID}",
+        "aadClientId": "${AZURE_CLIENT_ID}",
+        "aadClientSecret": "${AZURE_CLIENT_SECRET}",
+        "resourceGroup": "capi-quickstart",
+        "securityGroupName": "capi-quickstart-controlplane-nsg",
+        "location": "${AZURE_LOCATION}",
+        "vmType": "standard",
+        "vnetName": "capi-quickstart",
+        "vnetResourceGroup": "capi-quickstart",
+        "subnetName": "capi-quickstart-controlplane-subnet",
+        "routeTableName": "capi-quickstart-node-routetable",
+        "userAssignedID": "capi-quickstart",
+        "loadBalancerSku": "standard",
+        "maximumLoadBalancerRuleCount": 250,
+        "useManagedIdentityExtension": false,
+        "useInstanceMetadata": true
+      }
+    owner: root:root
+    path: /etc/kubernetes/azure.json
+    permissions: "0644"
+  initConfiguration:
+    nodeRegistration:
+      kubeletExtraArgs:
+        cloud-config: /etc/kubernetes/azure.json
+        cloud-provider: azure
+      name: '{{ ds.meta_data["local_hostname"] }}'
 ```
 {{#/tab }}
 {{#tab Docker}}
@@ -485,8 +642,8 @@ spec:
 
 After the controlplane is up and running, let's retrieve the [target cluster] Kubeconfig:
 
-{{#tabs name:"tab-getting-kubeconfig" tabs:"AWS|vSphere|OpenStack, Docker"}}
-{{#tab AWS|vSphere|OpenStack}}
+{{#tabs name:"tab-getting-kubeconfig" tabs:"AWS|Azure|vSphere|OpenStack, Docker"}}
+{{#tab AWS|Azure|vSphere|OpenStack}}
 ```bash
 kubectl --namespace=default get secret/capi-quickstart-kubeconfig -o json \
   | jq -r .data.value \
@@ -557,7 +714,7 @@ kubectl --kubeconfig=./capi-quickstart.kubeconfig get nodes
 
 Finishing up, we'll create a single node _MachineDeployment_.
 
-{{#tabs name:"tab-usage-machinedeployment" tabs:"AWS,Docker,vSphere,OpenStack"}}
+{{#tabs name:"tab-usage-machinedeployment" tabs:"AWS,Azure,Docker,vSphere,OpenStack"}}
 {{#tab AWS}}
 
 ```yaml
@@ -621,6 +778,129 @@ spec:
           name: '{{ ds.meta_data.hostname }}'
           kubeletExtraArgs:
             cloud-provider: aws
+```
+
+{{#/tab }}
+{{#tab Azure}}
+
+<aside class="note warning">
+
+<h1>Action Required</h1>
+
+These examples include environment variables that you should substitute before creating the resources. After pasting the content of the below yaml into `machinedeployment.yaml` you can run the following commands to inject the necessary variables and create the resources:
+
+
+```bash
+export AZURE_SUBSCRIPTION_ID_B64="$(echo -n "$AZURE_SUBSCRIPTION_ID" | base64 | tr -d '\n')"
+export AZURE_TENANT_ID_B64="$(echo -n "$AZURE_TENANT_ID" | base64 | tr -d '\n')"
+export AZURE_CLIENT_ID_B64="$(echo -n "$AZURE_CLIENT_ID" | base64 | tr -d '\n')"
+export AZURE_CLIENT_SECRET_B64="$(echo -n "$AZURE_CLIENT_SECRET" | base64 | tr -d '\n')"
+SSH_KEY_FILE="capi-quickstart.ssh-key"
+ssh-keygen -t rsa -b 2048 -f "${SSH_KEY_FILE}" -N '' 1>/dev/null
+export SSH_PUBLIC_KEY=$(cat "${SSH_KEY_FILE}.pub" | base64 | tr -d '\r\n')
+```
+
+```bash
+cat machinedeployment.yaml \
+  | envsubst \
+  | kubectl create -f -
+```
+
+</aside>
+
+```yaml
+apiVersion: cluster.x-k8s.io/v1alpha2
+kind: MachineDeployment
+metadata:
+  name: capi-quickstart-node
+  labels:
+    cluster.x-k8s.io/cluster-name: capi-quickstart
+    # Labels beyond this point are for example purposes,
+    # feel free to add more or change with something more meaningful.
+    # Sync these values with spec.selector.matchLabels and spec.template.metadata.labels.
+    nodepool: nodepool-0
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      cluster.x-k8s.io/cluster-name: capi-quickstart
+      nodepool: nodepool-0
+  template:
+    metadata:
+      labels:
+        cluster.x-k8s.io/cluster-name: capi-quickstart
+        nodepool: nodepool-0
+    spec:
+      version: v1.16.1
+      bootstrap:
+        configRef:
+          name: capi-quickstart-node
+          apiVersion: bootstrap.cluster.x-k8s.io/v1alpha2
+          kind: KubeadmConfigTemplate
+      infrastructureRef:
+        name: capi-quickstart-node
+        apiVersion: infrastructure.cluster.x-k8s.io/v1alpha2
+        kind: AzureMachineTemplate
+---
+apiVersion: infrastructure.cluster.x-k8s.io/v1alpha2
+kind: AzureMachineTemplate
+metadata:
+  name: capi-quickstart-node
+spec:
+  template:
+    spec:
+      location: southcentralus
+      vmSize: Standard_B2ms
+      image:
+        publisher: "cncf-upstream"
+        offer: "capi"
+        sku: "k8s-1dot16-ubuntu-1804"
+        version: "latest"
+      osDisk:
+        osType: "Linux"
+        diskSizeGB: 30
+        managedDisk:
+          storageAccountType: "Premium_LRS"
+      sshPublicKey: ${SSH_PUBLIC_KEY}
+---
+apiVersion: bootstrap.cluster.x-k8s.io/v1alpha2
+kind: KubeadmConfigTemplate
+metadata:
+  name: capi-quickstart-node
+spec:
+  template:
+    spec:
+      joinConfiguration:
+        nodeRegistration:
+          name: '{{ ds.meta_data["local_hostname"] }}'
+          kubeletExtraArgs:
+            cloud-provider: azure
+            cloud-config: /etc/kubernetes/azure.json
+      files:
+      - path: /etc/kubernetes/azure.json
+        owner: "root:root"
+        permissions: "0644"
+        content: |
+          {
+            "cloud": "AzurePublicCloud",
+            "tenantId": "${AZURE_TENANT_ID}",
+            "subscriptionId": "${AZURE_SUBSCRIPTION_ID}",
+            "aadClientId": "${AZURE_CLIENT_ID}",
+            "aadClientSecret": "${AZURE_CLIENT_SECRET}",
+            "resourceGroup": "capi-quickstart",
+            "securityGroupName": "capi-quickstart-controlplane-nsg",
+            "location": "${AZURE_LOCATION}",
+            "vmType": "standard",
+            "vnetName": "capi-quickstart",
+            "vnetResourceGroup": "capi-quickstart",
+            "subnetName": "capi-quickstart-controlplane-subnet",
+            "routeTableName": "capi-quickstart-node-routetable",
+            "userAssignedID": "capi-quickstart",
+            "loadBalancerSku": "standard",
+            "maximumLoadBalancerRuleCount": 250,
+            "useManagedIdentityExtension": false,
+            "useInstanceMetadata": true
+          }
 ```
 
 {{#/tab }}

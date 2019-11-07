@@ -11,8 +11,8 @@ Cluster API requires an existing kubernetes cluster accessible via kubectl, choo
 
 1. **Kind**
 
-{{#tabs name:"kind-cluster" tabs:"AWS|vSphere|OpenStack,Docker"}}
-{{#tab AWS|vSphere|OpenStack}}
+{{#tabs name:"kind-cluster" tabs:"AWS|Azure|vSphere|OpenStack,Docker"}}
+{{#tab AWS|Azure|vSphere|OpenStack}}
 
 <aside class="note warning">
 
@@ -104,7 +104,7 @@ kubectl create -f {{#releaselink gomodule:"sigs.k8s.io/cluster-api-bootstrap-pro
 
 #### Install Infrastructure Provider
 
-{{#tabs name:"tab-installation-infrastructure" tabs:"AWS,Docker,vSphere,OpenStack"}}
+{{#tabs name:"tab-installation-infrastructure" tabs:"AWS,Azure,Docker,vSphere,OpenStack"}}
 {{#tab AWS}}
 
 <aside class="note warning">
@@ -131,6 +131,33 @@ export AWS_B64ENCODED_CREDENTIALS=$(clusterawsadm alpha bootstrap encode-aws-cre
 
 # Create the components.
 curl -L {{#releaselink gomodule:"sigs.k8s.io/cluster-api-provider-aws" asset:"infrastructure-components.yaml" version:"0.4.x"}} \
+  | envsubst \
+  | kubectl create -f -
+```
+
+{{#/tab }}
+{{#tab Azure}}
+
+<aside class="note warning">
+
+<h1>Action Required</h1>
+
+For more information about authorization, AAD, or requirements for Azure, visit the [Azure Provider Prerequisites](https://github.com/kubernetes-sigs/cluster-api-provider-azure/blob/master/docs/getting-started.md#prerequisites) document.
+
+</aside>
+
+Check the [Azure provider releases](https://github.com/kubernetes-sigs/cluster-api-provider-azure/releases) for an up-to-date components file.
+
+```bash
+# Create the base64 encoded credentials
+export AZURE_SUBSCRIPTION_ID_B64="$(echo -n "$AZURE_SUBSCRIPTION_ID" | base64 | tr -d '\n')"
+export AZURE_TENANT_ID_B64="$(echo -n "$AZURE_TENANT_ID" | base64 | tr -d '\n')"
+export AZURE_CLIENT_ID_B64="$(echo -n "$AZURE_CLIENT_ID" | base64 | tr -d '\n')"
+export AZURE_CLIENT_SECRET_B64="$(echo -n "$AZURE_CLIENT_SECRET" | base64 | tr -d '\n')"
+```
+
+```bash
+curl -L {{#releaselink gomodule:"sigs.k8s.io/cluster-api-provider-azure" asset:"infrastructure-components.yaml" version:"0.3.x"}} \
   | envsubst \
   | kubectl create -f -
 ```

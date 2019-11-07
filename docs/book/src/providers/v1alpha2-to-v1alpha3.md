@@ -55,3 +55,8 @@
     to
 
     `func NewClusterClient(c client.Client, cluster *clusterv1.Cluster, scheme runtime.Scheme) (client.Client, error)`
+
+## A Machine is now considered a control plane if it has `cluster.x-k8s.io/control-plane` set, regardless of value
+
+- Previously examples and tests were setting/checking for the label to be set to `true`.
+- The function `util.IsControlPlaneMachine` was previously checking for any value other than empty string, while now we only check if the associated label exists.

@@ -202,7 +202,7 @@ func (r *KubeadmConfigReconciler) Reconcile(req ctrl.Request) (_ ctrl.Result, re
 	if !cluster.Status.ControlPlaneInitialized {
 		// if it's NOT a control plane machine, requeue
 		if !util.IsControlPlaneMachine(machine) {
-			log.Info(fmt.Sprintf("Machine is not a control plane. If it should be a control plane, add `%s: true` as a label to the Machine", clusterv1.MachineControlPlaneLabelName))
+			log.Info(fmt.Sprintf("Machine is not a control plane. If it should be a control plane, add the label `%s: \"\"` to the Machine", clusterv1.MachineControlPlaneLabelName))
 			return ctrl.Result{RequeueAfter: 30 * time.Second}, nil
 		}
 

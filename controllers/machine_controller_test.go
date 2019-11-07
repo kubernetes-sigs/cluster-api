@@ -347,7 +347,7 @@ func TestReconcileRequest(t *testing.T) {
 					Name:      "deleted",
 					Namespace: "default",
 					Labels: map[string]string{
-						clusterv1.MachineControlPlaneLabelName: "true",
+						clusterv1.MachineControlPlaneLabelName: "",
 					},
 					Finalizers:        []string{clusterv1.MachineFinalizer, metav1.FinalizerDeleteDependents},
 					DeletionTimestamp: &time,

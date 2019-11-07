@@ -279,7 +279,7 @@ var _ = Describe("Cluster Reconciler", func() {
 				GenerateName: "test6-",
 				Namespace:    v1.NamespaceDefault,
 				Labels: map[string]string{
-					clusterv1.MachineControlPlaneLabelName: "true",
+					clusterv1.MachineControlPlaneLabelName: "",
 				},
 			},
 			Spec: clusterv1.MachineSpec{
@@ -344,7 +344,7 @@ func TestClusterReconciler_machineToCluster(t *testing.T) {
 			Name: "controlPlaneWithNoderef",
 			Labels: map[string]string{
 				clusterv1.ClusterLabelName:             cluster.Name,
-				clusterv1.MachineControlPlaneLabelName: cluster.Name,
+				clusterv1.MachineControlPlaneLabelName: "",
 			},
 		},
 		Status: clusterv1.MachineStatus{
@@ -362,7 +362,7 @@ func TestClusterReconciler_machineToCluster(t *testing.T) {
 			Name: "controlPlaneWithoutNoderef",
 			Labels: map[string]string{
 				clusterv1.ClusterLabelName:             cluster.Name,
-				clusterv1.MachineControlPlaneLabelName: cluster.Name,
+				clusterv1.MachineControlPlaneLabelName: "",
 			},
 		},
 	}
@@ -526,7 +526,7 @@ func (b *machineBuilder) ownedBy(c *clusterv1.Cluster) *machineBuilder {
 }
 
 func (b *machineBuilder) controlPlane() *machineBuilder {
-	b.m.Labels = map[string]string{clusterv1.MachineControlPlaneLabelName: "true"}
+	b.m.Labels = map[string]string{clusterv1.MachineControlPlaneLabelName: ""}
 	return b
 }
 

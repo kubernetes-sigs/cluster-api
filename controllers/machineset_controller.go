@@ -121,8 +121,45 @@ func (r *MachineSetReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) 
 
 func (r *MachineSetReconciler) reconcile(ctx context.Context, machineSet *clusterv1.MachineSet) (ctrl.Result, error) {
 	logger := r.Log.WithValues("machineset", machineSet.Name, "namespace", machineSet.Namespace)
-
 	logger.V(4).Info("Reconcile MachineSet")
+
+	// Reconcile and retrieve the Cluster object.
+	if machineSet.Labels == nil {
+		machineSet.Labels = make(map[string]string)
+	}
+	machineSet.Labels[clusterv1.ClusterLabelName] = machineSet.Spec.ClusterName
+
+	cluster, err := util.GetClusterByName(ctx, r.Client, machineSet.ObjectMeta.Namespace, machineSet.Spec.ClusterName)
+	if err != nil {
+		return ctrl.Result{}, err
+	}
+
+	if r.shouldAdopt(machineSet) {
+		patch := client.MergeFrom(machineSet.DeepCopy())
+		machineSet.OwnerReferences = util.EnsureOwnerRef(machineSet.OwnerReferences, metav1.OwnerReference{
+			APIVersion: clusterv1.GroupVersion.String(),
+			Kind:       "Cluster",
+			Name:       cluster.Name,
+			UID:        cluster.UID,
+		})
+		// Patch using a deep copy to avoid overwriting any unexpected Status changes from the returned result
+		if err := r.Client.Patch(ctx, machineSet.DeepCopy(), patch); err != nil {
+			return ctrl.Result{}, errors.Wrapf(
+				err,
+				"failed to add OwnerReference to MachineSet %s/%s",
+				machineSet.Namespace,
+				machineSet.Name,
+			)
+		}
+	}
+
+	// Make sure selector and template to be in the same cluster.
+	machineSet.Spec.Selector.MatchLabels[clusterv1.ClusterLabelName] = machineSet.Spec.ClusterName
+	machineSet.Spec.Template.Labels[clusterv1.ClusterLabelName] = machineSet.Spec.ClusterName
+
+	// Add label and selector based on the MachineSet's name.
+	machineSet.Spec.Selector.MatchLabels[clusterv1.MachineSetLabelName] = machineSet.Name
+	machineSet.Spec.Template.Labels[clusterv1.MachineSetLabelName] = machineSet.Name
 
 	// Make sure that label selector can match template's labels.
 	// TODO(vincepri): Move to a validation (admission) webhook when supported.
@@ -153,36 +190,6 @@ func (r *MachineSetReconciler) reconcile(ctx context.Context, machineSet *cluste
 	)
 	if err != nil {
 		return ctrl.Result{}, errors.Wrap(err, "failed to list machines")
-	}
-
-	// Reconcile and retrieve the Cluster object.
-	if machineSet.Labels == nil {
-		machineSet.Labels = make(map[string]string)
-	}
-	machineSet.Labels[clusterv1.ClusterLabelName] = machineSet.Spec.ClusterName
-
-	cluster, err := util.GetClusterByName(ctx, r.Client, machineSet.ObjectMeta.Namespace, machineSet.Spec.ClusterName)
-	if err != nil {
-		return ctrl.Result{}, err
-	}
-
-	if r.shouldAdopt(machineSet) {
-		patch := client.MergeFrom(machineSet.DeepCopy())
-		machineSet.OwnerReferences = util.EnsureOwnerRef(machineSet.OwnerReferences, metav1.OwnerReference{
-			APIVersion: clusterv1.GroupVersion.String(),
-			Kind:       "Cluster",
-			Name:       cluster.Name,
-			UID:        cluster.UID,
-		})
-		// Patch using a deep copy to avoid overwriting any unexpected Status changes from the returned result
-		if err := r.Client.Patch(ctx, machineSet.DeepCopy(), patch); err != nil {
-			return ctrl.Result{}, errors.Wrapf(
-				err,
-				"failed to add OwnerReference to MachineSet %s/%s",
-				machineSet.Namespace,
-				machineSet.Name,
-			)
-		}
 	}
 
 	// Filter out irrelevant machines (deleting/mismatch labels) and claim orphaned machines.
@@ -395,7 +402,6 @@ func (r *MachineSetReconciler) getNewMachine(machineSet *clusterv1.MachineSet) *
 	if machine.Labels == nil {
 		machine.Labels = make(map[string]string)
 	}
-	machine.Labels[clusterv1.MachineSetLabelName] = machineSet.Name
 	return machine
 }
 

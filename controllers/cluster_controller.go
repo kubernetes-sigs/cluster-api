@@ -341,10 +341,6 @@ func splitMachineList(list *clusterv1.MachineList) (*clusterv1.MachineList, *clu
 func (r *ClusterReconciler) reconcileControlPlaneInitialized(ctx context.Context, cluster *clusterv1.Cluster) error {
 	logger := r.Log.WithValues("cluster", cluster.Name, "namespace", cluster.Namespace)
 
-	if cluster.Status.ControlPlaneInitialized {
-		return nil
-	}
-
 	machines, err := getActiveMachinesInCluster(ctx, r.Client, cluster.Namespace, cluster.Name)
 	if err != nil {
 		logger.Error(err, "Error getting machines in cluster")
@@ -358,6 +354,7 @@ func (r *ClusterReconciler) reconcileControlPlaneInitialized(ctx context.Context
 		}
 	}
 
+	cluster.Status.ControlPlaneInitialized = false
 	return nil
 }
 

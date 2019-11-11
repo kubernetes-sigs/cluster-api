@@ -149,7 +149,7 @@ func (s semaphore) information() (*information, error) {
 	return li, nil
 }
 
-func (s semaphore) setInformation(information *information) error {
+func (s *semaphore) setInformation(information *information) error {
 	b, err := json.Marshal(information)
 	if err != nil {
 		return errors.Wrap(err, "failed to marshal semaphore information")

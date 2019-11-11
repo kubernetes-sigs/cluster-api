@@ -23,6 +23,7 @@ support v1alpha2 API types.
 - [Packet](https://github.com/packethost/cluster-api-provider-packet)
 - [Tencent Cloud](https://github.com/TencentCloud/cluster-api-provider-tencent)
 - [**vSphere**](https://github.com/kubernetes-sigs/cluster-api-provider-vsphere)
+- [Alibaba Cloud](https://github.com/oam-oss/cluster-api-provider-alicloud)
 
 ## API Adopters
 

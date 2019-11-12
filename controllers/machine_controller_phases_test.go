@@ -22,12 +22,13 @@ import (
 	"time"
 
 	. "github.com/onsi/ginkgo"
-	"github.com/onsi/gomega"
 	. "github.com/onsi/gomega"
+	dto "github.com/prometheus/client_model/go"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/client-go/kubernetes/scheme"
 	"k8s.io/utils/pointer"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha3"
 	"sigs.k8s.io/cluster-api/util/kubeconfig"
@@ -376,7 +377,7 @@ func TestReconcileBootstrap(t *testing.T) {
 		bootstrapConfig map[string]interface{}
 		machine         *clusterv1.Machine
 		expectError     bool
-		expected        func(g *gomega.WithT, m *clusterv1.Machine)
+		expected        func(g *WithT, m *clusterv1.Machine)
 	}{
 		{
 			name: "new machine, bootstrap config ready with data",
@@ -394,10 +395,10 @@ func TestReconcileBootstrap(t *testing.T) {
 				},
 			},
 			expectError: false,
-			expected: func(g *gomega.WithT, m *clusterv1.Machine) {
-				g.Expect(m.Status.BootstrapReady).To(gomega.BeTrue())
-				g.Expect(m.Spec.Bootstrap.Data).ToNot(gomega.BeNil())
-				g.Expect(*m.Spec.Bootstrap.Data).To(gomega.ContainSubstring("#!/bin/bash"))
+			expected: func(g *WithT, m *clusterv1.Machine) {
+				g.Expect(m.Status.BootstrapReady).To(BeTrue())
+				g.Expect(m.Spec.Bootstrap.Data).ToNot(BeNil())
+				g.Expect(*m.Spec.Bootstrap.Data).To(ContainSubstring("#!/bin/bash"))
 			},
 		},
 		{
@@ -415,9 +416,9 @@ func TestReconcileBootstrap(t *testing.T) {
 				},
 			},
 			expectError: true,
-			expected: func(g *gomega.WithT, m *clusterv1.Machine) {
-				g.Expect(m.Status.BootstrapReady).To(gomega.BeFalse())
-				g.Expect(m.Spec.Bootstrap.Data).To(gomega.BeNil())
+			expected: func(g *WithT, m *clusterv1.Machine) {
+				g.Expect(m.Status.BootstrapReady).To(BeFalse())
+				g.Expect(m.Spec.Bootstrap.Data).To(BeNil())
 			},
 		},
 		{
@@ -433,8 +434,8 @@ func TestReconcileBootstrap(t *testing.T) {
 				"status": map[string]interface{}{},
 			},
 			expectError: true,
-			expected: func(g *gomega.WithT, m *clusterv1.Machine) {
-				g.Expect(m.Status.BootstrapReady).To(gomega.BeFalse())
+			expected: func(g *WithT, m *clusterv1.Machine) {
+				g.Expect(m.Status.BootstrapReady).To(BeFalse())
 			},
 		},
 		{
@@ -450,8 +451,8 @@ func TestReconcileBootstrap(t *testing.T) {
 				"status": map[string]interface{}{},
 			},
 			expectError: true,
-			expected: func(g *gomega.WithT, m *clusterv1.Machine) {
-				g.Expect(m.Status.BootstrapReady).To(gomega.BeFalse())
+			expected: func(g *WithT, m *clusterv1.Machine) {
+				g.Expect(m.Status.BootstrapReady).To(BeFalse())
 			},
 		},
 		{
@@ -503,9 +504,9 @@ func TestReconcileBootstrap(t *testing.T) {
 				},
 			},
 			expectError: false,
-			expected: func(g *gomega.WithT, m *clusterv1.Machine) {
-				g.Expect(m.Status.BootstrapReady).To(gomega.BeTrue())
-				g.Expect(*m.Spec.Bootstrap.Data).To(gomega.Equal("#!/bin/bash ... data"))
+			expected: func(g *WithT, m *clusterv1.Machine) {
+				g.Expect(m.Status.BootstrapReady).To(BeTrue())
+				g.Expect(*m.Spec.Bootstrap.Data).To(Equal("#!/bin/bash ... data"))
 			},
 		},
 		{
@@ -543,15 +544,17 @@ func TestReconcileBootstrap(t *testing.T) {
 				},
 			},
 			expectError: false,
-			expected: func(g *gomega.WithT, m *clusterv1.Machine) {
-				g.Expect(m.Status.BootstrapReady).To(gomega.BeTrue())
+			expected: func(g *WithT, m *clusterv1.Machine) {
+				g.Expect(m.Status.BootstrapReady).To(BeTrue())
 			},
 		},
 	}
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			g := gomega.NewGomegaWithT(t)
+			g := NewGomegaWithT(t)
+			err := clusterv1.AddToScheme(scheme.Scheme)
+			g.Expect(err).NotTo(HaveOccurred())
 
 			if tc.machine == nil {
 				tc.machine = defaultMachine.DeepCopy()
@@ -563,11 +566,11 @@ func TestReconcileBootstrap(t *testing.T) {
 				Log:    log.Log,
 			}
 
-			err := r.reconcileBootstrap(context.Background(), tc.machine)
+			err = r.reconcileBootstrap(context.Background(), tc.machine)
 			if tc.expectError {
-				g.Expect(err).ToNot(gomega.BeNil())
+				g.Expect(err).ToNot(BeNil())
 			} else {
-				g.Expect(err).To(gomega.BeNil())
+				g.Expect(err).To(BeNil())
 			}
 
 			if tc.expected != nil {
@@ -612,7 +615,7 @@ func TestReconcileInfrastructure(t *testing.T) {
 		expectError        bool
 		expectChanged      bool
 		expectRequeueAfter bool
-		expected           func(g *gomega.WithT, m *clusterv1.Machine)
+		expected           func(g *WithT, m *clusterv1.Machine)
 	}{
 		{
 			name: "new machine, infrastructure config ready",
@@ -642,8 +645,8 @@ func TestReconcileInfrastructure(t *testing.T) {
 			},
 			expectError:   false,
 			expectChanged: true,
-			expected: func(g *gomega.WithT, m *clusterv1.Machine) {
-				g.Expect(m.Status.InfrastructureReady).To(gomega.BeTrue())
+			expected: func(g *WithT, m *clusterv1.Machine) {
+				g.Expect(m.Status.InfrastructureReady).To(BeTrue())
 			},
 		},
 		{
@@ -693,18 +696,20 @@ func TestReconcileInfrastructure(t *testing.T) {
 			},
 			expectError:        true,
 			expectRequeueAfter: true,
-			expected: func(g *gomega.WithT, m *clusterv1.Machine) {
-				g.Expect(m.Status.InfrastructureReady).To(gomega.BeTrue())
-				g.Expect(m.Status.ErrorMessage).ToNot(gomega.BeNil())
-				g.Expect(m.Status.ErrorReason).ToNot(gomega.BeNil())
-				g.Expect(m.Status.GetTypedPhase()).To(gomega.Equal(clusterv1.MachinePhaseFailed))
+			expected: func(g *WithT, m *clusterv1.Machine) {
+				g.Expect(m.Status.InfrastructureReady).To(BeTrue())
+				g.Expect(m.Status.ErrorMessage).ToNot(BeNil())
+				g.Expect(m.Status.ErrorReason).ToNot(BeNil())
+				g.Expect(m.Status.GetTypedPhase()).To(Equal(clusterv1.MachinePhaseFailed))
 			},
 		},
 	}
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			g := gomega.NewGomegaWithT(t)
+			g := NewGomegaWithT(t)
+			err := clusterv1.AddToScheme(scheme.Scheme)
+			g.Expect(err).NotTo(HaveOccurred())
 
 			if tc.machine == nil {
 				tc.machine = defaultMachine.DeepCopy()
@@ -716,19 +721,26 @@ func TestReconcileInfrastructure(t *testing.T) {
 				Log:    log.Log,
 			}
 
-			err := r.reconcileInfrastructure(context.Background(), tc.machine)
+			err = r.reconcileInfrastructure(context.Background(), tc.machine)
 			r.reconcilePhase(context.Background(), tc.machine)
 			if tc.expectError {
-				g.Expect(err).ToNot(gomega.BeNil())
+				g.Expect(err).ToNot(BeNil())
 			} else {
-				g.Expect(err).To(gomega.BeNil())
+				g.Expect(err).To(BeNil())
 			}
 
 			if tc.expected != nil {
 				tc.expected(g, tc.machine)
 			}
 		})
-
 	}
+}
 
+func getMetricFamily(list []*dto.MetricFamily, metricName string) *dto.MetricFamily {
+	for _, mf := range list {
+		if mf.GetName() == metricName {
+			return mf
+		}
+	}
+	return nil
 }

@@ -37,6 +37,7 @@ import (
 	"k8s.io/klog"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha3"
 	"sigs.k8s.io/cluster-api/controllers/external"
+	"sigs.k8s.io/cluster-api/controllers/metrics"
 	"sigs.k8s.io/cluster-api/controllers/remote"
 	capierrors "sigs.k8s.io/cluster-api/errors"
 	kubedrain "sigs.k8s.io/cluster-api/third_party/kubernetes-drain"
@@ -114,6 +115,7 @@ func (r *MachineReconciler) Reconcile(req ctrl.Request) (_ ctrl.Result, reterr e
 	defer func() {
 		// Always reconcile the Status.Phase field.
 		r.reconcilePhase(ctx, m)
+		r.reconcileMetrics(ctx, m)
 
 		// Always attempt to Patch the Machine object and status after each reconciliation.
 		if err := patchHelper.Patch(ctx, m); err != nil {
@@ -187,6 +189,24 @@ func (r *MachineReconciler) reconcile(ctx context.Context, cluster *clusterv1.Cl
 		errs = append(errs, err)
 	}
 	return res, kerrors.NewAggregate(errs)
+}
+
+func (r *MachineReconciler) reconcileMetrics(_ context.Context, m *clusterv1.Machine) {
+	if m.Status.BootstrapReady {
+		metrics.MachineBootstrapReady.WithLabelValues(m.Name, m.Namespace, m.Spec.ClusterName).Set(1)
+	} else {
+		metrics.MachineBootstrapReady.WithLabelValues(m.Name, m.Namespace, m.Spec.ClusterName).Set(0)
+	}
+	if m.Status.InfrastructureReady {
+		metrics.MachineInfrastructureReady.WithLabelValues(m.Name, m.Namespace, m.Spec.ClusterName).Set(1)
+	} else {
+		metrics.MachineInfrastructureReady.WithLabelValues(m.Name, m.Namespace, m.Spec.ClusterName).Set(0)
+	}
+	if m.Status.NodeRef != nil {
+		metrics.MachineNodeReady.WithLabelValues(m.Name, m.Namespace, m.Spec.ClusterName).Set(1)
+	} else {
+		metrics.MachineNodeReady.WithLabelValues(m.Name, m.Namespace, m.Spec.ClusterName).Set(0)
+	}
 }
 
 func (r *MachineReconciler) reconcileDelete(ctx context.Context, cluster *clusterv1.Cluster, m *clusterv1.Machine) (ctrl.Result, error) {

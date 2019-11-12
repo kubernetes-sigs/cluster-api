@@ -20,90 +20,196 @@ import (
 	"context"
 	"testing"
 
+	. "github.com/onsi/gomega"
 	"github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/client-go/kubernetes/scheme"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha3"
 	capierrors "sigs.k8s.io/cluster-api/errors"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
+	"sigs.k8s.io/controller-runtime/pkg/log"
 )
 
-func TestClusterReconciler_reconcileKubeconfig(t *testing.T) {
-	cluster := &clusterv1.Cluster{
-		ObjectMeta: v1.ObjectMeta{
-			Name: "test-cluster",
-		},
-		Status: clusterv1.ClusterStatus{
-			APIEndpoints: []clusterv1.APIEndpoint{{
-				Host: "1.2.3.4",
-				Port: 0,
-			}},
-		},
-	}
-
-	tests := []struct {
-		name        string
-		cluster     *clusterv1.Cluster
-		secret      *corev1.Secret
-		wantErr     bool
-		wantRequeue bool
-	}{
-		{
-			name:    "cluster not provisioned, apiEndpoint is not set",
-			cluster: &clusterv1.Cluster{},
-			wantErr: false,
-		},
-		{
-			name:    "kubeconfig secret found",
-			cluster: cluster,
-			secret: &corev1.Secret{
-				ObjectMeta: v1.ObjectMeta{
-					Name: "test-cluster-kubeconfig",
+func TestClusterReconcilePhases(t *testing.T) {
+	t.Run("reconcile infrastructure", func(t *testing.T) {
+		cluster := &clusterv1.Cluster{
+			ObjectMeta: v1.ObjectMeta{
+				Name:      "test-cluster",
+				Namespace: "test-namespace",
+			},
+			Status: clusterv1.ClusterStatus{
+				APIEndpoints: []clusterv1.APIEndpoint{{
+					Host: "1.2.3.4",
+					Port: 0,
+				}},
+				InfrastructureReady: true,
+			},
+			Spec: clusterv1.ClusterSpec{
+				InfrastructureRef: &corev1.ObjectReference{
+					APIVersion: "infrastructure.cluster.x-k8s.io/v1alpha2",
+					Kind:       "InfrastructureConfig",
+					Name:       "test",
 				},
 			},
-			wantErr: false,
-		},
-		{
-			name:        "kubeconfig secret not found, should return RequeueAfterError",
-			cluster:     cluster,
-			wantErr:     true,
-			wantRequeue: true,
-		},
-		{
-			name:    "invalid ca secret, should return error",
-			cluster: cluster,
-			secret: &corev1.Secret{
-				ObjectMeta: v1.ObjectMeta{
-					Name: "test-cluster-ca",
-				},
+		}
+
+		tests := []struct {
+			name      string
+			cluster   *clusterv1.Cluster
+			infraRef  map[string]interface{}
+			expectErr bool
+		}{
+			{
+				name:      "returns no error if infrastructure ref is nil",
+				cluster:   &clusterv1.Cluster{ObjectMeta: v1.ObjectMeta{Name: "test-cluster", Namespace: "test-namespace"}},
+				expectErr: false,
 			},
-			wantErr: true,
-		},
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			err := clusterv1.AddToScheme(scheme.Scheme)
-			if err != nil {
-				t.Fatal(err)
-			}
+			{
+				name:      "returns error if unable to reconcile infrastructure ref",
+				cluster:   cluster,
+				expectErr: true,
+			},
+			{
+				name:    "returns no error if infra config is marked for deletion",
+				cluster: cluster,
+				infraRef: map[string]interface{}{
+					"kind":       "InfrastructureConfig",
+					"apiVersion": "infrastructure.cluster.x-k8s.io/v1alpha2",
+					"metadata": map[string]interface{}{
+						"name":              "test",
+						"namespace":         "test-namespace",
+						"deletionTimestamp": "sometime",
+					},
+				},
+				expectErr: false,
+			},
+			{
+				name:    "returns no error if infrastructure is marked ready on cluster",
+				cluster: cluster,
+				infraRef: map[string]interface{}{
+					"kind":       "InfrastructureConfig",
+					"apiVersion": "infrastructure.cluster.x-k8s.io/v1alpha2",
+					"metadata": map[string]interface{}{
+						"name":              "test",
+						"namespace":         "test-namespace",
+						"deletionTimestamp": "sometime",
+					},
+				},
+				expectErr: false,
+			},
+		}
 
-			c := fake.NewFakeClient(tt.cluster)
-			if tt.secret != nil {
-				c = fake.NewFakeClient(tt.cluster, tt.secret)
-			}
-			r := &ClusterReconciler{
-				Client: c,
-			}
-			err = r.reconcileKubeconfig(context.Background(), tt.cluster)
-			if (err != nil) != tt.wantErr {
-				t.Errorf("reconcileKubeconfig() error = %v, wantErr %v", err, tt.wantErr)
-			}
+		for _, tt := range tests {
+			t.Run(tt.name, func(t *testing.T) {
+				RegisterTestingT(t)
+				err := clusterv1.AddToScheme(scheme.Scheme)
+				if err != nil {
+					t.Fatal(err)
+				}
 
-			_, hasRequeErr := errors.Cause(err).(capierrors.HasRequeueAfterError)
-			if tt.wantRequeue != hasRequeErr {
-				t.Errorf("expected RequeAfterError = %v, got %v", tt.wantRequeue, hasRequeErr)
-			}
-		})
-	}
+				var c client.Client
+				if tt.infraRef != nil {
+					infraConfig := &unstructured.Unstructured{Object: tt.infraRef}
+					c = fake.NewFakeClient(tt.cluster, infraConfig)
+				} else {
+					c = fake.NewFakeClient(tt.cluster)
+				}
+				r := &ClusterReconciler{
+					Client: c,
+					Log:    log.Log,
+				}
+
+				err = r.reconcileInfrastructure(context.Background(), tt.cluster)
+				if tt.expectErr {
+					Expect(err).To(HaveOccurred())
+				} else {
+					Expect(err).ToNot(HaveOccurred())
+				}
+			})
+		}
+
+	})
+
+	t.Run("reconcile kubeconfig", func(t *testing.T) {
+		cluster := &clusterv1.Cluster{
+			ObjectMeta: v1.ObjectMeta{
+				Name: "test-cluster",
+			},
+			Status: clusterv1.ClusterStatus{
+				APIEndpoints: []clusterv1.APIEndpoint{{
+					Host: "1.2.3.4",
+					Port: 0,
+				}},
+			},
+		}
+
+		tests := []struct {
+			name        string
+			cluster     *clusterv1.Cluster
+			secret      *corev1.Secret
+			wantErr     bool
+			wantRequeue bool
+		}{
+			{
+				name:    "cluster not provisioned, apiEndpoint is not set",
+				cluster: &clusterv1.Cluster{},
+				wantErr: false,
+			},
+			{
+				name:    "kubeconfig secret found",
+				cluster: cluster,
+				secret: &corev1.Secret{
+					ObjectMeta: v1.ObjectMeta{
+						Name: "test-cluster-kubeconfig",
+					},
+				},
+				wantErr: false,
+			},
+			{
+				name:        "kubeconfig secret not found, should return RequeueAfterError",
+				cluster:     cluster,
+				wantErr:     true,
+				wantRequeue: true,
+			},
+			{
+				name:    "invalid ca secret, should return error",
+				cluster: cluster,
+				secret: &corev1.Secret{
+					ObjectMeta: v1.ObjectMeta{
+						Name: "test-cluster-ca",
+					},
+				},
+				wantErr: true,
+			},
+		}
+		for _, tt := range tests {
+			t.Run(tt.name, func(t *testing.T) {
+				RegisterTestingT(t)
+				err := clusterv1.AddToScheme(scheme.Scheme)
+				if err != nil {
+					t.Fatal(err)
+				}
+
+				c := fake.NewFakeClient(tt.cluster)
+				if tt.secret != nil {
+					c = fake.NewFakeClient(tt.cluster, tt.secret)
+				}
+				r := &ClusterReconciler{
+					Client: c,
+				}
+				err = r.reconcileKubeconfig(context.Background(), tt.cluster)
+				if (err != nil) != tt.wantErr {
+					t.Errorf("reconcileKubeconfig() error = %v, wantErr %v", err, tt.wantErr)
+				}
+
+				_, hasRequeErr := errors.Cause(err).(capierrors.HasRequeueAfterError)
+				if tt.wantRequeue != hasRequeErr {
+					t.Errorf("expected RequeAfterError = %v, got %v", tt.wantRequeue, hasRequeErr)
+				}
+			})
+		}
+	})
 }

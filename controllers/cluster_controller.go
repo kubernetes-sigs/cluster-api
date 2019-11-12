@@ -33,9 +33,11 @@ import (
 	"k8s.io/client-go/tools/record"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha3"
 	"sigs.k8s.io/cluster-api/controllers/external"
+	"sigs.k8s.io/cluster-api/controllers/metrics"
 	capierrors "sigs.k8s.io/cluster-api/errors"
 	"sigs.k8s.io/cluster-api/util"
 	"sigs.k8s.io/cluster-api/util/patch"
+	"sigs.k8s.io/cluster-api/util/secret"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
@@ -111,6 +113,7 @@ func (r *ClusterReconciler) Reconcile(req ctrl.Request) (_ ctrl.Result, reterr e
 	defer func() {
 		// Always reconcile the Status.Phase field.
 		r.reconcilePhase(ctx, cluster)
+		r.reconcileMetrics(ctx, cluster)
 
 		// Always attempt to Patch the Cluster object and status after each reconciliation.
 		if err := patchHelper.Patch(ctx, cluster); err != nil {
@@ -162,6 +165,35 @@ func (r *ClusterReconciler) reconcile(ctx context.Context, cluster *clusterv1.Cl
 		errs = append(errs, err)
 	}
 	return res, kerrors.NewAggregate(errs)
+}
+
+func (r *ClusterReconciler) reconcileMetrics(_ context.Context, cluster *clusterv1.Cluster) {
+
+	if cluster.Status.ControlPlaneInitialized {
+		metrics.ClusterControlPlaneReady.WithLabelValues(cluster.Name, cluster.Namespace).Set(1)
+	} else {
+		metrics.ClusterControlPlaneReady.WithLabelValues(cluster.Name, cluster.Namespace).Set(0)
+	}
+
+	if cluster.Status.InfrastructureReady {
+		metrics.ClusterInfrastructureReady.WithLabelValues(cluster.Name, cluster.Namespace).Set(1)
+	} else {
+		metrics.ClusterInfrastructureReady.WithLabelValues(cluster.Name, cluster.Namespace).Set(0)
+	}
+
+	// TODO: [wfernandes] pass context here
+	_, err := secret.Get(r.Client, cluster, secret.Kubeconfig)
+	if err != nil {
+		metrics.ClusterKubeconfigReady.WithLabelValues(cluster.Name, cluster.Namespace).Set(0)
+	} else {
+		metrics.ClusterKubeconfigReady.WithLabelValues(cluster.Name, cluster.Namespace).Set(1)
+	}
+
+	if cluster.Status.ErrorReason != nil || cluster.Status.ErrorMessage != nil {
+		metrics.ClusterErrorSet.WithLabelValues(cluster.Name, cluster.Namespace).Set(1)
+	} else {
+		metrics.ClusterErrorSet.WithLabelValues(cluster.Name, cluster.Namespace).Set(0)
+	}
 }
 
 // reconcileDelete handles cluster deletion.

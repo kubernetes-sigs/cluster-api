@@ -102,7 +102,7 @@ see [Server](#server)
 
 ### Immutability
 
-A resource that does not mutate.  In kubernetes we often state the instance of a running pod is immutable or does not change once it is run.  In order to make a change, a new pod is run.  In the context of [Cluster API](#cluster-api) we often refer to an running instance of a [Machine](#machine) is considered immutable, from a [Cluster API](#cluster-api) perspective.
+A resource that does not mutate.  In kubernetes we often state the instance of a running pod is immutable or does not change once it is run.  In order to make a change, a new pod is run.  In the context of [Cluster API](#cluster-api) we often refer to a running instance of a [Machine](#machine) as being immutable, from a [Cluster API](#cluster-api) perspective.
 
 # K
 ---

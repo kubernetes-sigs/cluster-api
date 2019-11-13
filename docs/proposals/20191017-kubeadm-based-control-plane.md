@@ -17,7 +17,7 @@ reviewers:
   - "@hardikdr"
   - "@sbueringer"
 creation-date: 2019-10-17
-last-updated: 2019-11-08
+last-updated: 2019-11-13
 status: implementable
 ---
 
@@ -495,7 +495,7 @@ spec:
 - An upgrade will look like this:
   - Serially go through each control plane replica not at the current config hash
     - Check health of any replicas for the current config hash
-    - Uniquely mark the existing replica machine through setting an annotation and persisting the change (cluster.x-k8s.io/control-plane/selected-for-upgrade)
+    - Uniquely mark the existing replica machine through setting a label and persisting the change (cluster.x-k8s.io/control-plane/selected-for-upgrade)
     - Check cluster health
     - Provision a new machine at the correct version
     - Poll on health of replicas with the current config hash

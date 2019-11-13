@@ -52,12 +52,12 @@ func (r *MachineReconciler) reconcilePhase(_ context.Context, m *clusterv1.Machi
 		m.Status.SetTypedPhase(clusterv1.MachinePhaseProvisioning)
 	}
 
-	// Set the phase to "provisioned" if the infrastructure is ready.
-	if m.Status.InfrastructureReady {
+	// Set the phase to "provisioned" if there is a NodeRef.
+	if m.Status.NodeRef != nil {
 		m.Status.SetTypedPhase(clusterv1.MachinePhaseProvisioned)
 	}
 
-	// Set the phase to "running" if there is a NodeRef field.
+	// Set the phase to "running" if there is a NodeRef field and infrastructure is ready.
 	if m.Status.NodeRef != nil && m.Status.InfrastructureReady {
 		m.Status.SetTypedPhase(clusterv1.MachinePhaseRunning)
 	}
@@ -220,7 +220,7 @@ func (r *MachineReconciler) reconcileInfrastructure(ctx context.Context, m *clus
 		return err
 	}
 
-	if m.Status.InfrastructureReady || !infraConfig.GetDeletionTimestamp().IsZero() {
+	if !infraConfig.GetDeletionTimestamp().IsZero() {
 		return nil
 	}
 
@@ -228,7 +228,9 @@ func (r *MachineReconciler) reconcileInfrastructure(ctx context.Context, m *clus
 	ready, err := external.IsReady(infraConfig)
 	if err != nil {
 		return err
-	} else if !ready {
+	}
+	m.Status.InfrastructureReady = ready
+	if !ready {
 		return errors.Wrapf(&capierrors.RequeueAfterError{RequeueAfter: externalReadyWait},
 			"Infrastructure provider for Machine %q in namespace %q is not ready, requeuing", m.Name, m.Namespace,
 		)
@@ -244,14 +246,10 @@ func (r *MachineReconciler) reconcileInfrastructure(ctx context.Context, m *clus
 
 	// Get and set Status.Addresses from the infrastructure provider.
 	err = util.UnstructuredUnmarshalField(infraConfig, &m.Status.Addresses, "status", "addresses")
-
-	if err != nil {
-		if err != util.ErrUnstructuredFieldNotFound {
-			return errors.Wrapf(err, "failed to retrieve addresses from infrastructure provider for Machine %q in namespace %q", m.Name, m.Namespace)
-		}
+	if err != nil && err != util.ErrUnstructuredFieldNotFound {
+		return errors.Wrapf(err, "failed to retrieve addresses from infrastructure provider for Machine %q in namespace %q", m.Name, m.Namespace)
 	}
 
 	m.Spec.ProviderID = pointer.StringPtr(providerID)
-	m.Status.InfrastructureReady = true
 	return nil
 }

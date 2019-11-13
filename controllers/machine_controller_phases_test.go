@@ -176,7 +176,7 @@ var _ = Describe("Reconcile Machine Phases", func() {
 		Expect(machine.Status.GetTypedPhase()).To(Equal(clusterv1.MachinePhaseProvisioning))
 	})
 
-	It("Should set `Provisioned` when bootstrap and infra is ready", func() {
+	It("Should set `Running` when bootstrap and infra is ready", func() {
 		machine := defaultMachine.DeepCopy()
 		bootstrapConfig := defaultBootstrap.DeepCopy()
 		infraConfig := defaultInfra.DeepCopy()
@@ -207,6 +207,9 @@ var _ = Describe("Reconcile Machine Phases", func() {
 		}, "status", "addresses")
 		Expect(err).NotTo(HaveOccurred())
 
+		// Set NodeRef.
+		machine.Status.NodeRef = &corev1.ObjectReference{Kind: "Node", Name: "machine-test-node"}
+
 		r := &MachineReconciler{
 			Client: fake.NewFakeClient(defaultCluster, defaultKubeconfigSecret, machine, bootstrapConfig, infraConfig),
 			Log:    log.Log,
@@ -214,14 +217,14 @@ var _ = Describe("Reconcile Machine Phases", func() {
 
 		res, err := r.reconcile(context.Background(), defaultCluster, machine)
 		Expect(err).NotTo(HaveOccurred())
-		Expect(res.Requeue).To(BeTrue())
+		Expect(res.Requeue).To(BeFalse())
 		Expect(machine.Status.Addresses).To(HaveLen(2))
 
 		r.reconcilePhase(context.Background(), machine)
-		Expect(machine.Status.GetTypedPhase()).To(Equal(clusterv1.MachinePhaseProvisioned))
+		Expect(machine.Status.GetTypedPhase()).To(Equal(clusterv1.MachinePhaseRunning))
 	})
 
-	It("Should set `Provisioned` when bootstrap and infra is ready with no Status.Addresses", func() {
+	It("Should set `Running` when bootstrap and infra is ready with no Status.Addresses", func() {
 		machine := defaultMachine.DeepCopy()
 		bootstrapConfig := defaultBootstrap.DeepCopy()
 		infraConfig := defaultInfra.DeepCopy()
@@ -240,6 +243,9 @@ var _ = Describe("Reconcile Machine Phases", func() {
 		err = unstructured.SetNestedField(infraConfig.Object, "test://id-1", "spec", "providerID")
 		Expect(err).NotTo(HaveOccurred())
 
+		// Set NodeRef.
+		machine.Status.NodeRef = &corev1.ObjectReference{Kind: "Node", Name: "machine-test-node"}
+
 		r := &MachineReconciler{
 			Client: fake.NewFakeClient(defaultCluster, defaultKubeconfigSecret, machine, bootstrapConfig, infraConfig),
 			Log:    log.Log,
@@ -247,11 +253,11 @@ var _ = Describe("Reconcile Machine Phases", func() {
 
 		res, err := r.reconcile(context.Background(), defaultCluster, machine)
 		Expect(err).NotTo(HaveOccurred())
-		Expect(res.Requeue).To(BeTrue())
+		Expect(res.Requeue).To(BeFalse())
 		Expect(machine.Status.Addresses).To(HaveLen(0))
 
 		r.reconcilePhase(context.Background(), machine)
-		Expect(machine.Status.GetTypedPhase()).To(Equal(clusterv1.MachinePhaseProvisioned))
+		Expect(machine.Status.GetTypedPhase()).To(Equal(clusterv1.MachinePhaseRunning))
 	})
 
 	It("Should set `Running` when bootstrap, infra, and NodeRef is ready", func() {
@@ -299,6 +305,34 @@ var _ = Describe("Reconcile Machine Phases", func() {
 
 		r.reconcilePhase(context.Background(), machine)
 		Expect(machine.Status.GetTypedPhase()).To(Equal(clusterv1.MachinePhaseRunning))
+	})
+
+	It("Should set `Provisioned` when there is a NodeRef but infra is not ready ", func() {
+		machine := defaultMachine.DeepCopy()
+		bootstrapConfig := defaultBootstrap.DeepCopy()
+		infraConfig := defaultInfra.DeepCopy()
+
+		// Set bootstrap ready.
+		err := unstructured.SetNestedField(bootstrapConfig.Object, true, "status", "ready")
+		Expect(err).NotTo(HaveOccurred())
+
+		err = unstructured.SetNestedField(bootstrapConfig.Object, "...", "status", "bootstrapData")
+		Expect(err).NotTo(HaveOccurred())
+
+		// Set NodeRef.
+		machine.Status.NodeRef = &corev1.ObjectReference{Kind: "Node", Name: "machine-test-node"}
+
+		r := &MachineReconciler{
+			Client: fake.NewFakeClient(defaultCluster, defaultKubeconfigSecret, machine, bootstrapConfig, infraConfig),
+			Log:    log.Log,
+		}
+
+		res, err := r.reconcile(context.Background(), defaultCluster, machine)
+		Expect(err).NotTo(HaveOccurred())
+		Expect(res.Requeue).To(BeTrue())
+
+		r.reconcilePhase(context.Background(), machine)
+		Expect(machine.Status.GetTypedPhase()).To(Equal(clusterv1.MachinePhaseProvisioned))
 	})
 
 	It("Should set `Deleting` when Machine is being deleted", func() {

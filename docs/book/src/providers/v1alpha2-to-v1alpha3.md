@@ -60,3 +60,7 @@
 
 - Previously examples and tests were setting/checking for the label to be set to `true`.
 - The function `util.IsControlPlaneMachine` was previously checking for any value other than empty string, while now we only check if the associated label exists.
+    
+## Machine `Status.Phase` field set to `Provisioned` if a NodeRef is set but infrastructure is not ready
+
+ - The machine Status.Phase is set back to `Provisioned` if the infrastructure is not ready. This is only applicable if the infrastructure node status does not have any errors set.

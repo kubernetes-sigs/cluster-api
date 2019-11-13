@@ -38,6 +38,7 @@ export DOCKER_CLI_EXPERIMENTAL := enabled
 TOOLS_DIR := hack/tools
 TOOLS_BIN_DIR := $(TOOLS_DIR)/bin
 BIN_DIR := bin
+E2E_FRAMEWORK_DIR := test/framework
 RELEASE_NOTES_BIN := bin/release-notes
 RELEASE_NOTES := $(TOOLS_DIR)/$(RELEASE_NOTES_BIN)
 
@@ -105,6 +106,10 @@ $(CONVERSION_GEN): $(TOOLS_DIR)/go.mod
 $(RELEASE_NOTES) : $(TOOLS_DIR)/go.mod
 	cd $(TOOLS_DIR) && go build -o $(RELEASE_NOTES_BIN) -tags tools ./release
 
+.PHONY: e2e-framework
+e2e-framework: ## Builds the CAPI e2e framework
+	cd $(E2E_FRAMEWORK_DIR); go build ./...
+
 ## --------------------------------------
 ## Linting
 ## --------------------------------------
@@ -157,6 +162,7 @@ generate-manifests: $(CONTROLLER_GEN) ## Generate manifests e.g. CRD, RBAC etc.
 modules: ## Runs go mod to ensure modules are up to date.
 	go mod tidy
 	cd $(TOOLS_DIR); go mod tidy
+	cd $(E2E_FRAMEWORK_DIR); go mod tidy
 
 ## --------------------------------------
 ## Docker

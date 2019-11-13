@@ -60,7 +60,21 @@
 
 - Previously examples and tests were setting/checking for the label to be set to `true`.
 - The function `util.IsControlPlaneMachine` was previously checking for any value other than empty string, while now we only check if the associated label exists.
-    
+
 ## Machine `Status.Phase` field set to `Provisioned` if a NodeRef is set but infrastructure is not ready
 
  - The machine Status.Phase is set back to `Provisioned` if the infrastructure is not ready. This is only applicable if the infrastructure node status does not have any errors set.
+
+## Metrics
+
+- The cluster and machine controllers expose the following prometheus metrics.
+  - `capi_cluster_control_plane_ready`: Cluster control plane is ready if set to 1 and not if 0.
+  - `capi_cluster_infrastructure_ready`: Cluster infrastructure is ready if set to 1 and not if 0.
+  - `capi_cluster_kubeconfig_ready`: Cluster kubeconfig is ready if set to 1 and not if 0.
+  - `capi_cluster_error_set`: Cluster ErrorMesssage or ErrorReason is set if metric is 1.
+  - `capi_machine_bootstrap_ready`: Machine Boostrap is ready if set to 1 and not if 0.
+  - `capi_machine_infrastructure_ready`: Machine InfrastructureRef is ready if set to 1 and not if 0.
+  - `capi_machine_node_ready`: Machine NodeRef is ready if set to 1 and not if 0.
+
+  They can be accessed by default via the `8080` metrics port on the cluster
+  api controller manager.

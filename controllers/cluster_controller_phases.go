@@ -49,8 +49,8 @@ func (r *ClusterReconciler) reconcilePhase(_ context.Context, cluster *clusterv1
 		cluster.Status.SetTypedPhase(clusterv1.ClusterPhaseProvisioning)
 	}
 
-	// Set the phase to "provisioned" if the infrastructure is ready.
-	if cluster.Status.InfrastructureReady {
+	// Set the phase to "provisioned" if the infrastructure is ready and APIEndpoints exists
+	if cluster.Status.InfrastructureReady && len(cluster.Status.APIEndpoints) > 0 {
 		cluster.Status.SetTypedPhase(clusterv1.ClusterPhaseProvisioned)
 	}
 

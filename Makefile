@@ -149,7 +149,8 @@ generate-manifests: $(CONTROLLER_GEN) ## Generate manifests e.g. CRD, RBAC etc.
 		paths=./bootstrap/kubeadm/controllers/... \
 		crd \
 		rbac:roleName=manager-role \
-		output:crd:dir=./config/crd/bases
+		output:crd:dir=./config/crd/bases \
+		webhook
 	$(CONTROLLER_GEN) \
 		paths=./bootstrap/kubeadm/api/... \
 		crd:trivialVersions=true \

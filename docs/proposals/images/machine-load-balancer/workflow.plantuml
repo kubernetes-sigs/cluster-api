@@ -1,0 +1,50 @@
+@startuml
+title Machine Load Balancer (MLB)
+autonumber "<font color=blue><b> "
+actor User
+
+' -- GROUPS START ---
+
+
+collections "CRD"
+participant "Infra"
+participant "MLB"
+participant "Infra Provider"
+participant "Template Operator"
+skinparam backgroundColor #EEEEEE
+
+' -- GROUPS END ---
+
+"CRD" o<-- "MLB": 🔍 Watch for new Loadbalancers
+"CRD" o<-- "Infra Provider": 🔍 Watch for new Clusters
+"CRD" o<-- "Infra Provider": 🔍 Watch for Machines
+"CRD" o<-- "Template Operator": 🔍 Watch for templated fields
+User->"CRD":Create MachineLoadBalancer
+note right: kind: MachineLoadBalancer\nannotations:\n  <b>status.endpoint: {{cluster.x-k8s.io/a=spec.controlPlaneEndpoint}}</b>\nspec:\n  machineSelector: \n    cluster.x-k8s.io/cluster-name: a\n    cluster.x-k8s.io/control-plane: true
+User->"CRD":Create Cluster
+note right: kind: Cluster\nmetadata:\n  name: <b>a\n
+User -> CRD: Create machines
+note right: kind: Machine\nmetadata:\n labels: \n   cluster.x-k8s.io/cluster-name: a\n   cluster.x-k8s.io/control-plane: true
+
+
+"Infra Provider" ->> "Infra": ➕ Create cluster infra (VPC etc..)
+activate "Infra Provider"
+
+"Infra Provider" -->> CRD: ⏳ - Wait for <i> cluster.spec.controlPlaneEndpoint
+activate CRD
+
+activate "MLB"
+"MLB" ->> "Infra": ➕ Create LB
+"MLB" -> "CRD": ➡  Update <i>loadBalancer.status.endpoint
+"Template Operator" -> CRD: ➡  Update <i> cluster.spec.controlPlaneEndpoint</i> from <i>loadBalancer.status.endpoint
+note left: The Template operator is used to decouple the LB from CAPI\nmaking it generally reusable for any machine based workload
+deactivate "MLB"
+CRD -->>"Infra Provider": 🔄 reconcile
+deactivate CRD
+"Infra Provider" -> "Infra": ➕ Provision machine(s)
+"Infra Provider" -> "CRD": ➡  Update <i>machine.status.Address
+
+CRD -->>"MLB": 🔄 reconcile
+"MLB" ->> "Infra": ➡  Update Loadbalancer backends
+hide footbox
+@enduml

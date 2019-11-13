@@ -168,7 +168,7 @@ curl -L {{#releaselink gomodule:"sigs.k8s.io/cluster-api-provider-azure" asset:"
 Check the [Docker provider releases](https://github.com/kubernetes-sigs/cluster-api-provider-docker/releases) for an up-to-date components file.
 
 ```bash
-kubectl create -f {{#releaselink gomodule:"sigs.k8s.io/cluster-api-provider-docker" asset:"provider_components.yaml" version:"0.2.x"}}
+kubectl create -f {{#releaselink gomodule:"sigs.k8s.io/cluster-api-provider-docker" asset:"provider-components.yaml" version:"0.2.x"}}
 ```
 
 {{#/tab }}

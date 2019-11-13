@@ -1,0 +1,39 @@
+@startuml
+title User creates a Cluster with KubeadmControlPlane
+
+' -- GROUPS START ---
+
+box #lightgreen
+participant "API Server"
+end box
+
+box #lightslategray
+participant "Cluster API Cluster Controller"
+end box
+
+' -- GROUPS END ---
+
+"API Server"-->>"Cluster API Cluster Controller": KubeadmControlPlane updated
+
+"Cluster API Cluster Controller"-> "Cluster API Cluster Controller":Cluster Controller Reconcile
+activate "Cluster API Cluster Controller"
+
+opt Cluster.Spec.ControlPlaneRef -> Status.Initialized is true
+
+"Cluster API Cluster Controller"-> "Cluster API Cluster Controller":Set Cluster.Status.ControlPlaneInitialized = true
+
+opt Cluster.Spec.ControlPlaneRef -> Status.Ready is true
+
+"Cluster API Cluster Controller"-> "Cluster API Cluster Controller":Set Cluster.Status.ControlPlaneReady = true
+
+end
+
+end
+
+"Cluster API Cluster Controller"->"API Server": Patch Cluster Status
+"Cluster API Cluster Controller"<<--"API Server": Response
+
+deactivate "Cluster API Cluster Controller"
+
+hide footbox
+@enduml

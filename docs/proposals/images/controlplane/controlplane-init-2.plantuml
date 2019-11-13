@@ -1,0 +1,52 @@
+@startuml
+title User creates a Cluster with KubeadmControlPlane
+
+' -- GROUPS START ---
+
+box #lightgreen
+participant "API Server"
+end box
+
+box #violet
+participant "KubeadmControlPlane Controller"
+end box
+
+' -- GROUPS END ---
+
+note right of "KubeadmControlPlane Controller":Watches KubeadmControlPlanes,\nClusters, and owned Machines
+
+"API Server"-->>"KubeadmControlPlane Controller": Cluster Updated
+
+"KubeadmControlPlane Controller"-> "KubeadmControlPlane Controller":Enqueues KubeadmControlPlane Reconcile
+
+"KubeadmControlPlane Controller"-> "KubeadmControlPlane Controller":KubeadmControlPlane Controller Reconcile
+activate "KubeadmControlPlane Controller"
+
+note over "KubeadmControlPlane Controller": - ✅ KubeadmControlPlane.OwnerReferences \ncontains a Cluster
+
+"KubeadmControlPlane Controller"->"API Server": Get Cluster
+"KubeadmControlPlane Controller"<<--"API Server": Response
+
+note over "KubeadmControlPlane Controller": - ✅ Cluster.Status.InfrastructureReady is true\n- ✅ KubeadmControlPlane instance is valid
+
+"KubeadmControlPlane Controller"->"API Server": Get Machines maching label selector
+"KubeadmControlPlane Controller"<<--"API Server": Response
+
+opt KubeadmControlPlane.Spec.Replicas >= 1, no existing Machines found
+
+"KubeadmControlPlane Controller"->"API Server": Create KubeadmConfig from KubeadmControlPlane.Spec.KubeadmConfigSpec
+"KubeadmControlPlane Controller"<<--"API Server": Response
+
+"KubeadmControlPlane Controller"->"API Server": Create InfrastructureMachine from KubeadmControlPlane.Spec.InfrastructureTemplate
+"KubeadmControlPlane Controller"<<--"API Server": Response
+
+"KubeadmControlPlane Controller"->"API Server": Create Machine using refs from created KubeadmConfig and InfrastructureMachine resources
+"KubeadmControlPlane Controller"<<--"API Server": Response
+
+end
+
+"KubeadmControlPlane Controller"->"API Server": Patch KubeadmControlPlane
+"KubeadmControlPlane Controller"<<--"API Server": Response
+
+hide footbox
+@enduml

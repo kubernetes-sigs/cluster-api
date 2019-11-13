@@ -1,0 +1,47 @@
+@startuml
+title User creates a Cluster with KubeadmControlPlane
+actor User
+
+' -- GROUPS START ---
+
+box #lightgreen
+participant "API Server"
+end box
+
+box #lightslategray
+participant "Cluster API Cluster Controller"
+end box
+
+' -- GROUPS END ---
+
+User->"API Server":kubectl apply -f cluster.yaml
+"API Server"-->>"Cluster API Cluster Controller": New Cluster
+
+"Cluster API Cluster Controller"-> "Cluster API Cluster Controller":Cluster Controller Reconcile
+activate "Cluster API Cluster Controller"
+
+note over "Cluster API Cluster Controller": - ✅ Cluster.Status.InfrastructureReady is false\n- ✅ Cluster.Spec.ControlPlaneRef is populated\n- ✅ Cluster.Spec.ControlPlaneRef -> Status.Ready is false
+
+opt Required only if the object hasn't been seen before
+"Cluster API Cluster Controller"-> "Cluster API Cluster Controller":Add watcher for \nCluster.Spec.ControlPlaneRef.Kind objects
+end
+
+opt Required only if the infrastructure object doesn't have a Cluster owner reference
+"Cluster API Cluster Controller"-> "Cluster API Cluster Controller":Set Cluster.Spec.InfrastructureRef -> OwnerReferences[0] to Cluster
+"Cluster API Cluster Controller"->"API Server": Patch AWSCluster
+"Cluster API Cluster Controller"<<--"API Server": Response
+end
+
+opt Required only if the control plane object doesn't have a Cluster owner reference
+"Cluster API Cluster Controller"-> "Cluster API Cluster Controller":Set Cluster.Spec.ControlPlaneRef -> OwnerReferences[0] to Cluster
+"Cluster API Cluster Controller"->"API Server": Patch KubeadmControlPlane
+"Cluster API Cluster Controller"<<--"API Server": Response
+end
+
+"Cluster API Cluster Controller"->"API Server": Patch Cluster Status
+"Cluster API Cluster Controller"<<--"API Server": Response
+
+deactivate "Cluster API Cluster Controller"
+
+hide footbox
+@enduml

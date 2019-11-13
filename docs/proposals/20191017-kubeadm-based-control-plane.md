@@ -5,6 +5,7 @@ authors:
   - "@chuckha”
   - "@randomvariable"
   - "@dlipovetsky"
+  - "@amy"
 reviewers:
   - "@ncdc"
   - "@timothysc"

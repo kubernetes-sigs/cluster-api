@@ -14,42 +14,37 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package generators
+package e2e
 
 import (
 	"context"
 	"fmt"
-	"io/ioutil"
-	"net/http"
 
 	"github.com/pkg/errors"
+	"sigs.k8s.io/cluster-api/test/framework/exec"
 )
 
-// Generator generates the components for cert manager.
-type CertManager struct {
-	// ReleaseVersion defines the release version. Must be set.
-	ReleaseVersion string
-}
+type provider struct{}
 
 // GetName returns the name of the components being generated.
-func (g *CertManager) GetName() string {
-	return fmt.Sprintf("Cert Manager version %s", g.ReleaseVersion)
+func (g *provider) GetName() string {
+	return "Cluster API Provider Docker version: Local files"
 }
 
-func (g *CertManager) releaseYAMLPath() string {
-	return fmt.Sprintf("https://github.com/jetstack/cert-manager/releases/download/%s/cert-manager.yaml", g.ReleaseVersion)
+func (g *provider) kustomizePath(path string) string {
+	return "../config/" + path
 }
 
 // Manifests return the generated components and any error if there is one.
-func (g *CertManager) Manifests(_ context.Context) ([]byte, error) {
-	resp, err := http.Get(g.releaseYAMLPath())
+func (g *provider) Manifests(ctx context.Context) ([]byte, error) {
+	kustomize := exec.NewCommand(
+		exec.WithCommand("kustomize"),
+		exec.WithArgs("build", g.kustomizePath("default")),
+	)
+	stdout, stderr, err := kustomize.Run(ctx)
 	if err != nil {
+		fmt.Println(string(stderr))
 		return nil, errors.WithStack(err)
 	}
-	out, err := ioutil.ReadAll(resp.Body)
-	if err != nil {
-		return nil, errors.WithStack(err)
-	}
-	defer resp.Body.Close()
-	return out, nil
+	return stdout, nil
 }

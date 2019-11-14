@@ -139,6 +139,78 @@ func Convert_v1alpha2_MachineSpec_To_v1alpha3_MachineSpec(in *MachineSpec, out *
 	return nil
 }
 
+func Convert_v1alpha2_ClusterStatus_To_v1alpha3_ClusterStatus(in *ClusterStatus, out *v1alpha3.ClusterStatus, s apiconversion.Scope) error {
+	if err := autoConvert_v1alpha2_ClusterStatus_To_v1alpha3_ClusterStatus(in, out, s); err != nil {
+		return err
+	}
+
+	// Manually convert the Error fields to the Failure fields
+	out.FailureMessage = in.ErrorMessage
+	out.FailureReason = in.ErrorReason
+
+	return nil
+}
+
+func Convert_v1alpha3_ClusterStatus_To_v1alpha2_ClusterStatus(in *v1alpha3.ClusterStatus, out *ClusterStatus, s apiconversion.Scope) error {
+	if err := autoConvert_v1alpha3_ClusterStatus_To_v1alpha2_ClusterStatus(in, out, s); err != nil {
+		return err
+	}
+
+	// Manually convert the Failure fields to the Error fields
+	out.ErrorMessage = in.FailureMessage
+	out.ErrorReason = in.FailureReason
+
+	return nil
+}
+
+func Convert_v1alpha2_MachineSetStatus_To_v1alpha3_MachineSetStatus(in *MachineSetStatus, out *v1alpha3.MachineSetStatus, s apiconversion.Scope) error {
+	if err := autoConvert_v1alpha2_MachineSetStatus_To_v1alpha3_MachineSetStatus(in, out, s); err != nil {
+		return err
+	}
+
+	// Manually convert the Error fields to the Failure fields
+	out.FailureMessage = in.ErrorMessage
+	out.FailureReason = in.ErrorReason
+
+	return nil
+}
+
+func Convert_v1alpha3_MachineSetStatus_To_v1alpha2_MachineSetStatus(in *v1alpha3.MachineSetStatus, out *MachineSetStatus, s apiconversion.Scope) error {
+	if err := autoConvert_v1alpha3_MachineSetStatus_To_v1alpha2_MachineSetStatus(in, out, s); err != nil {
+		return err
+	}
+
+	// Manually convert the Failure fields to the Error fields
+	out.ErrorMessage = in.FailureMessage
+	out.ErrorReason = in.FailureReason
+
+	return nil
+}
+
+func Convert_v1alpha2_MachineStatus_To_v1alpha3_MachineStatus(in *MachineStatus, out *v1alpha3.MachineStatus, s apiconversion.Scope) error {
+	if err := autoConvert_v1alpha2_MachineStatus_To_v1alpha3_MachineStatus(in, out, s); err != nil {
+		return err
+	}
+
+	// Manually convert the Error fields to the Failure fields
+	out.FailureMessage = in.ErrorMessage
+	out.FailureReason = in.ErrorReason
+
+	return nil
+}
+
+func Convert_v1alpha3_MachineStatus_To_v1alpha2_MachineStatus(in *v1alpha3.MachineStatus, out *MachineStatus, s apiconversion.Scope) error {
+	if err := autoConvert_v1alpha3_MachineStatus_To_v1alpha2_MachineStatus(in, out, s); err != nil {
+		return err
+	}
+
+	// Manually convert the Failure fields to the Error fields
+	out.ErrorMessage = in.FailureMessage
+	out.ErrorReason = in.FailureReason
+
+	return nil
+}
+
 func Convert_v1alpha3_MachineDeploymentSpec_To_v1alpha2_MachineDeploymentSpec(in *v1alpha3.MachineDeploymentSpec, out *MachineDeploymentSpec, s apiconversion.Scope) error {
 	return errors.New("cannot recover removed MachineDeploymentSpec Cluster Name")
 }

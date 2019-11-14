@@ -62,8 +62,8 @@ func (r *MachineReconciler) reconcilePhase(_ context.Context, m *clusterv1.Machi
 		m.Status.SetTypedPhase(clusterv1.MachinePhaseRunning)
 	}
 
-	// Set the phase to "failed" if any of Status.ErrorReason or Status.ErrorMessage is not-nil.
-	if m.Status.ErrorReason != nil || m.Status.ErrorMessage != nil {
+	// Set the phase to "failed" if any of Status.FailureReason or Status.FailureMessage is not-nil.
+	if m.Status.FailureReason != nil || m.Status.FailureMessage != nil {
 		m.Status.SetTypedPhase(clusterv1.MachinePhaseFailed)
 	}
 
@@ -131,19 +131,19 @@ func (r *MachineReconciler) reconcileExternal(ctx context.Context, m *clusterv1.
 		}
 	}
 
-	// Set error reason and message, if any.
-	errorReason, errorMessage, err := external.ErrorsFrom(obj)
+	// Set failure reason and message, if any.
+	failureReason, failureMessage, err := external.FailuresFrom(obj)
 	if err != nil {
 		return nil, err
 	}
-	if errorReason != "" {
-		machineStatusError := capierrors.MachineStatusError(errorReason)
-		m.Status.ErrorReason = &machineStatusError
+	if failureReason != "" {
+		machineStatusError := capierrors.MachineStatusError(failureReason)
+		m.Status.FailureReason = &machineStatusError
 	}
-	if errorMessage != "" {
-		m.Status.ErrorMessage = pointer.StringPtr(
+	if failureMessage != "" {
+		m.Status.FailureMessage = pointer.StringPtr(
 			fmt.Sprintf("Failure detected from referenced resource %v with name %q: %s",
-				obj.GroupVersionKind(), obj.GetName(), errorMessage),
+				obj.GroupVersionKind(), obj.GetName(), failureMessage),
 		)
 	}
 
@@ -213,8 +213,8 @@ func (r *MachineReconciler) reconcileInfrastructure(ctx context.Context, m *clus
 		if m.Status.InfrastructureReady && strings.Contains(err.Error(), "could not find") {
 			// Infra object went missing after the machine was up and running
 			r.Log.Error(err, "Machine infrastructure reference has been deleted after being ready, setting failure state")
-			m.Status.ErrorReason = capierrors.MachineStatusErrorPtr(capierrors.InvalidConfigurationMachineError)
-			m.Status.ErrorMessage = pointer.StringPtr(fmt.Sprintf("Machine infrastructure resource %v with name %q has been deleted after being ready",
+			m.Status.FailureReason = capierrors.MachineStatusErrorPtr(capierrors.InvalidConfigurationMachineError)
+			m.Status.FailureMessage = pointer.StringPtr(fmt.Sprintf("Machine infrastructure resource %v with name %q has been deleted after being ready",
 				m.Spec.InfrastructureRef.GroupVersionKind(), m.Spec.InfrastructureRef.Name))
 		}
 		return err

@@ -732,8 +732,8 @@ func TestReconcileInfrastructure(t *testing.T) {
 			expectRequeueAfter: true,
 			expected: func(g *WithT, m *clusterv1.Machine) {
 				g.Expect(m.Status.InfrastructureReady).To(BeTrue())
-				g.Expect(m.Status.ErrorMessage).ToNot(BeNil())
-				g.Expect(m.Status.ErrorReason).ToNot(BeNil())
+				g.Expect(m.Status.FailureMessage).ToNot(BeNil())
+				g.Expect(m.Status.FailureReason).ToNot(BeNil())
 				g.Expect(m.Status.GetTypedPhase()).To(Equal(clusterv1.MachinePhaseFailed))
 			},
 		},

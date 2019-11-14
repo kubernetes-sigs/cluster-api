@@ -536,8 +536,8 @@ spec:
               bootstrapReady:
                 description: BootstrapReady is the state of the bootstrap provider.
                 type: boolean
-              errorMessage:
-                description: "ErrorMessage will be set in the event that there is
+              failureMessage:
+                description: "FailureMessage will be set in the event that there is
                   a terminal problem reconciling the Machine and will contain a more
                   verbose string suitable for logging and human consumption. \n This
                   field should not be set for transitive errors that a controller
@@ -551,9 +551,9 @@ spec:
                   occur during the reconciliation of Machines can be added as events
                   to the Machine object and/or logged in the controller's output."
                 type: string
-              errorReason:
-                description: "ErrorReason will be set in the event that there is a
-                  terminal problem reconciling the Machine and will contain a succinct
+              failureReason:
+                description: "FailureReason will be set in the event that there is
+                  a terminal problem reconciling the Machine and will contain a succinct
                   value suitable for machine interpretation. \n This field should
                   not be set for transitive errors that a controller faces that are
                   expected to be fixed automatically over time (like service outages),

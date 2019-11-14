@@ -333,7 +333,7 @@ var _ = Describe("Cluster Reconciler", func() {
 func TestClusterReconciler(t *testing.T) {
 	t.Run("metrics", func(t *testing.T) {
 
-		errorReason := capierrors.ClusterStatusError("foo")
+		failureReason := capierrors.ClusterStatusError("foo")
 		tests := []struct {
 			name            string
 			cs              clusterv1.ClusterStatus
@@ -384,18 +384,18 @@ func TestClusterReconciler(t *testing.T) {
 				expectedMetrics: map[string]float64{"capi_cluster_kubeconfig_ready": 1},
 			},
 			{
-				name: "cluster error metric is 1 if ErrorReason is set",
+				name: "cluster error metric is 1 if FailureReason is set",
 				cs: clusterv1.ClusterStatus{
-					ErrorReason: &errorReason,
+					FailureReason: &failureReason,
 				},
-				expectedMetrics: map[string]float64{"capi_cluster_error_set": 1},
+				expectedMetrics: map[string]float64{"capi_cluster_failure_set": 1},
 			},
 			{
-				name: "cluster error metric is 1 if ErrorMessage is set",
+				name: "cluster error metric is 1 if FailureMessage is set",
 				cs: clusterv1.ClusterStatus{
-					ErrorMessage: proto.String("some-error"),
+					FailureMessage: proto.String("some-error"),
 				},
-				expectedMetrics: map[string]float64{"capi_cluster_error_set": 1},
+				expectedMetrics: map[string]float64{"capi_cluster_failure_set": 1},
 			},
 			{
 				name: "cluster is ready",
@@ -412,7 +412,7 @@ func TestClusterReconciler(t *testing.T) {
 					"capi_cluster_control_plane_ready":  1,
 					"capi_cluster_infrastructure_ready": 1,
 					"capi_cluster_kubeconfig_ready":     1,
-					"capi_cluster_error_set":            0,
+					"capi_cluster_failure_set":          0,
 				},
 			},
 		}

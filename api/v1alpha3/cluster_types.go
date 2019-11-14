@@ -83,16 +83,16 @@ type ClusterStatus struct {
 	// +optional
 	APIEndpoints []APIEndpoint `json:"apiEndpoints,omitempty"`
 
-	// ErrorReason indicates that there is a problem reconciling the
+	// FailureReason indicates that there is a fatal problem reconciling the
 	// state, and will be set to a token value suitable for
 	// programmatic interpretation.
 	// +optional
-	ErrorReason *capierrors.ClusterStatusError `json:"errorReason,omitempty"`
+	FailureReason *capierrors.ClusterStatusError `json:"failureReason,omitempty"`
 
-	// ErrorMessage indicates that there is a problem reconciling the
+	// FailureMessage indicates that there is a fatal problem reconciling the
 	// state, and will be set to a descriptive error message.
 	// +optional
-	ErrorMessage *string `json:"errorMessage,omitempty"`
+	FailureMessage *string `json:"failureMessage,omitempty"`
 
 	// Phase represents the current phase of cluster actuation.
 	// E.g. Pending, Running, Terminating, Failed etc.

@@ -174,7 +174,7 @@ func TestMachineDeploymentSyncStatus(t *testing.T) {
 					ReadyReplicas:      0,
 					Replicas:           2,
 					ObservedGeneration: 1,
-					ErrorReason:        &msStatusError,
+					FailureReason:      &msStatusError,
 				},
 			}},
 			newMachineSet: &clusterv1.MachineSet{

@@ -81,19 +81,19 @@ func CloneTemplate(ctx context.Context, c client.Client, ref *corev1.ObjectRefer
 	return to, nil
 }
 
-// ErrorsFrom returns the ErrorReason and ErrorMessage fields from the external object status.
-func ErrorsFrom(obj *unstructured.Unstructured) (string, string, error) {
-	errorReason, _, err := unstructured.NestedString(obj.Object, "status", "errorReason")
+// FailuresFrom returns the FailureReason and FailureMessage fields from the external object status.
+func FailuresFrom(obj *unstructured.Unstructured) (string, string, error) {
+	failureReason, _, err := unstructured.NestedString(obj.Object, "status", "failureReason")
 	if err != nil {
-		return "", "", errors.Wrapf(err, "failed to determine errorReason on %v %q",
+		return "", "", errors.Wrapf(err, "failed to determine failureReason on %v %q",
 			obj.GroupVersionKind(), obj.GetName())
 	}
-	errorMessage, _, err := unstructured.NestedString(obj.Object, "status", "errorMessage")
+	failureMessage, _, err := unstructured.NestedString(obj.Object, "status", "failureMessage")
 	if err != nil {
-		return "", "", errors.Wrapf(err, "failed to determine errorMessage on %v %q",
+		return "", "", errors.Wrapf(err, "failed to determine failureMessage on %v %q",
 			obj.GroupVersionKind(), obj.GetName())
 	}
-	return errorReason, errorMessage, nil
+	return failureReason, failureMessage, nil
 }
 
 // IsReady returns true if the Status.Ready field on an external object is true.

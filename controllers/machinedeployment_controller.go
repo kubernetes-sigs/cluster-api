@@ -148,17 +148,6 @@ func (r *MachineDeploymentReconciler) reconcile(ctx context.Context, d *clusterv
 		}
 	}
 
-	// Make sure that label selector can match the template's labels.
-	// TODO(vincepri): Move to a validation (admission) webhook when supported.
-	selector, err := metav1.LabelSelectorAsSelector(&d.Spec.Selector)
-	if err != nil {
-		return ctrl.Result{}, errors.Wrapf(err, "failed to parse MachineDeployment %q label selector", d.Name)
-	}
-
-	if !selector.Matches(labels.Set(d.Spec.Template.Labels)) {
-		return ctrl.Result{}, errors.Errorf("failed validation on MachineDeployment %q label selector, cannot match Machine template labels", d.Name)
-	}
-
 	msList, err := r.getMachineSetsForDeployment(d)
 	if err != nil {
 		return ctrl.Result{}, err

@@ -38,6 +38,7 @@ import (
 
 func TestMachineFinalizer(t *testing.T) {
 	RegisterTestingT(t)
+	bootstrapData := "some valid data"
 	clusterCorrectMeta := &clusterv1.Cluster{
 		ObjectMeta: metav1.ObjectMeta{
 			Namespace: "default",
@@ -51,6 +52,9 @@ func TestMachineFinalizer(t *testing.T) {
 			Namespace: "default",
 		},
 		Spec: clusterv1.MachineSpec{
+			Bootstrap: clusterv1.Bootstrap{
+				Data: &bootstrapData,
+			},
 			ClusterName: "valid-cluster",
 		},
 	}
@@ -62,6 +66,9 @@ func TestMachineFinalizer(t *testing.T) {
 			Finalizers: []string{"some-other-finalizer"},
 		},
 		Spec: clusterv1.MachineSpec{
+			Bootstrap: clusterv1.Bootstrap{
+				Data: &bootstrapData,
+			},
 			ClusterName: "valid-cluster",
 		},
 	}
@@ -127,6 +134,7 @@ func TestMachineFinalizer(t *testing.T) {
 
 func TestMachineOwnerReference(t *testing.T) {
 	RegisterTestingT(t)
+	bootstrapData := "some valid data"
 	testCluster := &clusterv1.Cluster{
 		TypeMeta:   metav1.TypeMeta{Kind: "Cluster", APIVersion: clusterv1.GroupVersion.String()},
 		ObjectMeta: metav1.ObjectMeta{Namespace: "default", Name: "test-cluster"},
@@ -148,6 +156,9 @@ func TestMachineOwnerReference(t *testing.T) {
 			Namespace: "default",
 		},
 		Spec: clusterv1.MachineSpec{
+			Bootstrap: clusterv1.Bootstrap{
+				Data: &bootstrapData,
+			},
 			ClusterName: "test-cluster",
 		},
 	}
@@ -168,6 +179,9 @@ func TestMachineOwnerReference(t *testing.T) {
 			},
 		},
 		Spec: clusterv1.MachineSpec{
+			Bootstrap: clusterv1.Bootstrap{
+				Data: &bootstrapData,
+			},
 			ClusterName: "test-cluster",
 		},
 	}

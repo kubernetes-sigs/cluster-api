@@ -99,12 +99,10 @@ func main() {
 		"The minimum interval at which watched resources are reconciled (e.g. 15m)")
 
 	flag.DurationVar(&kubeadmcontrollers.DefaultTokenTTL, "bootstrap-token-ttl", 15*time.Minute,
-		"The amount of time the bootstrap token will be valid",
-	)
+		"The amount of time the bootstrap token will be valid")
 
 	flag.IntVar(&webhookPort, "webhook-port", 9443,
-		"Webhook server port (set to 0 to disable)",
-	)
+		"Webhook Server port (set to 0 to disable)")
 
 	flag.Parse()
 
@@ -185,6 +183,10 @@ func main() {
 			setupLog.Error(err, "unable to create webhook", "webhook", "Machine")
 			os.Exit(1)
 		}
+		if err = (&clusterv1alpha3.Machine{}).SetupWebhookWithManager(mgr); err != nil {
+			setupLog.Error(err, "unable to create webhook", "webhook", "Machine")
+			os.Exit(1)
+		}
 
 		if err = (&clusterv1alpha2.MachineList{}).SetupWebhookWithManager(mgr); err != nil {
 			setupLog.Error(err, "unable to create webhook", "webhook", "MachineList")
@@ -195,6 +197,10 @@ func main() {
 			setupLog.Error(err, "unable to create webhook", "webhook", "MachineSet")
 			os.Exit(1)
 		}
+		if err = (&clusterv1alpha3.MachineSet{}).SetupWebhookWithManager(mgr); err != nil {
+			setupLog.Error(err, "unable to create webhook", "webhook", "MachineSet")
+			os.Exit(1)
+		}
 
 		if err = (&clusterv1alpha2.MachineSetList{}).SetupWebhookWithManager(mgr); err != nil {
 			setupLog.Error(err, "unable to create webhook", "webhook", "MachineSetList")
@@ -202,6 +208,10 @@ func main() {
 		}
 
 		if err = (&clusterv1alpha2.MachineDeployment{}).SetupWebhookWithManager(mgr); err != nil {
+			setupLog.Error(err, "unable to create webhook", "webhook", "MachineDeployment")
+			os.Exit(1)
+		}
+		if err = (&clusterv1alpha3.MachineDeployment{}).SetupWebhookWithManager(mgr); err != nil {
 			setupLog.Error(err, "unable to create webhook", "webhook", "MachineDeployment")
 			os.Exit(1)
 		}
@@ -216,8 +226,8 @@ func main() {
 			os.Exit(1)
 		}
 	}
-	// +kubebuilder:scaffold:builder
 
+	// +kubebuilder:scaffold:builder
 	setupLog.Info("starting manager")
 	if err := mgr.Start(ctrl.SetupSignalHandler()); err != nil {
 		setupLog.Error(err, "problem running manager")

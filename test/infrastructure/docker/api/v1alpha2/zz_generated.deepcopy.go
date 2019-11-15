@@ -70,7 +70,7 @@ func (in *DockerCluster) DeepCopyObject() runtime.Object {
 func (in *DockerClusterList) DeepCopyInto(out *DockerClusterList) {
 	*out = *in
 	out.TypeMeta = in.TypeMeta
-	out.ListMeta = in.ListMeta
+	in.ListMeta.DeepCopyInto(&out.ListMeta)
 	if in.Items != nil {
 		in, out := &in.Items, &out.Items
 		*out = make([]DockerCluster, len(*in))
@@ -164,7 +164,7 @@ func (in *DockerMachine) DeepCopyObject() runtime.Object {
 func (in *DockerMachineList) DeepCopyInto(out *DockerMachineList) {
 	*out = *in
 	out.TypeMeta = in.TypeMeta
-	out.ListMeta = in.ListMeta
+	in.ListMeta.DeepCopyInto(&out.ListMeta)
 	if in.Items != nil {
 		in, out := &in.Items, &out.Items
 		*out = make([]DockerMachine, len(*in))
@@ -257,7 +257,7 @@ func (in *DockerMachineTemplate) DeepCopyObject() runtime.Object {
 func (in *DockerMachineTemplateList) DeepCopyInto(out *DockerMachineTemplateList) {
 	*out = *in
 	out.TypeMeta = in.TypeMeta
-	out.ListMeta = in.ListMeta
+	in.ListMeta.DeepCopyInto(&out.ListMeta)
 	if in.Items != nil {
 		in, out := &in.Items, &out.Items
 		*out = make([]DockerMachineTemplate, len(*in))

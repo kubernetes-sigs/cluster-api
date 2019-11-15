@@ -280,14 +280,14 @@ spec:
                 description: ControlPlaneInitialized defines if the control plane
                   has been initialized.
                 type: boolean
-              errorMessage:
-                description: ErrorMessage indicates that there is a problem reconciling
-                  the state, and will be set to a descriptive error message.
+              failureMessage:
+                description: FailureMessage indicates that there is a fatal problem
+                  reconciling the state, and will be set to a descriptive error message.
                 type: string
-              errorReason:
-                description: ErrorReason indicates that there is a problem reconciling
-                  the state, and will be set to a token value suitable for programmatic
-                  interpretation.
+              failureReason:
+                description: FailureReason indicates that there is a fatal problem
+                  reconciling the state, and will be set to a token value suitable
+                  for programmatic interpretation.
                 type: string
               infrastructureReady:
                 description: InfrastructureReady is the state of the infrastructure

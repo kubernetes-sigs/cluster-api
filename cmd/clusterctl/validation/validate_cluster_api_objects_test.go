@@ -37,22 +37,22 @@ import (
 
 var c client.Client
 
-func newClusterStatus(errorReason *capierrors.ClusterStatusError, errorMessage *string) clusterv1.ClusterStatus {
+func newClusterStatus(failureReason *capierrors.ClusterStatusError, failureMessage *string) clusterv1.ClusterStatus {
 	return clusterv1.ClusterStatus{
-		ErrorReason:  errorReason,
-		ErrorMessage: errorMessage,
+		FailureReason:  failureReason,
+		FailureMessage: failureMessage,
 	}
 }
 
-func newMachineStatus(nodeRef *v1.ObjectReference, errorReason *capierrors.MachineStatusError, errorMessage *string) clusterv1.MachineStatus {
+func newMachineStatus(nodeRef *v1.ObjectReference, failureReason *capierrors.MachineStatusError, failureMessage *string) clusterv1.MachineStatus {
 	return clusterv1.MachineStatus{
-		NodeRef:      nodeRef,
-		ErrorReason:  errorReason,
-		ErrorMessage: errorMessage,
+		NodeRef:        nodeRef,
+		FailureReason:  failureReason,
+		FailureMessage: failureMessage,
 	}
 }
 
-func getMachineWithError(machineName, namespace string, nodeRef *v1.ObjectReference, errorReason *capierrors.MachineStatusError, errorMessage *string) clusterv1.Machine {
+func getMachineWithError(machineName, namespace string, nodeRef *v1.ObjectReference, failureReason *capierrors.MachineStatusError, failureMessage *string) clusterv1.Machine {
 	return clusterv1.Machine{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      machineName,
@@ -66,7 +66,7 @@ func getMachineWithError(machineName, namespace string, nodeRef *v1.ObjectRefere
 				Name:       "machine-infrastructure",
 			},
 		},
-		Status: newMachineStatus(nodeRef, errorReason, errorMessage),
+		Status: newMachineStatus(nodeRef, failureReason, failureMessage),
 	}
 }
 
@@ -236,34 +236,34 @@ func TestGetClusterObjectWithMoreThanOneCluster(t *testing.T) {
 
 func TestValidateClusterObject(t *testing.T) {
 	var testcases = []struct {
-		name         string
-		errorReason  *capierrors.ClusterStatusError
-		errorMessage *string
-		expectErr    bool
+		name           string
+		failureReason  *capierrors.ClusterStatusError
+		failureMessage *string
+		expectErr      bool
 	}{
 		{
-			name:         "Cluster has no error",
-			errorReason:  nil,
-			errorMessage: nil,
-			expectErr:    false,
+			name:           "Cluster has no error",
+			failureReason:  nil,
+			failureMessage: nil,
+			expectErr:      false,
 		},
 		{
-			name:         "Cluster has error reason",
-			errorReason:  capierrors.ClusterStatusErrorPtr(capierrors.CreateClusterError),
-			errorMessage: nil,
-			expectErr:    true,
+			name:           "Cluster has failure reason",
+			failureReason:  capierrors.ClusterStatusErrorPtr(capierrors.CreateClusterError),
+			failureMessage: nil,
+			expectErr:      true,
 		},
 		{
-			name:         "Cluster has error message",
-			errorReason:  nil,
-			errorMessage: pointer.StringPtr("Failed to create cluster"),
-			expectErr:    true,
+			name:           "Cluster has failure message",
+			failureReason:  nil,
+			failureMessage: pointer.StringPtr("Failed to create cluster"),
+			expectErr:      true,
 		},
 		{
-			name:         "Cluster has error reason and message",
-			errorReason:  capierrors.ClusterStatusErrorPtr(capierrors.CreateClusterError),
-			errorMessage: pointer.StringPtr("Failed to create cluster"),
-			expectErr:    true,
+			name:           "Cluster has failure reason and message",
+			failureReason:  capierrors.ClusterStatusErrorPtr(capierrors.CreateClusterError),
+			failureMessage: pointer.StringPtr("Failed to create cluster"),
+			expectErr:      true,
 		},
 	}
 	for _, testcase := range testcases {
@@ -271,7 +271,7 @@ func TestValidateClusterObject(t *testing.T) {
 			cluster := clusterv1.Cluster{}
 			cluster.Name = "test-cluster"
 			cluster.Namespace = "default"
-			cluster.Status = newClusterStatus(testcase.errorReason, testcase.errorMessage)
+			cluster.Status = newClusterStatus(testcase.failureReason, testcase.failureMessage)
 			var b bytes.Buffer
 			err := validateClusterObject(&b, &cluster)
 			if testcase.expectErr && err == nil {
@@ -304,49 +304,49 @@ func TestValidateMachineObjects(t *testing.T) {
 	}()
 
 	testNodeRef := v1.ObjectReference{Kind: "Node", Name: testNodeName}
-	machineErrorReason := capierrors.CreateMachineError
-	machineErrorMessage := "Failed to create machine"
+	machineFailureReason := capierrors.CreateMachineError
+	machineFailureMessage := "Failed to create machine"
 	var testcases = []struct {
-		name         string
-		nodeRef      *v1.ObjectReference
-		errorReason  *capierrors.MachineStatusError
-		errorMessage *string
-		expectErr    bool
+		name           string
+		nodeRef        *v1.ObjectReference
+		failureReason  *capierrors.MachineStatusError
+		failureMessage *string
+		expectErr      bool
 	}{
 		{
-			name:         "Machine has no error",
-			nodeRef:      &testNodeRef,
-			errorReason:  nil,
-			errorMessage: nil,
-			expectErr:    false,
+			name:           "Machine has no error",
+			nodeRef:        &testNodeRef,
+			failureReason:  nil,
+			failureMessage: nil,
+			expectErr:      false,
 		},
 		{
-			name:         "Machine has no node reference",
-			nodeRef:      nil,
-			errorReason:  nil,
-			errorMessage: nil,
-			expectErr:    true,
+			name:           "Machine has no node reference",
+			nodeRef:        nil,
+			failureReason:  nil,
+			failureMessage: nil,
+			expectErr:      true,
 		},
 		{
-			name:         "Machine has error reason",
-			nodeRef:      &testNodeRef,
-			errorReason:  &machineErrorReason,
-			errorMessage: nil,
-			expectErr:    true,
+			name:           "Machine has failure reason",
+			nodeRef:        &testNodeRef,
+			failureReason:  &machineFailureReason,
+			failureMessage: nil,
+			expectErr:      true,
 		},
 		{
-			name:         "Machine has error message",
-			nodeRef:      &testNodeRef,
-			errorReason:  nil,
-			errorMessage: &machineErrorMessage,
-			expectErr:    true,
+			name:           "Machine has failure message",
+			nodeRef:        &testNodeRef,
+			failureReason:  nil,
+			failureMessage: &machineFailureMessage,
+			expectErr:      true,
 		},
 		{
-			name:         "Machine has error reason and message",
-			nodeRef:      &testNodeRef,
-			errorReason:  &machineErrorReason,
-			errorMessage: &machineErrorMessage,
-			expectErr:    true,
+			name:           "Machine has failure reason and message",
+			nodeRef:        &testNodeRef,
+			failureReason:  &machineFailureReason,
+			failureMessage: &machineFailureMessage,
+			expectErr:      true,
 		},
 	}
 	for _, testcase := range testcases {
@@ -354,7 +354,7 @@ func TestValidateMachineObjects(t *testing.T) {
 			machines := clusterv1.MachineList{
 				Items: []clusterv1.Machine{
 					getMachineWithError("test-machine-with-no-error", "default", &testNodeRef, nil, nil),
-					getMachineWithError("test-machine", "default", testcase.nodeRef, testcase.errorReason, testcase.errorMessage),
+					getMachineWithError("test-machine", "default", testcase.nodeRef, testcase.failureReason, testcase.failureMessage),
 				},
 			}
 			var b bytes.Buffer
@@ -464,8 +464,8 @@ func TestValidateClusterAPIObjectsOutput(t *testing.T) {
 	testNodeRef2 := v1.ObjectReference{Kind: "Node", Name: testNode2Name}
 	testNodeRefNotReady := v1.ObjectReference{Kind: "Node", Name: testNodeNotReadyName}
 	testNodeRefNotExist := v1.ObjectReference{Kind: "Node", Name: "test-node-not-exist"}
-	machineErrorReason := capierrors.CreateMachineError
-	machineErrorMessage := "Failed to create machine"
+	machineFailureReason := capierrors.CreateMachineError
+	machineFailureMessage := "Failed to create machine"
 
 	var testcases = []struct {
 		name           string
@@ -501,7 +501,7 @@ func TestValidateClusterAPIObjectsOutput(t *testing.T) {
 			name:           "Failed to validate machine objects with errors",
 			namespace:      "validate-machine-objects-errors",
 			clusterStatus:  clusterv1.ClusterStatus{},
-			machine1Status: newMachineStatus(&testNodeRef1, &machineErrorReason, &machineErrorMessage),
+			machine1Status: newMachineStatus(&testNodeRef1, &machineFailureReason, &machineFailureMessage),
 			machine2Status: clusterv1.MachineStatus{}, // newMachineStatus(nil, nil, nil),
 			expectErr:      true,
 			outputFileName: "fail-to-validate-machine-objects-with-errors.golden",

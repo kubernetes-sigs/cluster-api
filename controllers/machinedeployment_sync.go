@@ -389,7 +389,7 @@ func calculateStatus(allMSs []*clusterv1.MachineSet, newMS *clusterv1.MachineSet
 	}
 	for _, ms := range allMSs {
 		if ms != nil {
-			if ms.Status.ErrorReason != nil || ms.Status.ErrorMessage != nil {
+			if ms.Status.FailureReason != nil || ms.Status.FailureMessage != nil {
 				status.Phase = string(clusterv1.MachineDeploymentPhaseFailed)
 				break
 			}

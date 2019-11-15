@@ -71,7 +71,7 @@
   - `capi_cluster_control_plane_ready`: Cluster control plane is ready if set to 1 and not if 0.
   - `capi_cluster_infrastructure_ready`: Cluster infrastructure is ready if set to 1 and not if 0.
   - `capi_cluster_kubeconfig_ready`: Cluster kubeconfig is ready if set to 1 and not if 0.
-  - `capi_cluster_error_set`: Cluster ErrorMesssage or ErrorReason is set if metric is 1.
+  - `capi_cluster_failure_set`: Cluster FailureMesssage or FailureReason is set if metric is 1.
   - `capi_machine_bootstrap_ready`: Machine Boostrap is ready if set to 1 and not if 0.
   - `capi_machine_infrastructure_ready`: Machine InfrastructureRef is ready if set to 1 and not if 0.
   - `capi_machine_node_ready`: Machine NodeRef is ready if set to 1 and not if 0.
@@ -83,3 +83,18 @@
 
 - Cosmetic change to set Cluster `Status.Phase` to `Provisioned` after at least one APIEndpoint is available. Previously only InfrastructureReady was being used to transition to `Provisioned`, this change now requires at least one APIEndpoint as well.
 - See https://github.com/kubernetes-sigs/cluster-api/pull/1721/files.
+
+## `Status.ErrorReason` and `Status.ErrorMessage` fields, populated to signal a fatal error has occurred, have been renamed in Cluster, Machine and MachineSet
+
+-  `Status.ErrorReason` has been renamed to `Status.FailureReason`
+-  `Status.ErrorMessage` has been renamed to `Status.FailureMessage`
+
+## The `external.ErrorsFrom` function has been renamed to `external.FailuresFrom`
+
+- The function has been modified to reflect the rename of `Status.ErrorReason` to `Status.FailureReason` and `Status.ErrorMessage` to `Status.FailureMessage`.
+
+## External objects will need to rename `Status.ErrorReason` and `Status.ErrorMessage`
+- As a follow up to the changes mentioned above - for the `external.FailuresFrom` function to retain its functionality, external objects 
+(e.g., AWSCluster, AWSMachine, etc.) will need to rename the fields as well.
+-  `Status.ErrorReason` should be renamed to `Status.FailureReason`
+-  `Status.ErrorMessage` should be renamed to `Status.FailureMessage` 

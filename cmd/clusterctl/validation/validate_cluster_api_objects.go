@@ -72,14 +72,14 @@ func getClusterObject(ctx context.Context, c client.Reader, clusterName string, 
 
 func validateClusterObject(w io.Writer, cluster *clusterv1.Cluster) error {
 	fmt.Fprintf(w, "Checking cluster object %q... ", cluster.Name)
-	if cluster.Status.ErrorReason != nil || cluster.Status.ErrorMessage != nil {
+	if cluster.Status.FailureReason != nil || cluster.Status.FailureMessage != nil {
 		var reason capierrors.ClusterStatusError
-		if cluster.Status.ErrorReason != nil {
-			reason = *cluster.Status.ErrorReason
+		if cluster.Status.FailureReason != nil {
+			reason = *cluster.Status.FailureReason
 		}
 		var message string
-		if cluster.Status.ErrorMessage != nil {
-			message = *cluster.Status.ErrorMessage
+		if cluster.Status.FailureMessage != nil {
+			message = *cluster.Status.FailureMessage
 		}
 		fmt.Fprintf(w, "FAIL\n")
 		fmt.Fprintf(w, "\t[%v]: %s\n", reason, message)
@@ -104,14 +104,14 @@ func validateMachineObjects(ctx context.Context, w io.Writer, machines *clusterv
 
 func validateMachineObject(ctx context.Context, w io.Writer, machine clusterv1.Machine, client client.Client) bool {
 	fmt.Fprintf(w, "Checking machine object %q... ", machine.Name)
-	if machine.Status.ErrorReason != nil || machine.Status.ErrorMessage != nil {
+	if machine.Status.FailureReason != nil || machine.Status.FailureMessage != nil {
 		var reason capierrors.MachineStatusError
-		if machine.Status.ErrorReason != nil {
-			reason = *machine.Status.ErrorReason
+		if machine.Status.FailureReason != nil {
+			reason = *machine.Status.FailureReason
 		}
 		var message string
-		if machine.Status.ErrorMessage != nil {
-			message = *machine.Status.ErrorMessage
+		if machine.Status.FailureMessage != nil {
+			message = *machine.Status.FailureMessage
 		}
 		fmt.Fprintf(w, "FAIL\n")
 		fmt.Fprintf(w, "\t[%v]: %s\n", reason, message)

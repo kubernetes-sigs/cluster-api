@@ -54,12 +54,12 @@ var (
 		[]string{"cluster", "namespace"},
 	)
 
-	// ClusterErrorSet is a metric that is set to 1 if the cluster ErrorReason
-	// or ErrorMessage is set and 0 if it is not.
-	ClusterErrorSet = prometheus.NewGaugeVec(
+	// ClusterFailureSet is a metric that is set to 1 if the cluster FailureReason
+	// or FailureMessage is set and 0 if it is not.
+	ClusterFailureSet = prometheus.NewGaugeVec(
 		prometheus.GaugeOpts{
-			Name: "capi_cluster_error_set",
-			Help: "Cluster error messsage or reason is set if metric is 1.",
+			Name: "capi_cluster_failure_set",
+			Help: "Cluster failure message or reason is set if metric is 1.",
 		},
 		[]string{"cluster", "namespace"},
 	)
@@ -100,7 +100,7 @@ func init() {
 		ClusterControlPlaneReady,
 		ClusterInfrastructureReady,
 		ClusterKubeconfigReady,
-		ClusterErrorSet,
+		ClusterFailureSet,
 		MachineBootstrapReady,
 		MachineInfrastructureReady,
 		MachineNodeReady,

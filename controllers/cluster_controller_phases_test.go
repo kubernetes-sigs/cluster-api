@@ -224,7 +224,7 @@ func TestClusterReconciler_reconcilePhase(t *testing.T) {
 		Spec:   clusterv1.ClusterSpec{},
 	}
 	createClusterError := capierrors.CreateClusterError
-	errorMsg := "Create failed"
+	failureMsg := "Create failed"
 
 	tests := []struct {
 		name      string
@@ -287,14 +287,14 @@ func TestClusterReconciler_reconcilePhase(t *testing.T) {
 			wantPhase: clusterv1.ClusterPhaseProvisioned,
 		},
 		{
-			name: "cluster status has ErrorReason",
+			name: "cluster status has FailureReason",
 			cluster: &clusterv1.Cluster{
 				ObjectMeta: v1.ObjectMeta{
 					Name: "test-cluster",
 				},
 				Status: clusterv1.ClusterStatus{
 					InfrastructureReady: true,
-					ErrorReason:         &createClusterError,
+					FailureReason:       &createClusterError,
 				},
 				Spec: clusterv1.ClusterSpec{
 					InfrastructureRef: &corev1.ObjectReference{},
@@ -304,14 +304,14 @@ func TestClusterReconciler_reconcilePhase(t *testing.T) {
 			wantPhase: clusterv1.ClusterPhaseFailed,
 		},
 		{
-			name: "cluster status has ErrorMessage",
+			name: "cluster status has FailureMessage",
 			cluster: &clusterv1.Cluster{
 				ObjectMeta: v1.ObjectMeta{
 					Name: "test-cluster",
 				},
 				Status: clusterv1.ClusterStatus{
 					InfrastructureReady: true,
-					ErrorMessage:        &errorMsg,
+					FailureMessage:      &failureMsg,
 				},
 				Spec: clusterv1.ClusterSpec{
 					InfrastructureRef: &corev1.ObjectReference{},

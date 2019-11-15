@@ -54,8 +54,8 @@ func (r *ClusterReconciler) reconcilePhase(_ context.Context, cluster *clusterv1
 		cluster.Status.SetTypedPhase(clusterv1.ClusterPhaseProvisioned)
 	}
 
-	// Set the phase to "failed" if any of Status.ErrorReason or Status.ErrorMessage is not-nil.
-	if cluster.Status.ErrorReason != nil || cluster.Status.ErrorMessage != nil {
+	// Set the phase to "failed" if any of Status.FailureReason or Status.FailureMessage is not-nil.
+	if cluster.Status.FailureReason != nil || cluster.Status.FailureMessage != nil {
 		cluster.Status.SetTypedPhase(clusterv1.ClusterPhaseFailed)
 	}
 
@@ -123,19 +123,19 @@ func (r *ClusterReconciler) reconcileExternal(ctx context.Context, cluster *clus
 		}
 	}
 
-	// Set error reason and message, if any.
-	errorReason, errorMessage, err := external.ErrorsFrom(obj)
+	// Set failure reason and message, if any.
+	failureReason, failureMessage, err := external.FailuresFrom(obj)
 	if err != nil {
 		return nil, err
 	}
-	if errorReason != "" {
-		clusterStatusError := capierrors.ClusterStatusError(errorReason)
-		cluster.Status.ErrorReason = &clusterStatusError
+	if failureReason != "" {
+		clusterStatusError := capierrors.ClusterStatusError(failureReason)
+		cluster.Status.FailureReason = &clusterStatusError
 	}
-	if errorMessage != "" {
-		cluster.Status.ErrorMessage = pointer.StringPtr(
+	if failureMessage != "" {
+		cluster.Status.FailureMessage = pointer.StringPtr(
 			fmt.Sprintf("Failure detected from referenced resource %v with name %q: %s",
-				obj.GroupVersionKind(), obj.GetName(), errorMessage),
+				obj.GroupVersionKind(), obj.GetName(), failureMessage),
 		)
 	}
 

@@ -89,19 +89,19 @@ type MachineSetDeletePolicy string
 const (
 	// RandomMachineSetDeletePolicy prioritizes both Machines that have the annotation
 	// "cluster.x-k8s.io/delete-machine=yes" and Machines that are unhealthy
-	// (Status.ErrorReason or Status.ErrorMessage are set to a non-empty value).
+	// (Status.FailureReason or Status.FailureMessage are set to a non-empty value).
 	// Finally, it picks Machines at random to delete.
 	RandomMachineSetDeletePolicy MachineSetDeletePolicy = "Random"
 
 	// NewestMachineSetDeletePolicy prioritizes both Machines that have the annotation
 	// "cluster.x-k8s.io/delete-machine=yes" and Machines that are unhealthy
-	// (Status.ErrorReason or Status.ErrorMessage are set to a non-empty value).
+	// (Status.FailureReason or Status.FailureMessage are set to a non-empty value).
 	// It then prioritizes the newest Machines for deletion based on the Machine's CreationTimestamp.
 	NewestMachineSetDeletePolicy MachineSetDeletePolicy = "Newest"
 
 	// OldestMachineSetDeletePolicy prioritizes both Machines that have the annotation
 	// "cluster.x-k8s.io/delete-machine=yes" and Machines that are unhealthy
-	// (Status.ErrorReason or Status.ErrorMessage are set to a non-empty value).
+	// (Status.FailureReason or Status.FailureMessage are set to a non-empty value).
 	// It then prioritizes the oldest Machines for deletion based on the Machine's CreationTimestamp.
 	OldestMachineSetDeletePolicy MachineSetDeletePolicy = "Oldest"
 )
@@ -136,9 +136,9 @@ type MachineSetStatus struct {
 	ObservedGeneration int64 `json:"observedGeneration,omitempty"`
 
 	// In the event that there is a terminal problem reconciling the
-	// replicas, both ErrorReason and ErrorMessage will be set. ErrorReason
+	// replicas, both FailureReason and FailureMessage will be set. FailureReason
 	// will be populated with a succinct value suitable for machine
-	// interpretation, while ErrorMessage will contain a more verbose
+	// interpretation, while FailureMessage will contain a more verbose
 	// string suitable for logging and human consumption.
 	//
 	// These fields should not be set for transitive errors that a
@@ -154,9 +154,9 @@ type MachineSetStatus struct {
 	// can be added as events to the MachineSet object and/or logged in the
 	// controller's output.
 	// +optional
-	ErrorReason *capierrors.MachineSetStatusError `json:"errorReason,omitempty"`
+	FailureReason *capierrors.MachineSetStatusError `json:"failureReason,omitempty"`
 	// +optional
-	ErrorMessage *string `json:"errorMessage,omitempty"`
+	FailureMessage *string `json:"failureMessage,omitempty"`
 }
 
 // ANCHOR_END: MachineSetStatus

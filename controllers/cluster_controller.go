@@ -189,10 +189,10 @@ func (r *ClusterReconciler) reconcileMetrics(_ context.Context, cluster *cluster
 		metrics.ClusterKubeconfigReady.WithLabelValues(cluster.Name, cluster.Namespace).Set(1)
 	}
 
-	if cluster.Status.ErrorReason != nil || cluster.Status.ErrorMessage != nil {
-		metrics.ClusterErrorSet.WithLabelValues(cluster.Name, cluster.Namespace).Set(1)
+	if cluster.Status.FailureReason != nil || cluster.Status.FailureMessage != nil {
+		metrics.ClusterFailureSet.WithLabelValues(cluster.Name, cluster.Namespace).Set(1)
 	} else {
-		metrics.ClusterErrorSet.WithLabelValues(cluster.Name, cluster.Namespace).Set(0)
+		metrics.ClusterFailureSet.WithLabelValues(cluster.Name, cluster.Namespace).Set(0)
 	}
 }
 

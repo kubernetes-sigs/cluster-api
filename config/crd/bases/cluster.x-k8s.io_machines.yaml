@@ -4,7 +4,7 @@ apiVersion: apiextensions.k8s.io/v1beta1
 kind: CustomResourceDefinition
 metadata:
   annotations:
-    controller-gen.kubebuilder.io/version: v0.2.2
+    controller-gen.kubebuilder.io/version: v0.2.3
   creationTimestamp: null
   name: machines.cluster.x-k8s.io
 spec:
@@ -32,6 +32,7 @@ spec:
     shortNames:
     - ma
     singular: machine
+  preserveUnknownFields: false
   scope: Namespaced
   subresources:
     status: {}

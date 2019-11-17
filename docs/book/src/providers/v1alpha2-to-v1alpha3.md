@@ -79,9 +79,9 @@
   They can be accessed by default via the `8080` metrics port on the cluster
   api controller manager.
 
-## Cluster `Status.Phase` transition to `Provisioned` after at least one APIEndpoint is available.
+## Cluster `Status.Phase` transition to `Provisioned` additionally needs at least one APIEndpoint to be available.
 
-- Cosmetic change to set Cluster `Status.Phase` to `Provisioned` after at least one APIEndpoint is available. Previously only InfrastructureReady was being used to transition to `Provisioned`, this change now requires at least one APIEndpoint as well.
+- Previously, the sole requirement to transition a Cluster's `Status.Phase` to `Provisioned` was a `true` value of `Status.InfrastructureReady`. Now, there are two requirements: a `true` value of `Status.InfrastructureReady` and at least one entry in `Status.APIEndpoints`.
 - See https://github.com/kubernetes-sigs/cluster-api/pull/1721/files.
 
 ## `Status.ErrorReason` and `Status.ErrorMessage` fields, populated to signal a fatal error has occurred, have been renamed in Cluster, Machine and MachineSet

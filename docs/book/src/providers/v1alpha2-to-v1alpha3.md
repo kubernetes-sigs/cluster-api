@@ -48,7 +48,7 @@
 ## Changes to `sigs.k8s.io/cluster-api/controllers/remote`
 
 -  The `ClusterClient` interface has been removed.
-- `remote.NewClusterClient` now returns a `sigs.k8s.io/controller-runtime/pkg/client` Client. The signature changed from 
+- `remote.NewClusterClient` now returns a `sigs.k8s.io/controller-runtime/pkg/client` Client. The signature changed from
 
     `func NewClusterClient(c client.Client, cluster *clusterv1.Cluster) (ClusterClient, error)`
 
@@ -94,7 +94,13 @@
 - The function has been modified to reflect the rename of `Status.ErrorReason` to `Status.FailureReason` and `Status.ErrorMessage` to `Status.FailureMessage`.
 
 ## External objects will need to rename `Status.ErrorReason` and `Status.ErrorMessage`
-- As a follow up to the changes mentioned above - for the `external.FailuresFrom` function to retain its functionality, external objects 
+
+- As a follow up to the changes mentioned above - for the `external.FailuresFrom` function to retain its functionality, external objects
 (e.g., AWSCluster, AWSMachine, etc.) will need to rename the fields as well.
 -  `Status.ErrorReason` should be renamed to `Status.FailureReason`
--  `Status.ErrorMessage` should be renamed to `Status.FailureMessage` 
+-  `Status.ErrorMessage` should be renamed to `Status.FailureMessage`
+
+## The field `Cluster.Status.APIEndpoints` is removed in favor of `Cluster.Spec.ControlPlaneEndpoint`
+
+- The slice in Cluster.Status has been removed and replaced by a single APIEndpoint field under Spec.
+- Infrastructure providers MUST expose a ControlPlaneEndpoint field in their cluster infrastructure resource at `Spec.ControlPlaneEndpoint`. They may optionally remove the `Status.APIEndpoints` field (Cluster API no longer uses it).

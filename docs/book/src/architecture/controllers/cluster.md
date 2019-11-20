@@ -23,11 +23,13 @@ provisions EC2 instances that will become a Kubernetes cluster through some boot
 
 The InfrastructureCluster object **must** have a `status` object.
 
-The `status` object **must** have several fields defined:
+The `spec` object **must** have the following fields defined:
 
-* `ready` - a boolean field that is true when the infrastructure is ready to be used.
-* `apiEndpoints` - a slice of strings that identifies each control plane node's apiserver endpoint or a slice with only
-one endpoint that is a load balancer for all control plane nodes.
+- `controlPlaneEndpoint` - identifies the endpoint used to connect to the target's cluster apiserver.
+
+The `status` object **must** have the following fields defined:
+
+- `ready` - a boolean field that is true when the infrastructure is ready to be used.
 
 #### Optional `status` fields
 
@@ -40,14 +42,12 @@ Example:
 ```yaml
 kind: MyProviderCluster
 apiVersion: infrastructure.cluster.x-k8s.io/v1alpha2
+spec:
+  controlPlaneEndpoint:
+    host: example.com
+    port: 6443
 status:
     ready: true
-    apiEndpoints:
-    - host: example.com
-      port: 3333
-    - host: example.com
-      port: 3334
-
 ```
 
 ### Secrets

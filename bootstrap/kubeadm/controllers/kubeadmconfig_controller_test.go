@@ -454,7 +454,7 @@ func TestKubeadmConfigReconciler_Reconcile_ErrorIfJoiningControlPlaneHasInvalidC
 	cluster := newCluster("cluster")
 	cluster.Status.InfrastructureReady = true
 	cluster.Status.ControlPlaneInitialized = true
-	cluster.Status.APIEndpoints = []clusterv1.APIEndpoint{{Host: "100.105.150.1", Port: 6443}}
+	cluster.Spec.ControlPlaneEndpoint = clusterv1.APIEndpoint{Host: "100.105.150.1", Port: 6443}
 	controlPlaneInitMachine := newControlPlaneMachine(cluster, "control-plane-init-machine")
 	controlPlaneInitConfig := newControlPlaneInitKubeadmConfig(controlPlaneInitMachine, "control-plane-init-cfg")
 
@@ -543,7 +543,7 @@ func TestReconcileIfJoinNodesAndControlPlaneIsReady(t *testing.T) {
 	cluster := newCluster("cluster")
 	cluster.Status.InfrastructureReady = true
 	cluster.Status.ControlPlaneInitialized = true
-	cluster.Status.APIEndpoints = []clusterv1.APIEndpoint{{Host: "100.105.150.1", Port: 6443}}
+	cluster.Spec.ControlPlaneEndpoint = clusterv1.APIEndpoint{Host: "100.105.150.1", Port: 6443}
 
 	var useCases = []struct {
 		name          string
@@ -646,7 +646,7 @@ func TestBootstrapTokenTTLExtension(t *testing.T) {
 	cluster := newCluster("cluster")
 	cluster.Status.InfrastructureReady = true
 	cluster.Status.ControlPlaneInitialized = true
-	cluster.Status.APIEndpoints = []clusterv1.APIEndpoint{{Host: "100.105.150.1", Port: 6443}}
+	cluster.Spec.ControlPlaneEndpoint = clusterv1.APIEndpoint{Host: "100.105.150.1", Port: 6443}
 
 	controlPlaneInitMachine := newControlPlaneMachine(cluster, "control-plane-init-machine")
 	initConfig := newControlPlaneInitKubeadmConfig(controlPlaneInitMachine, "control-plane-init-config")
@@ -856,12 +856,10 @@ func TestKubeadmConfigReconciler_Reconcile_DisocveryReconcileBehaviors(t *testin
 		},
 	}
 	goodcluster := &clusterv1.Cluster{
-		Status: clusterv1.ClusterStatus{
-			APIEndpoints: []clusterv1.APIEndpoint{
-				{
-					Host: "example.com",
-					Port: 6443,
-				},
+		Spec: clusterv1.ClusterSpec{
+			ControlPlaneEndpoint: clusterv1.APIEndpoint{
+				Host: "example.com",
+				Port: 6443,
 			},
 		},
 	}
@@ -1015,7 +1013,7 @@ func TestKubeadmConfigReconciler_Reconcile_DisocveryReconcileFailureBehaviors(t 
 		config  *bootstrapv1.KubeadmConfig
 	}{
 		{
-			name:    "Fail if cluster has not APIEndpoints",
+			name:    "Fail if cluster has not ControlPlaneEndpoint",
 			cluster: &clusterv1.Cluster{}, // cluster without endpoints
 			config: &bootstrapv1.KubeadmConfig{
 				Spec: bootstrapv1.KubeadmConfigSpec{
@@ -1080,9 +1078,7 @@ func TestKubeadmConfigReconciler_Reconcile_DynamicDefaultsForClusterConfiguratio
 						Pods:          &clusterv1.NetworkRanges{CIDRBlocks: []string{"otherPodsCidr"}},
 						ServiceDomain: "otherServiceDomain",
 					},
-				},
-				Status: clusterv1.ClusterStatus{
-					APIEndpoints: []clusterv1.APIEndpoint{{Host: "otherVersion", Port: 0}},
+					ControlPlaneEndpoint: clusterv1.APIEndpoint{Host: "otherVersion", Port: 0},
 				},
 			},
 			machine: &clusterv1.Machine{
@@ -1108,9 +1104,7 @@ func TestKubeadmConfigReconciler_Reconcile_DynamicDefaultsForClusterConfiguratio
 						Pods:          &clusterv1.NetworkRanges{CIDRBlocks: []string{"myPodSubnet"}},
 						ServiceDomain: "myDNSDomain",
 					},
-				},
-				Status: clusterv1.ClusterStatus{
-					APIEndpoints: []clusterv1.APIEndpoint{{Host: "myControlPlaneEndpoint", Port: 6443}},
+					ControlPlaneEndpoint: clusterv1.APIEndpoint{Host: "myControlPlaneEndpoint", Port: 6443},
 				},
 			},
 			machine: &clusterv1.Machine{
@@ -1154,11 +1148,9 @@ func TestKubeadmConfigReconciler_Reconcile_AlwaysCheckCAVerificationUnlessReques
 	cluster := newCluster(clusterName)
 	cluster.Status.ControlPlaneInitialized = true
 	cluster.Status.InfrastructureReady = true
-	cluster.Status.APIEndpoints = []clusterv1.APIEndpoint{
-		{
-			Host: "example.com",
-			Port: 6443,
-		},
+	cluster.Spec.ControlPlaneEndpoint = clusterv1.APIEndpoint{
+		Host: "example.com",
+		Port: 6443,
 	}
 	controlPlaneInitMachine := newControlPlaneMachine(cluster, "my-control-plane-init-machine")
 	initConfig := newControlPlaneInitKubeadmConfig(controlPlaneInitMachine, "my-control-plane-init-config")

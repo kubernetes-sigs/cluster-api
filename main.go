@@ -125,6 +125,7 @@ func main() {
 		Namespace:          watchNamespace,
 		SyncPeriod:         &syncPeriod,
 		NewClient:          newClientFunc,
+		Port:               webhookPort,
 	})
 	if err != nil {
 		setupLog.Error(err, "unable to start manager")

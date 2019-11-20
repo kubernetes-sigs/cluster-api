@@ -30,6 +30,7 @@ CRD_YAML="crd.yaml"
 BOOTSTRAP_CLUSTER_NAME="clusterapi-bootstrap"
 CONTROLLER_REPO="controller-ci" # use arbitrary repo name since we don't need to publish it
 EXAMPLE_PROVIDER_REPO="example-provider-ci"
+CERT_MANAGER_URL="https://github.com/jetstack/cert-manager/releases/download/v0.11.0/cert-manager.yaml"
 
 GOOS=$(go env GOOS)
 GOARCH=$(go env GOARCH)
@@ -130,6 +131,11 @@ main() {
    install_kustomize
    prepare_crd_yaml
    create_bootstrap
+
+   kubectl create -f "${CERT_MANAGER_URL}"
+   set +e
+   wait_deployment_available "cert-manager-webhook" "cert-manager"
+   set -e
 
    kubectl create -f "${CRD_YAML}"
 

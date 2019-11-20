@@ -65,6 +65,7 @@ func main() {
 		machineDeploymentConcurrency int
 		kubeadmConfigConcurrency     int
 		syncPeriod                   time.Duration
+		webhookPort                  int
 	)
 
 	flag.StringVar(&metricsAddr, "metrics-addr", ":8080",
@@ -101,6 +102,10 @@ func main() {
 		"The amount of time the bootstrap token will be valid",
 	)
 
+	flag.IntVar(&webhookPort, "webhook-port", 9443,
+		"Webhook server port (set to 0 to disable)",
+	)
+
 	flag.Parse()
 
 	ctrl.SetLogger(klogr.New())
@@ -120,6 +125,7 @@ func main() {
 		Namespace:          watchNamespace,
 		SyncPeriod:         &syncPeriod,
 		NewClient:          newClientFunc,
+		Port:               webhookPort,
 	})
 	if err != nil {
 		setupLog.Error(err, "unable to start manager")
@@ -154,16 +160,63 @@ func main() {
 		setupLog.Error(err, "unable to create controller", "controller", "MachineDeployment")
 		os.Exit(1)
 	}
-	// +kubebuilder:scaffold:builder
 
 	// Kubeadm controllers.
 	if err = (&kubeadmcontrollers.KubeadmConfigReconciler{
 		Client: mgr.GetClient(),
-		Log:    ctrl.Log.WithName("controllers").WithName("KubeadmConfigReconciler"),
+		Log:    ctrl.Log.WithName("controllers").WithName("KubeadmConfig"),
 	}).SetupWithManager(mgr, concurrency(kubeadmConfigConcurrency)); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "KubeadmConfig")
 		os.Exit(1)
 	}
+
+	if webhookPort != 0 {
+		if err = (&clusterv1alpha2.Cluster{}).SetupWebhookWithManager(mgr); err != nil {
+			setupLog.Error(err, "unable to create webhook", "webhook", "Cluster")
+			os.Exit(1)
+		}
+
+		if err = (&clusterv1alpha2.ClusterList{}).SetupWebhookWithManager(mgr); err != nil {
+			setupLog.Error(err, "unable to create webhook", "webhook", "ClusterList")
+			os.Exit(1)
+		}
+
+		if err = (&clusterv1alpha2.Machine{}).SetupWebhookWithManager(mgr); err != nil {
+			setupLog.Error(err, "unable to create webhook", "webhook", "Machine")
+			os.Exit(1)
+		}
+
+		if err = (&clusterv1alpha2.MachineList{}).SetupWebhookWithManager(mgr); err != nil {
+			setupLog.Error(err, "unable to create webhook", "webhook", "MachineList")
+			os.Exit(1)
+		}
+
+		if err = (&clusterv1alpha2.MachineSet{}).SetupWebhookWithManager(mgr); err != nil {
+			setupLog.Error(err, "unable to create webhook", "webhook", "MachineSet")
+			os.Exit(1)
+		}
+
+		if err = (&clusterv1alpha2.MachineSetList{}).SetupWebhookWithManager(mgr); err != nil {
+			setupLog.Error(err, "unable to create webhook", "webhook", "MachineSetList")
+			os.Exit(1)
+		}
+
+		if err = (&clusterv1alpha2.MachineDeployment{}).SetupWebhookWithManager(mgr); err != nil {
+			setupLog.Error(err, "unable to create webhook", "webhook", "MachineDeployment")
+			os.Exit(1)
+		}
+
+		if err = (&clusterv1alpha2.MachineDeploymentList{}).SetupWebhookWithManager(mgr); err != nil {
+			setupLog.Error(err, "unable to create webhook", "webhook", "MachineDeploymentList")
+			os.Exit(1)
+		}
+
+		if err = (&clusterv1alpha3.KubeadmControlPlane{}).SetupWebhookWithManager(mgr); err != nil {
+			setupLog.Error(err, "unable to create webhook", "webhook", "KubeadmControlPlane")
+			os.Exit(1)
+		}
+	}
+	// +kubebuilder:scaffold:builder
 
 	setupLog.Info("starting manager")
 	if err := mgr.Start(ctrl.SetupSignalHandler()); err != nil {

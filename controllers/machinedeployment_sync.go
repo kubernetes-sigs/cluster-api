@@ -464,7 +464,7 @@ func (r *MachineDeploymentReconciler) cleanupDeployment(oldMSs []*clusterv1.Mach
 
 	// Avoid deleting machine set with deletion timestamp set
 	aliveFilter := func(ms *clusterv1.MachineSet) bool {
-		return ms != nil && ms.ObjectMeta.DeletionTimestamp == nil
+		return ms != nil && ms.ObjectMeta.DeletionTimestamp.IsZero()
 	}
 
 	cleanableMSes := mdutil.FilterMachineSets(oldMSs, aliveFilter)
@@ -484,7 +484,7 @@ func (r *MachineDeploymentReconciler) cleanupDeployment(oldMSs []*clusterv1.Mach
 		}
 
 		// Avoid delete machine set with non-zero replica counts
-		if ms.Status.Replicas != 0 || *(ms.Spec.Replicas) != 0 || ms.Generation > ms.Status.ObservedGeneration || ms.DeletionTimestamp != nil {
+		if ms.Status.Replicas != 0 || *(ms.Spec.Replicas) != 0 || ms.Generation > ms.Status.ObservedGeneration || !ms.DeletionTimestamp.IsZero() {
 			continue
 		}
 

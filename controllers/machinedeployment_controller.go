@@ -93,7 +93,7 @@ func (r *MachineDeploymentReconciler) Reconcile(req ctrl.Request) (ctrl.Result, 
 
 	// Ignore deleted MachineDeployments, this can happen when foregroundDeletion
 	// is enabled
-	if d.DeletionTimestamp != nil {
+	if !d.DeletionTimestamp.IsZero() {
 		return ctrl.Result{}, nil
 	}
 

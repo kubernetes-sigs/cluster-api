@@ -45,7 +45,7 @@ const (
 
 // maps the creation timestamp onto the 0-100 priority range
 func oldestDeletePriority(machine *clusterv1.Machine) deletePriority {
-	if machine.DeletionTimestamp != nil && !machine.DeletionTimestamp.IsZero() {
+	if !machine.DeletionTimestamp.IsZero() {
 		return mustDelete
 	}
 	if machine.ObjectMeta.Annotations != nil && machine.ObjectMeta.Annotations[DeleteNodeAnnotation] != "" {
@@ -65,7 +65,7 @@ func oldestDeletePriority(machine *clusterv1.Machine) deletePriority {
 }
 
 func newestDeletePriority(machine *clusterv1.Machine) deletePriority {
-	if machine.DeletionTimestamp != nil && !machine.DeletionTimestamp.IsZero() {
+	if !machine.DeletionTimestamp.IsZero() {
 		return mustDelete
 	}
 	if machine.ObjectMeta.Annotations != nil && machine.ObjectMeta.Annotations[DeleteNodeAnnotation] != "" {
@@ -78,7 +78,7 @@ func newestDeletePriority(machine *clusterv1.Machine) deletePriority {
 }
 
 func randomDeletePolicy(machine *clusterv1.Machine) deletePriority {
-	if machine.DeletionTimestamp != nil && !machine.DeletionTimestamp.IsZero() {
+	if !machine.DeletionTimestamp.IsZero() {
 		return mustDelete
 	}
 	if machine.ObjectMeta.Annotations != nil && machine.ObjectMeta.Annotations[DeleteNodeAnnotation] != "" {

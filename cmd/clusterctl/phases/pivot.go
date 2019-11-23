@@ -402,8 +402,8 @@ func moveMachineSet(from sourceClient, to targetClient, ms *clusterv1.MachineSet
 func moveMachines(from sourceClient, to targetClient, machines []*clusterv1.Machine) error {
 	machineNames := make([]string, 0, len(machines))
 	for _, m := range machines {
-		if m.DeletionTimestamp != nil {
-			klog.V(4).Infof("Skipping to move deleted machine: %q", m.Name)
+		if !m.DeletionTimestamp.IsZero() {
+			klog.V(4).Infof("Do not move machine with deletion timestamp %s: %q", m.DeletionTimestamp, m.Name)
 			continue
 		}
 		machineNames = append(machineNames, m.Name)

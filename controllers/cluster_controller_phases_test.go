@@ -42,13 +42,13 @@ func TestClusterReconcilePhases(t *testing.T) {
 				Namespace: "test-namespace",
 			},
 			Status: clusterv1.ClusterStatus{
-				APIEndpoints: []clusterv1.APIEndpoint{{
-					Host: "1.2.3.4",
-					Port: 0,
-				}},
 				InfrastructureReady: true,
 			},
 			Spec: clusterv1.ClusterSpec{
+				ControlPlaneEndpoint: clusterv1.APIEndpoint{
+					Host: "1.2.3.4",
+					Port: 8443,
+				},
 				InfrastructureRef: &corev1.ObjectReference{
 					APIVersion: "infrastructure.cluster.x-k8s.io/v1alpha2",
 					Kind:       "InfrastructureConfig",
@@ -139,11 +139,11 @@ func TestClusterReconcilePhases(t *testing.T) {
 			ObjectMeta: v1.ObjectMeta{
 				Name: "test-cluster",
 			},
-			Status: clusterv1.ClusterStatus{
-				APIEndpoints: []clusterv1.APIEndpoint{{
+			Spec: clusterv1.ClusterSpec{
+				ControlPlaneEndpoint: clusterv1.APIEndpoint{
 					Host: "1.2.3.4",
-					Port: 0,
-				}},
+					Port: 8443,
+				},
 			},
 		}
 
@@ -267,20 +267,20 @@ func TestClusterReconciler_reconcilePhase(t *testing.T) {
 			wantPhase: clusterv1.ClusterPhaseProvisioning,
 		},
 		{
-			name: "cluster infrastructure is ready and APIEndpoints is set",
+			name: "cluster infrastructure is ready and ControlPlaneEndpoint is set",
 			cluster: &clusterv1.Cluster{
 				ObjectMeta: v1.ObjectMeta{
 					Name: "test-cluster",
 				},
-				Status: clusterv1.ClusterStatus{
-					InfrastructureReady: true,
-					APIEndpoints: []clusterv1.APIEndpoint{{
-						Host: "1.2.3.4",
-						Port: 0,
-					}},
-				},
 				Spec: clusterv1.ClusterSpec{
 					InfrastructureRef: &corev1.ObjectReference{},
+					ControlPlaneEndpoint: clusterv1.APIEndpoint{
+						Host: "1.2.3.4",
+						Port: 8443,
+					},
+				},
+				Status: clusterv1.ClusterStatus{
+					InfrastructureReady: true,
 				},
 			},
 

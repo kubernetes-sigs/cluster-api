@@ -119,7 +119,7 @@ func CreateSecret(ctx context.Context, c client.Client, cluster *clusterv1.Clust
 		return errors.New("CA private key not found")
 	}
 
-	server := fmt.Sprintf("https://%s:%d", cluster.Status.APIEndpoints[0].Host, cluster.Status.APIEndpoints[0].Port)
+	server := fmt.Sprintf("https://%s", cluster.Spec.ControlPlaneEndpoint.String())
 	cfg, err := New(cluster.Name, server, cert, key)
 	if err != nil {
 		return errors.Wrap(err, "failed to generate a kubeconfig")

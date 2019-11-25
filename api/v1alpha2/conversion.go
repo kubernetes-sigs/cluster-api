@@ -28,14 +28,39 @@ import (
 func (src *Cluster) ConvertTo(dstRaw conversion.Hub) error {
 	dst := dstRaw.(*v1alpha3.Cluster)
 
-	return Convert_v1alpha2_Cluster_To_v1alpha3_Cluster(src, dst, nil)
+	if err := Convert_v1alpha2_Cluster_To_v1alpha3_Cluster(src, dst, nil); err != nil {
+		return err
+	}
+
+	// Manually convert Status.APIEndpoints to Spec.ControlPlaneEndpoint.
+	if len(src.Status.APIEndpoints) > 0 {
+		endpoint := src.Status.APIEndpoints[0]
+		dst.Spec.ControlPlaneEndpoint.Host = endpoint.Host
+		dst.Spec.ControlPlaneEndpoint.Port = int32(endpoint.Port)
+	}
+
+	return nil
 }
 
 // nolint
 func (dst *Cluster) ConvertFrom(srcRaw conversion.Hub) error {
 	src := srcRaw.(*v1alpha3.Cluster)
 
-	return Convert_v1alpha3_Cluster_To_v1alpha2_Cluster(src, dst, nil)
+	if err := Convert_v1alpha3_Cluster_To_v1alpha2_Cluster(src, dst, nil); err != nil {
+		return err
+	}
+
+	// Manually convert Spec.ControlPlaneEndpoint to Status.APIEndpoints.
+	if !src.Spec.ControlPlaneEndpoint.IsZero() {
+		dst.Status.APIEndpoints = []APIEndpoint{
+			{
+				Host: src.Spec.ControlPlaneEndpoint.Host,
+				Port: int(src.Spec.ControlPlaneEndpoint.Port),
+			},
+		}
+	}
+
+	return nil
 }
 
 func (src *ClusterList) ConvertTo(dstRaw conversion.Hub) error {
@@ -139,6 +164,13 @@ func Convert_v1alpha2_MachineSpec_To_v1alpha3_MachineSpec(in *MachineSpec, out *
 	return nil
 }
 
+func Convert_v1alpha2_ClusterSpec_To_v1alpha3_ClusterSpec(in *ClusterSpec, out *v1alpha3.ClusterSpec, s apiconversion.Scope) error {
+	if err := autoConvert_v1alpha2_ClusterSpec_To_v1alpha3_ClusterSpec(in, out, s); err != nil {
+		return err
+	}
+	return nil
+}
+
 func Convert_v1alpha2_ClusterStatus_To_v1alpha3_ClusterStatus(in *ClusterStatus, out *v1alpha3.ClusterStatus, s apiconversion.Scope) error {
 	if err := autoConvert_v1alpha2_ClusterStatus_To_v1alpha3_ClusterStatus(in, out, s); err != nil {
 		return err
@@ -196,6 +228,13 @@ func Convert_v1alpha2_MachineStatus_To_v1alpha3_MachineStatus(in *MachineStatus,
 	out.FailureMessage = in.ErrorMessage
 	out.FailureReason = in.ErrorReason
 
+	return nil
+}
+
+func Convert_v1alpha3_ClusterSpec_To_v1alpha2_ClusterSpec(in *v1alpha3.ClusterSpec, out *ClusterSpec, s apiconversion.Scope) error {
+	if err := autoConvert_v1alpha3_ClusterSpec_To_v1alpha2_ClusterSpec(in, out, s); err != nil {
+		return err
+	}
 	return nil
 }
 

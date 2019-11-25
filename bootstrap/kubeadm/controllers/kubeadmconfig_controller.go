@@ -491,12 +491,11 @@ func (r *KubeadmConfigReconciler) reconcileDiscovery(cluster *clusterv1.Cluster,
 	// if BootstrapToken already contains an APIServerEndpoint, respect it; otherwise inject the APIServerEndpoint endpoint defined in cluster status
 	apiServerEndpoint := config.Spec.JoinConfiguration.Discovery.BootstrapToken.APIServerEndpoint
 	if apiServerEndpoint == "" {
-		if len(cluster.Status.APIEndpoints) == 0 {
-			return errors.Wrap(&capierrors.RequeueAfterError{RequeueAfter: 10 * time.Second}, "Waiting for Cluster Controller to set cluster.Status.APIEndpoints")
+		if cluster.Spec.ControlPlaneEndpoint.IsZero() {
+			return errors.Wrap(&capierrors.RequeueAfterError{RequeueAfter: 10 * time.Second}, "Waiting for Cluster Controller to set Cluster.Spec.ControlPlaneEndpoint")
 		}
 
-		// NB. CABPK only uses the first APIServerEndpoint defined in cluster status if there are multiple defined.
-		apiServerEndpoint = fmt.Sprintf("%s:%d", cluster.Status.APIEndpoints[0].Host, cluster.Status.APIEndpoints[0].Port)
+		apiServerEndpoint = cluster.Spec.ControlPlaneEndpoint.String()
 		config.Spec.JoinConfiguration.Discovery.BootstrapToken.APIServerEndpoint = apiServerEndpoint
 		log.Info("Altering JoinConfiguration.Discovery.BootstrapToken", "APIServerEndpoint", apiServerEndpoint)
 	}
@@ -531,11 +530,11 @@ func (r *KubeadmConfigReconciler) reconcileDiscovery(cluster *clusterv1.Cluster,
 func (r *KubeadmConfigReconciler) reconcileTopLevelObjectSettings(cluster *clusterv1.Cluster, machine *clusterv1.Machine, config *bootstrapv1.KubeadmConfig) {
 	log := r.Log.WithValues("kubeadmconfig", fmt.Sprintf("%s/%s", config.Namespace, config.Name))
 
-	// If there are no ControlPlaneEndpoint defined in ClusterConfiguration but there are APIEndpoints defined at cluster level (e.g. the load balancer endpoint),
-	// then use cluster APIEndpoints as a control plane endpoint for the K8s cluster
-	if config.Spec.ClusterConfiguration.ControlPlaneEndpoint == "" && len(cluster.Status.APIEndpoints) > 0 {
-		// NB. CABPK only uses the first APIServerEndpoint defined in cluster status if there are multiple defined.
-		config.Spec.ClusterConfiguration.ControlPlaneEndpoint = fmt.Sprintf("%s:%d", cluster.Status.APIEndpoints[0].Host, cluster.Status.APIEndpoints[0].Port)
+	// If there is no ControlPlaneEndpoint defined in ClusterConfiguration but
+	// there is a ControlPlaneEndpoint defined at Cluster level (e.g. the load balancer endpoint),
+	// then use Cluster's ControlPlaneEndpoint as a control plane endpoint for the Kubernetes cluster.
+	if config.Spec.ClusterConfiguration.ControlPlaneEndpoint == "" && !cluster.Spec.ControlPlaneEndpoint.IsZero() {
+		config.Spec.ClusterConfiguration.ControlPlaneEndpoint = cluster.Spec.ControlPlaneEndpoint.String()
 		log.Info("Altering ClusterConfiguration", "ControlPlaneEndpoint", config.Spec.ClusterConfiguration.ControlPlaneEndpoint)
 	}
 

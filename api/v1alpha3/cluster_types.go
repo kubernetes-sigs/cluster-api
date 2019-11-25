@@ -17,6 +17,8 @@ limitations under the License.
 package v1alpha3
 
 import (
+	"fmt"
+
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	capierrors "sigs.k8s.io/cluster-api/errors"
@@ -33,6 +35,10 @@ type ClusterSpec struct {
 	// Cluster network configuration
 	// +optional
 	ClusterNetwork *ClusterNetwork `json:"clusterNetwork,omitempty"`
+
+	// ControlPlaneEndpoint represents the endpoint used to communicate with the control plane.
+	// +optional
+	ControlPlaneEndpoint APIEndpoint `json:"controlPlaneEndpoint"`
 
 	// InfrastructureRef is a reference to a provider-specific resource that holds the details
 	// for provisioning infrastructure for a cluster in said provider.
@@ -79,10 +85,6 @@ type NetworkRanges struct {
 
 // ClusterStatus defines the observed state of Cluster
 type ClusterStatus struct {
-	// APIEndpoints represents the endpoints to communicate with the control plane.
-	// +optional
-	APIEndpoints []APIEndpoint `json:"apiEndpoints,omitempty"`
-
 	// FailureReason indicates that there is a fatal problem reconciling the
 	// state, and will be set to a token value suitable for
 	// programmatic interpretation.
@@ -140,6 +142,16 @@ type APIEndpoint struct {
 
 	// The port on which the API server is serving.
 	Port int32 `json:"port"`
+}
+
+// IsZero returns true if either the host or the port are zero values.
+func (v APIEndpoint) IsZero() bool {
+	return v.Host == "" || v.Port == 0
+}
+
+// String returns a formatted version HOST:PORT of this APIEndpoint.
+func (v APIEndpoint) String() string {
+	return fmt.Sprintf("%s:%d", v.Host, v.Port)
 }
 
 // ANCHOR_END: APIEndpoint

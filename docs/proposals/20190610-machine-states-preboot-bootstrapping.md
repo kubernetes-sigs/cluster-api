@@ -323,7 +323,7 @@ MachinePhaseDeleting = MachinePhaseType("deleting")
 ```
 
 #### Transition Conditions
-- `Machine.ObjectMeta.DeletionTimestamp` is not `<nil>`
+- `Machine.ObjectMeta.DeletionTimestamp` is not zero.
 
 #### Expectations
 - Node associated should be drained and cordoned.
@@ -339,9 +339,9 @@ MachinePhaseDeleted = MachinePhaseType("deleted")
 ```
 
 #### Transition Conditions
-- `Machine.ObjectMeta.DeletionTimestamp` is not `<nil>`
-- (optional) `Machine.Bootstrap.ConfigRef` -> `ObjectMeta.DeletionTimestamp` is not `<nil>`
-- `Machine.Spec.InfrastructureRef`-> `ObjectMeta.DeletionTimestamp` is not `<nil>`
+- `Machine.ObjectMeta.DeletionTimestamp` is not zero.
+- (optional) `Machine.Bootstrap.ConfigRef` -> `ObjectMeta.DeletionTimestamp` is not zero.
+- `Machine.Spec.InfrastructureRef`-> `ObjectMeta.DeletionTimestamp` is not zero.
 
 #### Expectations
 - Machine controller should remove finalizer.

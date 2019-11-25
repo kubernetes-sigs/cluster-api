@@ -411,7 +411,7 @@ func shouldExcludeMachine(machineSet *clusterv1.MachineSet, machine *clusterv1.M
 		logger.V(4).Info("Machine is not controlled by machineset", "machine", machine.Name)
 		return true
 	}
-	return machine.ObjectMeta.DeletionTimestamp != nil
+	return !machine.ObjectMeta.DeletionTimestamp.IsZero()
 }
 
 // adoptOrphan sets the MachineSet as a controller OwnerReference to the Machine.

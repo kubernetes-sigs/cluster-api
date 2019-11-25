@@ -19,7 +19,7 @@ package v1alpha3
 import (
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	cabpkv1 "sigs.k8s.io/cluster-api/bootstrap/kubeadm/api/v1alpha2"
+	cabpkv1 "sigs.k8s.io/cluster-api/bootstrap/kubeadm/api/v1alpha3"
 	"sigs.k8s.io/cluster-api/errors"
 )
 
@@ -90,7 +90,7 @@ type KubeadmControlPlaneStatus struct {
 	// state, and will be set to a token value suitable for
 	// programmatic interpretation.
 	// +optional
-	Failurereason errors.KubeadmControlPlaneStatusError `json:"failureReason,omitempty"`
+	FailureReason errors.KubeadmControlPlaneStatusError `json:"failureReason,omitempty"`
 
 	// ErrorMessage indicates that there is a terminal problem reconciling the
 	// state, and will be set to a descriptive error message.

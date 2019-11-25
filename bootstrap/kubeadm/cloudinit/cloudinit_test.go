@@ -20,7 +20,7 @@ import (
 	"bytes"
 	"testing"
 
-	infrav1 "sigs.k8s.io/cluster-api/bootstrap/kubeadm/api/v1alpha2"
+	infrav1 "sigs.k8s.io/cluster-api/bootstrap/kubeadm/api/v1alpha3"
 	"sigs.k8s.io/cluster-api/bootstrap/kubeadm/internal/cluster"
 	"sigs.k8s.io/cluster-api/util/certs"
 )

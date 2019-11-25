@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package v1alpha2
+package v1alpha3
 
 import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -71,17 +71,18 @@ type KubeadmConfigStatus struct {
 	// +optional
 	BootstrapData []byte `json:"bootstrapData,omitempty"`
 
-	// ErrorReason will be set on non-retryable errors
+	// FailureReason will be set on non-retryable errors
 	// +optional
-	ErrorReason string `json:"errorReason,omitempty"`
+	FailureReason string `json:"failureReason,omitempty"`
 
-	// ErrorMessage will be set on non-retryable errors
+	// FailureMessage will be set on non-retryable errors
 	// +optional
-	ErrorMessage string `json:"errorMessage,omitempty"`
+	FailureMessage string `json:"failureMessage,omitempty"`
 }
 
 // +kubebuilder:object:root=true
 // +kubebuilder:resource:path=kubeadmconfigs,scope=Namespaced,categories=cluster-api
+// +kubebuilder:storageversion
 // +kubebuilder:subresource:status
 
 // KubeadmConfig is the Schema for the kubeadmconfigs API

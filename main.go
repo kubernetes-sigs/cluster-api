@@ -28,7 +28,8 @@ import (
 	"k8s.io/klog/klogr"
 	clusterv1alpha2 "sigs.k8s.io/cluster-api/api/v1alpha2"
 	clusterv1alpha3 "sigs.k8s.io/cluster-api/api/v1alpha3"
-	kubeadmbootstrapv1 "sigs.k8s.io/cluster-api/bootstrap/kubeadm/api/v1alpha2"
+	kubeadmbootstrapv1alpha2 "sigs.k8s.io/cluster-api/bootstrap/kubeadm/api/v1alpha2"
+	kubeadmbootstrapv1alpha3 "sigs.k8s.io/cluster-api/bootstrap/kubeadm/api/v1alpha3"
 	kubeadmcontrollers "sigs.k8s.io/cluster-api/bootstrap/kubeadm/controllers"
 	"sigs.k8s.io/cluster-api/controllers"
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -49,7 +50,8 @@ func init() {
 	_ = clientgoscheme.AddToScheme(scheme)
 	_ = clusterv1alpha2.AddToScheme(scheme)
 	_ = clusterv1alpha3.AddToScheme(scheme)
-	_ = kubeadmbootstrapv1.AddToScheme(scheme)
+	_ = kubeadmbootstrapv1alpha2.AddToScheme(scheme)
+	_ = kubeadmbootstrapv1alpha3.AddToScheme(scheme)
 	// +kubebuilder:scaffold:scheme
 }
 
@@ -223,6 +225,23 @@ func main() {
 
 		if err = (&clusterv1alpha3.KubeadmControlPlane{}).SetupWebhookWithManager(mgr); err != nil {
 			setupLog.Error(err, "unable to create webhook", "webhook", "KubeadmControlPlane")
+			os.Exit(1)
+		}
+
+		if err = (&kubeadmbootstrapv1alpha3.KubeadmConfig{}).SetupWebhookWithManager(mgr); err != nil {
+			setupLog.Error(err, "unable to create webhook", "webhook", "KubeadmConfig")
+			os.Exit(1)
+		}
+		if err = (&kubeadmbootstrapv1alpha3.KubeadmConfigList{}).SetupWebhookWithManager(mgr); err != nil {
+			setupLog.Error(err, "unable to create webhook", "webhook", "KubeadmConfigList")
+			os.Exit(1)
+		}
+		if err = (&kubeadmbootstrapv1alpha3.KubeadmConfigTemplate{}).SetupWebhookWithManager(mgr); err != nil {
+			setupLog.Error(err, "unable to create webhook", "webhook", "KubeadmConfigTemplate")
+			os.Exit(1)
+		}
+		if err = (&kubeadmbootstrapv1alpha3.KubeadmConfigTemplateList{}).SetupWebhookWithManager(mgr); err != nil {
+			setupLog.Error(err, "unable to create webhook", "webhook", "KubeadmConfigTemplateList")
 			os.Exit(1)
 		}
 	}

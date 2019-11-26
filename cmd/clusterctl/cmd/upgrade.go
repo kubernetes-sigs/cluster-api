@@ -14,19 +14,6 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package phases
+package cmd
 
-import (
-	"github.com/pkg/errors"
-	"k8s.io/klog"
-	"sigs.k8s.io/cluster-api/cmd/clusterctl/clusterdeployer/clusterclient"
-)
-
-func ApplyBootstrapComponents(client clusterclient.Client, components string) error {
-	klog.Info("Applying Bootstrap-only Components")
-	if err := client.Apply(components); err != nil {
-		return errors.Wrap(err, "unable to apply bootstrap-only components")
-	}
-
-	return nil
-}
+// TODO: upgrade command

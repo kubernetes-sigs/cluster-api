@@ -1,5 +1,5 @@
 /*
-Copyright 2018 The Kubernetes Authors.
+Copyright 2019 The Kubernetes Authors.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -17,20 +17,9 @@ limitations under the License.
 package main
 
 import (
-	"os"
-
-	"k8s.io/client-go/kubernetes/scheme"
-	"k8s.io/klog/klogr"
-	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha3"
 	"sigs.k8s.io/cluster-api/cmd/clusterctl/cmd"
-	"sigs.k8s.io/controller-runtime/pkg/log"
 )
 
 func main() {
-	log.SetLogger(klogr.New())
-	if err := clusterv1.AddToScheme(scheme.Scheme); err != nil {
-		log.Log.Error(err, "Failed to add Cluster API Scheme")
-		os.Exit(1)
-	}
 	cmd.Execute()
 }

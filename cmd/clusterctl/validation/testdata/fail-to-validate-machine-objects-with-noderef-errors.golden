@@ -1,6 +1,0 @@
-Validating Cluster API objects in namespace "validate-machine-objects-node-ref-errors"
-Checking cluster object "test-cluster"... PASS
-Checking machine object "test-machine1"... FAIL
-	the corresponding node "test-node-not-ready" is not ready
-Checking machine object "test-machine2"... FAIL
-	the corresponding node "test-node-not-exist" is not found: nodes "test-node-not-exist" not found

@@ -1,5 +1,5 @@
 /*
-Copyright 2018 The Kubernetes Authors.
+Copyright 2019 The Kubernetes Authors.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -20,12 +20,12 @@ import (
 	"github.com/spf13/cobra"
 )
 
-var alphaCmd = &cobra.Command{
-	Use:   "alpha",
-	Short: "Alpha/Experimental features",
-	Long:  `Alpha/Experimental features`,
+var configCmd = &cobra.Command{
+	Use:   "config",
+	Short: "Display Cluster API provider configuration and templates for creating workload clusters",
+	Long:  `Display Cluster API provider configuration and templates for creating workload clusters`,
 }
 
 func init() {
-	RootCmd.AddCommand(alphaCmd)
+	RootCmd.AddCommand(configCmd)
 }

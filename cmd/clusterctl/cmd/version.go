@@ -1,5 +1,5 @@
 /*
-Copyright 2018 The Kubernetes Authors.
+Copyright 2019 The Kubernetes Authors.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -14,21 +14,6 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package clusterdeployer
+package cmd
 
-import (
-	"k8s.io/client-go/kubernetes"
-	"sigs.k8s.io/cluster-api/cmd/clusterctl/clusterdeployer/provider"
-	"sigs.k8s.io/cluster-api/cmd/clusterctl/providercomponents"
-)
-
-type factory struct {
-}
-
-func NewProviderComponentsStoreFactory() provider.ComponentsStoreFactory {
-	return &factory{}
-}
-
-func (f *factory) NewFromCoreClientset(clientset *kubernetes.Clientset) (provider.ComponentsStore, error) {
-	return providercomponents.NewFromClientset(clientset)
-}
+// TODO: version command

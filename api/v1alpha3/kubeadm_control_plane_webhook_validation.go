@@ -31,7 +31,7 @@ func (r *KubeadmControlPlane) SetupWebhookWithManager(mgr ctrl.Manager) error {
 		Complete()
 }
 
-// +kubebuilder:webhook:verbs=create;update,path=/validate-cluster-x-k8s-io-v1alpha3-kubeadmcontrolplane,mutating=false,failurePolicy=fail,groups=cluster.x-k8s.io,resources=kubeadmcontrolplane,versions=v1alpha3,name=validation.kubeadmcontrolplane.cluster.x-k8s.io
+// +kubebuilder:webhook:verbs=create;update,path=/validate-cluster-x-k8s-io-v1alpha3-kubeadmcontrolplane,mutating=false,failurePolicy=fail,groups=cluster.x-k8s.io,resources=kubeadmcontrolplanes,versions=v1alpha3,name=validation.kubeadmcontrolplane.cluster.x-k8s.io
 
 var _ webhook.Validator = &KubeadmControlPlane{}
 

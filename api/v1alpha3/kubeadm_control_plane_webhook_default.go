@@ -20,7 +20,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/webhook"
 )
 
-// +kubebuilder:webhook:verbs=create;update,path=/mutate-cluster-x-k8s-io-v1alpha3-kubeadmcontrolplane,mutating=true,failurePolicy=fail,groups=cluster.x-k8s.io,resources=kubeadmcontrolplane,versions=v1alpha3,name=default.kubeadmcontrolplane.cluster.x-k8s.io
+// +kubebuilder:webhook:verbs=create;update,path=/mutate-cluster-x-k8s-io-v1alpha3-kubeadmcontrolplane,mutating=true,failurePolicy=fail,groups=cluster.x-k8s.io,resources=kubeadmcontrolplanes,versions=v1alpha3,name=default.kubeadmcontrolplane.cluster.x-k8s.io
 
 var _ webhook.Defaulter = &KubeadmControlPlane{}
 

@@ -1,6 +1,0 @@
-Validating Cluster API objects in namespace "validate-machine-objects-errors"
-Checking cluster object "test-cluster"... PASS
-Checking machine object "test-machine1"... FAIL
-	[CreateError]: Failed to create machine
-Checking machine object "test-machine2"... FAIL
-	The corresponding node is missing.

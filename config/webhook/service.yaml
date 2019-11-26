@@ -9,4 +9,4 @@ spec:
     - port: 443
       targetPort: webhook-server
   selector:
-    control-plane: capi-controller-manager
+    control-plane: cluster-api-controller-manager

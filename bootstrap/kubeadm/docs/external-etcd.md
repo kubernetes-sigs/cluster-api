@@ -2,7 +2,7 @@
 
 Cluster API Bootstrap Provider Kubeadm  supports using an external etcd cluster for your workload Kubernetes clusters.
 
-### ⚠️ Warnings ⚠️
+## ⚠️ Warnings ⚠️
 
 Before getting started you should be aware of the expectations that come with using an external etcd cluster.
 
@@ -11,13 +11,32 @@ Before getting started you should be aware of the expectations that come with us
     * As an example, cross availability zone traffic can cost money on cloud providers. You don't have to deploy etcd
     across availability zones, but if you do please be aware of the costs.
 
-### Getting started
+## Getting started
 
 To use this, you will need to create an etcd cluster and generate an apiserver-etcd-client key/pair.
-[`etcdadm`](https://github.com/kubernetes-sigs/etcdadm) is a good way to get started if you'd like to test this
-behavior.
+This behaviour can be tested using [`kubeadm`](https://kubernetes.io/docs/setup/production-environment/tools/kubeadm/setup-ha-etcd-with-kubeadm/) and [`etcdadm`](https://github.com/kubernetes-sigs/etcdadm).
 
-Once you create an etcd cluster, you will want to base64 encode the `/etc/etcd/pki/apiserver-etcd-client.crt`,
+
+### Using kubeadm 
+Once you created the etcd cluster, CA certificates are required.
+If you already have a CA then the CA's `key` and `crt` must be copied to `/etc/kubernetes/pki/etcd/ca.crt` and `/etc/kubernetes/pki/etcd/ca.key`.
+
+If you do not already have a CA then run command `kubeadm init phase certs etcd-ca`. This creates two files
+
+ * `/etc/kubernetes/pki/etcd/ca.crt`
+ * `/etc/kubernetes/pki/etcd/ca.key`  
+
+### Using etcdadm
+CA's `key` and `crt` generated using `etcdadm` are stored in `/etc/etcd/pki/apiserver-etcd-client.crt` and `/etc/etcd/pki/apiserver-etcd-client.key` .
+
+
+Now it is required to create 2 [`secrets`](https://kubernetes.io/docs/concepts/configuration/secret/#creating-a-secret-using-kubectl-create-secret) using these server and etcd client key/pair. This can be done using command,
+
+ `kubectl create secret tls $CLUSTER_NAME-apiserver-etcd-client --cert ${CERT_FILE} --key ${KEY_FILE} --namespace $CLUSTER_NAMESPACE`
+
+**Note:** Above command has key/pair base64 encoded by default. 
+
+**Note:** Alternatively you can base64 encode the `/etc/etcd/pki/apiserver-etcd-client.crt`,
 `/etc/etcd/pki/apiserver-etcd-client.key`, and `/etc/etcd/pki/server.crt` files and put them in two secrets. The secrets
 must be formatted as follows and the cert material must be base64 encoded:
 

@@ -17,6 +17,7 @@ limitations under the License.
 package kind
 
 import (
+	"bytes"
 	"fmt"
 	"io/ioutil"
 	"os/exec"
@@ -67,14 +68,24 @@ func WithOptions(options []string) *Kind {
 
 var execFunc = func(args ...string) (string, error) {
 	const executable = "kind"
-	klog.V(3).Infof("Running: %v %v", executable, args)
+	joinedArgs := strings.Join(args, " ")
+	klog.V(3).Infof("Running: %v %v", executable, joinedArgs)
+
 	cmd := exec.Command(executable, args...)
-	cmdOut, err := cmd.CombinedOutput()
-	klog.V(2).Infof("Ran: %v %v Output: %v", executable, args, string(cmdOut))
+	var bufErr, bufOut bytes.Buffer
+	cmd.Stdout = &bufOut
+	cmd.Stderr = &bufErr
+
+	err := cmd.Run()
+	commandMessage := fmt.Sprintf("%v %v\nStdout:\n%v\nStderr:\n%v",
+		executable, joinedArgs, bufOut.String(), bufErr.String())
+
 	if err != nil {
-		err = errors.Wrapf(err, "error running command '%v %v'", executable, strings.Join(args, " "))
+		return "", errors.Wrapf(err, "error running command: %s", commandMessage)
 	}
-	return string(cmdOut), err
+
+	klog.V(2).Infof("Ran: %s", commandMessage)
+	return bufOut.String(), err
 }
 
 func (k *Kind) Create() error {

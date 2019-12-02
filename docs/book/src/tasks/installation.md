@@ -11,8 +11,8 @@ Cluster API requires an existing kubernetes cluster accessible via kubectl, choo
 
 1. **Kind**
 
-{{#tabs name:"kind-cluster" tabs:"AWS|Azure|vSphere|OpenStack,Docker"}}
-{{#tab AWS|Azure|vSphere|OpenStack}}
+{{#tabs name:"kind-cluster" tabs:"AWS|Azure|GCP|vSphere|OpenStack,Docker"}}
+{{#tab AWS|Azure|GCP|vSphere|OpenStack}}
 
 <aside class="note warning">
 
@@ -104,7 +104,7 @@ kubectl create -f {{#releaselink gomodule:"sigs.k8s.io/cluster-api-bootstrap-pro
 
 #### Install Infrastructure Provider
 
-{{#tabs name:"tab-installation-infrastructure" tabs:"AWS,Azure,Docker,vSphere,OpenStack"}}
+{{#tabs name:"tab-installation-infrastructure" tabs:"AWS,Azure,Docker,GCP,vSphere,OpenStack"}}
 {{#tab AWS}}
 
 <aside class="note warning">
@@ -169,6 +169,33 @@ Check the [Docker provider releases](https://github.com/kubernetes-sigs/cluster-
 
 ```bash
 kubectl create -f {{#releaselink gomodule:"sigs.k8s.io/cluster-api-provider-docker" asset:"provider-components.yaml" version:"0.2.x"}}
+```
+
+{{#/tab }}
+{{#tab GCP}}
+
+<aside class="note warning">
+
+<h1>Action Required</h1>
+
+Update the path to your GCP credentials file below.
+
+</aside>
+
+##### Create the components
+
+Check the [GCP provider releases](https://github.com/kubernetes-sigs/cluster-api-provider-gcp/releases) for an up-to-date components file.
+
+```bash
+# Create the base64 encoded credentials by catting your credentials json.
+# This command uses your environment variables and encodes
+# them in a value to be stored in a Kubernetes Secret.
+export GCP_B64ENCODED_CREDENTIALS=$( cat /path/to/gcp-credentials.json | base64 | tr -d '\n' )
+
+# Create the components.
+curl -L {{#releaselink gomodule:"sigs.k8s.io/cluster-api-provider-gcp" asset:"infrastructure-components.yaml" version:"0.3.x"}} \
+  | envsubst \
+  | kubectl create -f -
 ```
 
 {{#/tab }}

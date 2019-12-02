@@ -11,7 +11,7 @@ let's proceed to create a single node cluster.
 
 For the purpose of this tutorial, we'll name our cluster `capi-quickstart`.
 
-{{#tabs name:"tab-usage-cluster-resource" tabs:"AWS,Azure,Docker,vSphere,OpenStack"}}
+{{#tabs name:"tab-usage-cluster-resource" tabs:"AWS,Azure,Docker,GCP,vSphere,OpenStack"}}
 {{#tab AWS}}
 
 ```yaml
@@ -90,6 +90,39 @@ apiVersion: infrastructure.cluster.x-k8s.io/v1alpha2
 kind: DockerCluster
 metadata:
   name: capi-quickstart
+```
+{{#/tab }}
+{{#tab GCP}}
+<aside class="note warning">
+
+<h1>Action Required</h1>
+
+Replace the project below with your unique value and update region if desired.
+
+</aside>
+
+```yaml
+apiVersion: cluster.x-k8s.io/v1alpha2
+kind: Cluster
+metadata:
+  name: capi-quickstart
+spec:
+  clusterNetwork:
+    pods:
+      cidrBlocks:
+      - 192.168.0.0/16
+  infrastructureRef:
+    apiVersion: infrastructure.cluster.x-k8s.io/v1alpha2
+    kind: GCPCluster
+    name: capi-quickstart
+---
+apiVersion: infrastructure.cluster.x-k8s.io/v1alpha2
+kind: GCPCluster
+metadata:
+  name: capi-quickstart
+spec:
+  project: capi-quickstart
+  region: us-central1
 ```
 {{#/tab }}
 {{#tab vSphere}}
@@ -216,7 +249,7 @@ data:
 
 Now that we've created the cluster object, we can create a control plane Machine.
 
-{{#tabs name:"tab-usage-controlplane-resource" tabs:"AWS,Azure,Docker,vSphere,OpenStack"}}
+{{#tabs name:"tab-usage-controlplane-resource" tabs:"AWS,Azure,Docker,GCP,vSphere,OpenStack"}}
 {{#tab AWS}}
 
 ```yaml
@@ -445,6 +478,64 @@ spec:
         enable-hostpath-provisioner: "true"
 ```
 {{#/tab }}
+{{#tab GCP}}
+<aside class="note warning">
+
+<h1>Action Required</h1>
+
+Feel free to update instance types and zones below.
+
+</aside>
+
+```yaml
+apiVersion: cluster.x-k8s.io/v1alpha2
+kind: Machine
+metadata:
+  name: capi-quickstart-controlplane-0
+  labels:
+    cluster.x-k8s.io/control-plane: "true"
+    cluster.x-k8s.io/cluster-name: "capi-quickstart"
+spec:
+  version: v1.15.3
+  bootstrap:
+    configRef:
+      apiVersion: bootstrap.cluster.x-k8s.io/v1alpha2
+      kind: KubeadmConfig
+      name: capi-quickstart-controlplane-0
+  infrastructureRef:
+    apiVersion: infrastructure.cluster.x-k8s.io/v1alpha2
+    kind: GCPMachine
+    name: capi-quickstart-controlplane-0
+---
+apiVersion: infrastructure.cluster.x-k8s.io/v1alpha2
+kind: GCPMachine
+metadata:
+  name: capi-quickstart-controlplane-0
+spec:
+  instanceType: n1-standard-2
+  zone: us-central1-a
+---
+apiVersion: bootstrap.cluster.x-k8s.io/v1alpha2
+kind: KubeadmConfig
+metadata:
+  name: capi-quickstart-controlplane-0
+spec:
+  # For more information about these values,
+  # refer to the Kubeadm Bootstrap Provider documentation.
+  initConfiguration:
+    nodeRegistration:
+      name: '{{ ds.meta_data.hostname }}'
+      kubeletExtraArgs:
+        cloud-provider: gce
+  clusterConfiguration:
+    apiServer:
+      extraArgs:
+        cloud-provider: gce
+    controllerManager:
+      extraArgs:
+        cloud-provider: gce
+```
+{{#/tab }}
 {{#tab vSphere}}
 
 <aside class="note warning">
@@ -642,16 +733,19 @@ spec:
 
 After the controlplane is up and running, let's retrieve the [target cluster] Kubeconfig:
 
-{{#tabs name:"tab-getting-kubeconfig" tabs:"AWS|Azure|vSphere|OpenStack, Docker"}}
-{{#tab AWS|Azure|vSphere|OpenStack}}
+{{#tabs name:"tab-getting-kubeconfig" tabs:"AWS|Azure|GCP|vSphere|OpenStack, Docker"}}
+{{#tab AWS|Azure|GCP|vSphere|OpenStack}}
+
 ```bash
 kubectl --namespace=default get secret/capi-quickstart-kubeconfig -o json \
   | jq -r .data.value \
   | base64 --decode \
   > ./capi-quickstart.kubeconfig
 ```
+
 {{#/tab }}
 {{#tab Docker}}
+
 ```bash
 kubectl --namespace=default get secret/capi-quickstart-kubeconfig -o json \
   | jq -r .data.value \
@@ -668,7 +762,8 @@ sed -i -e "s/server:.*/server: https:\/\/$(docker port capi-quickstart-lb 6443/t
 
 # Ignore the CA, because it is not signed for 127.0.0.1
 sed -i -e "s/certificate-authority-data:.*/insecure-skip-tls-verify: true/g" ./capi-quickstart.kubeconfig
-```  
+```
+
 {{#/tab }}
 {{#/tabs }}
 
@@ -714,7 +809,7 @@ kubectl --kubeconfig=./capi-quickstart.kubeconfig get nodes
 
 Finishing up, we'll create a single node _MachineDeployment_.
 
-{{#tabs name:"tab-usage-machinedeployment" tabs:"AWS,Azure,Docker,vSphere,OpenStack"}}
+{{#tabs name:"tab-usage-machinedeployment" tabs:"AWS,Azure,Docker,GCP,vSphere,OpenStack"}}
 {{#tab AWS}}
 
 ```yaml
@@ -967,6 +1062,77 @@ spec:
             enable-hostpath-provisioner: "true"
 ```
 {{#/tab }}
+{{#tab GCP}}
+
+<aside class="note warning">
+
+<h1>Action Required</h1>
+
+Feel free to update instance types and zones below.
+
+</aside>
+
+```yaml
+apiVersion: cluster.x-k8s.io/v1alpha2
+kind: MachineDeployment
+metadata:
+  name: capi-quickstart-worker
+  labels:
+    cluster.x-k8s.io/cluster-name: capi-quickstart
+    # Labels beyond this point are for example purposes,
+    # feel free to add more or change with something more meaningful.
+    # Sync these values with spec.selector.matchLabels and spec.template.metadata.labels.
+    nodepool: nodepool-0
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      cluster.x-k8s.io/cluster-name: capi-quickstart
+      nodepool: nodepool-0
+  template:
+    metadata:
+      labels:
+        cluster.x-k8s.io/cluster-name: capi-quickstart
+        nodepool: nodepool-0
+    spec:
+      version: v1.15.3
+      bootstrap:
+        configRef:
+          name: capi-quickstart-worker
+          apiVersion: bootstrap.cluster.x-k8s.io/v1alpha2
+          kind: KubeadmConfigTemplate
+      infrastructureRef:
+        name: capi-quickstart-worker
+        apiVersion: infrastructure.cluster.x-k8s.io/v1alpha2
+        kind: GCPMachineTemplate
+---
+apiVersion: infrastructure.cluster.x-k8s.io/v1alpha2
+kind: GCPMachineTemplate
+metadata:
+  name: capi-quickstart-worker
+spec:
+  template:
+    spec:
+      instanceType: n1-standard-2
+      zone: us-central1-a
+---
+apiVersion: bootstrap.cluster.x-k8s.io/v1alpha2
+kind: KubeadmConfigTemplate
+metadata:
+  name: capi-quickstart-worker
+spec:
+  template:
+    spec:
+      # For more information about these values,
+      # refer to the Kubeadm Bootstrap Provider documentation.
+      joinConfiguration:
+        nodeRegistration:
+          name: '{{ ds.meta_data.hostname }}'
+          kubeletExtraArgs:
+            cloud-provider: gce
+```
+
+{{#/tab}}
 {{#tab vSphere}}
 
 <aside class="note warning">

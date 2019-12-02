@@ -1,5 +1,3 @@
-// +build tools
-
 /*
 Copyright 2019 The Kubernetes Authors.
 
@@ -16,13 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-// This package imports things required by build scripts, to force `go mod` to see them as dependencies
-package tools
+package config
 
-import (
-	_ "github.com/golangci/golangci-lint/cmd/golangci-lint"
-	_ "github.com/jteeuwen/go-bindata/go-bindata"
-	_ "k8s.io/code-generator/cmd/conversion-gen"
-	_ "sigs.k8s.io/controller-tools/cmd/controller-gen"
-	_ "sigs.k8s.io/testing_frameworks/integration"
-)
+// We pull in the manifest for the clusterctl CRD with go-bindata
+//go:generate go-bindata -pkg=$GOPACKAGE -o=crd_manifests.go manifest/

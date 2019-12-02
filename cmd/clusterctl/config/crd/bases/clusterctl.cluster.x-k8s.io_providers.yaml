@@ -1,0 +1,71 @@
+
+---
+apiVersion: apiextensions.k8s.io/v1beta1
+kind: CustomResourceDefinition
+metadata:
+  annotations:
+    controller-gen.kubebuilder.io/version: v0.2.3
+  creationTimestamp: null
+  name: providers.clusterctl.cluster.x-k8s.io
+spec:
+  additionalPrinterColumns:
+  - JSONPath: .type
+    name: Type
+    type: string
+  - JSONPath: .version
+    name: Version
+    type: string
+  - JSONPath: .watchedNamespace
+    name: Watch Namespace
+    type: string
+  group: clusterctl.cluster.x-k8s.io
+  names:
+    categories:
+    - cluster-api
+    kind: Provider
+    listKind: ProviderList
+    plural: providers
+    singular: provider
+  preserveUnknownFields: false
+  scope: Namespaced
+  subresources: {}
+  validation:
+    openAPIV3Schema:
+      description: Provider is the Schema for the providers API
+      properties:
+        apiVersion:
+          description: 'APIVersion defines the versioned schema of this representation
+            of an object. Servers should convert recognized schemas to the latest
+            internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/api-conventions.md#resources'
+          type: string
+        kind:
+          description: 'Kind is a string value representing the REST resource this
+            object represents. Servers may infer this from the endpoint the client
+            submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/api-conventions.md#types-kinds'
+          type: string
+        metadata:
+          type: object
+        type:
+          description: Type indicates the type of the provider. See ProviderType for
+            a list of supported values
+          type: string
+        version:
+          description: Version indicates the component version.
+          type: string
+        watchedNamespace:
+          description: WatchedNamespace indicates the namespace where the provider
+            controller is is watching. if empty the provider controller is watching
+            for objects in all namespaces.
+          type: string
+      type: object
+  version: v1alpha3
+  versions:
+  - name: v1alpha3
+    served: true
+    storage: true
+status:
+  acceptedNames:
+    kind: ""
+    plural: ""
+  conditions: []
+  storedVersions: []

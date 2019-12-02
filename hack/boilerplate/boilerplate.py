@@ -62,6 +62,10 @@ def get_refs():
     return refs
 
 def is_generated_file(filename, data, regexs):
+    for d in generated_files:
+            if d in filename:
+                return True
+
     for d in skipped_ungenerated_files:
         if d in filename:
             return False
@@ -153,6 +157,9 @@ skipped_dirs = ['Godeps', 'third_party', '_gopath', '_output', '.git', 'cluster/
 
 # list all the files contain 'DO NOT EDIT', but are not generated
 skipped_ungenerated_files = ['hack/lib/swagger.sh', 'hack/boilerplate/boilerplate.py']
+
+# list all the files that does not contain 'DO NOT EDIT', but are generated
+generated_files = ['cmd/clusterctl/config/crd_manifests.go']
 
 def normalize_files(files):
     newfiles = []

@@ -1,0 +1,34 @@
+@startuml
+
+start
+
+:New/Updated/Deleted resource;
+
+if (Deleted?) then (yes)
+    if (Has cluster owner?) then (yes)
+        :Reconcile deletion;
+        if (Error?) then (yes)
+            stop
+        else (no)
+        endif
+    else (no)
+    endif
+    :Delete provider-specific finalizer;
+else (no)
+    if (Has cluster owner?) then (yes)
+        :Add provider-specific finalizer if needed;
+        :Reconcile provider cluster infrastructure;
+        if (Error?) then (yes)
+            stop
+        elseif (Created load balancer?) then (yes)
+            :Set status.controlPlaneEndpoint;
+        else (no)
+        endif
+        :Set status.ready to true;
+    else (no)
+    endif
+endif
+:Patch resource to persist changes;
+stop
+
+@enduml

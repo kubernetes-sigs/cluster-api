@@ -18,6 +18,7 @@
         - [MachineDeployment](./architecture/controllers/machine-deployment.md)
     - [Provider Implementers](./providers/implementers.md)
         - [v1alpha1 to v1alpha2](./providers/v1alpha1-to-v1alpha2.md)
+        - [Cluster Infrastructure](./providers/cluster-infrastructure.md)
 
 - [Reference](./reference/reference.md)
     - [Glossary](./reference/glossary.md)

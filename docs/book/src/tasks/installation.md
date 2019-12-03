@@ -129,6 +129,8 @@ Check the [AWS provider releases] for an up-to-date components file.
 # them in a value to be stored in a Kubernetes Secret.
 export AWS_B64ENCODED_CREDENTIALS=$(clusterawsadm alpha bootstrap encode-aws-credentials)
 
+The `envsubst` application is provided by the `gettext` package on Linux and via Brew on MacOS.
+
 # Create the components.
 curl -L {{#releaselink gomodule:"sigs.k8s.io/cluster-api-provider-aws" asset:"infrastructure-components.yaml" version:"0.4.x"}} \
   | envsubst \

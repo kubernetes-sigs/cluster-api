@@ -146,7 +146,6 @@ generate: $(CONTROLLER_GEN) ## Generate code
 generate-go: $(CONTROLLER_GEN) $(CONVERSION_GEN) ## Runs Go related generate targets
 	$(CONTROLLER_GEN) \
 		object:headerFile=./hack/boilerplate/boilerplate.generatego.txt \
-		crd:preserveUnknownFields=false \
 		paths=./api/... \
 		paths=./bootstrap/kubeadm/api/... \
 		paths=./cmd/clusterctl/api/...

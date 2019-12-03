@@ -146,6 +146,7 @@ generate: $(CONTROLLER_GEN) ## Generate code
 generate-go: $(CONTROLLER_GEN) $(CONVERSION_GEN) ## Runs Go related generate targets
 	$(CONTROLLER_GEN) \
 		object:headerFile=./hack/boilerplate/boilerplate.generatego.txt \
+		crd:preserveUnknownFields=false \
 		paths=./api/... \
 		paths=./bootstrap/kubeadm/api/... \
 		paths=./cmd/clusterctl/api/...
@@ -172,14 +173,14 @@ generate-manifests: $(CONTROLLER_GEN) ## Generate manifests e.g. CRD, RBAC etc.
 		paths=./api/... \
 		paths=./controllers/... \
 		paths=./bootstrap/kubeadm/controllers/... \
-		crd \
+		crd:preserveUnknownFields=false \
 		rbac:roleName=manager-role \
 		output:crd:dir=./config/crd/bases \
 		output:webhook:dir=./config/webhook \
 		webhook
 	$(CONTROLLER_GEN) \
 		paths=./bootstrap/kubeadm/api/... \
-		crd:trivialVersions=true \
+		crd:trivialVersions=true,preserveUnknownFields=false \
 		output:crd:dir=./config/crd/bases
 	$(CONTROLLER_GEN) \
 		paths=./cmd/clusterctl/api/... \

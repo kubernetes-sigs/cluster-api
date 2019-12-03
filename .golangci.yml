@@ -22,5 +22,6 @@ run:
   deadline: 4m
   skip-files:
     - "zz_generated.*\\.go$"
+    - crd_manifests.go
   skip-dirs:
     - third_party

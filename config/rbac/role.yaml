@@ -73,6 +73,19 @@ rules:
 - apiGroups:
   - cluster.x-k8s.io
   resources:
+  - kubeadmcontrolplanes
+  - kubeadmcontrolplanes/status
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - cluster.x-k8s.io
+  resources:
   - machinedeployments
   - machinedeployments/status
   verbs:

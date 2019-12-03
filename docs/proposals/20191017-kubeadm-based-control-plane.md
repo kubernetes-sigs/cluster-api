@@ -18,7 +18,7 @@ reviewers:
   - "@hardikdr"
   - "@sbueringer"
 creation-date: 2019-10-17
-last-updated: 2019-11-13
+last-updated: 2019-12-04
 status: implementable
 ---
 
@@ -224,16 +224,16 @@ type KubeadmControlPlaneStatus struct {
     // +optional
     Ready bool `json:"ready,omitempty"`
 
-    // ErrorReason indicates that there is a problem reconciling the
+    // FailureReason indicates that there is a problem reconciling the
     // state, and will be set to a token value suitable for
     // programmatic interpretation.
     // +optional
-    ErrorReason KubeadmControlPlaneStatusError `json:"errorReason,omitempty"`
+    FailureReason KubeadmControlPlaneStatusError `json:"errorReason,omitempty"`
 
-    // ErrorMessage indicates that there is a problem reconciling the
+    // FailureMessage indicates that there is a problem reconciling the
     // state, and will be set to a descriptive error message.
     // +optional
-    ErrorMessage *string `json:"errorMessage,omitempty"`
+    FailureMessage *string `json:"errorMessage,omitempty"`
 
 // +kubebuilder:object:root=true
 // +kubebuilder:resource:path=controlplanes,shortName=cp,scope=Namespaced,categories=cluster-api
@@ -348,7 +348,7 @@ And the following defaulting:
 ##### Create
 
 - After a KubeadmControlPlane object is created, it must bootstrap a control plane with a given number of replicas.
-- If an error occurs, `KubeadmControlPlane.Status.ErrorStatus` and `KubeadmControlPlane.Status.ErrorMessage` are populated.
+- If an error occurs, `KubeadmControlPlane.Status.FailureReason` and `KubeadmControlPlane.Status.FailureMessage` are populated.
 - `KubeadmControlPlane.Spec.Replicas` must be an odd number.
 - Can create an arbitrary number of control planes if etcd is external to the control plane, which will be determined by introspecting `KubeadmControlPlane.Spec.KubeadmConfigSpec`.
 - Creating a KubeadmControlPlane with > 1 replicas is equivalent to creating a KubeadmControlPlane with 1 replica followed by scaling the KubeadmControlPlane to the desired number of replicas
@@ -577,3 +577,6 @@ For the purposes of designing upgrades, two existing lifecycle managers were exa
 ## Implementation History
 
 - [x] 10/17/2019: Initial Creation
+- [x] 11/19/2019: Initial KubeadmControlPlane types added [#1765](https://github.com/kubernetes-sigs/cluster-api/pull/1765)
+- [x] 12/04/2019: Updated References to ErrorMessage/ErrorReason to FailureMessage/FailureReason
+- [] 12/04/2019: Initial stubbed KubeadmControlPlane controller added [#1826](https://github.com/kubernetes-sigs/cluster-api/pull/1826) 

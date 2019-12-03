@@ -55,17 +55,18 @@ func init() {
 
 func main() {
 	var (
-		metricsAddr                  string
-		enableLeaderElection         bool
-		watchNamespace               string
-		profilerAddress              string
-		clusterConcurrency           int
-		machineConcurrency           int
-		machineSetConcurrency        int
-		machineDeploymentConcurrency int
-		kubeadmConfigConcurrency     int
-		syncPeriod                   time.Duration
-		webhookPort                  int
+		metricsAddr                    string
+		enableLeaderElection           bool
+		watchNamespace                 string
+		profilerAddress                string
+		clusterConcurrency             int
+		machineConcurrency             int
+		machineSetConcurrency          int
+		machineDeploymentConcurrency   int
+		kubeadmConfigConcurrency       int
+		kubeadmControlPlaneConcurrency int
+		syncPeriod                     time.Duration
+		webhookPort                    int
 	)
 
 	flag.StringVar(&metricsAddr, "metrics-addr", ":8080",
@@ -94,6 +95,9 @@ func main() {
 
 	flag.IntVar(&kubeadmConfigConcurrency, "kubeadmconfig-concurrency", 10,
 		"Number of kubeadm configs to process simultaneously")
+
+	flag.IntVar(&kubeadmControlPlaneConcurrency, "kubeadmcontrolplane-concurrency", 1,
+		"Number of kubeadm control planes to process simultaneously")
 
 	flag.DurationVar(&syncPeriod, "sync-period", 10*time.Minute,
 		"The minimum interval at which watched resources are reconciled (e.g. 15m)")
@@ -165,6 +169,15 @@ func main() {
 		Log:    ctrl.Log.WithName("controllers").WithName("KubeadmConfig"),
 	}).SetupWithManager(mgr, concurrency(kubeadmConfigConcurrency)); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "KubeadmConfig")
+		os.Exit(1)
+	}
+
+	// KubeadmControlPlane controllers.
+	if err = (&controllers.KubeadmControlPlaneReconciler{
+		Client: mgr.GetClient(),
+		Log:    ctrl.Log.WithName("controllers").WithName("KubeadmControlPlane"),
+	}).SetupWithManager(mgr, concurrency(kubeadmControlPlaneConcurrency)); err != nil {
+		setupLog.Error(err, "unable to create controller", "controller", "KubeadmControlPlane")
 		os.Exit(1)
 	}
 

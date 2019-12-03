@@ -169,6 +169,7 @@ generate-manifests: $(CONTROLLER_GEN) ## Generate manifests e.g. CRD, RBAC etc.
 		crd \
 		rbac:roleName=manager-role \
 		output:crd:dir=./config/crd/bases \
+		output:webhook:dir=./config/webhook \
 		webhook
 	$(CONTROLLER_GEN) \
 		paths=./bootstrap/kubeadm/api/... \

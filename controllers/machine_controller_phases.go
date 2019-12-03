@@ -152,14 +152,6 @@ func (r *MachineReconciler) reconcileExternal(ctx context.Context, m *clusterv1.
 
 // reconcileBootstrap reconciles the Spec.Bootstrap.ConfigRef object on a Machine.
 func (r *MachineReconciler) reconcileBootstrap(ctx context.Context, m *clusterv1.Machine) error {
-	// TODO(vincepri): Move this validation in kubebuilder / webhook.
-	if m.Spec.Bootstrap.ConfigRef == nil && m.Spec.Bootstrap.Data == nil {
-		return errors.Errorf(
-			"Expected at least one of `Bootstrap.ConfigRef` or `Bootstrap.Data` to be populated for Machine %q in namespace %q",
-			m.Name, m.Namespace,
-		)
-	}
-
 	// Call generic external reconciler if we have an external reference.
 	var bootstrapConfig *unstructured.Unstructured
 	if m.Spec.Bootstrap.ConfigRef != nil {

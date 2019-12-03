@@ -161,25 +161,18 @@ func (r *MachineSetReconciler) reconcile(ctx context.Context, machineSet *cluste
 	machineSet.Spec.Selector.MatchLabels[clusterv1.MachineSetLabelName] = machineSet.Name
 	machineSet.Spec.Template.Labels[clusterv1.MachineSetLabelName] = machineSet.Name
 
-	// Make sure that label selector can match template's labels.
-	// TODO(vincepri): Move to a validation (admission) webhook when supported.
 	selector, err := metav1.LabelSelectorAsSelector(&machineSet.Spec.Selector)
 	if err != nil {
 		return ctrl.Result{}, errors.Wrapf(err, "failed to parse MachineSet %q label selector", machineSet.Name)
 	}
-
-	if !selector.Matches(labels.Set(machineSet.Spec.Template.Labels)) {
-		return ctrl.Result{}, errors.Errorf("failed validation on MachineSet %q label selector, cannot match any machines ", machineSet.Name)
-	}
+	// Copy label selector to its status counterpart in string format.
+	// This is necessary for CRDs including scale subresources.
+	machineSet.Status.Selector = selector.String()
 
 	selectorMap, err := metav1.LabelSelectorAsMap(&machineSet.Spec.Selector)
 	if err != nil {
 		return ctrl.Result{}, errors.Wrapf(err, "failed to convert MachineSet %q label selector to a map", machineSet.Name)
 	}
-
-	// Copy label selector to its status counterpart in string format.
-	// This is necessary for CRDs including scale subresources.
-	machineSet.Status.Selector = selector.String()
 
 	// Get all Machines linked to this MachineSet.
 	allMachines := &clusterv1.MachineList{}

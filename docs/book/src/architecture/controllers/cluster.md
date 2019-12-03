@@ -35,13 +35,13 @@ The `status` object **must** have the following fields defined:
 
 The `status` object **may** define several fields that do not affect functionality if missing:
 
-* `errorReason` - is a string that explains why an error has occurred, if possible.
-* `errorMessage` - is a string that holds the message contained by the error.
+* `failureReason` - is a string that explains why a fatal error has occurred, if possible.
+* `failureMessage` - is a string that holds the message contained by the error.
 
 Example:
 ```yaml
 kind: MyProviderCluster
-apiVersion: infrastructure.cluster.x-k8s.io/v1alpha2
+apiVersion: infrastructure.cluster.x-k8s.io/v1alpha3
 spec:
   controlPlaneEndpoint:
     host: example.com

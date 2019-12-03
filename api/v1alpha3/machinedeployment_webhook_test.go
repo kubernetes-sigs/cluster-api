@@ -21,7 +21,25 @@ import (
 
 	"github.com/onsi/gomega"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/utils/pointer"
 )
+
+func TestMachineDeploymentDefault(t *testing.T) {
+	g := gomega.NewWithT(t)
+	md := &MachineDeployment{}
+
+	md.Default()
+
+	g.Expect(md.Spec.Replicas).To(gomega.Equal(pointer.Int32Ptr(1)))
+	g.Expect(md.Spec.MinReadySeconds).To(gomega.Equal(pointer.Int32Ptr(0)))
+	g.Expect(md.Spec.RevisionHistoryLimit).To(gomega.Equal(pointer.Int32Ptr(1)))
+	g.Expect(md.Spec.ProgressDeadlineSeconds).To(gomega.Equal(pointer.Int32Ptr(600)))
+	g.Expect(md.Spec.Strategy).ToNot(gomega.BeNil())
+	g.Expect(md.Spec.Strategy.Type).To(gomega.Equal(RollingUpdateMachineDeploymentStrategyType))
+	g.Expect(md.Spec.Strategy.RollingUpdate).ToNot(gomega.BeNil())
+	g.Expect(md.Spec.Strategy.RollingUpdate.MaxSurge.IntValue()).To(gomega.Equal(1))
+	g.Expect(md.Spec.Strategy.RollingUpdate.MaxUnavailable.IntValue()).To(gomega.Equal(0))
+}
 
 func TestMachineDeploymentValidation(t *testing.T) {
 	tests := []struct {

@@ -31,8 +31,21 @@ func (m *Machine) SetupWebhookWithManager(mgr ctrl.Manager) error {
 }
 
 // +kubebuilder:webhook:verbs=create;update,path=/validate-cluster-x-k8s-io-v1alpha3-machine,mutating=false,failurePolicy=fail,groups=cluster.x-k8s.io,resources=machines,versions=v1alpha3,name=validation.machine.cluster.x-k8s.io
+// +kubebuilder:webhook:verbs=create;update,path=/mutate-cluster-x-k8s-io-v1alpha3-machine,mutating=true,failurePolicy=fail,groups=cluster.x-k8s.io,resources=machines,versions=v1alpha3,name=default.machine.cluster.x-k8s.io
 
 var _ webhook.Validator = &Machine{}
+var _ webhook.Defaulter = &Machine{}
+
+// Default implements webhook.Defaulter so a webhook will be registered for the type
+func (m *Machine) Default() {
+	if m.Spec.Bootstrap.ConfigRef != nil && len(m.Spec.Bootstrap.ConfigRef.Namespace) == 0 {
+		m.Spec.Bootstrap.ConfigRef.Namespace = m.Namespace
+	}
+
+	if len(m.Spec.InfrastructureRef.Namespace) == 0 {
+		m.Spec.InfrastructureRef.Namespace = m.Namespace
+	}
+}
 
 // ValidateCreate implements webhook.Validator so a webhook will be registered for the type
 func (m *Machine) ValidateCreate() error {
@@ -54,10 +67,35 @@ func (m *Machine) validate() error {
 	if m.Spec.Bootstrap.ConfigRef == nil && m.Spec.Bootstrap.Data == nil {
 		allErrs = append(
 			allErrs,
-			field.Required(field.NewPath("spec", "bootstrap", "data"), "expected spec.bootstrap.data or spec.bootstrap.configRef to be populated"),
+			field.Required(
+				field.NewPath("spec", "bootstrap", "data"),
+				"expected spec.bootstrap.data or spec.bootstrap.configRef to be populated",
+			),
 		)
-
 	}
+
+	if m.Spec.Bootstrap.ConfigRef != nil && m.Spec.Bootstrap.ConfigRef.Namespace != m.Namespace {
+		allErrs = append(
+			allErrs,
+			field.Invalid(
+				field.NewPath("spec", "bootstrap", "configRef", "namespace"),
+				m.Spec.Bootstrap.ConfigRef.Namespace,
+				"must match metadata.namespace",
+			),
+		)
+	}
+
+	if m.Spec.InfrastructureRef.Namespace != m.Namespace {
+		allErrs = append(
+			allErrs,
+			field.Invalid(
+				field.NewPath("spec", "infrastructureRef", "namespace"),
+				m.Spec.InfrastructureRef.Namespace,
+				"must match metadata.namespace",
+			),
+		)
+	}
+
 	if len(allErrs) == 0 {
 		return nil
 	}

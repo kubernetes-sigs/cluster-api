@@ -194,6 +194,7 @@ modules: ## Runs go mod to ensure modules are up to date.
 	go mod tidy
 	cd $(TOOLS_DIR); go mod tidy
 	cd $(E2E_FRAMEWORK_DIR); go mod tidy
+	cd test/infrastructure/docker; go mod tidy
 
 ## --------------------------------------
 ## Docker
@@ -352,7 +353,7 @@ verify:
 
 .PHONY: verify-modules
 verify-modules: modules
-	@if !(git diff --quiet HEAD -- go.sum go.mod hack/tools/go.mod hack/tools/go.sum); then \
+	@if !(git diff --quiet HEAD -- go.sum go.mod hack/tools/go.mod hack/tools/go.sum test/infrastructure/docker/go.sum); then \
 		echo "go module files are out of date"; exit 1; \
 	fi
 

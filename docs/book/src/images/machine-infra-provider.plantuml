@@ -1,0 +1,66 @@
+@startuml
+
+start
+
+:New/Updated/Deleted resource;
+
+if (Deleted?) then (yes)
+    if (Has machine owner?) then (yes)
+        :Reconcile deletion;
+        if (Error?) then (yes)
+            stop
+        else (no)
+            if (Control plane machine?) then (yes)
+                :Remove instance from control plane load balancer;
+            else (no)
+            endif
+        endif
+    else (no)
+    endif
+    :Delete provider-specific finalizer;
+else (no)
+    if (Has machine owner?) then (yes)
+        if (Has status.failureReason/failureMessage?) then (yes)
+            stop
+        else (no)
+        endif
+
+        if (Cluster exists?) then (no)
+            stop
+        else (yes)
+        endif
+
+        :Add provider-specific finalizer if needed;
+
+        if (Cluster's status.infrastructureReady = true?) then (no)
+            stop
+        else (yes)
+        endif
+
+        if (Machine's spec.bootstrap.dataSecretName = nil?) then (yes)
+            stop
+        else (no)
+        endif
+
+        :Reconcile provider machine infrastructure;
+        if (Error?) then (yes)
+            :Set status.failureReason/failureMessage;
+            :Patch resource to persist changes;
+            stop
+        else (no)
+            if (Control plane machine?) then (yes)
+                :Register instance with control plane load balancer;
+            else (no)
+            endif
+        endif
+
+        :Set spec.providerID;
+        :Set status.ready to true;
+        :Set status.addresses;
+    else (no)
+    endif
+endif
+:Patch resource to persist changes;
+stop
+
+@enduml

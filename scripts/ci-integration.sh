@@ -133,9 +133,7 @@ main() {
    create_bootstrap
 
    kubectl create -f "${CERT_MANAGER_URL}"
-   set +e
-   wait_deployment_available "cert-manager-webhook" "cert-manager"
-   set -e
+   kubectl wait --for=condition=Available --timeout=5m apiservice v1beta1.webhook.cert-manager.io
 
    kubectl create -f "${CRD_YAML}"
 

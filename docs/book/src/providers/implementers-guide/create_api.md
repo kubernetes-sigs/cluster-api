@@ -46,8 +46,8 @@ type MailgunClusterSpec struct {
 	Priority Priority `json:"priority"`
 	// Request is where you ask extra nicely
 	Request string `json:"request"`
-    // Requester is the email of the person sending the request
-    Requester string
+	// Requester is the email of the person sending the request
+	Requester string `json:"requester"`
 }
 
 // MailgunClusterStatus defines the observed state of MailgunCluster

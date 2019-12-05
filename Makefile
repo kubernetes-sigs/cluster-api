@@ -153,6 +153,10 @@ generate-go: $(CONTROLLER_GEN) $(CONVERSION_GEN) ## Runs Go related generate tar
 		--input-dirs=./api/v1alpha2 \
 		--output-file-base=zz_generated.conversion \
 		--go-header-file=./hack/boilerplate/boilerplate.generatego.txt
+	$(CONVERSION_GEN) \
+		--input-dirs=./bootstrap/kubeadm/api/v1alpha2 \
+		--output-file-base=zz_generated.conversion \
+		--go-header-file=./hack/boilerplate/boilerplate.generatego.txt
 
 .PHONY: generate-bindata
 generate-bindata: $(KUSTOMIZE) $(GOBINDATA) clean-bindata ## Generate code for embedding the clusterctl api manifest
@@ -170,6 +174,7 @@ generate-bindata: $(KUSTOMIZE) $(GOBINDATA) clean-bindata ## Generate code for e
 generate-manifests: $(CONTROLLER_GEN) ## Generate manifests e.g. CRD, RBAC etc.
 	$(CONTROLLER_GEN) \
 		paths=./api/... \
+		paths=./bootstrap/kubeadm/api/... \
 		paths=./controllers/... \
 		paths=./bootstrap/kubeadm/controllers/... \
 		crd:preserveUnknownFields=false \
@@ -177,10 +182,6 @@ generate-manifests: $(CONTROLLER_GEN) ## Generate manifests e.g. CRD, RBAC etc.
 		output:crd:dir=./config/crd/bases \
 		output:webhook:dir=./config/webhook \
 		webhook
-	$(CONTROLLER_GEN) \
-		paths=./bootstrap/kubeadm/api/... \
-		crd:trivialVersions=true,preserveUnknownFields=false \
-		output:crd:dir=./config/crd/bases
 	$(CONTROLLER_GEN) \
 		paths=./cmd/clusterctl/api/... \
 		crd:trivialVersions=true,preserveUnknownFields=false \

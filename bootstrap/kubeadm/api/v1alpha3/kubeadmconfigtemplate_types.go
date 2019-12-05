@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package v1alpha2
+package v1alpha3
 
 import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -25,8 +25,14 @@ type KubeadmConfigTemplateSpec struct {
 	Template KubeadmConfigTemplateResource `json:"template"`
 }
 
+// KubeadmConfigTemplateResource defines the Template structure
+type KubeadmConfigTemplateResource struct {
+	Spec KubeadmConfigSpec `json:"spec,omitempty"`
+}
+
 // +kubebuilder:object:root=true
 // +kubebuilder:resource:path=kubeadmconfigtemplates,scope=Namespaced,categories=cluster-api
+// +kubebuilder:storageversion
 
 // KubeadmConfigTemplate is the Schema for the kubeadmconfigtemplates API
 type KubeadmConfigTemplate struct {

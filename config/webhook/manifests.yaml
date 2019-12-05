@@ -11,6 +11,24 @@ webhooks:
     service:
       name: webhook-service
       namespace: system
+      path: /mutate-cluster-x-k8s-io-v1alpha3-cluster
+  failurePolicy: Fail
+  name: default.cluster.cluster.x-k8s.io
+  rules:
+  - apiGroups:
+    - cluster.x-k8s.io
+    apiVersions:
+    - v1alpha3
+    operations:
+    - CREATE
+    - UPDATE
+    resources:
+    - clusters
+- clientConfig:
+    caBundle: Cg==
+    service:
+      name: webhook-service
+      namespace: system
       path: /mutate-cluster-x-k8s-io-v1alpha3-kubeadmcontrolplane
   failurePolicy: Fail
   name: default.kubeadmcontrolplane.cluster.x-k8s.io
@@ -24,6 +42,42 @@ webhooks:
     - UPDATE
     resources:
     - kubeadmcontrolplanes
+- clientConfig:
+    caBundle: Cg==
+    service:
+      name: webhook-service
+      namespace: system
+      path: /mutate-cluster-x-k8s-io-v1alpha3-machine
+  failurePolicy: Fail
+  name: default.machine.cluster.x-k8s.io
+  rules:
+  - apiGroups:
+    - cluster.x-k8s.io
+    apiVersions:
+    - v1alpha3
+    operations:
+    - CREATE
+    - UPDATE
+    resources:
+    - machines
+- clientConfig:
+    caBundle: Cg==
+    service:
+      name: webhook-service
+      namespace: system
+      path: /mutate-cluster-x-k8s-io-v1alpha3-machinedeployment
+  failurePolicy: Fail
+  name: default.machinedeployment.cluster.x-k8s.io
+  rules:
+  - apiGroups:
+    - cluster.x-k8s.io
+    apiVersions:
+    - v1alpha3
+    operations:
+    - CREATE
+    - UPDATE
+    resources:
+    - machinedeployments
 
 ---
 apiVersion: admissionregistration.k8s.io/v1beta1
@@ -32,6 +86,24 @@ metadata:
   creationTimestamp: null
   name: validating-webhook-configuration
 webhooks:
+- clientConfig:
+    caBundle: Cg==
+    service:
+      name: webhook-service
+      namespace: system
+      path: /validate-cluster-x-k8s-io-v1alpha3-cluster
+  failurePolicy: Fail
+  name: validation.cluster.cluster.x-k8s.io
+  rules:
+  - apiGroups:
+    - cluster.x-k8s.io
+    apiVersions:
+    - v1alpha3
+    operations:
+    - CREATE
+    - UPDATE
+    resources:
+    - clusters
 - clientConfig:
     caBundle: Cg==
     service:

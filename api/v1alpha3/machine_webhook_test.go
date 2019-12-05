@@ -21,7 +21,26 @@ import (
 
 	"github.com/onsi/gomega"
 	corev1 "k8s.io/api/core/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
+
+func TestMachineDefault(t *testing.T) {
+	g := gomega.NewWithT(t)
+
+	m := &Machine{
+		ObjectMeta: metav1.ObjectMeta{
+			Namespace: "foobar",
+		},
+		Spec: MachineSpec{
+			Bootstrap: Bootstrap{ConfigRef: &corev1.ObjectReference{}},
+		},
+	}
+
+	m.Default()
+
+	g.Expect(m.Spec.Bootstrap.ConfigRef.Namespace).To(gomega.Equal(m.Namespace))
+	g.Expect(m.Spec.InfrastructureRef.Namespace).To(gomega.Equal(m.Namespace))
+}
 
 func TestMachineBootstrapValidation(t *testing.T) {
 	data := "some bootstrap data"
@@ -61,6 +80,68 @@ func TestMachineBootstrapValidation(t *testing.T) {
 			} else {
 				g.Expect(m.ValidateCreate()).To(gomega.Succeed())
 				g.Expect(m.ValidateUpdate(nil)).To(gomega.Succeed())
+			}
+		})
+	}
+}
+
+func TestMachineNamespaceValidation(t *testing.T) {
+	tests := []struct {
+		name      string
+		expectErr bool
+		bootstrap Bootstrap
+		infraRef  corev1.ObjectReference
+		namespace string
+	}{
+		{
+			name:      "should succeed if all namespaces match",
+			expectErr: false,
+			namespace: "foobar",
+			bootstrap: Bootstrap{ConfigRef: &corev1.ObjectReference{Namespace: "foobar"}},
+			infraRef:  corev1.ObjectReference{Namespace: "foobar"},
+		},
+		{
+			name:      "should return error if namespace and bootstrap namespace don't match",
+			expectErr: true,
+			namespace: "foobar",
+			bootstrap: Bootstrap{ConfigRef: &corev1.ObjectReference{Namespace: "foobar123"}},
+			infraRef:  corev1.ObjectReference{Namespace: "foobar"},
+		},
+		{
+			name:      "should return error if namespace and infrastructure ref namespace don't match",
+			expectErr: true,
+			namespace: "foobar",
+			bootstrap: Bootstrap{ConfigRef: &corev1.ObjectReference{Namespace: "foobar"}},
+			infraRef:  corev1.ObjectReference{Namespace: "foobar123"},
+		},
+		{
+			name:      "should return error if no namespaces match",
+			expectErr: true,
+			namespace: "foobar1",
+			bootstrap: Bootstrap{ConfigRef: &corev1.ObjectReference{Namespace: "foobar2"}},
+			infraRef:  corev1.ObjectReference{Namespace: "foobar3"},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			g := gomega.NewWithT(t)
+
+			m := &Machine{
+				ObjectMeta: metav1.ObjectMeta{Namespace: tt.namespace},
+				Spec:       MachineSpec{Bootstrap: tt.bootstrap, InfrastructureRef: tt.infraRef},
+			}
+
+			if tt.expectErr {
+				err := m.ValidateCreate()
+				g.Expect(err).To(gomega.HaveOccurred())
+				err = m.ValidateUpdate(nil)
+				g.Expect(err).To(gomega.HaveOccurred())
+			} else {
+				err := m.ValidateCreate()
+				g.Expect(err).To(gomega.Succeed())
+				err = m.ValidateUpdate(nil)
+				g.Expect(err).To(gomega.Succeed())
 			}
 		})
 	}

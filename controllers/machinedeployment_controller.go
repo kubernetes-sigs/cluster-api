@@ -110,9 +110,6 @@ func (r *MachineDeploymentReconciler) reconcile(ctx context.Context, d *clusterv
 	logger := r.Log.WithValues("machinedeployment", d.Name, "namespace", d.Namespace)
 	logger.V(4).Info("Reconcile MachineDeployment")
 
-	// Reconcile defaults.
-	clusterv1.PopulateDefaultsMachineDeployment(d)
-
 	// Reconcile and retrieve the Cluster object.
 	if d.Labels == nil {
 		d.Labels = make(map[string]string)

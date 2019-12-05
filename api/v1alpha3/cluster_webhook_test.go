@@ -1,0 +1,91 @@
+/*
+Copyright 2019 The Kubernetes Authors.
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+*/
+
+package v1alpha3
+
+import (
+	"testing"
+
+	"github.com/onsi/gomega"
+	corev1 "k8s.io/api/core/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+)
+
+func TestClusterDefault(t *testing.T) {
+	g := gomega.NewWithT(t)
+
+	c := &Cluster{
+		ObjectMeta: metav1.ObjectMeta{
+			Namespace: "fooboo",
+		},
+		Spec: ClusterSpec{
+			InfrastructureRef: &corev1.ObjectReference{},
+		},
+	}
+	c.Default()
+
+	g.Expect(c.Spec.InfrastructureRef.Namespace).To(gomega.Equal(c.Namespace))
+}
+
+func TestClusterValidation(t *testing.T) {
+	invalid := &Cluster{
+		ObjectMeta: metav1.ObjectMeta{
+			Namespace: "fooboo",
+		},
+		Spec: ClusterSpec{
+			InfrastructureRef: &corev1.ObjectReference{
+				Namespace: "foobar",
+			},
+		},
+	}
+	valid := invalid.DeepCopy()
+	valid.Spec.InfrastructureRef.Namespace = valid.Namespace
+
+	tests := []struct {
+		name      string
+		expectErr bool
+		c         *Cluster
+	}{
+		{
+			name:      "should return error when cluster namespace and infrastructure ref namespace mismatch",
+			expectErr: true,
+			c:         invalid,
+		},
+		{
+			name:      "should succeed when namespaces match",
+			expectErr: false,
+			c:         valid,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			g := gomega.NewWithT(t)
+
+			if tt.expectErr {
+				err := tt.c.ValidateCreate()
+				g.Expect(err).To(gomega.HaveOccurred())
+				err = tt.c.ValidateUpdate(nil)
+				g.Expect(err).To(gomega.HaveOccurred())
+			} else {
+				err := tt.c.ValidateCreate()
+				g.Expect(err).To(gomega.Succeed())
+				err = tt.c.ValidateUpdate(nil)
+				g.Expect(err).To(gomega.Succeed())
+			}
+		})
+	}
+}

@@ -23,6 +23,10 @@ import (
 	"sigs.k8s.io/cluster-api/errors"
 )
 
+const (
+	KubeadmControlPlaneFinalizer = "kubeadmcontrolplane.cluster.x-k8s.io"
+)
+
 // KubeadmControlPlaneSpec defines the desired state of KubeadmControlPlane.
 type KubeadmControlPlaneSpec struct {
 	// Number of desired machines. Defaults to 1. When stacked etcd is used only

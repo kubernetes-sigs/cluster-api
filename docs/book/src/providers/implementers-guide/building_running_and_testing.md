@@ -51,6 +51,7 @@ Conditions:
 
 
 [install]: https://cluster-api.sigs.k8s.io/tasks/installation.html#install-cluster-api
+[capi]: https://github.com/kubernetes-sigs/cluster-api
 
 ### Your provider
 

@@ -18,13 +18,14 @@ Cluster API requires an existing kubernetes cluster accessible via kubectl, choo
 
 <h1>Warning</h1>
 
+**Minimum supported version**: v0.6.x
+
 [kind] is not designed for production use, and is intended for development environments only.
 
 </aside>
 
   ```bash
   kind create cluster --name=clusterapi
-  export KUBECONFIG="$(kind get kubeconfig-path --name="clusterapi")"
   ```
 {{#/tab }}
 {{#tab Docker}}

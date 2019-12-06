@@ -157,15 +157,14 @@ func (r *ClusterReconciler) reconcileInfrastructure(ctx context.Context, cluster
 	}
 
 	// Determine if the infrastructure provider is ready.
-	if !cluster.Status.InfrastructureReady {
-		ready, err := external.IsReady(infraConfig)
-		if err != nil {
-			return err
-		} else if !ready {
-			logger.V(3).Info("Infrastructure provider is not ready yet")
-			return nil
-		}
-		cluster.Status.InfrastructureReady = true
+	ready, err := external.IsReady(infraConfig)
+	if err != nil {
+		return err
+	}
+	cluster.Status.InfrastructureReady = ready
+	if !ready {
+		logger.V(3).Info("Infrastructure provider is not ready yet")
+		return nil
 	}
 
 	// Get and parse Status.APIEndpoint field from the infrastructure provider.

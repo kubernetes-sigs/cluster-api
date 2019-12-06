@@ -363,7 +363,7 @@ func calculateStatus(allMSs []*clusterv1.MachineSet, newMS *clusterv1.MachineSet
 	}
 
 	// Calculate the label selector. We check the error in the MD reconcile function, ignore here.
-	selector, _ := metav1.LabelSelectorAsSelector(&deployment.Spec.Selector) //nolint
+	selector, _ := metav1.LabelSelectorAsSelector(&deployment.Spec.Selector)
 
 	status := clusterv1.MachineDeploymentStatus{
 		// TODO: Ensure that if we start retrying status updates, we won't pick up a new Generation value.

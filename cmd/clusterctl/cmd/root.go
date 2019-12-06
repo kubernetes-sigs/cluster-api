@@ -57,18 +57,18 @@ func init() {
 	// --log_file_max_size
 	// -v, --v Level
 
-	RootCmd.PersistentFlags().MarkHidden("alsologtostderr")  //nolint
-	RootCmd.PersistentFlags().MarkHidden("log_backtrace_at") //nolint
-	RootCmd.PersistentFlags().MarkHidden("logtostderr")      //nolint
-	RootCmd.PersistentFlags().MarkHidden("stderrthreshold")  //nolint
-	RootCmd.PersistentFlags().MarkHidden("vmodule")          //nolint
-	RootCmd.PersistentFlags().MarkHidden("skip_log_headers") //nolint
-	RootCmd.PersistentFlags().MarkHidden("skip_headers")     //nolint
-	RootCmd.PersistentFlags().MarkHidden("add_dir_header")   //nolint
+	_ = RootCmd.PersistentFlags().MarkHidden("alsologtostderr")
+	_ = RootCmd.PersistentFlags().MarkHidden("log_backtrace_at")
+	_ = RootCmd.PersistentFlags().MarkHidden("logtostderr")
+	_ = RootCmd.PersistentFlags().MarkHidden("stderrthreshold")
+	_ = RootCmd.PersistentFlags().MarkHidden("vmodule")
+	_ = RootCmd.PersistentFlags().MarkHidden("skip_log_headers")
+	_ = RootCmd.PersistentFlags().MarkHidden("skip_headers")
+	_ = RootCmd.PersistentFlags().MarkHidden("add_dir_header")
 
 	// makes logs look nicer for a CLI app
-	RootCmd.PersistentFlags().Set("skip_headers", "true") //nolint
-	RootCmd.PersistentFlags().Set("logtostderr", "true")  //nolint
+	_ = RootCmd.PersistentFlags().Set("skip_headers", "true")
+	_ = RootCmd.PersistentFlags().Set("logtostderr", "true")
 
 	RootCmd.PersistentFlags().StringVar(&cfgFile, "config", "", "Path to the the clusterctl config file (default is $HOME/.clusterctl.yaml)")
 }
@@ -106,8 +106,9 @@ func (s normalizer) trim() normalizer {
 }
 
 func (s normalizer) indent() normalizer {
-	var indentedLines []string //nolint
-	for _, line := range strings.Split(s.string, "\n") {
+	splitLines := strings.Split(s.string, "\n")
+	indentedLines := make([]string, 0, len(splitLines))
+	for _, line := range splitLines {
 		trimmed := strings.TrimSpace(line)
 		indented := Indentation + trimmed
 		indentedLines = append(indentedLines, indented)

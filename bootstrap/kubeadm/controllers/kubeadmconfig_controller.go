@@ -66,6 +66,13 @@ type KubeadmConfigReconciler struct {
 	remoteClient func(client.Client, *clusterv1.Cluster, *runtime.Scheme) (client.Client, error)
 }
 
+type Scope struct {
+	logr.Logger
+	Config  *bootstrapv1.KubeadmConfig
+	Cluster *clusterv1.Cluster
+	Machine *clusterv1.Machine
+}
+
 // SetupWithManager sets up the reconciler with the Manager.
 func (r *KubeadmConfigReconciler) SetupWithManager(mgr ctrl.Manager, option controller.Options) error {
 	if r.KubeadmInitLock == nil {
@@ -102,7 +109,7 @@ func (r *KubeadmConfigReconciler) SetupWithManager(mgr ctrl.Manager, option cont
 }
 
 // Reconcile handles KubeadmConfig events.
-func (r *KubeadmConfigReconciler) Reconcile(req ctrl.Request) (_ ctrl.Result, rerr error) { //nolint
+func (r *KubeadmConfigReconciler) Reconcile(req ctrl.Request) (_ ctrl.Result, rerr error) {
 	ctx := context.Background()
 	log := r.Log.WithValues("kubeadmconfig", req.NamespacedName)
 
@@ -199,100 +206,15 @@ func (r *KubeadmConfigReconciler) Reconcile(req ctrl.Request) (_ ctrl.Result, re
 		}
 	}()
 
+	scope := &Scope{
+		Logger:  log,
+		Config:  config,
+		Cluster: cluster,
+		Machine: machine,
+	}
+
 	if !cluster.Status.ControlPlaneInitialized {
-		// if it's NOT a control plane machine, requeue
-		if !util.IsControlPlaneMachine(machine) {
-			log.Info(fmt.Sprintf("Machine is not a control plane. If it should be a control plane, add the label `%s: \"\"` to the Machine", clusterv1.MachineControlPlaneLabelName))
-			return ctrl.Result{RequeueAfter: 30 * time.Second}, nil
-		}
-
-		// if the machine has not ClusterConfiguration and InitConfiguration, requeue
-		if config.Spec.InitConfiguration == nil && config.Spec.ClusterConfiguration == nil {
-			log.Info("Control plane is not ready, requeing joining control planes until ready.")
-			return ctrl.Result{RequeueAfter: 30 * time.Second}, nil
-		}
-
-		// acquire the init lock so that only the first machine configured
-		// as control plane get processed here
-		// if not the first, requeue
-		if !r.KubeadmInitLock.Lock(ctx, cluster, machine) {
-			log.Info("A control plane is already being initialized, requeing until control plane is ready")
-			return ctrl.Result{RequeueAfter: 30 * time.Second}, nil
-		}
-
-		defer func() {
-			if rerr != nil {
-				r.KubeadmInitLock.Unlock(ctx, cluster)
-			}
-		}()
-
-		log.Info("Creating BootstrapData for the init control plane")
-
-		// Nb. in this case JoinConfiguration should not be defined by users, but in case of misconfigurations, CABPK simply ignore it
-
-		// get both of ClusterConfiguration and InitConfiguration strings to pass to the cloud init control plane generator
-		// kubeadm allows one of these values to be empty; CABPK replace missing values with an empty config, so the cloud init generation
-		// should not handle special cases.
-
-		if config.Spec.InitConfiguration == nil {
-			config.Spec.InitConfiguration = &kubeadmv1beta1.InitConfiguration{
-				TypeMeta: v1.TypeMeta{
-					APIVersion: "kubeadm.k8s.io/v1beta1",
-					Kind:       "InitConfiguration",
-				},
-			}
-		}
-		initdata, err := kubeadmv1beta1.ConfigurationToYAML(config.Spec.InitConfiguration)
-		if err != nil {
-			log.Error(err, "failed to marshal init configuration")
-			return ctrl.Result{}, err
-		}
-
-		if config.Spec.ClusterConfiguration == nil {
-			config.Spec.ClusterConfiguration = &kubeadmv1beta1.ClusterConfiguration{
-				TypeMeta: v1.TypeMeta{
-					APIVersion: "kubeadm.k8s.io/v1beta1",
-					Kind:       "ClusterConfiguration",
-				},
-			}
-		}
-
-		// injects into config.ClusterConfiguration values from top level object
-		r.reconcileTopLevelObjectSettings(cluster, machine, config)
-
-		clusterdata, err := kubeadmv1beta1.ConfigurationToYAML(config.Spec.ClusterConfiguration)
-		if err != nil {
-			log.Error(err, "failed to marshal cluster configuration")
-			return ctrl.Result{}, err
-		}
-
-		certificates := internalcluster.NewCertificatesForInitialControlPlane(config.Spec.ClusterConfiguration)
-		if err := certificates.LookupOrGenerate(ctx, r.Client, cluster, config); err != nil {
-			log.Error(err, "unable to lookup or create cluster certificates")
-			return ctrl.Result{}, err
-		}
-
-		cloudInitData, err := cloudinit.NewInitControlPlane(&cloudinit.ControlPlaneInput{
-			BaseUserData: cloudinit.BaseUserData{
-				AdditionalFiles:     config.Spec.Files,
-				NTP:                 config.Spec.NTP,
-				PreKubeadmCommands:  config.Spec.PreKubeadmCommands,
-				PostKubeadmCommands: config.Spec.PostKubeadmCommands,
-				Users:               config.Spec.Users,
-			},
-			InitConfiguration:    initdata,
-			ClusterConfiguration: clusterdata,
-			Certificates:         certificates,
-		})
-		if err != nil {
-			log.Error(err, "failed to generate cloud init for bootstrap control plane")
-			return ctrl.Result{}, err
-		}
-
-		config.Status.BootstrapData = cloudInitData
-		config.Status.Ready = true
-
-		return ctrl.Result{}, nil
+		return r.handleClusterNotInitialized(ctx, scope)
 	}
 
 	// Every other case it's a join scenario
@@ -309,104 +231,208 @@ func (r *KubeadmConfigReconciler) Reconcile(req ctrl.Request) (_ ctrl.Result, re
 
 	// it's a control plane join
 	if util.IsControlPlaneMachine(machine) {
-		if config.Spec.JoinConfiguration.ControlPlane == nil {
-			config.Spec.JoinConfiguration.ControlPlane = &kubeadmv1beta1.JoinControlPlane{}
-		}
-
-		certificates := internalcluster.NewCertificatesForJoiningControlPlane()
-		if err := certificates.Lookup(ctx, r.Client, cluster); err != nil {
-			log.Error(err, "unable to lookup cluster certificates")
-			return ctrl.Result{}, err
-		}
-		if err := certificates.EnsureAllExist(); err != nil {
-			return ctrl.Result{}, err
-		}
-
-		// ensure that joinConfiguration.Discovery is properly set for joining node on the current cluster
-		if err := r.reconcileDiscovery(cluster, config, certificates); err != nil {
-			if requeueErr, ok := errors.Cause(err).(capierrors.HasRequeueAfterError); ok {
-				log.Info(err.Error())
-				return ctrl.Result{RequeueAfter: requeueErr.GetRequeueAfter()}, nil
-			}
-			return ctrl.Result{}, err
-		}
-
-		joinData, err := kubeadmv1beta1.ConfigurationToYAML(config.Spec.JoinConfiguration)
-		if err != nil {
-			log.Error(err, "failed to marshal join configuration")
-			return ctrl.Result{}, err
-		}
-
-		log.Info("Creating BootstrapData for the join control plane")
-		cloudJoinData, err := cloudinit.NewJoinControlPlane(&cloudinit.ControlPlaneJoinInput{
-			JoinConfiguration: joinData,
-			Certificates:      certificates,
-			BaseUserData: cloudinit.BaseUserData{
-				AdditionalFiles:     config.Spec.Files,
-				NTP:                 config.Spec.NTP,
-				PreKubeadmCommands:  config.Spec.PreKubeadmCommands,
-				PostKubeadmCommands: config.Spec.PostKubeadmCommands,
-				Users:               config.Spec.Users,
-			},
-		})
-		if err != nil {
-			log.Error(err, "failed to create a control plane join configuration")
-			return ctrl.Result{}, err
-		}
-
-		config.Status.BootstrapData = cloudJoinData
-		config.Status.Ready = true
-		return ctrl.Result{}, nil
+		return r.joinControlplane(ctx, scope)
 	}
 
 	// It's a worker join
-	certificates := internalcluster.NewCertificatesForWorker(config.Spec.JoinConfiguration.CACertPath)
-	if err := certificates.Lookup(ctx, r.Client, cluster); err != nil {
-		log.Error(err, "unable to lookup cluster certificates")
+	return r.joinWorker(ctx, scope)
+}
+
+func (r *KubeadmConfigReconciler) handleClusterNotInitialized(ctx context.Context, scope *Scope) (_ ctrl.Result, rerr error) {
+	// if it's NOT a control plane machine, requeue
+	if !util.IsControlPlaneMachine(scope.Machine) {
+		scope.Info(fmt.Sprintf("Machine is not a control plane. If it should be a control plane, add the label `%s: \"\"` to the Machine", clusterv1.MachineControlPlaneLabelName))
+		return ctrl.Result{RequeueAfter: 30 * time.Second}, nil
+	}
+
+	// if the machine has not ClusterConfiguration and InitConfiguration, requeue
+	if scope.Config.Spec.InitConfiguration == nil && scope.Config.Spec.ClusterConfiguration == nil {
+		scope.Info("Control plane is not ready, requeing joining control planes until ready.")
+		return ctrl.Result{RequeueAfter: 30 * time.Second}, nil
+	}
+
+	// acquire the init lock so that only the first machine configured
+	// as control plane get processed here
+	// if not the first, requeue
+	if !r.KubeadmInitLock.Lock(ctx, scope.Cluster, scope.Machine) {
+		scope.Info("A control plane is already being initialized, requeing until control plane is ready")
+		return ctrl.Result{RequeueAfter: 30 * time.Second}, nil
+	}
+
+	defer func() {
+		if rerr != nil {
+			r.KubeadmInitLock.Unlock(ctx, scope.Cluster)
+		}
+	}()
+
+	scope.Info("Creating BootstrapData for the init control plane")
+
+	// Nb. in this case JoinConfiguration should not be defined by users, but in case of misconfigurations, CABPK simply ignore it
+
+	// get both of ClusterConfiguration and InitConfiguration strings to pass to the cloud init control plane generator
+	// kubeadm allows one of these values to be empty; CABPK replace missing values with an empty config, so the cloud init generation
+	// should not handle special cases.
+
+	if scope.Config.Spec.InitConfiguration == nil {
+		scope.Config.Spec.InitConfiguration = &kubeadmv1beta1.InitConfiguration{
+			TypeMeta: v1.TypeMeta{
+				APIVersion: "kubeadm.k8s.io/v1beta1",
+				Kind:       "InitConfiguration",
+			},
+		}
+	}
+	initdata, err := kubeadmv1beta1.ConfigurationToYAML(scope.Config.Spec.InitConfiguration)
+	if err != nil {
+		scope.Error(err, "failed to marshal init configuration")
+		return ctrl.Result{}, err
+	}
+
+	if scope.Config.Spec.ClusterConfiguration == nil {
+		scope.Config.Spec.ClusterConfiguration = &kubeadmv1beta1.ClusterConfiguration{
+			TypeMeta: v1.TypeMeta{
+				APIVersion: "kubeadm.k8s.io/v1beta1",
+				Kind:       "ClusterConfiguration",
+			},
+		}
+	}
+
+	// injects into config.ClusterConfiguration values from top level object
+	r.reconcileTopLevelObjectSettings(scope.Cluster, scope.Machine, scope.Config)
+
+	clusterdata, err := kubeadmv1beta1.ConfigurationToYAML(scope.Config.Spec.ClusterConfiguration)
+	if err != nil {
+		scope.Error(err, "failed to marshal cluster configuration")
+		return ctrl.Result{}, err
+	}
+
+	certificates := internalcluster.NewCertificatesForInitialControlPlane(scope.Config.Spec.ClusterConfiguration)
+	if err := certificates.LookupOrGenerate(ctx, r.Client, scope.Cluster, scope.Config); err != nil {
+		scope.Error(err, "unable to lookup or create cluster certificates")
+		return ctrl.Result{}, err
+	}
+
+	cloudInitData, err := cloudinit.NewInitControlPlane(&cloudinit.ControlPlaneInput{
+		BaseUserData: cloudinit.BaseUserData{
+			AdditionalFiles:     scope.Config.Spec.Files,
+			NTP:                 scope.Config.Spec.NTP,
+			PreKubeadmCommands:  scope.Config.Spec.PreKubeadmCommands,
+			PostKubeadmCommands: scope.Config.Spec.PostKubeadmCommands,
+			Users:               scope.Config.Spec.Users,
+		},
+		InitConfiguration:    initdata,
+		ClusterConfiguration: clusterdata,
+		Certificates:         certificates,
+	})
+	if err != nil {
+		scope.Error(err, "failed to generate cloud init for bootstrap control plane")
+		return ctrl.Result{}, err
+	}
+
+	scope.Config.Status.BootstrapData = cloudInitData
+	scope.Config.Status.Ready = true
+
+	return ctrl.Result{}, nil
+}
+
+func (r *KubeadmConfigReconciler) joinWorker(ctx context.Context, scope *Scope) (ctrl.Result, error) {
+	certificates := internalcluster.NewCertificatesForWorker(scope.Config.Spec.JoinConfiguration.CACertPath)
+	if err := certificates.Lookup(ctx, r.Client, scope.Cluster); err != nil {
+		scope.Error(err, "unable to lookup cluster certificates")
 		return ctrl.Result{}, err
 	}
 	if err := certificates.EnsureAllExist(); err != nil {
-		log.Error(err, "Missing certificates")
+		scope.Error(err, "Missing certificates")
 		return ctrl.Result{}, err
 	}
 
 	// ensure that joinConfiguration.Discovery is properly set for joining node on the current cluster
-	if err := r.reconcileDiscovery(cluster, config, certificates); err != nil {
+	if err := r.reconcileDiscovery(scope.Cluster, scope.Config, certificates); err != nil {
 		if requeueErr, ok := errors.Cause(err).(capierrors.HasRequeueAfterError); ok {
-			log.Info(err.Error())
+			scope.Info(err.Error())
 			return ctrl.Result{RequeueAfter: requeueErr.GetRequeueAfter()}, nil
 		}
 		return ctrl.Result{}, err
 	}
 
-	joinData, err := kubeadmv1beta1.ConfigurationToYAML(config.Spec.JoinConfiguration)
+	joinData, err := kubeadmv1beta1.ConfigurationToYAML(scope.Config.Spec.JoinConfiguration)
 	if err != nil {
-		log.Error(err, "failed to marshal join configuration")
+		scope.Error(err, "failed to marshal join configuration")
 		return ctrl.Result{}, err
 	}
 
-	if config.Spec.JoinConfiguration.ControlPlane != nil {
+	if scope.Config.Spec.JoinConfiguration.ControlPlane != nil {
 		return ctrl.Result{}, errors.New("Machine is a Worker, but JoinConfiguration.ControlPlane is set in the KubeadmConfig object")
 	}
 
-	log.Info("Creating BootstrapData for the worker node")
+	scope.Info("Creating BootstrapData for the worker node")
 
 	cloudJoinData, err := cloudinit.NewNode(&cloudinit.NodeInput{
 		BaseUserData: cloudinit.BaseUserData{
-			AdditionalFiles:     config.Spec.Files,
-			NTP:                 config.Spec.NTP,
-			PreKubeadmCommands:  config.Spec.PreKubeadmCommands,
-			PostKubeadmCommands: config.Spec.PostKubeadmCommands,
-			Users:               config.Spec.Users,
+			AdditionalFiles:     scope.Config.Spec.Files,
+			NTP:                 scope.Config.Spec.NTP,
+			PreKubeadmCommands:  scope.Config.Spec.PreKubeadmCommands,
+			PostKubeadmCommands: scope.Config.Spec.PostKubeadmCommands,
+			Users:               scope.Config.Spec.Users,
 		},
 		JoinConfiguration: joinData,
 	})
 	if err != nil {
-		log.Error(err, "failed to create a worker join configuration")
+		scope.Error(err, "failed to create a worker join configuration")
 		return ctrl.Result{}, err
 	}
-	config.Status.BootstrapData = cloudJoinData
-	config.Status.Ready = true
+	scope.Config.Status.BootstrapData = cloudJoinData
+	scope.Config.Status.Ready = true
+	return ctrl.Result{}, nil
+}
+
+func (r *KubeadmConfigReconciler) joinControlplane(ctx context.Context, scope *Scope) (ctrl.Result, error) {
+	if scope.Config.Spec.JoinConfiguration.ControlPlane == nil {
+		scope.Config.Spec.JoinConfiguration.ControlPlane = &kubeadmv1beta1.JoinControlPlane{}
+	}
+
+	certificates := internalcluster.NewCertificatesForJoiningControlPlane()
+	if err := certificates.Lookup(ctx, r.Client, scope.Cluster); err != nil {
+		scope.Error(err, "unable to lookup cluster certificates")
+		return ctrl.Result{}, err
+	}
+	if err := certificates.EnsureAllExist(); err != nil {
+		return ctrl.Result{}, err
+	}
+
+	// ensure that joinConfiguration.Discovery is properly set for joining node on the current cluster
+	if err := r.reconcileDiscovery(scope.Cluster, scope.Config, certificates); err != nil {
+		if requeueErr, ok := errors.Cause(err).(capierrors.HasRequeueAfterError); ok {
+			scope.Info(err.Error())
+			return ctrl.Result{RequeueAfter: requeueErr.GetRequeueAfter()}, nil
+		}
+		return ctrl.Result{}, err
+	}
+
+	joinData, err := kubeadmv1beta1.ConfigurationToYAML(scope.Config.Spec.JoinConfiguration)
+	if err != nil {
+		scope.Error(err, "failed to marshal join configuration")
+		return ctrl.Result{}, err
+	}
+
+	scope.Info("Creating BootstrapData for the join control plane")
+	cloudJoinData, err := cloudinit.NewJoinControlPlane(&cloudinit.ControlPlaneJoinInput{
+		JoinConfiguration: joinData,
+		Certificates:      certificates,
+		BaseUserData: cloudinit.BaseUserData{
+			AdditionalFiles:     scope.Config.Spec.Files,
+			NTP:                 scope.Config.Spec.NTP,
+			PreKubeadmCommands:  scope.Config.Spec.PreKubeadmCommands,
+			PostKubeadmCommands: scope.Config.Spec.PostKubeadmCommands,
+			Users:               scope.Config.Spec.Users,
+		},
+	})
+	if err != nil {
+		scope.Error(err, "failed to create a control plane join configuration")
+		return ctrl.Result{}, err
+	}
+
+	scope.Config.Status.BootstrapData = cloudJoinData
+	scope.Config.Status.Ready = true
 	return ctrl.Result{}, nil
 }
 

@@ -29,3 +29,8 @@ source ./scripts/fetch_ext_bins.sh
 fetch_tools
 setup_envs
 make generate test
+
+echo "*** Testing Cluster API Provider Docker ***"
+# Docker provider
+cd test/infrastructure/docker
+make generate test

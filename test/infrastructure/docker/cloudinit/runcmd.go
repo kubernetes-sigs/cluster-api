@@ -86,7 +86,7 @@ func (a *runCmd) Unmarshal(userData []byte) error {
 
 // Run the runCmd
 func (a *runCmd) Run(cmder exec.Cmder) ([]string, error) {
-	var lines []string
+	var lines []string //nolint:prealloc
 	for _, c := range a.Cmds {
 		// kubeadm in docker requires to ignore some errors, and this requires to modify the cmd generate by CABPK by default...
 		c = hackKubeadmIgnoreErrors(c)

@@ -1,3 +1,5 @@
+// +build e2e
+
 /*
 Copyright 2019 The Kubernetes Authors.
 
@@ -97,7 +99,7 @@ type ClusterGenerator struct {
 
 func (c *ClusterGenerator) GenerateCluster(namespace string) (*capiv1.Cluster, *infrav1.DockerCluster) {
 	generatedName := fmt.Sprintf("test-%d", c.counter)
-	c.counter += 1
+	c.counter++
 
 	infraCluster := &infrav1.DockerCluster{
 		ObjectMeta: metav1.ObjectMeta{
@@ -135,7 +137,7 @@ func (n *NodeGenerator) GenerateNode(clusterName string) framework.Node {
 	namespace := "default"
 	version := "v1.15.3"
 	generatedName := fmt.Sprintf("controlplane-%d", n.counter)
-	n.counter += 1
+	n.counter++
 	infraMachine := &infrav1.DockerMachine{
 		ObjectMeta: metav1.ObjectMeta{
 			Namespace: namespace,

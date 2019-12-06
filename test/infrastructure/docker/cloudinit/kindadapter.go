@@ -66,7 +66,7 @@ func Run(cloudConfig []byte, cmder exec.Cmder) ([]string, error) {
 	}
 
 	// executes all the actions in order
-	var lines []string
+	var lines []string //nolint:prealloc
 	for _, a := range actions {
 		actionLines, err := a.Run(cmder)
 		if err != nil {

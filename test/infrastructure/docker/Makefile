@@ -40,6 +40,7 @@ BIN_DIR := bin
 # Binaries.
 CONTROLLER_GEN := $(TOOLS_BIN_DIR)/controller-gen
 CONVERSION_GEN := $(TOOLS_BIN_DIR)/conversion-gen
+GOLANGCI_LINT := $(TOOLS_BIN_DIR)/golangci-lint
 
 # Define Docker related variables. Releases should modify and double check these vars.
 REGISTRY ?= gcr.io/$(shell gcloud config get-value project)
@@ -64,7 +65,7 @@ help:  ## Display this help
 ## --------------------------------------
 
 .PHONY: test
-test: generate lint ## Run tests
+test: ## Run tests
 	go test -v ./...
 
 test-e2e: ## Run the end-to-end tests
@@ -77,7 +78,7 @@ test-e2e: ## Run the end-to-end tests
 ## --------------------------------------
 
 .PHONY: manager
-manager: lint-full ## Build manager binary
+manager: ## Build manager binary
 	go build -o $(BIN_DIR)/manager sigs.k8s.io/cluster-api/test/infrastructure/docker
 
 $(CONTROLLER_GEN): $(TOOLS_DIR)/go.mod # Build controller-gen from tools folder.
@@ -85,6 +86,20 @@ $(CONTROLLER_GEN): $(TOOLS_DIR)/go.mod # Build controller-gen from tools folder.
 
 $(CONVERSION_GEN): $(TOOLS_DIR)/go.mod
 	cd $(TOOLS_DIR); go build -tags=tools -o $(BIN_DIR)/conversion-gen k8s.io/code-generator/cmd/conversion-gen
+
+$(GOLANGCI_LINT): $(TOOLS_DIR)/go.mod # Build golangci-lint from tools folder.
+	cd $(TOOLS_DIR); go build -tags=tools -o $(BIN_DIR)/golangci-lint github.com/golangci/golangci-lint/cmd/golangci-lint
+
+## --------------------------------------
+## Linting
+## --------------------------------------
+
+.PHONY: lint lint-full
+lint: $(GOLANGCI_LINT) ## Lint codebase
+	$(GOLANGCI_LINT) run -v
+
+lint-full: $(GOLANGCI_LINT) ## Run slower linters to detect possible issues
+	$(GOLANGCI_LINT) run -v --fast=false
 
 ## --------------------------------------
 ## Generate / Manifests
@@ -110,7 +125,7 @@ generate-manifests: $(CONTROLLER_GEN) ## Generate manifests e.g. CRD, RBAC etc.
 	$(CONTROLLER_GEN) \
 		paths=./api/... \
 		paths=./controllers/... \
-		crd:trivialVersions=true \
+		crd:trivialVersions=true,preserveUnknownFields=false \
 		rbac:roleName=manager-role \
 		output:crd:dir=./config/crd/bases
 
@@ -229,11 +244,8 @@ clean-release: ## Remove the release folder
 .PHONY: verify
 verify:
 	./hack/verify-boilerplate.sh
-	./hack/verify-doctoc.sh
-	./hack/verify-shellcheck.sh
 	$(MAKE) verify-modules
 	$(MAKE) verify-gen
-	$(MAKE) verify-modules
 
 .PHONY: verify-modules
 verify-modules: modules

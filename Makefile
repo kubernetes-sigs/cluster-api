@@ -65,6 +65,13 @@ ALL_ARCH = amd64 arm arm64 ppc64le s390x
 # Allow overriding the imagePullPolicy
 PULL_POLICY ?= Always
 
+# Hosts running SELinux need :z added to volume mounts
+SELINUX_ENABLED := $(shell cat /sys/fs/selinux/enforce 2> /dev/null || echo 0)
+
+ifeq ($(SELINUX_ENABLED),1)
+  DOCKER_VOL_OPTS?=:z
+endif
+
 all: test manager clusterctl
 
 help:  ## Display this help
@@ -286,7 +293,7 @@ release-binary: $(RELEASE_DIR)
 		-e CGO_ENABLED=0 \
 		-e GOOS=$(GOOS) \
 		-e GOARCH=$(GOARCH) \
-		-v "$$(pwd):/workspace" \
+		-v "$$(pwd):/workspace$(DOCKER_VOL_OPTS)" \
 		-w /workspace \
 		golang:1.12.10 \
 		go build -a -ldflags '-extldflags "-static"' \

@@ -462,7 +462,7 @@ func (r *KubeadmConfigReconciler) ClusterToKubeadmConfigs(o handler.MapObject) [
 
 	for _, m := range machineList.Items {
 		if m.Spec.Bootstrap.ConfigRef != nil &&
-			m.Spec.Bootstrap.ConfigRef.GroupVersionKind() == bootstrapv1.GroupVersion.WithKind("KubeadmConfig") {
+			m.Spec.Bootstrap.ConfigRef.GroupVersionKind().GroupKind() == bootstrapv1.GroupVersion.WithKind("KubeadmConfig").GroupKind() {
 			name := client.ObjectKey{Namespace: m.Namespace, Name: m.Spec.Bootstrap.ConfigRef.Name}
 			result = append(result, ctrl.Request{NamespacedName: name})
 		}

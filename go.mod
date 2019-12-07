@@ -22,7 +22,6 @@ require (
 	golang.org/x/net v0.0.0-20191004110552-13f9640d40b9
 	golang.org/x/sys v0.0.0-20191008105621-543471e840be // indirect
 	golang.org/x/time v0.0.0-20190308202827-9d24e82272b4 // indirect
-	gopkg.in/yaml.v2 v2.2.4
 	k8s.io/api v0.0.0-20191121015604-11707872ac1c
 	k8s.io/apiextensions-apiserver v0.0.0-20190918161926-8f644eb6e783
 	k8s.io/apimachinery v0.0.0-20191121015412-41065c7a8c2a

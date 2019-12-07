@@ -17,6 +17,7 @@ limitations under the License.
 package v1alpha3
 
 import (
+	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	kubeadmv1beta1 "sigs.k8s.io/cluster-api/bootstrap/kubeadm/types/v1beta1"
 )
@@ -137,8 +138,22 @@ type File struct {
 	// +optional
 	Encoding Encoding `json:"encoding,omitempty"`
 
-	// Content is the actual content of the file.
-	Content string `json:"content"`
+	// Content is the actual content of the file. Mutually exclusive with ContentFrom.
+	// +optional
+	Content string `json:"content,omitempty"`
+
+	// ContentFrom indicates the content for the file should be retrieved from a referenced resource. Mutually exclusive with Content.
+	// +optional
+	ContentFrom *FileContentSource `json:"contentFrom,omitempty"`
+}
+
+// FileContentSource defines references to objects to source file content from.
+type FileContentSource struct {
+	// Selects a key of a ConfigMap.
+	ConfigMapKeyRef *corev1.ConfigMapKeySelector `json:"configMapKeyRef,omitempty"`
+
+	// Selects a key of a Secret.
+	SecretKeyRef *corev1.SecretKeySelector `json:"secretKeyRef,omitempty"`
 }
 
 // User defines the input for a generated user in cloud-init.

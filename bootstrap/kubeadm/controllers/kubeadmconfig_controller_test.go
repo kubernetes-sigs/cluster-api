@@ -21,6 +21,7 @@ import (
 	"context"
 	"fmt"
 	"reflect"
+	"strings"
 	"testing"
 	"time"
 
@@ -42,6 +43,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/handler"
 	"sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
+	"sigs.k8s.io/yaml"
 )
 
 func setupScheme() *runtime.Scheme {
@@ -390,7 +392,7 @@ func TestKubeadmConfigReconciler_Reconcile_RequeueJoiningNodesIfControlPlaneNotI
 	}
 }
 
-// This generates cloud-config data but does not test the validity of it.
+// This generates cloud-config data and checks a subset of the generated data.
 func TestKubeadmConfigReconciler_Reconcile_GenerateCloudConfigData(t *testing.T) {
 	cluster := newCluster("cluster")
 	cluster.Status.InfrastructureReady = true
@@ -398,9 +400,86 @@ func TestKubeadmConfigReconciler_Reconcile_GenerateCloudConfigData(t *testing.T)
 	controlPlaneInitMachine := newControlPlaneMachine(cluster, "control-plane-init-machine")
 	controlPlaneInitConfig := newControlPlaneInitKubeadmConfig(controlPlaneInitMachine, "control-plane-init-cfg")
 
+	// Define objects to be referenced for file generation.
+	configMapFile := &corev1.ConfigMap{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "configmap-file",
+			Namespace: controlPlaneInitConfig.Namespace,
+		},
+		Data: map[string]string{
+			"configmap-key": "configmap-content",
+		},
+	}
+	secretFile := &corev1.Secret{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "secret-file",
+			Namespace: controlPlaneInitConfig.Namespace,
+		},
+		Data: map[string][]byte{
+			"secret-key": []byte("secret-content"),
+		},
+	}
+
+	// Add inline files and references to files from other objects.
+	optionalTrue := true
+	controlPlaneInitConfig.Spec.Files = append(controlPlaneInitConfig.Spec.Files,
+		bootstrapv1.File{
+			Path:    "/tmp/inline.txt",
+			Content: "inline-content",
+		},
+		bootstrapv1.File{
+			Path: "/this/configmap/file/should/not/exist",
+			ContentFrom: &bootstrapv1.FileContentSource{
+				ConfigMapKeyRef: &corev1.ConfigMapKeySelector{
+					LocalObjectReference: corev1.LocalObjectReference{
+						Name: "non-existant-configmap",
+					},
+					Key:      "not-applicable",
+					Optional: &optionalTrue,
+				},
+			},
+		},
+		bootstrapv1.File{
+			Path: "/this/secret/file/should/not/exist",
+			ContentFrom: &bootstrapv1.FileContentSource{
+				SecretKeyRef: &corev1.SecretKeySelector{
+					LocalObjectReference: corev1.LocalObjectReference{
+						Name: "non-existant-secret",
+					},
+					Key:      "not-applicable",
+					Optional: &optionalTrue,
+				},
+			},
+		},
+		bootstrapv1.File{
+			Path: "/tmp/configmap.txt",
+			ContentFrom: &bootstrapv1.FileContentSource{
+				ConfigMapKeyRef: &corev1.ConfigMapKeySelector{
+					LocalObjectReference: corev1.LocalObjectReference{
+						Name: configMapFile.Name,
+					},
+					Key:      "configmap-key",
+					Optional: &optionalTrue,
+				},
+			},
+		},
+		bootstrapv1.File{
+			Path: "/tmp/secret.txt",
+			ContentFrom: &bootstrapv1.FileContentSource{
+				SecretKeyRef: &corev1.SecretKeySelector{
+					LocalObjectReference: corev1.LocalObjectReference{
+						Name: secretFile.Name,
+					},
+					Key:      "secret-key",
+					Optional: nil,
+				},
+			},
+		})
+
 	objects := []runtime.Object{
 		cluster,
 		controlPlaneInitMachine,
+		configMapFile, secretFile,
 		controlPlaneInitConfig,
 	}
 	objects = append(objects, createSecrets(t, cluster, controlPlaneInitConfig)...)
@@ -441,11 +520,45 @@ func TestKubeadmConfigReconciler_Reconcile_GenerateCloudConfigData(t *testing.T)
 		t.Fatal("Expected generated bootstrap data")
 	}
 
+	data := testBootstrapData{t: t}
+	if err := yaml.Unmarshal(cfg.Status.BootstrapData, &data); err != nil {
+		t.Fatalf("Failed to unmarshal boostrap data: %v", err)
+	}
+	data.mustContainFilePathContent("/tmp/inline.txt", "inline-content")
+	data.mustContainFilePathContent("/tmp/configmap.txt", "configmap-content")
+	data.mustContainFilePathContent("/tmp/secret.txt", "secret-content")
+	// TODO(nstogner): Assert on more files?
+
 	// Ensure that we don't fail trying to refresh any bootstrap tokens
 	_, err = k.Reconcile(request)
 	if err != nil {
 		t.Fatalf("Failed to reconcile:\n %+v", err)
 	}
+}
+
+type testBootstrapData struct {
+	t *testing.T
+
+	WriteFiles []struct {
+		Path    string `json:"path"`
+		Content string `json:"content"`
+	} `json:"write_files"`
+}
+
+func (b *testBootstrapData) mustContainFilePathContent(expectedPath, expectedContent string) {
+	for _, got := range b.WriteFiles {
+		if got.Path == expectedPath {
+			if strings.TrimSpace(got.Content) == expectedContent {
+				return
+			} else {
+				b.t.Fatalf("Expected BootstrapData write_files[i] == { path: %q, content: %q }, Got: { path: %q, content: %q }",
+					expectedPath, expectedContent,
+					got.Path, got.Content)
+			}
+		}
+	}
+	b.t.Fatalf("Missing required BootstrapData write_files[i].path == %q",
+		expectedPath)
 }
 
 // If a control plane has no JoinConfiguration, then we will create a default and no error will occur

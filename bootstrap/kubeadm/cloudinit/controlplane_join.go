@@ -18,12 +18,11 @@ package cloudinit
 
 import (
 	"github.com/pkg/errors"
-	"sigs.k8s.io/cluster-api/bootstrap/kubeadm/internal/cluster"
 )
 
 const (
 	controlPlaneJoinCloudInit = `{{.Header}}
-{{template "files" .WriteFiles}}
+{{template "files" .Files}}
 -   path: /tmp/kubeadm-controlplane-join-config.yaml
     owner: root:root
     permissions: '0640'
@@ -41,7 +40,6 @@ runcmd:
 // ControlPlaneJoinInput defines context to generate controlplane instance user data for control plane node join.
 type ControlPlaneJoinInput struct {
 	BaseUserData
-	cluster.Certificates
 
 	BootstrapToken    string
 	JoinConfiguration string
@@ -51,8 +49,6 @@ type ControlPlaneJoinInput struct {
 func NewJoinControlPlane(input *ControlPlaneJoinInput) ([]byte, error) {
 	input.Header = cloudConfigHeader
 	// TODO: Consider validating that the correct certificates exist. It is different for external/stacked etcd
-	input.WriteFiles = input.Certificates.AsFiles()
-	input.WriteFiles = append(input.WriteFiles, input.AdditionalFiles...)
 	userData, err := generate("JoinControlplane", controlPlaneJoinCloudInit, input)
 	if err != nil {
 		return nil, errors.Wrapf(err, "failed to generate user data for machine joining control plane")

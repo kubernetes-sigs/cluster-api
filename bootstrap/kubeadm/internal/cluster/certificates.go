@@ -36,6 +36,7 @@ import (
 	"k8s.io/client-go/util/cert"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha3"
 	bootstrapv1 "sigs.k8s.io/cluster-api/bootstrap/kubeadm/api/v1alpha3"
+	"sigs.k8s.io/cluster-api/bootstrap/kubeadm/cloudinit"
 	"sigs.k8s.io/cluster-api/bootstrap/kubeadm/types/v1beta1"
 	"sigs.k8s.io/cluster-api/util/certs"
 	"sigs.k8s.io/cluster-api/util/secret"
@@ -333,10 +334,10 @@ func (c *Certificate) AsSecret(cluster *clusterv1.Cluster, config *bootstrapv1.K
 }
 
 // AsFiles converts the certificate to a slice of Files that may have 0, 1 or 2 Files.
-func (c *Certificate) AsFiles() []bootstrapv1.File {
-	out := make([]bootstrapv1.File, 0)
+func (c *Certificate) AsFiles() []cloudinit.File {
+	out := make([]cloudinit.File, 0)
 	if len(c.KeyPair.Cert) > 0 {
-		out = append(out, bootstrapv1.File{
+		out = append(out, cloudinit.File{
 			Path:        c.CertFile,
 			Owner:       rootOwnerValue,
 			Permissions: "0640",
@@ -344,7 +345,7 @@ func (c *Certificate) AsFiles() []bootstrapv1.File {
 		})
 	}
 	if len(c.KeyPair.Key) > 0 {
-		out = append(out, bootstrapv1.File{
+		out = append(out, cloudinit.File{
 			Path:        c.KeyFile,
 			Owner:       rootOwnerValue,
 			Permissions: "0600",
@@ -355,13 +356,13 @@ func (c *Certificate) AsFiles() []bootstrapv1.File {
 }
 
 // AsFiles converts a slice of certificates into bootstrap files.
-func (c Certificates) AsFiles() []bootstrapv1.File {
+func (c Certificates) AsFiles() []cloudinit.File {
 	clusterCA := c.GetByPurpose(secret.ClusterCA)
 	etcdCA := c.GetByPurpose(EtcdCA)
 	frontProxyCA := c.GetByPurpose(FrontProxyCA)
 	serviceAccountKey := c.GetByPurpose(ServiceAccount)
 
-	certFiles := make([]bootstrapv1.File, 0)
+	certFiles := make([]cloudinit.File, 0)
 	if clusterCA != nil {
 		certFiles = append(certFiles, clusterCA.AsFiles()...)
 	}

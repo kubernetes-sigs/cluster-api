@@ -24,9 +24,11 @@ import (
 
 	"github.com/go-logr/logr"
 	"github.com/pkg/errors"
+	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/types"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha3"
 	bootstrapv1 "sigs.k8s.io/cluster-api/bootstrap/kubeadm/api/v1alpha3"
 	"sigs.k8s.io/cluster-api/bootstrap/kubeadm/cloudinit"
@@ -311,9 +313,15 @@ func (r *KubeadmConfigReconciler) handleClusterNotInitialized(ctx context.Contex
 		return ctrl.Result{}, err
 	}
 
+	additionalFiles, err := r.resolveFiles(ctx, scope.Config)
+	if err != nil {
+		scope.Error(err, "Failed to resolve files")
+		return ctrl.Result{}, err
+	}
+
 	cloudInitData, err := cloudinit.NewInitControlPlane(&cloudinit.ControlPlaneInput{
 		BaseUserData: cloudinit.BaseUserData{
-			AdditionalFiles:     scope.Config.Spec.Files,
+			Files:               append(certificates.AsFiles(), additionalFiles...),
 			NTP:                 scope.Config.Spec.NTP,
 			PreKubeadmCommands:  scope.Config.Spec.PreKubeadmCommands,
 			PostKubeadmCommands: scope.Config.Spec.PostKubeadmCommands,
@@ -321,7 +329,6 @@ func (r *KubeadmConfigReconciler) handleClusterNotInitialized(ctx context.Contex
 		},
 		InitConfiguration:    initdata,
 		ClusterConfiguration: clusterdata,
-		Certificates:         certificates,
 	})
 	if err != nil {
 		scope.Error(err, "failed to generate cloud init for bootstrap control plane")
@@ -364,11 +371,17 @@ func (r *KubeadmConfigReconciler) joinWorker(ctx context.Context, scope *Scope) 
 		return ctrl.Result{}, errors.New("Machine is a Worker, but JoinConfiguration.ControlPlane is set in the KubeadmConfig object")
 	}
 
+	files, err := r.resolveFiles(ctx, scope.Config)
+	if err != nil {
+		scope.Error(err, "Failed to resolve files")
+		return ctrl.Result{}, err
+	}
+
 	scope.Info("Creating BootstrapData for the worker node")
 
 	cloudJoinData, err := cloudinit.NewNode(&cloudinit.NodeInput{
 		BaseUserData: cloudinit.BaseUserData{
-			AdditionalFiles:     scope.Config.Spec.Files,
+			Files:               files,
 			NTP:                 scope.Config.Spec.NTP,
 			PreKubeadmCommands:  scope.Config.Spec.PreKubeadmCommands,
 			PostKubeadmCommands: scope.Config.Spec.PostKubeadmCommands,
@@ -414,12 +427,17 @@ func (r *KubeadmConfigReconciler) joinControlplane(ctx context.Context, scope *S
 		return ctrl.Result{}, err
 	}
 
+	additionalFiles, err := r.resolveFiles(ctx, scope.Config)
+	if err != nil {
+		scope.Error(err, "Failed to resolve files")
+		return ctrl.Result{}, err
+	}
+
 	scope.Info("Creating BootstrapData for the join control plane")
 	cloudJoinData, err := cloudinit.NewJoinControlPlane(&cloudinit.ControlPlaneJoinInput{
 		JoinConfiguration: joinData,
-		Certificates:      certificates,
 		BaseUserData: cloudinit.BaseUserData{
-			AdditionalFiles:     scope.Config.Spec.Files,
+			Files:               append(certificates.AsFiles(), additionalFiles...),
 			NTP:                 scope.Config.Spec.NTP,
 			PreKubeadmCommands:  scope.Config.Spec.PreKubeadmCommands,
 			PostKubeadmCommands: scope.Config.Spec.PostKubeadmCommands,
@@ -434,6 +452,84 @@ func (r *KubeadmConfigReconciler) joinControlplane(ctx context.Context, scope *S
 	scope.Config.Status.BootstrapData = cloudJoinData
 	scope.Config.Status.Ready = true
 	return ctrl.Result{}, nil
+}
+
+// resolveFiles maps .Spec.Files into cloudinit.Files, resolving any object references
+// along the way.
+func (r *KubeadmConfigReconciler) resolveFiles(ctx context.Context, cfg *bootstrapv1.KubeadmConfig) ([]cloudinit.File, error) {
+	var converted []cloudinit.File
+
+	for i, specFile := range cfg.Spec.Files {
+		initFile := cloudinit.File{
+			Path:        specFile.Path,
+			Owner:       specFile.Owner,
+			Permissions: specFile.Permissions,
+			Encoding:    specFile.Encoding,
+		}
+
+		if specFile.Content != "" {
+			initFile.Content = specFile.Content
+		} else {
+			if specFile.ContentFrom == nil {
+				return nil, fmt.Errorf("files[%v]: missing content or contentFrom", i)
+			}
+			content, err := r.resolveFileContentSource(ctx, cfg.Namespace, specFile.ContentFrom)
+			if err != nil {
+				if err == errOptionalFileContentSourceNotFound {
+					continue
+				}
+				return nil, errors.Wrapf(err, "files[%v]: resolving contentFrom reference", i)
+			}
+			initFile.Content = content
+		}
+
+		converted = append(converted, initFile)
+	}
+
+	return converted, nil
+}
+
+var errOptionalFileContentSourceNotFound = errors.New("optional file content source not found")
+
+// resolveFileContentSource returns file content fetched from a referenced object.
+// If the reference is not found and was marked as optional, errOptionalFileContentSourceNotFound
+// is returned.
+func (r *KubeadmConfigReconciler) resolveFileContentSource(ctx context.Context, ns string, source *bootstrapv1.FileContentSource) (string, error) {
+	if ref := source.ConfigMapKeyRef; ref != nil {
+		var cm corev1.ConfigMap
+		nn := types.NamespacedName{Namespace: ns, Name: ref.Name}
+		if err := r.Client.Get(ctx, nn, &cm); err != nil {
+			if apierrors.IsNotFound(err) && ref.Optional != nil && *ref.Optional {
+				return "", errOptionalFileContentSourceNotFound
+			}
+			return "", errors.Wrapf(err, "getting ConfigMap %s", nn)
+		}
+
+		val, ok := cm.Data[ref.Key]
+		if !ok {
+			return "", fmt.Errorf("could not find key %v in ConfigMap %s", ref.Key, nn)
+		}
+
+		return val, nil
+	} else if ref := source.SecretKeyRef; ref != nil {
+		var sec corev1.Secret
+		nn := types.NamespacedName{Namespace: ns, Name: ref.Name}
+		if err := r.Client.Get(ctx, nn, &sec); err != nil {
+			if apierrors.IsNotFound(err) && ref.Optional != nil && *ref.Optional {
+				return "", errOptionalFileContentSourceNotFound
+			}
+			return "", errors.Wrapf(err, "getting Secret %s", nn)
+		}
+
+		val, ok := sec.Data[ref.Key]
+		if !ok {
+			return "", fmt.Errorf("could not find key %v in Secret %s", ref.Key, nn)
+		}
+
+		return string(val), nil
+	}
+
+	return "", errors.New("no source reference defined")
 }
 
 // ClusterToKubeadmConfigs is a handler.ToRequestsFunc to be used to enqeue

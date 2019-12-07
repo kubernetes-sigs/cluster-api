@@ -35,10 +35,17 @@ type BaseUserData struct {
 	Header              string
 	PreKubeadmCommands  []string
 	PostKubeadmCommands []string
-	AdditionalFiles     []bootstrapv1.File
-	WriteFiles          []bootstrapv1.File
+	Files               []File
 	Users               []bootstrapv1.User
 	NTP                 *bootstrapv1.NTP
+}
+
+type File struct {
+	Path        string
+	Owner       string
+	Permissions string
+	Encoding    bootstrapv1.Encoding
+	Content     string
 }
 
 func generate(kind string, tpl string, data interface{}) ([]byte, error) {

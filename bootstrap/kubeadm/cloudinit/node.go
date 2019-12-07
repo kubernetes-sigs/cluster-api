@@ -18,7 +18,7 @@ package cloudinit
 
 const (
 	nodeCloudInit = `{{.Header}}
-{{template "files" .WriteFiles}}
+{{template "files" .Files}}
 -   path: /tmp/kubeadm-node.yaml
     owner: root:root
     permissions: '0640'
@@ -44,6 +44,5 @@ type NodeInput struct {
 // NewNode returns the user data string to be used on a node instance.
 func NewNode(input *NodeInput) ([]byte, error) {
 	input.Header = cloudConfigHeader
-	input.WriteFiles = append(input.WriteFiles, input.AdditionalFiles...)
 	return generate("Node", nodeCloudInit, input)
 }

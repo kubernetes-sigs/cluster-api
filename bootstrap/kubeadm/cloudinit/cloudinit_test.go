@@ -20,9 +20,7 @@ import (
 	"bytes"
 	"testing"
 
-	infrav1 "sigs.k8s.io/cluster-api/bootstrap/kubeadm/api/v1alpha3"
-	"sigs.k8s.io/cluster-api/bootstrap/kubeadm/internal/cluster"
-	"sigs.k8s.io/cluster-api/util/certs"
+	bootstrapv1 "sigs.k8s.io/cluster-api/bootstrap/kubeadm/api/v1alpha3"
 )
 
 func TestNewInitControlPlaneAdditionalFileEncodings(t *testing.T) {
@@ -31,10 +29,10 @@ func TestNewInitControlPlaneAdditionalFileEncodings(t *testing.T) {
 			Header:              "test",
 			PreKubeadmCommands:  nil,
 			PostKubeadmCommands: nil,
-			AdditionalFiles: []infrav1.File{
+			Files: []File{
 				{
 					Path:     "/tmp/my-path",
-					Encoding: infrav1.Base64,
+					Encoding: bootstrapv1.Base64,
 					Content:  "aGk=",
 				},
 				{
@@ -42,20 +40,11 @@ func TestNewInitControlPlaneAdditionalFileEncodings(t *testing.T) {
 					Content: "hi",
 				},
 			},
-			WriteFiles: nil,
-			Users:      nil,
-			NTP:        nil,
+			Users: nil,
+			NTP:   nil,
 		},
-		Certificates:         cluster.Certificates{},
 		ClusterConfiguration: "my-cluster-config",
 		InitConfiguration:    "my-init-config",
-	}
-
-	for _, certificate := range cpinput.Certificates {
-		certificate.KeyPair = &certs.KeyPair{
-			Cert: []byte("some certificate"),
-			Key:  []byte("some key"),
-		}
 	}
 
 	out, err := NewInitControlPlane(cpinput)
@@ -84,21 +73,12 @@ func TestNewInitControlPlaneCommands(t *testing.T) {
 			Header:              "test",
 			PreKubeadmCommands:  []string{`"echo $(date) ': hello world!'"`},
 			PostKubeadmCommands: []string{"echo $(date) ': hello world!'"},
-			AdditionalFiles:     nil,
-			WriteFiles:          nil,
+			Files:               nil,
 			Users:               nil,
 			NTP:                 nil,
 		},
-		Certificates:         cluster.Certificates{},
 		ClusterConfiguration: "my-cluster-config",
 		InitConfiguration:    "my-init-config",
-	}
-
-	for _, certificate := range cpinput.Certificates {
-		certificate.KeyPair = &certs.KeyPair{
-			Cert: []byte("some certificate"),
-			Key:  []byte("some key"),
-		}
 	}
 
 	out, err := NewInitControlPlane(cpinput)

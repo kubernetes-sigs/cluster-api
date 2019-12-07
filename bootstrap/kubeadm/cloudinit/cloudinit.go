@@ -40,6 +40,7 @@ type BaseUserData struct {
 	NTP                 *bootstrapv1.NTP
 }
 
+// File to be written to disk by cloud-init.
 type File struct {
 	Path        string
 	Owner       string

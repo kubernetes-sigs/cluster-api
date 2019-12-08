@@ -23,3 +23,5 @@
     - [Glossary](./reference/glossary.md)
     - [Provider List](./reference/providers.md)
     - [clusterctl CLI](./tooling/clusterctl.md)
+    - [Code of Conduct](./code-of-conduct.md)
+    - [Contributing](./CONTRIBUTING.md)

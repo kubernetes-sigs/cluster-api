@@ -17,6 +17,8 @@ limitations under the License.
 package v1alpha2
 
 import (
+	"errors"
+
 	apiconversion "k8s.io/apimachinery/pkg/conversion"
 	kubeadmbootstrapv1alpha3 "sigs.k8s.io/cluster-api/bootstrap/kubeadm/api/v1alpha3"
 	"sigs.k8s.io/controller-runtime/pkg/conversion"
@@ -85,6 +87,11 @@ func Convert_v1alpha2_KubeadmConfigStatus_To_v1alpha3_KubeadmConfigStatus(in *Ku
 
 // Convert_v1alpha3_KubeadmConfigStatus_To_v1alpha2_KubeadmConfigStatus converts from the Hub version (v1alpha3) of the KubeadmConfigStatus to this version.
 func Convert_v1alpha3_KubeadmConfigStatus_To_v1alpha2_KubeadmConfigStatus(in *kubeadmbootstrapv1alpha3.KubeadmConfigStatus, out *KubeadmConfigStatus, s apiconversion.Scope) error { // nolint
+	// We need to fail early here given that we don't want to leak information from secrets back to the inline / plaintext field in v1alpha2.
+	if in.BootstrapData == nil && in.DataSecretName != nil {
+		return errors.New("cannot convert KubeadmConfigStatus's bootstrap data from Secret reference to inline field")
+	}
+
 	if err := autoConvert_v1alpha3_KubeadmConfigStatus_To_v1alpha2_KubeadmConfigStatus(in, out, s); err != nil {
 		return err
 	}

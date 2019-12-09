@@ -265,3 +265,12 @@ func Convert_v1alpha3_MachineSetSpec_To_v1alpha2_MachineSetSpec(in *v1alpha3.Mac
 func Convert_v1alpha3_MachineSpec_To_v1alpha2_MachineSpec(in *v1alpha3.MachineSpec, out *MachineSpec, s apiconversion.Scope) error {
 	return errors.New("cannot recover removed MachineSpec Cluster Name")
 }
+
+func Convert_v1alpha3_Bootstrap_To_v1alpha2_Bootstrap(in *v1alpha3.Bootstrap, out *Bootstrap, s apiconversion.Scope) error {
+	// We need to fail early here given that we don't want to leak information from secrets back to the inline / plaintext field in v1alpha2.
+	if in.Data == nil && in.DataSecretName != nil {
+		return errors.New("cannot convert Machine's bootstrap data from Secret reference to inline field")
+	}
+
+	return autoConvert_v1alpha3_Bootstrap_To_v1alpha2_Bootstrap(in, out, s)
+}

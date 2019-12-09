@@ -24,9 +24,11 @@ import (
 
 	"github.com/go-logr/logr"
 	"github.com/pkg/errors"
+	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/utils/pointer"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha3"
 	bootstrapv1 "sigs.k8s.io/cluster-api/bootstrap/kubeadm/api/v1alpha3"
 	"sigs.k8s.io/cluster-api/bootstrap/kubeadm/cloudinit"
@@ -151,25 +153,30 @@ func (r *KubeadmConfigReconciler) Reconcile(req ctrl.Request) (_ ctrl.Result, re
 		return ctrl.Result{}, err
 	}
 
+	// Initialize the patch helper.
+	patchHelper, err := patch.NewHelper(config, r.Client)
+	if err != nil {
+		return ctrl.Result{}, err
+	}
+
 	switch {
-	// Wait patiently for the infrastructure to be ready
+	// Wait for the infrastructure to be ready.
 	case !cluster.Status.InfrastructureReady:
-		log.Info("Infrastructure is not ready, waiting until ready.")
+		log.Info("Cluster infrastructure is not ready, waiting")
 		return ctrl.Result{}, nil
-	// bail super early if it's already ready
-	case config.Status.Ready && machine.Status.InfrastructureReady:
-		log.Info("ignoring config for an already ready machine")
-		return ctrl.Result{}, nil
-	// Reconcile status for machines that have already copied bootstrap data
-	case machine.Spec.Bootstrap.Data != nil && !config.Status.Ready:
-		config.Status.Ready = true
-		// Initialize the patch helper
-		patchHelper, err := patch.NewHelper(config, r.Client)
-		if err != nil {
+	// Migrate plaintext data to secret.
+	case config.Status.BootstrapData != nil && config.Status.DataSecretName == nil:
+		if err := r.storeBootstrapData(ctx, config, config.Status.BootstrapData); err != nil {
 			return ctrl.Result{}, err
 		}
-		err = patchHelper.Patch(ctx, config)
-		return ctrl.Result{}, err
+		return ctrl.Result{}, patchHelper.Patch(ctx, config)
+	// Return early if the configuration and Machine's infrastructure are ready.
+	case config.Status.Ready && machine.Status.InfrastructureReady:
+		return ctrl.Result{}, nil
+	// Reconcile status for machines that have already copied bootstrap data
+	case machine.Spec.Bootstrap.DataSecretName != nil && !config.Status.Ready:
+		config.Status.Ready = true
+		return ctrl.Result{}, patchHelper.Patch(ctx, config)
 	// If we've already embedded a time-limited join token into a config, but are still waiting for the token to be used, refresh it
 	case config.Status.Ready && (config.Spec.JoinConfiguration != nil && config.Spec.JoinConfiguration.Discovery.BootstrapToken != nil):
 		token := config.Spec.JoinConfiguration.Discovery.BootstrapToken.Token
@@ -192,11 +199,6 @@ func (r *KubeadmConfigReconciler) Reconcile(req ctrl.Request) (_ ctrl.Result, re
 		}, nil
 	}
 
-	// Initialize the patch helper
-	patchHelper, err := patch.NewHelper(config, r.Client)
-	if err != nil {
-		return ctrl.Result{}, err
-	}
 	// Attempt to Patch the KubeadmConfig object and status after each reconciliation if no error occurs.
 	defer func() {
 		if rerr == nil {
@@ -328,8 +330,10 @@ func (r *KubeadmConfigReconciler) handleClusterNotInitialized(ctx context.Contex
 		return ctrl.Result{}, err
 	}
 
-	scope.Config.Status.BootstrapData = cloudInitData
-	scope.Config.Status.Ready = true
+	if err := r.storeBootstrapData(ctx, scope.Config, cloudInitData); err != nil {
+		scope.Error(err, "failed to store bootstrap data")
+		return ctrl.Result{}, err
+	}
 
 	return ctrl.Result{}, nil
 }
@@ -380,8 +384,11 @@ func (r *KubeadmConfigReconciler) joinWorker(ctx context.Context, scope *Scope) 
 		scope.Error(err, "failed to create a worker join configuration")
 		return ctrl.Result{}, err
 	}
-	scope.Config.Status.BootstrapData = cloudJoinData
-	scope.Config.Status.Ready = true
+
+	if err := r.storeBootstrapData(ctx, scope.Config, cloudJoinData); err != nil {
+		scope.Error(err, "failed to store bootstrap data")
+		return ctrl.Result{}, err
+	}
 	return ctrl.Result{}, nil
 }
 
@@ -431,8 +438,11 @@ func (r *KubeadmConfigReconciler) joinControlplane(ctx context.Context, scope *S
 		return ctrl.Result{}, err
 	}
 
-	scope.Config.Status.BootstrapData = cloudJoinData
-	scope.Config.Status.Ready = true
+	if err := r.storeBootstrapData(ctx, scope.Config, cloudJoinData); err != nil {
+		scope.Error(err, "failed to store bootstrap data")
+		return ctrl.Result{}, err
+	}
+
 	return ctrl.Result{}, nil
 }
 
@@ -595,4 +605,38 @@ func (r *KubeadmConfigReconciler) reconcileTopLevelObjectSettings(cluster *clust
 		config.Spec.ClusterConfiguration.KubernetesVersion = *machine.Spec.Version
 		log.Info("Altering ClusterConfiguration", "KubernetesVersion", config.Spec.ClusterConfiguration.KubernetesVersion)
 	}
+}
+
+// storeBootstrapData creates a new secret with the data passed in as input,
+// sets the reference in the configuration status and ready to true.
+func (r *KubeadmConfigReconciler) storeBootstrapData(ctx context.Context, config *bootstrapv1.KubeadmConfig, data []byte) error {
+	secret := &corev1.Secret{
+		ObjectMeta: v1.ObjectMeta{
+			Name:      config.Name,
+			Namespace: config.Namespace,
+			Labels: map[string]string{
+				clusterv1.ClusterLabelName: config.ClusterName,
+			},
+			OwnerReferences: []v1.OwnerReference{
+				{
+					APIVersion: bootstrapv1.GroupVersion.String(),
+					Kind:       "KubeadmConfig",
+					Name:       config.Name,
+					UID:        config.UID,
+					Controller: pointer.BoolPtr(true),
+				},
+			},
+		},
+		Data: map[string][]byte{
+			"value": data,
+		},
+	}
+
+	if err := r.Client.Create(ctx, secret); err != nil {
+		return errors.Wrapf(err, "failed to create kubeconfig secret for KubeadmConfig %s/%s", config.Namespace, config.Name)
+	}
+
+	config.Status.DataSecretName = pointer.StringPtr(secret.Name)
+	config.Status.Ready = true
+	return nil
 }

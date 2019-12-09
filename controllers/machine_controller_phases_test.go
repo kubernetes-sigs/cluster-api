@@ -160,7 +160,7 @@ var _ = Describe("Reconcile Machine Phases", func() {
 		err := unstructured.SetNestedField(bootstrapConfig.Object, true, "status", "ready")
 		Expect(err).NotTo(HaveOccurred())
 
-		err = unstructured.SetNestedField(bootstrapConfig.Object, "...", "status", "bootstrapData")
+		err = unstructured.SetNestedField(bootstrapConfig.Object, "secret-data", "status", "secretDataName")
 		Expect(err).NotTo(HaveOccurred())
 
 		r := &MachineReconciler{
@@ -185,7 +185,7 @@ var _ = Describe("Reconcile Machine Phases", func() {
 		err := unstructured.SetNestedField(bootstrapConfig.Object, true, "status", "ready")
 		Expect(err).NotTo(HaveOccurred())
 
-		err = unstructured.SetNestedField(bootstrapConfig.Object, "...", "status", "bootstrapData")
+		err = unstructured.SetNestedField(bootstrapConfig.Object, "secret-data", "status", "secretDataName")
 		Expect(err).NotTo(HaveOccurred())
 
 		// Set infra ready.
@@ -233,7 +233,7 @@ var _ = Describe("Reconcile Machine Phases", func() {
 		err := unstructured.SetNestedField(bootstrapConfig.Object, true, "status", "ready")
 		Expect(err).NotTo(HaveOccurred())
 
-		err = unstructured.SetNestedField(bootstrapConfig.Object, "...", "status", "bootstrapData")
+		err = unstructured.SetNestedField(bootstrapConfig.Object, "secret-data", "status", "secretDataName")
 		Expect(err).NotTo(HaveOccurred())
 
 		// Set infra ready.
@@ -269,7 +269,7 @@ var _ = Describe("Reconcile Machine Phases", func() {
 		err := unstructured.SetNestedField(bootstrapConfig.Object, true, "status", "ready")
 		Expect(err).NotTo(HaveOccurred())
 
-		err = unstructured.SetNestedField(bootstrapConfig.Object, "...", "status", "bootstrapData")
+		err = unstructured.SetNestedField(bootstrapConfig.Object, "secret-data", "status", "secretDataName")
 		Expect(err).NotTo(HaveOccurred())
 
 		// Set infra ready.
@@ -316,7 +316,7 @@ var _ = Describe("Reconcile Machine Phases", func() {
 		err := unstructured.SetNestedField(bootstrapConfig.Object, true, "status", "ready")
 		Expect(err).NotTo(HaveOccurred())
 
-		err = unstructured.SetNestedField(bootstrapConfig.Object, "...", "status", "bootstrapData")
+		err = unstructured.SetNestedField(bootstrapConfig.Object, "secret-data", "status", "secretDataName")
 		Expect(err).NotTo(HaveOccurred())
 
 		// Set NodeRef.
@@ -344,7 +344,7 @@ var _ = Describe("Reconcile Machine Phases", func() {
 		err := unstructured.SetNestedField(bootstrapConfig.Object, true, "status", "ready")
 		Expect(err).NotTo(HaveOccurred())
 
-		err = unstructured.SetNestedField(bootstrapConfig.Object, "...", "status", "bootstrapData")
+		err = unstructured.SetNestedField(bootstrapConfig.Object, "secret-data", "status", "secretDataName")
 		Expect(err).NotTo(HaveOccurred())
 
 		// Set infra ready.
@@ -424,15 +424,15 @@ func TestReconcileBootstrap(t *testing.T) {
 				},
 				"spec": map[string]interface{}{},
 				"status": map[string]interface{}{
-					"ready":         true,
-					"bootstrapData": "#!/bin/bash ... data",
+					"ready":          true,
+					"secretDataName": "secret-data",
 				},
 			},
 			expectError: false,
 			expected: func(g *WithT, m *clusterv1.Machine) {
 				g.Expect(m.Status.BootstrapReady).To(BeTrue())
-				g.Expect(m.Spec.Bootstrap.Data).ToNot(BeNil())
-				g.Expect(*m.Spec.Bootstrap.Data).To(ContainSubstring("#!/bin/bash"))
+				g.Expect(m.Spec.Bootstrap.DataSecretName).ToNot(BeNil())
+				g.Expect(*m.Spec.Bootstrap.DataSecretName).To(ContainSubstring("secret-data"))
 			},
 		},
 		{
@@ -514,8 +514,8 @@ func TestReconcileBootstrap(t *testing.T) {
 				},
 				"spec": map[string]interface{}{},
 				"status": map[string]interface{}{
-					"ready": true,
-					"data":  "#!/bin/bash ... data with change",
+					"ready":          true,
+					"secretDataName": "secret-data",
 				},
 			},
 			machine: &clusterv1.Machine{
@@ -719,8 +719,8 @@ func TestReconcileInfrastructure(t *testing.T) {
 				},
 				"spec": map[string]interface{}{},
 				"status": map[string]interface{}{
-					"ready":         true,
-					"bootstrapData": "...",
+					"ready":          true,
+					"secretDataName": "secret-data",
 				},
 			},
 			infraConfig: map[string]interface{}{

@@ -754,9 +754,16 @@ spec:
                                 type: string
                             type: object
                           data:
-                            description: Data contains the bootstrap data, such as
+                            description: "Data contains the bootstrap data, such as
                               cloud-init details scripts. If nil, the Machine should
-                              remain in the Pending state.
+                              remain in the Pending state. \n Deprecated: This field
+                              has been deprecated in v1alpha3 and will be removed
+                              in a future version. Switch to DataSecretName."
+                            type: string
+                          dataSecretName:
+                            description: DataSecretName is the name of the secret
+                              that stores the bootstrap data script. If nil, the Machine
+                              should remain in the Pending state.
                             type: string
                         type: object
                       clusterName:

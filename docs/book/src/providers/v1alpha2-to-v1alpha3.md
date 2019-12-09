@@ -104,3 +104,12 @@
 
 - The slice in Cluster.Status has been removed and replaced by a single APIEndpoint field under Spec.
 - Infrastructure providers MUST expose a ControlPlaneEndpoint field in their cluster infrastructure resource at `Spec.ControlPlaneEndpoint`. They may optionally remove the `Status.APIEndpoints` field (Cluster API no longer uses it).
+
+
+## Data generated from a bootstrap provider is now stored in a secret.
+
+- The Cluster API Machine Controller no longer reconciles the bootstrap provider `status.bootstrapData` field, but instead looks at `status.dataSecretName`.
+- The `Machine.Spec.Bootstrap.Data` field is deprecated and will be removed in a future version.
+- Bootstrap providers must create a Secret in the bootstrap resource's namespace and store the name in the bootstrap resource's `status.dataSecretName` field.
+    - On reconciliation, we suggest to migrate from the deprecated field to a secret reference.
+- Infrastructure providers must look for the bootstrap data secret name in `Machine.Spec.Bootstrap.DataSecretName` and fallback to `Machine.Spec.Bootstrap.Data`.

@@ -36,27 +36,35 @@ type KubeadmConfigSpec struct {
 	// ClusterConfiguration along with InitConfiguration are the configurations necessary for the init command
 	// +optional
 	ClusterConfiguration *kubeadmv1beta1.ClusterConfiguration `json:"clusterConfiguration,omitempty"`
+
 	// InitConfiguration along with ClusterConfiguration are the configurations necessary for the init command
 	// +optional
 	InitConfiguration *kubeadmv1beta1.InitConfiguration `json:"initConfiguration,omitempty"`
+
 	// JoinConfiguration is the kubeadm configuration for the join command
 	// +optional
 	JoinConfiguration *kubeadmv1beta1.JoinConfiguration `json:"joinConfiguration,omitempty"`
+
 	// Files specifies extra files to be passed to user_data upon creation.
 	// +optional
 	Files []File `json:"files,omitempty"`
+
 	// PreKubeadmCommands specifies extra commands to run before kubeadm runs
 	// +optional
 	PreKubeadmCommands []string `json:"preKubeadmCommands,omitempty"`
+
 	// PostKubeadmCommands specifies extra commands to run after kubeadm runs
 	// +optional
 	PostKubeadmCommands []string `json:"postKubeadmCommands,omitempty"`
+
 	// Users specifies extra users to add
 	// +optional
 	Users []User `json:"users,omitempty"`
+
 	// NTP specifies NTP configuration
 	// +optional
 	NTP *NTP `json:"ntp,omitempty"`
+
 	// Format specifies the output format of the bootstrap data
 	// +optional
 	Format Format `json:"format,omitempty"`
@@ -67,7 +75,15 @@ type KubeadmConfigStatus struct {
 	// Ready indicates the BootstrapData field is ready to be consumed
 	Ready bool `json:"ready,omitempty"`
 
-	// BootstrapData will be a cloud-init script for now
+	// DataSecretName is the name of the secret that stores the bootstrap data script.
+	// +optional
+	DataSecretName *string `json:"dataSecretName,omitempty"`
+
+	// BootstrapData will be a cloud-init script for now.
+	//
+	// Deprecated: This field has been deprecated in v1alpha3 and
+	// will be removed in a future version. Switch to DataSecretName.
+	//
 	// +optional
 	BootstrapData []byte `json:"bootstrapData,omitempty"`
 

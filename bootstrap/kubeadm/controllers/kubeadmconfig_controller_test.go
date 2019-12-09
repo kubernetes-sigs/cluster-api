@@ -31,6 +31,7 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 	bootstrapapi "k8s.io/cluster-bootstrap/token/api"
 	"k8s.io/klog/klogr"
+	"k8s.io/utils/pointer"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha3"
 	bootstrapv1 "sigs.k8s.io/cluster-api/bootstrap/kubeadm/api/v1alpha3"
 	internalcluster "sigs.k8s.io/cluster-api/bootstrap/kubeadm/internal/cluster"
@@ -159,10 +160,10 @@ func TestKubeadmConfigReconciler_Reconcile_ReturnErrorIfReferencedMachineIsNotFo
 	}
 }
 
-// If the machine has bootstrap data already then there is no need to generate more bootstrap data. The work is done.
-func TestKubeadmConfigReconciler_Reconcile_ReturnEarlyIfMachineHasBootstrapData(t *testing.T) {
+// If the machine has bootstrap data secret reference, there is no need to generate more bootstrap data.
+func TestKubeadmConfigReconciler_Reconcile_ReturnEarlyIfMachineHasDataSecretName(t *testing.T) {
 	machine := newMachine(nil, "machine")
-	machine.Spec.Bootstrap.Data = stringPtr("something")
+	machine.Spec.Bootstrap.DataSecretName = pointer.StringPtr("something")
 
 	config := newKubeadmConfig(machine, "cfg")
 	objects := []runtime.Object{
@@ -191,6 +192,62 @@ func TestKubeadmConfigReconciler_Reconcile_ReturnEarlyIfMachineHasBootstrapData(
 	}
 	if result.RequeueAfter != time.Duration(0) {
 		t.Fatal("did not expect to requeue after")
+	}
+}
+
+// Test the logic to migrate plaintext bootstrap data to a field.
+func TestKubeadmConfigReconciler_Reconcile_MigrateToSecret(t *testing.T) {
+	cluster := newCluster("cluster")
+	cluster.Status.InfrastructureReady = true
+	machine := newMachine(cluster, "machine")
+	config := newKubeadmConfig(machine, "cfg")
+	config.Status.Ready = true
+	config.Status.BootstrapData = []byte("test")
+	objects := []runtime.Object{
+		cluster,
+		machine,
+		config,
+	}
+	myclient := fake.NewFakeClientWithScheme(setupScheme(), objects...)
+
+	k := &KubeadmConfigReconciler{
+		Log:    log.Log,
+		Client: myclient,
+	}
+
+	request := ctrl.Request{
+		NamespacedName: types.NamespacedName{
+			Namespace: "default",
+			Name:      "cfg",
+		},
+	}
+
+	result, err := k.Reconcile(request)
+	if err != nil {
+		t.Fatalf("failed to reconcile: %v", err)
+	}
+	if result.Requeue == true {
+		t.Fatal("did not expect to requeue")
+	}
+	if result.RequeueAfter != time.Duration(0) {
+		t.Fatal("did not expect to requeue after")
+	}
+
+	if err := k.Client.Get(context.TODO(), types.NamespacedName{Name: config.Name, Namespace: config.Namespace}, config); err != nil {
+		t.Fatalf("failed to get KubeadmConfig: %v", err)
+	}
+
+	if config.Status.DataSecretName == nil {
+		t.Fatal("expected bootstrap data secret to be populated")
+	}
+
+	secret := &corev1.Secret{}
+	if err := k.Client.Get(context.TODO(), types.NamespacedName{Namespace: config.Namespace, Name: *config.Status.DataSecretName}, secret); err != nil {
+		t.Fatalf("failed to get Secret bootstrap data for KubeadmConfig: %v", err)
+	}
+
+	if string(secret.Data["value"]) != "test" {
+		t.Fatal("expected bootstrap data secret value to match")
 	}
 }
 
@@ -437,8 +494,8 @@ func TestKubeadmConfigReconciler_Reconcile_GenerateCloudConfigData(t *testing.T)
 	if cfg.Status.Ready != true {
 		t.Fatal("Expected status ready")
 	}
-	if cfg.Status.BootstrapData == nil {
-		t.Fatal("Expected generated bootstrap data")
+	if cfg.Status.DataSecretName == nil {
+		t.Fatal("Expected generated bootstrap data secret name")
 	}
 
 	// Ensure that we don't fail trying to refresh any bootstrap tokens
@@ -625,8 +682,8 @@ func TestReconcileIfJoinNodesAndControlPlaneIsReady(t *testing.T) {
 				t.Fatal("Expected status ready")
 			}
 
-			if cfg.Status.BootstrapData == nil {
-				t.Fatal("Expected status ready")
+			if cfg.Status.DataSecretName == nil {
+				t.Fatal("Expected bootstrap data secret")
 			}
 
 			l := &corev1.SecretList{}
@@ -694,8 +751,8 @@ func TestBootstrapTokenTTLExtension(t *testing.T) {
 	if cfg.Status.Ready != true {
 		t.Fatal("Expected status ready")
 	}
-	if cfg.Status.BootstrapData == nil {
-		t.Fatal("Expected status ready")
+	if cfg.Status.DataSecretName == nil {
+		t.Fatal("Expected bootstrap data secret")
 	}
 	request = ctrl.Request{
 		NamespacedName: types.NamespacedName{
@@ -720,8 +777,8 @@ func TestBootstrapTokenTTLExtension(t *testing.T) {
 	if cfg.Status.Ready != true {
 		t.Fatal("Expected status ready")
 	}
-	if cfg.Status.BootstrapData == nil {
-		t.Fatal("Expected status ready")
+	if cfg.Status.DataSecretName == nil {
+		t.Fatal("Expected bootstrap data secret")
 	}
 
 	l := &corev1.SecretList{}
@@ -1083,7 +1140,7 @@ func TestKubeadmConfigReconciler_Reconcile_DynamicDefaultsForClusterConfiguratio
 			},
 			machine: &clusterv1.Machine{
 				Spec: clusterv1.MachineSpec{
-					Version: stringPtr("otherVersion"),
+					Version: pointer.StringPtr("otherVersion"),
 				},
 			},
 		},
@@ -1109,7 +1166,7 @@ func TestKubeadmConfigReconciler_Reconcile_DynamicDefaultsForClusterConfiguratio
 			},
 			machine: &clusterv1.Machine{
 				Spec: clusterv1.MachineSpec{
-					Version: stringPtr("myversion"),
+					Version: pointer.StringPtr("myversion"),
 				},
 			},
 		},
@@ -1536,10 +1593,6 @@ func createSecrets(t *testing.T, cluster *clusterv1.Cluster, owner *bootstrapv1.
 		out = append(out, certificate.AsSecret(cluster, owner))
 	}
 	return out
-}
-
-func stringPtr(s string) *string {
-	return &s
 }
 
 type myInitLocker struct {

@@ -163,7 +163,7 @@ func (r *MachineReconciler) reconcileBootstrap(ctx context.Context, m *clusterv1
 	}
 
 	// If the bootstrap data is populated, set ready and return.
-	if m.Spec.Bootstrap.Data != nil {
+	if m.Spec.Bootstrap.Data != nil || m.Spec.Bootstrap.DataSecretName != nil {
 		m.Status.BootstrapReady = true
 		return nil
 	}
@@ -182,15 +182,15 @@ func (r *MachineReconciler) reconcileBootstrap(ctx context.Context, m *clusterv1
 			"Bootstrap provider for Machine %q in namespace %q is not ready, requeuing", m.Name, m.Namespace)
 	}
 
-	// Get and set data from the bootstrap provider.
-	data, _, err := unstructured.NestedString(bootstrapConfig.Object, "status", "bootstrapData")
+	// Get and set the name of the secret containing the bootstrap data.
+	secretName, _, err := unstructured.NestedString(bootstrapConfig.Object, "status", "secretDataName")
 	if err != nil {
-		return errors.Wrapf(err, "failed to retrieve data from bootstrap provider for Machine %q in namespace %q", m.Name, m.Namespace)
-	} else if data == "" {
-		return errors.Errorf("retrieved empty data from bootstrap provider for Machine %q in namespace %q", m.Name, m.Namespace)
+		return errors.Wrapf(err, "failed to retrieve secretDataName from bootstrap provider for Machine %q in namespace %q", m.Name, m.Namespace)
+	} else if secretName == "" {
+		return errors.Errorf("retrieved empty secretDataName from bootstrap provider for Machine %q in namespace %q", m.Name, m.Namespace)
 	}
 
-	m.Spec.Bootstrap.Data = pointer.StringPtr(data)
+	m.Spec.Bootstrap.DataSecretName = pointer.StringPtr(secretName)
 	m.Status.BootstrapReady = true
 	return nil
 }

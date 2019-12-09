@@ -56,7 +56,7 @@ func (a *writeFilesAction) Unmarshal(userData []byte) error {
 }
 
 func (a *writeFilesAction) Run(cmder exec.Cmder) ([]string, error) {
-	var lines []string
+	var lines []string //nolint:prealloc
 	for _, f := range a.Files {
 		// Fix attributes and apply defaults
 		path := fixPath(f.Path) //NB. the real cloud init module for writes files converts path into absolute paths; this is not possible here...
@@ -140,11 +140,12 @@ func fixEncoding(e string) []string {
 	e = strings.ToLower(e)
 	e = strings.TrimSpace(e)
 
-	if e == "gz" || e == "gzip" {
+	switch e {
+	case "gz", "gzip":
 		return []string{"application/x-gzip"}
-	} else if e == "gz+base64" || e == "gzip+base64" || e == "gz+b64" || e == "gzip+b64" {
+	case "gz+base64", "gzip+base64", "gz+b64", "gzip+b64":
 		return []string{"application/base64", "application/x-gzip"}
-	} else if e == "base64" || e == "b64" {
+	case "base64", "b64":
 		return []string{"application/base64"}
 	}
 

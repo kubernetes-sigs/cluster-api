@@ -17,9 +17,7 @@ set -o errexit
 set -o nounset
 set -o pipefail
 
-# shellcheck source=./test/infrastructure/docker/hack/utils.sh
-source "$(dirname "$0")/utils.sh"
-# cd to the root path
-cd_root_path
+REPO_ROOT=$(dirname "${BASH_SOURCE[0]}")/..
+cd "${REPO_ROOT}" || exit 1
 
 git ls-files | grep --invert-match "\.deepcopy\.go" | grep --invert-match "^third_party" | xargs go run ./hack/verify-boilerplate.go

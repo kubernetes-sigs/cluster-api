@@ -190,7 +190,7 @@ func (cmd *fakeCmd) Write(s string) {
 	if cmd.w != nil {
 		_, err := cmd.w.Write([]byte(s))
 		if err != nil {
-
+			panic(err)
 		}
 	}
 }

@@ -307,6 +307,7 @@ func autoConvert_v1alpha2_KubeadmConfigStatus_To_v1alpha3_KubeadmConfigStatus(in
 
 func autoConvert_v1alpha3_KubeadmConfigStatus_To_v1alpha2_KubeadmConfigStatus(in *v1alpha3.KubeadmConfigStatus, out *KubeadmConfigStatus, s conversion.Scope) error {
 	out.Ready = in.Ready
+	// WARNING: in.DataSecretName requires manual conversion: does not exist in peer-type
 	out.BootstrapData = *(*[]byte)(unsafe.Pointer(&in.BootstrapData))
 	// WARNING: in.FailureReason requires manual conversion: does not exist in peer-type
 	// WARNING: in.FailureMessage requires manual conversion: does not exist in peer-type

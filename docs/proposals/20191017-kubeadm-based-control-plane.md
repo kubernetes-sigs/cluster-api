@@ -405,7 +405,7 @@ spec:
   kubeadmConfigSpec:
     initConfiguration:
       nodeRegistration:
-        name: '{{ ds.meta_data.hostname }}'
+        name: '{{ ds.meta_data.local_hostname }}'
         kubeletExtraArgs:
           cloud-provider: acme
     clusterConfiguration:
@@ -418,7 +418,7 @@ spec:
     joinConfiguration:
       controlPlane: {}
       nodeRegistration:
-        name: '{{ ds.meta_data.hostname }}'
+        name: '{{ ds.meta_data.local_hostname }}'
         kubeletExtraArgs:
           cloud-provider: acme
 ---
@@ -579,4 +579,4 @@ For the purposes of designing upgrades, two existing lifecycle managers were exa
 - [x] 10/17/2019: Initial Creation
 - [x] 11/19/2019: Initial KubeadmControlPlane types added [#1765](https://github.com/kubernetes-sigs/cluster-api/pull/1765)
 - [x] 12/04/2019: Updated References to ErrorMessage/ErrorReason to FailureMessage/FailureReason
-- [] 12/04/2019: Initial stubbed KubeadmControlPlane controller added [#1826](https://github.com/kubernetes-sigs/cluster-api/pull/1826) 
+- [] 12/04/2019: Initial stubbed KubeadmControlPlane controller added [#1826](https://github.com/kubernetes-sigs/cluster-api/pull/1826)

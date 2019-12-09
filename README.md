@@ -41,14 +41,13 @@ API design. Because of this, all of the codebase is rapidly changing.
 Pull Requests are very welcome!
 See the [issue tracker] if you're unsure where to start, or feel free to reach out to discuss.
 
-See also: our own [contributor guide] and the Kubernetes [community page].
+See also: our own [contributor guide](CONTRIBUTING.md) and the Kubernetes [community page].
 
 ### Code of conduct
 
-Participation in the Kubernetes community is governed by the [Kubernetes Code of Conduct].
+Participation in the Kubernetes community is governed by the [Kubernetes Code of Conduct](code-of-conduct.md).
 
 [community page]: https://kubernetes.io/community
-[Kubernetes Code of Conduct]: code-of-conduct.md
 [notes]: https://docs.google.com/document/d/1Ys-DOR5UsgbMEeciuG0HOgDQc8kZsaWIWJeKJ1-UfbY/edit
 [recordings]: https://www.youtube.com/playlist?list=PL69nYSiGNLP29D0nYgAGWt1ZFqS9Z7lw4
 [zoomMeeting]: https://zoom.us/j/861487554
@@ -56,7 +55,6 @@ Participation in the Kubernetes community is governed by the [Kubernetes Code of
 [providerZoomMeetingTues]: https://zoom.us/j/140808484
 [providerZoomMeetingWed]: https://zoom.us/j/424743530
 [issue tracker]: https://github.com/kubernetes-sigs/cluster-api/issues
-[contributor guide]: CONTRIBUTING.md
 
 
 <!-- ANCHOR_END: Community -->

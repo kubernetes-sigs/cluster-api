@@ -1,0 +1,32 @@
+@startuml
+
+start
+
+:New/Updated resource;
+
+if (Deleted?) then (yes)
+    stop
+else (no)
+    if (Has machine owner?) then (yes)
+        if (Has status.failureReason/failureMessage?) then (yes)
+            stop
+        else (no)
+            if (Cluster exists?) then (no)
+                stop
+            else (yes)
+                if (Bootstrap data secret exists?) then (no)
+                    :Generate bootstrap data & create secret;
+                else (yes)
+                endif
+
+                :Set status.dataSecretName;
+                :set status.ready to true;
+            endif
+        endif
+    else (no)
+    endif
+endif
+:Patch resource to persist changes;
+stop
+
+@enduml

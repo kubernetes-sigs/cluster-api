@@ -17,6 +17,7 @@ limitations under the License.
 package generators
 
 import (
+	"bytes"
 	"context"
 	"fmt"
 	"io/ioutil"
@@ -36,7 +37,11 @@ type ClusterAPI struct {
 
 // GetName returns the name of the components being generated.
 func (g *ClusterAPI) GetName() string {
-	return fmt.Sprintf("Cluster API version %s", g.Version)
+	version := g.Version
+	if version == "" {
+		version = g.GitRef
+	}
+	return fmt.Sprintf("Cluster API version %s", version)
 }
 
 func (g *ClusterAPI) kustomizePath(path string) string {
@@ -60,6 +65,7 @@ func (g *ClusterAPI) Manifests(ctx context.Context) ([]byte, error) {
 			fmt.Println(string(stderr))
 			return nil, errors.WithStack(err)
 		}
+		stdout = bytes.Replace(stdout, []byte("imagePullPolicy: Always"), []byte("imagePullPolicy: IfNotPresent"), -1)
 		return stdout, nil
 	}
 	resp, err := http.Get(g.releaseYAMLPath())

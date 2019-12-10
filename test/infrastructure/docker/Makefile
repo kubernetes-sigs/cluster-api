@@ -70,7 +70,7 @@ test: ## Run tests
 
 test-e2e: ## Run the end-to-end tests
 	$(MAKE) docker-build REGISTRY=$(STAGING_REGISTRY)
-	MANAGER_IMAGE=$(STAGING_REGISTRY)/$(IMAGE_NAME)-$(ARCH):$(TAG) go test ./e2e -v -ginkgo.v -ginkgo.trace -count=1 -timeout=20m
+	MANAGER_IMAGE=$(STAGING_REGISTRY)/$(IMAGE_NAME)-$(ARCH):$(TAG) go test ./e2e -v -ginkgo.v -ginkgo.trace -count=1 -timeout=20m -tags=e2e
 
 
 ## --------------------------------------

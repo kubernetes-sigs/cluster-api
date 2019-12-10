@@ -1,0 +1,9 @@
+# The kubeadm kustomization bundles up all the bits that are kubeadm-specific. 
+# This includes all bootstrap/controlplane components. 
+
+# Adds namespace to all resources.
+namespace: capi-system
+
+bases:
+- crd/
+- rbac/

@@ -184,15 +184,27 @@ generate-bindata: $(KUSTOMIZE) $(GOBINDATA) clean-bindata ## Generate code for e
 generate-manifests: $(CONTROLLER_GEN) ## Generate manifests e.g. CRD, RBAC etc.
 	$(CONTROLLER_GEN) \
 		paths=./api/... \
-		paths=./bootstrap/kubeadm/api/... \
-		paths=./controlplane/kubeadm/api/... \
 		paths=./controllers/... \
-		paths=./bootstrap/kubeadm/controllers/... \
-		paths=./controlplane/kubeadm/controllers/... \
 		crd:preserveUnknownFields=false \
 		rbac:roleName=manager-role \
 		output:crd:dir=./config/crd/bases \
 		output:webhook:dir=./config/webhook \
+		webhook
+	$(CONTROLLER_GEN) \
+		paths=./bootstrap/kubeadm/api/... \
+		paths=./bootstrap/kubeadm/controllers/... \
+		crd:preserveUnknownFields=false \
+		rbac:roleName=bootstrap-manager-role \
+		output:crd:dir=./config/bootstrap/crd/bases \
+		output:rbac:dir=./config/bootstrap/rbac
+	$(CONTROLLER_GEN) \
+		paths=./controlplane/kubeadm/api/... \
+		paths=./controlplane/kubeadm/controllers/... \
+		crd:preserveUnknownFields=false \
+		rbac:roleName=controlplane-manager-role \
+		output:crd:dir=./config/controlplane/crd/bases \
+		output:rbac:dir=./config/controlplane/rbac \
+		output:webhook:dir=./config/controlplane/webhook \
 		webhook
 	$(CONTROLLER_GEN) \
 		paths=./cmd/clusterctl/api/... \
@@ -252,12 +264,12 @@ docker-push-manifest: ## Push the fat manifest docker image.
 .PHONY: set-manifest-image
 set-manifest-image:
 	$(info Updating kustomize image patch file for manager resource)
-	sed -i'' -e 's@image: .*@image: '"${MANIFEST_IMG}:$(MANIFEST_TAG)"'@' ./config/default/manager_image_patch.yaml
+	sed -i'' -e 's@image: .*@image: '"${MANIFEST_IMG}:$(MANIFEST_TAG)"'@' ./config/core/manager_image_patch.yaml
 
 .PHONY: set-manifest-pull-policy
 set-manifest-pull-policy:
 	$(info Updating kustomize pull policy file for manager resource)
-	sed -i'' -e 's@imagePullPolicy: .*@imagePullPolicy: '"$(PULL_POLICY)"'@' ./config/default/manager_pull_policy.yaml
+	sed -i'' -e 's@imagePullPolicy: .*@imagePullPolicy: '"$(PULL_POLICY)"'@' ./config/core/manager_pull_policy.yaml
 
 ## --------------------------------------
 ## Release
@@ -283,6 +295,9 @@ release: clean-release ## Builds and push container images using the latest git 
 
 .PHONY: release-manifests
 release-manifests: $(RELEASE_DIR) ## Builds the manifests to publish with a release
+	$(KUSTOMIZE) build config/core > $(RELEASE_DIR)/core-components.yaml
+	$(KUSTOMIZE) build config/bootstrap > $(RELEASE_DIR)/bootstrap-components.yaml
+	$(KUSTOMIZE) build config/controlplane > $(RELEASE_DIR)/controlplane-components.yaml
 	$(KUSTOMIZE) build config/default > $(RELEASE_DIR)/cluster-api-components.yaml
 
 release-binaries: ## Builds the binaries to publish with a release

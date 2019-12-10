@@ -160,7 +160,7 @@ var _ = Describe("Reconcile Machine Phases", func() {
 		err := unstructured.SetNestedField(bootstrapConfig.Object, true, "status", "ready")
 		Expect(err).NotTo(HaveOccurred())
 
-		err = unstructured.SetNestedField(bootstrapConfig.Object, "secret-data", "status", "secretDataName")
+		err = unstructured.SetNestedField(bootstrapConfig.Object, "secret-data", "status", "dataSecretName")
 		Expect(err).NotTo(HaveOccurred())
 
 		r := &MachineReconciler{
@@ -185,7 +185,7 @@ var _ = Describe("Reconcile Machine Phases", func() {
 		err := unstructured.SetNestedField(bootstrapConfig.Object, true, "status", "ready")
 		Expect(err).NotTo(HaveOccurred())
 
-		err = unstructured.SetNestedField(bootstrapConfig.Object, "secret-data", "status", "secretDataName")
+		err = unstructured.SetNestedField(bootstrapConfig.Object, "secret-data", "status", "dataSecretName")
 		Expect(err).NotTo(HaveOccurred())
 
 		// Set infra ready.
@@ -233,7 +233,7 @@ var _ = Describe("Reconcile Machine Phases", func() {
 		err := unstructured.SetNestedField(bootstrapConfig.Object, true, "status", "ready")
 		Expect(err).NotTo(HaveOccurred())
 
-		err = unstructured.SetNestedField(bootstrapConfig.Object, "secret-data", "status", "secretDataName")
+		err = unstructured.SetNestedField(bootstrapConfig.Object, "secret-data", "status", "dataSecretName")
 		Expect(err).NotTo(HaveOccurred())
 
 		// Set infra ready.
@@ -269,7 +269,7 @@ var _ = Describe("Reconcile Machine Phases", func() {
 		err := unstructured.SetNestedField(bootstrapConfig.Object, true, "status", "ready")
 		Expect(err).NotTo(HaveOccurred())
 
-		err = unstructured.SetNestedField(bootstrapConfig.Object, "secret-data", "status", "secretDataName")
+		err = unstructured.SetNestedField(bootstrapConfig.Object, "secret-data", "status", "dataSecretName")
 		Expect(err).NotTo(HaveOccurred())
 
 		// Set infra ready.
@@ -316,7 +316,7 @@ var _ = Describe("Reconcile Machine Phases", func() {
 		err := unstructured.SetNestedField(bootstrapConfig.Object, true, "status", "ready")
 		Expect(err).NotTo(HaveOccurred())
 
-		err = unstructured.SetNestedField(bootstrapConfig.Object, "secret-data", "status", "secretDataName")
+		err = unstructured.SetNestedField(bootstrapConfig.Object, "secret-data", "status", "dataSecretName")
 		Expect(err).NotTo(HaveOccurred())
 
 		// Set NodeRef.
@@ -344,7 +344,7 @@ var _ = Describe("Reconcile Machine Phases", func() {
 		err := unstructured.SetNestedField(bootstrapConfig.Object, true, "status", "ready")
 		Expect(err).NotTo(HaveOccurred())
 
-		err = unstructured.SetNestedField(bootstrapConfig.Object, "secret-data", "status", "secretDataName")
+		err = unstructured.SetNestedField(bootstrapConfig.Object, "secret-data", "status", "dataSecretName")
 		Expect(err).NotTo(HaveOccurred())
 
 		// Set infra ready.
@@ -425,7 +425,7 @@ func TestReconcileBootstrap(t *testing.T) {
 				"spec": map[string]interface{}{},
 				"status": map[string]interface{}{
 					"ready":          true,
-					"secretDataName": "secret-data",
+					"dataSecretName": "secret-data",
 				},
 			},
 			expectError: false,
@@ -515,7 +515,7 @@ func TestReconcileBootstrap(t *testing.T) {
 				"spec": map[string]interface{}{},
 				"status": map[string]interface{}{
 					"ready":          true,
-					"secretDataName": "secret-data",
+					"dataSecretName": "secret-data",
 				},
 			},
 			machine: &clusterv1.Machine{
@@ -720,7 +720,7 @@ func TestReconcileInfrastructure(t *testing.T) {
 				"spec": map[string]interface{}{},
 				"status": map[string]interface{}{
 					"ready":          true,
-					"secretDataName": "secret-data",
+					"dataSecretName": "secret-data",
 				},
 			},
 			infraConfig: map[string]interface{}{

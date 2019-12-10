@@ -18,7 +18,8 @@ package cloudinit
 
 import (
 	"github.com/pkg/errors"
-	"sigs.k8s.io/cluster-api/bootstrap/kubeadm/internal/cluster"
+
+	"sigs.k8s.io/cluster-api/util/secret"
 )
 
 const (
@@ -41,7 +42,7 @@ runcmd:
 // ControlPlaneJoinInput defines context to generate controlplane instance user data for control plane node join.
 type ControlPlaneJoinInput struct {
 	BaseUserData
-	cluster.Certificates
+	secret.Certificates
 
 	BootstrapToken    string
 	JoinConfiguration string

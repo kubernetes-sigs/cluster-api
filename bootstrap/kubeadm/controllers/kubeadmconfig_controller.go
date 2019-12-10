@@ -26,13 +26,14 @@ import (
 	"github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/utils/pointer"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha3"
 	bootstrapv1 "sigs.k8s.io/cluster-api/bootstrap/kubeadm/api/v1alpha3"
 	"sigs.k8s.io/cluster-api/bootstrap/kubeadm/internal/cloudinit"
-	internalcluster "sigs.k8s.io/cluster-api/bootstrap/kubeadm/internal/cluster"
 	"sigs.k8s.io/cluster-api/bootstrap/kubeadm/internal/locking"
 	kubeadmv1beta1 "sigs.k8s.io/cluster-api/bootstrap/kubeadm/types/v1beta1"
 	"sigs.k8s.io/cluster-api/controllers/remote"
@@ -311,8 +312,14 @@ func (r *KubeadmConfigReconciler) handleClusterNotInitialized(ctx context.Contex
 		return ctrl.Result{}, err
 	}
 
-	certificates := internalcluster.NewCertificatesForInitialControlPlane(scope.Config.Spec.ClusterConfiguration)
-	if err := certificates.LookupOrGenerate(ctx, r.Client, scope.Cluster, scope.Config); err != nil {
+	certificates := secret.NewCertificatesForInitialControlPlane(scope.Config.Spec.ClusterConfiguration)
+	err = certificates.LookupOrGenerate(
+		ctx,
+		r.Client,
+		types.NamespacedName{Name: scope.Cluster.Name, Namespace: scope.Cluster.Namespace},
+		*metav1.NewControllerRef(scope.Config, bootstrapv1.GroupVersion.WithKind("KubeadmConfig")),
+	)
+	if err != nil {
 		scope.Error(err, "unable to lookup or create cluster certificates")
 		return ctrl.Result{}, err
 	}
@@ -343,8 +350,13 @@ func (r *KubeadmConfigReconciler) handleClusterNotInitialized(ctx context.Contex
 }
 
 func (r *KubeadmConfigReconciler) joinWorker(ctx context.Context, scope *Scope) (ctrl.Result, error) {
-	certificates := internalcluster.NewCertificatesForWorker(scope.Config.Spec.JoinConfiguration.CACertPath)
-	if err := certificates.Lookup(ctx, r.Client, scope.Cluster); err != nil {
+	certificates := secret.NewCertificatesForWorker(scope.Config.Spec.JoinConfiguration.CACertPath)
+	err := certificates.Lookup(
+		ctx,
+		r.Client,
+		types.NamespacedName{Name: scope.Cluster.Name, Namespace: scope.Cluster.Namespace},
+	)
+	if err != nil {
 		scope.Error(err, "unable to lookup cluster certificates")
 		return ctrl.Result{}, err
 	}
@@ -401,8 +413,13 @@ func (r *KubeadmConfigReconciler) joinControlplane(ctx context.Context, scope *S
 		scope.Config.Spec.JoinConfiguration.ControlPlane = &kubeadmv1beta1.JoinControlPlane{}
 	}
 
-	certificates := internalcluster.NewCertificatesForJoiningControlPlane()
-	if err := certificates.Lookup(ctx, r.Client, scope.Cluster); err != nil {
+	certificates := secret.NewCertificatesForJoiningControlPlane()
+	err := certificates.Lookup(
+		ctx,
+		r.Client,
+		types.NamespacedName{Name: scope.Cluster.Name, Namespace: scope.Cluster.Namespace},
+	)
+	if err != nil {
 		scope.Error(err, "unable to lookup cluster certificates")
 		return ctrl.Result{}, err
 	}
@@ -505,7 +522,7 @@ func (r *KubeadmConfigReconciler) MachineToBootstrapMapFunc(o handler.MapObject)
 // The implementation func respect user provided discovery configurations, but in case some of them are missing, a valid BootstrapToken object
 // is automatically injected into config.JoinConfiguration.Discovery.
 // This allows to simplify configuration UX, by providing the option to delegate to CABPK the configuration of kubeadm join discovery.
-func (r *KubeadmConfigReconciler) reconcileDiscovery(cluster *clusterv1.Cluster, config *bootstrapv1.KubeadmConfig, certificates internalcluster.Certificates) error {
+func (r *KubeadmConfigReconciler) reconcileDiscovery(cluster *clusterv1.Cluster, config *bootstrapv1.KubeadmConfig, certificates secret.Certificates) error {
 	log := r.Log.WithValues("kubeadmconfig", fmt.Sprintf("%s/%s", config.Namespace, config.Name))
 
 	// if config already contains a file discovery configuration, respect it without further validations

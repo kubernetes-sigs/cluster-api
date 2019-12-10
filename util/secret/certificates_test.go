@@ -14,18 +14,19 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package cluster
+package secret_test
 
 import (
 	"testing"
 
 	"sigs.k8s.io/cluster-api/bootstrap/kubeadm/types/v1beta1"
+	"sigs.k8s.io/cluster-api/util/secret"
 )
 
 func TestNewCertificatesForControlPlane_Stacked(t *testing.T) {
 	config := &v1beta1.ClusterConfiguration{}
-	certs := NewCertificatesForInitialControlPlane(config)
-	if certs.GetByPurpose(EtcdCA).KeyFile == "" {
+	certs := secret.NewCertificatesForInitialControlPlane(config)
+	if certs.GetByPurpose(secret.EtcdCA).KeyFile == "" {
 		t.Fatal("stacked control planes must define etcd CA key file")
 	}
 }
@@ -37,8 +38,8 @@ func TestNewCertificatesForControlPlane_External(t *testing.T) {
 		},
 	}
 
-	certs := NewCertificatesForInitialControlPlane(config)
-	if certs.GetByPurpose(EtcdCA).KeyFile != "" {
+	certs := secret.NewCertificatesForInitialControlPlane(config)
+	if certs.GetByPurpose(secret.EtcdCA).KeyFile != "" {
 		t.Fatal("control planes with external etcd must *not* define the etcd key file")
 	}
 }

@@ -34,4 +34,16 @@ const (
 
 	// ClusterCA is the secret name suffix for APIServer CA.
 	ClusterCA = Purpose("ca")
+
+	// EtcdCA is the secret name suffix for the Etcd CA
+	EtcdCA Purpose = "etcd"
+
+	// ServiceAccount is the secret name suffix for the Service Account keys
+	ServiceAccount Purpose = "sa"
+
+	// FrontProxyCA is the secret name suffix for Front Proxy CA
+	FrontProxyCA Purpose = "proxy"
+
+	// APIServerEtcdClient is the secret name of user-supplied secret containing the apiserver-etcd-client key/cert
+	APIServerEtcdClient Purpose = "apiserver-etcd-client"
 )

@@ -40,6 +40,11 @@ type ClusterSpec struct {
 	// +optional
 	ControlPlaneEndpoint APIEndpoint `json:"controlPlaneEndpoint"`
 
+	// ControlPlaneRef is an optional reference to a provider-specific resource that holds
+	// the details for provisioning the Control Plane for a Cluster.
+	// +optional
+	ControlPlaneRef *corev1.ObjectReference `json:"controlPlaneRef,omitempty"`
+
 	// InfrastructureRef is a reference to a provider-specific resource that holds the details
 	// for provisioning infrastructure for a cluster in said provider.
 	// +optional
@@ -111,6 +116,10 @@ type ClusterStatus struct {
 	// ControlPlaneInitialized defines if the control plane has been initialized.
 	// +optional
 	ControlPlaneInitialized bool `json:"controlPlaneInitialized"`
+
+	// ControlPlaneReady defines if the control plane is ready.
+	// +optional
+	ControlPlaneReady bool `json:"controlPlaneReady,omitempty"`
 }
 
 // ANCHOR_END: ClusterStatus

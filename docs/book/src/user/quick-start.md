@@ -292,7 +292,7 @@ spec:
   # refer to the Kubeadm Bootstrap Provider documentation.
   initConfiguration:
     nodeRegistration:
-      name: '{{ ds.meta_data.hostname }}'
+      name: '{{ ds.meta_data.local_hostname }}'
       kubeletExtraArgs:
         cloud-provider: aws
   clusterConfiguration:
@@ -427,7 +427,7 @@ spec:
       kubeletExtraArgs:
         cloud-config: /etc/kubernetes/azure.json
         cloud-provider: azure
-      name: '{{ ds.meta_data["local_hostname"] }}'
+      name: '{{ ds.meta_data.local_hostname }}'
 ```
 {{#/tab }}
 {{#tab Docker}}
@@ -524,7 +524,7 @@ spec:
   # refer to the Kubeadm Bootstrap Provider documentation.
   initConfiguration:
     nodeRegistration:
-      name: '{{ ds.meta_data.hostname }}'
+      name: '{{ ds.meta_data.local_hostname }}'
       kubeletExtraArgs:
         cloud-provider: gce
   clusterConfiguration:
@@ -615,12 +615,12 @@ spec:
       criSocket: /var/run/containerd/containerd.sock
       kubeletExtraArgs:
         cloud-provider: external
-      name: '{{ ds.meta_data.hostname }}'
+      name: '{{ ds.meta_data.local_hostname }}'
   preKubeadmCommands:
-  - hostname "{{ ds.meta_data.hostname }}"
+  - hostname "{{ ds.meta_data.local_hostname }}"
   - echo "::1         ipv6-localhost ipv6-loopback" >/etc/hosts
-  - echo "127.0.0.1   localhost {{ ds.meta_data.hostname }}" >>/etc/hosts
-  - echo "{{ ds.meta_data.hostname }}" >/etc/hostname
+  - echo "127.0.0.1   localhost {{ ds.meta_data.local_hostname }}" >>/etc/hosts
+  - echo "{{ ds.meta_data.local_hostname }}" >/etc/hostname
 ```
 {{#/tab }}
 {{#tab OpenStack}}
@@ -678,7 +678,7 @@ spec:
       advertiseAddress: '{{ ds.ec2_metadata.local_ipv4 }}'
       bindPort: 6443
     nodeRegistration:
-      name: '{{ local_hostname }}'
+      name: '{{ ds.meta_data.local_hostname }}'
       criSocket: "/var/run/containerd/containerd.sock"
       kubeletExtraArgs:
         cloud-provider: openstack
@@ -870,7 +870,7 @@ spec:
       # refer to the Kubeadm Bootstrap Provider documentation.
       joinConfiguration:
         nodeRegistration:
-          name: '{{ ds.meta_data.hostname }}'
+          name: '{{ ds.meta_data.local_hostname }}'
           kubeletExtraArgs:
             cloud-provider: aws
 ```
@@ -967,7 +967,7 @@ spec:
     spec:
       joinConfiguration:
         nodeRegistration:
-          name: '{{ ds.meta_data["local_hostname"] }}'
+          name: '{{ ds.meta_data.local_hostname }}'
           kubeletExtraArgs:
             cloud-provider: azure
             cloud-config: /etc/kubernetes/azure.json
@@ -1127,7 +1127,7 @@ spec:
       # refer to the Kubeadm Bootstrap Provider documentation.
       joinConfiguration:
         nodeRegistration:
-          name: '{{ ds.meta_data.hostname }}'
+          name: '{{ ds.meta_data.local_hostname }}'
           kubeletExtraArgs:
             cloud-provider: gce
 ```
@@ -1219,12 +1219,12 @@ spec:
           criSocket: /var/run/containerd/containerd.sock
           kubeletExtraArgs:
             cloud-provider: external
-          name: '{{ ds.meta_data.hostname }}'
+          name: '{{ ds.meta_data.local_hostname }}'
       preKubeadmCommands:
-      - hostname "{{ ds.meta_data.hostname }}"
+      - hostname "{{ ds.meta_data.local_hostname }}"
       - echo "::1         ipv6-localhost ipv6-loopback" >/etc/hosts
-      - echo "127.0.0.1   localhost {{ ds.meta_data.hostname }}" >>/etc/hosts
-      - echo "{{ ds.meta_data.hostname }}" >/etc/hostname
+      - echo "127.0.0.1   localhost {{ ds.meta_data.local_hostname }}" >>/etc/hosts
+      - echo "{{ ds.meta_data.local_hostname }}" >/etc/hostname
 ```
 
 {{#/tab }}

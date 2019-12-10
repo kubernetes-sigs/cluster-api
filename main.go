@@ -65,6 +65,7 @@ func main() {
 		machineConcurrency             int
 		machineSetConcurrency          int
 		machineDeploymentConcurrency   int
+		kubeadmBootstrapperDisabled    bool
 		kubeadmConfigConcurrency       int
 		kubeadmControlPlaneConcurrency int
 		syncPeriod                     time.Duration
@@ -94,6 +95,9 @@ func main() {
 
 	flag.IntVar(&machineDeploymentConcurrency, "machinedeployment-concurrency", 10,
 		"Number of machine deployments to process simultaneously")
+
+	flag.BoolVar(&kubeadmBootstrapperDisabled, "disable-kubeadm-bootstrapper", false,
+		"Whether or not to disable the kubeadm bootstrap and controlplane components")
 
 	flag.IntVar(&kubeadmConfigConcurrency, "kubeadmconfig-concurrency", 10,
 		"Number of kubeadm configs to process simultaneously")
@@ -165,22 +169,24 @@ func main() {
 		os.Exit(1)
 	}
 
-	// Kubeadm controllers.
-	if err = (&kubeadmcontrollers.KubeadmConfigReconciler{
-		Client: mgr.GetClient(),
-		Log:    ctrl.Log.WithName("controllers").WithName("KubeadmConfig"),
-	}).SetupWithManager(mgr, concurrency(kubeadmConfigConcurrency)); err != nil {
-		setupLog.Error(err, "unable to create controller", "controller", "KubeadmConfig")
-		os.Exit(1)
-	}
+	if !kubeadmBootstrapperDisabled {
+		// Kubeadm controllers.
+		if err = (&kubeadmcontrollers.KubeadmConfigReconciler{
+			Client: mgr.GetClient(),
+			Log:    ctrl.Log.WithName("controllers").WithName("KubeadmConfig"),
+		}).SetupWithManager(mgr, concurrency(kubeadmConfigConcurrency)); err != nil {
+			setupLog.Error(err, "unable to create controller", "controller", "KubeadmConfig")
+			os.Exit(1)
+		}
 
-	// KubeadmControlPlane controllers.
-	if err = (&controllers.KubeadmControlPlaneReconciler{
-		Client: mgr.GetClient(),
-		Log:    ctrl.Log.WithName("controllers").WithName("KubeadmControlPlane"),
-	}).SetupWithManager(mgr, concurrency(kubeadmControlPlaneConcurrency)); err != nil {
-		setupLog.Error(err, "unable to create controller", "controller", "KubeadmControlPlane")
-		os.Exit(1)
+		// KubeadmControlPlane controllers.
+		if err = (&controllers.KubeadmControlPlaneReconciler{
+			Client: mgr.GetClient(),
+			Log:    ctrl.Log.WithName("controllers").WithName("KubeadmControlPlane"),
+		}).SetupWithManager(mgr, concurrency(kubeadmControlPlaneConcurrency)); err != nil {
+			setupLog.Error(err, "unable to create controller", "controller", "KubeadmControlPlane")
+			os.Exit(1)
+		}
 	}
 
 	if webhookPort != 0 {
@@ -240,26 +246,27 @@ func main() {
 			os.Exit(1)
 		}
 
-		if err = (&clusterv1alpha3.KubeadmControlPlane{}).SetupWebhookWithManager(mgr); err != nil {
-			setupLog.Error(err, "unable to create webhook", "webhook", "KubeadmControlPlane")
-			os.Exit(1)
-		}
-
-		if err = (&kubeadmbootstrapv1alpha3.KubeadmConfig{}).SetupWebhookWithManager(mgr); err != nil {
-			setupLog.Error(err, "unable to create webhook", "webhook", "KubeadmConfig")
-			os.Exit(1)
-		}
-		if err = (&kubeadmbootstrapv1alpha3.KubeadmConfigList{}).SetupWebhookWithManager(mgr); err != nil {
-			setupLog.Error(err, "unable to create webhook", "webhook", "KubeadmConfigList")
-			os.Exit(1)
-		}
-		if err = (&kubeadmbootstrapv1alpha3.KubeadmConfigTemplate{}).SetupWebhookWithManager(mgr); err != nil {
-			setupLog.Error(err, "unable to create webhook", "webhook", "KubeadmConfigTemplate")
-			os.Exit(1)
-		}
-		if err = (&kubeadmbootstrapv1alpha3.KubeadmConfigTemplateList{}).SetupWebhookWithManager(mgr); err != nil {
-			setupLog.Error(err, "unable to create webhook", "webhook", "KubeadmConfigTemplateList")
-			os.Exit(1)
+		if !kubeadmBootstrapperDisabled {
+			if err = (&clusterv1alpha3.KubeadmControlPlane{}).SetupWebhookWithManager(mgr); err != nil {
+				setupLog.Error(err, "unable to create webhook", "webhook", "KubeadmControlPlane")
+				os.Exit(1)
+			}
+			if err = (&kubeadmbootstrapv1alpha3.KubeadmConfig{}).SetupWebhookWithManager(mgr); err != nil {
+				setupLog.Error(err, "unable to create webhook", "webhook", "KubeadmConfig")
+				os.Exit(1)
+			}
+			if err = (&kubeadmbootstrapv1alpha3.KubeadmConfigList{}).SetupWebhookWithManager(mgr); err != nil {
+				setupLog.Error(err, "unable to create webhook", "webhook", "KubeadmConfigList")
+				os.Exit(1)
+			}
+			if err = (&kubeadmbootstrapv1alpha3.KubeadmConfigTemplate{}).SetupWebhookWithManager(mgr); err != nil {
+				setupLog.Error(err, "unable to create webhook", "webhook", "KubeadmConfigTemplate")
+				os.Exit(1)
+			}
+			if err = (&kubeadmbootstrapv1alpha3.KubeadmConfigTemplateList{}).SetupWebhookWithManager(mgr); err != nil {
+				setupLog.Error(err, "unable to create webhook", "webhook", "KubeadmConfigTemplateList")
+				os.Exit(1)
+			}
 		}
 	}
 

@@ -183,11 +183,11 @@ func (r *MachineReconciler) reconcileBootstrap(ctx context.Context, m *clusterv1
 	}
 
 	// Get and set the name of the secret containing the bootstrap data.
-	secretName, _, err := unstructured.NestedString(bootstrapConfig.Object, "status", "secretDataName")
+	secretName, _, err := unstructured.NestedString(bootstrapConfig.Object, "status", "dataSecretName")
 	if err != nil {
-		return errors.Wrapf(err, "failed to retrieve secretDataName from bootstrap provider for Machine %q in namespace %q", m.Name, m.Namespace)
+		return errors.Wrapf(err, "failed to retrieve dataSecretName from bootstrap provider for Machine %q in namespace %q", m.Name, m.Namespace)
 	} else if secretName == "" {
-		return errors.Errorf("retrieved empty secretDataName from bootstrap provider for Machine %q in namespace %q", m.Name, m.Namespace)
+		return errors.Errorf("retrieved empty dataSecretName from bootstrap provider for Machine %q in namespace %q", m.Name, m.Namespace)
 	}
 
 	m.Spec.Bootstrap.DataSecretName = pointer.StringPtr(secretName)

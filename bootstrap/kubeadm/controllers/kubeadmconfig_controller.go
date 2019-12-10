@@ -173,9 +173,11 @@ func (r *KubeadmConfigReconciler) Reconcile(req ctrl.Request) (_ ctrl.Result, re
 	// Return early if the configuration and Machine's infrastructure are ready.
 	case config.Status.Ready && machine.Status.InfrastructureReady:
 		return ctrl.Result{}, nil
-	// Reconcile status for machines that have already copied bootstrap data
-	case machine.Spec.Bootstrap.DataSecretName != nil && !config.Status.Ready:
+	// Reconcile status for machines that already have a secret reference, but our status isn't up to date.
+	// This case solves the pivoting scenario (or a backup restore) which doesn't preserve the status subresource on objects.
+	case machine.Spec.Bootstrap.DataSecretName != nil && (!config.Status.Ready || config.Status.DataSecretName == nil):
 		config.Status.Ready = true
+		config.Status.DataSecretName = machine.Spec.Bootstrap.DataSecretName
 		return ctrl.Result{}, patchHelper.Patch(ctx, config)
 	// If we've already embedded a time-limited join token into a config, but are still waiting for the token to be used, refresh it
 	case config.Status.Ready && (config.Spec.JoinConfiguration != nil && config.Spec.JoinConfiguration.Discovery.BootstrapToken != nil):

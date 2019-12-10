@@ -23,7 +23,7 @@ import (
 	"github.com/pkg/errors"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha3"
-	infrav1 "sigs.k8s.io/cluster-api/test/infrastructure/docker/api/v1alpha2"
+	infrav1 "sigs.k8s.io/cluster-api/test/infrastructure/docker/api/v1alpha3"
 	"sigs.k8s.io/cluster-api/test/infrastructure/docker/docker"
 	"sigs.k8s.io/cluster-api/test/infrastructure/docker/third_party/forked/loadbalancer"
 	"sigs.k8s.io/cluster-api/util"
@@ -122,11 +122,9 @@ func reconcileNormal(dockerCluster *infrav1.DockerCluster, externalLoadBalancer 
 		return ctrl.Result{}, errors.Wrap(err, "failed to get ip for the load balancer")
 	}
 
-	dockerCluster.Status.APIEndpoints = []infrav1.APIEndpoint{
-		{
-			Host: lbip4,
-			Port: loadbalancer.ControlPlanePort,
-		},
+	dockerCluster.Spec.ControlPlaneEndpoint = infrav1.APIEndpoint{
+		Host: lbip4,
+		Port: loadbalancer.ControlPlanePort,
 	}
 
 	// Mark the dockerCluster ready

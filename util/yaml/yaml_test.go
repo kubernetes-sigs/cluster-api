@@ -23,7 +23,7 @@ import (
 )
 
 const validCluster = `
-apiVersion: "cluster.x-k8s.io/v1alpha2"
+apiVersion: "cluster.x-k8s.io/v1alpha3"
 kind: Cluster
 metadata:
   name: cluster1
@@ -31,39 +31,39 @@ spec:`
 
 const validMachines1 = `
 ---
-apiVersion: "cluster.x-k8s.io/v1alpha2"
+apiVersion: "cluster.x-k8s.io/v1alpha3"
 kind: Machine
 metadata:
   name: machine1
 ---
-apiVersion: "cluster.x-k8s.io/v1alpha2"
+apiVersion: "cluster.x-k8s.io/v1alpha3"
 kind: Machine
 metadata:
   name: machine2`
 
 const validUnified1 = `
-apiVersion: "cluster.x-k8s.io/v1alpha2"
+apiVersion: "cluster.x-k8s.io/v1alpha3"
 kind: Cluster
 metadata:
   name: cluster1
 ---
-apiVersion: "cluster.x-k8s.io/v1alpha2"
+apiVersion: "cluster.x-k8s.io/v1alpha3"
 kind: Machine
 metadata:
   name: machine1`
 
 const validUnified2 = `
-apiVersion: "cluster.x-k8s.io/v1alpha2"
+apiVersion: "cluster.x-k8s.io/v1alpha3"
 kind: Cluster
 metadata:
   name: cluster1
 ---
-apiVersion: "cluster.x-k8s.io/v1alpha2"
+apiVersion: "cluster.x-k8s.io/v1alpha3"
 kind: Machine
 metadata:
   name: machine1
 ---
-apiVersion: "cluster.x-k8s.io/v1alpha2"
+apiVersion: "cluster.x-k8s.io/v1alpha3"
 kind: Machine
 metadata:
   name: machine2`
@@ -80,24 +80,24 @@ metadata:
   name: cluster-api-shared-configuration
   namespace: cluster-api-test
 ---
-apiVersion: "cluster.x-k8s.io/v1alpha2"
+apiVersion: "cluster.x-k8s.io/v1alpha3"
 kind: Cluster
 metadata:
   name: cluster1
 ---
-apiVersion: "cluster.x-k8s.io/v1alpha2"
+apiVersion: "cluster.x-k8s.io/v1alpha3"
 kind: Machine
 metadata:
   name: machine1
 ---
-apiVersion: "cluster.x-k8s.io/v1alpha2"
+apiVersion: "cluster.x-k8s.io/v1alpha3"
 kind: Machine
 metadata:
   name: machine2`
 
 const invalidMachines1 = `
 items:
-- apiVersion: "cluster.x-k8s.io/v1alpha2"
+- apiVersion: "cluster.x-k8s.io/v1alpha3"
   kind: Machine
   metadata:
     name: machine1
@@ -124,12 +124,12 @@ metadata:
   name: cluster-api-shared-configuration
   namespace: cluster-api-test
 ---
-apiVersion: "cluster.x-k8s.io/v1alpha2"
+apiVersion: "cluster.x-k8s.io/v1alpha3"
 kind: Cluster
 metadata:
   name: cluster1
 ---
-apiVersion: "cluster.x-k8s.io/v1alpha2"
+apiVersion: "cluster.x-k8s.io/v1alpha3"
 kind: Machine
 - metadata:
     name: machine1
@@ -150,7 +150,7 @@ metadata:
   name: cluster-api-shared-configuration
   namespace: cluster-api-test
 ---
-apiVersion: "cluster.x-k8s.io/v1alpha2"
+apiVersion: "cluster.x-k8s.io/v1alpha3"
 kind: Cluster
 metadata:
   name: cluster1

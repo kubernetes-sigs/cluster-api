@@ -56,7 +56,7 @@ data:
 After that the rest is standard Kubeadm. Config your ClusterConfiguration as follows:
 
 ```yaml
-apiVersion: bootstrap.cluster.x-k8s.io/v1alpha2
+apiVersion: bootstrap.cluster.x-k8s.io/v1alpha3
 kind: KubeadmConfig
 metadata:
   name: CLUSTER_NAME-controlplane-0

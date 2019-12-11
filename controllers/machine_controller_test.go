@@ -266,7 +266,7 @@ func TestReconcileRequest(t *testing.T) {
 	infraConfig := unstructured.Unstructured{
 		Object: map[string]interface{}{
 			"kind":       "InfrastructureConfig",
-			"apiVersion": "infrastructure.cluster.x-k8s.io/v1alpha2",
+			"apiVersion": "infrastructure.cluster.x-k8s.io/v1alpha3",
 			"metadata": map[string]interface{}{
 				"name":      "infra-config1",
 				"namespace": "default",
@@ -313,7 +313,7 @@ func TestReconcileRequest(t *testing.T) {
 				Spec: clusterv1.MachineSpec{
 					ClusterName: "test-cluster",
 					InfrastructureRef: corev1.ObjectReference{
-						APIVersion: "infrastructure.cluster.x-k8s.io/v1alpha2",
+						APIVersion: "infrastructure.cluster.x-k8s.io/v1alpha3",
 						Kind:       "InfrastructureConfig",
 						Name:       "infra-config1",
 					},
@@ -340,7 +340,7 @@ func TestReconcileRequest(t *testing.T) {
 				Spec: clusterv1.MachineSpec{
 					ClusterName: "test-cluster",
 					InfrastructureRef: corev1.ObjectReference{
-						APIVersion: "infrastructure.cluster.x-k8s.io/v1alpha2",
+						APIVersion: "infrastructure.cluster.x-k8s.io/v1alpha3",
 						Kind:       "InfrastructureConfig",
 						Name:       "infra-config1",
 					},
@@ -371,7 +371,7 @@ func TestReconcileRequest(t *testing.T) {
 				Spec: clusterv1.MachineSpec{
 					ClusterName: "test-cluster",
 					InfrastructureRef: corev1.ObjectReference{
-						APIVersion: "infrastructure.cluster.x-k8s.io/v1alpha2",
+						APIVersion: "infrastructure.cluster.x-k8s.io/v1alpha3",
 						Kind:       "InfrastructureConfig",
 						Name:       "infra-config1",
 					},
@@ -420,7 +420,7 @@ func TestReconcileDeleteExternal(t *testing.T) {
 	bootstrapConfig := &unstructured.Unstructured{
 		Object: map[string]interface{}{
 			"kind":       "BootstrapConfig",
-			"apiVersion": "bootstrap.cluster.x-k8s.io/v1alpha2",
+			"apiVersion": "bootstrap.cluster.x-k8s.io/v1alpha3",
 			"metadata": map[string]interface{}{
 				"name":      "delete-bootstrap",
 				"namespace": "default",
@@ -431,7 +431,7 @@ func TestReconcileDeleteExternal(t *testing.T) {
 	infraConfig := &unstructured.Unstructured{
 		Object: map[string]interface{}{
 			"kind":       "InfrastructureConfig",
-			"apiVersion": "infrastructure.cluster.x-k8s.io/v1alpha2",
+			"apiVersion": "infrastructure.cluster.x-k8s.io/v1alpha3",
 			"metadata": map[string]interface{}{
 				"name":      "delete-infra",
 				"namespace": "default",
@@ -447,13 +447,13 @@ func TestReconcileDeleteExternal(t *testing.T) {
 		Spec: clusterv1.MachineSpec{
 			ClusterName: "test-cluster",
 			InfrastructureRef: corev1.ObjectReference{
-				APIVersion: "infrastructure.cluster.x-k8s.io/v1alpha2",
+				APIVersion: "infrastructure.cluster.x-k8s.io/v1alpha3",
 				Kind:       "InfrastructureConfig",
 				Name:       "delete-infra",
 			},
 			Bootstrap: clusterv1.Bootstrap{
 				ConfigRef: &corev1.ObjectReference{
-					APIVersion: "bootstrap.cluster.x-k8s.io/v1alpha2",
+					APIVersion: "bootstrap.cluster.x-k8s.io/v1alpha3",
 					Kind:       "BootstrapConfig",
 					Name:       "delete-bootstrap",
 				},
@@ -551,7 +551,7 @@ func TestRemoveMachineFinalizerAfterDeleteReconcile(t *testing.T) {
 		Spec: clusterv1.MachineSpec{
 			ClusterName: "test-cluster",
 			InfrastructureRef: corev1.ObjectReference{
-				APIVersion: "infrastructure.cluster.x-k8s.io/v1alpha2",
+				APIVersion: "infrastructure.cluster.x-k8s.io/v1alpha3",
 				Kind:       "InfrastructureConfig",
 				Name:       "infra-config1",
 			},

@@ -41,7 +41,7 @@ func TestHelperUnstructuredPatch(t *testing.T) {
 	obj := &unstructured.Unstructured{
 		Object: map[string]interface{}{
 			"kind":       "BootstrapConfig",
-			"apiVersion": "bootstrap.cluster.x-k8s.io/v1alpha2",
+			"apiVersion": "bootstrap.cluster.x-k8s.io/v1alpha3",
 			"metadata": map[string]interface{}{
 				"name":      "test-bootstrap",
 				"namespace": "default",
@@ -62,7 +62,7 @@ func TestHelperUnstructuredPatch(t *testing.T) {
 
 	refs := []metav1.OwnerReference{
 		{
-			APIVersion: "cluster.x-k8s.io/v1alpha2",
+			APIVersion: "cluster.x-k8s.io/v1alpha3",
 			Kind:       "Cluster",
 			Name:       "test",
 		},
@@ -198,7 +198,7 @@ func TestHelperPatch(t *testing.T) {
 			before: &unstructured.Unstructured{
 				Object: map[string]interface{}{
 					"kind":       "BootstrapConfig",
-					"apiVersion": "bootstrap.cluster.x-k8s.io/v1alpha2",
+					"apiVersion": "bootstrap.cluster.x-k8s.io/v1alpha3",
 					"metadata": map[string]interface{}{
 						"name":      "test-bootstrap",
 						"namespace": "default",
@@ -208,14 +208,14 @@ func TestHelperPatch(t *testing.T) {
 			after: &unstructured.Unstructured{
 				Object: map[string]interface{}{
 					"kind":       "BootstrapConfig",
-					"apiVersion": "bootstrap.cluster.x-k8s.io/v1alpha2",
+					"apiVersion": "bootstrap.cluster.x-k8s.io/v1alpha3",
 					"metadata": map[string]interface{}{
 						"name":      "test-bootstrap",
 						"namespace": "default",
 						"ownerReferences": []interface{}{
 							map[string]interface{}{
 								"kind":       "TestOwner",
-								"apiVersion": "test.cluster.x-k8s.io/v1alpha2",
+								"apiVersion": "test.cluster.x-k8s.io/v1alpha3",
 								"name":       "test",
 							},
 						},

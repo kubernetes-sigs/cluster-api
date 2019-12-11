@@ -92,7 +92,7 @@ var _ = Describe("MachineSet Reconciler", func() {
 							Data: pointer.StringPtr("x"),
 						},
 						InfrastructureRef: corev1.ObjectReference{
-							APIVersion: "infrastructure.cluster.x-k8s.io/v1alpha2",
+							APIVersion: "infrastructure.cluster.x-k8s.io/v1alpha3",
 							Kind:       "InfrastructureMachineTemplate",
 							Name:       "ms-template",
 						},
@@ -104,7 +104,7 @@ var _ = Describe("MachineSet Reconciler", func() {
 		// Create infrastructure template resource.
 		infraResource := map[string]interface{}{
 			"kind":       "InfrastructureMachine",
-			"apiVersion": "infrastructure.cluster.x-k8s.io/v1alpha2",
+			"apiVersion": "infrastructure.cluster.x-k8s.io/v1alpha3",
 			"metadata":   map[string]interface{}{},
 			"spec": map[string]interface{}{
 				"size":       "3xlarge",
@@ -119,7 +119,7 @@ var _ = Describe("MachineSet Reconciler", func() {
 			},
 		}
 		infraTmpl.SetKind("InfrastructureMachineTemplate")
-		infraTmpl.SetAPIVersion("infrastructure.cluster.x-k8s.io/v1alpha2")
+		infraTmpl.SetAPIVersion("infrastructure.cluster.x-k8s.io/v1alpha3")
 		infraTmpl.SetName("ms-template")
 		infraTmpl.SetNamespace(namespace.Name)
 		Expect(k8sClient.Create(ctx, infraTmpl)).To(BeNil())

@@ -19,18 +19,18 @@ infrastructure object.
 
 ```yaml
 kind: DockerCluster
-apiVersion: infrastructure.cluster.x-k8s.io/v1alpha2
+apiVersion: infrastructure.cluster.x-k8s.io/v1alpha3
 metadata:
   name: my-cluster-docker
 ---
 kind: Cluster
-apiVersion: cluster.x-k8s.io/v1alpha2
+apiVersion: cluster.x-k8s.io/v1alpha3
 metadata:
   name: my-cluster
 spec:
   infrastructureRef:
     kind: DockerCluster
-    apiVersion: infrastructure.cluster.x-k8s.io/v1alpha2
+    apiVersion: infrastructure.cluster.x-k8s.io/v1alpha3
     name: my-cluster-docker
 ```
 
@@ -39,7 +39,7 @@ the `KubeadmConfig` bootstrap object.
 
 ```yaml
 kind: KubeadmConfig
-apiVersion: bootstrap.cluster.x-k8s.io/v1alpha2
+apiVersion: bootstrap.cluster.x-k8s.io/v1alpha3
 metadata:
   name: my-control-plane1-config
 spec:
@@ -53,12 +53,12 @@ spec:
         enable-hostpath-provisioner: "true"
 ---
 kind: DockerMachine
-apiVersion: infrastructure.cluster.x-k8s.io/v1alpha2
+apiVersion: infrastructure.cluster.x-k8s.io/v1alpha3
 metadata:
   name: my-control-plane1-docker
 ---
 kind: Machine
-apiVersion: cluster.x-k8s.io/v1alpha2
+apiVersion: cluster.x-k8s.io/v1alpha3
 metadata:
   name: my-control-plane1
   labels:
@@ -69,11 +69,11 @@ spec:
   bootstrap:
     configRef:
       kind: KubeadmConfig
-      apiVersion: bootstrap.cluster.x-k8s.io/v1alpha2
+      apiVersion: bootstrap.cluster.x-k8s.io/v1alpha3
       name: my-control-plane1-config
   infrastructureRef:
     kind: DockerMachine
-    apiVersion: infrastructure.cluster.x-k8s.io/v1alpha2
+    apiVersion: infrastructure.cluster.x-k8s.io/v1alpha3
     name: my-control-plane1-docker
   version: "v1.14.2"
 ```
@@ -113,7 +113,7 @@ Valid combinations of configuration objects are:
 Bootstrap control plane node:
 ```yaml
 kind: KubeadmConfig
-apiVersion: bootstrap.cluster.x-k8s.io/v1alpha2
+apiVersion: bootstrap.cluster.x-k8s.io/v1alpha3
 metadata:
   name: my-control-plane1-config
 spec:
@@ -130,7 +130,7 @@ spec:
 Additional control plane nodes:
 ```yaml
 kind: KubeadmConfig
-apiVersion: bootstrap.cluster.x-k8s.io/v1alpha2
+apiVersion: bootstrap.cluster.x-k8s.io/v1alpha3
 metadata:
   name: my-control-plane2-config
 spec:
@@ -144,7 +144,7 @@ spec:
 worker nodes:
 ```yaml
 kind: KubeadmConfig
-apiVersion: bootstrap.cluster.x-k8s.io/v1alpha2
+apiVersion: bootstrap.cluster.x-k8s.io/v1alpha3
 metadata:
   name: my-worker1-config
 spec:

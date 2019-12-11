@@ -88,7 +88,7 @@ var _ = Describe("MachineDeployment Reconciler", func() {
 						ClusterName: testCluster.Name,
 						Version:     &version,
 						InfrastructureRef: corev1.ObjectReference{
-							APIVersion: "infrastructure.cluster.x-k8s.io/v1alpha2",
+							APIVersion: "infrastructure.cluster.x-k8s.io/v1alpha3",
 							Kind:       "InfrastructureMachineTemplate",
 							Name:       "md-template",
 						},
@@ -107,7 +107,7 @@ var _ = Describe("MachineDeployment Reconciler", func() {
 		// Create infrastructure template resource.
 		infraResource := map[string]interface{}{
 			"kind":       "InfrastructureMachine",
-			"apiVersion": "infrastructure.cluster.x-k8s.io/v1alpha2",
+			"apiVersion": "infrastructure.cluster.x-k8s.io/v1alpha3",
 			"metadata":   map[string]interface{}{},
 			"spec": map[string]interface{}{
 				"size":       "3xlarge",
@@ -122,7 +122,7 @@ var _ = Describe("MachineDeployment Reconciler", func() {
 			},
 		}
 		infraTmpl.SetKind("InfrastructureMachineTemplate")
-		infraTmpl.SetAPIVersion("infrastructure.cluster.x-k8s.io/v1alpha2")
+		infraTmpl.SetAPIVersion("infrastructure.cluster.x-k8s.io/v1alpha3")
 		infraTmpl.SetName("md-template")
 		infraTmpl.SetNamespace(namespace.Name)
 		By("Creating the infrastructure template")

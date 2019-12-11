@@ -50,7 +50,7 @@ func TestClusterReconcilePhases(t *testing.T) {
 					Port: 8443,
 				},
 				InfrastructureRef: &corev1.ObjectReference{
-					APIVersion: "infrastructure.cluster.x-k8s.io/v1alpha2",
+					APIVersion: "infrastructure.cluster.x-k8s.io/v1alpha3",
 					Kind:       "InfrastructureConfig",
 					Name:       "test",
 				},
@@ -78,7 +78,7 @@ func TestClusterReconcilePhases(t *testing.T) {
 				cluster: cluster,
 				infraRef: map[string]interface{}{
 					"kind":       "InfrastructureConfig",
-					"apiVersion": "infrastructure.cluster.x-k8s.io/v1alpha2",
+					"apiVersion": "infrastructure.cluster.x-k8s.io/v1alpha3",
 					"metadata": map[string]interface{}{
 						"name":              "test",
 						"namespace":         "test-namespace",
@@ -92,7 +92,7 @@ func TestClusterReconcilePhases(t *testing.T) {
 				cluster: cluster,
 				infraRef: map[string]interface{}{
 					"kind":       "InfrastructureConfig",
-					"apiVersion": "infrastructure.cluster.x-k8s.io/v1alpha2",
+					"apiVersion": "infrastructure.cluster.x-k8s.io/v1alpha3",
 					"metadata": map[string]interface{}{
 						"name":              "test",
 						"namespace":         "test-namespace",

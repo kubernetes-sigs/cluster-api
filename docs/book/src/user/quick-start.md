@@ -15,7 +15,7 @@ For the purpose of this tutorial, we'll name our cluster `capi-quickstart`.
 {{#tab AWS}}
 
 ```yaml
-apiVersion: cluster.x-k8s.io/v1alpha2
+apiVersion: cluster.x-k8s.io/v1alpha3
 kind: Cluster
 metadata:
   name: capi-quickstart
@@ -24,11 +24,11 @@ spec:
     pods:
       cidrBlocks: ["192.168.0.0/16"]
   infrastructureRef:
-    apiVersion: infrastructure.cluster.x-k8s.io/v1alpha2
+    apiVersion: infrastructure.cluster.x-k8s.io/v1alpha3
     kind: AWSCluster
     name: capi-quickstart
 ---
-apiVersion: infrastructure.cluster.x-k8s.io/v1alpha2
+apiVersion: infrastructure.cluster.x-k8s.io/v1alpha3
 kind: AWSCluster
 metadata:
   name: capi-quickstart
@@ -42,7 +42,7 @@ spec:
 {{#tab Azure}}
 
 ```yaml
-apiVersion: cluster.x-k8s.io/v1alpha2
+apiVersion: cluster.x-k8s.io/v1alpha3
 kind: Cluster
 metadata:
   name: capi-quickstart
@@ -52,11 +52,11 @@ spec:
       cidrBlocks:
       - 192.168.0.0/16
   infrastructureRef:
-    apiVersion: infrastructure.cluster.x-k8s.io/v1alpha2
+    apiVersion: infrastructure.cluster.x-k8s.io/v1alpha3
     kind: AzureCluster
     name: capi-quickstart
 ---
-apiVersion: infrastructure.cluster.x-k8s.io/v1alpha2
+apiVersion: infrastructure.cluster.x-k8s.io/v1alpha3
 kind: AzureCluster
 metadata:
   name: capi-quickstart
@@ -73,7 +73,7 @@ spec:
 {{#tab Docker}}
 
 ```yaml
-apiVersion: cluster.x-k8s.io/v1alpha2
+apiVersion: cluster.x-k8s.io/v1alpha3
 kind: Cluster
 metadata:
   name: capi-quickstart
@@ -82,11 +82,11 @@ spec:
     pods:
       cidrBlocks: ["192.168.0.0/16"]
   infrastructureRef:
-    apiVersion: infrastructure.cluster.x-k8s.io/v1alpha2
+    apiVersion: infrastructure.cluster.x-k8s.io/v1alpha3
     kind: DockerCluster
     name: capi-quickstart
 ---
-apiVersion: infrastructure.cluster.x-k8s.io/v1alpha2
+apiVersion: infrastructure.cluster.x-k8s.io/v1alpha3
 kind: DockerCluster
 metadata:
   name: capi-quickstart
@@ -102,7 +102,7 @@ Replace the project below with your unique value and update region if desired.
 </aside>
 
 ```yaml
-apiVersion: cluster.x-k8s.io/v1alpha2
+apiVersion: cluster.x-k8s.io/v1alpha3
 kind: Cluster
 metadata:
   name: capi-quickstart
@@ -112,11 +112,11 @@ spec:
       cidrBlocks:
       - 192.168.0.0/16
   infrastructureRef:
-    apiVersion: infrastructure.cluster.x-k8s.io/v1alpha2
+    apiVersion: infrastructure.cluster.x-k8s.io/v1alpha3
     kind: GCPCluster
     name: capi-quickstart
 ---
-apiVersion: infrastructure.cluster.x-k8s.io/v1alpha2
+apiVersion: infrastructure.cluster.x-k8s.io/v1alpha3
 kind: GCPCluster
 metadata:
   name: capi-quickstart
@@ -146,7 +146,7 @@ This quick start assumes the following vSphere environment which you should repl
 </aside>
 
 ```yaml
-apiVersion: cluster.x-k8s.io/v1alpha2
+apiVersion: cluster.x-k8s.io/v1alpha3
 kind: Cluster
 metadata:
   name: capi-quickstart
@@ -155,11 +155,11 @@ spec:
     pods:
       cidrBlocks: ["192.168.0.0/16"] # CIDR block used by Calico.
   infrastructureRef:
-    apiVersion: infrastructure.cluster.x-k8s.io/v1alpha2
+    apiVersion: infrastructure.cluster.x-k8s.io/v1alpha3
     kind: VSphereCluster
     name: capi-quickstart
 ---
-apiVersion: infrastructure.cluster.x-k8s.io/v1alpha2
+apiVersion: infrastructure.cluster.x-k8s.io/v1alpha3
 kind: VSphereCluster
 metadata:
   name: capi-quickstart
@@ -205,7 +205,7 @@ These examples include environment variables that you should substitute before c
 </aside>
 
 ```yaml
-apiVersion: cluster.x-k8s.io/v1alpha2
+apiVersion: cluster.x-k8s.io/v1alpha3
 kind: Cluster
 metadata:
   name: capi-quickstart
@@ -217,11 +217,11 @@ spec:
       cidrBlocks: ["192.168.0.0/16"] # CIDR block used by Calico.
     serviceDomain: "cluster.local"
   infrastructureRef:
-    apiVersion: infrastructure.cluster.x-k8s.io/v1alpha2
+    apiVersion: infrastructure.cluster.x-k8s.io/v1alpha3
     kind: OpenStackCluster
     name: capi-quickstart
 ---
-apiVersion: infrastructure.cluster.x-k8s.io/v1alpha2
+apiVersion: infrastructure.cluster.x-k8s.io/v1alpha3
 kind: OpenStackCluster
 metadata:
   name: capi-quickstart
@@ -253,7 +253,7 @@ Now that we've created the cluster object, we can create a control plane Machine
 {{#tab AWS}}
 
 ```yaml
-apiVersion: cluster.x-k8s.io/v1alpha2
+apiVersion: cluster.x-k8s.io/v1alpha3
 kind: Machine
 metadata:
   name: capi-quickstart-controlplane-0
@@ -264,15 +264,15 @@ spec:
   version: v1.15.3
   bootstrap:
     configRef:
-      apiVersion: bootstrap.cluster.x-k8s.io/v1alpha2
+      apiVersion: bootstrap.cluster.x-k8s.io/v1alpha3
       kind: KubeadmConfig
       name: capi-quickstart-controlplane-0
   infrastructureRef:
-    apiVersion: infrastructure.cluster.x-k8s.io/v1alpha2
+    apiVersion: infrastructure.cluster.x-k8s.io/v1alpha3
     kind: AWSMachine
     name: capi-quickstart-controlplane-0
 ---
-apiVersion: infrastructure.cluster.x-k8s.io/v1alpha2
+apiVersion: infrastructure.cluster.x-k8s.io/v1alpha3
 kind: AWSMachine
 metadata:
   name: capi-quickstart-controlplane-0
@@ -283,7 +283,7 @@ spec:
   # Change this value to a valid SSH Key Pair present in your AWS Account.
   sshKeyName: default
 ---
-apiVersion: bootstrap.cluster.x-k8s.io/v1alpha2
+apiVersion: bootstrap.cluster.x-k8s.io/v1alpha3
 kind: KubeadmConfig
 metadata:
   name: capi-quickstart-controlplane-0
@@ -331,7 +331,7 @@ cat controlplane.yaml \
 </aside>
 
 ```yaml
-apiVersion: cluster.x-k8s.io/v1alpha2
+apiVersion: cluster.x-k8s.io/v1alpha3
 kind: Machine
 metadata:
   name: capi-quickstart-controlplane-0
@@ -342,15 +342,15 @@ spec:
   version: v1.16.1
   bootstrap:
     configRef:
-      apiVersion: bootstrap.cluster.x-k8s.io/v1alpha2
+      apiVersion: bootstrap.cluster.x-k8s.io/v1alpha3
       kind: KubeadmConfig
       name: capi-quickstart-controlplane-0
   infrastructureRef:
-    apiVersion: infrastructure.cluster.x-k8s.io/v1alpha2
+    apiVersion: infrastructure.cluster.x-k8s.io/v1alpha3
     kind: AzureMachine
     name: capi-quickstart-controlplane-0
 ---
-apiVersion: infrastructure.cluster.x-k8s.io/v1alpha2
+apiVersion: infrastructure.cluster.x-k8s.io/v1alpha3
 kind: AzureMachine
 metadata:
   name: capi-quickstart-controlplane-0
@@ -369,7 +369,7 @@ spec:
   sshPublicKey: ${SSH_PUBLIC_KEY}
   vmSize: Standard_B2ms
 ---
-apiVersion: bootstrap.cluster.x-k8s.io/v1alpha2
+apiVersion: bootstrap.cluster.x-k8s.io/v1alpha3
 kind: KubeadmConfig
 metadata:
   name: capi-quickstart-controlplane-0
@@ -433,7 +433,7 @@ spec:
 {{#tab Docker}}
 
 ```yaml
-apiVersion: cluster.x-k8s.io/v1alpha2
+apiVersion: cluster.x-k8s.io/v1alpha3
 kind: Machine
 metadata:
   name: capi-quickstart-controlplane-0
@@ -444,20 +444,20 @@ spec:
   version: v1.15.3
   bootstrap:
     configRef:
-      apiVersion: bootstrap.cluster.x-k8s.io/v1alpha2
+      apiVersion: bootstrap.cluster.x-k8s.io/v1alpha3
       kind: KubeadmConfig
       name: capi-quickstart-controlplane-0
   infrastructureRef:
     kind: DockerMachine
-    apiVersion: infrastructure.cluster.x-k8s.io/v1alpha2
+    apiVersion: infrastructure.cluster.x-k8s.io/v1alpha3
     name: capi-quickstart-controlplane-0
 ---
-apiVersion: infrastructure.cluster.x-k8s.io/v1alpha2
+apiVersion: infrastructure.cluster.x-k8s.io/v1alpha3
 kind: DockerMachine
 metadata:
   name: capi-quickstart-controlplane-0
 ---
-apiVersion: bootstrap.cluster.x-k8s.io/v1alpha2
+apiVersion: bootstrap.cluster.x-k8s.io/v1alpha3
 kind: KubeadmConfig
 metadata:
   name: capi-quickstart-controlplane-0
@@ -488,7 +488,7 @@ Feel free to update instance types and zones below.
 </aside>
 
 ```yaml
-apiVersion: cluster.x-k8s.io/v1alpha2
+apiVersion: cluster.x-k8s.io/v1alpha3
 kind: Machine
 metadata:
   name: capi-quickstart-controlplane-0
@@ -499,15 +499,15 @@ spec:
   version: v1.15.3
   bootstrap:
     configRef:
-      apiVersion: bootstrap.cluster.x-k8s.io/v1alpha2
+      apiVersion: bootstrap.cluster.x-k8s.io/v1alpha3
       kind: KubeadmConfig
       name: capi-quickstart-controlplane-0
   infrastructureRef:
-    apiVersion: infrastructure.cluster.x-k8s.io/v1alpha2
+    apiVersion: infrastructure.cluster.x-k8s.io/v1alpha3
     kind: GCPMachine
     name: capi-quickstart-controlplane-0
 ---
-apiVersion: infrastructure.cluster.x-k8s.io/v1alpha2
+apiVersion: infrastructure.cluster.x-k8s.io/v1alpha3
 kind: GCPMachine
 metadata:
   name: capi-quickstart-controlplane-0
@@ -515,7 +515,7 @@ spec:
   instanceType: n1-standard-2
   zone: us-central1-a
 ---
-apiVersion: bootstrap.cluster.x-k8s.io/v1alpha2
+apiVersion: bootstrap.cluster.x-k8s.io/v1alpha3
 kind: KubeadmConfig
 metadata:
   name: capi-quickstart-controlplane-0
@@ -557,7 +557,7 @@ This quick start assumes the following vSphere environment which you should repl
 </aside>
 
 ```yaml
-apiVersion: cluster.x-k8s.io/v1alpha2
+apiVersion: cluster.x-k8s.io/v1alpha3
 kind: Machine
 metadata:
   name: capi-quickstart-controlplane-0
@@ -568,15 +568,15 @@ spec:
   version: v1.16.2
   bootstrap:
     configRef:
-      apiVersion: bootstrap.cluster.x-k8s.io/v1alpha2
+      apiVersion: bootstrap.cluster.x-k8s.io/v1alpha3
       kind: KubeadmConfig
       name: capi-quickstart-controlplane-0
   infrastructureRef:
-    apiVersion: infrastructure.cluster.x-k8s.io/v1alpha2
+    apiVersion: infrastructure.cluster.x-k8s.io/v1alpha3
     kind: VSphereMachine
     name: capi-quickstart-controlplane-0
 ---
-apiVersion: infrastructure.cluster.x-k8s.io/v1alpha2
+apiVersion: infrastructure.cluster.x-k8s.io/v1alpha3
 kind: VSphereMachine
 metadata:
   labels:
@@ -596,7 +596,7 @@ spec:
   numCPUs: 2
   template: ubuntu-1804-kube-v1.16.2
 ---
-apiVersion: bootstrap.cluster.x-k8s.io/v1alpha2
+apiVersion: bootstrap.cluster.x-k8s.io/v1alpha3
 kind: KubeadmConfig
 metadata:
   name: capi-quickstart-controlplane-0
@@ -634,7 +634,7 @@ These examples include environment variables that you should substitute before c
 </aside>
 
 ```yaml
-apiVersion: cluster.x-k8s.io/v1alpha2
+apiVersion: cluster.x-k8s.io/v1alpha3
 kind: Machine
 metadata:
   name: capi-quickstart-controlplane-0
@@ -645,15 +645,15 @@ spec:
   version: v1.15.3
   bootstrap:
     configRef:
-      apiVersion: bootstrap.cluster.x-k8s.io/v1alpha2
+      apiVersion: bootstrap.cluster.x-k8s.io/v1alpha3
       kind: KubeadmConfig
       name: capi-quickstart-controlplane-0
   infrastructureRef:
-    apiVersion: infrastructure.cluster.x-k8s.io/v1alpha2
+    apiVersion: infrastructure.cluster.x-k8s.io/v1alpha3
     kind: OpenStackMachine
     name: capi-quickstart-controlplane-0
 ---
-apiVersion: infrastructure.cluster.x-k8s.io/v1alpha2
+apiVersion: infrastructure.cluster.x-k8s.io/v1alpha3
 kind: OpenStackMachine
 metadata:
   name: capi-quickstart-controlplane-0
@@ -666,7 +666,7 @@ spec:
   cloudsSecret:
     name: cloud-config
 ---
-apiVersion: bootstrap.cluster.x-k8s.io/v1alpha2
+apiVersion: bootstrap.cluster.x-k8s.io/v1alpha3
 kind: KubeadmConfig
 metadata:
   name: capi-quickstart-controlplane-0
@@ -813,7 +813,7 @@ Finishing up, we'll create a single node _MachineDeployment_.
 {{#tab AWS}}
 
 ```yaml
-apiVersion: cluster.x-k8s.io/v1alpha2
+apiVersion: cluster.x-k8s.io/v1alpha3
 kind: MachineDeployment
 metadata:
   name: capi-quickstart-worker
@@ -839,14 +839,14 @@ spec:
       bootstrap:
         configRef:
           name: capi-quickstart-worker
-          apiVersion: bootstrap.cluster.x-k8s.io/v1alpha2
+          apiVersion: bootstrap.cluster.x-k8s.io/v1alpha3
           kind: KubeadmConfigTemplate
       infrastructureRef:
         name: capi-quickstart-worker
-        apiVersion: infrastructure.cluster.x-k8s.io/v1alpha2
+        apiVersion: infrastructure.cluster.x-k8s.io/v1alpha3
         kind: AWSMachineTemplate
 ---
-apiVersion: infrastructure.cluster.x-k8s.io/v1alpha2
+apiVersion: infrastructure.cluster.x-k8s.io/v1alpha3
 kind: AWSMachineTemplate
 metadata:
   name: capi-quickstart-worker
@@ -859,7 +859,7 @@ spec:
       # Change this value to a valid SSH Key Pair present in your AWS Account.
       sshKeyName: default
 ---
-apiVersion: bootstrap.cluster.x-k8s.io/v1alpha2
+apiVersion: bootstrap.cluster.x-k8s.io/v1alpha3
 kind: KubeadmConfigTemplate
 metadata:
   name: capi-quickstart-worker
@@ -904,7 +904,7 @@ cat machinedeployment.yaml \
 </aside>
 
 ```yaml
-apiVersion: cluster.x-k8s.io/v1alpha2
+apiVersion: cluster.x-k8s.io/v1alpha3
 kind: MachineDeployment
 metadata:
   name: capi-quickstart-node
@@ -930,14 +930,14 @@ spec:
       bootstrap:
         configRef:
           name: capi-quickstart-node
-          apiVersion: bootstrap.cluster.x-k8s.io/v1alpha2
+          apiVersion: bootstrap.cluster.x-k8s.io/v1alpha3
           kind: KubeadmConfigTemplate
       infrastructureRef:
         name: capi-quickstart-node
-        apiVersion: infrastructure.cluster.x-k8s.io/v1alpha2
+        apiVersion: infrastructure.cluster.x-k8s.io/v1alpha3
         kind: AzureMachineTemplate
 ---
-apiVersion: infrastructure.cluster.x-k8s.io/v1alpha2
+apiVersion: infrastructure.cluster.x-k8s.io/v1alpha3
 kind: AzureMachineTemplate
 metadata:
   name: capi-quickstart-node
@@ -958,7 +958,7 @@ spec:
           storageAccountType: "Premium_LRS"
       sshPublicKey: ${SSH_PUBLIC_KEY}
 ---
-apiVersion: bootstrap.cluster.x-k8s.io/v1alpha2
+apiVersion: bootstrap.cluster.x-k8s.io/v1alpha3
 kind: KubeadmConfigTemplate
 metadata:
   name: capi-quickstart-node
@@ -1002,7 +1002,7 @@ spec:
 {{#tab Docker}}
 
 ```yaml
-apiVersion: cluster.x-k8s.io/v1alpha2
+apiVersion: cluster.x-k8s.io/v1alpha3
 kind: MachineDeployment
 metadata:
   name: capi-quickstart-worker
@@ -1028,14 +1028,14 @@ spec:
       bootstrap:
         configRef:
           name: capi-quickstart-worker
-          apiVersion: bootstrap.cluster.x-k8s.io/v1alpha2
+          apiVersion: bootstrap.cluster.x-k8s.io/v1alpha3
           kind: KubeadmConfigTemplate
       infrastructureRef:
         name: capi-quickstart-worker
-        apiVersion: infrastructure.cluster.x-k8s.io/v1alpha2
+        apiVersion: infrastructure.cluster.x-k8s.io/v1alpha3
         kind: DockerMachineTemplate
 ---
-apiVersion: infrastructure.cluster.x-k8s.io/v1alpha2
+apiVersion: infrastructure.cluster.x-k8s.io/v1alpha3
 kind: DockerMachineTemplate
 metadata:
   name: capi-quickstart-worker
@@ -1043,7 +1043,7 @@ spec:
   template:
     spec: {}
 ---
-apiVersion: bootstrap.cluster.x-k8s.io/v1alpha2
+apiVersion: bootstrap.cluster.x-k8s.io/v1alpha3
 kind: KubeadmConfigTemplate
 metadata:
   name: capi-quickstart-worker
@@ -1073,7 +1073,7 @@ Feel free to update instance types and zones below.
 </aside>
 
 ```yaml
-apiVersion: cluster.x-k8s.io/v1alpha2
+apiVersion: cluster.x-k8s.io/v1alpha3
 kind: MachineDeployment
 metadata:
   name: capi-quickstart-worker
@@ -1099,14 +1099,14 @@ spec:
       bootstrap:
         configRef:
           name: capi-quickstart-worker
-          apiVersion: bootstrap.cluster.x-k8s.io/v1alpha2
+          apiVersion: bootstrap.cluster.x-k8s.io/v1alpha3
           kind: KubeadmConfigTemplate
       infrastructureRef:
         name: capi-quickstart-worker
-        apiVersion: infrastructure.cluster.x-k8s.io/v1alpha2
+        apiVersion: infrastructure.cluster.x-k8s.io/v1alpha3
         kind: GCPMachineTemplate
 ---
-apiVersion: infrastructure.cluster.x-k8s.io/v1alpha2
+apiVersion: infrastructure.cluster.x-k8s.io/v1alpha3
 kind: GCPMachineTemplate
 metadata:
   name: capi-quickstart-worker
@@ -1116,7 +1116,7 @@ spec:
       instanceType: n1-standard-2
       zone: us-central1-a
 ---
-apiVersion: bootstrap.cluster.x-k8s.io/v1alpha2
+apiVersion: bootstrap.cluster.x-k8s.io/v1alpha3
 kind: KubeadmConfigTemplate
 metadata:
   name: capi-quickstart-worker
@@ -1154,7 +1154,7 @@ This quick start assumes the following vSphere environment which you should repl
 </aside>
 
 ```yaml
-apiVersion: cluster.x-k8s.io/v1alpha2
+apiVersion: cluster.x-k8s.io/v1alpha3
 kind: MachineDeployment
 metadata:
   name: capi-quickstart-worker
@@ -1179,15 +1179,15 @@ spec:
       version: v1.16.2
       bootstrap:
         configRef:
-          apiVersion: bootstrap.cluster.x-k8s.io/v1alpha2
+          apiVersion: bootstrap.cluster.x-k8s.io/v1alpha3
           kind: KubeadmConfigTemplate
           name: capi-quickstart-worker
       infrastructureRef:
-        apiVersion: infrastructure.cluster.x-k8s.io/v1alpha2
+        apiVersion: infrastructure.cluster.x-k8s.io/v1alpha3
         kind: VSphereMachineTemplate
         name: capi-quickstart-worker
 ---
-apiVersion: infrastructure.cluster.x-k8s.io/v1alpha2
+apiVersion: infrastructure.cluster.x-k8s.io/v1alpha3
 kind: VSphereMachineTemplate
 metadata:
   name: capi-quickstart-md-0
@@ -1206,7 +1206,7 @@ spec:
       numCPUs: 2
       template: ubuntu-1804-kube-v1.16.2
 ---
-apiVersion: bootstrap.cluster.x-k8s.io/v1alpha2
+apiVersion: bootstrap.cluster.x-k8s.io/v1alpha3
 kind: KubeadmConfigTemplate
 metadata:
   name: capi-quickstart-md-0
@@ -1239,7 +1239,7 @@ These examples include environment variables that you should substitute before c
 </aside>
 
 ```yaml
-apiVersion: cluster.x-k8s.io/v1alpha2
+apiVersion: cluster.x-k8s.io/v1alpha3
 kind: MachineDeployment
 metadata:
   name: capi-quickstart-worker
@@ -1264,15 +1264,15 @@ spec:
       version: v1.15.3
       bootstrap:
         configRef:
-          apiVersion: bootstrap.cluster.x-k8s.io/v1alpha2
+          apiVersion: bootstrap.cluster.x-k8s.io/v1alpha3
           kind: KubeadmConfigTemplate
           name: capi-quickstart-worker
       infrastructureRef:
-        apiVersion: infrastructure.cluster.x-k8s.io/v1alpha2
+        apiVersion: infrastructure.cluster.x-k8s.io/v1alpha3
         kind: OpenStackMachineTemplate
         name: capi-quickstart-worker
 ---
-apiVersion: infrastructure.cluster.x-k8s.io/v1alpha2
+apiVersion: infrastructure.cluster.x-k8s.io/v1alpha3
 kind: OpenStackMachineTemplate
 metadata:
   name: capi-quickstart-worker
@@ -1286,7 +1286,7 @@ spec:
       flavor: m1.medium
       image: ${IMAGE_NAME}
 ---
-apiVersion: bootstrap.cluster.x-k8s.io/v1alpha2
+apiVersion: bootstrap.cluster.x-k8s.io/v1alpha3
 kind: KubeadmConfigTemplate
 metadata:
   name: capi-quickstart-worker

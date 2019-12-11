@@ -161,9 +161,17 @@ func (r *ClusterReconciler) reconcile(ctx context.Context, cluster *clusterv1.Cl
 
 // reconcileDelete handles cluster deletion.
 func (r *ClusterReconciler) reconcileDelete(ctx context.Context, cluster *clusterv1.Cluster) (reconcile.Result, error) {
-	children, err := r.listChildren(ctx, cluster)
+	logger := r.Log.WithValues("cluster", cluster.Name, "namespace", cluster.Namespace)
+
+	descendants, err := r.listDescendants(ctx, cluster)
 	if err != nil {
-		klog.Errorf("Failed to list children of cluster %s/%s: %v", cluster.Namespace, cluster.Name, err)
+		logger.Error(err, "Failed to list descendants")
+		return reconcile.Result{}, err
+	}
+
+	children, err := descendants.filterOwnedDescendants(cluster)
+	if err != nil {
+		logger.Error(err, "Failed to extract direct descendants")
 		return reconcile.Result{}, err
 	}
 
@@ -197,8 +205,12 @@ func (r *ClusterReconciler) reconcileDelete(ctx context.Context, cluster *cluste
 		if len(errs) > 0 {
 			return ctrl.Result{}, kerrors.NewAggregate(errs)
 		}
+	}
 
-		// Requeue so we can check the next time to see if there are still any children left.
+	if descendantCount := descendants.length(); descendantCount > 0 {
+		indirect := descendantCount - len(children)
+		logger.Info("Cluster still has descendants - need to requeue", "direct", len(children), "indirect", indirect)
+		// Requeue so we can check the next time to see if there are still any descendants left.
 		return ctrl.Result{RequeueAfter: deleteRequeueAfter}, nil
 	}
 
@@ -229,57 +241,81 @@ func (r *ClusterReconciler) reconcileDelete(ctx context.Context, cluster *cluste
 	return ctrl.Result{}, nil
 }
 
-// listChildren returns a list of MachineDeployments, MachineSets, and Machines than have an owner reference to cluster
-func (r *ClusterReconciler) listChildren(ctx context.Context, cluster *clusterv1.Cluster) ([]runtime.Object, error) {
+type clusterDescendants struct {
+	machineDeployments   clusterv1.MachineDeploymentList
+	machineSets          clusterv1.MachineSetList
+	controlPlaneMachines clusterv1.MachineList
+	workerMachines       clusterv1.MachineList
+}
+
+// length returns the number of descendants
+func (c *clusterDescendants) length() int {
+	return len(c.machineDeployments.Items) +
+		len(c.machineSets.Items) +
+		len(c.controlPlaneMachines.Items) +
+		len(c.workerMachines.Items)
+}
+
+// listDescendants returns a list of all MachineDeployments, MachineSets, and Machines for the cluster.
+func (r *ClusterReconciler) listDescendants(ctx context.Context, cluster *clusterv1.Cluster) (clusterDescendants, error) {
+	var descendants clusterDescendants
+
 	listOptions := []client.ListOption{
 		client.InNamespace(cluster.Namespace),
 		client.MatchingLabels(map[string]string{clusterv1.MachineClusterLabelName: cluster.Name}),
 	}
 
-	machineDeployments := &clusterv1.MachineDeploymentList{}
-	if err := r.Client.List(ctx, machineDeployments, listOptions...); err != nil {
-		return nil, errors.Wrapf(err, "failed to list MachineDeployments for cluster %s/%s", cluster.Namespace, cluster.Name)
+	if err := r.Client.List(ctx, &descendants.machineDeployments, listOptions...); err != nil {
+		return descendants, errors.Wrapf(err, "failed to list MachineDeployments for cluster %s/%s", cluster.Namespace, cluster.Name)
 	}
 
-	machineSets := &clusterv1.MachineSetList{}
-	if err := r.Client.List(ctx, machineSets, listOptions...); err != nil {
-		return nil, errors.Wrapf(err, "failed to list MachineSets for cluster %s/%s", cluster.Namespace, cluster.Name)
+	if err := r.Client.List(ctx, &descendants.machineSets, listOptions...); err != nil {
+		return descendants, errors.Wrapf(err, "failed to list MachineSets for cluster %s/%s", cluster.Namespace, cluster.Name)
 	}
 
-	allMachines := &clusterv1.MachineList{}
-	if err := r.Client.List(ctx, allMachines, listOptions...); err != nil {
-		return nil, errors.Wrapf(err, "failed to list Machines for cluster %s/%s", cluster.Namespace, cluster.Name)
+	var machines clusterv1.MachineList
+	if err := r.Client.List(ctx, &machines, listOptions...); err != nil {
+		return descendants, errors.Wrapf(err, "failed to list Machines for cluster %s/%s", cluster.Namespace, cluster.Name)
 	}
-	controlPlaneMachines, machines := splitMachineList(allMachines)
 
-	var children []runtime.Object
+	// Split machines into control plane and worker machines so we make sure we delete control plane machines last
+	controlPlaneMachines, workerMachines := splitMachineList(&machines)
+	descendants.controlPlaneMachines = *controlPlaneMachines
+	descendants.workerMachines = *workerMachines
+
+	return descendants, nil
+}
+
+// filterOwnedDescendants returns an array of runtime.Objects containing only those descendants that have the cluster
+// as an owner reference, with control plane machines sorted last.
+func (c clusterDescendants) filterOwnedDescendants(cluster *clusterv1.Cluster) ([]runtime.Object, error) {
+	var ownedDescendants []runtime.Object
 	eachFunc := func(o runtime.Object) error {
 		acc, err := meta.Accessor(o)
 		if err != nil {
-			klog.Errorf("Cluster %s/%s: couldn't create accessor for type %T: %v", cluster.Namespace, cluster.Name, o, err)
 			return nil
 		}
 
 		if util.PointsTo(acc.GetOwnerReferences(), &cluster.ObjectMeta) {
-			children = append(children, o)
+			ownedDescendants = append(ownedDescendants, o)
 		}
 
 		return nil
 	}
 
 	lists := []runtime.Object{
-		machineDeployments,
-		machineSets,
-		machines,
-		controlPlaneMachines,
+		&c.machineDeployments,
+		&c.machineSets,
+		&c.workerMachines,
+		&c.controlPlaneMachines,
 	}
 	for _, list := range lists {
 		if err := meta.EachListItem(list, eachFunc); err != nil {
-			return nil, errors.Wrapf(err, "error finding children of cluster %s/%s", cluster.Namespace, cluster.Name)
+			return nil, errors.Wrapf(err, "error finding owned descendants of cluster %s/%s", cluster.Namespace, cluster.Name)
 		}
 	}
 
-	return children, nil
+	return ownedDescendants, nil
 }
 
 // splitMachineList separates the machines running the control plane from other worker nodes.

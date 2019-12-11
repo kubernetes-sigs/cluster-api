@@ -19,6 +19,7 @@
     - [Provider Implementers](./providers/implementers.md)
         - [v1alpha1 to v1alpha2](./providers/v1alpha1-to-v1alpha2.md)
         - [Cluster Infrastructure](./providers/cluster-infrastructure.md)
+        - [Bootstrap](./providers/bootstrap.md)
         - [Implementer's Guide](./providers/implementers-guide/overview.md)
           - [Naming](./providers/implementers-guide/naming.md)
           - [Create Repo and Generate CRDs](./providers/implementers-guide/generate_crds.md)

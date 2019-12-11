@@ -1,0 +1,112 @@
+@startuml
+title Figure 1. MachinePool Provisioning process
+actor User
+
+' -- GROUPS START ---
+
+box #LightGreen
+participant "API Server"
+end box
+
+box #LightBlue
+participant "MachinePool Controller"
+end box
+
+box #LightGrey
+participant "Infrastructure Controller"
+end box
+
+box #LightGrey
+participant "Bootstrap Controller"
+end box
+
+' -- GROUPS END ---
+
+User -> "API Server" : Create MachinePool Infrastructure
+"API Server" -->> "Infrastructure Controller": New Provider Infrastructure
+opt IF Infrastructure has no owner ref
+"Infrastructure Controller"->"Infrastructure Controller": Do Nothing
+end
+
+User -> "API Server": Create MachinePool
+"API Server" -->> "MachinePool Controller": New MachinePool
+opt Required Only if MachinePool has no owner
+"MachinePool Controller" -> "MachinePool Controller": Set MachinePool's owner to Cluster
+"MachinePool Controller" -> "MachinePool Controller": Set MachinePool.Status.Phase to Pending
+"MachinePool Controller" -> "API Server": Update MachinePool
+"MachinePool Controller" -> "API Server": Update MachinePool
+end
+
+"MachinePool Controller" -> "API Server": Get Bootstrap
+opt Required Only if Bootstrap has no owner
+"MachinePool Controller" -> "MachinePool Controller": Set Bootstrap's owner to MachinePool
+"MachinePool Controller" -> "API Server": Update Bootstrap
+end
+opt Required Only if Bootstrap not seen before
+"MachinePool Controller" -> "MachinePool Controller": Add Watcher for MachinePool.Template.Bootstrap.Kind objects
+end
+
+opt If MachinePool in Pending state
+"Bootstrap Controller"->"Bootstrap Controller": Generate BootstrapConfig.Status.BootstrapData
+"Bootstrap Controller"->"Bootstrap Controller": Set BootstrapConfig.Status.Ready=true
+end
+
+opt If Bootstrap has no Data and Status.BootstrapData
+"MachinePool Controller"->"MachinePool Controller": Requeue
+end
+
+opt If Bootstrap has Data
+"MachinePool Controller" -> "MachinePool Controller": Set MachinePool.Status.BootstrapReady=true
+"MachinePool Controller" -> "API Server": Update MachinePool
+end
+
+opt If MachinePool.Template.Bootstrap.Data is empty
+"MachinePool Controller" -> "Bootstrap Controller": Get BootstrapConfig.Status.BootstrapData
+"MachinePool Controller" -> "MachinePool Controller": Set MachinePool.Template.Bootstrap.Data
+"MachinePool Controller" -> "MachinePool Controller": Set MachinePool.Status.BootstrapReady=true
+"MachinePool Controller" -> "API Server": Update MachinePool
+end
+
+"MachinePool Controller" -> "API Server": Get Infrastructure
+opt Required Only if Infrastructure has no owner
+"MachinePool Controller" -> "MachinePool Controller": Set Infrastructure's owner to MachinePool
+"MachinePool Controller" -> "MachinePool Controller": Set MachinePool.Status.Phase to Provisioning
+"MachinePool Controller" -> "API Server": Update Infrastructure
+end
+opt Required Only if Infrastructure not seen before
+"MachinePool Controller" -> "MachinePool Controller": Add Watcher for MachinePool.Template.InfrastructureRef.Kind objects
+end
+
+"API Server" -->> "Infrastructure Controller": Infrastructure Update
+opt Required only if Infrastructure has owner ref
+"Infrastructure Controller" -> "API Server": Get MachinePool
+"Infrastructure Controller" -> "Infrastructure Controller": Provision infrastructure
+"Infrastructure Controller" -> "Infrastructure Controller": Set Infrastructure.Status.Replicas
+"Infrastructure Controller" -> "Infrastructure Controller": Set Infrastructure.Status.InfrastructureReady=true
+"Infrastructure Controller" -> "API Server": Update Infrastructure
+end
+
+"API Server" -->> "MachinePool Controller": Infrastructure Update
+opt Only required if Infrastructure.Status.Ready is true
+"MachinePool Controller" -> "API Server": Get MachinePool
+"MachinePool Controller" -> "MachinePool Controller": Set MachinePool.Status.Replicas = Infrastructure.Status.Replicas
+"MachinePool Controller" -> "MachinePool Controller": Set MachinePool.Status.InfrastructureReady = Infrastructure.Status.Ready
+"MachinePool Controller" -> "API Server": Update MachinePool
+end
+
+opt If MachinePool.Status.Ready is true MachinePool.Spec.Replicas != MachinePool.Status.AvailableReplicas
+"MachinePool Controller" -> "API Server": Get Nodes with MachinePool.Spec.Selector
+"MachinePool Controller" -> "MachinePool Controller": Update MachinePool.Status UpdatedReplicas, ReadyReplicas, AvailableReplicas, and UnavailableReplicas
+end
+
+opt If MachinePool.Status.Ready is true MachinePool.Spec.Replicas != MachinePool.Status.AvailableReplicas
+"MachinePool Controller"->"MachinePool Controller": Requeue
+end
+
+opt If MachinePool.Status.Ready is true MachinePool.Spec.Replicas == MachinePool.Status.AvailableReplicas
+"MachinePool Controller"->"API Server": Set MachinePool.Status.Phase to "Running"
+end
+
+hide footbox
+@enduml
+

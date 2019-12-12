@@ -199,6 +199,8 @@ func (r *KubeadmConfigReconciler) Reconcile(req ctrl.Request) (_ ctrl.Result, re
 		return ctrl.Result{
 			RequeueAfter: DefaultTokenTTL / 2,
 		}, nil
+	case config.Status.DataSecretName != nil:
+		return ctrl.Result{}, nil
 	}
 
 	// Attempt to Patch the KubeadmConfig object and status after each reconciliation if no error occurs.

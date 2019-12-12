@@ -27,6 +27,7 @@
           - [Create API](./providers/implementers-guide/create_api.md)
           - [Controllers and Reconciliation](./providers/implementers-guide/controllers_and_reconciliation.md)
           - [Building, Running, Testing](./providers/implementers-guide/building_running_and_testing.md)
+- [Troubleshooting](./user/troubleshooting.md)
 - [Reference](./reference/reference.md)
     - [Glossary](./reference/glossary.md)
     - [Provider List](./reference/providers.md)

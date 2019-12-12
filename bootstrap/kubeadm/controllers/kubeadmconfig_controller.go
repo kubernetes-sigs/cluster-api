@@ -36,6 +36,7 @@ import (
 	"sigs.k8s.io/cluster-api/bootstrap/kubeadm/internal/cloudinit"
 	"sigs.k8s.io/cluster-api/bootstrap/kubeadm/internal/locking"
 	kubeadmv1beta1 "sigs.k8s.io/cluster-api/bootstrap/kubeadm/types/v1beta1"
+	bsutil "sigs.k8s.io/cluster-api/bootstrap/util"
 	"sigs.k8s.io/cluster-api/controllers/remote"
 	capierrors "sigs.k8s.io/cluster-api/errors"
 	"sigs.k8s.io/cluster-api/util"
@@ -71,9 +72,9 @@ type KubeadmConfigReconciler struct {
 
 type Scope struct {
 	logr.Logger
-	Config  *bootstrapv1.KubeadmConfig
-	Cluster *clusterv1.Cluster
-	Machine *clusterv1.Machine
+	Config      *bootstrapv1.KubeadmConfig
+	ConfigOwner *bsutil.ConfigOwner
+	Cluster     *clusterv1.Cluster
 }
 
 // SetupWithManager sets up the reconciler with the Manager.
@@ -126,39 +127,39 @@ func (r *KubeadmConfigReconciler) Reconcile(req ctrl.Request) (_ ctrl.Result, re
 		return ctrl.Result{}, err
 	}
 
-	// Look up the Machine that owns this KubeConfig if there is one
-	machine, err := util.GetOwnerMachine(ctx, r.Client, config.ObjectMeta)
+	// Look up the owner of this KubeConfig if there is one
+	configOwner, err := bsutil.GetConfigOwner(ctx, r.Client, config.ObjectMeta)
 	if err != nil {
-		log.Error(err, "could not get owner machine")
+		log.Error(err, "could not get owner")
 		return ctrl.Result{}, err
 	}
-	if machine == nil {
-		log.Info("Waiting for Machine Controller to set OwnerRef on the KubeadmConfig")
+	if configOwner == nil {
+		log.Info("Waiting for the configuration owner's controller to set OwnerRef on the KubeadmConfig")
 		return ctrl.Result{}, nil
 	}
-	log = log.WithValues("machine-name", machine.Name)
+	log = log.WithValues("kind", configOwner.GetKind(), "version", configOwner.GetResourceVersion(), "name", configOwner.GetName())
 
-	// Lookup the cluster the machine is associated with
-	cluster, err := util.GetClusterByName(ctx, r.Client, machine.ObjectMeta.Namespace, machine.Spec.ClusterName)
+	// Lookup the cluster the config owner is associated with
+	cluster, err := util.GetClusterByName(ctx, r.Client, configOwner.GetNamespace(), configOwner.ClusterName())
 	if err != nil {
 		if errors.Cause(err) == util.ErrNoCluster {
-			log.Info("Machine does not belong to a cluster yet, waiting until its part of a cluster")
+			log.Info(fmt.Sprintf("%s does not belong to a cluster yet, waiting until it's part of a cluster", configOwner.GetKind()))
 			return ctrl.Result{}, nil
 		}
 
 		if apierrors.IsNotFound(err) {
-			log.Info("Cluster does not exist yet , waiting until it is created")
+			log.Info("Cluster does not exist yet, waiting until it is created")
 			return ctrl.Result{}, nil
 		}
-		log.Error(err, "could not get cluster by machine metadata")
+		log.Error(err, "could not get cluster with metadata")
 		return ctrl.Result{}, err
 	}
 
 	scope := &Scope{
-		Logger:  log,
-		Config:  config,
-		Cluster: cluster,
-		Machine: machine,
+		Logger:      log,
+		Config:      config,
+		ConfigOwner: configOwner,
+		Cluster:     cluster,
 	}
 
 	// Initialize the patch helper.
@@ -179,13 +180,13 @@ func (r *KubeadmConfigReconciler) Reconcile(req ctrl.Request) (_ ctrl.Result, re
 		}
 		return ctrl.Result{}, patchHelper.Patch(ctx, config)
 	// Return early if the configuration and Machine's infrastructure are ready.
-	case config.Status.Ready && machine.Status.InfrastructureReady:
+	case config.Status.Ready && configOwner.IsInfrastructureReady():
 		return ctrl.Result{}, nil
 	// Reconcile status for machines that already have a secret reference, but our status isn't up to date.
 	// This case solves the pivoting scenario (or a backup restore) which doesn't preserve the status subresource on objects.
-	case machine.Spec.Bootstrap.DataSecretName != nil && (!config.Status.Ready || config.Status.DataSecretName == nil):
+	case configOwner.DataSecretName() != nil && (!config.Status.Ready || config.Status.DataSecretName == nil):
 		config.Status.Ready = true
-		config.Status.DataSecretName = machine.Spec.Bootstrap.DataSecretName
+		config.Status.DataSecretName = configOwner.DataSecretName()
 		return ctrl.Result{}, patchHelper.Patch(ctx, config)
 	// If we've already embedded a time-limited join token into a config, but are still waiting for the token to be used, refresh it
 	case config.Status.Ready && (config.Spec.JoinConfiguration != nil && config.Spec.JoinConfiguration.Discovery.BootstrapToken != nil):
@@ -237,7 +238,7 @@ func (r *KubeadmConfigReconciler) Reconcile(req ctrl.Request) (_ ctrl.Result, re
 	}
 
 	// it's a control plane join
-	if util.IsControlPlaneMachine(machine) {
+	if configOwner.IsControlPlaneMachine() {
 		return r.joinControlplane(ctx, scope)
 	}
 
@@ -247,8 +248,8 @@ func (r *KubeadmConfigReconciler) Reconcile(req ctrl.Request) (_ ctrl.Result, re
 
 func (r *KubeadmConfigReconciler) handleClusterNotInitialized(ctx context.Context, scope *Scope) (_ ctrl.Result, rerr error) {
 	// if it's NOT a control plane machine, requeue
-	if !util.IsControlPlaneMachine(scope.Machine) {
-		scope.Info(fmt.Sprintf("Machine is not a control plane. If it should be a control plane, add the label `%s: \"\"` to the Machine", clusterv1.MachineControlPlaneLabelName))
+	if !scope.ConfigOwner.IsControlPlaneMachine() {
+		scope.Info(fmt.Sprintf("ConfigOwner is not a control plane Machine. If it should be a control plane, add the label `%s: \"\"` to the Machine", clusterv1.MachineControlPlaneLabelName))
 		return ctrl.Result{RequeueAfter: 30 * time.Second}, nil
 	}
 
@@ -258,10 +259,15 @@ func (r *KubeadmConfigReconciler) handleClusterNotInitialized(ctx context.Contex
 		return ctrl.Result{RequeueAfter: 30 * time.Second}, nil
 	}
 
+	machine := &clusterv1.Machine{}
+	if err := runtime.DefaultUnstructuredConverter.FromUnstructured(scope.ConfigOwner.Object, machine); err != nil {
+		return ctrl.Result{}, errors.Wrapf(err, "cannot convert %s to Machine", scope.ConfigOwner.GetKind())
+	}
+
 	// acquire the init lock so that only the first machine configured
 	// as control plane get processed here
 	// if not the first, requeue
-	if !r.KubeadmInitLock.Lock(ctx, scope.Cluster, scope.Machine) {
+	if !r.KubeadmInitLock.Lock(ctx, scope.Cluster, machine) {
 		scope.Info("A control plane is already being initialized, requeing until control plane is ready")
 		return ctrl.Result{RequeueAfter: 30 * time.Second}, nil
 	}
@@ -304,7 +310,7 @@ func (r *KubeadmConfigReconciler) handleClusterNotInitialized(ctx context.Contex
 	}
 
 	// injects into config.ClusterConfiguration values from top level object
-	r.reconcileTopLevelObjectSettings(scope.Cluster, scope.Machine, scope.Config)
+	r.reconcileTopLevelObjectSettings(scope.Cluster, machine, scope.Config)
 
 	clusterdata, err := kubeadmv1beta1.ConfigurationToYAML(scope.Config.Spec.ClusterConfiguration)
 	if err != nil {
@@ -409,6 +415,10 @@ func (r *KubeadmConfigReconciler) joinWorker(ctx context.Context, scope *Scope) 
 }
 
 func (r *KubeadmConfigReconciler) joinControlplane(ctx context.Context, scope *Scope) (ctrl.Result, error) {
+	if !scope.ConfigOwner.IsControlPlaneMachine() {
+		return ctrl.Result{}, fmt.Errorf("%s is not a valid control plane kind, only Machine is supported", scope.ConfigOwner.GetKind())
+	}
+
 	if scope.Config.Spec.JoinConfiguration.ControlPlane == nil {
 		scope.Config.Spec.JoinConfiguration.ControlPlane = &kubeadmv1beta1.JoinControlPlane{}
 	}

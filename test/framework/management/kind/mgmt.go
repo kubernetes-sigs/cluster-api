@@ -30,6 +30,7 @@ import (
 	"k8s.io/client-go/tools/clientcmd"
 	"sigs.k8s.io/cluster-api/test/framework/exec"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/client/apiutil"
 )
 
 // Shells out to `kind`, `kubectl`
@@ -45,7 +46,7 @@ type Cluster struct {
 	//       (pod logs, exec and any other subresources)
 }
 
-// NewCluster sets up a new cluster to be used as the management cluster.
+// NewCluster sets up a new kind cluster to be used as the management cluster.
 func NewCluster(ctx context.Context, name string, scheme *runtime.Scheme, images ...string) (*Cluster, error) {
 	cmd := exec.NewCommand(
 		exec.WithCommand("kind"),
@@ -179,7 +180,15 @@ func getKubeconfigPath(ctx context.Context, name string) (string, error) {
 
 // ClientFromRestConfig returns a controller-runtime client from a RESTConfig.
 func (c *Cluster) ClientFromRestConfig(restConfig *rest.Config) (client.Client, error) {
-	cl, err := client.New(restConfig, client.Options{Scheme: c.Scheme})
+	// Adding mapper to auto-discover schemes
+	restMapper, err := apiutil.NewDynamicRESTMapper(restConfig)
+	if err != nil {
+		return nil, errors.WithStack(err)
+	}
+	cl, err := client.New(restConfig, client.Options{
+		Scheme: c.Scheme,
+		Mapper: restMapper,
+	})
 	if err != nil {
 		return nil, errors.WithStack(err)
 	}

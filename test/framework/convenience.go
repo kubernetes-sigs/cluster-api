@@ -39,6 +39,16 @@ func InstallComponents(ctx context.Context, mgmt Applier, components ...Componen
 // WaitForAPIServiceAvailable will wait for an an APIService to be available.
 // For example, kubectl wait --for=condition=Available --timeout=300s apiservice v1beta1.webhook.cert-manager.io
 func WaitForAPIServiceAvailable(ctx context.Context, mgmt Waiter, serviceName string) {
+	By(fmt.Sprintf("waiting for api service %q to be available", serviceName))
 	err := mgmt.Wait(ctx, "--for", "condition=Available", "--timeout", "300s", "apiservice", serviceName)
+	Expect(err).NotTo(HaveOccurred(), "stack: %+v", err)
+}
+
+// WaitForPodsReadyInNamespace will wait for all pods to be Ready in the
+// specified namespace.
+// For example, kubectl wait --for=condition=Ready --timeout=300s --namespace capi-system pods --all
+func WaitForPodsReadyInNamespace(ctx context.Context, cluster Waiter, namespace string) {
+	By(fmt.Sprintf("waiting for pods to be ready in namespace %q", namespace))
+	err := cluster.Wait(ctx, "--for", "condition=Ready", "--timeout", "300s", "--namespace", namespace, "pods", "--all")
 	Expect(err).NotTo(HaveOccurred(), "stack: %+v", err)
 }

@@ -15,29 +15,34 @@ Before getting started you should be aware of the expectations that come with us
 
 To use this, you will need to create an etcd cluster and generate an apiserver-etcd-client key/pair.
 This behaviour can be tested using [`kubeadm`](https://kubernetes.io/docs/setup/production-environment/tools/kubeadm/setup-ha-etcd-with-kubeadm/) and [`etcdadm`](https://github.com/kubernetes-sigs/etcdadm).
+ 
+### Setting up etcd with kubeadm 
 
-
-### Using kubeadm 
-Once you created the etcd cluster, CA certificates are required.
-If you already have a CA then the CA's `key` and `crt` must be copied to `/etc/kubernetes/pki/etcd/ca.crt` and `/etc/kubernetes/pki/etcd/ca.key`.
+CA certificates are required to setup etcd cluster.
+If you already have a CA then the CA's `key` and `crt` must be copied to `/etc/kubernetes/pki/etcd/ca.crt` and `/etc/kubernetes/pki/etcd/ca.key`. 
 
 If you do not already have a CA then run command `kubeadm init phase certs etcd-ca`. This creates two files
 
  * `/etc/kubernetes/pki/etcd/ca.crt`
  * `/etc/kubernetes/pki/etcd/ca.key`  
 
-### Using etcdadm
-CA's `key` and `crt` generated using `etcdadm` are stored in `/etc/etcd/pki/apiserver-etcd-client.crt` and `/etc/etcd/pki/apiserver-etcd-client.key` .
+These key/pair are used to sign etcd server, peer certificates and eventually apiserver-etcd client. More information on how to setup external etcd with kubeadm can be found [`here`](https://kubernetes.io/docs/setup/production-environment/tools/kubeadm/setup-ha-etcd-with-kubeadm/#setting-up-the-cluster).
 
+You would require files `/etc/kubernetes/pki/apiserver-etcd-client.key`, `/etc/kubernetes/pki/apiserver-etcd-client.crt` and `/etc/kubernetes/pki/etcd/server.crt` to setup etcd cluster. These are put in 2 secrets.
 
-Now it is required to create 2 [`secrets`](https://kubernetes.io/docs/concepts/configuration/secret/#creating-a-secret-using-kubectl-create-secret) using these server and etcd client key/pair. This can be done using command,
+```
+# Kubernetes APIServer etcd client certificate
+$ kubectl create secret tls $CLUSTER_NAME-apiserver-etcd-client \
+  --cert /etc/kubernetes/pki/apiserver-etcd-client.crt --key /etc/kubernetes/pki/apiserver-etcd-client.crt \
+  --namespace $CLUSTER_NAMESPACE
 
- `kubectl create secret tls $CLUSTER_NAME-apiserver-etcd-client --cert ${CERT_FILE} --key ${KEY_FILE} --namespace $CLUSTER_NAMESPACE`
-
+# Etcd's CA crt file to validate the generated client certificates
+$ kubectl create secret tls $CLUSTER_NAME-etcd --cert /etc/kubernetes/pki/etcd/server.crt \ 
+  --namespace $CLUSTER_NAMESPACE
+```
 **Note:** Above command has key/pair base64 encoded by default. 
 
-**Note:** Alternatively you can base64 encode the `/etc/etcd/pki/apiserver-etcd-client.crt`,
-`/etc/etcd/pki/apiserver-etcd-client.key`, and `/etc/etcd/pki/server.crt` files and put them in two secrets. The secrets
+**Note:** Alternatively you can base64 encode the files and put them in two secrets. The secrets
 must be formatted as follows and the cert material must be base64 encoded:
 
 ```yaml
@@ -72,6 +77,14 @@ data:
     ...
 ```
 
+### Setting up etcd with etcdadm (Alpha)
+`etcdadm` creates the CA if one does not exist, uses it to sign it's server and peer certificates, and finally to sign the apiserver etcd client certificate.
+CA's `key` and `crt` generated using `etcdadm` are stored in `/etc/etcd/pki/apiserver-etcd-client.crt`, `/etc/etcd/pki/apiserver-etcd-client.key` and `/etc/etcd/pki/server.crt` .
+
+
+Just like kubeadm, it is required to create 2 [`secrets`](https://kubernetes.io/docs/concepts/configuration/secret/#creating-a-secret-using-kubectl-create-secret) using these server and etcd client key/pair.
+
+## Configuring CABPK
 After that the rest is standard Kubeadm. Config your ClusterConfiguration as follows:
 
 ```yaml

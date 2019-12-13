@@ -17,8 +17,13 @@ limitations under the License.
 package cmd
 
 import (
+	"fmt"
+	"os"
+	"text/tabwriter"
+
 	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
+	"sigs.k8s.io/cluster-api/cmd/clusterctl/pkg/client"
 )
 
 type configProvidersOptions struct {
@@ -80,6 +85,23 @@ func init() {
 }
 
 func runGetRepositories() error {
+	c, err := client.New(cfgFile)
+	if err != nil {
+		return err
+	}
+
+	repositoryList, err := c.GetProvidersConfig()
+	if err != nil {
+		return err
+	}
+
+	w := tabwriter.NewWriter(os.Stdout, 10, 4, 3, ' ', 0)
+	fmt.Fprintln(w, "NAME\tTYPE\tURL")
+	for _, r := range repositoryList {
+		fmt.Fprintf(w, "%s\t%s\t%s\n", r.Name(), r.Type(), r.URL())
+	}
+	w.Flush()
+
 	return nil
 }
 

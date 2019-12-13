@@ -525,6 +525,7 @@ func autoConvert_v1alpha2_ClusterStatus_To_v1alpha3_ClusterStatus(in *ClusterSta
 }
 
 func autoConvert_v1alpha3_ClusterStatus_To_v1alpha2_ClusterStatus(in *v1alpha3.ClusterStatus, out *ClusterStatus, s conversion.Scope) error {
+	// WARNING: in.FailureDomains requires manual conversion: does not exist in peer-type
 	// WARNING: in.FailureReason requires manual conversion: does not exist in peer-type
 	// WARNING: in.FailureMessage requires manual conversion: does not exist in peer-type
 	out.Phase = in.Phase

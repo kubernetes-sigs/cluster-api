@@ -510,6 +510,7 @@ func autoConvert_v1alpha2_ClusterSpec_To_v1alpha3_ClusterSpec(in *ClusterSpec, o
 func autoConvert_v1alpha3_ClusterSpec_To_v1alpha2_ClusterSpec(in *v1alpha3.ClusterSpec, out *ClusterSpec, s conversion.Scope) error {
 	out.ClusterNetwork = (*ClusterNetwork)(unsafe.Pointer(in.ClusterNetwork))
 	// WARNING: in.ControlPlaneEndpoint requires manual conversion: does not exist in peer-type
+	// WARNING: in.ControlPlaneRef requires manual conversion: does not exist in peer-type
 	out.InfrastructureRef = (*v1.ObjectReference)(unsafe.Pointer(in.InfrastructureRef))
 	return nil
 }
@@ -531,6 +532,7 @@ func autoConvert_v1alpha3_ClusterStatus_To_v1alpha2_ClusterStatus(in *v1alpha3.C
 	out.Phase = in.Phase
 	out.InfrastructureReady = in.InfrastructureReady
 	out.ControlPlaneInitialized = in.ControlPlaneInitialized
+	// WARNING: in.ControlPlaneReady requires manual conversion: does not exist in peer-type
 	return nil
 }
 

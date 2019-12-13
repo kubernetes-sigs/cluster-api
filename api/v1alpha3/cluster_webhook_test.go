@@ -33,26 +33,34 @@ func TestClusterDefault(t *testing.T) {
 		},
 		Spec: ClusterSpec{
 			InfrastructureRef: &corev1.ObjectReference{},
+			ControlPlaneRef:   &corev1.ObjectReference{},
 		},
 	}
 	c.Default()
 
 	g.Expect(c.Spec.InfrastructureRef.Namespace).To(gomega.Equal(c.Namespace))
+	g.Expect(c.Spec.ControlPlaneRef.Namespace).To(gomega.Equal(c.Namespace))
 }
 
 func TestClusterValidation(t *testing.T) {
-	invalid := &Cluster{
+	valid := &Cluster{
 		ObjectMeta: metav1.ObjectMeta{
-			Namespace: "fooboo",
+			Namespace: "foo",
 		},
 		Spec: ClusterSpec{
+			ControlPlaneRef: &corev1.ObjectReference{
+				Namespace: "foo",
+			},
 			InfrastructureRef: &corev1.ObjectReference{
-				Namespace: "foobar",
+				Namespace: "foo",
 			},
 		},
 	}
-	valid := invalid.DeepCopy()
-	valid.Spec.InfrastructureRef.Namespace = valid.Namespace
+	invalidInfraNamespace := valid.DeepCopy()
+	invalidInfraNamespace.Spec.InfrastructureRef.Namespace = "bar"
+
+	invalidCPNamespace := valid.DeepCopy()
+	invalidCPNamespace.Spec.InfrastructureRef.Namespace = "baz"
 
 	tests := []struct {
 		name      string
@@ -62,7 +70,12 @@ func TestClusterValidation(t *testing.T) {
 		{
 			name:      "should return error when cluster namespace and infrastructure ref namespace mismatch",
 			expectErr: true,
-			c:         invalid,
+			c:         invalidInfraNamespace,
+		},
+		{
+			name:      "should return error when cluster namespace and controlplane ref namespace mismatch",
+			expectErr: true,
+			c:         invalidCPNamespace,
 		},
 		{
 			name:      "should succeed when namespaces match",

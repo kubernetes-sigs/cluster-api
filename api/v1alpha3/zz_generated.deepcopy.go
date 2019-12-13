@@ -171,6 +171,11 @@ func (in *ClusterSpec) DeepCopyInto(out *ClusterSpec) {
 		(*in).DeepCopyInto(*out)
 	}
 	out.ControlPlaneEndpoint = in.ControlPlaneEndpoint
+	if in.ControlPlaneRef != nil {
+		in, out := &in.ControlPlaneRef, &out.ControlPlaneRef
+		*out = new(v1.ObjectReference)
+		**out = **in
+	}
 	if in.InfrastructureRef != nil {
 		in, out := &in.InfrastructureRef, &out.InfrastructureRef
 		*out = new(v1.ObjectReference)

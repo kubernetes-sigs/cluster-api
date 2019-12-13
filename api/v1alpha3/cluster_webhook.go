@@ -40,6 +40,10 @@ func (c *Cluster) Default() {
 	if c.Spec.InfrastructureRef != nil && len(c.Spec.InfrastructureRef.Namespace) == 0 {
 		c.Spec.InfrastructureRef.Namespace = c.Namespace
 	}
+
+	if c.Spec.ControlPlaneRef != nil && len(c.Spec.ControlPlaneRef.Namespace) == 0 {
+		c.Spec.ControlPlaneRef.Namespace = c.Namespace
+	}
 }
 
 // ValidateCreate implements webhook.Validator so a webhook will be registered for the type
@@ -70,6 +74,19 @@ func (c *Cluster) validate() error {
 		)
 
 	}
+
+	if c.Spec.ControlPlaneRef != nil && c.Spec.ControlPlaneRef.Namespace != c.Namespace {
+		allErrs = append(
+			allErrs,
+			field.Invalid(
+				field.NewPath("spec", "controlPlaneRef", "namespace"),
+				c.Spec.ControlPlaneRef.Namespace,
+				"must match metadata.namespace",
+			),
+		)
+
+	}
+
 	if len(allErrs) == 0 {
 		return nil
 	}

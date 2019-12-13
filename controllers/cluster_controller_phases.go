@@ -184,8 +184,52 @@ func (r *ClusterReconciler) reconcileInfrastructure(ctx context.Context, cluster
 	return nil
 }
 
+// reconcileControlPlane reconciles the Spec.ControlPlaneRef object on a Cluster.
+func (r *ClusterReconciler) reconcileControlPlane(ctx context.Context, cluster *clusterv1.Cluster) error {
+	if cluster.Spec.ControlPlaneRef == nil {
+		return nil
+	}
+
+	// Call generic external reconciler.
+	controlPlaneConfig, err := r.reconcileExternal(ctx, cluster, cluster.Spec.ControlPlaneRef)
+	if err != nil {
+		return err
+	}
+
+	// There's no need to go any further if the control plane resource is marked for deletion.
+	if !controlPlaneConfig.GetDeletionTimestamp().IsZero() {
+		return nil
+	}
+
+	// Update cluster.Status.ControlPlaneInitialized if it hasn't already been set
+	// Determine if the control plane provider is initialized.
+	if !cluster.Status.ControlPlaneInitialized {
+		initialized, err := external.IsInitialized(controlPlaneConfig)
+		if err != nil {
+			return err
+		}
+		cluster.Status.ControlPlaneInitialized = initialized
+	}
+
+	// Determine if the control plane provider is ready.
+	ready, err := external.IsReady(controlPlaneConfig)
+	if err != nil {
+		return err
+	}
+	cluster.Status.ControlPlaneReady = ready
+
+	return nil
+}
+
 func (r *ClusterReconciler) reconcileKubeconfig(ctx context.Context, cluster *clusterv1.Cluster) error {
 	if cluster.Spec.ControlPlaneEndpoint.IsZero() {
+		return nil
+	}
+
+	// Do not generate the Kubeconfig if there is a ControlPlaneRef, since the Control Plane provider is
+	// responsible for the management of the Kubeconfig. We continue to manage it here only for backward
+	// compatibility when a Control Plane provider is not in use.
+	if cluster.Spec.ControlPlaneRef != nil {
 		return nil
 	}
 
@@ -203,5 +247,6 @@ func (r *ClusterReconciler) reconcileKubeconfig(ctx context.Context, cluster *cl
 	case err != nil:
 		return errors.Wrapf(err, "failed to retrieve Kubeconfig Secret for Cluster %q in namespace %q", cluster.Name, cluster.Namespace)
 	}
+
 	return nil
 }

@@ -168,6 +168,9 @@ func Convert_v1alpha2_ClusterSpec_To_v1alpha3_ClusterSpec(in *ClusterSpec, out *
 	if err := autoConvert_v1alpha2_ClusterSpec_To_v1alpha3_ClusterSpec(in, out, s); err != nil {
 		return err
 	}
+
+	// Discards ControlPlaneRef
+
 	return nil
 }
 
@@ -187,6 +190,8 @@ func Convert_v1alpha3_ClusterStatus_To_v1alpha2_ClusterStatus(in *v1alpha3.Clust
 	if err := autoConvert_v1alpha3_ClusterStatus_To_v1alpha2_ClusterStatus(in, out, s); err != nil {
 		return err
 	}
+
+	// Discards ControlPlaneReady
 
 	// Manually convert the Failure fields to the Error fields
 	out.ErrorMessage = in.FailureMessage

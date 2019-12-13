@@ -83,12 +83,12 @@ type KubeadmControlPlaneStatus struct {
 	// Initialized denotes whether or not the control plane has the
 	// uploaded kubeadm-config configmap.
 	// +optional
-	Initialized bool `json:"initialized,omitempty"`
+	Initialized bool `json:"initialized"`
 
 	// Ready denotes that the KubeadmControlPlane API Server is ready to
 	// receive requests.
 	// +optional
-	Ready bool `json:"ready,omitempty"`
+	Ready bool `json:"ready"`
 
 	// FailureReason indicates that there is a terminal problem reconciling the
 	// state, and will be set to a token value suitable for

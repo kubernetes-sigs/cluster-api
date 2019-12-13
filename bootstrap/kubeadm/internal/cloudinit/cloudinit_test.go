@@ -21,8 +21,8 @@ import (
 	"testing"
 
 	infrav1 "sigs.k8s.io/cluster-api/bootstrap/kubeadm/api/v1alpha3"
-	"sigs.k8s.io/cluster-api/bootstrap/kubeadm/internal/cluster"
 	"sigs.k8s.io/cluster-api/util/certs"
+	"sigs.k8s.io/cluster-api/util/secret"
 )
 
 func TestNewInitControlPlaneAdditionalFileEncodings(t *testing.T) {
@@ -46,7 +46,7 @@ func TestNewInitControlPlaneAdditionalFileEncodings(t *testing.T) {
 			Users:      nil,
 			NTP:        nil,
 		},
-		Certificates:         cluster.Certificates{},
+		Certificates:         secret.Certificates{},
 		ClusterConfiguration: "my-cluster-config",
 		InitConfiguration:    "my-init-config",
 	}
@@ -89,7 +89,7 @@ func TestNewInitControlPlaneCommands(t *testing.T) {
 			Users:               nil,
 			NTP:                 nil,
 		},
-		Certificates:         cluster.Certificates{},
+		Certificates:         secret.Certificates{},
 		ClusterConfiguration: "my-cluster-config",
 		InitConfiguration:    "my-init-config",
 	}

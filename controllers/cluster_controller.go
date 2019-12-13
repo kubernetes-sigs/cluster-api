@@ -144,6 +144,7 @@ func (r *ClusterReconciler) reconcile(ctx context.Context, cluster *clusterv1.Cl
 	// Call the inner reconciliation methods.
 	reconciliationErrors := []error{
 		r.reconcileInfrastructure(ctx, cluster),
+		r.reconcileControlPlane(ctx, cluster),
 		r.reconcileKubeconfig(ctx, cluster),
 		r.reconcileControlPlaneInitialized(ctx, cluster),
 	}

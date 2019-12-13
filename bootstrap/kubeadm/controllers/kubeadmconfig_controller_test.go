@@ -34,7 +34,6 @@ import (
 	"k8s.io/utils/pointer"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha3"
 	bootstrapv1 "sigs.k8s.io/cluster-api/bootstrap/kubeadm/api/v1alpha3"
-	internalcluster "sigs.k8s.io/cluster-api/bootstrap/kubeadm/internal/cluster"
 	kubeadmv1beta1 "sigs.k8s.io/cluster-api/bootstrap/kubeadm/types/v1beta1"
 	"sigs.k8s.io/cluster-api/util/secret"
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -1045,7 +1044,7 @@ func TestKubeadmConfigReconciler_Reconcile_DisocveryReconcileBehaviors(t *testin
 
 	for _, tc := range testcases {
 		t.Run(tc.name, func(t *testing.T) {
-			err := k.reconcileDiscovery(tc.cluster, tc.config, internalcluster.Certificates{})
+			err := k.reconcileDiscovery(tc.cluster, tc.config, secret.Certificates{})
 			if err != nil {
 				t.Errorf("expected nil, got error %v", err)
 			}
@@ -1088,7 +1087,7 @@ func TestKubeadmConfigReconciler_Reconcile_DisocveryReconcileFailureBehaviors(t 
 
 	for _, tc := range testcases {
 		t.Run(tc.name, func(t *testing.T) {
-			err := k.reconcileDiscovery(tc.cluster, tc.config, internalcluster.Certificates{})
+			err := k.reconcileDiscovery(tc.cluster, tc.config, secret.Certificates{})
 			if err == nil {
 				t.Error("expected error, got nil")
 			}
@@ -1333,7 +1332,7 @@ func TestKubeadmConfigReconciler_Reconcile_DoesNotFailIfCASecretsAlreadyExist(t 
 	c := newControlPlaneInitKubeadmConfig(m, configName)
 	scrt := &corev1.Secret{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      fmt.Sprintf("%s-%s", cluster.Name, internalcluster.EtcdCA),
+			Name:      fmt.Sprintf("%s-%s", cluster.Name, secret.EtcdCA),
 			Namespace: "default",
 		},
 		Data: map[string][]byte{
@@ -1580,17 +1579,17 @@ func newControlPlaneInitKubeadmConfig(machine *clusterv1.Machine, name string) *
 	return c
 }
 
-func createSecrets(t *testing.T, cluster *clusterv1.Cluster, owner *bootstrapv1.KubeadmConfig) []runtime.Object {
+func createSecrets(t *testing.T, cluster *clusterv1.Cluster, config *bootstrapv1.KubeadmConfig) []runtime.Object {
 	out := []runtime.Object{}
-	if owner.Spec.ClusterConfiguration == nil {
-		owner.Spec.ClusterConfiguration = &kubeadmv1beta1.ClusterConfiguration{}
+	if config.Spec.ClusterConfiguration == nil {
+		config.Spec.ClusterConfiguration = &kubeadmv1beta1.ClusterConfiguration{}
 	}
-	certificates := internalcluster.NewCertificatesForInitialControlPlane(owner.Spec.ClusterConfiguration)
+	certificates := secret.NewCertificatesForInitialControlPlane(config.Spec.ClusterConfiguration)
 	if err := certificates.Generate(); err != nil {
 		t.Fatal(err)
 	}
 	for _, certificate := range certificates {
-		out = append(out, certificate.AsSecret(cluster, owner))
+		out = append(out, certificate.AsSecret(types.NamespacedName{Name: cluster.Name, Namespace: cluster.Namespace}, *metav1.NewControllerRef(config, bootstrapv1.GroupVersion.WithKind("KubeadmConfig"))))
 	}
 	return out
 }

@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package cluster
+package secret
 
 import (
 	"context"
@@ -33,29 +33,17 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/util/cert"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha3"
 	bootstrapv1 "sigs.k8s.io/cluster-api/bootstrap/kubeadm/api/v1alpha3"
 	"sigs.k8s.io/cluster-api/bootstrap/kubeadm/types/v1beta1"
 	"sigs.k8s.io/cluster-api/util/certs"
-	"sigs.k8s.io/cluster-api/util/secret"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
 const (
 	rootOwnerValue = "root:root"
-
-	// EtcdCA is the secret name suffix for the Etcd CA
-	EtcdCA secret.Purpose = "etcd"
-
-	// ServiceAccount is the secret name suffix for the Service Account keys
-	ServiceAccount secret.Purpose = "sa"
-
-	// FrontProxyCA is the secret name suffix for Front Proxy CA
-	FrontProxyCA secret.Purpose = "proxy"
-
-	// APIServerEtcdClient is the secret name of user-supplied secret containing the apiserver-etcd-client key/cert
-	APIServerEtcdClient secret.Purpose = "apiserver-etcd-client"
 
 	defaultCertificatesDir = "/etc/kubernetes/pki"
 )
@@ -82,7 +70,7 @@ func NewCertificatesForInitialControlPlane(config *v1beta1.ClusterConfiguration)
 
 	certificates := Certificates{
 		&Certificate{
-			Purpose:  secret.ClusterCA,
+			Purpose:  ClusterCA,
 			CertFile: filepath.Join(config.CertificatesDir, "ca.crt"),
 			KeyFile:  filepath.Join(config.CertificatesDir, "ca.key"),
 		},
@@ -126,7 +114,7 @@ func NewCertificatesForInitialControlPlane(config *v1beta1.ClusterConfiguration)
 func NewCertificatesForJoiningControlPlane() Certificates {
 	return Certificates{
 		&Certificate{
-			Purpose:  secret.ClusterCA,
+			Purpose:  ClusterCA,
 			CertFile: filepath.Join(defaultCertificatesDir, "ca.crt"),
 			KeyFile:  filepath.Join(defaultCertificatesDir, "ca.key"),
 		},
@@ -156,7 +144,7 @@ func NewCertificatesForWorker(caCertPath string) Certificates {
 
 	return Certificates{
 		&Certificate{
-			Purpose:  secret.ClusterCA,
+			Purpose:  ClusterCA,
 			CertFile: caCertPath,
 		},
 	}
@@ -164,7 +152,7 @@ func NewCertificatesForWorker(caCertPath string) Certificates {
 
 // GetByPurpose returns a certificate by the given name.
 // This could be removed if we use a map instead of a slice to hold certificates, however other code becomes more complex.
-func (c Certificates) GetByPurpose(purpose secret.Purpose) *Certificate {
+func (c Certificates) GetByPurpose(purpose Purpose) *Certificate {
 	for _, certificate := range c {
 		if certificate.Purpose == purpose {
 			return certificate
@@ -174,13 +162,13 @@ func (c Certificates) GetByPurpose(purpose secret.Purpose) *Certificate {
 }
 
 // Lookup looks up each certificate from secrets and populates the certificate with the secret data.
-func (c Certificates) Lookup(ctx context.Context, ctrlclient client.Client, cluster *clusterv1.Cluster) error {
+func (c Certificates) Lookup(ctx context.Context, ctrlclient client.Client, clusterName types.NamespacedName) error {
 	// Look up each certificate as a secret and populate the certificate/key
 	for _, certificate := range c {
 		s := &corev1.Secret{}
 		key := client.ObjectKey{
-			Name:      secret.Name(cluster.Name, certificate.Purpose),
-			Namespace: cluster.Namespace,
+			Name:      Name(clusterName.Name, certificate.Purpose),
+			Namespace: clusterName.Namespace,
 		}
 		if err := ctrlclient.Get(ctx, key, s); err != nil {
 			if apierrors.IsNotFound(err) {
@@ -243,12 +231,12 @@ func (c Certificates) Generate() error {
 }
 
 // SaveGenerated will save any certificates that have been generated as Kubernetes secrets.
-func (c Certificates) SaveGenerated(ctx context.Context, ctrlclient client.Client, cluster *clusterv1.Cluster, config *bootstrapv1.KubeadmConfig) error {
+func (c Certificates) SaveGenerated(ctx context.Context, ctrlclient client.Client, clusterName types.NamespacedName, owner metav1.OwnerReference) error {
 	for _, certificate := range c {
 		if !certificate.Generated {
 			continue
 		}
-		s := certificate.AsSecret(cluster, config)
+		s := certificate.AsSecret(clusterName, owner)
 		if err := ctrlclient.Create(ctx, s); err != nil {
 			return errors.WithStack(err)
 		}
@@ -257,9 +245,9 @@ func (c Certificates) SaveGenerated(ctx context.Context, ctrlclient client.Clien
 }
 
 // LookupOrGenerate is a convenience function that wraps cluster bootstrap certificate behavior.
-func (c Certificates) LookupOrGenerate(ctx context.Context, ctrlclient client.Client, cluster *clusterv1.Cluster, config *bootstrapv1.KubeadmConfig) error {
+func (c Certificates) LookupOrGenerate(ctx context.Context, ctrlclient client.Client, clusterName types.NamespacedName, owner metav1.OwnerReference) error {
 	// Find the certificates that exist
-	if err := c.Lookup(ctx, ctrlclient, cluster); err != nil {
+	if err := c.Lookup(ctx, ctrlclient, clusterName); err != nil {
 		return err
 	}
 
@@ -269,7 +257,7 @@ func (c Certificates) LookupOrGenerate(ctx context.Context, ctrlclient client.Cl
 	}
 
 	// Save any certificates that have been generated
-	if err := c.SaveGenerated(ctx, ctrlclient, cluster, config); err != nil {
+	if err := c.SaveGenerated(ctx, ctrlclient, clusterName, owner); err != nil {
 		return err
 	}
 
@@ -279,7 +267,7 @@ func (c Certificates) LookupOrGenerate(ctx context.Context, ctrlclient client.Cl
 // Certificate represents a single certificate CA.
 type Certificate struct {
 	Generated         bool
-	Purpose           secret.Purpose
+	Purpose           Purpose
 	KeyPair           *certs.KeyPair
 	CertFile, KeyFile string
 }
@@ -304,30 +292,23 @@ func hashCert(certificate *x509.Certificate) string {
 }
 
 // AsSecret converts a single certificate into a Kubernetes secret.
-func (c *Certificate) AsSecret(cluster *clusterv1.Cluster, config *bootstrapv1.KubeadmConfig) *corev1.Secret {
+func (c *Certificate) AsSecret(clusterName types.NamespacedName, owner metav1.OwnerReference) *corev1.Secret {
 	s := &corev1.Secret{
 		ObjectMeta: metav1.ObjectMeta{
-			Namespace: cluster.Namespace,
-			Name:      secret.Name(cluster.Name, c.Purpose),
+			Namespace: clusterName.Namespace,
+			Name:      Name(clusterName.Name, c.Purpose),
 			Labels: map[string]string{
-				clusterv1.ClusterLabelName: cluster.Name,
+				clusterv1.ClusterLabelName: clusterName.Name,
 			},
 		},
 		Data: map[string][]byte{
-			secret.TLSKeyDataName: c.KeyPair.Key,
-			secret.TLSCrtDataName: c.KeyPair.Cert,
+			TLSKeyDataName: c.KeyPair.Key,
+			TLSCrtDataName: c.KeyPair.Cert,
 		},
 	}
 
 	if c.Generated {
-		s.OwnerReferences = []metav1.OwnerReference{
-			{
-				APIVersion: bootstrapv1.GroupVersion.String(),
-				Kind:       "KubeadmConfig",
-				Name:       config.Name,
-				UID:        config.UID,
-			},
-		}
+		s.OwnerReferences = []metav1.OwnerReference{owner}
 	}
 	return s
 }
@@ -356,7 +337,7 @@ func (c *Certificate) AsFiles() []bootstrapv1.File {
 
 // AsFiles converts a slice of certificates into bootstrap files.
 func (c Certificates) AsFiles() []bootstrapv1.File {
-	clusterCA := c.GetByPurpose(secret.ClusterCA)
+	clusterCA := c.GetByPurpose(ClusterCA)
 	etcdCA := c.GetByPurpose(EtcdCA)
 	frontProxyCA := c.GetByPurpose(FrontProxyCA)
 	serviceAccountKey := c.GetByPurpose(ServiceAccount)
@@ -385,14 +366,14 @@ func (c Certificates) AsFiles() []bootstrapv1.File {
 }
 
 func secretToKeyPair(s *corev1.Secret) (*certs.KeyPair, error) {
-	c, exists := s.Data[secret.TLSCrtDataName]
+	c, exists := s.Data[TLSCrtDataName]
 	if !exists {
-		return nil, errors.Errorf("missing data for key %s", secret.TLSCrtDataName)
+		return nil, errors.Errorf("missing data for key %s", TLSCrtDataName)
 	}
 
 	// In some cases (external etcd) it's ok if the etcd.key does not exist.
 	// TODO: some other function should ensure that the certificates we need exist.
-	key, exists := s.Data[secret.TLSKeyDataName]
+	key, exists := s.Data[TLSKeyDataName]
 	if !exists {
 		key = []byte("")
 	}

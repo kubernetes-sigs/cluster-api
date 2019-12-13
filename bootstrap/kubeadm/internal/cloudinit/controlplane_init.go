@@ -17,7 +17,7 @@ limitations under the License.
 package cloudinit
 
 import (
-	"sigs.k8s.io/cluster-api/bootstrap/kubeadm/internal/cluster"
+	"sigs.k8s.io/cluster-api/util/secret"
 )
 
 const (
@@ -43,7 +43,7 @@ runcmd:
 // ControlPlaneInput defines the context to generate a controlplane instance user data.
 type ControlPlaneInput struct {
 	BaseUserData
-	cluster.Certificates
+	secret.Certificates
 
 	ClusterConfiguration string
 	InitConfiguration    string

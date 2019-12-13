@@ -50,17 +50,20 @@ var _ = BeforeSuite(func() {
 	if managerImage == "" {
 		managerImage = "gcr.io/k8s-staging-capi-docker/capd-manager-amd64:dev"
 	}
+	capiImage := os.Getenv("CAPI_IMAGE")
+	if capiImage == "" {
+		capiImage = "gcr.io/k8s-staging-cluster-api/cluster-api-controller:master"
+	}
 	By("setting up in BeforeSuite")
 	var err error
 
 	// Set up the provider component generators based on master
 	core := &generators.ClusterAPI{GitRef: "master"}
-
 	// set up capd components based on current files
 	infra := &provider{}
 
 	// set up cert manager
-	cm := &generators.CertManager{ReleaseVersion: "v0.11.0"}
+	cm := &generators.CertManager{ReleaseVersion: "v0.11.1"}
 
 	scheme := runtime.NewScheme()
 	Expect(corev1.AddToScheme(scheme)).To(Succeed())
@@ -69,18 +72,22 @@ var _ = BeforeSuite(func() {
 	Expect(infrav1.AddToScheme(scheme)).To(Succeed())
 
 	// Create the management cluster
-	mgmt, err = NewClusterForCAPD(ctx, "mgmt", scheme, managerImage)
+	mgmt, err = NewClusterForCAPD(ctx, "mgmt", scheme, managerImage, capiImage)
 	Expect(err).NotTo(HaveOccurred())
 	Expect(mgmt).NotTo(BeNil())
 
 	// Install all components
 	// Install the cert-manager components first as some CRDs there will be part of the other providers
-	framework.InstallComponents(ctx, mgmt, cm, core, infra)
+	framework.InstallComponents(ctx, mgmt, cm)
 
 	// Wait for cert manager service
 	// TODO: consider finding a way to make this service name dynamic.
 	framework.WaitForAPIServiceAvailable(ctx, mgmt, "v1beta1.webhook.cert-manager.io")
 
+	framework.InstallComponents(ctx, mgmt, core, infra)
+	framework.WaitForPodsReadyInNamespace(ctx, mgmt, "capi-system")
+	framework.WaitForPodsReadyInNamespace(ctx, mgmt, "capd-system")
+	framework.WaitForPodsReadyInNamespace(ctx, mgmt, "cert-manager")
 	// TODO: maybe wait for controller components to be ready
 })
 

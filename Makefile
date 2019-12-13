@@ -161,7 +161,7 @@ generate-go: $(CONTROLLER_GEN) $(CONVERSION_GEN) ## Runs Go related generate tar
 		--output-file-base=zz_generated.conversion \
 		--go-header-file=./hack/boilerplate/boilerplate.generatego.txt
 	$(CONVERSION_GEN) \
-		--input-dirs=./bootstrap/kubeadm/api/v1alpha2 \
+		--input-dirs=./bootstrap/kubeadm/api/v1alpha3 \
 		--output-file-base=zz_generated.conversion \
 		--go-header-file=./hack/boilerplate/boilerplate.generatego.txt
 

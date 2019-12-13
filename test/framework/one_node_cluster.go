@@ -18,6 +18,7 @@ package framework
 
 import (
 	"context"
+	"fmt"
 	"time"
 
 	. "github.com/onsi/ginkgo"
@@ -61,7 +62,13 @@ func OneNodeCluster(input *OneNodeClusterInput) {
 	Expect(mgmtClient.Create(ctx, input.InfraCluster)).NotTo(HaveOccurred())
 
 	By("creating a Cluster resource linked to the InfrastructureCluster resource")
-	Expect(mgmtClient.Create(ctx, input.Cluster)).NotTo(HaveOccurred())
+	Eventually(func() error {
+		err := mgmtClient.Create(ctx, input.Cluster)
+		if err != nil {
+			fmt.Println(err)
+		}
+		return err
+	}, input.CreateTimeout, 10*time.Second).Should(BeNil())
 
 	// Wait for the cluster infrastructure
 	Eventually(func() string {

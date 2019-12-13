@@ -18,10 +18,12 @@ package controllers
 
 import (
 	"context"
+	"encoding/base64"
 	"fmt"
 
 	"github.com/go-logr/logr"
 	"github.com/pkg/errors"
+	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/types"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha3"
@@ -49,6 +51,7 @@ type DockerMachineReconciler struct {
 // +kubebuilder:rbac:groups=infrastructure.cluster.x-k8s.io,resources=dockermachines,verbs=get;list;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups=infrastructure.cluster.x-k8s.io,resources=dockermachines/status,verbs=get;update;patch
 // +kubebuilder:rbac:groups=cluster.x-k8s.io,resources=clusters;machines,verbs=get;list;watch
+// +kubebuilder:rbac:groups="",resources=secrets;,verbs=get;list;watch
 
 // Reconcile handles DockerMachine events
 func (r *DockerMachineReconciler) Reconcile(req ctrl.Request) (_ ctrl.Result, rerr error) {
@@ -144,10 +147,10 @@ func (r *DockerMachineReconciler) Reconcile(req ctrl.Request) (_ ctrl.Result, re
 	}
 
 	// Handle non-deleted machines
-	return r.reconcileNormal(machine, dockerMachine, externalMachine, externalLoadBalancer, log)
+	return r.reconcileNormal(ctx, machine, dockerMachine, externalMachine, externalLoadBalancer, log)
 }
 
-func (r *DockerMachineReconciler) reconcileNormal(machine *clusterv1.Machine, dockerMachine *infrav1.DockerMachine, externalMachine *docker.Machine, externalLoadBalancer *docker.LoadBalancer, log logr.Logger) (ctrl.Result, error) {
+func (r *DockerMachineReconciler) reconcileNormal(ctx context.Context, machine *clusterv1.Machine, dockerMachine *infrav1.DockerMachine, externalMachine *docker.Machine, externalLoadBalancer *docker.LoadBalancer, log logr.Logger) (ctrl.Result, error) {
 	// If the DockerMachine doesn't have finalizer, add it.
 	if !util.Contains(dockerMachine.Finalizers, infrav1.MachineFinalizer) {
 		dockerMachine.Finalizers = append(dockerMachine.Finalizers, infrav1.MachineFinalizer)
@@ -159,7 +162,7 @@ func (r *DockerMachineReconciler) reconcileNormal(machine *clusterv1.Machine, do
 	}
 
 	// Make sure bootstrap data is available and populated.
-	if machine.Spec.Bootstrap.Data == nil {
+	if machine.Spec.Bootstrap.DataSecretName == nil {
 		log.Info("Waiting for the Bootstrap provider controller to set bootstrap data")
 		return ctrl.Result{}, nil
 	}
@@ -181,10 +184,15 @@ func (r *DockerMachineReconciler) reconcileNormal(machine *clusterv1.Machine, do
 		}
 	}
 
+	bootstrapData, err := r.getBootstrapData(ctx, machine)
+	if err != nil {
+		r.Log.Error(err, "failed to get bootstrap data")
+		return ctrl.Result{}, nil
+	}
 	// exec bootstrap
 	// NB. this step is necessary to mimic the behaviour of cloud-init that is embedded in the base images
 	// for other cloud providers
-	if err := externalMachine.ExecBootstrap(*machine.Spec.Bootstrap.Data); err != nil {
+	if err := externalMachine.ExecBootstrap(bootstrapData); err != nil {
 		return ctrl.Result{}, errors.Wrap(err, "failed to exec DockerMachine bootstrap")
 	}
 
@@ -285,4 +293,23 @@ func (r *DockerMachineReconciler) DockerClusterToDockerMachines(o handler.MapObj
 	}
 
 	return result
+}
+
+func (r *DockerMachineReconciler) getBootstrapData(ctx context.Context, machine *clusterv1.Machine) (string, error) {
+	if machine.Spec.Bootstrap.DataSecretName == nil {
+		return "", errors.New("error retrieving bootstrap data: linked Machine's bootstrap.dataSecretName is nil")
+	}
+
+	s := &corev1.Secret{}
+	key := types.NamespacedName{Namespace: machine.GetNamespace(), Name: *machine.Spec.Bootstrap.DataSecretName}
+	if err := r.Client.Get(ctx, key, s); err != nil {
+		return "", errors.Wrapf(err, "failed to retrieve bootstrap data secret for DockerMachine %s/%s", machine.GetNamespace(), machine.GetName())
+	}
+
+	value, ok := s.Data["value"]
+	if !ok {
+		return "", errors.New("error retrieving bootstrap data: secret value key is missing")
+	}
+
+	return base64.StdEncoding.EncodeToString(value), nil
 }

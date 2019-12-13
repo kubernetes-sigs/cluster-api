@@ -85,6 +85,9 @@ type NetworkRanges struct {
 
 // ClusterStatus defines the observed state of Cluster
 type ClusterStatus struct {
+	// FailureDomains is a slice of failure domain objects synced from the infrastructure provider.
+	FailureDomains FailureDomains `json:"failureDomains,omitempty"`
+
 	// FailureReason indicates that there is a fatal problem reconciling the
 	// state, and will be set to a token value suitable for
 	// programmatic interpretation.
@@ -182,4 +185,31 @@ type ClusterList struct {
 
 func init() {
 	SchemeBuilder.Register(&Cluster{}, &ClusterList{})
+}
+
+// FailureDomains is a slice of FailureDomains.
+type FailureDomains map[string]FailureDomainSpec
+
+// FilterControlPlane returns a FailureDomain slice containing only the domains suitable to be used
+// for control plane nodes.
+func (in FailureDomains) FilterControlPlane() FailureDomains {
+	res := make(FailureDomains)
+	for id, spec := range in {
+		if spec.ControlPlane {
+			res[id] = spec
+		}
+	}
+	return res
+}
+
+// FailureDomainSpec is the Schema for Cluster API failure domains.
+// It allows controllers to understand how many failure domains a cluster can optionally span across.
+type FailureDomainSpec struct {
+	// ControlPlane determines if this failure domain is suitable for use by control plane machines.
+	// +optional
+	ControlPlane bool `json:"controlPlane"`
+
+	// Attributes is a free form map of attributes an infrastructure provider might use or require.
+	// +optional
+	Attributes map[string]string `json:"attributes,omitempty"`
 }

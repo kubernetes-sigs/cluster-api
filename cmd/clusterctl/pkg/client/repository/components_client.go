@@ -17,6 +17,7 @@ limitations under the License.
 package repository
 
 import (
+	"github.com/pkg/errors"
 	"sigs.k8s.io/cluster-api/cmd/clusterctl/pkg/client/config"
 )
 
@@ -46,6 +47,20 @@ func newComponentsClient(provider config.Provider, repository Repository, config
 }
 
 func (f *componentsClient) Get(version, targetNamespace, watchingNamespace string) (Components, error) {
-	//TODO: implement in a follow up PR
-	return nil, nil
+	// if the request does not target a specific version, read from the default repository version that is derived from the repository URL, e.g. latest.
+	if version == "" {
+		version = f.repository.DefaultVersion()
+	}
+
+	// retrieve the path where the path is stored
+	path := f.repository.ComponentsPath()
+
+	// read from the components path.
+	// If file is a path, the entire content of the path is returned.
+	file, err := f.repository.GetFile(version, path)
+	if err != nil {
+		return nil, errors.Wrapf(err, "failed to read %q from the repository for provider %q", path, f.provider.Name())
+	}
+
+	return newComponents(f.provider, version, file, f.configVariablesClient, targetNamespace, watchingNamespace)
 }

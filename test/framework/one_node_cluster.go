@@ -70,6 +70,15 @@ func OneNodeCluster(input *OneNodeClusterInput) {
 		return err
 	}, input.CreateTimeout, 10*time.Second).Should(BeNil())
 
+	By("creating an InfrastructureMachine resource")
+	Expect(mgmtClient.Create(ctx, input.Node.InfraMachine)).NotTo(HaveOccurred())
+
+	By("creating a bootstrap config")
+	Expect(mgmtClient.Create(ctx, input.Node.BootstrapConfig)).NotTo(HaveOccurred())
+
+	By("creating a core Machine resource with a linked InfrastructureMachine and BootstrapConfig")
+	Expect(mgmtClient.Create(ctx, input.Node.Machine)).NotTo(HaveOccurred())
+
 	// Wait for the cluster infrastructure
 	Eventually(func() string {
 		cluster := &clusterv1.Cluster{}
@@ -82,15 +91,6 @@ func OneNodeCluster(input *OneNodeClusterInput) {
 		}
 		return cluster.Status.Phase
 	}, input.CreateTimeout, 10*time.Second).Should(Equal(string(clusterv1.ClusterPhaseProvisioned)))
-
-	By("creating an InfrastructureMachine resource")
-	Expect(mgmtClient.Create(ctx, input.Node.InfraMachine)).NotTo(HaveOccurred())
-
-	By("creating a bootstrap config")
-	Expect(mgmtClient.Create(ctx, input.Node.BootstrapConfig)).NotTo(HaveOccurred())
-
-	By("creating a core Machine resource with a linked InfrastructureMachine and BootstrapConfig")
-	Expect(mgmtClient.Create(ctx, input.Node.Machine)).NotTo(HaveOccurred())
 
 	Eventually(func() string {
 		machine := &clusterv1.Machine{}

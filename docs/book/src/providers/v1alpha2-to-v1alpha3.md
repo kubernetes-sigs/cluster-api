@@ -1,5 +1,9 @@
 # Cluster API v1alpha2 compared to v1alpha3
 
+## Minimum Go version
+
+- The Go version used by Cluster API is now Go 1.13+
+
 ## In-Tree bootstrap provider
 
 - Cluster API now ships with the Kubeadm Bootstrap provider (CABPK).

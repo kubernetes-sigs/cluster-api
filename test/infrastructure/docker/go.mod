@@ -1,6 +1,6 @@
 module sigs.k8s.io/cluster-api/test/infrastructure/docker
 
-go 1.12
+go 1.13
 
 require (
 	github.com/ghodss/yaml v1.0.0

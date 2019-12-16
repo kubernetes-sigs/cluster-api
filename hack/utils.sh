@@ -22,3 +22,13 @@ get_root_path() {
 cd_root_path() {
     cd "$(get_root_path)" || exit
 }
+
+# get_capd_root_path returns the root path of CAPD source tree
+get_capd_root_path() {
+    echo "$(get_root_path)"/test/infrastructure/docker
+}
+
+# cd_capd_root_path cds to the root path of the CAPD source tree
+cd_capd_root_path() {
+    cd "$(get_capd_root_path)" || exit
+}

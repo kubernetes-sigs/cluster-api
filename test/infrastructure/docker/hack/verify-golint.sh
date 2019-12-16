@@ -18,34 +18,10 @@ set -o errexit
 set -o nounset
 set -o pipefail
 
-# shellcheck source=./test/infrastructure/docker/hack/utils.sh
-source "$(dirname "$0")/utils.sh"
+# shellcheck source=./hack/utils.sh
+source "$(git rev-parse --show-toplevel)/hack/utils.sh"
 
-# cd to the root path
-REPO_PATH=$(get_root_path)
+# lint capd code base
+cd_capd_root_path
 
-# create a temporary directory
-TMP_DIR=$(mktemp -d)
-
-# cleanup
-exitHandler() (
-  echo "Cleaning up..."
-  rm -rf "${TMP_DIR}"
-)
-trap exitHandler EXIT
-
-# pull the source code and build the binary
-cd "${TMP_DIR}"
-URL="http://github.com/golang/lint"
-echo "Cloning ${URL} in ${TMP_DIR}..."
-git clone --quiet --depth=1 "${URL}" .
-echo "Building golint..."
-export GO111MODULE=on
-go build -o ./golint/golint ./golint
-
-# run the binary
-cd "${REPO_PATH}"
-echo "Running golint..."
-git ls-files | grep "\.go$" | \
-  grep -v "\\/vendor\\/" | \
-  xargs -L1 "${TMP_DIR}/golint/golint" -set_exit_status
+make lint

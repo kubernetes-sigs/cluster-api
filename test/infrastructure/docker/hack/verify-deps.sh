@@ -16,10 +16,10 @@
 set -o nounset
 set -o pipefail
 
-# shellcheck source=./test/infrastructure/docker/hack/utils.sh
-source "$(dirname "$0")/utils.sh"
+# shellcheck source=./hack/utils.sh
+source "$(git rev-parse --show-toplevel)/hack/utils.sh"
 # cd to the root path
-cd_root_path
+cd_capd_root_path
 
 # cleanup on exit
 cleanup() {

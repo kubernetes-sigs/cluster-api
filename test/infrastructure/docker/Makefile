@@ -243,7 +243,7 @@ clean-release: ## Remove the release folder
 
 .PHONY: verify
 verify:
-	./hack/verify-boilerplate.sh
+	./hack/verify-all.sh
 	$(MAKE) verify-modules
 	$(MAKE) verify-gen
 

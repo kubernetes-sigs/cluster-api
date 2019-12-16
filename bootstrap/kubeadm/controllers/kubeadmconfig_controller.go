@@ -154,6 +154,13 @@ func (r *KubeadmConfigReconciler) Reconcile(req ctrl.Request) (_ ctrl.Result, re
 		return ctrl.Result{}, err
 	}
 
+	scope := &Scope{
+		Logger:  log,
+		Config:  config,
+		Cluster: cluster,
+		Machine: machine,
+	}
+
 	// Initialize the patch helper.
 	patchHelper, err := patch.NewHelper(config, r.Client)
 	if err != nil {
@@ -167,7 +174,7 @@ func (r *KubeadmConfigReconciler) Reconcile(req ctrl.Request) (_ ctrl.Result, re
 		return ctrl.Result{}, nil
 	// Migrate plaintext data to secret.
 	case config.Status.BootstrapData != nil && config.Status.DataSecretName == nil:
-		if err := r.storeBootstrapData(ctx, config, config.Status.BootstrapData); err != nil {
+		if err := r.storeBootstrapData(ctx, scope, config.Status.BootstrapData); err != nil {
 			return ctrl.Result{}, err
 		}
 		return ctrl.Result{}, patchHelper.Patch(ctx, config)
@@ -212,13 +219,6 @@ func (r *KubeadmConfigReconciler) Reconcile(req ctrl.Request) (_ ctrl.Result, re
 			}
 		}
 	}()
-
-	scope := &Scope{
-		Logger:  log,
-		Config:  config,
-		Cluster: cluster,
-		Machine: machine,
-	}
 
 	if !cluster.Status.ControlPlaneInitialized {
 		return r.handleClusterNotInitialized(ctx, scope)
@@ -341,7 +341,7 @@ func (r *KubeadmConfigReconciler) handleClusterNotInitialized(ctx context.Contex
 		return ctrl.Result{}, err
 	}
 
-	if err := r.storeBootstrapData(ctx, scope.Config, cloudInitData); err != nil {
+	if err := r.storeBootstrapData(ctx, scope, cloudInitData); err != nil {
 		scope.Error(err, "failed to store bootstrap data")
 		return ctrl.Result{}, err
 	}
@@ -401,7 +401,7 @@ func (r *KubeadmConfigReconciler) joinWorker(ctx context.Context, scope *Scope) 
 		return ctrl.Result{}, err
 	}
 
-	if err := r.storeBootstrapData(ctx, scope.Config, cloudJoinData); err != nil {
+	if err := r.storeBootstrapData(ctx, scope, cloudJoinData); err != nil {
 		scope.Error(err, "failed to store bootstrap data")
 		return ctrl.Result{}, err
 	}
@@ -459,7 +459,7 @@ func (r *KubeadmConfigReconciler) joinControlplane(ctx context.Context, scope *S
 		return ctrl.Result{}, err
 	}
 
-	if err := r.storeBootstrapData(ctx, scope.Config, cloudJoinData); err != nil {
+	if err := r.storeBootstrapData(ctx, scope, cloudJoinData); err != nil {
 		scope.Error(err, "failed to store bootstrap data")
 		return ctrl.Result{}, err
 	}
@@ -630,20 +630,20 @@ func (r *KubeadmConfigReconciler) reconcileTopLevelObjectSettings(cluster *clust
 
 // storeBootstrapData creates a new secret with the data passed in as input,
 // sets the reference in the configuration status and ready to true.
-func (r *KubeadmConfigReconciler) storeBootstrapData(ctx context.Context, config *bootstrapv1.KubeadmConfig, data []byte) error {
+func (r *KubeadmConfigReconciler) storeBootstrapData(ctx context.Context, scope *Scope, data []byte) error {
 	secret := &corev1.Secret{
 		ObjectMeta: v1.ObjectMeta{
-			Name:      config.Name,
-			Namespace: config.Namespace,
+			Name:      scope.Config.Name,
+			Namespace: scope.Config.Namespace,
 			Labels: map[string]string{
-				clusterv1.ClusterLabelName: config.ClusterName,
+				clusterv1.ClusterLabelName: scope.Cluster.Name,
 			},
 			OwnerReferences: []v1.OwnerReference{
 				{
 					APIVersion: bootstrapv1.GroupVersion.String(),
 					Kind:       "KubeadmConfig",
-					Name:       config.Name,
-					UID:        config.UID,
+					Name:       scope.Config.Name,
+					UID:        scope.Config.UID,
 					Controller: pointer.BoolPtr(true),
 				},
 			},
@@ -654,10 +654,10 @@ func (r *KubeadmConfigReconciler) storeBootstrapData(ctx context.Context, config
 	}
 
 	if err := r.Client.Create(ctx, secret); err != nil {
-		return errors.Wrapf(err, "failed to create kubeconfig secret for KubeadmConfig %s/%s", config.Namespace, config.Name)
+		return errors.Wrapf(err, "failed to create kubeconfig secret for KubeadmConfig %s/%s", scope.Config.Namespace, scope.Config.Name)
 	}
 
-	config.Status.DataSecretName = pointer.StringPtr(secret.Name)
-	config.Status.Ready = true
+	scope.Config.Status.DataSecretName = pointer.StringPtr(secret.Name)
+	scope.Config.Status.Ready = true
 	return nil
 }

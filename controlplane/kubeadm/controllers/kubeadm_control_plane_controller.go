@@ -28,14 +28,6 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/tools/record"
-	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha3"
-	bootstrapv1 "sigs.k8s.io/cluster-api/bootstrap/kubeadm/api/v1alpha3"
-	"sigs.k8s.io/cluster-api/controllers/external"
-	capierrors "sigs.k8s.io/cluster-api/errors"
-	"sigs.k8s.io/cluster-api/util"
-	"sigs.k8s.io/cluster-api/util/kubeconfig"
-	"sigs.k8s.io/cluster-api/util/patch"
-	"sigs.k8s.io/cluster-api/util/secret"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
@@ -43,11 +35,21 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/handler"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 	"sigs.k8s.io/controller-runtime/pkg/source"
+
+	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha3"
+	bootstrapv1 "sigs.k8s.io/cluster-api/bootstrap/kubeadm/api/v1alpha3"
+	"sigs.k8s.io/cluster-api/controllers/external"
+	controlplanev1 "sigs.k8s.io/cluster-api/controlplane/kubeadm/api/v1alpha3"
+	capierrors "sigs.k8s.io/cluster-api/errors"
+	"sigs.k8s.io/cluster-api/util"
+	"sigs.k8s.io/cluster-api/util/kubeconfig"
+	"sigs.k8s.io/cluster-api/util/patch"
+	"sigs.k8s.io/cluster-api/util/secret"
 )
 
 // +kubebuilder:rbac:groups=core,resources=events,verbs=get;list;watch;create;patch
 // +kubebuilder:rbac:groups=core,resources=secrets,verbs=get;list;watch;create;patch
-// +kubebuilder:rbac:groups=cluster.x-k8s.io,resources=kubeadmcontrolplanes;kubeadmcontrolplanes/status,verbs=get;list;watch;create;update;patch;delete
+// +kubebuilder:rbac:groups=controlplane.cluster.x-k8s.io,resources=kubeadmcontrolplanes;kubeadmcontrolplanes/status,verbs=get;list;watch;create;update;patch;delete
 
 // KubeadmControlPlaneReconciler reconciles a KubeadmControlPlane object
 type KubeadmControlPlaneReconciler struct {
@@ -60,7 +62,7 @@ type KubeadmControlPlaneReconciler struct {
 
 func (r *KubeadmControlPlaneReconciler) SetupWithManager(mgr ctrl.Manager, options controller.Options) error {
 	c, err := ctrl.NewControllerManagedBy(mgr).
-		For(&clusterv1.KubeadmControlPlane{}).
+		For(&controlplanev1.KubeadmControlPlane{}).
 		Owns(&clusterv1.Machine{}).
 		Watches(
 			&source.Kind{Type: &clusterv1.Cluster{}},
@@ -84,7 +86,7 @@ func (r *KubeadmControlPlaneReconciler) Reconcile(req ctrl.Request) (res ctrl.Re
 	ctx := context.Background()
 
 	// Fetch the KubeadmControlPlane instance.
-	kubeadmControlPlane := &clusterv1.KubeadmControlPlane{}
+	kubeadmControlPlane := &controlplanev1.KubeadmControlPlane{}
 	if err := r.Client.Get(ctx, req.NamespacedName, kubeadmControlPlane); err != nil {
 		if apierrors.IsNotFound(err) {
 			// Object not found, return.  Created objects are automatically garbage collected.
@@ -122,9 +124,9 @@ func (r *KubeadmControlPlaneReconciler) Reconcile(req ctrl.Request) (res ctrl.Re
 }
 
 // reconcile handles KubeadmControlPlane reconciliation.
-func (r *KubeadmControlPlaneReconciler) reconcile(ctx context.Context, kcp *clusterv1.KubeadmControlPlane, logger logr.Logger) ctrl.Result {
+func (r *KubeadmControlPlaneReconciler) reconcile(ctx context.Context, kcp *controlplanev1.KubeadmControlPlane, logger logr.Logger) ctrl.Result {
 	// If object doesn't have a finalizer, add one.
-	controllerutil.AddFinalizer(kcp, clusterv1.KubeadmControlPlaneFinalizer)
+	controllerutil.AddFinalizer(kcp, controlplanev1.KubeadmControlPlaneFinalizer)
 
 	// Fetch the Cluster.
 	cluster, err := util.GetOwnerCluster(ctx, r.Client, kcp.ObjectMeta)
@@ -188,7 +190,7 @@ func (r *KubeadmControlPlaneReconciler) reconcile(ctx context.Context, kcp *clus
 		ctx,
 		r.Client,
 		types.NamespacedName{Namespace: cluster.Namespace, Name: cluster.Name},
-		*metav1.NewControllerRef(kcp, clusterv1.GroupVersion.WithKind("KubeadmControlPlane")),
+		*metav1.NewControllerRef(kcp, controlplanev1.GroupVersion.WithKind("KubeadmControlPlane")),
 	)
 	if err != nil {
 		logger.Error(err, "unable to lookup or create cluster certificates")
@@ -249,8 +251,8 @@ func (r *KubeadmControlPlaneReconciler) reconcile(ctx context.Context, kcp *clus
 	return ctrl.Result{Requeue: true}
 }
 
-func (r *KubeadmControlPlaneReconciler) initializeControlPlane(ctx context.Context, cluster *clusterv1.Cluster, kcp *clusterv1.KubeadmControlPlane) error {
-	gv := clusterv1.GroupVersion
+func (r *KubeadmControlPlaneReconciler) initializeControlPlane(ctx context.Context, cluster *clusterv1.Cluster, kcp *controlplanev1.KubeadmControlPlane) error {
+	gv := controlplanev1.GroupVersion
 	machine := &clusterv1.Machine{
 		ObjectMeta: metav1.ObjectMeta{
 			GenerateName:    fmt.Sprintf("%s-", kcp.Name),
@@ -318,7 +320,7 @@ func generateKubeadmControlPlaneLabels(clusterName string) map[string]string {
 }
 
 // reconcileDelete handles KubeadmControlPlane deletion.
-func (r *KubeadmControlPlaneReconciler) reconcileDelete(_ context.Context, kcp *clusterv1.KubeadmControlPlane, logger logr.Logger) ctrl.Result {
+func (r *KubeadmControlPlaneReconciler) reconcileDelete(_ context.Context, kcp *controlplanev1.KubeadmControlPlane, logger logr.Logger) ctrl.Result {
 	err := errors.New("Not Implemented")
 
 	if err != nil {
@@ -326,11 +328,11 @@ func (r *KubeadmControlPlaneReconciler) reconcileDelete(_ context.Context, kcp *
 		return ctrl.Result{Requeue: true}
 	}
 
-	controllerutil.RemoveFinalizer(kcp, clusterv1.KubeadmControlPlaneFinalizer)
+	controllerutil.RemoveFinalizer(kcp, controlplanev1.KubeadmControlPlaneFinalizer)
 	return ctrl.Result{}
 }
 
-func (r *KubeadmControlPlaneReconciler) reconcileKubeconfig(ctx context.Context, clusterName types.NamespacedName, endpoint clusterv1.APIEndpoint, kcp *clusterv1.KubeadmControlPlane) error {
+func (r *KubeadmControlPlaneReconciler) reconcileKubeconfig(ctx context.Context, clusterName types.NamespacedName, endpoint clusterv1.APIEndpoint, kcp *controlplanev1.KubeadmControlPlane) error {
 	if endpoint.IsZero() {
 		return nil
 	}
@@ -343,7 +345,7 @@ func (r *KubeadmControlPlaneReconciler) reconcileKubeconfig(ctx context.Context,
 			r.Client,
 			clusterName,
 			endpoint.String(),
-			*metav1.NewControllerRef(kcp, clusterv1.GroupVersion.WithKind("KubeadmControlPlane")),
+			*metav1.NewControllerRef(kcp, controlplanev1.GroupVersion.WithKind("KubeadmControlPlane")),
 		)
 		if createErr != nil {
 			if createErr == kubeconfig.ErrDependentCertificateNotFound {

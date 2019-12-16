@@ -32,8 +32,8 @@ func (r *KubeadmControlPlane) SetupWebhookWithManager(mgr ctrl.Manager) error {
 		Complete()
 }
 
-// +kubebuilder:webhook:verbs=create;update,path=/mutate-cluster-x-k8s-io-v1alpha3-kubeadmcontrolplane,mutating=true,failurePolicy=fail,groups=cluster.x-k8s.io,resources=kubeadmcontrolplanes,versions=v1alpha3,name=default.kubeadmcontrolplane.cluster.x-k8s.io
-// +kubebuilder:webhook:verbs=create;update,path=/validate-cluster-x-k8s-io-v1alpha3-kubeadmcontrolplane,mutating=false,failurePolicy=fail,groups=cluster.x-k8s.io,resources=kubeadmcontrolplanes,versions=v1alpha3,name=validation.kubeadmcontrolplane.cluster.x-k8s.io
+// +kubebuilder:webhook:verbs=create;update,path=/mutate-controlplane-cluster-x-k8s-io-v1alpha3-kubeadmcontrolplane,mutating=true,failurePolicy=fail,groups=controlplane.cluster.x-k8s.io,resources=kubeadmcontrolplanes,versions=v1alpha3,name=default.kubeadmcontrolplane.controlplane.cluster.x-k8s.io
+// +kubebuilder:webhook:verbs=create;update,path=/validate-controlplane-cluster-x-k8s-io-v1alpha3-kubeadmcontrolplane,mutating=false,failurePolicy=fail,groups=controlplane.cluster.x-k8s.io,resources=kubeadmcontrolplanes,versions=v1alpha3,name=validation.kubeadmcontrolplane.controlplane.cluster.x-k8s.io
 
 var _ webhook.Defaulter = &KubeadmControlPlane{}
 var _ webhook.Validator = &KubeadmControlPlane{}

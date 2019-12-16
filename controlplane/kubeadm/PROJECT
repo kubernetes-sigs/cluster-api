@@ -1,0 +1,7 @@
+version: "2"
+domain: cluster.x-k8s.io
+repo: sigs.k8s.io/cluster-api/controlplane/kubeadm
+resources:
+- group: controlplane
+  version: v1alpha3
+  kind: KubeadmControlPlane

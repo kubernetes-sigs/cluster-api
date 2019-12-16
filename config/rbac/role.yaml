@@ -35,6 +35,20 @@ rules:
   - watch
 - apiGroups:
   - bootstrap.cluster.x-k8s.io
+  - controlplane.cluster.x-k8s.io
+  - infrastructure.cluster.x-k8s.io
+  resources:
+  - '*'
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - bootstrap.cluster.x-k8s.io
   - infrastructure.cluster.x-k8s.io
   resources:
   - '*'
@@ -73,19 +87,6 @@ rules:
 - apiGroups:
   - cluster.x-k8s.io
   resources:
-  - kubeadmcontrolplanes
-  - kubeadmcontrolplanes/status
-  verbs:
-  - create
-  - delete
-  - get
-  - list
-  - patch
-  - update
-  - watch
-- apiGroups:
-  - cluster.x-k8s.io
-  resources:
   - machinedeployments
   - machinedeployments/status
   verbs:
@@ -114,6 +115,19 @@ rules:
   resources:
   - machinesets
   - machinesets/status
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - controlplane.cluster.x-k8s.io
+  resources:
+  - kubeadmcontrolplanes
+  - kubeadmcontrolplanes/status
   verbs:
   - create
   - delete

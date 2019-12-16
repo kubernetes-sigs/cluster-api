@@ -31,8 +31,10 @@ import (
 	clusterv1alpha3 "sigs.k8s.io/cluster-api/api/v1alpha3"
 	kubeadmbootstrapv1alpha2 "sigs.k8s.io/cluster-api/bootstrap/kubeadm/api/v1alpha2"
 	kubeadmbootstrapv1alpha3 "sigs.k8s.io/cluster-api/bootstrap/kubeadm/api/v1alpha3"
-	kubeadmcontrollers "sigs.k8s.io/cluster-api/bootstrap/kubeadm/controllers"
+	kubeadmbootstrapcontrollers "sigs.k8s.io/cluster-api/bootstrap/kubeadm/controllers"
 	"sigs.k8s.io/cluster-api/controllers"
+	kubeadmcontrolplanev1alpha3 "sigs.k8s.io/cluster-api/controlplane/kubeadm/api/v1alpha3"
+	kubeadmcontrolplanecontrollers "sigs.k8s.io/cluster-api/controlplane/kubeadm/controllers"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/cache"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -53,6 +55,7 @@ func init() {
 	_ = clusterv1alpha3.AddToScheme(scheme)
 	_ = kubeadmbootstrapv1alpha2.AddToScheme(scheme)
 	_ = kubeadmbootstrapv1alpha3.AddToScheme(scheme)
+	_ = kubeadmcontrolplanev1alpha3.AddToScheme(scheme)
 	// +kubebuilder:scaffold:scheme
 }
 
@@ -109,7 +112,7 @@ func main() {
 	flag.DurationVar(&syncPeriod, "sync-period", 10*time.Minute,
 		"The minimum interval at which watched resources are reconciled (e.g. 15m)")
 
-	flag.DurationVar(&kubeadmcontrollers.DefaultTokenTTL, "bootstrap-token-ttl", 15*time.Minute,
+	flag.DurationVar(&kubeadmbootstrapcontrollers.DefaultTokenTTL, "bootstrap-token-ttl", 15*time.Minute,
 		"The amount of time the bootstrap token will be valid")
 
 	flag.IntVar(&webhookPort, "webhook-port", 9443,
@@ -172,7 +175,7 @@ func main() {
 
 	if !kubeadmBootstrapperDisabled {
 		// Kubeadm controllers.
-		if err = (&kubeadmcontrollers.KubeadmConfigReconciler{
+		if err = (&kubeadmbootstrapcontrollers.KubeadmConfigReconciler{
 			Client: mgr.GetClient(),
 			Log:    ctrl.Log.WithName("controllers").WithName("KubeadmConfig"),
 		}).SetupWithManager(mgr, concurrency(kubeadmConfigConcurrency)); err != nil {
@@ -181,7 +184,7 @@ func main() {
 		}
 
 		// KubeadmControlPlane controllers.
-		if err = (&controllers.KubeadmControlPlaneReconciler{
+		if err = (&kubeadmcontrolplanecontrollers.KubeadmControlPlaneReconciler{
 			Client: mgr.GetClient(),
 			Log:    ctrl.Log.WithName("controllers").WithName("KubeadmControlPlane"),
 		}).SetupWithManager(mgr, concurrency(kubeadmControlPlaneConcurrency)); err != nil {
@@ -248,7 +251,7 @@ func main() {
 		}
 
 		if !kubeadmBootstrapperDisabled {
-			if err = (&clusterv1alpha3.KubeadmControlPlane{}).SetupWebhookWithManager(mgr); err != nil {
+			if err = (&kubeadmcontrolplanev1alpha3.KubeadmControlPlane{}).SetupWebhookWithManager(mgr); err != nil {
 				setupLog.Error(err, "unable to create webhook", "webhook", "KubeadmControlPlane")
 				os.Exit(1)
 			}

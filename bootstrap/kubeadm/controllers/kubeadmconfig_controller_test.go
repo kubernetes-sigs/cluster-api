@@ -248,6 +248,10 @@ func TestKubeadmConfigReconciler_Reconcile_MigrateToSecret(t *testing.T) {
 	if string(secret.Data["value"]) != "test" {
 		t.Fatal("expected bootstrap data secret value to match")
 	}
+
+	if clusterName := secret.Labels[clusterv1.ClusterLabelName]; clusterName != "cluster" {
+		t.Fatalf("expected bootstrap data secret to have a cluster name label set to `cluster`, got %s", clusterName)
+	}
 }
 
 func TestKubeadmConfigReconciler_ReturnEarlyIfClusterInfraNotReady(t *testing.T) {

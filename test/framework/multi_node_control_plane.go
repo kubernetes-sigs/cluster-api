@@ -69,6 +69,18 @@ func MultiNodeControlPlaneCluster(input *MultiNodeControlplaneClusterInput) {
 		return err
 	}, input.CreateTimeout, 10*time.Second).Should(BeNil())
 
+	// create all the machines at once
+	for _, node := range input.ControlplaneNodes {
+		By("creating an InfrastructureMachine resource")
+		Expect(mgmtClient.Create(ctx, node.InfraMachine)).NotTo(HaveOccurred())
+
+		By("creating a bootstrap config")
+		Expect(mgmtClient.Create(ctx, node.BootstrapConfig)).NotTo(HaveOccurred())
+
+		By("creating a core Machine resource with a linked InfrastructureMachine and BootstrapConfig")
+		Expect(mgmtClient.Create(ctx, node.Machine)).NotTo(HaveOccurred())
+	}
+
 	// Wait for the cluster infrastructure
 	Eventually(func() string {
 		cluster := &clusterv1.Cluster{}
@@ -81,18 +93,6 @@ func MultiNodeControlPlaneCluster(input *MultiNodeControlplaneClusterInput) {
 		}
 		return cluster.Status.Phase
 	}, input.CreateTimeout, 10*time.Second).Should(Equal(string(clusterv1.ClusterPhaseProvisioned)))
-
-	// create all the machines at once
-	for _, node := range input.ControlplaneNodes {
-		By("creating an InfrastructureMachine resource")
-		Expect(mgmtClient.Create(ctx, node.InfraMachine)).NotTo(HaveOccurred())
-
-		By("creating a bootstrap config")
-		Expect(mgmtClient.Create(ctx, node.BootstrapConfig)).NotTo(HaveOccurred())
-
-		By("creating a core Machine resource with a linked InfrastructureMachine and BootstrapConfig")
-		Expect(mgmtClient.Create(ctx, node.Machine)).NotTo(HaveOccurred())
-	}
 
 	// wait for all the machines to be running
 	By("waiting for all machines to be running")

@@ -73,7 +73,7 @@ func (c *Cmd) Stdin(in io.Reader) *Cmd {
 }
 
 func (c *Cmd) runInnerCommand() error {
-	cmd := exec.Command(c.command, c.args...) //nolint
+	cmd := exec.Command(c.command, c.args...) //nolint:gosec
 
 	if c.stdin != nil {
 		cmd.Stdin = c.stdin

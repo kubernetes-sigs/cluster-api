@@ -34,6 +34,9 @@ import (
 	"sigs.k8s.io/yaml"
 )
 
+// variableRegEx defines the regexp used for searching variables inside a YAML
+var variableRegEx = regexp.MustCompile(`\${\s*([A-Z0-9_]+)\s*}`)
+
 // Components wraps a YAML file that defines the provider components
 // to be installed in a management cluster (CRD, Controller, RBAC etc.)
 // It is important to notice that clusterctl applies a set of processing steps to the “raw” component YAML read
@@ -218,26 +221,23 @@ func newComponents(provider config.Provider, version string, rawyaml []byte, con
 	}, nil
 }
 
-var variableRegEx = regexp.MustCompile(`\${\s*([A-Z0-9_]+)\s*}`)
-
 func inspectVariables(data []byte) []string {
-	variables := map[string]string{}
+	variables := map[string]struct{}{}
 	match := variableRegEx.FindAllStringSubmatch(string(data), -1)
 
 	for _, m := range match {
 		submatch := m[1]
 		if _, ok := variables[submatch]; !ok {
-			variables[submatch] = ""
+			variables[submatch] = struct{}{}
 		}
 	}
 
-	var ret []string // nolint
+	ret := make([]string, 0, len(variables))
 	for v := range variables {
 		ret = append(ret, v)
 	}
 
 	sort.Strings(ret)
-
 	return ret
 }
 

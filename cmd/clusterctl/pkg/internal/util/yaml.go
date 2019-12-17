@@ -26,6 +26,8 @@ import (
 
 var yamlSeparator = []byte("---")
 
+// JoinYaml takes a list of YAML files and join them ensuring
+// each YAML that the yaml separator goes on a new line by adding \n where necessary
 func JoinYaml(yamls ...[]byte) []byte {
 	var cr = []byte("\n")
 	var b [][]byte //nolint
@@ -47,6 +49,7 @@ func JoinYaml(yamls ...[]byte) []byte {
 	return r
 }
 
+// ToUnstructured takes a YAML and converts it to a list of Unstructured objects
 func ToUnstructured(rawyaml []byte) ([]unstructured.Unstructured, error) {
 	var ret []unstructured.Unstructured //nolint
 	for _, data := range bytes.Split(rawyaml, yamlSeparator) {

@@ -73,7 +73,7 @@ type MachineReconciler struct {
 }
 
 func (r *MachineReconciler) SetupWithManager(mgr ctrl.Manager, options controller.Options) error {
-	c, err := ctrl.NewControllerManagedBy(mgr).
+	controller, err := ctrl.NewControllerManagedBy(mgr).
 		For(&clusterv1.Machine{}).
 		WithOptions(options).
 		Build(r)
@@ -82,10 +82,9 @@ func (r *MachineReconciler) SetupWithManager(mgr ctrl.Manager, options controlle
 		return errors.Wrap(err, "failed setting up with a controller manager")
 	}
 
-	r.controller = c
+	r.controller = controller
 	r.recorder = mgr.GetEventRecorderFor("machine-controller")
 	r.config = mgr.GetConfig()
-
 	r.scheme = mgr.GetScheme()
 	return nil
 }
@@ -113,11 +112,10 @@ func (r *MachineReconciler) Reconcile(req ctrl.Request) (_ ctrl.Result, reterr e
 	}
 
 	defer func() {
-		// Always reconcile the Status.Phase field.
 		r.reconcilePhase(ctx, m)
 		r.reconcileMetrics(ctx, m)
 
-		// Always attempt to Patch the Machine object and status after each reconciliation.
+		// Always attempt to patch the object and status after each reconciliation.
 		if err := patchHelper.Patch(ctx, m); err != nil {
 			if reterr == nil {
 				reterr = err

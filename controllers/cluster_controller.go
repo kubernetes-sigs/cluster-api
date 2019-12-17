@@ -69,7 +69,7 @@ type ClusterReconciler struct {
 }
 
 func (r *ClusterReconciler) SetupWithManager(mgr ctrl.Manager, options controller.Options) error {
-	c, err := ctrl.NewControllerManagedBy(mgr).
+	controller, err := ctrl.NewControllerManagedBy(mgr).
 		For(&clusterv1.Cluster{}).
 		Watches(
 			&source.Kind{Type: &clusterv1.Machine{}},
@@ -82,9 +82,8 @@ func (r *ClusterReconciler) SetupWithManager(mgr ctrl.Manager, options controlle
 		return errors.Wrap(err, "failed setting up with a controller manager")
 	}
 
-	r.controller = c
+	r.controller = controller
 	r.recorder = mgr.GetEventRecorderFor("cluster-controller")
-
 	return nil
 }
 

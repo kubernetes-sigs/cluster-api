@@ -19,13 +19,11 @@ package controllers
 import (
 	"context"
 	"fmt"
-	"reflect"
 	"sort"
 	"strconv"
 
 	"github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
-	"k8s.io/apimachinery/pkg/api/equality"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
@@ -34,6 +32,7 @@ import (
 	"k8s.io/client-go/util/retry"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha3"
 	"sigs.k8s.io/cluster-api/controllers/mdutil"
+	"sigs.k8s.io/cluster-api/util/patch"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
@@ -104,7 +103,10 @@ func (r *MachineDeploymentReconciler) getNewMachineSet(d *clusterv1.MachineDeplo
 	// latest revision.
 	if existingNewMS != nil {
 		msCopy := existingNewMS.DeepCopy()
-		patch := client.MergeFrom(msCopy.DeepCopy())
+		patchHelper, err := patch.NewHelper(msCopy, r.Client)
+		if err != nil {
+			return nil, err
+		}
 
 		// Set existing new machine set's annotation
 		annotationsUpdated := mdutil.SetNewMachineSetAnnotations(d, msCopy, newRevision, true, logger)
@@ -112,11 +114,11 @@ func (r *MachineDeploymentReconciler) getNewMachineSet(d *clusterv1.MachineDeplo
 		minReadySecondsNeedsUpdate := msCopy.Spec.MinReadySeconds != *d.Spec.MinReadySeconds
 		if annotationsUpdated || minReadySecondsNeedsUpdate {
 			msCopy.Spec.MinReadySeconds = *d.Spec.MinReadySeconds
-			return nil, r.Client.Patch(context.Background(), msCopy, patch)
+			return nil, patchHelper.Patch(context.Background(), msCopy)
 		}
 
 		// Apply revision annotation from existingNewMS if it is missing from the deployment.
-		err := r.updateMachineDeployment(d, func(innerDeployment *clusterv1.MachineDeployment) {
+		err = r.updateMachineDeployment(d, func(innerDeployment *clusterv1.MachineDeployment) {
 			mdutil.SetDeploymentRevision(d, msCopy.Annotations[mdutil.RevisionAnnotation])
 		})
 		return msCopy, err
@@ -339,15 +341,8 @@ func (r *MachineDeploymentReconciler) scale(deployment *clusterv1.MachineDeploym
 
 // syncDeploymentStatus checks if the status is up-to-date and sync it if necessary
 func (r *MachineDeploymentReconciler) syncDeploymentStatus(allMSs []*clusterv1.MachineSet, newMS *clusterv1.MachineSet, d *clusterv1.MachineDeployment) error {
-	newStatus := calculateStatus(allMSs, newMS, d)
-	if reflect.DeepEqual(d.Status, newStatus) {
-		return nil
-	}
-
-	patch := client.MergeFrom(d.DeepCopy())
-	d.Status = newStatus
-	// Patch using a deep copy to avoid overwriting any unexpected Spec/Metadata changes from the returned result
-	return r.Client.Status().Patch(context.Background(), d.DeepCopy(), patch)
+	d.Status = calculateStatus(allMSs, newMS, d)
+	return nil
 }
 
 // calculateStatus calculates the latest status for the provided deployment by looking into the provided machine sets.
@@ -431,25 +426,25 @@ func (r *MachineDeploymentReconciler) scaleMachineSetOperation(ms *clusterv1.Mac
 		*(deployment.Spec.Replicas)+mdutil.MaxSurge(*deployment),
 	)
 
-	var (
-		err error
-	)
-
 	if sizeNeedsUpdate || annotationsNeedUpdate {
-		patch := client.MergeFrom(ms.DeepCopy())
+		patchHelper, err := patch.NewHelper(ms, r.Client)
+		if err != nil {
+			return err
+		}
 
 		*(ms.Spec.Replicas) = newScale
 		mdutil.SetReplicasAnnotations(ms, *(deployment.Spec.Replicas), *(deployment.Spec.Replicas)+mdutil.MaxSurge(*deployment))
 
-		err = r.Client.Patch(context.Background(), ms, patch)
+		err = patchHelper.Patch(context.Background(), ms)
 		if err != nil {
 			r.recorder.Eventf(deployment, corev1.EventTypeWarning, "FailedScale", "Failed to scale MachineSet %q: %v", ms.Name, err)
 		} else if sizeNeedsUpdate {
 			r.recorder.Eventf(deployment, corev1.EventTypeNormal, "SuccessfulScale", "Scaled %s MachineSet %q to %d", scaleOperation, ms.Name, newScale)
 		}
+		return err
 	}
 
-	return err
+	return nil
 }
 
 // cleanupDeployment is responsible for cleaning up a deployment i.e. retains all but the latest N old machine sets
@@ -507,23 +502,16 @@ func (r *MachineDeploymentReconciler) updateMachineDeployment(d *clusterv1.Machi
 
 // We have this as standalone variant to be able to use it from the tests
 func updateMachineDeployment(c client.Client, d *clusterv1.MachineDeployment, modify func(*clusterv1.MachineDeployment)) error {
-	dCopy := d.DeepCopy()
-	modify(dCopy)
-	if equality.Semantic.DeepEqual(dCopy, d) {
-		return nil
-	}
 	return retry.RetryOnConflict(retry.DefaultBackoff, func() error {
-		// Get latest version.
 		if err := c.Get(context.Background(), types.NamespacedName{Namespace: d.Namespace, Name: d.Name}, d); err != nil {
 			return err
 		}
-		// Save patch.
-		patch := client.MergeFrom(d.DeepCopy())
-		// Apply defaults.
+		patchHelper, err := patch.NewHelper(d, c)
+		if err != nil {
+			return err
+		}
 		clusterv1.PopulateDefaultsMachineDeployment(d)
-		// Apply modifications.
 		modify(d)
-		// Patch using a deep copy to avoid overwriting any unexpected Spec/Metadata changes from the returned result
-		return c.Patch(context.Background(), d.DeepCopy(), patch)
+		return patchHelper.Patch(context.Background(), d)
 	})
 }

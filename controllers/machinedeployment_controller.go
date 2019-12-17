@@ -29,6 +29,7 @@ import (
 	"k8s.io/client-go/tools/record"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha3"
 	"sigs.k8s.io/cluster-api/util"
+	"sigs.k8s.io/cluster-api/util/patch"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
@@ -71,17 +72,16 @@ func (r *MachineDeploymentReconciler) SetupWithManager(mgr ctrl.Manager, options
 	}
 
 	r.recorder = mgr.GetEventRecorderFor("machinedeployment-controller")
-
 	return nil
 }
 
-func (r *MachineDeploymentReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
+func (r *MachineDeploymentReconciler) Reconcile(req ctrl.Request) (_ ctrl.Result, reterr error) {
 	ctx := context.Background()
 	logger := r.Log.WithValues("machinedeployment", req.Name, "namespace", req.Namespace)
 
-	// Fetch the MachineDeployment instance
-	d := &clusterv1.MachineDeployment{}
-	if err := r.Client.Get(ctx, req.NamespacedName, d); err != nil {
+	// Fetch the MachineDeployment instance.
+	deployment := &clusterv1.MachineDeployment{}
+	if err := r.Client.Get(ctx, req.NamespacedName, deployment); err != nil {
 		if apierrors.IsNotFound(err) {
 			// Object not found, return.  Created objects are automatically garbage collected.
 			// For additional cleanup logic use finalizers.
@@ -91,16 +91,31 @@ func (r *MachineDeploymentReconciler) Reconcile(req ctrl.Request) (ctrl.Result, 
 		return ctrl.Result{}, err
 	}
 
+	// Initialize the patch helper
+	patchHelper, err := patch.NewHelper(deployment, r.Client)
+	if err != nil {
+		return ctrl.Result{}, err
+	}
+
+	defer func() {
+		// Always attempt to patch the object and status after each reconciliation.
+		if err := patchHelper.Patch(ctx, deployment); err != nil {
+			if reterr == nil {
+				reterr = err
+			}
+		}
+	}()
+
 	// Ignore deleted MachineDeployments, this can happen when foregroundDeletion
 	// is enabled
-	if !d.DeletionTimestamp.IsZero() {
+	if !deployment.DeletionTimestamp.IsZero() {
 		return ctrl.Result{}, nil
 	}
 
-	result, err := r.reconcile(ctx, d)
+	result, err := r.reconcile(ctx, deployment)
 	if err != nil {
 		logger.Error(err, "Failed to reconcile MachineDeployment")
-		r.recorder.Eventf(d, corev1.EventTypeWarning, "ReconcileError", "%v", err)
+		r.recorder.Eventf(deployment, corev1.EventTypeWarning, "ReconcileError", "%v", err)
 	}
 
 	return result, nil
@@ -131,18 +146,13 @@ func (r *MachineDeploymentReconciler) reconcile(ctx context.Context, d *clusterv
 	}
 
 	if r.shouldAdopt(d) {
-		patch := client.MergeFrom(d.DeepCopy())
 		d.OwnerReferences = util.EnsureOwnerRef(d.OwnerReferences, metav1.OwnerReference{
 			APIVersion: clusterv1.GroupVersion.String(),
 			Kind:       "Cluster",
 			Name:       cluster.Name,
 			UID:        cluster.UID,
 		})
-
-		// Patch using a deep copy to avoid overwriting any unexpected Status changes from the returned result
-		if err := r.Client.Patch(ctx, d.DeepCopy(), patch); err != nil {
-			return ctrl.Result{}, errors.Wrapf(err, "Failed to add OwnerReference to MachineDeployment %s/%s", d.Namespace, d.Name)
-		}
+		return ctrl.Result{}, nil
 	}
 
 	msList, err := r.getMachineSetsForDeployment(d)

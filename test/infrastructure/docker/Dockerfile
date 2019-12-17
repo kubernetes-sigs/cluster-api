@@ -18,14 +18,15 @@ FROM golang:1.13.5 as builder
 ARG goproxy=https://proxy.golang.org
 ENV GOPROXY=$goproxy
 
-WORKDIR /workspace/test/infrastructure/docker
-COPY go.mod go.mod
-COPY go.sum go.sum
-RUN go mod download
+# This needs to build with the entire Cluster API context
 WORKDIR /workspace
+# Copy in cluster-api (which includes the test/infrastructure/docker subdirectory)
 COPY . .
 
-# Build
+# Essentially, change directories into CAPD
+WORKDIR /workspace/test/infrastructure/docker
+
+# Build the CAPD manager
 RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -a -o /workspace/manager main.go
 
 # Use alpine:latest as minimal base image to package the manager binary and its dependencies

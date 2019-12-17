@@ -227,11 +227,13 @@ type NodeRegistrationOptions struct {
 // Networking contains elements describing cluster's networking configuration
 type Networking struct {
 	// ServiceSubnet is the subnet used by k8s services. Defaults to "10.96.0.0/12".
-	ServiceSubnet string `json:"serviceSubnet"`
+	// +optional
+	ServiceSubnet string `json:"serviceSubnet,omitempty"`
 	// PodSubnet is the subnet used by pods.
 	PodSubnet string `json:"podSubnet"`
 	// DNSDomain is the dns domain used by k8s services. Defaults to "cluster.local".
-	DNSDomain string `json:"dnsDomain"`
+	// +optional
+	DNSDomain string `json:"dnsDomain,omitempty"`
 }
 
 // BootstrapToken describes one bootstrap token, stored as a Secret in the cluster

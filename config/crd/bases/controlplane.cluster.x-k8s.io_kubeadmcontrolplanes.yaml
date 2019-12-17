@@ -353,9 +353,7 @@ spec:
                             Defaults to "10.96.0.0/12".
                           type: string
                       required:
-                      - dnsDomain
                       - podSubnet
-                      - serviceSubnet
                       type: object
                     scheduler:
                       description: Scheduler contains extra settings for the scheduler

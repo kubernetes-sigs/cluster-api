@@ -13,8 +13,8 @@ require (
 	k8s.io/apimachinery v0.0.0-20191121015412-41065c7a8c2a
 	k8s.io/client-go v11.0.0+incompatible
 	k8s.io/klog v1.0.0
-	sigs.k8s.io/cluster-api v0.0.0-00010101000000-000000000000
-	sigs.k8s.io/cluster-api/test/framework v0.0.0-00010101000000-000000000000
+	sigs.k8s.io/cluster-api v0.2.6-0.20191216153338-db9baf9ade0c
+	sigs.k8s.io/cluster-api/test/framework v0.0.0-20191216153338-db9baf9ade0c
 	sigs.k8s.io/controller-runtime v0.4.0
 	sigs.k8s.io/kind v0.5.1
 )

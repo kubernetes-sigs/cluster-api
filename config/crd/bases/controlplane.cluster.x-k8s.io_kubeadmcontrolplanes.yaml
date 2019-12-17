@@ -6,9 +6,9 @@ metadata:
   annotations:
     controller-gen.kubebuilder.io/version: v0.2.4
   creationTimestamp: null
-  name: kubeadmcontrolplanes.cluster.x-k8s.io
+  name: kubeadmcontrolplanes.controlplane.cluster.x-k8s.io
 spec:
-  group: cluster.x-k8s.io
+  group: controlplane.cluster.x-k8s.io
   names:
     categories:
     - cluster-api

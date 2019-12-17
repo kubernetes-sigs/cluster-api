@@ -157,13 +157,14 @@ generate-go: $(CONTROLLER_GEN) $(CONVERSION_GEN) ## Runs Go related generate tar
 		object:headerFile=./hack/boilerplate/boilerplate.generatego.txt \
 		paths=./api/... \
 		paths=./bootstrap/kubeadm/api/... \
+		paths=./controlplane/kubeadm/api/... \
 		paths=./cmd/clusterctl/api/...
 	$(CONVERSION_GEN) \
 		--input-dirs=./api/v1alpha2 \
 		--output-file-base=zz_generated.conversion \
 		--go-header-file=./hack/boilerplate/boilerplate.generatego.txt
 	$(CONVERSION_GEN) \
-		--input-dirs=./bootstrap/kubeadm/api/v1alpha3 \
+		--input-dirs=./bootstrap/kubeadm/api/v1alpha2 \
 		--output-file-base=zz_generated.conversion \
 		--go-header-file=./hack/boilerplate/boilerplate.generatego.txt
 
@@ -184,8 +185,10 @@ generate-manifests: $(CONTROLLER_GEN) ## Generate manifests e.g. CRD, RBAC etc.
 	$(CONTROLLER_GEN) \
 		paths=./api/... \
 		paths=./bootstrap/kubeadm/api/... \
+		paths=./controlplane/kubeadm/api/... \
 		paths=./controllers/... \
 		paths=./bootstrap/kubeadm/controllers/... \
+		paths=./controlplane/kubeadm/controllers/... \
 		crd:preserveUnknownFields=false \
 		rbac:roleName=manager-role \
 		output:crd:dir=./config/crd/bases \

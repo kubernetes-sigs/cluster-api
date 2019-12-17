@@ -92,7 +92,9 @@ test-integration: ## Run integration tests
 .PHONY: test-e2e
 test-e2e: ## Run e2e tests
 	PULL_POLICY=IfNotPresent $(MAKE) docker-build
-	go test -v -tags=e2e -timeout=1h ./test/e2e/... -args --managerImage $(CONTROLLER_IMG)-$(ARCH):$(TAG)
+	$(MAKE) generate-manifests
+	$(MAKE) release-manifests
+	cd ./test/e2e; MANAGER_IMAGE=$(CONTROLLER_IMG)-$(ARCH):$(TAG) go test -v -tags=e2e -timeout=1h . -args -ginkgo.v -ginkgo.trace
 
 ## --------------------------------------
 ## Binaries
@@ -202,6 +204,7 @@ modules: ## Runs go mod to ensure modules are up to date.
 	go mod tidy
 	cd $(TOOLS_DIR); go mod tidy
 	cd $(E2E_FRAMEWORK_DIR); go mod tidy
+	cd test/e2e; go mod tidy
 
 ## --------------------------------------
 ## Docker

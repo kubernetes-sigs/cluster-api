@@ -24,24 +24,23 @@ import (
 	"fmt"
 	"io/ioutil"
 	"os"
-	"os/exec"
-	"path"
 	"testing"
-	"time"
 
-	"github.com/onsi/ginkgo"
-	"github.com/onsi/gomega"
-	appsv1 "k8s.io/api/apps/v1"
-	apimachinerytypes "k8s.io/apimachinery/pkg/types"
-	"sigs.k8s.io/cluster-api/test/helpers/kind"
-	"sigs.k8s.io/cluster-api/test/helpers/scheme"
+	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/gomega"
+	corev1 "k8s.io/api/core/v1"
+	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
+	capiv1 "sigs.k8s.io/cluster-api/api/v1alpha3"
+	"sigs.k8s.io/cluster-api/test/framework"
+	"sigs.k8s.io/cluster-api/test/framework/generators"
+	"sigs.k8s.io/cluster-api/test/framework/management/kind"
 	"sigs.k8s.io/cluster-api/util"
-	crclient "sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
 func TestE2E(t *testing.T) {
-	gomega.RegisterFailHandler(ginkgo.Fail)
-	ginkgo.RunSpecs(t, "e2e Suite")
+	RegisterFailHandler(Fail)
+	RunSpecs(t, "Cluster API E2E Suite")
 }
 
 const (
@@ -51,91 +50,71 @@ const (
 )
 
 var (
-	managerImage    = flag.String("managerImage", "", "Docker image to load into the kind cluster for testing")
-	capiComponents  = flag.String("capiComponents", "", "URL to CAPI components to load")
-	kustomizeBinary = flag.String("kustomizeBinary", "kustomize", "path to the kustomize binary")
+	capiComponents = flag.String("capiComponents", "", "Path to CAPI components to load")
 
-	kindCluster kind.Cluster
-	kindClient  crclient.Client
-	suiteTmpDir string
+	kindCluster *kind.Cluster
+	kindClient  client.Client
+	ctx         context.Context
 )
 
-var _ = ginkgo.BeforeSuite(func() {
-	fmt.Fprintf(ginkgo.GinkgoWriter, "Setting up kind cluster\n")
+type localCAPIGenerator struct{}
 
-	var err error
-	suiteTmpDir, err = ioutil.TempDir("", "capi-e2e-suite")
-	gomega.Expect(err).NotTo(gomega.HaveOccurred())
+func (g *localCAPIGenerator) GetName() string {
+	return "Cluster API Generator: Local"
+}
 
-	kindCluster = kind.Cluster{
-		Name: "capi-test-" + util.RandomString(6),
+func (g *localCAPIGenerator) Manifests(ctx context.Context) ([]byte, error) {
+	// read local out/cluster-api-components
+	// this should be generated beforehand.
+	if capiComponents != nil && len(*capiComponents) != 0 {
+		return ioutil.ReadFile(*capiComponents)
 	}
-	kindCluster.Setup()
-	loadManagerImage(kindCluster)
+	return ioutil.ReadFile("../../out/cluster-api-components.yaml")
+}
 
-	// Deploy the CAPA components
-	deployCAPIComponents(kindCluster)
+var _ = BeforeSuite(func() {
+	ctx = context.Background()
+	// Docker image to load into the kind cluster for testing
+	managerImage := os.Getenv("MANAGER_IMAGE")
+	if managerImage == "" {
+		managerImage = "gcr.io/k8s-staging-cluster-api/cluster-api-controller:master"
+	}
+	By("setting up in BeforeSuite")
+	var err error
 
-	kindClient, err = crclient.New(kindCluster.RestConfig(), crclient.Options{Scheme: scheme.SetupScheme()})
-	gomega.Expect(err).NotTo(gomega.HaveOccurred())
+	// Set up the local state of CAPI provider components
+	capi := &localCAPIGenerator{}
 
-	// Verify capi components are deployed
-	waitDeployment(capiNamespace, capiDeploymentName)
+	// set up cert manager generator
+	cm := &generators.CertManager{ReleaseVersion: "v0.11.0"}
+
+	Expect(corev1.AddToScheme(clientgoscheme.Scheme)).To(Succeed())
+	Expect(capiv1.AddToScheme(clientgoscheme.Scheme)).To(Succeed())
+
+	// create kind cluster
+	kindClusterName := "capi-test-" + util.RandomString(6)
+	kindCluster, err = kind.NewCluster(ctx, kindClusterName, clientgoscheme.Scheme, managerImage)
+
+	Expect(err).NotTo(HaveOccurred())
+	Expect(kindCluster).NotTo(BeNil())
+
+	kindClient, err = kindCluster.GetClient()
+	Expect(err).NotTo(HaveOccurred())
+
+	// install cert manager first
+	framework.InstallComponents(ctx, kindCluster, cm)
+	// TODO: Can the generator handle the install and waiting for its
+	// components? Instead of calling it component generator, we can call it
+	// component installer.
+	framework.WaitForAPIServiceAvailable(ctx, kindCluster, "v1beta1.webhook.cert-manager.io")
+
+	// install capi components
+	framework.InstallComponents(ctx, kindCluster, capi)
+	framework.WaitForPodsReadyInNamespace(ctx, kindCluster, capiNamespace)
+
 }, setupTimeout)
 
-var _ = ginkgo.AfterSuite(func() {
-	fmt.Fprintf(ginkgo.GinkgoWriter, "Tearing down kind cluster\n")
-	kindCluster.Teardown()
-	os.RemoveAll(suiteTmpDir)
+var _ = AfterSuite(func() {
+	fmt.Fprintf(GinkgoWriter, "Tearing down kind cluster\n")
+	kindCluster.Teardown(ctx)
 })
-
-func waitDeployment(namespace, name string) {
-	fmt.Fprintf(ginkgo.GinkgoWriter, "Ensuring %s/%s is deployed\n", namespace, name)
-	gomega.Eventually(
-		func() (int32, error) {
-			deployment := &appsv1.Deployment{}
-			if err := kindClient.Get(context.TODO(), apimachinerytypes.NamespacedName{Namespace: namespace, Name: name}, deployment); err != nil {
-				return 0, err
-			}
-			return deployment.Status.ReadyReplicas, nil
-		}, 5*time.Minute, 15*time.Second,
-	).ShouldNot(gomega.BeZero())
-}
-
-func loadManagerImage(kindCluster kind.Cluster) {
-	if managerImage != nil && *managerImage != "" {
-		kindCluster.LoadImage(*managerImage)
-	}
-}
-
-func applyManifests(kindCluster kind.Cluster, manifests *string) {
-	gomega.Expect(manifests).ToNot(gomega.BeNil())
-	fmt.Fprintf(ginkgo.GinkgoWriter, "Applying manifests for %s\n", *manifests)
-	gomega.Expect(*manifests).ToNot(gomega.BeEmpty())
-	kindCluster.ApplyYAML(*manifests)
-}
-
-func deployCAPIComponents(kindCluster kind.Cluster) {
-	if capiComponents != nil && *capiComponents != "" {
-		applyManifests(kindCluster, capiComponents)
-		return
-	}
-
-	fmt.Fprintf(ginkgo.GinkgoWriter, "Generating CAPI manifests\n")
-
-	// Build the manifests using kustomize
-	capiManifests, err := exec.Command(*kustomizeBinary, "build", "../../config/default").Output()
-	if err != nil {
-		if exitError, ok := err.(*exec.ExitError); ok {
-			fmt.Fprintf(ginkgo.GinkgoWriter, "Error: %s\n", string(exitError.Stderr))
-		}
-	}
-	gomega.Expect(err).NotTo(gomega.HaveOccurred())
-
-	// write out the manifests
-	manifestFile := path.Join(suiteTmpDir, "cluster-api-components.yaml")
-	gomega.Expect(ioutil.WriteFile(manifestFile, capiManifests, 0644)).To(gomega.Succeed())
-
-	// apply generated manifests
-	applyManifests(kindCluster, &manifestFile)
-}

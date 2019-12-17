@@ -64,12 +64,12 @@ func (m *Machine) ValidateDelete() error {
 
 func (m *Machine) validate() error {
 	var allErrs field.ErrorList
-	if m.Spec.Bootstrap.ConfigRef == nil && m.Spec.Bootstrap.Data == nil {
+	if m.Spec.Bootstrap.ConfigRef == nil && m.Spec.Bootstrap.DataSecretName == nil {
 		allErrs = append(
 			allErrs,
 			field.Required(
 				field.NewPath("spec", "bootstrap", "data"),
-				"expected spec.bootstrap.data or spec.bootstrap.configRef to be populated",
+				"expected either spec.bootstrap.dataSecretName or spec.bootstrap.configRef to be populated",
 			),
 		)
 	}

@@ -22,6 +22,7 @@ import (
 	"github.com/onsi/gomega"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/utils/pointer"
 )
 
 func TestMachineDefault(t *testing.T) {
@@ -43,7 +44,6 @@ func TestMachineDefault(t *testing.T) {
 }
 
 func TestMachineBootstrapValidation(t *testing.T) {
-	data := "some bootstrap data"
 	tests := []struct {
 		name      string
 		bootstrap Bootstrap
@@ -51,12 +51,12 @@ func TestMachineBootstrapValidation(t *testing.T) {
 	}{
 		{
 			name:      "should return error if configref and data are nil",
-			bootstrap: Bootstrap{ConfigRef: nil, Data: nil},
+			bootstrap: Bootstrap{ConfigRef: nil, DataSecretName: nil},
 			expectErr: true,
 		},
 		{
-			name:      "should not return error if data is set",
-			bootstrap: Bootstrap{ConfigRef: nil, Data: &data},
+			name:      "should not return error if dataSecretName is set",
+			bootstrap: Bootstrap{ConfigRef: nil, DataSecretName: pointer.StringPtr("test")},
 			expectErr: false,
 		},
 		{

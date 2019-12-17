@@ -10,6 +10,7 @@
         - [Generating a Kubeconfig](./tasks/certs/generate-kubeconfig.md)
 - [Developer Guide](./architecture/developer-guide.md)
     - [Repository Layout](./architecture/repository-layout.md)
+    - [Rapid iterative development with Tilt](./developer/tilt.md)
     - [Controllers](./architecture/controllers.md)
         - [Bootstrap](./architecture/controllers/bootstrap.md)
         - [Cluster](./architecture/controllers/cluster.md)

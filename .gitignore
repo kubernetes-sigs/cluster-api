@@ -48,3 +48,8 @@ cmd/clusterctl/config/manifest
 # The golang vendor directory that contains local copies of external
 # dependencies that satisfy Go imports in this project.
 vendor
+
+# User-supplied Tiltfile extensions, settings, and builds
+tilt.d
+tilt-settings.json
+.tiltbuild

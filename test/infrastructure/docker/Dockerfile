@@ -14,26 +14,22 @@
 
 FROM golang:1.12.10 as builder
 
-# default the go proxy
+# Run this with docker build --build_arg $(go env GOPROXY) to override the goproxy
 ARG goproxy=https://proxy.golang.org
-ARG project=test/infrastructure/docker
-
-# run this with docker build --build_arg $(go env GOPROXY) to override the goproxy
 ENV GOPROXY=$goproxy
 
-WORKDIR /workspace
-# Copy the go source
-COPY ./ ./
-WORKDIR /workspace/$project
+WORKDIR /workspace/test/infrastructure/docker
+COPY go.mod go.mod
+COPY go.sum go.sum
 RUN go mod download
+WORKDIR /workspace
+COPY . .
 
 # Build
-RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 GO111MODULE=on go build -a -o manager main.go
+RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -a -o /workspace/manager main.go
 
 # Use alpine:latest as minimal base image to package the manager binary and its dependencies
 FROM alpine:latest
-
-ARG project=test/infrastructure/docker
 
 # install a couple of dependencies
 WORKDIR /tmp
@@ -50,6 +46,6 @@ RUN curl -LO https://download.docker.com/linux/static/stable/x86_64/docker-19.03
     rm docker-19.03.1.tgz
 
 WORKDIR /
-COPY --from=builder /workspace/$project/manager .
+COPY --from=builder /workspace/manager .
 
 ENTRYPOINT ["/manager"]

@@ -63,10 +63,11 @@ There is a version of `kustomize` built into kubectl, but it does not have all t
 ## Option 1: Tilt
 
 [Tilt][tilt] is a tool for quickly building, pushing, and reloading Docker containers as part of a Kubernetes deployment.
-Many of the Cluster API engineers use it for quick iteration. [chuckha has a repository][capi-dev] with instructions and a Tiltfile to get you started.
+Many of the Cluster API engineers use it for quick iteration. Please see our [Tilt instructions] to get started.
 
 [tilt]: https://tilt.dev
 [capi-dev]: https://github.com/chuckha/capi-dev
+[Tilt instructions]: ../developer/tilt.md
 
 ## Option 2: The Old-fashioned way
 

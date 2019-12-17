@@ -18,7 +18,6 @@ package test
 
 import (
 	"fmt"
-	"strings"
 
 	"github.com/pkg/errors"
 )
@@ -27,7 +26,6 @@ type FakeRepository struct {
 	defaultVersion string
 	rootPath       string
 	componentsPath string
-	kustomizeDir   string
 	versions       map[string]bool
 	files          map[string][]byte
 }
@@ -44,25 +42,17 @@ func (f *FakeRepository) ComponentsPath() string {
 	return f.componentsPath
 }
 
-func (f *FakeRepository) KustomizeDir() string {
-	return f.kustomizeDir
-}
-
-func (f FakeRepository) GetFiles(version string, path string) (map[string][]byte, error) {
+func (f FakeRepository) GetFile(version string, path string) ([]byte, error) {
 	if _, ok := f.versions[version]; !ok {
 		return nil, errors.Errorf("unable to get files for version %s", version)
 	}
 
-	ret := map[string][]byte{}
 	for p, c := range f.files {
-		if p == vpath(version, path) ||
-			strings.HasPrefix(p, vpath(version, path)) { // this is a quick & dirty way for identifying files belonging to a path tree
-
-			x := strings.TrimPrefix(p, fmt.Sprintf("%s/", version))
-			ret[x] = c
+		if p == vpath(version, path) {
+			return c, nil
 		}
 	}
-	return ret, nil
+	return nil, errors.Errorf("unable to get file %s for version %s", path, version)
 }
 
 func NewFakeRepository() *FakeRepository {
@@ -72,10 +62,9 @@ func NewFakeRepository() *FakeRepository {
 	}
 }
 
-func (f *FakeRepository) WithPaths(rootPath, componentsPath, kustomizeDir string) *FakeRepository {
+func (f *FakeRepository) WithPaths(rootPath, componentsPath string) *FakeRepository {
 	f.rootPath = rootPath
 	f.componentsPath = componentsPath
-	f.kustomizeDir = kustomizeDir
 	return f
 }
 

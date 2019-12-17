@@ -17,22 +17,35 @@ limitations under the License.
 package repository
 
 import (
+	"fmt"
+	"regexp"
+	"sort"
+	"strings"
+
+	"github.com/pkg/errors"
+	appsv1 "k8s.io/api/apps/v1"
+	rbacv1 "k8s.io/api/rbac/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	clusterctlv1 "sigs.k8s.io/cluster-api/cmd/clusterctl/api/v1alpha3"
 	"sigs.k8s.io/cluster-api/cmd/clusterctl/pkg/client/config"
+	"sigs.k8s.io/cluster-api/cmd/clusterctl/pkg/internal/scheme"
+	"sigs.k8s.io/cluster-api/cmd/clusterctl/pkg/internal/util"
+	"sigs.k8s.io/yaml"
 )
+
+// variableRegEx defines the regexp used for searching variables inside a YAML
+var variableRegEx = regexp.MustCompile(`\${\s*([A-Z0-9_]+)\s*}`)
 
 // Components wraps a YAML file that defines the provider components
 // to be installed in a management cluster (CRD, Controller, RBAC etc.)
-// It is important to notice that clusterctl applies a set of processing steps to the “raw” component read
+// It is important to notice that clusterctl applies a set of processing steps to the “raw” component YAML read
 // from the provider repositories:
-// 1. In case the provider exposed a component YAML that is not “pre-compiled” (e.g. the /config dir), it uses
-// kustomize to create a single component YAML file
-// 2. Checks for all the variables in the component YAML file and replace with corresponding config values
-// 3. Ensures all the provider components are deployed in the target namespace (apply only to namespaced objects)
-// 4. Ensures all the ClusterRoleBinding which are referencing namespaced objects have the name prefixed with the namespace name
-// 5. Set the watching namespace for the provider controller
-// 6. Adds labels to all the components in order to allow easy identification of the provider objects
+// 1. Checks for all the variables in the component YAML file and replace with corresponding config values
+// 2. Ensure all the provider components are deployed in the target namespace (apply only to namespaced objects)
+// 3. Ensure all the ClusterRoleBinding which are referencing namespaced objects have the name prefixed with the namespace name
+// 4. Set the watching namespace for the provider controller
+// 5. Adds labels to all the components in order to allow easy identification of the provider objects
 type Components interface {
 	// configuration of the provider the template belongs to.
 	config.Provider
@@ -63,4 +76,407 @@ type Components interface {
 
 	// Objs return the provider components in the form of a list of Unstructured objects.
 	Objs() []unstructured.Unstructured
+}
+
+// components implement Components
+type components struct {
+	config.Provider
+	version           string
+	variables         []string
+	targetNamespace   string
+	watchingNamespace string
+	objs              []unstructured.Unstructured
+}
+
+// ensure components implement Components
+var _ Components = &components{}
+
+func (c *components) Version() string {
+	return c.version
+}
+
+func (c *components) Variables() []string {
+	return c.variables
+}
+
+func (c *components) TargetNamespace() string {
+	return c.targetNamespace
+}
+
+func (c *components) WatchingNamespace() string {
+	return c.watchingNamespace
+}
+
+func (c *components) Metadata() clusterctlv1.Provider {
+	return clusterctlv1.Provider{
+		TypeMeta: metav1.TypeMeta{
+			APIVersion: clusterctlv1.GroupVersion.String(),
+			Kind:       "Provider",
+		},
+		ObjectMeta: metav1.ObjectMeta{
+			Namespace: c.targetNamespace,
+			Name:      c.Name(),
+			Labels:    getLabels(c.Name()),
+		},
+		Type:             string(c.Type()),
+		Version:          c.version,
+		WatchedNamespace: c.watchingNamespace,
+	}
+}
+
+func (c *components) Objs() []unstructured.Unstructured {
+	return c.objs
+}
+
+func (c *components) Yaml() ([]byte, error) {
+	var ret [][]byte //nolint
+	for _, o := range c.objs {
+		content, err := yaml.Marshal(o.UnstructuredContent())
+		if err != nil {
+			return nil, errors.Wrapf(err, "failed to marshal yaml for %s/%s", o.GetNamespace(), o.GetName())
+		}
+		ret = append(ret, content)
+	}
+
+	return util.JoinYaml(ret...), nil
+}
+
+// newComponents returns a new objects embedding a component YAML file
+//
+// It is important to notice that clusterctl applies a set of processing steps to the “raw” component YAML read
+// from the provider repositories:
+// 1. Checks for all the variables in the component YAML file and replace with corresponding config values
+// 2. Ensure all the provider components are deployed in the target namespace (apply only to namespaced objects)
+// 3. Ensure all the ClusterRoleBinding which are referencing namespaced objects have the name prefixed with the namespace name
+// 4. Set the watching namespace for the provider controller
+// 5. Adds labels to all the components in order to allow easy identification of the provider objects
+func newComponents(provider config.Provider, version string, rawyaml []byte, configVariablesClient config.VariablesClient, targetNamespace, watchingNamespace string) (*components, error) {
+
+	// inspect the yaml read from the repository for variables
+	variables := inspectVariables(rawyaml)
+
+	// Replace variables with corresponding values read from the config
+	yaml, err := replaceVariables(rawyaml, variables, configVariablesClient)
+	if err != nil {
+		return nil, errors.Wrap(err, "failed to perform variable substitution")
+	}
+
+	// transform the yaml in a list of objects, so following transformation can work on typed objects (instead of working on a string/slice of bytes)
+	objs, err := util.ToUnstructured(yaml)
+	if err != nil {
+		return nil, errors.Wrap(err, "failed to parse yaml")
+	}
+
+	// inspect the list of objects for the default target namespace
+	// the default target namespace is the namespace object defined in the component yaml read from the repository, if any
+	defaultTargetNamespace, err := inspectTargetNamespace(objs)
+	if err != nil {
+		return nil, errors.Wrap(err, "failed to detect default target namespace")
+	}
+
+	// Ensures all the provider components are deployed in the target namespace (apply only to namespaced objects)
+	// if targetNamespace is not specified, then defaultTargetNamespace is used. In case both targetNamespace and defaultTargetNamespace
+	// are empty, an error is returned
+
+	if targetNamespace == "" {
+		targetNamespace = defaultTargetNamespace
+	}
+
+	if targetNamespace == "" {
+		return nil, errors.New("target namespace can't be defaulted. Please specify a target namespace")
+	}
+
+	objs = fixTargetNamespace(objs, targetNamespace)
+
+	// ensure all the ClusterRoleBinding which are referencing namespaced objects have the name prefixed with the namespace name
+	objs, err = fixClusterRoleBindings(objs, targetNamespace)
+	if err != nil {
+		return nil, errors.Wrap(err, "failed to fix ClusterRoleBinding names")
+	}
+
+	// inspect the list of objects for the default watching namespace
+	// the default watching namespace is the namespace the controller is set for watching in the component yaml read from the repository, if any
+	defaultWatchingNamespace, err := inspectWatchNamespace(objs)
+	if err != nil {
+		return nil, errors.Wrap(err, "failed to detect default watching namespace")
+	}
+
+	// if the requested watchingNamespace is different from the defaultWatchingNamespace, fix it
+	if defaultWatchingNamespace != watchingNamespace {
+		objs, err = fixWatchNamespace(objs, watchingNamespace)
+		if err != nil {
+			return nil, errors.Wrap(err, "failed to set watching namespace")
+		}
+	}
+
+	objs = addLabels(objs, provider.Name())
+
+	return &components{
+		Provider:          provider,
+		version:           version,
+		variables:         variables,
+		targetNamespace:   targetNamespace,
+		watchingNamespace: watchingNamespace,
+		objs:              objs,
+	}, nil
+}
+
+func inspectVariables(data []byte) []string {
+	variables := map[string]struct{}{}
+	match := variableRegEx.FindAllStringSubmatch(string(data), -1)
+
+	for _, m := range match {
+		submatch := m[1]
+		if _, ok := variables[submatch]; !ok {
+			variables[submatch] = struct{}{}
+		}
+	}
+
+	ret := make([]string, 0, len(variables))
+	for v := range variables {
+		ret = append(ret, v)
+	}
+
+	sort.Strings(ret)
+	return ret
+}
+
+func replaceVariables(yaml []byte, variables []string, configVariablesClient config.VariablesClient) ([]byte, error) {
+	tmp := string(yaml)
+	var missingVariables []string
+	for _, key := range variables {
+		val, err := configVariablesClient.Get(key)
+		if err != nil {
+			missingVariables = append(missingVariables, key)
+			continue
+		}
+		exp := regexp.MustCompile(`\$\{\s*` + key + `\s*\}`)
+		tmp = exp.ReplaceAllString(tmp, val)
+	}
+	if len(missingVariables) > 0 {
+		return nil, errors.Errorf("value for variables [%s] is not set. Please set the value using os environment variables or the clusterctl config file", strings.Join(missingVariables, ", "))
+	}
+
+	return []byte(tmp), nil
+}
+
+const namespaceKind = "Namespace"
+
+// inspectTargetNamespace identifies the name of the namespace object contained in the components YAML, if any.
+// In case more than one Namespace object is identified, an error is returned.
+func inspectTargetNamespace(objs []unstructured.Unstructured) (string, error) {
+	namespace := ""
+	for _, o := range objs {
+		// if the object has Kind Namespace
+		if o.GetKind() == namespaceKind {
+			// grab the name (or error if there is more than one Namespace object)
+			if namespace != "" {
+				return "", errors.New("Invalid manifest. There should be no more than one resource with Kind Namespace in the provider components yaml")
+			}
+			namespace = o.GetName()
+		}
+	}
+	return namespace, nil
+}
+
+// fixTargetNamespace ensures all the provider components are deployed in the target namespace (apply only to namespaced objects).
+// The func tales case of fixing the namespace object, if any.
+func fixTargetNamespace(objs []unstructured.Unstructured, targetNamespace string) []unstructured.Unstructured {
+	namespaceObjectFound := false
+
+	for _, o := range objs {
+		// if the object has Kind Namespace, fix the namespace name
+		if o.GetKind() == namespaceKind {
+			namespaceObjectFound = true
+			o.SetName(targetNamespace)
+		}
+
+		// if the object is namespaced, set the namespace name
+		if isResourceNamespaced(o.GetKind()) {
+			o.SetNamespace(targetNamespace)
+		}
+	}
+
+	// if there isn't an object with Kind Namespace, add it
+	if !namespaceObjectFound {
+		objs = append(objs, unstructured.Unstructured{
+			Object: map[string]interface{}{
+				"kind": namespaceKind,
+				"metadata": map[string]interface{}{
+					"name": targetNamespace,
+				},
+			},
+		})
+	}
+
+	return objs
+}
+
+func isResourceNamespaced(kind string) bool {
+	switch kind {
+	case "Namespace",
+		"Node",
+		"PersistentVolume",
+		"PodSecurityPolicy",
+		"CertificateSigningRequest",
+		"ClusterRoleBinding",
+		"ClusterRole",
+		"VolumeAttachment",
+		"StorageClass",
+		"CSIDriver",
+		"CSINode",
+		"ValidatingWebhookConfiguration",
+		"MutatingWebhookConfiguration",
+		"CustomResourceDefinition",
+		"PriorityClass",
+		"RuntimeClass":
+		return false
+	default:
+		return true
+	}
+}
+
+const clusterRoleBindingKind = "ClusterRoleBinding"
+
+// fixClusterRoleBindings ensures all the ClusterRoleBinding which are referencing namespaced objects have the name prefixed with the namespace name
+func fixClusterRoleBindings(objs []unstructured.Unstructured, targetNamespace string) ([]unstructured.Unstructured, error) {
+	for _, o := range objs {
+		// if the object has Kind ClusterRoleBinding
+		if o.GetKind() == clusterRoleBindingKind {
+			// Convert Unstructured into a typed object
+			b := &rbacv1.ClusterRoleBinding{}
+			if err := scheme.Scheme.Convert(&o, b, nil); err != nil { //nolint
+				return nil, err
+			}
+
+			// check if one of the subjects is namespaced. if yes, Fix the ClusterRoleBinding so it is namespaced as well
+			for _, subject := range b.Subjects {
+				if subject.Namespace != "" {
+					o.SetName(fmt.Sprintf("%s-%s", targetNamespace, o.GetName()))
+					break
+				}
+			}
+		}
+	}
+
+	return objs, nil
+}
+
+const namespaceArgPrefix = "--namespace="
+const deploymentKind = "Deployment"
+const controllerContainerName = "manager"
+
+// inspectWatchNamespace inspects the list of components objects for the default watching namespace
+// the default watching namespace is the namespace the controller is set for watching in the component yaml read from the repository, if any
+func inspectWatchNamespace(objs []unstructured.Unstructured) (string, error) {
+	namespace := ""
+	// look for resources of kind Deployment
+	for _, o := range objs {
+		if o.GetKind() == deploymentKind {
+
+			// Convert Unstructured into a typed object
+			d := &appsv1.Deployment{}
+			if err := scheme.Scheme.Convert(&o, d, nil); err != nil { //nolint
+				return "", err
+			}
+
+			// look for a container with name "manager"
+			for _, c := range d.Spec.Template.Spec.Containers {
+				if c.Name == controllerContainerName {
+
+					// look for the --namespace command arg
+					for _, a := range c.Args {
+						if strings.HasPrefix(a, namespaceArgPrefix) {
+							n := strings.TrimPrefix(a, namespaceArgPrefix)
+							if namespace != "" && n != namespace {
+								return "", errors.New("Invalid manifest. All the controllers should watch have the same --namespace command arg in the provider components yaml")
+							}
+							namespace = n
+						}
+					}
+				}
+			}
+		}
+	}
+
+	return namespace, nil
+}
+
+func fixWatchNamespace(objs []unstructured.Unstructured, watchingNamespace string) ([]unstructured.Unstructured, error) {
+
+	// look for resources of kind Deployment
+	for i, o := range objs {
+		if o.GetKind() == deploymentKind {
+
+			// Convert Unstructured into a typed object
+			d := &appsv1.Deployment{}
+			if err := scheme.Scheme.Convert(&o, d, nil); err != nil { //nolint
+				return nil, err
+			}
+
+			// look for a container with name "manager"
+			for j, c := range d.Spec.Template.Spec.Containers {
+				if c.Name == controllerContainerName {
+
+					// look for the --namespace command arg
+					found := false
+					for k, a := range c.Args {
+						// if it exist
+						if strings.HasPrefix(a, namespaceArgPrefix) {
+							found = true
+
+							// replace the command arg with the desired value or delete the arg if the controller should watch for objects in all the namespaces
+							if watchingNamespace != "" {
+								c.Args[k] = fmt.Sprintf("%s%s", namespaceArgPrefix, watchingNamespace)
+								continue
+							}
+							c.Args = remove(c.Args, k)
+						}
+					}
+
+					// if it not exists, and the controller should watch for objects in a specific namespace, set the command arg
+					if !found && watchingNamespace != "" {
+						c.Args = append(c.Args, fmt.Sprintf("%s%s", namespaceArgPrefix, watchingNamespace))
+					}
+				}
+
+				d.Spec.Template.Spec.Containers[j] = c
+			}
+
+			// Convert Deployment back to Unstructured
+			if err := scheme.Scheme.Convert(d, &o, nil); err != nil { //nolint
+				return nil, err
+			}
+			objs[i] = o
+		}
+	}
+	return objs, nil
+}
+
+func remove(slice []string, i int) []string {
+	copy(slice[i:], slice[i+1:])
+	return slice[:len(slice)-1]
+}
+
+// addLabels ensures all the provider components have a consistent set of labels
+func addLabels(objs []unstructured.Unstructured, name string) []unstructured.Unstructured {
+	for _, o := range objs {
+		labels := o.GetLabels()
+		if labels == nil {
+			labels = map[string]string{}
+		}
+		for k, v := range getLabels(name) {
+			labels[k] = v
+		}
+		o.SetLabels(labels)
+	}
+
+	return objs
+}
+
+func getLabels(name string) map[string]string {
+	return map[string]string{
+		clusterctlv1.ClusterctlLabelName:         "",
+		clusterctlv1.ClusterctlProviderLabelName: name,
+	}
 }

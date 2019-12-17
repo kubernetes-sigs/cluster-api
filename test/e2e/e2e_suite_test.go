@@ -45,7 +45,6 @@ func TestE2E(t *testing.T) {
 
 const (
 	capiNamespace      = "capi-system"
-	capiTestNamespace  = "default"
 	capiDeploymentName = "capi-controller-manager"
 	setupTimeout       = 10 * 60
 )

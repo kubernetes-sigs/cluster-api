@@ -22,6 +22,10 @@ import (
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
+	corev1 "k8s.io/api/core/v1"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
 // InstallComponents is a helper function that applies components, generally to a management cluster.
@@ -51,4 +55,21 @@ func WaitForPodsReadyInNamespace(ctx context.Context, cluster Waiter, namespace 
 	By(fmt.Sprintf("waiting for pods to be ready in namespace %q", namespace))
 	err := cluster.Wait(ctx, "--for", "condition=Ready", "--timeout", "300s", "--namespace", namespace, "pods", "--all")
 	Expect(err).NotTo(HaveOccurred(), "stack: %+v", err)
+}
+
+// EnsureNamespace verifies if a namespaces exists. If it doesn't it will
+// create the namespace.
+func EnsureNamespace(ctx context.Context, mgmt client.Client, namespace string) {
+	ns := &corev1.Namespace{}
+	err := mgmt.Get(ctx, client.ObjectKey{Name: namespace}, ns)
+	if err != nil && apierrors.IsNotFound(err) {
+		ns = &corev1.Namespace{
+			ObjectMeta: metav1.ObjectMeta{
+				Name: namespace,
+			},
+		}
+		Expect(mgmt.Create(ctx, ns)).To(Succeed())
+	} else {
+		Fail(err.Error())
+	}
 }

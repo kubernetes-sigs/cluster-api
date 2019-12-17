@@ -60,7 +60,7 @@ For version v0.x.y:
     1. To use your GPG signature when pushing the tag, use `git tag -s [...]` instead
 1. Push the tag to the GitHub repository `git push origin v0.x.y`
     1. NB: `origin` should be the name of the remote pointing to `github.com/kubernetes-sigs/cluster-api`
-1. Run `make release` to build artifacts and push the images to the staging bucket
+1. Run `make release` to build artifacts (the image is automatically built by CI)
 1. Follow the [Image Promotion process](https://github.com/kubernetes/k8s.io/tree/master/k8s.gcr.io#image-promoter) to promote the image from the staging repo to `us.gcr.io/k8s-artifacts-prod/cluster-api`
 1. Create a release in GitHub based on the tag created above
 1. Release notes can be created by running `make release-notes`, which will generate an output that can be copied to the drafted release in GitHub.

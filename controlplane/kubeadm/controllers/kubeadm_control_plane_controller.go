@@ -26,7 +26,9 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/types"
+	utilerrors "k8s.io/apimachinery/pkg/util/errors"
 	"k8s.io/client-go/tools/record"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -51,6 +53,14 @@ type TemplateCloner interface {
 	CloneTemplate(ctx context.Context, c client.Client, ref *corev1.ObjectReference, namespace, clusterName string, owner *metav1.OwnerReference) (*corev1.ObjectReference, error)
 }
 
+type KubeadmConfigGenerator interface {
+	GenerateKubeadmConfig(ctx context.Context, c client.Client, namespace, namePrefix, clusterName string, spec *bootstrapv1.KubeadmConfigSpec, owner *metav1.OwnerReference) (*corev1.ObjectReference, error)
+}
+
+type MachineGenerator interface {
+	GenerateMachine(ctx context.Context, c client.Client, namespace, namePrefix, clusterName, version string, infraRef, bootstrapRef *corev1.ObjectReference, labels map[string]string, owner *metav1.OwnerReference) error
+}
+
 // +kubebuilder:rbac:groups=core,resources=events,verbs=get;list;watch;create;patch
 // +kubebuilder:rbac:groups=core,resources=secrets,verbs=get;list;watch;create;patch
 // +kubebuilder:rbac:groups=controlplane.cluster.x-k8s.io,resources=kubeadmcontrolplanes;kubeadmcontrolplanes/status,verbs=get;list;watch;create;update;patch;delete
@@ -60,7 +70,9 @@ type KubeadmControlPlaneReconciler struct {
 	Client client.Client
 	Log    logr.Logger
 
-	TemplateCloner TemplateCloner
+	TemplateCloner         TemplateCloner
+	KubeadmConfigGenerator KubeadmConfigGenerator
+	MachineGenerator       MachineGenerator
 
 	controller controller.Controller
 	recorder   record.EventRecorder
@@ -240,7 +252,7 @@ func (r *KubeadmControlPlaneReconciler) reconcile(ctx context.Context, kcp *cont
 	case numMachines < desiredReplicas && numMachines == 0:
 		// create new Machine w/ init
 		logger.Info("Scaling to 1", "Desired Replicas", desiredReplicas, "Existing Replicas", numMachines)
-		if initErr := r.initializeControlPlane(ctx, cluster, kcp); initErr != nil {
+		if initErr := r.initializeControlPlane(ctx, cluster, kcp, logger); initErr != nil {
 			logger.Error(initErr, "Failed to initialize the Control Plane")
 			return ctrl.Result{Requeue: true}
 		}
@@ -260,21 +272,7 @@ func (r *KubeadmControlPlaneReconciler) reconcile(ctx context.Context, kcp *cont
 	return ctrl.Result{Requeue: true}
 }
 
-func (r *KubeadmControlPlaneReconciler) initializeControlPlane(ctx context.Context, cluster *clusterv1.Cluster, kcp *controlplanev1.KubeadmControlPlane) error {
-	gv := controlplanev1.GroupVersion
-	machine := &clusterv1.Machine{
-		ObjectMeta: metav1.ObjectMeta{
-			GenerateName:    fmt.Sprintf("%s-", kcp.Name),
-			Labels:          generateKubeadmControlPlaneLabels(cluster.Name),
-			Namespace:       kcp.Namespace,
-			OwnerReferences: []metav1.OwnerReference{*metav1.NewControllerRef(kcp, gv.WithKind("KubeadmControlPlane"))},
-		},
-		Spec: clusterv1.MachineSpec{
-			ClusterName: cluster.Name,
-			Version:     &kcp.Spec.Version,
-		},
-	}
-
+func (r *KubeadmControlPlaneReconciler) initializeControlPlane(ctx context.Context, cluster *clusterv1.Cluster, kcp *controlplanev1.KubeadmControlPlane, logger logr.Logger) error {
 	ownerRef := metav1.NewControllerRef(kcp, controlplanev1.GroupVersion.WithKind("KubeadmControlPlane"))
 	// Clone the infrastructure template
 	infraRef, err := r.TemplateCloner.CloneTemplate(
@@ -288,31 +286,66 @@ func (r *KubeadmControlPlaneReconciler) initializeControlPlane(ctx context.Conte
 	if err != nil {
 		return errors.Wrap(err, "Failed to clone infrastructure template")
 	}
-	machine.Spec.InfrastructureRef = *infraRef
 
 	// Create the bootstrap configuration
-	bootstrapConfig := &bootstrapv1.KubeadmConfig{
-		ObjectMeta: metav1.ObjectMeta{
-			GenerateName:    fmt.Sprintf("%s-", kcp.Name),
-			Namespace:       kcp.Namespace,
-			OwnerReferences: []metav1.OwnerReference{*metav1.NewControllerRef(kcp, gv.WithKind("KubeadmControlPlane"))},
-		},
-		Spec: kcp.Spec.KubeadmConfigSpec,
-	}
-	bootstrapConfig.Spec.JoinConfiguration = nil
-	if err := r.Client.Create(ctx, bootstrapConfig); err != nil {
-		return errors.Wrap(err, "Failed to create bootstrap configuration")
-	}
-	machine.Spec.Bootstrap.ConfigRef = &corev1.ObjectReference{
-		Kind:       bootstrapv1.GroupVersion.WithKind("KubeadmConfig").Kind,
-		APIVersion: bootstrapv1.GroupVersion.String(),
-		Namespace:  bootstrapConfig.GetNamespace(),
-		Name:       bootstrapConfig.GetName(),
+	bootstrapSpec := kcp.Spec.KubeadmConfigSpec.DeepCopy()
+	bootstrapSpec.JoinConfiguration = nil
+	bootstrapRef, err := r.KubeadmConfigGenerator.GenerateKubeadmConfig(
+		ctx,
+		r.Client,
+		kcp.Namespace,
+		kcp.Name,
+		cluster.Name,
+		bootstrapSpec,
+		ownerRef,
+	)
+	if err != nil {
+		return errors.Wrap(err, "Failed to generate bootstrap config")
 	}
 
 	// Create the Machine
-	if err := r.Client.Create(ctx, machine); err != nil {
-		return errors.Wrap(err, "Failed to create machine")
+	err = r.MachineGenerator.GenerateMachine(
+		ctx,
+		r.Client,
+		kcp.Namespace,
+		kcp.Name,
+		cluster.Name,
+		kcp.Spec.Version,
+		infraRef,
+		bootstrapRef,
+		generateKubeadmControlPlaneLabels(cluster.Name),
+		ownerRef,
+	)
+	if err != nil {
+		logger.Error(err, "Unable to create Machine")
+		r.recorder.Eventf(kcp, corev1.EventTypeWarning, "FailedCreateMachine", "Failed to create machine: %v", err)
+
+		errs := []error{err}
+
+		infraConfig := &unstructured.Unstructured{}
+		infraConfig.SetKind(infraRef.Kind)
+		infraConfig.SetAPIVersion(infraRef.APIVersion)
+		infraConfig.SetNamespace(infraRef.Namespace)
+		infraConfig.SetName(infraRef.Name)
+
+		if err := r.Client.Delete(context.TODO(), infraConfig); !apierrors.IsNotFound(err) {
+			logger.Error(err, "Failed to cleanup infrastructure configuration object after Machine creation error")
+			errs = append(errs, err)
+		}
+
+		bootstrapConfig := &bootstrapv1.KubeadmConfig{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      bootstrapRef.Name,
+				Namespace: bootstrapRef.Namespace,
+			},
+		}
+
+		if err := r.Client.Delete(context.TODO(), bootstrapConfig); !apierrors.IsNotFound(err) {
+			logger.Error(err, "Failed to cleanup bootstrap configuration object after Machine creation error")
+			errs = append(errs, err)
+		}
+
+		return utilerrors.NewAggregate(errs)
 	}
 
 	return nil
@@ -384,7 +417,7 @@ func (r *KubeadmControlPlaneReconciler) ClusterToKubeadmControlPlane(o handler.M
 	}
 
 	controlPlaneRef := c.Spec.ControlPlaneRef
-	if controlPlaneRef != nil {
+	if controlPlaneRef != nil && controlPlaneRef.Kind == "KubeadmControlPlane" {
 		name := client.ObjectKey{Namespace: controlPlaneRef.Namespace, Name: controlPlaneRef.Name}
 		return []ctrl.Request{{NamespacedName: name}}
 	}

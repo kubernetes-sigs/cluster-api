@@ -18,8 +18,10 @@ package framework
 
 import (
 	"context"
+	"fmt"
 	"time"
 
+	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha3"
 )
@@ -40,19 +42,19 @@ func (c *CleanUpInput) SetDefaults() {
 // CleanUp deletes the cluster and waits for everything to be gone.
 // Generally this test can be reused for many tests since the implementation is so simple.
 func CleanUp(input *CleanUpInput) {
-	// TODO: check that all the things we expect have the cluster label or else they can't get deleted
+	// TODO: check that all the things we expect have the cluster label or
+	// else they can't get deleted
 	input.SetDefaults()
 	ctx := context.Background()
 	mgmtClient, err := input.Management.GetClient()
 	Expect(err).NotTo(HaveOccurred(), "stack: %+v", err)
 
+	By(fmt.Sprintf("deleting cluster %s", input.Cluster.GetName()))
 	Expect(mgmtClient.Delete(ctx, input.Cluster)).NotTo(HaveOccurred())
 
 	Eventually(func() []clusterv1.Cluster {
 		clusters := clusterv1.ClusterList{}
-		c, err := input.Management.GetClient()
-		Expect(err).NotTo(HaveOccurred())
-		Expect(c.List(ctx, &clusters)).NotTo(HaveOccurred())
+		Expect(mgmtClient.List(ctx, &clusters)).NotTo(HaveOccurred())
 		return clusters.Items
 	}, input.DeleteTimeout, 10*time.Second).Should(HaveLen(0))
 }

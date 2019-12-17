@@ -29,6 +29,7 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"sigs.k8s.io/cluster-api/test/framework"
 	"sigs.k8s.io/cluster-api/test/framework/generators"
+	"sigs.k8s.io/cluster-api/util"
 
 	capiv1 "sigs.k8s.io/cluster-api/api/v1alpha3"
 	bootstrapv1 "sigs.k8s.io/cluster-api/bootstrap/kubeadm/api/v1alpha3"
@@ -72,7 +73,11 @@ var _ = BeforeSuite(func() {
 	Expect(infrav1.AddToScheme(scheme)).To(Succeed())
 
 	// Create the management cluster
-	mgmt, err = NewClusterForCAPD(ctx, "mgmt", scheme, managerImage, capiImage)
+	kindClusterName := os.Getenv("MGMT_CLUSTER_NAME")
+	if kindClusterName == "" {
+		kindClusterName = "docker-e2e-" + util.RandomString(6)
+	}
+	mgmt, err = NewClusterForCAPD(ctx, kindClusterName, scheme, managerImage, capiImage)
 	Expect(err).NotTo(HaveOccurred())
 	Expect(mgmt).NotTo(BeNil())
 

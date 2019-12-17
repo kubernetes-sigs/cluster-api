@@ -23,34 +23,44 @@ import (
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
+	corev1 "k8s.io/api/core/v1"
 	v1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
+	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/wait"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha3"
+	cabpkv1 "sigs.k8s.io/cluster-api/bootstrap/kubeadm/api/v1alpha3"
+	controlplanev1 "sigs.k8s.io/cluster-api/controlplane/kubeadm/api/v1alpha3"
+	dockerv1 "sigs.k8s.io/cluster-api/test/infrastructure/docker/api/v1alpha3"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
-// MultiNodeControlplaneClusterInput defines the necessary dependencies to run a multi-node control plane cluster.
-type MultiNodeControlplaneClusterInput struct {
-	Management        ManagementCluster
-	Cluster           *clusterv1.Cluster
-	InfraCluster      runtime.Object
-	ControlplaneNodes []Node
-	CreateTimeout     time.Duration
+// ControlplaneClusterInput defines the necessary dependencies to run a multi-node control plane cluster.
+type ControlplaneClusterInput struct {
+	Management    ManagementCluster
+	Cluster       *clusterv1.Cluster
+	InfraCluster  runtime.Object
+	Nodes         []Node
+	CreateTimeout time.Duration
+	DeleteTimeout time.Duration
 }
 
 // SetDefaults defaults the struct fields if necessary.
-func (m *MultiNodeControlplaneClusterInput) SetDefaults() {
+func (m *ControlplaneClusterInput) SetDefaults() {
 	if m.CreateTimeout == 0 {
 		m.CreateTimeout = 10 * time.Minute
 	}
+
+	if m.DeleteTimeout == 0 {
+		m.DeleteTimeout = 5 * time.Minute
+	}
 }
 
-// MulitNodeControlPlaneCluster creates an n node control plane cluster.
+// ControlPlaneCluster creates an n node control plane cluster.
 // Assertions:
 //  * The number of nodes in the created cluster will equal the number of nodes in the input data.
-func MultiNodeControlPlaneCluster(input *MultiNodeControlplaneClusterInput) {
+func ControlPlaneCluster(input *ControlplaneClusterInput) {
 	ctx := context.Background()
 	Expect(input.Management).ToNot(BeNil())
 
@@ -70,7 +80,7 @@ func MultiNodeControlPlaneCluster(input *MultiNodeControlplaneClusterInput) {
 	}, input.CreateTimeout, 10*time.Second).Should(BeNil())
 
 	// create all the machines at once
-	for _, node := range input.ControlplaneNodes {
+	for _, node := range input.Nodes {
 		By("creating an InfrastructureMachine resource")
 		Expect(mgmtClient.Create(ctx, node.InfraMachine)).NotTo(HaveOccurred())
 
@@ -96,7 +106,7 @@ func MultiNodeControlPlaneCluster(input *MultiNodeControlplaneClusterInput) {
 
 	// wait for all the machines to be running
 	By("waiting for all machines to be running")
-	for _, node := range input.ControlplaneNodes {
+	for _, node := range input.Nodes {
 		Eventually(func() string {
 			machine := &clusterv1.Machine{}
 			key := client.ObjectKey{
@@ -131,5 +141,85 @@ func MultiNodeControlPlaneCluster(input *MultiNodeControlplaneClusterInput) {
 		Expect(err).NotTo(HaveOccurred(), "Stack:\n%+v\n", err)
 		Expect(workloadClient.List(ctx, &nodes)).NotTo(HaveOccurred())
 		return nodes.Items
-	}, input.CreateTimeout, 10*time.Second).Should(HaveLen(len(input.ControlplaneNodes)))
+	}, input.CreateTimeout, 10*time.Second).Should(HaveLen(len(input.Nodes)))
+}
+
+// CleanUp deletes the cluster and waits for everything to be gone.
+// Assertions:
+//   * Deletes Machines
+//   * Deletes MachineSets
+//   * Deletes MachineDeployments
+//   * Deletes KubeadmConfigs
+//   * Deletes InfraCluster
+//   * Deletes InfraMachines
+//   * Deletes InfraMachineTemplates
+//   * Deletes Secrets
+func (i *ControlplaneClusterInput) CleanUp() {
+	i.SetDefaults()
+	ctx := context.Background()
+	mgmtClient, err := i.Management.GetClient()
+	Expect(err).NotTo(HaveOccurred(), "stack: %+v", err)
+
+	By(fmt.Sprintf("deleting cluster %s", i.Cluster.GetName()))
+	Expect(mgmtClient.Delete(ctx, i.Cluster)).To(Succeed())
+
+	Eventually(func() []clusterv1.Cluster {
+		clusters := clusterv1.ClusterList{}
+		Expect(mgmtClient.List(ctx, &clusters)).To(Succeed())
+		return clusters.Items
+	}, i.DeleteTimeout, 10*time.Second).Should(HaveLen(0))
+
+	lbl, err := labels.Parse(fmt.Sprintf("%s=%s", clusterv1.ClusterLabelName, i.Cluster.GetClusterName()))
+	Expect(err).ToNot(HaveOccurred())
+	listOpts := &client.ListOptions{LabelSelector: lbl}
+
+	By("ensuring all artifacts have been deleted")
+	ensureArtifactsDeleted(ctx, mgmtClient, listOpts)
+
+	// TODO: Add more provider specific checks here.
+	switch TypeToKind(i.InfraCluster) {
+	case "DockerCluster":
+		ensureDockerArtifactsDeleted(ctx, mgmtClient, listOpts)
+	}
+}
+
+func ensureArtifactsDeleted(ctx context.Context, mgmtClient client.Client, opt *client.ListOptions) {
+	// assertions
+	ml := &clusterv1.MachineList{}
+	Expect(mgmtClient.List(ctx, ml, opt)).To(Succeed())
+	Expect(ml.Items).To(HaveLen(0))
+
+	msl := &clusterv1.MachineSetList{}
+	Expect(mgmtClient.List(ctx, msl, opt)).To(Succeed())
+	Expect(msl.Items).To(HaveLen(0))
+
+	mdl := &clusterv1.MachineDeploymentList{}
+	Expect(mgmtClient.List(ctx, mdl, opt)).To(Succeed())
+	Expect(mdl.Items).To(HaveLen(0))
+
+	kcpl := &controlplanev1.KubeadmControlPlaneList{}
+	Expect(mgmtClient.List(ctx, kcpl, opt)).To(Succeed())
+	Expect(kcpl.Items).To(HaveLen(0))
+
+	kcl := &cabpkv1.KubeadmConfigList{}
+	Expect(mgmtClient.List(ctx, kcl, opt)).To(Succeed())
+	Expect(kcl.Items).To(HaveLen(0))
+
+	sl := &corev1.SecretList{}
+	Expect(mgmtClient.List(ctx, sl, opt)).To(Succeed())
+	Expect(sl.Items).To(HaveLen(0))
+}
+
+func ensureDockerArtifactsDeleted(ctx context.Context, mgmtClient client.Client, opt *client.ListOptions) {
+	dcl := &dockerv1.DockerClusterList{}
+	Expect(mgmtClient.List(ctx, dcl, opt)).To(Succeed())
+	Expect(dcl.Items).To(HaveLen(0))
+
+	dml := &dockerv1.DockerMachineList{}
+	Expect(mgmtClient.List(ctx, dml, opt)).To(Succeed())
+	Expect(dml.Items).To(HaveLen(0))
+
+	dmtl := &dockerv1.DockerMachineTemplateList{}
+	Expect(mgmtClient.List(ctx, dmtl, opt)).To(Succeed())
+	Expect(dmtl.Items).To(HaveLen(0))
 }

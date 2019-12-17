@@ -33,6 +33,8 @@ import (
 
 	capiv1 "sigs.k8s.io/cluster-api/api/v1alpha3"
 	bootstrapv1 "sigs.k8s.io/cluster-api/bootstrap/kubeadm/api/v1alpha3"
+	cabpkv1 "sigs.k8s.io/cluster-api/bootstrap/kubeadm/api/v1alpha3"
+	controlplanev1 "sigs.k8s.io/cluster-api/controlplane/kubeadm/api/v1alpha3"
 	infrav1 "sigs.k8s.io/cluster-api/test/infrastructure/docker/api/v1alpha3"
 )
 
@@ -71,6 +73,8 @@ var _ = BeforeSuite(func() {
 	Expect(capiv1.AddToScheme(scheme)).To(Succeed())
 	Expect(bootstrapv1.AddToScheme(scheme)).To(Succeed())
 	Expect(infrav1.AddToScheme(scheme)).To(Succeed())
+	Expect(controlplanev1.AddToScheme(scheme)).To(Succeed())
+	Expect(cabpkv1.AddToScheme(scheme)).To(Succeed())
 
 	// Create the management cluster
 	kindClusterName := os.Getenv("MGMT_CLUSTER_NAME")

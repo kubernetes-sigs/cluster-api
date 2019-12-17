@@ -520,6 +520,7 @@ sigs.k8s.io/cluster-api/test/infrastructure/docker v0.0.0-20191217151159-8e57f0b
 sigs.k8s.io/cluster-api/test/infrastructure/docker v0.0.0-20191217151159-8e57f0be14c0/go.mod h1:rgRQ1U631gWRlmjGgCLHlTkkjPdBZkclUjY1Kt7VSeU=
 sigs.k8s.io/controller-runtime v0.4.0 h1:wATM6/m+3w8lj8FXNaO6Fs/rq/vqoOjO1Q116Z9NPsg=
 sigs.k8s.io/controller-runtime v0.4.0/go.mod h1:ApC79lpY3PHW9xj/w9pj+lYkLgwAAUZwfXkME1Lajns=
+sigs.k8s.io/kind v0.5.1 h1:BYnHEJ9DC+0Yjlyyehqd3xnKtEmFdLKU8QxqOqvQzdw=
 sigs.k8s.io/kind v0.5.1/go.mod h1:L+Kcoo83/D1+ryU5P2VFbvYm0oqbkJn9zTZq0KNxW68=
 sigs.k8s.io/kustomize/v3 v3.1.1-0.20190821175718-4b67a6de1296/go.mod h1:ztX4zYc/QIww3gSripwF7TBOarBTm5BvyAMem0kCzOE=
 sigs.k8s.io/structured-merge-diff v0.0.0-20190302045857-e85c7b244fd2/go.mod h1:wWxsB5ozmmv/SG7nM11ayaAW51xMvak/t1r0CSlcokI=

@@ -36,32 +36,27 @@ import (
 
 var _ = Describe("Docker", func() {
 	Describe("Cluster Creation", func() {
-
 		namespace := "default"
-
 		clusterGen := &ClusterGenerator{}
 		nodeGen := &NodeGenerator{}
 
 		Context("One node cluster", func() {
 			It("should create a single node cluster", func() {
 				cluster, infraCluster := clusterGen.GenerateCluster(namespace)
-				singleNode := nodeGen.GenerateNode(cluster.GetName())
-				input := &framework.OneNodeClusterInput{
+				nodes := make([]framework.Node, 1)
+				for i := range nodes {
+					nodes[i] = nodeGen.GenerateNode(cluster.GetName())
+				}
+				input := &framework.ControlplaneClusterInput{
 					Management:    mgmt,
 					Cluster:       cluster,
 					InfraCluster:  infraCluster,
-					Node:          singleNode,
+					Nodes:         nodes,
 					CreateTimeout: 3 * time.Minute,
 				}
+				framework.ControlPlaneCluster(input)
 
-				framework.OneNodeCluster(input)
-
-				cleanupInput := &framework.CleanUpInput{
-					Management: mgmt,
-					Cluster:    cluster,
-				}
-
-				framework.CleanUp(cleanupInput)
+				input.CleanUp()
 			})
 		})
 
@@ -73,21 +68,16 @@ var _ = Describe("Docker", func() {
 					nodes[i] = nodeGen.GenerateNode(cluster.Name)
 				}
 
-				input := &framework.MultiNodeControlplaneClusterInput{
-					Management:        mgmt,
-					Cluster:           cluster,
-					InfraCluster:      infraCluster,
-					ControlplaneNodes: nodes,
-					CreateTimeout:     4 * time.Minute,
+				input := &framework.ControlplaneClusterInput{
+					Management:    mgmt,
+					Cluster:       cluster,
+					InfraCluster:  infraCluster,
+					Nodes:         nodes,
+					CreateTimeout: 5 * time.Minute,
 				}
-				framework.MultiNodeControlPlaneCluster(input)
+				framework.ControlPlaneCluster(input)
 
-				cleanupInput := &framework.CleanUpInput{
-					Management: mgmt,
-					Cluster:    cluster,
-				}
-
-				framework.CleanUp(cleanupInput)
+				input.CleanUp()
 			})
 		})
 	})

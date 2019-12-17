@@ -37,18 +37,25 @@ func Test_inspectVariables(t *testing.T) {
 		want []string
 	}{
 		{
-			name: "",
+			name: "variable with different spacing around the name",
 			args: args{
 				data: "yaml with ${A} ${ B} ${ C} ${ D }",
 			},
 			want: []string{"A", "B", "C", "D"},
 		},
 		{
-			name: "",
+			name: "variables used in many places are grouped",
 			args: args{
 				data: "yaml with ${A} ${A} ${A}",
 			},
 			want: []string{"A"},
+		},
+		{
+			name: "variables in multiline texts are processed",
+			args: args{
+				data: "yaml with ${A}\n${B}\n${C}",
+			},
+			want: []string{"A", "B", "C"},
 		},
 	}
 	for _, tt := range tests {

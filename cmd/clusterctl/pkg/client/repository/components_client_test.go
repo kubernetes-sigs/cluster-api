@@ -17,6 +17,7 @@ limitations under the License.
 package repository
 
 import (
+	"bytes"
 	"fmt"
 	"reflect"
 	"testing"
@@ -32,10 +33,15 @@ const (
 	variableValue = "foo"
 )
 
-var podYaml = []byte("apiVersion: v1\n" +
-	"kind: Pod\n" +
+var controllerYaml = []byte("apiVersion: apps/v1\n" +
+	"kind: Deployment\n" +
 	"metadata:\n" +
-	"  name: manager")
+	"  name: my-controller\n" +
+	"spec:\n" +
+	"  template:\n" +
+	"    spec:\n" +
+	"      containers:\n" +
+	"      - name: manager\n")
 
 const namespaceName = "capa-system"
 
@@ -85,7 +91,7 @@ func Test_componentsClient_Get(t *testing.T) {
 				repository: test.NewFakeRepository().
 					WithPaths("root", "components.yaml").
 					WithDefaultVersion("v1.0.0").
-					WithFile("v1.0.0", "components.yaml", util.JoinYaml(namespaceYaml, podYaml, configMapYaml)),
+					WithFile("v1.0.0", "components.yaml", util.JoinYaml(namespaceYaml, controllerYaml, configMapYaml)),
 				configVariablesClient: test.NewFakeVariableClient().WithVar(variableName, variableValue),
 			},
 			args: args{
@@ -103,13 +109,13 @@ func Test_componentsClient_Get(t *testing.T) {
 			wantErr: false,
 		},
 		{
-			name: "Target targetNamespace overrides default targetNamespace",
+			name: "targetNamespace overrides default targetNamespace",
 			fields: fields{
 				provider: p1,
 				repository: test.NewFakeRepository().
 					WithPaths("root", "components.yaml").
 					WithDefaultVersion("v1.0.0").
-					WithFile("v1.0.0", "components.yaml", util.JoinYaml(namespaceYaml, podYaml, configMapYaml)),
+					WithFile("v1.0.0", "components.yaml", util.JoinYaml(namespaceYaml, controllerYaml, configMapYaml)),
 				configVariablesClient: test.NewFakeVariableClient().WithVar(variableName, variableValue),
 			},
 			args: args{
@@ -120,8 +126,32 @@ func Test_componentsClient_Get(t *testing.T) {
 			want: want{
 				provider:          p1,
 				version:           "v1.0.0", // version detected
-				targetNamespace:   "ns2",    // target targetNamespace override default targetNamespace
+				targetNamespace:   "ns2",    // targetNamespace overrides default targetNamespace
 				watchingNamespace: "",
+				variables:         []string{variableName}, // variable detected
+			},
+			wantErr: false,
+		},
+		{
+			name: "watchingNamespace overrides default watchingNamespace",
+			fields: fields{
+				provider: p1,
+				repository: test.NewFakeRepository().
+					WithPaths("root", "components.yaml").
+					WithDefaultVersion("v1.0.0").
+					WithFile("v1.0.0", "components.yaml", util.JoinYaml(namespaceYaml, controllerYaml, configMapYaml)),
+				configVariablesClient: test.NewFakeVariableClient().WithVar(variableName, variableValue),
+			},
+			args: args{
+				version:           "v1.0.0",
+				targetNamespace:   "",
+				watchingNamespace: "ns2",
+			},
+			want: want{
+				provider:          p1,
+				version:           "v1.0.0",               // version detected
+				targetNamespace:   namespaceName,          // default targetNamespace detected
+				watchingNamespace: "ns2",                  // watchingNamespace overrides default watchingNamespace
 				variables:         []string{variableName}, // variable detected
 			},
 			wantErr: false,
@@ -149,7 +179,7 @@ func Test_componentsClient_Get(t *testing.T) {
 				repository: test.NewFakeRepository().
 					WithPaths("root", "components.yaml").
 					WithDefaultVersion("v1.0.0").
-					WithFile("v1.0.0", "components.yaml", util.JoinYaml(podYaml, configMapYaml)),
+					WithFile("v1.0.0", "components.yaml", util.JoinYaml(controllerYaml, configMapYaml)),
 				configVariablesClient: test.NewFakeVariableClient().WithVar(variableName, variableValue),
 			},
 			args: args{
@@ -166,7 +196,7 @@ func Test_componentsClient_Get(t *testing.T) {
 				repository: test.NewFakeRepository().
 					WithPaths("root", "components.yaml").
 					WithDefaultVersion("v1.0.0").
-					WithFile("v1.0.0", "components.yaml", util.JoinYaml(podYaml, configMapYaml)),
+					WithFile("v1.0.0", "components.yaml", util.JoinYaml(controllerYaml, configMapYaml)),
 				configVariablesClient: test.NewFakeVariableClient().WithVar(variableName, variableValue),
 			},
 			args: args{
@@ -190,7 +220,7 @@ func Test_componentsClient_Get(t *testing.T) {
 				repository: test.NewFakeRepository().
 					WithPaths("root", "components.yaml").
 					WithDefaultVersion("v1.0.0").
-					WithFile("v1.0.0", "components.yaml", util.JoinYaml(podYaml, configMapYaml)),
+					WithFile("v1.0.0", "components.yaml", util.JoinYaml(controllerYaml, configMapYaml)),
 				configVariablesClient: test.NewFakeVariableClient().WithVar(variableName, variableValue),
 			},
 			args: args{
@@ -236,6 +266,28 @@ func Test_componentsClient_Get(t *testing.T) {
 
 			if !reflect.DeepEqual(got.Variables(), tt.want.variables) {
 				t.Errorf("Get().Variables() got = %v, want = %v ", got.WatchingNamespace(), tt.want.watchingNamespace)
+			}
+
+			yaml, err := got.Yaml()
+			if err != nil {
+				t.Errorf("got.Yaml() error = %v", err)
+				return
+			}
+
+			if len(tt.want.variables) > 0 && !bytes.Contains(yaml, []byte(variableValue)) {
+				t.Errorf("Get().Yaml() does not containt value %s that is a replacement of %s variable", variableValue, variableName)
+			}
+
+			if len(tt.want.variables) > 0 && !bytes.Contains(yaml, []byte(variableValue)) {
+				t.Errorf("Get().Yaml() does not containt value %s that is a replacement of %s variable", variableValue, variableName)
+			}
+
+			for _, o := range got.Objs() {
+				for _, v := range []string{clusterctlv1.ClusterctlLabelName, clusterctlv1.ClusterctlProviderLabelName} {
+					if _, ok := o.GetLabels()[v]; !ok {
+						t.Errorf("Get().Objs() object %s does not contains %s label", o.GetName(), v)
+					}
+				}
 			}
 		})
 	}

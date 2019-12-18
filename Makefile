@@ -352,11 +352,16 @@ clean-book: ## Remove all generated GitBook files
 clean-bindata: ## Remove bindata generated folder
 	rm -rf $(GOBINDATA_CLUSTERCTL_DIR)/manifest
 
+.PHONY: format-tiltfile
+format-tiltfile: ## Format Tiltfile
+	./hack/verify-starlark.sh fix
+
 .PHONY: verify
 verify:
 	./hack/verify-boilerplate.sh
 	./hack/verify-doctoc.sh
 	./hack/verify-shellcheck.sh
+	./hack/verify-starlark.sh
 	$(MAKE) verify-modules
 	$(MAKE) verify-gen
 

@@ -17,13 +17,18 @@ set -o errexit
 set -o nounset
 set -o pipefail
 
-VERSION="shellcheck-v0.7.0"
+VERSION="0.29.0"
 
-OS="unknown"
+MODE="check"
+
+if [[ "$*" == "fix" ]]; then
+  MODE="fix"
+fi
+
 if [[ "${OSTYPE}" == "linux"* ]]; then
-  OS="linux"
+  BINARY="buildifier"
 elif [[ "${OSTYPE}" == "darwin"* ]]; then
-  OS="darwin"
+  BINARY="buildifier.mac"
 fi
 
 # shellcheck source=./hack/utils.sh
@@ -32,6 +37,7 @@ ROOT_PATH=$(get_root_path)
 
 # create a temporary directory
 TMP_DIR=$(mktemp -d)
+OUT="${TMP_DIR}/out.log"
 
 # cleanup on exit
 cleanup() {
@@ -39,6 +45,8 @@ cleanup() {
   if [[ -s "${OUT}" ]]; then
     echo "Found errors:"
     cat "${OUT}"
+    echo ""
+    echo "run make format-tiltfile to fix the errors"
     ret=1
   fi
   echo "Cleaning up..."
@@ -47,26 +55,19 @@ cleanup() {
 }
 trap cleanup EXIT
 
+BUILDIFIER="./$(dirname "$0")/tools/bin/buildifier/${VERSION}"
 
-SHELLCHECK="./$(dirname "$0")/tools/bin/shellcheck/${VERSION}/shellcheck"
-
-if [ ! -f "$SHELLCHECK" ]; then
+if [ ! -f "$BUILDIFIER" ]; then
   # install buildifier
   cd "${TMP_DIR}" || exit
-  DOWNLOAD_FILE="${VERSION}.${OS}.x86_64.tar.xz"
-  curl -L https://storage.googleapis.com/shellcheck/"${DOWNLOAD_FILE}" -o "${TMP_DIR}/shellcheck.tar.xz"
-  tar xf "${TMP_DIR}/shellcheck.tar.xz"
+  curl -L "https://github.com/bazelbuild/buildtools/releases/download/${VERSION}/${BINARY}" -o "${TMP_DIR}/buildifier"
+  chmod +x "${TMP_DIR}/buildifier"
   cd "${ROOT_PATH}"
-  mkdir -p "$(dirname "$0")/tools/bin/shellcheck/${VERSION}"
-  mv "${TMP_DIR}/${VERSION}/shellcheck" "$SHELLCHECK"
+  mkdir -p "$(dirname "$0")/tools/bin/buildifier"
+  mv "${TMP_DIR}/buildifier" "$BUILDIFIER"
 fi
 
-echo "Running shellcheck..."
+echo "Running buildifier..."
 cd "${ROOT_PATH}" || exit
-OUT="${TMP_DIR}/out.log"
-IGNORE_FILES=$(find . -name "*.sh" | grep third_party)
-echo "Ignoring shellcheck on ${IGNORE_FILES}"
-FILES=$(find . -name "*.sh" | grep -v third_party)
-while read -r file; do
-    "$SHELLCHECK" -x "$file" >> "${OUT}" 2>&1
-done <<< "$FILES"
+"${BUILDIFIER}" -mode=${MODE} Tiltfile >> "${OUT}" 2>&1
+

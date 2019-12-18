@@ -35,7 +35,7 @@ func InstallComponents(ctx context.Context, mgmt Applier, components ...Componen
 			By(fmt.Sprintf("installing %s", component.GetName()))
 			c, err := component.Manifests(ctx)
 			Expect(err).NotTo(HaveOccurred())
-			Expect(mgmt.Apply(ctx, c)).NotTo(HaveOccurred())
+			Expect(mgmt.Apply(ctx, c)).To(Succeed())
 		}
 	})
 }

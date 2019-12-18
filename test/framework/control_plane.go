@@ -68,7 +68,7 @@ func ControlPlaneCluster(input *ControlplaneClusterInput) {
 	Expect(err).NotTo(HaveOccurred(), "stack: %+v", err)
 
 	By("creating an InfrastructureCluster resource")
-	Expect(mgmtClient.Create(ctx, input.InfraCluster)).NotTo(HaveOccurred())
+	Expect(mgmtClient.Create(ctx, input.InfraCluster)).To(Succeed())
 
 	By("creating a Cluster resource linked to the InfrastructureCluster resource")
 	Eventually(func() error {
@@ -82,13 +82,13 @@ func ControlPlaneCluster(input *ControlplaneClusterInput) {
 	// create all the machines at once
 	for _, node := range input.Nodes {
 		By("creating an InfrastructureMachine resource")
-		Expect(mgmtClient.Create(ctx, node.InfraMachine)).NotTo(HaveOccurred())
+		Expect(mgmtClient.Create(ctx, node.InfraMachine)).To(Succeed())
 
 		By("creating a bootstrap config")
-		Expect(mgmtClient.Create(ctx, node.BootstrapConfig)).NotTo(HaveOccurred())
+		Expect(mgmtClient.Create(ctx, node.BootstrapConfig)).To(Succeed())
 
 		By("creating a core Machine resource with a linked InfrastructureMachine and BootstrapConfig")
-		Expect(mgmtClient.Create(ctx, node.Machine)).NotTo(HaveOccurred())
+		Expect(mgmtClient.Create(ctx, node.Machine)).To(Succeed())
 	}
 
 	// Wait for the cluster infrastructure
@@ -139,7 +139,7 @@ func ControlPlaneCluster(input *ControlplaneClusterInput) {
 		By("getting the workload client and listing the nodes")
 		workloadClient, err := input.Management.GetWorkloadClient(ctx, input.Cluster.Namespace, input.Cluster.Name)
 		Expect(err).NotTo(HaveOccurred(), "Stack:\n%+v\n", err)
-		Expect(workloadClient.List(ctx, &nodes)).NotTo(HaveOccurred())
+		Expect(workloadClient.List(ctx, &nodes)).To(Succeed())
 		return nodes.Items
 	}, input.CreateTimeout, 10*time.Second).Should(HaveLen(len(input.Nodes)))
 }

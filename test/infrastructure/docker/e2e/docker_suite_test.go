@@ -101,5 +101,5 @@ var _ = BeforeSuite(func() {
 })
 
 var _ = AfterSuite(func() {
-	Expect(mgmt.Teardown(ctx)).NotTo(HaveOccurred())
+	Expect(mgmt.Teardown(ctx)).To(Succeed())
 })

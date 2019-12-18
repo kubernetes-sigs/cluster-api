@@ -17,6 +17,7 @@
         - [Machine](./architecture/controllers/machine.md)
         - [MachineSet](./architecture/controllers/machine-set.md)
         - [MachineDeployment](./architecture/controllers/machine-deployment.md)
+        - [Control Plane](./architecture/controllers/control-plane.md)
     - [Provider Implementers](./providers/implementers.md)
         - [v1alpha1 to v1alpha2](./providers/v1alpha1-to-v1alpha2.md)
         - [Cluster Infrastructure](./providers/cluster-infrastructure.md)

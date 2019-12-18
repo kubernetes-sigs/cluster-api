@@ -54,7 +54,7 @@ var _ = Describe("Docker", func() {
 					Nodes:         nodes,
 					CreateTimeout: 3 * time.Minute,
 				}
-				framework.ControlPlaneCluster(input)
+				input.ControlPlaneCluster()
 
 				input.CleanUp()
 			})
@@ -75,7 +75,7 @@ var _ = Describe("Docker", func() {
 					Nodes:         nodes,
 					CreateTimeout: 5 * time.Minute,
 				}
-				framework.ControlPlaneCluster(input)
+				input.ControlPlaneCluster()
 
 				input.CleanUp()
 			})

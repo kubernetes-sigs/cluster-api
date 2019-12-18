@@ -60,7 +60,7 @@ func (m *ControlplaneClusterInput) SetDefaults() {
 // ControlPlaneCluster creates an n node control plane cluster.
 // Assertions:
 //  * The number of nodes in the created cluster will equal the number of nodes in the input data.
-func ControlPlaneCluster(input *ControlplaneClusterInput) {
+func (input *ControlplaneClusterInput) ControlPlaneCluster() {
 	ctx := context.Background()
 	Expect(input.Management).ToNot(BeNil())
 
@@ -154,22 +154,22 @@ func ControlPlaneCluster(input *ControlplaneClusterInput) {
 //   * Deletes InfraMachines
 //   * Deletes InfraMachineTemplates
 //   * Deletes Secrets
-func (i *ControlplaneClusterInput) CleanUp() {
-	i.SetDefaults()
+func (input *ControlplaneClusterInput) CleanUp() {
+	input.SetDefaults()
 	ctx := context.Background()
-	mgmtClient, err := i.Management.GetClient()
+	mgmtClient, err := input.Management.GetClient()
 	Expect(err).NotTo(HaveOccurred(), "stack: %+v", err)
 
-	By(fmt.Sprintf("deleting cluster %s", i.Cluster.GetName()))
-	Expect(mgmtClient.Delete(ctx, i.Cluster)).To(Succeed())
+	By(fmt.Sprintf("deleting cluster %s", input.Cluster.GetName()))
+	Expect(mgmtClient.Delete(ctx, input.Cluster)).To(Succeed())
 
 	Eventually(func() []clusterv1.Cluster {
 		clusters := clusterv1.ClusterList{}
 		Expect(mgmtClient.List(ctx, &clusters)).To(Succeed())
 		return clusters.Items
-	}, i.DeleteTimeout, 10*time.Second).Should(HaveLen(0))
+	}, input.DeleteTimeout, 10*time.Second).Should(HaveLen(0))
 
-	lbl, err := labels.Parse(fmt.Sprintf("%s=%s", clusterv1.ClusterLabelName, i.Cluster.GetClusterName()))
+	lbl, err := labels.Parse(fmt.Sprintf("%s=%s", clusterv1.ClusterLabelName, input.Cluster.GetClusterName()))
 	Expect(err).ToNot(HaveOccurred())
 	listOpts := &client.ListOptions{LabelSelector: lbl}
 
@@ -177,7 +177,7 @@ func (i *ControlplaneClusterInput) CleanUp() {
 	ensureArtifactsDeleted(ctx, mgmtClient, listOpts)
 
 	// TODO: Add more provider specific checks here.
-	switch TypeToKind(i.InfraCluster) {
+	switch TypeToKind(input.InfraCluster) {
 	case "DockerCluster":
 		ensureDockerArtifactsDeleted(ctx, mgmtClient, listOpts)
 	}

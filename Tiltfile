@@ -1,25 +1,56 @@
 # -*- mode: Python -*-
 
-# Read from the user's configuration file.
-settings = read_json('tilt-settings.json', default={})
+# set defaults
 
-allow_k8s_contexts(settings.get('allowed_contexts'))
-default_registry(settings.get('default_registry'))
-
-
-providers = {
-    'core': {
-        'context': '.',
-        'image': 'gcr.io/k8s-staging-cluster-api/cluster-api-controller',
-        'live_reload_deps': ['main.go', 'go.mod', 'go.sum', 'api', 'bootstrap', 'cmd', 'controllers', 'errors', 'util']
-    },
-    'docker': {
-        'context': 'test/infrastructure/docker',
-        'image': 'gcr.io/k8s-staging-capi-docker/capd-manager',
-        'live_reload_deps': ['main.go', 'go.mod', 'go.sum', 'api', 'cloudinit', 'controllers', 'pkg']
-    }
+settings = {
+    "deploy_cert_manager": True,
+    "preload_images_for_kind": True,
+    "enable_providers": ["docker"],
 }
 
+# global settings
+settings.update(read_json(
+    "tilt-settings.json",
+    default = {},
+))
+
+allow_k8s_contexts(settings.get("allowed_contexts"))
+
+default_registry(settings.get("default_registry"))
+
+providers = {
+    "core": {
+        "context": ".",
+        "image": "gcr.io/k8s-staging-cluster-api/cluster-api-controller",
+        "live_reload_deps": [
+            "main.go",
+            "go.mod",
+            "go.sum",
+            "api",
+            "bootstrap",
+            "cmd",
+            "controllers",
+            "controlplane",
+            "errors",
+            "third_party",
+            "util",
+        ],
+    },
+    "docker": {
+        "context": "test/infrastructure/docker",
+        "image": "gcr.io/k8s-staging-capi-docker/capd-manager",
+        "live_reload_deps": [
+            "main.go",
+            "go.mod",
+            "go.sum",
+            "api",
+            "cloudinit",
+            "controllers",
+            "docker",
+            "third_party",
+        ],
+    },
+}
 
 # Reads a provider's tilt-provider.json file and merges it into the providers map. An example file looks like this:
 # {
@@ -40,7 +71,6 @@ def load_provider_tiltfiles():
         provider_config = provider_details['config']
         provider_config['context'] = repo
         providers[provider_name] = provider_config
-
 
 tilt_dockerfile = """
 # Tilt image
@@ -78,7 +108,7 @@ def enable_provider(name):
     # Set up a local_resource build of the provider's manager binary. The provider is expected to have a main.go in
     # manager_build_path. The binary is written to .tiltbuild/manager.
     local_resource(name + "_manager",
-                   cmd='cd ' + context + ';mkdir -p .tiltbuild;CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -a -ldflags \'-extldflags "-static"\' -o .tiltbuild/manager',
+                   cmd='cd ' + context + ';mkdir -p .tiltbuild;CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -ldflags \'-extldflags "-static"\' -o .tiltbuild/manager',
                    deps=live_reload_deps)
 
     # Set up an image build for the provider. The live update configuration syncs the output from the local_resource
@@ -104,7 +134,6 @@ def enable_provider(name):
         yaml = yaml.replace("${" + substitution + "}", value)
     k8s_yaml(blob(yaml))
 
-
 # Prepull all the cert-manager images to your local environment and then load them directly into kind. This speeds up
 # setup if you're repeatedly destroying and recreating your kind cluster, as it doesn't have to pull the images over
 # the network each time.
@@ -113,15 +142,15 @@ def deploy_cert_manager():
     version = 'v0.11.0'
     images = ['cert-manager-controller', 'cert-manager-cainjector', 'cert-manager-webhook']
 
-    for image in images:
-        local('docker pull {}/{}:{}'.format(registry, image, version))
-        local('kind load docker-image {}/{}:{}'.format(registry, image, version))
+    if settings.get("preload_images_for_kind"):
+      for image in images:
+          local('docker pull {}/{}:{}'.format(registry, image, version))
+          local('kind load docker-image {}/{}:{}'.format(registry, image, version))
 
     local('kubectl apply -f https://github.com/jetstack/cert-manager/releases/download/v0.11.0/cert-manager.yaml')
 
     # wait for the service to become available
     local('kubectl wait --for=condition=Available --timeout=300s apiservice v1beta1.webhook.cert-manager.io')
-
 
 # Users may define their own Tilt customizations in tilt.d. This directory is excluded from git and these files will
 # not be checked in to version control.
@@ -135,11 +164,14 @@ def enable_providers():
     for name in ['core'] + settings.get('enable_providers', []):
         enable_provider(name)
 
-
 ##############################
 # Actual work happens here
 ##############################
 include_user_tilt_files()
+
 load_provider_tiltfiles()
-deploy_cert_manager()
+
+if settings.get("deploy_cert_manager"):
+  deploy_cert_manager()
+
 enable_providers()

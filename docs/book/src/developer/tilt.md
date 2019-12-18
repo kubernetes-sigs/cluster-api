@@ -9,6 +9,7 @@ workflow that offers easy deployments and rapid iterative builds.
 
 1. [Docker](https://docs.docker.com/install/)
 1. [kind](https://kind.sigs.k8s.io) v0.6 or newer
+   (other clusters can be used if `preload_images_for_kind` is set to false)
 1. [Tilt](https://docs.tilt.dev/install.html)
 1. Clone the [Cluster API](https://github.com/kubernetes-sigs/cluster-api) repository locally
 1. Clone the provider(s) you want to deploy locally as well
@@ -16,13 +17,15 @@ workflow that offers easy deployments and rapid iterative builds.
 ## Getting started
 
 ### Create a kind cluster
+
 First, make sure you have a kind cluster and that your `KUBECONFIG` is set up correctly:
 
-```
+``` bash
 $ kind create cluster
 ```
 
 ### Create a tilt-settings.json file
+
 Next, create a `tilt-settings.json` file and place it in your local copy of `cluster-api`. Here is an example:
 
 ```json
@@ -32,23 +35,24 @@ Next, create a `tilt-settings.json` file and place it in your local copy of `clu
   "provider_repos": ["../cluster-api-provider-aws"],
   "enable_providers": ["aws", "docker"]
 }
-``` 
+```
 
 #### tilt-settings.json fields
-**allowed_contexts**: A list of kubeconfig contexts Tilt is allowed to use. See the Tilt documentation on
+
+**allowed_contexts** (Array, default=[]): A list of kubeconfig contexts Tilt is allowed to use. See the Tilt documentation on
 *[allow_k8s_contexts](https://docs.tilt.dev/api.html#api.allow_k8s_contexts) for more details.
 
-**default_registry**: The image registry to use if you need to push images. See the [Tilt
+**default_registry** (String, default=""): The image registry to use if you need to push images. See the [Tilt
 *documentation](https://docs.tilt.dev/api.html#api.default_registry) for more details.
 
-**provider_repos**: A list of paths to all the providers you want to use. Each provider must have a `tilt-provider.json`
-file describing how to build the provider.
+**provider_repos** (Array[]String, default=[]): A list of paths to all the providers you want to use. Each provider must have a
+`tilt-provider.json` file describing how to build the provider.
 
-**enable_providers**: A list of the providers to enable. See [available providers](#available-providers) for more
-details.
+**enable_providers** (Array[]String, default=['docker']): A list of the providers to enable. See [available providers](#available-providers)
+for more details.
 
-**kustomize_substitutions**: An optional map of substitutions for `${}`-style placeholders in the provider's yaml. For
-  example, if the yaml contains `${AWS_B64ENCODED_CREDENTIALS}`, you could do the following:
+**kustomize_substitutions** (Map{String: String}, default={}): An optional map of substitutions for `${}`-style placeholders in the
+provider's yaml. For example, if the yaml contains `${AWS_B64ENCODED_CREDENTIALS}`, you could do the following:
 
 ```json
 "kustomize_substitutions": {
@@ -56,11 +60,15 @@ details.
 }
 ```
 
+**deploy_cert_manager** (Boolean, default=`true`): Deploys cert-manager into the cluster for use for webhook registration.
+
+**preload_images_for_kind** (Boolean, default=`true`): Uses `kind load docker-image` to preload images into a kind cluster.
+
 ### Run Tilt!
 
 To launch your development environment, run
 
-```
+``` bash
 tilt up
 ```
 

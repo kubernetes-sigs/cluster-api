@@ -137,6 +137,21 @@ var _ = Describe("MachineDeployment Reconciler", func() {
 			Expect(err).NotTo(HaveOccurred())
 		}()
 
+		By("Verifying the MachineDeployment has a cluster label and ownerRef")
+		Eventually(func() bool {
+			key := client.ObjectKey{Name: deployment.Name, Namespace: deployment.Namespace}
+			if err := k8sClient.Get(ctx, key, deployment); err != nil {
+				return false
+			}
+			if len(deployment.Labels) == 0 || deployment.Labels[clusterv1.ClusterLabelName] != testCluster.Name {
+				return false
+			}
+			if len(deployment.OwnerReferences) == 0 || deployment.OwnerReferences[0].Name != testCluster.Name {
+				return false
+			}
+			return true
+		}, timeout).Should(BeTrue())
+
 		// Verify that the MachineSet was created.
 		By("Verifying the MachineSet was created")
 		machineSets := &clusterv1.MachineSetList{}

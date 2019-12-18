@@ -105,7 +105,7 @@ def enable_provider(name):
     # Set up a local_resource build of the provider's manager binary. The provider is expected to have a main.go in
     # manager_build_path. The binary is written to .tiltbuild/manager.
     local_resource(name + "_manager",
-                   cmd='cd ' + context + ';mkdir -p .tiltbuild;CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -a -ldflags \'-extldflags "-static"\' -o .tiltbuild/manager',
+                   cmd='cd ' + context + ';mkdir -p .tiltbuild;CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -ldflags \'-extldflags "-static"\' -o .tiltbuild/manager',
                    deps=live_reload_deps)
 
     # Set up an image build for the provider. The live update configuration syncs the output from the local_resource

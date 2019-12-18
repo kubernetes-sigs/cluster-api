@@ -52,13 +52,35 @@ Next, create a `tilt-settings.json` file and place it in your local copy of `clu
 for more details.
 
 **kustomize_substitutions** (Map{String: String}, default={}): An optional map of substitutions for `${}`-style placeholders in the
-provider's yaml. For example, if the yaml contains `${AWS_B64ENCODED_CREDENTIALS}`, you could do the following:
+provider's yaml.
+
+{{#tabs name:"tab-tilt-kustomize-substitution" tabs:"AWS,GCP"}}
+{{#tab AWS}}
+
+For example, if the yaml contains `${AWS_B64ENCODED_CREDENTIALS}`, you could do the following:
 
 ```json
 "kustomize_substitutions": {
   "AWS_B64ENCODED_CREDENTIALS": "your credentials here"
 }
 ```
+
+{{#/tab }}
+{{#tab GCP}}
+
+You can generate a base64 version of your GCP json credentials file using:
+```bash
+base64 -i ~/path/to/gcp/credentials.json
+```
+
+```json
+"kustomize_substitutions": {
+  "GCP_B64ENCODED_CREDENTIALS": "your credentials here"
+}
+```
+
+{{#/tab }}
+{{#/tabs }}
 
 **deploy_cert_manager** (Boolean, default=`true`): Deploys cert-manager into the cluster for use for webhook registration.
 

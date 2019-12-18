@@ -23,6 +23,12 @@ cd "${REPO_ROOT}" || exit 1
 
 # shellcheck source=./hack/ensure-go.sh
 source "${REPO_ROOT}/hack/ensure-go.sh"
+# shellcheck source=./hack/ensure-kind.sh
+source "${REPO_ROOT}/hack/ensure-kind.sh"
+# shellcheck source=./hack/ensure-kubectl.sh
+source "${REPO_ROOT}/hack/ensure-kubectl.sh"
+# shellcheck source=./hack/ensure-kustomize.sh
+source "${REPO_ROOT}/hack/ensure-kustomize.sh"
 
 echo "*** Testing Cluster API Provider Docker e2es ***"
 cd "${REPO_ROOT}/test/infrastructure/docker" && make test-e2e

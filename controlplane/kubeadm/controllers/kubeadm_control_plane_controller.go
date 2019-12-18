@@ -38,6 +38,7 @@ import (
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha3"
 	bootstrapv1 "sigs.k8s.io/cluster-api/bootstrap/kubeadm/api/v1alpha3"
+	kubeadmv1 "sigs.k8s.io/cluster-api/bootstrap/kubeadm/types/v1beta1"
 	"sigs.k8s.io/cluster-api/controllers/external"
 	controlplanev1 "sigs.k8s.io/cluster-api/controlplane/kubeadm/api/v1alpha3"
 	capierrors "sigs.k8s.io/cluster-api/errors"
@@ -185,6 +186,9 @@ func (r *KubeadmControlPlaneReconciler) reconcile(ctx context.Context, kcp *cont
 	// Generate Cluster Certificates if needed
 	config := kcp.Spec.KubeadmConfigSpec.DeepCopy()
 	config.JoinConfiguration = nil
+	if config.ClusterConfiguration == nil {
+		config.ClusterConfiguration = &kubeadmv1.ClusterConfiguration{}
+	}
 	certificates := secret.NewCertificatesForInitialControlPlane(config.ClusterConfiguration)
 	err = certificates.LookupOrGenerate(
 		ctx,

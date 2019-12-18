@@ -1,10 +1,18 @@
 # -*- mode: Python -*-
 
-# Read from the user's configuration file.
-settings = read_json(
+# set defaults
+
+settings = {
+    "deploy_cert_manager": True,
+    "preload_images_for_kind": True,
+    "enable_providers": ["docker"],
+}
+
+# global settings
+settings.update(read_json(
     "tilt-settings.json",
     default = {},
-)
+))
 
 allow_k8s_contexts(settings.get("allowed_contexts"))
 
@@ -131,9 +139,10 @@ def deploy_cert_manager():
     version = 'v0.11.0'
     images = ['cert-manager-controller', 'cert-manager-cainjector', 'cert-manager-webhook']
 
-    for image in images:
-        local('docker pull {}/{}:{}'.format(registry, image, version))
-        local('kind load docker-image {}/{}:{}'.format(registry, image, version))
+    if settings.get("preload_images_for_kind"):
+      for image in images:
+          local('docker pull {}/{}:{}'.format(registry, image, version))
+          local('kind load docker-image {}/{}:{}'.format(registry, image, version))
 
     local('kubectl apply -f https://github.com/jetstack/cert-manager/releases/download/v0.11.0/cert-manager.yaml')
 
@@ -159,6 +168,7 @@ include_user_tilt_files()
 
 load_provider_tiltfiles()
 
-deploy_cert_manager()
+if settings.get("deploy_cert_manager"):
+  deploy_cert_manager()
 
 enable_providers()

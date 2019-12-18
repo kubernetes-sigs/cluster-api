@@ -59,6 +59,7 @@ func init() {
 	// +kubebuilder:scaffold:scheme
 }
 
+// nolint:gocyclo
 func main() {
 	var (
 		metricsAddr                    string
@@ -69,6 +70,7 @@ func main() {
 		machineConcurrency             int
 		machineSetConcurrency          int
 		machineDeploymentConcurrency   int
+		machinePoolConcurrency         int
 		kubeadmBootstrapperDisabled    bool
 		kubeadmConfigConcurrency       int
 		kubeadmControlPlaneConcurrency int
@@ -99,6 +101,9 @@ func main() {
 
 	flag.IntVar(&machineDeploymentConcurrency, "machinedeployment-concurrency", 10,
 		"Number of machine deployments to process simultaneously")
+
+	flag.IntVar(&machinePoolConcurrency, "machinepool-concurrency", 10,
+		"Number of machine pools to process simultaneously")
 
 	flag.BoolVar(&kubeadmBootstrapperDisabled, "disable-kubeadm-bootstrapper", false,
 		"Whether or not to disable the kubeadm bootstrap and controlplane components")
@@ -170,6 +175,13 @@ func main() {
 		Log:    ctrl.Log.WithName("controllers").WithName("MachineDeployment"),
 	}).SetupWithManager(mgr, concurrency(machineDeploymentConcurrency)); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "MachineDeployment")
+		os.Exit(1)
+	}
+	if err = (&controllers.MachinePoolReconciler{
+		Client: mgr.GetClient(),
+		Log:    ctrl.Log.WithName("controllers").WithName("MachinePool"),
+	}).SetupWithManager(mgr, concurrency(machinePoolConcurrency)); err != nil {
+		setupLog.Error(err, "unable to create controller", "controller", "MachinePool")
 		os.Exit(1)
 	}
 
@@ -247,6 +259,11 @@ func main() {
 
 		if err = (&clusterv1alpha2.MachineDeploymentList{}).SetupWebhookWithManager(mgr); err != nil {
 			setupLog.Error(err, "unable to create webhook", "webhook", "MachineDeploymentList")
+			os.Exit(1)
+		}
+
+		if err = (&clusterv1alpha3.MachinePool{}).SetupWebhookWithManager(mgr); err != nil {
+			setupLog.Error(err, "unable to create webhook", "webhook", "MachinePool")
 			os.Exit(1)
 		}
 

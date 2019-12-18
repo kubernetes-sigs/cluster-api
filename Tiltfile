@@ -90,15 +90,11 @@ RUN wget --output-document /restart.sh --quiet https://raw.githubusercontent.com
 """
 
 tilt_dockerfile_header = """
-FROM debian:stretch-slim as tilt
+FROM gcr.io/distroless/base:debug as tilt
 WORKDIR /
 COPY --from=tilt-helper /start.sh .
 COPY --from=tilt-helper /restart.sh .
 COPY .tiltbuild/manager .
-"""
-
-tilt_dockerfile_footer = """
-ENTRYPOINT [ "/start.sh", "/manager" ]
 """
 
 # Configures a provider by doing the following:
@@ -134,7 +130,6 @@ def enable_provider(name):
         additional_docker_helper_commands,
         tilt_dockerfile_header,
         additional_docker_build_commands,
-        tilt_dockerfile_footer,
     ])
 
     # Set up an image build for the provider. The live update configuration syncs the output from the local_resource
@@ -144,7 +139,7 @@ def enable_provider(name):
         context = p.get("context"),
         dockerfile_contents = dockerfile_contents,
         target = "tilt",
-        entrypoint = "/start.sh /manager",
+        entrypoint = "sh /start.sh /manager",
         only = ".tiltbuild/manager",
         live_update = [
             sync(context + "/.tiltbuild/manager", "/manager"),

@@ -1,25 +1,45 @@
 # -*- mode: Python -*-
 
 # Read from the user's configuration file.
-settings = read_json('tilt-settings.json', default={})
+settings = read_json(
+    "tilt-settings.json",
+    default = {},
+)
 
-allow_k8s_contexts(settings.get('allowed_contexts'))
-default_registry(settings.get('default_registry'))
+allow_k8s_contexts(settings.get("allowed_contexts"))
 
+default_registry(settings.get("default_registry"))
 
 providers = {
-    'core': {
-        'context': '.',
-        'image': 'gcr.io/k8s-staging-cluster-api/cluster-api-controller',
-        'live_reload_deps': ['main.go', 'go.mod', 'go.sum', 'api', 'bootstrap', 'cmd', 'controllers', 'errors', 'util']
+    "core": {
+        "context": ".",
+        "image": "gcr.io/k8s-staging-cluster-api/cluster-api-controller",
+        "live_reload_deps": [
+            "main.go",
+            "go.mod",
+            "go.sum",
+            "api",
+            "bootstrap",
+            "cmd",
+            "controllers",
+            "errors",
+            "util",
+        ],
     },
-    'docker': {
-        'context': 'test/infrastructure/docker',
-        'image': 'gcr.io/k8s-staging-capi-docker/capd-manager',
-        'live_reload_deps': ['main.go', 'go.mod', 'go.sum', 'api', 'cloudinit', 'controllers', 'pkg']
-    }
+    "docker": {
+        "context": "test/infrastructure/docker",
+        "image": "gcr.io/k8s-staging-capi-docker/capd-manager",
+        "live_reload_deps": [
+            "main.go",
+            "go.mod",
+            "go.sum",
+            "api",
+            "cloudinit",
+            "controllers",
+            "pkg",
+        ],
+    },
 }
-
 
 # Reads a provider's tilt-provider.json file and merges it into the providers map. An example file looks like this:
 # {
@@ -40,7 +60,6 @@ def load_provider_tiltfiles():
         provider_config = provider_details['config']
         provider_config['context'] = repo
         providers[provider_name] = provider_config
-
 
 tilt_dockerfile = """
 # Tilt image
@@ -104,7 +123,6 @@ def enable_provider(name):
         yaml = yaml.replace("${" + substitution + "}", value)
     k8s_yaml(blob(yaml))
 
-
 # Prepull all the cert-manager images to your local environment and then load them directly into kind. This speeds up
 # setup if you're repeatedly destroying and recreating your kind cluster, as it doesn't have to pull the images over
 # the network each time.
@@ -122,7 +140,6 @@ def deploy_cert_manager():
     # wait for the service to become available
     local('kubectl wait --for=condition=Available --timeout=300s apiservice v1beta1.webhook.cert-manager.io')
 
-
 # Users may define their own Tilt customizations in tilt.d. This directory is excluded from git and these files will
 # not be checked in to version control.
 def include_user_tilt_files():
@@ -135,11 +152,13 @@ def enable_providers():
     for name in ['core'] + settings.get('enable_providers', []):
         enable_provider(name)
 
-
 ##############################
 # Actual work happens here
 ##############################
 include_user_tilt_files()
+
 load_provider_tiltfiles()
+
 deploy_cert_manager()
+
 enable_providers()

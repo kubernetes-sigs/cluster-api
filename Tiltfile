@@ -49,6 +49,14 @@ providers = {
             "docker",
             "third_party",
         ],
+        "additional_docker_helper_commands": """
+RUN wget -qO- https://dl.k8s.io/v1.14.4/kubernetes-client-linux-amd64.tar.gz | tar xvz
+RUN wget -qO- https://get.docker.com | sh
+""",
+        "additional_docker_build_commands": """
+COPY --from=tilt-helper /usr/bin/docker /usr/bin/docker
+COPY --from=tilt-helper /go/kubernetes/client/bin/kubectl /usr/bin/kubectl
+""",
     },
 }
 
@@ -72,19 +80,24 @@ def load_provider_tiltfiles():
         provider_config['context'] = repo
         providers[provider_name] = provider_config
 
-tilt_dockerfile = """
+tilt_helper_dockerfile_header = """
 # Tilt image
 FROM golang:1.12.10 as tilt-helper
 # Support live reloading with Tilt
 RUN wget --output-document /restart.sh --quiet https://raw.githubusercontent.com/windmilleng/rerun-process-wrapper/master/restart.sh  && \
     wget --output-document /start.sh --quiet https://raw.githubusercontent.com/windmilleng/rerun-process-wrapper/master/start.sh && \
     chmod +x /start.sh && chmod +x /restart.sh
+"""
 
+tilt_dockerfile_header = """
 FROM debian:stretch-slim as tilt
 WORKDIR /
 COPY --from=tilt-helper /start.sh .
 COPY --from=tilt-helper /restart.sh .
 COPY .tiltbuild/manager .
+"""
+
+tilt_dockerfile_footer = """
 ENTRYPOINT [ "/start.sh", "/manager" ]
 """
 
@@ -111,12 +124,24 @@ def enable_provider(name):
                    cmd='cd ' + context + ';mkdir -p .tiltbuild;CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -ldflags \'-extldflags "-static"\' -o .tiltbuild/manager',
                    deps=live_reload_deps)
 
+    additional_docker_helper_commands = p.get("additional_docker_helper_commands", "")
+    additional_docker_build_commands = p.get("additional_docker_build_commands", "")
+
+    dockerfile_contents = "\n".join([
+      tilt_helper_dockerfile_header,
+      additional_docker_helper_commands,
+      tilt_dockerfile_header,
+      additional_docker_build_commands,
+     tilt_dockerfile_footer
+    ])
+
+
     # Set up an image build for the provider. The live update configuration syncs the output from the local_resource
     # build into the container.
     docker_build(
         ref=p.get('image'),
         context=p.get('context'),
-        dockerfile_contents=tilt_dockerfile,
+        dockerfile_contents=dockerfile_contents,
         target='tilt',
         entrypoint='/start.sh /manager',
         only='.tiltbuild/manager',

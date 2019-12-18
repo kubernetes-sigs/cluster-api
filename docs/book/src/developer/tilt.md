@@ -108,6 +108,23 @@ build it.
 **live_reload_deps**: a list of files/directories to watch. If any of them changes, Tilt rebuilds the manager binary
 for the provider and performs a live update of the running container.
 
+**additional_docker_helper_commands** (String, default=""): Additional commands to be run in the helper image
+docker build. e.g.
+
+``` Dockerfile
+RUN wget -qO- https://dl.k8s.io/v1.14.4/kubernetes-client-linux-amd64.tar.gz | tar xvz
+RUN wget -qO- https://get.docker.com | sh
+```
+
+**additional_docker_build_commands** (String, default=""): Additional commands to be appended to
+the dockerfile.
+The manager image will use docker-slim, so to download files, use `additional_helper_image_commands`. e.g.
+
+``` Dockerfile
+COPY --from=tilt-helper /usr/bin/docker /usr/bin/docker
+COPY --from=tilt-helper /go/kubernetes/client/bin/kubectl /usr/bin/kubectl
+```
+
 ## Customizing Tilt
 
 If you need to customize Tilt's behavior, you can create files in cluster-api's `tilt.d` directory. This file is ignored

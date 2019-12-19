@@ -25,7 +25,7 @@ import (
 )
 
 const (
-	KubeadmControlPlaneFinalizer = "kubeadmcontrolplane.cluster.x-k8s.io"
+	KubeadmControlPlaneFinalizer = "kubeadm.controlplane.cluster.x-k8s.io"
 )
 
 // KubeadmControlPlaneSpec defines the desired state of KubeadmControlPlane.

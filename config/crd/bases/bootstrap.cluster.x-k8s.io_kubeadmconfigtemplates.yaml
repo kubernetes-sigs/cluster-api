@@ -274,8 +274,6 @@ spec:
                                   items:
                                     type: string
                                   type: array
-                              required:
-                              - dataDir
                               type: object
                           type: object
                         featureGates:

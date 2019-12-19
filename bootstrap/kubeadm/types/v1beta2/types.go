@@ -265,7 +265,8 @@ type LocalEtcd struct {
 
 	// DataDir is the directory etcd will place its data.
 	// Defaults to "/var/lib/etcd".
-	DataDir string `json:"dataDir"`
+	// +optional
+	DataDir string `json:"dataDir,omitempty"`
 
 	// ExtraArgs are extra arguments provided to the etcd binary
 	// when run inside a static pod.

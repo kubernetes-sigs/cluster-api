@@ -19,8 +19,14 @@ package v1alpha2
 import (
 	apiconversion "k8s.io/apimachinery/pkg/conversion"
 	"sigs.k8s.io/cluster-api/api/v1alpha3"
+	bootstrapv1a3 "sigs.k8s.io/cluster-api/bootstrap/kubeadm/api/v1alpha3"
 	utilconversion "sigs.k8s.io/cluster-api/util/conversion"
 	"sigs.k8s.io/controller-runtime/pkg/conversion"
+)
+
+const (
+	kubeadmConfigKind         = "KubeadmConfig"
+	kubeadmConfigTemplateKind = "KubeadmConfigTemplate"
 )
 
 func (src *Cluster) ConvertTo(dstRaw conversion.Hub) error {
@@ -267,7 +273,44 @@ func Convert_v1alpha2_MachineSpec_To_v1alpha3_MachineSpec(in *MachineSpec, out *
 		return err
 	}
 
+	if in.Bootstrap.ConfigRef != nil {
+		gvk := in.Bootstrap.ConfigRef.GetObjectKind().GroupVersionKind()
+		if gvk.Group == bootstrapv1a3.GroupVersion.Group && gvk.Kind == kubeadmConfigKind {
+			out.Bootstrap.ConfigRef.APIVersion = bootstrapv1a3.GroupVersion.String()
+		}
+	}
+
 	// Discards unused ObjectMeta
+
+	return nil
+}
+
+func Convert_v1alpha2_MachineSetSpec_To_v1alpha3_MachineSetSpec(in *MachineSetSpec, out *v1alpha3.MachineSetSpec, s apiconversion.Scope) error {
+	if err := autoConvert_v1alpha2_MachineSetSpec_To_v1alpha3_MachineSetSpec(in, out, s); err != nil {
+		return err
+	}
+
+	if in.Template.Spec.Bootstrap.ConfigRef != nil  {
+		gvk := in.Template.Spec.Bootstrap.ConfigRef.GetObjectKind().GroupVersionKind()
+		if gvk.Group == bootstrapv1a3.GroupVersion.Group && gvk.Kind == kubeadmConfigTemplateKind {
+			out.Template.Spec.Bootstrap.ConfigRef.APIVersion = bootstrapv1a3.GroupVersion.String()
+		}
+	}
+
+	return nil
+}
+
+func Convert_v1alpha2_MachineDeploymentSpec_To_v1alpha3_MachineDeploymentSpec(in *MachineDeploymentSpec, out *v1alpha3.MachineDeploymentSpec, s apiconversion.Scope) error {
+	if err := autoConvert_v1alpha2_MachineDeploymentSpec_To_v1alpha3_MachineDeploymentSpec(in, out, s); err != nil {
+		return err
+	}
+
+	if in.Template.Spec.Bootstrap.ConfigRef != nil  {
+		gvk := in.Template.Spec.Bootstrap.ConfigRef.GetObjectKind().GroupVersionKind()
+		if gvk.Group == bootstrapv1a3.GroupVersion.Group && gvk.Kind == kubeadmConfigTemplateKind {
+			out.Template.Spec.Bootstrap.ConfigRef.APIVersion = bootstrapv1a3.GroupVersion.String()
+		}
+	}
 
 	return nil
 }

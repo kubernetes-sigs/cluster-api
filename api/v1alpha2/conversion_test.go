@@ -25,6 +25,8 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/utils/pointer"
 	"sigs.k8s.io/cluster-api/api/v1alpha3"
+	bootstrapv1a2 "sigs.k8s.io/cluster-api/bootstrap/kubeadm/api/v1alpha2"
+	bootstrapv1a3 "sigs.k8s.io/cluster-api/bootstrap/kubeadm/api/v1alpha3"
 	utilconversion "sigs.k8s.io/cluster-api/util/conversion"
 )
 
@@ -112,11 +114,19 @@ func TestConvertMachine(t *testing.T) {
 	g := NewWithT(t)
 
 	t.Run("to hub", func(t *testing.T) {
-		t.Run("should convert the Spec.ClusterName from label", func(t *testing.T) {
+		t.Run("should convert all fields correctly", func(t *testing.T) {
 			src := &Machine{
 				ObjectMeta: metav1.ObjectMeta{
 					Labels: map[string]string{
 						MachineClusterLabelName: "test-cluster",
+					},
+				},
+				Spec: MachineSpec{
+					Bootstrap: Bootstrap{
+						ConfigRef: &corev1.ObjectReference{
+							Kind:       kubeadmConfigKind,
+							APIVersion: bootstrapv1a2.GroupVersion.String(),
+						},
 					},
 				},
 			}
@@ -124,6 +134,7 @@ func TestConvertMachine(t *testing.T) {
 
 			g.Expect(src.ConvertTo(dst)).To(Succeed())
 			g.Expect(dst.Spec.ClusterName).To(Equal("test-cluster"))
+			g.Expect(dst.Spec.Bootstrap.ConfigRef.APIVersion).To(Equal(bootstrapv1a3.GroupVersion.String()))
 		})
 	})
 
@@ -161,11 +172,23 @@ func TestConvertMachineSet(t *testing.T) {
 	g := NewWithT(t)
 
 	t.Run("to hub", func(t *testing.T) {
-		t.Run("should convert the Spec.ClusterName from label", func(t *testing.T) {
+		t.Run("should convert all fields correctly", func(t *testing.T) {
 			src := &MachineSet{
 				ObjectMeta: metav1.ObjectMeta{
 					Labels: map[string]string{
 						MachineClusterLabelName: "test-cluster",
+					},
+				},
+				Spec: MachineSetSpec{
+					Template: MachineTemplateSpec{
+						Spec: MachineSpec{
+							Bootstrap: Bootstrap{
+								ConfigRef: &corev1.ObjectReference{
+									Kind:       kubeadmConfigKind,
+									APIVersion: bootstrapv1a2.GroupVersion.String(),
+								},
+							},
+						},
 					},
 				},
 			}
@@ -174,6 +197,7 @@ func TestConvertMachineSet(t *testing.T) {
 			g.Expect(src.ConvertTo(dst)).To(Succeed())
 			g.Expect(dst.Spec.ClusterName).To(Equal("test-cluster"))
 			g.Expect(dst.Spec.Template.Spec.ClusterName).To(Equal("test-cluster"))
+			g.Expect(dst.Spec.Template.Spec.Bootstrap.ConfigRef.APIVersion).To(Equal(bootstrapv1a3.GroupVersion.String()))
 		})
 	})
 
@@ -210,11 +234,24 @@ func TestConvertMachineDeployment(t *testing.T) {
 	g := NewWithT(t)
 
 	t.Run("to hub", func(t *testing.T) {
-		t.Run("should convert the Spec.ClusterName from label", func(t *testing.T) {
+		t.Run("should convert all fields correctly", func(t *testing.T) {
 			src := &MachineDeployment{
 				ObjectMeta: metav1.ObjectMeta{
 					Labels: map[string]string{
 						MachineClusterLabelName: "test-cluster",
+					},
+				},
+				Spec: MachineDeploymentSpec{
+					Paused: true,
+					Template: MachineTemplateSpec{
+						Spec: MachineSpec{
+							Bootstrap: Bootstrap{
+								ConfigRef: &corev1.ObjectReference{
+									Kind:       kubeadmConfigTemplateKind,
+									APIVersion: bootstrapv1a2.GroupVersion.String(),
+								},
+							},
+						},
 					},
 				},
 			}
@@ -223,6 +260,7 @@ func TestConvertMachineDeployment(t *testing.T) {
 			g.Expect(src.ConvertTo(dst)).To(Succeed())
 			g.Expect(dst.Spec.ClusterName).To(Equal("test-cluster"))
 			g.Expect(dst.Spec.Template.Spec.ClusterName).To(Equal("test-cluster"))
+			g.Expect(dst.Spec.Template.Spec.Bootstrap.ConfigRef.APIVersion).To(Equal(bootstrapv1a3.GroupVersion.String()))
 		})
 	})
 
@@ -244,7 +282,6 @@ func TestConvertMachineDeployment(t *testing.T) {
 			}
 			src.Status.SetTypedPhase(v1alpha3.MachineDeploymentPhaseRunning)
 			dst := &MachineDeployment{}
-
 			g.Expect(dst.ConvertFrom(src)).To(Succeed())
 			restored := &v1alpha3.MachineDeployment{}
 			g.Expect(dst.ConvertTo(restored)).To(Succeed())

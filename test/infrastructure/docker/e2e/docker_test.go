@@ -78,7 +78,7 @@ var _ = Describe("Docker", func() {
 					Cluster:           cluster,
 					InfraCluster:      infraCluster,
 					ControlplaneNodes: nodes,
-					CreateTimeout:     3 * time.Minute,
+					CreateTimeout:     4 * time.Minute,
 				}
 				framework.MultiNodeControlPlaneCluster(input)
 

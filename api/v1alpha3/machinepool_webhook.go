@@ -28,8 +28,8 @@ func (m *MachinePool) SetupWebhookWithManager(mgr ctrl.Manager) error {
 		Complete()
 }
 
-// +kubebuilder:webhook:verbs=create;update,path=/validate-cluster-x-k8s-io-v1alpha3-machinepool,mutating=false,failurePolicy=fail,groups=cluster.x-k8s.io,resources=machinedeployments,versions=v1alpha3,name=validation.machinepool.cluster.x-k8s.io
-// +kubebuilder:webhook:verbs=create;update,path=/mutate-cluster-x-k8s-io-v1alpha3-machinepool,mutating=true,failurePolicy=fail,groups=cluster.x-k8s.io,resources=machinedeployments,versions=v1alpha3,name=default.machinepool.cluster.x-k8s.io
+// +kubebuilder:webhook:verbs=create;update,path=/validate-cluster-x-k8s-io-v1alpha3-machinepool,mutating=false,failurePolicy=fail,groups=cluster.x-k8s.io,resources=machinepools,versions=v1alpha3,name=validation.machinepool.cluster.x-k8s.io
+// +kubebuilder:webhook:verbs=create;update,path=/mutate-cluster-x-k8s-io-v1alpha3-machinepool,mutating=true,failurePolicy=fail,groups=cluster.x-k8s.io,resources=machinepools,versions=v1alpha3,name=default.machinepool.cluster.x-k8s.io
 
 var _ webhook.Defaulter = &MachinePool{}
 var _ webhook.Validator = &MachinePool{}

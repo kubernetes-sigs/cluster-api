@@ -77,7 +77,7 @@ webhooks:
     - CREATE
     - UPDATE
     resources:
-    - machinedeployments
+    - machinepools
 - clientConfig:
     caBundle: Cg==
     service:
@@ -175,7 +175,7 @@ webhooks:
     - CREATE
     - UPDATE
     resources:
-    - machinedeployments
+    - machinepools
 - clientConfig:
     caBundle: Cg==
     service:

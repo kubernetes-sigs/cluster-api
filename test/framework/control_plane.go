@@ -32,7 +32,6 @@ import (
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha3"
 	cabpkv1 "sigs.k8s.io/cluster-api/bootstrap/kubeadm/api/v1alpha3"
 	controlplanev1 "sigs.k8s.io/cluster-api/controlplane/kubeadm/api/v1alpha3"
-	dockerv1 "sigs.k8s.io/cluster-api/test/infrastructure/docker/api/v1alpha3"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
@@ -154,7 +153,7 @@ func (input *ControlplaneClusterInput) ControlPlaneCluster() {
 //   * Deletes InfraMachines
 //   * Deletes InfraMachineTemplates
 //   * Deletes Secrets
-func (input *ControlplaneClusterInput) CleanUp() {
+func (input *ControlplaneClusterInput) CleanUpCAPIArtifacts() {
 	input.SetDefaults()
 	ctx := context.Background()
 	mgmtClient, err := input.Management.GetClient()
@@ -173,14 +172,8 @@ func (input *ControlplaneClusterInput) CleanUp() {
 	Expect(err).ToNot(HaveOccurred())
 	listOpts := &client.ListOptions{LabelSelector: lbl}
 
-	By("ensuring all artifacts have been deleted")
+	By("ensuring all CAPI artifacts have been deleted")
 	ensureArtifactsDeleted(ctx, mgmtClient, listOpts)
-
-	// TODO: Add more provider specific checks here.
-	switch TypeToKind(input.InfraCluster) {
-	case "DockerCluster":
-		ensureDockerArtifactsDeleted(ctx, mgmtClient, listOpts)
-	}
 }
 
 func ensureArtifactsDeleted(ctx context.Context, mgmtClient client.Client, opt *client.ListOptions) {
@@ -208,18 +201,4 @@ func ensureArtifactsDeleted(ctx context.Context, mgmtClient client.Client, opt *
 	sl := &corev1.SecretList{}
 	Expect(mgmtClient.List(ctx, sl, opt)).To(Succeed())
 	Expect(sl.Items).To(HaveLen(0))
-}
-
-func ensureDockerArtifactsDeleted(ctx context.Context, mgmtClient client.Client, opt *client.ListOptions) {
-	dcl := &dockerv1.DockerClusterList{}
-	Expect(mgmtClient.List(ctx, dcl, opt)).To(Succeed())
-	Expect(dcl.Items).To(HaveLen(0))
-
-	dml := &dockerv1.DockerMachineList{}
-	Expect(mgmtClient.List(ctx, dml, opt)).To(Succeed())
-	Expect(dml.Items).To(HaveLen(0))
-
-	dmtl := &dockerv1.DockerMachineTemplateList{}
-	Expect(mgmtClient.List(ctx, dmtl, opt)).To(Succeed())
-	Expect(dmtl.Items).To(HaveLen(0))
 }

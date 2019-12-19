@@ -56,7 +56,8 @@ var _ = Describe("Docker", func() {
 				}
 				input.ControlPlaneCluster()
 
-				input.CleanUp()
+				input.CleanUpCAPIArtifacts()
+				ensureDockerArtifactsDeleted(input)
 			})
 		})
 
@@ -77,7 +78,7 @@ var _ = Describe("Docker", func() {
 				}
 				input.ControlPlaneCluster()
 
-				input.CleanUp()
+				ensureDockerArtifactsDeleted(input)
 			})
 		})
 	})

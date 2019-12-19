@@ -26,3 +26,6 @@ resources:
 - group: cluster
   version: v1alpha3
   kind: MachineDeployment
+- group: cluster
+  version: v1alpha3
+  kind: MachinePool

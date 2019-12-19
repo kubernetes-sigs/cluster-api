@@ -24,3 +24,5 @@ func (*MachineSet) Hub()            {}
 func (*MachineSetList) Hub()        {}
 func (*MachineDeployment) Hub()     {}
 func (*MachineDeploymentList) Hub() {}
+func (*MachinePool) Hub()           {}
+func (*MachinePoolList) Hub()       {}

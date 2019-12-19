@@ -112,6 +112,17 @@ const (
 	InvalidConfigurationMachineSetError MachineSetStatusError = "InvalidConfiguration"
 )
 
+type MachinePoolStatusError string
+
+const (
+	// Represents that the combination of configuration in the MachineTemplateSpec
+	// is not supported by this cluster. This is not a transient error, but
+	// indicates a state that must be fixed before progress can be made.
+	//
+	// Example: the ProviderSpec specifies an instance type that doesn't exist.
+	InvalidConfigurationMachinePoolError MachinePoolStatusError = "InvalidConfiguration"
+)
+
 type KubeadmControlPlaneStatusError string
 
 const (

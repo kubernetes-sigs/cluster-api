@@ -143,7 +143,7 @@ def enable_provider(name):
         only = ".tiltbuild/manager",
         live_update = [
             sync(context + "/.tiltbuild/manager", "/manager"),
-            run("/restart.sh"),
+            run("sh /restart.sh"),
         ],
     )
 

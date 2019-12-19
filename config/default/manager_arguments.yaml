@@ -1,0 +1,4 @@
+- op: replace
+  path: "/spec/template/spec/containers/0/args"
+  value:
+    - "--enable-leader-election"

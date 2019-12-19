@@ -83,6 +83,11 @@ func create(ctx context.Context, cmd *exec.Command, name string, scheme *runtime
 		WorkloadClusterKubeconfigs: make(map[string]string),
 	}
 	for _, image := range images {
+		fmt.Printf("Looking for image %q locally to load to the management cluster\n", image)
+		if !c.ImageExists(ctx, image) {
+			fmt.Printf("Did not find image %q locally, not loading it to the management cluster\n", image)
+			continue
+		}
 		fmt.Printf("Loading image %q on to the management cluster\n", image)
 		if err := c.LoadImage(ctx, image); err != nil {
 			return nil, err
@@ -109,6 +114,23 @@ func (c *Cluster) LoadImage(ctx context.Context, image string) error {
 		return err
 	}
 	return nil
+}
+
+func (c *Cluster) ImageExists(ctx context.Context, image string) bool {
+	existsCmd := exec.NewCommand(
+		exec.WithCommand("docker"),
+		exec.WithArgs("images", "-q", image),
+	)
+	stdout, stderr, err := existsCmd.Run(ctx)
+	if err != nil {
+		fmt.Println(string(stdout))
+		fmt.Println(string(stderr))
+		fmt.Println(err.Error())
+		return false
+	}
+	// Docker returns a 0 exit code regardless if the image is listed or not.
+	// It will return the image ID if the image exists and nothing else otherwise.
+	return len(bytes.TrimSpace(stdout)) > 0
 }
 
 // TODO: Considier a Kubectl function and then wrap it at the next level up.

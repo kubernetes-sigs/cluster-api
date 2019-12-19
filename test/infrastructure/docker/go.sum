@@ -495,6 +495,7 @@ modernc.org/mathutil v1.0.0/go.mod h1:wU0vUrJsVWBZ4P6e7xtFJEhFSNsfRLJ8H458uRjg03
 modernc.org/strutil v1.0.0/go.mod h1:lstksw84oURvj9y3tn8lGvRxyRC1S2+g5uuIzNfIOBs=
 modernc.org/xc v1.0.0/go.mod h1:mRNCo0bvLjGhHO9WsyuKVU4q0ceiDDDoEeWDJHrNx8I=
 sigs.k8s.io/cluster-api/test/infrastructure/docker v0.0.0-20191217151159-8e57f0be14c0/go.mod h1:rgRQ1U631gWRlmjGgCLHlTkkjPdBZkclUjY1Kt7VSeU=
+sigs.k8s.io/cluster-api/test/infrastructure/docker v0.0.0-20191220210134-f38f44a2bed6/go.mod h1:+ZOiS1Mq3Swl92n/djvoF78TrCTXrjrB3zIZ1j7SrHA=
 sigs.k8s.io/controller-runtime v0.4.0 h1:wATM6/m+3w8lj8FXNaO6Fs/rq/vqoOjO1Q116Z9NPsg=
 sigs.k8s.io/controller-runtime v0.4.0/go.mod h1:ApC79lpY3PHW9xj/w9pj+lYkLgwAAUZwfXkME1Lajns=
 sigs.k8s.io/kind v0.5.1 h1:BYnHEJ9DC+0Yjlyyehqd3xnKtEmFdLKU8QxqOqvQzdw=

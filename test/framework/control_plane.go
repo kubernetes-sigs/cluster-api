@@ -149,11 +149,8 @@ func (input *ControlplaneClusterInput) ControlPlaneCluster() {
 //   * Deletes MachineSets
 //   * Deletes MachineDeployments
 //   * Deletes KubeadmConfigs
-//   * Deletes InfraCluster
-//   * Deletes InfraMachines
-//   * Deletes InfraMachineTemplates
 //   * Deletes Secrets
-func (input *ControlplaneClusterInput) CleanUpCAPIArtifacts() {
+func (input *ControlplaneClusterInput) CleanUpCoreArtifacts() {
 	input.SetDefaults()
 	ctx := context.Background()
 	mgmtClient, err := input.Management.GetClient()

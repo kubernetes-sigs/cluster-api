@@ -37,10 +37,9 @@ import (
 	capiv1 "sigs.k8s.io/cluster-api/api/v1alpha3"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha3"
 	bootstrapv1 "sigs.k8s.io/cluster-api/bootstrap/kubeadm/api/v1alpha3"
-	cabpkv1 "sigs.k8s.io/cluster-api/bootstrap/kubeadm/api/v1alpha3"
-	controlplanev1 "sigs.k8s.io/cluster-api/controlplane/kubeadm/api/v1alpha3"
 	dockerv1 "sigs.k8s.io/cluster-api/test/infrastructure/docker/api/v1alpha3"
 	infrav1 "sigs.k8s.io/cluster-api/test/infrastructure/docker/api/v1alpha3"
+	controlplanev1 "sigs.k8s.io/cluster-api/controlplane/kubeadm/api/v1alpha3"
 )
 
 func TestDocker(t *testing.T) {
@@ -79,10 +78,9 @@ var _ = BeforeSuite(func() {
 	Expect(bootstrapv1.AddToScheme(scheme)).To(Succeed())
 	Expect(infrav1.AddToScheme(scheme)).To(Succeed())
 	Expect(controlplanev1.AddToScheme(scheme)).To(Succeed())
-	Expect(cabpkv1.AddToScheme(scheme)).To(Succeed())
 
 	// Create the management cluster
-	kindClusterName := os.Getenv("MGMT_CLUSTER_NAME")
+	kindClusterName := os.Getenv("CAPI_MGMT_CLUSTER_NAME")
 	if kindClusterName == "" {
 		kindClusterName = "docker-e2e-" + util.RandomString(6)
 	}
@@ -110,6 +108,7 @@ var _ = AfterSuite(func() {
 })
 
 func ensureDockerArtifactsDeleted(input *framework.ControlplaneClusterInput) {
+	By("ensuring docker artifacts have been deleted")
 	ctx := context.Background()
 	mgmtClient, err := input.Management.GetClient()
 	Expect(err).NotTo(HaveOccurred(), "stack: %+v", err)

@@ -36,9 +36,22 @@ import (
 
 var _ = Describe("Docker", func() {
 	Describe("Cluster Creation", func() {
-		namespace := "default"
-		clusterGen := &ClusterGenerator{}
-		nodeGen := &NodeGenerator{}
+		var (
+			namespace  string
+			clusterGen *ClusterGenerator
+			nodeGen    *NodeGenerator
+			input      *framework.ControlplaneClusterInput
+		)
+
+		BeforeEach(func() {
+			namespace = "default"
+			clusterGen = &ClusterGenerator{}
+			nodeGen = &NodeGenerator{}
+		})
+
+		AfterEach(func() {
+			ensureDockerArtifactsDeleted(input)
+		})
 
 		Context("One node cluster", func() {
 			It("should create a single node cluster", func() {
@@ -47,7 +60,7 @@ var _ = Describe("Docker", func() {
 				for i := range nodes {
 					nodes[i] = nodeGen.GenerateNode(cluster.GetName())
 				}
-				input := &framework.ControlplaneClusterInput{
+				input = &framework.ControlplaneClusterInput{
 					Management:    mgmt,
 					Cluster:       cluster,
 					InfraCluster:  infraCluster,
@@ -56,8 +69,7 @@ var _ = Describe("Docker", func() {
 				}
 				input.ControlPlaneCluster()
 
-				input.CleanUpCAPIArtifacts()
-				ensureDockerArtifactsDeleted(input)
+				input.CleanUpCoreArtifacts()
 			})
 		})
 
@@ -69,7 +81,7 @@ var _ = Describe("Docker", func() {
 					nodes[i] = nodeGen.GenerateNode(cluster.Name)
 				}
 
-				input := &framework.ControlplaneClusterInput{
+				input = &framework.ControlplaneClusterInput{
 					Management:    mgmt,
 					Cluster:       cluster,
 					InfraCluster:  infraCluster,
@@ -78,7 +90,7 @@ var _ = Describe("Docker", func() {
 				}
 				input.ControlPlaneCluster()
 
-				ensureDockerArtifactsDeleted(input)
+				input.CleanUpCoreArtifacts()
 			})
 		})
 	})

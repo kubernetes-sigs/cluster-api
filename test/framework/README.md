@@ -8,6 +8,13 @@ Use this framework as you see fit. If there are pieces that don't work for you, 
 that almost work for you, customize them. If this does not fit your e2e testing please file an issue and we can discuss
 your use case and find a nice solution for everyone.
 
+### Features
+
+#### Optionally override the images that get loaded onto the management cluster.
+
+This feature allows you to obtain a CAPI management image locally and use that specific image in your kind cluster.
+If you do not have one locally then the latest :master image will be used on the management cluster.
+
 ### Contents
 
 This framework contains

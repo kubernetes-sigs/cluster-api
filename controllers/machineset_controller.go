@@ -34,6 +34,8 @@ import (
 	"k8s.io/client-go/tools/record"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha3"
 	"sigs.k8s.io/cluster-api/controllers/external"
+	"sigs.k8s.io/cluster-api/controllers/noderefutil"
+	"sigs.k8s.io/cluster-api/controllers/remote"
 	"sigs.k8s.io/cluster-api/util"
 	"sigs.k8s.io/cluster-api/util/patch"
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -92,7 +94,6 @@ func (r *MachineSetReconciler) SetupWithManager(mgr ctrl.Manager, options contro
 	}
 
 	r.recorder = mgr.GetEventRecorderFor("machineset-controller")
-
 	r.scheme = mgr.GetScheme()
 	return nil
 }
@@ -179,14 +180,6 @@ func (r *MachineSetReconciler) reconcile(ctx context.Context, machineSet *cluste
 	machineSet.Spec.Selector.MatchLabels[clusterv1.MachineSetLabelName] = machineSet.Name
 	machineSet.Spec.Template.Labels[clusterv1.MachineSetLabelName] = machineSet.Name
 
-	selector, err := metav1.LabelSelectorAsSelector(&machineSet.Spec.Selector)
-	if err != nil {
-		return ctrl.Result{}, errors.Wrapf(err, "failed to parse MachineSet %q label selector", machineSet.Name)
-	}
-	// Copy label selector to its status counterpart in string format.
-	// This is necessary for CRDs including scale subresources.
-	machineSet.Status.Selector = selector.String()
-
 	selectorMap, err := metav1.LabelSelectorAsMap(&machineSet.Spec.Selector)
 	if err != nil {
 		return ctrl.Result{}, errors.Wrapf(err, "failed to convert MachineSet %q label selector to a map", machineSet.Name)
@@ -228,19 +221,22 @@ func (r *MachineSetReconciler) reconcile(ctx context.Context, machineSet *cluste
 	syncErr := r.syncReplicas(ctx, machineSet, filteredMachines)
 
 	ms := machineSet.DeepCopy()
-	newStatus := r.calculateStatus(ms, filteredMachines)
+	newStatus, err := r.calculateStatus(cluster, ms, filteredMachines)
+	if err != nil {
+		return ctrl.Result{}, errors.Wrapf(err, "failed to calculate MachineSet's Status")
+	}
 
 	// Always updates status as machines come up or die.
-	updatedMS, err := updateMachineSetStatus(r.Client, machineSet, newStatus, logger)
+	updatedMS, err := r.patchMachineSetStatus(ctx, machineSet, newStatus)
 	if err != nil {
 		if syncErr != nil {
-			return ctrl.Result{}, errors.Wrapf(err, "failed to sync machines: %v. failed to update machine set status", syncErr)
+			return ctrl.Result{}, errors.Wrapf(err, "failed to sync machines: %v. failed to patch MachineSet's Status", syncErr)
 		}
-		return ctrl.Result{}, errors.Wrap(err, "failed to update machine set status")
+		return ctrl.Result{}, errors.Wrap(err, "failed to patch MachineSet's Status")
 	}
 
 	if syncErr != nil {
-		return ctrl.Result{}, errors.Wrapf(syncErr, "failed to sync Machineset replicas")
+		return ctrl.Result{}, errors.Wrapf(syncErr, "failed to sync MachineSet replicas")
 	}
 
 	var replicas int32
@@ -594,4 +590,119 @@ func (r *MachineSetReconciler) hasMatchingLabels(machineSet *clusterv1.MachineSe
 
 func (r *MachineSetReconciler) shouldAdopt(ms *clusterv1.MachineSet) bool {
 	return !util.HasOwner(ms.OwnerReferences, clusterv1.GroupVersion.String(), []string{"MachineDeployment", "Cluster"})
+}
+
+func (r *MachineSetReconciler) calculateStatus(cluster *clusterv1.Cluster, ms *clusterv1.MachineSet, filteredMachines []*clusterv1.Machine) (*clusterv1.MachineSetStatus, error) {
+	logger := r.Log.WithValues("machineset", ms.Name, "namespace", ms.Namespace)
+	newStatus := ms.Status.DeepCopy()
+
+	// Copy label selector to its status counterpart in string format.
+	// This is necessary for CRDs including scale subresources.
+	selector, err := metav1.LabelSelectorAsSelector(&ms.Spec.Selector)
+	if err != nil {
+		return nil, errors.Wrapf(err, "failed to calculate status for MachineSet %s/%s", ms.Namespace, ms.Name)
+	}
+	newStatus.Selector = selector.String()
+
+	// Count the number of machines that have labels matching the labels of the machine
+	// template of the replica set, the matching machines may have more
+	// labels than are in the template. Because the label of machineTemplateSpec is
+	// a superset of the selector of the replica set, so the possible
+	// matching machines must be part of the filteredMachines.
+	fullyLabeledReplicasCount := 0
+	readyReplicasCount := 0
+	availableReplicasCount := 0
+	templateLabel := labels.Set(ms.Spec.Template.Labels).AsSelectorPreValidated()
+
+	for _, machine := range filteredMachines {
+		if templateLabel.Matches(labels.Set(machine.Labels)) {
+			fullyLabeledReplicasCount++
+		}
+
+		if machine.Status.NodeRef == nil {
+			logger.V(2).Info("Unable to retrieve Node status, missing NodeRef", "machine", machine.Name)
+			continue
+		}
+
+		node, err := r.getMachineNode(cluster, machine)
+		if err != nil {
+			logger.Error(err, "Unable to retrieve Node status")
+			continue
+		}
+
+		if noderefutil.IsNodeReady(node) {
+			readyReplicasCount++
+			if noderefutil.IsNodeAvailable(node, ms.Spec.MinReadySeconds, metav1.Now()) {
+				availableReplicasCount++
+			}
+		}
+	}
+
+	newStatus.Replicas = int32(len(filteredMachines))
+	newStatus.FullyLabeledReplicas = int32(fullyLabeledReplicasCount)
+	newStatus.ReadyReplicas = int32(readyReplicasCount)
+	newStatus.AvailableReplicas = int32(availableReplicasCount)
+	return newStatus, nil
+}
+
+// patchMachineSetStatus attempts to update the Status.Replicas of the given MachineSet.
+func (r *MachineSetReconciler) patchMachineSetStatus(ctx context.Context, ms *clusterv1.MachineSet, newStatus *clusterv1.MachineSetStatus) (*clusterv1.MachineSet, error) {
+	logger := r.Log.WithValues("machineset", ms.Name, "namespace", ms.Namespace)
+
+	// This is the steady state. It happens when the MachineSet doesn't have any expectations, since
+	// we do a periodic relist every 10 minutes. If the generations differ but the replicas are
+	// the same, a caller might've resized to the same replica count.
+	if ms.Status.Replicas == newStatus.Replicas &&
+		ms.Status.FullyLabeledReplicas == newStatus.FullyLabeledReplicas &&
+		ms.Status.ReadyReplicas == newStatus.ReadyReplicas &&
+		ms.Status.AvailableReplicas == newStatus.AvailableReplicas &&
+		ms.Generation == ms.Status.ObservedGeneration {
+		return ms, nil
+	}
+
+	patch := client.MergeFrom(ms.DeepCopyObject())
+
+	// Save the generation number we acted on, otherwise we might wrongfully indicate
+	// that we've seen a spec update when we retry.
+	newStatus.ObservedGeneration = ms.Generation
+
+	// Calculate the replicas for logging.
+	var replicas int32
+	if ms.Spec.Replicas != nil {
+		replicas = *ms.Spec.Replicas
+	}
+	logger.V(4).Info(fmt.Sprintf("Updating status for %v: %s/%s, ", ms.Kind, ms.Namespace, ms.Name) +
+		fmt.Sprintf("replicas %d->%d (need %d), ", ms.Status.Replicas, newStatus.Replicas, replicas) +
+		fmt.Sprintf("fullyLabeledReplicas %d->%d, ", ms.Status.FullyLabeledReplicas, newStatus.FullyLabeledReplicas) +
+		fmt.Sprintf("readyReplicas %d->%d, ", ms.Status.ReadyReplicas, newStatus.ReadyReplicas) +
+		fmt.Sprintf("availableReplicas %d->%d, ", ms.Status.AvailableReplicas, newStatus.AvailableReplicas) +
+		fmt.Sprintf("sequence No: %v->%v", ms.Status.ObservedGeneration, newStatus.ObservedGeneration))
+
+	newStatus.DeepCopyInto(&ms.Status)
+	if err := r.Client.Status().Patch(ctx, ms, patch); err != nil {
+		// TODO(vincepri): Try to fix this once we upgrade to CRDv1.
+		// Our Status.Replicas field is a required non-pointer integer, Go defaults this field to "0" value when decoding
+		// the data from the API server. For this reason, when we try to write the value "0", the patch is going to think
+		// the value is already there and shouldn't be patched, making it fail validation.
+		// Fallback to Update.
+		if !apierrors.IsInvalid(err) {
+			return nil, err
+		}
+		if err := r.Client.Status().Update(ctx, ms); err != nil {
+			return nil, err
+		}
+	}
+	return ms, nil
+}
+
+func (r *MachineSetReconciler) getMachineNode(cluster *clusterv1.Cluster, machine *clusterv1.Machine) (*corev1.Node, error) {
+	c, err := remote.NewClusterClient(r.Client, cluster, r.scheme)
+	if err != nil {
+		return nil, err
+	}
+	node := &corev1.Node{}
+	if err := c.Get(context.TODO(), client.ObjectKey{Name: machine.Status.NodeRef.Name}, node); err != nil {
+		return nil, errors.Wrapf(err, "error retrieving node %s for machine %s/%s", machine.Status.NodeRef.Name, machine.Namespace, machine.Name)
+	}
+	return node, nil
 }

@@ -675,8 +675,8 @@ func (in *MachinePoolSpec) DeepCopyInto(out *MachinePoolSpec) {
 		*out = new(int32)
 		**out = **in
 	}
-	if in.ProviderIDs != nil {
-		in, out := &in.ProviderIDs, &out.ProviderIDs
+	if in.ProviderIDList != nil {
+		in, out := &in.ProviderIDList, &out.ProviderIDList
 		*out = make([]string, len(*in))
 		copy(*out, *in)
 	}
@@ -702,7 +702,7 @@ func (in *MachinePoolStatus) DeepCopyInto(out *MachinePoolStatus) {
 	}
 	if in.FailureReason != nil {
 		in, out := &in.FailureReason, &out.FailureReason
-		*out = new(errors.MachinePoolStatusError)
+		*out = new(errors.MachinePoolStatusFailure)
 		**out = **in
 	}
 	if in.FailureMessage != nil {

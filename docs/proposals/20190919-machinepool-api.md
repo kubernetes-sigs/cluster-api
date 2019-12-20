@@ -179,9 +179,9 @@ type MachinePoolSpec struct
   - **MinReadySeconds [optional]**
     - Type: `*int32`
     - Description: Minimum number of seconds for which a newly created machine should be ready.
-  - **ProviderIDs [optional]**
+  - **ProviderIDList [optional]**
     - Type: `[]string`
-    - Description: ProviderIDs contain a ProviderID for each machine instance that's currently
+    - Description: ProviderIDList contain a ProviderID for each machine instance that's currently
       managed by the infrastructure provider belonging to the machine pool.
 
 ``` go
@@ -191,7 +191,7 @@ type MachinePoolStatus struct
 - **To add**
   - **NodeRefs [optional]**
     - Type: `[]corev1.ObjectReference`
-    - Description: NodeRefs contain a NodeRef for each ProviderID in MachinePoolSpec.ProviderIDs.
+    - Description: NodeRefs contain a NodeRef for each ProviderID in MachinePoolSpec.ProviderIDList.
   - **Replicas [optional]**
     - Type: `*int32`
     - Description: Replicas is the most recent observed number of replicas.

@@ -54,10 +54,10 @@ type MachinePoolSpec struct {
 	// +optional
 	MinReadySeconds *int32 `json:"minReadySeconds,omitempty"`
 
-	// ProviderIDs are the identification IDs of machine instances provided by the provider.
+	// ProviderIDList are the identification IDs of machine instances provided by the provider.
 	// This field must match the provider IDs as seen on the node objects corresponding to a machine pool's machine instances.
 	// +optional
-	ProviderIDs []string `json:"providerIDs,omitempty"`
+	ProviderIDList []string `json:"providerIDList,omitempty"`
 }
 
 // ANCHOR_END: MachinePoolSpec
@@ -93,7 +93,7 @@ type MachinePoolStatus struct {
 	// FailureReason indicates that there is a problem reconciling the state, and
 	// will be set to a token value suitable for programmatic interpretation.
 	// +optional
-	FailureReason *capierrors.MachinePoolStatusError `json:"failureReason,omitempty"`
+	FailureReason *capierrors.MachinePoolStatusFailure `json:"failureReason,omitempty"`
 
 	// FailureMessage indicates that there is a problem reconciling the state,
 	// and will be set to a descriptive error message.
@@ -171,6 +171,7 @@ func (m *MachinePoolStatus) GetTypedPhase() MachinePoolPhase {
 		MachinePoolPhasePending,
 		MachinePoolPhaseProvisioning,
 		MachinePoolPhaseProvisioned,
+		MachinePoolPhaseRunning,
 		MachinePoolPhaseDeleting,
 		MachinePoolPhaseFailed:
 		return phase

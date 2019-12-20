@@ -121,3 +121,17 @@
 
 The `cloudinit` module has been moved to an `internal` directory as it is not designed to be a public interface consumed
 outside of the existing module.
+
+## Interface for Bootstrap Provider Consumers
+
+- Consumers of bootstrap configuration, Machine and eventually MachinePool, must adhere to a
+  contract that defines a set of required fields used for coordination with the kubeadm bootstrap
+  provider.
+  - `apiVersion` to check for supported version/kind.
+  - `kind` to check for supported version/kind.
+  - `metadata.labels["cluster.x-k8s.io/control-plane"]` only present in the case of a control plane
+    `Machine`.
+  - `spec.clusterName` to retrieve the owning Cluster status.
+  - `spec.bootstrap.dataSecretName` to know where to put bootstrap data with sensitive information.
+  - `status.infrastuctureReady` to understand the state of the configuration consumer so the
+    bootstrap provider can take appropriate action (e.g. renew bootstrap token).

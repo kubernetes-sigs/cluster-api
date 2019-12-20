@@ -17,6 +17,9 @@ set -o errexit
 set -o nounset
 set -o pipefail
 
+SCRIPT_DIR="$(dirname "${BASH_SOURCE[0]}")"
+ROOT_PATH="$(cd "${SCRIPT_DIR}"/.. && pwd)"
+
 VERSION="0.29.0"
 
 MODE="check"
@@ -30,10 +33,6 @@ if [[ "${OSTYPE}" == "linux"* ]]; then
 elif [[ "${OSTYPE}" == "darwin"* ]]; then
   BINARY="buildifier.mac"
 fi
-
-# shellcheck source=./hack/utils.sh
-source "$(dirname "$0")/utils.sh"
-ROOT_PATH=$(get_root_path)
 
 # create a temporary directory
 TMP_DIR=$(mktemp -d)
@@ -55,7 +54,7 @@ cleanup() {
 }
 trap cleanup EXIT
 
-BUILDIFIER="./$(dirname "$0")/tools/bin/buildifier/${VERSION}"
+BUILDIFIER="${SCRIPT_DIR}/tools/bin/buildifier/${VERSION}/buildifier"
 
 if [ ! -f "$BUILDIFIER" ]; then
   # install buildifier
@@ -63,7 +62,7 @@ if [ ! -f "$BUILDIFIER" ]; then
   curl -L "https://github.com/bazelbuild/buildtools/releases/download/${VERSION}/${BINARY}" -o "${TMP_DIR}/buildifier"
   chmod +x "${TMP_DIR}/buildifier"
   cd "${ROOT_PATH}"
-  mkdir -p "$(dirname "$0")/tools/bin/buildifier"
+  mkdir -p "$(dirname "$0")/tools/bin/buildifier/${VERSION}"
   mv "${TMP_DIR}/buildifier" "$BUILDIFIER"
 fi
 

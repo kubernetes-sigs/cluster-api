@@ -396,7 +396,7 @@ func (r *MachineReconciler) reconcileDeleteExternal(ctx context.Context, m *clus
 		}
 
 		obj, err := external.Get(ctx, r.Client, ref, m.Namespace)
-		if err != nil && !apierrors.IsNotFound(err) {
+		if err != nil && !apierrors.IsNotFound(errors.Cause(err)) {
 			return false, errors.Wrapf(err, "failed to get %s %q for Machine %q in namespace %q",
 				ref.GroupVersionKind(), ref.Name, m.Name, m.Namespace)
 		}

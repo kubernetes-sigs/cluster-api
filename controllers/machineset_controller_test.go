@@ -31,8 +31,9 @@ import (
 	"k8s.io/client-go/kubernetes/scheme"
 	"k8s.io/client-go/tools/record"
 	"k8s.io/klog/klogr"
-	"k8s.io/utils/pointer"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha3"
+	"sigs.k8s.io/cluster-api/controllers/external"
+	"sigs.k8s.io/cluster-api/util"
 	"sigs.k8s.io/cluster-api/util/kubeconfig"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
@@ -89,7 +90,11 @@ var _ = Describe("MachineSet Reconciler", func() {
 						ClusterName: testCluster.Name,
 						Version:     &version,
 						Bootstrap: clusterv1.Bootstrap{
-							Data: pointer.StringPtr("x"),
+							ConfigRef: &corev1.ObjectReference{
+								APIVersion: "bootstrap.cluster.x-k8s.io/v1alpha3",
+								Kind:       "BootstrapMachineTemplate",
+								Name:       "ms-template",
+							},
 						},
 						InfrastructureRef: corev1.ObjectReference{
 							APIVersion: "infrastructure.cluster.x-k8s.io/v1alpha3",
@@ -100,6 +105,25 @@ var _ = Describe("MachineSet Reconciler", func() {
 				},
 			},
 		}
+
+		// Create bootstrap template resource.
+		bootstrapResource := map[string]interface{}{
+			"kind":       "BootstrapMachine",
+			"apiVersion": "bootstrap.cluster.x-k8s.io/v1alpha3",
+			"metadata":   map[string]interface{}{},
+		}
+		bootstrapTmpl := &unstructured.Unstructured{
+			Object: map[string]interface{}{
+				"spec": map[string]interface{}{
+					"template": bootstrapResource,
+				},
+			},
+		}
+		bootstrapTmpl.SetKind("BootstrapMachineTemplate")
+		bootstrapTmpl.SetAPIVersion("bootstrap.cluster.x-k8s.io/v1alpha3")
+		bootstrapTmpl.SetName("ms-template")
+		bootstrapTmpl.SetNamespace(namespace.Name)
+		Expect(k8sClient.Create(ctx, bootstrapTmpl)).To(BeNil())
 
 		// Create infrastructure template resource.
 		infraResource := map[string]interface{}{
@@ -130,6 +154,36 @@ var _ = Describe("MachineSet Reconciler", func() {
 			err := k8sClient.Delete(ctx, instance)
 			Expect(err).NotTo(HaveOccurred())
 		}()
+
+		By("Verifying the linked bootstrap template has a cluster owner reference")
+		Eventually(func() bool {
+			obj, err := external.Get(ctx, k8sClient, instance.Spec.Template.Spec.Bootstrap.ConfigRef, instance.Namespace)
+			if err != nil {
+				return false
+			}
+
+			return util.HasOwnerRef(obj.GetOwnerReferences(), metav1.OwnerReference{
+				APIVersion: clusterv1.GroupVersion.String(),
+				Kind:       "Cluster",
+				Name:       testCluster.Name,
+				UID:        testCluster.UID,
+			})
+		}, timeout).Should(BeTrue())
+
+		By("Verifying the linked infrastructure template has a cluster owner reference")
+		Eventually(func() bool {
+			obj, err := external.Get(ctx, k8sClient, &instance.Spec.Template.Spec.InfrastructureRef, instance.Namespace)
+			if err != nil {
+				return false
+			}
+
+			return util.HasOwnerRef(obj.GetOwnerReferences(), metav1.OwnerReference{
+				APIVersion: clusterv1.GroupVersion.String(),
+				Kind:       "Cluster",
+				Name:       testCluster.Name,
+				UID:        testCluster.UID,
+			})
+		}, timeout).Should(BeTrue())
 
 		machines := &clusterv1.MachineList{}
 

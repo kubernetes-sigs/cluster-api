@@ -75,6 +75,8 @@ var _ = BeforeSuite(func(done Done) {
 	By("bootstrapping test environment")
 	testEnv = &envtest.Environment{
 		CRDs: []*apiextensionsv1beta1.CustomResourceDefinition{
+			external.TestGenericBootstrapCRD,
+			external.TestGenericBootstrapTemplateCRD,
 			external.TestGenericInfrastructureCRD,
 			external.TestGenericInfrastructureTemplateCRD,
 		},

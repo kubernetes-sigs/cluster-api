@@ -35,6 +35,7 @@ import (
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha3"
 	"sigs.k8s.io/cluster-api/controllers/external"
 	"sigs.k8s.io/cluster-api/util"
+	"sigs.k8s.io/cluster-api/util/patch"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
@@ -153,6 +154,17 @@ func (r *MachineSetReconciler) reconcile(ctx context.Context, machineSet *cluste
 		}
 	}
 
+	// Make sure to reconcile the external infrastructure reference.
+	if err := r.reconcileExternalReference(ctx, cluster, machineSet.Spec.Template.Spec.InfrastructureRef); err != nil {
+		return ctrl.Result{}, err
+	}
+	// Make sure to reconcile the external bootstrap reference, if any.
+	if machineSet.Spec.Template.Spec.Bootstrap.ConfigRef != nil {
+		if err := r.reconcileExternalReference(ctx, cluster, *machineSet.Spec.Template.Spec.Bootstrap.ConfigRef); err != nil {
+			return ctrl.Result{}, err
+		}
+	}
+
 	// Make sure selector and template to be in the same cluster.
 	machineSet.Spec.Selector.MatchLabels[clusterv1.ClusterLabelName] = machineSet.Spec.ClusterName
 	machineSet.Spec.Template.Labels[clusterv1.ClusterLabelName] = machineSet.Spec.ClusterName
@@ -251,6 +263,34 @@ func (r *MachineSetReconciler) reconcile(ctx context.Context, machineSet *cluste
 	}
 
 	return ctrl.Result{}, nil
+}
+
+func (r *MachineSetReconciler) reconcileExternalReference(ctx context.Context, cluster *clusterv1.Cluster, ref corev1.ObjectReference) error {
+	if !strings.HasSuffix(ref.Kind, external.TemplateSuffix) {
+		return nil
+	}
+
+	obj, err := external.Get(ctx, r.Client, &ref, cluster.Namespace)
+	if err != nil {
+		return err
+	}
+
+	patchHelper, err := patch.NewHelper(obj, r.Client)
+	if err != nil {
+		return err
+	}
+
+	obj.SetOwnerReferences(util.EnsureOwnerRef(obj.GetOwnerReferences(), metav1.OwnerReference{
+		APIVersion: clusterv1.GroupVersion.String(),
+		Kind:       "Cluster",
+		Name:       cluster.Name,
+		UID:        cluster.UID,
+	}))
+
+	if err := patchHelper.Patch(ctx, obj); err != nil {
+		return err
+	}
+	return nil
 }
 
 // syncReplicas scales Machine resources up or down.

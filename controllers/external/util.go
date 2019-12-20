@@ -27,6 +27,12 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
+const (
+	// TemplateSuffix is the object kind suffix used by infrastructure references associated
+	// with MachineSet or MachineDeployments.
+	TemplateSuffix = "Template"
+)
+
 // Get uses the client and reference to get an external, unstructured object.
 func Get(ctx context.Context, c client.Client, ref *corev1.ObjectReference, namespace string) (*unstructured.Unstructured, error) {
 	obj := new(unstructured.Unstructured)
@@ -35,7 +41,7 @@ func Get(ctx context.Context, c client.Client, ref *corev1.ObjectReference, name
 	obj.SetName(ref.Name)
 	key := client.ObjectKey{Name: obj.GetName(), Namespace: namespace}
 	if err := c.Get(ctx, key, obj); err != nil {
-		return nil, err
+		return nil, errors.Wrapf(err, "failed to retrieve %s external object %q/%q", obj.GetKind(), key.Namespace, key.Name)
 	}
 	return obj, nil
 }
@@ -71,7 +77,7 @@ func CloneTemplate(ctx context.Context, c client.Client, ref *corev1.ObjectRefer
 
 	// Set the object Kind and strip the word "Template" if it's a suffix.
 	if to.GetKind() == "" {
-		to.SetKind(strings.TrimSuffix(ref.Kind, "Template"))
+		to.SetKind(strings.TrimSuffix(ref.Kind, TemplateSuffix))
 	}
 
 	// Create the external clone.

@@ -79,7 +79,7 @@ func (r *MachineReconciler) reconcileExternal(ctx context.Context, m *clusterv1.
 
 	obj, err := external.Get(ctx, r.Client, ref, m.Namespace)
 	if err != nil {
-		if apierrors.IsNotFound(err) {
+		if apierrors.IsNotFound(errors.Cause(err)) {
 			return nil, errors.Wrapf(&capierrors.RequeueAfterError{RequeueAfter: externalReadyWait},
 				"could not find %v %q for Machine %q in namespace %q, requeuing",
 				ref.GroupVersionKind(), ref.Name, m.Name, m.Namespace)

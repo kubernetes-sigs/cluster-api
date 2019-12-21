@@ -1,0 +1,207 @@
+/*
+Copyright 2019 The Kubernetes Authors.
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+*/
+
+package repository
+
+import (
+	"io/ioutil"
+	"net/url"
+	"os"
+	"path/filepath"
+	"strings"
+
+	"github.com/pkg/errors"
+	"k8s.io/apimachinery/pkg/util/version"
+	"sigs.k8s.io/cluster-api/cmd/clusterctl/pkg/client/config"
+)
+
+// localRepository provides support for providers located on the local filesystem.
+// As part of the provider object, the URL is expected to contain the absolute
+// path to the components yaml on the local filesystem.
+// To support different versions, the directories containing provider
+// specific data must adhere to the following layout:
+// {basepath}/{provider-name}/{version}/{components.yaml}
+//
+// (1): {provider-name} must match the value returned by Provider.Name()
+// (2): {version} must obey the syntax and semantics of the "Semantic Versioning"
+// specification (http://semver.org/); however, "latest" is also an acceptable value.
+//
+// Concrete example:
+// /home/user/go/src/sigs.k8s.io/aws/v0.4.7/infrastructure-components.yaml
+// basepath: /home/user/go/src/sigs.k8s.io
+// provider-name: aws
+// version: v0.4.7
+// components.yaml: infrastructure-components.yaml
+type localRepository struct {
+	providerConfig        config.Provider
+	configVariablesClient config.VariablesClient
+	basepath              string
+	providerName          string
+	defaultVersion        string
+	componentsPath        string
+}
+
+var _ Repository = &localRepository{}
+
+// DefaultVersion returns the default version for the local repository.
+func (r *localRepository) DefaultVersion() string {
+	return r.defaultVersion
+}
+
+// RootPath returns the empty string as it is not applicable to local repositories.
+func (r *localRepository) RootPath() string {
+	return ""
+}
+
+// ComponentsPath returns the path to the components file for the local repository.
+func (r *localRepository) ComponentsPath() string {
+	return r.componentsPath
+}
+
+// GetFile returns a file for a given provider version.
+func (r *localRepository) GetFile(version, fileName string) ([]byte, error) {
+	var err error
+
+	if version == "latest" {
+		version, err = r.getLatestRelease()
+		if err != nil {
+			return nil, errors.Wrapf(err, "failed to get the latest release")
+		}
+	} else if version == "" {
+		version = r.defaultVersion
+	}
+
+	absolutePath := filepath.Join(r.basepath, r.providerName, version, r.RootPath(), fileName)
+
+	f, err := os.Stat(absolutePath)
+	if err != nil {
+		return nil, errors.Errorf("failed to read file %q from local release %s", absolutePath, version)
+	}
+	if f.IsDir() {
+		return nil, errors.Errorf("invalid path: file %q is actually a directory %q", fileName, absolutePath)
+	}
+	content, err := ioutil.ReadFile(absolutePath)
+	if err != nil {
+		return nil, errors.Wrapf(err, "failed to read file %q from local release %s", absolutePath, version)
+	}
+	return content, nil
+
+}
+
+// GetVersions returns the list of versions that are available for a local repository.
+func (r *localRepository) GetVersions() ([]string, error) {
+	// get all the sub-directories under {basepath}/{provider-name}/
+	releasesPath := filepath.Join(r.basepath, r.providerName)
+	files, err := ioutil.ReadDir(releasesPath)
+	if err != nil {
+		return nil, errors.Wrap(err, "failed to list release directories")
+	}
+	versions := []string{}
+	for _, f := range files {
+		if !f.IsDir() {
+			continue
+		}
+		r := f.Name()
+		sv, err := version.ParseSemantic(r)
+		if err != nil {
+			// discard releases with tags that are not a valid semantic versions (the user can point explicitly to such releases)
+			continue
+		}
+		if sv.PreRelease() != "" || sv.BuildMetadata() != "" {
+			// discard pre-releases or build releases (the user can point explicitly to such releases)
+			continue
+		}
+		versions = append(versions, r)
+	}
+	return versions, nil
+}
+
+// newLocalRepository returns a new localRepository.
+func newLocalRepository(providerConfig config.Provider, configVariablesClient config.VariablesClient) (*localRepository, error) {
+	url, err := url.Parse(providerConfig.URL())
+	if err != nil {
+		return nil, errors.Wrap(err, "invalid url")
+	}
+	absPath := url.EscapedPath()
+	if !filepath.IsAbs(absPath) {
+		return nil, errors.Errorf("invalid path: path %q must be an absolute path", providerConfig.URL())
+	}
+
+	urlSplit := strings.Split(providerConfig.URL(), "/")
+	// {basepath}/{provider-name}/{version}/{components.yaml}
+	if len(urlSplit) < 3 {
+		return nil, errors.Errorf("invalid path: path should be in the form {basepath}/{provider-name}/{version}/{components.yaml}")
+	}
+	// We work our way backwards with {components.yaml} being the last part of the path
+	componentsPath := urlSplit[len(urlSplit)-1]
+	defaultVersion := urlSplit[len(urlSplit)-2]
+	if defaultVersion != "latest" {
+		_, err = version.ParseSemantic(defaultVersion)
+		if err != nil {
+			return nil, errors.Errorf("invalid version: %q. Version must obey the syntax and semantics of the \"Semantic Versioning\" specification (http://semver.org/) and path format {basepath}/{provider-name}/{version}/{components.yaml}", defaultVersion)
+		}
+	}
+	providerName := urlSplit[len(urlSplit)-3]
+	if providerName != providerConfig.Name() {
+		return nil, errors.Errorf("invalid path: path %q must contain provider name %q in the format {basepath}/{provider-name}/{version}/{components.yaml}", providerConfig.URL(), providerConfig.Name())
+	}
+	var basePath string
+	if len(urlSplit) > 3 {
+		basePath = filepath.Join(urlSplit[:len(urlSplit)-3]...)
+	}
+	basePath = filepath.Clean("/" + basePath) // ensure basePath starts with "/"
+
+	repo := &localRepository{
+		providerConfig:        providerConfig,
+		configVariablesClient: configVariablesClient,
+		basepath:              basePath,
+		providerName:          providerName,
+		defaultVersion:        defaultVersion,
+		componentsPath:        componentsPath,
+	}
+
+	if defaultVersion == "latest" {
+		repo.defaultVersion, err = repo.getLatestRelease()
+		if err != nil {
+			return nil, errors.Wrap(err, "failed to get latest version")
+		}
+	}
+	return repo, nil
+}
+
+// getLatestRelease returns the latest release for the local repository.
+func (r *localRepository) getLatestRelease() (string, error) {
+	versions, err := r.GetVersions()
+	if err != nil {
+		return "", errors.Wrapf(err, "failed to get local repository versions")
+	}
+	var latestTag string
+	var latestReleaseVersion *version.Version
+	for _, v := range versions {
+		sv, err := version.ParseSemantic(v)
+		if err != nil {
+			continue
+		}
+		if latestReleaseVersion == nil || latestReleaseVersion.LessThan(sv) {
+			latestTag = v
+			latestReleaseVersion = sv
+		}
+	}
+	if latestTag == "" {
+		return "", errors.New("failed to find releases tagged with a valid semantic version number")
+	}
+	return latestTag, nil
+}

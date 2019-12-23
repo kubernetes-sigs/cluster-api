@@ -30,5 +30,8 @@ source "${REPO_ROOT}/hack/ensure-kubectl.sh"
 # shellcheck source=./hack/ensure-kustomize.sh
 source "${REPO_ROOT}/hack/ensure-kustomize.sh"
 
+ARTIFACTS="${ARTIFACTS:-${PWD}/_artifacts}"
+mkdir -p "$ARTIFACTS/logs/"
+
 echo "*** Testing Cluster API Provider Docker e2es ***"
-cd "${REPO_ROOT}/test/infrastructure/docker" && make test-e2e
+cd "${REPO_ROOT}/test/infrastructure/docker" && ARTIFACTS="${ARTIFACTS}" make test-e2e

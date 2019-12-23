@@ -21,38 +21,57 @@ package e2e
 import (
 	"context"
 	"fmt"
+	"io/ioutil"
 	"os"
+	"path"
+	"path/filepath"
 	"testing"
 
 	. "github.com/onsi/ginkgo"
+	"github.com/onsi/ginkgo/config"
+	"github.com/onsi/ginkgo/reporters"
 	. "github.com/onsi/gomega"
+	"github.com/pkg/errors"
+	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/runtime"
-	"sigs.k8s.io/cluster-api/test/framework"
-	"sigs.k8s.io/cluster-api/test/framework/generators"
-	"sigs.k8s.io/cluster-api/util"
-	"sigs.k8s.io/controller-runtime/pkg/client"
-
 	capiv1 "sigs.k8s.io/cluster-api/api/v1alpha3"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha3"
 	bootstrapv1 "sigs.k8s.io/cluster-api/bootstrap/kubeadm/api/v1alpha3"
-	dockerv1 "sigs.k8s.io/cluster-api/test/infrastructure/docker/api/v1alpha3"
-	infrav1 "sigs.k8s.io/cluster-api/test/infrastructure/docker/api/v1alpha3"
 	controlplanev1 "sigs.k8s.io/cluster-api/controlplane/kubeadm/api/v1alpha3"
+	"sigs.k8s.io/cluster-api/test/framework"
+	"sigs.k8s.io/cluster-api/test/framework/generators"
+	infrav1 "sigs.k8s.io/cluster-api/test/infrastructure/docker/api/v1alpha3"
+	"sigs.k8s.io/cluster-api/util"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
 func TestDocker(t *testing.T) {
 	RegisterFailHandler(Fail)
-	RunSpecs(t, "Docker Suite")
+	junitPath := fmt.Sprintf("junit.e2e_suite.%d.xml", config.GinkgoConfig.ParallelNode)
+	artifactPath, exists := os.LookupEnv("ARTIFACTS")
+	if exists {
+		junitPath = path.Join(artifactPath, junitPath)
+	}
+	junitReporter := reporters.NewJUnitReporter(junitPath)
+	RunSpecsWithDefaultAndCustomReporters(t, "CAPD e2e Suite", []Reporter{junitReporter})
 }
 
 var (
-	mgmt *CAPDCluster
-	ctx  = context.Background()
+	mgmt    *CAPDCluster
+	ctx     = context.Background()
+	logPath string
 )
 
 var _ = BeforeSuite(func() {
+	// Create the logs directory
+	artifactPath := os.Getenv("ARTIFACTS")
+	logPath = path.Join(artifactPath, "logs")
+	Expect(os.MkdirAll(filepath.Dir(logPath), 0755)).To(Succeed())
+
+	// Figure out the names of the images to load into kind
 	managerImage := os.Getenv("MANAGER_IMAGE")
 	if managerImage == "" {
 		managerImage = "gcr.io/k8s-staging-capi-docker/capd-manager-amd64:dev"
@@ -74,6 +93,7 @@ var _ = BeforeSuite(func() {
 
 	scheme := runtime.NewScheme()
 	Expect(corev1.AddToScheme(scheme)).To(Succeed())
+	Expect(appsv1.AddToScheme(scheme)).To(Succeed())
 	Expect(capiv1.AddToScheme(scheme)).To(Succeed())
 	Expect(bootstrapv1.AddToScheme(scheme)).To(Succeed())
 	Expect(infrav1.AddToScheme(scheme)).To(Succeed())
@@ -104,11 +124,14 @@ var _ = BeforeSuite(func() {
 })
 
 var _ = AfterSuite(func() {
+	Expect(writeLogs(mgmt, "capi-system", "capi-controller-manager", logPath)).To(Succeed())
+	Expect(writeLogs(mgmt, "capd-system", "capd-controller-manager", logPath)).To(Succeed())
+	By("Deleting the management cluster")
 	Expect(mgmt.Teardown(ctx)).To(Succeed())
 })
 
 func ensureDockerArtifactsDeleted(input *framework.ControlplaneClusterInput) {
-	By("ensuring docker artifacts have been deleted")
+	By("Ensuring docker artifacts have been deleted")
 	ctx := context.Background()
 	mgmtClient, err := input.Management.GetClient()
 	Expect(err).NotTo(HaveOccurred(), "stack: %+v", err)
@@ -117,15 +140,77 @@ func ensureDockerArtifactsDeleted(input *framework.ControlplaneClusterInput) {
 	Expect(err).ToNot(HaveOccurred())
 	opt := &client.ListOptions{LabelSelector: lbl}
 
-	dcl := &dockerv1.DockerClusterList{}
+	dcl := &infrav1.DockerClusterList{}
 	Expect(mgmtClient.List(ctx, dcl, opt)).To(Succeed())
 	Expect(dcl.Items).To(HaveLen(0))
 
-	dml := &dockerv1.DockerMachineList{}
+	dml := &infrav1.DockerMachineList{}
 	Expect(mgmtClient.List(ctx, dml, opt)).To(Succeed())
 	Expect(dml.Items).To(HaveLen(0))
 
-	dmtl := &dockerv1.DockerMachineTemplateList{}
+	dmtl := &infrav1.DockerMachineTemplateList{}
 	Expect(mgmtClient.List(ctx, dmtl, opt)).To(Succeed())
 	Expect(dmtl.Items).To(HaveLen(0))
+	By("Succeeding in deleting all docker artifacts")
+}
+
+func writeLogs(mgmt *CAPDCluster, namespace, deploymentName, logDir string) error {
+	c, err := mgmt.GetClient()
+	if err != nil {
+		return err
+	}
+	clientSet, err := mgmt.GetClientSet()
+	if err != nil {
+		return err
+	}
+	deployment := &appsv1.Deployment{}
+	if err := c.Get(context.TODO(), client.ObjectKey{Namespace: namespace, Name: deploymentName}, deployment); err != nil {
+		return err
+	}
+
+	selector, err := metav1.LabelSelectorAsMap(deployment.Spec.Selector)
+	if err != nil {
+		return err
+	}
+
+	pods := &corev1.PodList{}
+	if err := c.List(context.TODO(), pods, client.InNamespace(namespace), client.MatchingLabels(selector)); err != nil {
+		return err
+	}
+
+	for _, pod := range pods.Items {
+		for _, container := range deployment.Spec.Template.Spec.Containers {
+			logFile := path.Join(logDir, deploymentName, pod.Name, container.Name+".log")
+			fmt.Fprintf(GinkgoWriter, "Creating directory: %s\n", filepath.Dir(logFile))
+			if err := os.MkdirAll(filepath.Dir(logFile), 0755); err != nil {
+				return errors.Wrapf(err, "error making logDir %q", filepath.Dir(logFile))
+			}
+
+			opts := &corev1.PodLogOptions{
+				Container: container.Name,
+				Follow:    false,
+			}
+
+			podLogs, err := clientSet.CoreV1().Pods(namespace).GetLogs(pod.Name, opts).Stream()
+			if err != nil {
+				return errors.Wrapf(err, "error getting pod stream for pod name %q/%q", pod.Namespace, pod.Name)
+			}
+			defer podLogs.Close()
+
+			f, err := os.OpenFile(logFile, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
+			if err != nil {
+				return errors.Wrapf(err, "error opening created logFile %q", logFile)
+			}
+			defer f.Close()
+
+			logs, err := ioutil.ReadAll(podLogs)
+			if err != nil {
+				return errors.Wrapf(err, "failed to read podLogs %q/%q", pod.Namespace, pod.Name)
+			}
+			if err := ioutil.WriteFile(f.Name(), logs, 0644); err != nil {
+				return errors.Wrapf(err, "error writing pod logFile %q", f.Name())
+			}
+		}
+	}
+	return nil
 }

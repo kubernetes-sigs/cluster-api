@@ -17,6 +17,7 @@ limitations under the License.
 package kubeconfig
 
 import (
+	"context"
 	"crypto/rand"
 	"crypto/rsa"
 	"crypto/x509"
@@ -26,13 +27,18 @@ import (
 	"testing"
 	"time"
 
+	"github.com/onsi/gomega"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/client-go/tools/clientcmd"
 	"k8s.io/client-go/tools/clientcmd/api"
+	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/client/fake"
+
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha3"
 	"sigs.k8s.io/cluster-api/util/certs"
 	"sigs.k8s.io/cluster-api/util/secret"
-	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 )
 
 var (
@@ -61,6 +67,7 @@ users:
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "test1-kubeconfig",
 			Namespace: "test",
+			Labels:    map[string]string{clusterv1.ClusterLabelName: "test1"},
 		},
 		Data: map[string][]byte{
 			secret.KubeconfigDataName: []byte(validKubeConfig),
@@ -68,8 +75,16 @@ users:
 	}
 )
 
+func setupScheme() *runtime.Scheme {
+	scheme := runtime.NewScheme()
+	if err := corev1.AddToScheme(scheme); err != nil {
+		panic(err)
+	}
+	return scheme
+}
+
 func TestGetKubeConfigSecret(t *testing.T) {
-	client := fake.NewFakeClient(validSecret)
+	client := fake.NewFakeClientWithScheme(setupScheme(), validSecret)
 	found, err := FromSecret(client, &clusterv1.Cluster{
 		ObjectMeta: metav1.ObjectMeta{Name: "test1", Namespace: "test"},
 	})
@@ -185,4 +200,172 @@ func TestNew(t *testing.T) {
 				actualConfig.Contexts[tc.expectedConfig.CurrentContext].AuthInfo)
 		}
 	}
+}
+
+func TestGenerateSecretWithOwner(t *testing.T) {
+	g := gomega.NewGomegaWithT(t)
+
+	owner := metav1.OwnerReference{
+		Name:       "test1",
+		Kind:       "Cluster",
+		APIVersion: clusterv1.GroupVersion.String(),
+	}
+
+	expectedSecret := validSecret.DeepCopy()
+	expectedSecret.SetOwnerReferences([]metav1.OwnerReference{owner})
+
+	kubeconfigSecret := GenerateSecretWithOwner(
+		client.ObjectKey{
+			Name:      "test1",
+			Namespace: "test",
+		},
+		[]byte(validKubeConfig),
+		owner,
+	)
+
+	g.Expect(kubeconfigSecret).NotTo(gomega.BeNil())
+	g.Expect(kubeconfigSecret).To(gomega.Equal(expectedSecret))
+}
+
+func TestGenerateSecret(t *testing.T) {
+	g := gomega.NewGomegaWithT(t)
+
+	expectedSecret := validSecret.DeepCopy()
+	expectedSecret.SetOwnerReferences(
+		[]metav1.OwnerReference{
+			{
+				Name:       "test1",
+				Kind:       "Cluster",
+				APIVersion: clusterv1.GroupVersion.String(),
+			},
+		},
+	)
+
+	cluster := &clusterv1.Cluster{}
+	cluster.SetNamespace("test")
+	cluster.SetName("test1")
+
+	kubeconfigSecret := GenerateSecret(
+		cluster,
+		[]byte(validKubeConfig),
+	)
+
+	g.Expect(kubeconfigSecret).NotTo(gomega.BeNil())
+	g.Expect(kubeconfigSecret).To(gomega.Equal(expectedSecret))
+}
+
+func TestCreateSecretWithOwner(t *testing.T) {
+	g := gomega.NewGomegaWithT(t)
+
+	caKey, err := certs.NewPrivateKey()
+	g.Expect(err).NotTo(gomega.HaveOccurred())
+
+	caCert, err := getTestCACert(caKey)
+	g.Expect(err).NotTo(gomega.HaveOccurred())
+
+	caSecret := &corev1.Secret{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "test1-ca",
+			Namespace: "test",
+		},
+		Data: map[string][]byte{
+			secret.TLSKeyDataName: certs.EncodePrivateKeyPEM(caKey),
+			secret.TLSCrtDataName: certs.EncodeCertPEM(caCert),
+		},
+	}
+
+	c := fake.NewFakeClientWithScheme(setupScheme(), caSecret)
+
+	owner := metav1.OwnerReference{
+		Name:       "test1",
+		Kind:       "Cluster",
+		APIVersion: clusterv1.GroupVersion.String(),
+	}
+
+	err = CreateSecretWithOwner(
+		context.Background(),
+		c,
+		client.ObjectKey{
+			Name:      "test1",
+			Namespace: "test",
+		},
+		"localhost:6443",
+		owner,
+	)
+
+	g.Expect(err).NotTo(gomega.HaveOccurred())
+
+	s := &corev1.Secret{}
+	key := client.ObjectKey{Name: "test1-kubeconfig", Namespace: "test"}
+	g.Expect(c.Get(context.Background(), key, s)).To(gomega.Succeed())
+	g.Expect(s.OwnerReferences).To(gomega.ContainElement(owner))
+
+	clientConfig, err := clientcmd.NewClientConfigFromBytes(s.Data[secret.KubeconfigDataName])
+	g.Expect(err).NotTo(gomega.HaveOccurred())
+	restClient, err := clientConfig.ClientConfig()
+	g.Expect(err).NotTo(gomega.HaveOccurred())
+	g.Expect(restClient.CAData).To(gomega.Equal(certs.EncodeCertPEM(caCert)))
+	g.Expect(restClient.Host).To(gomega.Equal("https://localhost:6443"))
+}
+
+func TestCreateSecret(t *testing.T) {
+	g := gomega.NewGomegaWithT(t)
+
+	caKey, err := certs.NewPrivateKey()
+	g.Expect(err).NotTo(gomega.HaveOccurred())
+
+	caCert, err := getTestCACert(caKey)
+	g.Expect(err).NotTo(gomega.HaveOccurred())
+
+	caSecret := &corev1.Secret{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "test1-ca",
+			Namespace: "test",
+		},
+		Data: map[string][]byte{
+			secret.TLSKeyDataName: certs.EncodePrivateKeyPEM(caKey),
+			secret.TLSCrtDataName: certs.EncodeCertPEM(caCert),
+		},
+	}
+
+	c := fake.NewFakeClientWithScheme(setupScheme(), caSecret)
+
+	cluster := &clusterv1.Cluster{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "test1",
+			Namespace: "test",
+		},
+		Spec: clusterv1.ClusterSpec{
+			ControlPlaneEndpoint: clusterv1.APIEndpoint{
+				Host: "localhost",
+				Port: 8443,
+			},
+		},
+	}
+
+	err = CreateSecret(
+		context.Background(),
+		c,
+		cluster,
+	)
+
+	g.Expect(err).NotTo(gomega.HaveOccurred())
+
+	s := &corev1.Secret{}
+	key := client.ObjectKey{Name: "test1-kubeconfig", Namespace: "test"}
+	g.Expect(c.Get(context.Background(), key, s)).To(gomega.Succeed())
+	g.Expect(s.OwnerReferences).To(gomega.ContainElement(
+		metav1.OwnerReference{
+			Name:       cluster.Name,
+			Kind:       "Cluster",
+			APIVersion: clusterv1.GroupVersion.String(),
+		},
+	))
+
+	clientConfig, err := clientcmd.NewClientConfigFromBytes(s.Data[secret.KubeconfigDataName])
+	g.Expect(err).NotTo(gomega.HaveOccurred())
+	restClient, err := clientConfig.ClientConfig()
+	g.Expect(err).NotTo(gomega.HaveOccurred())
+	g.Expect(restClient.CAData).To(gomega.Equal(certs.EncodeCertPEM(caCert)))
+	g.Expect(restClient.Host).To(gomega.Equal("https://localhost:8443"))
 }

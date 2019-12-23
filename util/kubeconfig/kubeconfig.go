@@ -162,6 +162,9 @@ func GenerateSecretWithOwner(clusterName types.NamespacedName, data []byte, owne
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      secret.Name(clusterName.Name, secret.Kubeconfig),
 			Namespace: clusterName.Namespace,
+			Labels: map[string]string{
+				clusterv1.ClusterLabelName: clusterName.Name,
+			},
 			OwnerReferences: []metav1.OwnerReference{
 				owner,
 			},

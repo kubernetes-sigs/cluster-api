@@ -55,6 +55,10 @@ var (
 	stateConfirmationInterval = 100 * time.Millisecond
 )
 
+type TemplateCloner interface {
+	CloneTemplate(ctx context.Context, c client.Client, ref *corev1.ObjectReference, namespace, clusterName string, owner *metav1.OwnerReference) (*corev1.ObjectReference, error)
+}
+
 // +kubebuilder:rbac:groups=core,resources=events,verbs=get;list;watch;create;patch
 // +kubebuilder:rbac:groups=core,resources=secrets,verbs=get;list;watch
 // +kubebuilder:rbac:groups=core,resources=nodes,verbs=get;list;watch;create;update;patch;delete
@@ -65,6 +69,8 @@ var (
 type MachineSetReconciler struct {
 	Client client.Client
 	Log    logr.Logger
+
+	TemplateCloner TemplateCloner
 
 	recorder record.EventRecorder
 	scheme   *runtime.Scheme
@@ -316,42 +322,42 @@ func (r *MachineSetReconciler) syncReplicas(ctx context.Context, ms *clusterv1.M
 
 			// Clone and set the infrastructure and bootstrap references.
 			var (
-				infraConfig, bootstrapConfig *unstructured.Unstructured
-				err                          error
+				infraRef, bootstrapRef *corev1.ObjectReference
+				err                    error
 			)
 
 			if machine.Spec.Bootstrap.ConfigRef != nil {
-				bootstrapConfig, err = external.CloneTemplate(ctx, r.Client, machine.Spec.Bootstrap.ConfigRef, machine.Namespace)
+				bootstrapRef, err = r.TemplateCloner.CloneTemplate(ctx, r.Client, machine.Spec.Bootstrap.ConfigRef, machine.Namespace, machine.Spec.ClusterName, nil)
 				if err != nil {
 					return errors.Wrapf(err, "failed to clone bootstrap configuration for MachineSet %q in namespace %q", ms.Name, ms.Namespace)
 				}
-				machine.Spec.Bootstrap.ConfigRef = &corev1.ObjectReference{
-					APIVersion: bootstrapConfig.GetAPIVersion(),
-					Kind:       bootstrapConfig.GetKind(),
-					Namespace:  bootstrapConfig.GetNamespace(),
-					Name:       bootstrapConfig.GetName(),
-				}
+				machine.Spec.Bootstrap.ConfigRef = bootstrapRef
 			}
 
-			infraConfig, err = external.CloneTemplate(ctx, r.Client, &machine.Spec.InfrastructureRef, machine.Namespace)
+			infraRef, err = r.TemplateCloner.CloneTemplate(ctx, r.Client, &machine.Spec.InfrastructureRef, machine.Namespace, machine.Spec.ClusterName, nil)
 			if err != nil {
 				return errors.Wrapf(err, "failed to clone infrastructure configuration for MachineSet %q in namespace %q", ms.Name, ms.Namespace)
 			}
-			machine.Spec.InfrastructureRef = corev1.ObjectReference{
-				APIVersion: infraConfig.GetAPIVersion(),
-				Kind:       infraConfig.GetKind(),
-				Namespace:  infraConfig.GetNamespace(),
-				Name:       infraConfig.GetName(),
-			}
+			machine.Spec.InfrastructureRef = *infraRef
 
 			if err := r.Client.Create(context.TODO(), machine); err != nil {
 				logger.Error(err, "Unable to create Machine", "machine", machine.Name)
 				r.recorder.Eventf(ms, corev1.EventTypeWarning, "FailedCreate", "Failed to create machine %q: %v", machine.Name, err)
 				errstrings = append(errstrings, err.Error())
+				infraConfig := &unstructured.Unstructured{}
+				infraConfig.SetKind(infraRef.Kind)
+				infraConfig.SetAPIVersion(infraRef.APIVersion)
+				infraConfig.SetNamespace(infraRef.Namespace)
+				infraConfig.SetName(infraRef.Name)
 				if err := r.Client.Delete(context.TODO(), infraConfig); !apierrors.IsNotFound(err) {
 					logger.Error(err, "Failed to cleanup infrastructure configuration object after Machine creation error")
 				}
-				if bootstrapConfig != nil {
+				if bootstrapRef != nil {
+					bootstrapConfig := &unstructured.Unstructured{}
+					bootstrapConfig.SetKind(bootstrapRef.Kind)
+					bootstrapConfig.SetAPIVersion(bootstrapRef.APIVersion)
+					bootstrapConfig.SetNamespace(bootstrapRef.Namespace)
+					bootstrapConfig.SetName(bootstrapRef.Name)
 					if err := r.Client.Delete(context.TODO(), bootstrapConfig); !apierrors.IsNotFound(err) {
 						logger.Error(err, "Failed to cleanup bootstrap configuration object after Machine creation error")
 					}

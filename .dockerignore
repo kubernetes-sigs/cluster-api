@@ -8,3 +8,6 @@ docs/
 logos/
 scripts/
 **/.md
+tilt-settings.json
+tilt.d/
+Tiltfile

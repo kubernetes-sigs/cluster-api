@@ -1,0 +1,174 @@
+# Developing Cluster API with Tilt
+
+## Overview
+
+This document describes how to use [kind](https://kind.sigs.k8s.io) and [Tilt](https://tilt.dev) for a simplified
+workflow that offers easy deployments and rapid iterative builds.
+
+## Prerequisites
+
+1. [Docker](https://docs.docker.com/install/)
+1. [kind](https://kind.sigs.k8s.io) v0.6 or newer
+   (other clusters can be used if `preload_images_for_kind` is set to false)
+1. [Tilt](https://docs.tilt.dev/install.html)
+1. Clone the [Cluster API](https://github.com/kubernetes-sigs/cluster-api) repository locally
+1. Clone the provider(s) you want to deploy locally as well
+
+## Getting started
+
+### Create a kind cluster
+
+First, make sure you have a kind cluster and that your `KUBECONFIG` is set up correctly:
+
+``` bash
+$ kind create cluster
+```
+
+### Create a tilt-settings.json file
+
+Next, create a `tilt-settings.json` file and place it in your local copy of `cluster-api`. Here is an example:
+
+```json
+{
+  "allowed_contexts": ["kind-kind"],
+  "default_registry": "gcr.io/your-project-name-here",
+  "provider_repos": ["../cluster-api-provider-aws"],
+  "enable_providers": ["aws", "docker"]
+}
+```
+
+#### tilt-settings.json fields
+
+**allowed_contexts** (Array, default=[]): A list of kubeconfig contexts Tilt is allowed to use. See the Tilt documentation on
+*[allow_k8s_contexts](https://docs.tilt.dev/api.html#api.allow_k8s_contexts) for more details.
+
+**default_registry** (String, default=""): The image registry to use if you need to push images. See the [Tilt
+*documentation](https://docs.tilt.dev/api.html#api.default_registry) for more details.
+
+**provider_repos** (Array[]String, default=[]): A list of paths to all the providers you want to use. Each provider must have a
+`tilt-provider.json` file describing how to build the provider.
+
+**enable_providers** (Array[]String, default=['docker']): A list of the providers to enable. See [available providers](#available-providers)
+for more details.
+
+**kustomize_substitutions** (Map{String: String}, default={}): An optional map of substitutions for `${}`-style placeholders in the
+provider's yaml.
+
+{{#tabs name:"tab-tilt-kustomize-substitution" tabs:"AWS,GCP"}}
+{{#tab AWS}}
+
+For example, if the yaml contains `${AWS_B64ENCODED_CREDENTIALS}`, you could do the following:
+
+```json
+"kustomize_substitutions": {
+  "AWS_B64ENCODED_CREDENTIALS": "your credentials here"
+}
+```
+
+{{#/tab }}
+{{#tab GCP}}
+
+You can generate a base64 version of your GCP json credentials file using:
+```bash
+base64 -i ~/path/to/gcp/credentials.json
+```
+
+```json
+"kustomize_substitutions": {
+  "GCP_B64ENCODED_CREDENTIALS": "your credentials here"
+}
+```
+
+{{#/tab }}
+{{#/tabs }}
+
+### Run Tilt!
+
+To launch your development environment, run
+
+``` bash
+tilt up
+```
+
+This will open the command-line HUD as well as a web browser interface. You can monitor Tilt's status in either
+location. After a brief amount of time, you should have a running development environment, and you should now be able to
+create a cluster. Please see the [Usage section in the Quick
+Start](https://cluster-api.sigs.k8s.io/user/quick-start.html#usage) for more information on creating workload clusters.
+
+## Available providers
+
+The following providers are currently defined in the Tiltfile:
+
+- **core**: cluster-api itself (Cluster/Machine/MachineDeployment/MachineSet/KubeadmConfig/KubeadmControlPlane)
+- **docker**: Docker provider (DockerCluster/DockerMachine)
+
+### tilt-provider.json
+
+A provider must supply a `tilt-provider.json` file describing how to build it. Here is an example:
+
+```json
+{
+    "name": "aws",
+    "config": {
+        "image": "gcr.io/k8s-staging-cluster-api-aws/cluster-api-aws-controller",
+        "live_reload_deps": [
+            "main.go", "go.mod", "go.sum", "api", "cmd", "controllers", "pkg"
+        ]
+    }
+}
+```
+
+#### config fields
+
+**image**: the image for this provider, as referenced in the kustomize files. This must match; otherwise, Tilt won't
+build it.
+
+**live_reload_deps**: a list of files/directories to watch. If any of them changes, Tilt rebuilds the manager binary
+for the provider and performs a live update of the running container.
+
+**additional_docker_helper_commands** (String, default=""): Additional commands to be run in the helper image
+docker build. e.g.
+
+``` Dockerfile
+RUN wget -qO- https://dl.k8s.io/v1.14.4/kubernetes-client-linux-amd64.tar.gz | tar xvz
+RUN wget -qO- https://get.docker.com | sh
+```
+
+**additional_docker_build_commands** (String, default=""): Additional commands to be appended to
+the dockerfile.
+The manager image will use docker-slim, so to download files, use `additional_helper_image_commands`. e.g.
+
+``` Dockerfile
+COPY --from=tilt-helper /usr/bin/docker /usr/bin/docker
+COPY --from=tilt-helper /go/kubernetes/client/bin/kubectl /usr/bin/kubectl
+```
+
+## Customizing Tilt
+
+If you need to customize Tilt's behavior, you can create files in cluster-api's `tilt.d` directory. This file is ignored
+by git so you can be assured that any files you place here will never be checked in to source control.
+
+These files are included after the `providers` map has been defined and after all the helper function definitions. This
+is immediately before the "real work" happens.
+
+## Under the covers, a.k.a "the real work"
+
+At a high level, the Tiltfile performs the following actions:
+
+1. Read `tilt-settings.json`
+1. Configure the allowed Kubernetes contexts
+1. Set the default registry
+1. Define the `providers` map
+1. Include user-defined Tilt files
+1. Enable providers (`core` + what is listed in `tilt-settings.json`)
+    1. Build the manager binary locally as a `local_resource`
+    1. Invoke `docker_build` for the provider
+    1. Invoke `kustomize` for the provider's `config/default` directory
+
+### Live updates
+
+Each provider in the `providers` map has a `live_reload_deps` list. This defines the files and/or directories that Tilt
+should monitor for changes. When a dependency is modified, Tilt rebuilds the provider's manager binary **on your local
+machine**, copies the binary to the running container, and executes a restart script. This is significantly faster
+than rebuilding the container image for each change. It also helps keep the size of each development image as small as
+possible (the container images do not need the entire go toolchain, source code, module dependencies, etc.).

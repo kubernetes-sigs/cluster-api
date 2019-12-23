@@ -281,11 +281,16 @@ clean-bin: ## Remove all generated binaries
 clean-release: ## Remove the release folder
 	rm -rf $(RELEASE_DIR)
 
+.PHONY: format-tiltfile
+format-tiltfile: ## Format Tiltfile
+	./hack/verify-starlark.sh fix
+
 .PHONY: verify
 verify:
 	./hack/verify-boilerplate.sh
 	./hack/verify-doctoc.sh
 	./hack/verify-generated-files.sh
+	./hack/verify-starlark.sh
 	$(MAKE) verify-modules
 	$(MAKE) verify-gen
 

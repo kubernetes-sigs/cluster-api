@@ -36,32 +36,40 @@ import (
 
 var _ = Describe("Docker", func() {
 	Describe("Cluster Creation", func() {
+		var (
+			namespace  string
+			clusterGen *ClusterGenerator
+			nodeGen    *NodeGenerator
+			input      *framework.ControlplaneClusterInput
+		)
 
-		namespace := "default"
+		BeforeEach(func() {
+			namespace = "default"
+			clusterGen = &ClusterGenerator{}
+			nodeGen = &NodeGenerator{}
+		})
 
-		clusterGen := &ClusterGenerator{}
-		nodeGen := &NodeGenerator{}
+		AfterEach(func() {
+			ensureDockerArtifactsDeleted(input)
+		})
 
 		Context("One node cluster", func() {
 			It("should create a single node cluster", func() {
 				cluster, infraCluster := clusterGen.GenerateCluster(namespace)
-				singleNode := nodeGen.GenerateNode(cluster.GetName())
-				input := &framework.OneNodeClusterInput{
+				nodes := make([]framework.Node, 1)
+				for i := range nodes {
+					nodes[i] = nodeGen.GenerateNode(cluster.GetName())
+				}
+				input = &framework.ControlplaneClusterInput{
 					Management:    mgmt,
 					Cluster:       cluster,
 					InfraCluster:  infraCluster,
-					Node:          singleNode,
+					Nodes:         nodes,
 					CreateTimeout: 3 * time.Minute,
 				}
+				input.ControlPlaneCluster()
 
-				framework.OneNodeCluster(input)
-
-				cleanupInput := &framework.CleanUpInput{
-					Management: mgmt,
-					Cluster:    cluster,
-				}
-
-				framework.CleanUp(cleanupInput)
+				input.CleanUpCoreArtifacts()
 			})
 		})
 
@@ -73,21 +81,16 @@ var _ = Describe("Docker", func() {
 					nodes[i] = nodeGen.GenerateNode(cluster.Name)
 				}
 
-				input := &framework.MultiNodeControlplaneClusterInput{
-					Management:        mgmt,
-					Cluster:           cluster,
-					InfraCluster:      infraCluster,
-					ControlplaneNodes: nodes,
-					CreateTimeout:     4 * time.Minute,
+				input = &framework.ControlplaneClusterInput{
+					Management:    mgmt,
+					Cluster:       cluster,
+					InfraCluster:  infraCluster,
+					Nodes:         nodes,
+					CreateTimeout: 5 * time.Minute,
 				}
-				framework.MultiNodeControlPlaneCluster(input)
+				input.ControlPlaneCluster()
 
-				cleanupInput := &framework.CleanUpInput{
-					Management: mgmt,
-					Cluster:    cluster,
-				}
-
-				framework.CleanUp(cleanupInput)
+				input.CleanUpCoreArtifacts()
 			})
 		})
 	})

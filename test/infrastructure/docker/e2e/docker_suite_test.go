@@ -20,19 +20,26 @@ package e2e
 
 import (
 	"context"
+	"fmt"
 	"os"
 	"testing"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	corev1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/runtime"
 	"sigs.k8s.io/cluster-api/test/framework"
 	"sigs.k8s.io/cluster-api/test/framework/generators"
+	"sigs.k8s.io/cluster-api/util"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	capiv1 "sigs.k8s.io/cluster-api/api/v1alpha3"
+	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha3"
 	bootstrapv1 "sigs.k8s.io/cluster-api/bootstrap/kubeadm/api/v1alpha3"
+	dockerv1 "sigs.k8s.io/cluster-api/test/infrastructure/docker/api/v1alpha3"
 	infrav1 "sigs.k8s.io/cluster-api/test/infrastructure/docker/api/v1alpha3"
+	controlplanev1 "sigs.k8s.io/cluster-api/controlplane/kubeadm/api/v1alpha3"
 )
 
 func TestDocker(t *testing.T) {
@@ -70,9 +77,14 @@ var _ = BeforeSuite(func() {
 	Expect(capiv1.AddToScheme(scheme)).To(Succeed())
 	Expect(bootstrapv1.AddToScheme(scheme)).To(Succeed())
 	Expect(infrav1.AddToScheme(scheme)).To(Succeed())
+	Expect(controlplanev1.AddToScheme(scheme)).To(Succeed())
 
 	// Create the management cluster
-	mgmt, err = NewClusterForCAPD(ctx, "mgmt", scheme, managerImage, capiImage)
+	kindClusterName := os.Getenv("CAPI_MGMT_CLUSTER_NAME")
+	if kindClusterName == "" {
+		kindClusterName = "docker-e2e-" + util.RandomString(6)
+	}
+	mgmt, err = NewClusterForCAPD(ctx, kindClusterName, scheme, managerImage, capiImage)
 	Expect(err).NotTo(HaveOccurred())
 	Expect(mgmt).NotTo(BeNil())
 
@@ -92,5 +104,28 @@ var _ = BeforeSuite(func() {
 })
 
 var _ = AfterSuite(func() {
-	Expect(mgmt.Teardown(ctx)).NotTo(HaveOccurred())
+	Expect(mgmt.Teardown(ctx)).To(Succeed())
 })
+
+func ensureDockerArtifactsDeleted(input *framework.ControlplaneClusterInput) {
+	By("ensuring docker artifacts have been deleted")
+	ctx := context.Background()
+	mgmtClient, err := input.Management.GetClient()
+	Expect(err).NotTo(HaveOccurred(), "stack: %+v", err)
+
+	lbl, err := labels.Parse(fmt.Sprintf("%s=%s", clusterv1.ClusterLabelName, input.Cluster.GetClusterName()))
+	Expect(err).ToNot(HaveOccurred())
+	opt := &client.ListOptions{LabelSelector: lbl}
+
+	dcl := &dockerv1.DockerClusterList{}
+	Expect(mgmtClient.List(ctx, dcl, opt)).To(Succeed())
+	Expect(dcl.Items).To(HaveLen(0))
+
+	dml := &dockerv1.DockerMachineList{}
+	Expect(mgmtClient.List(ctx, dml, opt)).To(Succeed())
+	Expect(dml.Items).To(HaveLen(0))
+
+	dmtl := &dockerv1.DockerMachineTemplateList{}
+	Expect(mgmtClient.List(ctx, dmtl, opt)).To(Succeed())
+	Expect(dmtl.Items).To(HaveLen(0))
+}

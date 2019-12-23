@@ -184,7 +184,7 @@ type User struct {
 
 	// Passwd specifies a hashed password for the user
 	// +optional
-	Passwd *string `json:"passwd"`
+	Passwd *string `json:"passwd,omitempty"`
 
 	// PrimaryGroup specifies the primary group for the user
 	// +optional

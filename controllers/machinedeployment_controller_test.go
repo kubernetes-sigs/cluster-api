@@ -29,6 +29,8 @@ import (
 	"k8s.io/client-go/tools/record"
 	"k8s.io/utils/pointer"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha3"
+	"sigs.k8s.io/cluster-api/controllers/external"
+	"sigs.k8s.io/cluster-api/util"
 	"sigs.k8s.io/cluster-api/util/kubeconfig"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
@@ -161,6 +163,22 @@ var _ = Describe("MachineDeployment Reconciler", func() {
 			}
 			return len(machineSets.Items)
 		}, timeout).Should(BeEquivalentTo(1))
+
+		By("Verifying the linked infrastructure template has a cluster owner reference")
+		Eventually(func() bool {
+			obj, err := external.Get(ctx, k8sClient, &deployment.Spec.Template.Spec.InfrastructureRef, deployment.Namespace)
+			if err != nil {
+				return false
+			}
+
+			return util.HasOwnerRef(obj.GetOwnerReferences(), metav1.OwnerReference{
+				APIVersion: clusterv1.GroupVersion.String(),
+				Kind:       "Cluster",
+				Name:       testCluster.Name,
+				UID:        testCluster.UID,
+			})
+
+		}, timeout).Should(BeTrue())
 
 		// Verify that expected number of machines are created
 		By("Verify expected number of machines are created")

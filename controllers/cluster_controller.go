@@ -254,7 +254,7 @@ func (r *ClusterReconciler) reconcileDelete(ctx context.Context, cluster *cluste
 	if cluster.Spec.InfrastructureRef != nil {
 		obj, err := external.Get(ctx, r.Client, cluster.Spec.InfrastructureRef, cluster.Namespace)
 		switch {
-		case apierrors.IsNotFound(err):
+		case apierrors.IsNotFound(errors.Cause(err)):
 			// All good - the infra resource has been deleted
 		case err != nil:
 			return ctrl.Result{}, errors.Wrapf(err, "failed to get %s %q for Cluster %s/%s",

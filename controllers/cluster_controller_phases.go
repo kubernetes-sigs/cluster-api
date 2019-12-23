@@ -66,7 +66,7 @@ func (r *ClusterReconciler) reconcileExternal(ctx context.Context, cluster *clus
 
 	obj, err := external.Get(ctx, r.Client, ref, cluster.Namespace)
 	if err != nil {
-		if apierrors.IsNotFound(err) {
+		if apierrors.IsNotFound(errors.Cause(err)) {
 			return nil, errors.Wrapf(&capierrors.RequeueAfterError{RequeueAfter: 30 * time.Second},
 				"could not find %v %q for Cluster %q in namespace %q, requeuing",
 				ref.GroupVersionKind(), ref.Name, cluster.Name, cluster.Namespace)

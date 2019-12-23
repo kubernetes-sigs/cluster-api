@@ -22,6 +22,56 @@ import (
 )
 
 var (
+	TestGenericBootstrapCRD = &apiextensionsv1beta1.CustomResourceDefinition{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: "genericmachines.bootstrap.cluster.x-k8s.io",
+		},
+		Spec: apiextensionsv1beta1.CustomResourceDefinitionSpec{
+			Group: "bootstrap.cluster.x-k8s.io",
+			Scope: apiextensionsv1beta1.NamespaceScoped,
+			Names: apiextensionsv1beta1.CustomResourceDefinitionNames{
+				Kind:   "BootstrapMachine",
+				Plural: "genericmachines",
+			},
+			Subresources: &apiextensionsv1beta1.CustomResourceSubresources{
+				Status: &apiextensionsv1beta1.CustomResourceSubresourceStatus{},
+			},
+			Validation: &apiextensionsv1beta1.CustomResourceValidation{},
+			Versions: []apiextensionsv1beta1.CustomResourceDefinitionVersion{
+				{
+					Name:    "v1alpha3",
+					Served:  true,
+					Storage: true,
+				},
+			},
+		},
+	}
+
+	TestGenericBootstrapTemplateCRD = &apiextensionsv1beta1.CustomResourceDefinition{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: "genericmachinetemplates.bootstrap.cluster.x-k8s.io",
+		},
+		Spec: apiextensionsv1beta1.CustomResourceDefinitionSpec{
+			Group: "bootstrap.cluster.x-k8s.io",
+			Scope: apiextensionsv1beta1.NamespaceScoped,
+			Names: apiextensionsv1beta1.CustomResourceDefinitionNames{
+				Kind:   "BootstrapMachineTemplate",
+				Plural: "genericmachinetemplates",
+			},
+			Subresources: &apiextensionsv1beta1.CustomResourceSubresources{
+				Status: &apiextensionsv1beta1.CustomResourceSubresourceStatus{},
+			},
+			Validation: &apiextensionsv1beta1.CustomResourceValidation{},
+			Versions: []apiextensionsv1beta1.CustomResourceDefinitionVersion{
+				{
+					Name:    "v1alpha3",
+					Served:  true,
+					Storage: true,
+				},
+			},
+		},
+	}
+
 	TestGenericInfrastructureCRD = &apiextensionsv1beta1.CustomResourceDefinition{
 		ObjectMeta: metav1.ObjectMeta{
 			Name: "genericmachines.infrastructure.cluster.x-k8s.io",

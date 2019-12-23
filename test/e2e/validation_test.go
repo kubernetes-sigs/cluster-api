@@ -56,7 +56,7 @@ var _ = Describe("Cluster API Validation", func() {
 				Spec: capiv1.MachineSpec{
 					ClusterName: name,
 					Bootstrap: capiv1.Bootstrap{
-						Data: &bootstrapData,
+						DataSecretName: &bootstrapData,
 					},
 					InfrastructureRef: corev1.ObjectReference{
 						APIVersion: "infrastructure.cluster.x-k8s.io/v1alpha3",
@@ -105,7 +105,7 @@ var _ = Describe("Cluster API Validation", func() {
 			err := kindClient.Create(ctx, machine)
 			Expect(err).To(HaveOccurred())
 			Expect(err.Error()).To(Equal(
-				fmt.Sprintf(`admission webhook "validation.machine.cluster.x-k8s.io" denied the request: Machine.cluster.x-k8s.io "%s" is invalid: spec.bootstrap.data: Required value: expected spec.bootstrap.data or spec.bootstrap.configRef to be populated`, name),
+				fmt.Sprintf(`admission webhook "validation.machine.cluster.x-k8s.io" denied the request: Machine.cluster.x-k8s.io "%s" is invalid: spec.bootstrap.data: Required value: expected either spec.bootstrap.dataSecretName or spec.bootstrap.configRef to be populated`, name),
 			))
 		})
 	})

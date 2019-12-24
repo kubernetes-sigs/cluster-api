@@ -39,7 +39,6 @@ import (
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha3"
 	bootstrapv1 "sigs.k8s.io/cluster-api/bootstrap/kubeadm/api/v1alpha3"
 	kubeadmv1 "sigs.k8s.io/cluster-api/bootstrap/kubeadm/types/v1beta1"
-	"sigs.k8s.io/cluster-api/controllers/external"
 	controlplanev1 "sigs.k8s.io/cluster-api/controlplane/kubeadm/api/v1alpha3"
 	capierrors "sigs.k8s.io/cluster-api/errors"
 	"sigs.k8s.io/cluster-api/util"
@@ -47,6 +46,10 @@ import (
 	"sigs.k8s.io/cluster-api/util/patch"
 	"sigs.k8s.io/cluster-api/util/secret"
 )
+
+type TemplateCloner interface {
+	CloneTemplate(ctx context.Context, c client.Client, ref *corev1.ObjectReference, namespace, clusterName string, owner *metav1.OwnerReference) (*corev1.ObjectReference, error)
+}
 
 // +kubebuilder:rbac:groups=core,resources=events,verbs=get;list;watch;create;patch
 // +kubebuilder:rbac:groups=core,resources=secrets,verbs=get;list;watch;create;patch
@@ -56,6 +59,8 @@ import (
 type KubeadmControlPlaneReconciler struct {
 	Client client.Client
 	Log    logr.Logger
+
+	TemplateCloner TemplateCloner
 
 	controller controller.Controller
 	recorder   record.EventRecorder
@@ -270,17 +275,20 @@ func (r *KubeadmControlPlaneReconciler) initializeControlPlane(ctx context.Conte
 		},
 	}
 
+	ownerRef := metav1.NewControllerRef(kcp, controlplanev1.GroupVersion.WithKind("KubeadmControlPlane"))
 	// Clone the infrastructure template
-	infraConfig, err := external.CloneTemplate(ctx, r.Client, &kcp.Spec.InfrastructureTemplate, kcp.Namespace)
+	infraRef, err := r.TemplateCloner.CloneTemplate(
+		ctx,
+		r.Client,
+		&kcp.Spec.InfrastructureTemplate,
+		kcp.Namespace,
+		cluster.Name,
+		ownerRef,
+	)
 	if err != nil {
 		return errors.Wrap(err, "Failed to clone infrastructure template")
 	}
-	machine.Spec.InfrastructureRef = corev1.ObjectReference{
-		APIVersion: infraConfig.GetAPIVersion(),
-		Kind:       infraConfig.GetKind(),
-		Namespace:  infraConfig.GetNamespace(),
-		Name:       infraConfig.GetName(),
-	}
+	machine.Spec.InfrastructureRef = *infraRef
 
 	// Create the bootstrap configuration
 	bootstrapConfig := &bootstrapv1.KubeadmConfig{

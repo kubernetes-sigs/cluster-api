@@ -33,6 +33,7 @@ import (
 	kubeadmbootstrapv1alpha3 "sigs.k8s.io/cluster-api/bootstrap/kubeadm/api/v1alpha3"
 	kubeadmbootstrapcontrollers "sigs.k8s.io/cluster-api/bootstrap/kubeadm/controllers"
 	"sigs.k8s.io/cluster-api/controllers"
+	"sigs.k8s.io/cluster-api/controllers/external"
 	kubeadmcontrolplanev1alpha3 "sigs.k8s.io/cluster-api/controlplane/kubeadm/api/v1alpha3"
 	kubeadmcontrolplanecontrollers "sigs.k8s.io/cluster-api/controlplane/kubeadm/controllers"
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -164,8 +165,9 @@ func main() {
 		os.Exit(1)
 	}
 	if err = (&controllers.MachineSetReconciler{
-		Client: mgr.GetClient(),
-		Log:    ctrl.Log.WithName("controllers").WithName("MachineSet"),
+		Client:         mgr.GetClient(),
+		Log:            ctrl.Log.WithName("controllers").WithName("MachineSet"),
+		TemplateCloner: &external.TemplateCloner{},
 	}).SetupWithManager(mgr, concurrency(machineSetConcurrency)); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "MachineSet")
 		os.Exit(1)
@@ -197,8 +199,9 @@ func main() {
 
 		// KubeadmControlPlane controllers.
 		if err = (&kubeadmcontrolplanecontrollers.KubeadmControlPlaneReconciler{
-			Client: mgr.GetClient(),
-			Log:    ctrl.Log.WithName("controllers").WithName("KubeadmControlPlane"),
+			Client:         mgr.GetClient(),
+			Log:            ctrl.Log.WithName("controllers").WithName("KubeadmControlPlane"),
+			TemplateCloner: &external.TemplateCloner{},
 		}).SetupWithManager(mgr, concurrency(kubeadmControlPlaneConcurrency)); err != nil {
 			setupLog.Error(err, "unable to create controller", "controller", "KubeadmControlPlane")
 			os.Exit(1)

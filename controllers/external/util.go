@@ -23,8 +23,11 @@ import (
 
 	"github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+
+	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha3"
 )
 
 const (
@@ -46,8 +49,10 @@ func Get(ctx context.Context, c client.Client, ref *corev1.ObjectReference, name
 	return obj, nil
 }
 
+type TemplateCloner struct{}
+
 // CloneTemplate uses the client and the reference to create a new object from the template.
-func CloneTemplate(ctx context.Context, c client.Client, ref *corev1.ObjectReference, namespace string) (*unstructured.Unstructured, error) {
+func (tc *TemplateCloner) CloneTemplate(ctx context.Context, c client.Client, ref *corev1.ObjectReference, namespace, clusterName string, owner *metav1.OwnerReference) (*corev1.ObjectReference, error) {
 	from, err := Get(ctx, c, ref, namespace)
 	if err != nil {
 		return nil, err
@@ -62,13 +67,17 @@ func CloneTemplate(ctx context.Context, c client.Client, ref *corev1.ObjectRefer
 	// Create the unstructured object from the template.
 	to := &unstructured.Unstructured{Object: template}
 	to.SetResourceVersion("")
-	to.SetOwnerReferences(nil)
+	to.SetLabels(map[string]string{clusterv1.ClusterLabelName: clusterName})
 	to.SetFinalizers(nil)
 	to.SetUID("")
 	to.SetSelfLink("")
 	to.SetName("")
 	to.SetGenerateName(fmt.Sprintf("%s-", from.GetName()))
 	to.SetNamespace(namespace)
+
+	if owner != nil {
+		to.SetOwnerReferences([]metav1.OwnerReference{*owner})
+	}
 
 	// Set the object APIVersion.
 	if to.GetAPIVersion() == "" {
@@ -84,7 +93,16 @@ func CloneTemplate(ctx context.Context, c client.Client, ref *corev1.ObjectRefer
 	if err := c.Create(context.Background(), to); err != nil {
 		return nil, err
 	}
-	return to, nil
+
+	toRef := &corev1.ObjectReference{
+		APIVersion: to.GetAPIVersion(),
+		Kind:       to.GetKind(),
+		Name:       to.GetName(),
+		Namespace:  to.GetNamespace(),
+		UID:        to.GetUID(),
+	}
+
+	return toRef, nil
 }
 
 // FailuresFrom returns the FailureReason and FailureMessage fields from the external object status.

@@ -129,6 +129,13 @@ func (r *MachineDeploymentReconciler) reconcile(ctx context.Context, d *clusterv
 	if d.Labels == nil {
 		d.Labels = make(map[string]string)
 	}
+	if d.Spec.Selector.MatchLabels == nil {
+		d.Spec.Selector.MatchLabels = make(map[string]string)
+	}
+	if d.Spec.Template.Labels == nil {
+		d.Spec.Template.Labels = make(map[string]string)
+	}
+
 	d.Labels[clusterv1.ClusterLabelName] = d.Spec.ClusterName
 
 	// Make sure selector and template to be in the same cluster.

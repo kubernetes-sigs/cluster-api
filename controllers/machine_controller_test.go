@@ -28,16 +28,16 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/kubernetes/scheme"
 	"k8s.io/utils/pointer"
-	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha3"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 	"sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/metrics"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
+
+	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha3"
 )
 
 func TestMachineFinalizer(t *testing.T) {
-	RegisterTestingT(t)
 	bootstrapData := "some valid data"
 	clusterCorrectMeta := &clusterv1.Cluster{
 		ObjectMeta: metav1.ObjectMeta{
@@ -105,8 +105,10 @@ func TestMachineFinalizer(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			err := clusterv1.AddToScheme(scheme.Scheme)
-			Expect(err).NotTo(HaveOccurred())
+			g := NewWithT(t)
+
+			g.Expect(clusterv1.AddToScheme(scheme.Scheme)).To(Succeed())
+
 			mr := &MachineReconciler{
 				Client: fake.NewFakeClientWithScheme(
 					scheme.Scheme,
@@ -122,18 +124,17 @@ func TestMachineFinalizer(t *testing.T) {
 			key := client.ObjectKey{Namespace: tc.m.Namespace, Name: tc.m.Name}
 			var actual clusterv1.Machine
 			if len(tc.expectedFinalizers) > 0 {
-				Expect(mr.Client.Get(ctx, key, &actual)).ToNot(HaveOccurred())
-				Expect(actual.Finalizers).ToNot(BeEmpty())
-				Expect(actual.Finalizers).To(Equal(tc.expectedFinalizers))
+				g.Expect(mr.Client.Get(ctx, key, &actual)).To(Succeed())
+				g.Expect(actual.Finalizers).ToNot(BeEmpty())
+				g.Expect(actual.Finalizers).To(Equal(tc.expectedFinalizers))
 			} else {
-				Expect(actual.Finalizers).To(BeEmpty())
+				g.Expect(actual.Finalizers).To(BeEmpty())
 			}
 		})
 	}
 }
 
 func TestMachineOwnerReference(t *testing.T) {
-	RegisterTestingT(t)
 	bootstrapData := "some valid data"
 	testCluster := &clusterv1.Cluster{
 		TypeMeta:   metav1.TypeMeta{Kind: "Cluster", APIVersion: clusterv1.GroupVersion.String()},
@@ -231,8 +232,10 @@ func TestMachineOwnerReference(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			err := clusterv1.AddToScheme(scheme.Scheme)
-			Expect(err).NotTo(HaveOccurred())
+			g := NewWithT(t)
+
+			g.Expect(clusterv1.AddToScheme(scheme.Scheme)).To(Succeed())
+
 			mr := &MachineReconciler{
 				Client: fake.NewFakeClientWithScheme(
 					scheme.Scheme,
@@ -249,20 +252,16 @@ func TestMachineOwnerReference(t *testing.T) {
 			key := client.ObjectKey{Namespace: tc.m.Namespace, Name: tc.m.Name}
 			var actual clusterv1.Machine
 			if len(tc.expectedOR) > 0 {
-				Expect(mr.Client.Get(ctx, key, &actual)).ToNot(HaveOccurred())
-				Expect(actual.OwnerReferences).To(Equal(tc.expectedOR))
+				g.Expect(mr.Client.Get(ctx, key, &actual)).To(Succeed())
+				g.Expect(actual.OwnerReferences).To(Equal(tc.expectedOR))
 			} else {
-				Expect(actual.OwnerReferences).To(BeEmpty())
+				g.Expect(actual.OwnerReferences).To(BeEmpty())
 			}
 		})
 	}
 }
 
 func TestReconcileRequest(t *testing.T) {
-	RegisterTestingT(t)
-	err := clusterv1.AddToScheme(scheme.Scheme)
-	Expect(err).NotTo(HaveOccurred())
-
 	infraConfig := unstructured.Unstructured{
 		Object: map[string]interface{}{
 			"kind":       "InfrastructureConfig",
@@ -387,7 +386,12 @@ func TestReconcileRequest(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run("machine should be "+tc.machine.Name, func(t *testing.T) {
-			client := fake.NewFakeClient(
+			g := NewWithT(t)
+
+			g.Expect(clusterv1.AddToScheme(scheme.Scheme)).To(Succeed())
+
+			client := fake.NewFakeClientWithScheme(
+				scheme.Scheme,
 				&testCluster,
 				&tc.machine,
 				&infraConfig,
@@ -400,19 +404,17 @@ func TestReconcileRequest(t *testing.T) {
 
 			result, err := r.Reconcile(reconcile.Request{NamespacedName: types.NamespacedName{Namespace: tc.machine.Namespace, Name: tc.machine.Name}})
 			if tc.expected.err {
-				Expect(err).ToNot(BeNil())
+				g.Expect(err).To(HaveOccurred())
 			} else {
-				Expect(err).To(BeNil())
+				g.Expect(err).NotTo(HaveOccurred())
 			}
 
-			Expect(result).To(Equal(tc.expected.result))
+			g.Expect(result).To(Equal(tc.expected.result))
 		})
 	}
 }
 
 func TestReconcileDeleteExternal(t *testing.T) {
-	RegisterTestingT(t)
-
 	testCluster := &clusterv1.Cluster{
 		ObjectMeta: metav1.ObjectMeta{Namespace: "default", Name: "test-cluster"},
 	}
@@ -500,8 +502,9 @@ func TestReconcileDeleteExternal(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			err := clusterv1.AddToScheme(scheme.Scheme)
-			Expect(err).NotTo(HaveOccurred())
+			g := NewWithT(t)
+
+			g.Expect(clusterv1.AddToScheme(scheme.Scheme)).To(Succeed())
 
 			objs := []runtime.Object{testCluster, machine}
 
@@ -519,21 +522,20 @@ func TestReconcileDeleteExternal(t *testing.T) {
 			}
 
 			ok, err := r.reconcileDeleteExternal(ctx, machine)
-			Expect(ok).To(Equal(tc.expected))
+			g.Expect(ok).To(Equal(tc.expected))
 			if tc.expectError {
-				Expect(err).ToNot(BeNil())
+				g.Expect(err).To(HaveOccurred())
 			} else {
-				Expect(err).To(BeNil())
+				g.Expect(err).NotTo(HaveOccurred())
 			}
 		})
 	}
 }
 
 func TestRemoveMachineFinalizerAfterDeleteReconcile(t *testing.T) {
-	RegisterTestingT(t)
+	g := NewWithT(t)
 
-	err := clusterv1.AddToScheme(scheme.Scheme)
-	Expect(err).NotTo(HaveOccurred())
+	g.Expect(clusterv1.AddToScheme(scheme.Scheme)).To(Succeed())
 
 	dt := metav1.Now()
 
@@ -563,19 +565,14 @@ func TestRemoveMachineFinalizerAfterDeleteReconcile(t *testing.T) {
 		Client: fake.NewFakeClientWithScheme(scheme.Scheme, testCluster, m),
 		Log:    log.Log,
 	}
-	_, err = mr.Reconcile(reconcile.Request{NamespacedName: key})
-	Expect(err).ToNot(HaveOccurred())
+	_, err := mr.Reconcile(reconcile.Request{NamespacedName: key})
+	g.Expect(err).ToNot(HaveOccurred())
 
-	Expect(mr.Client.Get(ctx, key, m)).ToNot(HaveOccurred())
-	Expect(m.ObjectMeta.Finalizers).To(Equal([]string{metav1.FinalizerDeleteDependents}))
+	g.Expect(mr.Client.Get(ctx, key, m)).To(Succeed())
+	g.Expect(m.ObjectMeta.Finalizers).To(Equal([]string{metav1.FinalizerDeleteDependents}))
 }
 
 func TestReconcileMetrics(t *testing.T) {
-	RegisterTestingT(t)
-
-	err := clusterv1.AddToScheme(scheme.Scheme)
-	Expect(err).NotTo(HaveOccurred())
-
 	tests := []struct {
 		name            string
 		ms              clusterv1.MachineStatus
@@ -627,6 +624,10 @@ func TestReconcileMetrics(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			g := NewWithT(t)
+
+			g.Expect(clusterv1.AddToScheme(scheme.Scheme)).To(Succeed())
+
 			var objs []runtime.Object
 			machine := &clusterv1.Machine{
 				ObjectMeta: metav1.ObjectMeta{
@@ -638,7 +639,7 @@ func TestReconcileMetrics(t *testing.T) {
 			objs = append(objs, machine)
 
 			r := &MachineReconciler{
-				Client: fake.NewFakeClient(objs...),
+				Client: fake.NewFakeClientWithScheme(scheme.Scheme, objs...),
 				Log:    log.Log,
 			}
 
@@ -646,19 +647,18 @@ func TestReconcileMetrics(t *testing.T) {
 
 			for em, ev := range tt.expectedMetrics {
 				mr, err := metrics.Registry.Gather()
-				Expect(err).ToNot(HaveOccurred())
+				g.Expect(err).ToNot(HaveOccurred())
 				mf := getMetricFamily(mr, em)
-				Expect(mf).ToNot(BeNil())
+				g.Expect(mf).ToNot(BeNil())
 				for _, m := range mf.GetMetric() {
 					for _, l := range m.GetLabel() {
 						// ensure that the metric has a matching label
 						if l.GetName() == "machine" && l.GetValue() == machine.Name {
-							Expect(m.GetGauge().GetValue()).To(Equal(ev))
+							g.Expect(m.GetGauge().GetValue()).To(Equal(ev))
 						}
 					}
 				}
 			}
 		})
 	}
-
 }

@@ -18,12 +18,14 @@ package controllers
 
 import (
 	"context"
-	"reflect"
 	"testing"
 
+	. "github.com/onsi/gomega"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha3"
+	"k8s.io/client-go/kubernetes/scheme"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
+
+	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha3"
 )
 
 func Test_getActiveMachinesInCluster(t *testing.T) {
@@ -109,15 +111,19 @@ func Test_getActiveMachinesInCluster(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			c := fake.NewFakeClient(&ns1Cluster1, &ns1Cluster2, &ns1Cluster1Deleted, &ns2Cluster2)
+			g := NewWithT(t)
+
+			g.Expect(clusterv1.AddToScheme(scheme.Scheme)).To(Succeed())
+
+			c := fake.NewFakeClientWithScheme(scheme.Scheme, &ns1Cluster1, &ns1Cluster2, &ns1Cluster1Deleted, &ns2Cluster2)
 			got, err := getActiveMachinesInCluster(context.TODO(), c, tt.args.namespace, tt.args.name)
-			if (err != nil) != tt.wantErr {
-				t.Errorf("getActiveMachinesInCluster() error = %v, wantErr %v", err, tt.wantErr)
-				return
+			if tt.wantErr {
+				g.Expect(err).To(HaveOccurred())
+			} else {
+				g.Expect(err).NotTo(HaveOccurred())
 			}
-			if !reflect.DeepEqual(got, tt.want) {
-				t.Errorf("getActiveMachinesInCluster() got = %v, want %v", got, tt.want)
-			}
+
+			g.Expect(got).To(Equal(tt.want))
 		})
 	}
 }

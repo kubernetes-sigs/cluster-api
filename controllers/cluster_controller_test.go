@@ -18,7 +18,6 @@ package controllers
 
 import (
 	"context"
-	"reflect"
 	"testing"
 
 	"github.com/gogo/protobuf/proto"
@@ -30,16 +29,17 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/client-go/kubernetes/scheme"
 	"k8s.io/utils/pointer"
-	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha3"
-	capierrors "sigs.k8s.io/cluster-api/errors"
-	"sigs.k8s.io/cluster-api/util/kubeconfig"
-	"sigs.k8s.io/cluster-api/util/patch"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 	"sigs.k8s.io/controller-runtime/pkg/handler"
 	"sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/metrics"
+
+	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha3"
+	capierrors "sigs.k8s.io/cluster-api/errors"
+	"sigs.k8s.io/cluster-api/util/kubeconfig"
+	"sigs.k8s.io/cluster-api/util/patch"
 )
 
 var _ = Describe("Cluster Reconciler", func() {
@@ -419,11 +419,10 @@ func TestClusterReconciler(t *testing.T) {
 
 		for _, tt := range tests {
 			t.Run(tt.name, func(t *testing.T) {
-				RegisterTestingT(t)
-				err := clusterv1.AddToScheme(scheme.Scheme)
-				if err != nil {
-					t.Fatal(err)
-				}
+				g := NewWithT(t)
+
+				g.Expect(clusterv1.AddToScheme(scheme.Scheme)).To(Succeed())
+
 				var objs []runtime.Object
 
 				c := &clusterv1.Cluster{
@@ -443,7 +442,7 @@ func TestClusterReconciler(t *testing.T) {
 				}
 
 				r := &ClusterReconciler{
-					Client: fake.NewFakeClient(objs...),
+					Client: fake.NewFakeClientWithScheme(scheme.Scheme, objs...),
 					Log:    log.Log,
 				}
 
@@ -451,14 +450,14 @@ func TestClusterReconciler(t *testing.T) {
 
 				for em, ev := range tt.expectedMetrics {
 					mr, err := metrics.Registry.Gather()
-					Expect(err).ToNot(HaveOccurred())
+					g.Expect(err).ToNot(HaveOccurred())
 					mf := getMetricFamily(mr, em)
-					Expect(mf).ToNot(BeNil())
+					g.Expect(mf).ToNot(BeNil())
 					for _, m := range mf.GetMetric() {
 						for _, l := range m.GetLabel() {
 							// ensure that the metric has a matching label
 							if l.GetName() == "cluster" && l.GetValue() == c.Name {
-								Expect(m.GetGauge().GetValue()).To(Equal(ev))
+								g.Expect(m.GetGauge().GetValue()).To(Equal(ev))
 							}
 						}
 					}
@@ -585,13 +584,16 @@ func TestClusterReconciler(t *testing.T) {
 		}
 		for _, tt := range tests {
 			t.Run(tt.name, func(t *testing.T) {
+				g := NewWithT(t)
+
+				g.Expect(clusterv1.AddToScheme(scheme.Scheme)).To(Succeed())
+
 				r := &ClusterReconciler{
-					Client: fake.NewFakeClient(cluster, controlPlaneWithNoderef, controlPlaneWithoutNoderef, nonControlPlaneWithNoderef, nonControlPlaneWithoutNoderef),
+					Client: fake.NewFakeClientWithScheme(scheme.Scheme, cluster, controlPlaneWithNoderef, controlPlaneWithoutNoderef, nonControlPlaneWithNoderef, nonControlPlaneWithoutNoderef),
 					Log:    log.Log,
 				}
-				if got := r.controlPlaneMachineToCluster(tt.o); !reflect.DeepEqual(got, tt.want) {
-					t.Errorf("controlPlaneMachineToCluster() = %v, want %v", got, tt.want)
-				}
+				requests := r.controlPlaneMachineToCluster(tt.o)
+				g.Expect(requests).To(Equal(tt.want))
 			})
 		}
 	})
@@ -681,6 +683,8 @@ func (b *machineBuilder) build() clusterv1.Machine {
 }
 
 func TestFilterOwnedDescendants(t *testing.T) {
+	g := NewWithT(t)
+
 	c := clusterv1.Cluster{
 		ObjectMeta: metav1.ObjectMeta{
 			Name: "c",
@@ -738,9 +742,7 @@ func TestFilterOwnedDescendants(t *testing.T) {
 	}
 
 	actual, err := d.filterOwnedDescendants(&c)
-	if err != nil {
-		t.Fatalf("unexpected error: %v", err)
-	}
+	g.Expect(err).NotTo(HaveOccurred())
 
 	expected := []runtime.Object{
 		&md2OwnedByCluster,
@@ -753,7 +755,5 @@ func TestFilterOwnedDescendants(t *testing.T) {
 		&m6ControlPlaneOwnedByCluster,
 	}
 
-	if !reflect.DeepEqual(expected, actual) {
-		t.Errorf("expected %v, got %v", expected, actual)
-	}
+	g.Expect(actual).To(Equal(expected))
 }

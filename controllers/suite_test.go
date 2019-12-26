@@ -29,8 +29,6 @@ import (
 	"k8s.io/client-go/rest"
 	"k8s.io/klog"
 	"k8s.io/klog/klogr"
-	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha3"
-	"sigs.k8s.io/cluster-api/controllers/external"
 	"sigs.k8s.io/controller-runtime/pkg/cache"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
@@ -38,6 +36,9 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/log"
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/manager"
+
+	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha3"
+	"sigs.k8s.io/cluster-api/controllers/external"
 	// +kubebuilder:scaffold:imports
 )
 
@@ -88,8 +89,7 @@ var _ = BeforeSuite(func(done Done) {
 	Expect(err).ToNot(HaveOccurred())
 	Expect(cfg).ToNot(BeNil())
 
-	err = clusterv1.AddToScheme(scheme.Scheme)
-	Expect(err).NotTo(HaveOccurred())
+	Expect(clusterv1.AddToScheme(scheme.Scheme)).To(Succeed())
 
 	// +kubebuilder:scaffold:scheme
 
@@ -110,27 +110,27 @@ var _ = BeforeSuite(func(done Done) {
 		Log:      log.Log,
 		recorder: mgr.GetEventRecorderFor("cluster-controller"),
 	}
-	Expect(clusterReconciler.SetupWithManager(mgr, controller.Options{MaxConcurrentReconciles: 1})).NotTo(HaveOccurred())
+	Expect(clusterReconciler.SetupWithManager(mgr, controller.Options{MaxConcurrentReconciles: 1})).To(Succeed())
 	Expect((&MachineReconciler{
 		Client:   k8sClient,
 		Log:      log.Log,
 		recorder: mgr.GetEventRecorderFor("machine-controller"),
-	}).SetupWithManager(mgr, controller.Options{MaxConcurrentReconciles: 1})).NotTo(HaveOccurred())
+	}).SetupWithManager(mgr, controller.Options{MaxConcurrentReconciles: 1})).To(Succeed())
 	Expect((&MachineSetReconciler{
 		Client:         k8sClient,
 		Log:            log.Log,
 		TemplateCloner: &external.TemplateCloner{},
 		recorder:       mgr.GetEventRecorderFor("machineset-controller"),
-	}).SetupWithManager(mgr, controller.Options{MaxConcurrentReconciles: 1})).NotTo(HaveOccurred())
+	}).SetupWithManager(mgr, controller.Options{MaxConcurrentReconciles: 1})).To(Succeed())
 	Expect((&MachineDeploymentReconciler{
 		Client:   k8sClient,
 		Log:      log.Log,
 		recorder: mgr.GetEventRecorderFor("machinedeployment-controller"),
-	}).SetupWithManager(mgr, controller.Options{MaxConcurrentReconciles: 1})).NotTo(HaveOccurred())
+	}).SetupWithManager(mgr, controller.Options{MaxConcurrentReconciles: 1})).To(Succeed())
 
 	By("starting the manager")
 	go func() {
-		Expect(mgr.Start(doneMgr)).ToNot(HaveOccurred())
+		Expect(mgr.Start(doneMgr)).To(Succeed())
 	}()
 
 	close(done)
@@ -140,6 +140,5 @@ var _ = AfterSuite(func() {
 	By("closing the manager")
 	close(doneMgr)
 	By("tearing down the test environment")
-	err := testEnv.Stop()
-	Expect(err).ToNot(HaveOccurred())
+	Expect(testEnv.Stop()).To(Succeed())
 })

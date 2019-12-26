@@ -203,7 +203,7 @@ func TestNew(t *testing.T) {
 }
 
 func TestGenerateSecretWithOwner(t *testing.T) {
-	g := gomega.NewGomegaWithT(t)
+	g := gomega.NewWithT(t)
 
 	owner := metav1.OwnerReference{
 		Name:       "test1",
@@ -228,7 +228,7 @@ func TestGenerateSecretWithOwner(t *testing.T) {
 }
 
 func TestGenerateSecret(t *testing.T) {
-	g := gomega.NewGomegaWithT(t)
+	g := gomega.NewWithT(t)
 
 	expectedSecret := validSecret.DeepCopy()
 	expectedSecret.SetOwnerReferences(
@@ -255,7 +255,7 @@ func TestGenerateSecret(t *testing.T) {
 }
 
 func TestCreateSecretWithOwner(t *testing.T) {
-	g := gomega.NewGomegaWithT(t)
+	g := gomega.NewWithT(t)
 
 	caKey, err := certs.NewPrivateKey()
 	g.Expect(err).NotTo(gomega.HaveOccurred())
@@ -309,7 +309,7 @@ func TestCreateSecretWithOwner(t *testing.T) {
 }
 
 func TestCreateSecret(t *testing.T) {
-	g := gomega.NewGomegaWithT(t)
+	g := gomega.NewWithT(t)
 
 	caKey, err := certs.NewPrivateKey()
 	g.Expect(err).NotTo(gomega.HaveOccurred())

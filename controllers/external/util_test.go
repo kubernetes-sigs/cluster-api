@@ -35,7 +35,7 @@ import (
 )
 
 func TestGetResourceFound(t *testing.T) {
-	g := gomega.NewGomegaWithT(t)
+	g := gomega.NewWithT(t)
 
 	namespace := "test"
 	testResourceName := "greenTemplate"
@@ -62,7 +62,7 @@ func TestGetResourceFound(t *testing.T) {
 }
 
 func TestGetResourceNotFound(t *testing.T) {
-	g := gomega.NewGomegaWithT(t)
+	g := gomega.NewWithT(t)
 
 	namespace := "test"
 
@@ -80,7 +80,7 @@ func TestGetResourceNotFound(t *testing.T) {
 }
 
 func TestCloneTemplateResourceNotFound(t *testing.T) {
-	g := gomega.NewGomegaWithT(t)
+	g := gomega.NewWithT(t)
 
 	namespace := "test"
 	testClusterName := "bar"
@@ -107,7 +107,7 @@ func TestCloneTemplateResourceNotFound(t *testing.T) {
 }
 
 func TestCloneTemplateResourceFound(t *testing.T) {
-	g := gomega.NewGomegaWithT(t)
+	g := gomega.NewWithT(t)
 
 	namespace := "test"
 	testClusterName := "test-cluster"
@@ -195,7 +195,7 @@ func TestCloneTemplateResourceFound(t *testing.T) {
 }
 
 func TestCloneTemplateResourceFoundNoOwner(t *testing.T) {
-	g := gomega.NewGomegaWithT(t)
+	g := gomega.NewWithT(t)
 
 	namespace := "test"
 	testClusterName := "test-cluster"
@@ -276,7 +276,7 @@ func TestCloneTemplateResourceFoundNoOwner(t *testing.T) {
 }
 
 func TestCloneTemplateMissingSpecTemplate(t *testing.T) {
-	g := gomega.NewGomegaWithT(t)
+	g := gomega.NewWithT(t)
 
 	namespace := "test"
 	testClusterName := "test-cluster"

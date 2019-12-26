@@ -18,7 +18,6 @@ package patch
 
 import (
 	"context"
-	"reflect"
 	"testing"
 
 	. "github.com/onsi/gomega"
@@ -35,7 +34,7 @@ import (
 )
 
 func TestHelperUnstructuredPatch(t *testing.T) {
-	RegisterTestingT(t)
+	g := NewWithT(t)
 	ctx := context.TODO()
 
 	obj := &unstructured.Unstructured{
@@ -51,14 +50,11 @@ func TestHelperUnstructuredPatch(t *testing.T) {
 			},
 		},
 	}
-	fakeClient := fake.NewFakeClient()
-	err := fakeClient.Create(ctx, obj)
-	Expect(err).NotTo(HaveOccurred())
+	fakeClient := fake.NewFakeClientWithScheme(scheme.Scheme)
+	g.Expect(fakeClient.Create(ctx, obj)).To(Succeed())
 
 	h, err := NewHelper(obj, fakeClient)
-	if err != nil {
-		t.Fatalf("Expected no error initializing helper: %v", err)
-	}
+	g.Expect(err).NotTo(HaveOccurred())
 
 	refs := []metav1.OwnerReference{
 		{
@@ -69,19 +65,17 @@ func TestHelperUnstructuredPatch(t *testing.T) {
 	}
 	obj.SetOwnerReferences(refs)
 
-	err = h.Patch(ctx, obj)
-	Expect(err).ToNot(HaveOccurred())
+	g.Expect(h.Patch(ctx, obj)).To(Succeed())
 
 	// Make sure that the status has been preserved.
 	ready, err := external.IsReady(obj)
-	Expect(err).ToNot(HaveOccurred())
-	Expect(ready).To(BeTrue())
+	g.Expect(err).ToNot(HaveOccurred())
+	g.Expect(ready).To(BeTrue())
 
 	// Make sure that the object has been patched properly.
 	afterObj := obj.DeepCopy()
-	err = fakeClient.Get(ctx, client.ObjectKey{Namespace: "default", Name: "test-bootstrap"}, afterObj)
-	Expect(err).ToNot(HaveOccurred())
-	Expect(afterObj.GetOwnerReferences()).To(Equal(refs))
+	g.Expect(fakeClient.Get(ctx, client.ObjectKey{Namespace: "default", Name: "test-bootstrap"}, afterObj)).To(Succeed())
+	g.Expect(afterObj.GetOwnerReferences()).To(Equal(refs))
 }
 
 func TestHelperPatch(t *testing.T) {
@@ -226,28 +220,28 @@ func TestHelperPatch(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			err := clusterv1.AddToScheme(scheme.Scheme)
-			Expect(err).NotTo(HaveOccurred())
+			g := NewWithT(t)
+
+			g.Expect(clusterv1.AddToScheme(scheme.Scheme)).To(Succeed())
+
 			ctx := context.Background()
-			fakeClient := fake.NewFakeClient()
+			fakeClient := fake.NewFakeClientWithScheme(scheme.Scheme)
 
 			beforeCopy := tt.before.DeepCopyObject()
-			err = fakeClient.Create(ctx, beforeCopy)
-			Expect(err).NotTo(HaveOccurred())
+			g.Expect(fakeClient.Create(ctx, beforeCopy)).To(Succeed())
 
 			h, err := NewHelper(beforeCopy, fakeClient)
-			if err != nil {
-				t.Fatalf("Expected no error initializing helper: %v", err)
-			}
+			g.Expect(err).NotTo(HaveOccurred())
 
 			afterCopy := tt.after.DeepCopyObject()
-			if err := h.Patch(ctx, afterCopy); (err != nil) != tt.wantErr {
-				t.Errorf("Helper.Patch() error = %v, wantErr %v", err, tt.wantErr)
+			err = h.Patch(ctx, afterCopy)
+			if tt.wantErr {
+				g.Expect(err).To(HaveOccurred())
+			} else {
+				g.Expect(err).NotTo(HaveOccurred())
 			}
 
-			if !reflect.DeepEqual(tt.after, afterCopy) {
-				t.Errorf("Expected after to be the same after patching\n tt.after: %v\n afterCopy: %v\n", tt.after, afterCopy)
-			}
+			g.Expect(afterCopy).To(Equal(tt.after))
 		})
 	}
 }

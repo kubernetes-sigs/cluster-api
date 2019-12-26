@@ -31,15 +31,16 @@ import (
 	"k8s.io/client-go/kubernetes/scheme"
 	"k8s.io/client-go/tools/record"
 	"k8s.io/klog/klogr"
-	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha3"
-	"sigs.k8s.io/cluster-api/controllers/external"
-	"sigs.k8s.io/cluster-api/util"
-	"sigs.k8s.io/cluster-api/util/kubeconfig"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 	"sigs.k8s.io/controller-runtime/pkg/handler"
 	"sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
+
+	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha3"
+	"sigs.k8s.io/cluster-api/controllers/external"
+	"sigs.k8s.io/cluster-api/util"
+	"sigs.k8s.io/cluster-api/util/kubeconfig"
 )
 
 var _ reconcile.Reconciler = &MachineSetReconciler{}
@@ -123,7 +124,7 @@ var _ = Describe("MachineSet Reconciler", func() {
 		bootstrapTmpl.SetAPIVersion("bootstrap.cluster.x-k8s.io/v1alpha3")
 		bootstrapTmpl.SetName("ms-template")
 		bootstrapTmpl.SetNamespace(namespace.Name)
-		Expect(k8sClient.Create(ctx, bootstrapTmpl)).To(BeNil())
+		Expect(k8sClient.Create(ctx, bootstrapTmpl)).To(Succeed())
 
 		// Create infrastructure template resource.
 		infraResource := map[string]interface{}{
@@ -146,13 +147,12 @@ var _ = Describe("MachineSet Reconciler", func() {
 		infraTmpl.SetAPIVersion("infrastructure.cluster.x-k8s.io/v1alpha3")
 		infraTmpl.SetName("ms-template")
 		infraTmpl.SetNamespace(namespace.Name)
-		Expect(k8sClient.Create(ctx, infraTmpl)).To(BeNil())
+		Expect(k8sClient.Create(ctx, infraTmpl)).To(Succeed())
 
 		// Create the MachineSet.
-		Expect(k8sClient.Create(ctx, instance)).To(BeNil())
+		Expect(k8sClient.Create(ctx, instance)).To(Succeed())
 		defer func() {
-			err := k8sClient.Delete(ctx, instance)
-			Expect(err).NotTo(HaveOccurred())
+			Expect(k8sClient.Delete(ctx, instance)).To(Succeed())
 		}()
 
 		By("Verifying the linked bootstrap template has a cluster owner reference")
@@ -207,7 +207,7 @@ var _ = Describe("MachineSet Reconciler", func() {
 
 		// Try to delete 1 machine and check the MachineSet scales back up.
 		machineToBeDeleted := machines.Items[0]
-		Expect(k8sClient.Delete(ctx, &machineToBeDeleted)).To(BeNil())
+		Expect(k8sClient.Delete(ctx, &machineToBeDeleted)).To(Succeed())
 
 		// Verify that the Machine has been deleted.
 		Eventually(func() bool {
@@ -326,9 +326,10 @@ func TestMachineSetOwnerReference(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			RegisterTestingT(t)
-			err := clusterv1.AddToScheme(scheme.Scheme)
-			Expect(err).NotTo(HaveOccurred())
+			g := NewWithT(t)
+
+			g.Expect(clusterv1.AddToScheme(scheme.Scheme)).To(Succeed())
+
 			msr := &MachineSetReconciler{
 				Client: fake.NewFakeClientWithScheme(
 					scheme.Scheme,
@@ -342,20 +343,20 @@ func TestMachineSetOwnerReference(t *testing.T) {
 				recorder: record.NewFakeRecorder(32),
 			}
 
-			_, err = msr.Reconcile(tc.request)
+			_, err := msr.Reconcile(tc.request)
 			if tc.expectReconcileErr {
-				Expect(err).ToNot(BeNil())
+				g.Expect(err).To(HaveOccurred())
 			} else {
-				Expect(err).To(BeNil())
+				g.Expect(err).NotTo(HaveOccurred())
 			}
 
 			key := client.ObjectKey{Namespace: tc.ms.Namespace, Name: tc.ms.Name}
 			var actual clusterv1.MachineSet
 			if len(tc.expectedOR) > 0 {
-				Expect(msr.Client.Get(ctx, key, &actual)).ToNot(HaveOccurred())
-				Expect(actual.OwnerReferences).To(Equal(tc.expectedOR))
+				g.Expect(msr.Client.Get(ctx, key, &actual)).To(Succeed())
+				g.Expect(actual.OwnerReferences).To(Equal(tc.expectedOR))
 			} else {
-				Expect(actual.OwnerReferences).To(BeEmpty())
+				g.Expect(actual.OwnerReferences).To(BeEmpty())
 			}
 		})
 	}
@@ -363,7 +364,8 @@ func TestMachineSetOwnerReference(t *testing.T) {
 
 func TestMachineSetReconcile(t *testing.T) {
 	t.Run("ignore machine sets marked for deletion", func(t *testing.T) {
-		RegisterTestingT(t)
+		g := NewWithT(t)
+
 		dt := metav1.Now()
 		ms := &clusterv1.MachineSet{
 			ObjectMeta: metav1.ObjectMeta{
@@ -378,20 +380,22 @@ func TestMachineSetReconcile(t *testing.T) {
 				Namespace: ms.Namespace,
 			},
 		}
-		err := clusterv1.AddToScheme(scheme.Scheme)
-		Expect(err).NotTo(HaveOccurred())
+
+		g.Expect(clusterv1.AddToScheme(scheme.Scheme)).To(Succeed())
+
 		msr := &MachineSetReconciler{
 			Client:   fake.NewFakeClientWithScheme(scheme.Scheme, ms),
 			Log:      log.Log,
 			recorder: record.NewFakeRecorder(32),
 		}
 		result, err := msr.Reconcile(request)
-		Expect(err).To(BeNil())
-		Expect(result).To(Equal(reconcile.Result{}))
+		g.Expect(err).NotTo(HaveOccurred())
+		g.Expect(result).To(Equal(reconcile.Result{}))
 	})
 
 	t.Run("records event if reconcile fails", func(t *testing.T) {
-		RegisterTestingT(t)
+		g := NewWithT(t)
+
 		ms := &clusterv1.MachineSet{
 			ObjectMeta: metav1.ObjectMeta{
 				Name:      "machineset1",
@@ -404,8 +408,9 @@ func TestMachineSetReconcile(t *testing.T) {
 				Namespace: ms.Namespace,
 			},
 		}
-		err := clusterv1.AddToScheme(scheme.Scheme)
-		Expect(err).NotTo(HaveOccurred())
+
+		g.Expect(clusterv1.AddToScheme(scheme.Scheme)).To(Succeed())
+
 		rec := record.NewFakeRecorder(32)
 		msr := &MachineSetReconciler{
 			Client:   fake.NewFakeClientWithScheme(scheme.Scheme, ms),
@@ -413,11 +418,13 @@ func TestMachineSetReconcile(t *testing.T) {
 			recorder: rec,
 		}
 		_, _ = msr.Reconcile(request)
-		Eventually(rec.Events).Should(Receive())
+		g.Eventually(rec.Events).Should(Receive())
 	})
 }
 
 func TestMachineSetToMachines(t *testing.T) {
+	g := NewWithT(t)
+
 	machineSetList := &clusterv1.MachineSetList{
 		TypeMeta: metav1.TypeMeta{
 			Kind: "MachineSetList",
@@ -508,24 +515,22 @@ func TestMachineSetToMachines(t *testing.T) {
 		},
 	}
 
-	err := clusterv1.AddToScheme(scheme.Scheme)
-	Expect(err).NotTo(HaveOccurred())
+	g.Expect(clusterv1.AddToScheme(scheme.Scheme)).To(Succeed())
+
 	r := &MachineSetReconciler{
-		Client: fake.NewFakeClient(&m, &m2, &m3, machineSetList),
+		Client: fake.NewFakeClientWithScheme(scheme.Scheme, &m, &m2, &m3, machineSetList),
 		Log:    log.Log,
 	}
 
 	for _, tc := range testsCases {
 		t.Run(tc.name, func(t *testing.T) {
-			RegisterTestingT(t)
 			got := r.MachineToMachineSets(tc.mapObject)
-			Expect(got).To(Equal(tc.expected))
+			g.Expect(got).To(Equal(tc.expected))
 		})
 	}
 }
 
 func TestShouldExcludeMachine(t *testing.T) {
-	RegisterTestingT(t)
 	controller := true
 	testCases := []struct {
 		machineSet clusterv1.MachineSet
@@ -611,13 +616,17 @@ func TestShouldExcludeMachine(t *testing.T) {
 
 	logger := klogr.New()
 	for _, tc := range testCases {
+		g := NewWithT(t)
+
 		got := shouldExcludeMachine(&tc.machineSet, &tc.machine, logger)
-		Expect(got).To(Equal(tc.expected))
+
+		g.Expect(got).To(Equal(tc.expected))
 	}
 }
 
 func TestAdoptOrphan(t *testing.T) {
-	RegisterTestingT(t)
+	g := NewWithT(t)
+
 	ctx := context.Background()
 	m := clusterv1.Machine{
 		ObjectMeta: metav1.ObjectMeta{
@@ -652,22 +661,20 @@ func TestAdoptOrphan(t *testing.T) {
 		},
 	}
 
-	err := clusterv1.AddToScheme(scheme.Scheme)
-	Expect(err).NotTo(HaveOccurred())
+	g.Expect(clusterv1.AddToScheme(scheme.Scheme)).To(Succeed())
+
 	r := &MachineSetReconciler{
-		Client: fake.NewFakeClient(&m),
+		Client: fake.NewFakeClientWithScheme(scheme.Scheme, &m),
 		Log:    log.Log,
 	}
 	for _, tc := range testCases {
-		err := r.adoptOrphan(ctx, tc.machineSet.DeepCopy(), tc.machine.DeepCopy())
-		Expect(err).ToNot(HaveOccurred())
+		g.Expect(r.adoptOrphan(ctx, tc.machineSet.DeepCopy(), tc.machine.DeepCopy())).To(Succeed())
 
 		key := client.ObjectKey{Namespace: tc.machine.Namespace, Name: tc.machine.Name}
-		err = r.Client.Get(ctx, key, &tc.machine)
-		Expect(err).ToNot(HaveOccurred())
+		g.Expect(r.Client.Get(ctx, key, &tc.machine)).To(Succeed())
 
 		got := tc.machine.GetOwnerReferences()
-		Expect(got).To(Equal(tc.expected))
+		g.Expect(got).To(Equal(tc.expected))
 	}
 }
 
@@ -768,9 +775,9 @@ func TestHasMatchingLabels(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			RegisterTestingT(t)
+			g := NewWithT(t)
 			got := r.hasMatchingLabels(&tc.machineSet, &tc.machine)
-			Expect(got).To(Equal(tc.expected))
+			g.Expect(got).To(Equal(tc.expected))
 		})
 	}
 }

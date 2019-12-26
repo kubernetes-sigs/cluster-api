@@ -22,39 +22,39 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/util/intstr"
-	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha3"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+
+	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha3"
 )
 
 func intOrStrPtr(i int32) *intstr.IntOrString {
 	// FromInt takes an int that must not be greater than int32...
-	intstr := intstr.FromInt(int(i))
-	return &intstr
+	res := intstr.FromInt(int(i))
+	return &res
 }
 
 func fakeInfrastructureRefReady(ref corev1.ObjectReference, base map[string]interface{}) {
 	iref := (&unstructured.Unstructured{Object: base}).DeepCopy()
 	Eventually(func() error {
 		return k8sClient.Get(ctx, client.ObjectKey{Name: ref.Name, Namespace: ref.Namespace}, iref)
-	}, timeout).ShouldNot(HaveOccurred())
+	}, timeout).Should(Succeed())
 
 	ready, found, err := unstructured.NestedBool(iref.Object, "status", "ready")
-	Expect(err).To(BeNil())
+	Expect(err).NotTo(HaveOccurred())
 	if found && ready {
 		return
 	}
 
 	irefPatch := client.MergeFrom(iref.DeepCopy())
-	err = unstructured.SetNestedField(iref.Object, true, "status", "ready")
-	Expect(err).NotTo(HaveOccurred())
-	Expect(k8sClient.Status().Patch(ctx, iref, irefPatch)).ToNot(HaveOccurred())
+	Expect(unstructured.SetNestedField(iref.Object, true, "status", "ready")).To(Succeed())
+	Expect(k8sClient.Status().Patch(ctx, iref, irefPatch)).To(Succeed())
 }
 
 func fakeMachineNodeRef(m *clusterv1.Machine) {
 	Eventually(func() error {
 		key := client.ObjectKey{Name: m.Name, Namespace: m.Namespace}
 		return k8sClient.Get(ctx, key, &clusterv1.Machine{})
-	}, timeout).ShouldNot(HaveOccurred())
+	}, timeout).Should(Succeed())
 
 	if m.Status.NodeRef != nil {
 		return
@@ -66,17 +66,17 @@ func fakeMachineNodeRef(m *clusterv1.Machine) {
 			GenerateName: m.Name + "-",
 		},
 	}
-	Expect(k8sClient.Create(ctx, node)).ShouldNot(HaveOccurred())
+	Expect(k8sClient.Create(ctx, node)).To(Succeed())
 
 	Eventually(func() error {
 		key := client.ObjectKey{Name: node.Name, Namespace: node.Namespace}
 		return k8sClient.Get(ctx, key, &corev1.Node{})
-	}, timeout).ShouldNot(HaveOccurred())
+	}, timeout).Should(Succeed())
 
 	// Patch the node and make it look like ready.
 	patchNode := client.MergeFrom(node.DeepCopy())
 	node.Status.Conditions = append(node.Status.Conditions, corev1.NodeCondition{Type: corev1.NodeReady, Status: corev1.ConditionTrue})
-	Expect(k8sClient.Status().Patch(ctx, node, patchNode)).To(BeNil())
+	Expect(k8sClient.Status().Patch(ctx, node, patchNode)).To(Succeed())
 
 	// Patch the Machine.
 	patchMachine := client.MergeFrom(m.DeepCopy())
@@ -86,5 +86,5 @@ func fakeMachineNodeRef(m *clusterv1.Machine) {
 		Name:       node.Name,
 		UID:        node.UID,
 	}
-	Expect(k8sClient.Status().Patch(ctx, m, patchMachine)).To(BeNil())
+	Expect(k8sClient.Status().Patch(ctx, m, patchMachine)).To(Succeed())
 }

@@ -30,10 +30,11 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/kubernetes/scheme"
 	"k8s.io/utils/pointer"
-	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha3"
-	"sigs.k8s.io/cluster-api/util/kubeconfig"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 	"sigs.k8s.io/controller-runtime/pkg/log"
+
+	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha3"
+	"sigs.k8s.io/cluster-api/util/kubeconfig"
 )
 
 func init() {
@@ -112,7 +113,7 @@ var _ = Describe("Reconcile Machine Phases", func() {
 		infraConfig := defaultInfra.DeepCopy()
 
 		r := &MachineReconciler{
-			Client: fake.NewFakeClient(defaultCluster, defaultKubeconfigSecret, machine, bootstrapConfig, infraConfig),
+			Client: fake.NewFakeClientWithScheme(scheme.Scheme, defaultCluster, defaultKubeconfigSecret, machine, bootstrapConfig, infraConfig),
 			Log:    log.Log,
 		}
 
@@ -139,7 +140,7 @@ var _ = Describe("Reconcile Machine Phases", func() {
 		infraConfig := defaultInfra.DeepCopy()
 
 		r := &MachineReconciler{
-			Client: fake.NewFakeClient(defaultCluster, defaultKubeconfigSecret, machine, bootstrapConfig, infraConfig),
+			Client: fake.NewFakeClientWithScheme(scheme.Scheme, defaultCluster, defaultKubeconfigSecret, machine, bootstrapConfig, infraConfig),
 			Log:    log.Log,
 		}
 
@@ -164,7 +165,7 @@ var _ = Describe("Reconcile Machine Phases", func() {
 		Expect(err).NotTo(HaveOccurred())
 
 		r := &MachineReconciler{
-			Client: fake.NewFakeClient(defaultCluster, defaultKubeconfigSecret, machine, bootstrapConfig, infraConfig),
+			Client: fake.NewFakeClientWithScheme(scheme.Scheme, defaultCluster, defaultKubeconfigSecret, machine, bootstrapConfig, infraConfig),
 			Log:    log.Log,
 		}
 
@@ -211,7 +212,7 @@ var _ = Describe("Reconcile Machine Phases", func() {
 		machine.Status.NodeRef = &corev1.ObjectReference{Kind: "Node", Name: "machine-test-node"}
 
 		r := &MachineReconciler{
-			Client: fake.NewFakeClient(defaultCluster, defaultKubeconfigSecret, machine, bootstrapConfig, infraConfig),
+			Client: fake.NewFakeClientWithScheme(scheme.Scheme, defaultCluster, defaultKubeconfigSecret, machine, bootstrapConfig, infraConfig),
 			Log:    log.Log,
 		}
 
@@ -247,7 +248,7 @@ var _ = Describe("Reconcile Machine Phases", func() {
 		machine.Status.NodeRef = &corev1.ObjectReference{Kind: "Node", Name: "machine-test-node"}
 
 		r := &MachineReconciler{
-			Client: fake.NewFakeClient(defaultCluster, defaultKubeconfigSecret, machine, bootstrapConfig, infraConfig),
+			Client: fake.NewFakeClientWithScheme(scheme.Scheme, defaultCluster, defaultKubeconfigSecret, machine, bootstrapConfig, infraConfig),
 			Log:    log.Log,
 		}
 
@@ -295,7 +296,7 @@ var _ = Describe("Reconcile Machine Phases", func() {
 		machine.Status.NodeRef = &corev1.ObjectReference{Kind: "Node", Name: "machine-test-node"}
 
 		r := &MachineReconciler{
-			Client: fake.NewFakeClient(defaultCluster, defaultKubeconfigSecret, machine, bootstrapConfig, infraConfig),
+			Client: fake.NewFakeClientWithScheme(scheme.Scheme, defaultCluster, defaultKubeconfigSecret, machine, bootstrapConfig, infraConfig),
 			Log:    log.Log,
 		}
 
@@ -323,7 +324,7 @@ var _ = Describe("Reconcile Machine Phases", func() {
 		machine.Status.NodeRef = &corev1.ObjectReference{Kind: "Node", Name: "machine-test-node"}
 
 		r := &MachineReconciler{
-			Client: fake.NewFakeClient(defaultCluster, defaultKubeconfigSecret, machine, bootstrapConfig, infraConfig),
+			Client: fake.NewFakeClientWithScheme(scheme.Scheme, defaultCluster, defaultKubeconfigSecret, machine, bootstrapConfig, infraConfig),
 			Log:    log.Log,
 		}
 
@@ -373,7 +374,7 @@ var _ = Describe("Reconcile Machine Phases", func() {
 		machine.SetDeletionTimestamp(&deletionTimestamp)
 
 		r := &MachineReconciler{
-			Client: fake.NewFakeClient(defaultCluster, defaultKubeconfigSecret, machine, bootstrapConfig, infraConfig),
+			Client: fake.NewFakeClientWithScheme(scheme.Scheme, defaultCluster, defaultKubeconfigSecret, machine, bootstrapConfig, infraConfig),
 			Log:    log.Log,
 		}
 
@@ -586,9 +587,9 @@ func TestReconcileBootstrap(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			g := NewGomegaWithT(t)
-			err := clusterv1.AddToScheme(scheme.Scheme)
-			g.Expect(err).NotTo(HaveOccurred())
+			g := NewWithT(t)
+
+			g.Expect(clusterv1.AddToScheme(scheme.Scheme)).To(Succeed())
 
 			if tc.machine == nil {
 				tc.machine = defaultMachine.DeepCopy()
@@ -596,11 +597,11 @@ func TestReconcileBootstrap(t *testing.T) {
 
 			bootstrapConfig := &unstructured.Unstructured{Object: tc.bootstrapConfig}
 			r := &MachineReconciler{
-				Client: fake.NewFakeClient(tc.machine, bootstrapConfig),
+				Client: fake.NewFakeClientWithScheme(scheme.Scheme, tc.machine, bootstrapConfig),
 				Log:    log.Log,
 			}
 
-			err = r.reconcileBootstrap(context.Background(), tc.machine)
+			err := r.reconcileBootstrap(context.Background(), tc.machine)
 			if tc.expectError {
 				g.Expect(err).ToNot(BeNil())
 			} else {
@@ -611,9 +612,7 @@ func TestReconcileBootstrap(t *testing.T) {
 				tc.expected(g, tc.machine)
 			}
 		})
-
 	}
-
 }
 
 func TestReconcileInfrastructure(t *testing.T) {
@@ -741,9 +740,9 @@ func TestReconcileInfrastructure(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			g := NewGomegaWithT(t)
-			err := clusterv1.AddToScheme(scheme.Scheme)
-			g.Expect(err).NotTo(HaveOccurred())
+			g := NewWithT(t)
+
+			g.Expect(clusterv1.AddToScheme(scheme.Scheme)).To(Succeed())
 
 			if tc.machine == nil {
 				tc.machine = defaultMachine.DeepCopy()
@@ -751,11 +750,11 @@ func TestReconcileInfrastructure(t *testing.T) {
 
 			infraConfig := &unstructured.Unstructured{Object: tc.infraConfig}
 			r := &MachineReconciler{
-				Client: fake.NewFakeClient(tc.machine, infraConfig),
+				Client: fake.NewFakeClientWithScheme(scheme.Scheme, tc.machine, infraConfig),
 				Log:    log.Log,
 			}
 
-			err = r.reconcileInfrastructure(context.Background(), tc.machine)
+			err := r.reconcileInfrastructure(context.Background(), tc.machine)
 			r.reconcilePhase(context.Background(), tc.machine)
 			if tc.expectError {
 				g.Expect(err).ToNot(BeNil())

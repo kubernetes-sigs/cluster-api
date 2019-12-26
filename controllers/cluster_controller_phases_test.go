@@ -22,16 +22,16 @@ import (
 	"time"
 
 	. "github.com/onsi/gomega"
-	"github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/client-go/kubernetes/scheme"
-	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha3"
-	capierrors "sigs.k8s.io/cluster-api/errors"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 	"sigs.k8s.io/controller-runtime/pkg/log"
+
+	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha3"
+	capierrors "sigs.k8s.io/cluster-api/errors"
 )
 
 func TestClusterReconcilePhases(t *testing.T) {
@@ -105,29 +105,26 @@ func TestClusterReconcilePhases(t *testing.T) {
 
 		for _, tt := range tests {
 			t.Run(tt.name, func(t *testing.T) {
-				RegisterTestingT(t)
-				err := clusterv1.AddToScheme(scheme.Scheme)
-				if err != nil {
-					t.Fatal(err)
-				}
+				g := NewWithT(t)
+				g.Expect(clusterv1.AddToScheme(scheme.Scheme)).To(Succeed())
 
 				var c client.Client
 				if tt.infraRef != nil {
 					infraConfig := &unstructured.Unstructured{Object: tt.infraRef}
-					c = fake.NewFakeClient(tt.cluster, infraConfig)
+					c = fake.NewFakeClientWithScheme(scheme.Scheme, tt.cluster, infraConfig)
 				} else {
-					c = fake.NewFakeClient(tt.cluster)
+					c = fake.NewFakeClientWithScheme(scheme.Scheme, tt.cluster)
 				}
 				r := &ClusterReconciler{
 					Client: c,
 					Log:    log.Log,
 				}
 
-				err = r.reconcileInfrastructure(context.Background(), tt.cluster)
+				err := r.reconcileInfrastructure(context.Background(), tt.cluster)
 				if tt.expectErr {
-					Expect(err).To(HaveOccurred())
+					g.Expect(err).To(HaveOccurred())
 				} else {
-					Expect(err).ToNot(HaveOccurred())
+					g.Expect(err).NotTo(HaveOccurred())
 				}
 			})
 		}
@@ -188,28 +185,24 @@ func TestClusterReconcilePhases(t *testing.T) {
 		}
 		for _, tt := range tests {
 			t.Run(tt.name, func(t *testing.T) {
-				RegisterTestingT(t)
-				err := clusterv1.AddToScheme(scheme.Scheme)
-				if err != nil {
-					t.Fatal(err)
-				}
+				g := NewWithT(t)
+				g.Expect(clusterv1.AddToScheme(scheme.Scheme)).To(Succeed())
 
-				c := fake.NewFakeClient(tt.cluster)
+				c := fake.NewFakeClientWithScheme(scheme.Scheme, tt.cluster)
 				if tt.secret != nil {
-					c = fake.NewFakeClient(tt.cluster, tt.secret)
+					c = fake.NewFakeClientWithScheme(scheme.Scheme, tt.cluster, tt.secret)
 				}
 				r := &ClusterReconciler{
 					Client: c,
 				}
-				err = r.reconcileKubeconfig(context.Background(), tt.cluster)
-				if (err != nil) != tt.wantErr {
-					t.Errorf("reconcileKubeconfig() error = %v, wantErr %v", err, tt.wantErr)
+				err := r.reconcileKubeconfig(context.Background(), tt.cluster)
+				if tt.wantErr {
+					g.Expect(err).To(HaveOccurred())
+				} else {
+					g.Expect(err).NotTo(HaveOccurred())
 				}
 
-				_, hasRequeErr := errors.Cause(err).(capierrors.HasRequeueAfterError)
-				if tt.wantRequeue != hasRequeErr {
-					t.Errorf("expected RequeAfterError = %v, got %v", tt.wantRequeue, hasRequeErr)
-				}
+				g.Expect(capierrors.IsRequeueAfter(err)).To(Equal(tt.wantRequeue))
 			})
 		}
 	})
@@ -340,16 +333,17 @@ func TestClusterReconciler_reconcilePhase(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			g := NewWithT(t)
 
-			c := fake.NewFakeClient(tt.cluster)
+			g.Expect(clusterv1.AddToScheme(scheme.Scheme)).To(Succeed())
+
+			c := fake.NewFakeClientWithScheme(scheme.Scheme, tt.cluster)
 
 			r := &ClusterReconciler{
 				Client: c,
 			}
 			r.reconcilePhase(context.TODO(), tt.cluster)
-			if tt.wantPhase != tt.cluster.Status.GetTypedPhase() {
-				t.Errorf("expected cluster phase  = %s, got %s", tt.wantPhase, tt.cluster.Status.GetTypedPhase())
-			}
+			g.Expect(tt.cluster.Status.GetTypedPhase()).To(Equal(tt.wantPhase))
 		})
 	}
 }

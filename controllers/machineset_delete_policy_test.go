@@ -17,10 +17,11 @@ limitations under the License.
 package controllers
 
 import (
-	"reflect"
 	"testing"
 
+	. "github.com/onsi/gomega"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha3"
 	capierrors "sigs.k8s.io/cluster-api/errors"
 )
@@ -151,10 +152,10 @@ func TestMachineToDelete(t *testing.T) {
 		}}
 
 	for _, test := range tests {
+		g := NewWithT(t)
+
 		result := getMachinesToDeletePrioritized(test.machines, test.diff, randomDeletePolicy)
-		if !reflect.DeepEqual(result, test.expect) {
-			t.Errorf("[case %s]", test.desc)
-		}
+		g.Expect(result).To(Equal(test.expect))
 	}
 }
 
@@ -219,10 +220,10 @@ func TestMachineNewestDelete(t *testing.T) {
 	}
 
 	for _, test := range tests {
+		g := NewWithT(t)
+
 		result := getMachinesToDeletePrioritized(test.machines, test.diff, newestDeletePriority)
-		if !reflect.DeepEqual(result, test.expect) {
-			t.Errorf("[case %s]", test.desc)
-		}
+		g.Expect(result).To(Equal(test.expect))
 	}
 }
 
@@ -295,9 +296,9 @@ func TestMachineOldestDelete(t *testing.T) {
 	}
 
 	for _, test := range tests {
+		g := NewWithT(t)
+
 		result := getMachinesToDeletePrioritized(test.machines, test.diff, oldestDeletePriority)
-		if !reflect.DeepEqual(result, test.expect) {
-			t.Errorf("[case %s]", test.desc)
-		}
+		g.Expect(result).To(Equal(test.expect))
 	}
 }

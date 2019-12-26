@@ -26,6 +26,7 @@ import (
 	"github.com/pkg/errors"
 	v1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/clientcmd"
 	"sigs.k8s.io/cluster-api/test/framework/exec"
@@ -218,7 +219,16 @@ func (c *Cluster) ClientFromRestConfig(restConfig *rest.Config) (client.Client, 
 	return c.Client, nil
 }
 
-// GetClient returns a controller-rutnime client for the management cluster.
+// GetClientSet returns a clientset to the management cluster to be used for object interface expansions such as pod logs.
+func (c *Cluster) GetClientSet() (*kubernetes.Clientset, error) {
+	restConfig, err := clientcmd.BuildConfigFromFlags("", c.KubeconfigPath)
+	if err != nil {
+		return nil, errors.WithStack(err)
+	}
+	return kubernetes.NewForConfig(restConfig)
+}
+
+// GetClient returns a controller-runtime client for the management cluster.
 func (c *Cluster) GetClient() (client.Client, error) {
 	restConfig, err := clientcmd.BuildConfigFromFlags("", c.KubeconfigPath)
 	if err != nil {

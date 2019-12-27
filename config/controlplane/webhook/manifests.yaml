@@ -9,7 +9,7 @@ webhooks:
 - clientConfig:
     caBundle: Cg==
     service:
-      name: webhook-service
+      name: capi-webhook-service
       namespace: system
       path: /mutate-controlplane-cluster-x-k8s-io-v1alpha3-kubeadmcontrolplane
   failurePolicy: Fail
@@ -35,7 +35,7 @@ webhooks:
 - clientConfig:
     caBundle: Cg==
     service:
-      name: webhook-service
+      name: capi-webhook-service
       namespace: system
       path: /validate-controlplane-cluster-x-k8s-io-v1alpha3-kubeadmcontrolplane
   failurePolicy: Fail

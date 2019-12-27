@@ -10,3 +10,6 @@ resources:
 
 configurations:
 - kustomizeconfig.yaml
+
+patchesStrategicMerge:
+  - webhookcainjection_patch.yaml

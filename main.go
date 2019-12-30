@@ -36,6 +36,7 @@ import (
 	"sigs.k8s.io/cluster-api/controllers/external"
 	kubeadmcontrolplanev1alpha3 "sigs.k8s.io/cluster-api/controlplane/kubeadm/api/v1alpha3"
 	kubeadmcontrolplanecontrollers "sigs.k8s.io/cluster-api/controlplane/kubeadm/controllers"
+	"sigs.k8s.io/cluster-api/controlplane/kubeadm/controllers/generator"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/cache"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -199,9 +200,11 @@ func main() {
 
 		// KubeadmControlPlane controllers.
 		if err = (&kubeadmcontrolplanecontrollers.KubeadmControlPlaneReconciler{
-			Client:         mgr.GetClient(),
-			Log:            ctrl.Log.WithName("controllers").WithName("KubeadmControlPlane"),
-			TemplateCloner: &external.TemplateCloner{},
+			Client:                 mgr.GetClient(),
+			Log:                    ctrl.Log.WithName("controllers").WithName("KubeadmControlPlane"),
+			TemplateCloner:         &external.TemplateCloner{},
+			KubeadmConfigGenerator: &generator.KubeadmConfigGenerator{},
+			MachineGenerator:       &generator.MachineGenerator{},
 		}).SetupWithManager(mgr, concurrency(kubeadmControlPlaneConcurrency)); err != nil {
 			setupLog.Error(err, "unable to create controller", "controller", "KubeadmControlPlane")
 			os.Exit(1)

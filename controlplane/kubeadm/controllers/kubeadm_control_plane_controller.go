@@ -27,6 +27,7 @@ import (
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
+	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	utilerrors "k8s.io/apimachinery/pkg/util/errors"
 	"k8s.io/apiserver/pkg/storage/names"
@@ -36,13 +37,14 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/controller"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	"sigs.k8s.io/controller-runtime/pkg/handler"
-	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 	"sigs.k8s.io/controller-runtime/pkg/source"
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha3"
 	bootstrapv1 "sigs.k8s.io/cluster-api/bootstrap/kubeadm/api/v1alpha3"
 	kubeadmv1 "sigs.k8s.io/cluster-api/bootstrap/kubeadm/types/v1beta1"
 	"sigs.k8s.io/cluster-api/controllers/external"
+	"sigs.k8s.io/cluster-api/controllers/noderefutil"
+	"sigs.k8s.io/cluster-api/controllers/remote"
 	controlplanev1 "sigs.k8s.io/cluster-api/controlplane/kubeadm/api/v1alpha3"
 	capierrors "sigs.k8s.io/cluster-api/errors"
 	"sigs.k8s.io/cluster-api/util"
@@ -59,6 +61,10 @@ import (
 type KubeadmControlPlaneReconciler struct {
 	Client client.Client
 	Log    logr.Logger
+	scheme *runtime.Scheme
+
+	// for testing
+	remoteClient func(client.Client, *clusterv1.Cluster, *runtime.Scheme) (client.Client, error)
 
 	controller controller.Controller
 	recorder   record.EventRecorder
@@ -79,8 +85,13 @@ func (r *KubeadmControlPlaneReconciler) SetupWithManager(mgr ctrl.Manager, optio
 		return errors.Wrap(err, "failed setting up with a controller manager")
 	}
 
+	r.scheme = mgr.GetScheme()
 	r.controller = c
 	r.recorder = mgr.GetEventRecorderFor("kubeadm-control-plane-controller")
+
+	if r.remoteClient == nil {
+		r.remoteClient = remote.NewClusterClient
+	}
 
 	return nil
 }
@@ -120,15 +131,15 @@ func (r *KubeadmControlPlaneReconciler) Reconcile(req ctrl.Request) (res ctrl.Re
 
 	// Handle deletion reconciliation loop.
 	if !kubeadmControlPlane.ObjectMeta.DeletionTimestamp.IsZero() {
-		return r.reconcileDelete(ctx, kubeadmControlPlane, logger), nil
+		return r.reconcileDelete(ctx, kubeadmControlPlane, logger)
 	}
 
 	// Handle normal reconciliation loop.
-	return r.reconcile(ctx, kubeadmControlPlane, logger), nil
+	return r.reconcile(ctx, kubeadmControlPlane, logger)
 }
 
 // reconcile handles KubeadmControlPlane reconciliation.
-func (r *KubeadmControlPlaneReconciler) reconcile(ctx context.Context, kcp *controlplanev1.KubeadmControlPlane, logger logr.Logger) ctrl.Result {
+func (r *KubeadmControlPlaneReconciler) reconcile(ctx context.Context, kcp *controlplanev1.KubeadmControlPlane, logger logr.Logger) (_ ctrl.Result, retErr error) {
 	// If object doesn't have a finalizer, add one.
 	controllerutil.AddFinalizer(kcp, controlplanev1.KubeadmControlPlaneFinalizer)
 
@@ -136,55 +147,36 @@ func (r *KubeadmControlPlaneReconciler) reconcile(ctx context.Context, kcp *cont
 	cluster, err := util.GetOwnerCluster(ctx, r.Client, kcp.ObjectMeta)
 	if err != nil {
 		logger.Error(err, "Failed to retrieve owner Cluster from the API Server")
-		return ctrl.Result{Requeue: true}
+		return ctrl.Result{}, err
 	}
 	if cluster == nil {
 		logger.Info("Cluster Controller has not yet set OwnerRef")
-		return reconcile.Result{}
+		return ctrl.Result{}, nil
 	}
 	logger = logger.WithValues("cluster", cluster.Name)
 
-	labelSelector := generateKubeadmControlPlaneSelector(cluster.Name)
-	selector, err := metav1.LabelSelectorAsSelector(labelSelector)
-	if err != nil {
-		// Since we are building up the LabelSelector above, this should not fail
-		logger.Error(err, "failed to parse label selector")
-		return ctrl.Result{Requeue: true}
-	}
-	// Copy label selector to its status counterpart in string format.
-	// This is necessary for CRDs including scale subresources.
-	kcp.Status.Selector = selector.String()
-
-	selectorMap, err := metav1.LabelSelectorAsMap(labelSelector)
-	if err != nil {
-		// Since we are building up the LabelSelector above, this should not fail
-		logger.Error(err, "failed to convert label selector to a map")
-		return ctrl.Result{Requeue: true}
-	}
-
-	// Get all Machines linked to this KubeadmControlPlane.
-	allMachines := &clusterv1.MachineList{}
-	err = r.Client.List(
-		context.Background(),
-		allMachines,
-		client.InNamespace(kcp.Namespace),
-		client.MatchingLabels(selectorMap),
+	// TODO: handle proper adoption of Machines
+	ownedMachines, err := r.getOwnedMachines(
+		ctx,
+		kcp,
+		types.NamespacedName{Namespace: cluster.Namespace, Name: cluster.Name},
 	)
 	if err != nil {
-		logger.Error(err, "failed to list machines")
-		return ctrl.Result{Requeue: true}
+		logger.Error(err, "failed to get list of owned machines")
+		return ctrl.Result{}, err
 	}
 
-	// Filter out any machines that are not owned by this controller
-	// TODO: handle proper adoption of Machines
-	var ownedMachines []*clusterv1.Machine
-	for i := range allMachines.Items {
-		m := allMachines.Items[i]
-		controllerRef := metav1.GetControllerOf(&m)
-		if controllerRef != nil && controllerRef.Kind == "KubeadmControlPlane" && controllerRef.Name == kcp.Name {
-			ownedMachines = append(ownedMachines, &m)
+	// Always attempt to update status
+	defer func() {
+		if updateErr := r.updateStatus(ctx, kcp, cluster); updateErr != nil {
+			logger.Error(updateErr, "Failed to update status")
+			if retErr == nil {
+				retErr = updateErr
+			} else {
+				retErr = utilerrors.NewAggregate([]error{retErr, updateErr})
+			}
 		}
-	}
+	}()
 
 	// Generate Cluster Certificates if needed
 	config := kcp.Spec.KubeadmConfigSpec.DeepCopy()
@@ -201,13 +193,13 @@ func (r *KubeadmControlPlaneReconciler) reconcile(ctx context.Context, kcp *cont
 	)
 	if err != nil {
 		logger.Error(err, "unable to lookup or create cluster certificates")
-		return ctrl.Result{Requeue: true}
+		return ctrl.Result{}, err
 	}
 
 	// If ControlPlaneEndpoint is not set, return early
 	if cluster.Spec.ControlPlaneEndpoint.IsZero() {
 		logger.Info("Cluster does not yet have a ControlPlaneEndpoint defined")
-		return reconcile.Result{}
+		return ctrl.Result{}, nil
 	}
 
 	// Generate Cluster Kubeconfig if needed
@@ -223,10 +215,10 @@ func (r *KubeadmControlPlaneReconciler) reconcile(ctx context.Context, kcp *cont
 			return ctrl.Result{
 				Requeue:      true,
 				RequeueAfter: requeueErr.GetRequeueAfter(),
-			}
+			}, nil
 		}
 		logger.Error(err, "failed to reconcile Kubeconfig")
-		return ctrl.Result{Requeue: true}
+		return ctrl.Result{}, err
 	}
 
 	// Currently we are not handling upgrade, so treat all owned machines as one for now.
@@ -238,24 +230,80 @@ func (r *KubeadmControlPlaneReconciler) reconcile(ctx context.Context, kcp *cont
 	case numMachines < desiredReplicas && numMachines == 0:
 		// create new Machine w/ init
 		logger.Info("Scaling to 1", "Desired Replicas", desiredReplicas, "Existing Replicas", numMachines)
-		if initErr := r.initializeControlPlane(ctx, cluster, kcp, logger); initErr != nil {
-			logger.Error(initErr, "Failed to initialize the Control Plane")
-			return ctrl.Result{Requeue: true}
+		if err := r.initializeControlPlane(ctx, cluster, kcp, logger); err != nil {
+			logger.Error(err, "Failed to initialize the Control Plane")
+			return ctrl.Result{}, err
 		}
 	// scaling up
 	case numMachines < desiredReplicas && numMachines > 0:
 		logger.Info("Scaling up", "Desired Replicas", desiredReplicas, "Existing Replicas", numMachines)
 		// create a new Machine w/ join
-		logger.Error(errors.New("Not Implemented"), "Should create new Machine using join here.")
+		err := errors.New("Not Implemented")
+		logger.Error(err, "Should create new Machine using join here.")
+		return ctrl.Result{}, err
 	// scaling down
 	case numMachines > desiredReplicas:
 		logger.Info("Scaling down", "Desired Replicas", desiredReplicas, "Existing Replicas", numMachines)
-		logger.Error(errors.New("Not Implemented"), "Should delete the appropriate Machine here.")
+		err := errors.New("Not Implemented")
+		logger.Error(err, "Should delete the appropriate Machine here.")
+		return ctrl.Result{}, err
 	}
 
-	// TODO: handle updating of status, this should also likely be done even if other reconciliation steps fail
-	logger.Error(errors.New("Not Implemented"), "Should update status here")
-	return ctrl.Result{Requeue: true}
+	return ctrl.Result{}, nil
+}
+
+func (r *KubeadmControlPlaneReconciler) updateStatus(ctx context.Context, kcp *controlplanev1.KubeadmControlPlane, cluster *clusterv1.Cluster) error {
+	labelSelector := generateKubeadmControlPlaneSelector(cluster.Name)
+	selector, err := metav1.LabelSelectorAsSelector(labelSelector)
+	if err != nil {
+		// Since we are building up the LabelSelector above, this should not fail
+		return errors.Wrap(err, "failed to parse label selector")
+	}
+	// Copy label selector to its status counterpart in string format.
+	// This is necessary for CRDs including scale subresources.
+	kcp.Status.Selector = selector.String()
+
+	ownedMachines, err := r.getOwnedMachines(
+		ctx,
+		kcp,
+		types.NamespacedName{Namespace: cluster.Namespace, Name: cluster.Name},
+	)
+	if err != nil {
+		return errors.Wrap(err, "failed to get list of owned machines")
+	}
+
+	replicas := int32(len(ownedMachines))
+	// TODO: take into account configuration hash once upgrades are in place
+	kcp.Status.Replicas = replicas
+
+	remoteClient, err := r.remoteClient(r.Client, cluster, r.scheme)
+	if err != nil && !apierrors.IsNotFound(errors.Cause(err)) {
+		return errors.Wrap(err, "failed to create remote cluster client")
+	}
+
+	readyMachines := int32(0)
+	for _, m := range ownedMachines {
+
+		node, err := getMachineNode(ctx, remoteClient, m)
+		if err != nil {
+			return errors.Wrap(err, "failed to get referenced Node")
+		}
+		if node == nil {
+			continue
+		}
+		if noderefutil.IsNodeReady(node) {
+			readyMachines++
+		}
+	}
+	kcp.Status.ReadyReplicas = readyMachines
+	kcp.Status.UnavailableReplicas = replicas - readyMachines
+
+	if !kcp.Status.Initialized {
+		if kcp.Status.ReadyReplicas > 0 {
+			kcp.Status.Initialized = true
+		}
+	}
+	return nil
 }
 
 func (r *KubeadmControlPlaneReconciler) initializeControlPlane(ctx context.Context, cluster *clusterv1.Cluster, kcp *controlplanev1.KubeadmControlPlane, logger logr.Logger) error {
@@ -404,16 +452,16 @@ func generateKubeadmControlPlaneLabels(clusterName string) map[string]string {
 }
 
 // reconcileDelete handles KubeadmControlPlane deletion.
-func (r *KubeadmControlPlaneReconciler) reconcileDelete(_ context.Context, kcp *controlplanev1.KubeadmControlPlane, logger logr.Logger) ctrl.Result {
+func (r *KubeadmControlPlaneReconciler) reconcileDelete(_ context.Context, kcp *controlplanev1.KubeadmControlPlane, logger logr.Logger) (ctrl.Result, error) {
 	err := errors.New("Not Implemented")
 
 	if err != nil {
 		logger.Error(err, "Not Implemented")
-		return ctrl.Result{Requeue: true}
+		return ctrl.Result{}, err
 	}
 
 	controllerutil.RemoveFinalizer(kcp, controlplanev1.KubeadmControlPlaneFinalizer)
-	return ctrl.Result{}
+	return ctrl.Result{}, nil
 }
 
 func (r *KubeadmControlPlaneReconciler) reconcileKubeconfig(ctx context.Context, clusterName types.NamespacedName, endpoint clusterv1.APIEndpoint, kcp *controlplanev1.KubeadmControlPlane) error {
@@ -444,6 +492,55 @@ func (r *KubeadmControlPlaneReconciler) reconcileKubeconfig(ctx context.Context,
 	}
 
 	return nil
+}
+
+func (r *KubeadmControlPlaneReconciler) getMachines(ctx context.Context, clusterName types.NamespacedName) (*clusterv1.MachineList, error) {
+	selector := generateKubeadmControlPlaneLabels(clusterName.Name)
+	allMachines := &clusterv1.MachineList{}
+	if err := r.Client.List(ctx, allMachines, client.InNamespace(clusterName.Namespace), client.MatchingLabels(selector)); err != nil {
+		return nil, errors.Wrap(err, "failed to list machines")
+	}
+	return allMachines, nil
+}
+
+func (r *KubeadmControlPlaneReconciler) getOwnedMachines(ctx context.Context, kcp *controlplanev1.KubeadmControlPlane, clusterName types.NamespacedName) ([]*clusterv1.Machine, error) {
+	allMachines, err := r.getMachines(ctx, clusterName)
+	if err != nil {
+		return nil, err
+	}
+
+	var ownedMachines []*clusterv1.Machine
+	for i := range allMachines.Items {
+		m := allMachines.Items[i]
+		controllerRef := metav1.GetControllerOf(&m)
+		if controllerRef != nil && controllerRef.Kind == "KubeadmControlPlane" && controllerRef.Name == kcp.Name {
+			ownedMachines = append(ownedMachines, &m)
+		}
+	}
+
+	return ownedMachines, nil
+}
+
+func getMachineNode(ctx context.Context, crClient client.Client, machine *clusterv1.Machine) (*corev1.Node, error) {
+	nodeRef := machine.Status.NodeRef
+	if nodeRef == nil {
+		return nil, nil
+	}
+
+	node := &corev1.Node{}
+	err := crClient.Get(
+		ctx,
+		types.NamespacedName{Name: nodeRef.Name},
+		node,
+	)
+	if err != nil {
+		if apierrors.IsNotFound(errors.Cause(err)) {
+			return nil, nil
+		}
+		return nil, err
+	}
+
+	return node, nil
 }
 
 // ClusterToKubeadmControlPlane is a handler.ToRequestsFunc to be used to enqeue requests for reconciliation

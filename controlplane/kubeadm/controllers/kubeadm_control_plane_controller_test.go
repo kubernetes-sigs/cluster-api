@@ -18,12 +18,14 @@ package controllers
 
 import (
 	"context"
+	"fmt"
 	"testing"
 
 	"github.com/onsi/gomega"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
+	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/kubernetes/scheme"
 	"k8s.io/klog/klogr"
@@ -418,7 +420,8 @@ func TestReconcileNoClusterOwnerRef(t *testing.T) {
 		Log:    log.Log,
 	}
 
-	result := r.reconcile(context.Background(), kcp, r.Log)
+	result, err := r.reconcile(context.Background(), kcp, r.Log)
+	g.Expect(err).NotTo(gomega.HaveOccurred())
 	g.Expect(result).To(gomega.Equal(ctrl.Result{}))
 
 	// Always expect that the Finalizer is set on the passed in resource
@@ -459,8 +462,8 @@ func TestReconcileNoCluster(t *testing.T) {
 		Log:    log.Log,
 	}
 
-	result := r.reconcile(context.Background(), kcp, r.Log)
-	g.Expect(result).To(gomega.Equal(ctrl.Result{Requeue: true}))
+	_, err := r.reconcile(context.Background(), kcp, r.Log)
+	g.Expect(err).To(gomega.HaveOccurred())
 
 	// Always expect that the Finalizer is set on the passed in resource
 	g.Expect(kcp.Finalizers).To(gomega.ContainElement(controlplanev1.KubeadmControlPlaneFinalizer))
@@ -505,9 +508,13 @@ func TestReconcileClusterNoEndpoints(t *testing.T) {
 	r := &KubeadmControlPlaneReconciler{
 		Client: fakeClient,
 		Log:    log.Log,
+		remoteClient: func(c client.Client, _ *clusterv1.Cluster, _ *runtime.Scheme) (client.Client, error) {
+			return c, nil
+		},
 	}
 
-	result := r.reconcile(context.Background(), kcp, r.Log)
+	result, err := r.reconcile(context.Background(), kcp, r.Log)
+	g.Expect(err).NotTo(gomega.HaveOccurred())
 	g.Expect(result).To(gomega.Equal(ctrl.Result{}))
 
 	// Always expect that the Finalizer is set on the passed in resource
@@ -515,7 +522,7 @@ func TestReconcileClusterNoEndpoints(t *testing.T) {
 
 	g.Expect(kcp.Status.Selector).NotTo(gomega.BeEmpty())
 
-	_, err := secret.GetFromNamespacedName(fakeClient, client.ObjectKey{Namespace: "test", Name: "foo"}, secret.ClusterCA)
+	_, err = secret.GetFromNamespacedName(fakeClient, client.ObjectKey{Namespace: "test", Name: "foo"}, secret.ClusterCA)
 	g.Expect(err).NotTo(gomega.HaveOccurred())
 
 	machineList := &clusterv1.MachineList{}
@@ -600,16 +607,20 @@ func TestReconcileInitializeControlPlane(t *testing.T) {
 	r := &KubeadmControlPlaneReconciler{
 		Client: fakeClient,
 		Log:    log.Log,
+		remoteClient: func(c client.Client, _ *clusterv1.Cluster, _ *runtime.Scheme) (client.Client, error) {
+			return c, nil
+		},
 	}
 
-	result := r.reconcile(context.Background(), kcp, r.Log)
-	// TODO: This should be changed to ctrl.Result{} after status updates are implemented
-	g.Expect(result).To(gomega.Equal(ctrl.Result{Requeue: true}))
+	result, err := r.reconcile(context.Background(), kcp, r.Log)
+	g.Expect(err).NotTo(gomega.HaveOccurred())
+	g.Expect(result).To(gomega.Equal(ctrl.Result{}))
 
 	// Always expect that the Finalizer is set on the passed in resource
 	g.Expect(kcp.Finalizers).To(gomega.ContainElement(controlplanev1.KubeadmControlPlaneFinalizer))
 
 	g.Expect(kcp.Status.Selector).NotTo(gomega.BeEmpty())
+	g.Expect(kcp.Status.Replicas).To(gomega.BeEquivalentTo(1))
 
 	secret, err := secret.GetFromNamespacedName(fakeClient, client.ObjectKey{Namespace: "test", Name: "foo"}, secret.ClusterCA)
 	g.Expect(err).NotTo(gomega.HaveOccurred())
@@ -817,4 +828,298 @@ func TestKubeadmControlPlaneReconciler_generateKubeadmConfigWithoutOwner(t *test
 	g.Expect(bootstrapConfig.Labels).To(gomega.Equal(expectedLabels))
 	g.Expect(bootstrapConfig.OwnerReferences).To(gomega.BeEmpty())
 	g.Expect(bootstrapConfig.Spec).To(gomega.Equal(spec))
+}
+
+func Test_getMachineNodeNoNodeRef(t *testing.T) {
+	g := gomega.NewWithT(t)
+
+	fakeClient := fake.NewFakeClientWithScheme(scheme.Scheme)
+
+	m := &clusterv1.Machine{}
+	node, err := getMachineNode(context.Background(), fakeClient, m)
+	g.Expect(err).NotTo(gomega.HaveOccurred())
+	g.Expect(node).To(gomega.BeNil())
+}
+
+func Test_getMachineNodeNotFound(t *testing.T) {
+	g := gomega.NewWithT(t)
+
+	fakeClient := fake.NewFakeClientWithScheme(scheme.Scheme)
+
+	m := &clusterv1.Machine{
+		Status: clusterv1.MachineStatus{
+			NodeRef: &corev1.ObjectReference{
+				Kind:       "Node",
+				APIVersion: corev1.SchemeGroupVersion.String(),
+				Name:       "notfound",
+			},
+		},
+	}
+	node, err := getMachineNode(context.Background(), fakeClient, m)
+	g.Expect(err).NotTo(gomega.HaveOccurred())
+	g.Expect(node).To(gomega.BeNil())
+}
+
+func Test_getMachineNodeFound(t *testing.T) {
+	g := gomega.NewWithT(t)
+
+	node := &corev1.Node{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: "testNode",
+		},
+	}
+	fakeClient := fake.NewFakeClientWithScheme(scheme.Scheme, node.DeepCopy())
+
+	m := &clusterv1.Machine{
+		Status: clusterv1.MachineStatus{
+			NodeRef: &corev1.ObjectReference{
+				Kind:       "Node",
+				APIVersion: corev1.SchemeGroupVersion.String(),
+				Name:       "testNode",
+			},
+		},
+	}
+	node, err := getMachineNode(context.Background(), fakeClient, m)
+	g.Expect(err).NotTo(gomega.HaveOccurred())
+	g.Expect(node).To(gomega.Equal(node))
+}
+
+func TestKubeadmControlPlaneReconciler_updateStatusNoMachines(t *testing.T) {
+	g := gomega.NewWithT(t)
+
+	cluster := &clusterv1.Cluster{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "foo",
+			Namespace: "test",
+		},
+	}
+
+	kcp := &controlplanev1.KubeadmControlPlane{
+		ObjectMeta: metav1.ObjectMeta{
+			Namespace: cluster.Namespace,
+			Name:      "foo",
+		},
+	}
+	kcp.Default()
+	g.Expect(kcp.ValidateCreate()).To(gomega.Succeed())
+
+	g.Expect(clusterv1.AddToScheme(scheme.Scheme)).To(gomega.Succeed())
+	g.Expect(bootstrapv1.AddToScheme(scheme.Scheme)).To(gomega.Succeed())
+	g.Expect(controlplanev1.AddToScheme(scheme.Scheme)).To(gomega.Succeed())
+	fakeClient := fake.NewFakeClientWithScheme(scheme.Scheme, kcp, cluster)
+	log.SetLogger(klogr.New())
+
+	r := &KubeadmControlPlaneReconciler{
+		Client: fakeClient,
+		Log:    log.Log,
+		remoteClient: func(c client.Client, _ *clusterv1.Cluster, _ *runtime.Scheme) (client.Client, error) {
+			return c, nil
+		},
+	}
+
+	g.Expect(r.updateStatus(context.Background(), kcp, cluster)).To(gomega.Succeed())
+	g.Expect(kcp.Status.Replicas).To(gomega.BeEquivalentTo(0))
+	g.Expect(kcp.Status.ReadyReplicas).To(gomega.BeEquivalentTo(0))
+	g.Expect(kcp.Status.UnavailableReplicas).To(gomega.BeEquivalentTo(0))
+	g.Expect(kcp.Status.Initialized).To(gomega.BeFalse())
+	g.Expect(kcp.Status.Ready).To(gomega.BeFalse())
+	g.Expect(kcp.Status.Selector).NotTo(gomega.BeEmpty())
+	g.Expect(kcp.Status.FailureMessage).To(gomega.BeNil())
+	g.Expect(kcp.Status.FailureReason).To(gomega.BeEquivalentTo(""))
+}
+
+func createMachineNodePair(name string, cluster *clusterv1.Cluster, kcp *controlplanev1.KubeadmControlPlane, ready bool) (*clusterv1.Machine, *corev1.Node) {
+	machine := &clusterv1.Machine{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      name,
+			Namespace: cluster.Namespace,
+			Labels:    generateKubeadmControlPlaneLabels(cluster.Name),
+			OwnerReferences: []metav1.OwnerReference{
+				*metav1.NewControllerRef(kcp, controlplanev1.GroupVersion.WithKind("KubeadmControlPlane")),
+			},
+		},
+		Status: clusterv1.MachineStatus{
+			NodeRef: &corev1.ObjectReference{
+				Kind:       "Node",
+				APIVersion: corev1.SchemeGroupVersion.String(),
+				Name:       name,
+			},
+		},
+	}
+
+	node := &corev1.Node{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: name,
+		},
+	}
+
+	if ready {
+		node.Status.Conditions = []corev1.NodeCondition{
+			{
+				Type:   corev1.NodeReady,
+				Status: corev1.ConditionTrue,
+			},
+		}
+	}
+
+	return machine, node
+}
+
+func TestKubeadmControlPlaneReconciler_updateStatusAllMachinesNotReady(t *testing.T) {
+	g := gomega.NewWithT(t)
+
+	cluster := &clusterv1.Cluster{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "foo",
+			Namespace: "test",
+		},
+	}
+
+	kcp := &controlplanev1.KubeadmControlPlane{
+		ObjectMeta: metav1.ObjectMeta{
+			Namespace: cluster.Namespace,
+			Name:      "foo",
+		},
+	}
+	kcp.Default()
+	g.Expect(kcp.ValidateCreate()).To(gomega.Succeed())
+
+	objs := []runtime.Object{cluster.DeepCopy(), kcp.DeepCopy()}
+	for i := 0; i < 3; i++ {
+		name := fmt.Sprintf("test-%d", i)
+		m, n := createMachineNodePair(name, cluster, kcp, false)
+		objs = append(objs, m, n)
+	}
+
+	g.Expect(clusterv1.AddToScheme(scheme.Scheme)).To(gomega.Succeed())
+	g.Expect(bootstrapv1.AddToScheme(scheme.Scheme)).To(gomega.Succeed())
+	g.Expect(controlplanev1.AddToScheme(scheme.Scheme)).To(gomega.Succeed())
+	fakeClient := fake.NewFakeClientWithScheme(scheme.Scheme, objs...)
+	log.SetLogger(klogr.New())
+
+	r := &KubeadmControlPlaneReconciler{
+		Client: fakeClient,
+		Log:    log.Log,
+		remoteClient: func(c client.Client, _ *clusterv1.Cluster, _ *runtime.Scheme) (client.Client, error) {
+			return c, nil
+		},
+	}
+
+	g.Expect(r.updateStatus(context.Background(), kcp, cluster)).To(gomega.Succeed())
+	g.Expect(kcp.Status.Replicas).To(gomega.BeEquivalentTo(3))
+	g.Expect(kcp.Status.ReadyReplicas).To(gomega.BeEquivalentTo(0))
+	g.Expect(kcp.Status.UnavailableReplicas).To(gomega.BeEquivalentTo(3))
+	g.Expect(kcp.Status.Selector).NotTo(gomega.BeEmpty())
+	g.Expect(kcp.Status.FailureMessage).To(gomega.BeNil())
+	g.Expect(kcp.Status.FailureReason).To(gomega.BeEquivalentTo(""))
+	g.Expect(kcp.Status.Initialized).To(gomega.BeFalse())
+	g.Expect(kcp.Status.Ready).To(gomega.BeFalse())
+}
+
+func TestKubeadmControlPlaneReconciler_updateStatusAllMachinesReady(t *testing.T) {
+	g := gomega.NewWithT(t)
+
+	cluster := &clusterv1.Cluster{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "foo",
+			Namespace: "test",
+		},
+	}
+
+	kcp := &controlplanev1.KubeadmControlPlane{
+		ObjectMeta: metav1.ObjectMeta{
+			Namespace: cluster.Namespace,
+			Name:      "foo",
+		},
+	}
+	kcp.Default()
+	g.Expect(kcp.ValidateCreate()).To(gomega.Succeed())
+
+	objs := []runtime.Object{cluster.DeepCopy(), kcp.DeepCopy()}
+	for i := 0; i < 3; i++ {
+		name := fmt.Sprintf("test-%d", i)
+		m, n := createMachineNodePair(name, cluster, kcp, true)
+		objs = append(objs, m, n)
+	}
+
+	g.Expect(clusterv1.AddToScheme(scheme.Scheme)).To(gomega.Succeed())
+	g.Expect(bootstrapv1.AddToScheme(scheme.Scheme)).To(gomega.Succeed())
+	g.Expect(controlplanev1.AddToScheme(scheme.Scheme)).To(gomega.Succeed())
+	fakeClient := fake.NewFakeClientWithScheme(scheme.Scheme, objs...)
+	log.SetLogger(klogr.New())
+
+	r := &KubeadmControlPlaneReconciler{
+		Client: fakeClient,
+		Log:    log.Log,
+		remoteClient: func(c client.Client, _ *clusterv1.Cluster, _ *runtime.Scheme) (client.Client, error) {
+			return c, nil
+		},
+	}
+
+	g.Expect(r.updateStatus(context.Background(), kcp, cluster)).To(gomega.Succeed())
+	g.Expect(kcp.Status.Replicas).To(gomega.BeEquivalentTo(3))
+	g.Expect(kcp.Status.ReadyReplicas).To(gomega.BeEquivalentTo(3))
+	g.Expect(kcp.Status.UnavailableReplicas).To(gomega.BeEquivalentTo(0))
+	g.Expect(kcp.Status.Selector).NotTo(gomega.BeEmpty())
+	g.Expect(kcp.Status.FailureMessage).To(gomega.BeNil())
+	g.Expect(kcp.Status.FailureReason).To(gomega.BeEquivalentTo(""))
+	g.Expect(kcp.Status.Initialized).To(gomega.BeTrue())
+
+	// TODO: will need to be updated once we start handling Ready
+	g.Expect(kcp.Status.Ready).To(gomega.BeFalse())
+}
+
+func TestKubeadmControlPlaneReconciler_updateStatusMachinesReadyMixed(t *testing.T) {
+	g := gomega.NewWithT(t)
+
+	cluster := &clusterv1.Cluster{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "foo",
+			Namespace: "test",
+		},
+	}
+
+	kcp := &controlplanev1.KubeadmControlPlane{
+		ObjectMeta: metav1.ObjectMeta{
+			Namespace: cluster.Namespace,
+			Name:      "foo",
+		},
+	}
+	kcp.Default()
+	g.Expect(kcp.ValidateCreate()).To(gomega.Succeed())
+
+	objs := []runtime.Object{cluster.DeepCopy(), kcp.DeepCopy()}
+	for i := 0; i < 4; i++ {
+		name := fmt.Sprintf("test-%d", i)
+		m, n := createMachineNodePair(name, cluster, kcp, false)
+		objs = append(objs, m, n)
+	}
+	m, n := createMachineNodePair("testReady", cluster, kcp, true)
+	objs = append(objs, m, n)
+
+	g.Expect(clusterv1.AddToScheme(scheme.Scheme)).To(gomega.Succeed())
+	g.Expect(bootstrapv1.AddToScheme(scheme.Scheme)).To(gomega.Succeed())
+	g.Expect(controlplanev1.AddToScheme(scheme.Scheme)).To(gomega.Succeed())
+	fakeClient := fake.NewFakeClientWithScheme(scheme.Scheme, objs...)
+	log.SetLogger(klogr.New())
+
+	r := &KubeadmControlPlaneReconciler{
+		Client: fakeClient,
+		Log:    log.Log,
+		remoteClient: func(c client.Client, _ *clusterv1.Cluster, _ *runtime.Scheme) (client.Client, error) {
+			return c, nil
+		},
+	}
+
+	g.Expect(r.updateStatus(context.Background(), kcp, cluster)).To(gomega.Succeed())
+	g.Expect(kcp.Status.Replicas).To(gomega.BeEquivalentTo(5))
+	g.Expect(kcp.Status.ReadyReplicas).To(gomega.BeEquivalentTo(1))
+	g.Expect(kcp.Status.UnavailableReplicas).To(gomega.BeEquivalentTo(4))
+	g.Expect(kcp.Status.Selector).NotTo(gomega.BeEmpty())
+	g.Expect(kcp.Status.FailureMessage).To(gomega.BeNil())
+	g.Expect(kcp.Status.FailureReason).To(gomega.BeEquivalentTo(""))
+	g.Expect(kcp.Status.Initialized).To(gomega.BeTrue())
+
+	// TODO: will need to be updated once we start handling Ready
+	g.Expect(kcp.Status.Ready).To(gomega.BeFalse())
 }

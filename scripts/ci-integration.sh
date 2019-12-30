@@ -29,6 +29,8 @@ KUSTOMIZE_VERSION="3.1.0"
 CRD_YAML="crd.yaml"
 BOOTSTRAP_CLUSTER_NAME="clusterapi-bootstrap"
 CONTROLLER_REPO="controller-ci" # use arbitrary repo name since we don't need to publish it
+CONTROLLER_REPO_KUBEADM_BOOTSTRAP="controller-ci-kubeadm-bootstrap"
+CONTROLLER_REPO_KUBEADM_CONTROL_PLANE="controller-ci-kubeadm-control-plane"
 EXAMPLE_PROVIDER_REPO="example-provider-ci"
 CERT_MANAGER_URL="https://github.com/jetstack/cert-manager/releases/download/v0.11.0/cert-manager.yaml"
 
@@ -56,6 +58,8 @@ install_kustomize() {
 build_containers() {
    VERSION="$(git describe --exact-match 2> /dev/null || git describe --match="$(git rev-parse --short=8 HEAD)" --always --dirty --abbrev=8)"
    export CONTROLLER_IMG="${CONTROLLER_REPO}"
+   export KUBEADM_BOOTSTRAP_CONTROLLER_IMG="${CONTROLLER_REPO_KUBEADM_BOOTSTRAP}"
+   export KUBEADM_CONTROL_PLANE_CONTROLLER_IMG="${CONTROLLER_REPO_KUBEADM_CONTROL_PLANE}"
    export EXAMPLE_PROVIDER_IMG="${EXAMPLE_PROVIDER_REPO}"
 
    "${MAKE}" docker-build TAG="${VERSION}" ARCH="${GOARCH}" PULL_POLICY=IfNotPresent
@@ -65,8 +69,14 @@ build_containers() {
 prepare_crd_yaml() {
    CLUSTER_API_CONFIG_PATH="./config"
    kustomize build "${CLUSTER_API_CONFIG_PATH}/default/" > "${CRD_YAML}"
-   echo "---" >> "${CRD_YAML}"
-   kustomize build "${CLUSTER_API_CONFIG_PATH}/ci/" >> "${CRD_YAML}"
+   {
+      echo "---"
+      kustomize build "./bootstrap/kubeadm/config/default"
+      echo "---"
+      kustomize build "./controlplane/kubeadm/config/default"
+      echo "---"
+      kustomize build "${CLUSTER_API_CONFIG_PATH}/ci/"
+   } >> "${CRD_YAML}"
 }
 
 create_bootstrap() {
@@ -75,6 +85,8 @@ create_bootstrap() {
    export KUBECONFIG
 
    kind load docker-image "${CONTROLLER_IMG}-${GOARCH}:${VERSION}" --name "${BOOTSTRAP_CLUSTER_NAME}"
+   kind load docker-image "${KUBEADM_BOOTSTRAP_CONTROLLER_IMG}-${GOARCH}:${VERSION}" --name "${BOOTSTRAP_CLUSTER_NAME}"
+   kind load docker-image "${KUBEADM_CONTROL_PLANE_CONTROLLER_IMG}-${GOARCH}:${VERSION}" --name "${BOOTSTRAP_CLUSTER_NAME}"
    kind load docker-image "${EXAMPLE_PROVIDER_IMG}-${GOARCH}:${VERSION}" --name "${BOOTSTRAP_CLUSTER_NAME}"
 }
 

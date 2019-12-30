@@ -54,10 +54,21 @@ GOBINDATA_CLUSTERCTL_DIR := cmd/clusterctl/config
 
 # Define Docker related variables. Releases should modify and double check these vars.
 REGISTRY ?= gcr.io/$(shell gcloud config get-value project)
-STAGING_REGISTRY := gcr.io/k8s-staging-cluster-api
-PROD_REGISTRY := us.gcr.io/k8s-artifacts-prod/cluster-api
+STAGING_REGISTRY ?= gcr.io/k8s-staging-cluster-api
+PROD_REGISTRY ?= us.gcr.io/k8s-artifacts-prod/cluster-api
+
+# core
 IMAGE_NAME ?= cluster-api-controller
 CONTROLLER_IMG ?= $(REGISTRY)/$(IMAGE_NAME)
+
+# bootstrap
+KUBEADM_BOOTSTRAP_IMAGE_NAME ?= kubeadm-bootstrap-controller
+KUBEADM_BOOTSTRAP_CONTROLLER_IMG ?= $(REGISTRY)/$(KUBEADM_BOOTSTRAP_IMAGE_NAME)
+
+# control plane
+KUBEADM_CONTROL_PLANE_IMAGE_NAME ?= kubeadm-control-plane-controller
+KUBEADM_CONTROL_PLANE_CONTROLLER_IMG ?= $(REGISTRY)/$(KUBEADM_CONTROL_PLANE_IMAGE_NAME)
+
 TAG ?= dev
 ARCH ?= amd64
 ALL_ARCH = amd64 arm arm64 ppc64le s390x
@@ -100,9 +111,23 @@ test-e2e: ## Run e2e tests
 ## Binaries
 ## --------------------------------------
 
-.PHONY: manager
-manager: ## Build manager binary
+.PHONY: manager-core
+manager-core: ## Build core manager binary
 	go build -o $(BIN_DIR)/manager sigs.k8s.io/cluster-api
+
+.PHONY: manager-kubeadm-bootstrap
+manager-kubeadm-bootstrap: ## Build kubeadm bootstrap manager
+	go build -o $(BIN_DIR)/kubeadm-bootstrap-manager sigs.k8s.io/cluster-api/bootstrap/kubeadm
+
+.PHONY: manager-kubeadm-control-plane
+manager-kubeadm-control-plane: ## Build kubeadm control plane manager
+	go build -o $(BIN_DIR)/kubeadm-control-plane-manager sigs.k8s.io/cluster-api/controlplane/kubeadm
+
+.PHONY: managers
+managers: ## Build all managers
+	$(MAKE) manager-core
+	$(MAKE) manager-kubeadm-bootstrap
+	$(MAKE) manager-kubeadm-control-plane
 
 .PHONY: clusterctl
 clusterctl: ## Build clusterctl binary
@@ -146,27 +171,43 @@ lint-full: $(GOLANGCI_LINT) ## Run slower linters to detect possible issues
 ## --------------------------------------
 
 .PHONY: generate
-generate: $(CONTROLLER_GEN) ## Generate code
+generate: ## Generate code
 	$(MAKE) generate-manifests
 	$(MAKE) generate-go
 	$(MAKE) generate-bindata
 
 .PHONY: generate-go
-generate-go: $(CONTROLLER_GEN) $(CONVERSION_GEN) ## Runs Go related generate targets
+generate-go: ## Runs Go related generate targets
+	$(MAKE) generate-go-core
+	$(MAKE) generate-go-kubeadm-bootstrap
+	$(MAKE) generate-go-kubeadm-control-plane
+
+.PHONY: generate-go-core
+generate-go-core: $(CONTROLLER_GEN) $(CONVERSION_GEN)
 	$(CONTROLLER_GEN) \
 		object:headerFile=./hack/boilerplate/boilerplate.generatego.txt \
 		paths=./api/... \
-		paths=./bootstrap/kubeadm/api/... \
-		paths=./controlplane/kubeadm/api/... \
 		paths=./cmd/clusterctl/api/...
 	$(CONVERSION_GEN) \
 		--input-dirs=./api/v1alpha2 \
 		--output-file-base=zz_generated.conversion \
 		--go-header-file=./hack/boilerplate/boilerplate.generatego.txt
+
+.PHONY: generate-go-kubeadm-bootstrap
+generate-go-kubeadm-bootstrap: $(CONTROLLER_GEN) $(CONVERSION_GEN) ## Runs Go related generate targets for the kubeadm bootstrapper
+	$(CONTROLLER_GEN) \
+		object:headerFile=./hack/boilerplate/boilerplate.generatego.txt \
+		paths=./bootstrap/kubeadm/api/...
 	$(CONVERSION_GEN) \
 		--input-dirs=./bootstrap/kubeadm/api/v1alpha2 \
 		--output-file-base=zz_generated.conversion \
 		--go-header-file=./hack/boilerplate/boilerplate.generatego.txt
+
+.PHONY: generate-go-kubeadm-control-plane
+generate-go-kubeadm-control-plane: $(CONTROLLER_GEN) $(CONVERSION_GEN) ## Runs Go related generate targets for the kubeadm control plane
+	$(CONTROLLER_GEN) \
+		object:headerFile=./hack/boilerplate/boilerplate.generatego.txt \
+		paths=./controlplane/kubeadm/api/...
 
 .PHONY: generate-bindata
 generate-bindata: $(KUSTOMIZE) $(GOBINDATA) clean-bindata ## Generate code for embedding the clusterctl api manifest
@@ -181,7 +222,13 @@ generate-bindata: $(KUSTOMIZE) $(GOBINDATA) clean-bindata ## Generate code for e
 	$(MAKE) clean-bindata
 
 .PHONY: generate-manifests
-generate-manifests: $(CONTROLLER_GEN) ## Generate manifests e.g. CRD, RBAC etc.
+generate-manifests: ## Generate manifests e.g. CRD, RBAC etc.
+	$(MAKE) generate-core-manifests
+	$(MAKE) generate-kubeadm-bootstrap-manifests
+	$(MAKE) generate-kubeadm-control-plane-manifests
+
+.PHONY: generate-core-manifests
+generate-core-manifests: $(CONTROLLER_GEN) ## Generate manifests for the core provider e.g. CRD, RBAC etc.
 	$(CONTROLLER_GEN) \
 		paths=./api/... \
 		paths=./controllers/... \
@@ -191,28 +238,36 @@ generate-manifests: $(CONTROLLER_GEN) ## Generate manifests e.g. CRD, RBAC etc.
 		output:webhook:dir=./config/webhook \
 		webhook
 	$(CONTROLLER_GEN) \
-		paths=./bootstrap/kubeadm/api/... \
-		paths=./bootstrap/kubeadm/controllers/... \
-		crd:preserveUnknownFields=false \
-		rbac:roleName=bootstrap-manager-role \
-		output:crd:dir=./config/bootstrap/crd/bases \
-		output:rbac:dir=./config/bootstrap/rbac
-	$(CONTROLLER_GEN) \
-		paths=./controlplane/kubeadm/api/... \
-		paths=./controlplane/kubeadm/controllers/... \
-		crd:preserveUnknownFields=false \
-		rbac:roleName=controlplane-manager-role \
-		output:crd:dir=./config/controlplane/crd/bases \
-		output:rbac:dir=./config/controlplane/rbac \
-		output:webhook:dir=./config/controlplane/webhook \
-		webhook
-	$(CONTROLLER_GEN) \
 		paths=./cmd/clusterctl/api/... \
 		crd:trivialVersions=true,preserveUnknownFields=false \
 		output:crd:dir=./cmd/clusterctl/config/crd/bases
 	## Copy files in CI folders.
 	cp -f ./config/rbac/*.yaml ./config/ci/rbac/
 	cp -f ./config/manager/manager*.yaml ./config/ci/manager/
+
+.PHONY: generate-kubeadm-bootstrap-manifests
+generate-kubeadm-bootstrap-manifests: $(CONTROLLER_GEN) ## Generate manifests for the kubeadm bootstrap provider e.g. CRD, RBAC etc.
+	$(CONTROLLER_GEN) \
+		paths=./bootstrap/kubeadm/api/... \
+		paths=./bootstrap/kubeadm/controllers/... \
+		crd:trivialVersions=false,preserveUnknownFields=false \
+		rbac:roleName=manager-role \
+		output:crd:dir=./bootstrap/kubeadm/config/crd/bases \
+		output:rbac:dir=./bootstrap/kubeadm/config/rbac \
+		output:webhook:dir=./bootstrap/kubeadm/config/webhook \
+		webhook
+
+.PHONY: generate-kubeadm-control-plane-manifests
+generate-kubeadm-control-plane-manifests: $(CONTROLLER_GEN) ## Generate manifests for the kubeadm control plane provider e.g. CRD, RBAC etc.
+	$(CONTROLLER_GEN) \
+		paths=./controlplane/kubeadm/api/... \
+		paths=./controlplane/kubeadm/controllers/... \
+		crd:preserveUnknownFields=false \
+		rbac:roleName=manager-role \
+		output:crd:dir=./controlplane/kubeadm/config/crd/bases \
+		output:rbac:dir=./controlplane/kubeadm/config/rbac \
+		output:webhook:dir=./controlplane/kubeadm/config/webhook \
+		webhook
 
 .PHONY: modules
 modules: ## Runs go mod to ensure modules are up to date.
@@ -226,14 +281,34 @@ modules: ## Runs go mod to ensure modules are up to date.
 ## --------------------------------------
 
 .PHONY: docker-build
-docker-build: ## Build the docker image for controller-manager
+docker-build: ## Build the docker images for controller managers
+	$(MAKE) ARCH=$(ARCH) docker-build-core
+	$(MAKE) ARCH=$(ARCH) docker-build-kubeadm-bootstrap
+	$(MAKE) ARCH=$(ARCH) docker-build-kubeadm-control-plane
+
+.PHONY: docker-build-core
+docker-build-core: ## Build the docker image for core controller manager
 	docker build --pull --build-arg ARCH=$(ARCH) . -t $(CONTROLLER_IMG)-$(ARCH):$(TAG)
-	MANIFEST_IMG=$(CONTROLLER_IMG)-$(ARCH) MANIFEST_TAG=$(TAG) $(MAKE) set-manifest-image
-	$(MAKE) set-manifest-pull-policy
+	$(MAKE) set-manifest-image MANIFEST_IMG=$(CONTROLLER_IMG)-$(ARCH) MANIFEST_TAG=$(TAG) TARGET_RESOURCE="./config/core/manager_image_patch.yaml"
+	$(MAKE) set-manifest-pull-policy TARGET_RESOURCE="./config/core/manager_pull_policy.yaml"
+
+.PHONY: docker-build-kubeadm-bootstrap
+docker-build-kubeadm-bootstrap: ## Build the docker image for kubeadm bootstrap controller manager
+	docker build --pull --build-arg ARCH=$(ARCH) --build-arg package=./bootstrap/kubeadm . -t $(KUBEADM_BOOTSTRAP_CONTROLLER_IMG)-$(ARCH):$(TAG)
+	$(MAKE) set-manifest-image MANIFEST_IMG=$(KUBEADM_BOOTSTRAP_CONTROLLER_IMG)-$(ARCH) MANIFEST_TAG=$(TAG) TARGET_RESOURCE="./bootstrap/kubeadm/config/default/manager_image_patch.yaml"
+	$(MAKE) set-manifest-pull-policy TARGET_RESOURCE="./bootstrap/kubeadm/config/default/manager_pull_policy.yaml"
+
+.PHONY: docker-build-kubeadm-control-plane
+docker-build-kubeadm-control-plane: ## Build the docker image for kubeadm control plane controller manager
+	docker build --pull --build-arg ARCH=$(ARCH) --build-arg package=./controlplane/kubeadm . -t $(KUBEADM_CONTROL_PLANE_CONTROLLER_IMG)-$(ARCH):$(TAG)
+	$(MAKE) set-manifest-image MANIFEST_IMG=$(KUBEADM_CONTROL_PLANE_CONTROLLER_IMG)-$(ARCH) MANIFEST_TAG=$(TAG) TARGET_RESOURCE="./controlplane/kubeadm/config/default/manager_image_patch.yaml"
+	$(MAKE) set-manifest-pull-policy TARGET_RESOURCE="./controlplane/kubeadm/config/default/manager_pull_policy.yaml"
 
 .PHONY: docker-push
-docker-push: ## Push the docker image
+docker-push: ## Push the docker images
 	docker push $(CONTROLLER_IMG)-$(ARCH):$(TAG)
+	docker push $(KUBEADM_BOOTSTRAP_CONTROLLER_IMG)-$(ARCH):$(TAG)
+	docker push $(KUBEADM_CONTROL_PLANE_CONTROLLER_IMG)-$(ARCH):$(TAG)
 
 ## --------------------------------------
 ## Docker — All ARCH
@@ -247,29 +322,49 @@ docker-build-%:
 
 .PHONY: docker-push-all ## Push all the architecture docker images
 docker-push-all: $(addprefix docker-push-,$(ALL_ARCH))
-	$(MAKE) docker-push-manifest
+	$(MAKE) docker-push-core-manifest
+	$(MAKE) docker-push-kubeadm-bootstrap-manifest
+	$(MAKE) docker-push-kubeadm-control-plane-manifest
 
 docker-push-%:
 	$(MAKE) ARCH=$* docker-push
 
-.PHONY: docker-push-manifest
-docker-push-manifest: ## Push the fat manifest docker image.
+.PHONY: docker-push-core-manifest
+docker-push-core-manifest: ## Push the fat manifest docker image for the core image.
 	## Minimum docker version 18.06.0 is required for creating and pushing manifest images.
 	docker manifest create --amend $(CONTROLLER_IMG):$(TAG) $(shell echo $(ALL_ARCH) | sed -e "s~[^ ]*~$(CONTROLLER_IMG)\-&:$(TAG)~g")
 	@for arch in $(ALL_ARCH); do docker manifest annotate --arch $${arch} ${CONTROLLER_IMG}:${TAG} ${CONTROLLER_IMG}-$${arch}:${TAG}; done
 	docker manifest push --purge $(CONTROLLER_IMG):$(TAG)
-	MANIFEST_IMG=$(CONTROLLER_IMG) MANIFEST_TAG=$(TAG) $(MAKE) set-manifest-image
-	$(MAKE) set-manifest-pull-policy
+	$(MAKE) set-manifest-image MANIFEST_IMG=$(CONTROLLER_IMG) MANIFEST_TAG=$(TAG) TARGET_RESOURCE="./config/core/manager_image_patch.yaml"
+	$(MAKE) set-manifest-pull-policy TARGET_RESOURCE="./config/core/manager_pull_policy.yaml"
+
+.PHONY: docker-push-kubeadm-bootstrap-manifest
+docker-push-kubeadm-bootstrap-manifest: ## Push the fat manifest docker image for the kubeadm bootstrap image.
+	## Minimum docker version 18.06.0 is required for creating and pushing manifest images.
+	docker manifest create --amend $(KUBEADM_BOOTSTRAP_CONTROLLER_IMG):$(TAG) $(shell echo $(ALL_ARCH) | sed -e "s~[^ ]*~$(KUBEADM_BOOTSTRAP_CONTROLLER_IMG)\-&:$(TAG)~g")
+	@for arch in $(ALL_ARCH); do docker manifest annotate --arch $${arch} ${KUBEADM_BOOTSTRAP_CONTROLLER_IMG}:${TAG} ${KUBEADM_BOOTSTRAP_CONTROLLER_IMG}-$${arch}:${TAG}; done
+	docker manifest push --purge $(KUBEADM_BOOTSTRAP_CONTROLLER_IMG):$(TAG)
+	$(MAKE) set-manifest-image MANIFEST_IMG=$(KUBEADM_BOOTSTRAP_CONTROLLER_IMG) MANIFEST_TAG=$(TAG) TARGET_RESOURCE="./bootstrap/kubeadm/config/default/manager_image_patch.yaml"
+	$(MAKE) set-manifest-pull-policy TARGET_RESOURCE="./bootstrap/kubeadm/config/default/manager_pull_policy.yaml"
+
+.PHONY: docker-push-kubeadm-control-plane-manifest
+docker-push-kubeadm-control-plane-manifest: ## Push the fat manifest docker image for the kubeadm control plane image.
+	## Minimum docker version 18.06.0 is required for creating and pushing manifest images.
+	docker manifest create --amend $(KUBEADM_CONTROL_PLANE_CONTROLLER_IMG):$(TAG) $(shell echo $(ALL_ARCH) | sed -e "s~[^ ]*~$(KUBEADM_CONTROL_PLANE_CONTROLLER_IMG)\-&:$(TAG)~g")
+	@for arch in $(ALL_ARCH); do docker manifest annotate --arch $${arch} ${KUBEADM_CONTROL_PLANE_CONTROLLER_IMG}:${TAG} ${KUBEADM_CONTROL_PLANE_CONTROLLER_IMG}-$${arch}:${TAG}; done
+	docker manifest push --purge $(KUBEADM_CONTROL_PLANE_CONTROLLER_IMG):$(TAG)
+	$(MAKE) set-kubeadm-control-plane-manifest-image MANIFEST_IMG=$(KUBEADM_CONTROL_PLANE_CONTROLLER_IMG) MANIFEST_TAG=$(TAG) TARGET_RESOURCE="./controlplane/kubeadm/config/default/manager_image_patch.yaml"
+	$(MAKE) set-manifest-pull-policy TARGET_RESOURCE="./controlplane/kubeadm/config/default/manager_pull_policy.yaml"
+
+.PHONY: set-manifest-pull-policy
+set-manifest-pull-policy:
+	$(info Updating kustomize pull policy file for manager resources)
+	sed -i'' -e 's@imagePullPolicy: .*@imagePullPolicy: '"$(PULL_POLICY)"'@' $(TARGET_RESOURCE)
 
 .PHONY: set-manifest-image
 set-manifest-image:
 	$(info Updating kustomize image patch file for manager resource)
-	sed -i'' -e 's@image: .*@image: '"${MANIFEST_IMG}:$(MANIFEST_TAG)"'@' ./config/core/manager_image_patch.yaml
-
-.PHONY: set-manifest-pull-policy
-set-manifest-pull-policy:
-	$(info Updating kustomize pull policy file for manager resource)
-	sed -i'' -e 's@imagePullPolicy: .*@imagePullPolicy: '"$(PULL_POLICY)"'@' ./config/core/manager_pull_policy.yaml
+	sed -i'' -e 's@image: .*@image: '"${MANIFEST_IMG}:$(MANIFEST_TAG)"'@' $(TARGET_RESOURCE)
 
 ## --------------------------------------
 ## Release
@@ -286,19 +381,30 @@ release: clean-release ## Builds and push container images using the latest git 
 	@if [ -z "${RELEASE_TAG}" ]; then echo "RELEASE_TAG is not set"; exit 1; fi
 	@if ! [ -z "$$(git status --porcelain)" ]; then echo "Your local git repository contains uncommitted changes, use git clean before proceeding."; exit 1; fi
 	git checkout "${RELEASE_TAG}"
-	# Set the manifest image to the production bucket.
-	MANIFEST_IMG=$(PROD_REGISTRY)/$(IMAGE_NAME) MANIFEST_TAG=$(RELEASE_TAG) \
-		$(MAKE) set-manifest-image
-	PULL_POLICY=IfNotPresent $(MAKE) set-manifest-pull-policy
+	# Set the core manifest image to the production bucket.
+	$(MAKE) set-manifest-image \
+		MANIFEST_IMG=$(PROD_REGISTRY)/$(IMAGE_NAME) MANIFEST_TAG=$(RELEASE_TAG) \
+		TARGET_RESOURCE="./config/core/manager_image_patch.yaml"
+	# Set the kubeadm bootstrap image to the production bucket.
+	$(MAKE) set-manifest-image \
+		MANIFEST_IMG=$(PROD_REGISTRY)/$(KUBEADM_BOOTSTRAP_IMAGE_NAME) MANIFEST_TAG=$(RELEASE_TAG) \
+		TARGET_RESOURCE="./bootstrap/kubeadm/config/default/manager_image_patch.yaml"
+	# Set the kubeadm control plane image to the production bucket.
+	$(MAKE) set-manifest-image \
+		MANIFEST_IMG=$(PROD_REGISTRY)/$(KUBEADM_CONTROL_PLANE_IMAGE_NAME) MANIFEST_TAG=$(RELEASE_TAG) \
+		TARGET_RESOURCE="./controlplane/kubeadm/config/default/manager_image_patch.yaml"
+	$(MAKE) set-manifest-pull-policy PULL_POLICY=IfNotPresent TARGET_RESOURCE="./config/core/manager_pull_policy.yaml"
+	$(MAKE) set-manifest-pull-policy PULL_POLICY=IfNotPresent TARGET_RESOURCE="./bootstrap/kubeadm/config/default/manager_pull_policy.yaml"
+	$(MAKE) set-manifest-pull-policy PULL_POLICY=IfNotPresent TARGET_RESOURCE="./controlplane/kubeadm/config/default/manager_pull_policy.yaml"
 	$(MAKE) release-manifests
 	$(MAKE) release-binaries
 
 .PHONY: release-manifests
 release-manifests: $(RELEASE_DIR) ## Builds the manifests to publish with a release
 	$(KUSTOMIZE) build config/core > $(RELEASE_DIR)/core-components.yaml
-	$(KUSTOMIZE) build config/bootstrap > $(RELEASE_DIR)/bootstrap-components.yaml
-	$(KUSTOMIZE) build config/controlplane > $(RELEASE_DIR)/controlplane-components.yaml
-	$(KUSTOMIZE) build config/default > $(RELEASE_DIR)/cluster-api-components.yaml
+	$(KUSTOMIZE) build bootstrap/kubeadm/config/default > $(RELEASE_DIR)/bootstrap-components.yaml
+	$(KUSTOMIZE) build controlplane/kubeadm/config/default > $(RELEASE_DIR)/control-plane-components.yaml
+	cat $(RELEASE_DIR)/core-components.yaml $(RELEASE_DIR)/bootstrap-components.yaml $(RELEASE_DIR)/control-plane-components.yaml > $(RELEASE_DIR)/cluster-api-components.yaml
 
 release-binaries: ## Builds the binaries to publish with a release
 	RELEASE_BINARY=./cmd/clusterctl GOOS=linux GOARCH=amd64 $(MAKE) release-binary
@@ -323,8 +429,10 @@ release-staging: ## Builds and push container images to the staging bucket.
 RELEASE_ALIAS_TAG=$(PULL_BASE_REF)
 
 .PHONY: release-alias-tag
-release-alias-tag: # Adds the tag to the last build tag.
+release-alias-tag: ## Adds the tag to the last build tag.
 	gcloud container images add-tag $(CONTROLLER_IMG):$(TAG) $(CONTROLLER_IMG):$(RELEASE_ALIAS_TAG)
+	gcloud container images add-tag $(KUBEADM_BOOTSTRAP_CONTROLLER_IMG):$(TAG) $(KUBEADM_BOOTSTRAP_CONTROLLER_IMG):$(RELEASE_ALIAS_TAG)
+	gcloud container images add-tag $(KUBEADM_CONTROL_PLANE_CONTROLLER_IMG):$(TAG) $(KUBEADM_CONTROL_PLANE_CONTROLLER_IMG):$(RELEASE_ALIAS_TAG)
 
 .PHONY: release-notes
 release-notes:  ## Generates a release notes template to be used with a release.

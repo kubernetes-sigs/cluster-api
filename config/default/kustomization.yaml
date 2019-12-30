@@ -7,10 +7,6 @@ namespace: capi-system
 bases:
 ## Vanilla capi components
 - ../core
-## Kubeadm-specific components
-- ../bootstrap
-- ../controlplane
-
 
 patchesJson6902:
 ## Unfortunately, you can't just delete from the args list with patches

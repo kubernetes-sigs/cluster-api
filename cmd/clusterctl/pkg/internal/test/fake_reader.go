@@ -42,15 +42,19 @@ func (f *FakeReader) Init(config string) error {
 	return nil
 }
 
-func (f *FakeReader) GetString(key string) (string, error) {
+func (f *FakeReader) Get(key string) (string, error) {
 	if val, ok := f.variables[key]; ok {
 		return val, nil
 	}
 	return "", errors.Errorf("value for variable %q is not set", key)
 }
 
+func (f *FakeReader) Set(key, value string) {
+	f.variables[key] = value
+}
+
 func (f *FakeReader) UnmarshalKey(key string, rawval interface{}) error {
-	data, err := f.GetString(key)
+	data, err := f.Get(key)
 	if err != nil {
 		return nil
 	}

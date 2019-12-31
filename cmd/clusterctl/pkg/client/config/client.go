@@ -94,9 +94,13 @@ type Reader interface {
 	// Init allows to initialize the configuration reader.
 	Init(path string) error
 
-	// GetString returns a configuration value of type string.
+	// Get returns a configuration value of type string.
 	// In case the configuration value does not exists, it returns an error.
-	GetString(key string) (string, error)
+	Get(key string) (string, error)
+
+	// Set allows to set an explicit override for a config value.
+	// e.g. It is used to set an override from a flag value over environment/config file variables.
+	Set(key, value string)
 
 	// UnmarshalKey reads a configuration value and unmarshals it into the provided value object.
 	UnmarshalKey(key string, value interface{}) error

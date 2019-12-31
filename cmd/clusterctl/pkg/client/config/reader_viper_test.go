@@ -23,7 +23,7 @@ import (
 	"testing"
 )
 
-func Test_viperReader_GetString(t *testing.T) {
+func Test_viperReader_Get(t *testing.T) {
 	dir, err := ioutil.TempDir("", "clusterctl")
 	if err != nil {
 		t.Fatalf("ioutil.TempDir() error = %v", err)
@@ -81,13 +81,69 @@ func Test_viperReader_GetString(t *testing.T) {
 				t.Fatalf("Init() error = %v", err)
 			}
 
-			got, err := v.GetString(tt.args.key)
+			got, err := v.Get(tt.args.key)
 			if (err != nil) != tt.wantErr {
-				t.Errorf("GetString() error = %v, wantErr %v", err, tt.wantErr)
+				t.Errorf("Get() error = %v, wantErr %v", err, tt.wantErr)
 				return
 			}
 			if got != tt.want {
-				t.Errorf("GetString() got = %v, want %v", got, tt.want)
+				t.Errorf("Get() got = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
+
+func Test_viperReader_Set(t *testing.T) {
+	dir, err := ioutil.TempDir("", "clusterctl")
+	if err != nil {
+		t.Fatalf("ioutil.TempDir() error = %v", err)
+	}
+	defer os.RemoveAll(dir)
+
+	os.Setenv("FOO", "foo")
+
+	configFile := filepath.Join(dir, ".clusterctl.yaml")
+
+	if err := ioutil.WriteFile(configFile, []byte("bar: bar"), 0640); err != nil {
+		t.Fatalf("ioutil.WriteFile() error = %v", err)
+	}
+
+	type args struct {
+		key   string
+		value string
+	}
+	tests := []struct {
+		name string
+		args args
+		want string
+	}{
+		{
+			name: "",
+			args: args{
+				key:   "FOO",
+				value: "bar",
+			},
+			want: "bar",
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			v := &viperReader{}
+
+			err := v.Init(configFile)
+			if err != nil {
+				t.Fatalf("Init() error = %v", err)
+			}
+
+			v.Set(tt.args.key, tt.args.value)
+
+			got, err := v.Get(tt.args.key)
+			if err != nil {
+				t.Errorf("Get() error = %v", err)
+				return
+			}
+			if got != tt.want {
+				t.Errorf("Get() got = %v, want %v (Set() did not worked)", got, tt.want)
 			}
 		})
 	}

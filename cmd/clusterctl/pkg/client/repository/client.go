@@ -31,6 +31,9 @@ import (
 type Client interface {
 	config.Provider
 
+	// GetVersion return the list of versions that are available in a provider repository
+	GetVersions() ([]string, error)
+
 	// Components provide access to YAML file for creating provider components.
 	Components() ComponentsClient
 
@@ -48,6 +51,10 @@ type repositoryClient struct {
 
 // ensure repositoryClient implements Client.
 var _ Client = &repositoryClient{}
+
+func (c *repositoryClient) GetVersions() ([]string, error) {
+	return c.repository.GetVersions()
+}
 
 func (c *repositoryClient) Components() ComponentsClient {
 	return newComponentsClient(c.Provider, c.repository, c.configVariablesClient)
@@ -121,6 +128,9 @@ type Repository interface {
 
 	// GetFile return a file for a given provider version.
 	GetFile(version string, path string) ([]byte, error)
+
+	// GetVersion return the list of versions that are available in a provider repository
+	GetVersions() ([]string, error)
 }
 
 var _ Repository = &test.FakeRepository{}

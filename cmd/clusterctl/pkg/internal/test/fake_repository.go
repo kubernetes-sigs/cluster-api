@@ -55,6 +55,14 @@ func (f FakeRepository) GetFile(version string, path string) ([]byte, error) {
 	return nil, errors.Errorf("unable to get file %s for version %s", path, version)
 }
 
+func (f *FakeRepository) GetVersions() ([]string, error) {
+	v := make([]string, len(f.versions))
+	for k := range f.versions {
+		v = append(v, k)
+	}
+	return v, nil
+}
+
 func NewFakeRepository() *FakeRepository {
 	return &FakeRepository{
 		versions: map[string]bool{},
@@ -76,6 +84,13 @@ func (f *FakeRepository) WithDefaultVersion(version string) *FakeRepository {
 func (f *FakeRepository) WithFile(version, path string, content []byte) *FakeRepository {
 	f.versions[version] = true
 	f.files[vpath(version, path)] = content
+	return f
+}
+
+func (f *FakeRepository) WithVersions(version ...string) *FakeRepository {
+	for _, v := range version {
+		f.versions[v] = true
+	}
 	return f
 }
 

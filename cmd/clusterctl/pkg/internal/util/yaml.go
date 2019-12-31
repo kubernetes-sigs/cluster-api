@@ -67,3 +67,17 @@ func ToUnstructured(rawyaml []byte) ([]unstructured.Unstructured, error) {
 
 	return ret, nil
 }
+
+// FromUnstructured takes a list of Unstructured objects and converts it into a YAML
+func FromUnstructured(objs []unstructured.Unstructured) ([]byte, error) {
+	var ret [][]byte //nolint
+	for _, o := range objs {
+		content, err := yaml.Marshal(o.UnstructuredContent())
+		if err != nil {
+			return nil, errors.Wrapf(err, "failed to marshal yaml for %s/%s", o.GetNamespace(), o.GetName())
+		}
+		ret = append(ret, content)
+	}
+
+	return JoinYaml(ret...), nil
+}

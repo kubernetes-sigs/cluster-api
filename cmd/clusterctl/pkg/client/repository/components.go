@@ -31,7 +31,6 @@ import (
 	"sigs.k8s.io/cluster-api/cmd/clusterctl/pkg/client/config"
 	"sigs.k8s.io/cluster-api/cmd/clusterctl/pkg/internal/scheme"
 	"sigs.k8s.io/cluster-api/cmd/clusterctl/pkg/internal/util"
-	"sigs.k8s.io/yaml"
 )
 
 // variableRegEx defines the regexp used for searching variables inside a YAML
@@ -129,16 +128,7 @@ func (c *components) Objs() []unstructured.Unstructured {
 }
 
 func (c *components) Yaml() ([]byte, error) {
-	var ret [][]byte //nolint
-	for _, o := range c.objs {
-		content, err := yaml.Marshal(o.UnstructuredContent())
-		if err != nil {
-			return nil, errors.Wrapf(err, "failed to marshal yaml for %s/%s", o.GetNamespace(), o.GetName())
-		}
-		ret = append(ret, content)
-	}
-
-	return util.JoinYaml(ret...), nil
+	return util.FromUnstructured(c.objs)
 }
 
 // newComponents returns a new objects embedding a component YAML file
@@ -186,6 +176,10 @@ func newComponents(provider config.Provider, version string, rawyaml []byte, con
 		return nil, errors.New("target namespace can't be defaulted. Please specify a target namespace")
 	}
 
+	// add a Namespace object if missing (ensure the targetNamespace will be created)
+	objs = addNamespaceIfMissing(objs, targetNamespace)
+
+	// fix Namespace name in all the objects
 	objs = fixTargetNamespace(objs, targetNamespace)
 
 	// ensure all the ClusterRoleBinding which are referencing namespaced objects have the name prefixed with the namespace name
@@ -279,21 +273,13 @@ func inspectTargetNamespace(objs []unstructured.Unstructured) (string, error) {
 	return namespace, nil
 }
 
-// fixTargetNamespace ensures all the provider components are deployed in the target namespace (apply only to namespaced objects).
-// The func tales case of fixing the namespace object, if any.
-func fixTargetNamespace(objs []unstructured.Unstructured, targetNamespace string) []unstructured.Unstructured {
+// addNamespaceIfMissing adda a Namespace object if missing (this ensure the targetNamespace will be created)
+func addNamespaceIfMissing(objs []unstructured.Unstructured, targetNamespace string) []unstructured.Unstructured {
 	namespaceObjectFound := false
-
 	for _, o := range objs {
 		// if the object has Kind Namespace, fix the namespace name
 		if o.GetKind() == namespaceKind {
 			namespaceObjectFound = true
-			o.SetName(targetNamespace)
-		}
-
-		// if the object is namespaced, set the namespace name
-		if isResourceNamespaced(o.GetKind()) {
-			o.SetNamespace(targetNamespace)
 		}
 	}
 
@@ -307,6 +293,23 @@ func fixTargetNamespace(objs []unstructured.Unstructured, targetNamespace string
 				},
 			},
 		})
+	}
+
+	return objs
+}
+
+// fixTargetNamespace ensures all the provider components are deployed in the target namespace (apply only to namespaced objects).
+func fixTargetNamespace(objs []unstructured.Unstructured, targetNamespace string) []unstructured.Unstructured {
+	for _, o := range objs {
+		// if the object has Kind Namespace, fix the namespace name
+		if o.GetKind() == namespaceKind {
+			o.SetName(targetNamespace)
+		}
+
+		// if the object is namespaced, set the namespace name
+		if isResourceNamespaced(o.GetKind()) {
+			o.SetNamespace(targetNamespace)
+		}
 	}
 
 	return objs

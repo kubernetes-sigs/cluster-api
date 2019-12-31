@@ -188,7 +188,7 @@ func Test_inspectTargetNamespace(t *testing.T) {
 	}
 }
 
-func Test_fixTargetNamespace_A(t *testing.T) {
+func Test_fixTargetNamespace(t *testing.T) {
 	type args struct {
 		objs            []unstructured.Unstructured
 		targetNamespace string
@@ -196,6 +196,7 @@ func Test_fixTargetNamespace_A(t *testing.T) {
 	tests := []struct {
 		name string
 		args args
+		want []unstructured.Unstructured
 	}{
 		{
 			name: "fix Namespace object if exists",
@@ -212,41 +213,17 @@ func Test_fixTargetNamespace_A(t *testing.T) {
 				},
 				targetNamespace: "bar",
 			},
-		},
-		{
-			name: "add Namespace object if it does not exists",
-			args: args{
-				objs:            []unstructured.Unstructured{},
-				targetNamespace: "bar",
+			want: []unstructured.Unstructured{
+				{
+					Object: map[string]interface{}{
+						"kind": namespaceKind,
+						"metadata": map[string]interface{}{
+							"name": "bar",
+						},
+					},
+				},
 			},
 		},
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			got := fixTargetNamespace(tt.args.objs, tt.args.targetNamespace)
-
-			wgot, err := inspectTargetNamespace(got)
-			if err != nil {
-				t.Fatalf("inspectTargetNamespace() error = %v", err)
-			}
-
-			if wgot != tt.args.targetNamespace {
-				t.Errorf("fixTargetNamespace().targetNamespace got = %v, want %v", wgot, tt.args.targetNamespace)
-			}
-		})
-	}
-}
-
-func Test_fixTargetNamespace_B(t *testing.T) {
-	type args struct {
-		objs            []unstructured.Unstructured
-		targetNamespace string
-	}
-	tests := []struct {
-		name string
-		args args
-		want []unstructured.Unstructured
-	}{
 		{
 			name: "fix namespaced objects",
 			args: args{
@@ -296,6 +273,55 @@ func Test_fixTargetNamespace_B(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			if got := fixTargetNamespace(tt.args.objs, tt.args.targetNamespace); !reflect.DeepEqual(got[0], tt.want[0]) { //skipping from test the automatically added namespace Object
 				t.Errorf("fixTargetNamespace() got = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
+
+func Test_addNamespaceIfMissing(t *testing.T) {
+	type args struct {
+		objs            []unstructured.Unstructured
+		targetNamespace string
+	}
+	tests := []struct {
+		name string
+		args args
+	}{
+		{
+			name: "don't add Namespace object if exists",
+			args: args{
+				objs: []unstructured.Unstructured{
+					{
+						Object: map[string]interface{}{
+							"kind": namespaceKind,
+							"metadata": map[string]interface{}{
+								"name": "foo",
+							},
+						},
+					},
+				},
+				targetNamespace: "foo",
+			},
+		},
+		{
+			name: "add Namespace object if it does not exists",
+			args: args{
+				objs:            []unstructured.Unstructured{},
+				targetNamespace: "bar",
+			},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := addNamespaceIfMissing(tt.args.objs, tt.args.targetNamespace)
+
+			wgot, err := inspectTargetNamespace(got)
+			if err != nil {
+				t.Fatalf("inspectTargetNamespace() error = %v", err)
+			}
+
+			if wgot != tt.args.targetNamespace {
+				t.Errorf("addNamespaceIfMissing().targetNamespace got = %v, want %v", wgot, tt.args.targetNamespace)
 			}
 		})
 	}

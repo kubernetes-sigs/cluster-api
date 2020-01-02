@@ -182,8 +182,10 @@ func newComponents(provider config.Provider, version string, rawyaml []byte, con
 	// fix Namespace name in all the objects
 	objs = fixTargetNamespace(objs, targetNamespace)
 
-	// ensure all the ClusterRoleBinding which are referencing namespaced objects have the name prefixed with the namespace name
-	objs, err = fixClusterRoleBindings(objs, targetNamespace)
+	// ensures all the ClusterRole and ClusterRoleBinding have the name prefixed with the namespace name and that
+	// all the clusterRole/clusterRoleBinding namespaced subjects refers to targetNamespace
+	// Nb. Making all the RBAC rules "namespaced" is required for supporting multi-tenancy
+	objs, err = fixRBAC(objs, targetNamespace)
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to fix ClusterRoleBinding names")
 	}
@@ -339,11 +341,28 @@ func isResourceNamespaced(kind string) bool {
 	}
 }
 
+const clusterRoleKind = "ClusterRole"
 const clusterRoleBindingKind = "ClusterRoleBinding"
+const roleBindingKind = "RoleBinding"
 
-// fixClusterRoleBindings ensures all the ClusterRoleBinding which are referencing namespaced objects have the name prefixed with the namespace name
-func fixClusterRoleBindings(objs []unstructured.Unstructured, targetNamespace string) ([]unstructured.Unstructured, error) {
+// fixRBAC ensures all the ClusterRole and ClusterRoleBinding have the name prefixed with the namespace name and that
+// all the clusterRole/clusterRoleBinding namespaced subjects refers to targetNamespace
+func fixRBAC(objs []unstructured.Unstructured, targetNamespace string) ([]unstructured.Unstructured, error) {
+
+	renamedClusterRoles := map[string]string{}
 	for _, o := range objs {
+		// if the object has Kind ClusterRole
+		if o.GetKind() == clusterRoleKind {
+			// assign a namespaced name
+			currentName := o.GetName()
+			newName := fmt.Sprintf("%s-%s", targetNamespace, currentName)
+			o.SetName(newName)
+
+			renamedClusterRoles[currentName] = newName
+		}
+	}
+
+	for i, o := range objs {
 		// if the object has Kind ClusterRoleBinding
 		if o.GetKind() == clusterRoleBindingKind {
 			// Convert Unstructured into a typed object
@@ -352,13 +371,48 @@ func fixClusterRoleBindings(objs []unstructured.Unstructured, targetNamespace st
 				return nil, err
 			}
 
-			// check if one of the subjects is namespaced. if yes, Fix the ClusterRoleBinding so it is namespaced as well
-			for _, subject := range b.Subjects {
-				if subject.Namespace != "" {
-					o.SetName(fmt.Sprintf("%s-%s", targetNamespace, o.GetName()))
-					break
+			// assign a namespaced name
+			b.Name = fmt.Sprintf("%s-%s", targetNamespace, b.Name)
+
+			// ensure that namespaced subjects refers to targetNamespace
+			for k := range b.Subjects {
+				if b.Subjects[k].Namespace != "" {
+					b.Subjects[k].Namespace = targetNamespace
 				}
 			}
+
+			// if the referenced ClusterRole was renamed, change the RoleRef
+			if newName, ok := renamedClusterRoles[b.RoleRef.Name]; ok {
+				b.RoleRef.Name = newName
+			}
+
+			// Convert ClusterRoleBinding back to Unstructured
+			if err := scheme.Scheme.Convert(b, &o, nil); err != nil { //nolint
+				return nil, err
+			}
+			objs[i] = o
+		}
+
+		// if the object has Kind RoleBinding
+		if o.GetKind() == roleBindingKind {
+			// Convert Unstructured into a typed object
+			b := &rbacv1.RoleBinding{}
+			if err := scheme.Scheme.Convert(&o, b, nil); err != nil { //nolint
+				return nil, err
+			}
+
+			// ensure that namespaced subjects refers to targetNamespace
+			for k := range b.Subjects {
+				if b.Subjects[k].Namespace != "" {
+					b.Subjects[k].Namespace = targetNamespace
+				}
+			}
+
+			// Convert RoleBinding back to Unstructured
+			if err := scheme.Scheme.Convert(b, &o, nil); err != nil { //nolint
+				return nil, err
+			}
+			objs[i] = o
 		}
 	}
 

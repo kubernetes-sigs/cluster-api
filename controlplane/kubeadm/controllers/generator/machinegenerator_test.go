@@ -39,8 +39,8 @@ func TestGenerateMachineWithOwner(t *testing.T) {
 	namespace := "test"
 	namePrefix := "generate2"
 	clusterName := "testCluster"
-	version := "my-version"
-	infraRef := &corev1.ObjectReference{
+	version := utilpointer.StringPtr("my-version")
+	infraRef := corev1.ObjectReference{
 		Kind:       "InfraKind",
 		APIVersion: "infrastructure.cluster.x-k8s.io/v1alpha3",
 		Name:       "infra",
@@ -68,7 +68,7 @@ func TestGenerateMachineWithOwner(t *testing.T) {
 		},
 		Spec: clusterv1.MachineSpec{
 			ClusterName: clusterName,
-			Version:     utilpointer.StringPtr(version),
+			Version:     version,
 			Bootstrap: clusterv1.Bootstrap{
 				ConfigRef: bootstrapRef.DeepCopy(),
 			},
@@ -76,20 +76,18 @@ func TestGenerateMachineWithOwner(t *testing.T) {
 		},
 	}
 
-	mgg := &MachineGenerator{}
-	err := mgg.GenerateMachine(
-		context.Background(),
-		fakeClient,
-		namespace,
-		namePrefix,
-		clusterName,
-		version,
-		infraRef,
-		bootstrapRef,
-		labels,
-		owner,
-	)
-	g.Expect(err).NotTo(gomega.HaveOccurred())
+	mgg := NewMachineGenerator(fakeClient)
+	input := MachineGeneratorInput{
+		Namespace:    namespace,
+		NamePrefix:   namePrefix,
+		ClusterName:  clusterName,
+		Version:      version,
+		InfraRef:     infraRef,
+		BootstrapRef: bootstrapRef,
+		Labels:       labels,
+		Owner:        owner,
+	}
+	g.Expect(mgg.GenerateMachine(context.Background(), input)).To(gomega.Succeed())
 
 	machineList := &clusterv1.MachineList{}
 	g.Expect(fakeClient.List(context.Background(), machineList, client.InNamespace(namespace))).To(gomega.Succeed())
@@ -106,8 +104,8 @@ func TestGenerateMachineWithoutOwner(t *testing.T) {
 	namespace := "test"
 	namePrefix := "generate1"
 	clusterName := "testCluster"
-	version := "my-version"
-	infraRef := &corev1.ObjectReference{
+	version := utilpointer.StringPtr("my-version")
+	infraRef := corev1.ObjectReference{
 		Kind:       "InfraKind",
 		APIVersion: "infrastructure.cluster.x-k8s.io/v1alpha3",
 		Name:       "infra",
@@ -129,7 +127,7 @@ func TestGenerateMachineWithoutOwner(t *testing.T) {
 		},
 		Spec: clusterv1.MachineSpec{
 			ClusterName: clusterName,
-			Version:     utilpointer.StringPtr(version),
+			Version:     version,
 			Bootstrap: clusterv1.Bootstrap{
 				ConfigRef: bootstrapRef.DeepCopy(),
 			},
@@ -137,20 +135,17 @@ func TestGenerateMachineWithoutOwner(t *testing.T) {
 		},
 	}
 
-	mgg := &MachineGenerator{}
-	err := mgg.GenerateMachine(
-		context.Background(),
-		fakeClient,
-		namespace,
-		namePrefix,
-		clusterName,
-		version,
-		infraRef,
-		bootstrapRef,
-		labels,
-		nil,
-	)
-	g.Expect(err).NotTo(gomega.HaveOccurred())
+	mgg := NewMachineGenerator(fakeClient)
+	input := MachineGeneratorInput{
+		Namespace:    namespace,
+		NamePrefix:   namePrefix,
+		ClusterName:  clusterName,
+		Version:      version,
+		InfraRef:     infraRef,
+		BootstrapRef: bootstrapRef,
+		Labels:       labels,
+	}
+	g.Expect(mgg.GenerateMachine(context.Background(), input)).To(gomega.Succeed())
 
 	machineList := &clusterv1.MachineList{}
 	g.Expect(fakeClient.List(context.Background(), machineList, client.InNamespace(namespace))).To(gomega.Succeed())

@@ -37,6 +37,7 @@ import (
 	bootstrapv1 "sigs.k8s.io/cluster-api/bootstrap/kubeadm/api/v1alpha3"
 	kubeadmv1 "sigs.k8s.io/cluster-api/bootstrap/kubeadm/types/v1beta1"
 	controlplanev1 "sigs.k8s.io/cluster-api/controlplane/kubeadm/api/v1alpha3"
+	"sigs.k8s.io/cluster-api/controlplane/kubeadm/controllers/generator"
 	"sigs.k8s.io/cluster-api/util/kubeconfig"
 	"sigs.k8s.io/cluster-api/util/secret"
 )
@@ -65,9 +66,11 @@ func (kcg *kubeadmConfigGenerator) GenerateKubeadmConfig(_ context.Context, _ cl
 	return result, nil
 }
 
-type machineGenerator struct{}
+type machineGenerator struct {
+	client client.Client
+}
 
-func (mg *machineGenerator) GenerateMachine(ctx context.Context, c client.Client, namespace, _, _, _ string, infraRef, bootstrapRef *corev1.ObjectReference, _ map[string]string, _ *metav1.OwnerReference) error {
+func (mg *machineGenerator) GenerateMachine(ctx context.Context, input generator.MachineGeneratorInput) error {
 	machine := &clusterv1.Machine{
 		TypeMeta: metav1.TypeMeta{
 			APIVersion: clusterv1.GroupVersion.Version,
@@ -75,17 +78,17 @@ func (mg *machineGenerator) GenerateMachine(ctx context.Context, c client.Client
 		},
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "generatedMachine",
-			Namespace: namespace,
+			Namespace: input.Namespace,
 		},
 		Spec: clusterv1.MachineSpec{
-			InfrastructureRef: *infraRef,
+			InfrastructureRef: input.InfraRef,
 			Bootstrap: clusterv1.Bootstrap{
-				ConfigRef: bootstrapRef,
+				ConfigRef: input.BootstrapRef,
 			},
 		},
 	}
 
-	if err := c.Create(ctx, machine); err != nil {
+	if err := mg.client.Create(ctx, machine); err != nil {
 		return err
 	}
 	return nil
@@ -423,7 +426,7 @@ func TestKubeadmControlPlaneReconciler_initializeControlPlane(t *testing.T) {
 		Log:                    log.Log,
 		TemplateCloner:         &templateCloner{},
 		KubeadmConfigGenerator: &kubeadmConfigGenerator{},
-		MachineGenerator:       &machineGenerator{},
+		MachineGenerator:       &machineGenerator{client: fakeClient},
 	}
 
 	g.Expect(r.initializeControlPlane(context.Background(), cluster, kcp, log.Log)).To(gomega.Succeed())
@@ -473,7 +476,7 @@ func TestReconcileNoClusterOwnerRef(t *testing.T) {
 		Log:                    log.Log,
 		TemplateCloner:         &templateCloner{},
 		KubeadmConfigGenerator: &kubeadmConfigGenerator{},
-		MachineGenerator:       &machineGenerator{},
+		MachineGenerator:       &machineGenerator{client: fakeClient},
 	}
 
 	result := r.reconcile(context.Background(), kcp, r.Log)
@@ -517,7 +520,7 @@ func TestReconcileNoCluster(t *testing.T) {
 		Log:                    log.Log,
 		TemplateCloner:         &templateCloner{},
 		KubeadmConfigGenerator: &kubeadmConfigGenerator{},
-		MachineGenerator:       &machineGenerator{},
+		MachineGenerator:       &machineGenerator{client: fakeClient},
 	}
 
 	result := r.reconcile(context.Background(), kcp, r.Log)
@@ -568,7 +571,7 @@ func TestReconcileClusterNoEndpoints(t *testing.T) {
 		Log:                    log.Log,
 		TemplateCloner:         &templateCloner{},
 		KubeadmConfigGenerator: &kubeadmConfigGenerator{},
-		MachineGenerator:       &machineGenerator{},
+		MachineGenerator:       &machineGenerator{client: fakeClient},
 	}
 
 	result := r.reconcile(context.Background(), kcp, r.Log)
@@ -630,7 +633,7 @@ func TestReconcileInitializeControlPlane(t *testing.T) {
 		Log:                    log.Log,
 		TemplateCloner:         &templateCloner{},
 		KubeadmConfigGenerator: &kubeadmConfigGenerator{},
-		MachineGenerator:       &machineGenerator{},
+		MachineGenerator:       &machineGenerator{client: fakeClient},
 	}
 
 	result := r.reconcile(context.Background(), kcp, r.Log)

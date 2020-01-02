@@ -30,6 +30,7 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 	utilerrors "k8s.io/apimachinery/pkg/util/errors"
 	"k8s.io/client-go/tools/record"
+	utilpointer "k8s.io/utils/pointer"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
@@ -42,6 +43,7 @@ import (
 	bootstrapv1 "sigs.k8s.io/cluster-api/bootstrap/kubeadm/api/v1alpha3"
 	kubeadmv1 "sigs.k8s.io/cluster-api/bootstrap/kubeadm/types/v1beta1"
 	controlplanev1 "sigs.k8s.io/cluster-api/controlplane/kubeadm/api/v1alpha3"
+	"sigs.k8s.io/cluster-api/controlplane/kubeadm/controllers/generator"
 	capierrors "sigs.k8s.io/cluster-api/errors"
 	"sigs.k8s.io/cluster-api/util"
 	"sigs.k8s.io/cluster-api/util/kubeconfig"
@@ -58,7 +60,7 @@ type KubeadmConfigGenerator interface {
 }
 
 type MachineGenerator interface {
-	GenerateMachine(ctx context.Context, c client.Client, namespace, namePrefix, clusterName, version string, infraRef, bootstrapRef *corev1.ObjectReference, labels map[string]string, owner *metav1.OwnerReference) error
+	GenerateMachine(ctx context.Context, input generator.MachineGeneratorInput) error
 }
 
 // +kubebuilder:rbac:groups=core,resources=events,verbs=get;list;watch;create;patch
@@ -304,19 +306,17 @@ func (r *KubeadmControlPlaneReconciler) initializeControlPlane(ctx context.Conte
 	}
 
 	// Create the Machine
-	err = r.MachineGenerator.GenerateMachine(
-		ctx,
-		r.Client,
-		kcp.Namespace,
-		kcp.Name,
-		cluster.Name,
-		kcp.Spec.Version,
-		infraRef,
-		bootstrapRef,
-		generateKubeadmControlPlaneLabels(cluster.Name),
-		ownerRef,
-	)
-	if err != nil {
+	generateMachineInput := generator.MachineGeneratorInput{
+		Namespace:    kcp.Namespace,
+		NamePrefix:   kcp.Name,
+		ClusterName:  cluster.Name,
+		Version:      utilpointer.StringPtr(kcp.Spec.Version),
+		InfraRef:     *infraRef,
+		BootstrapRef: bootstrapRef,
+		Labels:       generateKubeadmControlPlaneLabels(cluster.Name),
+		Owner:        ownerRef,
+	}
+	if err := r.MachineGenerator.GenerateMachine(ctx, generateMachineInput); err != nil {
 		logger.Error(err, "Unable to create Machine")
 		r.recorder.Eventf(kcp, corev1.EventTypeWarning, "FailedCreateMachine", "Failed to create machine: %v", err)
 

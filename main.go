@@ -204,7 +204,7 @@ func main() {
 			Log:                    ctrl.Log.WithName("controllers").WithName("KubeadmControlPlane"),
 			TemplateCloner:         &external.TemplateCloner{},
 			KubeadmConfigGenerator: &generator.KubeadmConfigGenerator{},
-			MachineGenerator:       &generator.MachineGenerator{},
+			MachineGenerator:       generator.NewMachineGenerator(mgr.GetClient()),
 		}).SetupWithManager(mgr, concurrency(kubeadmControlPlaneConcurrency)); err != nil {
 			setupLog.Error(err, "unable to create controller", "controller", "KubeadmControlPlane")
 			os.Exit(1)

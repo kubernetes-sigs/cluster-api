@@ -28,30 +28,48 @@ import (
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha3"
 )
 
-type MachineGenerator struct{}
+type MachineGenerator struct {
+	Client client.Client
+}
 
-func (mgg *MachineGenerator) GenerateMachine(ctx context.Context, c client.Client, namespace, namePrefix, clusterName, version string, infraRef, bootstrapRef *corev1.ObjectReference, labels map[string]string, owner *metav1.OwnerReference) error {
+func NewMachineGenerator(client client.Client) *MachineGenerator {
+	return &MachineGenerator{Client: client}
+}
+
+type MachineGeneratorInput struct {
+	Namespace    string
+	NamePrefix   string
+	ClusterName  string
+	Version      *string
+	InfraRef     corev1.ObjectReference
+	BootstrapRef *corev1.ObjectReference
+	Labels       map[string]string
+	Owner        *metav1.OwnerReference
+}
+
+func (mgg *MachineGenerator) GenerateMachine(ctx context.Context, input MachineGeneratorInput) error {
 	machine := &clusterv1.Machine{
 		ObjectMeta: metav1.ObjectMeta{
-			GenerateName: fmt.Sprintf("%s-", namePrefix),
-			Labels:       labels,
-			Namespace:    namespace,
+			GenerateName: fmt.Sprintf("%s-", input.NamePrefix),
+			Labels:       input.Labels,
+			Namespace:    input.Namespace,
 		},
 		Spec: clusterv1.MachineSpec{
-			ClusterName:       clusterName,
-			Version:           &version,
-			InfrastructureRef: *infraRef,
-			Bootstrap: clusterv1.Bootstrap{
-				ConfigRef: bootstrapRef,
-			},
+			ClusterName:       input.ClusterName,
+			Version:           input.Version,
+			InfrastructureRef: input.InfraRef,
 		},
 	}
 
-	if owner != nil {
-		machine.SetOwnerReferences([]metav1.OwnerReference{*owner})
+	if input.BootstrapRef != nil {
+		machine.Spec.Bootstrap = clusterv1.Bootstrap{ConfigRef: input.BootstrapRef}
 	}
 
-	if err := c.Create(ctx, machine); err != nil {
+	if input.Owner != nil {
+		machine.SetOwnerReferences([]metav1.OwnerReference{*input.Owner})
+	}
+
+	if err := mgg.Client.Create(ctx, machine); err != nil {
 		return errors.Wrap(err, "Failed to create machine")
 	}
 

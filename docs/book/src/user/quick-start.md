@@ -1132,7 +1132,7 @@ spec:
             cloud-provider: gce
 ```
 
-{{#/tab}}
+{{#/tab }}
 {{#tab vSphere}}
 
 <aside class="note warning">

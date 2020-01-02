@@ -135,3 +135,9 @@ outside of the existing module.
   - `spec.bootstrap.dataSecretName` to know where to put bootstrap data with sensitive information.
   - `status.infrastuctureReady` to understand the state of the configuration consumer so the
     bootstrap provider can take appropriate action (e.g. renew bootstrap token).
+
+## Support the `cluster.x-k8s.io/paused` annotation and `Cluster.Spec.Paused` field.
+
+- A new annotation `cluster.x-k8s.io/paused` provides the ability to pause reconciliation on specific objects.
+- A new field `Cluster.Spec.Paused` provides the ability to pause reconciliation on a Cluster and all associated objects.
+- A helper function `util.IsPaused` can be used on any Kubernetes object associated with a Cluster.

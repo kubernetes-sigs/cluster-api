@@ -64,5 +64,6 @@ func (r *MachinePoolReconciler) SetupWithManager(mgr ctrl.Manager, options contr
 
 func (r *MachinePoolReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 	// TODO(juan-lee): Add machine pool implementation.
+	// TODO(vincepri): Add support for pause annotation and honoring Cluster.Spec.Paused.
 	return ctrl.Result{}, nil
 }

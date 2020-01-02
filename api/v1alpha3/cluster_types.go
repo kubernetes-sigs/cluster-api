@@ -32,7 +32,11 @@ const (
 
 // ClusterSpec defines the desired state of Cluster
 type ClusterSpec struct {
-	// Cluster network configuration
+	// Paused can be used to prevent controllers from processing the Cluster and all its associated objects.
+	// +optional
+	Paused bool `json:"paused,omitempty"`
+
+	// Cluster network configuration.
 	// +optional
 	ClusterNetwork *ClusterNetwork `json:"clusterNetwork,omitempty"`
 

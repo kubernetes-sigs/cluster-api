@@ -89,6 +89,7 @@ func (r *ClusterReconciler) SetupWithManager(mgr ctrl.Manager, options controlle
 
 func (r *ClusterReconciler) Reconcile(req ctrl.Request) (_ ctrl.Result, reterr error) {
 	ctx := context.Background()
+	logger := r.Log.WithValues("cluster", req.Name, "namespace", req.Namespace)
 
 	// Fetch the Cluster instance.
 	cluster := &clusterv1.Cluster{}
@@ -101,6 +102,12 @@ func (r *ClusterReconciler) Reconcile(req ctrl.Request) (_ ctrl.Result, reterr e
 
 		// Error reading the object - requeue the request.
 		return ctrl.Result{}, err
+	}
+
+	// Return early if the object or Cluster is paused.
+	if util.IsPaused(cluster, cluster) {
+		logger.V(3).Info("reconciliation is paused for this object")
+		return ctrl.Result{}, nil
 	}
 
 	// Initialize the patch helper.

@@ -91,6 +91,7 @@ func (r *MachineReconciler) SetupWithManager(mgr ctrl.Manager, options controlle
 
 func (r *MachineReconciler) Reconcile(req ctrl.Request) (_ ctrl.Result, reterr error) {
 	ctx := context.Background()
+	logger := r.Log.WithValues("machine", req.Name, "namespace", req.Namespace)
 
 	// Fetch the Machine instance
 	m := &clusterv1.Machine{}
@@ -103,6 +104,18 @@ func (r *MachineReconciler) Reconcile(req ctrl.Request) (_ ctrl.Result, reterr e
 
 		// Error reading the object - requeue the request.
 		return ctrl.Result{}, err
+	}
+
+	cluster, err := util.GetClusterByName(ctx, r.Client, m.ObjectMeta.Namespace, m.Spec.ClusterName)
+	if err != nil {
+		return ctrl.Result{}, errors.Wrapf(err, "failed to get cluster %q for machine %q in namespace %q",
+			m.Spec.ClusterName, m.Name, m.Namespace)
+	}
+
+	// Return early if the object or Cluster is paused.
+	if util.IsPaused(cluster, m) {
+		logger.V(3).Info("reconciliation is paused for this object")
+		return ctrl.Result{}, nil
 	}
 
 	// Initialize the patch helper
@@ -123,17 +136,11 @@ func (r *MachineReconciler) Reconcile(req ctrl.Request) (_ ctrl.Result, reterr e
 		}
 	}()
 
-	// Reconcile and retrieve the Cluster object.
+	// Reconcile labels.
 	if m.Labels == nil {
 		m.Labels = make(map[string]string)
 	}
 	m.Labels[clusterv1.ClusterLabelName] = m.Spec.ClusterName
-
-	cluster, err := util.GetClusterByName(ctx, r.Client, m.ObjectMeta.Namespace, m.Spec.ClusterName)
-	if err != nil {
-		return ctrl.Result{}, errors.Wrapf(err, "failed to get cluster %q for machine %q in namespace %q",
-			m.Labels[clusterv1.ClusterLabelName], m.Name, m.Namespace)
-	}
 
 	// Handle deletion reconciliation loop.
 	if !m.ObjectMeta.DeletionTimestamp.IsZero() {

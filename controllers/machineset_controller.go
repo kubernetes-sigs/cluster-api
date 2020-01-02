@@ -107,13 +107,24 @@ func (r *MachineSetReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) 
 		return ctrl.Result{}, err
 	}
 
+	cluster, err := util.GetClusterByName(ctx, r.Client, machineSet.ObjectMeta.Namespace, machineSet.Spec.ClusterName)
+	if err != nil {
+		return ctrl.Result{}, err
+	}
+
+	// Return early if the object or Cluster is paused.
+	if util.IsPaused(cluster, machineSet) {
+		logger.V(3).Info("reconciliation is paused for this object")
+		return ctrl.Result{}, nil
+	}
+
 	// Ignore deleted MachineSets, this can happen when foregroundDeletion
 	// is enabled
 	if !machineSet.DeletionTimestamp.IsZero() {
 		return ctrl.Result{}, nil
 	}
 
-	result, err := r.reconcile(ctx, machineSet)
+	result, err := r.reconcile(ctx, cluster, machineSet)
 	if err != nil {
 		logger.Error(err, "Failed to reconcile MachineSet")
 		r.recorder.Eventf(machineSet, corev1.EventTypeWarning, "ReconcileError", "%v", err)
@@ -121,7 +132,7 @@ func (r *MachineSetReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) 
 	return result, err
 }
 
-func (r *MachineSetReconciler) reconcile(ctx context.Context, machineSet *clusterv1.MachineSet) (ctrl.Result, error) {
+func (r *MachineSetReconciler) reconcile(ctx context.Context, cluster *clusterv1.Cluster, machineSet *clusterv1.MachineSet) (ctrl.Result, error) {
 	logger := r.Log.WithValues("machineset", machineSet.Name, "namespace", machineSet.Namespace)
 	logger.V(4).Info("Reconcile MachineSet")
 
@@ -130,11 +141,6 @@ func (r *MachineSetReconciler) reconcile(ctx context.Context, machineSet *cluste
 		machineSet.Labels = make(map[string]string)
 	}
 	machineSet.Labels[clusterv1.ClusterLabelName] = machineSet.Spec.ClusterName
-
-	cluster, err := util.GetClusterByName(ctx, r.Client, machineSet.ObjectMeta.Namespace, machineSet.Spec.ClusterName)
-	if err != nil {
-		return ctrl.Result{}, err
-	}
 
 	if r.shouldAdopt(machineSet) {
 		patch := client.MergeFrom(machineSet.DeepCopy())

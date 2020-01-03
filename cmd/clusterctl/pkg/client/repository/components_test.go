@@ -327,45 +327,48 @@ func Test_addNamespaceIfMissing(t *testing.T) {
 	}
 }
 
-func Test_fixClusterRoleBindings(t *testing.T) {
+func Test_fixRBAC(t *testing.T) {
 	type args struct {
 		objs            []unstructured.Unstructured
 		targetNamespace string
 	}
 	tests := []struct {
-		name     string
-		args     args
-		wantName string
-		wantErr  bool
+		name    string
+		args    args
+		want    []unstructured.Unstructured
+		wantErr bool
 	}{
 		{
-			name: "ClusterRoleBinding with namespaced subjects get fixed",
+			name: "ClusterRole get fixed",
 			args: args{
 				objs: []unstructured.Unstructured{
 					{
 						Object: map[string]interface{}{
-							"kind":       "ClusterRoleBinding",
+							"kind":       "ClusterRole",
 							"apiVersion": "rbac.authorization.k8s.io/v1",
 							"metadata": map[string]interface{}{
 								"name": "foo",
-							},
-							"subjects": []map[string]interface{}{
-								{
-									"kind":      "ServiceAccount",
-									"name":      "bar",
-									"namespace": "bar",
-								},
 							},
 						},
 					},
 				},
 				targetNamespace: "target",
 			},
-			wantName: "target-foo",
-			wantErr:  false,
+			want: []unstructured.Unstructured{
+				{
+					Object: map[string]interface{}{
+						"kind":       "ClusterRole",
+						"apiVersion": "rbac.authorization.k8s.io/v1",
+						"metadata": map[string]interface{}{
+							"name": "target-foo", // ClusterRole name fixed!
+						},
+					},
+				},
+			},
+			wantErr: false,
 		},
 		{
-			name: "ClusterRoleBinding without namespaced subjects does not change",
+			name: "ClusterRoleBinding with roleRef NOT IN components YAML get fixed",
 			args: args{
 				objs: []unstructured.Unstructured{
 					{
@@ -375,10 +378,20 @@ func Test_fixClusterRoleBindings(t *testing.T) {
 							"metadata": map[string]interface{}{
 								"name": "foo",
 							},
-							"subjects": []map[string]interface{}{
-								{
+							"roleRef": map[string]interface{}{
+								"apiGroup": "",
+								"kind":     "",
+								"name":     "bar",
+							},
+							"subjects": []interface{}{
+								map[string]interface{}{
+									"kind":      "ServiceAccount",
+									"name":      "baz",
+									"namespace": "baz",
+								},
+								map[string]interface{}{
 									"kind": "User",
-									"name": "bar",
+									"name": "qux",
 								},
 							},
 						},
@@ -386,19 +399,190 @@ func Test_fixClusterRoleBindings(t *testing.T) {
 				},
 				targetNamespace: "target",
 			},
-			wantName: "foo",
-			wantErr:  false,
+			want: []unstructured.Unstructured{
+				{
+					Object: map[string]interface{}{
+						"kind":       "ClusterRoleBinding",
+						"apiVersion": "rbac.authorization.k8s.io/v1",
+						"metadata": map[string]interface{}{
+							"name":              "target-foo", // ClusterRoleBinding name fixed!
+							"creationTimestamp": nil,
+						},
+						"roleRef": map[string]interface{}{
+							"apiGroup": "",
+							"kind":     "",
+							"name":     "bar", // ClusterRole name NOT fixed (not in components YAML)!
+						},
+						"subjects": []interface{}{
+							map[string]interface{}{
+								"kind":      "ServiceAccount",
+								"name":      "baz",
+								"namespace": "target", // Subjects namespace fixed!
+							},
+							map[string]interface{}{
+								"kind": "User",
+								"name": "qux",
+							},
+						},
+					},
+				},
+			},
+			wantErr: false,
+		},
+		{
+			name: "ClusterRoleBinding with roleRef IN components YAML get fixed",
+			args: args{
+				objs: []unstructured.Unstructured{
+					{
+						Object: map[string]interface{}{
+							"kind":       "ClusterRoleBinding",
+							"apiVersion": "rbac.authorization.k8s.io/v1",
+							"metadata": map[string]interface{}{
+								"name": "foo",
+							},
+							"roleRef": map[string]interface{}{
+								"apiGroup": "",
+								"kind":     "",
+								"name":     "bar",
+							},
+							"subjects": []interface{}{
+								map[string]interface{}{
+									"kind":      "ServiceAccount",
+									"name":      "baz",
+									"namespace": "baz",
+								},
+								map[string]interface{}{
+									"kind": "User",
+									"name": "qux",
+								},
+							},
+						},
+					},
+					{
+						Object: map[string]interface{}{
+							"kind":       "ClusterRole",
+							"apiVersion": "rbac.authorization.k8s.io/v1",
+							"metadata": map[string]interface{}{
+								"name": "bar",
+							},
+						},
+					},
+				},
+				targetNamespace: "target",
+			},
+			want: []unstructured.Unstructured{
+				{
+					Object: map[string]interface{}{
+						"kind":       "ClusterRoleBinding",
+						"apiVersion": "rbac.authorization.k8s.io/v1",
+						"metadata": map[string]interface{}{
+							"name":              "target-foo", // ClusterRoleBinding name fixed!
+							"creationTimestamp": nil,
+						},
+						"roleRef": map[string]interface{}{
+							"apiGroup": "",
+							"kind":     "",
+							"name":     "target-bar", // ClusterRole name fixed!
+						},
+						"subjects": []interface{}{
+							map[string]interface{}{
+								"kind":      "ServiceAccount",
+								"name":      "baz",
+								"namespace": "target", // Subjects namespace fixed!
+							},
+							map[string]interface{}{
+								"kind": "User",
+								"name": "qux",
+							},
+						},
+					},
+				},
+				{
+					Object: map[string]interface{}{
+						"kind":       "ClusterRole",
+						"apiVersion": "rbac.authorization.k8s.io/v1",
+						"metadata": map[string]interface{}{
+							"name": "target-bar", // ClusterRole fixed!
+						},
+					},
+				},
+			},
+			wantErr: false,
+		},
+		{
+			name: "RoleBinding get fixed",
+			args: args{
+				objs: []unstructured.Unstructured{
+					{
+						Object: map[string]interface{}{
+							"kind":       "RoleBinding",
+							"apiVersion": "rbac.authorization.k8s.io/v1",
+							"metadata": map[string]interface{}{
+								"name":      "foo",
+								"namespace": "target",
+							},
+							"roleRef": map[string]interface{}{
+								"apiGroup": "",
+								"kind":     "",
+								"name":     "bar",
+							},
+							"subjects": []interface{}{
+								map[string]interface{}{
+									"kind":      "ServiceAccount",
+									"name":      "baz",
+									"namespace": "baz",
+								},
+								map[string]interface{}{
+									"kind": "User",
+									"name": "qux",
+								},
+							},
+						},
+					},
+				},
+				targetNamespace: "target",
+			},
+			want: []unstructured.Unstructured{
+				{
+					Object: map[string]interface{}{
+						"kind":       "RoleBinding",
+						"apiVersion": "rbac.authorization.k8s.io/v1",
+						"metadata": map[string]interface{}{
+							"name":              "foo",
+							"namespace":         "target",
+							"creationTimestamp": nil,
+						},
+						"roleRef": map[string]interface{}{
+							"apiGroup": "",
+							"kind":     "",
+							"name":     "bar",
+						},
+						"subjects": []interface{}{
+							map[string]interface{}{
+								"kind":      "ServiceAccount",
+								"name":      "baz",
+								"namespace": "target", // Subjects namespace fixed!
+							},
+							map[string]interface{}{
+								"kind": "User",
+								"name": "qux",
+							},
+						},
+					},
+				},
+			},
+			wantErr: false,
 		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got, err := fixClusterRoleBindings(tt.args.objs, tt.args.targetNamespace)
+			got, err := fixRBAC(tt.args.objs, tt.args.targetNamespace)
 			if (err != nil) != tt.wantErr {
-				t.Errorf("fixClusterRoleBindings() error = %v, wantErr %v", err, tt.wantErr)
+				t.Errorf("fixRBAC() error = %v, wantErr %v", err, tt.wantErr)
 				return
 			}
-			if !reflect.DeepEqual(got[0].GetName(), tt.wantName) {
-				t.Errorf("fixClusterRoleBindings()[0].Name got = %v, want %v", got[0].GetName(), tt.wantName)
+			if !reflect.DeepEqual(got, tt.want) {
+				t.Errorf("fixRBAC() got = %v, want %v", got, tt.want)
 			}
 		})
 	}

@@ -55,11 +55,17 @@ func (f *componentsClient) Get(version, targetNamespace, watchingNamespace strin
 	// retrieve the path where the path is stored
 	path := f.repository.ComponentsPath()
 
-	// read from the components path.
-	// If file is a path, the entire content of the path is returned.
-	file, err := f.repository.GetFile(version, path)
+	// read the component YAML, reading the local override file if it exists, otherwise read from the provider repository
+	file, err := getLocalOverride(f.provider, version, path)
 	if err != nil {
-		return nil, errors.Wrapf(err, "failed to read %q from the repository for provider %q", path, f.provider.Name())
+		return nil, err
+	}
+
+	if file == nil {
+		file, err = f.repository.GetFile(version, path)
+		if err != nil {
+			return nil, errors.Wrapf(err, "failed to read %q from provider's repository %q", path, f.provider.Name())
+		}
 	}
 
 	return newComponents(f.provider, version, file, f.configVariablesClient, targetNamespace, watchingNamespace)

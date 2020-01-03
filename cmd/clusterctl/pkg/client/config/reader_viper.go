@@ -26,6 +26,9 @@ import (
 	"k8s.io/klog"
 )
 
+// ConfigFolder defines the name of the config folder under $home
+const ConfigFolder = "cluster-api"
+
 // viperReader implements Reader using viper as backend for reading from environment variables
 // and from a clusterctl config file.
 type viperReader struct {
@@ -44,7 +47,7 @@ func (v *viperReader) Init(path string) error {
 	} else {
 		// Configure for searching cluster-api/.clusterctl{.extension} in home directory
 		viper.SetConfigName(".clusterctl")
-		viper.AddConfigPath(filepath.Join(homedir.HomeDir(), "cluster-api"))
+		viper.AddConfigPath(filepath.Join(homedir.HomeDir(), ConfigFolder))
 	}
 
 	// Configure for reading environment variables as well, and more specifically:

@@ -29,6 +29,7 @@ import (
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/types"
 	utilerrors "k8s.io/apimachinery/pkg/util/errors"
+	"k8s.io/apiserver/pkg/storage/names"
 	"k8s.io/client-go/tools/record"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -57,10 +58,6 @@ type KubeadmConfigGenerator interface {
 	GenerateKubeadmConfig(ctx context.Context, c client.Client, namespace, namePrefix, clusterName string, spec *bootstrapv1.KubeadmConfigSpec, owner *metav1.OwnerReference) (*corev1.ObjectReference, error)
 }
 
-type MachineGenerator interface {
-	GenerateMachine(ctx context.Context, c client.Client, namespace, namePrefix, clusterName, version string, infraRef, bootstrapRef *corev1.ObjectReference, labels map[string]string, owner *metav1.OwnerReference) error
-}
-
 // +kubebuilder:rbac:groups=core,resources=events,verbs=get;list;watch;create;patch
 // +kubebuilder:rbac:groups=core,resources=secrets,verbs=get;list;watch;create;patch
 // +kubebuilder:rbac:groups=controlplane.cluster.x-k8s.io,resources=kubeadmcontrolplanes;kubeadmcontrolplanes/status,verbs=get;list;watch;create;update;patch;delete
@@ -72,7 +69,6 @@ type KubeadmControlPlaneReconciler struct {
 
 	TemplateCloner         TemplateCloner
 	KubeadmConfigGenerator KubeadmConfigGenerator
-	MachineGenerator       MachineGenerator
 
 	controller controller.Controller
 	recorder   record.EventRecorder
@@ -304,9 +300,8 @@ func (r *KubeadmControlPlaneReconciler) initializeControlPlane(ctx context.Conte
 	}
 
 	// Create the Machine
-	err = r.MachineGenerator.GenerateMachine(
+	err = r.generateMachine(
 		ctx,
-		r.Client,
 		kcp.Namespace,
 		kcp.Name,
 		cluster.Name,
@@ -346,6 +341,34 @@ func (r *KubeadmControlPlaneReconciler) initializeControlPlane(ctx context.Conte
 		}
 
 		return utilerrors.NewAggregate(errs)
+	}
+
+	return nil
+}
+
+func (r *KubeadmControlPlaneReconciler) generateMachine(ctx context.Context, namespace, namePrefix, clusterName, version string, infraRef, bootstrapRef *corev1.ObjectReference, labels map[string]string, owner *metav1.OwnerReference) error {
+	machine := &clusterv1.Machine{
+		ObjectMeta: metav1.ObjectMeta{
+			Labels:    labels,
+			Namespace: namespace,
+			Name:      names.SimpleNameGenerator.GenerateName(namePrefix + "-"),
+		},
+		Spec: clusterv1.MachineSpec{
+			ClusterName:       clusterName,
+			Version:           &version,
+			InfrastructureRef: *infraRef,
+			Bootstrap: clusterv1.Bootstrap{
+				ConfigRef: bootstrapRef,
+			},
+		},
+	}
+
+	if owner != nil {
+		machine.SetOwnerReferences([]metav1.OwnerReference{*owner})
+	}
+
+	if err := r.Client.Create(ctx, machine); err != nil {
+		return errors.Wrap(err, "Failed to create machine")
 	}
 
 	return nil

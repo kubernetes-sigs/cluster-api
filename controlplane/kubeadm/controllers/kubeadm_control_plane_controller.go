@@ -54,10 +54,6 @@ type TemplateCloner interface {
 	CloneTemplate(ctx context.Context, c client.Client, ref *corev1.ObjectReference, namespace, clusterName string, owner *metav1.OwnerReference) (*corev1.ObjectReference, error)
 }
 
-type KubeadmConfigGenerator interface {
-	GenerateKubeadmConfig(ctx context.Context, c client.Client, namespace, namePrefix, clusterName string, spec *bootstrapv1.KubeadmConfigSpec, owner *metav1.OwnerReference) (*corev1.ObjectReference, error)
-}
-
 // +kubebuilder:rbac:groups=core,resources=events,verbs=get;list;watch;create;patch
 // +kubebuilder:rbac:groups=core,resources=secrets,verbs=get;list;watch;create;patch
 // +kubebuilder:rbac:groups=controlplane.cluster.x-k8s.io,resources=kubeadmcontrolplanes;kubeadmcontrolplanes/status,verbs=get;list;watch;create;update;patch;delete
@@ -67,8 +63,7 @@ type KubeadmControlPlaneReconciler struct {
 	Client client.Client
 	Log    logr.Logger
 
-	TemplateCloner         TemplateCloner
-	KubeadmConfigGenerator KubeadmConfigGenerator
+	TemplateCloner TemplateCloner
 
 	controller controller.Controller
 	recorder   record.EventRecorder
@@ -286,9 +281,8 @@ func (r *KubeadmControlPlaneReconciler) initializeControlPlane(ctx context.Conte
 	// Create the bootstrap configuration
 	bootstrapSpec := kcp.Spec.KubeadmConfigSpec.DeepCopy()
 	bootstrapSpec.JoinConfiguration = nil
-	bootstrapRef, err := r.KubeadmConfigGenerator.GenerateKubeadmConfig(
+	bootstrapRef, err := r.generateKubeadmConfig(
 		ctx,
-		r.Client,
 		kcp.Namespace,
 		kcp.Name,
 		cluster.Name,
@@ -344,6 +338,33 @@ func (r *KubeadmControlPlaneReconciler) initializeControlPlane(ctx context.Conte
 	}
 
 	return nil
+}
+
+func (r *KubeadmControlPlaneReconciler) generateKubeadmConfig(ctx context.Context, namespace, namePrefix, clusterName string, spec *bootstrapv1.KubeadmConfigSpec, owner *metav1.OwnerReference) (*corev1.ObjectReference, error) {
+	bootstrapConfig := &bootstrapv1.KubeadmConfig{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      names.SimpleNameGenerator.GenerateName(namePrefix + "-"),
+			Namespace: namespace,
+			Labels:    map[string]string{clusterv1.ClusterLabelName: clusterName},
+		},
+		Spec: *spec,
+	}
+	if owner != nil {
+		bootstrapConfig.SetOwnerReferences([]metav1.OwnerReference{*owner})
+	}
+	if err := r.Client.Create(ctx, bootstrapConfig); err != nil {
+		return nil, errors.Wrap(err, "Failed to create bootstrap configuration")
+	}
+
+	bootstrapRef := &corev1.ObjectReference{
+		APIVersion: bootstrapv1.GroupVersion.String(),
+		Kind:       "KubeadmConfig",
+		Name:       bootstrapConfig.GetName(),
+		Namespace:  bootstrapConfig.GetNamespace(),
+		UID:        bootstrapConfig.GetUID(),
+	}
+
+	return bootstrapRef, nil
 }
 
 func (r *KubeadmControlPlaneReconciler) generateMachine(ctx context.Context, namespace, namePrefix, clusterName, version string, infraRef, bootstrapRef *corev1.ObjectReference, labels map[string]string, owner *metav1.OwnerReference) error {

@@ -341,9 +341,11 @@ func isResourceNamespaced(kind string) bool {
 	}
 }
 
-const clusterRoleKind = "ClusterRole"
-const clusterRoleBindingKind = "ClusterRoleBinding"
-const roleBindingKind = "RoleBinding"
+const (
+	clusterRoleKind        = "ClusterRole"
+	clusterRoleBindingKind = "ClusterRoleBinding"
+	roleBindingKind        = "RoleBinding"
+)
 
 // fixRBAC ensures all the ClusterRole and ClusterRoleBinding have the name prefixed with the namespace name and that
 // all the clusterRole/clusterRoleBinding namespaced subjects refers to targetNamespace
@@ -363,8 +365,8 @@ func fixRBAC(objs []unstructured.Unstructured, targetNamespace string) ([]unstru
 	}
 
 	for i, o := range objs {
-		// if the object has Kind ClusterRoleBinding
-		if o.GetKind() == clusterRoleBindingKind {
+		switch o.GetKind() {
+		case clusterRoleBindingKind: // if the object has Kind ClusterRoleBinding
 			// Convert Unstructured into a typed object
 			b := &rbacv1.ClusterRoleBinding{}
 			if err := scheme.Scheme.Convert(&o, b, nil); err != nil { //nolint
@@ -391,10 +393,8 @@ func fixRBAC(objs []unstructured.Unstructured, targetNamespace string) ([]unstru
 				return nil, err
 			}
 			objs[i] = o
-		}
 
-		// if the object has Kind RoleBinding
-		if o.GetKind() == roleBindingKind {
+		case roleBindingKind: // if the object has Kind RoleBinding
 			// Convert Unstructured into a typed object
 			b := &rbacv1.RoleBinding{}
 			if err := scheme.Scheme.Convert(&o, b, nil); err != nil { //nolint

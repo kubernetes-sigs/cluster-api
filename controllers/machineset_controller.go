@@ -57,10 +57,6 @@ var (
 	stateConfirmationInterval = 100 * time.Millisecond
 )
 
-type TemplateCloner interface {
-	CloneTemplate(ctx context.Context, c client.Client, ref *corev1.ObjectReference, namespace, clusterName string, owner *metav1.OwnerReference) (*corev1.ObjectReference, error)
-}
-
 // +kubebuilder:rbac:groups=core,resources=events,verbs=get;list;watch;create;patch
 // +kubebuilder:rbac:groups=core,resources=secrets,verbs=get;list;watch
 // +kubebuilder:rbac:groups=core,resources=nodes,verbs=get;list;watch;create;update;patch;delete
@@ -71,8 +67,6 @@ type TemplateCloner interface {
 type MachineSetReconciler struct {
 	Client client.Client
 	Log    logr.Logger
-
-	TemplateCloner TemplateCloner
 
 	recorder record.EventRecorder
 	scheme   *runtime.Scheme
@@ -323,14 +317,14 @@ func (r *MachineSetReconciler) syncReplicas(ctx context.Context, ms *clusterv1.M
 			)
 
 			if machine.Spec.Bootstrap.ConfigRef != nil {
-				bootstrapRef, err = r.TemplateCloner.CloneTemplate(ctx, r.Client, machine.Spec.Bootstrap.ConfigRef, machine.Namespace, machine.Spec.ClusterName, nil)
+				bootstrapRef, err = external.CloneTemplate(ctx, r.Client, machine.Spec.Bootstrap.ConfigRef, machine.Namespace, machine.Spec.ClusterName, nil)
 				if err != nil {
 					return errors.Wrapf(err, "failed to clone bootstrap configuration for MachineSet %q in namespace %q", ms.Name, ms.Namespace)
 				}
 				machine.Spec.Bootstrap.ConfigRef = bootstrapRef
 			}
 
-			infraRef, err = r.TemplateCloner.CloneTemplate(ctx, r.Client, &machine.Spec.InfrastructureRef, machine.Namespace, machine.Spec.ClusterName, nil)
+			infraRef, err = external.CloneTemplate(ctx, r.Client, &machine.Spec.InfrastructureRef, machine.Namespace, machine.Spec.ClusterName, nil)
 			if err != nil {
 				return errors.Wrapf(err, "failed to clone infrastructure configuration for MachineSet %q in namespace %q", ms.Name, ms.Namespace)
 			}

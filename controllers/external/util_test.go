@@ -18,7 +18,6 @@ package external
 
 import (
 	"context"
-	"fmt"
 	"testing"
 
 	"github.com/onsi/gomega"
@@ -93,8 +92,7 @@ func TestCloneTemplateResourceNotFound(t *testing.T) {
 	}
 
 	fakeClient := fake.NewFakeClientWithScheme(runtime.NewScheme())
-	templateCloner := TemplateCloner{}
-	_, err := templateCloner.CloneTemplate(
+	_, err := CloneTemplate(
 		context.Background(),
 		fakeClient,
 		testResourceReference,
@@ -116,7 +114,7 @@ func TestCloneTemplateResourceFound(t *testing.T) {
 	templateKind := "PurpleTemplate"
 	templateAPIVersion := "purple.io/v1"
 
-	template := &unstructured.Unstructured{
+	template := unstructured.Unstructured{
 		Object: map[string]interface{}{
 			"kind":       templateKind,
 			"apiVersion": templateAPIVersion,
@@ -134,7 +132,7 @@ func TestCloneTemplateResourceFound(t *testing.T) {
 		},
 	}
 
-	templateRef := &corev1.ObjectReference{
+	templateRef := corev1.ObjectReference{
 		Kind:       templateKind,
 		APIVersion: templateAPIVersion,
 		Name:       templateName,
@@ -149,49 +147,42 @@ func TestCloneTemplateResourceFound(t *testing.T) {
 
 	expectedKind := "Purple"
 	expectedAPIVersion := templateAPIVersion
-	expectedRef := &corev1.ObjectReference{
-		Kind:       expectedKind,
-		APIVersion: expectedAPIVersion,
-		Namespace:  namespace,
-	}
+	expectedLabels := (map[string]string{clusterv1.ClusterLabelName: testClusterName})
 
-	expected := &unstructured.Unstructured{
-		Object: map[string]interface{}{
-			"kind":       expectedKind,
-			"apiVersion": expectedAPIVersion,
-			"metadata": map[string]interface{}{
-				"namespace":    namespace,
-				"generateName": fmt.Sprintf("%s-", templateName),
-			},
-			"spec": map[string]interface{}{
-				"hello": "world",
-			},
-		},
-	}
-	expected.SetOwnerReferences([]metav1.OwnerReference{owner})
-	expected.SetLabels(map[string]string{clusterv1.ClusterLabelName: testClusterName})
-	expected.SetResourceVersion("1")
+	expectedSpec, ok, err := unstructured.NestedMap(template.UnstructuredContent(), "spec", "template", "spec")
+	g.Expect(err).NotTo(gomega.HaveOccurred())
+	g.Expect(ok).To(gomega.BeTrue())
+	g.Expect(expectedSpec).NotTo(gomega.BeEmpty())
 
 	fakeClient := fake.NewFakeClientWithScheme(runtime.NewScheme(), template.DeepCopy())
 
-	templateCloner := TemplateCloner{}
-	ref, err := templateCloner.CloneTemplate(
+	ref, err := CloneTemplate(
 		context.Background(),
 		fakeClient,
-		templateRef,
+		templateRef.DeepCopy(),
 		namespace,
 		testClusterName,
 		owner.DeepCopy(),
 	)
 	g.Expect(err).NotTo(gomega.HaveOccurred())
-	g.Expect(ref).To(gomega.Equal(expectedRef))
+	g.Expect(ref).NotTo(gomega.BeNil())
+	g.Expect(ref.Kind).To(gomega.Equal(expectedKind))
+	g.Expect(ref.APIVersion).To(gomega.Equal(expectedAPIVersion))
+	g.Expect(ref.Namespace).To(gomega.Equal(namespace))
+	g.Expect(ref.Name).To(gomega.HavePrefix(templateRef.Name))
 
 	clone := &unstructured.Unstructured{}
 	clone.SetKind(expectedKind)
 	clone.SetAPIVersion(expectedAPIVersion)
 	key := client.ObjectKey{Name: ref.Name, Namespace: ref.Namespace}
 	g.Expect(fakeClient.Get(context.Background(), key, clone)).To(gomega.Succeed())
-	g.Expect(clone).To(gomega.Equal(expected))
+	g.Expect(clone.GetLabels()).To(gomega.Equal(expectedLabels))
+	g.Expect(clone.GetOwnerReferences()).To(gomega.HaveLen(1))
+	g.Expect(clone.GetOwnerReferences()).To(gomega.ContainElement(owner))
+	cloneSpec, ok, err := unstructured.NestedMap(clone.UnstructuredContent(), "spec")
+	g.Expect(err).NotTo(gomega.HaveOccurred())
+	g.Expect(ok).To(gomega.BeTrue())
+	g.Expect(cloneSpec).To(gomega.Equal(expectedSpec))
 }
 
 func TestCloneTemplateResourceFoundNoOwner(t *testing.T) {
@@ -231,32 +222,16 @@ func TestCloneTemplateResourceFoundNoOwner(t *testing.T) {
 
 	expectedKind := "Yellow"
 	expectedAPIVersion := templateAPIVersion
-	expectedRef := &corev1.ObjectReference{
-		Kind:       expectedKind,
-		APIVersion: expectedAPIVersion,
-		Namespace:  namespace,
-	}
+	expectedLabels := (map[string]string{clusterv1.ClusterLabelName: testClusterName})
 
-	expected := &unstructured.Unstructured{
-		Object: map[string]interface{}{
-			"kind":       expectedKind,
-			"apiVersion": expectedAPIVersion,
-			"metadata": map[string]interface{}{
-				"namespace":    namespace,
-				"generateName": fmt.Sprintf("%s-", templateName),
-			},
-			"spec": map[string]interface{}{
-				"hello": "world",
-			},
-		},
-	}
-	expected.SetLabels(map[string]string{clusterv1.ClusterLabelName: testClusterName})
-	expected.SetResourceVersion("1")
+	expectedSpec, ok, err := unstructured.NestedMap(template.UnstructuredContent(), "spec", "template", "spec")
+	g.Expect(err).NotTo(gomega.HaveOccurred())
+	g.Expect(ok).To(gomega.BeTrue())
+	g.Expect(expectedSpec).NotTo(gomega.BeEmpty())
 
 	fakeClient := fake.NewFakeClientWithScheme(runtime.NewScheme(), template.DeepCopy())
 
-	templateCloner := TemplateCloner{}
-	ref, err := templateCloner.CloneTemplate(
+	ref, err := CloneTemplate(
 		context.Background(),
 		fakeClient,
 		templateRef,
@@ -265,14 +240,23 @@ func TestCloneTemplateResourceFoundNoOwner(t *testing.T) {
 		nil,
 	)
 	g.Expect(err).NotTo(gomega.HaveOccurred())
-	g.Expect(ref).To(gomega.Equal(expectedRef))
+	g.Expect(ref).NotTo(gomega.BeNil())
+	g.Expect(ref.Kind).To(gomega.Equal(expectedKind))
+	g.Expect(ref.APIVersion).To(gomega.Equal(expectedAPIVersion))
+	g.Expect(ref.Namespace).To(gomega.Equal(namespace))
+	g.Expect(ref.Name).To(gomega.HavePrefix(templateRef.Name))
 
 	clone := &unstructured.Unstructured{}
 	clone.SetKind(expectedKind)
 	clone.SetAPIVersion(expectedAPIVersion)
 	key := client.ObjectKey{Name: ref.Name, Namespace: ref.Namespace}
 	g.Expect(fakeClient.Get(context.Background(), key, clone)).To(gomega.Succeed())
-	g.Expect(clone).To(gomega.Equal(expected))
+	g.Expect(clone.GetLabels()).To(gomega.Equal(expectedLabels))
+	g.Expect(clone.GetOwnerReferences()).To(gomega.BeEmpty())
+	cloneSpec, ok, err := unstructured.NestedMap(clone.UnstructuredContent(), "spec")
+	g.Expect(err).NotTo(gomega.HaveOccurred())
+	g.Expect(ok).To(gomega.BeTrue())
+	g.Expect(cloneSpec).To(gomega.Equal(expectedSpec))
 }
 
 func TestCloneTemplateMissingSpecTemplate(t *testing.T) {
@@ -306,8 +290,7 @@ func TestCloneTemplateMissingSpecTemplate(t *testing.T) {
 
 	fakeClient := fake.NewFakeClientWithScheme(runtime.NewScheme(), template.DeepCopy())
 
-	templateCloner := TemplateCloner{}
-	_, err := templateCloner.CloneTemplate(
+	_, err := CloneTemplate(
 		context.Background(),
 		fakeClient,
 		templateRef,

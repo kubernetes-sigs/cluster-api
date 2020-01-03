@@ -28,6 +28,7 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/kubernetes/scheme"
+	"k8s.io/client-go/tools/record"
 	"k8s.io/klog/klogr"
 	utilpointer "k8s.io/utils/pointer"
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -376,7 +377,7 @@ func TestKubeadmControlPlaneReconciler_initializeControlPlane(t *testing.T) {
 		Log:    log.Log,
 	}
 
-	g.Expect(r.initializeControlPlane(context.Background(), cluster, kcp, log.Log)).To(gomega.Succeed())
+	g.Expect(r.initializeControlPlane(context.Background(), cluster, kcp)).To(gomega.Succeed())
 
 	machineList := &clusterv1.MachineList{}
 	g.Expect(fakeClient.List(context.Background(), machineList, client.InNamespace(cluster.Namespace))).To(gomega.Succeed())
@@ -622,11 +623,11 @@ func TestReconcileInitializeControlPlane(t *testing.T) {
 	g.Expect(kcp.Status.Selector).NotTo(gomega.BeEmpty())
 	g.Expect(kcp.Status.Replicas).To(gomega.BeEquivalentTo(1))
 
-	secret, err := secret.GetFromNamespacedName(fakeClient, client.ObjectKey{Namespace: "test", Name: "foo"}, secret.ClusterCA)
+	s, err := secret.GetFromNamespacedName(fakeClient, client.ObjectKey{Namespace: "test", Name: "foo"}, secret.ClusterCA)
 	g.Expect(err).NotTo(gomega.HaveOccurred())
-	g.Expect(secret).NotTo(gomega.BeNil())
-	g.Expect(secret.Data).NotTo(gomega.BeEmpty())
-	g.Expect(secret.Labels).To(gomega.Equal(expectedLabels))
+	g.Expect(s).NotTo(gomega.BeNil())
+	g.Expect(s.Data).NotTo(gomega.BeEmpty())
+	g.Expect(s.Labels).To(gomega.Equal(expectedLabels))
 
 	k, err := kubeconfig.FromSecret(fakeClient, cluster)
 	g.Expect(err).NotTo(gomega.HaveOccurred())
@@ -640,36 +641,43 @@ func TestReconcileInitializeControlPlane(t *testing.T) {
 	g.Expect(machine.Name).To(gomega.HavePrefix(kcp.Name))
 }
 
-func TestKubeadmControlPlaneReconciler_generateMachineWithOwner(t *testing.T) {
+func TestKubeadmControlPlaneReconciler_generateMachine(t *testing.T) {
 	g := gomega.NewWithT(t)
 	g.Expect(clusterv1.AddToScheme(scheme.Scheme)).To(gomega.Succeed())
 	fakeClient := fake.NewFakeClientWithScheme(scheme.Scheme)
 
-	namespace := "test"
-	namePrefix := "generate2"
-	clusterName := "testCluster"
-	version := "my-version"
+	cluster := &clusterv1.Cluster{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "testCluster",
+			Namespace: "test",
+		},
+	}
+
+	kcp := &controlplanev1.KubeadmControlPlane{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "testControlPlane",
+			Namespace: cluster.Namespace,
+		},
+		Spec: controlplanev1.KubeadmControlPlaneSpec{
+			Version: "my-version",
+		},
+	}
+
 	infraRef := &corev1.ObjectReference{
 		Kind:       "InfraKind",
 		APIVersion: "infrastructure.cluster.x-k8s.io/v1alpha3",
 		Name:       "infra",
-		Namespace:  namespace,
+		Namespace:  cluster.Namespace,
 	}
 	bootstrapRef := &corev1.ObjectReference{
 		Kind:       "BootstrapKind",
 		APIVersion: "bootstrap.cluster.x-k8s.io/v1alpha3",
 		Name:       "bootstrap",
-		Namespace:  namespace,
+		Namespace:  cluster.Namespace,
 	}
-	owner := metav1.OwnerReference{
-		Kind:       "Cluster",
-		APIVersion: clusterv1.GroupVersion.String(),
-		Name:       clusterName,
-	}
-	labels := map[string]string{"color": "blue"}
 	expectedMachineSpec := clusterv1.MachineSpec{
-		ClusterName: clusterName,
-		Version:     utilpointer.StringPtr(version),
+		ClusterName: cluster.Name,
+		Version:     utilpointer.StringPtr(kcp.Spec.Version),
 		Bootstrap: clusterv1.Bootstrap{
 			ConfigRef: bootstrapRef.DeepCopy(),
 		},
@@ -679,104 +687,56 @@ func TestKubeadmControlPlaneReconciler_generateMachineWithOwner(t *testing.T) {
 		Client: fakeClient,
 		Log:    log.Log,
 	}
-	g.Expect(r.generateMachine(context.Background(), namespace, namePrefix, clusterName, version, infraRef, bootstrapRef, labels, owner.DeepCopy())).To(gomega.Succeed())
+	g.Expect(r.generateMachine(context.Background(), kcp, cluster, infraRef, bootstrapRef)).To(gomega.Succeed())
 
 	machineList := &clusterv1.MachineList{}
-	g.Expect(fakeClient.List(context.Background(), machineList, client.InNamespace(namespace))).To(gomega.Succeed())
+	g.Expect(fakeClient.List(context.Background(), machineList, client.InNamespace(cluster.Namespace))).To(gomega.Succeed())
 	g.Expect(machineList.Items).NotTo(gomega.BeEmpty())
 	g.Expect(machineList.Items).To(gomega.HaveLen(1))
 	machine := machineList.Items[0]
-	g.Expect(machine.Name).To(gomega.HavePrefix(namePrefix))
-	g.Expect(machine.Namespace).To(gomega.Equal(namespace))
-	g.Expect(machine.Labels).To(gomega.Equal(labels))
+	g.Expect(machine.Name).To(gomega.HavePrefix(kcp.Name))
+	g.Expect(machine.Namespace).To(gomega.Equal(kcp.Namespace))
+	g.Expect(machine.Labels).To(gomega.Equal(generateKubeadmControlPlaneLabels(cluster.Name)))
 	g.Expect(machine.OwnerReferences).To(gomega.HaveLen(1))
-	g.Expect(machine.OwnerReferences).To(gomega.ContainElement(owner))
+	g.Expect(machine.OwnerReferences).To(gomega.ContainElement(*metav1.NewControllerRef(kcp, controlplanev1.GroupVersion.WithKind("KubeadmControlPlane"))))
 	g.Expect(machine.Spec).To(gomega.Equal(expectedMachineSpec))
 }
 
-func TestKubeadmControlPlaneReconciler_generateMachineWithoutOwner(t *testing.T) {
-	g := gomega.NewWithT(t)
-	g.Expect(clusterv1.AddToScheme(scheme.Scheme)).To(gomega.Succeed())
-	fakeClient := fake.NewFakeClientWithScheme(scheme.Scheme)
-
-	namespace := "test"
-	namePrefix := "generate2"
-	clusterName := "testCluster"
-	version := "my-version"
-	infraRef := &corev1.ObjectReference{
-		Kind:       "InfraKind",
-		APIVersion: "infrastructure.cluster.x-k8s.io/v1alpha3",
-		Name:       "infra",
-		Namespace:  namespace,
-	}
-	bootstrapRef := &corev1.ObjectReference{
-		Kind:       "BootstrapKind",
-		APIVersion: "bootstrap.cluster.x-k8s.io/v1alpha3",
-		Name:       "bootstrap",
-		Namespace:  namespace,
-	}
-	labels := map[string]string{"color": "blue"}
-	expectedMachineSpec := clusterv1.MachineSpec{
-		ClusterName: clusterName,
-		Version:     utilpointer.StringPtr(version),
-		Bootstrap: clusterv1.Bootstrap{
-			ConfigRef: bootstrapRef.DeepCopy(),
-		},
-		InfrastructureRef: *infraRef.DeepCopy(),
-	}
-	r := &KubeadmControlPlaneReconciler{
-		Client: fakeClient,
-		Log:    log.Log,
-	}
-	g.Expect(r.generateMachine(context.Background(), namespace, namePrefix, clusterName, version, infraRef, bootstrapRef, labels, nil)).To(gomega.Succeed())
-
-	machineList := &clusterv1.MachineList{}
-	g.Expect(fakeClient.List(context.Background(), machineList, client.InNamespace(namespace))).To(gomega.Succeed())
-	g.Expect(machineList.Items).NotTo(gomega.BeEmpty())
-	g.Expect(machineList.Items).To(gomega.HaveLen(1))
-	machine := machineList.Items[0]
-	g.Expect(machine.Name).To(gomega.HavePrefix(namePrefix))
-	g.Expect(machine.Namespace).To(gomega.Equal(namespace))
-	g.Expect(machine.Labels).To(gomega.Equal(labels))
-	g.Expect(machine.OwnerReferences).To(gomega.BeEmpty())
-	g.Expect(machine.Spec).To(gomega.Equal(expectedMachineSpec))
-}
-
-func TestKubeadmControlPlaneReconciler_generateKubeadmConfigWithOwner(t *testing.T) {
+func TestKubeadmControlPlaneReconciler_generateKubeadmConfig(t *testing.T) {
 	g := gomega.NewWithT(t)
 	g.Expect(bootstrapv1.AddToScheme(scheme.Scheme)).To(gomega.Succeed())
 	fakeClient := fake.NewFakeClientWithScheme(scheme.Scheme)
 
-	namespace := "test"
-	namePrefix := "generate"
-	clusterName := "foo"
-	spec := bootstrapv1.KubeadmConfigSpec{}
-	owner := metav1.OwnerReference{
-		Kind:       "Cluster",
-		APIVersion: clusterv1.GroupVersion.String(),
-		Name:       clusterName,
+	cluster := &clusterv1.Cluster{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "testCluster",
+			Namespace: "test",
+		},
 	}
+
+	kcp := &controlplanev1.KubeadmControlPlane{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "testControlPlane",
+			Namespace: cluster.Namespace,
+		},
+	}
+
+	spec := bootstrapv1.KubeadmConfigSpec{}
 	expectedReferenceKind := "KubeadmConfig"
 	expectedReferenceAPIVersion := bootstrapv1.GroupVersion.String()
-	expectedLabels := map[string]string{clusterv1.ClusterLabelName: "foo"}
+	expectedLabels := map[string]string{clusterv1.ClusterLabelName: cluster.Name}
+	expectedOwner := *metav1.NewControllerRef(kcp, controlplanev1.GroupVersion.WithKind("KubeadmControlPlane"))
 
 	r := &KubeadmControlPlaneReconciler{
 		Client: fakeClient,
 		Log:    log.Log,
 	}
 
-	got, err := r.generateKubeadmConfig(
-		context.Background(),
-		namespace,
-		namePrefix,
-		clusterName,
-		spec.DeepCopy(),
-		owner.DeepCopy(),
-	)
+	got, err := r.generateKubeadmConfig(context.Background(), kcp, cluster, spec.DeepCopy())
 	g.Expect(err).NotTo(gomega.HaveOccurred())
 	g.Expect(got).NotTo(gomega.BeNil())
-	g.Expect(got.Name).To(gomega.HavePrefix(namePrefix))
-	g.Expect(got.Namespace).To(gomega.Equal(namespace))
+	g.Expect(got.Name).To(gomega.HavePrefix(kcp.Name))
+	g.Expect(got.Namespace).To(gomega.Equal(kcp.Namespace))
 	g.Expect(got.Kind).To(gomega.Equal(expectedReferenceKind))
 	g.Expect(got.APIVersion).To(gomega.Equal(expectedReferenceAPIVersion))
 
@@ -785,48 +745,7 @@ func TestKubeadmControlPlaneReconciler_generateKubeadmConfigWithOwner(t *testing
 	g.Expect(fakeClient.Get(context.Background(), key, bootstrapConfig)).To(gomega.Succeed())
 	g.Expect(bootstrapConfig.Labels).To(gomega.Equal(expectedLabels))
 	g.Expect(bootstrapConfig.OwnerReferences).To(gomega.HaveLen(1))
-	g.Expect(bootstrapConfig.OwnerReferences).To(gomega.ContainElement(owner))
-	g.Expect(bootstrapConfig.Spec).To(gomega.Equal(spec))
-}
-
-func TestKubeadmControlPlaneReconciler_generateKubeadmConfigWithoutOwner(t *testing.T) {
-	g := gomega.NewWithT(t)
-	g.Expect(bootstrapv1.AddToScheme(scheme.Scheme)).To(gomega.Succeed())
-	fakeClient := fake.NewFakeClientWithScheme(scheme.Scheme)
-
-	namespace := "test"
-	namePrefix := "generate"
-	clusterName := "foo"
-	spec := bootstrapv1.KubeadmConfigSpec{}
-	expectedReferenceKind := "KubeadmConfig"
-	expectedReferenceAPIVersion := bootstrapv1.GroupVersion.String()
-	expectedLabels := map[string]string{clusterv1.ClusterLabelName: "foo"}
-
-	r := &KubeadmControlPlaneReconciler{
-		Client: fakeClient,
-		Log:    log.Log,
-	}
-
-	got, err := r.generateKubeadmConfig(
-		context.Background(),
-		namespace,
-		namePrefix,
-		clusterName,
-		spec.DeepCopy(),
-		nil,
-	)
-	g.Expect(err).NotTo(gomega.HaveOccurred())
-	g.Expect(got).NotTo(gomega.BeNil())
-	g.Expect(got.Name).To(gomega.HavePrefix(namePrefix))
-	g.Expect(got.Namespace).To(gomega.Equal(namespace))
-	g.Expect(got.Kind).To(gomega.Equal(expectedReferenceKind))
-	g.Expect(got.APIVersion).To(gomega.Equal(expectedReferenceAPIVersion))
-
-	bootstrapConfig := &bootstrapv1.KubeadmConfig{}
-	key := client.ObjectKey{Name: got.Name, Namespace: got.Namespace}
-	g.Expect(fakeClient.Get(context.Background(), key, bootstrapConfig)).To(gomega.Succeed())
-	g.Expect(bootstrapConfig.Labels).To(gomega.Equal(expectedLabels))
-	g.Expect(bootstrapConfig.OwnerReferences).To(gomega.BeEmpty())
+	g.Expect(bootstrapConfig.OwnerReferences).To(gomega.ContainElement(expectedOwner))
 	g.Expect(bootstrapConfig.Spec).To(gomega.Equal(spec))
 }
 
@@ -1122,4 +1041,281 @@ func TestKubeadmControlPlaneReconciler_updateStatusMachinesReadyMixed(t *testing
 
 	// TODO: will need to be updated once we start handling Ready
 	g.Expect(kcp.Status.Ready).To(gomega.BeFalse())
+}
+
+func TestReconcileControlPlaneScaleUp(t *testing.T) {
+	g := gomega.NewWithT(t)
+
+	cluster := &clusterv1.Cluster{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "foo",
+			Namespace: "test",
+		},
+		Spec: clusterv1.ClusterSpec{
+			ControlPlaneEndpoint: clusterv1.APIEndpoint{
+				Host: "test.local",
+				Port: 9999,
+			},
+			ControlPlaneRef: &corev1.ObjectReference{
+				Kind:       "KubeadmControlPlane",
+				Namespace:  "test",
+				Name:       "kcp-foo",
+				APIVersion: controlplanev1.GroupVersion.String(),
+			},
+		},
+	}
+
+	genericMachineTemplate := &unstructured.Unstructured{
+		Object: map[string]interface{}{
+			"kind":       "GenericMachineTemplate",
+			"apiVersion": "generic.io/v1",
+			"metadata": map[string]interface{}{
+				"name":      "infra-foo",
+				"namespace": cluster.Namespace,
+			},
+			"spec": map[string]interface{}{
+				"template": map[string]interface{}{
+					"spec": map[string]interface{}{
+						"hello": "world",
+					},
+				},
+			},
+		},
+	}
+
+	kcp := &controlplanev1.KubeadmControlPlane{
+		ObjectMeta: metav1.ObjectMeta{
+			Namespace: cluster.Namespace,
+			Name:      "foo",
+			OwnerReferences: []metav1.OwnerReference{
+				{
+					Kind:       "Cluster",
+					APIVersion: clusterv1.GroupVersion.String(),
+					Name:       cluster.Name,
+				},
+			},
+		},
+		Spec: controlplanev1.KubeadmControlPlaneSpec{
+			InfrastructureTemplate: corev1.ObjectReference{
+				Kind:       genericMachineTemplate.GetKind(),
+				Namespace:  genericMachineTemplate.GetNamespace(),
+				Name:       genericMachineTemplate.GetName(),
+				APIVersion: genericMachineTemplate.GetAPIVersion(),
+			},
+			KubeadmConfigSpec: bootstrapv1.KubeadmConfigSpec{
+				ClusterConfiguration: &kubeadmv1.ClusterConfiguration{},
+				InitConfiguration:    &kubeadmv1.InitConfiguration{},
+				JoinConfiguration:    &kubeadmv1.JoinConfiguration{},
+			},
+			Replicas: utilpointer.Int32Ptr(3),
+		},
+	}
+
+	machine := &clusterv1.Machine{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "foo-0",
+			Namespace: cluster.Namespace,
+			Labels:    generateKubeadmControlPlaneLabels(cluster.Name),
+			OwnerReferences: []metav1.OwnerReference{
+				*metav1.NewControllerRef(kcp, controlplanev1.GroupVersion.WithKind("KubeadmControlPlane")),
+			},
+		},
+	}
+
+	kcp.Default()
+	g.Expect(kcp.ValidateCreate()).To(gomega.Succeed())
+
+	g.Expect(clusterv1.AddToScheme(scheme.Scheme)).To(gomega.Succeed())
+	g.Expect(bootstrapv1.AddToScheme(scheme.Scheme)).To(gomega.Succeed())
+	g.Expect(controlplanev1.AddToScheme(scheme.Scheme)).To(gomega.Succeed())
+	fakeClient := fake.NewFakeClientWithScheme(
+		scheme.Scheme,
+		kcp.DeepCopy(),
+		cluster.DeepCopy(),
+		machine.DeepCopy(),
+		genericMachineTemplate.DeepCopy(),
+	)
+	log.SetLogger(klogr.New())
+
+	r := &KubeadmControlPlaneReconciler{
+		Client: fakeClient,
+		Log:    log.Log,
+		remoteClient: func(c client.Client, _ *clusterv1.Cluster, _ *runtime.Scheme) (client.Client, error) {
+			return c, nil
+		},
+		recorder: record.NewFakeRecorder(32),
+	}
+
+	result, err := r.reconcile(context.Background(), kcp, r.Log)
+	g.Expect(err).NotTo(gomega.HaveOccurred())
+	g.Expect(result).To(gomega.Equal(ctrl.Result{}))
+
+	g.Expect(kcp.Status.Replicas).To(gomega.BeEquivalentTo(3))
+
+	machineList := &clusterv1.MachineList{}
+	g.Expect(fakeClient.List(context.Background(), machineList, client.InNamespace("test"))).To(gomega.Succeed())
+	g.Expect(machineList.Items).To(gomega.HaveLen(3))
+	for _, m := range machineList.Items {
+		g.Expect(m.Name).To(gomega.HavePrefix(kcp.Name))
+	}
+}
+
+func TestScaleUpControlPlaneAddsANewMachine(t *testing.T) {
+	g := gomega.NewWithT(t)
+
+	cluster := &clusterv1.Cluster{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "foo",
+			Namespace: "test",
+		},
+	}
+
+	genericMachineTemplate := &unstructured.Unstructured{
+		Object: map[string]interface{}{
+			"kind":       "GenericMachineTemplate",
+			"apiVersion": "generic.io/v1",
+			"metadata": map[string]interface{}{
+				"name":      "infra-foo",
+				"namespace": cluster.Namespace,
+			},
+			"spec": map[string]interface{}{
+				"template": map[string]interface{}{
+					"spec": map[string]interface{}{
+						"hello": "world",
+					},
+				},
+			},
+		},
+	}
+
+	kcp := &controlplanev1.KubeadmControlPlane{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "kcp-foo",
+			Namespace: cluster.Namespace,
+		},
+		Spec: controlplanev1.KubeadmControlPlaneSpec{
+			InfrastructureTemplate: corev1.ObjectReference{
+				Kind:       genericMachineTemplate.GetKind(),
+				Namespace:  genericMachineTemplate.GetNamespace(),
+				Name:       genericMachineTemplate.GetName(),
+				APIVersion: genericMachineTemplate.GetAPIVersion(),
+			},
+			KubeadmConfigSpec: bootstrapv1.KubeadmConfigSpec{
+				ClusterConfiguration: &kubeadmv1.ClusterConfiguration{},
+				InitConfiguration:    &kubeadmv1.InitConfiguration{},
+				JoinConfiguration:    &kubeadmv1.JoinConfiguration{},
+			},
+		},
+	}
+
+	g.Expect(clusterv1.AddToScheme(scheme.Scheme)).To(gomega.Succeed())
+	g.Expect(bootstrapv1.AddToScheme(scheme.Scheme)).To(gomega.Succeed())
+	g.Expect(controlplanev1.AddToScheme(scheme.Scheme)).To(gomega.Succeed())
+	fakeClient := fake.NewFakeClientWithScheme(
+		scheme.Scheme,
+		cluster.DeepCopy(),
+		kcp.DeepCopy(),
+		genericMachineTemplate.DeepCopy(),
+	)
+
+	r := &KubeadmControlPlaneReconciler{
+		Client:   fakeClient,
+		Log:      log.Log,
+		recorder: record.NewFakeRecorder(32),
+	}
+
+	g.Expect(r.scaleUpControlPlane(context.Background(), cluster, kcp, 2)).To(gomega.Succeed())
+
+	machineList := &clusterv1.MachineList{}
+	g.Expect(fakeClient.List(context.Background(), machineList, client.InNamespace(cluster.Namespace))).To(gomega.Succeed())
+	g.Expect(machineList.Items).To(gomega.HaveLen(2))
+
+	for _, m := range machineList.Items {
+		g.Expect(m.Spec.Bootstrap.ConfigRef.Name).To(gomega.HavePrefix(kcp.Name))
+	}
+}
+
+func TestCloneConfigsAndGenerateMachine(t *testing.T) {
+	g := gomega.NewWithT(t)
+
+	cluster := &clusterv1.Cluster{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "foo",
+			Namespace: "test",
+		},
+	}
+
+	genericMachineTemplate := &unstructured.Unstructured{
+		Object: map[string]interface{}{
+			"kind":       "GenericMachineTemplate",
+			"apiVersion": "generic.io/v1",
+			"metadata": map[string]interface{}{
+				"name":      "infra-foo",
+				"namespace": cluster.Namespace,
+			},
+			"spec": map[string]interface{}{
+				"template": map[string]interface{}{
+					"spec": map[string]interface{}{
+						"hello": "world",
+					},
+				},
+			},
+		},
+	}
+
+	kcp := &controlplanev1.KubeadmControlPlane{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "kcp-foo",
+			Namespace: cluster.Namespace,
+		},
+		Spec: controlplanev1.KubeadmControlPlaneSpec{
+			InfrastructureTemplate: corev1.ObjectReference{
+				Kind:       genericMachineTemplate.GetKind(),
+				APIVersion: genericMachineTemplate.GetAPIVersion(),
+				Name:       genericMachineTemplate.GetName(),
+				Namespace:  cluster.Namespace,
+			},
+		},
+	}
+
+	g.Expect(clusterv1.AddToScheme(scheme.Scheme)).To(gomega.Succeed())
+	g.Expect(bootstrapv1.AddToScheme(scheme.Scheme)).To(gomega.Succeed())
+	g.Expect(controlplanev1.AddToScheme(scheme.Scheme)).To(gomega.Succeed())
+	fakeClient := fake.NewFakeClientWithScheme(
+		scheme.Scheme,
+		cluster.DeepCopy(),
+		kcp.DeepCopy(),
+		genericMachineTemplate.DeepCopy(),
+	)
+
+	r := &KubeadmControlPlaneReconciler{
+		Client:   fakeClient,
+		Log:      log.Log,
+		recorder: record.NewFakeRecorder(32),
+	}
+
+	bootstrapSpec := &bootstrapv1.KubeadmConfigSpec{
+		JoinConfiguration: &kubeadmv1.JoinConfiguration{},
+	}
+	g.Expect(r.cloneConfigsAndGenerateMachine(context.Background(), cluster, kcp, bootstrapSpec)).To(gomega.Succeed())
+
+	machineList := &clusterv1.MachineList{}
+	g.Expect(fakeClient.List(context.Background(), machineList, client.InNamespace(cluster.Namespace))).To(gomega.Succeed())
+	g.Expect(machineList.Items).To(gomega.HaveLen(1))
+
+	for _, m := range machineList.Items {
+		g.Expect(m.Namespace).To(gomega.Equal(cluster.Namespace))
+		g.Expect(m.Name).NotTo(gomega.BeEmpty())
+		g.Expect(m.Name).To(gomega.HavePrefix(kcp.Name))
+
+		g.Expect(m.Spec.InfrastructureRef.Namespace).To(gomega.Equal(cluster.Namespace))
+		g.Expect(m.Spec.InfrastructureRef.Name).To(gomega.HavePrefix(genericMachineTemplate.GetName()))
+		g.Expect(m.Spec.InfrastructureRef.APIVersion).To(gomega.Equal(genericMachineTemplate.GetAPIVersion()))
+		g.Expect(m.Spec.InfrastructureRef.Kind).To(gomega.Equal("GenericMachine"))
+
+		g.Expect(m.Spec.Bootstrap.ConfigRef.Namespace).To(gomega.Equal(cluster.Namespace))
+		g.Expect(m.Spec.Bootstrap.ConfigRef.Name).To(gomega.HavePrefix(kcp.Name))
+		g.Expect(m.Spec.Bootstrap.ConfigRef.APIVersion).To(gomega.Equal(bootstrapv1.GroupVersion.String()))
+		g.Expect(m.Spec.Bootstrap.ConfigRef.Kind).To(gomega.Equal("KubeadmConfig"))
+	}
 }

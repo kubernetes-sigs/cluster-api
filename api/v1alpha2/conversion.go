@@ -22,6 +22,7 @@ import (
 
 	apiconversion "k8s.io/apimachinery/pkg/conversion"
 	"sigs.k8s.io/cluster-api/api/v1alpha3"
+	utilconversion "sigs.k8s.io/cluster-api/util/conversion"
 	"sigs.k8s.io/controller-runtime/pkg/conversion"
 )
 
@@ -79,12 +80,27 @@ func (dst *ClusterList) ConvertFrom(srcRaw conversion.Hub) error {
 func (src *Machine) ConvertTo(dstRaw conversion.Hub) error {
 	dst := dstRaw.(*v1alpha3.Machine)
 
+	// Manually restore data.
+	restored := &v1alpha3.Machine{}
+	if ok, err := utilconversion.UnmarshalData(src, restored); err != nil {
+		return err
+	} else if ok {
+		if restored.Spec.Bootstrap.DataSecretName != nil {
+			dst.Spec.Bootstrap.DataSecretName = restored.Spec.Bootstrap.DataSecretName
+		}
+	}
+
 	return Convert_v1alpha2_Machine_To_v1alpha3_Machine(src, dst, nil)
 }
 
 // nolint
 func (dst *Machine) ConvertFrom(srcRaw conversion.Hub) error {
 	src := srcRaw.(*v1alpha3.Machine)
+
+	// Preserve Hub data on down-conversion.
+	if err := utilconversion.MarshalData(src, dst); err != nil {
+		return err
+	}
 
 	return Convert_v1alpha3_Machine_To_v1alpha2_Machine(src, dst, nil)
 }
@@ -272,10 +288,5 @@ func Convert_v1alpha3_MachineSpec_To_v1alpha2_MachineSpec(in *v1alpha3.MachineSp
 }
 
 func Convert_v1alpha3_Bootstrap_To_v1alpha2_Bootstrap(in *v1alpha3.Bootstrap, out *Bootstrap, s apiconversion.Scope) error {
-	// We need to fail early here given that we don't want to leak information from secrets back to the inline / plaintext field in v1alpha2.
-	if in.Data == nil && in.DataSecretName != nil {
-		return errors.New("cannot convert Machine's bootstrap data from Secret reference to inline field")
-	}
-
 	return autoConvert_v1alpha3_Bootstrap_To_v1alpha2_Bootstrap(in, out, s)
 }

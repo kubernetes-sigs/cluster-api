@@ -17,22 +17,38 @@ limitations under the License.
 package v1alpha2
 
 import (
-	"errors"
-
 	apiconversion "k8s.io/apimachinery/pkg/conversion"
 	kubeadmbootstrapv1alpha3 "sigs.k8s.io/cluster-api/bootstrap/kubeadm/api/v1alpha3"
+	utilconversion "sigs.k8s.io/cluster-api/util/conversion"
 	"sigs.k8s.io/controller-runtime/pkg/conversion"
 )
 
 // ConvertTo converts this KubeadmConfig to the Hub version (v1alpha3).
 func (src *KubeadmConfig) ConvertTo(dstRaw conversion.Hub) error { // nolint
 	dst := dstRaw.(*kubeadmbootstrapv1alpha3.KubeadmConfig)
+
+	// Manually restore data.
+	restored := &kubeadmbootstrapv1alpha3.KubeadmConfig{}
+	if ok, err := utilconversion.UnmarshalData(src, restored); err != nil {
+		return err
+	} else if ok {
+		if restored.Status.DataSecretName != nil {
+			dst.Status.DataSecretName = restored.Status.DataSecretName
+		}
+	}
+
 	return Convert_v1alpha2_KubeadmConfig_To_v1alpha3_KubeadmConfig(src, dst, nil)
 }
 
 // ConvertFrom converts from the KubeadmConfig Hub version (v1alpha3) to this version.
 func (dst *KubeadmConfig) ConvertFrom(srcRaw conversion.Hub) error { // nolint
 	src := srcRaw.(*kubeadmbootstrapv1alpha3.KubeadmConfig)
+
+	// Preserve Hub data on down-conversion.
+	if err := utilconversion.MarshalData(src, dst); err != nil {
+		return err
+	}
+
 	return Convert_v1alpha3_KubeadmConfig_To_v1alpha2_KubeadmConfig(src, dst, nil)
 }
 
@@ -87,11 +103,6 @@ func Convert_v1alpha2_KubeadmConfigStatus_To_v1alpha3_KubeadmConfigStatus(in *Ku
 
 // Convert_v1alpha3_KubeadmConfigStatus_To_v1alpha2_KubeadmConfigStatus converts from the Hub version (v1alpha3) of the KubeadmConfigStatus to this version.
 func Convert_v1alpha3_KubeadmConfigStatus_To_v1alpha2_KubeadmConfigStatus(in *kubeadmbootstrapv1alpha3.KubeadmConfigStatus, out *KubeadmConfigStatus, s apiconversion.Scope) error { // nolint
-	// We need to fail early here given that we don't want to leak information from secrets back to the inline / plaintext field in v1alpha2.
-	if in.BootstrapData == nil && in.DataSecretName != nil {
-		return errors.New("cannot convert KubeadmConfigStatus's bootstrap data from Secret reference to inline field")
-	}
-
 	if err := autoConvert_v1alpha3_KubeadmConfigStatus_To_v1alpha2_KubeadmConfigStatus(in, out, s); err != nil {
 		return err
 	}

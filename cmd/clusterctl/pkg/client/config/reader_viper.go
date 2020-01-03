@@ -64,11 +64,15 @@ func (v *viperReader) Init(path string) error {
 	return nil
 }
 
-func (v *viperReader) GetString(key string) (string, error) {
+func (v *viperReader) Get(key string) (string, error) {
 	if viper.Get(key) == nil {
 		return "", errors.Errorf("Failed to get value for variable %q. Please set the variable value using os env variables or using the .clusterctl config file", key)
 	}
 	return viper.GetString(key), nil
+}
+
+func (v *viperReader) Set(key, value string) {
+	viper.Set(key, value)
 }
 
 func (v *viperReader) UnmarshalKey(key string, rawval interface{}) error {

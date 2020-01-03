@@ -32,6 +32,10 @@ func (f FakeVariableClient) Get(key string) (string, error) {
 	return "", errors.Errorf("value for variable %q is not set", key)
 }
 
+func (f FakeVariableClient) Set(key, value string) {
+	f.variables[key] = value
+}
+
 func (f *FakeVariableClient) WithVar(key, value string) *FakeVariableClient {
 	f.variables[key] = value
 	return f

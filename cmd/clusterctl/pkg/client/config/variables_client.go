@@ -24,6 +24,10 @@ type VariablesClient interface {
 	// In case the same variable is defined both within the environment variables and clusterctl configuration file,
 	// the environment variables value takes precedence.
 	Get(key string) (string, error)
+
+	// Set allows to set an explicit override for a config value.
+	// e.g. It is used to set an override from a flag value over environment/config file variables.
+	Set(key, values string)
 }
 
 // Ensures the FakeVariableClient implements VariablesClient
@@ -44,5 +48,9 @@ func newVariablesClient(reader Reader) *variablesClient {
 }
 
 func (p *variablesClient) Get(key string) (string, error) {
-	return p.reader.GetString(key)
+	return p.reader.Get(key)
+}
+
+func (p *variablesClient) Set(key, value string) {
+	p.reader.Set(key, value)
 }

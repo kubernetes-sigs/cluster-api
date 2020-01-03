@@ -18,13 +18,13 @@ package external
 
 import (
 	"context"
-	"fmt"
 	"strings"
 
 	"github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
+	"k8s.io/apiserver/pkg/storage/names"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha3"
@@ -49,10 +49,8 @@ func Get(ctx context.Context, c client.Client, ref *corev1.ObjectReference, name
 	return obj, nil
 }
 
-type TemplateCloner struct{}
-
 // CloneTemplate uses the client and the reference to create a new object from the template.
-func (tc *TemplateCloner) CloneTemplate(ctx context.Context, c client.Client, ref *corev1.ObjectReference, namespace, clusterName string, owner *metav1.OwnerReference) (*corev1.ObjectReference, error) {
+func CloneTemplate(ctx context.Context, c client.Client, ref *corev1.ObjectReference, namespace, clusterName string, owner *metav1.OwnerReference) (*corev1.ObjectReference, error) {
 	from, err := Get(ctx, c, ref, namespace)
 	if err != nil {
 		return nil, err
@@ -71,8 +69,7 @@ func (tc *TemplateCloner) CloneTemplate(ctx context.Context, c client.Client, re
 	to.SetFinalizers(nil)
 	to.SetUID("")
 	to.SetSelfLink("")
-	to.SetName("")
-	to.SetGenerateName(fmt.Sprintf("%s-", from.GetName()))
+	to.SetName(names.SimpleNameGenerator.GenerateName(from.GetName() + "-"))
 	to.SetNamespace(namespace)
 
 	if owner != nil {

@@ -117,10 +117,9 @@ var _ = BeforeSuite(func(done Done) {
 		recorder: mgr.GetEventRecorderFor("machine-controller"),
 	}).SetupWithManager(mgr, controller.Options{MaxConcurrentReconciles: 1})).To(Succeed())
 	Expect((&MachineSetReconciler{
-		Client:         k8sClient,
-		Log:            log.Log,
-		TemplateCloner: &external.TemplateCloner{},
-		recorder:       mgr.GetEventRecorderFor("machineset-controller"),
+		Client:   k8sClient,
+		Log:      log.Log,
+		recorder: mgr.GetEventRecorderFor("machineset-controller"),
 	}).SetupWithManager(mgr, controller.Options{MaxConcurrentReconciles: 1})).To(Succeed())
 	Expect((&MachineDeploymentReconciler{
 		Client:   k8sClient,

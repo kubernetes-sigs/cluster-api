@@ -14,6 +14,7 @@ namePrefix: provider-
 patchesStrategicMerge:
 - manager_image_patch.yaml
 - manager_label_patch.yaml
+- manager_role_aggregation_patch.yaml
 resources:
 - ./rbac/
 - ./manager/

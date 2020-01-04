@@ -98,9 +98,9 @@ configuration for retrieving `Cluster` and `Machine` resources:
 The Cluster API controller for `Machine` resources is configured with full read/write RBAC permissions for all resources
 in the `infrastructure.cluster.x-k8s.io` API group. This group represents all machine infrastructure providers for SIG
 Cluster Lifecycle-sponsored provider subprojects. If you are writing a provider not sponsored by the SIG, you must grant
-full read/write RBAC permissions for the "infrastructure machine" resource in your API group to the default `ServiceAccount`
-in the `capi-system` `Namespace`. `ClusterRoles` can be granted using the [aggregation label]
-`cluster.x-k8s.io/aggregate-to-manager: "true"`. The following is an example `ClusterRole` for a `FooMachine` resource:
+full read/write RBAC permissions for the "infrastructure machine" resource in your API group to the Cluster API manager's
+`ServiceAccount`. `ClusterRoles` can be granted using the [aggregation label] `cluster.x-k8s.io/aggregate-to-manager: "true"`.
+The following is an example `ClusterRole` for a `FooMachine` resource:
 
 ```yaml
 apiVersion: rbac.authorization.k8s.io/v1

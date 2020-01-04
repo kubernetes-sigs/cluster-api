@@ -99,26 +99,21 @@ The Cluster API controller for `Machine` resources is configured with full read/
 in the `infrastructure.cluster.x-k8s.io` API group. This group represents all machine infrastructure providers for SIG
 Cluster Lifecycle-sponsored provider subprojects. If you are writing a provider not sponsored by the SIG, you must grant
 full read/write RBAC permissions for the "infrastructure machine" resource in your API group to the default `ServiceAccount`
-in the `capi-system` `Namespace`. You can do this using the [aggregation label]
-`cluster.x-k8s.io/aggregate-to-manager: "true"`.
+in the `capi-system` `Namespace`. `ClusterRoles` can be granted using the [aggregation label]
+`cluster.x-k8s.io/aggregate-to-manager: "true"`. The following is an example `ClusterRole` for a `FooMachine` resource:
 
-Note, the write permissions allow the `Machine` controller to set owner references and labels on the "infrastructure
-machine" resources; they are not used for general mutations of these resources.
-
-The following is an example for an `ExampleMachine` resource:
-
-```
+```yaml
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRole
 metadata:
-  name: capi-example-machines
+  name: capi-foo-machines
   labels:
     cluster.x-k8s.io/aggregate-to-manager: "true"
 rules:
 - apiGroups:
-  - infrastructure.example.com
+  - infrastructure.foo.com
   resources:
-  - examplemachines
+  - foomachines
   verbs:
   - create
   - delete
@@ -128,5 +123,8 @@ rules:
   - update
   - watch
 ```
+
+Note, the write permissions allow the `Machine` controller to set owner references and labels on the "infrastructure
+machine" resources; they are not used for general mutations of these resources.
 
 [aggregation label]: https://kubernetes.io/docs/reference/access-authn-authz/rbac/#aggregated-clusterroles

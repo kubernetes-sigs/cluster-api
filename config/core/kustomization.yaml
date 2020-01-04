@@ -48,8 +48,8 @@ patchesStrategicMerge:
 # 'CERTMANAGER' needs to be enabled to use ca injection
 - webhookcainjection_patch.yaml
   # Ease the process of providing extra RBAC to the Cluster API manager for
-  # non SIG Cluster Lifecycle-sponsored provider subprojects by adding an
-  # aggregation rule
+  # non SIG Cluster Lifecycle-sponsored provider subprojects by using an
+  # aggregated role
 - manager_role_aggregation_patch.yaml
 
 patchesJson6902:

@@ -12,4 +12,4 @@ metadata:
 roleRef:
   apiGroup: rbac.authorization.k8s.io
   kind: ClusterRole
-  name: aggregate-manager-role
+  name: aggregated-manager-role

@@ -67,7 +67,7 @@ func (p *providerComponents) Create(components repository.Components) error {
 			//if it does not exists, create the component
 			klog.V(3).Infof("Creating: %s, %s/%s", r.GroupVersionKind(), r.GetNamespace(), r.GetName())
 			if err = c.Create(ctx, &r); err != nil { //nolint
-				return errors.Wrapf(err, "failed to create provider object")
+				return errors.Wrapf(err, "failed to create provider object %s, %s/%s", r.GroupVersionKind(), r.GetNamespace(), r.GetName())
 			}
 
 			continue
@@ -79,7 +79,7 @@ func (p *providerComponents) Create(components repository.Components) error {
 		// if upgrading an existing component, then use the current resourceVersion for the optimistic lock
 		r.SetResourceVersion(currentR.GetResourceVersion())
 		if err = c.Update(ctx, &r); err != nil { //nolint
-			return errors.Wrapf(err, "failed to update provider object")
+			return errors.Wrapf(err, "failed to update provider object %s, %s/%s", r.GroupVersionKind(), r.GetNamespace(), r.GetName())
 		}
 	}
 

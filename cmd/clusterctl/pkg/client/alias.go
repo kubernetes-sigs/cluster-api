@@ -18,6 +18,7 @@ package client
 
 import (
 	"sigs.k8s.io/cluster-api/cmd/clusterctl/pkg/client/config"
+	"sigs.k8s.io/cluster-api/cmd/clusterctl/pkg/client/repository"
 )
 
 // Alias creates local alias for types defined in the low-level library.
@@ -25,3 +26,6 @@ import (
 
 // Provider defines a provider configuration.
 type Provider config.Provider
+
+// Components wraps a YAML file that defines the provider's components (CRD, controller, RBAC rules etc.)
+type Components repository.Components

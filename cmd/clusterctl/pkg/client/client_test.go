@@ -19,8 +19,12 @@ package client
 import (
 	"testing"
 
+	"github.com/pkg/errors"
+	"k8s.io/apimachinery/pkg/runtime"
 	clusterctlv1 "sigs.k8s.io/cluster-api/cmd/clusterctl/api/v1alpha3"
+	"sigs.k8s.io/cluster-api/cmd/clusterctl/pkg/client/cluster"
 	"sigs.k8s.io/cluster-api/cmd/clusterctl/pkg/client/config"
+	"sigs.k8s.io/cluster-api/cmd/clusterctl/pkg/client/repository"
 	"sigs.k8s.io/cluster-api/cmd/clusterctl/pkg/internal/test"
 )
 
@@ -33,41 +37,146 @@ func TestNewFakeClient(t *testing.T) {
 		WithVar("var", "value").
 		WithProvider(repository1Config)
 
-	// create a new fakeClient using the fake config
-	newFakeClient(config1)
+	// create a fake repository with some YAML files in it (usually matching the list of providers defined in the config)
+	repository1 := newFakeRepository(repository1Config, config1.Variables()).
+		WithPaths("root", "components").
+		WithDefaultVersion("v1.0").
+		WithFile("v1.0", "components.yaml", []byte("content"))
+
+	// create a fake cluster, eventually adding some existing runtime objects to it
+	cluster1 := newFakeCluster("kubeconfig").
+		WithObjs()
+
+	// create a new fakeClient that allows to execute tests on the fake config, the fake repositories and the fake cluster.
+	newFakeClient(config1).
+		WithRepository(repository1).
+		WithCluster(cluster1)
 }
 
 type fakeClient struct {
 	configClient   config.Client
-	internalclient *clusterctlClient
+	clusters       map[string]cluster.Client
+	repositories   map[string]repository.Client
+	internalClient *clusterctlClient
 }
 
 var _ Client = &fakeClient{}
 
 func (f fakeClient) GetProvidersConfig() ([]Provider, error) {
-	return f.internalclient.GetProvidersConfig()
+	return f.internalClient.GetProvidersConfig()
 }
 
-// newFakeClient return a fake implementation of the client for high-level clusterctl library, based on th given config.
+func (f fakeClient) Init(options InitOptions) ([]Components, bool, error) {
+	return f.internalClient.Init(options)
+}
+
+// newFakeClient returns a clusterctl client that allows to execute tests on a set of fake config, fake repositories and fake clusters.
+// you can use WithCluster and WithRepository to prepare for the test case.
 func newFakeClient(configClient config.Client) *fakeClient {
 
-	fake := &fakeClient{}
+	fake := &fakeClient{
+		clusters:     map[string]cluster.Client{},
+		repositories: map[string]repository.Client{},
+	}
 
 	fake.configClient = configClient
 	if fake.configClient == nil {
 		fake.configClient = newFakeConfig()
 	}
 
-	fake.internalclient, _ = newClusterctlClient("fake-config",
+	var clusterClientFactory = func(kubeconfig string) (cluster.Client, error) {
+		if _, ok := fake.clusters[kubeconfig]; !ok {
+			return nil, errors.Errorf("Cluster for kubeconfig %q does not exists.", kubeconfig)
+		}
+		return fake.clusters[kubeconfig], nil
+	}
+
+	fake.internalClient, _ = newClusterctlClient("fake-config",
 		InjectConfig(fake.configClient),
+		InjectClusterClientFactory(clusterClientFactory),
+		InjectRepositoryFactory(func(provider config.Provider) (repository.Client, error) {
+			if _, ok := fake.repositories[provider.Name()]; !ok {
+				return nil, errors.Errorf("Repository for kubeconfig %q does not exists.", provider.Name())
+			}
+			return fake.repositories[provider.Name()], nil
+		}),
 	)
 
 	return fake
 }
 
+func (f *fakeClient) WithCluster(clusterClient cluster.Client) *fakeClient {
+	f.clusters[clusterClient.Kubeconfig()] = clusterClient
+	return f
+}
+
+func (f *fakeClient) WithRepository(repositoryClient repository.Client) *fakeClient {
+	if fc, ok := f.configClient.(fakeConfigClient); ok {
+		fc.WithProvider(repositoryClient)
+	}
+	f.repositories[repositoryClient.Name()] = repositoryClient
+	return f
+}
+
+// fakeClusterClient returns a cluster.Client for a fake management cluster that
+// internally uses a FakeProxy (based on the controller-runtime FakeClient).
+// You can use WithObjs to pre-load a set of runtime objects in the cluster.
+func newFakeCluster(kubeconfig string) *fakeClusterClient {
+	fakeProxy := test.NewFakeProxy()
+
+	options := cluster.Options{
+		InjectProxy: fakeProxy,
+	}
+
+	client := cluster.New("", options)
+
+	return &fakeClusterClient{
+		kubeconfig:     kubeconfig,
+		fakeProxy:      fakeProxy,
+		internalclient: client,
+	}
+}
+
+type fakeClusterClient struct {
+	kubeconfig     string
+	fakeProxy      *test.FakeProxy
+	internalclient cluster.Client
+}
+
+var _ cluster.Client = &fakeClusterClient{}
+
+func (f fakeClusterClient) Kubeconfig() string {
+	return f.kubeconfig
+}
+
+func (f fakeClusterClient) Proxy() cluster.Proxy {
+	return f.fakeProxy
+}
+
+func (f fakeClusterClient) ProviderComponents() cluster.ComponentsClient {
+	return f.internalclient.ProviderComponents()
+}
+
+func (f fakeClusterClient) ProviderInventory() cluster.InventoryClient {
+	return f.internalclient.ProviderInventory()
+}
+
+func (f fakeClusterClient) ProviderObjects() cluster.ObjectsClient {
+	return f.internalclient.ProviderObjects()
+}
+
+func (f fakeClusterClient) ProviderInstaller() cluster.ProviderInstallerService {
+	return f.internalclient.ProviderInstaller()
+}
+
+func (f *fakeClusterClient) WithObjs(objs ...runtime.Object) *fakeClusterClient {
+	f.fakeProxy.WithObjs(objs...)
+	return f
+}
+
 // newFakeConfig return a fake implementation of the client for low-level config library.
-// The implementation uses a FakeReader that stores configuration settings in a config map; you can use
-// the WithVar or WithProvider methods to set the config map values.
+// The implementation uses a FakeReader that stores configuration settings in a map; you can use
+// the WithVar or WithProvider methods to set the map values.
 func newFakeConfig() *fakeConfigClient {
 	fakeReader := test.NewFakeReader()
 
@@ -104,6 +213,62 @@ func (f *fakeConfigClient) WithProvider(provider config.Provider) *fakeConfigCli
 	return f
 }
 
-var (
-	bootstrapProviderConfig = config.NewProvider("bootstrap", "url", clusterctlv1.BootstrapProviderType)
-)
+// newFakeRepository return a fake implementation of the client for low-level repository library.
+// The implementation stores configuration settings in a map; you can use
+// the WithPaths or WithDefaultVersion methods to configure the repository and WithFile to set the map values.
+func newFakeRepository(provider config.Provider, configVariablesClient config.VariablesClient) *fakeRepositoryClient {
+	fakeRepository := test.NewFakeRepository()
+	options := repository.Options{
+		InjectRepository: fakeRepository,
+	}
+
+	if configVariablesClient == nil {
+		configVariablesClient = newFakeConfig().Variables()
+	}
+
+	client, _ := repository.New(provider, configVariablesClient, options)
+
+	return &fakeRepositoryClient{
+		Provider:       provider,
+		fakeRepository: fakeRepository,
+		client:         client,
+	}
+}
+
+type fakeRepositoryClient struct {
+	config.Provider
+	fakeRepository *test.FakeRepository
+	client         repository.Client
+}
+
+var _ repository.Client = &fakeRepositoryClient{}
+
+func (f fakeRepositoryClient) DefaultVersion() string {
+	return f.fakeRepository.DefaultVersion()
+}
+
+func (f fakeRepositoryClient) GetVersions() ([]string, error) {
+	return f.fakeRepository.GetVersions()
+}
+
+func (f fakeRepositoryClient) Components() repository.ComponentsClient {
+	return f.client.Components()
+}
+func (f fakeRepositoryClient) Templates(version string) repository.TemplatesClient {
+	return f.client.Templates(version)
+}
+
+func (f *fakeRepositoryClient) WithPaths(rootPath, componentsPath string) *fakeRepositoryClient {
+	f.fakeRepository.WithPaths(rootPath, componentsPath)
+	return f
+}
+
+func (f *fakeRepositoryClient) WithDefaultVersion(version string) *fakeRepositoryClient {
+	f.fakeRepository.WithDefaultVersion(version)
+	return f
+}
+
+func (f *fakeRepositoryClient) WithFile(version, path string, content []byte) *fakeRepositoryClient {
+	f.fakeRepository.WithFile(version, path, content)
+	return f
+}

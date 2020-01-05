@@ -50,6 +50,10 @@ type Client interface {
 	// ProviderObjects returns a ObjectsClient object that can be user for
 	// operating cluster API objects stored in the management cluster (e.g. clusters, AWS clusters, machines etc.).
 	ProviderObjects() ObjectsClient
+
+	// ProviderInstaller returns an ProviderInstallerService that enforces consistency rules for provider installation,
+	// trying to prevent e.g. controllers fighting for objects, inconsistent versions, etc.
+	ProviderInstaller() ProviderInstallerService
 }
 
 // clusterClient implements Client.
@@ -79,6 +83,10 @@ func (c *clusterClient) ProviderInventory() InventoryClient {
 
 func (c *clusterClient) ProviderObjects() ObjectsClient {
 	return newObjectsClient(c.proxy)
+}
+
+func (c *clusterClient) ProviderInstaller() ProviderInstallerService {
+	return newProviderInstaller(c.proxy, c.ProviderInventory(), c.ProviderComponents())
 }
 
 // New returns a cluster.Client.

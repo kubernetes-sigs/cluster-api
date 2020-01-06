@@ -145,6 +145,8 @@ github.com/google/go-cmp v0.2.0/go.mod h1:oXzfMopK8JAjlY9xF4vHSVASa0yLyX7SntLO5a
 github.com/google/go-cmp v0.3.0/go.mod h1:8QqcDgzrUqlUb/G2PQTWiueGozuR1884gddMywk6iLU=
 github.com/google/go-cmp v0.3.1 h1:Xye71clBPdm5HgqGwUkwhbynsUJZhDbS20FvLhQ2izg=
 github.com/google/go-cmp v0.3.1/go.mod h1:8QqcDgzrUqlUb/G2PQTWiueGozuR1884gddMywk6iLU=
+github.com/google/go-github v17.0.0+incompatible/go.mod h1:zLgOLi98H3fifZn+44m+umXrS52loVEgC2AApnigrVQ=
+github.com/google/go-querystring v1.0.0/go.mod h1:odCYkC5MyYFN7vkCjXpyrEuKhc/BUO6wN/zVPAxq5ck=
 github.com/google/gofuzz v0.0.0-20161122191042-44d81051d367/go.mod h1:HP5RmnzzSNb993RKQDq4+1A4ia9nllfqcQFTQJedwGI=
 github.com/google/gofuzz v0.0.0-20170612174753-24818f796faf/go.mod h1:HP5RmnzzSNb993RKQDq4+1A4ia9nllfqcQFTQJedwGI=
 github.com/google/gofuzz v1.0.0 h1:A8PeW59pxE9IoFRqBp37U+mSNaQoZ46F1f0f863XSXw=
@@ -461,6 +463,7 @@ k8s.io/apimachinery v0.0.0-20190913080033-27d36303b655/go.mod h1:nL6pwRT8NgfF8TT
 k8s.io/apimachinery v0.0.0-20191121015412-41065c7a8c2a h1:9V03T5lHv/iF4fSgvMCd+iB86AgEgmzLpheMqIJy7hs=
 k8s.io/apimachinery v0.0.0-20191121015412-41065c7a8c2a/go.mod h1:b9qmWdKlLuU9EBh+06BtLcSf/Mu89rWL33naRxs1uZg=
 k8s.io/apiserver v0.0.0-20190918160949-bfa5e2e684ad/go.mod h1:XPCXEwhjaFN29a8NldXA901ElnKeKLrLtREO9ZhFyhg=
+k8s.io/apiserver v0.0.0-20190918200908-1e17798da8c1 h1:vXeVIqZsVgwfUENTAeybgfNVW7zZD7GPZJGtwReK+hI=
 k8s.io/apiserver v0.0.0-20190918200908-1e17798da8c1/go.mod h1:4FuDU+iKPjdsdQSN3GsEKZLB/feQsj1y9dhhBDVV2Ns=
 k8s.io/client-go v0.0.0-20190918160344-1fbdaa4c8d90 h1:mLmhKUm1X+pXu0zXMEzNsOF5E2kKFGe5o6BZBIIqA6A=
 k8s.io/client-go v0.0.0-20190918160344-1fbdaa4c8d90/go.mod h1:J69/JveO6XESwVgG53q3Uz5OSfgsv4uxpScmmyYOOlk=
@@ -494,8 +497,6 @@ modernc.org/golex v1.0.0/go.mod h1:b/QX9oBD/LhixY6NDh+IdGv17hgB+51fET1i2kPSmvk=
 modernc.org/mathutil v1.0.0/go.mod h1:wU0vUrJsVWBZ4P6e7xtFJEhFSNsfRLJ8H458uRjg03k=
 modernc.org/strutil v1.0.0/go.mod h1:lstksw84oURvj9y3tn8lGvRxyRC1S2+g5uuIzNfIOBs=
 modernc.org/xc v1.0.0/go.mod h1:mRNCo0bvLjGhHO9WsyuKVU4q0ceiDDDoEeWDJHrNx8I=
-sigs.k8s.io/cluster-api/test/infrastructure/docker v0.0.0-20191217151159-8e57f0be14c0/go.mod h1:rgRQ1U631gWRlmjGgCLHlTkkjPdBZkclUjY1Kt7VSeU=
-sigs.k8s.io/cluster-api/test/infrastructure/docker v0.0.0-20191220210134-f38f44a2bed6/go.mod h1:+ZOiS1Mq3Swl92n/djvoF78TrCTXrjrB3zIZ1j7SrHA=
 sigs.k8s.io/controller-runtime v0.4.0 h1:wATM6/m+3w8lj8FXNaO6Fs/rq/vqoOjO1Q116Z9NPsg=
 sigs.k8s.io/controller-runtime v0.4.0/go.mod h1:ApC79lpY3PHW9xj/w9pj+lYkLgwAAUZwfXkME1Lajns=
 sigs.k8s.io/kind v0.5.1 h1:BYnHEJ9DC+0Yjlyyehqd3xnKtEmFdLKU8QxqOqvQzdw=

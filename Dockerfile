@@ -32,11 +32,16 @@ RUN go mod download
 # Copy the sources
 COPY ./ ./
 
+# Cache the go build
+RUN go build .
+
 # Build
 ARG package=.
 ARG ARCH
+
+# Do not force rebuild of up-to-date packages (do not use -a)
 RUN CGO_ENABLED=0 GOOS=linux GOARCH=${ARCH} \
-    go build -a -ldflags '-extldflags "-static"' \
+    go build -ldflags '-extldflags "-static"' \
     -o manager ${package}
 
 # Production image

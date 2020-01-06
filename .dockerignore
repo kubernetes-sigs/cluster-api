@@ -2,12 +2,12 @@
 .github
 .vscode
 bin/
-config/
+**/*.yaml
 hack/
 docs/
 logos/
 scripts/
-**/.md
+**/*.md
 tilt-settings.json
 tilt.d/
 Tiltfile

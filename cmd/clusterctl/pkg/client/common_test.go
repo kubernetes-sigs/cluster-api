@@ -23,46 +23,42 @@ func Test_parseProviderName(t *testing.T) {
 		provider string
 	}
 	tests := []struct {
-		name          string
-		args          args
-		wantNamespace string
-		wantName      string
-		wantVersion   string
-		wantErr       bool
+		name        string
+		args        args
+		wantName    string
+		wantVersion string
+		wantErr     bool
 	}{
 		{
 			name: "simple name",
 			args: args{
 				provider: "provider",
 			},
-			wantNamespace: "",
-			wantName:      "provider",
-			wantVersion:   "",
-			wantErr:       false,
+			wantName:    "provider",
+			wantVersion: "",
+			wantErr:     false,
 		},
 		{
 			name: "name & version",
 			args: args{
 				provider: "provider:version",
 			},
-			wantNamespace: "",
-			wantName:      "provider",
-			wantVersion:   "version",
-			wantErr:       false,
+			wantName:    "provider",
+			wantVersion: "version",
+			wantErr:     false,
 		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			gotName, gotVersion, err := parseProviderName(tt.args.provider)
 			if (err != nil) != tt.wantErr {
-				t.Errorf("parseProviderName() error = %v, wantErr %v", err, tt.wantErr)
-				return
+				t.Fatalf("error = %v, wantErr %v", err, tt.wantErr)
 			}
 			if gotName != tt.wantName {
-				t.Errorf("parseProviderName() gotName = %v, want %v", gotName, tt.wantName)
+				t.Errorf("gotName = %v, want %v", gotName, tt.wantName)
 			}
 			if gotVersion != tt.wantVersion {
-				t.Errorf("parseProviderName() gotVersion = %v, want %v", gotVersion, tt.wantVersion)
+				t.Errorf("gotVersion = %v, want %v", gotVersion, tt.wantVersion)
 			}
 		})
 	}

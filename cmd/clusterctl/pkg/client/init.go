@@ -23,7 +23,7 @@ import (
 	"sigs.k8s.io/cluster-api/cmd/clusterctl/pkg/client/config"
 )
 
-// Init a management cluster by adding the requested list of providers.
+// Init initializes a management cluster by adding the requested list of providers.
 func (c *clusterctlClient) Init(options InitOptions) ([]Components, bool, error) {
 	// gets access to the management cluster
 	cluster, err := c.clusterClientFactory(options.Kubeconfig)
@@ -43,12 +43,14 @@ func (c *clusterctlClient) Init(options InitOptions) ([]Components, bool, error)
 	if err != nil {
 		return nil, false, err
 	}
-	if currentCoreProvider == "" && options.CoreProvider == "" {
+	if currentCoreProvider == "" {
 		firstRun = true
-		options.CoreProvider = config.ClusterAPIName
+		if options.CoreProvider == "" {
+			options.CoreProvider = config.ClusterAPIName
+		}
 	}
 
-	// create and installer service, add the requested providers to the install queue (thus performing validation of the target state of the management cluster
+	// create an installer service, add the requested providers to the install queue (thus performing validation of the target state of the management cluster
 	// before starting the installation), and then perform the installation.
 	installer := cluster.ProviderInstaller()
 
@@ -73,21 +75,21 @@ func (c *clusterctlClient) Init(options InitOptions) ([]Components, bool, error)
 		return nil, false, err
 	}
 
-	r, err := installer.Install()
+	components, err := installer.Install()
 	if err != nil {
 		return nil, false, err
 	}
 
-	// Components is an alias for repository.Components; this makes conversion
-	rr := make([]Components, len(r))
-	for i, components := range r {
-		rr[i] = components
+	// Components is an alias for repository.Components; this makes the conversion from the two types
+	aliasComponents := make([]Components, len(components))
+	for i, components := range components {
+		aliasComponents[i] = components
 	}
-	return rr, firstRun, nil
+	return aliasComponents, firstRun, nil
 }
 
 type addToInstallerOptions struct {
-	installer         cluster.ProviderInstallerService
+	installer         cluster.ProviderInstaller
 	targetNameSpace   string
 	watchingNamespace string
 	force             bool

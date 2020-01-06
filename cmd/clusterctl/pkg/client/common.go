@@ -24,20 +24,13 @@ import (
 	"sigs.k8s.io/cluster-api/cmd/clusterctl/pkg/client/repository"
 )
 
-// getComponentsByName is a utility methods that returns provider component for a given provider, targetNamespace and WatchingNamespace.
+// getComponentsByName is a utility method that returns components for a given provider, targetNamespace, and watchingNamespace.
 func (c *clusterctlClient) getComponentsByName(provider string, targetNamespace string, watchingNamespace string) (repository.Components, error) {
 
 	// parse the abbreviated syntax for name[:version]
 	name, version, err := parseProviderName(provider)
 	if err != nil {
 		return nil, err
-	}
-
-	// if a target namespace is defined, use it, otherwise let the namespace empty so the default one defined in the
-	// provider components YAML will be used
-	var namespace string
-	if targetNamespace != "" {
-		namespace = targetNamespace
 	}
 
 	// gets the provider configuration (that includes the location of the provider repository)
@@ -55,7 +48,7 @@ func (c *clusterctlClient) getComponentsByName(provider string, targetNamespace 
 		return nil, err
 	}
 
-	components, err := repository.Components().Get(version, namespace, watchingNamespace)
+	components, err := repository.Components().Get(version, targetNamespace, watchingNamespace)
 	if err != nil {
 		return nil, err
 	}
@@ -66,7 +59,11 @@ func (c *clusterctlClient) getComponentsByName(provider string, targetNamespace 
 func parseProviderName(provider string) (name string, version string, err error) {
 	t := strings.Split(strings.ToLower(provider), ":")
 	if len(t) > 2 {
-		return "", "", errors.Errorf("invalid provider name %q. Provider name should be in the form [namespace/]name[:version]", provider)
+		return "", "", errors.Errorf("invalid provider name %q. Provider name should be in the form name[:version]", provider)
+	}
+
+	if t[0] == "" {
+		return "", "", errors.Errorf("invalid provider name %q. Provider name should be in the form name[:version] and name cannot be empty", provider)
 	}
 
 	name = t[0]
@@ -77,6 +74,9 @@ func parseProviderName(provider string) (name string, version string, err error)
 
 	version = ""
 	if len(t) > 1 {
+		if t[1] == "" {
+			return "", "", errors.Errorf("invalid provider name %q. Provider name should be in the form name[:version] and version cannot be empty", provider)
+		}
 		version = t[1]
 	}
 

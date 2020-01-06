@@ -247,7 +247,6 @@ func Test_clusterctlClient_Init(t *testing.T) {
 			if tt.field.hasCRD {
 				if err := tt.field.client.clusters["kubeconfig"].ProviderInventory().EnsureCustomResourceDefinitions(); err != nil {
 					t.Fatalf("EnsureMetadata() error = %v", err)
-					return
 				}
 			}
 
@@ -262,12 +261,11 @@ func Test_clusterctlClient_Init(t *testing.T) {
 			})
 
 			if (err != nil) != tt.wantErr {
-				t.Errorf("Init() error = %v, wantErr %v", err, tt.wantErr)
-				return
+				t.Fatalf("error = %v, wantErr %v", err, tt.wantErr)
 			}
 
 			if len(got) != len(tt.want) {
-				t.Errorf("Init() got = %v items, want %v items", len(got), len(tt.want))
+				t.Errorf("got = %v items, want %v items", len(got), len(tt.want))
 				return
 			}
 
@@ -275,23 +273,23 @@ func Test_clusterctlClient_Init(t *testing.T) {
 				w := tt.want[i]
 
 				if g.Name() != w.provider.Name() {
-					t.Errorf("Init(), Item[%d].Name() got = %v, want = %v ", i, g.Name(), w.provider.Name())
+					t.Errorf("Item[%d].Name() got = %v, want = %v ", i, g.Name(), w.provider.Name())
 				}
 
 				if g.Type() != w.provider.Type() {
-					t.Errorf("Init(), Item[%d].Type() got = %v, want = %v ", i, g.Type(), w.provider.Type())
+					t.Errorf("Item[%d].Type() got = %v, want = %v ", i, g.Type(), w.provider.Type())
 				}
 
 				if g.Version() != w.version {
-					t.Errorf("Init(), Item[%d].Version() got = %v, want = %v ", i, g.Version(), w.version)
+					t.Errorf("Item[%d].Version() got = %v, want = %v ", i, g.Version(), w.version)
 				}
 
 				if g.TargetNamespace() != w.targetNamespace {
-					t.Errorf("Init(), Item[%d].TargetNamespace() got = %v, want = %v ", i, g.TargetNamespace(), w.targetNamespace)
+					t.Errorf("Item[%d].TargetNamespace() got = %v, want = %v ", i, g.TargetNamespace(), w.targetNamespace)
 				}
 
 				if g.WatchingNamespace() != w.watchingNamespace {
-					t.Errorf("Init(), Item[%d].WatchingNamespace() got = %v, want = %v ", i, g.WatchingNamespace(), w.watchingNamespace)
+					t.Errorf("Item[%d].WatchingNamespace() got = %v, want = %v ", i, g.WatchingNamespace(), w.watchingNamespace)
 				}
 			}
 		})

@@ -22,28 +22,28 @@ import (
 	"sigs.k8s.io/cluster-api/cmd/clusterctl/pkg/client/repository"
 )
 
-// ProviderInstallerService defined methods for enforcing consistency rules for provider installation.
-type ProviderInstallerService interface {
-	// Add a provider to the install queue.
+// ProviderInstaller defines methods for enforcing consistency rules for provider installation.
+type ProviderInstaller interface {
+	// Add adds a provider to the install queue.
 	// NB. By deferring the installation, the installer service can perform validation of the target state of the management cluster
 	// before actually starting the installation of new providers.
 	Add(repository.Components, bool) error
 
-	// Perform the installation of the providers ready in the install queue.
+	// Install performs the installation of the providers ready in the install queue.
 	Install() ([]repository.Components, error)
 }
 
-// installerService implements ProviderInstallerService
-type installerService struct {
+// providerInstaller implements ProviderInstaller
+type providerInstaller struct {
 	proxy              Proxy
 	providerComponents ComponentsClient
 	providerInventory  InventoryClient
 	installQueue       []repository.Components
 }
 
-var _ ProviderInstallerService = &installerService{}
+var _ ProviderInstaller = &providerInstaller{}
 
-func (i *installerService) Add(components repository.Components, force bool) error {
+func (i *providerInstaller) Add(components repository.Components, force bool) error {
 	if err := i.providerInventory.Validate(components.Metadata()); err != nil {
 		if !force {
 			return errors.Wrapf(err, "Installing provider %q can lead to a non functioning management cluster (you can use --force to ignore this error).", components.Name())
@@ -54,7 +54,7 @@ func (i *installerService) Add(components repository.Components, force bool) err
 	return nil
 }
 
-func (i *installerService) Install() ([]repository.Components, error) {
+func (i *providerInstaller) Install() ([]repository.Components, error) {
 	ret := make([]repository.Components, len(i.installQueue))
 	for c, components := range i.installQueue {
 		klog.V(3).Infof("Installing provider %s/%s:%s", components.TargetNamespace(), components.Name(), components.Version())
@@ -77,8 +77,8 @@ func (i *installerService) Install() ([]repository.Components, error) {
 	return ret, nil
 }
 
-func newProviderInstaller(proxy Proxy, providerMetadata InventoryClient, providerComponents ComponentsClient) *installerService {
-	return &installerService{
+func newProviderInstaller(proxy Proxy, providerMetadata InventoryClient, providerComponents ComponentsClient) *providerInstaller {
+	return &providerInstaller{
 		proxy:              proxy,
 		providerInventory:  providerMetadata,
 		providerComponents: providerComponents,

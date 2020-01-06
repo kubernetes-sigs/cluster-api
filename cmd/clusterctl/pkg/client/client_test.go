@@ -118,7 +118,7 @@ func (f *fakeClient) WithRepository(repositoryClient repository.Client) *fakeCli
 	return f
 }
 
-// fakeClusterClient returns a cluster.Client for a fake management cluster that
+// newFakeCluster returns a fakeClusterClient that
 // internally uses a FakeProxy (based on the controller-runtime FakeClient).
 // You can use WithObjs to pre-load a set of runtime objects in the cluster.
 func newFakeCluster(kubeconfig string) *fakeClusterClient {
@@ -165,7 +165,7 @@ func (f fakeClusterClient) ProviderObjects() cluster.ObjectsClient {
 	return f.internalclient.ProviderObjects()
 }
 
-func (f fakeClusterClient) ProviderInstaller() cluster.ProviderInstallerService {
+func (f fakeClusterClient) ProviderInstaller() cluster.ProviderInstaller {
 	return f.internalclient.ProviderInstaller()
 }
 

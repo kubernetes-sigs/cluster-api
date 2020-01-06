@@ -47,6 +47,10 @@ patchesStrategicMerge:
 # Uncomment 'CERTMANAGER' sections in crd/kustomization.yaml to enable the CA injection in the admission webhooks.
 # 'CERTMANAGER' needs to be enabled to use ca injection
 - webhookcainjection_patch.yaml
+  # Ease the process of providing extra RBAC to the Cluster API manager for
+  # non SIG Cluster Lifecycle-sponsored provider subprojects by using an
+  # aggregated role
+- manager_role_aggregation_patch.yaml
 
 patchesJson6902:
 - target:

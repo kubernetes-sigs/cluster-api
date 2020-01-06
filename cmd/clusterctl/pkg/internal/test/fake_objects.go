@@ -1,0 +1,789 @@
+/*
+Copyright 2019 The Kubernetes Authors.
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+*/
+
+package test
+
+import (
+	corev1 "k8s.io/api/core/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
+	"k8s.io/apimachinery/pkg/runtime"
+	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha3"
+)
+
+const (
+	controlplaneGV   = "controlplane.cluster.x-k8s.io/v1alpha3"
+	controlplaneKind = "ControlPlane"
+
+	infrastructureGV                  = "infrastructure.cluster.x-k8s.io/v1alpha3"
+	infrastructureClusterKind         = "InfrastructureCluster"
+	infrastructureMachineKind         = "InfrastructureMachine"
+	infrastructureMachineTemplateKind = "InfrastructureMachineTemplate"
+
+	bootstrapGV                 = "bootstrap.cluster.x-k8s.io/v1alpha3"
+	bootstrapConfigKind         = "BootstrapConfig"
+	bootstrapConfigTemplateKind = "BootstrapConfigTemplate"
+)
+
+type FakeCluster struct {
+	namespace          string
+	name               string
+	controlPlane       *FakeControlPlane
+	machinePools       []*FakeMachinePool
+	machineDeployments []*FakeMachineDeployment
+	machineSets        []*FakeMachineSet
+	machines           []*FakeMachine
+}
+
+// NewFakeCluster return a FakeCluster that can generate a cluster object, all its own ancillary objects:
+// - the clusterInfrastructure object
+// - the kubeconfig secret object (if there is no a control plane object)
+// - a user defined ca secret
+// and all the objects for the defined FakeControlPlane, FakeMachinePools, FakeMachineDeployments, FakeMachineSets, FakeMachines
+// Nb. if there is no a control plane object, the first FakeMachine gets a generated sa secret
+func NewFakeCluster(namespace, name string) *FakeCluster {
+	return &FakeCluster{
+		namespace: namespace,
+		name:      name,
+	}
+}
+
+func (f *FakeCluster) WithControlPlane(fakeControlPlane *FakeControlPlane) *FakeCluster {
+	f.controlPlane = fakeControlPlane
+	return f
+}
+
+func (f *FakeCluster) WithMachinePools(fakeMachinePool ...*FakeMachinePool) *FakeCluster {
+	f.machinePools = append(f.machinePools, fakeMachinePool...)
+	return f
+}
+
+func (f *FakeCluster) WithMachineDeployments(fakeMachineDeployment ...*FakeMachineDeployment) *FakeCluster {
+	f.machineDeployments = append(f.machineDeployments, fakeMachineDeployment...)
+	return f
+}
+
+func (f *FakeCluster) WithMachineSets(fakeMachineSet ...*FakeMachineSet) *FakeCluster {
+	f.machineSets = append(f.machineSets, fakeMachineSet...)
+	return f
+}
+
+func (f *FakeCluster) WithMachines(fakeMachine ...*FakeMachine) *FakeCluster {
+	f.machines = append(f.machines, fakeMachine...)
+	return f
+}
+
+func (f *FakeCluster) Objs() []runtime.Object {
+	clusterInfrastructure := &unstructured.Unstructured{
+		Object: map[string]interface{}{
+			"apiVersion": infrastructureGV,
+			"kind":       infrastructureClusterKind,
+			"metadata": map[string]interface{}{
+				"name":      f.name,
+				"namespace": f.namespace,
+				// OwnerReferences: cluster, Added by the cluster controller (see reconcileExternalRef below) -- RECONCILED
+				// Labels: cluster.x-k8s.io/cluster-name=cluster, Added by the cluster controller (see reconcileExternalRef below) -- RECONCILED
+			},
+		},
+	}
+
+	cluster := &clusterv1.Cluster{
+		TypeMeta: metav1.TypeMeta{
+			Kind:       "Cluster",
+			APIVersion: clusterv1.GroupVersion.String(),
+		},
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      f.name,
+			Namespace: f.namespace,
+			// Labels: cluster.x-k8s.io/cluster-name=cluster MISSING??
+		},
+		Spec: clusterv1.ClusterSpec{
+			InfrastructureRef: &corev1.ObjectReference{
+				APIVersion: clusterInfrastructure.GetAPIVersion(),
+				Kind:       clusterInfrastructure.GetKind(),
+				Name:       clusterInfrastructure.GetName(),
+				Namespace:  clusterInfrastructure.GetNamespace(),
+			},
+		},
+	}
+
+	reconcileClusterExternalRef(clusterInfrastructure, cluster) // Added by the cluster controller (cluster.Spec.InfrastructureRef)
+
+	caSecret := &corev1.Secret{ // provided by the user -- ** NOT RECONCILED **
+		TypeMeta: metav1.TypeMeta{
+			Kind:       "Secret",
+			APIVersion: "",
+		},
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      f.name + "-ca",
+			Namespace: f.namespace,
+		},
+	}
+
+	objs := []runtime.Object{
+		cluster,
+		clusterInfrastructure,
+		caSecret,
+	}
+
+	// if the cluster has a control plane object
+	if f.controlPlane != nil {
+		// Adds the objects for the controlPlane
+		objs = append(objs, f.controlPlane.Objs(cluster)...)
+	} else {
+		// Adds the kubeconfig object generated by the cluster controller -- ** NOT RECONCILED **
+		kubeconfigSecret := &corev1.Secret{
+			TypeMeta: metav1.TypeMeta{
+				Kind:       "Secret",
+				APIVersion: "",
+			},
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      f.name + "-kubeconfig",
+				Namespace: f.namespace,
+				OwnerReferences: []metav1.OwnerReference{
+					{
+						APIVersion: cluster.APIVersion,
+						Kind:       cluster.Kind,
+						Name:       cluster.Name,
+					},
+				},
+				// Labels: cluster.x-k8s.io/cluster-name=cluster MISSING??
+			},
+		}
+		objs = append(objs, kubeconfigSecret)
+	}
+
+	// Adds the objects for the machinePools
+	for _, machinePool := range f.machinePools {
+		objs = append(objs, machinePool.Objs(cluster)...)
+	}
+
+	// Adds the objects for the machineDeployments
+	for _, machineDeployment := range f.machineDeployments {
+		objs = append(objs, machineDeployment.Objs(cluster)...)
+	}
+
+	// Adds the objects for the machineSets directly attached to the cluster
+	for _, machineSet := range f.machineSets {
+		objs = append(objs, machineSet.Objs(cluster, nil)...)
+	}
+
+	// Adds the objects for the machines directly attached to the cluster
+	// Nb. in case there is no control plane, the first machine is arbitrarily used to simulate the generation of certificates Secrets implemented by the bootstrap controller
+	for i, machine := range f.machines {
+		generateCerts := false
+		if f.controlPlane == nil && i == 0 {
+			generateCerts = true
+		}
+		objs = append(objs, machine.Objs(cluster, generateCerts, nil, nil)...)
+	}
+
+	return objs
+}
+
+func reconcileClusterExternalRef(externalRef *unstructured.Unstructured, cluster *clusterv1.Cluster) {
+	externalRef.SetOwnerReferences([]metav1.OwnerReference{
+		{
+			APIVersion: cluster.APIVersion,
+			Kind:       cluster.Kind,
+			Name:       cluster.Name,
+		},
+	})
+	externalRef.SetLabels(map[string]string{
+		clusterv1.ClusterLabelName: cluster.Name,
+	})
+}
+
+type FakeControlPlane struct {
+	name     string
+	machines []*FakeMachine
+}
+
+// NewFakeControlPlane return a FakeControlPlane that can generate a controlPlane object, all its own ancillary objects:
+// - the controlPlaneInfrastructure template object
+// - the kubeconfig secret object
+// - a generated sa secret
+// and all the objects for the defined FakeMachines
+func NewFakeControlPlane(name string) *FakeControlPlane {
+	return &FakeControlPlane{
+		name: name,
+	}
+}
+
+func (f *FakeControlPlane) WithMachines(fakeMachine ...*FakeMachine) *FakeControlPlane {
+	f.machines = append(f.machines, fakeMachine...)
+	return f
+}
+
+func (f *FakeControlPlane) Objs(cluster *clusterv1.Cluster) []runtime.Object {
+
+	controlPlaneInfrastructure := &unstructured.Unstructured{
+		Object: map[string]interface{}{
+			"apiVersion": infrastructureGV,
+			"kind":       infrastructureMachineTemplateKind,
+			"metadata": map[string]interface{}{
+				"name":      f.name,
+				"namespace": cluster.Namespace,
+				// OwnerReferences: MISSING
+				// Labels: MISSING
+			},
+		},
+	}
+
+	controlPlane := &unstructured.Unstructured{
+		Object: map[string]interface{}{
+			"apiVersion": controlplaneGV,
+			"kind":       controlplaneKind,
+			"metadata": map[string]interface{}{
+				"name":      f.name,
+				"namespace": cluster.Namespace,
+				// OwnerReferences: cluster, Added by the cluster controller (see reconcileExternalRef below) -- RECONCILED
+				// Labels: cluster.x-k8s.io/cluster-name=cluster, Added by the cluster controller (see reconcileExternalRef below) -- RECONCILED
+			},
+			"spec": map[string]interface{}{
+				"infrastructureTemplate": map[string]interface{}{
+					"apiVersion": controlPlaneInfrastructure.GetAPIVersion(),
+					"kind":       controlPlaneInfrastructure.GetKind(),
+					"name":       controlPlaneInfrastructure.GetName(),
+					"namespace":  controlPlaneInfrastructure.GetNamespace(),
+				},
+			},
+		},
+	}
+
+	// sets the reference from the cluster to the plane object
+	cluster.Spec.ControlPlaneRef = &corev1.ObjectReference{
+		APIVersion: controlPlane.GetAPIVersion(),
+		Kind:       controlPlane.GetKind(),
+		Namespace:  controlPlane.GetNamespace(),
+		Name:       controlPlane.GetName(),
+	}
+
+	reconcileClusterExternalRef(controlPlane, cluster) // Added by the cluster controller (cluster.Spec.ControlPlaneRef)
+
+	// Adds the kubeconfig object generated by the cluster controller -- ** NOT RECONCILED **
+	kubeconfigSecret := &corev1.Secret{
+		TypeMeta: metav1.TypeMeta{
+			Kind:       "Secret",
+			APIVersion: "",
+		},
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      cluster.GetName() + "-kubeconfig",
+			Namespace: cluster.GetNamespace(),
+			// Labels: cluster.x-k8s.io/cluster-name=cluster MISSING??
+		},
+	}
+	kubeconfigSecret.SetOwnerReferences([]metav1.OwnerReference{*metav1.NewControllerRef(controlPlane, controlPlane.GroupVersionKind())})
+
+	// Adds one of the certificate secret object generated by the control plane controller -- ** NOT RECONCILED **
+	saSecret := &corev1.Secret{
+		TypeMeta: metav1.TypeMeta{
+			Kind:       "Secret",
+			APIVersion: "",
+		},
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      cluster.GetName() + "-sa",
+			Namespace: cluster.GetNamespace(),
+			// Labels: cluster.x-k8s.io/cluster-name=cluster MISSING??
+		},
+	}
+	saSecret.SetOwnerReferences([]metav1.OwnerReference{*metav1.NewControllerRef(controlPlane, controlPlane.GroupVersionKind())})
+
+	objs := []runtime.Object{
+		controlPlane,
+		controlPlaneInfrastructure,
+		kubeconfigSecret,
+		saSecret,
+	}
+
+	// Adds the objects for the machines controlled by the controlPlane
+	for _, machine := range f.machines {
+		objs = append(objs, machine.Objs(cluster, false, nil, controlPlane)...)
+	}
+
+	return objs
+}
+
+type FakeMachinePool struct {
+	name string
+}
+
+// NewFakeMachinePool return a FakeMachinePool that can generate a MachinePool object, all its own ancillary objects:
+// - the machinePoolInfrastructure object
+// - the machinePoolBootstrap object
+func NewFakeMachinePool(name string) *FakeMachinePool {
+	return &FakeMachinePool{
+		name: name,
+	}
+}
+
+func (f *FakeMachinePool) Objs(cluster *clusterv1.Cluster) []runtime.Object {
+	machinePoolInfrastructure := &unstructured.Unstructured{
+		Object: map[string]interface{}{
+			"apiVersion": infrastructureGV,
+			"kind":       infrastructureMachineTemplateKind,
+			"metadata": map[string]interface{}{
+				"name":      f.name,
+				"namespace": cluster.Namespace,
+				// OwnerReferences: MISSING
+				// Labels: MISSING
+			},
+		},
+	}
+
+	machinePoolBootstrap := &unstructured.Unstructured{
+		Object: map[string]interface{}{
+			"apiVersion": bootstrapConfigKind,
+			"kind":       bootstrapConfigTemplateKind,
+			"metadata": map[string]interface{}{
+				"name":      f.name,
+				"namespace": cluster.Namespace,
+				// OwnerReferences: MISSING
+				// Labels: MISSING
+			},
+		},
+	}
+
+	machinePool := &clusterv1.MachinePool{
+		TypeMeta: metav1.TypeMeta{
+			Kind:       "MachinePool",
+			APIVersion: clusterv1.GroupVersion.String(),
+		},
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      f.name,
+			Namespace: cluster.Namespace,
+			OwnerReferences: []metav1.OwnerReference{ // Added by the machinePool controller (mirrors machinePool.spec.ClusterName) -- RECONCILED
+				{
+					APIVersion: clusterv1.GroupVersion.String(),
+					Kind:       "Cluster",
+					Name:       cluster.Name,
+				},
+			},
+			Labels: map[string]string{
+				clusterv1.ClusterLabelName: cluster.Name, // Added by the machinePool controller (mirrors machinePoolt.spec.ClusterName) -- RECONCILED
+			},
+		},
+		Spec: clusterv1.MachinePoolSpec{
+			Template: clusterv1.MachineTemplateSpec{
+				Spec: clusterv1.MachineSpec{
+					InfrastructureRef: corev1.ObjectReference{
+						APIVersion: machinePoolInfrastructure.GetAPIVersion(),
+						Kind:       machinePoolInfrastructure.GetKind(),
+						Name:       machinePoolInfrastructure.GetName(),
+						Namespace:  machinePoolInfrastructure.GetNamespace(),
+					},
+					Bootstrap: clusterv1.Bootstrap{
+						ConfigRef: &corev1.ObjectReference{
+							APIVersion: machinePoolBootstrap.GetAPIVersion(),
+							Kind:       machinePoolBootstrap.GetKind(),
+							Name:       machinePoolBootstrap.GetName(),
+							Namespace:  machinePoolBootstrap.GetNamespace(),
+						},
+					},
+				},
+			},
+			ClusterName: cluster.Name,
+		},
+	}
+
+	objs := []runtime.Object{
+		machinePool,
+		machinePoolInfrastructure,
+		machinePoolBootstrap,
+	}
+
+	return objs
+}
+
+type FakeMachineDeployment struct {
+	name        string
+	machineSets []*FakeMachineSet
+}
+
+// NewFakeMachineDeployment return a FakeMachineDeployment that can generate a MachineDeployment object, all its own ancillary objects:
+// - the machineDeploymentInfrastructure template object
+// - the machineDeploymentBootstrap template object
+// and all the objects for the defined FakeMachineSet
+func NewFakeMachineDeployment(name string) *FakeMachineDeployment {
+	return &FakeMachineDeployment{
+		name: name,
+	}
+}
+
+func (f *FakeMachineDeployment) WithMachineSets(fakeMachineSet ...*FakeMachineSet) *FakeMachineDeployment {
+	f.machineSets = append(f.machineSets, fakeMachineSet...)
+	return f
+}
+
+func (f *FakeMachineDeployment) Objs(cluster *clusterv1.Cluster) []runtime.Object {
+	machineDeploymentInfrastructure := &unstructured.Unstructured{
+		Object: map[string]interface{}{
+			"apiVersion": infrastructureGV,
+			"kind":       infrastructureMachineTemplateKind,
+			"metadata": map[string]interface{}{
+				"name":      f.name,
+				"namespace": cluster.Namespace,
+				// OwnerReferences: MISSING
+				// Labels: MISSING
+			},
+		},
+	}
+
+	machineDeploymentBootstrap := &unstructured.Unstructured{
+		Object: map[string]interface{}{
+			"apiVersion": bootstrapConfigKind,
+			"kind":       bootstrapConfigTemplateKind,
+			"metadata": map[string]interface{}{
+				"name":      f.name,
+				"namespace": cluster.Namespace,
+				// OwnerReferences: MISSING
+				// Labels: MISSING
+			},
+		},
+	}
+
+	machineDeployment := &clusterv1.MachineDeployment{
+		TypeMeta: metav1.TypeMeta{
+			Kind:       "MachineDeployment",
+			APIVersion: clusterv1.GroupVersion.String(),
+		},
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      f.name,
+			Namespace: cluster.Namespace,
+			OwnerReferences: []metav1.OwnerReference{ // Added by the machineDeployment controller (mirrors machineDeployment.spec.ClusterName) -- RECONCILED
+				{
+					APIVersion: clusterv1.GroupVersion.String(),
+					Kind:       "Cluster",
+					Name:       cluster.Name,
+				},
+			},
+			Labels: map[string]string{
+				clusterv1.ClusterLabelName: cluster.Name, // Added by the machineDeployment controller (mirrors machineDeployment.spec.ClusterName) -- RECONCILED
+			},
+		},
+		Spec: clusterv1.MachineDeploymentSpec{
+			Template: clusterv1.MachineTemplateSpec{
+				Spec: clusterv1.MachineSpec{
+					InfrastructureRef: corev1.ObjectReference{
+						APIVersion: machineDeploymentInfrastructure.GetAPIVersion(),
+						Kind:       machineDeploymentInfrastructure.GetKind(),
+						Name:       machineDeploymentInfrastructure.GetName(),
+						Namespace:  machineDeploymentInfrastructure.GetNamespace(),
+					},
+					Bootstrap: clusterv1.Bootstrap{
+						ConfigRef: &corev1.ObjectReference{
+							APIVersion: machineDeploymentBootstrap.GetAPIVersion(),
+							Kind:       machineDeploymentBootstrap.GetKind(),
+							Name:       machineDeploymentBootstrap.GetName(),
+							Namespace:  machineDeploymentBootstrap.GetNamespace(),
+						},
+					},
+				},
+			},
+			ClusterName: cluster.Name,
+		},
+	}
+
+	objs := []runtime.Object{
+		machineDeployment,
+		machineDeploymentInfrastructure,
+		machineDeploymentBootstrap,
+	}
+
+	// Adds the objects for the machineSets
+	for _, machineSet := range f.machineSets {
+		objs = append(objs, machineSet.Objs(cluster, machineDeployment)...)
+	}
+
+	return objs
+}
+
+type FakeMachineSet struct {
+	name     string
+	machines []*FakeMachine
+}
+
+// NewFakeMachineSet return a FakeMachineSet that can generate a MachineSet object, all its own ancillary objects:
+// - the machineSetInfrastructure template object (only if not controlled by a MachineDeployment)
+// - the machineSetBootstrap template object (only if not controlled by a MachineDeployment)
+// and all the objects for the defined FakeMachine
+func NewFakeMachineSet(name string) *FakeMachineSet {
+	return &FakeMachineSet{
+		name: name,
+	}
+}
+
+func (f *FakeMachineSet) WithMachines(fakeMachine ...*FakeMachine) *FakeMachineSet {
+	f.machines = append(f.machines, fakeMachine...)
+	return f
+}
+
+func (f *FakeMachineSet) Objs(cluster *clusterv1.Cluster, machineDeployment *clusterv1.MachineDeployment) []runtime.Object {
+	machineSet := &clusterv1.MachineSet{ // Created by machineDeployment controller
+		TypeMeta: metav1.TypeMeta{
+			Kind:       "MachineSet",
+			APIVersion: clusterv1.GroupVersion.String(),
+		},
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      f.name,
+			Namespace: cluster.Namespace,
+			// Owner reference set by machineSet controller or by machineDeployment controller (see below)
+			Labels: map[string]string{
+				clusterv1.ClusterLabelName: cluster.Name, // Added by the machineSet controller (mirrors machineSet.spec.ClusterName) -- RECONCILED
+			},
+		},
+		Spec: clusterv1.MachineSetSpec{
+			ClusterName: cluster.Name,
+		},
+	}
+
+	objs := make([]runtime.Object, 0)
+
+	if machineDeployment != nil {
+		// If this machineSet belong to a machineDeployment, it is controlled by it / ownership set by the machineDeployment controller  -- ** NOT RECONCILED **
+		machineSet.SetOwnerReferences([]metav1.OwnerReference{*metav1.NewControllerRef(machineDeployment, machineDeployment.GroupVersionKind())})
+
+		// additionally the machine has ref to the same infra and bootstrap templates defined in the MachineDeployment
+		machineSet.Spec.Template.Spec.InfrastructureRef = *machineDeployment.Spec.Template.Spec.InfrastructureRef.DeepCopy()
+		machineSet.Spec.Template.Spec.Bootstrap.ConfigRef = machineDeployment.Spec.Template.Spec.Bootstrap.ConfigRef.DeepCopy()
+
+		objs = append(objs, machineSet)
+	} else {
+
+		// If this machineSet does not belong to a machineDeployment, it is owned by the cluster / ownership set by the machineSet controller -- RECONCILED
+		machineSet.SetOwnerReferences([]metav1.OwnerReference{{
+			APIVersion: cluster.APIVersion,
+			Kind:       cluster.Kind,
+			Name:       cluster.Name,
+		}})
+
+		// additionally the machine has ref to dedicated infra and bootstrap templates
+
+		machineSetInfrastructure := &unstructured.Unstructured{
+			Object: map[string]interface{}{
+				"apiVersion": infrastructureGV,
+				"kind":       infrastructureMachineTemplateKind,
+				"metadata": map[string]interface{}{
+					"name":      f.name,
+					"namespace": cluster.Namespace,
+					// OwnerReferences: MISSING
+					// Labels: MISSING
+				},
+			},
+		}
+
+		machineSet.Spec.Template.Spec.InfrastructureRef = corev1.ObjectReference{
+			APIVersion: machineSetInfrastructure.GetAPIVersion(),
+			Kind:       machineSetInfrastructure.GetKind(),
+			Name:       machineSetInfrastructure.GetName(),
+			Namespace:  machineSetInfrastructure.GetNamespace(),
+		}
+
+		machineSetBootstrap := &unstructured.Unstructured{
+			Object: map[string]interface{}{
+				"apiVersion": bootstrapGV,
+				"kind":       bootstrapConfigTemplateKind,
+				"metadata": map[string]interface{}{
+					"name":      f.name,
+					"namespace": cluster.Namespace,
+					// OwnerReferences: MISSING
+					// Labels: MISSING
+				},
+			},
+		}
+
+		machineSet.Spec.Template.Spec.Bootstrap = clusterv1.Bootstrap{
+			ConfigRef: &corev1.ObjectReference{
+				APIVersion: machineSetBootstrap.GetAPIVersion(),
+				Kind:       machineSetBootstrap.GetKind(),
+				Name:       machineSetBootstrap.GetName(),
+				Namespace:  machineSetBootstrap.GetNamespace(),
+			},
+		}
+
+		objs = append(objs, machineSet, machineSetInfrastructure, machineSetBootstrap)
+	}
+
+	// Adds the objects for the machines controlled by the machineSet
+	for _, machine := range f.machines {
+		objs = append(objs, machine.Objs(cluster, false, machineSet, nil)...)
+	}
+
+	return objs
+}
+
+type FakeMachine struct {
+	name string
+}
+
+// NewFakeMachine return a FakeMachine that can generate a Machine object, all its own ancillary objects:
+// - the machineInfrastructure object
+// - the machineBootstrap object and the related bootstrapDataSecret
+// If there is no a control plane object in the cluster, the first FakeMachine gets a generated sa secret
+func NewFakeMachine(name string) *FakeMachine {
+	return &FakeMachine{
+		name: name,
+	}
+}
+
+func (f *FakeMachine) Objs(cluster *clusterv1.Cluster, generateCerts bool, machineSet *clusterv1.MachineSet, controlPlane *unstructured.Unstructured) []runtime.Object {
+
+	machineInfrastructure := &unstructured.Unstructured{
+		Object: map[string]interface{}{
+			"apiVersion": infrastructureGV,
+			"kind":       infrastructureMachineKind,
+			"metadata": map[string]interface{}{
+				"name":      f.name,
+				"namespace": cluster.Namespace,
+			},
+			// OwnerReferences: machine, Added by the machine controller (see reconcileExternalRef below) -- RECONCILED
+			// Labels: cluster.x-k8s.io/cluster-name=cluster, Added by the machine controller (see reconcileExternalRef below) -- RECONCILED
+		},
+	}
+
+	bootstrapDataSecretName := f.name
+
+	machineBootstrap := &unstructured.Unstructured{
+		Object: map[string]interface{}{
+			"apiVersion": bootstrapGV,
+			"kind":       bootstrapConfigKind,
+			"metadata": map[string]interface{}{
+				"name":      f.name,
+				"namespace": cluster.Namespace,
+			},
+			// OwnerReferences: machine, Added by the machine controller (see reconcileExternalRef below) -- RECONCILED
+			// Labels: cluster.x-k8s.io/cluster-name=cluster, Added by the machine controller (see reconcileExternalRef below) -- RECONCILED
+			"status": map[string]interface{}{
+				"dataSecretName": bootstrapDataSecretName,
+			},
+		},
+	}
+
+	bootstrapDataSecret := &corev1.Secret{ // generated by the bootstrap controller -- ** NOT RECONCILED **
+		TypeMeta: metav1.TypeMeta{
+			Kind: "Secret",
+		},
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      bootstrapDataSecretName,
+			Namespace: cluster.Namespace,
+			OwnerReferences: []metav1.OwnerReference{
+				*metav1.NewControllerRef(machineBootstrap, machineBootstrap.GroupVersionKind()),
+			},
+			Labels: map[string]string{
+				clusterv1.ClusterLabelName: cluster.Name, // derives from Config -(ownerRef)-> machine.spec.ClusterName
+			},
+		},
+	}
+
+	machine := &clusterv1.Machine{
+		TypeMeta: metav1.TypeMeta{
+			Kind:       "Machine",
+			APIVersion: clusterv1.GroupVersion.String(),
+		},
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      f.name,
+			Namespace: cluster.Namespace,
+			// Owner reference set by machine controller or by machineSet controller (see below)
+			Labels: map[string]string{
+				clusterv1.ClusterLabelName: cluster.Name, // Added by the machine controller (mirrors machine.spec.ClusterName) -- RECONCILED
+			},
+		},
+		Spec: clusterv1.MachineSpec{
+			InfrastructureRef: corev1.ObjectReference{
+				APIVersion: machineInfrastructure.GetAPIVersion(),
+				Kind:       machineInfrastructure.GetKind(),
+				Name:       machineInfrastructure.GetName(),
+				Namespace:  cluster.Namespace,
+			},
+			Bootstrap: clusterv1.Bootstrap{
+				ConfigRef: &corev1.ObjectReference{
+					APIVersion: machineBootstrap.GetAPIVersion(),
+					Kind:       machineBootstrap.GetKind(),
+					Name:       machineBootstrap.GetName(),
+					Namespace:  cluster.Namespace,
+				},
+				DataSecretName: &bootstrapDataSecretName,
+			},
+			ClusterName: cluster.Name,
+		},
+	}
+
+	var additionalObjs []runtime.Object
+
+	switch {
+	case machineSet != nil:
+		// If this machine belong to a machineSet, it is controlled by it / ownership set by the machineSet controller -- ** NOT RECONCILED ?? **
+		machine.SetOwnerReferences([]metav1.OwnerReference{*metav1.NewControllerRef(machineSet, machineSet.GroupVersionKind())})
+	case controlPlane != nil:
+		// If this machine belong to a controlPlane, it is controlled by it / ownership set by the controlPlane controller -- ** NOT RECONCILED ?? **
+		machine.SetOwnerReferences([]metav1.OwnerReference{*metav1.NewControllerRef(controlPlane, controlPlane.GroupVersionKind())})
+		// Sets the MachineControlPlane Label
+		machine.Labels[clusterv1.MachineControlPlaneLabelName] = ""
+	default:
+		// If this machine does not belong to a machineSet or to a control plane, it is owned by the cluster / ownership set by the machine controller -- RECONCILED
+		machine.SetOwnerReferences([]metav1.OwnerReference{{
+			APIVersion: cluster.APIVersion,
+			Kind:       cluster.Kind,
+			Name:       cluster.Name,
+		}})
+
+		// Adds one of the certificate secret object generated by the bootstrap config controller -- ** NOT RECONCILED **
+		if generateCerts {
+			saSecret := &corev1.Secret{
+				TypeMeta: metav1.TypeMeta{
+					Kind:       "Secret",
+					APIVersion: "",
+				},
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      cluster.GetName() + "-sa",
+					Namespace: cluster.GetNamespace(),
+					// Labels: cluster.x-k8s.io/cluster-name=cluster MISSING??
+				},
+			}
+			// Set controlled by the machineBootstrap / ownership set by the bootstrap config controller -- ** NOT RECONCILED ?? **
+			saSecret.SetOwnerReferences([]metav1.OwnerReference{*metav1.NewControllerRef(machineBootstrap, machineBootstrap.GroupVersionKind())})
+
+			additionalObjs = append(additionalObjs, saSecret)
+		}
+	}
+
+	reconcileMachineExternalRef(machineInfrastructure, machine) // Added by the machine controller (follow machine.Spec.InfrastructureRef)
+	reconcileMachineExternalRef(machineBootstrap, machine)      // Added by the machine controller (follow machine.Spec.Bootstrap.ConfigRef)
+
+	objs := []runtime.Object{
+		machine,
+		machineInfrastructure,
+		machineBootstrap,
+		bootstrapDataSecret,
+	}
+
+	objs = append(objs, additionalObjs...)
+
+	return objs
+}
+
+func reconcileMachineExternalRef(externalRef *unstructured.Unstructured, machine *clusterv1.Machine) {
+	externalRef.SetOwnerReferences([]metav1.OwnerReference{
+		{
+			APIVersion: machine.APIVersion,
+			Kind:       machine.Kind,
+			Name:       machine.Name,
+		},
+	})
+	externalRef.SetLabels(map[string]string{
+		clusterv1.ClusterLabelName: machine.Spec.ClusterName,
+	})
+}

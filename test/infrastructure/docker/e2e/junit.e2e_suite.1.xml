@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="UTF-8"?>
+  <testsuite name="CAPD e2e Suite" tests="1" failures="1" errors="0" time="273.701">
+      <testcase name="Docker Cluster Creation One node cluster should create a single node cluster" classname="CAPD e2e Suite" time="190.148102653">
+          <failure type="Failure">/Users/cha/dev/capi-dev/cluster-api/test/infrastructure/docker/e2e/docker_test.go:56&#xA;Timed out after 180.000s.&#xA;Expected&#xA;    &lt;bool&gt;: false&#xA;to be true&#xA;/Users/cha/dev/capi-dev/cluster-api/test/framework/control_plane.go:131</failure>
+          <system-out>�[1mSTEP�[0m: creating an InfrastructureCluster resource&#xA;�[1mSTEP�[0m: creating a Cluster resource linked to the InfrastructureCluster resource&#xA;�[1mSTEP�[0m: creating the machine template&#xA;�[1mSTEP�[0m: creating a KubeadmControlPlane&#xA;�[1mSTEP�[0m: waiting for the controlplane to be ready&#xA;�[1mSTEP�[0m: Ensuring docker artifacts have been deleted&#xA;�[1mSTEP�[0m: Succeeding in deleting all docker artifacts&#xA;</system-out>
+      </testcase>
+  </testsuite>

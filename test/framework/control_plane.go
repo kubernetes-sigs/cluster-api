@@ -24,11 +24,8 @@ import (
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	corev1 "k8s.io/api/core/v1"
-	v1 "k8s.io/api/core/v1"
-	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/runtime"
-	"k8s.io/apimachinery/pkg/util/wait"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha3"
 	cabpkv1 "sigs.k8s.io/cluster-api/bootstrap/kubeadm/api/v1alpha3"
 	controlplanev1 "sigs.k8s.io/cluster-api/controlplane/kubeadm/api/v1alpha3"
@@ -43,6 +40,9 @@ type ControlplaneClusterInput struct {
 	Nodes         []Node
 	CreateTimeout time.Duration
 	DeleteTimeout time.Duration
+
+	ControlPlane    *controlplanev1.KubeadmControlPlane
+	MachineTemplate runtime.Object
 }
 
 // SetDefaults defaults the struct fields if necessary.
@@ -78,17 +78,29 @@ func (input *ControlplaneClusterInput) ControlPlaneCluster() {
 		return err
 	}, input.CreateTimeout, 10*time.Second).Should(BeNil())
 
-	// create all the machines at once
-	for _, node := range input.Nodes {
-		By("creating an InfrastructureMachine resource")
-		Expect(mgmtClient.Create(ctx, node.InfraMachine)).To(Succeed())
+	By("creating the machine template")
+	Expect(mgmtClient.Create(ctx, input.MachineTemplate)).To(Succeed())
 
-		By("creating a bootstrap config")
-		Expect(mgmtClient.Create(ctx, node.BootstrapConfig)).To(Succeed())
+	By("creating a KubeadmControlPlane")
+	Eventually(func() error {
+		err := mgmtClient.Create(ctx, input.ControlPlane)
+		if err != nil {
+			fmt.Println(err)
+		}
+		return err
+	}, input.CreateTimeout, 10*time.Second).Should(BeNil())
 
-		By("creating a core Machine resource with a linked InfrastructureMachine and BootstrapConfig")
-		Expect(mgmtClient.Create(ctx, node.Machine)).To(Succeed())
-	}
+	//// create all the machines at once
+	//for _, node := range input.Nodes {
+	//	By("creating an InfrastructureMachine resource")
+	//	Expect(mgmtClient.Create(ctx, node.InfraMachine)).To(Succeed())
+	//
+	//	By("creating a bootstrap config")
+	//	Expect(mgmtClient.Create(ctx, node.BootstrapConfig)).To(Succeed())
+	//
+	//	By("creating a core Machine resource with a linked InfrastructureMachine and BootstrapConfig")
+	//	Expect(mgmtClient.Create(ctx, node.Machine)).To(Succeed())
+	//}
 
 	// Wait for the cluster infrastructure
 	Eventually(func() string {
@@ -103,44 +115,43 @@ func (input *ControlplaneClusterInput) ControlPlaneCluster() {
 		return cluster.Status.Phase
 	}, input.CreateTimeout, 10*time.Second).Should(Equal(string(clusterv1.ClusterPhaseProvisioned)))
 
-	// wait for all the machines to be running
-	By("waiting for all machines to be running")
-	for _, node := range input.Nodes {
-		Eventually(func() string {
-			machine := &clusterv1.Machine{}
-			key := client.ObjectKey{
-				Namespace: node.Machine.GetNamespace(),
-				Name:      node.Machine.GetName(),
-			}
-			if err := mgmtClient.Get(ctx, key, machine); err != nil {
-				return err.Error()
-			}
-			return machine.Status.Phase
-		}, input.CreateTimeout, 10*time.Second).Should(Equal(string(clusterv1.MachinePhaseRunning)))
-	}
+	// wait for the controlplane to be ready
+	By("waiting for the controlplane to be ready")
+	Eventually(func() bool {
+		controlplane := &controlplanev1.KubeadmControlPlane{}
+		key := client.ObjectKey{
+			Namespace: input.ControlPlane.GetNamespace(),
+			Name:      input.ControlPlane.GetName(),
+		}
+		if err := mgmtClient.Get(ctx, key, controlplane); err != nil {
+			fmt.Println(err.Error())
+			return false
+		}
+		return controlplane.Status.Ready
+	}, input.CreateTimeout, 10*time.Second).Should(BeTrue())
 
-	By("waiting for the workload nodes to exist")
-	Eventually(func() []v1.Node {
-		nodes := v1.NodeList{}
-		By("ensuring the workload client can be generated")
-		err := wait.PollImmediate(10*time.Second, 5*time.Minute, func() (bool, error) {
-			_, err := input.Management.GetWorkloadClient(ctx, input.Cluster.Namespace, input.Cluster.Name)
-			switch {
-			case apierrors.IsNotFound(err):
-				return false, nil
-			case err != nil:
-				return true, err
-			default:
-				return true, nil
-			}
-		})
-		Expect(err).NotTo(HaveOccurred())
-		By("getting the workload client and listing the nodes")
-		workloadClient, err := input.Management.GetWorkloadClient(ctx, input.Cluster.Namespace, input.Cluster.Name)
-		Expect(err).NotTo(HaveOccurred(), "Stack:\n%+v\n", err)
-		Expect(workloadClient.List(ctx, &nodes)).To(Succeed())
-		return nodes.Items
-	}, input.CreateTimeout, 10*time.Second).Should(HaveLen(len(input.Nodes)))
+	//By("waiting for the workload nodes to exist")
+	//Eventually(func() []v1.Node {
+	//	nodes := v1.NodeList{}
+	//	By("ensuring the workload client can be generated")
+	//	err := wait.PollImmediate(10*time.Second, 5*time.Minute, func() (bool, error) {
+	//		_, err := input.Management.GetWorkloadClient(ctx, input.Cluster.Namespace, input.Cluster.Name)
+	//		switch {
+	//		case apierrors.IsNotFound(err):
+	//			return false, nil
+	//		case err != nil:
+	//			return true, err
+	//		default:
+	//			return true, nil
+	//		}
+	//	})
+	//	Expect(err).NotTo(HaveOccurred())
+	//	By("getting the workload client and listing the nodes")
+	//	workloadClient, err := input.Management.GetWorkloadClient(ctx, input.Cluster.Namespace, input.Cluster.Name)
+	//	Expect(err).NotTo(HaveOccurred(), "Stack:\n%+v\n", err)
+	//	Expect(workloadClient.List(ctx, &nodes)).To(Succeed())
+	//	return nodes.Items
+	//}, input.CreateTimeout, 10*time.Second).Should(HaveLen(len(input.Nodes)))
 }
 
 // CleanUp deletes the cluster and waits for everything to be gone.

@@ -28,6 +28,7 @@ rules:
   - machines
   - machines/status
   verbs:
+  - create
   - get
   - list
   - watch

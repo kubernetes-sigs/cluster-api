@@ -1,0 +1,76 @@
+I0107 21:52:36.405128       1 request.go:538] Throttling request took 81.993679ms, request: GET:https://10.96.0.1:443/apis/autoscaling/v2beta2?timeout=32s
+I0107 21:52:36.455624       1 request.go:538] Throttling request took 132.705493ms, request: GET:https://10.96.0.1:443/apis/networking.k8s.io/v1beta1?timeout=32s
+I0107 21:52:36.504920       1 request.go:538] Throttling request took 182.0044ms, request: GET:https://10.96.0.1:443/apis/policy/v1beta1?timeout=32s
+I0107 21:52:36.555292       1 request.go:538] Throttling request took 232.23606ms, request: GET:https://10.96.0.1:443/apis/coordination.k8s.io/v1?timeout=32s
+I0107 21:52:36.605508       1 request.go:538] Throttling request took 282.547134ms, request: GET:https://10.96.0.1:443/apis/scheduling.k8s.io/v1beta1?timeout=32s
+I0107 21:52:36.655089       1 request.go:538] Throttling request took 332.13245ms, request: GET:https://10.96.0.1:443/apis/apiextensions.k8s.io/v1?timeout=32s
+I0107 21:52:36.705476       1 request.go:538] Throttling request took 382.42575ms, request: GET:https://10.96.0.1:443/apis/controlplane.cluster.x-k8s.io/v1alpha3?timeout=32s
+I0107 21:52:36.755493       1 request.go:538] Throttling request took 432.524097ms, request: GET:https://10.96.0.1:443/apis/node.k8s.io/v1beta1?timeout=32s
+I0107 21:52:36.805368       1 request.go:538] Throttling request took 482.41618ms, request: GET:https://10.96.0.1:443/apis/cluster.x-k8s.io/v1alpha3?timeout=32s
+I0107 21:52:36.854848       1 request.go:538] Throttling request took 531.893217ms, request: GET:https://10.96.0.1:443/apis/cluster.x-k8s.io/v1alpha2?timeout=32s
+I0107 21:52:36.904834       1 request.go:538] Throttling request took 581.759552ms, request: GET:https://10.96.0.1:443/apis/autoscaling/v2beta1?timeout=32s
+I0107 21:52:36.954894       1 request.go:538] Throttling request took 631.816589ms, request: GET:https://10.96.0.1:443/apis/acme.cert-manager.io/v1alpha2?timeout=32s
+I0107 21:52:36.961551       1 listener.go:40] controller-runtime/metrics "msg"="metrics server is starting to listen"  "addr"="127.0.0.1:8080"
+I0107 21:52:36.961886       1 main.go:91] setup "msg"="starting manager"  
+I0107 21:52:36.962230       1 leaderelection.go:241] attempting to acquire leader lease  capd-system/controller-leader-election-capd...
+I0107 21:52:36.962290       1 internal.go:356] controller-runtime/manager "msg"="starting metrics server"  "path"="/metrics"
+I0107 21:52:36.966993       1 leaderelection.go:251] successfully acquired lease capd-system/controller-leader-election-capd
+I0107 21:52:36.967137       1 recorder.go:52] controller-runtime/manager/events "msg"="Normal"  "message"="capd-controller-manager-74d854b4bd-9d8dl_32ab5a2b-523b-480b-b9bd-6a5ee5269f9e became leader" "object"={"kind":"ConfigMap","namespace":"capd-system","name":"controller-leader-election-capd","uid":"70ed9db8-cfe5-49b0-9fe7-143aedd4f4ef","apiVersion":"v1","resourceVersion":"958"} "reason"="LeaderElection"
+I0107 21:52:37.063393       1 shared_informer.go:227] caches populated
+I0107 21:52:37.064503       1 controller.go:164] controller-runtime/controller "msg"="Starting EventSource"  "controller"="dockercluster" "source"={"Type":{"metadata":{"creationTimestamp":null},"spec":{"controlPlaneEndpoint":{"host":"","port":0}},"status":{"ready":false}}}
+I0107 21:52:37.064509       1 controller.go:164] controller-runtime/controller "msg"="Starting EventSource"  "controller"="dockermachine" "source"={"Type":{"metadata":{"creationTimestamp":null},"spec":{},"status":{"ready":false}}}
+I0107 21:52:37.064837       1 reflector.go:120] Starting reflector *v1alpha3.DockerCluster (10m0s) from pkg/mod/k8s.io/client-go@v0.0.0-20190918160344-1fbdaa4c8d90/tools/cache/reflector.go:96
+I0107 21:52:37.064856       1 reflector.go:158] Listing and watching *v1alpha3.DockerCluster from pkg/mod/k8s.io/client-go@v0.0.0-20190918160344-1fbdaa4c8d90/tools/cache/reflector.go:96
+I0107 21:52:37.065056       1 reflector.go:120] Starting reflector *v1alpha3.DockerMachine (10m0s) from pkg/mod/k8s.io/client-go@v0.0.0-20190918160344-1fbdaa4c8d90/tools/cache/reflector.go:96
+I0107 21:52:37.065130       1 reflector.go:158] Listing and watching *v1alpha3.DockerMachine from pkg/mod/k8s.io/client-go@v0.0.0-20190918160344-1fbdaa4c8d90/tools/cache/reflector.go:96
+I0107 21:52:37.165455       1 shared_informer.go:227] caches populated
+I0107 21:52:37.165874       1 shared_informer.go:227] caches populated
+I0107 21:52:37.166131       1 controller.go:164] controller-runtime/controller "msg"="Starting EventSource"  "controller"="dockercluster" "source"={"Type":{"metadata":{"creationTimestamp":null},"spec":{"controlPlaneEndpoint":{"host":"","port":0}},"status":{"infrastructureReady":false,"controlPlaneInitialized":false}}}
+I0107 21:52:37.166372       1 reflector.go:120] Starting reflector *v1alpha3.Cluster (10m0s) from pkg/mod/k8s.io/client-go@v0.0.0-20190918160344-1fbdaa4c8d90/tools/cache/reflector.go:96
+I0107 21:52:37.166430       1 reflector.go:158] Listing and watching *v1alpha3.Cluster from pkg/mod/k8s.io/client-go@v0.0.0-20190918160344-1fbdaa4c8d90/tools/cache/reflector.go:96
+I0107 21:52:37.167001       1 controller.go:164] controller-runtime/controller "msg"="Starting EventSource"  "controller"="dockermachine" "source"={"Type":{"metadata":{"creationTimestamp":null},"spec":{"clusterName":"","bootstrap":{},"infrastructureRef":{}},"status":{"bootstrapReady":false,"infrastructureReady":false}}}
+I0107 21:52:37.167876       1 reflector.go:120] Starting reflector *v1alpha3.Machine (10m0s) from pkg/mod/k8s.io/client-go@v0.0.0-20190918160344-1fbdaa4c8d90/tools/cache/reflector.go:96
+I0107 21:52:37.168064       1 reflector.go:158] Listing and watching *v1alpha3.Machine from pkg/mod/k8s.io/client-go@v0.0.0-20190918160344-1fbdaa4c8d90/tools/cache/reflector.go:96
+I0107 21:52:37.266709       1 shared_informer.go:227] caches populated
+I0107 21:52:37.266797       1 controller.go:171] controller-runtime/controller "msg"="Starting Controller"  "controller"="dockercluster"
+I0107 21:52:37.268066       1 shared_informer.go:227] caches populated
+I0107 21:52:37.268202       1 controller.go:164] controller-runtime/controller "msg"="Starting EventSource"  "controller"="dockermachine" "source"={"Type":{"metadata":{"creationTimestamp":null},"spec":{"controlPlaneEndpoint":{"host":"","port":0}},"status":{"ready":false}}}
+I0107 21:52:37.268227       1 controller.go:171] controller-runtime/controller "msg"="Starting Controller"  "controller"="dockermachine"
+I0107 21:52:37.367143       1 shared_informer.go:227] caches populated
+I0107 21:52:37.367196       1 controller.go:190] controller-runtime/controller "msg"="Starting workers"  "controller"="dockercluster" "worker count"=1
+I0107 21:52:37.368402       1 shared_informer.go:227] caches populated
+I0107 21:52:37.368445       1 controller.go:190] controller-runtime/controller "msg"="Starting workers"  "controller"="dockermachine" "worker count"=1
+I0107 21:52:37.477854       1 loadbalancer.go:71] DockerCluster-controller "msg"="Creating load balancer container" "cluster"="test-0" "docker-cluster"={"Namespace":"default","Name":"test-0"} 
+I0107 21:52:38.182104       1 controller.go:282] controller-runtime/controller "msg"="Successfully Reconciled"  "controller"="dockercluster" "request"={"Namespace":"default","Name":"test-0"}
+I0107 21:52:38.251705       1 controller.go:282] controller-runtime/controller "msg"="Successfully Reconciled"  "controller"="dockercluster" "request"={"Namespace":"default","Name":"test-0"}
+I0107 21:52:38.301951       1 controller.go:282] controller-runtime/controller "msg"="Successfully Reconciled"  "controller"="dockercluster" "request"={"Namespace":"default","Name":"test-0"}
+I0107 21:52:38.602169       1 dockermachine_controller.go:76] controllers/DockerMachine/DockerMachine-controller "msg"="Waiting for Machine Controller to set OwnerRef on DockerMachine" "docker-machine"={"Namespace":"default","Name":"capd-machine-template-z2kt4"} 
+I0107 21:52:38.602199       1 controller.go:282] controller-runtime/controller "msg"="Successfully Reconciled"  "controller"="dockermachine" "request"={"Namespace":"default","Name":"capd-machine-template-z2kt4"}
+I0107 21:52:38.615890       1 dockermachine_controller.go:76] controllers/DockerMachine/DockerMachine-controller "msg"="Waiting for Machine Controller to set OwnerRef on DockerMachine" "docker-machine"={"Namespace":"default","Name":"capd-machine-template-z2kt4"} 
+I0107 21:52:38.615944       1 controller.go:282] controller-runtime/controller "msg"="Successfully Reconciled"  "controller"="dockermachine" "request"={"Namespace":"default","Name":"capd-machine-template-z2kt4"}
+I0107 21:52:38.624092       1 dockermachine_controller.go:76] controllers/DockerMachine/DockerMachine-controller "msg"="Waiting for Machine Controller to set OwnerRef on DockerMachine" "docker-machine"={"Namespace":"default","Name":"capd-machine-template-zc7zk"} 
+I0107 21:52:38.624142       1 controller.go:282] controller-runtime/controller "msg"="Successfully Reconciled"  "controller"="dockermachine" "request"={"Namespace":"default","Name":"capd-machine-template-zc7zk"}
+I0107 21:52:38.632339       1 dockermachine_controller.go:76] controllers/DockerMachine/DockerMachine-controller "msg"="Waiting for Machine Controller to set OwnerRef on DockerMachine" "docker-machine"={"Namespace":"default","Name":"capd-machine-template-zc7zk"} 
+I0107 21:52:38.632388       1 controller.go:282] controller-runtime/controller "msg"="Successfully Reconciled"  "controller"="dockermachine" "request"={"Namespace":"default","Name":"capd-machine-template-zc7zk"}
+I0107 21:52:38.808097       1 dockermachine_controller.go:166] controllers/DockerMachine/DockerMachine-controller "msg"="Waiting for the Bootstrap provider controller to set bootstrap data" "cluster"="test-0" "docker-cluster"="test-0" "docker-machine"={"Namespace":"default","Name":"capd-machine-template-z2kt4"} "machine"="single-node-vkh58" 
+I0107 21:52:38.811984       1 controller.go:282] controller-runtime/controller "msg"="Successfully Reconciled"  "controller"="dockermachine" "request"={"Namespace":"default","Name":"capd-machine-template-z2kt4"}
+I0107 21:52:38.899804       1 dockermachine_controller.go:166] controllers/DockerMachine/DockerMachine-controller "msg"="Waiting for the Bootstrap provider controller to set bootstrap data" "cluster"="test-0" "docker-cluster"="test-0" "docker-machine"={"Namespace":"default","Name":"capd-machine-template-zc7zk"} "machine"="single-node-mdj5n" 
+I0107 21:52:38.903766       1 controller.go:282] controller-runtime/controller "msg"="Successfully Reconciled"  "controller"="dockermachine" "request"={"Namespace":"default","Name":"capd-machine-template-zc7zk"}
+I0107 21:52:38.962104       1 dockermachine_controller.go:166] controllers/DockerMachine/DockerMachine-controller "msg"="Waiting for the Bootstrap provider controller to set bootstrap data" "cluster"="test-0" "docker-cluster"="test-0" "docker-machine"={"Namespace":"default","Name":"capd-machine-template-z2kt4"} "machine"="single-node-vkh58" 
+I0107 21:52:38.962193       1 controller.go:282] controller-runtime/controller "msg"="Successfully Reconciled"  "controller"="dockermachine" "request"={"Namespace":"default","Name":"capd-machine-template-z2kt4"}
+I0107 21:52:39.021844       1 machine.go:102] controllers/DockerMachine/DockerMachine-controller "msg"="Creating control plane machine container" "cluster"="test-0" "docker-cluster"="test-0" "docker-machine"={"Namespace":"default","Name":"capd-machine-template-zc7zk"} "machine"="single-node-mdj5n" 
+I0107 21:52:42.799045       1 loadbalancer.go:120] controllers/DockerMachine/DockerMachine-controller "msg"="Updating load balancer configuration" "cluster"="test-0" "docker-cluster"="test-0" "docker-machine"={"Namespace":"default","Name":"capd-machine-template-zc7zk"} "machine"="single-node-mdj5n" 
+I0107 21:52:43.422770       1 reflector.go:120] Starting reflector *v1.Secret (10m0s) from pkg/mod/k8s.io/client-go@v0.0.0-20190918160344-1fbdaa4c8d90/tools/cache/reflector.go:96
+I0107 21:52:43.423446       1 reflector.go:158] Listing and watching *v1.Secret from pkg/mod/k8s.io/client-go@v0.0.0-20190918160344-1fbdaa4c8d90/tools/cache/reflector.go:96
+I0107 21:52:43.521569       1 shared_informer.go:227] caches populated
+I0107 21:52:43.521734       1 machine.go:142] controllers/DockerMachine/DockerMachine-controller "msg"="Running machine bootstrap scripts" "cluster"="test-0" "docker-cluster"="test-0" "docker-machine"={"Namespace":"default","Name":"capd-machine-template-zc7zk"} "machine"="single-node-mdj5n" 
+I0107 21:53:12.199149       1 machine.go:162] controllers/DockerMachine/DockerMachine-controller "msg"="Setting Kubernetes node providerID" "cluster"="test-0" "docker-cluster"="test-0" "docker-machine"={"Namespace":"default","Name":"capd-machine-template-zc7zk"} "machine"="single-node-mdj5n" 
+I0107 21:53:12.730887       1 controller.go:282] controller-runtime/controller "msg"="Successfully Reconciled"  "controller"="dockermachine" "request"={"Namespace":"default","Name":"capd-machine-template-zc7zk"}
+I0107 21:53:12.849806       1 machine.go:102] controllers/DockerMachine/DockerMachine-controller "msg"="Creating control plane machine container" "cluster"="test-0" "docker-cluster"="test-0" "docker-machine"={"Namespace":"default","Name":"capd-machine-template-z2kt4"} "machine"="single-node-vkh58" 
+I0107 21:53:12.928127       1 controller.go:282] controller-runtime/controller "msg"="Successfully Reconciled"  "controller"="dockercluster" "request"={"Namespace":"default","Name":"test-0"}
+I0107 21:53:18.895418       1 loadbalancer.go:120] controllers/DockerMachine/DockerMachine-controller "msg"="Updating load balancer configuration" "cluster"="test-0" "docker-cluster"="test-0" "docker-machine"={"Namespace":"default","Name":"capd-machine-template-z2kt4"} "machine"="single-node-vkh58" 
+I0107 21:53:19.617719       1 machine.go:142] controllers/DockerMachine/DockerMachine-controller "msg"="Running machine bootstrap scripts" "cluster"="test-0" "docker-cluster"="test-0" "docker-machine"={"Namespace":"default","Name":"capd-machine-template-z2kt4"} "machine"="single-node-vkh58" 
+I0107 21:53:37.158498       1 machine.go:162] controllers/DockerMachine/DockerMachine-controller "msg"="Setting Kubernetes node providerID" "cluster"="test-0" "docker-cluster"="test-0" "docker-machine"={"Namespace":"default","Name":"capd-machine-template-z2kt4"} "machine"="single-node-vkh58" 
+I0107 21:53:37.810756       1 controller.go:282] controller-runtime/controller "msg"="Successfully Reconciled"  "controller"="dockermachine" "request"={"Namespace":"default","Name":"capd-machine-template-z2kt4"}
+I0107 21:53:38.043582       1 controller.go:282] controller-runtime/controller "msg"="Successfully Reconciled"  "controller"="dockermachine" "request"={"Namespace":"default","Name":"capd-machine-template-zc7zk"}
+I0107 21:53:38.165592       1 controller.go:282] controller-runtime/controller "msg"="Successfully Reconciled"  "controller"="dockermachine" "request"={"Namespace":"default","Name":"capd-machine-template-z2kt4"}

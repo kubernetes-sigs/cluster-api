@@ -27,33 +27,33 @@ import (
 	"sigs.k8s.io/cluster-api/test/framework/exec"
 )
 
-// ClusterAPIGitHubManifestsFormat is a convenience string to get Cluster API manifests at an exact revision.
-// Set ClusterAPI.KustomizePath = fmt.Sprintf(ClusterAPIGitHubManifestsFormat, <some git ref>).
-var ClusterAPIGitHubManifestsFormat = "https://github.com/kubernetes-sigs/cluster-api//config/default?ref=%s"
+// KubeadmBootstrapGitHubManifestsFormat is a convenience string to get Cluster API manifests at an exact revision.
+// Set KubeadmBootstrap.KustomizePath = fmt.Sprintf(KubeadmBootstrapGitHubManifestsFormat, <some git ref>).
+var KubeadmBootstrapGitHubManifestsFormat = "https://github.com/kubernetes-sigs/cluster-api//bootstrap/kubeadm/config/default?ref=%s"
 
-// Generator generates provider components for CAPI
-type ClusterAPI struct {
-	// KustomizePath is a URL, relative or absolute filesystem path to a kustomize file that generates Cluster API manifests.
+// KubeadmBootstrap generates provider components for the Kubeadm bootstrap provider.
+type KubeadmBootstrap struct {
+	// KustomizePath is a URL, relative or absolute filesystem path to a kustomize file that generates the Kubeadm Bootstrap manifests.
 	// KustomizePath takes precedence over Version.
 	KustomizePath string
-	// Version defines the release version. If GitRef is not set Version must be set and will not use kustomize
+	// Version defines the release version. If GitRef is not set Version must be set and will not use kustomize.
 	Version string
 }
 
 // GetName returns the name of the components being generated.
-func (g *ClusterAPI) GetName() string {
+func (g *KubeadmBootstrap) GetName() string {
 	if g.KustomizePath != "" {
-		return fmt.Sprintf("Using Cluster API manifests from: %q", g.KustomizePath)
+		return fmt.Sprintf("Using Kubeadm bootstrap provider manifests from: %q", g.KustomizePath)
 	}
-	return fmt.Sprintf("Cluster API  %s", g.Version)
+	return fmt.Sprintf("Kubeadm bootstrap provider manifests from Cluster API version release %s", g.Version)
 }
 
-func (g *ClusterAPI) releaseYAMLPath() string {
+func (g *KubeadmBootstrap) releaseYAMLPath() string {
 	return fmt.Sprintf("https://github.com/kubernetes-sigs/cluster-api/releases/download/%s/cluster-api-components.yaml", g.Version)
 }
 
 // Manifests return the generated components and any error if there is one.
-func (g *ClusterAPI) Manifests(ctx context.Context) ([]byte, error) {
+func (g *KubeadmBootstrap) Manifests(ctx context.Context) ([]byte, error) {
 	if g.KustomizePath != "" {
 		kustomize := exec.NewCommand(
 			exec.WithCommand("kustomize"),

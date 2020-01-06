@@ -27,33 +27,33 @@ import (
 	"sigs.k8s.io/cluster-api/test/framework/exec"
 )
 
-// ClusterAPIGitHubManifestsFormat is a convenience string to get Cluster API manifests at an exact revision.
-// Set ClusterAPI.KustomizePath = fmt.Sprintf(ClusterAPIGitHubManifestsFormat, <some git ref>).
-var ClusterAPIGitHubManifestsFormat = "https://github.com/kubernetes-sigs/cluster-api//config/default?ref=%s"
+// KubeadmControlPlaneGitHubManifestsFormat is a convenience string to get Cluster API manifests at an exact revision.
+// Set KubeadmControlPlane.KustomizePath = fmt.Sprintf(KubeadmControlPlaneGitHubManifestsFormat, <some git ref>).
+var KubeadmControlPlaneGitHubManifestsFormat = "https://github.com/kubernetes-sigs/cluster-api//controlplane/kubeadm/config/default?ref=%s"
 
-// Generator generates provider components for CAPI
-type ClusterAPI struct {
-	// KustomizePath is a URL, relative or absolute filesystem path to a kustomize file that generates Cluster API manifests.
+// KubeadmControlPlane generates provider components for the Kubeadm Control Plane provider.
+type KubeadmControlPlane struct {
+	// KustomizePath is a URL, relative or absolute filesystem path to a kustomize file that generates the Kubeadm Control Plane provider manifests.
 	// KustomizePath takes precedence over Version.
 	KustomizePath string
-	// Version defines the release version. If GitRef is not set Version must be set and will not use kustomize
+	// Version defines the release version. If GitRef is not set Version must be set and will not use kustomize.
 	Version string
 }
 
 // GetName returns the name of the components being generated.
-func (g *ClusterAPI) GetName() string {
+func (g *KubeadmControlPlane) GetName() string {
 	if g.KustomizePath != "" {
-		return fmt.Sprintf("Using Cluster API manifests from: %q", g.KustomizePath)
+		return fmt.Sprintf("Using Kubeadm control plane provider manifests from: %q", g.KustomizePath)
 	}
-	return fmt.Sprintf("Cluster API  %s", g.Version)
+	return fmt.Sprintf("Kubeadm control plane provider manifests from Cluster API release version %s", g.Version)
 }
 
-func (g *ClusterAPI) releaseYAMLPath() string {
+func (g *KubeadmControlPlane) releaseYAMLPath() string {
 	return fmt.Sprintf("https://github.com/kubernetes-sigs/cluster-api/releases/download/%s/cluster-api-components.yaml", g.Version)
 }
 
 // Manifests return the generated components and any error if there is one.
-func (g *ClusterAPI) Manifests(ctx context.Context) ([]byte, error) {
+func (g *KubeadmControlPlane) Manifests(ctx context.Context) ([]byte, error) {
 	if g.KustomizePath != "" {
 		kustomize := exec.NewCommand(
 			exec.WithCommand("kustomize"),

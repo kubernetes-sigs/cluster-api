@@ -274,7 +274,9 @@ func (r *KubeadmConfigReconciler) handleClusterNotInitialized(ctx context.Contex
 
 	defer func() {
 		if rerr != nil {
-			r.KubeadmInitLock.Unlock(ctx, scope.Cluster)
+			if !r.KubeadmInitLock.Unlock(ctx, scope.Cluster) {
+				rerr = errors.Wrap(rerr, "failed to unlock the kubeadm init lock")
+			}
 		}
 	}()
 

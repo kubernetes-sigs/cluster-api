@@ -34,12 +34,7 @@ import (
 
 	clusterv1alpha2 "sigs.k8s.io/cluster-api/api/v1alpha2"
 	clusterv1alpha3 "sigs.k8s.io/cluster-api/api/v1alpha3"
-	kubeadmbootstrapv1alpha2 "sigs.k8s.io/cluster-api/bootstrap/kubeadm/api/v1alpha2"
-	kubeadmbootstrapv1alpha3 "sigs.k8s.io/cluster-api/bootstrap/kubeadm/api/v1alpha3"
-	kubeadmbootstrapcontrollers "sigs.k8s.io/cluster-api/bootstrap/kubeadm/controllers"
 	"sigs.k8s.io/cluster-api/controllers"
-	kubeadmcontrolplanev1alpha3 "sigs.k8s.io/cluster-api/controlplane/kubeadm/api/v1alpha3"
-	kubeadmcontrolplanecontrollers "sigs.k8s.io/cluster-api/controlplane/kubeadm/controllers"
 	// +kubebuilder:scaffold:imports
 )
 
@@ -54,29 +49,23 @@ func init() {
 	_ = clientgoscheme.AddToScheme(scheme)
 	_ = clusterv1alpha2.AddToScheme(scheme)
 	_ = clusterv1alpha3.AddToScheme(scheme)
-	_ = kubeadmbootstrapv1alpha2.AddToScheme(scheme)
-	_ = kubeadmbootstrapv1alpha3.AddToScheme(scheme)
-	_ = kubeadmcontrolplanev1alpha3.AddToScheme(scheme)
 	// +kubebuilder:scaffold:scheme
 }
 
 // nolint:gocyclo
 func main() {
 	var (
-		metricsAddr                    string
-		enableLeaderElection           bool
-		watchNamespace                 string
-		profilerAddress                string
-		clusterConcurrency             int
-		machineConcurrency             int
-		machineSetConcurrency          int
-		machineDeploymentConcurrency   int
-		machinePoolConcurrency         int
-		kubeadmBootstrapperDisabled    bool
-		kubeadmConfigConcurrency       int
-		kubeadmControlPlaneConcurrency int
-		syncPeriod                     time.Duration
-		webhookPort                    int
+		metricsAddr                  string
+		enableLeaderElection         bool
+		watchNamespace               string
+		profilerAddress              string
+		clusterConcurrency           int
+		machineConcurrency           int
+		machineSetConcurrency        int
+		machineDeploymentConcurrency int
+		machinePoolConcurrency       int
+		syncPeriod                   time.Duration
+		webhookPort                  int
 	)
 
 	flag.StringVar(&metricsAddr, "metrics-addr", ":8080",
@@ -106,20 +95,8 @@ func main() {
 	flag.IntVar(&machinePoolConcurrency, "machinepool-concurrency", 10,
 		"Number of machine pools to process simultaneously")
 
-	flag.BoolVar(&kubeadmBootstrapperDisabled, "disable-kubeadm-bootstrapper", false,
-		"Whether or not to disable the kubeadm bootstrap and controlplane components")
-
-	flag.IntVar(&kubeadmConfigConcurrency, "kubeadmconfig-concurrency", 10,
-		"Number of kubeadm configs to process simultaneously")
-
-	flag.IntVar(&kubeadmControlPlaneConcurrency, "kubeadmcontrolplane-concurrency", 1,
-		"Number of kubeadm control planes to process simultaneously")
-
 	flag.DurationVar(&syncPeriod, "sync-period", 10*time.Minute,
 		"The minimum interval at which watched resources are reconciled (e.g. 15m)")
-
-	flag.DurationVar(&kubeadmbootstrapcontrollers.DefaultTokenTTL, "bootstrap-token-ttl", 15*time.Minute,
-		"The amount of time the bootstrap token will be valid")
 
 	flag.IntVar(&webhookPort, "webhook-port", 9443,
 		"Webhook Server port (set to 0 to disable)")
@@ -186,26 +163,6 @@ func main() {
 		os.Exit(1)
 	}
 
-	if !kubeadmBootstrapperDisabled {
-		// Kubeadm controllers.
-		if err = (&kubeadmbootstrapcontrollers.KubeadmConfigReconciler{
-			Client: mgr.GetClient(),
-			Log:    ctrl.Log.WithName("controllers").WithName("KubeadmConfig"),
-		}).SetupWithManager(mgr, concurrency(kubeadmConfigConcurrency)); err != nil {
-			setupLog.Error(err, "unable to create controller", "controller", "KubeadmConfig")
-			os.Exit(1)
-		}
-
-		// KubeadmControlPlane controllers.
-		if err = (&kubeadmcontrolplanecontrollers.KubeadmControlPlaneReconciler{
-			Client: mgr.GetClient(),
-			Log:    ctrl.Log.WithName("controllers").WithName("KubeadmControlPlane"),
-		}).SetupWithManager(mgr, concurrency(kubeadmControlPlaneConcurrency)); err != nil {
-			setupLog.Error(err, "unable to create controller", "controller", "KubeadmControlPlane")
-			os.Exit(1)
-		}
-	}
-
 	if webhookPort != 0 {
 		if err = (&clusterv1alpha2.Cluster{}).SetupWebhookWithManager(mgr); err != nil {
 			setupLog.Error(err, "unable to create webhook", "webhook", "Cluster")
@@ -266,29 +223,6 @@ func main() {
 		if err = (&clusterv1alpha3.MachinePool{}).SetupWebhookWithManager(mgr); err != nil {
 			setupLog.Error(err, "unable to create webhook", "webhook", "MachinePool")
 			os.Exit(1)
-		}
-
-		if !kubeadmBootstrapperDisabled {
-			if err = (&kubeadmcontrolplanev1alpha3.KubeadmControlPlane{}).SetupWebhookWithManager(mgr); err != nil {
-				setupLog.Error(err, "unable to create webhook", "webhook", "KubeadmControlPlane")
-				os.Exit(1)
-			}
-			if err = (&kubeadmbootstrapv1alpha3.KubeadmConfig{}).SetupWebhookWithManager(mgr); err != nil {
-				setupLog.Error(err, "unable to create webhook", "webhook", "KubeadmConfig")
-				os.Exit(1)
-			}
-			if err = (&kubeadmbootstrapv1alpha3.KubeadmConfigList{}).SetupWebhookWithManager(mgr); err != nil {
-				setupLog.Error(err, "unable to create webhook", "webhook", "KubeadmConfigList")
-				os.Exit(1)
-			}
-			if err = (&kubeadmbootstrapv1alpha3.KubeadmConfigTemplate{}).SetupWebhookWithManager(mgr); err != nil {
-				setupLog.Error(err, "unable to create webhook", "webhook", "KubeadmConfigTemplate")
-				os.Exit(1)
-			}
-			if err = (&kubeadmbootstrapv1alpha3.KubeadmConfigTemplateList{}).SetupWebhookWithManager(mgr); err != nil {
-				setupLog.Error(err, "unable to create webhook", "webhook", "KubeadmConfigTemplateList")
-				os.Exit(1)
-			}
 		}
 	}
 

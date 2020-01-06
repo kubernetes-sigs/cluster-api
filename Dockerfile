@@ -16,8 +16,10 @@
 FROM golang:1.13.5 as builder
 WORKDIR /workspace
 
-# Run this with docker build --build_arg $(go env GOPROXY) to override the goproxy
+# Run this with docker build --build_arg goproxy=$(go env GOPROXY) to override the goproxy
 ARG goproxy=https://proxy.golang.org
+# Run this with docker build --build_arg package=./controlplane/kubeadm or --build_arg package=./bootstrap/kubeadm
+ARG package=.
 ENV GOPROXY=$goproxy
 
 # Copy the Go Modules manifests
@@ -35,7 +37,7 @@ COPY ./ ./
 ARG ARCH
 RUN CGO_ENABLED=0 GOOS=linux GOARCH=${ARCH} \
     go build -a -ldflags '-extldflags "-static"' \
-    -o manager .
+    -o manager ${package}
 
 # Production image
 FROM gcr.io/distroless/static:latest

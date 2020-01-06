@@ -2,4 +2,3 @@
   path: "/spec/template/spec/containers/0/args"
   value:
     - "--enable-leader-election"
-    - "--disable-kubeadm-bootstrapper=true"

@@ -27,14 +27,33 @@ providers = {
             "go.mod",
             "go.sum",
             "api",
-            "bootstrap",
             "cmd",
             "controllers",
-            "controlplane",
             "errors",
             "third_party",
             "util",
         ],
+    },
+    "kubeadm-bootstrap": {
+        "context": "bootstrap/kubeadm",
+        "image": "gcr.io/k8s-staging-cluster-api/kubeadm-bootstrap-controller",
+        "live_reload_deps": [
+            "main.go",
+            "api",
+            "controllers",
+            "internal",
+        ],
+        "kustomize_dir": "./bootstrap/kubeadm/config/default",
+    },
+    "kubeadm-control-plane": {
+        "context": "controlplane/kubeadm",
+        "image": "gcr.io/k8s-staging-cluster-api/kubeadm-control-plane-controller",
+        "live_reload_deps": [
+            "main.go",
+            "api",
+            "controllers",
+        ],
+        "kustomize_dir": "./controlplane/kubeadm/config/default",
     },
     "docker": {
         "context": "test/infrastructure/docker",
@@ -136,7 +155,7 @@ def enable_provider(name):
     # build into the container.
     docker_build(
         ref = p.get("image"),
-        context = p.get("context"),
+        context = context,
         dockerfile_contents = dockerfile_contents,
         target = "tilt",
         entrypoint = "sh /start.sh /manager",

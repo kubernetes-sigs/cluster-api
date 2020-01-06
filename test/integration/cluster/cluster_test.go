@@ -35,7 +35,9 @@ import (
 )
 
 func init() {
-	clusterv1.AddToScheme(scheme.Scheme)
+	if err := clusterv1.AddToScheme(scheme.Scheme); err != nil {
+		panic(err)
+	}
 }
 
 var clusterSpec = &clusterv1.ClusterSpec{
@@ -82,7 +84,7 @@ var _ = Describe("Cluster-Controller", func() {
 	})
 
 	AfterEach(func() {
-		k8sClient.CoreV1().Namespaces().Delete(testNamespace, &metav1.DeleteOptions{})
+		Expect(k8sClient.CoreV1().Namespaces().Delete(testNamespace, &metav1.DeleteOptions{})).To(Succeed())
 	})
 
 	Describe("Create Cluster", func() {
@@ -97,7 +99,7 @@ var _ = Describe("Cluster-Controller", func() {
 				Spec: *clusterSpec.DeepCopy(),
 			}
 
-			Expect(apiclient.Create(ctx, cluster)).ShouldNot(HaveOccurred())
+			Expect(apiclient.Create(ctx, cluster)).To(Succeed())
 			Eventually(func() bool {
 				if err := apiclient.Get(ctx, client.ObjectKey{Name: cluster.Name, Namespace: cluster.Namespace}, cluster); err != nil {
 					return false

@@ -49,6 +49,9 @@ type ControlplaneClusterInput struct {
 	RelatedResources  []runtime.Object
 	CreateTimeout     time.Duration
 	DeleteTimeout     time.Duration
+
+	ControlPlane    *controlplanev1.KubeadmControlPlane
+	MachineTemplate runtime.Object
 }
 
 // SetDefaults defaults the struct fields if necessary.
@@ -97,22 +100,17 @@ func (input *ControlplaneClusterInput) ControlPlaneCluster() {
 		}, input.CreateTimeout, eventuallyInterval).Should(BeNil())
 	}
 
-	// expectedNumberOfNodes is the number of nodes that should be deployed to
-	// the cluster. This is the control plane nodes plus the number of replicas
-	// defined for a possible MachineDeployment.
-	expectedNumberOfNodes := len(input.Nodes)
+	By("creating the machine template")
+	Expect(mgmtClient.Create(ctx, input.MachineTemplate)).To(Succeed())
 
-	// Create the control plane nodes.
-	for i, node := range input.Nodes {
-		By(fmt.Sprintf("creating %d control plane node's InfrastructureMachine resource", i+1))
-		Expect(mgmtClient.Create(ctx, node.InfraMachine)).To(Succeed())
-
-		By(fmt.Sprintf("creating %d control plane node's BootstrapConfig resource", i+1))
-		Expect(mgmtClient.Create(ctx, node.BootstrapConfig)).To(Succeed())
-
-		By(fmt.Sprintf("creating %d control plane node's Machine resource with a linked InfrastructureMachine and BootstrapConfig", i+1))
-		Expect(mgmtClient.Create(ctx, node.Machine)).To(Succeed())
-	}
+	By("creating a KubeadmControlPlane")
+	Eventually(func() error {
+		err := mgmtClient.Create(ctx, input.ControlPlane)
+		if err != nil {
+			fmt.Println(err)
+		}
+		return err
+	}, input.CreateTimeout, 10*time.Second).Should(BeNil())
 
 	By("waiting for cluster to enter the provisioned phase")
 	Eventually(func() (string, error) {
@@ -130,8 +128,6 @@ func (input *ControlplaneClusterInput) ControlPlaneCluster() {
 	// Create the machine deployment if the replica count >0.
 	if machineDeployment := input.MachineDeployment.MachineDeployment; machineDeployment != nil {
 		if replicas := machineDeployment.Spec.Replicas; replicas != nil && *replicas > 0 {
-			expectedNumberOfNodes += int(*replicas)
-
 			By("creating a core MachineDeployment resource")
 			Expect(mgmtClient.Create(ctx, machineDeployment)).To(Succeed())
 
@@ -141,20 +137,20 @@ func (input *ControlplaneClusterInput) ControlPlaneCluster() {
 			By("creating an InfrastructureMachineTemplate resource")
 			Expect(mgmtClient.Create(ctx, input.MachineDeployment.InfraMachineTemplate)).To(Succeed())
 		}
-	}
 
-	By("waiting for the workload nodes to exist")
-	Eventually(func() ([]v1.Node, error) {
-		workloadClient, err := input.Management.GetWorkloadClient(ctx, input.Cluster.Namespace, input.Cluster.Name)
-		if err != nil {
-			return nil, errors.Wrap(err, "failed to get workload client")
-		}
-		nodeList := v1.NodeList{}
-		if err := workloadClient.List(ctx, &nodeList); err != nil {
-			return nil, err
-		}
-		return nodeList.Items, nil
-	}, input.CreateTimeout, 10*time.Second).Should(HaveLen(expectedNumberOfNodes))
+		By("waiting for the workload nodes to exist")
+		Eventually(func() ([]v1.Node, error) {
+			workloadClient, err := input.Management.GetWorkloadClient(ctx, input.Cluster.Namespace, input.Cluster.Name)
+			if err != nil {
+				return nil, errors.Wrap(err, "failed to get workload client")
+			}
+			nodeList := v1.NodeList{}
+			if err := workloadClient.List(ctx, &nodeList); err != nil {
+				return nil, err
+			}
+			return nodeList.Items, nil
+		}, input.CreateTimeout, 10*time.Second).Should(HaveLen(int(*machineDeployment.Spec.Replicas)))
+	}
 
 	By("waiting for all machines to be running")
 	inClustersNamespaceListOption := client.InNamespace(input.Cluster.Namespace)
@@ -165,9 +161,6 @@ func (input *ControlplaneClusterInput) ControlPlaneCluster() {
 		if err := mgmtClient.List(ctx, machineList, inClustersNamespaceListOption, matchClusterListOption); err != nil {
 			return false, err
 		}
-		if len(machineList.Items) != expectedNumberOfNodes {
-			return false, errors.Errorf("number of Machines %d != expected number of nodes %d", len(machineList.Items), expectedNumberOfNodes)
-		}
 		for _, machine := range machineList.Items {
 			if machine.Status.Phase != string(clusterv1.MachinePhaseRunning) {
 				return false, errors.Errorf("machine %s is not running, it's %s", machine.Name, machine.Status.Phase)
@@ -175,6 +168,20 @@ func (input *ControlplaneClusterInput) ControlPlaneCluster() {
 		}
 		return true, nil
 	}, input.CreateTimeout, eventuallyInterval).Should(BeTrue())
+	// wait for the control plane to be ready
+	By("waiting for the control plane to be ready")
+	Eventually(func() bool {
+		controlplane := &controlplanev1.KubeadmControlPlane{}
+		key := client.ObjectKey{
+			Namespace: input.ControlPlane.GetNamespace(),
+			Name:      input.ControlPlane.GetName(),
+		}
+		if err := mgmtClient.Get(ctx, key, controlplane); err != nil {
+			fmt.Println(err.Error())
+			return false
+		}
+		return controlplane.Status.Initialized
+	}, input.CreateTimeout, 10*time.Second).Should(BeTrue())
 }
 
 // CleanUpCoreArtifacts deletes the cluster and waits for everything to be gone.
@@ -193,11 +200,14 @@ func (input *ControlplaneClusterInput) CleanUpCoreArtifacts() {
 	By(fmt.Sprintf("deleting cluster %s", input.Cluster.GetName()))
 	Expect(mgmtClient.Delete(ctx, input.Cluster)).To(Succeed())
 
-	Eventually(func() []clusterv1.Cluster {
+	Eventually(func() bool {
 		clusters := clusterv1.ClusterList{}
-		Expect(mgmtClient.List(ctx, &clusters)).To(Succeed())
-		return clusters.Items
-	}, input.DeleteTimeout, eventuallyInterval).Should(HaveLen(0))
+		if err := mgmtClient.List(ctx, &clusters); err != nil {
+			fmt.Println(err.Error())
+			return false
+		}
+		return len(clusters.Items) == 0
+	}, input.DeleteTimeout, eventuallyInterval).Should(BeTrue())
 
 	lbl, err := labels.Parse(fmt.Sprintf("%s=%s", clusterv1.ClusterLabelName, input.Cluster.GetClusterName()))
 	Expect(err).ToNot(HaveOccurred())

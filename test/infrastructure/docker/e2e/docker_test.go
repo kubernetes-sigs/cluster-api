@@ -23,6 +23,7 @@ import (
 	"time"
 
 	. "github.com/onsi/ginkgo"
+	"sigs.k8s.io/cluster-api/controlplane/kubeadm/api/v1alpha3"
 
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -40,7 +41,6 @@ var _ = Describe("Docker", func() {
 			namespace  string
 			input      *framework.ControlplaneClusterInput
 			clusterGen = &ClusterGenerator{}
-			nodeGen    = &NodeGenerator{}
 		)
 
 		BeforeEach(func() {
@@ -51,40 +51,23 @@ var _ = Describe("Docker", func() {
 			ensureDockerArtifactsDeleted(input)
 		})
 
-		Context("One node cluster", func() {
-			It("should create a single node cluster", func() {
-				cluster, infraCluster := clusterGen.GenerateCluster(namespace)
-				nodes := make([]framework.Node, 1)
-				for i := range nodes {
-					nodes[i] = nodeGen.GenerateNode(cluster.GetName())
-				}
-				input = &framework.ControlplaneClusterInput{
-					Management:    mgmt,
-					Cluster:       cluster,
-					InfraCluster:  infraCluster,
-					Nodes:         nodes,
-					CreateTimeout: 3 * time.Minute,
-				}
-				input.ControlPlaneCluster()
-
-				input.CleanUpCoreArtifacts()
-			})
-		})
-
 		Context("Multi-node controlplane cluster", func() {
 			It("should create a multi-node controlplane cluster", func() {
-				cluster, infraCluster := clusterGen.GenerateCluster(namespace)
-				nodes := make([]framework.Node, 3)
-				for i := range nodes {
-					nodes[i] = nodeGen.GenerateNode(cluster.Name)
-				}
-
+				replicas := 3
+				cluster, infraCluster, controlPlane, template := clusterGen.GenerateCluster(namespace, int32(replicas))
+				md, infraTemplate, bootstrapTemplate := GenerateMachineDeployment(cluster, 1)
 				input = &framework.ControlplaneClusterInput{
 					Management:    mgmt,
 					Cluster:       cluster,
 					InfraCluster:  infraCluster,
-					Nodes:         nodes,
 					CreateTimeout: 5 * time.Minute,
+					MachineDeployment: framework.MachineDeployment{
+						MachineDeployment:       md,
+						InfraMachineTemplate:    infraTemplate,
+						BootstrapConfigTemplate: bootstrapTemplate,
+					},
+					ControlPlane:    controlPlane,
+					MachineTemplate: template,
 				}
 				input.ControlPlaneCluster()
 
@@ -94,18 +77,118 @@ var _ = Describe("Docker", func() {
 	})
 })
 
+func GenerateMachineDeployment(cluster *capiv1.Cluster, replicas int32) (*capiv1.MachineDeployment, *infrav1.DockerMachineTemplate, *bootstrapv1.KubeadmConfigTemplate) {
+	namespace := cluster.GetNamespace()
+	generatedName := fmt.Sprintf("%s-md", cluster.GetName())
+	version := "1.16.3"
+
+	infraTemplate := &infrav1.DockerMachineTemplate{
+		ObjectMeta: metav1.ObjectMeta{
+			Namespace: namespace,
+			Name:      generatedName,
+		},
+		Spec: infrav1.DockerMachineTemplateSpec{},
+	}
+
+	bootstrap := &bootstrapv1.KubeadmConfigTemplate{
+		ObjectMeta: metav1.ObjectMeta{
+			Namespace: namespace,
+			Name:      generatedName,
+		},
+	}
+
+	template := capiv1.MachineTemplateSpec{
+		ObjectMeta: capiv1.ObjectMeta{
+			Namespace: namespace,
+			Name:      generatedName,
+		},
+		Spec: capiv1.MachineSpec{
+			ClusterName: cluster.GetName(),
+			Bootstrap: capiv1.Bootstrap{
+				ConfigRef: &corev1.ObjectReference{
+					APIVersion: bootstrapv1.GroupVersion.String(),
+					Kind:       framework.TypeToKind(bootstrap),
+					Namespace:  bootstrap.GetNamespace(),
+					Name:       bootstrap.GetName(),
+				},
+			},
+			InfrastructureRef: corev1.ObjectReference{
+				APIVersion: infrav1.GroupVersion.String(),
+				Kind:       framework.TypeToKind(infraTemplate),
+				Namespace:  infraTemplate.GetNamespace(),
+				Name:       infraTemplate.GetName(),
+			},
+			Version: &version,
+		},
+	}
+
+	machineDeployment := &capiv1.MachineDeployment{
+		ObjectMeta: metav1.ObjectMeta{
+			Namespace: namespace,
+			Name:      generatedName,
+		},
+		Spec: capiv1.MachineDeploymentSpec{
+			ClusterName:             cluster.GetName(),
+			Replicas:                &replicas,
+			Template:                template,
+			Strategy:                nil,
+			MinReadySeconds:         nil,
+			RevisionHistoryLimit:    nil,
+			Paused:                  false,
+			ProgressDeadlineSeconds: nil,
+		},
+	}
+	return machineDeployment, infraTemplate, bootstrap
+}
+
 type ClusterGenerator struct {
 	counter int
 }
 
-func (c *ClusterGenerator) GenerateCluster(namespace string) (*capiv1.Cluster, *infrav1.DockerCluster) {
+func (c *ClusterGenerator) GenerateCluster(namespace string, replicas int32) (*capiv1.Cluster, *infrav1.DockerCluster, *v1alpha3.KubeadmControlPlane, *infrav1.DockerMachineTemplate) {
 	generatedName := fmt.Sprintf("test-%d", c.counter)
 	c.counter++
+	version := "1.16.3"
 
 	infraCluster := &infrav1.DockerCluster{
 		ObjectMeta: metav1.ObjectMeta{
 			Namespace: namespace,
 			Name:      generatedName,
+		},
+	}
+
+	template := &infrav1.DockerMachineTemplate{
+		ObjectMeta: metav1.ObjectMeta{
+			Namespace: namespace,
+			Name:      generatedName,
+		},
+		Spec: infrav1.DockerMachineTemplateSpec{},
+	}
+
+	kcp := &v1alpha3.KubeadmControlPlane{
+		ObjectMeta: metav1.ObjectMeta{
+			Namespace: namespace,
+			Name:      generatedName,
+		},
+		Spec: v1alpha3.KubeadmControlPlaneSpec{
+			Replicas: &replicas,
+			Version:  version,
+			InfrastructureTemplate: corev1.ObjectReference{
+				Kind:       framework.TypeToKind(template),
+				Namespace:  template.GetNamespace(),
+				Name:       template.GetName(),
+				APIVersion: infrav1.GroupVersion.String(),
+			},
+			KubeadmConfigSpec: bootstrapv1.KubeadmConfigSpec{
+				ClusterConfiguration: &v1beta1.ClusterConfiguration{
+					APIServer: v1beta1.APIServer{
+						// Darwin support
+						CertSANs: []string{"127.0.0.1"},
+					},
+				},
+				InitConfiguration: &v1beta1.InitConfiguration{},
+				JoinConfiguration: &v1beta1.JoinConfiguration{},
+			},
 		},
 	}
 
@@ -125,75 +208,13 @@ func (c *ClusterGenerator) GenerateCluster(namespace string) (*capiv1.Cluster, *
 				Namespace:  infraCluster.GetNamespace(),
 				Name:       infraCluster.GetName(),
 			},
-		},
-	}
-	return cluster, infraCluster
-}
-
-type NodeGenerator struct {
-	counter int
-}
-
-func (n *NodeGenerator) GenerateNode(clusterName string) framework.Node {
-	namespace := "default"
-	version := "v1.16.3"
-	generatedName := fmt.Sprintf("controlplane-%d", n.counter)
-	n.counter++
-	infraMachine := &infrav1.DockerMachine{
-		ObjectMeta: metav1.ObjectMeta{
-			Namespace: namespace,
-			Name:      generatedName,
-		},
-	}
-
-	bootstrapConfig := &bootstrapv1.KubeadmConfig{
-		ObjectMeta: metav1.ObjectMeta{
-			Namespace: namespace,
-			Name:      generatedName,
-		},
-		Spec: bootstrapv1.KubeadmConfigSpec{
-			ClusterConfiguration: &v1beta1.ClusterConfiguration{
-				APIServer: v1beta1.APIServer{
-					// Darwin support
-					CertSANs: []string{"127.0.0.1"},
-				},
-			},
-			InitConfiguration: &v1beta1.InitConfiguration{},
-			JoinConfiguration: &v1beta1.JoinConfiguration{},
-		},
-	}
-
-	machine := &capiv1.Machine{
-		ObjectMeta: metav1.ObjectMeta{
-			Namespace: namespace,
-			Name:      generatedName,
-			Labels: map[string]string{
-				capiv1.MachineControlPlaneLabelName: "",
-				capiv1.ClusterLabelName:             clusterName,
+			ControlPlaneRef: &corev1.ObjectReference{
+				APIVersion: v1alpha3.GroupVersion.String(),
+				Kind:       framework.TypeToKind(kcp),
+				Namespace:  kcp.GetNamespace(),
+				Name:       kcp.GetName(),
 			},
 		},
-		Spec: capiv1.MachineSpec{
-			Bootstrap: capiv1.Bootstrap{
-				ConfigRef: &corev1.ObjectReference{
-					APIVersion: bootstrapv1.GroupVersion.String(),
-					Kind:       framework.TypeToKind(bootstrapConfig),
-					Namespace:  bootstrapConfig.GetNamespace(),
-					Name:       bootstrapConfig.GetName(),
-				},
-			},
-			InfrastructureRef: corev1.ObjectReference{
-				APIVersion: infrav1.GroupVersion.String(),
-				Kind:       framework.TypeToKind(infraMachine),
-				Namespace:  infraMachine.GetNamespace(),
-				Name:       infraMachine.GetName(),
-			},
-			Version:     &version,
-			ClusterName: clusterName,
-		},
 	}
-	return framework.Node{
-		Machine:         machine,
-		InfraMachine:    infraMachine,
-		BootstrapConfig: bootstrapConfig,
-	}
+	return cluster, infraCluster, kcp, template
 }

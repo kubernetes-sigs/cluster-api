@@ -850,8 +850,8 @@ func TestKubeadmControlPlaneReconciler_updateStatusNoMachines(t *testing.T) {
 func createMachineNodePair(name string, cluster *clusterv1.Cluster, kcp *controlplanev1.KubeadmControlPlane, ready bool) (*clusterv1.Machine, *corev1.Node) {
 	machine := &clusterv1.Machine{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      name,
 			Namespace: cluster.Namespace,
+			Name:      name,
 			Labels:    generateKubeadmControlPlaneLabels(cluster.Name),
 			OwnerReferences: []metav1.OwnerReference{
 				*metav1.NewControllerRef(kcp, controlplanev1.GroupVersion.WithKind("KubeadmControlPlane")),
@@ -873,6 +873,7 @@ func createMachineNodePair(name string, cluster *clusterv1.Cluster, kcp *control
 	}
 
 	if ready {
+		node.Spec.ProviderID = fmt.Sprintf("test://%s", machine.GetName())
 		node.Status.Conditions = []corev1.NodeCondition{
 			{
 				Type:   corev1.NodeReady,
@@ -938,8 +939,8 @@ func TestKubeadmControlPlaneReconciler_updateStatusAllMachinesReady(t *testing.T
 
 	cluster := &clusterv1.Cluster{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      "foo",
 			Namespace: "test",
+			Name:      "foo",
 		},
 	}
 

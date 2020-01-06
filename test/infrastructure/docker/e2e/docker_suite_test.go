@@ -117,6 +117,7 @@ var _ = BeforeSuite(func() {
 	mgmt, err = NewClusterForCAPD(ctx, kindClusterName, scheme, managerImage, capiImage, capiKubeadmBootstrapImage, capiKubeadmControlPlaneImage)
 	Expect(err).NotTo(HaveOccurred())
 	Expect(mgmt).NotTo(BeNil())
+	fmt.Printf("export KUBECONFIG=%q\n", mgmt.KubeconfigPath)
 
 	// Install the cert-manager components first as some CRDs there will be part of the other providers
 	framework.InstallComponents(ctx, mgmt, cm)

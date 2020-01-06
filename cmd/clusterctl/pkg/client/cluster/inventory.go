@@ -19,6 +19,7 @@ package cluster
 import (
 	"github.com/pkg/errors"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
+	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/klog"
 	clusterctlv1 "sigs.k8s.io/cluster-api/cmd/clusterctl/api/v1alpha3"
 	"sigs.k8s.io/cluster-api/cmd/clusterctl/config"
@@ -42,8 +43,13 @@ type InventoryClient interface {
 	// Create an inventory item for a provider instance installed in the cluster.
 	Create(clusterctlv1.Provider) error
 
-	// Return inventory items for all the provider instances installed in the cluster.
+	// List returns the inventory items for all the provider instances installed in the cluster.
 	List() ([]clusterctlv1.Provider, error)
+
+	// GetDefaultProviderName returns the default provider for a given ProviderType.
+	// In case there is only a single provider for a given type, e.g. only the AWS infrastructure Provider, it returns
+	// this as the default provider; In case there are more provider of the same type, there is no default provider.
+	GetDefaultProviderName(providerType clusterctlv1.ProviderType) (string, error)
 }
 
 // inventoryClient implements InventoryClient.
@@ -214,4 +220,27 @@ func (p *inventoryClient) list(options listOptions) ([]clusterctlv1.Provider, er
 		ret = append(ret, i)
 	}
 	return ret, nil
+}
+
+func (p *inventoryClient) GetDefaultProviderName(providerType clusterctlv1.ProviderType) (string, error) {
+	l, err := p.list(listOptions{
+		Type: providerType,
+	})
+	if err != nil {
+		return "", err
+	}
+
+	// group the providers by name, because we consider more instance of the same provider not relevant for the answer.
+	names := sets.NewString()
+	for _, p := range l {
+		names.Insert(p.Name)
+	}
+
+	// if there is only one provider, this is the default
+	if names.Len() == 1 {
+		return names.List()[0], nil
+	}
+
+	// there no provider/more than one provider of this type; in both cases, it is not possible to get a default provider name
+	return "", nil
 }

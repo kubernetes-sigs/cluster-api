@@ -35,3 +35,13 @@ type Node struct {
 func TypeToKind(i interface{}) string {
 	return reflect.ValueOf(i).Elem().Type().Name()
 }
+
+// MachineDeployment contains the objects needed to create a
+// CAPI MachineDeployment resource and its associated template
+// resources.
+type MachineDeployment struct {
+	MachineDeployment       *clusterv1.MachineDeployment
+	BootstrapConfigTemplate runtime.Object
+	InfraMachineTemplate    runtime.Object
+}
+

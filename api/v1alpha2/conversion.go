@@ -28,7 +28,6 @@ import (
 
 func (src *Cluster) ConvertTo(dstRaw conversion.Hub) error {
 	dst := dstRaw.(*v1alpha3.Cluster)
-
 	if err := Convert_v1alpha2_Cluster_To_v1alpha3_Cluster(src, dst, nil); err != nil {
 		return err
 	}
@@ -43,10 +42,8 @@ func (src *Cluster) ConvertTo(dstRaw conversion.Hub) error {
 	return nil
 }
 
-// nolint
 func (dst *Cluster) ConvertFrom(srcRaw conversion.Hub) error {
 	src := srcRaw.(*v1alpha3.Cluster)
-
 	if err := Convert_v1alpha3_Cluster_To_v1alpha2_Cluster(src, dst, nil); err != nil {
 		return err
 	}
@@ -70,7 +67,6 @@ func (src *ClusterList) ConvertTo(dstRaw conversion.Hub) error {
 	return Convert_v1alpha2_ClusterList_To_v1alpha3_ClusterList(src, dst, nil)
 }
 
-// nolint
 func (dst *ClusterList) ConvertFrom(srcRaw conversion.Hub) error {
 	src := srcRaw.(*v1alpha3.ClusterList)
 
@@ -79,30 +75,44 @@ func (dst *ClusterList) ConvertFrom(srcRaw conversion.Hub) error {
 
 func (src *Machine) ConvertTo(dstRaw conversion.Hub) error {
 	dst := dstRaw.(*v1alpha3.Machine)
+	if err := Convert_v1alpha2_Machine_To_v1alpha3_Machine(src, dst, nil); err != nil {
+		return err
+	}
+
+	// Manually convert ClusterName from label, if any.
+	if name, ok := src.Labels[MachineClusterLabelName]; ok {
+		dst.Spec.ClusterName = name
+	}
 
 	// Manually restore data.
 	restored := &v1alpha3.Machine{}
-	if ok, err := utilconversion.UnmarshalData(src, restored); err != nil {
+	if ok, err := utilconversion.UnmarshalData(src, restored); err != nil || !ok {
 		return err
-	} else if ok {
-		if restored.Spec.Bootstrap.DataSecretName != nil {
-			dst.Spec.Bootstrap.DataSecretName = restored.Spec.Bootstrap.DataSecretName
-		}
 	}
 
-	return Convert_v1alpha2_Machine_To_v1alpha3_Machine(src, dst, nil)
+	if restored.Spec.Bootstrap.DataSecretName != nil {
+		dst.Spec.Bootstrap.DataSecretName = restored.Spec.Bootstrap.DataSecretName
+	}
+
+	if restored.Spec.ClusterName != "" {
+		dst.Spec.ClusterName = restored.Spec.ClusterName
+	}
+
+	return nil
 }
 
-// nolint
 func (dst *Machine) ConvertFrom(srcRaw conversion.Hub) error {
 	src := srcRaw.(*v1alpha3.Machine)
+	if err := Convert_v1alpha3_Machine_To_v1alpha2_Machine(src, dst, nil); err != nil {
+		return err
+	}
 
 	// Preserve Hub data on down-conversion.
 	if err := utilconversion.MarshalData(src, dst); err != nil {
 		return err
 	}
 
-	return Convert_v1alpha3_Machine_To_v1alpha2_Machine(src, dst, nil)
+	return nil
 }
 
 func (src *MachineList) ConvertTo(dstRaw conversion.Hub) error {
@@ -111,7 +121,6 @@ func (src *MachineList) ConvertTo(dstRaw conversion.Hub) error {
 	return Convert_v1alpha2_MachineList_To_v1alpha3_MachineList(src, dst, nil)
 }
 
-// nolint
 func (dst *MachineList) ConvertFrom(srcRaw conversion.Hub) error {
 	src := srcRaw.(*v1alpha3.MachineList)
 
@@ -124,7 +133,6 @@ func (src *MachineSet) ConvertTo(dstRaw conversion.Hub) error {
 	return Convert_v1alpha2_MachineSet_To_v1alpha3_MachineSet(src, dst, nil)
 }
 
-// nolint
 func (dst *MachineSet) ConvertFrom(srcRaw conversion.Hub) error {
 	src := srcRaw.(*v1alpha3.MachineSet)
 
@@ -137,7 +145,6 @@ func (src *MachineSetList) ConvertTo(dstRaw conversion.Hub) error {
 	return Convert_v1alpha2_MachineSetList_To_v1alpha3_MachineSetList(src, dst, nil)
 }
 
-// nolint
 func (dst *MachineSetList) ConvertFrom(srcRaw conversion.Hub) error {
 	src := srcRaw.(*v1alpha3.MachineSetList)
 
@@ -150,7 +157,6 @@ func (src *MachineDeployment) ConvertTo(dstRaw conversion.Hub) error {
 	return Convert_v1alpha2_MachineDeployment_To_v1alpha3_MachineDeployment(src, dst, nil)
 }
 
-// nolint
 func (dst *MachineDeployment) ConvertFrom(srcRaw conversion.Hub) error {
 	src := srcRaw.(*v1alpha3.MachineDeployment)
 
@@ -163,7 +169,6 @@ func (src *MachineDeploymentList) ConvertTo(dstRaw conversion.Hub) error {
 	return Convert_v1alpha2_MachineDeploymentList_To_v1alpha3_MachineDeploymentList(src, dst, nil)
 }
 
-// nolint
 func (dst *MachineDeploymentList) ConvertFrom(srcRaw conversion.Hub) error {
 	src := srcRaw.(*v1alpha3.MachineDeploymentList)
 
@@ -284,7 +289,7 @@ func Convert_v1alpha3_MachineSetSpec_To_v1alpha2_MachineSetSpec(in *v1alpha3.Mac
 }
 
 func Convert_v1alpha3_MachineSpec_To_v1alpha2_MachineSpec(in *v1alpha3.MachineSpec, out *MachineSpec, s apiconversion.Scope) error {
-	return errors.New("cannot recover removed MachineSpec Cluster Name")
+	return autoConvert_v1alpha3_MachineSpec_To_v1alpha2_MachineSpec(in, out, s)
 }
 
 func Convert_v1alpha3_Bootstrap_To_v1alpha2_Bootstrap(in *v1alpha3.Bootstrap, out *Bootstrap, s apiconversion.Scope) error {

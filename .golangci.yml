@@ -24,5 +24,6 @@ run:
   skip-files:
     - "zz_generated.*\\.go$"
     - crd_manifests.go
+    - ".*conversion.*\\.go$"
   skip-dirs:
     - third_party

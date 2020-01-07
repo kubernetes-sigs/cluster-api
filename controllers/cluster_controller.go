@@ -116,9 +116,7 @@ func (r *ClusterReconciler) Reconcile(req ctrl.Request) (_ ctrl.Result, reterr e
 
 		// Always attempt to Patch the Cluster object and status after each reconciliation.
 		if err := patchHelper.Patch(ctx, cluster); err != nil {
-			if reterr == nil {
-				reterr = err
-			}
+			reterr = kerrors.NewAggregate([]error{reterr, err})
 		}
 	}()
 

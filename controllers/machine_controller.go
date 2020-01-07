@@ -117,9 +117,7 @@ func (r *MachineReconciler) Reconcile(req ctrl.Request) (_ ctrl.Result, reterr e
 
 		// Always attempt to patch the object and status after each reconciliation.
 		if err := patchHelper.Patch(ctx, m); err != nil {
-			if reterr == nil {
-				reterr = err
-			}
+			reterr = kerrors.NewAggregate([]error{reterr, err})
 		}
 	}()
 

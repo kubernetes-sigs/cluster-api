@@ -28,8 +28,9 @@ import (
 )
 
 const (
-	ClusterAPIName     = "cluster-api"
-	ProvidersConfigKey = "providers"
+	ClusterAPIName               = "cluster-api"
+	KubeadmBootstrapProviderName = "kubeadm"
+	ProvidersConfigKey           = "providers"
 )
 
 // ProvidersClient has methods to work with provider configurations.
@@ -93,7 +94,7 @@ func (p *providersClient) defaults() []Provider {
 		// Bootstrap providersClient
 		// TODO: CABPK in v1alpha3 will be included into CAPI, so this entry can be removed as soon as v1alpha3 is ready for test
 		&provider{
-			name:         "kubeadm",
+			name:         KubeadmBootstrapProviderName,
 			url:          "https://github.com/kubernetes-sigs/cluster-api-bootstrap-provider-kubeadm/releases/latest/bootstrap-components.yaml",
 			providerType: clusterctlv1.BootstrapProviderType,
 		},

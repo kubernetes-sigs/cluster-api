@@ -30,6 +30,7 @@ import (
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
+	kerrors "k8s.io/apimachinery/pkg/util/errors"
 	"k8s.io/utils/pointer"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha3"
 	bootstrapv1 "sigs.k8s.io/cluster-api/bootstrap/kubeadm/api/v1alpha3"
@@ -246,7 +247,7 @@ func (r *KubeadmConfigReconciler) Reconcile(req ctrl.Request) (_ ctrl.Result, re
 	return r.joinWorker(ctx, scope)
 }
 
-func (r *KubeadmConfigReconciler) handleClusterNotInitialized(ctx context.Context, scope *Scope) (_ ctrl.Result, rerr error) {
+func (r *KubeadmConfigReconciler) handleClusterNotInitialized(ctx context.Context, scope *Scope) (_ ctrl.Result, reterr error) {
 	// if it's NOT a control plane machine, requeue
 	if !scope.ConfigOwner.IsControlPlaneMachine() {
 		scope.Info(fmt.Sprintf("ConfigOwner is not a control plane Machine. If it should be a control plane, add the label `%s: \"\"` to the Machine", clusterv1.MachineControlPlaneLabelName))
@@ -273,9 +274,9 @@ func (r *KubeadmConfigReconciler) handleClusterNotInitialized(ctx context.Contex
 	}
 
 	defer func() {
-		if rerr != nil {
+		if reterr != nil {
 			if !r.KubeadmInitLock.Unlock(ctx, scope.Cluster) {
-				rerr = errors.Wrap(rerr, "failed to unlock the kubeadm init lock")
+				reterr = kerrors.NewAggregate([]error{reterr, errors.New("failed to unlock the kubeadm init lock")})
 			}
 		}
 	}()

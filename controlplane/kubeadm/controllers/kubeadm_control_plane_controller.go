@@ -30,6 +30,7 @@ import (
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
+	kerrors "k8s.io/apimachinery/pkg/util/errors"
 	utilerrors "k8s.io/apimachinery/pkg/util/errors"
 	"k8s.io/apiserver/pkg/storage/names"
 	"k8s.io/client-go/tools/record"
@@ -141,7 +142,7 @@ func (r *KubeadmControlPlaneReconciler) Reconcile(req ctrl.Request) (res ctrl.Re
 }
 
 // reconcile handles KubeadmControlPlane reconciliation.
-func (r *KubeadmControlPlaneReconciler) reconcile(ctx context.Context, kcp *controlplanev1.KubeadmControlPlane, logger logr.Logger) (_ ctrl.Result, retErr error) {
+func (r *KubeadmControlPlaneReconciler) reconcile(ctx context.Context, kcp *controlplanev1.KubeadmControlPlane, logger logr.Logger) (_ ctrl.Result, reterr error) {
 	// If object doesn't have a finalizer, add one.
 	controllerutil.AddFinalizer(kcp, controlplanev1.KubeadmControlPlaneFinalizer)
 
@@ -175,13 +176,9 @@ func (r *KubeadmControlPlaneReconciler) reconcile(ctx context.Context, kcp *cont
 
 	// Always attempt to update status
 	defer func() {
-		if updateErr := r.updateStatus(ctx, kcp, cluster); updateErr != nil {
-			logger.Error(updateErr, "Failed to update status")
-			if retErr == nil {
-				retErr = updateErr
-			} else {
-				retErr = utilerrors.NewAggregate([]error{retErr, updateErr})
-			}
+		if err := r.updateStatus(ctx, kcp, cluster); err != nil {
+			logger.Error(err, "Failed to update status")
+			reterr = kerrors.NewAggregate([]error{reterr, err})
 		}
 	}()
 

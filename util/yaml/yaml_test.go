@@ -18,6 +18,7 @@ package yaml
 
 import (
 	"io/ioutil"
+	kerrors "k8s.io/apimachinery/pkg/util/errors"
 	"os"
 	"testing"
 )
@@ -313,8 +314,8 @@ func createTempFile(contents string) (filename string, reterr error) {
 		return "", err
 	}
 	defer func() {
-		if err := f.Close(); err != nil && reterr == nil {
-			reterr = err
+		if err := f.Close(); err != nil {
+			reterr = kerrors.NewAggregate([]error{reterr, err})
 		}
 	}()
 	_, _ = f.WriteString(contents)

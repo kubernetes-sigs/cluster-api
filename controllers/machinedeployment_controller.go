@@ -26,6 +26,7 @@ import (
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
+	kerrors "k8s.io/apimachinery/pkg/util/errors"
 	"k8s.io/client-go/tools/record"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha3"
 	"sigs.k8s.io/cluster-api/util"
@@ -100,9 +101,7 @@ func (r *MachineDeploymentReconciler) Reconcile(req ctrl.Request) (_ ctrl.Result
 	defer func() {
 		// Always attempt to patch the object and status after each reconciliation.
 		if err := patchHelper.Patch(ctx, deployment); err != nil {
-			if reterr == nil {
-				reterr = err
-			}
+			reterr = kerrors.NewAggregate([]error{reterr, err})
 		}
 	}()
 

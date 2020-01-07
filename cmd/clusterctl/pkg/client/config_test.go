@@ -19,10 +19,13 @@ package client
 import (
 	"testing"
 
+	clusterctlv1 "sigs.k8s.io/cluster-api/cmd/clusterctl/api/v1alpha3"
 	"sigs.k8s.io/cluster-api/cmd/clusterctl/pkg/client/config"
 )
 
 func Test_clusterctlClient_GetProvidersConfig(t *testing.T) {
+	customProviderConfig := config.NewProvider("custom", "url", clusterctlv1.BootstrapProviderType)
+
 	type field struct {
 		client Client
 	}
@@ -41,7 +44,7 @@ func Test_clusterctlClient_GetProvidersConfig(t *testing.T) {
 				"aws",
 				config.ClusterAPIName,
 				"docker",
-				"kubeadm",
+				config.KubeadmBootstrapProviderName,
 				"vsphere",
 			},
 			wantErr: false,
@@ -49,14 +52,14 @@ func Test_clusterctlClient_GetProvidersConfig(t *testing.T) {
 		{
 			name: "Returns default providers and custom providers if defined",
 			field: field{
-				client: newFakeClient(newFakeConfig().WithProvider(bootstrapProviderConfig)),
+				client: newFakeClient(newFakeConfig().WithProvider(customProviderConfig)),
 			},
 			wantProviders: []string{
 				"aws",
-				bootstrapProviderConfig.Name(),
 				config.ClusterAPIName,
+				customProviderConfig.Name(),
 				"docker",
-				"kubeadm",
+				config.KubeadmBootstrapProviderName,
 				"vsphere",
 			},
 			wantErr: false,

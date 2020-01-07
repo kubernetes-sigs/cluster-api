@@ -61,8 +61,8 @@ func Test_clusterctlClient_Init(t *testing.T) {
 				hasCRD: false,
 			},
 			args: args{
-				coreProvider:           "", // with an empty cluster, a core provider should be added automatically
-				bootstrapProvider:      []string{"bootstrap"},
+				coreProvider:           "",  // with an empty cluster, a core provider should be added automatically
+				bootstrapProvider:      nil, // with an empty cluster, a bootstrap provider should be added automatically
 				infrastructureProvider: []string{"infra"},
 				targetNameSpace:        "",
 				watchingNamespace:      "",
@@ -98,7 +98,7 @@ func Test_clusterctlClient_Init(t *testing.T) {
 			},
 			args: args{
 				coreProvider:           fmt.Sprintf("%s:v1.1.0", config.ClusterAPIName),
-				bootstrapProvider:      []string{"bootstrap:v2.1.0"},
+				bootstrapProvider:      []string{fmt.Sprintf("%s:v2.1.0", config.KubeadmBootstrapProviderName)},
 				infrastructureProvider: []string{"infra:v3.1.0"},
 				targetNameSpace:        "",
 				watchingNamespace:      "",
@@ -134,7 +134,7 @@ func Test_clusterctlClient_Init(t *testing.T) {
 			},
 			args: args{
 				coreProvider:           "", // with an empty cluster, a core provider should be added automatically
-				bootstrapProvider:      []string{"bootstrap"},
+				bootstrapProvider:      []string{config.KubeadmBootstrapProviderName},
 				infrastructureProvider: []string{"infra"},
 				targetNameSpace:        "nsx",
 				watchingNamespace:      "",
@@ -170,7 +170,7 @@ func Test_clusterctlClient_Init(t *testing.T) {
 			},
 			args: args{
 				coreProvider:           "", // with a NOT empty cluster, a core provider should NOT be added automatically
-				bootstrapProvider:      []string{"bootstrap"},
+				bootstrapProvider:      []string{config.KubeadmBootstrapProviderName},
 				infrastructureProvider: []string{"infra"},
 				targetNameSpace:        "",
 				watchingNamespace:      "",
@@ -231,8 +231,8 @@ func Test_clusterctlClient_Init(t *testing.T) {
 			},
 			args: args{
 				coreProvider:           "",
-				bootstrapProvider:      []string{"bootstrap"},
-				infrastructureProvider: []string{"bootstrap"},
+				bootstrapProvider:      []string{config.KubeadmBootstrapProviderName},
+				infrastructureProvider: []string{config.KubeadmBootstrapProviderName},
 				targetNameSpace:        "",
 				watchingNamespace:      "",
 				force:                  false,
@@ -298,7 +298,7 @@ func Test_clusterctlClient_Init(t *testing.T) {
 
 var (
 	capiProviderConfig      = config.NewProvider(config.ClusterAPIName, "url", clusterctlv1.CoreProviderType)
-	bootstrapProviderConfig = config.NewProvider("bootstrap", "url", clusterctlv1.BootstrapProviderType)
+	bootstrapProviderConfig = config.NewProvider(config.KubeadmBootstrapProviderName, "url", clusterctlv1.BootstrapProviderType)
 	infraProviderConfig     = config.NewProvider("infra", "url", clusterctlv1.InfrastructureProviderType)
 )
 

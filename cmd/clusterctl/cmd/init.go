@@ -84,9 +84,9 @@ var initCmd = &cobra.Command{
 
 func init() {
 	initCmd.Flags().StringVarP(&io.kubeconfig, "kubeconfig", "", "", "Path to the kubeconfig file to use for accessing the management cluster. If empty, default rules for kubeconfig discovery will be used")
-	initCmd.Flags().StringVarP(&io.coreProvider, "core", "", "", "Infrastructure providers to add to the management cluster. If empty, cluster-api providers will be added automatically only during the first call to init for each cluster")
+	initCmd.Flags().StringVarP(&io.coreProvider, "core", "", "", "Infrastructure providers to add to the management cluster. By default (empty), the cluster-api core provider is installed on the first init")
 	initCmd.Flags().StringSliceVarP(&io.infrastructureProviders, "infrastructure", "i", nil, "Infrastructure providers to add to the management cluster")
-	initCmd.Flags().StringSliceVarP(&io.bootstrapProviders, "bootstrap", "b", nil, "Bootstrap providers to add to the management cluster")
+	initCmd.Flags().StringSliceVarP(&io.bootstrapProviders, "bootstrap", "b", nil, "Bootstrap providers to add to the management cluster. By default (empty), the kubeadm bootstrap provider is installed on the first init")
 	initCmd.Flags().StringVarP(&io.targetNamespace, "target-namespace", "", "", "The target namespace where the providers should be deployed. If not specified, each provider will be installed in a provider's default namespace")
 	initCmd.Flags().StringVarP(&io.watchingNamespace, "watching-namespace", "", "", "Namespace that the providers should watch to reconcile Cluster API objects. If unspecified, the providers watches for Cluster API objects across all namespaces")
 	initCmd.Flags().BoolVarP(&io.force, "force", "f", false, "Force clusterctl to skip preflight checks about supported configurations for a management cluster")

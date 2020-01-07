@@ -48,6 +48,9 @@ func (c *clusterctlClient) Init(options InitOptions) ([]Components, bool, error)
 		if options.CoreProvider == "" {
 			options.CoreProvider = config.ClusterAPIName
 		}
+		if len(options.BootstrapProviders) == 0 {
+			options.BootstrapProviders = append(options.BootstrapProviders, config.KubeadmBootstrapProviderName)
+		}
 	}
 
 	// create an installer service, add the requested providers to the install queue (thus performing validation of the target state of the management cluster

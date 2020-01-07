@@ -19,6 +19,7 @@ package cluster
 import (
 	"github.com/pkg/errors"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
+	apimeta "k8s.io/apimachinery/pkg/api/meta"
 	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/klog"
 	clusterctlv1 "sigs.k8s.io/cluster-api/cmd/clusterctl/api/v1alpha3"
@@ -75,8 +76,10 @@ func (p *inventoryClient) EnsureCustomResourceDefinitions() error {
 
 	// check the CRD already exists, if yes, exit immediately
 	l := &clusterctlv1.ProviderList{}
-	if err := c.List(ctx, l); err == nil {
-		return nil
+	if err := c.List(ctx, l); err != nil {
+		if !apimeta.IsNoMatchError(err) {
+			return err
+		}
 	}
 
 	// get the CRD manifest from the embedded assets
@@ -91,7 +94,7 @@ func (p *inventoryClient) EnsureCustomResourceDefinitions() error {
 		return errors.Wrap(err, "failed to parse yaml for clusterctl inventory CRD")
 	}
 
-	// install the CRD
+	// install the CRDs
 	for _, o := range objs {
 		klog.V(3).Infof("Creating: %s, %s/%s", o.GroupVersionKind(), o.GetNamespace(), o.GetName())
 		if err = c.Create(ctx, &o); err != nil { //nolint

@@ -76,7 +76,7 @@ func (k *proxy) NewClient() (client.Client, error) {
 	return c, nil
 }
 
-func newK8SProxy(kubeconfig string) Proxy {
+func newProxy(kubeconfig string) Proxy {
 	// If a kubeconfig file is provided use it, otherwise find a config file in the standard locations
 	if kubeconfig == "" {
 		kubeconfig = clientcmd.NewDefaultClientConfigLoadingRules().GetDefaultFilename()

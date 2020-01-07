@@ -97,7 +97,7 @@ func New(kubeconfig string, options Options) Client {
 func newClusterClient(kubeconfig string, options Options) *clusterClient {
 	proxy := options.InjectProxy
 	if proxy == nil {
-		proxy = newK8SProxy(kubeconfig)
+		proxy = newProxy(kubeconfig)
 	}
 	return &clusterClient{
 		kubeconfig: kubeconfig,

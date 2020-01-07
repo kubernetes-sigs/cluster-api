@@ -617,6 +617,15 @@ func TestReconcileInitializeControlPlane(t *testing.T) {
 	g.Expect(err).NotTo(gomega.HaveOccurred())
 	g.Expect(result).To(gomega.Equal(ctrl.Result{}))
 
+	// Expect the referenced infrastructure template to have a Cluster Owner Reference.
+	g.Expect(fakeClient.Get(context.TODO(), client.ObjectKey{Namespace: genericMachineTemplate.GetNamespace(), Name: genericMachineTemplate.GetName()}, genericMachineTemplate)).To(gomega.Succeed())
+	g.Expect(genericMachineTemplate.GetOwnerReferences()).To(gomega.ContainElement(metav1.OwnerReference{
+		APIVersion: clusterv1.GroupVersion.String(),
+		Kind:       "Cluster",
+		Name:       cluster.Name,
+		UID:        cluster.UID,
+	}))
+
 	// Always expect that the Finalizer is set on the passed in resource
 	g.Expect(kcp.Finalizers).To(gomega.ContainElement(controlplanev1.KubeadmControlPlaneFinalizer))
 

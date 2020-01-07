@@ -19,6 +19,7 @@ package controllers
 import (
 	"context"
 	"fmt"
+	"strings"
 	"time"
 
 	"github.com/go-logr/logr"
@@ -155,6 +156,11 @@ func (r *KubeadmControlPlaneReconciler) reconcile(ctx context.Context, kcp *cont
 		return ctrl.Result{}, nil
 	}
 	logger = logger.WithValues("cluster", cluster.Name)
+
+	// Make sure to reconcile the external infrastructure reference.
+	if err := r.reconcileExternalReference(ctx, cluster, kcp.Spec.InfrastructureTemplate); err != nil {
+		return ctrl.Result{}, err
+	}
 
 	// TODO: handle proper adoption of Machines
 	ownedMachines, err := r.getOwnedMachines(
@@ -538,6 +544,34 @@ func (r *KubeadmControlPlaneReconciler) getOwnedMachines(ctx context.Context, kc
 	}
 
 	return ownedMachines, nil
+}
+
+func (r *KubeadmControlPlaneReconciler) reconcileExternalReference(ctx context.Context, cluster *clusterv1.Cluster, ref corev1.ObjectReference) error {
+	if !strings.HasSuffix(ref.Kind, external.TemplateSuffix) {
+		return nil
+	}
+
+	obj, err := external.Get(ctx, r.Client, &ref, cluster.Namespace)
+	if err != nil {
+		return err
+	}
+
+	patchHelper, err := patch.NewHelper(obj, r.Client)
+	if err != nil {
+		return err
+	}
+
+	obj.SetOwnerReferences(util.EnsureOwnerRef(obj.GetOwnerReferences(), metav1.OwnerReference{
+		APIVersion: clusterv1.GroupVersion.String(),
+		Kind:       "Cluster",
+		Name:       cluster.Name,
+		UID:        cluster.UID,
+	}))
+
+	if err := patchHelper.Patch(ctx, obj); err != nil {
+		return err
+	}
+	return nil
 }
 
 func getMachineNode(ctx context.Context, crClient client.Client, machine *clusterv1.Machine) (*corev1.Node, error) {

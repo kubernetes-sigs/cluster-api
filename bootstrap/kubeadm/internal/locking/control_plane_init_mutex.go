@@ -50,7 +50,7 @@ func NewControlPlaneInitMutex(log logr.Logger, client client.Client) *ControlPla
 func (c *ControlPlaneInitMutex) Lock(ctx context.Context, cluster *clusterv1.Cluster, machine *clusterv1.Machine) bool {
 	sema := newSemaphore()
 	cmName := configMapName(cluster.Name)
-	log := c.log.WithValues("namespace", cluster.Namespace, "cluster-name", cluster.Name, "configmap-name", cmName)
+	log := c.log.WithValues("namespace", cluster.Namespace, "cluster-name", cluster.Name, "configmap-name", cmName, "machine-name", machine.Name)
 	err := c.client.Get(ctx, client.ObjectKey{
 		Namespace: cluster.Namespace,
 		Name:      cmName,
@@ -117,7 +117,9 @@ func (c *ControlPlaneInitMutex) Unlock(ctx context.Context, cluster *clusterv1.C
 	default:
 		// Delete the config map semaphore if there is no error fetching it
 		if err := c.client.Delete(ctx, sema.ConfigMap); err != nil {
-			// TODO: return true on apierrors.IsNotFound
+			if apierrors.IsNotFound(err) {
+				return true
+			}
 			log.Error(err, "Error deleting the config map underlying the control plane init lock")
 			return false
 		}

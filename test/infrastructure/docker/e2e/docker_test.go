@@ -38,15 +38,13 @@ var _ = Describe("Docker", func() {
 	Describe("Cluster Creation", func() {
 		var (
 			namespace  string
-			clusterGen *ClusterGenerator
-			nodeGen    *NodeGenerator
 			input      *framework.ControlplaneClusterInput
+			clusterGen = &ClusterGenerator{}
+			nodeGen    = &NodeGenerator{}
 		)
 
 		BeforeEach(func() {
 			namespace = "default"
-			clusterGen = &ClusterGenerator{}
-			nodeGen = &NodeGenerator{}
 		})
 
 		AfterEach(func() {

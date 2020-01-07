@@ -71,7 +71,7 @@ func (c *ControlPlaneInitMutex) Lock(ctx context.Context, cluster *clusterv1.Clu
 		if info.MachineName == machine.Name {
 			return true
 		}
-		log.Info("Waiting on on another machine to initialize", "init-machine", info.MachineName)
+		log.Info("Waiting on another machine to initialize", "init-machine", info.MachineName)
 		return false
 	}
 

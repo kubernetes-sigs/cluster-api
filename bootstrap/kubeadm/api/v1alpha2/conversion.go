@@ -24,72 +24,78 @@ import (
 )
 
 // ConvertTo converts this KubeadmConfig to the Hub version (v1alpha3).
-func (src *KubeadmConfig) ConvertTo(dstRaw conversion.Hub) error { // nolint
+func (src *KubeadmConfig) ConvertTo(dstRaw conversion.Hub) error {
 	dst := dstRaw.(*kubeadmbootstrapv1alpha3.KubeadmConfig)
+	if err := Convert_v1alpha2_KubeadmConfig_To_v1alpha3_KubeadmConfig(src, dst, nil); err != nil {
+		return err
+	}
 
 	// Manually restore data.
 	restored := &kubeadmbootstrapv1alpha3.KubeadmConfig{}
-	if ok, err := utilconversion.UnmarshalData(src, restored); err != nil {
+	if ok, err := utilconversion.UnmarshalData(src, restored); err != nil || !ok {
 		return err
-	} else if ok {
-		if restored.Status.DataSecretName != nil {
-			dst.Status.DataSecretName = restored.Status.DataSecretName
-		}
 	}
 
-	return Convert_v1alpha2_KubeadmConfig_To_v1alpha3_KubeadmConfig(src, dst, nil)
+	if restored.Status.DataSecretName != nil {
+		dst.Status.DataSecretName = restored.Status.DataSecretName
+	}
+
+	return nil
 }
 
 // ConvertFrom converts from the KubeadmConfig Hub version (v1alpha3) to this version.
-func (dst *KubeadmConfig) ConvertFrom(srcRaw conversion.Hub) error { // nolint
+func (dst *KubeadmConfig) ConvertFrom(srcRaw conversion.Hub) error {
 	src := srcRaw.(*kubeadmbootstrapv1alpha3.KubeadmConfig)
+	if err := Convert_v1alpha3_KubeadmConfig_To_v1alpha2_KubeadmConfig(src, dst, nil); err != nil {
+		return nil
+	}
 
 	// Preserve Hub data on down-conversion.
 	if err := utilconversion.MarshalData(src, dst); err != nil {
 		return err
 	}
 
-	return Convert_v1alpha3_KubeadmConfig_To_v1alpha2_KubeadmConfig(src, dst, nil)
+	return nil
 }
 
 // ConvertTo converts this KubeadmConfigList to the Hub version (v1alpha3).
-func (src *KubeadmConfigList) ConvertTo(dstRaw conversion.Hub) error { // nolint
+func (src *KubeadmConfigList) ConvertTo(dstRaw conversion.Hub) error {
 	dst := dstRaw.(*kubeadmbootstrapv1alpha3.KubeadmConfigList)
 	return Convert_v1alpha2_KubeadmConfigList_To_v1alpha3_KubeadmConfigList(src, dst, nil)
 }
 
 // ConvertFrom converts from the KubeadmConfigList Hub version (v1alpha3) to this version.
-func (dst *KubeadmConfigList) ConvertFrom(srcRaw conversion.Hub) error { // nolint
+func (dst *KubeadmConfigList) ConvertFrom(srcRaw conversion.Hub) error {
 	src := srcRaw.(*kubeadmbootstrapv1alpha3.KubeadmConfigList)
 	return Convert_v1alpha3_KubeadmConfigList_To_v1alpha2_KubeadmConfigList(src, dst, nil)
 }
 
 // ConvertTo converts this KubeadmConfigTemplate to the Hub version (v1alpha3).
-func (src *KubeadmConfigTemplate) ConvertTo(dstRaw conversion.Hub) error { // nolint
+func (src *KubeadmConfigTemplate) ConvertTo(dstRaw conversion.Hub) error {
 	dst := dstRaw.(*kubeadmbootstrapv1alpha3.KubeadmConfigTemplate)
 	return Convert_v1alpha2_KubeadmConfigTemplate_To_v1alpha3_KubeadmConfigTemplate(src, dst, nil)
 }
 
 // ConvertFrom converts from the KubeadmConfigTemplate Hub version (v1alpha3) to this version.
-func (dst *KubeadmConfigTemplate) ConvertFrom(srcRaw conversion.Hub) error { // nolint
+func (dst *KubeadmConfigTemplate) ConvertFrom(srcRaw conversion.Hub) error {
 	src := srcRaw.(*kubeadmbootstrapv1alpha3.KubeadmConfigTemplate)
 	return Convert_v1alpha3_KubeadmConfigTemplate_To_v1alpha2_KubeadmConfigTemplate(src, dst, nil)
 }
 
 // ConvertTo converts this KubeadmConfigTemplateList to the Hub version (v1alpha3).
-func (src *KubeadmConfigTemplateList) ConvertTo(dstRaw conversion.Hub) error { // nolint
+func (src *KubeadmConfigTemplateList) ConvertTo(dstRaw conversion.Hub) error {
 	dst := dstRaw.(*kubeadmbootstrapv1alpha3.KubeadmConfigTemplateList)
 	return Convert_v1alpha2_KubeadmConfigTemplateList_To_v1alpha3_KubeadmConfigTemplateList(src, dst, nil)
 }
 
 // ConvertFrom converts from the KubeadmConfigTemplateList Hub version (v1alpha3) to this version.
-func (dst *KubeadmConfigTemplateList) ConvertFrom(srcRaw conversion.Hub) error { // nolint
+func (dst *KubeadmConfigTemplateList) ConvertFrom(srcRaw conversion.Hub) error {
 	src := srcRaw.(*kubeadmbootstrapv1alpha3.KubeadmConfigTemplateList)
 	return Convert_v1alpha3_KubeadmConfigTemplateList_To_v1alpha2_KubeadmConfigTemplateList(src, dst, nil)
 }
 
 // Convert_v1alpha2_KubeadmConfigStatus_To_v1alpha3_KubeadmConfigStatus converts this KubeadmConfigStatus to the Hub version (v1alpha3).
-func Convert_v1alpha2_KubeadmConfigStatus_To_v1alpha3_KubeadmConfigStatus(in *KubeadmConfigStatus, out *kubeadmbootstrapv1alpha3.KubeadmConfigStatus, s apiconversion.Scope) error { // nolint
+func Convert_v1alpha2_KubeadmConfigStatus_To_v1alpha3_KubeadmConfigStatus(in *KubeadmConfigStatus, out *kubeadmbootstrapv1alpha3.KubeadmConfigStatus, s apiconversion.Scope) error {
 	if err := autoConvert_v1alpha2_KubeadmConfigStatus_To_v1alpha3_KubeadmConfigStatus(in, out, s); err != nil {
 		return err
 	}
@@ -102,7 +108,7 @@ func Convert_v1alpha2_KubeadmConfigStatus_To_v1alpha3_KubeadmConfigStatus(in *Ku
 }
 
 // Convert_v1alpha3_KubeadmConfigStatus_To_v1alpha2_KubeadmConfigStatus converts from the Hub version (v1alpha3) of the KubeadmConfigStatus to this version.
-func Convert_v1alpha3_KubeadmConfigStatus_To_v1alpha2_KubeadmConfigStatus(in *kubeadmbootstrapv1alpha3.KubeadmConfigStatus, out *KubeadmConfigStatus, s apiconversion.Scope) error { // nolint
+func Convert_v1alpha3_KubeadmConfigStatus_To_v1alpha2_KubeadmConfigStatus(in *kubeadmbootstrapv1alpha3.KubeadmConfigStatus, out *KubeadmConfigStatus, s apiconversion.Scope) error {
 	if err := autoConvert_v1alpha3_KubeadmConfigStatus_To_v1alpha2_KubeadmConfigStatus(in, out, s); err != nil {
 		return err
 	}

@@ -18,6 +18,8 @@ allow_k8s_contexts(settings.get("allowed_contexts"))
 
 default_registry(settings.get("default_registry"))
 
+always_enable_providers = ["core"]
+
 providers = {
     "core": {
         "context": ".",
@@ -201,7 +203,9 @@ def include_user_tilt_files():
 
 # Enable core cluster-api plus everything listed in 'enable_providers' in tilt-settings.json
 def enable_providers():
-    for name in ["core"] + settings.get("enable_providers", []):
+    user_enable_providers = settings.get("enable_providers", [])
+    union_enable_providers = {k: "" for k in user_enable_providers + always_enable_providers}.keys()
+    for name in union_enable_providers:
         enable_provider(name)
 
 ##############################

@@ -186,7 +186,7 @@ spec:
             description: ClusterSpec defines the desired state of Cluster
             properties:
               clusterNetwork:
-                description: Cluster network configuration
+                description: Cluster network configuration.
                 properties:
                   apiServerPort:
                     description: APIServerPort specifies the port the API Server should
@@ -308,6 +308,10 @@ spec:
                     description: 'UID of the referent. More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#uids'
                     type: string
                 type: object
+              paused:
+                description: Paused can be used to prevent controllers from processing
+                  the Cluster and all its associated objects.
+                type: boolean
             type: object
           status:
             description: ClusterStatus defines the observed state of Cluster

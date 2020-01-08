@@ -92,6 +92,17 @@ func (r *MachineDeploymentReconciler) Reconcile(req ctrl.Request) (_ ctrl.Result
 		return ctrl.Result{}, err
 	}
 
+	cluster, err := util.GetClusterByName(ctx, r.Client, deployment.Namespace, deployment.Spec.ClusterName)
+	if err != nil {
+		return ctrl.Result{}, err
+	}
+
+	// Return early if the object or Cluster is paused.
+	if util.IsPaused(cluster, deployment) {
+		logger.V(3).Info("reconciliation is paused for this object")
+		return ctrl.Result{}, nil
+	}
+
 	// Initialize the patch helper
 	patchHelper, err := patch.NewHelper(deployment, r.Client)
 	if err != nil {
@@ -111,7 +122,7 @@ func (r *MachineDeploymentReconciler) Reconcile(req ctrl.Request) (_ ctrl.Result
 		return ctrl.Result{}, nil
 	}
 
-	result, err := r.reconcile(ctx, deployment)
+	result, err := r.reconcile(ctx, cluster, deployment)
 	if err != nil {
 		logger.Error(err, "Failed to reconcile MachineDeployment")
 		r.recorder.Eventf(deployment, corev1.EventTypeWarning, "ReconcileError", "%v", err)
@@ -120,7 +131,7 @@ func (r *MachineDeploymentReconciler) Reconcile(req ctrl.Request) (_ ctrl.Result
 	return result, nil
 }
 
-func (r *MachineDeploymentReconciler) reconcile(ctx context.Context, d *clusterv1.MachineDeployment) (ctrl.Result, error) {
+func (r *MachineDeploymentReconciler) reconcile(_ context.Context, cluster *clusterv1.Cluster, d *clusterv1.MachineDeployment) (ctrl.Result, error) {
 	logger := r.Log.WithValues("machinedeployment", d.Name, "namespace", d.Namespace)
 	logger.V(4).Info("Reconcile MachineDeployment")
 
@@ -144,12 +155,6 @@ func (r *MachineDeploymentReconciler) reconcile(ctx context.Context, d *clusterv
 	// Add label and selector based on the MachineDeployment's name.
 	d.Spec.Selector.MatchLabels[clusterv1.MachineDeploymentLabelName] = d.Name
 	d.Spec.Template.Labels[clusterv1.MachineDeploymentLabelName] = d.Name
-
-	// Check for Cluster ownership.
-	cluster, err := util.GetClusterByName(ctx, r.Client, d.ObjectMeta.Namespace, d.Spec.ClusterName)
-	if err != nil {
-		return ctrl.Result{}, err
-	}
 
 	if r.shouldAdopt(d) {
 		d.OwnerReferences = util.EnsureOwnerRef(d.OwnerReferences, metav1.OwnerReference{

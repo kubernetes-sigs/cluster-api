@@ -24,6 +24,13 @@ const (
 	// ClusterLabelName is the label set on machines linked to a cluster and
 	// external objects(bootstrap and infrastructure providers)
 	ClusterLabelName = "cluster.x-k8s.io/cluster-name"
+
+	// PausedAnnotation is an annotation that can be applied to any Cluster API
+	// object to prevent a controller from processing a resource.
+	//
+	// Controllers working with Cluster API objects must check the existence of this annotation
+	// on the reconciled object.
+	PausedAnnotation = "cluster.x-k8s.io/paused"
 )
 
 // MachineAddressType describes a valid MachineAddress type.

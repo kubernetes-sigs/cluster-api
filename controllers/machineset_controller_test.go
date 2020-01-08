@@ -363,6 +363,8 @@ func TestMachineSetOwnerReference(t *testing.T) {
 }
 
 func TestMachineSetReconcile(t *testing.T) {
+	testCluster := &clusterv1.Cluster{ObjectMeta: metav1.ObjectMeta{Namespace: "default", Name: "test-cluster"}}
+
 	t.Run("ignore machine sets marked for deletion", func(t *testing.T) {
 		g := NewWithT(t)
 
@@ -372,6 +374,9 @@ func TestMachineSetReconcile(t *testing.T) {
 				Name:              "machineset1",
 				Namespace:         "default",
 				DeletionTimestamp: &dt,
+			},
+			Spec: clusterv1.MachineSetSpec{
+				ClusterName: "test-cluster",
 			},
 		}
 		request := reconcile.Request{
@@ -384,7 +389,7 @@ func TestMachineSetReconcile(t *testing.T) {
 		g.Expect(clusterv1.AddToScheme(scheme.Scheme)).To(Succeed())
 
 		msr := &MachineSetReconciler{
-			Client:   fake.NewFakeClientWithScheme(scheme.Scheme, ms),
+			Client:   fake.NewFakeClientWithScheme(scheme.Scheme, testCluster, ms),
 			Log:      log.Log,
 			recorder: record.NewFakeRecorder(32),
 		}
@@ -396,12 +401,11 @@ func TestMachineSetReconcile(t *testing.T) {
 	t.Run("records event if reconcile fails", func(t *testing.T) {
 		g := NewWithT(t)
 
-		ms := &clusterv1.MachineSet{
-			ObjectMeta: metav1.ObjectMeta{
-				Name:      "machineset1",
-				Namespace: "default",
-			},
+		ms := newMachineSet("machineset1", "test-cluster")
+		ms.Spec.Selector.MatchLabels = map[string]string{
+			"--$-invalid": "true",
 		}
+
 		request := reconcile.Request{
 			NamespacedName: types.NamespacedName{
 				Name:      ms.Name,
@@ -413,7 +417,7 @@ func TestMachineSetReconcile(t *testing.T) {
 
 		rec := record.NewFakeRecorder(32)
 		msr := &MachineSetReconciler{
-			Client:   fake.NewFakeClientWithScheme(scheme.Scheme, ms),
+			Client:   fake.NewFakeClientWithScheme(scheme.Scheme, testCluster, ms),
 			Log:      log.Log,
 			recorder: rec,
 		}

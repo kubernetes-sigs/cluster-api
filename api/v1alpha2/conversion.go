@@ -154,11 +154,26 @@ func (dst *MachineSetList) ConvertFrom(srcRaw conversion.Hub) error {
 func (src *MachineDeployment) ConvertTo(dstRaw conversion.Hub) error {
 	dst := dstRaw.(*v1alpha3.MachineDeployment)
 
+	// Manually restore data.
+	restored := &v1alpha3.MachineDeployment{}
+	if ok, err := utilconversion.UnmarshalData(src, restored); err != nil {
+		return err
+	} else if ok {
+		if restored.Spec.Paused {
+			dst.Spec.Paused = restored.Spec.Paused
+		}
+	}
+
 	return Convert_v1alpha2_MachineDeployment_To_v1alpha3_MachineDeployment(src, dst, nil)
 }
 
 func (dst *MachineDeployment) ConvertFrom(srcRaw conversion.Hub) error {
 	src := srcRaw.(*v1alpha3.MachineDeployment)
+
+	// Preserve Hub data on down-conversion.
+	if err := utilconversion.MarshalData(src, dst); err != nil {
+		return err
+	}
 
 	return Convert_v1alpha3_MachineDeployment_To_v1alpha2_MachineDeployment(src, dst, nil)
 }

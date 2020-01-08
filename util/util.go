@@ -380,3 +380,17 @@ func HasOwner(refList []metav1.OwnerReference, apiVersion string, kinds []string
 
 	return false
 }
+
+// IsPaused returns true if the Cluster is paused or the object has the `paused` annotation.
+func IsPaused(cluster *clusterv1.Cluster, v metav1.Object) bool {
+	if cluster.Spec.Paused {
+		return true
+	}
+
+	annotations := v.GetAnnotations()
+	if annotations == nil {
+		return false
+	}
+	_, ok := annotations[clusterv1.PausedAnnotation]
+	return ok
+}

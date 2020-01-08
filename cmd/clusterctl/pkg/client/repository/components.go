@@ -429,28 +429,30 @@ func inspectWatchNamespace(objs []unstructured.Unstructured) (string, error) {
 	namespace := ""
 	// look for resources of kind Deployment
 	for _, o := range objs {
-		if o.GetKind() == deploymentKind {
+		if o.GetKind() != deploymentKind {
+			continue
+		}
 
-			// Convert Unstructured into a typed object
-			d := &appsv1.Deployment{}
-			if err := scheme.Scheme.Convert(&o, d, nil); err != nil { //nolint
-				return "", err
+		// Convert Unstructured into a typed object
+		d := &appsv1.Deployment{}
+		if err := scheme.Scheme.Convert(&o, d, nil); err != nil { //nolint
+			return "", err
+		}
+
+		// look for a container with name "manager"
+		for _, c := range d.Spec.Template.Spec.Containers {
+			if c.Name != controllerContainerName {
+				continue
 			}
 
-			// look for a container with name "manager"
-			for _, c := range d.Spec.Template.Spec.Containers {
-				if c.Name == controllerContainerName {
-
-					// look for the --namespace command arg
-					for _, a := range c.Args {
-						if strings.HasPrefix(a, namespaceArgPrefix) {
-							n := strings.TrimPrefix(a, namespaceArgPrefix)
-							if namespace != "" && n != namespace {
-								return "", errors.New("Invalid manifest. All the controllers should watch have the same --namespace command arg in the provider components yaml")
-							}
-							namespace = n
-						}
+			// look for the --namespace command arg
+			for _, a := range c.Args {
+				if strings.HasPrefix(a, namespaceArgPrefix) {
+					n := strings.TrimPrefix(a, namespaceArgPrefix)
+					if namespace != "" && n != namespace {
+						return "", errors.New("Invalid manifest. All the controllers should watch have the same --namespace command arg in the provider components yaml")
 					}
+					namespace = n
 				}
 			}
 		}
@@ -463,49 +465,50 @@ func fixWatchNamespace(objs []unstructured.Unstructured, watchingNamespace strin
 
 	// look for resources of kind Deployment
 	for i, o := range objs {
-		if o.GetKind() == deploymentKind {
+		if o.GetKind() != deploymentKind {
+			continue
+		}
 
-			// Convert Unstructured into a typed object
-			d := &appsv1.Deployment{}
-			if err := scheme.Scheme.Convert(&o, d, nil); err != nil { //nolint
-				return nil, err
-			}
+		// Convert Unstructured into a typed object
+		d := &appsv1.Deployment{}
+		if err := scheme.Scheme.Convert(&o, d, nil); err != nil { //nolint
+			return nil, err
+		}
 
-			// look for a container with name "manager"
-			for j, c := range d.Spec.Template.Spec.Containers {
-				if c.Name == controllerContainerName {
+		// look for a container with name "manager"
+		for j, c := range d.Spec.Template.Spec.Containers {
+			if c.Name == controllerContainerName {
 
-					// look for the --namespace command arg
-					found := false
-					for k, a := range c.Args {
-						// if it exist
-						if strings.HasPrefix(a, namespaceArgPrefix) {
-							found = true
+				// look for the --namespace command arg
+				found := false
+				for k, a := range c.Args {
+					// if it exist
+					if strings.HasPrefix(a, namespaceArgPrefix) {
+						found = true
 
-							// replace the command arg with the desired value or delete the arg if the controller should watch for objects in all the namespaces
-							if watchingNamespace != "" {
-								c.Args[k] = fmt.Sprintf("%s%s", namespaceArgPrefix, watchingNamespace)
-								continue
-							}
-							c.Args = remove(c.Args, k)
+						// replace the command arg with the desired value or delete the arg if the controller should watch for objects in all the namespaces
+						if watchingNamespace != "" {
+							c.Args[k] = fmt.Sprintf("%s%s", namespaceArgPrefix, watchingNamespace)
+							continue
 						}
-					}
-
-					// if it not exists, and the controller should watch for objects in a specific namespace, set the command arg
-					if !found && watchingNamespace != "" {
-						c.Args = append(c.Args, fmt.Sprintf("%s%s", namespaceArgPrefix, watchingNamespace))
+						c.Args = remove(c.Args, k)
 					}
 				}
 
-				d.Spec.Template.Spec.Containers[j] = c
+				// If it doesn't exist, and the controller should watch for objects in a specific namespace, set the command arg.
+				if !found && watchingNamespace != "" {
+					c.Args = append(c.Args, fmt.Sprintf("%s%s", namespaceArgPrefix, watchingNamespace))
+				}
 			}
 
-			// Convert Deployment back to Unstructured
-			if err := scheme.Scheme.Convert(d, &o, nil); err != nil { //nolint
-				return nil, err
-			}
-			objs[i] = o
+			d.Spec.Template.Spec.Containers[j] = c
 		}
+
+		// Convert Deployment back to Unstructured
+		if err := scheme.Scheme.Convert(d, &o, nil); err != nil { //nolint
+			return nil, err
+		}
+		objs[i] = o
 	}
 	return objs, nil
 }

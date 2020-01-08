@@ -55,23 +55,19 @@ func (i *providerInstaller) Add(components repository.Components, force bool) er
 }
 
 func (i *providerInstaller) Install() ([]repository.Components, error) {
-	ret := make([]repository.Components, len(i.installQueue))
-	for c, components := range i.installQueue {
+	ret := make([]repository.Components, 0, len(i.installQueue))
+	for _, components := range i.installQueue {
 		klog.V(3).Infof("Installing provider %s/%s:%s", components.TargetNamespace(), components.Name(), components.Version())
 
-		// create the provider
-		err := i.providerComponents.Create(components)
-		if err != nil {
+		if err := i.providerComponents.Create(components); err != nil {
 			return nil, err
 		}
 
-		// create providers metadata
-		err = i.providerInventory.Create(components.Metadata())
-		if err != nil {
+		if err := i.providerInventory.Create(components.Metadata()); err != nil {
 			return nil, err
 		}
 
-		ret[c] = components
+		ret = append(ret, components)
 	}
 
 	return ret, nil

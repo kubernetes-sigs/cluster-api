@@ -111,24 +111,25 @@ func newGitHubRepository(providerConfig config.Provider, configVariablesClient c
 	}
 
 	// Check if the url is a github repository
-	if !(rURL.Scheme == httpsScheme && rURL.Host == githubDomain) {
+	if rURL.Scheme != httpsScheme || rURL.Host != githubDomain {
 		return nil, errors.New("invalid url: a GitHub repository url should start with https://github.com")
 	}
 
-	// Check if the repository Path is in the expected format.
-	t := strings.Split(strings.TrimPrefix(rURL.Path, "/"), "/")
-	if len(t) < 5 || t[2] != githubReleaseRepository {
+	// Check if the path is in the expected format,
+	// url's path has an extra leading slash at the end which we need to clean up before splitting.
+	urlSplit := strings.Split(strings.TrimPrefix(rURL.Path, "/"), "/")
+	if len(urlSplit) < 5 || urlSplit[2] != githubReleaseRepository {
 		return nil, errors.Errorf(
 			"invalid url: a GitHub repository url should be in the form https://github.com/{owner}/{Repository}/%s/{latest|version-tag}/{componentsClient.yaml}",
 			githubReleaseRepository,
 		)
 	}
 
-	// extracts all the info from path
-	owner := t[0]
-	repository := t[1]
-	defaultVersion := t[3]
-	path := strings.Join(t[4:], "/")
+	// Extract all the info from url split.
+	owner := urlSplit[0]
+	repository := urlSplit[1]
+	defaultVersion := urlSplit[3]
+	path := strings.Join(urlSplit[4:], "/")
 
 	// use path's directory as a rootPath
 	rootPath := filepath.Dir(path)
@@ -185,7 +186,7 @@ func (g *gitHubRepository) setClientToken(token string) {
 	ts := oauth2.StaticTokenSource(
 		&oauth2.Token{AccessToken: token},
 	)
-	g.authenticatingHTTPClient = oauth2.NewClient(context.Background(), ts)
+	g.authenticatingHTTPClient = oauth2.NewClient(context.TODO(), ts)
 }
 
 // getVersions returns all the release versions for a github repository
@@ -194,7 +195,7 @@ func (g *gitHubRepository) getVersions() ([]string, error) {
 
 	// get all the releases
 	// NB. currently Github API does not support result ordering, so it not possible to limit results
-	releases, _, err := client.Repositories.ListReleases(context.Background(), g.owner, g.repository, nil)
+	releases, _, err := client.Repositories.ListReleases(context.TODO(), g.owner, g.repository, nil)
 	if err != nil {
 		return nil, g.handleGithubErr(err, "failed to get the list of releases")
 	}
@@ -207,11 +208,11 @@ func (g *gitHubRepository) getVersions() ([]string, error) {
 		tagName := *r.TagName
 		sv, err := version.ParseSemantic(tagName)
 		if err != nil {
-			// discard releases with tags that are not a valid semantic versions (the user can point explicitly to such releases)
+			// Discard releases with tags that are not a valid semantic versions (the user can point explicitly to such releases).
 			continue
 		}
 		if sv.PreRelease() != "" || sv.BuildMetadata() != "" {
-			// discard pre-releases or build releases (the user can point explicitly to such releases)
+			// Discard pre-releases or build releases (the user can point explicitly to such releases).
 			continue
 		}
 		versions = append(versions, tagName)
@@ -227,8 +228,8 @@ func (g *gitHubRepository) getLatestRelease() (string, error) {
 		return "", g.handleGithubErr(err, "failed to get the list of versions")
 	}
 
-	// search for the latest release according to semantic version order of the release tag name.
-	// releases with tag name that are not semantic version number are ignored
+	// Search for the latest release according to semantic version ordering.
+	// Releases with tag name that are not in semver format are ignored.
 	var latestTag string
 	var latestReleaseVersion *version.Version
 	for _, v := range versions {
@@ -253,7 +254,7 @@ func (g *gitHubRepository) getLatestRelease() (string, error) {
 func (g *gitHubRepository) getReleaseByTag(tag string) (*github.RepositoryRelease, error) {
 	client := g.getClient()
 
-	release, _, err := client.Repositories.GetReleaseByTag(context.Background(), g.owner, g.repository, tag)
+	release, _, err := client.Repositories.GetReleaseByTag(context.TODO(), g.owner, g.repository, tag)
 	if err != nil {
 		return nil, g.handleGithubErr(err, "failed to read release %q", tag)
 	}
@@ -268,7 +269,6 @@ func (g *gitHubRepository) getReleaseByTag(tag string) (*github.RepositoryReleas
 // downloadFilesFromRelease download a file from release.
 func (g *gitHubRepository) downloadFilesFromRelease(release *github.RepositoryRelease, fileName string) ([]byte, error) {
 	client := g.getClient()
-
 	absoluteFileName := filepath.Join(g.rootPath, fileName)
 
 	// search for the file into the release assets, retrieving the asset id
@@ -283,33 +283,23 @@ func (g *gitHubRepository) downloadFilesFromRelease(release *github.RepositoryRe
 		return nil, errors.Errorf("failed to get file %q from %q release", fileName, *release.TagName)
 	}
 
-	// download the asset Content
-	rc, red, err := client.Repositories.DownloadReleaseAsset(context.Background(), g.owner, g.repository, *assetID)
+	reader, redirect, err := client.Repositories.DownloadReleaseAsset(context.TODO(), g.owner, g.repository, *assetID)
 	if err != nil {
 		return nil, g.handleGithubErr(err, "failed to download file %q from %q release", *release.TagName, fileName)
 	}
-
-	// handle the case when it is returned a ReaderCloser object for a release asset
-	if rc != nil {
-		defer rc.Close()
-
-		content, err := ioutil.ReadAll(rc)
+	if redirect != "" {
+		response, err := http.Get(redirect) //nolint:bodyclose (NB: The reader is actually closed in a defer)
 		if err != nil {
-			return nil, errors.Wrapf(err, "failed to read downloaded file %q from %q release", *release.TagName, fileName)
+			return nil, errors.Wrapf(err, "failed to download file %q from %q release via redirect location %q", *release.TagName, fileName, redirect)
 		}
-		return content, nil
+		reader = response.Body
 	}
+	defer reader.Close()
 
-	// handle the case when it is returned a redirect link for a release asset
-	resp, err := http.Get(red)
+	// Read contents from the reader (redirect or not), and return.
+	content, err := ioutil.ReadAll(reader)
 	if err != nil {
-		return nil, errors.Wrapf(err, "failed to download file %q from %q release via redirect location %q", *release.TagName, fileName, red)
-	}
-	defer resp.Body.Close()
-
-	content, err := ioutil.ReadAll(resp.Body)
-	if err != nil {
-		return nil, errors.Wrapf(err, "failed to read downloaded file %q from %q release via redirect location %q", *release.TagName, fileName, red)
+		return nil, errors.Wrapf(err, "failed to read downloaded file %q from %q release", *release.TagName, fileName)
 	}
 	return content, nil
 }

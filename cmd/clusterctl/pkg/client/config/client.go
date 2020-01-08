@@ -106,5 +106,5 @@ type Reader interface {
 	UnmarshalKey(key string, value interface{}) error
 }
 
-// Ensures the FakeReader implements reader
+// Ensures FakeReader implements the Reader interface.
 var _ Reader = &test.FakeReader{}

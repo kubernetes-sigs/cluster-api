@@ -21,8 +21,8 @@ import (
 	"sigs.k8s.io/cluster-api/cmd/clusterctl/pkg/client/repository"
 )
 
-// Alias creates local alias for types defined in the low-level library.
-// By using local alias, ensures that the users of the API will be forced to import the clusterctl high-level library only.
+// Alias creates local aliases for types defined in the low-level libraries.
+// By using a local alias, we ensure that users import and use clusterctl's high-level library.
 
 // Provider defines a provider configuration.
 type Provider config.Provider

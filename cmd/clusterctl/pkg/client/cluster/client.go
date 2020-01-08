@@ -24,7 +24,7 @@ import (
 )
 
 var (
-	ctx = context.Background()
+	ctx = context.TODO()
 )
 
 // Client is used to interact with a management cluster.

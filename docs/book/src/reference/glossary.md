@@ -202,4 +202,7 @@ When running `clusterctl alpha phases pivot` this refers to the cluster that wil
 # W
 ---
 
+### Workload Cluster
+
+A cluster created by a ClusterAPI controller, which is *not* a bootstrap cluster, and is meant to be used by end-users, as opposed to by CAPI tooling.
 

@@ -74,7 +74,7 @@ func (p *inventoryClient) EnsureCustomResourceDefinitions() error {
 		return err
 	}
 
-	// check the CRD already exists, if yes, exit immediately
+	// Check the CRD already exists, if yes, exit immediately.
 	l := &clusterctlv1.ProviderList{}
 	if err := c.List(ctx, l); err != nil {
 		if !apimeta.IsNoMatchError(err) {
@@ -82,22 +82,22 @@ func (p *inventoryClient) EnsureCustomResourceDefinitions() error {
 		}
 	}
 
-	// get the CRD manifest from the embedded assets
+	// Get the CRD manifest from the embedded assets.
 	yaml, err := config.Asset(embeddedCustomResourceDefinitionPath)
 	if err != nil {
 		return err
 	}
 
-	// transform the yaml in a list of objects
+	// Transform the yaml in a list of objects.
 	objs, err := util.ToUnstructured(yaml)
 	if err != nil {
 		return errors.Wrap(err, "failed to parse yaml for clusterctl inventory CRD")
 	}
 
-	// install the CRDs
+	// Install the CRDs.
 	for _, o := range objs {
 		klog.V(3).Infof("Creating: %s, %s/%s", o.GroupVersionKind(), o.GetNamespace(), o.GetName())
-		if err = c.Create(ctx, &o); err != nil { //nolint
+		if err := c.Create(ctx, o.DeepCopy()); err != nil {
 			if apierrors.IsAlreadyExists(err) {
 				return nil
 			}
@@ -173,7 +173,7 @@ func (p *inventoryClient) Create(m clusterctlv1.Provider) error {
 		Namespace: m.Namespace,
 		Name:      m.Name,
 	}
-	if err = cl.Get(ctx, key, currentProvider); err != nil {
+	if err := cl.Get(ctx, key, currentProvider); err != nil {
 		if !apierrors.IsNotFound(err) {
 			return errors.Wrapf(err, "failed to get current provider object")
 		}
@@ -182,12 +182,12 @@ func (p *inventoryClient) Create(m clusterctlv1.Provider) error {
 
 	c := m.DeepCopyObject()
 	if currentProvider == nil {
-		if err = cl.Create(ctx, c); err != nil {
+		if err := cl.Create(ctx, c); err != nil {
 			return errors.Wrapf(err, "failed to create provider object")
 		}
 	} else {
 		m.ResourceVersion = currentProvider.ResourceVersion
-		if err = cl.Update(ctx, c); err != nil {
+		if err := cl.Update(ctx, c); err != nil {
 			return errors.Wrapf(err, "failed to update provider object")
 		}
 	}
@@ -216,7 +216,7 @@ func (p *inventoryClient) list(options listOptions) ([]clusterctlv1.Provider, er
 		return nil, errors.Wrap(err, "failed get providers")
 	}
 
-	var ret []clusterctlv1.Provider //nolint
+	ret := []clusterctlv1.Provider{}
 	for _, i := range l.Items {
 		if options.Name != "" && i.Name != options.Name {
 			continue
@@ -240,17 +240,17 @@ func (p *inventoryClient) GetDefaultProviderName(providerType clusterctlv1.Provi
 		return "", err
 	}
 
-	// group the providers by name, because we consider more instance of the same provider not relevant for the answer.
+	// Group the providers by name, because we consider more instance of the same provider not relevant for the answer.
 	names := sets.NewString()
 	for _, p := range l {
 		names.Insert(p.Name)
 	}
 
-	// if there is only one provider, this is the default
+	// If there is only one provider, this is the default
 	if names.Len() == 1 {
 		return names.List()[0], nil
 	}
 
-	// there no provider/more than one provider of this type; in both cases, it is not possible to get a default provider name
+	// There is no provider or more than one provider of this type; in both cases, a default provider name cannot be decided.
 	return "", nil
 }

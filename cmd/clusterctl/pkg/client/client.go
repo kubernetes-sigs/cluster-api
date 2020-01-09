@@ -52,7 +52,7 @@ type clusterctlClient struct {
 type RepositoryClientFactory func(config.Provider) (repository.Client, error)
 type ClusterClientFactory func(string) (cluster.Client, error)
 
-// ensure clusterctlClient implements Client.
+// Ensure clusterctlClient implements Client.
 var _ Client = &clusterctlClient{}
 
 // NewOptions carries the options supported by New

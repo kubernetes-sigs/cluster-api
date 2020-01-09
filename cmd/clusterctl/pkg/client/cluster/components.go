@@ -93,30 +93,30 @@ func newComponentsClient(proxy Proxy) *providerComponents {
 	}
 }
 
-// - Namespaces go first because all namespaced resources depend on them.
-// - Custom Resource Definitions come before Custom Resource so that they can be
-//   restored with their corresponding CRD.
-// - Storage Classes are needed to create PVs and PVCs correctly.
-// - PVs go before PVCs because PVCs depend on them.
-// - PVCs go before pods or controllers so they can be mounted as volumes.
-// - Secrets and config maps go before pods or controllers so they can be mounted as volumes.
-// - Service accounts go before pods or controllers so pods can use them.
-// - Limit ranges go before pods or controllers so pods can use them.
-// - Pods go before ReplicaSets
-// - ReplicaSets go before Deployments
-// - Endpoints go before Services
 var defaultCreatePriorities = []string{
+	// Namespaces go first because all namespaced resources depend on them.
 	"Namespace",
+	// Custom Resource Definitions come before Custom Resource so that they can be
+	// restored with their corresponding CRD.
 	"CustomResourceDefinition",
+	// Storage Classes are needed to create PVs and PVCs correctly.
 	"StorageClass",
+	// PVs go before PVCs because PVCs depend on them.
 	"PersistentVolume",
+	// PVCs go before pods or controllers so they can be mounted as volumes.
 	"PersistentVolumeClaim",
+	// Secrets and ConfigMaps go before pods or controllers so they can be mounted as volumes.
 	"Secret",
 	"ConfigMap",
+	// Service accounts go before pods or controllers so pods can use them.
 	"ServiceAccount",
+	// Limit ranges go before pods or controllers so pods can use them.
 	"LimitRange",
+	// Pods go before ReplicaSets
 	"Pods",
+	// ReplicaSets go before Deployments
 	"ReplicaSet",
+	// Endpoints go before Services
 	"Endpoints",
 }
 

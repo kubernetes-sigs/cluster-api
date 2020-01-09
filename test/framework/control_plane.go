@@ -102,10 +102,8 @@ func (input *ControlplaneClusterInput) ControlPlaneCluster() {
 	// defined for a possible MachineDeployment.
 	expectedNumberOfNodes := len(input.Nodes)
 
-	// Create the additional control plane nodes.
+	// Create the control plane nodes.
 	for i, node := range input.Nodes {
-		expectedNumberOfNodes++
-
 		By(fmt.Sprintf("creating %d control plane node's InfrastructureMachine resource", i+1))
 		Expect(mgmtClient.Create(ctx, node.InfraMachine)).To(Succeed())
 

@@ -31,7 +31,7 @@ import (
 
 const (
 	defaultImageName = "kindest/node"
-	defaultImageTag  = "v1.15.3"
+	defaultImageTag  = "v1.17.0"
 )
 
 // Machine implement a service for managing the docker containers hosting a kubernetes nodes.

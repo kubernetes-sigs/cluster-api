@@ -189,7 +189,7 @@ def deploy_cert_manager():
             local("docker pull {}/{}:{}".format(registry, image, version))
             local("kind load docker-image {}/{}:{}".format(registry, image, version))
 
-    local("kubectl apply -f https://github.com/jetstack/cert-manager/releases/download/v0.11.0/cert-manager.yaml")
+    local("kubectl apply -f https://github.com/jetstack/cert-manager/releases/download/{}/cert-manager.yaml".format(version))
 
     # wait for the service to become available
     local("kubectl wait --for=condition=Available --timeout=300s apiservice v1beta1.webhook.cert-manager.io")

@@ -33,6 +33,7 @@ import (
 	"sigs.k8s.io/cluster-api/util/patch"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/controller"
 	"sigs.k8s.io/controller-runtime/pkg/handler"
 	"sigs.k8s.io/controller-runtime/pkg/source"
 	"sigs.k8s.io/kind/pkg/cluster/constants"
@@ -240,7 +241,7 @@ func (r *DockerMachineReconciler) reconcileDelete(machine *clusterv1.Machine, do
 }
 
 // SetupWithManager will add watches for this controller
-func (r *DockerMachineReconciler) SetupWithManager(mgr ctrl.Manager) error {
+func (r *DockerMachineReconciler) SetupWithManager(mgr ctrl.Manager, options controller.Options) error {
 	return ctrl.NewControllerManagedBy(mgr).
 		For(&infrav1.DockerMachine{}).
 		Watches(
@@ -255,6 +256,7 @@ func (r *DockerMachineReconciler) SetupWithManager(mgr ctrl.Manager) error {
 				ToRequests: handler.ToRequestsFunc(r.DockerClusterToDockerMachines),
 			},
 		).
+		WithOptions(options).
 		Complete(r)
 }
 

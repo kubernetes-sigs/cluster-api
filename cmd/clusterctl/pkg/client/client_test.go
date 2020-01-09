@@ -137,6 +137,16 @@ func newFakeCluster(kubeconfig string) *fakeClusterClient {
 	}
 }
 
+type fakeCertMangerClient struct {
+}
+
+var _ cluster.CertMangerClient = &fakeCertMangerClient{}
+
+func (p *fakeCertMangerClient) EnsureWebHook() error {
+	// For unit test, we are not installing the cert-manager WebHook so we always return no error without doing additional steps.
+	return nil
+}
+
 type fakeClusterClient struct {
 	kubeconfig     string
 	fakeProxy      *test.FakeProxy
@@ -151,6 +161,10 @@ func (f fakeClusterClient) Kubeconfig() string {
 
 func (f fakeClusterClient) Proxy() cluster.Proxy {
 	return f.fakeProxy
+}
+
+func (f *fakeClusterClient) CertManger() cluster.CertMangerClient {
+	return &fakeCertMangerClient{}
 }
 
 func (f fakeClusterClient) ProviderComponents() cluster.ComponentsClient {

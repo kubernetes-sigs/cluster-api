@@ -62,6 +62,12 @@ func ToUnstructured(rawyaml []byte) ([]unstructured.Unstructured, error) {
 		var u unstructured.Unstructured
 		u.SetUnstructuredContent(m)
 
+		// Ignore empty objects.
+		// Empty objects are generated if there are weird things in manifest files like e.g. two --- in a row without a yaml doc in the middle
+		if u.Object == nil {
+			continue
+		}
+
 		ret = append(ret, u)
 	}
 

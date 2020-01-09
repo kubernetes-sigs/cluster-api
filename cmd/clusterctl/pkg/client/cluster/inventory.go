@@ -74,15 +74,15 @@ func (p *inventoryClient) EnsureCustomResourceDefinitions() error {
 		return err
 	}
 
-	// Check the CRD already exists, if yes, exit immediately.
+	// Check the CRDs already exists, if yes, exit immediately.
 	l := &clusterctlv1.ProviderList{}
 	if err := c.List(ctx, l); err != nil {
 		if !apimeta.IsNoMatchError(err) {
-			return err
+			return errors.Wrap(err, "failed to check if the clusterctl inventory CRD exists")
 		}
 	}
 
-	// Get the CRD manifest from the embedded assets.
+	// Get the CRDs manifest from the embedded assets.
 	yaml, err := config.Asset(embeddedCustomResourceDefinitionPath)
 	if err != nil {
 		return err
@@ -91,7 +91,7 @@ func (p *inventoryClient) EnsureCustomResourceDefinitions() error {
 	// Transform the yaml in a list of objects.
 	objs, err := util.ToUnstructured(yaml)
 	if err != nil {
-		return errors.Wrap(err, "failed to parse yaml for clusterctl inventory CRD")
+		return errors.Wrap(err, "failed to parse yaml for clusterctl inventory CRDs")
 	}
 
 	// Install the CRDs.
@@ -99,13 +99,13 @@ func (p *inventoryClient) EnsureCustomResourceDefinitions() error {
 		klog.V(3).Infof("Creating: %s, %s/%s", o.GroupVersionKind(), o.GetNamespace(), o.GetName())
 		if err := c.Create(ctx, o.DeepCopy()); err != nil {
 			if apierrors.IsAlreadyExists(err) {
-				return nil
+				continue
 			}
-			return errors.Wrapf(err, "failed to create clusterctl inventory CRD")
+			return errors.Wrapf(err, "failed to create clusterctl inventory CRDs component: %s, %s/%s", o.GroupVersionKind(), o.GetNamespace(), o.GetName())
 		}
 	}
 
-	return errors.Wrapf(err, "invalid yaml for clusterctl inventory CRD")
+	return nil
 }
 
 func (p *inventoryClient) Validate(m clusterctlv1.Provider) error {

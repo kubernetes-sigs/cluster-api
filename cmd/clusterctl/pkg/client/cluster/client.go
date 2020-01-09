@@ -39,6 +39,10 @@ type Client interface {
 	// Proxy return the Proxy used for operating objects in the management cluster.
 	Proxy() Proxy
 
+	// CertManger returns a CertMangerClient that can be user for
+	// operating the cert-manager components in the cluster.
+	CertManger() CertMangerClient
+
 	// ProviderComponents returns a ComponentsClient object that can be user for
 	// operating provider components objects in the management cluster (e.g. the CRDs, controllers, RBAC).
 	ProviderComponents() ComponentsClient
@@ -71,6 +75,10 @@ func (c *clusterClient) Kubeconfig() string {
 
 func (c *clusterClient) Proxy() Proxy {
 	return c.proxy
+}
+
+func (c *clusterClient) CertManger() CertMangerClient {
+	return newCertMangerClient(c.proxy)
 }
 
 func (c *clusterClient) ProviderComponents() ComponentsClient {

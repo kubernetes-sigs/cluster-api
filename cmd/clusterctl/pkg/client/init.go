@@ -31,6 +31,11 @@ func (c *clusterctlClient) Init(options InitOptions) ([]Components, bool, error)
 		return nil, false, err
 	}
 
+	// Ensure the cert-manager WebHook is in place.
+	if err := cluster.CertManger().EnsureWebHook(); err != nil {
+		return nil, false, err
+	}
+
 	// ensure the custom resource definitions required by clusterctl are in place
 	if err := cluster.ProviderInventory().EnsureCustomResourceDefinitions(); err != nil {
 		return nil, false, err

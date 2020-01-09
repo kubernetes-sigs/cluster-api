@@ -46,4 +46,7 @@ const (
 
 	// APIServerEtcdClient is the secret name of user-supplied secret containing the apiserver-etcd-client key/cert
 	APIServerEtcdClient Purpose = "apiserver-etcd-client"
+
+	// ClusterAPIEtcdClient is the secret name of the Cluster API etcd client
+	ClusterAPIEtcdClient Purpose = "cluster-api-etcd-client"
 )

@@ -110,7 +110,7 @@ func NewCertificatesForInitialControlPlane(config *v1beta1.ClusterConfiguration)
 	return certificates
 }
 
-// NewCertificatesForJoiningControlPlane gets any certs that exist and writes them to disk
+// NewCertificatesForJoiningControlPlane returns a list of certificates configured for a joining control plane node
 func NewCertificatesForJoiningControlPlane() Certificates {
 	return Certificates{
 		&Certificate{
@@ -146,6 +146,23 @@ func NewCertificatesForWorker(caCertPath string) Certificates {
 		&Certificate{
 			Purpose:  ClusterCA,
 			CertFile: caCertPath,
+		},
+	}
+}
+
+// NewCertificatesForEtcdClient returns an initialised but empty set of certificates needed to communicate
+// with etcd
+func NewCertificatesForEtcdClient() Certificates {
+	return Certificates{
+		&Certificate{
+			Purpose:  EtcdCA,
+			CertFile: filepath.Join(defaultCertificatesDir, "etcd", "ca.crt"),
+			KeyFile:  filepath.Join(defaultCertificatesDir, "etcd", "ca.key"),
+		},
+		&Certificate{
+			Purpose:  ClusterAPIEtcdClient,
+			CertFile: "",
+			KeyFile:  "",
 		},
 	}
 }
@@ -215,10 +232,11 @@ func (c Certificates) Generate() error {
 				continue
 			case ServiceAccount:
 				generator = generateServiceAccountKeys
+			case ClusterAPIEtcdClient: // Depends on the etcd CA, so needs to be handled separately
+				continue
 			default:
 				generator = generateCACert
 			}
-
 			kp, err := generator()
 			if err != nil {
 				return err
@@ -226,6 +244,30 @@ func (c Certificates) Generate() error {
 			certificate.KeyPair = kp
 			certificate.Generated = true
 		}
+	}
+	return c.generateEtcdClientCertificate()
+}
+
+func (c Certificates) generateEtcdClientCertificate() error {
+	for _, certificate := range c {
+		if !(certificate.KeyPair == nil && certificate.Purpose == ClusterAPIEtcdClient) {
+			continue
+		}
+		etcdCA := c.GetByPurpose(EtcdCA)
+		if etcdCA == nil || etcdCA.KeyPair == nil {
+			return errors.Wrapf(
+				ErrMissingCertificate,
+				"for certificate: %s, required to generate %s certificate",
+				EtcdCA,
+				ClusterAPIEtcdClient,
+			)
+		}
+		kp, err := generateClientCert("cluster-api.x-k8s.io", etcdCA.KeyPair)
+		if err != nil {
+			return err
+		}
+		certificate.KeyPair = kp
+		certificate.Generated = true
 	}
 	return nil
 }
@@ -410,6 +452,29 @@ func generateServiceAccountKeys() (*certs.KeyPair, error) {
 	}, nil
 }
 
+func generateClientCert(cn string, ca *certs.KeyPair) (*certs.KeyPair, error) {
+	privKey, err := certs.NewPrivateKey()
+	if err != nil {
+		return nil, err
+	}
+	caCert, err := certs.DecodeCertPEM(ca.Cert)
+	if err != nil {
+		return nil, err
+	}
+	caKey, err := certs.DecodePrivateKeyPEM(ca.Key)
+	if err != nil {
+		return nil, err
+	}
+	x509Cert, err := newClientCert(cn, caCert, privKey, caKey)
+	if err != nil {
+		return nil, err
+	}
+	return &certs.KeyPair{
+		Cert: certs.EncodeCertPEM(x509Cert),
+		Key:  certs.EncodePrivateKeyPEM(privKey),
+	}, nil
+}
+
 // newCertificateAuthority creates new certificate and private key for the certificate authority
 func newCertificateAuthority() (*x509.Certificate, *rsa.PrivateKey, error) {
 	key, err := certs.NewPrivateKey()
@@ -455,4 +520,33 @@ func newSelfSignedCACert(key *rsa.PrivateKey) (*x509.Certificate, error) {
 
 	c, err := x509.ParseCertificate(b)
 	return c, errors.WithStack(err)
+}
+
+func newClientCert(cn string, caCert *x509.Certificate, key *rsa.PrivateKey, caKey *rsa.PrivateKey) (*x509.Certificate, error) {
+	cfg := certs.Config{
+		CommonName: cn,
+	}
+
+	now := time.Now().UTC()
+
+	tmpl := x509.Certificate{
+		SerialNumber: new(big.Int).SetInt64(0),
+		Subject: pkix.Name{
+			CommonName:   cfg.CommonName,
+			Organization: cfg.Organization,
+		},
+		NotBefore:   now.Add(time.Minute * -5),
+		NotAfter:    now.Add(time.Hour * 24 * 365 * 10), // 10 years
+		KeyUsage:    x509.KeyUsageDigitalSignature,
+		ExtKeyUsage: []x509.ExtKeyUsage{x509.ExtKeyUsageClientAuth},
+	}
+
+	b, err := x509.CreateCertificate(rand.Reader, &tmpl, caCert, key.Public(), caKey)
+	if err != nil {
+		return nil, errors.Wrapf(err, "failed to create signed client certificate: %+v", tmpl)
+	}
+
+	c, err := x509.ParseCertificate(b)
+	return c, errors.WithStack(err)
+
 }

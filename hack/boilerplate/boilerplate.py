@@ -159,7 +159,7 @@ skipped_dirs = ['Godeps', 'third_party', '_gopath', '_output', '.git', 'cluster/
 skipped_ungenerated_files = ['hack/lib/swagger.sh', 'hack/boilerplate/boilerplate.py']
 
 # list all the files that does not contain 'DO NOT EDIT', but are generated
-generated_files = ['cmd/clusterctl/config/crd_manifests.go']
+generated_files = ['cmd/clusterctl/config/zz_generated.bindata.go']
 
 def normalize_files(files):
     newfiles = []

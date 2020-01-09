@@ -51,6 +51,7 @@ CONVERSION_GEN := $(TOOLS_BIN_DIR)/conversion-gen
 # Bindata.
 GOBINDATA := $(TOOLS_BIN_DIR)/go-bindata
 GOBINDATA_CLUSTERCTL_DIR := cmd/clusterctl/config
+CERTMANAGER_COMPONENTS_GENERATED_FILE := cert-manager.yaml
 
 # Define Docker related variables. Releases should modify and double check these vars.
 REGISTRY ?= gcr.io/$(shell gcloud config get-value project)
@@ -214,10 +215,12 @@ generate-bindata: $(KUSTOMIZE) $(GOBINDATA) clean-bindata ## Generate code for e
 	# Package manifest YAML into a single file.
 	mkdir -p $(GOBINDATA_CLUSTERCTL_DIR)/manifest/
 	$(KUSTOMIZE) build $(GOBINDATA_CLUSTERCTL_DIR)/crd > $(GOBINDATA_CLUSTERCTL_DIR)/manifest/clusterctl-api.yaml
+	# Fetch the cert-manager manifest
+	curl -sL https://github.com/jetstack/cert-manager/releases/download/v0.11.0/cert-manager.yaml > "$(GOBINDATA_CLUSTERCTL_DIR)/manifest/${CERTMANAGER_COMPONENTS_GENERATED_FILE}"
 	# Generate go-bindata, add boilerplate, then cleanup.
-	$(GOBINDATA) -pkg=config -o=$(GOBINDATA_CLUSTERCTL_DIR)/crd_manifests.go $(GOBINDATA_CLUSTERCTL_DIR)/manifest/
-	cat ./hack/boilerplate/boilerplate.generatego.txt $(GOBINDATA_CLUSTERCTL_DIR)/crd_manifests.go > $(GOBINDATA_CLUSTERCTL_DIR)/manifest/crd_manifests.go
-	cp $(GOBINDATA_CLUSTERCTL_DIR)/manifest/crd_manifests.go $(GOBINDATA_CLUSTERCTL_DIR)/crd_manifests.go
+	$(GOBINDATA) -pkg=config -o=$(GOBINDATA_CLUSTERCTL_DIR)/zz_generated.bindata.go $(GOBINDATA_CLUSTERCTL_DIR)/manifest/
+	cat ./hack/boilerplate/boilerplate.generatego.txt $(GOBINDATA_CLUSTERCTL_DIR)/zz_generated.bindata.go > $(GOBINDATA_CLUSTERCTL_DIR)/manifest/manifests.go
+	cp $(GOBINDATA_CLUSTERCTL_DIR)/manifest/manifests.go $(GOBINDATA_CLUSTERCTL_DIR)/zz_generated.bindata.go
 	# Cleanup the manifest folder.
 	$(MAKE) clean-bindata
 

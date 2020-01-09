@@ -33,14 +33,18 @@ func main() {
 	var enableLeaderElection bool
 	flag.BoolVar(&enableLeaderElection, "enable-leader-election", false,
 		"Enable leader election for controller manager. Enabling this will ensure there is only one active controller manager.")
+	var metricsAddr string
+	flag.StringVar(&metricsAddr, "metrics-addr", ":8080",
+		"The address the metric endpoint binds to.")
 	flag.Parse()
 
 	cfg := ctrl.GetConfigOrDie()
 
 	// Setup a Manager
 	mgr, err := ctrl.NewManager(cfg, ctrl.Options{
-		Scheme:         scheme.Scheme,
-		LeaderElection: enableLeaderElection,
+		Scheme:             scheme.Scheme,
+		LeaderElection:     enableLeaderElection,
+		MetricsBindAddress: metricsAddr,
 	})
 	if err != nil {
 		klog.Fatalf("Failed to set up controller manager: %v", err)

@@ -15,6 +15,7 @@ patchesStrategicMerge:
 - manager_image_patch.yaml
 - manager_label_patch.yaml
 - manager_role_aggregation_patch.yaml
+- manager_auth_proxy_patch.yaml
 resources:
 - ./rbac/
 - ./manager/

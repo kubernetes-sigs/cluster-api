@@ -36,6 +36,9 @@ docs/book/book/
 config/ci/rbac/role_binding.yaml
 config/ci/rbac/role.yaml
 config/ci/rbac/aggregated_role.yaml
+config/ci/rbac/auth_proxy_role.yaml
+config/ci/rbac/auth_proxy_role_binding.yaml
+config/ci/rbac/auth_proxy_service.yaml
 config/ci/manager/manager.yaml
 manager_image_patch.yaml-e
 manager_pull_policy.yaml-e

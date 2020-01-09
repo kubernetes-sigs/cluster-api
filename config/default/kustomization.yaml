@@ -7,14 +7,3 @@ namespace: capi-system
 bases:
 ## Vanilla capi components
 - ../core
-
-patchesJson6902:
-## Unfortunately, you can't just delete from the args list with patches
-## so we have to override the whole args key
-- target:
-    group: apps
-    version: v1
-    kind: Deployment
-    name: controller-manager
-    namespace: system
-  path: manager_arguments.yaml

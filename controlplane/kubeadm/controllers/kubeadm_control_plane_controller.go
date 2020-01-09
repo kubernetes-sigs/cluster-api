@@ -165,15 +165,12 @@ func (r *KubeadmControlPlaneReconciler) reconcile(ctx context.Context, kcp *cont
 	}
 
 	// TODO: handle proper adoption of Machines
-	ownedMachines, err := r.getOwnedMachines(
-		ctx,
-		kcp,
-		types.NamespacedName{Namespace: cluster.Namespace, Name: cluster.Name},
-	)
+	allMachines, err := r.getMachines(ctx, types.NamespacedName{Namespace: cluster.Namespace, Name: cluster.Name})
 	if err != nil {
-		logger.Error(err, "failed to get list of owned machines")
+		logger.Error(err, "Failed to get list of machines")
 		return ctrl.Result{}, err
 	}
+	ownedMachines := r.filterOwnedMachines(kcp, allMachines)
 
 	// Always attempt to update status
 	defer func() {
@@ -228,7 +225,7 @@ func (r *KubeadmControlPlaneReconciler) reconcile(ctx context.Context, kcp *cont
 
 	// Currently we are not handling upgrade, so treat all owned machines as one for now.
 	// Once we start handling upgrade, we'll need to filter this list and act appropriately
-	numMachines := len(ownedMachines)
+	numMachines := len(ownedMachines.Items)
 	desiredReplicas := int(*kcp.Spec.Replicas)
 	switch {
 	// We are creating the first replica
@@ -272,16 +269,13 @@ func (r *KubeadmControlPlaneReconciler) updateStatus(ctx context.Context, kcp *c
 	// This is necessary for CRDs including scale subresources.
 	kcp.Status.Selector = selector.String()
 
-	ownedMachines, err := r.getOwnedMachines(
-		ctx,
-		kcp,
-		types.NamespacedName{Namespace: cluster.Namespace, Name: cluster.Name},
-	)
+	allMachines, err := r.getMachines(ctx, types.NamespacedName{Namespace: cluster.Namespace, Name: cluster.Name})
 	if err != nil {
 		return errors.Wrap(err, "failed to get list of owned machines")
 	}
+	ownedMachines := r.filterOwnedMachines(kcp, allMachines)
 
-	replicas := int32(len(ownedMachines))
+	replicas := int32(len(ownedMachines.Items))
 	// TODO: take into account configuration hash once upgrades are in place
 	kcp.Status.Replicas = replicas
 
@@ -291,8 +285,8 @@ func (r *KubeadmControlPlaneReconciler) updateStatus(ctx context.Context, kcp *c
 	}
 
 	readyMachines := int32(0)
-	for _, m := range ownedMachines {
-
+	for i := range ownedMachines.Items {
+		m := &ownedMachines.Items[i]
 		node, err := getMachineNode(ctx, remoteClient, m)
 		if err != nil {
 			return errors.Wrap(err, "failed to get referenced Node")
@@ -526,22 +520,17 @@ func (r *KubeadmControlPlaneReconciler) getMachines(ctx context.Context, cluster
 	return allMachines, nil
 }
 
-func (r *KubeadmControlPlaneReconciler) getOwnedMachines(ctx context.Context, kcp *controlplanev1.KubeadmControlPlane, clusterName types.NamespacedName) ([]*clusterv1.Machine, error) {
-	allMachines, err := r.getMachines(ctx, clusterName)
-	if err != nil {
-		return nil, err
-	}
-
-	var ownedMachines []*clusterv1.Machine
+func (r *KubeadmControlPlaneReconciler) filterOwnedMachines(kcp *controlplanev1.KubeadmControlPlane, allMachines *clusterv1.MachineList) *clusterv1.MachineList {
+	ownedMachines := &clusterv1.MachineList{}
 	for i := range allMachines.Items {
 		m := allMachines.Items[i]
 		controllerRef := metav1.GetControllerOf(&m)
 		if controllerRef != nil && controllerRef.Kind == "KubeadmControlPlane" && controllerRef.Name == kcp.Name {
-			ownedMachines = append(ownedMachines, &m)
+			ownedMachines.Items = append(ownedMachines.Items, m)
 		}
 	}
 
-	return ownedMachines, nil
+	return ownedMachines
 }
 
 func (r *KubeadmControlPlaneReconciler) reconcileExternalReference(ctx context.Context, cluster *clusterv1.Cluster, ref corev1.ObjectReference) error {

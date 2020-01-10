@@ -46,7 +46,7 @@ var initCmd = &cobra.Command{
 		for accessing the cluster must have enough privileges for installing Cluster API providers.
 
 		Use 'clusterctl config providers' to get the list of available providers; if necessary, edit
-		the $HOME/cluster-api/.clusterctl.yaml file to add new provider configurations or to customize existing ones.
+		the $HOME/.cluster-api/clusterctl.yaml file to add new provider configurations or to customize existing ones.
 		
 		Some providers require environment variables to be set before running clusterctl init; please
 		refer to the provider documentation or use 'clusterctl config provider [name]' to get the

@@ -175,7 +175,7 @@ const overrideFolder = "overrides"
 // This is required for development purposes, but it can be used also in production as a workaround for problems on the official repositories
 func getLocalOverride(provider config.Provider, version, path string) ([]byte, error) {
 
-	// local override files are searched at $home/cluster-api/overrides/<provider-name>/<version>/<path>
+	// local override files are searched at $home/.cluster-api/overrides/<provider-name>/<version>/<path>
 	homeFolder := filepath.Join(homedir.HomeDir(), config.ConfigFolder)
 	overridePath := filepath.Join(homeFolder, overrideFolder, provider.Name(), version, path)
 

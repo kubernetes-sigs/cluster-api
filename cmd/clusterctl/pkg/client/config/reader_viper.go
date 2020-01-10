@@ -27,7 +27,7 @@ import (
 )
 
 // ConfigFolder defines the name of the config folder under $home
-const ConfigFolder = "cluster-api"
+const ConfigFolder = ".cluster-api"
 
 // viperReader implements Reader using viper as backend for reading from environment variables
 // and from a clusterctl config file.
@@ -45,8 +45,8 @@ func (v *viperReader) Init(path string) error {
 		// Use path file from the flag.
 		viper.SetConfigFile(path)
 	} else {
-		// Configure for searching cluster-api/.clusterctl{.extension} in home directory
-		viper.SetConfigName(".clusterctl")
+		// Configure for searching .cluster-api/clusterctl{.extension} in home directory
+		viper.SetConfigName("clusterctl")
 		viper.AddConfigPath(filepath.Join(homedir.HomeDir(), ConfigFolder))
 	}
 

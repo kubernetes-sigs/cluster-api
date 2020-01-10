@@ -39,7 +39,7 @@ var configClusterClusterCmd = &cobra.Command{
 	Short: "Generate templates for creating a Cluster API workload clusters",
 	Long: LongDesc(`
 		clusterctl ships with a list of well know providers; if necessary, edit
-		the $HOME/cluster-api/.clusterctl.yaml file to add new provider configurations or to customize existing ones.
+		the $HOME/.cluster-api/clusterctl.yaml file to add new provider configurations or to customize existing ones.
 		
 		Each provider configuration links to a repository, and clusterctl will fetch the template
 		from creating a new cluster from there.`),

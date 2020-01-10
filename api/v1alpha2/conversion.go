@@ -17,9 +17,6 @@ limitations under the License.
 package v1alpha2
 
 import (
-	"errors"
-	"fmt"
-
 	apiconversion "k8s.io/apimachinery/pkg/conversion"
 	"sigs.k8s.io/cluster-api/api/v1alpha3"
 	utilconversion "sigs.k8s.io/cluster-api/util/conversion"
@@ -39,6 +36,15 @@ func (src *Cluster) ConvertTo(dstRaw conversion.Hub) error {
 		dst.Spec.ControlPlaneEndpoint.Port = int32(endpoint.Port)
 	}
 
+	// Manually restore data.
+	restored := &v1alpha3.Cluster{}
+	if ok, err := utilconversion.UnmarshalData(src, restored); err != nil || !ok {
+		return err
+	}
+
+	dst.Spec.ControlPlaneRef = restored.Spec.ControlPlaneRef
+	dst.Status.ControlPlaneReady = restored.Status.ControlPlaneReady
+
 	return nil
 }
 
@@ -56,6 +62,11 @@ func (dst *Cluster) ConvertFrom(srcRaw conversion.Hub) error {
 				Port: int(src.Spec.ControlPlaneEndpoint.Port),
 			},
 		}
+	}
+
+	// Preserve Hub data on down-conversion.
+	if err := utilconversion.MarshalData(src, dst); err != nil {
+		return err
 	}
 
 	return nil
@@ -80,6 +91,7 @@ func (src *Machine) ConvertTo(dstRaw conversion.Hub) error {
 	}
 
 	// Manually convert ClusterName from label, if any.
+	// This conversion can be overwritten when restoring the ClusterName field.
 	if name, ok := src.Labels[MachineClusterLabelName]; ok {
 		dst.Spec.ClusterName = name
 	}
@@ -89,16 +101,16 @@ func (src *Machine) ConvertTo(dstRaw conversion.Hub) error {
 	if ok, err := utilconversion.UnmarshalData(src, restored); err != nil || !ok {
 		return err
 	}
-
-	if restored.Spec.Bootstrap.DataSecretName != nil {
-		dst.Spec.Bootstrap.DataSecretName = restored.Spec.Bootstrap.DataSecretName
-	}
-
-	if restored.Spec.ClusterName != "" {
-		dst.Spec.ClusterName = restored.Spec.ClusterName
-	}
+	restoreMachineSpec(&restored.Spec, &dst.Spec)
 
 	return nil
+}
+
+func restoreMachineSpec(restored *v1alpha3.MachineSpec, dst *v1alpha3.MachineSpec) {
+	if restored.ClusterName != "" {
+		dst.ClusterName = restored.ClusterName
+	}
+	dst.Bootstrap.DataSecretName = restored.Bootstrap.DataSecretName
 }
 
 func (dst *Machine) ConvertFrom(srcRaw conversion.Hub) error {
@@ -129,14 +141,42 @@ func (dst *MachineList) ConvertFrom(srcRaw conversion.Hub) error {
 
 func (src *MachineSet) ConvertTo(dstRaw conversion.Hub) error {
 	dst := dstRaw.(*v1alpha3.MachineSet)
+	if err := Convert_v1alpha2_MachineSet_To_v1alpha3_MachineSet(src, dst, nil); err != nil {
+		return err
+	}
 
-	return Convert_v1alpha2_MachineSet_To_v1alpha3_MachineSet(src, dst, nil)
+	// Manually convert ClusterName from label, if any.
+	// This conversion can be overwritten when restoring the ClusterName field.
+	if name, ok := src.Labels[MachineClusterLabelName]; ok {
+		dst.Spec.ClusterName = name
+	}
+
+	// Manually restore data.
+	restored := &v1alpha3.MachineSet{}
+	if ok, err := utilconversion.UnmarshalData(src, restored); err != nil || !ok {
+		return err
+	}
+
+	if restored.Spec.ClusterName != "" {
+		dst.Spec.ClusterName = restored.Spec.ClusterName
+	}
+	restoreMachineSpec(&restored.Spec.Template.Spec, &dst.Spec.Template.Spec)
+
+	return nil
 }
 
 func (dst *MachineSet) ConvertFrom(srcRaw conversion.Hub) error {
 	src := srcRaw.(*v1alpha3.MachineSet)
+	if err := Convert_v1alpha3_MachineSet_To_v1alpha2_MachineSet(src, dst, nil); err != nil {
+		return err
+	}
 
-	return Convert_v1alpha3_MachineSet_To_v1alpha2_MachineSet(src, dst, nil)
+	// Preserve Hub data on down-conversion.
+	if err := utilconversion.MarshalData(src, dst); err != nil {
+		return err
+	}
+
+	return nil
 }
 
 func (src *MachineSetList) ConvertTo(dstRaw conversion.Hub) error {
@@ -153,29 +193,44 @@ func (dst *MachineSetList) ConvertFrom(srcRaw conversion.Hub) error {
 
 func (src *MachineDeployment) ConvertTo(dstRaw conversion.Hub) error {
 	dst := dstRaw.(*v1alpha3.MachineDeployment)
+	if err := Convert_v1alpha2_MachineDeployment_To_v1alpha3_MachineDeployment(src, dst, nil); err != nil {
+		return err
+	}
+
+	// Manually convert ClusterName from label, if any.
+	// This conversion can be overwritten when restoring the ClusterName field.
+	if name, ok := src.Labels[MachineClusterLabelName]; ok {
+		dst.Spec.ClusterName = name
+	}
 
 	// Manually restore data.
 	restored := &v1alpha3.MachineDeployment{}
-	if ok, err := utilconversion.UnmarshalData(src, restored); err != nil {
+	if ok, err := utilconversion.UnmarshalData(src, restored); err != nil || !ok {
 		return err
-	} else if ok {
-		if restored.Spec.Paused {
-			dst.Spec.Paused = restored.Spec.Paused
-		}
 	}
 
-	return Convert_v1alpha2_MachineDeployment_To_v1alpha3_MachineDeployment(src, dst, nil)
+	if restored.Spec.ClusterName != "" {
+		dst.Spec.ClusterName = restored.Spec.ClusterName
+	}
+	dst.Spec.Paused = restored.Spec.Paused
+	dst.Status.Phase = restored.Status.Phase
+	restoreMachineSpec(&restored.Spec.Template.Spec, &dst.Spec.Template.Spec)
+
+	return nil
 }
 
 func (dst *MachineDeployment) ConvertFrom(srcRaw conversion.Hub) error {
 	src := srcRaw.(*v1alpha3.MachineDeployment)
+	if err := Convert_v1alpha3_MachineDeployment_To_v1alpha2_MachineDeployment(src, dst, nil); err != nil {
+		return err
+	}
 
 	// Preserve Hub data on down-conversion.
 	if err := utilconversion.MarshalData(src, dst); err != nil {
 		return err
 	}
 
-	return Convert_v1alpha3_MachineDeployment_To_v1alpha2_MachineDeployment(src, dst, nil)
+	return nil
 }
 
 func (src *MachineDeploymentList) ConvertTo(dstRaw conversion.Hub) error {
@@ -205,8 +260,6 @@ func Convert_v1alpha2_ClusterSpec_To_v1alpha3_ClusterSpec(in *ClusterSpec, out *
 		return err
 	}
 
-	// Discards ControlPlaneRef
-
 	return nil
 }
 
@@ -226,8 +279,6 @@ func Convert_v1alpha3_ClusterStatus_To_v1alpha2_ClusterStatus(in *v1alpha3.Clust
 	if err := autoConvert_v1alpha3_ClusterStatus_To_v1alpha2_ClusterStatus(in, out, s); err != nil {
 		return err
 	}
-
-	// Discards ControlPlaneReady
 
 	// Manually convert the Failure fields to the Error fields
 	out.ErrorMessage = in.FailureMessage
@@ -292,15 +343,15 @@ func Convert_v1alpha3_MachineStatus_To_v1alpha2_MachineStatus(in *v1alpha3.Machi
 }
 
 func Convert_v1alpha3_MachineDeploymentSpec_To_v1alpha2_MachineDeploymentSpec(in *v1alpha3.MachineDeploymentSpec, out *MachineDeploymentSpec, s apiconversion.Scope) error {
-	return errors.New("cannot recover removed MachineDeploymentSpec Cluster Name")
+	return autoConvert_v1alpha3_MachineDeploymentSpec_To_v1alpha2_MachineDeploymentSpec(in, out, s)
 }
 
 func Convert_v1alpha3_MachineDeploymentStatus_To_v1alpha2_MachineDeploymentStatus(in *v1alpha3.MachineDeploymentStatus, out *MachineDeploymentStatus, s apiconversion.Scope) error {
-	return fmt.Errorf("cannot recover removed MachineDeploymentStatus field Phase")
+	return autoConvert_v1alpha3_MachineDeploymentStatus_To_v1alpha2_MachineDeploymentStatus(in, out, s)
 }
 
 func Convert_v1alpha3_MachineSetSpec_To_v1alpha2_MachineSetSpec(in *v1alpha3.MachineSetSpec, out *MachineSetSpec, s apiconversion.Scope) error {
-	return errors.New("cannot recover removed MachineSetSpec Cluster Name")
+	return autoConvert_v1alpha3_MachineSetSpec_To_v1alpha2_MachineSetSpec(in, out, s)
 }
 
 func Convert_v1alpha3_MachineSpec_To_v1alpha2_MachineSpec(in *v1alpha3.MachineSpec, out *MachineSpec, s apiconversion.Scope) error {

@@ -380,3 +380,65 @@ func TestGetOwnerMachineSuccessByName(t *testing.T) {
 		t.Fatal("expected a machine but got nil")
 	}
 }
+
+func TestGetMachinesForCluster(t *testing.T) {
+	scheme := runtime.NewScheme()
+	if err := clusterv1.AddToScheme(scheme); err != nil {
+		t.Fatal("failed to register cluster api objects to scheme")
+	}
+
+	cluster := &clusterv1.Cluster{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "my-cluster",
+			Namespace: "my-ns",
+		},
+	}
+
+	machine := &clusterv1.Machine{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "my-machine",
+			Namespace: cluster.Namespace,
+			Labels: map[string]string{
+				clusterv1.ClusterLabelName: cluster.Name,
+			},
+		},
+	}
+
+	machineDifferentClusterNameSameNamespace := &clusterv1.Machine{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "other-machine",
+			Namespace: cluster.Namespace,
+			Labels: map[string]string{
+				clusterv1.ClusterLabelName: "other-cluster",
+			},
+		},
+	}
+
+	machineSameClusterNameDifferentNamespace := &clusterv1.Machine{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "other-machine",
+			Namespace: "other-ns",
+			Labels: map[string]string{
+				clusterv1.ClusterLabelName: cluster.Name,
+			},
+		},
+	}
+
+	c := fake.NewFakeClientWithScheme(
+		scheme,
+		machine,
+		machineDifferentClusterNameSameNamespace,
+		machineSameClusterNameDifferentNamespace,
+	)
+
+	machines, err := GetMachinesForCluster(context.Background(), c, cluster)
+	if err != nil {
+		t.Fatalf("failed to get machines for cluster: %s", err)
+	}
+	if len(machines.Items) != 1 {
+		t.Fatalf("expected list to have one machine, found %d", len(machines.Items))
+	}
+	if machines.Items[0].Labels[clusterv1.ClusterLabelName] != cluster.Name {
+		t.Fatalf("expected list to have machine %v, found %v", machine, machines.Items[0])
+	}
+}

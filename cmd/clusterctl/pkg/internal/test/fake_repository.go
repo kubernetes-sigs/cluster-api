@@ -20,6 +20,9 @@ import (
 	"fmt"
 
 	"github.com/pkg/errors"
+	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/runtime/serializer"
+	clusterctlv1 "sigs.k8s.io/cluster-api/cmd/clusterctl/api/v1alpha3"
 )
 
 type FakeRepository struct {
@@ -92,6 +95,31 @@ func (f *FakeRepository) WithVersions(version ...string) *FakeRepository {
 		f.versions[v] = true
 	}
 	return f
+}
+
+func (f *FakeRepository) WithMetadata(version string, metadata *clusterctlv1.Metadata) *FakeRepository {
+	scheme := runtime.NewScheme()
+	if err := clusterctlv1.AddToScheme(scheme); err != nil {
+		panic(err)
+	}
+
+	codecs := serializer.NewCodecFactory(scheme)
+
+	mediaType := "application/yaml"
+	info, match := runtime.SerializerInfoForMediaType(codecs.SupportedMediaTypes(), mediaType)
+	if !match {
+		panic("failed to get SerializerInfo for application/yaml")
+	}
+
+	metadata.SetGroupVersionKind(clusterctlv1.GroupVersion.WithKind("Metadata"))
+
+	encoder := codecs.EncoderForVersion(info.Serializer, metadata.GroupVersionKind().GroupVersion())
+	data, err := runtime.Encode(encoder, metadata)
+	if err != nil {
+		panic(err)
+	}
+
+	return f.WithFile(version, "metadata.yaml", data)
 }
 
 func vpath(version string, path string) string {

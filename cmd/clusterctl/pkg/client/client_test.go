@@ -268,8 +268,13 @@ func (f fakeRepositoryClient) GetVersions() ([]string, error) {
 func (f fakeRepositoryClient) Components() repository.ComponentsClient {
 	return f.client.Components()
 }
+
 func (f fakeRepositoryClient) Templates(version string) repository.TemplatesClient {
 	return f.client.Templates(version)
+}
+
+func (f fakeRepositoryClient) Metadata(version string) repository.MetadataClient {
+	return f.client.Metadata(version)
 }
 
 func (f *fakeRepositoryClient) WithPaths(rootPath, componentsPath string) *fakeRepositoryClient {

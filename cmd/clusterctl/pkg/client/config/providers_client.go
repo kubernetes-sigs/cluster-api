@@ -61,10 +61,10 @@ func newProvidersClient(reader Reader) *providersClient {
 
 func (p *providersClient) defaults() []Provider {
 
-	// clusterctl includes an hard-coded list of "default" providers in order to provide to the users the simplest
-	// out-of-box experience. Other providers can be added by using the clusterctl configuration file.
+	// clusterctl includes a predefined list of Cluster API providers sponsored by SIG-cluster-lifecycle to provide users the simplest
+	// out-of-box experience. This is an opt-in feature; other providers can be added by using the clusterctl configuration file.
 
-	// if you are a developer of a community maintained provider, you can send a PR to extend the following list.
+	// if you are a developer of a SIG-cluster-lifecycle project, you can send a PR to extend the following list.
 
 	defaults := []Provider{
 		// cluster API core provider

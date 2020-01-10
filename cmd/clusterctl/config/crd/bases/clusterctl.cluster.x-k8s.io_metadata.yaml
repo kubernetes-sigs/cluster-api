@@ -1,0 +1,63 @@
+
+---
+apiVersion: apiextensions.k8s.io/v1beta1
+kind: CustomResourceDefinition
+metadata:
+  annotations:
+    controller-gen.kubebuilder.io/version: v0.2.4
+  creationTimestamp: null
+  name: metadata.clusterctl.cluster.x-k8s.io
+spec:
+  group: clusterctl.cluster.x-k8s.io
+  names:
+    kind: Metadata
+    listKind: MetadataList
+    plural: metadata
+    singular: metadata
+  preserveUnknownFields: false
+  scope: Namespaced
+  validation:
+    openAPIV3Schema:
+      description: Metadata for a provider repository
+      properties:
+        apiVersion:
+          description: 'APIVersion defines the versioned schema of this representation
+            of an object. Servers should convert recognized schemas to the latest
+            internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources'
+          type: string
+        kind:
+          description: 'Kind is a string value representing the REST resource this
+            object represents. Servers may infer this from the endpoint the client
+            submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds'
+          type: string
+        metadata:
+          type: object
+        releaseSeries:
+          items:
+            description: ReleaseSeries maps a provider release series (major/minor)
+              with a ClusterAPIVersion
+            properties:
+              clusterAPIVersion:
+                description: ClusterAPIVersion indicates the cluster API supported
+                  version.
+                type: string
+              major:
+                description: Major version of the release series
+                type: integer
+              minor:
+                description: Minor version of the release series
+                type: integer
+            type: object
+          type: array
+      type: object
+  version: v1alpha3
+  versions:
+  - name: v1alpha3
+    served: true
+    storage: true
+status:
+  acceptedNames:
+    kind: ""
+    plural: ""
+  conditions: []
+  storedVersions: []

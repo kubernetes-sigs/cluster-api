@@ -102,7 +102,7 @@ def get_home():
 def write_local_override(provider, version, components_file, components_yaml):
     try:
         home = get_home()
-        overrides_folder = os.path.join(home, 'cluster-api', 'overrides')
+        overrides_folder = os.path.join(home, '.cluster-api', 'overrides')
         provider_overrides_folder = os.path.join(overrides_folder, provider, version)
         try:
             os.makedirs(provider_overrides_folder)

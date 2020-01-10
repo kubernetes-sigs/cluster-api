@@ -35,7 +35,7 @@ Next, create a `tilt-settings.json` file and place it in your local copy of `clu
   "allowed_contexts": ["kind-kind"],
   "default_registry": "gcr.io/your-project-name-here",
   "provider_repos": ["../cluster-api-provider-aws"],
-  "enable_providers": ["aws", "docker"]
+  "enable_providers": ["aws", "docker", "kubeadm-bootstrap", "kubeadm-control-plane"]
 }
 ```
 

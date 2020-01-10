@@ -29,7 +29,7 @@ import (
 
 const (
 	ClusterAPIName               = "cluster-api"
-	KubeadmBootstrapProviderName = "kubeadm"
+	KubeadmBootstrapProviderName = "kubeadm-bootstrap"
 	ProvidersConfigKey           = "providers"
 )
 
@@ -70,11 +70,11 @@ func (p *providersClient) defaults() []Provider {
 		// cluster API core provider
 		&provider{
 			name:         ClusterAPIName,
-			url:          "https://github.com/kubernetes-sigs/cluster-api/releases/latest/cluster-api-components.yaml",
+			url:          "https://github.com/kubernetes-sigs/cluster-api/releases/latest/core-components.yaml",
 			providerType: clusterctlv1.CoreProviderType,
 		},
 
-		// Infrastructure providersClient
+		// Infrastructure providers
 		&provider{
 			name:         "aws",
 			url:          "https://github.com/kubernetes-sigs/cluster-api-provider-aws/releases/latest/infrastructure-components.yaml",
@@ -91,11 +91,10 @@ func (p *providersClient) defaults() []Provider {
 			providerType: clusterctlv1.InfrastructureProviderType,
 		},
 
-		// Bootstrap providersClient
-		// TODO: CABPK in v1alpha3 will be included into CAPI, so this entry can be removed as soon as v1alpha3 is ready for test
+		// Bootstrap providers
 		&provider{
 			name:         KubeadmBootstrapProviderName,
-			url:          "https://github.com/kubernetes-sigs/cluster-api-bootstrap-provider-kubeadm/releases/latest/bootstrap-components.yaml",
+			url:          "https://github.com/kubernetes-sigs/cluster-api/releases/latest/bootstrap-components.yaml",
 			providerType: clusterctlv1.BootstrapProviderType,
 		},
 	}

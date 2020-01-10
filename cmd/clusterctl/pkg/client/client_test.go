@@ -269,7 +269,7 @@ func (f fakeRepositoryClient) Components() repository.ComponentsClient {
 	return f.client.Components()
 }
 
-func (f fakeRepositoryClient) Templates(version string) repository.TemplatesClient {
+func (f fakeRepositoryClient) Templates(version string) repository.TemplateClient {
 	return f.client.Templates(version)
 }
 

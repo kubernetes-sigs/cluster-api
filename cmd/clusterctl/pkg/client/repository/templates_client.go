@@ -32,7 +32,7 @@ type TemplateOptions struct {
 	WorkerCount       int
 }
 
-// TemplatesClient has methods to work with templatesClient hosted on a provider repository.
+// TemplatesClient has methods to work with cluster templates hosted on a provider repository.
 // Templates are yaml files to be used for creating a guest cluster.
 type TemplatesClient interface {
 	Get(flavor, bootstrap string, options TemplateOptions) (Template, error)

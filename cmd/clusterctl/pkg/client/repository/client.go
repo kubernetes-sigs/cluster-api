@@ -44,6 +44,9 @@ type Client interface {
 	// Templates provide access to YAML file for generating workload cluster templates.
 	// Please note that templates are expected to exist for the infrastructure providers only.
 	Templates(version string) TemplatesClient
+
+	// Metadata provide access to YAML with the provider's metadata.
+	Metadata(version string) MetadataClient
 }
 
 // repositoryClient implements Client.
@@ -66,6 +69,10 @@ func (c *repositoryClient) Components() ComponentsClient {
 
 func (c *repositoryClient) Templates(version string) TemplatesClient {
 	return newTemplatesClient(c.Provider, version, c.repository, c.configVariablesClient)
+}
+
+func (c *repositoryClient) Metadata(version string) MetadataClient {
+	return newMetadataClient(c.Provider, version, c.repository)
 }
 
 // NewOptions carries the options supported by New

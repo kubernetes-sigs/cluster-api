@@ -23,6 +23,7 @@ import (
 
 	"github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
@@ -42,6 +43,12 @@ func Get(c client.Client, ref *corev1.ObjectReference, namespace string) (*unstr
 
 // CloneTemplate uses the client and the reference to create a new object from the template.
 func CloneTemplate(c client.Client, ref *corev1.ObjectReference, namespace string) (*unstructured.Unstructured, error) {
+	return CloneTemplateWithOwner(c, ref, namespace, nil)
+}
+
+// CloneTemplateWithOwner uses the client and the reference to create a new object, owned by the
+// indicated resource, from the supplied template.
+func CloneTemplateWithOwner(c client.Client, ref *corev1.ObjectReference, namespace string, owner *metav1.OwnerReference) (*unstructured.Unstructured, error) {
 	from, err := Get(c, ref, namespace)
 	if err != nil {
 		return nil, err
@@ -56,13 +63,16 @@ func CloneTemplate(c client.Client, ref *corev1.ObjectReference, namespace strin
 	// Create the unstructured object from the template.
 	to := &unstructured.Unstructured{Object: template}
 	to.SetResourceVersion("")
-	to.SetOwnerReferences(nil)
 	to.SetFinalizers(nil)
 	to.SetUID("")
 	to.SetSelfLink("")
 	to.SetName("")
 	to.SetGenerateName(fmt.Sprintf("%s-", from.GetName()))
 	to.SetNamespace(namespace)
+
+	if owner != nil {
+		to.SetOwnerReferences([]metav1.OwnerReference{*owner})
+	}
 
 	// Set the object APIVersion.
 	if to.GetAPIVersion() == "" {

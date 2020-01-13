@@ -16,13 +16,15 @@ limitations under the License.
 
 package v1alpha3
 
-func (*Cluster) Hub()               {}
-func (*ClusterList) Hub()           {}
-func (*Machine) Hub()               {}
-func (*MachineList) Hub()           {}
-func (*MachineSet) Hub()            {}
-func (*MachineSetList) Hub()        {}
-func (*MachineDeployment) Hub()     {}
-func (*MachineDeploymentList) Hub() {}
-func (*MachinePool) Hub()           {}
-func (*MachinePoolList) Hub()       {}
+func (*Cluster) Hub()                {}
+func (*ClusterList) Hub()            {}
+func (*Machine) Hub()                {}
+func (*MachineList) Hub()            {}
+func (*MachineSet) Hub()             {}
+func (*MachineSetList) Hub()         {}
+func (*MachineDeployment) Hub()      {}
+func (*MachineDeploymentList) Hub()  {}
+func (*MachineHealthCheck) Hub()     {}
+func (*MachineHealthCheckList) Hub() {}
+func (*MachinePool) Hub()            {}
+func (*MachinePoolList) Hub()        {}

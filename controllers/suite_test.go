@@ -126,6 +126,11 @@ var _ = BeforeSuite(func(done Done) {
 		Log:      log.Log,
 		recorder: mgr.GetEventRecorderFor("machinedeployment-controller"),
 	}).SetupWithManager(mgr, controller.Options{MaxConcurrentReconciles: 1})).To(Succeed())
+	Expect((&MachineHealthCheckReconciler{
+		Client:   k8sClient,
+		Log:      log.Log,
+		recorder: mgr.GetEventRecorderFor("machinehealthcheck-controller"),
+	}).SetupWithManager(mgr, controller.Options{MaxConcurrentReconciles: 1})).To(Succeed())
 
 	By("starting the manager")
 	go func() {

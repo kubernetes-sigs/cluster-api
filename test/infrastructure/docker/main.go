@@ -30,6 +30,7 @@ import (
 	infrav1 "sigs.k8s.io/cluster-api/test/infrastructure/docker/api/v1alpha3"
 	"sigs.k8s.io/cluster-api/test/infrastructure/docker/controllers"
 	ctrl "sigs.k8s.io/controller-runtime"
+	"sigs.k8s.io/controller-runtime/pkg/controller"
 	// +kubebuilder:scaffold:imports
 )
 
@@ -50,7 +51,9 @@ func main() {
 	var metricsAddr string
 	var enableLeaderElection bool
 	var syncPeriod time.Duration
+	var concurrency int
 	flag.StringVar(&metricsAddr, "metrics-addr", ":8080", "The address the metric endpoint binds to.")
+	flag.IntVar(&concurrency, "concurrency", 10, "The number of docker machines to process simultaneously")
 	flag.BoolVar(&enableLeaderElection, "enable-leader-election", false,
 		"Enable leader election for controller manager. Enabling this will ensure there is only one active controller manager.")
 	flag.DurationVar(&syncPeriod, "sync-period", 10*time.Minute,
@@ -74,7 +77,9 @@ func main() {
 	if err := (&controllers.DockerMachineReconciler{
 		Client: mgr.GetClient(),
 		Log:    ctrl.Log.WithName("controllers").WithName("DockerMachine"),
-	}).SetupWithManager(mgr); err != nil {
+	}).SetupWithManager(mgr, controller.Options{
+		MaxConcurrentReconciles: concurrency,
+	}); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "reconciler")
 		os.Exit(1)
 	}

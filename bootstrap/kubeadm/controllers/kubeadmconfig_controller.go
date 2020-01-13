@@ -130,12 +130,15 @@ func (r *KubeadmConfigReconciler) Reconcile(req ctrl.Request) (_ ctrl.Result, re
 
 	// Look up the owner of this KubeConfig if there is one
 	configOwner, err := bsutil.GetConfigOwner(ctx, r.Client, config.ObjectMeta)
+	if apierrors.IsNotFound(err) {
+		// Could not find the owner yet, this is not an error and will rereconcile when the owner gets set.
+		return ctrl.Result{}, nil
+	}
 	if err != nil {
-		log.Error(err, "could not get owner")
+		log.Error(err, "failed to get owner")
 		return ctrl.Result{}, err
 	}
 	if configOwner == nil {
-		log.Info("Waiting for the configuration owner's controller to set OwnerRef on the KubeadmConfig")
 		return ctrl.Result{}, nil
 	}
 	log = log.WithValues("kind", configOwner.GetKind(), "version", configOwner.GetResourceVersion(), "name", configOwner.GetName())
@@ -180,36 +183,38 @@ func (r *KubeadmConfigReconciler) Reconcile(req ctrl.Request) (_ ctrl.Result, re
 			return ctrl.Result{}, err
 		}
 		return ctrl.Result{}, patchHelper.Patch(ctx, config)
-	// Return early if the configuration and Machine's infrastructure are ready.
-	case config.Status.Ready && configOwner.IsInfrastructureReady():
-		return ctrl.Result{}, nil
 	// Reconcile status for machines that already have a secret reference, but our status isn't up to date.
 	// This case solves the pivoting scenario (or a backup restore) which doesn't preserve the status subresource on objects.
 	case configOwner.DataSecretName() != nil && (!config.Status.Ready || config.Status.DataSecretName == nil):
 		config.Status.Ready = true
 		config.Status.DataSecretName = configOwner.DataSecretName()
 		return ctrl.Result{}, patchHelper.Patch(ctx, config)
-	// If we've already embedded a time-limited join token into a config, but are still waiting for the token to be used, refresh it
-	case config.Status.Ready && (config.Spec.JoinConfiguration != nil && config.Spec.JoinConfiguration.Discovery.BootstrapToken != nil):
-		token := config.Spec.JoinConfiguration.Discovery.BootstrapToken.Token
+	// Status is ready means a config has been generated.
+	case config.Status.Ready:
+		// If the BootstrapToken has been generated for a join and the infrastructure is not ready.
+		// This indicates the token in the join config has not been consumed and it may need a refresh.
+		if (config.Spec.JoinConfiguration != nil && config.Spec.JoinConfiguration.Discovery.BootstrapToken != nil) && !configOwner.IsInfrastructureReady() {
 
-		remoteClient, err := r.remoteClient(r.Client, cluster, r.scheme)
-		if err != nil {
-			log.Error(err, "error creating remote cluster client")
-			return ctrl.Result{}, err
-		}
+			token := config.Spec.JoinConfiguration.Discovery.BootstrapToken.Token
 
-		log.Info("refreshing token until the infrastructure has a chance to consume it")
-		err = refreshToken(remoteClient, token)
-		if err != nil {
-			// It would be nice to re-create the bootstrap token if the error was "not found", but we have no way to update the Machine's bootstrap data
-			return ctrl.Result{}, errors.Wrapf(err, "failed to refresh bootstrap token")
+			remoteClient, err := r.remoteClient(r.Client, cluster, r.scheme)
+			if err != nil {
+				log.Error(err, "error creating remote cluster client")
+				return ctrl.Result{}, err
+			}
+
+			log.Info("refreshing token until the infrastructure has a chance to consume it")
+			err = refreshToken(remoteClient, token)
+			if err != nil {
+				// It would be nice to re-create the bootstrap token if the error was "not found", but we have no way to update the Machine's bootstrap data
+				return ctrl.Result{}, errors.Wrapf(err, "failed to refresh bootstrap token")
+			}
+			// NB: this may not be sufficient to keep the token live if we don't see it before it expires, but when we generate a config we will set the status to "ready" which should generate an update event
+			return ctrl.Result{
+				RequeueAfter: DefaultTokenTTL / 2,
+			}, nil
 		}
-		// NB: this may not be sufficient to keep the token live if we don't see it before it expires, but when we generate a config we will set the status to "ready" which should generate an update event
-		return ctrl.Result{
-			RequeueAfter: DefaultTokenTTL / 2,
-		}, nil
-	case config.Status.DataSecretName != nil:
+		// In any other case just return as the config is already generated and need not be generated again.
 		return ctrl.Result{}, nil
 	}
 

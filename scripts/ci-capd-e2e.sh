@@ -30,8 +30,30 @@ source "${REPO_ROOT}/hack/ensure-kubectl.sh"
 # shellcheck source=./hack/ensure-kustomize.sh
 source "${REPO_ROOT}/hack/ensure-kustomize.sh"
 
+# Set a registry that is not a valid image registry.
+# This makes it very clear the images being used on the cluster are built locally.
+export REGISTRY=ci-registry
+export CORE_IMAGE_NAME=core-manager
+export KUBEADM_BOOTSTRAP_IMAGE_NAME=kubeadm-bootstrap-manager
+export KUBEADM_CONTROL_PLANE_IMAGE_NAME=kubeadm-control-plane-manager
+export DOCKER_MANAGER_IMAGE=docker-provider-manager
+export TAG=ci
+export ARCH=amd64
+
+# Build the managers from local files.
+IMAGE_NAME=${CORE_IMAGE_NAME} make docker-build
+
 ARTIFACTS="${ARTIFACTS:-${PWD}/_artifacts}"
 mkdir -p "$ARTIFACTS/logs/"
 
+# Update the images used in the e2e tests.
+# This will load the images built above into the kind cluster that runs the managers.
+export CAPI_IMAGE=${REGISTRY}/${CORE_IMAGE_NAME}-${ARCH}:${TAG}
+export CAPI_KUBEADM_BOOTSTRAP_IMAGE=${REGISTRY}/${KUBEADM_BOOTSTRAP_IMAGE_NAME}-${ARCH}:${TAG}
+export CAPI_KUBEADM_CONTROL_PLANE_IMAGE=${REGISTRY}/${KUBEADM_CONTROL_PLANE_IMAGE_NAME}-${ARCH}:${TAG}
+export MANAGER_IMAGE=${REGISTRY}/${DOCKER_MANAGER_IMAGE}-${ARCH}:${TAG}
+
 echo "*** Testing Cluster API Provider Docker e2es ***"
-cd "${REPO_ROOT}/test/infrastructure/docker" && ARTIFACTS="${ARTIFACTS}" make test-e2e
+cd "${REPO_ROOT}/test/infrastructure/docker"
+CONTROLLER_IMG=${REGISTRY}/${DOCKER_MANAGER_IMAGE} make docker-build
+ARTIFACTS="${ARTIFACTS}" make run-e2e

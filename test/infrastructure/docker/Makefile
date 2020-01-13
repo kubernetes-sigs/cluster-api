@@ -68,10 +68,28 @@ help:  ## Display this help
 test: ## Run tests
 	go test -v ./...
 
-test-e2e: ## Run the end-to-end tests
-	$(MAKE) docker-build REGISTRY=$(STAGING_REGISTRY)
-	MANAGER_IMAGE=$(STAGING_REGISTRY)/$(IMAGE_NAME)-$(ARCH):$(TAG) go test ./e2e -v -ginkgo.v -ginkgo.trace -count=1 -timeout=20m -tags=e2e
+# core
+CORE_IMAGE_NAME ?= cluster-api-controller
+CORE_CONTROLLER_IMG ?= $(REGISTRY)/$(CORE_IMAGE_NAME)-$(ARCH):$(TAG)
 
+# bootstrap
+KUBEADM_BOOTSTRAP_IMAGE_NAME ?= kubeadm-bootstrap-controller
+KUBEADM_BOOTSTRAP_CONTROLLER_IMG ?= $(REGISTRY)/$(KUBEADM_BOOTSTRAP_IMAGE_NAME)-$(ARCH):$(TAG)
+
+# control plane
+KUBEADM_CONTROL_PLANE_IMAGE_NAME ?= kubeadm-control-plane-controller
+KUBEADM_CONTROL_PLANE_CONTROLLER_IMG ?= $(REGISTRY)/$(KUBEADM_CONTROL_PLANE_IMAGE_NAME)-$(ARCH):$(TAG)
+
+test-e2e: ## Run the end-to-end tests
+	$(MAKE) docker-build
+	MANAGER_IMAGE=$(CONTROLLER_IMG)-$(ARCH):$(TAG) \
+		CAPI_IMAGE=$(CORE_CONTROLLER_IMG) \
+		CAPI_KUBEADM_BOOTSTRAP_IMAGE=$(KUBEADM_BOOTSTRAP_CONTROLLER_IMG) \
+		CAPI_KUBEADM_CONTROL_PLANE_IMAGE=$(KUBEADM_CONTROL_PLANE_CONTROLLER_IMG) \
+		$(MAKE) run-e2e
+
+run-e2e:
+	go test ./e2e -v -ginkgo.v -ginkgo.trace -count=1 -timeout=20m -tags=e2e
 
 ## --------------------------------------
 ## Binaries

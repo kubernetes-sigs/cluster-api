@@ -136,7 +136,7 @@ type NodeGenerator struct {
 
 func (n *NodeGenerator) GenerateNode(clusterName string) framework.Node {
 	namespace := "default"
-	version := "v1.15.3"
+	version := "v1.16.3"
 	generatedName := fmt.Sprintf("controlplane-%d", n.counter)
 	n.counter++
 	infraMachine := &infrav1.DockerMachine{

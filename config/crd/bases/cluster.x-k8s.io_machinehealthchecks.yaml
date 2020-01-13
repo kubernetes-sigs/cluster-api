@@ -1,0 +1,167 @@
+
+---
+apiVersion: apiextensions.k8s.io/v1beta1
+kind: CustomResourceDefinition
+metadata:
+  annotations:
+    controller-gen.kubebuilder.io/version: v0.2.4
+  creationTimestamp: null
+  name: machinehealthchecks.cluster.x-k8s.io
+spec:
+  additionalPrinterColumns:
+  - JSONPath: .spec.maxUnhealthy
+    description: Maximum number of unhealthy machines allowed
+    name: MaxUnhealthy
+    type: string
+  - JSONPath: .status.expectedMachines
+    description: Number of machines currently monitored
+    name: ExpectedMachines
+    type: integer
+  - JSONPath: .status.currentHealthy
+    description: Current observed healthy machines
+    name: CurrentHealthy
+    type: integer
+  group: cluster.x-k8s.io
+  names:
+    categories:
+    - cluster-api
+    kind: MachineHealthCheck
+    listKind: MachineHealthCheckList
+    plural: machinehealthchecks
+    shortNames:
+    - mhc
+    - mhcs
+    singular: machinehealthcheck
+  preserveUnknownFields: false
+  scope: Namespaced
+  subresources:
+    status: {}
+  validation:
+    openAPIV3Schema:
+      description: MachineHealthCheck is the Schema for the machinehealthchecks API
+      properties:
+        apiVersion:
+          description: 'APIVersion defines the versioned schema of this representation
+            of an object. Servers should convert recognized schemas to the latest
+            internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources'
+          type: string
+        kind:
+          description: 'Kind is a string value representing the REST resource this
+            object represents. Servers may infer this from the endpoint the client
+            submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds'
+          type: string
+        metadata:
+          type: object
+        spec:
+          description: Specification of machine health check policy
+          properties:
+            maxUnhealthy:
+              anyOf:
+              - type: integer
+              - type: string
+              description: Any farther remediation is only allowed if at most "MaxUnhealthy"
+                machines selected by "selector" are not healthy.
+              x-kubernetes-int-or-string: true
+            selector:
+              description: Label selector to match machines whose health will be exercised
+              properties:
+                matchExpressions:
+                  description: matchExpressions is a list of label selector requirements.
+                    The requirements are ANDed.
+                  items:
+                    description: A label selector requirement is a selector that contains
+                      values, a key, and an operator that relates the key and values.
+                    properties:
+                      key:
+                        description: key is the label key that the selector applies
+                          to.
+                        type: string
+                      operator:
+                        description: operator represents a key's relationship to a
+                          set of values. Valid operators are In, NotIn, Exists and
+                          DoesNotExist.
+                        type: string
+                      values:
+                        description: values is an array of string values. If the operator
+                          is In or NotIn, the values array must be non-empty. If the
+                          operator is Exists or DoesNotExist, the values array must
+                          be empty. This array is replaced during a strategic merge
+                          patch.
+                        items:
+                          type: string
+                        type: array
+                    required:
+                    - key
+                    - operator
+                    type: object
+                  type: array
+                matchLabels:
+                  additionalProperties:
+                    type: string
+                  description: matchLabels is a map of {key,value} pairs. A single
+                    {key,value} in the matchLabels map is equivalent to an element
+                    of matchExpressions, whose key field is "key", the operator is
+                    "In", and the values array contains only "value". The requirements
+                    are ANDed.
+                  type: object
+              type: object
+            unhealthyConditions:
+              description: UnhealthyConditions contains a list of the conditions that
+                determine whether a node is considered unhealthy.  The conditions
+                are combined in a logical OR, i.e. if any of the conditions is met,
+                the node is unhealthy.
+              items:
+                description: UnhealthyCondition represents a Node condition type and
+                  value with a timeout specified as a duration.  When the named condition
+                  has been in the given status for at least the timeout value, a node
+                  is considered unhealthy.
+                properties:
+                  status:
+                    minLength: 1
+                    type: string
+                  timeout:
+                    minLength: 1
+                    type: string
+                  type:
+                    minLength: 1
+                    type: string
+                required:
+                - status
+                - timeout
+                - type
+                type: object
+              minItems: 1
+              type: array
+          required:
+          - selector
+          - unhealthyConditions
+          type: object
+        status:
+          description: Most recently observed status of MachineHealthCheck resource
+          properties:
+            currentHealthy:
+              description: total number of healthy machines counted by this machine
+                health check
+              minimum: 0
+              type: integer
+            expectedMachines:
+              description: total number of machines counted by this machine health
+                check
+              minimum: 0
+              type: integer
+          required:
+          - currentHealthy
+          - expectedMachines
+          type: object
+      type: object
+  version: v1alpha3
+  versions:
+  - name: v1alpha3
+    served: true
+    storage: true
+status:
+  acceptedNames:
+    kind: ""
+    plural: ""
+  conditions: []
+  storedVersions: []

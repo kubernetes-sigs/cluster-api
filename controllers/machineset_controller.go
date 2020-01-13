@@ -31,6 +31,7 @@ import (
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/runtime"
+	kerrors "k8s.io/apimachinery/pkg/util/errors"
 	"k8s.io/client-go/tools/record"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha3"
 	"sigs.k8s.io/cluster-api/controllers/external"
@@ -399,14 +400,14 @@ func (r *MachineSetReconciler) syncReplicas(ctx context.Context, ms *clusterv1.M
 			}(machine)
 		}
 		wg.Wait()
+		close(errCh)
 
-		select {
-		case err := <-errCh:
-			// all errors have been reported before and they're likely to be the same, so we'll only return the first one we hit.
-			if err != nil {
-				return err
-			}
-		default:
+		var errs []error
+		for err := range errCh {
+			errs = append(errs, err)
+		}
+		if len(errs) > 0 {
+			return kerrors.NewAggregate(errs)
 		}
 
 		return r.waitForMachineDeletion(machinesToDelete)

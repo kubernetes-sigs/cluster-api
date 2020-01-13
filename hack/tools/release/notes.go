@@ -20,6 +20,7 @@ package main
 
 import (
 	"bytes"
+	"flag"
 	"fmt"
 	"os"
 	"os/exec"
@@ -51,13 +52,19 @@ var (
 		other,
 		unknown,
 	}
+
+	fromTag = flag.String("from", "", "The tag or commit to start from.")
 )
 
 func main() {
+	flag.Parse()
 	os.Exit(run())
 }
 
 func lastTag() string {
+	if fromTag != nil && *fromTag != "" {
+		return *fromTag
+	}
 	cmd := exec.Command("git", "describe", "--tags", "--abbrev=0")
 	out, err := cmd.Output()
 	if err != nil {
@@ -93,50 +100,59 @@ func run() int {
 		fmt.Println(string(out))
 		return 1
 	}
-	commits := []commit{}
+
+	commits := []*commit{}
 	outLines := strings.Split(string(out), "\n")
-	c := commit{}
-	for i := 0; i < len(outLines); i++ {
-		line := strings.TrimSpace(outLines[i])
+	for _, line := range outLines {
+		line = strings.TrimSpace(line)
+		last := len(commits) - 1
 		switch {
 		case strings.HasPrefix(line, "commit"):
-			commits = append(commits, c)
-			c = commit{}
+			commits = append(commits, &commit{})
 		case strings.HasPrefix(line, "Merge"):
-			c.merge = line
+			commits[last].merge = line
 			continue
 		case line == "":
 		default:
-			c.body = line
+			commits[last].body = line
 		}
 	}
+
 	for _, c := range commits {
-		firstWord := strings.Split(c.body, " ")[0]
+		body := strings.TrimSpace(c.body)
 		var key, prNumber, fork string
 		switch {
-		case strings.HasPrefix(firstWord, ":sparkles:"), strings.HasPrefix(firstWord, "✨"):
+		case strings.HasPrefix(body, ":sparkles:"), strings.HasPrefix(body, "✨"):
 			key = features
-		case strings.HasPrefix(firstWord, ":bug:"), strings.HasPrefix(firstWord, "🐛"):
+			body = strings.TrimPrefix(body, ":sparkles:")
+			body = strings.TrimPrefix(body, "✨")
+		case strings.HasPrefix(body, ":bug:"), strings.HasPrefix(body, "🐛"):
 			key = bugs
-		case strings.HasPrefix(firstWord, ":book:"), strings.HasPrefix(firstWord, "📖"):
+			body = strings.TrimPrefix(body, ":bug:")
+			body = strings.TrimPrefix(body, "🐛")
+		case strings.HasPrefix(body, ":book:"), strings.HasPrefix(body, "📖"):
 			key = documentation
-		case strings.HasPrefix(firstWord, ":running:"), strings.HasPrefix(firstWord, "🏃"):
+			body = strings.TrimPrefix(body, ":book:")
+			body = strings.TrimPrefix(body, "📖")
+		case strings.HasPrefix(body, ":running:"), strings.HasPrefix(body, "🏃"):
 			key = other
-		case strings.HasPrefix(firstWord, ":warning:"), strings.HasPrefix(firstWord, "⚠️"):
+			body = strings.TrimPrefix(body, ":running:")
+			body = strings.TrimPrefix(body, "🏃")
+		case strings.HasPrefix(body, ":warning:"), strings.HasPrefix(body, "⚠️"):
 			key = warning
+			body = strings.TrimPrefix(body, ":warning:")
+			body = strings.TrimPrefix(body, "⚠️")
 		default:
 			key = unknown
 		}
 
-		if key != unknown {
-			c.body = c.body[len(firstWord):]
-		}
-		if strings.TrimSpace(c.body) == "" {
+		body = strings.TrimSpace(body)
+		if body == "" {
 			continue
 		}
-		c.body = fmt.Sprintf("- %s", strings.TrimSpace(c.body))
+		body = fmt.Sprintf("- %s", body)
 		fmt.Sscanf(c.merge, "Merge pull request %s from %s", &prNumber, &fork)
-		merges[key] = append(merges[key], formatMerge(c.body, prNumber))
+		merges[key] = append(merges[key], formatMerge(body, prNumber))
 	}
 
 	// TODO Turn this into a link (requires knowing the project name + organization)
@@ -144,13 +160,17 @@ func run() int {
 
 	for _, key := range outputOrder {
 		mergeslice := merges[key]
-		fmt.Println("## " + key)
-		for _, merge := range mergeslice {
-			fmt.Println(merge)
+		if len(mergeslice) > 0 {
+			fmt.Println("## " + key)
+			for _, merge := range mergeslice {
+				fmt.Println(merge)
+			}
+			fmt.Println()
 		}
-		fmt.Println()
 	}
 
+	fmt.Println("The image for this release is: `<ADD_IMAGE_HERE>`.")
+	fmt.Println("")
 	fmt.Println("_Thanks to all our contributors!_ 😊")
 
 	return 0

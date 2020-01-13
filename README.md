@@ -48,7 +48,7 @@ See also: our own [contributor guide] and the Kubernetes [community page].
 Participation in the Kubernetes community is governed by the [Kubernetes Code of Conduct].
 
 [community page]: https://kubernetes.io/community
-[Kubernetes Code of Conduct]: code-of-conduct.md
+[Kubernetes Code of Conduct]: https://github.com/kubernetes-sigs/cluster-api/blob/master/code-of-conduct.md
 [notes]: https://docs.google.com/document/d/1Ys-DOR5UsgbMEeciuG0HOgDQc8kZsaWIWJeKJ1-UfbY/edit
 [recordings]: https://www.youtube.com/playlist?list=PL69nYSiGNLP29D0nYgAGWt1ZFqS9Z7lw4
 [zoomMeeting]: https://zoom.us/j/861487554
@@ -56,7 +56,7 @@ Participation in the Kubernetes community is governed by the [Kubernetes Code of
 [providerZoomMeetingTues]: https://zoom.us/j/140808484
 [providerZoomMeetingWed]: https://zoom.us/j/424743530
 [issue tracker]: https://github.com/kubernetes-sigs/cluster-api/issues
-[contributor guide]: CONTRIBUTING.md
+[contributor guide]: https://github.com/kubernetes-sigs/cluster-api/blob/master/CONTRIBUTING.md
 
 
 <!-- ANCHOR_END: Community -->

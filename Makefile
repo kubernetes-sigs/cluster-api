@@ -440,7 +440,7 @@ release-alias-tag: ## Adds the tag to the last build tag.
 	gcloud container images add-tag $(KUBEADM_CONTROL_PLANE_CONTROLLER_IMG):$(TAG) $(KUBEADM_CONTROL_PLANE_CONTROLLER_IMG):$(RELEASE_ALIAS_TAG)
 
 .PHONY: release-notes
-release-notes:  ## Generates a release notes template to be used with a release.
+release-notes: $(RELEASE_NOTES)  ## Generates a release notes template to be used with a release.
 	$(RELEASE_NOTES)
 
 ## --------------------------------------

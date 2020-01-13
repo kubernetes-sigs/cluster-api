@@ -39,6 +39,7 @@ TOOLS_DIR := hack/tools
 TOOLS_BIN_DIR := $(TOOLS_DIR)/bin
 BIN_DIR := bin
 E2E_FRAMEWORK_DIR := test/framework
+CAPD_DIR := test/infrastructure/docker
 RELEASE_NOTES_BIN := bin/release-notes
 RELEASE_NOTES := $(TOOLS_DIR)/$(RELEASE_NOTES_BIN)
 
@@ -278,6 +279,7 @@ modules: ## Runs go mod to ensure modules are up to date.
 	cd $(TOOLS_DIR); go mod tidy
 	cd $(E2E_FRAMEWORK_DIR); go mod tidy
 	cd test/e2e; go mod tidy
+	cd $(CAPD_DIR); $(MAKE) modules
 
 ## --------------------------------------
 ## Docker
@@ -490,6 +492,7 @@ verify:
 	./hack/verify-starlark.sh
 	$(MAKE) verify-modules
 	$(MAKE) verify-gen
+	$(MAKE) verify-docker-provider
 
 .PHONY: verify-modules
 verify-modules: modules
@@ -502,6 +505,11 @@ verify-gen: generate
 	@if !(git diff --quiet HEAD); then \
 		echo "generated files are out of date, run make generate"; exit 1; \
 	fi
+
+.PHONY: verify-docker-provider
+verify-docker-provider:
+	@echo "Verifying CAPD"
+	cd $(CAPD_DIR); $(MAKE) verify
 
 ## --------------------------------------
 ## Others / Utilities

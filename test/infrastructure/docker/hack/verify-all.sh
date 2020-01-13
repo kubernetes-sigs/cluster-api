@@ -37,49 +37,6 @@ failed=()
 outputs=()
 
 # run all verify scripts, optionally skipping any of them
-
-if [[ "${VERIFY_WHITESPACE:-true}" == "true" ]]; then
-  echo "[*] Verifying whitespace..."
-  out=$(hack/verify-whitespace.sh 2>&1)
-  failure $? "verify-whitespace.sh" "${out}"
-  cd "${REPO_PATH}" || exit
-fi
-
-if [[ "${VERIFY_SPELLING:-true}" == "true" ]]; then
-  echo "[*] Verifying spelling..."
-  out=$(hack/verify-spelling.sh 2>&1)
-  failure $? "verify-spelling.sh" "${out}"
-  cd "${REPO_PATH}" || exit
-fi
-
-if [[ "${VERIFY_GOFMT:-true}" == "true" ]]; then
-  echo "[*] Verifying gofmt..."
-  out=$(hack/verify-gofmt.sh 2>&1)
-  failure $? "verify-gofmt.sh" "${out}"
-  cd "${REPO_PATH}" || exit
-fi
-
-if [[ "${VERIFY_GOIMPORTS:-true}" == "true" ]]; then
-  echo "[*] Verifying goimports..."
-  out=$(hack/verify-goimports.sh 2>&1)
-  failure $? "verify-goimports.sh" "${out}"
-  cd "${REPO_PATH}" || exit
-fi
-
-if [[ "${VERIFY_GOLINT:-true}" == "true" ]]; then
-  echo "[*] Verifying golint..."
-  out=$(hack/verify-golint.sh 2>&1)
-  failure $? "verify-golint.sh" "${out}"
-  cd "${REPO_PATH}" || exit
-fi
-
-if [[ "${VERIFY_GOVET:-true}" == "true" ]]; then
-  echo "[*] Verifying govet..."
-  out=$(hack/verify-govet.sh 2>&1)
-  failure $? "verify-govet.sh" "${out}"
-  cd "${REPO_PATH}" || exit
-fi
-
 if [[ "${VERIFY_DEPS:-true}" == "true" ]]; then
   echo "[*] Verifying deps..."
   out=$(hack/verify-deps.sh 2>&1)
@@ -99,13 +56,6 @@ if [[ "${VERIFY_BUILD:-true}" == "true" ]]; then
   out=$(hack/verify-build.sh 2>&1)
   failure $? "verify-build.sh" "${out}"
   cd "${REPO_PATH}" || exit
-fi
-
-if [[ "${VERIFY_DOCKER_BUILD:-true}" == "true" ]]; then
- echo "[*] Verifying manager docker image build..."
- out=$(hack/verify-docker-build.sh 2>&1)
- failure $? "verify-docker-build.sh" "${out}"
- cd "${REPO_PATH}" || exit
 fi
 
 # exit based on verify scripts

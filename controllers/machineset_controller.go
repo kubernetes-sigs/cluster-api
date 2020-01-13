@@ -221,7 +221,7 @@ func (r *MachineSetReconciler) reconcile(ctx context.Context, cluster *clusterv1
 	syncErr := r.syncReplicas(ctx, machineSet, filteredMachines)
 
 	ms := machineSet.DeepCopy()
-	newStatus, err := r.calculateStatus(cluster, ms, filteredMachines)
+	newStatus, err := r.calculateStatus(ctx, cluster, ms, filteredMachines)
 	if err != nil {
 		return ctrl.Result{}, errors.Wrapf(err, "failed to calculate MachineSet's Status")
 	}
@@ -336,7 +336,7 @@ func (r *MachineSetReconciler) syncReplicas(ctx context.Context, ms *clusterv1.M
 			}
 			machine.Spec.InfrastructureRef = *infraRef
 
-			if err := r.Client.Create(context.TODO(), machine); err != nil {
+			if err := r.Client.Create(ctx, machine); err != nil {
 				logger.Error(err, "Unable to create Machine", "machine", machine.Name)
 				r.recorder.Eventf(ms, corev1.EventTypeWarning, "FailedCreate", "Failed to create machine %q: %v", machine.Name, err)
 				errstrings = append(errstrings, err.Error())
@@ -345,7 +345,7 @@ func (r *MachineSetReconciler) syncReplicas(ctx context.Context, ms *clusterv1.M
 				infraConfig.SetAPIVersion(infraRef.APIVersion)
 				infraConfig.SetNamespace(infraRef.Namespace)
 				infraConfig.SetName(infraRef.Name)
-				if err := r.Client.Delete(context.TODO(), infraConfig); !apierrors.IsNotFound(err) {
+				if err := r.Client.Delete(ctx, infraConfig); !apierrors.IsNotFound(err) {
 					logger.Error(err, "Failed to cleanup infrastructure configuration object after Machine creation error")
 				}
 				if bootstrapRef != nil {
@@ -354,7 +354,7 @@ func (r *MachineSetReconciler) syncReplicas(ctx context.Context, ms *clusterv1.M
 					bootstrapConfig.SetAPIVersion(bootstrapRef.APIVersion)
 					bootstrapConfig.SetNamespace(bootstrapRef.Namespace)
 					bootstrapConfig.SetName(bootstrapRef.Name)
-					if err := r.Client.Delete(context.TODO(), bootstrapConfig); !apierrors.IsNotFound(err) {
+					if err := r.Client.Delete(ctx, bootstrapConfig); !apierrors.IsNotFound(err) {
 						logger.Error(err, "Failed to cleanup bootstrap configuration object after Machine creation error")
 					}
 				}
@@ -592,7 +592,7 @@ func (r *MachineSetReconciler) shouldAdopt(ms *clusterv1.MachineSet) bool {
 	return !util.HasOwner(ms.OwnerReferences, clusterv1.GroupVersion.String(), []string{"MachineDeployment", "Cluster"})
 }
 
-func (r *MachineSetReconciler) calculateStatus(cluster *clusterv1.Cluster, ms *clusterv1.MachineSet, filteredMachines []*clusterv1.Machine) (*clusterv1.MachineSetStatus, error) {
+func (r *MachineSetReconciler) calculateStatus(ctx context.Context, cluster *clusterv1.Cluster, ms *clusterv1.MachineSet, filteredMachines []*clusterv1.Machine) (*clusterv1.MachineSetStatus, error) {
 	logger := r.Log.WithValues("machineset", ms.Name, "namespace", ms.Namespace)
 	newStatus := ms.Status.DeepCopy()
 
@@ -624,7 +624,7 @@ func (r *MachineSetReconciler) calculateStatus(cluster *clusterv1.Cluster, ms *c
 			continue
 		}
 
-		node, err := r.getMachineNode(cluster, machine)
+		node, err := r.getMachineNode(ctx, cluster, machine)
 		if err != nil {
 			logger.Error(err, "Unable to retrieve Node status")
 			continue
@@ -695,13 +695,13 @@ func (r *MachineSetReconciler) patchMachineSetStatus(ctx context.Context, ms *cl
 	return ms, nil
 }
 
-func (r *MachineSetReconciler) getMachineNode(cluster *clusterv1.Cluster, machine *clusterv1.Machine) (*corev1.Node, error) {
+func (r *MachineSetReconciler) getMachineNode(ctx context.Context, cluster *clusterv1.Cluster, machine *clusterv1.Machine) (*corev1.Node, error) {
 	c, err := remote.NewClusterClient(r.Client, cluster, r.scheme)
 	if err != nil {
 		return nil, err
 	}
 	node := &corev1.Node{}
-	if err := c.Get(context.TODO(), client.ObjectKey{Name: machine.Status.NodeRef.Name}, node); err != nil {
+	if err := c.Get(ctx, client.ObjectKey{Name: machine.Status.NodeRef.Name}, node); err != nil {
 		return nil, errors.Wrapf(err, "error retrieving node %s for machine %s/%s", machine.Status.NodeRef.Name, machine.Namespace, machine.Name)
 	}
 	return node, nil

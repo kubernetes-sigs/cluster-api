@@ -394,7 +394,7 @@ func (r *KubeadmControlPlaneReconciler) cleanupFromGeneration(ctx context.Contex
 			config.SetNamespace(ref.Namespace)
 			config.SetName(ref.Name)
 
-			if err := r.Client.Delete(ctx, config); !apierrors.IsNotFound(err) {
+			if err := r.Client.Delete(ctx, config); err != nil && !apierrors.IsNotFound(err) {
 				errs = append(errs, errors.Wrap(err, "failed to cleanup generated resources after error"))
 			}
 		}

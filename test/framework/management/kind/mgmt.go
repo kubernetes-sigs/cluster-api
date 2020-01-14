@@ -66,23 +66,31 @@ func NewClusterWithConfig(ctx context.Context, name, configFile string, scheme *
 }
 
 func create(ctx context.Context, cmd *exec.Command, name string, scheme *runtime.Scheme, images ...string) (*Cluster, error) {
+	f, err := ioutil.TempFile("", "mgmt-kubeconfig")
+	// if there is an error there will not be a file to clean up
+	if err != nil {
+		return nil, err
+	}
+	// After this point we have things to clean up, so always return a *Cluster
+
+	// Write the kubeconfig directly to the temp file
+	cmd.Args = append(cmd.Args, "--kubeconfig", f.Name())
+
+	// Make the cluster up front and always return it so Teardown can still run
+	c := &Cluster{
+		Name:                       name,
+		Scheme:                     scheme,
+		KubeconfigPath:             f.Name(),
+		WorkloadClusterKubeconfigs: make(map[string]string),
+	}
+
 	stdout, stderr, err := cmd.Run(ctx)
 	if err != nil {
 		fmt.Println(string(stdout))
 		fmt.Println(string(stderr))
-		return nil, err
-	}
-	kubeconfig, err := getKubeconfigPath(ctx, name)
-	if err != nil {
-		return nil, err
+		return c, err
 	}
 
-	c := &Cluster{
-		Name:                       name,
-		KubeconfigPath:             kubeconfig,
-		Scheme:                     scheme,
-		WorkloadClusterKubeconfigs: make(map[string]string),
-	}
 	for _, image := range images {
 		fmt.Printf("Looking for image %q locally to load to the management cluster\n", image)
 		if !c.ImageExists(ctx, image) {
@@ -91,7 +99,7 @@ func create(ctx context.Context, cmd *exec.Command, name string, scheme *runtime
 		}
 		fmt.Printf("Loading image %q on to the management cluster\n", image)
 		if err := c.LoadImage(ctx, image); err != nil {
-			return nil, err
+			return c, err
 		}
 	}
 	return c, nil
@@ -169,36 +177,31 @@ func (c *Cluster) Wait(ctx context.Context, args ...string) error {
 }
 
 // Teardown deletes all the tmp files and cleans up the kind cluster.
-func (c *Cluster) Teardown(ctx context.Context) error {
+// This does not return an error so that it can clean as much up as possible regardless of error.
+func (c *Cluster) Teardown(ctx context.Context) {
+	if c == nil {
+		return
+	}
 	deleteCmd := exec.NewCommand(
 		exec.WithCommand("kind"),
 		exec.WithArgs("delete", "cluster", "--name", c.Name),
 	)
 	stdout, stderr, err := deleteCmd.Run(ctx)
 	if err != nil {
+		fmt.Printf("Deleting the kind cluster %q failed. You may need to remove this by hand.\n", c.Name)
 		fmt.Println(string(stdout))
 		fmt.Println(string(stderr))
-		return err
 	}
 	for _, f := range c.WorkloadClusterKubeconfigs {
 		if err := os.RemoveAll(f); err != nil {
+			fmt.Printf("Unable to delete a workload cluster config %q. You may need to remove this by hand.\n", f)
 			fmt.Println(err)
 		}
 	}
-	return nil
-}
-
-func getKubeconfigPath(ctx context.Context, name string) (string, error) {
-	getPathCmd := exec.NewCommand(
-		exec.WithCommand("kind"),
-		exec.WithArgs("get", "kubeconfig-path", "--name", name),
-	)
-	stdout, stderr, err := getPathCmd.Run(ctx)
-	if err != nil {
-		fmt.Println(string(stderr))
-		return "", err
+	if err := os.Remove(c.KubeconfigPath); err != nil {
+		fmt.Printf("Unable to remove %q. You may need to remove this by hand.\n", c.KubeconfigPath)
+		fmt.Println(err)
 	}
-	return string(bytes.TrimSpace(stdout)), nil
 }
 
 // ClientFromRestConfig returns a controller-runtime client from a RESTConfig.

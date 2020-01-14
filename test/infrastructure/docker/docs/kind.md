@@ -5,7 +5,7 @@ The CAPD controllers need access to docker storage and docker socket on the host
 ```
 cat > kind-cluster-with-extramounts.yaml <<EOF
 kind: Cluster
-apiVersion: kind.sigs.k8s.io/v1alpha3
+apiVersion: kind.x-k8s.io/v1alpha4
 nodes:
   - role: control-plane
     extraMounts:

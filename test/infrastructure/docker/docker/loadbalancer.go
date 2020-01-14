@@ -21,17 +21,22 @@ import (
 
 	"github.com/go-logr/logr"
 	"github.com/pkg/errors"
+	"sigs.k8s.io/cluster-api/test/infrastructure/docker/docker/types"
 	"sigs.k8s.io/cluster-api/test/infrastructure/docker/third_party/forked/loadbalancer"
 	"sigs.k8s.io/kind/pkg/cluster/constants"
-	"sigs.k8s.io/kind/pkg/cluster/nodes"
-	"sigs.k8s.io/kind/pkg/container/docker"
 )
+
+type lbCreator interface {
+	CreateExternalLoadBalancerNode(name, image, clusterLabel, listenAddress string, port int32) (*types.Node, error)
+}
 
 // LoadBalancer manages the load balancer for a specific docker cluster.
 type LoadBalancer struct {
 	log       logr.Logger
 	name      string
-	container *nodes.Node
+	container *types.Node
+
+	lbCreator lbCreator
 }
 
 // NewLoadBalancer returns a new helper for managing a docker loadbalancer with a given name.
@@ -55,6 +60,7 @@ func NewLoadBalancer(name string, logger logr.Logger) (*LoadBalancer, error) {
 		name:      name,
 		container: container,
 		log:       logger,
+		lbCreator: &Manager{},
 	}, nil
 }
 
@@ -69,7 +75,7 @@ func (s *LoadBalancer) Create() error {
 	if s.container == nil {
 		var err error
 		s.log.Info("Creating load balancer container")
-		s.container, err = nodes.CreateExternalLoadBalancerNode(
+		s.container, err = s.lbCreator.CreateExternalLoadBalancerNode(
 			s.containerName(),
 			loadbalancer.Image,
 			clusterLabel(s.name),
@@ -103,9 +109,9 @@ func (s *LoadBalancer) UpdateConfiguration() error {
 	for _, n := range controlPlaneNodes {
 		controlPlaneIPv4, _, err := n.IP()
 		if err != nil {
-			return errors.Wrapf(err, "failed to get IP for container %s", n.Name())
+			return errors.Wrapf(err, "failed to get IP for container %s", n.String())
 		}
-		backendServers[n.Name()] = fmt.Sprintf("%s:%d", controlPlaneIPv4, 6443)
+		backendServers[n.String()] = fmt.Sprintf("%s:%d", controlPlaneIPv4, 6443)
 	}
 
 	// create loadbalancer config data
@@ -122,7 +128,7 @@ func (s *LoadBalancer) UpdateConfiguration() error {
 		return errors.WithStack(err)
 	}
 
-	return errors.WithStack(docker.Kill("SIGHUP", s.containerName()))
+	return errors.WithStack(s.container.Kill("SIGHUP"))
 }
 
 // IP returns the load balancer IP address
@@ -134,15 +140,14 @@ func (s *LoadBalancer) IP() (string, error) {
 	return lbip4, nil
 }
 
-// Delete the docker containers hosting a loadbalancer for the cluster.
+// Delete the docker container hosting the cluster load balancer.
 func (s *LoadBalancer) Delete() error {
-	// Delete if exists.
 	if s.container != nil {
 		s.log.Info("Deleting load balancer container")
-		if err := nodes.Delete(*s.container); err != nil {
+		if err := s.container.Delete(); err != nil {
 			return err
 		}
+		s.container = nil
 	}
-
 	return nil
 }

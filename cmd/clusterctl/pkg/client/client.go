@@ -38,6 +38,9 @@ type Client interface {
 	// GetProvidersConfig returns the list of providers configured for this instance of clusterctl.
 	GetProvidersConfig() ([]Provider, error)
 
+	// GetProviderComponents returns the provider components for a given provider, targetNamespace, watchingNamespace.
+	GetProviderComponents(provider, targetNameSpace, watchingNamespace string) (Components, error)
+
 	// Init initializes a management cluster by adding the requested list of providers.
 	Init(options InitOptions) ([]Components, bool, error)
 }

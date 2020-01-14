@@ -17,6 +17,7 @@ limitations under the License.
 package client
 
 import (
+	"fmt"
 	"testing"
 
 	clusterctlv1 "sigs.k8s.io/cluster-api/cmd/clusterctl/api/v1alpha3"
@@ -69,12 +70,14 @@ func Test_clusterctlClient_GetProvidersConfig(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			got, err := tt.field.client.GetProvidersConfig()
 			if (err != nil) != tt.wantErr {
-				t.Errorf("GetProvidersConfig() error = %v, wantErr %v", err, tt.wantErr)
+				t.Fatalf("error = %v, wantErr %v", err, tt.wantErr)
+			}
+			if err != nil {
 				return
 			}
 
 			if len(got) != len(tt.wantProviders) {
-				t.Errorf("Init() got = %v items, want %v items", len(got), len(tt.wantProviders))
+				t.Errorf("got = %v items, want %v items", len(got), len(tt.wantProviders))
 				return
 			}
 
@@ -82,8 +85,79 @@ func Test_clusterctlClient_GetProvidersConfig(t *testing.T) {
 				w := tt.wantProviders[i]
 
 				if g.Name() != w {
-					t.Errorf("GetProvidersConfig(), Item[%d].Name() got = %v, want = %v ", i, g.Name(), w)
+					t.Errorf("Item[%d].Name() got = %v, want = %v ", i, g.Name(), w)
 				}
+			}
+		})
+	}
+}
+
+func Test_clusterctlClient_GetProviderComponents(t *testing.T) {
+	config1 := newFakeConfig().
+		WithProvider(capiProviderConfig)
+
+	repository1 := newFakeRepository(capiProviderConfig, config1.Variables()).
+		WithPaths("root", "components.yaml").
+		WithDefaultVersion("v1.0.0").
+		WithFile("v1.0.0", "components.yaml", componentsYAML("ns1"))
+
+	client := newFakeClient(config1).
+		WithRepository(repository1)
+
+	type args struct {
+		provider          string
+		targetNameSpace   string
+		watchingNamespace string
+	}
+	type want struct {
+		provider config.Provider
+		version  string
+	}
+	tests := []struct {
+		name    string
+		args    args
+		want    want
+		wantErr bool
+	}{
+		{
+			name: "Pass",
+			args: args{
+				provider:          capiProviderConfig.Name(),
+				targetNameSpace:   "ns2",
+				watchingNamespace: "",
+			},
+			want: want{
+				provider: capiProviderConfig,
+				version:  "v1.0.0",
+			},
+			wantErr: false,
+		},
+		{
+			name: "Fail",
+			args: args{
+				provider:          fmt.Sprintf("%s:v0.2.0", capiProviderConfig.Name()),
+				targetNameSpace:   "ns2",
+				watchingNamespace: "",
+			},
+			wantErr: true,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got, err := client.GetProviderComponents(tt.args.provider, tt.args.targetNameSpace, tt.args.watchingNamespace)
+			if tt.wantErr != (err != nil) {
+				t.Fatalf("error = %v, wantErr = %v", err, tt.wantErr)
+			}
+			if tt.wantErr {
+				return
+			}
+
+			if got.Name() != tt.want.provider.Name() {
+				t.Errorf("got.Name() = %v, want = %v ", got.Name(), tt.want.provider.Name())
+			}
+
+			if got.Version() != tt.want.version {
+				t.Errorf("got.Version() = %v, want = %v ", got.Version(), tt.want.version)
 			}
 		})
 	}

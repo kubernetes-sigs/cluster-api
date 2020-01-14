@@ -30,3 +30,12 @@ func (c *clusterctlClient) GetProvidersConfig() ([]Provider, error) {
 
 	return rr, nil
 }
+
+func (c *clusterctlClient) GetProviderComponents(provider, targetNameSpace, watchingNamespace string) (Components, error) {
+	components, err := c.getComponentsByName(provider, targetNameSpace, watchingNamespace)
+	if err != nil {
+		return nil, err
+	}
+
+	return components, nil
+}

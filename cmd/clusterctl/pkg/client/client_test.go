@@ -66,6 +66,10 @@ func (f fakeClient) GetProvidersConfig() ([]Provider, error) {
 	return f.internalClient.GetProvidersConfig()
 }
 
+func (f fakeClient) GetProviderComponents(provider, targetNameSpace, watchingNamespace string) (Components, error) {
+	return f.internalClient.GetProviderComponents(provider, targetNameSpace, watchingNamespace)
+}
+
 func (f fakeClient) Init(options InitOptions) ([]Components, bool, error) {
 	return f.internalClient.Init(options)
 }

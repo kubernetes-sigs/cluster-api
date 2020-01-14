@@ -72,7 +72,7 @@ var configProvidersCmd = &cobra.Command{
 		if len(args) == 0 {
 			return runGetRepositories()
 		}
-		return runGetRepository(args[0], cpo.targetNamespace, cpo.watchingNamespace, cpo.output)
+		return runGetComponents(args[0], cpo.targetNamespace, cpo.watchingNamespace, cpo.output)
 	},
 }
 
@@ -105,6 +105,48 @@ func runGetRepositories() error {
 	return nil
 }
 
-func runGetRepository(providerName, targetNamespace, watchingNamespace, output string) error {
+func runGetComponents(providerName, targetNamespace, watchingNamespace, output string) error {
+	c, err := client.New(cfgFile)
+	if err != nil {
+		return err
+	}
+
+	components, err := c.GetProviderComponents(providerName, targetNamespace, watchingNamespace)
+	if err != nil {
+		return err
+	}
+
+	if output == "yaml" {
+		return componentsYAMLOutput(components)
+	}
+	return componentsDefaultOutput(components)
+}
+
+func componentsYAMLOutput(c client.Components) error {
+	yaml, err := c.Yaml()
+	if err != nil {
+		return err
+	}
+
+	fmt.Println(string(yaml))
+	return err
+}
+
+func componentsDefaultOutput(c client.Components) error {
+	fmt.Printf("Name:               %s\n", c.Name())
+	fmt.Printf("Type:               %s\n", c.Type())
+	fmt.Printf("URL:                %s\n", c.URL())
+	fmt.Printf("Version:            %s\n", c.Version())
+	fmt.Printf("TargetNamespace:    %s\n", c.TargetNamespace())
+	fmt.Printf("WatchingNamespace:  %s\n", c.WatchingNamespace())
+	if len(c.Variables()) > 0 {
+		fmt.Println("Variables:")
+		fmt.Println("  Name")
+		fmt.Println("  ----")
+		for _, v := range c.Variables() {
+			fmt.Printf("  %s\n", v)
+		}
+	}
+
 	return nil
 }

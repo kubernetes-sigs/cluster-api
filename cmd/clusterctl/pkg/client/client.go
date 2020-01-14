@@ -33,6 +33,19 @@ type InitOptions struct {
 	Force                   bool
 }
 
+// GetClusterTemplateOptions carries the options supported by GetClusterTemplate
+type GetClusterTemplateOptions struct {
+	Kubeconfig               string
+	InfrastructureProvider   string
+	Flavor                   string
+	BootstrapProvider        string
+	ClusterName              string
+	TargetNamespace          string
+	KubernetesVersion        string
+	ControlPlaneMachineCount int
+	WorkerMachineCount       int
+}
+
 // Client is exposes the clusterctl high-level client library
 type Client interface {
 	// GetProvidersConfig returns the list of providers configured for this instance of clusterctl.
@@ -43,6 +56,9 @@ type Client interface {
 
 	// Init initializes a management cluster by adding the requested list of providers.
 	Init(options InitOptions) ([]Components, bool, error)
+
+	// GetClusterTemplate returns a workload cluster template.
+	GetClusterTemplate(options GetClusterTemplateOptions) (Template, error)
 }
 
 // clusterctlClient implements Client.

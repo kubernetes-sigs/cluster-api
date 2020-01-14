@@ -67,9 +67,8 @@ func parseProviderName(provider string) (name string, version string, err error)
 	}
 
 	name = t[0]
-	errs := validation.IsDNS1123Label(name)
-	if len(errs) != 0 {
-		return "", "", errors.Errorf("invalid name value: %s", strings.Join(errs, "; "))
+	if err := validateDNS1123Label(name); err != nil {
+		return "", "", errors.Wrapf(err, "invalid provider name %q. Provider name should be in the form name[:version] and the name should be valid", provider)
 	}
 
 	version = ""
@@ -81,4 +80,12 @@ func parseProviderName(provider string) (name string, version string, err error)
 	}
 
 	return name, version, nil
+}
+
+func validateDNS1123Label(label string) error {
+	errs := validation.IsDNS1123Label(label)
+	if len(errs) != 0 {
+		return errors.New(strings.Join(errs, "; "))
+	}
+	return nil
 }

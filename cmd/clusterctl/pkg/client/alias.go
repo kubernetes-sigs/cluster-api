@@ -27,5 +27,8 @@ import (
 // Provider defines a provider configuration.
 type Provider config.Provider
 
-// Components wraps a YAML file that defines the provider's components (CRD, controller, RBAC rules etc.)
+// Components wraps a YAML file that defines the provider's components (CRDs, controller, RBAC rules etc.).
 type Components repository.Components
+
+// Template wraps a YAML file that defines the cluster objects (Cluster, Machines etc.).
+type Template repository.Template

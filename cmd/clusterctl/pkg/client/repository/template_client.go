@@ -85,9 +85,17 @@ func (c *templateClient) Get(flavor, bootstrap, targetNamespace string) (Templat
 	}
 	name = fmt.Sprintf("%s-%s.yaml", name, bootstrap)
 
-	rawYaml, err := c.repository.GetFile(version, name)
+	// read the component YAML, reading the local override file if it exists, otherwise read from the provider repository
+	rawYaml, err := getLocalOverride(c.provider, version, name)
 	if err != nil {
-		return nil, errors.Wrapf(err, "failed to read %q from version %q the repository for provider %q", name, version, c.provider.Name())
+		return nil, err
+	}
+
+	if rawYaml == nil {
+		rawYaml, err = c.repository.GetFile(version, name)
+		if err != nil {
+			return nil, errors.Wrapf(err, "failed to read %q from provider's repository %q", name, c.provider.Name())
+		}
 	}
 
 	return newTemplate(newTemplateOptions{

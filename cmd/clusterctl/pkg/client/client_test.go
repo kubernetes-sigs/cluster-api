@@ -70,6 +70,10 @@ func (f fakeClient) GetProviderComponents(provider, targetNameSpace, watchingNam
 	return f.internalClient.GetProviderComponents(provider, targetNameSpace, watchingNamespace)
 }
 
+func (f fakeClient) GetClusterTemplate(options GetClusterTemplateOptions) (Template, error) {
+	return f.internalClient.GetClusterTemplate(options)
+}
+
 func (f fakeClient) Init(options InitOptions) ([]Components, bool, error) {
 	return f.internalClient.Init(options)
 }
@@ -189,6 +193,11 @@ func (f fakeClusterClient) ProviderInstaller() cluster.ProviderInstaller {
 
 func (f *fakeClusterClient) WithObjs(objs ...runtime.Object) *fakeClusterClient {
 	f.fakeProxy.WithObjs(objs...)
+	return f
+}
+
+func (f *fakeClusterClient) WithProviderInventory(name string, providerType clusterctlv1.ProviderType, version, targetNamespace, watchingNamespace string) *fakeClusterClient {
+	f.fakeProxy.WithProviderInventory(name, providerType, version, targetNamespace, watchingNamespace)
 	return f
 }
 

@@ -325,7 +325,7 @@ func fakeEmptyCluster() *fakeClient {
 		WithDefaultVersion("v3.0.0").
 		WithFile("v3.0.0", "components.yaml", componentsYAML("ns3")).
 		WithFile("v3.1.0", "components.yaml", componentsYAML("ns3")).
-		WithFile("v3.0.0", "config-kubeadm.yaml", templateYAML("ns3"))
+		WithFile("v3.0.0", "config-kubeadm.yaml", templateYAML("ns3", "test"))
 
 	cluster1 := newFakeCluster("kubeconfig")
 
@@ -366,11 +366,11 @@ func componentsYAML(ns string) []byte {
 	return util.JoinYaml(namespaceYaml, podYaml)
 }
 
-func templateYAML(ns string) []byte {
+func templateYAML(ns string, clusterName string) []byte {
 	var podYaml = []byte("apiVersion: v1\n" +
-		"kind: Pod\n" +
+		"kind: Cluster\n" +
 		"metadata:\n" +
-		"  name: manager\n" +
+		fmt.Sprintf("  name: %s\n", clusterName) +
 		fmt.Sprintf("  namespace: %s", ns))
 
 	return podYaml

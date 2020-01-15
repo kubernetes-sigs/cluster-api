@@ -17,7 +17,11 @@ limitations under the License.
 package cmd
 
 import (
+	"os"
+
+	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
+	"sigs.k8s.io/cluster-api/cmd/clusterctl/pkg/client"
 )
 
 type configClusterOptions struct {
@@ -26,10 +30,10 @@ type configClusterOptions struct {
 	bootstrapProvider      string
 	infrastructureProvider string
 
-	targetNamespace   string
-	kubernetesVersion string
-	controlplaneCount int
-	workerCount       int
+	targetNamespace          string
+	kubernetesVersion        string
+	controlPlaneMachineCount int
+	workerMachineCount       int
 }
 
 var cc = &configClusterOptions{}
@@ -81,14 +85,46 @@ func init() {
 	configClusterClusterCmd.Flags().StringVarP(&cc.bootstrapProvider, "bootstrap", "b", "kubeadm", "The provider that should be used for bootstrapping Kubernetes nodes in the workload cluster")
 
 	configClusterClusterCmd.Flags().StringVarP(&cc.flavor, "flavor", "f", "", "The template variant to be used for creating the workload cluster")
-	configClusterClusterCmd.Flags().StringVarP(&cc.targetNamespace, "namespace", "n", "", "The namespace where the objects describing the workload cluster should be deployed. If not specified, the current namespace will be used")
-	configClusterClusterCmd.Flags().StringVarP(&cc.kubernetesVersion, "kubernetes-version", "", "", "The Kubernetes version to use for the workload cluster")
-	configClusterClusterCmd.Flags().IntVarP(&cc.controlplaneCount, "controlplane-machine-count", "", 1, "The number of control plane machines to be added to the workload cluster")
-	configClusterClusterCmd.Flags().IntVarP(&cc.workerCount, "worker-machine-count", "", 1, "The number of worker machines to be added to the workload cluster")
+	configClusterClusterCmd.Flags().StringVarP(&cc.targetNamespace, "target-namespace", "n", "", "The namespace where the objects describing the workload cluster should be deployed. If not specified, the current namespace will be used")
+	configClusterClusterCmd.Flags().StringVarP(&cc.kubernetesVersion, "kubernetes-version", "", "", "The Kubernetes version to use for the workload cluster. By default (empty), the value from os env variables or the .clusterctl config file will be used")
+	configClusterClusterCmd.Flags().IntVarP(&cc.controlPlaneMachineCount, "controlplane-machine-count", "", 1, "The number of control plane machines to be added to the workload cluster.")
+	configClusterClusterCmd.Flags().IntVarP(&cc.workerMachineCount, "worker-machine-count", "", 0, "The number of worker machines to be added to the workload cluster.")
 
 	configCmd.AddCommand(configClusterClusterCmd)
 }
 
 func runGenerateCluster(name string) error {
+	c, err := client.New(cfgFile)
+	if err != nil {
+		return err
+	}
+
+	options := client.GetClusterTemplateOptions{
+		Kubeconfig:               cc.kubeconfig,
+		InfrastructureProvider:   cc.infrastructureProvider,
+		Flavor:                   cc.flavor,
+		BootstrapProvider:        cc.bootstrapProvider,
+		ClusterName:              name,
+		TargetNamespace:          cc.targetNamespace,
+		KubernetesVersion:        cc.kubernetesVersion,
+		ControlPlaneMachineCount: cc.controlPlaneMachineCount,
+		WorkerMachineCount:       cc.workerMachineCount,
+	}
+
+	template, err := c.GetClusterTemplate(options)
+	if err != nil {
+		return err
+	}
+
+	yaml, err := template.Yaml()
+	if err != nil {
+		return err
+	}
+	yaml = append(yaml, '\n')
+
+	if _, err := os.Stdout.Write(yaml); err != nil {
+		return errors.Wrap(err, "failed to write yaml to Stdout")
+	}
+
 	return nil
 }

@@ -51,6 +51,11 @@ type InventoryClient interface {
 	// In case there is only a single provider for a given type, e.g. only the AWS infrastructure Provider, it returns
 	// this as the default provider; In case there are more provider of the same type, there is no default provider.
 	GetDefaultProviderName(providerType clusterctlv1.ProviderType) (string, error)
+
+	// GetDefaultProviderVersion returns the default version for a given provider.
+	// In case there is only a single version installed for a given provider, e.g. only the v0.4.1 version for the AWS provider, it returns
+	// this as the default version; In case there are more version installed for the same provider, there is no default provider version.
+	GetDefaultProviderVersion(provider string) (string, error)
 }
 
 // inventoryClient implements InventoryClient.
@@ -252,5 +257,27 @@ func (p *inventoryClient) GetDefaultProviderName(providerType clusterctlv1.Provi
 	}
 
 	// There is no provider or more than one provider of this type; in both cases, a default provider name cannot be decided.
+	return "", nil
+}
+
+func (p *inventoryClient) GetDefaultProviderVersion(provider string) (string, error) {
+	l, err := p.list(listOptions{
+		Name: provider,
+	})
+	if err != nil {
+		return "", err
+	}
+
+	// Group the provider instances by version.
+	versions := sets.NewString()
+	for _, p := range l {
+		versions.Insert(p.Version)
+	}
+
+	if versions.Len() == 1 {
+		return versions.List()[0], nil
+	}
+
+	// There is no version installed or more than one version installed for this provider; in both cases, a default version for this provider cannot be decided.
 	return "", nil
 }

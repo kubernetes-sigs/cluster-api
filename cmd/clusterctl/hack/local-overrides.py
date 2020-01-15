@@ -39,10 +39,13 @@
 
 ###################
 
+from __future__ import unicode_literals
+
 import json
 import subprocess
 import os
 import errno
+import sys
 
 settings = {}
 
@@ -109,11 +112,11 @@ def write_local_override(provider, version, components_file, components_yaml):
         except OSError as e:
             if e.errno != errno.EEXIST:
                 raise
-        f = open(os.path.join(provider_overrides_folder, components_file), 'w')
+        f = open(os.path.join(provider_overrides_folder, components_file), 'wb')
         f.write(components_yaml)
         f.close()
     except Exception as e:
-        raise Exception('failed to write {} to {}: {}'.format(components_file, components_folder, e))
+        raise Exception('failed to write {} to {}: {}'.format(components_file, provider_overrides_folder, e))
 
 def create_local_overrides():
     providerList = settings.get('providers', [])

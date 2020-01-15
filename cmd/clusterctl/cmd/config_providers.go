@@ -65,7 +65,7 @@ var configProvidersCmd = &cobra.Command{
 		clusterctl config provider aws:v0.4.1 -o yaml`),
 
 	RunE: func(cmd *cobra.Command, args []string) error {
-		if !(cpo.output == "" || cpo.output == "yaml" || cpo.output == "text") {
+		if !(cpo.output == "" || cpo.output == "yaml" || cpo.output == "text") { //nolint goconst
 			return errors.New("please provide a valid output. Supported values are [ text, yaml ]")
 		}
 

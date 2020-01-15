@@ -85,6 +85,9 @@ ifeq ($(SELINUX_ENABLED),1)
   DOCKER_VOL_OPTS?=:z
 endif
 
+# Set build time variables including version details
+LDFLAGS := $(shell hack/version.sh)
+
 all: test manager clusterctl
 
 help:  ## Display this help
@@ -133,7 +136,7 @@ managers: ## Build all managers
 
 .PHONY: clusterctl
 clusterctl: ## Build clusterctl binary
-	go build -o bin/clusterctl sigs.k8s.io/cluster-api/cmd/clusterctl
+	go build -ldflags "$(LDFLAGS)" -o bin/clusterctl sigs.k8s.io/cluster-api/cmd/clusterctl
 
 $(KUSTOMIZE): $(TOOLS_DIR)/go.mod # Build kustomize from tools folder.
 	cd $(TOOLS_DIR); go build -tags=tools -o $(BIN_DIR)/kustomize sigs.k8s.io/kustomize/kustomize/v3

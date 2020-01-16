@@ -27,7 +27,7 @@ type ProviderInstaller interface {
 	// Add adds a provider to the install queue.
 	// NB. By deferring the installation, the installer service can perform validation of the target state of the management cluster
 	// before actually starting the installation of new providers.
-	Add(repository.Components, bool) error
+	Add(repository.Components) error
 
 	// Install performs the installation of the providers ready in the install queue.
 	Install() ([]repository.Components, error)
@@ -43,11 +43,9 @@ type providerInstaller struct {
 
 var _ ProviderInstaller = &providerInstaller{}
 
-func (i *providerInstaller) Add(components repository.Components, force bool) error {
+func (i *providerInstaller) Add(components repository.Components) error {
 	if err := i.providerInventory.Validate(components.Metadata()); err != nil {
-		if !force {
-			return errors.Wrapf(err, "Installing provider %q can lead to a non functioning management cluster (you can use --force to ignore this error).", components.Name())
-		}
+		return errors.Wrapf(err, "Installing provider %q can lead to a non functioning management cluster.", components.Name())
 	}
 
 	i.installQueue = append(i.installQueue, components)

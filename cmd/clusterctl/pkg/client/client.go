@@ -30,7 +30,6 @@ type InitOptions struct {
 	InfrastructureProviders []string
 	TargetNameSpace         string
 	WatchingNamespace       string
-	Force                   bool
 }
 
 // GetClusterTemplateOptions carries the options supported by GetClusterTemplate

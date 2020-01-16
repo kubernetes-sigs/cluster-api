@@ -30,7 +30,6 @@ type initOptions struct {
 	infrastructureProviders []string
 	targetNamespace         string
 	watchingNamespace       string
-	force                   bool
 }
 
 var io = &initOptions{}
@@ -89,7 +88,6 @@ func init() {
 	initCmd.Flags().StringSliceVarP(&io.bootstrapProviders, "bootstrap", "b", nil, "Bootstrap providers to add to the management cluster. By default (empty), the kubeadm bootstrap provider is installed on the first init")
 	initCmd.Flags().StringVarP(&io.targetNamespace, "target-namespace", "", "", "The target namespace where the providers should be deployed. If not specified, each provider will be installed in a provider's default namespace")
 	initCmd.Flags().StringVarP(&io.watchingNamespace, "watching-namespace", "", "", "Namespace that the providers should watch to reconcile Cluster API objects. If unspecified, the providers watches for Cluster API objects across all namespaces")
-	initCmd.Flags().BoolVarP(&io.force, "force", "f", false, "Force clusterctl to skip preflight checks about supported configurations for a management cluster")
 
 	RootCmd.AddCommand(initCmd)
 }
@@ -109,7 +107,6 @@ func runInit() error {
 		InfrastructureProviders: io.infrastructureProviders,
 		TargetNameSpace:         io.targetNamespace,
 		WatchingNamespace:       io.watchingNamespace,
-		Force:                   io.force,
 	})
 	if err != nil {
 		return err

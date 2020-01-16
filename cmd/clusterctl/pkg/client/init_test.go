@@ -38,7 +38,6 @@ func Test_clusterctlClient_Init(t *testing.T) {
 		infrastructureProvider []string
 		targetNameSpace        string
 		watchingNamespace      string
-		force                  bool
 	}
 	type want struct {
 		provider          Provider
@@ -66,7 +65,6 @@ func Test_clusterctlClient_Init(t *testing.T) {
 				infrastructureProvider: []string{"infra"},
 				targetNameSpace:        "",
 				watchingNamespace:      "",
-				force:                  false,
 			},
 			want: []want{
 				{
@@ -102,7 +100,6 @@ func Test_clusterctlClient_Init(t *testing.T) {
 				infrastructureProvider: []string{"infra:v3.1.0"},
 				targetNameSpace:        "",
 				watchingNamespace:      "",
-				force:                  false,
 			},
 			want: []want{
 				{
@@ -138,7 +135,6 @@ func Test_clusterctlClient_Init(t *testing.T) {
 				infrastructureProvider: []string{"infra"},
 				targetNameSpace:        "nsx",
 				watchingNamespace:      "",
-				force:                  false,
 			},
 			want: []want{
 				{
@@ -174,7 +170,6 @@ func Test_clusterctlClient_Init(t *testing.T) {
 				infrastructureProvider: []string{"infra"},
 				targetNameSpace:        "",
 				watchingNamespace:      "",
-				force:                  false,
 			},
 			want: []want{
 				{
@@ -203,7 +198,6 @@ func Test_clusterctlClient_Init(t *testing.T) {
 				infrastructureProvider: []string{"infra"},
 				targetNameSpace:        "",
 				watchingNamespace:      "",
-				force:                  false,
 			},
 			want:    nil,
 			wantErr: true,
@@ -219,7 +213,6 @@ func Test_clusterctlClient_Init(t *testing.T) {
 				infrastructureProvider: []string{"infra"},
 				targetNameSpace:        "",
 				watchingNamespace:      "",
-				force:                  false,
 			},
 			want:    nil,
 			wantErr: true,
@@ -235,7 +228,6 @@ func Test_clusterctlClient_Init(t *testing.T) {
 				infrastructureProvider: []string{config.KubeadmBootstrapProviderName},
 				targetNameSpace:        "",
 				watchingNamespace:      "",
-				force:                  false,
 			},
 			want:    nil,
 			wantErr: true,
@@ -257,7 +249,6 @@ func Test_clusterctlClient_Init(t *testing.T) {
 				InfrastructureProviders: tt.args.infrastructureProvider,
 				TargetNameSpace:         tt.args.targetNameSpace,
 				WatchingNamespace:       tt.args.watchingNamespace,
-				Force:                   tt.args.force,
 			})
 
 			if (err != nil) != tt.wantErr {

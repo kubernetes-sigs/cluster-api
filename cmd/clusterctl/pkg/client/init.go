@@ -66,7 +66,6 @@ func (c *clusterctlClient) Init(options InitOptions) ([]Components, bool, error)
 		installer:         installer,
 		targetNameSpace:   options.TargetNameSpace,
 		watchingNamespace: options.WatchingNamespace,
-		force:             options.Force,
 	}
 
 	if options.CoreProvider != "" {
@@ -100,7 +99,6 @@ type addToInstallerOptions struct {
 	installer         cluster.ProviderInstaller
 	targetNameSpace   string
 	watchingNamespace string
-	force             bool
 }
 
 // addToInstaller adds the components to the install queue and checks that the actual provider type match the target group
@@ -115,7 +113,7 @@ func (c *clusterctlClient) addToInstaller(options addToInstallerOptions, targetG
 			return errors.Errorf("can't use %q provider as an %q, it is a %q", provider, targetGroup, components.Type())
 		}
 
-		if err := options.installer.Add(components, options.force); err != nil {
+		if err := options.installer.Add(components); err != nil {
 			return err
 		}
 	}

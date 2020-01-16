@@ -17,10 +17,15 @@ limitations under the License.
 package test
 
 import (
+	apiextensionslv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1beta1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
+	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
+	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha3"
 	clusterctlv1 "sigs.k8s.io/cluster-api/cmd/clusterctl/api/v1alpha3"
-	"sigs.k8s.io/cluster-api/cmd/clusterctl/pkg/internal/scheme"
+	fakebootstrap "sigs.k8s.io/cluster-api/cmd/clusterctl/pkg/internal/test/providers/bootstrap"
+	fakecontrolplane "sigs.k8s.io/cluster-api/cmd/clusterctl/pkg/internal/test/providers/controlplane"
+	fakeinfrastructure "sigs.k8s.io/cluster-api/cmd/clusterctl/pkg/internal/test/providers/infrastructure"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 )
@@ -28,6 +33,21 @@ import (
 type FakeProxy struct {
 	cs   client.Client
 	objs []runtime.Object
+}
+
+var (
+	FakeScheme = runtime.NewScheme()
+)
+
+func init() {
+	_ = clientgoscheme.AddToScheme(FakeScheme)
+	_ = clusterctlv1.AddToScheme(FakeScheme)
+	_ = clusterv1.AddToScheme(FakeScheme)
+	_ = apiextensionslv1.AddToScheme(FakeScheme)
+
+	_ = fakebootstrap.AddToScheme(FakeScheme)
+	_ = fakecontrolplane.AddToScheme(FakeScheme)
+	_ = fakeinfrastructure.AddToScheme(FakeScheme)
 }
 
 func (f *FakeProxy) CurrentNamespace() (string, error) {
@@ -38,7 +58,7 @@ func (f *FakeProxy) NewClient() (client.Client, error) {
 	if f.cs != nil {
 		return f.cs, nil
 	}
-	f.cs = fake.NewFakeClientWithScheme(scheme.Scheme, f.objs...)
+	f.cs = fake.NewFakeClientWithScheme(FakeScheme, f.objs...)
 
 	return f.cs, nil
 }

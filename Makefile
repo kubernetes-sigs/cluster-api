@@ -192,7 +192,7 @@ generate-go-core: $(CONTROLLER_GEN) $(CONVERSION_GEN)
 	$(CONTROLLER_GEN) \
 		object:headerFile=./hack/boilerplate/boilerplate.generatego.txt \
 		paths=./api/... \
-		paths=./cmd/clusterctl/api/...
+		paths=./cmd/clusterctl/...
 	$(CONVERSION_GEN) \
 		--input-dirs=./api/v1alpha2 \
 		--output-file-base=zz_generated.conversion \

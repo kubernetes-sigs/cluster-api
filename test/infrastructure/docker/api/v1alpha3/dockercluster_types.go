@@ -18,6 +18,7 @@ package v1alpha3
 
 import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha3"
 )
 
 const (
@@ -34,12 +35,23 @@ type DockerClusterSpec struct {
 	// ControlPlaneEndpoint represents the endpoint used to communicate with the control plane.
 	// +optional
 	ControlPlaneEndpoint APIEndpoint `json:"controlPlaneEndpoint"`
+
+	// FailureDomains are not usulaly defined on the spec.
+	// The docker provider is special since failure domains don't mean anything in a local docker environment.
+	// Instead, the docker cluster controller will simply copy these into the Status and allow the Cluster API
+	// controllers to do what they will with the defined failure domains.
+	// +optional
+	FailureDomains clusterv1.FailureDomains `json:"failureDomains,omitempty"`
 }
 
 // DockerClusterStatus defines the observed state of DockerCluster.
 type DockerClusterStatus struct {
 	// Ready denotes that the docker cluster (infrastructure) is ready.
 	Ready bool `json:"ready"`
+
+	// FailureDomains don't mean much in CAPD since it's all local, but we can see how the rest of cluster API
+	// will use this if we populate it.
+	FailureDomains clusterv1.FailureDomains `json:"failureDomains,omitempty"`
 }
 
 // APIEndpoint represents a reachable Kubernetes API endpoint.

@@ -96,6 +96,11 @@ func (r *DockerClusterReconciler) Reconcile(req ctrl.Request) (_ ctrl.Result, re
 		}
 	}()
 
+	// Support FailureDomains
+	// In cloud providers this would likely look up which failure domains are supported and set the status appropriately.
+	// In the case of Docker, failure domains don't mean much so we simply copy the Spec into the Status.
+	dockerCluster.Status.FailureDomains = dockerCluster.Spec.FailureDomains
+
 	// Handle deleted clusters
 	if !dockerCluster.DeletionTimestamp.IsZero() {
 		return reconcileDelete(dockerCluster, externalLoadBalancer)

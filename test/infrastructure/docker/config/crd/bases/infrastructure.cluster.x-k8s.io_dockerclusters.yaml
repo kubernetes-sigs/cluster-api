@@ -53,10 +53,54 @@ spec:
               - host
               - port
               type: object
+            failureDomains:
+              additionalProperties:
+                description: FailureDomainSpec is the Schema for Cluster API failure
+                  domains. It allows controllers to understand how many failure domains
+                  a cluster can optionally span across.
+                properties:
+                  attributes:
+                    additionalProperties:
+                      type: string
+                    description: Attributes is a free form map of attributes an infrastructure
+                      provider might use or require.
+                    type: object
+                  controlPlane:
+                    description: ControlPlane determines if this failure domain is
+                      suitable for use by control plane machines.
+                    type: boolean
+                type: object
+              description: FailureDomains are not usulaly defined on the spec. The
+                docker provider is special since failure domains don't mean anything
+                in a local docker environment. Instead, the docker cluster controller
+                will simply copy these into the Status and allow the Cluster API controllers
+                to do what they will with the defined failure domains.
+              type: object
           type: object
         status:
           description: DockerClusterStatus defines the observed state of DockerCluster.
           properties:
+            failureDomains:
+              additionalProperties:
+                description: FailureDomainSpec is the Schema for Cluster API failure
+                  domains. It allows controllers to understand how many failure domains
+                  a cluster can optionally span across.
+                properties:
+                  attributes:
+                    additionalProperties:
+                      type: string
+                    description: Attributes is a free form map of attributes an infrastructure
+                      provider might use or require.
+                    type: object
+                  controlPlane:
+                    description: ControlPlane determines if this failure domain is
+                      suitable for use by control plane machines.
+                    type: boolean
+                type: object
+              description: FailureDomains don't mean much in CAPD since it's all local,
+                but we can see how the rest of cluster API will use this if we populate
+                it.
+              type: object
             ready:
               description: Ready denotes that the docker cluster (infrastructure)
                 is ready.

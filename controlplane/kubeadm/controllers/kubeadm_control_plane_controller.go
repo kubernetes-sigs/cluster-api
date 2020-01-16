@@ -33,6 +33,7 @@ import (
 	kerrors "k8s.io/apimachinery/pkg/util/errors"
 	"k8s.io/apiserver/pkg/storage/names"
 	"k8s.io/client-go/tools/record"
+	"sigs.k8s.io/cluster-api/controlplane/kubeadm/internal"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
@@ -226,6 +227,7 @@ func (r *KubeadmControlPlaneReconciler) reconcile(ctx context.Context, cluster *
 	// Once we start handling upgrade, we'll need to filter this list and act appropriately
 	numMachines := len(ownedMachines.Items)
 	desiredReplicas := int(*kcp.Spec.Replicas)
+
 	switch {
 	// We are creating the first replica
 	case numMachines < desiredReplicas && numMachines == 0:
@@ -423,7 +425,30 @@ func (r *KubeadmControlPlaneReconciler) generateKubeadmConfig(ctx context.Contex
 	return bootstrapRef, nil
 }
 
+func (r *KubeadmControlPlaneReconciler) failureDomainForScaleDown(ctx context.Context, kcp *controlplanev1.KubeadmControlPlane, cluster *clusterv1.Cluster) string {
+	machineList, err := r.getMachines(ctx, types.NamespacedName{Namespace: cluster.GetNamespace(), Name: cluster.GetName()})
+	if err != nil {
+		r.Log.Info("Failure domain is not being used due to a kubernetes client error", "error", err)
+		return ""
+	}
+	machineList = r.filterOwnedMachines(kcp, machineList)
+	picker := internal.FailureDomainPicker{Log: r.Log}
+	return picker.PickMost(cluster.Status.FailureDomains.FilterControlPlane(), machineList)
+}
+
+func (r *KubeadmControlPlaneReconciler) failureDomainForScaleUp(ctx context.Context, kcp *controlplanev1.KubeadmControlPlane, cluster *clusterv1.Cluster) string {
+	machineList, err := r.getMachines(ctx, types.NamespacedName{Namespace: cluster.GetNamespace(), Name: cluster.GetName()})
+	if err != nil {
+		r.Log.Info("Failure domain is not being used due to a kubernetes client error", "error", err)
+		return ""
+	}
+	machineList = r.filterOwnedMachines(kcp, machineList)
+	picker := internal.FailureDomainPicker{Log: r.Log}
+	return picker.PickFewest(cluster.Status.FailureDomains.FilterControlPlane(), machineList)
+}
+
 func (r *KubeadmControlPlaneReconciler) generateMachine(ctx context.Context, kcp *controlplanev1.KubeadmControlPlane, cluster *clusterv1.Cluster, infraRef, bootstrapRef *corev1.ObjectReference) error {
+	fd := r.failureDomainForScaleUp(ctx, kcp, cluster)
 	machine := &clusterv1.Machine{
 		ObjectMeta: metav1.ObjectMeta{
 			Labels:    generateKubeadmControlPlaneLabels(cluster.Name),
@@ -438,6 +463,9 @@ func (r *KubeadmControlPlaneReconciler) generateMachine(ctx context.Context, kcp
 				ConfigRef: bootstrapRef,
 			},
 		},
+	}
+	if fd != "" {
+		machine.Spec.FailureDomain = &fd
 	}
 
 	owner := metav1.NewControllerRef(kcp, controlplanev1.GroupVersion.WithKind("KubeadmControlPlane"))

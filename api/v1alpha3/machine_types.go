@@ -72,6 +72,11 @@ type MachineSpec struct {
 	// be interfacing with cluster-api as generic provider.
 	// +optional
 	ProviderID *string `json:"providerID,omitempty"`
+
+	// FailureDomain is the failure domain the machine will be created in.
+	// Must match a key in the FailureDomains map stored on the cluster object.
+	// +optional
+	FailureDomain *string `json:"failureDomain,omitempty"`
 }
 
 // ANCHOR_END: MachineSpec

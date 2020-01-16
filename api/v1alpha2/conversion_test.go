@@ -115,6 +115,7 @@ func TestConvertMachine(t *testing.T) {
 
 	t.Run("from hub", func(t *testing.T) {
 		t.Run("preserves fields from hub version", func(t *testing.T) {
+			failureDomain := "my failure domain"
 			src := &v1alpha3.Machine{
 				ObjectMeta: metav1.ObjectMeta{
 					Name: "hub",
@@ -124,6 +125,7 @@ func TestConvertMachine(t *testing.T) {
 					Bootstrap: v1alpha3.Bootstrap{
 						DataSecretName: pointer.StringPtr("secret-data"),
 					},
+					FailureDomain: &failureDomain,
 				},
 			}
 			dst := &Machine{}
@@ -136,6 +138,7 @@ func TestConvertMachine(t *testing.T) {
 			g.Expect(restored.Name).To(Equal(src.Name))
 			g.Expect(restored.Spec.Bootstrap.DataSecretName).To(Equal(src.Spec.Bootstrap.DataSecretName))
 			g.Expect(restored.Spec.ClusterName).To(Equal(src.Spec.ClusterName))
+			g.Expect(restored.Spec.FailureDomain).To(Equal(src.Spec.FailureDomain))
 		})
 	})
 }

@@ -771,6 +771,11 @@ spec:
                           belongs to.
                         minLength: 1
                         type: string
+                      failureDomain:
+                        description: FailureDomain is the failure domain the machine
+                          will be created in. Must match a key in the FailureDomains
+                          map stored on the cluster object.
+                        type: string
                       infrastructureRef:
                         description: InfrastructureRef is a required reference to
                           a custom resource offered by an infrastructure provider.

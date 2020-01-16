@@ -128,20 +128,6 @@ func (p *inventoryClient) Validate(m clusterctlv1.Provider) error {
 		}
 	}
 
-	// Version check:
-	// If we are going to install an instance of a provider with version X, and there are already other instances of the same provider with
-	// different versions there is the risk of creating problems to all the version different than X because we are going to override
-	// all the existing non-namespaced objects (e.g. CRDs) with the ones from version X
-	sameVersion := false
-	for _, i := range instances {
-		if i.Version == m.Version {
-			sameVersion = true
-		}
-	}
-	if !sameVersion {
-		return errors.Errorf("The new instance of the %q provider has a version different than other instances of the same provider", m.Name)
-	}
-
 	// Watching Namespace check:
 	// If we are going to install an instance of a provider watching objects in namespaces already controlled by other providers
 	// then there will be providers fighting for objects...

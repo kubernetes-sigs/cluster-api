@@ -30,7 +30,6 @@ type InitOptions struct {
 	InfrastructureProviders []string
 	TargetNameSpace         string
 	WatchingNamespace       string
-	Force                   bool
 }
 
 // Client is exposes the clusterctl high-level client library

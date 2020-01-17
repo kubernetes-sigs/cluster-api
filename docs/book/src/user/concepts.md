@@ -56,7 +56,7 @@ MachineDeployment work similar to regular POD [Deployments](https://kubernetes.i
 
 ### MachineSet
 
-MachineSets work similar to regulat POD [ReplicaSets](https://kubernetes.io/docs/concepts/workloads/controllers/replicaset/), MachineSets are not meant to be used directly, but are rather the mechanism MachineDeployments use to reconcile desired state.
+MachineSets work similar to regular POD [ReplicaSets](https://kubernetes.io/docs/concepts/workloads/controllers/replicaset/), MachineSets are not meant to be used directly, but are rather the mechanism MachineDeployments use to reconcile desired state.
 
 <!--TODO-->
 

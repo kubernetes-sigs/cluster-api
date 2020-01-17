@@ -49,7 +49,8 @@ type ManagementCluster interface {
 	// Teardown will completely clean up the ManagementCluster.
 	// This should be implemented as a synchronous function.
 	// Generally to be used in the AfterSuite function if a management cluster is shared between tests.
-	Teardown(context.Context) error
+	// Should try to clean everything up and report any dangling artifacts that needs manual intervention.
+	Teardown(context.Context)
 	// GetName returns the name of the cluster.
 	GetName() string
 	// GetClient returns a client to the Management cluster.

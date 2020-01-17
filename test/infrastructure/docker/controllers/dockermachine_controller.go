@@ -194,6 +194,10 @@ func (r *DockerMachineReconciler) reconcileNormal(ctx context.Context, machine *
 	// NB. this step is necessary to mimic the behaviour of cloud-init that is embedded in the base images
 	// for other cloud providers
 	if err := externalMachine.ExecBootstrap(bootstrapData); err != nil {
+		// This helps CAPD fail less since kubeadm (because of etcd) is flaky.
+		if err2 := externalMachine.KubeadmReset(); err2 != nil {
+			r.Log.Error(err, "failed to reset kubeadm after a failed init")
+		}
 		return ctrl.Result{}, errors.Wrap(err, "failed to exec DockerMachine bootstrap")
 	}
 

@@ -141,7 +141,8 @@ var _ = AfterSuite(func() {
 	Expect(writeLogs(mgmt, "capi-kubeadm-control-plane-system", "capi-kubeadm-control-plane-controller-manager", logPath)).To(Succeed())
 	Expect(writeLogs(mgmt, "capd-system", "capd-controller-manager", logPath)).To(Succeed())
 	By("Deleting the management cluster")
-	Expect(mgmt.Teardown(ctx)).To(Succeed())
+	// If any part of teardown fails it will print what must be manually cleaned up
+	mgmt.Teardown(ctx)
 })
 
 func ensureDockerArtifactsDeleted(input *framework.ControlplaneClusterInput) {

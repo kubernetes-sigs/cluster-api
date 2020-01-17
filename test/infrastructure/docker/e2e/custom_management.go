@@ -18,7 +18,6 @@ package e2e
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"io/ioutil"
 	"net/url"
@@ -27,15 +26,14 @@ import (
 	"strings"
 
 	"github.com/pkg/errors"
+	yaml "gopkg.in/yaml.v3"
 	v1 "k8s.io/api/core/v1"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/client-go/tools/clientcmd"
 	"sigs.k8s.io/cluster-api/test/framework/exec"
 	"sigs.k8s.io/cluster-api/test/framework/management/kind"
 	"sigs.k8s.io/controller-runtime/pkg/client"
-	kindv1 "sigs.k8s.io/kind/pkg/apis/config/v1alpha3"
-	"sigs.k8s.io/kind/pkg/container/cri"
+	kindv1 "sigs.k8s.io/kind/pkg/apis/config/v1alpha4"
 )
 
 // Shells out to `docker`, `kind`, `kubectl`
@@ -48,25 +46,27 @@ type CAPDCluster struct {
 
 // NewClusterForCAPD creates a custom kind cluster with some necessary configuration to run CAPD.
 func NewClusterForCAPD(ctx context.Context, name string, scheme *runtime.Scheme, images ...string) (*CAPDCluster, error) {
-	config := kindv1.Cluster{
-		TypeMeta: metav1.TypeMeta{
-			APIVersion: "kind.sigs.k8s.io/v1alpha3",
+	cfg := &kindv1.Cluster{
+		TypeMeta: kindv1.TypeMeta{
+			APIVersion: "kind.x-k8s.io/v1alpha4",
 			Kind:       "Cluster",
 		},
-		Nodes: []kindv1.Node{
-			{
-				Role: kindv1.ControlPlaneRole,
-				ExtraMounts: []cri.Mount{
-					{
-						HostPath:      "/var/run/docker.sock",
-						ContainerPath: "/var/run/docker.sock",
-					},
+	}
+	kindv1.SetDefaultsCluster(cfg)
+	cfg.Nodes = []kindv1.Node{
+		{
+			Role: kindv1.ControlPlaneRole,
+			ExtraMounts: []kindv1.Mount{
+				{
+					HostPath:      "/var/run/docker.sock",
+					ContainerPath: "/var/run/docker.sock",
 				},
 			},
 		},
 	}
 
-	b, err := json.Marshal(config)
+	// Do not use kubernetes' yaml marshaller as it doesn't respect struct tags.
+	b, err := yaml.Marshal(cfg)
 	if err != nil {
 		return nil, errors.WithStack(err)
 	}

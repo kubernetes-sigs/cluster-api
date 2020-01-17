@@ -421,12 +421,9 @@ func TestReconcileNoClusterOwnerRef(t *testing.T) {
 		Log:    log.Log,
 	}
 
-	result, err := r.reconcile(context.Background(), kcp, r.Log)
+	result, err := r.Reconcile(ctrl.Request{NamespacedName: types.NamespacedName{Name: kcp.Name, Namespace: kcp.Namespace}})
 	g.Expect(err).NotTo(gomega.HaveOccurred())
 	g.Expect(result).To(gomega.Equal(ctrl.Result{}))
-
-	// Always expect that the Finalizer is set on the passed in resource
-	g.Expect(kcp.Finalizers).To(gomega.ContainElement(controlplanev1.KubeadmControlPlaneFinalizer))
 
 	machineList := &clusterv1.MachineList{}
 	g.Expect(fakeClient.List(context.Background(), machineList, client.InNamespace("test"))).To(gomega.Succeed())
@@ -463,11 +460,8 @@ func TestReconcileNoCluster(t *testing.T) {
 		Log:    log.Log,
 	}
 
-	_, err := r.reconcile(context.Background(), kcp, r.Log)
+	_, err := r.Reconcile(ctrl.Request{NamespacedName: types.NamespacedName{Name: kcp.Name, Namespace: kcp.Namespace}})
 	g.Expect(err).To(gomega.HaveOccurred())
-
-	// Always expect that the Finalizer is set on the passed in resource
-	g.Expect(kcp.Finalizers).To(gomega.ContainElement(controlplanev1.KubeadmControlPlaneFinalizer))
 
 	machineList := &clusterv1.MachineList{}
 	g.Expect(fakeClient.List(context.Background(), machineList, client.InNamespace("test"))).To(gomega.Succeed())
@@ -514,9 +508,10 @@ func TestReconcileClusterNoEndpoints(t *testing.T) {
 		},
 	}
 
-	result, err := r.reconcile(context.Background(), kcp, r.Log)
+	result, err := r.Reconcile(ctrl.Request{NamespacedName: types.NamespacedName{Name: kcp.Name, Namespace: kcp.Namespace}})
 	g.Expect(err).NotTo(gomega.HaveOccurred())
 	g.Expect(result).To(gomega.Equal(ctrl.Result{}))
+	g.Expect(r.Client.Get(context.Background(), types.NamespacedName{Name: kcp.Name, Namespace: kcp.Namespace}, kcp)).To(gomega.Succeed())
 
 	// Always expect that the Finalizer is set on the passed in resource
 	g.Expect(kcp.Finalizers).To(gomega.ContainElement(controlplanev1.KubeadmControlPlaneFinalizer))
@@ -613,9 +608,10 @@ func TestReconcileInitializeControlPlane(t *testing.T) {
 		},
 	}
 
-	result, err := r.reconcile(context.Background(), kcp, r.Log)
+	result, err := r.Reconcile(ctrl.Request{NamespacedName: types.NamespacedName{Name: kcp.Name, Namespace: kcp.Namespace}})
 	g.Expect(err).NotTo(gomega.HaveOccurred())
 	g.Expect(result).To(gomega.Equal(ctrl.Result{}))
+	g.Expect(r.Client.Get(context.Background(), types.NamespacedName{Name: kcp.Name, Namespace: kcp.Namespace}, kcp)).To(gomega.Succeed())
 
 	// Expect the referenced infrastructure template to have a Cluster Owner Reference.
 	g.Expect(fakeClient.Get(context.TODO(), client.ObjectKey{Namespace: genericMachineTemplate.GetNamespace(), Name: genericMachineTemplate.GetName()}, genericMachineTemplate)).To(gomega.Succeed())
@@ -1155,9 +1151,10 @@ func TestReconcileControlPlaneScaleUp(t *testing.T) {
 		recorder: record.NewFakeRecorder(32),
 	}
 
-	result, err := r.reconcile(context.Background(), kcp, r.Log)
+	result, err := r.Reconcile(ctrl.Request{NamespacedName: types.NamespacedName{Name: kcp.Name, Namespace: kcp.Namespace}})
 	g.Expect(err).NotTo(gomega.HaveOccurred())
 	g.Expect(result).To(gomega.Equal(ctrl.Result{}))
+	g.Expect(r.Client.Get(context.Background(), types.NamespacedName{Name: kcp.Name, Namespace: kcp.Namespace}, kcp)).To(gomega.Succeed())
 
 	g.Expect(kcp.Status.Replicas).To(gomega.BeEquivalentTo(3))
 
@@ -1434,22 +1431,24 @@ func TestReconcileControlPlaneDelete(t *testing.T) {
 		}
 
 		// Create control plane machines
-		result, err := r.reconcile(context.Background(), kcp, r.Log)
+		result, err := r.Reconcile(ctrl.Request{NamespacedName: types.NamespacedName{Name: kcp.Name, Namespace: kcp.Namespace}})
 		g.Expect(err).NotTo(gomega.HaveOccurred())
 		g.Expect(result).To(gomega.Equal(ctrl.Result{}))
+		g.Expect(r.Client.Get(context.Background(), types.NamespacedName{Name: kcp.Name, Namespace: kcp.Namespace}, kcp)).To(gomega.Succeed())
 
 		g.Expect(kcp.Status.Replicas).To(gomega.BeEquivalentTo(3))
 
 		// Delete control plane machines and requeue, but do not remove finalizer
-		result, err = r.reconcileDelete(context.Background(), kcp, r.Log)
+		result, err = r.reconcileDelete(context.Background(), cluster, kcp, r.Log)
 		g.Expect(err).NotTo(gomega.HaveOccurred())
 		g.Expect(result).To(gomega.Equal(ctrl.Result{RequeueAfter: DeleteRequeueAfter}))
+		g.Expect(r.updateStatus(context.Background(), kcp, cluster)).To(gomega.Succeed())
 
 		g.Expect(kcp.Status.Replicas).To(gomega.BeEquivalentTo(0))
 		g.Expect(kcp.Finalizers).To(gomega.Equal([]string{controlplanev1.KubeadmControlPlaneFinalizer}))
 
 		// Remove finalizer
-		result, err = r.reconcileDelete(context.Background(), kcp, r.Log)
+		result, err = r.reconcileDelete(context.Background(), cluster, kcp, r.Log)
 		g.Expect(err).NotTo(gomega.HaveOccurred())
 		g.Expect(result).To(gomega.Equal(ctrl.Result{}))
 
@@ -1534,13 +1533,14 @@ func TestReconcileControlPlaneDelete(t *testing.T) {
 			recorder: record.NewFakeRecorder(32),
 		}
 
-		result, err := r.reconcile(context.Background(), kcp, r.Log)
+		result, err := r.Reconcile(ctrl.Request{NamespacedName: types.NamespacedName{Name: kcp.Name, Namespace: kcp.Namespace}})
 		g.Expect(err).NotTo(gomega.HaveOccurred())
 		g.Expect(result).To(gomega.Equal(ctrl.Result{}))
+		g.Expect(r.Client.Get(context.Background(), types.NamespacedName{Name: kcp.Name, Namespace: kcp.Namespace}, kcp)).To(gomega.Succeed())
 
 		g.Expect(kcp.Status.Replicas).To(gomega.BeEquivalentTo(3))
 
-		result, err = r.reconcileDelete(context.Background(), kcp, r.Log)
+		result, err = r.reconcileDelete(context.Background(), cluster, kcp, r.Log)
 		g.Expect(err).Should(gomega.MatchError(gomega.ContainSubstring("at least one machine is not owned by the control plane")))
 		g.Expect(result).To(gomega.Equal(ctrl.Result{}))
 	})

@@ -22,6 +22,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"os"
+	"path/filepath"
 
 	"github.com/pkg/errors"
 	v1 "k8s.io/api/core/v1"
@@ -32,6 +33,11 @@ import (
 	"sigs.k8s.io/cluster-api/test/framework/exec"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/apiutil"
+	"sigs.k8s.io/kind/pkg/cluster"
+	"sigs.k8s.io/kind/pkg/cluster/nodes"
+	"sigs.k8s.io/kind/pkg/cluster/nodeutils"
+	"sigs.k8s.io/kind/pkg/cmd"
+	"sigs.k8s.io/kind/pkg/fs"
 )
 
 // Shells out to `kind`, `kubectl`
@@ -49,32 +55,21 @@ type Cluster struct {
 
 // NewCluster sets up a new kind cluster to be used as the management cluster.
 func NewCluster(ctx context.Context, name string, scheme *runtime.Scheme, images ...string) (*Cluster, error) {
-	cmd := exec.NewCommand(
-		exec.WithCommand("kind"),
-		exec.WithArgs("create", "cluster", "--name", name),
-	)
-	return create(ctx, cmd, name, scheme, images...)
+	return create(ctx, name, "", scheme, images...)
 }
 
 // NewClusterWithConfig creates a kind cluster using a kind-config file.
 func NewClusterWithConfig(ctx context.Context, name, configFile string, scheme *runtime.Scheme, images ...string) (*Cluster, error) {
-	cmd := exec.NewCommand(
-		exec.WithCommand("kind"),
-		exec.WithArgs("create", "cluster", "--name", name, "--config", configFile),
-	)
-	return create(ctx, cmd, name, scheme, images...)
+	return create(ctx, name, configFile, scheme, images...)
 }
 
-func create(ctx context.Context, cmd *exec.Command, name string, scheme *runtime.Scheme, images ...string) (*Cluster, error) {
+func create(ctx context.Context, name, configFile string, scheme *runtime.Scheme, images ...string) (*Cluster, error) {
 	f, err := ioutil.TempFile("", "mgmt-kubeconfig")
 	// if there is an error there will not be a file to clean up
 	if err != nil {
 		return nil, err
 	}
 	// After this point we have things to clean up, so always return a *Cluster
-
-	// Write the kubeconfig directly to the temp file
-	cmd.Args = append(cmd.Args, "--kubeconfig", f.Name())
 
 	// Make the cluster up front and always return it so Teardown can still run
 	c := &Cluster{
@@ -84,10 +79,11 @@ func create(ctx context.Context, cmd *exec.Command, name string, scheme *runtime
 		WorkloadClusterKubeconfigs: make(map[string]string),
 	}
 
-	stdout, stderr, err := cmd.Run(ctx)
-	if err != nil {
-		fmt.Println(string(stdout))
-		fmt.Println(string(stderr))
+	provider := cluster.NewProvider(cluster.ProviderWithLogger(cmd.NewLogger()))
+	kindConfig := cluster.CreateWithConfigFile(configFile)
+	kubeConfig := cluster.CreateWithKubeconfigPath(f.Name())
+
+	if err := provider.Create(name, kindConfig, kubeConfig); err != nil {
 		return c, err
 	}
 
@@ -112,17 +108,56 @@ func (c *Cluster) GetName() string {
 
 // LoadImage will put a local image onto the kind node
 func (c *Cluster) LoadImage(ctx context.Context, image string) error {
-	loadCmd := exec.NewCommand(
-		exec.WithCommand("kind"),
-		exec.WithArgs("load", "docker-image", image, "--name", c.Name),
+	provider := cluster.NewProvider(
+		cluster.ProviderWithLogger(cmd.NewLogger()),
 	)
-	stdout, stderr, err := loadCmd.Run(ctx)
+
+	// Save the image into a tar
+	dir, err := fs.TempDir("", "image-tar")
 	if err != nil {
-		fmt.Println(string(stdout))
-		fmt.Println(string(stderr))
+		return errors.Wrap(err, "failed to create tempdir")
+	}
+	defer os.RemoveAll(dir)
+	imageTarPath := filepath.Join(dir, "image.tar")
+
+	err = save(ctx, image, imageTarPath)
+	if err != nil {
 		return err
 	}
+
+	nodeList, err := provider.ListInternalNodes(c.Name)
+	if err != nil {
+		return err
+	}
+
+	// Load the image on the selected nodes
+	for _, node := range nodeList {
+		if err := loadImage(imageTarPath, node); err != nil {
+			return err
+		}
+	}
+
 	return nil
+}
+
+// copied from kind https://github.com/kubernetes-sigs/kind/blob/v0.7.0/pkg/cmd/kind/load/docker-image/docker-image.go#L168
+// save saves image to dest, as in `docker save`
+func save(ctx context.Context, image, dest string) error {
+	_, _, err := exec.NewCommand(
+		exec.WithCommand("docker"),
+		exec.WithArgs("save", "-o", dest, image)).Run(ctx)
+	return err
+}
+
+// copied from kind https://github.com/kubernetes-sigs/kind/blob/v0.7.0/pkg/cmd/kind/load/docker-image/docker-image.go#L158
+// loads an image tarball onto a node
+func loadImage(imageTarName string, node nodes.Node) error {
+	f, err := os.Open(imageTarName)
+	if err != nil {
+		return errors.Wrap(err, "failed to open image")
+	}
+	defer f.Close()
+	return nodeutils.LoadImageArchive(node, f)
 }
 
 func (c *Cluster) ImageExists(ctx context.Context, image string) bool {
@@ -182,15 +217,8 @@ func (c *Cluster) Teardown(ctx context.Context) {
 	if c == nil {
 		return
 	}
-	deleteCmd := exec.NewCommand(
-		exec.WithCommand("kind"),
-		exec.WithArgs("delete", "cluster", "--name", c.Name),
-	)
-	stdout, stderr, err := deleteCmd.Run(ctx)
-	if err != nil {
+	if err := cluster.NewProvider(cluster.ProviderWithLogger(cmd.NewLogger())).Delete(c.Name, c.KubeconfigPath); err != nil {
 		fmt.Printf("Deleting the kind cluster %q failed. You may need to remove this by hand.\n", c.Name)
-		fmt.Println(string(stdout))
-		fmt.Println(string(stderr))
 	}
 	for _, f := range c.WorkloadClusterKubeconfigs {
 		if err := os.RemoveAll(f); err != nil {

@@ -26,6 +26,10 @@ import (
 
 // MachineHealthCheckSpec defines the desired state of MachineHealthCheck
 type MachineHealthCheckSpec struct {
+	// ClusterName is the name of the Cluster this object belongs to.
+	// +kubebuilder:validation:MinLength=1
+	ClusterName string `json:"clusterName"`
+
 	// Label selector to match machines whose health will be exercised
 	Selector metav1.LabelSelector `json:"selector"`
 

@@ -1,0 +1,208 @@
+# clusterctl Provider Contract
+
+The `clusterctl` command is designed to work with all the providers compliant with the following rules.
+
+## Provider Repositories
+
+Each provider MUST define a **provider repository**, that is a well-known place where the release assets for 
+a provider are published.
+
+The provider repository MUST contain the following files:
+
+* The metadata YAML
+* The components YAML
+
+
+Additionally, the provider repository SHOULD contain the following files:
+
+* Workload cluster templates
+
+<aside class="note">
+
+<h1> Pre-defined list of providers </h1>
+
+The `clusterctl` command ships with a pre-defined list of provider repositories that allows a simpler "out-of-the-box" user experience.
+If, as a provider implementer, you are interested to be added to this list, please send a PR to the Cluster API repository.
+
+</aside>
+
+<aside class="note">
+
+<h1>Customizing the list of providers</h1>
+
+It is possible to customize the list of providers for `clusterctl` by changing the [clusterctl configuration](configuration.md).
+
+</aside>
+
+### Metadata YAML
+
+The provider is required to generate a **metadata YAML** file and publish it to the provider's repository.
+
+The metadata YAML file documents the release series of each provider and maps each release series to a Cluster API version.
+
+For example, for Cluster API:
+
+```yaml
+apiVersion: clusterctl.cluster.x-k8s.io/v1alpha3
+kind: Metadata
+releaseSeries:
+- major: 0
+  minor: 3
+  clusterAPIVersion: v1alpha3
+- major: 0
+  minor: 2
+  clusterAPIVersion: v1alpha2
+```
+
+<aside class="note">
+
+<h1> Embedded metadata </h1>
+
+The `clusterctl` command can ship with embedded metadata for pre-defined providers.
+If, as a provider implementer, you are interested to this feature, please send a PR to the Cluster API repository.
+
+</aside>
+
+### Components YAML 
+
+The provider is required to generate a **components YAML** file and publish it to the provider's repository.
+This file is a single YAML with _all_ the components required for installing the provider itself (CRDs, Controller, RBAC etc.). 
+
+The following rules apply:
+
+#### Naming conventions
+
+It is strongly recommended that:
+* Core provider release a file called `core-components.yaml`
+* Infrastructure providers release a file called `infrastructure-components.yaml`
+* Bootstrap providers release a file called ` bootstrap-components.yaml`
+* Control plane providers release a file called `control-plane-components.yaml`
+
+#### Target namespace
+
+The components YAML should contain one Namespace object, which will be used as the default target namespace
+when creating the provider components.
+
+All the objects in the components YAML MUST belong to the target namespace, with the exception of objects that
+are not namespaced, like ClusterRoles/ClusterRoleBinding and CRD objects. 
+
+<aside class="note warning">
+
+<h1>Warning</h1>
+
+If the generated component YAML does't contain a Namespace object, the user will be required to provide one to `clusterctl init` 
+using the `--target-namespace` flag.
+
+In case there is more than one Namespace object in the components YAML, `clusterctl` will generate an error and abort
+the provider installation.
+
+</aside>
+
+#### Controllers & Watching namespace
+
+Each provider is expected to deploy controllers using a Deployment.
+
+While defining the Deployment Spec, the container that executes the controller binary MUST be called `manager`.
+ 
+The manager MUST support a `--namespace` flag for specifying the namespace where the controller
+will look for objects to reconcile.
+
+#### Variables
+
+The components YAML can contain environment variables matching the regexp `\${\s*([A-Z0-9_]+)\s*}`; it is highly
+recommended to prefix the variable name with the provider name e.g. `${ AWS_CREDENTIALS }`
+
+Additionally, each provider should create user facing documentation with the list of required variables and with all the additional
+notes that are required to assist the user in defining the value for each variable.
+ 
+### Workload cluster templates
+
+An infrastructure provider could publish a **cluster templates** file to be used by `clusterctl config cluster`. 
+This is single YAML with _all_ the objects required to create a new workload cluster. 
+
+The following rules apply:
+
+#### Naming conventions
+
+Cluster templates MUST be stored in the same folder as the component YAML and follow this naming convention:
+1. The default cluster template should be named `config-{bootstrap}.yaml`. e.g `config-kubeadm.yaml`
+2. Additional cluster template should be named `config-{flavor}-{bootstrap}.yaml`. e.g `config-production-kubeadm.yaml`
+
+`{bootstrap}` is the name of the bootstrap provider used in the template; `{flavor}` is the name the user can pass to the
+`clusterctl config cluster --flavor` flag to identify the specific template to use.
+ 
+Each provider SHOULD create user facing documentation with the list of available cluster templates.
+
+#### Target namespace
+
+The cluster template YAML MUST assume the target namespace already exists.
+
+All the objects in the cluster template YAML MUST be deployed in the same namespace. 
+
+#### Variables
+
+The cluster templates YAML can also contain environment variables (as can the components YAML).
+
+Additionally, each provider should create user facing documentation with the list of required variables and with all the additional
+notes that are required to assist the user in defining the value for each variable.
+
+##### Common variables
+
+The `clusterctl config cluster` command allows user to set a small set of common variables via CLI flags or command arguments.
+
+Templates writers should use the common variables to ensure consistency across providers and a simpler user experience
+(if compared to the usage of OS environment variables or the `clusterctl` config file).
+
+| CLI flag                | Variable name     | Note                                        |
+| ---------------------- | ----------------- | ------------------------------------------- |
+|`--target-namespace`| `${ NAMESPACE }` | The namespace where the workload cluster should be deployed |
+|`--kubernetes-version`| `${ KUBERNETES_VERSION }` | The Kubernetes version to use for the workload cluster |
+|`--controlplane-machine-count`| `${ CONTROLPLANE_MACHINE_COUNT }` | The number of control plane machines to be added to the workload cluster |
+|`--worker-machine-count`| `${ WORKER_MACHINE_COUNT }` | The number of worker machines to be added to the workload cluster |
+
+Additionally, value of the command argument to `clusterctl config cluster <cluster-name>` (`<cluster-name>` in this case), will 
+be applied to every occurrence of the `${ CLUSTER_NAME }` variable.
+
+## Additional notes
+
+### Components YAML transformations
+
+Provider authors should be aware of the following transformations that `clusterctl` applies during component installation:
+
+* Variable substitution;
+* Enforcement of target namespace:
+    * The name of the namespace object is set;
+    * The namespace field of all the objects is set (with exception of cluster wide objects like e.g. ClusterRoles);
+    * ClusterRole and ClusterRoleBinding are renamed by adding a “${namespace}-“ prefix to the name; this change reduces the risks 
+    of conflicts between several instances of the same provider in case of multi tenancy; 
+* Enforcement of watching namespace;
+* All components are labeled;
+
+### Cluster template transformations
+
+Provider authors should be aware of the following transformations that `clusterctl` applies during components installation:
+
+* Variable substitution;
+* Enforcement of target namespace:
+    * The namespace field of all the objects is set;
+
+### Links to external objects
+
+The `clusterctl` command requires that both the components YAML and the cluster templates contain _all_ the required 
+objects.
+
+If, for any reason, the provider authors/YAML designers decide not to comply with this recommendation and e.g. to
+
+* implement links to external objects from a component YAML (e.g. secrets, aggregated ClusterRoles NOT included in the component YAML)
+* implement link to external objects from a cluster template (e.g. secrets, configMaps NOT included in the cluster template)
+
+The provider authors/YAML designers should be aware that it is their responsibility to ensure the proper
+functioning of all the `clusterctl` features both in single tenancy or multi-tenancy scenarios and/or document known limitations.
+
+### Move constraints
+
+WIP
+
+### Adopt
+
+WIP

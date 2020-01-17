@@ -63,12 +63,11 @@ type InitLocker interface {
 // KubeadmConfigReconciler reconciles a KubeadmConfig object
 type KubeadmConfigReconciler struct {
 	Client          client.Client
-	KubeadmInitLock InitLocker
 	Log             logr.Logger
+	KubeadmInitLock InitLocker
 	scheme          *runtime.Scheme
 
-	// for testing
-	remoteClient func(client.Client, *clusterv1.Cluster, *runtime.Scheme) (client.Client, error)
+	remoteClientGetter remote.ClusterClientGetter
 }
 
 type Scope struct {
@@ -83,8 +82,8 @@ func (r *KubeadmConfigReconciler) SetupWithManager(mgr ctrl.Manager, option cont
 	if r.KubeadmInitLock == nil {
 		r.KubeadmInitLock = locking.NewControlPlaneInitMutex(ctrl.Log.WithName("init-locker"), mgr.GetClient())
 	}
-	if r.remoteClient == nil {
-		r.remoteClient = remote.NewClusterClient
+	if r.remoteClientGetter == nil {
+		r.remoteClientGetter = remote.NewClusterClient
 	}
 
 	r.scheme = mgr.GetScheme()
@@ -197,7 +196,7 @@ func (r *KubeadmConfigReconciler) Reconcile(req ctrl.Request) (_ ctrl.Result, re
 
 			token := config.Spec.JoinConfiguration.Discovery.BootstrapToken.Token
 
-			remoteClient, err := r.remoteClient(r.Client, cluster, r.scheme)
+			remoteClient, err := r.remoteClientGetter(r.Client, cluster, r.scheme)
 			if err != nil {
 				log.Error(err, "error creating remote cluster client")
 				return ctrl.Result{}, err
@@ -577,7 +576,7 @@ func (r *KubeadmConfigReconciler) reconcileDiscovery(cluster *clusterv1.Cluster,
 
 	// if BootstrapToken already contains a token, respect it; otherwise create a new bootstrap token for the node to join
 	if config.Spec.JoinConfiguration.Discovery.BootstrapToken.Token == "" {
-		remoteClient, err := r.remoteClient(r.Client, cluster, r.scheme)
+		remoteClient, err := r.remoteClientGetter(r.Client, cluster, r.scheme)
 		if err != nil {
 			return err
 		}

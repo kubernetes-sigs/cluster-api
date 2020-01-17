@@ -35,6 +35,7 @@ import (
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha3"
 	bootstrapv1 "sigs.k8s.io/cluster-api/bootstrap/kubeadm/api/v1alpha3"
 	kubeadmv1beta1 "sigs.k8s.io/cluster-api/bootstrap/kubeadm/types/v1beta1"
+	fakeremote "sigs.k8s.io/cluster-api/controllers/remote/fake"
 	"sigs.k8s.io/cluster-api/util/secret"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -531,10 +532,10 @@ func TestKubeadmConfigReconciler_Reconcile_ErrorIfJoiningControlPlaneHasInvalidC
 	myclient := fake.NewFakeClientWithScheme(setupScheme(), objects...)
 
 	k := &KubeadmConfigReconciler{
-		Log:             log.Log,
-		Client:          myclient,
-		KubeadmInitLock: &myInitLocker{},
-		remoteClient:    testRemoteClient(fake.NewFakeClientWithScheme(setupScheme())),
+		Log:                log.Log,
+		Client:             myclient,
+		KubeadmInitLock:    &myInitLocker{},
+		remoteClientGetter: fakeremote.NewClusterClient,
 	}
 
 	request := ctrl.Request{
@@ -593,12 +594,6 @@ func TestKubeadmConfigReconciler_Reconcile_RequeueIfControlPlaneIsMissingAPIEndp
 	}
 }
 
-func testRemoteClient(c client.Client) func(client.Client, *clusterv1.Cluster, *runtime.Scheme) (client.Client, error) {
-	return func(client.Client, *clusterv1.Cluster, *runtime.Scheme) (client.Client, error) {
-		return c, nil
-	}
-}
-
 func TestReconcileIfJoinNodesAndControlPlaneIsReady(t *testing.T) {
 	cluster := newCluster("cluster")
 	cluster.Status.InfrastructureReady = true
@@ -651,12 +646,11 @@ func TestReconcileIfJoinNodesAndControlPlaneIsReady(t *testing.T) {
 			}
 			objects = append(objects, createSecrets(t, cluster, config)...)
 			myclient := fake.NewFakeClientWithScheme(setupScheme(), objects...)
-			fakeRemoteClient := fake.NewFakeClientWithScheme(setupScheme())
 			k := &KubeadmConfigReconciler{
-				Log:             log.Log,
-				Client:          myclient,
-				KubeadmInitLock: &myInitLocker{},
-				remoteClient:    testRemoteClient(fakeRemoteClient),
+				Log:                log.Log,
+				Client:             myclient,
+				KubeadmInitLock:    &myInitLocker{},
+				remoteClientGetter: fakeremote.NewClusterClient,
 			}
 
 			request := ctrl.Request{
@@ -690,7 +684,7 @@ func TestReconcileIfJoinNodesAndControlPlaneIsReady(t *testing.T) {
 			}
 
 			l := &corev1.SecretList{}
-			if err := fakeRemoteClient.List(context.TODO(), l, client.ListOption(client.InNamespace(metav1.NamespaceSystem))); err != nil {
+			if err := myclient.List(context.TODO(), l, client.ListOption(client.InNamespace(metav1.NamespaceSystem))); err != nil {
 				t.Fatal(errors.Wrap(err, "failed to get l after reconcile"))
 			}
 
@@ -724,12 +718,11 @@ func TestBootstrapTokenTTLExtension(t *testing.T) {
 
 	objects = append(objects, createSecrets(t, cluster, initConfig)...)
 	myclient := fake.NewFakeClientWithScheme(setupScheme(), objects...)
-	fakeRemoteClient := fake.NewFakeClientWithScheme(setupScheme())
 	k := &KubeadmConfigReconciler{
-		Log:             log.Log,
-		Client:          myclient,
-		KubeadmInitLock: &myInitLocker{},
-		remoteClient:    testRemoteClient(fakeRemoteClient),
+		Log:                log.Log,
+		Client:             myclient,
+		KubeadmInitLock:    &myInitLocker{},
+		remoteClientGetter: fakeremote.NewClusterClient,
 	}
 	request := ctrl.Request{
 		NamespacedName: types.NamespacedName{
@@ -785,7 +778,7 @@ func TestBootstrapTokenTTLExtension(t *testing.T) {
 	}
 
 	l := &corev1.SecretList{}
-	if err := fakeRemoteClient.List(context.TODO(), l, client.ListOption(client.InNamespace(metav1.NamespaceSystem))); err != nil {
+	if err := myclient.List(context.TODO(), l, client.ListOption(client.InNamespace(metav1.NamespaceSystem))); err != nil {
 		t.Fatal(errors.Wrap(err, "failed to get l after reconcile"))
 	}
 
@@ -827,7 +820,7 @@ func TestBootstrapTokenTTLExtension(t *testing.T) {
 	}
 
 	l = &corev1.SecretList{}
-	if err := fakeRemoteClient.List(context.TODO(), l, client.ListOption(client.InNamespace(metav1.NamespaceSystem))); err != nil {
+	if err := myclient.List(context.TODO(), l, client.ListOption(client.InNamespace(metav1.NamespaceSystem))); err != nil {
 		t.Fatal(errors.Wrap(err, "failed to get l after reconcile"))
 	}
 
@@ -885,7 +878,7 @@ func TestBootstrapTokenTTLExtension(t *testing.T) {
 	}
 
 	l = &corev1.SecretList{}
-	if err := fakeRemoteClient.List(context.TODO(), l, client.ListOption(client.InNamespace(metav1.NamespaceSystem))); err != nil {
+	if err := myclient.List(context.TODO(), l, client.ListOption(client.InNamespace(metav1.NamespaceSystem))); err != nil {
 		t.Fatal(errors.Wrap(err, "failed to get l after reconcile"))
 	}
 
@@ -903,10 +896,10 @@ func TestBootstrapTokenTTLExtension(t *testing.T) {
 // Ensure the discovery portion of the JoinConfiguration gets generated correctly.
 func TestKubeadmConfigReconciler_Reconcile_DisocveryReconcileBehaviors(t *testing.T) {
 	k := &KubeadmConfigReconciler{
-		Log:             log.Log,
-		Client:          fake.NewFakeClientWithScheme(setupScheme()),
-		KubeadmInitLock: &myInitLocker{},
-		remoteClient:    testRemoteClient(fake.NewFakeClientWithScheme(setupScheme())),
+		Log:                log.Log,
+		Client:             fake.NewFakeClientWithScheme(setupScheme()),
+		KubeadmInitLock:    &myInitLocker{},
+		remoteClientGetter: fakeremote.NewClusterClient,
 	}
 
 	dummyCAHash := []string{"...."}
@@ -1260,10 +1253,10 @@ func TestKubeadmConfigReconciler_Reconcile_AlwaysCheckCAVerificationUnlessReques
 		t.Run(tc.name, func(t *testing.T) {
 			myclient := fake.NewFakeClientWithScheme(setupScheme(), objects...)
 			reconciler := KubeadmConfigReconciler{
-				Client:          myclient,
-				KubeadmInitLock: &myInitLocker{},
-				Log:             klogr.New(),
-				remoteClient:    testRemoteClient(fake.NewFakeClientWithScheme(setupScheme())),
+				Client:             myclient,
+				KubeadmInitLock:    &myInitLocker{},
+				Log:                klogr.New(),
+				remoteClientGetter: fakeremote.NewClusterClient,
 			}
 
 			wc := newWorkerJoinKubeadmConfig(workerMachine)

@@ -68,15 +68,13 @@ const (
 
 // KubeadmControlPlaneReconciler reconciles a KubeadmControlPlane object
 type KubeadmControlPlaneReconciler struct {
-	Client client.Client
-	Log    logr.Logger
-	scheme *runtime.Scheme
-
-	// for testing
-	remoteClient func(client.Client, *clusterv1.Cluster, *runtime.Scheme) (client.Client, error)
-
+	Client     client.Client
+	Log        logr.Logger
+	scheme     *runtime.Scheme
 	controller controller.Controller
 	recorder   record.EventRecorder
+
+	remoteClientGetter remote.ClusterClientGetter
 }
 
 func (r *KubeadmControlPlaneReconciler) SetupWithManager(mgr ctrl.Manager, options controller.Options) error {
@@ -97,9 +95,8 @@ func (r *KubeadmControlPlaneReconciler) SetupWithManager(mgr ctrl.Manager, optio
 	r.scheme = mgr.GetScheme()
 	r.controller = c
 	r.recorder = mgr.GetEventRecorderFor("kubeadm-control-plane-controller")
-
-	if r.remoteClient == nil {
-		r.remoteClient = remote.NewClusterClient
+	if r.remoteClientGetter == nil {
+		r.remoteClientGetter = remote.NewClusterClient
 	}
 
 	return nil
@@ -282,7 +279,7 @@ func (r *KubeadmControlPlaneReconciler) updateStatus(ctx context.Context, kcp *c
 	// TODO: take into account configuration hash once upgrades are in place
 	kcp.Status.Replicas = replicas
 
-	remoteClient, err := r.remoteClient(r.Client, cluster, r.scheme)
+	remoteClient, err := r.remoteClientGetter(r.Client, cluster, r.scheme)
 	if err != nil && !apierrors.IsNotFound(errors.Cause(err)) {
 		return errors.Wrap(err, "failed to create remote cluster client")
 	}

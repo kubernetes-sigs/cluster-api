@@ -205,6 +205,22 @@ func (r *ClusterReconciler) reconcileMetrics(_ context.Context, cluster *cluster
 func (r *ClusterReconciler) reconcileDelete(ctx context.Context, cluster *clusterv1.Cluster) (reconcile.Result, error) {
 	logger := r.Log.WithValues("cluster", cluster.Name, "namespace", cluster.Namespace)
 
+	// First handle the control plane
+	if cluster.Spec.ControlPlaneRef != nil {
+		obj, err := external.Get(ctx, r.Client, cluster.Spec.ControlPlaneRef, cluster.Namespace)
+		switch {
+		case apierrors.IsNotFound(err):
+		case err != nil:
+			return reconcile.Result{}, err
+		case obj.GetDeletionTimestamp().IsZero():
+			if err := r.Client.Delete(ctx, obj); err != nil {
+				return ctrl.Result{}, errors.Wrapf(err,
+					"failed to delete %v %q for Cluster %q in namespace %q",
+					obj.GroupVersionKind(), obj.GetName(), cluster.Name, cluster.Namespace)
+			}
+		}
+	}
+
 	descendants, err := r.listDescendants(ctx, cluster)
 	if err != nil {
 		logger.Error(err, "Failed to list descendants")

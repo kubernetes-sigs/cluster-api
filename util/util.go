@@ -69,6 +69,22 @@ func RandomString(n int) string {
 	return string(result)
 }
 
+// GetMachinesForCluster returns a list of machines associated with the cluster.
+func GetMachinesForCluster(ctx context.Context, c client.Client, cluster *clusterv1.Cluster) (*clusterv1.MachineList, error) {
+	var machines clusterv1.MachineList
+	if err := c.List(
+		ctx,
+		&machines,
+		client.InNamespace(cluster.Namespace),
+		client.MatchingLabels{
+			clusterv1.ClusterLabelName: cluster.Name,
+		},
+	); err != nil {
+		return nil, err
+	}
+	return &machines, nil
+}
+
 // GetControlPlaneMachines returns a slice containing control plane machines.
 func GetControlPlaneMachines(machines []*clusterv1.Machine) (res []*clusterv1.Machine) {
 	for _, machine := range machines {

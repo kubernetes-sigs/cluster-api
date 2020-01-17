@@ -31,7 +31,6 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	kerrors "k8s.io/apimachinery/pkg/util/errors"
-	utilerrors "k8s.io/apimachinery/pkg/util/errors"
 	"k8s.io/apiserver/pkg/storage/names"
 	"k8s.io/client-go/tools/record"
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -53,6 +52,12 @@ import (
 	"sigs.k8s.io/cluster-api/util/kubeconfig"
 	"sigs.k8s.io/cluster-api/util/patch"
 	"sigs.k8s.io/cluster-api/util/secret"
+)
+
+const (
+	// DeleteRequeueAfter is how long to wait before checking again to see if
+	// all control plane machines have been deleted.
+	DeleteRequeueAfter = 30 * time.Second
 )
 
 // +kubebuilder:rbac:groups=core,resources=events,verbs=get;list;watch;create;patch
@@ -165,15 +170,12 @@ func (r *KubeadmControlPlaneReconciler) reconcile(ctx context.Context, kcp *cont
 	}
 
 	// TODO: handle proper adoption of Machines
-	ownedMachines, err := r.getOwnedMachines(
-		ctx,
-		kcp,
-		types.NamespacedName{Namespace: cluster.Namespace, Name: cluster.Name},
-	)
+	allMachines, err := r.getMachines(ctx, types.NamespacedName{Namespace: cluster.Namespace, Name: cluster.Name})
 	if err != nil {
-		logger.Error(err, "failed to get list of owned machines")
+		logger.Error(err, "Failed to get list of machines")
 		return ctrl.Result{}, err
 	}
+	ownedMachines := r.filterOwnedMachines(kcp, allMachines)
 
 	// Always attempt to update status
 	defer func() {
@@ -228,7 +230,7 @@ func (r *KubeadmControlPlaneReconciler) reconcile(ctx context.Context, kcp *cont
 
 	// Currently we are not handling upgrade, so treat all owned machines as one for now.
 	// Once we start handling upgrade, we'll need to filter this list and act appropriately
-	numMachines := len(ownedMachines)
+	numMachines := len(ownedMachines.Items)
 	desiredReplicas := int(*kcp.Spec.Replicas)
 	switch {
 	// We are creating the first replica
@@ -272,16 +274,13 @@ func (r *KubeadmControlPlaneReconciler) updateStatus(ctx context.Context, kcp *c
 	// This is necessary for CRDs including scale subresources.
 	kcp.Status.Selector = selector.String()
 
-	ownedMachines, err := r.getOwnedMachines(
-		ctx,
-		kcp,
-		types.NamespacedName{Namespace: cluster.Namespace, Name: cluster.Name},
-	)
+	allMachines, err := r.getMachines(ctx, types.NamespacedName{Namespace: cluster.Namespace, Name: cluster.Name})
 	if err != nil {
 		return errors.Wrap(err, "failed to get list of owned machines")
 	}
+	ownedMachines := r.filterOwnedMachines(kcp, allMachines)
 
-	replicas := int32(len(ownedMachines))
+	replicas := int32(len(ownedMachines.Items))
 	// TODO: take into account configuration hash once upgrades are in place
 	kcp.Status.Replicas = replicas
 
@@ -291,8 +290,8 @@ func (r *KubeadmControlPlaneReconciler) updateStatus(ctx context.Context, kcp *c
 	}
 
 	readyMachines := int32(0)
-	for _, m := range ownedMachines {
-
+	for i := range ownedMachines.Items {
+		m := &ownedMachines.Items[i]
 		node, err := getMachineNode(ctx, remoteClient, m)
 		if err != nil {
 			return errors.Wrap(err, "failed to get referenced Node")
@@ -330,7 +329,7 @@ func (r *KubeadmControlPlaneReconciler) scaleUpControlPlane(ctx context.Context,
 		}
 	}
 
-	return utilerrors.NewAggregate(errs)
+	return kerrors.NewAggregate(errs)
 }
 
 func (r *KubeadmControlPlaneReconciler) initializeControlPlane(ctx context.Context, cluster *clusterv1.Cluster, kcp *controlplanev1.KubeadmControlPlane) error {
@@ -377,7 +376,7 @@ func (r *KubeadmControlPlaneReconciler) cloneConfigsAndGenerateMachine(ctx conte
 			errs = append(errs, errors.Wrap(err, "failed to cleanup generated resources"))
 		}
 
-		return utilerrors.NewAggregate(errs)
+		return kerrors.NewAggregate(errs)
 	}
 
 	return nil
@@ -400,7 +399,7 @@ func (r *KubeadmControlPlaneReconciler) cleanupFromGeneration(ctx context.Contex
 		}
 	}
 
-	return utilerrors.NewAggregate(errs)
+	return kerrors.NewAggregate(errs)
 }
 
 func (r *KubeadmControlPlaneReconciler) generateKubeadmConfig(ctx context.Context, kcp *controlplanev1.KubeadmControlPlane, cluster *clusterv1.Cluster, spec *bootstrapv1.KubeadmConfigSpec) (*corev1.ObjectReference, error) {
@@ -475,16 +474,63 @@ func generateKubeadmControlPlaneLabels(clusterName string) map[string]string {
 }
 
 // reconcileDelete handles KubeadmControlPlane deletion.
-func (r *KubeadmControlPlaneReconciler) reconcileDelete(_ context.Context, kcp *controlplanev1.KubeadmControlPlane, logger logr.Logger) (ctrl.Result, error) {
-	err := errors.New("Not Implemented")
-
+// The implementation does not take non-control plane workloads into
+// consideration. This may or may not change in the future. Please see
+// https://github.com/kubernetes-sigs/cluster-api/issues/2064
+func (r *KubeadmControlPlaneReconciler) reconcileDelete(ctx context.Context, kcp *controlplanev1.KubeadmControlPlane, logger logr.Logger) (_ ctrl.Result, reterr error) {
+	// Fetch the Cluster.
+	cluster, err := util.GetOwnerCluster(ctx, r.Client, kcp.ObjectMeta)
 	if err != nil {
-		logger.Error(err, "Not Implemented")
+		logger.Error(err, "Failed to retrieve owner Cluster from the API Server")
+		return ctrl.Result{}, err
+	}
+	if cluster == nil {
+		logger.Info("Cluster Controller has not yet set OwnerRef")
+		return ctrl.Result{}, nil
+	}
+	logger = logger.WithValues("cluster", cluster.Name)
+
+	// Fetch Machines
+	allMachines, err := util.GetMachinesForCluster(ctx, r.Client, cluster)
+	if err != nil {
+		logger.Error(err, "Failed to get list of machines")
+		return ctrl.Result{}, err
+	}
+	ownedMachines := r.filterOwnedMachines(kcp, allMachines)
+
+	// Always attempt to update status
+	defer func() {
+		if err := r.updateStatus(ctx, kcp, cluster); err != nil {
+			logger.Error(err, "Failed to update status")
+			reterr = kerrors.NewAggregate([]error{reterr, err})
+		}
+	}()
+
+	// Verify that only control plane machines remain
+	if len(allMachines.Items) != len(ownedMachines.Items) {
+		err := errors.New("at least one machine is not owned by the control plane")
+		logger.Error(err, "Failed to delete the control plane")
 		return ctrl.Result{}, err
 	}
 
-	controllerutil.RemoveFinalizer(kcp, controlplanev1.KubeadmControlPlaneFinalizer)
-	return ctrl.Result{}, nil
+	// If no control plane machines remain, remove the finalizer
+	if len(ownedMachines.Items) == 0 {
+		controllerutil.RemoveFinalizer(kcp, controlplanev1.KubeadmControlPlaneFinalizer)
+		return ctrl.Result{}, nil
+	}
+
+	// Delete control plane machines in parallel
+	var errs []error
+	for i := range ownedMachines.Items {
+		m := &ownedMachines.Items[i]
+		if err := r.Client.Delete(ctx, m); err != nil && !apierrors.IsNotFound(err) {
+			errs = append(errs, errors.Wrap(err, "failed to cleanup owned machines"))
+		}
+	}
+	if errs != nil {
+		return ctrl.Result{}, kerrors.NewAggregate(errs)
+	}
+	return ctrl.Result{RequeueAfter: DeleteRequeueAfter}, nil
 }
 
 func (r *KubeadmControlPlaneReconciler) reconcileKubeconfig(ctx context.Context, clusterName types.NamespacedName, endpoint clusterv1.APIEndpoint, kcp *controlplanev1.KubeadmControlPlane) error {
@@ -526,22 +572,17 @@ func (r *KubeadmControlPlaneReconciler) getMachines(ctx context.Context, cluster
 	return allMachines, nil
 }
 
-func (r *KubeadmControlPlaneReconciler) getOwnedMachines(ctx context.Context, kcp *controlplanev1.KubeadmControlPlane, clusterName types.NamespacedName) ([]*clusterv1.Machine, error) {
-	allMachines, err := r.getMachines(ctx, clusterName)
-	if err != nil {
-		return nil, err
-	}
-
-	var ownedMachines []*clusterv1.Machine
+func (r *KubeadmControlPlaneReconciler) filterOwnedMachines(kcp *controlplanev1.KubeadmControlPlane, allMachines *clusterv1.MachineList) *clusterv1.MachineList {
+	ownedMachines := &clusterv1.MachineList{}
 	for i := range allMachines.Items {
 		m := allMachines.Items[i]
 		controllerRef := metav1.GetControllerOf(&m)
 		if controllerRef != nil && controllerRef.Kind == "KubeadmControlPlane" && controllerRef.Name == kcp.Name {
-			ownedMachines = append(ownedMachines, &m)
+			ownedMachines.Items = append(ownedMachines.Items, m)
 		}
 	}
 
-	return ownedMachines, nil
+	return ownedMachines
 }
 
 func (r *KubeadmControlPlaneReconciler) reconcileExternalReference(ctx context.Context, cluster *clusterv1.Cluster, ref corev1.ObjectReference) error {

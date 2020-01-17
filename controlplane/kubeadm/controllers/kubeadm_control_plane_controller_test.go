@@ -1328,3 +1328,220 @@ func TestCloneConfigsAndGenerateMachine(t *testing.T) {
 		g.Expect(m.Spec.Bootstrap.ConfigRef.Kind).To(gomega.Equal("KubeadmConfig"))
 	}
 }
+
+func TestReconcileControlPlaneDelete(t *testing.T) {
+	cluster := &clusterv1.Cluster{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "foo",
+			Namespace: "test",
+		},
+		Spec: clusterv1.ClusterSpec{
+			ControlPlaneEndpoint: clusterv1.APIEndpoint{
+				Host: "test.local",
+				Port: 9999,
+			},
+			ControlPlaneRef: &corev1.ObjectReference{
+				Kind:       "KubeadmControlPlane",
+				Namespace:  "test",
+				Name:       "kcp-foo",
+				APIVersion: controlplanev1.GroupVersion.String(),
+			},
+		},
+	}
+
+	genericMachineTemplate := &unstructured.Unstructured{
+		Object: map[string]interface{}{
+			"kind":       "GenericMachineTemplate",
+			"apiVersion": "generic.io/v1",
+			"metadata": map[string]interface{}{
+				"name":      "infra-foo",
+				"namespace": cluster.Namespace,
+			},
+			"spec": map[string]interface{}{
+				"template": map[string]interface{}{
+					"spec": map[string]interface{}{
+						"hello": "world",
+					},
+				},
+			},
+		},
+	}
+
+	t.Run("delete control plane machines", func(t *testing.T) {
+		g := gomega.NewWithT(t)
+
+		kcp := &controlplanev1.KubeadmControlPlane{
+			ObjectMeta: metav1.ObjectMeta{
+				Namespace: cluster.Namespace,
+				Name:      "foo",
+				OwnerReferences: []metav1.OwnerReference{
+					{
+						Kind:       "Cluster",
+						APIVersion: clusterv1.GroupVersion.String(),
+						Name:       cluster.Name,
+					},
+				},
+			},
+			Spec: controlplanev1.KubeadmControlPlaneSpec{
+				InfrastructureTemplate: corev1.ObjectReference{
+					Kind:       genericMachineTemplate.GetKind(),
+					Namespace:  genericMachineTemplate.GetNamespace(),
+					Name:       genericMachineTemplate.GetName(),
+					APIVersion: genericMachineTemplate.GetAPIVersion(),
+				},
+				KubeadmConfigSpec: bootstrapv1.KubeadmConfigSpec{
+					ClusterConfiguration: &kubeadmv1.ClusterConfiguration{},
+					InitConfiguration:    &kubeadmv1.InitConfiguration{},
+					JoinConfiguration:    &kubeadmv1.JoinConfiguration{},
+				},
+				Replicas: utilpointer.Int32Ptr(3),
+			},
+		}
+
+		machine := &clusterv1.Machine{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      "foo-0",
+				Namespace: cluster.Namespace,
+				Labels:    generateKubeadmControlPlaneLabels(cluster.Name),
+				OwnerReferences: []metav1.OwnerReference{
+					*metav1.NewControllerRef(kcp, controlplanev1.GroupVersion.WithKind("KubeadmControlPlane")),
+				},
+			},
+		}
+
+		kcp.Default()
+		g.Expect(kcp.ValidateCreate()).To(gomega.Succeed())
+
+		g.Expect(clusterv1.AddToScheme(scheme.Scheme)).To(gomega.Succeed())
+		g.Expect(bootstrapv1.AddToScheme(scheme.Scheme)).To(gomega.Succeed())
+		g.Expect(controlplanev1.AddToScheme(scheme.Scheme)).To(gomega.Succeed())
+		fakeClient := fake.NewFakeClientWithScheme(
+			scheme.Scheme,
+			kcp.DeepCopy(),
+			cluster.DeepCopy(),
+			machine.DeepCopy(),
+			genericMachineTemplate.DeepCopy(),
+		)
+		log.SetLogger(klogr.New())
+
+		r := &KubeadmControlPlaneReconciler{
+			Client: fakeClient,
+			Log:    log.Log,
+			remoteClient: func(c client.Client, _ *clusterv1.Cluster, _ *runtime.Scheme) (client.Client, error) {
+				return c, nil
+			},
+			recorder: record.NewFakeRecorder(32),
+		}
+
+		// Create control plane machines
+		result, err := r.reconcile(context.Background(), kcp, r.Log)
+		g.Expect(err).NotTo(gomega.HaveOccurred())
+		g.Expect(result).To(gomega.Equal(ctrl.Result{}))
+
+		g.Expect(kcp.Status.Replicas).To(gomega.BeEquivalentTo(3))
+
+		// Delete control plane machines and requeue, but do not remove finalizer
+		result, err = r.reconcileDelete(context.Background(), kcp, r.Log)
+		g.Expect(err).NotTo(gomega.HaveOccurred())
+		g.Expect(result).To(gomega.Equal(ctrl.Result{RequeueAfter: DeleteRequeueAfter}))
+
+		g.Expect(kcp.Status.Replicas).To(gomega.BeEquivalentTo(0))
+		g.Expect(kcp.Finalizers).To(gomega.Equal([]string{controlplanev1.KubeadmControlPlaneFinalizer}))
+
+		// Remove finalizer
+		result, err = r.reconcileDelete(context.Background(), kcp, r.Log)
+		g.Expect(err).NotTo(gomega.HaveOccurred())
+		g.Expect(result).To(gomega.Equal(ctrl.Result{}))
+
+		g.Expect(kcp.Status.Replicas).To(gomega.BeEquivalentTo(0))
+		g.Expect(kcp.Finalizers).To(gomega.Equal([]string{}))
+	})
+
+	t.Run("fail to delete control plane machines because at least one machine is not owned by the control plane", func(t *testing.T) {
+		g := gomega.NewWithT(t)
+
+		kcp := &controlplanev1.KubeadmControlPlane{
+			ObjectMeta: metav1.ObjectMeta{
+				Namespace: cluster.Namespace,
+				Name:      "foo",
+				OwnerReferences: []metav1.OwnerReference{
+					{
+						Kind:       "Cluster",
+						APIVersion: clusterv1.GroupVersion.String(),
+						Name:       cluster.Name,
+					},
+				},
+			},
+			Spec: controlplanev1.KubeadmControlPlaneSpec{
+				InfrastructureTemplate: corev1.ObjectReference{
+					Kind:       genericMachineTemplate.GetKind(),
+					Namespace:  genericMachineTemplate.GetNamespace(),
+					Name:       genericMachineTemplate.GetName(),
+					APIVersion: genericMachineTemplate.GetAPIVersion(),
+				},
+				KubeadmConfigSpec: bootstrapv1.KubeadmConfigSpec{
+					ClusterConfiguration: &kubeadmv1.ClusterConfiguration{},
+					InitConfiguration:    &kubeadmv1.InitConfiguration{},
+					JoinConfiguration:    &kubeadmv1.JoinConfiguration{},
+				},
+				Replicas: utilpointer.Int32Ptr(3),
+			},
+		}
+
+		machine := &clusterv1.Machine{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      "foo-0",
+				Namespace: cluster.Namespace,
+				Labels:    generateKubeadmControlPlaneLabels(cluster.Name),
+				OwnerReferences: []metav1.OwnerReference{
+					*metav1.NewControllerRef(kcp, controlplanev1.GroupVersion.WithKind("KubeadmControlPlane")),
+				},
+			},
+		}
+
+		workerMachine := &clusterv1.Machine{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      "bar-0",
+				Namespace: cluster.Namespace,
+				Labels: map[string]string{
+					clusterv1.ClusterLabelName: cluster.Name,
+				},
+			},
+		}
+
+		kcp.Default()
+		g.Expect(kcp.ValidateCreate()).To(gomega.Succeed())
+
+		g.Expect(clusterv1.AddToScheme(scheme.Scheme)).To(gomega.Succeed())
+		g.Expect(bootstrapv1.AddToScheme(scheme.Scheme)).To(gomega.Succeed())
+		g.Expect(controlplanev1.AddToScheme(scheme.Scheme)).To(gomega.Succeed())
+		fakeClient := fake.NewFakeClientWithScheme(
+			scheme.Scheme,
+			kcp.DeepCopy(),
+			cluster.DeepCopy(),
+			machine.DeepCopy(),
+			workerMachine.DeepCopy(),
+			genericMachineTemplate.DeepCopy(),
+		)
+		log.SetLogger(klogr.New())
+
+		r := &KubeadmControlPlaneReconciler{
+			Client: fakeClient,
+			Log:    log.Log,
+			remoteClient: func(c client.Client, _ *clusterv1.Cluster, _ *runtime.Scheme) (client.Client, error) {
+				return c, nil
+			},
+			recorder: record.NewFakeRecorder(32),
+		}
+
+		result, err := r.reconcile(context.Background(), kcp, r.Log)
+		g.Expect(err).NotTo(gomega.HaveOccurred())
+		g.Expect(result).To(gomega.Equal(ctrl.Result{}))
+
+		g.Expect(kcp.Status.Replicas).To(gomega.BeEquivalentTo(3))
+
+		result, err = r.reconcileDelete(context.Background(), kcp, r.Log)
+		g.Expect(err).Should(gomega.MatchError(gomega.ContainSubstring("at least one machine is not owned by the control plane")))
+		g.Expect(result).To(gomega.Equal(ctrl.Result{}))
+	})
+}

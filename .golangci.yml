@@ -17,6 +17,8 @@ linters:
 issues:
   max-same-issues: 0
   max-issues-per-linter: 0
+  exclude:
+    - "G108: Profiling endpoint is automatically exposed on /debug/pprof"
 run:
   deadline: 2m
   skip-files:

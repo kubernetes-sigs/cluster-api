@@ -324,14 +324,26 @@ func (r *MachineSetReconciler) syncReplicas(ctx context.Context, ms *clusterv1.M
 			)
 
 			if machine.Spec.Bootstrap.ConfigRef != nil {
-				bootstrapRef, err = external.CloneTemplate(ctx, r.Client, machine.Spec.Bootstrap.ConfigRef, machine.Namespace, machine.Spec.ClusterName, nil)
+				bootstrapRef, err = external.CloneTemplate(ctx, &external.CloneTemplateInput{
+					Client:      r.Client,
+					TemplateRef: machine.Spec.Bootstrap.ConfigRef,
+					Namespace:   machine.Namespace,
+					ClusterName: machine.Spec.ClusterName,
+					Labels:      machine.Labels,
+				})
 				if err != nil {
 					return errors.Wrapf(err, "failed to clone bootstrap configuration for MachineSet %q in namespace %q", ms.Name, ms.Namespace)
 				}
 				machine.Spec.Bootstrap.ConfigRef = bootstrapRef
 			}
 
-			infraRef, err = external.CloneTemplate(ctx, r.Client, &machine.Spec.InfrastructureRef, machine.Namespace, machine.Spec.ClusterName, nil)
+			infraRef, err = external.CloneTemplate(ctx, &external.CloneTemplateInput{
+				Client:      r.Client,
+				TemplateRef: &machine.Spec.InfrastructureRef,
+				Namespace:   machine.Namespace,
+				ClusterName: machine.Spec.ClusterName,
+				Labels:      machine.Labels,
+			})
 			if err != nil {
 				return errors.Wrapf(err, "failed to clone infrastructure configuration for MachineSet %q in namespace %q", ms.Name, ms.Namespace)
 			}

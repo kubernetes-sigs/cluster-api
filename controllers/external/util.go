@@ -49,9 +49,35 @@ func Get(ctx context.Context, c client.Client, ref *corev1.ObjectReference, name
 	return obj, nil
 }
 
+type CloneTemplateInput struct {
+	// Client is the controller runtime client.
+	// +required
+	Client client.Client
+
+	// TemplateRef is a reference to the template that needs to be cloned.
+	// +required
+	TemplateRef *corev1.ObjectReference
+
+	// Namespace is the Kuberentes namespace the cloned object should be created into.
+	// +required
+	Namespace string
+
+	// ClusterName is the cluster this object is linked to.
+	// +required
+	ClusterName string
+
+	// OwnerRef is an optional OwnerReference to attach to the cloned object.
+	// +optional
+	OwnerRef *metav1.OwnerReference
+
+	// Labels is an optional map of labels to be added to the object.
+	// +optional
+	Labels map[string]string
+}
+
 // CloneTemplate uses the client and the reference to create a new object from the template.
-func CloneTemplate(ctx context.Context, c client.Client, ref *corev1.ObjectReference, namespace, clusterName string, owner *metav1.OwnerReference) (*corev1.ObjectReference, error) {
-	from, err := Get(ctx, c, ref, namespace)
+func CloneTemplate(ctx context.Context, in *CloneTemplateInput) (*corev1.ObjectReference, error) {
+	from, err := Get(ctx, in.Client, in.TemplateRef, in.Namespace)
 	if err != nil {
 		return nil, err
 	}
@@ -65,41 +91,50 @@ func CloneTemplate(ctx context.Context, c client.Client, ref *corev1.ObjectRefer
 	// Create the unstructured object from the template.
 	to := &unstructured.Unstructured{Object: template}
 	to.SetResourceVersion("")
-	to.SetLabels(map[string]string{clusterv1.ClusterLabelName: clusterName})
 	to.SetFinalizers(nil)
 	to.SetUID("")
 	to.SetSelfLink("")
 	to.SetName(names.SimpleNameGenerator.GenerateName(from.GetName() + "-"))
-	to.SetNamespace(namespace)
+	to.SetNamespace(in.Namespace)
 
-	if owner != nil {
-		to.SetOwnerReferences([]metav1.OwnerReference{*owner})
+	// Set labels.
+	labels := to.GetLabels()
+	if labels == nil {
+		labels = map[string]string{}
+	}
+	for key, value := range in.Labels {
+		labels[key] = value
+	}
+	labels[clusterv1.ClusterLabelName] = in.ClusterName
+	to.SetLabels(labels)
+
+	// Set the owner reference.
+	if in.OwnerRef != nil {
+		to.SetOwnerReferences([]metav1.OwnerReference{*in.OwnerRef})
 	}
 
 	// Set the object APIVersion.
 	if to.GetAPIVersion() == "" {
-		to.SetAPIVersion(ref.APIVersion)
+		to.SetAPIVersion(in.TemplateRef.APIVersion)
 	}
 
 	// Set the object Kind and strip the word "Template" if it's a suffix.
 	if to.GetKind() == "" {
-		to.SetKind(strings.TrimSuffix(ref.Kind, TemplateSuffix))
+		to.SetKind(strings.TrimSuffix(in.TemplateRef.Kind, TemplateSuffix))
 	}
 
 	// Create the external clone.
-	if err := c.Create(context.Background(), to); err != nil {
+	if err := in.Client.Create(context.Background(), to); err != nil {
 		return nil, err
 	}
 
-	toRef := &corev1.ObjectReference{
+	return &corev1.ObjectReference{
 		APIVersion: to.GetAPIVersion(),
 		Kind:       to.GetKind(),
 		Name:       to.GetName(),
 		Namespace:  to.GetNamespace(),
 		UID:        to.GetUID(),
-	}
-
-	return toRef, nil
+	}, nil
 }
 
 // FailuresFrom returns the FailureReason and FailureMessage fields from the external object status.

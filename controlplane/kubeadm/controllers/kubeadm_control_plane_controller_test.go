@@ -40,6 +40,7 @@ import (
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha3"
 	bootstrapv1 "sigs.k8s.io/cluster-api/bootstrap/kubeadm/api/v1alpha3"
 	kubeadmv1 "sigs.k8s.io/cluster-api/bootstrap/kubeadm/types/v1beta1"
+	fakeremote "sigs.k8s.io/cluster-api/controllers/remote/fake"
 	controlplanev1 "sigs.k8s.io/cluster-api/controlplane/kubeadm/api/v1alpha3"
 	"sigs.k8s.io/cluster-api/util/kubeconfig"
 	"sigs.k8s.io/cluster-api/util/secret"
@@ -501,11 +502,9 @@ func TestReconcileClusterNoEndpoints(t *testing.T) {
 	log.SetLogger(klogr.New())
 
 	r := &KubeadmControlPlaneReconciler{
-		Client: fakeClient,
-		Log:    log.Log,
-		remoteClient: func(c client.Client, _ *clusterv1.Cluster, _ *runtime.Scheme) (client.Client, error) {
-			return c, nil
-		},
+		Client:             fakeClient,
+		Log:                log.Log,
+		remoteClientGetter: fakeremote.NewClusterClient,
 	}
 
 	result, err := r.Reconcile(ctrl.Request{NamespacedName: types.NamespacedName{Name: kcp.Name, Namespace: kcp.Namespace}})
@@ -601,11 +600,9 @@ func TestReconcileInitializeControlPlane(t *testing.T) {
 	expectedLabels := map[string]string{clusterv1.ClusterLabelName: "foo"}
 
 	r := &KubeadmControlPlaneReconciler{
-		Client: fakeClient,
-		Log:    log.Log,
-		remoteClient: func(c client.Client, _ *clusterv1.Cluster, _ *runtime.Scheme) (client.Client, error) {
-			return c, nil
-		},
+		Client:             fakeClient,
+		Log:                log.Log,
+		remoteClientGetter: fakeremote.NewClusterClient,
 	}
 
 	result, err := r.Reconcile(ctrl.Request{NamespacedName: types.NamespacedName{Name: kcp.Name, Namespace: kcp.Namespace}})
@@ -834,11 +831,9 @@ func TestKubeadmControlPlaneReconciler_updateStatusNoMachines(t *testing.T) {
 	log.SetLogger(klogr.New())
 
 	r := &KubeadmControlPlaneReconciler{
-		Client: fakeClient,
-		Log:    log.Log,
-		remoteClient: func(c client.Client, _ *clusterv1.Cluster, _ *runtime.Scheme) (client.Client, error) {
-			return c, nil
-		},
+		Client:             fakeClient,
+		Log:                log.Log,
+		remoteClientGetter: fakeremote.NewClusterClient,
 	}
 
 	g.Expect(r.updateStatus(context.Background(), kcp, cluster)).To(gomega.Succeed())
@@ -922,11 +917,9 @@ func TestKubeadmControlPlaneReconciler_updateStatusAllMachinesNotReady(t *testin
 	log.SetLogger(klogr.New())
 
 	r := &KubeadmControlPlaneReconciler{
-		Client: fakeClient,
-		Log:    log.Log,
-		remoteClient: func(c client.Client, _ *clusterv1.Cluster, _ *runtime.Scheme) (client.Client, error) {
-			return c, nil
-		},
+		Client:             fakeClient,
+		Log:                log.Log,
+		remoteClientGetter: fakeremote.NewClusterClient,
 	}
 
 	g.Expect(r.updateStatus(context.Background(), kcp, cluster)).To(gomega.Succeed())
@@ -973,11 +966,9 @@ func TestKubeadmControlPlaneReconciler_updateStatusAllMachinesReady(t *testing.T
 	log.SetLogger(klogr.New())
 
 	r := &KubeadmControlPlaneReconciler{
-		Client: fakeClient,
-		Log:    log.Log,
-		remoteClient: func(c client.Client, _ *clusterv1.Cluster, _ *runtime.Scheme) (client.Client, error) {
-			return c, nil
-		},
+		Client:             fakeClient,
+		Log:                log.Log,
+		remoteClientGetter: fakeremote.NewClusterClient,
 	}
 
 	g.Expect(r.updateStatus(context.Background(), kcp, cluster)).To(gomega.Succeed())
@@ -1028,11 +1019,9 @@ func TestKubeadmControlPlaneReconciler_updateStatusMachinesReadyMixed(t *testing
 	log.SetLogger(klogr.New())
 
 	r := &KubeadmControlPlaneReconciler{
-		Client: fakeClient,
-		Log:    log.Log,
-		remoteClient: func(c client.Client, _ *clusterv1.Cluster, _ *runtime.Scheme) (client.Client, error) {
-			return c, nil
-		},
+		Client:             fakeClient,
+		Log:                log.Log,
+		remoteClientGetter: fakeremote.NewClusterClient,
 	}
 
 	g.Expect(r.updateStatus(context.Background(), kcp, cluster)).To(gomega.Succeed())
@@ -1143,12 +1132,10 @@ func TestReconcileControlPlaneScaleUp(t *testing.T) {
 	log.SetLogger(klogr.New())
 
 	r := &KubeadmControlPlaneReconciler{
-		Client: fakeClient,
-		Log:    log.Log,
-		remoteClient: func(c client.Client, _ *clusterv1.Cluster, _ *runtime.Scheme) (client.Client, error) {
-			return c, nil
-		},
-		recorder: record.NewFakeRecorder(32),
+		Client:             fakeClient,
+		Log:                log.Log,
+		remoteClientGetter: fakeremote.NewClusterClient,
+		recorder:           record.NewFakeRecorder(32),
 	}
 
 	result, err := r.Reconcile(ctrl.Request{NamespacedName: types.NamespacedName{Name: kcp.Name, Namespace: kcp.Namespace}})
@@ -1422,12 +1409,10 @@ func TestReconcileControlPlaneDelete(t *testing.T) {
 		log.SetLogger(klogr.New())
 
 		r := &KubeadmControlPlaneReconciler{
-			Client: fakeClient,
-			Log:    log.Log,
-			remoteClient: func(c client.Client, _ *clusterv1.Cluster, _ *runtime.Scheme) (client.Client, error) {
-				return c, nil
-			},
-			recorder: record.NewFakeRecorder(32),
+			Client:             fakeClient,
+			Log:                log.Log,
+			remoteClientGetter: fakeremote.NewClusterClient,
+			recorder:           record.NewFakeRecorder(32),
 		}
 
 		// Create control plane machines
@@ -1525,12 +1510,10 @@ func TestReconcileControlPlaneDelete(t *testing.T) {
 		log.SetLogger(klogr.New())
 
 		r := &KubeadmControlPlaneReconciler{
-			Client: fakeClient,
-			Log:    log.Log,
-			remoteClient: func(c client.Client, _ *clusterv1.Cluster, _ *runtime.Scheme) (client.Client, error) {
-				return c, nil
-			},
-			recorder: record.NewFakeRecorder(32),
+			Client:             fakeClient,
+			Log:                log.Log,
+			remoteClientGetter: fakeremote.NewClusterClient,
+			recorder:           record.NewFakeRecorder(32),
 		}
 
 		result, err := r.Reconcile(ctrl.Request{NamespacedName: types.NamespacedName{Name: kcp.Name, Namespace: kcp.Namespace}})

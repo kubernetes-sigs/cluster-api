@@ -339,17 +339,14 @@ func (r *KubeadmControlPlaneReconciler) initializeControlPlane(ctx context.Conte
 func (r *KubeadmControlPlaneReconciler) cloneConfigsAndGenerateMachine(ctx context.Context, cluster *clusterv1.Cluster, kcp *controlplanev1.KubeadmControlPlane, bootstrapSpec *bootstrapv1.KubeadmConfigSpec) error {
 	var errs []error
 
-	ownerRef := metav1.NewControllerRef(kcp, controlplanev1.GroupVersion.WithKind("KubeadmControlPlane"))
-
 	// Clone the infrastructure template
-	infraRef, err := external.CloneTemplate(
-		ctx,
-		r.Client,
-		&kcp.Spec.InfrastructureTemplate,
-		kcp.Namespace,
-		cluster.Name,
-		ownerRef,
-	)
+	infraRef, err := external.CloneTemplate(ctx, &external.CloneTemplateInput{
+		Client:      r.Client,
+		TemplateRef: &kcp.Spec.InfrastructureTemplate,
+		Namespace:   kcp.Namespace,
+		OwnerRef:    metav1.NewControllerRef(kcp, controlplanev1.GroupVersion.WithKind("KubeadmControlPlane")),
+		ClusterName: cluster.Name,
+	})
 	if err != nil {
 		// Safe to return early here since no resources have been created yet.
 		return errors.Wrap(err, "failed to clone infrastructure template")

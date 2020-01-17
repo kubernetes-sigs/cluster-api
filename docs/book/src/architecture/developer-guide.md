@@ -44,12 +44,11 @@ If you're using [kind], you'll need a way to push your images to a registry to t
 You can instead [side-load] all images, but the registry workflow is lower-friction.
 
 Most users test with [GCR], but you could also use something like [Docker Hub][hub].
-If you choose not to use GCR, you'll need to set the [`REGISTRY`][registry] environment variable.
+If you choose not to use GCR, you'll need to set the `REGISTRY` environment variable.
 
 [side-load]: https://kind.sigs.k8s.io/docs/user/quick-start/#loading-an-image-into-your-cluster
 [GCR]: https://cloud.google.com/container-registry/
 [hub]: https://hub.docker.com/
-[registry]: https://github.com/kubernetes-sigs/cluster-api/blob/outdated-capbk-readme/Makefile#L49
 
 ### Kustomize
 

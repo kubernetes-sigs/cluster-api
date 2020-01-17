@@ -98,6 +98,7 @@ var _ = Describe("Cluster Reconciler", func() {
 			ph, err := patch.NewHelper(cluster, k8sClient)
 			Expect(err).ShouldNot(HaveOccurred())
 			cluster.Spec.InfrastructureRef = &v1.ObjectReference{Name: "test"}
+			cluster.Spec.ControlPlaneRef = &v1.ObjectReference{Name: "test-too"}
 			Expect(ph.Patch(ctx, cluster)).ShouldNot(HaveOccurred())
 			return true
 		}, timeout).Should(BeTrue())

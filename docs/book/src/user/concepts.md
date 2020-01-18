@@ -38,7 +38,7 @@ As of v1alpha2 __Machine Based__ is the only supported Cluster API control plane
 
 ### Machine
 
-A "Machine" is the declarative spec for a Node, as represented in Kuberenetes core. If a new Machine object is created, a provider-specific controller will handle provisioning and installing a new host to register as a new Node matching the Machine spec. If the Machine's spec is updated, a provider-specific controller is responsible for updating the Node in-place or replacing the host with a new one matching the updated spec. If a Machine object is deleted, the corresponding Node should have its external resources released by the provider-specific controller, and should be deleted as well.
+A "Machine" is the declarative spec for a Node, as represented in Kubernetes core. If a new Machine object is created, a provider-specific controller will handle provisioning and installing a new host to register as a new Node matching the Machine spec. If the Machine's spec is updated, a provider-specific controller is responsible for updating the Node in-place or replacing the host with a new one matching the updated spec. If a Machine object is deleted, the corresponding Node should have its external resources released by the provider-specific controller, and should be deleted as well.
 
 Fields like the kubelet version are modeled as fields on the Machine's spec. Any other information that is provider-specific, though, is part of the InfraProviderRef and is not portable between different providers.
 

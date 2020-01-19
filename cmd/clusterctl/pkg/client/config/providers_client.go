@@ -82,7 +82,7 @@ func (p *providersClient) defaults() []Provider {
 		},
 		&provider{
 			name:         "docker",
-			url:          "https://github.com/kubernetes-sigs/cluster-api-provider-docker/releases/latest/provider_components.yaml",
+			url:          "https://github.com/kubernetes-sigs/cluster-api-provider-docker/releases/latest/infrastructure-components.yaml",
 			providerType: clusterctlv1.InfrastructureProviderType,
 		},
 		&provider{

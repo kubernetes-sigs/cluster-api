@@ -59,7 +59,13 @@ providers = {
             'componentsFile': 'bootstrap-components.yaml',
             'nextVersion': 'v0.3.0',
             'type': 'BootstrapProvider',
-            'configFolder': '/bootstrap/kubeadm/config/default',
+            'configFolder': 'bootstrap/kubeadm/config/default',
+      },
+      'docker': {
+          'componentsFile': 'infrastructure-components.yaml',
+          'nextVersion': 'v0.3.0',
+          'type': 'InfrastructureProvider',
+          'configFolder': 'test/infrastructure/docker/config/default',
       },
 }
 
@@ -128,7 +134,7 @@ def create_local_overrides():
         assert p is not None, 'invalid configuration: please specify the configuration for the {} provider'.format(provider)
 
         repo = p.get('repo', '.')
-        config_folder = p.get('configFolder', '/config/default')
+        config_folder = p.get('configFolder', 'config/default')
 
         next_version = p.get('nextVersion')
         assert next_version is not None, 'invalid configuration for provider {}: please provide nextVersion value'.format(provider)
@@ -140,7 +146,7 @@ def create_local_overrides():
         components_file = p.get('componentsFile')
         assert components_file is not None, 'invalid configuration for provider {}: please provide componentsFile value'.format(provider)
 
-        components_yaml = execCmd(['kustomize', 'build', repo + config_folder])
+        components_yaml = execCmd(['kustomize', 'build', os.path.join(repo, config_folder)])
         write_local_override(provider, next_version, components_file, components_yaml)
 
         yield provider, type, next_version

@@ -14,6 +14,9 @@ settings.update(read_json(
     default = {},
 ))
 
+if settings.get("trigger_mode") == "manual":
+    trigger_mode(TRIGGER_MODE_MANUAL)
+
 allow_k8s_contexts(settings.get("allowed_contexts"))
 
 default_registry(settings.get("default_registry"))

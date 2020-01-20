@@ -7,6 +7,6 @@ metadata:
 spec:
   ports:
     - port: 443
-      targetPort: webhook-service
+      targetPort: webhook-server
   selector:
     control-plane: cluster-api-kubeadm-bootstrap-controller-manager

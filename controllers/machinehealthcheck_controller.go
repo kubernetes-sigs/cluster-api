@@ -30,6 +30,7 @@ import (
 	kerrors "k8s.io/apimachinery/pkg/util/errors"
 	"k8s.io/client-go/tools/record"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha3"
+	"sigs.k8s.io/cluster-api/controllers/remote"
 	"sigs.k8s.io/cluster-api/util"
 	"sigs.k8s.io/cluster-api/util/patch"
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -51,6 +52,7 @@ type MachineHealthCheckReconciler struct {
 
 	controller controller.Controller
 	recorder   record.EventRecorder
+	scheme     *runtime.Scheme
 }
 
 func (r *MachineHealthCheckReconciler) SetupWithManager(mgr ctrl.Manager, options controller.Options) error {
@@ -77,6 +79,7 @@ func (r *MachineHealthCheckReconciler) SetupWithManager(mgr ctrl.Manager, option
 
 	r.controller = controller
 	r.recorder = mgr.GetEventRecorderFor("machinehealthcheck-controller")
+	r.scheme = mgr.GetScheme()
 	return nil
 }
 
@@ -142,7 +145,7 @@ func (r *MachineHealthCheckReconciler) Reconcile(req ctrl.Request) (_ ctrl.Resul
 	return result, nil
 }
 
-func (r *MachineHealthCheckReconciler) reconcile(_ context.Context, cluster *clusterv1.Cluster, m *clusterv1.MachineHealthCheck) (ctrl.Result, error) {
+func (r *MachineHealthCheckReconciler) reconcile(ctx context.Context, cluster *clusterv1.Cluster, m *clusterv1.MachineHealthCheck) (ctrl.Result, error) {
 	// Ensure the MachineHealthCheck is owned by the Cluster it belongs to
 	m.OwnerReferences = util.EnsureOwnerRef(m.OwnerReferences, metav1.OwnerReference{
 		APIVersion: clusterv1.GroupVersion.String(),
@@ -151,7 +154,26 @@ func (r *MachineHealthCheckReconciler) reconcile(_ context.Context, cluster *clu
 		UID:        cluster.UID,
 	})
 
-	return ctrl.Result{}, fmt.Errorf("controller not yet implemented")
+	logger := r.Log.WithValues("machinehealthcheck", m.Name, "namespace", m.Namespace)
+	logger = logger.WithValues("cluster", cluster.Name)
+
+	// Create client for target cluster
+	clusterClient, err := remote.NewClusterClient(r.Client, cluster, r.scheme)
+	if err != nil {
+		logger.Error(err, "Error building target cluster client")
+		return ctrl.Result{}, err
+	}
+
+	// fetch all targets
+	logger.V(3).Info("Finding targets", "request", namespacedName(m))
+	targets, err := r.getTargetsFromMHC(clusterClient, cluster, m)
+	if err != nil {
+		logger.Error(err, "Failed to fetch targets from MachineHealthCheck")
+		return ctrl.Result{}, err
+	}
+	_ = len(targets) //totalTargets
+
+	return ctrl.Result{}, nil
 }
 
 func (r *MachineHealthCheckReconciler) indexMachineHealthCheckByClusterName(object runtime.Object) []string {
@@ -191,4 +213,11 @@ func (r *MachineHealthCheckReconciler) clusterToMachineHealthCheck(o handler.Map
 		requests = append(requests, reconcile.Request{NamespacedName: key})
 	}
 	return requests
+}
+
+func namespacedName(obj metav1.Object) string {
+	if obj.GetNamespace() != "" {
+		return fmt.Sprintf("%s/%s", obj.GetNamespace(), obj.GetName())
+	}
+	return obj.GetName()
 }

@@ -909,8 +909,13 @@ func FakeCustomResourceDefinition(group string, kind string, versions ...string)
 		},
 	}
 
-	for _, version := range versions {
-		crd.Spec.Versions = append(crd.Spec.Versions, apiextensionslv1.CustomResourceDefinitionVersion{Name: version})
+	for i, version := range versions {
+		// set the first version as a storage version
+		versionObj := apiextensionslv1.CustomResourceDefinitionVersion{Name: version}
+		if i == 0 {
+			versionObj.Storage = true
+		}
+		crd.Spec.Versions = append(crd.Spec.Versions, versionObj)
 	}
 
 	return crd

@@ -17,6 +17,7 @@ limitations under the License.
 package scheme
 
 import (
+	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1beta1"
 	"k8s.io/apimachinery/pkg/runtime"
 	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha3"
@@ -32,4 +33,5 @@ func init() {
 	_ = clientgoscheme.AddToScheme(Scheme)
 	_ = clusterctlv1.AddToScheme(Scheme)
 	_ = clusterv1.AddToScheme(Scheme)
+	_ = apiextensionsv1.AddToScheme(Scheme)
 }

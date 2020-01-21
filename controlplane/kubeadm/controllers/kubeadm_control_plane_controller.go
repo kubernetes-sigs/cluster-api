@@ -342,6 +342,7 @@ func (r *KubeadmControlPlaneReconciler) cloneConfigsAndGenerateMachine(ctx conte
 		Namespace:   kcp.Namespace,
 		OwnerRef:    metav1.NewControllerRef(kcp, controlplanev1.GroupVersion.WithKind("KubeadmControlPlane")),
 		ClusterName: cluster.Name,
+		Labels:      generateKubeadmControlPlaneLabels(cluster.Name),
 	})
 	if err != nil {
 		// Safe to return early here since no resources have been created yet.

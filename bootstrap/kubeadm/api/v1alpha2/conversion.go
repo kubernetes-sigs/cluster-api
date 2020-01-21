@@ -36,9 +36,7 @@ func (src *KubeadmConfig) ConvertTo(dstRaw conversion.Hub) error {
 		return err
 	}
 
-	if restored.Status.DataSecretName != nil {
-		dst.Status.DataSecretName = restored.Status.DataSecretName
-	}
+	dst.Status.DataSecretName = restored.Status.DataSecretName
 
 	return nil
 }

@@ -22,7 +22,7 @@ import (
 	"time"
 
 	"github.com/onsi/ginkgo"
-	"github.com/onsi/gomega"
+	. "github.com/onsi/gomega"
 	appsv1 "k8s.io/api/apps/v1"
 	"sigs.k8s.io/cluster-api/test/helpers/flag"
 	"sigs.k8s.io/cluster-api/test/helpers/kind"
@@ -38,15 +38,15 @@ var (
 )
 
 func DeployCAPIComponents(kindCluster kind.Cluster) {
-	gomega.Expect(capiComponents).ToNot(gomega.BeNil())
+	Expect(capiComponents).ToNot(BeNil())
 	fmt.Fprintf(ginkgo.GinkgoWriter, "Applying cluster-api components\n")
-	gomega.Expect(*capiComponents).ToNot(gomega.BeEmpty())
+	Expect(*capiComponents).ToNot(BeEmpty())
 	kindCluster.ApplyYAML(*capiComponents)
 }
 
 func WaitDeployment(c client.Client, namespace, name string) {
 	fmt.Fprintf(ginkgo.GinkgoWriter, "Ensuring %s/%s is deployed\n", namespace, name)
-	gomega.Eventually(
+	Eventually(
 		func() (int32, error) {
 			deployment := &appsv1.Deployment{}
 			if err := c.Get(context.TODO(), client.ObjectKey{Namespace: namespace, Name: name}, deployment); err != nil {
@@ -54,5 +54,5 @@ func WaitDeployment(c client.Client, namespace, name string) {
 			}
 			return deployment.Status.ReadyReplicas, nil
 		}, 5*time.Minute, 15*time.Second,
-	).ShouldNot(gomega.BeZero())
+	).ShouldNot(BeZero())
 }

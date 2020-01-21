@@ -19,13 +19,13 @@ package v1alpha3
 import (
 	"testing"
 
-	"github.com/onsi/gomega"
+	. "github.com/onsi/gomega"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 func TestClusterDefault(t *testing.T) {
-	g := gomega.NewWithT(t)
+	g := NewWithT(t)
 
 	c := &Cluster{
 		ObjectMeta: metav1.ObjectMeta{
@@ -38,8 +38,8 @@ func TestClusterDefault(t *testing.T) {
 	}
 	c.Default()
 
-	g.Expect(c.Spec.InfrastructureRef.Namespace).To(gomega.Equal(c.Namespace))
-	g.Expect(c.Spec.ControlPlaneRef.Namespace).To(gomega.Equal(c.Namespace))
+	g.Expect(c.Spec.InfrastructureRef.Namespace).To(Equal(c.Namespace))
+	g.Expect(c.Spec.ControlPlaneRef.Namespace).To(Equal(c.Namespace))
 }
 
 func TestClusterValidation(t *testing.T) {
@@ -86,18 +86,14 @@ func TestClusterValidation(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			g := gomega.NewWithT(t)
+			g := NewWithT(t)
 
 			if tt.expectErr {
-				err := tt.c.ValidateCreate()
-				g.Expect(err).To(gomega.HaveOccurred())
-				err = tt.c.ValidateUpdate(nil)
-				g.Expect(err).To(gomega.HaveOccurred())
+				g.Expect(tt.c.ValidateCreate()).NotTo(Succeed())
+				g.Expect(tt.c.ValidateUpdate(nil)).NotTo(Succeed())
 			} else {
-				err := tt.c.ValidateCreate()
-				g.Expect(err).To(gomega.Succeed())
-				err = tt.c.ValidateUpdate(nil)
-				g.Expect(err).To(gomega.Succeed())
+				g.Expect(tt.c.ValidateCreate()).To(Succeed())
+				g.Expect(tt.c.ValidateUpdate(nil)).To(Succeed())
 			}
 		})
 	}

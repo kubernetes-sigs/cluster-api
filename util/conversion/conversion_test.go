@@ -20,14 +20,14 @@ import (
 	"testing"
 
 	"github.com/davecgh/go-spew/spew"
-	"github.com/onsi/gomega"
+	. "github.com/onsi/gomega"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	clusterv1a2 "sigs.k8s.io/cluster-api/api/v1alpha3"
 	clusterv1a3 "sigs.k8s.io/cluster-api/api/v1alpha3"
 )
 
 func TestMarshalData(t *testing.T) {
-	g := gomega.NewWithT(t)
+	g := NewWithT(t)
 
 	t.Run("should write source object to destination", func(t *testing.T) {
 		src := &clusterv1a3.Machine{
@@ -44,9 +44,9 @@ func TestMarshalData(t *testing.T) {
 			},
 		}
 
-		g.Expect(MarshalData(src, dst)).To(gomega.Succeed())
-		g.Expect(dst.Annotations[DataAnnotation]).ToNot(gomega.BeEmpty())
-		g.Expect(dst.Annotations[DataAnnotation]).To(gomega.ContainSubstring("label1"))
+		g.Expect(MarshalData(src, dst)).To(Succeed())
+		g.Expect(dst.Annotations[DataAnnotation]).ToNot(BeEmpty())
+		g.Expect(dst.Annotations[DataAnnotation]).To(ContainSubstring("label1"))
 	})
 
 	t.Run("should append the annotation", func(t *testing.T) {
@@ -64,15 +64,15 @@ func TestMarshalData(t *testing.T) {
 			},
 		}
 
-		g.Expect(MarshalData(src, dst)).To(gomega.Succeed())
-		g.Expect(len(dst.Annotations)).To(gomega.Equal(2))
+		g.Expect(MarshalData(src, dst)).To(Succeed())
+		g.Expect(len(dst.Annotations)).To(Equal(2))
 
 		spew.Dump(dst.Annotations)
 	})
 }
 
 func TestUnmarshalData(t *testing.T) {
-	g := gomega.NewWithT(t)
+	g := NewWithT(t)
 
 	t.Run("should return false without errors if annotation doesn't exist", func(t *testing.T) {
 		src := &clusterv1a3.Machine{
@@ -87,8 +87,8 @@ func TestUnmarshalData(t *testing.T) {
 		}
 
 		ok, err := UnmarshalData(src, dst)
-		g.Expect(ok).To(gomega.BeFalse())
-		g.Expect(err).To(gomega.BeNil())
+		g.Expect(ok).To(BeFalse())
+		g.Expect(err).To(BeNil())
 	})
 
 	t.Run("should return true when a valid annotation with data exists", func(t *testing.T) {
@@ -103,13 +103,13 @@ func TestUnmarshalData(t *testing.T) {
 		dst := &clusterv1a2.Machine{}
 
 		ok, err := UnmarshalData(src, dst)
-		g.Expect(ok).To(gomega.BeTrue())
-		g.Expect(err).To(gomega.BeNil())
+		g.Expect(ok).To(BeTrue())
+		g.Expect(err).To(BeNil())
 
-		g.Expect(len(dst.Labels)).To(gomega.Equal(1))
-		g.Expect(dst.Name).To(gomega.Equal("test-1"))
-		g.Expect(dst.Labels).To(gomega.HaveKeyWithValue("label1", ""))
-		g.Expect(dst.Annotations).To(gomega.BeEmpty())
+		g.Expect(len(dst.Labels)).To(Equal(1))
+		g.Expect(dst.Name).To(Equal("test-1"))
+		g.Expect(dst.Labels).To(HaveKeyWithValue("label1", ""))
+		g.Expect(dst.Annotations).To(BeEmpty())
 	})
 
 	t.Run("should clean the annotation on successful unmarshal", func(t *testing.T) {
@@ -125,10 +125,10 @@ func TestUnmarshalData(t *testing.T) {
 		dst := &clusterv1a2.Machine{}
 
 		ok, err := UnmarshalData(src, dst)
-		g.Expect(ok).To(gomega.BeTrue())
-		g.Expect(err).To(gomega.BeNil())
+		g.Expect(ok).To(BeTrue())
+		g.Expect(err).To(BeNil())
 
-		g.Expect(src.Annotations).ToNot(gomega.HaveKey(DataAnnotation))
-		g.Expect(len(src.Annotations)).To(gomega.Equal(1))
+		g.Expect(src.Annotations).ToNot(HaveKey(DataAnnotation))
+		g.Expect(len(src.Annotations)).To(Equal(1))
 	})
 }

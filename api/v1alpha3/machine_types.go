@@ -26,7 +26,7 @@ const (
 	// MachineFinalizer is set on PrepareForCreate callback.
 	MachineFinalizer = "machine.cluster.x-k8s.io"
 
-	// MachineControlPlaneLabelName is the label set on machines part of a control plane.
+	// MachineControlPlaneLabelName is the label set on machines or related objects that are part of a control plane.
 	MachineControlPlaneLabelName = "cluster.x-k8s.io/control-plane"
 
 	// ExcludeNodeDrainingAnnotation annotation explicitly skips node draining if set

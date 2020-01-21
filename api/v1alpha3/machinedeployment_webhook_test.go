@@ -19,26 +19,26 @@ package v1alpha3
 import (
 	"testing"
 
-	"github.com/onsi/gomega"
+	. "github.com/onsi/gomega"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/utils/pointer"
 )
 
 func TestMachineDeploymentDefault(t *testing.T) {
-	g := gomega.NewWithT(t)
+	g := NewWithT(t)
 	md := &MachineDeployment{}
 
 	md.Default()
 
-	g.Expect(md.Spec.Replicas).To(gomega.Equal(pointer.Int32Ptr(1)))
-	g.Expect(md.Spec.MinReadySeconds).To(gomega.Equal(pointer.Int32Ptr(0)))
-	g.Expect(md.Spec.RevisionHistoryLimit).To(gomega.Equal(pointer.Int32Ptr(1)))
-	g.Expect(md.Spec.ProgressDeadlineSeconds).To(gomega.Equal(pointer.Int32Ptr(600)))
-	g.Expect(md.Spec.Strategy).ToNot(gomega.BeNil())
-	g.Expect(md.Spec.Strategy.Type).To(gomega.Equal(RollingUpdateMachineDeploymentStrategyType))
-	g.Expect(md.Spec.Strategy.RollingUpdate).ToNot(gomega.BeNil())
-	g.Expect(md.Spec.Strategy.RollingUpdate.MaxSurge.IntValue()).To(gomega.Equal(1))
-	g.Expect(md.Spec.Strategy.RollingUpdate.MaxUnavailable.IntValue()).To(gomega.Equal(0))
+	g.Expect(md.Spec.Replicas).To(Equal(pointer.Int32Ptr(1)))
+	g.Expect(md.Spec.MinReadySeconds).To(Equal(pointer.Int32Ptr(0)))
+	g.Expect(md.Spec.RevisionHistoryLimit).To(Equal(pointer.Int32Ptr(1)))
+	g.Expect(md.Spec.ProgressDeadlineSeconds).To(Equal(pointer.Int32Ptr(600)))
+	g.Expect(md.Spec.Strategy).ToNot(BeNil())
+	g.Expect(md.Spec.Strategy.Type).To(Equal(RollingUpdateMachineDeploymentStrategyType))
+	g.Expect(md.Spec.Strategy.RollingUpdate).ToNot(BeNil())
+	g.Expect(md.Spec.Strategy.RollingUpdate.MaxSurge.IntValue()).To(Equal(1))
+	g.Expect(md.Spec.Strategy.RollingUpdate.MaxUnavailable.IntValue()).To(Equal(0))
 }
 
 func TestMachineDeploymentValidation(t *testing.T) {
@@ -82,7 +82,7 @@ func TestMachineDeploymentValidation(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			g := gomega.NewWithT(t)
+			g := NewWithT(t)
 			md := &MachineDeployment{
 				Spec: MachineDeploymentSpec{
 					Selector: v1.LabelSelector{
@@ -96,13 +96,11 @@ func TestMachineDeploymentValidation(t *testing.T) {
 				},
 			}
 			if tt.expectErr {
-				err := md.ValidateCreate()
-				g.Expect(err).To(gomega.HaveOccurred())
-				err = md.ValidateUpdate(nil)
-				g.Expect(err).To(gomega.HaveOccurred())
+				g.Expect(md.ValidateCreate()).NotTo(Succeed())
+				g.Expect(md.ValidateUpdate(nil)).NotTo(Succeed())
 			} else {
-				g.Expect(md.ValidateCreate()).To(gomega.Succeed())
-				g.Expect(md.ValidateUpdate(nil)).To(gomega.Succeed())
+				g.Expect(md.ValidateCreate()).To(Succeed())
+				g.Expect(md.ValidateUpdate(nil)).To(Succeed())
 			}
 		})
 	}

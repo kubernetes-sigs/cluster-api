@@ -35,7 +35,7 @@ import (
 )
 
 const (
-	// eventuallyInterval is the polling interval used by gomega.Eventually
+	// eventuallyInterval is the polling interval used by gomega's Eventually
 	eventuallyInterval = 10 * time.Second
 )
 

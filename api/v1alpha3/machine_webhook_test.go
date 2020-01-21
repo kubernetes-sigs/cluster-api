@@ -19,14 +19,14 @@ package v1alpha3
 import (
 	"testing"
 
-	"github.com/onsi/gomega"
+	. "github.com/onsi/gomega"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/utils/pointer"
 )
 
 func TestMachineDefault(t *testing.T) {
-	g := gomega.NewWithT(t)
+	g := NewWithT(t)
 
 	m := &Machine{
 		ObjectMeta: metav1.ObjectMeta{
@@ -39,8 +39,8 @@ func TestMachineDefault(t *testing.T) {
 
 	m.Default()
 
-	g.Expect(m.Spec.Bootstrap.ConfigRef.Namespace).To(gomega.Equal(m.Namespace))
-	g.Expect(m.Spec.InfrastructureRef.Namespace).To(gomega.Equal(m.Namespace))
+	g.Expect(m.Spec.Bootstrap.ConfigRef.Namespace).To(Equal(m.Namespace))
+	g.Expect(m.Spec.InfrastructureRef.Namespace).To(Equal(m.Namespace))
 }
 
 func TestMachineBootstrapValidation(t *testing.T) {
@@ -68,18 +68,16 @@ func TestMachineBootstrapValidation(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			g := gomega.NewWithT(t)
+			g := NewWithT(t)
 			m := &Machine{
 				Spec: MachineSpec{Bootstrap: tt.bootstrap},
 			}
 			if tt.expectErr {
-				err := m.ValidateCreate()
-				g.Expect(err).To(gomega.HaveOccurred())
-				err = m.ValidateUpdate(nil)
-				g.Expect(err).To(gomega.HaveOccurred())
+				g.Expect(m.ValidateCreate()).NotTo(Succeed())
+				g.Expect(m.ValidateUpdate(nil)).NotTo(Succeed())
 			} else {
-				g.Expect(m.ValidateCreate()).To(gomega.Succeed())
-				g.Expect(m.ValidateUpdate(nil)).To(gomega.Succeed())
+				g.Expect(m.ValidateCreate()).To(Succeed())
+				g.Expect(m.ValidateUpdate(nil)).To(Succeed())
 			}
 		})
 	}
@@ -125,7 +123,7 @@ func TestMachineNamespaceValidation(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			g := gomega.NewWithT(t)
+			g := NewWithT(t)
 
 			m := &Machine{
 				ObjectMeta: metav1.ObjectMeta{Namespace: tt.namespace},
@@ -133,15 +131,11 @@ func TestMachineNamespaceValidation(t *testing.T) {
 			}
 
 			if tt.expectErr {
-				err := m.ValidateCreate()
-				g.Expect(err).To(gomega.HaveOccurred())
-				err = m.ValidateUpdate(nil)
-				g.Expect(err).To(gomega.HaveOccurred())
+				g.Expect(m.ValidateCreate()).NotTo(Succeed())
+				g.Expect(m.ValidateUpdate(nil)).NotTo(Succeed())
 			} else {
-				err := m.ValidateCreate()
-				g.Expect(err).To(gomega.Succeed())
-				err = m.ValidateUpdate(nil)
-				g.Expect(err).To(gomega.Succeed())
+				g.Expect(m.ValidateCreate()).To(Succeed())
+				g.Expect(m.ValidateUpdate(nil)).To(Succeed())
 			}
 		})
 	}

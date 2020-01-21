@@ -19,7 +19,7 @@ package v1alpha3
 import (
 	"testing"
 
-	"github.com/onsi/gomega"
+	. "github.com/onsi/gomega"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/utils/pointer"
@@ -29,7 +29,7 @@ import (
 )
 
 func TestKubeadmControlPlaneDefault(t *testing.T) {
-	g := gomega.NewWithT(t)
+	g := NewWithT(t)
 
 	kcp := &KubeadmControlPlane{
 		ObjectMeta: metav1.ObjectMeta{
@@ -41,7 +41,7 @@ func TestKubeadmControlPlaneDefault(t *testing.T) {
 	}
 	kcp.Default()
 
-	g.Expect(kcp.Spec.InfrastructureTemplate.Namespace).To(gomega.Equal(kcp.Namespace))
+	g.Expect(kcp.Spec.InfrastructureTemplate.Namespace).To(Equal(kcp.Namespace))
 }
 
 func TestKubeadmControlPlaneValidateCreate(t *testing.T) {
@@ -120,14 +120,12 @@ func TestKubeadmControlPlaneValidateCreate(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			g := gomega.NewWithT(t)
+			g := NewWithT(t)
 
 			if tt.expectErr {
-				err := tt.kcp.ValidateCreate()
-				g.Expect(err).To(gomega.HaveOccurred())
+				g.Expect(tt.kcp.ValidateCreate()).NotTo(Succeed())
 			} else {
-				err := tt.kcp.ValidateCreate()
-				g.Expect(err).To(gomega.Succeed())
+				g.Expect(tt.kcp.ValidateCreate()).To(Succeed())
 			}
 		})
 	}
@@ -176,14 +174,13 @@ func TestKubeadmControlPlaneValidateUpdate(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			g := gomega.NewWithT(t)
+			g := NewWithT(t)
 
+			err := tt.kcp.ValidateUpdate(before.DeepCopy())
 			if tt.expectErr {
-				err := tt.kcp.ValidateUpdate(before.DeepCopy())
-				g.Expect(err).To(gomega.HaveOccurred())
+				g.Expect(err).To(HaveOccurred())
 			} else {
-				err := tt.kcp.ValidateUpdate(before.DeepCopy())
-				g.Expect(err).To(gomega.Succeed())
+				g.Expect(err).To(Succeed())
 			}
 		})
 	}

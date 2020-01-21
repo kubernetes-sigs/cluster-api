@@ -27,7 +27,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/onsi/gomega"
+	. "github.com/onsi/gomega"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -203,7 +203,7 @@ func TestNew(t *testing.T) {
 }
 
 func TestGenerateSecretWithOwner(t *testing.T) {
-	g := gomega.NewWithT(t)
+	g := NewWithT(t)
 
 	owner := metav1.OwnerReference{
 		Name:       "test1",
@@ -223,12 +223,12 @@ func TestGenerateSecretWithOwner(t *testing.T) {
 		owner,
 	)
 
-	g.Expect(kubeconfigSecret).NotTo(gomega.BeNil())
-	g.Expect(kubeconfigSecret).To(gomega.Equal(expectedSecret))
+	g.Expect(kubeconfigSecret).NotTo(BeNil())
+	g.Expect(kubeconfigSecret).To(Equal(expectedSecret))
 }
 
 func TestGenerateSecret(t *testing.T) {
-	g := gomega.NewWithT(t)
+	g := NewWithT(t)
 
 	expectedSecret := validSecret.DeepCopy()
 	expectedSecret.SetOwnerReferences(
@@ -250,18 +250,18 @@ func TestGenerateSecret(t *testing.T) {
 		[]byte(validKubeConfig),
 	)
 
-	g.Expect(kubeconfigSecret).NotTo(gomega.BeNil())
-	g.Expect(kubeconfigSecret).To(gomega.Equal(expectedSecret))
+	g.Expect(kubeconfigSecret).NotTo(BeNil())
+	g.Expect(kubeconfigSecret).To(Equal(expectedSecret))
 }
 
 func TestCreateSecretWithOwner(t *testing.T) {
-	g := gomega.NewWithT(t)
+	g := NewWithT(t)
 
 	caKey, err := certs.NewPrivateKey()
-	g.Expect(err).NotTo(gomega.HaveOccurred())
+	g.Expect(err).NotTo(HaveOccurred())
 
 	caCert, err := getTestCACert(caKey)
-	g.Expect(err).NotTo(gomega.HaveOccurred())
+	g.Expect(err).NotTo(HaveOccurred())
 
 	caSecret := &corev1.Secret{
 		ObjectMeta: metav1.ObjectMeta{
@@ -293,29 +293,29 @@ func TestCreateSecretWithOwner(t *testing.T) {
 		owner,
 	)
 
-	g.Expect(err).NotTo(gomega.HaveOccurred())
+	g.Expect(err).NotTo(HaveOccurred())
 
 	s := &corev1.Secret{}
 	key := client.ObjectKey{Name: "test1-kubeconfig", Namespace: "test"}
-	g.Expect(c.Get(context.Background(), key, s)).To(gomega.Succeed())
-	g.Expect(s.OwnerReferences).To(gomega.ContainElement(owner))
+	g.Expect(c.Get(context.Background(), key, s)).To(Succeed())
+	g.Expect(s.OwnerReferences).To(ContainElement(owner))
 
 	clientConfig, err := clientcmd.NewClientConfigFromBytes(s.Data[secret.KubeconfigDataName])
-	g.Expect(err).NotTo(gomega.HaveOccurred())
+	g.Expect(err).NotTo(HaveOccurred())
 	restClient, err := clientConfig.ClientConfig()
-	g.Expect(err).NotTo(gomega.HaveOccurred())
-	g.Expect(restClient.CAData).To(gomega.Equal(certs.EncodeCertPEM(caCert)))
-	g.Expect(restClient.Host).To(gomega.Equal("https://localhost:6443"))
+	g.Expect(err).NotTo(HaveOccurred())
+	g.Expect(restClient.CAData).To(Equal(certs.EncodeCertPEM(caCert)))
+	g.Expect(restClient.Host).To(Equal("https://localhost:6443"))
 }
 
 func TestCreateSecret(t *testing.T) {
-	g := gomega.NewWithT(t)
+	g := NewWithT(t)
 
 	caKey, err := certs.NewPrivateKey()
-	g.Expect(err).NotTo(gomega.HaveOccurred())
+	g.Expect(err).NotTo(HaveOccurred())
 
 	caCert, err := getTestCACert(caKey)
-	g.Expect(err).NotTo(gomega.HaveOccurred())
+	g.Expect(err).NotTo(HaveOccurred())
 
 	caSecret := &corev1.Secret{
 		ObjectMeta: metav1.ObjectMeta{
@@ -349,12 +349,12 @@ func TestCreateSecret(t *testing.T) {
 		cluster,
 	)
 
-	g.Expect(err).NotTo(gomega.HaveOccurred())
+	g.Expect(err).NotTo(HaveOccurred())
 
 	s := &corev1.Secret{}
 	key := client.ObjectKey{Name: "test1-kubeconfig", Namespace: "test"}
-	g.Expect(c.Get(context.Background(), key, s)).To(gomega.Succeed())
-	g.Expect(s.OwnerReferences).To(gomega.ContainElement(
+	g.Expect(c.Get(context.Background(), key, s)).To(Succeed())
+	g.Expect(s.OwnerReferences).To(ContainElement(
 		metav1.OwnerReference{
 			Name:       cluster.Name,
 			Kind:       "Cluster",
@@ -363,9 +363,9 @@ func TestCreateSecret(t *testing.T) {
 	))
 
 	clientConfig, err := clientcmd.NewClientConfigFromBytes(s.Data[secret.KubeconfigDataName])
-	g.Expect(err).NotTo(gomega.HaveOccurred())
+	g.Expect(err).NotTo(HaveOccurred())
 	restClient, err := clientConfig.ClientConfig()
-	g.Expect(err).NotTo(gomega.HaveOccurred())
-	g.Expect(restClient.CAData).To(gomega.Equal(certs.EncodeCertPEM(caCert)))
-	g.Expect(restClient.Host).To(gomega.Equal("https://localhost:8443"))
+	g.Expect(err).NotTo(HaveOccurred())
+	g.Expect(restClient.CAData).To(Equal(certs.EncodeCertPEM(caCert)))
+	g.Expect(restClient.Host).To(Equal("https://localhost:8443"))
 }

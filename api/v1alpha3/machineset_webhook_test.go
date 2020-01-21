@@ -19,7 +19,7 @@ package v1alpha3
 import (
 	"testing"
 
-	"github.com/onsi/gomega"
+	. "github.com/onsi/gomega"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
@@ -64,7 +64,7 @@ func TestMachineSetLabelSelectorMatchValidation(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			g := gomega.NewWithT(t)
+			g := NewWithT(t)
 			ms := &MachineSet{
 				Spec: MachineSetSpec{
 					Selector: v1.LabelSelector{
@@ -78,13 +78,11 @@ func TestMachineSetLabelSelectorMatchValidation(t *testing.T) {
 				},
 			}
 			if tt.expectErr {
-				err := ms.ValidateCreate()
-				g.Expect(err).To(gomega.HaveOccurred())
-				err = ms.ValidateUpdate(nil)
-				g.Expect(err).To(gomega.HaveOccurred())
+				g.Expect(ms.ValidateCreate()).NotTo(Succeed())
+				g.Expect(ms.ValidateUpdate(nil)).NotTo(Succeed())
 			} else {
-				g.Expect(ms.ValidateCreate()).To(gomega.Succeed())
-				g.Expect(ms.ValidateUpdate(nil)).To(gomega.Succeed())
+				g.Expect(ms.ValidateCreate()).To(Succeed())
+				g.Expect(ms.ValidateUpdate(nil)).To(Succeed())
 			}
 		})
 	}

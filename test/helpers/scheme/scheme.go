@@ -17,7 +17,7 @@ limitations under the License.
 package scheme
 
 import (
-	"github.com/onsi/gomega"
+	. "github.com/onsi/gomega"
 	"k8s.io/apimachinery/pkg/runtime"
 	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha3"
@@ -25,7 +25,7 @@ import (
 
 func SetupScheme() *runtime.Scheme {
 	scheme := runtime.NewScheme()
-	gomega.Expect(clientgoscheme.AddToScheme(scheme)).To(gomega.Succeed())
-	gomega.Expect(clusterv1.AddToScheme(scheme)).To(gomega.Succeed())
+	Expect(clientgoscheme.AddToScheme(scheme)).To(Succeed())
+	Expect(clusterv1.AddToScheme(scheme)).To(Succeed())
 	return scheme
 }

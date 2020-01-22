@@ -7,11 +7,13 @@ The `clusterctl` config file is located at `$HOME/.cluster-api/clusterctl.yaml` 
 
 ## Provider repositories
 
-The `clusterctl` CLI is designed to work with providers implementing the [clusterct Provider Contract](contract.md).
+The `clusterctl` CLI is designed to work with providers implementing the [clusterctl Provider Contract](provider-contract.md).
 
 Each provider is expected to define a provider repository, a well-known place where release assets are published. 
 
-By default, `clusterctl` ships with providers sponsored by SIG Cluster Lifecycle. 
+By default, `clusterctl` ships with providers sponsored by SIG Cluster
+Lifecycle. Use `clusterctl config providers` to get a list of supported
+providers.
 
 Users can customize the list of available providers using the `clusterctl` configuration file, as shown in the following example:
 

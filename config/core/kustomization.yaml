@@ -1,5 +1,5 @@
-# The core kustomization bundles up all the bits that are capi-specific. 
-# Note that doesn't include bootstrap/controlplane components. 
+# The core kustomization bundles up all the bits that are capi-specific.
+# Note that doesn't include bootstrap/controlplane components.
 # This is just pure, vanilla capi
 
 # Adds namespace to all resources.
@@ -13,8 +13,8 @@ namespace: capi-system
 namePrefix: capi-
 
 # Labels to add to all resources and selectors.
-#commonLabels:
-#  someName: someValue
+commonLabels:
+  cluster.x-k8s.io/provider: "cluster-api"
 
 bases:
 - ../crd

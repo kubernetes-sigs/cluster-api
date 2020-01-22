@@ -40,16 +40,15 @@ BootstrapConfig object.
 
 The `status` object **must** have several fields defined:
 
-* `ready` - a boolean field indicating the bootstrap config data is ready for use.
-* `bootstrapData` - A string field containing some data used for bootstrapping a cluster.
-* `addresses` - A slice of addresses ([]v1.NodeAddress) that contains a list of apiserver endpoints.
+* `ready` - a boolean field indicating the bootstrap config data is generated and ready for use.
+* `dataSecretName` - a string field referencing the name of the secret that stores the generated bootstrap data.
 
 #### Optional `status` fields
 
 The `status` object **may** define several fields that do not affect functionality if missing:
 
-* `failureReason` - is a string that explains why a fatal error has occurred, if possible.
-* `failureMessage` - is a string that holds the message contained by the error.
+* `failureReason` - a string field explaining why a fatal error has occurred, if possible.
+* `failureMessage` - a string field that holds the message contained by the error.
 
 Example:
 
@@ -58,10 +57,7 @@ kind: MyBootstrapProviderConfig
 apiVersion: bootstrap.cluster.x-k8s.io/v1alpha3
 status:
     ready: true
-    bootstrapData: "kubeadm init"
-    addresses:
-      - type: Hostname
-        address: controlplane.example.com
+    dataSecretName: "MyBootstrapSecret"
 ```
 
 ### Infrastructure provider

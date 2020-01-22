@@ -17,10 +17,13 @@ limitations under the License.
 package cluster
 
 import (
+	"fmt"
+
 	"github.com/pkg/errors"
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/clientcmd"
 	"sigs.k8s.io/cluster-api/cmd/clusterctl/pkg/internal/scheme"
+	"sigs.k8s.io/cluster-api/cmd/version"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/apiutil"
 )
@@ -96,6 +99,7 @@ func (k *proxy) getConfig() (*rest.Config, error) {
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to rest client")
 	}
+	restConfig.UserAgent = fmt.Sprintf("clusterctl/%s (%s)", version.Get().GitVersion, version.Get().Platform)
 
 	return restConfig, nil
 }

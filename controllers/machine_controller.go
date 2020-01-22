@@ -170,8 +170,8 @@ func (r *MachineReconciler) reconcile(ctx context.Context, cluster *clusterv1.Cl
 
 	// Call the inner reconciliation methods.
 	reconciliationErrors := []error{
-		r.reconcileBootstrap(ctx, m),
-		r.reconcileInfrastructure(ctx, m),
+		r.reconcileBootstrap(ctx, cluster, m),
+		r.reconcileInfrastructure(ctx, cluster, m),
 		r.reconcileNodeRef(ctx, cluster, m),
 	}
 

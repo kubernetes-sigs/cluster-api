@@ -25,7 +25,6 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/utils/pointer"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha3"
 	"sigs.k8s.io/cluster-api/controllers/external"
@@ -61,23 +60,29 @@ func (r *ClusterReconciler) reconcilePhase(_ context.Context, cluster *clusterv1
 }
 
 // reconcileExternal handles generic unstructured objects referenced by a Cluster.
-func (r *ClusterReconciler) reconcileExternal(ctx context.Context, cluster *clusterv1.Cluster, ref *corev1.ObjectReference) (*unstructured.Unstructured, error) {
+func (r *ClusterReconciler) reconcileExternal(ctx context.Context, cluster *clusterv1.Cluster, ref *corev1.ObjectReference) (external.ReconcileOutput, error) {
 	logger := r.Log.WithValues("cluster", cluster.Name, "namespace", cluster.Namespace)
 
 	obj, err := external.Get(ctx, r.Client, ref, cluster.Namespace)
 	if err != nil {
 		if apierrors.IsNotFound(errors.Cause(err)) {
-			return nil, errors.Wrapf(&capierrors.RequeueAfterError{RequeueAfter: 30 * time.Second},
+			return external.ReconcileOutput{}, errors.Wrapf(&capierrors.RequeueAfterError{RequeueAfter: 30 * time.Second},
 				"could not find %v %q for Cluster %q in namespace %q, requeuing",
 				ref.GroupVersionKind(), ref.Name, cluster.Name, cluster.Namespace)
 		}
-		return nil, err
+		return external.ReconcileOutput{}, err
+	}
+
+	// if external ref is paused, return error.
+	if util.IsPaused(cluster, obj) {
+		logger.V(3).Info("External object referenced is paused")
+		return external.ReconcileOutput{Paused: true}, nil
 	}
 
 	// Initialize the patch helper.
 	patchHelper, err := patch.NewHelper(obj, r.Client)
 	if err != nil {
-		return nil, err
+		return external.ReconcileOutput{}, err
 	}
 
 	// Set external object OwnerReference to the Cluster.
@@ -101,7 +106,7 @@ func (r *ClusterReconciler) reconcileExternal(ctx context.Context, cluster *clus
 
 	// Always attempt to Patch the external object.
 	if err := patchHelper.Patch(ctx, obj); err != nil {
-		return nil, err
+		return external.ReconcileOutput{}, err
 	}
 
 	// Add watcher for external object, if there isn't one already.
@@ -114,14 +119,14 @@ func (r *ClusterReconciler) reconcileExternal(ctx context.Context, cluster *clus
 		)
 		if err != nil {
 			r.externalWatchers.Delete(obj.GroupVersionKind().String())
-			return nil, errors.Wrapf(err, "failed to add watcher on external object %q", obj.GroupVersionKind())
+			return external.ReconcileOutput{}, errors.Wrapf(err, "failed to add watcher on external object %q", obj.GroupVersionKind())
 		}
 	}
 
 	// Set failure reason and message, if any.
 	failureReason, failureMessage, err := external.FailuresFrom(obj)
 	if err != nil {
-		return nil, err
+		return external.ReconcileOutput{}, err
 	}
 	if failureReason != "" {
 		clusterStatusError := capierrors.ClusterStatusError(failureReason)
@@ -134,7 +139,7 @@ func (r *ClusterReconciler) reconcileExternal(ctx context.Context, cluster *clus
 		)
 	}
 
-	return obj, nil
+	return external.ReconcileOutput{Result: obj}, nil
 }
 
 // reconcileInfrastructure reconciles the Spec.InfrastructureRef object on a Cluster.
@@ -146,10 +151,15 @@ func (r *ClusterReconciler) reconcileInfrastructure(ctx context.Context, cluster
 	}
 
 	// Call generic external reconciler.
-	infraConfig, err := r.reconcileExternal(ctx, cluster, cluster.Spec.InfrastructureRef)
+	infraReconcileResult, err := r.reconcileExternal(ctx, cluster, cluster.Spec.InfrastructureRef)
 	if err != nil {
 		return err
 	}
+	// if the external object is paused, return without any further processing
+	if infraReconcileResult.Paused {
+		return nil
+	}
+	infraConfig := infraReconcileResult.Result
 
 	// There's no need to go any further if the Cluster is marked for deletion.
 	if !infraConfig.GetDeletionTimestamp().IsZero() {
@@ -191,10 +201,15 @@ func (r *ClusterReconciler) reconcileControlPlane(ctx context.Context, cluster *
 	}
 
 	// Call generic external reconciler.
-	controlPlaneConfig, err := r.reconcileExternal(ctx, cluster, cluster.Spec.ControlPlaneRef)
+	controlPlaneReconcileResult, err := r.reconcileExternal(ctx, cluster, cluster.Spec.ControlPlaneRef)
 	if err != nil {
 		return err
 	}
+	// if the external object is paused, return without any further processing
+	if controlPlaneReconcileResult.Paused {
+		return nil
+	}
+	controlPlaneConfig := controlPlaneReconcileResult.Result
 
 	// There's no need to go any further if the control plane resource is marked for deletion.
 	if !controlPlaneConfig.GetDeletionTimestamp().IsZero() {

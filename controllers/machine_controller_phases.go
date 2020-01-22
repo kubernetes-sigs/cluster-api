@@ -74,23 +74,29 @@ func (r *MachineReconciler) reconcilePhase(_ context.Context, m *clusterv1.Machi
 }
 
 // reconcileExternal handles generic unstructured objects referenced by a Machine.
-func (r *MachineReconciler) reconcileExternal(ctx context.Context, m *clusterv1.Machine, ref *corev1.ObjectReference) (*unstructured.Unstructured, error) {
+func (r *MachineReconciler) reconcileExternal(ctx context.Context, cluster *clusterv1.Cluster, m *clusterv1.Machine, ref *corev1.ObjectReference) (external.ReconcileOutput, error) {
 	logger := r.Log.WithValues("machine", m.Name, "namespace", m.Namespace)
 
 	obj, err := external.Get(ctx, r.Client, ref, m.Namespace)
 	if err != nil {
 		if apierrors.IsNotFound(errors.Cause(err)) {
-			return nil, errors.Wrapf(&capierrors.RequeueAfterError{RequeueAfter: externalReadyWait},
+			return external.ReconcileOutput{}, errors.Wrapf(&capierrors.RequeueAfterError{RequeueAfter: externalReadyWait},
 				"could not find %v %q for Machine %q in namespace %q, requeuing",
 				ref.GroupVersionKind(), ref.Name, m.Name, m.Namespace)
 		}
-		return nil, err
+		return external.ReconcileOutput{}, err
+	}
+
+	// if external ref is paused, return error.
+	if util.IsPaused(cluster, obj) {
+		logger.V(3).Info("External object referenced is paused")
+		return external.ReconcileOutput{Paused: true}, nil
 	}
 
 	// Initialize the patch helper.
 	patchHelper, err := patch.NewHelper(obj, r.Client)
 	if err != nil {
-		return nil, err
+		return external.ReconcileOutput{}, err
 	}
 
 	// Set external object OwnerReference to the Machine.
@@ -114,7 +120,7 @@ func (r *MachineReconciler) reconcileExternal(ctx context.Context, m *clusterv1.
 
 	// Always attempt to Patch the external object.
 	if err := patchHelper.Patch(ctx, obj); err != nil {
-		return nil, err
+		return external.ReconcileOutput{}, err
 	}
 
 	// Add watcher for external object, if there isn't one already.
@@ -127,14 +133,14 @@ func (r *MachineReconciler) reconcileExternal(ctx context.Context, m *clusterv1.
 		)
 		if err != nil {
 			r.externalWatchers.Delete(obj.GroupVersionKind().String())
-			return nil, errors.Wrapf(err, "failed to add watcher on external object %q", obj.GroupVersionKind())
+			return external.ReconcileOutput{}, errors.Wrapf(err, "failed to add watcher on external object %q", obj.GroupVersionKind())
 		}
 	}
 
 	// Set failure reason and message, if any.
 	failureReason, failureMessage, err := external.FailuresFrom(obj)
 	if err != nil {
-		return nil, err
+		return external.ReconcileOutput{}, err
 	}
 	if failureReason != "" {
 		machineStatusError := capierrors.MachineStatusError(failureReason)
@@ -147,19 +153,23 @@ func (r *MachineReconciler) reconcileExternal(ctx context.Context, m *clusterv1.
 		)
 	}
 
-	return obj, nil
+	return external.ReconcileOutput{Result: obj}, nil
 }
 
 // reconcileBootstrap reconciles the Spec.Bootstrap.ConfigRef object on a Machine.
-func (r *MachineReconciler) reconcileBootstrap(ctx context.Context, m *clusterv1.Machine) error {
+func (r *MachineReconciler) reconcileBootstrap(ctx context.Context, cluster *clusterv1.Cluster, m *clusterv1.Machine) error {
 	// Call generic external reconciler if we have an external reference.
 	var bootstrapConfig *unstructured.Unstructured
 	if m.Spec.Bootstrap.ConfigRef != nil {
-		var err error
-		bootstrapConfig, err = r.reconcileExternal(ctx, m, m.Spec.Bootstrap.ConfigRef)
+		bootstrapReconcileResult, err := r.reconcileExternal(ctx, cluster, m, m.Spec.Bootstrap.ConfigRef)
 		if err != nil {
 			return err
 		}
+		// if the external object is paused, return without any further processing
+		if bootstrapReconcileResult.Paused {
+			return nil
+		}
+		bootstrapConfig = bootstrapReconcileResult.Result
 	}
 
 	// If the bootstrap data is populated, set ready and return.
@@ -196,12 +206,10 @@ func (r *MachineReconciler) reconcileBootstrap(ctx context.Context, m *clusterv1
 }
 
 // reconcileInfrastructure reconciles the Spec.InfrastructureRef object on a Machine.
-func (r *MachineReconciler) reconcileInfrastructure(ctx context.Context, m *clusterv1.Machine) error {
+func (r *MachineReconciler) reconcileInfrastructure(ctx context.Context, cluster *clusterv1.Cluster, m *clusterv1.Machine) error {
 	// Call generic external reconciler.
-	infraConfig, err := r.reconcileExternal(ctx, m, &m.Spec.InfrastructureRef)
-	if infraConfig == nil && err == nil {
-		return nil
-	} else if err != nil {
+	infraReconcileResult, err := r.reconcileExternal(ctx, cluster, m, &m.Spec.InfrastructureRef)
+	if err != nil {
 		if m.Status.InfrastructureReady && strings.Contains(err.Error(), "could not find") {
 			// Infra object went missing after the machine was up and running
 			r.Log.Error(err, "Machine infrastructure reference has been deleted after being ready, setting failure state")
@@ -211,6 +219,11 @@ func (r *MachineReconciler) reconcileInfrastructure(ctx context.Context, m *clus
 		}
 		return err
 	}
+	// if the external object is paused, return without any further processing
+	if infraReconcileResult.Paused {
+		return nil
+	}
+	infraConfig := infraReconcileResult.Result
 
 	if !infraConfig.GetDeletionTimestamp().IsZero() {
 		return nil

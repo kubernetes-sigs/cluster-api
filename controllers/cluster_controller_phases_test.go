@@ -26,12 +26,11 @@ import (
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/client-go/kubernetes/scheme"
+	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha3"
+	capierrors "sigs.k8s.io/cluster-api/errors"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 	"sigs.k8s.io/controller-runtime/pkg/log"
-
-	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha3"
-	capierrors "sigs.k8s.io/cluster-api/errors"
 )
 
 func TestClusterReconcilePhases(t *testing.T) {
@@ -97,6 +96,22 @@ func TestClusterReconcilePhases(t *testing.T) {
 						"name":              "test",
 						"namespace":         "test-namespace",
 						"deletionTimestamp": "sometime",
+					},
+				},
+				expectErr: false,
+			},
+			{
+				name:    "returns error if infrastructure has the paused annotation",
+				cluster: cluster,
+				infraRef: map[string]interface{}{
+					"kind":       "InfrastructureConfig",
+					"apiVersion": "infrastructure.cluster.x-k8s.io/v1alpha3",
+					"metadata": map[string]interface{}{
+						"name":      "test",
+						"namespace": "test-namespace",
+						"annotations": map[string]interface{}{
+							"cluster.x-k8s.io/paused": "true",
+						},
 					},
 				},
 				expectErr: false,

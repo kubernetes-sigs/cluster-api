@@ -11,4 +11,4 @@ spec:
     port: 8443
     targetPort: https
   selector:
-    control-plane: controller-manager
+    control-plane: cluster-api-controller-manager

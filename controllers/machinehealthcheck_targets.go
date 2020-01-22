@@ -18,7 +18,10 @@ package controllers
 
 import (
 	"context"
+	"fmt"
+	"time"
 
+	"github.com/go-logr/logr"
 	"github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
@@ -28,12 +31,98 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
+const (
+	machinePhaseFailed = "Failed"
+
+	// Timeout waiting for the provider to bring up a node
+	timeoutForMachineToHaveNode = 10 * time.Minute
+
+	// EventDetectedUnhealthy is emitted in case a node associated with a
+	// machine was detected unhealthy
+	EventDetectedUnhealthy string = "DetectedUnhealthy"
+)
+
 // healthCheckTarget contains the information required to perform a health check
 // on the node to determine if any remediation is required.
 type healthCheckTarget struct {
 	Machine *clusterv1.Machine
 	Node    *corev1.Node
 	MHC     *clusterv1.MachineHealthCheck
+}
+
+func (t *healthCheckTarget) string() string {
+	return fmt.Sprintf("%s/%s/%s/%s",
+		t.MHC.GetNamespace(),
+		t.MHC.GetName(),
+		t.Machine.GetName(),
+		t.nodeName(),
+	)
+}
+
+// Get the node name if the target has a node
+func (t *healthCheckTarget) nodeName() string {
+	if t.Node != nil {
+		return t.Node.GetName()
+	}
+	return ""
+}
+
+// Determine whether or not a given target needs remediation
+func (t *healthCheckTarget) needsRemediation(logger logr.Logger) (bool, time.Duration) {
+	var nextCheckTimes []time.Duration
+	now := time.Now()
+
+	// machine has failed
+	if t.Machine.Status.Phase == machinePhaseFailed {
+		logger.V(3).Info("Target is unhealthy", "phase", machinePhaseFailed)
+		return true, time.Duration(0)
+	}
+
+	// the node has not been set yet
+	if t.Node == nil {
+		// status not updated yet
+		if t.Machine.Status.LastUpdated == nil {
+			return false, timeoutForMachineToHaveNode
+		}
+		if t.Machine.Status.LastUpdated.Add(timeoutForMachineToHaveNode).Before(now) {
+			logger.V(3).Info("Target is unhealthy: machine has no node", "duration", timeoutForMachineToHaveNode.String())
+			return true, time.Duration(0)
+		}
+		durationUnhealthy := now.Sub(t.Machine.Status.LastUpdated.Time)
+		nextCheck := timeoutForMachineToHaveNode - durationUnhealthy + time.Second
+		return false, nextCheck
+	}
+
+	// the node does not exist
+	if t.Node != nil && t.Node.UID == "" {
+		return true, time.Duration(0)
+	}
+
+	// check conditions
+	for _, c := range t.MHC.Spec.UnhealthyConditions {
+		now := time.Now()
+		nodeCondition := getNodeCondition(t.Node, c.Type)
+
+		// Skip when current node condition is different from the one reported
+		// in the MachineHealthCheck.
+		if nodeCondition == nil || nodeCondition.Status != c.Status {
+			continue
+		}
+
+		// If the condition has been in the unhealthy state for longer than the
+		// timeout, return true with no requeue time.
+		if nodeCondition.LastTransitionTime.Add(c.Timeout.Duration).Before(now) {
+			logger.V(3).Info("Target is unhealthy: condition is in state longer than allowed timeout", "condition", c.Type, "state", c.Status, "timeout", c.Timeout.Duration.String())
+			return true, time.Duration(0)
+		}
+
+		durationUnhealthy := now.Sub(nodeCondition.LastTransitionTime.Time)
+		nextCheck := c.Timeout.Duration - durationUnhealthy + time.Second
+		if nextCheck > 0 {
+			nextCheckTimes = append(nextCheckTimes, nextCheck)
+		}
+	}
+	return false, minDuration(nextCheckTimes)
 }
 
 // getTargetsFromMHC uses the MachineHealthCheck's selector to fetch machines
@@ -101,4 +190,67 @@ func (r *MachineHealthCheckReconciler) getNodeFromMachine(clusterClient client.C
 	}
 	err := clusterClient.Get(context.TODO(), nodeKey, node)
 	return node, err
+}
+
+// healthCheckTargets health checks a slice of targets
+// and gives a data to measure the average health
+func (r *MachineHealthCheckReconciler) healthCheckTargets(targets []healthCheckTarget, logger logr.Logger) (int, []healthCheckTarget, []time.Duration) {
+	var nextCheckTimes []time.Duration
+	var needRemediationTargets []healthCheckTarget
+	var currentHealthy int
+
+	for _, t := range targets {
+		logger = logger.WithValues("Target", t.string())
+		logger.V(3).Info("Health checking target")
+		needsRemediation, nextCheck := t.needsRemediation(logger)
+
+		if needsRemediation {
+			needRemediationTargets = append(needRemediationTargets, t)
+			continue
+		}
+
+		if nextCheck > 0 {
+			logger.V(3).Info("Target is likely to go unhealthy", "timeUntilUnhealthy", nextCheck.Truncate(time.Second).String())
+			r.recorder.Eventf(
+				t.Machine,
+				corev1.EventTypeNormal,
+				EventDetectedUnhealthy,
+				"Machine %v has unhealthy node %v",
+				t.string(),
+				t.nodeName(),
+			)
+			nextCheckTimes = append(nextCheckTimes, nextCheck)
+			continue
+		}
+
+		if t.Machine.DeletionTimestamp == nil {
+			currentHealthy++
+		}
+	}
+	return currentHealthy, needRemediationTargets, nextCheckTimes
+}
+
+// getNodeCondition returns node condition by type
+func getNodeCondition(node *corev1.Node, conditionType corev1.NodeConditionType) *corev1.NodeCondition {
+	for _, cond := range node.Status.Conditions {
+		if cond.Type == conditionType {
+			return &cond
+		}
+	}
+	return nil
+}
+
+func minDuration(durations []time.Duration) time.Duration {
+	if len(durations) == 0 {
+		return time.Duration(0)
+	}
+
+	// durations should all be less than 1 Hour
+	minDuration := time.Hour
+	for _, nc := range durations {
+		if nc < minDuration {
+			minDuration = nc
+		}
+	}
+	return minDuration
 }

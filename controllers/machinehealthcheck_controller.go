@@ -19,6 +19,7 @@ package controllers
 import (
 	"context"
 	"fmt"
+	"time"
 
 	"github.com/go-logr/logr"
 	"github.com/pkg/errors"
@@ -171,7 +172,25 @@ func (r *MachineHealthCheckReconciler) reconcile(ctx context.Context, cluster *c
 		logger.Error(err, "Failed to fetch targets from MachineHealthCheck")
 		return ctrl.Result{}, err
 	}
-	_ = len(targets) //totalTargets
+	totalTargets := len(targets)
+	m.Status.ExpectedMachines = int32(totalTargets)
+
+	// health check all targets and reconcile mhc status
+	currentHealthy, needRemediationTargets, nextCheckTimes := r.healthCheckTargets(targets, logger)
+	m.Status.CurrentHealthy = int32(currentHealthy)
+
+	// remediate
+	for _, t := range needRemediationTargets {
+		logger.V(3).Info("Target meets unhealthy criteria, triggers remediation", "request", namespacedName(m), "target", t.string())
+		// TODO(JoelSpeed): Implement remediation logic
+	}
+
+	if minNextCheck := minDuration(nextCheckTimes); minNextCheck > 0 {
+		logger.V(3).Info("Some targets might go unhealthy. Ensuring a requeue happens", "request", namespacedName(m), "requeueIn", minNextCheck.Truncate(time.Second).String())
+		return ctrl.Result{RequeueAfter: minNextCheck}, nil
+	}
+
+	logger.V(3).Info("No more targets meet unhealthy criteria", "request", namespacedName(m))
 
 	return ctrl.Result{}, nil
 }

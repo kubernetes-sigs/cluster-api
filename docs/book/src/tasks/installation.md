@@ -265,6 +265,10 @@ kubectl create -f {{#releaselink gomodule:"sigs.k8s.io/cluster-api-provider-open
 {{#/tab }}
 {{#/tabs }}
 
+## Custom images
+
+Cluster API relies on pre-built images with Kubernetes components preinstalled. The [image builder](https://image-builder.sigs.k8s.io/) project has requirements and examples on how to create and publish images.
+
 
 <!-- links -->
 [kubectl]: https://kubernetes.io/docs/tasks/tools/install-kubectl/

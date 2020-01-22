@@ -733,8 +733,8 @@ spec:
 
 After the controlplane is up and running, let's retrieve the [target cluster] Kubeconfig:
 
-{{#tabs name:"tab-getting-kubeconfig" tabs:"AWS|Azure|GCP|vSphere|OpenStack, Docker"}}
-{{#tab AWS|Azure|GCP|vSphere|OpenStack}}
+{{#tabs name:"tab-getting-kubeconfig" tabs:"AWS|Azure|GCP|vSphere|OpenStack|Docker"}}
+{{#tab AWS|Azure|GCP|vSphere|OpenStack|Docker}}
 
 ```bash
 kubectl --namespace=default get secret/capi-quickstart-kubeconfig -o json \

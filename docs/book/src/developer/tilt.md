@@ -23,7 +23,7 @@ workflow that offers easy deployments and rapid iterative builds.
 First, make sure you have a kind cluster and that your `KUBECONFIG` is set up correctly:
 
 ``` bash
-$ kind create cluster
+kind create cluster
 ```
 
 ### Create a tilt-settings.json file

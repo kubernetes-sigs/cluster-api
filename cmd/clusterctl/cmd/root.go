@@ -18,7 +18,6 @@ package cmd
 
 import (
 	"flag"
-	"fmt"
 	"os"
 	"strings"
 
@@ -30,8 +29,9 @@ import (
 var cfgFile string
 
 var RootCmd = &cobra.Command{
-	Use:   "clusterctl",
-	Short: "clusterctl controls a management cluster for Cluster API",
+	Use:          "clusterctl",
+	SilenceUsage: true,
+	Short:        "clusterctl controls a management cluster for Cluster API",
 	Long: LongDesc(`
 		Get started with Cluster API using clusterctl for initializing a management cluster by installing
 		Cluster API providers, and then use clusterctl for creating yaml templates for your workload clusters.`),
@@ -41,7 +41,6 @@ func Execute() {
 	if err := RootCmd.Execute(); err != nil {
 		//TODO: print error stack if log v>0
 		//TODO: print cmd help if validation error
-		fmt.Fprintln(os.Stderr, err)
 		os.Exit(1)
 	}
 }

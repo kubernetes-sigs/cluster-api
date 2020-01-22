@@ -2,8 +2,9 @@
 
 ## Prerequisites
 
-- Install and setup [kubectl] in your local environment.
+- Install and setup [kubectl] in your local environment
 - Install and/or configure a [management cluster]
+    - Deploy the [cert-manager] components on your [management cluster]
 
 ## Setup Management Cluster
 
@@ -79,6 +80,20 @@ export KUBECONFIG=<...>
 
 Pivoting is the process of taking an initial kind cluster to create a new workload cluster, and then converting the workload cluster into a management cluster by migrating the Cluster API CRD's.
 
+### Deploy cert-manager on your management cluster
+
+Install the [cert-manager] components on the [management cluster], using [kubectl]:
+```bash
+kubectl apply -f https://github.com/jetstack/cert-manager/releases/download/v0.11.0/cert-manager.yaml
+```
+
+Ensure the cert-manager webhook service is ready before creating the Cluster API components. 
+
+This can be done by running: 
+
+```bash
+kubectl wait --for=condition=Available --timeout=300s apiservice v1beta1.webhook.cert-manager.io
+```
 
 ## Installation
 
@@ -258,3 +273,4 @@ kubectl create -f {{#releaselink gomodule:"sigs.k8s.io/cluster-api-provider-open
 [management cluster]: ../reference/glossary.md#management-cluster
 [target cluster]: ../reference/glossary.md#target-cluster
 [AWS provider releases]: https://github.com/kubernetes-sigs/cluster-api-provider-aws/releases
+[cert-manager]: https://github.com/jetstack/cert-manager

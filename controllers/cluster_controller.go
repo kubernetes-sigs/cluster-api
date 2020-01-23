@@ -20,6 +20,7 @@ import (
 	"context"
 	"fmt"
 	"path"
+	"strings"
 	"sync"
 	"time"
 
@@ -209,7 +210,7 @@ func (r *ClusterReconciler) reconcileDelete(ctx context.Context, cluster *cluste
 	if cluster.Spec.ControlPlaneRef != nil {
 		obj, err := external.Get(ctx, r.Client, cluster.Spec.ControlPlaneRef, cluster.Namespace)
 		switch {
-		case apierrors.IsNotFound(err):
+		case apierrors.IsNotFound(errors.Cause(err)):
 		case err != nil:
 			return reconcile.Result{}, err
 		case obj.GetDeletionTimestamp().IsZero():
@@ -267,7 +268,7 @@ func (r *ClusterReconciler) reconcileDelete(ctx context.Context, cluster *cluste
 
 	if descendantCount := descendants.length(); descendantCount > 0 {
 		indirect := descendantCount - len(children)
-		logger.Info("Cluster still has descendants - need to requeue", "direct", len(children), "indirect", indirect)
+		logger.Info("Cluster still has descendants - need to requeue", "descendants", descendants.descendantNames(), "indirect descendants count", indirect)
 		// Requeue so we can check the next time to see if there are still any descendants left.
 		return ctrl.Result{RequeueAfter: deleteRequeueAfter}, nil
 	}
@@ -312,6 +313,39 @@ func (c *clusterDescendants) length() int {
 		len(c.machineSets.Items) +
 		len(c.controlPlaneMachines.Items) +
 		len(c.workerMachines.Items)
+}
+
+func (c *clusterDescendants) descendantNames() string {
+	descendants := make([]string, 0)
+	controlPlaneMachineNames := make([]string, len(c.controlPlaneMachines.Items))
+	for i, controlPlaneMachine := range c.controlPlaneMachines.Items {
+		controlPlaneMachineNames[i] = controlPlaneMachine.Name
+	}
+	if len(controlPlaneMachineNames) > 0 {
+		descendants = append(descendants, "Control plane machines: "+strings.Join(controlPlaneMachineNames, ","))
+	}
+	machineDeploymentNames := make([]string, len(c.machineDeployments.Items))
+	for i, machineDeployment := range c.machineDeployments.Items {
+		machineDeploymentNames[i] = machineDeployment.Name
+	}
+	if len(machineDeploymentNames) > 0 {
+		descendants = append(descendants, "Machine deployments: "+strings.Join(machineDeploymentNames, ","))
+	}
+	machineSetNames := make([]string, len(c.machineSets.Items))
+	for i, machineSet := range c.machineSets.Items {
+		machineSetNames[i] = machineSet.Name
+	}
+	if len(machineSetNames) > 0 {
+		descendants = append(descendants, "Machine sets: "+strings.Join(machineSetNames, ","))
+	}
+	workerMachineNames := make([]string, len(c.workerMachines.Items))
+	for i, workerMachine := range c.workerMachines.Items {
+		workerMachineNames[i] = workerMachine.Name
+	}
+	if len(workerMachineNames) > 0 {
+		descendants = append(descendants, "Worker machines: "+strings.Join(workerMachineNames, ","))
+	}
+	return strings.Join(descendants, ";")
 }
 
 // listDescendants returns a list of all MachineDeployments, MachineSets, and Machines for the cluster.

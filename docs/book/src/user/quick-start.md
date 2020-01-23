@@ -640,6 +640,12 @@ spec:
 {{#/tab }}
 {{#/tabs }}
 
+To verify the control plane is up and running ensure the control plane machine
+`PHASE` is `running`.
+```
+kubectl get machines --selector cluster.x-k8s.io/control-plane=true
+```
+
 After the controlplane is up and running, let's retrieve the [target cluster] Kubeconfig:
 
 {{#tabs name:"tab-getting-kubeconfig" tabs:"AWS,Azure,Docker,vSphere"}}

@@ -1,0 +1,7 @@
+namespace: capi-system
+namePrefix: capi-
+bases:
+- manager
+
+patchesStrategicMerge:
+- manager_auth_proxy_patch.yaml

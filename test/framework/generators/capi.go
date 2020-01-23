@@ -38,6 +38,8 @@ type ClusterAPI struct {
 	KustomizePath string
 	// Version defines the release version. If GitRef is not set Version must be set and will not use kustomize
 	Version string
+	// DisableLeaderElection controls whether to enable leader election on manager.
+	DisableLeaderElection bool
 }
 
 // GetName returns the name of the components being generated.
@@ -64,7 +66,10 @@ func (g *ClusterAPI) Manifests(ctx context.Context) ([]byte, error) {
 			fmt.Println(string(stderr))
 			return nil, errors.WithStack(err)
 		}
-		stdout = bytes.Replace(stdout, []byte("imagePullPolicy: Always"), []byte("imagePullPolicy: IfNotPresent"), -1)
+		stdout = bytes.ReplaceAll(stdout, []byte("imagePullPolicy: Always"), []byte("imagePullPolicy: IfNotPresent"))
+		if g.DisableLeaderElection {
+			stdout = bytes.ReplaceAll(stdout, []byte("--enable-leader-election"), []byte("--enable-leader-election=false"))
+		}
 		return stdout, nil
 	}
 	resp, err := http.Get(g.releaseYAMLPath())

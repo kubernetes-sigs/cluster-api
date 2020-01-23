@@ -25,6 +25,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/client-go/kubernetes/scheme"
+	"k8s.io/client-go/tools/record"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha3"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 	"sigs.k8s.io/controller-runtime/pkg/log"
@@ -154,6 +155,176 @@ func TestGetTargetsFromMHC(t *testing.T) {
 	}
 }
 
+func TestHealthCheckTargets(t *testing.T) {
+	namespace := "test-mhc"
+	clusterName := "test-cluster"
+	mhcSelector := map[string]string{"cluster": clusterName, "machine-group": "foo"}
+
+	// Create a test MHC
+	testMHC := &clusterv1.MachineHealthCheck{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "test-mhc",
+			Namespace: namespace,
+		},
+		Spec: clusterv1.MachineHealthCheckSpec{
+			Selector: metav1.LabelSelector{
+				MatchLabels: mhcSelector,
+			},
+			ClusterName: clusterName,
+			UnhealthyConditions: []clusterv1.UnhealthyCondition{
+				{
+					Type:    corev1.NodeReady,
+					Status:  corev1.ConditionUnknown,
+					Timeout: metav1.Duration{Duration: 5 * time.Minute},
+				},
+				{
+					Type:    corev1.NodeReady,
+					Status:  corev1.ConditionFalse,
+					Timeout: metav1.Duration{Duration: 5 * time.Minute},
+				},
+			},
+		},
+	}
+
+	testMachine := newTestMachine("machine1", namespace, clusterName, "node1", mhcSelector)
+
+	// Target for when the node has not yet been seen by the Machine controller
+	testMachineLastUpdated400s := testMachine.DeepCopy()
+	nowMinus400s := metav1.NewTime(time.Now().Add(-400 * time.Second))
+	testMachineLastUpdated400s.Status.LastUpdated = &nowMinus400s
+
+	nodeNotYetStartedTarget := healthCheckTarget{
+		MHC:     testMHC,
+		Machine: testMachineLastUpdated400s,
+		Node:    nil,
+	}
+
+	// Target for when the Node has been seen, but has now gone
+	testNodeGoneAway := newTestNode("node1")
+	nodeGoneAway := healthCheckTarget{
+		MHC:     testMHC,
+		Machine: testMachine,
+		Node:    testNodeGoneAway,
+	}
+
+	// Target for when the node has been in an unknown state for shorter than the timeout
+	testNodeUnknown200 := newTestUnhealthyNode("node1", corev1.NodeReady, corev1.ConditionUnknown, 200*time.Second)
+	nodeUnknown200 := healthCheckTarget{
+		MHC:     testMHC,
+		Machine: testMachine,
+		Node:    testNodeUnknown200,
+	}
+
+	// Second Target for when the node has been in an unknown state for shorter than the timeout
+	testNodeUnknown100 := newTestUnhealthyNode("node1", corev1.NodeReady, corev1.ConditionUnknown, 100*time.Second)
+	nodeUnknown100 := healthCheckTarget{
+		MHC:     testMHC,
+		Machine: testMachine,
+		Node:    testNodeUnknown100,
+	}
+
+	// Target for when the node has been in an unknown state for longer than the timeout
+	testNodeUnknown400 := newTestUnhealthyNode("node1", corev1.NodeReady, corev1.ConditionUnknown, 400*time.Second)
+	nodeUnknown400 := healthCheckTarget{
+		MHC:     testMHC,
+		Machine: testMachine,
+		Node:    testNodeUnknown400,
+	}
+
+	// Traget for when a node is healthy
+	testNodeHealthy := newTestNode("node1")
+	testNodeHealthy.UID = "12345"
+	nodeHealthy := healthCheckTarget{
+		MHC:     testMHC,
+		Machine: testMachine,
+		Node:    testNodeHealthy,
+	}
+
+	testCases := []struct {
+		desc                     string
+		targets                  []healthCheckTarget
+		expectedHealthy          int
+		expectedNeedsRemediation []healthCheckTarget
+		expectedNextCheckTimes   []time.Duration
+	}{
+		{
+			desc:                     "when the node has not yet started",
+			targets:                  []healthCheckTarget{nodeNotYetStartedTarget},
+			expectedHealthy:          0,
+			expectedNeedsRemediation: []healthCheckTarget{},
+			expectedNextCheckTimes:   []time.Duration{200 * time.Second},
+		},
+		{
+			desc:                     "when the node has gone away",
+			targets:                  []healthCheckTarget{nodeGoneAway},
+			expectedHealthy:          0,
+			expectedNeedsRemediation: []healthCheckTarget{nodeGoneAway},
+			expectedNextCheckTimes:   []time.Duration{},
+		},
+		{
+			desc:                     "when the node has been in an unknown state for shorter than the timeout",
+			targets:                  []healthCheckTarget{nodeUnknown200},
+			expectedHealthy:          0,
+			expectedNeedsRemediation: []healthCheckTarget{},
+			expectedNextCheckTimes:   []time.Duration{100 * time.Second},
+		},
+		{
+			desc:                     "when the node has been in an unknown state for longer than the timeout",
+			targets:                  []healthCheckTarget{nodeUnknown400},
+			expectedHealthy:          0,
+			expectedNeedsRemediation: []healthCheckTarget{nodeUnknown400},
+			expectedNextCheckTimes:   []time.Duration{},
+		},
+		{
+			desc:                     "when the node is healthy",
+			targets:                  []healthCheckTarget{nodeHealthy},
+			expectedHealthy:          1,
+			expectedNeedsRemediation: []healthCheckTarget{},
+			expectedNextCheckTimes:   []time.Duration{},
+		},
+		{
+			desc:                     "with a mix of healthy and unhealthy nodes",
+			targets:                  []healthCheckTarget{nodeUnknown100, nodeUnknown200, nodeUnknown400, nodeHealthy},
+			expectedHealthy:          1,
+			expectedNeedsRemediation: []healthCheckTarget{nodeUnknown400},
+			expectedNextCheckTimes:   []time.Duration{200 * time.Second, 100 * time.Second},
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.desc, func(t *testing.T) {
+			gs := NewGomegaWithT(t)
+
+			gs.Expect(clusterv1.AddToScheme(scheme.Scheme)).To(Succeed())
+			k8sClient := fake.NewFakeClientWithScheme(scheme.Scheme)
+
+			// Create a test reconciler
+			reconciler := &MachineHealthCheckReconciler{
+				Client:   k8sClient,
+				Log:      log.Log,
+				scheme:   scheme.Scheme,
+				recorder: record.NewFakeRecorder(5),
+			}
+
+			currentHealthy, needRemediationTargets, nextCheckTimes := reconciler.healthCheckTargets(tc.targets, reconciler.Log)
+
+			// Round durations down to nearest second account for minute differences
+			// in timing when running tests
+			roundDurations := func(in []time.Duration) []time.Duration {
+				out := []time.Duration{}
+				for _, d := range in {
+					out = append(out, d.Truncate(time.Second))
+				}
+				return out
+			}
+
+			gs.Expect(currentHealthy).To(Equal(tc.expectedHealthy))
+			gs.Expect(needRemediationTargets).To(ConsistOf(tc.expectedNeedsRemediation))
+			gs.Expect(nextCheckTimes).To(WithTransform(roundDurations, ConsistOf(tc.expectedNextCheckTimes)))
+		})
+	}
+}
+
 func newTestMachine(name, namespace, clusterName, nodeName string, labels map[string]string) *clusterv1.Machine {
 	bootstrap := "bootstrap"
 	return &clusterv1.Machine{
@@ -185,6 +356,24 @@ func newTestNode(name string) *corev1.Node {
 	return &corev1.Node{
 		ObjectMeta: metav1.ObjectMeta{
 			Name: name,
+		},
+	}
+}
+
+func newTestUnhealthyNode(name string, condition corev1.NodeConditionType, status corev1.ConditionStatus, unhealthyDuration time.Duration) *corev1.Node {
+	return &corev1.Node{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: name,
+			UID:  "12345",
+		},
+		Status: corev1.NodeStatus{
+			Conditions: []corev1.NodeCondition{
+				{
+					Type:               condition,
+					Status:             status,
+					LastTransitionTime: metav1.NewTime(time.Now().Add(-unhealthyDuration)),
+				},
+			},
 		},
 	}
 }

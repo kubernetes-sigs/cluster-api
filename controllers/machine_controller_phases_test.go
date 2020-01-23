@@ -30,11 +30,10 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/kubernetes/scheme"
 	"k8s.io/utils/pointer"
-	"sigs.k8s.io/controller-runtime/pkg/client/fake"
-	"sigs.k8s.io/controller-runtime/pkg/log"
-
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha3"
 	"sigs.k8s.io/cluster-api/util/kubeconfig"
+	"sigs.k8s.io/controller-runtime/pkg/client/fake"
+	"sigs.k8s.io/controller-runtime/pkg/log"
 )
 
 func init() {
@@ -407,6 +406,13 @@ func TestReconcileBootstrap(t *testing.T) {
 		},
 	}
 
+	defaultCluster := &clusterv1.Cluster{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "test-cluster",
+			Namespace: "default",
+		},
+	}
+
 	testCases := []struct {
 		name            string
 		bootstrapConfig map[string]interface{}
@@ -601,7 +607,7 @@ func TestReconcileBootstrap(t *testing.T) {
 				Log:    log.Log,
 			}
 
-			err := r.reconcileBootstrap(context.Background(), tc.machine)
+			err := r.reconcileBootstrap(context.Background(), defaultCluster, tc.machine)
 			if tc.expectError {
 				g.Expect(err).ToNot(BeNil())
 			} else {
@@ -637,6 +643,13 @@ func TestReconcileInfrastructure(t *testing.T) {
 				Kind:       "InfrastructureConfig",
 				Name:       "infra-config1",
 			},
+		},
+	}
+
+	defaultCluster := &clusterv1.Cluster{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "test-cluster",
+			Namespace: "default",
 		},
 	}
 
@@ -736,6 +749,41 @@ func TestReconcileInfrastructure(t *testing.T) {
 				g.Expect(m.Status.GetTypedPhase()).To(Equal(clusterv1.MachinePhaseFailed))
 			},
 		},
+		{
+			name: "infrastructure ref is paused",
+			infraConfig: map[string]interface{}{
+				"kind":       "InfrastructureConfig",
+				"apiVersion": "infrastructure.cluster.x-k8s.io/v1alpha3",
+				"metadata": map[string]interface{}{
+					"name":      "infra-config1",
+					"namespace": "default",
+					"annotations": map[string]interface{}{
+						"cluster.x-k8s.io/paused": "true",
+					},
+				},
+				"spec": map[string]interface{}{
+					"providerID": "test://id-1",
+				},
+				"status": map[string]interface{}{
+					"ready": true,
+					"addresses": []interface{}{
+						map[string]interface{}{
+							"type":    "InternalIP",
+							"address": "10.0.0.1",
+						},
+						map[string]interface{}{
+							"type":    "InternalIP",
+							"address": "10.0.0.2",
+						},
+					},
+				},
+			},
+			expectError:   false,
+			expectChanged: false,
+			expected: func(g *WithT, m *clusterv1.Machine) {
+				g.Expect(m.Status.InfrastructureReady).To(BeFalse())
+			},
+		},
 	}
 
 	for _, tc := range testCases {
@@ -754,7 +802,7 @@ func TestReconcileInfrastructure(t *testing.T) {
 				Log:    log.Log,
 			}
 
-			err := r.reconcileInfrastructure(context.Background(), tc.machine)
+			err := r.reconcileInfrastructure(context.Background(), defaultCluster, tc.machine)
 			r.reconcilePhase(context.Background(), tc.machine)
 			if tc.expectError {
 				g.Expect(err).ToNot(BeNil())

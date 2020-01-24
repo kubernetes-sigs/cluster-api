@@ -22,6 +22,8 @@ import (
 	"sort"
 	"testing"
 
+	logrtesting "github.com/go-logr/logr/testing"
+	"github.com/pkg/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -59,8 +61,8 @@ func TestObjectGraph_getDiscoveryTypeMetaList(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			gb := newObjectGraph(tt.fields.proxy)
-			got, err := gb.getDiscoveryTypes()
+			graph := newObjectGraph(tt.fields.proxy, nil)
+			got, err := graph.getDiscoveryTypes()
 			if (err != nil) != tt.wantErr {
 				t.Fatalf("error = %v, wantErr %v", err, tt.wantErr)
 			}
@@ -86,8 +88,9 @@ func sortTypeMetaList(list []metav1.TypeMeta) func(i int, j int) bool {
 }
 
 type wantGraphItem struct {
-	virtual    bool
-	dependents []string
+	virtual        bool
+	dependents     []string
+	softDependents []string
 }
 
 type wantGraph struct {
@@ -96,28 +99,46 @@ type wantGraph struct {
 
 func assertGraph(t *testing.T, got *objectGraph, want wantGraph) {
 	if len(got.uidToNode) != len(want.nodes) {
-		t.Fatalf("got = %d nodes, wantGraph %d nodes", len(got.uidToNode), len(want.nodes))
+		t.Fatalf("got = %d nodes, want %d nodes", len(got.uidToNode), len(want.nodes))
 	}
 
 	for uid, wantNode := range want.nodes {
-		v, ok := got.uidToNode[types.UID(uid)]
+		gotNode, ok := got.uidToNode[types.UID(uid)]
 		if !ok {
 			t.Fatalf("failed to get node with uid = %s", uid)
 		}
 
-		if v.virtual != wantNode.virtual {
-			t.Errorf("node with uid = %s, got virtual = %t, wantGraph %t", uid, v.virtual, wantNode.virtual)
+		if gotNode.virtual != wantNode.virtual {
+			t.Errorf("node with uid = %s, got virtual = %t, want %t", uid, gotNode.virtual, wantNode.virtual)
 		}
 
-		if len(v.dependents) != len(wantNode.dependents) {
-			t.Fatalf("node with uid = %s, got dependents = %d, wantGraph %d", uid, len(v.dependents), len(wantNode.dependents))
+		if len(gotNode.dependents) != len(wantNode.dependents) {
+			t.Fatalf("node with uid = %s, got dependents = %d, want %d", uid, len(gotNode.dependents), len(wantNode.dependents))
 		}
 
 		for _, wantDependants := range wantNode.dependents {
 			found := false
-			for k := range v.dependents {
+			for k := range gotNode.dependents {
 				if k.identity.UID == types.UID(wantDependants) {
 					found = true
+					break
+				}
+			}
+			if !found {
+				t.Errorf("node with uid = %s, failed to get dependents %s", uid, wantDependants)
+			}
+		}
+
+		if len(gotNode.softDependents) != len(wantNode.softDependents) {
+			t.Fatalf("node with uid = %s, got softDependents = %d, want %d", uid, len(gotNode.softDependents), len(wantNode.softDependents))
+		}
+
+		for _, wantDependants := range wantNode.softDependents {
+			found := false
+			for k := range gotNode.softDependents {
+				if k.identity.UID == types.UID(wantDependants) {
+					found = true
+					break
 				}
 			}
 			if !found {
@@ -302,12 +323,12 @@ func TestObjectGraph_addObj(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			gb := newObjectGraph(nil)
+			graph := newObjectGraph(nil, nil)
 			for _, o := range tt.args.objs {
-				gb.addObj(o)
+				graph.addObj(o)
 			}
 
-			assertGraph(t, gb, tt.want)
+			assertGraph(t, graph, tt.want)
 		})
 	}
 }
@@ -332,12 +353,54 @@ var objectGraphsTests = []struct {
 				"cluster.x-k8s.io/v1alpha3, Kind=Cluster, ns1/cluster1": {
 					dependents: []string{
 						"infrastructure.cluster.x-k8s.io/v1alpha3, Kind=DummyInfrastructureCluster, ns1/cluster1",
-						"/, Kind=Secret, ns1/cluster1-kubeconfig",
+						"/v1, Kind=Secret, ns1/cluster1-kubeconfig",
+					},
+					softDependents: []string{
+						"/v1, Kind=Secret, ns1/cluster1-ca",
 					},
 				},
 				"infrastructure.cluster.x-k8s.io/v1alpha3, Kind=DummyInfrastructureCluster, ns1/cluster1": {},
-				"/, Kind=Secret, ns1/cluster1-ca":         {}, //NB. this secret is not linked to the cluster through owner ref
-				"/, Kind=Secret, ns1/cluster1-kubeconfig": {},
+				"/v1, Kind=Secret, ns1/cluster1-ca":         {}, //NB. this secret is not linked to the cluster through owner ref
+				"/v1, Kind=Secret, ns1/cluster1-kubeconfig": {},
+			},
+		},
+	},
+	{
+		name: "Two clusters",
+		args: objectGraphTestArgs{
+			objs: func() []runtime.Object {
+				objs := []runtime.Object{}
+				objs = append(objs, test.NewFakeCluster("ns1", "cluster1").Objs()...)
+				objs = append(objs, test.NewFakeCluster("ns1", "cluster2").Objs()...)
+				return objs
+			}(),
+		},
+		want: wantGraph{
+			nodes: map[string]wantGraphItem{
+				"cluster.x-k8s.io/v1alpha3, Kind=Cluster, ns1/cluster1": {
+					dependents: []string{
+						"infrastructure.cluster.x-k8s.io/v1alpha3, Kind=DummyInfrastructureCluster, ns1/cluster1",
+						"/v1, Kind=Secret, ns1/cluster1-kubeconfig",
+					},
+					softDependents: []string{
+						"/v1, Kind=Secret, ns1/cluster1-ca",
+					},
+				},
+				"infrastructure.cluster.x-k8s.io/v1alpha3, Kind=DummyInfrastructureCluster, ns1/cluster1": {},
+				"/v1, Kind=Secret, ns1/cluster1-ca":         {}, //NB. this secret is not linked to the cluster through owner ref
+				"/v1, Kind=Secret, ns1/cluster1-kubeconfig": {},
+				"cluster.x-k8s.io/v1alpha3, Kind=Cluster, ns1/cluster2": {
+					dependents: []string{
+						"infrastructure.cluster.x-k8s.io/v1alpha3, Kind=DummyInfrastructureCluster, ns1/cluster2",
+						"/v1, Kind=Secret, ns1/cluster2-kubeconfig",
+					},
+					softDependents: []string{
+						"/v1, Kind=Secret, ns1/cluster2-ca",
+					},
+				},
+				"infrastructure.cluster.x-k8s.io/v1alpha3, Kind=DummyInfrastructureCluster, ns1/cluster2": {},
+				"/v1, Kind=Secret, ns1/cluster2-ca":         {}, //NB. this secret is not linked to the cluster through owner ref
+				"/v1, Kind=Secret, ns1/cluster2-kubeconfig": {},
 			},
 		},
 	},
@@ -354,13 +417,16 @@ var objectGraphsTests = []struct {
 				"cluster.x-k8s.io/v1alpha3, Kind=Cluster, ns1/cluster1": {
 					dependents: []string{
 						"infrastructure.cluster.x-k8s.io/v1alpha3, Kind=DummyInfrastructureCluster, ns1/cluster1",
-						"/, Kind=Secret, ns1/cluster1-kubeconfig",
+						"/v1, Kind=Secret, ns1/cluster1-kubeconfig",
 						"cluster.x-k8s.io/v1alpha3, Kind=Machine, ns1/m1",
+					},
+					softDependents: []string{
+						"/v1, Kind=Secret, ns1/cluster1-ca",
 					},
 				},
 				"infrastructure.cluster.x-k8s.io/v1alpha3, Kind=DummyInfrastructureCluster, ns1/cluster1": {},
-				"/, Kind=Secret, ns1/cluster1-ca":         {}, //NB. this secret is not linked to the cluster through owner ref
-				"/, Kind=Secret, ns1/cluster1-kubeconfig": {},
+				"/v1, Kind=Secret, ns1/cluster1-ca":         {}, //NB. this secret is not linked to the cluster through owner ref
+				"/v1, Kind=Secret, ns1/cluster1-kubeconfig": {},
 
 				"cluster.x-k8s.io/v1alpha3, Kind=Machine, ns1/m1": {
 					dependents: []string{
@@ -371,12 +437,12 @@ var objectGraphsTests = []struct {
 				"infrastructure.cluster.x-k8s.io/v1alpha3, Kind=DummyInfrastructureMachine, ns1/m1": {},
 				"bootstrap.cluster.x-k8s.io/v1alpha3, Kind=DummyBootstrapConfig, ns1/m1": {
 					dependents: []string{
-						"/, Kind=Secret, ns1/m1",
-						"/, Kind=Secret, ns1/cluster1-sa",
+						"/v1, Kind=Secret, ns1/m1",
+						"/v1, Kind=Secret, ns1/cluster1-sa",
 					},
 				},
-				"/, Kind=Secret, ns1/m1":          {},
-				"/, Kind=Secret, ns1/cluster1-sa": {},
+				"/v1, Kind=Secret, ns1/m1":          {},
+				"/v1, Kind=Secret, ns1/cluster1-sa": {},
 			},
 		},
 	},
@@ -394,15 +460,18 @@ var objectGraphsTests = []struct {
 				"cluster.x-k8s.io/v1alpha3, Kind=Cluster, ns1/cluster1": {
 					dependents: []string{
 						"infrastructure.cluster.x-k8s.io/v1alpha3, Kind=DummyInfrastructureCluster, ns1/cluster1",
-						"/, Kind=Secret, ns1/cluster1-kubeconfig",
+						"/v1, Kind=Secret, ns1/cluster1-kubeconfig",
 						"cluster.x-k8s.io/v1alpha3, Kind=MachineSet, ns1/ms1",
 						"infrastructure.cluster.x-k8s.io/v1alpha3, Kind=DummyInfrastructureMachineTemplate, ns1/ms1",
 						"bootstrap.cluster.x-k8s.io/v1alpha3, Kind=DummyBootstrapConfigTemplate, ns1/ms1",
 					},
+					softDependents: []string{
+						"/v1, Kind=Secret, ns1/cluster1-ca",
+					},
 				},
 				"infrastructure.cluster.x-k8s.io/v1alpha3, Kind=DummyInfrastructureCluster, ns1/cluster1": {},
-				"/, Kind=Secret, ns1/cluster1-ca":         {}, //NB. this secret is not linked to the cluster through owner ref
-				"/, Kind=Secret, ns1/cluster1-kubeconfig": {},
+				"/v1, Kind=Secret, ns1/cluster1-ca":         {}, //NB. this secret is not linked to the cluster through owner ref
+				"/v1, Kind=Secret, ns1/cluster1-kubeconfig": {},
 
 				"cluster.x-k8s.io/v1alpha3, Kind=MachineSet, ns1/ms1": {
 					dependents: []string{
@@ -421,10 +490,10 @@ var objectGraphsTests = []struct {
 				"infrastructure.cluster.x-k8s.io/v1alpha3, Kind=DummyInfrastructureMachine, ns1/m1": {},
 				"bootstrap.cluster.x-k8s.io/v1alpha3, Kind=DummyBootstrapConfig, ns1/m1": {
 					dependents: []string{
-						"/, Kind=Secret, ns1/m1",
+						"/v1, Kind=Secret, ns1/m1",
 					},
 				},
-				"/, Kind=Secret, ns1/m1": {},
+				"/v1, Kind=Secret, ns1/m1": {},
 			},
 		},
 	},
@@ -447,15 +516,18 @@ var objectGraphsTests = []struct {
 				"cluster.x-k8s.io/v1alpha3, Kind=Cluster, ns1/cluster1": {
 					dependents: []string{
 						"infrastructure.cluster.x-k8s.io/v1alpha3, Kind=DummyInfrastructureCluster, ns1/cluster1",
-						"/, Kind=Secret, ns1/cluster1-kubeconfig",
+						"/v1, Kind=Secret, ns1/cluster1-kubeconfig",
 						"cluster.x-k8s.io/v1alpha3, Kind=MachineDeployment, ns1/md1",
 						"infrastructure.cluster.x-k8s.io/v1alpha3, Kind=DummyInfrastructureMachineTemplate, ns1/md1",
 						"bootstrap.cluster.x-k8s.io/v1alpha3, Kind=DummyBootstrapConfigTemplate, ns1/md1",
 					},
+					softDependents: []string{
+						"/v1, Kind=Secret, ns1/cluster1-ca",
+					},
 				},
 				"infrastructure.cluster.x-k8s.io/v1alpha3, Kind=DummyInfrastructureCluster, ns1/cluster1": {},
-				"/, Kind=Secret, ns1/cluster1-ca":         {}, //NB. this secret is not linked to the cluster through owner ref
-				"/, Kind=Secret, ns1/cluster1-kubeconfig": {},
+				"/v1, Kind=Secret, ns1/cluster1-ca":         {}, //NB. this secret is not linked to the cluster through owner ref
+				"/v1, Kind=Secret, ns1/cluster1-kubeconfig": {},
 
 				"cluster.x-k8s.io/v1alpha3, Kind=MachineDeployment, ns1/md1": {
 					dependents: []string{
@@ -480,10 +552,10 @@ var objectGraphsTests = []struct {
 				"infrastructure.cluster.x-k8s.io/v1alpha3, Kind=DummyInfrastructureMachine, ns1/m1": {},
 				"bootstrap.cluster.x-k8s.io/v1alpha3, Kind=DummyBootstrapConfig, ns1/m1": {
 					dependents: []string{
-						"/, Kind=Secret, ns1/m1",
+						"/v1, Kind=Secret, ns1/m1",
 					},
 				},
-				"/, Kind=Secret, ns1/m1": {},
+				"/v1, Kind=Secret, ns1/m1": {},
 			},
 		},
 	},
@@ -506,20 +578,23 @@ var objectGraphsTests = []struct {
 						"controlplane.cluster.x-k8s.io/v1alpha3, Kind=DummyControlPlane, ns1/cp1",
 						"infrastructure.cluster.x-k8s.io/v1alpha3, Kind=DummyInfrastructureMachineTemplate, ns1/cp1",
 					},
+					softDependents: []string{
+						"/v1, Kind=Secret, ns1/cluster1-ca",
+					},
 				},
 				"infrastructure.cluster.x-k8s.io/v1alpha3, Kind=DummyInfrastructureCluster, ns1/cluster1": {},
-				"/, Kind=Secret, ns1/cluster1-ca": {}, //NB. this secret is not linked to the cluster through owner ref
+				"/v1, Kind=Secret, ns1/cluster1-ca": {}, //NB. this secret is not linked to the cluster through owner ref
 
 				"controlplane.cluster.x-k8s.io/v1alpha3, Kind=DummyControlPlane, ns1/cp1": {
 					dependents: []string{
 						"cluster.x-k8s.io/v1alpha3, Kind=Machine, ns1/m1",
-						"/, Kind=Secret, ns1/cluster1-kubeconfig",
-						"/, Kind=Secret, ns1/cluster1-sa",
+						"/v1, Kind=Secret, ns1/cluster1-kubeconfig",
+						"/v1, Kind=Secret, ns1/cluster1-sa",
 					},
 				},
 				"infrastructure.cluster.x-k8s.io/v1alpha3, Kind=DummyInfrastructureMachineTemplate, ns1/cp1": {},
-				"/, Kind=Secret, ns1/cluster1-sa":         {},
-				"/, Kind=Secret, ns1/cluster1-kubeconfig": {},
+				"/v1, Kind=Secret, ns1/cluster1-sa":         {},
+				"/v1, Kind=Secret, ns1/cluster1-kubeconfig": {},
 
 				"cluster.x-k8s.io/v1alpha3, Kind=Machine, ns1/m1": {
 					dependents: []string{
@@ -530,10 +605,10 @@ var objectGraphsTests = []struct {
 				"infrastructure.cluster.x-k8s.io/v1alpha3, Kind=DummyInfrastructureMachine, ns1/m1": {},
 				"bootstrap.cluster.x-k8s.io/v1alpha3, Kind=DummyBootstrapConfig, ns1/m1": {
 					dependents: []string{
-						"/, Kind=Secret, ns1/m1",
+						"/v1, Kind=Secret, ns1/m1",
 					},
 				},
-				"/, Kind=Secret, ns1/m1": {},
+				"/v1, Kind=Secret, ns1/m1": {},
 			},
 		},
 	},
@@ -551,14 +626,17 @@ var objectGraphsTests = []struct {
 					dependents: []string{
 						"infrastructure.cluster.x-k8s.io/v1alpha3, Kind=DummyInfrastructureCluster, ns1/cluster1",
 						"cluster.x-k8s.io/v1alpha3, Kind=MachinePool, ns1/mp1",
-						"/, Kind=Secret, ns1/cluster1-kubeconfig",
+						"/v1, Kind=Secret, ns1/cluster1-kubeconfig",
 						"infrastructure.cluster.x-k8s.io/v1alpha3, Kind=DummyInfrastructureMachineTemplate, ns1/mp1",
 						"bootstrap.cluster.x-k8s.io/v1alpha3, Kind=DummyBootstrapConfigTemplate, ns1/mp1",
 					},
+					softDependents: []string{
+						"/v1, Kind=Secret, ns1/cluster1-ca",
+					},
 				},
 				"infrastructure.cluster.x-k8s.io/v1alpha3, Kind=DummyInfrastructureCluster, ns1/cluster1": {},
-				"/, Kind=Secret, ns1/cluster1-ca":         {}, //NB. this secret is not linked to the cluster through owner ref
-				"/, Kind=Secret, ns1/cluster1-kubeconfig": {},
+				"/v1, Kind=Secret, ns1/cluster1-ca":         {}, //NB. this secret is not linked to the cluster through owner ref
+				"/v1, Kind=Secret, ns1/cluster1-kubeconfig": {},
 
 				"cluster.x-k8s.io/v1alpha3, Kind=MachinePool, ns1/mp1":                                       {},
 				"infrastructure.cluster.x-k8s.io/v1alpha3, Kind=DummyInfrastructureMachineTemplate, ns1/mp1": {},
@@ -568,55 +646,81 @@ var objectGraphsTests = []struct {
 	},
 }
 
+func getDetachedObjectGraphWihObjs(objs []runtime.Object) (*objectGraph, error) {
+	graph := newObjectGraph(nil, nil) // detached from any cluster
+	for _, o := range objs {
+		u := &unstructured.Unstructured{}
+		if err := test.FakeScheme.Convert(o, u, nil); err != nil { //nolint
+			return nil, errors.Wrap(err, "failed to convert object in unstructured")
+		}
+		graph.addObj(u)
+	}
+	return graph, nil
+}
+
 func TestObjectGraph_addObj_WithFakeObjects(t *testing.T) {
 	// NB. we are testing the graph is properly built starting from objects (this test) or from the same objects read from the cluster (TestGraphBuilder_Discovery)
 	for _, tt := range objectGraphsTests {
 		t.Run(tt.name, func(t *testing.T) {
-			gb := newObjectGraph(nil)
-			for _, o := range tt.args.objs {
-				u := &unstructured.Unstructured{}
-				if err := test.FakeScheme.Convert(o, u, nil); err != nil { //nolint
-					t.Fatalf(fmt.Sprintf("failed to convert object in unstructured: %v", err))
-				}
-				gb.addObj(u)
+			graph, err := getDetachedObjectGraphWihObjs(tt.args.objs)
+			if err != nil {
+				t.Fatal(err)
 			}
 
-			assertGraph(t, gb, tt.want)
+			// call setSoftDependents so there is functional parity with discovery
+			graph.setSoftDependents()
+
+			assertGraph(t, graph, tt.want)
 		})
 	}
+}
+
+func getObjectGraphWithObjs(objs []runtime.Object) *objectGraph {
+	fromProxy := getFakeProxyWithCRDs()
+
+	for _, o := range objs {
+		fromProxy.WithObjs(o)
+	}
+
+	return newObjectGraph(fromProxy, logrtesting.NullLogger{})
+}
+
+func getFakeProxyWithCRDs() *test.FakeProxy {
+	proxy := test.NewFakeProxy()
+	for _, o := range test.FakeCRDList() {
+		proxy.WithObjs(o)
+	}
+	return proxy
+}
+
+func getFakeDiscoveryTypes(graph *objectGraph) ([]metav1.TypeMeta, error) {
+	discoveryTypes, err := graph.getDiscoveryTypes()
+	if err != nil {
+		return nil, err
+	}
+
+	// Given that the Fake client behaves in a different way than real client, for this test we are required to add the List suffix to all the types.
+	for i := range discoveryTypes {
+		discoveryTypes[i].Kind = fmt.Sprintf("%sList", discoveryTypes[i].Kind)
+	}
+	return discoveryTypes, nil
 }
 
 func TestObjectGraph_Discovery(t *testing.T) {
 	// NB. we are testing the graph is properly built starting from objects (TestGraphBuilder_addObj_WithFakeObjects) or from the same objects read from the cluster (this test).
 	for _, tt := range objectGraphsTests {
 		t.Run(tt.name, func(t *testing.T) {
-			// Create a fake proxy with all the CRDs for the types involved in the test and all the test objects.
-			proxy := test.NewFakeProxy()
-
-			for _, o := range test.FakeCRDList() {
-				proxy.WithObjs(o)
-			}
-
-			for _, o := range tt.args.objs {
-				proxy.WithObjs(o)
-			}
-
-			// create the newObjectGraph
-			gb := newObjectGraph(proxy)
+			// Create an objectGraph bound to a source cluster with all the CRDs for the types involved in the test.
+			graph := getObjectGraphWithObjs(tt.args.objs)
 
 			// Get all the types to be considered for discovery
-			// Given that the Fake client behaves in a different way than real client, for this test we are required to add the List suffix to all the types.
-			discoveryTypes, err := gb.getDiscoveryTypes()
+			discoveryTypes, err := getFakeDiscoveryTypes(graph)
 			if err != nil {
-				t.Fatalf("error = %v, wantErr nil", err)
-			}
-
-			for i := range discoveryTypes {
-				discoveryTypes[i].Kind = fmt.Sprintf("%sList", discoveryTypes[i].Kind)
+				t.Fatal(err)
 			}
 
 			// finally test discovery
-			err = gb.Discovery("ns1", discoveryTypes)
+			err = graph.Discovery("ns1", discoveryTypes)
 			if (err != nil) != tt.wantErr {
 				t.Fatalf("error = %v, wantErr %v", err, tt.wantErr)
 			}
@@ -624,7 +728,170 @@ func TestObjectGraph_Discovery(t *testing.T) {
 				return
 			}
 
-			assertGraph(t, gb, tt.want)
+			assertGraph(t, graph, tt.want)
+		})
+	}
+}
+
+func TestObjectGraph_DiscoveryByNamespace(t *testing.T) {
+	type args struct {
+		namespace string
+		objs      []runtime.Object
+	}
+	var tests = []struct {
+		name    string
+		args    args
+		want    wantGraph
+		wantErr bool
+	}{
+		{
+			name: "two clusters, in different namespaces, read both",
+			args: args{
+				namespace: "", // read all the namespaces
+				objs: func() []runtime.Object {
+					objs := []runtime.Object{}
+					objs = append(objs, test.NewFakeCluster("ns1", "cluster1").Objs()...)
+					objs = append(objs, test.NewFakeCluster("ns2", "cluster1").Objs()...)
+					return objs
+				}(),
+			},
+			want: wantGraph{
+				nodes: map[string]wantGraphItem{
+					"cluster.x-k8s.io/v1alpha3, Kind=Cluster, ns1/cluster1": {
+						dependents: []string{
+							"infrastructure.cluster.x-k8s.io/v1alpha3, Kind=DummyInfrastructureCluster, ns1/cluster1",
+							"/v1, Kind=Secret, ns1/cluster1-kubeconfig",
+						},
+						softDependents: []string{
+							"/v1, Kind=Secret, ns1/cluster1-ca",
+						},
+					},
+					"infrastructure.cluster.x-k8s.io/v1alpha3, Kind=DummyInfrastructureCluster, ns1/cluster1": {},
+					"/v1, Kind=Secret, ns1/cluster1-ca":         {}, //NB. this secret is not linked to the cluster through owner ref
+					"/v1, Kind=Secret, ns1/cluster1-kubeconfig": {},
+					"cluster.x-k8s.io/v1alpha3, Kind=Cluster, ns2/cluster1": {
+						dependents: []string{
+							"infrastructure.cluster.x-k8s.io/v1alpha3, Kind=DummyInfrastructureCluster, ns2/cluster1",
+							"/v1, Kind=Secret, ns2/cluster1-kubeconfig",
+						},
+						softDependents: []string{
+							"/v1, Kind=Secret, ns2/cluster1-ca",
+						},
+					},
+					"infrastructure.cluster.x-k8s.io/v1alpha3, Kind=DummyInfrastructureCluster, ns2/cluster1": {},
+					"/v1, Kind=Secret, ns2/cluster1-ca":         {}, //NB. this secret is not linked to the cluster through owner ref
+					"/v1, Kind=Secret, ns2/cluster1-kubeconfig": {},
+				},
+			},
+		},
+		{
+			name: "two clusters, in different namespaces, read only 1",
+			args: args{
+				namespace: "ns1", // read only from ns1
+				objs: func() []runtime.Object {
+					objs := []runtime.Object{}
+					objs = append(objs, test.NewFakeCluster("ns1", "cluster1").Objs()...)
+					objs = append(objs, test.NewFakeCluster("ns2", "cluster1").Objs()...)
+					return objs
+				}(),
+			},
+			want: wantGraph{
+				nodes: map[string]wantGraphItem{
+					"cluster.x-k8s.io/v1alpha3, Kind=Cluster, ns1/cluster1": {
+						dependents: []string{
+							"infrastructure.cluster.x-k8s.io/v1alpha3, Kind=DummyInfrastructureCluster, ns1/cluster1",
+							"/v1, Kind=Secret, ns1/cluster1-kubeconfig",
+						},
+						softDependents: []string{
+							"/v1, Kind=Secret, ns1/cluster1-ca",
+						},
+					},
+					"infrastructure.cluster.x-k8s.io/v1alpha3, Kind=DummyInfrastructureCluster, ns1/cluster1": {},
+					"/v1, Kind=Secret, ns1/cluster1-ca":         {}, //NB. this secret is not linked to the cluster through owner ref
+					"/v1, Kind=Secret, ns1/cluster1-kubeconfig": {},
+				},
+			},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			// Create an objectGraph bound to a source cluster with all the CRDs for the types involved in the test.
+			graph := getObjectGraphWithObjs(tt.args.objs)
+
+			// Get all the types to be considered for discovery
+			discoveryTypes, err := getFakeDiscoveryTypes(graph)
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			// finally test discovery
+			err = graph.Discovery(tt.args.namespace, discoveryTypes)
+			if (err != nil) != tt.wantErr {
+				t.Fatalf("error = %v, wantErr %v", err, tt.wantErr)
+			}
+			if tt.wantErr {
+				return
+			}
+
+			assertGraph(t, graph, tt.want)
+		})
+	}
+}
+
+func Test_objectGraph_setSoftDependents(t *testing.T) {
+	type fields struct {
+		objs []runtime.Object
+	}
+	tests := []struct {
+		name         string
+		fields       fields
+		wantClusters map[string][]string
+	}{
+		{
+			name: "A cluster with a soft dependent secret",
+			fields: fields{
+				objs: test.NewFakeCluster("ns1", "foo").Objs(),
+			},
+			wantClusters: map[string][]string{ // wantClusters is a map[Cluster.UID] --> list of UIDs
+				"cluster.x-k8s.io/v1alpha3, Kind=Cluster, ns1/foo": {
+					"/v1, Kind=Secret, ns1/foo-ca", // the ca secret has no explicit OwnerRef to the cluster, so should be identified as a soft dependent
+				},
+			},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			graph, err := getDetachedObjectGraphWihObjs(tt.fields.objs)
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			graph.setSoftDependents()
+
+			gotClusters := graph.getClusters()
+			if len(gotClusters) != len(tt.wantClusters) {
+				t.Fatalf("got = %d clusters, want %d", len(gotClusters), len(tt.wantClusters))
+			}
+
+			for _, cluster := range gotClusters {
+				wantObjects, ok := tt.wantClusters[string(cluster.identity.UID)]
+				if !ok {
+					t.Fatalf("got = %s, not included in the expected cluster list", cluster.identity.UID)
+				}
+
+				gotObjects := []string{}
+				for softDependent := range cluster.softDependents {
+					gotObjects = append(gotObjects, string(softDependent.identity.UID))
+				}
+
+				sort.Strings(wantObjects)
+				sort.Strings(gotObjects)
+
+				if !reflect.DeepEqual(gotObjects, wantObjects) {
+					t.Fatalf("cluster %s, got = %s, expected = %s", cluster.identity.UID, gotObjects, wantObjects)
+				}
+			}
 		})
 	}
 }

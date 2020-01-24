@@ -412,9 +412,11 @@ release-manifests: $(RELEASE_DIR) $(KUSTOMIZE) ## Builds the manifests to publis
 	$(KUSTOMIZE) build config/core > $(RELEASE_DIR)/core-components.yaml
 	$(KUSTOMIZE) build bootstrap/kubeadm/config/default > $(RELEASE_DIR)/bootstrap-components.yaml
 	$(KUSTOMIZE) build controlplane/kubeadm/config/default > $(RELEASE_DIR)/control-plane-components.yaml
-	@for f in $(RELEASE_DIR)/core-components.yaml $(RELEASE_DIR)/bootstrap-components.yaml $(RELEASE_DIR)/control-plane-components.yaml;\
-		do echo "---" | cat $$f - >> $(RELEASE_DIR)/cluster-api-components.yaml;\
-		done
+	cat $(RELEASE_DIR)/core-components.yaml > $(RELEASE_DIR)/cluster-api-components.yaml
+	echo "---" >> $(RELEASE_DIR)/cluster-api-components.yaml
+	cat $(RELEASE_DIR)/bootstrap-components.yaml >> $(RELEASE_DIR)/cluster-api-components.yaml
+	echo "---" >> $(RELEASE_DIR)/cluster-api-components.yaml
+	cat $(RELEASE_DIR)/control-plane-components.yaml >> $(RELEASE_DIR)/cluster-api-components.yaml
 
 release-binaries: ## Builds the binaries to publish with a release
 	RELEASE_BINARY=./cmd/clusterctl GOOS=linux GOARCH=amd64 $(MAKE) release-binary

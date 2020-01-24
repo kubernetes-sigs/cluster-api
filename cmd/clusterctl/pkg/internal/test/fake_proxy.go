@@ -19,6 +19,7 @@ package test
 import (
 	apiextensionslv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1beta1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
 	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha3"
@@ -63,6 +64,40 @@ func (f *FakeProxy) NewClient() (client.Client, error) {
 	return f.cs, nil
 }
 
+// ListResources returns all the resources known by the FakeProxy
+func (f *FakeProxy) ListResources(namespace string, labels map[string]string) ([]unstructured.Unstructured, error) {
+	var ret []unstructured.Unstructured //nolint
+	for _, o := range f.objs {
+		u := unstructured.Unstructured{}
+		err := FakeScheme.Convert(o, &u, nil)
+		if err != nil {
+			return nil, err
+		}
+
+		// filter by namespace, if any
+		if namespace != "" && u.GetNamespace() != "" && u.GetNamespace() != namespace {
+			continue
+		}
+
+		// filter by label, if any
+		haslabel := false
+		for l, v := range labels {
+			for ul, uv := range u.GetLabels() {
+				if l == ul && v == uv {
+					haslabel = true
+				}
+			}
+		}
+		if !haslabel {
+			continue
+		}
+
+		ret = append(ret, u)
+	}
+
+	return ret, nil
+}
+
 func NewFakeProxy() *FakeProxy {
 	return &FakeProxy{}
 }
@@ -85,6 +120,10 @@ func (f *FakeProxy) WithProviderInventory(name string, providerType clusterctlv1
 		ObjectMeta: metav1.ObjectMeta{
 			Namespace: targetNamespace,
 			Name:      name,
+			Labels: map[string]string{
+				clusterctlv1.ClusterctlLabelName:         "",
+				clusterctlv1.ClusterctlProviderLabelName: name,
+			},
 		},
 		Type:             string(providerType),
 		Version:          version,

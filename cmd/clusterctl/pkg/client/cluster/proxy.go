@@ -20,6 +20,10 @@ import (
 	"fmt"
 
 	"github.com/pkg/errors"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
+	"k8s.io/client-go/discovery"
+	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/clientcmd"
 	"sigs.k8s.io/cluster-api/cmd/clusterctl/pkg/internal/scheme"
@@ -79,6 +83,62 @@ func (k *proxy) NewClient() (client.Client, error) {
 	return c, nil
 }
 
+func (k *proxy) ListResources(namespace string, labels map[string]string) ([]unstructured.Unstructured, error) {
+	cs, err := k.newClientSet()
+	if err != nil {
+		return nil, err
+	}
+
+	c, err := k.NewClient()
+	if err != nil {
+		return nil, err
+	}
+
+	// Get all the API resources in the cluster.
+	resourceList, err := cs.Discovery().ServerPreferredResources()
+	if err != nil {
+		return nil, errors.Wrap(err, "failed to list api resources")
+	}
+
+	// Select resources with list and delete methods (list is required by this method, delete by the callers of this method)
+	resourceList = discovery.FilteredBy(discovery.SupportsAllVerbs{Verbs: []string{"list", "delete"}}, resourceList)
+
+	var ret []unstructured.Unstructured
+	for _, resourceGroup := range resourceList {
+		for _, resourceKind := range resourceGroup.APIResources {
+			// Discard the resourceKind that exists in two api groups (we are excluding one of the two groups arbitrarily).
+			if resourceGroup.GroupVersion == "extensions/v1beta1" &&
+				(resourceKind.Name == "daemonsets" || resourceKind.Name == "deployments" || resourceKind.Name == "replicasets" || resourceKind.Name == "networkpolicies" || resourceKind.Name == "ingresses") {
+				continue
+			}
+
+			// List all the object instances of this resourceKind with the given labels
+			selectors := []client.ListOption{
+				client.MatchingLabels(labels),
+			}
+
+			if namespace != "" && resourceKind.Namespaced {
+				selectors = append(selectors, client.InNamespace(namespace))
+			}
+
+			objList := new(unstructured.UnstructuredList)
+			objList.SetAPIVersion(resourceGroup.GroupVersion)
+			objList.SetKind(resourceKind.Kind)
+
+			if err := c.List(ctx, objList, selectors...); err != nil {
+				if apierrors.IsNotFound(err) {
+					continue
+				}
+				return nil, errors.Wrapf(err, "failed to list objects for the %q GroupVersionKind", objList.GroupVersionKind())
+			}
+
+			// Add obj to the result.
+			ret = append(ret, objList.Items...)
+		}
+	}
+	return ret, nil
+}
+
 func newProxy(kubeconfig string) Proxy {
 	// If a kubeconfig file isn't provided, find one in the standard locations.
 	if kubeconfig == "" {
@@ -102,4 +162,18 @@ func (k *proxy) getConfig() (*rest.Config, error) {
 	restConfig.UserAgent = fmt.Sprintf("clusterctl/%s (%s)", version.Get().GitVersion, version.Get().Platform)
 
 	return restConfig, nil
+}
+
+func (k *proxy) newClientSet() (*kubernetes.Clientset, error) {
+	config, err := k.getConfig()
+	if err != nil {
+		return nil, errors.Wrap(err, "failed to create the client-go client")
+	}
+
+	cs, err := kubernetes.NewForConfig(config)
+	if err != nil {
+		return nil, errors.Wrap(err, "failed to create the client-go client")
+	}
+
+	return cs, nil
 }

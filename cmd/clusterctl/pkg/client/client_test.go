@@ -44,7 +44,7 @@ func TestNewFakeClient(t *testing.T) {
 		WithFile("v1.0", "components.yaml", []byte("content"))
 
 	// create a fake cluster, eventually adding some existing runtime objects to it
-	cluster1 := newFakeCluster("kubeconfig").
+	cluster1 := newFakeCluster("cluster1").
 		WithObjs()
 
 	// create a new fakeClient that allows to execute tests on the fake config, the fake repositories and the fake cluster.
@@ -76,6 +76,10 @@ func (f fakeClient) GetClusterTemplate(options GetClusterTemplateOptions) (Templ
 
 func (f fakeClient) Init(options InitOptions) ([]Components, bool, error) {
 	return f.internalClient.Init(options)
+}
+
+func (f fakeClient) Delete(options DeleteOptions) error {
+	return f.internalClient.Delete(options)
 }
 
 // newFakeClient returns a clusterctl client that allows to execute tests on a set of fake config, fake repositories and fake clusters.

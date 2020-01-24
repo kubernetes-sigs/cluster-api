@@ -19,6 +19,7 @@ package cluster
 import (
 	"context"
 
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"sigs.k8s.io/cluster-api/cmd/clusterctl/pkg/internal/test"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
@@ -124,6 +125,10 @@ type Proxy interface {
 
 	// NewClient returns a new controller runtime Client object for working on the management cluster
 	NewClient() (client.Client, error)
+
+	// ListResources returns all the Kubernetes objects existing in a namespace (or in all namespaces if empty)
+	// with the given labels.
+	ListResources(namespace string, labels map[string]string) ([]unstructured.Unstructured, error)
 }
 
 var _ Proxy = &test.FakeProxy{}

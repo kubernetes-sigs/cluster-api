@@ -56,6 +56,11 @@ type InventoryClient interface {
 	// In case there is only a single version installed for a given provider, e.g. only the v0.4.1 version for the AWS provider, it returns
 	// this as the default version; In case there are more version installed for the same provider, there is no default provider version.
 	GetDefaultProviderVersion(provider string) (string, error)
+
+	// GetDefaultProviderNamespace returns the default namespace for a given provider.
+	// In case there is only a single instance for a given provider, e.g. only the AWS provider in the capa-system namespace, it returns
+	// this as the default namespace; In case there are more instances for the same provider installed in different namespaces, there is no default provider namespace.
+	GetDefaultProviderNamespace(provider string) (string, error)
 }
 
 // inventoryClient implements InventoryClient.
@@ -265,5 +270,27 @@ func (p *inventoryClient) GetDefaultProviderVersion(provider string) (string, er
 	}
 
 	// There is no version installed or more than one version installed for this provider; in both cases, a default version for this provider cannot be decided.
+	return "", nil
+}
+
+func (p *inventoryClient) GetDefaultProviderNamespace(provider string) (string, error) {
+	l, err := p.list(listOptions{
+		Name: provider,
+	})
+	if err != nil {
+		return "", err
+	}
+
+	// Group the providers by namespace
+	namespaces := sets.NewString()
+	for _, p := range l {
+		namespaces.Insert(p.Namespace)
+	}
+
+	if namespaces.Len() == 1 {
+		return namespaces.List()[0], nil
+	}
+
+	// There is no provider or more than one namespace for this provider; in both cases, a default provider namespace cannot be decided.
 	return "", nil
 }

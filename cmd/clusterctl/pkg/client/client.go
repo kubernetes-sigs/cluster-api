@@ -22,7 +22,7 @@ import (
 	"sigs.k8s.io/cluster-api/cmd/clusterctl/pkg/client/repository"
 )
 
-// InitOptions carries the options supported by Init
+// InitOptions carries the options supported by Init.
 type InitOptions struct {
 	Kubeconfig              string
 	CoreProvider            string
@@ -32,7 +32,7 @@ type InitOptions struct {
 	WatchingNamespace       string
 }
 
-// GetClusterTemplateOptions carries the options supported by GetClusterTemplate
+// GetClusterTemplateOptions carries the options supported by GetClusterTemplate.
 type GetClusterTemplateOptions struct {
 	Kubeconfig               string
 	InfrastructureProvider   string
@@ -43,6 +43,15 @@ type GetClusterTemplateOptions struct {
 	KubernetesVersion        string
 	ControlPlaneMachineCount int
 	WorkerMachineCount       int
+}
+
+// DeleteOptions carries the options supported by Delete.
+type DeleteOptions struct {
+	Kubeconfig           string
+	ForceDeleteNamespace bool
+	ForceDeleteCRD       bool
+	Namespace            string
+	Providers            []string
 }
 
 // Client is exposes the clusterctl high-level client library
@@ -58,6 +67,9 @@ type Client interface {
 
 	// GetClusterTemplate returns a workload cluster template.
 	GetClusterTemplate(options GetClusterTemplateOptions) (Template, error)
+
+	// Delete deletes providers from a management cluster.
+	Delete(options DeleteOptions) error
 }
 
 // clusterctlClient implements Client.

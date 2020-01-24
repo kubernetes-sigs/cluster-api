@@ -19,6 +19,7 @@ package cmd
 import (
 	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
+	"sigs.k8s.io/cluster-api/cmd/clusterctl/pkg/client"
 )
 
 type deleteOptions struct {
@@ -96,5 +97,20 @@ func init() {
 }
 
 func runDelete(args []string) error {
+	c, err := client.New(cfgFile)
+	if err != nil {
+		return err
+	}
+
+	if err := c.Delete(client.DeleteOptions{
+		Kubeconfig:           dd.kubeconfig,
+		ForceDeleteNamespace: dd.forceDeleteNamespace,
+		ForceDeleteCRD:       dd.forceDeleteCRD,
+		Namespace:            dd.targetNamespace,
+		Providers:            args,
+	}); err != nil {
+		return err
+	}
+
 	return nil
 }

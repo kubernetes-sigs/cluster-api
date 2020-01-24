@@ -179,4 +179,4 @@ The `KubeadmConfig` object supports customizing the content of the config-data:
 - `KubeadmConfig.PreKubeadmCommands` specifies a list of commands to be executed before `kubeadm init/join`
 - `KubeadmConfig.PostKubeadmCommands` same as above, but after `kubeadm init/join`
 - `KubeadmConfig.Users` specifies a list of users to be created on the machine
-- `KubeadmConfig.NTP` specifies NPT settings for the machine
+- `KubeadmConfig.NTP` specifies NTP settings for the machine

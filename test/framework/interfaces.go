@@ -42,6 +42,12 @@ type Waiter interface {
 	Wait(context.Context, ...string) error
 }
 
+// ImageLoader is an interface around loading an image onto a cluster.
+type ImageLoader interface {
+	// LoadImage will put a local image onto the cluster.
+	LoadImage(context.Context, string) error
+}
+
 // ManagementCluster are all the features we need out of a kubernetes cluster to qualify as a management cluster.
 type ManagementCluster interface {
 	Applier

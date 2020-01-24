@@ -80,6 +80,7 @@ KUBEADM_BOOTSTRAP_CONTROLLER_IMG ?= $(REGISTRY)/$(KUBEADM_BOOTSTRAP_IMAGE_NAME)-
 KUBEADM_CONTROL_PLANE_IMAGE_NAME ?= kubeadm-control-plane-controller
 KUBEADM_CONTROL_PLANE_CONTROLLER_IMG ?= $(REGISTRY)/$(KUBEADM_CONTROL_PLANE_IMAGE_NAME)-$(ARCH):$(TAG)
 
+.PHONY: test-e2e
 test-e2e: ## Run the end-to-end tests
 	$(MAKE) docker-build
 	MANAGER_IMAGE=$(CONTROLLER_IMG)-$(ARCH):$(TAG) \
@@ -89,7 +90,7 @@ test-e2e: ## Run the end-to-end tests
 		$(MAKE) run-e2e
 
 run-e2e:
-	go test ./e2e -v -ginkgo.v -ginkgo.trace -count=1 -timeout=20m -tags=e2e
+	go test ./e2e -v -ginkgo.v -ginkgo.trace -count=1 -timeout=20m -tags=e2e -e2e.config="$(abspath e2e/e2e.conf)"
 
 ## --------------------------------------
 ## Binaries

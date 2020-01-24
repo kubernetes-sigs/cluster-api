@@ -88,6 +88,9 @@ base64 -i ~/path/to/gcp/credentials.json
 
 **preload_images_for_kind** (Boolean, default=`true`): Uses `kind load docker-image` to preload images into a kind cluster.
 
+**trigger_mode** (String, default=`auto`): Optional setting to configure if tilt should automatically rebuild on changes. 
+Set to `manual` to disable auto-rebuilding and require users to trigger rebuilds of individual changed components through the UI.
+
 ### Run Tilt!
 
 To launch your development environment, run

@@ -20,6 +20,7 @@ package e2e
 
 import (
 	"context"
+	"flag"
 	"fmt"
 	"io/ioutil"
 	"os"
@@ -28,7 +29,7 @@ import (
 	"testing"
 
 	. "github.com/onsi/ginkgo"
-	"github.com/onsi/ginkgo/config"
+	ginkgoConfig "github.com/onsi/ginkgo/config"
 	"github.com/onsi/ginkgo/reporters"
 	. "github.com/onsi/gomega"
 	"github.com/pkg/errors"
@@ -37,12 +38,8 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/runtime"
-	capiv1 "sigs.k8s.io/cluster-api/api/v1alpha3"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha3"
-	bootstrapv1 "sigs.k8s.io/cluster-api/bootstrap/kubeadm/api/v1alpha3"
-	controlplanev1 "sigs.k8s.io/cluster-api/controlplane/kubeadm/api/v1alpha3"
 	"sigs.k8s.io/cluster-api/test/framework"
-	"sigs.k8s.io/cluster-api/test/framework/generators"
 	infrav1 "sigs.k8s.io/cluster-api/test/infrastructure/docker/api/v1alpha3"
 	"sigs.k8s.io/cluster-api/util"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -50,7 +47,7 @@ import (
 
 func TestDocker(t *testing.T) {
 	RegisterFailHandler(Fail)
-	junitPath := fmt.Sprintf("junit.e2e_suite.%d.xml", config.GinkgoConfig.ParallelNode)
+	junitPath := fmt.Sprintf("junit.e2e_suite.%d.xml", ginkgoConfig.GinkgoConfig.ParallelNode)
 	artifactPath, exists := os.LookupEnv("ARTIFACTS")
 	if exists {
 		junitPath = path.Join(artifactPath, junitPath)
@@ -60,80 +57,53 @@ func TestDocker(t *testing.T) {
 }
 
 var (
-	mgmt    *CAPDCluster
-	ctx     = context.Background()
-	logPath string
+	mgmt       *CAPDCluster
+	ctx        = context.Background()
+	config     *framework.Config
+	configPath string
+	logPath    string
 )
 
+func init() {
+	flag.StringVar(&configPath, "e2e.config", "e2e.conf", "path to the e2e config file")
+}
+
 var _ = BeforeSuite(func() {
-	// Create the logs directory
+	By("loading e2e config")
+	configData, err := ioutil.ReadFile(configPath)
+	Expect(err).ShouldNot(HaveOccurred())
+	config, err = framework.LoadConfig(configData)
+	Expect(err).ShouldNot(HaveOccurred())
+	Expect(config).ShouldNot(BeNil())
+
+	By("creating the logs directory")
 	artifactPath := os.Getenv("ARTIFACTS")
 	logPath = path.Join(artifactPath, "logs")
 	Expect(os.MkdirAll(filepath.Dir(logPath), 0755)).To(Succeed())
 
-	// Figure out the names of the images to load into kind
-	managerImage := os.Getenv("MANAGER_IMAGE")
-	if managerImage == "" {
-		managerImage = "gcr.io/k8s-staging-capi-docker/capd-manager-amd64:dev"
-	}
-	capiImage := os.Getenv("CAPI_IMAGE")
-	if capiImage == "" {
-		capiImage = "gcr.io/k8s-staging-cluster-api/cluster-api-controller:master"
-	}
-	capiKubeadmBootstrapImage := os.Getenv("CAPI_KUBEADM_BOOTSTRAP_IMAGE")
-	if capiKubeadmBootstrapImage == "" {
-		capiKubeadmBootstrapImage = "gcr.io/k8s-staging-cluster-api/kubeadm-bootstrap-controller:master"
-	}
-	capiKubeadmControlPlaneImage := os.Getenv("CAPI_KUBEADM_CONTROL_PLANE_IMAGE")
-	if capiKubeadmControlPlaneImage == "" {
-		capiKubeadmControlPlaneImage = "gcr.io/k8s-staging-cluster-api/kubeadm-control-plane-controller:master"
-	}
-	By("setting up in BeforeSuite")
-	var err error
-
-	// Set up the provider component generators based on master
-	core := &generators.ClusterAPI{KustomizePath: "../../../../config/default"}
-	bootstrap := &generators.KubeadmBootstrap{KustomizePath: "../../../../bootstrap/kubeadm/config/default"}
-	controlPlane := &generators.KubeadmControlPlane{KustomizePath: "../../../../controlplane/kubeadm/config/default"}
-	// set up capd components based on current files
-	infra := &provider{}
-
-	// set up cert manager
-	cm := &generators.CertManager{ReleaseVersion: "v0.11.1"}
-
+	By("initializing the scheme")
 	scheme := runtime.NewScheme()
-	Expect(corev1.AddToScheme(scheme)).To(Succeed())
-	Expect(appsv1.AddToScheme(scheme)).To(Succeed())
-	Expect(capiv1.AddToScheme(scheme)).To(Succeed())
-	Expect(bootstrapv1.AddToScheme(scheme)).To(Succeed())
 	Expect(infrav1.AddToScheme(scheme)).To(Succeed())
-	Expect(controlplanev1.AddToScheme(scheme)).To(Succeed())
 
-	// Create the management cluster
-	kindClusterName := os.Getenv("CAPI_MGMT_CLUSTER_NAME")
-	if kindClusterName == "" {
-		kindClusterName = "docker-e2e-" + util.RandomString(6)
+	By("initialzing the management cluster name")
+	config.ManagementClusterName = os.Getenv("CAPI_MGMT_CLUSTER_NAME")
+	if config.ManagementClusterName == "" {
+		config.ManagementClusterName = "docker-e2e-" + util.RandomString(6)
 	}
-	mgmt, err = NewClusterForCAPD(ctx, kindClusterName, scheme, managerImage, capiImage, capiKubeadmBootstrapImage, capiKubeadmControlPlaneImage)
-	Expect(err).NotTo(HaveOccurred())
-	Expect(mgmt).NotTo(BeNil())
+
+	managementCluster := framework.InitManagementCluster(
+		ctx, &framework.InitManagementClusterInput{
+			Config: *config,
+			Scheme: scheme,
+			NewManagementClusterFn: func() (framework.ManagementCluster, error) {
+				return NewClusterForCAPD(ctx, config.ManagementClusterName, scheme)
+			},
+		})
+	Expect(managementCluster).ToNot(BeNil())
+	Expect(managementCluster).To(BeAssignableToTypeOf(&CAPDCluster{}))
+	mgmt = managementCluster.(*CAPDCluster)
+
 	fmt.Printf("export KUBECONFIG=%q\n", mgmt.KubeconfigPath)
-
-	// Install the cert-manager components first as some CRDs there will be part of the other providers
-	framework.InstallComponents(ctx, mgmt, cm)
-
-	// Wait for cert manager service
-	// TODO: consider finding a way to make this service name dynamic.
-	framework.WaitForAPIServiceAvailable(ctx, mgmt, "v1beta1.webhook.cert-manager.io")
-
-	// Install all components
-	framework.InstallComponents(ctx, mgmt, core, bootstrap, controlPlane, infra)
-	framework.WaitForPodsReadyInNamespace(ctx, mgmt, "capi-system")
-	framework.WaitForPodsReadyInNamespace(ctx, mgmt, "capi-kubeadm-bootstrap-system")
-	framework.WaitForPodsReadyInNamespace(ctx, mgmt, "capi-kubeadm-control-plane-system")
-	framework.WaitForPodsReadyInNamespace(ctx, mgmt, "capd-system")
-	framework.WaitForPodsReadyInNamespace(ctx, mgmt, "cert-manager")
-	// TODO: maybe wait for controller components to be ready
 })
 
 var _ = AfterSuite(func() {

@@ -164,8 +164,14 @@ func repositoryFactory(providerConfig config.Provider, configVariablesClient con
 		return repo, err
 	}
 
-	// if the url is a local repository
-	//TODO: implement in a follow up PR
+	// if the url is a local filesystem repository
+	if rURL.Scheme == "file" || rURL.Scheme == "" {
+		repo, err := newLocalRepository(providerConfig, configVariablesClient)
+		if err != nil {
+			return nil, errors.Wrap(err, "error creating the local filesystem repository client")
+		}
+		return repo, err
+	}
 
 	return nil, errors.Errorf("invalid provider url. there are no provider implementation for %q schema", rURL.Scheme)
 }

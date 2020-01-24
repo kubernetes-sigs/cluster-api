@@ -33,3 +33,9 @@ patchesJson6902:
     kind: CustomResourceDefinition
     name: machinesets.cluster.x-k8s.io
   path: patch_crd_webhook_namespace.yaml
+- target:
+    group: apiextensions.k8s.io
+    version: v1
+    kind: CustomResourceDefinition
+    name: machinehealthchecks.cluster.x-k8s.io
+  path: patch_crd_webhook_namespace.yaml

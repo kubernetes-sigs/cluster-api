@@ -39,6 +39,7 @@ type BaseUserData struct {
 	WriteFiles          []bootstrapv1.File
 	Users               []bootstrapv1.User
 	NTP                 *bootstrapv1.NTP
+	KubeadmVerbosity    string
 }
 
 func generate(kind string, tpl string, data interface{}) ([]byte, error) {

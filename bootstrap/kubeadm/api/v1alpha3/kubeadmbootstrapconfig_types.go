@@ -68,6 +68,11 @@ type KubeadmConfigSpec struct {
 	// Format specifies the output format of the bootstrap data
 	// +optional
 	Format Format `json:"format,omitempty"`
+
+	// Verbosity is the number for the kubeadm log level verbosity.
+	// It overrides the `--v` flag in kubeadm commands.
+	// +optional
+	Verbosity *int32 `json:"verbosity,omitempty"`
 }
 
 // KubeadmConfigStatus defines the observed state of KubeadmConfig

@@ -19,6 +19,7 @@ package controllers
 import (
 	"context"
 	"fmt"
+	"strconv"
 	"strings"
 	"time"
 
@@ -337,6 +338,11 @@ func (r *KubeadmConfigReconciler) handleClusterNotInitialized(ctx context.Contex
 		return ctrl.Result{}, err
 	}
 
+	verbosityFlag := ""
+	if scope.Config.Spec.Verbosity != nil {
+		verbosityFlag = fmt.Sprintf("--v %s", strconv.Itoa(int(*scope.Config.Spec.Verbosity)))
+	}
+
 	cloudInitData, err := cloudinit.NewInitControlPlane(&cloudinit.ControlPlaneInput{
 		BaseUserData: cloudinit.BaseUserData{
 			AdditionalFiles:     scope.Config.Spec.Files,
@@ -344,6 +350,7 @@ func (r *KubeadmConfigReconciler) handleClusterNotInitialized(ctx context.Contex
 			PreKubeadmCommands:  scope.Config.Spec.PreKubeadmCommands,
 			PostKubeadmCommands: scope.Config.Spec.PostKubeadmCommands,
 			Users:               scope.Config.Spec.Users,
+			KubeadmVerbosity:    verbosityFlag,
 		},
 		InitConfiguration:    initdata,
 		ClusterConfiguration: clusterdata,
@@ -399,6 +406,11 @@ func (r *KubeadmConfigReconciler) joinWorker(ctx context.Context, scope *Scope) 
 
 	scope.Info("Creating BootstrapData for the worker node")
 
+	verbosityFlag := ""
+	if scope.Config.Spec.Verbosity != nil {
+		verbosityFlag = fmt.Sprintf("--v %s", strconv.Itoa(int(*scope.Config.Spec.Verbosity)))
+	}
+
 	cloudJoinData, err := cloudinit.NewNode(&cloudinit.NodeInput{
 		BaseUserData: cloudinit.BaseUserData{
 			AdditionalFiles:     scope.Config.Spec.Files,
@@ -406,6 +418,7 @@ func (r *KubeadmConfigReconciler) joinWorker(ctx context.Context, scope *Scope) 
 			PreKubeadmCommands:  scope.Config.Spec.PreKubeadmCommands,
 			PostKubeadmCommands: scope.Config.Spec.PostKubeadmCommands,
 			Users:               scope.Config.Spec.Users,
+			KubeadmVerbosity:    verbosityFlag,
 		},
 		JoinConfiguration: joinData,
 	})
@@ -460,6 +473,12 @@ func (r *KubeadmConfigReconciler) joinControlplane(ctx context.Context, scope *S
 	}
 
 	scope.Info("Creating BootstrapData for the join control plane")
+
+	verbosityFlag := ""
+	if scope.Config.Spec.Verbosity != nil {
+		verbosityFlag = fmt.Sprintf("--v %s", strconv.Itoa(int(*scope.Config.Spec.Verbosity)))
+	}
+
 	cloudJoinData, err := cloudinit.NewJoinControlPlane(&cloudinit.ControlPlaneJoinInput{
 		JoinConfiguration: joinData,
 		Certificates:      certificates,
@@ -469,6 +488,7 @@ func (r *KubeadmConfigReconciler) joinControlplane(ctx context.Context, scope *S
 			PreKubeadmCommands:  scope.Config.Spec.PreKubeadmCommands,
 			PostKubeadmCommands: scope.Config.Spec.PostKubeadmCommands,
 			Users:               scope.Config.Spec.Users,
+			KubeadmVerbosity:    verbosityFlag,
 		},
 	})
 	if err != nil {

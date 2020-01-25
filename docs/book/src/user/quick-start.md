@@ -320,6 +320,8 @@ export AZURE_CLIENT_SECRET_B64="$(echo -n "$AZURE_CLIENT_SECRET" | base64 | tr -
 SSH_KEY_FILE="capi-quickstart.ssh-key"
 ssh-keygen -t rsa -b 2048 -f "${SSH_KEY_FILE}" -N '' 1>/dev/null
 export SSH_PUBLIC_KEY=$(cat "${SSH_KEY_FILE}.pub" | base64 | tr -d '\r\n')
+# Change this value to the region you want to deploy the cluster in.
+export AZURE_LOCATION="southcentralus"
 ```
 
 ```bash
@@ -339,7 +341,7 @@ metadata:
     cluster.x-k8s.io/control-plane: "true"
     cluster.x-k8s.io/cluster-name: "capi-quickstart"
 spec:
-  version: v1.16.1
+  version: v1.16.6
   bootstrap:
     configRef:
       apiVersion: bootstrap.cluster.x-k8s.io/v1alpha3
@@ -355,12 +357,7 @@ kind: AzureMachine
 metadata:
   name: capi-quickstart-controlplane-0
 spec:
-  image:
-    offer: capi
-    publisher: cncf-upstream
-    sku: k8s-1dot16-ubuntu-1804
-    version: latest
-  location: southcentralus
+  location: ${AZURE_LOCATION}
   osDisk:
     diskSizeGB: 30
     managedDisk:
@@ -893,6 +890,8 @@ export AZURE_CLIENT_SECRET_B64="$(echo -n "$AZURE_CLIENT_SECRET" | base64 | tr -
 SSH_KEY_FILE="capi-quickstart.ssh-key"
 ssh-keygen -t rsa -b 2048 -f "${SSH_KEY_FILE}" -N '' 1>/dev/null
 export SSH_PUBLIC_KEY=$(cat "${SSH_KEY_FILE}.pub" | base64 | tr -d '\r\n')
+# Change this value to the region you want to deploy the cluster in.
+export AZURE_LOCATION="southcentralus"
 ```
 
 ```bash
@@ -926,7 +925,7 @@ spec:
         cluster.x-k8s.io/cluster-name: capi-quickstart
         nodepool: nodepool-0
     spec:
-      version: v1.16.1
+      version: v1.16.6
       bootstrap:
         configRef:
           name: capi-quickstart-node
@@ -944,13 +943,8 @@ metadata:
 spec:
   template:
     spec:
-      location: southcentralus
+      location: ${AZURE_LOCATION}
       vmSize: Standard_B2ms
-      image:
-        publisher: "cncf-upstream"
-        offer: "capi"
-        sku: "k8s-1dot16-ubuntu-1804"
-        version: "latest"
       osDisk:
         osType: "Linux"
         diskSizeGB: 30

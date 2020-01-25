@@ -20,6 +20,7 @@ import (
 	"context"
 
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
+	"k8s.io/klog/klogr"
 	"sigs.k8s.io/cluster-api/cmd/clusterctl/pkg/internal/test"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
@@ -53,18 +54,23 @@ type Client interface {
 	ProviderInventory() InventoryClient
 
 	// ProviderObjects returns a ObjectsClient object that can be user for
-	// operating cluster API objects stored in the management cluster (e.g. clusters, AWS clusters, machines etc.).
+	// operating Cluster API objects stored in the management cluster (e.g. clusters, AWS clusters, machines etc.).
 	ProviderObjects() ObjectsClient
 
 	// ProviderInstaller returns a ProviderInstaller that enforces consistency rules for provider installation,
 	// trying to prevent e.g. controllers fighting for objects, inconsistent versions, etc.
 	ProviderInstaller() ProviderInstaller
+
+	// ObjectMover returns an ObjectMover that implements support for moving Cluster API objects (e.g. clusters, AWS clusters, machines, etc.).
+	// from one management cluster to another management cluster.
+	ObjectMover() ObjectMover
 }
 
 // clusterClient implements Client.
 type clusterClient struct {
-	kubeconfig string
-	proxy      Proxy
+	kubeconfig    string
+	proxy         Proxy
+	machineWaiter MachineWaiter
 }
 
 // ensure clusterClient implements Client.
@@ -98,25 +104,41 @@ func (c *clusterClient) ProviderInstaller() ProviderInstaller {
 	return newProviderInstaller(c.proxy, c.ProviderInventory(), c.ProviderComponents())
 }
 
+func (c *clusterClient) ObjectMover() ObjectMover {
+	//TODO: make the logger to flow down all the chain
+	log := klogr.New()
+	return newObjectMover(c.proxy, c.machineWaiter, log)
+}
+
 // New returns a cluster.Client.
 func New(kubeconfig string, options Options) Client {
 	return newClusterClient(kubeconfig, options)
 }
 
 func newClusterClient(kubeconfig string, options Options) *clusterClient {
+	// if there is an injected proxy, use it, otherwise use the default one
 	proxy := options.InjectProxy
 	if proxy == nil {
 		proxy = newProxy(kubeconfig)
 	}
+
+	// if there is an injected machineWaiter, use it, otherwise use the default one
+	machineWaiter := options.InjectMachineWaiter
+	if machineWaiter == nil {
+		machineWaiter = waitForMachineReady
+	}
+
 	return &clusterClient{
-		kubeconfig: kubeconfig,
-		proxy:      proxy,
+		kubeconfig:    kubeconfig,
+		proxy:         proxy,
+		machineWaiter: machineWaiter,
 	}
 }
 
 // Options allow to set ConfigClient options
 type Options struct {
-	InjectProxy Proxy
+	InjectProxy         Proxy
+	InjectMachineWaiter MachineWaiter
 }
 
 type Proxy interface {

@@ -195,6 +195,10 @@ func (f fakeClusterClient) ProviderInstaller() cluster.ProviderInstaller {
 	return f.internalclient.ProviderInstaller()
 }
 
+func (f *fakeClusterClient) ObjectMover() cluster.ObjectMover {
+	return f.internalclient.ObjectMover()
+}
+
 func (f *fakeClusterClient) WithObjs(objs ...runtime.Object) *fakeClusterClient {
 	f.fakeProxy.WithObjs(objs...)
 	return f

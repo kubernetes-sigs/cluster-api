@@ -159,6 +159,7 @@ func TestConvertMachineSet(t *testing.T) {
 
 			g.Expect(src.ConvertTo(dst)).To(Succeed())
 			g.Expect(dst.Spec.ClusterName).To(Equal("test-cluster"))
+			g.Expect(dst.Spec.Template.Spec.ClusterName).To(Equal("test-cluster"))
 		})
 	})
 
@@ -207,6 +208,7 @@ func TestConvertMachineDeployment(t *testing.T) {
 
 			g.Expect(src.ConvertTo(dst)).To(Succeed())
 			g.Expect(dst.Spec.ClusterName).To(Equal("test-cluster"))
+			g.Expect(dst.Spec.Template.Spec.ClusterName).To(Equal("test-cluster"))
 		})
 	})
 

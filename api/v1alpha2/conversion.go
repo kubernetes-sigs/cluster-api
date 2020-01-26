@@ -150,6 +150,7 @@ func (src *MachineSet) ConvertTo(dstRaw conversion.Hub) error {
 	// This conversion can be overwritten when restoring the ClusterName field.
 	if name, ok := src.Labels[MachineClusterLabelName]; ok {
 		dst.Spec.ClusterName = name
+		dst.Spec.Template.Spec.ClusterName = name
 	}
 
 	// Manually restore data.
@@ -202,6 +203,7 @@ func (src *MachineDeployment) ConvertTo(dstRaw conversion.Hub) error {
 	// This conversion can be overwritten when restoring the ClusterName field.
 	if name, ok := src.Labels[MachineClusterLabelName]; ok {
 		dst.Spec.ClusterName = name
+		dst.Spec.Template.Spec.ClusterName = name
 	}
 
 	// Manually restore data.

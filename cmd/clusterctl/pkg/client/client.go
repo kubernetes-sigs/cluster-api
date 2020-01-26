@@ -54,7 +54,14 @@ type DeleteOptions struct {
 	Providers            []string
 }
 
-// Client is exposes the clusterctl high-level client library
+// MoveOptions carries the options supported by move.
+type MoveOptions struct {
+	FromKubeconfig string
+	ToKubeconfig   string
+	Namespace      string
+}
+
+// Client is exposes the clusterctl high-level client library.
 type Client interface {
 	// GetProvidersConfig returns the list of providers configured for this instance of clusterctl.
 	GetProvidersConfig() ([]Provider, error)
@@ -70,6 +77,9 @@ type Client interface {
 
 	// Delete deletes providers from a management cluster.
 	Delete(options DeleteOptions) error
+
+	// Move moves all the Cluster API objects existing in a namespace (or from all the namespaces if empty) to a target management cluster.
+	Move(options MoveOptions) error
 }
 
 // clusterctlClient implements Client.
@@ -85,7 +95,7 @@ type ClusterClientFactory func(string) (cluster.Client, error)
 // Ensure clusterctlClient implements Client.
 var _ Client = &clusterctlClient{}
 
-// NewOptions carries the options supported by New
+// NewOptions carries the options supported by New.
 type NewOptions struct {
 	injectConfig            config.Client
 	injectRepositoryFactory RepositoryClientFactory
@@ -130,7 +140,7 @@ func newClusterctlClient(path string, options ...Option) (*clusterctlClient, err
 	}
 
 	// if there is an injected config, use it, otherwise use the default one
-	// provided by the config low level library
+	// provided by the config low level library.
 	configClient := cfg.injectConfig
 	if configClient == nil {
 		c, err := config.New(path)
@@ -140,13 +150,13 @@ func newClusterctlClient(path string, options ...Option) (*clusterctlClient, err
 		configClient = c
 	}
 
-	// if there is an injected RepositoryFactory, use it, otherwise use a default one
+	// if there is an injected RepositoryFactory, use it, otherwise use a default one.
 	repositoryClientFactory := cfg.injectRepositoryFactory
 	if repositoryClientFactory == nil {
 		repositoryClientFactory = defaultRepositoryFactory(configClient)
 	}
 
-	// if there is an injected ClusterFactory, use it, otherwise use a default one
+	// if there is an injected ClusterFactory, use it, otherwise use a default one.
 	clusterClientFactory := cfg.injectClusterFactory
 	if clusterClientFactory == nil {
 		clusterClientFactory = defaultClusterFactory()
@@ -159,14 +169,14 @@ func newClusterctlClient(path string, options ...Option) (*clusterctlClient, err
 	}, nil
 }
 
-// defaultClusterFactory is a ClusterClientFactory func the uses the default client provided by the cluster low level library
+// defaultClusterFactory is a ClusterClientFactory func the uses the default client provided by the cluster low level library.
 func defaultClusterFactory() func(kubeconfig string) (cluster.Client, error) {
 	return func(kubeconfig string) (cluster.Client, error) {
 		return cluster.New(kubeconfig, cluster.Options{}), nil
 	}
 }
 
-// defaultRepositoryFactory is a RepositoryClientFactory func the uses the default client provided by the repository low level library
+// defaultRepositoryFactory is a RepositoryClientFactory func the uses the default client provided by the repository low level library.
 func defaultRepositoryFactory(configClient config.Client) func(providerConfig config.Provider) (repository.Client, error) {
 	return func(providerConfig config.Provider) (repository.Client, error) {
 		return repository.New(providerConfig, configClient.Variables(), repository.Options{})

@@ -82,6 +82,10 @@ func (f fakeClient) Delete(options DeleteOptions) error {
 	return f.internalClient.Delete(options)
 }
 
+func (f fakeClient) Move(options MoveOptions) error {
+	return f.internalClient.Move(options)
+}
+
 // newFakeClient returns a clusterctl client that allows to execute tests on a set of fake config, fake repositories and fake clusters.
 // you can use WithCluster and WithRepository to prepare for the test case.
 func newFakeClient(configClient config.Client) *fakeClient {

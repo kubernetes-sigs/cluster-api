@@ -27,6 +27,7 @@ import (
 	rbacv1 "k8s.io/api/rbac/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
+	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha3"
 	clusterctlv1 "sigs.k8s.io/cluster-api/cmd/clusterctl/api/v1alpha3"
 	"sigs.k8s.io/cluster-api/cmd/clusterctl/pkg/client/config"
 	"sigs.k8s.io/cluster-api/cmd/clusterctl/pkg/internal/scheme"
@@ -107,6 +108,9 @@ func (c *components) WatchingNamespace() string {
 }
 
 func (c *components) Metadata() clusterctlv1.Provider {
+	labels := getLabels(c.Name())
+	labels[clusterctlv1.ClusterctlCoreLabelName] = "inventory"
+
 	return clusterctlv1.Provider{
 		TypeMeta: metav1.TypeMeta{
 			APIVersion: clusterctlv1.GroupVersion.String(),
@@ -115,7 +119,7 @@ func (c *components) Metadata() clusterctlv1.Provider {
 		ObjectMeta: metav1.ObjectMeta{
 			Namespace: c.targetNamespace,
 			Name:      c.Name(),
-			Labels:    getLabels(c.Name()),
+			Labels:    labels,
 		},
 		Type:             string(c.Type()),
 		Version:          c.version,
@@ -536,7 +540,7 @@ func addLabels(objs []unstructured.Unstructured, name string) []unstructured.Uns
 
 func getLabels(name string) map[string]string {
 	return map[string]string{
-		clusterctlv1.ClusterctlLabelName:         "",
-		clusterctlv1.ClusterctlProviderLabelName: name,
+		clusterctlv1.ClusterctlLabelName: "",
+		clusterv1.ProviderLabelName:      name,
 	}
 }

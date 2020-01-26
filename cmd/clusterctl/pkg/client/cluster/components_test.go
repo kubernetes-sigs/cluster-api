@@ -24,6 +24,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
+	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha3"
 	clusterctlv1 "sigs.k8s.io/cluster-api/cmd/clusterctl/api/v1alpha3"
 	"sigs.k8s.io/cluster-api/cmd/clusterctl/pkg/internal/test"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -31,7 +32,7 @@ import (
 
 func Test_providerComponents_Delete(t *testing.T) {
 	labels := map[string]string{
-		clusterctlv1.ClusterctlProviderLabelName: "aws",
+		clusterv1.ProviderLabelName: "aws",
 	}
 
 	crd := unstructured.Unstructured{}

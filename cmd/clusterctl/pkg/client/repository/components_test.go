@@ -22,6 +22,7 @@ import (
 	"testing"
 
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
+	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha3"
 	clusterctlv1 "sigs.k8s.io/cluster-api/cmd/clusterctl/api/v1alpha3"
 	"sigs.k8s.io/cluster-api/cmd/clusterctl/pkg/client/config"
 	"sigs.k8s.io/cluster-api/cmd/clusterctl/pkg/internal/test"
@@ -764,8 +765,8 @@ func Test_addLabels(t *testing.T) {
 						"kind": "ClusterRole",
 						"metadata": map[string]interface{}{
 							"labels": map[string]interface{}{
-								clusterctlv1.ClusterctlLabelName:         "",
-								clusterctlv1.ClusterctlProviderLabelName: "provider",
+								clusterctlv1.ClusterctlLabelName: "",
+								clusterv1.ProviderLabelName:      "provider",
 							},
 						},
 					},

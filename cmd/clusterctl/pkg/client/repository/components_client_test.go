@@ -22,6 +22,7 @@ import (
 	"reflect"
 	"testing"
 
+	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha3"
 	clusterctlv1 "sigs.k8s.io/cluster-api/cmd/clusterctl/api/v1alpha3"
 	"sigs.k8s.io/cluster-api/cmd/clusterctl/pkg/client/config"
 	"sigs.k8s.io/cluster-api/cmd/clusterctl/pkg/internal/test"
@@ -283,7 +284,7 @@ func Test_componentsClient_Get(t *testing.T) {
 			}
 
 			for _, o := range got.Objs() {
-				for _, v := range []string{clusterctlv1.ClusterctlLabelName, clusterctlv1.ClusterctlProviderLabelName} {
+				for _, v := range []string{clusterctlv1.ClusterctlLabelName, clusterv1.ProviderLabelName} {
 					if _, ok := o.GetLabels()[v]; !ok {
 						t.Errorf("Get().Objs() object %s does not contains %s label", o.GetName(), v)
 					}

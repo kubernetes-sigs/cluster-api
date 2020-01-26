@@ -17,6 +17,9 @@ limitations under the License.
 package v1alpha3
 
 const (
-	ClusterctlLabelName         = "clusterctl.cluster.x-k8s.io"
-	ClusterctlProviderLabelName = "clusterctl.cluster.x-k8s.io/provider"
+	// ClusterctlLabelName defines the label that is applied to all the components managed by clusterctl.
+	ClusterctlLabelName = "clusterctl.cluster.x-k8s.io"
+
+	// ClusterctlCoreLabelName defines the label that is applied to all the core objects managed by clusterctl.
+	ClusterctlCoreLabelName = "clusterctl.cluster.x-k8s.io/core"
 )

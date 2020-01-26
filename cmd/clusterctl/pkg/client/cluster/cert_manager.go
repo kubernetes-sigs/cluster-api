@@ -24,6 +24,7 @@ import (
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/klog"
+	clusterctlv1 "sigs.k8s.io/cluster-api/cmd/clusterctl/api/v1alpha3"
 	"sigs.k8s.io/cluster-api/cmd/clusterctl/config"
 	"sigs.k8s.io/cluster-api/cmd/clusterctl/pkg/internal/util"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -91,6 +92,14 @@ func (cm *certMangerClient) EnsureWebHook() error {
 	objs = sortResourcesForCreate(objs)
 	for _, o := range objs {
 		klog.V(3).Infof("Creating: %s, %s/%s", o.GroupVersionKind(), o.GetNamespace(), o.GetName())
+
+		labels := o.GetLabels()
+		if labels == nil {
+			labels = map[string]string{}
+		}
+		labels[clusterctlv1.ClusterctlCoreLabelName] = "cert-manager"
+		o.SetLabels(labels)
+
 		if err = c.Create(ctx, &o); err != nil { //nolint
 			if apierrors.IsAlreadyExists(err) {
 				continue

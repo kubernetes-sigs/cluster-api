@@ -216,7 +216,7 @@ subsequent moments of the provider's lifecycle, e.g. upgrades.
  ```bash
  labels:
  - clusterctl.cluster.x-k8s.io: ""
- - clusterctl.cluster.x-k8s.io/provider: "<provider-name>"
+ - cluster.x-k8s.io/provider: "<provider-name>"
  ```
   
 * An additional `Provider` object is created in the target namespace where the provider is installed.
@@ -227,7 +227,7 @@ for the inventory of the providers currently installed in the management cluster
 
 <h1>Warning</h1>
 
-The `clusterctl.cluster.x-k8s.io` labels and the `Provider` objects MUST NOT altered.
+The `clusterctl.cluster.x-k8s.io` labels, the `cluster.x-k8s.io/provider` labels and the `Provider` objects MUST NOT altered.
 If this happens, there are no guarantees about the proper functioning of `clusterctl`.  
 
 </aside>

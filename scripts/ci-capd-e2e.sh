@@ -53,7 +53,11 @@ export CAPI_KUBEADM_BOOTSTRAP_IMAGE=${REGISTRY}/${KUBEADM_BOOTSTRAP_IMAGE_NAME}-
 export CAPI_KUBEADM_CONTROL_PLANE_IMAGE=${REGISTRY}/${KUBEADM_CONTROL_PLANE_IMAGE_NAME}-${ARCH}:${TAG}
 export MANAGER_IMAGE=${REGISTRY}/${DOCKER_MANAGER_IMAGE}-${ARCH}:${TAG}
 
-echo "*** Testing Cluster API Provider Docker e2es ***"
 cd "${REPO_ROOT}/test/infrastructure/docker"
+
+# The values above must match the values found in the configuration file below
+export E2E_CONF_FILE=e2e/ci-e2e.conf
+
+echo "*** Testing Cluster API Provider Docker e2es ***"
 CONTROLLER_IMG=${REGISTRY}/${DOCKER_MANAGER_IMAGE} make docker-build
 ARTIFACTS="${ARTIFACTS}" make run-e2e

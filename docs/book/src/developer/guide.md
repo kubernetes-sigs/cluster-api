@@ -19,8 +19,8 @@ Other providers may have additional steps you need to follow to get up and runni
 
 ### Docker
 
-Iterating on the cluster API involves repeatedly building Docker containers. 
-You'll need the [docker daemon][docker] available. 
+Iterating on the cluster API involves repeatedly building Docker containers.
+You'll need the [docker daemon][docker] available.
 
 [docker]: https://docs.docker.com/install/
 
@@ -52,7 +52,7 @@ If you choose not to use GCR, you'll need to set the `REGISTRY` environment vari
 
 ### Kustomize
 
-You'll need to [install `kustomize`][kustomize]. 
+You'll need to [install `kustomize`][kustomize].
 There is a version of `kustomize` built into kubectl, but it does not have all the features of `kustomize` v3 and will not work.
 
 [kustomize]: https://github.com/kubernetes-sigs/kustomize/blob/master/docs/INSTALL.md
@@ -85,15 +85,15 @@ make -C test/infrastructure/docker docker-build
 $ make docker-push
 docker push gcr.io/cluster-api-242700/cluster-api-controller-amd64:dev
 The push refers to repository [gcr.io/cluster-api-242700/cluster-api-controller-amd64]
-90a39583ad5f: Layer already exists 
-932da5156413: Layer already exists 
+90a39583ad5f: Layer already exists
+932da5156413: Layer already exists
 dev: digest: sha256:263262cfbabd3d1add68172a5a1d141f6481a2bc443672ce80778dc122ee6234 size: 739
 $ make -C test/infrastructure/docker docker-push
 make: Entering directory '/home/liz/src/sigs.k8s.io/cluster-api/test/infrastructure/docker'
 docker push gcr.io/cluster-api-242700/manager:dev
 The push refers to repository [gcr.io/cluster-api-242700/manager]
-5b1e744b2bae: Pushed 
-932da5156413: Layer already exists 
+5b1e744b2bae: Pushed
+932da5156413: Layer already exists
 dev: digest: sha256:35670a049372ae063dad910c267a4450758a139c4deb248c04c3198865589ab2 size: 739
 make: Leaving directory '/home/liz/src/sigs.k8s.io/cluster-api/test/infrastructure/docker'
 ```
@@ -102,7 +102,7 @@ Make a note of the URLs and the digests. You'll need them for the next step. In 
 
 `gcr.io/cluster-api-242700/manager@sha256:35670a049372ae063dad910c267a4450758a139c4deb248c04c3198865589ab2`
 
-and 
+and
 
 `gcr.io/cluster-api-242700/cluster-api-controller-amd64@sha256:263262cfbabd3d1add68172a5a1d141f6481a2bc443672ce80778dc122ee6234`
 
@@ -110,7 +110,7 @@ and
 
 ```
 $EDITOR config/default/manager_image_patch.yaml
-$EDITOR 
+$EDITOR
 ```
 
 In both cases, change the `- image:` url to the digest URL mentioned above:
@@ -172,7 +172,7 @@ capi-controller-manager-bf9c6468c-d6msj   1/1     Running   0          2m9s
 
 ## That's it!
 
-Now you can [create CAPI objects][qs]! 
+Now you can [create CAPI objects][qs]!
 To test another iteration, you'll need to follow the steps to build, push, update the manifests, and apply.
 
 [qs]: https://cluster-api.sigs.k8s.io/user/quick-start.html#usage

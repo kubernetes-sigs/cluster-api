@@ -26,6 +26,7 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	kerrors "k8s.io/apimachinery/pkg/util/errors"
@@ -62,6 +63,10 @@ func (r *MachineHealthCheckReconciler) SetupWithManager(mgr ctrl.Manager, option
 		Watches(
 			&source.Kind{Type: &clusterv1.Cluster{}},
 			&handler.EnqueueRequestsFromMapFunc{ToRequests: handler.ToRequestsFunc(r.clusterToMachineHealthCheck)},
+		).
+		Watches(
+			&source.Kind{Type: &clusterv1.Machine{}},
+			&handler.EnqueueRequestsFromMapFunc{ToRequests: handler.ToRequestsFunc(r.machineToMachineHealthCheck)},
 		).
 		WithOptions(options).
 		Build(r)
@@ -239,4 +244,52 @@ func namespacedName(obj metav1.Object) string {
 		return fmt.Sprintf("%s/%s", obj.GetNamespace(), obj.GetName())
 	}
 	return obj.GetName()
+}
+
+// machineToMachineHealthCheck maps events from Machine objects to
+// MachineHealthCheck objects that monitor the given machine
+func (r *MachineHealthCheckReconciler) machineToMachineHealthCheck(o handler.MapObject) []reconcile.Request {
+	m, ok := o.Object.(*clusterv1.Machine)
+	if !ok {
+		r.Log.Error(errors.New("incorrect type"), "expected a Machine", "type", fmt.Sprintf("%T", o))
+		return nil
+	}
+
+	mhcList := &clusterv1.MachineHealthCheckList{}
+	if err := r.Client.List(
+		context.Background(),
+		mhcList,
+		&client.ListOptions{Namespace: m.Namespace},
+		client.MatchingFields{mhcClusterNameIndex: m.Spec.ClusterName},
+	); err != nil {
+		r.Log.Error(err, "Unable to list MachineHealthChecks", "machine", m.Name, "namespace", m.Namespace)
+		return nil
+	}
+
+	var requests []reconcile.Request
+	for k := range mhcList.Items {
+		if r.hasMatchingLabels(&mhcList.Items[k], m) {
+			key := types.NamespacedName{Namespace: mhcList.Items[k].Namespace, Name: mhcList.Items[k].Name}
+			requests = append(requests, reconcile.Request{NamespacedName: key})
+		}
+	}
+	return requests
+}
+
+// hasMatchingLabels verifies that the MachineHealthCheck's label selector
+// matches the given Machine
+func (r *MachineHealthCheckReconciler) hasMatchingLabels(machineHealthCheck *clusterv1.MachineHealthCheck, machine *clusterv1.Machine) bool {
+	// This should never fail, validating webhook should catch this first
+	selector, err := metav1.LabelSelectorAsSelector(&machineHealthCheck.Spec.Selector)
+	if err != nil {
+		return false
+	}
+	// If a MachineHealthCheck with a nil or empty selector creeps in, it should match nothing, not everything.
+	if selector.Empty() {
+		return false
+	}
+	if !selector.Matches(labels.Set(machine.Labels)) {
+		return false
+	}
+	return true
 }

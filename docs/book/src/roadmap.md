@@ -8,11 +8,11 @@ This roadmap is a constant work in progress, subject to frequent revision. Dates
 
 ## v0.3 (v1alpha3) ~ March 2020
 
-- Control plane provider concept, KubeadmControlPlane implementation
-- clusterctl v2 - easier installation & upgrades of Cluster API + providers
-- Integration with cloud provider VM scaling groups (MachinePools)
-- Machine failure remediation
-- Provider end to end testing framework
+- [Control plane provider concept, KubeadmControlPlane implementation](https://github.com/kubernetes-sigs/cluster-api/blob/bf51a2502f9007b531f6a9a2c1a4eae1586fb8ca/docs/proposals/20191017-kubeadm-based-control-plane.md)
+- [clusterctl v2 - easier installation & upgrades of Cluster API + providers](https://github.com/kubernetes-sigs/cluster-api/blob/bf51a2502f9007b531f6a9a2c1a4eae1586fb8ca/docs/proposals/20191016-clusterctl-redesign.md)
+- [Integration with cloud provider VM scaling groups (MachinePools)](https://github.com/kubernetes-sigs/cluster-api/blob/bf51a2502f9007b531f6a9a2c1a4eae1586fb8ca/docs/proposals/20190919-machinepool-api.md)
+- [Machine failure remediation](https://github.com/kubernetes-sigs/cluster-api/blob/bf51a2502f9007b531f6a9a2c1a4eae1586fb8ca/docs/proposals/20191030-machine-health-checking.md)
+- [Provider end to end testing framework](https://github.com/kubernetes-sigs/cluster-api/blob/bf51a2502f9007b531f6a9a2c1a4eae1586fb8ca/docs/proposals/20191016-e2e-test-framework.md)
 
 ## v0.4 (v1alpha4) ~ July 2020
 
@@ -21,7 +21,7 @@ This roadmap is a constant work in progress, subject to frequent revision. Dates
 - [Machine load balancers](https://github.com/kubernetes-sigs/cluster-api/issues/1250)
 - [Extensible machine pre-delete hooks](https://github.com/kubernetes-sigs/cluster-api/issues/1514)
 
-## v0.5 (v1???) ~ November 2020
+## v0.5 (v1alpha5? v1beta1?) ~ November 2020
 
 - ?
 

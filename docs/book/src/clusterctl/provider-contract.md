@@ -4,7 +4,7 @@ The `clusterctl` command is designed to work with all the providers compliant wi
 
 ## Provider Repositories
 
-Each provider MUST define a **provider repository**, that is a well-known place where the release assets for 
+Each provider MUST define a **provider repository**, that is a well-known place where the release assets for
 a provider are published.
 
 The provider repository MUST contain the following files:
@@ -22,7 +22,7 @@ Additionally, the provider repository SHOULD contain the following files:
 <h1> Pre-defined list of providers </h1>
 
 The `clusterctl` command ships with a pre-defined list of provider repositories that allows a simpler "out-of-the-box" user experience.
-If, as a provider implementer, you are interested to be added to this list, please send a PR to the Cluster API repository.
+As a provider implementer, if you are interested to be added to this list, please create an issue to the [Cluster API repository](https://sigs.k8s.io/cluster-api).
 
 </aside>
 
@@ -103,7 +103,7 @@ the provider installation.
 Each provider is expected to deploy controllers using a Deployment.
 
 While defining the Deployment Spec, the container that executes the controller binary MUST be called `manager`.
- 
+
 The manager MUST support a `--namespace` flag for specifying the namespace where the controller
 will look for objects to reconcile.
 
@@ -114,11 +114,28 @@ recommended to prefix the variable name with the provider name e.g. `${ AWS_CRED
 
 Additionally, each provider should create user facing documentation with the list of required variables and with all the additional
 notes that are required to assist the user in defining the value for each variable.
- 
+
+#### Labels
+The components YAML components should be labeled with
+`cluster.x-k8s.io/provider` and the name of the provider. This will enable an
+easier transition from `kubectl apply` to `clusterctl`.
+
+As a reference you can consider the labels applied to the following
+providers.
+
+| Provider Name| Label                                            |
+|--------------|--------------------------------------------------|
+|CAPI          | cluster.x-k8s.io/provider=cluster-api            |
+|CABPK         | cluster.x-k8s.io/provider=bootstrap-kubeadm      |
+|CACPK         | cluster.x-k8s.io/provider=controlplane-kubeadm   |
+|CAPA          | cluster.x-k8s.io/provider=infrastructure-aws     |
+|CAPV          | cluster.x-k8s.io/provider=infrastructure-vsphere |
+|CAPD          | cluster.x-k8s.io/provider=infrastructure-docker  |
+
 ### Workload cluster templates
 
-An infrastructure provider could publish a **cluster templates** file to be used by `clusterctl config cluster`. 
-This is single YAML with _all_ the objects required to create a new workload cluster. 
+An infrastructure provider could publish a **cluster templates** file to be used by `clusterctl config cluster`.
+This is single YAML with _all_ the objects required to create a new workload cluster.
 
 The following rules apply:
 

@@ -120,13 +120,6 @@ func (r *KubeadmControlPlaneReconciler) Reconcile(req ctrl.Request) (res ctrl.Re
 		return ctrl.Result{Requeue: true}, nil
 	}
 
-	// Initialize the patch helper.
-	patchHelper, err := patch.NewHelper(kcp, r.Client)
-	if err != nil {
-		logger.Error(err, "Failed to configure the patch helper")
-		return ctrl.Result{Requeue: true}, nil
-	}
-
 	// Fetch the Cluster.
 	cluster, err := util.GetOwnerCluster(ctx, r.Client, kcp.ObjectMeta)
 	if err != nil {
@@ -139,9 +132,21 @@ func (r *KubeadmControlPlaneReconciler) Reconcile(req ctrl.Request) (res ctrl.Re
 	}
 	logger = logger.WithValues("cluster", cluster.Name)
 
+	if util.IsPaused(cluster, kcp) {
+		logger.Info("Reconciliation is paused")
+		return ctrl.Result{}, nil
+	}
+
 	// Wait for the cluster infrastructure to be ready before creating machines
 	if !cluster.Status.InfrastructureReady {
 		return ctrl.Result{}, nil
+	}
+
+	// Initialize the patch helper.
+	patchHelper, err := patch.NewHelper(kcp, r.Client)
+	if err != nil {
+		logger.Error(err, "Failed to configure the patch helper")
+		return ctrl.Result{Requeue: true}, nil
 	}
 
 	defer func() {
@@ -342,12 +347,21 @@ func (r *KubeadmControlPlaneReconciler) initializeControlPlane(ctx context.Conte
 func (r *KubeadmControlPlaneReconciler) cloneConfigsAndGenerateMachine(ctx context.Context, cluster *clusterv1.Cluster, kcp *controlplanev1.KubeadmControlPlane, bootstrapSpec *bootstrapv1.KubeadmConfigSpec) error {
 	var errs []error
 
+	// Since the cloned resource should eventually have a controller ref for the Machine, we create an
+	// OwnerReference here without the Controller field set
+	infraCloneOwner := &metav1.OwnerReference{
+		APIVersion: controlplanev1.GroupVersion.String(),
+		Kind:       "KubeadmControlPlane",
+		Name:       kcp.Name,
+		UID:        kcp.UID,
+	}
+
 	// Clone the infrastructure template
 	infraRef, err := external.CloneTemplate(ctx, &external.CloneTemplateInput{
 		Client:      r.Client,
 		TemplateRef: &kcp.Spec.InfrastructureTemplate,
 		Namespace:   kcp.Namespace,
-		OwnerRef:    metav1.NewControllerRef(kcp, controlplanev1.GroupVersion.WithKind("KubeadmControlPlane")),
+		OwnerRef:    infraCloneOwner,
 		ClusterName: cluster.Name,
 		Labels:      generateKubeadmControlPlaneLabels(cluster.Name),
 	})
@@ -402,19 +416,25 @@ func (r *KubeadmControlPlaneReconciler) cleanupFromGeneration(ctx context.Contex
 }
 
 func (r *KubeadmControlPlaneReconciler) generateKubeadmConfig(ctx context.Context, kcp *controlplanev1.KubeadmControlPlane, cluster *clusterv1.Cluster, spec *bootstrapv1.KubeadmConfigSpec) (*corev1.ObjectReference, error) {
+	// Since the generated KubeadmConfig should eventually have a controller ref for the Machine, we create an
+	// OwnerReference here without the Controller field set
+	owner := metav1.OwnerReference{
+		APIVersion: controlplanev1.GroupVersion.String(),
+		Kind:       "KubeadmControlPlane",
+		Name:       kcp.Name,
+		UID:        kcp.UID,
+	}
+
 	bootstrapConfig := &bootstrapv1.KubeadmConfig{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      names.SimpleNameGenerator.GenerateName(kcp.Name + "-"),
-			Namespace: kcp.Namespace,
-			Labels:    map[string]string{clusterv1.ClusterLabelName: cluster.Name},
+			Name:            names.SimpleNameGenerator.GenerateName(kcp.Name + "-"),
+			Namespace:       kcp.Namespace,
+			Labels:          map[string]string{clusterv1.ClusterLabelName: cluster.Name},
+			OwnerReferences: []metav1.OwnerReference{owner},
 		},
 		Spec: *spec,
 	}
 
-	owner := metav1.NewControllerRef(kcp, controlplanev1.GroupVersion.WithKind("KubeadmControlPlane"))
-	if owner != nil {
-		bootstrapConfig.SetOwnerReferences([]metav1.OwnerReference{*owner})
-	}
 	if err := r.Client.Create(ctx, bootstrapConfig); err != nil {
 		return nil, errors.Wrap(err, "Failed to create bootstrap configuration")
 	}
@@ -450,11 +470,15 @@ func (r *KubeadmControlPlaneReconciler) generateMachine(ctx context.Context, kcp
 	if err != nil {
 		return err
 	}
+
 	machine := &clusterv1.Machine{
 		ObjectMeta: metav1.ObjectMeta{
-			Labels:    generateKubeadmControlPlaneLabels(cluster.Name),
-			Namespace: kcp.Namespace,
 			Name:      names.SimpleNameGenerator.GenerateName(kcp.Name + "-"),
+			Namespace: kcp.Namespace,
+			Labels:    generateKubeadmControlPlaneLabels(cluster.Name),
+			OwnerReferences: []metav1.OwnerReference{
+				*metav1.NewControllerRef(kcp, controlplanev1.GroupVersion.WithKind("KubeadmControlPlane")),
+			},
 		},
 		Spec: clusterv1.MachineSpec{
 			ClusterName:       cluster.Name,
@@ -463,13 +487,8 @@ func (r *KubeadmControlPlaneReconciler) generateMachine(ctx context.Context, kcp
 			Bootstrap: clusterv1.Bootstrap{
 				ConfigRef: bootstrapRef,
 			},
+			FailureDomain: fd,
 		},
-	}
-	machine.Spec.FailureDomain = fd
-
-	owner := metav1.NewControllerRef(kcp, controlplanev1.GroupVersion.WithKind("KubeadmControlPlane"))
-	if owner != nil {
-		machine.SetOwnerReferences([]metav1.OwnerReference{*owner})
 	}
 
 	if err := r.Client.Create(ctx, machine); err != nil {
@@ -593,6 +612,8 @@ func (r *KubeadmControlPlaneReconciler) reconcileExternalReference(ctx context.C
 	if err != nil {
 		return err
 	}
+
+	// Note: We intentionally do not handle checking for the paused label on an external template reference
 
 	patchHelper, err := patch.NewHelper(obj, r.Client)
 	if err != nil {

@@ -19,6 +19,7 @@ package cluster
 import (
 	"time"
 
+	"github.com/go-logr/logr"
 	"github.com/pkg/errors"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
@@ -47,15 +48,17 @@ type CertMangerClient interface {
 // certMangerClient implements CertMangerClient .
 type certMangerClient struct {
 	proxy Proxy
+	log   logr.Logger
 }
 
 // Ensure certMangerClient implements the CertMangerClient interface.
 var _ CertMangerClient = &certMangerClient{}
 
 // newCertMangerClient returns a certMangerClient.
-func newCertMangerClient(proxy Proxy) *certMangerClient {
+func newCertMangerClient(proxy Proxy, log logr.Logger) *certMangerClient {
 	return &certMangerClient{
 		proxy: proxy,
+		log:   log,
 	}
 }
 

@@ -17,6 +17,7 @@ limitations under the License.
 package cluster
 
 import (
+	"github.com/go-logr/logr"
 	"github.com/pkg/errors"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	apimeta "k8s.io/apimachinery/pkg/api/meta"
@@ -66,15 +67,17 @@ type InventoryClient interface {
 // inventoryClient implements InventoryClient.
 type inventoryClient struct {
 	proxy Proxy
+	log   logr.Logger
 }
 
 // ensure inventoryClient implements InventoryClient.
 var _ InventoryClient = &inventoryClient{}
 
 // newInventoryClient returns a inventoryClient.
-func newInventoryClient(proxy Proxy) *inventoryClient {
+func newInventoryClient(proxy Proxy, log logr.Logger) *inventoryClient {
 	return &inventoryClient{
 		proxy: proxy,
+		log:   log,
 	}
 }
 

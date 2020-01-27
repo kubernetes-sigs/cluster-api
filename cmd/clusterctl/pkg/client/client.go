@@ -17,6 +17,8 @@ limitations under the License.
 package client
 
 import (
+	"github.com/go-logr/logr"
+	"k8s.io/klog/klogr"
 	"sigs.k8s.io/cluster-api/cmd/clusterctl/pkg/client/cluster"
 	"sigs.k8s.io/cluster-api/cmd/clusterctl/pkg/client/config"
 	"sigs.k8s.io/cluster-api/cmd/clusterctl/pkg/client/repository"
@@ -77,6 +79,7 @@ type clusterctlClient struct {
 	configClient            config.Client
 	repositoryClientFactory RepositoryClientFactory
 	clusterClientFactory    ClusterClientFactory
+	log                     logr.Logger
 }
 
 type RepositoryClientFactory func(config.Provider) (repository.Client, error)
@@ -90,6 +93,7 @@ type NewOptions struct {
 	injectConfig            config.Client
 	injectRepositoryFactory RepositoryClientFactory
 	injectClusterFactory    ClusterClientFactory
+	injectLogger            logr.Logger
 }
 
 // Option is a configuration option supplied to New
@@ -118,6 +122,13 @@ func InjectClusterClientFactory(factory ClusterClientFactory) Option {
 	}
 }
 
+// InjectLogger implements a New Option that allows to override the default logger.
+func InjectLogger(logger logr.Logger) Option {
+	return func(c *NewOptions) {
+		c.injectLogger = logger
+	}
+}
+
 // New returns a configClient.
 func New(path string, options ...Option) (Client, error) {
 	return newClusterctlClient(path, options...)
@@ -129,11 +140,17 @@ func newClusterctlClient(path string, options ...Option) (*clusterctlClient, err
 		o(cfg)
 	}
 
+	// if there is an injected logger, use it, otherwise use a default one
+	logger := cfg.injectLogger
+	if logger == nil {
+		logger = klogr.New() //TODO: replace with a logger with a better output
+	}
+
 	// if there is an injected config, use it, otherwise use the default one
 	// provided by the config low level library
 	configClient := cfg.injectConfig
 	if configClient == nil {
-		c, err := config.New(path)
+		c, err := config.New(path, config.InjectLogger(logger))
 		if err != nil {
 			return nil, err
 		}
@@ -143,32 +160,33 @@ func newClusterctlClient(path string, options ...Option) (*clusterctlClient, err
 	// if there is an injected RepositoryFactory, use it, otherwise use a default one
 	repositoryClientFactory := cfg.injectRepositoryFactory
 	if repositoryClientFactory == nil {
-		repositoryClientFactory = defaultRepositoryFactory(configClient)
+		repositoryClientFactory = defaultRepositoryFactory(configClient, logger)
 	}
 
 	// if there is an injected ClusterFactory, use it, otherwise use a default one
 	clusterClientFactory := cfg.injectClusterFactory
 	if clusterClientFactory == nil {
-		clusterClientFactory = defaultClusterFactory()
+		clusterClientFactory = defaultClusterFactory(logger)
 	}
 
 	return &clusterctlClient{
 		configClient:            configClient,
 		repositoryClientFactory: repositoryClientFactory,
 		clusterClientFactory:    clusterClientFactory,
+		log:                     logger,
 	}, nil
 }
 
 // defaultClusterFactory is a ClusterClientFactory func the uses the default client provided by the cluster low level library
-func defaultClusterFactory() func(kubeconfig string) (cluster.Client, error) {
+func defaultClusterFactory(log logr.Logger) func(kubeconfig string) (cluster.Client, error) {
 	return func(kubeconfig string) (cluster.Client, error) {
-		return cluster.New(kubeconfig, cluster.Options{}), nil
+		return cluster.New(kubeconfig, cluster.InjectLogger(log)), nil
 	}
 }
 
 // defaultRepositoryFactory is a RepositoryClientFactory func the uses the default client provided by the repository low level library
-func defaultRepositoryFactory(configClient config.Client) func(providerConfig config.Provider) (repository.Client, error) {
+func defaultRepositoryFactory(configClient config.Client, log logr.Logger) func(providerConfig config.Provider) (repository.Client, error) {
 	return func(providerConfig config.Provider) (repository.Client, error) {
-		return repository.New(providerConfig, configClient.Variables(), repository.Options{})
+		return repository.New(providerConfig, configClient.Variables(), repository.InjectLogger(log))
 	}
 }

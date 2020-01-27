@@ -21,6 +21,7 @@ import (
 	"sort"
 	"strings"
 
+	"github.com/go-logr/logr"
 	"github.com/pkg/errors"
 	"k8s.io/apimachinery/pkg/util/validation"
 	"k8s.io/klog"
@@ -48,14 +49,16 @@ type ProvidersClient interface {
 // providersClient implements ProvidersClient.
 type providersClient struct {
 	reader Reader
+	log    logr.Logger
 }
 
 // ensure providersClient implements ProvidersClient.
 var _ ProvidersClient = &providersClient{}
 
-func newProvidersClient(reader Reader) *providersClient {
+func newProvidersClient(reader Reader, log logr.Logger) *providersClient {
 	return &providersClient{
 		reader: reader,
+		log:    log,
 	}
 }
 

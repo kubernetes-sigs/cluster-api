@@ -16,6 +16,8 @@ limitations under the License.
 
 package cluster
 
+import "github.com/go-logr/logr"
+
 // ObjectsClient has methods to work with provider objects in the cluster.
 type ObjectsClient interface {
 	//TODO: add move
@@ -24,14 +26,16 @@ type ObjectsClient interface {
 // objectsClient implements ObjectsClient.
 type objectsClient struct {
 	proxy Proxy
+	log   logr.Logger
 }
 
 // ensure objectsClient implements ObjectsClient.
 var _ ObjectsClient = &objectsClient{}
 
 // newProviderObjects returns a objectsClient.
-func newObjectsClient(proxy Proxy) *objectsClient {
+func newObjectsClient(proxy Proxy, log logr.Logger) *objectsClient {
 	return &objectsClient{
 		proxy: proxy,
+		log:   log,
 	}
 }

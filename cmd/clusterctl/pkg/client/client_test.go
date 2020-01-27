@@ -112,6 +112,7 @@ func newFakeClient(configClient config.Client) *fakeClient {
 			}
 			return fake.repositories[provider.Name()], nil
 		}),
+		InjectLogger(test.NewFakeLogger()),
 	)
 
 	return fake
@@ -136,11 +137,7 @@ func (f *fakeClient) WithRepository(repositoryClient repository.Client) *fakeCli
 func newFakeCluster(kubeconfig string) *fakeClusterClient {
 	fakeProxy := test.NewFakeProxy()
 
-	options := cluster.Options{
-		InjectProxy: fakeProxy,
-	}
-
-	client := cluster.New("", options)
+	client := cluster.New("", cluster.InjectProxy(fakeProxy))
 
 	return &fakeClusterClient{
 		kubeconfig:     kubeconfig,
@@ -253,15 +250,12 @@ func (f *fakeConfigClient) WithProvider(provider config.Provider) *fakeConfigCli
 // the WithPaths or WithDefaultVersion methods to configure the repository and WithFile to set the map values.
 func newFakeRepository(provider config.Provider, configVariablesClient config.VariablesClient) *fakeRepositoryClient {
 	fakeRepository := test.NewFakeRepository()
-	options := repository.Options{
-		InjectRepository: fakeRepository,
-	}
 
 	if configVariablesClient == nil {
 		configVariablesClient = newFakeConfig().Variables()
 	}
 
-	client, _ := repository.New(provider, configVariablesClient, options)
+	client, _ := repository.New(provider, configVariablesClient, repository.InjectRepository(fakeRepository))
 
 	return &fakeRepositoryClient{
 		Provider:       provider,

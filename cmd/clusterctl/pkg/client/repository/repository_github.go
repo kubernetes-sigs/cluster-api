@@ -24,6 +24,7 @@ import (
 	"path/filepath"
 	"strings"
 
+	"github.com/go-logr/logr"
 	"github.com/google/go-github/github"
 	"github.com/pkg/errors"
 	"golang.org/x/oauth2"
@@ -55,6 +56,7 @@ type gitHubRepository struct {
 	rootPath                 string
 	componentsPath           string
 	injectClient             *github.Client
+	log                      logr.Logger
 }
 
 var _ Repository = &gitHubRepository{}
@@ -100,7 +102,7 @@ func (g *gitHubRepository) GetFile(version, path string) ([]byte, error) {
 }
 
 // newGitHubRepository returns a gitHubRepository implementation
-func newGitHubRepository(providerConfig config.Provider, configVariablesClient config.VariablesClient) (*gitHubRepository, error) {
+func newGitHubRepository(providerConfig config.Provider, configVariablesClient config.VariablesClient, log logr.Logger) (*gitHubRepository, error) {
 	if configVariablesClient == nil {
 		return nil, errors.New("invalid arguments: configVariablesClient can't be nil")
 	}
@@ -144,6 +146,7 @@ func newGitHubRepository(providerConfig config.Provider, configVariablesClient c
 		defaultVersion:        defaultVersion,
 		rootPath:              rootPath,
 		componentsPath:        componentsPath,
+		log:                   log,
 	}
 
 	token, err := configVariablesClient.Get(githubTokeVariable)

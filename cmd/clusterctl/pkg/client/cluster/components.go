@@ -17,6 +17,7 @@ limitations under the License.
 package cluster
 
 import (
+	"github.com/go-logr/logr"
 	"github.com/pkg/errors"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
@@ -50,6 +51,7 @@ type ComponentsClient interface {
 // providerComponents implements ComponentsClient.
 type providerComponents struct {
 	proxy Proxy
+	log   logr.Logger
 }
 
 // Create provider components defined in the yaml file.
@@ -166,9 +168,10 @@ func (p *providerComponents) Delete(options DeleteOptions) error {
 }
 
 // newComponentsClient returns a providerComponents.
-func newComponentsClient(proxy Proxy) *providerComponents {
+func newComponentsClient(proxy Proxy, log logr.Logger) *providerComponents {
 	return &providerComponents{
 		proxy: proxy,
+		log:   log,
 	}
 }
 

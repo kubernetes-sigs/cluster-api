@@ -17,6 +17,7 @@ limitations under the License.
 package repository
 
 import (
+	"github.com/go-logr/logr"
 	"github.com/pkg/errors"
 	"sigs.k8s.io/cluster-api/cmd/clusterctl/pkg/client/config"
 )
@@ -32,17 +33,19 @@ type componentsClient struct {
 	provider              config.Provider
 	repository            Repository
 	configVariablesClient config.VariablesClient
+	log                   logr.Logger
 }
 
 // ensure componentsClient implements ComponentsClient.
 var _ ComponentsClient = &componentsClient{}
 
 // newComponentsClient returns a componentsClient.
-func newComponentsClient(provider config.Provider, repository Repository, configVariablesClient config.VariablesClient) *componentsClient {
+func newComponentsClient(provider config.Provider, repository Repository, configVariablesClient config.VariablesClient, log logr.Logger) *componentsClient {
 	return &componentsClient{
 		provider:              provider,
 		repository:            repository,
 		configVariablesClient: configVariablesClient,
+		log:                   log,
 	}
 }
 

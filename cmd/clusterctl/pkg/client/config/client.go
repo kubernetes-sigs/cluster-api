@@ -17,7 +17,9 @@ limitations under the License.
 package config
 
 import (
+	"github.com/go-logr/logr"
 	"github.com/pkg/errors"
+	"k8s.io/klog/klogr"
 	"sigs.k8s.io/cluster-api/cmd/clusterctl/pkg/internal/test"
 )
 
@@ -36,22 +38,24 @@ type Client interface {
 // configClient implements Client.
 type configClient struct {
 	reader Reader
+	log    logr.Logger
 }
 
 // ensure configClient implements Client.
 var _ Client = &configClient{}
 
 func (c *configClient) Providers() ProvidersClient {
-	return newProvidersClient(c.reader)
+	return newProvidersClient(c.reader, c.log)
 }
 
 func (c *configClient) Variables() VariablesClient {
-	return newVariablesClient(c.reader)
+	return newVariablesClient(c.reader, c.log)
 }
 
 // NewOptions carries the options supported by New
 type NewOptions struct {
 	injectReader Reader
+	injectLogger logr.Logger
 }
 
 // Option is a configuration option supplied to New
@@ -61,6 +65,13 @@ type Option func(*NewOptions)
 func InjectReader(reader Reader) Option {
 	return func(c *NewOptions) {
 		c.injectReader = reader
+	}
+}
+
+// InjectLogger implements a New Option that allows to override the default logger.
+func InjectLogger(logger logr.Logger) Option {
+	return func(c *NewOptions) {
+		c.injectLogger = logger
 	}
 }
 
@@ -75,9 +86,16 @@ func newConfigClient(path string, options ...Option) (*configClient, error) {
 		o(cfg)
 	}
 
+	// if there is an injected logger, use it, otherwise use a default one
+	logger := cfg.injectLogger
+	if logger == nil {
+		logger = klogr.New() //TODO: replace with a logger with a better output
+	}
+
+	// if there is an injected reader, use it, otherwise use a default one
 	reader := cfg.injectReader
 	if reader == nil {
-		reader = newViperReader()
+		reader = newViperReader(logger)
 	}
 
 	if err := reader.Init(path); err != nil {
@@ -86,6 +104,7 @@ func newConfigClient(path string, options ...Option) (*configClient, error) {
 
 	return &configClient{
 		reader: reader,
+		log:    logger,
 	}, nil
 }
 

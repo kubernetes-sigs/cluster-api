@@ -17,6 +17,7 @@ limitations under the License.
 package cluster
 
 import (
+	"github.com/go-logr/logr"
 	"github.com/pkg/errors"
 	"k8s.io/klog"
 	"sigs.k8s.io/cluster-api/cmd/clusterctl/pkg/client/repository"
@@ -39,6 +40,7 @@ type providerInstaller struct {
 	providerComponents ComponentsClient
 	providerInventory  InventoryClient
 	installQueue       []repository.Components
+	log                logr.Logger
 }
 
 var _ ProviderInstaller = &providerInstaller{}
@@ -71,10 +73,11 @@ func (i *providerInstaller) Install() ([]repository.Components, error) {
 	return ret, nil
 }
 
-func newProviderInstaller(proxy Proxy, providerMetadata InventoryClient, providerComponents ComponentsClient) *providerInstaller {
+func newProviderInstaller(proxy Proxy, providerMetadata InventoryClient, providerComponents ComponentsClient, log logr.Logger) *providerInstaller {
 	return &providerInstaller{
 		proxy:              proxy,
 		providerInventory:  providerMetadata,
 		providerComponents: providerComponents,
+		log:                log,
 	}
 }

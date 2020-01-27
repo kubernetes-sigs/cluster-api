@@ -19,6 +19,7 @@ package cluster
 import (
 	"context"
 
+	"github.com/go-logr/logr"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/klog/klogr"
 	"sigs.k8s.io/cluster-api/cmd/clusterctl/pkg/internal/test"
@@ -71,6 +72,7 @@ type clusterClient struct {
 	kubeconfig    string
 	proxy         Proxy
 	machineWaiter MachineWaiter
+	log           logr.Logger
 }
 
 // ensure clusterClient implements Client.
@@ -85,45 +87,85 @@ func (c *clusterClient) Proxy() Proxy {
 }
 
 func (c *clusterClient) CertManger() CertMangerClient {
-	return newCertMangerClient(c.proxy)
+	return newCertMangerClient(c.proxy, c.log)
 }
 
 func (c *clusterClient) ProviderComponents() ComponentsClient {
-	return newComponentsClient(c.proxy)
+	return newComponentsClient(c.proxy, c.log)
 }
 
 func (c *clusterClient) ProviderInventory() InventoryClient {
-	return newInventoryClient(c.proxy)
+	return newInventoryClient(c.proxy, c.log)
 }
 
 func (c *clusterClient) ProviderObjects() ObjectsClient {
-	return newObjectsClient(c.proxy)
+	return newObjectsClient(c.proxy, c.log)
 }
 
 func (c *clusterClient) ProviderInstaller() ProviderInstaller {
-	return newProviderInstaller(c.proxy, c.ProviderInventory(), c.ProviderComponents())
+	return newProviderInstaller(c.proxy, c.ProviderInventory(), c.ProviderComponents(), c.log)
 }
 
 func (c *clusterClient) ObjectMover() ObjectMover {
-	//TODO: make the logger to flow down all the chain
-	log := klogr.New()
-	return newObjectMover(c.proxy, c.machineWaiter, log)
+	return newObjectMover(c.proxy, c.machineWaiter, c.log)
+}
+
+// NewOptions carries the options supported by New
+type NewOptions struct {
+	injectProxy         Proxy
+	injectLogger        logr.Logger
+	injectMachineWaiter MachineWaiter
+}
+
+// Option is a configuration option supplied to New
+type Option func(*NewOptions)
+
+// InjectProxy implements a New Option that allows to override the default proxy used by clusterctl.
+func InjectProxy(proxy Proxy) Option {
+	return func(c *NewOptions) {
+		c.injectProxy = proxy
+	}
+}
+
+// InjectLogger implements a New Option that allows to override the default logger.
+func InjectLogger(logger logr.Logger) Option {
+	return func(c *NewOptions) {
+		c.injectLogger = logger
+	}
+}
+
+// InjectMachineWaiter implements a New Option that allows to override the default MachineWaiter used by clusterctl.
+func InjectMachineWaiter(waiter MachineWaiter) Option {
+	return func(c *NewOptions) {
+		c.injectMachineWaiter = waiter
+	}
 }
 
 // New returns a cluster.Client.
-func New(kubeconfig string, options Options) Client {
-	return newClusterClient(kubeconfig, options)
+func New(kubeconfig string, options ...Option) Client {
+	return newClusterClient(kubeconfig, options...)
 }
 
-func newClusterClient(kubeconfig string, options Options) *clusterClient {
-	// if there is an injected proxy, use it, otherwise use the default one
-	proxy := options.InjectProxy
+func newClusterClient(kubeconfig string, options ...Option) *clusterClient {
+	cfg := &NewOptions{}
+	for _, o := range options {
+		o(cfg)
+	}
+
+	// if there is an injected logger, use it, otherwise use a default one
+	logger := cfg.injectLogger
+	if logger == nil {
+		logger = klogr.New() //TODO: replace with a logger with a better output
+	}
+
+	// if there is an injected proxy, use it, otherwise use a default one
+	proxy := cfg.injectProxy
 	if proxy == nil {
 		proxy = newProxy(kubeconfig)
 	}
 
 	// if there is an injected machineWaiter, use it, otherwise use the default one
-	machineWaiter := options.InjectMachineWaiter
+	machineWaiter := cfg.injectMachineWaiter
 	if machineWaiter == nil {
 		machineWaiter = waitForMachineReady
 	}
@@ -132,13 +174,8 @@ func newClusterClient(kubeconfig string, options Options) *clusterClient {
 		kubeconfig:    kubeconfig,
 		proxy:         proxy,
 		machineWaiter: machineWaiter,
+		log:           logger,
 	}
-}
-
-// Options allow to set ConfigClient options
-type Options struct {
-	InjectProxy         Proxy
-	InjectMachineWaiter MachineWaiter
 }
 
 type Proxy interface {

@@ -20,6 +20,7 @@ import (
 	"path/filepath"
 	"strings"
 
+	"github.com/go-logr/logr"
 	"github.com/pkg/errors"
 	"github.com/spf13/viper"
 	"k8s.io/client-go/util/homedir"
@@ -32,11 +33,14 @@ const ConfigFolder = ".cluster-api"
 // viperReader implements Reader using viper as backend for reading from environment variables
 // and from a clusterctl config file.
 type viperReader struct {
+	log logr.Logger
 }
 
 // newViperReader returns a viperReader.
-func newViperReader() Reader {
-	return &viperReader{}
+func newViperReader(log logr.Logger) Reader {
+	return &viperReader{
+		log: log,
+	}
 }
 
 // Init initialize the viperReader.

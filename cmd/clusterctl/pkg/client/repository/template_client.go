@@ -19,6 +19,7 @@ package repository
 import (
 	"fmt"
 
+	"github.com/go-logr/logr"
 	"github.com/pkg/errors"
 	"sigs.k8s.io/cluster-api/cmd/clusterctl/pkg/client/config"
 )
@@ -47,18 +48,20 @@ type templateClient struct {
 	version               string
 	repository            Repository
 	configVariablesClient config.VariablesClient
+	log                   logr.Logger
 }
 
 // Ensure templateClient implements the TemplateClient interface.
 var _ TemplateClient = &templateClient{}
 
 // newTemplateClient returns a templateClient.
-func newTemplateClient(provider config.Provider, version string, repository Repository, configVariablesClient config.VariablesClient) *templateClient {
+func newTemplateClient(provider config.Provider, version string, repository Repository, configVariablesClient config.VariablesClient, log logr.Logger) *templateClient {
 	return &templateClient{
 		provider:              provider,
 		version:               version,
 		repository:            repository,
 		configVariablesClient: configVariablesClient,
+		log:                   log,
 	}
 }
 

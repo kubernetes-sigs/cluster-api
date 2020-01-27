@@ -16,7 +16,10 @@ limitations under the License.
 
 package config
 
-import "sigs.k8s.io/cluster-api/cmd/clusterctl/pkg/internal/test"
+import (
+	"github.com/go-logr/logr"
+	"sigs.k8s.io/cluster-api/cmd/clusterctl/pkg/internal/test"
+)
 
 // VariablesClient has methods to work with environment variables and with variables defined in the clusterctl configuration file.
 type VariablesClient interface {
@@ -36,14 +39,16 @@ var _ VariablesClient = &test.FakeVariableClient{}
 // variablesClient implements VariablesClient.
 type variablesClient struct {
 	reader Reader
+	log    logr.Logger
 }
 
 // ensure variablesClient implements VariablesClient.
 var _ VariablesClient = &variablesClient{}
 
-func newVariablesClient(reader Reader) *variablesClient {
+func newVariablesClient(reader Reader, log logr.Logger) *variablesClient {
 	return &variablesClient{
 		reader: reader,
+		log:    log,
 	}
 }
 

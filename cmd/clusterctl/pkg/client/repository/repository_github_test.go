@@ -74,7 +74,7 @@ func Test_gitHubRepository_getVersions(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			g, err := newGitHubRepository(tt.field.providerConfig, configVariablesClient)
+			g, err := newGitHubRepository(tt.field.providerConfig, configVariablesClient, test.NewFakeLogger())
 			if err != nil {
 				t.Fatalf("newGitHubRepository() error = %v", err)
 			}
@@ -144,7 +144,7 @@ func Test_gitHubRepository_getLatestRelease(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			g, err := newGitHubRepository(tt.field.providerConfig, configVariablesClient)
+			g, err := newGitHubRepository(tt.field.providerConfig, configVariablesClient, test.NewFakeLogger())
 			if err != nil {
 				t.Fatalf("newGitHubRepository() error = %v", err)
 			}
@@ -204,7 +204,7 @@ func Test_gitHubRepository_getReleaseByTag(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			g, err := newGitHubRepository(providerConfig, configVariablesClient)
+			g, err := newGitHubRepository(providerConfig, configVariablesClient, test.NewFakeLogger())
 			if err != nil {
 				t.Fatalf("newGitHubRepository() error = %v", err)
 			}
@@ -315,7 +315,7 @@ func Test_gitHubRepository_downloadFilesFromRelease(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			g, err := newGitHubRepository(providerConfig, configVariablesClient)
+			g, err := newGitHubRepository(providerConfig, configVariablesClient, test.NewFakeLogger())
 			if err != nil {
 				t.Fatalf("newGitHubRepository() error = %v", err)
 			}

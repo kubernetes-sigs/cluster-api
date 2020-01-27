@@ -17,6 +17,7 @@ limitations under the License.
 package repository
 
 import (
+	"github.com/go-logr/logr"
 	"github.com/pkg/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -38,17 +39,19 @@ type metadataClient struct {
 	provider   config.Provider
 	version    string
 	repository Repository
+	log        logr.Logger
 }
 
 // ensure metadataClient implements MetadataClient.
 var _ MetadataClient = &metadataClient{}
 
 // newMetadataClient returns a metadataClient.
-func newMetadataClient(provider config.Provider, version string, repository Repository) *metadataClient {
+func newMetadataClient(provider config.Provider, version string, repository Repository, log logr.Logger) *metadataClient {
 	return &metadataClient{
 		provider:   provider,
 		version:    version,
 		repository: repository,
+		log:        log,
 	}
 }
 

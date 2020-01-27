@@ -52,7 +52,7 @@ func Test_inventoryClient_EnsureCustomResourceDefinitions(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			p := newInventoryClient(test.NewFakeProxy())
+			p := newInventoryClient(test.NewFakeProxy(), test.NewFakeLogger())
 			if tt.fields.alreadyHasCRD {
 				//forcing creation of metadata before test
 				if err := p.EnsureCustomResourceDefinitions(); err != nil {
@@ -97,7 +97,7 @@ func Test_inventoryClient_List(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			p := newInventoryClient(test.NewFakeProxy().WithObjs(tt.fields.initObjs...))
+			p := newInventoryClient(test.NewFakeProxy().WithObjs(tt.fields.initObjs...), test.NewFakeLogger())
 			got, err := p.List()
 			if (err != nil) != tt.wantErr {
 				t.Errorf("List() error = %v, wantErr %v", err, tt.wantErr)

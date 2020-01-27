@@ -234,7 +234,7 @@ func Test_componentsClient_Get(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			f := newComponentsClient(tt.fields.provider, tt.fields.repository, tt.fields.configVariablesClient)
+			f := newComponentsClient(tt.fields.provider, tt.fields.repository, tt.fields.configVariablesClient, test.NewFakeLogger())
 			got, err := f.Get(tt.args.version, tt.args.targetNamespace, tt.args.watchingNamespace)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("Get() error = %v, wantErr %v", err, tt.wantErr)

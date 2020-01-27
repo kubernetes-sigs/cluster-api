@@ -22,8 +22,10 @@ import (
 	"os"
 	"path/filepath"
 
+	"github.com/go-logr/logr"
 	"github.com/pkg/errors"
 	"k8s.io/client-go/util/homedir"
+	"k8s.io/klog/klogr"
 	"sigs.k8s.io/cluster-api/cmd/clusterctl/pkg/client/config"
 	"sigs.k8s.io/cluster-api/cmd/clusterctl/pkg/internal/test"
 )
@@ -54,6 +56,7 @@ type repositoryClient struct {
 	config.Provider
 	configVariablesClient config.VariablesClient
 	repository            Repository
+	log                   logr.Logger
 }
 
 // ensure repositoryClient implements Client.
@@ -64,20 +67,21 @@ func (c *repositoryClient) GetVersions() ([]string, error) {
 }
 
 func (c *repositoryClient) Components() ComponentsClient {
-	return newComponentsClient(c.Provider, c.repository, c.configVariablesClient)
+	return newComponentsClient(c.Provider, c.repository, c.configVariablesClient, c.log)
 }
 
 func (c *repositoryClient) Templates(version string) TemplateClient {
-	return newTemplateClient(c.Provider, version, c.repository, c.configVariablesClient)
+	return newTemplateClient(c.Provider, version, c.repository, c.configVariablesClient, c.log)
 }
 
 func (c *repositoryClient) Metadata(version string) MetadataClient {
-	return newMetadataClient(c.Provider, version, c.repository)
+	return newMetadataClient(c.Provider, version, c.repository, c.log)
 }
 
 // NewOptions carries the options supported by New
 type NewOptions struct {
 	injectRepository Repository
+	injectLogger     logr.Logger
 }
 
 // Option is a configuration option supplied to New
@@ -92,15 +96,34 @@ func InjectRepository(repository Repository) Option {
 	}
 }
 
-// New returns a Client.
-func New(provider config.Provider, configVariablesClient config.VariablesClient, options Options) (Client, error) {
-	return newRepositoryClient(provider, configVariablesClient, options)
+// InjectLogger implements a New Option that allows to override the default logger.
+func InjectLogger(logger logr.Logger) Option {
+	return func(c *NewOptions) {
+		c.injectLogger = logger
+	}
 }
 
-func newRepositoryClient(provider config.Provider, configVariablesClient config.VariablesClient, options Options) (*repositoryClient, error) {
-	repository := options.InjectRepository
+// New returns a Client.
+func New(provider config.Provider, configVariablesClient config.VariablesClient, options ...Option) (Client, error) {
+	return newRepositoryClient(provider, configVariablesClient, options...)
+}
+
+func newRepositoryClient(provider config.Provider, configVariablesClient config.VariablesClient, options ...Option) (*repositoryClient, error) {
+	cfg := &NewOptions{}
+	for _, o := range options {
+		o(cfg)
+	}
+
+	// if there is an injected logger, use it, otherwise use a default one
+	logger := cfg.injectLogger
+	if logger == nil {
+		logger = klogr.New() //TODO: replace with a logger with a better output
+	}
+
+	// if there is an injected repository, use it, otherwise use a default one
+	repository := cfg.injectRepository
 	if repository == nil {
-		r, err := repositoryFactory(provider, configVariablesClient)
+		r, err := repositoryFactory(provider, configVariablesClient, logger)
 		if err != nil {
 			return nil, errors.Wrapf(err, "failed to get repository client for %q", provider.Name())
 		}
@@ -112,11 +135,6 @@ func newRepositoryClient(provider config.Provider, configVariablesClient config.
 		repository:            repository,
 		configVariablesClient: configVariablesClient,
 	}, nil
-}
-
-// Options allow to set Client options
-type Options struct {
-	InjectRepository Repository
 }
 
 // Repository defines the behavior of a repository implementation.
@@ -147,7 +165,7 @@ type Repository interface {
 var _ Repository = &test.FakeRepository{}
 
 //repositoryFactory returns the repository implementation corresponding to the provider URL.
-func repositoryFactory(providerConfig config.Provider, configVariablesClient config.VariablesClient) (Repository, error) { //nolint
+func repositoryFactory(providerConfig config.Provider, configVariablesClient config.VariablesClient, log logr.Logger) (Repository, error) { //nolint
 	// parse the repository url
 	rURL, err := url.Parse(providerConfig.URL())
 	if err != nil {
@@ -156,7 +174,7 @@ func repositoryFactory(providerConfig config.Provider, configVariablesClient con
 
 	// if the url is a github repository
 	if rURL.Scheme == httpsScheme && rURL.Host == githubDomain {
-		repo, err := newGitHubRepository(providerConfig, configVariablesClient)
+		repo, err := newGitHubRepository(providerConfig, configVariablesClient, log)
 		if err != nil {
 			return nil, errors.Wrap(err, "error creating the GitHub repository client")
 		}

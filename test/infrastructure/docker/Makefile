@@ -89,8 +89,9 @@ test-e2e: ## Run the end-to-end tests
 		CAPI_KUBEADM_CONTROL_PLANE_IMAGE=$(KUBEADM_CONTROL_PLANE_CONTROLLER_IMG) \
 		$(MAKE) run-e2e
 
+E2E_CONF_FILE ?= e2e/local-e2e.conf
 run-e2e:
-	go test ./e2e -v -ginkgo.v -ginkgo.trace -count=1 -timeout=20m -tags=e2e -e2e.config="$(abspath e2e/e2e.conf)"
+	go test ./e2e -v -ginkgo.v -ginkgo.trace -count=1 -timeout=20m -tags=e2e -e2e.config="$(abspath $(E2E_CONF_FILE))"
 
 ## --------------------------------------
 ## Binaries

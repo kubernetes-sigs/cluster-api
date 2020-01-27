@@ -25,6 +25,11 @@ const (
 	// external objects(bootstrap and infrastructure providers)
 	ClusterLabelName = "cluster.x-k8s.io/cluster-name"
 
+	// ProviderLabelName is the label set on components in the provider manifest.
+	// This label allows to easily identify all the components belonging to a provider; the clusterctl
+	// tool uses this label for implementing provider's lifecycle operations.
+	ProviderLabelName = "cluster.x-k8s.io/provider"
+
 	// PausedAnnotation is an annotation that can be applied to any Cluster API
 	// object to prevent a controller from processing a resource.
 	//

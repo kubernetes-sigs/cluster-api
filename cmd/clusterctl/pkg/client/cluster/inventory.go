@@ -107,6 +107,14 @@ func (p *inventoryClient) EnsureCustomResourceDefinitions() error {
 	// Install the CRDs.
 	for _, o := range objs {
 		klog.V(3).Infof("Creating: %s, %s/%s", o.GroupVersionKind(), o.GetNamespace(), o.GetName())
+
+		labels := o.GetLabels()
+		if labels == nil {
+			labels = map[string]string{}
+		}
+		labels[clusterctlv1.ClusterctlCoreLabelName] = "inventory"
+		o.SetLabels(labels)
+
 		if err := c.Create(ctx, o.DeepCopy()); err != nil {
 			if apierrors.IsAlreadyExists(err) {
 				continue

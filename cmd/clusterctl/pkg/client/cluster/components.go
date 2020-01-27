@@ -23,6 +23,7 @@ import (
 	kerrors "k8s.io/apimachinery/pkg/util/errors"
 	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/klog"
+	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha3"
 	clusterctlv1 "sigs.k8s.io/cluster-api/cmd/clusterctl/api/v1alpha3"
 	"sigs.k8s.io/cluster-api/cmd/clusterctl/pkg/client/repository"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -104,7 +105,8 @@ func (p *providerComponents) Create(components repository.Components) error {
 func (p *providerComponents) Delete(options DeleteOptions) error {
 	// Fetch all the components belonging to a provider.
 	labels := map[string]string{
-		clusterctlv1.ClusterctlProviderLabelName: options.Provider.Name,
+		clusterctlv1.ClusterctlLabelName: "",
+		clusterv1.ProviderLabelName:      options.Provider.Name,
 	}
 	resources, err := p.proxy.ListResources(options.Provider.Namespace, labels)
 	if err != nil {
@@ -121,7 +123,7 @@ func (p *providerComponents) Delete(options DeleteOptions) error {
 		}
 
 		// If the Namespace should NOT be deleted, skip it, otherwise keep track of the namespaces we are deleting;
-		// NB. Skipping Namespaces deletion ensures that also the objects hosted in the namespace but without the "clusterctl.cluster.x-k8s.io/provider" label are not deleted.
+		// NB. Skipping Namespaces deletion ensures that also the objects hosted in the namespace but without the "clusterctl.cluster.x-k8s.io" and the "cluster.x-k8s.io/provider" label are not deleted.
 		if obj.GroupVersionKind().Kind == "Namespace" {
 			if !options.ForceDeleteNamespace {
 				continue

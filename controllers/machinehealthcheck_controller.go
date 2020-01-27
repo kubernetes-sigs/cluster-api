@@ -30,12 +30,15 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	kerrors "k8s.io/apimachinery/pkg/util/errors"
+	"k8s.io/client-go/informers"
+	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/tools/record"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha3"
 	"sigs.k8s.io/cluster-api/controllers/remote"
 	"sigs.k8s.io/cluster-api/util"
 	"sigs.k8s.io/cluster-api/util/patch"
 	ctrl "sigs.k8s.io/controller-runtime"
+	"sigs.k8s.io/controller-runtime/pkg/cache"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
 	"sigs.k8s.io/controller-runtime/pkg/handler"
@@ -44,7 +47,8 @@ import (
 )
 
 const (
-	mhcClusterNameIndex = "spec.clusterName"
+	mhcClusterNameIndex  = "spec.clusterName"
+	machineNodeNameIndex = "status.nodeRef.name"
 )
 
 // MachineHealthCheckReconciler reconciles a MachineHealthCheck object
@@ -52,9 +56,10 @@ type MachineHealthCheckReconciler struct {
 	Client client.Client
 	Log    logr.Logger
 
-	controller controller.Controller
-	recorder   record.EventRecorder
-	scheme     *runtime.Scheme
+	controller           controller.Controller
+	recorder             record.EventRecorder
+	scheme               *runtime.Scheme
+	clusterNodeInformers map[types.NamespacedName]cache.Informer
 }
 
 func (r *MachineHealthCheckReconciler) SetupWithManager(mgr ctrl.Manager, options controller.Options) error {
@@ -83,9 +88,18 @@ func (r *MachineHealthCheckReconciler) SetupWithManager(mgr ctrl.Manager, option
 		return errors.Wrap(err, "error setting index fields")
 	}
 
+	// Add index to Machine for listing by Node reference
+	if err := mgr.GetCache().IndexField(&clusterv1.Machine{},
+		machineNodeNameIndex,
+		r.indexMachineByNodeName,
+	); err != nil {
+		return errors.Wrap(err, "error setting index fields")
+	}
+
 	r.controller = controller
 	r.recorder = mgr.GetEventRecorderFor("machinehealthcheck-controller")
 	r.scheme = mgr.GetScheme()
+	r.clusterNodeInformers = make(map[types.NamespacedName]cache.Informer)
 	return nil
 }
 
@@ -167,6 +181,12 @@ func (r *MachineHealthCheckReconciler) reconcile(ctx context.Context, cluster *c
 	clusterClient, err := remote.NewClusterClient(r.Client, cluster, r.scheme)
 	if err != nil {
 		logger.Error(err, "Error building target cluster client")
+		return ctrl.Result{}, err
+	}
+
+	err = r.watchClusterNodes(ctx, r.Client, cluster)
+	if err != nil {
+		logger.Error(err, "Error watching nodes on target cluster")
 		return ctrl.Result{}, err
 	}
 
@@ -274,6 +294,107 @@ func (r *MachineHealthCheckReconciler) machineToMachineHealthCheck(o handler.Map
 		}
 	}
 	return requests
+}
+
+func (r *MachineHealthCheckReconciler) nodeToMachineHealthCheck(o handler.MapObject) []reconcile.Request {
+	node, ok := o.Object.(*corev1.Node)
+	if !ok {
+		r.Log.Error(errors.New("incorrect type"), "expected a Node", "type", fmt.Sprintf("%T", o))
+		return nil
+	}
+
+	machine, err := r.getMachineFromNode(node.Name)
+	if machine == nil || err != nil {
+		r.Log.Error(err, "Unable to retrieve machine from node", "node", namespacedName(node))
+		return nil
+	}
+
+	mhcList := &clusterv1.MachineHealthCheckList{}
+	if err := r.Client.List(
+		context.Background(),
+		mhcList,
+		&client.ListOptions{Namespace: machine.Namespace},
+		client.MatchingFields{mhcClusterNameIndex: machine.Spec.ClusterName},
+	); err != nil {
+		r.Log.Error(err, "Unable to list MachineHealthChecks", "node", node.Name, "machine", machine.Name, "namespace", machine.Namespace)
+		return nil
+	}
+
+	var requests []reconcile.Request
+	for k := range mhcList.Items {
+		if r.hasMatchingLabels(&mhcList.Items[k], machine) {
+			key := types.NamespacedName{Namespace: mhcList.Items[k].Namespace, Name: mhcList.Items[k].Name}
+			requests = append(requests, reconcile.Request{NamespacedName: key})
+		}
+	}
+	return requests
+}
+
+func (r *MachineHealthCheckReconciler) getMachineFromNode(nodeName string) (*clusterv1.Machine, error) {
+	machineList := &clusterv1.MachineList{}
+	if err := r.Client.List(
+		context.TODO(),
+		machineList,
+		client.MatchingFields{machineNodeNameIndex: nodeName},
+	); err != nil {
+		return nil, errors.Wrap(err, "failed getting machine list")
+	}
+	if len(machineList.Items) != 1 {
+		return nil, errors.New(fmt.Sprintf("expecting one machine for node %v, got: %v", nodeName, machineList.Items))
+	}
+	return &machineList.Items[0], nil
+}
+
+func (r *MachineHealthCheckReconciler) watchClusterNodes(ctx context.Context, c client.Client, cluster *clusterv1.Cluster) error {
+	key := types.NamespacedName{Namespace: cluster.Name, Name: cluster.Name}
+	if _, ok := r.clusterNodeInformers[key]; ok {
+		// watch was already set up for this cluster
+		return nil
+	}
+
+	config, err := remote.RESTConfig(c, cluster)
+	if err != nil {
+		return errors.Wrap(err, "error fetching remote cluster config")
+	}
+
+	k8sClient, err := kubernetes.NewForConfig(config)
+	if err != nil {
+		return errors.Wrap(err, "error constructing remote cluster client")
+	}
+
+	// TODO(JoelSpeed): See if we use the resync period from the manager instead of 0
+	factory := informers.NewSharedInformerFactory(k8sClient, 0)
+	nodeInformer := factory.Core().V1().Nodes().Informer()
+	go nodeInformer.Run(ctx.Done())
+
+	err = r.controller.Watch(
+		&source.Informer{Informer: nodeInformer},
+		&handler.EnqueueRequestsFromMapFunc{ToRequests: handler.ToRequestsFunc(r.nodeToMachineHealthCheck)},
+	)
+	if err != nil {
+		return errors.Wrap(err, "error watching nodes on target cluster")
+	}
+
+	if r.clusterNodeInformers == nil {
+		r.clusterNodeInformers = make(map[types.NamespacedName]cache.Informer)
+	}
+
+	r.clusterNodeInformers[key] = nodeInformer
+	return nil
+}
+
+func (r *MachineHealthCheckReconciler) indexMachineByNodeName(object runtime.Object) []string {
+	machine, ok := object.(*clusterv1.Machine)
+	if !ok {
+		r.Log.Error(errors.New("incorrect type"), "expected a Machine", "type", fmt.Sprintf("%T", object))
+		return nil
+	}
+
+	if machine.Status.NodeRef != nil {
+		return []string{machine.Status.NodeRef.Name}
+	}
+
+	return nil
 }
 
 // hasMatchingLabels verifies that the MachineHealthCheck's label selector

@@ -22,7 +22,6 @@ import (
 
 	"github.com/pkg/errors"
 	apicorev1 "k8s.io/api/core/v1"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha3"
 	"sigs.k8s.io/cluster-api/controllers/noderefutil"
 	"sigs.k8s.io/cluster-api/controllers/remote"
@@ -89,16 +88,12 @@ func (r *MachineReconciler) reconcileNodeRef(_ context.Context, cluster *cluster
 	return nil
 }
 
-func (r *MachineReconciler) getNodeReference(client client.Client, providerID *noderefutil.ProviderID) (*apicorev1.ObjectReference, error) {
+func (r *MachineReconciler) getNodeReference(c client.Client, providerID *noderefutil.ProviderID) (*apicorev1.ObjectReference, error) {
 	logger := r.Log.WithValues("providerID", providerID)
 
-	listOpt := metav1.ListOptions{}
-
+	nodeList := apicorev1.NodeList{}
 	for {
-		nodeList := apicorev1.NodeList{}
-		// TODO Add a context to this method
-		err := client.List(context.TODO(), &nodeList)
-		if err != nil {
+		if err := c.List(context.TODO(), &nodeList, client.Continue(nodeList.Continue)); err != nil {
 			return nil, err
 		}
 
@@ -119,8 +114,7 @@ func (r *MachineReconciler) getNodeReference(client client.Client, providerID *n
 			}
 		}
 
-		listOpt.Continue = nodeList.Continue
-		if listOpt.Continue == "" {
+		if nodeList.Continue == "" {
 			break
 		}
 	}

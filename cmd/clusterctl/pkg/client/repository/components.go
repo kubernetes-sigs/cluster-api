@@ -47,15 +47,19 @@ var variableRegEx = regexp.MustCompile(`\${\s*([A-Z0-9_]+)\s*}`)
 // 4. Set the watching namespace for the provider controller
 // 5. Adds labels to all the components in order to allow easy identification of the provider objects
 type Components interface {
-	// configuration of the provider the template belongs to.
+	// configuration of the provider the provider components belongs to.
 	config.Provider
 
 	// Version of the provider.
 	Version() string
 
-	// Variables required by the template.
+	// Variables required by the provider components.
 	// This value is derived by the component YAML.
 	Variables() []string
+
+	// Images required to install the provider components.
+	// This value is derived by the component YAML.
+	Images() []string
 
 	// TargetNamespace where the provider components will be installed.
 	// By default this value is derived by the component YAML, but it is possible to override it
@@ -83,6 +87,7 @@ type components struct {
 	config.Provider
 	version           string
 	variables         []string
+	images            []string
 	targetNamespace   string
 	watchingNamespace string
 	objs              []unstructured.Unstructured
@@ -97,6 +102,10 @@ func (c *components) Version() string {
 
 func (c *components) Variables() []string {
 	return c.variables
+}
+
+func (c *components) Images() []string {
+	return c.images
 }
 
 func (c *components) TargetNamespace() string {
@@ -161,6 +170,12 @@ func newComponents(provider config.Provider, version string, rawyaml []byte, con
 		return nil, errors.Wrap(err, "failed to parse yaml")
 	}
 
+	// inspect the list of objects for the images required by the provider component
+	images, err := inspectImages(objs)
+	if err != nil {
+		return nil, errors.Wrap(err, "failed to detect required images")
+	}
+
 	// inspect the list of objects for the default target namespace
 	// the default target namespace is the namespace object defined in the component yaml read from the repository, if any
 	defaultTargetNamespace, err := inspectTargetNamespace(objs)
@@ -215,6 +230,7 @@ func newComponents(provider config.Provider, version string, rawyaml []byte, con
 		Provider:          provider,
 		version:           version,
 		variables:         variables,
+		images:            images,
 		targetNamespace:   targetNamespace,
 		watchingNamespace: watchingNamespace,
 		objs:              objs,
@@ -520,6 +536,32 @@ func fixWatchNamespace(objs []unstructured.Unstructured, watchingNamespace strin
 func remove(slice []string, i int) []string {
 	copy(slice[i:], slice[i+1:])
 	return slice[:len(slice)-1]
+}
+
+// inspectImages identifies the container images required to install the provider.
+// NB. The implemented approach is specific for the provider components YAML; it is not intended to cover
+// all the possible objects used to deploy containers existing in Kubernetes.
+func inspectImages(objs []unstructured.Unstructured) ([]string, error) {
+	images := []string{}
+
+	for _, o := range objs {
+		if o.GetKind() == deploymentKind {
+			d := &appsv1.Deployment{}
+			if err := scheme.Scheme.Convert(&o, d, nil); err != nil { //nolint
+				return nil, err
+			}
+
+			for _, c := range d.Spec.Template.Spec.Containers {
+				images = append(images, c.Image)
+			}
+
+			for _, c := range d.Spec.Template.Spec.InitContainers {
+				images = append(images, c.Image)
+			}
+		}
+	}
+
+	return images, nil
 }
 
 // addLabels ensures all the provider components have a consistent set of labels

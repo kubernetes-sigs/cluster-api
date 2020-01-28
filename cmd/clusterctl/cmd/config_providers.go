@@ -147,6 +147,14 @@ func componentsDefaultOutput(c client.Components) error {
 			fmt.Printf("  %s\n", v)
 		}
 	}
+	if len(c.Images()) > 0 {
+		fmt.Println("Images:")
+		fmt.Println("  Name")
+		fmt.Println("  ----")
+		for _, v := range c.Images() {
+			fmt.Printf("  %s\n", v)
+		}
+	}
 
 	return nil
 }

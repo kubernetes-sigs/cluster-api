@@ -180,6 +180,25 @@ Templates writers should use the common variables to ensure consistency across p
 Additionally, value of the command argument to `clusterctl config cluster <cluster-name>` (`<cluster-name>` in this case), will 
 be applied to every occurrence of the `${ CLUSTER_NAME }` variable.
 
+## OwnerReferences chain
+
+Each provider is responsible to ensure that all the providers resources (like e.g. `VSphereCluster`, `VSphereMachine`, `VSphereVM` etc. 
+for the `vsphere` provider) MUST have a `Metadata.OwnerReferences` entry that links directly or indirectly to a `Cluster` object.
+
+Please note that all the provider specific resources that are referenced by the Cluster API core objects will get the `OwnerReference`
+sets by the Cluster API core controllers, e.g.:
+
+- The Cluster controller ensures that all the objects referenced in `Cluster.Spec.InfrastructureRef` get an `OwnerReference` 
+  that links directly to the corresponding `Cluster`.
+- The Machine controller ensures that all the objects referenced in `Machine.Spec.InfrastructureRef` get an `OwnerReference` 
+  that links to the corresponding `Machine`, and the `Machine` is linked to the `Cluster` through its own `OwnerReference` chain.  
+
+That means that, practically speaking, provider implementers are responsible for ensuring that the `OwnerReference`s
+are set only for objects that are not directly referenced by Cluster API core objects, e.g.:
+
+- All the `VSphereVM` instances should get an `OwnerReference` that links to the corresponding `VSphereMachine`, and the `VSphereMachine`
+  is linked to the `Cluster` through its own `OwnerReference` chain.
+
 ## Additional notes
 
 ### Components YAML transformations
@@ -216,10 +235,25 @@ If, for any reason, the provider authors/YAML designers decide not to comply wit
 The provider authors/YAML designers should be aware that it is their responsibility to ensure the proper
 functioning of all the `clusterctl` features both in single tenancy or multi-tenancy scenarios and/or document known limitations.
 
-### Move constraints
+### Move 
 
-WIP
+Provider authors should be aware that `clusterctl move` command implements a discovery mechanism that considers:
 
+* All the objects of Kind defined in one of the CRDs installed by clusterctl using `clusterctl init`. 
+* `Secret` and `ConfigMap` objects.
+* the `OwnerReference` chain of the above objects.
+
+`clusterctl move` does NOT consider any objects:
+
+* Not included in the set of objects defined above.
+* Included in the set of objects defined above, but not directly or indirectly to a `Cluster` object through the `OwnerReference` chain.
+ 
+If moving some of excluded object is required, the provider authors should create documentation describing the
+the exact move sequence to be executed by the user.
+
+Additionally, provider authors should be aware that `clusterctl move` assumes all the provider's Controllers respect the
+`Cluster.Spec.Paused` field introduced in the v1alpha3 Cluster API specification. 
+ 
 ### Adopt
 
 WIP

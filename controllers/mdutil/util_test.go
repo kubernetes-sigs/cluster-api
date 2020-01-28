@@ -25,6 +25,7 @@ import (
 	"testing"
 	"time"
 
+	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/intstr"
@@ -98,7 +99,7 @@ func generateMachineTemplateSpec(name string, annotations, labels map[string]str
 	}
 }
 
-func TestEqualIgnoreHash(t *testing.T) {
+func TestEqualMachineTemplate(t *testing.T) {
 	tests := []struct {
 		Name           string
 		former, latter clusterv1.MachineTemplateSpec
@@ -113,6 +114,12 @@ func TestEqualIgnoreHash(t *testing.T) {
 		{
 			"Same spec, only machine-template-hash label value is different",
 			generateMachineTemplateSpec("foo", map[string]string{}, map[string]string{DefaultMachineDeploymentUniqueLabelKey: "value-1", "something": "else"}),
+			generateMachineTemplateSpec("foo", map[string]string{}, map[string]string{DefaultMachineDeploymentUniqueLabelKey: "value-2", "something": "else"}),
+			true,
+		},
+		{
+			"Same spec, the former doesn't have machine-template-hash label",
+			generateMachineTemplateSpec("foo", map[string]string{}, map[string]string{"something": "else"}),
 			generateMachineTemplateSpec("foo", map[string]string{}, map[string]string{DefaultMachineDeploymentUniqueLabelKey: "value-2", "something": "else"}),
 			true,
 		},
@@ -164,6 +171,82 @@ func TestEqualIgnoreHash(t *testing.T) {
 			generateMachineTemplateSpec("foo", map[string]string{}, map[string]string{"nothing": "else"}),
 			false,
 		},
+		{
+			"Same spec, except for references versions",
+			clusterv1.MachineTemplateSpec{
+				ObjectMeta: clusterv1.ObjectMeta{
+					Labels: map[string]string{},
+				},
+				Spec: clusterv1.MachineSpec{
+					Bootstrap: clusterv1.Bootstrap{
+						ConfigRef: &corev1.ObjectReference{
+							APIVersion: "bootstrap.cluster.x-k8s.io/v1alpha2",
+							Kind:       "MachineBootstrap",
+						},
+					},
+					InfrastructureRef: corev1.ObjectReference{
+						APIVersion: "infrastructure.cluster.x-k8s.io/v1alpha2",
+						Kind:       "MachineInfrastructure",
+					},
+				},
+			},
+			clusterv1.MachineTemplateSpec{
+				ObjectMeta: clusterv1.ObjectMeta{
+					Labels: map[string]string{},
+				},
+				Spec: clusterv1.MachineSpec{
+					Bootstrap: clusterv1.Bootstrap{
+						ConfigRef: &corev1.ObjectReference{
+							APIVersion: "bootstrap.cluster.x-k8s.io/v1alpha3",
+							Kind:       "MachineBootstrap",
+						},
+					},
+					InfrastructureRef: corev1.ObjectReference{
+						APIVersion: "infrastructure.cluster.x-k8s.io/v1alpha3",
+						Kind:       "MachineInfrastructure",
+					},
+				},
+			},
+			true,
+		},
+		{
+			"Same spec, bootstrap references are different kinds",
+			clusterv1.MachineTemplateSpec{
+				ObjectMeta: clusterv1.ObjectMeta{
+					Labels: map[string]string{},
+				},
+				Spec: clusterv1.MachineSpec{
+					Bootstrap: clusterv1.Bootstrap{
+						ConfigRef: &corev1.ObjectReference{
+							APIVersion: "bootstrap.cluster.x-k8s.io/v1alpha2",
+							Kind:       "MachineBootstrap1",
+						},
+					},
+					InfrastructureRef: corev1.ObjectReference{
+						APIVersion: "infrastructure.cluster.x-k8s.io/v1alpha2",
+						Kind:       "MachineInfrastructure",
+					},
+				},
+			},
+			clusterv1.MachineTemplateSpec{
+				ObjectMeta: clusterv1.ObjectMeta{
+					Labels: map[string]string{},
+				},
+				Spec: clusterv1.MachineSpec{
+					Bootstrap: clusterv1.Bootstrap{
+						ConfigRef: &corev1.ObjectReference{
+							APIVersion: "bootstrap.cluster.x-k8s.io/v1alpha3",
+							Kind:       "MachineBootstrap2",
+						},
+					},
+					InfrastructureRef: corev1.ObjectReference{
+						APIVersion: "infrastructure.cluster.x-k8s.io/v1alpha3",
+						Kind:       "MachineInfrastructure",
+					},
+				},
+			},
+			false,
+		},
 	}
 
 	for _, test := range tests {
@@ -174,7 +257,7 @@ func TestEqualIgnoreHash(t *testing.T) {
 					reverseString = " (reverse order)"
 				}
 				// Run
-				equal := EqualIgnoreHash(t1, t2)
+				equal := EqualMachineTemplate(t1, t2)
 				if equal != test.expected {
 					t.Errorf("%q%s: expected %v", test.Name, reverseString, test.expected)
 					return

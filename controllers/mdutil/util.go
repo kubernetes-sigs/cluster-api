@@ -391,17 +391,30 @@ func getMachineSetFraction(ms clusterv1.MachineSet, d clusterv1.MachineDeploymen
 	return integer.RoundToInt32(newMSsize) - *(ms.Spec.Replicas)
 }
 
-// EqualIgnoreHash returns true if two given machineTemplateSpec are equal, ignoring the diff in value of Labels[machine-template-hash]
-// We ignore machine-template-hash because:
-// 1. The hash result would be different upon machineTemplateSpec API changes
-//    (e.g. the addition of a new field will cause the hash code to change)
-// 2. The deployment template won't have hash labels
-func EqualIgnoreHash(template1, template2 *clusterv1.MachineTemplateSpec) bool {
+// EqualMachineTemplate returns true if two given machineTemplateSpec are equal,
+// ignoring the diff in value of Labels["machine-template-hash"], and the version from external references.
+func EqualMachineTemplate(template1, template2 *clusterv1.MachineTemplateSpec) bool {
 	t1Copy := template1.DeepCopy()
 	t2Copy := template2.DeepCopy()
-	// Remove hash labels from template.Labels before comparing
+
+	// Remove `machine-template-hash` from the comparison:
+	// 1. The hash result would be different upon machineTemplateSpec API changes
+	//    (e.g. the addition of a new field will cause the hash code to change)
+	// 2. The deployment template won't have hash labels
 	delete(t1Copy.Labels, DefaultMachineDeploymentUniqueLabelKey)
 	delete(t2Copy.Labels, DefaultMachineDeploymentUniqueLabelKey)
+
+	// Remove the version part from the references APIVersion field,
+	// for more details see issue #2183 and #2140.
+	t1Copy.Spec.InfrastructureRef.APIVersion = t1Copy.Spec.InfrastructureRef.GroupVersionKind().Group
+	if t1Copy.Spec.Bootstrap.ConfigRef != nil {
+		t1Copy.Spec.Bootstrap.ConfigRef.APIVersion = t1Copy.Spec.Bootstrap.ConfigRef.GroupVersionKind().Group
+	}
+	t2Copy.Spec.InfrastructureRef.APIVersion = t2Copy.Spec.InfrastructureRef.GroupVersionKind().Group
+	if t2Copy.Spec.Bootstrap.ConfigRef != nil {
+		t2Copy.Spec.Bootstrap.ConfigRef.APIVersion = t2Copy.Spec.Bootstrap.ConfigRef.GroupVersionKind().Group
+	}
+
 	return apiequality.Semantic.DeepEqual(t1Copy, t2Copy)
 }
 
@@ -409,7 +422,7 @@ func EqualIgnoreHash(template1, template2 *clusterv1.MachineTemplateSpec) bool {
 func FindNewMachineSet(deployment *clusterv1.MachineDeployment, msList []*clusterv1.MachineSet) *clusterv1.MachineSet {
 	sort.Sort(MachineSetsByCreationTimestamp(msList))
 	for i := range msList {
-		if EqualIgnoreHash(&msList[i].Spec.Template, &deployment.Spec.Template) {
+		if EqualMachineTemplate(&msList[i].Spec.Template, &deployment.Spec.Template) {
 			// In rare cases, such as after cluster upgrades, Deployment may end up with
 			// having more than one new MachineSets that have the same template,
 			// see https://github.com/kubernetes/kubernetes/issues/40415
@@ -688,6 +701,5 @@ func DeepHashObject(hasher hash.Hash, objectToWrite interface{}) {
 func ComputeHash(template *clusterv1.MachineTemplateSpec) uint32 {
 	machineTemplateSpecHasher := fnv.New32a()
 	DeepHashObject(machineTemplateSpecHasher, *template)
-
 	return machineTemplateSpecHasher.Sum32()
 }

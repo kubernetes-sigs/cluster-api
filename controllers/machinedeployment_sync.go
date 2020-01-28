@@ -198,7 +198,7 @@ func (r *MachineDeploymentReconciler) getNewMachineSet(d *clusterv1.MachineDeplo
 		// Otherwise, this is a hash collision and we need to increment the collisionCount field in
 		// the status of the Deployment and requeue to try the creation in the next sync.
 		controllerRef := metav1.GetControllerOf(ms)
-		if controllerRef != nil && controllerRef.UID == d.UID && mdutil.EqualIgnoreHash(&d.Spec.Template, &ms.Spec.Template) {
+		if controllerRef != nil && controllerRef.UID == d.UID && mdutil.EqualMachineTemplate(&d.Spec.Template, &ms.Spec.Template) {
 			createdMS = ms
 			break
 		}

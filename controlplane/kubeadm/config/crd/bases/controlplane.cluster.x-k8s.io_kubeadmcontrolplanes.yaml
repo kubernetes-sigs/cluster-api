@@ -8,6 +8,34 @@ metadata:
   creationTimestamp: null
   name: kubeadmcontrolplanes.controlplane.cluster.x-k8s.io
 spec:
+  additionalPrinterColumns:
+  - JSONPath: .status.ready
+    description: KubeadmControlPlane API Server is ready to receive requests
+    name: Ready
+    type: boolean
+  - JSONPath: .status.initialized
+    description: This denotes whether or not the control plane has the uploaded kubeadm-config
+      configmap
+    name: Initialized
+    type: boolean
+  - JSONPath: .status.replicas
+    description: Total number of non-terminated machines targeted by this control
+      plane
+    name: Replicas
+    type: integer
+  - JSONPath: .status.readyReplicas
+    description: Total number of fully running and ready control plane machines
+    name: Ready Replicas
+    type: integer
+  - JSONPath: .status.updatedReplicas
+    description: Total number of non-terminated machines targeted by this control
+      plane that have the desired template spec
+    name: Updated Replicas
+    type: integer
+  - JSONPath: .status.unavailableReplicas
+    description: Total number of unavailable machines targeted by this control plane
+    name: Unavailable Replicas
+    type: integer
   group: controlplane.cluster.x-k8s.io
   names:
     categories:

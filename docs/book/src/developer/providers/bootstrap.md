@@ -36,7 +36,7 @@ The `Secret` containing bootstrap data must:
 1. Have the label `cluster.x-k8s.io/cluster-name` set to the name of the cluster
 1. Have a controller owner reference to the API resource
 1. Have a single key, `value`, containing the bootstrap data
- 
+
 ## Behavior
 
 A bootstrap provider must respond to changes to its bootstrap resources. This process is

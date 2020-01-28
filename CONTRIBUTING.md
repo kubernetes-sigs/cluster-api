@@ -62,7 +62,7 @@ Breaking changes are generally allowed in the `master` branch, as this is the br
 release of Cluster API.
 
 There may be times, however, when `master` is closed for breaking changes. This is likely to happen as we near the
-release of a new minor version. 
+release of a new minor version.
 
 Breaking changes are not allowed in release branches, as these represent minor versions that have already been released.
 These versions have consumers who expect the APIs, behaviors, etc. to remain stable during the life time of the patch

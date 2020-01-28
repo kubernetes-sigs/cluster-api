@@ -37,6 +37,7 @@ func (src *KubeadmConfig) ConvertTo(dstRaw conversion.Hub) error {
 	}
 
 	dst.Status.DataSecretName = restored.Status.DataSecretName
+	dst.Spec.Verbosity = restored.Spec.Verbosity
 
 	return nil
 }
@@ -116,4 +117,15 @@ func Convert_v1alpha3_KubeadmConfigStatus_To_v1alpha2_KubeadmConfigStatus(in *ku
 	out.ErrorReason = in.FailureReason
 
 	return nil
+}
+
+
+// Convert_v1alpha2_KubeadmConfigSpec_To_v1alpha3_KubeadmConfigSpec converts this KubeadmConfigSpec to the Hub version (v1alpha3).
+func Convert_v1alpha2_KubeadmConfigSpec_To_v1alpha3_KubeadmConfigSpec(in *KubeadmConfigSpec, out *kubeadmbootstrapv1alpha3.KubeadmConfigSpec, s apiconversion.Scope) error {
+	return autoConvert_v1alpha2_KubeadmConfigSpec_To_v1alpha3_KubeadmConfigSpec(in, out, s)
+}
+
+// Convert_v1alpha3_KubeadmConfigSpec_To_v1alpha2_KubeadmConfigSpec converts from the Hub version (v1alpha3) of the KubeadmConfigSpec to this version.
+func Convert_v1alpha3_KubeadmConfigSpec_To_v1alpha2_KubeadmConfigSpec(in *kubeadmbootstrapv1alpha3.KubeadmConfigSpec, out *KubeadmConfigSpec, s apiconversion.Scope) error {
+	return autoConvert_v1alpha3_KubeadmConfigSpec_To_v1alpha2_KubeadmConfigSpec(in, out, s)
 }

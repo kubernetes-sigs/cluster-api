@@ -33,7 +33,7 @@ const (
 {{.InitConfiguration | Indent 6}}
 runcmd:
 {{- template "commands" .PreKubeadmCommands }}
-  - 'kubeadm init --config /tmp/kubeadm.yaml'
+  - 'kubeadm init --config /tmp/kubeadm.yaml {{.KubeadmVerbosity}}'
 {{- template "commands" .PostKubeadmCommands }}
 {{- template "ntp" .NTP }}
 {{- template "users" .Users }}

@@ -856,6 +856,11 @@ spec:
                     - name
                     type: object
                   type: array
+                verbosity:
+                  description: Verbosity is the number for the kubeadm log level verbosity.
+                    It overrides the `--v` flag in kubeadm commands.
+                  format: int32
+                  type: integer
               type: object
             replicas:
               description: Number of desired machines. Defaults to 1. When stacked

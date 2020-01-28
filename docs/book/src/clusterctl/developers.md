@@ -32,7 +32,8 @@ Next, create a `clusterctl-settings.json` file and place it in your local copy o
 }
 ```
 
-**enable_providers** (Array[]String, default=[]): A list of the providers to enable. See [available providers]() for more details.
+**providers** (Array[]String, default=[]): A list of the providers to enable.
+See [available providers](#available-providers) for more details.
 
 **provider_repos** (Array[]String, default=[]): A list of paths to all the providers you want to use. Each provider must have
 a `clusterctl-settings.json` file describing how to build the provider assets.

@@ -645,7 +645,7 @@ kubectl get machines --selector cluster.x-k8s.io/control-plane
 
 After the controlplane is up, we can retrieve the workload cluster Kubeconfig:
 
-{{#tabs name:"tab-getting-kubeconfig" tabs:"AWS,Azure,Docker,vSphere"}}
+{{#tabs name:"tab-getting-kubeconfig" tabs:"AWS,Azure,Docker,vSphere,OpenStack"}}
 {{#tab AWS}}
 
 ```bash
@@ -685,6 +685,15 @@ sed -i -e "s/certificate-authority-data:.*/insecure-skip-tls-verify: true/g" ./c
 ```  
 {{#/tab }}
 {{#tab vSphere}}
+
+```bash
+kubectl --namespace=default get secret/capi-quickstart-kubeconfig -o json \
+  | jq -r .data.value \
+  | base64 --decode \
+  > ./capi-quickstart.kubeconfig
+```
+{{#/tab }}
+{{#tab OpenStack}}
 
 ```bash
 kubectl --namespace=default get secret/capi-quickstart-kubeconfig -o json \

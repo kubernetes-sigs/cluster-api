@@ -20,7 +20,7 @@ issues:
   exclude:
     - "G108: Profiling endpoint is automatically exposed on /debug/pprof"
 run:
-  deadline: 2m
+  deadline: 5m
   skip-files:
     - "zz_generated.*\\.go$"
   skip-dirs:

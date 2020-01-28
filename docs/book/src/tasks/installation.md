@@ -18,13 +18,15 @@ Cluster API requires an existing kubernetes cluster accessible via kubectl, choo
 
 <h1>Warning</h1>
 
+**Minimum [kind] supported version**: v0.6.x
+
 [kind] is not designed for production use; it is intended for development and testing environments.
 
 </aside>
 
   ```bash
   kind create cluster --name=clusterapi
-  export KUBECONFIG="$(kind get kubeconfig-path --name="clusterapi")"
+  kubectl cluster-info --context kind-clusterapi
   ```
 {{#/tab }}
 {{#tab Docker}}
@@ -32,6 +34,8 @@ Cluster API requires an existing kubernetes cluster accessible via kubectl, choo
 <aside class="note warning">
 
 <h1>Warning</h1>
+
+**Minimum [kind] supported version**: v0.6.x
 
 [kind] is not designed for production use; it is intended for development and testing environments.
 
@@ -58,7 +62,7 @@ nodes:
         containerPath: /var/run/docker.sock
 EOF
   kind create cluster --config ./kind-cluster-with-extramounts.yaml --name clusterapi
-  export KUBECONFIG="$(kind get kubeconfig-path --name="clusterapi")"
+  kubectl cluster-info --context kind-clusterapi
   ```
 {{#/tab }}
 {{#/tabs }}

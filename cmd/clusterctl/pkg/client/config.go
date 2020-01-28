@@ -148,11 +148,11 @@ func (c *clusterctlClient) templateOptionsToVariables(options GetClusterTemplate
 		c.configClient.Variables().Set("KUBERNETES_VERSION", options.KubernetesVersion)
 	}
 
-	// the ControlPlaneMachineCount, if valid, can be used in templates using the ${ CONTROLPLANE_MACHINE_COUNT } variable.
+	// the ControlPlaneMachineCount, if valid, can be used in templates using the ${ CONTROL_PLANE_MACHINE_COUNT } variable.
 	if options.ControlPlaneMachineCount < 1 {
 		return errors.Errorf("invalid ControlPlaneMachineCount. Please use a number greater or equal than 1")
 	}
-	c.configClient.Variables().Set("CONTROLPLANE_MACHINE_COUNT", strconv.Itoa(options.ControlPlaneMachineCount))
+	c.configClient.Variables().Set("CONTROL_PLANE_MACHINE_COUNT", strconv.Itoa(options.ControlPlaneMachineCount))
 
 	// the WorkerMachineCount, if valid, can be used in templates using the ${ WORKER_MACHINE_COUNT } variable.
 	if options.WorkerMachineCount < 0 {

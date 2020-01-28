@@ -63,7 +63,7 @@ The following providers are currently defined in the script:
 
 * `cluster-api`
 * `kubeadm-bootstrap`
-* `kubeadm-controlplane`
+* `kubeadm-control-plane`
 * `docker`
 
 More providers can be added by editing the `clusterctl-settings.json` in your local copy of Cluster API;

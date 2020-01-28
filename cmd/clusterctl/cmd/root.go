@@ -69,7 +69,7 @@ func init() {
 	_ = RootCmd.PersistentFlags().Set("skip_headers", "true")
 	_ = RootCmd.PersistentFlags().Set("logtostderr", "true")
 
-	RootCmd.PersistentFlags().StringVar(&cfgFile, "config", "", "Path to the the clusterctl config file (default is $HOME/.clusterctl.yaml)")
+	RootCmd.PersistentFlags().StringVar(&cfgFile, "config", "", "Path to the the clusterctl config file (default is $HOME/.cluster-api/clusterctl.yaml)")
 }
 
 const Indentation = `  `

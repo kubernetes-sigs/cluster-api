@@ -127,7 +127,7 @@ providers.
 |--------------|--------------------------------------------------|
 |CAPI          | cluster.x-k8s.io/provider=cluster-api            |
 |CABPK         | cluster.x-k8s.io/provider=bootstrap-kubeadm      |
-|CACPK         | cluster.x-k8s.io/provider=controlplane-kubeadm   |
+|CACPK         | cluster.x-k8s.io/provider=control-plane-kubeadm  |
 |CAPA          | cluster.x-k8s.io/provider=infrastructure-aws     |
 |CAPV          | cluster.x-k8s.io/provider=infrastructure-vsphere |
 |CAPD          | cluster.x-k8s.io/provider=infrastructure-docker  |
@@ -174,7 +174,7 @@ Templates writers should use the common variables to ensure consistency across p
 | ---------------------- | ----------------- | ------------------------------------------- |
 |`--target-namespace`| `${ NAMESPACE }` | The namespace where the workload cluster should be deployed |
 |`--kubernetes-version`| `${ KUBERNETES_VERSION }` | The Kubernetes version to use for the workload cluster |
-|`--controlplane-machine-count`| `${ CONTROLPLANE_MACHINE_COUNT }` | The number of control plane machines to be added to the workload cluster |
+|`--controlplane-machine-count`| `${ CONTROL_PLANE_MACHINE_COUNT }` | The number of control plane machines to be added to the workload cluster |
 |`--worker-machine-count`| `${ WORKER_MACHINE_COUNT }` | The number of worker machines to be added to the workload cluster |
 
 Additionally, value of the command argument to `clusterctl config cluster <cluster-name>` (`<cluster-name>` in this case), will 

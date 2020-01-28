@@ -70,7 +70,7 @@ var configClusterClusterCmd = &cobra.Command{
 
 		# Generates a yaml file for creating a Cluster API workload cluster with
 		# custom number of nodes (if supported by provider's templates)
-		clusterctl config cluster my-cluster --controlplane-machine-count=3 --worker-machine-count=10`),
+		clusterctl config cluster my-cluster --control-plane-machine-count=3 --worker-machine-count=10`),
 
 	Args: cobra.ExactArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
@@ -87,7 +87,7 @@ func init() {
 	configClusterClusterCmd.Flags().StringVarP(&cc.flavor, "flavor", "f", "", "The template variant to be used for creating the workload cluster")
 	configClusterClusterCmd.Flags().StringVarP(&cc.targetNamespace, "target-namespace", "n", "", "The namespace where the objects describing the workload cluster should be deployed. If not specified, the current namespace will be used")
 	configClusterClusterCmd.Flags().StringVarP(&cc.kubernetesVersion, "kubernetes-version", "", "", "The Kubernetes version to use for the workload cluster. By default (empty), the value from os env variables or the .clusterctl config file will be used")
-	configClusterClusterCmd.Flags().IntVarP(&cc.controlPlaneMachineCount, "controlplane-machine-count", "", 1, "The number of control plane machines to be added to the workload cluster.")
+	configClusterClusterCmd.Flags().IntVarP(&cc.controlPlaneMachineCount, "control-plane-machine-count", "", 1, "The number of control plane machines to be added to the workload cluster.")
 	configClusterClusterCmd.Flags().IntVarP(&cc.workerMachineCount, "worker-machine-count", "", 0, "The number of worker machines to be added to the workload cluster.")
 
 	configCmd.AddCommand(configClusterClusterCmd)

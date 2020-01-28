@@ -23,16 +23,13 @@ import (
 	"sigs.k8s.io/cluster-api/cmd/clusterctl/pkg/client/config"
 )
 
+const NoopProvider = "-"
+
 // Init initializes a management cluster by adding the requested list of providers.
 func (c *clusterctlClient) Init(options InitOptions) ([]Components, bool, error) {
 	// gets access to the management cluster
 	cluster, err := c.clusterClientFactory(options.Kubeconfig)
 	if err != nil {
-		return nil, false, err
-	}
-
-	// Ensure the cert-manager WebHook is in place.
-	if err := cluster.CertManger().EnsureWebHook(); err != nil {
 		return nil, false, err
 	}
 
@@ -56,6 +53,9 @@ func (c *clusterctlClient) Init(options InitOptions) ([]Components, bool, error)
 		if len(options.BootstrapProviders) == 0 {
 			options.BootstrapProviders = append(options.BootstrapProviders, config.KubeadmBootstrapProviderName)
 		}
+		if len(options.ControlPlaneProviders) == 0 {
+			options.ControlPlaneProviders = append(options.ControlPlaneProviders, config.KubeadmControlPlaneProviderName)
+		}
 	}
 
 	// create an installer service, add the requested providers to the install queue (thus performing validation of the target state of the management cluster
@@ -78,7 +78,16 @@ func (c *clusterctlClient) Init(options InitOptions) ([]Components, bool, error)
 		return nil, false, err
 	}
 
+	if err := c.addToInstaller(addOptions, clusterctlv1.ControlPlaneProviderType, options.ControlPlaneProviders...); err != nil {
+		return nil, false, err
+	}
+
 	if err := c.addToInstaller(addOptions, clusterctlv1.InfrastructureProviderType, options.InfrastructureProviders...); err != nil {
+		return nil, false, err
+	}
+
+	// Before installing the providers, ensure the cert-manager WebHook is in place.
+	if err := cluster.CertManger().EnsureWebHook(); err != nil {
 		return nil, false, err
 	}
 
@@ -104,9 +113,17 @@ type addToInstallerOptions struct {
 // addToInstaller adds the components to the install queue and checks that the actual provider type match the target group
 func (c *clusterctlClient) addToInstaller(options addToInstallerOptions, targetGroup clusterctlv1.ProviderType, providers ...string) error {
 	for _, provider := range providers {
+		// It is possible to opt-out from automatic installation of bootstrap/controlPlane providers using '-' as a provider name (NoopProvider).
+		if provider == NoopProvider {
+			if targetGroup == clusterctlv1.CoreProviderType {
+				return errors.New("the '-' value can not be used for the core provider")
+			}
+			continue
+		}
+
 		components, err := c.getComponentsByName(provider, options.targetNameSpace, options.watchingNamespace)
 		if err != nil {
-			return err
+			return errors.Wrapf(err, "failed to get provider components for the %q provider", provider)
 		}
 
 		if components.Type() != targetGroup {
@@ -114,7 +131,7 @@ func (c *clusterctlClient) addToInstaller(options addToInstallerOptions, targetG
 		}
 
 		if err := options.installer.Add(components); err != nil {
-			return err
+			return errors.Wrapf(err, "failed to prepare for installing the %q provider", provider)
 		}
 	}
 	return nil

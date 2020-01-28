@@ -28,9 +28,10 @@ import (
 )
 
 const (
-	ClusterAPIName               = "cluster-api"
-	KubeadmBootstrapProviderName = "kubeadm-bootstrap"
-	ProvidersConfigKey           = "providers"
+	ClusterAPIName                  = "cluster-api"
+	KubeadmBootstrapProviderName    = "kubeadm-bootstrap"
+	KubeadmControlPlaneProviderName = "kubeadm-control-plane"
+	ProvidersConfigKey              = "providers"
 )
 
 // ProvidersClient has methods to work with provider configurations.
@@ -96,6 +97,13 @@ func (p *providersClient) defaults() []Provider {
 			name:         KubeadmBootstrapProviderName,
 			url:          "https://github.com/kubernetes-sigs/cluster-api/releases/latest/bootstrap-components.yaml",
 			providerType: clusterctlv1.BootstrapProviderType,
+		},
+
+		// ControlPlane providers
+		&provider{
+			name:         KubeadmControlPlaneProviderName,
+			url:          "https://github.com/kubernetes-sigs/cluster-api/releases/latest/control-plane-components.yaml",
+			providerType: clusterctlv1.ControlPlaneProviderType,
 		},
 	}
 
@@ -184,13 +192,15 @@ func validateProvider(r Provider) error {
 	switch r.Type() {
 	case clusterctlv1.CoreProviderType,
 		clusterctlv1.BootstrapProviderType,
-		clusterctlv1.InfrastructureProviderType:
+		clusterctlv1.InfrastructureProviderType,
+		clusterctlv1.ControlPlaneProviderType:
 		break
 	default:
-		return errors.Errorf("invalid provider type. Allowed values are [%s, %s, %s]",
+		return errors.Errorf("invalid provider type. Allowed values are [%s, %s, %s, %s]",
 			clusterctlv1.CoreProviderType,
 			clusterctlv1.BootstrapProviderType,
-			clusterctlv1.InfrastructureProviderType)
+			clusterctlv1.InfrastructureProviderType,
+			clusterctlv1.ControlPlaneProviderType)
 	}
 	return nil
 }

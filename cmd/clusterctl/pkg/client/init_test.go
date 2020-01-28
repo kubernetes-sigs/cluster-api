@@ -35,6 +35,7 @@ func Test_clusterctlClient_Init(t *testing.T) {
 	type args struct {
 		coreProvider           string
 		bootstrapProvider      []string
+		controlPlaneProvider   []string
 		infrastructureProvider []string
 		targetNameSpace        string
 		watchingNamespace      string
@@ -56,12 +57,13 @@ func Test_clusterctlClient_Init(t *testing.T) {
 		{
 			name: "Init (with an empty cluster) with default provider versions",
 			field: field{
-				client: fakeEmptyCluster(), // clusterctl client for an empty management cluster (with repository setup for capi, bootstrap and infra provider)
+				client: fakeEmptyCluster(), // clusterctl client for an empty management cluster (with repository setup for capi, bootstrap, control plane and infra provider)
 				hasCRD: false,
 			},
 			args: args{
 				coreProvider:           "",  // with an empty cluster, a core provider should be added automatically
 				bootstrapProvider:      nil, // with an empty cluster, a bootstrap provider should be added automatically
+				controlPlaneProvider:   nil, // with an empty cluster, a control plane provider should be added automatically
 				infrastructureProvider: []string{"infra"},
 				targetNameSpace:        "",
 				watchingNamespace:      "",
@@ -80,9 +82,45 @@ func Test_clusterctlClient_Init(t *testing.T) {
 					watchingNamespace: "",
 				},
 				{
+					provider:          controlPlaneProviderConfig,
+					version:           "v2.0.0",
+					targetNamespace:   "ns3",
+					watchingNamespace: "",
+				},
+				{
 					provider:          infraProviderConfig,
 					version:           "v3.0.0",
-					targetNamespace:   "ns3",
+					targetNamespace:   "ns4",
+					watchingNamespace: "",
+				},
+			},
+			wantErr: false,
+		},
+		{
+			name: "Init (with an empty cluster) opting out from automatic install of providers",
+			field: field{
+				client: fakeEmptyCluster(), // clusterctl client for an empty management cluster (with repository setup for capi, bootstrap, control plane and infra provider)
+				hasCRD: false,
+			},
+			args: args{
+				coreProvider:           "",            // with an empty cluster, a core provider should be added automatically
+				bootstrapProvider:      []string{"-"}, // opt-out from the automatic bootstrap provider installation
+				controlPlaneProvider:   []string{"-"}, // opt-out from the automatic control plane provider installation
+				infrastructureProvider: []string{"infra"},
+				targetNameSpace:        "",
+				watchingNamespace:      "",
+			},
+			want: []want{
+				{
+					provider:          capiProviderConfig,
+					version:           "v1.0.0",
+					targetNamespace:   "ns1",
+					watchingNamespace: "",
+				},
+				{
+					provider:          infraProviderConfig,
+					version:           "v3.0.0",
+					targetNamespace:   "ns4",
 					watchingNamespace: "",
 				},
 			},
@@ -91,12 +129,13 @@ func Test_clusterctlClient_Init(t *testing.T) {
 		{
 			name: "Init (with an empty cluster) with custom provider versions",
 			field: field{
-				client: fakeEmptyCluster(), // clusterctl client for an empty management cluster (with repository setup for capi, bootstrap and infra provider)
+				client: fakeEmptyCluster(), // clusterctl client for an empty management cluster (with repository setup for capi, bootstrap, control plane and infra provider)
 				hasCRD: false,
 			},
 			args: args{
 				coreProvider:           fmt.Sprintf("%s:v1.1.0", config.ClusterAPIName),
 				bootstrapProvider:      []string{fmt.Sprintf("%s:v2.1.0", config.KubeadmBootstrapProviderName)},
+				controlPlaneProvider:   []string{fmt.Sprintf("%s:v2.1.0", config.KubeadmControlPlaneProviderName)},
 				infrastructureProvider: []string{"infra:v3.1.0"},
 				targetNameSpace:        "",
 				watchingNamespace:      "",
@@ -115,9 +154,15 @@ func Test_clusterctlClient_Init(t *testing.T) {
 					watchingNamespace: "",
 				},
 				{
+					provider:          controlPlaneProviderConfig,
+					version:           "v2.1.0",
+					targetNamespace:   "ns3",
+					watchingNamespace: "",
+				},
+				{
 					provider:          infraProviderConfig,
 					version:           "v3.1.0",
-					targetNamespace:   "ns3",
+					targetNamespace:   "ns4",
 					watchingNamespace: "",
 				},
 			},
@@ -126,7 +171,7 @@ func Test_clusterctlClient_Init(t *testing.T) {
 		{
 			name: "Init (with an empty cluster) with target namespace",
 			field: field{
-				client: fakeEmptyCluster(), // clusterctl client for an empty management cluster (with repository setup for capi, bootstrap and infra provider)
+				client: fakeEmptyCluster(), // clusterctl client for an empty management cluster (with repository setup for capi, bootstrap, control plane and infra provider)
 				hasCRD: false,
 			},
 			args: args{
@@ -150,6 +195,12 @@ func Test_clusterctlClient_Init(t *testing.T) {
 					watchingNamespace: "",
 				},
 				{
+					provider:          controlPlaneProviderConfig,
+					version:           "v2.0.0",
+					targetNamespace:   "nsx",
+					watchingNamespace: "",
+				},
+				{
 					provider:          infraProviderConfig,
 					version:           "v3.0.0",
 					targetNamespace:   "nsx",
@@ -161,7 +212,7 @@ func Test_clusterctlClient_Init(t *testing.T) {
 		{
 			name: "Init (with a NOT empty cluster) adds a provider",
 			field: field{
-				client: fakeInitializedCluster(), // clusterctl client for an management cluster with capi installed (with repository setup for capi, bootstrap and infra provider)
+				client: fakeInitializedCluster(), // clusterctl client for an management cluster with capi installed (with repository setup for capi, bootstrap, control plane and infra provider)
 				hasCRD: true,
 			},
 			args: args{
@@ -181,21 +232,38 @@ func Test_clusterctlClient_Init(t *testing.T) {
 				{
 					provider:          infraProviderConfig,
 					version:           "v3.0.0",
-					targetNamespace:   "ns3",
+					targetNamespace:   "ns4",
 					watchingNamespace: "",
 				},
 			},
 			wantErr: false,
 		},
 		{
-			name: "Fails when coreProvider is a provider with the wrong type",
+			name: "Fails when opting out from coreProvider automatic installation",
 			field: field{
-				client: fakeEmptyCluster(), // clusterctl client for an empty management cluster (with repository setup for capi, bootstrap and infra provider)
+				client: fakeEmptyCluster(), // clusterctl client for an empty management cluster (with repository setup for capi, bootstrap, control plane and infra provider)
 			},
 			args: args{
-				coreProvider:           "infra",
-				bootstrapProvider:      []string{"infra"},
-				infrastructureProvider: []string{"infra"},
+				coreProvider:           "-", // not allowed
+				bootstrapProvider:      nil,
+				controlPlaneProvider:   nil,
+				infrastructureProvider: nil,
+				targetNameSpace:        "",
+				watchingNamespace:      "",
+			},
+			want:    nil,
+			wantErr: true,
+		},
+		{
+			name: "Fails when coreProvider is a provider with the wrong type",
+			field: field{
+				client: fakeEmptyCluster(), // clusterctl client for an empty management cluster (with repository setup for capi, bootstrap, control plane and infra provider)
+			},
+			args: args{
+				coreProvider:           "infra", // wrong
+				bootstrapProvider:      nil,
+				controlPlaneProvider:   nil,
+				infrastructureProvider: nil,
 				targetNameSpace:        "",
 				watchingNamespace:      "",
 			},
@@ -205,12 +273,13 @@ func Test_clusterctlClient_Init(t *testing.T) {
 		{
 			name: "Fails when bootstrapProvider list contains providers of the wrong type",
 			field: field{
-				client: fakeEmptyCluster(), // clusterctl client for an empty management cluster (with repository setup for capi, bootstrap and infra provider)
+				client: fakeEmptyCluster(), // clusterctl client for an empty management cluster (with repository setup for capi, bootstrap, control plane and infra provider)
 			},
 			args: args{
 				coreProvider:           "",
-				bootstrapProvider:      []string{"infra"},
-				infrastructureProvider: []string{"infra"},
+				bootstrapProvider:      []string{"infra"}, // wrong
+				controlPlaneProvider:   nil,
+				infrastructureProvider: nil,
 				targetNameSpace:        "",
 				watchingNamespace:      "",
 			},
@@ -218,14 +287,31 @@ func Test_clusterctlClient_Init(t *testing.T) {
 			wantErr: true,
 		},
 		{
-			name: "Fails when infrastructureProvider  list contains providers of the wrong type",
+			name: "Fails when controlPlaneProvider list contains providers of the wrong type",
 			field: field{
-				client: fakeEmptyCluster(), // clusterctl client for an empty management cluster (with repository setup for capi, bootstrap and infra provider)
+				client: fakeEmptyCluster(), // clusterctl client for an empty management cluster (with repository setup for capi, bootstrap, control plane and infra provider)
 			},
 			args: args{
 				coreProvider:           "",
-				bootstrapProvider:      []string{config.KubeadmBootstrapProviderName},
-				infrastructureProvider: []string{config.KubeadmBootstrapProviderName},
+				bootstrapProvider:      nil,
+				controlPlaneProvider:   []string{"infra"}, // wrong
+				infrastructureProvider: nil,
+				targetNameSpace:        "",
+				watchingNamespace:      "",
+			},
+			want:    nil,
+			wantErr: true,
+		},
+		{
+			name: "Fails when infrastructureProvider list contains providers of the wrong type",
+			field: field{
+				client: fakeEmptyCluster(), // clusterctl client for an empty management cluster (with repository setup for capi, bootstrap, control plane and infra provider)
+			},
+			args: args{
+				coreProvider:           "",
+				bootstrapProvider:      nil,
+				controlPlaneProvider:   nil,
+				infrastructureProvider: []string{config.KubeadmBootstrapProviderName}, // wrong
 				targetNameSpace:        "",
 				watchingNamespace:      "",
 			},
@@ -246,6 +332,7 @@ func Test_clusterctlClient_Init(t *testing.T) {
 				Kubeconfig:              "kubeconfig",
 				CoreProvider:            tt.args.coreProvider,
 				BootstrapProviders:      tt.args.bootstrapProvider,
+				ControlPlaneProviders:   tt.args.controlPlaneProvider,
 				InfrastructureProviders: tt.args.infrastructureProvider,
 				TargetNameSpace:         tt.args.targetNameSpace,
 				WatchingNamespace:       tt.args.watchingNamespace,
@@ -253,6 +340,9 @@ func Test_clusterctlClient_Init(t *testing.T) {
 
 			if (err != nil) != tt.wantErr {
 				t.Fatalf("error = %v, wantErr %v", err, tt.wantErr)
+			}
+			if tt.wantErr {
+				return
 			}
 
 			if len(got) != len(tt.want) {
@@ -288,9 +378,10 @@ func Test_clusterctlClient_Init(t *testing.T) {
 }
 
 var (
-	capiProviderConfig      = config.NewProvider(config.ClusterAPIName, "url", clusterctlv1.CoreProviderType)
-	bootstrapProviderConfig = config.NewProvider(config.KubeadmBootstrapProviderName, "url", clusterctlv1.BootstrapProviderType)
-	infraProviderConfig     = config.NewProvider("infra", "url", clusterctlv1.InfrastructureProviderType)
+	capiProviderConfig         = config.NewProvider(config.ClusterAPIName, "url", clusterctlv1.CoreProviderType)
+	bootstrapProviderConfig    = config.NewProvider(config.KubeadmBootstrapProviderName, "url", clusterctlv1.BootstrapProviderType)
+	controlPlaneProviderConfig = config.NewProvider(config.KubeadmControlPlaneProviderName, "url", clusterctlv1.ControlPlaneProviderType)
+	infraProviderConfig        = config.NewProvider("infra", "url", clusterctlv1.InfrastructureProviderType)
 )
 
 // clusterctl client for an empty management cluster (with repository setup for capi, bootstrap and infra provider)
@@ -299,6 +390,7 @@ func fakeEmptyCluster() *fakeClient {
 		WithVar("var", "value").
 		WithProvider(capiProviderConfig).
 		WithProvider(bootstrapProviderConfig).
+		WithProvider(controlPlaneProviderConfig).
 		WithProvider(infraProviderConfig)
 
 	repository1 := newFakeRepository(capiProviderConfig, config1.Variables()).
@@ -311,12 +403,17 @@ func fakeEmptyCluster() *fakeClient {
 		WithDefaultVersion("v2.0.0").
 		WithFile("v2.0.0", "components.yaml", componentsYAML("ns2")).
 		WithFile("v2.1.0", "components.yaml", componentsYAML("ns2"))
-	repository3 := newFakeRepository(infraProviderConfig, config1.Variables()).
+	repository3 := newFakeRepository(controlPlaneProviderConfig, config1.Variables()).
+		WithPaths("root", "components.yaml").
+		WithDefaultVersion("v2.0.0").
+		WithFile("v2.0.0", "components.yaml", componentsYAML("ns3")).
+		WithFile("v2.1.0", "components.yaml", componentsYAML("ns3"))
+	repository4 := newFakeRepository(infraProviderConfig, config1.Variables()).
 		WithPaths("root", "components.yaml").
 		WithDefaultVersion("v3.0.0").
-		WithFile("v3.0.0", "components.yaml", componentsYAML("ns3")).
-		WithFile("v3.1.0", "components.yaml", componentsYAML("ns3")).
-		WithFile("v3.0.0", "config-kubeadm.yaml", templateYAML("ns3", "test"))
+		WithFile("v3.0.0", "components.yaml", componentsYAML("ns4")).
+		WithFile("v3.1.0", "components.yaml", componentsYAML("ns4")).
+		WithFile("v3.0.0", "config-kubeadm.yaml", templateYAML("ns4", "test"))
 
 	cluster1 := newFakeCluster("kubeconfig")
 
@@ -325,6 +422,7 @@ func fakeEmptyCluster() *fakeClient {
 		WithRepository(repository1).
 		WithRepository(repository2).
 		WithRepository(repository3).
+		WithRepository(repository4).
 		// fake empty cluster
 		WithCluster(cluster1)
 

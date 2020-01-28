@@ -27,6 +27,7 @@ type initOptions struct {
 	kubeconfig              string
 	coreProvider            string
 	bootstrapProviders      []string
+	controlPlaneProviders   []string
 	infrastructureProviders []string
 	targetNamespace         string
 	watchingNamespace       string
@@ -86,6 +87,7 @@ func init() {
 	initCmd.Flags().StringVarP(&io.coreProvider, "core", "", "", "Core provider version (e.g. cluster-api:v0.3.0) to add to the management cluster. By default (empty), the cluster-api core provider's latest release is used")
 	initCmd.Flags().StringSliceVarP(&io.infrastructureProviders, "infrastructure", "i", nil, "Infrastructure providers and versions (e.g. aws:v0.5.0) to add to the management cluster")
 	initCmd.Flags().StringSliceVarP(&io.bootstrapProviders, "bootstrap", "b", nil, "Bootstrap providers and versions (e.g. kubeadm-bootstrap:v0.3.0) to add to the management cluster. By default (empty), the kubeadm bootstrap provider's latest release is used")
+	initCmd.Flags().StringSliceVarP(&io.controlPlaneProviders, "control-plane", "c", nil, "ControlPlane providers and versions (e.g. kubeadm-control-plane:v0.3.0) to add to the management cluster. By default (empty), the kubeadm control plane provider latest release is used")
 	initCmd.Flags().StringVarP(&io.targetNamespace, "target-namespace", "", "", "The target namespace where the providers should be deployed. If not specified, each provider will be installed in a provider's default namespace")
 	initCmd.Flags().StringVarP(&io.watchingNamespace, "watching-namespace", "", "", "Namespace that the providers should watch to reconcile Cluster API objects. If unspecified, the providers watches for Cluster API objects across all namespaces")
 
@@ -104,6 +106,7 @@ func runInit() error {
 		Kubeconfig:              io.kubeconfig,
 		CoreProvider:            io.coreProvider,
 		BootstrapProviders:      io.bootstrapProviders,
+		ControlPlaneProviders:   io.controlPlaneProviders,
 		InfrastructureProviders: io.infrastructureProviders,
 		TargetNameSpace:         io.targetNamespace,
 		WatchingNamespace:       io.watchingNamespace,

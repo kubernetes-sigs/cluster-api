@@ -167,8 +167,8 @@ The `clusterctl init` command installs the Cluster API components and transforms
 into a management cluster.
 
 The command accepts as input a list of providers to install; when executed for the first time, `clusterctl init` 
-automatically adds to the list the Cluster API core provider, and if a bootstrap provider is not specified, it adds
-also the kubeadm bootstrap provider.
+automatically adds to the list the `cluster-api` core provider, and if not specified, it
+also adds the `kubeadm-bootstrap` and `kubeadm-controlplane` providers.
 
 <aside class="note warning">
 
@@ -197,7 +197,7 @@ You can now create your first workload cluster by running the following:
   clusterctl config cluster [name] --kubernetes-version [version] | kubectl apply -f -
 ```
 
-See [`clusterctl init`](init.md) for more details.
+See [`clusterctl init`](commands/init.md) for more details.
 
 ### 2. Create the first workload cluster
 
@@ -264,7 +264,7 @@ awsmachine.infrastructure.cluster.x-k8s.io/my-cluster-controlplane-0 created
 awsmachinetemplate.infrastructure.cluster.x-k8s.io/my-cluster-worker created
 ```
 
-See [`clusterctl config cluster`](config-cluster.md) for more details.
+See [`clusterctl config cluster`](commands/config-cluster.md) for more details.
 
 ## Day 2 operations
 

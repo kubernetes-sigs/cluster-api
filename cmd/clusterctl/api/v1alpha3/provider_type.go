@@ -73,6 +73,9 @@ const (
 	// InfrastructureProviderType
 	InfrastructureProviderType = ProviderType("InfrastructureProvider")
 
+	// ControlPlaneProviderType
+	ControlPlaneProviderType = ProviderType("ControlPlaneProvider")
+
 	// ProviderTypeUnknown
 	ProviderTypeUnknown = ProviderType("")
 )
@@ -84,7 +87,8 @@ func (in *Provider) GetTypedProviderType() ProviderType {
 	case
 		CoreProviderType,
 		BootstrapProviderType,
-		InfrastructureProviderType:
+		InfrastructureProviderType,
+		ControlPlaneProviderType:
 		return t
 	default:
 		return ProviderTypeUnknown

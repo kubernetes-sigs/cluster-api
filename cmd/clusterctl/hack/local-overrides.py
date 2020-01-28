@@ -61,6 +61,12 @@ providers = {
             'type': 'BootstrapProvider',
             'configFolder': 'bootstrap/kubeadm/config/default',
       },
+      'kubeadm-control-plane': {
+            'componentsFile': 'control-plane-components.yaml',
+            'nextVersion': 'v0.3.0',
+            'type': 'ControlPlaneProvider',
+            'configFolder': 'controlplane/kubeadm/config/default',
+      },
       'docker': {
           'componentsFile': 'infrastructure-components.yaml',
           'nextVersion': 'v0.3.0',
@@ -69,7 +75,7 @@ providers = {
       },
 }
 
-validTypes = ['CoreProvider','BootstrapProvider','InfrastructureProvider']
+validTypes = ['CoreProvider','BootstrapProvider','ControlPlaneProvider','InfrastructureProvider']
 
 def load_settings():
     global settings
@@ -158,6 +164,9 @@ def CoreProviderFlag():
 def BootstrapProviderFlag():
     return '--bootstrap'
 
+def ControlPlaneProviderFlag():
+    return '--control-plane'
+
 def InfrastructureProviderFlag():
     return '--infrastructure'
 
@@ -165,6 +174,7 @@ def type_to_flag(type):
     switcher = {
         'CoreProvider': CoreProviderFlag,
         'BootstrapProvider': BootstrapProviderFlag,
+        'ControlPlaneProvider': ControlPlaneProviderFlag,
         'InfrastructureProvider': InfrastructureProviderFlag
     }
     func = switcher.get(type, lambda: 'Invalid type')

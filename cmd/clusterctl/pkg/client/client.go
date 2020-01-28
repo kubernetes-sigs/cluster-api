@@ -27,6 +27,7 @@ type InitOptions struct {
 	Kubeconfig              string
 	CoreProvider            string
 	BootstrapProviders      []string
+	ControlPlaneProviders   []string
 	InfrastructureProviders []string
 	TargetNameSpace         string
 	WatchingNamespace       string

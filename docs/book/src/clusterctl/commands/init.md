@@ -23,27 +23,35 @@ If the provider of your choice is missing, you can customize the list of support
 
 #### Automatically installed providers
 
-The `clusterctl init` command automatically adds the Cluster API core provider and
-the kubeadm bootstrap provider to the list of providers to install. This allows users to use a concise command syntax for initializing a management cluster. e.g.
+The `clusterctl init` command automatically adds the `cluster-api` core provider, the `kubeadm-bootstrap` provider, and
+the `kubeadm-control-plane` provider to the list of providers to install. This allows users to use a concise command syntax for initializing a management cluster. e.g.
 use the command:
 
 `clusterctl init --infrastracture aws`
 
-To install the `aws` infrastructure provider, the Cluster API core provider and the kubeadm bootstrap provider
+To get a fully operative management cluster with the `aws` infrastructure provider, the `cluster-api` core provider, the `kubeadm-bootstrap` and the `kubeadm-control-plane` provider
 
 <aside class="note warning">
 
 <h1> Warning </h1>
 
-The Cluster API core provider and the kubeadm bootstrap provider are automatically installed only if:
-- The user doesn't explicitly require to install a core/bootstrap provider using the `--core` or the `-bootstrap` flags;
-- There is not another instance of core provider/bootstrap provider already installed in the cluster;
+The `cluster-api` core provider, the `kubeadm-bootstrap` provider, and the `kubeadm-control-plane` provider are automatically installed only if:
+- The user doesn't explicitly require to install a core/bootstrap/control-plane provider using the `--core` flag, the `--bootstrap` flag or the `--control-plane` flags;
+- There is not an instance of a CoreProvider already installed in the cluster;
 
 Please note that the second rule allows to execute `clusterctl init` more times: the first call actually initializes
 the management cluster, while the subsequent calls can be used to add more providers.
 
 </aside>
 
+<aside class="note">
+
+<h1> Is it possible to skip automatic install?</h1>
+
+To skip automatic provider installation use  `--bootstrap "-"` or  `--control-plane "-"`.
+Note it is not possible to skip automatic installation of the `cluster-api` core provider.
+
+</aside>
 
 #### Provider version
 

@@ -35,6 +35,7 @@ import (
 	clusterv1alpha2 "sigs.k8s.io/cluster-api/api/v1alpha2"
 	clusterv1alpha3 "sigs.k8s.io/cluster-api/api/v1alpha3"
 	"sigs.k8s.io/cluster-api/controllers"
+	"sigs.k8s.io/controller-runtime/pkg/healthz"
 	// +kubebuilder:scaffold:imports
 )
 
@@ -65,6 +66,7 @@ func main() {
 		machinePoolConcurrency       int
 		syncPeriod                   time.Duration
 		webhookPort                  int
+		healthAddr                   string
 	)
 
 	flag.StringVar(&metricsAddr, "metrics-addr", ":8080",
@@ -100,6 +102,9 @@ func main() {
 	flag.IntVar(&webhookPort, "webhook-port", 9443,
 		"Webhook Server port (set to 0 to disable)")
 
+	flag.StringVar(&healthAddr, "health-addr", ":9440",
+		"The address the health endpoint binds to.")
+
 	flag.Parse()
 
 	ctrl.SetLogger(klogr.New())
@@ -112,14 +117,15 @@ func main() {
 	}
 
 	mgr, err := ctrl.NewManager(ctrl.GetConfigOrDie(), ctrl.Options{
-		Scheme:             scheme,
-		MetricsBindAddress: metricsAddr,
-		LeaderElection:     enableLeaderElection,
-		LeaderElectionID:   "controller-leader-election-capi",
-		Namespace:          watchNamespace,
-		SyncPeriod:         &syncPeriod,
-		NewClient:          newClientFunc,
-		Port:               webhookPort,
+		Scheme:                 scheme,
+		MetricsBindAddress:     metricsAddr,
+		LeaderElection:         enableLeaderElection,
+		LeaderElectionID:       "controller-leader-election-capi",
+		Namespace:              watchNamespace,
+		SyncPeriod:             &syncPeriod,
+		NewClient:              newClientFunc,
+		Port:                   webhookPort,
+		HealthProbeBindAddress: healthAddr,
 	})
 	if err != nil {
 		setupLog.Error(err, "unable to start manager")
@@ -223,6 +229,16 @@ func main() {
 			setupLog.Error(err, "unable to create webhook", "webhook", "MachinePool")
 			os.Exit(1)
 		}
+	}
+
+	if err := mgr.AddReadyzCheck("ping", healthz.Ping); err != nil {
+		setupLog.Error(err, "unable to create ready check")
+		os.Exit(1)
+	}
+
+	if err := mgr.AddHealthzCheck("ping", healthz.Ping); err != nil {
+		setupLog.Error(err, "unable to create health check")
+		os.Exit(1)
 	}
 
 	// +kubebuilder:scaffold:builder

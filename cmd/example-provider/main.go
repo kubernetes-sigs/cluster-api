@@ -26,6 +26,7 @@ import (
 	"sigs.k8s.io/cluster-api/controllers"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
+	"sigs.k8s.io/controller-runtime/pkg/healthz"
 )
 
 func main() {
@@ -34,17 +35,21 @@ func main() {
 	flag.BoolVar(&enableLeaderElection, "enable-leader-election", false,
 		"Enable leader election for controller manager. Enabling this will ensure there is only one active controller manager.")
 	var metricsAddr string
+	var healthAddr string
 	flag.StringVar(&metricsAddr, "metrics-addr", ":8080",
 		"The address the metric endpoint binds to.")
+	flag.StringVar(&healthAddr, "health-addr", ":9440",
+		"The address the health endpoint binds to.")
 	flag.Parse()
 
 	cfg := ctrl.GetConfigOrDie()
 
 	// Setup a Manager
 	mgr, err := ctrl.NewManager(cfg, ctrl.Options{
-		Scheme:             scheme.Scheme,
-		LeaderElection:     enableLeaderElection,
-		MetricsBindAddress: metricsAddr,
+		Scheme:                 scheme.Scheme,
+		LeaderElection:         enableLeaderElection,
+		MetricsBindAddress:     metricsAddr,
+		HealthProbeBindAddress: healthAddr,
 	})
 	if err != nil {
 		klog.Fatalf("Failed to set up controller manager: %v", err)
@@ -65,6 +70,14 @@ func main() {
 		Log:    ctrl.Log.WithName("controllers").WithName("Machine"),
 	}).SetupWithManager(mgr, controller.Options{MaxConcurrentReconciles: 1}); err != nil {
 		os.Exit(1)
+	}
+
+	if err := mgr.AddReadyzCheck("ping", healthz.Ping); err != nil {
+		klog.Fatalf("unable to create health check: %v", err)
+	}
+
+	if err := mgr.AddHealthzCheck("ping", healthz.Ping); err != nil {
+		klog.Fatalf("unable to create health check: %v", err)
 	}
 
 	if err := mgr.Start(ctrl.SetupSignalHandler()); err != nil {

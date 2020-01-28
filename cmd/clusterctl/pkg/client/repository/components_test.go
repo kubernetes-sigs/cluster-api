@@ -737,6 +737,125 @@ func Test_fixWatchNamespace(t *testing.T) {
 	}
 }
 
+func Test_inspectImages(t *testing.T) {
+	type args struct {
+		objs []unstructured.Unstructured
+	}
+	tests := []struct {
+		name    string
+		args    args
+		want    []string
+		wantErr bool
+	}{
+		{
+			name: "controller without the RBAC proxy",
+			args: args{
+				objs: []unstructured.Unstructured{
+					{
+						Object: map[string]interface{}{
+							"apiVersion": "apps/v1",
+							"kind":       deploymentKind,
+							"spec": map[string]interface{}{
+								"template": map[string]interface{}{
+									"spec": map[string]interface{}{
+										"containers": []map[string]interface{}{
+											{
+												"name":  controllerContainerName,
+												"image": "gcr.io/k8s-staging-cluster-api/cluster-api-controller:master",
+											},
+										},
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+			want:    []string{"gcr.io/k8s-staging-cluster-api/cluster-api-controller:master"},
+			wantErr: false,
+		},
+		{
+			name: "controller with the RBAC proxy",
+			args: args{
+				objs: []unstructured.Unstructured{
+					{
+						Object: map[string]interface{}{
+							"apiVersion": "apps/v1",
+							"kind":       deploymentKind,
+							"spec": map[string]interface{}{
+								"template": map[string]interface{}{
+									"spec": map[string]interface{}{
+										"containers": []map[string]interface{}{
+											{
+												"name":  controllerContainerName,
+												"image": "gcr.io/k8s-staging-cluster-api/cluster-api-controller:master",
+											},
+											{
+												"name":  "kube-rbac-proxy",
+												"image": "gcr.io/kubebuilder/kube-rbac-proxy:v0.4.1",
+											},
+										},
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+			want:    []string{"gcr.io/k8s-staging-cluster-api/cluster-api-controller:master", "gcr.io/kubebuilder/kube-rbac-proxy:v0.4.1"},
+			wantErr: false,
+		},
+		{
+			name: "controller with init container",
+			args: args{
+				objs: []unstructured.Unstructured{
+					{
+						Object: map[string]interface{}{
+							"apiVersion": "apps/v1",
+							"kind":       deploymentKind,
+							"spec": map[string]interface{}{
+								"template": map[string]interface{}{
+									"spec": map[string]interface{}{
+										"containers": []map[string]interface{}{
+											{
+												"name":  controllerContainerName,
+												"image": "gcr.io/k8s-staging-cluster-api/cluster-api-controller:master",
+											},
+										},
+										"initContainers": []map[string]interface{}{
+											{
+												"name":  controllerContainerName,
+												"image": "gcr.io/k8s-staging-cluster-api/cluster-api-controller:init",
+											},
+										},
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+			want:    []string{"gcr.io/k8s-staging-cluster-api/cluster-api-controller:master", "gcr.io/k8s-staging-cluster-api/cluster-api-controller:init"},
+			wantErr: false,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got, err := inspectImages(tt.args.objs)
+			if (err != nil) != tt.wantErr {
+				t.Fatalf("error = %v, wantErr %v", err, tt.wantErr)
+			}
+			if tt.wantErr {
+				return
+			}
+
+			if !reflect.DeepEqual(got, tt.want) {
+				t.Errorf("got = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
+
 func Test_addLabels(t *testing.T) {
 	type args struct {
 		objs []unstructured.Unstructured

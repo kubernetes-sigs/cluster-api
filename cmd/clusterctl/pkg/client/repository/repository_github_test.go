@@ -68,7 +68,7 @@ func Test_gitHubRepository_getVersions(t *testing.T) {
 			field: field{
 				providerConfig: config.NewProvider("test", "https://github.com/o/r1/releases/v0.4.1/path", clusterctlv1.CoreProviderType),
 			},
-			want:    []string{"v0.4.0", "v0.4.1", "v0.4.2"},
+			want:    []string{"v0.4.0", "v0.4.1", "v0.4.2", "v0.4.3-alpha"},
 			wantErr: false,
 		},
 	}
@@ -130,7 +130,7 @@ func Test_gitHubRepository_getLatestRelease(t *testing.T) {
 			field: field{
 				providerConfig: config.NewProvider("test", "https://github.com/o/r1/releases/v0.4.1/path", clusterctlv1.CoreProviderType),
 			},
-			want:    "v0.4.2",
+			want:    "v0.4.3-alpha", // prerelease/build releaese are considered as well
 			wantErr: false,
 		},
 		{

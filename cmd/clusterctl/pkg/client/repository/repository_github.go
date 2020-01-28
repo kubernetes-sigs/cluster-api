@@ -206,13 +206,8 @@ func (g *gitHubRepository) getVersions() ([]string, error) {
 			continue
 		}
 		tagName := *r.TagName
-		sv, err := version.ParseSemantic(tagName)
-		if err != nil {
+		if _, err := version.ParseSemantic(tagName); err != nil {
 			// Discard releases with tags that are not a valid semantic versions (the user can point explicitly to such releases).
-			continue
-		}
-		if sv.PreRelease() != "" || sv.BuildMetadata() != "" {
-			// Discard pre-releases or build releases (the user can point explicitly to such releases).
 			continue
 		}
 		versions = append(versions, tagName)

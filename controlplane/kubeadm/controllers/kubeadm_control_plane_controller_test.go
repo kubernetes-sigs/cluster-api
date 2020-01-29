@@ -477,6 +477,9 @@ func TestReconcileClusterNoEndpoints(t *testing.T) {
 			Name:      "foo",
 			Namespace: "test",
 		},
+		Status: clusterv1.ClusterStatus{
+			InfrastructureReady: true,
+		},
 	}
 
 	kcp := &controlplanev1.KubeadmControlPlane{
@@ -538,6 +541,9 @@ func TestReconcileInitializeControlPlane(t *testing.T) {
 				Host: "test.local",
 				Port: 9999,
 			},
+		},
+		Status: clusterv1.ClusterStatus{
+			InfrastructureReady: true,
 		},
 	}
 
@@ -1058,6 +1064,9 @@ func TestReconcileControlPlaneScaleUp(t *testing.T) {
 				APIVersion: controlplanev1.GroupVersion.String(),
 			},
 		},
+		Status: clusterv1.ClusterStatus{
+			InfrastructureReady: true,
+		},
 	}
 
 	genericMachineTemplate := &unstructured.Unstructured{
@@ -1331,6 +1340,9 @@ func TestReconcileControlPlaneDelete(t *testing.T) {
 				Name:       "kcp-foo",
 				APIVersion: controlplanev1.GroupVersion.String(),
 			},
+		},
+		Status: clusterv1.ClusterStatus{
+			InfrastructureReady: true,
 		},
 	}
 

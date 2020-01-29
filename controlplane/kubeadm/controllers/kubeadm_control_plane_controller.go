@@ -139,6 +139,10 @@ func (r *KubeadmControlPlaneReconciler) Reconcile(req ctrl.Request) (res ctrl.Re
 	}
 	logger = logger.WithValues("cluster", cluster.Name)
 
+	if !cluster.Status.InfrastructureReady {
+		return ctrl.Result{}, nil
+	}
+
 	defer func() {
 		// Always attempt to update status.
 		if err := r.updateStatus(ctx, kcp, cluster); err != nil {

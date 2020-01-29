@@ -126,6 +126,7 @@ func (r *KubeadmConfigReconciler) Reconcile(req ctrl.Request) (_ ctrl.Result, re
 		log.Error(err, "failed to get config")
 		return ctrl.Result{}, err
 	}
+	log = r.Log.WithValues("config-version", config.GetResourceVersion())
 
 	// Look up the owner of this KubeConfig if there is one
 	configOwner, err := bsutil.GetConfigOwner(ctx, r.Client, config.ObjectMeta)
@@ -140,7 +141,10 @@ func (r *KubeadmConfigReconciler) Reconcile(req ctrl.Request) (_ ctrl.Result, re
 	if configOwner == nil {
 		return ctrl.Result{}, nil
 	}
-	log = log.WithValues("kind", configOwner.GetKind(), "version", configOwner.GetResourceVersion(), "name", configOwner.GetName())
+	log = log.WithValues(
+		"config-owner-kind", configOwner.GetKind(),
+		"config-owner-version", configOwner.GetResourceVersion(),
+		"config-owner-name", configOwner.GetName())
 
 	// Lookup the cluster the config owner is associated with
 	cluster, err := util.GetClusterByName(ctx, r.Client, configOwner.GetNamespace(), configOwner.ClusterName())
@@ -218,13 +222,13 @@ func (r *KubeadmConfigReconciler) Reconcile(req ctrl.Request) (_ ctrl.Result, re
 	}
 
 	// Attempt to Patch the KubeadmConfig object and status after each reconciliation if no error occurs.
-	defer func() {
+	defer func(ctx context.Context, config *bootstrapv1.KubeadmConfig) {
 		if rerr == nil {
 			if rerr = patchHelper.Patch(ctx, config); rerr != nil {
 				log.Error(rerr, "failed to patch config")
 			}
 		}
-	}()
+	}(ctx, config)
 
 	if !cluster.Status.ControlPlaneInitialized {
 		return r.handleClusterNotInitialized(ctx, scope)
@@ -689,7 +693,7 @@ func (r *KubeadmConfigReconciler) storeBootstrapData(ctx context.Context, scope 
 		},
 	}
 
-	if err := r.Client.Create(ctx, secret); err != nil {
+	if err := r.Client.Create(ctx, secret); err != nil && !apierrors.IsAlreadyExists(err) {
 		return errors.Wrapf(err, "failed to create kubeconfig secret for KubeadmConfig %s/%s", scope.Config.Namespace, scope.Config.Name)
 	}
 

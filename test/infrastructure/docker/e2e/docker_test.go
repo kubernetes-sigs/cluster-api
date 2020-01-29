@@ -104,7 +104,7 @@ var _ = Describe("Docker", func() {
 					failureDomain := *machine.Spec.FailureDomain
 					_, ok := failureDomainCounts[failureDomain]
 					// Fail if a machine is placed in a failure domain not defined on the InfraCluster
-					Expect(ok).To(BeTrue(), "failure domain assigned to machine is unknown to the cluster: %q", failureDomain)
+					Expect(ok).To(BeTrue(), "failure domain assigned to machine is unknown to the cluster: %q\n %v", failureDomain, machineList.Items)
 					failureDomainCounts[failureDomain]++
 				}
 				for id, spec := range infraCluster.Spec.FailureDomains {

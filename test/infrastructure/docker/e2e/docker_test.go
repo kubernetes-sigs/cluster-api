@@ -98,17 +98,21 @@ var _ = Describe("Docker", func() {
 					failureDomainCounts[fd] = 0
 				}
 				for _, machine := range machineList.Items {
-					_, ok := failureDomainCounts[*machine.Spec.FailureDomain]
+					if machine.Spec.FailureDomain == nil {
+						continue
+					}
+					failureDomain := *machine.Spec.FailureDomain
+					_, ok := failureDomainCounts[failureDomain]
 					// Fail if a machine is placed in a failure domain not defined on the InfraCluster
-					Expect(ok).To(BeTrue())
-					failureDomainCounts[*machine.Spec.FailureDomain]++
+					Expect(ok).To(BeTrue(), "failure domain assigned to machine is unknown to the cluster: %q", failureDomain)
+					failureDomainCounts[failureDomain]++
 				}
 				for id, spec := range infraCluster.Spec.FailureDomains {
 					if spec.ControlPlane == false {
 						continue
 					}
 					// This is a custom expectation bound to the fact that there are exactly 3 control planes
-					Expect(failureDomainCounts[id]).To(Equal(1))
+					Expect(failureDomainCounts[id]).To(Equal(1), "each failure domain should have exactly one control plane: %v", failureDomainCounts)
 				}
 
 				input.CleanUpCoreArtifacts()

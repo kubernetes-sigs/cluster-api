@@ -20,7 +20,7 @@ import (
 	"testing"
 
 	. "github.com/onsi/gomega"
-	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 func TestMachineSetLabelSelectorMatchValidation(t *testing.T) {
@@ -67,7 +67,7 @@ func TestMachineSetLabelSelectorMatchValidation(t *testing.T) {
 			g := NewWithT(t)
 			ms := &MachineSet{
 				Spec: MachineSetSpec{
-					Selector: v1.LabelSelector{
+					Selector: metav1.LabelSelector{
 						MatchLabels: tt.selectors,
 					},
 					Template: MachineTemplateSpec{

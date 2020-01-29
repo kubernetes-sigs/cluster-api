@@ -20,7 +20,7 @@ import (
 	"testing"
 
 	. "github.com/onsi/gomega"
-	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/utils/pointer"
 )
 
@@ -85,7 +85,7 @@ func TestMachineDeploymentValidation(t *testing.T) {
 			g := NewWithT(t)
 			md := &MachineDeployment{
 				Spec: MachineDeploymentSpec{
-					Selector: v1.LabelSelector{
+					Selector: metav1.LabelSelector{
 						MatchLabels: tt.selectors,
 					},
 					Template: MachineTemplateSpec{

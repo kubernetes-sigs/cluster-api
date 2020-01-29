@@ -109,12 +109,12 @@ test-integration: ## Run integration tests
 test-capd-e2e-full: ## Rebuild all manifests and all provider images then run the capd-e2es
 	$(MAKE) generate-manifests
 	$(MAKE) release-manifests
-	$(MAKE) all-images-capd-e2e
+	$(MAKE) test-capd-e2e-images
 
 .PHONY: test-capd-e2e-images
 test-capd-e2e-images: ## Rebuild all Cluster API provider images and run the capd-e2e tests
 	make docker-build REGISTRY=gcr.io/k8s-staging-cluster-api PULL_POLICY=IfNotPresent
-	$(MAKE) capd-e2e
+	$(MAKE) test-capd-e2e
 
 .PHONY: test-capd-e2e
 test-capd-e2e: ## Rebuild the docker provider and run the capd-e2e tests

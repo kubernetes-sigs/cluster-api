@@ -305,6 +305,8 @@ func Test_localRepository_GetVersions(t *testing.T) {
 	createLocalTestProviderFile(t, tmpDir, "provider-2/v1.0.0/bootstrap-components.yaml", "version: v1.0.0")
 	createLocalTestProviderFile(t, tmpDir, "provider-2/v1.0.1/bootstrap-components.yaml", "version: v1.0.1")
 	createLocalTestProviderFile(t, tmpDir, "provider-2/v2.0.1/bootstrap-components.yaml", "version: v2.0.1")
+	createLocalTestProviderFile(t, tmpDir, "provider-2/v2.0.2+exp.sha.5114f85/bootstrap-components.yaml", "version: v2.0.2+exp.sha.5114f85")
+	createLocalTestProviderFile(t, tmpDir, "provider-2/v2.0.3-alpha/bootstrap-components.yaml", "version: v2.0.3-alpha")
 	createLocalTestProviderFile(t, tmpDir, "provider-2/Foo.Bar/bootstrap-components.yaml", "version: Foo.Bar")
 	createLocalTestProviderFile(t, tmpDir, "provider-2/foo.file", "foo: bar")
 	p2URLLatest := "provider-2/latest/bootstrap-components.yaml"
@@ -342,7 +344,7 @@ func Test_localRepository_GetVersions(t *testing.T) {
 				configVariablesClient: test.NewFakeVariableClient(),
 			},
 			want: want{
-				versions: []string{"v1.0.0", "v1.0.1", "v2.0.1"},
+				versions: []string{"v1.0.0", "v1.0.1", "v2.0.1", "v2.0.2+exp.sha.5114f85", "v2.0.3-alpha"},
 			},
 			wantErr: false,
 		},
@@ -362,7 +364,7 @@ func Test_localRepository_GetVersions(t *testing.T) {
 				return
 			}
 			if len(got) != len(tt.want.versions) {
-				t.Fatalf("got %v, expected %v versions", len(tt.want.versions), len(got))
+				t.Fatalf("got %v, expected %v versions", len(got), len(tt.want.versions))
 			}
 			sort.Strings(tt.want.versions)
 			sort.Strings(got)

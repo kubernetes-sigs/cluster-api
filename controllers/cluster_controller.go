@@ -21,7 +21,6 @@ import (
 	"fmt"
 	"path"
 	"strings"
-	"sync"
 	"time"
 
 	"github.com/go-logr/logr"
@@ -65,9 +64,8 @@ type ClusterReconciler struct {
 	Client client.Client
 	Log    logr.Logger
 
-	controller       controller.Controller
-	recorder         record.EventRecorder
-	externalWatchers sync.Map
+	recorder        record.EventRecorder
+	externalTracker external.ObjectTracker
 }
 
 func (r *ClusterReconciler) SetupWithManager(mgr ctrl.Manager, options controller.Options) error {
@@ -84,8 +82,10 @@ func (r *ClusterReconciler) SetupWithManager(mgr ctrl.Manager, options controlle
 		return errors.Wrap(err, "failed setting up with a controller manager")
 	}
 
-	r.controller = controller
 	r.recorder = mgr.GetEventRecorderFor("cluster-controller")
+	r.externalTracker = external.ObjectTracker{
+		Controller: controller,
+	}
 	return nil
 }
 

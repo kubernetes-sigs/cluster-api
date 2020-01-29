@@ -19,7 +19,6 @@ package controllers
 import (
 	"context"
 	"fmt"
-	"sync"
 	"time"
 
 	"github.com/go-logr/logr"
@@ -66,11 +65,10 @@ type MachineReconciler struct {
 	Client client.Client
 	Log    logr.Logger
 
-	config           *rest.Config
-	controller       controller.Controller
-	recorder         record.EventRecorder
-	externalWatchers sync.Map
-	scheme           *runtime.Scheme
+	config          *rest.Config
+	scheme          *runtime.Scheme
+	recorder        record.EventRecorder
+	externalTracker external.ObjectTracker
 }
 
 func (r *MachineReconciler) SetupWithManager(mgr ctrl.Manager, options controller.Options) error {
@@ -83,10 +81,12 @@ func (r *MachineReconciler) SetupWithManager(mgr ctrl.Manager, options controlle
 		return errors.Wrap(err, "failed setting up with a controller manager")
 	}
 
-	r.controller = controller
 	r.recorder = mgr.GetEventRecorderFor("machine-controller")
 	r.config = mgr.GetConfig()
 	r.scheme = mgr.GetScheme()
+	r.externalTracker = external.ObjectTracker{
+		Controller: controller,
+	}
 	return nil
 }
 

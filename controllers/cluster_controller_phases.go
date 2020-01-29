@@ -34,7 +34,6 @@ import (
 	"sigs.k8s.io/cluster-api/util/patch"
 	"sigs.k8s.io/cluster-api/util/secret"
 	"sigs.k8s.io/controller-runtime/pkg/handler"
-	"sigs.k8s.io/controller-runtime/pkg/source"
 )
 
 func (r *ClusterReconciler) reconcilePhase(_ context.Context, cluster *clusterv1.Cluster) {
@@ -109,18 +108,9 @@ func (r *ClusterReconciler) reconcileExternal(ctx context.Context, cluster *clus
 		return external.ReconcileOutput{}, err
 	}
 
-	// Add watcher for external object, if there isn't one already.
-	_, loaded := r.externalWatchers.LoadOrStore(obj.GroupVersionKind().String(), struct{}{})
-	if !loaded && r.controller != nil {
-		logger.Info("Adding watcher on external object", "gvk", obj.GroupVersionKind())
-		err := r.controller.Watch(
-			&source.Kind{Type: obj},
-			&handler.EnqueueRequestForOwner{OwnerType: &clusterv1.Cluster{}},
-		)
-		if err != nil {
-			r.externalWatchers.Delete(obj.GroupVersionKind().String())
-			return external.ReconcileOutput{}, errors.Wrapf(err, "failed to add watcher on external object %q", obj.GroupVersionKind())
-		}
+	// Ensure we add a watcher to the external object.
+	if err := r.externalTracker.Watch(logger, obj, &handler.EnqueueRequestForOwner{OwnerType: &clusterv1.Cluster{}}); err != nil {
+		return external.ReconcileOutput{}, err
 	}
 
 	// Set failure reason and message, if any.

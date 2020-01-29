@@ -46,7 +46,7 @@ RELEASE_NOTES := $(TOOLS_DIR)/$(RELEASE_NOTES_BIN)
 # Binaries.
 KUSTOMIZE := $(TOOLS_BIN_DIR)/kustomize
 CONTROLLER_GEN := $(TOOLS_BIN_DIR)/controller-gen
-GOLANGCI_LINT := $(TOOLS_BIN_DIR)/golangci-lint
+GOLANGCI_LINT := $(abspath $(TOOLS_BIN_DIR)/golangci-lint)
 CONVERSION_GEN := $(TOOLS_BIN_DIR)/conversion-gen
 
 # Bindata.
@@ -167,6 +167,8 @@ e2e-framework: ## Builds the CAPI e2e framework
 .PHONY: lint lint-full
 lint: $(GOLANGCI_LINT) ## Lint codebase
 	$(GOLANGCI_LINT) run -v
+	cd $(E2E_FRAMEWORK_DIR); $(GOLANGCI_LINT) run -v
+	cd $(CAPD_DIR); $(GOLANGCI_LINT) run -v
 
 lint-full: $(GOLANGCI_LINT) ## Run slower linters to detect possible issues
 	$(GOLANGCI_LINT) run -v --fast=false

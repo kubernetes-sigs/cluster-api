@@ -92,7 +92,7 @@ func InitManagementCluster(ctx context.Context, input *InitManagementClusterInpu
 				Expect(imageLoader.LoadImage(ctx, image.Name)).To(Succeed())
 			case TryLoadImage:
 				By(fmt.Sprintf("try to load image %s into the management cluster", image.Name))
-				imageLoader.LoadImage(ctx, image.Name)
+				imageLoader.LoadImage(ctx, image.Name) //nolint:errcheck
 			}
 		}
 	}

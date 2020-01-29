@@ -260,9 +260,9 @@ func (c *Config) Validate() error {
 		}
 		switch containerImage.LoadBehavior {
 		case MustLoadImage, TryLoadImage:
-				// Valid
-			default:
-				return errInvalidArg("Images[%d].LoadBehavior=%q", i, containerImage.LoadBehavior)
+			// Valid
+		default:
+			return errInvalidArg("Images[%d].LoadBehavior=%q", i, containerImage.LoadBehavior)
 		}
 	}
 	return nil

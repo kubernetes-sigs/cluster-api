@@ -44,4 +44,3 @@ type MachineDeployment struct {
 	BootstrapConfigTemplate runtime.Object
 	InfraMachineTemplate    runtime.Object
 }
-

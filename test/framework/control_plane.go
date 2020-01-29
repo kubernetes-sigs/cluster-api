@@ -93,7 +93,8 @@ func (input *ControlplaneClusterInput) ControlPlaneCluster() {
 	}, input.CreateTimeout, eventuallyInterval).Should(BeNil())
 
 	By("creating related resources")
-	for _, obj := range input.RelatedResources {
+	for i := range input.RelatedResources {
+		obj := input.RelatedResources[i]
 		By(fmt.Sprintf("creating a/an %s resource", obj.GetObjectKind().GroupVersionKind()))
 		Eventually(func() error {
 			return mgmtClient.Create(ctx, obj)
@@ -217,7 +218,7 @@ func (input *ControlplaneClusterInput) CleanUpCoreArtifacts() {
 	ensureArtifactsDeleted(ctx, mgmtClient, listOpts)
 }
 
-func ensureArtifactsDeleted(ctx context.Context, mgmtClient client.Client, opt *client.ListOptions) {
+func ensureArtifactsDeleted(ctx context.Context, mgmtClient client.Client, opt client.ListOption) {
 	// assertions
 	ml := &clusterv1.MachineList{}
 	Expect(mgmtClient.List(ctx, ml, opt)).To(Succeed())

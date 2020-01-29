@@ -179,10 +179,12 @@ func (r *ClusterReconciler) reconcileInfrastructure(ctx context.Context, cluster
 
 	// Get and parse Spec.ControlPlaneEndpoint field from the infrastructure provider.
 	if cluster.Spec.ControlPlaneEndpoint.IsZero() {
-		if err := util.UnstructuredUnmarshalField(infraConfig, &cluster.Spec.ControlPlaneEndpoint, "spec", "controlPlaneEndpoint"); err != nil {
+		controlPlaneEndpoint := clusterv1.APIEndpoint{}
+		if err := util.UnstructuredUnmarshalField(infraConfig, &controlPlaneEndpoint, "spec", "controlPlaneEndpoint"); err != nil {
 			return errors.Wrapf(err, "failed to retrieve Spec.ControlPlaneEndpoint from infrastructure provider for Cluster %q in namespace %q",
 				cluster.Name, cluster.Namespace)
 		}
+		cluster.Spec.ControlPlaneEndpoint = controlPlaneEndpoint
 	}
 
 	// Get and parse Status.FailureDomains from the infrastructure provider.

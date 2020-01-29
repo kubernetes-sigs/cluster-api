@@ -86,7 +86,7 @@ func init() {
 
 	configClusterClusterCmd.Flags().StringVarP(&cc.flavor, "flavor", "f", "", "The template variant to be used for creating the workload cluster")
 	configClusterClusterCmd.Flags().StringVarP(&cc.targetNamespace, "target-namespace", "n", "", "The namespace where the objects describing the workload cluster should be deployed. If not specified, the current namespace will be used")
-	configClusterClusterCmd.Flags().StringVarP(&cc.kubernetesVersion, "kubernetes-version", "", "", "The Kubernetes version to use for the workload cluster. By default (empty), the value from os env variables or the .clusterctl config file will be used")
+	configClusterClusterCmd.Flags().StringVarP(&cc.kubernetesVersion, "kubernetes-version", "", "", "The Kubernetes version to use for the workload cluster. By default (empty), the value from os env variables or the .cluster-api/clusterctl.yaml config file will be used")
 	configClusterClusterCmd.Flags().IntVarP(&cc.controlPlaneMachineCount, "control-plane-machine-count", "", 1, "The number of control plane machines to be added to the workload cluster.")
 	configClusterClusterCmd.Flags().IntVarP(&cc.workerMachineCount, "worker-machine-count", "", 0, "The number of worker machines to be added to the workload cluster.")
 

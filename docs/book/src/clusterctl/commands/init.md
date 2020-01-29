@@ -235,7 +235,7 @@ for the inventory of the providers currently installed in the management cluster
 
 <h1>Warning</h1>
 
-The `clusterctl.cluster.x-k8s.io` labels, the `cluster.x-k8s.io/provider` labels and the `Provider` objects MUST NOT altered.
+The `clusterctl.cluster.x-k8s.io` labels, the `cluster.x-k8s.io/provider` labels and the `Provider` objects MUST NOT be altered.
 If this happens, there are no guarantees about the proper functioning of `clusterctl`.  
 
 </aside>

@@ -39,6 +39,15 @@ func (c *clusterctlClient) Move(options MoveOptions) error {
 		return err
 	}
 
+	// If the option specifying the Namespace is empty, try to detect it.
+	if options.Namespace == "" {
+		currentNamespace, err := fromCluster.Proxy().CurrentNamespace()
+		if err != nil {
+			return err
+		}
+		options.Namespace = currentNamespace
+	}
+
 	if err := fromCluster.ObjectMover().Move(options.Namespace, toCluster); err != nil {
 		return err
 	}

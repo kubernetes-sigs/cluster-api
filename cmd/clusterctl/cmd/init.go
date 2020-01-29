@@ -108,7 +108,7 @@ func runInit() error {
 		BootstrapProviders:      io.bootstrapProviders,
 		ControlPlaneProviders:   io.controlPlaneProviders,
 		InfrastructureProviders: io.infrastructureProviders,
-		TargetNameSpace:         io.targetNamespace,
+		TargetNamespace:         io.targetNamespace,
 		WatchingNamespace:       io.watchingNamespace,
 	})
 	if err != nil {

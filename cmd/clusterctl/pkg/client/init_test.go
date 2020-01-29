@@ -334,7 +334,7 @@ func Test_clusterctlClient_Init(t *testing.T) {
 				BootstrapProviders:      tt.args.bootstrapProvider,
 				ControlPlaneProviders:   tt.args.controlPlaneProvider,
 				InfrastructureProviders: tt.args.infrastructureProvider,
-				TargetNameSpace:         tt.args.targetNameSpace,
+				TargetNamespace:         tt.args.targetNameSpace,
 				WatchingNamespace:       tt.args.watchingNamespace,
 			})
 

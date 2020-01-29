@@ -64,7 +64,7 @@ func (c *clusterctlClient) Init(options InitOptions) ([]Components, bool, error)
 
 	addOptions := addToInstallerOptions{
 		installer:         installer,
-		targetNameSpace:   options.TargetNameSpace,
+		targetNameSpace:   options.TargetNamespace,
 		watchingNamespace: options.WatchingNamespace,
 	}
 

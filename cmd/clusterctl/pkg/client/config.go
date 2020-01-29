@@ -91,7 +91,7 @@ func (c *clusterctlClient) GetClusterTemplate(options GetClusterTemplateOptions)
 		version = defaultProviderVersion
 	}
 
-	// If the option specifyng the targetNamespace is empty, try to detect it.
+	// If the option specifying the targetNamespace is empty, try to detect it.
 	if options.TargetNamespace == "" {
 		currentNamespace, err := cluster.Proxy().CurrentNamespace()
 		if err != nil {

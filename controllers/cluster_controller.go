@@ -42,6 +42,7 @@ import (
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
+	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	"sigs.k8s.io/controller-runtime/pkg/handler"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 	"sigs.k8s.io/controller-runtime/pkg/source"
@@ -142,9 +143,7 @@ func (r *ClusterReconciler) reconcile(ctx context.Context, cluster *clusterv1.Cl
 	logger := r.Log.WithValues("cluster", cluster.Name, "namespace", cluster.Namespace)
 
 	// If object doesn't have a finalizer, add one.
-	if !util.Contains(cluster.Finalizers, clusterv1.ClusterFinalizer) {
-		cluster.Finalizers = append(cluster.Finalizers, clusterv1.ClusterFinalizer)
-	}
+	controllerutil.AddFinalizer(cluster, clusterv1.ClusterFinalizer)
 
 	// Call the inner reconciliation methods.
 	reconciliationErrors := []error{
@@ -296,7 +295,7 @@ func (r *ClusterReconciler) reconcileDelete(ctx context.Context, cluster *cluste
 		}
 	}
 
-	cluster.Finalizers = util.Filter(cluster.Finalizers, clusterv1.ClusterFinalizer)
+	controllerutil.RemoveFinalizer(cluster, clusterv1.ClusterFinalizer)
 	return ctrl.Result{}, nil
 }
 

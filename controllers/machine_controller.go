@@ -46,6 +46,7 @@ import (
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
+	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 )
 
 var (
@@ -164,9 +165,7 @@ func (r *MachineReconciler) reconcile(ctx context.Context, cluster *clusterv1.Cl
 	}
 
 	// If the Machine doesn't have a finalizer, add one.
-	if !util.Contains(m.Finalizers, clusterv1.MachineFinalizer) {
-		m.Finalizers = append(m.Finalizers, clusterv1.MachineFinalizer)
-	}
+	controllerutil.AddFinalizer(m, clusterv1.MachineFinalizer)
 
 	// Call the inner reconciliation methods.
 	reconciliationErrors := []error{
@@ -257,7 +256,7 @@ func (r *MachineReconciler) reconcileDelete(ctx context.Context, cluster *cluste
 		return ctrl.Result{}, err
 	}
 
-	m.ObjectMeta.Finalizers = util.Filter(m.ObjectMeta.Finalizers, clusterv1.MachineFinalizer)
+	controllerutil.RemoveFinalizer(m, clusterv1.MachineFinalizer)
 	return ctrl.Result{}, nil
 }
 

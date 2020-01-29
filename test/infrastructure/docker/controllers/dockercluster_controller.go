@@ -30,6 +30,7 @@ import (
 	"sigs.k8s.io/cluster-api/util/patch"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	"sigs.k8s.io/controller-runtime/pkg/handler"
 	"sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/source"
@@ -112,9 +113,7 @@ func (r *DockerClusterReconciler) Reconcile(req ctrl.Request) (_ ctrl.Result, re
 
 func reconcileNormal(dockerCluster *infrav1.DockerCluster, externalLoadBalancer *docker.LoadBalancer) (ctrl.Result, error) {
 	// If the DockerCluster doesn't have finalizer, add it.
-	if !util.Contains(dockerCluster.Finalizers, infrav1.ClusterFinalizer) {
-		dockerCluster.Finalizers = append(dockerCluster.Finalizers, infrav1.ClusterFinalizer)
-	}
+	controllerutil.AddFinalizer(dockerCluster, infrav1.ClusterFinalizer)
 
 	//Create the docker container hosting the load balancer
 	if err := externalLoadBalancer.Create(); err != nil {
@@ -145,7 +144,7 @@ func reconcileDelete(dockerCluster *infrav1.DockerCluster, externalLoadBalancer 
 	}
 
 	// Cluster is deleted so remove the finalizer.
-	dockerCluster.Finalizers = util.Filter(dockerCluster.Finalizers, infrav1.ClusterFinalizer)
+	controllerutil.RemoveFinalizer(dockerCluster, infrav1.ClusterFinalizer)
 
 	return ctrl.Result{}, nil
 }

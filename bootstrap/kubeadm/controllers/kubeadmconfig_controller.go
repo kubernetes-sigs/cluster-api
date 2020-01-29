@@ -28,7 +28,6 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	kerrors "k8s.io/apimachinery/pkg/util/errors"
@@ -296,7 +295,7 @@ func (r *KubeadmConfigReconciler) handleClusterNotInitialized(ctx context.Contex
 
 	if scope.Config.Spec.InitConfiguration == nil {
 		scope.Config.Spec.InitConfiguration = &kubeadmv1beta1.InitConfiguration{
-			TypeMeta: v1.TypeMeta{
+			TypeMeta: metav1.TypeMeta{
 				APIVersion: "kubeadm.k8s.io/v1beta1",
 				Kind:       "InitConfiguration",
 			},
@@ -310,7 +309,7 @@ func (r *KubeadmConfigReconciler) handleClusterNotInitialized(ctx context.Contex
 
 	if scope.Config.Spec.ClusterConfiguration == nil {
 		scope.Config.Spec.ClusterConfiguration = &kubeadmv1beta1.ClusterConfiguration{
-			TypeMeta: v1.TypeMeta{
+			TypeMeta: metav1.TypeMeta{
 				APIVersion: "kubeadm.k8s.io/v1beta1",
 				Kind:       "ClusterConfiguration",
 			},
@@ -669,13 +668,13 @@ func (r *KubeadmConfigReconciler) reconcileTopLevelObjectSettings(cluster *clust
 // sets the reference in the configuration status and ready to true.
 func (r *KubeadmConfigReconciler) storeBootstrapData(ctx context.Context, scope *Scope, data []byte) error {
 	secret := &corev1.Secret{
-		ObjectMeta: v1.ObjectMeta{
+		ObjectMeta: metav1.ObjectMeta{
 			Name:      scope.Config.Name,
 			Namespace: scope.Config.Namespace,
 			Labels: map[string]string{
 				clusterv1.ClusterLabelName: scope.Cluster.Name,
 			},
-			OwnerReferences: []v1.OwnerReference{
+			OwnerReferences: []metav1.OwnerReference{
 				{
 					APIVersion: bootstrapv1.GroupVersion.String(),
 					Kind:       "KubeadmConfig",

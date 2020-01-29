@@ -23,7 +23,7 @@ import (
 
 	. "github.com/onsi/gomega"
 	corev1 "k8s.io/api/core/v1"
-	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/client-go/kubernetes/scheme"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha3"
@@ -36,7 +36,7 @@ import (
 func TestClusterReconcilePhases(t *testing.T) {
 	t.Run("reconcile infrastructure", func(t *testing.T) {
 		cluster := &clusterv1.Cluster{
-			ObjectMeta: v1.ObjectMeta{
+			ObjectMeta: metav1.ObjectMeta{
 				Name:      "test-cluster",
 				Namespace: "test-namespace",
 			},
@@ -64,7 +64,7 @@ func TestClusterReconcilePhases(t *testing.T) {
 		}{
 			{
 				name:      "returns no error if infrastructure ref is nil",
-				cluster:   &clusterv1.Cluster{ObjectMeta: v1.ObjectMeta{Name: "test-cluster", Namespace: "test-namespace"}},
+				cluster:   &clusterv1.Cluster{ObjectMeta: metav1.ObjectMeta{Name: "test-cluster", Namespace: "test-namespace"}},
 				expectErr: false,
 			},
 			{
@@ -148,7 +148,7 @@ func TestClusterReconcilePhases(t *testing.T) {
 
 	t.Run("reconcile kubeconfig", func(t *testing.T) {
 		cluster := &clusterv1.Cluster{
-			ObjectMeta: v1.ObjectMeta{
+			ObjectMeta: metav1.ObjectMeta{
 				Name: "test-cluster",
 			},
 			Spec: clusterv1.ClusterSpec{
@@ -175,7 +175,7 @@ func TestClusterReconcilePhases(t *testing.T) {
 				name:    "kubeconfig secret found",
 				cluster: cluster,
 				secret: &corev1.Secret{
-					ObjectMeta: v1.ObjectMeta{
+					ObjectMeta: metav1.ObjectMeta{
 						Name: "test-cluster-kubeconfig",
 					},
 				},
@@ -191,7 +191,7 @@ func TestClusterReconcilePhases(t *testing.T) {
 				name:    "invalid ca secret, should return error",
 				cluster: cluster,
 				secret: &corev1.Secret{
-					ObjectMeta: v1.ObjectMeta{
+					ObjectMeta: metav1.ObjectMeta{
 						Name: "test-cluster-ca",
 					},
 				},
@@ -225,7 +225,7 @@ func TestClusterReconcilePhases(t *testing.T) {
 
 func TestClusterReconciler_reconcilePhase(t *testing.T) {
 	cluster := &clusterv1.Cluster{
-		ObjectMeta: v1.ObjectMeta{
+		ObjectMeta: metav1.ObjectMeta{
 			Name: "test-cluster",
 		},
 		Status: clusterv1.ClusterStatus{},
@@ -247,7 +247,7 @@ func TestClusterReconciler_reconcilePhase(t *testing.T) {
 		{
 			name: "cluster has infrastructureRef",
 			cluster: &clusterv1.Cluster{
-				ObjectMeta: v1.ObjectMeta{
+				ObjectMeta: metav1.ObjectMeta{
 					Name: "test-cluster",
 				},
 				Status: clusterv1.ClusterStatus{},
@@ -261,7 +261,7 @@ func TestClusterReconciler_reconcilePhase(t *testing.T) {
 		{
 			name: "cluster infrastructure is ready",
 			cluster: &clusterv1.Cluster{
-				ObjectMeta: v1.ObjectMeta{
+				ObjectMeta: metav1.ObjectMeta{
 					Name: "test-cluster",
 				},
 				Status: clusterv1.ClusterStatus{
@@ -277,7 +277,7 @@ func TestClusterReconciler_reconcilePhase(t *testing.T) {
 		{
 			name: "cluster infrastructure is ready and ControlPlaneEndpoint is set",
 			cluster: &clusterv1.Cluster{
-				ObjectMeta: v1.ObjectMeta{
+				ObjectMeta: metav1.ObjectMeta{
 					Name: "test-cluster",
 				},
 				Spec: clusterv1.ClusterSpec{
@@ -297,7 +297,7 @@ func TestClusterReconciler_reconcilePhase(t *testing.T) {
 		{
 			name: "cluster status has FailureReason",
 			cluster: &clusterv1.Cluster{
-				ObjectMeta: v1.ObjectMeta{
+				ObjectMeta: metav1.ObjectMeta{
 					Name: "test-cluster",
 				},
 				Status: clusterv1.ClusterStatus{
@@ -314,7 +314,7 @@ func TestClusterReconciler_reconcilePhase(t *testing.T) {
 		{
 			name: "cluster status has FailureMessage",
 			cluster: &clusterv1.Cluster{
-				ObjectMeta: v1.ObjectMeta{
+				ObjectMeta: metav1.ObjectMeta{
 					Name: "test-cluster",
 				},
 				Status: clusterv1.ClusterStatus{
@@ -331,9 +331,9 @@ func TestClusterReconciler_reconcilePhase(t *testing.T) {
 		{
 			name: "cluster has deletion timestamp",
 			cluster: &clusterv1.Cluster{
-				ObjectMeta: v1.ObjectMeta{
+				ObjectMeta: metav1.ObjectMeta{
 					Name:              "test-cluster",
-					DeletionTimestamp: &v1.Time{Time: time.Now().UTC()},
+					DeletionTimestamp: &metav1.Time{Time: time.Now().UTC()},
 				},
 				Status: clusterv1.ClusterStatus{
 					InfrastructureReady: true,

@@ -24,42 +24,100 @@ import (
 
 // InitOptions carries the options supported by Init.
 type InitOptions struct {
-	Kubeconfig              string
-	CoreProvider            string
-	BootstrapProviders      []string
-	ControlPlaneProviders   []string
+	// Kubeconfig file to use for accessing the management cluster. If empty, default rules for kubeconfig
+	// discovery will be used.
+	Kubeconfig string
+
+	// CoreProvider version (e.g. cluster-api:v0.3.0) to add to the management cluster. By default (empty), the
+	// cluster-api core provider's latest release is used.
+	CoreProvider string
+
+	// BootstrapProviders and versions (e.g. kubeadm-bootstrap:v0.3.0) to add to the management cluster.
+	// By default (empty), the kubeadm bootstrap provider's latest release is used.
+	BootstrapProviders []string
+
+	// InfrastructureProviders and versions (e.g. aws:v0.5.0) to add to the management cluster.
 	InfrastructureProviders []string
-	TargetNameSpace         string
-	WatchingNamespace       string
+
+	// ControlPlaneProviders and versions (e.g. kubeadm-control-plane:v0.3.0) to add to the management cluster.
+	// By default (empty), the kubeadm control plane provider latest release is used.
+	ControlPlaneProviders []string
+
+	// TargetNamespace defines the namespace where the providers should be deployed. If not specified, each provider
+	// will be installed in a provider's default namespace.
+	TargetNamespace string
+
+	// WatchingNamespace defines the namespace the providers should watch to reconcile Cluster API objects.
+	// If unspecified, the providers watches for Cluster API objects across all namespaces.
+	WatchingNamespace string
 }
 
 // GetClusterTemplateOptions carries the options supported by GetClusterTemplate.
 type GetClusterTemplateOptions struct {
-	Kubeconfig               string
-	InfrastructureProvider   string
-	Flavor                   string
-	BootstrapProvider        string
-	ClusterName              string
-	TargetNamespace          string
-	KubernetesVersion        string
+	// Kubeconfig file to use for accessing the management cluster. If empty, default rules for kubeconfig
+	// discovery will be used.
+	Kubeconfig string
+
+	// InfrastructureProvider that should be used for creating the workload cluster.
+	InfrastructureProvider string
+
+	// BootstrapProvider that should be used for bootstrapping Kubernetes nodes in the workload cluster.
+	BootstrapProvider string
+
+	// Flavor defines the template variant to be used for creating the workload cluster.
+	Flavor string
+
+	// TargetNamespace where the objects describing the workload cluster should be deployed. If not specified,
+	// the current namespace will be used.
+	TargetNamespace string
+
+	// ClusterName to be used for the workload cluster.
+	ClusterName string
+
+	// KubernetesVersion to use for the workload cluster. By default (empty), the value from os env variables
+	// or the .cluster-api/clusterctl.yaml config file will be used.
+	KubernetesVersion string
+
+	// ControlPlaneMachineCount defines the number of control plane machines to be added to the workload cluster.
 	ControlPlaneMachineCount int
-	WorkerMachineCount       int
+
+	// WorkerMachineCount defines number of worker machines to be added to the workload cluster.
+	WorkerMachineCount int
 }
 
 // DeleteOptions carries the options supported by Delete.
 type DeleteOptions struct {
-	Kubeconfig           string
+	// Kubeconfig file to use for accessing the management cluster. If empty, default rules for kubeconfig
+	// discovery will be used.
+	Kubeconfig string
+
+	// ForceDeleteNamespace forces the deletion of the namespace where the providers are hosted
+	// (and of all the contained objects).
 	ForceDeleteNamespace bool
-	ForceDeleteCRD       bool
-	Namespace            string
-	Providers            []string
+
+	// ForceDeleteCRD forces the deletion of the provider's CRDs (and of all the related objects)".
+	ForceDeleteCRD bool
+
+	// Namespace where the provider to be deleted lives. If not specified, the namespace name will be inferred
+	// from the current configuration.
+	Namespace string
+
+	// Providers to be delete. By default (empty), all the provider will be deleted.
+	Providers []string
 }
 
 // MoveOptions carries the options supported by move.
 type MoveOptions struct {
+	// FromKubeconfig defines the kubeconfig file to use for accessing the source management cluster. If empty,
+	// default rules for kubeconfig discovery will be used.
 	FromKubeconfig string
-	ToKubeconfig   string
-	Namespace      string
+
+	// ToKubeconfig defines the path to the kubeconfig file to use for accessing the target management cluster.
+	ToKubeconfig string
+
+	// Namespace where the objects describing the workload cluster exists. If not specified, the current
+	// namespace will be used.
+	Namespace string
 }
 
 // Client is exposes the clusterctl high-level client library.

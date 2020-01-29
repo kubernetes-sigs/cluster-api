@@ -21,8 +21,8 @@ You can use:
 clusterctl move --to-kubeconfig="path-to-target-kubeconfig.yaml"
 ```
 
-To move all the Cluster API objects objects in the source management cluster; in case if you want to move only the
-Cluster API objects defined in a specific namespace, you can use the `--namespace` flag.
+To move the Cluster API objects existing in the current namespace of the source management cluster; in case if you want
+to move the Cluster API objects defined in another namespace, you can use the `--namespace` flag.
 
 <aside class="note">
 
@@ -31,6 +31,7 @@ Cluster API objects defined in a specific namespace, you can use the `--namespac
 Before moving a `Cluster`, clusterctl sets the `Cluster.Spec.Paused` field to `true` stopping
 the controllers to reconcile the workload cluster _in the source management cluster_.
 
-The `Cluster` object created in the target management cluster instead will be actively reconciled. 
+The `Cluster` object created in the target management cluster instead will be actively reconciled as soon as the move
+process completes. 
 
 </aside>

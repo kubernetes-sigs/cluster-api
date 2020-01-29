@@ -34,6 +34,7 @@ import (
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
+	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	"sigs.k8s.io/controller-runtime/pkg/handler"
 	"sigs.k8s.io/controller-runtime/pkg/source"
 	"sigs.k8s.io/kind/pkg/cluster/constants"
@@ -153,9 +154,7 @@ func (r *DockerMachineReconciler) Reconcile(req ctrl.Request) (_ ctrl.Result, re
 
 func (r *DockerMachineReconciler) reconcileNormal(ctx context.Context, machine *clusterv1.Machine, dockerMachine *infrav1.DockerMachine, externalMachine *docker.Machine, externalLoadBalancer *docker.LoadBalancer, log logr.Logger) (ctrl.Result, error) {
 	// If the DockerMachine doesn't have finalizer, add it.
-	if !util.Contains(dockerMachine.Finalizers, infrav1.MachineFinalizer) {
-		dockerMachine.Finalizers = append(dockerMachine.Finalizers, infrav1.MachineFinalizer)
-	}
+	controllerutil.AddFinalizer(dockerMachine, infrav1.MachineFinalizer)
 
 	// if the machine is already provisioned, return
 	if dockerMachine.Spec.ProviderID != nil {
@@ -239,8 +238,7 @@ func (r *DockerMachineReconciler) reconcileDelete(machine *clusterv1.Machine, do
 	}
 
 	// Machine is deleted so remove the finalizer.
-	dockerMachine.Finalizers = util.Filter(dockerMachine.Finalizers, infrav1.MachineFinalizer)
-
+	controllerutil.RemoveFinalizer(dockerMachine, infrav1.MachineFinalizer)
 	return ctrl.Result{}, nil
 }
 

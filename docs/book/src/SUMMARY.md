@@ -44,5 +44,6 @@
 - [Reference](./reference/reference.md)
     - [Glossary](./reference/glossary.md)
     - [Provider List](./reference/providers.md)
+    - [Ports](./reference/ports.md)
     - [Code of Conduct](./code-of-conduct.md)
     - [Contributing](./CONTRIBUTING.md)

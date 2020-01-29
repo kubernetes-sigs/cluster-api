@@ -170,6 +170,13 @@ NAME                                      READY   STATUS    RESTARTS   AGE
 capi-controller-manager-bf9c6468c-d6msj   1/1     Running   0          2m9s
 ```
 
+## Testing
+
+Cluster API has a number of test suites available for you to run. Please visit the [testing][testing] page for more
+information on each suite.
+
+[testing]: ./tests.md
+
 ## That's it!
 
 Now you can [create CAPI objects][qs]!

@@ -105,12 +105,21 @@ test: ## Run tests
 test-integration: ## Run integration tests
 	go test -v -tags=integration ./test/integration/...
 
-.PHONY: test-e2e
-test-e2e: ## Run e2e tests
-	PULL_POLICY=IfNotPresent $(MAKE) docker-build
+.PHONY: test-capd-e2e-full
+test-capd-e2e-full: ## Rebuild all manifests and all provider images then run the capd-e2es
 	$(MAKE) generate-manifests
 	$(MAKE) release-manifests
-	cd ./test/e2e; MANAGER_IMAGE=$(CONTROLLER_IMG)-$(ARCH):$(TAG) go test -v -tags=e2e -timeout=1h . -args -ginkgo.v -ginkgo.trace
+	$(MAKE) all-images-capd-e2e
+
+.PHONY: test-capd-e2e-images
+test-capd-e2e-images: ## Rebuild all Cluster API provider images and run the capd-e2e tests
+	make docker-build REGISTRY=gcr.io/k8s-staging-cluster-api PULL_POLICY=IfNotPresent
+	$(MAKE) capd-e2e
+
+.PHONY: test-capd-e2e
+test-capd-e2e: ## Rebuild the docker provider and run the capd-e2e tests
+	$(MAKE) -C test/infrastructure/docker docker-build REGISTRY=gcr.io/k8s-staging-capi-docker
+	$(MAKE) -C test/infrastructure/docker run-e2e
 
 ## --------------------------------------
 ## Binaries
@@ -281,7 +290,6 @@ modules: ## Runs go mod to ensure modules are up to date.
 	go mod tidy
 	cd $(TOOLS_DIR); go mod tidy
 	cd $(E2E_FRAMEWORK_DIR); go mod tidy
-	cd test/e2e; go mod tidy
 	cd $(CAPD_DIR); $(MAKE) modules
 
 ## --------------------------------------

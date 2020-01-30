@@ -36,7 +36,7 @@ accordingly.
 
 The following diagram shows the typical logic for a cluster infrastructure provider:
 
-![Cluster infrastructure provider activity diagram](../images/cluster-infra-provider.png)
+![Cluster infrastructure provider activity diagram](../../images/cluster-infra-provider.png)
 
 ### Normal resource
 

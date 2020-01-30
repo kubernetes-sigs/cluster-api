@@ -38,7 +38,7 @@ accordingly.
 
 The following diagram shows the typical logic for a machine infrastructure provider:
 
-![Machine infrastructure provider activity diagram](../images/machine-infra-provider.png)
+![Machine infrastructure provider activity diagram](../../images/machine-infra-provider.png)
 
 ### Normal resource
 

@@ -728,7 +728,20 @@ spec:
 {{#/tab }}
 {{#/tabs }}
 
-After the controlplane is up and running, let's retrieve the [target cluster] Kubeconfig:
+To verify the control plane is up, check if the control plane machine
+has a ProviderID.
+```
+kubectl get machines --selector cluster.x-k8s.io/control-plane
+```
+
+If the control plane is deployed using a control plane provider, such as
+[KubeadmControlPlane][control-plane-controller] ensure the control plane is
+ready.
+```
+kubectl get clusters --output jsonpath="{range .items[*]} [{.metadata.name} {.status.ControlPlaneInitialized} {.status.ControlPlaneReady}] {end}"
+```
+
+After the control plane node is up, we can retrieve the workload cluster Kubeconfig:
 
 {{#tabs name:"tab-getting-kubeconfig" tabs:"AWS|Azure|GCP|vSphere|OpenStack, Docker"}}
 {{#tab AWS|Azure|GCP|vSphere|OpenStack}}
@@ -797,7 +810,7 @@ spec:
 {{#/tab }}
 {{#/tabs }}
 
-After a short while, our control plane should be up and in `Ready` state,
+After a short while, our control plane should be running and in `Ready` state,
 let's check the status using `kubectl get nodes`:
 
 ```bash
@@ -1321,4 +1334,4 @@ spec:
 {{#/tabs }}
 
 <!-- links -->
-[target cluster]: ../reference/glossary.md#target-cluster
+[control-plane-controller]: ../architecture/controllers/control-plane.md

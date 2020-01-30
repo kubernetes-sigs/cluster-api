@@ -20,9 +20,11 @@ import (
 	"encoding/base64"
 	"fmt"
 	"strings"
+	"time"
 
 	"github.com/go-logr/logr"
 	"github.com/pkg/errors"
+	"k8s.io/apimachinery/pkg/util/wait"
 	"sigs.k8s.io/cluster-api/test/infrastructure/docker/cloudinit"
 	"sigs.k8s.io/cluster-api/test/infrastructure/docker/docker/types"
 	"sigs.k8s.io/kind/pkg/apis/config/v1alpha4"
@@ -114,7 +116,9 @@ func (m *Machine) Create(role string, version *string) error {
 				nil,
 				nil,
 			)
-			return errors.WithStack(err)
+			if err != nil {
+				return errors.WithStack(err)
+			}
 		case constants.WorkerNodeRoleValue:
 			m.log.Info("Creating worker machine container")
 			m.container, err = m.nodeCreator.CreateWorkerNode(
@@ -124,10 +128,22 @@ func (m *Machine) Create(role string, version *string) error {
 				nil,
 				nil,
 			)
-			return errors.WithStack(err)
+			if err != nil {
+				return errors.WithStack(err)
+			}
 		default:
 			return errors.Errorf("unable to create machine for role %s", role)
 		}
+		// After creating a node we need to wait a small amount of time until crictl does not return an error.
+		// This fixes an issue where we try to kubeadm init too quickly after creating the container.
+		err = wait.PollImmediate(500*time.Millisecond, 2*time.Second, func() (bool, error) {
+			ps := m.container.Commander.Command("crictl", "ps")
+			return ps.Run() == nil, nil
+		})
+		if err != nil {
+			return errors.WithStack(err)
+		}
+		return nil
 	}
 	return nil
 }

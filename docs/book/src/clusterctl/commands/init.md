@@ -14,7 +14,7 @@ The `clusterctl init` command accepts in input a list of providers to install.
 
 <h1> Which providers can I use? </h1>
 
-You can use the `clusterctl config providers` command to get the list of supported providers.
+You can use the `clusterctl config repositories` command to get a list of supported providers and their repository configuration.
  
 If the provider of your choice is missing, you can customize the list of supported providers by using the
 [clusterctl configuration](../configuration.md) file. 

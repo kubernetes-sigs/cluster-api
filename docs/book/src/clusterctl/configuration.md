@@ -12,8 +12,8 @@ The `clusterctl` CLI is designed to work with providers implementing the [cluste
 Each provider is expected to define a provider repository, a well-known place where release assets are published. 
 
 By default, `clusterctl` ships with providers sponsored by SIG Cluster
-Lifecycle. Use `clusterctl config providers` to get a list of supported
-providers.
+Lifecycle. Use `clusterctl config repositories` to get a list of supported
+providers and their repository configuration.
 
 Users can customize the list of available providers using the `clusterctl` configuration file, as shown in the following example:
 

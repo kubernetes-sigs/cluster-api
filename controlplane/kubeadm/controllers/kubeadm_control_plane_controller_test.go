@@ -609,6 +609,7 @@ func TestReconcileInitializeControlPlane(t *testing.T) {
 		Client:             fakeClient,
 		Log:                log.Log,
 		remoteClientGetter: fakeremote.NewClusterClient,
+		scheme:             scheme.Scheme,
 	}
 
 	result, err := r.Reconcile(ctrl.Request{NamespacedName: types.NamespacedName{Name: kcp.Name, Namespace: kcp.Namespace}})
@@ -733,7 +734,11 @@ func TestKubeadmControlPlaneReconciler_generateKubeadmConfig(t *testing.T) {
 	expectedReferenceKind := "KubeadmConfig"
 	expectedReferenceAPIVersion := bootstrapv1.GroupVersion.String()
 	expectedLabels := map[string]string{clusterv1.ClusterLabelName: cluster.Name}
-	expectedOwner := *metav1.NewControllerRef(kcp, controlplanev1.GroupVersion.WithKind("KubeadmControlPlane"))
+	expectedOwner := metav1.OwnerReference{
+		Kind:       "KubeadmControlPlane",
+		APIVersion: controlplanev1.GroupVersion.String(),
+		Name:       kcp.Name,
+	}
 
 	r := &KubeadmControlPlaneReconciler{
 		Client: fakeClient,
@@ -840,6 +845,7 @@ func TestKubeadmControlPlaneReconciler_updateStatusNoMachines(t *testing.T) {
 		Client:             fakeClient,
 		Log:                log.Log,
 		remoteClientGetter: fakeremote.NewClusterClient,
+		scheme:             scheme.Scheme,
 	}
 
 	g.Expect(r.updateStatus(context.Background(), kcp, cluster)).To(Succeed())
@@ -927,6 +933,7 @@ func TestKubeadmControlPlaneReconciler_updateStatusAllMachinesNotReady(t *testin
 		Client:             fakeClient,
 		Log:                log.Log,
 		remoteClientGetter: fakeremote.NewClusterClient,
+		scheme:             scheme.Scheme,
 	}
 
 	g.Expect(r.updateStatus(context.Background(), kcp, cluster)).To(Succeed())
@@ -976,6 +983,7 @@ func TestKubeadmControlPlaneReconciler_updateStatusAllMachinesReady(t *testing.T
 		Client:             fakeClient,
 		Log:                log.Log,
 		remoteClientGetter: fakeremote.NewClusterClient,
+		scheme:             scheme.Scheme,
 	}
 
 	g.Expect(r.updateStatus(context.Background(), kcp, cluster)).To(Succeed())
@@ -1029,6 +1037,7 @@ func TestKubeadmControlPlaneReconciler_updateStatusMachinesReadyMixed(t *testing
 		Client:             fakeClient,
 		Log:                log.Log,
 		remoteClientGetter: fakeremote.NewClusterClient,
+		scheme:             scheme.Scheme,
 	}
 
 	g.Expect(r.updateStatus(context.Background(), kcp, cluster)).To(Succeed())
@@ -1146,6 +1155,7 @@ func TestReconcileControlPlaneScaleUp(t *testing.T) {
 		Log:                log.Log,
 		remoteClientGetter: fakeremote.NewClusterClient,
 		recorder:           record.NewFakeRecorder(32),
+		scheme:             scheme.Scheme,
 	}
 
 	result, err := r.Reconcile(ctrl.Request{NamespacedName: types.NamespacedName{Name: kcp.Name, Namespace: kcp.Namespace}})
@@ -1225,6 +1235,7 @@ func TestScaleUpControlPlaneAddsANewMachine(t *testing.T) {
 		Client:   fakeClient,
 		Log:      log.Log,
 		recorder: record.NewFakeRecorder(32),
+		scheme:   scheme.Scheme,
 	}
 
 	g.Expect(r.scaleUpControlPlane(context.Background(), cluster, kcp, 2)).To(Succeed())
@@ -1295,6 +1306,7 @@ func TestCloneConfigsAndGenerateMachine(t *testing.T) {
 		Client:   fakeClient,
 		Log:      log.Log,
 		recorder: record.NewFakeRecorder(32),
+		scheme:   scheme.Scheme,
 	}
 
 	bootstrapSpec := &bootstrapv1.KubeadmConfigSpec{
@@ -1426,6 +1438,7 @@ func TestReconcileControlPlaneDelete(t *testing.T) {
 			Log:                log.Log,
 			remoteClientGetter: fakeremote.NewClusterClient,
 			recorder:           record.NewFakeRecorder(32),
+			scheme:             scheme.Scheme,
 		}
 
 		// Create control plane machines
@@ -1527,6 +1540,7 @@ func TestReconcileControlPlaneDelete(t *testing.T) {
 			Log:                log.Log,
 			remoteClientGetter: fakeremote.NewClusterClient,
 			recorder:           record.NewFakeRecorder(32),
+			scheme:             scheme.Scheme,
 		}
 
 		result, err := r.Reconcile(ctrl.Request{NamespacedName: types.NamespacedName{Name: kcp.Name, Namespace: kcp.Namespace}})

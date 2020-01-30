@@ -25,15 +25,16 @@ import (
 	"github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/utils/pointer"
+	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
+	"sigs.k8s.io/controller-runtime/pkg/handler"
+
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha3"
 	"sigs.k8s.io/cluster-api/controllers/external"
 	capierrors "sigs.k8s.io/cluster-api/errors"
 	"sigs.k8s.io/cluster-api/util"
 	"sigs.k8s.io/cluster-api/util/patch"
-	"sigs.k8s.io/controller-runtime/pkg/handler"
 )
 
 var (
@@ -98,16 +99,10 @@ func (r *MachineReconciler) reconcileExternal(ctx context.Context, cluster *clus
 		return external.ReconcileOutput{}, err
 	}
 
-	// Set external object OwnerReference to the Machine.
-	ownerRef := metav1.OwnerReference{
-		APIVersion: clusterv1.GroupVersion.String(),
-		Kind:       "Machine",
-		Name:       m.Name,
-		UID:        m.UID,
+	// Set external object ControllerReference to the Machine.
+	if err := controllerutil.SetControllerReference(m, obj, r.scheme); err != nil {
+		return external.ReconcileOutput{}, err
 	}
-
-	// Add ownerRef to object.
-	obj.SetOwnerReferences(util.EnsureOwnerRef(obj.GetOwnerReferences(), ownerRef))
 
 	// Set the Cluster label.
 	labels := obj.GetLabels()

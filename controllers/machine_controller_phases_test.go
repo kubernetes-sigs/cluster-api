@@ -114,6 +114,7 @@ var _ = Describe("Reconcile Machine Phases", func() {
 		r := &MachineReconciler{
 			Client: fake.NewFakeClientWithScheme(scheme.Scheme, defaultCluster, defaultKubeconfigSecret, machine, bootstrapConfig, infraConfig),
 			Log:    log.Log,
+			scheme: scheme.Scheme,
 		}
 
 		res, err := r.reconcile(context.Background(), defaultCluster, machine)
@@ -141,6 +142,7 @@ var _ = Describe("Reconcile Machine Phases", func() {
 		r := &MachineReconciler{
 			Client: fake.NewFakeClientWithScheme(scheme.Scheme, defaultCluster, defaultKubeconfigSecret, machine, bootstrapConfig, infraConfig),
 			Log:    log.Log,
+			scheme: scheme.Scheme,
 		}
 
 		res, err := r.reconcile(context.Background(), defaultCluster, machine)
@@ -166,6 +168,7 @@ var _ = Describe("Reconcile Machine Phases", func() {
 		r := &MachineReconciler{
 			Client: fake.NewFakeClientWithScheme(scheme.Scheme, defaultCluster, defaultKubeconfigSecret, machine, bootstrapConfig, infraConfig),
 			Log:    log.Log,
+			scheme: scheme.Scheme,
 		}
 
 		res, err := r.reconcile(context.Background(), defaultCluster, machine)
@@ -213,6 +216,7 @@ var _ = Describe("Reconcile Machine Phases", func() {
 		r := &MachineReconciler{
 			Client: fake.NewFakeClientWithScheme(scheme.Scheme, defaultCluster, defaultKubeconfigSecret, machine, bootstrapConfig, infraConfig),
 			Log:    log.Log,
+			scheme: scheme.Scheme,
 		}
 
 		res, err := r.reconcile(context.Background(), defaultCluster, machine)
@@ -249,6 +253,7 @@ var _ = Describe("Reconcile Machine Phases", func() {
 		r := &MachineReconciler{
 			Client: fake.NewFakeClientWithScheme(scheme.Scheme, defaultCluster, defaultKubeconfigSecret, machine, bootstrapConfig, infraConfig),
 			Log:    log.Log,
+			scheme: scheme.Scheme,
 		}
 
 		res, err := r.reconcile(context.Background(), defaultCluster, machine)
@@ -297,6 +302,7 @@ var _ = Describe("Reconcile Machine Phases", func() {
 		r := &MachineReconciler{
 			Client: fake.NewFakeClientWithScheme(scheme.Scheme, defaultCluster, defaultKubeconfigSecret, machine, bootstrapConfig, infraConfig),
 			Log:    log.Log,
+			scheme: scheme.Scheme,
 		}
 
 		res, err := r.reconcile(context.Background(), defaultCluster, machine)
@@ -325,6 +331,7 @@ var _ = Describe("Reconcile Machine Phases", func() {
 		r := &MachineReconciler{
 			Client: fake.NewFakeClientWithScheme(scheme.Scheme, defaultCluster, defaultKubeconfigSecret, machine, bootstrapConfig, infraConfig),
 			Log:    log.Log,
+			scheme: scheme.Scheme,
 		}
 
 		res, err := r.reconcile(context.Background(), defaultCluster, machine)
@@ -375,6 +382,7 @@ var _ = Describe("Reconcile Machine Phases", func() {
 		r := &MachineReconciler{
 			Client: fake.NewFakeClientWithScheme(scheme.Scheme, defaultCluster, defaultKubeconfigSecret, machine, bootstrapConfig, infraConfig),
 			Log:    log.Log,
+			scheme: scheme.Scheme,
 		}
 
 		res, err := r.reconcile(context.Background(), defaultCluster, machine)
@@ -605,6 +613,7 @@ func TestReconcileBootstrap(t *testing.T) {
 			r := &MachineReconciler{
 				Client: fake.NewFakeClientWithScheme(scheme.Scheme, tc.machine, bootstrapConfig),
 				Log:    log.Log,
+				scheme: scheme.Scheme,
 			}
 
 			err := r.reconcileBootstrap(context.Background(), defaultCluster, tc.machine)
@@ -800,6 +809,7 @@ func TestReconcileInfrastructure(t *testing.T) {
 			r := &MachineReconciler{
 				Client: fake.NewFakeClientWithScheme(scheme.Scheme, tc.machine, infraConfig),
 				Log:    log.Log,
+				scheme: scheme.Scheme,
 			}
 
 			err := r.reconcileInfrastructure(context.Background(), defaultCluster, tc.machine)

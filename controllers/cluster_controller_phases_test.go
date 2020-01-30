@@ -133,6 +133,7 @@ func TestClusterReconcilePhases(t *testing.T) {
 				r := &ClusterReconciler{
 					Client: c,
 					Log:    log.Log,
+					scheme: scheme.Scheme,
 				}
 
 				err := r.reconcileInfrastructure(context.Background(), tt.cluster)
@@ -209,6 +210,7 @@ func TestClusterReconcilePhases(t *testing.T) {
 				}
 				r := &ClusterReconciler{
 					Client: c,
+					scheme: scheme.Scheme,
 				}
 				err := r.reconcileKubeconfig(context.Background(), tt.cluster)
 				if tt.wantErr {
@@ -356,6 +358,7 @@ func TestClusterReconciler_reconcilePhase(t *testing.T) {
 
 			r := &ClusterReconciler{
 				Client: c,
+				scheme: scheme.Scheme,
 			}
 			r.reconcilePhase(context.TODO(), tt.cluster)
 			g.Expect(tt.cluster.Status.GetTypedPhase()).To(Equal(tt.wantPhase))

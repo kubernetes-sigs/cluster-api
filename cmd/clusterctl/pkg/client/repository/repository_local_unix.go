@@ -115,13 +115,9 @@ func (r *localRepository) GetVersions() ([]string, error) {
 			continue
 		}
 		r := f.Name()
-		sv, err := version.ParseSemantic(r)
+		_, err := version.ParseSemantic(r)
 		if err != nil {
 			// discard releases with tags that are not a valid semantic versions (the user can point explicitly to such releases)
-			continue
-		}
-		if sv.PreRelease() != "" || sv.BuildMetadata() != "" {
-			// discard pre-releases or build releases (the user can point explicitly to such releases)
 			continue
 		}
 		versions = append(versions, r)

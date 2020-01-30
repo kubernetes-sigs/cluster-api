@@ -24,7 +24,6 @@ import (
 	"github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/utils/pointer"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha3"
 	"sigs.k8s.io/cluster-api/controllers/external"
@@ -33,6 +32,7 @@ import (
 	"sigs.k8s.io/cluster-api/util/kubeconfig"
 	"sigs.k8s.io/cluster-api/util/patch"
 	"sigs.k8s.io/cluster-api/util/secret"
+	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	"sigs.k8s.io/controller-runtime/pkg/handler"
 )
 
@@ -84,16 +84,10 @@ func (r *ClusterReconciler) reconcileExternal(ctx context.Context, cluster *clus
 		return external.ReconcileOutput{}, err
 	}
 
-	// Set external object OwnerReference to the Cluster.
-	ownerRef := metav1.OwnerReference{
-		APIVersion: clusterv1.GroupVersion.String(),
-		Kind:       "Cluster",
-		Name:       cluster.Name,
-		UID:        cluster.UID,
+	// Set external object ControllerReference to the Cluster.
+	if err := controllerutil.SetControllerReference(cluster, obj, r.scheme); err != nil {
+		return external.ReconcileOutput{}, err
 	}
-
-	// Add ownerRef to object.
-	obj.SetOwnerReferences(util.EnsureOwnerRef(obj.GetOwnerReferences(), ownerRef))
 
 	// Set the Cluster label.
 	labels := obj.GetLabels()

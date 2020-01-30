@@ -116,7 +116,8 @@ func TestMachineFinalizer(t *testing.T) {
 					machineValidCluster,
 					machineWithFinalizer,
 				),
-				Log: log.Log,
+				Log:    log.Log,
+				scheme: scheme.Scheme,
 			}
 
 			_, _ = mr.Reconcile(tc.request)
@@ -244,7 +245,8 @@ func TestMachineOwnerReference(t *testing.T) {
 					machineValidCluster,
 					machineValidMachine,
 				),
-				Log: log.Log,
+				Log:    log.Log,
+				scheme: scheme.Scheme,
 			}
 
 			_, _ = mr.Reconcile(tc.request)
@@ -400,6 +402,7 @@ func TestReconcileRequest(t *testing.T) {
 			r := &MachineReconciler{
 				Client: client,
 				Log:    log.Log,
+				scheme: scheme.Scheme,
 			}
 
 			result, err := r.Reconcile(reconcile.Request{NamespacedName: types.NamespacedName{Namespace: tc.machine.Namespace, Name: tc.machine.Name}})
@@ -519,6 +522,7 @@ func TestReconcileDeleteExternal(t *testing.T) {
 			r := &MachineReconciler{
 				Client: fake.NewFakeClientWithScheme(scheme.Scheme, objs...),
 				Log:    log.Log,
+				scheme: scheme.Scheme,
 			}
 
 			ok, err := r.reconcileDeleteExternal(ctx, machine)
@@ -564,6 +568,7 @@ func TestRemoveMachineFinalizerAfterDeleteReconcile(t *testing.T) {
 	mr := &MachineReconciler{
 		Client: fake.NewFakeClientWithScheme(scheme.Scheme, testCluster, m),
 		Log:    log.Log,
+		scheme: scheme.Scheme,
 	}
 	_, err := mr.Reconcile(reconcile.Request{NamespacedName: key})
 	g.Expect(err).ToNot(HaveOccurred())
@@ -641,6 +646,7 @@ func TestReconcileMetrics(t *testing.T) {
 			r := &MachineReconciler{
 				Client: fake.NewFakeClientWithScheme(scheme.Scheme, objs...),
 				Log:    log.Log,
+				scheme: scheme.Scheme,
 			}
 
 			r.reconcileMetrics(context.TODO(), machine)

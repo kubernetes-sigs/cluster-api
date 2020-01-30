@@ -64,6 +64,7 @@ type ClusterReconciler struct {
 	Client client.Client
 	Log    logr.Logger
 
+	scheme          *runtime.Scheme
 	recorder        record.EventRecorder
 	externalTracker external.ObjectTracker
 }
@@ -83,6 +84,7 @@ func (r *ClusterReconciler) SetupWithManager(mgr ctrl.Manager, options controlle
 	}
 
 	r.recorder = mgr.GetEventRecorderFor("cluster-controller")
+	r.scheme = mgr.GetScheme()
 	r.externalTracker = external.ObjectTracker{
 		Controller: controller,
 	}

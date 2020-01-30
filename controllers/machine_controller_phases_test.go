@@ -198,6 +198,9 @@ var _ = Describe("Reconcile Machine Phases", func() {
 		err = unstructured.SetNestedField(infraConfig.Object, "test://id-1", "spec", "providerID")
 		Expect(err).NotTo(HaveOccurred())
 
+		err = unstructured.SetNestedField(infraConfig.Object, "us-east-2a", "spec", "failureDomain")
+		Expect(err).NotTo(HaveOccurred())
+
 		err = unstructured.SetNestedField(infraConfig.Object, []interface{}{
 			map[string]interface{}{
 				"type":    "InternalIP",
@@ -223,6 +226,7 @@ var _ = Describe("Reconcile Machine Phases", func() {
 		Expect(err).NotTo(HaveOccurred())
 		Expect(res.Requeue).To(BeFalse())
 		Expect(machine.Status.Addresses).To(HaveLen(2))
+		Expect(*machine.Spec.FailureDomain).To(Equal("us-east-2a"))
 
 		r.reconcilePhase(context.Background(), machine)
 		Expect(machine.Status.GetTypedPhase()).To(Equal(clusterv1.MachinePhaseRunning))

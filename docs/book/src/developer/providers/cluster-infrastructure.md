@@ -27,6 +27,11 @@ A cluster infrastructure provider must define an API type for "infrastructure cl
             meant to be suitable for programmatic interpretation
         2. `failureMessage` (string): indicates there is a fatal problem reconciling the provider's infrastructure;
             meant to be a more descriptive value than `failureReason`
+        3. `failureDomains` (`failureDomains`): the failure domains that machines should be placed in. `failureDomains`
+            is a map, defined as `map[string]FailureDomainSpec`. A unique key must be used for each `FailureDomainSpec`.
+            `FailureDomainSpec` is defined as:
+            - `controlPlane` (bool): indicates if failure domain is appropriate for running control plane instances.
+            - `attributes` (`map[string]string`): arbitrary attributes for users to apply to a failure domain.
 
 ## Behavior
 
@@ -48,6 +53,7 @@ The following diagram shows the typical logic for a cluster infrastructure provi
     1. If any errors are encountered, exit the reconciliation
 1. If the provider created a load balancer for the control plane, record its hostname or IP in `spec.controlPlaneEndpoint`
 1. Set `status.ready` to `true`
+1. Set `status.failureDomains` based on available provider failure domains (optional)
 1. Patch the resource to persist changes
 
 ### Deleted resource

@@ -16,6 +16,8 @@ A machine infrastructure provider must define an API type for "infrastructure ma
 5. Must have a `spec` field with the following:
     1. Required fields:
         1. `providerID` (string): the identifier for the provider's machine instance
+    2. Optional fields:
+        1. `failureDomain` (string): the string identifier of the failure domain the instance is running in
 6. Must have a `status` field with the following:
     1. Required fields:
         1. `ready` (boolean): indicates the provider-specific infrastructure has been provisioned and is ready
@@ -59,6 +61,7 @@ The following diagram shows the typical logic for a machine infrastructure provi
 1. Set `spec.providerID` to the provider-specific identifier for the provider's machine instance
 1. Set `status.ready` to `true`
 1. Set `status.addresses` to the provider-specific set of instance addresses (optional) 
+1. Set `spec.failureDomain` to the provider-specific failure domain the instance is running in (optional)
 1. Patch the resource to persist changes
 
 ### Deleted resource

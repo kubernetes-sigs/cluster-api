@@ -245,6 +245,17 @@ func (r *MachineReconciler) reconcileInfrastructure(ctx context.Context, cluster
 		return errors.Wrapf(err, "failed to retrieve addresses from infrastructure provider for Machine %q in namespace %q", m.Name, m.Namespace)
 	}
 
+	// Get and set the failure domain from the infrastructure provider.
+	var failureDomain string
+	err = util.UnstructuredUnmarshalField(infraConfig, &failureDomain, "spec", "failureDomain")
+	switch {
+	case err == util.ErrUnstructuredFieldNotFound: // no-op
+	case err != nil:
+		return errors.Wrapf(err, "failed to failure domain from infrastructure provider for Machine %q in namespace %q", m.Name, m.Namespace)
+	default:
+		m.Spec.FailureDomain = pointer.StringPtr(failureDomain)
+	}
+
 	m.Spec.ProviderID = pointer.StringPtr(providerID)
 	return nil
 }

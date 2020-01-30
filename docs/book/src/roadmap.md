@@ -20,6 +20,8 @@ This roadmap is a constant work in progress, subject to frequent revision. Dates
 - [Improved status conditions](https://github.com/kubernetes-sigs/cluster-api/issues/1658)
 - [Machine load balancers](https://github.com/kubernetes-sigs/cluster-api/issues/1250)
 - [Extensible machine pre-delete hooks](https://github.com/kubernetes-sigs/cluster-api/issues/1514)
+- Define clusterctl inventory specification & have providers implement it
+- Figure out how to change configurations through rolling updates (e.g. apiserver flags, DNS/addons, etc.)
 
 ## v0.5 (v1alpha5? v1beta1?) ~ November 2020
 
@@ -31,9 +33,9 @@ This roadmap is a constant work in progress, subject to frequent revision. Dates
 - Dual stack IPv4/IPv6 support
 - Windows nodes
 - Auto-scaling support (either with cluster-autoscaler, or something else)
-- UEFI booting
-- GPU support (BitFusion, Elastic GPU, etc.)
-- SR-IOV support
+- UEFI booting (image-builder)
+- GPU support (BitFusion, Elastic GPU, etc.) (may be provider-specific)
+- SR-IOV support (may be provider-specific, may be image-builder)
 - FIPS/NIST/STIG compliance
 - [Simplified cluster creation experience](https://github.com/kubernetes-sigs/cluster-api/issues/1227)
 - Solid story on certificate management

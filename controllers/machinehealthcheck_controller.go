@@ -159,7 +159,8 @@ func (r *MachineHealthCheckReconciler) Reconcile(req ctrl.Request) (_ ctrl.Resul
 		logger.Error(err, "Failed to reconcile MachineHealthCheck")
 		r.recorder.Eventf(m, corev1.EventTypeWarning, "ReconcileError", "%v", err)
 
-		//TODO(JoelSpeed): Determine how/when to requeue requests if errors occur within r.reconcile
+		// Requeue immediately if any errors occurred
+		return ctrl.Result{}, err
 	}
 
 	return result, nil

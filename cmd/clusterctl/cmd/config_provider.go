@@ -18,8 +18,6 @@ package cmd
 
 import (
 	"fmt"
-	"os"
-	"text/tabwriter"
 
 	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
@@ -34,23 +32,17 @@ type configProvidersOptions struct {
 
 var cpo = &configProvidersOptions{}
 
-var configProvidersCmd = &cobra.Command{
-	Use:     "providers",
-	Aliases: []string{"provider"},
-	Args:    cobra.MaximumNArgs(1),
-	Short:   "Display Cluster API provider configuration",
+var configProviderCmd = &cobra.Command{
+	Use:   "provider",
+	Args:  cobra.ExactArgs(1),
+	Short: "Display information about a Cluster API provider",
 	Long: LongDesc(`
-		clusterctl ships with a list of well-known providers; if necessary, edit
-		the $HOME/.cluster-api/clusterctl.yaml file to add new provider configurations or to customize existing ones.
-		
-		Each provider configuration links to a repository, and clusterctl will fetch the provider
-		components yaml from there; required variables and the default namespace where the
-		provider should be deployed are derived from this file.`),
+		Display information about a Cluster API provider.
+
+		clusterctl fetch the provider components yaml from the provider repository; required variables
+		and the default namespace where the provider should be deployed are derived from this file.`),
 
 	Example: Examples(`
-		# Displays the list of available providers.
-		clusterctl config providers
-
 		# Displays relevant information about the AWS provider, including also the list of 
 		# required env variables, if any.
 		clusterctl config provider aws
@@ -77,32 +69,11 @@ var configProvidersCmd = &cobra.Command{
 }
 
 func init() {
-	configProvidersCmd.Flags().StringVarP(&cpo.output, "output", "o", "text", "Output format. One of [yaml, text]")
-	configProvidersCmd.Flags().StringVarP(&cpo.targetNamespace, "target-namespace", "", "", "The target namespace where the provider should be deployed. If not specified, a default namespace will be used")
-	configProvidersCmd.Flags().StringVarP(&cpo.watchingNamespace, "watching-namespace", "", "", "Namespace that the provider should watch to reconcile Cluster API objects. If unspecified, the provider watches for Cluster API objects across all namespaces")
+	configProviderCmd.Flags().StringVarP(&cpo.output, "output", "o", "text", "Output format. One of [yaml, text]")
+	configProviderCmd.Flags().StringVarP(&cpo.targetNamespace, "target-namespace", "", "", "The target namespace where the provider should be deployed. If not specified, a default namespace will be used")
+	configProviderCmd.Flags().StringVarP(&cpo.watchingNamespace, "watching-namespace", "", "", "Namespace that the provider should watch to reconcile Cluster API objects. If unspecified, the provider watches for Cluster API objects across all namespaces")
 
-	configCmd.AddCommand(configProvidersCmd)
-}
-
-func runGetRepositories() error {
-	c, err := client.New(cfgFile)
-	if err != nil {
-		return err
-	}
-
-	repositoryList, err := c.GetProvidersConfig()
-	if err != nil {
-		return err
-	}
-
-	w := tabwriter.NewWriter(os.Stdout, 10, 4, 3, ' ', 0)
-	fmt.Fprintln(w, "NAME\tTYPE\tURL")
-	for _, r := range repositoryList {
-		fmt.Fprintf(w, "%s\t%s\t%s\n", r.Name(), r.Type(), r.URL())
-	}
-	w.Flush()
-
-	return nil
+	configCmd.AddCommand(configProviderCmd)
 }
 
 func runGetComponents(providerName, targetNamespace, watchingNamespace, output string) error {
@@ -141,20 +112,17 @@ func componentsDefaultOutput(c client.Components) error {
 	fmt.Printf("WatchingNamespace:  %s\n", c.WatchingNamespace())
 	if len(c.Variables()) > 0 {
 		fmt.Println("Variables:")
-		fmt.Println("  Name")
-		fmt.Println("  ----")
 		for _, v := range c.Variables() {
-			fmt.Printf("  %s\n", v)
+			fmt.Printf("  - %s\n", v)
 		}
 	}
 	if len(c.Images()) > 0 {
 		fmt.Println("Images:")
-		fmt.Println("  Name")
-		fmt.Println("  ----")
 		for _, v := range c.Images() {
-			fmt.Printf("  %s\n", v)
+			fmt.Printf("  - %s\n", v)
 		}
 	}
+	fmt.Println()
 
 	return nil
 }

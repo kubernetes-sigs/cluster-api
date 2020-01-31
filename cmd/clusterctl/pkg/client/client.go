@@ -231,13 +231,13 @@ func newClusterctlClient(path string, options ...Option) (*clusterctlClient, err
 // defaultClusterFactory is a ClusterClientFactory func the uses the default client provided by the cluster low level library.
 func defaultClusterFactory() func(kubeconfig string) (cluster.Client, error) {
 	return func(kubeconfig string) (cluster.Client, error) {
-		return cluster.New(kubeconfig, cluster.Options{}), nil
+		return cluster.New(kubeconfig), nil
 	}
 }
 
 // defaultRepositoryFactory is a RepositoryClientFactory func the uses the default client provided by the repository low level library.
 func defaultRepositoryFactory(configClient config.Client) func(providerConfig config.Provider) (repository.Client, error) {
 	return func(providerConfig config.Provider) (repository.Client, error) {
-		return repository.New(providerConfig, configClient.Variables(), repository.Options{})
+		return repository.New(providerConfig, configClient.Variables())
 	}
 }

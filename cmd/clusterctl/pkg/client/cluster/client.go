@@ -68,9 +68,8 @@ type Client interface {
 
 // clusterClient implements Client.
 type clusterClient struct {
-	kubeconfig    string
-	proxy         Proxy
-	machineWaiter MachineWaiter
+	kubeconfig string
+	proxy      Proxy
 }
 
 // ensure clusterClient implements Client.
@@ -107,7 +106,7 @@ func (c *clusterClient) ProviderInstaller() ProviderInstaller {
 func (c *clusterClient) ObjectMover() ObjectMover {
 	//TODO: make the logger to flow down all the chain
 	log := klogr.New()
-	return newObjectMover(c.proxy, c.machineWaiter, log)
+	return newObjectMover(c.proxy, log)
 }
 
 // New returns a cluster.Client.
@@ -122,23 +121,15 @@ func newClusterClient(kubeconfig string, options Options) *clusterClient {
 		proxy = newProxy(kubeconfig)
 	}
 
-	// if there is an injected machineWaiter, use it, otherwise use the default one
-	machineWaiter := options.InjectMachineWaiter
-	if machineWaiter == nil {
-		machineWaiter = waitForMachineReady
-	}
-
 	return &clusterClient{
-		kubeconfig:    kubeconfig,
-		proxy:         proxy,
-		machineWaiter: machineWaiter,
+		kubeconfig: kubeconfig,
+		proxy:      proxy,
 	}
 }
 
 // Options allow to set ConfigClient options
 type Options struct {
-	InjectProxy         Proxy
-	InjectMachineWaiter MachineWaiter
+	InjectProxy Proxy
 }
 
 type Proxy interface {

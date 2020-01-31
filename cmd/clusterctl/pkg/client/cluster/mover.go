@@ -17,7 +17,7 @@ limitations under the License.
 package cluster
 
 import (
-	"sync"
+	"fmt"
 	"time"
 
 	"github.com/go-logr/logr"
@@ -38,14 +38,10 @@ type ObjectMover interface {
 	Move(namespace string, toCluster Client) error
 }
 
-// MachineWaiter defines a function that waits for a machine to be reconciled and linked with the corresponding node.
-type MachineWaiter func(proxy Proxy, machineKey client.ObjectKey) error
-
 // objectMover implements the ObjectMover interface.
 type objectMover struct {
-	fromProxy     Proxy
-	machineWaiter MachineWaiter
-	log           logr.Logger
+	fromProxy Proxy
+	log       logr.Logger
 }
 
 // ensure objectMover implements the ObjectMover interface.
@@ -81,37 +77,11 @@ func (o *objectMover) Move(namespace string, toCluster Client) error {
 	return nil
 }
 
-func newObjectMover(fromProxy Proxy, machineWaiter MachineWaiter, log logr.Logger) *objectMover {
+func newObjectMover(fromProxy Proxy, log logr.Logger) *objectMover {
 	return &objectMover{
-		fromProxy:     fromProxy,
-		machineWaiter: machineWaiter,
-		log:           log,
+		fromProxy: fromProxy,
+		log:       log,
 	}
-}
-
-const (
-	retryIntervalResourceReady = 10 * time.Second
-	timeoutMachineReady        = 30 * time.Minute
-)
-
-// waitForMachineReady waits for a machine just moved to a new management cluster to be reconciled and linked with the corresponding node.
-func waitForMachineReady(proxy Proxy, machineKey client.ObjectKey) error {
-	machine := new(clusterv1.Machine)
-	c, err := proxy.NewClient()
-	if err != nil {
-		return err
-	}
-
-	err = wait.PollImmediate(retryIntervalResourceReady, timeoutMachineReady, func() (bool, error) {
-		if err := c.Get(ctx, machineKey, machine); err != nil {
-			return false, err
-		}
-
-		// Return true if the Machine has a reference to a Node.
-		return machine.Status.NodeRef != nil, nil
-	})
-
-	return err
 }
 
 // Move moves all the Cluster API objects existing in a namespace (or from all the namespaces if empty) to a target management cluster
@@ -119,59 +89,142 @@ func (o *objectMover) move(graph *objectGraph, toProxy Proxy) error {
 	clusters := graph.getClusters()
 	o.log.Info("Clusters to move", "Count", len(clusters))
 
-	// Move Cluster by Cluster, ensuring all the dependent objects are moved as well and that the OwnerReferences relations are rebuilt in the target cluster.
-	// Nb. We are moving clusters one by one in sequential order for the sake of readability of the logs.
-	for _, cluster := range clusters {
-		o.log.Info("Moving", "Cluster", cluster.identity.Name, "Namespace", cluster.identity.Namespace)
+	// Sets the pause field on the Cluster object in the source management cluster, so the controllers stop reconciling it.
+	if err := setClusterPause(o.fromProxy, clusters, true, o.log); err != nil {
+		return err
+	}
 
-		// Sets the pause field on the Cluster object in the source management cluster, so the controllers stop reconciling it.
-		if err := setClusterPause(o.fromProxy, cluster, o.log); err != nil {
+	// Define the move sequence by processing the ownerReference chain, so we ensure that a Kubernetes object is moved only after its owners.
+	// The sequence is bases on object graph nodes, each one representing a Kubernetes object; nodes are grouped, so bulk of nodes can be moved in parallel. e.g.
+	// - All the Clusters should be moved first (group 1, processed in parallel)
+	// - All the MachineDeployments should be moved second (group 1, processed in parallel)
+	// - then all the MachineSets, then all the Machines, etc.
+	moveSequence := getMoveSequence(graph)
+
+	// Create all objects group by group, ensuring all the ownerReferences are re-created.
+	for groupIndex := 0; groupIndex < len(moveSequence.groups); groupIndex++ {
+		if err := o.createGroup(moveSequence.getGroup(groupIndex), toProxy); err != nil {
 			return err
 		}
+	}
 
-		// Create the Cluster object and all the dependent object tree into the target management cluster
-		// NB. we are doing all he create first, so the process can be restarted from the beginning time in case of problems.
-		if err := o.createTreeIntoTarget(nil, cluster, toProxy); err != nil {
+	// Delete all objects group by group in reverse order.
+	for groupIndex := len(moveSequence.groups) - 1; groupIndex >= 0; groupIndex-- {
+		if err := o.deleteGroup(moveSequence.getGroup(groupIndex)); err != nil {
 			return err
 		}
+	}
 
-		// Delete the Cluster object and all the dependent object tree from the source management cluster
-		// NB. we are doing delete after all the create completes, so the process can be restarted from the beginning time in case of problems.
-		if err := o.deleteTreeFromSource(cluster); err != nil {
-			return err
-		}
+	// Reset the pause field on the Cluster object in the target management cluster, so the controllers start reconciling it.
+	if err := setClusterPause(toProxy, clusters, false, o.log); err != nil {
+		return err
 	}
 
 	return nil
 }
 
-var (
-	clusterPausePatch = client.ConstantPatch(types.MergePatchType, []byte("{\"spec\":{\"paused\":true}}"))
-)
+// moveSequence defines a list of group of moveGroups
+type moveSequence struct {
+	groups   []moveGroup
+	nodesMap map[*node]empty
+}
+
+// moveGroup defines is a list of nodes read from the object graph that can be moved in parallel.
+type moveGroup []*node
+
+func (s *moveSequence) addGroup(group moveGroup) {
+	// Add the group
+	s.groups = append(s.groups, group)
+	// Add all the nodes in the group to the nodeMap so we can check if a node is already in the move sequence or not
+	for _, n := range group {
+		s.nodesMap[n] = empty{}
+	}
+}
+
+func (s *moveSequence) hasNode(n *node) bool {
+	_, ok := s.nodesMap[n]
+	return ok
+}
+
+func (s *moveSequence) getGroup(i int) moveGroup {
+	return s.groups[i]
+}
+
+// Define the move sequence by processing the ownerReference chain.
+func getMoveSequence(graph *objectGraph) *moveSequence {
+	moveSequence := &moveSequence{
+		groups:   []moveGroup{},
+		nodesMap: make(map[*node]empty),
+	}
+
+	for {
+		// Determine the next move group by processing all the nodes in the graph that belong to a Cluster.
+		// NB. it is necessary to filter out nodes not belonging to a cluster because e.g. discovery reads all the secrets,
+		// but only few of them are related to Clusters/Machines etc.
+		moveGroup := moveGroup{}
+		for _, n := range graph.getNodesWithClusterTenants() {
+			// If the node was already included in the moveSequence, skip it.
+			if moveSequence.hasNode(n) {
+				continue
+			}
+
+			// Check if all the ownerReferences are already included in the move sequence; if yes, add the node to move group,
+			// otherwise skip it (the node will be re-processed in the next group).
+			ownersInPlace := true
+			for owner := range n.owners {
+				if !moveSequence.hasNode(owner) {
+					ownersInPlace = false
+					break
+				}
+			}
+			for owner := range n.softOwners {
+				if !moveSequence.hasNode(owner) {
+					ownersInPlace = false
+					break
+				}
+			}
+			if ownersInPlace {
+				moveGroup = append(moveGroup, n)
+			}
+		}
+
+		// If the resulting move group is empty it means that all the nodes are already in the sequence, so exit.
+		if len(moveGroup) == 0 {
+			break
+		}
+		moveSequence.addGroup(moveGroup)
+	}
+	return moveSequence
+}
 
 // setClusterPause sets the paused field on a Cluster object.
-func setClusterPause(proxy Proxy, cluster *node, log logr.Logger) error {
-	log.V(1).Info("Set Cluster.Spec.Paused", "Cluster", cluster.identity.Name, "Namespace", cluster.identity.Namespace)
+func setClusterPause(proxy Proxy, clusters []*node, value bool, log logr.Logger) error {
+	patch := client.ConstantPatch(types.MergePatchType, []byte(fmt.Sprintf("{\"spec\":{\"paused\":%t}}", value)))
 
-	cFrom, err := proxy.NewClient()
-	if err != nil {
-		return err
-	}
+	for _, cluster := range clusters {
+		log.V(1).Info("Set Cluster.Spec.Paused", "Cluster", cluster.identity.Name, "Namespace", cluster.identity.Namespace)
 
-	clusterObj := &clusterv1.Cluster{}
-	clusterObjKey := client.ObjectKey{
-		Namespace: cluster.identity.Namespace,
-		Name:      cluster.identity.Name,
-	}
+		cFrom, err := proxy.NewClient()
+		if err != nil {
+			return err
+		}
 
-	if err := cFrom.Get(ctx, clusterObjKey, clusterObj); err != nil {
-		return errors.Wrapf(err, "error reading %q %s/%s",
-			clusterObj.GroupVersionKind(), clusterObj.GetNamespace(), clusterObj.GetName())
-	}
+		clusterObj := &clusterv1.Cluster{}
+		clusterObjKey := client.ObjectKey{
+			Namespace: cluster.identity.Namespace,
+			Name:      cluster.identity.Name,
+		}
 
-	if err := cFrom.Patch(ctx, clusterObj, clusterPausePatch); err != nil {
-		return errors.Wrapf(err, "error pausing reconciliation for %q %s/%s",
-			clusterObj.GroupVersionKind(), clusterObj.GetNamespace(), clusterObj.GetName())
+		if err := cFrom.Get(ctx, clusterObjKey, clusterObj); err != nil {
+			return errors.Wrapf(err, "error reading %q %s/%s",
+				clusterObj.GroupVersionKind(), clusterObj.GetNamespace(), clusterObj.GetName())
+		}
+
+		if err := cFrom.Patch(ctx, clusterObj, patch); err != nil {
+			return errors.Wrapf(err, "error pausing reconciliation for %q %s/%s",
+				clusterObj.GroupVersionKind(), clusterObj.GetNamespace(), clusterObj.GetName())
+		}
+
 	}
 	return nil
 }
@@ -181,69 +234,31 @@ const (
 	retryIntervalCreateTargetObject = 1 * time.Second
 )
 
-// createTreeIntoTarget creates a node and its dependent node tree into the target management cluster.
-func (o *objectMover) createTreeIntoTarget(ownerNode, nodeToCreate *node, toProxy Proxy) error {
-	// Creates the Kubernetes object corresponding to the nodeToCreate.
-	// Nb. The operation is wrapped in a retry loop to make move more resilient to unexpected conditions.
-	err := retry(retryCreateTargetObject, retryIntervalCreateTargetObject, o.log, func() error {
-		return o.createTargetObject(ownerNode, nodeToCreate, toProxy)
-	})
-	if err != nil {
-		return err
-	}
-
-	// Creates - in parallel - the dependents nodes and the softDependents nodes (with the respective object tree).
-	var wg sync.WaitGroup
+// createGroup creates all the Kubernetes objects into the target management cluster corresponding to the object graph nodes in a moveGroup.
+func (o *objectMover) createGroup(group moveGroup, toProxy Proxy) error {
 	errList := []error{}
-	errCh := make(chan error)
-	defer close(errCh)
+	for i := range group {
+		nodeToCreate := group[i]
 
-	go func() {
-		for e := range errCh {
-			errList = append(errList, e)
+		// Creates the Kubernetes object corresponding to the nodeToCreate.
+		// Nb. The operation is wrapped in a retry loop to make move more resilient to unexpected conditions.
+		err := retry(retryCreateTargetObject, retryIntervalCreateTargetObject, o.log, func() error {
+			return o.createTargetObject(nodeToCreate, toProxy)
+		})
+		if err != nil {
+			errList = append(errList, err)
 		}
-	}()
-
-	for dependent := range nodeToCreate.dependents {
-		wg.Add(1)
-		go func(dependent *node) {
-			defer wg.Done()
-			if err := o.createTreeIntoTarget(nodeToCreate, dependent, toProxy); err != nil {
-				errCh <- err
-			}
-		}(dependent)
 	}
 
-	for dependent := range nodeToCreate.softDependents {
-		wg.Add(1)
-		go func(dependent *node) {
-			defer wg.Done()
-			if err := o.createTreeIntoTarget(nodeToCreate, dependent, toProxy); err != nil {
-				errCh <- err
-			}
-		}(dependent)
-	}
-
-	wg.Wait()
 	if len(errList) > 0 {
 		return kerrors.NewAggregate(errList)
-	}
-
-	// If the nodeToCreate is a machine, wait for the machine to be reconciled and linked with the corresponding node.
-	// This gives a good signal about the new set of ClusterAPI objects being now successfully linked to the workload cluster.
-	if nodeToCreate.identity.GroupVersionKind().GroupKind() == clusterv1.GroupVersion.WithKind("Machine").GroupKind() {
-		o.log.V(1).Info("Waiting for reconciliation with the workload cluster node", "Machine", nodeToCreate.identity.Name, "Namespace", nodeToCreate.identity.Namespace)
-		machineKey := client.ObjectKey{Namespace: nodeToCreate.identity.Namespace, Name: nodeToCreate.identity.Name}
-		if err := o.machineWaiter(toProxy, machineKey); err != nil {
-			return err
-		}
 	}
 
 	return nil
 }
 
-// createTargetObject creates the Kubernetes object corresponding to the node in the target Management cluster, taking care of restoring the OwnerReference with the owner node, if any.
-func (o *objectMover) createTargetObject(ownerNode, nodeToCreate *node, toProxy Proxy) error {
+// createTargetObject creates the Kubernetes object in the target Management cluster corresponding to the object graph node, taking care of restoring the OwnerReference with the owner nodes, if any.
+func (o *objectMover) createTargetObject(nodeToCreate *node, toProxy Proxy) error {
 	o.log.V(1).Info("Creating", nodeToCreate.identity.Kind, nodeToCreate.identity.Name, "Namespace", nodeToCreate.identity.Namespace)
 
 	cFrom, err := o.fromProxy.NewClient()
@@ -271,30 +286,27 @@ func (o *objectMover) createTargetObject(ownerNode, nodeToCreate *node, toProxy 
 	// Removes current OwnerReferences
 	obj.SetOwnerReferences(nil)
 
-	// Creates a new OwnerReferences towards the OwnerNode, if any.
-	if ownerNode != nil {
-		ownerRef := metav1.OwnerReference{
-			APIVersion: ownerNode.identity.APIVersion,
-			Kind:       ownerNode.identity.Kind,
-			Name:       ownerNode.identity.Name,
-			UID:        ownerNode.newUID, // Use the owner's newUID read from the target management cluster (instead of the UID read during discovery).
-		}
+	// Recreate all the OwnerReferences using the newUID of the owner nodes.
+	if len(nodeToCreate.owners) > 0 {
+		ownerRefs := []metav1.OwnerReference{}
+		for ownerNode := range nodeToCreate.owners {
+			ownerRef := metav1.OwnerReference{
+				APIVersion: ownerNode.identity.APIVersion,
+				Kind:       ownerNode.identity.Kind,
+				Name:       ownerNode.identity.Name,
+				UID:        ownerNode.newUID, // Use the owner's newUID read from the target management cluster (instead of the UID read during discovery).
+			}
 
-		// Restores the attributes of the OwnerReference.
-		if attributes, ok := ownerNode.dependents[nodeToCreate]; ok {
-			ownerRef.Controller = attributes.Controller
-			ownerRef.BlockOwnerDeletion = attributes.BlockOwnerDeletion
-		}
+			// Restores the attributes of the OwnerReference.
+			if attributes, ok := nodeToCreate.owners[ownerNode]; ok {
+				ownerRef.Controller = attributes.Controller
+				ownerRef.BlockOwnerDeletion = attributes.BlockOwnerDeletion
+			}
 
-		obj.SetOwnerReferences([]metav1.OwnerReference{ownerRef})
-	}
-
-	// If the nodeToCreate is a cluster, reset Cluster.Spec.Paused it will be properly reconciled in the target management cluster
-	if obj.GroupVersionKind().GroupKind() == clusterv1.GroupVersion.WithKind("Cluster").GroupKind() {
-		if err := unstructured.SetNestedField(obj.Object, false, "spec", "paused"); err != nil {
-			return errors.Wrapf(err, "failed to reset Cluster.Spec.Paused for  %q %s/%s",
-				obj.GroupVersionKind(), obj.GetNamespace(), obj.GetName())
+			ownerRefs = append(ownerRefs, ownerRef)
 		}
+		obj.SetOwnerReferences(ownerRefs)
+
 	}
 
 	// Creates the targetObj into the target management cluster.
@@ -341,59 +353,31 @@ const (
 	retryIntervalDeleteSourceObject = 1 * time.Second
 )
 
-// deleteTreeFromSource deletes a node and all the dependent nodes from the source management cluster.
-func (o *objectMover) deleteTreeFromSource(nodeToDelete *node) error {
-	// Deletes - in parallel - the dependents nodes and the softDependents nodes (with the respective object tree).
-	var wg sync.WaitGroup
+// deleteGroup deletes all the Kubernetes objects from the source management cluster corresponding to the object graph nodes in a moveGroup.
+func (o *objectMover) deleteGroup(group moveGroup) error {
 	errList := []error{}
-	errCh := make(chan error)
-	defer close(errCh)
+	for i := range group {
+		nodeToDelete := group[i]
 
-	go func() {
-		for e := range errCh {
-			errList = append(errList, e)
+		// Delete the Kubernetes object corresponding to the current node.
+		// Nb. The operation is wrapped in a retry loop to make move more resilient to unexpected conditions.
+		err := retry(retryDeleteSourceObject, retryIntervalDeleteSourceObject, o.log, func() error {
+			return o.deleteSourceObject(nodeToDelete)
+		})
+
+		if err != nil {
+			errList = append(errList, err)
 		}
-	}()
-
-	for dependent := range nodeToDelete.dependents {
-		wg.Add(1)
-		go func(dependent *node) {
-			defer wg.Done()
-			if err := o.deleteTreeFromSource(dependent); err != nil {
-				errCh <- err
-			}
-		}(dependent)
 	}
 
-	for dependent := range nodeToDelete.softDependents {
-		wg.Add(1)
-		go func(dependent *node) {
-			defer wg.Done()
-			if err := o.deleteTreeFromSource(dependent); err != nil {
-				errCh <- err
-			}
-		}(dependent)
-	}
-
-	wg.Wait()
-	if len(errList) > 0 {
-		return kerrors.NewAggregate(errList)
-	}
-
-	// Delete the Kubernetes object corresponding to the current node.
-	// Nb. The operation is wrapped in a retry loop to make move more resilient to unexpected conditions.
-	err := retry(retryDeleteSourceObject, retryIntervalDeleteSourceObject, o.log, func() error {
-		return o.deleteSourceObject(nodeToDelete)
-	})
-
-	return err
+	return kerrors.NewAggregate(errList)
 }
 
 var (
 	removeFinalizersPatch = client.ConstantPatch(types.MergePatchType, []byte("{\"metadata\":{\"finalizers\":[]}}"))
 )
 
-// deleteSourceObject deletes the object corresponding to the node from the source management cluster, taking care of removing all the finalizers so
+// deleteSourceObject deletes the Kubernetes object corresponding to the node from the source management cluster, taking care of removing all the finalizers so
 // the objects gets immediately deleted (force delete).
 func (o *objectMover) deleteSourceObject(nodeToDelete *node) error {
 	o.log.V(1).Info("Deleting", nodeToDelete.identity.Kind, nodeToDelete.identity.Name, "Namespace", nodeToDelete.identity.Namespace)

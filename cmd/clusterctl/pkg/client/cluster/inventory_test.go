@@ -19,12 +19,18 @@ package cluster
 import (
 	"reflect"
 	"testing"
+	"time"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/util/wait"
 	clusterctlv1 "sigs.k8s.io/cluster-api/cmd/clusterctl/api/v1alpha3"
 	"sigs.k8s.io/cluster-api/cmd/clusterctl/pkg/internal/test"
 )
+
+func fakePollImmediateWaiter(interval, timeout time.Duration, condition wait.ConditionFunc) error {
+	return nil
+}
 
 func Test_inventoryClient_EnsureCustomResourceDefinitions(t *testing.T) {
 	type fields struct {
@@ -52,7 +58,7 @@ func Test_inventoryClient_EnsureCustomResourceDefinitions(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			p := newInventoryClient(test.NewFakeProxy())
+			p := newInventoryClient(test.NewFakeProxy(), fakePollImmediateWaiter)
 			if tt.fields.alreadyHasCRD {
 				//forcing creation of metadata before test
 				if err := p.EnsureCustomResourceDefinitions(); err != nil {
@@ -97,7 +103,7 @@ func Test_inventoryClient_List(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			p := newInventoryClient(test.NewFakeProxy().WithObjs(tt.fields.initObjs...))
+			p := newInventoryClient(test.NewFakeProxy().WithObjs(tt.fields.initObjs...), fakePollImmediateWaiter)
 			got, err := p.List()
 			if (err != nil) != tt.wantErr {
 				t.Errorf("List() error = %v, wantErr %v", err, tt.wantErr)

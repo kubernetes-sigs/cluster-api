@@ -18,9 +18,11 @@ package client
 
 import (
 	"testing"
+	"time"
 
 	"github.com/pkg/errors"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/util/wait"
 	clusterctlv1 "sigs.k8s.io/cluster-api/cmd/clusterctl/api/v1alpha3"
 	"sigs.k8s.io/cluster-api/cmd/clusterctl/pkg/client/cluster"
 	"sigs.k8s.io/cluster-api/cmd/clusterctl/pkg/client/config"
@@ -140,7 +142,11 @@ func (f *fakeClient) WithRepository(repositoryClient repository.Client) *fakeCli
 func newFakeCluster(kubeconfig string) *fakeClusterClient {
 	fakeProxy := test.NewFakeProxy()
 
-	client := cluster.New("", cluster.InjectProxy(fakeProxy))
+	pollImmediateWaiter := func(interval, timeout time.Duration, condition wait.ConditionFunc) error {
+		return nil
+	}
+
+	client := cluster.New("", cluster.InjectProxy(fakeProxy), cluster.InjectPollImmediateWaiter(pollImmediateWaiter))
 
 	return &fakeClusterClient{
 		kubeconfig:     kubeconfig,

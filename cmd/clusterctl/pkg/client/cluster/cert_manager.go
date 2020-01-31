@@ -22,7 +22,6 @@ import (
 	"github.com/pkg/errors"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
-	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/klog"
 	clusterctlv1 "sigs.k8s.io/cluster-api/cmd/clusterctl/api/v1alpha3"
 	"sigs.k8s.io/cluster-api/cmd/clusterctl/config"
@@ -46,16 +45,18 @@ type CertMangerClient interface {
 
 // certMangerClient implements CertMangerClient .
 type certMangerClient struct {
-	proxy Proxy
+	proxy               Proxy
+	pollImmediateWaiter PollImmediateWaiter
 }
 
 // Ensure certMangerClient implements the CertMangerClient interface.
 var _ CertMangerClient = &certMangerClient{}
 
 // newCertMangerClient returns a certMangerClient.
-func newCertMangerClient(proxy Proxy) *certMangerClient {
+func newCertMangerClient(proxy Proxy, pollImmediateWaiter PollImmediateWaiter) *certMangerClient {
 	return &certMangerClient{
-		proxy: proxy,
+		proxy:               proxy,
+		pollImmediateWaiter: pollImmediateWaiter,
 	}
 }
 
@@ -109,7 +110,7 @@ func (cm *certMangerClient) EnsureWebHook() error {
 	}
 
 	// Waits for for the cert-manager WebHook to be available.
-	if err := wait.PollImmediate(waitCertManagerInterval, waitCertManagerTimeout, func() (bool, error) {
+	if err := cm.pollImmediateWaiter(waitCertManagerInterval, waitCertManagerTimeout, func() (bool, error) {
 		webHook, err := cm.getWebHook(c)
 		if err != nil {
 			return false, errors.Wrap(err, "failed to get the cert-manager WebHook")

@@ -18,8 +18,10 @@ package cluster
 
 import (
 	"context"
+	"time"
 
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
+	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/klog/klogr"
 	"sigs.k8s.io/cluster-api/cmd/clusterctl/pkg/client/config"
 	"sigs.k8s.io/cluster-api/cmd/clusterctl/pkg/client/repository"
@@ -68,11 +70,15 @@ type Client interface {
 	ObjectMover() ObjectMover
 }
 
+// PollImmediateWaiter tries a condition func until it returns true, an error, or the timeout is reached.
+type PollImmediateWaiter func(interval, timeout time.Duration, condition wait.ConditionFunc) error
+
 // clusterClient implements Client.
 type clusterClient struct {
 	kubeconfig              string
 	proxy                   Proxy
 	repositoryClientFactory RepositoryClientFactory
+	pollImmediateWaiter     PollImmediateWaiter
 }
 
 type RepositoryClientFactory func(provider config.Provider, configVariablesClient config.VariablesClient, options ...repository.Option) (repository.Client, error)
@@ -89,7 +95,7 @@ func (c *clusterClient) Proxy() Proxy {
 }
 
 func (c *clusterClient) CertManger() CertMangerClient {
-	return newCertMangerClient(c.proxy)
+	return newCertMangerClient(c.proxy, c.pollImmediateWaiter)
 }
 
 func (c *clusterClient) ProviderComponents() ComponentsClient {
@@ -97,7 +103,7 @@ func (c *clusterClient) ProviderComponents() ComponentsClient {
 }
 
 func (c *clusterClient) ProviderInventory() InventoryClient {
-	return newInventoryClient(c.proxy)
+	return newInventoryClient(c.proxy, c.pollImmediateWaiter)
 }
 
 func (c *clusterClient) ProviderObjects() ObjectsClient {
@@ -118,6 +124,7 @@ func (c *clusterClient) ObjectMover() ObjectMover {
 type NewOptions struct {
 	injectProxy                   Proxy
 	injectRepositoryClientFactory RepositoryClientFactory
+	injectPollImmediateWaiter     PollImmediateWaiter
 }
 
 // Option is a configuration option supplied to New
@@ -135,6 +142,13 @@ func InjectProxy(proxy Proxy) Option {
 func InjectRepositoryFactory(factory RepositoryClientFactory) Option {
 	return func(c *NewOptions) {
 		c.injectRepositoryClientFactory = factory
+	}
+}
+
+// InjectPollImmediateWaiter implements a New Option that allows to override the default PollImmediateWaiter used by clusterctl.
+func InjectPollImmediateWaiter(pollImmediateWaiter PollImmediateWaiter) Option {
+	return func(c *NewOptions) {
+		c.injectPollImmediateWaiter = pollImmediateWaiter
 	}
 }
 
@@ -161,10 +175,17 @@ func newClusterClient(kubeconfig string, options ...Option) *clusterClient {
 		repositoryClientFactory = repository.New
 	}
 
+	// if there is an injected PollImmediateWaiter, use it, otherwise use the default one
+	pollImmediateWaiter := cfg.injectPollImmediateWaiter
+	if pollImmediateWaiter == nil {
+		pollImmediateWaiter = wait.PollImmediate
+	}
+
 	return &clusterClient{
 		kubeconfig:              kubeconfig,
 		proxy:                   proxy,
 		repositoryClientFactory: repositoryClientFactory,
+		pollImmediateWaiter:     pollImmediateWaiter,
 	}
 }
 

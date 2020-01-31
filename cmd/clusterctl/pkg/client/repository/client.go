@@ -93,12 +93,18 @@ func InjectRepository(repository Repository) Option {
 }
 
 // New returns a Client.
-func New(provider config.Provider, configVariablesClient config.VariablesClient, options Options) (Client, error) {
-	return newRepositoryClient(provider, configVariablesClient, options)
+func New(provider config.Provider, configVariablesClient config.VariablesClient, options ...Option) (Client, error) {
+	return newRepositoryClient(provider, configVariablesClient, options...)
 }
 
-func newRepositoryClient(provider config.Provider, configVariablesClient config.VariablesClient, options Options) (*repositoryClient, error) {
-	repository := options.InjectRepository
+func newRepositoryClient(provider config.Provider, configVariablesClient config.VariablesClient, options ...Option) (*repositoryClient, error) {
+	cfg := &NewOptions{}
+	for _, o := range options {
+		o(cfg)
+	}
+
+	// if there is an injected repository, use it, otherwise use a default one
+	repository := cfg.injectRepository
 	if repository == nil {
 		r, err := repositoryFactory(provider, configVariablesClient)
 		if err != nil {
@@ -112,11 +118,6 @@ func newRepositoryClient(provider config.Provider, configVariablesClient config.
 		repository:            repository,
 		configVariablesClient: configVariablesClient,
 	}, nil
-}
-
-// Options allow to set Client options
-type Options struct {
-	InjectRepository Repository
 }
 
 // Repository defines the behavior of a repository implementation.

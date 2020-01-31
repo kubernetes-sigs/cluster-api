@@ -109,14 +109,34 @@ func (c *clusterClient) ObjectMover() ObjectMover {
 	return newObjectMover(c.proxy, log)
 }
 
-// New returns a cluster.Client.
-func New(kubeconfig string, options Options) Client {
-	return newClusterClient(kubeconfig, options)
+// NewOptions carries the options supported by New
+type NewOptions struct {
+	injectProxy Proxy
 }
 
-func newClusterClient(kubeconfig string, options Options) *clusterClient {
-	// if there is an injected proxy, use it, otherwise use the default one
-	proxy := options.InjectProxy
+// Option is a configuration option supplied to New
+type Option func(*NewOptions)
+
+// InjectProxy implements a New Option that allows to override the default proxy used by clusterctl.
+func InjectProxy(proxy Proxy) Option {
+	return func(c *NewOptions) {
+		c.injectProxy = proxy
+	}
+}
+
+// New returns a cluster.Client.
+func New(kubeconfig string, options ...Option) Client {
+	return newClusterClient(kubeconfig, options...)
+}
+
+func newClusterClient(kubeconfig string, options ...Option) *clusterClient {
+	cfg := &NewOptions{}
+	for _, o := range options {
+		o(cfg)
+	}
+
+	// if there is an injected proxy, use it, otherwise use a default one
+	proxy := cfg.injectProxy
 	if proxy == nil {
 		proxy = newProxy(kubeconfig)
 	}
@@ -125,11 +145,6 @@ func newClusterClient(kubeconfig string, options Options) *clusterClient {
 		kubeconfig: kubeconfig,
 		proxy:      proxy,
 	}
-}
-
-// Options allow to set ConfigClient options
-type Options struct {
-	InjectProxy Proxy
 }
 
 type Proxy interface {

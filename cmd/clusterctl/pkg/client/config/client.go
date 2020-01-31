@@ -75,6 +75,7 @@ func newConfigClient(path string, options ...Option) (*configClient, error) {
 		o(cfg)
 	}
 
+	// if there is an injected reader, use it, otherwise use a default one
 	reader := cfg.injectReader
 	if reader == nil {
 		reader = newViperReader()

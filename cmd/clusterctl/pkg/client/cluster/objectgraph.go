@@ -17,8 +17,6 @@ limitations under the License.
 package cluster
 
 import (
-	"fmt"
-	"sort"
 	"strings"
 
 	"github.com/go-logr/logr"
@@ -36,7 +34,7 @@ import (
 
 type empty struct{}
 
-type dependAttributes struct {
+type ownerReferenceAttributes struct {
 	Controller         *bool
 	BlockOwnerDeletion *bool
 }
@@ -45,22 +43,22 @@ type dependAttributes struct {
 type node struct {
 	identity corev1.ObjectReference
 
-	// dependents contains the list of nodes that are owned by the current node.
-	// Nb. This is the reverse of metadata.OwnerReferences.
-	dependents map[*node]dependAttributes
+	// owners contains the list of nodes that are owned by the current node.
+	owners map[*node]ownerReferenceAttributes
 
-	// dependents contains the list of nodes that are soft-owned by the current node.
-	// E.g. secrets that are linked to a cluster by a naming convention, but without an explicit OwnerReference.
-	softDependents map[*node]empty
-
-	// hasOwnerReferences tracks if the object has at least one OwnerReference.
-	hasOwnerReferences bool
+	// softOwners contains the list of nodes that are soft-owned by the current node.
+	// E.g. secrets are soft-owned by a cluster via a naming convention, but without an explicit OwnerReference.
+	softOwners map[*node]empty
 
 	// virtual records if this node was discovered indirectly, e.g. by processing an OwnerRef, but not yet observed as a concrete object.
 	virtual bool
 
 	//newID stores the new UID the objects gets once created in the target cluster.
 	newUID types.UID
+
+	// tenantClusters define the list of Clusters which are tenant for the node, no matter if the node has a direct OwnerReference to the Cluster or if
+	// the node is linked to a Cluster indirectly in the OwnerReference chain.
+	tenantClusters map[*node]empty
 }
 
 // markObserved marks the fact that a node was observed as a concrete object.
@@ -68,12 +66,22 @@ func (n *node) markObserved() {
 	n.virtual = false
 }
 
-func (n *node) addDependent(dependent *node, attributes dependAttributes) {
-	n.dependents[dependent] = attributes
+func (n *node) addOwner(owner *node, attributes ownerReferenceAttributes) {
+	n.owners[owner] = attributes
 }
 
-func (n *node) addSoftDependent(dependent *node) {
-	n.softDependents[dependent] = struct{}{}
+func (n *node) addSoftOwner(owner *node) {
+	n.softOwners[owner] = struct{}{}
+}
+
+func (n *node) isOwnedBy(other *node) bool {
+	_, ok := n.owners[other]
+	return ok
+}
+
+func (n *node) isSoftOwnedBy(other *node) bool {
+	_, ok := n.softOwners[other]
+	return ok
 }
 
 // objectGraph manages the Kubernetes object graph that is generated during the discovery phase for the move operation.
@@ -97,20 +105,16 @@ func (o *objectGraph) addObj(obj *unstructured.Unstructured) {
 	// Adds the node to the Graph.
 	newNode := o.objToNode(obj)
 
-	// Tracks if the node has OwnerReferences.
-	newNode.hasOwnerReferences = len(obj.GetOwnerReferences()) > 0
-
-	// Process OwnerReferences; if the owner object already exists, update the list of the owner object's dependents; otherwise
-	// create a virtual node as a placeholder for the owner objects.
-	for _, owner := range obj.GetOwnerReferences() {
-		ownerNode, ok := o.uidToNode[owner.UID]
+	// Process OwnerReferences; if the owner object doe not exists yet, create a virtual node as a placeholder for it.
+	for _, ownerReference := range obj.GetOwnerReferences() {
+		ownerNode, ok := o.uidToNode[ownerReference.UID]
 		if !ok {
-			ownerNode = o.ownerToVirtualNode(owner, newNode.identity.Namespace)
+			ownerNode = o.ownerToVirtualNode(ownerReference, newNode.identity.Namespace)
 		}
 
-		ownerNode.addDependent(newNode, dependAttributes{
-			Controller:         owner.Controller,
-			BlockOwnerDeletion: owner.BlockOwnerDeletion,
+		newNode.addOwner(ownerNode, ownerReferenceAttributes{
+			Controller:         ownerReference.Controller,
+			BlockOwnerDeletion: ownerReference.BlockOwnerDeletion,
 		})
 	}
 }
@@ -126,8 +130,9 @@ func (o *objectGraph) ownerToVirtualNode(owner metav1.OwnerReference, namespace 
 			UID:        owner.UID,
 			Namespace:  namespace,
 		},
-		dependents:     make(map[*node]dependAttributes),
-		softDependents: make(map[*node]empty),
+		owners:         make(map[*node]ownerReferenceAttributes),
+		softOwners:     make(map[*node]empty),
+		tenantClusters: make(map[*node]empty),
 		virtual:        true,
 	}
 
@@ -153,8 +158,9 @@ func (o *objectGraph) objToNode(obj *unstructured.Unstructured) *node {
 			Name:       obj.GetName(),
 			Namespace:  obj.GetNamespace(),
 		},
-		dependents:     make(map[*node]dependAttributes),
-		softDependents: make(map[*node]empty),
+		owners:         make(map[*node]ownerReferenceAttributes),
+		softOwners:     make(map[*node]empty),
+		tenantClusters: make(map[*node]empty),
 		virtual:        false,
 	}
 
@@ -234,9 +240,12 @@ func (o *objectGraph) Discovery(namespace string, types []metav1.TypeMeta) error
 
 	o.log.V(1).Info("Total objects", "Count", len(o.uidToNode))
 
-	// Completes the graph by searching for soft dependents relations such as secrets linked to the cluster
+	// Completes the graph by searching for soft ownership relations such as secrets linked to the cluster
 	// by a naming convention (without any explicit OwnerReference).
-	o.setSoftDependents()
+	o.setSoftOwnership()
+
+	// Completes the graph by setting for each node the list of Clusters the node belong to.
+	o.setClusterTenants()
 
 	return nil
 }
@@ -249,12 +258,6 @@ func (o *objectGraph) getClusters() []*node {
 			clusters = append(clusters, node)
 		}
 	}
-
-	// Sorts clusters so move always happens in a predictable order.
-	sort.Slice(clusters, func(i, j int) bool {
-		return fmt.Sprintf("%s/%s", clusters[i].identity.Namespace, clusters[i].identity.Name) < fmt.Sprintf("%s/%s", clusters[j].identity.Namespace, clusters[j].identity.Name)
-	})
-
 	return clusters
 }
 
@@ -269,13 +272,33 @@ func (o *objectGraph) getSecrets() []*node {
 	return secrets
 }
 
-// setSoftDependents searches for soft dependents relations such as secrets linked to the cluster by a naming convention (without any explicit OwnerReference).
-func (o *objectGraph) setSoftDependents() {
+// getNodes returns the list of nodes existing in the object graph.
+func (o *objectGraph) getNodes() []*node {
+	nodes := []*node{}
+	for _, node := range o.uidToNode {
+		nodes = append(nodes, node)
+	}
+	return nodes
+}
+
+// getNodesWithClusterTenants returns the list of nodes existing in the object graph that belong at least to one Cluster.
+func (o *objectGraph) getNodesWithClusterTenants() []*node {
+	nodes := []*node{}
+	for _, node := range o.uidToNode {
+		if len(node.tenantClusters) > 0 {
+			nodes = append(nodes, node)
+		}
+	}
+	return nodes
+}
+
+// setSoftOwnership searches for soft ownership relations such as secrets linked to the cluster by a naming convention (without any explicit OwnerReference).
+func (o *objectGraph) setSoftOwnership() {
 	clusters := o.getClusters()
 	for _, secret := range o.getSecrets() {
 		// If the secret has at least one OwnerReference ignore it.
 		// NB. Cluster API generated secrets have an explicit OwnerReference to the ControlPlane or the KubeadmConfig object while user provided secrets might not have one.
-		if secret.hasOwnerReferences {
+		if len(secret.owners) > 0 {
 			continue
 		}
 
@@ -285,11 +308,28 @@ func (o *objectGraph) setSoftDependents() {
 			continue
 		}
 
-		// If the secret is linked to a cluster by the naming convention, then add the secret to the list of the cluster's softDependents.
+		// If the secret is linked to a cluster by the naming convention, then add the cluster to the list of the secrets's softOwners.
 		for _, cluster := range clusters {
 			if nameSplit[0] == cluster.identity.Name && secret.identity.Namespace == cluster.identity.Namespace {
-				cluster.addSoftDependent(secret)
+				secret.addSoftOwner(cluster)
 			}
+		}
+	}
+}
+
+// setClusterTenants sets the cluster tenants for the clusters itself and all their dependent object tree.
+func (o *objectGraph) setClusterTenants() {
+	for _, cluster := range o.getClusters() {
+		o.setClusterTenant(cluster, cluster)
+	}
+}
+
+// setNodeTenant sets a tenant for a node and for its own dependents/sofDependents.
+func (o *objectGraph) setClusterTenant(node, tenant *node) {
+	node.tenantClusters[tenant] = empty{}
+	for _, other := range o.getNodes() {
+		if other.isOwnedBy(node) || other.isSoftOwnedBy(node) {
+			o.setClusterTenant(other, tenant)
 		}
 	}
 }

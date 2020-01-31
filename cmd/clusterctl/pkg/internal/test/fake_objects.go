@@ -445,9 +445,24 @@ func (f *FakeMachinePool) Objs(cluster *clusterv1.Cluster) []runtime.Object {
 	return objs
 }
 
+func NewFakeInfrastructureTemplate(name string) *fakeinfrastructure.DummyInfrastructureMachineTemplate {
+	return &fakeinfrastructure.DummyInfrastructureMachineTemplate{
+		TypeMeta: metav1.TypeMeta{
+			APIVersion: fakeinfrastructure.GroupVersion.String(),
+			Kind:       "DummyInfrastructureMachineTemplate",
+		},
+		ObjectMeta: metav1.ObjectMeta{
+			Name: name,
+			// OwnerReference Added by the machine set controller -- RECONCILED
+			// Labels: MISSING
+		},
+	}
+}
+
 type FakeMachineDeployment struct {
-	name        string
-	machineSets []*FakeMachineSet
+	name                         string
+	machineSets                  []*FakeMachineSet
+	sharedInfrastructureTemplate *fakeinfrastructure.DummyInfrastructureMachineTemplate
 }
 
 // NewFakeMachineDeployment return a FakeMachineDeployment that can generate a MachineDeployment object, all its own ancillary objects:
@@ -465,27 +480,27 @@ func (f *FakeMachineDeployment) WithMachineSets(fakeMachineSet ...*FakeMachineSe
 	return f
 }
 
-func (f *FakeMachineDeployment) Objs(cluster *clusterv1.Cluster) []runtime.Object {
+func (f *FakeMachineDeployment) WithInfrastructureTemplate(infrastructureTemplate *fakeinfrastructure.DummyInfrastructureMachineTemplate) *FakeMachineDeployment {
+	f.sharedInfrastructureTemplate = infrastructureTemplate
+	return f
+}
 
-	machineDeploymentInfrastructure := &fakeinfrastructure.DummyInfrastructureMachineTemplate{
-		TypeMeta: metav1.TypeMeta{
-			APIVersion: fakeinfrastructure.GroupVersion.String(),
-			Kind:       "DummyInfrastructureMachineTemplate",
-		},
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      f.name,
-			Namespace: cluster.Namespace,
-			OwnerReferences: []metav1.OwnerReference{ // Added by the machine set controller -- RECONCILED
-				{
-					APIVersion: clusterv1.GroupVersion.String(),
-					Kind:       "Cluster",
-					Name:       cluster.Name,
-					UID:        cluster.UID,
-				},
-			},
-			// Labels: MISSING
-		},
+func (f *FakeMachineDeployment) Objs(cluster *clusterv1.Cluster) []runtime.Object {
+	// infra template can be either shared or specific to the machine deployment
+	machineDeploymentInfrastructure := f.sharedInfrastructureTemplate
+	if machineDeploymentInfrastructure == nil {
+		machineDeploymentInfrastructure = NewFakeInfrastructureTemplate(f.name)
 	}
+	machineDeploymentInfrastructure.Namespace = cluster.Namespace
+	machineDeploymentInfrastructure.OwnerReferences = append(machineDeploymentInfrastructure.OwnerReferences, // Added by the machine set controller -- RECONCILED
+		metav1.OwnerReference{
+			APIVersion: clusterv1.GroupVersion.String(),
+			Kind:       "Cluster",
+			Name:       cluster.Name,
+			UID:        cluster.UID,
+		},
+	)
+	setUID(machineDeploymentInfrastructure)
 
 	machineDeploymentBootstrap := &fakebootstrap.DummyBootstrapConfigTemplate{
 		TypeMeta: metav1.TypeMeta{
@@ -555,8 +570,11 @@ func (f *FakeMachineDeployment) Objs(cluster *clusterv1.Cluster) []runtime.Objec
 
 	objs := []runtime.Object{
 		machineDeployment,
-		machineDeploymentInfrastructure,
 		machineDeploymentBootstrap,
+	}
+	// if the infra template is specific to the machine deployment, add it to the object list
+	if f.sharedInfrastructureTemplate == nil {
+		objs = append(objs, machineDeploymentInfrastructure)
 	}
 
 	// Adds the objects for the machineSets
@@ -568,8 +586,9 @@ func (f *FakeMachineDeployment) Objs(cluster *clusterv1.Cluster) []runtime.Objec
 }
 
 type FakeMachineSet struct {
-	name     string
-	machines []*FakeMachine
+	name                         string
+	machines                     []*FakeMachine
+	sharedInfrastructureTemplate *fakeinfrastructure.DummyInfrastructureMachineTemplate
 }
 
 // NewFakeMachineSet return a FakeMachineSet that can generate a MachineSet object, all its own ancillary objects:
@@ -584,6 +603,11 @@ func NewFakeMachineSet(name string) *FakeMachineSet {
 
 func (f *FakeMachineSet) WithMachines(fakeMachine ...*FakeMachine) *FakeMachineSet {
 	f.machines = append(f.machines, fakeMachine...)
+	return f
+}
+
+func (f *FakeMachineSet) WithInfrastructureTemplate(infrastructureTemplate *fakeinfrastructure.DummyInfrastructureMachineTemplate) *FakeMachineSet {
+	f.sharedInfrastructureTemplate = infrastructureTemplate
 	return f
 }
 
@@ -630,27 +654,23 @@ func (f *FakeMachineSet) Objs(cluster *clusterv1.Cluster, machineDeployment *clu
 			UID:        cluster.UID,
 		}})
 
-		// additionally the machine has ref to dedicated infra and bootstrap templates
+		// additionally the machineSet has ref to dedicated infra and bootstrap templates
 
-		machineSetInfrastructure := &fakeinfrastructure.DummyInfrastructureMachineTemplate{
-			TypeMeta: metav1.TypeMeta{
-				APIVersion: fakeinfrastructure.GroupVersion.String(),
-				Kind:       "DummyInfrastructureMachineTemplate",
-			},
-			ObjectMeta: metav1.ObjectMeta{
-				Name:      f.name,
-				Namespace: cluster.Namespace,
-				OwnerReferences: []metav1.OwnerReference{ // Added by the machine set controller -- RECONCILED
-					{
-						APIVersion: clusterv1.GroupVersion.String(),
-						Kind:       "Cluster",
-						Name:       cluster.Name,
-						UID:        cluster.UID,
-					},
-				},
-				// Labels: MISSING
-			},
+		// infra template can be either shared or specific to the machine set
+		machineSetInfrastructure := f.sharedInfrastructureTemplate
+		if machineSetInfrastructure == nil {
+			machineSetInfrastructure = NewFakeInfrastructureTemplate(f.name)
 		}
+		machineSetInfrastructure.Namespace = cluster.Namespace
+		machineSetInfrastructure.OwnerReferences = append(machineSetInfrastructure.OwnerReferences, // Added by the machine set controller -- RECONCILED
+			metav1.OwnerReference{
+				APIVersion: clusterv1.GroupVersion.String(),
+				Kind:       "Cluster",
+				Name:       cluster.Name,
+				UID:        cluster.UID,
+			},
+		)
+		setUID(machineSetInfrastructure)
 
 		machineSet.Spec.Template.Spec.InfrastructureRef = corev1.ObjectReference{
 			APIVersion: machineSetInfrastructure.APIVersion,
@@ -688,7 +708,11 @@ func (f *FakeMachineSet) Objs(cluster *clusterv1.Cluster, machineDeployment *clu
 			},
 		}
 
-		objs = append(objs, machineSet, machineSetInfrastructure, machineSetBootstrap)
+		objs = append(objs, machineSet, machineSetBootstrap)
+		// if the infra template is specific to the machine set, add it to the object list
+		if f.sharedInfrastructureTemplate == nil {
+			objs = append(objs, machineSetInfrastructure)
+		}
 	}
 
 	// Adds the objects for the machines controlled by the machineSet

@@ -136,6 +136,12 @@ Perform create, scale, upgrade, or destroy operations on the cluster.
 
 The cluster where one or more Infrastructure Providers run, and where resources (e.g. Machines) are stored.  Typically referred to when you are provisioning multiple clusters.
 
+### Management group
+
+A management group is a group of providers composed by a CoreProvider and a set of Bootstrap/ControlPlane/Infrastructure providers
+watching objects in the same namespace. For example, a management group can be used for upgrades, in order to ensure all the providers
+in a management group support the same Cluster API version.
+
 # N
 ---
 

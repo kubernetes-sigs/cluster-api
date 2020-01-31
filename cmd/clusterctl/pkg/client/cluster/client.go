@@ -21,6 +21,8 @@ import (
 
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/klog/klogr"
+	"sigs.k8s.io/cluster-api/cmd/clusterctl/pkg/client/config"
+	"sigs.k8s.io/cluster-api/cmd/clusterctl/pkg/client/repository"
 	"sigs.k8s.io/cluster-api/cmd/clusterctl/pkg/internal/test"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
@@ -68,9 +70,12 @@ type Client interface {
 
 // clusterClient implements Client.
 type clusterClient struct {
-	kubeconfig string
-	proxy      Proxy
+	kubeconfig              string
+	proxy                   Proxy
+	repositoryClientFactory RepositoryClientFactory
 }
+
+type RepositoryClientFactory func(provider config.Provider, configVariablesClient config.VariablesClient, options ...repository.Option) (repository.Client, error)
 
 // ensure clusterClient implements Client.
 var _ Client = &clusterClient{}
@@ -111,7 +116,8 @@ func (c *clusterClient) ObjectMover() ObjectMover {
 
 // NewOptions carries the options supported by New
 type NewOptions struct {
-	injectProxy Proxy
+	injectProxy                   Proxy
+	injectRepositoryClientFactory RepositoryClientFactory
 }
 
 // Option is a configuration option supplied to New
@@ -121,6 +127,14 @@ type Option func(*NewOptions)
 func InjectProxy(proxy Proxy) Option {
 	return func(c *NewOptions) {
 		c.injectProxy = proxy
+	}
+}
+
+// InjectRepositoryFactory implements a New Option that allows to override the default factory used for creating
+// RepositoryClient objects.
+func InjectRepositoryFactory(factory RepositoryClientFactory) Option {
+	return func(c *NewOptions) {
+		c.injectRepositoryClientFactory = factory
 	}
 }
 
@@ -141,9 +155,16 @@ func newClusterClient(kubeconfig string, options ...Option) *clusterClient {
 		proxy = newProxy(kubeconfig)
 	}
 
+	// if there is an injected repositoryClientFactory, use it, otherwise use the default one
+	repositoryClientFactory := cfg.injectRepositoryClientFactory
+	if repositoryClientFactory == nil {
+		repositoryClientFactory = repository.New
+	}
+
 	return &clusterClient{
-		kubeconfig: kubeconfig,
-		proxy:      proxy,
+		kubeconfig:              kubeconfig,
+		proxy:                   proxy,
+		repositoryClientFactory: repositoryClientFactory,
 	}
 }
 

@@ -80,10 +80,10 @@ const (
 	ProviderTypeUnknown = ProviderType("")
 )
 
-// GetTypedProviderType attempts to parse the ProviderType field and return
+// GetProviderType attempts to parse the ProviderType field and return
 // the typed ProviderType representation.
-func (in *Provider) GetTypedProviderType() ProviderType {
-	switch t := ProviderType(in.Type); t {
+func (p *Provider) GetProviderType() ProviderType {
+	switch t := ProviderType(p.Type); t {
 	case
 		CoreProviderType,
 		BootstrapProviderType,
@@ -93,4 +93,57 @@ func (in *Provider) GetTypedProviderType() ProviderType {
 	default:
 		return ProviderTypeUnknown
 	}
+}
+
+// HasWatchingOverlapWith returns true if the provider has an overlapping watching namespace with another provider.
+func (p *Provider) HasWatchingOverlapWith(other Provider) bool {
+	return p.WatchedNamespace == "" || p.WatchedNamespace == other.WatchedNamespace || other.WatchedNamespace == ""
+}
+
+func (p *Provider) Equals(other Provider) bool {
+	return p.Name == other.Name &&
+		p.Namespace == other.Namespace &&
+		p.Type == other.Type &&
+		p.WatchedNamespace == other.WatchedNamespace &&
+		p.Version == other.Version
+}
+
+func (l *ProviderList) FilterByName(name string) []Provider {
+	return l.filterBy(func(p Provider) bool {
+		return p.Name == name
+	})
+}
+
+func (l *ProviderList) FilterByNamespace(namespace string) []Provider {
+	return l.filterBy(func(p Provider) bool {
+		return p.Namespace == namespace
+	})
+}
+
+func (l *ProviderList) FilterByType(providerType ProviderType) []Provider {
+	return l.filterBy(func(p Provider) bool {
+		return p.GetProviderType() == providerType
+	})
+}
+
+func (l *ProviderList) FilterCore() []Provider {
+	return l.filterBy(func(p Provider) bool {
+		return p.GetProviderType() == CoreProviderType
+	})
+}
+
+func (l *ProviderList) FilterNonCore() []Provider {
+	return l.filterBy(func(p Provider) bool {
+		return p.GetProviderType() != CoreProviderType
+	})
+}
+
+func (l *ProviderList) filterBy(predicate func(p Provider) bool) []Provider {
+	ret := []Provider{}
+	for _, i := range l.Items {
+		if predicate(i) {
+			ret = append(ret, i)
+		}
+	}
+	return ret
 }

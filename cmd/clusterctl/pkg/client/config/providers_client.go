@@ -92,6 +92,12 @@ func (p *providersClient) defaults() []Provider {
 			providerType: clusterctlv1.InfrastructureProviderType,
 		},
 
+		&provider{
+			name:         "metal",
+			url:          "https://github.com/metal3-io/cluster-api-provider-baremetal/releases/download/v0.2.0/infrastructure-components.yaml",
+			providerType: clusterctlv1.InfrastructureProviderType,
+		},
+
 		// Bootstrap providers
 		&provider{
 			name:         KubeadmBootstrapProviderName,

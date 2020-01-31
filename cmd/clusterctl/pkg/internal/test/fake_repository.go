@@ -59,7 +59,7 @@ func (f FakeRepository) GetFile(version string, path string) ([]byte, error) {
 }
 
 func (f *FakeRepository) GetVersions() ([]string, error) {
-	v := make([]string, len(f.versions))
+	v := make([]string, 0, len(f.versions))
 	for k := range f.versions {
 		v = append(v, k)
 	}

@@ -18,6 +18,7 @@ package v1alpha3
 
 import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/util/version"
 )
 
 // +kubebuilder:object:root=true
@@ -45,4 +46,15 @@ type ReleaseSeries struct {
 
 func init() {
 	SchemeBuilder.Register(&Metadata{})
+}
+
+// HasReleaseSeriesForVersion return true if the given version is in one of the ReleaseSeries.
+func (m *Metadata) HasReleaseSeriesForVersion(version *version.Version) bool {
+	for _, releaseSeries := range m.ReleaseSeries {
+		if version.Major() == releaseSeries.Major && version.Minor() == releaseSeries.Minor {
+			return true
+		}
+	}
+
+	return false
 }

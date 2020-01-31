@@ -61,6 +61,17 @@ type InventoryClient interface {
 	// In case there is only a single instance for a given provider, e.g. only the AWS provider in the capa-system namespace, it returns
 	// this as the default namespace; In case there are more instances for the same provider installed in different namespaces, there is no default provider namespace.
 	GetDefaultProviderNamespace(provider string) (string, error)
+
+	// GetManagementGroups returns the list of management groups defined in the management cluster.
+	GetManagementGroups() ([]ManagementGroup, error)
+}
+
+// ManagementGroup is a group of providers composed by a CoreProvider and a set of Bootstrap/ControlPlane/Infrastructure providers
+// watching objects in the same namespace. For example, a management group can be used for upgrades, in order to ensure all the providers
+// in a management group support the same ClusterAPI version.
+type ManagementGroup struct {
+	CoreProvider clusterctlv1.Provider
+	Providers    []clusterctlv1.Provider
 }
 
 // inventoryClient implements InventoryClient.
@@ -127,40 +138,32 @@ func (p *inventoryClient) EnsureCustomResourceDefinitions() error {
 }
 
 func (p *inventoryClient) Validate(m clusterctlv1.Provider) error {
-	instances, err := p.list(listOptions{
-		Name: m.Name,
-	})
+	providerList, err := p.list()
 	if err != nil {
 		return err
 	}
 
-	if len(instances) == 0 {
+	providers := providerList.FilterByName(m.Name)
+
+	if len(providers) == 0 {
 		return nil
 	}
 
 	// Target Namespace check
 	// Installing two instances of the same provider in the same namespace won't be supported
-	for _, i := range instances {
+	for _, i := range providers {
 		if i.Namespace == m.Namespace {
-			return errors.Errorf("There is already an instance of the %q provider installed in the %q namespace", m.Name, m.Namespace)
+			return errors.Errorf("there is already an instance of the %q provider installed in the %q namespace", m.Name, m.Namespace)
 		}
 	}
 
 	// Watching Namespace check:
 	// If we are going to install an instance of a provider watching objects in namespaces already controlled by other providers
 	// then there will be providers fighting for objects...
-	if m.WatchedNamespace == "" {
-		return errors.Errorf("The new instance of the %q provider is going to watch for objects in namespaces already controlled by other providers", m.Name)
-	}
-
-	sameNamespace := false
-	for _, i := range instances {
-		if i.WatchedNamespace == "" || m.WatchedNamespace == i.WatchedNamespace {
-			sameNamespace = true
+	for _, i := range providers {
+		if i.HasWatchingOverlapWith(m) {
+			return errors.Errorf("the new instance of the %q provider is going to watch for objects in the namespace %q that is already controlled by other providers", m.Name, m.WatchedNamespace)
 		}
-	}
-	if sameNamespace {
-		return errors.Errorf("The new instance of the %q provider is going to watch for objects in the namespace %q that is already controlled by other providers", m.Name, m.WatchedNamespace)
 	}
 
 	return nil
@@ -200,53 +203,35 @@ func (p *inventoryClient) Create(m clusterctlv1.Provider) error {
 }
 
 func (p *inventoryClient) List() ([]clusterctlv1.Provider, error) {
-	return p.list(listOptions{})
+	providerList, err := p.list()
+	if err != nil {
+		return nil, err
+	}
+	return providerList.Items, nil
 }
 
-type listOptions struct {
-	Namespace string
-	Name      string
-	Type      clusterctlv1.ProviderType
-}
-
-func (p *inventoryClient) list(options listOptions) ([]clusterctlv1.Provider, error) {
+func (p *inventoryClient) list() (*clusterctlv1.ProviderList, error) {
 	cl, err := p.proxy.NewClient()
 	if err != nil {
 		return nil, err
 	}
 
-	l := &clusterctlv1.ProviderList{}
-	if err := cl.List(ctx, l); err != nil {
+	providerList := &clusterctlv1.ProviderList{}
+	if err := cl.List(ctx, providerList); err != nil {
 		return nil, errors.Wrap(err, "failed get providers")
 	}
-
-	ret := []clusterctlv1.Provider{}
-	for _, i := range l.Items {
-		if options.Name != "" && i.Name != options.Name {
-			continue
-		}
-		if options.Namespace != "" && i.Namespace != options.Namespace {
-			continue
-		}
-		if options.Type != "" && i.Type != string(options.Type) {
-			continue
-		}
-		ret = append(ret, i)
-	}
-	return ret, nil
+	return providerList, nil
 }
 
 func (p *inventoryClient) GetDefaultProviderName(providerType clusterctlv1.ProviderType) (string, error) {
-	l, err := p.list(listOptions{
-		Type: providerType,
-	})
+	providerList, err := p.list()
 	if err != nil {
 		return "", err
 	}
 
 	// Group the providers by name, because we consider more instance of the same provider not relevant for the answer.
 	names := sets.NewString()
-	for _, p := range l {
+	for _, p := range providerList.FilterByType(providerType) {
 		names.Insert(p.Name)
 	}
 
@@ -260,16 +245,14 @@ func (p *inventoryClient) GetDefaultProviderName(providerType clusterctlv1.Provi
 }
 
 func (p *inventoryClient) GetDefaultProviderVersion(provider string) (string, error) {
-	l, err := p.list(listOptions{
-		Name: provider,
-	})
+	providerList, err := p.list()
 	if err != nil {
 		return "", err
 	}
 
 	// Group the provider instances by version.
 	versions := sets.NewString()
-	for _, p := range l {
+	for _, p := range providerList.FilterByName(provider) {
 		versions.Insert(p.Version)
 	}
 
@@ -282,16 +265,14 @@ func (p *inventoryClient) GetDefaultProviderVersion(provider string) (string, er
 }
 
 func (p *inventoryClient) GetDefaultProviderNamespace(provider string) (string, error) {
-	l, err := p.list(listOptions{
-		Name: provider,
-	})
+	providerList, err := p.list()
 	if err != nil {
 		return "", err
 	}
 
 	// Group the providers by namespace
 	namespaces := sets.NewString()
-	for _, p := range l {
+	for _, p := range providerList.FilterByName(provider) {
 		namespaces.Insert(p.Namespace)
 	}
 

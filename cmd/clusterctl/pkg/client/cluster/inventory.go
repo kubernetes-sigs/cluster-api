@@ -17,7 +17,10 @@ limitations under the License.
 package cluster
 
 import (
+	"time"
+
 	"github.com/pkg/errors"
+	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1beta1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	apimeta "k8s.io/apimachinery/pkg/api/meta"
 	"k8s.io/apimachinery/pkg/util/sets"
@@ -28,7 +31,12 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
-const embeddedCustomResourceDefinitionPath = "cmd/clusterctl/config/manifest/clusterctl-api.yaml"
+const (
+	embeddedCustomResourceDefinitionPath = "cmd/clusterctl/config/manifest/clusterctl-api.yaml"
+
+	waitInventoryCRDInterval = 250 * time.Millisecond
+	waitInventoryCRDTimeout  = 1 * time.Minute
+)
 
 // InventoryClient exposes methods to interface with a cluster's provider inventory.
 type InventoryClient interface {
@@ -76,16 +84,18 @@ type ManagementGroup struct {
 
 // inventoryClient implements InventoryClient.
 type inventoryClient struct {
-	proxy Proxy
+	proxy               Proxy
+	pollImmediateWaiter PollImmediateWaiter
 }
 
 // ensure inventoryClient implements InventoryClient.
 var _ InventoryClient = &inventoryClient{}
 
 // newInventoryClient returns a inventoryClient.
-func newInventoryClient(proxy Proxy) *inventoryClient {
+func newInventoryClient(proxy Proxy, pollImmediateWaiter PollImmediateWaiter) *inventoryClient {
 	return &inventoryClient{
-		proxy: proxy,
+		proxy:               proxy,
+		pollImmediateWaiter: pollImmediateWaiter,
 	}
 }
 
@@ -116,7 +126,8 @@ func (p *inventoryClient) EnsureCustomResourceDefinitions() error {
 	}
 
 	// Install the CRDs.
-	for _, o := range objs {
+	for i := range objs {
+		o := objs[i]
 		klog.V(3).Infof("Creating: %s, %s/%s", o.GroupVersionKind(), o.GetNamespace(), o.GetName())
 
 		labels := o.GetLabels()
@@ -126,11 +137,35 @@ func (p *inventoryClient) EnsureCustomResourceDefinitions() error {
 		labels[clusterctlv1.ClusterctlCoreLabelName] = "inventory"
 		o.SetLabels(labels)
 
-		if err := c.Create(ctx, o.DeepCopy()); err != nil {
+		if err := c.Create(ctx, &o); err != nil {
 			if apierrors.IsAlreadyExists(err) {
 				continue
 			}
 			return errors.Wrapf(err, "failed to create clusterctl inventory CRDs component: %s, %s/%s", o.GroupVersionKind(), o.GetNamespace(), o.GetName())
+		}
+
+		// If the object is a CRDs, waits for it being Established.
+		if apiextensionsv1.SchemeGroupVersion.WithKind("CustomResourceDefinition").GroupKind() == o.GroupVersionKind().GroupKind() {
+			crdKey, err := client.ObjectKeyFromObject(&o)
+			if err != nil {
+				return nil
+			}
+
+			if err := p.pollImmediateWaiter(waitInventoryCRDInterval, waitInventoryCRDTimeout, func() (bool, error) {
+				crd := &apiextensionsv1.CustomResourceDefinition{}
+				if err := c.Get(ctx, crdKey, crd); err != nil {
+					return false, err
+				}
+
+				for _, c := range crd.Status.Conditions {
+					if c.Type == apiextensionsv1.Established && c.Status == apiextensionsv1.ConditionTrue {
+						return true, nil
+					}
+				}
+				return false, nil
+			}); err != nil {
+				return errors.Wrapf(err, "failed to scale deployment")
+			}
 		}
 	}
 

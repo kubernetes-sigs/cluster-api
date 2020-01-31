@@ -426,7 +426,7 @@ func Test_providerUpgrader_Plan(t *testing.T) {
 				repositoryClientFactory: func(provider config.Provider, configVariablesClient config.VariablesClient, options ...repository.Option) (repository.Client, error) {
 					return repository.New(provider, configVariablesClient, repository.InjectRepository(tt.fields.repository[provider.Name()]))
 				},
-				providerInventory: newInventoryClient(tt.fields.proxy),
+				providerInventory: newInventoryClient(tt.fields.proxy, nil),
 			}
 			got, err := u.Plan()
 			if (err != nil) != tt.wantErr {

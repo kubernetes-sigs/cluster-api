@@ -20,33 +20,32 @@ import (
 	"context"
 	"crypto/tls"
 	"net"
-	"time"
 
 	"github.com/pkg/errors"
 	"go.etcd.io/etcd/clientv3"
 	"go.etcd.io/etcd/etcdserver/etcdserverpb"
 	"google.golang.org/grpc"
-	"k8s.io/apimachinery/pkg/util/wait"
 )
 
-const etcdTimeout = 2 * time.Second
+// GRPCDial is a function that creates a connection to a given endpoint.
+type GRPCDial func(ctx context.Context, addr string) (net.Conn, error)
 
-// exponential backoff for etcd operations, values taken from kubeadm.
-var etcdBackoff = wait.Backoff{
-	Steps:    9,
-	Duration: 50 * time.Millisecond,
-	Factor:   2.0,
-	Jitter:   0.1,
+// etcd wraps the etcd client from etcd's clientv3 package.
+// This interface is implemented by both the clientv3 package and the backoff adapter that adds retries to the client.
+type etcd interface {
+	AlarmList(ctx context.Context) (*clientv3.AlarmResponse, error)
+	Close() error
+	Endpoints() []string
+	MemberList(ctx context.Context) (*clientv3.MemberListResponse, error)
+	MemberRemove(ctx context.Context, id uint64) (*clientv3.MemberRemoveResponse, error)
+	MemberUpdate(ctx context.Context, id uint64, peerURLs []string) (*clientv3.MemberUpdateResponse, error)
+	MoveLeader(ctx context.Context, id uint64) (*clientv3.MoveLeaderResponse, error)
 }
 
-type grpcDial = func(ctx context.Context, addr string) (net.Conn, error)
-
-// Client provides connection parameters for an etcd cluster.
+// Client wraps an etcd client formatting its output to something more consumable.
 type Client struct {
-	timeout       time.Duration
-	backoffParams *wait.Backoff
-	endpoint      string
-	etcdClient    *clientv3.Client
+	EtcdClient etcd
+	Endpoint   string
 }
 
 // MemberAlarm represents an alarm type association with a cluster member.
@@ -63,8 +62,10 @@ type AlarmType int32
 const (
 	// AlarmOK denotes that the cluster member is OK.
 	AlarmOk AlarmType = iota
+
 	// AlarmNoSpace denotes that the cluster member has run out of disk space.
 	AlarmNoSpace
+
 	// AlarmCorrupt denotes that the cluster member has corrupted data.
 	AlarmCorrupt
 )
@@ -76,43 +77,39 @@ const (
 type Member struct {
 	// ID is the ID of this cluster member
 	ID uint64
+
 	// Name is the human-readable name of the member. If the member is not started, the name will be an empty string.
 	Name string
+
 	// PeerURLs is the list of URLs the member exposes to the cluster for communication.
 	PeerURLs []string
+
 	// ClientURLs is the list of URLs the member exposes to clients for communication. If the member is not started, clientURLs will be empty.
 	ClientURLs []string
+
 	// IsLearner indicates if the member is raft learner.
 	IsLearner bool
+
 	// Alarms is the list of alarms for a member.
 	Alarms []AlarmType
 }
 
-// New creates a new etcd client with a custom dialer
-func NewClient(dialer grpcDial, tlsConfig *tls.Config, options ...func(*Client) error) (*Client, error) {
-	client := &Client{}
-
-	for _, option := range options {
-		err := option(client)
-		if err != nil {
-			return nil, err
-		}
+// pbMemberToMember converts the protobuf representation of a cluster member to a Member struct.
+func pbMemberToMember(m *etcdserverpb.Member) *Member {
+	return &Member{
+		ID:         m.GetID(),
+		Name:       m.GetName(),
+		PeerURLs:   m.GetPeerURLs(),
+		ClientURLs: m.GetClientURLs(),
+		IsLearner:  m.GetIsLearner(),
+		Alarms:     []AlarmType{},
 	}
+}
 
-	if client.endpoint == "" {
-		client.endpoint = "localhost"
-	}
-
-	if client.timeout == 0 {
-		client.timeout = etcdTimeout
-	}
-
-	if client.backoffParams == nil {
-		client.backoffParams = &etcdBackoff
-	}
-
+// NewEtcdClient creates a new etcd client with a custom dialer and is configuration with optional functions.
+func NewEtcdClient(endpoint string, dialer GRPCDial, tlsConfig *tls.Config) (*clientv3.Client, error) {
 	etcdClient, err := clientv3.New(clientv3.Config{
-		Endpoints:   []string{client.endpoint},
+		Endpoints:   []string{endpoint},
 		DialTimeout: etcdTimeout,
 		DialOptions: []grpc.DialOption{
 			grpc.WithBlock(), // block until the underlying connection is up
@@ -123,35 +120,56 @@ func NewClient(dialer grpcDial, tlsConfig *tls.Config, options ...func(*Client) 
 	if err != nil {
 		return nil, errors.Wrap(err, "unable to create etcd client")
 	}
+	etcdClient.Endpoints()
+	return etcdClient, nil
+}
 
-	client.etcdClient = etcdClient
+// NewClientWithEtcd configures our response formatter (Client) with an etcd client and endpoint.
+func NewClientWithEtcd(etcdClient etcd) (*Client, error) {
+	if len(etcdClient.Endpoints()) == 0 {
+		return nil, errors.New("etcd client was not configured with any endpoints")
+	}
+	return &Client{
+		Endpoint:   etcdClient.Endpoints()[0],
+		EtcdClient: etcdClient,
+	}, nil
+}
 
-	return client, nil
+// Close closes the etcd client.
+func (c *Client) Close() error {
+	return c.EtcdClient.Close()
+}
+
+// Member retrieves the Member information for a given peer.
+func (c *Client) Member(ctx context.Context, peerURL string) (*Member, error) {
+	members, err := c.Members(ctx)
+	if err != nil {
+		return nil, err
+	}
+	for _, m := range members {
+		if m.PeerURLs[0] == peerURL {
+			return m, nil
+		}
+	}
+	return nil, errors.Errorf("etcd member %v not found", peerURL)
 }
 
 // Members retrieves a list of etcd members.
-func (c *Client) Members() (*[]Member, error) {
-
-	resp, err := c.doCall(
-		func(ctx context.Context) (interface{}, error) {
-			return c.etcdClient.MemberList(ctx)
-		})
-
+func (c *Client) Members(ctx context.Context) ([]*Member, error) {
+	response, err := c.EtcdClient.MemberList(ctx)
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to get list of members for etcd cluster")
 	}
 
-	membersResponse := resp.(*clientv3.MemberListResponse)
-
-	alarms, err := c.Alarms()
+	alarms, err := c.Alarms(ctx)
 	if err != nil {
 		return nil, err
 	}
 
-	members := make([]Member, len(membersResponse.Members))
-	for i, m := range membersResponse.Members {
+	members := make([]*Member, len(response.Members))
+	for i, m := range response.Members {
 		newMember := pbMemberToMember(m)
-		for _, c := range *alarms {
+		for _, c := range alarms {
 			if c.MemberID == newMember.ID {
 				newMember.Alarms = append(newMember.Alarms, c.Type)
 			}
@@ -159,109 +177,42 @@ func (c *Client) Members() (*[]Member, error) {
 		}
 	}
 
-	return &members, nil
-}
-
-// pbMemberToMember converts the protobuf representation of a cluster member
-// to a Member struct.
-func pbMemberToMember(m *etcdserverpb.Member) Member {
-	return Member{
-		ID:         m.GetID(),
-		Name:       m.GetName(),
-		PeerURLs:   m.GetPeerURLs(),
-		ClientURLs: m.GetClientURLs(),
-		IsLearner:  m.GetIsLearner(),
-		Alarms:     []AlarmType{},
-	}
-}
-
-// Member retrieves the Member information for a given peer.
-func (c *Client) Member(peerURL string) (*Member, error) {
-	members, err := c.Members()
-	if err != nil {
-		return nil, err
-	}
-	for _, m := range *members {
-		if m.PeerURLs[0] == peerURL {
-			return &m, nil
-		}
-	}
-	return nil, errors.Errorf("etcd member %v not found", peerURL)
-}
-
-// Status returns the cluster status as known by the connected etcd server.
-func (c *Client) Status() (*clientv3.StatusResponse, error) {
-	resp, err := c.doCall(
-		func(ctx context.Context) (interface{}, error) {
-			return c.etcdClient.Status(ctx, c.endpoint)
-		})
-
-	if err != nil {
-		return nil, errors.Wrap(err, "failed to get etcd cluster status")
-	}
-
-	return resp.(*clientv3.StatusResponse), nil
-
+	return members, nil
 }
 
 // MoveLeader moves the leader to the provided member ID.
-func (c *Client) MoveLeader(transfereeID uint64) error {
-	_, err := c.doCall(
-		func(ctx context.Context) (interface{}, error) {
-			return c.etcdClient.MoveLeader(ctx, transfereeID)
-		})
-
-	if err != nil {
-		return errors.Wrap(err, "failed to move etcd leader")
-	}
-	return nil
+func (c *Client) MoveLeader(ctx context.Context, newLeaderID uint64) error {
+	_, err := c.EtcdClient.MoveLeader(ctx, newLeaderID)
+	return errors.Wrapf(err, "failed to move etcd leader: %v", newLeaderID)
 }
 
 // RemoveMember removes a given member.
-func (c *Client) RemoveMember(memberID uint64) error {
-	_, err := c.doCall(
-		func(ctx context.Context) (interface{}, error) {
-			return c.etcdClient.MemberRemove(ctx, memberID)
-		})
-	if err != nil {
-		return errors.Wrap(err, "failed to remove etcd member")
-	}
-	return nil
+func (c *Client) RemoveMember(ctx context.Context, id uint64) error {
+	_, err := c.EtcdClient.MemberRemove(ctx, id)
+	return errors.Wrapf(err, "failed to remove member: %v", id)
 }
 
-// UpdateMemberPeerList updates the given member's list of peers.
-func (c *Client) UpdateMemberPeerList(id uint64, peerURLs []string) (*[]Member, error) {
-	resp, err := c.doCall(
-		func(ctx context.Context) (interface{}, error) {
-			return c.etcdClient.MemberUpdate(ctx, id, peerURLs)
-		})
-
+// UpdateMemberPeerList updates the list of peer URLs
+func (c *Client) UpdateMemberPeerURLs(ctx context.Context, id uint64, peerURLs []string) ([]*Member, error) {
+	response, err := c.EtcdClient.MemberUpdate(ctx, id, peerURLs)
 	if err != nil {
 		return nil, errors.Wrapf(err, "failed to update etcd member %v's peer list to %+v", id, peerURLs)
 	}
 
-	memberUpdateResponse := resp.(*clientv3.MemberUpdateResponse)
-
-	members := make([]Member, 0, len(memberUpdateResponse.Members))
-	for _, m := range memberUpdateResponse.Members {
+	members := make([]*Member, 0, len(response.Members))
+	for _, m := range response.Members {
 		members = append(members, pbMemberToMember(m))
 	}
 
-	return &members, nil
+	return members, nil
 }
 
 // Alarms retrieves all alarms on a cluster.
-func (c *Client) Alarms() (*[]MemberAlarm, error) {
-	resp, err := c.doCall(
-		func(ctx context.Context) (interface{}, error) {
-			return c.etcdClient.AlarmList(ctx)
-		})
-
+func (c *Client) Alarms(ctx context.Context) ([]MemberAlarm, error) {
+	alarmResponse, err := c.EtcdClient.AlarmList(ctx)
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to get alarms for etcd cluster")
 	}
-
-	alarmResponse := resp.(*clientv3.AlarmResponse)
 
 	memberAlarms := make([]MemberAlarm, 0, len(alarmResponse.Alarms))
 	for _, a := range alarmResponse.Alarms {
@@ -271,66 +222,5 @@ func (c *Client) Alarms() (*[]MemberAlarm, error) {
 		})
 	}
 
-	return &memberAlarms, nil
-}
-
-func (c *Client) doCall(call func(context.Context) (interface{}, error)) (interface{}, error) {
-	var lastError error
-	var resp interface{}
-	err := wait.ExponentialBackoff(*c.backoffParams, func() (bool, error) {
-		ctx, cancel := context.WithTimeout(context.Background(), c.timeout)
-		var err error
-		defer cancel()
-		resp, err = call(ctx)
-		if err == nil {
-			return true, nil
-		}
-		lastError = err
-		return false, nil
-	})
-	if err != nil {
-		return nil, lastError
-	}
-	return resp, nil
-}
-
-// Close closes the etcd client.
-func (c *Client) Close() {
-	c.etcdClient.Close()
-}
-
-// BackoffParams sets the parameters for the client
-func BackoffParams(params wait.Backoff) func(*Client) error {
-	return func(c *Client) error {
-		return c.setBackoffParams(params)
-	}
-}
-
-func (c *Client) setBackoffParams(params wait.Backoff) error {
-	c.backoffParams = &params
-	return nil
-}
-
-// Endpoint changes the etcd endpoint for the client
-func Endpoint(addr string) func(*Client) error {
-	return func(c *Client) error {
-		return c.setEndpoint(addr)
-	}
-}
-
-func (c Client) setEndpoint(addr string) error {
-	c.endpoint = addr
-	return nil
-}
-
-// Timeout changes the method timeout for the etcd client
-func Timeout(duration time.Duration) func(*Client) error {
-	return func(c *Client) error {
-		return c.setTimeout(duration)
-	}
-}
-
-func (c Client) setTimeout(duration time.Duration) error {
-	c.timeout = duration
-	return nil
+	return memberAlarms, nil
 }

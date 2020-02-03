@@ -22,11 +22,13 @@ import (
 
 	"github.com/go-logr/logr"
 	"github.com/pkg/errors"
+	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/types"
 	kerrors "k8s.io/apimachinery/pkg/util/errors"
+	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/apimachinery/pkg/util/wait"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha3"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -91,6 +93,11 @@ func (o *objectMover) move(graph *objectGraph, toProxy Proxy) error {
 
 	// Sets the pause field on the Cluster object in the source management cluster, so the controllers stop reconciling it.
 	if err := setClusterPause(o.fromProxy, clusters, true, o.log); err != nil {
+		return err
+	}
+
+	// Ensure all the expected target namespaces are in place before creating objects.
+	if err := o.ensureNamespaces(graph, toProxy); err != nil {
 		return err
 	}
 
@@ -226,6 +233,78 @@ func setClusterPause(proxy Proxy, clusters []*node, value bool, log logr.Logger)
 		}
 
 	}
+	return nil
+}
+
+// ensureNamespaces ensures all the expected target namespaces are in place before creating objects.
+func (o *objectMover) ensureNamespaces(graph *objectGraph, toProxy Proxy) error {
+	cs, err := toProxy.NewClient()
+	if err != nil {
+		return err
+	}
+
+	namespaces := sets.NewString()
+	for _, node := range graph.getNodesWithClusterTenants() {
+		namespace := node.identity.Namespace
+
+		// If the namespace was already processed, skip it.
+		if namespaces.Has(namespace) {
+			continue
+		}
+		namespaces.Insert(namespace)
+
+		// Otherwise check if namespace exists (also dealing with RBAC restrictions).
+		ns := &corev1.Namespace{}
+		key := client.ObjectKey{
+			Name: namespace,
+		}
+
+		if err := cs.Get(ctx, key, ns); err == nil {
+			return nil
+		}
+		if apierrors.IsForbidden(err) {
+			namespaces := &corev1.NamespaceList{}
+			namespaceExists := false
+			for {
+				if err := cs.List(ctx, namespaces, client.Continue(namespaces.Continue)); err != nil {
+					return err
+				}
+
+				for _, ns := range namespaces.Items {
+					if ns.Name == namespace {
+						namespaceExists = true
+						break
+					}
+				}
+
+				if namespaces.Continue == "" {
+					break
+				}
+			}
+			if namespaceExists {
+				continue
+			}
+		}
+		if !apierrors.IsNotFound(err) {
+			return err
+		}
+
+		// If the namespace does not exists, create it.
+		ns = &corev1.Namespace{
+			TypeMeta: metav1.TypeMeta{
+				APIVersion: "v1",
+				Kind:       "Namespace",
+			},
+			ObjectMeta: metav1.ObjectMeta{
+				Name: namespace,
+			},
+		}
+		o.log.V(1).Info("Creating", ns.Kind, ns.Name)
+		if err := cs.Create(ctx, ns); err != nil && !apierrors.IsAlreadyExists(err) {
+			return err
+		}
+	}
+
 	return nil
 }
 

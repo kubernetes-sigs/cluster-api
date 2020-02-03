@@ -66,26 +66,6 @@ func RegisterConversions(s *runtime.Scheme) error {
 	}); err != nil {
 		return err
 	}
-	if err := s.AddGeneratedConversionFunc((*KubeadmConfigSpec)(nil), (*v1alpha3.KubeadmConfigSpec)(nil), func(a, b interface{}, scope conversion.Scope) error {
-		return Convert_v1alpha2_KubeadmConfigSpec_To_v1alpha3_KubeadmConfigSpec(a.(*KubeadmConfigSpec), b.(*v1alpha3.KubeadmConfigSpec), scope)
-	}); err != nil {
-		return err
-	}
-	if err := s.AddGeneratedConversionFunc((*v1alpha3.KubeadmConfigSpec)(nil), (*KubeadmConfigSpec)(nil), func(a, b interface{}, scope conversion.Scope) error {
-		return Convert_v1alpha3_KubeadmConfigSpec_To_v1alpha2_KubeadmConfigSpec(a.(*v1alpha3.KubeadmConfigSpec), b.(*KubeadmConfigSpec), scope)
-	}); err != nil {
-		return err
-	}
-	if err := s.AddGeneratedConversionFunc((*KubeadmConfigStatus)(nil), (*v1alpha3.KubeadmConfigStatus)(nil), func(a, b interface{}, scope conversion.Scope) error {
-		return Convert_v1alpha2_KubeadmConfigStatus_To_v1alpha3_KubeadmConfigStatus(a.(*KubeadmConfigStatus), b.(*v1alpha3.KubeadmConfigStatus), scope)
-	}); err != nil {
-		return err
-	}
-	if err := s.AddGeneratedConversionFunc((*v1alpha3.KubeadmConfigStatus)(nil), (*KubeadmConfigStatus)(nil), func(a, b interface{}, scope conversion.Scope) error {
-		return Convert_v1alpha3_KubeadmConfigStatus_To_v1alpha2_KubeadmConfigStatus(a.(*v1alpha3.KubeadmConfigStatus), b.(*KubeadmConfigStatus), scope)
-	}); err != nil {
-		return err
-	}
 	if err := s.AddGeneratedConversionFunc((*KubeadmConfigTemplate)(nil), (*v1alpha3.KubeadmConfigTemplate)(nil), func(a, b interface{}, scope conversion.Scope) error {
 		return Convert_v1alpha2_KubeadmConfigTemplate_To_v1alpha3_KubeadmConfigTemplate(a.(*KubeadmConfigTemplate), b.(*v1alpha3.KubeadmConfigTemplate), scope)
 	}); err != nil {

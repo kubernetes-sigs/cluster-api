@@ -37,13 +37,6 @@ failed=()
 outputs=()
 
 # run all verify scripts, optionally skipping any of them
-if [[ "${VERIFY_DEPS:-true}" == "true" ]]; then
-  echo "[*] Verifying deps..."
-  out=$(hack/verify-deps.sh 2>&1)
-  failure $? "verify-deps.sh" "${out}"
-  cd "${REPO_PATH}" || exit
-fi
-
 if [[ "${VERIFY_GOTEST:-true}" == "true" ]]; then
   echo "[*] Verifying gotest..."
   out=$(hack/verify-gotest.sh 2>&1)

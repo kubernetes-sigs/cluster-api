@@ -20,7 +20,7 @@ issues:
     - Using the variable on range scope `(tc)|(rt)|(tt)|(test)|(testcase)|(testCase)` in function literal
     - "G108: Profiling endpoint is automatically exposed on /debug/pprof"
 run:
-  deadline: 4m
+  deadline: 5m
   skip-files:
     - "zz_generated.*\\.go$"
     - ".*conversion.*\\.go$"

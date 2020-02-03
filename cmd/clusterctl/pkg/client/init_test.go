@@ -413,7 +413,7 @@ func fakeEmptyCluster() *fakeClient {
 		WithDefaultVersion("v3.0.0").
 		WithFile("v3.0.0", "components.yaml", componentsYAML("ns4")).
 		WithFile("v3.1.0", "components.yaml", componentsYAML("ns4")).
-		WithFile("v3.0.0", "config-kubeadm.yaml", templateYAML("ns4", "test"))
+		WithFile("v3.0.0", "cluster-template.yaml", templateYAML("ns4", "test"))
 
 	cluster1 := newFakeCluster("kubeconfig")
 

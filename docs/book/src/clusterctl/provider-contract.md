@@ -142,11 +142,10 @@ The following rules apply:
 #### Naming conventions
 
 Cluster templates MUST be stored in the same folder as the component YAML and follow this naming convention:
-1. The default cluster template should be named `config-{bootstrap}.yaml`. e.g `config-kubeadm.yaml`
-2. Additional cluster template should be named `config-{flavor}-{bootstrap}.yaml`. e.g `config-production-kubeadm.yaml`
+1. The default cluster template should be named `cluster-template.yaml`.
+2. Additional cluster template should be named `cluster-template-{flavor}.yaml`. e.g `cluster-template-prod.yaml`
 
-`{bootstrap}` is the name of the bootstrap provider used in the template; `{flavor}` is the name the user can pass to the
-`clusterctl config cluster --flavor` flag to identify the specific template to use.
+`{flavor}` is the name the user can pass to the `clusterctl config cluster --flavor` flag to identify the specific template to use.
  
 Each provider SHOULD create user facing documentation with the list of available cluster templates.
 

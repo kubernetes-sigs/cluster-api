@@ -116,7 +116,7 @@ func (c *clusterctlClient) GetClusterTemplate(options GetClusterTemplateOptions)
 		return nil, err
 	}
 
-	template, err := repo.Templates(version).Get(options.Flavor, options.BootstrapProvider, options.TargetNamespace)
+	template, err := repo.Templates(version).Get(options.Flavor, options.TargetNamespace)
 	if err != nil {
 		return nil, err
 	}

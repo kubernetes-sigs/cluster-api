@@ -308,7 +308,7 @@ func Test_clusterctlClient_GetClusterTemplate(t *testing.T) {
 	repository1 := newFakeRepository(infraProviderConfig, config1.Variables()).
 		WithPaths("root", "components").
 		WithDefaultVersion("v3.0.0").
-		WithFile("v3.0.0", "config-kubeadm.yaml", templateYAML("ns3", "${ CLUSTER_NAME }"))
+		WithFile("v3.0.0", "cluster-template.yaml", templateYAML("ns3", "${ CLUSTER_NAME }"))
 
 	cluster1 := newFakeCluster("kubeconfig").
 		WithProviderInventory(infraProviderConfig.Name(), infraProviderConfig.Type(), "v3.0.0", "foo", "bar")
@@ -327,8 +327,6 @@ func Test_clusterctlClient_GetClusterTemplate(t *testing.T) {
 		providerType    clusterctlv1.ProviderType
 		version         string
 		flavor          string
-		bootstrap       string
-		path            string
 		variables       []string
 		targetNamespace string
 		yaml            []byte
@@ -347,7 +345,6 @@ func Test_clusterctlClient_GetClusterTemplate(t *testing.T) {
 					Kubeconfig:               "kubeconfig",
 					InfrastructureProvider:   "infra:v3.0.0",
 					Flavor:                   "",
-					BootstrapProvider:        "kubeadm",
 					ClusterName:              "test",
 					TargetNamespace:          "ns1",
 					ControlPlaneMachineCount: 1,
@@ -359,8 +356,6 @@ func Test_clusterctlClient_GetClusterTemplate(t *testing.T) {
 				providerType:    clusterctlv1.InfrastructureProviderType,
 				version:         "v3.0.0",
 				flavor:          "",
-				bootstrap:       "kubeadm",
-				path:            "config-kubeadm.yaml",
 				variables:       []string{"CLUSTER_NAME"}, // variable detected
 				targetNamespace: "ns1",
 				yaml:            templateYAML("ns1", "test"), // original template modified with target namespace and variable replacement
@@ -373,7 +368,6 @@ func Test_clusterctlClient_GetClusterTemplate(t *testing.T) {
 					Kubeconfig:               "kubeconfig",
 					InfrastructureProvider:   "", // empty triggers auto-detection of the provider name/version
 					Flavor:                   "",
-					BootstrapProvider:        "kubeadm",
 					ClusterName:              "test",
 					TargetNamespace:          "ns1",
 					ControlPlaneMachineCount: 1,
@@ -385,8 +379,6 @@ func Test_clusterctlClient_GetClusterTemplate(t *testing.T) {
 				providerType:    clusterctlv1.InfrastructureProviderType,
 				version:         "v3.0.0",
 				flavor:          "",
-				bootstrap:       "kubeadm",
-				path:            "config-kubeadm.yaml",
 				variables:       []string{"CLUSTER_NAME"}, // variable detected
 				targetNamespace: "ns1",
 				yaml:            templateYAML("ns1", "test"), // original template modified with target namespace and variable replacement
@@ -399,7 +391,6 @@ func Test_clusterctlClient_GetClusterTemplate(t *testing.T) {
 					Kubeconfig:               "kubeconfig",
 					InfrastructureProvider:   "infra:v3.0.0",
 					Flavor:                   "",
-					BootstrapProvider:        "kubeadm",
 					ClusterName:              "test",
 					TargetNamespace:          "", // empty triggers usage of the current namespace
 					ControlPlaneMachineCount: 1,
@@ -411,8 +402,6 @@ func Test_clusterctlClient_GetClusterTemplate(t *testing.T) {
 				providerType:    clusterctlv1.InfrastructureProviderType,
 				version:         "v3.0.0",
 				flavor:          "",
-				bootstrap:       "kubeadm",
-				path:            "config-kubeadm.yaml",
 				variables:       []string{"CLUSTER_NAME"}, // variable detected
 				targetNamespace: "default",
 				yaml:            templateYAML("default", "test"), // original template modified with target namespace and variable replacement
@@ -443,9 +432,6 @@ func Test_clusterctlClient_GetClusterTemplate(t *testing.T) {
 			}
 			if got.Flavor() != tt.want.flavor {
 				t.Errorf("Flavor() got = %v, want %v", got.Flavor(), tt.want.flavor)
-			}
-			if got.Bootstrap() != tt.want.bootstrap {
-				t.Errorf("Bootstrap() got = %v, want %v", got.Bootstrap(), tt.want.bootstrap)
 			}
 			if !reflect.DeepEqual(got.Variables(), tt.want.variables) {
 				t.Errorf("Variables() got = %v, want %v", got.Variables(), tt.want.variables)

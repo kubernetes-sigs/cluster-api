@@ -38,7 +38,7 @@ type TemplateOptions struct {
 // TemplateClient has methods to work with cluster templates hosted on a provider repository.
 // Templates are yaml files to be used for creating a guest cluster.
 type TemplateClient interface {
-	Get(flavor, bootstrap, targetNamespace string) (Template, error)
+	Get(flavor, targetNamespace string) (Template, error)
 }
 
 // templateClient implements TemplateClient.
@@ -62,14 +62,10 @@ func newTemplateClient(provider config.Provider, version string, repository Repo
 	}
 }
 
-// Get return the template for the flavor/bootstrap provider specified.
+// Get return the template for the flavor specified.
 // In case the template does not exists, an error is returned.
-// Get assumes the following naming convention for templates: config[-<flavor_name>]-<bootstrap_provider_name>.yaml
-func (c *templateClient) Get(flavor, bootstrap, targetNamespace string) (Template, error) {
-	if bootstrap == "" {
-		return nil, errors.New("invalid arguments: please provide a bootstrap provider name")
-	}
-
+// Get assumes the following naming convention for templates: cluster-template[-<flavor_name>].yaml
+func (c *templateClient) Get(flavor, targetNamespace string) (Template, error) {
 	if targetNamespace == "" {
 		return nil, errors.New("invalid arguments: please provide a targetNamespace")
 	}
@@ -79,11 +75,11 @@ func (c *templateClient) Get(flavor, bootstrap, targetNamespace string) (Templat
 	version := c.version
 
 	// building template name according with the naming convention
-	name := "config"
+	name := "cluster-template"
 	if flavor != "" {
 		name = fmt.Sprintf("%s-%s", name, flavor)
 	}
-	name = fmt.Sprintf("%s-%s.yaml", name, bootstrap)
+	name = fmt.Sprintf("%s.yaml", name)
 
 	// read the component YAML, reading the local override file if it exists, otherwise read from the provider repository
 	rawYaml, err := getLocalOverride(c.provider, version, name)
@@ -102,7 +98,6 @@ func (c *templateClient) Get(flavor, bootstrap, targetNamespace string) (Templat
 		provider:              c.provider,
 		version:               version,
 		flavor:                flavor,
-		bootstrap:             bootstrap,
 		rawYaml:               rawYaml,
 		configVariablesClient: c.configVariablesClient,
 		targetNamespace:       targetNamespace,

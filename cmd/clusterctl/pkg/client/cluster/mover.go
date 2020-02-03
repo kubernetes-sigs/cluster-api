@@ -264,14 +264,20 @@ func (o *objectMover) ensureNamespaces(graph *objectGraph, toProxy Proxy) error 
 		}
 		if apierrors.IsForbidden(err) {
 			namespaces := &corev1.NamespaceList{}
-			if err := cs.List(ctx, namespaces); err != nil {
-				return err
-			}
-
 			namespaceExists := false
-			for _, ns := range namespaces.Items {
-				if ns.Name == namespace {
-					namespaceExists = true
+			for {
+				if err := cs.List(ctx, namespaces, client.Continue(namespaces.Continue)); err != nil {
+					return err
+				}
+
+				for _, ns := range namespaces.Items {
+					if ns.Name == namespace {
+						namespaceExists = true
+						break
+					}
+				}
+
+				if namespaces.Continue == "" {
 					break
 				}
 			}

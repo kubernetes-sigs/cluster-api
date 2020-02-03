@@ -106,11 +106,14 @@ func Test_replaceVariables(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			got, err := replaceVariables(tt.args.yaml, tt.args.variables, tt.args.configVariablesClient)
 			if (err != nil) != tt.wantErr {
-				t.Errorf("replaceVariables() error = %v, wantErr %v", err, tt.wantErr)
+				t.Fatalf("error = %v, wantErr %v", err, tt.wantErr)
+			}
+			if tt.wantErr {
 				return
 			}
+
 			if !reflect.DeepEqual(got, tt.want) {
-				t.Errorf("replaceVariables() got = %v, want %v", got, tt.want)
+				t.Errorf("got = %v, want %v", got, tt.want)
 			}
 		})
 	}
@@ -179,11 +182,14 @@ func Test_inspectTargetNamespace(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			got, err := inspectTargetNamespace(tt.args.objs)
 			if (err != nil) != tt.wantErr {
-				t.Errorf("inspectTargetNamespace() error = %v, wantErr %v", err, tt.wantErr)
+				t.Fatalf("error = %v, wantErr %v", err, tt.wantErr)
+			}
+			if tt.wantErr {
 				return
 			}
+
 			if got != tt.want {
-				t.Errorf("inspectTargetNamespace() got = %v, want %v", got, tt.want)
+				t.Errorf("got = %v, want %v", got, tt.want)
 			}
 		})
 	}
@@ -273,7 +279,7 @@ func Test_fixTargetNamespace(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			if got := fixTargetNamespace(tt.args.objs, tt.args.targetNamespace); !reflect.DeepEqual(got[0], tt.want[0]) { //skipping from test the automatically added namespace Object
-				t.Errorf("fixTargetNamespace() got = %v, want %v", got, tt.want)
+				t.Errorf("got = %v, want %v", got, tt.want)
 			}
 		})
 	}
@@ -318,11 +324,11 @@ func Test_addNamespaceIfMissing(t *testing.T) {
 
 			wgot, err := inspectTargetNamespace(got)
 			if err != nil {
-				t.Fatalf("inspectTargetNamespace() error = %v", err)
+				t.Fatal(err)
 			}
 
 			if wgot != tt.args.targetNamespace {
-				t.Errorf("addNamespaceIfMissing().targetNamespace got = %v, want %v", wgot, tt.args.targetNamespace)
+				t.Errorf("got.targetNamespace = %v, want %v", wgot, tt.args.targetNamespace)
 			}
 		})
 	}
@@ -579,18 +585,21 @@ func Test_fixRBAC(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			got, err := fixRBAC(tt.args.objs, tt.args.targetNamespace)
 			if (err != nil) != tt.wantErr {
-				t.Errorf("fixRBAC() error = %v, wantErr %v", err, tt.wantErr)
+				t.Fatalf("error = %v, wantErr %v", err, tt.wantErr)
+			}
+			if tt.wantErr {
 				return
 			}
+
 			if !reflect.DeepEqual(got, tt.want) {
-				t.Errorf("fixRBAC() got = %v, want %v", got, tt.want)
+				t.Errorf("got = %v, want %v", got, tt.want)
 			}
 		})
 	}
 }
 
 func fakeDeployment(watchNamespace string) unstructured.Unstructured {
-	var args []string //nolint
+	args := []string{}
 	if watchNamespace != "" {
 		args = append(args, fmt.Sprintf("%s%s", namespaceArgPrefix, watchNamespace))
 	}
@@ -666,11 +675,14 @@ func Test_inspectWatchNamespace(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			got, err := inspectWatchNamespace(tt.args.objs)
 			if (err != nil) != tt.wantErr {
-				t.Errorf("inspectWatchNamespace() error = %v, wantErr %v", err, tt.wantErr)
+				t.Fatalf("error = %v, wantErr %v", err, tt.wantErr)
+			}
+			if tt.wantErr {
 				return
 			}
+
 			if got != tt.want {
-				t.Errorf("inspectWatchNamespace() got = %v, want %v", got, tt.want)
+				t.Errorf("got = %v, want %v", got, tt.want)
 			}
 		})
 	}
@@ -721,17 +733,19 @@ func Test_fixWatchNamespace(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			got, err := fixWatchNamespace(tt.args.objs, tt.args.watchingNamespace)
 			if (err != nil) != tt.wantErr {
-				t.Errorf("fixWatchNamespace() error = %v, wantErr %v", err, tt.wantErr)
+				t.Fatalf("error = %v, wantErr %v", err, tt.wantErr)
+			}
+			if tt.wantErr {
 				return
 			}
 
 			wgot, err := inspectWatchNamespace(got)
 			if err != nil {
-				t.Fatalf("inspectWatchNamespace() error = %v", err)
+				t.Fatal(err)
 			}
 
 			if wgot != tt.args.watchingNamespace {
-				t.Errorf("fixWatchNamespace().watchingNamespace got = %v, want %v", wgot, tt.args.watchingNamespace)
+				t.Errorf("got.watchingNamespace  = %v, want %v", wgot, tt.args.watchingNamespace)
 			}
 		})
 	}
@@ -896,7 +910,7 @@ func Test_addLabels(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			if got := addLabels(tt.args.objs, tt.args.name); !reflect.DeepEqual(got, tt.want) {
-				t.Errorf("addLabels() = %v, want %v", got, tt.want)
+				t.Errorf("got = %v, want %v", got, tt.want)
 			}
 		})
 	}

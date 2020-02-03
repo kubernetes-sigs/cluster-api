@@ -58,11 +58,14 @@ func Test_variables_Get(t *testing.T) {
 			}
 			got, err := p.Get(tt.args.key)
 			if (err != nil) != tt.wantErr {
-				t.Errorf("Get() error = %v, wantErr %v", err, tt.wantErr)
+				t.Fatalf("error = %v, wantErr %v", err, tt.wantErr)
+			}
+			if tt.wantErr {
 				return
 			}
+
 			if got != tt.want {
-				t.Errorf("Get() got = %v, want %v", got, tt.want)
+				t.Errorf("got = %v, want %v", got, tt.want)
 			}
 		})
 	}

@@ -121,11 +121,14 @@ func Test_providers_List(t *testing.T) {
 			}
 			got, err := p.List()
 			if (err != nil) != tt.wantErr {
-				t.Errorf("List() error = %v, wantErr %v", err, tt.wantErr)
+				t.Fatalf("error = %v, wantErr %v", err, tt.wantErr)
+			}
+			if tt.wantErr {
 				return
 			}
+
 			if !reflect.DeepEqual(got, tt.want) {
-				t.Errorf("List() got = %v, want %v", got, tt.want)
+				t.Errorf("got = %v, want %v", got, tt.want)
 			}
 		})
 	}
@@ -193,7 +196,7 @@ func Test_validateProviderRepository(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			if err := validateProvider(tt.args.r); (err != nil) != tt.wantErr {
-				t.Errorf("validateProvider() error = %v, wantErr %v", err, tt.wantErr)
+				t.Errorf("error = %v, wantErr %v", err, tt.wantErr)
 			}
 		})
 	}
@@ -213,7 +216,7 @@ func Test_providers_Defaults(t *testing.T) {
 	for _, d := range defaults {
 		err := validateProvider(d)
 		if err != nil {
-			t.Errorf("defaults() error = %v, want %v", err, nil)
+			t.Errorf("error = %v, want %v", err, nil)
 		}
 	}
 }
@@ -233,7 +236,7 @@ func Test_providers_Get(t *testing.T) {
 	tests := []struct {
 		name    string
 		args    args
-		want    *Provider
+		want    Provider
 		wantErr bool
 	}{
 		{
@@ -241,7 +244,7 @@ func Test_providers_Get(t *testing.T) {
 			args: args{
 				name: p.defaults()[0].Name(),
 			},
-			want:    &defaults[0],
+			want:    defaults[0],
 			wantErr: false,
 		},
 		{
@@ -260,11 +263,14 @@ func Test_providers_Get(t *testing.T) {
 			}
 			got, err := p.Get(tt.args.name)
 			if (err != nil) != tt.wantErr {
-				t.Errorf("Get() error = %v, wantErr %v", err, tt.wantErr)
+				t.Fatalf("error = %v, wantErr %v", err, tt.wantErr)
+			}
+			if tt.wantErr {
 				return
 			}
+
 			if !reflect.DeepEqual(got, tt.want) {
-				t.Errorf("Get() got = %v, want %v", got, tt.want)
+				t.Errorf("got = %v, want %v", got, tt.want)
 			}
 		})
 	}

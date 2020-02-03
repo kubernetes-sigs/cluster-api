@@ -148,7 +148,7 @@ type Repository interface {
 var _ Repository = &test.FakeRepository{}
 
 //repositoryFactory returns the repository implementation corresponding to the provider URL.
-func repositoryFactory(providerConfig config.Provider, configVariablesClient config.VariablesClient) (Repository, error) { //nolint
+func repositoryFactory(providerConfig config.Provider, configVariablesClient config.VariablesClient) (Repository, error) {
 	// parse the repository url
 	rURL, err := url.Parse(providerConfig.URL())
 	if err != nil {
@@ -175,7 +175,6 @@ const overrideFolder = "overrides"
 // getLocalOverride return local override file from the config folder, if it exists.
 // This is required for development purposes, but it can be used also in production as a workaround for problems on the official repositories
 func getLocalOverride(provider config.Provider, version, path string) ([]byte, error) {
-
 	// local override files are searched at $home/.cluster-api/overrides/<provider-name>/<version>/<path>
 	homeFolder := filepath.Join(homedir.HomeDir(), config.ConfigFolder)
 	overridePath := filepath.Join(homeFolder, overrideFolder, provider.Name(), version, path)

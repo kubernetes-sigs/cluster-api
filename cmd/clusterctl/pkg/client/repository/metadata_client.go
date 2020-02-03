@@ -81,14 +81,12 @@ func (f *metadataClient) Get() (*clusterctlv1.Metadata, error) {
 }
 
 func (f *metadataClient) getEmbeddedMetadata() *clusterctlv1.Metadata {
-
 	// clusterctl includes hard-coded metadata for cluster-API providers developed as a SIG-cluster-lifecycle project in order to
 	// provide an option for simplifying the release process/the repository management of those projects.
 	// Embedding metadata in clusterctl is optional, and the metadata.yaml file on the provider repository will always take precedence
 	// on the embedded one.
 
 	// if you are a developer of a SIG-cluster-lifecycle project, you can send a PR to extend the following list.
-
 	switch f.provider.Name() {
 	case config.ClusterAPIName:
 		return &clusterctlv1.Metadata{

@@ -98,7 +98,7 @@ func Test_newTemplate(t *testing.T) {
 			if (err != nil) != tt.wantErr {
 				t.Fatalf("error = %v, wantErr %v", err, tt.wantErr)
 			}
-			if err != nil {
+			if tt.wantErr {
 				return
 			}
 

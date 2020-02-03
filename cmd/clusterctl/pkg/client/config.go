@@ -111,7 +111,7 @@ func (c *clusterctlClient) GetClusterTemplate(options GetClusterTemplateOptions)
 		return nil, err
 	}
 
-	repo, err := c.repositoryClientFactory(*providerConfig)
+	repo, err := c.repositoryClientFactory(providerConfig)
 	if err != nil {
 		return nil, err
 	}

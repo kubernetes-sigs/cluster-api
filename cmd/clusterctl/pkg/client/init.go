@@ -64,7 +64,7 @@ func (c *clusterctlClient) Init(options InitOptions) ([]Components, bool, error)
 
 	addOptions := addToInstallerOptions{
 		installer:         installer,
-		targetNameSpace:   options.TargetNamespace,
+		targetNamespace:   options.TargetNamespace,
 		watchingNamespace: options.WatchingNamespace,
 	}
 
@@ -106,7 +106,7 @@ func (c *clusterctlClient) Init(options InitOptions) ([]Components, bool, error)
 
 type addToInstallerOptions struct {
 	installer         cluster.ProviderInstaller
-	targetNameSpace   string
+	targetNamespace   string
 	watchingNamespace string
 }
 
@@ -121,7 +121,7 @@ func (c *clusterctlClient) addToInstaller(options addToInstallerOptions, targetG
 			continue
 		}
 
-		components, err := c.getComponentsByName(provider, options.targetNameSpace, options.watchingNamespace)
+		components, err := c.getComponentsByName(provider, options.targetNamespace, options.watchingNamespace)
 		if err != nil {
 			return errors.Wrapf(err, "failed to get provider components for the %q provider", provider)
 		}

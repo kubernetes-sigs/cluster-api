@@ -43,7 +43,7 @@ type ProvidersClient interface {
 
 	// Get returns the configuration for the provider with a given name.
 	// In case the name does not correspond to any existing provider, an error is returned.
-	Get(name string) (*Provider, error)
+	Get(name string) (Provider, error)
 }
 
 // providersClient implements ProvidersClient.
@@ -61,7 +61,6 @@ func newProvidersClient(reader Reader) *providersClient {
 }
 
 func (p *providersClient) defaults() []Provider {
-
 	// clusterctl includes a predefined list of Cluster API providers sponsored by SIG-cluster-lifecycle to provide users the simplest
 	// out-of-box experience. This is an opt-in feature; other providers can be added by using the clusterctl configuration file.
 
@@ -124,7 +123,7 @@ func (p *providersClient) List() ([]Provider, error) {
 	// Gets user defined provider configurations, validate them, and merges with
 	// hard-coded configurations handling conflicts (user defined take precedence on hard-coded)
 
-	var userDefinedProviders []configProvider //nolint
+	userDefinedProviders := []configProvider{}
 	if err := p.reader.UnmarshalKey(ProvidersConfigKey, &userDefinedProviders); err != nil {
 		return nil, errors.Wrap(err, "failed to unmarshal providers from the clusterctl configuration file")
 	}
@@ -157,7 +156,7 @@ func (p *providersClient) List() ([]Provider, error) {
 	return providers, nil
 }
 
-func (p *providersClient) Get(name string) (*Provider, error) {
+func (p *providersClient) Get(name string) (Provider, error) {
 	l, err := p.List()
 	if err != nil {
 		return nil, err
@@ -165,7 +164,7 @@ func (p *providersClient) Get(name string) (*Provider, error) {
 
 	for _, r := range l {
 		if name == r.Name() {
-			return &r, nil
+			return r, nil
 		}
 	}
 

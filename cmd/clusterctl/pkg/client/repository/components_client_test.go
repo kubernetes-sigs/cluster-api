@@ -237,36 +237,34 @@ func Test_componentsClient_Get(t *testing.T) {
 			f := newComponentsClient(tt.fields.provider, tt.fields.repository, tt.fields.configVariablesClient)
 			got, err := f.Get(tt.args.version, tt.args.targetNamespace, tt.args.watchingNamespace)
 			if (err != nil) != tt.wantErr {
-				t.Errorf("Get() error = %v, wantErr %v", err, tt.wantErr)
-				return
+				t.Fatalf("error = %v, wantErr %v", err, tt.wantErr)
 			}
-
 			if tt.wantErr {
 				return
 			}
 
 			if got.Name() != tt.want.provider.Name() {
-				t.Errorf("Get().Name() got = %v, want = %v ", got.Name(), tt.want.provider.Name())
+				t.Errorf("got.Name() = %v, want = %v ", got.Name(), tt.want.provider.Name())
 			}
 
 			if got.Type() != tt.want.provider.Type() {
-				t.Errorf("Get().Type()  got = %v, want = %v ", got.Type(), tt.want.provider.Type())
+				t.Errorf("got.Type() = %v, want = %v ", got.Type(), tt.want.provider.Type())
 			}
 
 			if got.Version() != tt.want.version {
-				t.Errorf("Get().Version() got = %v, want = %v ", got.Version(), tt.want.version)
+				t.Errorf("got.Version() = %v, want = %v ", got.Version(), tt.want.version)
 			}
 
 			if got.TargetNamespace() != tt.want.targetNamespace {
-				t.Errorf("Get().TargetNamespace() got = %v, want = %v ", got.TargetNamespace(), tt.want.targetNamespace)
+				t.Errorf("got.TargetNamespace() = %v, want = %v ", got.TargetNamespace(), tt.want.targetNamespace)
 			}
 
 			if got.WatchingNamespace() != tt.want.watchingNamespace {
-				t.Errorf("Get().WatchingNamespace() got = %v, want = %v ", got.WatchingNamespace(), tt.want.watchingNamespace)
+				t.Errorf("got.WatchingNamespace() = %v, want = %v ", got.WatchingNamespace(), tt.want.watchingNamespace)
 			}
 
 			if !reflect.DeepEqual(got.Variables(), tt.want.variables) {
-				t.Errorf("Get().Variables() got = %v, want = %v ", got.WatchingNamespace(), tt.want.watchingNamespace)
+				t.Errorf("got.Variables() = %v, want = %v ", got.WatchingNamespace(), tt.want.watchingNamespace)
 			}
 
 			yaml, err := got.Yaml()
@@ -276,17 +274,17 @@ func Test_componentsClient_Get(t *testing.T) {
 			}
 
 			if len(tt.want.variables) > 0 && !bytes.Contains(yaml, []byte(variableValue)) {
-				t.Errorf("Get().Yaml() does not containt value %s that is a replacement of %s variable", variableValue, variableName)
+				t.Errorf("got.Yaml() does not containt value %s that is a replacement of %s variable", variableValue, variableName)
 			}
 
 			if len(tt.want.variables) > 0 && !bytes.Contains(yaml, []byte(variableValue)) {
-				t.Errorf("Get().Yaml() does not containt value %s that is a replacement of %s variable", variableValue, variableName)
+				t.Errorf("got.Yaml() does not containt value %s that is a replacement of %s variable", variableValue, variableName)
 			}
 
 			for _, o := range got.Objs() {
 				for _, v := range []string{clusterctlv1.ClusterctlLabelName, clusterv1.ProviderLabelName} {
 					if _, ok := o.GetLabels()[v]; !ok {
-						t.Errorf("Get().Objs() object %s does not contains %s label", o.GetName(), v)
+						t.Errorf("got.Objs() object %s does not contains %s label", o.GetName(), v)
 					}
 				}
 			}

@@ -44,7 +44,7 @@ type providerInstaller struct {
 var _ ProviderInstaller = &providerInstaller{}
 
 func (i *providerInstaller) Add(components repository.Components) error {
-	if err := i.providerInventory.Validate(components.Metadata()); err != nil {
+	if err := i.providerInventory.Validate(components.InventoryObject()); err != nil {
 		return errors.Wrapf(err, "Installing provider %q can lead to a non functioning management cluster.", components.Name())
 	}
 
@@ -61,7 +61,7 @@ func (i *providerInstaller) Install() ([]repository.Components, error) {
 			return nil, err
 		}
 
-		if err := i.providerInventory.Create(components.Metadata()); err != nil {
+		if err := i.providerInventory.Create(components.InventoryObject()); err != nil {
 			return nil, err
 		}
 

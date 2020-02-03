@@ -43,7 +43,7 @@ func (c *clusterctlClient) getComponentsByName(provider string, targetNamespace 
 	// during the process, provider components will be processed performing variable substitution, customization of target
 	// and watching namespace etc.
 
-	repository, err := c.repositoryClientFactory(*providerConfig)
+	repository, err := c.repositoryClientFactory(providerConfig)
 	if err != nil {
 		return nil, err
 	}

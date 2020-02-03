@@ -76,18 +76,20 @@ func Test_gitHubRepository_getVersions(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			g, err := newGitHubRepository(tt.field.providerConfig, configVariablesClient)
 			if err != nil {
-				t.Fatalf("newGitHubRepository() error = %v", err)
+				t.Fatal(err)
 			}
 			g.injectClient = client
 
 			got, err := g.getVersions()
 			if (err != nil) != tt.wantErr {
-				t.Errorf("getVersions() error = %v, wantErr %v", err, tt.wantErr)
+				t.Fatalf("error = %v, wantErr %v", err, tt.wantErr)
+			}
+			if tt.wantErr {
 				return
 			}
 
 			if len(got) != len(tt.want) {
-				t.Errorf("getVersions() got = %v, want %v", got, tt.want)
+				t.Errorf("got = %v, want %v", got, tt.want)
 			}
 		})
 	}
@@ -146,17 +148,20 @@ func Test_gitHubRepository_getLatestRelease(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			g, err := newGitHubRepository(tt.field.providerConfig, configVariablesClient)
 			if err != nil {
-				t.Fatalf("newGitHubRepository() error = %v", err)
+				t.Fatal(err)
 			}
 			g.injectClient = client
 
 			got, err := g.getLatestRelease()
 			if (err != nil) != tt.wantErr {
-				t.Errorf("getLatestRelease() error = %v, wantErr %v", err, tt.wantErr)
+				t.Fatalf("error = %v, wantErr %v", err, tt.wantErr)
+			}
+			if tt.wantErr {
 				return
 			}
+
 			if got != tt.want {
-				t.Errorf("getLatestRelease() got = %v, want %v", got, tt.want)
+				t.Errorf("got = %v, want %v", got, tt.want)
 			}
 		})
 	}
@@ -206,13 +211,15 @@ func Test_gitHubRepository_getReleaseByTag(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			g, err := newGitHubRepository(providerConfig, configVariablesClient)
 			if err != nil {
-				t.Fatalf("newGitHubRepository() error = %v", err)
+				t.Fatal(err)
 			}
 			g.injectClient = client
 
 			got, err := g.getReleaseByTag(tt.args.tag)
 			if (err != nil) != tt.wantErr {
-				t.Errorf("getReleaseByTag() error = %v, wantErr %v", err, tt.wantErr)
+				t.Fatalf("error = %v, wantErr %v", err, tt.wantErr)
+			}
+			if tt.wantErr {
 				return
 			}
 
@@ -222,12 +229,12 @@ func Test_gitHubRepository_getReleaseByTag(t *testing.T) {
 
 			if tt.wantTagName != "" && got != nil {
 				if *got.TagName != tt.wantTagName {
-					t.Errorf("getReleaseByTag().TagName got = %v, want %v", *got.TagName, tt.wantTagName)
+					t.Errorf("got = %v, want %v", *got.TagName, tt.wantTagName)
 				}
 				return
 			}
 
-			t.Errorf("getReleaseByTag() got = %v, want.TagName %v", got, tt.wantTagName)
+			t.Errorf("got = %v, want.TagName %v", got, tt.wantTagName)
 		})
 	}
 }
@@ -317,17 +324,20 @@ func Test_gitHubRepository_downloadFilesFromRelease(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			g, err := newGitHubRepository(providerConfig, configVariablesClient)
 			if err != nil {
-				t.Fatalf("newGitHubRepository() error = %v", err)
+				t.Fatal(err)
 			}
 			g.injectClient = client
 
 			got, err := g.downloadFilesFromRelease(tt.args.release, tt.args.fileName)
 			if (err != nil) != tt.wantErr {
-				t.Errorf("downloadFilesFromRelease() error = %v, wantErr %v", err, tt.wantErr)
+				t.Fatalf("error = %v, wantErr %v", err, tt.wantErr)
+			}
+			if tt.wantErr {
 				return
 			}
+
 			if !reflect.DeepEqual(got, tt.want) {
-				t.Errorf("downloadFilesFromRelease() got = %v, want %v", got, tt.want)
+				t.Errorf("got = %v, want %v", got, tt.want)
 			}
 		})
 	}

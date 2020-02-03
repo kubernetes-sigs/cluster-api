@@ -78,16 +78,19 @@ func Test_viperReader_Get(t *testing.T) {
 
 			err := v.Init(configFile)
 			if err != nil {
-				t.Fatalf("Init() error = %v", err)
+				t.Fatal(err)
 			}
 
 			got, err := v.Get(tt.args.key)
 			if (err != nil) != tt.wantErr {
-				t.Errorf("Get() error = %v, wantErr %v", err, tt.wantErr)
+				t.Fatalf("error = %v, wantErr %v", err, tt.wantErr)
+			}
+			if tt.wantErr {
 				return
 			}
+
 			if got != tt.want {
-				t.Errorf("Get() got = %v, want %v", got, tt.want)
+				t.Errorf("got = %v, want %v", got, tt.want)
 			}
 		})
 	}
@@ -132,18 +135,18 @@ func Test_viperReader_Set(t *testing.T) {
 
 			err := v.Init(configFile)
 			if err != nil {
-				t.Fatalf("Init() error = %v", err)
+				t.Fatal(err)
 			}
 
 			v.Set(tt.args.key, tt.args.value)
 
 			got, err := v.Get(tt.args.key)
 			if err != nil {
-				t.Errorf("Get() error = %v", err)
-				return
+				t.Fatalf("error = %v", err)
 			}
+
 			if got != tt.want {
-				t.Errorf("Get() got = %v, want %v (Set() did not worked)", got, tt.want)
+				t.Errorf("got = %v, want %v (Set() did not worked)", got, tt.want)
 			}
 		})
 	}

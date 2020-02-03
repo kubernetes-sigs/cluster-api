@@ -61,9 +61,6 @@ type GetClusterTemplateOptions struct {
 	// InfrastructureProvider that should be used for creating the workload cluster.
 	InfrastructureProvider string
 
-	// BootstrapProvider that should be used for bootstrapping Kubernetes nodes in the workload cluster.
-	BootstrapProvider string
-
 	// Flavor defines the template variant to be used for creating the workload cluster.
 	Flavor string
 

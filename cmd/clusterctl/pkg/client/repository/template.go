@@ -39,9 +39,6 @@ type Template interface {
 	// A flavor is a variant of cluster template supported by the provider, like e.g. Prod, Test.
 	Flavor() string
 
-	// Bootstrap provider used by the cluster template.
-	Bootstrap() string
-
 	// Variables required by the template.
 	// This value is derived by the template YAML.
 	Variables() []string
@@ -61,7 +58,6 @@ type template struct {
 	config.Provider
 	version         string
 	flavor          string
-	bootstrap       string
 	variables       []string
 	targetNamespace string
 	objs            []unstructured.Unstructured
@@ -76,10 +72,6 @@ func (t *template) Version() string {
 
 func (t *template) Flavor() string {
 	return t.flavor
-}
-
-func (t *template) Bootstrap() string {
-	return t.bootstrap
 }
 
 func (t *template) Variables() []string {
@@ -103,7 +95,6 @@ type newTemplateOptions struct {
 	provider              config.Provider
 	version               string
 	flavor                string
-	bootstrap             string
 	rawYaml               []byte
 	configVariablesClient config.VariablesClient
 	targetNamespace       string
@@ -134,7 +125,6 @@ func newTemplate(options newTemplateOptions) (*template, error) {
 		Provider:        options.provider,
 		version:         options.version,
 		flavor:          options.flavor,
-		bootstrap:       options.bootstrap,
 		variables:       variables,
 		targetNamespace: options.targetNamespace,
 		objs:            objs,

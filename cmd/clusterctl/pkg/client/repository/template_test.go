@@ -43,7 +43,6 @@ func Test_newTemplate(t *testing.T) {
 		provider              config.Provider
 		version               string
 		flavor                string
-		bootstrap             string
 		rawYaml               []byte
 		configVariablesClient config.VariablesClient
 		targetNamespace       string
@@ -52,7 +51,6 @@ func Test_newTemplate(t *testing.T) {
 		provider        config.Provider
 		version         string
 		flavor          string
-		bootstrap       string
 		variables       []string
 		targetNamespace string
 	}
@@ -68,7 +66,6 @@ func Test_newTemplate(t *testing.T) {
 				provider:              p1,
 				version:               "v1.2.3",
 				flavor:                "flavor",
-				bootstrap:             "bootstrap",
 				rawYaml:               templateMapYaml,
 				configVariablesClient: test.NewFakeVariableClient().WithVar(variableName, variableValue),
 				targetNamespace:       "ns1",
@@ -77,7 +74,6 @@ func Test_newTemplate(t *testing.T) {
 				provider:        p1,
 				version:         "v1.2.3",
 				flavor:          "flavor",
-				bootstrap:       "bootstrap",
 				variables:       []string{variableName},
 				targetNamespace: "ns1",
 			},
@@ -90,7 +86,6 @@ func Test_newTemplate(t *testing.T) {
 				provider:              tt.args.provider,
 				version:               tt.args.version,
 				flavor:                tt.args.flavor,
-				bootstrap:             tt.args.bootstrap,
 				rawYaml:               tt.args.rawYaml,
 				configVariablesClient: tt.args.configVariablesClient,
 				targetNamespace:       tt.args.targetNamespace,
@@ -112,10 +107,6 @@ func Test_newTemplate(t *testing.T) {
 
 			if got.Version() != tt.want.version {
 				t.Errorf("got.Version() = %v, want = %v ", got.Version(), tt.want.version)
-			}
-
-			if got.Bootstrap() != tt.want.bootstrap {
-				t.Errorf("got.Bootstrap() = %v, want = %v ", got.Bootstrap(), tt.want.bootstrap)
 			}
 
 			if !reflect.DeepEqual(got.Variables(), tt.want.variables) {

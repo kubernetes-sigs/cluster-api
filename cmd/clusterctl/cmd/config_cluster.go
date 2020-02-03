@@ -27,7 +27,6 @@ import (
 type configClusterOptions struct {
 	kubeconfig             string
 	flavor                 string
-	bootstrapProvider      string
 	infrastructureProvider string
 
 	targetNamespace          string
@@ -54,10 +53,6 @@ var configClusterClusterCmd = &cobra.Command{
 		clusterctl config cluster my-cluster
  
 		# Generates a yaml file for creating a Cluster API workload cluster using
-		# specified infrastructure and bootstrap provider
-		clusterctl config cluster my-cluster --infrastructure=aws --bootstrap=kubeadm
- 
-		# Generates a yaml file for creating a Cluster API workload cluster using
 		# specified version of the AWS infrastructure provider
 		clusterctl config cluster my-cluster --infrastructure=aws:v0.4.1
 
@@ -82,7 +77,6 @@ func init() {
 	configClusterClusterCmd.Flags().StringVarP(&cc.kubeconfig, "kubeconfig", "", "", "Path to the kubeconfig file to use for accessing the management cluster. If empty, default rules for kubeconfig discovery will be used")
 
 	configClusterClusterCmd.Flags().StringVarP(&cc.infrastructureProvider, "infrastructure", "i", "", "The infrastructure provider that should be used for creating the workload cluster")
-	configClusterClusterCmd.Flags().StringVarP(&cc.bootstrapProvider, "bootstrap", "b", "kubeadm", "The provider that should be used for bootstrapping Kubernetes nodes in the workload cluster")
 
 	configClusterClusterCmd.Flags().StringVarP(&cc.flavor, "flavor", "f", "", "The template variant to be used for creating the workload cluster")
 	configClusterClusterCmd.Flags().StringVarP(&cc.targetNamespace, "target-namespace", "n", "", "The namespace where the objects describing the workload cluster should be deployed. If not specified, the current namespace will be used")
@@ -103,7 +97,6 @@ func runGenerateCluster(name string) error {
 		Kubeconfig:               cc.kubeconfig,
 		InfrastructureProvider:   cc.infrastructureProvider,
 		Flavor:                   cc.flavor,
-		BootstrapProvider:        cc.bootstrapProvider,
 		ClusterName:              name,
 		TargetNamespace:          cc.targetNamespace,
 		KubernetesVersion:        cc.kubernetesVersion,

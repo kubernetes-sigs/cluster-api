@@ -38,14 +38,12 @@ func Test_templates_Get(t *testing.T) {
 	}
 	type args struct {
 		flavor          string
-		bootstrap       string
 		targetNamespace string
 	}
 	type want struct {
 		provider        config.Provider
 		version         string
 		flavor          string
-		bootstrap       string
 		variables       []string
 		targetNamespace string
 	}
@@ -64,19 +62,17 @@ func Test_templates_Get(t *testing.T) {
 				repository: test.NewFakeRepository().
 					WithPaths("root", "").
 					WithDefaultVersion("v1.0").
-					WithFile("v1.0", "config-kubeadm.yaml", templateMapYaml),
+					WithFile("v1.0", "cluster-template.yaml", templateMapYaml),
 				configVariablesClient: test.NewFakeVariableClient().WithVar(variableName, variableValue),
 			},
 			args: args{
 				flavor:          "",
-				bootstrap:       "kubeadm",
 				targetNamespace: "ns1",
 			},
 			want: want{
 				provider:        p1,
 				version:         "v1.0",
 				flavor:          "",
-				bootstrap:       "kubeadm",
 				variables:       []string{variableName},
 				targetNamespace: "ns1",
 			},
@@ -90,19 +86,17 @@ func Test_templates_Get(t *testing.T) {
 				repository: test.NewFakeRepository().
 					WithPaths("root", "").
 					WithDefaultVersion("v1.0").
-					WithFile("v1.0", "config-prod-kubeadm.yaml", templateMapYaml),
+					WithFile("v1.0", "cluster-template-prod.yaml", templateMapYaml),
 				configVariablesClient: test.NewFakeVariableClient().WithVar(variableName, variableValue),
 			},
 			args: args{
 				flavor:          "prod",
-				bootstrap:       "kubeadm",
 				targetNamespace: "ns1",
 			},
 			want: want{
 				provider:        p1,
 				version:         "v1.0",
 				flavor:          "prod",
-				bootstrap:       "kubeadm",
 				variables:       []string{variableName},
 				targetNamespace: "ns1",
 			},
@@ -120,7 +114,6 @@ func Test_templates_Get(t *testing.T) {
 			},
 			args: args{
 				flavor:          "",
-				bootstrap:       "kubeadm",
 				targetNamespace: "ns1",
 			},
 			wantErr: true,
@@ -129,7 +122,7 @@ func Test_templates_Get(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			f := newTemplateClient(tt.fields.provider, tt.fields.version, tt.fields.repository, tt.fields.configVariablesClient)
-			got, err := f.Get(tt.args.flavor, tt.args.bootstrap, tt.args.targetNamespace)
+			got, err := f.Get(tt.args.flavor, tt.args.targetNamespace)
 			if (err != nil) != tt.wantErr {
 				t.Fatalf("error = %v, wantErr %v", err, tt.wantErr)
 			}
@@ -147,10 +140,6 @@ func Test_templates_Get(t *testing.T) {
 
 			if got.Version() != tt.want.version {
 				t.Errorf("got.Version() = %v, want = %v ", got.Version(), tt.want.version)
-			}
-
-			if got.Bootstrap() != tt.want.bootstrap {
-				t.Errorf("got.Bootstrap() = %v, want = %v ", got.Bootstrap(), tt.want.bootstrap)
 			}
 
 			if !reflect.DeepEqual(got.Variables(), tt.want.variables) {

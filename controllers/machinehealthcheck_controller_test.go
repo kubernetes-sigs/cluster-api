@@ -48,20 +48,18 @@ var _ = Describe("MachineHealthCheck Reconciler", func() {
 	var testCluster *clusterv1.Cluster
 
 	var clusterName = "test-cluster"
-	var namespaceName = "mhc-test"
+	var namespaceName string
 
 	BeforeEach(func() {
-		namespace = &corev1.Namespace{ObjectMeta: metav1.ObjectMeta{Name: namespaceName}}
-		testCluster = &clusterv1.Cluster{ObjectMeta: metav1.ObjectMeta{Namespace: namespace.Name, Name: clusterName}}
+		namespace = &corev1.Namespace{ObjectMeta: metav1.ObjectMeta{GenerateName: "mhc-test-"}}
+		testCluster = &clusterv1.Cluster{ObjectMeta: metav1.ObjectMeta{Name: clusterName}}
 
 		By("Ensuring the namespace exists")
-		err := k8sClient.Get(ctx, client.ObjectKey{Name: namespace.GetName()}, namespace)
-		if err != nil && apierrors.IsNotFound(err) {
-			Expect(k8sClient.Create(ctx, namespace)).To(Succeed())
-		} else {
-			Expect(err).ToNot(HaveOccurred())
-		}
+		Expect(k8sClient.Create(ctx, namespace)).To(Succeed())
+		namespaceName = namespace.Name
+
 		By("Creating the Cluster")
+		testCluster.Namespace = namespaceName
 		Expect(k8sClient.Create(ctx, testCluster)).To(Succeed())
 	})
 
@@ -70,6 +68,9 @@ var _ = Describe("MachineHealthCheck Reconciler", func() {
 		Expect(cleanupTestMachineHealthChecks(ctx, k8sClient)).To(Succeed())
 		By("Deleting the Cluster")
 		Expect(k8sClient.Delete(ctx, testCluster)).To(Succeed())
+		By("Deleting the Namespace")
+		Expect(k8sClient.Delete(ctx, namespace)).To(Succeed())
+
 		// Ensure the cluster is actually gone before moving on
 		Eventually(func() error {
 			c := &clusterv1.Cluster{}
@@ -345,7 +346,7 @@ func TestClusterToMachineHealthCheck(t *testing.T) {
 				getObj := func() error {
 					return r.Client.Get(ctx, key, &clusterv1.MachineHealthCheck{})
 				}
-				gs.Eventually(getObj).Should(Succeed())
+				gs.Eventually(getObj, timeout).Should(Succeed())
 			}
 
 			got := r.clusterToMachineHealthCheck(tc.object)

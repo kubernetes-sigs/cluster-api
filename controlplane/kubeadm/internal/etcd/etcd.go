@@ -75,6 +75,9 @@ const (
 // Member struct defines an etcd member; it is used to avoid spreading
 // github.com/coreos/etcd dependencies.
 type Member struct {
+	// ClusterID is the ID of the cluster to which this member belongs
+	ClusterID uint64
+
 	// ID is the ID of this cluster member
 	ID uint64
 
@@ -152,9 +155,11 @@ func (c *Client) Members(ctx context.Context) ([]*Member, error) {
 		return nil, err
 	}
 
+	clusterID := response.Header.GetClusterId()
 	members := make([]*Member, len(response.Members))
 	for i, m := range response.Members {
 		newMember := pbMemberToMember(m)
+		newMember.ClusterID = clusterID
 		for _, c := range alarms {
 			if c.MemberID == newMember.ID {
 				newMember.Alarms = append(newMember.Alarms, c.Type)

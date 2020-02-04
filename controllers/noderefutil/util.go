@@ -70,3 +70,17 @@ func IsNodeReady(node *corev1.Node) bool {
 	}
 	return false
 }
+
+// IsNodeUnreachable returns true if a node is unreachable.
+// Node is considered unreachable when its ready status is "Unknown".
+func IsNodeUnreachable(node *corev1.Node) bool {
+	if node == nil {
+		return false
+	}
+	for _, c := range node.Status.Conditions {
+		if c.Type == corev1.NodeReady {
+			return c.Status == corev1.ConditionUnknown
+		}
+	}
+	return false
+}

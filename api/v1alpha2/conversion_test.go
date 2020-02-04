@@ -22,9 +22,20 @@ import (
 	. "github.com/onsi/gomega"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/utils/pointer"
 	"sigs.k8s.io/cluster-api/api/v1alpha3"
+	utilconversion "sigs.k8s.io/cluster-api/util/conversion"
 )
+
+func TestFuzzyConversion(t *testing.T) {
+	g := NewWithT(t)
+	scheme := runtime.NewScheme()
+	g.Expect(AddToScheme(scheme)).To(Succeed())
+	g.Expect(v1alpha3.AddToScheme(scheme)).To(Succeed())
+
+	t.Run("for Cluster", utilconversion.FuzzTestFunc(scheme, &v1alpha3.Cluster{}, &Cluster{}))
+}
 
 func TestConvertCluster(t *testing.T) {
 	g := NewWithT(t)

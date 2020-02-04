@@ -75,20 +75,15 @@ func (c *repositoryClient) Metadata(version string) MetadataClient {
 	return newMetadataClient(c.Provider, version, c.repository)
 }
 
-// NewOptions carries the options supported by New
-type NewOptions struct {
-	injectRepository Repository
-}
-
 // Option is a configuration option supplied to New
-type Option func(*NewOptions)
+type Option func(*repositoryClient)
 
 // InjectRepository allows to override the repository implementation to use;
 // by default, the repository implementation to use is created according to the
 // repository URL.
 func InjectRepository(repository Repository) Option {
-	return func(c *NewOptions) {
-		c.injectRepository = repository
+	return func(c *repositoryClient) {
+		c.repository = repository
 	}
 }
 
@@ -98,26 +93,24 @@ func New(provider config.Provider, configVariablesClient config.VariablesClient,
 }
 
 func newRepositoryClient(provider config.Provider, configVariablesClient config.VariablesClient, options ...Option) (*repositoryClient, error) {
-	cfg := &NewOptions{}
+	client := &repositoryClient{
+		Provider:              provider,
+		configVariablesClient: configVariablesClient,
+	}
 	for _, o := range options {
-		o(cfg)
+		o(client)
 	}
 
 	// if there is an injected repository, use it, otherwise use a default one
-	repository := cfg.injectRepository
-	if repository == nil {
+	if client.repository == nil {
 		r, err := repositoryFactory(provider, configVariablesClient)
 		if err != nil {
 			return nil, errors.Wrapf(err, "failed to get repository client for %q", provider.Name())
 		}
-		repository = r
+		client.repository = r
 	}
 
-	return &repositoryClient{
-		Provider:              provider,
-		repository:            repository,
-		configVariablesClient: configVariablesClient,
-	}, nil
+	return client, nil
 }
 
 // Repository defines the behavior of a repository implementation.

@@ -151,36 +151,29 @@ type ClusterClientFactory func(string) (cluster.Client, error)
 // Ensure clusterctlClient implements Client.
 var _ Client = &clusterctlClient{}
 
-// NewOptions carries the options supported by New.
-type NewOptions struct {
-	injectConfig            config.Client
-	injectRepositoryFactory RepositoryClientFactory
-	injectClusterFactory    ClusterClientFactory
-}
-
 // Option is a configuration option supplied to New
-type Option func(*NewOptions)
+type Option func(*clusterctlClient)
 
-// InjectConfig implements a New Option that allows to override the default configuration client used by clusterctl.
+// InjectConfig allows to override the default configuration client used by clusterctl.
 func InjectConfig(config config.Client) Option {
-	return func(c *NewOptions) {
-		c.injectConfig = config
+	return func(c *clusterctlClient) {
+		c.configClient = config
 	}
 }
 
-// InjectRepositoryFactory implements a New Option that allows to override the default factory used for creating
+// InjectRepositoryFactory allows to override the default factory used for creating
 // RepositoryClient objects.
 func InjectRepositoryFactory(factory RepositoryClientFactory) Option {
-	return func(c *NewOptions) {
-		c.injectRepositoryFactory = factory
+	return func(c *clusterctlClient) {
+		c.repositoryClientFactory = factory
 	}
 }
 
-// InjectClusterClientFactory implements a New Option that allows to override the default factory used for creating
+// InjectClusterClientFactory allows to override the default factory used for creating
 // ClusterClient objects.
 func InjectClusterClientFactory(factory ClusterClientFactory) Option {
-	return func(c *NewOptions) {
-		c.injectClusterFactory = factory
+	return func(c *clusterctlClient) {
+		c.clusterClientFactory = factory
 	}
 }
 
@@ -190,39 +183,32 @@ func New(path string, options ...Option) (Client, error) {
 }
 
 func newClusterctlClient(path string, options ...Option) (*clusterctlClient, error) {
-	cfg := &NewOptions{}
+	client := &clusterctlClient{}
 	for _, o := range options {
-		o(cfg)
+		o(client)
 	}
 
 	// if there is an injected config, use it, otherwise use the default one
 	// provided by the config low level library.
-	configClient := cfg.injectConfig
-	if configClient == nil {
+	if client.configClient == nil {
 		c, err := config.New(path)
 		if err != nil {
 			return nil, err
 		}
-		configClient = c
+		client.configClient = c
 	}
 
 	// if there is an injected RepositoryFactory, use it, otherwise use a default one.
-	repositoryClientFactory := cfg.injectRepositoryFactory
-	if repositoryClientFactory == nil {
-		repositoryClientFactory = defaultRepositoryFactory(configClient)
+	if client.repositoryClientFactory == nil {
+		client.repositoryClientFactory = defaultRepositoryFactory(client.configClient)
 	}
 
 	// if there is an injected ClusterFactory, use it, otherwise use a default one.
-	clusterClientFactory := cfg.injectClusterFactory
-	if clusterClientFactory == nil {
-		clusterClientFactory = defaultClusterFactory()
+	if client.clusterClientFactory == nil {
+		client.clusterClientFactory = defaultClusterFactory()
 	}
 
-	return &clusterctlClient{
-		configClient:            configClient,
-		repositoryClientFactory: repositoryClientFactory,
-		clusterClientFactory:    clusterClientFactory,
-	}, nil
+	return client, nil
 }
 
 // defaultClusterFactory is a ClusterClientFactory func the uses the default client provided by the cluster low level library.

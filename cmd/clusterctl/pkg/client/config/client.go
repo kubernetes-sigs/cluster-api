@@ -49,18 +49,13 @@ func (c *configClient) Variables() VariablesClient {
 	return newVariablesClient(c.reader)
 }
 
-// NewOptions carries the options supported by New
-type NewOptions struct {
-	injectReader Reader
-}
-
 // Option is a configuration option supplied to New
-type Option func(*NewOptions)
+type Option func(*configClient)
 
-// InjectReader implements a New Option that allows to override the default configuration reader used by clusterctl.
+// InjectReader allows to override the default configuration reader used by clusterctl.
 func InjectReader(reader Reader) Option {
-	return func(c *NewOptions) {
-		c.injectReader = reader
+	return func(c *configClient) {
+		c.reader = reader
 	}
 }
 
@@ -70,24 +65,20 @@ func New(path string, options ...Option) (Client, error) {
 }
 
 func newConfigClient(path string, options ...Option) (*configClient, error) {
-	cfg := &NewOptions{}
+	client := &configClient{}
 	for _, o := range options {
-		o(cfg)
+		o(client)
 	}
 
 	// if there is an injected reader, use it, otherwise use a default one
-	reader := cfg.injectReader
-	if reader == nil {
-		reader = newViperReader()
+	if client.reader == nil {
+		client.reader = newViperReader()
+		if err := client.reader.Init(path); err != nil {
+			return nil, errors.Wrap(err, "failed to initialize the configuration reader")
+		}
 	}
 
-	if err := reader.Init(path); err != nil {
-		return nil, errors.Wrap(err, "failed to initialize the configuration reader")
-	}
-
-	return &configClient{
-		reader: reader,
-	}, nil
+	return client, nil
 }
 
 // Reader define the behaviours of a configuration reader.

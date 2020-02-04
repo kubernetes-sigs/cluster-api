@@ -62,15 +62,13 @@ func Test_inventoryClient_EnsureCustomResourceDefinitions(t *testing.T) {
 			if tt.fields.alreadyHasCRD {
 				//forcing creation of metadata before test
 				if err := p.EnsureCustomResourceDefinitions(); err != nil {
-					t.Errorf("EnsureCustomResourceDefinitions() error = %v", err)
-					return
+					t.Fatal(err)
 				}
 			}
 
 			err := p.EnsureCustomResourceDefinitions()
 			if (err != nil) != tt.wantErr {
-				t.Errorf("EnsureCustomResourceDefinitions() error = %v, wantErr %v", err, tt.wantErr)
-				return
+				t.Fatalf("error = %v, wantErr %v", err, tt.wantErr)
 			}
 		})
 	}
@@ -106,11 +104,14 @@ func Test_inventoryClient_List(t *testing.T) {
 			p := newInventoryClient(test.NewFakeProxy().WithObjs(tt.fields.initObjs...), fakePollImmediateWaiter)
 			got, err := p.List()
 			if (err != nil) != tt.wantErr {
-				t.Errorf("List() error = %v, wantErr %v", err, tt.wantErr)
+				t.Fatalf("error = %v, wantErr %v", err, tt.wantErr)
+			}
+			if tt.wantErr {
 				return
 			}
+
 			if !reflect.DeepEqual(got, tt.want) {
-				t.Errorf("List() got = %v, want %v", got, tt.want)
+				t.Errorf("got = %v, want %v", got, tt.want)
 			}
 		})
 	}

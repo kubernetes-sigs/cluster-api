@@ -17,8 +17,20 @@ limitations under the License.
 package conversion
 
 import (
+	"math/rand"
+	"testing"
+
+	fuzz "github.com/google/gofuzz"
+	"github.com/onsi/gomega"
+	"k8s.io/apimachinery/pkg/api/apitesting/fuzzer"
+	apiequality "k8s.io/apimachinery/pkg/api/equality"
+	metafuzzer "k8s.io/apimachinery/pkg/apis/meta/fuzzer"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/runtime/serializer"
 	"k8s.io/apimachinery/pkg/util/json"
+	"k8s.io/utils/diff"
+	"sigs.k8s.io/controller-runtime/pkg/conversion"
 )
 
 const (
@@ -49,4 +61,41 @@ func UnmarshalData(from metav1.Object, to interface{}) (bool, error) {
 	}
 	delete(from.GetAnnotations(), DataAnnotation)
 	return true, nil
+}
+
+// GetFuzzer returns a new fuzzer to be used for testing.
+func GetFuzzer(scheme *runtime.Scheme) *fuzz.Fuzzer {
+	return fuzzer.FuzzerFor(
+		fuzzer.MergeFuzzerFuncs(metafuzzer.Funcs),
+		rand.NewSource(rand.Int63()),
+		serializer.NewCodecFactory(scheme),
+	)
+}
+
+// FuzzTestFunc returns a new testing function to be used in tests to make sure conversions between
+// the Hub version of an object and an older version aren't lossy.
+func FuzzTestFunc(scheme *runtime.Scheme, hub conversion.Hub, dst conversion.Convertible) func(*testing.T) {
+	return func(t *testing.T) {
+		g := gomega.NewWithT(t)
+		fuzzer := GetFuzzer(scheme)
+
+		for i := 0; i < 10000; i++ {
+			// Make copies of both objects, to avoid changing or re-using the ones passed in.
+			hubCopy := hub.DeepCopyObject().(conversion.Hub)
+			dstCopy := dst.DeepCopyObject().(conversion.Convertible)
+
+			// Run the fuzzer on the Hub version copy.
+			fuzzer.Fuzz(hubCopy)
+
+			// Use the hub to convert into the convertible object.
+			g.Expect(dstCopy.ConvertFrom(hubCopy)).To(gomega.Succeed())
+
+			// Make another copy of hub and convert the convertible object back to the hub version.
+			after := hub.DeepCopyObject().(conversion.Hub)
+			g.Expect(dstCopy.ConvertTo(after)).To(gomega.Succeed())
+
+			// Make sure that the hub before the conversions and after are the same, include a diff if not.
+			g.Expect(apiequality.Semantic.DeepEqual(hubCopy, after)).To(gomega.BeTrue(), diff.ObjectDiff(hubCopy, after))
+		}
+	}
 }

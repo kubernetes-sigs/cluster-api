@@ -193,10 +193,6 @@ func (f fakeClusterClient) ProviderInventory() cluster.InventoryClient {
 	return f.internalclient.ProviderInventory()
 }
 
-func (f fakeClusterClient) ProviderObjects() cluster.ObjectsClient {
-	return f.internalclient.ProviderObjects()
-}
-
 func (f fakeClusterClient) ProviderInstaller() cluster.ProviderInstaller {
 	return f.internalclient.ProviderInstaller()
 }

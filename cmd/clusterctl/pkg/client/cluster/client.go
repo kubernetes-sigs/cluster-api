@@ -57,10 +57,6 @@ type Client interface {
 	// operating provider inventory stored in the management cluster (e.g. the list of installed providers/versions).
 	ProviderInventory() InventoryClient
 
-	// ProviderObjects returns a ObjectsClient object that can be user for
-	// operating Cluster API objects stored in the management cluster (e.g. clusters, AWS clusters, machines etc.).
-	ProviderObjects() ObjectsClient
-
 	// ProviderInstaller returns a ProviderInstaller that enforces consistency rules for provider installation,
 	// trying to prevent e.g. controllers fighting for objects, inconsistent versions, etc.
 	ProviderInstaller() ProviderInstaller
@@ -106,10 +102,6 @@ func (c *clusterClient) ProviderInventory() InventoryClient {
 	return newInventoryClient(c.proxy, c.pollImmediateWaiter)
 }
 
-func (c *clusterClient) ProviderObjects() ObjectsClient {
-	return newObjectsClient(c.proxy)
-}
-
 func (c *clusterClient) ProviderInstaller() ProviderInstaller {
 	return newProviderInstaller(c.proxy, c.ProviderInventory(), c.ProviderComponents())
 }
@@ -120,35 +112,28 @@ func (c *clusterClient) ObjectMover() ObjectMover {
 	return newObjectMover(c.proxy, log)
 }
 
-// NewOptions carries the options supported by New
-type NewOptions struct {
-	injectProxy                   Proxy
-	injectRepositoryClientFactory RepositoryClientFactory
-	injectPollImmediateWaiter     PollImmediateWaiter
-}
-
 // Option is a configuration option supplied to New
-type Option func(*NewOptions)
+type Option func(*clusterClient)
 
-// InjectProxy implements a New Option that allows to override the default proxy used by clusterctl.
+// InjectProxy allows to override the default proxy used by clusterctl.
 func InjectProxy(proxy Proxy) Option {
-	return func(c *NewOptions) {
-		c.injectProxy = proxy
+	return func(c *clusterClient) {
+		c.proxy = proxy
 	}
 }
 
-// InjectRepositoryFactory implements a New Option that allows to override the default factory used for creating
+// InjectRepositoryFactory allows to override the default factory used for creating
 // RepositoryClient objects.
 func InjectRepositoryFactory(factory RepositoryClientFactory) Option {
-	return func(c *NewOptions) {
-		c.injectRepositoryClientFactory = factory
+	return func(c *clusterClient) {
+		c.repositoryClientFactory = factory
 	}
 }
 
-// InjectPollImmediateWaiter implements a New Option that allows to override the default PollImmediateWaiter used by clusterctl.
+// InjectPollImmediateWaiter allows to override the default PollImmediateWaiter used by clusterctl.
 func InjectPollImmediateWaiter(pollImmediateWaiter PollImmediateWaiter) Option {
-	return func(c *NewOptions) {
-		c.injectPollImmediateWaiter = pollImmediateWaiter
+	return func(c *clusterClient) {
+		c.pollImmediateWaiter = pollImmediateWaiter
 	}
 }
 
@@ -158,35 +143,29 @@ func New(kubeconfig string, options ...Option) Client {
 }
 
 func newClusterClient(kubeconfig string, options ...Option) *clusterClient {
-	cfg := &NewOptions{}
+	client := &clusterClient{
+		kubeconfig: kubeconfig,
+	}
 	for _, o := range options {
-		o(cfg)
+		o(client)
 	}
 
 	// if there is an injected proxy, use it, otherwise use a default one
-	proxy := cfg.injectProxy
-	if proxy == nil {
-		proxy = newProxy(kubeconfig)
+	if client.proxy == nil {
+		client.proxy = newProxy(kubeconfig)
 	}
 
 	// if there is an injected repositoryClientFactory, use it, otherwise use the default one
-	repositoryClientFactory := cfg.injectRepositoryClientFactory
-	if repositoryClientFactory == nil {
-		repositoryClientFactory = repository.New
+	if client.repositoryClientFactory == nil {
+		client.repositoryClientFactory = repository.New
 	}
 
 	// if there is an injected PollImmediateWaiter, use it, otherwise use the default one
-	pollImmediateWaiter := cfg.injectPollImmediateWaiter
-	if pollImmediateWaiter == nil {
-		pollImmediateWaiter = wait.PollImmediate
+	if client.pollImmediateWaiter == nil {
+		client.pollImmediateWaiter = wait.PollImmediate
 	}
 
-	return &clusterClient{
-		kubeconfig:              kubeconfig,
-		proxy:                   proxy,
-		repositoryClientFactory: repositoryClientFactory,
-		pollImmediateWaiter:     pollImmediateWaiter,
-	}
+	return client
 }
 
 type Proxy interface {

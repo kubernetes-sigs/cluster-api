@@ -140,20 +140,6 @@ func (c *Client) Close() error {
 	return c.EtcdClient.Close()
 }
 
-// Member retrieves the Member information for a given peer.
-func (c *Client) Member(ctx context.Context, peerURL string) (*Member, error) {
-	members, err := c.Members(ctx)
-	if err != nil {
-		return nil, err
-	}
-	for _, m := range members {
-		if m.PeerURLs[0] == peerURL {
-			return m, nil
-		}
-	}
-	return nil, errors.Errorf("etcd member %v not found", peerURL)
-}
-
 // Members retrieves a list of etcd members.
 func (c *Client) Members(ctx context.Context) ([]*Member, error) {
 	response, err := c.EtcdClient.MemberList(ctx)

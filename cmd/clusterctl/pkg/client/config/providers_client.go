@@ -32,6 +32,7 @@ const (
 	KubeadmBootstrapProviderName    = "kubeadm-bootstrap"
 	KubeadmControlPlaneProviderName = "kubeadm-control-plane"
 	ProvidersConfigKey              = "providers"
+	OpenStackProviderName           = "openstack"
 )
 
 // ProvidersClient has methods to work with provider configurations.
@@ -88,6 +89,11 @@ func (p *providersClient) defaults() []Provider {
 		&provider{
 			name:         "vsphere",
 			url:          "https://github.com/kubernetes-sigs/cluster-api-provider-vsphere/releases/latest/infrastructure-components.yaml",
+			providerType: clusterctlv1.InfrastructureProviderType,
+		},
+		&provider{
+			name:         OpenStackProviderName,
+			url:          "https://github.com/kubernetes-sigs/cluster-api-provider-openstack/releases/latest/infrastructure-components.yaml",
 			providerType: clusterctlv1.InfrastructureProviderType,
 		},
 

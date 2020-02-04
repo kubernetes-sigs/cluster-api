@@ -94,12 +94,5 @@ func (c *templateClient) Get(flavor, targetNamespace string) (Template, error) {
 		}
 	}
 
-	return newTemplate(newTemplateOptions{
-		provider:              c.provider,
-		version:               version,
-		flavor:                flavor,
-		rawYaml:               rawYaml,
-		configVariablesClient: c.configVariablesClient,
-		targetNamespace:       targetNamespace,
-	})
+	return NewTemplate(rawYaml, c.configVariablesClient, targetNamespace)
 }

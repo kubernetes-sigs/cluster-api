@@ -22,7 +22,6 @@ import (
 	"reflect"
 	"testing"
 
-	clusterctlv1 "sigs.k8s.io/cluster-api/cmd/clusterctl/api/v1alpha3"
 	"sigs.k8s.io/cluster-api/cmd/clusterctl/pkg/client/config"
 	"sigs.k8s.io/cluster-api/cmd/clusterctl/pkg/internal/test"
 )
@@ -37,20 +36,12 @@ var templateMapYaml = []byte("apiVersion: v1\n" +
 	"  name: manager")
 
 func Test_newTemplate(t *testing.T) {
-	p1 := config.NewProvider("p1", "", clusterctlv1.BootstrapProviderType)
-
 	type args struct {
-		provider              config.Provider
-		version               string
-		flavor                string
 		rawYaml               []byte
 		configVariablesClient config.VariablesClient
 		targetNamespace       string
 	}
 	type want struct {
-		provider        config.Provider
-		version         string
-		flavor          string
 		variables       []string
 		targetNamespace string
 	}
@@ -63,17 +54,11 @@ func Test_newTemplate(t *testing.T) {
 		{
 			name: "variable is replaced and namespace fixed",
 			args: args{
-				provider:              p1,
-				version:               "v1.2.3",
-				flavor:                "flavor",
 				rawYaml:               templateMapYaml,
 				configVariablesClient: test.NewFakeVariableClient().WithVar(variableName, variableValue),
 				targetNamespace:       "ns1",
 			},
 			want: want{
-				provider:        p1,
-				version:         "v1.2.3",
-				flavor:          "flavor",
 				variables:       []string{variableName},
 				targetNamespace: "ns1",
 			},
@@ -82,31 +67,12 @@ func Test_newTemplate(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got, err := newTemplate(newTemplateOptions{
-				provider:              tt.args.provider,
-				version:               tt.args.version,
-				flavor:                tt.args.flavor,
-				rawYaml:               tt.args.rawYaml,
-				configVariablesClient: tt.args.configVariablesClient,
-				targetNamespace:       tt.args.targetNamespace,
-			})
+			got, err := NewTemplate(tt.args.rawYaml, tt.args.configVariablesClient, tt.args.targetNamespace)
 			if (err != nil) != tt.wantErr {
 				t.Fatalf("error = %v, wantErr %v", err, tt.wantErr)
 			}
 			if tt.wantErr {
 				return
-			}
-
-			if got.Name() != tt.want.provider.Name() {
-				t.Errorf("got.Name() = %v, want = %v ", got.Name(), tt.want.provider.Name())
-			}
-
-			if got.Type() != tt.want.provider.Type() {
-				t.Errorf("got.Type() = %v, want = %v ", got.Type(), tt.want.provider.Type())
-			}
-
-			if got.Version() != tt.want.version {
-				t.Errorf("got.Version() = %v, want = %v ", got.Version(), tt.want.version)
 			}
 
 			if !reflect.DeepEqual(got.Variables(), tt.want.variables) {

@@ -758,3 +758,26 @@ func TestFilterOwnedDescendants(t *testing.T) {
 
 	g.Expect(actual).To(Equal(expected))
 }
+
+func TestReconcileControlPlaneInitializedControlPlaneRef(t *testing.T) {
+	g := NewWithT(t)
+
+	c := &clusterv1.Cluster{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: "c",
+		},
+		Spec: clusterv1.ClusterSpec{
+			ControlPlaneRef: &corev1.ObjectReference{
+				APIVersion: "test.io/v1",
+				Namespace:  "test",
+				Name:       "foo",
+			},
+		},
+	}
+
+	r := &ClusterReconciler{
+		Log: log.Log,
+	}
+	g.Expect(r.reconcileControlPlaneInitialized(context.Background(), c)).To(Succeed())
+	g.Expect(c.Status.ControlPlaneInitialized).To(BeFalse())
+}

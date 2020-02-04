@@ -429,6 +429,11 @@ func splitMachineList(list *clusterv1.MachineList) (*clusterv1.MachineList, *clu
 func (r *ClusterReconciler) reconcileControlPlaneInitialized(ctx context.Context, cluster *clusterv1.Cluster) error {
 	logger := r.Log.WithValues("cluster", cluster.Name, "namespace", cluster.Namespace)
 
+	// Skip checking if the control plane is initialized when using a Control Plane Provider
+	if cluster.Spec.ControlPlaneRef != nil {
+		return nil
+	}
+
 	if cluster.Status.ControlPlaneInitialized {
 		return nil
 	}

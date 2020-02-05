@@ -261,6 +261,7 @@ metadata:
     cluster.x-k8s.io/control-plane: "true"
     cluster.x-k8s.io/cluster-name: "capi-quickstart"
 spec:
+  clusterName: capi-quickstart
   version: v1.15.3
   bootstrap:
     configRef:
@@ -341,6 +342,7 @@ metadata:
     cluster.x-k8s.io/control-plane: "true"
     cluster.x-k8s.io/cluster-name: "capi-quickstart"
 spec:
+  clusterName: capi-quickstart
   version: v1.16.6
   bootstrap:
     configRef:
@@ -438,6 +440,7 @@ metadata:
     cluster.x-k8s.io/control-plane: "true"
     cluster.x-k8s.io/cluster-name: "capi-quickstart"
 spec:
+  clusterName: capi-quickstart
   version: v1.15.3
   bootstrap:
     configRef:
@@ -493,6 +496,7 @@ metadata:
     cluster.x-k8s.io/control-plane: "true"
     cluster.x-k8s.io/cluster-name: "capi-quickstart"
 spec:
+  clusterName: capi-quickstart
   version: v1.15.3
   bootstrap:
     configRef:
@@ -562,6 +566,7 @@ metadata:
     cluster.x-k8s.io/control-plane: "true"
     cluster.x-k8s.io/cluster-name: "capi-quickstart"
 spec:
+  clusterName: capi-quickstart
   version: v1.16.2
   bootstrap:
     configRef:
@@ -639,6 +644,7 @@ metadata:
     cluster.x-k8s.io/control-plane: "true"
     cluster.x-k8s.io/cluster-name: "capi-quickstart"
 spec:
+  clusterName: capi-quickstart
   version: v1.15.3
   bootstrap:
     configRef:
@@ -845,6 +851,7 @@ spec:
         cluster.x-k8s.io/cluster-name: capi-quickstart
         nodepool: nodepool-0
     spec:
+      clusterName: capi-quickstart
       version: v1.15.3
       bootstrap:
         configRef:
@@ -938,6 +945,7 @@ spec:
         cluster.x-k8s.io/cluster-name: capi-quickstart
         nodepool: nodepool-0
     spec:
+      clusterName: capi-quickstart
       version: v1.16.6
       bootstrap:
         configRef:
@@ -1031,6 +1039,7 @@ spec:
         cluster.x-k8s.io/cluster-name: capi-quickstart
         nodepool: nodepool-0
     spec:
+      clusterName: capi-quickstart
       version: v1.15.3
       bootstrap:
         configRef:
@@ -1102,6 +1111,7 @@ spec:
         cluster.x-k8s.io/cluster-name: capi-quickstart
         nodepool: nodepool-0
     spec:
+      clusterName: capi-quickstart
       version: v1.15.3
       bootstrap:
         configRef:
@@ -1183,6 +1193,7 @@ spec:
         cluster.x-k8s.io/cluster-name: capi-quickstart
         nodepool: nodepool-0
     spec:
+      clusterName: capi-quickstart
       version: v1.16.2
       bootstrap:
         configRef:
@@ -1268,6 +1279,7 @@ spec:
         cluster.x-k8s.io/cluster-name: capi-quickstart
         nodepool: nodepool-0
     spec:
+      clusterName: capi-quickstart
       version: v1.15.3
       bootstrap:
         configRef:

@@ -201,8 +201,14 @@ func (r *MachineHealthCheckReconciler) reconcile(ctx context.Context, cluster *c
 	totalTargets := len(targets)
 	m.Status.ExpectedMachines = int32(totalTargets)
 
+	// Default to 10 minutes but override if set in MachineHealthCheck
+	timeoutForMachineToHaveNode := 10 * time.Minute
+	if m.Spec.NodeStartupTimeout != nil {
+		timeoutForMachineToHaveNode = m.Spec.NodeStartupTimeout.Duration
+	}
+
 	// health check all targets and reconcile mhc status
-	currentHealthy, needRemediationTargets, nextCheckTimes := r.healthCheckTargets(targets, logger)
+	currentHealthy, needRemediationTargets, nextCheckTimes := r.healthCheckTargets(targets, logger, timeoutForMachineToHaveNode)
 	m.Status.CurrentHealthy = int32(currentHealthy)
 
 	// remediate

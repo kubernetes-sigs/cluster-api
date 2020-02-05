@@ -306,7 +306,8 @@ func TestHealthCheckTargets(t *testing.T) {
 				recorder: record.NewFakeRecorder(5),
 			}
 
-			currentHealthy, needRemediationTargets, nextCheckTimes := reconciler.healthCheckTargets(tc.targets, reconciler.Log)
+			timeoutForMachineToHaveNode := 10 * time.Minute
+			currentHealthy, needRemediationTargets, nextCheckTimes := reconciler.healthCheckTargets(tc.targets, reconciler.Log, timeoutForMachineToHaveNode)
 
 			// Round durations down to nearest second account for minute differences
 			// in timing when running tests

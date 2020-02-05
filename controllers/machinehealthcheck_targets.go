@@ -34,9 +34,6 @@ import (
 const (
 	machinePhaseFailed = "Failed"
 
-	// Timeout waiting for the provider to bring up a node
-	timeoutForMachineToHaveNode = 10 * time.Minute
-
 	// EventDetectedUnhealthy is emitted in case a node associated with a
 	// machine was detected unhealthy
 	EventDetectedUnhealthy string = "DetectedUnhealthy"
@@ -68,7 +65,7 @@ func (t *healthCheckTarget) nodeName() string {
 }
 
 // Determine whether or not a given target needs remediation
-func (t *healthCheckTarget) needsRemediation(logger logr.Logger) (bool, time.Duration) {
+func (t *healthCheckTarget) needsRemediation(logger logr.Logger, timeoutForMachineToHaveNode time.Duration) (bool, time.Duration) {
 	var nextCheckTimes []time.Duration
 	now := time.Now()
 
@@ -194,7 +191,7 @@ func (r *MachineHealthCheckReconciler) getNodeFromMachine(clusterClient client.C
 
 // healthCheckTargets health checks a slice of targets
 // and gives a data to measure the average health
-func (r *MachineHealthCheckReconciler) healthCheckTargets(targets []healthCheckTarget, logger logr.Logger) (int, []healthCheckTarget, []time.Duration) {
+func (r *MachineHealthCheckReconciler) healthCheckTargets(targets []healthCheckTarget, logger logr.Logger, timeoutForMachineToHaveNode time.Duration) (int, []healthCheckTarget, []time.Duration) {
 	var nextCheckTimes []time.Duration
 	var needRemediationTargets []healthCheckTarget
 	var currentHealthy int
@@ -202,7 +199,7 @@ func (r *MachineHealthCheckReconciler) healthCheckTargets(targets []healthCheckT
 	for _, t := range targets {
 		logger = logger.WithValues("Target", t.string())
 		logger.V(3).Info("Health checking target")
-		needsRemediation, nextCheck := t.needsRemediation(logger)
+		needsRemediation, nextCheck := t.needsRemediation(logger, timeoutForMachineToHaveNode)
 
 		if needsRemediation {
 			needRemediationTargets = append(needRemediationTargets, t)

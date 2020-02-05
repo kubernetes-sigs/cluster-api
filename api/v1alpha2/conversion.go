@@ -92,6 +92,12 @@ func (src *Machine) ConvertTo(dstRaw conversion.Hub) error {
 		return err
 	}
 
+	// Manually convert ExcludeNodeDrainingAnnotation annotation if set.
+	if val, ok := src.Annotations[ExcludeNodeDrainingAnnotation]; ok {
+		src.Annotations[v1alpha3.ExcludeNodeDrainingAnnotation] = val
+		delete(src.Annotations, ExcludeNodeDrainingAnnotation)
+	}
+
 	// Manually convert ClusterName from label, if any.
 	// This conversion can be overwritten when restoring the ClusterName field.
 	if name, ok := src.Labels[MachineClusterLabelName]; ok {
@@ -120,6 +126,12 @@ func (dst *Machine) ConvertFrom(srcRaw conversion.Hub) error {
 	src := srcRaw.(*v1alpha3.Machine)
 	if err := Convert_v1alpha3_Machine_To_v1alpha2_Machine(src, dst, nil); err != nil {
 		return err
+	}
+
+	// Manually convert ExcludeNodeDrainingAnnotation annotation if set.
+	if val, ok := src.Annotations[v1alpha3.ExcludeNodeDrainingAnnotation]; ok {
+		src.Annotations[ExcludeNodeDrainingAnnotation] = val
+		delete(src.Annotations, v1alpha3.ExcludeNodeDrainingAnnotation)
 	}
 
 	// Preserve Hub data on down-conversion.

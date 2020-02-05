@@ -37,6 +37,7 @@ import (
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha3"
 	"sigs.k8s.io/cluster-api/controllers/external"
 	"sigs.k8s.io/cluster-api/controllers/metrics"
+	"sigs.k8s.io/cluster-api/controllers/noderefutil"
 	"sigs.k8s.io/cluster-api/controllers/remote"
 	capierrors "sigs.k8s.io/cluster-api/errors"
 	kubedrain "sigs.k8s.io/cluster-api/third_party/kubernetes-drain"
@@ -345,6 +346,11 @@ func (r *MachineReconciler) drainNode(cluster *clusterv1.Cluster, nodeName strin
 		Out:    writer{klog.Info},
 		ErrOut: writer{klog.Error},
 		DryRun: false,
+	}
+
+	if noderefutil.IsNodeUnreachable(node) {
+		// When the node is unreachable and some pods are not evicted for as long as this timeout, we ignore them.
+		drainer.SkipWaitForDeleteTimeoutSeconds = 60 * 5 // 5 minutes
 	}
 
 	if err := kubedrain.RunCordonOrUncordon(drainer, node, true); err != nil {

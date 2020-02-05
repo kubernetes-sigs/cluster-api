@@ -21,21 +21,24 @@ import (
 	clusterctlv1 "sigs.k8s.io/cluster-api/cmd/clusterctl/api/v1alpha3"
 	"sigs.k8s.io/cluster-api/cmd/clusterctl/pkg/client/cluster"
 	"sigs.k8s.io/cluster-api/cmd/clusterctl/pkg/client/config"
+	logf "sigs.k8s.io/cluster-api/cmd/clusterctl/pkg/log"
 )
 
 const NoopProvider = "-"
 
 // Init initializes a management cluster by adding the requested list of providers.
-func (c *clusterctlClient) Init(options InitOptions) ([]Components, bool, error) {
+func (c *clusterctlClient) Init(options InitOptions) ([]Components, error) {
+	log := logf.Log
+
 	// gets access to the management cluster
 	cluster, err := c.clusterClientFactory(options.Kubeconfig)
 	if err != nil {
-		return nil, false, err
+		return nil, err
 	}
 
 	// ensure the custom resource definitions required by clusterctl are in place
 	if err := cluster.ProviderInventory().EnsureCustomResourceDefinitions(); err != nil {
-		return nil, false, err
+		return nil, err
 	}
 
 	// checks if the cluster already contains a Core provider.
@@ -43,7 +46,7 @@ func (c *clusterctlClient) Init(options InitOptions) ([]Components, bool, error)
 	firstRun := false
 	currentCoreProvider, err := cluster.ProviderInventory().GetDefaultProviderName(clusterctlv1.CoreProviderType)
 	if err != nil {
-		return nil, false, err
+		return nil, err
 	}
 	if currentCoreProvider == "" {
 		firstRun = true
@@ -68,32 +71,45 @@ func (c *clusterctlClient) Init(options InitOptions) ([]Components, bool, error)
 		watchingNamespace: options.WatchingNamespace,
 	}
 
+	log.Info("Fetching providers")
+
 	if options.CoreProvider != "" {
 		if err := c.addToInstaller(addOptions, clusterctlv1.CoreProviderType, options.CoreProvider); err != nil {
-			return nil, false, err
+			return nil, err
 		}
 	}
 
 	if err := c.addToInstaller(addOptions, clusterctlv1.BootstrapProviderType, options.BootstrapProviders...); err != nil {
-		return nil, false, err
+		return nil, err
 	}
 
 	if err := c.addToInstaller(addOptions, clusterctlv1.ControlPlaneProviderType, options.ControlPlaneProviders...); err != nil {
-		return nil, false, err
+		return nil, err
 	}
 
 	if err := c.addToInstaller(addOptions, clusterctlv1.InfrastructureProviderType, options.InfrastructureProviders...); err != nil {
-		return nil, false, err
+		return nil, err
 	}
 
 	// Before installing the providers, ensure the cert-manager WebHook is in place.
-	if err := cluster.CertManger().EnsureWebHook(); err != nil {
-		return nil, false, err
+	if err := cluster.CertManager().EnsureWebHook(); err != nil {
+		return nil, err
 	}
 
 	components, err := installer.Install()
 	if err != nil {
-		return nil, false, err
+		return nil, err
+	}
+
+	// If this is the firstRun, then log the usage instructions.
+	if firstRun && options.LogUsageInstructions {
+		log.Info("")
+		log.Info("Your management cluster has been initialized successfully!")
+		log.Info("")
+		log.Info("You can now create your first workload cluster by running the following:")
+		log.Info("")
+		log.Info("  clusterctl config cluster [name] --kubernetes-version [version] | kubectl apply -f -")
+		log.Info("")
 	}
 
 	// Components is an alias for repository.Components; this makes the conversion from the two types
@@ -101,7 +117,7 @@ func (c *clusterctlClient) Init(options InitOptions) ([]Components, bool, error)
 	for i, components := range components {
 		aliasComponents[i] = components
 	}
-	return aliasComponents, firstRun, nil
+	return aliasComponents, nil
 }
 
 type addToInstallerOptions struct {

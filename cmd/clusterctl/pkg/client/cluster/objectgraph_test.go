@@ -25,7 +25,6 @@ import (
 	"github.com/pkg/errors"
 	"k8s.io/apimachinery/pkg/runtime"
 
-	logrtesting "github.com/go-logr/logr/testing"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/types"
@@ -62,7 +61,7 @@ func TestObjectGraph_getDiscoveryTypeMetaList(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			graph := newObjectGraph(tt.fields.proxy, nil)
+			graph := newObjectGraph(tt.fields.proxy)
 			got, err := graph.getDiscoveryTypes()
 			if (err != nil) != tt.wantErr {
 				t.Fatalf("error = %v, wantErr %v", err, tt.wantErr)
@@ -324,7 +323,7 @@ func TestObjectGraph_addObj(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			graph := newObjectGraph(nil, nil)
+			graph := newObjectGraph(nil)
 			for _, o := range tt.args.objs {
 				graph.addObj(o)
 			}
@@ -874,7 +873,7 @@ var objectGraphsTests = []struct {
 }
 
 func getDetachedObjectGraphWihObjs(objs []runtime.Object) (*objectGraph, error) {
-	graph := newObjectGraph(nil, nil) // detached from any cluster
+	graph := newObjectGraph(nil) // detached from any cluster
 	for _, o := range objs {
 		u := &unstructured.Unstructured{}
 		if err := test.FakeScheme.Convert(o, u, nil); err != nil { //nolint
@@ -909,7 +908,7 @@ func getObjectGraphWithObjs(objs []runtime.Object) *objectGraph {
 		fromProxy.WithObjs(o)
 	}
 
-	return newObjectGraph(fromProxy, logrtesting.NullLogger{})
+	return newObjectGraph(fromProxy)
 }
 
 func getFakeProxyWithCRDs() *test.FakeProxy {

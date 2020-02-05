@@ -22,10 +22,10 @@ import (
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	kerrors "k8s.io/apimachinery/pkg/util/errors"
 	"k8s.io/apimachinery/pkg/util/sets"
-	"k8s.io/klog"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha3"
 	clusterctlv1 "sigs.k8s.io/cluster-api/cmd/clusterctl/api/v1alpha3"
 	"sigs.k8s.io/cluster-api/cmd/clusterctl/pkg/client/repository"
+	logf "sigs.k8s.io/cluster-api/cmd/clusterctl/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
@@ -54,7 +54,8 @@ type providerComponents struct {
 
 // Create provider components defined in the yaml file.
 func (p *providerComponents) Create(components repository.Components) error {
-
+	log := logf.Log
+	log.Info("Installing", "Provider", components.Name(), "Version", components.Version(), "TargetNamespace", components.TargetNamespace())
 	c, err := p.proxy.NewClient()
 	if err != nil {
 		return err
@@ -81,7 +82,7 @@ func (p *providerComponents) Create(components repository.Components) error {
 			}
 
 			//if it does not exists, create the component
-			klog.V(3).Infof("Creating: %s, %s/%s", obj.GroupVersionKind(), obj.GetNamespace(), obj.GetName())
+			log.V(5).Info("Creating", logf.UnstructuredToValues(obj)...)
 			if err := c.Create(ctx, &obj); err != nil {
 				return errors.Wrapf(err, "failed to create provider object %s, %s/%s", obj.GroupVersionKind(), obj.GetNamespace(), obj.GetName())
 			}
@@ -90,9 +91,8 @@ func (p *providerComponents) Create(components repository.Components) error {
 		}
 
 		// otherwise update the component
-		klog.V(3).Infof("Updating: %s, %s/%s", obj.GroupVersionKind(), obj.GetNamespace(), obj.GetName())
-
 		// if upgrading an existing component, then use the current resourceVersion for the optimistic lock
+		log.V(5).Info("Upgrading", logf.UnstructuredToValues(obj)...)
 		obj.SetResourceVersion(currentR.GetResourceVersion())
 		if err := c.Update(ctx, &obj); err != nil {
 			return errors.Wrapf(err, "failed to update provider object %s, %s/%s", obj.GroupVersionKind(), obj.GetNamespace(), obj.GetName())
@@ -103,6 +103,9 @@ func (p *providerComponents) Create(components repository.Components) error {
 }
 
 func (p *providerComponents) Delete(options DeleteOptions) error {
+	log := logf.Log
+	log.Info("Deleting", "Provider", options.Provider.Name, "Version", options.Provider.Version, "TargetNamespace", options.Provider.Namespace)
+
 	// Fetch all the components belonging to a provider.
 	labels := map[string]string{
 		clusterctlv1.ClusterctlLabelName: "",
@@ -151,14 +154,14 @@ func (p *providerComponents) Delete(options DeleteOptions) error {
 		}
 
 		// Otherwise delete the object
+		log.V(5).Info("Deleting", logf.UnstructuredToValues(obj)...)
 		if err := cs.Delete(ctx, &obj); err != nil {
 			if apierrors.IsNotFound(err) {
 				// Tolerate IsNotFound error that might happen because we are not enforcing a deletion order
 				// that considers relation across objects (e.g. Deployments -> ReplicaSets -> Pods)
 				continue
 			}
-			errList = append(errList, errors.Wrapf(err, "Error deleting object %s, %s/%s",
-				obj.GroupVersionKind(), obj.GetNamespace(), obj.GetName()))
+			errList = append(errList, errors.Wrapf(err, "Error deleting object %s, %s/%s", obj.GroupVersionKind(), obj.GetNamespace(), obj.GetName()))
 		}
 	}
 

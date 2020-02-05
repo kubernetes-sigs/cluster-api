@@ -17,8 +17,6 @@ limitations under the License.
 package cmd
 
 import (
-	"fmt"
-
 	"github.com/spf13/cobra"
 	"sigs.k8s.io/cluster-api/cmd/clusterctl/pkg/client"
 )
@@ -100,9 +98,7 @@ func runInit() error {
 		return err
 	}
 
-	fmt.Println("performing init...")
-
-	componentList, firstExecution, err := c.Init(client.InitOptions{
+	_, err = c.Init(client.InitOptions{
 		Kubeconfig:              io.kubeconfig,
 		CoreProvider:            io.coreProvider,
 		BootstrapProviders:      io.bootstrapProviders,
@@ -110,21 +106,10 @@ func runInit() error {
 		InfrastructureProviders: io.infrastructureProviders,
 		TargetNamespace:         io.targetNamespace,
 		WatchingNamespace:       io.watchingNamespace,
+		LogUsageInstructions:    true,
 	})
 	if err != nil {
 		return err
 	}
-
-	for _, components := range componentList {
-		fmt.Printf(" - %s %s installed (%s)\n", components.Name(), components.Type(), components.Version())
-	}
-
-	if firstExecution {
-		fmt.Println("\nYour cluster API management cluster has been initialized successfully!")
-		fmt.Println("\nYou can now create your first workload cluster by running the following:")
-		fmt.Println("\n  clusterctl config cluster [name] --kubernetes-version [version] | kubectl apply -f -")
-		fmt.Println("")
-	}
-
 	return nil
 }

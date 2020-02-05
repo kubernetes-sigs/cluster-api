@@ -76,7 +76,7 @@ func (f fakeClient) GetClusterTemplate(options GetClusterTemplateOptions) (Templ
 	return f.internalClient.GetClusterTemplate(options)
 }
 
-func (f fakeClient) Init(options InitOptions) ([]Components, bool, error) {
+func (f fakeClient) Init(options InitOptions) ([]Components, error) {
 	return f.internalClient.Init(options)
 }
 
@@ -159,12 +159,12 @@ func newFakeCluster(kubeconfig string) *fakeClusterClient {
 	}
 }
 
-type fakeCertMangerClient struct {
+type fakeCertManagerClient struct {
 }
 
-var _ cluster.CertMangerClient = &fakeCertMangerClient{}
+var _ cluster.CertManagerClient = &fakeCertManagerClient{}
 
-func (p *fakeCertMangerClient) EnsureWebHook() error {
+func (p *fakeCertManagerClient) EnsureWebHook() error {
 	// For unit test, we are not installing the cert-manager WebHook so we always return no error without doing additional steps.
 	return nil
 }
@@ -185,8 +185,8 @@ func (f fakeClusterClient) Proxy() cluster.Proxy {
 	return f.fakeProxy
 }
 
-func (f *fakeClusterClient) CertManger() cluster.CertMangerClient {
-	return &fakeCertMangerClient{}
+func (f *fakeClusterClient) CertManager() cluster.CertManagerClient {
+	return &fakeCertManagerClient{}
 }
 
 func (f fakeClusterClient) ProviderComponents() cluster.ComponentsClient {

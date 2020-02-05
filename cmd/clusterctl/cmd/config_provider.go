@@ -18,6 +18,7 @@ package cmd
 
 import (
 	"fmt"
+	"os"
 
 	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
@@ -99,7 +100,9 @@ func componentsYAMLOutput(c client.Components) error {
 		return err
 	}
 
-	fmt.Println(string(yaml))
+	if _, err := os.Stdout.Write(yaml); err != nil {
+		return errors.Wrap(err, "failed to write yaml to Stdout")
+	}
 	return err
 }
 

@@ -22,6 +22,7 @@ import (
 	"github.com/pkg/errors"
 	clusterctlv1 "sigs.k8s.io/cluster-api/cmd/clusterctl/api/v1alpha3"
 	"sigs.k8s.io/cluster-api/cmd/clusterctl/pkg/client/config"
+	logf "sigs.k8s.io/cluster-api/cmd/clusterctl/pkg/log"
 )
 
 // ProviderUpgrader defines methods for supporting provider upgrade.
@@ -67,6 +68,9 @@ type providerUpgrader struct {
 var _ ProviderUpgrader = &providerUpgrader{}
 
 func (u *providerUpgrader) Plan() ([]UpgradePlan, error) {
+	log := logf.Log
+	log.Info("Checking new release availability...")
+
 	managementGroups, err := u.providerInventory.GetManagementGroups()
 	if err != nil {
 		return nil, err

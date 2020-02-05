@@ -328,7 +328,7 @@ func Test_clusterctlClient_Init(t *testing.T) {
 				}
 			}
 
-			got, _, err := tt.field.client.Init(InitOptions{
+			got, err := tt.field.client.Init(InitOptions{
 				Kubeconfig:              "kubeconfig",
 				CoreProvider:            tt.args.coreProvider,
 				BootstrapProviders:      tt.args.bootstrapProvider,

@@ -19,6 +19,7 @@ package repository
 import (
 	"github.com/pkg/errors"
 	"sigs.k8s.io/cluster-api/cmd/clusterctl/pkg/client/config"
+	logf "sigs.k8s.io/cluster-api/cmd/clusterctl/pkg/log"
 )
 
 // ComponentsClient has methods to work with yaml file for generating provider components.
@@ -47,6 +48,8 @@ func newComponentsClient(provider config.Provider, repository Repository, config
 }
 
 func (f *componentsClient) Get(version, targetNamespace, watchingNamespace string) (Components, error) {
+	log := logf.Log
+
 	// if the request does not target a specific version, read from the default repository version that is derived from the repository URL, e.g. latest.
 	if version == "" {
 		version = f.repository.DefaultVersion()
@@ -62,10 +65,13 @@ func (f *componentsClient) Get(version, targetNamespace, watchingNamespace strin
 	}
 
 	if file == nil {
+		log.V(1).Info("Fetching", "File", path, "Provider", f.provider.Name(), "Version", version)
 		file, err = f.repository.GetFile(version, path)
 		if err != nil {
 			return nil, errors.Wrapf(err, "failed to read %q from provider's repository %q", path, f.provider.Name())
 		}
+	} else {
+		log.V(1).Info("Using", "Override", path, "Provider", f.provider.Name(), "Version", version)
 	}
 
 	return newComponents(f.provider, version, file, f.configVariablesClient, targetNamespace, watchingNamespace)

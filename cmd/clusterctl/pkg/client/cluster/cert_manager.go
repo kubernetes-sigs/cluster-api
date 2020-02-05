@@ -22,10 +22,10 @@ import (
 	"github.com/pkg/errors"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
-	"k8s.io/klog"
 	clusterctlv1 "sigs.k8s.io/cluster-api/cmd/clusterctl/api/v1alpha3"
 	"sigs.k8s.io/cluster-api/cmd/clusterctl/config"
 	"sigs.k8s.io/cluster-api/cmd/clusterctl/pkg/internal/util"
+	logf "sigs.k8s.io/cluster-api/cmd/clusterctl/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
@@ -36,25 +36,25 @@ const (
 	waitCertManagerTimeout  = 10 * time.Minute
 )
 
-// CertMangerClient has methods to work with cert-manager components in the cluster.
-type CertMangerClient interface {
+// CertManagerClient has methods to work with cert-manager components in the cluster.
+type CertManagerClient interface {
 	// EnsureWebHook makes sure the cert-manager WebHook is Available in a cluster:
 	// this is a requirement to install a new provider
 	EnsureWebHook() error
 }
 
-// certMangerClient implements CertMangerClient .
-type certMangerClient struct {
+// certManagerClient implements CertManagerClient .
+type certManagerClient struct {
 	proxy               Proxy
 	pollImmediateWaiter PollImmediateWaiter
 }
 
-// Ensure certMangerClient implements the CertMangerClient interface.
-var _ CertMangerClient = &certMangerClient{}
+// Ensure certManagerClient implements the CertManagerClient interface.
+var _ CertManagerClient = &certManagerClient{}
 
-// newCertMangerClient returns a certMangerClient.
-func newCertMangerClient(proxy Proxy, pollImmediateWaiter PollImmediateWaiter) *certMangerClient {
-	return &certMangerClient{
+// newCertMangerClient returns a certManagerClient.
+func newCertMangerClient(proxy Proxy, pollImmediateWaiter PollImmediateWaiter) *certManagerClient {
+	return &certManagerClient{
 		proxy:               proxy,
 		pollImmediateWaiter: pollImmediateWaiter,
 	}
@@ -64,7 +64,8 @@ func newCertMangerClient(proxy Proxy, pollImmediateWaiter PollImmediateWaiter) *
 // this is a requirement to install a new provider
 // Nb. In order to provide a simpler out-of-the box experience, the cert-manager manifest
 // is embedded in the clusterctl binary.
-func (cm *certMangerClient) EnsureWebHook() error {
+func (cm *certManagerClient) EnsureWebHook() error {
+	log := logf.Log
 	c, err := cm.proxy.NewClient()
 	if err != nil {
 		return err
@@ -79,6 +80,9 @@ func (cm *certMangerClient) EnsureWebHook() error {
 		return nil
 	}
 
+	// Otherwise install cert-manager
+	log.Info("Installing cert-manager")
+
 	// Gets the cert-manager manifest from the embedded assets and apply it.
 	yaml, err := config.Asset(embeddedCertManagerManifestPath)
 	if err != nil {
@@ -91,8 +95,9 @@ func (cm *certMangerClient) EnsureWebHook() error {
 	}
 
 	objs = sortResourcesForCreate(objs)
-	for _, o := range objs {
-		klog.V(3).Infof("Creating: %s, %s/%s", o.GroupVersionKind(), o.GetNamespace(), o.GetName())
+	for i := range objs {
+		o := objs[i]
+		log.V(5).Info("Creating", logf.UnstructuredToValues(o)...)
 
 		labels := o.GetLabels()
 		if labels == nil {
@@ -101,7 +106,7 @@ func (cm *certMangerClient) EnsureWebHook() error {
 		labels[clusterctlv1.ClusterctlCoreLabelName] = "cert-manager"
 		o.SetLabels(labels)
 
-		if err = c.Create(ctx, &o); err != nil { //nolint
+		if err = c.Create(ctx, &o); err != nil {
 			if apierrors.IsAlreadyExists(err) {
 				continue
 			}
@@ -110,10 +115,11 @@ func (cm *certMangerClient) EnsureWebHook() error {
 	}
 
 	// Waits for for the cert-manager WebHook to be available.
+	log.Info("Waiting for cert-manager to be available...")
 	if err := cm.pollImmediateWaiter(waitCertManagerInterval, waitCertManagerTimeout, func() (bool, error) {
 		webHook, err := cm.getWebHook(c)
 		if err != nil {
-			return false, errors.Wrap(err, "failed to get the cert-manager WebHook")
+			return false, errors.Wrap(err, "failed to get cert-manager WebHook")
 		}
 		if webHook == nil {
 			return false, nil
@@ -126,14 +132,14 @@ func (cm *certMangerClient) EnsureWebHook() error {
 
 		return isWebHookAvailable, nil
 	}); err != nil {
-		return errors.Wrapf(err, "failed to scale deployment")
+		return err
 	}
 
 	return nil
 }
 
 // getWebHook returns the cert-manager WebHook or nil if it does not exists.
-func (cm *certMangerClient) getWebHook(c client.Client) (*unstructured.Unstructured, error) {
+func (cm *certManagerClient) getWebHook(c client.Client) (*unstructured.Unstructured, error) {
 	webHook := &unstructured.Unstructured{}
 	webHook.SetAPIVersion("apiregistration.k8s.io/v1beta1")
 	webHook.SetKind("APIService")
@@ -157,7 +163,7 @@ func (cm *certMangerClient) getWebHook(c client.Client) (*unstructured.Unstructu
 
 // isWebHookAvailable returns true if the cert-manager WebHook has the condition type:Available with status:True.
 // This is required to check the WebHook is working and ready to accept requests.
-func (cm *certMangerClient) isWebHookAvailable(webHook *unstructured.Unstructured) (bool, error) {
+func (cm *certManagerClient) isWebHookAvailable(webHook *unstructured.Unstructured) (bool, error) {
 	conditions, found, err := unstructured.NestedSlice(webHook.Object, "status", "conditions")
 	if err != nil {
 		return false, errors.Wrap(err, "invalid cert-manager WebHook: failed to get conditions")

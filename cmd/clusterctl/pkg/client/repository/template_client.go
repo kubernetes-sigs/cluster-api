@@ -21,6 +21,7 @@ import (
 
 	"github.com/pkg/errors"
 	"sigs.k8s.io/cluster-api/cmd/clusterctl/pkg/client/config"
+	logf "sigs.k8s.io/cluster-api/cmd/clusterctl/pkg/log"
 )
 
 // TemplateOptions defines a set of well-know variables that all the cluster templates are expected to manage;
@@ -66,6 +67,8 @@ func newTemplateClient(provider config.Provider, version string, repository Repo
 // In case the template does not exists, an error is returned.
 // Get assumes the following naming convention for templates: cluster-template[-<flavor_name>].yaml
 func (c *templateClient) Get(flavor, targetNamespace string) (Template, error) {
+	log := logf.Log
+
 	if targetNamespace == "" {
 		return nil, errors.New("invalid arguments: please provide a targetNamespace")
 	}
@@ -88,10 +91,13 @@ func (c *templateClient) Get(flavor, targetNamespace string) (Template, error) {
 	}
 
 	if rawYaml == nil {
+		log.V(1).Info("Fetching", "File", name, "Provider", c.provider.Name(), "Version", version)
 		rawYaml, err = c.repository.GetFile(version, name)
 		if err != nil {
 			return nil, errors.Wrapf(err, "failed to read %q from provider's repository %q", name, c.provider.Name())
 		}
+	} else {
+		log.V(1).Info("Using", "Override", name, "Provider", c.provider.Name(), "Version", version)
 	}
 
 	return NewTemplate(rawYaml, c.configVariablesClient, targetNamespace)

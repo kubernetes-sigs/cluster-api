@@ -17,8 +17,6 @@ limitations under the License.
 package cluster
 
 import (
-	"github.com/pkg/errors"
-	"k8s.io/klog"
 	"sigs.k8s.io/cluster-api/cmd/clusterctl/pkg/client/repository"
 )
 
@@ -45,7 +43,7 @@ var _ ProviderInstaller = &providerInstaller{}
 
 func (i *providerInstaller) Add(components repository.Components) error {
 	if err := i.providerInventory.Validate(components.InventoryObject()); err != nil {
-		return errors.Wrapf(err, "Installing provider %q can lead to a non functioning management cluster.", components.Name())
+		return err
 	}
 
 	i.installQueue = append(i.installQueue, components)
@@ -55,8 +53,6 @@ func (i *providerInstaller) Add(components repository.Components) error {
 func (i *providerInstaller) Install() ([]repository.Components, error) {
 	ret := make([]repository.Components, 0, len(i.installQueue))
 	for _, components := range i.installQueue {
-		klog.V(3).Infof("Installing provider %s/%s:%s", components.TargetNamespace(), components.Name(), components.Version())
-
 		if err := i.providerComponents.Create(components); err != nil {
 			return nil, err
 		}
@@ -67,7 +63,6 @@ func (i *providerInstaller) Install() ([]repository.Components, error) {
 
 		ret = append(ret, components)
 	}
-
 	return ret, nil
 }
 

@@ -141,3 +141,16 @@ outside of the existing module.
 - A new annotation `cluster.x-k8s.io/paused` provides the ability to pause reconciliation on specific objects.
 - A new field `Cluster.Spec.Paused` provides the ability to pause reconciliation on a Cluster and all associated objects.
 - A helper function `util.IsPaused` can be used on any Kubernetes object associated with a Cluster.
+
+## Optional support for failure domains.
+
+An infrastructure provider may or may not implement the failure domains feature. Failure domains gives Cluster API
+just enough information to spread machines out reducing the risk of a target cluster failing due to a domain outage.
+This is particularly useful for Control Plane providers. They are now able to put control plane nodes in different
+domains.
+
+An infrastructure provider can implement this by setting the `InfraCluster.Spec.FailureDomains` field with a map of
+unique keys to `failureDomainSpec`s as well as respecting a set `Machine.Spec.FailureDomain` field when creating
+instances.
+
+Please see the cluster and machine infrastructure provider specifications for more detail.

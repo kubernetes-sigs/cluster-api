@@ -32,8 +32,6 @@ import (
 )
 
 const (
-	machinePhaseFailed = "Failed"
-
 	// EventDetectedUnhealthy is emitted in case a node associated with a
 	// machine was detected unhealthy
 	EventDetectedUnhealthy string = "DetectedUnhealthy"
@@ -70,8 +68,8 @@ func (t *healthCheckTarget) needsRemediation(logger logr.Logger, timeoutForMachi
 	now := time.Now()
 
 	// machine has failed
-	if t.Machine.Status.Phase == machinePhaseFailed {
-		logger.V(3).Info("Target is unhealthy", "phase", machinePhaseFailed)
+	if t.Machine.Status.FailureReason != nil {
+		logger.V(3).Info("Target is unhealthy", "reason", t.Machine.Status.FailureReason)
 		return true, time.Duration(0)
 	}
 

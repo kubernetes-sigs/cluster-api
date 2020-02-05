@@ -218,7 +218,7 @@ func (r *MachineHealthCheckReconciler) healthCheckTargets(targets []healthCheckT
 			continue
 		}
 
-		if t.Machine.DeletionTimestamp == nil {
+		if t.Machine.DeletionTimestamp.IsZero() {
 			currentHealthy++
 		}
 	}

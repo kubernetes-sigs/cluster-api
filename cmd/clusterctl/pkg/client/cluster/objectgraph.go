@@ -292,6 +292,17 @@ func (o *objectGraph) getNodesWithClusterTenants() []*node {
 	return nodes
 }
 
+// getMachines returns the list of Machine existing in the object graph.
+func (o *objectGraph) getMachines() []*node {
+	machines := []*node{}
+	for _, node := range o.uidToNode {
+		if node.identity.GroupVersionKind().GroupKind() == clusterv1.GroupVersion.WithKind("Machine").GroupKind() {
+			machines = append(machines, node)
+		}
+	}
+	return machines
+}
+
 // setSoftOwnership searches for soft ownership relations such as secrets linked to the cluster by a naming convention (without any explicit OwnerReference).
 func (o *objectGraph) setSoftOwnership() {
 	clusters := o.getClusters()

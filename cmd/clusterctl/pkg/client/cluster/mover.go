@@ -67,9 +67,14 @@ func (o *objectMover) Move(namespace string, toCluster Client) error {
 		return err
 	}
 
-	//TODO: add a preflight check ensuring all the Clusters/Machines are already provisioned.
+	// Checks if Cluster API has already completed the provisioning of the infrastructure for the objects involved in the move operation.
+	// This is required because if the infrastructure is provisioned, then we can reasonably assume that the objects we are moving are
+	// not currently waiting for long-running reconciliation loops, and so we can safely rely on the pause field on the Cluster object
+	// for blocking any further object reconciliation on the source objects.
+	if err := o.checkProvisioningCompleted(objectGraph); err != nil {
+		return err
+	}
 	//TODO: consider if to add additional preflight checks ensuring the object graph is complete (no virtual nodes left)
-	//TODO: consider if to add additional preflight checks ensuring there are no nodes shared across clusters (or implement support for shared nodes, potentially required by CAPV)
 
 	// Move the objects to the target cluster.
 	if err := o.move(objectGraph, toCluster.Proxy()); err != nil {
@@ -84,6 +89,65 @@ func newObjectMover(fromProxy Proxy, log logr.Logger) *objectMover {
 		fromProxy: fromProxy,
 		log:       log,
 	}
+}
+
+// checkProvisioningCompleted checks if Cluster API has already completed the provisioning of the infrastructure for the objects involved in the move operation.
+func (o *objectMover) checkProvisioningCompleted(graph *objectGraph) error {
+	errList := []error{}
+	cFrom, err := o.fromProxy.NewClient()
+	if err != nil {
+		return err
+	}
+
+	// Checking all the clusters have infrastructure is ready
+	for _, cluster := range graph.getClusters() {
+		clusterObj := &clusterv1.Cluster{}
+		clusterObjKey := client.ObjectKey{
+			Namespace: cluster.identity.Namespace,
+			Name:      cluster.identity.Name,
+		}
+
+		if err := cFrom.Get(ctx, clusterObjKey, clusterObj); err != nil {
+			return errors.Wrapf(err, "error reading %q %s/%s",
+				clusterObj.GroupVersionKind(), clusterObj.GetNamespace(), clusterObj.GetName())
+		}
+
+		if !clusterObj.Status.InfrastructureReady {
+			errList = append(errList, errors.Errorf("cannot start the move operation while %q %s/%s is still provisioning the infrastructure", clusterObj.GroupVersionKind(), clusterObj.GetNamespace(), clusterObj.GetName()))
+			continue
+		}
+
+		if !clusterObj.Status.ControlPlaneInitialized {
+			errList = append(errList, errors.Errorf("cannot start the move operation while the control plane for %q %s/%s is not yet initialized", clusterObj.GroupVersionKind(), clusterObj.GetNamespace(), clusterObj.GetName()))
+			continue
+		}
+
+		if clusterObj.Spec.ControlPlaneRef != nil && !clusterObj.Status.ControlPlaneReady {
+			errList = append(errList, errors.Errorf("cannot start the move operation while the control plane for %q %s/%s is not yet ready", clusterObj.GroupVersionKind(), clusterObj.GetNamespace(), clusterObj.GetName()))
+			continue
+		}
+	}
+
+	// Checking all the machine have a NodeRef
+	// Nb. NodeRef is considered a better signal than InfrastructureReady, because it ensures the node in the workload cluster is up and running.
+	for _, machine := range graph.getMachines() {
+		machineObj := &clusterv1.Machine{}
+		machineObjKey := client.ObjectKey{
+			Namespace: machine.identity.Namespace,
+			Name:      machine.identity.Name,
+		}
+
+		if err := cFrom.Get(ctx, machineObjKey, machineObj); err != nil {
+			return errors.Wrapf(err, "error reading %q %s/%s",
+				machineObj.GroupVersionKind(), machineObj.GetNamespace(), machineObj.GetName())
+		}
+
+		if machineObj.Status.NodeRef == nil {
+			errList = append(errList, errors.Errorf("cannot start the move operation while %q %s/%s is still provisioning the node", machineObj.GroupVersionKind(), machineObj.GetNamespace(), machineObj.GetName()))
+		}
+	}
+
+	return kerrors.NewAggregate(errList)
 }
 
 // Move moves all the Cluster API objects existing in a namespace (or from all the namespaces if empty) to a target management cluster

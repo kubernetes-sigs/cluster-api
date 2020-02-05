@@ -21,9 +21,12 @@ import (
 	"sort"
 	"testing"
 
+	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
+	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha3"
 	"sigs.k8s.io/cluster-api/cmd/clusterctl/pkg/internal/test"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
@@ -470,6 +473,201 @@ func Test_objectMover_move(t *testing.T) {
 					t.Errorf("error = %v when checking for %v created in target cluster", err, key)
 					continue
 				}
+			}
+		})
+	}
+}
+
+func Test_objectMover_checkProvisioningCompleted(t *testing.T) {
+	type fields struct {
+		objs []runtime.Object
+	}
+	tests := []struct {
+		name    string
+		fields  fields
+		wantErr bool
+	}{
+		{
+			name: "Blocks with a cluster without InfrastructureReady",
+			fields: fields{
+				objs: []runtime.Object{
+					&clusterv1.Cluster{
+						TypeMeta: metav1.TypeMeta{
+							Kind:       "Cluster",
+							APIVersion: clusterv1.GroupVersion.String(),
+						},
+						ObjectMeta: metav1.ObjectMeta{
+							Namespace: "ns1",
+							Name:      "cluster1",
+						},
+						Status: clusterv1.ClusterStatus{
+							InfrastructureReady:     false,
+							ControlPlaneInitialized: true,
+						},
+					},
+				},
+			},
+			wantErr: true,
+		},
+		{
+			name: "Blocks with a cluster without ControlPlaneInitialized",
+			fields: fields{
+				objs: []runtime.Object{
+					&clusterv1.Cluster{
+						TypeMeta: metav1.TypeMeta{
+							Kind:       "Cluster",
+							APIVersion: clusterv1.GroupVersion.String(),
+						},
+						ObjectMeta: metav1.ObjectMeta{
+							Namespace: "ns1",
+							Name:      "cluster1",
+						},
+						Status: clusterv1.ClusterStatus{
+							InfrastructureReady:     true,
+							ControlPlaneInitialized: false,
+						},
+					},
+				},
+			},
+			wantErr: true,
+		},
+		{
+			name: "Blocks with a cluster without ControlPlaneReady",
+			fields: fields{
+				objs: []runtime.Object{
+					&clusterv1.Cluster{
+						TypeMeta: metav1.TypeMeta{
+							Kind:       "Cluster",
+							APIVersion: clusterv1.GroupVersion.String(),
+						},
+						ObjectMeta: metav1.ObjectMeta{
+							Namespace: "ns1",
+							Name:      "cluster1",
+						},
+						Spec: clusterv1.ClusterSpec{
+							ControlPlaneRef: &corev1.ObjectReference{},
+						},
+						Status: clusterv1.ClusterStatus{
+							InfrastructureReady:     true,
+							ControlPlaneInitialized: true,
+							ControlPlaneReady:       false,
+						},
+					},
+				},
+			},
+			wantErr: true,
+		},
+		{
+			name: "Blocks with a Machine Without NodeRef",
+			fields: fields{
+				objs: []runtime.Object{
+					&clusterv1.Cluster{
+						TypeMeta: metav1.TypeMeta{
+							Kind:       "Cluster",
+							APIVersion: clusterv1.GroupVersion.String(),
+						},
+						ObjectMeta: metav1.ObjectMeta{
+							Namespace: "ns1",
+							Name:      "cluster1",
+							UID:       "cluster1",
+						},
+						Status: clusterv1.ClusterStatus{
+							InfrastructureReady:     true,
+							ControlPlaneInitialized: true,
+						},
+					},
+					&clusterv1.Machine{
+						TypeMeta: metav1.TypeMeta{
+							Kind:       "Machine",
+							APIVersion: clusterv1.GroupVersion.String(),
+						},
+						ObjectMeta: metav1.ObjectMeta{
+							Namespace: "ns1",
+							Name:      "machine1",
+							OwnerReferences: []metav1.OwnerReference{
+								{
+									APIVersion: clusterv1.GroupVersion.String(),
+									Kind:       "Cluster",
+									Name:       "cluster1",
+									UID:        "cluster1",
+								},
+							},
+						},
+						Status: clusterv1.MachineStatus{
+							NodeRef: nil,
+						},
+					},
+				},
+			},
+			wantErr: true,
+		},
+		{
+			name: "Pass",
+			fields: fields{
+				objs: []runtime.Object{
+					&clusterv1.Cluster{
+						TypeMeta: metav1.TypeMeta{
+							Kind:       "Cluster",
+							APIVersion: clusterv1.GroupVersion.String(),
+						},
+						ObjectMeta: metav1.ObjectMeta{
+							Namespace: "ns1",
+							Name:      "cluster1",
+							UID:       "cluster1",
+						},
+						Status: clusterv1.ClusterStatus{
+							InfrastructureReady:     true,
+							ControlPlaneInitialized: true,
+						},
+					},
+					&clusterv1.Machine{
+						TypeMeta: metav1.TypeMeta{
+							Kind:       "Machine",
+							APIVersion: clusterv1.GroupVersion.String(),
+						},
+						ObjectMeta: metav1.ObjectMeta{
+							Namespace: "ns1",
+							Name:      "machine1",
+							OwnerReferences: []metav1.OwnerReference{
+								{
+									APIVersion: clusterv1.GroupVersion.String(),
+									Kind:       "Cluster",
+									Name:       "cluster1",
+									UID:        "cluster1",
+								},
+							},
+						},
+						Status: clusterv1.MachineStatus{
+							NodeRef: &corev1.ObjectReference{},
+						},
+					},
+				},
+			},
+			wantErr: false,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			// Create an objectGraph bound a source cluster with all the CRDs for the types involved in the test.
+			graph := getObjectGraphWithObjs(tt.fields.objs)
+
+			// Get all the types to be considered for discovery
+			discoveryTypes, err := getFakeDiscoveryTypes(graph)
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			// trigger discovery the content of the source cluster
+			if err := graph.Discovery("ns1", discoveryTypes); err != nil {
+				t.Fatal(err)
+			}
+
+			o := &objectMover{
+				fromProxy: graph.proxy,
+				log:       graph.log,
+			}
+			if err := o.checkProvisioningCompleted(graph); (err != nil) != tt.wantErr {
+				t.Errorf("error = %v, wantErr %v", err, tt.wantErr)
 			}
 		})
 	}

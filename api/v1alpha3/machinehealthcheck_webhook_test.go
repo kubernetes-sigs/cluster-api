@@ -18,6 +18,7 @@ package v1alpha3
 
 import (
 	"testing"
+	"time"
 
 	. "github.com/onsi/gomega"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -113,5 +114,56 @@ func TestMachineHealthCheckClusterNameImmutable(t *testing.T) {
 				g.Expect(newMHC.ValidateUpdate(oldMHC)).To(Succeed())
 			}
 		})
+	}
+}
+
+func TestMachineHealthCheckNodeStartupTimeout(t *testing.T) {
+	zero := metav1.Duration{Duration: 0}
+	oneMinute := metav1.Duration{Duration: 1 * time.Minute}
+	minusOneMinute := metav1.Duration{Duration: -1 * time.Minute}
+
+	tests := []struct {
+		name      string
+		timeout   *metav1.Duration
+		expectErr bool
+	}{
+		{
+			name:      "when the nodeStartupTimeout is not given",
+			timeout:   nil,
+			expectErr: false,
+		},
+		{
+			name:      "when the nodeStartupTimeout is greater than 0",
+			timeout:   &oneMinute,
+			expectErr: false,
+		},
+		{
+			name:      "when the nodeStartupTimeout is less than 0",
+			timeout:   &minusOneMinute,
+			expectErr: true,
+		},
+		{
+			name:      "when the nodeStartupTimeout is 0",
+			timeout:   &zero,
+			expectErr: true,
+		},
+	}
+
+	for _, tt := range tests {
+		g := NewWithT(t)
+
+		mhc := &MachineHealthCheck{
+			Spec: MachineHealthCheckSpec{
+				NodeStartupTimeout: tt.timeout,
+			},
+		}
+
+		if tt.expectErr {
+			g.Expect(mhc.ValidateCreate()).NotTo(Succeed())
+			g.Expect(mhc.ValidateUpdate(mhc)).NotTo(Succeed())
+		} else {
+			g.Expect(mhc.ValidateCreate()).To(Succeed())
+			g.Expect(mhc.ValidateUpdate(mhc)).To(Succeed())
+		}
 	}
 }

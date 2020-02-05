@@ -44,6 +44,11 @@ type MachineHealthCheckSpec struct {
 	// "selector" are not healthy.
 	// +optional
 	MaxUnhealthy *intstr.IntOrString `json:"maxUnhealthy,omitempty"`
+
+	// Machines older than this duration without a node will be considered to have
+	// failed and will be remediated
+	// +optional
+	NodeStartupTimeout *metav1.Duration `json:"nodeStartupTimeout,omitempty"`
 }
 
 // ANCHOR_END: MachineHealthCHeckSpec

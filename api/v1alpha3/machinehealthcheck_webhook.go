@@ -18,6 +18,7 @@ package v1alpha3
 
 import (
 	"fmt"
+	"time"
 
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -45,6 +46,11 @@ func (m *MachineHealthCheck) Default() {
 	if m.Spec.MaxUnhealthy == nil {
 		defaultMaxUnhealthy := intstr.FromString("100%")
 		m.Spec.MaxUnhealthy = &defaultMaxUnhealthy
+	}
+
+	if m.Spec.NodeStartupTimeout == nil {
+		defaultNodeStartupTimeout := metav1.Duration{Duration: 10 * time.Minute}
+		m.Spec.NodeStartupTimeout = &defaultNodeStartupTimeout
 	}
 }
 
@@ -83,6 +89,13 @@ func (m *MachineHealthCheck) validate(old *MachineHealthCheck) error {
 		allErrs = append(
 			allErrs,
 			field.Invalid(field.NewPath("spec", "clusterName"), m.Spec.ClusterName, "field is immutable"),
+		)
+	}
+
+	if m.Spec.NodeStartupTimeout != nil && m.Spec.NodeStartupTimeout.Nanoseconds() <= 0 {
+		allErrs = append(
+			allErrs,
+			field.Invalid(field.NewPath("spec", "nodeStartupTimeout"), m.Spec.NodeStartupTimeout, "must be greater than 0"),
 		)
 	}
 

@@ -41,9 +41,6 @@ func Test_templates_Get(t *testing.T) {
 		targetNamespace string
 	}
 	type want struct {
-		provider        config.Provider
-		version         string
-		flavor          string
 		variables       []string
 		targetNamespace string
 	}
@@ -70,9 +67,6 @@ func Test_templates_Get(t *testing.T) {
 				targetNamespace: "ns1",
 			},
 			want: want{
-				provider:        p1,
-				version:         "v1.0",
-				flavor:          "",
 				variables:       []string{variableName},
 				targetNamespace: "ns1",
 			},
@@ -94,9 +88,6 @@ func Test_templates_Get(t *testing.T) {
 				targetNamespace: "ns1",
 			},
 			want: want{
-				provider:        p1,
-				version:         "v1.0",
-				flavor:          "prod",
 				variables:       []string{variableName},
 				targetNamespace: "ns1",
 			},
@@ -128,18 +119,6 @@ func Test_templates_Get(t *testing.T) {
 			}
 			if tt.wantErr {
 				return
-			}
-
-			if got.Name() != tt.want.provider.Name() {
-				t.Errorf("got.Name() = %v, want = %v ", got.Name(), tt.want.provider.Name())
-			}
-
-			if got.Type() != tt.want.provider.Type() {
-				t.Errorf("got.Type() = %v, want = %v ", got.Type(), tt.want.provider.Type())
-			}
-
-			if got.Version() != tt.want.version {
-				t.Errorf("got.Version() = %v, want = %v ", got.Version(), tt.want.version)
 			}
 
 			if !reflect.DeepEqual(got.Variables(), tt.want.variables) {

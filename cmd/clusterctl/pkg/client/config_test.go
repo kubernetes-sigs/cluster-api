@@ -324,11 +324,6 @@ func Test_clusterctlClient_GetClusterTemplate(t *testing.T) {
 	}
 
 	type templateValues struct {
-		name            string
-		url             string
-		providerType    clusterctlv1.ProviderType
-		version         string
-		flavor          string
 		variables       []string
 		targetNamespace string
 		yaml            []byte
@@ -353,11 +348,6 @@ func Test_clusterctlClient_GetClusterTemplate(t *testing.T) {
 				},
 			},
 			want: templateValues{
-				name:            "infra",
-				url:             "url",
-				providerType:    clusterctlv1.InfrastructureProviderType,
-				version:         "v3.0.0",
-				flavor:          "",
 				variables:       []string{"CLUSTER_NAME"}, // variable detected
 				targetNamespace: "ns1",
 				yaml:            templateYAML("ns1", "test"), // original template modified with target namespace and variable replacement
@@ -376,11 +366,6 @@ func Test_clusterctlClient_GetClusterTemplate(t *testing.T) {
 				},
 			},
 			want: templateValues{
-				name:            "infra",
-				url:             "url",
-				providerType:    clusterctlv1.InfrastructureProviderType,
-				version:         "v3.0.0",
-				flavor:          "",
 				variables:       []string{"CLUSTER_NAME"}, // variable detected
 				targetNamespace: "ns1",
 				yaml:            templateYAML("ns1", "test"), // original template modified with target namespace and variable replacement
@@ -399,11 +384,6 @@ func Test_clusterctlClient_GetClusterTemplate(t *testing.T) {
 				},
 			},
 			want: templateValues{
-				name:            "infra",
-				url:             "url",
-				providerType:    clusterctlv1.InfrastructureProviderType,
-				version:         "v3.0.0",
-				flavor:          "",
 				variables:       []string{"CLUSTER_NAME"}, // variable detected
 				targetNamespace: "default",
 				yaml:            templateYAML("default", "test"), // original template modified with target namespace and variable replacement
@@ -420,21 +400,6 @@ func Test_clusterctlClient_GetClusterTemplate(t *testing.T) {
 				return
 			}
 
-			if got.Name() != tt.want.name {
-				t.Errorf("Name() got = %v, want %v", got.Name(), tt.want.name)
-			}
-			if got.URL() != tt.want.url {
-				t.Errorf("URL() got = %v, want %v", got.URL(), tt.want.url)
-			}
-			if got.Type() != tt.want.providerType {
-				t.Errorf("Type() got = %v, want %v", got.Type(), tt.want.providerType)
-			}
-			if got.Version() != tt.want.version {
-				t.Errorf("Version() got = %v, want %v", got.Version(), tt.want.version)
-			}
-			if got.Flavor() != tt.want.flavor {
-				t.Errorf("Flavor() got = %v, want %v", got.Flavor(), tt.want.flavor)
-			}
 			if !reflect.DeepEqual(got.Variables(), tt.want.variables) {
 				t.Errorf("Variables() got = %v, want %v", got.Variables(), tt.want.variables)
 			}

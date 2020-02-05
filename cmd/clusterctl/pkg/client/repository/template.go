@@ -29,16 +29,6 @@ import (
 // 1. Checks for all the variables in the cluster template YAML file and replace with corresponding config values
 // 2. Ensure all the cluster objects are deployed in the target namespace
 type Template interface {
-	// configuration of the provider the template belongs to.
-	config.Provider
-
-	// Version of the provider the template belongs to.
-	Version() string
-
-	// Flavor implemented by the template (empty means default flavor).
-	// A flavor is a variant of cluster template supported by the provider, like e.g. Prod, Test.
-	Flavor() string
-
 	// Variables required by the template.
 	// This value is derived by the template YAML.
 	Variables() []string
@@ -55,9 +45,6 @@ type Template interface {
 
 // template implements Template.
 type template struct {
-	config.Provider
-	version         string
-	flavor          string
 	variables       []string
 	targetNamespace string
 	objs            []unstructured.Unstructured
@@ -65,14 +52,6 @@ type template struct {
 
 // Ensures template implements the Template interface.
 var _ Template = &template{}
-
-func (t *template) Version() string {
-	return t.version
-}
-
-func (t *template) Flavor() string {
-	return t.flavor
-}
 
 func (t *template) Variables() []string {
 	return t.variables
@@ -90,22 +69,12 @@ func (t *template) Yaml() ([]byte, error) {
 	return util.FromUnstructured(t.objs)
 }
 
-// newTemplateOptions carries the options supported by newTemplate
-type newTemplateOptions struct {
-	provider              config.Provider
-	version               string
-	flavor                string
-	rawYaml               []byte
-	configVariablesClient config.VariablesClient
-	targetNamespace       string
-}
-
-// newTemplate returns a new objects embedding a cluster template YAML file.
-func newTemplate(options newTemplateOptions) (*template, error) {
+// NewTemplate returns a new objects embedding a cluster template YAML file.
+func NewTemplate(rawYaml []byte, configVariablesClient config.VariablesClient, targetNamespace string) (*template, error) {
 	// Inspect variables and replace with values from the configuration.
-	variables := inspectVariables(options.rawYaml)
+	variables := inspectVariables(rawYaml)
 
-	yaml, err := replaceVariables(options.rawYaml, variables, options.configVariablesClient)
+	yaml, err := replaceVariables(rawYaml, variables, configVariablesClient)
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to perform variable substitution")
 	}
@@ -119,14 +88,11 @@ func newTemplate(options newTemplateOptions) (*template, error) {
 	// Ensures all the template components are deployed in the target namespace (applies only to namespaced objects)
 	// This is required in order to ensure a cluster and all the related objects are in a single namespace, that is a requirement for
 	// the clusterctl move operation (and also for many controller reconciliation loops).
-	objs = fixTargetNamespace(objs, options.targetNamespace)
+	objs = fixTargetNamespace(objs, targetNamespace)
 
 	return &template{
-		Provider:        options.provider,
-		version:         options.version,
-		flavor:          options.flavor,
 		variables:       variables,
-		targetNamespace: options.targetNamespace,
+		targetNamespace: targetNamespace,
 		objs:            objs,
 	}, nil
 }

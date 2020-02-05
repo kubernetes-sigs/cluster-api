@@ -192,7 +192,7 @@ func (r *MachineHealthCheckReconciler) reconcile(ctx context.Context, cluster *c
 	}
 
 	// fetch all targets
-	logger.V(3).Info("Finding targets", "request", namespacedName(m))
+	logger.V(3).Info("Finding targets")
 	targets, err := r.getTargetsFromMHC(clusterClient, cluster, m)
 	if err != nil {
 		logger.Error(err, "Failed to fetch targets from MachineHealthCheck")
@@ -207,16 +207,16 @@ func (r *MachineHealthCheckReconciler) reconcile(ctx context.Context, cluster *c
 
 	// remediate
 	for _, t := range needRemediationTargets {
-		logger.V(3).Info("Target meets unhealthy criteria, triggers remediation", "request", namespacedName(m), "target", t.string())
+		logger.V(3).Info("Target meets unhealthy criteria, triggers remediation", "target", t.string())
 		// TODO(JoelSpeed): Implement remediation logic
 	}
 
 	if minNextCheck := minDuration(nextCheckTimes); minNextCheck > 0 {
-		logger.V(3).Info("Some targets might go unhealthy. Ensuring a requeue happens", "request", namespacedName(m), "requeueIn", minNextCheck.Truncate(time.Second).String())
+		logger.V(3).Info("Some targets might go unhealthy. Ensuring a requeue happens", "requeueIn", minNextCheck.Truncate(time.Second).String())
 		return ctrl.Result{RequeueAfter: minNextCheck}, nil
 	}
 
-	logger.V(3).Info("No more targets meet unhealthy criteria", "request", namespacedName(m))
+	logger.V(3).Info("No more targets meet unhealthy criteria")
 
 	return ctrl.Result{}, nil
 }
@@ -260,11 +260,8 @@ func (r *MachineHealthCheckReconciler) clusterToMachineHealthCheck(o handler.Map
 	return requests
 }
 
-func namespacedName(obj metav1.Object) string {
-	if obj.GetNamespace() != "" {
-		return fmt.Sprintf("%s/%s", obj.GetNamespace(), obj.GetName())
-	}
-	return obj.GetName()
+func namespacedName(obj metav1.Object) types.NamespacedName {
+	return types.NamespacedName{Namespace: obj.GetNamespace(), Name: obj.GetName()}
 }
 
 // machineToMachineHealthCheck maps events from Machine objects to
@@ -306,7 +303,7 @@ func (r *MachineHealthCheckReconciler) nodeToMachineHealthCheck(o handler.MapObj
 
 	machine, err := r.getMachineFromNode(node.Name)
 	if machine == nil || err != nil {
-		r.Log.Error(err, "Unable to retrieve machine from node", "node", namespacedName(node))
+		r.Log.Error(err, "Unable to retrieve machine from node", "node", namespacedName(node).String())
 		return nil
 	}
 

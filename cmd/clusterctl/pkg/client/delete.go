@@ -70,11 +70,16 @@ func (c *clusterctlClient) Delete(options DeleteOptions) error {
 			}
 
 			// Check the provider/namespace tuple actually matches one of the installed providers.
+			found := false
 			for _, ip := range installedProviders {
 				if ip.Name == name && ip.Namespace == namespace {
+					found = true
 					providers = append(providers, ip)
 					break
 				}
+			}
+			if found {
+				break
 			}
 
 			// In case the provider does not match any installed providers, we still force deletion

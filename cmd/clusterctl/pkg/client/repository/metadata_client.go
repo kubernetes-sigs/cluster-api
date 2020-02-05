@@ -24,6 +24,7 @@ import (
 	clusterctlv1 "sigs.k8s.io/cluster-api/cmd/clusterctl/api/v1alpha3"
 	"sigs.k8s.io/cluster-api/cmd/clusterctl/pkg/client/config"
 	"sigs.k8s.io/cluster-api/cmd/clusterctl/pkg/internal/scheme"
+	logf "sigs.k8s.io/cluster-api/cmd/clusterctl/pkg/log"
 )
 
 // MetadataClient has methods to work with metadata hosted on a provider repository.
@@ -53,25 +54,36 @@ func newMetadataClient(provider config.Provider, version string, repository Repo
 }
 
 func (f *metadataClient) Get() (*clusterctlv1.Metadata, error) {
+	log := logf.Log
+
 	// gets the metadata file from the repository
 	version := f.version
 	name := "metadata.yaml"
 
-	rawYaml, err := f.repository.GetFile(version, name)
+	file, err := getLocalOverride(f.provider, version, name)
 	if err != nil {
-		// if there are problems in reading the metadata file from the repository, check if there are embedded metadata for the provider, if yes use them
-		if obj := f.getEmbeddedMetadata(); obj != nil {
-			return obj, nil
-		}
+		return nil, err
+	}
+	if file == nil {
+		log.V(1).Info("Fetching", "File", name, "Provider", f.provider.Name(), "Version", version)
+		file, err = f.repository.GetFile(version, name)
+		if err != nil {
+			// if there are problems in reading the metadata file from the repository, check if there are embedded metadata for the provider, if yes use them
+			if obj := f.getEmbeddedMetadata(); obj != nil {
+				return obj, nil
+			}
 
-		return nil, errors.Wrapf(err, "failed to read %q from the repository for provider %q", name, f.provider.Name())
+			return nil, errors.Wrapf(err, "failed to read %q from the repository for provider %q", name, f.provider.Name())
+		}
+	} else {
+		log.V(1).Info("Using", "Override", name, "Provider", f.provider.Name(), "Version", version)
 	}
 
 	// Convert the yaml into a typed object
 	obj := &clusterctlv1.Metadata{}
 	codecFactory := serializer.NewCodecFactory(scheme.Scheme)
 
-	if err := runtime.DecodeInto(codecFactory.UniversalDecoder(), rawYaml, obj); err != nil {
+	if err := runtime.DecodeInto(codecFactory.UniversalDecoder(), file, obj); err != nil {
 		return nil, errors.Wrapf(err, "error decoding %q for provider %q", name, f.provider.Name())
 	}
 

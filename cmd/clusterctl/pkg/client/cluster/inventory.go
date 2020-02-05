@@ -24,10 +24,10 @@ import (
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	apimeta "k8s.io/apimachinery/pkg/api/meta"
 	"k8s.io/apimachinery/pkg/util/sets"
-	"k8s.io/klog"
 	clusterctlv1 "sigs.k8s.io/cluster-api/cmd/clusterctl/api/v1alpha3"
 	"sigs.k8s.io/cluster-api/cmd/clusterctl/config"
 	"sigs.k8s.io/cluster-api/cmd/clusterctl/pkg/internal/util"
+	logf "sigs.k8s.io/cluster-api/cmd/clusterctl/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
@@ -100,6 +100,8 @@ func newInventoryClient(proxy Proxy, pollImmediateWaiter PollImmediateWaiter) *i
 }
 
 func (p *inventoryClient) EnsureCustomResourceDefinitions() error {
+	log := logf.Log
+
 	c, err := p.proxy.NewClient()
 	if err != nil {
 		return err
@@ -107,11 +109,14 @@ func (p *inventoryClient) EnsureCustomResourceDefinitions() error {
 
 	// Check the CRDs already exists, if yes, exit immediately.
 	l := &clusterctlv1.ProviderList{}
-	if err := c.List(ctx, l); err != nil {
-		if !apimeta.IsNoMatchError(err) {
-			return errors.Wrap(err, "failed to check if the clusterctl inventory CRD exists")
-		}
+	if err = c.List(ctx, l); err == nil {
+		return nil
 	}
+	if !apimeta.IsNoMatchError(err) {
+		return errors.Wrap(err, "failed to check if the clusterctl inventory CRD exists")
+	}
+
+	log.V(1).Info("Installing the clusterctl inventory CRD")
 
 	// Get the CRDs manifest from the embedded assets.
 	yaml, err := config.Asset(embeddedCustomResourceDefinitionPath)
@@ -128,7 +133,7 @@ func (p *inventoryClient) EnsureCustomResourceDefinitions() error {
 	// Install the CRDs.
 	for i := range objs {
 		o := objs[i]
-		klog.V(3).Infof("Creating: %s, %s/%s", o.GroupVersionKind(), o.GetNamespace(), o.GetName())
+		log.V(5).Info("Creating", logf.UnstructuredToValues(o)...)
 
 		labels := o.GetLabels()
 		if labels == nil {

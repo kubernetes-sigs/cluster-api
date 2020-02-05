@@ -422,7 +422,6 @@ func Test_objectMover_move(t *testing.T) {
 			// Run move
 			mover := objectMover{
 				fromProxy: graph.proxy,
-				log:       graph.log,
 			}
 
 			err = mover.move(graph, toProxy)
@@ -664,7 +663,6 @@ func Test_objectMover_checkProvisioningCompleted(t *testing.T) {
 
 			o := &objectMover{
 				fromProxy: graph.proxy,
-				log:       graph.log,
 			}
 			if err := o.checkProvisioningCompleted(graph); (err != nil) != tt.wantErr {
 				t.Errorf("error = %v, wantErr %v", err, tt.wantErr)

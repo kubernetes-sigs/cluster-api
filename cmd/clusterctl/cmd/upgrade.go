@@ -76,8 +76,6 @@ func runUpgradePlan() error {
 		return err
 	}
 
-	//TODO: switch to klog as soon as https://github.com/kubernetes-sigs/cluster-api/pull/2150 merge
-	fmt.Println("Checking new release availability...")
 	upgradePlans, err := c.PlanUpgrade(client.PlanUpgradeOptions{
 		Kubeconfig: up.kubeconfig,
 	})

@@ -23,7 +23,7 @@ import (
 
 	"github.com/MakeNowJust/heredoc"
 	"github.com/spf13/cobra"
-	"k8s.io/klog"
+	logf "sigs.k8s.io/cluster-api/cmd/clusterctl/pkg/log"
 )
 
 var cfgFile string
@@ -46,29 +46,10 @@ func Execute() {
 }
 
 func init() {
+	verbosity := flag.CommandLine.Int("v", 0, "number for the log level verbosity")
+	logf.SetLogger(logf.NewLogger(logf.WithThreshold(verbosity)))
 
-	klog.InitFlags(flag.CommandLine)
 	RootCmd.PersistentFlags().AddGoFlagSet(flag.CommandLine)
-
-	// hiding all the klog flags except
-	// --log_dir
-	// --log_file
-	// --log_file_max_size
-	// -v, --v Level
-
-	_ = RootCmd.PersistentFlags().MarkHidden("alsologtostderr")
-	_ = RootCmd.PersistentFlags().MarkHidden("log_backtrace_at")
-	_ = RootCmd.PersistentFlags().MarkHidden("logtostderr")
-	_ = RootCmd.PersistentFlags().MarkHidden("stderrthreshold")
-	_ = RootCmd.PersistentFlags().MarkHidden("vmodule")
-	_ = RootCmd.PersistentFlags().MarkHidden("skip_log_headers")
-	_ = RootCmd.PersistentFlags().MarkHidden("skip_headers")
-	_ = RootCmd.PersistentFlags().MarkHidden("add_dir_header")
-
-	// makes logs look nicer for a CLI app
-	_ = RootCmd.PersistentFlags().Set("skip_headers", "true")
-	_ = RootCmd.PersistentFlags().Set("logtostderr", "true")
-
 	RootCmd.PersistentFlags().StringVar(&cfgFile, "config", "", "Path to the the clusterctl config file (default is $HOME/.cluster-api/clusterctl.yaml)")
 }
 

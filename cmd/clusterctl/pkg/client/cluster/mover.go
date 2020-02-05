@@ -20,7 +20,6 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/go-logr/logr"
 	"github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
@@ -31,6 +30,7 @@ import (
 	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/apimachinery/pkg/util/wait"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha3"
+	logf "sigs.k8s.io/cluster-api/cmd/clusterctl/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
@@ -43,14 +43,16 @@ type ObjectMover interface {
 // objectMover implements the ObjectMover interface.
 type objectMover struct {
 	fromProxy Proxy
-	log       logr.Logger
 }
 
 // ensure objectMover implements the ObjectMover interface.
 var _ ObjectMover = &objectMover{}
 
 func (o *objectMover) Move(namespace string, toCluster Client) error {
-	objectGraph := newObjectGraph(o.fromProxy, o.log)
+	log := logf.Log
+	log.Info("Performing move...")
+
+	objectGraph := newObjectGraph(o.fromProxy)
 
 	//TODO: implement preflight checks ensuring the target cluster has all the required providers in place
 
@@ -84,10 +86,9 @@ func (o *objectMover) Move(namespace string, toCluster Client) error {
 	return nil
 }
 
-func newObjectMover(fromProxy Proxy, log logr.Logger) *objectMover {
+func newObjectMover(fromProxy Proxy) *objectMover {
 	return &objectMover{
 		fromProxy: fromProxy,
-		log:       log,
 	}
 }
 
@@ -152,15 +153,19 @@ func (o *objectMover) checkProvisioningCompleted(graph *objectGraph) error {
 
 // Move moves all the Cluster API objects existing in a namespace (or from all the namespaces if empty) to a target management cluster
 func (o *objectMover) move(graph *objectGraph, toProxy Proxy) error {
+	log := logf.Log
+
 	clusters := graph.getClusters()
-	o.log.Info("Clusters to move", "Count", len(clusters))
+	log.Info("Moving Cluster API objects", "Clusters", len(clusters))
 
 	// Sets the pause field on the Cluster object in the source management cluster, so the controllers stop reconciling it.
-	if err := setClusterPause(o.fromProxy, clusters, true, o.log); err != nil {
+	log.V(1).Info("Pausing the source cluster")
+	if err := setClusterPause(o.fromProxy, clusters, true); err != nil {
 		return err
 	}
 
 	// Ensure all the expected target namespaces are in place before creating objects.
+	log.V(1).Info("Creating target namespaces, if missing")
 	if err := o.ensureNamespaces(graph, toProxy); err != nil {
 		return err
 	}
@@ -173,6 +178,7 @@ func (o *objectMover) move(graph *objectGraph, toProxy Proxy) error {
 	moveSequence := getMoveSequence(graph)
 
 	// Create all objects group by group, ensuring all the ownerReferences are re-created.
+	log.Info("Creating objects in the target cluster")
 	for groupIndex := 0; groupIndex < len(moveSequence.groups); groupIndex++ {
 		if err := o.createGroup(moveSequence.getGroup(groupIndex), toProxy); err != nil {
 			return err
@@ -180,6 +186,7 @@ func (o *objectMover) move(graph *objectGraph, toProxy Proxy) error {
 	}
 
 	// Delete all objects group by group in reverse order.
+	log.Info("Deleting objects from the source cluster")
 	for groupIndex := len(moveSequence.groups) - 1; groupIndex >= 0; groupIndex-- {
 		if err := o.deleteGroup(moveSequence.getGroup(groupIndex)); err != nil {
 			return err
@@ -187,7 +194,8 @@ func (o *objectMover) move(graph *objectGraph, toProxy Proxy) error {
 	}
 
 	// Reset the pause field on the Cluster object in the target management cluster, so the controllers start reconciling it.
-	if err := setClusterPause(toProxy, clusters, false, o.log); err != nil {
+	log.V(1).Info("Resuming the target cluster")
+	if err := setClusterPause(toProxy, clusters, false); err != nil {
 		return err
 	}
 
@@ -269,11 +277,12 @@ func getMoveSequence(graph *objectGraph) *moveSequence {
 }
 
 // setClusterPause sets the paused field on a Cluster object.
-func setClusterPause(proxy Proxy, clusters []*node, value bool, log logr.Logger) error {
+func setClusterPause(proxy Proxy, clusters []*node, value bool) error {
+	log := logf.Log
 	patch := client.ConstantPatch(types.MergePatchType, []byte(fmt.Sprintf("{\"spec\":{\"paused\":%t}}", value)))
 
 	for _, cluster := range clusters {
-		log.V(1).Info("Set Cluster.Spec.Paused", "Cluster", cluster.identity.Name, "Namespace", cluster.identity.Namespace)
+		log.V(5).Info("Set Cluster.Spec.Paused", "Cluster", cluster.identity.Name, "Namespace", cluster.identity.Namespace)
 
 		cFrom, err := proxy.NewClient()
 		if err != nil {
@@ -302,6 +311,8 @@ func setClusterPause(proxy Proxy, clusters []*node, value bool, log logr.Logger)
 
 // ensureNamespaces ensures all the expected target namespaces are in place before creating objects.
 func (o *objectMover) ensureNamespaces(graph *objectGraph, toProxy Proxy) error {
+	log := logf.Log
+
 	cs, err := toProxy.NewClient()
 	if err != nil {
 		return err
@@ -363,7 +374,7 @@ func (o *objectMover) ensureNamespaces(graph *objectGraph, toProxy Proxy) error 
 				Name: namespace,
 			},
 		}
-		o.log.V(1).Info("Creating", ns.Kind, ns.Name)
+		log.V(1).Info("Creating", ns.Kind, ns.Name)
 		if err := cs.Create(ctx, ns); err != nil && !apierrors.IsAlreadyExists(err) {
 			return err
 		}
@@ -385,7 +396,7 @@ func (o *objectMover) createGroup(group moveGroup, toProxy Proxy) error {
 
 		// Creates the Kubernetes object corresponding to the nodeToCreate.
 		// Nb. The operation is wrapped in a retry loop to make move more resilient to unexpected conditions.
-		err := retry(retryCreateTargetObject, retryIntervalCreateTargetObject, o.log, func() error {
+		err := retry(retryCreateTargetObject, retryIntervalCreateTargetObject, func() error {
 			return o.createTargetObject(nodeToCreate, toProxy)
 		})
 		if err != nil {
@@ -402,7 +413,8 @@ func (o *objectMover) createGroup(group moveGroup, toProxy Proxy) error {
 
 // createTargetObject creates the Kubernetes object in the target Management cluster corresponding to the object graph node, taking care of restoring the OwnerReference with the owner nodes, if any.
 func (o *objectMover) createTargetObject(nodeToCreate *node, toProxy Proxy) error {
-	o.log.V(1).Info("Creating", nodeToCreate.identity.Kind, nodeToCreate.identity.Name, "Namespace", nodeToCreate.identity.Namespace)
+	log := logf.Log
+	log.V(1).Info("Creating", nodeToCreate.identity.Kind, nodeToCreate.identity.Name, "Namespace", nodeToCreate.identity.Namespace)
 
 	cFrom, err := o.fromProxy.NewClient()
 	if err != nil {
@@ -466,7 +478,7 @@ func (o *objectMover) createTargetObject(nodeToCreate *node, toProxy Proxy) erro
 
 		// If the object already exists, try to update it.
 		// Nb. This should not happen, but it is supported to make move more resilient to unexpected interrupt/restarts of the move process.
-		o.log.V(2).Info("Object already exists, updating", nodeToCreate.identity.Kind, nodeToCreate.identity.Name, "Namespace", nodeToCreate.identity.Namespace)
+		log.V(5).Info("Object already exists, updating", nodeToCreate.identity.Kind, nodeToCreate.identity.Name, "Namespace", nodeToCreate.identity.Namespace)
 
 		// Retrieve the UID and the resource version for the update.
 		existingTargetObj := &unstructured.Unstructured{}
@@ -504,7 +516,7 @@ func (o *objectMover) deleteGroup(group moveGroup) error {
 
 		// Delete the Kubernetes object corresponding to the current node.
 		// Nb. The operation is wrapped in a retry loop to make move more resilient to unexpected conditions.
-		err := retry(retryDeleteSourceObject, retryIntervalDeleteSourceObject, o.log, func() error {
+		err := retry(retryDeleteSourceObject, retryIntervalDeleteSourceObject, func() error {
 			return o.deleteSourceObject(nodeToDelete)
 		})
 
@@ -523,7 +535,8 @@ var (
 // deleteSourceObject deletes the Kubernetes object corresponding to the node from the source management cluster, taking care of removing all the finalizers so
 // the objects gets immediately deleted (force delete).
 func (o *objectMover) deleteSourceObject(nodeToDelete *node) error {
-	o.log.V(1).Info("Deleting", nodeToDelete.identity.Kind, nodeToDelete.identity.Name, "Namespace", nodeToDelete.identity.Namespace)
+	log := logf.Log
+	log.V(1).Info("Deleting", nodeToDelete.identity.Kind, nodeToDelete.identity.Name, "Namespace", nodeToDelete.identity.Namespace)
 
 	cFrom, err := o.fromProxy.NewClient()
 	if err != nil {
@@ -542,7 +555,7 @@ func (o *objectMover) deleteSourceObject(nodeToDelete *node) error {
 	if err := cFrom.Get(ctx, sourceObjKey, sourceObj); err != nil {
 		if apierrors.IsNotFound(err) {
 			//If the object is already deleted, move on.
-			o.log.V(2).Info("Object already deleted, skipping delete for", nodeToDelete.identity.Kind, nodeToDelete.identity.Name, "Namespace", nodeToDelete.identity.Namespace)
+			log.V(5).Info("Object already deleted, skipping delete for", nodeToDelete.identity.Kind, nodeToDelete.identity.Name, "Namespace", nodeToDelete.identity.Namespace)
 			return nil
 		}
 		return errors.Wrapf(err, "error reading %q %s/%s",
@@ -564,13 +577,15 @@ func (o *objectMover) deleteSourceObject(nodeToDelete *node) error {
 	return nil
 }
 
-func retry(attempts int, interval time.Duration, log logr.Logger, action func() error) error {
+func retry(attempts int, interval time.Duration, action func() error) error {
+	log := logf.Log
+
 	var errorToReturn error
 	for i := 0; i < attempts; i++ {
 		if err := action(); err != nil {
 			errorToReturn = err
 
-			log.V(2).Info("Operation failed, retry")
+			log.V(5).Info("Operation failed, retry")
 			pause := wait.Jitter(interval, 1)
 			time.Sleep(pause)
 			continue

@@ -17,8 +17,6 @@ limitations under the License.
 package cmd
 
 import (
-	"fmt"
-
 	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
 	"sigs.k8s.io/cluster-api/cmd/clusterctl/pkg/client"
@@ -66,7 +64,7 @@ func runMove() error {
 	if err != nil {
 		return err
 	}
-	fmt.Println("Performing move...")
+
 	if err := c.Move(client.MoveOptions{
 		FromKubeconfig: mo.fromKubeconfig,
 		ToKubeconfig:   mo.toKubeconfig,

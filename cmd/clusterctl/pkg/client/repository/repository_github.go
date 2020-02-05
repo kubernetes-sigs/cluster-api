@@ -28,7 +28,6 @@ import (
 	"github.com/pkg/errors"
 	"golang.org/x/oauth2"
 	"k8s.io/apimachinery/pkg/util/version"
-	"k8s.io/klog"
 	"sigs.k8s.io/cluster-api/cmd/clusterctl/pkg/client/config"
 )
 
@@ -147,9 +146,6 @@ func newGitHubRepository(providerConfig config.Provider, configVariablesClient c
 	}
 
 	token, err := configVariablesClient.Get(githubTokeVariable)
-	if err != nil {
-		klog.V(1).Infof("The %q configuration variable is missing. Falling back to unauthenticated requests that allows for up to 60 requests per hour.", githubTokeVariable)
-	}
 	if err == nil {
 		repo.setClientToken(token)
 	}

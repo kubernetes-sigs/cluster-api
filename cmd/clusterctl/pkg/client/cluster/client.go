@@ -22,7 +22,6 @@ import (
 
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/util/wait"
-	"k8s.io/klog/klogr"
 	"sigs.k8s.io/cluster-api/cmd/clusterctl/pkg/client/config"
 	"sigs.k8s.io/cluster-api/cmd/clusterctl/pkg/client/repository"
 	"sigs.k8s.io/cluster-api/cmd/clusterctl/pkg/internal/test"
@@ -45,9 +44,9 @@ type Client interface {
 	// Proxy return the Proxy used for operating objects in the management cluster.
 	Proxy() Proxy
 
-	// CertManger returns a CertMangerClient that can be user for
+	// CertManager returns a CertManagerClient that can be user for
 	// operating the cert-manager components in the cluster.
-	CertManger() CertMangerClient
+	CertManager() CertManagerClient
 
 	// ProviderComponents returns a ComponentsClient object that can be user for
 	// operating provider components objects in the management cluster (e.g. the CRDs, controllers, RBAC).
@@ -94,7 +93,7 @@ func (c *clusterClient) Proxy() Proxy {
 	return c.proxy
 }
 
-func (c *clusterClient) CertManger() CertMangerClient {
+func (c *clusterClient) CertManager() CertManagerClient {
 	return newCertMangerClient(c.proxy, c.pollImmediateWaiter)
 }
 
@@ -111,9 +110,7 @@ func (c *clusterClient) ProviderInstaller() ProviderInstaller {
 }
 
 func (c *clusterClient) ObjectMover() ObjectMover {
-	//TODO: make the logger to flow down all the chain
-	log := klogr.New()
-	return newObjectMover(c.proxy, log)
+	return newObjectMover(c.proxy)
 }
 
 func (c *clusterClient) ProviderUpgrader() ProviderUpgrader {

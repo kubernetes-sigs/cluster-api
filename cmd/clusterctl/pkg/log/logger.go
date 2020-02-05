@@ -14,51 +14,6 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-/*
-package log implements a clusterctl friendly logr.Logger derived from
-https://github.com/kubernetes/klog/blob/master/klogr/klogr.go.
-
-The logger is designed to print logs to stdout with a formatting that is easy to read for users
-but also simple to parse for identifying specific values.
-
-Note: the clusterctl library also support usage of other loggers as long as they conform to the github.com/go-logr/logr.Logger interface.
-
-Following logging conventions are used in clusterctl:
-
-Message:
-
-All messages should start with a capital letter.
-
-Log level:
-
-Use Level 0 (the default, if you don't specify a level) for the most important user feedback only, e.g.
-- reporting command progress for long running actions
-- reporting command results when required
-
-Use logging Levels 1 providing more info about the command's internal workflow.
-
-Use logging Levels 5 for for providing all the information required for debug purposes/problem investigation.
-
-Logging WithValues:
-
-Logging WithValues should be preferred to embedding values into log messages because it allows
-machine readability.
-
-Variables name should start with a capital letter.
-
-Logging WithNames:
-
-Logging WithNames should be used carefully.
-Please consider that practices like prefixing the logs with something indicating which part of code
-is generating the log entry might be useful for developers, but it can create confusion for
-the end users because it increases the verbosity without providing information the user can understand/take benefit from.
-
-Logging errors:
-
-A proper error management should always be preferred to the usage of log.Error.
-
-*/
-
 package log
 
 import (
@@ -67,7 +22,6 @@ import (
 
 	"github.com/go-logr/logr"
 	"github.com/pkg/errors"
-	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 )
 
 // logEntry defines the information that can be used for composing a log line.
@@ -87,7 +41,7 @@ type Option func(*logger)
 
 // WithThreshold implements a New Option that allows to set the threshold level for a new logger.
 // The logger will write only log messages with a level/V(x) equal or higher to the threshold.
-func WithThreshold(threshold int) Option {
+func WithThreshold(threshold *int) Option {
 	return func(c *logger) {
 		c.threshold = threshold
 	}
@@ -104,7 +58,7 @@ func NewLogger(options ...Option) logr.Logger {
 
 // logger defines a clusterctl friendly logr.Logger
 type logger struct {
-	threshold int
+	threshold *int
 	level     int
 	prefix    string
 	values    []interface{}
@@ -114,7 +68,10 @@ var _ logr.Logger = &logger{}
 
 // Enabled tests whether this Logger is enabled.
 func (l *logger) Enabled() bool {
-	return l.level >= l.threshold
+	if l.threshold == nil {
+		return true
+	}
+	return l.level <= *l.threshold
 }
 
 // Info logs a non-error message with the given key/value pairs as context.
@@ -174,9 +131,10 @@ func (l *logger) write(values []interface{}) {
 
 func (l *logger) clone() *logger {
 	return &logger{
-		level:  l.level,
-		prefix: l.prefix,
-		values: copySlice(l.values),
+		threshold: l.threshold,
+		level:     l.level,
+		prefix:    l.prefix,
+		values:    copySlice(l.values),
 	}
 }
 
@@ -256,17 +214,4 @@ func pretty(value interface{}) (string, error) {
 		return "", errors.Wrapf(err, "Failed to marshal %s", value)
 	}
 	return string(jb), nil
-}
-
-// UnstructuredToValues provides a utility function for creating values describing Unstructured objects. e.g.
-// - Deployment="capd-controller-manager" Namespace="capd-system"  (<Kind>=<name> Namespace=<Namespace>)
-// - CustomResourceDefinition="dockerclusters.infrastructure.cluster.x-k8s.io" (omit Namespace if it does not apply)
-func UnstructuredToValues(obj unstructured.Unstructured) []interface{} {
-	values := []interface{}{
-		obj.GetKind(), obj.GetName(),
-	}
-	if obj.GetNamespace() != "" {
-		values = append(values, "Namespace", obj.GetNamespace())
-	}
-	return values
 }

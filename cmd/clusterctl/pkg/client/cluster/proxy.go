@@ -161,6 +161,10 @@ func (k *proxy) getConfig() (*rest.Config, error) {
 	}
 	restConfig.UserAgent = fmt.Sprintf("clusterctl/%s (%s)", version.Get().GitVersion, version.Get().Platform)
 
+	// Set QPS and Burst to a threshold that ensures the controller runtime client/client go does't generate throttling log messages
+	restConfig.QPS = 20
+	restConfig.Burst = 100
+
 	return restConfig, nil
 }
 

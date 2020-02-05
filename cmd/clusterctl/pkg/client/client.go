@@ -50,6 +50,9 @@ type InitOptions struct {
 	// WatchingNamespace defines the namespace the providers should watch to reconcile Cluster API objects.
 	// If unspecified, the providers watches for Cluster API objects across all namespaces.
 	WatchingNamespace string
+
+	// LogUsageInstructions instructs the init command to print the usage instructions in case of first run.
+	LogUsageInstructions bool
 }
 
 // GetClusterTemplateOptions carries the options supported by GetClusterTemplate.
@@ -132,7 +135,7 @@ type Client interface {
 	GetProviderComponents(provider, targetNameSpace, watchingNamespace string) (Components, error)
 
 	// Init initializes a management cluster by adding the requested list of providers.
-	Init(options InitOptions) ([]Components, bool, error)
+	Init(options InitOptions) ([]Components, error)
 
 	// GetClusterTemplate returns a workload cluster template.
 	GetClusterTemplate(options GetClusterTemplateOptions) (Template, error)

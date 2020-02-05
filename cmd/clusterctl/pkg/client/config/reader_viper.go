@@ -23,7 +23,7 @@ import (
 	"github.com/pkg/errors"
 	"github.com/spf13/viper"
 	"k8s.io/client-go/util/homedir"
-	"k8s.io/klog"
+	logf "sigs.k8s.io/cluster-api/cmd/clusterctl/pkg/log"
 )
 
 // ConfigFolder defines the name of the config folder under $home
@@ -41,6 +41,8 @@ func newViperReader() Reader {
 
 // Init initialize the viperReader.
 func (v *viperReader) Init(path string) error {
+	log := logf.Log
+
 	if path != "" {
 		// Use path file from the flag.
 		viper.SetConfigFile(path)
@@ -61,7 +63,7 @@ func (v *viperReader) Init(path string) error {
 
 	// If a path file is found, read it in.
 	if err := viper.ReadInConfig(); err == nil {
-		klog.V(1).Infof("Using %q configuration file", viper.ConfigFileUsed())
+		log.V(5).Info("Reading configuration", "File", viper.ConfigFileUsed())
 	}
 
 	return nil

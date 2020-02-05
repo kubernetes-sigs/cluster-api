@@ -19,7 +19,6 @@ package cluster
 import (
 	"strings"
 
-	"github.com/go-logr/logr"
 	"github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
 	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1beta1"
@@ -29,6 +28,7 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha3"
 	clusterctlv1 "sigs.k8s.io/cluster-api/cmd/clusterctl/api/v1alpha3"
+	logf "sigs.k8s.io/cluster-api/cmd/clusterctl/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
@@ -88,14 +88,12 @@ func (n *node) isSoftOwnedBy(other *node) bool {
 type objectGraph struct {
 	proxy     Proxy
 	uidToNode map[types.UID]*node
-	log       logr.Logger
 }
 
-func newObjectGraph(proxy Proxy, log logr.Logger) *objectGraph {
+func newObjectGraph(proxy Proxy) *objectGraph {
 	return &objectGraph{
 		proxy:     proxy,
 		uidToNode: map[types.UID]*node{},
-		log:       log,
 	}
 }
 
@@ -208,7 +206,9 @@ func (o *objectGraph) getDiscoveryTypes() ([]metav1.TypeMeta, error) {
 // Discovery reads all the Kubernetes objects existing in a namespace (or in all namespaces if empty) for the types received in input, and then adds
 // everything to the objects graph.
 func (o *objectGraph) Discovery(namespace string, types []metav1.TypeMeta) error {
-	o.log.Info("Discovering Cluster API objects")
+	log := logf.Log
+	log.Info("Discovering Cluster API objects")
+
 	c, err := o.proxy.NewClient()
 	if err != nil {
 		return err
@@ -231,14 +231,14 @@ func (o *objectGraph) Discovery(namespace string, types []metav1.TypeMeta) error
 			return errors.Wrapf(err, "failed to list %q resources", objList.GroupVersionKind())
 		}
 
-		o.log.V(2).Info(typeMeta.Kind, "Count", len(objList.Items))
+		log.V(5).Info(typeMeta.Kind, "Count", len(objList.Items))
 		for i := range objList.Items {
 			obj := objList.Items[i]
 			o.addObj(&obj)
 		}
 	}
 
-	o.log.V(1).Info("Total objects", "Count", len(o.uidToNode))
+	log.V(1).Info("Total objects", "Count", len(o.uidToNode))
 
 	// Completes the graph by searching for soft ownership relations such as secrets linked to the cluster
 	// by a naming convention (without any explicit OwnerReference).

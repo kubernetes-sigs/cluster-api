@@ -117,6 +117,12 @@ type MoveOptions struct {
 	Namespace string
 }
 
+// PlanUpgradeOptions carries the options supported by upgrade plan.
+type PlanUpgradeOptions struct {
+	// Kubeconfig file to use for accessing the management cluster. If empty, default rules for kubeconfig discovery will be used.
+	Kubeconfig string
+}
+
 // Client is exposes the clusterctl high-level client library.
 type Client interface {
 	// GetProvidersConfig returns the list of providers configured for this instance of clusterctl.
@@ -136,6 +142,13 @@ type Client interface {
 
 	// Move moves all the Cluster API objects existing in a namespace (or from all the namespaces if empty) to a target management cluster.
 	Move(options MoveOptions) error
+
+	// PlanUpgrade returns a set of suggested Upgrade plans for the cluster, and more specifically:
+	// - Each management group gets separated upgrade plans.
+	// - For each management group, an upgrade plan is generated for each ClusterAPIVersion available, e.g.
+	//   - Upgrade to the latest version in the the v1alpha2 series: ....
+	//   - Upgrade to the latest version in the the v1alpha3 series: ....
+	PlanUpgrade(options PlanUpgradeOptions) ([]UpgradePlan, error)
 }
 
 // clusterctlClient implements Client.
@@ -205,16 +218,16 @@ func newClusterctlClient(path string, options ...Option) (*clusterctlClient, err
 
 	// if there is an injected ClusterFactory, use it, otherwise use a default one.
 	if client.clusterClientFactory == nil {
-		client.clusterClientFactory = defaultClusterFactory()
+		client.clusterClientFactory = defaultClusterFactory(client.configClient)
 	}
 
 	return client, nil
 }
 
 // defaultClusterFactory is a ClusterClientFactory func the uses the default client provided by the cluster low level library.
-func defaultClusterFactory() func(kubeconfig string) (cluster.Client, error) {
+func defaultClusterFactory(configClient config.Client) func(kubeconfig string) (cluster.Client, error) {
 	return func(kubeconfig string) (cluster.Client, error) {
-		return cluster.New(kubeconfig), nil
+		return cluster.New(kubeconfig, configClient), nil
 	}
 }
 

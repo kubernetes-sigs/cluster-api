@@ -88,6 +88,10 @@ func (f fakeClient) Move(options MoveOptions) error {
 	return f.internalClient.Move(options)
 }
 
+func (f fakeClient) PlanUpgrade(options PlanUpgradeOptions) ([]UpgradePlan, error) {
+	return f.internalClient.PlanUpgrade(options)
+}
+
 // newFakeClient returns a clusterctl client that allows to execute tests on a set of fake config, fake repositories and fake clusters.
 // you can use WithCluster and WithRepository to prepare for the test case.
 func newFakeClient(configClient config.Client) *fakeClient {
@@ -140,13 +144,13 @@ func (f *fakeClient) WithRepository(repositoryClient repository.Client) *fakeCli
 // internally uses a FakeProxy (based on the controller-runtime FakeClient).
 // You can use WithObjs to pre-load a set of runtime objects in the cluster.
 func newFakeCluster(kubeconfig string) *fakeClusterClient {
+	configClient := newFakeConfig()
 	fakeProxy := test.NewFakeProxy()
-
 	pollImmediateWaiter := func(interval, timeout time.Duration, condition wait.ConditionFunc) error {
 		return nil
 	}
 
-	client := cluster.New("", cluster.InjectProxy(fakeProxy), cluster.InjectPollImmediateWaiter(pollImmediateWaiter))
+	client := cluster.New("", configClient, cluster.InjectProxy(fakeProxy), cluster.InjectPollImmediateWaiter(pollImmediateWaiter))
 
 	return &fakeClusterClient{
 		kubeconfig:     kubeconfig,
@@ -199,6 +203,10 @@ func (f fakeClusterClient) ProviderInstaller() cluster.ProviderInstaller {
 
 func (f *fakeClusterClient) ObjectMover() cluster.ObjectMover {
 	return f.internalclient.ObjectMover()
+}
+
+func (f *fakeClusterClient) ProviderUpgrader() cluster.ProviderUpgrader {
+	return f.internalclient.ProviderUpgrader()
 }
 
 func (f *fakeClusterClient) WithObjs(objs ...runtime.Object) *fakeClusterClient {

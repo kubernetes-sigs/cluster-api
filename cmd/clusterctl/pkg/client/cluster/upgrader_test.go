@@ -70,6 +70,7 @@ func Test_providerUpgrader_Plan(t *testing.T) {
 			want: []UpgradePlan{
 				{ // one upgrade plan with the latest releases the v1alpha3 ClusterAPIVersion
 					ClusterAPIVersion: "v1alpha3",
+					CoreProvider:      fakeProvider("core", clusterctlv1.CoreProviderType, "v1.0.0", "core-system", ""),
 					Providers: []UpgradeItem{
 						{
 							Provider:    fakeProvider("core", clusterctlv1.CoreProviderType, "v1.0.0", "core-system", ""),
@@ -118,6 +119,7 @@ func Test_providerUpgrader_Plan(t *testing.T) {
 			want: []UpgradePlan{
 				{ // one upgrade plan with the latest releases in the v1alpha3 ClusterAPIVersion
 					ClusterAPIVersion: "v1alpha3",
+					CoreProvider:      fakeProvider("core", clusterctlv1.CoreProviderType, "v1.0.0", "core-system", ""),
 					Providers: []UpgradeItem{
 						{
 							Provider:    fakeProvider("core", clusterctlv1.CoreProviderType, "v1.0.0", "core-system", ""),
@@ -131,6 +133,7 @@ func Test_providerUpgrader_Plan(t *testing.T) {
 				},
 				{ // one upgrade plan with the latest releases in the v1alpha4 ClusterAPIVersion
 					ClusterAPIVersion: "v1alpha4",
+					CoreProvider:      fakeProvider("core", clusterctlv1.CoreProviderType, "v1.0.0", "core-system", ""),
 					Providers: []UpgradeItem{
 						{
 							Provider:    fakeProvider("core", clusterctlv1.CoreProviderType, "v1.0.0", "core-system", ""),
@@ -178,6 +181,7 @@ func Test_providerUpgrader_Plan(t *testing.T) {
 			want: []UpgradePlan{
 				{ // one upgrade plan with the latest releases in the v1alpha3 ClusterAPIVersion
 					ClusterAPIVersion: "v1alpha3",
+					CoreProvider:      fakeProvider("core", clusterctlv1.CoreProviderType, "v1.0.0", "core-system", ""),
 					Providers: []UpgradeItem{
 						{
 							Provider:    fakeProvider("core", clusterctlv1.CoreProviderType, "v1.0.0", "core-system", ""),
@@ -231,6 +235,7 @@ func Test_providerUpgrader_Plan(t *testing.T) {
 			want: []UpgradePlan{
 				{ // one upgrade plan with the latest releases in the v1alpha3 ClusterAPIVersion
 					ClusterAPIVersion: "v1alpha3",
+					CoreProvider:      fakeProvider("core", clusterctlv1.CoreProviderType, "v1.0.0", "core-system", ""),
 					Providers: []UpgradeItem{
 						{
 							Provider:    fakeProvider("core", clusterctlv1.CoreProviderType, "v1.0.0", "core-system", ""),
@@ -248,6 +253,7 @@ func Test_providerUpgrader_Plan(t *testing.T) {
 				},
 				{ // one upgrade plan with the latest releases in the v1alpha4 ClusterAPIVersion
 					ClusterAPIVersion: "v1alpha4",
+					CoreProvider:      fakeProvider("core", clusterctlv1.CoreProviderType, "v1.0.0", "core-system", ""),
 					Providers: []UpgradeItem{
 						{
 							Provider:    fakeProvider("core", clusterctlv1.CoreProviderType, "v1.0.0", "core-system", ""),
@@ -300,6 +306,7 @@ func Test_providerUpgrader_Plan(t *testing.T) {
 			want: []UpgradePlan{
 				{ // one upgrade plan with the latest releases in the v1alpha3 ClusterAPIVersion for the first management group
 					ClusterAPIVersion: "v1alpha3",
+					CoreProvider:      fakeProvider("core", clusterctlv1.CoreProviderType, "v1.0.0", "core-system1", "ns1"),
 					Providers: []UpgradeItem{
 						{
 							Provider:    fakeProvider("core", clusterctlv1.CoreProviderType, "v1.0.0", "core-system1", "ns1"),
@@ -313,6 +320,7 @@ func Test_providerUpgrader_Plan(t *testing.T) {
 				},
 				{ // one upgrade plan with the latest releases in the v1alpha3 ClusterAPIVersion for the second management group
 					ClusterAPIVersion: "v1alpha3",
+					CoreProvider:      fakeProvider("core", clusterctlv1.CoreProviderType, "v1.0.0", "core-system2", "ns2"),
 					Providers: []UpgradeItem{
 						{
 							Provider:    fakeProvider("core", clusterctlv1.CoreProviderType, "v1.0.0", "core-system2", "ns2"),
@@ -363,6 +371,7 @@ func Test_providerUpgrader_Plan(t *testing.T) {
 			want: []UpgradePlan{
 				{ // one upgrade plan with the latest releases in the v1alpha3 ClusterAPIVersion for the first management group
 					ClusterAPIVersion: "v1alpha3",
+					CoreProvider:      fakeProvider("core", clusterctlv1.CoreProviderType, "v1.0.0", "core-system1", "ns1"),
 					Providers: []UpgradeItem{
 						{
 							Provider:    fakeProvider("core", clusterctlv1.CoreProviderType, "v1.0.0", "core-system1", "ns1"),
@@ -376,6 +385,7 @@ func Test_providerUpgrader_Plan(t *testing.T) {
 				},
 				{ // one upgrade plan with the latest releases in the v1alpha4 ClusterAPIVersion for the first management group
 					ClusterAPIVersion: "v1alpha4",
+					CoreProvider:      fakeProvider("core", clusterctlv1.CoreProviderType, "v1.0.0", "core-system1", "ns1"),
 					Providers: []UpgradeItem{
 						{
 							Provider:    fakeProvider("core", clusterctlv1.CoreProviderType, "v1.0.0", "core-system1", "ns1"),
@@ -389,6 +399,7 @@ func Test_providerUpgrader_Plan(t *testing.T) {
 				},
 				{ // one upgrade plan with the latest releases in the v1alpha3 ClusterAPIVersion for the second management group
 					ClusterAPIVersion: "v1alpha3",
+					CoreProvider:      fakeProvider("core", clusterctlv1.CoreProviderType, "v1.0.0", "core-system2", "ns2"),
 					Providers: []UpgradeItem{
 						{
 							Provider:    fakeProvider("core", clusterctlv1.CoreProviderType, "v1.0.0", "core-system2", "ns2"),
@@ -402,6 +413,7 @@ func Test_providerUpgrader_Plan(t *testing.T) {
 				},
 				{ // one upgrade plan with the latest releases in the v1alpha4 ClusterAPIVersion for the second management group
 					ClusterAPIVersion: "v1alpha4",
+					CoreProvider:      fakeProvider("core", clusterctlv1.CoreProviderType, "v1.0.0", "core-system2", "ns2"),
 					Providers: []UpgradeItem{
 						{
 							Provider:    fakeProvider("core", clusterctlv1.CoreProviderType, "v1.0.0", "core-system2", "ns2"),

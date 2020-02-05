@@ -28,9 +28,12 @@ import (
 )
 
 const (
-	ClusterAPIName                  = "cluster-api"
+	ClusterAPIProviderName          = "cluster-api"
 	KubeadmBootstrapProviderName    = "kubeadm-bootstrap"
 	KubeadmControlPlaneProviderName = "kubeadm-control-plane"
+	DockerProviderName              = "docker"
+	AWSProviderName                 = "aws"
+	VSphereProviderName             = "vsphere"
 	ProvidersConfigKey              = "providers"
 	OpenStackProviderName           = "openstack"
 )
@@ -70,24 +73,24 @@ func (p *providersClient) defaults() []Provider {
 	defaults := []Provider{
 		// cluster API core provider
 		&provider{
-			name:         ClusterAPIName,
+			name:         ClusterAPIProviderName,
 			url:          "https://github.com/kubernetes-sigs/cluster-api/releases/latest/core-components.yaml",
 			providerType: clusterctlv1.CoreProviderType,
 		},
 
 		// Infrastructure providers
 		&provider{
-			name:         "aws",
+			name:         AWSProviderName,
 			url:          "https://github.com/kubernetes-sigs/cluster-api-provider-aws/releases/latest/infrastructure-components.yaml",
 			providerType: clusterctlv1.InfrastructureProviderType,
 		},
 		&provider{
-			name:         "docker",
+			name:         DockerProviderName,
 			url:          "https://github.com/kubernetes-sigs/cluster-api-provider-docker/releases/latest/infrastructure-components.yaml",
 			providerType: clusterctlv1.InfrastructureProviderType,
 		},
 		&provider{
-			name:         "vsphere",
+			name:         VSphereProviderName,
 			url:          "https://github.com/kubernetes-sigs/cluster-api-provider-vsphere/releases/latest/infrastructure-components.yaml",
 			providerType: clusterctlv1.InfrastructureProviderType,
 		},

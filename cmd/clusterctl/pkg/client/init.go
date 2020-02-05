@@ -48,7 +48,7 @@ func (c *clusterctlClient) Init(options InitOptions) ([]Components, bool, error)
 	if currentCoreProvider == "" {
 		firstRun = true
 		if options.CoreProvider == "" {
-			options.CoreProvider = config.ClusterAPIName
+			options.CoreProvider = config.ClusterAPIProviderName
 		}
 		if len(options.BootstrapProviders) == 0 {
 			options.BootstrapProviders = append(options.BootstrapProviders, config.KubeadmBootstrapProviderName)

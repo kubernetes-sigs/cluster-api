@@ -74,7 +74,7 @@ func Test_metadataClient_Get(t *testing.T) {
 		{
 			name: "Pass with embedded metadata",
 			fields: fields{
-				provider: config.NewProvider(config.ClusterAPIName, "", clusterctlv1.CoreProviderType),
+				provider: config.NewProvider(config.ClusterAPIProviderName, "", clusterctlv1.CoreProviderType),
 				version:  "v1.0.0",
 				repository: test.NewFakeRepository(). //repository without a metadata file
 									WithPaths("root", "").

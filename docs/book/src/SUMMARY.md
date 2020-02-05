@@ -3,6 +3,7 @@
 [Introduction](./introduction.md)
 [Quick Start](./user/quick-start.md)
 [Concepts](./user/concepts.md)
+[Personas](./user/personas.md)
 - [Tasks](./tasks/index.md)
     - [Installation](./tasks/installation.md)
     - [Certificate Management](./tasks/certs/index.md)

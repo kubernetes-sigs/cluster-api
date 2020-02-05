@@ -35,6 +35,9 @@ func TestFuzzyConversion(t *testing.T) {
 	g.Expect(v1alpha3.AddToScheme(scheme)).To(Succeed())
 
 	t.Run("for Cluster", utilconversion.FuzzTestFunc(scheme, &v1alpha3.Cluster{}, &Cluster{}))
+	t.Run("for Machine", utilconversion.FuzzTestFunc(scheme, &v1alpha3.Machine{}, &Machine{}))
+	t.Run("for MachineSet", utilconversion.FuzzTestFunc(scheme, &v1alpha3.MachineSet{}, &MachineSet{}))
+	t.Run("for MachineDeployment", utilconversion.FuzzTestFunc(scheme, &v1alpha3.MachineDeployment{}, &MachineDeployment{}))
 }
 
 func TestConvertCluster(t *testing.T) {

@@ -35,7 +35,8 @@ Next, create a `tilt-settings.json` file and place it in your local copy of `clu
   "allowed_contexts": ["kind-kind"],
   "default_registry": "gcr.io/your-project-name-here",
   "provider_repos": ["../cluster-api-provider-aws"],
-  "enable_providers": ["aws", "docker", "kubeadm-bootstrap", "kubeadm-control-plane"]
+  "enable_providers": ["aws", "docker", "kubeadm-bootstrap", "kubeadm-control-plane"],
+  "kind_cluster_name": "kind"
 }
 ```
 
@@ -52,6 +53,8 @@ Next, create a `tilt-settings.json` file and place it in your local copy of `clu
 
 **enable_providers** (Array[]String, default=['docker']): A list of the providers to enable. See [available providers](#available-providers)
 for more details.
+
+**kind_cluster_name** (String, default="kind"): The name of the kind cluster to use when preloading images.
 
 **kustomize_substitutions** (Map{String: String}, default={}): An optional map of substitutions for `${}`-style placeholders in the
 provider's yaml.

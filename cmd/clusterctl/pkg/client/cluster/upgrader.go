@@ -17,6 +17,8 @@ limitations under the License.
 package cluster
 
 import (
+	"fmt"
+
 	"github.com/pkg/errors"
 	clusterctlv1 "sigs.k8s.io/cluster-api/cmd/clusterctl/api/v1alpha3"
 	"sigs.k8s.io/cluster-api/cmd/clusterctl/pkg/client/config"
@@ -26,7 +28,7 @@ import (
 type ProviderUpgrader interface {
 	// Plan returns a set of suggested Upgrade plans for the cluster, and more specifically:
 	// - Each management group gets separated upgrade plans.
-	// - For each management group, an upgrade plann will be generated for each ClusterAPIVersion available, e.g.
+	// - For each management group, an upgrade plan will be generated for each ClusterAPIVersion available, e.g.
 	//   - Upgrade to the latest version in the the v1alpha2 series: ....
 	//   - Upgrade to the latest version in the the v1alpha3 series: ....
 	Plan() ([]UpgradePlan, error)
@@ -35,13 +37,25 @@ type ProviderUpgrader interface {
 // UpgradePlan defines a list of possible upgrade targets for a management group.
 type UpgradePlan struct {
 	ClusterAPIVersion string
+	CoreProvider      clusterctlv1.Provider
 	Providers         []UpgradeItem
+}
+
+// UpgradeRef returns a string identifying the upgrade plan; this string is derived by the core provider which is
+// unique for each management group.
+func (u *UpgradePlan) UpgradeRef() string {
+	return fmt.Sprintf("%s/%s", u.CoreProvider.Namespace, u.CoreProvider.Name)
 }
 
 // UpgradeItem defines a possible upgrade target for a provider in the management group.
 type UpgradeItem struct {
-	Provider    clusterctlv1.Provider
+	clusterctlv1.Provider
 	NextVersion string
+}
+
+// UpgradeRef returns a string identifying the upgrade item; this string is derived by the provider.
+func (u *UpgradeItem) UpgradeRef() string {
+	return fmt.Sprintf("%s/%s", u.Namespace, u.Name)
 }
 
 type providerUpgrader struct {
@@ -104,10 +118,19 @@ func (u *providerUpgrader) Plan() ([]UpgradePlan, error) {
 
 			ret = append(ret, UpgradePlan{
 				ClusterAPIVersion: apiVersion,
+				CoreProvider:      managementGroup.CoreProvider,
 				Providers:         upgradeItems,
 			})
 		}
 	}
 
 	return ret, nil
+}
+
+func newProviderUpgrader(configClient config.Client, repositoryClientFactory RepositoryClientFactory, providerInventory InventoryClient) *providerUpgrader {
+	return &providerUpgrader{
+		configClient:            configClient,
+		repositoryClientFactory: repositoryClientFactory,
+		providerInventory:       providerInventory,
+	}
 }

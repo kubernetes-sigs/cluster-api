@@ -17,6 +17,7 @@ limitations under the License.
 package client
 
 import (
+	"sigs.k8s.io/cluster-api/cmd/clusterctl/pkg/client/cluster"
 	"sigs.k8s.io/cluster-api/cmd/clusterctl/pkg/client/config"
 	"sigs.k8s.io/cluster-api/cmd/clusterctl/pkg/client/repository"
 )
@@ -32,3 +33,6 @@ type Components repository.Components
 
 // Template wraps a YAML file that defines the cluster objects (Cluster, Machines etc.).
 type Template repository.Template
+
+// Template wraps a YAML file that defines the cluster objects (Cluster, Machines etc.).
+type UpgradePlan cluster.UpgradePlan

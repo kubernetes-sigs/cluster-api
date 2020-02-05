@@ -133,7 +133,7 @@ func Test_clusterctlClient_Init(t *testing.T) {
 				hasCRD: false,
 			},
 			args: args{
-				coreProvider:           fmt.Sprintf("%s:v1.1.0", config.ClusterAPIName),
+				coreProvider:           fmt.Sprintf("%s:v1.1.0", config.ClusterAPIProviderName),
 				bootstrapProvider:      []string{fmt.Sprintf("%s:v2.1.0", config.KubeadmBootstrapProviderName)},
 				controlPlaneProvider:   []string{fmt.Sprintf("%s:v2.1.0", config.KubeadmControlPlaneProviderName)},
 				infrastructureProvider: []string{"infra:v3.1.0"},
@@ -378,7 +378,7 @@ func Test_clusterctlClient_Init(t *testing.T) {
 }
 
 var (
-	capiProviderConfig         = config.NewProvider(config.ClusterAPIName, "url", clusterctlv1.CoreProviderType)
+	capiProviderConfig         = config.NewProvider(config.ClusterAPIProviderName, "url", clusterctlv1.CoreProviderType)
 	bootstrapProviderConfig    = config.NewProvider(config.KubeadmBootstrapProviderName, "url", clusterctlv1.BootstrapProviderType)
 	controlPlaneProviderConfig = config.NewProvider(config.KubeadmControlPlaneProviderName, "url", clusterctlv1.ControlPlaneProviderType)
 	infraProviderConfig        = config.NewProvider("infra", "url", clusterctlv1.InfrastructureProviderType)

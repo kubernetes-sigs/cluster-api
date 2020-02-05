@@ -64,6 +64,9 @@ type Client interface {
 	// ObjectMover returns an ObjectMover that implements support for moving Cluster API objects (e.g. clusters, AWS clusters, machines, etc.).
 	// from one management cluster to another management cluster.
 	ObjectMover() ObjectMover
+
+	// ProviderUpgrader returns a ProviderUpgrader that supports upgrading Cluster API providers.
+	ProviderUpgrader() ProviderUpgrader
 }
 
 // PollImmediateWaiter tries a condition func until it returns true, an error, or the timeout is reached.
@@ -73,6 +76,7 @@ type PollImmediateWaiter func(interval, timeout time.Duration, condition wait.Co
 type clusterClient struct {
 	kubeconfig              string
 	proxy                   Proxy
+	configClient            config.Client
 	repositoryClientFactory RepositoryClientFactory
 	pollImmediateWaiter     PollImmediateWaiter
 }
@@ -112,6 +116,10 @@ func (c *clusterClient) ObjectMover() ObjectMover {
 	return newObjectMover(c.proxy, log)
 }
 
+func (c *clusterClient) ProviderUpgrader() ProviderUpgrader {
+	return newProviderUpgrader(c.configClient, c.repositoryClientFactory, c.ProviderInventory())
+}
+
 // Option is a configuration option supplied to New
 type Option func(*clusterClient)
 
@@ -138,13 +146,14 @@ func InjectPollImmediateWaiter(pollImmediateWaiter PollImmediateWaiter) Option {
 }
 
 // New returns a cluster.Client.
-func New(kubeconfig string, options ...Option) Client {
-	return newClusterClient(kubeconfig, options...)
+func New(kubeconfig string, configClient config.Client, options ...Option) Client {
+	return newClusterClient(kubeconfig, configClient, options...)
 }
 
-func newClusterClient(kubeconfig string, options ...Option) *clusterClient {
+func newClusterClient(kubeconfig string, configClient config.Client, options ...Option) *clusterClient {
 	client := &clusterClient{
-		kubeconfig: kubeconfig,
+		configClient: configClient,
+		kubeconfig:   kubeconfig,
 	}
 	for _, o := range options {
 		o(client)

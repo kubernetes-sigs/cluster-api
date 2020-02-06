@@ -148,7 +148,7 @@ type Client interface {
 
 	// PlanUpgrade returns a set of suggested Upgrade plans for the cluster, and more specifically:
 	// - Each management group gets separated upgrade plans.
-	// - For each management group, an upgrade plan is generated for each ClusterAPIVersion available, e.g.
+	// - For each management group, an upgrade plan is generated for each API Version of Cluster API (contract) available, e.g.
 	//   - Upgrade to the latest version in the the v1alpha2 series: ....
 	//   - Upgrade to the latest version in the the v1alpha3 series: ....
 	PlanUpgrade(options PlanUpgradeOptions) ([]UpgradePlan, error)

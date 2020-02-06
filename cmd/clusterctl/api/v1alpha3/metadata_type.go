@@ -32,7 +32,7 @@ type Metadata struct {
 	ReleaseSeries []ReleaseSeries `json:"releaseSeries"`
 }
 
-// ReleaseSeries maps a provider release series (major/minor) with a ClusterAPIVersion
+// ReleaseSeries maps a provider release series (major/minor) with a API Version of Cluster API (contract).
 type ReleaseSeries struct {
 	// Major version of the release series
 	Major uint `json:"major,omitempty"`
@@ -40,21 +40,21 @@ type ReleaseSeries struct {
 	// Minor version of the release series
 	Minor uint `json:"minor,omitempty"`
 
-	// ClusterAPIVersion indicates the cluster API supported version.
-	ClusterAPIVersion string `json:"clusterAPIVersion,omitempty"`
+	// Contract defines the API Version of Cluster API (contract) supported by the ReleaseSeries.
+	Contract string `json:"contract,omitempty"`
 }
 
 func init() {
 	SchemeBuilder.Register(&Metadata{})
 }
 
-// HasReleaseSeriesForVersion return true if the given version is in one of the ReleaseSeries.
-func (m *Metadata) HasReleaseSeriesForVersion(version *version.Version) bool {
+// GetReleaseSeriesForVersion return the release series for a given version.
+func (m *Metadata) GetReleaseSeriesForVersion(version *version.Version) *ReleaseSeries {
 	for _, releaseSeries := range m.ReleaseSeries {
 		if version.Major() == releaseSeries.Major && version.Minor() == releaseSeries.Minor {
-			return true
+			return &releaseSeries
 		}
 	}
 
-	return false
+	return nil
 }

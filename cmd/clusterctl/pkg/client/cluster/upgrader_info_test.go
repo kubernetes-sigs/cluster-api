@@ -52,8 +52,8 @@ func Test_providerUpgrader_getUpgradeInfo(t *testing.T) {
 									WithVersions("v1.0.0", "v1.0.1", "v1.0.2", "v1.1.0").
 									WithMetadata("v1.1.0", &clusterctlv1.Metadata{
 						ReleaseSeries: []clusterctlv1.ReleaseSeries{
-							{Major: 1, Minor: 0, ClusterAPIVersion: "v1alpha3"},
-							{Major: 1, Minor: 1, ClusterAPIVersion: "v1alpha3"},
+							{Major: 1, Minor: 0, Contract: "v1alpha3"},
+							{Major: 1, Minor: 1, Contract: "v1alpha3"},
 						},
 					}),
 			},
@@ -67,8 +67,8 @@ func Test_providerUpgrader_getUpgradeInfo(t *testing.T) {
 						Kind:       "Metadata",
 					},
 					ReleaseSeries: []clusterctlv1.ReleaseSeries{
-						{Major: 1, Minor: 0, ClusterAPIVersion: "v1alpha3"},
-						{Major: 1, Minor: 1, ClusterAPIVersion: "v1alpha3"},
+						{Major: 1, Minor: 0, Contract: "v1alpha3"},
+						{Major: 1, Minor: 1, Contract: "v1alpha3"},
 					},
 				},
 				currentVersion: version.MustParseSemantic("v1.0.1"),
@@ -133,7 +133,7 @@ func Test_providerUpgrader_getUpgradeInfo(t *testing.T) {
 									WithVersions("v1.0.0", "v1.0.1", "v1.1.1").
 									WithMetadata("v1.1.1", &clusterctlv1.Metadata{
 						ReleaseSeries: []clusterctlv1.ReleaseSeries{
-							{Major: 1, Minor: 0, ClusterAPIVersion: "v1alpha3"},
+							{Major: 1, Minor: 0, Contract: "v1alpha3"},
 							// missing 1.1 series
 						},
 					}),
@@ -166,7 +166,7 @@ func Test_providerUpgrader_getUpgradeInfo(t *testing.T) {
 	}
 }
 
-func Test_upgradeInfo_getAPIVersionsForUpgrade(t *testing.T) {
+func Test_upgradeInfo_getContractsForUpgrade(t *testing.T) {
 	type field struct {
 		currentVersion string
 		metadata       *clusterctlv1.Metadata
@@ -177,13 +177,13 @@ func Test_upgradeInfo_getAPIVersionsForUpgrade(t *testing.T) {
 		want  []string
 	}{
 		{
-			name: "Single ClusterAPIVersion defined",
+			name: "One contract supported",
 			field: field{
-				metadata: &clusterctlv1.Metadata{ // metadata defining more release series, all linked to a single ClusterAPIVersion
+				metadata: &clusterctlv1.Metadata{ // metadata defining more release series, all linked to a single contract
 					ReleaseSeries: []clusterctlv1.ReleaseSeries{
-						{Major: 0, Minor: 1, ClusterAPIVersion: "v1alpha3"},
-						{Major: 0, Minor: 2, ClusterAPIVersion: "v1alpha3"},
-						{Major: 0, Minor: 3, ClusterAPIVersion: "v1alpha3"},
+						{Major: 0, Minor: 1, Contract: "v1alpha3"},
+						{Major: 0, Minor: 2, Contract: "v1alpha3"},
+						{Major: 0, Minor: 3, Contract: "v1alpha3"},
 					},
 				},
 				currentVersion: "v0.2.1", // current version belonging of one of the above series
@@ -191,28 +191,28 @@ func Test_upgradeInfo_getAPIVersionsForUpgrade(t *testing.T) {
 			want: []string{"v1alpha3"},
 		},
 		{
-			name: "Multiple ClusterAPIVersion defined, all valid for upgrades",
+			name: "Multiple contract supported, all valid for upgrades",
 			field: field{
-				metadata: &clusterctlv1.Metadata{ // metadata defining more release series, linked to different ClusterAPIVersion
+				metadata: &clusterctlv1.Metadata{ // metadata defining more release series, linked to different contracts
 					ReleaseSeries: []clusterctlv1.ReleaseSeries{
-						{Major: 0, Minor: 1, ClusterAPIVersion: "v1alpha3"},
-						{Major: 0, Minor: 2, ClusterAPIVersion: "v1alpha4"},
+						{Major: 0, Minor: 1, Contract: "v1alpha3"},
+						{Major: 0, Minor: 2, Contract: "v1alpha4"},
 					},
 				},
-				currentVersion: "v0.1.1", // current version linked to the first ClusterAPIVersion
+				currentVersion: "v0.1.1", // current version linked to the first contract
 			},
 			want: []string{"v1alpha3", "v1alpha4"},
 		},
 		{
-			name: "Multiple ClusterAPIVersion defined, only one valid for upgrades",
+			name: "Multiple contract supported, only one valid for upgrades",
 			field: field{
-				metadata: &clusterctlv1.Metadata{ // metadata defining more release series, linked to different ClusterAPIVersion
+				metadata: &clusterctlv1.Metadata{ // metadata defining more release series, linked to different contracts
 					ReleaseSeries: []clusterctlv1.ReleaseSeries{
-						{Major: 0, Minor: 1, ClusterAPIVersion: "v1alpha3"},
-						{Major: 0, Minor: 2, ClusterAPIVersion: "v1alpha4"},
+						{Major: 0, Minor: 1, Contract: "v1alpha3"},
+						{Major: 0, Minor: 2, Contract: "v1alpha4"},
 					},
 				},
-				currentVersion: "v0.2.1", // current version linked to the second/the last ClusterAPIVersion
+				currentVersion: "v0.2.1", // current version linked to the second/the last contract
 			},
 			want: []string{"v1alpha4"},
 		},
@@ -229,7 +229,7 @@ func Test_upgradeInfo_getAPIVersionsForUpgrade(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			upgradeInfo := newUpgradeInfo(tt.field.metadata, version.MustParseSemantic(tt.field.currentVersion), nil)
 
-			got := upgradeInfo.getAPIVersionsForUpgrade()
+			got := upgradeInfo.getContractsForUpgrade()
 
 			if !reflect.DeepEqual(got, tt.want) {
 				t.Errorf("got = %v, want %v", got, tt.want)
@@ -245,7 +245,7 @@ func Test_upgradeInfo_getLatestNextVersion(t *testing.T) {
 		metadata       *clusterctlv1.Metadata
 	}
 	type args struct {
-		targetClusterAPIVersion string
+		contract string
 	}
 	tests := []struct {
 		name  string
@@ -260,73 +260,73 @@ func Test_upgradeInfo_getLatestNextVersion(t *testing.T) {
 				nextVersions:   []string{}, // Next versions empty
 				metadata: &clusterctlv1.Metadata{
 					ReleaseSeries: []clusterctlv1.ReleaseSeries{
-						{Major: 1, Minor: 2, ClusterAPIVersion: "v1alpha3"},
+						{Major: 1, Minor: 2, Contract: "v1alpha3"},
 					},
 				},
 			},
 			args: args{
-				targetClusterAPIVersion: "v1alpha3",
+				contract: "v1alpha3",
 			},
 			want: "",
 		},
 		{
-			name: "Find an upgrade version in the same release series, same ClusterAPIVersion",
+			name: "Find an upgrade version in the same release series, same contract",
 			field: field{
 				currentVersion: "v1.2.3",
 				nextVersions:   []string{"v1.2.4", "v1.2.5"},
 				metadata: &clusterctlv1.Metadata{
 					ReleaseSeries: []clusterctlv1.ReleaseSeries{
-						{Major: 1, Minor: 2, ClusterAPIVersion: "v1alpha3"},
+						{Major: 1, Minor: 2, Contract: "v1alpha3"},
 					},
 				},
 			},
 			args: args{
-				targetClusterAPIVersion: "v1alpha3",
+				contract: "v1alpha3",
 			},
 			want: "v1.2.5", // skipping v1.2.4 because it is not the latest version available
 		},
 		{
-			name: "Find an upgrade version in the next release series, same ClusterAPIVersion",
+			name: "Find an upgrade version in the next release series, same contract",
 			field: field{
 				currentVersion: "v1.2.3",
 				nextVersions:   []string{"v1.2.4", "v1.3.1", "v2.0.1", "v2.0.2"},
 				metadata: &clusterctlv1.Metadata{
 					ReleaseSeries: []clusterctlv1.ReleaseSeries{
-						{Major: 1, Minor: 2, ClusterAPIVersion: "v1alpha3"},
-						{Major: 1, Minor: 3, ClusterAPIVersion: "v1alpha3"},
-						{Major: 2, Minor: 0, ClusterAPIVersion: "v1alpha4"},
+						{Major: 1, Minor: 2, Contract: "v1alpha3"},
+						{Major: 1, Minor: 3, Contract: "v1alpha3"},
+						{Major: 2, Minor: 0, Contract: "v1alpha4"},
 					},
 				},
 			},
 			args: args{
-				targetClusterAPIVersion: "v1alpha3",
+				contract: "v1alpha3",
 			},
-			want: "v1.3.1", // skipping v1.2.4 because it is not the latest version available; ignoring v2.0.* because linked to a different ClusterAPIVersion
+			want: "v1.3.1", // skipping v1.2.4 because it is not the latest version available; ignoring v2.0.* because linked to a different contract
 		},
 		{
-			name: "Find an upgrade version in the next ClusterAPIVersion",
+			name: "Find an upgrade version in the next contract",
 			field: field{
 				currentVersion: "v1.2.3",
 				nextVersions:   []string{"v1.2.4", "v1.3.1", "v2.0.1", "v2.0.2"},
 				metadata: &clusterctlv1.Metadata{
 					ReleaseSeries: []clusterctlv1.ReleaseSeries{
-						{Major: 1, Minor: 2, ClusterAPIVersion: "v1alpha3"},
-						{Major: 1, Minor: 3, ClusterAPIVersion: "v1alpha3"},
-						{Major: 2, Minor: 0, ClusterAPIVersion: "v1alpha4"},
+						{Major: 1, Minor: 2, Contract: "v1alpha3"},
+						{Major: 1, Minor: 3, Contract: "v1alpha3"},
+						{Major: 2, Minor: 0, Contract: "v1alpha4"},
 					},
 				},
 			},
 			args: args{
-				targetClusterAPIVersion: "v1alpha4",
+				contract: "v1alpha4",
 			},
-			want: "v2.0.2", // skipping v2.0.1 because it is not the latest version available; ignoring v1.* because linked to a different ClusterAPIVersion
+			want: "v2.0.2", // skipping v2.0.1 because it is not the latest version available; ignoring v1.* because linked to a different contract
 		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			upgradeInfo := newUpgradeInfo(tt.field.metadata, version.MustParseSemantic(tt.field.currentVersion), toSemanticVersions(tt.field.nextVersions))
 
-			got := upgradeInfo.getLatestNextVersion(tt.args.targetClusterAPIVersion)
+			got := upgradeInfo.getLatestNextVersion(tt.args.contract)
 
 			if versionTag(got) != tt.want {
 				t.Errorf("got = %v, want %v", versionTag(got), tt.want)

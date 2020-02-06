@@ -53,7 +53,7 @@ type InventoryClient interface {
 	Create(clusterctlv1.Provider) error
 
 	// List returns the inventory items for all the provider instances installed in the cluster.
-	List() ([]clusterctlv1.Provider, error)
+	List() (*clusterctlv1.ProviderList, error)
 
 	// GetDefaultProviderName returns the default provider for a given ProviderType.
 	// In case there is only a single provider for a given type, e.g. only the AWS infrastructure Provider, it returns
@@ -71,15 +71,7 @@ type InventoryClient interface {
 	GetDefaultProviderNamespace(provider string) (string, error)
 
 	// GetManagementGroups returns the list of management groups defined in the management cluster.
-	GetManagementGroups() ([]ManagementGroup, error)
-}
-
-// ManagementGroup is a group of providers composed by a CoreProvider and a set of Bootstrap/ControlPlane/Infrastructure providers
-// watching objects in the same namespace. For example, a management group can be used for upgrades, in order to ensure all the providers
-// in a management group support the same ClusterAPI version.
-type ManagementGroup struct {
-	CoreProvider clusterctlv1.Provider
-	Providers    []clusterctlv1.Provider
+	GetManagementGroups() (ManagementGroupList, error)
 }
 
 // inventoryClient implements InventoryClient.
@@ -178,7 +170,7 @@ func (p *inventoryClient) EnsureCustomResourceDefinitions() error {
 }
 
 func (p *inventoryClient) Validate(m clusterctlv1.Provider) error {
-	providerList, err := p.list()
+	providerList, err := p.List()
 	if err != nil {
 		return err
 	}
@@ -242,15 +234,7 @@ func (p *inventoryClient) Create(m clusterctlv1.Provider) error {
 	return nil
 }
 
-func (p *inventoryClient) List() ([]clusterctlv1.Provider, error) {
-	providerList, err := p.list()
-	if err != nil {
-		return nil, err
-	}
-	return providerList.Items, nil
-}
-
-func (p *inventoryClient) list() (*clusterctlv1.ProviderList, error) {
+func (p *inventoryClient) List() (*clusterctlv1.ProviderList, error) {
 	cl, err := p.proxy.NewClient()
 	if err != nil {
 		return nil, err
@@ -264,7 +248,7 @@ func (p *inventoryClient) list() (*clusterctlv1.ProviderList, error) {
 }
 
 func (p *inventoryClient) GetDefaultProviderName(providerType clusterctlv1.ProviderType) (string, error) {
-	providerList, err := p.list()
+	providerList, err := p.List()
 	if err != nil {
 		return "", err
 	}
@@ -285,7 +269,7 @@ func (p *inventoryClient) GetDefaultProviderName(providerType clusterctlv1.Provi
 }
 
 func (p *inventoryClient) GetDefaultProviderVersion(provider string) (string, error) {
-	providerList, err := p.list()
+	providerList, err := p.List()
 	if err != nil {
 		return "", err
 	}
@@ -305,7 +289,7 @@ func (p *inventoryClient) GetDefaultProviderVersion(provider string) (string, er
 }
 
 func (p *inventoryClient) GetDefaultProviderNamespace(provider string) (string, error) {
-	providerList, err := p.list()
+	providerList, err := p.List()
 	if err != nil {
 		return "", err
 	}

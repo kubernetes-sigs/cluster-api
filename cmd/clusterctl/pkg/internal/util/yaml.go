@@ -80,7 +80,7 @@ func FromUnstructured(objs []unstructured.Unstructured) ([]byte, error) {
 	for _, o := range objs {
 		content, err := yaml.Marshal(o.UnstructuredContent())
 		if err != nil {
-			return nil, errors.Wrapf(err, "failed to marshal yaml for %s/%s", o.GetNamespace(), o.GetName())
+			return nil, errors.Wrapf(err, "failed to marshal yaml for %s, %s/%s", o.GroupVersionKind(), o.GetNamespace(), o.GetName())
 		}
 		ret = append(ret, content)
 	}

@@ -20,7 +20,6 @@ import (
 	"reflect"
 	"testing"
 
-	"github.com/davecgh/go-spew/spew"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha3"
 	clusterctlv1 "sigs.k8s.io/cluster-api/cmd/clusterctl/api/v1alpha3"
@@ -34,7 +33,7 @@ func Test_inventoryClient_GetManagementGroups(t *testing.T) {
 	tests := []struct {
 		name    string
 		fields  fields
-		want    []ManagementGroup
+		want    ManagementGroupList
 		wantErr bool
 	}{
 		{
@@ -45,7 +44,7 @@ func Test_inventoryClient_GetManagementGroups(t *testing.T) {
 					WithProviderInventory("bootstrap", clusterctlv1.BootstrapProviderType, "v1.0.0", "bootstrap-system", "").
 					WithProviderInventory("infrastructure", clusterctlv1.InfrastructureProviderType, "v1.0.0", "infra-system", ""),
 			},
-			want: []ManagementGroup{ // One Group
+			want: ManagementGroupList{ // One Group
 				{
 					CoreProvider: fakeProvider("core", clusterctlv1.CoreProviderType, "v1.0.0", "core-system", ""),
 					Providers: []clusterctlv1.Provider{
@@ -66,7 +65,7 @@ func Test_inventoryClient_GetManagementGroups(t *testing.T) {
 					WithProviderInventory("infrastructure", clusterctlv1.InfrastructureProviderType, "v1.0.0", "infra-system1", "ns1").
 					WithProviderInventory("infrastructure", clusterctlv1.InfrastructureProviderType, "v1.0.0", "infra-system2", "ns2"),
 			},
-			want: []ManagementGroup{ // One Group
+			want: ManagementGroupList{ // One Group
 				{
 					CoreProvider: fakeProvider("core", clusterctlv1.CoreProviderType, "v1.0.0", "core-system", ""),
 					Providers: []clusterctlv1.Provider{
@@ -90,7 +89,7 @@ func Test_inventoryClient_GetManagementGroups(t *testing.T) {
 					WithProviderInventory("bootstrap", clusterctlv1.BootstrapProviderType, "v1.0.0", "bootstrap-system2", "ns2").
 					WithProviderInventory("infrastructure", clusterctlv1.InfrastructureProviderType, "v1.0.0", "infra-system2", "ns2"),
 			},
-			want: []ManagementGroup{ // Two Groups
+			want: ManagementGroupList{ // Two Groups
 				{
 					CoreProvider: fakeProvider("core", clusterctlv1.CoreProviderType, "v1.0.0", "core-system1", "ns1"),
 					Providers: []clusterctlv1.Provider{
@@ -157,7 +156,6 @@ func Test_inventoryClient_GetManagementGroups(t *testing.T) {
 			}
 
 			if !reflect.DeepEqual(got, tt.want) {
-				spew.Dump(got, tt.want)
 				t.Errorf("got = %v, want %v", got, tt.want)
 			}
 		})

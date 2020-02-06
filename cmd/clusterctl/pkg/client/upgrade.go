@@ -37,9 +37,9 @@ func (c *clusterctlClient) PlanUpgrade(options PlanUpgradeOptions) ([]UpgradePla
 	aliasUpgradePlan := make([]UpgradePlan, len(upgradePlan))
 	for i, plan := range upgradePlan {
 		aliasUpgradePlan[i] = UpgradePlan{
-			ClusterAPIVersion: plan.ClusterAPIVersion,
-			CoreProvider:      plan.CoreProvider,
-			Providers:         plan.Providers,
+			Contract:     plan.Contract,
+			CoreProvider: plan.CoreProvider,
+			Providers:    plan.Providers,
 		}
 	}
 

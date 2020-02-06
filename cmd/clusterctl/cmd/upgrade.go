@@ -46,12 +46,12 @@ var upgradePlanCmd = &cobra.Command{
 	Long: LongDesc(`
 		The upgrade plan command provides a list of recommended target versions for upgrading Cluster API providers in a management cluster.
 		
-		The providers are grouped into management groups, each one defining a set of providers that should be supporting the same cluster API version
-		in order to guarantee the proper functioning of the management cluster.
+		The providers are grouped into management groups, each one defining a set of providers that should be supporting 
+		the same API Version of Cluster API (contract) in order to guarantee the proper functioning of the management cluster.
 
 		Then, for each provider in a management group, the following upgrade options are provided:
-		- The latest patch release for the current Cluster API version.
-		- The latest patch release for the next Cluster API version, if available.`),
+		- The latest patch release for the current API Version of Cluster API (contract).
+		- The latest patch release for the next API Version of Cluster API (contract), if available.`),
 
 	Example: Examples(`
 		# Gets the recommended target versions for upgrading Cluster API providers.
@@ -83,7 +83,7 @@ func runUpgradePlan() error {
 		return err
 	}
 
-	// ensure upgrade plans are sorted consistently (by CoreProvider.Namespace, ClusterAPIVersion).
+	// ensure upgrade plans are sorted consistently (by CoreProvider.Namespace, Contract).
 	sortUpgradePlans(upgradePlans)
 
 	if len(upgradePlans) == 0 {
@@ -98,7 +98,7 @@ func runUpgradePlan() error {
 		upgradeAvailable := false
 
 		fmt.Println("")
-		fmt.Printf("Management group: %s/%s, latest release available for the %s Cluster API version:\n", plan.CoreProvider.Namespace, plan.CoreProvider.Name, plan.ClusterAPIVersion)
+		fmt.Printf("Management group: %s, latest release available for the %s API Version of Cluster API (contract):\n", plan.CoreProvider.InstanceName(), plan.Contract)
 		fmt.Println("")
 		w := tabwriter.NewWriter(os.Stdout, 10, 4, 3, ' ', 0)
 		fmt.Fprintln(w, "NAME\tNAMESPACE\tTYPE\tCURRENT VERSION\tNEXT VERSION")
@@ -114,7 +114,7 @@ func runUpgradePlan() error {
 		if upgradeAvailable {
 			fmt.Println("You can now apply the upgrade by executing the following command:")
 			fmt.Println("")
-			fmt.Println(fmt.Sprintf("   upgrade apply --management-group %s/%s --cluster-api-version %s", plan.CoreProvider.Namespace, plan.CoreProvider.Name, plan.ClusterAPIVersion))
+			fmt.Println(fmt.Sprintf("   upgrade apply --management-group %s --cluster-api-version %s", plan.CoreProvider.InstanceName(), plan.Contract))
 		} else {
 			fmt.Println("You are already up to date!")
 		}
@@ -136,7 +136,7 @@ func sortUpgradeItems(plan client.UpgradePlan) {
 func sortUpgradePlans(upgradePlans []client.UpgradePlan) {
 	sort.Slice(upgradePlans, func(i, j int) bool {
 		return upgradePlans[i].CoreProvider.Namespace < upgradePlans[j].CoreProvider.Namespace ||
-			(upgradePlans[i].CoreProvider.Namespace == upgradePlans[j].CoreProvider.Namespace && upgradePlans[i].ClusterAPIVersion < upgradePlans[j].ClusterAPIVersion)
+			(upgradePlans[i].CoreProvider.Namespace == upgradePlans[j].CoreProvider.Namespace && upgradePlans[i].Contract < upgradePlans[j].Contract)
 	})
 }
 

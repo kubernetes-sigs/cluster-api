@@ -38,7 +38,7 @@ It is possible to customize the list of providers for `clusterctl` by changing t
 
 The provider is required to generate a **metadata YAML** file and publish it to the provider's repository.
 
-The metadata YAML file documents the release series of each provider and maps each release series to a Cluster API version.
+The metadata YAML file documents the release series of each provider and maps each release series to an API Version of Cluster API (contract).
 
 For example, for Cluster API:
 
@@ -48,10 +48,10 @@ kind: Metadata
 releaseSeries:
 - major: 0
   minor: 3
-  clusterAPIVersion: v1alpha3
+  contract: v1alpha3
 - major: 0
   minor: 2
-  clusterAPIVersion: v1alpha2
+  contract: v1alpha2
 ```
 
 <aside class="note">

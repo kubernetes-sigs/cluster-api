@@ -108,9 +108,9 @@ func (f *metadataClient) getEmbeddedMetadata() *clusterctlv1.Metadata {
 			},
 			ReleaseSeries: []clusterctlv1.ReleaseSeries{
 				// v1alpha3 release series
-				{Major: 0, Minor: 3, ClusterAPIVersion: "v1alpha3"},
+				{Major: 0, Minor: 3, Contract: "v1alpha3"},
 				// v1alpha2 release series are supported only for upgrades
-				{Major: 0, Minor: 2, ClusterAPIVersion: "v1alpha2"},
+				{Major: 0, Minor: 2, Contract: "v1alpha2"},
 				// older version are not supported by clusterctl
 			},
 		}
@@ -122,9 +122,9 @@ func (f *metadataClient) getEmbeddedMetadata() *clusterctlv1.Metadata {
 			},
 			ReleaseSeries: []clusterctlv1.ReleaseSeries{
 				// v1alpha3 release series
-				{Major: 0, Minor: 3, ClusterAPIVersion: "v1alpha3"}, // From this release series CAPD version scheme is linked to CAPI
+				{Major: 0, Minor: 3, Contract: "v1alpha3"}, // From this release series CAPD version scheme is linked to CAPI
 				// v1alpha2 release series are supported only for upgrades
-				{Major: 0, Minor: 2, ClusterAPIVersion: "v1alpha2"}, // This release was hosted on a different repository
+				{Major: 0, Minor: 2, Contract: "v1alpha2"}, // This release was hosted on a different repository
 				// older version are not supported by clusterctl
 			},
 		}
@@ -136,9 +136,9 @@ func (f *metadataClient) getEmbeddedMetadata() *clusterctlv1.Metadata {
 			},
 			ReleaseSeries: []clusterctlv1.ReleaseSeries{
 				// v1alpha3 release series
-				{Major: 0, Minor: 3, ClusterAPIVersion: "v1alpha3"}, // From this release series CABPK version scheme is linked to CAPI; The 0.2 release series was skipped when doing this change.
+				{Major: 0, Minor: 3, Contract: "v1alpha3"}, // From this release series CABPK version scheme is linked to CAPI; The 0.2 release series was skipped when doing this change.
 				// v1alpha2 release series are supported only for upgrades
-				{Major: 0, Minor: 1, ClusterAPIVersion: "v1alpha2"}, // This release was hosted on a different repository
+				{Major: 0, Minor: 1, Contract: "v1alpha2"}, // This release was hosted on a different repository
 				// older version are not supported by clusterctl
 			},
 		}
@@ -150,9 +150,9 @@ func (f *metadataClient) getEmbeddedMetadata() *clusterctlv1.Metadata {
 			},
 			ReleaseSeries: []clusterctlv1.ReleaseSeries{
 				// v1alpha3 release series
-				{Major: 0, Minor: 5, ClusterAPIVersion: "v1alpha3"},
+				{Major: 0, Minor: 5, Contract: "v1alpha3"},
 				// v1alpha2 release series are supported only for upgrades
-				{Major: 0, Minor: 4, ClusterAPIVersion: "v1alpha2"},
+				{Major: 0, Minor: 4, Contract: "v1alpha2"},
 				// older version are not supported by clusterctl
 			},
 		}
@@ -164,9 +164,9 @@ func (f *metadataClient) getEmbeddedMetadata() *clusterctlv1.Metadata {
 			},
 			ReleaseSeries: []clusterctlv1.ReleaseSeries{
 				// v1alpha3 release series
-				{Major: 0, Minor: 6, ClusterAPIVersion: "v1alpha3"},
+				{Major: 0, Minor: 6, Contract: "v1alpha3"},
 				// v1alpha2 release series are supported only for upgrades
-				{Major: 0, Minor: 5, ClusterAPIVersion: "v1alpha2"},
+				{Major: 0, Minor: 5, Contract: "v1alpha2"},
 				// older version are not supported by clusterctl
 			},
 		}

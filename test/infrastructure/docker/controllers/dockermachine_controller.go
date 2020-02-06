@@ -158,6 +158,9 @@ func (r *DockerMachineReconciler) reconcileNormal(ctx context.Context, machine *
 
 	// if the machine is already provisioned, return
 	if dockerMachine.Spec.ProviderID != nil {
+		// ensure ready state is set.
+		// This is required after move, bacuse status is not moved to the target cluster.
+		dockerMachine.Status.Ready = true
 		return ctrl.Result{}, nil
 	}
 

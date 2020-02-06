@@ -115,7 +115,7 @@ and
 ### Edit the manifests
 
 ```
-$EDITOR config/default/manager_image_patch.yaml
+$EDITOR config/manager/manager_image_patch.yaml
 $EDITOR
 ```
 
@@ -137,7 +137,7 @@ spec:
 
 ### Apply the manifests
 ```shell
-$ kustomize build config/default | kubectl apply -f -
+$ kustomize build config/ | kubectl apply -f -
 namespace/capi-system configured
 customresourcedefinition.apiextensions.k8s.io/clusters.cluster.x-k8s.io configured
 customresourcedefinition.apiextensions.k8s.io/kubeadmconfigs.bootstrap.cluster.x-k8s.io configured
@@ -150,7 +150,7 @@ clusterrole.rbac.authorization.k8s.io/capi-manager-role configured
 rolebinding.rbac.authorization.k8s.io/capi-leader-election-rolebinding configured
 clusterrolebinding.rbac.authorization.k8s.io/capi-manager-rolebinding configured
 deployment.apps/capi-controller-manager created
-$ kustomize build test/infrastructure/docker/config/default | kubectl apply -f -
+$ kustomize build test/infrastructure/docker/config | kubectl apply -f -
 namespace/capd-system configured
 customresourcedefinition.apiextensions.k8s.io/dockerclusters.infrastructure.cluster.x-k8s.io configured
 customresourcedefinition.apiextensions.k8s.io/dockermachines.infrastructure.cluster.x-k8s.io configured

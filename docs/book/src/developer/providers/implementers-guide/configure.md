@@ -2,12 +2,12 @@
 
 ## YAML
 
-`kubebuilder` generates most of the YAML you'll need to deploy a container. 
-We just need to modify it to add our new secrets. 
+`kubebuilder` generates most of the YAML you'll need to deploy a container.
+We just need to modify it to add our new secrets.
 
 First, let's add our secret as a [patch] to the manager yaml.
 
-`config/default/manager_config.yaml`:
+`config/manager/manager_config.yaml`:
 
 ```yaml
 apiVersion: apps/v1
@@ -20,7 +20,7 @@ spec:
     spec:
       containers:
       - name: manager
-        env: 
+        env:
         - name: MAILGUN_API_KEY
           valueFrom:
             secretKeyRef:
@@ -38,7 +38,7 @@ spec:
               key: mail_recipient
 ```
 
-And then, we have to add that patch to [`config/default/kustomization.yaml`][kustomizeyaml]:
+And then, we have to add that patch to [`config/kustomization.yaml`][kustomizeyaml]:
 
 ```yaml
 patchesStrategicMerge
@@ -97,12 +97,12 @@ resources:
 You can now (hopefully) generate your yaml!
 
 ```
-kustomize build config/default
+kustomize build config/
 ```
 
 ## RBAC Role
 
-The default [RBAC role][role] contains permissions for accessing your cluster infrastructure CRDs, but not for accessing Cluster API resources. 
+The default [RBAC role][role] contains permissions for accessing your cluster infrastructure CRDs, but not for accessing Cluster API resources.
 You'll need to add these to `config/rbac/role.yaml`
 
 [role]: https://kubernetes.io/docs/reference/access-authn-authz/rbac/
@@ -144,7 +144,7 @@ index e9352ce..29008db 100644
 _A tool like [direnv](https://direnv.net/) can be used to help manage enviroment variables._
 
 
-`kustomize` does not handle replacing those `${VARIABLES}` with actual values. 
+`kustomize` does not handle replacing those `${VARIABLES}` with actual values.
 For that, we use [`envsubst`][envsubst].
 
 You'll need to have those environment variables (`MAILGUN_API_KEY`, `MAILGUN_DOMAIN`, `MAILGUN_RECIPIENT`) in your environment when you generate the final yaml file.
@@ -152,7 +152,7 @@ You'll need to have those environment variables (`MAILGUN_API_KEY`, `MAILGUN_DOM
 Then we call envsubst in line, like so:
 
 ```
-kustomize build config/default | envsubst
+kustomize build config/ | envsubst
 ```
 
 [envsubst]: https://linux.die.net/man/1/envsubst

@@ -1,2 +1,7 @@
 resources:
 - manager.yaml
+
+patchesStrategicMerge:
+- manager_image_patch.yaml
+- manager_pull_policy.yaml
+- manager_auth_proxy_patch.yaml

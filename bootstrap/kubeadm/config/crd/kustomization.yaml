@@ -1,6 +1,6 @@
 # This kustomization.yaml is not intended to be run by itself,
 # since it depends on service name and namespace that are out of this kustomize package.
-# It should be run by config/default
+# It should be run by config/
 resources:
   - bases/bootstrap.cluster.x-k8s.io_kubeadmconfigs.yaml
   - bases/bootstrap.cluster.x-k8s.io_kubeadmconfigtemplates.yaml
@@ -10,6 +10,7 @@ patchesStrategicMerge:
   # [WEBHOOK] To enable webhook, uncomment all the sections with [WEBHOOK] prefix.
   # patches here are for enabling the conversion webhook for each CRD
 - patches/webhook_in_kubeadmconfigs.yaml
+- patches/webhook_in_kubeadmconfigtemplates.yaml
   # +kubebuilder:scaffold:crdkustomizewebhookpatch
 
   # [CERTMANAGER] To enable webhook, uncomment all the sections with [CERTMANAGER] prefix.

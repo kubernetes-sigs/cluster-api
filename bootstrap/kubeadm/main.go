@@ -54,18 +54,17 @@ func init() {
 	// +kubebuilder:scaffold:scheme
 }
 
-// nolint:gocyclo
-func main() {
-	var (
-		metricsAddr              string
-		enableLeaderElection     bool
-		watchNamespace           string
-		profilerAddress          string
-		kubeadmConfigConcurrency int
-		syncPeriod               time.Duration
-		webhookPort              int
-	)
+var (
+	metricsAddr              string
+	enableLeaderElection     bool
+	watchNamespace           string
+	profilerAddress          string
+	kubeadmConfigConcurrency int
+	syncPeriod               time.Duration
+	webhookPort              int
+)
 
+func main() {
 	flag.StringVar(&metricsAddr, "metrics-addr", ":8080",
 		"The address the metric endpoint binds to.")
 
@@ -87,8 +86,8 @@ func main() {
 	flag.DurationVar(&kubeadmbootstrapcontrollers.DefaultTokenTTL, "bootstrap-token-ttl", 15*time.Minute,
 		"The amount of time the bootstrap token will be valid")
 
-	flag.IntVar(&webhookPort, "webhook-port", 9443,
-		"Webhook Server port (set to 0 to disable)")
+	flag.IntVar(&webhookPort, "webhook-port", 0,
+		"Webhook Server port, disabled by default. When enabled, the manager will only work as webhook server, no reconcilers are installed.")
 
 	flag.Parse()
 
@@ -116,38 +115,50 @@ func main() {
 		os.Exit(1)
 	}
 
-	// Kubeadm controllers.
-	if err = (&kubeadmbootstrapcontrollers.KubeadmConfigReconciler{
+	setupWebhooks(mgr)
+	setupReconcilers(mgr)
+
+	// +kubebuilder:scaffold:builder
+	setupLog.Info("starting manager")
+	if err := mgr.Start(ctrl.SetupSignalHandler()); err != nil {
+		setupLog.Error(err, "problem running manager")
+		os.Exit(1)
+	}
+}
+
+func setupReconcilers(mgr ctrl.Manager) {
+	if webhookPort != 0 {
+		return
+	}
+
+	if err := (&kubeadmbootstrapcontrollers.KubeadmConfigReconciler{
 		Client: mgr.GetClient(),
 		Log:    ctrl.Log.WithName("controllers").WithName("KubeadmConfig"),
 	}).SetupWithManager(mgr, concurrency(kubeadmConfigConcurrency)); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "KubeadmConfig")
 		os.Exit(1)
 	}
+}
 
-	if webhookPort != 0 {
-		if err = (&kubeadmbootstrapv1alpha3.KubeadmConfig{}).SetupWebhookWithManager(mgr); err != nil {
-			setupLog.Error(err, "unable to create webhook", "webhook", "KubeadmConfig")
-			os.Exit(1)
-		}
-		if err = (&kubeadmbootstrapv1alpha3.KubeadmConfigList{}).SetupWebhookWithManager(mgr); err != nil {
-			setupLog.Error(err, "unable to create webhook", "webhook", "KubeadmConfigList")
-			os.Exit(1)
-		}
-		if err = (&kubeadmbootstrapv1alpha3.KubeadmConfigTemplate{}).SetupWebhookWithManager(mgr); err != nil {
-			setupLog.Error(err, "unable to create webhook", "webhook", "KubeadmConfigTemplate")
-			os.Exit(1)
-		}
-		if err = (&kubeadmbootstrapv1alpha3.KubeadmConfigTemplateList{}).SetupWebhookWithManager(mgr); err != nil {
-			setupLog.Error(err, "unable to create webhook", "webhook", "KubeadmConfigTemplateList")
-			os.Exit(1)
-		}
+func setupWebhooks(mgr ctrl.Manager) {
+	if webhookPort == 0 {
+		return
 	}
 
-	// +kubebuilder:scaffold:builder
-	setupLog.Info("starting manager")
-	if err := mgr.Start(ctrl.SetupSignalHandler()); err != nil {
-		setupLog.Error(err, "problem running manager")
+	if err := (&kubeadmbootstrapv1alpha3.KubeadmConfig{}).SetupWebhookWithManager(mgr); err != nil {
+		setupLog.Error(err, "unable to create webhook", "webhook", "KubeadmConfig")
+		os.Exit(1)
+	}
+	if err := (&kubeadmbootstrapv1alpha3.KubeadmConfigList{}).SetupWebhookWithManager(mgr); err != nil {
+		setupLog.Error(err, "unable to create webhook", "webhook", "KubeadmConfigList")
+		os.Exit(1)
+	}
+	if err := (&kubeadmbootstrapv1alpha3.KubeadmConfigTemplate{}).SetupWebhookWithManager(mgr); err != nil {
+		setupLog.Error(err, "unable to create webhook", "webhook", "KubeadmConfigTemplate")
+		os.Exit(1)
+	}
+	if err := (&kubeadmbootstrapv1alpha3.KubeadmConfigTemplateList{}).SetupWebhookWithManager(mgr); err != nil {
+		setupLog.Error(err, "unable to create webhook", "webhook", "KubeadmConfigTemplateList")
 		os.Exit(1)
 	}
 }

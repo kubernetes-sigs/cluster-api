@@ -54,18 +54,17 @@ func init() {
 	// +kubebuilder:scaffold:scheme
 }
 
-// nolint:gocyclo
-func main() {
-	var (
-		metricsAddr                    string
-		enableLeaderElection           bool
-		watchNamespace                 string
-		profilerAddress                string
-		kubeadmControlPlaneConcurrency int
-		syncPeriod                     time.Duration
-		webhookPort                    int
-	)
+var (
+	metricsAddr                    string
+	enableLeaderElection           bool
+	watchNamespace                 string
+	profilerAddress                string
+	kubeadmControlPlaneConcurrency int
+	syncPeriod                     time.Duration
+	webhookPort                    int
+)
 
+func main() {
 	flag.StringVar(&metricsAddr, "metrics-addr", ":8080",
 		"The address the metric endpoint binds to.")
 
@@ -84,8 +83,8 @@ func main() {
 	flag.DurationVar(&syncPeriod, "sync-period", 10*time.Minute,
 		"The minimum interval at which watched resources are reconciled (e.g. 15m)")
 
-	flag.IntVar(&webhookPort, "webhook-port", 9443,
-		"Webhook Server port (set to 0 to disable)")
+	flag.IntVar(&webhookPort, "webhook-port", 0,
+		"Webhook Server port, disabled by default. When enabled, the manager will only work as webhook server, no reconcilers are installed.")
 
 	flag.Parse()
 
@@ -113,26 +112,38 @@ func main() {
 		os.Exit(1)
 	}
 
-	// KubeadmControlPlane controllers.
-	if err = (&kubeadmcontrolplanecontrollers.KubeadmControlPlaneReconciler{
+	setupReconcilers(mgr)
+	setupWebhooks(mgr)
+
+	// +kubebuilder:scaffold:builder
+	setupLog.Info("starting manager")
+	if err := mgr.Start(ctrl.SetupSignalHandler()); err != nil {
+		setupLog.Error(err, "problem running manager")
+		os.Exit(1)
+	}
+}
+
+func setupReconcilers(mgr ctrl.Manager) {
+	if webhookPort != 0 {
+		return
+	}
+
+	if err := (&kubeadmcontrolplanecontrollers.KubeadmControlPlaneReconciler{
 		Client: mgr.GetClient(),
 		Log:    ctrl.Log.WithName("controllers").WithName("KubeadmControlPlane"),
 	}).SetupWithManager(mgr, concurrency(kubeadmControlPlaneConcurrency)); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "KubeadmControlPlane")
 		os.Exit(1)
 	}
+}
 
-	if webhookPort != 0 {
-		if err = (&kubeadmcontrolplanev1alpha3.KubeadmControlPlane{}).SetupWebhookWithManager(mgr); err != nil {
-			setupLog.Error(err, "unable to create webhook", "webhook", "KubeadmControlPlane")
-			os.Exit(1)
-		}
+func setupWebhooks(mgr ctrl.Manager) {
+	if webhookPort == 0 {
+		return
 	}
 
-	// +kubebuilder:scaffold:builder
-	setupLog.Info("starting manager")
-	if err := mgr.Start(ctrl.SetupSignalHandler()); err != nil {
-		setupLog.Error(err, "problem running manager")
+	if err := (&kubeadmcontrolplanev1alpha3.KubeadmControlPlane{}).SetupWebhookWithManager(mgr); err != nil {
+		setupLog.Error(err, "unable to create webhook", "webhook", "KubeadmControlPlane")
 		os.Exit(1)
 	}
 }

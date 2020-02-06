@@ -69,12 +69,12 @@ build_containers() {
 
 prepare_crd_yaml() {
    CLUSTER_API_CONFIG_PATH="./config"
-   kustomize build "${CLUSTER_API_CONFIG_PATH}/default/" > "${CRD_YAML}"
+   kustomize build "${CLUSTER_API_CONFIG_PATH}" > "${CRD_YAML}"
    {
       echo "---"
-      kustomize build "./bootstrap/kubeadm/config/default"
+      kustomize build "./bootstrap/kubeadm/config"
       echo "---"
-      kustomize build "./controlplane/kubeadm/config/default"
+      kustomize build "./controlplane/kubeadm/config"
       echo "---"
       kustomize build "${CLUSTER_API_CONFIG_PATH}/ci/"
    } >> "${CRD_YAML}"

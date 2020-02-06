@@ -33,7 +33,7 @@ components:
 # Load CAPI core and wait for its pods to become available.
 - name:    capi
   sources:
-  - value: https://github.com/kubernetes-sigs/cluster-api//config/default?ref=master
+  - value: https://github.com/kubernetes-sigs/cluster-api//config?ref=master
     replacements:
     - old: "imagePullPolicy: Always"
       new: "imagePullPolicy: IfNotPresent"
@@ -43,7 +43,7 @@ components:
 # Load the CAPI kubeadm bootstrapper and wait for its pods to become available.
 - name:    capi-kubeadm-bootstrap
   sources:
-  - value: https://github.com/kubernetes-sigs/cluster-api//bootstrap/kubeadm/config/default?ref=master
+  - value: https://github.com/kubernetes-sigs/cluster-api//bootstrap/kubeadm/config?ref=master
     replacements:
     - old: "imagePullPolicy: Always"
       new: "imagePullPolicy: IfNotPresent"
@@ -53,7 +53,7 @@ components:
 # Load the CAPI kubeadm control plane and wait for its pods to become available.
 - name:    capi-kubeadm-control-plane
   sources:
-  - value: https://github.com/kubernetes-sigs/cluster-api//controlplane/kubeadm/config/default?ref=master
+  - value: https://github.com/kubernetes-sigs/cluster-api//controlplane/kubeadm/config?ref=master
     replacements:
     - old: "imagePullPolicy: Always"
       new: "imagePullPolicy: IfNotPresent"

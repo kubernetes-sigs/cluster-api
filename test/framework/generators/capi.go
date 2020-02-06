@@ -29,7 +29,7 @@ import (
 
 // ClusterAPIGitHubManifestsFormat is a convenience string to get Cluster API manifests at an exact revision.
 // Set ClusterAPI.KustomizePath = fmt.Sprintf(ClusterAPIGitHubManifestsFormat, <some git ref>).
-var ClusterAPIGitHubManifestsFormat = "https://github.com/kubernetes-sigs/cluster-api//config/default?ref=%s"
+var ClusterAPIGitHubManifestsFormat = "https://github.com/kubernetes-sigs/cluster-api//config?ref=%s"
 
 // Generator generates provider components for CAPI
 type ClusterAPI struct {

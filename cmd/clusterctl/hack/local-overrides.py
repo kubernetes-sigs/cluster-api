@@ -59,19 +59,19 @@ providers = {
             'componentsFile': 'bootstrap-components.yaml',
             'nextVersion': 'v0.3.0',
             'type': 'BootstrapProvider',
-            'configFolder': 'bootstrap/kubeadm/config/default',
+            'configFolder': 'bootstrap/kubeadm/config',
       },
       'kubeadm-control-plane': {
             'componentsFile': 'control-plane-components.yaml',
             'nextVersion': 'v0.3.0',
             'type': 'ControlPlaneProvider',
-            'configFolder': 'controlplane/kubeadm/config/default',
+            'configFolder': 'controlplane/kubeadm/config',
       },
       'docker': {
           'componentsFile': 'infrastructure-components.yaml',
           'nextVersion': 'v0.3.0',
           'type': 'InfrastructureProvider',
-          'configFolder': 'test/infrastructure/docker/config/default',
+          'configFolder': 'test/infrastructure/docker/config',
       },
 }
 
@@ -140,7 +140,7 @@ def create_local_overrides():
         assert p is not None, 'invalid configuration: please specify the configuration for the {} provider'.format(provider)
 
         repo = p.get('repo', '.')
-        config_folder = p.get('configFolder', 'config/default')
+        config_folder = p.get('configFolder', 'config')
 
         next_version = p.get('nextVersion')
         assert next_version is not None, 'invalid configuration for provider {}: please provide nextVersion value'.format(provider)

@@ -29,7 +29,7 @@ import (
 
 // KubeadmBootstrapGitHubManifestsFormat is a convenience string to get Cluster API manifests at an exact revision.
 // Set KubeadmBootstrap.KustomizePath = fmt.Sprintf(KubeadmBootstrapGitHubManifestsFormat, <some git ref>).
-var KubeadmBootstrapGitHubManifestsFormat = "https://github.com/kubernetes-sigs/cluster-api//bootstrap/kubeadm/config/default?ref=%s"
+var KubeadmBootstrapGitHubManifestsFormat = "https://github.com/kubernetes-sigs/cluster-api//bootstrap/kubeadm/config?ref=%s"
 
 // KubeadmBootstrap generates provider components for the Kubeadm bootstrap provider.
 type KubeadmBootstrap struct {

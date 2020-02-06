@@ -232,7 +232,7 @@ release: clean-release ## Builds and push container images using the latest git 
 
 .PHONY: release-manifests
 release-manifests: $(RELEASE_DIR) ## Builds the manifests to publish with a release
-	kustomize build config/default > $(RELEASE_DIR)/provider-components.yaml
+	kustomize build config/ > $(RELEASE_DIR)/provider-components.yaml
 
 .PHONY: release-staging
 release-staging: ## Builds and push container images to the staging bucket.

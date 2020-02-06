@@ -31,7 +31,7 @@ var metadataYaml = []byte("apiVersion: clusterctl.cluster.x-k8s.io/v1alpha3\n" +
 	"releaseSeries:\n" +
 	" - major: 1\n" +
 	"   minor: 2\n" +
-	"   clusterAPIVersion: v1alpha3\n" +
+	"   contract: v1alpha3\n" +
 	"")
 
 func Test_metadataClient_Get(t *testing.T) {
@@ -63,9 +63,9 @@ func Test_metadataClient_Get(t *testing.T) {
 				},
 				ReleaseSeries: []clusterctlv1.ReleaseSeries{
 					{
-						Major:             1,
-						Minor:             2,
-						ClusterAPIVersion: "v1alpha3",
+						Major:    1,
+						Minor:    2,
+						Contract: "v1alpha3",
 					},
 				},
 			},
@@ -86,8 +86,8 @@ func Test_metadataClient_Get(t *testing.T) {
 					Kind:       "Metadata",
 				},
 				ReleaseSeries: []clusterctlv1.ReleaseSeries{
-					{Major: 0, Minor: 3, ClusterAPIVersion: "v1alpha3"},
-					{Major: 0, Minor: 2, ClusterAPIVersion: "v1alpha2"},
+					{Major: 0, Minor: 3, Contract: "v1alpha3"},
+					{Major: 0, Minor: 2, Contract: "v1alpha2"},
 				},
 			},
 			wantErr: false,

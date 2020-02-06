@@ -44,7 +44,7 @@ func (c *clusterctlClient) Delete(options DeleteOptions) error {
 	var providers []clusterctlv1.Provider
 
 	if len(options.Providers) == 0 {
-		providers = installedProviders
+		providers = installedProviders.Items
 	} else {
 		// Otherwise we are deleting only a subset of providers.
 		for _, provider := range options.Providers {
@@ -71,7 +71,7 @@ func (c *clusterctlClient) Delete(options DeleteOptions) error {
 
 			// Check the provider/namespace tuple actually matches one of the installed providers.
 			found := false
-			for _, ip := range installedProviders {
+			for _, ip := range installedProviders.Items {
 				if ip.Name == name && ip.Namespace == namespace {
 					found = true
 					providers = append(providers, ip)

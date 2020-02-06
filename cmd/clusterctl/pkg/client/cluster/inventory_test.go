@@ -110,8 +110,8 @@ func Test_inventoryClient_List(t *testing.T) {
 				return
 			}
 
-			if !reflect.DeepEqual(got, tt.want) {
-				t.Errorf("got = %v, want %v", got, tt.want)
+			if !reflect.DeepEqual(got.Items, tt.want) {
+				t.Errorf("got = %v, want %v", got.Items, tt.want)
 			}
 		})
 	}

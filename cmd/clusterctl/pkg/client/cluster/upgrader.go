@@ -17,8 +17,6 @@ limitations under the License.
 package cluster
 
 import (
-	"fmt"
-
 	"github.com/pkg/errors"
 	clusterctlv1 "sigs.k8s.io/cluster-api/cmd/clusterctl/api/v1alpha3"
 	"sigs.k8s.io/cluster-api/cmd/clusterctl/pkg/client/config"
@@ -29,7 +27,7 @@ import (
 type ProviderUpgrader interface {
 	// Plan returns a set of suggested Upgrade plans for the cluster, and more specifically:
 	// - Each management group gets separated upgrade plans.
-	// - For each management group, an upgrade plan will be generated for each ClusterAPIVersion available, e.g.
+	// - For each management group, an upgrade plan will be generated for each API Version of Cluster API (contract) available, e.g.
 	//   - Upgrade to the latest version in the the v1alpha2 series: ....
 	//   - Upgrade to the latest version in the the v1alpha3 series: ....
 	Plan() ([]UpgradePlan, error)
@@ -37,15 +35,15 @@ type ProviderUpgrader interface {
 
 // UpgradePlan defines a list of possible upgrade targets for a management group.
 type UpgradePlan struct {
-	ClusterAPIVersion string
-	CoreProvider      clusterctlv1.Provider
-	Providers         []UpgradeItem
+	Contract     string
+	CoreProvider clusterctlv1.Provider
+	Providers    []UpgradeItem
 }
 
 // UpgradeRef returns a string identifying the upgrade plan; this string is derived by the core provider which is
 // unique for each management group.
 func (u *UpgradePlan) UpgradeRef() string {
-	return fmt.Sprintf("%s/%s", u.CoreProvider.Namespace, u.CoreProvider.Name)
+	return u.CoreProvider.InstanceName()
 }
 
 // UpgradeItem defines a possible upgrade target for a provider in the management group.
@@ -56,7 +54,7 @@ type UpgradeItem struct {
 
 // UpgradeRef returns a string identifying the upgrade item; this string is derived by the provider.
 func (u *UpgradeItem) UpgradeRef() string {
-	return fmt.Sprintf("%s/%s", u.Namespace, u.Name)
+	return u.InstanceName()
 }
 
 type providerUpgrader struct {
@@ -79,7 +77,7 @@ func (u *providerUpgrader) Plan() ([]UpgradePlan, error) {
 	var ret []UpgradePlan
 	for _, managementGroup := range managementGroups {
 		// The core provider is driving all the plan logic for each management group, because all the providers
-		// in a management group are expected to support the same Cluster API/API version supported by the core provider.
+		// in a management group are expected to support the same API Version of Cluster API (contract) supported by the core provider.
 		// e.g if the core provider supports v1alpha3, all the providers in the same management group should support v1alpha3 as well;
 		// all the providers in the management group can upgrade to the latest release supporting v1alpha3, or if available,
 		// or if available, all the providers in the management group can upgrade to the latest release supporting v1alpha4.
@@ -90,18 +88,18 @@ func (u *providerUpgrader) Plan() ([]UpgradePlan, error) {
 			return nil, err
 		}
 
-		// Identifies the Cluster API/API version that we should consider for the management group update (Nb. the core provider is driving the entire management group).
-		// This includes the current API version (e.g. v1alpha3) and the new one available, if any.
-		apiVersionsForUpgrade := coreUpgradeInfo.getAPIVersionsForUpgrade()
-		if len(apiVersionsForUpgrade) == 0 {
-			return nil, errors.Wrapf(err, "Invalid metadata: unable to find current ClusterAPIVersion for the %s/%s provider", managementGroup.CoreProvider.Namespace, managementGroup.CoreProvider.Name)
+		// Identifies the API Version of Cluster API (contract) that we should consider for the management group update (Nb. the core provider is driving the entire management group).
+		// This includes the current contract (e.g. v1alpha3) and the new one available, if any.
+		contractsForUpgrade := coreUpgradeInfo.getContractsForUpgrade()
+		if len(contractsForUpgrade) == 0 {
+			return nil, errors.Wrapf(err, "Invalid metadata: unable to find th API Version of Cluster API (contract) supported by the %s provider", managementGroup.CoreProvider.InstanceName())
 		}
 
-		// Creates an UpgradePlan for each API version considered for upgrades; each upgrade plans contains
-		// an UpgradeItem for each provider defining the next available version with the target API version, if available.
+		// Creates an UpgradePlan for each contract considered for upgrades; each upgrade plans contains
+		// an UpgradeItem for each provider defining the next available version with the target contract, if available.
 		// e.g. v1alpha3, cluster-api --> v0.3.2, kubeadm bootstrap --> v0.3.2, aws --> v0.5.4
 		// e.g. v1alpha4, cluster-api --> v0.4.1, kubeadm bootstrap --> v0.4.1, aws --> v0.6.2
-		for _, apiVersion := range apiVersionsForUpgrade {
+		for _, contract := range contractsForUpgrade {
 			upgradeItems := []UpgradeItem{}
 			for _, provider := range managementGroup.Providers {
 				// Gets the upgrade info for the provider.
@@ -110,10 +108,10 @@ func (u *providerUpgrader) Plan() ([]UpgradePlan, error) {
 					return nil, err
 				}
 
-				// Identifies the next available version with the target API version for the provider, if available.
-				nextVersion := providerUpgradeInfo.getLatestNextVersion(apiVersion)
+				// Identifies the next available version with the target contract for the provider, if available.
+				nextVersion := providerUpgradeInfo.getLatestNextVersion(contract)
 
-				// Append the upgrade item for the provider/with the target API version.
+				// Append the upgrade item for the provider/with the target contract.
 				upgradeItems = append(upgradeItems, UpgradeItem{
 					Provider:    provider,
 					NextVersion: versionTag(nextVersion),
@@ -121,9 +119,9 @@ func (u *providerUpgrader) Plan() ([]UpgradePlan, error) {
 			}
 
 			ret = append(ret, UpgradePlan{
-				ClusterAPIVersion: apiVersion,
-				CoreProvider:      managementGroup.CoreProvider,
-				Providers:         upgradeItems,
+				Contract:     contract,
+				CoreProvider: managementGroup.CoreProvider,
+				Providers:    upgradeItems,
 			})
 		}
 	}

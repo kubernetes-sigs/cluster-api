@@ -35,11 +35,11 @@ spec:
         releaseSeries:
           items:
             description: ReleaseSeries maps a provider release series (major/minor)
-              with a ClusterAPIVersion
+              with a API Version of Cluster API (contract).
             properties:
-              clusterAPIVersion:
-                description: ClusterAPIVersion indicates the cluster API supported
-                  version.
+              contract:
+                description: Contract defines the API Version of Cluster API (contract)
+                  supported by the ReleaseSeries.
                 type: string
               major:
                 description: Major version of the release series

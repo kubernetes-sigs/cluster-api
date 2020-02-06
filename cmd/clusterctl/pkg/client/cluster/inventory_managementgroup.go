@@ -17,19 +17,50 @@ limitations under the License.
 package cluster
 
 import (
-	"fmt"
 	"strings"
 
 	"github.com/pkg/errors"
 	clusterctlv1 "sigs.k8s.io/cluster-api/cmd/clusterctl/api/v1alpha3"
 )
 
-func (p *inventoryClient) GetManagementGroups() ([]ManagementGroup, error) {
-	providerList, err := p.list()
-	if err != nil {
-		return nil, err
-	}
+// ManagementGroup is a group of providers composed by a CoreProvider and a set of Bootstrap/ControlPlane/Infrastructure providers
+// watching objects in the same namespace. For example, a management group can be used for upgrades, in order to ensure all the providers
+// in a management group support the same API Version of Cluster API (contract).
+type ManagementGroup struct {
+	CoreProvider clusterctlv1.Provider
+	Providers    []clusterctlv1.Provider
+}
 
+// Equals return true if two management groups have the same core provider.
+func (mg *ManagementGroup) Equals(other *ManagementGroup) bool {
+	return mg.CoreProvider.Equals(other.CoreProvider)
+}
+
+// GetProviderByInstanceName returns a specific provider instance.
+func (mg *ManagementGroup) GetProviderByInstanceName(instanceName string) *clusterctlv1.Provider {
+	for _, provider := range mg.Providers {
+		if provider.InstanceName() == instanceName {
+			return &provider
+		}
+	}
+	return nil
+}
+
+// ManagementGroupList defines a list of management groups
+type ManagementGroupList []ManagementGroup
+
+// FindManagementGroupByProviderInstanceName return the management group that hosts a given provider.
+func (ml *ManagementGroupList) FindManagementGroupByProviderInstanceName(instanceName string) *ManagementGroup {
+	for _, managementGroup := range *ml {
+		if p := managementGroup.GetProviderByInstanceName(instanceName); p != nil {
+			return &managementGroup
+		}
+	}
+	return nil
+}
+
+// deriveManagementGroups derives the management groups from a list of providers.
+func deriveManagementGroups(providerList *clusterctlv1.ProviderList) (ManagementGroupList, error) {
 	// If any of the core providers watch the same namespace, we cannot define the management group.
 	if err := checkOverlappingCoreProviders(providerList); err != nil {
 		return nil, err
@@ -43,7 +74,7 @@ func (p *inventoryClient) GetManagementGroups() ([]ManagementGroup, error) {
 	}
 
 	// Composes the management group
-	managementGroups := []ManagementGroup{}
+	managementGroups := ManagementGroupList{}
 	for _, coreProvider := range providerList.FilterCore() {
 		group := ManagementGroup{CoreProvider: coreProvider}
 		for _, provider := range providerList.Items {
@@ -70,9 +101,9 @@ func checkOverlappingCoreProviders(providerList *clusterctlv1.ProviderList) erro
 
 			// check for overlapping namespaces
 			if provider.HasWatchingOverlapWith(other) {
-				return errors.Errorf("Unable to identify management groups: core providers %s/%s and %s/%s have overlapping watching namespaces",
-					provider.Namespace, provider.Name,
-					other.Namespace, other.Name,
+				return errors.Errorf("Unable to identify management groups: core providers %s and %s have overlapping watching namespaces",
+					provider.InstanceName(),
+					other.InstanceName(),
 				)
 			}
 		}
@@ -91,24 +122,33 @@ func checkOverlappingProviders(providerList *clusterctlv1.ProviderList) error {
 		var overlappingCoreProviders []string
 		for _, coreProvider := range providerList.FilterCore() {
 			if provider.HasWatchingOverlapWith(coreProvider) {
-				overlappingCoreProviders = append(overlappingCoreProviders, fmt.Sprintf("%s/%s", coreProvider.Namespace, coreProvider.Name))
+				overlappingCoreProviders = append(overlappingCoreProviders, coreProvider.InstanceName())
 			}
 		}
 
 		// if the provider does not overlap with any core provider, return error (it will not be part of any management group)
 		if len(overlappingCoreProviders) == 0 {
-			return errors.Errorf("Unable to identify management groups: provider %s/%s can't be combined with any core provider",
-				provider.Namespace, provider.Name,
+			return errors.Errorf("Unable to identify management groups: provider %s can't be combined with any core provider",
+				provider.InstanceName(),
 			)
 		}
 
 		// if the provider overlaps with more than one core provider, return error (it is part of two management groups --> e.g. there could be potential upgrade conflicts)
 		if len(overlappingCoreProviders) > 1 {
-			return errors.Errorf("Unable to identify management groupss: provider %s/%s is watching for objects in namespaces controlled by more than one core provider (%s)",
-				provider.Namespace, provider.Name,
+			return errors.Errorf("Unable to identify management groupss: provider %s is watching for objects in namespaces controlled by more than one core provider (%s)",
+				provider.InstanceName(),
 				strings.Join(overlappingCoreProviders, " ,"),
 			)
 		}
 	}
 	return nil
+}
+
+func (p *inventoryClient) GetManagementGroups() (ManagementGroupList, error) {
+	providerList, err := p.List()
+	if err != nil {
+		return nil, err
+	}
+
+	return deriveManagementGroups(providerList)
 }

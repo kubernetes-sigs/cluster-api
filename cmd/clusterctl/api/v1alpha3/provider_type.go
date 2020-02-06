@@ -18,6 +18,7 @@ package v1alpha3
 
 import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/types"
 )
 
 // +kubebuilder:resource:path=providers,scope=Namespaced,categories=cluster-api
@@ -45,19 +46,6 @@ type Provider struct {
 	// if empty the provider controller is watching for objects in all namespaces.
 	// +optional
 	WatchedNamespace string `json:"watchedNamespace,omitempty"`
-}
-
-// +kubebuilder:object:root=true
-
-// ProviderList contains a list of Provider
-type ProviderList struct {
-	metav1.TypeMeta `json:",inline"`
-	metav1.ListMeta `json:"metadata,omitempty"`
-	Items           []Provider `json:"items"`
-}
-
-func init() {
-	SchemeBuilder.Register(&Provider{}, &ProviderList{})
 }
 
 // ProviderType is a string representation of a TaskGroup create policy.
@@ -95,17 +83,34 @@ func (p *Provider) GetProviderType() ProviderType {
 	}
 }
 
+// InstanceName return the instance name for the provider, that is composed by the provider name and the namespace
+// where the provider is installed (nb. clusterctl does not support multiple instances of the same provider to be
+// installed in the same namespace)
+func (p *Provider) InstanceName() string {
+	return types.NamespacedName{Namespace: p.Namespace, Name: p.Name}.String()
+}
+
 // HasWatchingOverlapWith returns true if the provider has an overlapping watching namespace with another provider.
 func (p *Provider) HasWatchingOverlapWith(other Provider) bool {
 	return p.WatchedNamespace == "" || p.WatchedNamespace == other.WatchedNamespace || other.WatchedNamespace == ""
 }
 
+// Equals returns true if two providers are exactly the same.
 func (p *Provider) Equals(other Provider) bool {
 	return p.Name == other.Name &&
 		p.Namespace == other.Namespace &&
 		p.Type == other.Type &&
 		p.WatchedNamespace == other.WatchedNamespace &&
 		p.Version == other.Version
+}
+
+// +kubebuilder:object:root=true
+
+// ProviderList contains a list of Provider
+type ProviderList struct {
+	metav1.TypeMeta `json:",inline"`
+	metav1.ListMeta `json:"metadata,omitempty"`
+	Items           []Provider `json:"items"`
 }
 
 func (l *ProviderList) FilterByName(name string) []Provider {
@@ -146,4 +151,8 @@ func (l *ProviderList) filterBy(predicate func(p Provider) bool) []Provider {
 		}
 	}
 	return ret
+}
+
+func init() {
+	SchemeBuilder.Register(&Provider{}, &ProviderList{})
 }

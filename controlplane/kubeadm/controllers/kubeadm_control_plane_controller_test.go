@@ -32,6 +32,7 @@ import (
 	"k8s.io/klog/klogr"
 	"k8s.io/utils/pointer"
 	utilpointer "k8s.io/utils/pointer"
+	"sigs.k8s.io/cluster-api/controlplane/kubeadm/internal"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
@@ -849,6 +850,7 @@ func TestKubeadmControlPlaneReconciler_updateStatusNoMachines(t *testing.T) {
 		Log:                log.Log,
 		remoteClientGetter: fakeremote.NewClusterClient,
 		scheme:             scheme.Scheme,
+		managementCluster:  &internal.ManagementCluster{Client: fakeClient},
 	}
 
 	g.Expect(r.updateStatus(context.Background(), kcp, cluster)).To(Succeed())
@@ -888,6 +890,13 @@ func createNodeAndNodeRefForMachine(machine *clusterv1.Machine, ready bool) (*cl
 	}
 
 	return machine, node
+}
+
+func generateKubeadmControlPlaneLabels(name string) map[string]string {
+	return map[string]string{
+		clusterv1.ClusterLabelName:             name,
+		clusterv1.MachineControlPlaneLabelName: "",
+	}
 }
 
 func createMachineNodePair(name string, cluster *clusterv1.Cluster, kcp *controlplanev1.KubeadmControlPlane, ready bool) (*clusterv1.Machine, *corev1.Node) {
@@ -1086,7 +1095,6 @@ func TestReconcileControlPlaneScaleUp(t *testing.T) {
 		recorder:               record.NewFakeRecorder(32),
 		scheme:                 scheme.Scheme,
 		remoteClientGetter:     fakeremote.NewClusterClient,
-		remoteEtcdClientGetter: fakeRemoteEtcdClientGetter(fakeEtcdClient),
 	}
 
 	for i := 1; i <= desiredReplicas; i++ {
@@ -1207,12 +1215,6 @@ func createFakeClient() (client.Client, error) {
 	return fakeClient, nil
 }
 
-func fakeRemoteEtcdClientGetter(fc *fakeetcd.FakeEtcdClient) EtcdClientGetter {
-	return func(c client.Client, nodeName string) (EtcdClient, error) {
-		return fc, nil
-	}
-}
-
 func TestScaleUpControlPlaneAddsANewMachine(t *testing.T) {
 	g := NewWithT(t)
 
@@ -1236,7 +1238,6 @@ func TestScaleUpControlPlaneAddsANewMachine(t *testing.T) {
 		recorder:               record.NewFakeRecorder(32),
 		scheme:                 scheme.Scheme,
 		remoteClientGetter:     fakeremote.NewClusterClient,
-		remoteEtcdClientGetter: fakeRemoteEtcdClientGetter(fakeEtcdClient),
 	}
 
 	// Create the first control plane replica
@@ -1257,7 +1258,7 @@ func TestScaleUpControlPlaneAddsANewMachine(t *testing.T) {
 
 	// Tell the controller to scale up
 	g.Expect(fakeClient.List(context.Background(), ownedMachines)).To(Succeed())
-	g.Expect(r.scaleUpControlPlane(context.Background(), cluster, kcp, ownedMachines)).To(Succeed())
+	g.Expect(r.scaleUpControlPlane(context.Background(), cluster, kcp)).To(Succeed())
 
 	// Verify that controller created a new machine
 	g.Expect(fakeClient.List(context.Background(), ownedMachines)).To(Succeed())

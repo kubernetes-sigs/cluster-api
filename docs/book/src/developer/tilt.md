@@ -12,7 +12,7 @@ workflow that offers easy deployments and rapid iterative builds.
    (other clusters can be used if `preload_images_for_kind` is set to false)
 1. [kustomize](https://github.com/kubernetes-sigs/kustomize/blob/master/docs/INSTALL.md) standalone
    (`kubectl kustomize` does not work because it is missing some features of kustomize v3)
-1. [Tilt](https://docs.tilt.dev/install.html)
+1. [Tilt](https://docs.tilt.dev/install.html) v0.10.3 or newer
 1. Clone the [Cluster API](https://github.com/kubernetes-sigs/cluster-api) repository locally
 1. Clone the provider(s) you want to deploy locally as well
 
@@ -32,7 +32,6 @@ Next, create a `tilt-settings.json` file and place it in your local copy of `clu
 
 ```json
 {
-  "allowed_contexts": ["kind-kind"],
   "default_registry": "gcr.io/your-project-name-here",
   "provider_repos": ["../cluster-api-provider-aws"],
   "enable_providers": ["aws", "docker", "kubeadm-bootstrap", "kubeadm-control-plane"]
@@ -52,6 +51,8 @@ Next, create a `tilt-settings.json` file and place it in your local copy of `clu
 
 **enable_providers** (Array[]String, default=['docker']): A list of the providers to enable. See [available providers](#available-providers)
 for more details.
+
+**kind_cluster_name** (String, default="kind"): The name of the kind cluster to use when preloading images.
 
 **kustomize_substitutions** (Map{String: String}, default={}): An optional map of substitutions for `${}`-style placeholders in the
 provider's yaml.

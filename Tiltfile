@@ -6,6 +6,7 @@ settings = {
     "deploy_cert_manager": True,
     "preload_images_for_kind": True,
     "enable_providers": ["docker"],
+    "kind_cluster_name": "kind",
 }
 
 # global settings
@@ -190,7 +191,7 @@ def deploy_cert_manager():
     if settings.get("preload_images_for_kind"):
         for image in images:
             local("docker pull {}/{}:{}".format(registry, image, version))
-            local("kind load docker-image {}/{}:{}".format(registry, image, version))
+            local("kind load docker-image --name {} {}/{}:{}".format(settings.get("kind_cluster_name"), registry, image, version))
 
     local("kubectl apply -f https://github.com/jetstack/cert-manager/releases/download/{}/cert-manager.yaml".format(version))
 

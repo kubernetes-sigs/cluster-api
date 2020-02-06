@@ -5,7 +5,7 @@ This document describes how to use `clusterctl` during the development workflow.
 ## Prerequisites
 
 * A Cluster API development setup (go, git, etc.)
-* A local clone of the Cluster API GitHub repository  
+* A local clone of the Cluster API GitHub repository
 * A local clone of the GitHub repositories for the providers you want to install
 
 ## Getting started
@@ -27,7 +27,7 @@ Next, create a `clusterctl-settings.json` file and place it in your local copy o
 
 ```yaml
 {
-  "providers": [ "cluster-api", "kubeadm-bootstrap", "aws"],
+  "providers": ["kubeadm-bootstrap","kubeadm-control-plane", "aws"],
   "provider_repos": ["../cluster-api-provider-aws"]
 }
 ```
@@ -57,7 +57,7 @@ in order to use them, please run:
 clusterctl init  --core cluster-api:v0.3.0 --bootstrap kubeadm-bootstrap:v0.3.0 --infrastructure aws:v0.5.0
 ```
 
-## Available providers 
+## Available providers
 
 The following providers are currently defined in the script:
 

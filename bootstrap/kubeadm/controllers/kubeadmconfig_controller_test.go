@@ -233,7 +233,7 @@ func TestKubeadmConfigReconciler_Reconcile_MigrateToSecret(t *testing.T) {
 		t.Fatal("did not expect to requeue after")
 	}
 
-	if err := k.Client.Get(context.TODO(), types.NamespacedName{Name: config.Name, Namespace: config.Namespace}, config); err != nil {
+	if err := k.Client.Get(context.Background(), types.NamespacedName{Name: config.Name, Namespace: config.Namespace}, config); err != nil {
 		t.Fatalf("failed to get KubeadmConfig: %v", err)
 	}
 
@@ -242,7 +242,7 @@ func TestKubeadmConfigReconciler_Reconcile_MigrateToSecret(t *testing.T) {
 	}
 
 	secret := &corev1.Secret{}
-	if err := k.Client.Get(context.TODO(), types.NamespacedName{Namespace: config.Namespace, Name: *config.Status.DataSecretName}, secret); err != nil {
+	if err := k.Client.Get(context.Background(), types.NamespacedName{Namespace: config.Namespace, Name: *config.Status.DataSecretName}, secret); err != nil {
 		t.Fatalf("failed to get Secret bootstrap data for KubeadmConfig: %v", err)
 	}
 
@@ -684,7 +684,7 @@ func TestReconcileIfJoinNodesAndControlPlaneIsReady(t *testing.T) {
 			}
 
 			l := &corev1.SecretList{}
-			if err := myclient.List(context.TODO(), l, client.ListOption(client.InNamespace(metav1.NamespaceSystem))); err != nil {
+			if err := myclient.List(context.Background(), l, client.ListOption(client.InNamespace(metav1.NamespaceSystem))); err != nil {
 				t.Fatal(errors.Wrap(err, "failed to get l after reconcile"))
 			}
 
@@ -778,7 +778,7 @@ func TestBootstrapTokenTTLExtension(t *testing.T) {
 	}
 
 	l := &corev1.SecretList{}
-	if err := myclient.List(context.TODO(), l, client.ListOption(client.InNamespace(metav1.NamespaceSystem))); err != nil {
+	if err := myclient.List(context.Background(), l, client.ListOption(client.InNamespace(metav1.NamespaceSystem))); err != nil {
 		t.Fatal(errors.Wrap(err, "failed to get l after reconcile"))
 	}
 
@@ -820,7 +820,7 @@ func TestBootstrapTokenTTLExtension(t *testing.T) {
 	}
 
 	l = &corev1.SecretList{}
-	if err := myclient.List(context.TODO(), l, client.ListOption(client.InNamespace(metav1.NamespaceSystem))); err != nil {
+	if err := myclient.List(context.Background(), l, client.ListOption(client.InNamespace(metav1.NamespaceSystem))); err != nil {
 		t.Fatal(errors.Wrap(err, "failed to get l after reconcile"))
 	}
 
@@ -878,7 +878,7 @@ func TestBootstrapTokenTTLExtension(t *testing.T) {
 	}
 
 	l = &corev1.SecretList{}
-	if err := myclient.List(context.TODO(), l, client.ListOption(client.InNamespace(metav1.NamespaceSystem))); err != nil {
+	if err := myclient.List(context.Background(), l, client.ListOption(client.InNamespace(metav1.NamespaceSystem))); err != nil {
 		t.Fatal(errors.Wrap(err, "failed to get l after reconcile"))
 	}
 
@@ -1041,7 +1041,7 @@ func TestKubeadmConfigReconciler_Reconcile_DisocveryReconcileBehaviors(t *testin
 
 	for _, tc := range testcases {
 		t.Run(tc.name, func(t *testing.T) {
-			err := k.reconcileDiscovery(tc.cluster, tc.config, secret.Certificates{})
+			err := k.reconcileDiscovery(context.Background(), tc.cluster, tc.config, secret.Certificates{})
 			if err != nil {
 				t.Errorf("expected nil, got error %v", err)
 			}
@@ -1084,7 +1084,7 @@ func TestKubeadmConfigReconciler_Reconcile_DisocveryReconcileFailureBehaviors(t 
 
 	for _, tc := range testcases {
 		t.Run(tc.name, func(t *testing.T) {
-			err := k.reconcileDiscovery(tc.cluster, tc.config, secret.Certificates{})
+			err := k.reconcileDiscovery(context.Background(), tc.cluster, tc.config, secret.Certificates{})
 			if err == nil {
 				t.Error("expected error, got nil")
 			}

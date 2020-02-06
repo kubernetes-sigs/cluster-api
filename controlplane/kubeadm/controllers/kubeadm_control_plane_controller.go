@@ -290,7 +290,7 @@ func (r *KubeadmControlPlaneReconciler) updateStatus(ctx context.Context, kcp *c
 	// TODO: take into account configuration hash once upgrades are in place
 	kcp.Status.Replicas = replicas
 
-	remoteClient, err := r.remoteClientGetter(r.Client, cluster, r.scheme)
+	remoteClient, err := r.remoteClientGetter(ctx, r.Client, cluster, r.scheme)
 	if err != nil && !apierrors.IsNotFound(errors.Cause(err)) {
 		return errors.Wrap(err, "failed to create remote cluster client")
 	}
@@ -556,7 +556,7 @@ func (r *KubeadmControlPlaneReconciler) reconcileKubeconfig(ctx context.Context,
 		return nil
 	}
 
-	_, err := secret.GetFromNamespacedName(r.Client, clusterName, secret.Kubeconfig)
+	_, err := secret.GetFromNamespacedName(ctx, r.Client, clusterName, secret.Kubeconfig)
 	switch {
 	case apierrors.IsNotFound(err):
 		createErr := kubeconfig.CreateSecretWithOwner(

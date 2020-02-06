@@ -230,7 +230,7 @@ func (r *MachineReconciler) reconcileDelete(ctx context.Context, cluster *cluste
 		// Drain node before deletion
 		if _, exists := m.ObjectMeta.Annotations[clusterv1.ExcludeNodeDrainingAnnotation]; !exists {
 			logger.Info("Draining node", "node", m.Status.NodeRef.Name)
-			if err := r.drainNode(cluster, m.Status.NodeRef.Name, m.Name); err != nil {
+			if err := r.drainNode(ctx, cluster, m.Status.NodeRef.Name, m.Name); err != nil {
 				r.recorder.Eventf(m, corev1.EventTypeWarning, "FailedDrainNode", "error draining Machine's node %q: %v", m.Status.NodeRef.Name, err)
 				return ctrl.Result{}, err
 			}
@@ -293,7 +293,7 @@ func (r *MachineReconciler) isDeleteNodeAllowed(ctx context.Context, machine *cl
 	}
 }
 
-func (r *MachineReconciler) drainNode(cluster *clusterv1.Cluster, nodeName string, machineName string) error {
+func (r *MachineReconciler) drainNode(ctx context.Context, cluster *clusterv1.Cluster, nodeName string, machineName string) error {
 	logger := r.Log.WithValues("machine", machineName, "node", nodeName, "cluster", cluster.Name, "namespace", cluster.Namespace)
 	var kubeClient kubernetes.Interface
 	if cluster == nil {
@@ -304,7 +304,7 @@ func (r *MachineReconciler) drainNode(cluster *clusterv1.Cluster, nodeName strin
 		}
 	} else {
 		// Otherwise, proceed to get the remote cluster client and get the Node.
-		restConfig, err := remote.RESTConfig(r.Client, cluster)
+		restConfig, err := remote.RESTConfig(ctx, r.Client, cluster)
 		if err != nil {
 			logger.Error(err, "Error creating a remote client while deleting Machine, won't retry")
 			return nil
@@ -373,7 +373,7 @@ func (r *MachineReconciler) deleteNode(ctx context.Context, cluster *clusterv1.C
 	logger := r.Log.WithValues("machine", name, "cluster", cluster.Name, "namespace", cluster.Namespace)
 
 	// Create a remote client to delete the node
-	c, err := remote.NewClusterClient(r.Client, cluster, r.scheme)
+	c, err := remote.NewClusterClient(ctx, r.Client, cluster, r.scheme)
 	if err != nil {
 		logger.Error(err, "Error creating a remote client for cluster while deleting Machine, won't retry")
 		return nil

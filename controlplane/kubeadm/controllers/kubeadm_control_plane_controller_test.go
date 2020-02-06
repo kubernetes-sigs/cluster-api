@@ -520,7 +520,7 @@ func TestReconcileClusterNoEndpoints(t *testing.T) {
 
 	g.Expect(kcp.Status.Selector).NotTo(BeEmpty())
 
-	_, err = secret.GetFromNamespacedName(fakeClient, client.ObjectKey{Namespace: "test", Name: "foo"}, secret.ClusterCA)
+	_, err = secret.GetFromNamespacedName(context.Background(), fakeClient, client.ObjectKey{Namespace: "test", Name: "foo"}, secret.ClusterCA)
 	g.Expect(err).NotTo(HaveOccurred())
 
 	machineList := &clusterv1.MachineList{}
@@ -632,13 +632,13 @@ func TestReconcileInitializeControlPlane(t *testing.T) {
 	g.Expect(kcp.Status.Selector).NotTo(BeEmpty())
 	g.Expect(kcp.Status.Replicas).To(BeEquivalentTo(1))
 
-	s, err := secret.GetFromNamespacedName(fakeClient, client.ObjectKey{Namespace: "test", Name: "foo"}, secret.ClusterCA)
+	s, err := secret.GetFromNamespacedName(context.Background(), fakeClient, client.ObjectKey{Namespace: "test", Name: "foo"}, secret.ClusterCA)
 	g.Expect(err).NotTo(HaveOccurred())
 	g.Expect(s).NotTo(BeNil())
 	g.Expect(s.Data).NotTo(BeEmpty())
 	g.Expect(s.Labels).To(Equal(expectedLabels))
 
-	k, err := kubeconfig.FromSecret(fakeClient, cluster)
+	k, err := kubeconfig.FromSecret(context.Background(), fakeClient, cluster)
 	g.Expect(err).NotTo(HaveOccurred())
 	g.Expect(k).NotTo(BeEmpty())
 

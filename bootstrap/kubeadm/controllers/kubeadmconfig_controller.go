@@ -196,7 +196,7 @@ func (r *KubeadmConfigReconciler) Reconcile(req ctrl.Request) (_ ctrl.Result, re
 
 			token := config.Spec.JoinConfiguration.Discovery.BootstrapToken.Token
 
-			remoteClient, err := r.remoteClientGetter(r.Client, cluster, r.scheme)
+			remoteClient, err := r.remoteClientGetter(ctx, r.Client, cluster, r.scheme)
 			if err != nil {
 				log.Error(err, "error creating remote cluster client")
 				return ctrl.Result{}, err
@@ -385,7 +385,7 @@ func (r *KubeadmConfigReconciler) joinWorker(ctx context.Context, scope *Scope) 
 	}
 
 	// ensure that joinConfiguration.Discovery is properly set for joining node on the current cluster
-	if err := r.reconcileDiscovery(scope.Cluster, scope.Config, certificates); err != nil {
+	if err := r.reconcileDiscovery(ctx, scope.Cluster, scope.Config, certificates); err != nil {
 		if requeueErr, ok := errors.Cause(err).(capierrors.HasRequeueAfterError); ok {
 			scope.Info(err.Error())
 			return ctrl.Result{RequeueAfter: requeueErr.GetRequeueAfter()}, nil
@@ -457,7 +457,7 @@ func (r *KubeadmConfigReconciler) joinControlplane(ctx context.Context, scope *S
 	}
 
 	// ensure that joinConfiguration.Discovery is properly set for joining node on the current cluster
-	if err := r.reconcileDiscovery(scope.Cluster, scope.Config, certificates); err != nil {
+	if err := r.reconcileDiscovery(ctx, scope.Cluster, scope.Config, certificates); err != nil {
 		if requeueErr, ok := errors.Cause(err).(capierrors.HasRequeueAfterError); ok {
 			scope.Info(err.Error())
 			return ctrl.Result{RequeueAfter: requeueErr.GetRequeueAfter()}, nil
@@ -558,7 +558,7 @@ func (r *KubeadmConfigReconciler) MachineToBootstrapMapFunc(o handler.MapObject)
 // The implementation func respect user provided discovery configurations, but in case some of them are missing, a valid BootstrapToken object
 // is automatically injected into config.JoinConfiguration.Discovery.
 // This allows to simplify configuration UX, by providing the option to delegate to CABPK the configuration of kubeadm join discovery.
-func (r *KubeadmConfigReconciler) reconcileDiscovery(cluster *clusterv1.Cluster, config *bootstrapv1.KubeadmConfig, certificates secret.Certificates) error {
+func (r *KubeadmConfigReconciler) reconcileDiscovery(ctx context.Context, cluster *clusterv1.Cluster, config *bootstrapv1.KubeadmConfig, certificates secret.Certificates) error {
 	log := r.Log.WithValues("kubeadmconfig", fmt.Sprintf("%s/%s", config.Namespace, config.Name))
 
 	// if config already contains a file discovery configuration, respect it without further validations
@@ -595,7 +595,7 @@ func (r *KubeadmConfigReconciler) reconcileDiscovery(cluster *clusterv1.Cluster,
 
 	// if BootstrapToken already contains a token, respect it; otherwise create a new bootstrap token for the node to join
 	if config.Spec.JoinConfiguration.Discovery.BootstrapToken.Token == "" {
-		remoteClient, err := r.remoteClientGetter(r.Client, cluster, r.scheme)
+		remoteClient, err := r.remoteClientGetter(ctx, r.Client, cluster, r.scheme)
 		if err != nil {
 			return err
 		}

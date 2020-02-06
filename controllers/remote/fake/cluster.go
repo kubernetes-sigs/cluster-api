@@ -17,6 +17,8 @@ limitations under the License.
 package fake
 
 import (
+	"context"
+
 	"k8s.io/apimachinery/pkg/runtime"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha3"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -24,6 +26,6 @@ import (
 
 // NewClusterClient returns the same client passed as input, as output. It is assumed that the client is a
 // fake controller-runtime client
-func NewClusterClient(c client.Client, cluster *clusterv1.Cluster, scheme *runtime.Scheme) (client.Client, error) {
+func NewClusterClient(_ context.Context, c client.Client, _ *clusterv1.Cluster, _ *runtime.Scheme) (client.Client, error) {
 	return c, nil
 }

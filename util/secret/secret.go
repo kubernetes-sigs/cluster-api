@@ -28,21 +28,21 @@ import (
 
 // Get retrieves the specified Secret (if any) from the given
 // cluster name and namespace.
-func Get(c client.Client, cluster *clusterv1.Cluster, purpose Purpose) (*corev1.Secret, error) {
+func Get(ctx context.Context, c client.Client, cluster *clusterv1.Cluster, purpose Purpose) (*corev1.Secret, error) {
 	name := types.NamespacedName{Name: cluster.Name, Namespace: cluster.Namespace}
-	return GetFromNamespacedName(c, name, purpose)
+	return GetFromNamespacedName(ctx, c, name, purpose)
 }
 
 // GetFromNamespacedName retrieves the specified Secret (if any) from the given
 // cluster name and namespace.
-func GetFromNamespacedName(c client.Client, clusterName types.NamespacedName, purpose Purpose) (*corev1.Secret, error) {
+func GetFromNamespacedName(ctx context.Context, c client.Client, clusterName types.NamespacedName, purpose Purpose) (*corev1.Secret, error) {
 	secret := &corev1.Secret{}
 	secretKey := client.ObjectKey{
 		Namespace: clusterName.Namespace,
 		Name:      Name(clusterName.Name, purpose),
 	}
 
-	if err := c.Get(context.TODO(), secretKey, secret); err != nil {
+	if err := c.Get(ctx, secretKey, secret); err != nil {
 		return nil, err
 	}
 

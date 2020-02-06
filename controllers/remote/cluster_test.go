@@ -17,6 +17,7 @@ limitations under the License.
 package remote
 
 import (
+	"context"
 	"testing"
 
 	. "github.com/onsi/gomega"
@@ -96,27 +97,27 @@ func TestNewClusterClient(t *testing.T) {
 
 	testScheme := runtime.NewScheme()
 	g.Expect(scheme.AddToScheme(testScheme)).To(Succeed())
-
+	ctx := context.Background()
 	t.Run("cluster with valid kubeconfig", func(t *testing.T) {
 		client := fake.NewFakeClientWithScheme(testScheme, validSecret)
-		c, err := NewClusterClient(client, clusterWithValidKubeConfig, testScheme)
+		c, err := NewClusterClient(ctx, client, clusterWithValidKubeConfig, testScheme)
 		g.Expect(err).NotTo(HaveOccurred())
 		g.Expect(c).NotTo(BeNil())
 
-		restConfig, err := RESTConfig(client, clusterWithValidKubeConfig)
+		restConfig, err := RESTConfig(ctx, client, clusterWithValidKubeConfig)
 		g.Expect(err).NotTo(HaveOccurred())
 		g.Expect(restConfig.Host).To(Equal("https://test-cluster-api:6443"))
 	})
 
 	t.Run("cluster with no kubeconfig", func(t *testing.T) {
 		client := fake.NewFakeClientWithScheme(testScheme)
-		_, err := NewClusterClient(client, clusterWithNoKubeConfig, testScheme)
+		_, err := NewClusterClient(ctx, client, clusterWithNoKubeConfig, testScheme)
 		g.Expect(err).To(MatchError(ContainSubstring("not found")))
 	})
 
 	t.Run("cluster with invalid kubeconfig", func(t *testing.T) {
 		client := fake.NewFakeClientWithScheme(testScheme, invalidSecret)
-		_, err := NewClusterClient(client, clusterWithInvalidKubeConfig, testScheme)
+		_, err := NewClusterClient(ctx, client, clusterWithInvalidKubeConfig, testScheme)
 		g.Expect(err).To(HaveOccurred())
 		g.Expect(apierrors.IsNotFound(err)).To(BeFalse())
 	})

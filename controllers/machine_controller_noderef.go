@@ -33,7 +33,7 @@ var (
 	ErrNodeNotFound = errors.New("cannot find node with matching ProviderID")
 )
 
-func (r *MachineReconciler) reconcileNodeRef(_ context.Context, cluster *clusterv1.Cluster, machine *clusterv1.Machine) error {
+func (r *MachineReconciler) reconcileNodeRef(ctx context.Context, cluster *clusterv1.Cluster, machine *clusterv1.Machine) error {
 	logger := r.Log.WithValues("machine", machine.Name, "namespace", machine.Namespace)
 	// Check that the Machine hasn't been deleted or in the process.
 	if !machine.DeletionTimestamp.IsZero() {
@@ -64,7 +64,7 @@ func (r *MachineReconciler) reconcileNodeRef(_ context.Context, cluster *cluster
 		return err
 	}
 
-	clusterClient, err := remote.NewClusterClient(r.Client, cluster, r.scheme)
+	clusterClient, err := remote.NewClusterClient(ctx, r.Client, cluster, r.scheme)
 	if err != nil {
 		return err
 	}

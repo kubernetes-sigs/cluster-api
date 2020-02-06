@@ -17,6 +17,8 @@ limitations under the License.
 package remote
 
 import (
+	"context"
+
 	"github.com/pkg/errors"
 	"k8s.io/apimachinery/pkg/runtime"
 	restclient "k8s.io/client-go/rest"
@@ -28,11 +30,11 @@ import (
 )
 
 // ClusterClientGetter returns a new remote client.
-type ClusterClientGetter func(c client.Client, cluster *clusterv1.Cluster, scheme *runtime.Scheme) (client.Client, error)
+type ClusterClientGetter func(ctx context.Context, c client.Client, cluster *clusterv1.Cluster, scheme *runtime.Scheme) (client.Client, error)
 
 // NewClusterClient returns a Client for interacting with a remote Cluster using the given scheme for encoding and decoding objects.
-func NewClusterClient(c client.Client, cluster *clusterv1.Cluster, scheme *runtime.Scheme) (client.Client, error) {
-	restConfig, err := RESTConfig(c, cluster)
+func NewClusterClient(ctx context.Context, c client.Client, cluster *clusterv1.Cluster, scheme *runtime.Scheme) (client.Client, error) {
+	restConfig, err := RESTConfig(ctx, c, cluster)
 	if err != nil {
 		return nil, err
 	}
@@ -49,8 +51,8 @@ func NewClusterClient(c client.Client, cluster *clusterv1.Cluster, scheme *runti
 }
 
 // RESTConfig returns a configuration instance to be used with a Kubernetes client.
-func RESTConfig(c client.Client, cluster *clusterv1.Cluster) (*restclient.Config, error) {
-	kubeConfig, err := kcfg.FromSecret(c, cluster)
+func RESTConfig(ctx context.Context, c client.Client, cluster *clusterv1.Cluster) (*restclient.Config, error) {
+	kubeConfig, err := kcfg.FromSecret(ctx, c, cluster)
 	if err != nil {
 		return nil, errors.Wrapf(err, "failed to retrieve kubeconfig secret for Cluster %s/%s", cluster.Namespace, cluster.Name)
 	}

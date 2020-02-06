@@ -188,8 +188,7 @@ func (r *ClusterReconciler) reconcileMetrics(_ context.Context, cluster *cluster
 		metrics.ClusterInfrastructureReady.WithLabelValues(cluster.Name, cluster.Namespace).Set(0)
 	}
 
-	// TODO: [wfernandes] pass context here
-	_, err := secret.Get(r.Client, cluster, secret.Kubeconfig)
+	_, err := secret.Get(context.Background(), r.Client, cluster, secret.Kubeconfig)
 	if err != nil {
 		metrics.ClusterKubeconfigReady.WithLabelValues(cluster.Name, cluster.Namespace).Set(0)
 	} else {

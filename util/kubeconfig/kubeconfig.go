@@ -40,8 +40,8 @@ var (
 )
 
 // FromSecret fetches the Kubeconfig for a Cluster.
-func FromSecret(c client.Client, cluster *clusterv1.Cluster) ([]byte, error) {
-	out, err := secret.Get(c, cluster, secret.Kubeconfig)
+func FromSecret(ctx context.Context, c client.Client, cluster *clusterv1.Cluster) ([]byte, error) {
+	out, err := secret.Get(ctx, c, cluster, secret.Kubeconfig)
 	if err != nil {
 		return nil, err
 	}
@@ -109,7 +109,7 @@ func CreateSecret(ctx context.Context, c client.Client, cluster *clusterv1.Clust
 
 // CreateSecretWithOwner creates the Kubeconfig secret for the given cluster name, namespace, endpoint, and owner reference.
 func CreateSecretWithOwner(ctx context.Context, c client.Client, clusterName types.NamespacedName, endpoint string, owner metav1.OwnerReference) error {
-	clusterCA, err := secret.GetFromNamespacedName(c, clusterName, secret.ClusterCA)
+	clusterCA, err := secret.GetFromNamespacedName(ctx, c, clusterName, secret.ClusterCA)
 	if err != nil {
 		if apierrors.IsNotFound(err) {
 			return ErrDependentCertificateNotFound

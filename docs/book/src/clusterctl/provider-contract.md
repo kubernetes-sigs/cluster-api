@@ -34,6 +34,27 @@ It is possible to customize the list of providers for `clusterctl` by changing t
 
 </aside>
 
+#### Creating a provider repository on GitHub
+
+You can use GitHub release to package your provider artifacts for other people to use.
+
+A github release can be used as a provider repository if:
+
+* The release tag is a valid semantic version number
+* The components YAML, the metadata YAML and eventually the workload cluster templates are include into the release assets.
+
+See the [GitHub help](https://help.github.com/en/github/administering-a-repository/creating-releases) for more information 
+about how to create a release.
+
+#### Creating a local provider repository
+
+clusterctl supports reading from a repository defined on the local file system.
+
+A local repository can be defined by creating a `<provider-name>` folder with a `<version>` sub-folder for each hosted release;
+the sub-folder name MUST be a valid semantic version number.
+
+Each version sub-folder MUST contain the corresponding components YAML, the metadata YAML and eventually the workload cluster templates.
+
 ### Metadata YAML
 
 The provider is required to generate a **metadata YAML** file and publish it to the provider's repository.

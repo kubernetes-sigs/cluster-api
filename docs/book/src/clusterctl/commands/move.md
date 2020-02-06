@@ -35,3 +35,29 @@ The `Cluster` object created in the target management cluster instead will be ac
 process completes. 
 
 </aside>
+
+## Pivot
+
+Pivoting is a process for moving the provider components and declared Cluster API resources from a source management
+cluster to a target management cluster.
+
+This can now achieved with the following procedure:
+
+1. Use `clusterctl init` to install the provider components into the target management cluster
+2. Use `clusterctl move` to move the cluster-api resources from a Source Management cluster to a Target Management cluster
+
+## Bootstrap & Pivot
+
+The pivot process can be bounded with the creation of a temporary bootstrap cluster
+used to provision a target Management cluster.
+
+This can now achieved with the following procedure:
+
+1. Create a temporary bootstrap cluster, e.g. using Kind or Minikube
+2. Use `clusterctl init` to install the provider components
+3. Use `clusterctl config cluster ... | kubectl apply -f -` to provision a target management cluster
+4. Wait for the target management cluster to be up and running
+5. Get the kubeconfig for the new target management cluster
+6. Use `clusterctl init` with the new cluster's kubeconfig to install the provider components 
+7. Use `clusterctl move` to move the Cluster API resources from the bootstrap cluster to the target management cluster
+8. Delete the bootstrap cluster

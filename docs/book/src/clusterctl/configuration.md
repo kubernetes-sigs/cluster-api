@@ -29,6 +29,8 @@ providers:
     type: "CoreProvider"
 ```
 
+See [provider contract](provider-contract.md) for instructions about how to set up a provider repository.
+
 ## Variables
 
 When installing a provider `clusterctl` reads a YAML file that is published in the provider repository; while executing

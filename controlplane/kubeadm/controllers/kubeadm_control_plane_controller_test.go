@@ -383,8 +383,9 @@ func TestKubeadmControlPlaneReconciler_initializeControlPlane(t *testing.T) {
 	)
 
 	r := &KubeadmControlPlaneReconciler{
-		Client: fakeClient,
-		Log:    log.Log,
+		Client:            fakeClient,
+		Log:               log.Log,
+		managementCluster: &internal.ManagementCluster{Client: fakeClient},
 	}
 
 	g.Expect(r.initializeControlPlane(context.Background(), cluster, kcp)).To(Succeed())
@@ -956,6 +957,7 @@ func TestKubeadmControlPlaneReconciler_updateStatusAllMachinesNotReady(t *testin
 		Log:                log.Log,
 		remoteClientGetter: fakeremote.NewClusterClient,
 		scheme:             scheme.Scheme,
+		managementCluster:  &internal.ManagementCluster{Client: fakeClient},
 	}
 
 	g.Expect(r.updateStatus(context.Background(), kcp, cluster)).To(Succeed())
@@ -1006,6 +1008,7 @@ func TestKubeadmControlPlaneReconciler_updateStatusAllMachinesReady(t *testing.T
 		Log:                log.Log,
 		remoteClientGetter: fakeremote.NewClusterClient,
 		scheme:             scheme.Scheme,
+		managementCluster:  &internal.ManagementCluster{Client: fakeClient},
 	}
 
 	g.Expect(r.updateStatus(context.Background(), kcp, cluster)).To(Succeed())
@@ -1060,6 +1063,7 @@ func TestKubeadmControlPlaneReconciler_updateStatusMachinesReadyMixed(t *testing
 		Log:                log.Log,
 		remoteClientGetter: fakeremote.NewClusterClient,
 		scheme:             scheme.Scheme,
+		managementCluster:  &internal.ManagementCluster{Client: fakeClient},
 	}
 
 	g.Expect(r.updateStatus(context.Background(), kcp, cluster)).To(Succeed())
@@ -1098,6 +1102,7 @@ func TestReconcileControlPlaneScaleUp(t *testing.T) {
 		recorder:           record.NewFakeRecorder(32),
 		scheme:             scheme.Scheme,
 		remoteClientGetter: fakeremote.NewClusterClient,
+		managementCluster:  &internal.ManagementCluster{Client: fakeClient},
 	}
 
 	for i := 1; i <= desiredReplicas; i++ {
@@ -1239,6 +1244,7 @@ func TestScaleUpControlPlaneAddsANewMachine(t *testing.T) {
 		recorder:           record.NewFakeRecorder(32),
 		scheme:             scheme.Scheme,
 		remoteClientGetter: fakeremote.NewClusterClient,
+		managementCluster:  &internal.ManagementCluster{Client: fakeClient},
 	}
 
 	// Create the first control plane replica
@@ -1380,6 +1386,7 @@ func TestReconcileControlPlaneDelete(t *testing.T) {
 			remoteClientGetter: fakeremote.NewClusterClient,
 			recorder:           record.NewFakeRecorder(32),
 			scheme:             scheme.Scheme,
+			managementCluster:  &internal.ManagementCluster{Client: fakeClient},
 		}
 
 		// Create control plane machines
@@ -1432,6 +1439,7 @@ func TestReconcileControlPlaneDelete(t *testing.T) {
 			remoteClientGetter: fakeremote.NewClusterClient,
 			recorder:           record.NewFakeRecorder(32),
 			scheme:             scheme.Scheme,
+			managementCluster:  &internal.ManagementCluster{Client: fakeClient},
 		}
 
 		// Create control plane machines

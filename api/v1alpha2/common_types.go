@@ -72,7 +72,7 @@ type ObjectMeta struct {
 	// Cannot be updated.
 	// More info: http://kubernetes.io/docs/user-guide/identifiers#names
 	// +optional
-	Name string `json:"name,omitempty" protobuf:"bytes,1,opt,name=name"`
+	Name string `json:"name,omitempty"`
 
 	// GenerateName is an optional prefix, used by the server, to generate a unique
 	// name ONLY IF the Name field has not been provided.
@@ -90,7 +90,7 @@ type ObjectMeta struct {
 	// Applied only if Name is not specified.
 	// More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#idempotency
 	// +optional
-	GenerateName string `json:"generateName,omitempty" protobuf:"bytes,2,opt,name=generateName"`
+	GenerateName string `json:"generateName,omitempty"`
 
 	// Namespace defines the space within each name must be unique. An empty namespace is
 	// equivalent to the "default" namespace, but "default" is the canonical representation.
@@ -101,21 +101,21 @@ type ObjectMeta struct {
 	// Cannot be updated.
 	// More info: http://kubernetes.io/docs/user-guide/namespaces
 	// +optional
-	Namespace string `json:"namespace,omitempty" protobuf:"bytes,3,opt,name=namespace"`
+	Namespace string `json:"namespace,omitempty"`
 
 	// Map of string keys and values that can be used to organize and categorize
 	// (scope and select) objects. May match selectors of replication controllers
 	// and services.
 	// More info: http://kubernetes.io/docs/user-guide/labels
 	// +optional
-	Labels map[string]string `json:"labels,omitempty" protobuf:"bytes,11,rep,name=labels"`
+	Labels map[string]string `json:"labels,omitempty"`
 
 	// Annotations is an unstructured key value map stored with a resource that may be
 	// set by external tools to store and retrieve arbitrary metadata. They are not
 	// queryable and should be preserved when modifying objects.
 	// More info: http://kubernetes.io/docs/user-guide/annotations
 	// +optional
-	Annotations map[string]string `json:"annotations,omitempty" protobuf:"bytes,12,rep,name=annotations"`
+	Annotations map[string]string `json:"annotations,omitempty"`
 
 	// List of objects depended by this object. If ALL objects in the list have
 	// been deleted, this object will be garbage collected. If this object is managed by a controller,
@@ -124,5 +124,5 @@ type ObjectMeta struct {
 	// +optional
 	// +patchMergeKey=uid
 	// +patchStrategy=merge
-	OwnerReferences []metav1.OwnerReference `json:"ownerReferences,omitempty" patchStrategy:"merge" patchMergeKey:"uid" protobuf:"bytes,13,rep,name=ownerReferences"`
+	OwnerReferences []metav1.OwnerReference `json:"ownerReferences,omitempty" patchStrategy:"merge" patchMergeKey:"uid"`
 }

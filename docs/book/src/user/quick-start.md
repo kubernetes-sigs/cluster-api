@@ -747,7 +747,7 @@ ready.
 kubectl get clusters --output jsonpath="{range .items[*]} [{.metadata.name} {.status.ControlPlaneInitialized} {.status.ControlPlaneReady}] {end}"
 ```
 
-After the control plane node is up, we can retrieve the workload cluster Kubeconfig:
+After the control plane node is up, we can retrieve the [workload cluster] Kubeconfig:
 
 {{#tabs name:"tab-getting-kubeconfig" tabs:"AWS|Azure|GCP|vSphere|OpenStack, Docker"}}
 {{#tab AWS|Azure|GCP|vSphere|OpenStack}}
@@ -1347,3 +1347,4 @@ spec:
 
 <!-- links -->
 [control-plane-controller]: ../architecture/controllers/control-plane.md
+[workload cluster]: ../reference/glossary.md#workload-cluster

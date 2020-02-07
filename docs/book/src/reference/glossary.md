@@ -134,7 +134,7 @@ Perform create, scale, upgrade, or destroy operations on the cluster.
 
 ### Management cluster
 
-The cluster where one or more Infrastructure Providers run, and where resources (e.g. Machines) are stored.  Typically referred to when you are provisioning multiple clusters.
+The cluster where one or more Infrastructure Providers run, and where resources (e.g. Machines) are stored. Typically referred to when you are provisioning multiple workload clusters.
 
 ### Management group
 
@@ -199,7 +199,7 @@ The infrastructure that backs a [Machine Resource](#user-content-machine), typic
 # T
 ---
 
-### Target management cluster
+### Target cluster
 
 The declared cluster we intend to create and manage using cluster-api when running `clusterctl create cluster`.
 
@@ -211,4 +211,3 @@ When running `clusterctl alpha phases pivot` this refers to the cluster that wil
 ### Workload Cluster
 
 A cluster created by a ClusterAPI controller, which is *not* a bootstrap cluster, and is meant to be used by end-users, as opposed to by CAPI tooling.
-

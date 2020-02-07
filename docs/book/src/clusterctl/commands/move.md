@@ -41,7 +41,7 @@ process completes.
 Pivoting is a process for moving the provider components and declared Cluster API resources from a source management
 cluster to a target management cluster.
 
-This can now achieved with the following procedure:
+This can now be achieved with the following procedure:
 
 1. Use `clusterctl init` to install the provider components into the target management cluster
 2. Use `clusterctl move` to move the cluster-api resources from a Source Management cluster to a Target Management cluster
@@ -51,7 +51,7 @@ This can now achieved with the following procedure:
 The pivot process can be bounded with the creation of a temporary bootstrap cluster
 used to provision a target Management cluster.
 
-This can now achieved with the following procedure:
+This can now be achieved with the following procedure:
 
 1. Create a temporary bootstrap cluster, e.g. using Kind or Minikube
 2. Use `clusterctl init` to install the provider components

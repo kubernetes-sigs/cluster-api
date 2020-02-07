@@ -5,8 +5,8 @@ installed into a management cluster.
 
 ## Background info: management groups
 
-The upgrade procedure is designed to ensure all the provider in a *management group* will be using the same
-Cluster API - API version.
+The upgrade procedure is designed to ensure all the providers in a *management group* use the same
+API Version of Cluster API (contract), e.g. the v1alpha 3 Cluster API contract.
 
 A management group is a group of providers composed by a CoreProvider and a set of Bootstrap/ControlPlane/Infrastructure
 providers watching objects in the same namespace.
@@ -28,7 +28,7 @@ Produces an output similar to this:
 ```shell
 Checking new release availability...
 
-Management group: capi-system/cluster-api, latest release available for the v1alpha3 Cluster API version:
+Management group: capi-system/cluster-api, latest release available for the v1alpha3 API Version of Cluster API (contract):
 
 NAME                NAMESPACE                       TYPE                     CURRENT VERSION   TARGET VERSION
 kubeadm-bootstrap   capi-kubeadm-bootstrap-system   BootstrapProvider        v0.3.0            v0.3.1
@@ -38,10 +38,10 @@ docker              capd-system                     InfrastructureProvider   v0.
 
 You can now apply the upgrade by executing the following command:
 
-   upgrade apply --management-group capi-system/cluster-api  --cluster-api-version v1alpha3
+   clusterctl upgrade apply --management-group capi-system/cluster-api  --contract v1alpha3
 ```
 
-The output contains the latest release available for each management group in the cluster/for each Cluster API / API version
+The output contains the latest release available for each management group in the cluster/for each API Version of Cluster API (contract)
 available at the moment.
 
 # upgrade apply
@@ -49,7 +49,7 @@ available at the moment.
 After choosing the desired option for the upgrade, you can run the provided command.
 
 ```shell
-upgrade apply --management-group capi-system/cluster-api  --cluster-api-version v1alpha3
+clusterctl upgrade apply --management-group capi-system/cluster-api  --cluster-api-version v1alpha3
 ```
 
 The upgrade process is composed by two steps:
@@ -60,7 +60,6 @@ The upgrade process is composed by two steps:
 
 Please note that clusterctl does not upgrade Cluster API objects (Clusters, MachineDeployments, Machine etc.); upgrading 
 such objects are the responsibility of the provider's controllers.
-
 
 <aside class="note warning">
 

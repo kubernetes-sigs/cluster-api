@@ -56,6 +56,12 @@ type Deleter interface {
 	Delete(ctx context.Context, obj runtime.Object, opts ...client.DeleteOption) error
 }
 
+// GetLister can get and list resources.
+type GetLister interface {
+	Getter
+	Lister
+}
+
 // CreateRelatedResourcesInput is the input type for CreateRelatedResources.
 type CreateRelatedResourcesInput struct {
 	Creator          Creator

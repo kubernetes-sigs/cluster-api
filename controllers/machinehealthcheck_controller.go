@@ -266,10 +266,6 @@ func (r *MachineHealthCheckReconciler) clusterToMachineHealthCheck(o handler.Map
 	return requests
 }
 
-func namespacedName(obj metav1.Object) types.NamespacedName {
-	return types.NamespacedName{Namespace: obj.GetNamespace(), Name: obj.GetName()}
-}
-
 // machineToMachineHealthCheck maps events from Machine objects to
 // MachineHealthCheck objects that monitor the given machine
 func (r *MachineHealthCheckReconciler) machineToMachineHealthCheck(o handler.MapObject) []reconcile.Request {
@@ -309,7 +305,7 @@ func (r *MachineHealthCheckReconciler) nodeToMachineHealthCheck(o handler.MapObj
 
 	machine, err := r.getMachineFromNode(node.Name)
 	if machine == nil || err != nil {
-		r.Log.Error(err, "Unable to retrieve machine from node", "node", namespacedName(node).String())
+		r.Log.Error(err, "Unable to retrieve machine from node", "node", node.GetName())
 		return nil
 	}
 

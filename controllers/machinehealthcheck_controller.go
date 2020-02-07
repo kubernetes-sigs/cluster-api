@@ -179,7 +179,7 @@ func (r *MachineHealthCheckReconciler) reconcile(ctx context.Context, cluster *c
 	logger = logger.WithValues("cluster", cluster.Name)
 
 	// Create client for target cluster
-	clusterClient, err := remote.NewClusterClient(r.Client, cluster, r.scheme)
+	clusterClient, err := remote.NewClusterClient(ctx, r.Client, cluster, r.scheme)
 	if err != nil {
 		logger.Error(err, "Error building target cluster client")
 		return ctrl.Result{}, err
@@ -352,7 +352,7 @@ func (r *MachineHealthCheckReconciler) watchClusterNodes(ctx context.Context, c 
 		return nil
 	}
 
-	config, err := remote.RESTConfig(c, cluster)
+	config, err := remote.RESTConfig(ctx, c, cluster)
 	if err != nil {
 		return errors.Wrap(err, "error fetching remote cluster config")
 	}

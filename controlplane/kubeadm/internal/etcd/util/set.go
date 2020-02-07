@@ -23,10 +23,10 @@ import (
 	"sort"
 )
 
-type Empty struct{}
+type empty struct{}
 
 // sets.UInt64 is a set of int64s, implemented via map[uint64]struct{} for minimal memory consumption.
-type UInt64 map[uint64]Empty
+type UInt64 map[uint64]empty
 
 // NewUInt64 creates a UInt64 from a list of values.
 func NewUInt64(items ...uint64) UInt64 {
@@ -50,7 +50,7 @@ func Int64KeySet(theMap interface{}) UInt64 {
 // Insert adds items to the set.
 func (s UInt64) Insert(items ...uint64) UInt64 {
 	for _, item := range items {
-		s[item] = Empty{}
+		s[item] = empty{}
 	}
 	return s
 }
@@ -111,7 +111,8 @@ func (s UInt64) Difference(s2 UInt64) UInt64 {
 // s2 = {a3, a4}
 // s1.Union(s2) = {a1, a2, a3, a4}
 // s2.Union(s1) = {a1, a2, a3, a4}
-func (s1 UInt64) Union(s2 UInt64) UInt64 {
+func (s UInt64) Union(s2 UInt64) UInt64 {
+	s1 := s
 	result := NewUInt64()
 	for key := range s1 {
 		result.Insert(key)
@@ -127,7 +128,8 @@ func (s1 UInt64) Union(s2 UInt64) UInt64 {
 // s1 = {a1, a2}
 // s2 = {a2, a3}
 // s1.Intersection(s2) = {a2}
-func (s1 UInt64) Intersection(s2 UInt64) UInt64 {
+func (s UInt64) Intersection(s2 UInt64) UInt64 {
+	s1 := s
 	var walk, other UInt64
 	result := NewUInt64()
 	if s1.Len() < s2.Len() {
@@ -146,7 +148,8 @@ func (s1 UInt64) Intersection(s2 UInt64) UInt64 {
 }
 
 // IsSuperset returns true if and only if s1 is a superset of s2.
-func (s1 UInt64) IsSuperset(s2 UInt64) bool {
+func (s UInt64) IsSuperset(s2 UInt64) bool {
+	s1 := s
 	for item := range s2 {
 		if !s1.Has(item) {
 			return false
@@ -158,7 +161,8 @@ func (s1 UInt64) IsSuperset(s2 UInt64) bool {
 // Equal returns true if and only if s1 is equal (as a set) to s2.
 // Two sets are equal if their membership is identical.
 // (In practice, this means same elements, order doesn't matter)
-func (s1 UInt64) Equal(s2 UInt64) bool {
+func (s UInt64) Equal(s2 UInt64) bool {
+	s1 := s
 	return len(s1) == len(s2) && s1.IsSuperset(s2)
 }
 

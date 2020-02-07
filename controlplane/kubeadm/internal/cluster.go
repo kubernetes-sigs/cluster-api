@@ -49,12 +49,12 @@ type ManagementCluster struct {
 	Client ctrlclient.Client
 }
 
-// FilterMachines filters a list of machines. If the filter returns true we keep it, if not we discard it.
-type FilterMachines func(machine clusterv1.Machine) bool
+// MachineFilter filters a list of machines. If the filter returns true we keep it, if not we discard it.
+type MachineFilter func(machine clusterv1.Machine) bool
 
-// OwnedControlPlaneMachines returns a FilterMachines function to find all owned control plane machines.
+// OwnedControlPlaneMachines returns a MachineFilter function to find all owned control plane machines.
 // Usage: managementCluster.GetMachinesForCluster(ctx, cluster, OwnedControlPlaneMachines(controlPlane.Name))
-func OwnedControlPlaneMachines(controlPlaneName string) FilterMachines {
+func OwnedControlPlaneMachines(controlPlaneName string) MachineFilter {
 	return func(machine clusterv1.Machine) bool {
 		controllerRef := metav1.GetControllerOf(&machine)
 		if controllerRef == nil {
@@ -66,7 +66,7 @@ func OwnedControlPlaneMachines(controlPlaneName string) FilterMachines {
 
 // GetMachinesForTargetCluster returns a list of machines that can be filtered or not.
 // If no filter is supplied then all machines associated with the target cluster are returned.
-func (m *ManagementCluster) GetMachinesForCluster(ctx context.Context, cluster types.NamespacedName, filters ...FilterMachines) ([]clusterv1.Machine, error) {
+func (m *ManagementCluster) GetMachinesForCluster(ctx context.Context, cluster types.NamespacedName, filters ...MachineFilter) ([]clusterv1.Machine, error) {
 	selector := m.ControlPlaneLabelsForCluster(cluster.Name)
 	allMachines := &clusterv1.MachineList{}
 	if err := m.Client.List(ctx, allMachines, client.InNamespace(cluster.Namespace), client.MatchingLabels(selector)); err != nil {
@@ -94,19 +94,19 @@ func (m *ManagementCluster) getCluster(ctx context.Context, clusterKey types.Nam
 	adapterCluster := &clusterv1.Cluster{
 		ObjectMeta: metav1.ObjectMeta{
 			Namespace: clusterKey.Namespace,
-			Name: clusterKey.Name,
+			Name:      clusterKey.Name,
 		},
 	}
 
 	// TODO(chuckha): Unroll remote.NewClusterClient if we are unhappy with getting a restConfig twice.
 	// TODO(chuckha): Fix this chain to accept a context
-	restConfig, err := remote.RESTConfig(m.Client, adapterCluster)
+	restConfig, err := remote.RESTConfig(ctx, m.Client, adapterCluster)
 	if err != nil {
 		return nil, err
 	}
 
 	// TODO(chuckha): Fix this entire chain to accept a context.
-	c, err := remote.NewClusterClient(m.Client, adapterCluster, scheme.Scheme)
+	c, err := remote.NewClusterClient(ctx, m.Client, adapterCluster, scheme.Scheme)
 	if err != nil {
 		return nil, err
 	}
@@ -201,7 +201,7 @@ type cluster struct {
 
 // generateEtcdTLSClientBundle builds an etcd client TLS bundle from the Etcd CA for this cluster.
 func (c *cluster) generateEtcdTLSClientBundle() (*tls.Config, error) {
-	clientCert, err := generateClientCert(c.etcdCACert,c.etcdCAkey)
+	clientCert, err := generateClientCert(c.etcdCACert, c.etcdCAkey)
 	if err != nil {
 		return nil, err
 	}
@@ -345,7 +345,7 @@ func generateClientCert(caCertEncoded, caKeyEncoded []byte) (tls.Certificate, er
 	if err != nil {
 		return tls.Certificate{}, err
 	}
-	return tls.X509KeyPair(certs.EncodeCertPEM(x509Cert),  certs.EncodePrivateKeyPEM(privKey))
+	return tls.X509KeyPair(certs.EncodeCertPEM(x509Cert), certs.EncodePrivateKeyPEM(privKey))
 }
 
 func newClientCert(caCert *x509.Certificate, key *rsa.PrivateKey, caKey *rsa.PrivateKey) (*x509.Certificate, error) {

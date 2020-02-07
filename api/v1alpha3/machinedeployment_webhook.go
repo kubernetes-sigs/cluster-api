@@ -107,12 +107,20 @@ func PopulateDefaultsMachineDeployment(d *MachineDeployment) {
 		d.Spec.ProgressDeadlineSeconds = pointer.Int32Ptr(600)
 	}
 
+	if d.Spec.Selector.MatchLabels == nil {
+		d.Spec.Selector.MatchLabels = make(map[string]string)
+	}
+
 	if d.Spec.Strategy == nil {
 		d.Spec.Strategy = &MachineDeploymentStrategy{}
 	}
 
 	if d.Spec.Strategy.Type == "" {
 		d.Spec.Strategy.Type = RollingUpdateMachineDeploymentStrategyType
+	}
+
+	if d.Spec.Template.Labels == nil {
+		d.Spec.Template.Labels = make(map[string]string)
 	}
 
 	// Default RollingUpdate strategy only if strategy type is RollingUpdate.
@@ -128,5 +136,12 @@ func PopulateDefaultsMachineDeployment(d *MachineDeployment) {
 			ios0 := intstr.FromInt(0)
 			d.Spec.Strategy.RollingUpdate.MaxUnavailable = &ios0
 		}
+	}
+
+	// If no selector has been provided, add label and selector for the
+	// MachineDeployment's name as a default way of providing uniqueness.
+	if len(d.Spec.Selector.MatchLabels) == 0 && len(d.Spec.Selector.MatchExpressions) == 0 {
+		d.Spec.Selector.MatchLabels[MachineDeploymentLabelName] = d.Name
+		d.Spec.Template.Labels[MachineDeploymentLabelName] = d.Name
 	}
 }

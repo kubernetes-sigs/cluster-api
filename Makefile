@@ -92,7 +92,7 @@ LDFLAGS := $(shell hack/version.sh)
 all: test manager clusterctl
 
 help:  ## Display this help
-	@awk 'BEGIN {FS = ":.*##"; printf "\nUsage:\n  make \033[36m<target>\033[0m\n"} /^[a-zA-Z_-]+:.*?##/ { printf "  \033[36m%-45s\033[0m %s\n", $$1, $$2 } /^##@/ { printf "\n\033[1m%s\033[0m\n", substr($$0, 5) } ' $(MAKEFILE_LIST)
+	@awk 'BEGIN {FS = ":.*##"; printf "\nUsage:\n  make \033[36m<target>\033[0m\n"} /^[0-9A-Za-z_-]+:.*?##/ { printf "  \033[36m%-45s\033[0m %s\n", $$1, $$2 } /^##@/ { printf "\n\033[1m%s\033[0m\n", substr($$0, 5) } ' $(MAKEFILE_LIST)
 
 ## --------------------------------------
 ## Testing
@@ -163,7 +163,7 @@ $(CONVERSION_GEN): $(TOOLS_DIR)/go.mod
 $(GOBINDATA): $(TOOLS_DIR)/go.mod # Build go-bindata from tools folder.
 	cd $(TOOLS_DIR); go build -tags=tools -o $(BIN_DIR)/go-bindata github.com/jteeuwen/go-bindata/go-bindata
 
-$(RELEASE_NOTES) : $(TOOLS_DIR)/go.mod
+$(RELEASE_NOTES): $(TOOLS_DIR)/go.mod
 	cd $(TOOLS_DIR) && go build -tags=tools -o $(RELEASE_NOTES_BIN) ./release
 
 .PHONY: e2e-framework

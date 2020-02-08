@@ -156,16 +156,16 @@ func (c *Client) Members(ctx context.Context) ([]*Member, error) {
 	}
 
 	clusterID := response.Header.GetClusterId()
-	members := make([]*Member, len(response.Members))
-	for i, m := range response.Members {
+	members := make([]*Member, 0)
+	for _, m := range response.Members {
 		newMember := pbMemberToMember(m)
 		newMember.ClusterID = clusterID
 		for _, c := range alarms {
 			if c.MemberID == newMember.ID {
 				newMember.Alarms = append(newMember.Alarms, c.Type)
 			}
-			members[i] = newMember
 		}
+		members = append(members, newMember)
 	}
 
 	return members, nil

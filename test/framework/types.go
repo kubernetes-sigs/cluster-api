@@ -18,29 +18,10 @@ package framework
 
 import (
 	"reflect"
-
-	"k8s.io/apimachinery/pkg/runtime"
-	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha3"
 )
-
-// Node contains all the pieces necessary to make a single node
-type Node struct {
-	Machine         *clusterv1.Machine
-	InfraMachine    runtime.Object
-	BootstrapConfig runtime.Object
-}
 
 // TypeToKind returns the Kind without the package prefix. Pass in a pointer to a struct
 // This will panic if used incorrectly.
 func TypeToKind(i interface{}) string {
 	return reflect.ValueOf(i).Elem().Type().Name()
-}
-
-// MachineDeployment contains the objects needed to create a
-// CAPI MachineDeployment resource and its associated template
-// resources.
-type MachineDeployment struct {
-	MachineDeployment       *clusterv1.MachineDeployment
-	BootstrapConfigTemplate runtime.Object
-	InfraMachineTemplate    runtime.Object
 }

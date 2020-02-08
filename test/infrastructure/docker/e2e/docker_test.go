@@ -24,38 +24,70 @@ import (
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
-	controlplanev1 "sigs.k8s.io/cluster-api/controlplane/kubeadm/api/v1alpha3"
 
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha3"
 	bootstrapv1 "sigs.k8s.io/cluster-api/bootstrap/kubeadm/api/v1alpha3"
 	"sigs.k8s.io/cluster-api/bootstrap/kubeadm/types/v1beta1"
+	controlplanev1 "sigs.k8s.io/cluster-api/controlplane/kubeadm/api/v1alpha3"
 	"sigs.k8s.io/cluster-api/test/framework"
 	infrav1 "sigs.k8s.io/cluster-api/test/infrastructure/docker/api/v1alpha3"
-	"sigs.k8s.io/controller-runtime/pkg/client"
+	ctrlclient "sigs.k8s.io/controller-runtime/pkg/client"
 )
 
 var _ = Describe("Docker", func() {
 	Describe("Cluster Creation", func() {
 		var (
 			namespace  string
-			input      *framework.ControlplaneClusterInput
+			client     ctrlclient.Client
 			clusterGen = &ClusterGenerator{}
+			cluster    *clusterv1.Cluster
 		)
+		SetDefaultEventuallyTimeout(3 * time.Minute)
+		SetDefaultEventuallyPollingInterval(10 * time.Second)
 
 		BeforeEach(func() {
 			namespace = "default"
 		})
 
 		AfterEach(func() {
-			ensureDockerArtifactsDeleted(input)
+			deleteClusterInput := framework.DeleteClusterInput{
+				Deleter: client,
+				Cluster: cluster,
+			}
+			framework.DeleteCluster(ctx, deleteClusterInput)
+
+			waitForClusterDeletedInput := framework.WaitForClusterDeletedInput{
+				Getter:  client,
+				Cluster: cluster,
+			}
+			framework.WaitForClusterDeleted(ctx, waitForClusterDeletedInput)
+
+			assertAllClusterAPIResourcesAreGoneInput := framework.AssertAllClusterAPIResourcesAreGoneInput{
+				Lister:  client,
+				Cluster: cluster,
+			}
+			framework.AssertAllClusterAPIResourcesAreGone(ctx, assertAllClusterAPIResourcesAreGoneInput)
+
+			ensureDockerDeletedInput := ensureDockerArtifactsDeletedInput{
+				Lister:  client,
+				Cluster: cluster,
+			}
+			ensureDockerArtifactsDeleted(ensureDockerDeletedInput)
 		})
 
 		Context("Multi-node controlplane cluster", func() {
+
 			It("should create a multi-node controlplane cluster", func() {
 				replicas := 3
-				cluster, infraCluster, controlPlane, template := clusterGen.GenerateCluster(namespace, int32(replicas))
+				var (
+					infraCluster *infrav1.DockerCluster
+					template     *infrav1.DockerMachineTemplate
+					controlPlane *controlplanev1.KubeadmControlPlane
+					err          error
+				)
+				cluster, infraCluster, controlPlane, template = clusterGen.GenerateCluster(namespace, int32(replicas))
 				// Set failure domains here
 				infraCluster.Spec.FailureDomains = clusterv1.FailureDomains{
 					"domain-one":   {ControlPlane: true},
@@ -65,25 +97,70 @@ var _ = Describe("Docker", func() {
 				}
 
 				md, infraTemplate, bootstrapTemplate := GenerateMachineDeployment(cluster, 1)
-				input = &framework.ControlplaneClusterInput{
-					Management:    mgmt,
-					Cluster:       cluster,
-					InfraCluster:  infraCluster,
-					CreateTimeout: 5 * time.Minute,
-					MachineDeployment: framework.MachineDeployment{
-						MachineDeployment:       md,
-						InfraMachineTemplate:    infraTemplate,
-						BootstrapConfigTemplate: bootstrapTemplate,
-					},
+
+				// Set up the client to the management cluster
+				client, err = mgmt.GetClient()
+				Expect(err).NotTo(HaveOccurred())
+
+				// Set up the cluster object
+				createClusterInput := framework.CreateClusterInput{
+					Creator:      client,
+					Cluster:      cluster,
+					InfraCluster: infraCluster,
+				}
+				framework.CreateCluster(ctx, createClusterInput)
+
+				// Set up the KubeadmControlPlane
+				createKubeadmControlPlaneInput := framework.CreateKubeadmControlPlaneInput{
+					Creator:         client,
 					ControlPlane:    controlPlane,
 					MachineTemplate: template,
 				}
-				input.ControlPlaneCluster()
+				framework.CreateKubeadmControlPlane(ctx, createKubeadmControlPlaneInput)
+
+				// Wait for the cluster to provision.
+				assertClusterProvisionsInput := framework.WaitForClusterToProvisionInput{
+					Getter:  client,
+					Cluster: cluster,
+				}
+				framework.WaitForClusterToProvision(ctx, assertClusterProvisionsInput)
+
+				// Create the workload nodes
+				createMachineDeploymentinput := framework.CreateMachineDeploymentInput{
+					Creator:                 client,
+					MachineDeployment:       md,
+					BootstrapConfigTemplate: bootstrapTemplate,
+					InfraMachineTemplate:    infraTemplate,
+				}
+				framework.CreateMachineDeployment(ctx, createMachineDeploymentinput)
+
+				// Wait for the controlplane nodes to exist
+				assertKubeadmControlPlaneNodesExistInput := framework.WaitForKubeadmControlPlaneMachinesToExistInput{
+					Lister:       client,
+					Cluster:      cluster,
+					ControlPlane: controlPlane,
+				}
+				framework.WaitForKubeadmControlPlaneMachinesToExist(ctx, assertKubeadmControlPlaneNodesExistInput)
+
+				// Wait for the workload nodes to exist
+				waitForMachineDeploymentNodesToExistInput := framework.WaitForMachineDeploymentNodesToExistInput{
+					Lister:            client,
+					Cluster:           cluster,
+					MachineDeployment: md,
+				}
+				framework.WaitForMachineDeploymentNodesToExist(ctx, waitForMachineDeploymentNodesToExistInput)
+
+				// Wait for the control plane to be ready
+				waitForControlPlaneToBeReadyInput := framework.WaitForControlPlaneToBeReadyInput{
+					Getter:       client,
+					ControlPlane: controlPlane,
+				}
+				framework.WaitForControlPlaneToBeReady(ctx, waitForControlPlaneToBeReadyInput)
 
 				// Custom expectations around Failure Domains
 				By("waiting for all machines to be running")
-				inClustersNamespaceListOption := client.InNamespace(cluster.GetNamespace())
-				matchClusterListOption := client.MatchingLabels{
+				inClustersNamespaceListOption := ctrlclient.InNamespace(cluster.GetNamespace())
+				matchClusterListOption := ctrlclient.MatchingLabels{
 					clusterv1.ClusterLabelName:             cluster.GetName(),
 					clusterv1.MachineControlPlaneLabelName: "",
 				}
@@ -114,8 +191,6 @@ var _ = Describe("Docker", func() {
 					// This is a custom expectation bound to the fact that there are exactly 3 control planes
 					Expect(failureDomainCounts[id]).To(Equal(1), "each failure domain should have exactly one control plane: %v", failureDomainCounts)
 				}
-
-				input.CleanUpCoreArtifacts()
 			})
 		})
 	})

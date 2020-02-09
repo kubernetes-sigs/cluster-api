@@ -275,42 +275,12 @@ func Convert_v1alpha2_MachineSpec_To_v1alpha3_MachineSpec(in *MachineSpec, out *
 
 	if in.Bootstrap.ConfigRef != nil {
 		gvk := in.Bootstrap.ConfigRef.GetObjectKind().GroupVersionKind()
-		if gvk.Group == bootstrapv1a3.GroupVersion.Group && gvk.Kind == kubeadmConfigKind {
+		if gvk.Group == bootstrapv1a3.GroupVersion.Group && (gvk.Kind == kubeadmConfigKind  || gvk.Kind == kubeadmConfigTemplateKind) {
 			out.Bootstrap.ConfigRef.APIVersion = bootstrapv1a3.GroupVersion.String()
 		}
 	}
 
 	// Discards unused ObjectMeta
-
-	return nil
-}
-
-func Convert_v1alpha2_MachineSetSpec_To_v1alpha3_MachineSetSpec(in *MachineSetSpec, out *v1alpha3.MachineSetSpec, s apiconversion.Scope) error {
-	if err := autoConvert_v1alpha2_MachineSetSpec_To_v1alpha3_MachineSetSpec(in, out, s); err != nil {
-		return err
-	}
-
-	if in.Template.Spec.Bootstrap.ConfigRef != nil  {
-		gvk := in.Template.Spec.Bootstrap.ConfigRef.GetObjectKind().GroupVersionKind()
-		if gvk.Group == bootstrapv1a3.GroupVersion.Group && gvk.Kind == kubeadmConfigTemplateKind {
-			out.Template.Spec.Bootstrap.ConfigRef.APIVersion = bootstrapv1a3.GroupVersion.String()
-		}
-	}
-
-	return nil
-}
-
-func Convert_v1alpha2_MachineDeploymentSpec_To_v1alpha3_MachineDeploymentSpec(in *MachineDeploymentSpec, out *v1alpha3.MachineDeploymentSpec, s apiconversion.Scope) error {
-	if err := autoConvert_v1alpha2_MachineDeploymentSpec_To_v1alpha3_MachineDeploymentSpec(in, out, s); err != nil {
-		return err
-	}
-
-	if in.Template.Spec.Bootstrap.ConfigRef != nil  {
-		gvk := in.Template.Spec.Bootstrap.ConfigRef.GetObjectKind().GroupVersionKind()
-		if gvk.Group == bootstrapv1a3.GroupVersion.Group && gvk.Kind == kubeadmConfigTemplateKind {
-			out.Template.Spec.Bootstrap.ConfigRef.APIVersion = bootstrapv1a3.GroupVersion.String()
-		}
-	}
 
 	return nil
 }

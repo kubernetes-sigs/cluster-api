@@ -142,6 +142,18 @@ func (f *metadataClient) getEmbeddedMetadata() *clusterctlv1.Metadata {
 				// older version are not supported by clusterctl
 			},
 		}
+	case config.KubeadmControlPlaneProviderName:
+		return &clusterctlv1.Metadata{
+			TypeMeta: metav1.TypeMeta{
+				APIVersion: clusterctlv1.GroupVersion.String(),
+				Kind:       "Metadata",
+			},
+			ReleaseSeries: []clusterctlv1.ReleaseSeries{
+				// v1alpha3 release series
+				{Major: 0, Minor: 3, Contract: "v1alpha3"}, // KCP version scheme is linked to CAPI.
+				// there are no older version for KCP
+			},
+		}
 	case config.AWSProviderName:
 		return &clusterctlv1.Metadata{
 			TypeMeta: metav1.TypeMeta{

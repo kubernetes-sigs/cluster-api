@@ -74,7 +74,7 @@ var _ = Describe("MachineDeployment Reconciler", func() {
 				MinReadySeconds:      pointer.Int32Ptr(0),
 				Replicas:             pointer.Int32Ptr(2),
 				RevisionHistoryLimit: pointer.Int32Ptr(0),
-				Selector:             metav1.LabelSelector{MatchLabels: labels},
+				Selector:             metav1.LabelSelector{},
 				Strategy: &clusterv1.MachineDeploymentStrategy{
 					Type: clusterv1.RollingUpdateMachineDeploymentStrategyType,
 					RollingUpdate: &clusterv1.MachineRollingUpdateDeployment{
@@ -192,7 +192,7 @@ var _ = Describe("MachineDeployment Reconciler", func() {
 		// Verify that machines has MachineSetLabelName and MachineDeploymentLabelName labels
 		By("Verify machines have expected MachineSetLabelName and MachineDeploymentLabelName")
 		for _, m := range machines.Items {
-			Expect(m.Labels[clusterv1.MachineDeploymentLabelName]).To(Equal(deployment.Name))
+			Expect(m.Labels[clusterv1.ClusterLabelName]).To(Equal(testCluster.Name))
 			Expect(m.Labels[clusterv1.MachineSetLabelName]).To(Equal(machineSets.Items[0].Name))
 		}
 
@@ -303,6 +303,8 @@ var _ = Describe("MachineDeployment Reconciler", func() {
 		// expect old MachineSets with old labels to be deleted
 		//
 		oldLabels := deployment.Spec.Selector.MatchLabels
+		oldLabels[clusterv1.MachineDeploymentLabelName] = deployment.Name
+
 		newLabels := map[string]string{
 			"new-key": "new-value",
 		}

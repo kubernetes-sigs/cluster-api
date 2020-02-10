@@ -26,7 +26,11 @@ import (
 
 func TestMachineDeploymentDefault(t *testing.T) {
 	g := NewWithT(t)
-	md := &MachineDeployment{}
+	md := &MachineDeployment{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: "test-md",
+		},
+	}
 
 	md.Default()
 
@@ -35,6 +39,8 @@ func TestMachineDeploymentDefault(t *testing.T) {
 	g.Expect(md.Spec.RevisionHistoryLimit).To(Equal(pointer.Int32Ptr(1)))
 	g.Expect(md.Spec.ProgressDeadlineSeconds).To(Equal(pointer.Int32Ptr(600)))
 	g.Expect(md.Spec.Strategy).ToNot(BeNil())
+	g.Expect(md.Spec.Selector.MatchLabels).To(HaveKeyWithValue(MachineDeploymentLabelName, "test-md"))
+	g.Expect(md.Spec.Template.Labels).To(HaveKeyWithValue(MachineDeploymentLabelName, "test-md"))
 	g.Expect(md.Spec.Strategy.Type).To(Equal(RollingUpdateMachineDeploymentStrategyType))
 	g.Expect(md.Spec.Strategy.RollingUpdate).ToNot(BeNil())
 	g.Expect(md.Spec.Strategy.RollingUpdate.MaxSurge.IntValue()).To(Equal(1))

@@ -152,10 +152,6 @@ func (r *MachineDeploymentReconciler) reconcile(_ context.Context, cluster *clus
 	d.Spec.Selector.MatchLabels[clusterv1.ClusterLabelName] = d.Spec.ClusterName
 	d.Spec.Template.Labels[clusterv1.ClusterLabelName] = d.Spec.ClusterName
 
-	// Add label and selector based on the MachineDeployment's name.
-	d.Spec.Selector.MatchLabels[clusterv1.MachineDeploymentLabelName] = d.Name
-	d.Spec.Template.Labels[clusterv1.MachineDeploymentLabelName] = d.Name
-
 	if r.shouldAdopt(d) {
 		d.OwnerReferences = util.EnsureOwnerRef(d.OwnerReferences, metav1.OwnerReference{
 			APIVersion: clusterv1.GroupVersion.String(),

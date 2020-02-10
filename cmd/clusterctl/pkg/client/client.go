@@ -120,12 +120,6 @@ type MoveOptions struct {
 	Namespace string
 }
 
-// PlanUpgradeOptions carries the options supported by upgrade plan.
-type PlanUpgradeOptions struct {
-	// Kubeconfig file to use for accessing the management cluster. If empty, default rules for kubeconfig discovery will be used.
-	Kubeconfig string
-}
-
 // Client is exposes the clusterctl high-level client library.
 type Client interface {
 	// GetProvidersConfig returns the list of providers configured for this instance of clusterctl.
@@ -152,6 +146,9 @@ type Client interface {
 	//   - Upgrade to the latest version in the the v1alpha2 series: ....
 	//   - Upgrade to the latest version in the the v1alpha3 series: ....
 	PlanUpgrade(options PlanUpgradeOptions) ([]UpgradePlan, error)
+
+	// ApplyUpgrade executes an upgrade plan.
+	ApplyUpgrade(options ApplyUpgradeOptions) error
 }
 
 // clusterctlClient implements Client.

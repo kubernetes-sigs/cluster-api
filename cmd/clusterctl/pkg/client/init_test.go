@@ -415,7 +415,7 @@ func fakeEmptyCluster() *fakeClient {
 		WithFile("v3.1.0", "components.yaml", componentsYAML("ns4")).
 		WithFile("v3.0.0", "cluster-template.yaml", templateYAML("ns4", "test"))
 
-	cluster1 := newFakeCluster("kubeconfig")
+	cluster1 := newFakeCluster("kubeconfig", config1)
 
 	client := newFakeClient(config1).
 		// fake repository for capi, bootstrap and infra provider (matching provider's config)

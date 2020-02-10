@@ -62,10 +62,43 @@ var upgradePlanCmd = &cobra.Command{
 	},
 }
 
+type upgradeApplyOptions struct {
+	kubeconfig      string
+	managementGroup string
+	contract        string
+}
+
+var ua = &upgradeApplyOptions{}
+
+var upgradeApplyCmd = &cobra.Command{
+	Use:   "apply",
+	Short: "Applies new versions of Cluster API providers in a management cluster",
+	Long: LongDesc(`
+		The upgrade apply command applies new versions of Cluster API providers as defined by clusterctl upgrade plan.
+		
+		New version should be applied for each management groups, ensuring all the providers on the same cluster API version
+		in order to guarantee the proper functioning of the management cluster.`),
+
+	Example: Examples(`
+		# Upgrades all the providers in the capi-system/cluster-api to the latest version available which is compliant
+		# to the v1alpha3 API Version of Cluster API (contract).
+		clusterctl upgrade apply --management-group capi-system/cluster-api  --contract v1alpha3`),
+
+	RunE: func(cmd *cobra.Command, args []string) error {
+		return runUpgradeApply()
+	},
+}
+
 func init() {
 	upgradePlanCmd.Flags().StringVarP(&up.kubeconfig, "kubeconfig", "", "", "Path to the kubeconfig file to use for accessing the management cluster. If empty, default rules for kubeconfig discovery will be used")
 
 	upgradeCmd.AddCommand(upgradePlanCmd)
+
+	upgradeApplyCmd.Flags().StringVarP(&ua.kubeconfig, "kubeconfig", "", "", "Path to the kubeconfig file to use for accessing the management cluster. If empty, default rules for kubeconfig discovery will be used")
+	upgradeApplyCmd.Flags().StringVarP(&ua.managementGroup, "management-group", "", "", "The management group that should be upgraded")
+	upgradeApplyCmd.Flags().StringVarP(&ua.contract, "contract", "", "", "The API Version of Cluster API (contract) the management group should upgrade to")
+
+	upgradeCmd.AddCommand(upgradeApplyCmd)
 
 	RootCmd.AddCommand(upgradeCmd)
 }
@@ -114,7 +147,7 @@ func runUpgradePlan() error {
 		if upgradeAvailable {
 			fmt.Println("You can now apply the upgrade by executing the following command:")
 			fmt.Println("")
-			fmt.Println(fmt.Sprintf("   upgrade apply --management-group %s --cluster-api-version %s", plan.CoreProvider.InstanceName(), plan.Contract))
+			fmt.Println(fmt.Sprintf("   upgrade apply --management-group %s --contract %s", plan.CoreProvider.InstanceName(), plan.Contract))
 		} else {
 			fmt.Println("You are already up to date!")
 		}
@@ -145,4 +178,20 @@ func prettifyTargetVersion(version string) string {
 		return "Already up to date"
 	}
 	return version
+}
+
+func runUpgradeApply() error {
+	c, err := client.New(cfgFile)
+	if err != nil {
+		return err
+	}
+
+	if err := c.ApplyUpgrade(client.ApplyUpgradeOptions{
+		Kubeconfig:      ua.kubeconfig,
+		ManagementGroup: ua.managementGroup,
+		Contract:        ua.contract,
+	}); err != nil {
+		return err
+	}
+	return nil
 }

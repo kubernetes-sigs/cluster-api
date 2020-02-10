@@ -46,7 +46,7 @@ func TestNewFakeClient(t *testing.T) {
 		WithFile("v1.0", "components.yaml", []byte("content"))
 
 	// create a fake cluster, eventually adding some existing runtime objects to it
-	cluster1 := newFakeCluster("cluster1").
+	cluster1 := newFakeCluster("cluster1", config1).
 		WithObjs()
 
 	// create a new fakeClient that allows to execute tests on the fake config, the fake repositories and the fake cluster.
@@ -90,6 +90,10 @@ func (f fakeClient) Move(options MoveOptions) error {
 
 func (f fakeClient) PlanUpgrade(options PlanUpgradeOptions) ([]UpgradePlan, error) {
 	return f.internalClient.PlanUpgrade(options)
+}
+
+func (f fakeClient) ApplyUpgrade(options ApplyUpgradeOptions) error {
+	return f.internalClient.ApplyUpgrade(options)
 }
 
 // newFakeClient returns a clusterctl client that allows to execute tests on a set of fake config, fake repositories and fake clusters.
@@ -143,20 +147,29 @@ func (f *fakeClient) WithRepository(repositoryClient repository.Client) *fakeCli
 // newFakeCluster returns a fakeClusterClient that
 // internally uses a FakeProxy (based on the controller-runtime FakeClient).
 // You can use WithObjs to pre-load a set of runtime objects in the cluster.
-func newFakeCluster(kubeconfig string) *fakeClusterClient {
-	configClient := newFakeConfig()
-	fakeProxy := test.NewFakeProxy()
+func newFakeCluster(kubeconfig string, configClient config.Client) *fakeClusterClient {
+	fake := &fakeClusterClient{
+		kubeconfig:   kubeconfig,
+		repositories: map[string]repository.Client{},
+	}
+
+	fake.fakeProxy = test.NewFakeProxy()
 	pollImmediateWaiter := func(interval, timeout time.Duration, condition wait.ConditionFunc) error {
 		return nil
 	}
 
-	client := cluster.New("", configClient, cluster.InjectProxy(fakeProxy), cluster.InjectPollImmediateWaiter(pollImmediateWaiter))
+	fake.internalclient = cluster.New("", configClient,
+		cluster.InjectProxy(fake.fakeProxy),
+		cluster.InjectPollImmediateWaiter(pollImmediateWaiter),
+		cluster.InjectRepositoryFactory(func(provider config.Provider, configVariablesClient config.VariablesClient, options ...repository.Option) (repository.Client, error) {
+			if _, ok := fake.repositories[provider.Name()]; !ok {
+				return nil, errors.Errorf("Repository for kubeconfig %q does not exists.", provider.Name())
+			}
+			return fake.repositories[provider.Name()], nil
+		}),
+	)
 
-	return &fakeClusterClient{
-		kubeconfig:     kubeconfig,
-		fakeProxy:      fakeProxy,
-		internalclient: client,
-	}
+	return fake
 }
 
 type fakeCertManagerClient struct {
@@ -172,6 +185,7 @@ func (p *fakeCertManagerClient) EnsureWebHook() error {
 type fakeClusterClient struct {
 	kubeconfig     string
 	fakeProxy      *test.FakeProxy
+	repositories   map[string]repository.Client
 	internalclient cluster.Client
 }
 
@@ -216,6 +230,11 @@ func (f *fakeClusterClient) WithObjs(objs ...runtime.Object) *fakeClusterClient 
 
 func (f *fakeClusterClient) WithProviderInventory(name string, providerType clusterctlv1.ProviderType, version, targetNamespace, watchingNamespace string) *fakeClusterClient {
 	f.fakeProxy.WithProviderInventory(name, providerType, version, targetNamespace, watchingNamespace)
+	return f
+}
+
+func (f *fakeClusterClient) WithRepository(repositoryClient repository.Client) *fakeClusterClient {
+	f.repositories[repositoryClient.Name()] = repositoryClient
 	return f
 }
 
@@ -312,6 +331,16 @@ func (f *fakeRepositoryClient) WithPaths(rootPath, componentsPath string) *fakeR
 
 func (f *fakeRepositoryClient) WithDefaultVersion(version string) *fakeRepositoryClient {
 	f.fakeRepository.WithDefaultVersion(version)
+	return f
+}
+
+func (f *fakeRepositoryClient) WithVersions(version ...string) *fakeRepositoryClient {
+	f.fakeRepository.WithVersions(version...)
+	return f
+}
+
+func (f *fakeRepositoryClient) WithMetadata(version string, metadata *clusterctlv1.Metadata) *fakeRepositoryClient {
+	f.fakeRepository.WithMetadata(version, metadata)
 	return f
 }
 

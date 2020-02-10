@@ -53,17 +53,25 @@ func (i *providerInstaller) Add(components repository.Components) error {
 func (i *providerInstaller) Install() ([]repository.Components, error) {
 	ret := make([]repository.Components, 0, len(i.installQueue))
 	for _, components := range i.installQueue {
-		if err := i.providerComponents.Create(components); err != nil {
-			return nil, err
-		}
-
-		if err := i.providerInventory.Create(components.InventoryObject()); err != nil {
+		if err := installComponentsAndUpdateInventory(components, i.providerComponents, i.providerInventory); err != nil {
 			return nil, err
 		}
 
 		ret = append(ret, components)
 	}
 	return ret, nil
+}
+
+func installComponentsAndUpdateInventory(components repository.Components, providerComponents ComponentsClient, providerInventory InventoryClient) error {
+	if err := providerComponents.Create(components); err != nil {
+		return err
+	}
+
+	if err := providerInventory.Create(components.InventoryObject()); err != nil {
+		return err
+	}
+
+	return nil
 }
 
 func newProviderInstaller(proxy Proxy, providerMetadata InventoryClient, providerComponents ComponentsClient) *providerInstaller {

@@ -114,7 +114,7 @@ func (c *clusterClient) ObjectMover() ObjectMover {
 }
 
 func (c *clusterClient) ProviderUpgrader() ProviderUpgrader {
-	return newProviderUpgrader(c.configClient, c.repositoryClientFactory, c.ProviderInventory())
+	return newProviderUpgrader(c.configClient, c.repositoryClientFactory, c.ProviderInventory(), c.ProviderComponents())
 }
 
 // Option is a configuration option supplied to New

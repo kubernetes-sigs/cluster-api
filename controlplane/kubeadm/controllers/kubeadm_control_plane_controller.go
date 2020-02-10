@@ -75,6 +75,8 @@ type KubeadmControlPlaneReconciler struct {
 	recorder   record.EventRecorder
 
 	remoteClientGetter remote.ClusterClientGetter
+
+	managementCluster *internal.ManagementCluster
 }
 
 func (r *KubeadmControlPlaneReconciler) SetupWithManager(mgr ctrl.Manager, options controller.Options) error {
@@ -136,6 +138,7 @@ func (r *KubeadmControlPlaneReconciler) Reconcile(req ctrl.Request) (res ctrl.Re
 		logger.Info("Reconciliation is paused")
 		return ctrl.Result{}, nil
 	}
+	r.managementCluster = &internal.ManagementCluster{Client: r.Client}
 
 	// Wait for the cluster infrastructure to be ready before creating machines
 	if !cluster.Status.InfrastructureReady {
@@ -183,12 +186,10 @@ func (r *KubeadmControlPlaneReconciler) reconcile(ctx context.Context, cluster *
 	}
 
 	// TODO: handle proper adoption of Machines
-	allMachines, err := r.getMachines(ctx, types.NamespacedName{Namespace: cluster.Namespace, Name: cluster.Name})
+	ownedMachines, err := r.managementCluster.GetMachinesForCluster(ctx, clusterKey(cluster), internal.OwnedControlPlaneMachines(kcp.Name))
 	if err != nil {
-		logger.Error(err, "Failed to get list of machines")
 		return ctrl.Result{}, err
 	}
-	ownedMachines := r.filterOwnedMachines(kcp, allMachines)
 
 	// Generate Cluster Certificates if needed
 	config := kcp.Spec.KubeadmConfigSpec.DeepCopy()
@@ -235,7 +236,7 @@ func (r *KubeadmControlPlaneReconciler) reconcile(ctx context.Context, cluster *
 
 	// Currently we are not handling upgrade, so treat all owned machines as one for now.
 	// Once we start handling upgrade, we'll need to filter this list and act appropriately
-	numMachines := len(ownedMachines.Items)
+	numMachines := len(ownedMachines)
 	desiredReplicas := int(*kcp.Spec.Replicas)
 
 	switch {
@@ -270,7 +271,7 @@ func (r *KubeadmControlPlaneReconciler) reconcile(ctx context.Context, cluster *
 }
 
 func (r *KubeadmControlPlaneReconciler) updateStatus(ctx context.Context, kcp *controlplanev1.KubeadmControlPlane, cluster *clusterv1.Cluster) error {
-	labelSelector := generateKubeadmControlPlaneSelector(cluster.Name)
+	labelSelector := internal.ControlPlaneSelectorForCluster(cluster.Name)
 	selector, err := metav1.LabelSelectorAsSelector(labelSelector)
 	if err != nil {
 		// Since we are building up the LabelSelector above, this should not fail
@@ -280,13 +281,12 @@ func (r *KubeadmControlPlaneReconciler) updateStatus(ctx context.Context, kcp *c
 	// This is necessary for CRDs including scale subresources.
 	kcp.Status.Selector = selector.String()
 
-	allMachines, err := r.getMachines(ctx, types.NamespacedName{Namespace: cluster.Namespace, Name: cluster.Name})
+	ownedMachines, err := r.managementCluster.GetMachinesForCluster(ctx, clusterKey(cluster), internal.OwnedControlPlaneMachines(kcp.Name))
 	if err != nil {
 		return errors.Wrap(err, "failed to get list of owned machines")
 	}
-	ownedMachines := r.filterOwnedMachines(kcp, allMachines)
 
-	replicas := int32(len(ownedMachines.Items))
+	replicas := int32(len(ownedMachines))
 	// TODO: take into account configuration hash once upgrades are in place
 	kcp.Status.Replicas = replicas
 
@@ -296,8 +296,8 @@ func (r *KubeadmControlPlaneReconciler) updateStatus(ctx context.Context, kcp *c
 	}
 
 	readyMachines := int32(0)
-	for i := range ownedMachines.Items {
-		m := &ownedMachines.Items[i]
+	for i := range ownedMachines {
+		m := &ownedMachines[i]
 		node, err := getMachineNode(ctx, remoteClient, m)
 		if err != nil {
 			return errors.Wrap(err, "failed to get referenced Node")
@@ -363,7 +363,7 @@ func (r *KubeadmControlPlaneReconciler) cloneConfigsAndGenerateMachine(ctx conte
 		Namespace:   kcp.Namespace,
 		OwnerRef:    infraCloneOwner,
 		ClusterName: cluster.Name,
-		Labels:      generateKubeadmControlPlaneLabels(cluster.Name),
+		Labels:      internal.ControlPlaneLabelsForCluster(cluster.Name),
 	})
 	if err != nil {
 		// Safe to return early here since no resources have been created yet.
@@ -455,13 +455,11 @@ func (r *KubeadmControlPlaneReconciler) failureDomainForScaleUp(ctx context.Cont
 	if len(cluster.Status.FailureDomains) == 0 {
 		return nil, nil
 	}
-	machineList, err := r.getMachines(ctx, types.NamespacedName{Namespace: cluster.GetNamespace(), Name: cluster.GetName()})
+	ownedMachines, err := r.managementCluster.GetMachinesForCluster(ctx, clusterKey(cluster), internal.OwnedControlPlaneMachines(kcp.Name))
 	if err != nil {
 		return nil, err
 	}
-	machineList = r.filterOwnedMachines(kcp, machineList)
-	picker := internal.FailureDomainPicker{Log: r.Log}
-	failureDomain := picker.PickFewest(cluster.Status.FailureDomains.FilterControlPlane(), machineList.Items)
+	failureDomain := internal.PickFewest(cluster.Status.FailureDomains.FilterControlPlane(), ownedMachines)
 	return &failureDomain, nil
 }
 
@@ -475,7 +473,7 @@ func (r *KubeadmControlPlaneReconciler) generateMachine(ctx context.Context, kcp
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      names.SimpleNameGenerator.GenerateName(kcp.Name + "-"),
 			Namespace: kcp.Namespace,
-			Labels:    generateKubeadmControlPlaneLabels(cluster.Name),
+			Labels:    internal.ControlPlaneLabelsForCluster(cluster.Name),
 			OwnerReferences: []metav1.OwnerReference{
 				*metav1.NewControllerRef(kcp, controlplanev1.GroupVersion.WithKind("KubeadmControlPlane")),
 			},
@@ -498,49 +496,36 @@ func (r *KubeadmControlPlaneReconciler) generateMachine(ctx context.Context, kcp
 	return nil
 }
 
-func generateKubeadmControlPlaneSelector(clusterName string) *metav1.LabelSelector {
-	return &metav1.LabelSelector{
-		MatchLabels: generateKubeadmControlPlaneLabels(clusterName),
-	}
-}
-
-func generateKubeadmControlPlaneLabels(clusterName string) map[string]string {
-	return map[string]string{
-		clusterv1.ClusterLabelName:             clusterName,
-		clusterv1.MachineControlPlaneLabelName: "",
-	}
-}
-
 // reconcileDelete handles KubeadmControlPlane deletion.
 // The implementation does not take non-control plane workloads into
 // consideration. This may or may not change in the future. Please see
 // https://github.com/kubernetes-sigs/cluster-api/issues/2064
 func (r *KubeadmControlPlaneReconciler) reconcileDelete(ctx context.Context, cluster *clusterv1.Cluster, kcp *controlplanev1.KubeadmControlPlane, logger logr.Logger) (_ ctrl.Result, reterr error) {
-	// Fetch Machines
-	allMachines, err := util.GetMachinesForCluster(ctx, r.Client, cluster)
+	allMachines, err := r.managementCluster.GetMachinesForCluster(ctx, clusterKey(cluster))
 	if err != nil {
-		logger.Error(err, "Failed to get list of machines")
 		return ctrl.Result{}, err
 	}
-	ownedMachines := r.filterOwnedMachines(kcp, allMachines)
+	ownedMachines, err := r.managementCluster.GetMachinesForCluster(ctx, clusterKey(cluster), internal.OwnedControlPlaneMachines(kcp.Name))
+	if err != nil {
+		return ctrl.Result{}, err
+	}
 
 	// Verify that only control plane machines remain
-	if len(allMachines.Items) != len(ownedMachines.Items) {
-		err := errors.New("at least one machine is not owned by the control plane")
-		logger.Error(err, "Failed to delete the control plane")
-		return ctrl.Result{}, err
+	if len(allMachines) != len(ownedMachines) {
+		logger.Info("Non control plane machines exist and must be removed before control plane machines are removed")
+		return ctrl.Result{Requeue: true}, nil
 	}
 
 	// If no control plane machines remain, remove the finalizer
-	if len(ownedMachines.Items) == 0 {
+	if len(ownedMachines) == 0 {
 		controllerutil.RemoveFinalizer(kcp, controlplanev1.KubeadmControlPlaneFinalizer)
 		return ctrl.Result{}, nil
 	}
 
 	// Delete control plane machines in parallel
 	var errs []error
-	for i := range ownedMachines.Items {
-		m := &ownedMachines.Items[i]
+	for i := range ownedMachines {
+		m := &ownedMachines[i]
 		if err := r.Client.Delete(ctx, m); err != nil && !apierrors.IsNotFound(err) {
 			errs = append(errs, errors.Wrap(err, "failed to cleanup owned machines"))
 		}
@@ -581,28 +566,6 @@ func (r *KubeadmControlPlaneReconciler) reconcileKubeconfig(ctx context.Context,
 	return nil
 }
 
-func (r *KubeadmControlPlaneReconciler) getMachines(ctx context.Context, clusterName types.NamespacedName) (*clusterv1.MachineList, error) {
-	selector := generateKubeadmControlPlaneLabels(clusterName.Name)
-	allMachines := &clusterv1.MachineList{}
-	if err := r.Client.List(ctx, allMachines, client.InNamespace(clusterName.Namespace), client.MatchingLabels(selector)); err != nil {
-		return nil, errors.Wrap(err, "failed to list machines")
-	}
-	return allMachines, nil
-}
-
-func (r *KubeadmControlPlaneReconciler) filterOwnedMachines(kcp *controlplanev1.KubeadmControlPlane, allMachines *clusterv1.MachineList) *clusterv1.MachineList {
-	ownedMachines := &clusterv1.MachineList{}
-	for i := range allMachines.Items {
-		m := allMachines.Items[i]
-		controllerRef := metav1.GetControllerOf(&m)
-		if controllerRef != nil && controllerRef.Kind == "KubeadmControlPlane" && controllerRef.Name == kcp.Name {
-			ownedMachines.Items = append(ownedMachines.Items, m)
-		}
-	}
-
-	return ownedMachines
-}
-
 func (r *KubeadmControlPlaneReconciler) reconcileExternalReference(ctx context.Context, cluster *clusterv1.Cluster, ref corev1.ObjectReference) error {
 	if !strings.HasSuffix(ref.Kind, external.TemplateSuffix) {
 		return nil
@@ -633,6 +596,24 @@ func (r *KubeadmControlPlaneReconciler) reconcileExternalReference(ctx context.C
 	return nil
 }
 
+// ClusterToKubeadmControlPlane is a handler.ToRequestsFunc to be used to enqeue requests for reconciliation
+// for KubeadmControlPlane based on updates to a Cluster.
+func (r *KubeadmControlPlaneReconciler) ClusterToKubeadmControlPlane(o handler.MapObject) []ctrl.Request {
+	c, ok := o.Object.(*clusterv1.Cluster)
+	if !ok {
+		r.Log.Error(nil, fmt.Sprintf("Expected a Cluster but got a %T", o.Object))
+		return nil
+	}
+
+	controlPlaneRef := c.Spec.ControlPlaneRef
+	if controlPlaneRef != nil && controlPlaneRef.Kind == "KubeadmControlPlane" {
+		name := client.ObjectKey{Namespace: controlPlaneRef.Namespace, Name: controlPlaneRef.Name}
+		return []ctrl.Request{{NamespacedName: name}}
+	}
+
+	return nil
+}
+
 func getMachineNode(ctx context.Context, crClient client.Client, machine *clusterv1.Machine) (*corev1.Node, error) {
 	nodeRef := machine.Status.NodeRef
 	if nodeRef == nil {
@@ -655,20 +636,9 @@ func getMachineNode(ctx context.Context, crClient client.Client, machine *cluste
 	return node, nil
 }
 
-// ClusterToKubeadmControlPlane is a handler.ToRequestsFunc to be used to enqeue requests for reconciliation
-// for KubeadmControlPlane based on updates to a Cluster.
-func (r *KubeadmControlPlaneReconciler) ClusterToKubeadmControlPlane(o handler.MapObject) []ctrl.Request {
-	c, ok := o.Object.(*clusterv1.Cluster)
-	if !ok {
-		r.Log.Error(nil, fmt.Sprintf("Expected a Cluster but got a %T", o.Object))
-		return nil
+func clusterKey(cluster *clusterv1.Cluster) types.NamespacedName {
+	return types.NamespacedName{
+		Namespace: cluster.Namespace,
+		Name:      cluster.Name,
 	}
-
-	controlPlaneRef := c.Spec.ControlPlaneRef
-	if controlPlaneRef != nil && controlPlaneRef.Kind == "KubeadmControlPlane" {
-		name := client.ObjectKey{Namespace: controlPlaneRef.Namespace, Name: controlPlaneRef.Name}
-		return []ctrl.Request{{NamespacedName: name}}
-	}
-
-	return nil
 }

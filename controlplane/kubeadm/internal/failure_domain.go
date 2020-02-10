@@ -19,8 +19,12 @@ package internal
 import (
 	"sort"
 
+	"k8s.io/klog/klogr"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha3"
 )
+
+// Log is the global logger for the internal package.
+var Log = klogr.New()
 
 type failureDomainAggregation struct {
 	id    string
@@ -44,19 +48,9 @@ func (f failureDomainAggregations) Swap(i, j int) {
 	f[i], f[j] = f[j], f[i]
 }
 
-// Scope down logr.Logger
-type logger interface {
-	Info(msg string, keysAndValues ...interface{})
-}
-
-// FailureDomainPicker picks a failure domain given a list of failure domains and a list of machines.
-type FailureDomainPicker struct {
-	Log logger
-}
-
 // PickMost returns the failure domain with the most number of machines.
-func (f *FailureDomainPicker) PickMost(failureDomains clusterv1.FailureDomains, machines []clusterv1.Machine) string {
-	aggregations := f.pick(failureDomains, machines)
+func PickMost(failureDomains clusterv1.FailureDomains, machines []clusterv1.Machine) string {
+	aggregations := pick(failureDomains, machines)
 	if len(aggregations) == 0 {
 		return ""
 	}
@@ -66,8 +60,8 @@ func (f *FailureDomainPicker) PickMost(failureDomains clusterv1.FailureDomains, 
 }
 
 // PickFewest returns the failure domain with the fewest number of machines.
-func (f *FailureDomainPicker) PickFewest(failureDomains clusterv1.FailureDomains, machines []clusterv1.Machine) string {
-	aggregations := f.pick(failureDomains, machines)
+func PickFewest(failureDomains clusterv1.FailureDomains, machines []clusterv1.Machine) string {
+	aggregations := pick(failureDomains, machines)
 	if len(aggregations) == 0 {
 		return ""
 	}
@@ -75,7 +69,7 @@ func (f *FailureDomainPicker) PickFewest(failureDomains clusterv1.FailureDomains
 	return aggregations[0].id
 }
 
-func (f *FailureDomainPicker) pick(failureDomains clusterv1.FailureDomains, machines []clusterv1.Machine) failureDomainAggregations {
+func pick(failureDomains clusterv1.FailureDomains, machines []clusterv1.Machine) failureDomainAggregations {
 	if len(failureDomains) == 0 {
 		return failureDomainAggregations{}
 	}
@@ -94,7 +88,7 @@ func (f *FailureDomainPicker) pick(failureDomains clusterv1.FailureDomains, mach
 		}
 		id := *m.Spec.FailureDomain
 		if _, ok := failureDomains[id]; !ok {
-			f.Log.Info("unknown failure domain", "machine-name", m.GetName(), "failure-domain-id", id, "known-failure-domains", failureDomains)
+			Log.Info("unknown failure domain", "machine-name", m.GetName(), "failure-domain-id", id, "known-failure-domains", failureDomains)
 			continue
 		}
 		counters[id]++

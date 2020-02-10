@@ -32,6 +32,7 @@
         - [Control Plane](./developer/architecture/controllers/control-plane.md)
     - [Provider Implementers](./developer/providers/implementers.md)
         - [v1alpha1 to v1alpha2](./developer/providers/v1alpha1-to-v1alpha2.md)
+        - [v1alpha2 to v1alpha3](./developer/providers/v1alpha2-to-v1alpha3.md)
         - [Cluster Infrastructure](./developer/providers/cluster-infrastructure.md)
         - [Machine Infrastructure](./developer/providers/machine-infrastructure.md)
         - [Bootstrap](./developer/providers/bootstrap.md)

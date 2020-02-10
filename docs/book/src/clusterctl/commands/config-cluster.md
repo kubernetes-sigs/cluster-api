@@ -66,6 +66,9 @@ clusterctl config cluster my-cluster --kubernetes-version v1.16.3 \
     --from-config-map my-templates > my-cluster.yaml
 ```
 
+Also following flags are available `--from-config-map-namespace` (defaults to current namespace) and `--from-config-map-key`
+(defaults to `template`).
+
 #### GitHub or local file system folder
 
 Use the `--from` flag to read cluster templates stored in a GitHub repository or in a local file system folder; e.g.

@@ -18,7 +18,6 @@ package v1alpha3
 
 import (
 	"fmt"
-
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	capierrors "sigs.k8s.io/cluster-api/errors"
@@ -26,6 +25,9 @@ import (
 
 const (
 	ClusterFinalizer = "cluster.cluster.x-k8s.io"
+
+	// PostApplyAnnotationPrefix is the prefix of the annotations that is used to determine if an addon is applied or not.
+	PostApplyAnnotationPrefix = "cluster.x-k8s.io/postapply-secret"
 )
 
 // ANCHOR: ClusterSpec
@@ -35,6 +37,9 @@ type ClusterSpec struct {
 	// Paused can be used to prevent controllers from processing the Cluster and all its associated objects.
 	// +optional
 	Paused bool `json:"paused,omitempty"`
+
+	// PostApplyAddons is a list of Secrets in YAML format to be applied to remote clusters.
+	PostApplyAddons []PostApplyAddon `json:"postApplyAddons,omitempty"`
 
 	// Cluster network configuration.
 	// +optional
@@ -56,6 +61,18 @@ type ClusterSpec struct {
 }
 
 // ANCHOR_END: ClusterSpec
+
+// ANCHOR: PostApplyAddon
+
+// PostApplyAddon specifies the addon's Secret parameters.
+type PostApplyAddon struct {
+	// Name is the name of the secret.
+	Name string `json:"name,omitempty"`
+	// Namespace is the namespace of the secret.
+	Namespace string `json:"namespace,omitempty"`
+}
+
+// ANCHOR_END: PostApplyAddon
 
 // ANCHOR: ClusterNetwork
 

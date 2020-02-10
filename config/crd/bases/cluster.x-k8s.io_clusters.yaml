@@ -185,6 +185,22 @@ spec:
           spec:
             description: ClusterSpec defines the desired state of Cluster
             properties:
+              postApplyAddons:
+                description: PostApplyAddons is the list of addons to be applied after cluster is created
+                items:
+                  description: PostApplyAddon represents a secret for post apply.
+                  properties:
+                    name:
+                      description: 'Name of the PostApply addon secret'
+                      type: string
+                    namespace:
+                      description: 'Namespace of the PostApply addon secret'
+                      type: string
+                  required:
+                    - name
+                    - namespace
+                  type: object
+                type: array
               clusterNetwork:
                 description: Cluster network configuration.
                 properties:

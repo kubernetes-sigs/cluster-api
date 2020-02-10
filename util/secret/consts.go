@@ -46,4 +46,7 @@ const (
 
 	// APIServerEtcdClient is the secret name of user-supplied secret containing the apiserver-etcd-client key/cert
 	APIServerEtcdClient Purpose = "apiserver-etcd-client"
+
+	// PostApplyDataKey is the key used to store a PostApply addon in the secret's data field.
+	PostApplyDataKey = "addon.yaml"
 )

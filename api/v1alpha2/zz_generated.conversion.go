@@ -439,6 +439,7 @@ func autoConvert_v1alpha2_ClusterSpec_To_v1alpha3_ClusterSpec(in *ClusterSpec, o
 
 func autoConvert_v1alpha3_ClusterSpec_To_v1alpha2_ClusterSpec(in *v1alpha3.ClusterSpec, out *ClusterSpec, s conversion.Scope) error {
 	// WARNING: in.Paused requires manual conversion: does not exist in peer-type
+	// WARNING: in.PostApplyAddons requires manual conversion: does not exist in peer-type
 	out.ClusterNetwork = (*ClusterNetwork)(unsafe.Pointer(in.ClusterNetwork))
 	// WARNING: in.ControlPlaneEndpoint requires manual conversion: does not exist in peer-type
 	// WARNING: in.ControlPlaneRef requires manual conversion: does not exist in peer-type

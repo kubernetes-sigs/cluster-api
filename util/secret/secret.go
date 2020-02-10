@@ -53,3 +53,19 @@ func GetFromNamespacedName(ctx context.Context, c client.Client, clusterName typ
 func Name(cluster string, suffix Purpose) string {
 	return fmt.Sprintf("%s-%s", cluster, suffix)
 }
+
+// GetAnySecretFromNamespacedName retrieves any Secret from the given
+// secret name and namespace.
+func GetAnySecretFromNamespacedName(ctx context.Context, c client.Client, secretName types.NamespacedName) (*corev1.Secret, error) {
+	secret := &corev1.Secret{}
+	secretKey := client.ObjectKey{
+		Namespace: secretName.Namespace,
+		Name:      secretName.Name,
+	}
+
+	if err := c.Get(ctx, secretKey, secret); err != nil {
+		return nil, err
+	}
+
+	return secret, nil
+}

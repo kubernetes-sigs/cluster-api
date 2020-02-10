@@ -153,6 +153,7 @@ func (r *ClusterReconciler) reconcile(ctx context.Context, cluster *clusterv1.Cl
 		r.reconcileControlPlane(ctx, cluster),
 		r.reconcileKubeconfig(ctx, cluster),
 		r.reconcileControlPlaneInitialized(ctx, cluster),
+		r.reconcilePostApply(ctx, cluster),
 	}
 
 	// Parse the errors, making sure we record if there is a RequeueAfterError.

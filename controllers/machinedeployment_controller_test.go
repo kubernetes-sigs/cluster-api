@@ -62,19 +62,29 @@ var _ = Describe("MachineDeployment Reconciler", func() {
 	})
 
 	It("Should reconcile a MachineDeployment", func() {
-		labels := map[string]string{"foo": "bar"}
+		labels := map[string]string{
+			"foo":                      "bar",
+			clusterv1.ClusterLabelName: testCluster.Name,
+		}
 		version := "1.10.3"
 		deployment := &clusterv1.MachineDeployment{
 			ObjectMeta: metav1.ObjectMeta{
 				GenerateName: "md-",
 				Namespace:    namespace.Name,
+				Labels: map[string]string{
+					clusterv1.ClusterLabelName: testCluster.Name,
+				},
 			},
 			Spec: clusterv1.MachineDeploymentSpec{
 				ClusterName:          testCluster.Name,
 				MinReadySeconds:      pointer.Int32Ptr(0),
 				Replicas:             pointer.Int32Ptr(2),
 				RevisionHistoryLimit: pointer.Int32Ptr(0),
-				Selector:             metav1.LabelSelector{},
+				Selector: metav1.LabelSelector{
+					MatchLabels: map[string]string{
+						clusterv1.ClusterLabelName: testCluster.Name,
+					},
+				},
 				Strategy: &clusterv1.MachineDeploymentStrategy{
 					Type: clusterv1.RollingUpdateMachineDeploymentStrategyType,
 					RollingUpdate: &clusterv1.MachineRollingUpdateDeployment{
@@ -306,7 +316,8 @@ var _ = Describe("MachineDeployment Reconciler", func() {
 		oldLabels[clusterv1.MachineDeploymentLabelName] = deployment.Name
 
 		newLabels := map[string]string{
-			"new-key": "new-value",
+			"new-key":                  "new-value",
+			clusterv1.ClusterLabelName: testCluster.Name,
 		}
 
 		By("Updating MachineDeployment label")

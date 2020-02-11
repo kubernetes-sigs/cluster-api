@@ -148,10 +148,6 @@ func (r *MachineDeploymentReconciler) reconcile(_ context.Context, cluster *clus
 
 	d.Labels[clusterv1.ClusterLabelName] = d.Spec.ClusterName
 
-	// Make sure selector and template to be in the same cluster.
-	d.Spec.Selector.MatchLabels[clusterv1.ClusterLabelName] = d.Spec.ClusterName
-	d.Spec.Template.Labels[clusterv1.ClusterLabelName] = d.Spec.ClusterName
-
 	if r.shouldAdopt(d) {
 		d.OwnerReferences = util.EnsureOwnerRef(d.OwnerReferences, metav1.OwnerReference{
 			APIVersion: clusterv1.GroupVersion.String(),

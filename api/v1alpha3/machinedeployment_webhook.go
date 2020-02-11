@@ -144,4 +144,7 @@ func PopulateDefaultsMachineDeployment(d *MachineDeployment) {
 		d.Spec.Selector.MatchLabels[MachineDeploymentLabelName] = d.Name
 		d.Spec.Template.Labels[MachineDeploymentLabelName] = d.Name
 	}
+	// Make sure selector and template to be in the same cluster.
+	d.Spec.Selector.MatchLabels[ClusterLabelName] = d.Spec.ClusterName
+	d.Spec.Template.Labels[ClusterLabelName] = d.Spec.ClusterName
 }

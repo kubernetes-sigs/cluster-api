@@ -19,7 +19,6 @@ package internal
 import (
 	"testing"
 
-	"k8s.io/klog/klogr"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha3"
 )
 
@@ -37,7 +36,6 @@ func TestNewFailureDomainPicker(t *testing.T) {
 
 	testcases := []struct {
 		name     string
-		logger   logger
 		fds      clusterv1.FailureDomains
 		machines []clusterv1.Machine
 		expected []string
@@ -72,8 +70,7 @@ func TestNewFailureDomainPicker(t *testing.T) {
 			expected: []string{a, b},
 		},
 		{
-			name:   "mismatched failure domain on machine",
-			logger: klogr.New(),
+			name: "mismatched failure domain on machine",
 			fds: clusterv1.FailureDomains{
 				a: clusterv1.FailureDomainSpec{},
 			},
@@ -91,8 +88,7 @@ func TestNewFailureDomainPicker(t *testing.T) {
 	}
 	for _, tc := range testcases {
 		t.Run(tc.name, func(t *testing.T) {
-			picker := FailureDomainPicker{Log: tc.logger}
-			fd := picker.PickFewest(tc.fds, tc.machines)
+			fd := PickFewest(tc.fds, tc.machines)
 
 			found := false
 			for _, expectation := range tc.expected {

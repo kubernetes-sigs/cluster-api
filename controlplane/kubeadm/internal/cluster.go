@@ -190,21 +190,6 @@ func (m *ManagementCluster) TargetClusterEtcdIsHealthy(ctx context.Context, clus
 	return nil
 }
 
-// ControlPlaneLabels returns a set of labels to add to a control plane machine for this specific cluster.
-func (m *ManagementCluster) ControlPlaneLabelsForCluster(clusterName string) map[string]string {
-	return map[string]string{
-		clusterv1.ClusterLabelName:             clusterName,
-		clusterv1.MachineControlPlaneLabelName: "",
-	}
-}
-
-// ControlPlaneSelectorForCluster returns the label selector necessary to get control plane machines for a given cluster.
-func (m *ManagementCluster) ControlPlaneSelectorForCluster(clusterName string) *metav1.LabelSelector {
-	return &metav1.LabelSelector{
-		MatchLabels: m.ControlPlaneLabelsForCluster(clusterName),
-	}
-}
-
 // cluster are operations on target clusters.
 type cluster struct {
 	client ctrlclient.Client

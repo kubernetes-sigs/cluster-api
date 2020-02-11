@@ -31,6 +31,7 @@ import (
 	"k8s.io/client-go/tools/record"
 	"k8s.io/klog/klogr"
 	utilpointer "k8s.io/utils/pointer"
+	"sigs.k8s.io/cluster-api/controlplane/kubeadm/internal"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
@@ -693,8 +694,9 @@ func TestKubeadmControlPlaneReconciler_generateMachine(t *testing.T) {
 		InfrastructureRef: *infraRef.DeepCopy(),
 	}
 	r := &KubeadmControlPlaneReconciler{
-		Client: fakeClient,
-		Log:    log.Log,
+		Client:            fakeClient,
+		Log:               log.Log,
+		managementCluster: &internal.ManagementCluster{Client: fakeClient},
 	}
 	g.Expect(r.generateMachine(context.Background(), kcp, cluster, infraRef, bootstrapRef)).To(Succeed())
 
@@ -705,7 +707,7 @@ func TestKubeadmControlPlaneReconciler_generateMachine(t *testing.T) {
 	machine := machineList.Items[0]
 	g.Expect(machine.Name).To(HavePrefix(kcp.Name))
 	g.Expect(machine.Namespace).To(Equal(kcp.Namespace))
-	g.Expect(machine.Labels).To(Equal(generateKubeadmControlPlaneLabels(cluster.Name)))
+	g.Expect(machine.Labels).To(Equal(internal.ControlPlaneLabelsForCluster(cluster.Name)))
 	g.Expect(machine.OwnerReferences).To(HaveLen(1))
 	g.Expect(machine.OwnerReferences).To(ContainElement(*metav1.NewControllerRef(kcp, controlplanev1.GroupVersion.WithKind("KubeadmControlPlane"))))
 	g.Expect(machine.Spec).To(Equal(expectedMachineSpec))
@@ -846,6 +848,7 @@ func TestKubeadmControlPlaneReconciler_updateStatusNoMachines(t *testing.T) {
 		Log:                log.Log,
 		remoteClientGetter: fakeremote.NewClusterClient,
 		scheme:             scheme.Scheme,
+		managementCluster:  &internal.ManagementCluster{Client: fakeClient},
 	}
 
 	g.Expect(r.updateStatus(context.Background(), kcp, cluster)).To(Succeed())
@@ -864,7 +867,7 @@ func createMachineNodePair(name string, cluster *clusterv1.Cluster, kcp *control
 		ObjectMeta: metav1.ObjectMeta{
 			Namespace: cluster.Namespace,
 			Name:      name,
-			Labels:    generateKubeadmControlPlaneLabels(cluster.Name),
+			Labels:    internal.ControlPlaneLabelsForCluster(cluster.Name),
 			OwnerReferences: []metav1.OwnerReference{
 				*metav1.NewControllerRef(kcp, controlplanev1.GroupVersion.WithKind("KubeadmControlPlane")),
 			},
@@ -934,6 +937,7 @@ func TestKubeadmControlPlaneReconciler_updateStatusAllMachinesNotReady(t *testin
 		Log:                log.Log,
 		remoteClientGetter: fakeremote.NewClusterClient,
 		scheme:             scheme.Scheme,
+		managementCluster:  &internal.ManagementCluster{Client: fakeClient},
 	}
 
 	g.Expect(r.updateStatus(context.Background(), kcp, cluster)).To(Succeed())
@@ -984,6 +988,7 @@ func TestKubeadmControlPlaneReconciler_updateStatusAllMachinesReady(t *testing.T
 		Log:                log.Log,
 		remoteClientGetter: fakeremote.NewClusterClient,
 		scheme:             scheme.Scheme,
+		managementCluster:  &internal.ManagementCluster{Client: fakeClient},
 	}
 
 	g.Expect(r.updateStatus(context.Background(), kcp, cluster)).To(Succeed())
@@ -1038,6 +1043,7 @@ func TestKubeadmControlPlaneReconciler_updateStatusMachinesReadyMixed(t *testing
 		Log:                log.Log,
 		remoteClientGetter: fakeremote.NewClusterClient,
 		scheme:             scheme.Scheme,
+		managementCluster:  &internal.ManagementCluster{Client: fakeClient},
 	}
 
 	g.Expect(r.updateStatus(context.Background(), kcp, cluster)).To(Succeed())
@@ -1128,7 +1134,7 @@ func TestReconcileControlPlaneScaleUp(t *testing.T) {
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "foo-0",
 			Namespace: cluster.Namespace,
-			Labels:    generateKubeadmControlPlaneLabels(cluster.Name),
+			Labels:    internal.ControlPlaneLabelsForCluster(cluster.Name),
 			OwnerReferences: []metav1.OwnerReference{
 				*metav1.NewControllerRef(kcp, controlplanev1.GroupVersion.WithKind("KubeadmControlPlane")),
 			},
@@ -1411,7 +1417,7 @@ func TestReconcileControlPlaneDelete(t *testing.T) {
 			ObjectMeta: metav1.ObjectMeta{
 				Name:      "foo-0",
 				Namespace: cluster.Namespace,
-				Labels:    generateKubeadmControlPlaneLabels(cluster.Name),
+				Labels:    internal.ControlPlaneLabelsForCluster(cluster.Name),
 				OwnerReferences: []metav1.OwnerReference{
 					*metav1.NewControllerRef(kcp, controlplanev1.GroupVersion.WithKind("KubeadmControlPlane")),
 				},
@@ -1502,7 +1508,7 @@ func TestReconcileControlPlaneDelete(t *testing.T) {
 			ObjectMeta: metav1.ObjectMeta{
 				Name:      "foo-0",
 				Namespace: cluster.Namespace,
-				Labels:    generateKubeadmControlPlaneLabels(cluster.Name),
+				Labels:    internal.ControlPlaneLabelsForCluster(cluster.Name),
 				OwnerReferences: []metav1.OwnerReference{
 					*metav1.NewControllerRef(kcp, controlplanev1.GroupVersion.WithKind("KubeadmControlPlane")),
 				},
@@ -1541,6 +1547,7 @@ func TestReconcileControlPlaneDelete(t *testing.T) {
 			remoteClientGetter: fakeremote.NewClusterClient,
 			recorder:           record.NewFakeRecorder(32),
 			scheme:             scheme.Scheme,
+			managementCluster:  &internal.ManagementCluster{Client: fakeClient},
 		}
 
 		result, err := r.Reconcile(ctrl.Request{NamespacedName: types.NamespacedName{Name: kcp.Name, Namespace: kcp.Namespace}})
@@ -1551,7 +1558,8 @@ func TestReconcileControlPlaneDelete(t *testing.T) {
 		g.Expect(kcp.Status.Replicas).To(BeEquivalentTo(3))
 
 		result, err = r.reconcileDelete(context.Background(), cluster, kcp, r.Log)
-		g.Expect(err).Should(MatchError(ContainSubstring("at least one machine is not owned by the control plane")))
-		g.Expect(result).To(Equal(ctrl.Result{}))
+		g.Expect(err).ShouldNot(HaveOccurred())
+		// Expecting requeue because we can't delete the control plane until other machines are deleted first.
+		g.Expect(result.Requeue).Should(BeTrue())
 	})
 }

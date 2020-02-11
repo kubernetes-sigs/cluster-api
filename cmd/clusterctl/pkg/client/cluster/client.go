@@ -66,6 +66,9 @@ type Client interface {
 
 	// ProviderUpgrader returns a ProviderUpgrader that supports upgrading Cluster API providers.
 	ProviderUpgrader() ProviderUpgrader
+
+	// Template has methods to work with templates stored in the cluster.
+	Template() TemplateClient
 }
 
 // PollImmediateWaiter tries a condition func until it returns true, an error, or the timeout is reached.
@@ -73,9 +76,9 @@ type PollImmediateWaiter func(interval, timeout time.Duration, condition wait.Co
 
 // clusterClient implements Client.
 type clusterClient struct {
+	configClient            config.Client
 	kubeconfig              string
 	proxy                   Proxy
-	configClient            config.Client
 	repositoryClientFactory RepositoryClientFactory
 	pollImmediateWaiter     PollImmediateWaiter
 }
@@ -115,6 +118,10 @@ func (c *clusterClient) ObjectMover() ObjectMover {
 
 func (c *clusterClient) ProviderUpgrader() ProviderUpgrader {
 	return newProviderUpgrader(c.configClient, c.repositoryClientFactory, c.ProviderInventory(), c.ProviderComponents())
+}
+
+func (c *clusterClient) Template() TemplateClient {
+	return newTemplateClient(c.proxy, c.configClient)
 }
 
 // Option is a configuration option supplied to New

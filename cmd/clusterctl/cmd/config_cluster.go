@@ -17,6 +17,7 @@ limitations under the License.
 package cmd
 
 import (
+	"fmt"
 	"os"
 
 	"github.com/pkg/errors"
@@ -33,6 +34,13 @@ type configClusterOptions struct {
 	kubernetesVersion        string
 	controlPlaneMachineCount int
 	workerMachineCount       int
+
+	url                string
+	configMapNamespace string
+	configMapName      string
+	configMapDataKey   string
+
+	listVariables bool
 }
 
 var cc = &configClusterOptions{}
@@ -65,50 +73,113 @@ var configClusterClusterCmd = &cobra.Command{
 
 		# Generates a yaml file for creating a Cluster API workload cluster with
 		# custom number of nodes (if supported by provider's templates)
-		clusterctl config cluster my-cluster --control-plane-machine-count=3 --worker-machine-count=10`),
+		clusterctl config cluster my-cluster --control-plane-machine-count=3 --worker-machine-count=10
+
+		# Generates a yaml file for creating a Cluster API workload cluster using a template hosted on a ConfigMap
+		# instead of using the cluster templates hosted in the provider's repository.
+		clusterctl config cluster my-cluster --from-config-map MyTemplates
+
+		# Generates a yaml file for creating a Cluster API workload cluster using a template hosted on specific URL
+		# instead of using the cluster templates hosted in the provider's repository.
+		clusterctl config cluster my-cluster --from https://github.com/foo-org/foo-repository/blob/master/cluster-template.yaml
+
+		# Generates a yaml file for creating a Cluster API workload cluster using a template hosted on the local file system
+		clusterctl config cluster my-cluster --from ~/workspace/cluster-template.yaml`),
 
 	Args: cobra.ExactArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
-		return runGenerateCluster(args[0])
+		return runGetClusterTemplate(args[0])
 	},
 }
 
 func init() {
 	configClusterClusterCmd.Flags().StringVarP(&cc.kubeconfig, "kubeconfig", "", "", "Path to the kubeconfig file to use for accessing the management cluster. If empty, default rules for kubeconfig discovery will be used")
 
-	configClusterClusterCmd.Flags().StringVarP(&cc.infrastructureProvider, "infrastructure", "i", "", "The infrastructure provider that should be used for creating the workload cluster")
-
-	configClusterClusterCmd.Flags().StringVarP(&cc.flavor, "flavor", "f", "", "The template variant to be used for creating the workload cluster")
+	// flags for the template variables
 	configClusterClusterCmd.Flags().StringVarP(&cc.targetNamespace, "target-namespace", "n", "", "The namespace where the objects describing the workload cluster should be deployed. If not specified, the current namespace will be used")
 	configClusterClusterCmd.Flags().StringVarP(&cc.kubernetesVersion, "kubernetes-version", "", "", "The Kubernetes version to use for the workload cluster. By default (empty), the value from os env variables or the .cluster-api/clusterctl.yaml config file will be used")
 	configClusterClusterCmd.Flags().IntVarP(&cc.controlPlaneMachineCount, "control-plane-machine-count", "", 1, "The number of control plane machines to be added to the workload cluster.")
 	configClusterClusterCmd.Flags().IntVarP(&cc.workerMachineCount, "worker-machine-count", "", 0, "The number of worker machines to be added to the workload cluster.")
 
+	// flags for the repository source
+	configClusterClusterCmd.Flags().StringVarP(&cc.infrastructureProvider, "infrastructure", "i", "", "The infrastructure provider to read the workload cluster template from. By default (empty), the default infrastructure provider will be used if no other source is specified")
+	configClusterClusterCmd.Flags().StringVarP(&cc.flavor, "flavor", "f", "", "The workload cluster template variant to be used when reading from the infrastructure provider repository. By default (empty), the default cluster template will be used")
+
+	// flags for the url source
+	configClusterClusterCmd.Flags().StringVarP(&cc.url, "from", "", "", "The URL to read the workload cluster template from. By default (empty), the infrastructure provider repository URL will be used")
+
+	// flags for the config map source
+	configClusterClusterCmd.Flags().StringVarP(&cc.configMapName, "from-config-map", "", "", "The ConfigMap to read the workload cluster template from. This can be used as alternative to read from the provider repository or from an URL")
+	configClusterClusterCmd.Flags().StringVarP(&cc.configMapNamespace, "from-config-map-namespace", "", "", "The namespace where the ConfigMap exists. By default (empty), the current namespace will be used")
+	configClusterClusterCmd.Flags().StringVarP(&cc.configMapDataKey, "from-config-map-key", "", "", fmt.Sprintf("The ConfigMap.Data key where the workload cluster template is hosted. By default (empty), %q will be used", client.DefaultCustomTemplateConfigMapKey))
+
+	// other flags
+	configClusterClusterCmd.Flags().BoolVarP(&cc.listVariables, "list-variables", "", false, "Returns the list of variables expected by the template instead of the template yaml")
+
 	configCmd.AddCommand(configClusterClusterCmd)
 }
 
-func runGenerateCluster(name string) error {
+func runGetClusterTemplate(name string) error {
 	c, err := client.New(cfgFile)
 	if err != nil {
 		return err
 	}
 
-	options := client.GetClusterTemplateOptions{
+	templateOptions := client.GetClusterTemplateOptions{
 		Kubeconfig:               cc.kubeconfig,
-		InfrastructureProvider:   cc.infrastructureProvider,
-		Flavor:                   cc.flavor,
 		ClusterName:              name,
 		TargetNamespace:          cc.targetNamespace,
 		KubernetesVersion:        cc.kubernetesVersion,
 		ControlPlaneMachineCount: cc.controlPlaneMachineCount,
 		WorkerMachineCount:       cc.workerMachineCount,
+		ListVariablesOnly:        cc.listVariables,
 	}
 
-	template, err := c.GetClusterTemplate(options)
+	if cc.url != "" {
+		templateOptions.URLSource = &client.URLSourceOptions{
+			URL: cc.url,
+		}
+	}
+
+	if cc.configMapNamespace != "" || cc.configMapName != "" || cc.configMapDataKey != "" {
+		templateOptions.ConfigMapSource = &client.ConfigMapSourceOptions{
+			Namespace: cc.configMapNamespace,
+			Name:      cc.configMapName,
+			DataKey:   cc.configMapDataKey,
+		}
+	}
+
+	if cc.infrastructureProvider != "" || cc.flavor != "" {
+		templateOptions.ProviderRepositorySource = &client.ProviderRepositorySourceOptions{
+			InfrastructureProvider: cc.infrastructureProvider,
+			Flavor:                 cc.flavor,
+		}
+	}
+
+	template, err := c.GetClusterTemplate(templateOptions)
 	if err != nil {
 		return err
 	}
 
+	if cc.listVariables {
+		return templateListVariablesOutput(template)
+	}
+
+	return templateYAMLOutput(template)
+}
+
+func templateListVariablesOutput(template client.Template) error {
+	if len(template.Variables()) > 0 {
+		fmt.Println("Variables:")
+		for _, v := range template.Variables() {
+			fmt.Printf("  - %s\n", v)
+		}
+	}
+	fmt.Println()
+	return nil
+}
+
+func templateYAMLOutput(template client.Template) error {
 	yaml, err := template.Yaml()
 	if err != nil {
 		return err
@@ -118,6 +189,5 @@ func runGenerateCluster(name string) error {
 	if _, err := os.Stdout.Write(yaml); err != nil {
 		return errors.Wrap(err, "failed to write yaml to Stdout")
 	}
-
 	return nil
 }

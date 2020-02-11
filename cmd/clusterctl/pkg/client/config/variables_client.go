@@ -18,6 +18,11 @@ package config
 
 import "sigs.k8s.io/cluster-api/cmd/clusterctl/pkg/internal/test"
 
+const (
+	// GitHubTokenVariable defines a variable hosting the GitHub access token
+	GitHubTokenVariable = "github-token"
+)
+
 // VariablesClient has methods to work with environment variables and with variables defined in the clusterctl configuration file.
 type VariablesClient interface {
 	// Get returns a variable value. If the variable is not defined an error is returned.

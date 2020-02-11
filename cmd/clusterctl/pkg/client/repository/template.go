@@ -70,9 +70,15 @@ func (t *template) Yaml() ([]byte, error) {
 }
 
 // NewTemplate returns a new objects embedding a cluster template YAML file.
-func NewTemplate(rawYaml []byte, configVariablesClient config.VariablesClient, targetNamespace string) (*template, error) {
+func NewTemplate(rawYaml []byte, configVariablesClient config.VariablesClient, targetNamespace string, listVariablesOnly bool) (*template, error) {
 	// Inspect variables and replace with values from the configuration.
 	variables := inspectVariables(rawYaml)
+	if listVariablesOnly {
+		return &template{
+			variables:       variables,
+			targetNamespace: targetNamespace,
+		}, nil
+	}
 
 	yaml, err := replaceVariables(rawYaml, variables, configVariablesClient)
 	if err != nil {

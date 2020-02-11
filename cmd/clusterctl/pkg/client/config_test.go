@@ -18,9 +18,14 @@ package client
 
 import (
 	"fmt"
+	"io/ioutil"
+	"os"
+	"path/filepath"
 	"reflect"
 	"testing"
 
+	corev1 "k8s.io/api/core/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	clusterctlv1 "sigs.k8s.io/cluster-api/cmd/clusterctl/api/v1alpha3"
 	"sigs.k8s.io/cluster-api/cmd/clusterctl/pkg/client/config"
 )
@@ -304,16 +309,46 @@ func Test_clusterctlClient_templateOptionsToVariables(t *testing.T) {
 }
 
 func Test_clusterctlClient_GetClusterTemplate(t *testing.T) {
+	rawTemplate := templateYAML("ns3", "${ CLUSTER_NAME }")
+
+	// Template on a file
+	tmpDir, err := ioutil.TempDir("", "cc")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer os.RemoveAll(tmpDir)
+
+	path := filepath.Join(tmpDir, "cluster-template.yaml")
+	if err := ioutil.WriteFile(path, rawTemplate, 0644); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	// Template on a repository & in a ConfigMap
+	configMap := &corev1.ConfigMap{
+		TypeMeta: metav1.TypeMeta{
+			Kind:       "ConfigMap",
+			APIVersion: "v1",
+		},
+		ObjectMeta: metav1.ObjectMeta{
+			Namespace: "ns1",
+			Name:      "my-template",
+		},
+		Data: map[string]string{
+			"prod": string(rawTemplate),
+		},
+	}
+
 	config1 := newFakeConfig().
 		WithProvider(infraProviderConfig)
 
 	repository1 := newFakeRepository(infraProviderConfig, config1.Variables()).
 		WithPaths("root", "components").
 		WithDefaultVersion("v3.0.0").
-		WithFile("v3.0.0", "cluster-template.yaml", templateYAML("ns3", "${ CLUSTER_NAME }"))
+		WithFile("v3.0.0", "cluster-template.yaml", rawTemplate)
 
 	cluster1 := newFakeCluster("kubeconfig", config1).
-		WithProviderInventory(infraProviderConfig.Name(), infraProviderConfig.Type(), "v3.0.0", "foo", "bar")
+		WithProviderInventory(infraProviderConfig.Name(), infraProviderConfig.Type(), "v3.0.0", "foo", "bar").
+		WithObjs(configMap)
 
 	client := newFakeClient(config1).
 		WithCluster(cluster1).
@@ -336,12 +371,14 @@ func Test_clusterctlClient_GetClusterTemplate(t *testing.T) {
 		wantErr bool
 	}{
 		{
-			name: "pass",
+			name: "repository source - pass",
 			args: args{
 				options: GetClusterTemplateOptions{
-					Kubeconfig:               "kubeconfig",
-					InfrastructureProvider:   "infra:v3.0.0",
-					Flavor:                   "",
+					Kubeconfig: "kubeconfig",
+					ProviderRepositorySource: &ProviderRepositorySourceOptions{
+						InfrastructureProvider: "infra:v3.0.0",
+						Flavor:                 "",
+					},
 					ClusterName:              "test",
 					TargetNamespace:          "ns1",
 					ControlPlaneMachineCount: 1,
@@ -354,12 +391,14 @@ func Test_clusterctlClient_GetClusterTemplate(t *testing.T) {
 			},
 		},
 		{
-			name: "detects provider name/version if missing",
+			name: "repository source - detects provider name/version if missing",
 			args: args{
 				options: GetClusterTemplateOptions{
-					Kubeconfig:               "kubeconfig",
-					InfrastructureProvider:   "", // empty triggers auto-detection of the provider name/version
-					Flavor:                   "",
+					Kubeconfig: "kubeconfig",
+					ProviderRepositorySource: &ProviderRepositorySourceOptions{
+						InfrastructureProvider: "", // empty triggers auto-detection of the provider name/version
+						Flavor:                 "",
+					},
 					ClusterName:              "test",
 					TargetNamespace:          "ns1",
 					ControlPlaneMachineCount: 1,
@@ -372,12 +411,14 @@ func Test_clusterctlClient_GetClusterTemplate(t *testing.T) {
 			},
 		},
 		{
-			name: "use current namespace if targetNamespace is missing",
+			name: "repository source - use current namespace if targetNamespace is missing",
 			args: args{
 				options: GetClusterTemplateOptions{
-					Kubeconfig:               "kubeconfig",
-					InfrastructureProvider:   "infra:v3.0.0",
-					Flavor:                   "",
+					Kubeconfig: "kubeconfig",
+					ProviderRepositorySource: &ProviderRepositorySourceOptions{
+						InfrastructureProvider: "infra:v3.0.0",
+						Flavor:                 "",
+					},
 					ClusterName:              "test",
 					TargetNamespace:          "", // empty triggers usage of the current namespace
 					ControlPlaneMachineCount: 1,
@@ -387,6 +428,46 @@ func Test_clusterctlClient_GetClusterTemplate(t *testing.T) {
 				variables:       []string{"CLUSTER_NAME"}, // variable detected
 				targetNamespace: "default",
 				yaml:            templateYAML("default", "test"), // original template modified with target namespace and variable replacement
+			},
+		},
+		{
+			name: "URL source - pass",
+			args: args{
+				options: GetClusterTemplateOptions{
+					Kubeconfig: "kubeconfig",
+					URLSource: &URLSourceOptions{
+						URL: path,
+					},
+					ClusterName:              "test",
+					TargetNamespace:          "ns1",
+					ControlPlaneMachineCount: 1,
+				},
+			},
+			want: templateValues{
+				variables:       []string{"CLUSTER_NAME"}, // variable detected
+				targetNamespace: "ns1",
+				yaml:            templateYAML("ns1", "test"), // original template modified with target namespace and variable replacement
+			},
+		},
+		{
+			name: "ConfigMap source - pass",
+			args: args{
+				options: GetClusterTemplateOptions{
+					Kubeconfig: "kubeconfig",
+					ConfigMapSource: &ConfigMapSourceOptions{
+						Namespace: "ns1",
+						Name:      "my-template",
+						DataKey:   "prod",
+					},
+					ClusterName:              "test",
+					TargetNamespace:          "ns1",
+					ControlPlaneMachineCount: 1,
+				},
+			},
+			want: templateValues{
+				variables:       []string{"CLUSTER_NAME"}, // variable detected
+				targetNamespace: "ns1",
+				yaml:            templateYAML("ns1", "test"), // original template modified with target namespace and variable replacement
 			},
 		},
 	}

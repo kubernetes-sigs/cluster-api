@@ -19,8 +19,6 @@ package repository
 import (
 	"fmt"
 	"net/http"
-	"net/http/httptest"
-	"net/url"
 	"reflect"
 	"testing"
 
@@ -37,7 +35,7 @@ import (
 //TODO: test getComponentsPath
 
 func Test_gitHubRepository_getVersions(t *testing.T) {
-	client, mux, teardown := setup()
+	client, mux, teardown := test.NewFakeGitHub()
 	defer teardown()
 
 	// setup an handler for returning 5 fake releases
@@ -96,7 +94,7 @@ func Test_gitHubRepository_getVersions(t *testing.T) {
 }
 
 func Test_gitHubRepository_getLatestRelease(t *testing.T) {
-	client, mux, teardown := setup()
+	client, mux, teardown := test.NewFakeGitHub()
 	defer teardown()
 
 	// setup an handler for returning 4 fake releases
@@ -168,7 +166,7 @@ func Test_gitHubRepository_getLatestRelease(t *testing.T) {
 }
 
 func Test_gitHubRepository_getReleaseByTag(t *testing.T) {
-	client, mux, teardown := setup()
+	client, mux, teardown := test.NewFakeGitHub()
 	defer teardown()
 
 	providerConfig := config.NewProvider("test", "https://github.com/o/r/releases/v0.4.1/path", clusterctlv1.CoreProviderType)
@@ -240,12 +238,12 @@ func Test_gitHubRepository_getReleaseByTag(t *testing.T) {
 }
 
 func Test_gitHubRepository_downloadFilesFromRelease(t *testing.T) {
-	client, mux, teardown := setup()
+	client, mux, teardown := test.NewFakeGitHub()
 	defer teardown()
 
 	providerConfig := config.NewProvider("test", "https://github.com/o/r/releases/v0.4.1/file.yaml", clusterctlv1.CoreProviderType) //tree/master/path not relevant for the test
 
-	// setup an handler for returning a fake release asset
+	// test.NewFakeGitHub an handler for returning a fake release asset
 	mux.HandleFunc("/repos/o/r/releases/assets/1", func(w http.ResponseWriter, r *http.Request) {
 		testMethod(t, r, "GET")
 		w.Header().Set("Content-Type", "application/octet-stream")
@@ -341,30 +339,6 @@ func Test_gitHubRepository_downloadFilesFromRelease(t *testing.T) {
 			}
 		})
 	}
-}
-
-const baseURLPath = "/api-v3"
-
-// setup sets up a test HTTP server along with a github.Client that is
-// configured to talk to that test server. Tests should register handlers on
-// mux which provide mock responses for the API method being tested.
-func setup() (client *github.Client, mux *http.ServeMux, teardown func()) {
-	// mux is the HTTP request multiplexer used with the test server.
-	mux = http.NewServeMux()
-
-	apiHandler := http.NewServeMux()
-	apiHandler.Handle(baseURLPath+"/", http.StripPrefix(baseURLPath, mux))
-
-	// server is a test HTTP server used to provide mock API responses.
-	server := httptest.NewServer(apiHandler)
-
-	// client is the GitHub client being tested and is configured to use test server.
-	client = github.NewClient(nil)
-	url, _ := url.Parse(server.URL + baseURLPath + "/")
-	client.BaseURL = url
-	client.UploadURL = url
-
-	return client, mux, server.Close
 }
 
 func testMethod(t *testing.T, r *http.Request, want string) {

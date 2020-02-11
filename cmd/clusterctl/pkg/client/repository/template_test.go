@@ -40,6 +40,7 @@ func Test_newTemplate(t *testing.T) {
 		rawYaml               []byte
 		configVariablesClient config.VariablesClient
 		targetNamespace       string
+		listVariablesOnly     bool
 	}
 	type want struct {
 		variables       []string
@@ -57,6 +58,21 @@ func Test_newTemplate(t *testing.T) {
 				rawYaml:               templateMapYaml,
 				configVariablesClient: test.NewFakeVariableClient().WithVar(variableName, variableValue),
 				targetNamespace:       "ns1",
+				listVariablesOnly:     false,
+			},
+			want: want{
+				variables:       []string{variableName},
+				targetNamespace: "ns1",
+			},
+			wantErr: false,
+		},
+		{
+			name: "List variable only",
+			args: args{
+				rawYaml:               templateMapYaml,
+				configVariablesClient: test.NewFakeVariableClient(),
+				targetNamespace:       "ns1",
+				listVariablesOnly:     true,
 			},
 			want: want{
 				variables:       []string{variableName},
@@ -67,7 +83,7 @@ func Test_newTemplate(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got, err := NewTemplate(tt.args.rawYaml, tt.args.configVariablesClient, tt.args.targetNamespace)
+			got, err := NewTemplate(tt.args.rawYaml, tt.args.configVariablesClient, tt.args.targetNamespace, tt.args.listVariablesOnly)
 			if (err != nil) != tt.wantErr {
 				t.Fatalf("error = %v, wantErr %v", err, tt.wantErr)
 			}
@@ -81,6 +97,10 @@ func Test_newTemplate(t *testing.T) {
 
 			if !reflect.DeepEqual(got.TargetNamespace(), tt.want.targetNamespace) {
 				t.Errorf("got.TargetNamespace() = %v, want = %v ", got.TargetNamespace(), tt.want.targetNamespace)
+			}
+
+			if tt.args.listVariablesOnly {
+				return
 			}
 
 			// check variable replaced in components

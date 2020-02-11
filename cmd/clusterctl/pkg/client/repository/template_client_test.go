@@ -37,8 +37,9 @@ func Test_templates_Get(t *testing.T) {
 		configVariablesClient config.VariablesClient
 	}
 	type args struct {
-		flavor          string
-		targetNamespace string
+		flavor            string
+		targetNamespace   string
+		listVariablesOnly bool
 	}
 	type want struct {
 		variables       []string
@@ -63,8 +64,9 @@ func Test_templates_Get(t *testing.T) {
 				configVariablesClient: test.NewFakeVariableClient().WithVar(variableName, variableValue),
 			},
 			args: args{
-				flavor:          "",
-				targetNamespace: "ns1",
+				flavor:            "",
+				targetNamespace:   "ns1",
+				listVariablesOnly: false,
 			},
 			want: want{
 				variables:       []string{variableName},
@@ -84,8 +86,9 @@ func Test_templates_Get(t *testing.T) {
 				configVariablesClient: test.NewFakeVariableClient().WithVar(variableName, variableValue),
 			},
 			args: args{
-				flavor:          "prod",
-				targetNamespace: "ns1",
+				flavor:            "prod",
+				targetNamespace:   "ns1",
+				listVariablesOnly: false,
 			},
 			want: want{
 				variables:       []string{variableName},
@@ -104,16 +107,57 @@ func Test_templates_Get(t *testing.T) {
 				configVariablesClient: test.NewFakeVariableClient().WithVar(variableName, variableValue),
 			},
 			args: args{
-				flavor:          "",
-				targetNamespace: "ns1",
+				flavor:            "",
+				targetNamespace:   "ns1",
+				listVariablesOnly: false,
 			},
 			wantErr: true,
+		},
+		{
+			name: "fails if variables does not exists",
+			fields: fields{
+				version:  "v1.0",
+				provider: p1,
+				repository: test.NewFakeRepository().
+					WithPaths("root", "").
+					WithDefaultVersion("v1.0").
+					WithFile("v1.0", "cluster-template.yaml", templateMapYaml),
+				configVariablesClient: test.NewFakeVariableClient(),
+			},
+			args: args{
+				flavor:            "",
+				targetNamespace:   "ns1",
+				listVariablesOnly: false,
+			},
+			wantErr: true,
+		},
+		{
+			name: "pass if variables does not exists but listVariablesOnly flag is set",
+			fields: fields{
+				version:  "v1.0",
+				provider: p1,
+				repository: test.NewFakeRepository().
+					WithPaths("root", "").
+					WithDefaultVersion("v1.0").
+					WithFile("v1.0", "cluster-template.yaml", templateMapYaml),
+				configVariablesClient: test.NewFakeVariableClient(),
+			},
+			args: args{
+				flavor:            "",
+				targetNamespace:   "ns1",
+				listVariablesOnly: true,
+			},
+			want: want{
+				variables:       []string{variableName},
+				targetNamespace: "ns1",
+			},
+			wantErr: false,
 		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			f := newTemplateClient(tt.fields.provider, tt.fields.version, tt.fields.repository, tt.fields.configVariablesClient)
-			got, err := f.Get(tt.args.flavor, tt.args.targetNamespace)
+			got, err := f.Get(tt.args.flavor, tt.args.targetNamespace, tt.args.listVariablesOnly)
 			if (err != nil) != tt.wantErr {
 				t.Fatalf("error = %v, wantErr %v", err, tt.wantErr)
 			}
@@ -135,7 +179,7 @@ func Test_templates_Get(t *testing.T) {
 				t.Fatalf("got.Yaml error = %v", err)
 			}
 
-			if !bytes.Contains(yaml, []byte(fmt.Sprintf("variable: %s", variableValue))) {
+			if !tt.args.listVariablesOnly && !bytes.Contains(yaml, []byte(fmt.Sprintf("variable: %s", variableValue))) {
 				t.Error("got.Yaml without variable substitution")
 			}
 

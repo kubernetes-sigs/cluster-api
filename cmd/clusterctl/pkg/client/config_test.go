@@ -312,7 +312,7 @@ func Test_clusterctlClient_GetClusterTemplate(t *testing.T) {
 		WithDefaultVersion("v3.0.0").
 		WithFile("v3.0.0", "cluster-template.yaml", templateYAML("ns3", "${ CLUSTER_NAME }"))
 
-	cluster1 := newFakeCluster("kubeconfig").
+	cluster1 := newFakeCluster("kubeconfig", config1).
 		WithProviderInventory(infraProviderConfig.Name(), infraProviderConfig.Type(), "v3.0.0", "foo", "bar")
 
 	client := newFakeClient(config1).

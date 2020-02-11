@@ -142,7 +142,7 @@ func fakeClusterForDelete() *fakeClient {
 		WithFile("v2.0.0", "components.yaml", componentsYAML("ns2")).
 		WithFile("v2.1.0", "components.yaml", componentsYAML("ns2"))
 
-	cluster1 := newFakeCluster("kubeconfig")
+	cluster1 := newFakeCluster("kubeconfig", config1)
 	cluster1.fakeProxy.WithProviderInventory(capiProviderConfig.Name(), capiProviderConfig.Type(), "v1.0.0", "capi-system", "")
 	cluster1.fakeProxy.WithProviderInventory(bootstrapProviderConfig.Name(), bootstrapProviderConfig.Type(), "v1.0.0", "capbpk-system", "")
 

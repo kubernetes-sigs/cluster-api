@@ -33,6 +33,8 @@ CONTROLLER_REPO_KUBEADM_BOOTSTRAP="controller-ci-kubeadm-bootstrap"
 CONTROLLER_REPO_KUBEADM_CONTROL_PLANE="controller-ci-kubeadm-control-plane"
 EXAMPLE_PROVIDER_REPO="example-provider-ci"
 CERT_MANAGER_URL="https://github.com/jetstack/cert-manager/releases/download/v0.11.0/cert-manager.yaml"
+TOOLS_DIR="hack/tools"
+TOOLS_BIN_DIR="${TOOLS_DIR}/bin"
 
 GOOS=$(go env GOOS)
 GOARCH=$(go env GOARCH)
@@ -57,12 +59,19 @@ install_kustomize() {
 
 build_containers() {
    VERSION="$(git describe --exact-match 2> /dev/null || git describe --match="$(git rev-parse --short=8 HEAD)" --always --dirty --abbrev=8)"
+   export CONTROLLER_GEN="${PWD}/${TOOLS_BIN_DIR}/controller-gen"
+   export CONVERSION_GEN="${PWD}/${TOOLS_BIN_DIR}/conversion-gen"
+   export KUSTOMIZE="${PWD}/${TOOLS_BIN_DIR}/kustomize"
+   export GOBINDATA="${PWD}/${TOOLS_BIN_DIR}/go-bindata"
+   export GOBINDATA_CLUSTERCTL_DIR="cmd/clusterctl/config"
+   export CERTMANAGER_COMPONENTS_GENERATED_FILE="cert-manager.yaml"
    export CONTROLLER_IMG="${CONTROLLER_REPO}"
    export KUBEADM_BOOTSTRAP_CONTROLLER_IMG="${CONTROLLER_REPO_KUBEADM_BOOTSTRAP}"
    export KUBEADM_CONTROL_PLANE_CONTROLLER_IMG="${CONTROLLER_REPO_KUBEADM_CONTROL_PLANE}"
    export EXAMPLE_PROVIDER_IMG="${EXAMPLE_PROVIDER_REPO}"
 
    "${MAKE}" docker-build TAG="${VERSION}" ARCH="${GOARCH}" PULL_POLICY=IfNotPresent
+   "${MAKE}" generate
    "${MAKE}" docker-build-example-provider TAG="${VERSION}" ARCH="${GOARCH}"
 }
 

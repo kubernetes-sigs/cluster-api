@@ -39,7 +39,7 @@ type TemplateOptions struct {
 // TemplateClient has methods to work with cluster templates hosted on a provider repository.
 // Templates are yaml files to be used for creating a guest cluster.
 type TemplateClient interface {
-	Get(flavor, targetNamespace string) (Template, error)
+	Get(flavor, targetNamespace string, listVariablesOnly bool) (Template, error)
 }
 
 // templateClient implements TemplateClient.
@@ -66,7 +66,7 @@ func newTemplateClient(provider config.Provider, version string, repository Repo
 // Get return the template for the flavor specified.
 // In case the template does not exists, an error is returned.
 // Get assumes the following naming convention for templates: cluster-template[-<flavor_name>].yaml
-func (c *templateClient) Get(flavor, targetNamespace string) (Template, error) {
+func (c *templateClient) Get(flavor, targetNamespace string, listVariablesOnly bool) (Template, error) {
 	log := logf.Log
 
 	if targetNamespace == "" {
@@ -100,5 +100,5 @@ func (c *templateClient) Get(flavor, targetNamespace string) (Template, error) {
 		log.V(1).Info("Using", "Override", name, "Provider", c.provider.Name(), "Version", version)
 	}
 
-	return NewTemplate(rawYaml, c.configVariablesClient, targetNamespace)
+	return NewTemplate(rawYaml, c.configVariablesClient, targetNamespace, listVariablesOnly)
 }

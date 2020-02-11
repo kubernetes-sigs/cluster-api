@@ -55,36 +55,6 @@ type InitOptions struct {
 	LogUsageInstructions bool
 }
 
-// GetClusterTemplateOptions carries the options supported by GetClusterTemplate.
-type GetClusterTemplateOptions struct {
-	// Kubeconfig file to use for accessing the management cluster. If empty, default rules for kubeconfig
-	// discovery will be used.
-	Kubeconfig string
-
-	// InfrastructureProvider that should be used for creating the workload cluster.
-	InfrastructureProvider string
-
-	// Flavor defines the template variant to be used for creating the workload cluster.
-	Flavor string
-
-	// TargetNamespace where the objects describing the workload cluster should be deployed. If not specified,
-	// the current namespace will be used.
-	TargetNamespace string
-
-	// ClusterName to be used for the workload cluster.
-	ClusterName string
-
-	// KubernetesVersion to use for the workload cluster. By default (empty), the value from os env variables
-	// or the .cluster-api/clusterctl.yaml config file will be used.
-	KubernetesVersion string
-
-	// ControlPlaneMachineCount defines the number of control plane machines to be added to the workload cluster.
-	ControlPlaneMachineCount int
-
-	// WorkerMachineCount defines number of worker machines to be added to the workload cluster.
-	WorkerMachineCount int
-}
-
 // DeleteOptions carries the options supported by Delete.
 type DeleteOptions struct {
 	// Kubeconfig file to use for accessing the management cluster. If empty, default rules for kubeconfig

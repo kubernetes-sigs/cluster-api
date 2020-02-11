@@ -34,7 +34,6 @@ import (
 const (
 	httpsScheme              = "https"
 	githubDomain             = "github.com"
-	githubTokeVariable       = "github-token"
 	githubReleaseRepository  = "releases"
 	githubLatestReleaseLabel = "latest"
 )
@@ -145,8 +144,7 @@ func newGitHubRepository(providerConfig config.Provider, configVariablesClient c
 		componentsPath:        componentsPath,
 	}
 
-	token, err := configVariablesClient.Get(githubTokeVariable)
-	if err == nil {
+	if token, err := configVariablesClient.Get(config.GitHubTokenVariable); err == nil {
 		repo.setClientToken(token)
 	}
 

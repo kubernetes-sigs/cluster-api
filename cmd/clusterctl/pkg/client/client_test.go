@@ -223,6 +223,10 @@ func (f *fakeClusterClient) ProviderUpgrader() cluster.ProviderUpgrader {
 	return f.internalclient.ProviderUpgrader()
 }
 
+func (f *fakeClusterClient) Template() cluster.TemplateClient {
+	return f.internalclient.Template()
+}
+
 func (f *fakeClusterClient) WithObjs(objs ...runtime.Object) *fakeClusterClient {
 	f.fakeProxy.WithObjs(objs...)
 	return f

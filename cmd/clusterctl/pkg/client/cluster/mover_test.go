@@ -27,6 +27,7 @@ import (
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha3"
+	clusterctlv1 "sigs.k8s.io/cluster-api/cmd/clusterctl/api/v1alpha3"
 	"sigs.k8s.io/cluster-api/cmd/clusterctl/pkg/internal/test"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
@@ -665,6 +666,131 @@ func Test_objectMover_checkProvisioningCompleted(t *testing.T) {
 				fromProxy: graph.proxy,
 			}
 			if err := o.checkProvisioningCompleted(graph); (err != nil) != tt.wantErr {
+				t.Errorf("error = %v, wantErr %v", err, tt.wantErr)
+			}
+		})
+	}
+}
+
+func Test_objectsMoverService_checkTargetProviders(t *testing.T) {
+	type fields struct {
+		fromProxy Proxy
+	}
+	type args struct {
+		toProxy   Proxy
+		namespace string
+	}
+	tests := []struct {
+		name    string
+		fields  fields
+		args    args
+		wantErr bool
+	}{
+		{
+			name: "move objects in single namespace, all the providers in place (lazy matching)",
+			fields: fields{
+				fromProxy: test.NewFakeProxy().
+					WithProviderInventory("capi", clusterctlv1.CoreProviderType, "v1.0.0", "capi-system", "").
+					WithProviderInventory("kubeadm", clusterctlv1.BootstrapProviderType, "v1.0.0", "cabpk-system", "").
+					WithProviderInventory("capa", clusterctlv1.InfrastructureProviderType, "v1.0.0", "capa-system", ""),
+			},
+			args: args{
+				namespace: "ns1", // a single namespaces
+				toProxy: test.NewFakeProxy().
+					WithProviderInventory("capi", clusterctlv1.CoreProviderType, "v1.0.0", "capi-system", "ns1").
+					WithProviderInventory("kubeadm", clusterctlv1.BootstrapProviderType, "v1.0.0", "cabpk-system", "ns1").
+					WithProviderInventory("capa", clusterctlv1.InfrastructureProviderType, "v1.0.0", "capa-system", "ns1"),
+			},
+			wantErr: false,
+		},
+		{
+			name: "move objects in single namespace, all the providers in place but with a newer version (lazy matching)",
+			fields: fields{
+				fromProxy: test.NewFakeProxy().
+					WithProviderInventory("capi", clusterctlv1.CoreProviderType, "v2.0.0", "capi-system", ""),
+			},
+			args: args{
+				namespace: "ns1", // a single namespaces
+				toProxy: test.NewFakeProxy().
+					WithProviderInventory("capi", clusterctlv1.CoreProviderType, "v2.1.0", "capi-system", "ns1"), // Lazy matching
+			},
+			wantErr: false,
+		},
+		{
+			name: "move objects in all namespaces, all the providers in place (exact matching)",
+			fields: fields{
+				fromProxy: test.NewFakeProxy().
+					WithProviderInventory("capi", clusterctlv1.CoreProviderType, "v1.0.0", "capi-system", "").
+					WithProviderInventory("kubeadm", clusterctlv1.BootstrapProviderType, "v1.0.0", "cabpk-system", "").
+					WithProviderInventory("capa", clusterctlv1.InfrastructureProviderType, "v1.0.0", "capa-system", ""),
+			},
+			args: args{
+				namespace: "", // all namespaces
+				toProxy: test.NewFakeProxy().
+					WithProviderInventory("capi", clusterctlv1.CoreProviderType, "v1.0.0", "capi-system", "").
+					WithProviderInventory("kubeadm", clusterctlv1.BootstrapProviderType, "v1.0.0", "cabpk-system", "").
+					WithProviderInventory("capa", clusterctlv1.InfrastructureProviderType, "v1.0.0", "capa-system", ""),
+			},
+			wantErr: false,
+		},
+		{
+			name: "move objects in all namespaces, all the providers in place but with a newer version (exact matching)",
+			fields: fields{
+				fromProxy: test.NewFakeProxy().
+					WithProviderInventory("capi", clusterctlv1.CoreProviderType, "v2.0.0", "capi-system", ""),
+			},
+			args: args{
+				namespace: "", // all namespaces
+				toProxy: test.NewFakeProxy().
+					WithProviderInventory("capi", clusterctlv1.CoreProviderType, "v2.1.0", "capi-system", ""),
+			},
+			wantErr: false,
+		},
+		{
+			name: "move objects in all namespaces, not exact matching",
+			fields: fields{
+				fromProxy: test.NewFakeProxy().
+					WithProviderInventory("capi", clusterctlv1.CoreProviderType, "v2.0.0", "capi-system", ""),
+			},
+			args: args{
+				namespace: "", // all namespaces
+				toProxy: test.NewFakeProxy().
+					WithProviderInventory("capi", clusterctlv1.CoreProviderType, "v2.1.0", "capi-system", "ns1"), // Lazy matching only
+			},
+			wantErr: true,
+		},
+		{
+			name: "fails if a provider is missing",
+			fields: fields{
+				fromProxy: test.NewFakeProxy().
+					WithProviderInventory("capi", clusterctlv1.CoreProviderType, "v2.0.0", "capi-system", ""),
+			},
+			args: args{
+				namespace: "", // all namespaces
+				toProxy:   test.NewFakeProxy(),
+			},
+			wantErr: true,
+		},
+		{
+			name: "fails if a provider version is older than expected",
+			fields: fields{
+				fromProxy: test.NewFakeProxy().
+					WithProviderInventory("capi", clusterctlv1.CoreProviderType, "v2.0.0", "capi-system", ""),
+			},
+			args: args{
+				namespace: "", // all namespaces
+				toProxy: test.NewFakeProxy().
+					WithProviderInventory("capi", clusterctlv1.CoreProviderType, "v1.0.0", "capi1-system", ""),
+			},
+			wantErr: true,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			o := &objectMover{
+				fromProviderInventory: newInventoryClient(tt.fields.fromProxy, nil),
+			}
+			if err := o.checkTargetProviders(tt.args.namespace, newInventoryClient(tt.args.toProxy, nil)); (err != nil) != tt.wantErr {
 				t.Errorf("error = %v, wantErr %v", err, tt.wantErr)
 			}
 		})

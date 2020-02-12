@@ -66,21 +66,21 @@ func (c *InitManagementClusterInput) Defaults(ctx context.Context) {
 // cluster.
 func InitManagementCluster(ctx context.Context, input *InitManagementClusterInput) ManagementCluster {
 	By("initializing the management cluster")
-	Expect(input).ToNot(BeNil())
+	ExpectWithOffset(1, input).ToNot(BeNil())
 
 	By("initialzing the management cluster configuration defaults")
 	input.Defaults(ctx)
 
 	By("validating the management cluster configuration")
-	Expect(input.Validate()).To(Succeed())
+	ExpectWithOffset(1, input.Validate()).To(Succeed())
 
 	By("loading the kubernetes and capi core schemes")
 	TryAddDefaultSchemes(input.Scheme)
 
 	By("creating the management cluster")
 	managementCluster, err := input.NewManagementClusterFn()
-	Expect(err).ToNot(HaveOccurred())
-	Expect(managementCluster).ToNot(BeNil())
+	ExpectWithOffset(1, err).ToNot(HaveOccurred())
+	ExpectWithOffset(1, managementCluster).ToNot(BeNil())
 
 	// Load the images.
 	if imageLoader, ok := managementCluster.(ImageLoader); ok {
@@ -89,7 +89,7 @@ func InitManagementCluster(ctx context.Context, input *InitManagementClusterInpu
 			switch image.LoadBehavior {
 			case MustLoadImage:
 				By(fmt.Sprintf("must load image %s into the management cluster", image.Name))
-				Expect(imageLoader.LoadImage(ctx, image.Name)).To(Succeed())
+				ExpectWithOffset(1, imageLoader.LoadImage(ctx, image.Name)).To(Succeed())
 			case TryLoadImage:
 				By(fmt.Sprintf("try to load image %s into the management cluster", image.Name))
 				imageLoader.LoadImage(ctx, image.Name) //nolint:errcheck

@@ -68,7 +68,7 @@ func CreateRelatedResources(ctx context.Context, input CreateRelatedResourcesInp
 	for i := range input.RelatedResources {
 		obj := input.RelatedResources[i]
 		By(fmt.Sprintf("creating a/an %s resource", obj.GetObjectKind().GroupVersionKind()))
-		Eventually(func() error {
+		EventuallyWithOffset(1, func() error {
 			return input.Creator.Create(ctx, obj)
 		}, intervals...).Should(Succeed())
 	}
@@ -84,13 +84,13 @@ type CreateClusterInput struct {
 // CreateCluster will create the Cluster and InfraCluster objects.
 func CreateCluster(ctx context.Context, input CreateClusterInput, intervals ...interface{}) {
 	By("creating an InfrastructureCluster resource")
-	Expect(input.Creator.Create(ctx, input.InfraCluster)).To(Succeed())
+	ExpectWithOffset(1, input.Creator.Create(ctx, input.InfraCluster)).To(Succeed())
 
 	// This call happens in an eventually because of a race condition with the
 	// webhook server. If the latter isn't fully online then this call will
 	// fail.
 	By("creating a Cluster resource linked to the InfrastructureCluster resource")
-	Eventually(func() error {
+	EventuallyWithOffset(1, func() error {
 		if err := input.Creator.Create(ctx, input.Cluster); err != nil {
 			fmt.Printf("%+v\n", err)
 			return err
@@ -109,10 +109,10 @@ type CreateKubeadmControlPlaneInput struct {
 // CreateKubeadmControlPlane creates the control plane object and necessary dependencies.
 func CreateKubeadmControlPlane(ctx context.Context, input CreateKubeadmControlPlaneInput, intervals ...interface{}) {
 	By("creating the machine template")
-	Expect(input.Creator.Create(ctx, input.MachineTemplate)).To(Succeed())
+	ExpectWithOffset(1, input.Creator.Create(ctx, input.MachineTemplate)).To(Succeed())
 
 	By("creating a KubeadmControlPlane")
-	Eventually(func() error {
+	EventuallyWithOffset(1, func() error {
 		err := input.Creator.Create(ctx, input.ControlPlane)
 		if err != nil {
 			fmt.Println(err)
@@ -132,13 +132,13 @@ type CreateMachineDeploymentInput struct {
 // CreateMachineDeployment creates the machine deployment and dependencies.
 func CreateMachineDeployment(ctx context.Context, input CreateMachineDeploymentInput) {
 	By("creating a core MachineDeployment resource")
-	Expect(input.Creator.Create(ctx, input.MachineDeployment)).To(Succeed())
+	ExpectWithOffset(1, input.Creator.Create(ctx, input.MachineDeployment)).To(Succeed())
 
 	By("creating a BootstrapConfigTemplate resource")
-	Expect(input.Creator.Create(ctx, input.BootstrapConfigTemplate)).To(Succeed())
+	ExpectWithOffset(1, input.Creator.Create(ctx, input.BootstrapConfigTemplate)).To(Succeed())
 
 	By("creating an InfrastructureMachineTemplate resource")
-	Expect(input.Creator.Create(ctx, input.InfraMachineTemplate)).To(Succeed())
+	ExpectWithOffset(1, input.Creator.Create(ctx, input.InfraMachineTemplate)).To(Succeed())
 }
 
 // WaitForMachineDeploymentNodesToExistInput is the input for WaitForMachineDeploymentNodesToExist.
@@ -151,7 +151,7 @@ type WaitForMachineDeploymentNodesToExistInput struct {
 // WaitForMachineDeploymentNodesToExist waits until all nodes associated with a machine deployment exist.
 func WaitForMachineDeploymentNodesToExist(ctx context.Context, input WaitForMachineDeploymentNodesToExistInput, intervals ...interface{}) {
 	By("waiting for the workload nodes to exist")
-	Eventually(func() (int, error) {
+	EventuallyWithOffset(1, func() (int, error) {
 		selectorMap, err := metav1.LabelSelectorAsMap(&input.MachineDeployment.Spec.Selector)
 		if err != nil {
 			return 0, err
@@ -191,7 +191,7 @@ type WaitForClusterToProvisionInput struct {
 // WaitForClusterToProvision will wait for a cluster to have a phase status of provisioned.
 func WaitForClusterToProvision(ctx context.Context, input WaitForClusterToProvisionInput, intervals ...interface{}) {
 	By("waiting for cluster to enter the provisioned phase")
-	Eventually(func() (string, error) {
+	EventuallyWithOffset(1, func() (string, error) {
 		cluster := &clusterv1.Cluster{}
 		key := client.ObjectKey{
 			Namespace: input.Cluster.GetNamespace(),
@@ -221,7 +221,7 @@ func WaitForKubeadmControlPlaneMachinesToExist(ctx context.Context, input WaitFo
 		clusterv1.ClusterLabelName:             input.Cluster.Name,
 	}
 
-	Eventually(func() (int, error) {
+	EventuallyWithOffset(1, func() (int, error) {
 		machineList := &clusterv1.MachineList{}
 		if err := input.Lister.List(ctx, machineList, inClustersNamespaceListOption, matchClusterListOption); err != nil {
 			fmt.Println(err)
@@ -248,7 +248,7 @@ type WaitForControlPlaneToBeReadyInput struct {
 // TODO(chuckha): In the meantime this uses initialized as a placeholder for Ready.
 func WaitForControlPlaneToBeReady(ctx context.Context, input WaitForControlPlaneToBeReadyInput, intervals ...interface{}) {
 	By("waiting for the control plane to be ready")
-	Eventually(func() (bool, error) {
+	EventuallyWithOffset(1, func() (bool, error) {
 		controlplane := &controlplanev1.KubeadmControlPlane{}
 		key := client.ObjectKey{
 			Namespace: input.ControlPlane.GetNamespace(),
@@ -271,7 +271,7 @@ type DeleteClusterInput struct {
 // DeleteCluster deletes the cluster and waits for everything the cluster owned to actually be gone.
 func DeleteCluster(ctx context.Context, input DeleteClusterInput) {
 	By(fmt.Sprintf("deleting cluster %s", input.Cluster.GetName()))
-	Expect(input.Deleter.Delete(ctx, input.Cluster)).To(Succeed())
+	ExpectWithOffset(1, input.Deleter.Delete(ctx, input.Cluster)).To(Succeed())
 }
 
 // WaitForClusterDeletedInput is the input for WaitForClusterDeleted.
@@ -283,7 +283,7 @@ type WaitForClusterDeletedInput struct {
 // WaitForClusterDeleted waits until the cluster object has been deleted.
 func WaitForClusterDeleted(ctx context.Context, input WaitForClusterDeletedInput, intervals ...interface{}) {
 	By(fmt.Sprintf("waiting for cluster %s to be deleted", input.Cluster.GetName()))
-	Eventually(func() bool {
+	EventuallyWithOffset(1, func() bool {
 		cluster := &clusterv1.Cluster{}
 		key := client.ObjectKey{
 			Namespace: input.Cluster.GetNamespace(),
@@ -302,32 +302,32 @@ type AssertAllClusterAPIResourcesAreGoneInput struct {
 // AssertAllClusterAPIResourcesAreGone ensures that all known Cluster API resources have been remvoed.
 func AssertAllClusterAPIResourcesAreGone(ctx context.Context, input AssertAllClusterAPIResourcesAreGoneInput) {
 	lbl, err := labels.Parse(fmt.Sprintf("%s=%s", clusterv1.ClusterLabelName, input.Cluster.GetClusterName()))
-	Expect(err).ToNot(HaveOccurred())
+	ExpectWithOffset(1, err).ToNot(HaveOccurred())
 	opt := &client.ListOptions{LabelSelector: lbl}
 
 	By("ensuring all CAPI artifacts have been deleted")
 
 	ml := &clusterv1.MachineList{}
-	Expect(input.Lister.List(ctx, ml, opt)).To(Succeed())
-	Expect(ml.Items).To(HaveLen(0))
+	ExpectWithOffset(1, input.Lister.List(ctx, ml, opt)).To(Succeed())
+	ExpectWithOffset(1, ml.Items).To(HaveLen(0))
 
 	msl := &clusterv1.MachineSetList{}
-	Expect(input.Lister.List(ctx, msl, opt)).To(Succeed())
-	Expect(msl.Items).To(HaveLen(0))
+	ExpectWithOffset(1, input.Lister.List(ctx, msl, opt)).To(Succeed())
+	ExpectWithOffset(1, msl.Items).To(HaveLen(0))
 
 	mdl := &clusterv1.MachineDeploymentList{}
-	Expect(input.Lister.List(ctx, mdl, opt)).To(Succeed())
-	Expect(mdl.Items).To(HaveLen(0))
+	ExpectWithOffset(1, input.Lister.List(ctx, mdl, opt)).To(Succeed())
+	ExpectWithOffset(1, mdl.Items).To(HaveLen(0))
 
 	kcpl := &controlplanev1.KubeadmControlPlaneList{}
-	Expect(input.Lister.List(ctx, kcpl, opt)).To(Succeed())
-	Expect(kcpl.Items).To(HaveLen(0))
+	ExpectWithOffset(1, input.Lister.List(ctx, kcpl, opt)).To(Succeed())
+	ExpectWithOffset(1, kcpl.Items).To(HaveLen(0))
 
 	kcl := &cabpkv1.KubeadmConfigList{}
-	Expect(input.Lister.List(ctx, kcl, opt)).To(Succeed())
-	Expect(kcl.Items).To(HaveLen(0))
+	ExpectWithOffset(1, input.Lister.List(ctx, kcl, opt)).To(Succeed())
+	ExpectWithOffset(1, kcl.Items).To(HaveLen(0))
 
 	sl := &corev1.SecretList{}
-	Expect(input.Lister.List(ctx, sl, opt)).To(Succeed())
-	Expect(sl.Items).To(HaveLen(0))
+	ExpectWithOffset(1, input.Lister.List(ctx, sl, opt)).To(Succeed())
+	ExpectWithOffset(1, sl.Items).To(HaveLen(0))
 }

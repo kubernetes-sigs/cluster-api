@@ -39,8 +39,8 @@ func InstallComponents(ctx context.Context, mgmt Applier, components ...Componen
 		for _, component := range components {
 			By(fmt.Sprintf("installing %s", component.GetName()))
 			c, err := component.Manifests(ctx)
-			Expect(err).NotTo(HaveOccurred())
-			Expect(mgmt.Apply(ctx, c)).To(Succeed())
+			ExpectWithOffset(1, err).NotTo(HaveOccurred())
+			ExpectWithOffset(1, mgmt.Apply(ctx, c)).To(Succeed())
 		}
 	})
 }
@@ -50,7 +50,7 @@ func InstallComponents(ctx context.Context, mgmt Applier, components ...Componen
 func WaitForAPIServiceAvailable(ctx context.Context, mgmt Waiter, serviceName string) {
 	By(fmt.Sprintf("waiting for api service %q to be available", serviceName))
 	err := mgmt.Wait(ctx, "--for", "condition=Available", "--timeout", "300s", "apiservice", serviceName)
-	Expect(err).NotTo(HaveOccurred(), "stack: %+v", err)
+	ExpectWithOffset(1, err).NotTo(HaveOccurred(), "stack: %+v", err)
 }
 
 // WaitForPodsReadyInNamespace will wait for all pods to be Ready in the
@@ -59,7 +59,7 @@ func WaitForAPIServiceAvailable(ctx context.Context, mgmt Waiter, serviceName st
 func WaitForPodsReadyInNamespace(ctx context.Context, cluster Waiter, namespace string) {
 	By(fmt.Sprintf("waiting for pods to be ready in namespace %q", namespace))
 	err := cluster.Wait(ctx, "--for", "condition=Ready", "--timeout", "300s", "--namespace", namespace, "pods", "--all")
-	Expect(err).NotTo(HaveOccurred(), "stack: %+v", err)
+	ExpectWithOffset(1, err).NotTo(HaveOccurred(), "stack: %+v", err)
 }
 
 // EnsureNamespace verifies if a namespaces exists. If it doesn't it will
@@ -73,7 +73,7 @@ func EnsureNamespace(ctx context.Context, mgmt client.Client, namespace string) 
 				Name: namespace,
 			},
 		}
-		Expect(mgmt.Create(ctx, ns)).To(Succeed())
+		ExpectWithOffset(1, mgmt.Create(ctx, ns)).To(Succeed())
 	} else {
 		Fail(err.Error())
 	}

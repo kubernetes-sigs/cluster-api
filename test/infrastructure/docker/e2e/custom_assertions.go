@@ -44,19 +44,19 @@ func ensureDockerArtifactsDeleted(input ensureDockerArtifactsDeletedInput) {
 	ctx := context.Background()
 
 	lbl, err := labels.Parse(fmt.Sprintf("%s=%s", clusterv1.ClusterLabelName, input.Cluster.GetClusterName()))
-	Expect(err).ToNot(HaveOccurred())
+	ExpectWithOffset(1, err).ToNot(HaveOccurred())
 	opt := &client.ListOptions{LabelSelector: lbl}
 
 	dcl := &infrav1.DockerClusterList{}
-	Expect(input.Lister.List(ctx, dcl, opt)).To(Succeed())
-	Expect(dcl.Items).To(HaveLen(0))
+	ExpectWithOffset(1, input.Lister.List(ctx, dcl, opt)).To(Succeed())
+	ExpectWithOffset(1, dcl.Items).To(HaveLen(0))
 
 	dml := &infrav1.DockerMachineList{}
-	Expect(input.Lister.List(ctx, dml, opt)).To(Succeed())
-	Expect(dml.Items).To(HaveLen(0))
+	ExpectWithOffset(1, input.Lister.List(ctx, dml, opt)).To(Succeed())
+	ExpectWithOffset(1, dml.Items).To(HaveLen(0))
 
 	dmtl := &infrav1.DockerMachineTemplateList{}
-	Expect(input.Lister.List(ctx, dmtl, opt)).To(Succeed())
-	Expect(dmtl.Items).To(HaveLen(0))
+	ExpectWithOffset(1, input.Lister.List(ctx, dmtl, opt)).To(Succeed())
+	ExpectWithOffset(1, dmtl.Items).To(HaveLen(0))
 	By("Succeeding in deleting all docker artifacts")
 }

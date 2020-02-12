@@ -56,7 +56,7 @@ See the [Minikube documentation](https://minikube.sigs.k8s.io/) for more details
 {{#/tab }}
 {{#tab Production}}
 
-{{#tabs name:"tab-create-production-cluster" tabs:"Pre-Existing cluster,Pivot"}}
+{{#tabs name:"tab-create-production-cluster" tabs:"Pre-Existing cluster"}}
 {{#tab Pre-Existing cluster}}
 
 For production use-cases a "real" kubernetes cluster should be used with appropriate backup and DR policies and procedures in place.
@@ -64,13 +64,6 @@ For production use-cases a "real" kubernetes cluster should be used with appropr
 ```bash
 export KUBECONFIG=<...>
 ```
-{{#/tab }}
-{{#tab Pivot}}
-
-- Create a bootstrap management cluster with kind/Minikube
-- Use `clusterctl init` and `clusterctl config cluster` to create a production cluster (see below)
-- "Pivot" the bootstrap management cluster into the production management cluster
-
 {{#/tab }}
 {{#/tabs }}
 
@@ -224,6 +217,9 @@ it detects that there is only an `aws` infrastructure provider and so it uses th
 The `clusterctl config cluster` uses cluster templates which are provided by the infrastructure providers.
 See the provider's documentation for more information.
 
+See [`clusterctl config cluster`](commands/config-cluster.md) for details about how to use alternative sources
+for cluster templates.
+
 </aside>
 
 <aside class="note warning">
@@ -232,6 +228,9 @@ See the provider's documentation for more information.
 
 If the cluster template defined by the infrastructure provider expects some environment variables, user 
 should ensure those variables are set in advance.
+
+See [`clusterctl config cluster`](commands/config-cluster.md) for details about how to discover the list of
+variables required by a cluster templates.
 
 </aside>
 

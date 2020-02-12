@@ -397,25 +397,70 @@ func fakeEmptyCluster() *fakeClient {
 		WithPaths("root", "components.yaml").
 		WithDefaultVersion("v1.0.0").
 		WithFile("v1.0.0", "components.yaml", componentsYAML("ns1")).
-		WithFile("v1.1.0", "components.yaml", componentsYAML("ns1"))
+		WithMetadata("v1.0.0", &clusterctlv1.Metadata{
+			ReleaseSeries: []clusterctlv1.ReleaseSeries{
+				{Major: 1, Minor: 0, Contract: "v1alpha3"},
+			},
+		}).
+		WithFile("v1.1.0", "components.yaml", componentsYAML("ns1")).
+		WithMetadata("v1.1.0", &clusterctlv1.Metadata{
+			ReleaseSeries: []clusterctlv1.ReleaseSeries{
+				{Major: 1, Minor: 1, Contract: "v1alpha3"},
+			},
+		})
 	repository2 := newFakeRepository(bootstrapProviderConfig, config1.Variables()).
 		WithPaths("root", "components.yaml").
 		WithDefaultVersion("v2.0.0").
 		WithFile("v2.0.0", "components.yaml", componentsYAML("ns2")).
-		WithFile("v2.1.0", "components.yaml", componentsYAML("ns2"))
+		WithMetadata("v2.0.0", &clusterctlv1.Metadata{
+			ReleaseSeries: []clusterctlv1.ReleaseSeries{
+				{Major: 2, Minor: 0, Contract: "v1alpha3"},
+			},
+		}).
+		WithFile("v2.1.0", "components.yaml", componentsYAML("ns2")).
+		WithMetadata("v2.1.0", &clusterctlv1.Metadata{
+			ReleaseSeries: []clusterctlv1.ReleaseSeries{
+				{Major: 2, Minor: 1, Contract: "v1alpha3"},
+			},
+		})
 	repository3 := newFakeRepository(controlPlaneProviderConfig, config1.Variables()).
 		WithPaths("root", "components.yaml").
 		WithDefaultVersion("v2.0.0").
 		WithFile("v2.0.0", "components.yaml", componentsYAML("ns3")).
-		WithFile("v2.1.0", "components.yaml", componentsYAML("ns3"))
+		WithMetadata("v2.0.0", &clusterctlv1.Metadata{
+			ReleaseSeries: []clusterctlv1.ReleaseSeries{
+				{Major: 2, Minor: 0, Contract: "v1alpha3"},
+			},
+		}).
+		WithFile("v2.1.0", "components.yaml", componentsYAML("ns3")).
+		WithMetadata("v2.1.0", &clusterctlv1.Metadata{
+			ReleaseSeries: []clusterctlv1.ReleaseSeries{
+				{Major: 2, Minor: 1, Contract: "v1alpha3"},
+			},
+		})
 	repository4 := newFakeRepository(infraProviderConfig, config1.Variables()).
 		WithPaths("root", "components.yaml").
 		WithDefaultVersion("v3.0.0").
 		WithFile("v3.0.0", "components.yaml", componentsYAML("ns4")).
+		WithMetadata("v3.0.0", &clusterctlv1.Metadata{
+			ReleaseSeries: []clusterctlv1.ReleaseSeries{
+				{Major: 3, Minor: 0, Contract: "v1alpha3"},
+			},
+		}).
 		WithFile("v3.1.0", "components.yaml", componentsYAML("ns4")).
+		WithMetadata("v3.1.0", &clusterctlv1.Metadata{
+			ReleaseSeries: []clusterctlv1.ReleaseSeries{
+				{Major: 3, Minor: 1, Contract: "v1alpha3"},
+			},
+		}).
 		WithFile("v3.0.0", "cluster-template.yaml", templateYAML("ns4", "test"))
 
-	cluster1 := newFakeCluster("kubeconfig", config1)
+	cluster1 := newFakeCluster("kubeconfig", config1).
+		// fake repository for capi, bootstrap and infra provider (matching provider's config)
+		WithRepository(repository1).
+		WithRepository(repository2).
+		WithRepository(repository3).
+		WithRepository(repository4)
 
 	client := newFakeClient(config1).
 		// fake repository for capi, bootstrap and infra provider (matching provider's config)

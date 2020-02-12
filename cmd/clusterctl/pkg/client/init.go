@@ -91,6 +91,16 @@ func (c *clusterctlClient) Init(options InitOptions) ([]Components, error) {
 		return nil, err
 	}
 
+	// Before installing the providers, validates the management cluster resulting by the planned installation. The following checks are performed:
+	// - There should be only one instance of the same provider per namespace.
+	// - Instances of the same provider should not be fighting for objects (no watching overlap).
+	// - Providers combines in valid management groups
+	//   - All the providers should belong to one/only one management groups
+	//   - All the providers in a management group must support the same API Version of Cluster API (contract)
+	if err := installer.Validate(); err != nil {
+		return nil, err
+	}
+
 	// Before installing the providers, ensure the cert-manager WebHook is in place.
 	if err := cluster.CertManager().EnsureWebHook(); err != nil {
 		return nil, err
@@ -146,9 +156,7 @@ func (c *clusterctlClient) addToInstaller(options addToInstallerOptions, targetG
 			return errors.Errorf("can't use %q provider as an %q, it is a %q", provider, targetGroup, components.Type())
 		}
 
-		if err := options.installer.Add(components); err != nil {
-			return errors.Wrapf(err, "failed to prepare for installing the %q provider", provider)
-		}
+		options.installer.Add(components)
 	}
 	return nil
 }

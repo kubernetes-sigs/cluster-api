@@ -17,16 +17,19 @@ limitations under the License.
 package client
 
 import (
+	"fmt"
 	"testing"
 	"time"
 
 	"github.com/pkg/errors"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/runtime/serializer"
 	"k8s.io/apimachinery/pkg/util/wait"
 	clusterctlv1 "sigs.k8s.io/cluster-api/cmd/clusterctl/api/v1alpha3"
 	"sigs.k8s.io/cluster-api/cmd/clusterctl/pkg/client/cluster"
 	"sigs.k8s.io/cluster-api/cmd/clusterctl/pkg/client/config"
 	"sigs.k8s.io/cluster-api/cmd/clusterctl/pkg/client/repository"
+	"sigs.k8s.io/cluster-api/cmd/clusterctl/pkg/internal/scheme"
 	"sigs.k8s.io/cluster-api/cmd/clusterctl/pkg/internal/test"
 )
 
@@ -291,19 +294,17 @@ func newFakeRepository(provider config.Provider, configVariablesClient config.Va
 		configVariablesClient = newFakeConfig().Variables()
 	}
 
-	client, _ := repository.New(provider, configVariablesClient, repository.InjectRepository(fakeRepository))
-
 	return &fakeRepositoryClient{
-		Provider:       provider,
-		fakeRepository: fakeRepository,
-		client:         client,
+		Provider:              provider,
+		configVariablesClient: configVariablesClient,
+		fakeRepository:        fakeRepository,
 	}
 }
 
 type fakeRepositoryClient struct {
 	config.Provider
-	fakeRepository *test.FakeRepository
-	client         repository.Client
+	configVariablesClient config.VariablesClient
+	fakeRepository        *test.FakeRepository
 }
 
 var _ repository.Client = &fakeRepositoryClient{}
@@ -317,15 +318,29 @@ func (f fakeRepositoryClient) GetVersions() ([]string, error) {
 }
 
 func (f fakeRepositoryClient) Components() repository.ComponentsClient {
-	return f.client.Components()
+	// use a fakeComponentClient (instead of the internal client used in other fake objects) we can de deterministic on what is returned (e.g. avoid interferences from overrides)
+	return &fakeComponentClient{
+		provider:              f.Provider,
+		fakeRepository:        f.fakeRepository,
+		configVariablesClient: f.configVariablesClient,
+	}
 }
 
 func (f fakeRepositoryClient) Templates(version string) repository.TemplateClient {
-	return f.client.Templates(version)
+	// use a fakeComponentClient (instead of the internal client used in other fake objects) we can de deterministic on what is returned (e.g. avoid interferences from overrides)
+	return &fakeTemplateClient{
+		version:               version,
+		fakeRepository:        f.fakeRepository,
+		configVariablesClient: f.configVariablesClient,
+	}
 }
 
 func (f fakeRepositoryClient) Metadata(version string) repository.MetadataClient {
-	return f.client.Metadata(version)
+	// use a fakeComponentClient (instead of the internal client used in other fake objects) we can de deterministic on what is returned (e.g. avoid interferences from overrides)
+	return &fakeMetadataClient{
+		version:        version,
+		fakeRepository: f.fakeRepository,
+	}
 }
 
 func (f *fakeRepositoryClient) WithPaths(rootPath, componentsPath string) *fakeRepositoryClient {
@@ -351,4 +366,67 @@ func (f *fakeRepositoryClient) WithMetadata(version string, metadata *clusterctl
 func (f *fakeRepositoryClient) WithFile(version, path string, content []byte) *fakeRepositoryClient {
 	f.fakeRepository.WithFile(version, path, content)
 	return f
+}
+
+// fakeTemplateClient provides a super simple TemplateClient (e.g. without support for local overrides)
+type fakeTemplateClient struct {
+	version               string
+	fakeRepository        *test.FakeRepository
+	configVariablesClient config.VariablesClient
+}
+
+func (f *fakeTemplateClient) Get(flavor, targetNamespace string, listVariablesOnly bool) (repository.Template, error) {
+	name := "cluster-template"
+	if flavor != "" {
+		name = fmt.Sprintf("%s-%s", name, flavor)
+	}
+	name = fmt.Sprintf("%s.yaml", name)
+
+	content, err := f.fakeRepository.GetFile(f.version, name)
+	if err != nil {
+		return nil, err
+	}
+	return repository.NewTemplate(content, f.configVariablesClient, targetNamespace, listVariablesOnly)
+}
+
+// fakeMetadataClient provides a super simple MetadataClient (e.g. without support for local overrides/embedded metadata)
+type fakeMetadataClient struct {
+	version        string
+	fakeRepository *test.FakeRepository
+}
+
+func (f *fakeMetadataClient) Get() (*clusterctlv1.Metadata, error) {
+	content, err := f.fakeRepository.GetFile(f.version, "metadata.yaml")
+	if err != nil {
+		return nil, err
+	}
+	obj := &clusterctlv1.Metadata{}
+	codecFactory := serializer.NewCodecFactory(scheme.Scheme)
+
+	if err := runtime.DecodeInto(codecFactory.UniversalDecoder(), content, obj); err != nil {
+		return nil, errors.Wrap(err, "error decoding metadata.yaml")
+	}
+
+	return obj, nil
+}
+
+// fakeComponentClient provides a super simple ComponentClient (e.g. without support for local overrides)
+type fakeComponentClient struct {
+	provider              config.Provider
+	fakeRepository        *test.FakeRepository
+	configVariablesClient config.VariablesClient
+}
+
+func (f *fakeComponentClient) Get(version, targetNamespace, watchingNamespace string) (repository.Components, error) {
+	if version == "" {
+		version = f.fakeRepository.DefaultVersion()
+	}
+	path := f.fakeRepository.ComponentsPath()
+
+	content, err := f.fakeRepository.GetFile(version, path)
+	if err != nil {
+		return nil, err
+	}
+
+	return repository.NewComponents(f.provider, version, content, f.configVariablesClient, targetNamespace, watchingNamespace)
 }

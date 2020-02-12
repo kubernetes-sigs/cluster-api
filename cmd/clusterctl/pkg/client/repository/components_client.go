@@ -74,5 +74,5 @@ func (f *componentsClient) Get(version, targetNamespace, watchingNamespace strin
 		log.V(1).Info("Using", "Override", path, "Provider", f.provider.Name(), "Version", version)
 	}
 
-	return newComponents(f.provider, version, file, f.configVariablesClient, targetNamespace, watchingNamespace)
+	return NewComponents(f.provider, version, file, f.configVariablesClient, targetNamespace, watchingNamespace)
 }

@@ -37,9 +37,7 @@ import (
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/runtime"
-	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha3"
 	"sigs.k8s.io/cluster-api/test/framework"
 	infrav1 "sigs.k8s.io/cluster-api/test/infrastructure/docker/api/v1alpha3"
 	"sigs.k8s.io/cluster-api/util"
@@ -116,30 +114,6 @@ var _ = AfterSuite(func() {
 	// If any part of teardown fails it will print what must be manually cleaned up
 	mgmt.Teardown(ctx)
 })
-
-func ensureDockerArtifactsDeleted(input *framework.ControlplaneClusterInput) {
-	By("Ensuring docker artifacts have been deleted")
-	ctx := context.Background()
-	mgmtClient, err := input.Management.GetClient()
-	Expect(err).NotTo(HaveOccurred(), "stack: %+v", err)
-
-	lbl, err := labels.Parse(fmt.Sprintf("%s=%s", clusterv1.ClusterLabelName, input.Cluster.GetClusterName()))
-	Expect(err).ToNot(HaveOccurred())
-	opt := &client.ListOptions{LabelSelector: lbl}
-
-	dcl := &infrav1.DockerClusterList{}
-	Expect(mgmtClient.List(ctx, dcl, opt)).To(Succeed())
-	Expect(dcl.Items).To(HaveLen(0))
-
-	dml := &infrav1.DockerMachineList{}
-	Expect(mgmtClient.List(ctx, dml, opt)).To(Succeed())
-	Expect(dml.Items).To(HaveLen(0))
-
-	dmtl := &infrav1.DockerMachineTemplateList{}
-	Expect(mgmtClient.List(ctx, dmtl, opt)).To(Succeed())
-	Expect(dmtl.Items).To(HaveLen(0))
-	By("Succeeding in deleting all docker artifacts")
-}
 
 func writeLogs(mgmt *CAPDCluster, namespace, deploymentName, logDir string) error {
 	c, err := mgmt.GetClient()

@@ -17,10 +17,13 @@ limitations under the License.
 package util
 
 import (
+	"bufio"
 	"bytes"
+	"io"
 
 	"github.com/pkg/errors"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
+	utilyaml "k8s.io/apimachinery/pkg/util/yaml"
 	"sigs.k8s.io/yaml"
 )
 
@@ -52,21 +55,28 @@ func JoinYaml(yamls ...[]byte) []byte {
 // ToUnstructured takes a YAML and converts it to a list of Unstructured objects
 func ToUnstructured(rawyaml []byte) ([]unstructured.Unstructured, error) {
 	var ret []unstructured.Unstructured //nolint
-	for _, data := range bytes.Split(rawyaml, yamlSeparator) {
-		var m map[string]interface{}
-		err := yaml.Unmarshal(data, &m)
+
+	reader := utilyaml.NewYAMLReader(bufio.NewReader(bytes.NewReader(rawyaml)))
+	for {
+		// Read one YAML document at a time, until io.EOF is returned
+		b, err := reader.Read()
 		if err != nil {
-			return nil, errors.Wrapf(err, "failed to unmarshal yaml fragment: %q", string(data))
+			if err == io.EOF {
+				break
+			}
+			return nil, errors.Wrapf(err, "failed to read yaml")
+		}
+		if len(b) == 0 {
+			break
+		}
+
+		var m map[string]interface{}
+		if err := yaml.Unmarshal(b, &m); err != nil {
+			return nil, errors.Wrapf(err, "failed to unmarshal yaml fragment: %q", string(b))
 		}
 
 		var u unstructured.Unstructured
 		u.SetUnstructuredContent(m)
-
-		// Ignore empty objects.
-		// Empty objects are generated if there are weird things in manifest files like e.g. two --- in a row without a yaml doc in the middle
-		if u.Object == nil {
-			continue
-		}
 
 		ret = append(ret, u)
 	}

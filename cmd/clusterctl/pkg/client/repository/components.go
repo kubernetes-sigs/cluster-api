@@ -154,7 +154,7 @@ func (c *components) Yaml() ([]byte, error) {
 // 3. Ensure all the ClusterRoleBinding which are referencing namespaced objects have the name prefixed with the namespace name
 // 4. Set the watching namespace for the provider controller
 // 5. Adds labels to all the components in order to allow easy identification of the provider objects
-func newComponents(provider config.Provider, version string, rawyaml []byte, configVariablesClient config.VariablesClient, targetNamespace, watchingNamespace string) (*components, error) {
+func NewComponents(provider config.Provider, version string, rawyaml []byte, configVariablesClient config.VariablesClient, targetNamespace, watchingNamespace string) (*components, error) {
 	// inspect the yaml read from the repository for variables
 	variables := inspectVariables(rawyaml)
 

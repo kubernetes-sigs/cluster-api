@@ -45,10 +45,6 @@ type InventoryClient interface {
 	// is embedded in the clusterctl binary.
 	EnsureCustomResourceDefinitions() error
 
-	// Validate checks the inventory in order to determine if adding a new provider instance to the cluster.
-	// can lead to an non functional cluster.
-	Validate(clusterctlv1.Provider) error
-
 	// Create an inventory item for a provider instance installed in the cluster.
 	Create(clusterctlv1.Provider) error
 
@@ -163,38 +159,6 @@ func (p *inventoryClient) EnsureCustomResourceDefinitions() error {
 			}); err != nil {
 				return errors.Wrapf(err, "failed to scale deployment")
 			}
-		}
-	}
-
-	return nil
-}
-
-func (p *inventoryClient) Validate(m clusterctlv1.Provider) error {
-	providerList, err := p.List()
-	if err != nil {
-		return err
-	}
-
-	providers := providerList.FilterByName(m.Name)
-
-	if len(providers) == 0 {
-		return nil
-	}
-
-	// Target Namespace check
-	// Installing two instances of the same provider in the same namespace won't be supported
-	for _, i := range providers {
-		if i.Namespace == m.Namespace {
-			return errors.Errorf("there is already an instance of the %q provider installed in the %q namespace", m.Name, m.Namespace)
-		}
-	}
-
-	// Watching Namespace check:
-	// If we are going to install an instance of a provider watching objects in namespaces already controlled by other providers
-	// then there will be providers fighting for objects...
-	for _, i := range providers {
-		if i.HasWatchingOverlapWith(m) {
-			return errors.Errorf("the new instance of the %q provider is going to watch for objects in the namespace %q that is already controlled by other providers", m.Name, m.WatchedNamespace)
 		}
 	}
 

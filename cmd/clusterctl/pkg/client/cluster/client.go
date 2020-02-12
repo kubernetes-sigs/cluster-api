@@ -109,7 +109,7 @@ func (c *clusterClient) ProviderInventory() InventoryClient {
 }
 
 func (c *clusterClient) ProviderInstaller() ProviderInstaller {
-	return newProviderInstaller(c.proxy, c.ProviderInventory(), c.ProviderComponents())
+	return newProviderInstaller(c.configClient, c.repositoryClientFactory, c.proxy, c.ProviderInventory(), c.ProviderComponents())
 }
 
 func (c *clusterClient) ObjectMover() ObjectMover {

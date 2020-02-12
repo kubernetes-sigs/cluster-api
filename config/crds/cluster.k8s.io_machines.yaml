@@ -314,6 +314,12 @@ spec:
                 - type
                 type: object
               type: array
+            infrastructureCapabilities:
+              description: Does stuff
+              items:
+                description: Thing
+                type: string
+              type: array
             conditions:
               description: 'Conditions lists the conditions synced from the node conditions
                 of the corresponding node-object. Machine-controller is responsible

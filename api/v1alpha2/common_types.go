@@ -29,6 +29,14 @@ const (
 	MachineInternalIP  MachineAddressType = "InternalIP"
 	MachineExternalDNS MachineAddressType = "ExternalDNS"
 	MachineInternalDNS MachineAddressType = "InternalDNS"
+
+	// The capability strings should be all lower case so we can
+	// ToLower() any user input.
+
+	InfraCapbilityPowerOn  = "poweron"
+	InfraCapbilityPowerOff = "poweroff"
+	InfraCapbilityForceOff = "forceoff"
+	InfraCapbilityReboot   = "reboot"
 )
 
 // MachineAddress contains information for the node's address.
@@ -126,3 +134,30 @@ type ObjectMeta struct {
 	// +patchStrategy=merge
 	OwnerReferences []metav1.OwnerReference `json:"ownerReferences,omitempty" patchStrategy:"merge" patchMergeKey:"uid" protobuf:"bytes,13,rep,name=ownerReferences"`
 }
+
+/*
+// InfrastructureCapabilities contains information for the node's address.
+type InfrastructureCapabilities struct {
+	// PowerOn indicates whether an infrastructure machine can be powered on
+	// +optional
+	PowerOn bool `json:"powerOn,omitempty"`
+
+	// PowerOff indicates whether an infrastructure machine can be powered off
+	// +optional
+	PowerOff bool `json:"powerOff,omitempty"`
+
+	// PowerOff indicates whether an infrastructure machine can be forced off
+	// +optional
+	ForceOff bool `json:"forceOff,omitempty"`
+
+	// Reboot indicates whether an infrastructure machine can be rebooted
+	// +optional
+	Reboot bool `json:"reboot,omitempty"`
+}
+*/
+
+/*
+// InfrastructureCapabilities are used to inform machine clients of
+// underlying machine infrastructure capabilities such as power management.
+type InfrastructureCapabilities []string
+*/

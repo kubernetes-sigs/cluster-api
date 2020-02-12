@@ -100,10 +100,10 @@ See the [AWS Provider Prerequisites](https://github.com/kubernetes-sigs/cluster-
 
 ```bash
 # Create the base64 encoded credentials
-export AZURE_SUBSCRIPTION_ID_B64="$(echo -n "$AZURE_SUBSCRIPTION_ID" | base64 | tr -d '\n')"
-export AZURE_TENANT_ID_B64="$(echo -n "$AZURE_TENANT_ID" | base64 | tr -d '\n')"
-export AZURE_CLIENT_ID_B64="$(echo -n "$AZURE_CLIENT_ID" | base64 | tr -d '\n')"
-export AZURE_CLIENT_SECRET_B64="$(echo -n "$AZURE_CLIENT_SECRET" | base64 | tr -d '\n')"
+export AZURE_SUBSCRIPTION_ID_B64="$(echo -n "$AZURE_SUBSCRIPTION_ID" | base64 -w0)"
+export AZURE_TENANT_ID_B64="$(echo -n "$AZURE_TENANT_ID" | base64 -w0)"
+export AZURE_CLIENT_ID_B64="$(echo -n "$AZURE_CLIENT_ID" | base64 -w0)"
+export AZURE_CLIENT_SECRET_B64="$(echo -n "$AZURE_CLIENT_SECRET" | base64 -w0)"
 ```
  
 For more information about authorization, AAD, or requirements for Azure, visit the [Azure Provider Prerequisites](https://github.com/kubernetes-sigs/cluster-api-provider-azure/blob/master/docs/getting-started.md#prerequisites) document.
@@ -120,7 +120,7 @@ No additional pre-requisites.
 # Create the base64 encoded credentials by catting your credentials json.
 # This command uses your environment variables and encodes
 # them in a value to be stored in a Kubernetes Secret.
-export GCP_B64ENCODED_CREDENTIALS=$( cat /path/to/gcp-credentials.json | base64 | tr -d '\n' )
+export GCP_B64ENCODED_CREDENTIALS=$( cat /path/to/gcp-credentials.json | base64 -w0)
 ```
 
 {{#/tab }}

@@ -170,10 +170,10 @@ Check the [Azure provider releases](https://github.com/kubernetes-sigs/cluster-a
 
 ```bash
 # Create the base64 encoded credentials
-export AZURE_SUBSCRIPTION_ID_B64="$(echo -n "$AZURE_SUBSCRIPTION_ID" | base64 | tr -d '\n')"
-export AZURE_TENANT_ID_B64="$(echo -n "$AZURE_TENANT_ID" | base64 | tr -d '\n')"
-export AZURE_CLIENT_ID_B64="$(echo -n "$AZURE_CLIENT_ID" | base64 | tr -d '\n')"
-export AZURE_CLIENT_SECRET_B64="$(echo -n "$AZURE_CLIENT_SECRET" | base64 | tr -d '\n')"
+export AZURE_SUBSCRIPTION_ID_B64="$(echo -n "$AZURE_SUBSCRIPTION_ID" | base64 -w0)"
+export AZURE_TENANT_ID_B64="$(echo -n "$AZURE_TENANT_ID" | base64 -w0)"
+export AZURE_CLIENT_ID_B64="$(echo -n "$AZURE_CLIENT_ID" | base64 -w0)"
+export AZURE_CLIENT_SECRET_B64="$(echo -n "$AZURE_CLIENT_SECRET" | base64 -w0)"
 ```
 
 ```bash
@@ -210,7 +210,7 @@ Check the [GCP provider releases](https://github.com/kubernetes-sigs/cluster-api
 # Create the base64 encoded credentials by catting your credentials json.
 # This command uses your environment variables and encodes
 # them in a value to be stored in a Kubernetes Secret.
-export GCP_B64ENCODED_CREDENTIALS=$( cat /path/to/gcp-credentials.json | base64 | tr -d '\n' )
+export GCP_B64ENCODED_CREDENTIALS=$( cat /path/to/gcp-credentials.json | base64 -w0)
 
 # Create the components.
 curl -L {{#releaselink gomodule:"sigs.k8s.io/cluster-api-provider-gcp" asset:"infrastructure-components.yaml" version:"0.3.x"}} \

@@ -17,6 +17,8 @@ limitations under the License.
 package cmd
 
 import (
+	"fmt"
+
 	"github.com/spf13/cobra"
 	"sigs.k8s.io/cluster-api/cmd/clusterctl/pkg/client"
 )
@@ -29,6 +31,7 @@ type initOptions struct {
 	infrastructureProviders []string
 	targetNamespace         string
 	watchingNamespace       string
+	listImages              bool
 }
 
 var io = &initOptions{}
@@ -73,7 +76,10 @@ var initCmd = &cobra.Command{
 
 		# Initialize a management cluster and configures all the providers for watching Cluster API
 		# objects in the "foo" namespace only.
-		clusterctl init --infrastructure aws --watching-namespace=foo`),
+		clusterctl init --infrastructure aws --watching-namespace=foo
+
+		# Lists the container images required for initializing the management cluster (without actually installing the providers).
+		clusterctl init --infrastructure aws --list-images`),
 
 	RunE: func(cmd *cobra.Command, args []string) error {
 		return runInit()
@@ -88,6 +94,7 @@ func init() {
 	initCmd.Flags().StringSliceVarP(&io.controlPlaneProviders, "control-plane", "c", nil, "ControlPlane providers and versions (e.g. kubeadm-control-plane:v0.3.0) to add to the management cluster. By default (empty), the kubeadm control plane provider latest release is used")
 	initCmd.Flags().StringVarP(&io.targetNamespace, "target-namespace", "", "", "The target namespace where the providers should be deployed. If not specified, each provider will be installed in a provider's default namespace")
 	initCmd.Flags().StringVarP(&io.watchingNamespace, "watching-namespace", "", "", "Namespace that the providers should watch to reconcile Cluster API objects. If unspecified, the providers watches for Cluster API objects across all namespaces")
+	initCmd.Flags().BoolVarP(&io.listImages, "list-images", "", false, "Lists the container images required for initializing the management cluster (without actually installing the providers)")
 
 	RootCmd.AddCommand(initCmd)
 }
@@ -98,7 +105,7 @@ func runInit() error {
 		return err
 	}
 
-	_, err = c.Init(client.InitOptions{
+	options := client.InitOptions{
 		Kubeconfig:              io.kubeconfig,
 		CoreProvider:            io.coreProvider,
 		BootstrapProviders:      io.bootstrapProviders,
@@ -107,8 +114,21 @@ func runInit() error {
 		TargetNamespace:         io.targetNamespace,
 		WatchingNamespace:       io.watchingNamespace,
 		LogUsageInstructions:    true,
-	})
-	if err != nil {
+	}
+
+	if io.listImages {
+		images, err := c.InitImages(options)
+		if err != nil {
+			return err
+		}
+
+		for _, i := range images {
+			fmt.Println(i)
+		}
+		return nil
+	}
+
+	if _, err := c.Init(options); err != nil {
 		return err
 	}
 	return nil

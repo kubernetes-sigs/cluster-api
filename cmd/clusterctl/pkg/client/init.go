@@ -17,6 +17,8 @@ limitations under the License.
 package client
 
 import (
+	"sort"
+
 	"github.com/pkg/errors"
 	clusterctlv1 "sigs.k8s.io/cluster-api/cmd/clusterctl/api/v1alpha3"
 	"sigs.k8s.io/cluster-api/cmd/clusterctl/pkg/client/cluster"
@@ -42,52 +44,15 @@ func (c *clusterctlClient) Init(options InitOptions) ([]Components, error) {
 	}
 
 	// checks if the cluster already contains a Core provider.
-	// if not we consider this the first time init is executed, and thus we enforce the installation of a core provider (if not already explicitly requested by the user)
-	firstRun := false
-	currentCoreProvider, err := cluster.ProviderInventory().GetDefaultProviderName(clusterctlv1.CoreProviderType)
-	if err != nil {
-		return nil, err
-	}
-	if currentCoreProvider == "" {
-		firstRun = true
-		if options.CoreProvider == "" {
-			options.CoreProvider = config.ClusterAPIProviderName
-		}
-		if len(options.BootstrapProviders) == 0 {
-			options.BootstrapProviders = append(options.BootstrapProviders, config.KubeadmBootstrapProviderName)
-		}
-		if len(options.ControlPlaneProviders) == 0 {
-			options.ControlPlaneProviders = append(options.ControlPlaneProviders, config.KubeadmControlPlaneProviderName)
-		}
-	}
-
-	// create an installer service, add the requested providers to the install queue (thus performing validation of the target state of the management cluster
-	// before starting the installation), and then perform the installation.
-	installer := cluster.ProviderInstaller()
-
-	addOptions := addToInstallerOptions{
-		installer:         installer,
-		targetNamespace:   options.TargetNamespace,
-		watchingNamespace: options.WatchingNamespace,
-	}
-
+	// if not we consider this the first time init is executed, and thus we enforce the installation of a core provider,
+	// a bootstrap provider and a control-plane provider (if not already explicitly requested by the user)
 	log.Info("Fetching providers")
+	firstRun := c.addDefaultProviders(cluster, &options)
 
-	if options.CoreProvider != "" {
-		if err := c.addToInstaller(addOptions, clusterctlv1.CoreProviderType, options.CoreProvider); err != nil {
-			return nil, err
-		}
-	}
-
-	if err := c.addToInstaller(addOptions, clusterctlv1.BootstrapProviderType, options.BootstrapProviders...); err != nil {
-		return nil, err
-	}
-
-	if err := c.addToInstaller(addOptions, clusterctlv1.ControlPlaneProviderType, options.ControlPlaneProviders...); err != nil {
-		return nil, err
-	}
-
-	if err := c.addToInstaller(addOptions, clusterctlv1.InfrastructureProviderType, options.InfrastructureProviders...); err != nil {
+	// create an installer service, add the requested providers to the install queue and then perform validation
+	// of the target state of the management cluster before starting the installation.
+	installer, err := c.setupInstaller(cluster, options)
+	if err != nil {
 		return nil, err
 	}
 
@@ -128,6 +93,93 @@ func (c *clusterctlClient) Init(options InitOptions) ([]Components, error) {
 		aliasComponents[i] = components
 	}
 	return aliasComponents, nil
+}
+
+// Init returns the list of images required for init.
+func (c *clusterctlClient) InitImages(options InitOptions) ([]string, error) {
+	// gets access to the management cluster
+	cluster, err := c.clusterClientFactory(options.Kubeconfig)
+	if err != nil {
+		return nil, err
+	}
+
+	// checks if the cluster already contains a Core provider.
+	// if not we consider this the first time init is executed, and thus we enforce the installation of a core provider,
+	// a bootstrap provider and a control-plane provider (if not already explicitly requested by the user)
+	c.addDefaultProviders(cluster, &options)
+
+	// create an installer service, add the requested providers to the install queue and then perform validation
+	// of the target state of the management cluster before starting the installation.
+	installer, err := c.setupInstaller(cluster, options)
+	if err != nil {
+		return nil, err
+	}
+
+	// Gets the list of container images required for the cert-manager (if not already installed).
+	images, err := cluster.CertManager().Images()
+	if err != nil {
+		return nil, err
+	}
+
+	// Appends the list of container images required for the selected providers.
+	images = append(images, installer.Images()...)
+
+	sort.Strings(images)
+	return images, nil
+}
+
+func (c *clusterctlClient) setupInstaller(cluster cluster.Client, options InitOptions) (cluster.ProviderInstaller, error) {
+	installer := cluster.ProviderInstaller()
+
+	addOptions := addToInstallerOptions{
+		installer:         installer,
+		targetNamespace:   options.TargetNamespace,
+		watchingNamespace: options.WatchingNamespace,
+	}
+
+	if options.CoreProvider != "" {
+		if err := c.addToInstaller(addOptions, clusterctlv1.CoreProviderType, options.CoreProvider); err != nil {
+			return nil, err
+		}
+	}
+
+	if err := c.addToInstaller(addOptions, clusterctlv1.BootstrapProviderType, options.BootstrapProviders...); err != nil {
+		return nil, err
+	}
+
+	if err := c.addToInstaller(addOptions, clusterctlv1.ControlPlaneProviderType, options.ControlPlaneProviders...); err != nil {
+		return nil, err
+	}
+
+	if err := c.addToInstaller(addOptions, clusterctlv1.InfrastructureProviderType, options.InfrastructureProviders...); err != nil {
+		return nil, err
+	}
+
+	return installer, nil
+}
+
+func (c *clusterctlClient) addDefaultProviders(cluster cluster.Client, options *InitOptions) bool {
+	firstRun := false
+	// Check if there is already a core provider installed in the cluster
+	// Nb. we are ignoring the error so this operation can support listing images even if there is no an existing management cluster;
+	// in case there is no an existing management cluster, we assume there are no core providers installed in the cluster.
+	currentCoreProvider, _ := cluster.ProviderInventory().GetDefaultProviderName(clusterctlv1.CoreProviderType)
+
+	// If there are no core providers installed in the cluster, consider this a first run and add default providers to the list
+	// of providers to be installed.
+	if currentCoreProvider == "" {
+		firstRun = true
+		if options.CoreProvider == "" {
+			options.CoreProvider = config.ClusterAPIProviderName
+		}
+		if len(options.BootstrapProviders) == 0 {
+			options.BootstrapProviders = append(options.BootstrapProviders, config.KubeadmBootstrapProviderName)
+		}
+		if len(options.ControlPlaneProviders) == 0 {
+			options.ControlPlaneProviders = append(options.ControlPlaneProviders, config.KubeadmControlPlaneProviderName)
+		}
+	}
+	return firstRun
 }
 
 type addToInstallerOptions struct {

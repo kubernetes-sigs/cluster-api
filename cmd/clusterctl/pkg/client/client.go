@@ -101,6 +101,9 @@ type Client interface {
 	// Init initializes a management cluster by adding the requested list of providers.
 	Init(options InitOptions) ([]Components, error)
 
+	// Init returns the list of images required for executing the init command.
+	InitImages(options InitOptions) ([]string, error)
+
 	// GetClusterTemplate returns a workload cluster template.
 	GetClusterTemplate(options GetClusterTemplateOptions) (Template, error)
 

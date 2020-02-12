@@ -33,7 +33,6 @@ import (
 	kerrors "k8s.io/apimachinery/pkg/util/errors"
 	"k8s.io/apiserver/pkg/storage/names"
 	"k8s.io/client-go/tools/record"
-	"sigs.k8s.io/cluster-api/controlplane/kubeadm/internal"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
@@ -47,6 +46,8 @@ import (
 	"sigs.k8s.io/cluster-api/controllers/external"
 	"sigs.k8s.io/cluster-api/controllers/remote"
 	controlplanev1 "sigs.k8s.io/cluster-api/controlplane/kubeadm/api/v1alpha3"
+	"sigs.k8s.io/cluster-api/controlplane/kubeadm/internal"
+	"sigs.k8s.io/cluster-api/controlplane/kubeadm/internal/hash"
 	capierrors "sigs.k8s.io/cluster-api/errors"
 	"sigs.k8s.io/cluster-api/util"
 	"sigs.k8s.io/cluster-api/util/kubeconfig"
@@ -185,12 +186,6 @@ func (r *KubeadmControlPlaneReconciler) reconcile(ctx context.Context, cluster *
 		return ctrl.Result{}, err
 	}
 
-	// TODO: handle proper adoption of Machines
-	ownedMachines, err := r.managementCluster.GetMachinesForCluster(ctx, clusterKey(cluster), internal.OwnedControlPlaneMachines(kcp.Name))
-	if err != nil {
-		return ctrl.Result{}, err
-	}
-
 	// Generate Cluster Certificates if needed
 	config := kcp.Spec.KubeadmConfigSpec.DeepCopy()
 	config.JoinConfiguration = nil
@@ -198,13 +193,8 @@ func (r *KubeadmControlPlaneReconciler) reconcile(ctx context.Context, cluster *
 		config.ClusterConfiguration = &kubeadmv1.ClusterConfiguration{}
 	}
 	certificates := secret.NewCertificatesForInitialControlPlane(config.ClusterConfiguration)
-	err = certificates.LookupOrGenerate(
-		ctx,
-		r.Client,
-		types.NamespacedName{Namespace: cluster.Namespace, Name: cluster.Name},
-		*metav1.NewControllerRef(kcp, controlplanev1.GroupVersion.WithKind("KubeadmControlPlane")),
-	)
-	if err != nil {
+	controllerRef := metav1.NewControllerRef(kcp, controlplanev1.GroupVersion.WithKind("KubeadmControlPlane"))
+	if err := certificates.LookupOrGenerate(ctx, r.Client, clusterKey(cluster), *controllerRef); err != nil {
 		logger.Error(err, "unable to lookup or create cluster certificates")
 		return ctrl.Result{}, err
 	}
@@ -216,13 +206,7 @@ func (r *KubeadmControlPlaneReconciler) reconcile(ctx context.Context, cluster *
 	}
 
 	// Generate Cluster Kubeconfig if needed
-	err = r.reconcileKubeconfig(
-		ctx,
-		types.NamespacedName{Namespace: cluster.Namespace, Name: cluster.Name},
-		cluster.Spec.ControlPlaneEndpoint,
-		kcp,
-	)
-	if err != nil {
+	if err := r.reconcileKubeconfig(ctx, clusterKey(cluster), cluster.Spec.ControlPlaneEndpoint, kcp); err != nil {
 		if requeueErr, ok := errors.Cause(err).(capierrors.HasRequeueAfterError); ok {
 			logger.Error(err, "required certificates not found, requeueing")
 			return ctrl.Result{
@@ -234,9 +218,34 @@ func (r *KubeadmControlPlaneReconciler) reconcile(ctx context.Context, cluster *
 		return ctrl.Result{}, err
 	}
 
-	// Currently we are not handling upgrade, so treat all owned machines as one for now.
-	// Once we start handling upgrade, we'll need to filter this list and act appropriately
-	numMachines := len(ownedMachines)
+	// TODO: handle proper adoption of Machines
+	ownedMachines, err := r.managementCluster.GetMachinesForCluster(ctx, clusterKey(cluster), internal.OwnedControlPlaneMachines(kcp.Name))
+	if err != nil {
+		return ctrl.Result{}, err
+	}
+
+	currentConfigurationHash := hash.Compute(&kcp.Spec)
+	requireUpgrade := internal.FilterMachines(
+		ownedMachines,
+		internal.HasOutdatedConfiguration(currentConfigurationHash),
+		internal.OlderThan(kcp.Spec.UpgradeAfter),
+	)
+
+	// Upgrade takes precedence over other operations
+	if len(requireUpgrade) > 0 {
+		logger.Info("Upgrading Control Plane")
+		if err := r.upgradeControlPlane(ctx, cluster, kcp, requireUpgrade); err != nil {
+			logger.Error(err, "Failed to upgrade the Control Plane")
+			r.recorder.Eventf(kcp, corev1.EventTypeWarning, "FailedUpgrade", "Failed to upgrade the control plane: %v", err)
+			return ctrl.Result{}, err
+		}
+		// TODO: need to requeue if there are additional operations to perform
+		return ctrl.Result{}, nil
+	}
+
+	// If we've made it this far, we don't need to worry about Machines that are older than kcp.Spec.UpgradeAfter
+	currentMachines := internal.FilterMachines(ownedMachines, internal.MatchesConfigurationHash(currentConfigurationHash))
+	numMachines := len(currentMachines)
 	desiredReplicas := int(*kcp.Spec.Replicas)
 
 	switch {
@@ -286,8 +295,10 @@ func (r *KubeadmControlPlaneReconciler) updateStatus(ctx context.Context, kcp *c
 		return errors.Wrap(err, "failed to get list of owned machines")
 	}
 
+	currentMachines := internal.FilterMachines(ownedMachines, internal.MatchesConfigurationHash(hash.Compute(&kcp.Spec)))
+	kcp.Status.UpdatedReplicas = int32(len(currentMachines))
+
 	replicas := int32(len(ownedMachines))
-	// TODO: take into account configuration hash once upgrades are in place
 	kcp.Status.Replicas = replicas
 
 	remoteClient, err := r.remoteClientGetter(ctx, r.Client, cluster, r.scheme)
@@ -317,6 +328,22 @@ func (r *KubeadmControlPlaneReconciler) updateStatus(ctx context.Context, kcp *c
 			kcp.Status.Initialized = true
 		}
 	}
+	return nil
+}
+
+func (r *KubeadmControlPlaneReconciler) upgradeControlPlane(ctx context.Context, cluster *clusterv1.Cluster, kcp *controlplanev1.KubeadmControlPlane, requireUpgrade []clusterv1.Machine) error {
+
+	// TODO: verify health for each existing replica
+	// TODO: mark an old Machine via the label kubeadm.controlplane.cluster.x-k8s.io/selected-for-upgrade
+	// TODO: check full cluster health
+	// TODO: provision new Machine to replace marked Machine
+	// TODO: wait for health of all existing replicas, ideally in a re-entrant way to avoid waiting in process
+	// TODO: wait for full cluster health, ideally in a re-entrant way to avoid waiting in process
+	// TODO: Remove etcd membership for old Machine instance
+	// TODO: Update the kubeadm configmap
+	// TODO: Delete the Marked ControlPlane machine
+	// TODO: Continue with next OldMachine
+
 	return nil
 }
 
@@ -363,7 +390,7 @@ func (r *KubeadmControlPlaneReconciler) cloneConfigsAndGenerateMachine(ctx conte
 		Namespace:   kcp.Namespace,
 		OwnerRef:    infraCloneOwner,
 		ClusterName: cluster.Name,
-		Labels:      internal.ControlPlaneLabelsForCluster(cluster.Name),
+		Labels:      internal.ControlPlaneLabelsForClusterWithHash(cluster.Name, hash.Compute(&kcp.Spec)),
 	})
 	if err != nil {
 		// Safe to return early here since no resources have been created yet.
@@ -429,7 +456,7 @@ func (r *KubeadmControlPlaneReconciler) generateKubeadmConfig(ctx context.Contex
 		ObjectMeta: metav1.ObjectMeta{
 			Name:            names.SimpleNameGenerator.GenerateName(kcp.Name + "-"),
 			Namespace:       kcp.Namespace,
-			Labels:          map[string]string{clusterv1.ClusterLabelName: cluster.Name},
+			Labels:          internal.ControlPlaneLabelsForClusterWithHash(cluster.Name, hash.Compute(&kcp.Spec)),
 			OwnerReferences: []metav1.OwnerReference{owner},
 		},
 		Spec: *spec,
@@ -473,7 +500,7 @@ func (r *KubeadmControlPlaneReconciler) generateMachine(ctx context.Context, kcp
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      names.SimpleNameGenerator.GenerateName(kcp.Name + "-"),
 			Namespace: kcp.Namespace,
-			Labels:    internal.ControlPlaneLabelsForCluster(cluster.Name),
+			Labels:    internal.ControlPlaneLabelsForClusterWithHash(cluster.Name, hash.Compute(&kcp.Spec)),
 			OwnerReferences: []metav1.OwnerReference{
 				*metav1.NewControllerRef(kcp, controlplanev1.GroupVersion.WithKind("KubeadmControlPlane")),
 			},
@@ -533,7 +560,7 @@ func (r *KubeadmControlPlaneReconciler) reconcileDelete(ctx context.Context, clu
 	if errs != nil {
 		return ctrl.Result{}, kerrors.NewAggregate(errs)
 	}
-	return ctrl.Result{RequeueAfter: DeleteRequeueAfter}, nil
+	return ctrl.Result{Requeue: true, RequeueAfter: DeleteRequeueAfter}, nil
 }
 
 func (r *KubeadmControlPlaneReconciler) reconcileKubeconfig(ctx context.Context, clusterName types.NamespacedName, endpoint clusterv1.APIEndpoint, kcp *controlplanev1.KubeadmControlPlane) error {

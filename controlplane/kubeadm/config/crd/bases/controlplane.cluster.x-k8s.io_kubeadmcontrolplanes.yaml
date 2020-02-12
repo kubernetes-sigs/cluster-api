@@ -902,6 +902,12 @@ spec:
                   This is a pointer to distinguish between explicit zero and not specified.
                 format: int32
                 type: integer
+              upgradeAfter:
+                description: UpgradeAfter is a field to indicate an upgrade should
+                  be performed after the specified time even if no changes have been
+                  made to the KubeadmControlPlane
+                format: date-time
+                type: string
               version:
                 description: Version defines the desired Kubernetes version.
                 minLength: 1

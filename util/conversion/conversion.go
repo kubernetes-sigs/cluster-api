@@ -64,9 +64,10 @@ func UnmarshalData(from metav1.Object, to interface{}) (bool, error) {
 }
 
 // GetFuzzer returns a new fuzzer to be used for testing.
-func GetFuzzer(scheme *runtime.Scheme) *fuzz.Fuzzer {
+func GetFuzzer(scheme *runtime.Scheme, funcs ...fuzzer.FuzzerFuncs) *fuzz.Fuzzer {
+	funcs = append([]fuzzer.FuzzerFuncs{metafuzzer.Funcs}, funcs...)
 	return fuzzer.FuzzerFor(
-		fuzzer.MergeFuzzerFuncs(metafuzzer.Funcs),
+		fuzzer.MergeFuzzerFuncs(funcs...),
 		rand.NewSource(rand.Int63()),
 		serializer.NewCodecFactory(scheme),
 	)
@@ -74,10 +75,10 @@ func GetFuzzer(scheme *runtime.Scheme) *fuzz.Fuzzer {
 
 // FuzzTestFunc returns a new testing function to be used in tests to make sure conversions between
 // the Hub version of an object and an older version aren't lossy.
-func FuzzTestFunc(scheme *runtime.Scheme, hub conversion.Hub, dst conversion.Convertible) func(*testing.T) {
+func FuzzTestFunc(scheme *runtime.Scheme, hub conversion.Hub, dst conversion.Convertible, funcs ...fuzzer.FuzzerFuncs) func(*testing.T) {
 	return func(t *testing.T) {
 		g := gomega.NewWithT(t)
-		fuzzer := GetFuzzer(scheme)
+		fuzzer := GetFuzzer(scheme, funcs...)
 
 		for i := 0; i < 10000; i++ {
 			// Make copies of both objects, to avoid changing or re-using the ones passed in.

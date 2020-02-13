@@ -30,15 +30,15 @@ import (
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/clientcmd"
-	"sigs.k8s.io/cluster-api/test/framework/exec"
-	"sigs.k8s.io/cluster-api/test/framework/options"
 	"sigs.k8s.io/controller-runtime/pkg/client"
-	"sigs.k8s.io/controller-runtime/pkg/client/apiutil"
 	"sigs.k8s.io/kind/pkg/cluster"
 	"sigs.k8s.io/kind/pkg/cluster/nodes"
 	"sigs.k8s.io/kind/pkg/cluster/nodeutils"
 	"sigs.k8s.io/kind/pkg/cmd"
 	"sigs.k8s.io/kind/pkg/fs"
+
+	"sigs.k8s.io/cluster-api/test/framework/exec"
+	"sigs.k8s.io/cluster-api/test/framework/options"
 )
 
 // Shells out to `kind`, `kubectl`
@@ -238,15 +238,7 @@ func (c *Cluster) Teardown(ctx context.Context) {
 
 // ClientFromRestConfig returns a controller-runtime client from a RESTConfig.
 func (c *Cluster) ClientFromRestConfig(restConfig *rest.Config) (client.Client, error) {
-	// Adding mapper to auto-discover schemes
-	restMapper, err := apiutil.NewDynamicRESTMapper(restConfig)
-	if err != nil {
-		return nil, errors.WithStack(err)
-	}
-	cl, err := client.New(restConfig, client.Options{
-		Scheme: c.Scheme,
-		Mapper: restMapper,
-	})
+	cl, err := client.New(restConfig, client.Options{Scheme: c.Scheme})
 	if err != nil {
 		return nil, errors.WithStack(err)
 	}

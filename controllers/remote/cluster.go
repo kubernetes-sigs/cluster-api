@@ -25,7 +25,6 @@ import (
 	"k8s.io/client-go/tools/clientcmd"
 	kcfg "sigs.k8s.io/cluster-api/util/kubeconfig"
 	"sigs.k8s.io/controller-runtime/pkg/client"
-	"sigs.k8s.io/controller-runtime/pkg/client/apiutil"
 )
 
 // ClusterClientGetter returns a new remote client.
@@ -37,11 +36,7 @@ func NewClusterClient(ctx context.Context, c client.Client, cluster client.Objec
 	if err != nil {
 		return nil, err
 	}
-	mapper, err := apiutil.NewDynamicRESTMapper(restConfig, apiutil.WithLazyDiscovery)
-	if err != nil {
-		return nil, errors.Wrapf(err, "failed to create a DynamicRESTMapper for Cluster %s/%s", cluster.Namespace, cluster.Name)
-	}
-	ret, err := client.New(restConfig, client.Options{Scheme: scheme, Mapper: mapper})
+	ret, err := client.New(restConfig, client.Options{Scheme: scheme})
 	if err != nil {
 		return nil, errors.Wrapf(err, "failed to create client for Cluster %s/%s", cluster.Namespace, cluster.Name)
 	}

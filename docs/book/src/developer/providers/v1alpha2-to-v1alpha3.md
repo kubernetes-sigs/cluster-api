@@ -65,11 +65,11 @@
 ### Related changes to `sigs.k8s.io/cluster-api/util`
 
 - A helper function `util.ObjectKey` could be used to get `client.ObjectKey` for a Cluster, Machine etc.
+- The returned client is no longer configured for lazy discovery. Any consumers that attempt to create
+  a client prior to the server being available will now see an error.
 - Getter for a kubeconfig secret, associated with a cluster requires `client.ObjectKey` instead of a cluster reference. Signature change:
-
-    From: `func Get(ctx context.Context, c client.Client, cluster client.ObjectKey, purpose Purpose) (*corev1.Secret, error)`
-
-    To: `func Get(ctx context.Context, c client.Client, cluster *clusterv1.Cluster, purpose Purpose) (*corev1.Secret, error)`
+  - From: `func Get(ctx context.Context, c client.Client, cluster client.ObjectKey, purpose Purpose) (*corev1.Secret, error)`
+  - To: `func Get(ctx context.Context, c client.Client, cluster *clusterv1.Cluster, purpose Purpose) (*corev1.Secret, error)`
 
 ## A Machine is now considered a control plane if it has `cluster.x-k8s.io/control-plane` set, regardless of value
 

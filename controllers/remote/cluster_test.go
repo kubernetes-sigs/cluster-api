@@ -94,9 +94,10 @@ func TestNewClusterClient(t *testing.T) {
 	ctx := context.Background()
 	t.Run("cluster with valid kubeconfig", func(t *testing.T) {
 		client := fake.NewFakeClientWithScheme(testScheme, validSecret)
-		c, err := NewClusterClient(ctx, client, clusterWithValidKubeConfig, testScheme)
-		g.Expect(err).NotTo(HaveOccurred())
-		g.Expect(c).NotTo(BeNil())
+		_, err := NewClusterClient(ctx, client, clusterWithValidKubeConfig, testScheme)
+		// Since we do not have a remote server to connect to, we should expect to get
+		// an error to that effect for the purpose of this test.
+		g.Expect(err).To(MatchError(ContainSubstring("no such host")))
 
 		restConfig, err := RESTConfig(ctx, client, clusterWithValidKubeConfig)
 		g.Expect(err).NotTo(HaveOccurred())

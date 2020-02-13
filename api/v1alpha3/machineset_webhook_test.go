@@ -21,7 +21,24 @@ import (
 
 	. "github.com/onsi/gomega"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/utils/pointer"
 )
+
+func TestMachineSetDefault(t *testing.T) {
+	g := NewWithT(t)
+	md := &MachineSet{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: "test-ms",
+		},
+	}
+
+	md.Default()
+
+	g.Expect(md.Spec.Replicas).To(Equal(pointer.Int32Ptr(1)))
+	g.Expect(md.Spec.DeletePolicy).To(Equal(string(RandomMachineSetDeletePolicy)))
+	g.Expect(md.Spec.Selector.MatchLabels).To(HaveKeyWithValue(MachineSetLabelName, "test-ms"))
+	g.Expect(md.Spec.Template.Labels).To(HaveKeyWithValue(MachineSetLabelName, "test-ms"))
+}
 
 func TestMachineSetLabelSelectorMatchValidation(t *testing.T) {
 	tests := []struct {

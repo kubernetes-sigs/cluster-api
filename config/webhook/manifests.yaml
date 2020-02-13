@@ -96,6 +96,24 @@ webhooks:
     - UPDATE
     resources:
     - machinepools
+- clientConfig:
+    caBundle: Cg==
+    service:
+      name: webhook-service
+      namespace: system
+      path: /mutate-cluster-x-k8s-io-v1alpha3-machineset
+  failurePolicy: Fail
+  name: default.machineset.cluster.x-k8s.io
+  rules:
+  - apiGroups:
+    - cluster.x-k8s.io
+    apiVersions:
+    - v1alpha3
+    operations:
+    - CREATE
+    - UPDATE
+    resources:
+    - machinesets
 
 ---
 apiVersion: admissionregistration.k8s.io/v1beta1

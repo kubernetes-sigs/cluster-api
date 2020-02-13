@@ -193,7 +193,6 @@ var _ = Describe("MachineDeployment Reconciler", func() {
 		By("Verify machines have expected MachineSetLabelName and MachineDeploymentLabelName")
 		for _, m := range machines.Items {
 			Expect(m.Labels[clusterv1.ClusterLabelName]).To(Equal(testCluster.Name))
-			Expect(m.Labels[clusterv1.MachineSetLabelName]).To(Equal(machineSets.Items[0].Name))
 		}
 
 		firstMachineSet := machineSets.Items[0]

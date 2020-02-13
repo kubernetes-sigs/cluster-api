@@ -31,7 +31,6 @@ import (
 	"k8s.io/client-go/tools/record"
 	"k8s.io/klog/klogr"
 	utilpointer "k8s.io/utils/pointer"
-	"sigs.k8s.io/cluster-api/controlplane/kubeadm/internal"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
@@ -43,6 +42,8 @@ import (
 	kubeadmv1 "sigs.k8s.io/cluster-api/bootstrap/kubeadm/types/v1beta1"
 	fakeremote "sigs.k8s.io/cluster-api/controllers/remote/fake"
 	controlplanev1 "sigs.k8s.io/cluster-api/controlplane/kubeadm/api/v1alpha3"
+	"sigs.k8s.io/cluster-api/controlplane/kubeadm/internal"
+	"sigs.k8s.io/cluster-api/controlplane/kubeadm/internal/hash"
 	"sigs.k8s.io/cluster-api/util/kubeconfig"
 	"sigs.k8s.io/cluster-api/util/secret"
 )
@@ -707,7 +708,7 @@ func TestKubeadmControlPlaneReconciler_generateMachine(t *testing.T) {
 	machine := machineList.Items[0]
 	g.Expect(machine.Name).To(HavePrefix(kcp.Name))
 	g.Expect(machine.Namespace).To(Equal(kcp.Namespace))
-	g.Expect(machine.Labels).To(Equal(internal.ControlPlaneLabelsForCluster(cluster.Name)))
+	g.Expect(machine.Labels).To(Equal(internal.ControlPlaneLabelsForClusterWithHash(cluster.Name, hash.Compute(&kcp.Spec))))
 	g.Expect(machine.OwnerReferences).To(HaveLen(1))
 	g.Expect(machine.OwnerReferences).To(ContainElement(*metav1.NewControllerRef(kcp, controlplanev1.GroupVersion.WithKind("KubeadmControlPlane"))))
 	g.Expect(machine.Spec).To(Equal(expectedMachineSpec))
@@ -735,7 +736,6 @@ func TestKubeadmControlPlaneReconciler_generateKubeadmConfig(t *testing.T) {
 	spec := bootstrapv1.KubeadmConfigSpec{}
 	expectedReferenceKind := "KubeadmConfig"
 	expectedReferenceAPIVersion := bootstrapv1.GroupVersion.String()
-	expectedLabels := map[string]string{clusterv1.ClusterLabelName: cluster.Name}
 	expectedOwner := metav1.OwnerReference{
 		Kind:       "KubeadmControlPlane",
 		APIVersion: controlplanev1.GroupVersion.String(),
@@ -758,7 +758,7 @@ func TestKubeadmControlPlaneReconciler_generateKubeadmConfig(t *testing.T) {
 	bootstrapConfig := &bootstrapv1.KubeadmConfig{}
 	key := client.ObjectKey{Name: got.Name, Namespace: got.Namespace}
 	g.Expect(fakeClient.Get(context.Background(), key, bootstrapConfig)).To(Succeed())
-	g.Expect(bootstrapConfig.Labels).To(Equal(expectedLabels))
+	g.Expect(bootstrapConfig.Labels).To(Equal(internal.ControlPlaneLabelsForClusterWithHash(cluster.Name, hash.Compute(&kcp.Spec))))
 	g.Expect(bootstrapConfig.OwnerReferences).To(HaveLen(1))
 	g.Expect(bootstrapConfig.OwnerReferences).To(ContainElement(expectedOwner))
 	g.Expect(bootstrapConfig.Spec).To(Equal(spec))
@@ -1134,7 +1134,7 @@ func TestReconcileControlPlaneScaleUp(t *testing.T) {
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "foo-0",
 			Namespace: cluster.Namespace,
-			Labels:    internal.ControlPlaneLabelsForCluster(cluster.Name),
+			Labels:    internal.ControlPlaneLabelsForClusterWithHash(cluster.Name, hash.Compute(&kcp.Spec)),
 			OwnerReferences: []metav1.OwnerReference{
 				*metav1.NewControllerRef(kcp, controlplanev1.GroupVersion.WithKind("KubeadmControlPlane")),
 			},
@@ -1417,7 +1417,7 @@ func TestReconcileControlPlaneDelete(t *testing.T) {
 			ObjectMeta: metav1.ObjectMeta{
 				Name:      "foo-0",
 				Namespace: cluster.Namespace,
-				Labels:    internal.ControlPlaneLabelsForCluster(cluster.Name),
+				Labels:    internal.ControlPlaneLabelsForClusterWithHash(cluster.Name, hash.Compute(&kcp.Spec)),
 				OwnerReferences: []metav1.OwnerReference{
 					*metav1.NewControllerRef(kcp, controlplanev1.GroupVersion.WithKind("KubeadmControlPlane")),
 				},
@@ -1458,7 +1458,7 @@ func TestReconcileControlPlaneDelete(t *testing.T) {
 		// Delete control plane machines and requeue, but do not remove finalizer
 		result, err = r.reconcileDelete(context.Background(), cluster, kcp, r.Log)
 		g.Expect(err).NotTo(HaveOccurred())
-		g.Expect(result).To(Equal(ctrl.Result{RequeueAfter: DeleteRequeueAfter}))
+		g.Expect(result).To(Equal(ctrl.Result{Requeue: true, RequeueAfter: DeleteRequeueAfter}))
 		g.Expect(r.updateStatus(context.Background(), kcp, cluster)).To(Succeed())
 
 		g.Expect(kcp.Status.Replicas).To(BeEquivalentTo(0))
@@ -1508,7 +1508,7 @@ func TestReconcileControlPlaneDelete(t *testing.T) {
 			ObjectMeta: metav1.ObjectMeta{
 				Name:      "foo-0",
 				Namespace: cluster.Namespace,
-				Labels:    internal.ControlPlaneLabelsForCluster(cluster.Name),
+				Labels:    internal.ControlPlaneLabelsForClusterWithHash(cluster.Name, hash.Compute(&kcp.Spec)),
 				OwnerReferences: []metav1.OwnerReference{
 					*metav1.NewControllerRef(kcp, controlplanev1.GroupVersion.WithKind("KubeadmControlPlane")),
 				},

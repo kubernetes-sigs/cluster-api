@@ -25,7 +25,8 @@ import (
 )
 
 const (
-	KubeadmControlPlaneFinalizer = "kubeadm.controlplane.cluster.x-k8s.io"
+	KubeadmControlPlaneFinalizer    = "kubeadm.controlplane.cluster.x-k8s.io"
+	KubeadmControlPlaneHashLabelKey = "kubeadm.controlplane.cluster.x-k8s.io/hash"
 )
 
 // KubeadmControlPlaneSpec defines the desired state of KubeadmControlPlane.
@@ -47,6 +48,12 @@ type KubeadmControlPlaneSpec struct {
 	// KubeadmConfigSpec is a KubeadmConfigSpec
 	// to use for initializing and joining machines to the control plane.
 	KubeadmConfigSpec cabpkv1.KubeadmConfigSpec `json:"kubeadmConfigSpec"`
+
+	// UpgradeAfter is a field to indicate an upgrade should be performed
+	// after the specified time even if no changes have been made to the
+	// KubeadmControlPlane
+	// +optional
+	UpgradeAfter *metav1.Time `json:"upgradeAfter,omitempty"`
 }
 
 // KubeadmControlPlaneStatus defines the observed state of KubeadmControlPlane.

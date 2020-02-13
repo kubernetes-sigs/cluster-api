@@ -486,11 +486,15 @@ func TestClusterReconciler(t *testing.T) {
 				Kind: "Machine",
 			},
 			ObjectMeta: metav1.ObjectMeta{
-				Name: "controlPlaneWithNoderef",
+				Name:      "controlPlaneWithNoderef",
+				Namespace: "test",
 				Labels: map[string]string{
 					clusterv1.ClusterLabelName:             cluster.Name,
 					clusterv1.MachineControlPlaneLabelName: "",
 				},
+			},
+			Spec: clusterv1.MachineSpec{
+				ClusterName: "test-cluster",
 			},
 			Status: clusterv1.MachineStatus{
 				NodeRef: &v1.ObjectReference{
@@ -504,11 +508,15 @@ func TestClusterReconciler(t *testing.T) {
 				Kind: "Machine",
 			},
 			ObjectMeta: metav1.ObjectMeta{
-				Name: "controlPlaneWithoutNoderef",
+				Name:      "controlPlaneWithoutNoderef",
+				Namespace: "test",
 				Labels: map[string]string{
 					clusterv1.ClusterLabelName:             cluster.Name,
 					clusterv1.MachineControlPlaneLabelName: "",
 				},
+			},
+			Spec: clusterv1.MachineSpec{
+				ClusterName: "test-cluster",
 			},
 		}
 		nonControlPlaneWithNoderef := &clusterv1.Machine{
@@ -516,10 +524,14 @@ func TestClusterReconciler(t *testing.T) {
 				Kind: "Machine",
 			},
 			ObjectMeta: metav1.ObjectMeta{
-				Name: "nonControlPlaneWitNoderef",
+				Name:      "nonControlPlaneWitNoderef",
+				Namespace: "test",
 				Labels: map[string]string{
 					clusterv1.ClusterLabelName: cluster.Name,
 				},
+			},
+			Spec: clusterv1.MachineSpec{
+				ClusterName: "test-cluster",
 			},
 			Status: clusterv1.MachineStatus{
 				NodeRef: &v1.ObjectReference{
@@ -533,10 +545,14 @@ func TestClusterReconciler(t *testing.T) {
 				Kind: "Machine",
 			},
 			ObjectMeta: metav1.ObjectMeta{
-				Name: "nonControlPlaneWithoutNoderef",
+				Name:      "nonControlPlaneWithoutNoderef",
+				Namespace: "test",
 				Labels: map[string]string{
 					clusterv1.ClusterLabelName: cluster.Name,
 				},
+			},
+			Spec: clusterv1.MachineSpec{
+				ClusterName: "test-cluster",
 			},
 		}
 
@@ -552,10 +568,12 @@ func TestClusterReconciler(t *testing.T) {
 					Object: controlPlaneWithNoderef,
 				},
 				want: []ctrl.Request{
-					{NamespacedName: client.ObjectKey{
-						Name:      cluster.Name,
-						Namespace: cluster.Namespace,
-					}},
+					{
+						NamespacedName: client.ObjectKey{
+							Name:      cluster.Name,
+							Namespace: cluster.Namespace,
+						},
+					},
 				},
 			},
 			{

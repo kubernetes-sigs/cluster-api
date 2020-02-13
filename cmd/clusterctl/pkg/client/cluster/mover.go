@@ -279,7 +279,7 @@ func getMoveSequence(graph *objectGraph) *moveSequence {
 // setClusterPause sets the paused field on a Cluster object.
 func setClusterPause(proxy Proxy, clusters []*node, value bool) error {
 	log := logf.Log
-	patch := client.ConstantPatch(types.MergePatchType, []byte(fmt.Sprintf("{\"spec\":{\"paused\":%t}}", value)))
+	patch := client.RawPatch(types.MergePatchType, []byte(fmt.Sprintf("{\"spec\":{\"paused\":%t}}", value)))
 
 	for _, cluster := range clusters {
 		log.V(5).Info("Set Cluster.Spec.Paused", "Cluster", cluster.identity.Name, "Namespace", cluster.identity.Namespace)
@@ -529,7 +529,7 @@ func (o *objectMover) deleteGroup(group moveGroup) error {
 }
 
 var (
-	removeFinalizersPatch = client.ConstantPatch(types.MergePatchType, []byte("{\"metadata\":{\"finalizers\":[]}}"))
+	removeFinalizersPatch = client.RawPatch(types.MergePatchType, []byte("{\"metadata\":{\"finalizers\":[]}}"))
 )
 
 // deleteSourceObject deletes the Kubernetes object corresponding to the node from the source management cluster, taking care of removing all the finalizers so

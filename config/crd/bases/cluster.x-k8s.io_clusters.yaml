@@ -1,18 +1,13 @@
 
 ---
-apiVersion: apiextensions.k8s.io/v1beta1
+apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
 metadata:
   annotations:
-    controller-gen.kubebuilder.io/version: v0.2.4
+    controller-gen.kubebuilder.io/version: v0.2.5
   creationTimestamp: null
   name: clusters.cluster.x-k8s.io
 spec:
-  additionalPrinterColumns:
-  - JSONPath: .status.phase
-    description: Cluster status such as Pending/Provisioning/Provisioned/Deleting/Failed
-    name: Phase
-    type: string
   group: cluster.x-k8s.io
   names:
     categories:
@@ -23,13 +18,14 @@ spec:
     shortNames:
     - cl
     singular: cluster
-  preserveUnknownFields: false
   scope: Namespaced
-  subresources:
-    status: {}
-  version: v1alpha2
   versions:
-  - name: v1alpha2
+  - additionalPrinterColumns:
+    - description: Cluster status such as Pending/Provisioning/Provisioned/Deleting/Failed
+      jsonPath: .status.phase
+      name: Phase
+      type: string
+    name: v1alpha2
     schema:
       openAPIV3Schema:
         description: Cluster is the Schema for the clusters API
@@ -165,7 +161,14 @@ spec:
         type: object
     served: true
     storage: false
-  - name: v1alpha3
+    subresources:
+      status: {}
+  - additionalPrinterColumns:
+    - description: Cluster status such as Pending/Provisioning/Provisioned/Deleting/Failed
+      jsonPath: .status.phase
+      name: Phase
+      type: string
+    name: v1alpha3
     schema:
       openAPIV3Schema:
         description: Cluster is the Schema for the clusters API
@@ -364,6 +367,8 @@ spec:
         type: object
     served: true
     storage: true
+    subresources:
+      status: {}
 status:
   acceptedNames:
     kind: ""

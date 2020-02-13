@@ -1,10 +1,10 @@
 
 ---
-apiVersion: apiextensions.k8s.io/v1beta1
+apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
 metadata:
   annotations:
-    controller-gen.kubebuilder.io/version: v0.2.4
+    controller-gen.kubebuilder.io/version: v0.2.5
   creationTimestamp: null
   name: kubeadmconfigtemplates.bootstrap.cluster.x-k8s.io
 spec:
@@ -16,9 +16,7 @@ spec:
     listKind: KubeadmConfigTemplateList
     plural: kubeadmconfigtemplates
     singular: kubeadmconfigtemplate
-  preserveUnknownFields: false
   scope: Namespaced
-  version: v1alpha2
   versions:
   - name: v1alpha2
     schema:

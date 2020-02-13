@@ -48,6 +48,7 @@ func main() {
 	mgr, err := ctrl.NewManager(cfg, ctrl.Options{
 		Scheme:                 scheme.Scheme,
 		LeaderElection:         enableLeaderElection,
+		LeaderElectionID:       "controller-leader-election-capi-example",
 		MetricsBindAddress:     metricsAddr,
 		HealthProbeBindAddress: healthAddr,
 	})

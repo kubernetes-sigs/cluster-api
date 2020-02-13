@@ -468,7 +468,7 @@ func (r *ClusterReconciler) controlPlaneMachineToCluster(o handler.MapObject) []
 		return nil
 	}
 
-	cluster, err := util.GetClusterByName(context.TODO(), r.Client, m.ObjectMeta.Namespace, m.Spec.ClusterName)
+	cluster, err := util.GetClusterByName(context.TODO(), r.Client, m.Namespace, m.Spec.ClusterName)
 	if err != nil {
 		r.Log.Error(err, "Failed to get cluster", "machine", m.Name, "cluster", m.ClusterName, "namespace", m.Namespace)
 		return nil

@@ -23,8 +23,8 @@ REPO_ROOT=$(dirname "${BASH_SOURCE[0]}")/..
 source "${REPO_ROOT}/hack/ensure-go.sh"
 
 MAKE="make"
-KIND_VERSION="v0.5.0"
-KUBECTL_VERSION="v1.15.3"
+KIND_VERSION="v0.6.1"
+KUBECTL_VERSION="v1.16.7"
 KUSTOMIZE_VERSION="3.1.0"
 CRD_YAML="crd.yaml"
 BOOTSTRAP_CLUSTER_NAME="clusterapi-bootstrap"

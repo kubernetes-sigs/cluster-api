@@ -15,6 +15,9 @@
 # If you update this file, please follow
 # https://suva.sh/posts/well-documented-makefiles
 
+# Ensure Make is run with bash shell as some syntax below is bash-specific
+SHELL:=/usr/bin/env bash
+
 .DEFAULT_GOAL:=help
 
 # Use GOPROXY environment variable if set
@@ -100,11 +103,13 @@ help:  ## Display this help
 
 .PHONY: test
 test: ## Run tests
-	go test -v ./...
+	## TODO(vincepri): Remove the fetch for external binaries once kubebuilder has a release.
+	source ./scripts/fetch_ext_bins.sh; fetch_tools; setup_envs; go test -v ./...
 
 .PHONY: test-integration
 test-integration: ## Run integration tests
-	go test -v -tags=integration ./test/integration/...
+	## TODO(vincepri): Remove the fetch for external binaries once kubebuilder has a release.
+	source ./scripts/fetch_ext_bins.sh; fetch_tools; setup_envs; go test -v -tags=integration ./test/integration/...
 
 .PHONY: test-capd-e2e-full
 test-capd-e2e-full: ## Rebuild all manifests and all provider images then run the capd-e2es
@@ -253,14 +258,14 @@ generate-core-manifests: $(CONTROLLER_GEN) ## Generate manifests for the core pr
 	$(CONTROLLER_GEN) \
 		paths=./api/... \
 		paths=./controllers/... \
-		crd:preserveUnknownFields=false \
+		crd:crdVersions=v1 \
 		rbac:roleName=manager-role \
 		output:crd:dir=./config/crd/bases \
 		output:webhook:dir=./config/webhook \
 		webhook
 	$(CONTROLLER_GEN) \
 		paths=./cmd/clusterctl/api/... \
-		crd:trivialVersions=true,preserveUnknownFields=false \
+		crd:crdVersions=v1 \
 		output:crd:dir=./cmd/clusterctl/config/crd/bases
 	## Copy files in CI folders.
 	cp -f ./config/rbac/*.yaml ./config/ci/rbac/
@@ -271,7 +276,7 @@ generate-kubeadm-bootstrap-manifests: $(CONTROLLER_GEN) ## Generate manifests fo
 	$(CONTROLLER_GEN) \
 		paths=./bootstrap/kubeadm/api/... \
 		paths=./bootstrap/kubeadm/controllers/... \
-		crd:trivialVersions=false,preserveUnknownFields=false \
+		crd:crdVersions=v1 \
 		rbac:roleName=manager-role \
 		output:crd:dir=./bootstrap/kubeadm/config/crd/bases \
 		output:rbac:dir=./bootstrap/kubeadm/config/rbac \
@@ -283,7 +288,7 @@ generate-kubeadm-control-plane-manifests: $(CONTROLLER_GEN) ## Generate manifest
 	$(CONTROLLER_GEN) \
 		paths=./controlplane/kubeadm/api/... \
 		paths=./controlplane/kubeadm/controllers/... \
-		crd:preserveUnknownFields=false \
+		crd:crdVersions=v1 \
 		rbac:roleName=manager-role \
 		output:crd:dir=./controlplane/kubeadm/config/crd/bases \
 		output:rbac:dir=./controlplane/kubeadm/config/rbac \

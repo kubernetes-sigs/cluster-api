@@ -106,6 +106,15 @@ func (m *MachineHealthCheck) validate(old *MachineHealthCheck) error {
 		)
 	}
 
+	if m.Spec.MaxUnhealthy != nil {
+		if _, err := intstr.GetValueFromIntOrPercent(m.Spec.MaxUnhealthy, 0, false); err != nil {
+			allErrs = append(
+				allErrs,
+				field.Invalid(field.NewPath("spec", "maxUnhealthy"), m.Spec.MaxUnhealthy, "must be either an int or a percentage"),
+			)
+		}
+	}
+
 	if len(allErrs) == 0 {
 		return nil
 	}

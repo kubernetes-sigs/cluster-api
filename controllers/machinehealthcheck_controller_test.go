@@ -30,6 +30,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/apimachinery/pkg/util/intstr"
 	"k8s.io/client-go/kubernetes/scheme"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha3"
 	"sigs.k8s.io/cluster-api/controllers/external"
@@ -774,6 +775,91 @@ func TestIndexMachineByNodeName(t *testing.T) {
 			g := NewWithT(t)
 			got := r.indexMachineByNodeName(tc.object)
 			g.Expect(got).To(ConsistOf(tc.expected))
+		})
+	}
+}
+
+func TestIsAllowedRedmediation(t *testing.T) {
+	testCases := []struct {
+		name             string
+		maxUnhealthy     *intstr.IntOrString
+		expectedMachines int32
+		currentHealthy   int32
+		allowed          bool
+	}{
+		{
+			name:             "when maxUnhealthy is not set",
+			maxUnhealthy:     nil,
+			expectedMachines: int32(3),
+			currentHealthy:   int32(0),
+			allowed:          true,
+		},
+		{
+			name:             "when maxUnhealthy is not an int or percentage",
+			maxUnhealthy:     &intstr.IntOrString{Type: intstr.String, StrVal: "abcdef"},
+			expectedMachines: int32(5),
+			currentHealthy:   int32(2),
+			allowed:          false,
+		},
+		{
+			name:             "when maxUnhealthy is an int less than current unhealthy",
+			maxUnhealthy:     &intstr.IntOrString{Type: intstr.Int, IntVal: int32(1)},
+			expectedMachines: int32(3),
+			currentHealthy:   int32(1),
+			allowed:          false,
+		},
+		{
+			name:             "when maxUnhealthy is an int equal to current unhealthy",
+			maxUnhealthy:     &intstr.IntOrString{Type: intstr.Int, IntVal: int32(2)},
+			expectedMachines: int32(3),
+			currentHealthy:   int32(1),
+			allowed:          true,
+		},
+		{
+			name:             "when maxUnhealthy is an int greater than current unhealthy",
+			maxUnhealthy:     &intstr.IntOrString{Type: intstr.Int, IntVal: int32(3)},
+			expectedMachines: int32(3),
+			currentHealthy:   int32(1),
+			allowed:          true,
+		},
+		{
+			name:             "when maxUnhealthy is a percentage less than current unhealthy",
+			maxUnhealthy:     &intstr.IntOrString{Type: intstr.String, StrVal: "50%"},
+			expectedMachines: int32(5),
+			currentHealthy:   int32(2),
+			allowed:          false,
+		},
+		{
+			name:             "when maxUnhealthy is a percentage equal to current unhealthy",
+			maxUnhealthy:     &intstr.IntOrString{Type: intstr.String, StrVal: "60%"},
+			expectedMachines: int32(5),
+			currentHealthy:   int32(2),
+			allowed:          true,
+		},
+		{
+			name:             "when maxUnhealthy is a percentage greater than current unhealthy",
+			maxUnhealthy:     &intstr.IntOrString{Type: intstr.String, StrVal: "70%"},
+			expectedMachines: int32(5),
+			currentHealthy:   int32(2),
+			allowed:          true,
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			g := NewWithT(t)
+
+			mhc := &clusterv1.MachineHealthCheck{
+				Spec: clusterv1.MachineHealthCheckSpec{
+					MaxUnhealthy: tc.maxUnhealthy,
+				},
+				Status: clusterv1.MachineHealthCheckStatus{
+					ExpectedMachines: tc.expectedMachines,
+					CurrentHealthy:   tc.currentHealthy,
+				},
+			}
+
+			g.Expect(isAllowedRemediation(mhc)).To(Equal(tc.allowed))
 		})
 	}
 }

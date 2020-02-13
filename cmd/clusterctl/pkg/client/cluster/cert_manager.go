@@ -41,6 +41,9 @@ type CertManagerClient interface {
 	// EnsureWebHook makes sure the cert-manager WebHook is Available in a cluster:
 	// this is a requirement to install a new provider
 	EnsureWebHook() error
+
+	// Images return the list of images required for installing the cert-manager.
+	Images() ([]string, error)
 }
 
 // certManagerClient implements CertManagerClient .
@@ -60,23 +63,46 @@ func newCertMangerClient(proxy Proxy, pollImmediateWaiter PollImmediateWaiter) *
 	}
 }
 
+// Images return the list of images required for installing the cert-manager.
+func (cm *certManagerClient) Images() ([]string, error) {
+	// Checks if the cert-manager WebHook already exists, if yes, no additional images are required for the web-hook.
+	// Nb. we are ignoring the error so this operation can support listing images even if there is no an existing management cluster;
+	// in case there is no an existing management cluster, we assume there is no web-hook installed in the cluster.
+	hasWebHook, _ := cm.hasWebHook()
+	if hasWebHook {
+		return []string{}, nil
+	}
+
+	yaml, err := config.Asset(embeddedCertManagerManifestPath)
+	if err != nil {
+		return nil, err
+	}
+
+	objs, err := util.ToUnstructured(yaml)
+	if err != nil {
+		return nil, errors.Wrap(err, "failed to parse yaml for cert-manager manifest")
+	}
+
+	images, err := util.InspectImages(objs)
+	if err != nil {
+		return nil, err
+	}
+	return images, nil
+}
+
 // EnsureWebHook makes sure the cert-manager WebHook is Available in a cluster:
 // this is a requirement to install a new provider
 // Nb. In order to provide a simpler out-of-the box experience, the cert-manager manifest
 // is embedded in the clusterctl binary.
 func (cm *certManagerClient) EnsureWebHook() error {
 	log := logf.Log
-	c, err := cm.proxy.NewClient()
+
+	// Checks if the cert-manager WebHook already exists, if yes, exit immediately
+	hasWebHook, err := cm.hasWebHook()
 	if err != nil {
 		return err
 	}
-
-	// Checks if the cert-manager WebHook already exists, if yes, exit immediately
-	webHook, err := cm.getWebHook(c)
-	if err != nil {
-		return errors.Wrap(err, "failed to check if the cert-manager WebHook exists")
-	}
-	if webHook != nil {
+	if hasWebHook {
 		return nil
 	}
 
@@ -92,6 +118,12 @@ func (cm *certManagerClient) EnsureWebHook() error {
 	objs, err := util.ToUnstructured(yaml)
 	if err != nil {
 		return errors.Wrap(err, "failed to parse yaml for cert-manager manifest")
+	}
+
+	// installs the web-hook
+	c, err := cm.proxy.NewClient()
+	if err != nil {
+		return err
 	}
 
 	objs = sortResourcesForCreate(objs)
@@ -159,6 +191,24 @@ func (cm *certManagerClient) getWebHook(c client.Client) (*unstructured.Unstruct
 	}
 
 	return webHook, nil
+}
+
+// hasWebHook returns true if there is already a web-hook in the cluster
+func (cm *certManagerClient) hasWebHook() (bool, error) {
+	c, err := cm.proxy.NewClient()
+	if err != nil {
+		return false, err
+	}
+
+	// Checks if the cert-manager WebHook already exists, if yes, no additional images are required
+	webHook, err := cm.getWebHook(c)
+	if err != nil {
+		return false, errors.Wrap(err, "failed to check if the cert-manager WebHook exists")
+	}
+	if webHook != nil {
+		return true, nil
+	}
+	return false, nil
 }
 
 // isWebHookAvailable returns true if the cert-manager WebHook has the condition type:Available with status:True.

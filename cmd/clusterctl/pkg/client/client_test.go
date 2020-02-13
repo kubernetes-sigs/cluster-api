@@ -83,6 +83,10 @@ func (f fakeClient) Init(options InitOptions) ([]Components, error) {
 	return f.internalClient.Init(options)
 }
 
+func (f fakeClient) InitImages(options InitOptions) ([]string, error) {
+	return f.internalClient.InitImages(options)
+}
+
 func (f fakeClient) Delete(options DeleteOptions) error {
 	return f.internalClient.Delete(options)
 }
@@ -183,6 +187,11 @@ var _ cluster.CertManagerClient = &fakeCertManagerClient{}
 func (p *fakeCertManagerClient) EnsureWebHook() error {
 	// For unit test, we are not installing the cert-manager WebHook so we always return no error without doing additional steps.
 	return nil
+}
+
+func (p *fakeCertManagerClient) Images() ([]string, error) {
+	// For unit test, we are not installing the cert-manager.
+	return nil, nil
 }
 
 type fakeClusterClient struct {

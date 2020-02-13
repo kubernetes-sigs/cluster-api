@@ -171,7 +171,7 @@ func NewComponents(provider config.Provider, version string, rawyaml []byte, con
 	}
 
 	// inspect the list of objects for the images required by the provider component
-	images, err := inspectImages(objs)
+	images, err := util.InspectImages(objs)
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to detect required images")
 	}
@@ -533,33 +533,6 @@ func fixWatchNamespace(objs []unstructured.Unstructured, watchingNamespace strin
 func remove(slice []string, i int) []string {
 	copy(slice[i:], slice[i+1:])
 	return slice[:len(slice)-1]
-}
-
-// inspectImages identifies the container images required to install the provider.
-// NB. The implemented approach is specific for the provider components YAML; it is not intended to cover
-// all the possible objects used to deploy containers existing in Kubernetes.
-func inspectImages(objs []unstructured.Unstructured) ([]string, error) {
-	images := []string{}
-
-	for i := range objs {
-		o := objs[i]
-		if o.GetKind() == deploymentKind {
-			d := &appsv1.Deployment{}
-			if err := scheme.Scheme.Convert(&o, d, nil); err != nil {
-				return nil, err
-			}
-
-			for _, c := range d.Spec.Template.Spec.Containers {
-				images = append(images, c.Image)
-			}
-
-			for _, c := range d.Spec.Template.Spec.InitContainers {
-				images = append(images, c.Image)
-			}
-		}
-	}
-
-	return images, nil
 }
 
 // addLabels ensures all the provider components have a consistent set of labels

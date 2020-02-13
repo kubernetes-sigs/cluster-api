@@ -18,6 +18,7 @@ package cluster
 
 import (
 	"github.com/pkg/errors"
+	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/apimachinery/pkg/util/version"
 	clusterctlv1 "sigs.k8s.io/cluster-api/cmd/clusterctl/api/v1alpha3"
 	"sigs.k8s.io/cluster-api/cmd/clusterctl/pkg/client/config"
@@ -42,6 +43,9 @@ type ProviderInstaller interface {
 	//   - All the providers must belong to one/only one management groups
 	//   - All the providers in a management group must support the same API Version of Cluster API (contract)
 	Validate() error
+
+	// Images returns the list of images required for installing the providers ready in the install queue.
+	Images() []string
 }
 
 // providerInstaller implements ProviderInstaller
@@ -201,6 +205,14 @@ func simulateInstall(providerList *clusterctlv1.ProviderList, components reposit
 	providerList.Items = append(providerList.Items, provider)
 
 	return providerList, nil
+}
+
+func (i *providerInstaller) Images() []string {
+	ret := sets.NewString()
+	for _, components := range i.installQueue {
+		ret = ret.Insert(components.Images()...)
+	}
+	return ret.List()
 }
 
 func newProviderInstaller(configClient config.Client, repositoryClientFactory RepositoryClientFactory, proxy Proxy, providerMetadata InventoryClient, providerComponents ComponentsClient) *providerInstaller {

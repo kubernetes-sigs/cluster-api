@@ -38,9 +38,9 @@ const (
 
 // CertManagerClient has methods to work with cert-manager components in the cluster.
 type CertManagerClient interface {
-	// EnsureWebHook makes sure the cert-manager WebHook is Available in a cluster:
+	// EnsureWebhook makes sure the cert-manager Webhook is Available in a cluster:
 	// this is a requirement to install a new provider
-	EnsureWebHook() error
+	EnsureWebhook() error
 
 	// Images return the list of images required for installing the cert-manager.
 	Images() ([]string, error)
@@ -65,11 +65,11 @@ func newCertMangerClient(proxy Proxy, pollImmediateWaiter PollImmediateWaiter) *
 
 // Images return the list of images required for installing the cert-manager.
 func (cm *certManagerClient) Images() ([]string, error) {
-	// Checks if the cert-manager WebHook already exists, if yes, no additional images are required for the web-hook.
+	// Checks if the cert-manager web-hook already exists, if yes, no additional images are required for the web-hook.
 	// Nb. we are ignoring the error so this operation can support listing images even if there is no an existing management cluster;
 	// in case there is no an existing management cluster, we assume there is no web-hook installed in the cluster.
-	hasWebHook, _ := cm.hasWebHook()
-	if hasWebHook {
+	hasWebhook, _ := cm.hasWebhook()
+	if hasWebhook {
 		return []string{}, nil
 	}
 
@@ -90,19 +90,19 @@ func (cm *certManagerClient) Images() ([]string, error) {
 	return images, nil
 }
 
-// EnsureWebHook makes sure the cert-manager WebHook is Available in a cluster:
+// EnsureWebhook makes sure the cert-manager Web-hook is Available in a cluster:
 // this is a requirement to install a new provider
 // Nb. In order to provide a simpler out-of-the box experience, the cert-manager manifest
 // is embedded in the clusterctl binary.
-func (cm *certManagerClient) EnsureWebHook() error {
+func (cm *certManagerClient) EnsureWebhook() error {
 	log := logf.Log
 
-	// Checks if the cert-manager WebHook already exists, if yes, exit immediately
-	hasWebHook, err := cm.hasWebHook()
+	// Checks if the cert-manager web-hook already exists, if yes, exit immediately
+	hasWebhook, err := cm.hasWebhook()
 	if err != nil {
 		return err
 	}
-	if hasWebHook {
+	if hasWebhook {
 		return nil
 	}
 
@@ -146,23 +146,23 @@ func (cm *certManagerClient) EnsureWebHook() error {
 		}
 	}
 
-	// Waits for for the cert-manager WebHook to be available.
+	// Waits for for the cert-manager web-hook to be available.
 	log.Info("Waiting for cert-manager to be available...")
 	if err := cm.pollImmediateWaiter(waitCertManagerInterval, waitCertManagerTimeout, func() (bool, error) {
-		webHook, err := cm.getWebHook(c)
+		webhook, err := cm.getWebhook(c)
 		if err != nil {
-			return false, errors.Wrap(err, "failed to get cert-manager WebHook")
+			return false, errors.Wrap(err, "failed to get cert-manager web-hook")
 		}
-		if webHook == nil {
+		if webhook == nil {
 			return false, nil
 		}
 
-		isWebHookAvailable, err := cm.isWebHookAvailable(webHook)
+		isWebhookAvailable, err := cm.isWebhookAvailable(webhook)
 		if err != nil {
 			return false, err
 		}
 
-		return isWebHookAvailable, nil
+		return isWebhookAvailable, nil
 	}); err != nil {
 		return err
 	}
@@ -170,19 +170,19 @@ func (cm *certManagerClient) EnsureWebHook() error {
 	return nil
 }
 
-// getWebHook returns the cert-manager WebHook or nil if it does not exists.
-func (cm *certManagerClient) getWebHook(c client.Client) (*unstructured.Unstructured, error) {
-	webHook := &unstructured.Unstructured{}
-	webHook.SetAPIVersion("apiregistration.k8s.io/v1beta1")
-	webHook.SetKind("APIService")
-	webHook.SetName("v1beta1.webhook.cert-manager.io")
+// getWebhook returns the cert-manager Webhook or nil if it does not exists.
+func (cm *certManagerClient) getWebhook(c client.Client) (*unstructured.Unstructured, error) {
+	webhook := &unstructured.Unstructured{}
+	webhook.SetAPIVersion("apiregistration.k8s.io/v1beta1")
+	webhook.SetKind("APIService")
+	webhook.SetName("v1beta1.webhook.cert-manager.io")
 
-	key, err := client.ObjectKeyFromObject(webHook)
+	key, err := client.ObjectKeyFromObject(webhook)
 	if err != nil {
 		return nil, err
 	}
 
-	err = c.Get(ctx, key, webHook)
+	err = c.Get(ctx, key, webhook)
 	if err != nil {
 		if !apierrors.IsNotFound(err) {
 			return nil, err
@@ -190,36 +190,36 @@ func (cm *certManagerClient) getWebHook(c client.Client) (*unstructured.Unstruct
 		return nil, nil
 	}
 
-	return webHook, nil
+	return webhook, nil
 }
 
-// hasWebHook returns true if there is already a web-hook in the cluster
-func (cm *certManagerClient) hasWebHook() (bool, error) {
+// hasWebhook returns true if there is already a web-hook in the cluster
+func (cm *certManagerClient) hasWebhook() (bool, error) {
 	c, err := cm.proxy.NewClient()
 	if err != nil {
 		return false, err
 	}
 
-	// Checks if the cert-manager WebHook already exists, if yes, no additional images are required
-	webHook, err := cm.getWebHook(c)
+	// Checks if the cert-manager web-hook already exists, if yes, no additional images are required
+	webhook, err := cm.getWebhook(c)
 	if err != nil {
-		return false, errors.Wrap(err, "failed to check if the cert-manager WebHook exists")
+		return false, errors.Wrap(err, "failed to check if the cert-manager web-hook exists")
 	}
-	if webHook != nil {
+	if webhook != nil {
 		return true, nil
 	}
 	return false, nil
 }
 
-// isWebHookAvailable returns true if the cert-manager WebHook has the condition type:Available with status:True.
-// This is required to check the WebHook is working and ready to accept requests.
-func (cm *certManagerClient) isWebHookAvailable(webHook *unstructured.Unstructured) (bool, error) {
-	conditions, found, err := unstructured.NestedSlice(webHook.Object, "status", "conditions")
+// isWebhookAvailable returns true if the cert-manager web-hook has the condition type:Available with status:True.
+// This is required to check the web-hook is working and ready to accept requests.
+func (cm *certManagerClient) isWebhookAvailable(webhook *unstructured.Unstructured) (bool, error) {
+	conditions, found, err := unstructured.NestedSlice(webhook.Object, "status", "conditions")
 	if err != nil {
-		return false, errors.Wrap(err, "invalid cert-manager WebHook: failed to get conditions")
+		return false, errors.Wrap(err, "invalid cert-manager web-hook: failed to get conditions")
 	}
 
-	// if status.conditions does not exists, we assume the WebHook is still starting
+	// if status.conditions does not exists, we assume the web-hook is still starting
 	if !found {
 		return false, nil
 	}
@@ -228,12 +228,12 @@ func (cm *certManagerClient) isWebHookAvailable(webHook *unstructured.Unstructur
 	for _, condition := range conditions {
 		conditionMap, ok := condition.(map[string]interface{})
 		if !ok {
-			return false, errors.Wrap(err, "invalid cert-manager WebHook: failed to parse conditions")
+			return false, errors.Wrap(err, "invalid cert-manager web-hook: failed to parse conditions")
 		}
 
 		conditionType, ok := conditionMap["type"]
 		if !ok {
-			return false, errors.Wrap(err, "invalid cert-manager WebHook: there are conditions without the type field")
+			return false, errors.Wrap(err, "invalid cert-manager web-hook: there are conditions without the type field")
 		}
 
 		if conditionType != "Available" {
@@ -242,7 +242,7 @@ func (cm *certManagerClient) isWebHookAvailable(webHook *unstructured.Unstructur
 
 		conditionStatus, ok := conditionMap["status"]
 		if !ok {
-			return false, errors.Wrapf(err, "invalid cert-manager WebHook: there %q condition does not have the status field", "Available")
+			return false, errors.Wrapf(err, "invalid cert-manager web-hook: there %q condition does not have the status field", "Available")
 		}
 
 		if conditionStatus == "True" {

@@ -57,6 +57,12 @@ There is a version of `kustomize` built into kubectl, but it does not have all t
 
 [kustomize]: https://github.com/kubernetes-sigs/kustomize/blob/master/docs/INSTALL.md
 
+### Kubebuilder
+
+You'll need to [install `kubebuilder`][kubebuilder].
+
+[kubebuilder]: https://book.kubebuilder.io/quick-start.html#installation
+
 ## Development
 
 ## Option 1: Tilt

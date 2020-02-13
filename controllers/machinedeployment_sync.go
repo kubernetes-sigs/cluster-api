@@ -119,7 +119,7 @@ func (r *MachineDeploymentReconciler) getNewMachineSet(d *clusterv1.MachineDeplo
 
 		// Apply revision annotation from existingNewMS if it is missing from the deployment.
 		err = r.updateMachineDeployment(d, func(innerDeployment *clusterv1.MachineDeployment) {
-			mdutil.SetDeploymentRevision(d, msCopy.Annotations[mdutil.RevisionAnnotation])
+			mdutil.SetDeploymentRevision(d, msCopy.Annotations[clusterv1.RevisionAnnotation])
 		})
 		return msCopy, err
 	}

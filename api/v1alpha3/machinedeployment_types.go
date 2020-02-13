@@ -27,6 +27,19 @@ const (
 	// Replace the old MachineSet by new one using rolling update
 	// i.e. gradually scale down the old MachineSet and scale up the new one.
 	RollingUpdateMachineDeploymentStrategyType MachineDeploymentStrategyType = "RollingUpdate"
+
+	// RevisionAnnotation is the revision annotation of a machine deployment's machine sets which records its rollout sequence
+	RevisionAnnotation = "machinedeployment.clusters.x-k8s.io/revision"
+	// RevisionHistoryAnnotation maintains the history of all old revisions that a machine set has served for a machine deployment.
+	RevisionHistoryAnnotation = "machinedeployment.clusters.x-k8s.io/revision-history"
+	// DesiredReplicasAnnotation is the desired replicas for a machine deployment recorded as an annotation
+	// in its machine sets. Helps in separating scaling events from the rollout process and for
+	// determining if the new machine set for a deployment is really saturated.
+	DesiredReplicasAnnotation = "machinedeployment.clusters.x-k8s.io/desired-replicas"
+	// MaxReplicasAnnotation is the maximum replicas a deployment can have at a given point, which
+	// is machinedeployment.spec.replicas + maxSurge. Used by the underlying machine sets to estimate their
+	// proportions in case the deployment has surge replicas.
+	MaxReplicasAnnotation = "machinedeployment.clusters.x-k8s.io/max-replicas"
 )
 
 // ANCHOR: MachineDeploymentSpec

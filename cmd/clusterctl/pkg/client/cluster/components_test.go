@@ -20,6 +20,7 @@ import (
 	"testing"
 
 	corev1 "k8s.io/api/core/v1"
+	rbacv1 "k8s.io/api/rbac/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
@@ -52,7 +53,7 @@ func Test_providerComponents_Delete(t *testing.T) {
 				Labels: labels,
 			},
 		},
-		// A provider component (should always be deleted)
+		// A namespaced provider component (should always be deleted)
 		&corev1.Pod{
 			TypeMeta: metav1.TypeMeta{
 				Kind: "Pod",
@@ -75,6 +76,26 @@ func Test_providerComponents_Delete(t *testing.T) {
 		},
 		// CRDs (should be deleted only if forceDeleteCRD)
 		&crd,
+		// A cluster-wide provider component (should always be deleted)
+		&rbacv1.ClusterRole{
+			TypeMeta: metav1.TypeMeta{
+				Kind: "ClusterRole",
+			},
+			ObjectMeta: metav1.ObjectMeta{
+				Name:   "ns1-cluster-role", // global objects belonging to the provider have a namespace prefix.
+				Labels: labels,
+			},
+		},
+		// Another cluster-wide object (should never be deleted)
+		&rbacv1.ClusterRole{
+			TypeMeta: metav1.TypeMeta{
+				Kind: "ClusterRole",
+			},
+			ObjectMeta: metav1.ObjectMeta{
+				Name:   "some-cluster-role",
+				Labels: labels,
+			},
+		},
 		// Another object out of the provider namespace (should never be deleted)
 		&corev1.Pod{
 			TypeMeta: metav1.TypeMeta{
@@ -117,6 +138,8 @@ func Test_providerComponents_Delete(t *testing.T) {
 				{object: corev1.ObjectReference{APIVersion: "v1", Kind: "Pod", Namespace: "ns1", Name: "pod1"}, deleted: true},                               // provider components should be deleted
 				{object: corev1.ObjectReference{APIVersion: "v1", Kind: "Pod", Namespace: "ns1", Name: "pod2"}, deleted: false},                              // other objects in the namespace should not be deleted
 				{object: corev1.ObjectReference{APIVersion: "v1", Kind: "Pod", Namespace: "ns2", Name: "pod3"}, deleted: false},                              // this object is in another namespace, and should never be touched by delete
+				{object: corev1.ObjectReference{APIVersion: "rbac.authorization.k8s.io/v1", Kind: "ClusterRole", Name: "ns1-cluster-role"}, deleted: true},   // cluster-wide provider components should be deleted
+				{object: corev1.ObjectReference{APIVersion: "rbac.authorization.k8s.io/v1", Kind: "ClusterRole", Name: "some-cluster-role"}, deleted: false}, // other cluster-wide objects should be preserved
 			},
 			wantErr: false,
 		},
@@ -133,6 +156,8 @@ func Test_providerComponents_Delete(t *testing.T) {
 				{object: corev1.ObjectReference{APIVersion: "v1", Kind: "Pod", Namespace: "ns1", Name: "pod1"}, deleted: true},                               // provider components should be deleted
 				{object: corev1.ObjectReference{APIVersion: "v1", Kind: "Pod", Namespace: "ns1", Name: "pod2"}, deleted: true},                               // other objects in the namespace goes away when deleting the namespace
 				{object: corev1.ObjectReference{APIVersion: "v1", Kind: "Pod", Namespace: "ns2", Name: "pod3"}, deleted: false},                              // this object is in another namespace, and should never be touched by delete
+				{object: corev1.ObjectReference{APIVersion: "rbac.authorization.k8s.io/v1", Kind: "ClusterRole", Name: "ns1-cluster-role"}, deleted: true},   // cluster-wide provider components should be deleted
+				{object: corev1.ObjectReference{APIVersion: "rbac.authorization.k8s.io/v1", Kind: "ClusterRole", Name: "some-cluster-role"}, deleted: false}, // other cluster-wide objects should be preserved
 			},
 			wantErr: false,
 		},
@@ -145,11 +170,13 @@ func Test_providerComponents_Delete(t *testing.T) {
 				forceDeleteCRD:       true,
 			},
 			wantDiff: []wantDiff{
-				{object: corev1.ObjectReference{APIVersion: "v1", Kind: "Namespace", Name: "ns1"}, deleted: false},                                          //namespace should be preserved
-				{object: corev1.ObjectReference{APIVersion: "apiextensions.k8s.io/v1beta1", Kind: "CustomResourceDefinition", Name: "crd1"}, deleted: true}, //crd should be deleted
-				{object: corev1.ObjectReference{APIVersion: "v1", Kind: "Pod", Namespace: "ns1", Name: "pod1"}, deleted: true},                              // provider components should be deleted
-				{object: corev1.ObjectReference{APIVersion: "v1", Kind: "Pod", Namespace: "ns1", Name: "pod2"}, deleted: false},                             // other objects in the namespace should not be deleted
-				{object: corev1.ObjectReference{APIVersion: "v1", Kind: "Pod", Namespace: "ns2", Name: "pod3"}, deleted: false},                             // this object is in another namespace, and should never be touched by delete
+				{object: corev1.ObjectReference{APIVersion: "v1", Kind: "Namespace", Name: "ns1"}, deleted: false},                                           //namespace should be preserved
+				{object: corev1.ObjectReference{APIVersion: "apiextensions.k8s.io/v1beta1", Kind: "CustomResourceDefinition", Name: "crd1"}, deleted: true},  //crd should be deleted
+				{object: corev1.ObjectReference{APIVersion: "v1", Kind: "Pod", Namespace: "ns1", Name: "pod1"}, deleted: true},                               // provider components should be deleted
+				{object: corev1.ObjectReference{APIVersion: "v1", Kind: "Pod", Namespace: "ns1", Name: "pod2"}, deleted: false},                              // other objects in the namespace should not be deleted
+				{object: corev1.ObjectReference{APIVersion: "v1", Kind: "Pod", Namespace: "ns2", Name: "pod3"}, deleted: false},                              // this object is in another namespace, and should never be touched by delete
+				{object: corev1.ObjectReference{APIVersion: "rbac.authorization.k8s.io/v1", Kind: "ClusterRole", Name: "ns1-cluster-role"}, deleted: true},   // cluster-wide provider components should be deleted
+				{object: corev1.ObjectReference{APIVersion: "rbac.authorization.k8s.io/v1", Kind: "ClusterRole", Name: "some-cluster-role"}, deleted: false}, // other cluster-wide objects should be preserved
 			},
 			wantErr: false,
 		},
@@ -162,11 +189,13 @@ func Test_providerComponents_Delete(t *testing.T) {
 				forceDeleteCRD:       true,
 			},
 			wantDiff: []wantDiff{
-				{object: corev1.ObjectReference{APIVersion: "v1", Kind: "Namespace", Name: "ns1"}, deleted: true},                                           //namespace should be deleted
-				{object: corev1.ObjectReference{APIVersion: "apiextensions.k8s.io/v1beta1", Kind: "CustomResourceDefinition", Name: "crd1"}, deleted: true}, //crd should be deleted
-				{object: corev1.ObjectReference{APIVersion: "v1", Kind: "Pod", Namespace: "ns1", Name: "pod1"}, deleted: true},                              // provider components should be deleted
-				{object: corev1.ObjectReference{APIVersion: "v1", Kind: "Pod", Namespace: "ns1", Name: "pod2"}, deleted: true},                              // other objects in the namespace goes away when deleting the namespace
-				{object: corev1.ObjectReference{APIVersion: "v1", Kind: "Pod", Namespace: "ns2", Name: "pod3"}, deleted: false},                             // this object is in another namespace, and should never be touched by delete
+				{object: corev1.ObjectReference{APIVersion: "v1", Kind: "Namespace", Name: "ns1"}, deleted: true},                                            //namespace should be deleted
+				{object: corev1.ObjectReference{APIVersion: "apiextensions.k8s.io/v1beta1", Kind: "CustomResourceDefinition", Name: "crd1"}, deleted: true},  //crd should be deleted
+				{object: corev1.ObjectReference{APIVersion: "v1", Kind: "Pod", Namespace: "ns1", Name: "pod1"}, deleted: true},                               // provider components should be deleted
+				{object: corev1.ObjectReference{APIVersion: "v1", Kind: "Pod", Namespace: "ns1", Name: "pod2"}, deleted: true},                               // other objects in the namespace goes away when deleting the namespace
+				{object: corev1.ObjectReference{APIVersion: "v1", Kind: "Pod", Namespace: "ns2", Name: "pod3"}, deleted: false},                              // this object is in another namespace, and should never be touched by delete
+				{object: corev1.ObjectReference{APIVersion: "rbac.authorization.k8s.io/v1", Kind: "ClusterRole", Name: "ns1-cluster-role"}, deleted: true},   // cluster-wide provider components should be deleted
+				{object: corev1.ObjectReference{APIVersion: "rbac.authorization.k8s.io/v1", Kind: "ClusterRole", Name: "some-cluster-role"}, deleted: false}, // other cluster-wide objects should be preserved
 			},
 			wantErr: false,
 		},

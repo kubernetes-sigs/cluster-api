@@ -325,36 +325,12 @@ func fixTargetNamespace(objs []unstructured.Unstructured, targetNamespace string
 		}
 
 		// if the object is namespaced, set the namespace name
-		if isResourceNamespaced(o.GetKind()) {
+		if util.IsResourceNamespaced(o.GetKind()) {
 			o.SetNamespace(targetNamespace)
 		}
 	}
 
 	return objs
-}
-
-func isResourceNamespaced(kind string) bool {
-	switch kind {
-	case "Namespace",
-		"Node",
-		"PersistentVolume",
-		"PodSecurityPolicy",
-		"CertificateSigningRequest",
-		"ClusterRoleBinding",
-		"ClusterRole",
-		"VolumeAttachment",
-		"StorageClass",
-		"CSIDriver",
-		"CSINode",
-		"ValidatingWebhookConfiguration",
-		"MutatingWebhookConfiguration",
-		"CustomResourceDefinition",
-		"PriorityClass",
-		"RuntimeClass":
-		return false
-	default:
-		return true
-	}
 }
 
 const (

@@ -17,6 +17,9 @@ limitations under the License.
 package cluster
 
 import (
+	"fmt"
+	"strings"
+
 	"github.com/pkg/errors"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
@@ -25,6 +28,7 @@ import (
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha3"
 	clusterctlv1 "sigs.k8s.io/cluster-api/cmd/clusterctl/api/v1alpha3"
 	"sigs.k8s.io/cluster-api/cmd/clusterctl/pkg/client/repository"
+	"sigs.k8s.io/cluster-api/cmd/clusterctl/pkg/internal/util"
 	logf "sigs.k8s.io/cluster-api/cmd/clusterctl/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
@@ -118,10 +122,11 @@ func (p *providerComponents) Delete(options DeleteOptions) error {
 
 	resourcesToDelete := []unstructured.Unstructured{}
 	namespacesToDelete := sets.NewString()
+	instanceNamespacePrefix := fmt.Sprintf("%s-", options.Provider.Namespace)
 	for _, obj := range resources {
 		// If the CRDs should NOT be deleted, skip it;
 		// NB. Skipping CRDs deletion ensures that also the objects of Kind defined in the CRDs Kind are not deleted.
-		if obj.GroupVersionKind().Kind == "CustomResourceDefinition" && !options.ForceDeleteCRD {
+		if obj.GetKind() == "CustomResourceDefinition" && !options.ForceDeleteCRD {
 			continue
 		}
 
@@ -132,6 +137,17 @@ func (p *providerComponents) Delete(options DeleteOptions) error {
 				continue
 			}
 			namespacesToDelete.Insert(obj.GetName())
+		}
+
+		// If the resource is a cluster resource, skip it if the resource name does not start with the instance prefix.
+		// This is required because there are cluster resources like e.g. ClusterRoles and ClusterRoleBinding, which are instance specific;
+		// During the installation, clusterctl adds the instance namespace prefix to such resources (see fixRBAC), and so we can rely
+		// on that for deleting only the global resources belonging the the instance we are processing.
+		// Nb. we are ignoring CRDs and Namespaces, because they are already managed by the above rules.
+		if util.IsClusterResource(obj.GetKind()) && !strings.HasPrefix(obj.GetName(), instanceNamespacePrefix) {
+			if obj.GetKind() != "CustomResourceDefinition" && obj.GetKind() != "Namespace" {
+				continue
+			}
 		}
 
 		resourcesToDelete = append(resourcesToDelete, obj)

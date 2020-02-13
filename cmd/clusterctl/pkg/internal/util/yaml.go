@@ -97,3 +97,33 @@ func FromUnstructured(objs []unstructured.Unstructured) ([]byte, error) {
 
 	return JoinYaml(ret...), nil
 }
+
+// IsClusterResource returns true if the resource kind is cluster wide (not namespaced).
+func IsClusterResource(kind string) bool {
+	return !IsResourceNamespaced(kind)
+}
+
+// IsResourceNamespaced returns true if the resource kind is namespaced.
+func IsResourceNamespaced(kind string) bool {
+	switch kind {
+	case "Namespace",
+		"Node",
+		"PersistentVolume",
+		"PodSecurityPolicy",
+		"CertificateSigningRequest",
+		"ClusterRoleBinding",
+		"ClusterRole",
+		"VolumeAttachment",
+		"StorageClass",
+		"CSIDriver",
+		"CSINode",
+		"ValidatingWebhookConfiguration",
+		"MutatingWebhookConfiguration",
+		"CustomResourceDefinition",
+		"PriorityClass",
+		"RuntimeClass":
+		return false
+	default:
+		return true
+	}
+}

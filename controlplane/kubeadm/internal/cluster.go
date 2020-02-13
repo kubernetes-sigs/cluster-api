@@ -66,6 +66,14 @@ func OwnedControlPlaneMachines(controlPlaneName string) func(machine *clusterv1.
 	}
 }
 
+// HasDeletionTimestamp returns a MachineFilter function to find all machines
+// that have a deletion timestamp.
+func HasDeletionTimestamp() func(machine *clusterv1.Machine) bool {
+	return func(machine *clusterv1.Machine) bool {
+		return machine.GetDeletionTimestamp() != nil
+	}
+}
+
 // HasOutdatedConfiguration returns a MachineFilter function to find all machines
 // that do not match a given KubeadmControlPlane configuration hash.
 func HasOutdatedConfiguration(configHash string) func(machine *clusterv1.Machine) bool {

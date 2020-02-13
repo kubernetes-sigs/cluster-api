@@ -410,3 +410,15 @@ func IsPaused(cluster *clusterv1.Cluster, v metav1.Object) bool {
 	_, ok := annotations[clusterv1.PausedAnnotation]
 	return ok
 }
+
+// MachinesByCreationTimestamp sorts a list of Machine by creation timestamp, using their names as a tie breaker.
+type MachinesByCreationTimestamp []*clusterv1.Machine
+
+func (o MachinesByCreationTimestamp) Len() int      { return len(o) }
+func (o MachinesByCreationTimestamp) Swap(i, j int) { o[i], o[j] = o[j], o[i] }
+func (o MachinesByCreationTimestamp) Less(i, j int) bool {
+	if o[i].CreationTimestamp.Equal(&o[j].CreationTimestamp) {
+		return o[i].Name < o[j].Name
+	}
+	return o[i].CreationTimestamp.Before(&o[j].CreationTimestamp)
+}

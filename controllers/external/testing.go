@@ -17,106 +17,163 @@ limitations under the License.
 package external
 
 import (
-	apiextensionsv1beta1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1beta1"
+	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/utils/pointer"
 )
 
 var (
-	TestGenericBootstrapCRD = &apiextensionsv1beta1.CustomResourceDefinition{
+	TestGenericBootstrapCRD = &apiextensionsv1.CustomResourceDefinition{
+		TypeMeta: metav1.TypeMeta{
+			APIVersion: apiextensionsv1.SchemeGroupVersion.String(),
+			Kind:       "CustomResourceDefinition",
+		},
 		ObjectMeta: metav1.ObjectMeta{
 			Name: "genericmachines.bootstrap.cluster.x-k8s.io",
 		},
-		Spec: apiextensionsv1beta1.CustomResourceDefinitionSpec{
+		Spec: apiextensionsv1.CustomResourceDefinitionSpec{
 			Group: "bootstrap.cluster.x-k8s.io",
-			Scope: apiextensionsv1beta1.NamespaceScoped,
-			Names: apiextensionsv1beta1.CustomResourceDefinitionNames{
+			Scope: apiextensionsv1.NamespaceScoped,
+			Names: apiextensionsv1.CustomResourceDefinitionNames{
 				Kind:   "BootstrapMachine",
 				Plural: "genericmachines",
 			},
-			Subresources: &apiextensionsv1beta1.CustomResourceSubresources{
-				Status: &apiextensionsv1beta1.CustomResourceSubresourceStatus{},
-			},
-			Validation: &apiextensionsv1beta1.CustomResourceValidation{},
-			Versions: []apiextensionsv1beta1.CustomResourceDefinitionVersion{
+			Versions: []apiextensionsv1.CustomResourceDefinitionVersion{
 				{
 					Name:    "v1alpha3",
 					Served:  true,
 					Storage: true,
+					Subresources: &apiextensionsv1.CustomResourceSubresources{
+						Status: &apiextensionsv1.CustomResourceSubresourceStatus{},
+					},
+					Schema: &apiextensionsv1.CustomResourceValidation{
+						OpenAPIV3Schema: &apiextensionsv1.JSONSchemaProps{
+							Type: "object",
+							Properties: map[string]apiextensionsv1.JSONSchemaProps{
+								"spec": {
+									Type:                   "object",
+									XPreserveUnknownFields: pointer.BoolPtr(true),
+								},
+							},
+						},
+					},
 				},
 			},
 		},
 	}
 
-	TestGenericBootstrapTemplateCRD = &apiextensionsv1beta1.CustomResourceDefinition{
+	TestGenericBootstrapTemplateCRD = &apiextensionsv1.CustomResourceDefinition{
+		TypeMeta: metav1.TypeMeta{
+			APIVersion: apiextensionsv1.SchemeGroupVersion.String(),
+			Kind:       "CustomResourceDefinition",
+		},
 		ObjectMeta: metav1.ObjectMeta{
 			Name: "genericmachinetemplates.bootstrap.cluster.x-k8s.io",
 		},
-		Spec: apiextensionsv1beta1.CustomResourceDefinitionSpec{
+		Spec: apiextensionsv1.CustomResourceDefinitionSpec{
 			Group: "bootstrap.cluster.x-k8s.io",
-			Scope: apiextensionsv1beta1.NamespaceScoped,
-			Names: apiextensionsv1beta1.CustomResourceDefinitionNames{
+			Scope: apiextensionsv1.NamespaceScoped,
+			Names: apiextensionsv1.CustomResourceDefinitionNames{
 				Kind:   "BootstrapMachineTemplate",
 				Plural: "genericmachinetemplates",
 			},
-			Subresources: &apiextensionsv1beta1.CustomResourceSubresources{
-				Status: &apiextensionsv1beta1.CustomResourceSubresourceStatus{},
-			},
-			Validation: &apiextensionsv1beta1.CustomResourceValidation{},
-			Versions: []apiextensionsv1beta1.CustomResourceDefinitionVersion{
+			Versions: []apiextensionsv1.CustomResourceDefinitionVersion{
 				{
 					Name:    "v1alpha3",
 					Served:  true,
 					Storage: true,
+					Subresources: &apiextensionsv1.CustomResourceSubresources{
+						Status: &apiextensionsv1.CustomResourceSubresourceStatus{},
+					},
+					Schema: &apiextensionsv1.CustomResourceValidation{
+						OpenAPIV3Schema: &apiextensionsv1.JSONSchemaProps{
+							Type: "object",
+							Properties: map[string]apiextensionsv1.JSONSchemaProps{
+								"spec": {
+									Type:                   "object",
+									XPreserveUnknownFields: pointer.BoolPtr(true),
+								},
+							},
+						},
+					},
 				},
 			},
 		},
 	}
 
-	TestGenericInfrastructureCRD = &apiextensionsv1beta1.CustomResourceDefinition{
+	TestGenericInfrastructureCRD = &apiextensionsv1.CustomResourceDefinition{
+		TypeMeta: metav1.TypeMeta{
+			APIVersion: apiextensionsv1.SchemeGroupVersion.String(),
+			Kind:       "CustomResourceDefinition",
+		},
 		ObjectMeta: metav1.ObjectMeta{
 			Name: "genericmachines.infrastructure.cluster.x-k8s.io",
 		},
-		Spec: apiextensionsv1beta1.CustomResourceDefinitionSpec{
+		Spec: apiextensionsv1.CustomResourceDefinitionSpec{
 			Group: "infrastructure.cluster.x-k8s.io",
-			Scope: apiextensionsv1beta1.NamespaceScoped,
-			Names: apiextensionsv1beta1.CustomResourceDefinitionNames{
+			Scope: apiextensionsv1.NamespaceScoped,
+			Names: apiextensionsv1.CustomResourceDefinitionNames{
 				Kind:   "InfrastructureMachine",
 				Plural: "genericmachines",
 			},
-			Subresources: &apiextensionsv1beta1.CustomResourceSubresources{
-				Status: &apiextensionsv1beta1.CustomResourceSubresourceStatus{},
-			},
-			Validation: &apiextensionsv1beta1.CustomResourceValidation{},
-			Versions: []apiextensionsv1beta1.CustomResourceDefinitionVersion{
+			Versions: []apiextensionsv1.CustomResourceDefinitionVersion{
 				{
 					Name:    "v1alpha3",
 					Served:  true,
 					Storage: true,
+					Subresources: &apiextensionsv1.CustomResourceSubresources{
+						Status: &apiextensionsv1.CustomResourceSubresourceStatus{},
+					},
+					Schema: &apiextensionsv1.CustomResourceValidation{
+						OpenAPIV3Schema: &apiextensionsv1.JSONSchemaProps{
+							Type: "object",
+							Properties: map[string]apiextensionsv1.JSONSchemaProps{
+								"spec": {
+									Type:                   "object",
+									XPreserveUnknownFields: pointer.BoolPtr(true),
+								},
+							},
+						},
+					},
 				},
 			},
 		},
 	}
 
-	TestGenericInfrastructureTemplateCRD = &apiextensionsv1beta1.CustomResourceDefinition{
+	TestGenericInfrastructureTemplateCRD = &apiextensionsv1.CustomResourceDefinition{
+		TypeMeta: metav1.TypeMeta{
+			APIVersion: apiextensionsv1.SchemeGroupVersion.String(),
+			Kind:       "CustomResourceDefinition",
+		},
 		ObjectMeta: metav1.ObjectMeta{
 			Name: "genericmachinetemplates.infrastructure.cluster.x-k8s.io",
 		},
-		Spec: apiextensionsv1beta1.CustomResourceDefinitionSpec{
+		Spec: apiextensionsv1.CustomResourceDefinitionSpec{
 			Group: "infrastructure.cluster.x-k8s.io",
-			Scope: apiextensionsv1beta1.NamespaceScoped,
-			Names: apiextensionsv1beta1.CustomResourceDefinitionNames{
+			Scope: apiextensionsv1.NamespaceScoped,
+			Names: apiextensionsv1.CustomResourceDefinitionNames{
 				Kind:   "InfrastructureMachineTemplate",
 				Plural: "genericmachinetemplates",
 			},
-			Subresources: &apiextensionsv1beta1.CustomResourceSubresources{
-				Status: &apiextensionsv1beta1.CustomResourceSubresourceStatus{},
-			},
-			Validation: &apiextensionsv1beta1.CustomResourceValidation{},
-			Versions: []apiextensionsv1beta1.CustomResourceDefinitionVersion{
+			Versions: []apiextensionsv1.CustomResourceDefinitionVersion{
 				{
 					Name:    "v1alpha3",
 					Served:  true,
 					Storage: true,
+					Subresources: &apiextensionsv1.CustomResourceSubresources{
+						Status: &apiextensionsv1.CustomResourceSubresourceStatus{},
+					},
+					Schema: &apiextensionsv1.CustomResourceValidation{
+						OpenAPIV3Schema: &apiextensionsv1.JSONSchemaProps{
+							Type: "object",
+							Properties: map[string]apiextensionsv1.JSONSchemaProps{
+								"spec": {
+									Type:                   "object",
+									XPreserveUnknownFields: pointer.BoolPtr(true),
+								},
+							},
+						},
+					},
 				},
 			},
 		},

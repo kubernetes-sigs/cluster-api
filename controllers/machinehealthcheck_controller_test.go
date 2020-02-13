@@ -26,7 +26,6 @@ import (
 	. "github.com/onsi/gomega"
 	"github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
-	apiextensionsv1beta1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1beta1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -224,7 +223,7 @@ func TestClusterToMachineHealthCheck(t *testing.T) {
 	g := NewWithT(t)
 
 	testEnv = &envtest.Environment{
-		CRDs: []*apiextensionsv1beta1.CustomResourceDefinition{
+		CRDs: []runtime.Object{
 			external.TestGenericBootstrapCRD,
 			external.TestGenericBootstrapTemplateCRD,
 			external.TestGenericInfrastructureCRD,

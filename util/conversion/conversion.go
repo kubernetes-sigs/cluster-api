@@ -17,11 +17,16 @@ limitations under the License.
 package conversion
 
 import (
+	"context"
 	"math/rand"
+	"sort"
+	"strings"
 	"testing"
 
 	fuzz "github.com/google/gofuzz"
 	"github.com/onsi/gomega"
+	"github.com/pkg/errors"
+	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/apitesting/fuzzer"
 	apiequality "k8s.io/apimachinery/pkg/api/equality"
 	metafuzzer "k8s.io/apimachinery/pkg/apis/meta/fuzzer"
@@ -30,12 +35,62 @@ import (
 	"k8s.io/apimachinery/pkg/runtime/serializer"
 	"k8s.io/apimachinery/pkg/util/json"
 	"k8s.io/utils/diff"
+	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha3"
+	"sigs.k8s.io/cluster-api/util"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/conversion"
 )
 
 const (
 	DataAnnotation = "cluster.x-k8s.io/conversion-data"
 )
+
+var (
+	contract = clusterv1.GroupVersion.String()
+)
+
+// ConvertReferenceAPIContract takes a client and object reference, queries the API Server for
+// the Custom Resource Definition and looks which one is the stored version available.
+//
+// The object passed as input is modified in place if an updated compatible version is found.
+func ConvertReferenceAPIContract(ctx context.Context, c client.Client, ref *corev1.ObjectReference) error {
+	gvk := ref.GroupVersionKind()
+	crd, err := util.GetCRDWithContract(ctx, c, gvk, contract)
+	if err != nil {
+		return err
+	}
+
+	// If there is no label, return early without changing the reference.
+	supportedVersions, ok := crd.Labels[contract]
+	if !ok || supportedVersions == "" {
+		return errors.Errorf("cannot find any versions matching contract %q for CRD %v", contract, crd.Name)
+	}
+
+	// Pick the latest version in the slice and validate it.
+	kubeVersions := util.KubeAwareAPIVersions(strings.Split(supportedVersions, ","))
+	sort.Sort(kubeVersions)
+	chosen := kubeVersions[len(kubeVersions)-1]
+
+	// Validate that the picked version is actually in the CRD spec.
+	found := false
+	for _, version := range crd.Spec.Versions {
+		if version.Name == chosen {
+			found = true
+			break
+		}
+	}
+	if !found {
+		return errors.Errorf("cannot find any versions matching contract %q for CRD %v", contract, crd.Name)
+	}
+
+	// Modify the GroupVersionKind with the new version.
+	if gvk.Version != chosen {
+		gvk.Version = chosen
+		ref.SetGroupVersionKind(gvk)
+	}
+
+	return nil
+}
 
 // MarshalData stores the source object as json data in the destination object annotations map.
 func MarshalData(src metav1.Object, dst metav1.Object) error {

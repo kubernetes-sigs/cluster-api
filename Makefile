@@ -103,12 +103,10 @@ help:  ## Display this help
 
 .PHONY: test
 test: ## Run tests
-	## TODO(vincepri): Remove the fetch for external binaries once kubebuilder has a release.
 	source ./scripts/fetch_ext_bins.sh; fetch_tools; setup_envs; go test -v ./...
 
 .PHONY: test-integration
 test-integration: ## Run integration tests
-	## TODO(vincepri): Remove the fetch for external binaries once kubebuilder has a release.
 	source ./scripts/fetch_ext_bins.sh; fetch_tools; setup_envs; go test -v -tags=integration ./test/integration/...
 
 .PHONY: test-capd-e2e-full

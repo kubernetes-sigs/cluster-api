@@ -24,6 +24,7 @@ import (
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
+	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/client-go/kubernetes/scheme"
 	"k8s.io/client-go/rest"
@@ -49,6 +50,10 @@ import (
 func init() {
 	klog.InitFlags(nil)
 	logf.SetLogger(klogr.New())
+
+	// Register required object kinds with global scheme.
+	_ = apiextensionsv1.AddToScheme(scheme.Scheme)
+	_ = clusterv1.AddToScheme(scheme.Scheme)
 }
 
 const (
@@ -90,8 +95,6 @@ var _ = BeforeSuite(func(done Done) {
 	Expect(err).ToNot(HaveOccurred())
 	Expect(cfg).ToNot(BeNil())
 
-	Expect(clusterv1.AddToScheme(scheme.Scheme)).To(Succeed())
-
 	// +kubebuilder:scaffold:scheme
 
 	By("setting up a new manager")
@@ -105,7 +108,9 @@ var _ = BeforeSuite(func(done Done) {
 		},
 	})
 	Expect(err).NotTo(HaveOccurred())
+
 	k8sClient = mgr.GetClient()
+
 	clusterReconciler = &ClusterReconciler{
 		Client:   k8sClient,
 		Log:      log.Log,

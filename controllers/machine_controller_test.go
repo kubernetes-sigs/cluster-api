@@ -35,6 +35,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha3"
+	"sigs.k8s.io/cluster-api/controllers/external"
 )
 
 func TestMachineFinalizer(t *testing.T) {
@@ -107,8 +108,6 @@ func TestMachineFinalizer(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			g := NewWithT(t)
 
-			g.Expect(clusterv1.AddToScheme(scheme.Scheme)).To(Succeed())
-
 			mr := &MachineReconciler{
 				Client: fake.NewFakeClientWithScheme(
 					scheme.Scheme,
@@ -116,8 +115,7 @@ func TestMachineFinalizer(t *testing.T) {
 					machineValidCluster,
 					machineWithFinalizer,
 				),
-				Log:    log.Log,
-				scheme: scheme.Scheme,
+				Log: log.Log,
 			}
 
 			_, _ = mr.Reconcile(tc.request)
@@ -235,8 +233,6 @@ func TestMachineOwnerReference(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			g := NewWithT(t)
 
-			g.Expect(clusterv1.AddToScheme(scheme.Scheme)).To(Succeed())
-
 			mr := &MachineReconciler{
 				Client: fake.NewFakeClientWithScheme(
 					scheme.Scheme,
@@ -266,7 +262,7 @@ func TestMachineOwnerReference(t *testing.T) {
 func TestReconcileRequest(t *testing.T) {
 	infraConfig := unstructured.Unstructured{
 		Object: map[string]interface{}{
-			"kind":       "InfrastructureConfig",
+			"kind":       "InfrastructureMachine",
 			"apiVersion": "infrastructure.cluster.x-k8s.io/v1alpha3",
 			"metadata": map[string]interface{}{
 				"name":      "infra-config1",
@@ -315,7 +311,7 @@ func TestReconcileRequest(t *testing.T) {
 					ClusterName: "test-cluster",
 					InfrastructureRef: corev1.ObjectReference{
 						APIVersion: "infrastructure.cluster.x-k8s.io/v1alpha3",
-						Kind:       "InfrastructureConfig",
+						Kind:       "InfrastructureMachine",
 						Name:       "infra-config1",
 					},
 					Bootstrap: clusterv1.Bootstrap{Data: pointer.StringPtr("data")},
@@ -342,7 +338,7 @@ func TestReconcileRequest(t *testing.T) {
 					ClusterName: "test-cluster",
 					InfrastructureRef: corev1.ObjectReference{
 						APIVersion: "infrastructure.cluster.x-k8s.io/v1alpha3",
-						Kind:       "InfrastructureConfig",
+						Kind:       "InfrastructureMachine",
 						Name:       "infra-config1",
 					},
 					Bootstrap: clusterv1.Bootstrap{Data: pointer.StringPtr("data")},
@@ -373,7 +369,7 @@ func TestReconcileRequest(t *testing.T) {
 					ClusterName: "test-cluster",
 					InfrastructureRef: corev1.ObjectReference{
 						APIVersion: "infrastructure.cluster.x-k8s.io/v1alpha3",
-						Kind:       "InfrastructureConfig",
+						Kind:       "InfrastructureMachine",
 						Name:       "infra-config1",
 					},
 					Bootstrap: clusterv1.Bootstrap{Data: pointer.StringPtr("data")},
@@ -390,12 +386,11 @@ func TestReconcileRequest(t *testing.T) {
 		t.Run("machine should be "+tc.machine.Name, func(t *testing.T) {
 			g := NewWithT(t)
 
-			g.Expect(clusterv1.AddToScheme(scheme.Scheme)).To(Succeed())
-
 			client := fake.NewFakeClientWithScheme(
 				scheme.Scheme,
 				&testCluster,
 				&tc.machine,
+				external.TestGenericInfrastructureCRD,
 				&infraConfig,
 			)
 
@@ -435,7 +430,7 @@ func TestReconcileDeleteExternal(t *testing.T) {
 
 	infraConfig := &unstructured.Unstructured{
 		Object: map[string]interface{}{
-			"kind":       "InfrastructureConfig",
+			"kind":       "InfrastructureMachine",
 			"apiVersion": "infrastructure.cluster.x-k8s.io/v1alpha3",
 			"metadata": map[string]interface{}{
 				"name":      "delete-infra",
@@ -453,7 +448,7 @@ func TestReconcileDeleteExternal(t *testing.T) {
 			ClusterName: "test-cluster",
 			InfrastructureRef: corev1.ObjectReference{
 				APIVersion: "infrastructure.cluster.x-k8s.io/v1alpha3",
-				Kind:       "InfrastructureConfig",
+				Kind:       "InfrastructureMachine",
 				Name:       "delete-infra",
 			},
 			Bootstrap: clusterv1.Bootstrap{
@@ -507,8 +502,6 @@ func TestReconcileDeleteExternal(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			g := NewWithT(t)
 
-			g.Expect(clusterv1.AddToScheme(scheme.Scheme)).To(Succeed())
-
 			objs := []runtime.Object{testCluster, machine}
 
 			if tc.bootstrapExists {
@@ -539,8 +532,6 @@ func TestReconcileDeleteExternal(t *testing.T) {
 func TestRemoveMachineFinalizerAfterDeleteReconcile(t *testing.T) {
 	g := NewWithT(t)
 
-	g.Expect(clusterv1.AddToScheme(scheme.Scheme)).To(Succeed())
-
 	dt := metav1.Now()
 
 	testCluster := &clusterv1.Cluster{
@@ -558,7 +549,7 @@ func TestRemoveMachineFinalizerAfterDeleteReconcile(t *testing.T) {
 			ClusterName: "test-cluster",
 			InfrastructureRef: corev1.ObjectReference{
 				APIVersion: "infrastructure.cluster.x-k8s.io/v1alpha3",
-				Kind:       "InfrastructureConfig",
+				Kind:       "InfrastructureMachine",
 				Name:       "infra-config1",
 			},
 			Bootstrap: clusterv1.Bootstrap{Data: pointer.StringPtr("data")},
@@ -630,8 +621,6 @@ func TestReconcileMetrics(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			g := NewWithT(t)
-
-			g.Expect(clusterv1.AddToScheme(scheme.Scheme)).To(Succeed())
 
 			var objs []runtime.Object
 			machine := &clusterv1.Machine{

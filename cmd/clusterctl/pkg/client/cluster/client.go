@@ -188,9 +188,8 @@ type Proxy interface {
 	// NewClient returns a new controller runtime Client object for working on the management cluster
 	NewClient() (client.Client, error)
 
-	// ListResources returns all the Kubernetes objects existing in a namespace (or in all namespaces if empty)
-	// with the given labels.
-	ListResources(namespace string, labels map[string]string) ([]unstructured.Unstructured, error)
+	// ListResources returns all the Kubernetes objects with the given labels existing the listed namespaces.
+	ListResources(labels map[string]string, namespaces ...string) ([]unstructured.Unstructured, error)
 }
 
 var _ Proxy = &test.FakeProxy{}

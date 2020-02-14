@@ -751,7 +751,7 @@ func Test_fixWatchNamespace(t *testing.T) {
 	}
 }
 
-func Test_addLabels(t *testing.T) {
+func Test_addCommonLabels(t *testing.T) {
 	type args struct {
 		objs []unstructured.Unstructured
 		name string
@@ -790,8 +790,161 @@ func Test_addLabels(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if got := addLabels(tt.args.objs, tt.args.name); !reflect.DeepEqual(got, tt.want) {
+			if got := addCommonLabels(tt.args.objs, tt.args.name); !reflect.DeepEqual(got, tt.want) {
 				t.Errorf("got = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
+
+func Test_splitInstanceAndSharedResources(t *testing.T) {
+	type args struct {
+		objs []unstructured.Unstructured
+	}
+	tests := []struct {
+		name             string
+		args             args
+		wantInstanceObjs []unstructured.Unstructured
+		wantSharedObjs   []unstructured.Unstructured
+	}{
+		{
+			name: "objects are split in two sets",
+			args: args{
+				objs: []unstructured.Unstructured{
+					// Instance objs
+					{
+						Object: map[string]interface{}{
+							"kind": "Namespace",
+							"metadata": map[string]interface{}{
+								"name": "capi-system",
+							},
+						},
+					},
+					{
+						Object: map[string]interface{}{
+							"kind": "Deployment",
+							"metadata": map[string]interface{}{
+								"name":      "capi-controller-manager",
+								"namespace": "capi-system",
+							},
+						},
+					},
+					// Shared objs
+					{
+						Object: map[string]interface{}{
+							"kind": "Namespace",
+							"metadata": map[string]interface{}{
+								"name": "capi-webhook-system",
+							},
+						},
+					},
+					{
+						Object: map[string]interface{}{
+							"kind": "Deployment",
+							"metadata": map[string]interface{}{
+								"name":      "capi-controller-manager",
+								"namespace": "capi-webhook-system",
+							},
+						},
+					},
+					{
+						Object: map[string]interface{}{
+							"kind": "CustomResourceDefinition",
+							"metadata": map[string]interface{}{
+								"name": "clusters.cluster.x-k8s.io",
+							},
+						},
+					},
+					{
+						Object: map[string]interface{}{
+							"kind": "MutatingWebhookConfiguration",
+							"metadata": map[string]interface{}{
+								"name": "capi-mutating-webhook-configuration",
+							},
+						},
+					},
+					{
+						Object: map[string]interface{}{
+							"kind": "ValidatingWebhookConfiguration",
+							"metadata": map[string]interface{}{
+								"name": "capi-validating-webhook-configuration",
+							},
+						},
+					},
+				},
+			},
+			wantInstanceObjs: []unstructured.Unstructured{
+				{
+					Object: map[string]interface{}{
+						"kind": "Namespace",
+						"metadata": map[string]interface{}{
+							"name": "capi-system",
+						},
+					},
+				},
+				{
+					Object: map[string]interface{}{
+						"kind": "Deployment",
+						"metadata": map[string]interface{}{
+							"name":      "capi-controller-manager",
+							"namespace": "capi-system",
+						},
+					},
+				},
+			},
+			wantSharedObjs: []unstructured.Unstructured{
+				{
+					Object: map[string]interface{}{
+						"kind": "Namespace",
+						"metadata": map[string]interface{}{
+							"name": "capi-webhook-system",
+						},
+					},
+				},
+				{
+					Object: map[string]interface{}{
+						"kind": "Deployment",
+						"metadata": map[string]interface{}{
+							"name":      "capi-controller-manager",
+							"namespace": "capi-webhook-system",
+						},
+					},
+				},
+				{
+					Object: map[string]interface{}{
+						"kind": "CustomResourceDefinition",
+						"metadata": map[string]interface{}{
+							"name": "clusters.cluster.x-k8s.io",
+						},
+					},
+				},
+				{
+					Object: map[string]interface{}{
+						"kind": "MutatingWebhookConfiguration",
+						"metadata": map[string]interface{}{
+							"name": "capi-mutating-webhook-configuration",
+						},
+					},
+				},
+				{
+					Object: map[string]interface{}{
+						"kind": "ValidatingWebhookConfiguration",
+						"metadata": map[string]interface{}{
+							"name": "capi-validating-webhook-configuration",
+						},
+					},
+				},
+			},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			gotInstanceObjs, gotWebHookObjs := splitInstanceAndSharedResources(tt.args.objs)
+			if !reflect.DeepEqual(gotInstanceObjs, tt.wantInstanceObjs) {
+				t.Errorf("splitInstanceAndSharedResources() gotInstanceObjs = %v, want %v", gotInstanceObjs, tt.wantInstanceObjs)
+			}
+			if !reflect.DeepEqual(gotWebHookObjs, tt.wantSharedObjs) {
+				t.Errorf("splitInstanceAndSharedResources() gotWebHookObjs = %v, want %v", gotWebHookObjs, tt.wantSharedObjs)
 			}
 		})
 	}

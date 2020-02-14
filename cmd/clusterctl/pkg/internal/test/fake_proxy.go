@@ -65,7 +65,7 @@ func (f *FakeProxy) NewClient() (client.Client, error) {
 }
 
 // ListResources returns all the resources known by the FakeProxy
-func (f *FakeProxy) ListResources(namespace string, labels map[string]string) ([]unstructured.Unstructured, error) {
+func (f *FakeProxy) ListResources(labels map[string]string, namespaces ...string) ([]unstructured.Unstructured, error) {
 	var ret []unstructured.Unstructured //nolint
 	for _, o := range f.objs {
 		u := unstructured.Unstructured{}
@@ -75,8 +75,17 @@ func (f *FakeProxy) ListResources(namespace string, labels map[string]string) ([
 		}
 
 		// filter by namespace, if any
-		if namespace != "" && u.GetNamespace() != "" && u.GetNamespace() != namespace {
-			continue
+		if len(namespaces) > 0 && u.GetNamespace() != "" {
+			inNamespaces := false
+			for _, namespace := range namespaces {
+				if u.GetNamespace() == namespace {
+					inNamespaces = true
+					break
+				}
+			}
+			if !inNamespaces {
+				continue
+			}
 		}
 
 		// filter by label, if any

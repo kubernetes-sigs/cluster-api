@@ -46,11 +46,11 @@ func Test_clusterctlClient_Delete(t *testing.T) {
 			},
 			args: args{
 				options: DeleteOptions{
-					Kubeconfig:           "kubeconfig",
-					ForceDeleteNamespace: false,
-					ForceDeleteCRD:       false,
-					Namespace:            "",
-					Providers:            nil, // nil means all the providers
+					Kubeconfig:       "kubeconfig",
+					IncludeNamespace: false,
+					IncludeCRDs:      false,
+					Namespace:        "",
+					Providers:        nil, // nil means all the providers
 				},
 			},
 			wantProviders: sets.NewString(),
@@ -63,11 +63,11 @@ func Test_clusterctlClient_Delete(t *testing.T) {
 			},
 			args: args{
 				options: DeleteOptions{
-					Kubeconfig:           "kubeconfig",
-					ForceDeleteNamespace: false,
-					ForceDeleteCRD:       false,
-					Namespace:            "capbpk-system",
-					Providers:            []string{bootstrapProviderConfig.Name()},
+					Kubeconfig:       "kubeconfig",
+					IncludeNamespace: false,
+					IncludeCRDs:      false,
+					Namespace:        "capbpk-system",
+					Providers:        []string{bootstrapProviderConfig.Name()},
 				},
 			},
 			wantProviders: sets.NewString(capiProviderConfig.Name()),
@@ -80,11 +80,11 @@ func Test_clusterctlClient_Delete(t *testing.T) {
 			},
 			args: args{
 				options: DeleteOptions{
-					Kubeconfig:           "kubeconfig",
-					ForceDeleteNamespace: false,
-					ForceDeleteCRD:       false,
-					Namespace:            "", // empty namespace triggers namespace auto detection
-					Providers:            []string{bootstrapProviderConfig.Name()},
+					Kubeconfig:       "kubeconfig",
+					IncludeNamespace: false,
+					IncludeCRDs:      false,
+					Namespace:        "", // empty namespace triggers namespace auto detection
+					Providers:        []string{bootstrapProviderConfig.Name()},
 				},
 			},
 			wantProviders: sets.NewString(capiProviderConfig.Name()),

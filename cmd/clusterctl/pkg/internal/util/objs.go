@@ -19,6 +19,7 @@ package util
 import (
 	appsv1 "k8s.io/api/apps/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
+	clusterctlv1 "sigs.k8s.io/cluster-api/cmd/clusterctl/api/v1alpha3"
 	"sigs.k8s.io/cluster-api/cmd/clusterctl/pkg/internal/scheme"
 )
 
@@ -52,4 +53,46 @@ func InspectImages(objs []unstructured.Unstructured) ([]string, error) {
 	}
 
 	return images, nil
+}
+
+// IsClusterResource returns true if the resource kind is cluster wide (not namespaced).
+func IsClusterResource(kind string) bool {
+	return !IsResourceNamespaced(kind)
+}
+
+// IsResourceNamespaced returns true if the resource kind is namespaced.
+func IsResourceNamespaced(kind string) bool {
+	switch kind {
+	case "Namespace",
+		"Node",
+		"PersistentVolume",
+		"PodSecurityPolicy",
+		"CertificateSigningRequest",
+		"ClusterRoleBinding",
+		"ClusterRole",
+		"VolumeAttachment",
+		"StorageClass",
+		"CSIDriver",
+		"CSINode",
+		"ValidatingWebhookConfiguration",
+		"MutatingWebhookConfiguration",
+		"CustomResourceDefinition",
+		"PriorityClass",
+		"RuntimeClass":
+		return false
+	default:
+		return true
+	}
+}
+
+// IsSharedResource returns true if the resource lifecycle is shared.
+func IsSharedResource(o unstructured.Unstructured) bool {
+	lifecycle, ok := o.GetLabels()[clusterctlv1.ClusterctlResourceLifecyleLabelName]
+	if !ok {
+		return false
+	}
+	if lifecycle == string(clusterctlv1.ResourceLifecycleShared) {
+		return true
+	}
+	return false
 }

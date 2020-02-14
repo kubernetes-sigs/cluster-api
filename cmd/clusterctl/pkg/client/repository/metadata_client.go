@@ -65,7 +65,7 @@ func (f *metadataClient) Get() (*clusterctlv1.Metadata, error) {
 		return nil, err
 	}
 	if file == nil {
-		log.V(1).Info("Fetching", "File", name, "Provider", f.provider.Name(), "Version", version)
+		log.V(5).Info("Fetching", "File", name, "Provider", f.provider.Name(), "Version", version)
 		file, err = f.repository.GetFile(version, name)
 		if err != nil {
 			// if there are problems in reading the metadata file from the repository, check if there are embedded metadata for the provider, if yes use them

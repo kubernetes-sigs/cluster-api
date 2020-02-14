@@ -23,11 +23,11 @@ import (
 )
 
 type deleteOptions struct {
-	kubeconfig           string
-	targetNamespace      string
-	forceDeleteNamespace bool
-	forceDeleteCRD       bool
-	deleteAll            bool
+	kubeconfig       string
+	targetNamespace  string
+	includeNamespace bool
+	includeCRDs      bool
+	deleteAll        bool
 }
 
 var dd = &deleteOptions{}
@@ -59,18 +59,18 @@ var deleteCmd = &cobra.Command{
 		# all the related objects (e.g. AWSClusters, AWSMachines etc.).
 		# Important! As a consequence of this operation, all the corresponding resources managed by
 		# the AWS infrastructure provider are orphaned and there might be ongoing costs incurred as a result of this.
-		clusterctl delete aws --delete-crd
+		clusterctl delete aws --include-crd
 
 		# Delete the AWS provider and its hosting Namespace. Please note that this forces deletion of 
 		# all objects existing in the namespace. 
 		# Important! As a consequence of this operation, all the corresponding resources managed by
 		# Cluster API Providers are orphaned and there might be ongoing costs incurred as a result of this.
-		clusterctl delete aws --delete-namespace
+		clusterctl delete aws --include-namespace
 
 		# Reset the management cluster to its original state
 		# Important! As a consequence of this operation all the corresponding resources on target clouds
 		# are "orphaned" and thus there may be ongoing costs incurred as a result of this.
-		clusterctl delete --all --delete-crd  --delete-namespace`),
+		clusterctl delete --all --include-crd  --include-namespace`),
 
 	RunE: func(cmd *cobra.Command, args []string) error {
 		if dd.deleteAll && len(args) > 0 {
@@ -89,8 +89,8 @@ func init() {
 	deleteCmd.Flags().StringVarP(&dd.kubeconfig, "kubeconfig", "", "", "Path to the kubeconfig file to use for accessing the management cluster. If empty, default rules for kubeconfig discovery will be used")
 	deleteCmd.Flags().StringVarP(&dd.targetNamespace, "namespace", "", "", "The namespace where the provider to be deleted lives. If not specified, the namespace name will be inferred from the current configuration")
 
-	deleteCmd.Flags().BoolVarP(&dd.forceDeleteNamespace, "delete-namespace", "n", false, "Forces the deletion of the namespace where the providers are hosted (and of all the contained objects)")
-	deleteCmd.Flags().BoolVarP(&dd.forceDeleteCRD, "delete-crd", "c", false, "Forces the deletion of the provider's CRDs (and of all the related objects)")
+	deleteCmd.Flags().BoolVarP(&dd.includeNamespace, "include-namespace", "n", false, "Forces the deletion of the namespace where the providers are hosted (and of all the contained objects)")
+	deleteCmd.Flags().BoolVarP(&dd.includeCRDs, "include-crd", "c", false, "Forces the deletion of the provider's CRDs (and of all the related objects)")
 	deleteCmd.Flags().BoolVarP(&dd.deleteAll, "all", "", false, "Force deletion of all the providers")
 
 	RootCmd.AddCommand(deleteCmd)
@@ -103,11 +103,11 @@ func runDelete(args []string) error {
 	}
 
 	if err := c.Delete(client.DeleteOptions{
-		Kubeconfig:           dd.kubeconfig,
-		ForceDeleteNamespace: dd.forceDeleteNamespace,
-		ForceDeleteCRD:       dd.forceDeleteCRD,
-		Namespace:            dd.targetNamespace,
-		Providers:            args,
+		Kubeconfig:       dd.kubeconfig,
+		IncludeNamespace: dd.includeNamespace,
+		IncludeCRDs:      dd.includeCRDs,
+		Namespace:        dd.targetNamespace,
+		Providers:        args,
 	}); err != nil {
 		return err
 	}

@@ -83,7 +83,7 @@ func (k *proxy) NewClient() (client.Client, error) {
 	return c, nil
 }
 
-func (k *proxy) ListResources(namespace string, labels map[string]string) ([]unstructured.Unstructured, error) {
+func (k *proxy) ListResources(labels map[string]string, namespaces ...string) ([]unstructured.Unstructured, error) {
 	cs, err := k.newClientSet()
 	if err != nil {
 		return nil, err
@@ -113,30 +113,37 @@ func (k *proxy) ListResources(namespace string, labels map[string]string) ([]uns
 			}
 
 			// List all the object instances of this resourceKind with the given labels
-			selectors := []client.ListOption{
-				client.MatchingLabels(labels),
-			}
-
-			if namespace != "" && resourceKind.Namespaced {
-				selectors = append(selectors, client.InNamespace(namespace))
-			}
-
-			objList := new(unstructured.UnstructuredList)
-			objList.SetAPIVersion(resourceGroup.GroupVersion)
-			objList.SetKind(resourceKind.Kind)
-
-			if err := c.List(ctx, objList, selectors...); err != nil {
-				if apierrors.IsNotFound(err) {
-					continue
+			if resourceKind.Namespaced {
+				for _, namespace := range namespaces {
+					objList, err := listObjByGVK(c, resourceGroup.GroupVersion, resourceKind.Kind, []client.ListOption{client.MatchingLabels(labels), client.InNamespace(namespace)})
+					if err != nil {
+						return nil, err
+					}
+					ret = append(ret, objList.Items...)
 				}
-				return nil, errors.Wrapf(err, "failed to list objects for the %q GroupVersionKind", objList.GroupVersionKind())
+			} else {
+				objList, err := listObjByGVK(c, resourceGroup.GroupVersion, resourceKind.Kind, []client.ListOption{client.MatchingLabels(labels)})
+				if err != nil {
+					return nil, err
+				}
+				ret = append(ret, objList.Items...)
 			}
-
-			// Add obj to the result.
-			ret = append(ret, objList.Items...)
 		}
 	}
 	return ret, nil
+}
+
+func listObjByGVK(c client.Client, groupVersion, kind string, options []client.ListOption) (*unstructured.UnstructuredList, error) {
+	objList := new(unstructured.UnstructuredList)
+	objList.SetAPIVersion(groupVersion)
+	objList.SetKind(kind)
+
+	if err := c.List(ctx, objList, options...); err != nil {
+		if !apierrors.IsNotFound(err) {
+			return nil, errors.Wrapf(err, "failed to list objects for the %q GroupVersionKind", objList.GroupVersionKind())
+		}
+	}
+	return objList, nil
 }
 
 func newProxy(kubeconfig string) Proxy {

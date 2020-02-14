@@ -91,7 +91,7 @@ func (c *templateClient) Get(flavor, targetNamespace string, listVariablesOnly b
 	}
 
 	if rawYaml == nil {
-		log.V(1).Info("Fetching", "File", name, "Provider", c.provider.Name(), "Version", version)
+		log.V(5).Info("Fetching", "File", name, "Provider", c.provider.Name(), "Version", version)
 		rawYaml, err = c.repository.GetFile(version, name)
 		if err != nil {
 			return nil, errors.Wrapf(err, "failed to read %q from provider's repository %q", name, c.provider.Name())

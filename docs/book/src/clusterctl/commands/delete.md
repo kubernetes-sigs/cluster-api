@@ -15,7 +15,7 @@ the provider's CRDs.
 
 <h1>Warning</h1>
 
-If you want to delete the namespace where the provider components are hosted, you can use the `--delete-namespace` flag.
+If you want to delete the namespace where the provider components are hosted, you can use the `--include-namespace` flag.
 
 Be aware that this operation deletes all the object existing in a namespace, not only the provider's components.
 
@@ -25,7 +25,8 @@ Be aware that this operation deletes all the object existing in a namespace, not
 
 <h1>Warning</h1>
 
-If you want to delete the provider's CRDs, you can use the `--delete-crd` flag.
+If you want to delete the provider's CRDs, and all the components related to CRDs like e.g. the ValidatingWebhookConfiguration etc.,
+you can use the `--include-crd` flag.
 
 Be aware that this operation deletes all the object of Kind defined in the provider's CRDs, e.g. when deleting
 the aws provider, it deletes all the `AWSCluster`, `AWSMachine` etc.

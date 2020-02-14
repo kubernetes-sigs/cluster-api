@@ -533,7 +533,7 @@ func TestMachineToMachineHealthCheck(t *testing.T) {
 	g := NewWithT(t)
 
 	testEnv = &envtest.Environment{
-		CRDs: []*apiextensionsv1beta1.CustomResourceDefinition{
+		CRDs: []runtime.Object{
 			external.TestGenericBootstrapCRD,
 			external.TestGenericBootstrapTemplateCRD,
 			external.TestGenericInfrastructureCRD,
@@ -668,7 +668,7 @@ func TestNodeToMachineHealthCheck(t *testing.T) {
 	g := NewWithT(t)
 
 	testEnv = &envtest.Environment{
-		CRDs: []*apiextensionsv1beta1.CustomResourceDefinition{
+		CRDs: []runtime.Object{
 			external.TestGenericBootstrapCRD,
 			external.TestGenericBootstrapTemplateCRD,
 			external.TestGenericInfrastructureCRD,

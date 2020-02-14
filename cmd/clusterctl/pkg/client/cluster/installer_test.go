@@ -260,7 +260,7 @@ func newFakeComponents(name string, providerType clusterctlv1.ProviderType, vers
 	}
 }
 
-func Test_mustInstallSharedComponents(t *testing.T) {
+func Test_shouldInstallSharedComponents(t *testing.T) {
 	type args struct {
 		providerList *clusterctlv1.ProviderList
 		provider     clusterctlv1.Provider
@@ -316,7 +316,7 @@ func Test_mustInstallSharedComponents(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got, err := mustInstallSharedComponents(tt.args.providerList, tt.args.provider)
+			got, err := shouldInstallSharedComponents(tt.args.providerList, tt.args.provider)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("error = %v, wantErr %v", err, tt.wantErr)
 				return

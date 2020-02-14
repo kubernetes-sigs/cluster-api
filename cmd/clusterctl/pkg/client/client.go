@@ -61,12 +61,13 @@ type DeleteOptions struct {
 	// discovery will be used.
 	Kubeconfig string
 
-	// ForceDeleteNamespace forces the deletion of the namespace where the providers are hosted
+	// IncludeNamespace forces the deletion of the namespace where the providers are hosted
 	// (and of all the contained objects).
-	ForceDeleteNamespace bool
+	IncludeNamespace bool
 
-	// ForceDeleteCRD forces the deletion of the provider's CRDs (and of all the related objects)".
-	ForceDeleteCRD bool
+	// IncludeCRD forces the deletion of the provider's CRDs (and of all the related objects).
+	// By Extension, this forces the deletion of all the resources shared among provider instances, like e.g. web-hooks.
+	IncludeCRD bool
 
 	// Namespace where the provider to be deleted lives. If not specified, the namespace name will be inferred
 	// from the current configuration.

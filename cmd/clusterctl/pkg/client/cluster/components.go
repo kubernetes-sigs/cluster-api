@@ -34,9 +34,9 @@ import (
 )
 
 type DeleteOptions struct {
-	Provider             clusterctlv1.Provider
-	ForceDeleteNamespace bool
-	ForceDeleteCRD       bool
+	Provider         clusterctlv1.Provider
+	IncludeNamespace bool
+	IncludeCRD       bool
 }
 
 // ComponentsClient has methods to work with provider components in the cluster.
@@ -110,14 +110,14 @@ func (p *providerComponents) Delete(options DeleteOptions) error {
 	// in multi-tenant scenario, because a single operation could delete both instance specific and shared CRDs/web-hook components.
 	// This is considered acceptable because we are considering the multi-tenant scenario an advanced use case, and the assumption
 	// is that user in this case understand the potential impacts of this operation.
-	// TODO: in future we can eventually block delete --ForceDeleteCRD in case more than one instance of a provider exists
+	// TODO: in future we can eventually block delete --IncludeCRD in case more than one instance of a provider exists
 	labels := map[string]string{
 		clusterctlv1.ClusterctlLabelName: "",
 		clusterv1.ProviderLabelName:      options.Provider.Name,
 	}
 
 	namespaces := []string{options.Provider.Namespace}
-	if options.ForceDeleteCRD {
+	if options.IncludeCRD {
 		namespaces = append(namespaces, repository.WebhookNamespaceName)
 	}
 
@@ -133,8 +133,8 @@ func (p *providerComponents) Delete(options DeleteOptions) error {
 	for _, obj := range resources {
 		// If the CRDs (and by extensions, all the shared resources) should NOT be deleted, skip it;
 		// NB. Skipping CRDs deletion ensures that also the objects of Kind defined in the CRDs Kind are not deleted.
-		_, isSharedReource := obj.GetLabels()[clusterctlv1.ClusterctlSharedResourceLabelName]
-		if !options.ForceDeleteCRD && isSharedReource {
+		isSharedReource := util.IsSharedResource(obj)
+		if !options.IncludeCRD && isSharedReource {
 			continue
 		}
 
@@ -147,7 +147,7 @@ func (p *providerComponents) Delete(options DeleteOptions) error {
 			}
 			// If the  Namespace should NOT be deleted, skip it, otherwise keep track of the namespaces we are deleting;
 			// NB. Skipping Namespaces deletion ensures that also the objects hosted in the namespace but without the "clusterctl.cluster.x-k8s.io" and the "cluster.x-k8s.io/provider" label are not deleted.
-			if !options.ForceDeleteNamespace {
+			if !options.IncludeNamespace {
 				continue
 			}
 			namespacesToDelete.Insert(obj.GetName())

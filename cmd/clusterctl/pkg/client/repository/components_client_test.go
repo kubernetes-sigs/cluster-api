@@ -290,7 +290,7 @@ func Test_componentsClient_Get(t *testing.T) {
 			}
 
 			for _, o := range got.SharedObjs() {
-				for _, v := range []string{clusterctlv1.ClusterctlLabelName, clusterv1.ProviderLabelName, clusterctlv1.ClusterctlSharedResourceLabelName} {
+				for _, v := range []string{clusterctlv1.ClusterctlLabelName, clusterv1.ProviderLabelName, clusterctlv1.ClusterctlResourceLifecyleLabelName} {
 					if _, ok := o.GetLabels()[v]; !ok {
 						t.Errorf("got.SharedObjs() object %s does not contains %s label", o.GetName(), v)
 					}

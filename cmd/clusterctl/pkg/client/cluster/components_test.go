@@ -37,8 +37,8 @@ func Test_providerComponents_Delete(t *testing.T) {
 		clusterv1.ProviderLabelName: "infra",
 	}
 	sharedLabels := map[string]string{
-		clusterv1.ProviderLabelName:                    "infra",
-		clusterctlv1.ClusterctlSharedResourceLabelName: "",
+		clusterv1.ProviderLabelName:                      "infra",
+		clusterctlv1.ClusterctlResourceLifecyleLabelName: string(clusterctlv1.ResourceLifecycleShared),
 	}
 
 	crd := unstructured.Unstructured{}
@@ -54,7 +54,7 @@ func Test_providerComponents_Delete(t *testing.T) {
 	mutatingWebhook.SetLabels(sharedLabels)
 
 	initObjs := []runtime.Object{
-		// Namespace (should be deleted only if forceDeleteNamespace)
+		// Namespace (should be deleted only if includeNamespace)
 		&corev1.Namespace{
 			TypeMeta: metav1.TypeMeta{
 				Kind: "Namespace",
@@ -85,7 +85,7 @@ func Test_providerComponents_Delete(t *testing.T) {
 				Name:      "pod2",
 			},
 		},
-		// CRDs (should be deleted only if forceDeleteCRD)
+		// CRDs (should be deleted only if includeCRD)
 		&crd,
 		&mutatingWebhook,
 		&corev1.Namespace{
@@ -95,7 +95,8 @@ func Test_providerComponents_Delete(t *testing.T) {
 			ObjectMeta: metav1.ObjectMeta{
 				Name: repository.WebhookNamespaceName,
 				Labels: map[string]string{
-					clusterctlv1.ClusterctlSharedResourceLabelName: "", //NB. the capi-webhook-system namespace doe not have a provider label (see fixCapiWebHookLabel)
+					clusterctlv1.ClusterctlResourceLifecyleLabelName: string(clusterctlv1.ResourceLifecycleShared),
+					//NB. the capi-webhook-system namespace doe not have a provider label (see fixSharedLabels)
 				},
 			},
 		},
@@ -143,9 +144,9 @@ func Test_providerComponents_Delete(t *testing.T) {
 	}
 
 	type args struct {
-		provider             clusterctlv1.Provider
-		forceDeleteNamespace bool
-		forceDeleteCRD       bool
+		provider         clusterctlv1.Provider
+		includeNamespace bool
+		includeCRD       bool
 	}
 	type wantDiff struct {
 		object  corev1.ObjectReference
@@ -161,9 +162,9 @@ func Test_providerComponents_Delete(t *testing.T) {
 		{
 			name: "Delete provider while preserving Namespace and CRDs",
 			args: args{
-				provider:             clusterctlv1.Provider{ObjectMeta: metav1.ObjectMeta{Name: "infra", Namespace: "ns1"}},
-				forceDeleteNamespace: false,
-				forceDeleteCRD:       false,
+				provider:         clusterctlv1.Provider{ObjectMeta: metav1.ObjectMeta{Name: "infra", Namespace: "ns1"}},
+				includeNamespace: false,
+				includeCRD:       false,
 			},
 			wantDiff: []wantDiff{
 				{object: corev1.ObjectReference{APIVersion: "v1", Kind: "Namespace", Name: "ns1"}, deleted: false},                                                       // namespace should be preserved
@@ -182,9 +183,9 @@ func Test_providerComponents_Delete(t *testing.T) {
 		{
 			name: "Delete provider and provider namespace, while preserving CRDs",
 			args: args{
-				provider:             clusterctlv1.Provider{ObjectMeta: metav1.ObjectMeta{Name: "infra", Namespace: "ns1"}},
-				forceDeleteNamespace: true,
-				forceDeleteCRD:       false,
+				provider:         clusterctlv1.Provider{ObjectMeta: metav1.ObjectMeta{Name: "infra", Namespace: "ns1"}},
+				includeNamespace: true,
+				includeCRD:       false,
 			},
 			wantDiff: []wantDiff{
 				{object: corev1.ObjectReference{APIVersion: "v1", Kind: "Namespace", Name: "ns1"}, deleted: true},                                                        // namespace should be deleted
@@ -203,9 +204,9 @@ func Test_providerComponents_Delete(t *testing.T) {
 		{
 			name: "Delete provider and provider CRDs, while preserving the provider namespace",
 			args: args{
-				provider:             clusterctlv1.Provider{ObjectMeta: metav1.ObjectMeta{Name: "infra", Namespace: "ns1"}},
-				forceDeleteNamespace: false,
-				forceDeleteCRD:       true,
+				provider:         clusterctlv1.Provider{ObjectMeta: metav1.ObjectMeta{Name: "infra", Namespace: "ns1"}},
+				includeNamespace: false,
+				includeCRD:       true,
 			},
 			wantDiff: []wantDiff{
 				{object: corev1.ObjectReference{APIVersion: "v1", Kind: "Namespace", Name: "ns1"}, deleted: false},                                                      // namespace should be preserved
@@ -224,9 +225,9 @@ func Test_providerComponents_Delete(t *testing.T) {
 		{
 			name: "Delete provider, provider namespace and provider CRDs",
 			args: args{
-				provider:             clusterctlv1.Provider{ObjectMeta: metav1.ObjectMeta{Name: "infra", Namespace: "ns1"}},
-				forceDeleteNamespace: true,
-				forceDeleteCRD:       true,
+				provider:         clusterctlv1.Provider{ObjectMeta: metav1.ObjectMeta{Name: "infra", Namespace: "ns1"}},
+				includeNamespace: true,
+				includeCRD:       true,
 			},
 			wantDiff: []wantDiff{
 				{object: corev1.ObjectReference{APIVersion: "v1", Kind: "Namespace", Name: "ns1"}, deleted: true},                                                       // namespace should be deleted
@@ -248,9 +249,9 @@ func Test_providerComponents_Delete(t *testing.T) {
 			proxy := test.NewFakeProxy().WithObjs(initObjs...)
 			c := newComponentsClient(proxy)
 			err := c.Delete(DeleteOptions{
-				Provider:             tt.args.provider,
-				ForceDeleteNamespace: tt.args.forceDeleteNamespace,
-				ForceDeleteCRD:       tt.args.forceDeleteCRD,
+				Provider:         tt.args.provider,
+				IncludeNamespace: tt.args.includeNamespace,
+				IncludeCRD:       tt.args.includeCRD,
 			})
 			if (err != nil) != tt.wantErr {
 				t.Fatalf("error = %v, wantErr %v", err, tt.wantErr)
@@ -283,7 +284,7 @@ func Test_providerComponents_Delete(t *testing.T) {
 				}
 
 				if want.deleted && !apierrors.IsNotFound(err) {
-					if want.object.Namespace == tt.args.provider.Namespace && tt.args.forceDeleteNamespace { // Ignoring namespaced object that should be deleted by the namespace controller.
+					if want.object.Namespace == tt.args.provider.Namespace && tt.args.includeNamespace { // Ignoring namespaced object that should be deleted by the namespace controller.
 						continue
 					}
 					t.Errorf("%v not deleted, expect deleted", key)

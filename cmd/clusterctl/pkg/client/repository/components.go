@@ -267,8 +267,7 @@ func NewComponents(provider config.Provider, version string, rawyaml []byte, con
 	// Add an identifying label to shared components so next invocation of init, clusterctl delete and clusterctl upgrade can act accordingly.
 	// Additionally, the capi-webhook-system namespace gets detached from any provider, so we prevent that deleting
 	// a provider can delete all the web-hooks.
-	sharedObjs = addSharedLabels(sharedObjs)
-	sharedObjs = fixCapiWebHookLabel(sharedObjs)
+	sharedObjs = fixSharedLabels(sharedObjs)
 
 	return &components{
 		Provider:          provider,
@@ -599,26 +598,18 @@ func getCommonLabels(name string) map[string]string {
 	}
 }
 
-// addSharedLabels ensures all the shared components have an identifying label so next invocation of init, clusterctl delete
+// fixSharedLabels ensures all the shared components have an identifying label so next invocation of init, clusterctl delete
 // and clusterctl upgrade can act accordingly.
-func addSharedLabels(objs []unstructured.Unstructured) []unstructured.Unstructured {
+func fixSharedLabels(objs []unstructured.Unstructured) []unstructured.Unstructured {
 	for _, o := range objs {
 		labels := o.GetLabels()
-		labels[clusterctlv1.ClusterctlSharedResourceLabelName] = ""
-		o.SetLabels(labels)
-	}
+		labels[clusterctlv1.ClusterctlResourceLifecyleLabelName] = string(clusterctlv1.ResourceLifecycleShared)
 
-	return objs
-}
-
-// fixCapiWebHookLabel fixes the label of the capi-webhook-system namespace because this object is shared among many providers.
-func fixCapiWebHookLabel(objs []unstructured.Unstructured) []unstructured.Unstructured {
-	for _, o := range objs {
+		// the capi-webhook-system namespace is shared among many providers, so removing the ProviderLabelName label.
 		if o.GetKind() == namespaceKind && o.GetName() == WebhookNamespaceName {
-			labels := o.GetLabels()
-			labels[clusterv1.ProviderLabelName] = "all"
-			o.SetLabels(labels)
+			delete(labels, clusterv1.ProviderLabelName)
 		}
+		o.SetLabels(labels)
 	}
 
 	return objs

@@ -23,7 +23,18 @@ const (
 	// ClusterctlCoreLabelName defines the label that is applied to all the core objects managed by clusterctl.
 	ClusterctlCoreLabelName = "clusterctl.cluster.x-k8s.io/core"
 
-	// ClusterctlSharedResourceLabelName defines the label that is applied to all the objects that are shared between
-	// instances of the same provider. e.g. CRDs, ValidatingWebhookConfiguration, MutatingWebhookConfiguration etc.
-	ClusterctlSharedResourceLabelName = "clusterctl.cluster.x-k8s.io/shared"
+	// ClusterctlResourceLifecyleLabelName defines the label that documents the lifecyle for a specific resource.
+	// e.g. resources shared between instances of the same provider. e.g. CRDs, ValidatingWebhookConfiguration, MutatingWebhookConfiguration etc.
+	// are marked as shared
+	ClusterctlResourceLifecyleLabelName = "clusterctl.cluster.x-k8s.io/lifecycle"
+)
+
+// ResourceLifecycle configures the lifecycle of a resource
+type ResourceLifecycle string
+
+const (
+	// ResourceLifecycleShared is the value we use when tagging resources to indicate
+	// that the resource is shared between multiple instance of a provider, and should not be deleted
+	// if an instance of the provider is deleted.
+	ResourceLifecycleShared = ResourceLifecycle("shared")
 )

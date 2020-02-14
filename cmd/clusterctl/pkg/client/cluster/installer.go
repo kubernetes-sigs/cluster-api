@@ -93,7 +93,7 @@ func installComponentsAndUpdateInventory(components repository.Components, provi
 		return err
 	}
 
-	installSharedComponents, err := mustInstallSharedComponents(providerList, inventoryObject)
+	installSharedComponents, err := shouldInstallSharedComponents(providerList, inventoryObject)
 	if err != nil {
 		return err
 	}
@@ -123,8 +123,8 @@ func installComponentsAndUpdateInventory(components repository.Components, provi
 	return nil
 }
 
-// mustInstallSharedComponents checks if it is required to install shared components for a provider.
-func mustInstallSharedComponents(providerList *clusterctlv1.ProviderList, provider clusterctlv1.Provider) (bool, error) {
+// shouldInstallSharedComponents checks if it is required to install shared components for a provider.
+func shouldInstallSharedComponents(providerList *clusterctlv1.ProviderList, provider clusterctlv1.Provider) (bool, error) {
 	// Get the max version of the provider already installed in the cluster.
 	var maxVersion *version.Version
 	for _, other := range providerList.FilterByName(provider.Name) {

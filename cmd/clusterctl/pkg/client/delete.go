@@ -93,7 +93,7 @@ func (c *clusterctlClient) Delete(options DeleteOptions) error {
 
 	// Delete the selected providers
 	for _, provider := range providers {
-		if err := clusterClient.ProviderComponents().Delete(cluster.DeleteOptions{Provider: provider, ForceDeleteNamespace: options.ForceDeleteNamespace, ForceDeleteCRD: options.ForceDeleteCRD}); err != nil {
+		if err := clusterClient.ProviderComponents().Delete(cluster.DeleteOptions{Provider: provider, IncludeNamespace: options.IncludeNamespace, IncludeCRD: options.IncludeCRD}); err != nil {
 			return err
 		}
 	}

@@ -224,6 +224,26 @@ func TestConvertMachineDeployment(t *testing.T) {
 			g.Expect(dst.Spec.ClusterName).To(Equal("test-cluster"))
 			g.Expect(dst.Spec.Template.Spec.ClusterName).To(Equal("test-cluster"))
 		})
+
+		t.Run("should convert the annotations", func(t *testing.T) {
+			src := &MachineDeployment{
+				ObjectMeta: metav1.ObjectMeta{
+					Annotations: map[string]string{
+						RevisionAnnotation:        "test",
+						RevisionHistoryAnnotation: "test",
+						DesiredReplicasAnnotation: "test",
+						MaxReplicasAnnotation:     "test",
+					},
+				},
+			}
+			dst := &v1alpha3.MachineDeployment{}
+
+			g.Expect(src.ConvertTo(dst)).To(Succeed())
+			g.Expect(dst.Annotations).To(HaveKey(v1alpha3.RevisionAnnotation))
+			g.Expect(dst.Annotations).To(HaveKey(v1alpha3.RevisionHistoryAnnotation))
+			g.Expect(dst.Annotations).To(HaveKey(v1alpha3.DesiredReplicasAnnotation))
+			g.Expect(dst.Annotations).To(HaveKey(v1alpha3.MaxReplicasAnnotation))
+		})
 	})
 
 	t.Run("from hub", func(t *testing.T) {
@@ -254,6 +274,26 @@ func TestConvertMachineDeployment(t *testing.T) {
 			g.Expect(restored.Spec.ClusterName).To(Equal(src.Spec.ClusterName))
 			g.Expect(restored.Spec.Paused).To(Equal(src.Spec.Paused))
 			g.Expect(restored.Spec.Template.Spec.ClusterName).To(Equal(src.Spec.Template.Spec.ClusterName))
+		})
+
+		t.Run("should convert the annotations", func(t *testing.T) {
+			src := &v1alpha3.MachineDeployment{
+				ObjectMeta: metav1.ObjectMeta{
+					Annotations: map[string]string{
+						v1alpha3.RevisionAnnotation:        "test",
+						v1alpha3.RevisionHistoryAnnotation: "test",
+						v1alpha3.DesiredReplicasAnnotation: "test",
+						v1alpha3.MaxReplicasAnnotation:     "test",
+					},
+				},
+			}
+			dst := &MachineDeployment{}
+
+			g.Expect(dst.ConvertFrom(src)).To(Succeed())
+			g.Expect(dst.Annotations).To(HaveKey(RevisionAnnotation))
+			g.Expect(dst.Annotations).To(HaveKey(RevisionHistoryAnnotation))
+			g.Expect(dst.Annotations).To(HaveKey(DesiredReplicasAnnotation))
+			g.Expect(dst.Annotations).To(HaveKey(MaxReplicasAnnotation))
 		})
 	})
 }

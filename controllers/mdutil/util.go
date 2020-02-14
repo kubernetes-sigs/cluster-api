@@ -39,19 +39,6 @@ import (
 const (
 	DefaultMachineDeploymentUniqueLabelKey = "machine-template-hash"
 
-	// RevisionAnnotation is the revision annotation of a machine deployment's machine sets which records its rollout sequence
-	RevisionAnnotation = "machinedeployment.clusters.k8s.io/revision"
-	// RevisionHistoryAnnotation maintains the history of all old revisions that a machine set has served for a machine deployment.
-	RevisionHistoryAnnotation = "machinedeployment.clusters.k8s.io/revision-history"
-	// DesiredReplicasAnnotation is the desired replicas for a machine deployment recorded as an annotation
-	// in its machine sets. Helps in separating scaling events from the rollout process and for
-	// determining if the new machine set for a deployment is really saturated.
-	DesiredReplicasAnnotation = "machinedeployment.clusters.k8s.io/desired-replicas"
-	// MaxReplicasAnnotation is the maximum replicas a deployment can have at a given point, which
-	// is machinedeployment.spec.replicas + maxSurge. Used by the underlying machine sets to estimate their
-	// proportions in case the deployment has surge replicas.
-	MaxReplicasAnnotation = "machinedeployment.clusters.k8s.io/max-replicas"
-
 	// FailedMSCreateReason is added in a machine deployment when it cannot create a new machine set.
 	FailedMSCreateReason = "MachineSetCreateError"
 	// FoundNewMSReason is added in a machine deployment when it adopts an existing machine set.
@@ -115,8 +102,8 @@ func SetDeploymentRevision(deployment *clusterv1.MachineDeployment, revision str
 	if deployment.Annotations == nil {
 		deployment.Annotations = make(map[string]string)
 	}
-	if deployment.Annotations[RevisionAnnotation] != revision {
-		deployment.Annotations[RevisionAnnotation] = revision
+	if deployment.Annotations[clusterv1.RevisionAnnotation] != revision {
+		deployment.Annotations[clusterv1.RevisionAnnotation] = revision
 		updated = true
 	}
 
@@ -144,7 +131,7 @@ func Revision(obj runtime.Object) (int64, error) {
 	if err != nil {
 		return 0, err
 	}
-	v, ok := acc.GetAnnotations()[RevisionAnnotation]
+	v, ok := acc.GetAnnotations()[clusterv1.RevisionAnnotation]
 	if !ok {
 		return 0, nil
 	}
@@ -152,11 +139,11 @@ func Revision(obj runtime.Object) (int64, error) {
 }
 
 var annotationsToSkip = map[string]bool{
-	v1.LastAppliedConfigAnnotation: true,
-	RevisionAnnotation:             true,
-	RevisionHistoryAnnotation:      true,
-	DesiredReplicasAnnotation:      true,
-	MaxReplicasAnnotation:          true,
+	v1.LastAppliedConfigAnnotation:      true,
+	clusterv1.RevisionAnnotation:        true,
+	clusterv1.RevisionHistoryAnnotation: true,
+	clusterv1.DesiredReplicasAnnotation: true,
+	clusterv1.MaxReplicasAnnotation:     true,
 }
 
 // skipCopyAnnotation returns true if we should skip copying the annotation with the given annotation key
@@ -188,7 +175,7 @@ func copyDeploymentAnnotationsToMachineSet(deployment *clusterv1.MachineDeployme
 }
 
 func getMaxReplicasAnnotation(ms *clusterv1.MachineSet, logger logr.Logger) (int32, bool) {
-	return getIntFromAnnotation(ms, MaxReplicasAnnotation, logger)
+	return getIntFromAnnotation(ms, clusterv1.MaxReplicasAnnotation, logger)
 }
 
 func getIntFromAnnotation(ms *clusterv1.MachineSet, annotationKey string, logger logr.Logger) (int32, bool) {
@@ -217,7 +204,7 @@ func SetNewMachineSetAnnotations(deployment *clusterv1.MachineDeployment, newMS 
 	if newMS.Annotations == nil {
 		newMS.Annotations = make(map[string]string)
 	}
-	oldRevision, ok := newMS.Annotations[RevisionAnnotation]
+	oldRevision, ok := newMS.Annotations[clusterv1.RevisionAnnotation]
 	// The newMS's revision should be the greatest among all MSes. Usually, its revision number is newRevision (the max revision number
 	// of all old MSes + 1). However, it's possible that some of the old MSes are deleted after the newMS revision being updated, and
 	// newRevision becomes smaller than newMS's revision. We should only update newMS revision when it's smaller than newRevision.
@@ -237,7 +224,7 @@ func SetNewMachineSetAnnotations(deployment *clusterv1.MachineDeployment, newMS 
 		return false
 	}
 	if oldRevisionInt < newRevisionInt {
-		newMS.Annotations[RevisionAnnotation] = newRevision
+		newMS.Annotations[clusterv1.RevisionAnnotation] = newRevision
 		annotationChanged = true
 		logger.V(4).Info("Updating machine set revision", "revision", newRevision)
 	}
@@ -245,13 +232,13 @@ func SetNewMachineSetAnnotations(deployment *clusterv1.MachineDeployment, newMS 
 	// then that means we are rolling back to this machine set. We need to preserve the old revisions
 	// for historical information.
 	if ok && annotationChanged {
-		revisionHistoryAnnotation := newMS.Annotations[RevisionHistoryAnnotation]
+		revisionHistoryAnnotation := newMS.Annotations[clusterv1.RevisionHistoryAnnotation]
 		oldRevisions := strings.Split(revisionHistoryAnnotation, ",")
 		if len(oldRevisions[0]) == 0 {
-			newMS.Annotations[RevisionHistoryAnnotation] = oldRevision
+			newMS.Annotations[clusterv1.RevisionHistoryAnnotation] = oldRevision
 		} else {
 			oldRevisions = append(oldRevisions, oldRevision)
-			newMS.Annotations[RevisionHistoryAnnotation] = strings.Join(oldRevisions, ",")
+			newMS.Annotations[clusterv1.RevisionHistoryAnnotation] = strings.Join(oldRevisions, ",")
 		}
 	}
 	// If the new machine set is about to be created, we need to add replica annotations to it.
@@ -293,13 +280,13 @@ func SetReplicasAnnotations(ms *clusterv1.MachineSet, desiredReplicas, maxReplic
 		ms.Annotations = make(map[string]string)
 	}
 	desiredString := fmt.Sprintf("%d", desiredReplicas)
-	if hasString := ms.Annotations[DesiredReplicasAnnotation]; hasString != desiredString {
-		ms.Annotations[DesiredReplicasAnnotation] = desiredString
+	if hasString := ms.Annotations[clusterv1.DesiredReplicasAnnotation]; hasString != desiredString {
+		ms.Annotations[clusterv1.DesiredReplicasAnnotation] = desiredString
 		updated = true
 	}
 	maxString := fmt.Sprintf("%d", maxReplicas)
-	if hasString := ms.Annotations[MaxReplicasAnnotation]; hasString != maxString {
-		ms.Annotations[MaxReplicasAnnotation] = maxString
+	if hasString := ms.Annotations[clusterv1.MaxReplicasAnnotation]; hasString != maxString {
+		ms.Annotations[clusterv1.MaxReplicasAnnotation] = maxString
 		updated = true
 	}
 	return updated
@@ -311,11 +298,11 @@ func ReplicasAnnotationsNeedUpdate(ms *clusterv1.MachineSet, desiredReplicas, ma
 		return true
 	}
 	desiredString := fmt.Sprintf("%d", desiredReplicas)
-	if hasString := ms.Annotations[DesiredReplicasAnnotation]; hasString != desiredString {
+	if hasString := ms.Annotations[clusterv1.DesiredReplicasAnnotation]; hasString != desiredString {
 		return true
 	}
 	maxString := fmt.Sprintf("%d", maxReplicas)
-	if hasString := ms.Annotations[MaxReplicasAnnotation]; hasString != maxString {
+	if hasString := ms.Annotations[clusterv1.MaxReplicasAnnotation]; hasString != maxString {
 		return true
 	}
 	return false
@@ -567,7 +554,7 @@ func IsSaturated(deployment *clusterv1.MachineDeployment, ms *clusterv1.MachineS
 	if ms == nil {
 		return false
 	}
-	desiredString := ms.Annotations[DesiredReplicasAnnotation]
+	desiredString := ms.Annotations[clusterv1.DesiredReplicasAnnotation]
 	desired, err := strconv.Atoi(desiredString)
 	if err != nil {
 		return false

@@ -23,6 +23,11 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/conversion"
 )
 
+var (
+	v2Annotations = []string{RevisionAnnotation, RevisionHistoryAnnotation, DesiredReplicasAnnotation, MaxReplicasAnnotation}
+	v3Annotations = []string{v1alpha3.RevisionAnnotation, v1alpha3.RevisionHistoryAnnotation, v1alpha3.DesiredReplicasAnnotation, v1alpha3.MaxReplicasAnnotation}
+)
+
 func (src *Cluster) ConvertTo(dstRaw conversion.Hub) error {
 	dst := dstRaw.(*v1alpha3.Cluster)
 	if err := Convert_v1alpha2_Cluster_To_v1alpha3_Cluster(src, dst, nil); err != nil {
@@ -220,6 +225,11 @@ func (src *MachineDeployment) ConvertTo(dstRaw conversion.Hub) error {
 		dst.Spec.Template.Spec.ClusterName = name
 	}
 
+	// Manually convert annotations
+	for i := range v2Annotations {
+		convertAnnotations(v2Annotations[i], v3Annotations[i], dst.Annotations)
+	}
+
 	// Manually restore data.
 	restored := &v1alpha3.MachineDeployment{}
 	if ok, err := utilconversion.UnmarshalData(src, restored); err != nil || !ok {
@@ -242,12 +252,24 @@ func (dst *MachineDeployment) ConvertFrom(srcRaw conversion.Hub) error {
 		return err
 	}
 
+	// Manually convert annotations
+	for i := range v3Annotations {
+		convertAnnotations(v3Annotations[i], v2Annotations[i], dst.Annotations)
+	}
+
 	// Preserve Hub data on down-conversion.
 	if err := utilconversion.MarshalData(src, dst); err != nil {
 		return err
 	}
 
 	return nil
+}
+
+func convertAnnotations(fromAnnotation string, toAnnotation string, annotations map[string]string) {
+	if value, ok := annotations[fromAnnotation]; ok {
+		delete(annotations, fromAnnotation)
+		annotations[toAnnotation] = value
+	}
 }
 
 func (src *MachineDeploymentList) ConvertTo(dstRaw conversion.Hub) error {

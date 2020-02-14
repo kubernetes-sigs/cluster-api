@@ -719,7 +719,7 @@ func TestAnnotationUtils(t *testing.T) {
 	//Setup
 	tDeployment := generateDeployment("nginx")
 	tMS := generateMS(tDeployment)
-	tDeployment.Annotations[RevisionAnnotation] = "1"
+	tDeployment.Annotations[clusterv1.RevisionAnnotation] = "1"
 	logger := klogr.New()
 
 	//Test Case 1: Check if anotations are copied properly from deployment to MS
@@ -731,8 +731,8 @@ func TestAnnotationUtils(t *testing.T) {
 			SetNewMachineSetAnnotations(&tDeployment, &tMS, nextRevision, true, logger)
 			//Now the MachineSets Revision Annotation should be i+1
 
-			if tMS.Annotations[RevisionAnnotation] != nextRevision {
-				t.Errorf("Revision Expected=%s Obtained=%s", nextRevision, tMS.Annotations[RevisionAnnotation])
+			if tMS.Annotations[clusterv1.RevisionAnnotation] != nextRevision {
+				t.Errorf("Revision Expected=%s Obtained=%s", nextRevision, tMS.Annotations[clusterv1.RevisionAnnotation])
 			}
 		}
 	})
@@ -743,14 +743,14 @@ func TestAnnotationUtils(t *testing.T) {
 		if !updated {
 			t.Errorf("SetReplicasAnnotations() failed")
 		}
-		value, ok := tMS.Annotations[DesiredReplicasAnnotation]
+		value, ok := tMS.Annotations[clusterv1.DesiredReplicasAnnotation]
 		if !ok {
 			t.Errorf("SetReplicasAnnotations did not set DesiredReplicasAnnotation")
 		}
 		if value != "10" {
 			t.Errorf("SetReplicasAnnotations did not set DesiredReplicasAnnotation correctly value=%s", value)
 		}
-		if value, ok = tMS.Annotations[MaxReplicasAnnotation]; !ok {
+		if value, ok = tMS.Annotations[clusterv1.MaxReplicasAnnotation]; !ok {
 			t.Errorf("SetReplicasAnnotations did not set DesiredReplicasAnnotation")
 		}
 		if value != "11" {
@@ -759,7 +759,7 @@ func TestAnnotationUtils(t *testing.T) {
 	})
 
 	//Test Case 3:  Check if annotations reflect deployments state
-	tMS.Annotations[DesiredReplicasAnnotation] = "1"
+	tMS.Annotations[clusterv1.DesiredReplicasAnnotation] = "1"
 	tMS.Status.AvailableReplicas = 1
 	tMS.Spec.Replicas = new(int32)
 	*tMS.Spec.Replicas = 1
@@ -799,7 +799,7 @@ func TestReplicasAnnotationsNeedUpdate(t *testing.T) {
 				ObjectMeta: metav1.ObjectMeta{
 					Name:        "hello",
 					Namespace:   "test",
-					Annotations: map[string]string{DesiredReplicasAnnotation: "8", MaxReplicasAnnotation: maxReplicas},
+					Annotations: map[string]string{clusterv1.DesiredReplicasAnnotation: "8", clusterv1.MaxReplicasAnnotation: maxReplicas},
 				},
 				Spec: clusterv1.MachineSetSpec{
 					Selector: metav1.LabelSelector{MatchLabels: map[string]string{"foo": "bar"}},
@@ -813,7 +813,7 @@ func TestReplicasAnnotationsNeedUpdate(t *testing.T) {
 				ObjectMeta: metav1.ObjectMeta{
 					Name:        "hello",
 					Namespace:   "test",
-					Annotations: map[string]string{DesiredReplicasAnnotation: desiredReplicas, MaxReplicasAnnotation: "16"},
+					Annotations: map[string]string{clusterv1.DesiredReplicasAnnotation: desiredReplicas, clusterv1.MaxReplicasAnnotation: "16"},
 				},
 				Spec: clusterv1.MachineSetSpec{
 					Selector: metav1.LabelSelector{MatchLabels: map[string]string{"foo": "bar"}},
@@ -827,7 +827,7 @@ func TestReplicasAnnotationsNeedUpdate(t *testing.T) {
 				ObjectMeta: metav1.ObjectMeta{
 					Name:        "hello",
 					Namespace:   "test",
-					Annotations: map[string]string{DesiredReplicasAnnotation: desiredReplicas, MaxReplicasAnnotation: maxReplicas},
+					Annotations: map[string]string{clusterv1.DesiredReplicasAnnotation: desiredReplicas, clusterv1.MaxReplicasAnnotation: maxReplicas},
 				},
 				Spec: clusterv1.MachineSetSpec{
 					Selector: metav1.LabelSelector{MatchLabels: map[string]string{"foo": "bar"}},

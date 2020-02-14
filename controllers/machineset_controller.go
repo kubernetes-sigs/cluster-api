@@ -177,10 +177,6 @@ func (r *MachineSetReconciler) reconcile(ctx context.Context, cluster *clusterv1
 	machineSet.Spec.Selector.MatchLabels[clusterv1.ClusterLabelName] = machineSet.Spec.ClusterName
 	machineSet.Spec.Template.Labels[clusterv1.ClusterLabelName] = machineSet.Spec.ClusterName
 
-	// Add label and selector based on the MachineSet's name.
-	machineSet.Spec.Selector.MatchLabels[clusterv1.MachineSetLabelName] = machineSet.Name
-	machineSet.Spec.Template.Labels[clusterv1.MachineSetLabelName] = machineSet.Name
-
 	selectorMap, err := metav1.LabelSelectorAsMap(&machineSet.Spec.Selector)
 	if err != nil {
 		return ctrl.Result{}, errors.Wrapf(err, "failed to convert MachineSet %q label selector to a map", machineSet.Name)

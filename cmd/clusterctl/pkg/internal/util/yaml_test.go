@@ -56,13 +56,15 @@ func TestToUnstructured(t *testing.T) {
 			name: "empty object are dropped",
 			args: args{
 				rawyaml: []byte("---\n" + //empty object before
+					"---\n" +
 					"apiVersion: v1\n" +
 					"kind: ConfigMap\n" +
 					"---\n" + // empty object in the middle
 					"---\n" +
 					"apiVersion: v1\n" +
 					"kind: Secret\n" +
-					"---\n"), //empty object after
+					"---\n" + //empty object after
+					"---\n"),
 			},
 			wantObjsCount: 2,
 			wantErr:       false,

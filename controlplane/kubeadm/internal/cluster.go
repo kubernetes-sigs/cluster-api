@@ -139,6 +139,7 @@ func (m *ManagementCluster) getCluster(ctx context.Context, clusterKey types.Nam
 	}
 
 	// TODO(chuckha): Unroll remote.NewClusterClient if we are unhappy with getting a restConfig twice.
+	// TODO(chuckha): Inject this dependency if necessary.
 	restConfig, err := remote.RESTConfig(ctx, m.Client, adapterCluster)
 	if err != nil {
 		return nil, err
@@ -170,30 +171,28 @@ func (m *ManagementCluster) GetEtcdCerts(ctx context.Context, cluster types.Name
 	if err := m.Client.Get(ctx, etcdCAObjectKey, etcdCASecret); err != nil {
 		return nil, nil, errors.Wrapf(err, "failed to get secret; etcd CA bundle %s/%s", etcdCAObjectKey.Namespace, etcdCAObjectKey.Name)
 	}
-	etcdCACertData, ok := etcdCASecret.Data[secret.TLSCrtDataName]
+	crtData, ok := etcdCASecret.Data[secret.TLSCrtDataName]
 	if !ok {
-		return nil, nil, errors.New("empty ca certificate")
+		return nil, nil, errors.Errorf("etcd tls crt does not exist for cluster %s/%s", cluster.Namespace, cluster.Name)
 	}
-	etcdCAKeyData, ok := etcdCASecret.Data[secret.TLSKeyDataName]
+	keyData, ok := etcdCASecret.Data[secret.TLSKeyDataName]
 	if !ok {
-		return nil, nil, errors.New("empty ca key")
+		return nil, nil, errors.Errorf("etcd tls key does not exist for cluster %s/%s", cluster.Namespace, cluster.Name)
 	}
-	return etcdCACertData, etcdCAKeyData, nil
+	return crtData, keyData, nil
 }
 
-// TargetClusterEtcdIsHealthy runs a series of checks over a target cluster's etcd cluster.
-// In addition, it verifies that there are the same number of etcd members as control plane Machines.
-func (m *ManagementCluster) TargetClusterEtcdIsHealthy(ctx context.Context, clusterKey types.NamespacedName, controlPlaneName string) error {
-	cluster, err := m.getCluster(ctx, clusterKey)
-	if err != nil {
-		return err
-	}
-	resp, err := cluster.etcdIsHealthy(ctx)
+type healthCheck func(context.Context) (healthCheckResult, error)
+
+// healthCheck will run a generic health check function and report any errors discovered.
+// It does some additional validation to make sure there is a 1;1 match between nodes and machines.
+func (m *ManagementCluster) healthCheck(ctx context.Context, check healthCheck, clusterKey types.NamespacedName, controlPlaneName string) error {
+	nodeChecks, err := check(ctx)
 	if err != nil {
 		return err
 	}
 	errorList := []error{}
-	for nodeName, err := range resp {
+	for nodeName, err := range nodeChecks {
 		if err != nil {
 			errorList = append(errorList, fmt.Errorf("node %q: %v", nodeName, err))
 		}
@@ -209,20 +208,38 @@ func (m *ManagementCluster) TargetClusterEtcdIsHealthy(ctx context.Context, clus
 	}
 
 	// This check ensures there is a 1 to 1 correspondence of nodes and machines.
-	// Iterate through all machines ensuring that every control plane machine that Cluster API knows about has been
-	// checked and exists in the response. If a machine was not checked then etcd is not considered healthy.
+	// If a machine was not checked this is considered an error.
 	for _, machine := range machines {
 		if machine.Status.NodeRef == nil {
-			return errors.Errorf("control plane machine %q has no node ref", machine.Name)
+			return errors.Errorf("control plane machine %s/%s has no status.nodeRef", machine.Namespace, machine.Name)
 		}
-		if _, ok := resp[machine.Status.NodeRef.Name]; !ok {
-			return errors.Errorf("machine's (%q) node (%q) was not checked", machine.Name, machine.Status.NodeRef.Name)
+		if _, ok := nodeChecks[machine.Status.NodeRef.Name]; !ok {
+			return errors.Errorf("machine's (%s/%s) node (%s) was not checked", machine.Namespace, machine.Name, machine.Status.NodeRef.Name)
 		}
 	}
-	if len(resp) != len(machines) {
-		return errors.Errorf("number of nodes and machines did not correspond: %d nodes %d machines", len(resp), len(machines))
+	if len(nodeChecks) != len(machines) {
+		return errors.Errorf("number of nodes and machines in namespace %s did not match: %d nodes %d machines", clusterKey.Namespace, len(nodeChecks), len(machines))
 	}
 	return nil
+}
+
+// TargetClusterControlPlaneIsHealthy checks every node for control plane health.
+func (m *ManagementCluster) TargetClusterControlPlaneIsHealthy(ctx context.Context, clusterKey types.NamespacedName, controlPlaneName string) error {
+	cluster, err := m.getCluster(ctx, clusterKey)
+	if err != nil {
+		return err
+	}
+	return m.healthCheck(ctx, cluster.controlPlaneIsHealthy, clusterKey, controlPlaneName)
+}
+
+// TargetClusterEtcdIsHealthy runs a series of checks over a target cluster's etcd cluster.
+// In addition, it verifies that there are the same number of etcd members as control plane Machines.
+func (m *ManagementCluster) TargetClusterEtcdIsHealthy(ctx context.Context, clusterKey types.NamespacedName, controlPlaneName string) error {
+	cluster, err := m.getCluster(ctx, clusterKey)
+	if err != nil {
+		return err
+	}
+	return m.healthCheck(ctx, cluster.etcdIsHealthy, clusterKey, controlPlaneName)
 }
 
 // cluster are operations on target clusters.
@@ -249,23 +266,70 @@ func (c *cluster) generateEtcdTLSClientBundle() (*tls.Config, error) {
 	}, nil
 }
 
-// etcdIsHealthyResponse is a map of node provider IDs to the etcd health check that failed or nil if no checks failed.
-type etcdIsHealthyResponse map[string]error
+func (c *cluster) getControlPlaneNodes(ctx context.Context) (*corev1.NodeList, error) {
+	nodes := &corev1.NodeList{}
+	labels := map[string]string{
+		"node-role.kubernetes.io/master": "",
+	}
+
+	if err := c.client.List(ctx, nodes, client.MatchingLabels(labels)); err != nil {
+		return nil, err
+	}
+	return nodes, nil
+}
+
+// healthCheckResult maps nodes that are checked to any errors the node has related to the check.
+type healthCheckResult map[string]error
+
+// controlPlaneIsHealthy does a best effort check of the control plane components the kubeadm control plane cares about.
+// The return map is a map of node names as keys to error that that node encountered.
+// All nodes will exist in the map with nil errors if there were no errors for that node.
+func (c *cluster) controlPlaneIsHealthy(ctx context.Context) (healthCheckResult, error) {
+	controlPlaneNodes, err := c.getControlPlaneNodes(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	response := make(map[string]error)
+	for _, node := range controlPlaneNodes.Items {
+		name := node.Name
+		response[name] = nil
+		apiServerPodKey := types.NamespacedName{
+			Namespace: metav1.NamespaceSystem,
+			Name:      staticPodName("kube-apiserver", name),
+		}
+		apiServerPod := &corev1.Pod{}
+		if err := c.client.Get(ctx, apiServerPodKey, apiServerPod); err != nil {
+			response[name] = err
+			continue
+		}
+		response[name] = checkStaticPodReadyCondition(apiServerPod)
+
+		controllerManagerPodKey := types.NamespacedName{
+			Namespace: metav1.NamespaceSystem,
+			Name:      staticPodName("kube-controller-manager", name),
+		}
+		controllerManagerPod := &corev1.Pod{}
+		if err := c.client.Get(ctx, controllerManagerPodKey, controllerManagerPod); err != nil {
+			response[name] = err
+			continue
+		}
+		response[name] = checkStaticPodReadyCondition(controllerManagerPod)
+	}
+
+	return response, nil
+}
 
 // etcdIsHealthy runs checks for every etcd member in the cluster to satisfy our definition of healthy.
 // This is a best effort check and nodes can become unhealthy after the check is complete. It is not a guarantee.
 // It's used a signal for if we should allow a target cluster to scale up, scale down or upgrade.
-// It returns a list of nodes checked so the layer above can confirm it has the correct number of nodes expected.
-func (c *cluster) etcdIsHealthy(ctx context.Context) (etcdIsHealthyResponse, error) {
+// It returns a map of nodes checked along with an error for a given node.
+func (c *cluster) etcdIsHealthy(ctx context.Context) (healthCheckResult, error) {
 	var knownClusterID uint64
 	var knownMemberIDSet etcdutil.UInt64Set
 
-	controlPlaneNodes := &corev1.NodeList{}
-	controlPlaneNodeLabels := map[string]string{
-		"node-role.kubernetes.io/master": "",
-	}
-
-	if err := c.client.List(ctx, controlPlaneNodes, client.MatchingLabels(controlPlaneNodeLabels)); err != nil {
+	controlPlaneNodes, err := c.getControlPlaneNodes(ctx)
+	if err != nil {
 		return nil, err
 	}
 
@@ -274,7 +338,7 @@ func (c *cluster) etcdIsHealthy(ctx context.Context) (etcdIsHealthyResponse, err
 		return nil, err
 	}
 
-	response := map[string]error{}
+	response := make(map[string]error)
 	for _, node := range controlPlaneNodes.Items {
 		name := node.Name
 		response[name] = nil
@@ -341,7 +405,7 @@ func (c *cluster) getEtcdClientForNode(nodeName string, tlsConfig *tls.Config) (
 	p := proxy.Proxy{
 		Kind:         "pods",
 		Namespace:    "kube-system", // TODO, can etcd ever run in a different namespace?
-		ResourceName: etcdStaticPodName(nodeName),
+		ResourceName: staticPodName("etcd", nodeName),
 		KubeConfig:   c.restConfig,
 		TLSConfig:    tlsConfig,
 		Port:         2379, // TODO: the pod doesn't expose a port. Is this a problem?
@@ -409,6 +473,22 @@ func newClientCert(caCert *x509.Certificate, key *rsa.PrivateKey, caKey *rsa.Pri
 	return c, errors.WithStack(err)
 }
 
-func etcdStaticPodName(nodeName string) string {
-	return "etcd-" + nodeName
+func staticPodName(component, nodeName string) string {
+	return fmt.Sprintf("%s-%s", component, nodeName)
+}
+
+func checkStaticPodReadyCondition(pod *corev1.Pod) error {
+	found := false
+	for _, condition := range pod.Status.Conditions {
+		if condition.Type == corev1.PodReady {
+			found = true
+		}
+		if condition.Type == corev1.PodReady && condition.Status != corev1.ConditionTrue {
+			return errors.Errorf("static pod %s/%s is not ready", pod.Namespace, pod.Name)
+		}
+	}
+	if !found {
+		return errors.Errorf("pod does not have ready condition: %v", pod.Name)
+	}
+	return nil
 }

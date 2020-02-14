@@ -113,7 +113,7 @@ func (c *clusterClient) ProviderInstaller() ProviderInstaller {
 }
 
 func (c *clusterClient) ObjectMover() ObjectMover {
-	return newObjectMover(c.proxy)
+	return newObjectMover(c.proxy, c.ProviderInventory())
 }
 
 func (c *clusterClient) ProviderUpgrader() ProviderUpgrader {

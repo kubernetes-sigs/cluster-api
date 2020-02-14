@@ -28,6 +28,7 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 	kerrors "k8s.io/apimachinery/pkg/util/errors"
 	"k8s.io/apimachinery/pkg/util/sets"
+	"k8s.io/apimachinery/pkg/util/version"
 	"k8s.io/apimachinery/pkg/util/wait"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha3"
 	logf "sigs.k8s.io/cluster-api/cmd/clusterctl/pkg/log"
@@ -42,7 +43,8 @@ type ObjectMover interface {
 
 // objectMover implements the ObjectMover interface.
 type objectMover struct {
-	fromProxy Proxy
+	fromProxy             Proxy
+	fromProviderInventory InventoryClient
 }
 
 // ensure objectMover implements the ObjectMover interface.
@@ -54,7 +56,10 @@ func (o *objectMover) Move(namespace string, toCluster Client) error {
 
 	objectGraph := newObjectGraph(o.fromProxy)
 
-	//TODO: implement preflight checks ensuring the target cluster has all the required providers in place
+	// checks that all the required providers in place in the target cluster.
+	if err := o.checkTargetProviders(namespace, toCluster.ProviderInventory()); err != nil {
+		return err
+	}
 
 	// Gets all the types defines by the CRDs installed by clusterctl plus the ConfigMap/Secret core types.
 	types, err := objectGraph.getDiscoveryTypes()
@@ -86,9 +91,10 @@ func (o *objectMover) Move(namespace string, toCluster Client) error {
 	return nil
 }
 
-func newObjectMover(fromProxy Proxy) *objectMover {
+func newObjectMover(fromProxy Proxy, fromProviderInventory InventoryClient) *objectMover {
 	return &objectMover{
-		fromProxy: fromProxy,
+		fromProxy:             fromProxy,
+		fromProviderInventory: fromProviderInventory,
 	}
 }
 
@@ -593,4 +599,76 @@ func retry(attempts int, interval time.Duration, action func() error) error {
 		return nil
 	}
 	return errors.Wrapf(errorToReturn, "action failed after %d attempts", attempts)
+}
+
+// checkTargetProviders checks that all the providers installed in the source cluster exists in the target cluster as well (with a version >= of the current version).
+func (o *objectMover) checkTargetProviders(namespace string, toInventory InventoryClient) error {
+	// Gets the list of providers in the source/target cluster.
+	fromProviders, err := o.fromProviderInventory.List()
+	if err != nil {
+		return errors.Wrapf(err, "failed to get provider list from the source cluster")
+	}
+
+	toProviders, err := toInventory.List()
+	if err != nil {
+		return errors.Wrapf(err, "failed to get provider list from the target cluster")
+	}
+
+	// Checks all the providers installed in the source cluster
+	errList := []error{}
+	for _, sourceProvider := range fromProviders.Items {
+		// If we are moving objects in a namespace only, skip all the providers not watching such namespace.
+		if namespace != "" && !(sourceProvider.WatchedNamespace == "" || sourceProvider.WatchedNamespace == namespace) {
+			continue
+		}
+
+		sourceVersion, err := version.ParseSemantic(sourceProvider.Version)
+		if err != nil {
+			return errors.Wrapf(err, "unable to parse version %q for the %s provider in the source cluster", sourceProvider.Version, sourceProvider.InstanceName())
+		}
+
+		// Check corresponding providers in the target cluster and gets the latest version installed.
+		var maxTargetVersion *version.Version
+		for _, targetProvider := range toProviders.Items {
+			// Skips other providers.
+			if sourceProvider.Name != targetProvider.Name {
+				continue
+			}
+
+			// If we are moving objects in all the namespaces, skip all the providers with a different watching namespace.
+			// NB. This introduces a constraints for move all namespaces, that the configuration of source and target provider MUST match (except for the version);
+			// however this is acceptable because clusterctl supports only two models of multi-tenancy (n-Infra, n-Core).
+			if namespace == "" && !(targetProvider.WatchedNamespace == sourceProvider.WatchedNamespace) {
+				continue
+			}
+
+			// If we are moving objects in a namespace only, skip all the providers not watching such namespace.
+			// NB. This means that when moving a single namespace, we use a lazy matching (the watching namespace MUST overlap; exact match is not required).
+			if namespace != "" && !(targetProvider.WatchedNamespace == "" || targetProvider.WatchedNamespace == namespace) {
+				continue
+			}
+
+			targetVersion, err := version.ParseSemantic(targetProvider.Version)
+			if err != nil {
+				return errors.Wrapf(err, "unable to parse version %q for the %s provider in the target cluster", targetProvider.Version, targetProvider.InstanceName())
+			}
+			if maxTargetVersion == nil || maxTargetVersion.LessThan(targetVersion) {
+				maxTargetVersion = targetVersion
+			}
+		}
+		if maxTargetVersion == nil {
+			watching := sourceProvider.WatchedNamespace
+			if namespace != "" {
+				watching = namespace
+			}
+			errList = append(errList, errors.Errorf("provider %s watching namespace %s not found in the target cluster", sourceProvider.Name, watching))
+			continue
+		}
+
+		if !maxTargetVersion.AtLeast(sourceVersion) {
+			errList = append(errList, errors.Errorf("provider %s in the target cluster is older than in the source cluster (source: %s, target: %s)", sourceProvider.Name, sourceVersion.String(), maxTargetVersion.String()))
+		}
+	}
+
+	return kerrors.NewAggregate(errList)
 }

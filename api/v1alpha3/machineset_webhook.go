@@ -24,6 +24,7 @@ import (
 	"k8s.io/apimachinery/pkg/labels"
 	runtime "k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/validation/field"
+	"k8s.io/utils/pointer"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/webhook"
 )
@@ -35,8 +36,35 @@ func (m *MachineSet) SetupWebhookWithManager(mgr ctrl.Manager) error {
 }
 
 // +kubebuilder:webhook:verbs=create;update,path=/validate-cluster-x-k8s-io-v1alpha3-machineset,mutating=false,failurePolicy=fail,groups=cluster.x-k8s.io,resources=machinesets,versions=v1alpha3,name=validation.machineset.cluster.x-k8s.io
+// +kubebuilder:webhook:verbs=create;update,path=/mutate-cluster-x-k8s-io-v1alpha3-machineset,mutating=true,failurePolicy=fail,groups=cluster.x-k8s.io,resources=machinesets,versions=v1alpha3,name=default.machineset.cluster.x-k8s.io
 
+var _ webhook.Defaulter = &MachineSet{}
 var _ webhook.Validator = &MachineSet{}
+
+// DefaultingFunction sets default MachineSet field values.
+func (m *MachineSet) Default() {
+	if m.Spec.Replicas == nil {
+		m.Spec.Replicas = pointer.Int32Ptr(1)
+	}
+
+	if m.Spec.DeletePolicy == "" {
+		randomPolicy := string(RandomMachineSetDeletePolicy)
+		m.Spec.DeletePolicy = randomPolicy
+	}
+
+	if m.Spec.Selector.MatchLabels == nil {
+		m.Spec.Selector.MatchLabels = make(map[string]string)
+	}
+
+	if m.Spec.Template.Labels == nil {
+		m.Spec.Template.Labels = make(map[string]string)
+	}
+
+	if len(m.Spec.Selector.MatchLabels) == 0 && len(m.Spec.Selector.MatchExpressions) == 0 {
+		m.Spec.Selector.MatchLabels[MachineSetLabelName] = m.Name
+		m.Spec.Template.Labels[MachineSetLabelName] = m.Name
+	}
+}
 
 // ValidateCreate implements webhook.Validator so a webhook will be registered for the type
 func (m *MachineSet) ValidateCreate() error {

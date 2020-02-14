@@ -17,8 +17,6 @@ limitations under the License.
 package v1alpha3
 
 import (
-	"log"
-
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	metav1validation "k8s.io/apimachinery/pkg/apis/meta/v1/validation"
 	"k8s.io/apimachinery/pkg/labels"
@@ -182,26 +180,6 @@ func (m *MachineSet) Validate() field.ErrorList {
 	}
 
 	return errors
-}
-
-// DefaultingFunction sets default MachineSet field values.
-func (m *MachineSet) Default() {
-	log.Printf("Defaulting fields for MachineSet %s\n", m.Name)
-
-	if m.Spec.Replicas == nil {
-		m.Spec.Replicas = new(int32)
-		*m.Spec.Replicas = 1
-	}
-
-	if len(m.Namespace) == 0 {
-		m.Namespace = metav1.NamespaceDefault
-	}
-
-	if m.Spec.DeletePolicy == "" {
-		randomPolicy := string(RandomMachineSetDeletePolicy)
-		log.Printf("Defaulting to %s\n", randomPolicy)
-		m.Spec.DeletePolicy = randomPolicy
-	}
 }
 
 // +kubebuilder:object:root=true

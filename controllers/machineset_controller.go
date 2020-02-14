@@ -38,6 +38,7 @@ import (
 	"sigs.k8s.io/cluster-api/controllers/noderefutil"
 	"sigs.k8s.io/cluster-api/controllers/remote"
 	"sigs.k8s.io/cluster-api/util"
+	utilconversion "sigs.k8s.io/cluster-api/util/conversion"
 	"sigs.k8s.io/cluster-api/util/patch"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -163,12 +164,12 @@ func (r *MachineSetReconciler) reconcile(ctx context.Context, cluster *clusterv1
 	}
 
 	// Make sure to reconcile the external infrastructure reference.
-	if err := r.reconcileExternalReference(ctx, cluster, machineSet.Spec.Template.Spec.InfrastructureRef); err != nil {
+	if err := reconcileExternalTemplateReference(ctx, r.Client, cluster, &machineSet.Spec.Template.Spec.InfrastructureRef); err != nil {
 		return ctrl.Result{}, err
 	}
 	// Make sure to reconcile the external bootstrap reference, if any.
 	if machineSet.Spec.Template.Spec.Bootstrap.ConfigRef != nil {
-		if err := r.reconcileExternalReference(ctx, cluster, *machineSet.Spec.Template.Spec.Bootstrap.ConfigRef); err != nil {
+		if err := reconcileExternalTemplateReference(ctx, r.Client, cluster, machineSet.Spec.Template.Spec.Bootstrap.ConfigRef); err != nil {
 			return ctrl.Result{}, err
 		}
 	}
@@ -262,34 +263,6 @@ func (r *MachineSetReconciler) reconcile(ctx context.Context, cluster *clusterv1
 	}
 
 	return ctrl.Result{}, nil
-}
-
-func (r *MachineSetReconciler) reconcileExternalReference(ctx context.Context, cluster *clusterv1.Cluster, ref corev1.ObjectReference) error {
-	if !strings.HasSuffix(ref.Kind, external.TemplateSuffix) {
-		return nil
-	}
-
-	obj, err := external.Get(ctx, r.Client, &ref, cluster.Namespace)
-	if err != nil {
-		return err
-	}
-
-	patchHelper, err := patch.NewHelper(obj, r.Client)
-	if err != nil {
-		return err
-	}
-
-	obj.SetOwnerReferences(util.EnsureOwnerRef(obj.GetOwnerReferences(), metav1.OwnerReference{
-		APIVersion: clusterv1.GroupVersion.String(),
-		Kind:       "Cluster",
-		Name:       cluster.Name,
-		UID:        cluster.UID,
-	}))
-
-	if err := patchHelper.Patch(ctx, obj); err != nil {
-		return err
-	}
-	return nil
 }
 
 // syncReplicas scales Machine resources up or down.
@@ -714,4 +687,36 @@ func (r *MachineSetReconciler) getMachineNode(ctx context.Context, cluster *clus
 		return nil, errors.Wrapf(err, "error retrieving node %s for machine %s/%s", machine.Status.NodeRef.Name, machine.Namespace, machine.Name)
 	}
 	return node, nil
+}
+
+func reconcileExternalTemplateReference(ctx context.Context, c client.Client, cluster *clusterv1.Cluster, ref *corev1.ObjectReference) error {
+	if !strings.HasSuffix(ref.Kind, external.TemplateSuffix) {
+		return nil
+	}
+
+	if err := utilconversion.ConvertReferenceAPIContract(ctx, c, ref); err != nil {
+		return err
+	}
+
+	obj, err := external.Get(ctx, c, ref, cluster.Namespace)
+	if err != nil {
+		return err
+	}
+
+	patchHelper, err := patch.NewHelper(obj, c)
+	if err != nil {
+		return err
+	}
+
+	obj.SetOwnerReferences(util.EnsureOwnerRef(obj.GetOwnerReferences(), metav1.OwnerReference{
+		APIVersion: clusterv1.GroupVersion.String(),
+		Kind:       "Cluster",
+		Name:       cluster.Name,
+		UID:        cluster.UID,
+	}))
+
+	if err := patchHelper.Patch(ctx, obj); err != nil {
+		return err
+	}
+	return nil
 }

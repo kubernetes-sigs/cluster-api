@@ -29,6 +29,7 @@ import (
 	"sigs.k8s.io/cluster-api/controllers/external"
 	capierrors "sigs.k8s.io/cluster-api/errors"
 	"sigs.k8s.io/cluster-api/util"
+	utilconversion "sigs.k8s.io/cluster-api/util/conversion"
 	"sigs.k8s.io/cluster-api/util/kubeconfig"
 	"sigs.k8s.io/cluster-api/util/patch"
 	"sigs.k8s.io/cluster-api/util/secret"
@@ -61,6 +62,10 @@ func (r *ClusterReconciler) reconcilePhase(_ context.Context, cluster *clusterv1
 // reconcileExternal handles generic unstructured objects referenced by a Cluster.
 func (r *ClusterReconciler) reconcileExternal(ctx context.Context, cluster *clusterv1.Cluster, ref *corev1.ObjectReference) (external.ReconcileOutput, error) {
 	logger := r.Log.WithValues("cluster", cluster.Name, "namespace", cluster.Namespace)
+
+	if err := utilconversion.ConvertReferenceAPIContract(ctx, r.Client, ref); err != nil {
+		return external.ReconcileOutput{}, err
+	}
 
 	obj, err := external.Get(ctx, r.Client, ref, cluster.Namespace)
 	if err != nil {

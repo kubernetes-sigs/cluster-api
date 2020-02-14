@@ -27,6 +27,7 @@ import (
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/utils/pointer"
+	utilconversion "sigs.k8s.io/cluster-api/util/conversion"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	"sigs.k8s.io/controller-runtime/pkg/handler"
 
@@ -76,6 +77,10 @@ func (r *MachineReconciler) reconcilePhase(_ context.Context, m *clusterv1.Machi
 // reconcileExternal handles generic unstructured objects referenced by a Machine.
 func (r *MachineReconciler) reconcileExternal(ctx context.Context, cluster *clusterv1.Cluster, m *clusterv1.Machine, ref *corev1.ObjectReference) (external.ReconcileOutput, error) {
 	logger := r.Log.WithValues("machine", m.Name, "namespace", m.Namespace)
+
+	if err := utilconversion.ConvertReferenceAPIContract(ctx, r.Client, ref); err != nil {
+		return external.ReconcileOutput{}, err
+	}
 
 	obj, err := external.Get(ctx, r.Client, ref, m.Namespace)
 	if err != nil {

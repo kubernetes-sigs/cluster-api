@@ -131,7 +131,7 @@ func (r *MachineDeploymentReconciler) Reconcile(req ctrl.Request) (_ ctrl.Result
 	return result, nil
 }
 
-func (r *MachineDeploymentReconciler) reconcile(_ context.Context, cluster *clusterv1.Cluster, d *clusterv1.MachineDeployment) (ctrl.Result, error) {
+func (r *MachineDeploymentReconciler) reconcile(ctx context.Context, cluster *clusterv1.Cluster, d *clusterv1.MachineDeployment) (ctrl.Result, error) {
 	logger := r.Log.WithValues("machinedeployment", d.Name, "namespace", d.Namespace)
 	logger.V(4).Info("Reconcile MachineDeployment")
 
@@ -160,6 +160,17 @@ func (r *MachineDeploymentReconciler) reconcile(_ context.Context, cluster *clus
 			UID:        cluster.UID,
 		})
 		return ctrl.Result{}, nil
+	}
+
+	// Make sure to reconcile the external infrastructure reference.
+	if err := reconcileExternalTemplateReference(ctx, r.Client, cluster, &d.Spec.Template.Spec.InfrastructureRef); err != nil {
+		return ctrl.Result{}, err
+	}
+	// Make sure to reconcile the external bootstrap reference, if any.
+	if d.Spec.Template.Spec.Bootstrap.ConfigRef != nil {
+		if err := reconcileExternalTemplateReference(ctx, r.Client, cluster, d.Spec.Template.Spec.Bootstrap.ConfigRef); err != nil {
+			return ctrl.Result{}, err
+		}
 	}
 
 	msList, err := r.getMachineSetsForDeployment(d)

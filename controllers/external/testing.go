@@ -20,6 +20,7 @@ import (
 	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/utils/pointer"
+	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha3"
 )
 
 var (
@@ -30,6 +31,9 @@ var (
 		},
 		ObjectMeta: metav1.ObjectMeta{
 			Name: "genericmachines.bootstrap.cluster.x-k8s.io",
+			Labels: map[string]string{
+				clusterv1.GroupVersion.String(): "v1alpha3",
+			},
 		},
 		Spec: apiextensionsv1.CustomResourceDefinitionSpec{
 			Group: "bootstrap.cluster.x-k8s.io",
@@ -69,6 +73,9 @@ var (
 		},
 		ObjectMeta: metav1.ObjectMeta{
 			Name: "genericmachinetemplates.bootstrap.cluster.x-k8s.io",
+			Labels: map[string]string{
+				clusterv1.GroupVersion.String(): "v1alpha3",
+			},
 		},
 		Spec: apiextensionsv1.CustomResourceDefinitionSpec{
 			Group: "bootstrap.cluster.x-k8s.io",
@@ -108,6 +115,9 @@ var (
 		},
 		ObjectMeta: metav1.ObjectMeta{
 			Name: "genericmachines.infrastructure.cluster.x-k8s.io",
+			Labels: map[string]string{
+				clusterv1.GroupVersion.String(): "v1alpha3",
+			},
 		},
 		Spec: apiextensionsv1.CustomResourceDefinitionSpec{
 			Group: "infrastructure.cluster.x-k8s.io",
@@ -147,6 +157,9 @@ var (
 		},
 		ObjectMeta: metav1.ObjectMeta{
 			Name: "genericmachinetemplates.infrastructure.cluster.x-k8s.io",
+			Labels: map[string]string{
+				clusterv1.GroupVersion.String(): "v1alpha3",
+			},
 		},
 		Spec: apiextensionsv1.CustomResourceDefinitionSpec{
 			Group: "infrastructure.cluster.x-k8s.io",

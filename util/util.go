@@ -30,10 +30,12 @@ import (
 
 	"github.com/pkg/errors"
 	v1 "k8s.io/api/core/v1"
+	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime/schema"
+	"k8s.io/apimachinery/pkg/version"
 	"k8s.io/klog"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha3"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -409,6 +411,45 @@ func IsPaused(cluster *clusterv1.Cluster, v metav1.Object) bool {
 	}
 	_, ok := annotations[clusterv1.PausedAnnotation]
 	return ok
+}
+
+// GetCRDWithContract retrieves a list of CustomResourceDefinitions from using controller-runtime Client,
+// filtering with the `contract` label passed in.
+// Returns the first CRD in the list that matches the GroupVersionKind, otherwise returns an error.
+func GetCRDWithContract(ctx context.Context, c client.Client, gvk schema.GroupVersionKind, contract string) (*apiextensionsv1.CustomResourceDefinition, error) {
+	crdList := &apiextensionsv1.CustomResourceDefinitionList{}
+	for {
+		if err := c.List(ctx, crdList, client.Continue(crdList.Continue), client.HasLabels{contract}); err != nil {
+			return nil, errors.Wrapf(err, "failed to list CustomResourceDefinitions for %v", gvk)
+		}
+
+		for _, crd := range crdList.Items {
+			if crd.Spec.Group == gvk.Group &&
+				crd.Spec.Names.Kind == gvk.Kind {
+				return crd.DeepCopy(), nil
+			}
+		}
+
+		if crdList.Continue == "" {
+			break
+		}
+	}
+
+	return nil, errors.Errorf("failed to find a CustomResourceDefinition for %v with contract %q", gvk, contract)
+}
+
+// KubeAwareAPIVersions is a sortable slice of kube-like version strings.
+//
+// Kube-like version strings are starting with a v, followed by a major version,
+// optional "alpha" or "beta" strings followed by a minor version (e.g. v1, v2beta1).
+// Versions will be sorted based on GA/alpha/beta first and then major and minor
+// versions. e.g. v2, v1, v1beta2, v1beta1, v1alpha1.
+type KubeAwareAPIVersions []string
+
+func (k KubeAwareAPIVersions) Len() int      { return len(k) }
+func (k KubeAwareAPIVersions) Swap(i, j int) { k[i], k[j] = k[j], k[i] }
+func (k KubeAwareAPIVersions) Less(i, j int) bool {
+	return version.CompareKubeAwareVersionStrings(k[i], k[j]) < 0
 }
 
 // MachinesByCreationTimestamp sorts a list of Machine by creation timestamp, using their names as a tie breaker.

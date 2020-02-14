@@ -26,7 +26,7 @@ type deleteOptions struct {
 	kubeconfig       string
 	targetNamespace  string
 	includeNamespace bool
-	includeCRD       bool
+	includeCRDs      bool
 	deleteAll        bool
 }
 
@@ -90,7 +90,7 @@ func init() {
 	deleteCmd.Flags().StringVarP(&dd.targetNamespace, "namespace", "", "", "The namespace where the provider to be deleted lives. If not specified, the namespace name will be inferred from the current configuration")
 
 	deleteCmd.Flags().BoolVarP(&dd.includeNamespace, "include-namespace", "n", false, "Forces the deletion of the namespace where the providers are hosted (and of all the contained objects)")
-	deleteCmd.Flags().BoolVarP(&dd.includeCRD, "include-crd", "c", false, "Forces the deletion of the provider's CRDs (and of all the related objects)")
+	deleteCmd.Flags().BoolVarP(&dd.includeCRDs, "include-crd", "c", false, "Forces the deletion of the provider's CRDs (and of all the related objects)")
 	deleteCmd.Flags().BoolVarP(&dd.deleteAll, "all", "", false, "Force deletion of all the providers")
 
 	RootCmd.AddCommand(deleteCmd)
@@ -105,7 +105,7 @@ func runDelete(args []string) error {
 	if err := c.Delete(client.DeleteOptions{
 		Kubeconfig:       dd.kubeconfig,
 		IncludeNamespace: dd.includeNamespace,
-		IncludeCRD:       dd.includeCRD,
+		IncludeCRDs:      dd.includeCRDs,
 		Namespace:        dd.targetNamespace,
 		Providers:        args,
 	}); err != nil {

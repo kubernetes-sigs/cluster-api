@@ -48,7 +48,7 @@ func Test_clusterctlClient_Delete(t *testing.T) {
 				options: DeleteOptions{
 					Kubeconfig:       "kubeconfig",
 					IncludeNamespace: false,
-					IncludeCRD:       false,
+					IncludeCRDs:      false,
 					Namespace:        "",
 					Providers:        nil, // nil means all the providers
 				},
@@ -65,7 +65,7 @@ func Test_clusterctlClient_Delete(t *testing.T) {
 				options: DeleteOptions{
 					Kubeconfig:       "kubeconfig",
 					IncludeNamespace: false,
-					IncludeCRD:       false,
+					IncludeCRDs:      false,
 					Namespace:        "capbpk-system",
 					Providers:        []string{bootstrapProviderConfig.Name()},
 				},
@@ -82,7 +82,7 @@ func Test_clusterctlClient_Delete(t *testing.T) {
 				options: DeleteOptions{
 					Kubeconfig:       "kubeconfig",
 					IncludeNamespace: false,
-					IncludeCRD:       false,
+					IncludeCRDs:      false,
 					Namespace:        "", // empty namespace triggers namespace auto detection
 					Providers:        []string{bootstrapProviderConfig.Name()},
 				},

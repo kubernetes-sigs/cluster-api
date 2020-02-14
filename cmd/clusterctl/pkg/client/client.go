@@ -65,9 +65,9 @@ type DeleteOptions struct {
 	// (and of all the contained objects).
 	IncludeNamespace bool
 
-	// IncludeCRD forces the deletion of the provider's CRDs (and of all the related objects).
+	// IncludeCRDs forces the deletion of the provider's CRDs (and of all the related objects).
 	// By Extension, this forces the deletion of all the resources shared among provider instances, like e.g. web-hooks.
-	IncludeCRD bool
+	IncludeCRDs bool
 
 	// Namespace where the provider to be deleted lives. If not specified, the namespace name will be inferred
 	// from the current configuration.

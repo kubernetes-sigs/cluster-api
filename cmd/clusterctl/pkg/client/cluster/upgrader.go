@@ -220,7 +220,7 @@ func (u *providerUpgrader) doUpgrade(upgradePlan *UpgradePlan) error {
 		if err := u.providerComponents.Delete(DeleteOptions{
 			Provider:         upgradeItem.Provider,
 			IncludeNamespace: false,
-			IncludeCRD:       false,
+			IncludeCRDs:      false,
 		}); err != nil {
 			return err
 		}

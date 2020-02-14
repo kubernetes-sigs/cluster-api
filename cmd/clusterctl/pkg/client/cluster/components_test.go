@@ -251,7 +251,7 @@ func Test_providerComponents_Delete(t *testing.T) {
 			err := c.Delete(DeleteOptions{
 				Provider:         tt.args.provider,
 				IncludeNamespace: tt.args.includeNamespace,
-				IncludeCRD:       tt.args.includeCRD,
+				IncludeCRDs:      tt.args.includeCRD,
 			})
 			if (err != nil) != tt.wantErr {
 				t.Fatalf("error = %v, wantErr %v", err, tt.wantErr)

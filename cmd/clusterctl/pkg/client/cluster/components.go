@@ -36,7 +36,7 @@ import (
 type DeleteOptions struct {
 	Provider         clusterctlv1.Provider
 	IncludeNamespace bool
-	IncludeCRD       bool
+	IncludeCRDs      bool
 }
 
 // ComponentsClient has methods to work with provider components in the cluster.
@@ -110,14 +110,14 @@ func (p *providerComponents) Delete(options DeleteOptions) error {
 	// in multi-tenant scenario, because a single operation could delete both instance specific and shared CRDs/web-hook components.
 	// This is considered acceptable because we are considering the multi-tenant scenario an advanced use case, and the assumption
 	// is that user in this case understand the potential impacts of this operation.
-	// TODO: in future we can eventually block delete --IncludeCRD in case more than one instance of a provider exists
+	// TODO: in future we can eventually block delete --IncludeCRDs in case more than one instance of a provider exists
 	labels := map[string]string{
 		clusterctlv1.ClusterctlLabelName: "",
 		clusterv1.ProviderLabelName:      options.Provider.Name,
 	}
 
 	namespaces := []string{options.Provider.Namespace}
-	if options.IncludeCRD {
+	if options.IncludeCRDs {
 		namespaces = append(namespaces, repository.WebhookNamespaceName)
 	}
 
@@ -134,7 +134,7 @@ func (p *providerComponents) Delete(options DeleteOptions) error {
 		// If the CRDs (and by extensions, all the shared resources) should NOT be deleted, skip it;
 		// NB. Skipping CRDs deletion ensures that also the objects of Kind defined in the CRDs Kind are not deleted.
 		isSharedReource := util.IsSharedResource(obj)
-		if !options.IncludeCRD && isSharedReource {
+		if !options.IncludeCRDs && isSharedReource {
 			continue
 		}
 

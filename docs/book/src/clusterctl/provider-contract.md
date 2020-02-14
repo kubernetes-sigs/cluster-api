@@ -99,9 +99,25 @@ It is strongly recommended that:
 * Bootstrap providers release a file called ` bootstrap-components.yaml`
 * Control plane providers release a file called `control-plane-components.yaml`
 
+#### Shared and instance components
+
+The objects contained in a component YAML file can be divided in two sets:
+
+- Instance specific objects, like the Deployment for the controller, the ServiceAccount used for running the controller
+  and the related RBAC rules.
+- The objects that are shared among all the provider instances, like e.g. CRDs, ValidatingWebhookConfiguration or the
+  Deployment implementing the web-hook servers and related Service and Certificates.
+
+As per the Cluster API contract, all the shared objects are expected to be deployed in a namespace named `capi-webhook-system`
+(if applicable). 
+
+clusterctl implements a different lifecycle for shared resources e.g.
+- ensuring that the version of the shared objects for each provider matches the latest version installed in the cluster.
+- ensuring that deleting an instance of a provider does not destroy shared resources unless explicitly requested by the user.  
+
 #### Target namespace
 
-The components YAML should contain one Namespace object, which will be used as the default target namespace
+The instance components should contain one Namespace object, which will be used as the default target namespace
 when creating the provider components.
 
 All the objects in the components YAML MUST belong to the target namespace, with the exception of objects that
@@ -276,4 +292,4 @@ Additionally, provider authors should be aware that `clusterctl move` assumes al
  
 ### Adopt
 
-WIP
+TODO

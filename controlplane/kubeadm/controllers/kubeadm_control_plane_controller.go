@@ -308,8 +308,7 @@ func (r *KubeadmControlPlaneReconciler) updateStatus(ctx context.Context, kcp *c
 
 	readyMachines := int32(0)
 	for i := range ownedMachines {
-		m := &ownedMachines[i]
-		node, err := getMachineNode(ctx, remoteClient, m)
+		node, err := getMachineNode(ctx, remoteClient, ownedMachines[i])
 		if err != nil {
 			return errors.Wrap(err, "failed to get referenced Node")
 		}
@@ -331,7 +330,7 @@ func (r *KubeadmControlPlaneReconciler) updateStatus(ctx context.Context, kcp *c
 	return nil
 }
 
-func (r *KubeadmControlPlaneReconciler) upgradeControlPlane(ctx context.Context, cluster *clusterv1.Cluster, kcp *controlplanev1.KubeadmControlPlane, requireUpgrade []clusterv1.Machine) error {
+func (r *KubeadmControlPlaneReconciler) upgradeControlPlane(ctx context.Context, cluster *clusterv1.Cluster, kcp *controlplanev1.KubeadmControlPlane, requireUpgrade []*clusterv1.Machine) error {
 
 	// TODO: verify health for each existing replica
 	// TODO: mark an old Machine via the label kubeadm.controlplane.cluster.x-k8s.io/selected-for-upgrade
@@ -552,8 +551,7 @@ func (r *KubeadmControlPlaneReconciler) reconcileDelete(ctx context.Context, clu
 	// Delete control plane machines in parallel
 	var errs []error
 	for i := range ownedMachines {
-		m := &ownedMachines[i]
-		if err := r.Client.Delete(ctx, m); err != nil && !apierrors.IsNotFound(err) {
+		if err := r.Client.Delete(ctx, ownedMachines[i]); err != nil && !apierrors.IsNotFound(err) {
 			errs = append(errs, errors.Wrap(err, "failed to cleanup owned machines"))
 		}
 	}

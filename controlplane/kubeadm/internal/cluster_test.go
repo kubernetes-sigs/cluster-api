@@ -168,7 +168,7 @@ func TestGetMachinesForCluster(t *testing.T) {
 	}
 
 	// Test that the filters use AND logic instead of OR logic
-	nameFilter := func(cluster clusterv1.Machine) bool {
+	nameFilter := func(cluster *clusterv1.Machine) bool {
 		return cluster.Name == "first-machine"
 	}
 	machines, err = m.GetMachinesForCluster(context.Background(), clusterKey, OwnedControlPlaneMachines("my-control-plane"), nameFilter)

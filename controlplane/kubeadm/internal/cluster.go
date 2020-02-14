@@ -53,9 +53,12 @@ type ManagementCluster struct {
 
 // OwnedControlPlaneMachines returns a MachineFilter function to find all owned control plane machines.
 // Usage: managementCluster.GetMachinesForCluster(ctx, cluster, OwnedControlPlaneMachines(controlPlane.Name))
-func OwnedControlPlaneMachines(controlPlaneName string) func(machine clusterv1.Machine) bool {
-	return func(machine clusterv1.Machine) bool {
-		controllerRef := metav1.GetControllerOf(&machine)
+func OwnedControlPlaneMachines(controlPlaneName string) func(machine *clusterv1.Machine) bool {
+	return func(machine *clusterv1.Machine) bool {
+		if machine == nil {
+			return false
+		}
+		controllerRef := metav1.GetControllerOf(machine)
 		if controllerRef == nil {
 			return false
 		}
@@ -65,16 +68,22 @@ func OwnedControlPlaneMachines(controlPlaneName string) func(machine clusterv1.M
 
 // HasOutdatedConfiguration returns a MachineFilter function to find all machines
 // that do not match a given KubeadmControlPlane configuration hash.
-func HasOutdatedConfiguration(configHash string) func(machine clusterv1.Machine) bool {
-	return func(machine clusterv1.Machine) bool {
+func HasOutdatedConfiguration(configHash string) func(machine *clusterv1.Machine) bool {
+	return func(machine *clusterv1.Machine) bool {
+		if machine == nil {
+			return false
+		}
 		return !MatchesConfigurationHash(configHash)(machine)
 	}
 }
 
 // MatchesConfigurationHash returns a MachineFilter function to find all machines
 // that match a given KubeadmControlPlane configuration hash.
-func MatchesConfigurationHash(configHash string) func(machine clusterv1.Machine) bool {
-	return func(machine clusterv1.Machine) bool {
+func MatchesConfigurationHash(configHash string) func(machine *clusterv1.Machine) bool {
+	return func(machine *clusterv1.Machine) bool {
+		if machine == nil {
+			return false
+		}
 		if hash, ok := machine.Labels[controlplanev1.KubeadmControlPlaneHashLabelKey]; ok {
 			return hash == configHash
 		}
@@ -84,19 +93,22 @@ func MatchesConfigurationHash(configHash string) func(machine clusterv1.Machine)
 
 // OlderThan returns a MachineFilter function to find all machines
 // that have a CreationTimestamp earlier than the given time.
-func OlderThan(t *metav1.Time) func(machine clusterv1.Machine) bool {
-	return func(machine clusterv1.Machine) bool {
+func OlderThan(t *metav1.Time) func(machine *clusterv1.Machine) bool {
+	return func(machine *clusterv1.Machine) bool {
+		if machine == nil {
+			return false
+		}
 		return machine.CreationTimestamp.Before(t)
 	}
 }
 
 // FilterMachines returns a filtered list of machines
-func FilterMachines(machines []clusterv1.Machine, filters ...func(machine clusterv1.Machine) bool) []clusterv1.Machine {
+func FilterMachines(machines []*clusterv1.Machine, filters ...func(machine *clusterv1.Machine) bool) []*clusterv1.Machine {
 	if len(filters) == 0 {
 		return machines
 	}
 
-	filteredMachines := make([]clusterv1.Machine, 0, len(machines))
+	filteredMachines := make([]*clusterv1.Machine, 0, len(machines))
 	for _, machine := range machines {
 		add := true
 		for _, filter := range filters {
@@ -114,16 +126,21 @@ func FilterMachines(machines []clusterv1.Machine, filters ...func(machine cluste
 
 // GetMachinesForCluster returns a list of machines that can be filtered or not.
 // If no filter is supplied then all machines associated with the target cluster are returned.
-func (m *ManagementCluster) GetMachinesForCluster(ctx context.Context, cluster types.NamespacedName, filters ...func(machine clusterv1.Machine) bool) ([]clusterv1.Machine, error) {
+func (m *ManagementCluster) GetMachinesForCluster(ctx context.Context, cluster types.NamespacedName, filters ...func(machine *clusterv1.Machine) bool) ([]*clusterv1.Machine, error) {
 	selector := map[string]string{
 		clusterv1.ClusterLabelName: cluster.Name,
 	}
-	allMachines := &clusterv1.MachineList{}
-	if err := m.Client.List(ctx, allMachines, client.InNamespace(cluster.Namespace), client.MatchingLabels(selector)); err != nil {
+	ml := &clusterv1.MachineList{}
+	if err := m.Client.List(ctx, ml, client.InNamespace(cluster.Namespace), client.MatchingLabels(selector)); err != nil {
 		return nil, errors.Wrap(err, "failed to list machines")
 	}
 
-	return FilterMachines(allMachines.Items, filters...), nil
+	machines := make([]*clusterv1.Machine, 0, len(ml.Items))
+	for i := range ml.Items {
+		machines = append(machines, &ml.Items[i])
+	}
+
+	return FilterMachines(machines, filters...), nil
 }
 
 // getCluster builds a cluster object.

@@ -49,7 +49,7 @@ func (f failureDomainAggregations) Swap(i, j int) {
 }
 
 // PickMost returns the failure domain with the most number of machines.
-func PickMost(failureDomains clusterv1.FailureDomains, machines []clusterv1.Machine) string {
+func PickMost(failureDomains clusterv1.FailureDomains, machines []*clusterv1.Machine) string {
 	aggregations := pick(failureDomains, machines)
 	if len(aggregations) == 0 {
 		return ""
@@ -60,7 +60,7 @@ func PickMost(failureDomains clusterv1.FailureDomains, machines []clusterv1.Mach
 }
 
 // PickFewest returns the failure domain with the fewest number of machines.
-func PickFewest(failureDomains clusterv1.FailureDomains, machines []clusterv1.Machine) string {
+func PickFewest(failureDomains clusterv1.FailureDomains, machines []*clusterv1.Machine) string {
 	aggregations := pick(failureDomains, machines)
 	if len(aggregations) == 0 {
 		return ""
@@ -69,7 +69,7 @@ func PickFewest(failureDomains clusterv1.FailureDomains, machines []clusterv1.Ma
 	return aggregations[0].id
 }
 
-func pick(failureDomains clusterv1.FailureDomains, machines []clusterv1.Machine) failureDomainAggregations {
+func pick(failureDomains clusterv1.FailureDomains, machines []*clusterv1.Machine) failureDomainAggregations {
 	if len(failureDomains) == 0 {
 		return failureDomainAggregations{}
 	}

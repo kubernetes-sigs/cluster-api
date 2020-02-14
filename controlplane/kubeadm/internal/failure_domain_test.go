@@ -30,14 +30,14 @@ func TestNewFailureDomainPicker(t *testing.T) {
 		a: clusterv1.FailureDomainSpec{},
 		b: clusterv1.FailureDomainSpec{},
 	}
-	machinea := clusterv1.Machine{Spec: clusterv1.MachineSpec{FailureDomain: &a}}
-	machineb := clusterv1.Machine{Spec: clusterv1.MachineSpec{FailureDomain: &b}}
-	machinenil := clusterv1.Machine{Spec: clusterv1.MachineSpec{FailureDomain: nil}}
+	machinea := &clusterv1.Machine{Spec: clusterv1.MachineSpec{FailureDomain: &a}}
+	machineb := &clusterv1.Machine{Spec: clusterv1.MachineSpec{FailureDomain: &b}}
+	machinenil := &clusterv1.Machine{Spec: clusterv1.MachineSpec{FailureDomain: nil}}
 
 	testcases := []struct {
 		name     string
 		fds      clusterv1.FailureDomains
-		machines []clusterv1.Machine
+		machines []*clusterv1.Machine
 		expected []string
 	}{
 		{
@@ -54,8 +54,8 @@ func TestNewFailureDomainPicker(t *testing.T) {
 		{
 			name: "one machine in a failure domain",
 			fds:  fds,
-			machines: []clusterv1.Machine{
-				machinea,
+			machines: []*clusterv1.Machine{
+				machinea.DeepCopy(),
 			},
 			expected: []string{b},
 		},
@@ -64,8 +64,8 @@ func TestNewFailureDomainPicker(t *testing.T) {
 			fds: clusterv1.FailureDomains{
 				a: clusterv1.FailureDomainSpec{},
 			},
-			machines: []clusterv1.Machine{
-				machinenil,
+			machines: []*clusterv1.Machine{
+				machinenil.DeepCopy(),
 			},
 			expected: []string{a, b},
 		},
@@ -74,15 +74,15 @@ func TestNewFailureDomainPicker(t *testing.T) {
 			fds: clusterv1.FailureDomains{
 				a: clusterv1.FailureDomainSpec{},
 			},
-			machines: []clusterv1.Machine{
-				machineb,
+			machines: []*clusterv1.Machine{
+				machineb.DeepCopy(),
 			},
 			expected: []string{a},
 		},
 		{
 			name:     "failure domains and no machines should return a valid failure domain",
 			fds:      fds,
-			machines: []clusterv1.Machine{},
+			machines: []*clusterv1.Machine{},
 			expected: []string{a, b},
 		},
 	}

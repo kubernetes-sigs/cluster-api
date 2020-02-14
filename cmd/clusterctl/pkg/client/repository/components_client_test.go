@@ -281,10 +281,18 @@ func Test_componentsClient_Get(t *testing.T) {
 				t.Errorf("got.Yaml() does not containt value %s that is a replacement of %s variable", variableValue, variableName)
 			}
 
-			for _, o := range got.Objs() {
+			for _, o := range got.InstanceObjs() {
 				for _, v := range []string{clusterctlv1.ClusterctlLabelName, clusterv1.ProviderLabelName} {
 					if _, ok := o.GetLabels()[v]; !ok {
-						t.Errorf("got.Objs() object %s does not contains %s label", o.GetName(), v)
+						t.Errorf("got.InstanceObjs() object %s does not contains %s label", o.GetName(), v)
+					}
+				}
+			}
+
+			for _, o := range got.SharedObjs() {
+				for _, v := range []string{clusterctlv1.ClusterctlLabelName, clusterv1.ProviderLabelName, clusterctlv1.ClusterctlSharedResourceLabelName} {
+					if _, ok := o.GetLabels()[v]; !ok {
+						t.Errorf("got.SharedObjs() object %s does not contains %s label", o.GetName(), v)
 					}
 				}
 			}

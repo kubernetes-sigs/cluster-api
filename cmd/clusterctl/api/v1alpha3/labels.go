@@ -22,4 +22,8 @@ const (
 
 	// ClusterctlCoreLabelName defines the label that is applied to all the core objects managed by clusterctl.
 	ClusterctlCoreLabelName = "clusterctl.cluster.x-k8s.io/core"
+
+	// ClusterctlSharedResourceLabelName defines the label that is applied to all the objects that are shared between
+	// instances of the same provider. e.g. CRDs, ValidatingWebhookConfiguration, MutatingWebhookConfiguration etc.
+	ClusterctlSharedResourceLabelName = "clusterctl.cluster.x-k8s.io/shared"
 )

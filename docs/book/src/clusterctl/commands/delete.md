@@ -30,6 +30,8 @@ If you want to delete the provider's CRDs, you can use the `--delete-crd` flag.
 Be aware that this operation deletes all the object of Kind defined in the provider's CRDs, e.g. when deleting
 the aws provider, it deletes all the `AWSCluster`, `AWSMachine` etc.
 
+Also, this 
+
 </aside> 
 
 If you want to delete all the providers in a single operation , you can use the `--all` flag.

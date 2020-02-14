@@ -17,6 +17,9 @@ limitations under the License.
 package cluster
 
 import (
+	"fmt"
+	"strings"
+
 	"github.com/pkg/errors"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
@@ -25,6 +28,7 @@ import (
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha3"
 	clusterctlv1 "sigs.k8s.io/cluster-api/cmd/clusterctl/api/v1alpha3"
 	"sigs.k8s.io/cluster-api/cmd/clusterctl/pkg/client/repository"
+	"sigs.k8s.io/cluster-api/cmd/clusterctl/pkg/internal/util"
 	logf "sigs.k8s.io/cluster-api/cmd/clusterctl/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
@@ -38,7 +42,7 @@ type DeleteOptions struct {
 // ComponentsClient has methods to work with provider components in the cluster.
 type ComponentsClient interface {
 	// Create creates the provider components in the management cluster.
-	Create(components repository.Components) error
+	Create(objs []unstructured.Unstructured) error
 
 	// Delete deletes the provider components from the management cluster.
 	// The operation is designed to prevent accidental deletion of user created objects, so
@@ -52,21 +56,15 @@ type providerComponents struct {
 	proxy Proxy
 }
 
-// Create provider components defined in the yaml file.
-func (p *providerComponents) Create(components repository.Components) error {
+func (p *providerComponents) Create(objs []unstructured.Unstructured) error {
 	log := logf.Log
-	log.Info("Installing", "Provider", components.Name(), "Version", components.Version(), "TargetNamespace", components.TargetNamespace())
 	c, err := p.proxy.NewClient()
 	if err != nil {
 		return err
 	}
 
-	// sort provider components for creation according to relation across objects (e.g. Namespace before everything namespaced)
-	resources := sortResourcesForCreate(components.Objs())
-
-	// creates (or updates) provider components
-	for i := range resources {
-		obj := resources[i]
+	for i := range objs {
+		obj := objs[i]
 
 		// check if the component already exists, and eventually update it
 		currentR := &unstructured.Unstructured{}
@@ -107,31 +105,65 @@ func (p *providerComponents) Delete(options DeleteOptions) error {
 	log.Info("Deleting", "Provider", options.Provider.Name, "Version", options.Provider.Version, "TargetNamespace", options.Provider.Namespace)
 
 	// Fetch all the components belonging to a provider.
+	// We want that the delete operation is able to clean-up everything in a the most common use case that is
+	// single-tenant management clusters. However, the downside of this is that this operation might be destructive
+	// in multi-tenant scenario, because a single operation could delete both instance specific and shared CRDs/web-hook components.
+	// This is considered acceptable because we are considering the multi-tenant scenario an advanced use case, and the assumption
+	// is that user in this case understand the potential impacts of this operation.
+	// TODO: in future we can eventually block delete --ForceDeleteCRD in case more than one instance of a provider exists
 	labels := map[string]string{
 		clusterctlv1.ClusterctlLabelName: "",
 		clusterv1.ProviderLabelName:      options.Provider.Name,
 	}
-	resources, err := p.proxy.ListResources(options.Provider.Namespace, labels)
+
+	namespaces := []string{options.Provider.Namespace}
+	if options.ForceDeleteCRD {
+		namespaces = append(namespaces, repository.WebhookNamespaceName)
+	}
+
+	resources, err := p.proxy.ListResources(labels, namespaces...)
 	if err != nil {
 		return err
 	}
 
+	// Filter the resources according to the delete options
 	resourcesToDelete := []unstructured.Unstructured{}
 	namespacesToDelete := sets.NewString()
+	instanceNamespacePrefix := fmt.Sprintf("%s-", options.Provider.Namespace)
 	for _, obj := range resources {
-		// If the CRDs should NOT be deleted, skip it;
+		// If the CRDs (and by extensions, all the shared resources) should NOT be deleted, skip it;
 		// NB. Skipping CRDs deletion ensures that also the objects of Kind defined in the CRDs Kind are not deleted.
-		if obj.GroupVersionKind().Kind == "CustomResourceDefinition" && !options.ForceDeleteCRD {
+		_, isSharedReource := obj.GetLabels()[clusterctlv1.ClusterctlSharedResourceLabelName]
+		if !options.ForceDeleteCRD && isSharedReource {
 			continue
 		}
 
-		// If the Namespace should NOT be deleted, skip it, otherwise keep track of the namespaces we are deleting;
-		// NB. Skipping Namespaces deletion ensures that also the objects hosted in the namespace but without the "clusterctl.cluster.x-k8s.io" and the "cluster.x-k8s.io/provider" label are not deleted.
-		if obj.GroupVersionKind().Kind == "Namespace" {
+		// If the resource is a namespace
+		isNamespace := obj.GroupVersionKind().Kind == "Namespace"
+		if isNamespace {
+			// Skip all the namespaces not related to the provider instance being processed.
+			if obj.GetName() != options.Provider.Namespace {
+				continue
+			}
+			// If the  Namespace should NOT be deleted, skip it, otherwise keep track of the namespaces we are deleting;
+			// NB. Skipping Namespaces deletion ensures that also the objects hosted in the namespace but without the "clusterctl.cluster.x-k8s.io" and the "cluster.x-k8s.io/provider" label are not deleted.
 			if !options.ForceDeleteNamespace {
 				continue
 			}
 			namespacesToDelete.Insert(obj.GetName())
+		}
+
+		// If not a shared resource or not a namespace
+		if !isSharedReource && !isNamespace {
+			// If the resource is a cluster resource, skip it if the resource name does not start with the instance prefix.
+			// This is required because there are cluster resources like e.g. ClusterRoles and ClusterRoleBinding, which are instance specific;
+			// During the installation, clusterctl adds the instance namespace prefix to such resources (see fixRBAC), and so we can rely
+			// on that for deleting only the global resources belonging the the instance we are processing.
+			if util.IsClusterResource(obj.GetKind()) {
+				if !strings.HasPrefix(obj.GetName(), instanceNamespacePrefix) {
+					continue
+				}
+			}
 		}
 
 		resourcesToDelete = append(resourcesToDelete, obj)

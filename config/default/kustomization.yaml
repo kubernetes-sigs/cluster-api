@@ -1,9 +1,11 @@
-# The default kustomization bundles up all the "batteries included" capi resources.
-# Both core-capi, as well as bootstrap/controlplane components
-
-# Adds namespace to all resources.
 namespace: capi-system
 
+resources:
+- namespace.yaml
+
 bases:
-## Vanilla capi components
-- ../core
+- ../rbac
+- ../manager
+
+patchesStrategicMerge:
+- manager_role_aggregation_patch.yaml

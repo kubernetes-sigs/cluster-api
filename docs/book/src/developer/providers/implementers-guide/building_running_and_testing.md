@@ -2,7 +2,7 @@
 
 ## Docker Image Name
 
-The patch in `config/default/manager_image_patch.yaml` will be applied to the manager pod. 
+The patch in `config/manager/manager_image_patch.yaml` will be applied to the manager pod.
 Right now there is a placeholder `IMAGE_URL`, which you will need to change to your actual image.
 
 ### Development Images
@@ -16,7 +16,7 @@ The approach most Cluster API projects is using [a `Makefile` that uses `sed` to
 
 ### cert-manager
 
-Cluster API uses [cert-manager] to manage the certificates it needs for its webhooks. 
+Cluster API uses [cert-manager] to manage the certificates it needs for its webhooks.
 Before you apply Cluster API's yaml, you should [install `cert-manager`][cm-install]
 
 [cert-manager]: https://github.com/jetstack/cert-manager
@@ -34,19 +34,19 @@ You can [use a precompiled manifest][install], or clone [`cluster-api`][capi] an
 
 ``` shell
 cd cluster-api
-kustomize build config/default | kubectl apply -f-
+kustomize build config/ | kubectl apply -f-
 ```
 
-Check the status of the manager to make sure it's running properly 
+Check the status of the manager to make sure it's running properly
 
 ```shell
 $ kubectl describe -n capi-system pod | grep -A 5 Conditions
 Conditions:
   Type              Status
-  Initialized       True 
-  Ready             True 
-  ContainersReady   True 
-  PodScheduled      True 
+  Initialized       True
+  Ready             True
+  ContainersReady   True
+  PodScheduled      True
 ```
 
 
@@ -59,22 +59,22 @@ Now you can apply your provider as well:
 
 ```
 $ cd cluster-api-provider-mailgun
-$ kustomize build config/default | envsubst | kubectl apply -f-
-$ kubectl describe -n cluster-api-provider-mailgun-system pod | grep -A 5 Conditions 
+$ kustomize build config/ | envsubst | kubectl apply -f-
+$ kubectl describe -n cluster-api-provider-mailgun-system pod | grep -A 5 Conditions
 Conditions:
   Type              Status
-  Initialized       True 
-  Ready             True 
-  ContainersReady   True 
-  PodScheduled      True 
+  Initialized       True
+  Ready             True
+  ContainersReady   True
+  PodScheduled      True
 ```
 
 ### Tiltfile
-Cluster API development requires a lot of iteration, and the "build, tag, push, update deployment" workflow can be very tedious. 
-[Tilt](https://tilt.dev) makes this process much simpler by watching for updates, then automatically building and deploying them. 
+Cluster API development requires a lot of iteration, and the "build, tag, push, update deployment" workflow can be very tedious.
+[Tilt](https://tilt.dev) makes this process much simpler by watching for updates, then automatically building and deploying them.
 
 You can visit [some example repositories][capidev], but you can get started by writing out a yaml manifest and using the following [`Tiltfile`][tiltfile]
-`kustomize build config/default | envsubst > capm.yaml`
+`kustomize build config/ | envsubst > capm.yaml`
 
 [capidev]: https://github.com/chuckha/capi-dev
 [tiltfile]: https://docs.tilt.dev/tiltfile_concepts.html
@@ -126,8 +126,8 @@ If all goes well, you should be getting an email to the address you configured w
 
 ## Conclusion
 
-Obviously, this is only the first step. 
+Obviously, this is only the first step.
 We need to implement our Machine object too, and log events, handle updates, and many more things.
 
-Hopefully you feel empowered to go out and create your own provider now. 
+Hopefully you feel empowered to go out and create your own provider now.
 The world is your Kubernetes-based oyster!

@@ -29,7 +29,7 @@ import (
 
 // KubeadmControlPlaneGitHubManifestsFormat is a convenience string to get Cluster API manifests at an exact revision.
 // Set KubeadmControlPlane.KustomizePath = fmt.Sprintf(KubeadmControlPlaneGitHubManifestsFormat, <some git ref>).
-var KubeadmControlPlaneGitHubManifestsFormat = "https://github.com/kubernetes-sigs/cluster-api//controlplane/kubeadm/config/default?ref=%s"
+var KubeadmControlPlaneGitHubManifestsFormat = "https://github.com/kubernetes-sigs/cluster-api//controlplane/kubeadm/config?ref=%s"
 
 // KubeadmControlPlane generates provider components for the Kubeadm Control Plane provider.
 type KubeadmControlPlane struct {

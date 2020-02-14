@@ -89,7 +89,7 @@ base64 -i ~/path/to/gcp/credentials.json
 
 **preload_images_for_kind** (Boolean, default=`true`): Uses `kind load docker-image` to preload images into a kind cluster.
 
-**trigger_mode** (String, default=`auto`): Optional setting to configure if tilt should automatically rebuild on changes. 
+**trigger_mode** (String, default=`auto`): Optional setting to configure if tilt should automatically rebuild on changes.
 Set to `manual` to disable auto-rebuilding and require users to trigger rebuilds of individual changed components through the UI.
 
 ### Run Tilt!
@@ -174,7 +174,7 @@ At a high level, the Tiltfile performs the following actions:
 1. Enable providers (`core` + what is listed in `tilt-settings.json`)
     1. Build the manager binary locally as a `local_resource`
     1. Invoke `docker_build` for the provider
-    1. Invoke `kustomize` for the provider's `config/default` directory
+    1. Invoke `kustomize` for the provider's `config/` directory
 
 ### Live updates
 

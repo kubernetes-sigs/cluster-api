@@ -42,6 +42,20 @@ import (
 var (
 	scheme   = runtime.NewScheme()
 	setupLog = ctrl.Log.WithName("setup")
+
+	// flags
+	metricsAddr                  string
+	enableLeaderElection         bool
+	watchNamespace               string
+	profilerAddress              string
+	clusterConcurrency           int
+	machineConcurrency           int
+	machineSetConcurrency        int
+	machineDeploymentConcurrency int
+	machinePoolConcurrency       int
+	syncPeriod                   time.Duration
+	webhookPort                  int
+	healthAddr                   string
 )
 
 func init() {
@@ -54,21 +68,6 @@ func init() {
 }
 
 func main() {
-	var (
-		metricsAddr                  string
-		enableLeaderElection         bool
-		watchNamespace               string
-		profilerAddress              string
-		clusterConcurrency           int
-		machineConcurrency           int
-		machineSetConcurrency        int
-		machineDeploymentConcurrency int
-		machinePoolConcurrency       int
-		syncPeriod                   time.Duration
-		webhookPort                  int
-		healthAddr                   string
-	)
-
 	flag.StringVar(&metricsAddr, "metrics-addr", ":8080",
 		"The address the metric endpoint binds to.")
 
@@ -99,8 +98,8 @@ func main() {
 	flag.DurationVar(&syncPeriod, "sync-period", 10*time.Minute,
 		"The minimum interval at which watched resources are reconciled (e.g. 15m)")
 
-	flag.IntVar(&webhookPort, "webhook-port", 9443,
-		"Webhook Server port (set to 0 to disable)")
+	flag.IntVar(&webhookPort, "webhook-port", 0,
+		"Webhook Server port, disabled by default. When enabled, the manager will only work as webhook server, no reconcilers are installed.")
 
 	flag.StringVar(&healthAddr, "health-addr", ":9440",
 		"The address the health endpoint binds to.")
@@ -132,105 +131,19 @@ func main() {
 		os.Exit(1)
 	}
 
-	if err = (&controllers.ClusterReconciler{
-		Client: mgr.GetClient(),
-		Log:    ctrl.Log.WithName("controllers").WithName("Cluster"),
-	}).SetupWithManager(mgr, concurrency(clusterConcurrency)); err != nil {
-		setupLog.Error(err, "unable to create controller", "controller", "Cluster")
+	setupChecks(mgr)
+	setupReconcilers(mgr)
+	setupWebhooks(mgr)
+
+	// +kubebuilder:scaffold:builder
+	setupLog.Info("starting manager")
+	if err := mgr.Start(ctrl.SetupSignalHandler()); err != nil {
+		setupLog.Error(err, "problem running manager")
 		os.Exit(1)
 	}
-	if err = (&controllers.MachineReconciler{
-		Client: mgr.GetClient(),
-		Log:    ctrl.Log.WithName("controllers").WithName("Machine"),
-	}).SetupWithManager(mgr, concurrency(machineConcurrency)); err != nil {
-		setupLog.Error(err, "unable to create controller", "controller", "Machine")
-		os.Exit(1)
-	}
-	if err = (&controllers.MachineSetReconciler{
-		Client: mgr.GetClient(),
-		Log:    ctrl.Log.WithName("controllers").WithName("MachineSet"),
-	}).SetupWithManager(mgr, concurrency(machineSetConcurrency)); err != nil {
-		setupLog.Error(err, "unable to create controller", "controller", "MachineSet")
-		os.Exit(1)
-	}
-	if err = (&controllers.MachineDeploymentReconciler{
-		Client: mgr.GetClient(),
-		Log:    ctrl.Log.WithName("controllers").WithName("MachineDeployment"),
-	}).SetupWithManager(mgr, concurrency(machineDeploymentConcurrency)); err != nil {
-		setupLog.Error(err, "unable to create controller", "controller", "MachineDeployment")
-		os.Exit(1)
-	}
-	if err = (&controllers.MachinePoolReconciler{
-		Client: mgr.GetClient(),
-		Log:    ctrl.Log.WithName("controllers").WithName("MachinePool"),
-	}).SetupWithManager(mgr, concurrency(machinePoolConcurrency)); err != nil {
-		setupLog.Error(err, "unable to create controller", "controller", "MachinePool")
-		os.Exit(1)
-	}
+}
 
-	if webhookPort != 0 {
-		if err = (&clusterv1alpha2.Cluster{}).SetupWebhookWithManager(mgr); err != nil {
-			setupLog.Error(err, "unable to create webhook", "webhook", "Cluster")
-			os.Exit(1)
-		}
-		if err = (&clusterv1alpha3.Cluster{}).SetupWebhookWithManager(mgr); err != nil {
-			setupLog.Error(err, "unable to create webhook", "webhook", "Cluster")
-			os.Exit(1)
-		}
-
-		if err = (&clusterv1alpha2.ClusterList{}).SetupWebhookWithManager(mgr); err != nil {
-			setupLog.Error(err, "unable to create webhook", "webhook", "ClusterList")
-			os.Exit(1)
-		}
-
-		if err = (&clusterv1alpha2.Machine{}).SetupWebhookWithManager(mgr); err != nil {
-			setupLog.Error(err, "unable to create webhook", "webhook", "Machine")
-			os.Exit(1)
-		}
-		if err = (&clusterv1alpha3.Machine{}).SetupWebhookWithManager(mgr); err != nil {
-			setupLog.Error(err, "unable to create webhook", "webhook", "Machine")
-			os.Exit(1)
-		}
-
-		if err = (&clusterv1alpha2.MachineList{}).SetupWebhookWithManager(mgr); err != nil {
-			setupLog.Error(err, "unable to create webhook", "webhook", "MachineList")
-			os.Exit(1)
-		}
-
-		if err = (&clusterv1alpha2.MachineSet{}).SetupWebhookWithManager(mgr); err != nil {
-			setupLog.Error(err, "unable to create webhook", "webhook", "MachineSet")
-			os.Exit(1)
-		}
-		if err = (&clusterv1alpha3.MachineSet{}).SetupWebhookWithManager(mgr); err != nil {
-			setupLog.Error(err, "unable to create webhook", "webhook", "MachineSet")
-			os.Exit(1)
-		}
-
-		if err = (&clusterv1alpha2.MachineSetList{}).SetupWebhookWithManager(mgr); err != nil {
-			setupLog.Error(err, "unable to create webhook", "webhook", "MachineSetList")
-			os.Exit(1)
-		}
-
-		if err = (&clusterv1alpha2.MachineDeployment{}).SetupWebhookWithManager(mgr); err != nil {
-			setupLog.Error(err, "unable to create webhook", "webhook", "MachineDeployment")
-			os.Exit(1)
-		}
-		if err = (&clusterv1alpha3.MachineDeployment{}).SetupWebhookWithManager(mgr); err != nil {
-			setupLog.Error(err, "unable to create webhook", "webhook", "MachineDeployment")
-			os.Exit(1)
-		}
-
-		if err = (&clusterv1alpha2.MachineDeploymentList{}).SetupWebhookWithManager(mgr); err != nil {
-			setupLog.Error(err, "unable to create webhook", "webhook", "MachineDeploymentList")
-			os.Exit(1)
-		}
-
-		if err = (&clusterv1alpha3.MachinePool{}).SetupWebhookWithManager(mgr); err != nil {
-			setupLog.Error(err, "unable to create webhook", "webhook", "MachinePool")
-			os.Exit(1)
-		}
-	}
-
+func setupChecks(mgr ctrl.Manager) {
 	if err := mgr.AddReadyzCheck("ping", healthz.Ping); err != nil {
 		setupLog.Error(err, "unable to create ready check")
 		os.Exit(1)
@@ -240,11 +153,112 @@ func main() {
 		setupLog.Error(err, "unable to create health check")
 		os.Exit(1)
 	}
+}
 
-	// +kubebuilder:scaffold:builder
-	setupLog.Info("starting manager")
-	if err := mgr.Start(ctrl.SetupSignalHandler()); err != nil {
-		setupLog.Error(err, "problem running manager")
+func setupReconcilers(mgr ctrl.Manager) {
+	if webhookPort != 0 {
+		return
+	}
+	if err := (&controllers.ClusterReconciler{
+		Client: mgr.GetClient(),
+		Log:    ctrl.Log.WithName("controllers").WithName("Cluster"),
+	}).SetupWithManager(mgr, concurrency(clusterConcurrency)); err != nil {
+		setupLog.Error(err, "unable to create controller", "controller", "Cluster")
+		os.Exit(1)
+	}
+	if err := (&controllers.MachineReconciler{
+		Client: mgr.GetClient(),
+		Log:    ctrl.Log.WithName("controllers").WithName("Machine"),
+	}).SetupWithManager(mgr, concurrency(machineConcurrency)); err != nil {
+		setupLog.Error(err, "unable to create controller", "controller", "Machine")
+		os.Exit(1)
+	}
+	if err := (&controllers.MachineSetReconciler{
+		Client: mgr.GetClient(),
+		Log:    ctrl.Log.WithName("controllers").WithName("MachineSet"),
+	}).SetupWithManager(mgr, concurrency(machineSetConcurrency)); err != nil {
+		setupLog.Error(err, "unable to create controller", "controller", "MachineSet")
+		os.Exit(1)
+	}
+	if err := (&controllers.MachineDeploymentReconciler{
+		Client: mgr.GetClient(),
+		Log:    ctrl.Log.WithName("controllers").WithName("MachineDeployment"),
+	}).SetupWithManager(mgr, concurrency(machineDeploymentConcurrency)); err != nil {
+		setupLog.Error(err, "unable to create controller", "controller", "MachineDeployment")
+		os.Exit(1)
+	}
+	if err := (&controllers.MachinePoolReconciler{
+		Client: mgr.GetClient(),
+		Log:    ctrl.Log.WithName("controllers").WithName("MachinePool"),
+	}).SetupWithManager(mgr, concurrency(machinePoolConcurrency)); err != nil {
+		setupLog.Error(err, "unable to create controller", "controller", "MachinePool")
+		os.Exit(1)
+	}
+}
+
+func setupWebhooks(mgr ctrl.Manager) {
+	if webhookPort == 0 {
+		return
+	}
+
+	if err := (&clusterv1alpha2.Cluster{}).SetupWebhookWithManager(mgr); err != nil {
+		setupLog.Error(err, "unable to create webhook", "webhook", "Cluster")
+		os.Exit(1)
+	}
+	if err := (&clusterv1alpha3.Cluster{}).SetupWebhookWithManager(mgr); err != nil {
+		setupLog.Error(err, "unable to create webhook", "webhook", "Cluster")
+		os.Exit(1)
+	}
+
+	if err := (&clusterv1alpha2.ClusterList{}).SetupWebhookWithManager(mgr); err != nil {
+		setupLog.Error(err, "unable to create webhook", "webhook", "ClusterList")
+		os.Exit(1)
+	}
+
+	if err := (&clusterv1alpha2.Machine{}).SetupWebhookWithManager(mgr); err != nil {
+		setupLog.Error(err, "unable to create webhook", "webhook", "Machine")
+		os.Exit(1)
+	}
+	if err := (&clusterv1alpha3.Machine{}).SetupWebhookWithManager(mgr); err != nil {
+		setupLog.Error(err, "unable to create webhook", "webhook", "Machine")
+		os.Exit(1)
+	}
+
+	if err := (&clusterv1alpha2.MachineList{}).SetupWebhookWithManager(mgr); err != nil {
+		setupLog.Error(err, "unable to create webhook", "webhook", "MachineList")
+		os.Exit(1)
+	}
+
+	if err := (&clusterv1alpha2.MachineSet{}).SetupWebhookWithManager(mgr); err != nil {
+		setupLog.Error(err, "unable to create webhook", "webhook", "MachineSet")
+		os.Exit(1)
+	}
+	if err := (&clusterv1alpha3.MachineSet{}).SetupWebhookWithManager(mgr); err != nil {
+		setupLog.Error(err, "unable to create webhook", "webhook", "MachineSet")
+		os.Exit(1)
+	}
+
+	if err := (&clusterv1alpha2.MachineSetList{}).SetupWebhookWithManager(mgr); err != nil {
+		setupLog.Error(err, "unable to create webhook", "webhook", "MachineSetList")
+		os.Exit(1)
+	}
+
+	if err := (&clusterv1alpha2.MachineDeployment{}).SetupWebhookWithManager(mgr); err != nil {
+		setupLog.Error(err, "unable to create webhook", "webhook", "MachineDeployment")
+		os.Exit(1)
+	}
+	if err := (&clusterv1alpha3.MachineDeployment{}).SetupWebhookWithManager(mgr); err != nil {
+		setupLog.Error(err, "unable to create webhook", "webhook", "MachineDeployment")
+		os.Exit(1)
+	}
+
+	if err := (&clusterv1alpha2.MachineDeploymentList{}).SetupWebhookWithManager(mgr); err != nil {
+		setupLog.Error(err, "unable to create webhook", "webhook", "MachineDeploymentList")
+		os.Exit(1)
+	}
+
+	if err := (&clusterv1alpha3.MachinePool{}).SetupWebhookWithManager(mgr); err != nil {
+		setupLog.Error(err, "unable to create webhook", "webhook", "MachinePool")
 		os.Exit(1)
 	}
 }

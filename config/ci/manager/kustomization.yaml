@@ -7,3 +7,6 @@ kind: Kustomization
 # markers ("---").
 resources:
 - manager.yaml
+
+patchesStrategicMerge:
+- manager_image_patch.yaml

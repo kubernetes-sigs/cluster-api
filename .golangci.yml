@@ -21,7 +21,7 @@ issues:
     - Using the variable on range scope `(tc)|(rt)|(tt)|(test)|(testcase)|(testCase)` in function literal
     - "G108: Profiling endpoint is automatically exposed on /debug/pprof"
 run:
-  timeout: 6m
+  timeout: 10m
   skip-files:
     - "zz_generated.*\\.go$"
     - ".*conversion.*\\.go$"

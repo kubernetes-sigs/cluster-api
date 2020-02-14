@@ -49,7 +49,6 @@ providers = {
             "controllers",
             "internal",
         ],
-        "kustomize_dir": "./bootstrap/kubeadm/config/default",
     },
     "kubeadm-control-plane": {
         "context": "controlplane/kubeadm",
@@ -59,7 +58,6 @@ providers = {
             "api",
             "controllers",
         ],
-        "kustomize_dir": "./controlplane/kubeadm/config/default",
     },
     "docker": {
         "context": "test/infrastructure/docker",
@@ -107,7 +105,7 @@ def load_provider_tiltfiles():
 
 tilt_helper_dockerfile_header = """
 # Tilt image
-FROM golang:1.12.10 as tilt-helper
+FROM golang:1.13.7 as tilt-helper
 # Support live reloading with Tilt
 RUN wget --output-document /restart.sh --quiet https://raw.githubusercontent.com/windmilleng/rerun-process-wrapper/master/restart.sh  && \
     wget --output-document /start.sh --quiet https://raw.githubusercontent.com/windmilleng/rerun-process-wrapper/master/start.sh && \
@@ -126,7 +124,7 @@ COPY .tiltbuild/manager .
 #
 # 1. Enables a local_resource go build of the provider's manager binary
 # 2. Configures a docker build for the provider, with live updating of the manager binary
-# 3. Runs kustomize for the provider's config/default and applies it
+# 3. Runs kustomize for the provider's config/ and applies it
 def enable_provider(name):
     p = providers.get(name)
 
@@ -137,7 +135,7 @@ def enable_provider(name):
     # needed so Tilt can watch the correct paths for changes.
     live_reload_deps = []
     for d in p.get("live_reload_deps", []):
-        live_reload_deps += [context + "/" + d]
+        live_reload_deps.append(context + "/" + d)
 
     # Set up a local_resource build of the provider's manager binary. The provider is expected to have a main.go in
     # manager_build_path. The binary is written to .tiltbuild/manager.
@@ -164,7 +162,7 @@ def enable_provider(name):
         context = context,
         dockerfile_contents = dockerfile_contents,
         target = "tilt",
-        entrypoint = "sh /start.sh /manager",
+        entrypoint = ["sh", "/start.sh", "/manager"],
         only = ".tiltbuild/manager",
         live_update = [
             sync(context + "/.tiltbuild/manager", "/manager"),
@@ -173,7 +171,7 @@ def enable_provider(name):
     )
 
     # Apply the kustomized yaml for this provider
-    yaml = str(kustomize(context + "/config/default"))
+    yaml = str(kustomize(context + "/config"))
     substitutions = settings.get("kustomize_substitutions", {})
     for substitution in substitutions:
         value = substitutions[substitution]

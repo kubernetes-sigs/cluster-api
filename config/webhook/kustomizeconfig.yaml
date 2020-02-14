@@ -23,3 +23,5 @@ namespace:
 
 varReference:
 - path: metadata/annotations
+- kind: Deployment
+  path: spec/template/spec/volumes/secret/secretName

@@ -83,6 +83,52 @@ base64 -i ~/path/to/gcp/credentials.json
 ```
 
 {{#/tab }}
+{{#tab AZURE}}
+
+You would prepare an Azure service principal. Here is an [azure-cli example](https://docs.microsoft.com/en-us/cli/azure/create-an-azure-service-principal-azure-cli?view=azure-cli-latest):
+
+```bash
+# get the service principal name and subscription id
+SERVICE_PRINCIPAL_NAME=ServicePrincipalName 
+SUBSCRIPTION_ID=$(az account show --query id --output tsv)
+
+# set the subscription id when having multiple subscriptions
+az account set --subscription $SUBSCRIPTION_ID
+
+# get the tennant id
+TENNANT_ID=$( az account show --query tenantId --output tsv)
+
+# get the secret
+SECRET=$(az ad sp create-for-rbac --name http://$SERVICE_PRINCIPAL_NAME --query password --output tsv)
+
+# get the client id
+CLIENT_ID=$(az ad sp show --id http://$SERVICE_PRINCIPAL_NAME --query appId --output tsv)
+
+# check the result
+echo "SUBSCRIPTION_ID:"$SUBSCRIPTION_ID
+echo "TENNANT_ID:"$TENNANT_ID
+echo "SECRET:"$SECRET
+echo "CLIENT_ID:"$CLIENT_ID
+```
+
+And then you can generate a base64 version of your AZURE related credentials using:
+
+```bash
+echo "your-credentials" | base64
+```
+
+You can add the following section to your tilt-settings.json.
+
+```json
+"kustomize_substitutions": {
+    "AZURE_CLIENT_SECRET_B64": "your-clinet-secret-encoded-in-base64",
+    "AZURE_CLIENT_ID_B64": "your-client-id-encoded-in-base64",
+    "AZURE_SUBSCRIPTION_ID_B64": "your-subscription-id-encoded-in-base64",
+    "AZURE_TENANT_ID_B64": "your-tenant-id-encoded-in-base64"
+  }
+```
+
+{{#/tab }}
 {{#/tabs }}
 
 **deploy_cert_manager** (Boolean, default=`true`): Deploys cert-manager into the cluster for use for webhook registration.

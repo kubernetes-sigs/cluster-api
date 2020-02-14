@@ -154,3 +154,187 @@ unique keys to `failureDomainSpec`s as well as respecting a set `Machine.Spec.Fa
 instances.
 
 Please see the cluster and machine infrastructure provider specifications for more detail.
+
+## Refactor kustomize `config/` folder to support multi-tenancy when using webhooks.
+
+> Pre-Requisites: Upgrade to CRD v1.
+
+More details and background can be found in [Issue #2275](https://github.com/kubernetes-sigs/cluster-api/issues/2275) and [PR #2279](https://github.com/kubernetes-sigs/cluster-api/pull/2279).
+
+Goals:
+- Have all webhook related components in the `capi-webhook-system` namespace.
+  - Achieves multi-tenancy and guarantees that both CRD and webhook resources can live globally and can be patched in future iterations.
+- Run a new manager instance that ONLY runs webhooks and doesn't install any reconcilers.
+
+Steps:
+- In `config/certmanager/`
+  - **Patch**
+    - **certificate.yaml**: The `secretName` value MUST be set to `$(SERVICE_NAME)-cert`.
+    - **kustomization.yaml**: Add the following to `varReference`
+      ```yaml
+      - kind: Certificate
+        group: cert-manager.io
+        path: spec/secretName
+      ```
+
+- In `config/`
+  - **Create**
+    - **kustomization.yaml**: This file is going to function as the new entrypoint to run `kustomize build`.
+      `PROVIDER_NAME` is the name of your provider, e.g. `aws`.
+      `PROVIDER_TYPE` is the type of your provider, e.g. `control-plane`, `bootstrap`, `infrastructure`.
+      ```yaml
+      namePrefix: {{e.g. capa-, capi-, etc.}}
+
+      commonLabels:
+        cluster.x-k8s.io/provider: "{{PROVIDER_TYPE}}-{{PROVIDER_NAME}}"
+
+      bases:
+      - crd
+      - webhook # Disable this if you're not using the webhook functionality.
+      - default
+
+      patchesJson6902:
+      - target: # NOTE: This patch needs to be repeatd for EACH CustomResourceDefinition you have under crd/bases.
+          group: apiextensions.k8s.io
+          version: v1
+          kind: CustomResourceDefinition
+          name: {{CRD_NAME_HERE}}
+        path: patch_crd_webhook_namespace.yaml
+      ```
+    - **patch_crd_webhook_namespace.yaml**: This patch sets the conversion webhook namespace to `capi-webhook-system`.
+        ```yaml
+        - op: replace
+          path: "/spec/conversion/webhook/clientConfig/service/namespace"
+          value: capi-webhook-system
+        ```
+
+- In `config/default`
+  - **Create**
+    - **namespace.yaml**
+      ```yaml
+      apiVersion: v1
+      kind: Namespace
+      metadata:
+        name: system
+      ```
+  - **Move**
+    - `manager_image_patch.yaml` to `config/manager`
+    - `manager_label_patch.yaml` to `config/manager`
+    - `manager_pull_policy.yaml` to `config/manager`
+    - `manager_auth_proxy_patch.yaml` to `config/manager`
+    - `manager_webhook_patch.yaml` to `config/webhook`
+    - `webhookcainjection_patch.yaml` to `config/webhook`
+    - `manager_label_patch.yaml` to trash.
+  - **Patch**
+    - **kustomization.yaml**
+      - Add under `resources`:
+        ```yaml
+        resources:
+        - namespace.yaml
+        ```
+      - Replace `bases` with:
+        ```yaml
+        bases:
+      	- ../rbac
+        - ../manager
+        ```
+      - Add under `patchesStrategicMerge`:
+        ```yaml
+        patchesStrategicMerge:
+        - manager_role_aggregation_patch.yaml
+        ```
+      - Remove `../crd` from `bases` (now in `config/kustomization.yaml`).
+      - Remove `namePrefix` (now in `config/kustomization.yaml`).
+      - Remove `commonLabels` (now in `config/kustomization.yaml`).
+      - Remove from `patchesStrategicMerge`:
+        - manager_image_patch.yaml
+        - manager_pull_policy.yaml
+        - manager_auth_proxy_patch.yaml
+        - manager_webhook_patch.yaml
+        - webhookcainjection_patch.yaml
+        - manager_label_patch.yaml
+      - Remove from `vars`:
+        - CERTIFICATE_NAMESPACE
+        - CERTIFICATE_NAME
+        - SERVICE_NAMESPACE
+        - SERVICE_NAME
+
+- In `config/manager`
+  - **Patch**
+    - **manager.yaml**: Remove the `Namespace` object.
+    - **kustomization.yaml**:
+      - Add under `patchesStrategicMerge`:
+        ```yaml
+        patchesStrategicMerge:
+        - manager_image_patch.yaml
+        - manager_pull_policy.yaml
+        - manager_auth_proxy_patch.yaml
+        ```
+
+- In `config/webhook`
+  - **Patch**
+    - **kustomizeconfig.yaml**
+      - Add the following to `varReference`
+        ```yaml
+        - kind: Deployment
+          path: spec/template/spec/volumes/secret/secretName
+        ```
+    - **kustomization.yaml**
+      - Add `namespace: capi-webhook-system` at the top of the file.
+      - Under `resources`, add `../certmanager` and `../manager`.
+      - Add at the bottom of the file:
+        ```yaml
+        patchesStrategicMerge:
+        - manager_webhook_patch.yaml
+        - webhookcainjection_patch.yaml # Disable this value if you don't have any defaulting or validation webhook. If you don't know, you can check if the manifests.yaml file in the same directory has any contents.
+
+        vars:
+        - name: CERTIFICATE_NAMESPACE # namespace of the certificate CR
+          objref:
+            kind: Certificate
+            group: cert-manager.io
+            version: v1alpha2
+            name: serving-cert # this name should match the one in certificate.yaml
+          fieldref:
+            fieldpath: metadata.namespace
+        - name: CERTIFICATE_NAME
+          objref:
+            kind: Certificate
+            group: cert-manager.io
+            version: v1alpha2
+            name: serving-cert # this name should match the one in certificate.yaml
+        - name: SERVICE_NAMESPACE # namespace of the service
+          objref:
+            kind: Service
+            version: v1
+            name: webhook-service
+          fieldref:
+            fieldpath: metadata.namespace
+        - name: SERVICE_NAME
+          objref:
+            kind: Service
+            version: v1
+            name: webhook-service
+        ```
+    - **manager_webhook_patch.yaml**
+      - Under `containers` find `manager` and add after `name`
+        ```yaml
+        - "--metrics-addr=127.0.0.1:8080"
+        - "--webhook-port=9443"
+        ```
+      - Under `volumes` find `cert` and replace `secretName`'s value with `$(SERVICE_NAME)-cert`.
+    - **service.yaml**
+      - Remove the `selector` map, if any. The `control-plane` label is not needed anymore, a unique label is applied using `commonLabels` under `config/kustomization.yaml`.
+
+In `main.go`
+  - Default the `webhook-port` flag to `0`
+    ```go
+    flag.IntVar(&webhookPort, "webhook-port", 0,
+		"Webhook Server port, disabled by default. When enabled, the manager will only work as webhook server, no reconcilers are installed.")
+    ```
+  - The controller MUST register reconcilers if and only if `webhookPort == 0`.
+  - The controller MUST register webhooks if and only if `webhookPort != 0`.
+
+After all the changes above are performed, `kustomize build` MUST target `config/`, rather than `config/default`. Using your favorite editor, search for `config/default` in your repository and change the paths accordingly.
+
+In addition, often the `Makefile` contains a sed-replacement for `manager_image_patch.yaml`, this file has been moved from `config/default` to `config/manager`. Using your favorite editor, search for `manager_image_patch` in your repository and change the paths accordingly.

@@ -140,7 +140,7 @@ var _ = Describe("Docker", func() {
 					Cluster:      cluster,
 					ControlPlane: controlPlane,
 				}
-				framework.WaitForKubeadmControlPlaneMachinesToExist(ctx, assertKubeadmControlPlaneNodesExistInput)
+				framework.WaitForKubeadmControlPlaneMachinesToExist(ctx, assertKubeadmControlPlaneNodesExistInput, "10m", "10s")
 
 				// Wait for the workload nodes to exist
 				waitForMachineDeploymentNodesToExistInput := framework.WaitForMachineDeploymentNodesToExistInput{

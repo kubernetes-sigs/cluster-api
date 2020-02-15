@@ -159,6 +159,7 @@ func (m *ManagementCluster) healthCheck(ctx context.Context, check healthCheck, 
 
 // TargetClusterControlPlaneIsHealthy checks every node for control plane health.
 func (m *ManagementCluster) TargetClusterControlPlaneIsHealthy(ctx context.Context, clusterKey types.NamespacedName, controlPlaneName string) error {
+	// TODO: add checks for expected taints/labels
 	cluster, err := m.getCluster(ctx, clusterKey)
 	if err != nil {
 		return err

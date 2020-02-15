@@ -20,6 +20,8 @@ import (
 	"sort"
 
 	"k8s.io/klog/klogr"
+	"k8s.io/utils/pointer"
+
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha3"
 )
 
@@ -49,24 +51,24 @@ func (f failureDomainAggregations) Swap(i, j int) {
 }
 
 // PickMost returns the failure domain with the most number of machines.
-func PickMost(failureDomains clusterv1.FailureDomains, machines FilterableMachineCollection) string {
+func PickMost(failureDomains clusterv1.FailureDomains, machines FilterableMachineCollection) *string {
 	aggregations := pick(failureDomains, machines)
 	if len(aggregations) == 0 {
-		return ""
+		return nil
 	}
 	sort.Sort(sort.Reverse(aggregations))
-	return aggregations[0].id
+	return pointer.StringPtr(aggregations[0].id)
 
 }
 
 // PickFewest returns the failure domain with the fewest number of machines.
-func PickFewest(failureDomains clusterv1.FailureDomains, machines FilterableMachineCollection) string {
+func PickFewest(failureDomains clusterv1.FailureDomains, machines FilterableMachineCollection) *string {
 	aggregations := pick(failureDomains, machines)
 	if len(aggregations) == 0 {
-		return ""
+		return nil
 	}
 	sort.Sort(aggregations)
-	return aggregations[0].id
+	return pointer.StringPtr(aggregations[0].id)
 }
 
 func pick(failureDomains clusterv1.FailureDomains, machines FilterableMachineCollection) failureDomainAggregations {

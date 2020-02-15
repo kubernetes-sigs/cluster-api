@@ -19,78 +19,148 @@ package internal
 import (
 	"testing"
 
+	"github.com/onsi/gomega"
+	"k8s.io/utils/pointer"
+
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha3"
 )
 
 func TestNewFailureDomainPicker(t *testing.T) {
-	a := "us-west-1a"
-	b := "us-west-1b"
+	a := pointer.StringPtr("us-west-1a")
+	b := pointer.StringPtr("us-west-1b")
 
 	fds := clusterv1.FailureDomains{
-		a: clusterv1.FailureDomainSpec{},
-		b: clusterv1.FailureDomainSpec{},
+		*a: clusterv1.FailureDomainSpec{},
+		*b: clusterv1.FailureDomainSpec{},
 	}
-	machinea := &clusterv1.Machine{Spec: clusterv1.MachineSpec{FailureDomain: &a}}
-	machineb := &clusterv1.Machine{Spec: clusterv1.MachineSpec{FailureDomain: &b}}
+	machinea := &clusterv1.Machine{Spec: clusterv1.MachineSpec{FailureDomain: a}}
+	machineb := &clusterv1.Machine{Spec: clusterv1.MachineSpec{FailureDomain: b}}
 	machinenil := &clusterv1.Machine{Spec: clusterv1.MachineSpec{FailureDomain: nil}}
 
 	testcases := []struct {
 		name     string
 		fds      clusterv1.FailureDomains
 		machines FilterableMachineCollection
-		expected []string
+		expected []*string
 	}{
 		{
 			name:     "simple",
-			expected: []string{""},
+			expected: nil,
 		},
 		{
 			name: "no machines",
 			fds: clusterv1.FailureDomains{
-				a: clusterv1.FailureDomainSpec{},
+				*a: clusterv1.FailureDomainSpec{},
 			},
-			expected: []string{a},
+			expected: []*string{a},
 		},
 		{
 			name:     "one machine in a failure domain",
 			fds:      fds,
 			machines: NewFilterableMachineCollection(machinea.DeepCopy()),
-			expected: []string{b},
+			expected: []*string{b},
 		},
 		{
 			name: "no failure domain specified on machine",
 			fds: clusterv1.FailureDomains{
-				a: clusterv1.FailureDomainSpec{},
+				*a: clusterv1.FailureDomainSpec{},
 			},
 			machines: NewFilterableMachineCollection(machinenil.DeepCopy()),
-			expected: []string{a, b},
+			expected: []*string{a},
 		},
 		{
 			name: "mismatched failure domain on machine",
 			fds: clusterv1.FailureDomains{
-				a: clusterv1.FailureDomainSpec{},
+				*a: clusterv1.FailureDomainSpec{},
 			},
 			machines: NewFilterableMachineCollection(machineb.DeepCopy()),
-			expected: []string{a},
+			expected: []*string{a},
 		},
 		{
 			name:     "failure domains and no machines should return a valid failure domain",
 			fds:      fds,
-			expected: []string{a, b},
+			expected: []*string{a, b},
+		},
+	}
+	for _, tc := range testcases {
+		g := gomega.NewWithT(t)
+		t.Run(tc.name, func(t *testing.T) {
+			fd := PickFewest(tc.fds, tc.machines)
+			if tc.expected == nil {
+				g.Expect(fd).To(gomega.BeNil())
+			} else {
+				g.Expect(fd).To(gomega.BeElementOf(tc.expected))
+			}
+		})
+	}
+}
+
+func TestNewFailureDomainPickMost(t *testing.T) {
+	a := pointer.StringPtr("us-west-1a")
+	b := pointer.StringPtr("us-west-1b")
+
+	fds := clusterv1.FailureDomains{
+		*a: clusterv1.FailureDomainSpec{},
+		*b: clusterv1.FailureDomainSpec{},
+	}
+	machinea := &clusterv1.Machine{Spec: clusterv1.MachineSpec{FailureDomain: a}}
+	machineb := &clusterv1.Machine{Spec: clusterv1.MachineSpec{FailureDomain: b}}
+	machinenil := &clusterv1.Machine{Spec: clusterv1.MachineSpec{FailureDomain: nil}}
+
+	testcases := []struct {
+		name     string
+		fds      clusterv1.FailureDomains
+		machines FilterableMachineCollection
+		expected []*string
+	}{
+		{
+			name:     "simple",
+			expected: nil,
+		},
+		{
+			name: "no machines",
+			fds: clusterv1.FailureDomains{
+				*a: clusterv1.FailureDomainSpec{},
+			},
+			expected: []*string{a},
+		},
+		{
+			name:     "one machine in a failure domain",
+			fds:      fds,
+			machines: NewFilterableMachineCollection(machinea.DeepCopy()),
+			expected: []*string{a},
+		},
+		{
+			name: "no failure domain specified on machine",
+			fds: clusterv1.FailureDomains{
+				*a: clusterv1.FailureDomainSpec{},
+			},
+			machines: NewFilterableMachineCollection(machinenil.DeepCopy()),
+			expected: []*string{a},
+		},
+		{
+			name: "mismatched failure domain on machine",
+			fds: clusterv1.FailureDomains{
+				*a: clusterv1.FailureDomainSpec{},
+			},
+			machines: NewFilterableMachineCollection(machineb.DeepCopy()),
+			expected: []*string{a},
+		},
+		{
+			name:     "failure domains and no machines should return a valid failure domain",
+			fds:      fds,
+			expected: []*string{a, b},
 		},
 	}
 	for _, tc := range testcases {
 		t.Run(tc.name, func(t *testing.T) {
-			fd := PickFewest(tc.fds, tc.machines)
+			g := gomega.NewWithT(t)
 
-			found := false
-			for _, expectation := range tc.expected {
-				if fd == expectation {
-					found = true
-				}
-			}
-			if !found {
-				t.Fatal("did not find expected value")
+			fd := PickMost(tc.fds, tc.machines)
+			if tc.expected == nil {
+				g.Expect(fd).To(gomega.BeNil())
+			} else {
+				g.Expect(fd).To(gomega.BeElementOf(tc.expected))
 			}
 		})
 	}

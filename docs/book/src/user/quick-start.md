@@ -537,6 +537,8 @@ spec:
 
 These examples include environment variables that you should substitute before creating the resources.
 
+About how to do configuration, please refer to [config.md](https://github.com/kubernetes-sigs/cluster-api-provider-openstack/blob/master/docs/config.md).
+
 </aside>
 
 ```yaml

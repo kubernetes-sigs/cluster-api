@@ -95,4 +95,4 @@ should ensure the corresponding environment variable to be set before executing 
 Please refer to the providers documentation for more info about the required variables or use the 
 `clusterctl config cluster --list-variables` flag to get a list of variables names required by a cluster template.
 
-The [clusterctl configuration](configuration.md) file can be used as alternative to environment variables.
+The [clusterctl configuration](./../configuration.md) file can be used as alternative to environment variables.

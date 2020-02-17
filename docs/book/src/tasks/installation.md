@@ -12,8 +12,8 @@ Cluster API requires an existing kubernetes cluster accessible via kubectl, choo
 
 1. **Kind**
 
-{{#tabs name:"kind-cluster" tabs:"AWS|Azure|GCP|vSphere|OpenStack,Docker"}}
-{{#tab AWS|Azure|GCP|vSphere|OpenStack}}
+{{#tabs name:"kind-cluster" tabs:"AWS/Azure/GCP/vSphere/OpenStack,Docker"}}
+{{#tab AWS/Azure/GCP/vSphere/OpenStack}}
 
 <aside class="note warning">
 

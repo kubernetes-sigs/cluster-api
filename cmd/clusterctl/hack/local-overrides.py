@@ -140,7 +140,7 @@ def create_local_overrides():
         assert p is not None, 'invalid configuration: please specify the configuration for the {} provider'.format(provider)
 
         repo = p.get('repo', '.')
-        config_folder = p.get('configFolder', 'config')
+        config_folder = p.get('configFolder', 'config/default')
 
         next_version = p.get('nextVersion')
         assert next_version is not None, 'invalid configuration for provider {}: please provide nextVersion value'.format(provider)

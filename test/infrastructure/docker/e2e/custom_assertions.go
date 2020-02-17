@@ -28,6 +28,7 @@ import (
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha3"
 	"sigs.k8s.io/cluster-api/test/framework"
+	"sigs.k8s.io/cluster-api/test/framework/options"
 	infrav1 "sigs.k8s.io/cluster-api/test/infrastructure/docker/api/v1alpha3"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
@@ -40,6 +41,9 @@ type ensureDockerArtifactsDeletedInput struct {
 
 // ensureDockerArtifactsDeleted ensure we have cleaned up provider specific objects.
 func ensureDockerArtifactsDeleted(input ensureDockerArtifactsDeletedInput) {
+	if options.SkipResourceCleanup {
+		return
+	}
 	By("Ensuring docker artifacts have been deleted")
 	ctx := context.Background()
 

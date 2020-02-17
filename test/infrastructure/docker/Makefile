@@ -90,8 +90,9 @@ test-e2e: ## Run the end-to-end tests
 		$(MAKE) run-e2e
 
 E2E_CONF_FILE ?= e2e/local-e2e.conf
+SKIP_RESOURCE_CLEANUP ?= false
 run-e2e:
-	go test ./e2e -v -ginkgo.v -ginkgo.trace -count=1 -timeout=20m -tags=e2e -e2e.config="$(abspath $(E2E_CONF_FILE))"
+	go test ./e2e -v -ginkgo.v -ginkgo.trace -count=1 -timeout=20m -tags=e2e -e2e.config="$(abspath $(E2E_CONF_FILE))" -skip-resource-cleanup=$(SKIP_RESOURCE_CLEANUP)
 
 ## --------------------------------------
 ## Binaries

@@ -171,7 +171,7 @@ def enable_provider(name):
     )
 
     # Apply the kustomized yaml for this provider
-    yaml = str(kustomize(context + "/config"))
+    yaml = str(kustomize(context + "/" + p.get("kustomize_dir", "config")))
     substitutions = settings.get("kustomize_substitutions", {})
     for substitution in substitutions:
         value = substitutions[substitution]

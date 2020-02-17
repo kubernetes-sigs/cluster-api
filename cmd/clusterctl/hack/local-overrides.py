@@ -54,6 +54,7 @@ providers = {
               'componentsFile': 'core-components.yaml',
               'nextVersion': 'v0.3.0',
               'type': 'CoreProvider',
+              'configFolder': 'config',
       },
       'kubeadm-bootstrap': {
             'componentsFile': 'bootstrap-components.yaml',

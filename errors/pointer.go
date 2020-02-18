@@ -21,6 +21,11 @@ func MachineStatusErrorPtr(v MachineStatusError) *MachineStatusError {
 	return &v
 }
 
+// MachinePoolStatusErrorPtr converts a MachinePoolStatusError to a pointer.
+func MachinePoolStatusErrorPtr(v MachinePoolStatusFailure) *MachinePoolStatusFailure {
+	return &v
+}
+
 // ClusterStatusErrorPtr converts a MachineStatusError to a pointer.
 func ClusterStatusErrorPtr(v ClusterStatusError) *ClusterStatusError {
 	return &v

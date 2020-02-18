@@ -38,6 +38,8 @@ rules:
   resources:
   - clusters
   - clusters/status
+  - machinepools
+  - machinepools/status
   - machines
   - machines/status
   verbs:

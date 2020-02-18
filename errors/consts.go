@@ -112,7 +112,7 @@ const (
 	InvalidConfigurationMachineSetError MachineSetStatusError = "InvalidConfiguration"
 )
 
-type MachinePoolStatusError string
+type MachinePoolStatusFailure string
 
 const (
 	// Represents that the combination of configuration in the MachineTemplateSpec
@@ -120,7 +120,7 @@ const (
 	// indicates a state that must be fixed before progress can be made.
 	//
 	// Example: the ProviderSpec specifies an instance type that doesn't exist.
-	InvalidConfigurationMachinePoolError MachinePoolStatusError = "InvalidConfiguration"
+	InvalidConfigurationMachinePoolError MachinePoolStatusFailure = "InvalidConfiguration"
 )
 
 type KubeadmControlPlaneStatusError string

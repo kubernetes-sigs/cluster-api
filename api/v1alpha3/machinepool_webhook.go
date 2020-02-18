@@ -17,7 +17,9 @@ limitations under the License.
 package v1alpha3
 
 import (
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	runtime "k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/util/validation/field"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/webhook"
 )
@@ -36,23 +38,66 @@ var _ webhook.Validator = &MachinePool{}
 
 // Default implements webhook.Defaulter so a webhook will be registered for the type
 func (m *MachinePool) Default() {
-	// TODO(juan-lee): Add machine pool implementation.
+	if m.Spec.Template.Spec.Bootstrap.ConfigRef != nil && len(m.Spec.Template.Spec.Bootstrap.ConfigRef.Namespace) == 0 {
+		m.Spec.Template.Spec.Bootstrap.ConfigRef.Namespace = m.Namespace
+	}
+
+	if len(m.Spec.Template.Spec.InfrastructureRef.Namespace) == 0 {
+		m.Spec.Template.Spec.InfrastructureRef.Namespace = m.Namespace
+	}
 }
 
 // ValidateCreate implements webhook.Validator so a webhook will be registered for the type
 func (m *MachinePool) ValidateCreate() error {
-	// TODO(juan-lee): Add machine pool implementation.
-	return nil
+	return m.validate()
 }
 
 // ValidateUpdate implements webhook.Validator so a webhook will be registered for the type
 func (m *MachinePool) ValidateUpdate(old runtime.Object) error {
-	// TODO(juan-lee): Add machine pool implementation.
-	return nil
+	return m.validate()
 }
 
 // ValidateDelete implements webhook.Validator so a webhook will be registered for the type
 func (m *MachinePool) ValidateDelete() error {
-	// TODO(juan-lee): Add machine pool implementation.
-	return nil
+	return m.validate()
+}
+
+func (m *MachinePool) validate() error {
+	var allErrs field.ErrorList
+	if m.Spec.Template.Spec.Bootstrap.ConfigRef == nil && m.Spec.Template.Spec.Bootstrap.DataSecretName == nil {
+		allErrs = append(
+			allErrs,
+			field.Required(
+				field.NewPath("spec", "template", "spec", "bootstrap", "data"),
+				"expected either spec.bootstrap.dataSecretName or spec.bootstrap.configRef to be populated",
+			),
+		)
+	}
+
+	if m.Spec.Template.Spec.Bootstrap.ConfigRef != nil && m.Spec.Template.Spec.Bootstrap.ConfigRef.Namespace != m.Namespace {
+		allErrs = append(
+			allErrs,
+			field.Invalid(
+				field.NewPath("spec", "template", "spec", "bootstrap", "configRef", "namespace"),
+				m.Spec.Template.Spec.Bootstrap.ConfigRef.Namespace,
+				"must match metadata.namespace",
+			),
+		)
+	}
+
+	if m.Spec.Template.Spec.InfrastructureRef.Namespace != m.Namespace {
+		allErrs = append(
+			allErrs,
+			field.Invalid(
+				field.NewPath("spec", "infrastructureRef", "namespace"),
+				m.Spec.Template.Spec.InfrastructureRef.Namespace,
+				"must match metadata.namespace",
+			),
+		)
+	}
+
+	if len(allErrs) == 0 {
+		return nil
+	}
+	return apierrors.NewInvalid(GroupVersion.WithKind("MachinePool").GroupKind(), m.Name, allErrs)
 }

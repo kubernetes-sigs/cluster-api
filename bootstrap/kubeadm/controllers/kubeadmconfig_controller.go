@@ -57,7 +57,7 @@ type InitLocker interface {
 }
 
 // +kubebuilder:rbac:groups=bootstrap.cluster.x-k8s.io,resources=kubeadmconfigs;kubeadmconfigs/status,verbs=get;list;watch;create;update;patch;delete
-// +kubebuilder:rbac:groups=cluster.x-k8s.io,resources=clusters;clusters/status;machines;machines/status,verbs=get;list;watch
+// +kubebuilder:rbac:groups=cluster.x-k8s.io,resources=clusters;clusters/status;machines;machines/status;machinepools;machinepools/status,verbs=get;list;watch
 // +kubebuilder:rbac:groups="",resources=secrets;events;configmaps,verbs=get;list;watch;create;update;patch;delete
 
 // KubeadmConfigReconciler reconciles a KubeadmConfig object
@@ -94,6 +94,12 @@ func (r *KubeadmConfigReconciler) SetupWithManager(mgr ctrl.Manager, option cont
 			&source.Kind{Type: &clusterv1.Machine{}},
 			&handler.EnqueueRequestsFromMapFunc{
 				ToRequests: handler.ToRequestsFunc(r.MachineToBootstrapMapFunc),
+			},
+		).
+		Watches(
+			&source.Kind{Type: &clusterv1.MachinePool{}},
+			&handler.EnqueueRequestsFromMapFunc{
+				ToRequests: handler.ToRequestsFunc(r.MachinePoolToBootstrapMapFunc),
 			},
 		).
 		Watches(
@@ -549,6 +555,23 @@ func (r *KubeadmConfigReconciler) MachineToBootstrapMapFunc(o handler.MapObject)
 	}
 	if m.Spec.Bootstrap.ConfigRef != nil && m.Spec.Bootstrap.ConfigRef.GroupVersionKind() == bootstrapv1.GroupVersion.WithKind("KubeadmConfig") {
 		name := client.ObjectKey{Namespace: m.Namespace, Name: m.Spec.Bootstrap.ConfigRef.Name}
+		result = append(result, ctrl.Request{NamespacedName: name})
+	}
+	return result
+}
+
+// MachinePoolToBootstrapMapFunc is a handler.ToRequestsFunc to be used to enqueue
+// request for reconciliation of KubeadmConfig.
+func (r *KubeadmConfigReconciler) MachinePoolToBootstrapMapFunc(o handler.MapObject) []ctrl.Request {
+	result := []ctrl.Request{}
+
+	m, ok := o.Object.(*clusterv1.MachinePool)
+	if !ok {
+		return nil
+	}
+	configRef := m.Spec.Template.Spec.Bootstrap.ConfigRef
+	if configRef != nil && configRef.GroupVersionKind().GroupKind() == bootstrapv1.GroupVersion.WithKind("KubeadmConfig").GroupKind() {
+		name := client.ObjectKey{Namespace: m.Namespace, Name: configRef.Name}
 		result = append(result, ctrl.Request{NamespacedName: name})
 	}
 	return result

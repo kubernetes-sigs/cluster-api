@@ -31,6 +31,7 @@ import (
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/clientcmd"
 	"sigs.k8s.io/cluster-api/test/framework/exec"
+	"sigs.k8s.io/cluster-api/test/framework/options"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/apiutil"
 	"sigs.k8s.io/kind/pkg/cluster"
@@ -214,6 +215,9 @@ func (c *Cluster) Wait(ctx context.Context, args ...string) error {
 // Teardown deletes all the tmp files and cleans up the kind cluster.
 // This does not return an error so that it can clean as much up as possible regardless of error.
 func (c *Cluster) Teardown(ctx context.Context) {
+	if options.SkipResourceCleanup {
+		return
+	}
 	if c == nil {
 		return
 	}

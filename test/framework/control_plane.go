@@ -31,6 +31,7 @@ import (
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha3"
 	cabpkv1 "sigs.k8s.io/cluster-api/bootstrap/kubeadm/api/v1alpha3"
 	controlplanev1 "sigs.k8s.io/cluster-api/controlplane/kubeadm/api/v1alpha3"
+	"sigs.k8s.io/cluster-api/test/framework/options"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
@@ -270,6 +271,9 @@ type DeleteClusterInput struct {
 
 // DeleteCluster deletes the cluster and waits for everything the cluster owned to actually be gone.
 func DeleteCluster(ctx context.Context, input DeleteClusterInput) {
+	if options.SkipResourceCleanup {
+		return
+	}
 	By(fmt.Sprintf("deleting cluster %s", input.Cluster.GetName()))
 	Expect(input.Deleter.Delete(ctx, input.Cluster)).To(Succeed())
 }
@@ -282,6 +286,9 @@ type WaitForClusterDeletedInput struct {
 
 // WaitForClusterDeleted waits until the cluster object has been deleted.
 func WaitForClusterDeleted(ctx context.Context, input WaitForClusterDeletedInput, intervals ...interface{}) {
+	if options.SkipResourceCleanup {
+		return
+	}
 	By(fmt.Sprintf("waiting for cluster %s to be deleted", input.Cluster.GetName()))
 	Eventually(func() bool {
 		cluster := &clusterv1.Cluster{}
@@ -301,6 +308,9 @@ type AssertAllClusterAPIResourcesAreGoneInput struct {
 
 // AssertAllClusterAPIResourcesAreGone ensures that all known Cluster API resources have been remvoed.
 func AssertAllClusterAPIResourcesAreGone(ctx context.Context, input AssertAllClusterAPIResourcesAreGoneInput) {
+	if options.SkipResourceCleanup {
+		return
+	}
 	lbl, err := labels.Parse(fmt.Sprintf("%s=%s", clusterv1.ClusterLabelName, input.Cluster.GetClusterName()))
 	Expect(err).ToNot(HaveOccurred())
 	opt := &client.ListOptions{LabelSelector: lbl}

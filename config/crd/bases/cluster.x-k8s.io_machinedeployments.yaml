@@ -3,6 +3,8 @@
 apiVersion: apiextensions.k8s.io/v1beta1
 kind: CustomResourceDefinition
 metadata:
+  annotations:
+    controller-gen.kubebuilder.io/version: v0.2.5
   creationTimestamp: null
   name: machinedeployments.cluster.x-k8s.io
 spec:
@@ -16,6 +18,7 @@ spec:
     shortNames:
     - md
     singular: machinedeployment
+  preserveUnknownFields: false
   scope: Namespaced
   subresources:
     scale:
@@ -126,8 +129,8 @@ spec:
                   properties:
                     maxSurge:
                       anyOf:
-                      - type: string
                       - type: integer
+                      - type: string
                       description: 'The maximum number of machines that can be scheduled
                         above the desired number of machines. Value can be an absolute
                         number (ex: 5) or a percentage of desired machines (ex: 10%).
@@ -140,10 +143,11 @@ spec:
                         new MachineSet can be scaled up further, ensuring that total
                         number of machines running at any time during the update is
                         at most 130% of desired machines.'
+                      x-kubernetes-int-or-string: true
                     maxUnavailable:
                       anyOf:
-                      - type: string
                       - type: integer
+                      - type: string
                       description: 'The maximum number of machines that can be unavailable
                         during the update. Value can be an absolute number (ex: 5)
                         or a percentage of desired machines (ex: 10%). Absolute number
@@ -155,6 +159,7 @@ spec:
                         down further, followed by scaling up the new MachineSet, ensuring
                         that the total number of machines available at all times during
                         the update is at least 70% of desired machines.'
+                      x-kubernetes-int-or-string: true
                   type: object
                 type:
                   description: Type of deployment. Currently the only supported strategy

@@ -69,26 +69,6 @@ func RegisterConversions(s *runtime.Scheme) error {
 	}); err != nil {
 		return err
 	}
-	if err := s.AddGeneratedConversionFunc((*ClusterSpec)(nil), (*v1alpha1.ClusterSpec)(nil), func(a, b interface{}, scope conversion.Scope) error {
-		return Convert_v1alpha2_ClusterSpec_To_v1alpha1_ClusterSpec(a.(*ClusterSpec), b.(*v1alpha1.ClusterSpec), scope)
-	}); err != nil {
-		return err
-	}
-	if err := s.AddGeneratedConversionFunc((*v1alpha1.ClusterSpec)(nil), (*ClusterSpec)(nil), func(a, b interface{}, scope conversion.Scope) error {
-		return Convert_v1alpha1_ClusterSpec_To_v1alpha2_ClusterSpec(a.(*v1alpha1.ClusterSpec), b.(*ClusterSpec), scope)
-	}); err != nil {
-		return err
-	}
-	if err := s.AddGeneratedConversionFunc((*ClusterStatus)(nil), (*v1alpha1.ClusterStatus)(nil), func(a, b interface{}, scope conversion.Scope) error {
-		return Convert_v1alpha2_ClusterStatus_To_v1alpha1_ClusterStatus(a.(*ClusterStatus), b.(*v1alpha1.ClusterStatus), scope)
-	}); err != nil {
-		return err
-	}
-	if err := s.AddGeneratedConversionFunc((*v1alpha1.ClusterStatus)(nil), (*ClusterStatus)(nil), func(a, b interface{}, scope conversion.Scope) error {
-		return Convert_v1alpha1_ClusterStatus_To_v1alpha2_ClusterStatus(a.(*v1alpha1.ClusterStatus), b.(*ClusterStatus), scope)
-	}); err != nil {
-		return err
-	}
 	if err := s.AddGeneratedConversionFunc((*Machine)(nil), (*v1alpha1.Machine)(nil), func(a, b interface{}, scope conversion.Scope) error {
 		return Convert_v1alpha2_Machine_To_v1alpha1_Machine(a.(*Machine), b.(*v1alpha1.Machine), scope)
 	}); err != nil {
@@ -126,11 +106,6 @@ func RegisterConversions(s *runtime.Scheme) error {
 	}
 	if err := s.AddGeneratedConversionFunc((*v1alpha1.MachineDeploymentSpec)(nil), (*MachineDeploymentSpec)(nil), func(a, b interface{}, scope conversion.Scope) error {
 		return Convert_v1alpha1_MachineDeploymentSpec_To_v1alpha2_MachineDeploymentSpec(a.(*v1alpha1.MachineDeploymentSpec), b.(*MachineDeploymentSpec), scope)
-	}); err != nil {
-		return err
-	}
-	if err := s.AddGeneratedConversionFunc((*MachineDeploymentStatus)(nil), (*v1alpha1.MachineDeploymentStatus)(nil), func(a, b interface{}, scope conversion.Scope) error {
-		return Convert_v1alpha2_MachineDeploymentStatus_To_v1alpha1_MachineDeploymentStatus(a.(*MachineDeploymentStatus), b.(*v1alpha1.MachineDeploymentStatus), scope)
 	}); err != nil {
 		return err
 	}
@@ -199,33 +174,8 @@ func RegisterConversions(s *runtime.Scheme) error {
 	}); err != nil {
 		return err
 	}
-	if err := s.AddGeneratedConversionFunc((*MachineSetStatus)(nil), (*v1alpha1.MachineSetStatus)(nil), func(a, b interface{}, scope conversion.Scope) error {
-		return Convert_v1alpha2_MachineSetStatus_To_v1alpha1_MachineSetStatus(a.(*MachineSetStatus), b.(*v1alpha1.MachineSetStatus), scope)
-	}); err != nil {
-		return err
-	}
 	if err := s.AddGeneratedConversionFunc((*v1alpha1.MachineSetStatus)(nil), (*MachineSetStatus)(nil), func(a, b interface{}, scope conversion.Scope) error {
 		return Convert_v1alpha1_MachineSetStatus_To_v1alpha2_MachineSetStatus(a.(*v1alpha1.MachineSetStatus), b.(*MachineSetStatus), scope)
-	}); err != nil {
-		return err
-	}
-	if err := s.AddGeneratedConversionFunc((*MachineSpec)(nil), (*v1alpha1.MachineSpec)(nil), func(a, b interface{}, scope conversion.Scope) error {
-		return Convert_v1alpha2_MachineSpec_To_v1alpha1_MachineSpec(a.(*MachineSpec), b.(*v1alpha1.MachineSpec), scope)
-	}); err != nil {
-		return err
-	}
-	if err := s.AddGeneratedConversionFunc((*v1alpha1.MachineSpec)(nil), (*MachineSpec)(nil), func(a, b interface{}, scope conversion.Scope) error {
-		return Convert_v1alpha1_MachineSpec_To_v1alpha2_MachineSpec(a.(*v1alpha1.MachineSpec), b.(*MachineSpec), scope)
-	}); err != nil {
-		return err
-	}
-	if err := s.AddGeneratedConversionFunc((*MachineStatus)(nil), (*v1alpha1.MachineStatus)(nil), func(a, b interface{}, scope conversion.Scope) error {
-		return Convert_v1alpha2_MachineStatus_To_v1alpha1_MachineStatus(a.(*MachineStatus), b.(*v1alpha1.MachineStatus), scope)
-	}); err != nil {
-		return err
-	}
-	if err := s.AddGeneratedConversionFunc((*v1alpha1.MachineStatus)(nil), (*MachineStatus)(nil), func(a, b interface{}, scope conversion.Scope) error {
-		return Convert_v1alpha1_MachineStatus_To_v1alpha2_MachineStatus(a.(*v1alpha1.MachineStatus), b.(*MachineStatus), scope)
 	}); err != nil {
 		return err
 	}

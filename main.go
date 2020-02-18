@@ -22,12 +22,15 @@ import (
 	"os"
 	"time"
 
+	"github.com/spf13/pflag"
 	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
 	"k8s.io/client-go/rest"
 	"k8s.io/klog"
 	"k8s.io/klog/klogr"
+	_ "sigs.k8s.io/cluster-api/features"
+	"sigs.k8s.io/cluster-api/util/featuregate"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/cache"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -69,44 +72,52 @@ func init() {
 	// +kubebuilder:scaffold:scheme
 }
 
-func main() {
-	flag.StringVar(&metricsAddr, "metrics-addr", ":8080",
+// InitFlags initializes the flags.
+func InitFlags(fs *pflag.FlagSet) {
+	fs.StringVar(&metricsAddr, "metrics-addr", ":8080",
 		"The address the metric endpoint binds to.")
 
-	flag.BoolVar(&enableLeaderElection, "enable-leader-election", false,
+	fs.BoolVar(&enableLeaderElection, "enable-leader-election", false,
 		"Enable leader election for controller manager. Enabling this will ensure there is only one active controller manager.")
 
-	flag.StringVar(&watchNamespace, "namespace", "",
+	fs.StringVar(&watchNamespace, "namespace", "",
 		"Namespace that the controller watches to reconcile cluster-api objects. If unspecified, the controller watches for cluster-api objects across all namespaces.")
 
-	flag.StringVar(&profilerAddress, "profiler-address", "",
+	fs.StringVar(&profilerAddress, "profiler-address", "",
 		"Bind address to expose the pprof profiler (e.g. localhost:6060)")
 
-	flag.IntVar(&clusterConcurrency, "cluster-concurrency", 10,
+	fs.IntVar(&clusterConcurrency, "cluster-concurrency", 10,
 		"Number of clusters to process simultaneously")
 
-	flag.IntVar(&machineConcurrency, "machine-concurrency", 10,
+	fs.IntVar(&machineConcurrency, "machine-concurrency", 10,
 		"Number of machines to process simultaneously")
 
-	flag.IntVar(&machineSetConcurrency, "machineset-concurrency", 10,
+	fs.IntVar(&machineSetConcurrency, "machineset-concurrency", 10,
 		"Number of machine sets to process simultaneously")
 
-	flag.IntVar(&machineDeploymentConcurrency, "machinedeployment-concurrency", 10,
+	fs.IntVar(&machineDeploymentConcurrency, "machinedeployment-concurrency", 10,
 		"Number of machine deployments to process simultaneously")
 
-	flag.IntVar(&machinePoolConcurrency, "machinepool-concurrency", 10,
+	fs.IntVar(&machinePoolConcurrency, "machinepool-concurrency", 10,
 		"Number of machine pools to process simultaneously")
 
-	flag.DurationVar(&syncPeriod, "sync-period", 10*time.Minute,
+	fs.DurationVar(&syncPeriod, "sync-period", 10*time.Minute,
 		"The minimum interval at which watched resources are reconciled (e.g. 15m)")
 
-	flag.IntVar(&webhookPort, "webhook-port", 0,
+	fs.IntVar(&webhookPort, "webhook-port", 0,
 		"Webhook Server port, disabled by default. When enabled, the manager will only work as webhook server, no reconcilers are installed.")
 
-	flag.StringVar(&healthAddr, "health-addr", ":9440",
+	fs.StringVar(&healthAddr, "health-addr", ":9440",
 		"The address the health endpoint binds to.")
 
-	flag.Parse()
+	// Add --feature-gates flag
+	featuregate.DefaultMutableFeatureGate.AddFlag(fs)
+}
+
+func main() {
+	InitFlags(pflag.CommandLine)
+	pflag.CommandLine.AddGoFlagSet(flag.CommandLine)
+	pflag.Parse()
 
 	ctrl.SetLogger(klogr.New())
 

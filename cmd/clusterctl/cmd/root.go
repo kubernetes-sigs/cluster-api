@@ -46,6 +46,8 @@ func Execute() {
 }
 
 func init() {
+	flag.CommandLine = flag.NewFlagSet(os.Args[0], flag.ExitOnError)
+
 	verbosity := flag.CommandLine.Int("v", 0, "number for the log level verbosity")
 	logf.SetLogger(logf.NewLogger(logf.WithThreshold(verbosity)))
 

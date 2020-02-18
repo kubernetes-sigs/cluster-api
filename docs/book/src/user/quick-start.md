@@ -737,7 +737,7 @@ spec:
 To verify the control plane is up, check if the control plane machine
 has a ProviderID.
 ```
-kubectl get machines --selector cluster.x-k8s.io/control-plane
+kubectl get machines --selector cluster.x-k8s.io/control-plane --all-namespaces
 ```
 
 If the control plane is deployed using a control plane provider, such as

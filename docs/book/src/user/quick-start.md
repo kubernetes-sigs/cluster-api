@@ -749,8 +749,8 @@ kubectl get clusters --output jsonpath="{range .items[*]} [{.metadata.name} {.st
 
 After the control plane node is up, we can retrieve the [workload cluster] Kubeconfig:
 
-{{#tabs name:"tab-getting-kubeconfig" tabs:"AWS|Azure|GCP|vSphere|OpenStack, Docker"}}
-{{#tab AWS|Azure|GCP|vSphere|OpenStack}}
+{{#tabs name:"tab-getting-kubeconfig" tabs:"AWS/Azure/GCP/vSphere/OpenStack, Docker"}}
+{{#tab AWS/Azure/GCP/vSphere/OpenStack}}
 
 ```bash
 kubectl --namespace=default get secret/capi-quickstart-kubeconfig -o json \

@@ -35,6 +35,7 @@ const (
 	VSphereProviderName             = "vsphere"
 	ProvidersConfigKey              = "providers"
 	OpenStackProviderName           = "openstack"
+	BareMetalProviderName           = "baremetal"
 )
 
 // ProvidersClient has methods to work with provider configurations.
@@ -96,6 +97,11 @@ func (p *providersClient) defaults() []Provider {
 		&provider{
 			name:         OpenStackProviderName,
 			url:          "https://github.com/kubernetes-sigs/cluster-api-provider-openstack/releases/latest/infrastructure-components.yaml",
+			providerType: clusterctlv1.InfrastructureProviderType,
+		},
+		&provider{
+			name:         BareMetalProviderName,
+			url:          "https://github.com/metal3-io/cluster-api-provider-baremetal/releases/latest/infrastructure-components.yaml",
 			providerType: clusterctlv1.InfrastructureProviderType,
 		},
 

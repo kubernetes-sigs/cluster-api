@@ -49,6 +49,7 @@ func Test_clusterctlClient_GetProvidersConfig(t *testing.T) {
 			},
 			wantProviders: []string{
 				config.AWSProviderName,
+				config.BareMetalProviderName,
 				config.ClusterAPIProviderName,
 				config.DockerProviderName,
 				config.KubeadmBootstrapProviderName,
@@ -65,6 +66,7 @@ func Test_clusterctlClient_GetProvidersConfig(t *testing.T) {
 			},
 			wantProviders: []string{
 				config.AWSProviderName,
+				config.BareMetalProviderName,
 				config.ClusterAPIProviderName,
 				customProviderConfig.Name(),
 				config.DockerProviderName,

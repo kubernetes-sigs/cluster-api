@@ -71,10 +71,10 @@ export KUBECONFIG=<...>
 {{#/tabs }}
 
 * If the provider of your choice expects some preliminary steps to be executed, users should take care of those in advance;
-* If the provider of your choice expects some environment variables, e.g. `AWS_CREDENTIALS` for the `aws` 
+* If the provider of your choice expects some environment variables, e.g. `AWS_CREDENTIALS` for the `aws`
 infrastructure provider, user should ensure those variables are set in advance.
 
-{{#tabs name:"tab-installation-infrastructure" tabs:"AWS,Azure,Docker,GCP,vSphere,OpenStack"}}
+{{#tabs name:"tab-installation-infrastructure" tabs:"AWS,Azure,Docker,GCP,vSphere,OpenStack,BareMetal"}}
 {{#tab AWS}}
 
 Download the latest binary of `clusterawsadm` from the [AWS provider releases] and make sure to place it in your path.
@@ -98,7 +98,7 @@ export AZURE_TENANT_ID_B64="$(echo -n "$AZURE_TENANT_ID" | base64 | tr -d '\n')"
 export AZURE_CLIENT_ID_B64="$(echo -n "$AZURE_CLIENT_ID" | base64 | tr -d '\n')"
 export AZURE_CLIENT_SECRET_B64="$(echo -n "$AZURE_CLIENT_SECRET" | base64 | tr -d '\n')"
 ```
- 
+
 For more information about authorization, AAD, or requirements for Azure, visit the [Azure Provider Prerequisites](https://github.com/kubernetes-sigs/cluster-api-provider-azure/blob/master/docs/getting-started.md#prerequisites) document.
 
 {{#/tab }}
@@ -152,6 +152,11 @@ For more information about prerequisites, credentials management, or permissions
 Please visit the [getting started guide](https://github.com/kubernetes-sigs/cluster-api-provider-openstack/blob/master/docs/getting-started.md).
 
 {{#/tab }}
+{{#tab BareMetal}}
+
+Please visit the [getting started guide](https://github.com/metal3-io/cluster-api-provider-baremetal/blob/master/docs/getting-started.md).
+
+{{#/tab }}
 {{#/tabs }}
 
 ### 1. Initialize the management cluster
@@ -159,7 +164,7 @@ Please visit the [getting started guide](https://github.com/kubernetes-sigs/clus
 The `clusterctl init` command installs the Cluster API components and transforms the Kubernetes cluster
 into a management cluster.
 
-The command accepts as input a list of providers to install; when executed for the first time, `clusterctl init` 
+The command accepts as input a list of providers to install; when executed for the first time, `clusterctl init`
 automatically adds to the list the `cluster-api` core provider, and if not specified, it
 also adds the `kubeadm-bootstrap` and `kubeadm-controlplane` providers.
 
@@ -167,7 +172,7 @@ also adds the `kubeadm-bootstrap` and `kubeadm-controlplane` providers.
 
 <h1>Action Required</h1>
 
-If the component specification defined by one of the selected providers expects some environment variables, user 
+If the component specification defined by one of the selected providers expects some environment variables, user
 should ensure those variables are set in advance.
 
 </aside>
@@ -195,7 +200,7 @@ See [`clusterctl init`](commands/init.md) for more details.
 ### 2. Create the first workload cluster
 
 Once the management cluster is ready, you can create the first workload cluster.
- 
+
 The `clusterctl create config` command returns a YAML template for creating a workload cluster.
 Store it locally, eventually customize it, and the apply it to start provisioning the workload cluster.
 
@@ -205,7 +210,7 @@ Store it locally, eventually customize it, and the apply it to start provisionin
 <h1> Which provider will be used for my cluster? </h1>
 
 The `clusterctl config cluster` command uses smart defaults in order to simplify the user experience; in this example,
-it detects that there is only an `aws` infrastructure provider and so it uses that when creating the cluster. 
+it detects that there is only an `aws` infrastructure provider and so it uses that when creating the cluster.
 
 </aside>
 
@@ -226,7 +231,7 @@ for cluster templates.
 
 <h1>Action Required</h1>
 
-If the cluster template defined by the infrastructure provider expects some environment variables, user 
+If the cluster template defined by the infrastructure provider expects some environment variables, user
 should ensure those variables are set in advance.
 
 See [`clusterctl config cluster`](commands/config-cluster.md) for details about how to discover the list of

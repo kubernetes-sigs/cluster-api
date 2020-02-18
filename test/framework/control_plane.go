@@ -319,6 +319,10 @@ func AssertAllClusterAPIResourcesAreGone(ctx context.Context, input AssertAllClu
 	Expect(input.Lister.List(ctx, mdl, opt)).To(Succeed())
 	Expect(mdl.Items).To(HaveLen(0))
 
+	mpl := &clusterv1.MachinePoolList{}
+	Expect(input.Lister.List(ctx, mpl, opt)).To(Succeed())
+	Expect(mpl.Items).To(HaveLen(0))
+
 	kcpl := &controlplanev1.KubeadmControlPlaneList{}
 	Expect(input.Lister.List(ctx, kcpl, opt)).To(Succeed())
 	Expect(kcpl.Items).To(HaveLen(0))

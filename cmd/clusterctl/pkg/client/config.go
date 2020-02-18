@@ -161,6 +161,9 @@ func (c *clusterctlClient) GetClusterTemplate(options GetClusterTemplateOptions)
 		if err != nil {
 			return nil, err
 		}
+		if currentNamespace == "" {
+			return nil, errors.New("failed to identify the current namespace. Please specify a target namespace")
+		}
 		options.TargetNamespace = currentNamespace
 	}
 
@@ -185,14 +188,16 @@ func (c *clusterctlClient) GetClusterTemplate(options GetClusterTemplateOptions)
 
 // getTemplateFromRepository returns a workload cluster template from a provider repository.
 func (c *clusterctlClient) getTemplateFromRepository(cluster cluster.Client, source ProviderRepositorySourceOptions, targetNamespace string, listVariablesOnly bool) (Template, error) {
-	// ensure the custom resource definitions required by clusterctl are in place
-	if err := cluster.ProviderInventory().EnsureCustomResourceDefinitions(); err != nil {
-		return nil, err
-	}
-
 	// If the option specifying the name of the infrastructure provider to get templates from is empty, try to detect it.
 	provider := source.InfrastructureProvider
+	ensureCustomResourceDefinitions := false
 	if provider == "" {
+		// ensure the custom resource definitions required by clusterctl are in place
+		if err := cluster.ProviderInventory().EnsureCustomResourceDefinitions(); err != nil {
+			return nil, errors.Wrapf(err, "failed to identify the default infrastructure provider. Please specify an infrastructure provider")
+		}
+		ensureCustomResourceDefinitions = true
+
 		defaultProviderName, err := cluster.ProviderInventory().GetDefaultProviderName(clusterctlv1.InfrastructureProviderType)
 		if err != nil {
 			return nil, err
@@ -212,6 +217,13 @@ func (c *clusterctlClient) getTemplateFromRepository(cluster cluster.Client, sou
 
 	// If the version of the infrastructure provider to get templates from is empty, try to detect it.
 	if version == "" {
+		// ensure the custom resource definitions required by clusterctl are in place (if not already done)
+		if !ensureCustomResourceDefinitions {
+			if err := cluster.ProviderInventory().EnsureCustomResourceDefinitions(); err != nil {
+				return nil, errors.Wrapf(err, "failed to identify the default version for the provider %q. Please specify a version", name)
+			}
+		}
+
 		defaultProviderVersion, err := cluster.ProviderInventory().GetDefaultProviderVersion(name)
 		if err != nil {
 			return nil, err

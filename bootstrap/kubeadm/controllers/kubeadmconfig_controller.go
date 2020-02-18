@@ -202,7 +202,7 @@ func (r *KubeadmConfigReconciler) Reconcile(req ctrl.Request) (_ ctrl.Result, re
 
 			token := config.Spec.JoinConfiguration.Discovery.BootstrapToken.Token
 
-			remoteClient, err := r.remoteClientGetter(ctx, r.Client, cluster, r.scheme)
+			remoteClient, err := r.remoteClientGetter(ctx, r.Client, util.ObjectKey(cluster), r.scheme)
 			if err != nil {
 				log.Error(err, "error creating remote cluster client")
 				return ctrl.Result{}, err
@@ -618,7 +618,7 @@ func (r *KubeadmConfigReconciler) reconcileDiscovery(ctx context.Context, cluste
 
 	// if BootstrapToken already contains a token, respect it; otherwise create a new bootstrap token for the node to join
 	if config.Spec.JoinConfiguration.Discovery.BootstrapToken.Token == "" {
-		remoteClient, err := r.remoteClientGetter(ctx, r.Client, cluster, r.scheme)
+		remoteClient, err := r.remoteClientGetter(ctx, r.Client, util.ObjectKey(cluster), r.scheme)
 		if err != nil {
 			return err
 		}

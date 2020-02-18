@@ -296,25 +296,16 @@ func (r *MachineReconciler) isDeleteNodeAllowed(ctx context.Context, machine *cl
 
 func (r *MachineReconciler) drainNode(ctx context.Context, cluster *clusterv1.Cluster, nodeName string, machineName string) error {
 	logger := r.Log.WithValues("machine", machineName, "node", nodeName, "cluster", cluster.Name, "namespace", cluster.Namespace)
-	var kubeClient kubernetes.Interface
-	if cluster == nil {
-		var err error
-		kubeClient, err = kubernetes.NewForConfig(r.config)
-		if err != nil {
-			return errors.Errorf("unable to build kube client: %v", err)
-		}
-	} else {
-		// Otherwise, proceed to get the remote cluster client and get the Node.
-		restConfig, err := remote.RESTConfig(ctx, r.Client, cluster)
-		if err != nil {
-			logger.Error(err, "Error creating a remote client while deleting Machine, won't retry")
-			return nil
-		}
-		kubeClient, err = kubernetes.NewForConfig(restConfig)
-		if err != nil {
-			logger.Error(err, "Error creating a remote client while deleting Machine, won't retry")
-			return nil
-		}
+
+	restConfig, err := remote.RESTConfig(ctx, r.Client, util.ObjectKey(cluster))
+	if err != nil {
+		logger.Error(err, "Error creating a remote client while deleting Machine, won't retry")
+		return nil
+	}
+	kubeClient, err := kubernetes.NewForConfig(restConfig)
+	if err != nil {
+		logger.Error(err, "Error creating a remote client while deleting Machine, won't retry")
+		return nil
 	}
 
 	node, err := kubeClient.CoreV1().Nodes().Get(nodeName, metav1.GetOptions{})
@@ -374,7 +365,7 @@ func (r *MachineReconciler) deleteNode(ctx context.Context, cluster *clusterv1.C
 	logger := r.Log.WithValues("machine", name, "cluster", cluster.Name, "namespace", cluster.Namespace)
 
 	// Create a remote client to delete the node
-	c, err := remote.NewClusterClient(ctx, r.Client, cluster, r.scheme)
+	c, err := remote.NewClusterClient(ctx, r.Client, util.ObjectKey(cluster), r.scheme)
 	if err != nil {
 		logger.Error(err, "Error creating a remote client for cluster while deleting Machine, won't retry")
 		return nil

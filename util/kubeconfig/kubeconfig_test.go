@@ -84,10 +84,12 @@ func setupScheme() *runtime.Scheme {
 }
 
 func TestGetKubeConfigSecret(t *testing.T) {
+	clusterKey := client.ObjectKey{
+		Name:      "test1",
+		Namespace: "test",
+	}
 	client := fake.NewFakeClientWithScheme(setupScheme(), validSecret)
-	found, err := FromSecret(context.Background(), client, &clusterv1.Cluster{
-		ObjectMeta: metav1.ObjectMeta{Name: "test1", Namespace: "test"},
-	})
+	found, err := FromSecret(context.Background(), client, clusterKey)
 	if err != nil {
 		t.Fatalf("Expected no error, got %v", err)
 	}

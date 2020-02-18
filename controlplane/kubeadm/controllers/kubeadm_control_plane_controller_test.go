@@ -46,6 +46,7 @@ import (
 	controlplanev1 "sigs.k8s.io/cluster-api/controlplane/kubeadm/api/v1alpha3"
 	"sigs.k8s.io/cluster-api/controlplane/kubeadm/internal"
 	"sigs.k8s.io/cluster-api/controlplane/kubeadm/internal/hash"
+	"sigs.k8s.io/cluster-api/util"
 	"sigs.k8s.io/cluster-api/util/kubeconfig"
 	"sigs.k8s.io/cluster-api/util/secret"
 )
@@ -644,7 +645,7 @@ func TestReconcileInitializeControlPlane(t *testing.T) {
 	g.Expect(s.Data).NotTo(BeEmpty())
 	g.Expect(s.Labels).To(Equal(expectedLabels))
 
-	k, err := kubeconfig.FromSecret(context.Background(), fakeClient, cluster)
+	k, err := kubeconfig.FromSecret(context.Background(), fakeClient, util.ObjectKey(cluster))
 	g.Expect(err).NotTo(HaveOccurred())
 	g.Expect(k).NotTo(BeEmpty())
 

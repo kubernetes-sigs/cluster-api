@@ -26,32 +26,26 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/client-go/kubernetes/scheme"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 
-	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha3"
 	"sigs.k8s.io/cluster-api/util/secret"
 )
 
 var (
-	clusterWithValidKubeConfig = &clusterv1.Cluster{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      "test1",
-			Namespace: "test",
-		},
+	clusterWithValidKubeConfig = client.ObjectKey{
+		Name:      "test1",
+		Namespace: "test",
 	}
 
-	clusterWithInvalidKubeConfig = &clusterv1.Cluster{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      "test2",
-			Namespace: "test",
-		},
+	clusterWithInvalidKubeConfig = client.ObjectKey{
+		Name:      "test2",
+		Namespace: "test",
 	}
 
-	clusterWithNoKubeConfig = &clusterv1.Cluster{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      "test3",
-			Namespace: "test",
-		},
+	clusterWithNoKubeConfig = client.ObjectKey{
+		Name:      "test3",
+		Namespace: "test",
 	}
 
 	validKubeConfig = `

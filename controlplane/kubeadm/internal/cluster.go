@@ -155,22 +155,14 @@ func (m *ManagementCluster) GetMachinesForCluster(ctx context.Context, cluster t
 // The cluster is also populated with secrets stored on the management cluster that is required for
 // secure internal pod connections.
 func (m *ManagementCluster) getCluster(ctx context.Context, clusterKey types.NamespacedName) (*cluster, error) {
-	// This adapter is for interop with the `remote` package.
-	adapterCluster := &clusterv1.Cluster{
-		ObjectMeta: metav1.ObjectMeta{
-			Namespace: clusterKey.Namespace,
-			Name:      clusterKey.Name,
-		},
-	}
-
 	// TODO(chuckha): Unroll remote.NewClusterClient if we are unhappy with getting a restConfig twice.
 	// TODO(chuckha): Inject this dependency if necessary.
-	restConfig, err := remote.RESTConfig(ctx, m.Client, adapterCluster)
+	restConfig, err := remote.RESTConfig(ctx, m.Client, clusterKey)
 	if err != nil {
 		return nil, err
 	}
 
-	c, err := remote.NewClusterClient(ctx, m.Client, adapterCluster, scheme.Scheme)
+	c, err := remote.NewClusterClient(ctx, m.Client, clusterKey, scheme.Scheme)
 	if err != nil {
 		return nil, err
 	}

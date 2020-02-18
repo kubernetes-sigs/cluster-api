@@ -204,6 +204,14 @@ func GetClusterByName(ctx context.Context, c client.Client, namespace, name stri
 	return cluster, nil
 }
 
+// ObjectKey returns client.ObjectKey for the object
+func ObjectKey(object metav1.Object) client.ObjectKey {
+	return client.ObjectKey{
+		Namespace: object.GetNamespace(),
+		Name:      object.GetName(),
+	}
+}
+
 // ClusterToInfrastructureMapFunc returns a handler.ToRequestsFunc that watches for
 // Cluster events and returns reconciliation requests for an infrastructure provider object.
 func ClusterToInfrastructureMapFunc(gvk schema.GroupVersionKind) handler.ToRequestsFunc {

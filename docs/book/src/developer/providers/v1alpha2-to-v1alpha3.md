@@ -52,13 +52,24 @@
 ## Changes to `sigs.k8s.io/cluster-api/controllers/remote`
 
 -  The `ClusterClient` interface has been removed.
-- `remote.NewClusterClient` now returns a `sigs.k8s.io/controller-runtime/pkg/client` Client. The signature changed from
+- `remote.NewClusterClient` now returns a `sigs.k8s.io/controller-runtime/pkg/client` Client. It also requires `client.ObjectKey` instead of a cluster reference. The signature changed:
+  - From: `func NewClusterClient(c client.Client, cluster *clusterv1.Cluster) (ClusterClient, error)`
+  - To: `func NewClusterClient(c client.Client, cluster client.ObjectKey, scheme runtime.Scheme) (client.Client, error)`
+- Same for the remote client `ClusterClientGetter` interface:
+  - From: `type ClusterClientGetter func(ctx context.Context, c client.Client, cluster *clusterv1.Cluster, scheme *runtime.Scheme) (client.Client, error)`
+  - To: `type ClusterClientGetter func(ctx context.Context, c client.Client, cluster client.ObjectKey, scheme *runtime.Scheme) (client.Client, error)`
+- `remote.RESTConfig` now uses `client.ObjectKey` instead of a cluster reference. Signature change:
+  - From: `func RESTConfig(ctx context.Context, c client.Client, cluster *clusterv1.Cluster) (*restclient.Config, error)`
+  - To: `func RESTConfig(ctx context.Context, c client.Client, cluster client.ObjectKey) (*restclient.Config, error)`
 
-    `func NewClusterClient(c client.Client, cluster *clusterv1.Cluster) (ClusterClient, error)`
+### Related changes to `sigs.k8s.io/cluster-api/util`
 
-    to
+- A helper function `util.ObjectKey` could be used to get `client.ObjectKey` for a Cluster, Machine etc.
+- Getter for a kubeconfig secret, associated with a cluster requires `client.ObjectKey` instead of a cluster reference. Signature change:
 
-    `func NewClusterClient(c client.Client, cluster *clusterv1.Cluster, scheme runtime.Scheme) (client.Client, error)`
+    From: `func Get(ctx context.Context, c client.Client, cluster client.ObjectKey, purpose Purpose) (*corev1.Secret, error)`
+
+    To: `func Get(ctx context.Context, c client.Client, cluster *clusterv1.Cluster, purpose Purpose) (*corev1.Secret, error)`
 
 ## A Machine is now considered a control plane if it has `cluster.x-k8s.io/control-plane` set, regardless of value
 

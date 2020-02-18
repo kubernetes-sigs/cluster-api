@@ -26,6 +26,7 @@ import (
 	"sigs.k8s.io/cluster-api/controllers/noderefutil"
 	"sigs.k8s.io/cluster-api/controllers/remote"
 	capierrors "sigs.k8s.io/cluster-api/errors"
+	"sigs.k8s.io/cluster-api/util"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
@@ -45,12 +46,6 @@ func (r *MachineReconciler) reconcileNodeRef(ctx context.Context, cluster *clust
 		return nil
 	}
 
-	// Check that Cluster isn't nil.
-	if cluster == nil {
-		logger.V(2).Info("Machine doesn't have a linked cluster, won't assign NodeRef")
-		return nil
-	}
-
 	logger = logger.WithValues("cluster", cluster.Name)
 
 	// Check that the Machine has a valid ProviderID.
@@ -64,7 +59,7 @@ func (r *MachineReconciler) reconcileNodeRef(ctx context.Context, cluster *clust
 		return err
 	}
 
-	clusterClient, err := remote.NewClusterClient(ctx, r.Client, cluster, r.scheme)
+	clusterClient, err := remote.NewClusterClient(ctx, r.Client, util.ObjectKey(cluster), r.scheme)
 	if err != nil {
 		return err
 	}

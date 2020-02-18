@@ -205,7 +205,7 @@ func (r *KubeadmControlPlaneReconciler) reconcile(ctx context.Context, cluster *
 	}
 	certificates := secret.NewCertificatesForInitialControlPlane(config.ClusterConfiguration)
 	controllerRef := metav1.NewControllerRef(kcp, controlplanev1.GroupVersion.WithKind("KubeadmControlPlane"))
-	if err := certificates.LookupOrGenerate(ctx, r.Client, clusterKey(cluster), *controllerRef); err != nil {
+	if err := certificates.LookupOrGenerate(ctx, r.Client, util.ObjectKey(cluster), *controllerRef); err != nil {
 		logger.Error(err, "unable to lookup or create cluster certificates")
 		return ctrl.Result{}, err
 	}
@@ -217,7 +217,7 @@ func (r *KubeadmControlPlaneReconciler) reconcile(ctx context.Context, cluster *
 	}
 
 	// Generate Cluster Kubeconfig if needed
-	if err := r.reconcileKubeconfig(ctx, clusterKey(cluster), cluster.Spec.ControlPlaneEndpoint, kcp); err != nil {
+	if err := r.reconcileKubeconfig(ctx, util.ObjectKey(cluster), cluster.Spec.ControlPlaneEndpoint, kcp); err != nil {
 		if requeueErr, ok := errors.Cause(err).(capierrors.HasRequeueAfterError); ok {
 			logger.Error(err, "required certificates not found, requeueing")
 			return ctrl.Result{
@@ -229,7 +229,7 @@ func (r *KubeadmControlPlaneReconciler) reconcile(ctx context.Context, cluster *
 	}
 
 	// TODO: handle proper adoption of Machines
-	ownedMachines, err := r.managementCluster.GetMachinesForCluster(ctx, clusterKey(cluster), internal.OwnedControlPlaneMachines(kcp.Name))
+	ownedMachines, err := r.managementCluster.GetMachinesForCluster(ctx, util.ObjectKey(cluster), internal.OwnedControlPlaneMachines(kcp.Name))
 	if err != nil {
 		return ctrl.Result{}, err
 	}
@@ -307,7 +307,7 @@ func (r *KubeadmControlPlaneReconciler) updateStatus(ctx context.Context, kcp *c
 	// This is necessary for CRDs including scale subresources.
 	kcp.Status.Selector = selector.String()
 
-	ownedMachines, err := r.managementCluster.GetMachinesForCluster(ctx, clusterKey(cluster), internal.OwnedControlPlaneMachines(kcp.Name))
+	ownedMachines, err := r.managementCluster.GetMachinesForCluster(ctx, util.ObjectKey(cluster), internal.OwnedControlPlaneMachines(kcp.Name))
 	if err != nil {
 		return errors.Wrap(err, "failed to get list of owned machines")
 	}
@@ -318,7 +318,7 @@ func (r *KubeadmControlPlaneReconciler) updateStatus(ctx context.Context, kcp *c
 	replicas := int32(len(ownedMachines))
 	kcp.Status.Replicas = replicas
 
-	remoteClient, err := r.remoteClientGetter(ctx, r.Client, cluster, r.scheme)
+	remoteClient, err := r.remoteClientGetter(ctx, r.Client, util.ObjectKey(cluster), r.scheme)
 	if err != nil && !apierrors.IsNotFound(errors.Cause(err)) {
 		return errors.Wrap(err, "failed to create remote cluster client")
 	}
@@ -376,11 +376,11 @@ func (r *KubeadmControlPlaneReconciler) initializeControlPlane(ctx context.Conte
 }
 
 func (r *KubeadmControlPlaneReconciler) scaleUpControlPlane(ctx context.Context, cluster *clusterv1.Cluster, kcp *controlplanev1.KubeadmControlPlane) (ctrl.Result, error) {
-	if err := r.managementCluster.TargetClusterControlPlaneIsHealthy(ctx, clusterKey(cluster), kcp.Name); err != nil {
+	if err := r.managementCluster.TargetClusterControlPlaneIsHealthy(ctx, util.ObjectKey(cluster), kcp.Name); err != nil {
 		return ctrl.Result{RequeueAfter: HealthCheckFailedRequeueAfter}, errors.Wrap(err, "control plane is not healthy")
 	}
 
-	if err := r.managementCluster.TargetClusterEtcdIsHealthy(ctx, clusterKey(cluster), kcp.Name); err != nil {
+	if err := r.managementCluster.TargetClusterEtcdIsHealthy(ctx, util.ObjectKey(cluster), kcp.Name); err != nil {
 		return ctrl.Result{RequeueAfter: HealthCheckFailedRequeueAfter}, errors.Wrap(err, "etcd cluster is not healthy")
 	}
 
@@ -398,15 +398,15 @@ func (r *KubeadmControlPlaneReconciler) scaleUpControlPlane(ctx context.Context,
 }
 
 func (r *KubeadmControlPlaneReconciler) scaleDownControlPlane(ctx context.Context, cluster *clusterv1.Cluster, kcp *controlplanev1.KubeadmControlPlane) (ctrl.Result, error) {
-	if err := r.managementCluster.TargetClusterControlPlaneIsHealthy(ctx, clusterKey(cluster), kcp.Name); err != nil {
+	if err := r.managementCluster.TargetClusterControlPlaneIsHealthy(ctx, util.ObjectKey(cluster), kcp.Name); err != nil {
 		return ctrl.Result{RequeueAfter: HealthCheckFailedRequeueAfter}, errors.Wrap(err, "control plane is not healthy")
 	}
 
-	if err := r.managementCluster.TargetClusterEtcdIsHealthy(ctx, clusterKey(cluster), kcp.Name); err != nil {
+	if err := r.managementCluster.TargetClusterEtcdIsHealthy(ctx, util.ObjectKey(cluster), kcp.Name); err != nil {
 		return ctrl.Result{RequeueAfter: HealthCheckFailedRequeueAfter}, errors.Wrap(err, "etcd cluster is not healthy")
 	}
 
-	ownedMachines, err := r.managementCluster.GetMachinesForCluster(ctx, clusterKey(cluster), internal.OwnedControlPlaneMachines(kcp.Name))
+	ownedMachines, err := r.managementCluster.GetMachinesForCluster(ctx, util.ObjectKey(cluster), internal.OwnedControlPlaneMachines(kcp.Name))
 	if err != nil {
 		return ctrl.Result{}, err
 	}
@@ -540,7 +540,7 @@ func (r *KubeadmControlPlaneReconciler) failureDomainForScaleUp(ctx context.Cont
 	if len(cluster.Status.FailureDomains) == 0 {
 		return nil, nil
 	}
-	ownedMachines, err := r.managementCluster.GetMachinesForCluster(ctx, clusterKey(cluster), internal.OwnedControlPlaneMachines(kcp.Name))
+	ownedMachines, err := r.managementCluster.GetMachinesForCluster(ctx, util.ObjectKey(cluster), internal.OwnedControlPlaneMachines(kcp.Name))
 	if err != nil {
 		return nil, err
 	}
@@ -586,11 +586,11 @@ func (r *KubeadmControlPlaneReconciler) generateMachine(ctx context.Context, kcp
 // consideration. This may or may not change in the future. Please see
 // https://github.com/kubernetes-sigs/cluster-api/issues/2064
 func (r *KubeadmControlPlaneReconciler) reconcileDelete(ctx context.Context, cluster *clusterv1.Cluster, kcp *controlplanev1.KubeadmControlPlane, logger logr.Logger) (_ ctrl.Result, reterr error) {
-	allMachines, err := r.managementCluster.GetMachinesForCluster(ctx, clusterKey(cluster))
+	allMachines, err := r.managementCluster.GetMachinesForCluster(ctx, util.ObjectKey(cluster))
 	if err != nil {
 		return ctrl.Result{}, err
 	}
-	ownedMachines, err := r.managementCluster.GetMachinesForCluster(ctx, clusterKey(cluster), internal.OwnedControlPlaneMachines(kcp.Name))
+	ownedMachines, err := r.managementCluster.GetMachinesForCluster(ctx, util.ObjectKey(cluster), internal.OwnedControlPlaneMachines(kcp.Name))
 	if err != nil {
 		return ctrl.Result{}, err
 	}
@@ -718,13 +718,6 @@ func getMachineNode(ctx context.Context, crClient client.Client, machine *cluste
 	}
 
 	return node, nil
-}
-
-func clusterKey(cluster *clusterv1.Cluster) types.NamespacedName {
-	return types.NamespacedName{
-		Namespace: cluster.Namespace,
-		Name:      cluster.Name,
-	}
 }
 
 func oldestMachine(machines []*clusterv1.Machine) (*clusterv1.Machine, error) {

@@ -40,7 +40,7 @@ var (
 )
 
 // FromSecret fetches the Kubeconfig for a Cluster.
-func FromSecret(ctx context.Context, c client.Client, cluster *clusterv1.Cluster) ([]byte, error) {
+func FromSecret(ctx context.Context, c client.Client, cluster client.ObjectKey) ([]byte, error) {
 	out, err := secret.Get(ctx, c, cluster, secret.Kubeconfig)
 	if err != nil {
 		return nil, err

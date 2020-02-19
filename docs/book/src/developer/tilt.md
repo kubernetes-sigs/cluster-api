@@ -85,47 +85,40 @@ base64 -i ~/path/to/gcp/credentials.json
 {{#/tab }}
 {{#tab AZURE}}
 
-You would prepare an Azure service principal. Here is an [azure-cli example](https://docs.microsoft.com/en-us/cli/azure/create-an-azure-service-principal-azure-cli?view=azure-cli-latest):
+An Azure Service Principal is needed for populating the controller manifests. This utilizes [environment-based authentication](https://docs.microsoft.com/en-us/go/azure/azure-sdk-go-authorization#use-environment-based-authentication).
 
-```bash
-# get the service principal name and subscription id
-SERVICE_PRINCIPAL_NAME=ServicePrincipalName 
-SUBSCRIPTION_ID=$(az account show --query id --output tsv)
+  1. Save your Subscription ID
 
-# set the subscription id when having multiple subscriptions
-az account set --subscription $SUBSCRIPTION_ID
+  ```bash
+  AZURE_SUBSCRIPTION_ID=$(az account show --query id --output tsv)
+  az account set --subscription $AZURE_SUBSCRIPTION_ID
+  ```
 
-# get the tenant id
-TENANT_ID=$( az account show --query tenantId --output tsv)
+  2. Set the Service Principal name
 
-# get the secret
-SECRET=$(az ad sp create-for-rbac --name http://$SERVICE_PRINCIPAL_NAME --query password --output tsv)
+  ```bash
+  AZURE_SERVICE_PRINCIPAL_NAME=ServicePrincipalName
+  ```
 
-# get the client id
-CLIENT_ID=$(az ad sp show --id http://$SERVICE_PRINCIPAL_NAME --query appId --output tsv)
+  3. Save your Tenant ID, Client ID, Client Secret
 
-# check the result
-echo "SUBSCRIPTION_ID:"$SUBSCRIPTION_ID
-echo "TENANT_ID:"$TENANT_ID
-echo "SECRET:"$SECRET
-echo "CLIENT_ID:"$CLIENT_ID
-```
+  ```bash
+  AZURE_TENANT_ID=$( az account show --query tenantId --output tsv)
+  AZURE_CLIENT_SECRET=$(az ad sp create-for-rbac --name http://$AZURE_SERVICE_PRINCIPAL_NAME --query password --output tsv)
+  AZURE_CLIENT_ID=$(az ad sp show --id http://$AZURE_SERVICE_PRINCIPAL_NAME --query appId --output tsv)
+  ```
 
-And then you can generate a base64 version of your AZURE related credentials using:
+Add the output of the following as a section in your `tilt-settings.json`:
 
-```bash
-echo "your-credentials" | base64
-```
-
-You can add the following section to your tilt-settings.json.
-
-```json
-"kustomize_substitutions": {
-    "AZURE_CLIENT_SECRET_B64": "your-clinet-secret-encoded-in-base64",
-    "AZURE_CLIENT_ID_B64": "your-client-id-encoded-in-base64",
-    "AZURE_SUBSCRIPTION_ID_B64": "your-subscription-id-encoded-in-base64",
-    "AZURE_TENANT_ID_B64": "your-tenant-id-encoded-in-base64"
-  }
+  ```shell
+  cat <<EOF
+  "kustomize_substitutions": {
+     "AZURE_SUBSCRIPTION_ID_B64": "$(echo "${AZURE_SUBSCRIPTION_ID}" | tr -d '\n' | base64 | tr -d '\n')",
+     "AZURE_TENANT_ID_B64": "$(echo "${AZURE_TENANT_ID}" | tr -d '\n' | base64 | tr -d '\n')",
+     "AZURE_CLIENT_SECRET_B64": "$(echo "${AZURE_CLIENT_SECRET}" | tr -d '\n' | base64 | tr -d '\n')",
+     "AZURE_CLIENT_ID_B64": "$(echo "${AZURE_CLIENT_ID}" | tr -d '\n' | base64 | tr -d '\n')"
+    }
+  EOF
 ```
 
 {{#/tab }}

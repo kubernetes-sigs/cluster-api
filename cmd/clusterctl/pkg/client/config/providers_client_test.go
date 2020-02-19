@@ -22,6 +22,7 @@ import (
 	"sort"
 	"testing"
 
+	clusterctlv1 "sigs.k8s.io/cluster-api/cmd/clusterctl/api/v1alpha3"
 	"sigs.k8s.io/cluster-api/cmd/clusterctl/pkg/internal/test"
 )
 
@@ -34,7 +35,7 @@ func Test_providers_List(t *testing.T) {
 
 	defaults := p.defaults()
 	sort.Slice(defaults, func(i, j int) bool {
-		return defaults[i].Name() < defaults[j].Name()
+		return defaults[i].Less(defaults[j])
 	})
 
 	defaultsAndZZZ := append(defaults, NewProvider("zzz", "https://zzz/infrastructure-components.yaml", "InfrastructureProvider"))
@@ -81,7 +82,7 @@ func Test_providers_List(t *testing.T) {
 						ProvidersConfigKey,
 						fmt.Sprintf("- name: \"%s\"\n", defaults[0].Name())+
 							"  url: \"https://zzz/infrastructure-components.yaml\"\n"+
-							"  type: \"InfrastructureProvider\"\n",
+							fmt.Sprintf("  type: \"%s\"\n", defaults[0].Type()),
 					),
 			},
 			want:    defaultsWithOverride,
@@ -134,7 +135,7 @@ func Test_providers_List(t *testing.T) {
 	}
 }
 
-func Test_validateProviderRepository(t *testing.T) {
+func Test_validateProvider(t *testing.T) {
 	type args struct {
 		r Provider
 	}
@@ -146,9 +147,30 @@ func Test_validateProviderRepository(t *testing.T) {
 		{
 			name: "Pass",
 			args: args{
-				r: NewProvider("foo", "https://something.com", "CoreProvider"),
+				r: NewProvider("foo", "https://something.com", clusterctlv1.InfrastructureProviderType),
 			},
 			wantErr: false,
+		},
+		{
+			name: "Pass (core provider)",
+			args: args{
+				r: NewProvider(ClusterAPIProviderName, "https://something.com", clusterctlv1.CoreProviderType),
+			},
+			wantErr: false,
+		},
+		{
+			name: "Fails if cluster-api name used with wrong type",
+			args: args{
+				r: NewProvider(ClusterAPIProviderName, "https://something.com", clusterctlv1.BootstrapProviderType),
+			},
+			wantErr: true,
+		},
+		{
+			name: "Fails if CoreProviderType used with wrong name",
+			args: args{
+				r: NewProvider("sss", "https://something.com", clusterctlv1.CoreProviderType),
+			},
+			wantErr: true,
 		},
 		{
 			name: "Fails if name is empty",
@@ -231,7 +253,8 @@ func Test_providers_Get(t *testing.T) {
 	defaults := p.defaults()
 
 	type args struct {
-		name string
+		name         string
+		providerType clusterctlv1.ProviderType
 	}
 	tests := []struct {
 		name    string
@@ -242,15 +265,44 @@ func Test_providers_Get(t *testing.T) {
 		{
 			name: "pass",
 			args: args{
-				name: p.defaults()[0].Name(),
+				name:         p.defaults()[0].Name(),
+				providerType: p.defaults()[0].Type(),
 			},
 			want:    defaults[0],
 			wantErr: false,
 		},
 		{
-			name: "fails if the provider does not exists",
+			name: "kubeadm bootstrap",
 			args: args{
-				name: "foo",
+				name:         KubeadmBootstrapProviderName,
+				providerType: clusterctlv1.BootstrapProviderType,
+			},
+			want:    NewProvider(KubeadmBootstrapProviderName, "https://github.com/kubernetes-sigs/cluster-api/releases/latest/bootstrap-components.yaml", clusterctlv1.BootstrapProviderType),
+			wantErr: false,
+		},
+		{
+			name: "kubeadm control-plane",
+			args: args{
+				name:         KubeadmControlPlaneProviderName,
+				providerType: clusterctlv1.ControlPlaneProviderType,
+			},
+			want:    NewProvider(KubeadmControlPlaneProviderName, "https://github.com/kubernetes-sigs/cluster-api/releases/latest/control-plane-components.yaml", clusterctlv1.ControlPlaneProviderType),
+			wantErr: false,
+		},
+		{
+			name: "fails if the provider does not exists (wrong name)",
+			args: args{
+				name:         "foo",
+				providerType: clusterctlv1.CoreProviderType,
+			},
+			want:    nil,
+			wantErr: true,
+		},
+		{
+			name: "fails if the provider does not exists (wrong type)",
+			args: args{
+				name:         ClusterAPIProviderName,
+				providerType: clusterctlv1.InfrastructureProviderType,
 			},
 			want:    nil,
 			wantErr: true,
@@ -261,7 +313,7 @@ func Test_providers_Get(t *testing.T) {
 			p := &providersClient{
 				reader: reader,
 			}
-			got, err := p.Get(tt.args.name)
+			got, err := p.Get(tt.args.name, tt.args.providerType)
 			if (err != nil) != tt.wantErr {
 				t.Fatalf("error = %v, wantErr %v", err, tt.wantErr)
 			}

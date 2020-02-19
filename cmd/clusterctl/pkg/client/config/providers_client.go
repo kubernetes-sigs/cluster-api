@@ -28,8 +28,8 @@ import (
 
 const (
 	ClusterAPIProviderName          = "cluster-api"
-	KubeadmBootstrapProviderName    = "kubeadm-bootstrap"
-	KubeadmControlPlaneProviderName = "kubeadm-control-plane"
+	KubeadmBootstrapProviderName    = "kubeadm"
+	KubeadmControlPlaneProviderName = "kubeadm"
 	DockerProviderName              = "docker"
 	AWSProviderName                 = "aws"
 	VSphereProviderName             = "vsphere"
@@ -45,9 +45,9 @@ type ProvidersClient interface {
 	// In case of conflict, user-defined provider override the hard-coded configurations.
 	List() ([]Provider, error)
 
-	// Get returns the configuration for the provider with a given name.
-	// In case the name does not correspond to any existing provider, an error is returned.
-	Get(name string) (Provider, error)
+	// Get returns the configuration for the provider with a given name/type.
+	// In case the name/type does not correspond to any existing provider, an error is returned.
+	Get(name string, providerType clusterctlv1.ProviderType) (Provider, error)
 }
 
 // providersClient implements ProvidersClient.
@@ -145,12 +145,12 @@ func (p *providersClient) List() ([]Provider, error) {
 	for _, u := range userDefinedProviders {
 		provider := NewProvider(u.Name, u.URL, u.Type)
 		if err := validateProvider(provider); err != nil {
-			return nil, errors.Wrapf(err, "error validating configuration from %q. Please fix the providers value in clusterctl configuration file", provider.Name())
+			return nil, errors.Wrapf(err, "error validating configuration for the %s with name %s. Please fix the providers value in clusterctl configuration file", provider.Type(), provider.Name())
 		}
 
 		override := false
 		for i := range providers {
-			if providers[i].Name() == provider.Name() {
+			if providers[i].SameAs(provider) {
 				providers[i] = provider
 				override = true
 			}
@@ -163,31 +163,37 @@ func (p *providersClient) List() ([]Provider, error) {
 
 	// ensure provider configurations are consistently sorted
 	sort.Slice(providers, func(i, j int) bool {
-		return providers[i].Name() < providers[j].Name()
+		return providers[i].Less(providers[j])
 	})
 
 	return providers, nil
 }
 
-func (p *providersClient) Get(name string) (Provider, error) {
+func (p *providersClient) Get(name string, providerType clusterctlv1.ProviderType) (Provider, error) {
 	l, err := p.List()
 	if err != nil {
 		return nil, err
 	}
 
+	provider := NewProvider(name, "", providerType) //Nb. Having the url empty is fine because the url is not considered by SameAs.
 	for _, r := range l {
-		if name == r.Name() {
+		if r.SameAs(provider) {
 			return r, nil
 		}
 	}
 
-	return nil, errors.Errorf("failed to get configuration for %q provider. Please check the provider name and/or add configuration for new providers using the .clusterctl config file", name)
+	return nil, errors.Errorf("failed to get configuration for the %s with name %s. Please check the provider name and/or add configuration for new providers using the .clusterctl config file", providerType, name)
 }
 
 func validateProvider(r Provider) error {
 	if r.Name() == "" {
 		return errors.New("name value cannot be empty")
 	}
+
+	if (r.Name() == ClusterAPIProviderName) != (r.Type() == clusterctlv1.CoreProviderType) {
+		return errors.Errorf("name %s must be used with the %s type (name: %s, type: %s)", ClusterAPIProviderName, clusterctlv1.CoreProviderType, r.Name(), r.Type())
+	}
+
 	errMsgs := validation.IsDNS1123Subdomain(r.Name())
 	if len(errMsgs) != 0 {
 		return errors.Errorf("invalid provider name: %s", strings.Join(errMsgs, "; "))

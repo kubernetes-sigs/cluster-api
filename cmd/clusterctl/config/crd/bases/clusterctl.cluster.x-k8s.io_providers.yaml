@@ -19,8 +19,11 @@ spec:
   scope: Namespaced
   versions:
   - additionalPrinterColumns:
-    - jsonPath: .type
+    - jsonPath: .provider
       name: Type
+      type: string
+    - jsonPath: .type
+      name: Provider
       type: string
     - jsonPath: .version
       name: Version
@@ -31,7 +34,7 @@ spec:
     name: v1alpha3
     schema:
       openAPIV3Schema:
-        description: Provider is the Schema for the providers API
+        description: Provider defines an entry in the provider inventory.
         properties:
           apiVersion:
             description: 'APIVersion defines the versioned schema of this representation
@@ -45,6 +48,9 @@ spec:
             type: string
           metadata:
             type: object
+          provider:
+            description: Provider indicates the name of the provider.
+            type: string
           type:
             description: Type indicates the type of the provider. See ProviderType
               for a list of supported values

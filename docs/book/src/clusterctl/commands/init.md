@@ -23,19 +23,19 @@ If the provider of your choice is missing, you can customize the list of support
 
 #### Automatically installed providers
 
-The `clusterctl init` command automatically adds the `cluster-api` core provider, the `kubeadm-bootstrap` provider, and
-the `kubeadm-control-plane` provider to the list of providers to install. This allows users to use a concise command syntax for initializing a management cluster. e.g.
+The `clusterctl init` command automatically adds the `cluster-api` core provider, the `kubeadm` bootstrap provider, and
+the `kubeadm` control-plane provider to the list of providers to install. This allows users to use a concise command syntax for initializing a management cluster. e.g.
 use the command:
 
 `clusterctl init --infrastracture aws`
 
-To get a fully operative management cluster with the `aws` infrastructure provider, the `cluster-api` core provider, the `kubeadm-bootstrap` and the `kubeadm-control-plane` provider
+To get a fully operative management cluster with the `aws` infrastructure provider, the `cluster-api` core provider, the `kubeadm` bootstrap and the `kubeadm` control-plane provider
 
 <aside class="note warning">
 
 <h1> Warning </h1>
 
-The `cluster-api` core provider, the `kubeadm-bootstrap` provider, and the `kubeadm-control-plane` provider are automatically installed only if:
+The `cluster-api` core provider, the `kubeadm` bootstrap provider, and the `kubeadm` control-plane provider are automatically installed only if:
 - The user doesn't explicitly require to install a core/bootstrap/control-plane provider using the `--core` flag, the `--bootstrap` flag or the `--control-plane` flags;
 - There is not an instance of a CoreProvider already installed in the cluster;
 
@@ -186,7 +186,11 @@ See [clusterctl configuration](../configuration.md) for more info about provider
 <h1> Is it possible to override files read from a provider repository? </h1>
 
 If, for any reasons, the user wants to replace the assets available on a provider repository with a locally available asset,
-the user is required to save the file under `$HOME/.cluster-api/overrides/<provider-name>/<version>/<file-name.yaml>`. 
+the user is required to save the file under `$HOME/.cluster-api/overrides/<provider-label>/<version>/<file-name.yaml>`. 
+
+```
+$HOME/.cluster-api/overrides//infrastructure-aws/v0.5.2/infrastructure-components.yaml
+```
 
 </aside>
 

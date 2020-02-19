@@ -65,13 +65,13 @@ func (f *componentsClient) Get(version, targetNamespace, watchingNamespace strin
 	}
 
 	if file == nil {
-		log.V(5).Info("Fetching", "File", path, "Provider", f.provider.Name(), "Version", version)
+		log.V(5).Info("Fetching", "File", path, "Provider", f.provider.ManifestLabel(), "Version", version)
 		file, err = f.repository.GetFile(version, path)
 		if err != nil {
-			return nil, errors.Wrapf(err, "failed to read %q from provider's repository %q", path, f.provider.Name())
+			return nil, errors.Wrapf(err, "failed to read %q from provider's repository %q", path, f.provider.ManifestLabel())
 		}
 	} else {
-		log.V(1).Info("Using", "Override", path, "Provider", f.provider.Name(), "Version", version)
+		log.V(1).Info("Using", "Override", path, "Provider", f.provider.ManifestLabel(), "Version", version)
 	}
 
 	return NewComponents(f.provider, version, file, f.configVariablesClient, targetNamespace, watchingNamespace)

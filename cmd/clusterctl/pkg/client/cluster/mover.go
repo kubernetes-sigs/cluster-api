@@ -631,7 +631,7 @@ func (o *objectMover) checkTargetProviders(namespace string, toInventory Invento
 		var maxTargetVersion *version.Version
 		for _, targetProvider := range toProviders.Items {
 			// Skips other providers.
-			if sourceProvider.Name != targetProvider.Name {
+			if !sourceProvider.SameAs(targetProvider) {
 				continue
 			}
 

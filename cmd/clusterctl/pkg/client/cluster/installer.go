@@ -79,7 +79,7 @@ func (i *providerInstaller) Install() ([]repository.Components, error) {
 
 func installComponentsAndUpdateInventory(components repository.Components, providerComponents ComponentsClient, providerInventory InventoryClient) error {
 	log := logf.Log
-	log.Info("Installing", "Provider", components.Name(), "Version", components.Version(), "TargetNamespace", components.TargetNamespace())
+	log.Info("Installing", "Provider", components.ManifestLabel(), "Version", components.Version(), "TargetNamespace", components.TargetNamespace())
 
 	inventoryObject := components.InventoryObject()
 
@@ -98,24 +98,24 @@ func installComponentsAndUpdateInventory(components repository.Components, provi
 		return err
 	}
 	if installSharedComponents {
-		log.V(1).Info("Creating shared objects", "Provider", components.Name(), "Version", components.Version())
+		log.V(1).Info("Creating shared objects", "Provider", components.ManifestLabel(), "Version", components.Version())
 		// TODO: currently shared components overrides existing shared components. As a future improvement we should
 		//  consider if to delete (preserving CRDs) before installing so there will be no left-overs in case the list of resources changes
 		if err := providerComponents.Create(components.SharedObjs()); err != nil {
 			return err
 		}
 	} else {
-		log.V(1).Info("Shared objects already up to date", "Provider", components.Name())
+		log.V(1).Info("Shared objects already up to date", "Provider", components.ManifestLabel())
 	}
 
 	// Then always install the instance specific objects and the then inventory item for the provider
 
-	log.V(1).Info("Creating instance objects", "Provider", components.Name(), "Version", components.Version(), "TargetNamespace", components.TargetNamespace())
+	log.V(1).Info("Creating instance objects", "Provider", components.ManifestLabel(), "Version", components.Version(), "TargetNamespace", components.TargetNamespace())
 	if err := providerComponents.Create(components.InstanceObjs()); err != nil {
 		return err
 	}
 
-	log.V(1).Info("Creating inventory entry", "Provider", components.Name(), "Version", components.Version(), "TargetNamespace", components.TargetNamespace())
+	log.V(1).Info("Creating inventory entry", "Provider", components.ManifestLabel(), "Version", components.Version(), "TargetNamespace", components.TargetNamespace())
 	if err := providerInventory.Create(inventoryObject); err != nil {
 		return err
 	}
@@ -127,7 +127,7 @@ func installComponentsAndUpdateInventory(components repository.Components, provi
 func shouldInstallSharedComponents(providerList *clusterctlv1.ProviderList, provider clusterctlv1.Provider) (bool, error) {
 	// Get the max version of the provider already installed in the cluster.
 	var maxVersion *version.Version
-	for _, other := range providerList.FilterByName(provider.Name) {
+	for _, other := range providerList.FilterByProviderAndType(provider.Provider, provider.GetProviderType()) {
 		otherVersion, err := version.ParseSemantic(other.Version)
 		if err != nil {
 			return false, errors.Wrapf(err, "failed to parse version for the %s provider", other.InstanceName())
@@ -170,7 +170,7 @@ func (i *providerInstaller) Validate() error {
 	// - Instances of the same provider must not be fighting for objects (no watching overlap)
 	for _, components := range i.installQueue {
 		if providerList, err = simulateInstall(providerList, components); err != nil {
-			return errors.Wrapf(err, "installing provider %q can lead to a non functioning management cluster", components.Name())
+			return errors.Wrapf(err, "installing provider %q can lead to a non functioning management cluster", components.ManifestLabel())
 		}
 	}
 
@@ -202,7 +202,7 @@ func (i *providerInstaller) Validate() error {
 			return err
 		}
 		if providerContract != managementGroupContract {
-			return errors.Errorf("installing provider %q can lead to a non functioning management cluster: the target version for the provider supports the %s API Version of Cluster API (contract), while the management group is using %s", components.Name(), providerContract, managementGroupContract)
+			return errors.Errorf("installing provider %q can lead to a non functioning management cluster: the target version for the provider supports the %s API Version of Cluster API (contract), while the management group is using %s", components.ManifestLabel(), providerContract, managementGroupContract)
 		}
 	}
 	return nil
@@ -218,7 +218,7 @@ func (i *providerInstaller) getProviderContract(providerInstanceContracts map[st
 	// Otherwise get the contract for the providers instance.
 
 	// Gets the providers metadata.
-	configRepository, err := i.configClient.Providers().Get(provider.Name)
+	configRepository, err := i.configClient.Providers().Get(provider.Provider, provider.GetProviderType())
 	if err != nil {
 		return "", err
 	}
@@ -252,13 +252,13 @@ func (i *providerInstaller) getProviderContract(providerInstanceContracts map[st
 func simulateInstall(providerList *clusterctlv1.ProviderList, components repository.Components) (*clusterctlv1.ProviderList, error) {
 	provider := components.InventoryObject()
 
-	existingInstances := providerList.FilterByName(provider.Name)
+	existingInstances := providerList.FilterByProviderAndType(provider.Provider, provider.GetProviderType())
 
 	// Target Namespace check
 	// Installing two instances of the same provider in the same namespace won't be supported
 	for _, i := range existingInstances {
 		if i.Namespace == provider.Namespace {
-			return providerList, errors.Errorf("there is already an instance of the %q provider installed in the %q namespace", provider.Name, provider.Namespace)
+			return providerList, errors.Errorf("there is already an instance of the %q provider installed in the %q namespace", provider.ManifestLabel(), provider.Namespace)
 		}
 	}
 
@@ -267,7 +267,7 @@ func simulateInstall(providerList *clusterctlv1.ProviderList, components reposit
 	// then there will be providers fighting for objects...
 	for _, i := range existingInstances {
 		if i.HasWatchingOverlapWith(provider) {
-			return providerList, errors.Errorf("the new instance of the %q provider is going to watch for objects in the namespace %q that is already controlled by other providers", provider.Name, provider.WatchedNamespace)
+			return providerList, errors.Errorf("the new instance of the %q provider is going to watch for objects in the namespace %q that is already controlled by other instances of the same provider", provider.ManifestLabel(), provider.WatchedNamespace)
 		}
 	}
 

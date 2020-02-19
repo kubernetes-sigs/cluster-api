@@ -41,12 +41,8 @@ var moveCmd = &cobra.Command{
 	Example: Examples(`
 		# Moves Cluster API objects from cluster to the target cluster.
 		clusterctl move --to-kubeconfig=target-kubeconfig.yaml`),
-
+	Args: cobra.NoArgs,
 	RunE: func(cmd *cobra.Command, args []string) error {
-		if mo.toKubeconfig == "" {
-			return errors.New("please specify a target cluster using the --to flag")
-		}
-
 		return runMove()
 	},
 }
@@ -60,6 +56,10 @@ func init() {
 }
 
 func runMove() error {
+	if mo.toKubeconfig == "" {
+		return errors.New("please specify a target cluster using the --to flag")
+	}
+
 	c, err := client.New(cfgFile)
 	if err != nil {
 		return err

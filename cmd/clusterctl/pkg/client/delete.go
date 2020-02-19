@@ -23,6 +23,43 @@ import (
 	"sigs.k8s.io/cluster-api/cmd/clusterctl/pkg/client/cluster"
 )
 
+// DeleteOptions carries the options supported by Delete.
+type DeleteOptions struct {
+	// Kubeconfig file to use for accessing the management cluster. If empty, default rules for kubeconfig
+	// discovery will be used.
+	Kubeconfig string
+
+	// Namespace where the provider to be deleted lives. If not specified, the namespace name will be inferred
+	// from the current configuration.
+	Namespace string
+
+	// CoreProvider version (e.g. cluster-api:v0.3.0) to add to the management cluster. By default (empty), the
+	// cluster-api core provider's latest release is used.
+	CoreProvider string
+
+	// BootstrapProviders and versions (e.g. kubeadm:v0.3.0) to add to the management cluster.
+	// By default (empty), the kubeadm bootstrap provider's latest release is used.
+	BootstrapProviders []string
+
+	// InfrastructureProviders and versions (e.g. aws:v0.5.0) to add to the management cluster.
+	InfrastructureProviders []string
+
+	// ControlPlaneProviders and versions (e.g. kubeadm:v0.3.0) to add to the management cluster.
+	// By default (empty), the kubeadm control plane provider latest release is used.
+	ControlPlaneProviders []string
+
+	// DeleteAll set for deletion of all the providers.
+	DeleteAll bool
+
+	// IncludeNamespace forces the deletion of the namespace where the providers are hosted
+	// (and of all the contained objects).
+	IncludeNamespace bool
+
+	// IncludeCRDs forces the deletion of the provider's CRDs (and of all the related objects).
+	// By Extension, this forces the deletion of all the resources shared among provider instances, like e.g. web-hooks.
+	IncludeCRDs bool
+}
+
 func (c *clusterctlClient) Delete(options DeleteOptions) error {
 	clusterClient, err := c.clusterClientFactory(options.Kubeconfig)
 	if err != nil {
@@ -39,42 +76,47 @@ func (c *clusterctlClient) Delete(options DeleteOptions) error {
 		return err
 	}
 
-	// If the list of providers to delete is empty, delete all the providers.
 	// Prepare the list of providers to delete.
-	var providers []clusterctlv1.Provider
+	var providersToDelete []clusterctlv1.Provider
 
-	if len(options.Providers) == 0 {
-		providers = installedProviders.Items
+	if options.DeleteAll {
+		providersToDelete = installedProviders.Items
 	} else {
 		// Otherwise we are deleting only a subset of providers.
-		for _, provider := range options.Providers {
+		var providers []clusterctlv1.Provider
+		providers = appendProviders(providers, clusterctlv1.CoreProviderType, options.CoreProvider)
+		providers = appendProviders(providers, clusterctlv1.BootstrapProviderType, options.BootstrapProviders...)
+		providers = appendProviders(providers, clusterctlv1.ControlPlaneProviderType, options.ControlPlaneProviders...)
+		providers = appendProviders(providers, clusterctlv1.InfrastructureProviderType, options.InfrastructureProviders...)
+
+		for _, provider := range providers {
 			// Parse the abbreviated syntax for name[:version]
-			name, _, err := parseProviderName(provider)
+			name, _, err := parseProviderName(provider.Name)
 			if err != nil {
 				return err
 			}
 
 			// If the namespace where the provider is installed is not provided, try to detect it
-			namespace := options.Namespace
-			if namespace == "" {
-				namespace, err = clusterClient.ProviderInventory().GetDefaultProviderNamespace(name)
+			provider.Namespace = options.Namespace
+			if provider.Namespace == "" {
+				provider.Namespace, err = clusterClient.ProviderInventory().GetDefaultProviderNamespace(provider.Provider, provider.GetProviderType())
 				if err != nil {
 					return err
 				}
 
 				// if there are more instance of a providers, it is not possible to get a default namespace for the provider,
 				// so we should return and ask for it.
-				if namespace == "" {
+				if provider.Namespace == "" {
 					return errors.Errorf("Unable to find default namespace for the %q provider. Please specify the provider's namespace", name)
 				}
 			}
 
-			// Check the provider/namespace tuple actually matches one of the installed providers.
+			// Check the provider/type/namespace tuple actually matches one of the installed provider instances.
 			found := false
 			for _, ip := range installedProviders.Items {
-				if ip.Name == name && ip.Namespace == namespace {
+				if ip.InstanceName() == provider.InstanceName() {
 					found = true
-					providers = append(providers, ip)
+					providersToDelete = append(providersToDelete, ip)
 					break
 				}
 			}
@@ -84,19 +126,33 @@ func (c *clusterctlClient) Delete(options DeleteOptions) error {
 
 			// In case the provider does not match any installed providers, we still force deletion
 			// so the user can do 'delete' without removing CRD and after some time 'delete --delete-crd' (same for the namespace).
-			providers = append(providers, clusterctlv1.Provider{ObjectMeta: metav1.ObjectMeta{
-				Name:      name,
-				Namespace: namespace,
-			}})
+			providersToDelete = append(providersToDelete, provider)
 		}
 	}
 
 	// Delete the selected providers
-	for _, provider := range providers {
+	for _, provider := range providersToDelete {
 		if err := clusterClient.ProviderComponents().Delete(cluster.DeleteOptions{Provider: provider, IncludeNamespace: options.IncludeNamespace, IncludeCRDs: options.IncludeCRDs}); err != nil {
 			return err
 		}
 	}
 
 	return nil
+}
+
+func appendProviders(list []clusterctlv1.Provider, providerType clusterctlv1.ProviderType, names ...string) []clusterctlv1.Provider {
+	for _, name := range names {
+		if name == "" {
+			continue
+		}
+
+		list = append(list, clusterctlv1.Provider{
+			ObjectMeta: metav1.ObjectMeta{
+				Name: clusterctlv1.ManifestLabel(name, providerType),
+			},
+			Provider: name,
+			Type:     string(providerType),
+		})
+	}
+	return list
 }

@@ -128,13 +128,14 @@ func (f *FakeProxy) WithProviderInventory(name string, providerType clusterctlv1
 		},
 		ObjectMeta: metav1.ObjectMeta{
 			Namespace: targetNamespace,
-			Name:      name,
+			Name:      clusterctlv1.ManifestLabel(name, providerType),
 			Labels: map[string]string{
 				clusterctlv1.ClusterctlLabelName:     "",
-				clusterv1.ProviderLabelName:          name,
+				clusterv1.ProviderLabelName:          clusterctlv1.ManifestLabel(name, providerType),
 				clusterctlv1.ClusterctlCoreLabelName: "inventory",
 			},
 		},
+		Provider:         name,
 		Type:             string(providerType),
 		Version:          version,
 		WatchedNamespace: watchingNamespace,

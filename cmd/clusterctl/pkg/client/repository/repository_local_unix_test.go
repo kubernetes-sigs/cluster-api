@@ -35,7 +35,7 @@ func Test_localRepository_newLocalRepository(t *testing.T) {
 	}
 	type want struct {
 		basepath       string
-		providerName   string
+		providerLabel  string
 		defaultVersion string
 		rootPath       string
 		componentsPath string
@@ -49,12 +49,12 @@ func Test_localRepository_newLocalRepository(t *testing.T) {
 		{
 			name: "successfully creates new local repository object with a single version",
 			fields: fields{
-				provider:              config.NewProvider("provider-foo", "/base/path/provider-foo/v1.0.0/bootstrap-components.yaml", clusterctlv1.BootstrapProviderType),
+				provider:              config.NewProvider("foo", "/base/path/bootstrap-foo/v1.0.0/bootstrap-components.yaml", clusterctlv1.BootstrapProviderType),
 				configVariablesClient: test.NewFakeVariableClient(),
 			},
 			want: want{
 				basepath:       "/base/path",
-				providerName:   "provider-foo",
+				providerLabel:  "bootstrap-foo",
 				defaultVersion: "v1.0.0",
 				rootPath:       "",
 				componentsPath: "bootstrap-components.yaml",
@@ -64,12 +64,12 @@ func Test_localRepository_newLocalRepository(t *testing.T) {
 		{
 			name: "successfully creates new local repository object with a single version and no basepath",
 			fields: fields{
-				provider:              config.NewProvider("provider-foo", "/provider-foo/v1.0.0/bootstrap-components.yaml", clusterctlv1.BootstrapProviderType),
+				provider:              config.NewProvider("foo", "/bootstrap-foo/v1.0.0/bootstrap-components.yaml", clusterctlv1.BootstrapProviderType),
 				configVariablesClient: test.NewFakeVariableClient(),
 			},
 			want: want{
 				basepath:       "/",
-				providerName:   "provider-foo",
+				providerLabel:  "bootstrap-foo",
 				defaultVersion: "v1.0.0",
 				rootPath:       "",
 				componentsPath: "bootstrap-components.yaml",
@@ -79,16 +79,16 @@ func Test_localRepository_newLocalRepository(t *testing.T) {
 		{
 			name: "fails if an absolute path not specified",
 			fields: fields{
-				provider:              config.NewProvider("provider-foo", "./provider-foo/v1/bootstrap-components.yaml", clusterctlv1.BootstrapProviderType),
+				provider:              config.NewProvider("foo", "./bootstrap-foo/v1/bootstrap-components.yaml", clusterctlv1.BootstrapProviderType),
 				configVariablesClient: test.NewFakeVariableClient(),
 			},
 			want:    want{},
 			wantErr: true,
 		},
 		{
-			name: "fails if provider name does not match in the path",
+			name: "fails if provider id does not match in the path",
 			fields: fields{
-				provider:              config.NewProvider("provider-foo", "/foo/bar/provider-bar/v1/bootstrap-components.yaml", clusterctlv1.BootstrapProviderType),
+				provider:              config.NewProvider("foo", "/foo/bar/bootstrap-bar/v1/bootstrap-components.yaml", clusterctlv1.BootstrapProviderType),
 				configVariablesClient: test.NewFakeVariableClient(),
 			},
 			want:    want{},
@@ -97,7 +97,7 @@ func Test_localRepository_newLocalRepository(t *testing.T) {
 		{
 			name: "fails if malformed path: invalid version directory",
 			fields: fields{
-				provider:              config.NewProvider("provider-foo", "/foo/bar/provider-foo/v.a.b.c/bootstrap-components.yaml", clusterctlv1.BootstrapProviderType),
+				provider:              config.NewProvider("foo", "/foo/bar/bootstrap-foo/v.a.b.c/bootstrap-components.yaml", clusterctlv1.BootstrapProviderType),
 				configVariablesClient: test.NewFakeVariableClient(),
 			},
 			want:    want{},
@@ -117,8 +117,8 @@ func Test_localRepository_newLocalRepository(t *testing.T) {
 			if got.basepath != tt.want.basepath {
 				t.Errorf("got.basepath = %v, want = %v ", got.basepath, tt.want.basepath)
 			}
-			if got.providerName != tt.want.providerName {
-				t.Errorf("got.providerName = %v, want = %v ", got.providerName, tt.want.providerName)
+			if got.providerLabel != tt.want.providerLabel {
+				t.Errorf("got.providerLabel = %v, want = %v ", got.providerLabel, tt.want.providerLabel)
 			}
 			if got.DefaultVersion() != tt.want.defaultVersion {
 				t.Errorf("got.DefaultVersion() = %v, want = %v ", got.DefaultVersion(), tt.want.defaultVersion)
@@ -159,15 +159,15 @@ func Test_localRepository_newLocalRepository_Latest(t *testing.T) {
 	defer os.RemoveAll(tmpDir)
 
 	// Create several release directories
-	createLocalTestProviderFile(t, tmpDir, "provider-2/v1.0.0/bootstrap-components.yaml", "foo: bar")
-	createLocalTestProviderFile(t, tmpDir, "provider-2/v1.0.1/bootstrap-components.yaml", "foo: bar")
-	createLocalTestProviderFile(t, tmpDir, "provider-2/Foo.Bar/bootstrap-components.yaml", "foo: bar")
-	createLocalTestProviderFile(t, tmpDir, "provider-2/foo.file", "foo: bar")
+	createLocalTestProviderFile(t, tmpDir, "bootstrap-foo/v1.0.0/bootstrap-components.yaml", "foo: bar")
+	createLocalTestProviderFile(t, tmpDir, "bootstrap-foo/v1.0.1/bootstrap-components.yaml", "foo: bar")
+	createLocalTestProviderFile(t, tmpDir, "bootstrap-foo/Foo.Bar/bootstrap-components.yaml", "foo: bar")
+	createLocalTestProviderFile(t, tmpDir, "bootstrap-foo/foo.file", "foo: bar")
 
 	// Provider URL for the latest release
-	p2URLLatest := "provider-2/latest/bootstrap-components.yaml"
+	p2URLLatest := "bootstrap-foo/latest/bootstrap-components.yaml"
 	p2URLLatestAbs := filepath.Join(tmpDir, p2URLLatest)
-	p2 := config.NewProvider("provider-2", p2URLLatestAbs, clusterctlv1.BootstrapProviderType)
+	p2 := config.NewProvider("foo", p2URLLatestAbs, clusterctlv1.BootstrapProviderType)
 
 	got, err := newLocalRepository(p2, test.NewFakeVariableClient())
 	if err != nil {
@@ -177,8 +177,8 @@ func Test_localRepository_newLocalRepository_Latest(t *testing.T) {
 	if got.basepath != tmpDir {
 		t.Errorf("got.basepath = %v, want = %v ", got.basepath, tmpDir)
 	}
-	if got.providerName != "provider-2" {
-		t.Errorf("got.providerName = %v, want = provider-2 ", got.providerName)
+	if got.providerLabel != "bootstrap-foo" {
+		t.Errorf("got.providerLabel = %v, want = provider-2 ", got.providerLabel)
 	}
 	if got.DefaultVersion() != "v1.0.1" {
 		t.Errorf("got.DefaultVersion() = %v, want = v1.0.1 ", got.DefaultVersion())
@@ -197,17 +197,17 @@ func Test_localRepository_GetFile(t *testing.T) {
 	defer os.RemoveAll(tmpDir)
 
 	// Provider 1: URL is for the only release available
-	dst1 := createLocalTestProviderFile(t, tmpDir, "provider-1/v1.0.0/bootstrap-components.yaml", "foo: bar")
-	p1 := config.NewProvider("provider-1", dst1, clusterctlv1.BootstrapProviderType)
+	dst1 := createLocalTestProviderFile(t, tmpDir, "bootstrap-foo/v1.0.0/bootstrap-components.yaml", "foo: bar")
+	p1 := config.NewProvider("foo", dst1, clusterctlv1.BootstrapProviderType)
 
 	// Provider 2: URL is for the latest release
-	createLocalTestProviderFile(t, tmpDir, "provider-2/v1.0.0/bootstrap-components.yaml", "version: v1.0.0")
-	createLocalTestProviderFile(t, tmpDir, "provider-2/v1.0.1/bootstrap-components.yaml", "version: v1.0.1")
-	createLocalTestProviderFile(t, tmpDir, "provider-2/Foo.Bar/bootstrap-components.yaml", "version: Foo.Bar")
-	createLocalTestProviderFile(t, tmpDir, "provider-2/foo.file", "foo: bar")
-	p2URLLatest := "provider-2/latest/bootstrap-components.yaml"
+	createLocalTestProviderFile(t, tmpDir, "bootstrap-bar/v1.0.0/bootstrap-components.yaml", "version: v1.0.0")
+	createLocalTestProviderFile(t, tmpDir, "bootstrap-bar/v1.0.1/bootstrap-components.yaml", "version: v1.0.1")
+	createLocalTestProviderFile(t, tmpDir, "bootstrap-bar/Foo.Bar/bootstrap-components.yaml", "version: Foo.Bar")
+	createLocalTestProviderFile(t, tmpDir, "bootstrap-bar/foo.file", "foo: bar")
+	p2URLLatest := "bootstrap-bar/latest/bootstrap-components.yaml"
 	p2URLLatestAbs := filepath.Join(tmpDir, p2URLLatest)
-	p2 := config.NewProvider("provider-2", p2URLLatestAbs, clusterctlv1.BootstrapProviderType)
+	p2 := config.NewProvider("bar", p2URLLatestAbs, clusterctlv1.BootstrapProviderType)
 
 	type fields struct {
 		provider              config.Provider
@@ -298,20 +298,20 @@ func Test_localRepository_GetVersions(t *testing.T) {
 	defer os.RemoveAll(tmpDir)
 
 	// Provider 1: has a single release available
-	dst1 := createLocalTestProviderFile(t, tmpDir, "provider-1/v1.0.0/bootstrap-components.yaml", "foo: bar")
-	p1 := config.NewProvider("provider-1", dst1, clusterctlv1.BootstrapProviderType)
+	dst1 := createLocalTestProviderFile(t, tmpDir, "bootstrap-foo/v1.0.0/bootstrap-components.yaml", "foo: bar")
+	p1 := config.NewProvider("foo", dst1, clusterctlv1.BootstrapProviderType)
 
 	// Provider 2: Has multiple releases available
-	createLocalTestProviderFile(t, tmpDir, "provider-2/v1.0.0/bootstrap-components.yaml", "version: v1.0.0")
-	createLocalTestProviderFile(t, tmpDir, "provider-2/v1.0.1/bootstrap-components.yaml", "version: v1.0.1")
-	createLocalTestProviderFile(t, tmpDir, "provider-2/v2.0.1/bootstrap-components.yaml", "version: v2.0.1")
-	createLocalTestProviderFile(t, tmpDir, "provider-2/v2.0.2+exp.sha.5114f85/bootstrap-components.yaml", "version: v2.0.2+exp.sha.5114f85")
-	createLocalTestProviderFile(t, tmpDir, "provider-2/v2.0.3-alpha/bootstrap-components.yaml", "version: v2.0.3-alpha")
-	createLocalTestProviderFile(t, tmpDir, "provider-2/Foo.Bar/bootstrap-components.yaml", "version: Foo.Bar")
-	createLocalTestProviderFile(t, tmpDir, "provider-2/foo.file", "foo: bar")
-	p2URLLatest := "provider-2/latest/bootstrap-components.yaml"
+	createLocalTestProviderFile(t, tmpDir, "bootstrap-bar/v1.0.0/bootstrap-components.yaml", "version: v1.0.0")
+	createLocalTestProviderFile(t, tmpDir, "bootstrap-bar/v1.0.1/bootstrap-components.yaml", "version: v1.0.1")
+	createLocalTestProviderFile(t, tmpDir, "bootstrap-bar/v2.0.1/bootstrap-components.yaml", "version: v2.0.1")
+	createLocalTestProviderFile(t, tmpDir, "bootstrap-bar/v2.0.2+exp.sha.5114f85/bootstrap-components.yaml", "version: v2.0.2+exp.sha.5114f85")
+	createLocalTestProviderFile(t, tmpDir, "bootstrap-bar/v2.0.3-alpha/bootstrap-components.yaml", "version: v2.0.3-alpha")
+	createLocalTestProviderFile(t, tmpDir, "bootstrap-bar/Foo.Bar/bootstrap-components.yaml", "version: Foo.Bar")
+	createLocalTestProviderFile(t, tmpDir, "bootstrap-bar/foo.file", "foo: bar")
+	p2URLLatest := "bootstrap-bar/latest/bootstrap-components.yaml"
 	p2URLLatestAbs := filepath.Join(tmpDir, p2URLLatest)
-	p2 := config.NewProvider("provider-2", p2URLLatestAbs, clusterctlv1.BootstrapProviderType)
+	p2 := config.NewProvider("bar", p2URLLatestAbs, clusterctlv1.BootstrapProviderType)
 
 	type fields struct {
 		provider              config.Provider

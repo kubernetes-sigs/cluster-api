@@ -46,11 +46,15 @@ func Test_clusterctlClient_Delete(t *testing.T) {
 			},
 			args: args{
 				options: DeleteOptions{
-					Kubeconfig:       "kubeconfig",
-					IncludeNamespace: false,
-					IncludeCRDs:      false,
-					Namespace:        "",
-					Providers:        nil, // nil means all the providers
+					Kubeconfig:              "kubeconfig",
+					IncludeNamespace:        false,
+					IncludeCRDs:             false,
+					Namespace:               "",
+					CoreProvider:            "",
+					BootstrapProviders:      nil,
+					InfrastructureProviders: nil,
+					ControlPlaneProviders:   nil,
+					DeleteAll:               true, // delete all the providers
 				},
 			},
 			wantProviders: sets.NewString(),
@@ -63,11 +67,15 @@ func Test_clusterctlClient_Delete(t *testing.T) {
 			},
 			args: args{
 				options: DeleteOptions{
-					Kubeconfig:       "kubeconfig",
-					IncludeNamespace: false,
-					IncludeCRDs:      false,
-					Namespace:        "capbpk-system",
-					Providers:        []string{bootstrapProviderConfig.Name()},
+					Kubeconfig:              "kubeconfig",
+					IncludeNamespace:        false,
+					IncludeCRDs:             false,
+					Namespace:               "capbpk-system",
+					CoreProvider:            "",
+					BootstrapProviders:      []string{bootstrapProviderConfig.Name()},
+					InfrastructureProviders: nil,
+					ControlPlaneProviders:   nil,
+					DeleteAll:               false,
 				},
 			},
 			wantProviders: sets.NewString(capiProviderConfig.Name()),
@@ -80,11 +88,15 @@ func Test_clusterctlClient_Delete(t *testing.T) {
 			},
 			args: args{
 				options: DeleteOptions{
-					Kubeconfig:       "kubeconfig",
-					IncludeNamespace: false,
-					IncludeCRDs:      false,
-					Namespace:        "", // empty namespace triggers namespace auto detection
-					Providers:        []string{bootstrapProviderConfig.Name()},
+					Kubeconfig:              "kubeconfig",
+					IncludeNamespace:        false,
+					IncludeCRDs:             false,
+					Namespace:               "", // empty namespace triggers namespace auto detection
+					CoreProvider:            "",
+					BootstrapProviders:      []string{bootstrapProviderConfig.Name()},
+					InfrastructureProviders: nil,
+					ControlPlaneProviders:   nil,
+					DeleteAll:               false,
 				},
 			},
 			wantProviders: sets.NewString(capiProviderConfig.Name()),

@@ -27,7 +27,7 @@ Next, create a `clusterctl-settings.json` file and place it in your local copy o
 
 ```yaml
 {
-  "providers": ["kubeadm-bootstrap","kubeadm-control-plane", "aws"],
+  "providers": ["cluster-api","bootstrap-kubeadm","control-plane-kubeadm", "infrastructure-aws"],
   "provider_repos": ["../cluster-api-provider-aws"]
 }
 ```
@@ -51,10 +51,10 @@ and places them in a local override folder located under `$HOME/.cluster-api/ove
 Additionally, the command output provides you the `clusterctl init` command with all the necessary flags.
 
 ```shell
-clusterctl local overrides generated from local repositories for the cluster-api, kubeadm-bootstrap, aws providers.
+clusterctl local overrides generated from local repositories for the cluster-api, bootstrap-kubeadm, control-plane-kubeadm, infrastrcuture-aws providers.
 in order to use them, please run:
 
-clusterctl init  --core cluster-api:v0.3.0 --bootstrap kubeadm-bootstrap:v0.3.0 --infrastructure aws:v0.5.0
+clusterctl init  --core cluster-api:v0.3.0 --bootstrap kubeadm:v0.3.0 --infrastructure aws:v0.5.0
 ```
 
 ## Available providers
@@ -62,20 +62,19 @@ clusterctl init  --core cluster-api:v0.3.0 --bootstrap kubeadm-bootstrap:v0.3.0 
 The following providers are currently defined in the script:
 
 * `cluster-api`
-* `kubeadm-bootstrap`
-* `kubeadm-control-plane`
-* `docker`
+* `bootstrap-kubeadm`
+* `control-plane-kubeadm`
+* `infrastructure-docker`
 
 More providers can be added by editing the `clusterctl-settings.json` in your local copy of Cluster API;
 please note that each `provider_repo` should have its own `clusterctl-settings.json` describing how to build the provider assets, e.g.
 
 ```yaml
 {
-  "name": "aws",
+  "name": "infrastructure-aws",
   "config": {
     "componentsFile": "infrastructure-components.yaml",
     "nextVersion": "v0.5.0",
-    "type": "InfrastructureProvider"
   }
 }
 ```

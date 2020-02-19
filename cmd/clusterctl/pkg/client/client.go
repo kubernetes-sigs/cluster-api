@@ -17,6 +17,7 @@ limitations under the License.
 package client
 
 import (
+	clusterctlv1 "sigs.k8s.io/cluster-api/cmd/clusterctl/api/v1alpha3"
 	"sigs.k8s.io/cluster-api/cmd/clusterctl/pkg/client/cluster"
 	"sigs.k8s.io/cluster-api/cmd/clusterctl/pkg/client/config"
 	"sigs.k8s.io/cluster-api/cmd/clusterctl/pkg/client/repository"
@@ -32,14 +33,14 @@ type InitOptions struct {
 	// cluster-api core provider's latest release is used.
 	CoreProvider string
 
-	// BootstrapProviders and versions (e.g. kubeadm-bootstrap:v0.3.0) to add to the management cluster.
+	// BootstrapProviders and versions (e.g. kubeadm:v0.3.0) to add to the management cluster.
 	// By default (empty), the kubeadm bootstrap provider's latest release is used.
 	BootstrapProviders []string
 
 	// InfrastructureProviders and versions (e.g. aws:v0.5.0) to add to the management cluster.
 	InfrastructureProviders []string
 
-	// ControlPlaneProviders and versions (e.g. kubeadm-control-plane:v0.3.0) to add to the management cluster.
+	// ControlPlaneProviders and versions (e.g. kubeadm:v0.3.0) to add to the management cluster.
 	// By default (empty), the kubeadm control plane provider latest release is used.
 	ControlPlaneProviders []string
 
@@ -53,28 +54,6 @@ type InitOptions struct {
 
 	// LogUsageInstructions instructs the init command to print the usage instructions in case of first run.
 	LogUsageInstructions bool
-}
-
-// DeleteOptions carries the options supported by Delete.
-type DeleteOptions struct {
-	// Kubeconfig file to use for accessing the management cluster. If empty, default rules for kubeconfig
-	// discovery will be used.
-	Kubeconfig string
-
-	// IncludeNamespace forces the deletion of the namespace where the providers are hosted
-	// (and of all the contained objects).
-	IncludeNamespace bool
-
-	// IncludeCRDs forces the deletion of the provider's CRDs (and of all the related objects).
-	// By Extension, this forces the deletion of all the resources shared among provider instances, like e.g. web-hooks.
-	IncludeCRDs bool
-
-	// Namespace where the provider to be deleted lives. If not specified, the namespace name will be inferred
-	// from the current configuration.
-	Namespace string
-
-	// Providers to be delete. By default (empty), all the provider will be deleted.
-	Providers []string
 }
 
 // MoveOptions carries the options supported by move.
@@ -97,7 +76,7 @@ type Client interface {
 	GetProvidersConfig() ([]Provider, error)
 
 	// GetProviderComponents returns the provider components for a given provider, targetNamespace, watchingNamespace.
-	GetProviderComponents(provider, targetNameSpace, watchingNamespace string) (Components, error)
+	GetProviderComponents(provider string, providerType clusterctlv1.ProviderType, targetNameSpace, watchingNamespace string) (Components, error)
 
 	// Init initializes a management cluster by adding the requested list of providers.
 	Init(options InitOptions) ([]Components, error)

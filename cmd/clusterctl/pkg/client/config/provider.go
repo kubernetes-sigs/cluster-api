@@ -22,9 +22,27 @@ import (
 
 // Provider defines a provider configuration.
 type Provider interface {
+	// Name returns the name of the provider.
 	Name() string
-	URL() string
+
+	// Type returns the type of the provider.
 	Type() clusterctlv1.ProviderType
+
+	// URL returns the name of the provider repository.
+	URL() string
+
+	// SameAs returns true if two providers have the same name and type.
+	// Please note that this uniquely identifies a provider configuration, but not the provider instances in the cluster
+	// because it is possible to create many instances of the same provider.
+	SameAs(other Provider) bool
+
+	// ManifestLabel returns the cluster.x-k8s.io/provider label value for a provider.
+	// Please note that this label uniquely identifies the provider, e.g. bootstrap-kubeadm, but not the instances of
+	// the provider, e.g. namespace-1/bootstrap-kubeadm and namespace-2/bootstrap-kubeadm
+	ManifestLabel() string
+
+	// Less func can be used to ensure a consist order of provider lists.
+	Less(other Provider) bool
 }
 
 // provider implements provider
@@ -47,6 +65,19 @@ func (p *provider) URL() string {
 
 func (p *provider) Type() clusterctlv1.ProviderType {
 	return p.providerType
+}
+
+func (p *provider) SameAs(other Provider) bool {
+	return p.name == other.Name() && p.providerType == other.Type()
+}
+
+func (p *provider) ManifestLabel() string {
+	return clusterctlv1.ManifestLabel(p.name, p.Type())
+}
+
+func (p *provider) Less(other Provider) bool {
+	return p.providerType.Order() < other.Type().Order() ||
+		(p.providerType.Order() == other.Type().Order() && p.name < other.Name())
 }
 
 func NewProvider(name string, url string, ttype clusterctlv1.ProviderType) Provider {

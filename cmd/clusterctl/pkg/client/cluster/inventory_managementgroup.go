@@ -135,7 +135,7 @@ func checkOverlappingProviders(providerList *clusterctlv1.ProviderList) error {
 
 		// if the provider overlaps with more than one core provider, return error (it is part of two management groups --> e.g. there could be potential upgrade conflicts)
 		if len(overlappingCoreProviders) > 1 {
-			return errors.Errorf("Unable to identify management groupss: provider %s is watching for objects in namespaces controlled by more than one core provider (%s)",
+			return errors.Errorf("Unable to identify management groups: provider %s is watching for objects in namespaces controlled by more than one core provider (%s)",
 				provider.InstanceName(),
 				strings.Join(overlappingCoreProviders, " ,"),
 			)

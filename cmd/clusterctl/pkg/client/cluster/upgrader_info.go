@@ -43,7 +43,7 @@ type upgradeInfo struct {
 // getUpgradeInfo returns all the info required for taking upgrade decisions for a provider.
 func (u *providerUpgrader) getUpgradeInfo(provider clusterctlv1.Provider) (*upgradeInfo, error) {
 	// Gets the list of versions available in the provider repository.
-	configRepository, err := u.configClient.Providers().Get(provider.Name)
+	configRepository, err := u.configClient.Providers().Get(provider.Provider, provider.GetProviderType())
 	if err != nil {
 		return nil, err
 	}

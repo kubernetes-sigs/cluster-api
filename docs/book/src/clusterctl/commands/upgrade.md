@@ -31,8 +31,8 @@ Checking new release availability...
 Management group: capi-system/cluster-api, latest release available for the v1alpha3 API Version of Cluster API (contract):
 
 NAME                NAMESPACE                       TYPE                     CURRENT VERSION   TARGET VERSION
-kubeadm-bootstrap   capi-kubeadm-bootstrap-system   BootstrapProvider        v0.3.0            v0.3.1
 cluster-api         capi-system                     CoreProvider             v0.3.0            v0.3.1
+kubeadm             capi-kubeadm-bootstrap-system   BootstrapProvider        v0.3.0            v0.3.1
 docker              capd-system                     InfrastructureProvider   v0.3.0            v0.3.1
 
 

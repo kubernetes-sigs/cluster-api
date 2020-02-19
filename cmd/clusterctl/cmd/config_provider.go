@@ -22,20 +22,25 @@ import (
 
 	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
+	clusterctlv1 "sigs.k8s.io/cluster-api/cmd/clusterctl/api/v1alpha3"
 	"sigs.k8s.io/cluster-api/cmd/clusterctl/pkg/client"
 )
 
 type configProvidersOptions struct {
-	output            string
-	targetNamespace   string
-	watchingNamespace string
+	coreProvider           string
+	bootstrapProvider      string
+	controlPlaneProvider   string
+	infrastructureProvider string
+	output                 string
+	targetNamespace        string
+	watchingNamespace      string
 }
 
 var cpo = &configProvidersOptions{}
 
 var configProviderCmd = &cobra.Command{
 	Use:   "provider",
-	Args:  cobra.ExactArgs(1),
+	Args:  cobra.NoArgs,
 	Short: "Display information about a Cluster API provider",
 	Long: LongDesc(`
 		Display information about a Cluster API provider.
@@ -44,32 +49,30 @@ var configProviderCmd = &cobra.Command{
 		and the default namespace where the provider should be deployed are derived from this file.`),
 
 	Example: Examples(`
-		# Displays relevant information about the AWS provider, including also the list of 
+		# Displays relevant information about the AWS infrastructure provider, including also the list of 
 		# required env variables, if any.
-		clusterctl config provider aws
+		clusterctl config provider --infrastructure aws
 
-		# Displays relevant information about a specific version of the AWS provider.
-		clusterctl config provider aws:v0.4.1
+		# Displays relevant information about a specific version of the AWS infrastructure provider.
+		clusterctl config provider --infrastructure aws:v0.4.1
 
-		# Displays the yaml for creating provider components for the AWS provider.
-		clusterctl config provider aws -o yaml
+		# Displays the yaml for creating provider components for the AWS infrastructure provider.
+		clusterctl config provider --infrastructure aws -o yaml
 
-		# Displays the yaml for creating provider components for a specific version of the AWS provider.
-		clusterctl config provider aws:v0.4.1 -o yaml`),
+		# Displays the yaml for creating provider components for a specific version of the AWS infrastructure provider.
+		clusterctl config provider --infrastructure aws:v0.4.1 -o yaml`),
 
 	RunE: func(cmd *cobra.Command, args []string) error {
-		if !(cpo.output == "" || cpo.output == "yaml" || cpo.output == "text") { //nolint goconst
-			return errors.New("please provide a valid output. Supported values are [ text, yaml ]")
-		}
-
-		if len(args) == 0 {
-			return runGetRepositories()
-		}
-		return runGetComponents(args[0], cpo.targetNamespace, cpo.watchingNamespace, cpo.output)
+		return runGetComponents()
 	},
 }
 
 func init() {
+	configProviderCmd.Flags().StringVarP(&cpo.coreProvider, "core", "", "", "Core provider version (e.g. cluster-api:v0.3.0)")
+	configProviderCmd.Flags().StringVarP(&cpo.infrastructureProvider, "infrastructure", "i", "", "Infrastructure provider and version (e.g. aws:v0.5.0)")
+	configProviderCmd.Flags().StringVarP(&cpo.bootstrapProvider, "bootstrap", "b", "", "Bootstrap provider and version (e.g. kubeadm:v0.3.0)")
+	configProviderCmd.Flags().StringVarP(&cpo.controlPlaneProvider, "control-plane", "c", "", "ControlPlane provider and version (e.g. kubeadm:v0.3.0)")
+
 	configProviderCmd.Flags().StringVarP(&cpo.output, "output", "o", "text", "Output format. One of [yaml, text]")
 	configProviderCmd.Flags().StringVarP(&cpo.targetNamespace, "target-namespace", "", "", "The target namespace where the provider should be deployed. If not specified, a default namespace will be used")
 	configProviderCmd.Flags().StringVarP(&cpo.watchingNamespace, "watching-namespace", "", "", "Namespace that the provider should watch to reconcile Cluster API objects. If unspecified, the provider watches for Cluster API objects across all namespaces")
@@ -77,18 +80,49 @@ func init() {
 	configCmd.AddCommand(configProviderCmd)
 }
 
-func runGetComponents(providerName, targetNamespace, watchingNamespace, output string) error {
+func runGetComponents() error {
+	if !(cpo.output == "" || cpo.output == "yaml" || cpo.output == "text") { //nolint goconst
+		return errors.New("please provide a valid output. Supported values are [ text, yaml ]")
+	}
+
+	providerName := cpo.coreProvider
+	providerType := clusterctlv1.CoreProviderType
+	if cpo.bootstrapProvider != "" {
+		if providerName != "" {
+			return errors.New("only one of --core, --bootstrap, --control-plane, --infrastructure should be set")
+		}
+		providerName = cpo.bootstrapProvider
+		providerType = clusterctlv1.BootstrapProviderType
+	}
+	if cpo.controlPlaneProvider != "" {
+		if providerName != "" {
+			return errors.New("only one of --core, --bootstrap, --control-plane, --infrastructure should be set")
+		}
+		providerName = cpo.controlPlaneProvider
+		providerType = clusterctlv1.ControlPlaneProviderType
+	}
+	if cpo.infrastructureProvider != "" {
+		if providerName != "" {
+			return errors.New("only one of --core, --bootstrap, --control-plane, --infrastructure should be set")
+		}
+		providerName = cpo.infrastructureProvider
+		providerType = clusterctlv1.InfrastructureProviderType
+	}
+	if providerName == "" {
+		return errors.New("at least one of --core, --bootstrap, --control-plane, --infrastructure should be set")
+	}
+
 	c, err := client.New(cfgFile)
 	if err != nil {
 		return err
 	}
 
-	components, err := c.GetProviderComponents(providerName, targetNamespace, watchingNamespace)
+	components, err := c.GetProviderComponents(providerName, providerType, cpo.targetNamespace, cpo.watchingNamespace)
 	if err != nil {
 		return err
 	}
 
-	if output == "yaml" {
+	if cpo.output == "yaml" {
 		return componentsYAMLOutput(components)
 	}
 	return componentsDefaultOutput(components)
@@ -103,6 +137,7 @@ func componentsYAMLOutput(c client.Components) error {
 	if _, err := os.Stdout.Write(yaml); err != nil {
 		return errors.Wrap(err, "failed to write yaml to Stdout")
 	}
+	os.Stdout.WriteString("\n")
 	return err
 }
 

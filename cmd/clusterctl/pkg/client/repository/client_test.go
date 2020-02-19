@@ -29,8 +29,8 @@ func Test_newRepositoryClient_LocalFileSystemRepository(t *testing.T) {
 	tmpDir := createTempDir(t)
 	defer os.RemoveAll(tmpDir)
 
-	dst1 := createLocalTestProviderFile(t, tmpDir, "provider-1/v1.0.0/bootstrap-components.yaml", "")
-	dst2 := createLocalTestProviderFile(t, tmpDir, "provider-2/v2.0.0/bootstrap-components.yaml", "")
+	dst1 := createLocalTestProviderFile(t, tmpDir, "bootstrap-foo/v1.0.0/bootstrap-components.yaml", "")
+	dst2 := createLocalTestProviderFile(t, tmpDir, "bootstrap-bar/v2.0.0/bootstrap-components.yaml", "")
 
 	type fields struct {
 		provider config.Provider
@@ -42,13 +42,13 @@ func Test_newRepositoryClient_LocalFileSystemRepository(t *testing.T) {
 		{
 			name: "successfully creates repository client with local filesystem backend and scheme == \"\"",
 			fields: fields{
-				provider: config.NewProvider("provider-1", dst1, clusterctlv1.BootstrapProviderType),
+				provider: config.NewProvider("foo", dst1, clusterctlv1.BootstrapProviderType),
 			},
 		},
 		{
 			name: "successfully creates repository client with local filesystem backend and scheme == \"file\"",
 			fields: fields{
-				provider: config.NewProvider("provider-2", "file://"+dst2, clusterctlv1.BootstrapProviderType),
+				provider: config.NewProvider("bar", "file://"+dst2, clusterctlv1.BootstrapProviderType),
 			},
 		},
 	}

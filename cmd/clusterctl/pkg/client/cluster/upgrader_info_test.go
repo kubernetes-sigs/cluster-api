@@ -47,7 +47,7 @@ func Test_providerUpgrader_getUpgradeInfo(t *testing.T) {
 			name: "returns all the expected info",
 			fields: fields{
 				reader: test.NewFakeReader().
-					WithProvider("p1", clusterctlv1.CoreProviderType, "https://somewhere.com"),
+					WithProvider("p1", clusterctlv1.InfrastructureProviderType, "https://somewhere.com"),
 				repository: test.NewFakeRepository(). //without metadata
 									WithVersions("v1.0.0", "v1.0.1", "v1.0.2", "v1.1.0").
 									WithMetadata("v1.1.0", &clusterctlv1.Metadata{
@@ -58,7 +58,7 @@ func Test_providerUpgrader_getUpgradeInfo(t *testing.T) {
 					}),
 			},
 			args: args{
-				provider: fakeProvider("p1", clusterctlv1.CoreProviderType, "v1.0.1", "p1-system", ""),
+				provider: fakeProvider("p1", clusterctlv1.InfrastructureProviderType, "v1.0.1", "p1-system", ""),
 			},
 			want: &upgradeInfo{
 				metadata: &clusterctlv1.Metadata{
@@ -84,12 +84,12 @@ func Test_providerUpgrader_getUpgradeInfo(t *testing.T) {
 			name: "fails if metadata file is not available for the target version",
 			fields: fields{
 				reader: test.NewFakeReader().
-					WithProvider("p1", clusterctlv1.CoreProviderType, "https://somewhere.com"),
+					WithProvider("p1", clusterctlv1.InfrastructureProviderType, "https://somewhere.com"),
 				repository: test.NewFakeRepository(). //without metadata
 									WithVersions("v1.0.0", "v1.0.1"),
 			},
 			args: args{
-				provider: fakeProvider("p1", clusterctlv1.CoreProviderType, "v1.0.0", "p1-system", ""),
+				provider: fakeProvider("p1", clusterctlv1.InfrastructureProviderType, "v1.0.0", "p1-system", ""),
 			},
 			want:    nil,
 			wantErr: true,
@@ -98,13 +98,13 @@ func Test_providerUpgrader_getUpgradeInfo(t *testing.T) {
 			name: "fails if metadata file is not available for the target version",
 			fields: fields{
 				reader: test.NewFakeReader().
-					WithProvider("p1", clusterctlv1.CoreProviderType, "https://somewhere.com"),
+					WithProvider("p1", clusterctlv1.InfrastructureProviderType, "https://somewhere.com"),
 				repository: test.NewFakeRepository(). //with metadata but not for the target version
 									WithVersions("v1.0.0", "v1.0.1").
 									WithMetadata("v1.0.0", &clusterctlv1.Metadata{}),
 			},
 			args: args{
-				provider: fakeProvider("p1", clusterctlv1.CoreProviderType, "v1.0.0", "p1-system", ""),
+				provider: fakeProvider("p1", clusterctlv1.InfrastructureProviderType, "v1.0.0", "p1-system", ""),
 			},
 			want:    nil,
 			wantErr: true,
@@ -113,13 +113,13 @@ func Test_providerUpgrader_getUpgradeInfo(t *testing.T) {
 			name: "fails if current version does not match release series",
 			fields: fields{
 				reader: test.NewFakeReader().
-					WithProvider("p1", clusterctlv1.CoreProviderType, "https://somewhere.com"),
+					WithProvider("p1", clusterctlv1.InfrastructureProviderType, "https://somewhere.com"),
 				repository: test.NewFakeRepository(). //without metadata
 									WithVersions("v1.0.0", "v1.0.1").
 									WithMetadata("v1.0.1", &clusterctlv1.Metadata{}),
 			},
 			args: args{
-				provider: fakeProvider("p1", clusterctlv1.CoreProviderType, "v1.0.0", "p1-system", ""),
+				provider: fakeProvider("p1", clusterctlv1.InfrastructureProviderType, "v1.0.0", "p1-system", ""),
 			},
 			want:    nil,
 			wantErr: true,
@@ -128,7 +128,7 @@ func Test_providerUpgrader_getUpgradeInfo(t *testing.T) {
 			name: "fails if available version does not match release series",
 			fields: fields{
 				reader: test.NewFakeReader().
-					WithProvider("p1", clusterctlv1.CoreProviderType, "https://somewhere.com"),
+					WithProvider("p1", clusterctlv1.InfrastructureProviderType, "https://somewhere.com"),
 				repository: test.NewFakeRepository(). //without metadata
 									WithVersions("v1.0.0", "v1.0.1", "v1.1.1").
 									WithMetadata("v1.1.1", &clusterctlv1.Metadata{
@@ -139,7 +139,7 @@ func Test_providerUpgrader_getUpgradeInfo(t *testing.T) {
 					}),
 			},
 			args: args{
-				provider: fakeProvider("p1", clusterctlv1.CoreProviderType, "v1.0.0", "p1-system", ""),
+				provider: fakeProvider("p1", clusterctlv1.InfrastructureProviderType, "v1.0.0", "p1-system", ""),
 			},
 			want:    nil,
 			wantErr: true,

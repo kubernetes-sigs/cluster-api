@@ -173,7 +173,7 @@ func (u *providerUpgrader) getManagementGroup(coreProvider clusterctlv1.Provider
 
 	managementGroup := managementGroups.FindManagementGroupByProviderInstanceName(coreProvider.InstanceName())
 	if managementGroup == nil {
-		return nil, errors.Errorf("unable to identify %s/%s the management group", coreProvider.Namespace, coreProvider.Name)
+		return nil, errors.Errorf("unable to identify %s/%s the management group", coreProvider.Namespace, coreProvider.Provider)
 	}
 
 	return managementGroup, nil
@@ -181,7 +181,7 @@ func (u *providerUpgrader) getManagementGroup(coreProvider clusterctlv1.Provider
 
 // getUpgradeComponents returns the provider components for the selected target version.
 func (u *providerUpgrader) getUpgradeComponents(provider UpgradeItem) (repository.Components, error) {
-	configRepository, err := u.configClient.Providers().Get(provider.Name)
+	configRepository, err := u.configClient.Providers().Get(provider.Provider.Provider, provider.GetProviderType())
 	if err != nil {
 		return nil, err
 	}

@@ -25,16 +25,15 @@
 # - there should be a sigs.k8s.io/cluster-api/clusterctl-settings.json file with the list of provider for which
 #   the local overrides should be generated and the list of provider repositories to be included (on top of cluster-api).
 # {
-#    "providers": [ "cluster-api", "kubeadm-bootstrap", "aws"],
+#    "providers": [ "cluster-api", "bootstrap-kubeadm", "infrastructure-aws"],
 #    "provider_repos": ["../cluster-api-provider-aws"]
 # }
 # - for each additional provider repository there should be a sigs.k8s.io/<provider_repo>/clusterctl-settings.json file e.g.
 # {
-#   "name": "aws",
+#   "name": "infrastructure-aws",
 #   "config": {
 #     "componentsFile": "infrastructure-components.yaml",
 #     "nextVersion": "v0.5.0",
-#     "type": "InfrastructureProvider"
 # }
 
 ###################
@@ -55,27 +54,25 @@ providers = {
               'nextVersion': 'v0.3.0',
               'type': 'CoreProvider',
       },
-      'kubeadm-bootstrap': {
+      'bootstrap-kubeadm': {
             'componentsFile': 'bootstrap-components.yaml',
             'nextVersion': 'v0.3.0',
             'type': 'BootstrapProvider',
             'configFolder': 'bootstrap/kubeadm/config',
       },
-      'kubeadm-control-plane': {
+      'control-plane-kubeadm': {
             'componentsFile': 'control-plane-components.yaml',
             'nextVersion': 'v0.3.0',
             'type': 'ControlPlaneProvider',
             'configFolder': 'controlplane/kubeadm/config',
       },
-      'docker': {
+      'infrastructure-docker': {
           'componentsFile': 'infrastructure-components.yaml',
           'nextVersion': 'v0.3.0',
           'type': 'InfrastructureProvider',
           'configFolder': 'test/infrastructure/docker/config',
       },
 }
-
-validTypes = ['CoreProvider','BootstrapProvider','ControlPlaneProvider','InfrastructureProvider']
 
 def load_settings():
     global settings
@@ -145,9 +142,8 @@ def create_local_overrides():
         next_version = p.get('nextVersion')
         assert next_version is not None, 'invalid configuration for provider {}: please provide nextVersion value'.format(provider)
 
-        type = p.get('type')
-        assert type is not None, 'invalid configuration for provider {}: please provide type value'.format(provider)
-        assert type in validTypes, 'invalid configuration for provider {}: please use one of {}'.format(provider, ', '.join(validTypes))
+        name, type =splitNameAndType(provider)
+        assert name is not None, 'invalid configuration for provider {}: please use a valid provider label'.format(provider)
 
         components_file = p.get('componentsFile')
         assert components_file is not None, 'invalid configuration for provider {}: please provide componentsFile value'.format(provider)
@@ -155,8 +151,18 @@ def create_local_overrides():
         components_yaml = execCmd(['kustomize', 'build', os.path.join(repo, config_folder)])
         write_local_override(provider, next_version, components_file, components_yaml)
 
-        yield provider, type, next_version
+        yield name, type, next_version
 
+def splitNameAndType(provider):
+    if provider == 'cluster-api':
+        return 'cluster-api', 'CoreProvider'
+    if provider.startswith('bootstrap-'):
+        return provider[len('bootstrap-'):], 'BootstrapProvider'
+    if provider.startswith('control-plane-'):
+        return provider[len('control-plane-'):], 'ControlPlaneProvider'
+    if provider.startswith('infrastructure-'):
+        return provider[len('infrastructure-'):], 'InfrastructureProvider'
+    return None, None
 
 def CoreProviderFlag():
     return '--core'
@@ -186,8 +192,8 @@ def print_instructions(overrides):
     print ('in order to use them, please run:')
     print
     cmd = 'clusterctl init'
-    for provider, type, next_version in overrides:
-        cmd += ' {} {}:{}'.format(type_to_flag(type), provider, next_version)
+    for name, type, next_version in overrides:
+        cmd += ' {} {}:{}'.format(type_to_flag(type), name, next_version)
     print (cmd)
     print
 

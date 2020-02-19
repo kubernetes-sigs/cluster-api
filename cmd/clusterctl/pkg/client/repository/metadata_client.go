@@ -65,7 +65,7 @@ func (f *metadataClient) Get() (*clusterctlv1.Metadata, error) {
 		return nil, err
 	}
 	if file == nil {
-		log.V(5).Info("Fetching", "File", name, "Provider", f.provider.Name(), "Version", version)
+		log.V(5).Info("Fetching", "File", name, "Provider", f.provider.ManifestLabel(), "Version", version)
 		file, err = f.repository.GetFile(version, name)
 		if err != nil {
 			// if there are problems in reading the metadata file from the repository, check if there are embedded metadata for the provider, if yes use them
@@ -73,10 +73,10 @@ func (f *metadataClient) Get() (*clusterctlv1.Metadata, error) {
 				return obj, nil
 			}
 
-			return nil, errors.Wrapf(err, "failed to read %q from the repository for provider %q", name, f.provider.Name())
+			return nil, errors.Wrapf(err, "failed to read %q from the repository for provider %q", name, f.provider.ManifestLabel())
 		}
 	} else {
-		log.V(1).Info("Using", "Override", name, "Provider", f.provider.Name(), "Version", version)
+		log.V(1).Info("Using", "Override", name, "Provider", f.provider.ManifestLabel(), "Version", version)
 	}
 
 	// Convert the yaml into a typed object
@@ -84,7 +84,7 @@ func (f *metadataClient) Get() (*clusterctlv1.Metadata, error) {
 	codecFactory := serializer.NewCodecFactory(scheme.Scheme)
 
 	if err := runtime.DecodeInto(codecFactory.UniversalDecoder(), file, obj); err != nil {
-		return nil, errors.Wrapf(err, "error decoding %q for provider %q", name, f.provider.Name())
+		return nil, errors.Wrapf(err, "error decoding %q for provider %q", name, f.provider.ManifestLabel())
 	}
 
 	//TODO: consider if to add metadata validation (TBD)
@@ -99,102 +99,122 @@ func (f *metadataClient) getEmbeddedMetadata() *clusterctlv1.Metadata {
 	// on the embedded one.
 
 	// if you are a developer of a SIG-cluster-lifecycle project, you can send a PR to extend the following list.
-	switch f.provider.Name() {
-	case config.ClusterAPIProviderName:
-		return &clusterctlv1.Metadata{
-			TypeMeta: metav1.TypeMeta{
-				APIVersion: clusterctlv1.GroupVersion.String(),
-				Kind:       "Metadata",
-			},
-			ReleaseSeries: []clusterctlv1.ReleaseSeries{
-				// v1alpha3 release series
-				{Major: 0, Minor: 3, Contract: "v1alpha3"},
-				// v1alpha2 release series are supported only for upgrades
-				{Major: 0, Minor: 2, Contract: "v1alpha2"},
-				// older version are not supported by clusterctl
-			},
+	switch f.provider.Type() {
+	case clusterctlv1.CoreProviderType:
+		switch f.provider.Name() {
+		case config.ClusterAPIProviderName:
+			return &clusterctlv1.Metadata{
+				TypeMeta: metav1.TypeMeta{
+					APIVersion: clusterctlv1.GroupVersion.String(),
+					Kind:       "Metadata",
+				},
+				ReleaseSeries: []clusterctlv1.ReleaseSeries{
+					// v1alpha3 release series
+					{Major: 0, Minor: 3, Contract: "v1alpha3"},
+					// v1alpha2 release series are supported only for upgrades
+					{Major: 0, Minor: 2, Contract: "v1alpha2"},
+					// older version are not supported by clusterctl
+				},
+			}
+		default:
+			return nil
 		}
-	case config.DockerProviderName:
-		return &clusterctlv1.Metadata{
-			TypeMeta: metav1.TypeMeta{
-				APIVersion: clusterctlv1.GroupVersion.String(),
-				Kind:       "Metadata",
-			},
-			ReleaseSeries: []clusterctlv1.ReleaseSeries{
-				// v1alpha3 release series
-				{Major: 0, Minor: 3, Contract: "v1alpha3"}, // From this release series CAPD version scheme is linked to CAPI
-				// v1alpha2 release series are supported only for upgrades
-				{Major: 0, Minor: 2, Contract: "v1alpha2"}, // This release was hosted on a different repository
-				// older version are not supported by clusterctl
-			},
+	case clusterctlv1.BootstrapProviderType:
+		switch f.provider.Name() {
+		case config.KubeadmBootstrapProviderName:
+			return &clusterctlv1.Metadata{
+				TypeMeta: metav1.TypeMeta{
+					APIVersion: clusterctlv1.GroupVersion.String(),
+					Kind:       "Metadata",
+				},
+				ReleaseSeries: []clusterctlv1.ReleaseSeries{
+					// v1alpha3 release series
+					{Major: 0, Minor: 3, Contract: "v1alpha3"}, // From this release series CABPK version scheme is linked to CAPI; The 0.2 release series was skipped when doing this change.
+					// v1alpha2 release series are supported only for upgrades
+					{Major: 0, Minor: 1, Contract: "v1alpha2"}, // This release was hosted on a different repository
+					// older version are not supported by clusterctl
+				},
+			}
+		default:
+			return nil
 		}
-	case config.KubeadmBootstrapProviderName:
-		return &clusterctlv1.Metadata{
-			TypeMeta: metav1.TypeMeta{
-				APIVersion: clusterctlv1.GroupVersion.String(),
-				Kind:       "Metadata",
-			},
-			ReleaseSeries: []clusterctlv1.ReleaseSeries{
-				// v1alpha3 release series
-				{Major: 0, Minor: 3, Contract: "v1alpha3"}, // From this release series CABPK version scheme is linked to CAPI; The 0.2 release series was skipped when doing this change.
-				// v1alpha2 release series are supported only for upgrades
-				{Major: 0, Minor: 1, Contract: "v1alpha2"}, // This release was hosted on a different repository
-				// older version are not supported by clusterctl
-			},
+	case clusterctlv1.ControlPlaneProviderType:
+		switch f.provider.Name() {
+		case config.KubeadmControlPlaneProviderName:
+			return &clusterctlv1.Metadata{
+				TypeMeta: metav1.TypeMeta{
+					APIVersion: clusterctlv1.GroupVersion.String(),
+					Kind:       "Metadata",
+				},
+				ReleaseSeries: []clusterctlv1.ReleaseSeries{
+					// v1alpha3 release series
+					{Major: 0, Minor: 3, Contract: "v1alpha3"}, // KCP version scheme is linked to CAPI.
+					// there are no older version for KCP
+				},
+			}
+		default:
+			return nil
 		}
-	case config.KubeadmControlPlaneProviderName:
-		return &clusterctlv1.Metadata{
-			TypeMeta: metav1.TypeMeta{
-				APIVersion: clusterctlv1.GroupVersion.String(),
-				Kind:       "Metadata",
-			},
-			ReleaseSeries: []clusterctlv1.ReleaseSeries{
-				// v1alpha3 release series
-				{Major: 0, Minor: 3, Contract: "v1alpha3"}, // KCP version scheme is linked to CAPI.
-				// there are no older version for KCP
-			},
-		}
-	case config.AWSProviderName:
-		return &clusterctlv1.Metadata{
-			TypeMeta: metav1.TypeMeta{
-				APIVersion: clusterctlv1.GroupVersion.String(),
-				Kind:       "Metadata",
-			},
-			ReleaseSeries: []clusterctlv1.ReleaseSeries{
-				// v1alpha3 release series
-				{Major: 0, Minor: 5, Contract: "v1alpha3"},
-				// v1alpha2 release series are supported only for upgrades
-				{Major: 0, Minor: 4, Contract: "v1alpha2"},
-				// older version are not supported by clusterctl
-			},
-		}
-	case config.VSphereProviderName:
-		return &clusterctlv1.Metadata{
-			TypeMeta: metav1.TypeMeta{
-				APIVersion: clusterctlv1.GroupVersion.String(),
-				Kind:       "Metadata",
-			},
-			ReleaseSeries: []clusterctlv1.ReleaseSeries{
-				// v1alpha3 release series
-				{Major: 0, Minor: 6, Contract: "v1alpha3"},
-				// v1alpha2 release series are supported only for upgrades
-				{Major: 0, Minor: 5, Contract: "v1alpha2"},
-				// older version are not supported by clusterctl
-			},
-		}
-	case config.BareMetalProviderName:
-		return &clusterctlv1.Metadata{
-			TypeMeta: metav1.TypeMeta{
-				APIVersion: clusterctlv1.GroupVersion.String(),
-				Kind:       "Metadata",
-			},
-			ReleaseSeries: []clusterctlv1.ReleaseSeries{
-				// v1alpha3 release series
-				{Major: 0, Minor: 3, Contract: "v1alpha3"},
-				// v1alpha2 release series are supported only for upgrades
-				{Major: 0, Minor: 2, Contract: "v1alpha2"},
-				// older version are not supported by clusterctl
-			},
+	case clusterctlv1.InfrastructureProviderType:
+		switch f.provider.Name() {
+		case config.DockerProviderName:
+			return &clusterctlv1.Metadata{
+				TypeMeta: metav1.TypeMeta{
+					APIVersion: clusterctlv1.GroupVersion.String(),
+					Kind:       "Metadata",
+				},
+				ReleaseSeries: []clusterctlv1.ReleaseSeries{
+					// v1alpha3 release series
+					{Major: 0, Minor: 3, Contract: "v1alpha3"}, // From this release series CAPD version scheme is linked to CAPI
+					// v1alpha2 release series are supported only for upgrades
+					{Major: 0, Minor: 2, Contract: "v1alpha2"}, // This release was hosted on a different repository
+					// older version are not supported by clusterctl
+				},
+			}
+		case config.AWSProviderName:
+			return &clusterctlv1.Metadata{
+				TypeMeta: metav1.TypeMeta{
+					APIVersion: clusterctlv1.GroupVersion.String(),
+					Kind:       "Metadata",
+				},
+				ReleaseSeries: []clusterctlv1.ReleaseSeries{
+					// v1alpha3 release series
+					{Major: 0, Minor: 5, Contract: "v1alpha3"},
+					// v1alpha2 release series are supported only for upgrades
+					{Major: 0, Minor: 4, Contract: "v1alpha2"},
+					// older version are not supported by clusterctl
+				},
+			}
+		case config.VSphereProviderName:
+			return &clusterctlv1.Metadata{
+				TypeMeta: metav1.TypeMeta{
+					APIVersion: clusterctlv1.GroupVersion.String(),
+					Kind:       "Metadata",
+				},
+				ReleaseSeries: []clusterctlv1.ReleaseSeries{
+					// v1alpha3 release series
+					{Major: 0, Minor: 6, Contract: "v1alpha3"},
+					// v1alpha2 release series are supported only for upgrades
+					{Major: 0, Minor: 5, Contract: "v1alpha2"},
+					// older version are not supported by clusterctl
+				},
+			}
+		case config.BareMetalProviderName:
+			return &clusterctlv1.Metadata{
+				TypeMeta: metav1.TypeMeta{
+					APIVersion: clusterctlv1.GroupVersion.String(),
+					Kind:       "Metadata",
+				},
+				ReleaseSeries: []clusterctlv1.ReleaseSeries{
+					// v1alpha3 release series
+					{Major: 0, Minor: 3, Contract: "v1alpha3"},
+					// v1alpha2 release series are supported only for upgrades
+					{Major: 0, Minor: 2, Contract: "v1alpha2"},
+					// older version are not supported by clusterctl
+				},
+			}
+		default:
+			return nil
 		}
 	default:
 		return nil

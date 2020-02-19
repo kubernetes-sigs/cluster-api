@@ -753,8 +753,9 @@ func Test_fixWatchNamespace(t *testing.T) {
 
 func Test_addCommonLabels(t *testing.T) {
 	type args struct {
-		objs []unstructured.Unstructured
-		name string
+		objs         []unstructured.Unstructured
+		name         string
+		providerType clusterctlv1.ProviderType
 	}
 	tests := []struct {
 		name string
@@ -771,7 +772,8 @@ func Test_addCommonLabels(t *testing.T) {
 						},
 					},
 				},
-				name: "provider",
+				name:         "provider",
+				providerType: clusterctlv1.InfrastructureProviderType,
 			},
 			want: []unstructured.Unstructured{
 				{
@@ -780,7 +782,7 @@ func Test_addCommonLabels(t *testing.T) {
 						"metadata": map[string]interface{}{
 							"labels": map[string]interface{}{
 								clusterctlv1.ClusterctlLabelName: "",
-								clusterv1.ProviderLabelName:      "provider",
+								clusterv1.ProviderLabelName:      "infrastructure-provider",
 							},
 						},
 					},
@@ -790,7 +792,7 @@ func Test_addCommonLabels(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if got := addCommonLabels(tt.args.objs, tt.args.name); !reflect.DeepEqual(got, tt.want) {
+			if got := addCommonLabels(tt.args.objs, config.NewProvider(tt.args.name, "", tt.args.providerType)); !reflect.DeepEqual(got, tt.want) {
 				t.Errorf("got = %v, want %v", got, tt.want)
 			}
 		})

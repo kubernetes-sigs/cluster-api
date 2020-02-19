@@ -121,8 +121,10 @@ func parseUpgradeItem(ref string) (*cluster.UpgradeItem, error) {
 		Provider: clusterctlv1.Provider{
 			ObjectMeta: metav1.ObjectMeta{
 				Namespace: namespace,
-				Name:      name,
+				Name:      clusterctlv1.ManifestLabel(name, clusterctlv1.CoreProviderType),
 			},
+			Provider: name,
+			Type:     string(clusterctlv1.CoreProviderType),
 		},
 		NextVersion: version,
 	}, nil

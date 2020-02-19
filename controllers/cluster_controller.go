@@ -247,7 +247,7 @@ func (r *ClusterReconciler) reconcileDelete(ctx context.Context, cluster *cluste
 				continue
 			}
 
-			if !accessor.GetDeletionTimestamp().IsZero() {
+			if accessor.GetDeletionTimestamp() != nil && !accessor.GetDeletionTimestamp().IsZero() {
 				// Don't handle deleted child
 				continue
 			}

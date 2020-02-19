@@ -148,28 +148,28 @@ func (r *MachineReconciler) reconcileExternal(ctx context.Context, cluster *clus
 
 // reconcileBootstrap reconciles the Spec.Bootstrap.ConfigRef object on a Machine.
 func (r *MachineReconciler) reconcileBootstrap(ctx context.Context, cluster *clusterv1.Cluster, m *clusterv1.Machine) error {
-	// Call generic external reconciler if we have an external reference.
-	var bootstrapConfig *unstructured.Unstructured
-	if m.Spec.Bootstrap.ConfigRef != nil {
-		bootstrapReconcileResult, err := r.reconcileExternal(ctx, cluster, m, m.Spec.Bootstrap.ConfigRef)
-		if err != nil {
-			return err
-		}
-		// if the external object is paused, return without any further processing
-		if bootstrapReconcileResult.Paused {
-			return nil
-		}
-		bootstrapConfig = bootstrapReconcileResult.Result
+	if m.Spec.Bootstrap.ConfigRef == nil {
+		return nil
 	}
 
+	// Call generic external reconciler if we have an external reference.
+	externalResult, err := r.reconcileExternal(ctx, cluster, m, m.Spec.Bootstrap.ConfigRef)
+	if err != nil {
+		return err
+	}
+	if externalResult.Paused {
+		return nil
+	}
+	bootstrapConfig := externalResult.Result
+
 	// If the bootstrap data is populated, set ready and return.
-	if m.Spec.Bootstrap.Data != nil || m.Spec.Bootstrap.DataSecretName != nil {
+	if m.Spec.Bootstrap.DataSecretName != nil {
 		m.Status.BootstrapReady = true
 		return nil
 	}
 
 	// If the bootstrap config is being deleted, return early.
-	if !bootstrapConfig.GetDeletionTimestamp().IsZero() {
+	if bootstrapConfig.GetDeletionTimestamp() != nil && !bootstrapConfig.GetDeletionTimestamp().IsZero() {
 		return nil
 	}
 
@@ -190,6 +190,7 @@ func (r *MachineReconciler) reconcileBootstrap(ctx context.Context, cluster *clu
 		return errors.Errorf("retrieved empty dataSecretName from bootstrap provider for Machine %q in namespace %q", m.Name, m.Namespace)
 	}
 
+	m.Spec.Bootstrap.Data = nil
 	m.Spec.Bootstrap.DataSecretName = pointer.StringPtr(secretName)
 	m.Status.BootstrapReady = true
 	return nil
@@ -215,7 +216,7 @@ func (r *MachineReconciler) reconcileInfrastructure(ctx context.Context, cluster
 	}
 	infraConfig := infraReconcileResult.Result
 
-	if !infraConfig.GetDeletionTimestamp().IsZero() {
+	if infraConfig.GetDeletionTimestamp() != nil && !infraConfig.GetDeletionTimestamp().IsZero() {
 		return nil
 	}
 

@@ -169,7 +169,7 @@ func (r *MachinePoolReconciler) reconcileBootstrap(ctx context.Context, cluster 
 	}
 
 	// If the bootstrap config is being deleted, return early.
-	if !bootstrapConfig.GetDeletionTimestamp().IsZero() {
+	if bootstrapConfig.GetDeletionTimestamp() != nil && !bootstrapConfig.GetDeletionTimestamp().IsZero() {
 		return nil
 	}
 
@@ -215,7 +215,7 @@ func (r *MachinePoolReconciler) reconcileInfrastructure(ctx context.Context, clu
 	}
 	infraConfig := infraReconcileResult.Result
 
-	if !infraConfig.GetDeletionTimestamp().IsZero() {
+	if infraConfig.GetDeletionTimestamp() != nil && !infraConfig.GetDeletionTimestamp().IsZero() {
 		return nil
 	}
 

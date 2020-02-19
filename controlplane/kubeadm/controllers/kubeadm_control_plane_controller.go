@@ -237,7 +237,7 @@ func (r *KubeadmControlPlaneReconciler) reconcile(ctx context.Context, cluster *
 	currentConfigurationHash := hash.Compute(&kcp.Spec)
 	requireUpgrade := internal.FilterMachines(
 		ownedMachines,
-		internal.HasOutdatedConfiguration(currentConfigurationHash),
+		internal.Not(internal.MatchesConfigurationHash(currentConfigurationHash)),
 		internal.OlderThan(kcp.Spec.UpgradeAfter),
 	)
 
@@ -412,7 +412,7 @@ func (r *KubeadmControlPlaneReconciler) scaleDownControlPlane(ctx context.Contex
 	}
 
 	// Wait for any delete in progress to complete before deleting another Machine
-	if len(internal.FilterMachines(ownedMachines, internal.HasDeletionTimestamp())) > 0 {
+	if len(internal.FilterMachines(ownedMachines, internal.HasDeletionTimestamp)) > 0 {
 		return ctrl.Result{RequeueAfter: DeleteRequeueAfter}, nil
 	}
 

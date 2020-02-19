@@ -36,7 +36,6 @@ import (
 	"k8s.io/client-go/rest"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha3"
 	"sigs.k8s.io/cluster-api/controllers/remote"
-	controlplanev1 "sigs.k8s.io/cluster-api/controlplane/kubeadm/api/v1alpha3"
 	"sigs.k8s.io/cluster-api/controlplane/kubeadm/internal/etcd"
 	etcdutil "sigs.k8s.io/cluster-api/controlplane/kubeadm/internal/etcd/util"
 	"sigs.k8s.io/cluster-api/controlplane/kubeadm/internal/proxy"
@@ -49,65 +48,6 @@ import (
 // ManagementCluster holds operations on the ManagementCluster
 type ManagementCluster struct {
 	Client ctrlclient.Client
-}
-
-// OwnedControlPlaneMachines returns a MachineFilter function to find all owned control plane machines.
-// Usage: managementCluster.GetMachinesForCluster(ctx, cluster, OwnedControlPlaneMachines(controlPlane.Name))
-func OwnedControlPlaneMachines(controlPlaneName string) func(machine *clusterv1.Machine) bool {
-	return func(machine *clusterv1.Machine) bool {
-		if machine == nil {
-			return false
-		}
-		controllerRef := metav1.GetControllerOf(machine)
-		if controllerRef == nil {
-			return false
-		}
-		return controllerRef.Kind == "KubeadmControlPlane" && controllerRef.Name == controlPlaneName
-	}
-}
-
-// HasDeletionTimestamp returns a MachineFilter function to find all machines
-// that have a deletion timestamp.
-func HasDeletionTimestamp() func(machine *clusterv1.Machine) bool {
-	return func(machine *clusterv1.Machine) bool {
-		return machine.GetDeletionTimestamp() != nil
-	}
-}
-
-// HasOutdatedConfiguration returns a MachineFilter function to find all machines
-// that do not match a given KubeadmControlPlane configuration hash.
-func HasOutdatedConfiguration(configHash string) func(machine *clusterv1.Machine) bool {
-	return func(machine *clusterv1.Machine) bool {
-		if machine == nil {
-			return false
-		}
-		return !MatchesConfigurationHash(configHash)(machine)
-	}
-}
-
-// MatchesConfigurationHash returns a MachineFilter function to find all machines
-// that match a given KubeadmControlPlane configuration hash.
-func MatchesConfigurationHash(configHash string) func(machine *clusterv1.Machine) bool {
-	return func(machine *clusterv1.Machine) bool {
-		if machine == nil {
-			return false
-		}
-		if hash, ok := machine.Labels[controlplanev1.KubeadmControlPlaneHashLabelKey]; ok {
-			return hash == configHash
-		}
-		return false
-	}
-}
-
-// OlderThan returns a MachineFilter function to find all machines
-// that have a CreationTimestamp earlier than the given time.
-func OlderThan(t *metav1.Time) func(machine *clusterv1.Machine) bool {
-	return func(machine *clusterv1.Machine) bool {
-		if machine == nil {
-			return false
-		}
-		return machine.CreationTimestamp.Before(t)
-	}
 }
 
 // FilterMachines returns a filtered list of machines

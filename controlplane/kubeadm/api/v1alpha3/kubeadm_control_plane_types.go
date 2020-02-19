@@ -27,6 +27,7 @@ import (
 const (
 	KubeadmControlPlaneFinalizer    = "kubeadm.controlplane.cluster.x-k8s.io"
 	KubeadmControlPlaneHashLabelKey = "kubeadm.controlplane.cluster.x-k8s.io/hash"
+	SelectedForUpgradeAnnotation    = "kubeadm.controlplane.cluster.x-k8s.io/selected-for-upgrade"
 )
 
 // KubeadmControlPlaneSpec defines the desired state of KubeadmControlPlane.

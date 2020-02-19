@@ -21,21 +21,18 @@ import (
 	"fmt"
 
 	corev1 "k8s.io/api/core/v1"
-	"k8s.io/apimachinery/pkg/types"
-	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha3"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
 // Get retrieves the specified Secret (if any) from the given
 // cluster name and namespace.
-func Get(ctx context.Context, c client.Client, cluster *clusterv1.Cluster, purpose Purpose) (*corev1.Secret, error) {
-	name := types.NamespacedName{Name: cluster.Name, Namespace: cluster.Namespace}
-	return GetFromNamespacedName(ctx, c, name, purpose)
+func Get(ctx context.Context, c client.Client, cluster client.ObjectKey, purpose Purpose) (*corev1.Secret, error) {
+	return GetFromNamespacedName(ctx, c, cluster, purpose)
 }
 
 // GetFromNamespacedName retrieves the specified Secret (if any) from the given
 // cluster name and namespace.
-func GetFromNamespacedName(ctx context.Context, c client.Client, clusterName types.NamespacedName, purpose Purpose) (*corev1.Secret, error) {
+func GetFromNamespacedName(ctx context.Context, c client.Client, clusterName client.ObjectKey, purpose Purpose) (*corev1.Secret, error) {
 	secret := &corev1.Secret{}
 	secretKey := client.ObjectKey{
 		Namespace: clusterName.Namespace,

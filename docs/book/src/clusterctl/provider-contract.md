@@ -160,14 +160,15 @@ easier transition from `kubectl apply` to `clusterctl`.
 As a reference you can consider the labels applied to the following
 providers.
 
-| Provider Name| Label                                            |
-|--------------|--------------------------------------------------|
-|CAPI          | cluster.x-k8s.io/provider=cluster-api            |
-|CABPK         | cluster.x-k8s.io/provider=bootstrap-kubeadm      |
-|CACPK         | cluster.x-k8s.io/provider=control-plane-kubeadm  |
-|CAPA          | cluster.x-k8s.io/provider=infrastructure-aws     |
-|CAPV          | cluster.x-k8s.io/provider=infrastructure-vsphere |
-|CAPD          | cluster.x-k8s.io/provider=infrastructure-docker  |
+| Provider Name| Label                                              |
+|--------------|----------------------------------------------------|
+|CAPI          | cluster.x-k8s.io/provider=cluster-api              |
+|CABPK         | cluster.x-k8s.io/provider=bootstrap-kubeadm        |
+|CACPK         | cluster.x-k8s.io/provider=control-plane-kubeadm    |
+|CAPA          | cluster.x-k8s.io/provider=infrastructure-aws       |
+|CAPV          | cluster.x-k8s.io/provider=infrastructure-vsphere   |
+|CAPD          | cluster.x-k8s.io/provider=infrastructure-docker    |
+|CAPBM         | cluster.x-k8s.io/provider=infrastructure-baremetal |
 
 ### Workload cluster templates
 

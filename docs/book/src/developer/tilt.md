@@ -95,8 +95,8 @@ SUBSCRIPTION_ID=$(az account show --query id --output tsv)
 # set the subscription id when having multiple subscriptions
 az account set --subscription $SUBSCRIPTION_ID
 
-# get the tennant id
-TENNANT_ID=$( az account show --query tenantId --output tsv)
+# get the tenant id
+TENANT_ID=$( az account show --query tenantId --output tsv)
 
 # get the secret
 SECRET=$(az ad sp create-for-rbac --name http://$SERVICE_PRINCIPAL_NAME --query password --output tsv)
@@ -106,7 +106,7 @@ CLIENT_ID=$(az ad sp show --id http://$SERVICE_PRINCIPAL_NAME --query appId --ou
 
 # check the result
 echo "SUBSCRIPTION_ID:"$SUBSCRIPTION_ID
-echo "TENNANT_ID:"$TENNANT_ID
+echo "TENANT_ID:"$TENANT_ID
 echo "SECRET:"$SECRET
 echo "CLIENT_ID:"$CLIENT_ID
 ```

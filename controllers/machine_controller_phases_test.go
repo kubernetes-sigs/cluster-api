@@ -624,11 +624,12 @@ func TestReconcileBootstrap(t *testing.T) {
 			expectError: false,
 			expected: func(g *WithT, m *clusterv1.Machine) {
 				g.Expect(m.Status.BootstrapReady).To(BeTrue())
-				g.Expect(*m.Spec.Bootstrap.Data).To(Equal("#!/bin/bash ... data"))
+				g.Expect(m.Spec.Bootstrap.Data).To(BeNil())
+				g.Expect(*m.Spec.Bootstrap.DataSecretName).To(BeEquivalentTo("secret-data"))
 			},
 		},
 		{
-			name: "existing machine, bootstrap provider is to not ready",
+			name: "existing machine, bootstrap provider is not ready",
 			bootstrapConfig: map[string]interface{}{
 				"kind":       "BootstrapMachine",
 				"apiVersion": "bootstrap.cluster.x-k8s.io/v1alpha3",
@@ -639,7 +640,6 @@ func TestReconcileBootstrap(t *testing.T) {
 				"spec": map[string]interface{}{},
 				"status": map[string]interface{}{
 					"ready": false,
-					"data":  "#!/bin/bash ... data",
 				},
 			},
 			machine: &clusterv1.Machine{
@@ -654,17 +654,13 @@ func TestReconcileBootstrap(t *testing.T) {
 							Kind:       "BootstrapMachine",
 							Name:       "bootstrap-config1",
 						},
-						Data: pointer.StringPtr("#!/bin/bash ... data"),
 					},
 				},
 				Status: clusterv1.MachineStatus{
 					BootstrapReady: true,
 				},
 			},
-			expectError: false,
-			expected: func(g *WithT, m *clusterv1.Machine) {
-				g.Expect(m.Status.BootstrapReady).To(BeTrue())
-			},
+			expectError: true,
 		},
 	}
 

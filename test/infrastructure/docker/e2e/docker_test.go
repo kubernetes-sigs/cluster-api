@@ -24,6 +24,7 @@ import (
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
+	"k8s.io/apimachinery/pkg/types"
 
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -157,40 +158,18 @@ var _ = Describe("Docker", func() {
 				}
 				framework.WaitForControlPlaneToBeReady(ctx, waitForControlPlaneToBeReadyInput)
 
-				// Custom expectations around Failure Domains
-				By("waiting for all machines to be running")
-				inClustersNamespaceListOption := ctrlclient.InNamespace(cluster.GetNamespace())
-				matchClusterListOption := ctrlclient.MatchingLabels{
-					clusterv1.ClusterLabelName:             cluster.GetName(),
-					clusterv1.MachineControlPlaneLabelName: "",
+				// Assert failure domain is working as expected
+				assertControlPlaneFailureDomainInput := framework.AssertControlPlaneFailureDomainsInput{
+					GetLister:  client,
+					ClusterKey: types.NamespacedName{Namespace: cluster.Namespace, Name: cluster.Name},
+					ExpectedFailureDomains: map[string]int{
+						"domain-one":   1,
+						"domain-two":   1,
+						"domain-three": 1,
+						"domain-four":  0,
+					},
 				}
-
-				machineList := &clusterv1.MachineList{}
-				mclient, err := mgmt.GetClient()
-				Expect(err).NotTo(HaveOccurred())
-				Expect(mclient.List(ctx, machineList, inClustersNamespaceListOption, matchClusterListOption)).To(Succeed())
-				failureDomainCounts := map[string]int{}
-				// Set all known failure domains
-				for fd := range infraCluster.Spec.FailureDomains {
-					failureDomainCounts[fd] = 0
-				}
-				for _, machine := range machineList.Items {
-					if machine.Spec.FailureDomain == nil {
-						continue
-					}
-					failureDomain := *machine.Spec.FailureDomain
-					_, ok := failureDomainCounts[failureDomain]
-					// Fail if a machine is placed in a failure domain not defined on the InfraCluster
-					Expect(ok).To(BeTrue(), "failure domain assigned to machine is unknown to the cluster: %q", failureDomain)
-					failureDomainCounts[failureDomain]++
-				}
-				for id, spec := range infraCluster.Spec.FailureDomains {
-					if spec.ControlPlane == false {
-						continue
-					}
-					// This is a custom expectation bound to the fact that there are exactly 3 control planes
-					Expect(failureDomainCounts[id]).To(Equal(1), "each failure domain should have exactly one control plane: %v", failureDomainCounts)
-				}
+				framework.AssertControlPlaneFailureDomains(ctx, assertControlPlaneFailureDomainInput)
 			})
 		})
 	})

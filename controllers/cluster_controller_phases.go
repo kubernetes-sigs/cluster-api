@@ -151,7 +151,7 @@ func (r *ClusterReconciler) reconcileInfrastructure(ctx context.Context, cluster
 	infraConfig := infraReconcileResult.Result
 
 	// There's no need to go any further if the Cluster is marked for deletion.
-	if infraConfig.GetDeletionTimestamp() != nil && !infraConfig.GetDeletionTimestamp().IsZero() {
+	if !infraConfig.GetDeletionTimestamp().IsZero() {
 		return nil
 	}
 
@@ -201,7 +201,7 @@ func (r *ClusterReconciler) reconcileControlPlane(ctx context.Context, cluster *
 	controlPlaneConfig := controlPlaneReconcileResult.Result
 
 	// There's no need to go any further if the control plane resource is marked for deletion.
-	if controlPlaneConfig.GetDeletionTimestamp() != nil && !controlPlaneConfig.GetDeletionTimestamp().IsZero() {
+	if !controlPlaneConfig.GetDeletionTimestamp().IsZero() {
 		return nil
 	}
 

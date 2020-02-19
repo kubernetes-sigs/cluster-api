@@ -116,3 +116,79 @@ func Test_inventoryClient_List(t *testing.T) {
 		})
 	}
 }
+
+func Test_inventoryClient_Create(t *testing.T) {
+	type fields struct {
+		proxy Proxy
+	}
+	type args struct {
+		m clusterctlv1.Provider
+	}
+	providerV2 := fakeProvider("infra", clusterctlv1.InfrastructureProviderType, "v0.2.0", "", "")
+	providerV3 := fakeProvider("infra", clusterctlv1.InfrastructureProviderType, "v0.3.0", "", "")
+
+	tests := []struct {
+		name          string
+		fields        fields
+		args          args
+		wantProviders []clusterctlv1.Provider
+		wantErr       bool
+	}{
+		{
+			name: "Creates a provider",
+			fields: fields{
+				proxy: test.NewFakeProxy(),
+			},
+			args: args{
+				m: providerV2,
+			},
+			wantProviders: []clusterctlv1.Provider{
+				providerV2,
+			},
+			wantErr: false,
+		},
+		{
+			name: "Patches a provider",
+			fields: fields{
+				proxy: test.NewFakeProxy().WithObjs(&providerV2),
+			},
+			args: args{
+				m: providerV3,
+			},
+			wantProviders: []clusterctlv1.Provider{
+				providerV3,
+			},
+			wantErr: false,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			p := &inventoryClient{
+				proxy: tt.fields.proxy,
+			}
+			err := p.Create(tt.args.m)
+			if (err != nil) != tt.wantErr {
+				t.Errorf("error = %v, wantErr %v", err, tt.wantErr)
+			}
+			if tt.wantErr {
+				return
+			}
+
+			got, err := p.List()
+			if (err != nil) != tt.wantErr {
+				t.Fatalf("error = %v, wantErr %v", err, tt.wantErr)
+			}
+			if tt.wantErr {
+				return
+			}
+
+			for i := range got.Items {
+				tt.wantProviders[i].ResourceVersion = got.Items[i].ResourceVersion
+			}
+
+			if !reflect.DeepEqual(got.Items, tt.wantProviders) {
+				t.Errorf("got = %v, want %v", got.Items, tt.wantProviders)
+			}
+		})
+	}
+}

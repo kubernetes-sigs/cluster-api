@@ -189,23 +189,23 @@ type addToInstallerOptions struct {
 }
 
 // addToInstaller adds the components to the install queue and checks that the actual provider type match the target group
-func (c *clusterctlClient) addToInstaller(options addToInstallerOptions, targetGroup clusterctlv1.ProviderType, providers ...string) error {
+func (c *clusterctlClient) addToInstaller(options addToInstallerOptions, providerType clusterctlv1.ProviderType, providers ...string) error {
 	for _, provider := range providers {
 		// It is possible to opt-out from automatic installation of bootstrap/controlPlane providers using '-' as a provider name (NoopProvider).
 		if provider == NoopProvider {
-			if targetGroup == clusterctlv1.CoreProviderType {
+			if providerType == clusterctlv1.CoreProviderType {
 				return errors.New("the '-' value can not be used for the core provider")
 			}
 			continue
 		}
 
-		components, err := c.getComponentsByName(provider, options.targetNamespace, options.watchingNamespace)
+		components, err := c.getComponentsByName(provider, providerType, options.targetNamespace, options.watchingNamespace)
 		if err != nil {
 			return errors.Wrapf(err, "failed to get provider components for the %q provider", provider)
 		}
 
-		if components.Type() != targetGroup {
-			return errors.Errorf("can't use %q provider as an %q, it is a %q", provider, targetGroup, components.Type())
+		if components.Type() != providerType {
+			return errors.Errorf("can't use %q provider as an %q, it is a %q", provider, providerType, components.Type())
 		}
 
 		options.installer.Add(components)

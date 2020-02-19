@@ -33,23 +33,23 @@ import (
 // path to the components yaml on the local filesystem.
 // To support different versions, the directories containing provider
 // specific data must adhere to the following layout:
-// {basepath}/{provider-name}/{version}/{components.yaml}
+// {basepath}/{provider-label}/{version}/{components.yaml}
 //
-// (1): {provider-name} must match the value returned by Provider.Name()
+// (1): {provider-label} must match the value returned by Provider.ManifestLabel()
 // (2): {version} must obey the syntax and semantics of the "Semantic Versioning"
 // specification (http://semver.org/); however, "latest" is also an acceptable value.
 //
 // Concrete example:
-// /home/user/go/src/sigs.k8s.io/aws/v0.4.7/infrastructure-components.yaml
+// /home/user/go/src/sigs.k8s.io/infrastructure-aws/v0.4.7/infrastructure-components.yaml
 // basepath: /home/user/go/src/sigs.k8s.io
-// provider-name: aws
+// provider-label: infrastructure-aws
 // version: v0.4.7
 // components.yaml: infrastructure-components.yaml
 type localRepository struct {
 	providerConfig        config.Provider
 	configVariablesClient config.VariablesClient
 	basepath              string
-	providerName          string
+	providerLabel         string
 	defaultVersion        string
 	componentsPath        string
 }
@@ -84,7 +84,7 @@ func (r *localRepository) GetFile(version, fileName string) ([]byte, error) {
 		version = r.defaultVersion
 	}
 
-	absolutePath := filepath.Join(r.basepath, r.providerName, version, r.RootPath(), fileName)
+	absolutePath := filepath.Join(r.basepath, r.providerLabel, version, r.RootPath(), fileName)
 
 	f, err := os.Stat(absolutePath)
 	if err != nil {
@@ -103,8 +103,8 @@ func (r *localRepository) GetFile(version, fileName string) ([]byte, error) {
 
 // GetVersions returns the list of versions that are available for a local repository.
 func (r *localRepository) GetVersions() ([]string, error) {
-	// get all the sub-directories under {basepath}/{provider-name}/
-	releasesPath := filepath.Join(r.basepath, r.providerName)
+	// get all the sub-directories under {basepath}/{provider-id}/
+	releasesPath := filepath.Join(r.basepath, r.providerLabel)
 	files, err := ioutil.ReadDir(releasesPath)
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to list release directories")
@@ -150,9 +150,9 @@ func newLocalRepository(providerConfig config.Provider, configVariablesClient co
 			return nil, errors.Errorf("invalid version: %q. Version must obey the syntax and semantics of the \"Semantic Versioning\" specification (http://semver.org/) and path format {basepath}/{provider-name}/{version}/{components.yaml}", defaultVersion)
 		}
 	}
-	providerName := urlSplit[len(urlSplit)-3]
-	if providerName != providerConfig.Name() {
-		return nil, errors.Errorf("invalid path: path %q must contain provider name %q in the format {basepath}/{provider-name}/{version}/{components.yaml}", providerConfig.URL(), providerConfig.Name())
+	providerID := urlSplit[len(urlSplit)-3]
+	if providerID != providerConfig.ManifestLabel() {
+		return nil, errors.Errorf("invalid path: path %q must contain provider %q in the format {basepath}/{provider-label}/{version}/{components.yaml}", providerConfig.URL(), providerConfig.ManifestLabel())
 	}
 	var basePath string
 	if len(urlSplit) > 3 {
@@ -164,7 +164,7 @@ func newLocalRepository(providerConfig config.Provider, configVariablesClient co
 		providerConfig:        providerConfig,
 		configVariablesClient: configVariablesClient,
 		basepath:              basePath,
-		providerName:          providerName,
+		providerLabel:         providerID,
 		defaultVersion:        defaultVersion,
 		componentsPath:        componentsPath,
 	}

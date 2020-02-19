@@ -71,8 +71,8 @@ func (f fakeClient) GetProvidersConfig() ([]Provider, error) {
 	return f.internalClient.GetProvidersConfig()
 }
 
-func (f fakeClient) GetProviderComponents(provider, targetNameSpace, watchingNamespace string) (Components, error) {
-	return f.internalClient.GetProviderComponents(provider, targetNameSpace, watchingNamespace)
+func (f fakeClient) GetProviderComponents(provider string, providerType clusterctlv1.ProviderType, targetNameSpace, watchingNamespace string) (Components, error) {
+	return f.internalClient.GetProviderComponents(provider, providerType, targetNameSpace, watchingNamespace)
 }
 
 func (f fakeClient) GetClusterTemplate(options GetClusterTemplateOptions) (Template, error) {
@@ -128,10 +128,10 @@ func newFakeClient(configClient config.Client) *fakeClient {
 		InjectConfig(fake.configClient),
 		InjectClusterClientFactory(clusterClientFactory),
 		InjectRepositoryFactory(func(provider config.Provider) (repository.Client, error) {
-			if _, ok := fake.repositories[provider.Name()]; !ok {
-				return nil, errors.Errorf("Repository for kubeconfig %q does not exists.", provider.Name())
+			if _, ok := fake.repositories[provider.ManifestLabel()]; !ok {
+				return nil, errors.Errorf("Repository for kubeconfig %q does not exists.", provider.ManifestLabel())
 			}
-			return fake.repositories[provider.Name()], nil
+			return fake.repositories[provider.ManifestLabel()], nil
 		}),
 	)
 
@@ -147,7 +147,7 @@ func (f *fakeClient) WithRepository(repositoryClient repository.Client) *fakeCli
 	if fc, ok := f.configClient.(fakeConfigClient); ok {
 		fc.WithProvider(repositoryClient)
 	}
-	f.repositories[repositoryClient.Name()] = repositoryClient
+	f.repositories[repositoryClient.ManifestLabel()] = repositoryClient
 	return f
 }
 

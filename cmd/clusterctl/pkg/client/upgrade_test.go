@@ -51,7 +51,7 @@ func Test_clusterctlClient_ApplyUpgrade(t *testing.T) {
 			args: args{
 				options: ApplyUpgradeOptions{
 					Kubeconfig:      "kubeconfig",
-					ManagementGroup: "core-system/core",
+					ManagementGroup: "cluster-api-system/cluster-api",
 					Contract:        "v1alpha3",
 				},
 			},
@@ -62,7 +62,7 @@ func Test_clusterctlClient_ApplyUpgrade(t *testing.T) {
 				},
 				ListMeta: metav1.ListMeta{},
 				Items: []clusterctlv1.Provider{ // both providers should be upgraded
-					fakeProvider("core", clusterctlv1.CoreProviderType, "v1.0.1", "core-system"),
+					fakeProvider("cluster-api", clusterctlv1.CoreProviderType, "v1.0.1", "cluster-api-system"),
 					fakeProvider("infra", clusterctlv1.InfrastructureProviderType, "v2.0.1", "infra-system"),
 				},
 			},
@@ -108,7 +108,7 @@ func Test_clusterctlClient_ApplyUpgrade(t *testing.T) {
 }
 
 func fakeClientFoUpgrade() *fakeClient {
-	core := config.NewProvider("core", "https://somewhere.com", clusterctlv1.CoreProviderType)
+	core := config.NewProvider("cluster-api", "https://somewhere.com", clusterctlv1.CoreProviderType)
 	infra := config.NewProvider("infra", "https://somewhere.com", clusterctlv1.InfrastructureProviderType)
 
 	config1 := newFakeConfig().
@@ -139,7 +139,7 @@ func fakeClientFoUpgrade() *fakeClient {
 	cluster1 := newFakeCluster("kubeconfig", config1).
 		WithRepository(repository1).
 		WithRepository(repository2).
-		WithProviderInventory(core.Name(), core.Type(), "v1.0.0", "core-system", "").
+		WithProviderInventory(core.Name(), core.Type(), "v1.0.0", "cluster-api-system", "").
 		WithProviderInventory(infra.Name(), infra.Type(), "v2.0.0", "infra-system", "")
 
 	client := newFakeClient(config1).
@@ -158,13 +158,14 @@ func fakeProvider(name string, providerType clusterctlv1.ProviderType, version, 
 		},
 		ObjectMeta: metav1.ObjectMeta{
 			Namespace: targetNamespace,
-			Name:      name,
+			Name:      clusterctlv1.ManifestLabel(name, providerType),
 			Labels: map[string]string{
 				clusterctlv1.ClusterctlLabelName:     "",
-				clusterv1.ProviderLabelName:          name,
+				clusterv1.ProviderLabelName:          clusterctlv1.ManifestLabel(name, providerType),
 				clusterctlv1.ClusterctlCoreLabelName: "inventory",
 			},
 		},
+		Provider:         name,
 		Type:             string(providerType),
 		Version:          version,
 		WatchedNamespace: "",
@@ -190,8 +191,10 @@ func Test_parseUpgradeItem(t *testing.T) {
 				Provider: clusterctlv1.Provider{
 					ObjectMeta: metav1.ObjectMeta{
 						Namespace: "namespace",
-						Name:      "provider",
+						Name:      clusterctlv1.ManifestLabel("provider", clusterctlv1.CoreProviderType),
 					},
+					Provider: "provider",
+					Type:     string(clusterctlv1.CoreProviderType),
 				},
 				NextVersion: "",
 			},
@@ -206,8 +209,10 @@ func Test_parseUpgradeItem(t *testing.T) {
 				Provider: clusterctlv1.Provider{
 					ObjectMeta: metav1.ObjectMeta{
 						Namespace: "namespace",
-						Name:      "provider",
+						Name:      clusterctlv1.ManifestLabel("provider", clusterctlv1.CoreProviderType),
 					},
+					Provider: "provider",
+					Type:     string(clusterctlv1.CoreProviderType),
 				},
 				NextVersion: "version",
 			},

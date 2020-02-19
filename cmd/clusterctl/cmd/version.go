@@ -40,7 +40,7 @@ var vo = &versionOptions{}
 var versionCmd = &cobra.Command{
 	Use:   "version",
 	Short: "Print version of clustectl",
-	Args:  cobra.ExactArgs(0),
+	Args:  cobra.NoArgs,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		return runVersion()
 	},

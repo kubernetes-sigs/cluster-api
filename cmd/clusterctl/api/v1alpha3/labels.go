@@ -16,6 +16,8 @@ limitations under the License.
 
 package v1alpha3
 
+import "fmt"
+
 const (
 	// ClusterctlLabelName defines the label that is applied to all the components managed by clusterctl.
 	ClusterctlLabelName = "clusterctl.cluster.x-k8s.io"
@@ -38,3 +40,21 @@ const (
 	// if an instance of the provider is deleted.
 	ResourceLifecycleShared = ResourceLifecycle("shared")
 )
+
+// ManifestLabel returns the cluster.x-k8s.io/provider label value for a provider/type.
+// Please note that this label uniquely identifies the provider, e.g. bootstrap-kubeadm, but not the instances of
+// the provider, e.g. namespace-1/bootstrap-kubeadm and namespace-2/bootstrap-kubeadm.
+func ManifestLabel(name string, providerType ProviderType) string {
+	switch providerType {
+	case CoreProviderType:
+		return name
+	case BootstrapProviderType:
+		return fmt.Sprintf("bootstrap-%s", name)
+	case ControlPlaneProviderType:
+		return fmt.Sprintf("control-plane-%s", name)
+	case InfrastructureProviderType:
+		return fmt.Sprintf("infrastructure-%s", name)
+	default:
+		return fmt.Sprintf("unknown-type-%s", name)
+	}
+}

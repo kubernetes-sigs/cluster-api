@@ -23,11 +23,15 @@ import (
 )
 
 type deleteOptions struct {
-	kubeconfig       string
-	targetNamespace  string
-	includeNamespace bool
-	includeCRDs      bool
-	deleteAll        bool
+	kubeconfig              string
+	targetNamespace         string
+	coreProvider            string
+	bootstrapProviders      []string
+	controlPlaneProviders   []string
+	infrastructureProviders []string
+	includeNamespace        bool
+	includeCRDs             bool
+	deleteAll               bool
 }
 
 var dd = &deleteOptions{}
@@ -42,46 +46,38 @@ var deleteCmd = &cobra.Command{
 		# Deletes the AWS provider
 		# Please note that this implies the deletion of all provider components except the hosting namespace
 		# and the CRDs.
-		clusterctl delete aws
+		clusterctl delete --infrastructure aws
  
-		# Deletes the instance of the AWS provider hosted in the "foo" namespace
+		# Deletes the instance of the AWS infrastructure provider hosted in the "foo" namespace
 		# Please note, if there are multiple instances of the AWS provider installed in the cluster,
 		# global/shared resources (e.g. ClusterRoles), are not deleted in order to preserve
 		# the functioning of the remaining instances.
-		clusterctl delete aws --namespace=foo
+		clusterctl delete --infrastructure aws --namespace=foo
 
 		# Deletes all the providers
 		# Important! As a consequence of this operation, all the corresponding resources managed by
 		# Cluster API Providers are orphaned and there might be ongoing costs incurred as a result of this.
 		clusterctl delete --all
 
-		# Delete the AWS provider and related CRDs. Please note that this forces deletion of 
+		# Delete the AWS infrastructure provider and related CRDs. Please note that this forces deletion of 
 		# all the related objects (e.g. AWSClusters, AWSMachines etc.).
 		# Important! As a consequence of this operation, all the corresponding resources managed by
 		# the AWS infrastructure provider are orphaned and there might be ongoing costs incurred as a result of this.
-		clusterctl delete aws --include-crd
+		clusterctl delete --infrastructure aws --include-crd
 
-		# Delete the AWS provider and its hosting Namespace. Please note that this forces deletion of 
+		# Delete the AWS infrastructure provider and its hosting Namespace. Please note that this forces deletion of 
 		# all objects existing in the namespace. 
 		# Important! As a consequence of this operation, all the corresponding resources managed by
 		# Cluster API Providers are orphaned and there might be ongoing costs incurred as a result of this.
-		clusterctl delete aws --include-namespace
+		clusterctl delete --infrastructure aws --include-namespace
 
 		# Reset the management cluster to its original state
 		# Important! As a consequence of this operation all the corresponding resources on target clouds
 		# are "orphaned" and thus there may be ongoing costs incurred as a result of this.
 		clusterctl delete --all --include-crd  --include-namespace`),
-
+	Args: cobra.NoArgs,
 	RunE: func(cmd *cobra.Command, args []string) error {
-		if dd.deleteAll && len(args) > 0 {
-			return errors.New("The --all flag can't be used in combination with the list of providers")
-		}
-
-		if !dd.deleteAll && len(args) == 0 {
-			return errors.New("At least one provider should be specified or the --all flag should be set")
-		}
-
-		return runDelete(args)
+		return runDelete()
 	},
 }
 
@@ -89,25 +85,48 @@ func init() {
 	deleteCmd.Flags().StringVarP(&dd.kubeconfig, "kubeconfig", "", "", "Path to the kubeconfig file to use for accessing the management cluster. If empty, default rules for kubeconfig discovery will be used")
 	deleteCmd.Flags().StringVarP(&dd.targetNamespace, "namespace", "", "", "The namespace where the provider to be deleted lives. If not specified, the namespace name will be inferred from the current configuration")
 
-	deleteCmd.Flags().BoolVarP(&dd.includeNamespace, "include-namespace", "n", false, "Forces the deletion of the namespace where the providers are hosted (and of all the contained objects)")
-	deleteCmd.Flags().BoolVarP(&dd.includeCRDs, "include-crd", "c", false, "Forces the deletion of the provider's CRDs (and of all the related objects)")
+	deleteCmd.Flags().BoolVarP(&dd.includeNamespace, "include-namespace", "", false, "Forces the deletion of the namespace where the providers are hosted (and of all the contained objects)")
+	deleteCmd.Flags().BoolVarP(&dd.includeCRDs, "include-crd", "", false, "Forces the deletion of the provider's CRDs (and of all the related objects)")
+
+	deleteCmd.Flags().StringVarP(&dd.coreProvider, "core", "", "", "Core provider version (e.g. cluster-api:v0.3.0) to delete from the management cluster")
+	deleteCmd.Flags().StringSliceVarP(&dd.infrastructureProviders, "infrastructure", "i", nil, "Infrastructure providers and versions (e.g. aws:v0.5.0) to delete from the management cluster")
+	deleteCmd.Flags().StringSliceVarP(&dd.bootstrapProviders, "bootstrap", "b", nil, "Bootstrap providers and versions (e.g. kubeadm:v0.3.0) to delete from the management cluster")
+	deleteCmd.Flags().StringSliceVarP(&dd.controlPlaneProviders, "control-plane", "c", nil, "ControlPlane providers and versions (e.g. kubeadm:v0.3.0) to delete from the management cluster")
+
 	deleteCmd.Flags().BoolVarP(&dd.deleteAll, "all", "", false, "Force deletion of all the providers")
 
 	RootCmd.AddCommand(deleteCmd)
 }
 
-func runDelete(args []string) error {
+func runDelete() error {
 	c, err := client.New(cfgFile)
 	if err != nil {
 		return err
 	}
 
+	hasProviderNames := (dd.coreProvider != "") ||
+		(len(dd.bootstrapProviders) > 0) ||
+		(len(dd.controlPlaneProviders) > 0) ||
+		(len(dd.infrastructureProviders) > 0)
+
+	if dd.deleteAll && hasProviderNames {
+		return errors.New("The --all flag can't be used in combination with --core, --bootstrap, --control-plane, --infrastructure")
+	}
+
+	if !dd.deleteAll && !hasProviderNames {
+		return errors.New("At least one of --core, --bootstrap, --control-plane, --infrastructure should be specified or the --all flag should be set")
+	}
+
 	if err := c.Delete(client.DeleteOptions{
-		Kubeconfig:       dd.kubeconfig,
-		IncludeNamespace: dd.includeNamespace,
-		IncludeCRDs:      dd.includeCRDs,
-		Namespace:        dd.targetNamespace,
-		Providers:        args,
+		Kubeconfig:              dd.kubeconfig,
+		IncludeNamespace:        dd.includeNamespace,
+		IncludeCRDs:             dd.includeCRDs,
+		Namespace:               dd.targetNamespace,
+		CoreProvider:            dd.coreProvider,
+		BootstrapProviders:      dd.bootstrapProviders,
+		InfrastructureProviders: dd.infrastructureProviders,
+		ControlPlaneProviders:   dd.controlPlaneProviders,
+		DeleteAll:               dd.deleteAll,
 	}); err != nil {
 		return err
 	}

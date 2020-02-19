@@ -84,16 +84,15 @@ func (p *providerComponents) Create(objs []unstructured.Unstructured) error {
 			if err := c.Create(ctx, &obj); err != nil {
 				return errors.Wrapf(err, "failed to create provider object %s, %s/%s", obj.GroupVersionKind(), obj.GetNamespace(), obj.GetName())
 			}
-
 			continue
 		}
 
 		// otherwise update the component
-		// if upgrading an existing component, then use the current resourceVersion for the optimistic lock
-		log.V(5).Info("Upgrading", logf.UnstructuredToValues(obj)...)
+		// NB. we are using client.Merge PatchOption so the new objects gets compared with the current one server side
+		log.V(5).Info("Patching", logf.UnstructuredToValues(obj)...)
 		obj.SetResourceVersion(currentR.GetResourceVersion())
-		if err := c.Update(ctx, &obj); err != nil {
-			return errors.Wrapf(err, "failed to update provider object %s, %s/%s", obj.GroupVersionKind(), obj.GetNamespace(), obj.GetName())
+		if err := c.Patch(ctx, &obj, client.Merge); err != nil {
+			return errors.Wrapf(err, "failed to patch provider object")
 		}
 	}
 
@@ -113,7 +112,7 @@ func (p *providerComponents) Delete(options DeleteOptions) error {
 	// TODO: in future we can eventually block delete --IncludeCRDs in case more than one instance of a provider exists
 	labels := map[string]string{
 		clusterctlv1.ClusterctlLabelName: "",
-		clusterv1.ProviderLabelName:      options.Provider.Name,
+		clusterv1.ProviderLabelName:      options.Provider.ManifestLabel(),
 	}
 
 	namespaces := []string{options.Provider.Namespace}
@@ -133,8 +132,8 @@ func (p *providerComponents) Delete(options DeleteOptions) error {
 	for _, obj := range resources {
 		// If the CRDs (and by extensions, all the shared resources) should NOT be deleted, skip it;
 		// NB. Skipping CRDs deletion ensures that also the objects of Kind defined in the CRDs Kind are not deleted.
-		isSharedReource := util.IsSharedResource(obj)
-		if !options.IncludeCRDs && isSharedReource {
+		isSharedResource := util.IsSharedResource(obj)
+		if !options.IncludeCRDs && isSharedResource {
 			continue
 		}
 
@@ -154,7 +153,7 @@ func (p *providerComponents) Delete(options DeleteOptions) error {
 		}
 
 		// If not a shared resource or not a namespace
-		if !isSharedReource && !isNamespace {
+		if !isSharedResource && !isNamespace {
 			// If the resource is a cluster resource, skip it if the resource name does not start with the instance prefix.
 			// This is required because there are cluster resources like e.g. ClusterRoles and ClusterRoleBinding, which are instance specific;
 			// During the installation, clusterctl adds the instance namespace prefix to such resources (see fixRBAC), and so we can rely

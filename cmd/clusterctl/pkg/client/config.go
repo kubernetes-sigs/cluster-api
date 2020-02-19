@@ -40,8 +40,8 @@ func (c *clusterctlClient) GetProvidersConfig() ([]Provider, error) {
 	return rr, nil
 }
 
-func (c *clusterctlClient) GetProviderComponents(provider, targetNameSpace, watchingNamespace string) (Components, error) {
-	components, err := c.getComponentsByName(provider, targetNameSpace, watchingNamespace)
+func (c *clusterctlClient) GetProviderComponents(provider string, providerType clusterctlv1.ProviderType, targetNameSpace, watchingNamespace string) (Components, error) {
+	components, err := c.getComponentsByName(provider, providerType, targetNameSpace, watchingNamespace)
 	if err != nil {
 		return nil, err
 	}
@@ -224,7 +224,7 @@ func (c *clusterctlClient) getTemplateFromRepository(cluster cluster.Client, sou
 			}
 		}
 
-		defaultProviderVersion, err := cluster.ProviderInventory().GetDefaultProviderVersion(name)
+		defaultProviderVersion, err := cluster.ProviderInventory().GetDefaultProviderVersion(name, clusterctlv1.InfrastructureProviderType)
 		if err != nil {
 			return nil, err
 		}
@@ -236,7 +236,7 @@ func (c *clusterctlClient) getTemplateFromRepository(cluster cluster.Client, sou
 	}
 
 	// Get the template from the template repository.
-	providerConfig, err := c.configClient.Providers().Get(name)
+	providerConfig, err := c.configClient.Providers().Get(name, clusterctlv1.InfrastructureProviderType)
 	if err != nil {
 		return nil, err
 	}

@@ -48,12 +48,12 @@ func Test_clusterctlClient_GetProvidersConfig(t *testing.T) {
 				client: newFakeClient(newFakeConfig()),
 			},
 			wantProviders: []string{
-				config.AWSProviderName,
-				config.BareMetalProviderName,
 				config.ClusterAPIProviderName,
-				config.DockerProviderName,
 				config.KubeadmBootstrapProviderName,
 				config.KubeadmControlPlaneProviderName,
+				config.AWSProviderName,
+				config.BareMetalProviderName,
+				config.DockerProviderName,
 				config.OpenStackProviderName,
 				config.VSphereProviderName,
 			},
@@ -65,13 +65,13 @@ func Test_clusterctlClient_GetProvidersConfig(t *testing.T) {
 				client: newFakeClient(newFakeConfig().WithProvider(customProviderConfig)),
 			},
 			wantProviders: []string{
-				config.AWSProviderName,
-				config.BareMetalProviderName,
 				config.ClusterAPIProviderName,
 				customProviderConfig.Name(),
-				config.DockerProviderName,
 				config.KubeadmBootstrapProviderName,
 				config.KubeadmControlPlaneProviderName,
+				config.AWSProviderName,
+				config.BareMetalProviderName,
+				config.DockerProviderName,
 				config.OpenStackProviderName,
 				config.VSphereProviderName,
 			},
@@ -156,7 +156,7 @@ func Test_clusterctlClient_GetProviderComponents(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got, err := client.GetProviderComponents(tt.args.provider, tt.args.targetNameSpace, tt.args.watchingNamespace)
+			got, err := client.GetProviderComponents(tt.args.provider, capiProviderConfig.Type(), tt.args.targetNameSpace, tt.args.watchingNamespace)
 			if tt.wantErr != (err != nil) {
 				t.Fatalf("error = %v, wantErr = %v", err, tt.wantErr)
 			}

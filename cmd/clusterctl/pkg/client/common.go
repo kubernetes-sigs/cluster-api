@@ -21,11 +21,12 @@ import (
 
 	"github.com/pkg/errors"
 	"k8s.io/apimachinery/pkg/util/validation"
+	clusterctlv1 "sigs.k8s.io/cluster-api/cmd/clusterctl/api/v1alpha3"
 	"sigs.k8s.io/cluster-api/cmd/clusterctl/pkg/client/repository"
 )
 
 // getComponentsByName is a utility method that returns components for a given provider, targetNamespace, and watchingNamespace.
-func (c *clusterctlClient) getComponentsByName(provider string, targetNamespace string, watchingNamespace string) (repository.Components, error) {
+func (c *clusterctlClient) getComponentsByName(provider string, providerType clusterctlv1.ProviderType, targetNamespace string, watchingNamespace string) (repository.Components, error) {
 
 	// parse the abbreviated syntax for name[:version]
 	name, version, err := parseProviderName(provider)
@@ -34,7 +35,7 @@ func (c *clusterctlClient) getComponentsByName(provider string, targetNamespace 
 	}
 
 	// gets the provider configuration (that includes the location of the provider repository)
-	providerConfig, err := c.configClient.Providers().Get(name)
+	providerConfig, err := c.configClient.Providers().Get(name, providerType)
 	if err != nil {
 		return nil, err
 	}

@@ -29,6 +29,7 @@ import (
 var upgradeCmd = &cobra.Command{
 	Use:   "upgrade",
 	Short: "Upgrades Cluster API providers in a management cluster",
+	Args:  cobra.NoArgs,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		return cmd.Help()
 	},
@@ -83,7 +84,7 @@ var upgradeApplyCmd = &cobra.Command{
 		# Upgrades all the providers in the capi-system/cluster-api to the latest version available which is compliant
 		# to the v1alpha3 API Version of Cluster API (contract).
 		clusterctl upgrade apply --management-group capi-system/cluster-api  --contract v1alpha3`),
-
+	Args: cobra.NoArgs,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		return runUpgradeApply()
 	},

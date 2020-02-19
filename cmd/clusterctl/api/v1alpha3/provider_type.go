@@ -24,14 +24,19 @@ import (
 // +kubebuilder:resource:path=providers,scope=Namespaced,categories=cluster-api
 // +kubebuilder:storageversion
 // +kubebuilder:object:root=true
-// +kubebuilder:printcolumn:name="Type",type="string",JSONPath=".type"
+// +kubebuilder:printcolumn:name="Type",type="string",JSONPath=".provider"
+// +kubebuilder:printcolumn:name="Provider",type="string",JSONPath=".type"
 // +kubebuilder:printcolumn:name="Version",type="string",JSONPath=".version"
 // +kubebuilder:printcolumn:name="Watch Namespace",type="string",JSONPath=".watchedNamespace"
 
-// Provider is the Schema for the providers API
+// Provider defines an entry in the provider inventory.
 type Provider struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
+
+	// Provider indicates the name of the provider.
+	// +optional
+	Provider string `json:"provider,omitempty"`
 
 	// Type indicates the type of the provider.
 	// See ProviderType for a list of supported values
@@ -48,7 +53,57 @@ type Provider struct {
 	WatchedNamespace string `json:"watchedNamespace,omitempty"`
 }
 
-// ProviderType is a string representation of a TaskGroup create policy.
+// ManifestLabel returns the cluster.x-k8s.io/provider label value for an entry in the provider inventory.
+// Please note that this label uniquely identifies the provider, e.g. bootstrap-kubeadm, but not the instances of
+// the provider, e.g. namespace-1/bootstrap-kubeadm and namespace-2/bootstrap-kubeadm
+func (p *Provider) ManifestLabel() string {
+	return ManifestLabel(p.Provider, p.GetProviderType())
+}
+
+// InstanceName return the a name that uniquely identifies an entry in the provider inventory.
+// The instanceName is composed by the ManifestLabel and by the namespace where the provider is installed;
+// the resulting value uniquely identify a provider instance because clusterctl does not support multiple
+//instances of the same provider to be installed in the same namespace.
+func (p *Provider) InstanceName() string {
+	return types.NamespacedName{Namespace: p.Namespace, Name: p.ManifestLabel()}.String()
+}
+
+// HasWatchingOverlapWith returns true if the provider has an overlapping watching namespace with another provider.
+func (p *Provider) HasWatchingOverlapWith(other Provider) bool {
+	return p.WatchedNamespace == "" || p.WatchedNamespace == other.WatchedNamespace || other.WatchedNamespace == ""
+}
+
+// SameAs returns true if two providers have the same Provider and type.
+// Please note that there could be many instances of the same provider.
+func (p *Provider) SameAs(other Provider) bool {
+	return p.Provider == other.Provider && p.Type == other.Type
+}
+
+// Equals returns true if two providers are identical (same name, type, version etc.).
+func (p *Provider) Equals(other Provider) bool {
+	return p.Name == other.Name &&
+		p.Namespace == other.Namespace &&
+		p.Provider == other.Provider &&
+		p.Type == other.Type &&
+		p.WatchedNamespace == other.WatchedNamespace &&
+		p.Version == other.Version
+}
+
+// GetProviderType parse the Provider.Type string field and return the typed representation.
+func (p *Provider) GetProviderType() ProviderType {
+	switch t := ProviderType(p.Type); t {
+	case
+		CoreProviderType,
+		BootstrapProviderType,
+		InfrastructureProviderType,
+		ControlPlaneProviderType:
+		return t
+	default:
+		return ProviderTypeUnknown
+	}
+}
+
+// ProviderType is a string representation of a Provider type..
 type ProviderType string
 
 const (
@@ -68,40 +123,20 @@ const (
 	ProviderTypeUnknown = ProviderType("")
 )
 
-// GetProviderType attempts to parse the ProviderType field and return
-// the typed ProviderType representation.
-func (p *Provider) GetProviderType() ProviderType {
-	switch t := ProviderType(p.Type); t {
-	case
-		CoreProviderType,
-		BootstrapProviderType,
-		InfrastructureProviderType,
-		ControlPlaneProviderType:
-		return t
+// Order return an integer that can be used to sort ProviderType values.
+func (p ProviderType) Order() int {
+	switch p {
+	case CoreProviderType:
+		return 0
+	case BootstrapProviderType:
+		return 1
+	case ControlPlaneProviderType:
+		return 2
+	case InfrastructureProviderType:
+		return 3
 	default:
-		return ProviderTypeUnknown
+		return 4
 	}
-}
-
-// InstanceName return the instance name for the provider, that is composed by the provider name and the namespace
-// where the provider is installed (nb. clusterctl does not support multiple instances of the same provider to be
-// installed in the same namespace)
-func (p *Provider) InstanceName() string {
-	return types.NamespacedName{Namespace: p.Namespace, Name: p.Name}.String()
-}
-
-// HasWatchingOverlapWith returns true if the provider has an overlapping watching namespace with another provider.
-func (p *Provider) HasWatchingOverlapWith(other Provider) bool {
-	return p.WatchedNamespace == "" || p.WatchedNamespace == other.WatchedNamespace || other.WatchedNamespace == ""
-}
-
-// Equals returns true if two providers are exactly the same.
-func (p *Provider) Equals(other Provider) bool {
-	return p.Name == other.Name &&
-		p.Namespace == other.Namespace &&
-		p.Type == other.Type &&
-		p.WatchedNamespace == other.WatchedNamespace &&
-		p.Version == other.Version
 }
 
 // +kubebuilder:object:root=true
@@ -113,15 +148,15 @@ type ProviderList struct {
 	Items           []Provider `json:"items"`
 }
 
-func (l *ProviderList) FilterByName(name string) []Provider {
-	return l.filterBy(func(p Provider) bool {
-		return p.Name == name
-	})
-}
-
 func (l *ProviderList) FilterByNamespace(namespace string) []Provider {
 	return l.filterBy(func(p Provider) bool {
 		return p.Namespace == namespace
+	})
+}
+
+func (l *ProviderList) FilterByProviderAndType(provider string, providerType ProviderType) []Provider {
+	return l.filterBy(func(p Provider) bool {
+		return p.Provider == provider && p.Type == string(providerType)
 	})
 }
 

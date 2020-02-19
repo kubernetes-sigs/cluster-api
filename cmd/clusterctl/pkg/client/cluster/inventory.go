@@ -59,12 +59,12 @@ type InventoryClient interface {
 	// GetDefaultProviderVersion returns the default version for a given provider.
 	// In case there is only a single version installed for a given provider, e.g. only the v0.4.1 version for the AWS provider, it returns
 	// this as the default version; In case there are more version installed for the same provider, there is no default provider version.
-	GetDefaultProviderVersion(provider string) (string, error)
+	GetDefaultProviderVersion(provider string, providerType clusterctlv1.ProviderType) (string, error)
 
 	// GetDefaultProviderNamespace returns the default namespace for a given provider.
 	// In case there is only a single instance for a given provider, e.g. only the AWS provider in the capa-system namespace, it returns
 	// this as the default namespace; In case there are more instances for the same provider installed in different namespaces, there is no default provider namespace.
-	GetDefaultProviderNamespace(provider string) (string, error)
+	GetDefaultProviderNamespace(provider string, providerType clusterctlv1.ProviderType) (string, error)
 
 	// GetManagementGroups returns the list of management groups defined in the management cluster.
 	GetManagementGroups() (ManagementGroupList, error)
@@ -180,19 +180,19 @@ func (p *inventoryClient) Create(m clusterctlv1.Provider) error {
 		if !apierrors.IsNotFound(err) {
 			return errors.Wrapf(err, "failed to get current provider object")
 		}
-		currentProvider = nil
-	}
 
-	c := m.DeepCopyObject()
-	if currentProvider == nil {
-		if err := cl.Create(ctx, c); err != nil {
+		//if it does not exists, create the provider object
+		if err := cl.Create(ctx, &m); err != nil {
 			return errors.Wrapf(err, "failed to create provider object")
 		}
-	} else {
-		m.ResourceVersion = currentProvider.ResourceVersion
-		if err := cl.Update(ctx, c); err != nil {
-			return errors.Wrapf(err, "failed to update provider object")
-		}
+		return nil
+	}
+
+	// otherwise patch the provider object
+	// NB. we are using client.Merge PatchOption so the new objects gets compared with the current one server side
+	m.SetResourceVersion(currentProvider.GetResourceVersion())
+	if err := cl.Patch(ctx, &m, client.Merge); err != nil {
+		return errors.Wrapf(err, "failed to patch provider object")
 	}
 
 	return nil
@@ -220,7 +220,7 @@ func (p *inventoryClient) GetDefaultProviderName(providerType clusterctlv1.Provi
 	// Group the providers by name, because we consider more instance of the same provider not relevant for the answer.
 	names := sets.NewString()
 	for _, p := range providerList.FilterByType(providerType) {
-		names.Insert(p.Name)
+		names.Insert(p.Provider)
 	}
 
 	// If there is only one provider, this is the default
@@ -232,7 +232,7 @@ func (p *inventoryClient) GetDefaultProviderName(providerType clusterctlv1.Provi
 	return "", nil
 }
 
-func (p *inventoryClient) GetDefaultProviderVersion(provider string) (string, error) {
+func (p *inventoryClient) GetDefaultProviderVersion(provider string, providerType clusterctlv1.ProviderType) (string, error) {
 	providerList, err := p.List()
 	if err != nil {
 		return "", err
@@ -240,7 +240,7 @@ func (p *inventoryClient) GetDefaultProviderVersion(provider string) (string, er
 
 	// Group the provider instances by version.
 	versions := sets.NewString()
-	for _, p := range providerList.FilterByName(provider) {
+	for _, p := range providerList.FilterByProviderAndType(provider, providerType) {
 		versions.Insert(p.Version)
 	}
 
@@ -252,7 +252,7 @@ func (p *inventoryClient) GetDefaultProviderVersion(provider string) (string, er
 	return "", nil
 }
 
-func (p *inventoryClient) GetDefaultProviderNamespace(provider string) (string, error) {
+func (p *inventoryClient) GetDefaultProviderNamespace(provider string, providerType clusterctlv1.ProviderType) (string, error) {
 	providerList, err := p.List()
 	if err != nil {
 		return "", err
@@ -260,7 +260,7 @@ func (p *inventoryClient) GetDefaultProviderNamespace(provider string) (string, 
 
 	// Group the providers by namespace
 	namespaces := sets.NewString()
-	for _, p := range providerList.FilterByName(provider) {
+	for _, p := range providerList.FilterByProviderAndType(provider, providerType) {
 		namespaces.Insert(p.Namespace)
 	}
 

@@ -5,10 +5,10 @@ The `clusterctl delete` command deletes the provider components from the managem
 The operation is designed to prevent accidental deletion of user created objects. For example:
 
 ```shell
-clusterctl delete aws
+clusterctl delete --infrastructure aws
 ```
 
-Deletes the aws provider components, while preserving the namespace where the provider components are hosted and
+Deletes the AWS infrastructure provider components, while preserving the namespace where the provider components are hosted and
 the provider's CRDs.
 
 <aside class="note warning">

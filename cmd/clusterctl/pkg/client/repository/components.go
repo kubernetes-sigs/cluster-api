@@ -138,7 +138,7 @@ func (c *components) WatchingNamespace() string {
 }
 
 func (c *components) InventoryObject() clusterctlv1.Provider {
-	labels := getCommonLabels(c.Name())
+	labels := getCommonLabels(c.Provider)
 	labels[clusterctlv1.ClusterctlCoreLabelName] = "inventory"
 
 	return clusterctlv1.Provider{
@@ -148,9 +148,10 @@ func (c *components) InventoryObject() clusterctlv1.Provider {
 		},
 		ObjectMeta: metav1.ObjectMeta{
 			Namespace: c.targetNamespace,
-			Name:      c.Name(),
+			Name:      c.ManifestLabel(),
 			Labels:    labels,
 		},
+		Provider:         c.Name(),
 		Type:             string(c.Type()),
 		Version:          c.version,
 		WatchedNamespace: c.watchingNamespace,
@@ -261,8 +262,8 @@ func NewComponents(provider config.Provider, version string, rawyaml []byte, con
 	}
 
 	// Add common labels to both the obj groups.
-	instanceObjs = addCommonLabels(instanceObjs, provider.Name())
-	sharedObjs = addCommonLabels(sharedObjs, provider.Name())
+	instanceObjs = addCommonLabels(instanceObjs, provider)
+	sharedObjs = addCommonLabels(sharedObjs, provider)
 
 	// Add an identifying label to shared components so next invocation of init, clusterctl delete and clusterctl upgrade can act accordingly.
 	// Additionally, the capi-webhook-system namespace gets detached from any provider, so we prevent that deleting
@@ -576,13 +577,13 @@ func remove(slice []string, i int) []string {
 }
 
 // addCommonLabels ensures all the provider components have a consistent set of labels
-func addCommonLabels(objs []unstructured.Unstructured, name string) []unstructured.Unstructured {
+func addCommonLabels(objs []unstructured.Unstructured, provider config.Provider) []unstructured.Unstructured {
 	for _, o := range objs {
 		labels := o.GetLabels()
 		if labels == nil {
 			labels = map[string]string{}
 		}
-		for k, v := range getCommonLabels(name) {
+		for k, v := range getCommonLabels(provider) {
 			labels[k] = v
 		}
 		o.SetLabels(labels)
@@ -591,10 +592,10 @@ func addCommonLabels(objs []unstructured.Unstructured, name string) []unstructur
 	return objs
 }
 
-func getCommonLabels(name string) map[string]string {
+func getCommonLabels(provider config.Provider) map[string]string {
 	return map[string]string{
 		clusterctlv1.ClusterctlLabelName: "",
-		clusterv1.ProviderLabelName:      name,
+		clusterv1.ProviderLabelName:      provider.ManifestLabel(),
 	}
 }
 

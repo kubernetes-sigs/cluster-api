@@ -149,7 +149,7 @@ just enough information to spread machines out reducing the risk of a target clu
 This is particularly useful for Control Plane providers. They are now able to put control plane nodes in different
 domains.
 
-An infrastructure provider can implement this by setting the `InfraCluster.Spec.FailureDomains` field with a map of
+An infrastructure provider can implement this by setting the `InfraCluster.Status.FailureDomains` field with a map of
 unique keys to `failureDomainSpec`s as well as respecting a set `Machine.Spec.FailureDomain` field when creating
 instances.
 

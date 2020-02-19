@@ -534,7 +534,8 @@ cite.literate-source > a::before {
 .tabset > input:nth-child(5):checked ~ .tab-panels > .tab-panel:nth-child(3),
 .tabset > input:nth-child(7):checked ~ .tab-panels > .tab-panel:nth-child(4),
 .tabset > input:nth-child(9):checked ~ .tab-panels > .tab-panel:nth-child(5),
-.tabset > input:nth-child(11):checked ~ .tab-panels > .tab-panel:nth-child(6) {
+.tabset > input:nth-child(11):checked ~ .tab-panels > .tab-panel:nth-child(6),
+.tabset > input:nth-child(13):checked ~ .tab-panels > .tab-panel:nth-child(7) {
   display: block;
 }
 

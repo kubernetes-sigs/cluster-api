@@ -29,7 +29,6 @@ import (
 	"sigs.k8s.io/cluster-api/cmd/clusterctl/pkg/internal/scheme"
 	"sigs.k8s.io/cluster-api/cmd/version"
 	"sigs.k8s.io/controller-runtime/pkg/client"
-	"sigs.k8s.io/controller-runtime/pkg/client/apiutil"
 )
 
 var (
@@ -70,12 +69,7 @@ func (k *proxy) NewClient() (client.Client, error) {
 		return nil, errors.Wrap(err, "failed to create controller-runtime client")
 	}
 
-	mapper, err := apiutil.NewDynamicRESTMapper(config, apiutil.WithLazyDiscovery)
-	if err != nil {
-		return nil, errors.Wrapf(err, "failed to create the controller-runtime DynamicRESTMapper")
-	}
-
-	c, err := client.New(config, client.Options{Scheme: Scheme, Mapper: mapper})
+	c, err := client.New(config, client.Options{Scheme: Scheme})
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to create controller-runtime client")
 	}

@@ -19,7 +19,6 @@ package controllers
 import (
 	"context"
 	"fmt"
-	"sort"
 	"strings"
 	"time"
 
@@ -67,7 +66,7 @@ const (
 )
 
 type managementCluster interface {
-	GetMachinesForCluster(ctx context.Context, cluster types.NamespacedName, filters ...func(machine *clusterv1.Machine) bool) ([]*clusterv1.Machine, error)
+	GetMachinesForCluster(ctx context.Context, cluster types.NamespacedName, filters ...internal.MachineFilter) (internal.FilterableMachineCollection, error)
 	TargetClusterControlPlaneIsHealthy(ctx context.Context, clusterKey types.NamespacedName, controlPlaneName string) error
 	TargetClusterEtcdIsHealthy(ctx context.Context, clusterKey types.NamespacedName, controlPlaneName string) error
 }
@@ -235,8 +234,7 @@ func (r *KubeadmControlPlaneReconciler) reconcile(ctx context.Context, cluster *
 	}
 
 	currentConfigurationHash := hash.Compute(&kcp.Spec)
-	requireUpgrade := internal.FilterMachines(
-		ownedMachines,
+	requireUpgrade := ownedMachines.AnyFilter(
 		internal.Not(internal.MatchesConfigurationHash(currentConfigurationHash)),
 		internal.OlderThan(kcp.Spec.UpgradeAfter),
 	)
@@ -254,7 +252,7 @@ func (r *KubeadmControlPlaneReconciler) reconcile(ctx context.Context, cluster *
 	}
 
 	// If we've made it this far, we don't need to worry about Machines that are older than kcp.Spec.UpgradeAfter
-	currentMachines := internal.FilterMachines(ownedMachines, internal.MatchesConfigurationHash(currentConfigurationHash))
+	currentMachines := ownedMachines.Filter(internal.MatchesConfigurationHash(currentConfigurationHash))
 	numMachines := len(currentMachines)
 	desiredReplicas := int(*kcp.Spec.Replicas)
 
@@ -312,7 +310,7 @@ func (r *KubeadmControlPlaneReconciler) updateStatus(ctx context.Context, kcp *c
 		return errors.Wrap(err, "failed to get list of owned machines")
 	}
 
-	currentMachines := internal.FilterMachines(ownedMachines, internal.MatchesConfigurationHash(hash.Compute(&kcp.Spec)))
+	currentMachines := ownedMachines.Filter(internal.MatchesConfigurationHash(hash.Compute(&kcp.Spec)))
 	kcp.Status.UpdatedReplicas = int32(len(currentMachines))
 
 	replicas := int32(len(ownedMachines))
@@ -347,7 +345,7 @@ func (r *KubeadmControlPlaneReconciler) updateStatus(ctx context.Context, kcp *c
 	return nil
 }
 
-func (r *KubeadmControlPlaneReconciler) upgradeControlPlane(ctx context.Context, cluster *clusterv1.Cluster, kcp *controlplanev1.KubeadmControlPlane, requireUpgrade []*clusterv1.Machine) error {
+func (r *KubeadmControlPlaneReconciler) upgradeControlPlane(ctx context.Context, cluster *clusterv1.Cluster, kcp *controlplanev1.KubeadmControlPlane, requireUpgrade internal.FilterableMachineCollection) error {
 
 	// TODO: verify health for each existing replica
 	// TODO: mark an old Machine via the label kubeadm.controlplane.cluster.x-k8s.io/selected-for-upgrade
@@ -412,13 +410,13 @@ func (r *KubeadmControlPlaneReconciler) scaleDownControlPlane(ctx context.Contex
 	}
 
 	// Wait for any delete in progress to complete before deleting another Machine
-	if len(internal.FilterMachines(ownedMachines, internal.HasDeletionTimestamp)) > 0 {
+	if len(ownedMachines.Filter(internal.HasDeletionTimestamp)) > 0 {
 		return ctrl.Result{RequeueAfter: DeleteRequeueAfter}, nil
 	}
 
-	machineToDelete, err := oldestMachine(ownedMachines)
-	if err != nil {
-		return ctrl.Result{}, errors.Wrap(err, "failed to pick control plane Machine to delete")
+	machineToDelete := ownedMachines.Oldest()
+	if machineToDelete == nil {
+		return ctrl.Result{}, errors.New("failed to pick control plane Machine to delete")
 	}
 
 	if err := r.Client.Delete(ctx, machineToDelete); err != nil && !apierrors.IsNotFound(err) {
@@ -718,12 +716,4 @@ func getMachineNode(ctx context.Context, crClient client.Client, machine *cluste
 	}
 
 	return node, nil
-}
-
-func oldestMachine(machines []*clusterv1.Machine) (*clusterv1.Machine, error) {
-	if len(machines) == 0 {
-		return &clusterv1.Machine{}, errors.New("no machines given")
-	}
-	sort.Sort(util.MachinesByCreationTimestamp(machines))
-	return machines[0], nil
 }

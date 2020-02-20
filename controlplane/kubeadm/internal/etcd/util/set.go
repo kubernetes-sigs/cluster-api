@@ -27,7 +27,7 @@ import (
 
 type empty struct{}
 
-// util.UInt64Set is a set of int64s, implemented via map[uint64]struct{} for minimal memory consumption.
+// util.UInt64Set is a set of uint64s, implemented via map[uint64]struct{} for minimal memory consumption.
 type UInt64Set map[uint64]empty
 
 // NewUInt64Set creates a UInt64Set from a list of values.
@@ -156,15 +156,15 @@ func (s UInt64Set) Equal(s2 UInt64Set) bool {
 	return len(s1) == len(s2) && s1.IsSuperset(s2)
 }
 
-type sortableSliceOfInt64 []uint64
+type sortableSliceOfUInt64 []uint64
 
-func (s sortableSliceOfInt64) Len() int           { return len(s) }
-func (s sortableSliceOfInt64) Less(i, j int) bool { return lessInt64(s[i], s[j]) }
-func (s sortableSliceOfInt64) Swap(i, j int)      { s[i], s[j] = s[j], s[i] }
+func (s sortableSliceOfUInt64) Len() int           { return len(s) }
+func (s sortableSliceOfUInt64) Less(i, j int) bool { return lessUInt64(s[i], s[j]) }
+func (s sortableSliceOfUInt64) Swap(i, j int)      { s[i], s[j] = s[j], s[i] }
 
 // List returns the contents as a sorted uint64 slice.
 func (s UInt64Set) List() []uint64 {
-	res := make(sortableSliceOfInt64, 0, len(s))
+	res := make(sortableSliceOfUInt64, 0, len(s))
 	for key := range s {
 		res = append(res, key)
 	}
@@ -196,6 +196,6 @@ func (s UInt64Set) Len() int {
 	return len(s)
 }
 
-func lessInt64(lhs, rhs uint64) bool {
+func lessUInt64(lhs, rhs uint64) bool {
 	return lhs < rhs
 }

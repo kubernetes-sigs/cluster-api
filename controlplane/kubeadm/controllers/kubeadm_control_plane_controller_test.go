@@ -1319,10 +1319,10 @@ func TestKubeadmControlPlaneReconciler_reconcileDelete(t *testing.T) {
 type fakeManagementCluster struct {
 	ControlPlaneHealthy bool
 	EtcdHealthy         bool
-	Machines            []*clusterv1.Machine
+	Machines            internal.FilterableMachineCollection
 }
 
-func (f *fakeManagementCluster) GetMachinesForCluster(ctx context.Context, cluster types.NamespacedName, filters ...func(machine *clusterv1.Machine) bool) ([]*clusterv1.Machine, error) {
+func (f *fakeManagementCluster) GetMachinesForCluster(ctx context.Context, cluster types.NamespacedName, filters ...internal.MachineFilter) (internal.FilterableMachineCollection, error) {
 	return f.Machines, nil
 }
 
@@ -1351,7 +1351,7 @@ func TestKubeadmControlPlaneReconciler_scaleUpControlPlane(t *testing.T) {
 		g.Expect(fakeClient.Create(context.Background(), genericMachineTemplate)).To(Succeed())
 
 		fmc := &fakeManagementCluster{
-			Machines:            []*clusterv1.Machine{},
+			Machines:            internal.NewFilterableMachineCollection(),
 			ControlPlaneHealthy: true,
 			EtcdHealthy:         true,
 		}
@@ -1359,7 +1359,7 @@ func TestKubeadmControlPlaneReconciler_scaleUpControlPlane(t *testing.T) {
 		for i := 0; i < 2; i++ {
 			m, _ := createMachineNodePair(fmt.Sprintf("test-%d", i), cluster, kcp, true)
 			g.Expect(fakeClient.Create(context.Background(), m)).To(Succeed())
-			fmc.Machines = append(fmc.Machines, m)
+			fmc.Machines.Insert(m.DeepCopy())
 		}
 
 		r := &KubeadmControlPlaneReconciler{
@@ -1410,7 +1410,7 @@ func TestKubeadmControlPlaneReconciler_scaleDownControlPlane(t *testing.T) {
 		g.Expect(fakeClient.Create(context.Background(), genericMachineTemplate)).To(Succeed())
 
 		fmc := &fakeManagementCluster{
-			Machines:            []*clusterv1.Machine{},
+			Machines:            internal.NewFilterableMachineCollection(),
 			ControlPlaneHealthy: true,
 			EtcdHealthy:         true,
 		}
@@ -1418,7 +1418,7 @@ func TestKubeadmControlPlaneReconciler_scaleDownControlPlane(t *testing.T) {
 		for i := 0; i < 2; i++ {
 			m, _ := createMachineNodePair(fmt.Sprintf("test-%d", i), cluster, kcp, true)
 			g.Expect(fakeClient.Create(context.Background(), m)).To(Succeed())
-			fmc.Machines = append(fmc.Machines, m)
+			fmc.Machines.Insert(m.DeepCopy())
 		}
 
 		r := &KubeadmControlPlaneReconciler{
@@ -1446,7 +1446,7 @@ func TestKubeadmControlPlaneReconciler_scaleDownControlPlane(t *testing.T) {
 		g.Expect(fakeClient.Create(context.Background(), genericMachineTemplate)).To(Succeed())
 
 		fmc := &fakeManagementCluster{
-			Machines:            []*clusterv1.Machine{},
+			Machines:            internal.NewFilterableMachineCollection(),
 			ControlPlaneHealthy: true,
 			EtcdHealthy:         true,
 		}
@@ -1454,7 +1454,7 @@ func TestKubeadmControlPlaneReconciler_scaleDownControlPlane(t *testing.T) {
 		for i := 0; i < 2; i++ {
 			m, _ := createMachineNodePair(fmt.Sprintf("test-%d", i), cluster, kcp, true)
 			g.Expect(fakeClient.Create(context.Background(), m)).To(Succeed())
-			fmc.Machines = append(fmc.Machines, m)
+			fmc.Machines.Insert(m.DeepCopy())
 		}
 
 		r := &KubeadmControlPlaneReconciler{

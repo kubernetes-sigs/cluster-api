@@ -131,12 +131,6 @@ func OlderThan(t *metav1.Time) MachineFilter {
 	}
 }
 
-// SelectedForUpgrade is a MachineFilter to find all machines that have the
-// controlplanev1.SelectedForUpgradeAnnotation set.
-func SelectedForUpgrade(machine *clusterv1.Machine) bool {
-	return HasAnnotationKey(controlplanev1.SelectedForUpgradeAnnotation)(machine)
-}
-
 // HasAnnotationKey returns a MachineFilter function to find all machines that have the
 // specified Annotation key present
 func HasAnnotationKey(key string) MachineFilter {

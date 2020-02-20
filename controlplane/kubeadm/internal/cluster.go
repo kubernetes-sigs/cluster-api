@@ -50,31 +50,9 @@ type ManagementCluster struct {
 	Client ctrlclient.Client
 }
 
-// FilterMachines returns a filtered list of machines
-func FilterMachines(machines []*clusterv1.Machine, filters ...func(machine *clusterv1.Machine) bool) []*clusterv1.Machine {
-	if len(filters) == 0 {
-		return machines
-	}
-
-	filteredMachines := make([]*clusterv1.Machine, 0, len(machines))
-	for _, machine := range machines {
-		add := true
-		for _, filter := range filters {
-			if !filter(machine) {
-				add = false
-				break
-			}
-		}
-		if add {
-			filteredMachines = append(filteredMachines, machine)
-		}
-	}
-	return filteredMachines
-}
-
 // GetMachinesForCluster returns a list of machines that can be filtered or not.
 // If no filter is supplied then all machines associated with the target cluster are returned.
-func (m *ManagementCluster) GetMachinesForCluster(ctx context.Context, cluster types.NamespacedName, filters ...func(machine *clusterv1.Machine) bool) ([]*clusterv1.Machine, error) {
+func (m *ManagementCluster) GetMachinesForCluster(ctx context.Context, cluster types.NamespacedName, filters ...MachineFilter) (FilterableMachineCollection, error) {
 	selector := map[string]string{
 		clusterv1.ClusterLabelName: cluster.Name,
 	}
@@ -83,12 +61,8 @@ func (m *ManagementCluster) GetMachinesForCluster(ctx context.Context, cluster t
 		return nil, errors.Wrap(err, "failed to list machines")
 	}
 
-	machines := make([]*clusterv1.Machine, 0, len(ml.Items))
-	for i := range ml.Items {
-		machines = append(machines, &ml.Items[i])
-	}
-
-	return FilterMachines(machines, filters...), nil
+	machines := NewFilterableMachineCollectionFromMachineList(ml)
+	return machines.Filter(filters...), nil
 }
 
 // getCluster builds a cluster object.
@@ -114,7 +88,7 @@ func (m *ManagementCluster) getCluster(ctx context.Context, clusterKey types.Nam
 		client:     c,
 		restConfig: restConfig,
 		etcdCACert: etcdCACert,
-		etcdCAkey:  etcdCAKey,
+		etcdCAKey:  etcdCAKey,
 	}, nil
 }
 
@@ -204,12 +178,12 @@ type cluster struct {
 	client ctrlclient.Client
 	// restConfig is required for the proxy.
 	restConfig            *rest.Config
-	etcdCACert, etcdCAkey []byte
+	etcdCACert, etcdCAKey []byte
 }
 
 // generateEtcdTLSClientBundle builds an etcd client TLS bundle from the Etcd CA for this cluster.
 func (c *cluster) generateEtcdTLSClientBundle() (*tls.Config, error) {
-	clientCert, err := generateClientCert(c.etcdCACert, c.etcdCAkey)
+	clientCert, err := generateClientCert(c.etcdCACert, c.etcdCAKey)
 	if err != nil {
 		return nil, err
 	}
@@ -361,7 +335,7 @@ func (c *cluster) getEtcdClientForNode(nodeName string, tlsConfig *tls.Config) (
 	// This does not support external etcd.
 	p := proxy.Proxy{
 		Kind:         "pods",
-		Namespace:    "kube-system", // TODO, can etcd ever run in a different namespace?
+		Namespace:    metav1.NamespaceSystem, // TODO, can etcd ever run in a different namespace?
 		ResourceName: staticPodName("etcd", nodeName),
 		KubeConfig:   c.restConfig,
 		TLSConfig:    tlsConfig,

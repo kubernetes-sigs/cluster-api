@@ -155,6 +155,9 @@ func TestKubeadmControlPlaneValidateUpdate(t *testing.T) {
 	validUpdate.Spec.InfrastructureTemplate.Name = "orange"
 	validUpdate.Spec.Replicas = pointer.Int32Ptr(5)
 
+	scaleToZero := before.DeepCopy()
+	scaleToZero.Spec.Replicas = pointer.Int32Ptr(0)
+
 	tests := []struct {
 		name      string
 		expectErr bool
@@ -169,6 +172,11 @@ func TestKubeadmControlPlaneValidateUpdate(t *testing.T) {
 			name:      "should return error when trying to mutate the kubeadmconfigspec",
 			expectErr: true,
 			kcp:       invalidUpdate,
+		},
+		{
+			name:      "should return error when trying to scale to zero",
+			expectErr: true,
+			kcp:       scaleToZero,
 		},
 	}
 

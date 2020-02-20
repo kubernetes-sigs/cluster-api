@@ -127,6 +127,19 @@ func (r *KubeadmControlPlane) ValidateUpdate(old runtime.Object) error {
 		)
 	}
 
+	if *r.Spec.Replicas <= 0 {
+		// The use of the scale subresource should provide a guarantee that negative values
+		// should not be accepted for this field, but since we have to validate that Replicas != 0
+		// it doesn't hurt to also additionally validate for negative numbers here as well.
+		allErrs = append(
+			allErrs,
+			field.Forbidden(
+				field.NewPath("spec", "replicas"),
+				"cannot be less than or equal to 0",
+			),
+		)
+	}
+
 	if len(allErrs) == 0 {
 		return nil
 	}

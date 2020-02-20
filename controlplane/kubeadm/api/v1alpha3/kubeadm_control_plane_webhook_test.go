@@ -237,8 +237,8 @@ func TestKubeadmControlPlaneValidateUpdate(t *testing.T) {
 			kcp:       invalidUpdateKubeadmConfigCluster,
 		},
 		{
-			name:      "should not return error when trying to mutate the kubeadmconfigspec joinconfiguration",
-			expectErr: false,
+			name:      "should return error when trying to mutate the kubeadmconfigspec joinconfiguration",
+			expectErr: true,
 			before:    before,
 			kcp:       validUpdateKubeadmConfigJoin,
 		},

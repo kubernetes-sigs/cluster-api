@@ -65,26 +65,17 @@ func (in *KubeadmControlPlane) ValidateUpdate(old runtime.Object) error {
 	allErrs := in.validateCommon()
 
 	prev := old.(*KubeadmControlPlane)
-	// Verify that we are not making any changes to the InitConfiguration of KubeadmConfigSpec
-	if !reflect.DeepEqual(in.Spec.KubeadmConfigSpec.InitConfiguration, prev.Spec.KubeadmConfigSpec.InitConfiguration) {
+	if !reflect.DeepEqual(in.Spec.KubeadmConfigSpec, prev.Spec.KubeadmConfigSpec) {
 		allErrs = append(
 			allErrs,
 			field.Forbidden(
-				field.NewPath("spec", "kubeadmConfigSpec", "initConfiguration"),
+				field.NewPath("spec", "kubeadmConfigSpec"),
 				"cannot be modified",
 			),
 		)
 	}
-	// Verify that we are not making any changes to the ClusterConfiguration of KubeadmConfigSpec
-	if !reflect.DeepEqual(in.Spec.KubeadmConfigSpec.ClusterConfiguration, prev.Spec.KubeadmConfigSpec.ClusterConfiguration) {
-		allErrs = append(
-			allErrs,
-			field.Forbidden(
-				field.NewPath("spec", "kubeadmConfigSpec", "clusterConfiguration"),
-				"cannot be modified",
-			),
-		)
-	}
+
+	// In order to make the kubeadm config spec mutable, please see https://github.com/kubernetes-sigs/cluster-api/pull/2388/files
 
 	if len(allErrs) > 0 {
 		return apierrors.NewInvalid(GroupVersion.WithKind("KubeadmControlPlane").GroupKind(), in.Name, allErrs)

@@ -21,6 +21,8 @@ import (
 
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/utils/pointer"
+
 	capierrors "sigs.k8s.io/cluster-api/errors"
 )
 
@@ -213,6 +215,15 @@ func (in FailureDomains) FilterControlPlane() FailureDomains {
 		}
 	}
 	return res
+}
+
+// GetIDs returns a slice containing the ids for failure domains
+func (in FailureDomains) GetIDs() []*string {
+	ids := make([]*string, 0, len(in))
+	for id := range in {
+		ids = append(ids, pointer.StringPtr(id))
+	}
+	return ids
 }
 
 // FailureDomainSpec is the Schema for Cluster API failure domains.

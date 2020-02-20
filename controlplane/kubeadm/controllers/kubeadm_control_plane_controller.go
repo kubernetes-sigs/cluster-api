@@ -272,7 +272,7 @@ func (r *KubeadmControlPlaneReconciler) reconcile(ctx context.Context, cluster *
 	case numMachines < desiredReplicas && numMachines > 0:
 		// Create a new Machine w/ join
 		logger.Info("Scaling up control plane", "Desired", desiredReplicas, "Existing", numMachines)
-		result, err := r.scaleUpControlPlane(ctx, cluster, kcp)
+		result, err := r.scaleUpControlPlane(ctx, cluster, kcp, ownedMachines)
 		if err != nil {
 			logger.Error(err, "Failed to scale up control plane")
 			r.recorder.Eventf(kcp, corev1.EventTypeWarning, "FailedScaleUp", "Failed to scale up cluster %s/%s control plane: %v", cluster.Namespace, cluster.Name, err)
@@ -282,7 +282,7 @@ func (r *KubeadmControlPlaneReconciler) reconcile(ctx context.Context, cluster *
 	// We are scaling down
 	case numMachines > desiredReplicas:
 		logger.Info("Scaling down control plane", "Desired", desiredReplicas, "Existing", numMachines)
-		result, err := r.scaleDownControlPlane(ctx, cluster, kcp)
+		result, err := r.scaleDownControlPlane(ctx, cluster, kcp, ownedMachines)
 		if err != nil {
 			logger.Error(err, "Failed to scale down control plane")
 			r.recorder.Eventf(kcp, corev1.EventTypeWarning, "FailedScaleDown", "Failed to scale down cluster %s/%s control plane: %v", cluster.Namespace, cluster.Name, err)
@@ -365,7 +365,8 @@ func (r *KubeadmControlPlaneReconciler) initializeControlPlane(ctx context.Conte
 	bootstrapSpec := kcp.Spec.KubeadmConfigSpec.DeepCopy()
 	bootstrapSpec.JoinConfiguration = nil
 
-	if err := r.cloneConfigsAndGenerateMachine(ctx, cluster, kcp, bootstrapSpec); err != nil {
+	fd := r.failureDomainForScaleUp(cluster, nil)
+	if err := r.cloneConfigsAndGenerateMachine(ctx, cluster, kcp, bootstrapSpec, fd); err != nil {
 		return ctrl.Result{}, errors.Wrapf(err, "failed to create control plane Machine for cluster %s/%s", cluster.Name, cluster.Namespace)
 	}
 
@@ -373,7 +374,7 @@ func (r *KubeadmControlPlaneReconciler) initializeControlPlane(ctx context.Conte
 	return ctrl.Result{Requeue: true}, nil
 }
 
-func (r *KubeadmControlPlaneReconciler) scaleUpControlPlane(ctx context.Context, cluster *clusterv1.Cluster, kcp *controlplanev1.KubeadmControlPlane) (ctrl.Result, error) {
+func (r *KubeadmControlPlaneReconciler) scaleUpControlPlane(ctx context.Context, cluster *clusterv1.Cluster, kcp *controlplanev1.KubeadmControlPlane, machines internal.FilterableMachineCollection) (ctrl.Result, error) {
 	if err := r.managementCluster.TargetClusterControlPlaneIsHealthy(ctx, util.ObjectKey(cluster), kcp.Name); err != nil {
 		return ctrl.Result{RequeueAfter: HealthCheckFailedRequeueAfter}, errors.Wrap(err, "control plane is not healthy")
 	}
@@ -387,7 +388,8 @@ func (r *KubeadmControlPlaneReconciler) scaleUpControlPlane(ctx context.Context,
 	bootstrapSpec.InitConfiguration = nil
 	bootstrapSpec.ClusterConfiguration = nil
 
-	if err := r.cloneConfigsAndGenerateMachine(ctx, cluster, kcp, bootstrapSpec); err != nil {
+	fd := r.failureDomainForScaleUp(cluster, machines)
+	if err := r.cloneConfigsAndGenerateMachine(ctx, cluster, kcp, bootstrapSpec, fd); err != nil {
 		return ctrl.Result{}, errors.Wrapf(err, "failed to create control plane Machine for cluster %s/%s", cluster.Name, cluster.Namespace)
 	}
 
@@ -395,7 +397,7 @@ func (r *KubeadmControlPlaneReconciler) scaleUpControlPlane(ctx context.Context,
 	return ctrl.Result{Requeue: true}, nil
 }
 
-func (r *KubeadmControlPlaneReconciler) scaleDownControlPlane(ctx context.Context, cluster *clusterv1.Cluster, kcp *controlplanev1.KubeadmControlPlane) (ctrl.Result, error) {
+func (r *KubeadmControlPlaneReconciler) scaleDownControlPlane(ctx context.Context, cluster *clusterv1.Cluster, kcp *controlplanev1.KubeadmControlPlane, machines internal.FilterableMachineCollection) (ctrl.Result, error) {
 	if err := r.managementCluster.TargetClusterControlPlaneIsHealthy(ctx, util.ObjectKey(cluster), kcp.Name); err != nil {
 		return ctrl.Result{RequeueAfter: HealthCheckFailedRequeueAfter}, errors.Wrap(err, "control plane is not healthy")
 	}
@@ -404,17 +406,15 @@ func (r *KubeadmControlPlaneReconciler) scaleDownControlPlane(ctx context.Contex
 		return ctrl.Result{RequeueAfter: HealthCheckFailedRequeueAfter}, errors.Wrap(err, "etcd cluster is not healthy")
 	}
 
-	ownedMachines, err := r.managementCluster.GetMachinesForCluster(ctx, util.ObjectKey(cluster), internal.OwnedControlPlaneMachines(kcp.Name))
-	if err != nil {
-		return ctrl.Result{}, err
-	}
-
 	// Wait for any delete in progress to complete before deleting another Machine
-	if len(ownedMachines.Filter(internal.HasDeletionTimestamp)) > 0 {
+	if len(machines.Filter(internal.HasDeletionTimestamp)) > 0 {
 		return ctrl.Result{RequeueAfter: DeleteRequeueAfter}, nil
 	}
 
-	machineToDelete := ownedMachines.Oldest()
+	fd := r.failureDomainForScaleDown(cluster, machines)
+	machinesInFailureDomain := machines.Filter(internal.InFailureDomains(fd))
+
+	machineToDelete := machinesInFailureDomain.Oldest()
 	if machineToDelete == nil {
 		return ctrl.Result{}, errors.New("failed to pick control plane Machine to delete")
 	}
@@ -427,7 +427,7 @@ func (r *KubeadmControlPlaneReconciler) scaleDownControlPlane(ctx context.Contex
 	return ctrl.Result{Requeue: true}, nil
 }
 
-func (r *KubeadmControlPlaneReconciler) cloneConfigsAndGenerateMachine(ctx context.Context, cluster *clusterv1.Cluster, kcp *controlplanev1.KubeadmControlPlane, bootstrapSpec *bootstrapv1.KubeadmConfigSpec) error {
+func (r *KubeadmControlPlaneReconciler) cloneConfigsAndGenerateMachine(ctx context.Context, cluster *clusterv1.Cluster, kcp *controlplanev1.KubeadmControlPlane, bootstrapSpec *bootstrapv1.KubeadmConfigSpec, failureDomain *string) error {
 	var errs []error
 
 	// Since the cloned resource should eventually have a controller ref for the Machine, we create an
@@ -461,7 +461,7 @@ func (r *KubeadmControlPlaneReconciler) cloneConfigsAndGenerateMachine(ctx conte
 
 	// Only proceed to generating the Machine if we haven't encountered an error
 	if len(errs) == 0 {
-		if err := r.generateMachine(ctx, kcp, cluster, infraRef, bootstrapRef); err != nil {
+		if err := r.generateMachine(ctx, kcp, cluster, infraRef, bootstrapRef, failureDomain); err != nil {
 			errs = append(errs, errors.Wrap(err, "failed to create Machine"))
 		}
 	}
@@ -533,25 +533,36 @@ func (r *KubeadmControlPlaneReconciler) generateKubeadmConfig(ctx context.Contex
 	return bootstrapRef, nil
 }
 
-func (r *KubeadmControlPlaneReconciler) failureDomainForScaleUp(ctx context.Context, kcp *controlplanev1.KubeadmControlPlane, cluster *clusterv1.Cluster) (*string, error) {
+func (r *KubeadmControlPlaneReconciler) failureDomainForScaleDown(cluster *clusterv1.Cluster, machines internal.FilterableMachineCollection) *string {
 	// Don't do anything if there are no failure domains defined on the cluster.
-	if len(cluster.Status.FailureDomains) == 0 {
-		return nil, nil
+	if len(cluster.Status.FailureDomains.FilterControlPlane()) == 0 {
+		return nil
 	}
-	ownedMachines, err := r.managementCluster.GetMachinesForCluster(ctx, util.ObjectKey(cluster), internal.OwnedControlPlaneMachines(kcp.Name))
-	if err != nil {
-		return nil, err
+
+	// See if there are any Machines that are not in currently defined failure domains first.
+	notInFailureDomains := machines.Filter(internal.Not(internal.InFailureDomains(cluster.Status.FailureDomains.FilterControlPlane().GetIDs()...)))
+	if len(notInFailureDomains) > 0 {
+		// return the failure domain for the oldest Machine not in the current list of failure domains
+		// this could be either nil (no failure domain defined) or a failure domain that is no longer defined
+		// in the cluster status.
+		return notInFailureDomains.Oldest().Spec.FailureDomain
 	}
-	failureDomain := internal.PickFewest(cluster.Status.FailureDomains.FilterControlPlane(), ownedMachines)
-	return &failureDomain, nil
+
+	// Otherwise pick the currently known failure domain with the most Machines
+	failureDomain := internal.PickMost(cluster.Status.FailureDomains.FilterControlPlane(), machines)
+	return &failureDomain
 }
 
-func (r *KubeadmControlPlaneReconciler) generateMachine(ctx context.Context, kcp *controlplanev1.KubeadmControlPlane, cluster *clusterv1.Cluster, infraRef, bootstrapRef *corev1.ObjectReference) error {
-	fd, err := r.failureDomainForScaleUp(ctx, kcp, cluster)
-	if err != nil {
-		return err
+func (r *KubeadmControlPlaneReconciler) failureDomainForScaleUp(cluster *clusterv1.Cluster, machines internal.FilterableMachineCollection) *string {
+	// Don't do anything if there are no failure domains defined on the cluster.
+	if len(cluster.Status.FailureDomains.FilterControlPlane()) == 0 {
+		return nil
 	}
+	failureDomain := internal.PickFewest(cluster.Status.FailureDomains.FilterControlPlane(), machines)
+	return &failureDomain
+}
 
+func (r *KubeadmControlPlaneReconciler) generateMachine(ctx context.Context, kcp *controlplanev1.KubeadmControlPlane, cluster *clusterv1.Cluster, infraRef, bootstrapRef *corev1.ObjectReference, failureDomain *string) error {
 	machine := &clusterv1.Machine{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      names.SimpleNameGenerator.GenerateName(kcp.Name + "-"),
@@ -568,7 +579,7 @@ func (r *KubeadmControlPlaneReconciler) generateMachine(ctx context.Context, kcp
 			Bootstrap: clusterv1.Bootstrap{
 				ConfigRef: bootstrapRef,
 			},
-			FailureDomain: fd,
+			FailureDomain: failureDomain,
 		},
 	}
 

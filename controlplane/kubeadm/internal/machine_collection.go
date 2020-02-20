@@ -118,3 +118,12 @@ func (s FilterableMachineCollection) Oldest() *clusterv1.Machine {
 	}
 	return s.list()[len(s)-1]
 }
+
+// DeepCopy returns a deep copy
+func (s FilterableMachineCollection) DeepCopy() FilterableMachineCollection {
+	result := NewFilterableMachineCollection()
+	for _, m := range s {
+		result.Insert(m.DeepCopy())
+	}
+	return result
+}

@@ -28,6 +28,7 @@ const (
 	KubeadmControlPlaneFinalizer    = "kubeadm.controlplane.cluster.x-k8s.io"
 	KubeadmControlPlaneHashLabelKey = "kubeadm.controlplane.cluster.x-k8s.io/hash"
 	SelectedForUpgradeAnnotation    = "kubeadm.controlplane.cluster.x-k8s.io/selected-for-upgrade"
+	DeleteForScaleDownAnnotation    = "kubeadm.controlplane.cluster.x-k8s.io/delete-for-scale-down"
 )
 
 // KubeadmControlPlaneSpec defines the desired state of KubeadmControlPlane.

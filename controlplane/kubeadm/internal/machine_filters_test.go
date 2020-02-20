@@ -25,7 +25,6 @@ import (
 	"k8s.io/utils/pointer"
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha3"
-	controlplanev1 "sigs.k8s.io/cluster-api/controlplane/kubeadm/api/v1alpha3"
 )
 
 func TestNot(t *testing.T) {
@@ -117,23 +116,23 @@ func TestOlderThan(t *testing.T) {
 	})
 }
 
-func TestSelectedForUpgrade(t *testing.T) {
-	t.Run("machine with selected for upgrade label returns true", func(t *testing.T) {
+func TestHashAnnotationKey(t *testing.T) {
+	t.Run("machine with specified annotation returns true", func(t *testing.T) {
 		g := gomega.NewWithT(t)
 		m := &clusterv1.Machine{}
-		m.SetAnnotations(map[string]string{controlplanev1.SelectedForUpgradeAnnotation: ""})
-		g.Expect(SelectedForUpgrade(m)).To(gomega.BeTrue())
+		m.SetAnnotations(map[string]string{"test": ""})
+		g.Expect(HasAnnotationKey("test")(m)).To(gomega.BeTrue())
 	})
-	t.Run("machine with selected for upgrade label with non-empty value returns true", func(t *testing.T) {
+	t.Run("machine with specified annotation with non-empty value returns true", func(t *testing.T) {
 		g := gomega.NewWithT(t)
 		m := &clusterv1.Machine{}
-		m.SetAnnotations(map[string]string{controlplanev1.SelectedForUpgradeAnnotation: "blue"})
-		g.Expect(SelectedForUpgrade(m)).To(gomega.BeTrue())
+		m.SetAnnotations(map[string]string{"test": "blue"})
+		g.Expect(HasAnnotationKey("test")(m)).To(gomega.BeTrue())
 	})
-	t.Run("machine without selected for upgrade label returns false", func(t *testing.T) {
+	t.Run("machine without specified annotation returns false", func(t *testing.T) {
 		g := gomega.NewWithT(t)
 		m := &clusterv1.Machine{}
-		g.Expect(SelectedForUpgrade(m)).To(gomega.BeFalse())
+		g.Expect(HasAnnotationKey("foo")(m)).To(gomega.BeFalse())
 	})
 }
 

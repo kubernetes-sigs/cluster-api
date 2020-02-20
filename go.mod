@@ -22,6 +22,7 @@ require (
 	github.com/prometheus/client_model v0.0.0-20190129233127-fd36f4220a90
 	github.com/prometheus/procfs v0.0.5 // indirect
 	github.com/spf13/cobra v0.0.5
+	github.com/spf13/pflag v1.0.5
 	github.com/spf13/viper v1.3.2
 	go.etcd.io/etcd v0.0.0-20191023171146-3cf2f69b5738
 	go.uber.org/atomic v1.4.0 // indirect
@@ -39,6 +40,7 @@ require (
 	k8s.io/apiserver v0.17.2
 	k8s.io/client-go v0.17.2
 	k8s.io/cluster-bootstrap v0.0.0-20190516232516-d7d78ab2cfe7
+	k8s.io/component-base v0.17.2
 	k8s.io/klog v1.0.0
 	k8s.io/utils v0.0.0-20191114184206-e782cd3c129f
 	sigs.k8s.io/controller-runtime v0.5.0

@@ -173,6 +173,21 @@ func (m *ManagementCluster) TargetClusterEtcdIsHealthy(ctx context.Context, clus
 	return m.healthCheck(ctx, cluster.etcdIsHealthy, clusterKey, controlPlaneName)
 }
 
+// RemoveEtcdMemberForMachine removes the etcd member from the target cluster's etcd cluster.
+func (m *ManagementCluster) RemoveEtcdMemberForMachine(ctx context.Context, clusterKey types.NamespacedName, machine *clusterv1.Machine) error {
+	if machine == nil || machine.Status.NodeRef == nil {
+		// Nothing to do, no node for Machine
+		return nil
+	}
+
+	cluster, err := m.getCluster(ctx, clusterKey)
+	if err != nil {
+		return err
+	}
+
+	return cluster.removeMemberForNode(ctx, machine.Status.NodeRef.Name)
+}
+
 // cluster are operations on target clusters.
 type cluster struct {
 	client ctrlclient.Client
@@ -249,6 +264,37 @@ func (c *cluster) controlPlaneIsHealthy(ctx context.Context) (healthCheckResult,
 	}
 
 	return response, nil
+}
+
+func (c *cluster) removeMemberForNode(ctx context.Context, nodeName string) error {
+	tlsConfig, err := c.generateEtcdTLSClientBundle()
+	if err != nil {
+		return err
+	}
+
+	// Create the etcd client for the etcd Pod scheduled on the Node
+	etcdClient, err := c.getEtcdClientForNode(nodeName, tlsConfig)
+	if err != nil {
+		return errors.Wrap(err, "failed to create etcd client")
+	}
+
+	// List etcd members. This checks that the member is healthy, because the request goes through consensus.
+	members, err := etcdClient.Members(ctx)
+	if err != nil {
+		return errors.Wrap(err, "failed to list etcd members using etcd client")
+	}
+	member := etcdutil.MemberForName(members, nodeName)
+
+	// The member has already been removed, return immediately
+	if member == nil {
+		return nil
+	}
+
+	if err := etcdClient.RemoveMember(ctx, member.ID); err != nil {
+		return errors.Wrap(err, "failed to remove member from etcd")
+	}
+
+	return nil
 }
 
 // etcdIsHealthy runs checks for every etcd member in the cluster to satisfy our definition of healthy.

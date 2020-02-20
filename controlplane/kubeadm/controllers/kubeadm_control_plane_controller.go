@@ -69,6 +69,7 @@ type managementCluster interface {
 	GetMachinesForCluster(ctx context.Context, cluster types.NamespacedName, filters ...internal.MachineFilter) (internal.FilterableMachineCollection, error)
 	TargetClusterControlPlaneIsHealthy(ctx context.Context, clusterKey types.NamespacedName, controlPlaneName string) error
 	TargetClusterEtcdIsHealthy(ctx context.Context, clusterKey types.NamespacedName, controlPlaneName string) error
+	RemoveEtcdMemberForMachine(ctx context.Context, clusterKey types.NamespacedName, machine *clusterv1.Machine) error
 }
 
 // +kubebuilder:rbac:groups=core,resources=events,verbs=get;list;watch;create;patch
@@ -436,18 +437,28 @@ func (r *KubeadmControlPlaneReconciler) scaleDownControlPlane(ctx context.Contex
 		return ctrl.Result{}, errors.New("failed to pick control plane Machine to delete")
 	}
 
+	if !internal.HasAnnotationKey(controlplanev1.ScaleDownEtcdMemberRemovedAnnotation)(machineToDelete) {
+		// Ensure etcd is healthy prior to attempting to remove the member
+		if err := r.managementCluster.TargetClusterEtcdIsHealthy(ctx, util.ObjectKey(cluster), kcp.Name); err != nil {
+			logger.Error(err, "waiting for control plane to pass etcd health check before adding removing a control plane machine")
+			r.recorder.Eventf(kcp, corev1.EventTypeWarning, "ControlPlaneUnhealthy", "Waiting for control plane to pass etcd health check before removing a control plane machine: %v", err)
+			return ctrl.Result{RequeueAfter: HealthCheckFailedRequeueAfter}, nil
+		}
+		if err := r.managementCluster.RemoveEtcdMemberForMachine(ctx, util.ObjectKey(cluster), machineToDelete); err != nil {
+			logger.Error(err, "failed to remove etcd member for machine")
+			return ctrl.Result{}, err
+		}
+		if err := r.markWithAnnotationKey(ctx, machineToDelete, controlplanev1.ScaleDownEtcdMemberRemovedAnnotation); err != nil {
+			return ctrl.Result{}, errors.Wrapf(err, "failed to mark machine %s as having etcd membership removed", machineToDelete.Name)
+		}
+	}
+
+	// Do a final health check of the Control Plane components prior to actually deleting the machine
 	if err := r.managementCluster.TargetClusterControlPlaneIsHealthy(ctx, util.ObjectKey(cluster), kcp.Name); err != nil {
 		logger.Error(err, "waiting for control plane to pass control plane health check before removing a control plane machine")
 		r.recorder.Eventf(kcp, corev1.EventTypeWarning, "ControlPlaneUnhealthy", "Waiting for control plane to pass control plane health check before removing a control plane machine: %v", err)
 		return ctrl.Result{RequeueAfter: HealthCheckFailedRequeueAfter}, nil
 	}
-
-	if err := r.managementCluster.TargetClusterEtcdIsHealthy(ctx, util.ObjectKey(cluster), kcp.Name); err != nil {
-		logger.Error(err, "waiting for control plane to pass etcd health check before adding removing a control plane machine")
-		r.recorder.Eventf(kcp, corev1.EventTypeWarning, "ControlPlaneUnhealthy", "Waiting for control plane to pass etcd health check before removing a control plane machine: %v", err)
-		return ctrl.Result{RequeueAfter: HealthCheckFailedRequeueAfter}, nil
-	}
-
 	logger = logger.WithValues("machine", machineToDelete)
 	if err := r.Client.Delete(ctx, machineToDelete); err != nil && !apierrors.IsNotFound(err) {
 		logger.Error(err, "failed to delete control plane machine")

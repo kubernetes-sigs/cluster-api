@@ -255,7 +255,7 @@ func (c *fakeComponents) Yaml() ([]byte, error) {
 func newFakeComponents(name string, providerType clusterctlv1.ProviderType, version, targetNamespace, watchingNamespace string) repository.Components {
 	inventoryObject := fakeProvider(name, providerType, version, targetNamespace, watchingNamespace)
 	return &fakeComponents{
-		Provider:        config.NewProvider(inventoryObject.Provider, "", clusterctlv1.ProviderType(inventoryObject.Type)),
+		Provider:        config.NewProvider(inventoryObject.ProviderName, "", clusterctlv1.ProviderType(inventoryObject.Type)),
 		inventoryObject: inventoryObject,
 	}
 }

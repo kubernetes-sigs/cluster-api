@@ -34,9 +34,9 @@ type Provider struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
 
-	// Provider indicates the name of the provider.
+	// ProviderName indicates the name of the provider.
 	// +optional
-	Provider string `json:"provider,omitempty"`
+	ProviderName string `json:"providerName,omitempty"`
 
 	// Type indicates the type of the provider.
 	// See ProviderType for a list of supported values
@@ -57,7 +57,7 @@ type Provider struct {
 // Please note that this label uniquely identifies the provider, e.g. bootstrap-kubeadm, but not the instances of
 // the provider, e.g. namespace-1/bootstrap-kubeadm and namespace-2/bootstrap-kubeadm
 func (p *Provider) ManifestLabel() string {
-	return ManifestLabel(p.Provider, p.GetProviderType())
+	return ManifestLabel(p.ProviderName, p.GetProviderType())
 }
 
 // InstanceName return the a name that uniquely identifies an entry in the provider inventory.
@@ -73,17 +73,17 @@ func (p *Provider) HasWatchingOverlapWith(other Provider) bool {
 	return p.WatchedNamespace == "" || p.WatchedNamespace == other.WatchedNamespace || other.WatchedNamespace == ""
 }
 
-// SameAs returns true if two providers have the same Provider and type.
+// SameAs returns true if two providers have the same ProviderName and Type.
 // Please note that there could be many instances of the same provider.
 func (p *Provider) SameAs(other Provider) bool {
-	return p.Provider == other.Provider && p.Type == other.Type
+	return p.ProviderName == other.ProviderName && p.Type == other.Type
 }
 
-// Equals returns true if two providers are identical (same name, type, version etc.).
+// Equals returns true if two providers are identical (same name, provider name, type, version etc.).
 func (p *Provider) Equals(other Provider) bool {
 	return p.Name == other.Name &&
 		p.Namespace == other.Namespace &&
-		p.Provider == other.Provider &&
+		p.ProviderName == other.ProviderName &&
 		p.Type == other.Type &&
 		p.WatchedNamespace == other.WatchedNamespace &&
 		p.Version == other.Version
@@ -154,9 +154,9 @@ func (l *ProviderList) FilterByNamespace(namespace string) []Provider {
 	})
 }
 
-func (l *ProviderList) FilterByProviderAndType(provider string, providerType ProviderType) []Provider {
+func (l *ProviderList) FilterByProviderNameAndType(provider string, providerType ProviderType) []Provider {
 	return l.filterBy(func(p Provider) bool {
-		return p.Provider == provider && p.Type == string(providerType)
+		return p.ProviderName == provider && p.Type == string(providerType)
 	})
 }
 

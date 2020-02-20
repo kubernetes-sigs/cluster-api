@@ -99,7 +99,7 @@ func (c *clusterctlClient) Delete(options DeleteOptions) error {
 			// If the namespace where the provider is installed is not provided, try to detect it
 			provider.Namespace = options.Namespace
 			if provider.Namespace == "" {
-				provider.Namespace, err = clusterClient.ProviderInventory().GetDefaultProviderNamespace(provider.Provider, provider.GetProviderType())
+				provider.Namespace, err = clusterClient.ProviderInventory().GetDefaultProviderNamespace(provider.ProviderName, provider.GetProviderType())
 				if err != nil {
 					return err
 				}
@@ -150,8 +150,8 @@ func appendProviders(list []clusterctlv1.Provider, providerType clusterctlv1.Pro
 			ObjectMeta: metav1.ObjectMeta{
 				Name: clusterctlv1.ManifestLabel(name, providerType),
 			},
-			Provider: name,
-			Type:     string(providerType),
+			ProviderName: name,
+			Type:         string(providerType),
 		})
 	}
 	return list

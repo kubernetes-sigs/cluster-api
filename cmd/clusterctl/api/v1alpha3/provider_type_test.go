@@ -82,8 +82,8 @@ func Test_Provider_ManifestLabel(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			p := &Provider{
-				Provider: tt.fields.provider,
-				Type:     string(tt.fields.providerType),
+				ProviderName: tt.fields.provider,
+				Type:         string(tt.fields.providerType),
 			}
 			if got := p.ManifestLabel(); got != tt.want {
 				t.Errorf("got %v, want %v", got, tt.want)

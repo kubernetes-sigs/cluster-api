@@ -48,8 +48,8 @@ spec:
             type: string
           metadata:
             type: object
-          provider:
-            description: Provider indicates the name of the provider.
+          providerName:
+            description: ProviderName indicates the name of the provider.
             type: string
           type:
             description: Type indicates the type of the provider. See ProviderType

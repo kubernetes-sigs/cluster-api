@@ -151,7 +151,7 @@ func (c *components) InventoryObject() clusterctlv1.Provider {
 			Name:      c.ManifestLabel(),
 			Labels:    labels,
 		},
-		Provider:         c.Name(),
+		ProviderName:     c.Name(),
 		Type:             string(c.Type()),
 		Version:          c.version,
 		WatchedNamespace: c.watchingNamespace,

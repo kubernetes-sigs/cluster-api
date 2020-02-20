@@ -40,6 +40,7 @@ import (
 // and resolves it back to the GitHub repository link using the `asset` specified.
 // It's possible to add a `version` parameter, which accepts ranges (e.g. >=1.0.0) or wildcards (e.g. >=1.x, v0.1.x)
 // to filter the retrieved versions.
+// By default pre-releases won't be included unless a `prereleases` parameter is set to `true`.
 type ReleaseLink struct{}
 
 func (_ ReleaseLink) SupportsOutput(_ string) bool { return true }
@@ -50,6 +51,7 @@ func (l ReleaseLink) Process(input *plugin.Input) error {
 		gomodule := tags.Get("gomodule")
 		asset := tags.Get("asset")
 		versionRange := semver.MustParseRange(tags.Get("version"))
+		includePrereleases := tags.Get("prereleases") == "true"
 
 		repo, err := vcs.RepoRootForImportPath(gomodule, false)
 		if err != nil {
@@ -83,6 +85,9 @@ func (l ReleaseLink) Process(input *plugin.Input) error {
 
 		var picked semver.Version
 		for i, tag := range parsedTags {
+			if !includePrereleases && len(tag.Pre) > 0 {
+				continue
+			}
 			if versionRange(tag) {
 				picked = parsedTags[i]
 			}

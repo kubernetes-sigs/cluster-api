@@ -142,13 +142,34 @@ func TestKubeadmControlPlaneValidateUpdate(t *testing.T) {
 				Namespace: "foo",
 				Name:      "infraTemplate",
 			},
-			Replicas:          pointer.Int32Ptr(1),
-			KubeadmConfigSpec: bootstrapv1.KubeadmConfigSpec{},
+			Replicas: pointer.Int32Ptr(1),
+			KubeadmConfigSpec: bootstrapv1.KubeadmConfigSpec{
+				InitConfiguration: &kubeadmv1beta1.InitConfiguration{
+					LocalAPIEndpoint: kubeadmv1beta1.APIEndpoint{
+						AdvertiseAddress: "127.0.0.1",
+						BindPort:         int32(443),
+					},
+				},
+				ClusterConfiguration: &kubeadmv1beta1.ClusterConfiguration{
+					ClusterName: "test",
+				},
+				JoinConfiguration: &kubeadmv1beta1.JoinConfiguration{
+					NodeRegistration: kubeadmv1beta1.NodeRegistrationOptions{
+						Name: "test",
+					},
+				},
+			},
 		},
 	}
 
-	invalidUpdate := before.DeepCopy()
-	invalidUpdate.Spec.KubeadmConfigSpec.InitConfiguration = &kubeadmv1beta1.InitConfiguration{}
+	invalidUpdateKubeadmConfigInit := before.DeepCopy()
+	invalidUpdateKubeadmConfigInit.Spec.KubeadmConfigSpec.InitConfiguration = &kubeadmv1beta1.InitConfiguration{}
+
+	invalidUpdateKubeadmConfigCluster := before.DeepCopy()
+	invalidUpdateKubeadmConfigCluster.Spec.KubeadmConfigSpec.ClusterConfiguration = &kubeadmv1beta1.ClusterConfiguration{}
+
+	validUpdateKubeadmConfigJoin := before.DeepCopy()
+	validUpdateKubeadmConfigJoin.Spec.KubeadmConfigSpec.JoinConfiguration = &kubeadmv1beta1.JoinConfiguration{}
 
 	validUpdate := before.DeepCopy()
 	validUpdate.Labels = map[string]string{"blue": "green"}
@@ -158,25 +179,104 @@ func TestKubeadmControlPlaneValidateUpdate(t *testing.T) {
 	scaleToZero := before.DeepCopy()
 	scaleToZero.Spec.Replicas = pointer.Int32Ptr(0)
 
+	scaleToEven := before.DeepCopy()
+	scaleToEven.Spec.Replicas = pointer.Int32Ptr(2)
+
+	invalidNamespace := before.DeepCopy()
+	invalidNamespace.Spec.InfrastructureTemplate.Namespace = "bar"
+
+	missingReplicas := before.DeepCopy()
+	missingReplicas.Spec.Replicas = nil
+
+	beforeExternalEtcdInit := before.DeepCopy()
+	beforeExternalEtcdInit.Spec.KubeadmConfigSpec.InitConfiguration = &kubeadmv1beta1.InitConfiguration{
+		ClusterConfiguration: kubeadmv1beta1.ClusterConfiguration{
+			Etcd: kubeadmv1beta1.Etcd{
+				External: &kubeadmv1beta1.ExternalEtcd{
+					Endpoints: []string{"127.0.0.1"},
+				},
+			},
+		},
+	}
+	scaleToEvenExternalEtcdInit := beforeExternalEtcdInit.DeepCopy()
+	scaleToEvenExternalEtcdInit.Spec.Replicas = pointer.Int32Ptr(2)
+
+	beforeExternalEtcdCluster := before.DeepCopy()
+	beforeExternalEtcdCluster.Spec.KubeadmConfigSpec.ClusterConfiguration = &kubeadmv1beta1.ClusterConfiguration{
+		Etcd: kubeadmv1beta1.Etcd{
+			External: &kubeadmv1beta1.ExternalEtcd{
+				Endpoints: []string{"127.0.0.1"},
+			},
+		},
+	}
+	scaleToEvenExternalEtcdCluster := beforeExternalEtcdCluster.DeepCopy()
+	scaleToEvenExternalEtcdCluster.Spec.Replicas = pointer.Int32Ptr(2)
+
 	tests := []struct {
 		name      string
 		expectErr bool
+		before    *KubeadmControlPlane
 		kcp       *KubeadmControlPlane
 	}{
 		{
 			name:      "should succeed when given a valid config",
 			expectErr: false,
+			before:    before,
 			kcp:       validUpdate,
 		},
 		{
-			name:      "should return error when trying to mutate the kubeadmconfigspec",
+			name:      "should return error when trying to mutate the kubeadmconfigspec initconfiguration",
 			expectErr: true,
-			kcp:       invalidUpdate,
+			before:    before,
+			kcp:       invalidUpdateKubeadmConfigInit,
+		},
+		{
+			name:      "should return error when trying to mutate the kubeadmconfigspec clusterconfiguration",
+			expectErr: true,
+			before:    before,
+			kcp:       invalidUpdateKubeadmConfigCluster,
+		},
+		{
+			name:      "should not return error when trying to mutate the kubeadmconfigspec joinconfiguration",
+			expectErr: false,
+			before:    before,
+			kcp:       validUpdateKubeadmConfigJoin,
 		},
 		{
 			name:      "should return error when trying to scale to zero",
 			expectErr: true,
+			before:    before,
 			kcp:       scaleToZero,
+		},
+		{
+			name:      "should return error when trying to scale to an even number",
+			expectErr: true,
+			before:    before,
+			kcp:       scaleToEven,
+		},
+		{
+			name:      "should return error when trying to reference cross namespace",
+			expectErr: true,
+			before:    before,
+			kcp:       invalidNamespace,
+		},
+		{
+			name:      "should return error when trying to scale to nil",
+			expectErr: true,
+			before:    before,
+			kcp:       missingReplicas,
+		},
+		{
+			name:      "should succeed when trying to scale to an even number with external etcd defined in InitConfiguration",
+			expectErr: false,
+			before:    beforeExternalEtcdInit,
+			kcp:       scaleToEvenExternalEtcdInit,
+		},
+		{
+			name:      "should succeed when trying to scale to an even number with external etcd defined in ClusterConfiguration",
+			expectErr: false,
+			before:    beforeExternalEtcdCluster,
+			kcp:       scaleToEvenExternalEtcdCluster,
 		},
 	}
 
@@ -184,7 +284,7 @@ func TestKubeadmControlPlaneValidateUpdate(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			g := NewWithT(t)
 
-			err := tt.kcp.ValidateUpdate(before.DeepCopy())
+			err := tt.kcp.ValidateUpdate(tt.before.DeepCopy())
 			if tt.expectErr {
 				g.Expect(err).To(HaveOccurred())
 			} else {

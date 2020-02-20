@@ -26,9 +26,9 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/webhook"
 )
 
-func (r *KubeadmControlPlane) SetupWebhookWithManager(mgr ctrl.Manager) error {
+func (in *KubeadmControlPlane) SetupWebhookWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewWebhookManagedBy(mgr).
-		For(r).
+		For(in).
 		Complete()
 }
 
@@ -39,22 +39,62 @@ var _ webhook.Defaulter = &KubeadmControlPlane{}
 var _ webhook.Validator = &KubeadmControlPlane{}
 
 // Default implements webhook.Defaulter so a webhook will be registered for the type
-func (r *KubeadmControlPlane) Default() {
-	if r.Spec.Replicas == nil {
+func (in *KubeadmControlPlane) Default() {
+	if in.Spec.Replicas == nil {
 		replicas := int32(1)
-		r.Spec.Replicas = &replicas
+		in.Spec.Replicas = &replicas
 	}
 
-	if r.Spec.InfrastructureTemplate.Namespace == "" {
-		r.Spec.InfrastructureTemplate.Namespace = r.Namespace
+	if in.Spec.InfrastructureTemplate.Namespace == "" {
+		in.Spec.InfrastructureTemplate.Namespace = in.Namespace
 	}
 }
 
 // ValidateCreate implements webhook.Validator so a webhook will be registered for the type
-func (r *KubeadmControlPlane) ValidateCreate() error {
-	var allErrs field.ErrorList
+func (in *KubeadmControlPlane) ValidateCreate() error {
+	allErrs := in.validateCommon()
+	if len(allErrs) > 0 {
+		return apierrors.NewInvalid(GroupVersion.WithKind("KubeadmControlPlane").GroupKind(), in.Name, allErrs)
+	}
 
-	if r.Spec.Replicas == nil {
+	return nil
+}
+
+// ValidateUpdate implements webhook.Validator so a webhook will be registered for the type
+func (in *KubeadmControlPlane) ValidateUpdate(old runtime.Object) error {
+	allErrs := in.validateCommon()
+
+	prev := old.(*KubeadmControlPlane)
+	// Verify that we are not making any changes to the InitConfiguration of KubeadmConfigSpec
+	if !reflect.DeepEqual(in.Spec.KubeadmConfigSpec.InitConfiguration, prev.Spec.KubeadmConfigSpec.InitConfiguration) {
+		allErrs = append(
+			allErrs,
+			field.Forbidden(
+				field.NewPath("spec", "kubeadmConfigSpec", "initConfiguration"),
+				"cannot be modified",
+			),
+		)
+	}
+	// Verify that we are not making any changes to the ClusterConfiguration of KubeadmConfigSpec
+	if !reflect.DeepEqual(in.Spec.KubeadmConfigSpec.ClusterConfiguration, prev.Spec.KubeadmConfigSpec.ClusterConfiguration) {
+		allErrs = append(
+			allErrs,
+			field.Forbidden(
+				field.NewPath("spec", "kubeadmConfigSpec", "clusterConfiguration"),
+				"cannot be modified",
+			),
+		)
+	}
+
+	if len(allErrs) > 0 {
+		return apierrors.NewInvalid(GroupVersion.WithKind("KubeadmControlPlane").GroupKind(), in.Name, allErrs)
+	}
+
+	return nil
+}
+
+func (in *KubeadmControlPlane) validateCommon() (allErrs field.ErrorList) {
+	if in.Spec.Replicas == nil {
 		allErrs = append(
 			allErrs,
 			field.Required(
@@ -62,7 +102,7 @@ func (r *KubeadmControlPlane) ValidateCreate() error {
 				"is required",
 			),
 		)
-	} else if *r.Spec.Replicas <= 0 {
+	} else if *in.Spec.Replicas <= 0 {
 		// The use of the scale subresource should provide a guarantee that negative values
 		// should not be accepted for this field, but since we have to validate that Replicas != 0
 		// it doesn't hurt to also additionally validate for negative numbers here as well.
@@ -76,14 +116,19 @@ func (r *KubeadmControlPlane) ValidateCreate() error {
 	}
 
 	externalEtcd := false
-	if r.Spec.KubeadmConfigSpec.InitConfiguration != nil {
-		if r.Spec.KubeadmConfigSpec.InitConfiguration.Etcd.External != nil {
+	if in.Spec.KubeadmConfigSpec.InitConfiguration != nil {
+		if in.Spec.KubeadmConfigSpec.InitConfiguration.Etcd.External != nil {
+			externalEtcd = true
+		}
+	}
+	if in.Spec.KubeadmConfigSpec.ClusterConfiguration != nil {
+		if in.Spec.KubeadmConfigSpec.ClusterConfiguration.Etcd.External != nil {
 			externalEtcd = true
 		}
 	}
 
 	if !externalEtcd {
-		if r.Spec.Replicas != nil && *r.Spec.Replicas%2 == 0 {
+		if in.Spec.Replicas != nil && *in.Spec.Replicas%2 == 0 {
 			allErrs = append(
 				allErrs,
 				field.Forbidden(
@@ -94,60 +139,21 @@ func (r *KubeadmControlPlane) ValidateCreate() error {
 		}
 	}
 
-	if r.Spec.InfrastructureTemplate.Namespace != r.Namespace {
+	if in.Spec.InfrastructureTemplate.Namespace != in.Namespace {
 		allErrs = append(
 			allErrs,
 			field.Invalid(
 				field.NewPath("spec", "infrastructureTemplate", "namespace"),
-				r.Spec.InfrastructureTemplate.Namespace,
+				in.Spec.InfrastructureTemplate.Namespace,
 				"must match metadata.namespace",
 			),
 		)
 	}
 
-	if len(allErrs) == 0 {
-		return nil
-	}
-
-	return apierrors.NewInvalid(GroupVersion.WithKind("KubeadmControlPlane").GroupKind(), r.Name, allErrs)
-}
-
-// ValidateUpdate implements webhook.Validator so a webhook will be registered for the type
-func (r *KubeadmControlPlane) ValidateUpdate(old runtime.Object) error {
-	var allErrs field.ErrorList
-
-	oldKubeadmControlPlane := old.(*KubeadmControlPlane)
-	if !reflect.DeepEqual(r.Spec.KubeadmConfigSpec, oldKubeadmControlPlane.Spec.KubeadmConfigSpec) {
-		allErrs = append(
-			allErrs,
-			field.Forbidden(
-				field.NewPath("spec", "kubeadmConfigSpec"),
-				"cannot be modified",
-			),
-		)
-	}
-
-	if *r.Spec.Replicas <= 0 {
-		// The use of the scale subresource should provide a guarantee that negative values
-		// should not be accepted for this field, but since we have to validate that Replicas != 0
-		// it doesn't hurt to also additionally validate for negative numbers here as well.
-		allErrs = append(
-			allErrs,
-			field.Forbidden(
-				field.NewPath("spec", "replicas"),
-				"cannot be less than or equal to 0",
-			),
-		)
-	}
-
-	if len(allErrs) == 0 {
-		return nil
-	}
-
-	return apierrors.NewInvalid(GroupVersion.WithKind("KubeadmControlPlane").GroupKind(), r.Name, allErrs)
+	return allErrs
 }
 
 // ValidateDelete implements webhook.Validator so a webhook will be registered for the type
-func (r *KubeadmControlPlane) ValidateDelete() error {
+func (in *KubeadmControlPlane) ValidateDelete() error {
 	return nil
 }

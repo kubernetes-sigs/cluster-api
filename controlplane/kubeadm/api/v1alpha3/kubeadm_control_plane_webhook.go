@@ -75,25 +75,6 @@ func (r *KubeadmControlPlane) ValidateCreate() error {
 		)
 	}
 
-	externalEtcd := false
-	if r.Spec.KubeadmConfigSpec.InitConfiguration != nil {
-		if r.Spec.KubeadmConfigSpec.InitConfiguration.Etcd.External != nil {
-			externalEtcd = true
-		}
-	}
-
-	if !externalEtcd {
-		if r.Spec.Replicas != nil && *r.Spec.Replicas%2 == 0 {
-			allErrs = append(
-				allErrs,
-				field.Forbidden(
-					field.NewPath("spec", "replicas"),
-					"cannot be an even number when using managed etcd",
-				),
-			)
-		}
-	}
-
 	if r.Spec.InfrastructureTemplate.Namespace != r.Namespace {
 		allErrs = append(
 			allErrs,

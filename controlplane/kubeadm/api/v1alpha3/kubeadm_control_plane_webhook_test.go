@@ -107,8 +107,8 @@ func TestKubeadmControlPlaneValidateCreate(t *testing.T) {
 			kcp:       zeroReplicas,
 		},
 		{
-			name:      "should return error when replicas is even",
-			expectErr: true,
+			name:      "should allow even replicas when using managed etcd",
+			expectErr: false,
 			kcp:       evenReplicas,
 		},
 		{

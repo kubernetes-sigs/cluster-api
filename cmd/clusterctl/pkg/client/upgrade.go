@@ -123,8 +123,8 @@ func parseUpgradeItem(ref string) (*cluster.UpgradeItem, error) {
 				Namespace: namespace,
 				Name:      clusterctlv1.ManifestLabel(name, clusterctlv1.CoreProviderType),
 			},
-			Provider: name,
-			Type:     string(clusterctlv1.CoreProviderType),
+			ProviderName: name,
+			Type:         string(clusterctlv1.CoreProviderType),
 		},
 		NextVersion: version,
 	}, nil

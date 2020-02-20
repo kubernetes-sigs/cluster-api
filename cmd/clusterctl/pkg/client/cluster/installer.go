@@ -127,7 +127,7 @@ func installComponentsAndUpdateInventory(components repository.Components, provi
 func shouldInstallSharedComponents(providerList *clusterctlv1.ProviderList, provider clusterctlv1.Provider) (bool, error) {
 	// Get the max version of the provider already installed in the cluster.
 	var maxVersion *version.Version
-	for _, other := range providerList.FilterByProviderAndType(provider.Provider, provider.GetProviderType()) {
+	for _, other := range providerList.FilterByProviderNameAndType(provider.ProviderName, provider.GetProviderType()) {
 		otherVersion, err := version.ParseSemantic(other.Version)
 		if err != nil {
 			return false, errors.Wrapf(err, "failed to parse version for the %s provider", other.InstanceName())
@@ -218,7 +218,7 @@ func (i *providerInstaller) getProviderContract(providerInstanceContracts map[st
 	// Otherwise get the contract for the providers instance.
 
 	// Gets the providers metadata.
-	configRepository, err := i.configClient.Providers().Get(provider.Provider, provider.GetProviderType())
+	configRepository, err := i.configClient.Providers().Get(provider.ProviderName, provider.GetProviderType())
 	if err != nil {
 		return "", err
 	}
@@ -252,7 +252,7 @@ func (i *providerInstaller) getProviderContract(providerInstanceContracts map[st
 func simulateInstall(providerList *clusterctlv1.ProviderList, components repository.Components) (*clusterctlv1.ProviderList, error) {
 	provider := components.InventoryObject()
 
-	existingInstances := providerList.FilterByProviderAndType(provider.Provider, provider.GetProviderType())
+	existingInstances := providerList.FilterByProviderNameAndType(provider.ProviderName, provider.GetProviderType())
 
 	// Target Namespace check
 	// Installing two instances of the same provider in the same namespace won't be supported

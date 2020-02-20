@@ -162,7 +162,7 @@ func Test_providerComponents_Delete(t *testing.T) {
 		{
 			name: "Delete provider while preserving Namespace and CRDs",
 			args: args{
-				provider:         clusterctlv1.Provider{ObjectMeta: metav1.ObjectMeta{Name: "infrastructure-infra", Namespace: "ns1"}, Provider: "infra", Type: string(clusterctlv1.InfrastructureProviderType)},
+				provider:         clusterctlv1.Provider{ObjectMeta: metav1.ObjectMeta{Name: "infrastructure-infra", Namespace: "ns1"}, ProviderName: "infra", Type: string(clusterctlv1.InfrastructureProviderType)},
 				includeNamespace: false,
 				includeCRD:       false,
 			},
@@ -183,7 +183,7 @@ func Test_providerComponents_Delete(t *testing.T) {
 		{
 			name: "Delete provider and provider namespace, while preserving CRDs",
 			args: args{
-				provider:         clusterctlv1.Provider{ObjectMeta: metav1.ObjectMeta{Name: "infrastructure-infra", Namespace: "ns1"}, Provider: "infra", Type: string(clusterctlv1.InfrastructureProviderType)},
+				provider:         clusterctlv1.Provider{ObjectMeta: metav1.ObjectMeta{Name: "infrastructure-infra", Namespace: "ns1"}, ProviderName: "infra", Type: string(clusterctlv1.InfrastructureProviderType)},
 				includeNamespace: true,
 				includeCRD:       false,
 			},
@@ -204,7 +204,7 @@ func Test_providerComponents_Delete(t *testing.T) {
 		{
 			name: "Delete provider and provider CRDs, while preserving the provider namespace",
 			args: args{
-				provider:         clusterctlv1.Provider{ObjectMeta: metav1.ObjectMeta{Name: "infrastructure-infra", Namespace: "ns1"}, Provider: "infra", Type: string(clusterctlv1.InfrastructureProviderType)},
+				provider:         clusterctlv1.Provider{ObjectMeta: metav1.ObjectMeta{Name: "infrastructure-infra", Namespace: "ns1"}, ProviderName: "infra", Type: string(clusterctlv1.InfrastructureProviderType)},
 				includeNamespace: false,
 				includeCRD:       true,
 			},
@@ -225,7 +225,7 @@ func Test_providerComponents_Delete(t *testing.T) {
 		{
 			name: "Delete provider, provider namespace and provider CRDs",
 			args: args{
-				provider:         clusterctlv1.Provider{ObjectMeta: metav1.ObjectMeta{Name: "infrastructure-infra", Namespace: "ns1"}, Provider: "infra", Type: string(clusterctlv1.InfrastructureProviderType)},
+				provider:         clusterctlv1.Provider{ObjectMeta: metav1.ObjectMeta{Name: "infrastructure-infra", Namespace: "ns1"}, ProviderName: "infra", Type: string(clusterctlv1.InfrastructureProviderType)},
 				includeNamespace: true,
 				includeCRD:       true,
 			},

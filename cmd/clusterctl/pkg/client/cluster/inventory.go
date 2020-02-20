@@ -220,7 +220,7 @@ func (p *inventoryClient) GetDefaultProviderName(providerType clusterctlv1.Provi
 	// Group the providers by name, because we consider more instance of the same provider not relevant for the answer.
 	names := sets.NewString()
 	for _, p := range providerList.FilterByType(providerType) {
-		names.Insert(p.Provider)
+		names.Insert(p.ProviderName)
 	}
 
 	// If there is only one provider, this is the default
@@ -240,7 +240,7 @@ func (p *inventoryClient) GetDefaultProviderVersion(provider string, providerTyp
 
 	// Group the provider instances by version.
 	versions := sets.NewString()
-	for _, p := range providerList.FilterByProviderAndType(provider, providerType) {
+	for _, p := range providerList.FilterByProviderNameAndType(provider, providerType) {
 		versions.Insert(p.Version)
 	}
 
@@ -260,7 +260,7 @@ func (p *inventoryClient) GetDefaultProviderNamespace(provider string, providerT
 
 	// Group the providers by namespace
 	namespaces := sets.NewString()
-	for _, p := range providerList.FilterByProviderAndType(provider, providerType) {
+	for _, p := range providerList.FilterByProviderNameAndType(provider, providerType) {
 		namespaces.Insert(p.Namespace)
 	}
 

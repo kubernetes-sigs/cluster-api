@@ -339,8 +339,29 @@ func (r *KubeadmControlPlaneReconciler) upgradeControlPlane(_ context.Context, c
 	return ctrl.Result{}, nil
 }
 
+func (r *KubeadmControlPlaneReconciler) markWithAnnotationKey(ctx context.Context, machine *clusterv1.Machine, annotationKey string) error {
+	if machine == nil {
+		return errors.New("expected machine not nil")
+	}
+	patchHelper, err := patch.NewHelper(machine, r.Client)
+	if err != nil {
+		return errors.Wrapf(err, "failed to create patch helper for machine %s", machine.Name)
+	}
+
+	if machine.Annotations == nil {
+		machine.Annotations = make(map[string]string)
+	}
+	machine.Annotations[annotationKey] = ""
+
+	if err := patchHelper.Patch(ctx, machine); err != nil {
+		return errors.Wrapf(err, "failed to patch machine %s selected for upgrade", machine.Name)
+	}
+	return nil
+}
+
 func (r *KubeadmControlPlaneReconciler) initializeControlPlane(ctx context.Context, cluster *clusterv1.Cluster, kcp *controlplanev1.KubeadmControlPlane) (ctrl.Result, error) {
 	logger := r.Log.WithValues("namespace", kcp.Namespace, "kubeadmControlPlane", kcp.Name, "cluster", cluster.Name)
+
 	bootstrapSpec := kcp.Spec.KubeadmConfigSpec.DeepCopy()
 	bootstrapSpec.JoinConfiguration = nil
 
@@ -387,6 +408,34 @@ func (r *KubeadmControlPlaneReconciler) scaleUpControlPlane(ctx context.Context,
 
 func (r *KubeadmControlPlaneReconciler) scaleDownControlPlane(ctx context.Context, cluster *clusterv1.Cluster, kcp *controlplanev1.KubeadmControlPlane, machines internal.FilterableMachineCollection) (ctrl.Result, error) {
 	logger := r.Log.WithValues("namespace", kcp.Namespace, "kubeadmControlPlane", kcp.Name, "cluster", cluster.Name)
+	// We don't want to health check at the beginning of this method to avoid blocking re-entrancy
+
+	// Wait for any delete in progress to complete before deleting another Machine
+	if len(machines.Filter(internal.HasDeletionTimestamp)) > 0 {
+		return ctrl.Result{RequeueAfter: DeleteRequeueAfter}, nil
+	}
+
+	markedForDeletion := machines.Filter(internal.HasAnnotationKey(controlplanev1.DeleteForScaleDownAnnotation))
+	if len(markedForDeletion) == 0 {
+		fd := r.failureDomainForScaleDown(cluster, machines)
+		machinesInFailureDomain := machines.Filter(internal.InFailureDomains(fd))
+		machineToMark := machinesInFailureDomain.Oldest()
+		if machineToMark == nil {
+			logger.Info("failed to pick control plane Machine to mark for deletion")
+			return ctrl.Result{}, errors.New("failed to pick control plane Machine to mark for deletion")
+		}
+		if err := r.markWithAnnotationKey(ctx, machineToMark, controlplanev1.DeleteForScaleDownAnnotation); err != nil {
+			return ctrl.Result{}, errors.Wrapf(err, "failed to mark machine %s for deletion", machineToMark.Name)
+		}
+		markedForDeletion.Insert(machinesInFailureDomain.Oldest())
+	}
+
+	machineToDelete := markedForDeletion.Oldest()
+	if machineToDelete == nil {
+		logger.Info("failed to pick control plane Machine to delete")
+		return ctrl.Result{}, errors.New("failed to pick control plane Machine to delete")
+	}
+
 	if err := r.managementCluster.TargetClusterControlPlaneIsHealthy(ctx, util.ObjectKey(cluster), kcp.Name); err != nil {
 		logger.Error(err, "waiting for control plane to pass control plane health check before removing a control plane machine")
 		r.recorder.Eventf(kcp, corev1.EventTypeWarning, "ControlPlaneUnhealthy", "Waiting for control plane to pass control plane health check before removing a control plane machine: %v", err)
@@ -399,22 +448,7 @@ func (r *KubeadmControlPlaneReconciler) scaleDownControlPlane(ctx context.Contex
 		return ctrl.Result{RequeueAfter: HealthCheckFailedRequeueAfter}, nil
 	}
 
-	// Wait for any delete in progress to complete before deleting another Machine
-	if len(machines.Filter(internal.HasDeletionTimestamp)) > 0 {
-		return ctrl.Result{RequeueAfter: DeleteRequeueAfter}, nil
-	}
-
-	fd := r.failureDomainForScaleDown(cluster, machines)
-	machinesInFailureDomain := machines.Filter(internal.InFailureDomains(fd))
-
-	machineToDelete := machinesInFailureDomain.Oldest()
-	if machineToDelete == nil {
-		logger.Info("failed to pick control plane Machine to delete")
-		return ctrl.Result{}, errors.New("failed to pick control plane Machine to delete")
-	}
-
 	logger = logger.WithValues("machine", machineToDelete)
-
 	if err := r.Client.Delete(ctx, machineToDelete); err != nil && !apierrors.IsNotFound(err) {
 		logger.Error(err, "failed to delete control plane machine")
 		r.recorder.Eventf(kcp, corev1.EventTypeWarning, "FailedScaleDown", "Failed to delete control plane Machine %s for cluster %s/%s control plane: %v", machineToDelete.Name, cluster.Namespace, cluster.Name, err)
@@ -618,7 +652,7 @@ func (r *KubeadmControlPlaneReconciler) reconcileDelete(ctx context.Context, clu
 	var errs []error
 	for i := range machinesToDelete {
 		m := machinesToDelete[i]
-		logger := logger.WithValues("machines", m)
+		logger := logger.WithValues("machine", m)
 		if err := r.Client.Delete(ctx, machinesToDelete[i]); err != nil && !apierrors.IsNotFound(err) {
 			logger.Error(err, "failed to cleanup owned machine")
 			errs = append(errs, err)

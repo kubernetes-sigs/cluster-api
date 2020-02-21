@@ -1348,6 +1348,10 @@ func (f *fakeManagementCluster) RemoveEtcdMemberForMachine(ctx context.Context, 
 	return nil
 }
 
+func (f *fakeManagementCluster) RemoveMachineFromKubeadmConfigMap(ctx context.Context, clusterKey types.NamespacedName, machine *clusterv1.Machine) error {
+	return nil
+}
+
 func TestKubeadmControlPlaneReconciler_scaleUpControlPlane(t *testing.T) {
 	t.Run("creates a control plane Machine if health checks pass", func(t *testing.T) {
 		g := NewWithT(t)

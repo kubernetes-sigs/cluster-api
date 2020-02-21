@@ -28,12 +28,17 @@ import (
 	"time"
 
 	"github.com/pkg/errors"
+	"gopkg.in/yaml.v2"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/types"
 	kerrors "k8s.io/apimachinery/pkg/util/errors"
 	"k8s.io/client-go/kubernetes/scheme"
 	"k8s.io/client-go/rest"
+	"sigs.k8s.io/controller-runtime/pkg/client"
+	ctrlclient "sigs.k8s.io/controller-runtime/pkg/client"
+
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha3"
 	"sigs.k8s.io/cluster-api/controllers/remote"
 	"sigs.k8s.io/cluster-api/controlplane/kubeadm/internal/etcd"
@@ -41,8 +46,6 @@ import (
 	"sigs.k8s.io/cluster-api/controlplane/kubeadm/internal/proxy"
 	"sigs.k8s.io/cluster-api/util/certs"
 	"sigs.k8s.io/cluster-api/util/secret"
-	"sigs.k8s.io/controller-runtime/pkg/client"
-	ctrlclient "sigs.k8s.io/controller-runtime/pkg/client"
 )
 
 // ManagementCluster holds operations on the ManagementCluster
@@ -171,6 +174,23 @@ func (m *ManagementCluster) TargetClusterEtcdIsHealthy(ctx context.Context, clus
 		return err
 	}
 	return m.healthCheck(ctx, cluster.etcdIsHealthy, clusterKey, controlPlaneName)
+}
+
+// RemoveMachineFromKubeadmConfigMap removes the entry for the machine from the kubeadm configmap.
+func (m *ManagementCluster) RemoveMachineFromKubeadmConfigMap(ctx context.Context, clusterKey types.NamespacedName, machine *clusterv1.Machine) error {
+	if machine == nil || machine.Status.NodeRef == nil {
+		// Nothing to do, no node for Machine
+		return nil
+	}
+
+	cluster, err := m.getCluster(ctx, clusterKey)
+	if err != nil {
+		return err
+	}
+
+	return cluster.updateKubeadmConfigMap(ctx, func(in *corev1.ConfigMap) (*corev1.ConfigMap, error) {
+		return removeNodeFromKubeadmConfigMapClusterStatusAPIEndpoints(in, machine.Status.NodeRef.Name)
+	})
 }
 
 // RemoveEtcdMemberForMachine removes the etcd member from the target cluster's etcd cluster.
@@ -374,6 +394,78 @@ func (c *cluster) etcdIsHealthy(ctx context.Context) (healthCheckResult, error) 
 	}
 
 	return response, nil
+}
+
+// updateKubeadmConfigMap gets, mutates, and updates the cluster's kubeadm
+// ConfigMap.
+// Copied from https://github.com/vmware/cluster-api-upgrade-tool/pkg/upgrade/control_plane.go
+func (c *cluster) updateKubeadmConfigMap(ctx context.Context, f func(in *corev1.ConfigMap) (*corev1.ConfigMap, error)) error {
+	original := &corev1.ConfigMap{}
+	if err := c.client.Get(ctx, types.NamespacedName{Name: "kubeadm-config", Namespace: metav1.NamespaceSystem}, original); err != nil {
+		return errors.Wrap(err, "error getting kubeadm ConfigMap from target cluster")
+	}
+
+	updated, err := f(original)
+	if err != nil {
+		return errors.Wrap(err, "error updating kubeadm ConfigMap")
+	}
+
+	if err := c.client.Update(ctx, updated); err != nil {
+		return errors.Wrap(err, "error updating kubeadm ConfigMap")
+	}
+
+	return nil
+}
+
+// removeNodeFromKubeadmConfigMapClusterStatusAPIEndpoints removes an entry from
+// ClusterStatus.APIEndpoints in the kubeadm ConfigMap.
+// Copied from https://github.com/vmware/cluster-api-upgrade-tool/pkg/upgrade/control_plane.go
+func removeNodeFromKubeadmConfigMapClusterStatusAPIEndpoints(original *corev1.ConfigMap, nodeName string) (*corev1.ConfigMap, error) {
+	cm := original.DeepCopy()
+
+	clusterStatus, err := extractKubeadmConfigMapClusterStatus(original)
+	if err != nil {
+		return nil, err
+	}
+
+	endpoints, _, err := unstructured.NestedMap(clusterStatus.UnstructuredContent(), "apiEndpoints")
+	if err != nil {
+		return nil, err
+	}
+
+	// Remove node
+	delete(endpoints, nodeName)
+
+	err = unstructured.SetNestedMap(clusterStatus.UnstructuredContent(), endpoints, "apiEndpoints")
+	if err != nil {
+		return nil, err
+	}
+
+	updated, err := yaml.Marshal(clusterStatus)
+	if err != nil {
+		return nil, errors.Wrap(err, "error encoding kubeadm ClusterStatus object")
+	}
+
+	cm.Data["ClusterStatus"] = string(updated)
+
+	return cm, nil
+}
+
+// extractKubeadmConfigMapClusterStatus returns the ClusterStatus field from the kubeadm ConfigMap as an
+// *unstructured.Unstructured.
+// Copied from https://github.com/vmware/cluster-api-upgrade-tool/pkg/upgrade/control_plane.go
+func extractKubeadmConfigMapClusterStatus(in *corev1.ConfigMap) (*unstructured.Unstructured, error) {
+	clusterStatus := &unstructured.Unstructured{}
+
+	rawClusterStatus, ok := in.Data["ClusterStatus"]
+	if !ok {
+		return nil, errors.New("ClusterStatus not found in kubeadm ConfigMap")
+	}
+	if err := yaml.Unmarshal([]byte(rawClusterStatus), &clusterStatus); err != nil {
+		return nil, errors.Wrap(err, "error decoding kubeadm ClusterStatus object")
+	}
+
+	return clusterStatus, nil
 }
 
 // getEtcdClientForNode returns a client that talks directly to an etcd instance living on a particular node.

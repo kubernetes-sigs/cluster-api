@@ -35,6 +35,10 @@ import (
 	"k8s.io/client-go/tools/clientcmd"
 )
 
+const (
+	kindestImage = "kindest/node:v1.16.4"
+)
+
 var (
 	kindBinary    = flag.String("kindBinary", "kind", "path to the kind binary")
 	kubectlBinary = flag.String("kubectlBinary", "kubectl", "path to the kubectl binary")
@@ -55,7 +59,7 @@ func (c *Cluster) Setup() {
 	c.tmpDir, err = ioutil.TempDir("", "kind-home")
 	ExpectWithOffset(1, err).NotTo(HaveOccurred())
 	fmt.Fprintf(ginkgo.GinkgoWriter, "creating Kind cluster named %q\n", c.Name)
-	c.run(exec.Command(*kindBinary, "create", "cluster", "--name", c.Name))
+	c.run(exec.Command(*kindBinary, "create", "cluster", "--image", kindestImage, "--name", c.Name))
 	path := c.runWithOutput(exec.Command(*kindBinary, "get", "kubeconfig-path", "--name", c.Name))
 	c.kubepath = strings.TrimSpace(string(path))
 	fmt.Fprintf(ginkgo.GinkgoWriter, "kubeconfig path: %q. Can use the following to access the cluster:\n", c.kubepath)

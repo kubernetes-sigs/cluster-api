@@ -111,3 +111,21 @@ func TestMachineDeploymentValidation(t *testing.T) {
 		})
 	}
 }
+
+func TestMachineDeploymentWithSpec(t *testing.T) {
+	g := NewWithT(t)
+	md := MachineDeployment{
+		Spec: MachineDeploymentSpec{
+			ClusterName: "test-cluster",
+			Template: MachineTemplateSpec{
+				Spec: MachineSpec{
+					ClusterName: "test-cluster",
+				},
+			},
+		},
+	}
+
+	md.Default()
+	g.Expect(md.Spec.Selector.MatchLabels).To(HaveKeyWithValue(ClusterLabelName, "test-cluster"))
+	g.Expect(md.Spec.Template.Labels).To(HaveKeyWithValue(ClusterLabelName, "test-cluster"))
+}

@@ -119,6 +119,8 @@ func TestMachineHealthCheckClusterNameImmutable(t *testing.T) {
 
 func TestMachineHealthCheckNodeStartupTimeout(t *testing.T) {
 	zero := metav1.Duration{Duration: 0}
+	twentyNineSeconds := metav1.Duration{Duration: 29 * time.Second}
+	thirtySeconds := metav1.Duration{Duration: 30 * time.Second}
 	oneMinute := metav1.Duration{Duration: 1 * time.Minute}
 	minusOneMinute := metav1.Duration{Duration: -1 * time.Minute}
 
@@ -133,9 +135,19 @@ func TestMachineHealthCheckNodeStartupTimeout(t *testing.T) {
 			expectErr: false,
 		},
 		{
-			name:      "when the nodeStartupTimeout is greater than 0",
+			name:      "when the nodeStartupTimeout is greater than 30s",
 			timeout:   &oneMinute,
 			expectErr: false,
+		},
+		{
+			name:      "when the nodeStartupTimeout is 30s",
+			timeout:   &thirtySeconds,
+			expectErr: false,
+		},
+		{
+			name:      "when the nodeStartupTimeout is 29s",
+			timeout:   &twentyNineSeconds,
+			expectErr: true,
 		},
 		{
 			name:      "when the nodeStartupTimeout is less than 0",

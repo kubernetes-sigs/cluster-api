@@ -46,7 +46,7 @@ type MachineHealthCheckSpec struct {
 	MaxUnhealthy *intstr.IntOrString `json:"maxUnhealthy,omitempty"`
 
 	// Machines older than this duration without a node will be considered to have
-	// failed and will be remediated
+	// failed and will be remediated.
 	// +optional
 	NodeStartupTimeout *metav1.Duration `json:"nodeStartupTimeout,omitempty"`
 }

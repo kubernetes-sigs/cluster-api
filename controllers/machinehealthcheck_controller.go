@@ -47,8 +47,9 @@ import (
 )
 
 const (
-	mhcClusterNameIndex  = "spec.clusterName"
-	machineNodeNameIndex = "status.nodeRef.name"
+	mhcClusterNameIndex                = "spec.clusterName"
+	machineNodeNameIndex               = "status.nodeRef.name"
+	defaultTimeoutForMachineToHaveNode = 10 * time.Minute
 )
 
 // MachineHealthCheckReconciler reconciles a MachineHealthCheck object
@@ -185,8 +186,7 @@ func (r *MachineHealthCheckReconciler) reconcile(ctx context.Context, cluster *c
 		return ctrl.Result{}, err
 	}
 
-	err = r.watchClusterNodes(ctx, r.Client, cluster)
-	if err != nil {
+	if err := r.watchClusterNodes(ctx, r.Client, cluster); err != nil {
 		logger.Error(err, "Error watching nodes on target cluster")
 		return ctrl.Result{}, err
 	}
@@ -202,7 +202,7 @@ func (r *MachineHealthCheckReconciler) reconcile(ctx context.Context, cluster *c
 	m.Status.ExpectedMachines = int32(totalTargets)
 
 	// Default to 10 minutes but override if set in MachineHealthCheck
-	timeoutForMachineToHaveNode := 10 * time.Minute
+	timeoutForMachineToHaveNode := defaultTimeoutForMachineToHaveNode
 	if m.Spec.NodeStartupTimeout != nil {
 		timeoutForMachineToHaveNode = m.Spec.NodeStartupTimeout.Duration
 	}

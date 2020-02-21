@@ -29,6 +29,14 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/webhook"
 )
 
+var (
+	// Default time allowed for a node to start up. Can be made longer as part of
+	// spec if required for particular provider.
+	// 10 minutes should allow the instance to start and the node to join the
+	// cluster on most providers.
+	defaultNodeStartupTimeout = metav1.Duration{Duration: 10 * time.Minute}
+)
+
 func (m *MachineHealthCheck) SetupWebhookWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewWebhookManagedBy(mgr).
 		For(m).
@@ -49,7 +57,6 @@ func (m *MachineHealthCheck) Default() {
 	}
 
 	if m.Spec.NodeStartupTimeout == nil {
-		defaultNodeStartupTimeout := metav1.Duration{Duration: 10 * time.Minute}
 		m.Spec.NodeStartupTimeout = &defaultNodeStartupTimeout
 	}
 }
@@ -92,10 +99,10 @@ func (m *MachineHealthCheck) validate(old *MachineHealthCheck) error {
 		)
 	}
 
-	if m.Spec.NodeStartupTimeout != nil && m.Spec.NodeStartupTimeout.Nanoseconds() <= 0 {
+	if m.Spec.NodeStartupTimeout != nil && m.Spec.NodeStartupTimeout.Seconds() < 30 {
 		allErrs = append(
 			allErrs,
-			field.Invalid(field.NewPath("spec", "nodeStartupTimeout"), m.Spec.NodeStartupTimeout, "must be greater than 0"),
+			field.Invalid(field.NewPath("spec", "nodeStartupTimeout"), m.Spec.NodeStartupTimeout, "must be greater than 30s"),
 		)
 	}
 

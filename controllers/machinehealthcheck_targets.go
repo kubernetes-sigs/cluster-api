@@ -62,7 +62,15 @@ func (t *healthCheckTarget) nodeName() string {
 	return ""
 }
 
-// Determine whether or not a given target needs remediation
+// Determine whether or not a given target needs remediation.
+// The node will be need rememdiation if any of the following are true:
+// - The Machine has failed for some reason
+// - The Machine did not get a node before `timeoutForMachineToHaveNode` elapses
+// - The Node has gone away
+// - Any condition on the node is matched for the given timeout
+// If the target doesn't currently need rememdiation, provide a duration after
+// which the target should next be checked.
+// The target should be requeued after this duration.
 func (t *healthCheckTarget) needsRemediation(logger logr.Logger, timeoutForMachineToHaveNode time.Duration) (bool, time.Duration) {
 	var nextCheckTimes []time.Duration
 	now := time.Now()

@@ -29,17 +29,19 @@ API design. Because of this, all of the codebase is rapidly changing.
 
 ## Community, discussion, contribution, and support
 
-- Chat with us on [Slack](http://slack.k8s.io/) in the _#cluster-api_ channel
-- Join the [SIG Cluster Lifecycle](https://groups.google.com/forum/#!forum/kubernetes-sig-cluster-lifecycle) Google Group for access to documents and calendars
-- Join our Cluster API working group sessions
+- Chat with us on the Kubernetes [Slack](http://slack.k8s.io/) in the [#cluster-api][#cluster-api slack] channel
+- Subscribe to the [SIG Cluster Lifecycle](https://groups.google.com/forum/#!forum/kubernetes-sig-cluster-lifecycle) Google Group for access to documents and calendars
+- Participate in the conversations on [Kubernetes Discuss][kubernetes discuss]
+- Join our Cluster API working group sessions where we share the latest project news, demos, answer questions, and triage issues 
     - Weekly on Wednesdays @ 10:00 PT on [Zoom][zoomMeeting]
     - Previous meetings: \[ [notes][notes] | [recordings][recordings] \]
-- Provider implementers office hours
+- Provider implementers office hours where you can ask questions related to developing providers for Cluster API
     - Weekly on Tuesdays @ 12:00 PT ([Zoom](providerZoomMeetingTues)) and Wednesdays @ 15:00 CET ([Zoom](providerZoomMeetingWed))
     - Previous meetings: \[ [notes][implementerNotes] \]
 
-Pull Requests are very welcome!
-See the [issue tracker] if you're unsure where to start, or feel free to reach out to discuss.
+Pull Requests and feedback on issues are very welcome!
+See the [issue tracker] if you're unsure where to start, especially the [Good first issue] and [Help wanted] tags, and
+also feel free to reach out to discuss.
 
 See also: our own [contributor guide](CONTRIBUTING.md) and the Kubernetes [community page].
 
@@ -55,6 +57,9 @@ Participation in the Kubernetes community is governed by the [Kubernetes Code of
 [providerZoomMeetingTues]: https://zoom.us/j/140808484
 [providerZoomMeetingWed]: https://zoom.us/j/424743530
 [issue tracker]: https://github.com/kubernetes-sigs/cluster-api/issues
-
+[#cluster-api slack]: https://kubernetes.slack.com/archives/C8TSNPY4T
+[kubernetes discuss]: https://discuss.kubernetes.io/c/contributors/cluster-api
+[Good first issue]: https://github.com/kubernetes-sigs/cluster-api/issues?q=is%3Aopen+is%3Aissue+label%3A%22good+first+issue%22
+[Help wanted]: https://github.com/kubernetes-sigs/cluster-api/issues?utf8=%E2%9C%93&q=is%3Aopen+is%3Aissue+label%3A%22help+wanted%22+
 
 <!-- ANCHOR_END: Community -->

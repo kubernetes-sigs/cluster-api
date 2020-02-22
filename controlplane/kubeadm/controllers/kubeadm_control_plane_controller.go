@@ -834,16 +834,16 @@ func (r *KubeadmControlPlaneReconciler) reconcileDelete(ctx context.Context, clu
 	}
 	ownedMachines := allMachines.Filter(internal.OwnedControlPlaneMachines(kcp.Name))
 
-	// Verify that only control plane machines remain
-	if len(allMachines) != len(ownedMachines) {
-		logger.Info("Non control plane machines exist and must be removed before control plane machines are removed")
-		return ctrl.Result{}, &capierrors.RequeueAfterError{RequeueAfter: DeleteRequeueAfter}
-	}
-
 	// If no control plane machines remain, remove the finalizer
 	if len(ownedMachines) == 0 {
 		controllerutil.RemoveFinalizer(kcp, controlplanev1.KubeadmControlPlaneFinalizer)
 		return ctrl.Result{}, nil
+	}
+
+	// Verify that only control plane machines remain
+	if len(allMachines) != len(ownedMachines) {
+		logger.Info("Non control plane machines exist and must be removed before control plane machines are removed")
+		return ctrl.Result{}, &capierrors.RequeueAfterError{RequeueAfter: DeleteRequeueAfter}
 	}
 
 	// Delete control plane machines in parallel

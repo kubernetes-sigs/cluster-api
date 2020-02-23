@@ -696,6 +696,96 @@ func TestReconcileIfJoinNodesAndControlPlaneIsReady(t *testing.T) {
 	}
 }
 
+func TestReconcileIfJoinNodePoolsAndControlPlaneIsReady(t *testing.T) {
+	cluster := newCluster("cluster")
+	cluster.Status.InfrastructureReady = true
+	cluster.Status.ControlPlaneInitialized = true
+	cluster.Spec.ControlPlaneEndpoint = clusterv1.APIEndpoint{Host: "100.105.150.1", Port: 6443}
+
+	var useCases = []struct {
+		name          string
+		machinePool   *clusterv1.MachinePool
+		configName    string
+		configBuilder func(*clusterv1.MachinePool, string) *bootstrapv1.KubeadmConfig
+	}{
+		{
+			name:        "Join a worker node with a fully compiled kubeadm config object",
+			machinePool: newWorkerMachinePool(cluster),
+			configName:  "workerpool-join-cfg",
+			configBuilder: func(machinePool *clusterv1.MachinePool, name string) *bootstrapv1.KubeadmConfig {
+				return newWorkerPoolJoinKubeadmConfig(machinePool)
+			},
+		},
+		{
+			name:          "Join a worker node  with an empty kubeadm config object (defaults apply)",
+			machinePool:   newWorkerMachinePool(cluster),
+			configName:    "workerpool-join-cfg",
+			configBuilder: newMachinePoolKubeadmConfig,
+		},
+	}
+
+	for _, rt := range useCases {
+		rt := rt // pin!
+		t.Run(rt.name, func(t *testing.T) {
+			config := rt.configBuilder(rt.machinePool, rt.configName)
+
+			objects := []runtime.Object{
+				cluster,
+				rt.machinePool,
+				config,
+			}
+			objects = append(objects, createSecrets(t, cluster, config)...)
+			myclient := fake.NewFakeClientWithScheme(setupScheme(), objects...)
+			k := &KubeadmConfigReconciler{
+				Log:                log.Log,
+				Client:             myclient,
+				KubeadmInitLock:    &myInitLocker{},
+				remoteClientGetter: fakeremote.NewClusterClient,
+			}
+
+			request := ctrl.Request{
+				NamespacedName: types.NamespacedName{
+					Namespace: config.GetNamespace(),
+					Name:      rt.configName,
+				},
+			}
+			result, err := k.Reconcile(request)
+			if err != nil {
+				t.Fatal(fmt.Sprintf("Failed to reconcile:\n %+v", err))
+			}
+			if result.Requeue == true {
+				t.Fatal("did not expected to requeue")
+			}
+			if result.RequeueAfter != time.Duration(0) {
+				t.Fatal("did not expected to requeue after")
+			}
+
+			cfg, err := getKubeadmConfig(myclient, rt.configName)
+			if err != nil {
+				t.Fatal(fmt.Sprintf("Failed to reconcile:\n %+v", err))
+			}
+
+			if cfg.Status.Ready != true {
+				t.Fatal("Expected status ready")
+			}
+
+			if cfg.Status.DataSecretName == nil {
+				t.Fatal("Expected bootstrap data secret")
+			}
+
+			l := &corev1.SecretList{}
+			if err := myclient.List(context.Background(), l, client.ListOption(client.InNamespace(metav1.NamespaceSystem))); err != nil {
+				t.Fatal(errors.Wrap(err, "failed to get l after reconcile"))
+			}
+
+			if len(l.Items) != 1 {
+				t.Fatal("Failed to get bootstrap token secret")
+			}
+		})
+
+	}
+}
+
 func TestBootstrapTokenTTLExtension(t *testing.T) {
 	cluster := newCluster("cluster")
 	cluster.Status.InfrastructureReady = true
@@ -1526,6 +1616,43 @@ func newControlPlaneMachine(cluster *clusterv1.Cluster, name string) *clusterv1.
 	return m
 }
 
+// newMachinePool return a CAPI machine pool object; if cluster is not nil, the machine pool is linked to the cluster as well
+func newMachinePool(cluster *clusterv1.Cluster, name string) *clusterv1.MachinePool {
+	machine := &clusterv1.MachinePool{
+		TypeMeta: metav1.TypeMeta{
+			Kind:       "MachinePool",
+			APIVersion: clusterv1.GroupVersion.String(),
+		},
+		ObjectMeta: metav1.ObjectMeta{
+			Namespace: "default",
+			Name:      name,
+		},
+		Spec: clusterv1.MachinePoolSpec{
+			Template: clusterv1.MachineTemplateSpec{
+				Spec: clusterv1.MachineSpec{
+					Bootstrap: clusterv1.Bootstrap{
+						ConfigRef: &corev1.ObjectReference{
+							Kind:       "KubeadmConfig",
+							APIVersion: bootstrapv1.GroupVersion.String(),
+						},
+					},
+				},
+			},
+		},
+	}
+	if cluster != nil {
+		machine.Spec.ClusterName = cluster.Name
+		machine.ObjectMeta.Labels = map[string]string{
+			clusterv1.ClusterLabelName: cluster.Name,
+		}
+	}
+	return machine
+}
+
+func newWorkerMachinePool(cluster *clusterv1.Cluster) *clusterv1.MachinePool {
+	return newMachinePool(cluster, "worker-machinepool")
+}
+
 // newKubeadmConfig return a CABPK KubeadmConfig object; if machine is not nil, the KubeadmConfig is linked to the machine as well
 func newKubeadmConfig(machine *clusterv1.Machine, name string) *bootstrapv1.KubeadmConfig {
 	config := &bootstrapv1.KubeadmConfig{
@@ -1573,6 +1700,42 @@ func newControlPlaneInitKubeadmConfig(machine *clusterv1.Machine, name string) *
 	c := newKubeadmConfig(machine, name)
 	c.Spec.ClusterConfiguration = &kubeadmv1beta1.ClusterConfiguration{}
 	c.Spec.InitConfiguration = &kubeadmv1beta1.InitConfiguration{}
+	return c
+}
+
+// newMachinePoolKubeadmConfig return a CABPK KubeadmConfig object; if machine pool is not nil,
+// the KubeadmConfig is linked to the machine pool as well
+func newMachinePoolKubeadmConfig(machinePool *clusterv1.MachinePool, name string) *bootstrapv1.KubeadmConfig {
+	config := &bootstrapv1.KubeadmConfig{
+		TypeMeta: metav1.TypeMeta{
+			Kind:       "KubeadmConfig",
+			APIVersion: bootstrapv1.GroupVersion.String(),
+		},
+		ObjectMeta: metav1.ObjectMeta{
+			Namespace: "default",
+			Name:      name,
+		},
+	}
+	if machinePool != nil {
+		config.ObjectMeta.OwnerReferences = []metav1.OwnerReference{
+			{
+				Kind:       "MachinePool",
+				APIVersion: clusterv1.GroupVersion.String(),
+				Name:       machinePool.Name,
+				UID:        types.UID(fmt.Sprintf("%s uid", machinePool.Name)),
+			},
+		}
+		machinePool.Spec.Template.Spec.Bootstrap.ConfigRef.Name = config.Name
+		machinePool.Spec.Template.Spec.Bootstrap.ConfigRef.Namespace = config.Namespace
+	}
+	return config
+}
+
+func newWorkerPoolJoinKubeadmConfig(machinePool *clusterv1.MachinePool) *bootstrapv1.KubeadmConfig {
+	c := newMachinePoolKubeadmConfig(machinePool, "workerpool-join-cfg")
+	c.Spec.JoinConfiguration = &kubeadmv1beta1.JoinConfiguration{
+		ControlPlane: nil,
+	}
 	return c
 }
 

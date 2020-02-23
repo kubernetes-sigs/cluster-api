@@ -75,7 +75,7 @@ func (co ConfigOwner) IsControlPlaneMachine() bool {
 // GeConfigOwner returns the Unstructured object owning the current resource.
 func GetConfigOwner(ctx context.Context, c client.Client, obj metav1.ObjectMeta) (*ConfigOwner, error) {
 	for _, ref := range obj.OwnerReferences {
-		if ref.Kind == "Machine" && ref.APIVersion == clusterv1.GroupVersion.String() {
+		if (ref.Kind == "Machine" || ref.Kind == "MachinePool") && ref.APIVersion == clusterv1.GroupVersion.String() {
 			return GetOwnerByRef(ctx, c, &corev1.ObjectReference{
 				APIVersion: ref.APIVersion,
 				Kind:       ref.Kind,

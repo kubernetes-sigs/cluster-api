@@ -573,6 +573,7 @@ spec:
       apiVersion: bootstrap.cluster.x-k8s.io/v1alpha3
       kind: KubeadmConfig
       name: capi-quickstart-controlplane-0
+      namespace: default
   infrastructureRef:
     apiVersion: infrastructure.cluster.x-k8s.io/v1alpha3
     kind: VSphereMachine

@@ -63,7 +63,7 @@ func (p *Provider) ManifestLabel() string {
 // InstanceName return the a name that uniquely identifies an entry in the provider inventory.
 // The instanceName is composed by the ManifestLabel and by the namespace where the provider is installed;
 // the resulting value uniquely identify a provider instance because clusterctl does not support multiple
-//instances of the same provider to be installed in the same namespace.
+// instances of the same provider to be installed in the same namespace.
 func (p *Provider) InstanceName() string {
 	return types.NamespacedName{Namespace: p.Namespace, Name: p.ManifestLabel()}.String()
 }
@@ -103,23 +103,26 @@ func (p *Provider) GetProviderType() ProviderType {
 	}
 }
 
-// ProviderType is a string representation of a Provider type..
+// ProviderType is a string representation of a Provider type.
 type ProviderType string
 
 const (
-	// CoreProviderType
+	// CoreProviderType is a type reserved for Cluster API core repository.
 	CoreProviderType = ProviderType("CoreProvider")
 
-	// BootstrapProviderType
+	// BootstrapProviderType is the type associated with codebases that provide
+	// bootstrapping capabilities.
 	BootstrapProviderType = ProviderType("BootstrapProvider")
 
-	// InfrastructureProviderType
+	// InfrastructureProviderType is the type associated with codebases that provide
+	// infrastructure capabilities.
 	InfrastructureProviderType = ProviderType("InfrastructureProvider")
 
-	// ControlPlaneProviderType
+	// ControlPlaneProviderType is the type associated with codebases that provide
+	// control-plane capabilities.
 	ControlPlaneProviderType = ProviderType("ControlPlaneProvider")
 
-	// ProviderTypeUnknown
+	// ProviderTypeUnknown is used when the type is unknown.
 	ProviderTypeUnknown = ProviderType("")
 )
 

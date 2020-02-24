@@ -40,7 +40,9 @@ type ReleaseSeries struct {
 	// Minor version of the release series
 	Minor uint `json:"minor,omitempty"`
 
-	// Contract defines the API Version of Cluster API (contract) supported by the ReleaseSeries.
+	// Contract defines the Cluster API contract supported by this series.
+	//
+	// The value is an API Version, e.g. `v1alpha3`.
 	Contract string `json:"contract,omitempty"`
 }
 
@@ -48,7 +50,7 @@ func init() {
 	SchemeBuilder.Register(&Metadata{})
 }
 
-// GetReleaseSeriesForVersion return the release series for a given version.
+// GetReleaseSeriesForVersion returns the release series for a given version.
 func (m *Metadata) GetReleaseSeriesForVersion(version *version.Version) *ReleaseSeries {
 	for _, releaseSeries := range m.ReleaseSeries {
 		if version.Major() == releaseSeries.Major && version.Minor() == releaseSeries.Minor {

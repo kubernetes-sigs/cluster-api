@@ -165,7 +165,7 @@ The `clusterctl init` command installs the Cluster API components and transforms
 into a management cluster.
 
 The command accepts as input a list of providers to install; when executed for the first time, `clusterctl init`
-automatically adds to the list the `cluster-api` core provider, and if not specified, it
+automatically adds to the list the `cluster-api` core provider, and if unspecified, it
 also adds the `kubeadm` bootstrap and `kubeadm` control-plane providers.
 
 <aside class="note warning">

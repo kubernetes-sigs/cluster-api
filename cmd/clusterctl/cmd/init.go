@@ -38,47 +38,49 @@ var io = &initOptions{}
 
 var initCmd = &cobra.Command{
 	Use:   "init",
-	Short: "Initialize a management cluster for Cluster API",
+	Short: "Initialize a management cluster.",
 	Long: LongDesc(`
-		Initialize a management cluster for Cluster API by installing Cluster API core components,
-		the kubeadm bootstrap provider, and the selected bootstrap and infrastructure providers.
+		Initialize a management cluster.
 
-		The management cluster must be an existing Kubernetes cluster, and the identity used
-		for accessing the cluster must have enough privileges for installing Cluster API providers.
+		Installs Cluster API core components, the kubeadm bootstrap provider,
+		and the selected bootstrap and infrastructure providers.
 
-		Use 'clusterctl config providers' to get the list of available providers; if necessary, edit
-		the $HOME/.cluster-api/clusterctl.yaml file to add new provider configurations or to customize existing ones.
+		The management cluster must be an existing Kubernetes cluster, make sure
+		to have enough privileges to install the desired components.
 
-		Some providers require environment variables to be set before running clusterctl init; please
-		refer to the provider documentation or use 'clusterctl config provider [name]' to get the
-		list of required variables.
+		Use 'clusterctl config providers' to get a list of available providers; if necessary, edit
+		$HOME/.cluster-api/clusterctl.yaml file to add new provider or to customize existing ones.
 
-		See https://cluster-api.sigs.k8s.io/ for more details.`),
+		Some providers require environment variables to be set before running clusterctl init.
+		Refer to the provider documentation, or use 'clusterctl config provider [name]' to get a list of required variables.
+
+		See https://cluster-api.sigs.k8s.io for more details.`),
 
 	Example: Examples(`
-		# Initialize a management cluster, the cluster currently pointed by kubectl, by installing the
-		# AWS infrastructure provider. Please note that this command, when executed on an empty management cluster,
- 		# automatically triggers the installation of the cluster-api core provider.
+		# Initialize a management cluster, by installing the given infrastructure provider.
+		#
+		# Note: when this command is executed on an empty management cluster,
+ 		#       it automatically triggers the installation of the Cluster API core provider.
 		clusterctl init --infrastructure=aws
 
-		# Initialize a management cluster with a specific version of the AWS infrastructure provider.
+		# Initialize a management cluster with a specific version of the given infrastructure provider.
 		clusterctl init --infrastructure=aws:v0.4.1
 
-		# Initialize a management cluster, the cluster defined in the "foo.yaml" kubeconfig file, by
-		# installing the AWS infrastructure provider.
+		# Initialize a management cluster with a custom kubeconfig path and the given infrastructure provider.
 		clusterctl init --kubeconfig=foo.yaml  --infrastructure=aws
 
-		# Initialize a management cluster, by installing both the AWS and the vSphere infrastructure provider
+		# Initialize a management cluster with multiple infrastructure providers.
 		clusterctl init --infrastructure=aws,vsphere
 
-		# Initialize a management cluster by installing the provider's components' in the "foo" namespace.
+		# Initialize a management cluster with a custom target namespace for the provider resources.
 		clusterctl init --infrastructure aws --target-namespace foo
 
-		# Initialize a management cluster and configures all the providers for watching Cluster API
-		# objects in the "foo" namespace only.
+		# Initialize a management cluster with a custom watching namespace for the given provider.
 		clusterctl init --infrastructure aws --watching-namespace=foo
 
-		# Lists the container images required for initializing the management cluster (without actually installing the providers).
+		# Lists the container images required for initializing the management cluster.
+		#
+		# Note: This command is a dry-run; it won't perform any action other than printing to screen.
 		clusterctl init --infrastructure aws --list-images`),
 	Args: cobra.NoArgs,
 	RunE: func(cmd *cobra.Command, args []string) error {
@@ -87,14 +89,24 @@ var initCmd = &cobra.Command{
 }
 
 func init() {
-	initCmd.Flags().StringVarP(&io.kubeconfig, "kubeconfig", "", "", "Path to the kubeconfig file to use for accessing the management cluster. If empty, default rules for kubeconfig discovery will be used")
-	initCmd.Flags().StringVarP(&io.coreProvider, "core", "", "", "Core provider version (e.g. cluster-api:v0.3.0) to add to the management cluster. By default (empty), the cluster-api core provider's latest release is used")
-	initCmd.Flags().StringSliceVarP(&io.infrastructureProviders, "infrastructure", "i", nil, "Infrastructure providers and versions (e.g. aws:v0.5.0) to add to the management cluster")
-	initCmd.Flags().StringSliceVarP(&io.bootstrapProviders, "bootstrap", "b", nil, "Bootstrap providers and versions (e.g. kubeadm:v0.3.0) to add to the management cluster. By default (empty), the kubeadm bootstrap provider's latest release is used")
-	initCmd.Flags().StringSliceVarP(&io.controlPlaneProviders, "control-plane", "c", nil, "ControlPlane providers and versions (e.g. kubeadm:v0.3.0) to add to the management cluster. By default (empty), the kubeadm control plane provider latest release is used")
-	initCmd.Flags().StringVarP(&io.targetNamespace, "target-namespace", "", "", "The target namespace where the providers should be deployed. If not specified, each provider will be installed in a provider's default namespace")
-	initCmd.Flags().StringVarP(&io.watchingNamespace, "watching-namespace", "", "", "Namespace that the providers should watch to reconcile Cluster API objects. If unspecified, the providers watches for Cluster API objects across all namespaces")
-	initCmd.Flags().BoolVarP(&io.listImages, "list-images", "", false, "Lists the container images required for initializing the management cluster (without actually installing the providers)")
+	initCmd.Flags().StringVar(&io.kubeconfig, "kubeconfig", "",
+		"Path to the kubeconfig for the management cluster. If unspecified, default discovery rules apply.")
+	initCmd.Flags().StringVar(&io.coreProvider, "core", "",
+		"Core provider version (e.g. cluster-api:v0.3.0) to add to the management cluster. If unspecified, Cluster API's latest release is used.")
+	initCmd.Flags().StringSliceVarP(&io.infrastructureProviders, "infrastructure", "i", nil,
+		"Infrastructure providers and versions (e.g. aws:v0.5.0) to add to the management cluster.")
+	initCmd.Flags().StringSliceVarP(&io.bootstrapProviders, "bootstrap", "b", nil,
+		"Bootstrap providers and versions (e.g. kubeadm:v0.3.0) to add to the management cluster. If unspecified, Kubeadm bootstrap provider's latest release is used.")
+	initCmd.Flags().StringSliceVarP(&io.controlPlaneProviders, "control-plane", "c", nil,
+		"Control plane providers and versions (e.g. kubeadm:v0.3.0) to add to the management cluster. If unspecified, the Kubeadm control plane provider's latest release is used.")
+	initCmd.Flags().StringVar(&io.targetNamespace, "target-namespace", "",
+		"The target namespace where the providers should be deployed. If unspecified, the provider components' default namespace is used.")
+	initCmd.Flags().StringVar(&io.watchingNamespace, "watching-namespace", "",
+		"Namespace the providers should watch when reconciling objects. If unspecified, all namespaces are watched.")
+
+	// TODO: Move this to a sub-command or similar, it shouldn't really be a flag.
+	initCmd.Flags().BoolVar(&io.listImages, "list-images", false,
+		"Lists the container images required for initializing the management cluster (without actually installing the providers)")
 
 	RootCmd.AddCommand(initCmd)
 }

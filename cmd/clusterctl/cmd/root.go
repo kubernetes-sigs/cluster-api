@@ -31,16 +31,16 @@ var cfgFile string
 var RootCmd = &cobra.Command{
 	Use:          "clusterctl",
 	SilenceUsage: true,
-	Short:        "clusterctl controls a management cluster for Cluster API",
+	Short:        "clusterctl controls the lifecyle of a Cluster API management cluster",
 	Long: LongDesc(`
-		Get started with Cluster API using clusterctl for initializing a management cluster by installing
-		Cluster API providers, and then use clusterctl for creating yaml templates for your workload clusters.`),
+		Get started with Cluster API using clusterctl to create a management cluster,
+		install providers, and create templates for your workload cluster.`),
 }
 
 func Execute() {
 	if err := RootCmd.Execute(); err != nil {
-		//TODO: print error stack if log v>0
-		//TODO: print cmd help if validation error
+		// TODO: print error stack if log v>0
+		// TODO: print cmd help if validation error
 		os.Exit(1)
 	}
 }
@@ -48,11 +48,12 @@ func Execute() {
 func init() {
 	flag.CommandLine = flag.NewFlagSet(os.Args[0], flag.ExitOnError)
 
-	verbosity := flag.CommandLine.Int("v", 0, "number for the log level verbosity")
+	verbosity := flag.CommandLine.Int("v", 0, "Set the log level verbosity.")
 	logf.SetLogger(logf.NewLogger(logf.WithThreshold(verbosity)))
 
 	RootCmd.PersistentFlags().AddGoFlagSet(flag.CommandLine)
-	RootCmd.PersistentFlags().StringVar(&cfgFile, "config", "", "Path to the the clusterctl config file (default is $HOME/.cluster-api/clusterctl.yaml)")
+	RootCmd.PersistentFlags().StringVar(&cfgFile, "config", "",
+		"Path to clusterctl configuration (default is `$HOME/.cluster-api/clusterctl.yaml`)")
 }
 
 const Indentation = `  `
@@ -73,6 +74,7 @@ func Examples(s string) string {
 	return normalizer{s}.trim().indent().string
 }
 
+// TODO: document this, what does it do? Why is it here?
 type normalizer struct {
 	string
 }

@@ -50,8 +50,7 @@ func (c *clusterctlClient) GetProviderComponents(provider string, providerType c
 
 // GetClusterTemplateOptions carries the options supported by GetClusterTemplate.
 type GetClusterTemplateOptions struct {
-	// Kubeconfig file to use for accessing the management cluster. If empty, default rules for kubeconfig
-	// discovery will be used.
+	// Kubeconfig file to use for accessing the management cluster. If empty, default discovery rules apply.
 	Kubeconfig string
 
 	// ProviderRepositorySource to be used for reading the workload cluster template from a provider repository;
@@ -65,14 +64,14 @@ type GetClusterTemplateOptions struct {
 	// ConfigMapSource to be used for reading the workload cluster template; only one template source can be used at time.
 	ConfigMapSource *ConfigMapSourceOptions
 
-	// TargetNamespace where the objects describing the workload cluster should be deployed. If not specified,
+	// TargetNamespace where the objects describing the workload cluster should be deployed. If unspecified,
 	// the current namespace will be used.
 	TargetNamespace string
 
 	// ClusterName to be used for the workload cluster.
 	ClusterName string
 
-	// KubernetesVersion to use for the workload cluster. By default (empty), the value from os env variables
+	// KubernetesVersion to use for the workload cluster. If unspecified, the value from os env variables
 	// or the .cluster-api/clusterctl.yaml config file will be used.
 	KubernetesVersion string
 
@@ -105,12 +104,12 @@ func (o *GetClusterTemplateOptions) numSources() int {
 // ProviderRepositorySourceOptions defines the options to be used when reading a workload cluster template
 // from a provider repository.
 type ProviderRepositorySourceOptions struct {
-	// InfrastructureProvider to read the workload cluster template from. By default (empty), the default
+	// InfrastructureProvider to read the workload cluster template from. If unspecified, the default
 	// infrastructure provider will be used if no other sources are specified.
 	InfrastructureProvider string
 
 	// Flavor defines The workload cluster template variant to be used when reading from the infrastructure
-	// provider repository. By default (empty), the default cluster template will be used.
+	// provider repository. If unspecified, the default cluster template will be used.
 	Flavor string
 }
 
@@ -125,13 +124,13 @@ const DefaultCustomTemplateConfigMapKey = "template"
 
 // ConfigMapSourceOptions defines the options to be used when reading a workload cluster template from a ConfigMap.
 type ConfigMapSourceOptions struct {
-	// Namespace where the ConfigMap exists. By default (empty), the current namespace will be used.
+	// Namespace where the ConfigMap exists. If unspecified, the current namespace will be used.
 	Namespace string
 
 	// Name to read the workload cluster template from.
 	Name string
 
-	// DataKey where the workload cluster template is hosted. By default (empty), the
+	// DataKey where the workload cluster template is hosted. If unspecified, the
 	// DefaultCustomTemplateConfigMapKey will be used.
 	DataKey string
 }

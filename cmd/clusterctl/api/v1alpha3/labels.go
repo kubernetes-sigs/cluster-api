@@ -19,15 +19,16 @@ package v1alpha3
 import "fmt"
 
 const (
-	// ClusterctlLabelName defines the label that is applied to all the components managed by clusterctl.
+	// ClusterctlLabelName is applied to all components managed by clusterctl.
 	ClusterctlLabelName = "clusterctl.cluster.x-k8s.io"
 
-	// ClusterctlCoreLabelName defines the label that is applied to all the core objects managed by clusterctl.
+	// ClusterctlCoreLabelName is applied to all the core objects managed by clusterctl.
 	ClusterctlCoreLabelName = "clusterctl.cluster.x-k8s.io/core"
 
-	// ClusterctlResourceLifecyleLabelName defines the label that documents the lifecyle for a specific resource.
-	// e.g. resources shared between instances of the same provider. e.g. CRDs, ValidatingWebhookConfiguration, MutatingWebhookConfiguration etc.
-	// are marked as shared
+	// ClusterctlResourceLifecyleLabelName describes the lifecyle for a specific resource.
+	//
+	// Example: resources shared between instances of the same provider:  CRDs,
+	// ValidatingWebhookConfiguration, MutatingWebhookConfiguration, and so on.
 	ClusterctlResourceLifecyleLabelName = "clusterctl.cluster.x-k8s.io/lifecycle"
 )
 
@@ -35,15 +36,15 @@ const (
 type ResourceLifecycle string
 
 const (
-	// ResourceLifecycleShared is the value we use when tagging resources to indicate
-	// that the resource is shared between multiple instance of a provider, and should not be deleted
-	// if an instance of the provider is deleted.
+	// ResourceLifecycleShared is used to indicate that a resource is shared between
+	// multiple instances of a provider.
 	ResourceLifecycleShared = ResourceLifecycle("shared")
 )
 
 // ManifestLabel returns the cluster.x-k8s.io/provider label value for a provider/type.
-// Please note that this label uniquely identifies the provider, e.g. bootstrap-kubeadm, but not the instances of
-// the provider, e.g. namespace-1/bootstrap-kubeadm and namespace-2/bootstrap-kubeadm.
+//
+// Note: the label uniquely describes the provider type and its kind (e.g. bootstrap-kubeadm);
+// it's not meant to be used to describe each instance of a particular provider.
 func ManifestLabel(name string, providerType ProviderType) string {
 	switch providerType {
 	case CoreProviderType:

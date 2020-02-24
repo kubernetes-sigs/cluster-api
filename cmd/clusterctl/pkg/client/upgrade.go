@@ -27,7 +27,7 @@ import (
 
 // PlanUpgradeOptions carries the options supported by upgrade plan.
 type PlanUpgradeOptions struct {
-	// Kubeconfig file to use for accessing the management cluster. If empty, default rules for kubeconfig discovery will be used.
+	// Kubeconfig file to use for accessing the management cluster. If empty, default discovery rules apply.
 	Kubeconfig string
 }
 
@@ -63,7 +63,7 @@ func (c *clusterctlClient) PlanUpgrade(options PlanUpgradeOptions) ([]UpgradePla
 
 // ApplyUpgradeOptions carries the options supported by upgrade apply.
 type ApplyUpgradeOptions struct {
-	// Kubeconfig file to use for accessing the management cluster. If empty, default rules for kubeconfig discovery will be used.
+	// Kubeconfig file to use for accessing the management cluster. If empty, default discovery rules apply.
 	Kubeconfig string
 
 	// ManagementGroup that should be upgraded.

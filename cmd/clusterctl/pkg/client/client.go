@@ -25,26 +25,25 @@ import (
 
 // InitOptions carries the options supported by Init.
 type InitOptions struct {
-	// Kubeconfig file to use for accessing the management cluster. If empty, default rules for kubeconfig
-	// discovery will be used.
+	// Kubeconfig file to use for accessing the management cluster. If empty, default discovery rules apply.
 	Kubeconfig string
 
-	// CoreProvider version (e.g. cluster-api:v0.3.0) to add to the management cluster. By default (empty), the
+	// CoreProvider version (e.g. cluster-api:v0.3.0) to add to the management cluster. If unspecified, the
 	// cluster-api core provider's latest release is used.
 	CoreProvider string
 
 	// BootstrapProviders and versions (e.g. kubeadm:v0.3.0) to add to the management cluster.
-	// By default (empty), the kubeadm bootstrap provider's latest release is used.
+	// If unspecified, the kubeadm bootstrap provider's latest release is used.
 	BootstrapProviders []string
 
 	// InfrastructureProviders and versions (e.g. aws:v0.5.0) to add to the management cluster.
 	InfrastructureProviders []string
 
 	// ControlPlaneProviders and versions (e.g. kubeadm:v0.3.0) to add to the management cluster.
-	// By default (empty), the kubeadm control plane provider latest release is used.
+	// If unspecified, the kubeadm control plane provider latest release is used.
 	ControlPlaneProviders []string
 
-	// TargetNamespace defines the namespace where the providers should be deployed. If not specified, each provider
+	// TargetNamespace defines the namespace where the providers should be deployed. If unspecified, each provider
 	// will be installed in a provider's default namespace.
 	TargetNamespace string
 
@@ -65,7 +64,7 @@ type MoveOptions struct {
 	// ToKubeconfig defines the path to the kubeconfig file to use for accessing the target management cluster.
 	ToKubeconfig string
 
-	// Namespace where the objects describing the workload cluster exists. If not specified, the current
+	// Namespace where the objects describing the workload cluster exists. If unspecified, the current
 	// namespace will be used.
 	Namespace string
 }

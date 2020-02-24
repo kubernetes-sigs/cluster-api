@@ -38,16 +38,16 @@ var dd = &deleteOptions{}
 
 var deleteCmd = &cobra.Command{
 	Use:   "delete [providers]",
-	Short: "Deletes one or more providers from the management cluster",
+	Short: "Delete one or more providers from the management cluster.",
 	Long: LongDesc(`
-		Deletes one or more providers from the management cluster.`),
+		Delete one or more providers from the management cluster.`),
 
 	Example: Examples(`
 		# Deletes the AWS provider
 		# Please note that this implies the deletion of all provider components except the hosting namespace
 		# and the CRDs.
 		clusterctl delete --infrastructure aws
- 
+
 		# Deletes the instance of the AWS infrastructure provider hosted in the "foo" namespace
 		# Please note, if there are multiple instances of the AWS provider installed in the cluster,
 		# global/shared resources (e.g. ClusterRoles), are not deleted in order to preserve
@@ -59,14 +59,14 @@ var deleteCmd = &cobra.Command{
 		# Cluster API Providers are orphaned and there might be ongoing costs incurred as a result of this.
 		clusterctl delete --all
 
-		# Delete the AWS infrastructure provider and related CRDs. Please note that this forces deletion of 
+		# Delete the AWS infrastructure provider and related CRDs. Please note that this forces deletion of
 		# all the related objects (e.g. AWSClusters, AWSMachines etc.).
 		# Important! As a consequence of this operation, all the corresponding resources managed by
 		# the AWS infrastructure provider are orphaned and there might be ongoing costs incurred as a result of this.
 		clusterctl delete --infrastructure aws --include-crd
 
-		# Delete the AWS infrastructure provider and its hosting Namespace. Please note that this forces deletion of 
-		# all objects existing in the namespace. 
+		# Delete the AWS infrastructure provider and its hosting Namespace. Please note that this forces deletion of
+		# all objects existing in the namespace.
 		# Important! As a consequence of this operation, all the corresponding resources managed by
 		# Cluster API Providers are orphaned and there might be ongoing costs incurred as a result of this.
 		clusterctl delete --infrastructure aws --include-namespace
@@ -82,18 +82,26 @@ var deleteCmd = &cobra.Command{
 }
 
 func init() {
-	deleteCmd.Flags().StringVarP(&dd.kubeconfig, "kubeconfig", "", "", "Path to the kubeconfig file to use for accessing the management cluster. If empty, default rules for kubeconfig discovery will be used")
-	deleteCmd.Flags().StringVarP(&dd.targetNamespace, "namespace", "", "", "The namespace where the provider to be deleted lives. If not specified, the namespace name will be inferred from the current configuration")
+	deleteCmd.Flags().StringVar(&dd.kubeconfig, "kubeconfig", "",
+		"Path to the kubeconfig file to use for accessing the management cluster. If unspecified, default discovery rules apply.")
+	deleteCmd.Flags().StringVar(&dd.targetNamespace, "namespace", "", "The namespace where the provider to be deleted lives. If unspecified, the namespace name will be inferred from the current configuration")
 
-	deleteCmd.Flags().BoolVarP(&dd.includeNamespace, "include-namespace", "", false, "Forces the deletion of the namespace where the providers are hosted (and of all the contained objects)")
-	deleteCmd.Flags().BoolVarP(&dd.includeCRDs, "include-crd", "", false, "Forces the deletion of the provider's CRDs (and of all the related objects)")
+	deleteCmd.Flags().BoolVar(&dd.includeNamespace, "include-namespace", false,
+		"Forces the deletion of the namespace where the providers are hosted (and of all the contained objects)")
+	deleteCmd.Flags().BoolVar(&dd.includeCRDs, "include-crd", false,
+		"Forces the deletion of the provider's CRDs (and of all the related objects)")
 
-	deleteCmd.Flags().StringVarP(&dd.coreProvider, "core", "", "", "Core provider version (e.g. cluster-api:v0.3.0) to delete from the management cluster")
-	deleteCmd.Flags().StringSliceVarP(&dd.infrastructureProviders, "infrastructure", "i", nil, "Infrastructure providers and versions (e.g. aws:v0.5.0) to delete from the management cluster")
-	deleteCmd.Flags().StringSliceVarP(&dd.bootstrapProviders, "bootstrap", "b", nil, "Bootstrap providers and versions (e.g. kubeadm:v0.3.0) to delete from the management cluster")
-	deleteCmd.Flags().StringSliceVarP(&dd.controlPlaneProviders, "control-plane", "c", nil, "ControlPlane providers and versions (e.g. kubeadm:v0.3.0) to delete from the management cluster")
+	deleteCmd.Flags().StringVar(&dd.coreProvider, "core", "",
+		"Core provider version (e.g. cluster-api:v0.3.0) to delete from the management cluster")
+	deleteCmd.Flags().StringSliceVarP(&dd.infrastructureProviders, "infrastructure", "i", nil,
+		"Infrastructure providers and versions (e.g. aws:v0.5.0) to delete from the management cluster")
+	deleteCmd.Flags().StringSliceVarP(&dd.bootstrapProviders, "bootstrap", "b", nil,
+		"Bootstrap providers and versions (e.g. kubeadm:v0.3.0) to delete from the management cluster")
+	deleteCmd.Flags().StringSliceVarP(&dd.controlPlaneProviders, "control-plane", "c", nil,
+		"ControlPlane providers and versions (e.g. kubeadm:v0.3.0) to delete from the management cluster")
 
-	deleteCmd.Flags().BoolVarP(&dd.deleteAll, "all", "", false, "Force deletion of all the providers")
+	deleteCmd.Flags().BoolVar(&dd.deleteAll, "all", false,
+		"Force deletion of all the providers")
 
 	RootCmd.AddCommand(deleteCmd)
 }

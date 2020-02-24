@@ -25,27 +25,26 @@ import (
 
 // DeleteOptions carries the options supported by Delete.
 type DeleteOptions struct {
-	// Kubeconfig file to use for accessing the management cluster. If empty, default rules for kubeconfig
-	// discovery will be used.
+	// Kubeconfig file to use for accessing the management cluster. If empty, default discovery rules apply.
 	Kubeconfig string
 
-	// Namespace where the provider to be deleted lives. If not specified, the namespace name will be inferred
+	// Namespace where the provider to be deleted lives. If unspecified, the namespace name will be inferred
 	// from the current configuration.
 	Namespace string
 
-	// CoreProvider version (e.g. cluster-api:v0.3.0) to add to the management cluster. By default (empty), the
+	// CoreProvider version (e.g. cluster-api:v0.3.0) to add to the management cluster. If unspecified, the
 	// cluster-api core provider's latest release is used.
 	CoreProvider string
 
 	// BootstrapProviders and versions (e.g. kubeadm:v0.3.0) to add to the management cluster.
-	// By default (empty), the kubeadm bootstrap provider's latest release is used.
+	// If unspecified, the kubeadm bootstrap provider's latest release is used.
 	BootstrapProviders []string
 
 	// InfrastructureProviders and versions (e.g. aws:v0.5.0) to add to the management cluster.
 	InfrastructureProviders []string
 
 	// ControlPlaneProviders and versions (e.g. kubeadm:v0.3.0) to add to the management cluster.
-	// By default (empty), the kubeadm control plane provider latest release is used.
+	// If unspecified, the kubeadm control plane provider latest release is used.
 	ControlPlaneProviders []string
 
 	// DeleteAll set for deletion of all the providers.

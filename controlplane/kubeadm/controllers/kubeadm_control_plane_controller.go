@@ -295,23 +295,25 @@ func (r *KubeadmControlPlaneReconciler) updateStatus(ctx context.Context, kcp *c
 
 	replicas := int32(len(ownedMachines))
 	kcp.Status.Replicas = replicas
+	readyMachines := int32(0)
 
 	remoteClient, err := r.remoteClientGetter(ctx, r.Client, util.ObjectKey(cluster), r.scheme)
-	if err != nil && !apierrors.IsNotFound(errors.Cause(err)) {
-		return errors.Wrap(err, "failed to create remote cluster client")
-	}
-
-	readyMachines := int32(0)
-	for i := range ownedMachines {
-		node, err := getMachineNode(ctx, remoteClient, ownedMachines[i])
-		if err != nil {
-			return errors.Wrap(err, "failed to get referenced Node")
+	if err != nil {
+		if cause := errors.Cause(err); !apierrors.IsNotFound(cause) && !apierrors.IsTimeout(cause) {
+			return errors.Wrap(err, "failed to create remote cluster client")
 		}
-		if node == nil {
-			continue
-		}
-		if node.Spec.ProviderID != "" {
-			readyMachines++
+	} else {
+		for i := range ownedMachines {
+			node, err := getMachineNode(ctx, remoteClient, ownedMachines[i])
+			if err != nil {
+				return errors.Wrap(err, "failed to get referenced Node")
+			}
+			if node == nil {
+				continue
+			}
+			if node.Spec.ProviderID != "" {
+				readyMachines++
+			}
 		}
 	}
 	kcp.Status.ReadyReplicas = readyMachines

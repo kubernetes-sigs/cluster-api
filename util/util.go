@@ -21,9 +21,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"math/rand"
-	"os"
-	"os/exec"
-	"os/user"
 	"strings"
 	"time"
 
@@ -35,7 +32,6 @@ import (
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/version"
-	"k8s.io/klog"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha3"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/handler"
@@ -55,11 +51,6 @@ var (
 	ErrNoCluster                 = fmt.Errorf("no %q label present", clusterv1.ClusterLabelName)
 	ErrUnstructuredFieldNotFound = fmt.Errorf("field not found")
 )
-
-// RandomToken returns a random token.
-func RandomToken() string {
-	return fmt.Sprintf("%s.%s", RandomString(6), RandomString(16))
-}
 
 // RandomString returns a random alphanumeric string.
 func RandomString(n int) string {
@@ -105,32 +96,6 @@ func GetControlPlaneMachinesFromList(machineList *clusterv1.MachineList) (res []
 		}
 	}
 	return
-}
-
-// Home returns the user home directory.
-func Home() string {
-	home := os.Getenv("HOME")
-	if strings.Contains(home, "root") {
-		return "/root"
-	}
-
-	usr, err := user.Current()
-	if err != nil {
-		klog.Warningf("unable to find user: %v", err)
-		return ""
-	}
-	return usr.HomeDir
-}
-
-// GetDefaultKubeConfigPath returns the standard user kubeconfig
-func GetDefaultKubeConfigPath() string {
-	localDir := fmt.Sprintf("%s/.kube", Home())
-	if _, err := os.Stat(localDir); os.IsNotExist(err) {
-		if err := os.Mkdir(localDir, 0777); err != nil {
-			klog.Fatal(err)
-		}
-	}
-	return fmt.Sprintf("%s/config", localDir)
 }
 
 // GetMachineIfExists gets a machine from the API server if it exists
@@ -357,59 +322,6 @@ func UnstructuredUnmarshalField(obj *unstructured.Unstructured, v interface{}, f
 		return errors.Wrapf(err, "failed to json-decode field %q value from %q", strings.Join(fields, "."), obj.GroupVersionKind())
 	}
 	return nil
-}
-
-// Copy deep copies a Machine object.
-func Copy(m *clusterv1.Machine) *clusterv1.Machine {
-	ret := &clusterv1.Machine{}
-	ret.APIVersion = m.APIVersion
-	ret.Kind = m.Kind
-	ret.ClusterName = m.ClusterName
-	ret.GenerateName = m.GenerateName
-	ret.Name = m.Name
-	ret.Namespace = m.Namespace
-	m.Spec.DeepCopyInto(&ret.Spec)
-	return ret
-}
-
-// ExecCommand Executes a local command in the current shell.
-func ExecCommand(name string, args ...string) (string, error) {
-	cmdOut, err := exec.Command(name, args...).Output()
-	if err != nil {
-		s := strings.Join(append([]string{name}, args...), " ")
-		klog.Infof("Executing command %q: %v", s, err)
-		return string(""), err
-	}
-	return string(cmdOut), nil
-}
-
-// Filter filters a list for a string.
-func Filter(list []string, strToFilter string) (newList []string) {
-	for _, item := range list {
-		if item != strToFilter {
-			newList = append(newList, item)
-		}
-	}
-	return
-}
-
-// Contains returns true if a list contains a string.
-func Contains(list []string, strToSearch string) bool {
-	for _, item := range list {
-		if item == strToSearch {
-			return true
-		}
-	}
-	return false
-}
-
-// GetNamespaceOrDefault returns the default namespace if given empty
-// output.
-func GetNamespaceOrDefault(namespace string) string {
-	if namespace == "" {
-		return v1.NamespaceDefault
-	}
-	return namespace
 }
 
 // HasOwner checks if any of the references in the passed list match the given apiVersion and one of the given kinds

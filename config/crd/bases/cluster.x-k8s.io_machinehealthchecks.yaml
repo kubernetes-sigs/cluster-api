@@ -69,7 +69,7 @@ spec:
                 x-kubernetes-int-or-string: true
               nodeStartupTimeout:
                 description: Machines older than this duration without a node will
-                  be considered to have failed and will be remediated
+                  be considered to have failed and will be remediated.
                 type: string
               selector:
                 description: Label selector to match machines whose health will be

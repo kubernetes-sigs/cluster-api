@@ -57,11 +57,10 @@ type MachineHealthCheckReconciler struct {
 	Client client.Client
 	Log    logr.Logger
 
-	controller               controller.Controller
-	recorder                 record.EventRecorder
-	scheme                   *runtime.Scheme
-	clusterNodeInformers     map[types.NamespacedName]cache.Informer
-	clusterNodeInformersLock *sync.Mutex
+	controller           controller.Controller
+	recorder             record.EventRecorder
+	scheme               *runtime.Scheme
+	clusterNodeInformers *sync.Map
 }
 
 func (r *MachineHealthCheckReconciler) SetupWithManager(mgr ctrl.Manager, options controller.Options) error {
@@ -101,8 +100,7 @@ func (r *MachineHealthCheckReconciler) SetupWithManager(mgr ctrl.Manager, option
 	r.controller = controller
 	r.recorder = mgr.GetEventRecorderFor("machinehealthcheck-controller")
 	r.scheme = mgr.GetScheme()
-	r.clusterNodeInformers = make(map[types.NamespacedName]cache.Informer)
-	r.clusterNodeInformersLock = &sync.Mutex{}
+	r.clusterNodeInformers = &sync.Map{}
 	return nil
 }
 
@@ -345,11 +343,9 @@ func (r *MachineHealthCheckReconciler) getMachineFromNode(nodeName string) (*clu
 
 func (r *MachineHealthCheckReconciler) watchClusterNodes(ctx context.Context, c client.Client, cluster *clusterv1.Cluster) error {
 	// Ensure that concurrent reconciles don't clash when setting up watches
-	r.clusterNodeInformersLock.Lock()
-	defer r.clusterNodeInformersLock.Unlock()
 
 	key := util.ObjectKey(cluster)
-	if _, ok := r.clusterNodeInformers[key]; ok {
+	if _, ok := r.loadClusterNodeInformer(key); ok {
 		// watch was already set up for this cluster
 		return nil
 	}
@@ -377,12 +373,24 @@ func (r *MachineHealthCheckReconciler) watchClusterNodes(ctx context.Context, c 
 		return errors.Wrap(err, "error watching nodes on target cluster")
 	}
 
-	if r.clusterNodeInformers == nil {
-		r.clusterNodeInformers = make(map[types.NamespacedName]cache.Informer)
-	}
-
-	r.clusterNodeInformers[key] = nodeInformer
+	r.storeClusterNodeInformer(key, nodeInformer)
 	return nil
+}
+
+func (r *MachineHealthCheckReconciler) loadClusterNodeInformer(key client.ObjectKey) (cache.Informer, bool) {
+	val, ok := r.clusterNodeInformers.Load(key)
+	if !ok {
+		return nil, false
+	}
+	informer, ok := val.(cache.Informer)
+	if !ok {
+		return nil, false
+	}
+	return informer, true
+}
+
+func (r *MachineHealthCheckReconciler) storeClusterNodeInformer(key client.ObjectKey, nodeInformer cache.Informer) {
+	r.clusterNodeInformers.Store(key, nodeInformer)
 }
 
 func (r *MachineHealthCheckReconciler) indexMachineByNodeName(object runtime.Object) []string {

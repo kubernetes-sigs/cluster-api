@@ -19,21 +19,23 @@ limitations under the License.
 package e2e
 
 import (
+	"errors"
 	"fmt"
 	"time"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
-	"k8s.io/apimachinery/pkg/types"
 
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/types"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha3"
 	bootstrapv1 "sigs.k8s.io/cluster-api/bootstrap/kubeadm/api/v1alpha3"
 	"sigs.k8s.io/cluster-api/bootstrap/kubeadm/types/v1beta1"
 	controlplanev1 "sigs.k8s.io/cluster-api/controlplane/kubeadm/api/v1alpha3"
 	"sigs.k8s.io/cluster-api/test/framework"
 	infrav1 "sigs.k8s.io/cluster-api/test/infrastructure/docker/api/v1alpha3"
+	"sigs.k8s.io/cluster-api/util/patch"
 	ctrlclient "sigs.k8s.io/controller-runtime/pkg/client"
 )
 
@@ -78,14 +80,14 @@ var _ = Describe("Docker", func() {
 			ensureDockerArtifactsDeleted(ensureDockerDeletedInput)
 		})
 
-		Context("Multi-node controlplane cluster", func() {
+		Describe("Multi-node controlplane cluster", func() {
+			var controlPlane *controlplanev1.KubeadmControlPlane
 
-			It("should create a multi-node controlplane cluster", func() {
+			Specify("Basic create", func() {
 				replicas := 3
 				var (
 					infraCluster *infrav1.DockerCluster
 					template     *infrav1.DockerMachineTemplate
-					controlPlane *controlplanev1.KubeadmControlPlane
 					err          error
 				)
 				cluster, infraCluster, controlPlane, template = clusterGen.GenerateCluster(namespace, int32(replicas))
@@ -170,6 +172,39 @@ var _ = Describe("Docker", func() {
 					},
 				}
 				framework.AssertControlPlaneFailureDomains(ctx, assertControlPlaneFailureDomainInput)
+			})
+
+			Specify("Full upgrade", func() {
+				// Upgrade control plane
+				patchHelper, err := patch.NewHelper(controlPlane, client)
+				Expect(err).ToNot(HaveOccurred())
+				controlPlane.Spec.Version = "1.17.2"
+				Expect(patchHelper.Patch(ctx, controlPlane)).To(Succeed())
+				By("waiting for all control plane nodes to exist")
+				inClustersNamespaceListOption := ctrlclient.InNamespace(cluster.Namespace)
+				// ControlPlane labels
+				matchClusterListOption := ctrlclient.MatchingLabels{
+					clusterv1.MachineControlPlaneLabelName: "",
+					clusterv1.ClusterLabelName:             cluster.Name,
+				}
+
+				Eventually(func() (int, error) {
+					machineList := &clusterv1.MachineList{}
+					if err := client.List(ctx, machineList, inClustersNamespaceListOption, matchClusterListOption); err != nil {
+						fmt.Println(err)
+						return 0, err
+					}
+					upgraded := 0
+					for _, machine := range machineList.Items {
+						if *machine.Spec.Version == controlPlane.Spec.Version {
+							upgraded++
+						}
+					}
+					if len(machineList.Items) > upgraded {
+						return 0, errors.New("old nodes remain")
+					}
+					return upgraded, nil
+				}, "10m", "30s").Should(Equal(int(*controlPlane.Spec.Replicas)))
 			})
 		})
 	})

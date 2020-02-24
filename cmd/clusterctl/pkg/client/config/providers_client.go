@@ -30,12 +30,13 @@ const (
 	ClusterAPIProviderName          = "cluster-api"
 	KubeadmBootstrapProviderName    = "kubeadm"
 	KubeadmControlPlaneProviderName = "kubeadm"
-	DockerProviderName              = "docker"
 	AWSProviderName                 = "aws"
+	AzureProviderName               = "azure"
+	BareMetalProviderName           = "baremetal"
+	DockerProviderName              = "docker"
+	OpenStackProviderName           = "openstack"
 	VSphereProviderName             = "vsphere"
 	ProvidersConfigKey              = "providers"
-	OpenStackProviderName           = "openstack"
-	BareMetalProviderName           = "baremetal"
 )
 
 // ProvidersClient has methods to work with provider configurations.
@@ -85,13 +86,18 @@ func (p *providersClient) defaults() []Provider {
 			providerType: clusterctlv1.InfrastructureProviderType,
 		},
 		&provider{
-			name:         DockerProviderName,
-			url:          "https://github.com/kubernetes-sigs/cluster-api-provider-docker/releases/latest/infrastructure-components.yaml",
+			name:         AzureProviderName,
+			url:          "https://github.com/kubernetes-sigs/cluster-api-provider-azure/releases/latest/infrastructure-components.yaml",
 			providerType: clusterctlv1.InfrastructureProviderType,
 		},
 		&provider{
-			name:         VSphereProviderName,
-			url:          "https://github.com/kubernetes-sigs/cluster-api-provider-vsphere/releases/latest/infrastructure-components.yaml",
+			name:         BareMetalProviderName,
+			url:          "https://github.com/metal3-io/cluster-api-provider-baremetal/releases/latest/infrastructure-components.yaml",
+			providerType: clusterctlv1.InfrastructureProviderType,
+		},
+		&provider{
+			name:         DockerProviderName,
+			url:          "https://github.com/kubernetes-sigs/cluster-api-provider-docker/releases/latest/infrastructure-components.yaml",
 			providerType: clusterctlv1.InfrastructureProviderType,
 		},
 		&provider{
@@ -100,8 +106,8 @@ func (p *providersClient) defaults() []Provider {
 			providerType: clusterctlv1.InfrastructureProviderType,
 		},
 		&provider{
-			name:         BareMetalProviderName,
-			url:          "https://github.com/metal3-io/cluster-api-provider-baremetal/releases/latest/infrastructure-components.yaml",
+			name:         VSphereProviderName,
+			url:          "https://github.com/kubernetes-sigs/cluster-api-provider-vsphere/releases/latest/infrastructure-components.yaml",
 			providerType: clusterctlv1.InfrastructureProviderType,
 		},
 

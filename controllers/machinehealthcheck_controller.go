@@ -19,6 +19,7 @@ package controllers
 import (
 	"context"
 	"fmt"
+	"sync"
 	"time"
 
 	"github.com/go-logr/logr"
@@ -47,9 +48,8 @@ import (
 )
 
 const (
-	mhcClusterNameIndex                = "spec.clusterName"
-	machineNodeNameIndex               = "status.nodeRef.name"
-	defaultTimeoutForMachineToHaveNode = 10 * time.Minute
+	mhcClusterNameIndex  = "spec.clusterName"
+	machineNodeNameIndex = "status.nodeRef.name"
 )
 
 // MachineHealthCheckReconciler reconciles a MachineHealthCheck object
@@ -57,10 +57,11 @@ type MachineHealthCheckReconciler struct {
 	Client client.Client
 	Log    logr.Logger
 
-	controller           controller.Controller
-	recorder             record.EventRecorder
-	scheme               *runtime.Scheme
-	clusterNodeInformers map[types.NamespacedName]cache.Informer
+	controller               controller.Controller
+	recorder                 record.EventRecorder
+	scheme                   *runtime.Scheme
+	clusterNodeInformers     map[types.NamespacedName]cache.Informer
+	clusterNodeInformersLock *sync.Mutex
 }
 
 func (r *MachineHealthCheckReconciler) SetupWithManager(mgr ctrl.Manager, options controller.Options) error {
@@ -101,6 +102,7 @@ func (r *MachineHealthCheckReconciler) SetupWithManager(mgr ctrl.Manager, option
 	r.recorder = mgr.GetEventRecorderFor("machinehealthcheck-controller")
 	r.scheme = mgr.GetScheme()
 	r.clusterNodeInformers = make(map[types.NamespacedName]cache.Informer)
+	r.clusterNodeInformersLock = &sync.Mutex{}
 	return nil
 }
 
@@ -180,7 +182,7 @@ func (r *MachineHealthCheckReconciler) reconcile(ctx context.Context, cluster *c
 	logger = logger.WithValues("cluster", cluster.Name)
 
 	// Create client for target cluster
-	clusterClient, err := remote.NewClusterClient(ctx, r.Client, cluster, r.scheme)
+	clusterClient, err := remote.NewClusterClient(ctx, r.Client, util.ObjectKey(cluster), r.scheme)
 	if err != nil {
 		logger.Error(err, "Error building target cluster client")
 		return ctrl.Result{}, err
@@ -201,14 +203,8 @@ func (r *MachineHealthCheckReconciler) reconcile(ctx context.Context, cluster *c
 	totalTargets := len(targets)
 	m.Status.ExpectedMachines = int32(totalTargets)
 
-	// Default to 10 minutes but override if set in MachineHealthCheck
-	timeoutForMachineToHaveNode := defaultTimeoutForMachineToHaveNode
-	if m.Spec.NodeStartupTimeout != nil {
-		timeoutForMachineToHaveNode = m.Spec.NodeStartupTimeout.Duration
-	}
-
 	// health check all targets and reconcile mhc status
-	currentHealthy, needRemediationTargets, nextCheckTimes := r.healthCheckTargets(targets, logger, timeoutForMachineToHaveNode)
+	currentHealthy, needRemediationTargets, nextCheckTimes := r.healthCheckTargets(targets, logger, m.Spec.NodeStartupTimeout.Duration)
 	m.Status.CurrentHealthy = int32(currentHealthy)
 
 	// remediate
@@ -288,8 +284,9 @@ func (r *MachineHealthCheckReconciler) machineToMachineHealthCheck(o handler.Map
 
 	var requests []reconcile.Request
 	for k := range mhcList.Items {
-		if r.hasMatchingLabels(&mhcList.Items[k], m) {
-			key := types.NamespacedName{Namespace: mhcList.Items[k].Namespace, Name: mhcList.Items[k].Name}
+		mhc := &mhcList.Items[k]
+		if r.hasMatchingLabels(mhc, m) {
+			key := util.ObjectKey(mhc)
 			requests = append(requests, reconcile.Request{NamespacedName: key})
 		}
 	}
@@ -322,8 +319,9 @@ func (r *MachineHealthCheckReconciler) nodeToMachineHealthCheck(o handler.MapObj
 
 	var requests []reconcile.Request
 	for k := range mhcList.Items {
-		if r.hasMatchingLabels(&mhcList.Items[k], machine) {
-			key := types.NamespacedName{Namespace: mhcList.Items[k].Namespace, Name: mhcList.Items[k].Name}
+		mhc := &mhcList.Items[k]
+		if r.hasMatchingLabels(mhc, machine) {
+			key := util.ObjectKey(mhc)
 			requests = append(requests, reconcile.Request{NamespacedName: key})
 		}
 	}
@@ -340,19 +338,23 @@ func (r *MachineHealthCheckReconciler) getMachineFromNode(nodeName string) (*clu
 		return nil, errors.Wrap(err, "failed getting machine list")
 	}
 	if len(machineList.Items) != 1 {
-		return nil, errors.New(fmt.Sprintf("expecting one machine for node %v, got: %v", nodeName, machineList.Items))
+		return nil, errors.Errorf("expecting one machine for node %v, got: %v", nodeName, machineList.Items)
 	}
 	return &machineList.Items[0], nil
 }
 
 func (r *MachineHealthCheckReconciler) watchClusterNodes(ctx context.Context, c client.Client, cluster *clusterv1.Cluster) error {
-	key := types.NamespacedName{Namespace: cluster.Name, Name: cluster.Name}
+	// Ensure that concurrent reconciles don't clash when setting up watches
+	r.clusterNodeInformersLock.Lock()
+	defer r.clusterNodeInformersLock.Unlock()
+
+	key := util.ObjectKey(cluster)
 	if _, ok := r.clusterNodeInformers[key]; ok {
 		// watch was already set up for this cluster
 		return nil
 	}
 
-	config, err := remote.RESTConfig(ctx, c, cluster)
+	config, err := remote.RESTConfig(ctx, c, util.ObjectKey(cluster))
 	if err != nil {
 		return errors.Wrap(err, "error fetching remote cluster config")
 	}

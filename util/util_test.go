@@ -21,15 +21,15 @@ import (
 	"reflect"
 	"testing"
 
-	"k8s.io/apimachinery/pkg/runtime"
-	"k8s.io/apimachinery/pkg/types"
-	"sigs.k8s.io/controller-runtime/pkg/client/fake"
-
+	. "github.com/onsi/gomega"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
+	"k8s.io/apimachinery/pkg/types"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha3"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 	"sigs.k8s.io/controller-runtime/pkg/handler"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 )
@@ -441,4 +441,67 @@ func TestGetMachinesForCluster(t *testing.T) {
 	if machines.Items[0].Labels[clusterv1.ClusterLabelName] != cluster.Name {
 		t.Fatalf("expected list to have machine %v, found %v", machine, machines.Items[0])
 	}
+}
+
+func TestEnsureOwnerRef(t *testing.T) {
+	g := NewGomegaWithT(t)
+
+	t.Run("should set ownerRef on an empty list", func(t *testing.T) {
+		obj := &clusterv1.Machine{}
+		ref := metav1.OwnerReference{
+			APIVersion: clusterv1.GroupVersion.String(),
+			Kind:       "Cluster",
+			Name:       "test-cluster",
+		}
+		obj.OwnerReferences = EnsureOwnerRef(obj.OwnerReferences, ref)
+		g.Expect(obj.OwnerReferences).Should(ContainElement(ref))
+	})
+
+	t.Run("should not duplicate owner references", func(t *testing.T) {
+		obj := &clusterv1.Machine{
+			ObjectMeta: metav1.ObjectMeta{
+				OwnerReferences: []metav1.OwnerReference{
+					{
+						APIVersion: clusterv1.GroupVersion.String(),
+						Kind:       "Cluster",
+						Name:       "test-cluster",
+					},
+				},
+			},
+		}
+		ref := metav1.OwnerReference{
+			APIVersion: clusterv1.GroupVersion.String(),
+			Kind:       "Cluster",
+			Name:       "test-cluster",
+		}
+		obj.OwnerReferences = EnsureOwnerRef(obj.OwnerReferences, ref)
+		g.Expect(obj.OwnerReferences).Should(ContainElement(ref))
+		g.Expect(obj.OwnerReferences).Should(HaveLen(1))
+	})
+
+	t.Run("should update the APIVersion if duplicate", func(t *testing.T) {
+		oldgvk := schema.GroupVersion{
+			Group:   clusterv1.GroupVersion.Group,
+			Version: "v1alpha2",
+		}
+		obj := &clusterv1.Machine{
+			ObjectMeta: metav1.ObjectMeta{
+				OwnerReferences: []metav1.OwnerReference{
+					{
+						APIVersion: oldgvk.String(),
+						Kind:       "Cluster",
+						Name:       "test-cluster",
+					},
+				},
+			},
+		}
+		ref := metav1.OwnerReference{
+			APIVersion: clusterv1.GroupVersion.String(),
+			Kind:       "Cluster",
+			Name:       "test-cluster",
+		}
+		obj.OwnerReferences = EnsureOwnerRef(obj.OwnerReferences, ref)
+		g.Expect(obj.OwnerReferences).Should(ContainElement(ref))
+		g.Expect(obj.OwnerReferences).Should(HaveLen(1))
+	})
 }

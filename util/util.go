@@ -24,7 +24,6 @@ import (
 	"os"
 	"os/exec"
 	"os/user"
-	"reflect"
 	"strings"
 	"time"
 
@@ -291,20 +290,42 @@ func MachineToInfrastructureMapFunc(gvk schema.GroupVersionKind) handler.ToReque
 
 // HasOwnerRef returns true if the OwnerReference is already in the slice.
 func HasOwnerRef(ownerReferences []metav1.OwnerReference, ref metav1.OwnerReference) bool {
-	for _, r := range ownerReferences {
-		if reflect.DeepEqual(ref, r) {
-			return true
-		}
-	}
-	return false
+	return indexOwnerRef(ownerReferences, ref) > -1
 }
 
 // EnsureOwnerRef makes sure the slice contains the OwnerReference.
 func EnsureOwnerRef(ownerReferences []metav1.OwnerReference, ref metav1.OwnerReference) []metav1.OwnerReference {
-	if !HasOwnerRef(ownerReferences, ref) {
+	idx := indexOwnerRef(ownerReferences, ref)
+	if idx == -1 {
 		return append(ownerReferences, ref)
 	}
+	ownerReferences[idx] = ref
 	return ownerReferences
+}
+
+// indexOwnerRef returns the index of the owner reference in the slice if found, or -1.
+func indexOwnerRef(ownerReferences []metav1.OwnerReference, ref metav1.OwnerReference) int {
+	for index, r := range ownerReferences {
+		if referSameObject(r, ref) {
+			return index
+		}
+	}
+	return -1
+}
+
+// Returns true if a and b point to the same object.
+func referSameObject(a, b metav1.OwnerReference) bool {
+	aGV, err := schema.ParseGroupVersion(a.APIVersion)
+	if err != nil {
+		return false
+	}
+
+	bGV, err := schema.ParseGroupVersion(b.APIVersion)
+	if err != nil {
+		return false
+	}
+
+	return aGV.Group == bGV.Group && a.Kind == b.Kind && a.Name == b.Name
 }
 
 // PointsTo returns true if any of the owner references point to the given target

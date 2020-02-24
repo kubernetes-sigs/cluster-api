@@ -57,6 +57,7 @@ providers = {
             "main.go",
             "api",
             "controllers",
+            "internal",
         ],
     },
     "docker": {

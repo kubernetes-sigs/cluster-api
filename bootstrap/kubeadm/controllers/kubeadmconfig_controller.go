@@ -710,6 +710,7 @@ func (r *KubeadmConfigReconciler) storeBootstrapData(ctx context.Context, scope 
 		Data: map[string][]byte{
 			"value": data,
 		},
+		Type: clusterv1.ClusterSecretType,
 	}
 
 	if err := r.Client.Create(ctx, secret); err != nil {

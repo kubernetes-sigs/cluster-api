@@ -17,6 +17,7 @@ limitations under the License.
 package v1alpha3
 
 import (
+	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
@@ -36,6 +37,9 @@ const (
 	// Controllers working with Cluster API objects must check the existence of this annotation
 	// on the reconciled object.
 	PausedAnnotation = "cluster.x-k8s.io/paused"
+
+	// ClusterSecretType defines the type of secret created by core components
+	ClusterSecretType corev1.SecretType = "cluster.x-k8s.io/secret" //nolint:gosec
 )
 
 // MachineAddressType describes a valid MachineAddress type.

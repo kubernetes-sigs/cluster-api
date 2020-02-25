@@ -1,10 +1,9 @@
 # loadbalancer
 
 Repo: https://github.com/kubernetes-sigs/kind
-Path: https://github.com/kubernetes-sigs/kind/tree/v0.3.0/pkg/cluster/internal/loadbalancer
+Path: https://github.com/kubernetes-sigs/kind/tree/v0.7.0/pkg/cluster/internal/loadbalancer
 
-Commit: `838f94656a57f59ee1fb79c2f619aed7c817036f`
-Tag: `v0.3.0`
+Tag: `v0.7.0`
 
 # rerun-process-wrapper
 

@@ -503,7 +503,20 @@ spec:
         specReplicasPath: .spec.replicas
         statusReplicasPath: .status.replicas
       status: {}
-  - name: v1alpha3
+  - additionalPrinterColumns:
+    - description: Total number of non-terminated machines targeted by this machineset
+      jsonPath: .status.replicas
+      name: Replicas
+      type: integer
+    - description: Total number of available machines (ready for at least minReadySeconds)
+      jsonPath: .status.availableReplicas
+      name: Available
+      type: integer
+    - description: Total number of ready machines targeted by this machineset.
+      jsonPath: .status.readyReplicas
+      name: Ready
+      type: integer
+    name: v1alpha3
     schema:
       openAPIV3Schema:
         description: MachineSet is the Schema for the machinesets API

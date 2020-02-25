@@ -175,7 +175,7 @@ var _ = Describe("Docker", func() {
 			})
 
 			Specify("Full upgrade", func() {
-				// Upgrade control plane
+				By("upgrading the control plane object to a new version")
 				patchHelper, err := patch.NewHelper(controlPlane, client)
 				Expect(err).ToNot(HaveOccurred())
 				controlPlane.Spec.Version = "1.17.2"

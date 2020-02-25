@@ -16,11 +16,8 @@ limitations under the License.
 
 package loadbalancer
 
-// ControlPlanePort defines the port where the control plane is listening on the load balancer node
-const ControlPlanePort = 6443
-
 // Image defines the loadbalancer image:tag
-const Image = "nginx:1.15.12-alpine"
+const Image = "kindest/haproxy:2.1.1-alpine"
 
 // ConfigPath defines the path to the config file in the image
-const ConfigPath = "/etc/nginx/nginx.conf"
+const ConfigPath = "/usr/local/etc/haproxy/haproxy.cfg"

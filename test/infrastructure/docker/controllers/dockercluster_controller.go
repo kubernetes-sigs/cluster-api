@@ -25,7 +25,6 @@ import (
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha3"
 	infrav1 "sigs.k8s.io/cluster-api/test/infrastructure/docker/api/v1alpha3"
 	"sigs.k8s.io/cluster-api/test/infrastructure/docker/docker"
-	"sigs.k8s.io/cluster-api/test/infrastructure/docker/third_party/forked/loadbalancer"
 	"sigs.k8s.io/cluster-api/util"
 	"sigs.k8s.io/cluster-api/util/patch"
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -128,7 +127,7 @@ func reconcileNormal(dockerCluster *infrav1.DockerCluster, externalLoadBalancer 
 
 	dockerCluster.Spec.ControlPlaneEndpoint = infrav1.APIEndpoint{
 		Host: lbip4,
-		Port: loadbalancer.ControlPlanePort,
+		Port: 6443,
 	}
 
 	// Mark the dockerCluster ready

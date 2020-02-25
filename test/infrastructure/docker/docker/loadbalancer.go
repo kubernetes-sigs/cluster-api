@@ -114,17 +114,17 @@ func (s *LoadBalancer) UpdateConfiguration() error {
 		backendServers[n.String()] = fmt.Sprintf("%s:%d", controlPlaneIPv4, 6443)
 	}
 
-	// create loadbalancer config data
-	loadbalancerConfig, err := loadbalancer.Config(&loadbalancer.ConfigData{
-		ControlPlanePort: loadbalancer.ControlPlanePort,
+	loadBalancerConfig, err := loadbalancer.Config(&loadbalancer.ConfigData{
+		ControlPlanePort: 6443,
 		BackendServers:   backendServers,
+		IPv6:             false,
 	})
 	if err != nil {
 		return errors.WithStack(err)
 	}
 
 	s.log.Info("Updating load balancer configuration")
-	if err := s.container.WriteFile(loadbalancer.ConfigPath, loadbalancerConfig); err != nil {
+	if err := s.container.WriteFile(loadbalancer.ConfigPath, loadBalancerConfig); err != nil {
 		return errors.WithStack(err)
 	}
 

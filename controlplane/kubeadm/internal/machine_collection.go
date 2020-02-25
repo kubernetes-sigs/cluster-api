@@ -39,14 +39,14 @@ type FilterableMachineCollection map[string]*clusterv1.Machine
 
 // NewFilterableMachineCollection creates a FilterableMachineCollection from a list of values.
 func NewFilterableMachineCollection(machines ...*clusterv1.Machine) FilterableMachineCollection {
-	ss := FilterableMachineCollection{}
+	ss := make(FilterableMachineCollection, len(machines))
 	ss.Insert(machines...)
 	return ss
 }
 
 // NewFilterableMachineCollectionFromMachineList creates a FilterableMachineCollection from the given MachineList
 func NewFilterableMachineCollectionFromMachineList(machineList *clusterv1.MachineList) FilterableMachineCollection {
-	ss := FilterableMachineCollection{}
+	ss := make(FilterableMachineCollection, len(machineList.Items))
 	if machineList != nil {
 		for i := range machineList.Items {
 			ss.Insert(&machineList.Items[i])
@@ -91,7 +91,7 @@ func (s FilterableMachineCollection) Len() int {
 }
 
 func newFilteredMachineCollection(filter MachineFilter, machines ...*clusterv1.Machine) FilterableMachineCollection {
-	ss := FilterableMachineCollection{}
+	ss := make(FilterableMachineCollection, len(machines))
 	for i := range machines {
 		m := machines[i]
 		if filter(m) {
@@ -116,12 +116,12 @@ func (s FilterableMachineCollection) Oldest() *clusterv1.Machine {
 	if len(s) == 0 {
 		return nil
 	}
-	return s.list()[len(s)-1]
+	return s.list()[0]
 }
 
 // DeepCopy returns a deep copy
 func (s FilterableMachineCollection) DeepCopy() FilterableMachineCollection {
-	result := NewFilterableMachineCollection()
+	result := make(FilterableMachineCollection, len(s))
 	for _, m := range s {
 		result.Insert(m.DeepCopy())
 	}

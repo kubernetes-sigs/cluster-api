@@ -22,9 +22,11 @@ import (
 	"strings"
 	"time"
 
+	"github.com/blang/semver"
 	"github.com/go-logr/logr"
 	"github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
+	rbacv1 "k8s.io/api/rbac/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
@@ -63,6 +65,10 @@ const (
 	// HealthCheckFailedRequeueAfter is how long to wait before trying to scale
 	// up/down if some target cluster health check has failed
 	HealthCheckFailedRequeueAfter = 20 * time.Second
+
+	// DependentCertRequeueAfter is how long to wait before checking again to see if
+	// dependent certificates have been created.
+	DependentCertRequeueAfter = 30 * time.Second
 )
 
 type managementCluster interface {
@@ -75,6 +81,9 @@ type managementCluster interface {
 
 // +kubebuilder:rbac:groups=core,resources=events,verbs=get;list;watch;create;patch
 // +kubebuilder:rbac:groups=core,resources=secrets,verbs=get;list;watch;create;patch
+// +kubebuilder:rbac:groups=core,resources=configmaps,namespace=kube-system,verbs=get;list;watch;create
+// +kubebuilder:rbac:groups=rbac,resources=roles,namespace=kube-system,verbs=get;list;watch;create
+// +kubebuilder:rbac:groups=rbac,resources=rolebindings,namespace=kube-system,verbs=get;list;watch;create
 // +kubebuilder:rbac:groups=infrastructure.cluster.x-k8s.io;bootstrap.cluster.x-k8s.io;controlplane.cluster.x-k8s.io,resources=*,verbs=get;list;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups=cluster.x-k8s.io,resources=clusters;clusters/status,verbs=get;list;watch
 // +kubebuilder:rbac:groups=cluster.x-k8s.io,resources=machines;machines/status,verbs=get;list;watch;create;update;patch;delete
@@ -166,6 +175,12 @@ func (r *KubeadmControlPlaneReconciler) Reconcile(req ctrl.Request) (res ctrl.Re
 	}
 
 	defer func() {
+		if requeueErr, ok := errors.Cause(reterr).(capierrors.HasRequeueAfterError); ok {
+			if res.RequeueAfter == 0 {
+				res.RequeueAfter = requeueErr.GetRequeueAfter()
+				reterr = nil
+			}
+		}
 		// Always attempt to update status.
 		if err := r.updateStatus(ctx, kcp, cluster); err != nil {
 			logger.Error(err, "Failed to update KubeadmControlPlane Status")
@@ -189,7 +204,7 @@ func (r *KubeadmControlPlaneReconciler) Reconcile(req ctrl.Request) (res ctrl.Re
 }
 
 // reconcile handles KubeadmControlPlane reconciliation.
-func (r *KubeadmControlPlaneReconciler) reconcile(ctx context.Context, cluster *clusterv1.Cluster, kcp *controlplanev1.KubeadmControlPlane) (_ ctrl.Result, reterr error) {
+func (r *KubeadmControlPlaneReconciler) reconcile(ctx context.Context, cluster *clusterv1.Cluster, kcp *controlplanev1.KubeadmControlPlane) (res ctrl.Result, reterr error) {
 	logger := r.Log.WithValues("namespace", kcp.Namespace, "kubeadmControlPlane", kcp.Name, "cluster", cluster.Name)
 
 	// If object doesn't have a finalizer, add one.
@@ -221,12 +236,6 @@ func (r *KubeadmControlPlaneReconciler) reconcile(ctx context.Context, cluster *
 
 	// Generate Cluster Kubeconfig if needed
 	if err := r.reconcileKubeconfig(ctx, util.ObjectKey(cluster), cluster.Spec.ControlPlaneEndpoint, kcp); err != nil {
-		if requeueErr, ok := errors.Cause(err).(capierrors.HasRequeueAfterError); ok {
-			logger.Error(err, "required certificates not found, requeueing")
-			return ctrl.Result{
-				RequeueAfter: requeueErr.GetRequeueAfter(),
-			}, nil
-		}
 		logger.Error(err, "failed to reconcile Kubeconfig")
 		return ctrl.Result{}, err
 	}
@@ -238,16 +247,21 @@ func (r *KubeadmControlPlaneReconciler) reconcile(ctx context.Context, cluster *
 		return ctrl.Result{}, err
 	}
 
-	currentConfigurationHash := hash.Compute(&kcp.Spec)
-	requireUpgrade := ownedMachines.AnyFilter(
-		internal.Not(internal.MatchesConfigurationHash(currentConfigurationHash)),
-		internal.OlderThan(kcp.Spec.UpgradeAfter),
-	)
+	now := metav1.Now()
+	var requireUpgrade internal.FilterableMachineCollection
+	if kcp.Spec.UpgradeAfter != nil && kcp.Spec.UpgradeAfter.Before(&now) {
+		requireUpgrade = ownedMachines.AnyFilter(
+			internal.Not(internal.MatchesConfigurationHash(hash.Compute(&kcp.Spec))),
+			internal.OlderThan(kcp.Spec.UpgradeAfter),
+		)
+	} else {
+		requireUpgrade = ownedMachines.Filter(internal.Not(internal.MatchesConfigurationHash(hash.Compute(&kcp.Spec))))
+	}
 
 	// Upgrade takes precedence over other operations
 	if len(requireUpgrade) > 0 {
 		logger.Info("Upgrading Control Plane")
-		return r.upgradeControlPlane(ctx, cluster, kcp)
+		return r.upgradeControlPlane(ctx, cluster, kcp, ownedMachines, requireUpgrade)
 	}
 
 	// If we've made it this far, we we can assume that all ownedMachines are up to date
@@ -327,20 +341,168 @@ func (r *KubeadmControlPlaneReconciler) updateStatus(ctx context.Context, kcp *c
 	return nil
 }
 
-func (r *KubeadmControlPlaneReconciler) upgradeControlPlane(_ context.Context, cluster *clusterv1.Cluster, kcp *controlplanev1.KubeadmControlPlane) (ctrl.Result, error) { //nolint
-	_ = r.Log.WithValues("namespace", kcp.Namespace, "kubeadmControlPlane", kcp.Name, "cluster", cluster.Name)
-	// TODO: verify health for each existing replica
-	// TODO: mark an old Machine via the label kubeadm.controlplane.cluster.x-k8s.io/selected-for-upgrade
-	// TODO: check full cluster health
-	// TODO: provision new Machine to replace marked Machine
-	// TODO: wait for health of all existing replicas, ideally in a re-entrant way to avoid waiting in process
-	// TODO: wait for full cluster health, ideally in a re-entrant way to avoid waiting in process
-	// TODO: Remove etcd membership for old Machine instance
-	// TODO: Update the kubeadm configmap
-	// TODO: Delete the Marked ControlPlane machine
-	// TODO: Continue with next OldMachine
+func (r *KubeadmControlPlaneReconciler) upgradeControlPlane(ctx context.Context, cluster *clusterv1.Cluster, kcp *controlplanev1.KubeadmControlPlane, ownedMachines internal.FilterableMachineCollection, requireUpgrade internal.FilterableMachineCollection) (ctrl.Result, error) {
+	logger := r.Log.WithValues("namespace", kcp.Namespace, "kubeadmControlPlane", kcp.Name, "cluster", cluster.Name)
 
-	return ctrl.Result{}, nil
+	// TODO: handle reconciliation of etcd members and kubeadm config in case they get out of sync with cluster
+
+	// Reconcile the remote cluster kubelet configmap and RBAC
+	if err := r.reconcileKubeletConfigAndRBAC(ctx, kcp.Spec.Version, util.ObjectKey(cluster)); err != nil {
+		logger.Error(err, "failed reconcile remote cluster kubelet configmap and RBAC")
+		return ctrl.Result{}, err
+	}
+
+	// If there is not already a Machine that is marked for upgrade, find one and mark it
+	selectedForUpgrade := requireUpgrade.Filter(internal.HasAnnotationKey(controlplanev1.SelectedForUpgradeAnnotation))
+	if len(selectedForUpgrade) == 0 {
+		selectedMachine, err := r.selectMachineForUpgrade(ctx, cluster, requireUpgrade)
+		if err != nil {
+			logger.Error(err, "failed to select machine for upgrade")
+			return ctrl.Result{}, err
+		}
+		selectedForUpgrade = selectedForUpgrade.Insert(selectedMachine)
+	}
+
+	replacementCreated := selectedForUpgrade.Filter(internal.HasAnnotationKey(controlplanev1.UpgradeReplacementCreatedAnnotation))
+	if len(replacementCreated) == 0 {
+		// TODO: should we also add a check here to ensure that current machines not > kcp.spec.replicas+1?
+		// We haven't created a replacement machine for the cluster yet
+		// return here to avoid blocking while waiting for the new control plane Machine to come up
+		result, err := r.scaleUpControlPlane(ctx, cluster, kcp, ownedMachines)
+		if err != nil {
+			return ctrl.Result{}, err
+		}
+		if err := r.markWithAnnotationKey(ctx, selectedForUpgrade.Oldest(), controlplanev1.UpgradeReplacementCreatedAnnotation); err != nil {
+			return ctrl.Result{}, err
+		}
+		return result, nil
+	}
+
+	return r.scaleDownControlPlane(ctx, cluster, kcp, replacementCreated)
+}
+
+func (r *KubeadmControlPlaneReconciler) reconcileKubeletConfigAndRBAC(ctx context.Context, version string, clusterKey client.ObjectKey) error {
+	parsedVersion, err := semver.ParseTolerant(version)
+	if err != nil {
+		return errors.Wrapf(err, "failed to parse kubernetes version %q", version)
+	}
+
+	remoteClient, err := r.remoteClientGetter(ctx, r.Client, clusterKey, r.scheme)
+	if err != nil {
+		return errors.Wrapf(err, "failed to create remote cluster client ")
+	}
+
+	if err := reconcileKubeletConfigMap(ctx, remoteClient, parsedVersion); err != nil {
+		return errors.Wrapf(err, "failed to reconcile the remote kubelet configmap")
+	}
+
+	if err := reconcileKubeletRBACRole(ctx, remoteClient, parsedVersion); err != nil {
+		return errors.Wrapf(err, "failed to reconcile the remote kubelet RBAC role")
+	}
+
+	if err := reconcileKubeletRBACBinding(ctx, remoteClient, parsedVersion); err != nil {
+		return errors.Wrapf(err, "failed to reconcile the remote kubelet RBAC binding")
+	}
+
+	return nil
+}
+
+func reconcileKubeletConfigMap(ctx context.Context, remoteClient client.Client, version semver.Version) error {
+	cmName := fmt.Sprintf("kubelet-config-%d.%d", version.Major, version.Minor)
+	kubeletConfigMap := &corev1.ConfigMap{}
+	if err := remoteClient.Get(ctx, client.ObjectKey{Name: cmName, Namespace: metav1.NamespaceSystem}, kubeletConfigMap); err != nil && !apierrors.IsNotFound(err) {
+		return errors.Wrapf(err, "failed to determine if kubelet configmap %q already exists", cmName)
+	} else if err == nil {
+		// The required configmap already exists, nothing left to do
+		return nil
+	}
+
+	// Attempt to retrieve the kubelet configmap for the previous minor version
+	prevCMName := fmt.Sprintf("kubelet-config-%d.%d", version.Major, version.Minor-1)
+	if err := remoteClient.Get(ctx, client.ObjectKey{Name: prevCMName, Namespace: metav1.NamespaceSystem}, kubeletConfigMap); err != nil {
+		return errors.Wrapf(err, "failed to retrieve kubelet configmap %q for previous kubernetes version", prevCMName)
+	}
+
+	kubeletConfigMap.Name = prevCMName
+	kubeletConfigMap.ResourceVersion = ""
+	if err := remoteClient.Create(ctx, kubeletConfigMap); err != nil && !apierrors.IsAlreadyExists(err) {
+		return errors.Wrapf(err, "failed to create kubelet configmap %q for desired kubernetes version", cmName)
+	}
+
+	return nil
+}
+
+func reconcileKubeletRBACRole(ctx context.Context, remoteClient client.Client, version semver.Version) error {
+	majorMinor := fmt.Sprintf("%d.%d", version.Major, version.Minor)
+	roleName := fmt.Sprintf("kubeadm:kubelet-config-%s", majorMinor)
+	role := &rbacv1.Role{}
+	if err := remoteClient.Get(ctx, client.ObjectKey{Name: roleName, Namespace: metav1.NamespaceSystem}, role); err != nil && !apierrors.IsNotFound(err) {
+		return errors.Wrapf(err, "failed to determine if kubelet config rbac role %q already exists", roleName)
+	} else if err == nil {
+		// The required role already exists, nothing left to do
+		return nil
+	}
+
+	newRole := &rbacv1.Role{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      roleName,
+			Namespace: metav1.NamespaceSystem,
+		},
+		Rules: []rbacv1.PolicyRule{
+			{
+				Verbs:         []string{"get"},
+				APIGroups:     []string{""},
+				Resources:     []string{"configmaps"},
+				ResourceNames: []string{fmt.Sprintf("kubelet-config-%s", majorMinor)},
+			},
+		},
+	}
+	if err := remoteClient.Create(ctx, newRole); err != nil && !apierrors.IsAlreadyExists(err) {
+		return errors.Wrapf(err, "failed to create kubelet rbac role %q", roleName)
+	}
+
+	return nil
+}
+
+func reconcileKubeletRBACBinding(ctx context.Context, remoteClient client.Client, version semver.Version) error {
+	majorMinor := fmt.Sprintf("%d.%d", version.Major, version.Minor)
+	roleName := fmt.Sprintf("kubeadm:kubelet-config-%s", majorMinor)
+	roleBinding := &rbacv1.RoleBinding{}
+	if err := remoteClient.Get(ctx, client.ObjectKey{Name: roleName, Namespace: metav1.NamespaceSystem}, roleBinding); err != nil && !apierrors.IsNotFound(err) {
+		return errors.Wrapf(err, "failed to determine if kubelet config rbac role binding %q already exists", roleName)
+	} else if err == nil {
+		// The required role binding already exists, nothing left to do
+		return nil
+	}
+
+	newRoleBinding := &rbacv1.RoleBinding{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      roleName,
+			Namespace: metav1.NamespaceSystem,
+		},
+		Subjects: []rbacv1.Subject{
+			{
+				APIGroup: "rbac.authorization.k8s.io",
+				Kind:     "Group",
+				Name:     "system:nodes",
+			},
+			{
+				APIGroup: "rbac.authorization.k8s.io",
+				Kind:     "Group",
+				Name:     "system:bootstrappers:kubeadm:default-node-token",
+			},
+		},
+		RoleRef: rbacv1.RoleRef{
+			APIGroup: "rbac.authorization.k8s.io",
+			Kind:     "Role",
+			Name:     roleName,
+		},
+	}
+	if err := remoteClient.Create(ctx, newRoleBinding); err != nil && !apierrors.IsAlreadyExists(err) {
+		return errors.Wrapf(err, "failed to create kubelet rbac role binding %q", roleName)
+	}
+
+	return nil
 }
 
 func (r *KubeadmControlPlaneReconciler) markWithAnnotationKey(ctx context.Context, machine *clusterv1.Machine, annotationKey string) error {
@@ -361,6 +523,19 @@ func (r *KubeadmControlPlaneReconciler) markWithAnnotationKey(ctx context.Contex
 		return errors.Wrapf(err, "failed to patch machine %s selected for upgrade", machine.Name)
 	}
 	return nil
+}
+
+func (r *KubeadmControlPlaneReconciler) selectMachineForUpgrade(ctx context.Context, cluster *clusterv1.Cluster, requireUpgrade internal.FilterableMachineCollection) (*clusterv1.Machine, error) {
+	failureDomain := r.failureDomainForScaleDown(cluster, requireUpgrade)
+
+	inFailureDomain := requireUpgrade.Filter(internal.InFailureDomains(failureDomain))
+	selected := inFailureDomain.Oldest()
+
+	if err := r.markWithAnnotationKey(ctx, selected, controlplanev1.SelectedForUpgradeAnnotation); err != nil {
+		return nil, errors.Wrap(err, "failed to select and mark a machine for upgrade")
+	}
+
+	return selected, nil
 }
 
 func (r *KubeadmControlPlaneReconciler) initializeControlPlane(ctx context.Context, cluster *clusterv1.Cluster, kcp *controlplanev1.KubeadmControlPlane) (ctrl.Result, error) {
@@ -385,13 +560,13 @@ func (r *KubeadmControlPlaneReconciler) scaleUpControlPlane(ctx context.Context,
 	if err := r.managementCluster.TargetClusterControlPlaneIsHealthy(ctx, util.ObjectKey(cluster), kcp.Name); err != nil {
 		logger.Error(err, "waiting for control plane to pass control plane health check before adding an additional control plane machine")
 		r.recorder.Eventf(kcp, corev1.EventTypeWarning, "ControlPlaneUnhealthy", "Waiting for control plane to pass control plane health check before adding additional control plane machine: %v", err)
-		return ctrl.Result{RequeueAfter: HealthCheckFailedRequeueAfter}, nil
+		return ctrl.Result{}, &capierrors.RequeueAfterError{RequeueAfter: HealthCheckFailedRequeueAfter}
 	}
 
 	if err := r.managementCluster.TargetClusterEtcdIsHealthy(ctx, util.ObjectKey(cluster), kcp.Name); err != nil {
 		logger.Error(err, "waiting for control plane to pass etcd health check before adding an additional control plane machine")
 		r.recorder.Eventf(kcp, corev1.EventTypeWarning, "ControlPlaneUnhealthy", "Waiting for control plane to pass etcd health check before adding additional control plane machine: %v", err)
-		return ctrl.Result{RequeueAfter: HealthCheckFailedRequeueAfter}, nil
+		return ctrl.Result{}, &capierrors.RequeueAfterError{RequeueAfter: HealthCheckFailedRequeueAfter}
 	}
 
 	// Create the bootstrap configuration
@@ -416,7 +591,7 @@ func (r *KubeadmControlPlaneReconciler) scaleDownControlPlane(ctx context.Contex
 
 	// Wait for any delete in progress to complete before deleting another Machine
 	if len(machines.Filter(internal.HasDeletionTimestamp)) > 0 {
-		return ctrl.Result{RequeueAfter: DeleteRequeueAfter}, nil
+		return ctrl.Result{}, &capierrors.RequeueAfterError{RequeueAfter: DeleteRequeueAfter}
 	}
 
 	markedForDeletion := machines.Filter(internal.HasAnnotationKey(controlplanev1.DeleteForScaleDownAnnotation))
@@ -445,7 +620,8 @@ func (r *KubeadmControlPlaneReconciler) scaleDownControlPlane(ctx context.Contex
 		if err := r.managementCluster.TargetClusterEtcdIsHealthy(ctx, util.ObjectKey(cluster), kcp.Name); err != nil {
 			logger.Error(err, "waiting for control plane to pass etcd health check before adding removing a control plane machine")
 			r.recorder.Eventf(kcp, corev1.EventTypeWarning, "ControlPlaneUnhealthy", "Waiting for control plane to pass etcd health check before removing a control plane machine: %v", err)
-			return ctrl.Result{RequeueAfter: HealthCheckFailedRequeueAfter}, nil
+			return ctrl.Result{}, &capierrors.RequeueAfterError{RequeueAfter: HealthCheckFailedRequeueAfter}
+
 		}
 		if err := r.managementCluster.RemoveEtcdMemberForMachine(ctx, util.ObjectKey(cluster), machineToDelete); err != nil {
 			logger.Error(err, "failed to remove etcd member for machine")
@@ -460,7 +636,8 @@ func (r *KubeadmControlPlaneReconciler) scaleDownControlPlane(ctx context.Contex
 		if err := r.managementCluster.TargetClusterControlPlaneIsHealthy(ctx, util.ObjectKey(cluster), kcp.Name); err != nil {
 			logger.Error(err, "waiting for control plane to pass control plane health check before removing a control plane machine")
 			r.recorder.Eventf(kcp, corev1.EventTypeWarning, "ControlPlaneUnhealthy", "Waiting for control plane to pass control plane health check before removing a control plane machine: %v", err)
-			return ctrl.Result{RequeueAfter: HealthCheckFailedRequeueAfter}, nil
+			return ctrl.Result{}, &capierrors.RequeueAfterError{RequeueAfter: HealthCheckFailedRequeueAfter}
+
 		}
 		if err := r.managementCluster.RemoveMachineFromKubeadmConfigMap(ctx, util.ObjectKey(cluster), machineToDelete); err != nil {
 			logger.Error(err, "failed to remove machine from kubeadm ConfigMap")
@@ -475,7 +652,7 @@ func (r *KubeadmControlPlaneReconciler) scaleDownControlPlane(ctx context.Contex
 	if err := r.managementCluster.TargetClusterControlPlaneIsHealthy(ctx, util.ObjectKey(cluster), kcp.Name); err != nil {
 		logger.Error(err, "waiting for control plane to pass control plane health check before removing a control plane machine")
 		r.recorder.Eventf(kcp, corev1.EventTypeWarning, "ControlPlaneUnhealthy", "Waiting for control plane to pass control plane health check before removing a control plane machine: %v", err)
-		return ctrl.Result{RequeueAfter: HealthCheckFailedRequeueAfter}, nil
+		return ctrl.Result{}, &capierrors.RequeueAfterError{RequeueAfter: HealthCheckFailedRequeueAfter}
 	}
 	logger = logger.WithValues("machine", machineToDelete)
 	if err := r.Client.Delete(ctx, machineToDelete); err != nil && !apierrors.IsNotFound(err) {
@@ -595,11 +772,6 @@ func (r *KubeadmControlPlaneReconciler) generateKubeadmConfig(ctx context.Contex
 }
 
 func (r *KubeadmControlPlaneReconciler) failureDomainForScaleDown(cluster *clusterv1.Cluster, machines internal.FilterableMachineCollection) *string {
-	// Don't do anything if there are no failure domains defined on the cluster.
-	if len(cluster.Status.FailureDomains.FilterControlPlane()) == 0 {
-		return nil
-	}
-
 	// See if there are any Machines that are not in currently defined failure domains first.
 	notInFailureDomains := machines.Filter(internal.Not(internal.InFailureDomains(cluster.Status.FailureDomains.FilterControlPlane().GetIDs()...)))
 	if len(notInFailureDomains) > 0 {
@@ -610,8 +782,7 @@ func (r *KubeadmControlPlaneReconciler) failureDomainForScaleDown(cluster *clust
 	}
 
 	// Otherwise pick the currently known failure domain with the most Machines
-	failureDomain := internal.PickMost(cluster.Status.FailureDomains.FilterControlPlane(), machines)
-	return &failureDomain
+	return internal.PickMost(cluster.Status.FailureDomains.FilterControlPlane(), machines)
 }
 
 func (r *KubeadmControlPlaneReconciler) failureDomainForScaleUp(cluster *clusterv1.Cluster, machines internal.FilterableMachineCollection) *string {
@@ -619,8 +790,7 @@ func (r *KubeadmControlPlaneReconciler) failureDomainForScaleUp(cluster *cluster
 	if len(cluster.Status.FailureDomains.FilterControlPlane()) == 0 {
 		return nil
 	}
-	failureDomain := internal.PickFewest(cluster.Status.FailureDomains.FilterControlPlane(), machines)
-	return &failureDomain
+	return internal.PickFewest(cluster.Status.FailureDomains.FilterControlPlane(), machines)
 }
 
 func (r *KubeadmControlPlaneReconciler) generateMachine(ctx context.Context, kcp *controlplanev1.KubeadmControlPlane, cluster *clusterv1.Cluster, infraRef, bootstrapRef *corev1.ObjectReference, failureDomain *string) error {
@@ -664,16 +834,16 @@ func (r *KubeadmControlPlaneReconciler) reconcileDelete(ctx context.Context, clu
 	}
 	ownedMachines := allMachines.Filter(internal.OwnedControlPlaneMachines(kcp.Name))
 
-	// Verify that only control plane machines remain
-	if len(allMachines) != len(ownedMachines) {
-		logger.Info("Non control plane machines exist and must be removed before control plane machines are removed")
-		return ctrl.Result{RequeueAfter: DeleteRequeueAfter}, nil
-	}
-
 	// If no control plane machines remain, remove the finalizer
 	if len(ownedMachines) == 0 {
 		controllerutil.RemoveFinalizer(kcp, controlplanev1.KubeadmControlPlaneFinalizer)
 		return ctrl.Result{}, nil
+	}
+
+	// Verify that only control plane machines remain
+	if len(allMachines) != len(ownedMachines) {
+		logger.Info("Non control plane machines exist and must be removed before control plane machines are removed")
+		return ctrl.Result{}, &capierrors.RequeueAfterError{RequeueAfter: DeleteRequeueAfter}
 	}
 
 	// Delete control plane machines in parallel
@@ -692,7 +862,7 @@ func (r *KubeadmControlPlaneReconciler) reconcileDelete(ctx context.Context, clu
 		r.recorder.Eventf(kcp, corev1.EventTypeWarning, "FailedDelete", "Failed to delete control plane Machines for cluster %s/%s control plane: %v", cluster.Namespace, cluster.Name, err)
 		return ctrl.Result{}, err
 	}
-	return ctrl.Result{RequeueAfter: DeleteRequeueAfter}, nil
+	return ctrl.Result{}, &capierrors.RequeueAfterError{RequeueAfter: DeleteRequeueAfter}
 }
 
 func (r *KubeadmControlPlaneReconciler) reconcileKubeconfig(ctx context.Context, clusterName types.NamespacedName, endpoint clusterv1.APIEndpoint, kcp *controlplanev1.KubeadmControlPlane) error {
@@ -712,7 +882,7 @@ func (r *KubeadmControlPlaneReconciler) reconcileKubeconfig(ctx context.Context,
 		)
 		if createErr != nil {
 			if createErr == kubeconfig.ErrDependentCertificateNotFound {
-				return errors.Wrapf(&capierrors.RequeueAfterError{RequeueAfter: 30 * time.Second},
+				return errors.Wrapf(&capierrors.RequeueAfterError{RequeueAfter: DependentCertRequeueAfter},
 					"could not find secret %q for Cluster %q in namespace %q, requeuing",
 					secret.ClusterCA, clusterName.Name, clusterName.Namespace)
 			}

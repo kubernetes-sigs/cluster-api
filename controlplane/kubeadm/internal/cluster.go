@@ -28,7 +28,6 @@ import (
 	"time"
 
 	"github.com/pkg/errors"
-	"gopkg.in/yaml.v2"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
@@ -38,6 +37,7 @@ import (
 	"k8s.io/client-go/rest"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	ctrlclient "sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/yaml"
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha3"
 	"sigs.k8s.io/cluster-api/controllers/remote"
@@ -159,6 +159,7 @@ func (m *ManagementCluster) healthCheck(ctx context.Context, check healthCheck, 
 
 // TargetClusterControlPlaneIsHealthy checks every node for control plane health.
 func (m *ManagementCluster) TargetClusterControlPlaneIsHealthy(ctx context.Context, clusterKey types.NamespacedName, controlPlaneName string) error {
+	// TODO: add checks for expected taints/labels
 	cluster, err := m.getCluster(ctx, clusterKey)
 	if err != nil {
 		return err

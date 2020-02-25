@@ -27,26 +27,50 @@ import (
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha3"
 )
 
+func falseFilter(machine *clusterv1.Machine) bool {
+	return false
+}
+
+func trueFilter(machine *clusterv1.Machine) bool {
+	return true
+}
+
 func TestNot(t *testing.T) {
 	t.Run("returns false given a machine filter that returns true", func(t *testing.T) {
 		g := gomega.NewWithT(t)
 		m := &clusterv1.Machine{}
-		f := func() MachineFilter {
-			return func(machine *clusterv1.Machine) bool {
-				return true
-			}
-		}
-		g.Expect(Not(f())(m)).To(gomega.BeFalse())
+		g.Expect(Not(trueFilter)(m)).To(gomega.BeFalse())
 	})
 	t.Run("returns true given a machine filter that returns false", func(t *testing.T) {
 		g := gomega.NewWithT(t)
 		m := &clusterv1.Machine{}
-		f := func() MachineFilter {
-			return func(machine *clusterv1.Machine) bool {
-				return false
-			}
-		}
-		g.Expect(Not(f())(m)).To(gomega.BeTrue())
+		g.Expect(Not(falseFilter)(m)).To(gomega.BeTrue())
+	})
+}
+
+func TestAnd(t *testing.T) {
+	t.Run("returns true if both given machine filters return true", func(t *testing.T) {
+		g := gomega.NewWithT(t)
+		m := &clusterv1.Machine{}
+		g.Expect(And(trueFilter, trueFilter)(m)).To(gomega.BeTrue())
+	})
+	t.Run("returns false if either given machine filter returns false", func(t *testing.T) {
+		g := gomega.NewWithT(t)
+		m := &clusterv1.Machine{}
+		g.Expect(And(trueFilter, falseFilter)(m)).To(gomega.BeFalse())
+	})
+}
+
+func TestOr(t *testing.T) {
+	t.Run("returns true if either given machine filters return true", func(t *testing.T) {
+		g := gomega.NewWithT(t)
+		m := &clusterv1.Machine{}
+		g.Expect(Or(trueFilter, falseFilter)(m)).To(gomega.BeTrue())
+	})
+	t.Run("returns false if both given machine filter returns false", func(t *testing.T) {
+		g := gomega.NewWithT(t)
+		m := &clusterv1.Machine{}
+		g.Expect(Or(falseFilter, falseFilter)(m)).To(gomega.BeFalse())
 	})
 }
 

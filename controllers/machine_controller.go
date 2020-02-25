@@ -28,6 +28,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/types"
 	kerrors "k8s.io/apimachinery/pkg/util/errors"
 	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/client-go/kubernetes"
@@ -47,6 +48,11 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
+	"sigs.k8s.io/controller-runtime/pkg/event"
+	"sigs.k8s.io/controller-runtime/pkg/handler"
+	"sigs.k8s.io/controller-runtime/pkg/predicate"
+	"sigs.k8s.io/controller-runtime/pkg/reconcile"
+	"sigs.k8s.io/controller-runtime/pkg/source"
 )
 
 var (
@@ -83,6 +89,30 @@ func (r *MachineReconciler) SetupWithManager(mgr ctrl.Manager, options controlle
 		return errors.Wrap(err, "failed setting up with a controller manager")
 	}
 
+	// Watch Deployments and trigger Reconciles for objects
+	// mapped from the Deployment in the event
+	err = controller.Watch(
+		&source.Kind{Type: &clusterv1.Cluster{}},
+		&handler.EnqueueRequestsFromMapFunc{
+			ToRequests: handler.ToRequestsFunc(r.reconcileRequests),
+		},
+		predicate.Funcs{
+			UpdateFunc: func(e event.UpdateEvent) bool {
+				oldCluster := e.ObjectOld.(*clusterv1.Cluster)
+				newCluster := e.ObjectNew.(*clusterv1.Cluster)
+				return oldCluster.Spec.Paused && !newCluster.Spec.Paused
+			},
+			CreateFunc: func(e event.CreateEvent) bool {
+				if _, ok := e.Meta.GetAnnotations()[clusterv1.PausedAnnotation]; !ok {
+					return false
+				}
+				return true
+			},
+		})
+	if err != nil {
+		return err
+	}
+
 	r.recorder = mgr.GetEventRecorderFor("machine-controller")
 	r.config = mgr.GetConfig()
 	r.scheme = mgr.GetScheme()
@@ -90,6 +120,24 @@ func (r *MachineReconciler) SetupWithManager(mgr ctrl.Manager, options controlle
 		Controller: controller,
 	}
 	return nil
+}
+
+func (r *MachineReconciler) reconcileRequests(a handler.MapObject) []reconcile.Request {
+	requests := []reconcile.Request{}
+	machines, err := getActiveMachinesInCluster(context.Background(), r.Client, a.Meta.GetNamespace(), a.Meta.GetName())
+	if err != nil {
+		return requests
+	}
+	for _, m := range machines {
+		r := reconcile.Request{
+			NamespacedName: types.NamespacedName{
+				Name:      m.Name,
+				Namespace: m.Namespace,
+			},
+		}
+		requests = append(requests, r)
+	}
+	return requests
 }
 
 func (r *MachineReconciler) Reconcile(req ctrl.Request) (_ ctrl.Result, reterr error) {

@@ -28,14 +28,14 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/kubernetes/scheme"
 	"k8s.io/utils/pointer"
+	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha3"
+	"sigs.k8s.io/cluster-api/controllers/external"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
+	"sigs.k8s.io/controller-runtime/pkg/handler"
 	"sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/metrics"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
-
-	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha3"
-	"sigs.k8s.io/cluster-api/controllers/external"
 )
 
 func TestMachineFinalizer(t *testing.T) {
@@ -655,5 +655,101 @@ func TestReconcileMetrics(t *testing.T) {
 				}
 			}
 		})
+	}
+}
+
+func Test_reconcileRequests(t *testing.T) {
+	testCluster2Machines := &clusterv1.Cluster{
+		TypeMeta:   metav1.TypeMeta{Kind: "Cluster", APIVersion: clusterv1.GroupVersion.String()},
+		ObjectMeta: metav1.ObjectMeta{Namespace: "default", Name: "test-cluster-2"},
+	}
+	testCluster0Machines := &clusterv1.Cluster{
+		TypeMeta:   metav1.TypeMeta{Kind: "Cluster", APIVersion: clusterv1.GroupVersion.String()},
+		ObjectMeta: metav1.ObjectMeta{Namespace: "default", Name: "test-cluster-0"},
+	}
+
+	tests := []struct {
+		name    string
+		cluster handler.MapObject
+		want    []reconcile.Request
+	}{
+		{
+			name: "cluster with two machines",
+			cluster: handler.MapObject{
+				Meta: &metav1.ObjectMeta{
+					Name:      "test-cluster-2",
+					Namespace: "default",
+				},
+				Object: testCluster2Machines,
+			},
+			want: []reconcile.Request{
+				{
+					NamespacedName: types.NamespacedName{
+						Name:      "m1",
+						Namespace: "default",
+					},
+				},
+				{
+					NamespacedName: types.NamespacedName{
+						Name:      "m2",
+						Namespace: "default",
+					},
+				},
+			},
+		},
+		{
+			name: "cluster with zero machines",
+			cluster: handler.MapObject{
+				Meta: &metav1.ObjectMeta{
+					Name:      "test-cluster-0",
+					Namespace: "default",
+				},
+				Object: testCluster0Machines,
+			},
+			want: []reconcile.Request{},
+		},
+	}
+	for _, tt := range tests {
+		g := NewWithT(t)
+
+		var objs []runtime.Object
+		objs = append(objs, testCluster2Machines)
+		objs = append(objs, testCluster0Machines)
+
+		m1 := &clusterv1.Machine{
+			TypeMeta: metav1.TypeMeta{
+				Kind: "Machine",
+			},
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      "m1",
+				Namespace: "default",
+				Labels: map[string]string{
+					clusterv1.ClusterLabelName: "test-cluster-2",
+				},
+			},
+		}
+		objs = append(objs, m1)
+		m2 := &clusterv1.Machine{
+			TypeMeta: metav1.TypeMeta{
+				Kind: "Machine",
+			},
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      "m2",
+				Namespace: "default",
+				Labels: map[string]string{
+					clusterv1.ClusterLabelName: "test-cluster-2",
+				},
+			},
+		}
+		objs = append(objs, m2)
+
+		r := &MachineReconciler{
+			Client: fake.NewFakeClientWithScheme(scheme.Scheme, objs...),
+			Log:    log.Log,
+			scheme: scheme.Scheme,
+		}
+
+		got := r.reconcileRequests(tt.cluster)
+		g.Expect(got).To(Equal(tt.want))
 	}
 }

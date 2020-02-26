@@ -13,6 +13,7 @@ webhooks:
       namespace: system
       path: /mutate-cluster-x-k8s-io-v1alpha3-cluster
   failurePolicy: Fail
+  matchPolicy: Equivalent
   name: default.cluster.cluster.x-k8s.io
   rules:
   - apiGroups:
@@ -31,6 +32,7 @@ webhooks:
       namespace: system
       path: /mutate-cluster-x-k8s-io-v1alpha3-machine
   failurePolicy: Fail
+  matchPolicy: Equivalent
   name: default.machine.cluster.x-k8s.io
   rules:
   - apiGroups:
@@ -49,6 +51,7 @@ webhooks:
       namespace: system
       path: /mutate-cluster-x-k8s-io-v1alpha3-machinedeployment
   failurePolicy: Fail
+  matchPolicy: Equivalent
   name: default.machinedeployment.cluster.x-k8s.io
   rules:
   - apiGroups:
@@ -67,6 +70,7 @@ webhooks:
       namespace: system
       path: /mutate-cluster-x-k8s-io-v1alpha3-machinehealthcheck
   failurePolicy: Fail
+  matchPolicy: Equivalent
   name: default.machinehealthcheck.cluster.x-k8s.io
   rules:
   - apiGroups:
@@ -85,6 +89,7 @@ webhooks:
       namespace: system
       path: /mutate-cluster-x-k8s-io-v1alpha3-machinepool
   failurePolicy: Fail
+  matchPolicy: Equivalent
   name: default.machinepool.cluster.x-k8s.io
   rules:
   - apiGroups:
@@ -103,6 +108,7 @@ webhooks:
       namespace: system
       path: /mutate-cluster-x-k8s-io-v1alpha3-machineset
   failurePolicy: Fail
+  matchPolicy: Equivalent
   name: default.machineset.cluster.x-k8s.io
   rules:
   - apiGroups:
@@ -129,6 +135,7 @@ webhooks:
       namespace: system
       path: /validate-cluster-x-k8s-io-v1alpha3-cluster
   failurePolicy: Fail
+  matchPolicy: Equivalent
   name: validation.cluster.cluster.x-k8s.io
   rules:
   - apiGroups:
@@ -147,6 +154,7 @@ webhooks:
       namespace: system
       path: /validate-cluster-x-k8s-io-v1alpha3-machine
   failurePolicy: Fail
+  matchPolicy: Equivalent
   name: validation.machine.cluster.x-k8s.io
   rules:
   - apiGroups:
@@ -165,6 +173,7 @@ webhooks:
       namespace: system
       path: /validate-cluster-x-k8s-io-v1alpha3-machinedeployment
   failurePolicy: Fail
+  matchPolicy: Equivalent
   name: validation.machinedeployment.cluster.x-k8s.io
   rules:
   - apiGroups:
@@ -183,6 +192,7 @@ webhooks:
       namespace: system
       path: /validate-cluster-x-k8s-io-v1alpha3-machinehealthcheck
   failurePolicy: Fail
+  matchPolicy: Equivalent
   name: validation.machinehealthcheck.cluster.x-k8s.io
   rules:
   - apiGroups:
@@ -201,6 +211,7 @@ webhooks:
       namespace: system
       path: /validate-cluster-x-k8s-io-v1alpha3-machinepool
   failurePolicy: Fail
+  matchPolicy: Equivalent
   name: validation.machinepool.cluster.x-k8s.io
   rules:
   - apiGroups:
@@ -219,6 +230,7 @@ webhooks:
       namespace: system
       path: /validate-cluster-x-k8s-io-v1alpha3-machineset
   failurePolicy: Fail
+  matchPolicy: Equivalent
   name: validation.machineset.cluster.x-k8s.io
   rules:
   - apiGroups:

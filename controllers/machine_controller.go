@@ -28,7 +28,6 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
-	"k8s.io/apimachinery/pkg/types"
 	kerrors "k8s.io/apimachinery/pkg/util/errors"
 	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/client-go/kubernetes"
@@ -89,12 +88,12 @@ func (r *MachineReconciler) SetupWithManager(mgr ctrl.Manager, options controlle
 		return errors.Wrap(err, "failed setting up with a controller manager")
 	}
 
-	// Watch Deployments and trigger Reconciles for objects
-	// mapped from the Deployment in the event
+	// Watch Clusters and trigger Reconciles for Machines
+	// when the cluster paused status is changed
 	err = controller.Watch(
 		&source.Kind{Type: &clusterv1.Cluster{}},
 		&handler.EnqueueRequestsFromMapFunc{
-			ToRequests: handler.ToRequestsFunc(r.reconcileRequests),
+			ToRequests: handler.ToRequestsFunc(r.clusterToActiveMachines),
 		},
 		predicate.Funcs{
 			UpdateFunc: func(e event.UpdateEvent) bool {
@@ -122,18 +121,15 @@ func (r *MachineReconciler) SetupWithManager(mgr ctrl.Manager, options controlle
 	return nil
 }
 
-func (r *MachineReconciler) reconcileRequests(a handler.MapObject) []reconcile.Request {
+func (r *MachineReconciler) clusterToActiveMachines(a handler.MapObject) []reconcile.Request {
 	requests := []reconcile.Request{}
-	machines, err := getActiveMachinesInCluster(context.Background(), r.Client, a.Meta.GetNamespace(), a.Meta.GetName())
+	machines, err := getActiveMachinesInCluster(context.TODO(), r.Client, a.Meta.GetNamespace(), a.Meta.GetName())
 	if err != nil {
 		return requests
 	}
 	for _, m := range machines {
 		r := reconcile.Request{
-			NamespacedName: types.NamespacedName{
-				Name:      m.Name,
-				Namespace: m.Namespace,
-			},
+			NamespacedName: util.ObjectKey(m),
 		}
 		requests = append(requests, r)
 	}

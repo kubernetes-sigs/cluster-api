@@ -162,9 +162,6 @@ spec:
                 format: int32
                 minimum: 0
                 type: integer
-            required:
-            - currentHealthy
-            - expectedMachines
             type: object
         type: object
     served: true

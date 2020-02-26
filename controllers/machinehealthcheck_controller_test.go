@@ -31,7 +31,6 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/kubernetes/scheme"
-	"k8s.io/klog/klogr"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha3"
 	"sigs.k8s.io/cluster-api/controllers/external"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -417,111 +416,6 @@ func newTestMachineHealthCheck(name, namespace, cluster string, labels map[strin
 				},
 			},
 		},
-	}
-}
-
-func TestMachineHealthCheckHasMatchingLabels(t *testing.T) {
-	r := &MachineHealthCheckReconciler{
-		Log: klogr.New(),
-	}
-
-	testCases := []struct {
-		name               string
-		machineHealthCheck clusterv1.MachineHealthCheck
-		machine            clusterv1.Machine
-		expected           bool
-	}{
-		{
-			name: "machine set and machine have matching labels",
-			machineHealthCheck: clusterv1.MachineHealthCheck{
-				Spec: clusterv1.MachineHealthCheckSpec{
-					Selector: metav1.LabelSelector{
-						MatchLabels: map[string]string{
-							"foo": "bar",
-						},
-					},
-				},
-			},
-			machine: clusterv1.Machine{
-				ObjectMeta: metav1.ObjectMeta{
-					Name: "matchSelector",
-					Labels: map[string]string{
-						"foo": "bar",
-					},
-				},
-			},
-			expected: true,
-		},
-		{
-			name: "machine set and machine do not have matching labels",
-			machineHealthCheck: clusterv1.MachineHealthCheck{
-				Spec: clusterv1.MachineHealthCheckSpec{
-					Selector: metav1.LabelSelector{
-						MatchLabels: map[string]string{
-							"foo": "bar",
-						},
-					},
-				},
-			},
-			machine: clusterv1.Machine{
-				ObjectMeta: metav1.ObjectMeta{
-					Name: "doesNotMatchSelector",
-					Labels: map[string]string{
-						"no": "match",
-					},
-				},
-			},
-			expected: false,
-		},
-		{
-			name: "machine set has empty selector",
-			machineHealthCheck: clusterv1.MachineHealthCheck{
-				Spec: clusterv1.MachineHealthCheckSpec{
-					Selector: metav1.LabelSelector{},
-				},
-			},
-			machine: clusterv1.Machine{
-				ObjectMeta: metav1.ObjectMeta{
-					Name: "doesNotMatter",
-				},
-			},
-			expected: false,
-		},
-		{
-			name: "machine set has bad selector",
-			machineHealthCheck: clusterv1.MachineHealthCheck{
-				Spec: clusterv1.MachineHealthCheckSpec{
-					Selector: metav1.LabelSelector{
-						MatchLabels: map[string]string{
-							"foo": "bar",
-						},
-						MatchExpressions: []metav1.LabelSelectorRequirement{
-							{
-								Operator: "bad-operator",
-							},
-						},
-					},
-				},
-			},
-			machine: clusterv1.Machine{
-				ObjectMeta: metav1.ObjectMeta{
-					Name: "match",
-					Labels: map[string]string{
-						"foo": "bar",
-					},
-				},
-			},
-			expected: false,
-		},
-	}
-
-	for _, tc := range testCases {
-		t.Run(tc.name, func(t *testing.T) {
-			g := NewWithT(t)
-
-			got := r.hasMatchingLabels(&tc.machineHealthCheck, &tc.machine)
-			g.Expect(got).To(Equal(tc.expected))
-		})
 	}
 }
 

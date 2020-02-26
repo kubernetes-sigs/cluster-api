@@ -27,7 +27,6 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	kerrors "k8s.io/apimachinery/pkg/util/errors"
@@ -283,7 +282,7 @@ func (r *MachineHealthCheckReconciler) machineToMachineHealthCheck(o handler.Map
 	var requests []reconcile.Request
 	for k := range mhcList.Items {
 		mhc := &mhcList.Items[k]
-		if r.hasMatchingLabels(mhc, m) {
+		if hasMatchingLabels(mhc.Spec.Selector, m.Labels) {
 			key := util.ObjectKey(mhc)
 			requests = append(requests, reconcile.Request{NamespacedName: key})
 		}
@@ -318,7 +317,7 @@ func (r *MachineHealthCheckReconciler) nodeToMachineHealthCheck(o handler.MapObj
 	var requests []reconcile.Request
 	for k := range mhcList.Items {
 		mhc := &mhcList.Items[k]
-		if r.hasMatchingLabels(mhc, machine) {
+		if hasMatchingLabels(mhc.Spec.Selector, machine.Labels) {
 			key := util.ObjectKey(mhc)
 			requests = append(requests, reconcile.Request{NamespacedName: key})
 		}
@@ -405,22 +404,4 @@ func (r *MachineHealthCheckReconciler) indexMachineByNodeName(object runtime.Obj
 	}
 
 	return nil
-}
-
-// hasMatchingLabels verifies that the MachineHealthCheck's label selector
-// matches the given Machine
-func (r *MachineHealthCheckReconciler) hasMatchingLabels(machineHealthCheck *clusterv1.MachineHealthCheck, machine *clusterv1.Machine) bool {
-	// This should never fail, validating webhook should catch this first
-	selector, err := metav1.LabelSelectorAsSelector(&machineHealthCheck.Spec.Selector)
-	if err != nil {
-		return false
-	}
-	// If a MachineHealthCheck with a nil or empty selector creeps in, it should match nothing, not everything.
-	if selector.Empty() {
-		return false
-	}
-	if !selector.Matches(labels.Set(machine.Labels)) {
-		return false
-	}
-	return true
 }

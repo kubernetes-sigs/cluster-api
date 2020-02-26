@@ -39,8 +39,8 @@ spec:
                 with a API Version of Cluster API (contract).
               properties:
                 contract:
-                  description: Contract defines the API Version of Cluster API (contract)
-                    supported by the ReleaseSeries.
+                  description: "Contract defines the Cluster API contract supported
+                    by this series. \n The value is an API Version, e.g. `v1alpha3`."
                   type: string
                 major:
                   description: Major version of the release series

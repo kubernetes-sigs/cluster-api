@@ -28,12 +28,12 @@ import (
 var configRepositoryCmd = &cobra.Command{
 	Use:   "repositories",
 	Args:  cobra.NoArgs,
-	Short: "Display the list of Cluster API providers and their repository configuration",
+	Short: "Display the list of providers and their repository configurations.",
 	Long: LongDesc(`
-		Displays the list of the Cluster API provider's and their repository configuration.
-		
-		clusterctl ships with a list of well-known providers; if necessary, edit
-		the $HOME/.cluster-api/clusterctl.yaml file to add new provider configurations or to customize existing ones.`),
+		Display the list of providers and their repository configurations.
+
+		clusterctl ships with a list of known providers; if necessary, edit
+		$HOME/.cluster-api/clusterctl.yaml file to add new provider or to customize existing ones.`),
 
 	Example: Examples(`
 		# Displays the list of available providers.

@@ -32,14 +32,14 @@ var mo = &moveOptions{}
 
 var moveCmd = &cobra.Command{
 	Use:   "move",
-	Short: "Moves Cluster API objects (e.g. Cluster, Machines) from a management cluster to another management cluster",
+	Short: "Move Cluster API objects and all dependencies between management clusters.",
 	Long: LongDesc(`
-		Moves Cluster API objects (e.g. Cluster, Machines) from a management cluster to another management cluster.
+		Move Cluster API objects and all dependencies between management clusters.
 
-		The target cluster must have all the required provider components already installed.`),
+		Note: The destination cluster MUST have the required provider components installed.`),
 
 	Example: Examples(`
-		# Moves Cluster API objects from cluster to the target cluster.
+		Move Cluster API objects and all dependencies between management clusters.
 		clusterctl move --to-kubeconfig=target-kubeconfig.yaml`),
 	Args: cobra.NoArgs,
 	RunE: func(cmd *cobra.Command, args []string) error {
@@ -48,9 +48,12 @@ var moveCmd = &cobra.Command{
 }
 
 func init() {
-	moveCmd.Flags().StringVarP(&mo.fromKubeconfig, "kubeconfig", "", "", "Path to the kubeconfig file to use for accessing the originating management cluster. If empty, default rules for kubeconfig discovery will be used")
-	moveCmd.Flags().StringVarP(&mo.toKubeconfig, "to-kubeconfig", "", "", "Path to the kubeconfig file to use for accessing the target management cluster")
-	moveCmd.Flags().StringVarP(&mo.namespace, "namespace", "n", "", "The namespace where the objects describing the workload cluster exists. If not specified, the current namespace will be used")
+	moveCmd.Flags().StringVar(&mo.fromKubeconfig, "kubeconfig", "",
+		"Path to the kubeconfig file for the source management cluster. If unspecified, default discovery rules apply.")
+	moveCmd.Flags().StringVar(&mo.toKubeconfig, "to-kubeconfig", "",
+		"Path to the kubeconfig file to use for the destination management cluster.")
+	moveCmd.Flags().StringVarP(&mo.namespace, "namespace", "n", "",
+		"The namespace where the workload cluster is hosted. If unspecified, the current context's namespace is used.")
 
 	RootCmd.AddCommand(moveCmd)
 }

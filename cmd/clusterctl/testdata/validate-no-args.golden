@@ -1,4 +1,4 @@
-NOTICE: clusterctl has been deprecated in v1alpha2 and will be removed in a future version.
+NOTICE: This utility, in its current form will be superseded by `clusterctl v2`. For more information see https://github.com/kubernetes-sigs/cluster-api/blob/master/docs/proposals/20191016-clusterctl-redesign.md
 Validate an API resource created by cluster API. See subcommands for supported API resources.
 
 Usage:

@@ -1,7 +1,7 @@
 <aside class="note warning">
-<h1>Deprecation Notice</h1>
+<h1>⚠️ Upcoming breaking changes</h1>
 
-This utility has been deprecated in v1alpha2 and will be removed in a future version. 
+This utility, in its current form will be superseded by `clusterctl v2`. A design doc can be found [here](https://github.com/kubernetes-sigs/cluster-api/blob/master/docs/proposals/20191016-clusterctl-redesign.md) 
 
 </aside>
 

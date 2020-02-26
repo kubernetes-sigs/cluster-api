@@ -21,26 +21,12 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/onsi/gomega"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
-	"sigs.k8s.io/controller-runtime/pkg/client"
-	"sigs.k8s.io/yaml"
-
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha3"
-)
-
-var (
-	HaveOccurred     = gomega.HaveOccurred
-	Succeed          = gomega.Succeed
-	SatisfyAll       = gomega.SatisfyAll
-	HaveLen          = gomega.HaveLen
-	HaveKey          = gomega.HaveKey
-	HaveKeyWithValue = gomega.HaveKeyWithValue
-	WithTransform    = gomega.WithTransform
-	BeEmpty          = gomega.BeEmpty
+	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
 func podReady(isReady corev1.ConditionStatus) corev1.PodCondition {
@@ -137,62 +123,6 @@ func TestControlPlaneIsHealthy(t *testing.T) {
 	if len(health) != len(nodeListForTestControlPlaneIsHealthy().Items) {
 		t.Fatal("not all nodes were checked")
 	}
-}
-
-func Test_removeNodeFromKubeadmConfigMapClusterStatusAPIEndpoints(t *testing.T) {
-	g := gomega.NewWithT(t)
-	original := &corev1.ConfigMap{
-		Data: map[string]string{
-			"ClusterStatus": `apiEndpoints:
-  ip-10-0-0-1.ec2.internal:
-    advertiseAddress: 10.0.0.1
-    bindPort: 6443
-    someFieldThatIsAddedInTheFuture: foo
-  ip-10-0-0-2.ec2.internal:
-    advertiseAddress: 10.0.0.2
-    bindPort: 6443
-    someFieldThatIsAddedInTheFuture: bar
-  ip-10-0-0-3.ec2.internal:
-    advertiseAddress: 10.0.0.3
-    bindPort: 6443
-    someFieldThatIsAddedInTheFuture: baz
-  ip-10-0-0-4.ec2.internal:
-    advertiseAddress: 10.0.0.4
-    bindPort: 6443
-    someFieldThatIsAddedInTheFuture: fizzbuzz
-apiVersion: kubeadm.k8s.io/vNbetaM
-kind: ClusterStatus`,
-		},
-	}
-
-	cm, err := removeNodeFromKubeadmConfigMapClusterStatusAPIEndpoints(original, "ip-10-0-0-3.ec2.internal")
-	g.Expect(err).ToNot(HaveOccurred())
-
-	g.Expect(cm.Data).To(HaveKey("ClusterStatus"))
-	var status struct {
-		APIEndpoints map[string]interface{} `yaml:"apiEndpoints"`
-		APIVersion   string                 `yaml:"apiVersion"`
-		Kind         string                 `yaml:"kind"`
-
-		Extra map[string]interface{} `yaml:",inline"`
-	}
-	g.Expect(yaml.UnmarshalStrict([]byte(cm.Data["ClusterStatus"]), &status)).To(Succeed())
-	g.Expect(status.Extra).To(BeEmpty())
-
-	g.Expect(status.APIEndpoints).To(SatisfyAll(
-		HaveLen(3),
-		HaveKey("ip-10-0-0-1.ec2.internal"),
-		HaveKey("ip-10-0-0-2.ec2.internal"),
-		HaveKey("ip-10-0-0-4.ec2.internal"),
-		WithTransform(func(ep map[string]interface{}) interface{} {
-			return ep["ip-10-0-0-4.ec2.internal"]
-		}, SatisfyAll(
-			HaveKeyWithValue("advertiseAddress", "10.0.0.4"),
-			HaveKey("bindPort"),
-			HaveKey("someFieldThatIsAddedInTheFuture"),
-		)),
-	))
-
 }
 
 func nodeListForTestControlPlaneIsHealthy() *corev1.NodeList {

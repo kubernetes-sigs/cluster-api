@@ -27,17 +27,17 @@ import (
 	"math/big"
 	"time"
 
+	"github.com/blang/semver"
 	"github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/types"
 	kerrors "k8s.io/apimachinery/pkg/util/errors"
 	"k8s.io/client-go/kubernetes/scheme"
 	"k8s.io/client-go/rest"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	ctrlclient "sigs.k8s.io/controller-runtime/pkg/client"
-	"sigs.k8s.io/yaml"
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha3"
 	"sigs.k8s.io/cluster-api/controllers/remote"
@@ -183,15 +183,88 @@ func (m *ManagementCluster) RemoveMachineFromKubeadmConfigMap(ctx context.Contex
 		// Nothing to do, no node for Machine
 		return nil
 	}
-
-	cluster, err := m.getCluster(ctx, clusterKey)
+	c, err := m.getCluster(ctx, clusterKey)
 	if err != nil {
 		return err
 	}
 
-	return cluster.updateKubeadmConfigMap(ctx, func(in *corev1.ConfigMap) (*corev1.ConfigMap, error) {
-		return removeNodeFromKubeadmConfigMapClusterStatusAPIEndpoints(in, machine.Status.NodeRef.Name)
-	})
+	configMapKey := types.NamespacedName{Name: "kubeadm-config", Namespace: metav1.NamespaceSystem}
+	kubeadmConfigMap, err := c.getConfigMap(ctx, configMapKey)
+	if err != nil {
+		return err
+	}
+	config := &kubeadmConfig{ConfigMap: kubeadmConfigMap}
+	if err := config.RemoveAPIEndpoint(machine.Status.NodeRef.Name); err != nil {
+		return err
+	}
+	if err := c.client.Update(ctx, config.ConfigMap); err != nil {
+		return errors.Wrap(err, "error updating kubeadm ConfigMap")
+	}
+	return nil
+}
+
+// UpdateKubernetesVersionInKubeadmConfigMap updates the kubernetes version in the kubeadm config map.
+func (m *ManagementCluster) UpdateKubernetesVersionInKubeadmConfigMap(ctx context.Context, clusterKey types.NamespacedName, version string) error {
+	c, err := m.getCluster(ctx, clusterKey)
+	if err != nil {
+		return err
+	}
+
+	configMapKey := types.NamespacedName{Name: "kubeadm-config", Namespace: metav1.NamespaceSystem}
+	kubeadmConfigMap, err := c.getConfigMap(ctx, configMapKey)
+	if err != nil {
+		return err
+	}
+	config := &kubeadmConfig{ConfigMap: kubeadmConfigMap}
+	if err := config.UpdateKubernetesVersion(version); err != nil {
+		return err
+	}
+	if err := c.client.Update(ctx, config.ConfigMap); err != nil {
+		return errors.Wrap(err, "error updating kubeadm ConfigMap")
+	}
+	return nil
+}
+
+// UpdateKubeletConfigMap will create a new kubelet-config-1.x config map for a new version of the kubelet.
+// This is a necessary process for upgrades.
+func (m *ManagementCluster) UpdateKubeletConfigMap(ctx context.Context, clusterKey types.NamespacedName, version semver.Version) error {
+	c, err := m.getCluster(ctx, clusterKey)
+	if err != nil {
+		return err
+	}
+
+	// Check if the desired configmap already exists
+	desiredKubeletConfigMapName := fmt.Sprintf("kubelet-config-%d.%d", version.Major, version.Minor)
+	configMapKey := types.NamespacedName{Name: desiredKubeletConfigMapName, Namespace: metav1.NamespaceSystem}
+	_, err = c.getConfigMap(ctx, configMapKey)
+	if err == nil {
+		// Nothing to do, the configmap already exists
+		return nil
+	}
+	if !apierrors.IsNotFound(errors.Cause(err)) {
+		return errors.Wrapf(err, "error determining if kubelet configmap %s exists", desiredKubeletConfigMapName)
+	}
+
+	previousMinorVersionKubeletConfigMapName := fmt.Sprintf("kubelet-config-%d.%d", version.Major, version.Minor-1)
+	configMapKey = types.NamespacedName{Name: previousMinorVersionKubeletConfigMapName, Namespace: metav1.NamespaceSystem}
+	// Returns a copy
+	cm, err := c.getConfigMap(ctx, configMapKey)
+	if apierrors.IsNotFound(errors.Cause(err)) {
+		return errors.Errorf("unable to find kubelet configmap %s", previousMinorVersionKubeletConfigMapName)
+	}
+	if err != nil {
+		return err
+	}
+
+	// Update the name to the new name
+	cm.Name = desiredKubeletConfigMapName
+	// Clear the resource version. Is this necessary since this cm is actually a DeepCopy()?
+	cm.ResourceVersion = ""
+
+	if err := c.client.Create(ctx, cm); err != nil && !apierrors.IsAlreadyExists(err) {
+		return errors.Wrapf(err, "error creating configmap %s", desiredKubeletConfigMapName)
+	}
+	return nil
 }
 
 // RemoveEtcdMemberForMachine removes the etcd member from the target cluster's etcd cluster.
@@ -243,6 +316,14 @@ func (c *cluster) getControlPlaneNodes(ctx context.Context) (*corev1.NodeList, e
 		return nil, err
 	}
 	return nodes, nil
+}
+
+func (c *cluster) getConfigMap(ctx context.Context, configMap types.NamespacedName) (*corev1.ConfigMap, error) {
+	original := &corev1.ConfigMap{}
+	if err := c.client.Get(ctx, configMap, original); err != nil {
+		return nil, errors.Wrapf(err, "error getting %s/%s configmap from target cluster", configMap.Namespace, configMap.Name)
+	}
+	return original.DeepCopy(), nil
 }
 
 // healthCheckResult maps nodes that are checked to any errors the node has related to the check.
@@ -395,78 +476,6 @@ func (c *cluster) etcdIsHealthy(ctx context.Context) (healthCheckResult, error) 
 	}
 
 	return response, nil
-}
-
-// updateKubeadmConfigMap gets, mutates, and updates the cluster's kubeadm
-// ConfigMap.
-// Copied from https://github.com/vmware/cluster-api-upgrade-tool/pkg/upgrade/control_plane.go
-func (c *cluster) updateKubeadmConfigMap(ctx context.Context, f func(in *corev1.ConfigMap) (*corev1.ConfigMap, error)) error {
-	original := &corev1.ConfigMap{}
-	if err := c.client.Get(ctx, types.NamespacedName{Name: "kubeadm-config", Namespace: metav1.NamespaceSystem}, original); err != nil {
-		return errors.Wrap(err, "error getting kubeadm ConfigMap from target cluster")
-	}
-
-	updated, err := f(original)
-	if err != nil {
-		return errors.Wrap(err, "error updating kubeadm ConfigMap")
-	}
-
-	if err := c.client.Update(ctx, updated); err != nil {
-		return errors.Wrap(err, "error updating kubeadm ConfigMap")
-	}
-
-	return nil
-}
-
-// removeNodeFromKubeadmConfigMapClusterStatusAPIEndpoints removes an entry from
-// ClusterStatus.APIEndpoints in the kubeadm ConfigMap.
-// Copied from https://github.com/vmware/cluster-api-upgrade-tool/pkg/upgrade/control_plane.go
-func removeNodeFromKubeadmConfigMapClusterStatusAPIEndpoints(original *corev1.ConfigMap, nodeName string) (*corev1.ConfigMap, error) {
-	cm := original.DeepCopy()
-
-	clusterStatus, err := extractKubeadmConfigMapClusterStatus(original)
-	if err != nil {
-		return nil, err
-	}
-
-	endpoints, _, err := unstructured.NestedMap(clusterStatus.UnstructuredContent(), "apiEndpoints")
-	if err != nil {
-		return nil, err
-	}
-
-	// Remove node
-	delete(endpoints, nodeName)
-
-	err = unstructured.SetNestedMap(clusterStatus.UnstructuredContent(), endpoints, "apiEndpoints")
-	if err != nil {
-		return nil, err
-	}
-
-	updated, err := yaml.Marshal(clusterStatus)
-	if err != nil {
-		return nil, errors.Wrap(err, "error encoding kubeadm ClusterStatus object")
-	}
-
-	cm.Data["ClusterStatus"] = string(updated)
-
-	return cm, nil
-}
-
-// extractKubeadmConfigMapClusterStatus returns the ClusterStatus field from the kubeadm ConfigMap as an
-// *unstructured.Unstructured.
-// Copied from https://github.com/vmware/cluster-api-upgrade-tool/pkg/upgrade/control_plane.go
-func extractKubeadmConfigMapClusterStatus(in *corev1.ConfigMap) (*unstructured.Unstructured, error) {
-	clusterStatus := &unstructured.Unstructured{}
-
-	rawClusterStatus, ok := in.Data["ClusterStatus"]
-	if !ok {
-		return nil, errors.New("ClusterStatus not found in kubeadm ConfigMap")
-	}
-	if err := yaml.Unmarshal([]byte(rawClusterStatus), &clusterStatus); err != nil {
-		return nil, errors.Wrap(err, "error decoding kubeadm ClusterStatus object")
-	}
-
-	return clusterStatus, nil
 }
 
 // getEtcdClientForNode returns a client that talks directly to an etcd instance living on a particular node.

@@ -121,11 +121,11 @@ type healthCheck func(context.Context) (healthCheckResult, error)
 // healthCheck will run a generic health check function and report any errors discovered.
 // It does some additional validation to make sure there is a 1;1 match between nodes and machines.
 func (m *ManagementCluster) healthCheck(ctx context.Context, check healthCheck, clusterKey types.NamespacedName, controlPlaneName string) error {
+	var errorList []error
 	nodeChecks, err := check(ctx)
 	if err != nil {
-		return err
+		errorList = append(errorList, err)
 	}
-	errorList := []error{}
 	for nodeName, err := range nodeChecks {
 		if err != nil {
 			errorList = append(errorList, fmt.Errorf("node %q: %v", nodeName, err))
@@ -467,6 +467,10 @@ func (c *cluster) etcdIsHealthy(ctx context.Context) (healthCheckResult, error) 
 			}
 			continue
 		}
+	}
+
+	if len(response) > 0 {
+		return response, errors.New("could not check etcd member health")
 	}
 
 	// Check that there is exactly one etcd member for every control plane machine.

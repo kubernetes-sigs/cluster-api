@@ -658,7 +658,7 @@ func TestReconcileMetrics(t *testing.T) {
 	}
 }
 
-func Test_reconcileRequests(t *testing.T) {
+func Test_clusterToActiveMachines(t *testing.T) {
 	testCluster2Machines := &clusterv1.Cluster{
 		TypeMeta:   metav1.TypeMeta{Kind: "Cluster", APIVersion: clusterv1.GroupVersion.String()},
 		ObjectMeta: metav1.ObjectMeta{Namespace: "default", Name: "test-cluster-2"},
@@ -749,7 +749,7 @@ func Test_reconcileRequests(t *testing.T) {
 			scheme: scheme.Scheme,
 		}
 
-		got := r.reconcileRequests(tt.cluster)
+		got := r.clusterToActiveMachines(tt.cluster)
 		g.Expect(got).To(Equal(tt.want))
 	}
 }

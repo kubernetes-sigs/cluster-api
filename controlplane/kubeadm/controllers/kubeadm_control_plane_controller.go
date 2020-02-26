@@ -77,6 +77,8 @@ type managementCluster interface {
 	TargetClusterEtcdIsHealthy(ctx context.Context, clusterKey types.NamespacedName, controlPlaneName string) error
 	RemoveEtcdMemberForMachine(ctx context.Context, clusterKey types.NamespacedName, machine *clusterv1.Machine) error
 	RemoveMachineFromKubeadmConfigMap(ctx context.Context, clusterKey types.NamespacedName, machine *clusterv1.Machine) error
+	UpdateKubernetesVersionInKubeadmConfigMap(ctx context.Context, clusterKey types.NamespacedName, version string) error
+	UpdateKubeletConfigMap(ctx context.Context, clusterKey types.NamespacedName, version semver.Version) error
 }
 
 // +kubebuilder:rbac:groups=core,resources=events,verbs=get;list;watch;create;patch
@@ -346,9 +348,9 @@ func (r *KubeadmControlPlaneReconciler) upgradeControlPlane(ctx context.Context,
 
 	// TODO: handle reconciliation of etcd members and kubeadm config in case they get out of sync with cluster
 
-	// Reconcile the remote cluster kubelet configmap and RBAC
-	if err := r.reconcileKubeletConfigAndRBAC(ctx, kcp.Spec.Version, util.ObjectKey(cluster)); err != nil {
-		logger.Error(err, "failed reconcile remote cluster kubelet configmap and RBAC")
+	// Reconcile the remote cluster's configuration necessary for upgrade
+	if err := r.reconcileConfiguration(ctx, kcp.Spec.Version, util.ObjectKey(cluster)); err != nil {
+		logger.Error(err, "failed reconcile remote cluster configuration for upgrade")
 		return ctrl.Result{}, err
 	}
 
@@ -381,52 +383,33 @@ func (r *KubeadmControlPlaneReconciler) upgradeControlPlane(ctx context.Context,
 	return r.scaleDownControlPlane(ctx, cluster, kcp, replacementCreated)
 }
 
-func (r *KubeadmControlPlaneReconciler) reconcileKubeletConfigAndRBAC(ctx context.Context, version string, clusterKey client.ObjectKey) error {
+// reconcileConfiguration will update the remote cluster's system configurations in preparation for an upgrade.
+func (r *KubeadmControlPlaneReconciler) reconcileConfiguration(ctx context.Context, version string, clusterKey client.ObjectKey) error {
 	parsedVersion, err := semver.ParseTolerant(version)
 	if err != nil {
 		return errors.Wrapf(err, "failed to parse kubernetes version %q", version)
 	}
 
+	// TODO: move these reconciles into the cluster object exposed by the ManagementCluster
 	remoteClient, err := r.remoteClientGetter(ctx, r.Client, clusterKey, r.scheme)
 	if err != nil {
-		return errors.Wrapf(err, "failed to create remote cluster client ")
-	}
-
-	if err := reconcileKubeletConfigMap(ctx, remoteClient, parsedVersion); err != nil {
-		return errors.Wrapf(err, "failed to reconcile the remote kubelet configmap")
+		return errors.Wrap(err, "failed to create remote cluster client ")
 	}
 
 	if err := reconcileKubeletRBACRole(ctx, remoteClient, parsedVersion); err != nil {
-		return errors.Wrapf(err, "failed to reconcile the remote kubelet RBAC role")
+		return errors.Wrap(err, "failed to reconcile the remote kubelet RBAC role")
 	}
 
 	if err := reconcileKubeletRBACBinding(ctx, remoteClient, parsedVersion); err != nil {
-		return errors.Wrapf(err, "failed to reconcile the remote kubelet RBAC binding")
+		return errors.Wrap(err, "failed to reconcile the remote kubelet RBAC binding")
 	}
 
-	return nil
-}
-
-func reconcileKubeletConfigMap(ctx context.Context, remoteClient client.Client, version semver.Version) error {
-	cmName := fmt.Sprintf("kubelet-config-%d.%d", version.Major, version.Minor)
-	kubeletConfigMap := &corev1.ConfigMap{}
-	if err := remoteClient.Get(ctx, client.ObjectKey{Name: cmName, Namespace: metav1.NamespaceSystem}, kubeletConfigMap); err != nil && !apierrors.IsNotFound(err) {
-		return errors.Wrapf(err, "failed to determine if kubelet configmap %q already exists", cmName)
-	} else if err == nil {
-		// The required configmap already exists, nothing left to do
-		return nil
+	if err := r.managementCluster.UpdateKubernetesVersionInKubeadmConfigMap(ctx, clusterKey, version); err != nil {
+		return errors.Wrap(err, "failed to update the kubernetes version in the kubeadm config map")
 	}
 
-	// Attempt to retrieve the kubelet configmap for the previous minor version
-	prevCMName := fmt.Sprintf("kubelet-config-%d.%d", version.Major, version.Minor-1)
-	if err := remoteClient.Get(ctx, client.ObjectKey{Name: prevCMName, Namespace: metav1.NamespaceSystem}, kubeletConfigMap); err != nil {
-		return errors.Wrapf(err, "failed to retrieve kubelet configmap %q for previous kubernetes version", prevCMName)
-	}
-
-	kubeletConfigMap.Name = prevCMName
-	kubeletConfigMap.ResourceVersion = ""
-	if err := remoteClient.Create(ctx, kubeletConfigMap); err != nil && !apierrors.IsAlreadyExists(err) {
-		return errors.Wrapf(err, "failed to create kubelet configmap %q for desired kubernetes version", cmName)
+	if err := r.managementCluster.UpdateKubeletConfigMap(ctx, clusterKey, parsedVersion); err != nil {
+		return errors.Wrap(err, "failed to upgrade kubelet config map")
 	}
 
 	return nil
@@ -737,8 +720,7 @@ func (r *KubeadmControlPlaneReconciler) cleanupFromGeneration(ctx context.Contex
 }
 
 func (r *KubeadmControlPlaneReconciler) generateKubeadmConfig(ctx context.Context, kcp *controlplanev1.KubeadmControlPlane, cluster *clusterv1.Cluster, spec *bootstrapv1.KubeadmConfigSpec) (*corev1.ObjectReference, error) {
-	// Since the generated KubeadmConfig should eventually have a controller ref for the Machine, we create an
-	// OwnerReference here without the Controller field set
+	// Create an owner reference without a controller reference because the owning controller is the machine controller
 	owner := metav1.OwnerReference{
 		APIVersion: controlplanev1.GroupVersion.String(),
 		Kind:       "KubeadmControlPlane",

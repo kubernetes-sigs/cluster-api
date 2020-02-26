@@ -22,6 +22,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/blang/semver"
 	. "github.com/onsi/gomega"
 	"github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
@@ -1225,29 +1226,37 @@ type fakeManagementCluster struct {
 	Machines            internal.FilterableMachineCollection
 }
 
-func (f *fakeManagementCluster) GetMachinesForCluster(ctx context.Context, cluster types.NamespacedName, filters ...internal.MachineFilter) (internal.FilterableMachineCollection, error) {
+func (f *fakeManagementCluster) GetMachinesForCluster(_ context.Context, _ types.NamespacedName, _ ...internal.MachineFilter) (internal.FilterableMachineCollection, error) {
 	return f.Machines, nil
 }
 
-func (f *fakeManagementCluster) TargetClusterControlPlaneIsHealthy(ctx context.Context, clusterKey types.NamespacedName, controlPlaneName string) error {
+func (f *fakeManagementCluster) TargetClusterControlPlaneIsHealthy(_ context.Context, _ types.NamespacedName, _ string) error {
 	if !f.ControlPlaneHealthy {
 		return errors.New("control plane is not healthy")
 	}
 	return nil
 }
 
-func (f *fakeManagementCluster) TargetClusterEtcdIsHealthy(ctx context.Context, clusterKey types.NamespacedName, controlPlaneName string) error {
+func (f *fakeManagementCluster) TargetClusterEtcdIsHealthy(_ context.Context, _ types.NamespacedName, _ string) error {
 	if !f.EtcdHealthy {
 		return errors.New("etcd is not healthy")
 	}
 	return nil
 }
 
-func (f *fakeManagementCluster) RemoveEtcdMemberForMachine(ctx context.Context, clusterKey types.NamespacedName, machine *clusterv1.Machine) error {
+func (f *fakeManagementCluster) RemoveEtcdMemberForMachine(_ context.Context, _ types.NamespacedName, _ *clusterv1.Machine) error {
 	return nil
 }
 
-func (f *fakeManagementCluster) RemoveMachineFromKubeadmConfigMap(ctx context.Context, clusterKey types.NamespacedName, machine *clusterv1.Machine) error {
+func (f *fakeManagementCluster) RemoveMachineFromKubeadmConfigMap(_ context.Context, _ types.NamespacedName, _ *clusterv1.Machine) error {
+	return nil
+}
+
+func (f *fakeManagementCluster) UpdateKubernetesVersionInKubeadmConfigMap(_ context.Context, _ types.NamespacedName, _ string) error {
+	return nil
+}
+
+func (f *fakeManagementCluster) UpdateKubeletConfigMap(_ context.Context, _ types.NamespacedName, _ semver.Version) error {
 	return nil
 }
 

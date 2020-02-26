@@ -20,113 +20,138 @@ import (
 	"context"
 	"testing"
 
+	. "github.com/onsi/gomega"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/utils/pointer"
-	"sigs.k8s.io/controller-runtime/pkg/client/fake"
-
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha3"
+	bootstrapv1 "sigs.k8s.io/cluster-api/bootstrap/kubeadm/api/v1alpha3"
+	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 )
 
-func TestGetConfigOwnerSuccess(t *testing.T) {
+func TestGetConfigOwner(t *testing.T) {
+	g := NewWithT(t)
+
 	scheme := runtime.NewScheme()
-	if err := clusterv1.AddToScheme(scheme); err != nil {
-		t.Fatal("failed to register Cluster API objects to scheme")
-	}
+	g.Expect(clusterv1.AddToScheme(scheme)).To(Succeed())
 
-	myMachine := &clusterv1.Machine{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      "my-machine",
-			Namespace: "my-ns",
-			Labels: map[string]string{
-				clusterv1.MachineControlPlaneLabelName: "",
+	t.Run("should get the owner when present (Machine)", func(t *testing.T) {
+		g := NewWithT(t)
+		myMachine := &clusterv1.Machine{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      "my-machine",
+				Namespace: "my-ns",
+				Labels: map[string]string{
+					clusterv1.MachineControlPlaneLabelName: "",
+				},
 			},
-		},
-		Spec: clusterv1.MachineSpec{
-			ClusterName: "my-cluster",
-			Bootstrap: clusterv1.Bootstrap{
-				DataSecretName: pointer.StringPtr("my-data-secret"),
+			Spec: clusterv1.MachineSpec{
+				ClusterName: "my-cluster",
+				Bootstrap: clusterv1.Bootstrap{
+					DataSecretName: pointer.StringPtr("my-data-secret"),
+				},
 			},
-		},
-		Status: clusterv1.MachineStatus{
-			InfrastructureReady: true,
-		},
-	}
-
-	c := fake.NewFakeClientWithScheme(scheme, myMachine)
-	objm := metav1.ObjectMeta{
-		OwnerReferences: []metav1.OwnerReference{
-			{
-				Kind:       "Machine",
-				APIVersion: clusterv1.GroupVersion.String(),
-				Name:       "my-machine",
+			Status: clusterv1.MachineStatus{
+				InfrastructureReady: true,
 			},
-		},
-		Namespace: "my-ns",
-		Name:      "my-resource-owned-by-machine",
-	}
-	configOwner, err := GetConfigOwner(context.TODO(), c, objm)
-	if err != nil {
-		t.Fatalf("did not expect an error but found one: %v", err)
-	}
-	if configOwner == nil {
-		t.Fatal("expected a configOwner but got nil")
-	}
-	if configOwner.ClusterName() != "my-cluster" {
-		t.Fatalf("did not expect ClusterName: %q", configOwner.ClusterName())
-	}
-	if !configOwner.IsInfrastructureReady() {
-		t.Fatalf("did not expect InfrastructureReady: %v", configOwner.IsInfrastructureReady())
-	}
-	if configOwner.DataSecretName() == nil {
-		t.Fatalf("did not expect DataSecretName: %v", configOwner.DataSecretName())
-	}
-	if !configOwner.IsControlPlaneMachine() {
-		t.Fatalf("did not expect IsControlPlane: %v", configOwner.IsControlPlaneMachine())
-	}
-}
+		}
 
-func TestGetConfigOwnerNotFound(t *testing.T) {
-	scheme := runtime.NewScheme()
-	if err := clusterv1.AddToScheme(scheme); err != nil {
-		t.Fatal("failed to register cluster api objects to scheme")
-	}
-
-	c := fake.NewFakeClientWithScheme(scheme)
-	objm := metav1.ObjectMeta{
-		OwnerReferences: []metav1.OwnerReference{
-			{
-				Kind:       "Machine",
-				APIVersion: clusterv1.GroupVersion.String(),
-				Name:       "my-machine",
+		c := fake.NewFakeClientWithScheme(scheme, myMachine)
+		obj := &bootstrapv1.KubeadmConfig{
+			ObjectMeta: metav1.ObjectMeta{
+				OwnerReferences: []metav1.OwnerReference{
+					{
+						Kind:       "Machine",
+						APIVersion: clusterv1.GroupVersion.String(),
+						Name:       "my-machine",
+					},
+				},
+				Namespace: "my-ns",
+				Name:      "my-resource-owned-by-machine",
 			},
-		},
-		Namespace: "my-ns",
-		Name:      "my-resource-owned-by-machine",
-	}
-	_, err := GetConfigOwner(context.TODO(), c, objm)
-	if err == nil {
-		t.Fatal("expected error, got nil")
-	}
-}
+		}
+		configOwner, err := GetConfigOwner(context.TODO(), c, obj)
+		g.Expect(err).NotTo(HaveOccurred())
+		g.Expect(configOwner).ToNot(BeNil())
+		g.Expect(configOwner.ClusterName()).To(BeEquivalentTo("my-cluster"))
+		g.Expect(configOwner.IsInfrastructureReady()).To(BeTrue())
+		g.Expect(configOwner.IsControlPlaneMachine()).To(BeTrue())
+		g.Expect(*configOwner.DataSecretName()).To(BeEquivalentTo("my-data-secret"))
+	})
 
-func TestGetConfigOwnerNoOwner(t *testing.T) {
-	scheme := runtime.NewScheme()
-	if err := clusterv1.AddToScheme(scheme); err != nil {
-		t.Fatal("failed to register cluster api objects to scheme")
-	}
+	t.Run("should get the owner when present (MachinePool)", func(t *testing.T) {
+		g := NewWithT(t)
+		myPool := &clusterv1.MachinePool{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      "my-machine-pool",
+				Namespace: "my-ns",
+				Labels: map[string]string{
+					clusterv1.MachineControlPlaneLabelName: "",
+				},
+			},
+			Spec: clusterv1.MachinePoolSpec{
+				ClusterName: "my-cluster",
+			},
+			Status: clusterv1.MachinePoolStatus{
+				InfrastructureReady: true,
+			},
+		}
 
-	c := fake.NewFakeClientWithScheme(scheme)
-	objm := metav1.ObjectMeta{
-		OwnerReferences: []metav1.OwnerReference{},
-		Namespace:       "my-ns",
-		Name:            "my-resource-owned-by-machine",
-	}
-	configOwner, err := GetConfigOwner(context.TODO(), c, objm)
-	if err != nil {
-		t.Fatalf("did not expect an error but found one: %v", err)
-	}
-	if configOwner != nil {
-		t.Fatalf("expected nil, but got %v", configOwner)
-	}
+		c := fake.NewFakeClientWithScheme(scheme, myPool)
+		obj := &bootstrapv1.KubeadmConfig{
+			ObjectMeta: metav1.ObjectMeta{
+				OwnerReferences: []metav1.OwnerReference{
+					{
+						Kind:       "MachinePool",
+						APIVersion: clusterv1.GroupVersion.String(),
+						Name:       "my-machine-pool",
+					},
+				},
+				Namespace: "my-ns",
+				Name:      "my-resource-owned-by-machine-pool",
+			},
+		}
+		configOwner, err := GetConfigOwner(context.TODO(), c, obj)
+		g.Expect(err).NotTo(HaveOccurred())
+		g.Expect(configOwner).ToNot(BeNil())
+		g.Expect(configOwner.ClusterName()).To(BeEquivalentTo("my-cluster"))
+		g.Expect(configOwner.IsInfrastructureReady()).To(BeTrue())
+		g.Expect(configOwner.IsControlPlaneMachine()).To(BeFalse())
+		g.Expect(configOwner.DataSecretName()).To(BeNil())
+	})
+
+	t.Run("return an error when not found", func(t *testing.T) {
+		g := NewWithT(t)
+		c := fake.NewFakeClientWithScheme(scheme)
+		obj := &bootstrapv1.KubeadmConfig{
+			ObjectMeta: metav1.ObjectMeta{
+				OwnerReferences: []metav1.OwnerReference{
+					{
+						Kind:       "Machine",
+						APIVersion: clusterv1.GroupVersion.String(),
+						Name:       "my-machine",
+					},
+				},
+				Namespace: "my-ns",
+				Name:      "my-resource-owned-by-machine",
+			},
+		}
+		_, err := GetConfigOwner(context.TODO(), c, obj)
+		g.Expect(err).To(HaveOccurred())
+	})
+
+	t.Run("return nothing when there is no owner", func(t *testing.T) {
+		g := NewWithT(t)
+		c := fake.NewFakeClientWithScheme(scheme)
+		obj := &bootstrapv1.KubeadmConfig{
+			ObjectMeta: metav1.ObjectMeta{
+				OwnerReferences: []metav1.OwnerReference{},
+				Namespace:       "my-ns",
+				Name:            "my-resource-owned-by-machine",
+			},
+		}
+		configOwner, err := GetConfigOwner(context.TODO(), c, obj)
+		g.Expect(err).NotTo(HaveOccurred())
+		g.Expect(configOwner).To(BeNil())
+	})
 }

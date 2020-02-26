@@ -11,3 +11,4 @@ emeritus_approvers:
 
 reviewers:
   - cluster-api-maintainers
+  - cluster-api-reviewers

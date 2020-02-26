@@ -16,6 +16,8 @@ aliases:
     - ncdc
     - vincepri
     - chuckha
+  cluster-api-reviewers:
+    - CecileRobertMichon
   cluster-api-provider-docker-maintainers:
     - chuckha
     - ncdc

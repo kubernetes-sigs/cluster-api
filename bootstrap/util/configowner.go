@@ -19,9 +19,11 @@ package util
 import (
 	"context"
 
+	"github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
+	"k8s.io/apimachinery/pkg/runtime/schema"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha3"
 	"sigs.k8s.io/cluster-api/controllers/external"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -72,15 +74,21 @@ func (co ConfigOwner) IsControlPlaneMachine() bool {
 	return ok
 }
 
-// GeConfigOwner returns the Unstructured object owning the current resource.
-func GetConfigOwner(ctx context.Context, c client.Client, obj metav1.ObjectMeta) (*ConfigOwner, error) {
-	for _, ref := range obj.OwnerReferences {
-		if (ref.Kind == "Machine" || ref.Kind == "MachinePool") && ref.APIVersion == clusterv1.GroupVersion.String() {
+// GetConfigOwner returns the Unstructured object owning the current resource.
+func GetConfigOwner(ctx context.Context, c client.Client, obj metav1.Object) (*ConfigOwner, error) {
+	for _, ref := range obj.GetOwnerReferences() {
+		refgvk, err := schema.ParseGroupVersion(ref.APIVersion)
+		if err != nil {
+			return nil, errors.Wrapf(err, "failed to parse GroupVersion from %q", ref.APIVersion)
+		}
+
+		if (ref.Kind == "Machine" || ref.Kind == "MachinePool") &&
+			refgvk.Group == clusterv1.GroupVersion.Group {
 			return GetOwnerByRef(ctx, c, &corev1.ObjectReference{
 				APIVersion: ref.APIVersion,
 				Kind:       ref.Kind,
-				Namespace:  obj.Namespace,
 				Name:       ref.Name,
+				Namespace:  obj.GetNamespace(),
 			})
 		}
 	}

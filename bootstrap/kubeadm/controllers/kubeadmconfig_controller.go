@@ -134,7 +134,7 @@ func (r *KubeadmConfigReconciler) Reconcile(req ctrl.Request) (_ ctrl.Result, re
 	}
 
 	// Look up the owner of this KubeConfig if there is one
-	configOwner, err := bsutil.GetConfigOwner(ctx, r.Client, config.ObjectMeta)
+	configOwner, err := bsutil.GetConfigOwner(ctx, r.Client, config)
 	if apierrors.IsNotFound(err) {
 		// Could not find the owner yet, this is not an error and will rereconcile when the owner gets set.
 		return ctrl.Result{}, nil

@@ -18,7 +18,9 @@ package internal
 
 import (
 	"context"
+	"errors"
 	"fmt"
+	"strings"
 	"testing"
 
 	corev1 "k8s.io/api/core/v1"
@@ -241,4 +243,190 @@ func (f *fakeClient) List(_ context.Context, list runtime.Object, _ ...client.Li
 		return fmt.Errorf("unknown type: %s", l)
 	}
 	return nil
+}
+
+func TestManagementCluster_healthCheck_NoError(t *testing.T) {
+	tests := []struct {
+		name             string
+		machineList      *clusterv1.MachineList
+		check            healthCheck
+		clusterKey       types.NamespacedName
+		controlPlaneName string
+	}{
+		{
+			name: "simple",
+			machineList: &clusterv1.MachineList{
+				Items: []clusterv1.Machine{
+					controlPlaneMachine("one"),
+					controlPlaneMachine("two"),
+					controlPlaneMachine("three"),
+				},
+			},
+			check: func(ctx context.Context) (healthCheckResult, error) {
+				return healthCheckResult{
+					"one":   nil,
+					"two":   nil,
+					"three": nil,
+				}, nil
+			},
+			clusterKey:       types.NamespacedName{Namespace: "default", Name: "cluster-name"},
+			controlPlaneName: "control-plane-name",
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			ctx := context.Background()
+			m := &ManagementCluster{
+				Client: &fakeClient{list: tt.machineList},
+			}
+			if err := m.healthCheck(ctx, tt.check, tt.clusterKey, tt.controlPlaneName); err != nil {
+				t.Fatal("did not expect an error?")
+			}
+		})
+	}
+}
+
+func TestManagementCluster_healthCheck_Errors(t *testing.T) {
+	tests := []struct {
+		name             string
+		machineList      *clusterv1.MachineList
+		check            healthCheck
+		clusterKey       types.NamespacedName
+		controlPlaneName string
+		// expected errors will ensure the error contains this list of strings.
+		// If not supplied, no check on the error's value will occur.
+		expectedErrors []string
+	}{
+		{
+			name: "machine's node was not checked for health",
+			machineList: &clusterv1.MachineList{
+				Items: []clusterv1.Machine{
+					controlPlaneMachine("one"),
+					controlPlaneMachine("two"),
+					controlPlaneMachine("three"),
+				},
+			},
+			check: func(ctx context.Context) (healthCheckResult, error) {
+				return healthCheckResult{
+					"one": nil,
+				}, nil
+			},
+		},
+		{
+			name: "health check returns an error not related to the nodes health",
+			machineList: &clusterv1.MachineList{
+				Items: []clusterv1.Machine{
+					controlPlaneMachine("one"),
+					controlPlaneMachine("two"),
+					controlPlaneMachine("three"),
+				},
+			},
+			check: func(ctx context.Context) (healthCheckResult, error) {
+				return healthCheckResult{
+					"one":   nil,
+					"two":   errors.New("two"),
+					"three": errors.New("three"),
+				}, errors.New("meta")
+			},
+			expectedErrors: []string{"two", "three", "meta"},
+		},
+		{
+			name: "two nodes error on the check but no overall error occurred",
+			machineList: &clusterv1.MachineList{
+				Items: []clusterv1.Machine{
+					controlPlaneMachine("one"),
+					controlPlaneMachine("two"),
+					controlPlaneMachine("three"),
+				},
+			},
+			check: func(ctx context.Context) (healthCheckResult, error) {
+				return healthCheckResult{
+					"one":   nil,
+					"two":   errors.New("two"),
+					"three": errors.New("three"),
+				}, nil
+			},
+			expectedErrors: []string{"two", "three"},
+		},
+		{
+			name: "more nodes than machines were checked (out of band control plane nodes)",
+			machineList: &clusterv1.MachineList{
+				Items: []clusterv1.Machine{
+					controlPlaneMachine("one"),
+				},
+			},
+			check: func(ctx context.Context) (healthCheckResult, error) {
+				return healthCheckResult{
+					"one":   nil,
+					"two":   nil,
+					"three": nil,
+				}, nil
+			},
+		},
+		{
+			name: "a machine that has a nil node reference",
+			machineList: &clusterv1.MachineList{
+				Items: []clusterv1.Machine{
+					controlPlaneMachine("one"),
+					controlPlaneMachine("two"),
+					nilNodeRef(controlPlaneMachine("three")),
+				},
+			},
+			check: func(ctx context.Context) (healthCheckResult, error) {
+				return healthCheckResult{
+					"one":   nil,
+					"two":   nil,
+					"three": nil,
+				}, nil
+			},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			ctx := context.Background()
+			clusterKey := types.NamespacedName{Namespace: "default", Name: "cluster-name"}
+			controlPlaneName := "control-plane-name"
+
+			m := &ManagementCluster{
+				Client: &fakeClient{list: tt.machineList},
+			}
+			err := m.healthCheck(ctx, tt.check, clusterKey, controlPlaneName)
+			if err == nil {
+				t.Fatal("Expected an error")
+			}
+			for _, expectedError := range tt.expectedErrors {
+				if !strings.Contains(err.Error(), expectedError) {
+					t.Fatalf("Expected %q to contain %q", err.Error(), expectedError)
+				}
+			}
+		})
+	}
+}
+
+func controlPlaneMachine(name string) clusterv1.Machine {
+	t := true
+	return clusterv1.Machine{
+		ObjectMeta: metav1.ObjectMeta{
+			Namespace: "default",
+			Name:      name,
+			Labels:    ControlPlaneLabelsForCluster("cluster-name"),
+			OwnerReferences: []metav1.OwnerReference{
+				{
+					Kind:       "KubeadmControlPlane",
+					Name:       "control-plane-name",
+					Controller: &t,
+				},
+			},
+		},
+		Status: clusterv1.MachineStatus{
+			NodeRef: &corev1.ObjectReference{
+				Name: name,
+			},
+		},
+	}
+}
+
+func nilNodeRef(machine clusterv1.Machine) clusterv1.Machine {
+	machine.Status.NodeRef = nil
+	return machine
 }

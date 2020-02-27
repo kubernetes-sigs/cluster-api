@@ -713,7 +713,7 @@ func (r *KubeadmConfigReconciler) storeBootstrapData(ctx context.Context, scope 
 	}
 
 	if err := r.Client.Create(ctx, secret); err != nil {
-		return errors.Wrapf(err, "failed to create kubeconfig secret for KubeadmConfig %s/%s", scope.Config.Namespace, scope.Config.Name)
+		return errors.Wrapf(err, "failed to create bootstrap data secret for KubeadmConfig %s/%s", scope.Config.Namespace, scope.Config.Name)
 	}
 
 	scope.Config.Status.DataSecretName = pointer.StringPtr(secret.Name)

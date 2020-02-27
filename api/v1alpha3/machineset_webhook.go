@@ -43,6 +43,11 @@ var _ webhook.Validator = &MachineSet{}
 
 // DefaultingFunction sets default MachineSet field values.
 func (m *MachineSet) Default() {
+	if m.Labels == nil {
+		m.Labels = make(map[string]string)
+	}
+	m.Labels[ClusterLabelName] = m.Spec.ClusterName
+
 	if m.Spec.Replicas == nil {
 		m.Spec.Replicas = pointer.Int32Ptr(1)
 	}

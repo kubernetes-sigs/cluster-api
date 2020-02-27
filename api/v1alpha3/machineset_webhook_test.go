@@ -34,6 +34,7 @@ func TestMachineSetDefault(t *testing.T) {
 
 	md.Default()
 
+	g.Expect(md.Labels[ClusterLabelName]).To(Equal(md.Spec.ClusterName))
 	g.Expect(md.Spec.Replicas).To(Equal(pointer.Int32Ptr(1)))
 	g.Expect(md.Spec.DeletePolicy).To(Equal(string(RandomMachineSetDeletePolicy)))
 	g.Expect(md.Spec.Selector.MatchLabels).To(HaveKeyWithValue(MachineSetLabelName, "test-ms"))

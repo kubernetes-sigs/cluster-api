@@ -22,6 +22,7 @@ import (
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	runtime "k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/validation/field"
+	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha3"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/webhook"
 )
@@ -40,6 +41,11 @@ var _ webhook.Validator = &MachinePool{}
 
 // Default implements webhook.Defaulter so a webhook will be registered for the type
 func (m *MachinePool) Default() {
+	if m.Labels == nil {
+		m.Labels = make(map[string]string)
+	}
+	m.Labels[clusterv1.ClusterLabelName] = m.Spec.ClusterName
+
 	if m.Spec.Template.Spec.Bootstrap.ConfigRef != nil && len(m.Spec.Template.Spec.Bootstrap.ConfigRef.Namespace) == 0 {
 		m.Spec.Template.Spec.Bootstrap.ConfigRef.Namespace = m.Namespace
 	}

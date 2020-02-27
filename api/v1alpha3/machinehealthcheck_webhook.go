@@ -51,6 +51,11 @@ var _ webhook.Validator = &MachineHealthCheck{}
 
 // Default implements webhook.Defaulter so a webhook will be registered for the type
 func (m *MachineHealthCheck) Default() {
+	if m.Labels == nil {
+		m.Labels = make(map[string]string)
+	}
+	m.Labels[ClusterLabelName] = m.Spec.ClusterName
+
 	if m.Spec.MaxUnhealthy == nil {
 		defaultMaxUnhealthy := intstr.FromString("100%")
 		m.Spec.MaxUnhealthy = &defaultMaxUnhealthy

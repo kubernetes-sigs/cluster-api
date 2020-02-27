@@ -40,6 +40,11 @@ var _ webhook.Defaulter = &Machine{}
 
 // Default implements webhook.Defaulter so a webhook will be registered for the type
 func (m *Machine) Default() {
+	if m.Labels == nil {
+		m.Labels = make(map[string]string)
+	}
+	m.Labels[ClusterLabelName] = m.Spec.ClusterName
+
 	if m.Spec.Bootstrap.ConfigRef != nil && len(m.Spec.Bootstrap.ConfigRef.Namespace) == 0 {
 		m.Spec.Bootstrap.ConfigRef.Namespace = m.Namespace
 	}

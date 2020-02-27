@@ -102,6 +102,11 @@ func (m *MachineDeployment) validate(old *MachineDeployment) error {
 // PopulateDefaultsMachineDeployment fills in default field values.
 // This is also called during MachineDeployment sync.
 func PopulateDefaultsMachineDeployment(d *MachineDeployment) {
+	if d.Labels == nil {
+		d.Labels = make(map[string]string)
+	}
+	d.Labels[ClusterLabelName] = d.Spec.ClusterName
+
 	if d.Spec.Replicas == nil {
 		d.Spec.Replicas = pointer.Int32Ptr(1)
 	}

@@ -17,6 +17,7 @@ limitations under the License.
 package internal
 
 import (
+	"context"
 	"crypto/tls"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -31,7 +32,7 @@ type etcdClientGenerator struct {
 	tlsConfig  *tls.Config
 }
 
-func (c *etcdClientGenerator) forNode(name string) (*etcd.Client, error) {
+func (c *etcdClientGenerator) forNode(ctx context.Context, name string) (*etcd.Client, error) {
 	// This does not support external etcd.
 	p := proxy.Proxy{
 		Kind:         "pods",
@@ -49,7 +50,7 @@ func (c *etcdClientGenerator) forNode(name string) (*etcd.Client, error) {
 	if err != nil {
 		return nil, err
 	}
-	customClient, err := etcd.NewClientWithEtcd(etcdclient)
+	customClient, err := etcd.NewClientWithEtcd(ctx, etcdclient)
 	if err != nil {
 		return nil, err
 	}

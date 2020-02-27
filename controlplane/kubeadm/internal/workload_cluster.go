@@ -53,7 +53,7 @@ var (
 )
 
 type etcdClientFor interface {
-	forNode(name string) (*etcd.Client, error)
+	forNode(ctx context.Context, name string) (*etcd.Client, error)
 }
 
 // WorkloadCluster defines all behaviors necessary to upgrade kubernetes on a workload cluster
@@ -74,6 +74,7 @@ type WorkloadCluster interface {
 	UpdateCoreDNS(ctx context.Context, kcp *controlplanev1.KubeadmControlPlane) error
 	RemoveEtcdMemberForMachine(ctx context.Context, machine *clusterv1.Machine) error
 	RemoveMachineFromKubeadmConfigMap(ctx context.Context, machine *clusterv1.Machine) error
+	ForwardEtcdLeadership(ctx context.Context, machine *clusterv1.Machine) error
 }
 
 // Workload defines operations on workload clusters.
@@ -169,7 +170,7 @@ func (w *Workload) removeMemberForNode(ctx context.Context, name string) error {
 	if anotherNode == nil {
 		return errors.Errorf("failed to find a control plane node whose name is not %s", name)
 	}
-	etcdClient, err := w.etcdClientGenerator.forNode(anotherNode.Name)
+	etcdClient, err := w.etcdClientGenerator.forNode(ctx, anotherNode.Name)
 	if err != nil {
 		return errors.Wrap(err, "failed to create etcd client")
 	}
@@ -216,7 +217,7 @@ func (w *Workload) EtcdIsHealthy(ctx context.Context) (HealthCheckResult, error)
 		}
 
 		// Create the etcd Client for the etcd Pod scheduled on the Node
-		etcdClient, err := w.etcdClientGenerator.forNode(name)
+		etcdClient, err := w.etcdClientGenerator.forNode(ctx, name)
 		if err != nil {
 			response[name] = errors.Wrap(err, "failed to create etcd client")
 			continue
@@ -486,6 +487,44 @@ func (w *Workload) ClusterStatus(ctx context.Context) (ClusterStatus, error) {
 	// TODO: Consider adding a third state of 'unknown' when there is an error retrieving the config map.
 	status.HasKubeadmConfig = err == nil
 	return status, nil
+}
+
+// ForwardEtcdLeadership forwards etcd leadership to the first follower
+func (w *Workload) ForwardEtcdLeadership(ctx context.Context, machine *clusterv1.Machine) error {
+	if machine == nil || machine.Status.NodeRef == nil {
+		// Nothing to do, no node for Machine
+		return nil
+	}
+
+	etcdClient, err := w.etcdClientGenerator.forNode(ctx, machine.Status.NodeRef.Name)
+	if err != nil {
+		return errors.Wrap(err, "failed to create etcd Client")
+	}
+
+	// List etcd members. This checks that the member is healthy, because the request goes through consensus.
+	members, err := etcdClient.Members(ctx)
+	if err != nil {
+		return errors.Wrap(err, "failed to list etcd members using etcd client")
+	}
+
+	currentMember := etcdutil.MemberForName(members, machine.Status.NodeRef.Name)
+
+	if currentMember.ID != etcdClient.LeaderID {
+		return nil
+	}
+
+	// If current member is leader, move leadship to first follower
+	for _, member := range members {
+		if member.ID != currentMember.ID {
+			err := etcdClient.MoveLeader(ctx, member.ID)
+			if err != nil {
+				return errors.Wrapf(err, "failed to move leader")
+			}
+			break
+		}
+	}
+
+	return nil
 }
 
 func generateClientCert(caCertEncoded, caKeyEncoded []byte) (tls.Certificate, error) {

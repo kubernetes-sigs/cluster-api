@@ -60,7 +60,7 @@ type MachineHealthCheckReconciler struct {
 	recorder                 record.EventRecorder
 	scheme                   *runtime.Scheme
 	clusterNodeInformers     map[client.ObjectKey]cache.Informer
-	clusterNodeInformersLock *sync.RWMutex
+	clusterNodeInformersLock sync.RWMutex
 }
 
 func (r *MachineHealthCheckReconciler) SetupWithManager(mgr ctrl.Manager, options controller.Options) error {
@@ -101,7 +101,7 @@ func (r *MachineHealthCheckReconciler) SetupWithManager(mgr ctrl.Manager, option
 	r.recorder = mgr.GetEventRecorderFor("machinehealthcheck-controller")
 	r.scheme = mgr.GetScheme()
 	r.clusterNodeInformers = make(map[client.ObjectKey]cache.Informer)
-	r.clusterNodeInformersLock = &sync.RWMutex{}
+	r.clusterNodeInformersLock = sync.RWMutex{}
 	return nil
 }
 

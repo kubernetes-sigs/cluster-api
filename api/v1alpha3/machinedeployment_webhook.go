@@ -49,12 +49,16 @@ func (m *MachineDeployment) Default() {
 
 // ValidateCreate implements webhook.Validator so a webhook will be registered for the type
 func (m *MachineDeployment) ValidateCreate() error {
-	return m.validate()
+	return m.validate(nil)
 }
 
 // ValidateUpdate implements webhook.Validator so a webhook will be registered for the type
 func (m *MachineDeployment) ValidateUpdate(old runtime.Object) error {
-	return m.validate()
+	oldMD, ok := old.(*MachineDeployment)
+	if !ok {
+		return apierrors.NewBadRequest(fmt.Sprintf("expected a MachineDeployment but got a %T", old))
+	}
+	return m.validate(oldMD)
 }
 
 // ValidateDelete implements webhook.Validator so a webhook will be registered for the type
@@ -62,7 +66,7 @@ func (m *MachineDeployment) ValidateDelete() error {
 	return nil
 }
 
-func (m *MachineDeployment) validate() error {
+func (m *MachineDeployment) validate(old *MachineDeployment) error {
 	var allErrs field.ErrorList
 	selector, err := metav1.LabelSelectorAsSelector(&m.Spec.Selector)
 	if err != nil {
@@ -78,6 +82,13 @@ func (m *MachineDeployment) validate() error {
 				m.Spec.Template.Labels,
 				fmt.Sprintf("must match spec.selector %q", selector.String()),
 			),
+		)
+	}
+
+	if old != nil && old.Spec.ClusterName != m.Spec.ClusterName {
+		allErrs = append(
+			allErrs,
+			field.Invalid(field.NewPath("spec", "clusterName"), m.Spec.ClusterName, "field is immutable"),
 		)
 	}
 

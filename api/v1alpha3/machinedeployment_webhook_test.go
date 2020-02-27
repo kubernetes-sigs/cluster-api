@@ -103,10 +103,10 @@ func TestMachineDeploymentValidation(t *testing.T) {
 			}
 			if tt.expectErr {
 				g.Expect(md.ValidateCreate()).NotTo(Succeed())
-				g.Expect(md.ValidateUpdate(nil)).NotTo(Succeed())
+				g.Expect(md.ValidateUpdate(md)).NotTo(Succeed())
 			} else {
 				g.Expect(md.ValidateCreate()).To(Succeed())
-				g.Expect(md.ValidateUpdate(nil)).To(Succeed())
+				g.Expect(md.ValidateUpdate(md)).To(Succeed())
 			}
 		})
 	}
@@ -128,4 +128,50 @@ func TestMachineDeploymentWithSpec(t *testing.T) {
 	md.Default()
 	g.Expect(md.Spec.Selector.MatchLabels).To(HaveKeyWithValue(ClusterLabelName, "test-cluster"))
 	g.Expect(md.Spec.Template.Labels).To(HaveKeyWithValue(ClusterLabelName, "test-cluster"))
+}
+
+func TestMachineDeploymentClusterNameImmutable(t *testing.T) {
+	tests := []struct {
+		name           string
+		oldClusterName string
+		newClusterName string
+		expectErr      bool
+	}{
+		{
+			name:           "when the cluster name has not changed",
+			oldClusterName: "foo",
+			newClusterName: "foo",
+			expectErr:      false,
+		},
+		{
+			name:           "when the cluster name has changed",
+			oldClusterName: "foo",
+			newClusterName: "bar",
+			expectErr:      true,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			g := NewWithT(t)
+
+			newMD := &MachineDeployment{
+				Spec: MachineDeploymentSpec{
+					ClusterName: tt.newClusterName,
+				},
+			}
+
+			oldMD := &MachineDeployment{
+				Spec: MachineDeploymentSpec{
+					ClusterName: tt.oldClusterName,
+				},
+			}
+
+			if tt.expectErr {
+				g.Expect(newMD.ValidateUpdate(oldMD)).NotTo(Succeed())
+			} else {
+				g.Expect(newMD.ValidateUpdate(oldMD)).To(Succeed())
+			}
+		})
+	}
 }

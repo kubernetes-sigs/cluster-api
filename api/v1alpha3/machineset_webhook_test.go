@@ -96,12 +96,58 @@ func TestMachineSetLabelSelectorMatchValidation(t *testing.T) {
 			}
 			if tt.expectErr {
 				g.Expect(ms.ValidateCreate()).NotTo(Succeed())
-				g.Expect(ms.ValidateUpdate(nil)).NotTo(Succeed())
+				g.Expect(ms.ValidateUpdate(ms)).NotTo(Succeed())
 			} else {
 				g.Expect(ms.ValidateCreate()).To(Succeed())
-				g.Expect(ms.ValidateUpdate(nil)).To(Succeed())
+				g.Expect(ms.ValidateUpdate(ms)).To(Succeed())
 			}
 		})
 	}
 
+}
+
+func TestMachineSetClusterNameImmutable(t *testing.T) {
+	tests := []struct {
+		name           string
+		oldClusterName string
+		newClusterName string
+		expectErr      bool
+	}{
+		{
+			name:           "when the cluster name has not changed",
+			oldClusterName: "foo",
+			newClusterName: "foo",
+			expectErr:      false,
+		},
+		{
+			name:           "when the cluster name has changed",
+			oldClusterName: "foo",
+			newClusterName: "bar",
+			expectErr:      true,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			g := NewWithT(t)
+
+			newMS := &MachineSet{
+				Spec: MachineSetSpec{
+					ClusterName: tt.newClusterName,
+				},
+			}
+
+			oldMS := &MachineSet{
+				Spec: MachineSetSpec{
+					ClusterName: tt.oldClusterName,
+				},
+			}
+
+			if tt.expectErr {
+				g.Expect(newMS.ValidateUpdate(oldMS)).NotTo(Succeed())
+			} else {
+				g.Expect(newMS.ValidateUpdate(oldMS)).To(Succeed())
+			}
+		})
+	}
 }

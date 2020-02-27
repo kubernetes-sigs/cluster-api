@@ -68,12 +68,16 @@ func (m *MachineSet) Default() {
 
 // ValidateCreate implements webhook.Validator so a webhook will be registered for the type
 func (m *MachineSet) ValidateCreate() error {
-	return m.validate()
+	return m.validate(nil)
 }
 
 // ValidateUpdate implements webhook.Validator so a webhook will be registered for the type
 func (m *MachineSet) ValidateUpdate(old runtime.Object) error {
-	return m.validate()
+	oldMS, ok := old.(*MachineSet)
+	if !ok {
+		return apierrors.NewBadRequest(fmt.Sprintf("expected a MachineSet but got a %T", old))
+	}
+	return m.validate(oldMS)
 }
 
 // ValidateDelete implements webhook.Validator so a webhook will be registered for the type
@@ -81,7 +85,7 @@ func (m *MachineSet) ValidateDelete() error {
 	return nil
 }
 
-func (m *MachineSet) validate() error {
+func (m *MachineSet) validate(old *MachineSet) error {
 	var allErrs field.ErrorList
 	selector, err := metav1.LabelSelectorAsSelector(&m.Spec.Selector)
 	if err != nil {
@@ -97,6 +101,13 @@ func (m *MachineSet) validate() error {
 				m.Spec.Template.Labels,
 				fmt.Sprintf("must match spec.selector %q", selector.String()),
 			),
+		)
+	}
+
+	if old != nil && old.Spec.ClusterName != m.Spec.ClusterName {
+		allErrs = append(
+			allErrs,
+			field.Invalid(field.NewPath("spec", "clusterName"), m.Spec.ClusterName, "field is immutable"),
 		)
 	}
 

@@ -84,10 +84,10 @@ func TestMachinePoolBootstrapValidation(t *testing.T) {
 			}
 			if tt.expectErr {
 				g.Expect(m.ValidateCreate()).NotTo(Succeed())
-				g.Expect(m.ValidateUpdate(nil)).NotTo(Succeed())
+				g.Expect(m.ValidateUpdate(m)).NotTo(Succeed())
 			} else {
 				g.Expect(m.ValidateCreate()).To(Succeed())
-				g.Expect(m.ValidateUpdate(nil)).To(Succeed())
+				g.Expect(m.ValidateUpdate(m)).To(Succeed())
 			}
 		})
 	}
@@ -149,10 +149,66 @@ func TestMachinePoolNamespaceValidation(t *testing.T) {
 
 			if tt.expectErr {
 				g.Expect(m.ValidateCreate()).NotTo(Succeed())
-				g.Expect(m.ValidateUpdate(nil)).NotTo(Succeed())
+				g.Expect(m.ValidateUpdate(m)).NotTo(Succeed())
 			} else {
 				g.Expect(m.ValidateCreate()).To(Succeed())
-				g.Expect(m.ValidateUpdate(nil)).To(Succeed())
+				g.Expect(m.ValidateUpdate(m)).To(Succeed())
+			}
+		})
+	}
+}
+
+func TestMachinePoolClusterNameImmutable(t *testing.T) {
+	tests := []struct {
+		name           string
+		oldClusterName string
+		newClusterName string
+		expectErr      bool
+	}{
+		{
+			name:           "when the cluster name has not changed",
+			oldClusterName: "foo",
+			newClusterName: "foo",
+			expectErr:      false,
+		},
+		{
+			name:           "when the cluster name has changed",
+			oldClusterName: "foo",
+			newClusterName: "bar",
+			expectErr:      true,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			g := NewWithT(t)
+
+			newMP := &MachinePool{
+				Spec: MachinePoolSpec{
+					ClusterName: tt.newClusterName,
+					Template: MachineTemplateSpec{
+						Spec: MachineSpec{
+							Bootstrap: Bootstrap{ConfigRef: &corev1.ObjectReference{}},
+						},
+					},
+				},
+			}
+
+			oldMP := &MachinePool{
+				Spec: MachinePoolSpec{
+					ClusterName: tt.oldClusterName,
+					Template: MachineTemplateSpec{
+						Spec: MachineSpec{
+							Bootstrap: Bootstrap{ConfigRef: &corev1.ObjectReference{}},
+						},
+					},
+				},
+			}
+
+			if tt.expectErr {
+				g.Expect(newMP.ValidateUpdate(oldMP)).NotTo(Succeed())
+			} else {
+				g.Expect(newMP.ValidateUpdate(oldMP)).To(Succeed())
 			}
 		})
 	}

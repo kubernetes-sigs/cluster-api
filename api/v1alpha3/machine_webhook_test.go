@@ -74,10 +74,10 @@ func TestMachineBootstrapValidation(t *testing.T) {
 			}
 			if tt.expectErr {
 				g.Expect(m.ValidateCreate()).NotTo(Succeed())
-				g.Expect(m.ValidateUpdate(nil)).NotTo(Succeed())
+				g.Expect(m.ValidateUpdate(m)).NotTo(Succeed())
 			} else {
 				g.Expect(m.ValidateCreate()).To(Succeed())
-				g.Expect(m.ValidateUpdate(nil)).To(Succeed())
+				g.Expect(m.ValidateUpdate(m)).To(Succeed())
 			}
 		})
 	}
@@ -132,10 +132,57 @@ func TestMachineNamespaceValidation(t *testing.T) {
 
 			if tt.expectErr {
 				g.Expect(m.ValidateCreate()).NotTo(Succeed())
-				g.Expect(m.ValidateUpdate(nil)).NotTo(Succeed())
+				g.Expect(m.ValidateUpdate(m)).NotTo(Succeed())
 			} else {
 				g.Expect(m.ValidateCreate()).To(Succeed())
-				g.Expect(m.ValidateUpdate(nil)).To(Succeed())
+				g.Expect(m.ValidateUpdate(m)).To(Succeed())
+			}
+		})
+	}
+}
+
+func TestMachineClusterNameImmutable(t *testing.T) {
+	tests := []struct {
+		name           string
+		oldClusterName string
+		newClusterName string
+		expectErr      bool
+	}{
+		{
+			name:           "when the cluster name has not changed",
+			oldClusterName: "foo",
+			newClusterName: "foo",
+			expectErr:      false,
+		},
+		{
+			name:           "when the cluster name has changed",
+			oldClusterName: "foo",
+			newClusterName: "bar",
+			expectErr:      true,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			g := NewWithT(t)
+
+			newMachine := &Machine{
+				Spec: MachineSpec{
+					ClusterName: tt.newClusterName,
+					Bootstrap:   Bootstrap{ConfigRef: &corev1.ObjectReference{}},
+				},
+			}
+			oldMachine := &Machine{
+				Spec: MachineSpec{
+					ClusterName: tt.oldClusterName,
+					Bootstrap:   Bootstrap{ConfigRef: &corev1.ObjectReference{}},
+				},
+			}
+
+			if tt.expectErr {
+				g.Expect(newMachine.ValidateUpdate(oldMachine)).NotTo(Succeed())
+			} else {
+				g.Expect(newMachine.ValidateUpdate(oldMachine)).To(Succeed())
 			}
 		})
 	}

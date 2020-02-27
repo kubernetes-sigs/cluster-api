@@ -17,6 +17,8 @@ limitations under the License.
 package v1alpha3
 
 import (
+	"fmt"
+
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	runtime "k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/validation/field"
@@ -49,20 +51,24 @@ func (m *MachinePool) Default() {
 
 // ValidateCreate implements webhook.Validator so a webhook will be registered for the type
 func (m *MachinePool) ValidateCreate() error {
-	return m.validate()
+	return m.validate(nil)
 }
 
 // ValidateUpdate implements webhook.Validator so a webhook will be registered for the type
 func (m *MachinePool) ValidateUpdate(old runtime.Object) error {
-	return m.validate()
+	oldMP, ok := old.(*MachinePool)
+	if !ok {
+		return apierrors.NewBadRequest(fmt.Sprintf("expected a MachinePool but got a %T", old))
+	}
+	return m.validate(oldMP)
 }
 
 // ValidateDelete implements webhook.Validator so a webhook will be registered for the type
 func (m *MachinePool) ValidateDelete() error {
-	return m.validate()
+	return m.validate(nil)
 }
 
-func (m *MachinePool) validate() error {
+func (m *MachinePool) validate(old *MachinePool) error {
 	var allErrs field.ErrorList
 	if m.Spec.Template.Spec.Bootstrap.ConfigRef == nil && m.Spec.Template.Spec.Bootstrap.DataSecretName == nil {
 		allErrs = append(
@@ -93,6 +99,13 @@ func (m *MachinePool) validate() error {
 				m.Spec.Template.Spec.InfrastructureRef.Namespace,
 				"must match metadata.namespace",
 			),
+		)
+	}
+
+	if old != nil && old.Spec.ClusterName != m.Spec.ClusterName {
+		allErrs = append(
+			allErrs,
+			field.Invalid(field.NewPath("spec", "clusterName"), m.Spec.ClusterName, "field is immutable"),
 		)
 	}
 

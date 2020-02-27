@@ -17,6 +17,8 @@ limitations under the License.
 package v1alpha3
 
 import (
+	"fmt"
+
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	runtime "k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/validation/field"
@@ -49,12 +51,16 @@ func (m *Machine) Default() {
 
 // ValidateCreate implements webhook.Validator so a webhook will be registered for the type
 func (m *Machine) ValidateCreate() error {
-	return m.validate()
+	return m.validate(nil)
 }
 
 // ValidateUpdate implements webhook.Validator so a webhook will be registered for the type
 func (m *Machine) ValidateUpdate(old runtime.Object) error {
-	return m.validate()
+	oldM, ok := old.(*Machine)
+	if !ok {
+		return apierrors.NewBadRequest(fmt.Sprintf("expected a Machine but got a %T", old))
+	}
+	return m.validate(oldM)
 }
 
 // ValidateDelete implements webhook.Validator so a webhook will be registered for the type
@@ -62,7 +68,7 @@ func (m *Machine) ValidateDelete() error {
 	return nil
 }
 
-func (m *Machine) validate() error {
+func (m *Machine) validate(old *Machine) error {
 	var allErrs field.ErrorList
 	if m.Spec.Bootstrap.ConfigRef == nil && m.Spec.Bootstrap.DataSecretName == nil {
 		allErrs = append(
@@ -93,6 +99,13 @@ func (m *Machine) validate() error {
 				m.Spec.InfrastructureRef.Namespace,
 				"must match metadata.namespace",
 			),
+		)
+	}
+
+	if old != nil && old.Spec.ClusterName != m.Spec.ClusterName {
+		allErrs = append(
+			allErrs,
+			field.Invalid(field.NewPath("spec", "clusterName"), m.Spec.ClusterName, "field is immutable"),
 		)
 	}
 

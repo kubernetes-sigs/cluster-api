@@ -25,6 +25,7 @@ import (
 	"github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/utils/pointer"
 	utilconversion "sigs.k8s.io/cluster-api/util/conversion"
@@ -43,6 +44,8 @@ var (
 )
 
 func (r *MachineReconciler) reconcilePhase(_ context.Context, m *clusterv1.Machine) {
+	originalPhase := m.Status.Phase
+
 	// Set the phase to "pending" if nil.
 	if m.Status.Phase == "" {
 		m.Status.SetTypedPhase(clusterv1.MachinePhasePending)
@@ -71,6 +74,12 @@ func (r *MachineReconciler) reconcilePhase(_ context.Context, m *clusterv1.Machi
 	// Set the phase to "deleting" if the deletion timestamp is set.
 	if !m.DeletionTimestamp.IsZero() {
 		m.Status.SetTypedPhase(clusterv1.MachinePhaseDeleting)
+	}
+
+	// If the phase has changed, update the LastUpdated timestamp
+	if m.Status.Phase != originalPhase {
+		now := metav1.Now()
+		m.Status.LastUpdated = &now
 	}
 }
 

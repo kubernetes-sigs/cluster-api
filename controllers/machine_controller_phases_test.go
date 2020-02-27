@@ -168,6 +168,9 @@ var _ = Describe("Reconcile Machine Phases", func() {
 
 		r.reconcilePhase(context.Background(), machine)
 		Expect(machine.Status.GetTypedPhase()).To(Equal(clusterv1.MachinePhasePending))
+
+		// LastUpdated should be set as the phase changes
+		Expect(machine.Status.LastUpdated).ToNot(BeNil())
 	})
 
 	It("Should set `Provisioning` when bootstrap is ready", func() {
@@ -181,6 +184,10 @@ var _ = Describe("Reconcile Machine Phases", func() {
 
 		err = unstructured.SetNestedField(bootstrapConfig.Object, "secret-data", "status", "dataSecretName")
 		Expect(err).NotTo(HaveOccurred())
+
+		// Set the LastUpdated to be able to verify it is updated when the phase changes
+		lastUpdated := metav1.NewTime(time.Now().Add(-10 * time.Second))
+		machine.Status.LastUpdated = &lastUpdated
 
 		r := &MachineReconciler{
 			Client: fake.NewFakeClientWithScheme(scheme.Scheme,
@@ -202,6 +209,10 @@ var _ = Describe("Reconcile Machine Phases", func() {
 
 		r.reconcilePhase(context.Background(), machine)
 		Expect(machine.Status.GetTypedPhase()).To(Equal(clusterv1.MachinePhaseProvisioning))
+
+		// Verify that the LastUpdated timestamp was updated
+		Expect(machine.Status.LastUpdated).ToNot(BeNil())
+		Expect(machine.Status.LastUpdated.After(lastUpdated.Time)).To(BeTrue())
 	})
 
 	It("Should set `Running` when bootstrap and infra is ready", func() {
@@ -241,6 +252,10 @@ var _ = Describe("Reconcile Machine Phases", func() {
 		// Set NodeRef.
 		machine.Status.NodeRef = &corev1.ObjectReference{Kind: "Node", Name: "machine-test-node"}
 
+		// Set the LastUpdated to be able to verify it is updated when the phase changes
+		lastUpdated := metav1.NewTime(time.Now().Add(-10 * time.Second))
+		machine.Status.LastUpdated = &lastUpdated
+
 		r := &MachineReconciler{
 			Client: fake.NewFakeClientWithScheme(scheme.Scheme,
 				defaultCluster,
@@ -263,6 +278,10 @@ var _ = Describe("Reconcile Machine Phases", func() {
 
 		r.reconcilePhase(context.Background(), machine)
 		Expect(machine.Status.GetTypedPhase()).To(Equal(clusterv1.MachinePhaseRunning))
+
+		// Verify that the LastUpdated timestamp was updated
+		Expect(machine.Status.LastUpdated).ToNot(BeNil())
+		Expect(machine.Status.LastUpdated.After(lastUpdated.Time)).To(BeTrue())
 	})
 
 	It("Should set `Running` when bootstrap and infra is ready with no Status.Addresses", func() {
@@ -287,6 +306,10 @@ var _ = Describe("Reconcile Machine Phases", func() {
 		// Set NodeRef.
 		machine.Status.NodeRef = &corev1.ObjectReference{Kind: "Node", Name: "machine-test-node"}
 
+		// Set the LastUpdated to be able to verify it is updated when the phase changes
+		lastUpdated := metav1.NewTime(time.Now().Add(-10 * time.Second))
+		machine.Status.LastUpdated = &lastUpdated
+
 		r := &MachineReconciler{
 			Client: fake.NewFakeClientWithScheme(scheme.Scheme,
 				defaultCluster,
@@ -308,6 +331,10 @@ var _ = Describe("Reconcile Machine Phases", func() {
 
 		r.reconcilePhase(context.Background(), machine)
 		Expect(machine.Status.GetTypedPhase()).To(Equal(clusterv1.MachinePhaseRunning))
+
+		// Verify that the LastUpdated timestamp was updated
+		Expect(machine.Status.LastUpdated).ToNot(BeNil())
+		Expect(machine.Status.LastUpdated.After(lastUpdated.Time)).To(BeTrue())
 	})
 
 	It("Should set `Running` when bootstrap, infra, and NodeRef is ready", func() {
@@ -344,6 +371,10 @@ var _ = Describe("Reconcile Machine Phases", func() {
 		// Set NodeRef.
 		machine.Status.NodeRef = &corev1.ObjectReference{Kind: "Node", Name: "machine-test-node"}
 
+		// Set the LastUpdated to be able to verify it is updated when the phase changes
+		lastUpdated := metav1.NewTime(time.Now().Add(-10 * time.Second))
+		machine.Status.LastUpdated = &lastUpdated
+
 		r := &MachineReconciler{
 			Client: fake.NewFakeClientWithScheme(scheme.Scheme,
 				defaultCluster,
@@ -364,6 +395,10 @@ var _ = Describe("Reconcile Machine Phases", func() {
 
 		r.reconcilePhase(context.Background(), machine)
 		Expect(machine.Status.GetTypedPhase()).To(Equal(clusterv1.MachinePhaseRunning))
+
+		// Verify that the LastUpdated timestamp was updated
+		Expect(machine.Status.LastUpdated).ToNot(BeNil())
+		Expect(machine.Status.LastUpdated.After(lastUpdated.Time)).To(BeTrue())
 	})
 
 	It("Should set `Provisioned` when there is a NodeRef but infra is not ready ", func() {
@@ -380,6 +415,10 @@ var _ = Describe("Reconcile Machine Phases", func() {
 
 		// Set NodeRef.
 		machine.Status.NodeRef = &corev1.ObjectReference{Kind: "Node", Name: "machine-test-node"}
+
+		// Set the LastUpdated to be able to verify it is updated when the phase changes
+		lastUpdated := metav1.NewTime(time.Now().Add(-10 * time.Second))
+		machine.Status.LastUpdated = &lastUpdated
 
 		r := &MachineReconciler{
 			Client: fake.NewFakeClientWithScheme(scheme.Scheme,
@@ -401,6 +440,10 @@ var _ = Describe("Reconcile Machine Phases", func() {
 
 		r.reconcilePhase(context.Background(), machine)
 		Expect(machine.Status.GetTypedPhase()).To(Equal(clusterv1.MachinePhaseProvisioned))
+
+		// Verify that the LastUpdated timestamp was updated
+		Expect(machine.Status.LastUpdated).ToNot(BeNil())
+		Expect(machine.Status.LastUpdated.After(lastUpdated.Time)).To(BeTrue())
 	})
 
 	It("Should set `Deleting` when Machine is being deleted", func() {
@@ -440,6 +483,10 @@ var _ = Describe("Reconcile Machine Phases", func() {
 		// Set Deletion Timestamp.
 		machine.SetDeletionTimestamp(&deletionTimestamp)
 
+		// Set the LastUpdated to be able to verify it is updated when the phase changes
+		lastUpdated := metav1.NewTime(time.Now().Add(-10 * time.Second))
+		machine.Status.LastUpdated = &lastUpdated
+
 		r := &MachineReconciler{
 			Client: fake.NewFakeClientWithScheme(scheme.Scheme,
 				defaultCluster,
@@ -460,6 +507,10 @@ var _ = Describe("Reconcile Machine Phases", func() {
 
 		r.reconcilePhase(context.Background(), machine)
 		Expect(machine.Status.GetTypedPhase()).To(Equal(clusterv1.MachinePhaseDeleting))
+
+		// Verify that the LastUpdated timestamp was updated
+		Expect(machine.Status.LastUpdated).ToNot(BeNil())
+		Expect(machine.Status.LastUpdated.After(lastUpdated.Time)).To(BeTrue())
 	})
 })
 

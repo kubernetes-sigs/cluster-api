@@ -35,15 +35,13 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 	kerrors "k8s.io/apimachinery/pkg/util/errors"
 	"k8s.io/client-go/kubernetes/scheme"
-	"k8s.io/client-go/rest"
+	"sigs.k8s.io/cluster-api/controlplane/kubeadm/internal/etcd"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	ctrlclient "sigs.k8s.io/controller-runtime/pkg/client"
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha3"
 	"sigs.k8s.io/cluster-api/controllers/remote"
-	"sigs.k8s.io/cluster-api/controlplane/kubeadm/internal/etcd"
 	etcdutil "sigs.k8s.io/cluster-api/controlplane/kubeadm/internal/etcd/util"
-	"sigs.k8s.io/cluster-api/controlplane/kubeadm/internal/proxy"
 	"sigs.k8s.io/cluster-api/util/certs"
 	"sigs.k8s.io/cluster-api/util/secret"
 )
@@ -69,8 +67,7 @@ func (m *ManagementCluster) GetMachinesForCluster(ctx context.Context, cluster t
 }
 
 // getCluster builds a cluster object.
-// The cluster is also populated with secrets stored on the management cluster that is required for
-// secure internal pod connections.
+// The cluster comes with an etcd client generator to connect to any etcd pod living on a managed machine.
 func (m *ManagementCluster) getCluster(ctx context.Context, clusterKey types.NamespacedName) (*cluster, error) {
 	// TODO(chuckha): Unroll remote.NewClusterClient if we are unhappy with getting a restConfig twice.
 	// TODO(chuckha): Inject this dependency if necessary.
@@ -87,11 +84,23 @@ func (m *ManagementCluster) getCluster(ctx context.Context, clusterKey types.Nam
 	if err != nil {
 		return nil, err
 	}
+	clientCert, err := generateClientCert(etcdCACert, etcdCAKey)
+	if err != nil {
+		return nil, err
+	}
+	caPool := x509.NewCertPool()
+	caPool.AppendCertsFromPEM(etcdCACert)
+	cfg := &tls.Config{
+		RootCAs:      caPool,
+		Certificates: []tls.Certificate{clientCert},
+	}
+
 	return &cluster{
-		client:     c,
-		restConfig: restConfig,
-		etcdCACert: etcdCACert,
-		etcdCAKey:  etcdCAKey,
+		client: c,
+		etcdClientGenerator: &etcdClientGenerator{
+			restConfig: restConfig,
+			tlsConfig:  cfg,
+		},
 	}, nil
 }
 
@@ -282,28 +291,14 @@ func (m *ManagementCluster) RemoveEtcdMemberForMachine(ctx context.Context, clus
 	return cluster.removeMemberForNode(ctx, machine.Status.NodeRef.Name)
 }
 
-// cluster are operations on target clusters.
-type cluster struct {
-	client ctrlclient.Client
-	// restConfig is required for the proxy.
-	restConfig            *rest.Config
-	etcdCACert, etcdCAKey []byte
+type etcdClientFor interface {
+	forNode(name string) (*etcd.Client, error)
 }
 
-// generateEtcdTLSClientBundle builds an etcd client TLS bundle from the Etcd CA for this cluster.
-func (c *cluster) generateEtcdTLSClientBundle() (*tls.Config, error) {
-	clientCert, err := generateClientCert(c.etcdCACert, c.etcdCAKey)
-	if err != nil {
-		return nil, err
-	}
-
-	caPool := x509.NewCertPool()
-	caPool.AppendCertsFromPEM(c.etcdCACert)
-
-	return &tls.Config{
-		RootCAs:      caPool,
-		Certificates: []tls.Certificate{clientCert},
-	}, nil
+// cluster are operations on target clusters.
+type cluster struct {
+	client              ctrlclient.Client
+	etcdClientGenerator etcdClientFor
 }
 
 func (c *cluster) getControlPlaneNodes(ctx context.Context) (*corev1.NodeList, error) {
@@ -369,13 +364,7 @@ func (c *cluster) controlPlaneIsHealthy(ctx context.Context) (healthCheckResult,
 }
 
 func (c *cluster) removeMemberForNode(ctx context.Context, nodeName string) error {
-	tlsConfig, err := c.generateEtcdTLSClientBundle()
-	if err != nil {
-		return err
-	}
-
-	// Create the etcd client for the etcd Pod scheduled on the Node
-	etcdClient, err := c.getEtcdClientForNode(nodeName, tlsConfig)
+	etcdClient, err := c.etcdClientGenerator.forNode(nodeName)
 	if err != nil {
 		return errors.Wrap(err, "failed to create etcd client")
 	}
@@ -412,11 +401,6 @@ func (c *cluster) etcdIsHealthy(ctx context.Context) (healthCheckResult, error) 
 		return nil, err
 	}
 
-	tlsConfig, err := c.generateEtcdTLSClientBundle()
-	if err != nil {
-		return nil, err
-	}
-
 	response := make(map[string]error)
 	for _, node := range controlPlaneNodes.Items {
 		name := node.Name
@@ -427,7 +411,7 @@ func (c *cluster) etcdIsHealthy(ctx context.Context) (healthCheckResult, error) 
 		}
 
 		// Create the etcd client for the etcd Pod scheduled on the Node
-		etcdClient, err := c.getEtcdClientForNode(name, tlsConfig)
+		etcdClient, err := c.etcdClientGenerator.forNode(name)
 		if err != nil {
 			response[name] = errors.Wrap(err, "failed to create etcd client")
 			continue
@@ -476,32 +460,6 @@ func (c *cluster) etcdIsHealthy(ctx context.Context) (healthCheckResult, error) 
 	}
 
 	return response, nil
-}
-
-// getEtcdClientForNode returns a client that talks directly to an etcd instance living on a particular node.
-func (c *cluster) getEtcdClientForNode(nodeName string, tlsConfig *tls.Config) (*etcd.Client, error) {
-	// This does not support external etcd.
-	p := proxy.Proxy{
-		Kind:         "pods",
-		Namespace:    metav1.NamespaceSystem, // TODO, can etcd ever run in a different namespace?
-		ResourceName: staticPodName("etcd", nodeName),
-		KubeConfig:   c.restConfig,
-		TLSConfig:    tlsConfig,
-		Port:         2379, // TODO: the pod doesn't expose a port. Is this a problem?
-	}
-	dialer, err := proxy.NewDialer(p)
-	if err != nil {
-		return nil, err
-	}
-	etcdclient, err := etcd.NewEtcdClient("127.0.0.1", dialer.DialContextWithAddr, tlsConfig)
-	if err != nil {
-		return nil, err
-	}
-	customClient, err := etcd.NewClientWithEtcd(etcdclient)
-	if err != nil {
-		return nil, err
-	}
-	return customClient, nil
 }
 
 func generateClientCert(caCertEncoded, caKeyEncoded []byte) (tls.Certificate, error) {

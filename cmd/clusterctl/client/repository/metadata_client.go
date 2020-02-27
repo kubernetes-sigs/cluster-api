@@ -185,7 +185,7 @@ func (f *metadataClient) getEmbeddedMetadata() *clusterctlv1.Metadata {
 					// older version are not supported by clusterctl
 				},
 			}
-		case config.BareMetalProviderName:
+		case config.Metal3ProviderName:
 			return &clusterctlv1.Metadata{
 				TypeMeta: metav1.TypeMeta{
 					APIVersion: clusterctlv1.GroupVersion.String(),

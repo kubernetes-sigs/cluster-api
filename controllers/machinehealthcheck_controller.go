@@ -56,10 +56,11 @@ type MachineHealthCheckReconciler struct {
 	Client client.Client
 	Log    logr.Logger
 
-	controller           controller.Controller
-	recorder             record.EventRecorder
-	scheme               *runtime.Scheme
-	clusterNodeInformers *sync.Map
+	controller               controller.Controller
+	recorder                 record.EventRecorder
+	scheme                   *runtime.Scheme
+	clusterNodeInformers     map[client.ObjectKey]cache.Informer
+	clusterNodeInformersLock *sync.RWMutex
 }
 
 func (r *MachineHealthCheckReconciler) SetupWithManager(mgr ctrl.Manager, options controller.Options) error {
@@ -99,7 +100,8 @@ func (r *MachineHealthCheckReconciler) SetupWithManager(mgr ctrl.Manager, option
 	r.controller = controller
 	r.recorder = mgr.GetEventRecorderFor("machinehealthcheck-controller")
 	r.scheme = mgr.GetScheme()
-	r.clusterNodeInformers = &sync.Map{}
+	r.clusterNodeInformers = make(map[client.ObjectKey]cache.Informer)
+	r.clusterNodeInformersLock = &sync.RWMutex{}
 	return nil
 }
 
@@ -322,15 +324,34 @@ func (r *MachineHealthCheckReconciler) getMachineFromNode(nodeName string) (*clu
 }
 
 func (r *MachineHealthCheckReconciler) watchClusterNodes(ctx context.Context, c client.Client, cluster *clusterv1.Cluster) error {
-	// Ensure that concurrent reconciles don't clash when setting up watches
-
 	key := util.ObjectKey(cluster)
-	if _, ok := r.loadClusterNodeInformer(key); ok {
+	if _, ok := r.getClusterNodeInformer(key); ok {
 		// watch was already set up for this cluster
 		return nil
 	}
 
-	config, err := remote.RESTConfig(ctx, c, util.ObjectKey(cluster))
+	return r.createClusterNodeInformer(ctx, c, key)
+}
+
+func (r *MachineHealthCheckReconciler) getClusterNodeInformer(key client.ObjectKey) (cache.Informer, bool) {
+	r.clusterNodeInformersLock.RLock()
+	defer r.clusterNodeInformersLock.RUnlock()
+
+	informer, ok := r.clusterNodeInformers[key]
+	return informer, ok
+}
+
+func (r *MachineHealthCheckReconciler) createClusterNodeInformer(ctx context.Context, c client.Client, key client.ObjectKey) error {
+	r.clusterNodeInformersLock.Lock()
+	defer r.clusterNodeInformersLock.Unlock()
+
+	// Double check the key still doesn't exist under write lock
+	if _, ok := r.clusterNodeInformers[key]; ok {
+		// An informer was created while waiting for the lock
+		return nil
+	}
+
+	config, err := remote.RESTConfig(ctx, c, key)
 	if err != nil {
 		return errors.Wrap(err, "error fetching remote cluster config")
 	}
@@ -353,24 +374,8 @@ func (r *MachineHealthCheckReconciler) watchClusterNodes(ctx context.Context, c 
 		return errors.Wrap(err, "error watching nodes on target cluster")
 	}
 
-	r.storeClusterNodeInformer(key, nodeInformer)
+	r.clusterNodeInformers[key] = nodeInformer
 	return nil
-}
-
-func (r *MachineHealthCheckReconciler) loadClusterNodeInformer(key client.ObjectKey) (cache.Informer, bool) {
-	val, ok := r.clusterNodeInformers.Load(key)
-	if !ok {
-		return nil, false
-	}
-	informer, ok := val.(cache.Informer)
-	if !ok {
-		return nil, false
-	}
-	return informer, true
-}
-
-func (r *MachineHealthCheckReconciler) storeClusterNodeInformer(key client.ObjectKey, nodeInformer cache.Informer) {
-	r.clusterNodeInformers.Store(key, nodeInformer)
 }
 
 func (r *MachineHealthCheckReconciler) indexMachineByNodeName(object runtime.Object) []string {

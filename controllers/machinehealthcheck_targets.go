@@ -40,9 +40,10 @@ const (
 // healthCheckTarget contains the information required to perform a health check
 // on the node to determine if any remediation is required.
 type healthCheckTarget struct {
-	Machine *clusterv1.Machine
-	Node    *corev1.Node
-	MHC     *clusterv1.MachineHealthCheck
+	Machine     *clusterv1.Machine
+	Node        *corev1.Node
+	MHC         *clusterv1.MachineHealthCheck
+	nodeMissing bool
 }
 
 func (t *healthCheckTarget) string() string {
@@ -81,6 +82,11 @@ func (t *healthCheckTarget) needsRemediation(logger logr.Logger, timeoutForMachi
 		return true, time.Duration(0)
 	}
 
+	// the node does not exist
+	if t.nodeMissing {
+		return true, time.Duration(0)
+	}
+
 	// the node has not been set yet
 	if t.Node == nil {
 		// status not updated yet
@@ -94,11 +100,6 @@ func (t *healthCheckTarget) needsRemediation(logger logr.Logger, timeoutForMachi
 		durationUnhealthy := now.Sub(t.Machine.Status.LastUpdated.Time)
 		nextCheck := timeoutForMachineToHaveNode - durationUnhealthy + time.Second
 		return false, nextCheck
-	}
-
-	// the node does not exist
-	if t.Node != nil && t.Node.UID == "" {
-		return true, time.Duration(0)
 	}
 
 	// check conditions
@@ -149,9 +150,9 @@ func (r *MachineHealthCheckReconciler) getTargetsFromMHC(clusterClient client.Cl
 			if !apierrors.IsNotFound(err) {
 				return nil, errors.Wrap(err, "error getting node")
 			}
-			// a node with only a name represents a
-			// not found node in the target
-			node.Name = machines[k].Status.NodeRef.Name
+
+			// A node has been seen for this machine, but it no longer exists
+			target.nodeMissing = true
 		}
 		target.Node = node
 		targets = append(targets, target)

@@ -89,13 +89,10 @@ func TestGetTargetsFromMHC(t *testing.T) {
 			toCreate: append(baseObjects, testMachine1),
 			expectedTargets: []healthCheckTarget{
 				{
-					Machine: testMachine1,
-					MHC:     testMHC,
-					Node: &corev1.Node{
-						ObjectMeta: metav1.ObjectMeta{
-							Name: "node1",
-						},
-					},
+					Machine:     testMachine1,
+					MHC:         testMHC,
+					Node:        &corev1.Node{},
+					nodeMissing: true,
 				},
 			},
 		},
@@ -200,44 +197,48 @@ func TestHealthCheckTargets(t *testing.T) {
 	}
 
 	// Target for when the Node has been seen, but has now gone
-	testNodeGoneAway := newTestNode("node1")
 	nodeGoneAway := healthCheckTarget{
-		MHC:     testMHC,
-		Machine: testMachine,
-		Node:    testNodeGoneAway,
+		MHC:         testMHC,
+		Machine:     testMachine,
+		Node:        &corev1.Node{},
+		nodeMissing: true,
 	}
 
 	// Target for when the node has been in an unknown state for shorter than the timeout
 	testNodeUnknown200 := newTestUnhealthyNode("node1", corev1.NodeReady, corev1.ConditionUnknown, 200*time.Second)
 	nodeUnknown200 := healthCheckTarget{
-		MHC:     testMHC,
-		Machine: testMachine,
-		Node:    testNodeUnknown200,
+		MHC:         testMHC,
+		Machine:     testMachine,
+		Node:        testNodeUnknown200,
+		nodeMissing: false,
 	}
 
 	// Second Target for when the node has been in an unknown state for shorter than the timeout
 	testNodeUnknown100 := newTestUnhealthyNode("node1", corev1.NodeReady, corev1.ConditionUnknown, 100*time.Second)
 	nodeUnknown100 := healthCheckTarget{
-		MHC:     testMHC,
-		Machine: testMachine,
-		Node:    testNodeUnknown100,
+		MHC:         testMHC,
+		Machine:     testMachine,
+		Node:        testNodeUnknown100,
+		nodeMissing: false,
 	}
 
 	// Target for when the node has been in an unknown state for longer than the timeout
 	testNodeUnknown400 := newTestUnhealthyNode("node1", corev1.NodeReady, corev1.ConditionUnknown, 400*time.Second)
 	nodeUnknown400 := healthCheckTarget{
-		MHC:     testMHC,
-		Machine: testMachine,
-		Node:    testNodeUnknown400,
+		MHC:         testMHC,
+		Machine:     testMachine,
+		Node:        testNodeUnknown400,
+		nodeMissing: false,
 	}
 
 	// Target for when a node is healthy
 	testNodeHealthy := newTestNode("node1")
 	testNodeHealthy.UID = "12345"
 	nodeHealthy := healthCheckTarget{
-		MHC:     testMHC,
-		Machine: testMachine,
-		Node:    testNodeHealthy,
+		MHC:         testMHC,
+		Machine:     testMachine,
+		Node:        testNodeHealthy,
+		nodeMissing: false,
 	}
 
 	testCases := []struct {

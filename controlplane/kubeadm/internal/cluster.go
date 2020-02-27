@@ -469,10 +469,6 @@ func (c *cluster) etcdIsHealthy(ctx context.Context) (healthCheckResult, error) 
 		}
 	}
 
-	if len(response) > 0 {
-		return response, errors.New("could not check etcd member health")
-	}
-
 	// Check that there is exactly one etcd member for every control plane machine.
 	// There should be no etcd members added "out of band.""
 	if len(controlPlaneNodes.Items) != len(knownMemberIDSet) {

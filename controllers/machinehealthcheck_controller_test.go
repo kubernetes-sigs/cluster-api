@@ -33,6 +33,7 @@ import (
 	"k8s.io/client-go/kubernetes/scheme"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha3"
 	"sigs.k8s.io/cluster-api/controllers/external"
+	"sigs.k8s.io/cluster-api/util"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
 	"sigs.k8s.io/controller-runtime/pkg/envtest"
@@ -114,7 +115,7 @@ var _ = Describe("MachineHealthCheck Reconciler", func() {
 
 			Eventually(func() map[string]string {
 				mhc := &clusterv1.MachineHealthCheck{}
-				err := k8sClient.Get(ctx, client.ObjectKey{Namespace: mhcToCreate.GetNamespace(), Name: mhcToCreate.GetName()}, mhc)
+				err := k8sClient.Get(ctx, util.ObjectKey(mhcToCreate), mhc)
 				if err != nil {
 					return nil
 				}
@@ -165,7 +166,7 @@ var _ = Describe("MachineHealthCheck Reconciler", func() {
 
 			Eventually(func() []metav1.OwnerReference {
 				mhc := &clusterv1.MachineHealthCheck{}
-				err := k8sClient.Get(ctx, client.ObjectKey{Namespace: mhcToCreate.GetNamespace(), Name: mhcToCreate.GetName()}, mhc)
+				err := k8sClient.Get(ctx, util.ObjectKey(mhcToCreate), mhc)
 				if err != nil {
 					return []metav1.OwnerReference{}
 				}
@@ -207,7 +208,7 @@ func cleanupTestMachineHealthChecks(ctx context.Context, c client.Client) error 
 func ownerReferenceForCluster(ctx context.Context, c *clusterv1.Cluster) metav1.OwnerReference {
 	// Fetch the cluster to populate the UID
 	cc := &clusterv1.Cluster{}
-	Expect(k8sClient.Get(ctx, client.ObjectKey{Namespace: c.GetNamespace(), Name: c.GetName()}, cc)).To(Succeed())
+	Expect(k8sClient.Get(ctx, util.ObjectKey(c), cc)).To(Succeed())
 
 	return metav1.OwnerReference{
 		APIVersion: clusterv1.GroupVersion.String(),
@@ -341,11 +342,8 @@ func TestClusterToMachineHealthCheck(t *testing.T) {
 					gs.Expect(r.Client.Delete(ctx, &o)).To(Succeed())
 				}()
 				// Check the cache is populated
-				key, err := client.ObjectKeyFromObject(&o)
-				gs.Expect(err).ToNot(HaveOccurred())
-
 				getObj := func() error {
-					return r.Client.Get(ctx, key, &clusterv1.MachineHealthCheck{})
+					return r.Client.Get(ctx, util.ObjectKey(&o), &clusterv1.MachineHealthCheck{})
 				}
 				gs.Eventually(getObj, timeout).Should(Succeed())
 			}
@@ -539,11 +537,8 @@ func TestMachineToMachineHealthCheck(t *testing.T) {
 					gs.Expect(r.Client.Delete(ctx, &o)).To(Succeed())
 				}()
 				// Check the cache is populated
-				key, err := client.ObjectKeyFromObject(&o)
-				gs.Expect(err).ToNot(HaveOccurred())
-
 				getObj := func() error {
-					return r.Client.Get(ctx, key, &clusterv1.MachineHealthCheck{})
+					return r.Client.Get(ctx, util.ObjectKey(&o), &clusterv1.MachineHealthCheck{})
 				}
 				gs.Eventually(getObj, timeout).Should(Succeed())
 			}
@@ -675,7 +670,7 @@ func TestNodeToMachineHealthCheck(t *testing.T) {
 			expected: []reconcile.Request{mhc1Req},
 		},
 		{
-			name:        "when two NachineHealthChecks exist for the Node in the Machine's namespace",
+			name:        "when two MachineHealthChecks exist for the Node in the Machine's namespace",
 			mhcToCreate: []clusterv1.MachineHealthCheck{*mhc1, *mhc2},
 			mToCreate:   []clusterv1.Machine{*machine1},
 			object: handler.MapObject{
@@ -706,9 +701,7 @@ func TestNodeToMachineHealthCheck(t *testing.T) {
 					gs.Expect(r.Client.Delete(ctx, &o)).To(Succeed())
 				}()
 				// Check the cache is populated
-				key, err := client.ObjectKeyFromObject(&o)
-				gs.Expect(err).ToNot(HaveOccurred())
-
+				key := util.ObjectKey(&o)
 				getObj := func() error {
 					return r.Client.Get(ctx, key, &clusterv1.MachineHealthCheck{})
 				}
@@ -720,14 +713,12 @@ func TestNodeToMachineHealthCheck(t *testing.T) {
 				defer func() {
 					gs.Expect(r.Client.Delete(ctx, &o)).To(Succeed())
 				}()
-				// Ensure the status is set (required for matchin node to machine)
+				// Ensure the status is set (required for matching node to machine)
 				o.Status = obj.Status
 				gs.Expect(r.Client.Status().Update(ctx, &o)).To(Succeed())
 
 				// Check the cache is up to date with the status update
-				key, err := client.ObjectKeyFromObject(&o)
-				gs.Expect(err).ToNot(HaveOccurred())
-
+				key := util.ObjectKey(&o)
 				checkStatus := func() clusterv1.MachineStatus {
 					m := &clusterv1.Machine{}
 					err := r.Client.Get(ctx, key, m)

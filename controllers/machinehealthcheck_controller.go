@@ -303,26 +303,7 @@ func (r *MachineHealthCheckReconciler) nodeToMachineHealthCheck(o handler.MapObj
 		return nil
 	}
 
-	mhcList := &clusterv1.MachineHealthCheckList{}
-	if err := r.Client.List(
-		context.Background(),
-		mhcList,
-		&client.ListOptions{Namespace: machine.Namespace},
-		client.MatchingFields{mhcClusterNameIndex: machine.Spec.ClusterName},
-	); err != nil {
-		r.Log.Error(err, "Unable to list MachineHealthChecks", "node", node.Name, "machine", machine.Name, "namespace", machine.Namespace)
-		return nil
-	}
-
-	var requests []reconcile.Request
-	for k := range mhcList.Items {
-		mhc := &mhcList.Items[k]
-		if hasMatchingLabels(mhc.Spec.Selector, machine.Labels) {
-			key := util.ObjectKey(mhc)
-			requests = append(requests, reconcile.Request{NamespacedName: key})
-		}
-	}
-	return requests
+	return r.machineToMachineHealthCheck(handler.MapObject{Object: machine})
 }
 
 func (r *MachineHealthCheckReconciler) getMachineFromNode(nodeName string) (*clusterv1.Machine, error) {

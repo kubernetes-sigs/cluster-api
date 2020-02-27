@@ -102,7 +102,7 @@ func (m *MachineHealthCheck) validate(old *MachineHealthCheck) error {
 	if m.Spec.NodeStartupTimeout != nil && m.Spec.NodeStartupTimeout.Seconds() < 30 {
 		allErrs = append(
 			allErrs,
-			field.Invalid(field.NewPath("spec", "nodeStartupTimeout"), m.Spec.NodeStartupTimeout, "must be greater at least 30s"),
+			field.Invalid(field.NewPath("spec", "nodeStartupTimeout"), m.Spec.NodeStartupTimeout, "must be at least 30s"),
 		)
 	}
 

@@ -63,7 +63,7 @@ func (t *healthCheckTarget) nodeName() string {
 }
 
 // Determine whether or not a given target needs remediation.
-// The node will be need rememdiation if any of the following are true:
+// The node will need remediation if any of the following are true:
 // - The Machine has failed for some reason
 // - The Machine did not get a node before `timeoutForMachineToHaveNode` elapses
 // - The Node has gone away
@@ -103,7 +103,6 @@ func (t *healthCheckTarget) needsRemediation(logger logr.Logger, timeoutForMachi
 
 	// check conditions
 	for _, c := range t.MHC.Spec.UnhealthyConditions {
-		now := time.Now()
 		nodeCondition := getNodeCondition(t.Node, c.Type)
 
 		// Skip when current node condition is different from the one reported
@@ -165,7 +164,7 @@ func (r *MachineHealthCheckReconciler) getTargetsFromMHC(clusterClient client.Cl
 func (r *MachineHealthCheckReconciler) getMachinesFromMHC(mhc *clusterv1.MachineHealthCheck) ([]clusterv1.Machine, error) {
 	selector, err := metav1.LabelSelectorAsSelector(&mhc.Spec.Selector)
 	if err != nil {
-		return nil, errors.New("failed to build selector")
+		return nil, errors.Wrap(err, "failed to build selector")
 	}
 
 	options := client.ListOptions{
@@ -188,8 +187,7 @@ func (r *MachineHealthCheckReconciler) getNodeFromMachine(clusterClient client.C
 
 	node := &corev1.Node{}
 	nodeKey := types.NamespacedName{
-		Namespace: machine.Status.NodeRef.Namespace,
-		Name:      machine.Status.NodeRef.Name,
+		Name: machine.Status.NodeRef.Name,
 	}
 	err := clusterClient.Get(context.TODO(), nodeKey, node)
 	return node, err
@@ -248,9 +246,9 @@ func minDuration(durations []time.Duration) time.Duration {
 		return time.Duration(0)
 	}
 
-	// durations should all be less than 1 Hour
-	minDuration := time.Hour
-	for _, nc := range durations {
+	minDuration := durations[0]
+	// Ignore first element as that is already minDuration
+	for _, nc := range durations[1:] {
 		if nc < minDuration {
 			minDuration = nc
 		}

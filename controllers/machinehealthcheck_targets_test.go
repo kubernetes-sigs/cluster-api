@@ -231,7 +231,7 @@ func TestHealthCheckTargets(t *testing.T) {
 		Node:    testNodeUnknown400,
 	}
 
-	// Traget for when a node is healthy
+	// Target for when a node is healthy
 	testNodeHealthy := newTestNode("node1")
 	testNodeHealthy.UID = "12345"
 	nodeHealthy := healthCheckTarget{
@@ -355,6 +355,10 @@ func newTestMachine(name, namespace, clusterName, nodeName string, labels map[st
 
 func newTestNode(name string) *corev1.Node {
 	return &corev1.Node{
+		TypeMeta: metav1.TypeMeta{
+			APIVersion: "v1",
+			Kind:       "Node",
+		},
 		ObjectMeta: metav1.ObjectMeta{
 			Name: name,
 		},

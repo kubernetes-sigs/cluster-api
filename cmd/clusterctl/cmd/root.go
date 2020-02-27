@@ -26,7 +26,7 @@ import (
 	"k8s.io/klog"
 )
 
-const deprecationMsg string = "NOTICE: clusterctl has been deprecated in v1alpha2 and will be removed in a future version."
+const deprecationMsg string = "NOTICE: This utility, in its current form will be superseded by `clusterctl v2`. For more information see https://github.com/kubernetes-sigs/cluster-api/blob/master/docs/proposals/20191016-clusterctl-redesign.md"
 
 var helpTemplate = fmt.Sprintf(`%s
 {{with (or .Long .Short)}}{{. | trimTrailingWhitespaces}}

@@ -89,7 +89,7 @@ type MachineStatus struct {
 	// +optional
 	NodeRef *corev1.ObjectReference `json:"nodeRef,omitempty"`
 
-	// LastUpdated identifies when this status was last observed.
+	// LastUpdated identifies when the phase of the Machine last transitioned.
 	// +optional
 	LastUpdated *metav1.Time `json:"lastUpdated,omitempty"`
 

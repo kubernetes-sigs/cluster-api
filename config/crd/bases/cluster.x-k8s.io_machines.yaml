@@ -595,7 +595,8 @@ spec:
                   provider.
                 type: boolean
               lastUpdated:
-                description: LastUpdated identifies when this status was last observed.
+                description: LastUpdated identifies when the phase of the Machine
+                  last transitioned.
                 format: date-time
                 type: string
               nodeRef:

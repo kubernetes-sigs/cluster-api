@@ -71,7 +71,8 @@ func Test_providerUpgrader_getUpgradeInfo(t *testing.T) {
 						{Major: 1, Minor: 1, Contract: "v1alpha3"},
 					},
 				},
-				currentVersion: version.MustParseSemantic("v1.0.1"),
+				currentVersion:  version.MustParseSemantic("v1.0.1"),
+				currentContract: "v1alpha3",
 				nextVersions: []version.Version{
 					// v1.0.1 (the current version) and older are ignored
 					*version.MustParseSemantic("v1.0.2"),

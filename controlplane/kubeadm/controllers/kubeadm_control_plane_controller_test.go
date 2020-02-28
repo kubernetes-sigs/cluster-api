@@ -22,7 +22,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/blang/semver"
 	. "github.com/onsi/gomega"
 	"github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
@@ -1226,6 +1225,10 @@ type fakeManagementCluster struct {
 	Machines            internal.FilterableMachineCollection
 }
 
+func (f *fakeManagementCluster) GetWorkloadCluster(_ context.Context, _ types.NamespacedName) (*internal.Cluster, error) {
+	return nil, nil
+}
+
 func (f *fakeManagementCluster) GetMachinesForCluster(_ context.Context, _ types.NamespacedName, _ ...internal.MachineFilter) (internal.FilterableMachineCollection, error) {
 	return f.Machines, nil
 }
@@ -1241,22 +1244,6 @@ func (f *fakeManagementCluster) TargetClusterEtcdIsHealthy(_ context.Context, _ 
 	if !f.EtcdHealthy {
 		return errors.New("etcd is not healthy")
 	}
-	return nil
-}
-
-func (f *fakeManagementCluster) RemoveEtcdMemberForMachine(_ context.Context, _ types.NamespacedName, _ *clusterv1.Machine) error {
-	return nil
-}
-
-func (f *fakeManagementCluster) RemoveMachineFromKubeadmConfigMap(_ context.Context, _ types.NamespacedName, _ *clusterv1.Machine) error {
-	return nil
-}
-
-func (f *fakeManagementCluster) UpdateKubernetesVersionInKubeadmConfigMap(_ context.Context, _ types.NamespacedName, _ string) error {
-	return nil
-}
-
-func (f *fakeManagementCluster) UpdateKubeletConfigMap(_ context.Context, _ types.NamespacedName, _ semver.Version) error {
 	return nil
 }
 
@@ -1357,234 +1344,34 @@ func TestKubeadmControlPlaneReconciler_scaleUpControlPlane(t *testing.T) {
 	})
 }
 
-func TestKubeadmControlPlaneReconciler_scaleDownControlPlane(t *testing.T) {
-	t.Run("deletes a control plane Machine if health checks pass", func(t *testing.T) {
-		g := NewWithT(t)
+func TestKubeadmControlPlaneReconciler_scaleDownControlPlane_NoError(t *testing.T) {
+	g := NewWithT(t)
 
-		cluster, kcp, genericMachineTemplate := createClusterWithControlPlane()
-		initObjs := []runtime.Object{cluster.DeepCopy(), kcp.DeepCopy(), genericMachineTemplate.DeepCopy()}
+	machines := map[string]*clusterv1.Machine{
+		"one": machine("one"),
+	}
 
-		fmc := &fakeManagementCluster{
-			Machines:            internal.NewFilterableMachineCollection(),
-			ControlPlaneHealthy: true,
+	r := &KubeadmControlPlaneReconciler{
+		Log:      log.Log,
+		recorder: record.NewFakeRecorder(32),
+		Client:   newFakeClient(g, machines["one"]),
+		managementCluster: &fakeManagementCluster{
 			EtcdHealthy:         true,
-		}
+			ControlPlaneHealthy: true,
+		},
+	}
 
-		for i := 0; i < 2; i++ {
-			m, _ := createMachineNodePair(fmt.Sprintf("test-%d", i), cluster, kcp, true)
-			fmc.Machines = fmc.Machines.Insert(m)
-			initObjs = append(initObjs, m.DeepCopy())
-		}
-
-		fakeClient := newFakeClient(g, initObjs...)
-
-		r := &KubeadmControlPlaneReconciler{
-			Client:            fakeClient,
-			managementCluster: fmc,
-			Log:               log.Log,
-			recorder:          record.NewFakeRecorder(32),
-		}
-
-		fmc.ControlPlaneHealthy = true
-		fmc.EtcdHealthy = true
-		result, err := r.scaleDownControlPlane(context.Background(), &clusterv1.Cluster{}, &controlplanev1.KubeadmControlPlane{}, fmc.Machines.DeepCopy())
-		g.Expect(err).ToNot(HaveOccurred())
-		g.Expect(result).To(Equal(ctrl.Result{Requeue: true}))
-
-		controlPlaneMachines := clusterv1.MachineList{}
-		g.Expect(fakeClient.List(context.Background(), &controlPlaneMachines)).To(Succeed())
-		g.Expect(controlPlaneMachines.Items).To(HaveLen(1))
-	})
-	t.Run("does not delete a control plane Machine if health checks fail", func(t *testing.T) {
-		cluster, kcp, genericMachineTemplate := createClusterWithControlPlane()
-		initObjs := []runtime.Object{cluster.DeepCopy(), kcp.DeepCopy(), genericMachineTemplate.DeepCopy()}
-
-		beforeMachines := internal.NewFilterableMachineCollection()
-		for i := 0; i < 3; i++ {
-			m, _ := createMachineNodePair(fmt.Sprintf("test-%d", i), cluster.DeepCopy(), kcp.DeepCopy(), true)
-			beforeMachines = beforeMachines.Insert(m)
-			initObjs = append(initObjs, m.DeepCopy())
-		}
-
-		testCases := []struct {
-			name                   string
-			etcdUnHealthy          bool
-			controlPlaneUnHealthy  bool
-			selectedAnnotationKeys []string
-		}{
-			{
-				name:          "etcd health check fails",
-				etcdUnHealthy: true,
-				selectedAnnotationKeys: []string{
-					controlplanev1.DeleteForScaleDownAnnotation,
-				},
-			},
-			{
-				name:                  "controlplane component health check fails",
-				controlPlaneUnHealthy: true,
-				selectedAnnotationKeys: []string{
-					controlplanev1.DeleteForScaleDownAnnotation,
-					controlplanev1.ScaleDownEtcdMemberRemovedAnnotation,
-				},
-			},
-			{
-				name:                  "both health check fails",
-				etcdUnHealthy:         true,
-				controlPlaneUnHealthy: true,
-				selectedAnnotationKeys: []string{
-					controlplanev1.DeleteForScaleDownAnnotation,
-				},
-			},
-		}
-		for _, tc := range testCases {
-			g := NewWithT(t)
-
-			fakeClient := newFakeClient(g, initObjs...)
-			fmc := &fakeManagementCluster{
-				Machines:            beforeMachines.DeepCopy(),
-				ControlPlaneHealthy: !tc.controlPlaneUnHealthy,
-				EtcdHealthy:         !tc.etcdUnHealthy,
-			}
-
-			r := &KubeadmControlPlaneReconciler{
-				Client:            fakeClient,
-				managementCluster: fmc,
-				Log:               log.Log,
-				recorder:          record.NewFakeRecorder(32),
-			}
-
-			ownedMachines := fmc.Machines.DeepCopy()
-			_, err := r.scaleDownControlPlane(context.Background(), cluster.DeepCopy(), kcp.DeepCopy(), ownedMachines)
-			g.Expect(err).To(HaveOccurred())
-			g.Expect(err).To(MatchError(&capierrors.RequeueAfterError{RequeueAfter: HealthCheckFailedRequeueAfter}))
-
-			controlPlaneMachines := &clusterv1.MachineList{}
-			g.Expect(fakeClient.List(context.Background(), controlPlaneMachines)).To(Succeed())
-			g.Expect(controlPlaneMachines.Items).To(HaveLen(len(beforeMachines)))
-
-			// We expect that a machine has been marked for deletion, since that isn't blocked by health checks
-			endMachines := internal.NewFilterableMachineCollectionFromMachineList(controlPlaneMachines)
-			selected := endMachines.Filter(internal.HasAnnotationKey(controlplanev1.DeleteForScaleDownAnnotation))
-			g.Expect(selected).To(HaveLen(1))
-			for _, m := range selected {
-				cm := m.DeepCopy()
-
-				g.Expect(m.Annotations).To(HaveLen(len(tc.selectedAnnotationKeys)))
-				for _, key := range tc.selectedAnnotationKeys {
-					g.Expect(m.Annotations).To(HaveKey(key))
-				}
-
-				// Remove the annotations and resource version to compare against the before copy
-				cm.Annotations = nil
-				cm.ResourceVersion = ""
-				bm, ok := beforeMachines[cm.Name]
-				g.Expect(ok).To(BeTrue())
-				g.Expect(cm).To(Equal(bm))
-			}
-
-			// Ensure the non-selected machine match the before machines exactly
-			notSelected := endMachines.Filter(internal.Not(internal.HasAnnotationKey(controlplanev1.DeleteForScaleDownAnnotation)))
-			for _, m := range notSelected {
-				bm, ok := beforeMachines[m.Name]
-				g.Expect(ok).To(BeTrue())
-				g.Expect(m).To(Equal(bm))
-			}
-		}
-	})
+	_, err := r.scaleDownControlPlane(context.Background(), &clusterv1.Cluster{}, &controlplanev1.KubeadmControlPlane{}, machines)
+	g.Expect(err).ToNot(HaveOccurred())
 }
 
-func TestKubeadmControlPlaneReconciler_upgradeControlPlane(t *testing.T) {
-	t.Run("upgrades control plane Machines if health checks pass", func(t *testing.T) {
-		// TODO: add tests for positive condition
-	})
-	t.Run("does not upgrade a control plane Machine if health checks fail", func(t *testing.T) {
-		cluster, kcp, genericMachineTemplate := createClusterWithControlPlane()
-		kubeletConfigMap := &corev1.ConfigMap{
-			ObjectMeta: metav1.ObjectMeta{
-				Name:      "kubelet-config-1.16",
-				Namespace: metav1.NamespaceSystem,
-			},
-		}
-		initObjs := []runtime.Object{cluster.DeepCopy(), kcp.DeepCopy(), genericMachineTemplate.DeepCopy(), kubeletConfigMap.DeepCopy()}
-		beforeMachines := internal.NewFilterableMachineCollection()
-		for i := 0; i < 3; i++ {
-			m, _ := createMachineNodePair(fmt.Sprintf("test-%d", i), cluster.DeepCopy(), kcp.DeepCopy(), true)
-			beforeMachines = beforeMachines.Insert(m)
-			initObjs = append(initObjs, m.DeepCopy())
-		}
-
-		// mutate the kcp resource
-		kcp.Spec.Version = "v1.16.9"
-
-		testCases := []struct {
-			name                  string
-			etcdUnHealthy         bool
-			controlPlaneUnHealthy bool
-		}{
-			{
-				name:          "etcd health check fails",
-				etcdUnHealthy: true,
-			},
-			{
-				name:                  "controlplane component health check fails",
-				controlPlaneUnHealthy: true,
-			},
-		}
-		for _, tc := range testCases {
-			g := NewWithT(t)
-
-			fakeClient := newFakeClient(g, initObjs...)
-			fmc := &fakeManagementCluster{
-				Machines:            beforeMachines.DeepCopy(),
-				ControlPlaneHealthy: !tc.controlPlaneUnHealthy,
-				EtcdHealthy:         !tc.etcdUnHealthy,
-			}
-
-			r := &KubeadmControlPlaneReconciler{
-				Client:             fakeClient,
-				managementCluster:  fmc,
-				Log:                log.Log,
-				recorder:           record.NewFakeRecorder(32),
-				remoteClientGetter: fakeremote.NewClusterClient,
-			}
-
-			ownedMachines := fmc.Machines.DeepCopy()
-			requireUpgrade := fmc.Machines.Filter(internal.OwnedControlPlaneMachines(kcp.Name)).DeepCopy()
-			_, err := r.upgradeControlPlane(context.Background(), cluster.DeepCopy(), kcp.DeepCopy(), ownedMachines, requireUpgrade)
-			g.Expect(err).To(HaveOccurred())
-			g.Expect(err).To(MatchError(&capierrors.RequeueAfterError{RequeueAfter: HealthCheckFailedRequeueAfter}))
-
-			controlPlaneMachines := &clusterv1.MachineList{}
-			g.Expect(fakeClient.List(context.Background(), controlPlaneMachines)).To(Succeed())
-			g.Expect(controlPlaneMachines.Items).To(HaveLen(len(beforeMachines)))
-
-			// We expect that a machine has been selected for upgrade, since that isn't blocked by health checks
-			endMachines := internal.NewFilterableMachineCollectionFromMachineList(controlPlaneMachines)
-			selected := endMachines.Filter(internal.HasAnnotationKey(controlplanev1.SelectedForUpgradeAnnotation))
-			g.Expect(selected).To(HaveLen(1))
-			for _, m := range selected {
-				g.Expect(m.Annotations).To(HaveLen(1))
-				cm := m.DeepCopy()
-				cm.Annotations = nil
-				cm.ResourceVersion = ""
-				bm, ok := beforeMachines[cm.Name]
-				g.Expect(ok).To(BeTrue())
-				g.Expect(cm).To(Equal(bm))
-			}
-
-			// We expect that a replacement is not created, since that is blocked by health checks
-			replacementCreated := endMachines.Filter(internal.HasAnnotationKey(controlplanev1.UpgradeReplacementCreatedAnnotation))
-			g.Expect(replacementCreated).To(BeEmpty())
-
-			// Ensure the non-selected machine match the before machines exactly
-			notSelected := endMachines.Filter(internal.Not(internal.HasAnnotationKey(controlplanev1.SelectedForUpgradeAnnotation)))
-			for _, m := range notSelected {
-				bm, ok := beforeMachines[m.Name]
-				g.Expect(ok).To(BeTrue())
-				g.Expect(m).To(Equal(bm))
-			}
-		}
-	})
+func machine(name string) *clusterv1.Machine {
+	return &clusterv1.Machine{
+		ObjectMeta: metav1.ObjectMeta{
+			Namespace: "default",
+			Name:      name,
+		},
+	}
 }
 
 func TestKubeadmControlPlaneReconciler_failureDomainForScaleDown(t *testing.T) {

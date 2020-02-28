@@ -73,12 +73,9 @@ const (
 
 type managementCluster interface {
 	GetMachinesForCluster(ctx context.Context, cluster types.NamespacedName, filters ...internal.MachineFilter) (internal.FilterableMachineCollection, error)
-	TargetClusterControlPlaneIsHealthy(ctx context.Context, clusterKey types.NamespacedName, controlPlaneName string) error
+	GetWorkloadCluster(ctx context.Context, cluster types.NamespacedName) (*internal.Cluster, error)
 	TargetClusterEtcdIsHealthy(ctx context.Context, clusterKey types.NamespacedName, controlPlaneName string) error
-	RemoveEtcdMemberForMachine(ctx context.Context, clusterKey types.NamespacedName, machine *clusterv1.Machine) error
-	RemoveMachineFromKubeadmConfigMap(ctx context.Context, clusterKey types.NamespacedName, machine *clusterv1.Machine) error
-	UpdateKubernetesVersionInKubeadmConfigMap(ctx context.Context, clusterKey types.NamespacedName, version string) error
-	UpdateKubeletConfigMap(ctx context.Context, clusterKey types.NamespacedName, version semver.Version) error
+	TargetClusterControlPlaneIsHealthy(ctx context.Context, clusterKey types.NamespacedName, controlPlaneName string) error
 }
 
 // +kubebuilder:rbac:groups=core,resources=events,verbs=get;list;watch;create;patch
@@ -348,8 +345,14 @@ func (r *KubeadmControlPlaneReconciler) upgradeControlPlane(ctx context.Context,
 
 	// TODO: handle reconciliation of etcd members and kubeadm config in case they get out of sync with cluster
 
+	workloadCluster, err := r.managementCluster.GetWorkloadCluster(ctx, util.ObjectKey(cluster))
+	if err != nil {
+		logger.Error(err, "failed to get remote client for workload cluster", "cluster key", util.ObjectKey(cluster))
+		return ctrl.Result{}, err
+	}
+
 	// Reconcile the remote cluster's configuration necessary for upgrade
-	if err := r.reconcileConfiguration(ctx, kcp.Spec.Version, util.ObjectKey(cluster)); err != nil {
+	if err := r.reconcileConfiguration(ctx, kcp.Spec.Version, util.ObjectKey(cluster), workloadCluster); err != nil {
 		logger.Error(err, "failed reconcile remote cluster configuration for upgrade")
 		return ctrl.Result{}, err
 	}
@@ -384,7 +387,7 @@ func (r *KubeadmControlPlaneReconciler) upgradeControlPlane(ctx context.Context,
 }
 
 // reconcileConfiguration will update the remote cluster's system configurations in preparation for an upgrade.
-func (r *KubeadmControlPlaneReconciler) reconcileConfiguration(ctx context.Context, version string, clusterKey client.ObjectKey) error {
+func (r *KubeadmControlPlaneReconciler) reconcileConfiguration(ctx context.Context, version string, clusterKey client.ObjectKey, workloadCluster *internal.Cluster) error {
 	parsedVersion, err := semver.ParseTolerant(version)
 	if err != nil {
 		return errors.Wrapf(err, "failed to parse kubernetes version %q", version)
@@ -404,11 +407,11 @@ func (r *KubeadmControlPlaneReconciler) reconcileConfiguration(ctx context.Conte
 		return errors.Wrap(err, "failed to reconcile the remote kubelet RBAC binding")
 	}
 
-	if err := r.managementCluster.UpdateKubernetesVersionInKubeadmConfigMap(ctx, clusterKey, version); err != nil {
+	if err := workloadCluster.UpdateKubernetesVersionInKubeadmConfigMap(ctx, version); err != nil {
 		return errors.Wrap(err, "failed to update the kubernetes version in the kubeadm config map")
 	}
 
-	if err := r.managementCluster.UpdateKubeletConfigMap(ctx, clusterKey, parsedVersion); err != nil {
+	if err := workloadCluster.UpdateKubeletConfigMap(ctx, parsedVersion); err != nil {
 		return errors.Wrap(err, "failed to upgrade kubelet config map")
 	}
 
@@ -570,6 +573,13 @@ func (r *KubeadmControlPlaneReconciler) scaleUpControlPlane(ctx context.Context,
 
 func (r *KubeadmControlPlaneReconciler) scaleDownControlPlane(ctx context.Context, cluster *clusterv1.Cluster, kcp *controlplanev1.KubeadmControlPlane, machines internal.FilterableMachineCollection) (ctrl.Result, error) {
 	logger := r.Log.WithValues("namespace", kcp.Namespace, "kubeadmControlPlane", kcp.Name, "cluster", cluster.Name)
+
+	workloadCluster, err := r.managementCluster.GetWorkloadCluster(ctx, util.ObjectKey(cluster))
+	if err != nil {
+		logger.Error(err, "failed to create client to workload cluster")
+		return ctrl.Result{}, errors.New("failed to create client to workload cluster")
+	}
+
 	// We don't want to health check at the beginning of this method to avoid blocking re-entrancy
 
 	// Wait for any delete in progress to complete before deleting another Machine
@@ -604,9 +614,8 @@ func (r *KubeadmControlPlaneReconciler) scaleDownControlPlane(ctx context.Contex
 			logger.Error(err, "waiting for control plane to pass etcd health check before adding removing a control plane machine")
 			r.recorder.Eventf(kcp, corev1.EventTypeWarning, "ControlPlaneUnhealthy", "Waiting for control plane to pass etcd health check before removing a control plane machine: %v", err)
 			return ctrl.Result{}, &capierrors.RequeueAfterError{RequeueAfter: HealthCheckFailedRequeueAfter}
-
 		}
-		if err := r.managementCluster.RemoveEtcdMemberForMachine(ctx, util.ObjectKey(cluster), machineToDelete); err != nil {
+		if err := workloadCluster.RemoveEtcdMemberForMachine(ctx, machineToDelete); err != nil {
 			logger.Error(err, "failed to remove etcd member for machine")
 			return ctrl.Result{}, err
 		}
@@ -622,7 +631,7 @@ func (r *KubeadmControlPlaneReconciler) scaleDownControlPlane(ctx context.Contex
 			return ctrl.Result{}, &capierrors.RequeueAfterError{RequeueAfter: HealthCheckFailedRequeueAfter}
 
 		}
-		if err := r.managementCluster.RemoveMachineFromKubeadmConfigMap(ctx, util.ObjectKey(cluster), machineToDelete); err != nil {
+		if err := workloadCluster.RemoveMachineFromKubeadmConfigMap(ctx, machineToDelete); err != nil {
 			logger.Error(err, "failed to remove machine from kubeadm ConfigMap")
 			return ctrl.Result{}, err
 		}

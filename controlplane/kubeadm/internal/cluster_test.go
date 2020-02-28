@@ -127,14 +127,15 @@ func TestControlPlaneIsHealthy(t *testing.T) {
 	}
 }
 
-func nodeListForTestControlPlaneIsHealthy() *corev1.NodeList {
-	nodeNamed := func(name string) corev1.Node {
-		return corev1.Node{
-			ObjectMeta: metav1.ObjectMeta{
-				Name: name,
-			},
-		}
+func nodeNamed(name string) corev1.Node {
+	return corev1.Node{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: name,
+		},
 	}
+}
+
+func nodeListForTestControlPlaneIsHealthy() *corev1.NodeList {
 	return &corev1.NodeList{
 		Items: []corev1.Node{
 			nodeNamed("first-control-plane"),
@@ -429,4 +430,36 @@ func controlPlaneMachine(name string) clusterv1.Machine {
 func nilNodeRef(machine clusterv1.Machine) clusterv1.Machine {
 	machine.Status.NodeRef = nil
 	return machine
+}
+
+func TestRemoveMemberForNode(t *testing.T) {
+	t.Run("do not remove the etcd member if the cluster has fewer than 2 control plane nodes", func(t *testing.T) {
+		expectedErr := errors.New("cluster has fewer than 2 control plane nodes; removing an etcd member is not supported")
+
+		workloadCluster := &Cluster{
+			Client: &fakeClient{
+				list: &corev1.NodeList{
+					Items: []corev1.Node{
+						nodeNamed("first-control-plane"),
+					},
+				},
+			},
+		}
+
+		err := workloadCluster.removeMemberForNode(context.Background(), "first-control-plane")
+		if err == nil || errors.Is(err, expectedErr) {
+			t.Fatalf("expected %v, got %v", expectedErr, err)
+		}
+	})
+}
+
+func TestPickFirstNodeNotMatching(t *testing.T) {
+	name := "first-control-plane"
+	anotherNode := firstNodeNotMatchingName(name, nodeListForTestControlPlaneIsHealthy().Items)
+	if anotherNode == nil {
+		t.Fatalf("expected to find another node")
+	}
+	if anotherNode.Name == name {
+		t.Fatalf("expected any node other than %s", name)
+	}
 }

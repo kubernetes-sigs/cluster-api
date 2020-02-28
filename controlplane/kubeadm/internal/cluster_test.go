@@ -101,8 +101,8 @@ func TestControlPlaneIsHealthy(t *testing.T) {
 			},
 		},
 	}
-	workloadCluster := &cluster{
-		client: &fakeClient{
+	workloadCluster := &Cluster{
+		Client: &fakeClient{
 			list: nodeListForTestControlPlaneIsHealthy(),
 			get: map[string]interface{}{
 				"kube-system/kube-apiserver-first-control-plane":           &corev1.Pod{Status: readyStatus},

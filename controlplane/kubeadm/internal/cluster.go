@@ -288,7 +288,31 @@ func (m *ManagementCluster) RemoveEtcdMemberForMachine(ctx context.Context, clus
 		return err
 	}
 
-	return cluster.removeMemberForNode(ctx, machine.Status.NodeRef.Name)
+	controlPlaneNodes, err := cluster.getControlPlaneNodes(ctx)
+	if err != nil {
+		return err
+	}
+
+	nodeToRemove := machine.Status.NodeRef.Name
+	errs := []error{}
+
+	// Try all node other than nodeToRemove for proxying etcd client.
+	// and returns the first successful response.
+	for _, node := range controlPlaneNodes.Items {
+		nodeForEtcdClient := node.Name
+		if nodeForEtcdClient == nodeToRemove {
+			continue
+		}
+
+		err = cluster.removeMemberForNode(ctx, nodeForEtcdClient, nodeToRemove)
+		if err == nil {
+			return nil
+		}
+
+		errs = append(errs, err)
+	}
+
+	return kerrors.NewAggregate(errs)
 }
 
 type etcdClientFor interface {
@@ -363,8 +387,10 @@ func (c *cluster) controlPlaneIsHealthy(ctx context.Context) (healthCheckResult,
 	return response, nil
 }
 
-func (c *cluster) removeMemberForNode(ctx context.Context, nodeName string) error {
-	etcdClient, err := c.etcdClientGenerator.forNode(nodeName)
+// removeMemberForNode removes etcd member (nodeToRemove) through another (nodeForEtcdClient).
+// It's create etcd connection using nodeForEtcdClient to removing nodeToRemove.
+func (c *cluster) removeMemberForNode(ctx context.Context, nodeForEtcdClient, nodeToRemove string) error {
+	etcdClient, err := c.etcdClientGenerator.forNode(nodeForEtcdClient)
 	if err != nil {
 		return errors.Wrap(err, "failed to create etcd client")
 	}
@@ -374,7 +400,7 @@ func (c *cluster) removeMemberForNode(ctx context.Context, nodeName string) erro
 	if err != nil {
 		return errors.Wrap(err, "failed to list etcd members using etcd client")
 	}
-	member := etcdutil.MemberForName(members, nodeName)
+	member := etcdutil.MemberForName(members, nodeToRemove)
 
 	// The member has already been removed, return immediately
 	if member == nil {

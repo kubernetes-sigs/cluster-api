@@ -71,7 +71,7 @@ func (dst *Cluster) ConvertFrom(srcRaw conversion.Hub) error {
 		}
 	}
 
-	// Preserve Hub data on down-conversion.
+	// Preserve Hub data on down-conversion except for metadata
 	if err := utilconversion.MarshalData(src, dst); err != nil {
 		return err
 	}
@@ -139,7 +139,7 @@ func (dst *Machine) ConvertFrom(srcRaw conversion.Hub) error {
 		delete(src.Annotations, v1alpha3.ExcludeNodeDrainingAnnotation)
 	}
 
-	// Preserve Hub data on down-conversion.
+	// Preserve Hub data on down-conversion except for metadata
 	if err := utilconversion.MarshalData(src, dst); err != nil {
 		return err
 	}
@@ -192,7 +192,7 @@ func (dst *MachineSet) ConvertFrom(srcRaw conversion.Hub) error {
 		return err
 	}
 
-	// Preserve Hub data on down-conversion.
+	// Preserve Hub data on down-conversion except for metadata
 	if err := utilconversion.MarshalData(src, dst); err != nil {
 		return err
 	}
@@ -257,7 +257,7 @@ func (dst *MachineDeployment) ConvertFrom(srcRaw conversion.Hub) error {
 		convertAnnotations(v3Annotations[i], v2Annotations[i], dst.Annotations)
 	}
 
-	// Preserve Hub data on down-conversion.
+	// Preserve Hub data on down-conversion except for metadata
 	if err := utilconversion.MarshalData(src, dst); err != nil {
 		return err
 	}

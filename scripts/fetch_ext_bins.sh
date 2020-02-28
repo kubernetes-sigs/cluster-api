@@ -60,8 +60,6 @@ function header_text {
 
 tmp_root=/tmp
 
-kb_root_dir=${tmp_root}/kubebuilder
-
 # Skip fetching and untaring the tools by setting the SKIP_FETCH_TOOLS variable
 # in your environment to any value:
 #
@@ -71,25 +69,23 @@ kb_root_dir=${tmp_root}/kubebuilder
 # machine, but rebuild the kubebuilder and kubebuilder-bin binaries.
 SKIP_FETCH_TOOLS=${SKIP_FETCH_TOOLS:-""}
 
-function prepare_staging_dir {
-  header_text "preparing staging dir"
-
-  if [[ -z "${SKIP_FETCH_TOOLS}" ]]; then
-    rm -rf "${kb_root_dir}"
-  else
-    rm -f "${kb_root_dir}/kubebuilder/bin/kubebuilder"
-    rm -f "${kb_root_dir}/kubebuilder/bin/kubebuilder-gen"
-    rm -f "${kb_root_dir}/kubebuilder/bin/vendor.tar.gz"
-  fi
-}
-
 # fetch k8s API gen tools and make it available under kb_root_dir/bin.
 function fetch_tools {
   if [[ -n "$SKIP_FETCH_TOOLS" ]]; then
     return 0
   fi
 
-  header_text "fetching tools"
+  mkdir -p ${tmp_root}
+
+  # use the pre-existing version in the temporary folder if it matches our k8s version
+  if [[ -x "${tmp_root}/kubebuilder/bin/kube-apiserver" ]]; then
+    version=$(${tmp_root}/kubebuilder/bin/kube-apiserver --version)
+    if [[ $version == *"${k8s_version}"* ]]; then
+      return 0
+    fi
+  fi
+
+  header_text "fetching kubebuilder-tools@${k8s_version}"
   kb_tools_archive_name="kubebuilder-tools-${k8s_version}-${goos}-${goarch}.tar.gz"
   kb_tools_download_url="https://storage.googleapis.com/kubebuilder-tools/${kb_tools_archive_name}"
 
@@ -101,11 +97,11 @@ function fetch_tools {
 }
 
 function setup_envs {
-  header_text "setting up env vars"
+  header_text "setting up kubebuilder-tools@${k8s_version} env vars"
 
   # Setup env vars
-  export PATH=/tmp/kubebuilder/bin:$PATH
-  export TEST_ASSET_KUBECTL=/tmp/kubebuilder/bin/kubectl
-  export TEST_ASSET_KUBE_APISERVER=/tmp/kubebuilder/bin/kube-apiserver
-  export TEST_ASSET_ETCD=/tmp/kubebuilder/bin/etcd
+  export PATH=${tmp_root}/kubebuilder/bin:$PATH
+  export TEST_ASSET_KUBECTL=${tmp_root}/kubebuilder/bin/kubectl
+  export TEST_ASSET_KUBE_APISERVER=${tmp_root}/kubebuilder/bin/kube-apiserver
+  export TEST_ASSET_ETCD=${tmp_root}/kubebuilder/bin/etcd
 }

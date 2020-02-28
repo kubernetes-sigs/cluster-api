@@ -44,6 +44,11 @@ type MachineHealthCheckSpec struct {
 	// "selector" are not healthy.
 	// +optional
 	MaxUnhealthy *intstr.IntOrString `json:"maxUnhealthy,omitempty"`
+
+	// Machines older than this duration without a node will be considered to have
+	// failed and will be remediated.
+	// +optional
+	NodeStartupTimeout *metav1.Duration `json:"nodeStartupTimeout,omitempty"`
 }
 
 // ANCHOR_END: MachineHealthCHeckSpec
@@ -73,11 +78,11 @@ type UnhealthyCondition struct {
 type MachineHealthCheckStatus struct {
 	// total number of machines counted by this machine health check
 	// +kubebuilder:validation:Minimum=0
-	ExpectedMachines int32 `json:"expectedMachines"`
+	ExpectedMachines int32 `json:"expectedMachines,omitempty"`
 
 	// total number of healthy machines counted by this machine health check
 	// +kubebuilder:validation:Minimum=0
-	CurrentHealthy int32 `json:"currentHealthy"`
+	CurrentHealthy int32 `json:"currentHealthy,omitempty"`
 }
 
 // ANCHOR_END: MachineHealthCheckStatus

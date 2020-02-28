@@ -20,6 +20,8 @@ import (
 	"context"
 
 	"github.com/pkg/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/labels"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha3"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
@@ -46,4 +48,21 @@ func getActiveMachinesInCluster(ctx context.Context, c client.Client, namespace,
 		}
 	}
 	return machines, nil
+}
+
+// hasMatchingLabels verifies that the Label Selector matches the given Labels
+func hasMatchingLabels(matchSelector metav1.LabelSelector, matchLabels map[string]string) bool {
+	// This should never fail, validating webhook should catch this first
+	selector, err := metav1.LabelSelectorAsSelector(&matchSelector)
+	if err != nil {
+		return false
+	}
+	// If a nil or empty selector creeps in, it should match nothing, not everything.
+	if selector.Empty() {
+		return false
+	}
+	if !selector.Matches(labels.Set(matchLabels)) {
+		return false
+	}
+	return true
 }

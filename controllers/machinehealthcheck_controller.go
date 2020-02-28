@@ -19,6 +19,8 @@ package controllers
 import (
 	"context"
 	"fmt"
+	"sync"
+	"time"
 
 	"github.com/go-logr/logr"
 	"github.com/pkg/errors"
@@ -28,11 +30,15 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	kerrors "k8s.io/apimachinery/pkg/util/errors"
+	"k8s.io/client-go/informers"
+	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/tools/record"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha3"
+	"sigs.k8s.io/cluster-api/controllers/remote"
 	"sigs.k8s.io/cluster-api/util"
 	"sigs.k8s.io/cluster-api/util/patch"
 	ctrl "sigs.k8s.io/controller-runtime"
+	"sigs.k8s.io/controller-runtime/pkg/cache"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
 	"sigs.k8s.io/controller-runtime/pkg/handler"
@@ -41,7 +47,8 @@ import (
 )
 
 const (
-	mhcClusterNameIndex = "spec.clusterName"
+	mhcClusterNameIndex  = "spec.clusterName"
+	machineNodeNameIndex = "status.nodeRef.name"
 )
 
 // MachineHealthCheckReconciler reconciles a MachineHealthCheck object
@@ -49,8 +56,11 @@ type MachineHealthCheckReconciler struct {
 	Client client.Client
 	Log    logr.Logger
 
-	controller controller.Controller
-	recorder   record.EventRecorder
+	controller               controller.Controller
+	recorder                 record.EventRecorder
+	scheme                   *runtime.Scheme
+	clusterNodeInformers     map[client.ObjectKey]cache.Informer
+	clusterNodeInformersLock sync.RWMutex
 }
 
 func (r *MachineHealthCheckReconciler) SetupWithManager(mgr ctrl.Manager, options controller.Options) error {
@@ -59,6 +69,10 @@ func (r *MachineHealthCheckReconciler) SetupWithManager(mgr ctrl.Manager, option
 		Watches(
 			&source.Kind{Type: &clusterv1.Cluster{}},
 			&handler.EnqueueRequestsFromMapFunc{ToRequests: handler.ToRequestsFunc(r.clusterToMachineHealthCheck)},
+		).
+		Watches(
+			&source.Kind{Type: &clusterv1.Machine{}},
+			&handler.EnqueueRequestsFromMapFunc{ToRequests: handler.ToRequestsFunc(r.machineToMachineHealthCheck)},
 		).
 		WithOptions(options).
 		Build(r)
@@ -75,8 +89,19 @@ func (r *MachineHealthCheckReconciler) SetupWithManager(mgr ctrl.Manager, option
 		return errors.Wrap(err, "error setting index fields")
 	}
 
+	// Add index to Machine for listing by Node reference
+	if err := mgr.GetCache().IndexField(&clusterv1.Machine{},
+		machineNodeNameIndex,
+		r.indexMachineByNodeName,
+	); err != nil {
+		return errors.Wrap(err, "error setting index fields")
+	}
+
 	r.controller = controller
 	r.recorder = mgr.GetEventRecorderFor("machinehealthcheck-controller")
+	r.scheme = mgr.GetScheme()
+	r.clusterNodeInformers = make(map[client.ObjectKey]cache.Informer)
+	r.clusterNodeInformersLock = sync.RWMutex{}
 	return nil
 }
 
@@ -136,13 +161,14 @@ func (r *MachineHealthCheckReconciler) Reconcile(req ctrl.Request) (_ ctrl.Resul
 		logger.Error(err, "Failed to reconcile MachineHealthCheck")
 		r.recorder.Eventf(m, corev1.EventTypeWarning, "ReconcileError", "%v", err)
 
-		//TODO(JoelSpeed): Determine how/when to requeue requests if errors occur within r.reconcile
+		// Requeue immediately if any errors occurred
+		return ctrl.Result{}, err
 	}
 
 	return result, nil
 }
 
-func (r *MachineHealthCheckReconciler) reconcile(_ context.Context, cluster *clusterv1.Cluster, m *clusterv1.MachineHealthCheck) (ctrl.Result, error) {
+func (r *MachineHealthCheckReconciler) reconcile(ctx context.Context, cluster *clusterv1.Cluster, m *clusterv1.MachineHealthCheck) (ctrl.Result, error) {
 	// Ensure the MachineHealthCheck is owned by the Cluster it belongs to
 	m.OwnerReferences = util.EnsureOwnerRef(m.OwnerReferences, metav1.OwnerReference{
 		APIVersion: clusterv1.GroupVersion.String(),
@@ -151,7 +177,49 @@ func (r *MachineHealthCheckReconciler) reconcile(_ context.Context, cluster *clu
 		UID:        cluster.UID,
 	})
 
-	return ctrl.Result{}, fmt.Errorf("controller not yet implemented")
+	logger := r.Log.WithValues("machinehealthcheck", m.Name, "namespace", m.Namespace)
+	logger = logger.WithValues("cluster", cluster.Name)
+
+	// Create client for target cluster
+	clusterClient, err := remote.NewClusterClient(ctx, r.Client, util.ObjectKey(cluster), r.scheme)
+	if err != nil {
+		logger.Error(err, "Error building target cluster client")
+		return ctrl.Result{}, err
+	}
+
+	if err := r.watchClusterNodes(ctx, r.Client, cluster); err != nil {
+		logger.Error(err, "Error watching nodes on target cluster")
+		return ctrl.Result{}, err
+	}
+
+	// fetch all targets
+	logger.V(3).Info("Finding targets")
+	targets, err := r.getTargetsFromMHC(clusterClient, cluster, m)
+	if err != nil {
+		logger.Error(err, "Failed to fetch targets from MachineHealthCheck")
+		return ctrl.Result{}, err
+	}
+	totalTargets := len(targets)
+	m.Status.ExpectedMachines = int32(totalTargets)
+
+	// health check all targets and reconcile mhc status
+	currentHealthy, needRemediationTargets, nextCheckTimes := r.healthCheckTargets(targets, logger, m.Spec.NodeStartupTimeout.Duration)
+	m.Status.CurrentHealthy = int32(currentHealthy)
+
+	// remediate
+	for _, t := range needRemediationTargets {
+		logger.V(3).Info("Target meets unhealthy criteria, triggers remediation", "target", t.string())
+		// TODO(JoelSpeed): Implement remediation logic
+	}
+
+	if minNextCheck := minDuration(nextCheckTimes); minNextCheck > 0 {
+		logger.V(3).Info("Some targets might go unhealthy. Ensuring a requeue happens", "requeueIn", minNextCheck.Truncate(time.Second).String())
+		return ctrl.Result{RequeueAfter: minNextCheck}, nil
+	}
+
+	logger.V(3).Info("No more targets meet unhealthy criteria")
+
+	return ctrl.Result{}, nil
 }
 
 func (r *MachineHealthCheckReconciler) indexMachineHealthCheckByClusterName(object runtime.Object) []string {
@@ -191,4 +259,135 @@ func (r *MachineHealthCheckReconciler) clusterToMachineHealthCheck(o handler.Map
 		requests = append(requests, reconcile.Request{NamespacedName: key})
 	}
 	return requests
+}
+
+// machineToMachineHealthCheck maps events from Machine objects to
+// MachineHealthCheck objects that monitor the given machine
+func (r *MachineHealthCheckReconciler) machineToMachineHealthCheck(o handler.MapObject) []reconcile.Request {
+	m, ok := o.Object.(*clusterv1.Machine)
+	if !ok {
+		r.Log.Error(errors.New("incorrect type"), "expected a Machine", "type", fmt.Sprintf("%T", o))
+		return nil
+	}
+
+	mhcList := &clusterv1.MachineHealthCheckList{}
+	if err := r.Client.List(
+		context.Background(),
+		mhcList,
+		&client.ListOptions{Namespace: m.Namespace},
+		client.MatchingFields{mhcClusterNameIndex: m.Spec.ClusterName},
+	); err != nil {
+		r.Log.Error(err, "Unable to list MachineHealthChecks", "machine", m.Name, "namespace", m.Namespace)
+		return nil
+	}
+
+	var requests []reconcile.Request
+	for k := range mhcList.Items {
+		mhc := &mhcList.Items[k]
+		if hasMatchingLabels(mhc.Spec.Selector, m.Labels) {
+			key := util.ObjectKey(mhc)
+			requests = append(requests, reconcile.Request{NamespacedName: key})
+		}
+	}
+	return requests
+}
+
+func (r *MachineHealthCheckReconciler) nodeToMachineHealthCheck(o handler.MapObject) []reconcile.Request {
+	node, ok := o.Object.(*corev1.Node)
+	if !ok {
+		r.Log.Error(errors.New("incorrect type"), "expected a Node", "type", fmt.Sprintf("%T", o))
+		return nil
+	}
+
+	machine, err := r.getMachineFromNode(node.Name)
+	if machine == nil || err != nil {
+		r.Log.Error(err, "Unable to retrieve machine from node", "node", node.GetName())
+		return nil
+	}
+
+	return r.machineToMachineHealthCheck(handler.MapObject{Object: machine})
+}
+
+func (r *MachineHealthCheckReconciler) getMachineFromNode(nodeName string) (*clusterv1.Machine, error) {
+	machineList := &clusterv1.MachineList{}
+	if err := r.Client.List(
+		context.TODO(),
+		machineList,
+		client.MatchingFields{machineNodeNameIndex: nodeName},
+	); err != nil {
+		return nil, errors.Wrap(err, "failed getting machine list")
+	}
+	if len(machineList.Items) != 1 {
+		return nil, errors.Errorf("expecting one machine for node %v, got: %v", nodeName, machineList.Items)
+	}
+	return &machineList.Items[0], nil
+}
+
+func (r *MachineHealthCheckReconciler) watchClusterNodes(ctx context.Context, c client.Client, cluster *clusterv1.Cluster) error {
+	key := util.ObjectKey(cluster)
+	if _, ok := r.getClusterNodeInformer(key); ok {
+		// watch was already set up for this cluster
+		return nil
+	}
+
+	return r.createClusterNodeInformer(ctx, c, key)
+}
+
+func (r *MachineHealthCheckReconciler) getClusterNodeInformer(key client.ObjectKey) (cache.Informer, bool) {
+	r.clusterNodeInformersLock.RLock()
+	defer r.clusterNodeInformersLock.RUnlock()
+
+	informer, ok := r.clusterNodeInformers[key]
+	return informer, ok
+}
+
+func (r *MachineHealthCheckReconciler) createClusterNodeInformer(ctx context.Context, c client.Client, key client.ObjectKey) error {
+	r.clusterNodeInformersLock.Lock()
+	defer r.clusterNodeInformersLock.Unlock()
+
+	// Double check the key still doesn't exist under write lock
+	if _, ok := r.clusterNodeInformers[key]; ok {
+		// An informer was created while waiting for the lock
+		return nil
+	}
+
+	config, err := remote.RESTConfig(ctx, c, key)
+	if err != nil {
+		return errors.Wrap(err, "error fetching remote cluster config")
+	}
+
+	k8sClient, err := kubernetes.NewForConfig(config)
+	if err != nil {
+		return errors.Wrap(err, "error constructing remote cluster client")
+	}
+
+	// TODO(JoelSpeed): See if we use the resync period from the manager instead of 0
+	factory := informers.NewSharedInformerFactory(k8sClient, 0)
+	nodeInformer := factory.Core().V1().Nodes().Informer()
+	go nodeInformer.Run(ctx.Done())
+
+	err = r.controller.Watch(
+		&source.Informer{Informer: nodeInformer},
+		&handler.EnqueueRequestsFromMapFunc{ToRequests: handler.ToRequestsFunc(r.nodeToMachineHealthCheck)},
+	)
+	if err != nil {
+		return errors.Wrap(err, "error watching nodes on target cluster")
+	}
+
+	r.clusterNodeInformers[key] = nodeInformer
+	return nil
+}
+
+func (r *MachineHealthCheckReconciler) indexMachineByNodeName(object runtime.Object) []string {
+	machine, ok := object.(*clusterv1.Machine)
+	if !ok {
+		r.Log.Error(errors.New("incorrect type"), "expected a Machine", "type", fmt.Sprintf("%T", object))
+		return nil
+	}
+
+	if machine.Status.NodeRef != nil {
+		return []string{machine.Status.NodeRef.Name}
+	}
+
+	return nil
 }

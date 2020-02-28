@@ -67,6 +67,10 @@ spec:
                 description: Any further remediation is only allowed if at most "MaxUnhealthy"
                   machines selected by "selector" are not healthy.
                 x-kubernetes-int-or-string: true
+              nodeStartupTimeout:
+                description: Machines older than this duration without a node will
+                  be considered to have failed and will be remediated.
+                type: string
               selector:
                 description: Label selector to match machines whose health will be
                   exercised
@@ -158,9 +162,6 @@ spec:
                 format: int32
                 minimum: 0
                 type: integer
-            required:
-            - currentHealthy
-            - expectedMachines
             type: object
         type: object
     served: true

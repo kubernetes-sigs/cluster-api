@@ -17,22 +17,32 @@ limitations under the License.
 package proxy
 
 import (
+	"fmt"
+	"io"
+	"io/ioutil"
 	"net"
 	"time"
 
 	"k8s.io/apimachinery/pkg/util/httpstream"
+	"k8s.io/apimachinery/pkg/util/runtime"
 )
 
 // Conn is a Kubernetes API server proxied type of net/conn
 type Conn struct {
 	stream        httpstream.Stream
+	errChan       chan error
 	readDeadline  time.Time
 	writeDeadline time.Time
 }
 
 // Read from the connection
 func (c Conn) Read(b []byte) (n int, err error) {
-	return c.stream.Read(b)
+	select {
+	case err := <-c.errChan:
+		return 0, err
+	default:
+		return c.stream.Read(b)
+	}
 }
 
 // Close the underlying proxied connection
@@ -42,7 +52,12 @@ func (c Conn) Close() error {
 
 // Write to the connection
 func (c Conn) Write(b []byte) (n int, err error) {
-	return c.stream.Write(b)
+	select {
+	case err := <-c.errChan:
+		return 0, err
+	default:
+		return c.stream.Write(b)
+	}
 }
 
 // Return a fake address representing the proxied connection
@@ -77,8 +92,24 @@ func (c Conn) SetReadDeadline(t time.Time) error {
 
 // NewConn creates a new net/conn interface based on an underlying Kubernetes
 // API server proxy connection
-func NewConn(stream httpstream.Stream) Conn {
+func NewConn(stream httpstream.Stream, errorStream io.Reader) Conn {
+	errChan := make(chan error)
+
+	go func() {
+		defer runtime.HandleCrash()
+
+		message, err := ioutil.ReadAll(errorStream)
+		switch {
+		case err != nil && err != io.EOF:
+			errChan <- fmt.Errorf("error reading from error stream: %s", err)
+		case len(message) > 0:
+			errChan <- fmt.Errorf("read error from stream: %s", string(message))
+		}
+		close(errChan)
+	}()
+
 	return Conn{
-		stream: stream,
+		stream:  stream,
+		errChan: errChan,
 	}
 }

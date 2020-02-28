@@ -46,3 +46,5 @@ require (
 	sigs.k8s.io/controller-runtime v0.5.0
 	sigs.k8s.io/yaml v1.1.0
 )
+
+replace google.golang.org/grpc => github.com/sethp-nr/grpc-go v0.0.0-20200228215221-53b5c65ead5f

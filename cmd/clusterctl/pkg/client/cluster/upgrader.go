@@ -50,6 +50,16 @@ func (u *UpgradePlan) UpgradeRef() string {
 	return u.CoreProvider.InstanceName()
 }
 
+// isPartialUpgrade returns true if at least one upgradeItem in the plan does not have a target version.
+func (u *UpgradePlan) isPartialUpgrade() bool {
+	for _, i := range u.Providers {
+		if i.NextVersion == "" {
+			return true
+		}
+	}
+	return false
+}
+
 // UpgradeItem defines a possible upgrade target for a provider in the management group.
 type UpgradeItem struct {
 	clusterctlv1.Provider
@@ -104,11 +114,19 @@ func (u *providerUpgrader) Plan() ([]UpgradePlan, error) {
 		// an UpgradeItem for each provider defining the next available version with the target contract, if available.
 		// e.g. v1alpha3, cluster-api --> v0.3.2, kubeadm bootstrap --> v0.3.2, aws --> v0.5.4
 		// e.g. v1alpha4, cluster-api --> v0.4.1, kubeadm bootstrap --> v0.4.1, aws --> v0.6.2
-		for _, apiVersion := range contractsForUpgrade {
-			upgradePlan, err := u.getUpgradePlan(managementGroup, apiVersion)
+		for _, contract := range contractsForUpgrade {
+			upgradePlan, err := u.getUpgradePlan(managementGroup, contract)
 			if err != nil {
 				return nil, err
 			}
+
+			// If the upgrade plan is partial (at least one upgradeItem in the plan does not have a target version) and
+			// the upgrade plan requires a change of the contract for this management group, then drop it
+			// (all the provider in a management group are required to change contract at the same time).
+			if upgradePlan.isPartialUpgrade() && coreUpgradeInfo.currentContract != contract {
+				continue
+			}
+
 			ret = append(ret, *upgradePlan)
 		}
 	}

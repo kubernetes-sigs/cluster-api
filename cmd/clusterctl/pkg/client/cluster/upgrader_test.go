@@ -428,6 +428,55 @@ func Test_providerUpgrader_Plan(t *testing.T) {
 			},
 			wantErr: false,
 		},
+		{
+			name: "Single Management group, no multi-tenancy, upgrade for two contracts, but the upgrade for the second one is partially available",
+			fields: fields{
+				// config for two providers
+				reader: test.NewFakeReader().
+					WithProvider("cluster-api", clusterctlv1.CoreProviderType, "https://somewhere.com").
+					WithProvider("infra", clusterctlv1.InfrastructureProviderType, "https://somewhere.com"),
+				// two provider repositories, the first with a new version for current v1alpha3 contract and a new version for the v1alpha4 contract, the second without new releases
+				repository: map[string]repository.Repository{
+					"cluster-api": test.NewFakeRepository().
+						WithVersions("v1.0.0", "v1.0.1", "v2.0.0").
+						WithMetadata("v2.0.0", &clusterctlv1.Metadata{
+							ReleaseSeries: []clusterctlv1.ReleaseSeries{
+								{Major: 1, Minor: 0, Contract: "v1alpha3"},
+								{Major: 2, Minor: 0, Contract: "v1alpha4"},
+							},
+						}),
+					"infrastructure-infra": test.NewFakeRepository().
+						WithVersions("v2.0.0"). // no v1alpha3 or v1alpha3 new releases yet available for the infra provider (only the current release exists)
+						WithMetadata("v2.0.0", &clusterctlv1.Metadata{
+							ReleaseSeries: []clusterctlv1.ReleaseSeries{
+								{Major: 2, Minor: 0, Contract: "v1alpha3"},
+							},
+						}),
+				},
+				// two providers existing in the cluster
+				proxy: test.NewFakeProxy().
+					WithProviderInventory("cluster-api", clusterctlv1.CoreProviderType, "v1.0.0", "cluster-api-system", "").
+					WithProviderInventory("infra", clusterctlv1.InfrastructureProviderType, "v2.0.0", "infra-system", ""),
+			},
+			want: []UpgradePlan{
+				{ // one upgrade plan with the latest releases in the v1alpha3 contract
+					Contract:     "v1alpha3",
+					CoreProvider: fakeProvider("cluster-api", clusterctlv1.CoreProviderType, "v1.0.0", "cluster-api-system", ""),
+					Providers: []UpgradeItem{
+						{
+							Provider:    fakeProvider("cluster-api", clusterctlv1.CoreProviderType, "v1.0.0", "cluster-api-system", ""),
+							NextVersion: "v1.0.1",
+						},
+						{
+							Provider:    fakeProvider("infra", clusterctlv1.InfrastructureProviderType, "v2.0.0", "infra-system", ""),
+							NextVersion: "", // we are already to the latest version for the infra provider in the v1alpha3 contract, but this is acceptable for the current contract
+						},
+					},
+				},
+				// the upgrade plan with the latest releases in the v1alpha4 contract should be dropped because all the provider are required to change the contract at the same time
+			},
+			wantErr: false,
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {

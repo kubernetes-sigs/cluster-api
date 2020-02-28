@@ -35,6 +35,9 @@ type upgradeInfo struct {
 	// currentVersion of the provider
 	currentVersion *version.Version
 
+	// currentContract of the provider
+	currentContract string
+
 	// nextVersions return the list of versions available for upgrades, defined as the list of version available in the provider repository
 	// greater than the currentVersion.
 	nextVersions []version.Version
@@ -123,10 +126,18 @@ func newUpgradeInfo(metadata *clusterctlv1.Metadata, currentVersion *version.Ver
 		return nextVersions[i].LessThan(&nextVersions[j])
 	})
 
+	// Gets the current contract for the provider
+	// Please note this should never be empty, because getUpgradeInfo ensures the releaseSeries defined in metadata includes the current version.
+	currentContract := ""
+	if currentReleaseSeries := metadata.GetReleaseSeriesForVersion(currentVersion); currentReleaseSeries != nil {
+		currentContract = currentReleaseSeries.Contract
+	}
+
 	return &upgradeInfo{
-		metadata:       metadata,
-		currentVersion: currentVersion,
-		nextVersions:   nextVersions,
+		metadata:        metadata,
+		currentVersion:  currentVersion,
+		currentContract: currentContract,
+		nextVersions:    nextVersions,
 	}
 }
 

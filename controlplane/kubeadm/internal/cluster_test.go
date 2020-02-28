@@ -24,8 +24,11 @@ import (
 	"testing"
 
 	corev1 "k8s.io/api/core/v1"
+	rbacv1 "k8s.io/api/rbac/v1"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/types"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha3"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -218,15 +221,26 @@ func machineListForTestGetMachinesForCluster() *clusterv1.MachineList {
 
 type fakeClient struct {
 	client.Client
-	list interface{}
-	get  map[string]interface{}
+	list      interface{}
+	get       map[string]interface{}
+	getErr    error
+	createErr error
 }
 
 func (f *fakeClient) Get(_ context.Context, key client.ObjectKey, obj runtime.Object) error {
+	if f.getErr != nil {
+		return f.getErr
+	}
 	item := f.get[key.String()]
 	switch l := item.(type) {
 	case *corev1.Pod:
 		l.DeepCopyInto(obj.(*corev1.Pod))
+	case *rbacv1.RoleBinding:
+		l.DeepCopyInto(obj.(*rbacv1.RoleBinding))
+	case *rbacv1.Role:
+		l.DeepCopyInto(obj.(*rbacv1.Role))
+	case nil:
+		return apierrors.NewNotFound(schema.GroupResource{}, key.Name)
 	default:
 		return fmt.Errorf("unknown type: %s", l)
 	}
@@ -241,6 +255,13 @@ func (f *fakeClient) List(_ context.Context, list runtime.Object, _ ...client.Li
 		l.DeepCopyInto(list.(*corev1.NodeList))
 	default:
 		return fmt.Errorf("unknown type: %s", l)
+	}
+	return nil
+}
+
+func (f *fakeClient) Create(_ context.Context, _ runtime.Object, _ ...client.CreateOption) error {
+	if f.createErr != nil {
+		return f.createErr
 	}
 	return nil
 }

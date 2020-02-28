@@ -26,7 +26,6 @@ import (
 	"github.com/go-logr/logr"
 	"github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
-	rbacv1 "k8s.io/api/rbac/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
@@ -352,7 +351,7 @@ func (r *KubeadmControlPlaneReconciler) upgradeControlPlane(ctx context.Context,
 	}
 
 	// Reconcile the remote cluster's configuration necessary for upgrade
-	if err := r.reconcileConfiguration(ctx, kcp.Spec.Version, util.ObjectKey(cluster), workloadCluster); err != nil {
+	if err := r.reconcileConfiguration(ctx, kcp.Spec.Version, workloadCluster); err != nil {
 		logger.Error(err, "failed reconcile remote cluster configuration for upgrade")
 		return ctrl.Result{}, err
 	}
@@ -387,23 +386,17 @@ func (r *KubeadmControlPlaneReconciler) upgradeControlPlane(ctx context.Context,
 }
 
 // reconcileConfiguration will update the remote cluster's system configurations in preparation for an upgrade.
-func (r *KubeadmControlPlaneReconciler) reconcileConfiguration(ctx context.Context, version string, clusterKey client.ObjectKey, workloadCluster *internal.Cluster) error {
+func (r *KubeadmControlPlaneReconciler) reconcileConfiguration(ctx context.Context, version string, workloadCluster *internal.Cluster) error {
 	parsedVersion, err := semver.ParseTolerant(version)
 	if err != nil {
 		return errors.Wrapf(err, "failed to parse kubernetes version %q", version)
 	}
 
-	// TODO: move these reconciles into the cluster object exposed by the ManagementCluster
-	remoteClient, err := r.remoteClientGetter(ctx, r.Client, clusterKey, r.scheme)
-	if err != nil {
-		return errors.Wrap(err, "failed to create remote cluster client ")
-	}
-
-	if err := reconcileKubeletRBACRole(ctx, remoteClient, parsedVersion); err != nil {
+	if err := workloadCluster.ReconcileKubeletRBACRole(ctx, parsedVersion); err != nil {
 		return errors.Wrap(err, "failed to reconcile the remote kubelet RBAC role")
 	}
 
-	if err := reconcileKubeletRBACBinding(ctx, remoteClient, parsedVersion); err != nil {
+	if err := workloadCluster.ReconcileKubeletRBACBinding(ctx, parsedVersion); err != nil {
 		return errors.Wrap(err, "failed to reconcile the remote kubelet RBAC binding")
 	}
 
@@ -413,79 +406,6 @@ func (r *KubeadmControlPlaneReconciler) reconcileConfiguration(ctx context.Conte
 
 	if err := workloadCluster.UpdateKubeletConfigMap(ctx, parsedVersion); err != nil {
 		return errors.Wrap(err, "failed to upgrade kubelet config map")
-	}
-
-	return nil
-}
-
-func reconcileKubeletRBACRole(ctx context.Context, remoteClient client.Client, version semver.Version) error {
-	majorMinor := fmt.Sprintf("%d.%d", version.Major, version.Minor)
-	roleName := fmt.Sprintf("kubeadm:kubelet-config-%s", majorMinor)
-	role := &rbacv1.Role{}
-	if err := remoteClient.Get(ctx, client.ObjectKey{Name: roleName, Namespace: metav1.NamespaceSystem}, role); err != nil && !apierrors.IsNotFound(err) {
-		return errors.Wrapf(err, "failed to determine if kubelet config rbac role %q already exists", roleName)
-	} else if err == nil {
-		// The required role already exists, nothing left to do
-		return nil
-	}
-
-	newRole := &rbacv1.Role{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      roleName,
-			Namespace: metav1.NamespaceSystem,
-		},
-		Rules: []rbacv1.PolicyRule{
-			{
-				Verbs:         []string{"get"},
-				APIGroups:     []string{""},
-				Resources:     []string{"configmaps"},
-				ResourceNames: []string{fmt.Sprintf("kubelet-config-%s", majorMinor)},
-			},
-		},
-	}
-	if err := remoteClient.Create(ctx, newRole); err != nil && !apierrors.IsAlreadyExists(err) {
-		return errors.Wrapf(err, "failed to create kubelet rbac role %q", roleName)
-	}
-
-	return nil
-}
-
-func reconcileKubeletRBACBinding(ctx context.Context, remoteClient client.Client, version semver.Version) error {
-	majorMinor := fmt.Sprintf("%d.%d", version.Major, version.Minor)
-	roleName := fmt.Sprintf("kubeadm:kubelet-config-%s", majorMinor)
-	roleBinding := &rbacv1.RoleBinding{}
-	if err := remoteClient.Get(ctx, client.ObjectKey{Name: roleName, Namespace: metav1.NamespaceSystem}, roleBinding); err != nil && !apierrors.IsNotFound(err) {
-		return errors.Wrapf(err, "failed to determine if kubelet config rbac role binding %q already exists", roleName)
-	} else if err == nil {
-		// The required role binding already exists, nothing left to do
-		return nil
-	}
-
-	newRoleBinding := &rbacv1.RoleBinding{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      roleName,
-			Namespace: metav1.NamespaceSystem,
-		},
-		Subjects: []rbacv1.Subject{
-			{
-				APIGroup: "rbac.authorization.k8s.io",
-				Kind:     "Group",
-				Name:     "system:nodes",
-			},
-			{
-				APIGroup: "rbac.authorization.k8s.io",
-				Kind:     "Group",
-				Name:     "system:bootstrappers:kubeadm:default-node-token",
-			},
-		},
-		RoleRef: rbacv1.RoleRef{
-			APIGroup: "rbac.authorization.k8s.io",
-			Kind:     "Role",
-			Name:     roleName,
-		},
-	}
-	if err := remoteClient.Create(ctx, newRoleBinding); err != nil && !apierrors.IsAlreadyExists(err) {
-		return errors.Wrapf(err, "failed to create kubelet rbac role binding %q", roleName)
 	}
 
 	return nil

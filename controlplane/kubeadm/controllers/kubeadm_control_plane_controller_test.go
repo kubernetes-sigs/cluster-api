@@ -444,6 +444,7 @@ func TestReconcileClusterNoEndpoints(t *testing.T) {
 		Log:                log.Log,
 		remoteClientGetter: fakeremote.NewClusterClient,
 		recorder:           record.NewFakeRecorder(32),
+		managementCluster:  &internal.ManagementCluster{Client: fakeClient},
 	}
 
 	result, err := r.Reconcile(ctrl.Request{NamespacedName: types.NamespacedName{Name: kcp.Name, Namespace: kcp.Namespace}})
@@ -539,6 +540,7 @@ func TestReconcileInitializeControlPlane(t *testing.T) {
 		remoteClientGetter: fakeremote.NewClusterClient,
 		scheme:             scheme.Scheme,
 		recorder:           record.NewFakeRecorder(32),
+		managementCluster:  &internal.ManagementCluster{Client: fakeClient},
 	}
 
 	result, err := r.Reconcile(ctrl.Request{NamespacedName: types.NamespacedName{Name: kcp.Name, Namespace: kcp.Namespace}})

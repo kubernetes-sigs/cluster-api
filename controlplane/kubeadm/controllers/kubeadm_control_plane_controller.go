@@ -118,6 +118,7 @@ func (r *KubeadmControlPlaneReconciler) SetupWithManager(mgr ctrl.Manager, optio
 	r.scheme = mgr.GetScheme()
 	r.controller = c
 	r.recorder = mgr.GetEventRecorderFor("kubeadm-control-plane-controller")
+	r.managementCluster = &internal.ManagementCluster{Client: r.Client}
 	if r.remoteClientGetter == nil {
 		r.remoteClientGetter = remote.NewClusterClient
 	}
@@ -159,7 +160,6 @@ func (r *KubeadmControlPlaneReconciler) Reconcile(req ctrl.Request) (res ctrl.Re
 		logger.Info("Reconciliation is paused")
 		return ctrl.Result{}, nil
 	}
-	r.managementCluster = &internal.ManagementCluster{Client: r.Client}
 
 	// Wait for the cluster infrastructure to be ready before creating machines
 	if !cluster.Status.InfrastructureReady {
@@ -916,7 +916,7 @@ func (r *KubeadmControlPlaneReconciler) reconcileExternalReference(ctx context.C
 	return nil
 }
 
-// ClusterToKubeadmControlPlane is a handler.ToRequestsFunc to be used to enqeue requests for reconciliation
+// ClusterToKubeadmControlPlane is a handler.ToRequestsFunc to be used to enqueue requests for reconciliation
 // for KubeadmControlPlane based on updates to a Cluster.
 func (r *KubeadmControlPlaneReconciler) ClusterToKubeadmControlPlane(o handler.MapObject) []ctrl.Request {
 	c, ok := o.Object.(*clusterv1.Cluster)

@@ -42,7 +42,6 @@ import (
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha3"
 	bootstrapv1 "sigs.k8s.io/cluster-api/bootstrap/kubeadm/api/v1alpha3"
 	kubeadmv1 "sigs.k8s.io/cluster-api/bootstrap/kubeadm/types/v1beta1"
-	fakeremote "sigs.k8s.io/cluster-api/controllers/remote/fake"
 	controlplanev1 "sigs.k8s.io/cluster-api/controlplane/kubeadm/api/v1alpha3"
 	"sigs.k8s.io/cluster-api/controlplane/kubeadm/internal"
 	"sigs.k8s.io/cluster-api/controlplane/kubeadm/internal/hash"
@@ -439,11 +438,13 @@ func TestReconcileClusterNoEndpoints(t *testing.T) {
 	log.SetLogger(klogr.New())
 
 	r := &KubeadmControlPlaneReconciler{
-		Client:             fakeClient,
-		Log:                log.Log,
-		remoteClientGetter: fakeremote.NewClusterClient,
-		recorder:           record.NewFakeRecorder(32),
-		managementCluster:  &internal.ManagementCluster{Client: fakeClient},
+		Client:   fakeClient,
+		Log:      log.Log,
+		recorder: record.NewFakeRecorder(32),
+		managementCluster: &fakeManagementCluster{
+			ManagementCluster: &internal.ManagementCluster{Client: fakeClient},
+			Cluster:           &internal.Cluster{Client: fakeClient},
+		},
 	}
 
 	result, err := r.Reconcile(ctrl.Request{NamespacedName: util.ObjectKey(kcp)})
@@ -532,14 +533,15 @@ func TestReconcileInitializeControlPlane(t *testing.T) {
 	log.SetLogger(klogr.New())
 
 	expectedLabels := map[string]string{clusterv1.ClusterLabelName: "foo"}
-
 	r := &KubeadmControlPlaneReconciler{
-		Client:             fakeClient,
-		Log:                log.Log,
-		remoteClientGetter: fakeremote.NewClusterClient,
-		scheme:             scheme.Scheme,
-		recorder:           record.NewFakeRecorder(32),
-		managementCluster:  &internal.ManagementCluster{Client: fakeClient},
+		Client:   fakeClient,
+		Log:      log.Log,
+		scheme:   scheme.Scheme,
+		recorder: record.NewFakeRecorder(32),
+		managementCluster: &fakeManagementCluster{
+			ManagementCluster: &internal.ManagementCluster{Client: fakeClient},
+			Cluster:           &internal.Cluster{Client: fakeClient},
+		},
 	}
 
 	result, err := r.Reconcile(ctrl.Request{NamespacedName: util.ObjectKey(kcp)})
@@ -692,60 +694,6 @@ func TestKubeadmControlPlaneReconciler_generateKubeadmConfig(t *testing.T) {
 	g.Expect(bootstrapConfig.Spec).To(Equal(spec))
 }
 
-func Test_getMachineNodeNoNodeRef(t *testing.T) {
-	g := NewWithT(t)
-
-	fakeClient := newFakeClient(g)
-
-	m := &clusterv1.Machine{}
-	node, err := getMachineNode(context.Background(), fakeClient, m)
-	g.Expect(err).NotTo(HaveOccurred())
-	g.Expect(node).To(BeNil())
-}
-
-func Test_getMachineNodeNotFound(t *testing.T) {
-	g := NewWithT(t)
-
-	fakeClient := newFakeClient(g)
-
-	m := &clusterv1.Machine{
-		Status: clusterv1.MachineStatus{
-			NodeRef: &corev1.ObjectReference{
-				Kind:       "Node",
-				APIVersion: corev1.SchemeGroupVersion.String(),
-				Name:       "notfound",
-			},
-		},
-	}
-	node, err := getMachineNode(context.Background(), fakeClient, m)
-	g.Expect(err).NotTo(HaveOccurred())
-	g.Expect(node).To(BeNil())
-}
-
-func Test_getMachineNodeFound(t *testing.T) {
-	g := NewWithT(t)
-
-	node := &corev1.Node{
-		ObjectMeta: metav1.ObjectMeta{
-			Name: "testNode",
-		},
-	}
-	fakeClient := newFakeClient(g, node.DeepCopy())
-
-	m := &clusterv1.Machine{
-		Status: clusterv1.MachineStatus{
-			NodeRef: &corev1.ObjectReference{
-				Kind:       "Node",
-				APIVersion: corev1.SchemeGroupVersion.String(),
-				Name:       "testNode",
-			},
-		},
-	}
-	node, err := getMachineNode(context.Background(), fakeClient, m)
-	g.Expect(err).NotTo(HaveOccurred())
-	g.Expect(node).To(Equal(node))
-}
-
 func TestKubeadmControlPlaneReconciler_updateStatusNoMachines(t *testing.T) {
 	g := NewWithT(t)
 
@@ -769,12 +717,14 @@ func TestKubeadmControlPlaneReconciler_updateStatusNoMachines(t *testing.T) {
 	log.SetLogger(klogr.New())
 
 	r := &KubeadmControlPlaneReconciler{
-		Client:             fakeClient,
-		Log:                log.Log,
-		remoteClientGetter: fakeremote.NewClusterClient,
-		scheme:             scheme.Scheme,
-		managementCluster:  &internal.ManagementCluster{Client: fakeClient},
-		recorder:           record.NewFakeRecorder(32),
+		Client: fakeClient,
+		Log:    log.Log,
+		scheme: scheme.Scheme,
+		managementCluster: &fakeManagementCluster{
+			Machines: map[string]*clusterv1.Machine{},
+			Cluster:  &internal.Cluster{Client: fakeClient},
+		},
+		recorder: record.NewFakeRecorder(32),
 	}
 
 	g.Expect(r.updateStatus(context.Background(), kcp, cluster)).To(Succeed())
@@ -809,7 +759,8 @@ func createMachineNodePair(name string, cluster *clusterv1.Cluster, kcp *control
 
 	node := &corev1.Node{
 		ObjectMeta: metav1.ObjectMeta{
-			Name: name,
+			Name:   name,
+			Labels: map[string]string{"node-role.kubernetes.io/master": ""},
 		},
 	}
 
@@ -845,23 +796,27 @@ func TestKubeadmControlPlaneReconciler_updateStatusAllMachinesNotReady(t *testin
 	kcp.Default()
 	g.Expect(kcp.ValidateCreate()).To(Succeed())
 
+	machines := map[string]*clusterv1.Machine{}
 	objs := []runtime.Object{cluster.DeepCopy(), kcp.DeepCopy()}
 	for i := 0; i < 3; i++ {
 		name := fmt.Sprintf("test-%d", i)
 		m, n := createMachineNodePair(name, cluster, kcp, false)
-		objs = append(objs, m, n)
+		objs = append(objs, n)
+		machines[m.Name] = m
 	}
 
 	fakeClient := newFakeClient(g, objs...)
 	log.SetLogger(klogr.New())
 
 	r := &KubeadmControlPlaneReconciler{
-		Client:             fakeClient,
-		Log:                log.Log,
-		remoteClientGetter: fakeremote.NewClusterClient,
-		scheme:             scheme.Scheme,
-		managementCluster:  &internal.ManagementCluster{Client: fakeClient},
-		recorder:           record.NewFakeRecorder(32),
+		Client: fakeClient,
+		Log:    log.Log,
+		scheme: scheme.Scheme,
+		managementCluster: &fakeManagementCluster{
+			Machines: machines,
+			Cluster:  &internal.Cluster{Client: fakeClient},
+		},
+		recorder: record.NewFakeRecorder(32),
 	}
 
 	g.Expect(r.updateStatus(context.Background(), kcp, cluster)).To(Succeed())
@@ -873,6 +828,15 @@ func TestKubeadmControlPlaneReconciler_updateStatusAllMachinesNotReady(t *testin
 	g.Expect(kcp.Status.FailureReason).To(BeEquivalentTo(""))
 	g.Expect(kcp.Status.Initialized).To(BeFalse())
 	g.Expect(kcp.Status.Ready).To(BeFalse())
+}
+
+func kubeadmConfigMap() *corev1.ConfigMap {
+	return &corev1.ConfigMap{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "kubeadm-config",
+			Namespace: metav1.NamespaceSystem,
+		},
+	}
 }
 
 func TestKubeadmControlPlaneReconciler_updateStatusAllMachinesReady(t *testing.T) {
@@ -894,23 +858,27 @@ func TestKubeadmControlPlaneReconciler_updateStatusAllMachinesReady(t *testing.T
 	kcp.Default()
 	g.Expect(kcp.ValidateCreate()).To(Succeed())
 
-	objs := []runtime.Object{cluster.DeepCopy(), kcp.DeepCopy()}
+	objs := []runtime.Object{cluster.DeepCopy(), kcp.DeepCopy(), kubeadmConfigMap()}
+	machines := map[string]*clusterv1.Machine{}
 	for i := 0; i < 3; i++ {
 		name := fmt.Sprintf("test-%d", i)
 		m, n := createMachineNodePair(name, cluster, kcp, true)
-		objs = append(objs, m, n)
+		objs = append(objs, n)
+		machines[m.Name] = m
 	}
 
 	fakeClient := newFakeClient(g, objs...)
 	log.SetLogger(klogr.New())
 
 	r := &KubeadmControlPlaneReconciler{
-		Client:             fakeClient,
-		Log:                log.Log,
-		remoteClientGetter: fakeremote.NewClusterClient,
-		scheme:             scheme.Scheme,
-		managementCluster:  &internal.ManagementCluster{Client: fakeClient},
-		recorder:           record.NewFakeRecorder(32),
+		Client: fakeClient,
+		Log:    log.Log,
+		scheme: scheme.Scheme,
+		managementCluster: &fakeManagementCluster{
+			Machines: machines,
+			Cluster:  &internal.Cluster{Client: fakeClient},
+		},
+		recorder: record.NewFakeRecorder(32),
 	}
 
 	g.Expect(r.updateStatus(context.Background(), kcp, cluster)).To(Succeed())
@@ -921,9 +889,7 @@ func TestKubeadmControlPlaneReconciler_updateStatusAllMachinesReady(t *testing.T
 	g.Expect(kcp.Status.FailureMessage).To(BeNil())
 	g.Expect(kcp.Status.FailureReason).To(BeEquivalentTo(""))
 	g.Expect(kcp.Status.Initialized).To(BeTrue())
-
-	// TODO: will need to be updated once we start handling Ready
-	g.Expect(kcp.Status.Ready).To(BeFalse())
+	g.Expect(kcp.Status.Ready).To(BeTrue())
 }
 
 func TestKubeadmControlPlaneReconciler_updateStatusMachinesReadyMixed(t *testing.T) {
@@ -944,26 +910,29 @@ func TestKubeadmControlPlaneReconciler_updateStatusMachinesReadyMixed(t *testing
 	}
 	kcp.Default()
 	g.Expect(kcp.ValidateCreate()).To(Succeed())
-
+	machines := map[string]*clusterv1.Machine{}
 	objs := []runtime.Object{cluster.DeepCopy(), kcp.DeepCopy()}
 	for i := 0; i < 4; i++ {
 		name := fmt.Sprintf("test-%d", i)
 		m, n := createMachineNodePair(name, cluster, kcp, false)
-		objs = append(objs, m, n)
+		machines[m.Name] = m
+		objs = append(objs, n)
 	}
 	m, n := createMachineNodePair("testReady", cluster, kcp, true)
-	objs = append(objs, m, n)
-
+	objs = append(objs, n, kubeadmConfigMap())
+	machines[m.Name] = m
 	fakeClient := newFakeClient(g, objs...)
 	log.SetLogger(klogr.New())
 
 	r := &KubeadmControlPlaneReconciler{
-		Client:             fakeClient,
-		Log:                log.Log,
-		remoteClientGetter: fakeremote.NewClusterClient,
-		scheme:             scheme.Scheme,
-		managementCluster:  &internal.ManagementCluster{Client: fakeClient},
-		recorder:           record.NewFakeRecorder(32),
+		Client: fakeClient,
+		Log:    log.Log,
+		scheme: scheme.Scheme,
+		managementCluster: &fakeManagementCluster{
+			Machines: machines,
+			Cluster:  &internal.Cluster{Client: fakeClient},
+		},
+		recorder: record.NewFakeRecorder(32),
 	}
 
 	g.Expect(r.updateStatus(context.Background(), kcp, cluster)).To(Succeed())
@@ -974,9 +943,7 @@ func TestKubeadmControlPlaneReconciler_updateStatusMachinesReadyMixed(t *testing
 	g.Expect(kcp.Status.FailureMessage).To(BeNil())
 	g.Expect(kcp.Status.FailureReason).To(BeEquivalentTo(""))
 	g.Expect(kcp.Status.Initialized).To(BeTrue())
-
-	// TODO: will need to be updated once we start handling Ready
-	g.Expect(kcp.Status.Ready).To(BeFalse())
+	g.Expect(kcp.Status.Ready).To(BeTrue())
 }
 
 func TestCloneConfigsAndGenerateMachine(t *testing.T) {
@@ -1221,16 +1188,21 @@ func TestKubeadmControlPlaneReconciler_reconcileDelete(t *testing.T) {
 }
 
 type fakeManagementCluster struct {
+	*internal.ManagementCluster
 	ControlPlaneHealthy bool
 	EtcdHealthy         bool
 	Machines            internal.FilterableMachineCollection
+	Cluster             *internal.Cluster
 }
 
 func (f *fakeManagementCluster) GetWorkloadCluster(_ context.Context, _ client.ObjectKey) (*internal.Cluster, error) {
-	return nil, nil
+	return f.Cluster, nil
 }
 
-func (f *fakeManagementCluster) GetMachinesForCluster(_ context.Context, _ client.ObjectKey, _ ...internal.MachineFilter) (internal.FilterableMachineCollection, error) {
+func (f *fakeManagementCluster) GetMachinesForCluster(c context.Context, n client.ObjectKey, filters ...internal.MachineFilter) (internal.FilterableMachineCollection, error) {
+	if f.Machines == nil {
+		return f.ManagementCluster.GetMachinesForCluster(c, n, filters...)
+	}
 	return f.Machines, nil
 }
 

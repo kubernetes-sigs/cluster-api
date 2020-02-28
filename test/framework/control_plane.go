@@ -244,6 +244,39 @@ func WaitForKubeadmControlPlaneMachinesToExist(ctx context.Context, input WaitFo
 	}, intervals...).Should(Equal(int(*input.ControlPlane.Spec.Replicas)))
 }
 
+// WaitForKubeadmControlPlaneMachinesToExistInput is the input for WaitForKubeadmControlPlaneMachinesToExist.
+type WaitForOneKubeadmControlPlaneMachineToExistInput struct {
+	Lister       Lister
+	Cluster      *clusterv1.Cluster
+	ControlPlane *controlplanev1.KubeadmControlPlane
+}
+
+// WaitForKubeadmControlPlaneMachineToExist will wait until all control plane machines have node refs.
+func WaitForOneKubeadmControlPlaneMachineToExist(ctx context.Context, input WaitForOneKubeadmControlPlaneMachineToExistInput, intervals ...interface{}) {
+	By("waiting for one control plane node to exist")
+	inClustersNamespaceListOption := client.InNamespace(input.Cluster.Namespace)
+	// ControlPlane labels
+	matchClusterListOption := client.MatchingLabels{
+		clusterv1.MachineControlPlaneLabelName: "",
+		clusterv1.ClusterLabelName:             input.Cluster.Name,
+	}
+
+	Eventually(func() (bool, error) {
+		machineList := &clusterv1.MachineList{}
+		if err := input.Lister.List(ctx, machineList, inClustersNamespaceListOption, matchClusterListOption); err != nil {
+			fmt.Println(err)
+			return false, err
+		}
+		count := 0
+		for _, machine := range machineList.Items {
+			if machine.Status.NodeRef != nil {
+				count++
+			}
+		}
+		return count > 0, nil
+	}, intervals...).Should(BeTrue())
+}
+
 // WaitForControlPlaneToBeReadyInput is the input for WaitForControlPlaneToBeReady.
 type WaitForControlPlaneToBeReadyInput struct {
 	Getter       Getter
@@ -264,8 +297,7 @@ func WaitForControlPlaneToBeReady(ctx context.Context, input WaitForControlPlane
 		if err := input.Getter.Get(ctx, key, controlplane); err != nil {
 			return false, err
 		}
-		// TODO: Return status.Ready instead...
-		return controlplane.Status.Initialized, nil
+		return controlplane.Status.Ready, nil
 	}, intervals...).Should(BeTrue())
 }
 

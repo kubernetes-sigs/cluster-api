@@ -44,7 +44,6 @@ import (
 	bootstrapv1 "sigs.k8s.io/cluster-api/bootstrap/kubeadm/api/v1alpha3"
 	kubeadmv1 "sigs.k8s.io/cluster-api/bootstrap/kubeadm/types/v1beta1"
 	"sigs.k8s.io/cluster-api/controllers/external"
-	"sigs.k8s.io/cluster-api/controllers/remote"
 	controlplanev1 "sigs.k8s.io/cluster-api/controlplane/kubeadm/api/v1alpha3"
 	"sigs.k8s.io/cluster-api/controlplane/kubeadm/internal"
 	"sigs.k8s.io/cluster-api/controlplane/kubeadm/internal/hash"
@@ -93,8 +92,6 @@ type KubeadmControlPlaneReconciler struct {
 	controller controller.Controller
 	recorder   record.EventRecorder
 
-	remoteClientGetter remote.ClusterClientGetter
-
 	managementCluster managementCluster
 }
 
@@ -116,9 +113,9 @@ func (r *KubeadmControlPlaneReconciler) SetupWithManager(mgr ctrl.Manager, optio
 	r.scheme = mgr.GetScheme()
 	r.controller = c
 	r.recorder = mgr.GetEventRecorderFor("kubeadm-control-plane-controller")
-	r.managementCluster = &internal.ManagementCluster{Client: r.Client}
-	if r.remoteClientGetter == nil {
-		r.remoteClientGetter = remote.NewClusterClient
+
+	if r.managementCluster == nil {
+		r.managementCluster = &internal.ManagementCluster{Client: r.Client}
 	}
 
 	return nil
@@ -305,36 +302,32 @@ func (r *KubeadmControlPlaneReconciler) updateStatus(ctx context.Context, kcp *c
 	kcp.Status.UpdatedReplicas = int32(len(currentMachines))
 
 	replicas := int32(len(ownedMachines))
+
+	// set basic data that does not require interacting with the workload cluster
 	kcp.Status.Replicas = replicas
-	readyMachines := int32(0)
+	kcp.Status.ReadyReplicas = 0
+	kcp.Status.UnavailableReplicas = replicas
 
-	remoteClient, err := r.remoteClientGetter(ctx, r.Client, util.ObjectKey(cluster), r.scheme)
+	workloadCluster, err := r.managementCluster.GetWorkloadCluster(ctx, util.ObjectKey(cluster))
 	if err != nil {
-		if cause := errors.Cause(err); !apierrors.IsNotFound(cause) && !apierrors.IsTimeout(cause) {
-			return errors.Wrap(err, "failed to create remote cluster client")
-		}
-	} else {
-		for i := range ownedMachines {
-			node, err := getMachineNode(ctx, remoteClient, ownedMachines[i])
-			if err != nil {
-				return errors.Wrap(err, "failed to get referenced Node")
-			}
-			if node == nil {
-				continue
-			}
-			if node.Spec.ProviderID != "" {
-				readyMachines++
-			}
-		}
+		return errors.Wrap(err, "failed to create remote cluster client")
 	}
-	kcp.Status.ReadyReplicas = readyMachines
-	kcp.Status.UnavailableReplicas = replicas - readyMachines
+	status, err := workloadCluster.ClusterStatus(ctx)
+	if err != nil {
+		return err
+	}
+	kcp.Status.ReadyReplicas = status.ReadyNodes
+	kcp.Status.UnavailableReplicas = replicas - status.ReadyNodes
 
-	if !kcp.Status.Initialized {
-		if kcp.Status.ReadyReplicas > 0 {
-			kcp.Status.Initialized = true
-		}
+	// This only gets initialized once and does not change if the kubeadm config map goes away.
+	if status.HasKubeadmConfig {
+		kcp.Status.Initialized = true
 	}
+
+	if kcp.Status.ReadyReplicas > 0 {
+		kcp.Status.Ready = true
+	}
+
 	return nil
 }
 
@@ -851,26 +844,4 @@ func (r *KubeadmControlPlaneReconciler) ClusterToKubeadmControlPlane(o handler.M
 	}
 
 	return nil
-}
-
-func getMachineNode(ctx context.Context, crClient client.Client, machine *clusterv1.Machine) (*corev1.Node, error) {
-	nodeRef := machine.Status.NodeRef
-	if nodeRef == nil {
-		return nil, nil
-	}
-
-	node := &corev1.Node{}
-	err := crClient.Get(
-		ctx,
-		client.ObjectKey{Name: nodeRef.Name},
-		node,
-	)
-	if err != nil {
-		if apierrors.IsNotFound(errors.Cause(err)) {
-			return nil, nil
-		}
-		return nil, err
-	}
-
-	return node, nil
 }

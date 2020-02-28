@@ -115,10 +115,7 @@ func (p *providerComponents) Delete(options DeleteOptions) error {
 		clusterv1.ProviderLabelName:      options.Provider.ManifestLabel(),
 	}
 
-	namespaces := []string{options.Provider.Namespace}
-	if options.IncludeCRDs {
-		namespaces = append(namespaces, repository.WebhookNamespaceName)
-	}
+	namespaces := []string{options.Provider.Namespace, repository.WebhookNamespaceName}
 
 	resources, err := p.proxy.ListResources(labels, namespaces...)
 	if err != nil {
@@ -130,13 +127,22 @@ func (p *providerComponents) Delete(options DeleteOptions) error {
 	namespacesToDelete := sets.NewString()
 	instanceNamespacePrefix := fmt.Sprintf("%s-", options.Provider.Namespace)
 	for _, obj := range resources {
-		// If the CRDs (and by extensions, all the shared resources) should NOT be deleted, skip it;
-		// NB. Skipping CRDs deletion ensures that also the objects of Kind defined in the CRDs Kind are not deleted.
-		isSharedResource := util.IsSharedResource(obj)
-		if !options.IncludeCRDs && isSharedResource {
-			continue
+		isWebhookForProvider := false
+		if obj.GetNamespace() == repository.WebhookNamespaceName {
+			providerLabelName, ok := obj.GetLabels()[clusterv1.ProviderLabelName]
+			if ok && providerLabelName == options.Provider.ManifestLabel() {
+				isWebhookForProvider = true
+			}
 		}
 
+		isSharedResource := util.IsSharedResource(obj)
+		if !isWebhookForProvider {
+			// If the CRDs (and by extensions, all the shared resources) should NOT be deleted, skip it;
+			// NB. Skipping CRDs deletion ensures that also the objects of Kind defined in the CRDs Kind are not deleted.
+			if !options.IncludeCRDs && isSharedResource {
+				continue
+			}
+		}
 		// If the resource is a namespace
 		isNamespace := obj.GroupVersionKind().Kind == "Namespace"
 		if isNamespace {

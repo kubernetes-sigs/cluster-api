@@ -4,8 +4,8 @@ go 1.13
 
 require (
 	github.com/blang/semver v3.5.1+incompatible
+	github.com/go-bindata/go-bindata v3.1.2+incompatible
 	github.com/golangci/golangci-lint v1.23.3
-	github.com/jteeuwen/go-bindata v3.0.7+incompatible
 	golang.org/x/tools v0.0.0-20200102140908-9497f49d5709
 	k8s.io/code-generator v0.18.0-alpha.2.0.20200130061103-7dfd5e9157ef
 	sigs.k8s.io/controller-tools v0.2.5

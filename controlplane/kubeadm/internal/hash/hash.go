@@ -22,6 +22,7 @@ import (
 
 	corev1 "k8s.io/api/core/v1"
 
+	cabpkv1 "sigs.k8s.io/cluster-api/bootstrap/kubeadm/api/v1alpha3"
 	"sigs.k8s.io/cluster-api/controllers/mdutil"
 	controlplanev1 "sigs.k8s.io/cluster-api/controlplane/kubeadm/api/v1alpha3"
 )
@@ -29,17 +30,19 @@ import (
 type fieldsToHash struct {
 	version                string
 	infrastructureTemplate corev1.ObjectReference
+	kubeadmConfigSpec      cabpkv1.KubeadmConfigSpec
 }
 
-// Compute will generate a 32-bit FNV-1a Hash of the Version and InfrastructureTemplate
+// Compute will generate a 32-bit FNV-1a Hash of the Version, InfrastructureTemplate and KubeadmConfigSpec
 // fields for the given KubeadmControlPlaneSpec
 func Compute(spec *controlplanev1.KubeadmControlPlaneSpec) string {
-	// since we only care about spec.Version and spec.InfrastructureTemplate
-	// and to avoid changing the hash if additional fields are added, we copy
-	// those values to a fieldsToHash instance
+	// since we only care about spec.Version, spec.InfrastructureTemplate, and
+	// spec.KubeadmConfigSpec and to avoid changing the hash if additional fields
+	// are added, we copy those values to a fieldsToHash instance
 	specToHash := fieldsToHash{
 		version:                spec.Version,
 		infrastructureTemplate: spec.InfrastructureTemplate,
+		kubeadmConfigSpec:      spec.KubeadmConfigSpec,
 	}
 
 	hasher := fnv.New32a()

@@ -17,14 +17,20 @@ limitations under the License.
 package cmd
 
 import (
+	"github.com/pkg/errors"
+
 	"github.com/spf13/cobra"
 	"sigs.k8s.io/cluster-api/cmd/clusterctl/pkg/client"
 )
 
 type upgradeApplyOptions struct {
-	kubeconfig      string
-	managementGroup string
-	contract        string
+	kubeconfig              string
+	managementGroup         string
+	contract                string
+	coreProvider            string
+	bootstrapProviders      []string
+	controlPlaneProviders   []string
+	infrastructureProviders []string
 }
 
 var ua = &upgradeApplyOptions{}
@@ -39,9 +45,12 @@ var upgradeApplyCmd = &cobra.Command{
 		in order to guarantee the proper functioning of the management cluster.`),
 
 	Example: Examples(`
-		# Upgrades all the providers in the capi-system/cluster-api to the latest version available which is compliant
+		# Upgrades all the providers in the capi-system/cluster-api management group to the latest version available which is compliant
 		# to the v1alpha3 API Version of Cluster API (contract).
-		clusterctl upgrade apply --management-group capi-system/cluster-api  --contract v1alpha3`),
+		clusterctl upgrade apply --management-group capi-system/cluster-api  --contract v1alpha3
+
+		# Upgrades only the capa-system/aws provider instance in the capi-system/cluster-api management group to the v0.5.0 version.
+		clusterctl upgrade apply --management-group capi-system/cluster-api  --infrastructure capa-system/aws:v0.5.0`),
 	Args: cobra.NoArgs,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		return runUpgradeApply()
@@ -52,9 +61,18 @@ func init() {
 	upgradeApplyCmd.Flags().StringVar(&ua.kubeconfig, "kubeconfig", "",
 		"Path to the kubeconfig file to use for accessing the management cluster. If unspecified, default discovery rules apply.")
 	upgradeApplyCmd.Flags().StringVar(&ua.managementGroup, "management-group", "",
-		"The management group that should be upgraded")
+		"The management group that should be upgraded (e.g. capi-system/cluster-api)")
 	upgradeApplyCmd.Flags().StringVar(&ua.contract, "contract", "",
-		"The API Version of Cluster API (contract) the management group should upgrade to")
+		"The API Version of Cluster API (contract, e.g. v1alpha3) the management group should upgrade to")
+
+	upgradeApplyCmd.Flags().StringVar(&ua.coreProvider, "core", "",
+		"Core provider instance version (e.g. capi-system/cluster-api:v0.3.0) to upgrade to. This flag can be used as alternative to --contract.")
+	upgradeApplyCmd.Flags().StringSliceVarP(&ua.infrastructureProviders, "infrastructure", "i", nil,
+		"Infrastructure providers instance and versions (e.g. capa-system/aws:v0.5.0) to upgrade to. This flag can be used as alternative to --contract.")
+	upgradeApplyCmd.Flags().StringSliceVarP(&ua.bootstrapProviders, "bootstrap", "b", nil,
+		"Bootstrap providers instance and versions (e.g. capi-kubeadm-bootstrap-system/kubeadm:v0.3.0) to upgrade to. This flag can be used as alternative to --contract.")
+	upgradeApplyCmd.Flags().StringSliceVarP(&ua.controlPlaneProviders, "control-plane", "c", nil,
+		"ControlPlane providers instance and versions (e.g. capi-kubeadm-control-plane-system/kubeadm:v0.3.0) to upgrade to. This flag can be used as alternative to --contract.")
 }
 
 func runUpgradeApply() error {
@@ -63,10 +81,23 @@ func runUpgradeApply() error {
 		return err
 	}
 
+	hasProviderNames := (ua.coreProvider != "") ||
+		(len(ua.bootstrapProviders) > 0) ||
+		(len(ua.controlPlaneProviders) > 0) ||
+		(len(ua.infrastructureProviders) > 0)
+
+	if ua.contract != "" && hasProviderNames {
+		return errors.New("The --contract flag can't be used in combination with --core, --bootstrap, --control-plane, --infrastructure")
+	}
+
 	if err := c.ApplyUpgrade(client.ApplyUpgradeOptions{
-		Kubeconfig:      ua.kubeconfig,
-		ManagementGroup: ua.managementGroup,
-		Contract:        ua.contract,
+		Kubeconfig:              ua.kubeconfig,
+		ManagementGroup:         ua.managementGroup,
+		Contract:                ua.contract,
+		CoreProvider:            ua.coreProvider,
+		BootstrapProviders:      ua.bootstrapProviders,
+		ControlPlaneProviders:   ua.controlPlaneProviders,
+		InfrastructureProviders: ua.infrastructureProviders,
 	}); err != nil {
 		return err
 	}

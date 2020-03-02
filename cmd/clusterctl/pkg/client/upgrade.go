@@ -66,11 +66,25 @@ type ApplyUpgradeOptions struct {
 	// Kubeconfig file to use for accessing the management cluster. If empty, default discovery rules apply.
 	Kubeconfig string
 
-	// ManagementGroup that should be upgraded.
+	// ManagementGroup that should be upgraded (e.g. capi-system/cluster-api).
 	ManagementGroup string
 
-	// Contract defines the API Version of Cluster API (contract) the management group should upgrade to.
+	// Contract defines the API Version of Cluster API (contract e.g. v1alpha3) the management group should upgrade to.
+	// When upgrading by contract, the latest versions available will be used for all the providers; if you want
+	// a more granular control on upgrade, use CoreProvider, BootstrapProviders, ControlPlaneProviders, InfrastructureProviders.
 	Contract string
+
+	// CoreProvider instance and version (e.g. capi-system/cluster-api:v0.3.0) to upgrade to. This field can be used as alternative to Contract.
+	CoreProvider string
+
+	// BootstrapProviders instance and versions (e.g. capi-kubeadm-bootstrap-system/kubeadm:v0.3.0) to upgrade to. This field can be used as alternative to Contract.
+	BootstrapProviders []string
+
+	// ControlPlaneProviders instance and versions (e.g. capi-kubeadm-control-plane-system/kubeadm:v0.3.0) to upgrade to. This field can be used as alternative to Contract.
+	ControlPlaneProviders []string
+
+	// InfrastructureProviders instance and versions (e.g. capa-system/aws:v0.5.0) to upgrade to. This field can be used as alternative to Contract.
+	InfrastructureProviders []string
 }
 
 func (c *clusterctlClient) ApplyUpgrade(options ApplyUpgradeOptions) error {
@@ -87,11 +101,47 @@ func (c *clusterctlClient) ApplyUpgrade(options ApplyUpgradeOptions) error {
 
 	// The management group name is derived from the core provider name, so now
 	// convert the reference back into a coreProvider.
-	coreUpgradeItem, err := parseUpgradeItem(options.ManagementGroup)
+	coreUpgradeItem, err := parseUpgradeItem(options.ManagementGroup, clusterctlv1.CoreProviderType)
 	if err != nil {
 		return err
 	}
 	coreProvider := coreUpgradeItem.Provider
+
+	// Check if the user want a custom upgrade
+	isCustomUpgrade := options.CoreProvider != "" ||
+		len(options.BootstrapProviders) > 0 ||
+		len(options.ControlPlaneProviders) > 0 ||
+		len(options.InfrastructureProviders) > 0
+
+	// If we are upgrading a specific set of providers only, process the providers and call ApplyCustomPlan.
+	if isCustomUpgrade {
+		// Converts upgrade references back into an UpgradeItem.
+		upgradeItems := []cluster.UpgradeItem{}
+
+		upgradeItems, err = addUpgradeItems(upgradeItems, clusterctlv1.CoreProviderType, options.CoreProvider)
+		if err != nil {
+			return err
+		}
+		upgradeItems, err = addUpgradeItems(upgradeItems, clusterctlv1.BootstrapProviderType, options.BootstrapProviders...)
+		if err != nil {
+			return err
+		}
+		upgradeItems, err = addUpgradeItems(upgradeItems, clusterctlv1.ControlPlaneProviderType, options.ControlPlaneProviders...)
+		if err != nil {
+			return err
+		}
+		upgradeItems, err = addUpgradeItems(upgradeItems, clusterctlv1.InfrastructureProviderType, options.InfrastructureProviders...)
+		if err != nil {
+			return err
+		}
+
+		// Execute the upgrade using the custom upgrade items
+		if err := clusterClient.ProviderUpgrader().ApplyCustomPlan(coreProvider, upgradeItems...); err != nil {
+			return err
+		}
+
+		return nil
+	}
 
 	// Otherwise we are upgrading a whole management group according to a clusterctl generated upgrade plan.
 	if err := clusterClient.ProviderUpgrader().ApplyPlan(coreProvider, options.Contract); err != nil {
@@ -101,7 +151,21 @@ func (c *clusterctlClient) ApplyUpgrade(options ApplyUpgradeOptions) error {
 	return nil
 }
 
-func parseUpgradeItem(ref string) (*cluster.UpgradeItem, error) {
+func addUpgradeItems(upgradeItems []cluster.UpgradeItem, providerType clusterctlv1.ProviderType, providers ...string) ([]cluster.UpgradeItem, error) {
+	for _, upgradeReference := range providers {
+		providerUpgradeItem, err := parseUpgradeItem(upgradeReference, providerType)
+		if err != nil {
+			return nil, err
+		}
+		if providerUpgradeItem.NextVersion == "" {
+			return nil, errors.Errorf("invalid provider name %q. Provider name should be in the form namespace/name:version and version cannot be empty", upgradeReference)
+		}
+		upgradeItems = append(upgradeItems, *providerUpgradeItem)
+	}
+	return upgradeItems, nil
+}
+
+func parseUpgradeItem(ref string, providerType clusterctlv1.ProviderType) (*cluster.UpgradeItem, error) {
 	refSplit := strings.Split(strings.ToLower(ref), "/")
 	if len(refSplit) != 2 {
 		return nil, errors.Errorf("invalid provider name %q. Provider name should be in the form namespace/provider[:version]", ref)
@@ -121,10 +185,10 @@ func parseUpgradeItem(ref string) (*cluster.UpgradeItem, error) {
 		Provider: clusterctlv1.Provider{
 			ObjectMeta: metav1.ObjectMeta{
 				Namespace: namespace,
-				Name:      clusterctlv1.ManifestLabel(name, clusterctlv1.CoreProviderType),
+				Name:      clusterctlv1.ManifestLabel(name, providerType),
 			},
 			ProviderName: name,
-			Type:         string(clusterctlv1.CoreProviderType),
+			Type:         string(providerType),
 		},
 		NextVersion: version,
 	}, nil

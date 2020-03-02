@@ -432,9 +432,9 @@ func nilNodeRef(machine clusterv1.Machine) clusterv1.Machine {
 	return machine
 }
 
-func TestRemoveMemberForNode(t *testing.T) {
+func TestRemoveMemberForNode_ErrControlPlaneMinNodes(t *testing.T) {
 	t.Run("do not remove the etcd member if the cluster has fewer than 2 control plane nodes", func(t *testing.T) {
-		expectedErr := errors.New("cluster has fewer than 2 control plane nodes; removing an etcd member is not supported")
+		expectedErr := ErrControlPlaneMinNodes
 
 		workloadCluster := &Cluster{
 			Client: &fakeClient{
@@ -447,7 +447,10 @@ func TestRemoveMemberForNode(t *testing.T) {
 		}
 
 		err := workloadCluster.removeMemberForNode(context.Background(), "first-control-plane")
-		if err == nil || errors.Is(err, expectedErr) {
+		if err == nil {
+			t.Fatalf("expected %v, got no error", expectedErr)
+		}
+		if !errors.Is(err, expectedErr) {
 			t.Fatalf("expected %v, got %v", expectedErr, err)
 		}
 	})

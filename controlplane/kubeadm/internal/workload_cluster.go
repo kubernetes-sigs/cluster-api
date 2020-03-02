@@ -40,6 +40,10 @@ import (
 	ctrlclient "sigs.k8s.io/controller-runtime/pkg/client"
 )
 
+var (
+	ErrControlPlaneMinNodes = errors.New("cluster has fewer than 2 control plane nodes; removing an etcd member is not supported")
+)
+
 type etcdClientFor interface {
 	forNode(name string) (*etcd.Client, error)
 }
@@ -123,7 +127,7 @@ func (c *Cluster) removeMemberForNode(ctx context.Context, name string) error {
 		return err
 	}
 	if len(controlPlaneNodes.Items) < 2 {
-		return errors.New("cluster has fewer than 2 control plane nodes; removing an etcd member is not supported")
+		return ErrControlPlaneMinNodes
 	}
 	anotherNode := firstNodeNotMatchingName(name, controlPlaneNodes.Items)
 	if anotherNode == nil {

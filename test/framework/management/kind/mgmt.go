@@ -181,6 +181,7 @@ func (c *Cluster) ImageExists(ctx context.Context, image string) bool {
 // TODO: Considier a Kubectl function and then wrap it at the next level up.
 
 // Apply wraps `kubectl apply` and prints the output so we can see what gets applied to the cluster.
+// TODO: Remove this usage of kubectl and replace with a function from apply.go using the controller-runtime client.
 func (c *Cluster) Apply(ctx context.Context, resources []byte) error {
 	rbytes := bytes.NewReader(resources)
 	applyCmd := exec.NewCommand(
@@ -214,7 +215,7 @@ func (c *Cluster) Wait(ctx context.Context, args ...string) error {
 
 // Teardown deletes all the tmp files and cleans up the kind cluster.
 // This does not return an error so that it can clean as much up as possible regardless of error.
-func (c *Cluster) Teardown(ctx context.Context) {
+func (c *Cluster) Teardown(_ context.Context) {
 	if options.SkipResourceCleanup {
 		return
 	}

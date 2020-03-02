@@ -24,6 +24,8 @@ import (
 	. "github.com/onsi/gomega"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
+	rbacv1 "k8s.io/api/rbac/v1"
+	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1beta1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -101,4 +103,10 @@ func TryAddDefaultSchemes(scheme *runtime.Scheme) {
 
 	// Add the kubeadm controlplane scheme.
 	_ = controlplanev1.AddToScheme(scheme)
+
+	// Add the api extensions (CRD) to the scheme.
+	_ = apiextensionsv1.AddToScheme(scheme)
+
+	// Add rbac to the scheme.
+	_ = rbacv1.AddToScheme(scheme)
 }

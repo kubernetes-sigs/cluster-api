@@ -34,12 +34,15 @@ import (
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
-	kerrors "k8s.io/apimachinery/pkg/util/errors"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha3"
 	"sigs.k8s.io/cluster-api/controlplane/kubeadm/internal/etcd"
 	etcdutil "sigs.k8s.io/cluster-api/controlplane/kubeadm/internal/etcd/util"
 	"sigs.k8s.io/cluster-api/util/certs"
 	ctrlclient "sigs.k8s.io/controller-runtime/pkg/client"
+)
+
+var (
+	ErrControlPlaneMinNodes = errors.New("cluster has fewer than 2 control plane nodes; removing an etcd member is not supported")
 )
 
 type etcdClientFor interface {
@@ -114,10 +117,24 @@ func (c *Cluster) controlPlaneIsHealthy(ctx context.Context) (healthCheckResult,
 	return response, nil
 }
 
-// removeMemberForNode removes etcd member (nodeToRemove) through another (nodeForEtcdClient).
-// It's create etcd connection using nodeForEtcdClient to removing nodeToRemove.
-func (c *Cluster) removeMemberForNode(ctx context.Context, nodeForEtcdClient, nodeToRemove string) error {
-	etcdClient, err := c.EtcdClientGenerator.forNode(nodeForEtcdClient)
+// removeMemberForNode removes the etcd member for the node. Removing the etcd
+// member when the cluster has one control plane node is not supported. To allow
+// the removal of a failed etcd member, the etcd API requests are sent to a
+// different node.
+func (c *Cluster) removeMemberForNode(ctx context.Context, name string) error {
+	// Pick a different node to talk to etcd
+	controlPlaneNodes, err := c.getControlPlaneNodes(ctx)
+	if err != nil {
+		return err
+	}
+	if len(controlPlaneNodes.Items) < 2 {
+		return ErrControlPlaneMinNodes
+	}
+	anotherNode := firstNodeNotMatchingName(name, controlPlaneNodes.Items)
+	if anotherNode == nil {
+		return errors.Errorf("failed to find a control plane node whose name is not %s", name)
+	}
+	etcdClient, err := c.EtcdClientGenerator.forNode(anotherNode.Name)
 	if err != nil {
 		return errors.Wrap(err, "failed to create etcd Client")
 	}
@@ -127,7 +144,7 @@ func (c *Cluster) removeMemberForNode(ctx context.Context, nodeForEtcdClient, no
 	if err != nil {
 		return errors.Wrap(err, "failed to list etcd members using etcd Client")
 	}
-	member := etcdutil.MemberForName(members, nodeToRemove)
+	member := etcdutil.MemberForName(members, name)
 
 	// The member has already been removed, return immediately
 	if member == nil {
@@ -276,31 +293,7 @@ func (c *Cluster) RemoveEtcdMemberForMachine(ctx context.Context, machine *clust
 		return nil
 	}
 
-	controlPlaneNodes, err := c.getControlPlaneNodes(ctx)
-	if err != nil {
-		return err
-	}
-
-	nodeToRemove := machine.Status.NodeRef.Name
-	errs := []error{}
-
-	// Try all node other than nodeToRemove for proxying etcd Client.
-	// and returns the first successful response.
-	for _, node := range controlPlaneNodes.Items {
-		nodeForEtcdClient := node.Name
-		if nodeForEtcdClient == nodeToRemove {
-			continue
-		}
-
-		err = c.removeMemberForNode(ctx, nodeForEtcdClient, nodeToRemove)
-		if err == nil {
-			return nil
-		}
-
-		errs = append(errs, err)
-	}
-
-	return kerrors.NewAggregate(errs)
+	return c.removeMemberForNode(ctx, machine.Status.NodeRef.Name)
 }
 
 // RemoveMachineFromKubeadmConfigMap removes the entry for the machine from the kubeadm configmap.
@@ -466,6 +459,15 @@ func checkStaticPodReadyCondition(pod *corev1.Pod) error {
 	}
 	if !found {
 		return errors.Errorf("pod does not have ready condition: %v", pod.Name)
+	}
+	return nil
+}
+
+func firstNodeNotMatchingName(name string, nodes []corev1.Node) *corev1.Node {
+	for _, n := range nodes {
+		if n.Name != name {
+			return &n
+		}
 	}
 	return nil
 }

@@ -21,6 +21,7 @@ package e2e
 import (
 	"errors"
 	"fmt"
+	"net/http"
 	"time"
 
 	. "github.com/onsi/ginkgo"
@@ -144,6 +145,17 @@ var _ = Describe("Docker", func() {
 					ControlPlane: controlPlane,
 				}
 				framework.WaitForKubeadmControlPlaneMachinesToExist(ctx, assertKubeadmControlPlaneNodesExistInput, "10m", "10s")
+
+				// Insatll a networking solution on the workload cluster
+				workloadClient, err := mgmt.GetWorkloadClient(ctx, cluster.Namespace, cluster.Name)
+				Expect(err).ToNot(HaveOccurred())
+				applyYAMLURLInput := framework.ApplyYAMLURLInput{
+					Client:        workloadClient,
+					HTTPGetter:    http.DefaultClient,
+					NetworkingURL: "https://docs.projectcalico.org/v3.12/manifests/calico.yaml",
+					Scheme:        mgmt.Scheme,
+				}
+				framework.ApplyYAMLURL(ctx, applyYAMLURLInput)
 
 				// Wait for the workload nodes to exist
 				waitForMachineDeploymentNodesToExistInput := framework.WaitForMachineDeploymentNodesToExistInput{

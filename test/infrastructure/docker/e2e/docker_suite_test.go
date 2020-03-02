@@ -88,6 +88,7 @@ var _ = BeforeSuite(func() {
 
 	By("initializing the scheme")
 	scheme := runtime.NewScheme()
+	framework.TryAddDefaultSchemes(scheme)
 	Expect(infrav1.AddToScheme(scheme)).To(Succeed())
 
 	By("initialzing the management cluster name")

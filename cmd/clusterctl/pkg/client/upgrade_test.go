@@ -50,9 +50,13 @@ func Test_clusterctlClient_ApplyUpgrade(t *testing.T) {
 			},
 			args: args{
 				options: ApplyUpgradeOptions{
-					Kubeconfig:      "kubeconfig",
-					ManagementGroup: "cluster-api-system/cluster-api",
-					Contract:        "v1alpha3",
+					Kubeconfig:              "kubeconfig",
+					ManagementGroup:         "cluster-api-system/cluster-api",
+					Contract:                "v1alpha3",
+					CoreProvider:            "",
+					BootstrapProviders:      nil,
+					ControlPlaneProviders:   nil,
+					InfrastructureProviders: nil,
 				},
 			},
 			wantProviders: &clusterctlv1.ProviderList{
@@ -64,6 +68,35 @@ func Test_clusterctlClient_ApplyUpgrade(t *testing.T) {
 				Items: []clusterctlv1.Provider{ // both providers should be upgraded
 					fakeProvider("cluster-api", clusterctlv1.CoreProviderType, "v1.0.1", "cluster-api-system"),
 					fakeProvider("infra", clusterctlv1.InfrastructureProviderType, "v2.0.1", "infra-system"),
+				},
+			},
+			wantErr: false,
+		},
+		{
+			name: "apply a custom plan",
+			fields: fields{
+				client: fakeClientFoUpgrade(), // core v1.0.0 (v1.0.1 available), infra v2.0.0 (v2.0.1 available)
+			},
+			args: args{
+				options: ApplyUpgradeOptions{
+					Kubeconfig:              "kubeconfig",
+					ManagementGroup:         "cluster-api-system/cluster-api",
+					Contract:                "",
+					CoreProvider:            "cluster-api-system/cluster-api:v1.0.1",
+					BootstrapProviders:      nil,
+					ControlPlaneProviders:   nil,
+					InfrastructureProviders: nil,
+				},
+			},
+			wantProviders: &clusterctlv1.ProviderList{
+				TypeMeta: metav1.TypeMeta{
+					APIVersion: clusterctlv1.GroupVersion.String(),
+					Kind:       "ProviderList",
+				},
+				ListMeta: metav1.ListMeta{},
+				Items: []clusterctlv1.Provider{ // only one provider should be upgraded
+					fakeProvider("cluster-api", clusterctlv1.CoreProviderType, "v1.0.1", "cluster-api-system"),
+					fakeProvider("infra", clusterctlv1.InfrastructureProviderType, "v2.0.0", "infra-system"),
 				},
 			},
 			wantErr: false,
@@ -237,7 +270,7 @@ func Test_parseUpgradeItem(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got, err := parseUpgradeItem(tt.args.provider)
+			got, err := parseUpgradeItem(tt.args.provider, clusterctlv1.CoreProviderType)
 			if (err != nil) != tt.wantErr {
 				t.Fatalf("error = %v, wantErr %v", err, tt.wantErr)
 			}

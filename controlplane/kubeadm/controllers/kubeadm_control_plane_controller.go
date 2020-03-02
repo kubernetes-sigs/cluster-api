@@ -738,6 +738,14 @@ func (r *KubeadmControlPlaneReconciler) generateMachine(ctx context.Context, kcp
 // https://github.com/kubernetes-sigs/cluster-api/issues/2064
 func (r *KubeadmControlPlaneReconciler) reconcileDelete(ctx context.Context, cluster *clusterv1.Cluster, kcp *controlplanev1.KubeadmControlPlane) (_ ctrl.Result, reterr error) {
 	logger := r.Log.WithValues("namespace", kcp.Namespace, "kubeadmControlPlane", kcp.Name, "cluster", cluster.Name)
+
+	for _, f := range kcp.Finalizers {
+		if f == metav1.FinalizerOrphanDependents {
+			logger.Info("Waiting for orphan finalizer...")
+			return ctrl.Result{RequeueAfter: DeleteRequeueAfter}, nil
+		}
+	}
+
 	allMachines, err := r.managementCluster.GetMachinesForCluster(ctx, util.ObjectKey(cluster))
 	if err != nil {
 		logger.Error(err, "failed to retrieve machines for cluster")

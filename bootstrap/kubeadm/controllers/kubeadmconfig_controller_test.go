@@ -250,6 +250,10 @@ func TestKubeadmConfigReconciler_Reconcile_MigrateToSecret(t *testing.T) {
 		t.Fatal("expected bootstrap data secret value to match")
 	}
 
+	if secret.Type != clusterv1.ClusterSecretType {
+		t.Fatalf("expected bootstrap data secret to have type %q", clusterv1.ClusterSecretType)
+	}
+
 	if clusterName := secret.Labels[clusterv1.ClusterLabelName]; clusterName != "cluster" {
 		t.Fatalf("expected bootstrap data secret to have a cluster name label set to `cluster`, got %s", clusterName)
 	}

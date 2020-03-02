@@ -125,6 +125,7 @@
 - The Cluster API Machine Controller no longer reconciles the bootstrap provider `status.bootstrapData` field, but instead looks at `status.dataSecretName`.
 - The `Machine.Spec.Bootstrap.Data` field is deprecated and will be removed in a future version.
 - Bootstrap providers must create a Secret in the bootstrap resource's namespace and store the name in the bootstrap resource's `status.dataSecretName` field.
+    - The secret created by the bootstrap provider is of type `cluster.x-k8s.io/secret`.
     - On reconciliation, we suggest to migrate from the deprecated field to a secret reference.
 - Infrastructure providers must look for the bootstrap data secret name in `Machine.Spec.Bootstrap.DataSecretName` and fallback to `Machine.Spec.Bootstrap.Data`.
 
@@ -144,6 +145,7 @@ outside of the existing module.
     `Machine`.
   - `spec.clusterName` to retrieve the owning Cluster status.
   - `spec.bootstrap.dataSecretName` to know where to put bootstrap data with sensitive information.
+    Consumers must also verify the secret type matches `cluster.x-k8s.io/secret`.
   - `status.infrastuctureReady` to understand the state of the configuration consumer so the
     bootstrap provider can take appropriate action (e.g. renew bootstrap token).
 

@@ -33,7 +33,6 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/util/cert"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha3"
 	bootstrapv1 "sigs.k8s.io/cluster-api/bootstrap/kubeadm/api/v1alpha3"
@@ -162,7 +161,7 @@ func (c Certificates) GetByPurpose(purpose Purpose) *Certificate {
 }
 
 // Lookup looks up each certificate from secrets and populates the certificate with the secret data.
-func (c Certificates) Lookup(ctx context.Context, ctrlclient client.Client, clusterName types.NamespacedName) error {
+func (c Certificates) Lookup(ctx context.Context, ctrlclient client.Client, clusterName client.ObjectKey) error {
 	// Look up each certificate as a secret and populate the certificate/key
 	for _, certificate := range c {
 		s := &corev1.Secret{}
@@ -231,7 +230,7 @@ func (c Certificates) Generate() error {
 }
 
 // SaveGenerated will save any certificates that have been generated as Kubernetes secrets.
-func (c Certificates) SaveGenerated(ctx context.Context, ctrlclient client.Client, clusterName types.NamespacedName, owner metav1.OwnerReference) error {
+func (c Certificates) SaveGenerated(ctx context.Context, ctrlclient client.Client, clusterName client.ObjectKey, owner metav1.OwnerReference) error {
 	for _, certificate := range c {
 		if !certificate.Generated {
 			continue
@@ -245,7 +244,7 @@ func (c Certificates) SaveGenerated(ctx context.Context, ctrlclient client.Clien
 }
 
 // LookupOrGenerate is a convenience function that wraps cluster bootstrap certificate behavior.
-func (c Certificates) LookupOrGenerate(ctx context.Context, ctrlclient client.Client, clusterName types.NamespacedName, owner metav1.OwnerReference) error {
+func (c Certificates) LookupOrGenerate(ctx context.Context, ctrlclient client.Client, clusterName client.ObjectKey, owner metav1.OwnerReference) error {
 	// Find the certificates that exist
 	if err := c.Lookup(ctx, ctrlclient, clusterName); err != nil {
 		return err
@@ -292,7 +291,7 @@ func hashCert(certificate *x509.Certificate) string {
 }
 
 // AsSecret converts a single certificate into a Kubernetes secret.
-func (c *Certificate) AsSecret(clusterName types.NamespacedName, owner metav1.OwnerReference) *corev1.Secret {
+func (c *Certificate) AsSecret(clusterName client.ObjectKey, owner metav1.OwnerReference) *corev1.Secret {
 	s := &corev1.Secret{
 		ObjectMeta: metav1.ObjectMeta{
 			Namespace: clusterName.Namespace,

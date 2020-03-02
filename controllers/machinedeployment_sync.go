@@ -26,12 +26,12 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/types"
 	apirand "k8s.io/apimachinery/pkg/util/rand"
 	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/client-go/util/retry"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha3"
 	"sigs.k8s.io/cluster-api/controllers/mdutil"
+	"sigs.k8s.io/cluster-api/util"
 	"sigs.k8s.io/cluster-api/util/patch"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
@@ -503,7 +503,7 @@ func (r *MachineDeploymentReconciler) updateMachineDeployment(d *clusterv1.Machi
 // We have this as standalone variant to be able to use it from the tests
 func updateMachineDeployment(c client.Client, d *clusterv1.MachineDeployment, modify func(*clusterv1.MachineDeployment)) error {
 	return retry.RetryOnConflict(retry.DefaultBackoff, func() error {
-		if err := c.Get(context.Background(), types.NamespacedName{Namespace: d.Namespace, Name: d.Name}, d); err != nil {
+		if err := c.Get(context.Background(), util.ObjectKey(d), d); err != nil {
 			return err
 		}
 		patchHelper, err := patch.NewHelper(d, c)

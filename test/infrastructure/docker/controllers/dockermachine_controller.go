@@ -25,7 +25,6 @@ import (
 	"github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
-	"k8s.io/apimachinery/pkg/types"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha3"
 	infrav1 "sigs.k8s.io/cluster-api/test/infrastructure/docker/api/v1alpha3"
 	"sigs.k8s.io/cluster-api/test/infrastructure/docker/docker"
@@ -102,7 +101,7 @@ func (r *DockerMachineReconciler) Reconcile(req ctrl.Request) (_ ctrl.Result, re
 
 	// Fetch the Docker Cluster.
 	dockerCluster := &infrav1.DockerCluster{}
-	dockerClusterName := types.NamespacedName{
+	dockerClusterName := client.ObjectKey{
 		Namespace: dockerMachine.Namespace,
 		Name:      cluster.Spec.InfrastructureRef.Name,
 	}
@@ -308,7 +307,7 @@ func (r *DockerMachineReconciler) getBootstrapData(ctx context.Context, machine 
 	}
 
 	s := &corev1.Secret{}
-	key := types.NamespacedName{Namespace: machine.GetNamespace(), Name: *machine.Spec.Bootstrap.DataSecretName}
+	key := client.ObjectKey{Namespace: machine.GetNamespace(), Name: *machine.Spec.Bootstrap.DataSecretName}
 	if err := r.Client.Get(ctx, key, s); err != nil {
 		return "", errors.Wrapf(err, "failed to retrieve bootstrap data secret for DockerMachine %s/%s", machine.GetNamespace(), machine.GetName())
 	}

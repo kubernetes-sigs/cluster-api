@@ -33,7 +33,6 @@ import (
 	rbacv1 "k8s.io/api/rbac/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/types"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha3"
 	"sigs.k8s.io/cluster-api/controlplane/kubeadm/internal/etcd"
 	etcdutil "sigs.k8s.io/cluster-api/controlplane/kubeadm/internal/etcd/util"
@@ -67,7 +66,7 @@ func (c *Cluster) getControlPlaneNodes(ctx context.Context) (*corev1.NodeList, e
 	return nodes, nil
 }
 
-func (c *Cluster) getConfigMap(ctx context.Context, configMap types.NamespacedName) (*corev1.ConfigMap, error) {
+func (c *Cluster) getConfigMap(ctx context.Context, configMap ctrlclient.ObjectKey) (*corev1.ConfigMap, error) {
 	original := &corev1.ConfigMap{}
 	if err := c.Client.Get(ctx, configMap, original); err != nil {
 		return nil, errors.Wrapf(err, "error getting %s/%s configmap from target cluster", configMap.Namespace, configMap.Name)
@@ -91,7 +90,7 @@ func (c *Cluster) controlPlaneIsHealthy(ctx context.Context) (healthCheckResult,
 	for _, node := range controlPlaneNodes.Items {
 		name := node.Name
 		response[name] = nil
-		apiServerPodKey := types.NamespacedName{
+		apiServerPodKey := ctrlclient.ObjectKey{
 			Namespace: metav1.NamespaceSystem,
 			Name:      staticPodName("kube-apiserver", name),
 		}
@@ -102,7 +101,7 @@ func (c *Cluster) controlPlaneIsHealthy(ctx context.Context) (healthCheckResult,
 		}
 		response[name] = checkStaticPodReadyCondition(apiServerPod)
 
-		controllerManagerPodKey := types.NamespacedName{
+		controllerManagerPodKey := ctrlclient.ObjectKey{
 			Namespace: metav1.NamespaceSystem,
 			Name:      staticPodName("kube-controller-manager", name),
 		}
@@ -234,7 +233,7 @@ func (c *Cluster) etcdIsHealthy(ctx context.Context) (healthCheckResult, error) 
 
 // UpdateKubernetesVersionInKubeadmConfigMap updates the kubernetes version in the kubeadm config map.
 func (c *Cluster) UpdateKubernetesVersionInKubeadmConfigMap(ctx context.Context, version string) error {
-	configMapKey := types.NamespacedName{Name: "kubeadm-config", Namespace: metav1.NamespaceSystem}
+	configMapKey := ctrlclient.ObjectKey{Name: "kubeadm-config", Namespace: metav1.NamespaceSystem}
 	kubeadmConfigMap, err := c.getConfigMap(ctx, configMapKey)
 	if err != nil {
 		return err
@@ -254,7 +253,7 @@ func (c *Cluster) UpdateKubernetesVersionInKubeadmConfigMap(ctx context.Context,
 func (c *Cluster) UpdateKubeletConfigMap(ctx context.Context, version semver.Version) error {
 	// Check if the desired configmap already exists
 	desiredKubeletConfigMapName := fmt.Sprintf("kubelet-config-%d.%d", version.Major, version.Minor)
-	configMapKey := types.NamespacedName{Name: desiredKubeletConfigMapName, Namespace: metav1.NamespaceSystem}
+	configMapKey := ctrlclient.ObjectKey{Name: desiredKubeletConfigMapName, Namespace: metav1.NamespaceSystem}
 	_, err := c.getConfigMap(ctx, configMapKey)
 	if err == nil {
 		// Nothing to do, the configmap already exists
@@ -265,7 +264,7 @@ func (c *Cluster) UpdateKubeletConfigMap(ctx context.Context, version semver.Ver
 	}
 
 	previousMinorVersionKubeletConfigMapName := fmt.Sprintf("kubelet-config-%d.%d", version.Major, version.Minor-1)
-	configMapKey = types.NamespacedName{Name: previousMinorVersionKubeletConfigMapName, Namespace: metav1.NamespaceSystem}
+	configMapKey = ctrlclient.ObjectKey{Name: previousMinorVersionKubeletConfigMapName, Namespace: metav1.NamespaceSystem}
 	// Returns a copy
 	cm, err := c.getConfigMap(ctx, configMapKey)
 	if apierrors.IsNotFound(errors.Cause(err)) {
@@ -303,7 +302,7 @@ func (c *Cluster) RemoveMachineFromKubeadmConfigMap(ctx context.Context, machine
 		return nil
 	}
 
-	configMapKey := types.NamespacedName{Name: "kubeadm-config", Namespace: metav1.NamespaceSystem}
+	configMapKey := ctrlclient.ObjectKey{Name: "kubeadm-config", Namespace: metav1.NamespaceSystem}
 	kubeadmConfigMap, err := c.getConfigMap(ctx, configMapKey)
 	if err != nil {
 		return err

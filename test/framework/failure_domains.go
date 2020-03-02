@@ -20,7 +20,6 @@ import (
 	"context"
 
 	. "github.com/onsi/gomega"
-	"k8s.io/apimachinery/pkg/types"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha3"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
@@ -28,7 +27,7 @@ import (
 // AssertControlPlaneFailureDomainsInput is the input for AssertControlPlaneFailureDomains.
 type AssertControlPlaneFailureDomainsInput struct {
 	GetLister  GetLister
-	ClusterKey types.NamespacedName
+	ClusterKey client.ObjectKey
 	// ExpectedFailureDomains is required because this function cannot (easily) infer what success looks like.
 	// In theory this field is not strictly necessary and could be replaced with enough clever logic/math.
 	ExpectedFailureDomains map[string]int

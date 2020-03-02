@@ -29,13 +29,13 @@ import (
 
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/types"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha3"
 	bootstrapv1 "sigs.k8s.io/cluster-api/bootstrap/kubeadm/api/v1alpha3"
 	"sigs.k8s.io/cluster-api/bootstrap/kubeadm/types/v1beta1"
 	controlplanev1 "sigs.k8s.io/cluster-api/controlplane/kubeadm/api/v1alpha3"
 	"sigs.k8s.io/cluster-api/test/framework"
 	infrav1 "sigs.k8s.io/cluster-api/test/infrastructure/docker/api/v1alpha3"
+	"sigs.k8s.io/cluster-api/util"
 	"sigs.k8s.io/cluster-api/util/patch"
 	ctrlclient "sigs.k8s.io/controller-runtime/pkg/client"
 )
@@ -175,7 +175,7 @@ var _ = Describe("Docker", func() {
 				// Assert failure domain is working as expected
 				assertControlPlaneFailureDomainInput := framework.AssertControlPlaneFailureDomainsInput{
 					GetLister:  client,
-					ClusterKey: types.NamespacedName{Namespace: cluster.Namespace, Name: cluster.Name},
+					ClusterKey: util.ObjectKey(cluster),
 					ExpectedFailureDomains: map[string]int{
 						"domain-one":   1,
 						"domain-two":   1,

@@ -29,7 +29,6 @@ import (
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
-	"k8s.io/apimachinery/pkg/types"
 	kerrors "k8s.io/apimachinery/pkg/util/errors"
 	"k8s.io/utils/pointer"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha3"
@@ -335,7 +334,7 @@ func (r *KubeadmConfigReconciler) handleClusterNotInitialized(ctx context.Contex
 	err = certificates.LookupOrGenerate(
 		ctx,
 		r.Client,
-		types.NamespacedName{Name: scope.Cluster.Name, Namespace: scope.Cluster.Namespace},
+		util.ObjectKey(scope.Cluster),
 		*metav1.NewControllerRef(scope.Config, bootstrapv1.GroupVersion.WithKind("KubeadmConfig")),
 	)
 	if err != nil {
@@ -379,7 +378,7 @@ func (r *KubeadmConfigReconciler) joinWorker(ctx context.Context, scope *Scope) 
 	err := certificates.Lookup(
 		ctx,
 		r.Client,
-		types.NamespacedName{Name: scope.Cluster.Name, Namespace: scope.Cluster.Namespace},
+		util.ObjectKey(scope.Cluster),
 	)
 	if err != nil {
 		scope.Error(err, "unable to lookup cluster certificates")
@@ -452,7 +451,7 @@ func (r *KubeadmConfigReconciler) joinControlplane(ctx context.Context, scope *S
 	err := certificates.Lookup(
 		ctx,
 		r.Client,
-		types.NamespacedName{Name: scope.Cluster.Name, Namespace: scope.Cluster.Namespace},
+		util.ObjectKey(scope.Cluster),
 	)
 	if err != nil {
 		scope.Error(err, "unable to lookup cluster certificates")

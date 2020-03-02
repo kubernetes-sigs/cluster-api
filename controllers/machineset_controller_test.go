@@ -27,7 +27,6 @@ import (
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
-	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/kubernetes/scheme"
 	"k8s.io/client-go/tools/record"
 	"k8s.io/klog/klogr"
@@ -285,10 +284,7 @@ func TestMachineSetOwnerReference(t *testing.T) {
 		{
 			name: "should add cluster owner reference to machine set",
 			request: reconcile.Request{
-				NamespacedName: types.NamespacedName{
-					Name:      ms1.Name,
-					Namespace: ms1.Namespace,
-				},
+				NamespacedName: util.ObjectKey(ms1),
 			},
 			ms: ms1,
 			expectedOR: []metav1.OwnerReference{
@@ -303,10 +299,7 @@ func TestMachineSetOwnerReference(t *testing.T) {
 		{
 			name: "should not add cluster owner reference if machine is owned by a machine deployment",
 			request: reconcile.Request{
-				NamespacedName: types.NamespacedName{
-					Name:      ms3.Name,
-					Namespace: ms3.Namespace,
-				},
+				NamespacedName: util.ObjectKey(ms3),
 			},
 			ms: ms3,
 			expectedOR: []metav1.OwnerReference{
@@ -375,10 +368,7 @@ func TestMachineSetReconcile(t *testing.T) {
 			},
 		}
 		request := reconcile.Request{
-			NamespacedName: types.NamespacedName{
-				Name:      ms.Name,
-				Namespace: ms.Namespace,
-			},
+			NamespacedName: util.ObjectKey(ms),
 		}
 
 		g.Expect(clusterv1.AddToScheme(scheme.Scheme)).To(Succeed())
@@ -402,10 +392,7 @@ func TestMachineSetReconcile(t *testing.T) {
 		}
 
 		request := reconcile.Request{
-			NamespacedName: types.NamespacedName{
-				Name:      ms.Name,
-				Namespace: ms.Namespace,
-			},
+			NamespacedName: util.ObjectKey(ms),
 		}
 
 		g.Expect(clusterv1.AddToScheme(scheme.Scheme)).To(Succeed())

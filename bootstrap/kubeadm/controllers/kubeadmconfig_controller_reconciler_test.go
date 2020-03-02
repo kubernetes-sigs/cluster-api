@@ -21,7 +21,6 @@ import (
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
-	"k8s.io/apimachinery/pkg/types"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/log"
@@ -50,7 +49,7 @@ var _ = Describe("KubeadmConfigReconciler", func() {
 			}
 			By("Calling reconcile should requeue")
 			result, err := reconciler.Reconcile(ctrl.Request{
-				NamespacedName: types.NamespacedName{
+				NamespacedName: client.ObjectKey{
 					Namespace: "default",
 					Name:      "my-machine-config",
 				},

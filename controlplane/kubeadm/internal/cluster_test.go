@@ -29,7 +29,6 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
-	"k8s.io/apimachinery/pkg/types"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha3"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
@@ -152,7 +151,7 @@ func TestGetMachinesForCluster(t *testing.T) {
 	m := ManagementCluster{Client: &fakeClient{
 		list: machineListForTestGetMachinesForCluster(),
 	}}
-	clusterKey := types.NamespacedName{
+	clusterKey := client.ObjectKey{
 		Namespace: "my-namespace",
 		Name:      "my-cluster",
 	}
@@ -272,7 +271,7 @@ func TestManagementCluster_healthCheck_NoError(t *testing.T) {
 		name             string
 		machineList      *clusterv1.MachineList
 		check            healthCheck
-		clusterKey       types.NamespacedName
+		clusterKey       client.ObjectKey
 		controlPlaneName string
 	}{
 		{
@@ -291,7 +290,7 @@ func TestManagementCluster_healthCheck_NoError(t *testing.T) {
 					"three": nil,
 				}, nil
 			},
-			clusterKey:       types.NamespacedName{Namespace: "default", Name: "cluster-name"},
+			clusterKey:       client.ObjectKey{Namespace: "default", Name: "cluster-name"},
 			controlPlaneName: "control-plane-name",
 		},
 	}
@@ -313,7 +312,7 @@ func TestManagementCluster_healthCheck_Errors(t *testing.T) {
 		name             string
 		machineList      *clusterv1.MachineList
 		check            healthCheck
-		clusterKey       types.NamespacedName
+		clusterKey       client.ObjectKey
 		controlPlaneName string
 		// expected errors will ensure the error contains this list of strings.
 		// If not supplied, no check on the error's value will occur.
@@ -406,7 +405,7 @@ func TestManagementCluster_healthCheck_Errors(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			ctx := context.Background()
-			clusterKey := types.NamespacedName{Namespace: "default", Name: "cluster-name"}
+			clusterKey := client.ObjectKey{Namespace: "default", Name: "cluster-name"}
 			controlPlaneName := "control-plane-name"
 
 			m := &ManagementCluster{

@@ -2,31 +2,74 @@
 
 aliases:
   sig-cluster-lifecycle-leads:
-    - luxas
-    - justinsb
-    - timothysc
+  - neolit123
+  - justinsb
+  - timothysc
+
+  # -----------------------------------------------------------
+  # OWNER_ALIASES for Cluster API
+  # -----------------------------------------------------------
+
+  # active folks who can be contacted to perform admin-related
+  # tasks on the repo, or otherwise approve any PRS.
   cluster-api-admins:
-    - justinsb
-    - detiber
-    - davidewatson
-    - vincepri
+  - justinsb
+  - detiber
+  - davidewatson
+  - vincepri
+
+  # non-admin folks who have write-access and can approve any PRs in the repo
   cluster-api-maintainers:
-    - justinsb
-    - detiber
-    - ncdc
-    - vincepri
-    - chuckha
+  - justinsb
+  - detiber
+  - ncdc
+  - vincepri
+  - chuckha
+
+  # folks who can review and LGTM any PRs in the repo
   cluster-api-reviewers:
-    - CecileRobertMichon
+  - CecileRobertMichon
+  - vincepri
+
+  # -----------------------------------------------------------
+  # OWNER_ALIASES for docs/book
+  # -----------------------------------------------------------
+
+  # folks who can review and LGTM any PRs under docs/book
+  cluster-api-book-reviewers:
+  - randomvariable
+  - moshloop
+
+  # -----------------------------------------------------------
+  # OWNER_ALIASES for test/infrastructure/docker
+  # -----------------------------------------------------------
+
   cluster-api-provider-docker-maintainers:
-    - chuckha
-    - ncdc
+  - chuckha
+  - ncdc
+
+  # -----------------------------------------------------------
+  # OWNER_ALIASES for bootstrap/kubeadm
+  # -----------------------------------------------------------
+
   cluster-api-bootstrap-provider-kubeadm-maintainers:
-    - chuckha
-    - fabriziopandini
-    - ncdc
-    - SataQiu
+  - chuckha
+  - fabriziopandini
+  - ncdc
+  - SataQiu
+
   cluster-api-bootstrap-provider-kubeadm-reviewers:
-    - chuckha
-    - fabriziopandini
-    - ncdc
+  - chuckha
+  - fabriziopandini
+  - ncdc
+
+  # -----------------------------------------------------------
+  # OWNER_ALIASES for cmd/clusterctl
+  # -----------------------------------------------------------
+
+  cluster-api-clusterctl-maintainers:
+  - fabriziopandini
+
+  cluster-api-clusterctl-reviewers:
+  - fabriziopandini
+  - wfernandes

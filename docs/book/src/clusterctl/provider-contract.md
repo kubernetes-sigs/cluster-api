@@ -296,6 +296,3 @@ the exact move sequence to be executed by the user.
 Additionally, provider authors should be aware that `clusterctl move` assumes all the provider's Controllers respect the
 `Cluster.Spec.Paused` field introduced in the v1alpha3 Cluster API specification. 
  
-### Adopt
-
-TODO

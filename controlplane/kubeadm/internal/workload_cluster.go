@@ -30,6 +30,7 @@ import (
 	"github.com/blang/semver"
 	"github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
+	rbacv1 "k8s.io/api/rbac/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
@@ -321,6 +322,83 @@ func (c *Cluster) RemoveMachineFromKubeadmConfigMap(ctx context.Context, machine
 	if err := c.Client.Update(ctx, config.ConfigMap); err != nil {
 		return errors.Wrap(err, "error updating kubeadm ConfigMap")
 	}
+	return nil
+}
+
+// ReconcileKubeletRBACBinding will create a RoleBinding for the new kubelet version during upgrades.
+// If the role binding already exists this function is a no-op.
+func (c *Cluster) ReconcileKubeletRBACBinding(ctx context.Context, version semver.Version) error {
+	roleName := fmt.Sprintf("kubeadm:kubelet-config-%d.%d", version.Major, version.Minor)
+	roleBinding := &rbacv1.RoleBinding{}
+	err := c.Client.Get(ctx, ctrlclient.ObjectKey{Name: roleName, Namespace: metav1.NamespaceSystem}, roleBinding)
+	if err != nil && !apierrors.IsNotFound(err) {
+		return errors.Wrapf(err, "failed to determine if kubelet config rbac role binding %q already exists", roleName)
+	} else if err == nil {
+		// The required role binding already exists, nothing left to do
+		return nil
+	}
+
+	newRoleBinding := &rbacv1.RoleBinding{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      roleName,
+			Namespace: metav1.NamespaceSystem,
+		},
+		Subjects: []rbacv1.Subject{
+			{
+				APIGroup: "rbac.authorization.k8s.io",
+				Kind:     "Group",
+				Name:     "system:nodes",
+			},
+			{
+				APIGroup: "rbac.authorization.k8s.io",
+				Kind:     "Group",
+				Name:     "system:bootstrappers:kubeadm:default-node-token",
+			},
+		},
+		RoleRef: rbacv1.RoleRef{
+			APIGroup: "rbac.authorization.k8s.io",
+			Kind:     "Role",
+			Name:     roleName,
+		},
+	}
+	if err := c.Client.Create(ctx, newRoleBinding); err != nil && !apierrors.IsAlreadyExists(err) {
+		return errors.Wrapf(err, "failed to create kubelet rbac role binding %q", roleName)
+	}
+
+	return nil
+}
+
+// ReconcileKubeletRBACRole will create a Role for the new kubelet version during upgrades.
+// If the role already exists this function is a no-op.
+func (c *Cluster) ReconcileKubeletRBACRole(ctx context.Context, version semver.Version) error {
+	majorMinor := fmt.Sprintf("%d.%d", version.Major, version.Minor)
+	roleName := fmt.Sprintf("kubeadm:kubelet-config-%s", majorMinor)
+	role := &rbacv1.Role{}
+	if err := c.Client.Get(ctx, ctrlclient.ObjectKey{Name: roleName, Namespace: metav1.NamespaceSystem}, role); err != nil && !apierrors.IsNotFound(err) {
+		return errors.Wrapf(err, "failed to determine if kubelet config rbac role %q already exists", roleName)
+	} else if err == nil {
+		// The required role already exists, nothing left to do
+		return nil
+	}
+
+	newRole := &rbacv1.Role{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      roleName,
+			Namespace: metav1.NamespaceSystem,
+		},
+		Rules: []rbacv1.PolicyRule{
+			{
+				Verbs:         []string{"get"},
+				APIGroups:     []string{""},
+				Resources:     []string{"configmaps"},
+				ResourceNames: []string{fmt.Sprintf("kubelet-config-%s", majorMinor)},
+			},
+		},
+	}
+	if err := c.Client.Create(ctx, newRole); err != nil && !apierrors.IsAlreadyExists(err) {
+		return errors.Wrapf(err, "failed to create kubelet rbac role %q", roleName)
+	}
+
 	return nil
 }
 

@@ -17,6 +17,7 @@ limitations under the License.
 package docker
 
 import (
+	"bytes"
 	"encoding/base64"
 	"fmt"
 	"strings"
@@ -159,11 +160,25 @@ func (m *Machine) ExecBootstrap(data string) error {
 		return errors.Wrap(err, "failed to decode machine's bootstrap data")
 	}
 
-	m.log.Info("Running machine bootstrap scripts")
-	lines, err := cloudinit.Run(cloudConfig, m.container.Commander)
+	commands, err := cloudinit.Commands(cloudConfig)
 	if err != nil {
-		m.log.Error(err, strings.Join(lines, "\n"))
+		m.log.Info("cloud config failed to parse", "cloud-config", string(cloudConfig))
 		return errors.Wrap(err, "failed to join a control plane node with kubeadm")
+	}
+
+	m.log.Info("Running machine bootstrap scripts")
+	var out bytes.Buffer
+	for _, command := range commands {
+		cmd := m.container.Commander.Command(command.Cmd, command.Args...)
+		cmd.SetStderr(&out)
+		if command.Stdin != "" {
+			cmd.SetStdin(strings.NewReader(command.Stdin))
+		}
+		err := cmd.Run()
+		if err != nil {
+			m.log.Info("Failed running command", "command", command, "stderr", out.String())
+			return errors.Wrap(err, "failed to run cloud conifg")
+		}
 	}
 
 	return nil
@@ -190,7 +205,9 @@ func (m *Machine) SetNodeProviderID() error {
 	)
 	lines, err := exec.CombinedOutputLines(cmd)
 	if err != nil {
-		m.log.Error(err, strings.Join(lines, "\n"))
+		for _, line := range lines {
+			m.log.Info(line)
+		}
 		return errors.Wrap(err, "failed update providerID")
 	}
 

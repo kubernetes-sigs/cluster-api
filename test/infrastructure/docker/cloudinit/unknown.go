@@ -20,7 +20,6 @@ import (
 	"encoding/json"
 
 	"github.com/pkg/errors"
-	"sigs.k8s.io/kind/pkg/exec"
 )
 
 type unknown struct {
@@ -32,7 +31,7 @@ func newUnknown(module string) action {
 	return &unknown{module: module}
 }
 
-// Unmarshal will unmarshall unknown actions and slurp the value
+// Unmarshal will unmarshal unknown actions and slurp the value
 func (u *unknown) Unmarshal(data []byte) error {
 	// try unmarshalling to a slice of strings
 	var s1 []string
@@ -55,7 +54,6 @@ func (u *unknown) Unmarshal(data []byte) error {
 	return nil
 }
 
-// Run will do nothing since the cloud config module is unknown.
-func (u *unknown) Run(_ exec.Cmder) ([]string, error) {
-	return u.lines, nil
+func (u *unknown) Commands() ([]Cmd, error) {
+	return []Cmd{}, nil
 }

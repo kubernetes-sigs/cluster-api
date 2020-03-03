@@ -25,7 +25,7 @@ func TestUnknown_Run(t *testing.T) {
 	u := &unknown{
 		lines: []string{},
 	}
-	lines, err := u.Run(nil)
+	lines, err := u.Commands()
 	if err != nil {
 		t.Fatal("err should always be nil")
 	}

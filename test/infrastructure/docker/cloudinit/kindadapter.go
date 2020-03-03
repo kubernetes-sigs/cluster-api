@@ -24,7 +24,6 @@ import (
 
 	"github.com/ghodss/yaml"
 	"github.com/pkg/errors"
-	"sigs.k8s.io/kind/pkg/exec"
 )
 
 const (
@@ -49,11 +48,11 @@ func (a *actionFactory) action(name string) action {
 
 type action interface {
 	Unmarshal(userData []byte) error
-	Run(cmder exec.Cmder) ([]string, error)
+	Commands() ([]Cmd, error)
 }
 
-// Run the given userData (a cloud config script) on the given node
-func Run(cloudConfig []byte, cmder exec.Cmder) ([]string, error) {
+// Commands converts a cloudconfig to a list of commands to run in sequence on the node.
+func Commands(cloudConfig []byte) ([]Cmd, error) {
 	// validate cloudConfigScript is a valid yaml, as required by the cloud config specification
 	if err := yaml.Unmarshal(cloudConfig, &map[string]interface{}{}); err != nil {
 		return nil, errors.Wrapf(err, "cloud-config is not valid yaml")
@@ -65,17 +64,16 @@ func Run(cloudConfig []byte, cmder exec.Cmder) ([]string, error) {
 		return nil, err
 	}
 
-	// executes all the actions in order
-	var lines []string //nolint:prealloc
-	for _, a := range actions {
-		actionLines, err := a.Run(cmder)
+	commands := []Cmd{}
+	for _, action := range actions {
+		cmds, err := action.Commands()
 		if err != nil {
-			return actionLines, err
+			return commands, err
 		}
-		lines = append(lines, actionLines...)
+		commands = append(commands, cmds...)
 	}
 
-	return lines, nil
+	return commands, nil
 }
 
 // getActions parses the cloud config yaml into a slice of actions to run.

@@ -19,17 +19,15 @@ package cloudinit
 import (
 	"bytes"
 	"compress/gzip"
-	"fmt"
 	"reflect"
 	"testing"
 )
 
 func TestWriteFiles(t *testing.T) {
 	var useCases = []struct {
-		name          string
-		w             writeFilesAction
-		expectedlines []string
-		expectedError bool
+		name         string
+		w            writeFilesAction
+		expectedCmds []Cmd
 	}{
 		{
 			name: "two files pass",
@@ -39,45 +37,12 @@ func TestWriteFiles(t *testing.T) {
 					{Path: "baz", Content: "qux"},
 				},
 			},
-			expectedlines: []string{
-				fmt.Sprintf("%s mkdir -p .\n", prompt),
-				fmt.Sprintf("%s cat > foo << END\nbar\nEND\n", prompt),
-				fmt.Sprintf("%s mkdir -p .\n", prompt),
-				fmt.Sprintf("%s cat > baz << END\nqux\nEND\n", prompt),
+			expectedCmds: []Cmd{
+				{Cmd: "mkdir", Args: []string{"-p", "."}},
+				{Cmd: "/bin/sh", Args: []string{"-c", "cat > foo /dev/stdin"}, Stdin: "bar"},
+				{Cmd: "mkdir", Args: []string{"-p", "."}},
+				{Cmd: "/bin/sh", Args: []string{"-c", "cat > baz /dev/stdin"}, Stdin: "qux"},
 			},
-		},
-		{
-			name: "first file fails",
-			w: writeFilesAction{
-				Files: []files{
-					{Path: "fail", Content: "bar"}, // fail force fakeCmd to fail
-					{Path: "baz", Content: "qux"},
-				},
-			},
-			expectedlines: []string{
-				fmt.Sprintf("%s mkdir -p .\n", prompt),
-				fmt.Sprintf("%s cat > fail << END\nbar\nEND\n", prompt),
-				fmt.Sprintf("%s command fail is failed", errorPrefix),
-				// there should not be a second file!
-			},
-			expectedError: true,
-		},
-		{
-			name: "second file fails",
-			w: writeFilesAction{
-				Files: []files{
-					{Path: "foo", Content: "bar"},
-					{Path: "fail", Content: "qux"}, // fail force fakeCmd to fail
-				},
-			},
-			expectedlines: []string{
-				fmt.Sprintf("%s mkdir -p .\n", prompt),
-				fmt.Sprintf("%s cat > foo << END\nbar\nEND\n", prompt),
-				fmt.Sprintf("%s mkdir -p .\n", prompt),
-				fmt.Sprintf("%s cat > fail << END\nqux\nEND\n", prompt),
-				fmt.Sprintf("%s command fail is failed", errorPrefix),
-			},
-			expectedError: true,
 		},
 		{
 			name: "owner different than default",
@@ -86,26 +51,11 @@ func TestWriteFiles(t *testing.T) {
 					{Path: "foo", Content: "bar", Owner: "baz:baz"},
 				},
 			},
-			expectedlines: []string{
-				fmt.Sprintf("%s mkdir -p .\n", prompt),
-				fmt.Sprintf("%s cat > foo << END\nbar\nEND\n", prompt),
-				fmt.Sprintf("%s chown baz:baz foo", prompt),
+			expectedCmds: []Cmd{
+				{Cmd: "mkdir", Args: []string{"-p", "."}},
+				{Cmd: "/bin/sh", Args: []string{"-c", "cat > foo /dev/stdin"}, Stdin: "bar"},
+				{Cmd: "chown", Args: []string{"baz:baz", "foo"}},
 			},
-		},
-		{
-			name: "chown fail",
-			w: writeFilesAction{
-				Files: []files{
-					{Path: "foo", Content: "bar", Owner: "fail:fail"}, // fail force fakeCmd to fail
-				},
-			},
-			expectedlines: []string{
-				fmt.Sprintf("%s mkdir -p .\n", prompt),
-				fmt.Sprintf("%s cat > foo << END\nbar\nEND\n", prompt),
-				fmt.Sprintf("%s chown fail:fail foo", prompt),
-				fmt.Sprintf("%s command fail is failed", errorPrefix),
-			},
-			expectedError: true,
 		},
 		{
 			name: "permissions different than default",
@@ -114,26 +64,11 @@ func TestWriteFiles(t *testing.T) {
 					{Path: "foo", Content: "bar", Permissions: "755"},
 				},
 			},
-			expectedlines: []string{
-				fmt.Sprintf("%s mkdir -p .\n", prompt),
-				fmt.Sprintf("%s cat > foo << END\nbar\nEND\n", prompt),
-				fmt.Sprintf("%s chmod 755 foo", prompt),
+			expectedCmds: []Cmd{
+				{Cmd: "mkdir", Args: []string{"-p", "."}},
+				{Cmd: "/bin/sh", Args: []string{"-c", "cat > foo /dev/stdin"}, Stdin: "bar"},
+				{Cmd: "chmod", Args: []string{"755", "foo"}},
 			},
-		},
-		{
-			name: "chmod fail",
-			w: writeFilesAction{
-				Files: []files{
-					{Path: "foo", Content: "bar", Permissions: "fail"}, // fail force fakeCmd to fail
-				},
-			},
-			expectedlines: []string{
-				fmt.Sprintf("%s mkdir -p .\n", prompt),
-				fmt.Sprintf("%s cat > foo << END\nbar\nEND\n", prompt),
-				fmt.Sprintf("%s chmod fail foo", prompt),
-				fmt.Sprintf("%s command fail is failed", errorPrefix),
-			},
-			expectedError: true,
 		},
 		{
 			name: "append",
@@ -142,28 +77,22 @@ func TestWriteFiles(t *testing.T) {
 					{Path: "foo", Content: "bar", Append: true},
 				},
 			},
-			expectedlines: []string{
-				fmt.Sprintf("%s mkdir -p .\n", prompt),
-				fmt.Sprintf("%s cat >> foo << END\nbar\nEND\n", prompt),
+			expectedCmds: []Cmd{
+				{Cmd: "mkdir", Args: []string{"-p", "."}},
+				{Cmd: "/bin/sh", Args: []string{"-c", "cat >> foo /dev/stdin"}, Stdin: "bar"},
 			},
 		},
 	}
 
 	for _, rt := range useCases {
 		t.Run(rt.name, func(t *testing.T) {
-
-			cmder := fakeCmder{t: t}
-			lines, err := rt.w.Run(cmder)
-
-			if err == nil && rt.expectedError {
-				t.Error("Expected error, got nil")
-			}
-			if err != nil && !rt.expectedError {
-				t.Errorf("Expected nil, got error %v", err)
+			cmds, err := rt.w.Commands()
+			if err != nil {
+				t.Fatal(err)
 			}
 
-			if !reflect.DeepEqual(rt.expectedlines, lines) {
-				t.Errorf("Expected %s, got %s", rt.expectedlines, lines)
+			if !reflect.DeepEqual(rt.expectedCmds, cmds) {
+				t.Errorf("Expected %s, got %s", rt.expectedCmds, cmds)
 			}
 		})
 	}

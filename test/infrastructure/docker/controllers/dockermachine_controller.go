@@ -192,19 +192,13 @@ func (r *DockerMachineReconciler) reconcileNormal(ctx context.Context, machine *
 		r.Log.Error(err, "failed to get bootstrap data")
 		return ctrl.Result{}, nil
 	}
-	// exec bootstrap
-	// NB. this step is necessary to mimic the behaviour of cloud-init that is embedded in the base images
-	// for other cloud providers
+
+	// Run the bootstrap script. Simulates cloud-init.
 	if err := externalMachine.ExecBootstrap(bootstrapData); err != nil {
-		// This helps CAPD fail less since kubeadm (because of etcd) is flaky.
-		if err2 := externalMachine.KubeadmReset(); err2 != nil {
-			r.Log.Error(err, "failed to reset kubeadm after a failed init")
-		}
 		return ctrl.Result{}, errors.Wrap(err, "failed to exec DockerMachine bootstrap")
 	}
 
-	// Set the provider ID on the Kubernetes node corresponding to the external machine
-	// NB. this step is necessary because there is no a cloud controller for docker that executes this step
+	// Usually a cloud provider will do this, but there is no docker-cloud provider.
 	if err := externalMachine.SetNodeProviderID(); err != nil {
 		return ctrl.Result{}, errors.Wrap(err, "failed to patch the Kubernetes node with the machine providerID")
 	}
@@ -212,8 +206,6 @@ func (r *DockerMachineReconciler) reconcileNormal(ctx context.Context, machine *
 	// Set ProviderID so the Cluster API Machine Controller can pull it
 	providerID := externalMachine.ProviderID()
 	dockerMachine.Spec.ProviderID = &providerID
-
-	// Mark the dockerMachine ready
 	dockerMachine.Status.Ready = true
 
 	return ctrl.Result{}, nil

@@ -17,8 +17,7 @@ limitations under the License.
 package cloudinit
 
 import (
-	"fmt"
-	"strings"
+	"reflect"
 	"testing"
 )
 
@@ -102,56 +101,55 @@ write_files:
     permissions: '0640'
 `)
 
-	expectedlinesStarts := []string{
+	expectedCmds := []Cmd{
 		// ca
-		fmt.Sprintf("%s mkdir -p /etc/kubernetes/pki", prompt),
-		fmt.Sprintf("%s cat > /etc/kubernetes/pki/ca.crt", prompt),
-		fmt.Sprintf("%s chmod 0640 /etc/kubernetes/pki/ca.crt", prompt),
-		fmt.Sprintf("%s mkdir -p /etc/kubernetes/pki", prompt),
-		fmt.Sprintf("%s cat > /etc/kubernetes/pki/ca.key", prompt),
-		fmt.Sprintf("%s chmod 0600 /etc/kubernetes/pki/ca.key", prompt),
+		{Cmd: "mkdir", Args: []string{"-p", "/etc/kubernetes/pki"}},
+		{Cmd: "/bin/sh", Args: []string{"-c", "cat > /etc/kubernetes/pki/ca.crt /dev/stdin"}},
+		{Cmd: "chmod", Args: []string{"0640", "/etc/kubernetes/pki/ca.crt"}},
+		{Cmd: "mkdir", Args: []string{"-p", "/etc/kubernetes/pki"}},
+		{Cmd: "/bin/sh", Args: []string{"-c", "cat > /etc/kubernetes/pki/ca.key /dev/stdin"}},
+		{Cmd: "chmod", Args: []string{"0600", "/etc/kubernetes/pki/ca.key"}},
 		// etcd/ca
-		fmt.Sprintf("%s mkdir -p /etc/kubernetes/pki/etcd", prompt),
-		fmt.Sprintf("%s cat > /etc/kubernetes/pki/etcd/ca.crt", prompt),
-		fmt.Sprintf("%s chmod 0640 /etc/kubernetes/pki/etcd/ca.crt", prompt),
-		fmt.Sprintf("%s mkdir -p /etc/kubernetes/pki/etcd", prompt),
-		fmt.Sprintf("%s cat > /etc/kubernetes/pki/etcd/ca.key", prompt),
-		fmt.Sprintf("%s chmod 0600 /etc/kubernetes/pki/etcd/ca.key", prompt),
+		{Cmd: "mkdir", Args: []string{"-p", "/etc/kubernetes/pki/etcd"}},
+		{Cmd: "/bin/sh", Args: []string{"-c", "cat > /etc/kubernetes/pki/etcd/ca.crt /dev/stdin"}},
+		{Cmd: "chmod", Args: []string{"0640", "/etc/kubernetes/pki/etcd/ca.crt"}},
+		{Cmd: "mkdir", Args: []string{"-p", "/etc/kubernetes/pki/etcd"}},
+		{Cmd: "/bin/sh", Args: []string{"-c", "cat > /etc/kubernetes/pki/etcd/ca.key /dev/stdin"}},
+		{Cmd: "chmod", Args: []string{"0600", "/etc/kubernetes/pki/etcd/ca.key"}},
 		// front-proxy-ca
-		fmt.Sprintf("%s mkdir -p /etc/kubernetes/pki", prompt),
-		fmt.Sprintf("%s cat > /etc/kubernetes/pki/front-proxy-ca.crt", prompt),
-		fmt.Sprintf("%s chmod 0640 /etc/kubernetes/pki/front-proxy-ca.crt", prompt),
-		fmt.Sprintf("%s mkdir -p /etc/kubernetes/pki", prompt),
-		fmt.Sprintf("%s cat > /etc/kubernetes/pki/front-proxy-ca.key", prompt),
-		fmt.Sprintf("%s chmod 0600 /etc/kubernetes/pki/front-proxy-ca.key", prompt),
+		{Cmd: "mkdir", Args: []string{"-p", "/etc/kubernetes/pki"}},
+		{Cmd: "/bin/sh", Args: []string{"-c", "cat > /etc/kubernetes/pki/front-proxy-ca.crt /dev/stdin"}},
+		{Cmd: "chmod", Args: []string{"0640", "/etc/kubernetes/pki/front-proxy-ca.crt"}},
+		{Cmd: "mkdir", Args: []string{"-p", "/etc/kubernetes/pki"}},
+		{Cmd: "/bin/sh", Args: []string{"-c", "cat > /etc/kubernetes/pki/front-proxy-ca.key /dev/stdin"}},
+		{Cmd: "chmod", Args: []string{"0600", "/etc/kubernetes/pki/front-proxy-ca.key"}},
 		// sa
-		fmt.Sprintf("%s mkdir -p /etc/kubernetes/pki", prompt),
-		fmt.Sprintf("%s cat > /etc/kubernetes/pki/sa.pub", prompt),
-		fmt.Sprintf("%s chmod 0640 /etc/kubernetes/pki/sa.pub", prompt),
-		fmt.Sprintf("%s mkdir -p /etc/kubernetes/pki", prompt),
-		fmt.Sprintf("%s cat > /etc/kubernetes/pki/sa.key", prompt),
-		fmt.Sprintf("%s chmod 0600 /etc/kubernetes/pki/sa.key", prompt),
+		{Cmd: "mkdir", Args: []string{"-p", "/etc/kubernetes/pki"}},
+		{Cmd: "/bin/sh", Args: []string{"-c", "cat > /etc/kubernetes/pki/sa.pub /dev/stdin"}},
+		{Cmd: "chmod", Args: []string{"0640", "/etc/kubernetes/pki/sa.pub"}},
+		{Cmd: "mkdir", Args: []string{"-p", "/etc/kubernetes/pki"}},
+		{Cmd: "/bin/sh", Args: []string{"-c", "cat > /etc/kubernetes/pki/sa.key /dev/stdin"}},
+		{Cmd: "chmod", Args: []string{"0600", "/etc/kubernetes/pki/sa.key"}},
 		// /tmp/kubeadm.yaml
-		fmt.Sprintf("%s mkdir -p /tmp", prompt),
-		fmt.Sprintf("%s cat > /tmp/kubeadm.yaml", prompt),
-		fmt.Sprintf("%s chmod 0640 /tmp/kubeadm.yaml", prompt),
+		{Cmd: "mkdir", Args: []string{"-p", "/tmp"}},
+		{Cmd: "/bin/sh", Args: []string{"-c", "cat > /tmp/kubeadm.yaml /dev/stdin"}},
+		{Cmd: "chmod", Args: []string{"0640", "/tmp/kubeadm.yaml"}},
 	}
 
-	cmder := fakeCmder{t: t}
-	lines, err := Run(cloudData, cmder)
+	commands, err := Commands(cloudData)
 	if err != nil {
 		t.Fatalf("Run returned unexpected errors %v", err)
 	}
-
-	//fmt.Println(strings.Join(lines, "\n"))
-
-	if len(expectedlinesStarts) != len(lines) {
-		t.Fatalf("Expectd %d lines, got %d", len(expectedlinesStarts), len(lines))
+	if len(commands) != len(expectedCmds) {
+		t.Fatal("commands and expected commands should be the same length")
 	}
-
-	for i, l := range lines {
-		if !strings.HasPrefix(l, expectedlinesStarts[i]) {
-			t.Fatalf("Expectd line %d starting with %s, got %s", i, expectedlinesStarts[i], l)
+	for i, cmd := range commands {
+		expected := expectedCmds[i]
+		if cmd.Cmd != expected.Cmd {
+			t.Fatalf("commands should be the same: %s vs %s", cmd.Cmd, expected.Cmd)
+		}
+		if !reflect.DeepEqual(cmd.Args, expected.Args) {
+			t.Fatalf("command args should be the same: %v vs %v", cmd.Args, expected.Cmd)
 		}
 	}
 }

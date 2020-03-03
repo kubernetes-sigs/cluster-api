@@ -18,6 +18,7 @@ package docker
 
 import (
 	"bytes"
+	"context"
 	"encoding/base64"
 	"fmt"
 	"strings"
@@ -30,7 +31,6 @@ import (
 	"sigs.k8s.io/cluster-api/test/infrastructure/docker/docker/types"
 	"sigs.k8s.io/kind/pkg/apis/config/v1alpha4"
 	"sigs.k8s.io/kind/pkg/cluster/constants"
-	"sigs.k8s.io/kind/pkg/exec"
 )
 
 const (
@@ -95,7 +95,7 @@ func (m *Machine) ProviderID() string {
 }
 
 // Create creates a docker container hosting a Kubernetes node.
-func (m *Machine) Create(role string, version *string) error {
+func (m *Machine) Create(ctx context.Context, role string, version *string) error {
 	// Create if not exists.
 	if m.container == nil {
 		var err error
@@ -139,7 +139,7 @@ func (m *Machine) Create(role string, version *string) error {
 		// This fixes an issue where we try to kubeadm init too quickly after creating the container.
 		err = wait.PollImmediate(500*time.Millisecond, 2*time.Second, func() (bool, error) {
 			ps := m.container.Commander.Command("crictl", "ps")
-			return ps.Run() == nil, nil
+			return ps.Run(ctx) == nil, nil
 		})
 		if err != nil {
 			return errors.WithStack(err)
@@ -150,7 +150,7 @@ func (m *Machine) Create(role string, version *string) error {
 }
 
 // ExecBootstrap runs bootstrap on a node, this is generally `kubeadm <init|join>`
-func (m *Machine) ExecBootstrap(data string) error {
+func (m *Machine) ExecBootstrap(ctx context.Context, data string) error {
 	if m.container == nil {
 		return errors.New("unable to set ExecBootstrap. the container hosting this machine does not exists")
 	}
@@ -174,7 +174,7 @@ func (m *Machine) ExecBootstrap(data string) error {
 		if command.Stdin != "" {
 			cmd.SetStdin(strings.NewReader(command.Stdin))
 		}
-		err := cmd.Run()
+		err := cmd.Run(ctx)
 		if err != nil {
 			m.log.Info("Failed running command", "command", command, "stderr", out.String())
 			return errors.Wrap(err, "failed to run cloud conifg")
@@ -185,7 +185,7 @@ func (m *Machine) ExecBootstrap(data string) error {
 }
 
 // SetNodeProviderID sets the docker provider ID for the kubernetes node
-func (m *Machine) SetNodeProviderID() error {
+func (m *Machine) SetNodeProviderID(ctx context.Context) error {
 	kubectlNode, err := m.getKubectlNode()
 	if err != nil {
 		return errors.Wrapf(err, "unable to set NodeProviderID. error getting a kubectl node")
@@ -203,7 +203,7 @@ func (m *Machine) SetNodeProviderID() error {
 		"node", m.ContainerName(),
 		"--patch", patch,
 	)
-	lines, err := exec.CombinedOutputLines(cmd)
+	lines, err := cmd.RunLoggingOutputOnFail(ctx)
 	if err != nil {
 		for _, line := range lines {
 			m.log.Info(line)
@@ -231,13 +231,15 @@ func (m *Machine) getKubectlNode() (*types.Node, error) {
 }
 
 // KubeadmReset will run `kubeadm reset` on the machine.
-func (m *Machine) KubeadmReset() error {
+func (m *Machine) KubeadmReset(ctx context.Context) error {
 	if m.container != nil {
 		m.log.Info("Running kubeadm reset on the machine")
 		cmd := m.container.Commander.Command("kubeadm", "reset", "--force")
-		lines, err := exec.CombinedOutputLines(cmd)
+		lines, err := cmd.RunLoggingOutputOnFail(ctx)
 		if err != nil {
-			m.log.Error(err, strings.Join(lines, "\n"))
+			for _, line := range lines {
+				m.log.Info(line)
+			}
 			return errors.Wrap(err, "failed to reset node")
 		}
 	}
@@ -246,11 +248,11 @@ func (m *Machine) KubeadmReset() error {
 }
 
 // Delete deletes a docker container hosting a Kubernetes node.
-func (m *Machine) Delete() error {
+func (m *Machine) Delete(ctx context.Context) error {
 	// Delete if exists.
 	if m.container != nil {
 		m.log.Info("Deleting machine container")
-		if err := m.container.Delete(); err != nil {
+		if err := m.container.Delete(ctx); err != nil {
 			return err
 		}
 	}

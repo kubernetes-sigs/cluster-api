@@ -33,7 +33,6 @@ const (
 	AWSProviderName                 = "aws"
 	AzureProviderName               = "azure"
 	BareMetalProviderName           = "baremetal"
-	DockerProviderName              = "docker"
 	OpenStackProviderName           = "openstack"
 	VSphereProviderName             = "vsphere"
 	ProvidersConfigKey              = "providers"
@@ -93,11 +92,6 @@ func (p *providersClient) defaults() []Provider {
 		&provider{
 			name:         BareMetalProviderName,
 			url:          "https://github.com/metal3-io/cluster-api-provider-baremetal/releases/latest/infrastructure-components.yaml",
-			providerType: clusterctlv1.InfrastructureProviderType,
-		},
-		&provider{
-			name:         DockerProviderName,
-			url:          "https://github.com/kubernetes-sigs/cluster-api-provider-docker/releases/latest/infrastructure-components.yaml",
 			providerType: clusterctlv1.InfrastructureProviderType,
 		},
 		&provider{

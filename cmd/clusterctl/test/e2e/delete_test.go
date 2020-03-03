@@ -31,7 +31,7 @@ import (
 	"k8s.io/apimachinery/pkg/api/meta"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
-	clusterctlclient "sigs.k8s.io/cluster-api/cmd/clusterctl/pkg/client"
+	clusterctlclient "sigs.k8s.io/cluster-api/cmd/clusterctl/client"
 	infrav1 "sigs.k8s.io/cluster-api/test/infrastructure/docker/api/v1alpha3"
 )
 

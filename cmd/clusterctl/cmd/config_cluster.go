@@ -22,7 +22,7 @@ import (
 
 	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
-	"sigs.k8s.io/cluster-api/cmd/clusterctl/pkg/client"
+	"sigs.k8s.io/cluster-api/cmd/clusterctl/client"
 )
 
 type configClusterOptions struct {

@@ -31,7 +31,7 @@ import (
 
 	appsv1 "k8s.io/api/apps/v1"
 	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
-	clusterctlclient "sigs.k8s.io/cluster-api/cmd/clusterctl/pkg/client"
+	clusterctlclient "sigs.k8s.io/cluster-api/cmd/clusterctl/client"
 	"sigs.k8s.io/cluster-api/test/framework"
 	"sigs.k8s.io/cluster-api/test/framework/management/kind"
 	infrav1 "sigs.k8s.io/cluster-api/test/infrastructure/docker/api/v1alpha3"

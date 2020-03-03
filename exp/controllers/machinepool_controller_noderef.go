@@ -28,6 +28,7 @@ import (
 	"sigs.k8s.io/cluster-api/controllers/noderefutil"
 	"sigs.k8s.io/cluster-api/controllers/remote"
 	capierrors "sigs.k8s.io/cluster-api/errors"
+	expv1 "sigs.k8s.io/cluster-api/exp/api/v1alpha3"
 	"sigs.k8s.io/cluster-api/util"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
@@ -42,7 +43,7 @@ type getNodeReferencesResult struct {
 	ready      int
 }
 
-func (r *MachinePoolReconciler) reconcileNodeRefs(ctx context.Context, cluster *clusterv1.Cluster, mp *clusterv1.MachinePool) error {
+func (r *MachinePoolReconciler) reconcileNodeRefs(ctx context.Context, cluster *clusterv1.Cluster, mp *expv1.MachinePool) error {
 	logger := r.Log.WithValues("machinepool", mp.Name, "namespace", mp.Namespace)
 	// Check that the MachinePool hasn't been deleted or in the process.
 	if !mp.DeletionTimestamp.IsZero() {

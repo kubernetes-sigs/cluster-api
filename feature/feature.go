@@ -14,30 +14,32 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package features
+package feature
 
 import (
 	"k8s.io/apimachinery/pkg/util/runtime"
 	"k8s.io/component-base/featuregate"
-
-	utilfeature "sigs.k8s.io/cluster-api/util/featuregate"
 )
 
 const (
-// Every feature gate should add method here following this template:
-//
-// // owner: @username
-// // alpha: v1.X
-// MyFeature featuregate.Feature = "MyFeature"
+	// Every feature gate should add method here following this template:
+	//
+	// // owner: @username
+	// // alpha: v1.X
+	// MyFeature featuregate.Feature = "MyFeature"
+
+	// owner: @
+	// alpha: v0.3
+	MachinePool featuregate.Feature = "MachinePool"
 )
 
 func init() {
-	runtime.Must(utilfeature.DefaultMutableFeatureGate.Add(defaultClusterAPIFeatureGates))
+	runtime.Must(MutableGates.Add(defaultClusterAPIFeatureGates))
 }
 
 // defaultClusterAPIFeatureGates consists of all known cluster-api-specific feature keys.
 // To add a new feature, define a key for it above and add it here.
 var defaultClusterAPIFeatureGates = map[featuregate.Feature]featuregate.FeatureSpec{
 	// Every feature should be initiated here:
-	// MyFeature:     {Default: false, PreRelease: featuregate.Alpha},
+	MachinePool: {Default: false, PreRelease: featuregate.Alpha},
 }

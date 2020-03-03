@@ -39,6 +39,8 @@ import (
 	bsutil "sigs.k8s.io/cluster-api/bootstrap/util"
 	"sigs.k8s.io/cluster-api/controllers/remote"
 	capierrors "sigs.k8s.io/cluster-api/errors"
+	expv1 "sigs.k8s.io/cluster-api/exp/api/v1alpha3"
+	"sigs.k8s.io/cluster-api/feature"
 	"sigs.k8s.io/cluster-api/util"
 	"sigs.k8s.io/cluster-api/util/patch"
 	"sigs.k8s.io/cluster-api/util/secret"
@@ -56,7 +58,8 @@ type InitLocker interface {
 }
 
 // +kubebuilder:rbac:groups=bootstrap.cluster.x-k8s.io,resources=kubeadmconfigs;kubeadmconfigs/status,verbs=get;list;watch;create;update;patch;delete
-// +kubebuilder:rbac:groups=cluster.x-k8s.io,resources=clusters;clusters/status;machines;machines/status;machinepools;machinepools/status,verbs=get;list;watch
+// +kubebuilder:rbac:groups=cluster.x-k8s.io,resources=clusters;clusters/status;machines;machines/status,verbs=get;list;watch
+// +kubebuilder:rbac:groups=exp.cluster.x-k8s.io,resources=machinepools;machinepools/status,verbs=get;list;watch
 // +kubebuilder:rbac:groups="",resources=secrets;events;configmaps,verbs=get;list;watch;create;update;patch;delete
 
 // KubeadmConfigReconciler reconciles a KubeadmConfig object
@@ -87,8 +90,9 @@ func (r *KubeadmConfigReconciler) SetupWithManager(mgr ctrl.Manager, option cont
 
 	r.scheme = mgr.GetScheme()
 
-	err := ctrl.NewControllerManagedBy(mgr).
+	builder := ctrl.NewControllerManagedBy(mgr).
 		For(&bootstrapv1.KubeadmConfig{}).
+		WithOptions(option).
 		Watches(
 			&source.Kind{Type: &clusterv1.Machine{}},
 			&handler.EnqueueRequestsFromMapFunc{
@@ -96,21 +100,22 @@ func (r *KubeadmConfigReconciler) SetupWithManager(mgr ctrl.Manager, option cont
 			},
 		).
 		Watches(
-			&source.Kind{Type: &clusterv1.MachinePool{}},
-			&handler.EnqueueRequestsFromMapFunc{
-				ToRequests: handler.ToRequestsFunc(r.MachinePoolToBootstrapMapFunc),
-			},
-		).
-		Watches(
 			&source.Kind{Type: &clusterv1.Cluster{}},
 			&handler.EnqueueRequestsFromMapFunc{
 				ToRequests: handler.ToRequestsFunc(r.ClusterToKubeadmConfigs),
 			},
-		).
-		WithOptions(option).
-		Complete(r)
+		)
 
-	if err != nil {
+	if feature.Gates.Enabled(feature.MachinePool) {
+		builder = builder.Watches(
+			&source.Kind{Type: &expv1.MachinePool{}},
+			&handler.EnqueueRequestsFromMapFunc{
+				ToRequests: handler.ToRequestsFunc(r.MachinePoolToBootstrapMapFunc),
+			},
+		)
+	}
+
+	if err := builder.Complete(r); err != nil {
 		return errors.Wrap(err, "failed setting up with a controller manager")
 	}
 
@@ -564,7 +569,7 @@ func (r *KubeadmConfigReconciler) MachineToBootstrapMapFunc(o handler.MapObject)
 func (r *KubeadmConfigReconciler) MachinePoolToBootstrapMapFunc(o handler.MapObject) []ctrl.Request {
 	result := []ctrl.Request{}
 
-	m, ok := o.Object.(*clusterv1.MachinePool)
+	m, ok := o.Object.(*expv1.MachinePool)
 	if !ok {
 		return nil
 	}

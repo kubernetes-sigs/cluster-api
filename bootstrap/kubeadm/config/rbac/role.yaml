@@ -38,10 +38,17 @@ rules:
   resources:
   - clusters
   - clusters/status
-  - machinepools
-  - machinepools/status
   - machines
   - machines/status
+  verbs:
+  - get
+  - list
+  - watch
+- apiGroups:
+  - exp.cluster.x-k8s.io
+  resources:
+  - machinepools
+  - machinepools/status
   verbs:
   - get
   - list

@@ -26,6 +26,8 @@ import (
 	"k8s.io/utils/pointer"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha3"
 	bootstrapv1 "sigs.k8s.io/cluster-api/bootstrap/kubeadm/api/v1alpha3"
+	expv1 "sigs.k8s.io/cluster-api/exp/api/v1alpha3"
+	"sigs.k8s.io/cluster-api/feature"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 )
 
@@ -34,6 +36,7 @@ func TestGetConfigOwner(t *testing.T) {
 
 	scheme := runtime.NewScheme()
 	g.Expect(clusterv1.AddToScheme(scheme)).To(Succeed())
+	g.Expect(expv1.AddToScheme(scheme)).To(Succeed())
 
 	t.Run("should get the owner when present (Machine)", func(t *testing.T) {
 		g := NewWithT(t)
@@ -80,8 +83,10 @@ func TestGetConfigOwner(t *testing.T) {
 	})
 
 	t.Run("should get the owner when present (MachinePool)", func(t *testing.T) {
+		_ = feature.MutableGates.Set("MachinePool=true")
+
 		g := NewWithT(t)
-		myPool := &clusterv1.MachinePool{
+		myPool := &expv1.MachinePool{
 			ObjectMeta: metav1.ObjectMeta{
 				Name:      "my-machine-pool",
 				Namespace: "my-ns",
@@ -89,10 +94,10 @@ func TestGetConfigOwner(t *testing.T) {
 					clusterv1.MachineControlPlaneLabelName: "",
 				},
 			},
-			Spec: clusterv1.MachinePoolSpec{
+			Spec: expv1.MachinePoolSpec{
 				ClusterName: "my-cluster",
 			},
-			Status: clusterv1.MachinePoolStatus{
+			Status: expv1.MachinePoolStatus{
 				InfrastructureReady: true,
 			},
 		}
@@ -103,7 +108,7 @@ func TestGetConfigOwner(t *testing.T) {
 				OwnerReferences: []metav1.OwnerReference{
 					{
 						Kind:       "MachinePool",
-						APIVersion: clusterv1.GroupVersion.String(),
+						APIVersion: expv1.GroupVersion.String(),
 						Name:       "my-machine-pool",
 					},
 				},

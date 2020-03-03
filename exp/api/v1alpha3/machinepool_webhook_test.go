@@ -23,6 +23,7 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/utils/pointer"
+	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha3"
 )
 
 func TestMachinePoolDefault(t *testing.T) {
@@ -33,9 +34,9 @@ func TestMachinePoolDefault(t *testing.T) {
 			Namespace: "foobar",
 		},
 		Spec: MachinePoolSpec{
-			Template: MachineTemplateSpec{
-				Spec: MachineSpec{
-					Bootstrap: Bootstrap{ConfigRef: &corev1.ObjectReference{}},
+			Template: clusterv1.MachineTemplateSpec{
+				Spec: clusterv1.MachineSpec{
+					Bootstrap: clusterv1.Bootstrap{ConfigRef: &corev1.ObjectReference{}},
 				},
 			},
 		},
@@ -50,22 +51,22 @@ func TestMachinePoolDefault(t *testing.T) {
 func TestMachinePoolBootstrapValidation(t *testing.T) {
 	tests := []struct {
 		name      string
-		bootstrap Bootstrap
+		bootstrap clusterv1.Bootstrap
 		expectErr bool
 	}{
 		{
 			name:      "should return error if configref and data are nil",
-			bootstrap: Bootstrap{ConfigRef: nil, DataSecretName: nil},
+			bootstrap: clusterv1.Bootstrap{ConfigRef: nil, DataSecretName: nil},
 			expectErr: true,
 		},
 		{
 			name:      "should not return error if dataSecretName is set",
-			bootstrap: Bootstrap{ConfigRef: nil, DataSecretName: pointer.StringPtr("test")},
+			bootstrap: clusterv1.Bootstrap{ConfigRef: nil, DataSecretName: pointer.StringPtr("test")},
 			expectErr: false,
 		},
 		{
 			name:      "should not return error if config ref is set",
-			bootstrap: Bootstrap{ConfigRef: &corev1.ObjectReference{}, Data: nil},
+			bootstrap: clusterv1.Bootstrap{ConfigRef: &corev1.ObjectReference{}, Data: nil},
 			expectErr: false,
 		},
 	}
@@ -75,8 +76,8 @@ func TestMachinePoolBootstrapValidation(t *testing.T) {
 			g := NewWithT(t)
 			m := &MachinePool{
 				Spec: MachinePoolSpec{
-					Template: MachineTemplateSpec{
-						Spec: MachineSpec{
+					Template: clusterv1.MachineTemplateSpec{
+						Spec: clusterv1.MachineSpec{
 							Bootstrap: tt.bootstrap,
 						},
 					},
@@ -97,7 +98,7 @@ func TestMachinePoolNamespaceValidation(t *testing.T) {
 	tests := []struct {
 		name      string
 		expectErr bool
-		bootstrap Bootstrap
+		bootstrap clusterv1.Bootstrap
 		infraRef  corev1.ObjectReference
 		namespace string
 	}{
@@ -105,28 +106,28 @@ func TestMachinePoolNamespaceValidation(t *testing.T) {
 			name:      "should succeed if all namespaces match",
 			expectErr: false,
 			namespace: "foobar",
-			bootstrap: Bootstrap{ConfigRef: &corev1.ObjectReference{Namespace: "foobar"}},
+			bootstrap: clusterv1.Bootstrap{ConfigRef: &corev1.ObjectReference{Namespace: "foobar"}},
 			infraRef:  corev1.ObjectReference{Namespace: "foobar"},
 		},
 		{
 			name:      "should return error if namespace and bootstrap namespace don't match",
 			expectErr: true,
 			namespace: "foobar",
-			bootstrap: Bootstrap{ConfigRef: &corev1.ObjectReference{Namespace: "foobar123"}},
+			bootstrap: clusterv1.Bootstrap{ConfigRef: &corev1.ObjectReference{Namespace: "foobar123"}},
 			infraRef:  corev1.ObjectReference{Namespace: "foobar"},
 		},
 		{
 			name:      "should return error if namespace and infrastructure ref namespace don't match",
 			expectErr: true,
 			namespace: "foobar",
-			bootstrap: Bootstrap{ConfigRef: &corev1.ObjectReference{Namespace: "foobar"}},
+			bootstrap: clusterv1.Bootstrap{ConfigRef: &corev1.ObjectReference{Namespace: "foobar"}},
 			infraRef:  corev1.ObjectReference{Namespace: "foobar123"},
 		},
 		{
 			name:      "should return error if no namespaces match",
 			expectErr: true,
 			namespace: "foobar1",
-			bootstrap: Bootstrap{ConfigRef: &corev1.ObjectReference{Namespace: "foobar2"}},
+			bootstrap: clusterv1.Bootstrap{ConfigRef: &corev1.ObjectReference{Namespace: "foobar2"}},
 			infraRef:  corev1.ObjectReference{Namespace: "foobar3"},
 		},
 	}
@@ -138,8 +139,8 @@ func TestMachinePoolNamespaceValidation(t *testing.T) {
 			m := &MachinePool{
 				ObjectMeta: metav1.ObjectMeta{Namespace: tt.namespace},
 				Spec: MachinePoolSpec{
-					Template: MachineTemplateSpec{
-						Spec: MachineSpec{
+					Template: clusterv1.MachineTemplateSpec{
+						Spec: clusterv1.MachineSpec{
 							Bootstrap:         tt.bootstrap,
 							InfrastructureRef: tt.infraRef,
 						},
@@ -186,9 +187,9 @@ func TestMachinePoolClusterNameImmutable(t *testing.T) {
 			newMP := &MachinePool{
 				Spec: MachinePoolSpec{
 					ClusterName: tt.newClusterName,
-					Template: MachineTemplateSpec{
-						Spec: MachineSpec{
-							Bootstrap: Bootstrap{ConfigRef: &corev1.ObjectReference{}},
+					Template: clusterv1.MachineTemplateSpec{
+						Spec: clusterv1.MachineSpec{
+							Bootstrap: clusterv1.Bootstrap{ConfigRef: &corev1.ObjectReference{}},
 						},
 					},
 				},
@@ -197,9 +198,9 @@ func TestMachinePoolClusterNameImmutable(t *testing.T) {
 			oldMP := &MachinePool{
 				Spec: MachinePoolSpec{
 					ClusterName: tt.oldClusterName,
-					Template: MachineTemplateSpec{
-						Spec: MachineSpec{
-							Bootstrap: Bootstrap{ConfigRef: &corev1.ObjectReference{}},
+					Template: clusterv1.MachineTemplateSpec{
+						Spec: clusterv1.MachineSpec{
+							Bootstrap: clusterv1.Bootstrap{ConfigRef: &corev1.ObjectReference{}},
 						},
 					},
 				},

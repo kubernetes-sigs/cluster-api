@@ -26,6 +26,8 @@ import (
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha3"
 	"sigs.k8s.io/cluster-api/controllers/external"
+	expv1 "sigs.k8s.io/cluster-api/exp/api/v1alpha3"
+	"sigs.k8s.io/cluster-api/feature"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
@@ -77,19 +79,35 @@ func (co ConfigOwner) IsControlPlaneMachine() bool {
 // GetConfigOwner returns the Unstructured object owning the current resource.
 func GetConfigOwner(ctx context.Context, c client.Client, obj metav1.Object) (*ConfigOwner, error) {
 	for _, ref := range obj.GetOwnerReferences() {
-		refgvk, err := schema.ParseGroupVersion(ref.APIVersion)
+		refGV, err := schema.ParseGroupVersion(ref.APIVersion)
 		if err != nil {
 			return nil, errors.Wrapf(err, "failed to parse GroupVersion from %q", ref.APIVersion)
 		}
+		refGVK := refGV.WithKind(ref.Kind)
 
-		if (ref.Kind == "Machine" || ref.Kind == "MachinePool") &&
-			refgvk.Group == clusterv1.GroupVersion.Group {
-			return GetOwnerByRef(ctx, c, &corev1.ObjectReference{
-				APIVersion: ref.APIVersion,
-				Kind:       ref.Kind,
-				Name:       ref.Name,
-				Namespace:  obj.GetNamespace(),
+		allowedGKs := []schema.GroupKind{
+			{
+				Group: clusterv1.GroupVersion.Group,
+				Kind:  "Machine",
+			},
+		}
+
+		if feature.Gates.Enabled(feature.MachinePool) {
+			allowedGKs = append(allowedGKs, schema.GroupKind{
+				Group: expv1.GroupVersion.Group,
+				Kind:  "MachinePool",
 			})
+		}
+
+		for _, gk := range allowedGKs {
+			if refGVK.Group == gk.Group && refGVK.Kind == gk.Kind {
+				return GetOwnerByRef(ctx, c, &corev1.ObjectReference{
+					APIVersion: ref.APIVersion,
+					Kind:       ref.Kind,
+					Name:       ref.Name,
+					Namespace:  obj.GetNamespace(),
+				})
+			}
 		}
 	}
 	return nil, nil

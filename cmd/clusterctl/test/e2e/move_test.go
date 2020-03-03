@@ -31,7 +31,7 @@ import (
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha3"
 	bootstrapv1 "sigs.k8s.io/cluster-api/bootstrap/kubeadm/api/v1alpha3"
-	clusterctlclient "sigs.k8s.io/cluster-api/cmd/clusterctl/pkg/client"
+	clusterctlclient "sigs.k8s.io/cluster-api/cmd/clusterctl/client"
 	infrav1 "sigs.k8s.io/cluster-api/test/infrastructure/docker/api/v1alpha3"
 )
 

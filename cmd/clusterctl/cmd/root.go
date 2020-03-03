@@ -23,7 +23,7 @@ import (
 
 	"github.com/MakeNowJust/heredoc"
 	"github.com/spf13/cobra"
-	logf "sigs.k8s.io/cluster-api/cmd/clusterctl/pkg/log"
+	logf "sigs.k8s.io/cluster-api/cmd/clusterctl/log"
 )
 
 var cfgFile string

@@ -74,6 +74,18 @@ providers = {
       },
 }
 
+docker_metadata_yaml = """\
+apiVersion: clusterctl.cluster.x-k8s.io/v1alpha3
+kind: Metadata
+releaseSeries:
+- major: 0
+  minor: 2
+  contract: v1alpha2
+- major: 0
+  minor: 3
+  contract: v1alpha3
+"""
+
 def load_settings():
     global settings
     try:
@@ -127,6 +139,16 @@ def write_local_override(provider, version, components_file, components_yaml):
     except Exception as e:
         raise Exception('failed to write {} to {}: {}'.format(components_file, provider_overrides_folder, e))
 
+def write_docker_metadata(version):
+    try:
+        home = get_home()
+        docker_folder = os.path.join(home, '.cluster-api', 'overrides', 'infrastructure-docker', version)
+        f = open(os.path.join(docker_folder, "metadata.yaml"), 'w')
+        f.write(docker_metadata_yaml)
+        f.close()
+    except Exception as e:
+        raise Exception('failed to write {} to {}: {}'.format("metadata.yaml", metadata_folder, e))
+
 def create_local_overrides():
     providerList = settings.get('providers', [])
     assert providerList is not None, 'invalid configuration: please define the list of providers to override'
@@ -150,6 +172,9 @@ def create_local_overrides():
 
         components_yaml = execCmd(['kustomize', 'build', os.path.join(repo, config_folder)])
         write_local_override(provider, next_version, components_file, components_yaml)
+
+        if provider == 'infrastructure-docker':
+            write_docker_metadata(next_version)
 
         yield name, type, next_version
 
@@ -196,6 +221,10 @@ def print_instructions(overrides):
         cmd += ' {} {}:{}'.format(type_to_flag(type), name, next_version)
     print (cmd)
     print
+    if 'infrastructure-docker' in providerList:
+        print ('please check the documentation for additional steps required for using the docker provider')
+        print
+
 
 load_settings()
 

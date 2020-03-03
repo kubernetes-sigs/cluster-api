@@ -78,3 +78,58 @@ please note that each `provider_repo` should have its own `clusterctl-settings.j
   }
 }
 ```
+
+## Additional steps in order to use the docker provider
+
+<aside class="note warning">
+
+<h1>Warning</h1>
+
+The Docker provider is not designed for production use and is intended for development environments only.
+
+</aside>
+
+Before running the local-overrides hack:
+
+- Run `make -C test/infrastructure/docker docker-build REGISTRY=gcr.io/k8s-staging-capi-docker` to build the docker provider image
+  using a specific REGISTRY (you can choose your own).
+
+- Run `make -C test/infrastructure/docker generate-manifests REGISTRY=gcr.io/k8s-staging-capi-docker` to generate 
+  the docker provider manifest using the above registry/Image.
+
+Run the local-overrides hack and save the `clusterctl init` command provided in the command output to be used later. 
+
+Edit the clusterctl config file located at `~/.cluster-api/clusterctl.yaml` and configure the docker provider
+by adding the following lines (replace $HOME with your home path):
+
+```bash
+providers:
+  - name: docker
+    url: $HOME/.cluster-api/overrides/infrastructure-docker/latest/infrastructure-components.yaml
+    type: InfrastructureProvider
+```
+
+If you are using Kind for creating the management cluster, you should:
+
+- run the following command to create a kind config file for allowing the Docker provider to access Docker on the host:
+
+```bash
+cat > kind-cluster-with-extramounts.yaml <<EOF
+kind: Cluster
+apiVersion: kind.sigs.k8s.io/v1alpha3
+nodes:
+  - role: control-plane
+    extraMounts:
+      - hostPath: /var/run/docker.sock
+        containerPath: /var/run/docker.sock
+EOF
+  kind create cluster --config ./kind-cluster-with-extramounts.yaml --name clusterapi
+  kubectl cluster-info --context kind-clusterapi
+```
+
+- Run `kind create cluster --config ./kind-cluster-with-extramounts.yaml` to create the management cluster using the above file
+
+- Run `kind load docker-image gcr.io/k8s-staging-capi-docker/capd-manager-amd64:dev` to make the docker provider image available
+  for the kubelet in the management cluster.  
+
+Run `clusterctl init` command provided as output of the local-overrides hack.

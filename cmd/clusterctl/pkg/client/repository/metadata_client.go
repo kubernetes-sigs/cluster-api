@@ -199,20 +199,6 @@ func (f *metadataClient) getEmbeddedMetadata() *clusterctlv1.Metadata {
 					// older version are not supported by clusterctl
 				},
 			}
-		case config.DockerProviderName:
-			return &clusterctlv1.Metadata{
-				TypeMeta: metav1.TypeMeta{
-					APIVersion: clusterctlv1.GroupVersion.String(),
-					Kind:       "Metadata",
-				},
-				ReleaseSeries: []clusterctlv1.ReleaseSeries{
-					// v1alpha3 release series
-					{Major: 0, Minor: 3, Contract: "v1alpha3"}, // From this release series CAPD version scheme is linked to CAPI
-					// v1alpha2 release series are supported only for upgrades
-					{Major: 0, Minor: 2, Contract: "v1alpha2"}, // This release was hosted on a different repository
-					// older version are not supported by clusterctl
-				},
-			}
 		case config.VSphereProviderName:
 			return &clusterctlv1.Metadata{
 				TypeMeta: metav1.TypeMeta{

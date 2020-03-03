@@ -93,8 +93,15 @@ func ConvertReferenceAPIContract(ctx context.Context, c client.Client, ref *core
 }
 
 // MarshalData stores the source object as json data in the destination object annotations map.
+// It ignores the metadata of the source object.
 func MarshalData(src metav1.Object, dst metav1.Object) error {
-	data, err := json.Marshal(src)
+	u, err := runtime.DefaultUnstructuredConverter.ToUnstructured(src)
+	if err != nil {
+		return err
+	}
+	delete(u, "metadata")
+
+	data, err := json.Marshal(u)
 	if err != nil {
 		return err
 	}

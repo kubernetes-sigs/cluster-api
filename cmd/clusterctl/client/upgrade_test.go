@@ -73,7 +73,7 @@ func Test_clusterctlClient_ApplyUpgrade(t *testing.T) {
 			wantErr: false,
 		},
 		{
-			name: "apply a custom plan",
+			name: "apply a custom plan - core provider only",
 			fields: fields{
 				client: fakeClientFoUpgrade(), // core v1.0.0 (v1.0.1 available), infra v2.0.0 (v2.0.1 available)
 			},
@@ -97,6 +97,64 @@ func Test_clusterctlClient_ApplyUpgrade(t *testing.T) {
 				Items: []clusterctlv1.Provider{ // only one provider should be upgraded
 					fakeProvider("cluster-api", clusterctlv1.CoreProviderType, "v1.0.1", "cluster-api-system"),
 					fakeProvider("infra", clusterctlv1.InfrastructureProviderType, "v2.0.0", "infra-system"),
+				},
+			},
+			wantErr: false,
+		},
+		{
+			name: "apply a custom plan - infra provider only",
+			fields: fields{
+				client: fakeClientFoUpgrade(), // core v1.0.0 (v1.0.1 available), infra v2.0.0 (v2.0.1 available)
+			},
+			args: args{
+				options: ApplyUpgradeOptions{
+					Kubeconfig:              "kubeconfig",
+					ManagementGroup:         "cluster-api-system/cluster-api",
+					Contract:                "",
+					CoreProvider:            "",
+					BootstrapProviders:      nil,
+					ControlPlaneProviders:   nil,
+					InfrastructureProviders: []string{"infra-system/infra:v2.0.1"},
+				},
+			},
+			wantProviders: &clusterctlv1.ProviderList{
+				TypeMeta: metav1.TypeMeta{
+					APIVersion: clusterctlv1.GroupVersion.String(),
+					Kind:       "ProviderList",
+				},
+				ListMeta: metav1.ListMeta{},
+				Items: []clusterctlv1.Provider{ // only one provider should be upgraded
+					fakeProvider("cluster-api", clusterctlv1.CoreProviderType, "v1.0.0", "cluster-api-system"),
+					fakeProvider("infra", clusterctlv1.InfrastructureProviderType, "v2.0.1", "infra-system"),
+				},
+			},
+			wantErr: false,
+		},
+		{
+			name: "apply a custom plan - both providers",
+			fields: fields{
+				client: fakeClientFoUpgrade(), // core v1.0.0 (v1.0.1 available), infra v2.0.0 (v2.0.1 available)
+			},
+			args: args{
+				options: ApplyUpgradeOptions{
+					Kubeconfig:              "kubeconfig",
+					ManagementGroup:         "cluster-api-system/cluster-api",
+					Contract:                "",
+					CoreProvider:            "cluster-api-system/cluster-api:v1.0.1",
+					BootstrapProviders:      nil,
+					ControlPlaneProviders:   nil,
+					InfrastructureProviders: []string{"infra-system/infra:v2.0.1"},
+				},
+			},
+			wantProviders: &clusterctlv1.ProviderList{
+				TypeMeta: metav1.TypeMeta{
+					APIVersion: clusterctlv1.GroupVersion.String(),
+					Kind:       "ProviderList",
+				},
+				ListMeta: metav1.ListMeta{},
+				Items: []clusterctlv1.Provider{ // only one provider should be upgraded
+					fakeProvider("cluster-api", clusterctlv1.CoreProviderType, "v1.0.1", "cluster-api-system"),
+					fakeProvider("infra", clusterctlv1.InfrastructureProviderType, "v2.0.1", "infra-system"),
 				},
 			},
 			wantErr: false,

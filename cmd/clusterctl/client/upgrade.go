@@ -118,9 +118,11 @@ func (c *clusterctlClient) ApplyUpgrade(options ApplyUpgradeOptions) error {
 		// Converts upgrade references back into an UpgradeItem.
 		upgradeItems := []cluster.UpgradeItem{}
 
-		upgradeItems, err = addUpgradeItems(upgradeItems, clusterctlv1.CoreProviderType, options.CoreProvider)
-		if err != nil {
-			return err
+		if options.CoreProvider != "" {
+			upgradeItems, err = addUpgradeItems(upgradeItems, clusterctlv1.CoreProviderType, options.CoreProvider)
+			if err != nil {
+				return err
+			}
 		}
 		upgradeItems, err = addUpgradeItems(upgradeItems, clusterctlv1.BootstrapProviderType, options.BootstrapProviders...)
 		if err != nil {

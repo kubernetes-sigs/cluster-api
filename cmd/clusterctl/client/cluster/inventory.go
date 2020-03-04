@@ -23,6 +23,7 @@ import (
 	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	apimeta "k8s.io/apimachinery/pkg/api/meta"
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/util/sets"
 	clusterctlv1 "sigs.k8s.io/cluster-api/cmd/clusterctl/api/v1alpha3"
 	"sigs.k8s.io/cluster-api/cmd/clusterctl/config"
@@ -33,6 +34,9 @@ import (
 
 const (
 	embeddedCustomResourceDefinitionPath = "cmd/clusterctl/config/manifest/clusterctl-api.yaml"
+
+	retryCreateInventoryObject         = 3
+	retryIntervalCreateInventoryObject = 1 * time.Second
 
 	waitInventoryCRDInterval = 250 * time.Millisecond
 	waitInventoryCRDTimeout  = 1 * time.Minute
@@ -123,18 +127,12 @@ func (p *inventoryClient) EnsureCustomResourceDefinitions() error {
 		o := objs[i]
 		log.V(5).Info("Creating", logf.UnstructuredToValues(o)...)
 
-		labels := o.GetLabels()
-		if labels == nil {
-			labels = map[string]string{}
-		}
-		labels[clusterctlv1.ClusterctlCoreLabelName] = "inventory"
-		o.SetLabels(labels)
-
-		if err := c.Create(ctx, &o); err != nil {
-			if apierrors.IsAlreadyExists(err) {
-				continue
-			}
-			return errors.Wrapf(err, "failed to create clusterctl inventory CRDs component: %s, %s/%s", o.GroupVersionKind(), o.GetNamespace(), o.GetName())
+		// Create the Kubernetes object.
+		// Nb. The operation is wrapped in a retry loop to make EnsureCustomResourceDefinitions more resilient to unexpected conditions.
+		if err := retry(retryCreateInventoryObject, retryIntervalCreateInventoryObject, func() error {
+			return p.createObj(o)
+		}); err != nil {
+			return err
 		}
 
 		// If the object is a CRDs, waits for it being Established.
@@ -145,6 +143,11 @@ func (p *inventoryClient) EnsureCustomResourceDefinitions() error {
 			}
 
 			if err := p.pollImmediateWaiter(waitInventoryCRDInterval, waitInventoryCRDTimeout, func() (bool, error) {
+				c, err := p.proxy.NewClient()
+				if err != nil {
+					return false, err
+				}
+
 				crd := &apiextensionsv1.CustomResourceDefinition{}
 				if err := c.Get(ctx, crdKey, crd); err != nil {
 					return false, err
@@ -162,6 +165,28 @@ func (p *inventoryClient) EnsureCustomResourceDefinitions() error {
 		}
 	}
 
+	return nil
+}
+
+func (p *inventoryClient) createObj(o unstructured.Unstructured) error {
+	c, err := p.proxy.NewClient()
+	if err != nil {
+		return err
+	}
+
+	labels := o.GetLabels()
+	if labels == nil {
+		labels = map[string]string{}
+	}
+	labels[clusterctlv1.ClusterctlCoreLabelName] = "inventory"
+	o.SetLabels(labels)
+
+	if err := c.Create(ctx, &o); err != nil {
+		if apierrors.IsAlreadyExists(err) {
+			return nil
+		}
+		return errors.Wrapf(err, "failed to create clusterctl inventory CRDs component: %s, %s/%s", o.GroupVersionKind(), o.GetNamespace(), o.GetName())
+	}
 	return nil
 }
 

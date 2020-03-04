@@ -23,26 +23,21 @@ import (
 
 	"github.com/ghodss/yaml"
 	"github.com/pkg/errors"
-	"sigs.k8s.io/kind/pkg/exec"
 )
 
-const (
-	prompt      = "capd@docker$"
-	errorPrefix = "ERROR!"
-)
-
-// Cmd defines a runcmd command
+// Cmd
 type Cmd struct {
-	Cmd  string
-	Args []string
+	Cmd   string
+	Args  []string
+	Stdin string
 }
 
 // UnmarshalJSON a runcmd command
-// It can be either a list or a string. If the item is a
-// list, it will be properly executed (with the first arg as the command).
-// If the item is a string, it will be written to a file and interpreted using ``sh``.
+// It can be either a list or a string.
+// If the item is a list, the head of the list is the command and the tail are the args.
+// If the item is a string, the whole command will be wrapped in `/bin/sh -c`.
 func (c *Cmd) UnmarshalJSON(data []byte) error {
-	// try to decode the command into a list
+	// First, try to decode the input as a list
 	var s1 []string
 	if err := json.Unmarshal(data, &s1); err != nil {
 		if _, ok := err.(*json.UnmarshalTypeError); !ok {
@@ -54,8 +49,7 @@ func (c *Cmd) UnmarshalJSON(data []byte) error {
 		return nil
 	}
 
-	// if decode into a list didn't worked,
-	// try to decode the command into a string
+	// If it's not a list, it must be a string
 	var s2 string
 	if err := json.Unmarshal(data, &s2); err != nil {
 		return errors.WithStack(err)
@@ -67,7 +61,7 @@ func (c *Cmd) UnmarshalJSON(data []byte) error {
 	return nil
 }
 
-// runCmd defines a cloud init action that replicates the behavior of the cloud init rundcmd module
+// runCmd defines parameters of a shell command that is equivalent to an action found in the cloud init rundcmd module.
 type runCmd struct {
 	Cmds []Cmd `json:"runcmd,"`
 }
@@ -84,31 +78,15 @@ func (a *runCmd) Unmarshal(userData []byte) error {
 	return nil
 }
 
-// Run the runCmd
-func (a *runCmd) Run(cmder exec.Cmder) ([]string, error) {
-	var lines []string //nolint:prealloc
+// Commands returns a list of commands to run on the node
+func (a *runCmd) Commands() ([]Cmd, error) {
+	cmds := make([]Cmd, 0)
 	for _, c := range a.Cmds {
 		// kubeadm in docker requires to ignore some errors, and this requires to modify the cmd generate by CABPK by default...
 		c = hackKubeadmIgnoreErrors(c)
-
-		// Add a line in the output that mimics the command being issues at the command line
-		lines = append(lines, fmt.Sprintf("%s %s %s", prompt, c.Cmd, strings.Join(c.Args, " ")))
-
-		// Run the command
-		cmd := cmder.Command(c.Cmd, c.Args...)
-		cmdLines, err := exec.CombinedOutputLines(cmd)
-
-		// Add The output lines received
-		lines = append(lines, cmdLines...)
-
-		// If the command failed
-		if err != nil {
-			// Add a line in the output with the error message and exit
-			lines = append(lines, fmt.Sprintf("%s %v", errorPrefix, err))
-			return lines, errors.Wrapf(errors.WithStack(err), "error running %+v", c)
-		}
+		cmds = append(cmds, c)
 	}
-	return lines, nil
+	return cmds, nil
 }
 
 func hackKubeadmIgnoreErrors(c Cmd) Cmd {

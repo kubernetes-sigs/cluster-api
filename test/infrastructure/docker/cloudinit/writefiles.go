@@ -27,10 +27,9 @@ import (
 
 	"github.com/ghodss/yaml"
 	"github.com/pkg/errors"
-	"sigs.k8s.io/kind/pkg/exec"
 )
 
-// writeFilesAction defines a cloud init action that replicates on kund the write_files module
+// writeFilesAction defines a list of files that should be written to a node.
 type writeFilesAction struct {
 	Files []files `json:"write_files,"`
 }
@@ -55,8 +54,10 @@ func (a *writeFilesAction) Unmarshal(userData []byte) error {
 	return nil
 }
 
-func (a *writeFilesAction) Run(cmder exec.Cmder) ([]string, error) {
-	var lines []string //nolint:prealloc
+// Commands return a list of commands to run on the node.
+// Each command defines the parameters of a shell command necessary to generate a file replicating the cloud-init write_files module.
+func (a *writeFilesAction) Commands() ([]Cmd, error) {
+	commands := make([]Cmd, 0)
 	for _, f := range a.Files {
 		// Fix attributes and apply defaults
 		path := fixPath(f.Path) //NB. the real cloud init module for writes files converts path into absolute paths; this is not possible here...
@@ -65,55 +66,32 @@ func (a *writeFilesAction) Run(cmder exec.Cmder) ([]string, error) {
 		permissions := fixPermissions(f.Permissions)
 		content, err := fixContent(f.Content, encodings)
 		if err != nil {
-			return lines, errors.Wrapf(err, "error decoding content for %s", path)
+			return commands, errors.Wrapf(err, "error decoding content for %s", path)
 		}
 
 		// Make the directory so cat + redirection will work
 		directory := filepath.Dir(path)
-		lines = append(lines, fmt.Sprintf("%s mkdir -p %s\n", prompt, directory))
-		if err := cmder.Command("/bin/sh", "-c", fmt.Sprintf("mkdir -p %q", directory)).Run(); err != nil {
-			return lines, errors.Wrapf(err, fmt.Sprintf("failed to create directory"))
-		}
+		commands = append(commands, Cmd{Cmd: "mkdir", Args: []string{"-p", directory}})
 
 		redirects := ">"
 		if f.Append {
 			redirects = ">>"
 		}
 
-		// Add a line in the output that mimics the command being issues at the command line
-		lines = append(lines, fmt.Sprintf("%s cat %s %s << END\n%s\nEND\n", prompt, redirects, path, content))
-		if err := cmder.Command("/bin/sh", "-c", fmt.Sprintf("cat %s %s /dev/stdin", redirects, path)).
-			SetStdin(strings.NewReader(content)).
-			Run(); err != nil {
-			// TODO Consider returning stdout or stderr or both instead of lines or in addition to lines
-			// Add a line in the output with the error message and exit
-			lines = append(lines, fmt.Sprintf("%s %v", errorPrefix, err))
-			return lines, errors.Wrapf(err, "error writing file content to %s", path)
-		}
+		// generate a command that will create a file with the epxected contents.
+		commands = append(commands, Cmd{Cmd: "/bin/sh", Args: []string{"-c", fmt.Sprintf("cat %s %s /dev/stdin", redirects, path)}, Stdin: content})
 
-		// if permissions is different by default ownership in kind, sets file permissions
+		// if permissions are different than default ownership, add a command to modify the permissions.
 		if permissions != "0644" {
-			// Add a line in the output that mimics the command being issues at the command line
-			lines = append(lines, fmt.Sprintf("%s chmod %s %s", prompt, permissions, path))
-			if err := cmder.Command("chmod", permissions, path).Run(); err != nil {
-				// Add a line in the output with the error message and exit
-				lines = append(lines, fmt.Sprintf("%s %v", errorPrefix, err))
-				return lines, errors.Wrapf(errors.WithStack(err), "error setting permissions for %s", path)
-			}
+			commands = append(commands, Cmd{Cmd: "chmod", Args: []string{permissions, path}})
 		}
 
-		// if ownership is different by default ownership in kind, sets file ownership
+		// if ownership is different than default ownership, add a command to modify file ownerhsip.
 		if owner != "root:root" {
-			// Add a line in the output that mimics the command being issues at the command line
-			lines = append(lines, fmt.Sprintf("%s chown %s %s", prompt, owner, path))
-			if err := cmder.Command("chown", owner, path).Run(); err != nil {
-				// Add a line in the output with the error message and exit
-				lines = append(lines, fmt.Sprintf("%s %v", errorPrefix, err))
-				return lines, errors.Wrapf(errors.WithStack(err), "error setting ownership for %s", path)
-			}
+			commands = append(commands, Cmd{Cmd: "chown", Args: []string{owner, path}})
 		}
 	}
-	return lines, nil
+	return commands, nil
 }
 
 func fixPath(p string) string {

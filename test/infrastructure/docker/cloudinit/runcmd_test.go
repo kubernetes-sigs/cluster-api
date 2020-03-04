@@ -17,14 +17,8 @@ limitations under the License.
 package cloudinit
 
 import (
-	"errors"
-	"fmt"
-	"io"
 	"reflect"
-	"strings"
 	"testing"
-
-	"sigs.k8s.io/kind/pkg/exec"
 )
 
 func TestRunCmdUnmarshal(t *testing.T) {
@@ -55,10 +49,9 @@ runcmd:
 
 func TestRunCmdRun(t *testing.T) {
 	var useCases = []struct {
-		name          string
-		r             runCmd
-		expectedlines []string
-		expectedError bool
+		name         string
+		r            runCmd
+		expectedCmds []Cmd
 	}{
 		{
 			name: "two command pass",
@@ -68,43 +61,10 @@ func TestRunCmdRun(t *testing.T) {
 					{Cmd: "baz", Args: []string{"bbb"}},
 				},
 			},
-			expectedlines: []string{
-				fmt.Sprintf("%s foo bar", prompt),
-				"command [foo bar] completed",
-				fmt.Sprintf("%s baz bbb", prompt),
-				"command [baz bbb] completed",
+			expectedCmds: []Cmd{
+				{Cmd: "foo", Args: []string{"bar"}},
+				{Cmd: "baz", Args: []string{"bbb"}},
 			},
-		},
-		{
-			name: "first command fails",
-			r: runCmd{
-				Cmds: []Cmd{
-					{Cmd: "fail", Args: []string{"bar"}}, // fail force fakeCmd to fail
-					{Cmd: "baz", Args: []string{"bbb"}},
-				},
-			},
-			expectedlines: []string{
-				fmt.Sprintf("%s fail bar", prompt),
-				fmt.Sprintf("%s command fail is failed", errorPrefix),
-				// there should not be a second command!
-			},
-			expectedError: true,
-		},
-		{
-			name: "second command fails",
-			r: runCmd{
-				Cmds: []Cmd{
-					{Cmd: "foo", Args: []string{"bar"}},
-					{Cmd: "fail", Args: []string{"qux"}}, // fail force fakeCmd to fail
-				},
-			},
-			expectedlines: []string{
-				fmt.Sprintf("%s foo bar", prompt),
-				"command [foo bar] completed",
-				fmt.Sprintf("%s fail qux", prompt),
-				fmt.Sprintf("%s command fail is failed", errorPrefix),
-			},
-			expectedError: true,
 		},
 		{
 			name: "hack kubeadm ingore errors",
@@ -113,85 +73,23 @@ func TestRunCmdRun(t *testing.T) {
 					{Cmd: "/bin/sh", Args: []string{"-c", "kubeadm init --config /tmp/kubeadm.yaml"}},
 				},
 			},
-			expectedlines: []string{
-				fmt.Sprintf("%s /bin/sh -c kubeadm init --config /tmp/kubeadm.yaml --ignore-preflight-errors=all", prompt),
-				"command [/bin/sh -c kubeadm init --config /tmp/kubeadm.yaml --ignore-preflight-errors=all] completed",
+			expectedCmds: []Cmd{
+				{Cmd: "/bin/sh", Args: []string{"-c", "kubeadm init --config /tmp/kubeadm.yaml --ignore-preflight-errors=all"}},
 			},
 		},
 	}
 
 	for _, rt := range useCases {
 		t.Run(rt.name, func(t *testing.T) {
-
-			cmder := fakeCmder{t: t}
-			lines, err := rt.r.Run(cmder)
-
-			if err == nil && rt.expectedError {
-				t.Error("expected error, got nil")
-			}
-			if err != nil && !rt.expectedError {
-				t.Errorf("expected nil, got error %v", err)
+			commands, err := rt.r.Commands()
+			if err != nil {
+				t.Fatal(err)
 			}
 
-			if !reflect.DeepEqual(rt.expectedlines, lines) {
-				t.Errorf("expected %s, got %s", rt.expectedlines, lines)
+			if !reflect.DeepEqual(rt.expectedCmds, commands) {
+				t.Errorf("expected %s, got %s", rt.expectedCmds, commands)
 			}
 		})
-	}
-}
-
-type fakeCmder struct {
-	t *testing.T
-}
-
-var _ exec.Cmder = &fakeCmder{}
-
-func (c fakeCmder) Command(name string, arg ...string) exec.Cmd {
-	line := fmt.Sprintf("%s %s", name, strings.Join(arg, " "))
-	fail := strings.Contains(line, "fail")
-	return &fakeCmd{line: line, fail: fail, t: c.t}
-}
-
-type fakeCmd struct {
-	line string
-	fail bool
-	w    io.Writer
-	t    *testing.T
-}
-
-var _ exec.Cmd = &fakeCmd{}
-
-func (cmd *fakeCmd) Run() error {
-	if cmd.fail {
-		return errors.New("command fail is failed")
-	}
-	cmd.Write(fmt.Sprintf("command [%s] completed\n", cmd.line))
-	return nil
-}
-
-func (cmd *fakeCmd) SetEnv(env ...string) exec.Cmd {
-	return cmd
-}
-
-func (cmd *fakeCmd) SetStdin(r io.Reader) exec.Cmd {
-	return cmd
-}
-
-func (cmd *fakeCmd) SetStdout(w io.Writer) exec.Cmd {
-	cmd.w = w
-	return cmd
-}
-
-func (cmd *fakeCmd) SetStderr(w io.Writer) exec.Cmd {
-	return cmd
-}
-
-func (cmd *fakeCmd) Write(s string) {
-	if cmd.w != nil {
-		_, err := cmd.w.Write([]byte(s))
-		if err != nil {
-			panic(err)
-		}
 	}
 }
 

@@ -28,7 +28,6 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
-	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/kubernetes/scheme"
 	"k8s.io/client-go/tools/record"
 	"k8s.io/klog/klogr"
@@ -74,7 +73,7 @@ func TestClusterToKubeadmControlPlane(t *testing.T) {
 
 	expectedResult := []ctrl.Request{
 		{
-			NamespacedName: types.NamespacedName{
+			NamespacedName: client.ObjectKey{
 				Namespace: cluster.Spec.ControlPlaneRef.Namespace,
 				Name:      cluster.Spec.ControlPlaneRef.Name},
 		},
@@ -165,7 +164,7 @@ func TestReconcileKubeconfigEmptyAPIEndpoints(t *testing.T) {
 			Namespace: "test",
 		},
 	}
-	clusterName := types.NamespacedName{Namespace: "test", Name: "foo"}
+	clusterName := client.ObjectKey{Namespace: "test", Name: "foo"}
 
 	fakeClient := newFakeClient(g, kcp.DeepCopy())
 	r := &KubeadmControlPlaneReconciler{
@@ -177,7 +176,7 @@ func TestReconcileKubeconfigEmptyAPIEndpoints(t *testing.T) {
 	g.Expect(r.reconcileKubeconfig(context.Background(), clusterName, clusterv1.APIEndpoint{}, kcp)).To(Succeed())
 
 	kubeconfigSecret := &corev1.Secret{}
-	secretName := types.NamespacedName{
+	secretName := client.ObjectKey{
 		Namespace: "test",
 		Name:      secret.Name(clusterName.Name, secret.Kubeconfig),
 	}
@@ -193,7 +192,7 @@ func TestReconcileKubeconfigMissingCACertificate(t *testing.T) {
 			Namespace: "test",
 		},
 	}
-	clusterName := types.NamespacedName{Namespace: "test", Name: "foo"}
+	clusterName := client.ObjectKey{Namespace: "test", Name: "foo"}
 	endpoint := clusterv1.APIEndpoint{Host: "test.local", Port: 8443}
 
 	fakeClient := newFakeClient(g, kcp.DeepCopy())
@@ -206,7 +205,7 @@ func TestReconcileKubeconfigMissingCACertificate(t *testing.T) {
 	g.Expect(r.reconcileKubeconfig(context.Background(), clusterName, endpoint, kcp)).NotTo(Succeed())
 
 	kubeconfigSecret := &corev1.Secret{}
-	secretName := types.NamespacedName{
+	secretName := client.ObjectKey{
 		Namespace: "test",
 		Name:      secret.Name(clusterName.Name, secret.Kubeconfig),
 	}
@@ -229,11 +228,11 @@ func TestReconcileKubeconfigSecretAlreadyExists(t *testing.T) {
 			Namespace: "test",
 		},
 	}
-	clusterName := types.NamespacedName{Namespace: cluster.Namespace, Name: cluster.Name}
+	clusterName := util.ObjectKey(cluster)
 	endpoint := clusterv1.APIEndpoint{Host: "test.local", Port: 8443}
 
 	existingKubeconfigSecret := kubeconfig.GenerateSecretWithOwner(
-		types.NamespacedName{Name: "foo", Namespace: "test"},
+		client.ObjectKey{Name: "foo", Namespace: "test"},
 		[]byte{},
 		*metav1.NewControllerRef(cluster, clusterv1.GroupVersion.WithKind("Cluster")),
 	)
@@ -248,7 +247,7 @@ func TestReconcileKubeconfigSecretAlreadyExists(t *testing.T) {
 	g.Expect(r.reconcileKubeconfig(context.Background(), clusterName, endpoint, kcp)).To(Succeed())
 
 	kubeconfigSecret := &corev1.Secret{}
-	secretName := types.NamespacedName{
+	secretName := client.ObjectKey{
 		Namespace: "test",
 		Name:      secret.Name(clusterName.Name, secret.Kubeconfig),
 	}
@@ -275,14 +274,14 @@ func TestKubeadmControlPlaneReconciler_reconcileKubeconfig(t *testing.T) {
 			Namespace: "test",
 		},
 	}
-	clusterName := types.NamespacedName{Namespace: cluster.Namespace, Name: cluster.Name}
+	clusterName := util.ObjectKey(cluster)
 	endpoint := clusterv1.APIEndpoint{Host: "test.local", Port: 8443}
 
 	clusterCerts := secret.NewCertificatesForInitialControlPlane(&kubeadmv1.ClusterConfiguration{})
 	g.Expect(clusterCerts.Generate()).To(Succeed())
 	caCert := clusterCerts.GetByPurpose(secret.ClusterCA)
 	existingCACertSecret := caCert.AsSecret(
-		types.NamespacedName{Namespace: "test", Name: "foo"},
+		client.ObjectKey{Namespace: "test", Name: "foo"},
 		*metav1.NewControllerRef(kcp, controlplanev1.GroupVersion.WithKind("KubeadmControlPlane")),
 	)
 
@@ -295,7 +294,7 @@ func TestKubeadmControlPlaneReconciler_reconcileKubeconfig(t *testing.T) {
 	g.Expect(r.reconcileKubeconfig(context.Background(), clusterName, endpoint, kcp)).To(Succeed())
 
 	kubeconfigSecret := &corev1.Secret{}
-	secretName := types.NamespacedName{
+	secretName := client.ObjectKey{
 		Namespace: "test",
 		Name:      secret.Name(clusterName.Name, secret.Kubeconfig),
 	}
@@ -362,7 +361,7 @@ func TestReconcileNoClusterOwnerRef(t *testing.T) {
 		recorder: record.NewFakeRecorder(32),
 	}
 
-	result, err := r.Reconcile(ctrl.Request{NamespacedName: types.NamespacedName{Name: kcp.Name, Namespace: kcp.Namespace}})
+	result, err := r.Reconcile(ctrl.Request{NamespacedName: util.ObjectKey(kcp)})
 	g.Expect(err).NotTo(HaveOccurred())
 	g.Expect(result).To(Equal(ctrl.Result{}))
 
@@ -399,7 +398,7 @@ func TestReconcileNoCluster(t *testing.T) {
 		recorder: record.NewFakeRecorder(32),
 	}
 
-	_, err := r.Reconcile(ctrl.Request{NamespacedName: types.NamespacedName{Name: kcp.Name, Namespace: kcp.Namespace}})
+	_, err := r.Reconcile(ctrl.Request{NamespacedName: util.ObjectKey(kcp)})
 	g.Expect(err).To(HaveOccurred())
 
 	machineList := &clusterv1.MachineList{}
@@ -447,10 +446,10 @@ func TestReconcileClusterNoEndpoints(t *testing.T) {
 		managementCluster:  &internal.ManagementCluster{Client: fakeClient},
 	}
 
-	result, err := r.Reconcile(ctrl.Request{NamespacedName: types.NamespacedName{Name: kcp.Name, Namespace: kcp.Namespace}})
+	result, err := r.Reconcile(ctrl.Request{NamespacedName: util.ObjectKey(kcp)})
 	g.Expect(err).NotTo(HaveOccurred())
 	g.Expect(result).To(Equal(ctrl.Result{}))
-	g.Expect(r.Client.Get(context.Background(), types.NamespacedName{Name: kcp.Name, Namespace: kcp.Namespace}, kcp)).To(Succeed())
+	g.Expect(r.Client.Get(context.Background(), util.ObjectKey(kcp), kcp)).To(Succeed())
 
 	// Always expect that the Finalizer is set on the passed in resource
 	g.Expect(kcp.Finalizers).To(ContainElement(controlplanev1.KubeadmControlPlaneFinalizer))
@@ -543,13 +542,13 @@ func TestReconcileInitializeControlPlane(t *testing.T) {
 		managementCluster:  &internal.ManagementCluster{Client: fakeClient},
 	}
 
-	result, err := r.Reconcile(ctrl.Request{NamespacedName: types.NamespacedName{Name: kcp.Name, Namespace: kcp.Namespace}})
+	result, err := r.Reconcile(ctrl.Request{NamespacedName: util.ObjectKey(kcp)})
 	g.Expect(err).NotTo(HaveOccurred())
 	g.Expect(result).To(Equal(ctrl.Result{Requeue: true}))
-	g.Expect(r.Client.Get(context.Background(), types.NamespacedName{Name: kcp.Name, Namespace: kcp.Namespace}, kcp)).To(Succeed())
+	g.Expect(r.Client.Get(context.Background(), client.ObjectKey{Name: kcp.Name, Namespace: kcp.Namespace}, kcp)).To(Succeed())
 
 	// Expect the referenced infrastructure template to have a Cluster Owner Reference.
-	g.Expect(fakeClient.Get(context.TODO(), client.ObjectKey{Namespace: genericMachineTemplate.GetNamespace(), Name: genericMachineTemplate.GetName()}, genericMachineTemplate)).To(Succeed())
+	g.Expect(fakeClient.Get(context.TODO(), util.ObjectKey(genericMachineTemplate), genericMachineTemplate)).To(Succeed())
 	g.Expect(genericMachineTemplate.GetOwnerReferences()).To(ContainElement(metav1.OwnerReference{
 		APIVersion: clusterv1.GroupVersion.String(),
 		Kind:       "Cluster",
@@ -1227,22 +1226,22 @@ type fakeManagementCluster struct {
 	Machines            internal.FilterableMachineCollection
 }
 
-func (f *fakeManagementCluster) GetWorkloadCluster(_ context.Context, _ types.NamespacedName) (*internal.Cluster, error) {
+func (f *fakeManagementCluster) GetWorkloadCluster(_ context.Context, _ client.ObjectKey) (*internal.Cluster, error) {
 	return nil, nil
 }
 
-func (f *fakeManagementCluster) GetMachinesForCluster(_ context.Context, _ types.NamespacedName, _ ...internal.MachineFilter) (internal.FilterableMachineCollection, error) {
+func (f *fakeManagementCluster) GetMachinesForCluster(_ context.Context, _ client.ObjectKey, _ ...internal.MachineFilter) (internal.FilterableMachineCollection, error) {
 	return f.Machines, nil
 }
 
-func (f *fakeManagementCluster) TargetClusterControlPlaneIsHealthy(_ context.Context, _ types.NamespacedName, _ string) error {
+func (f *fakeManagementCluster) TargetClusterControlPlaneIsHealthy(_ context.Context, _ client.ObjectKey, _ string) error {
 	if !f.ControlPlaneHealthy {
 		return errors.New("control plane is not healthy")
 	}
 	return nil
 }
 
-func (f *fakeManagementCluster) TargetClusterEtcdIsHealthy(_ context.Context, _ types.NamespacedName, _ string) error {
+func (f *fakeManagementCluster) TargetClusterEtcdIsHealthy(_ context.Context, _ client.ObjectKey, _ string) error {
 	if !f.EtcdHealthy {
 		return errors.New("etcd is not healthy")
 	}

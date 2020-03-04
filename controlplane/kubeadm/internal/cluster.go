@@ -24,7 +24,6 @@ import (
 
 	"github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
-	"k8s.io/apimachinery/pkg/types"
 	kerrors "k8s.io/apimachinery/pkg/util/errors"
 	"k8s.io/client-go/kubernetes/scheme"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -42,7 +41,7 @@ type ManagementCluster struct {
 
 // GetMachinesForCluster returns a list of machines that can be filtered or not.
 // If no filter is supplied then all machines associated with the target cluster are returned.
-func (m *ManagementCluster) GetMachinesForCluster(ctx context.Context, cluster types.NamespacedName, filters ...MachineFilter) (FilterableMachineCollection, error) {
+func (m *ManagementCluster) GetMachinesForCluster(ctx context.Context, cluster client.ObjectKey, filters ...MachineFilter) (FilterableMachineCollection, error) {
 	selector := map[string]string{
 		clusterv1.ClusterLabelName: cluster.Name,
 	}
@@ -57,7 +56,7 @@ func (m *ManagementCluster) GetMachinesForCluster(ctx context.Context, cluster t
 
 // GetWorkloadCluster builds a cluster object.
 // The cluster comes with an etcd Client generator to connect to any etcd pod living on a managed machine.
-func (m *ManagementCluster) GetWorkloadCluster(ctx context.Context, clusterKey types.NamespacedName) (*Cluster, error) {
+func (m *ManagementCluster) GetWorkloadCluster(ctx context.Context, clusterKey client.ObjectKey) (*Cluster, error) {
 	// TODO(chuckha): Unroll remote.NewClusterClient if we are unhappy with getting a restConfig twice.
 	// TODO(chuckha): Inject this dependency.
 	restConfig, err := remote.RESTConfig(ctx, m.Client, clusterKey)
@@ -94,9 +93,9 @@ func (m *ManagementCluster) GetWorkloadCluster(ctx context.Context, clusterKey t
 }
 
 // GetEtcdCerts returns the EtcdCA Cert and Key for a given cluster.
-func (m *ManagementCluster) GetEtcdCerts(ctx context.Context, cluster types.NamespacedName) ([]byte, []byte, error) {
+func (m *ManagementCluster) GetEtcdCerts(ctx context.Context, cluster client.ObjectKey) ([]byte, []byte, error) {
 	etcdCASecret := &corev1.Secret{}
-	etcdCAObjectKey := types.NamespacedName{
+	etcdCAObjectKey := client.ObjectKey{
 		Namespace: cluster.Namespace,
 		Name:      fmt.Sprintf("%s-etcd", cluster.Name),
 	}
@@ -118,7 +117,7 @@ type healthCheck func(context.Context) (healthCheckResult, error)
 
 // healthCheck will run a generic health check function and report any errors discovered.
 // It does some additional validation to make sure there is a 1;1 match between nodes and machines.
-func (m *ManagementCluster) healthCheck(ctx context.Context, check healthCheck, clusterKey types.NamespacedName, controlPlaneName string) error {
+func (m *ManagementCluster) healthCheck(ctx context.Context, check healthCheck, clusterKey client.ObjectKey, controlPlaneName string) error {
 	var errorList []error
 	nodeChecks, err := check(ctx)
 	if err != nil {
@@ -156,7 +155,7 @@ func (m *ManagementCluster) healthCheck(ctx context.Context, check healthCheck, 
 }
 
 // TargetClusterControlPlaneIsHealthy checks every node for control plane health.
-func (m *ManagementCluster) TargetClusterControlPlaneIsHealthy(ctx context.Context, clusterKey types.NamespacedName, controlPlaneName string) error {
+func (m *ManagementCluster) TargetClusterControlPlaneIsHealthy(ctx context.Context, clusterKey client.ObjectKey, controlPlaneName string) error {
 	// TODO: add checks for expected taints/labels
 	cluster, err := m.GetWorkloadCluster(ctx, clusterKey)
 	if err != nil {
@@ -167,7 +166,7 @@ func (m *ManagementCluster) TargetClusterControlPlaneIsHealthy(ctx context.Conte
 
 // TargetClusterEtcdIsHealthy runs a series of checks over a target cluster's etcd cluster.
 // In addition, it verifies that there are the same number of etcd members as control plane Machines.
-func (m *ManagementCluster) TargetClusterEtcdIsHealthy(ctx context.Context, clusterKey types.NamespacedName, controlPlaneName string) error {
+func (m *ManagementCluster) TargetClusterEtcdIsHealthy(ctx context.Context, clusterKey client.ObjectKey, controlPlaneName string) error {
 	cluster, err := m.GetWorkloadCluster(ctx, clusterKey)
 	if err != nil {
 		return err

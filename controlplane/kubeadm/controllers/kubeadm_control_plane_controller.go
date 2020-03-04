@@ -30,7 +30,6 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
-	"k8s.io/apimachinery/pkg/types"
 	kerrors "k8s.io/apimachinery/pkg/util/errors"
 	"k8s.io/apiserver/pkg/storage/names"
 	"k8s.io/client-go/tools/record"
@@ -71,10 +70,10 @@ const (
 )
 
 type managementCluster interface {
-	GetMachinesForCluster(ctx context.Context, cluster types.NamespacedName, filters ...internal.MachineFilter) (internal.FilterableMachineCollection, error)
-	GetWorkloadCluster(ctx context.Context, cluster types.NamespacedName) (*internal.Cluster, error)
-	TargetClusterEtcdIsHealthy(ctx context.Context, clusterKey types.NamespacedName, controlPlaneName string) error
-	TargetClusterControlPlaneIsHealthy(ctx context.Context, clusterKey types.NamespacedName, controlPlaneName string) error
+	GetMachinesForCluster(ctx context.Context, cluster client.ObjectKey, filters ...internal.MachineFilter) (internal.FilterableMachineCollection, error)
+	GetWorkloadCluster(ctx context.Context, cluster client.ObjectKey) (*internal.Cluster, error)
+	TargetClusterEtcdIsHealthy(ctx context.Context, clusterKey client.ObjectKey, controlPlaneName string) error
+	TargetClusterControlPlaneIsHealthy(ctx context.Context, clusterKey client.ObjectKey, controlPlaneName string) error
 }
 
 // +kubebuilder:rbac:groups=core,resources=events,verbs=get;list;watch;create;patch
@@ -776,7 +775,7 @@ func (r *KubeadmControlPlaneReconciler) reconcileDelete(ctx context.Context, clu
 	return ctrl.Result{}, &capierrors.RequeueAfterError{RequeueAfter: DeleteRequeueAfter}
 }
 
-func (r *KubeadmControlPlaneReconciler) reconcileKubeconfig(ctx context.Context, clusterName types.NamespacedName, endpoint clusterv1.APIEndpoint, kcp *controlplanev1.KubeadmControlPlane) error {
+func (r *KubeadmControlPlaneReconciler) reconcileKubeconfig(ctx context.Context, clusterName client.ObjectKey, endpoint clusterv1.APIEndpoint, kcp *controlplanev1.KubeadmControlPlane) error {
 	if endpoint.IsZero() {
 		return nil
 	}
@@ -863,7 +862,7 @@ func getMachineNode(ctx context.Context, crClient client.Client, machine *cluste
 	node := &corev1.Node{}
 	err := crClient.Get(
 		ctx,
-		types.NamespacedName{Name: nodeRef.Name},
+		client.ObjectKey{Name: nodeRef.Name},
 		node,
 	)
 	if err != nil {

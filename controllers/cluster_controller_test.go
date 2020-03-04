@@ -29,6 +29,7 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/client-go/kubernetes/scheme"
 	"k8s.io/utils/pointer"
+	"sigs.k8s.io/cluster-api/util"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
@@ -569,10 +570,7 @@ func TestClusterReconciler(t *testing.T) {
 				},
 				want: []ctrl.Request{
 					{
-						NamespacedName: client.ObjectKey{
-							Name:      cluster.Name,
-							Namespace: cluster.Namespace,
-						},
+						NamespacedName: util.ObjectKey(cluster),
 					},
 				},
 			},

@@ -25,11 +25,11 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
-	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/kubernetes/scheme"
 	"k8s.io/utils/pointer"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha3"
 	"sigs.k8s.io/cluster-api/controllers/external"
+	"sigs.k8s.io/cluster-api/util"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 	"sigs.k8s.io/controller-runtime/pkg/handler"
@@ -83,10 +83,7 @@ func TestMachineFinalizer(t *testing.T) {
 		{
 			name: "should add a machine finalizer to the machine if it doesn't have one",
 			request: reconcile.Request{
-				NamespacedName: types.NamespacedName{
-					Name:      machineValidCluster.Name,
-					Namespace: machineValidCluster.Namespace,
-				},
+				NamespacedName: util.ObjectKey(machineValidCluster),
 			},
 			m:                  machineValidCluster,
 			expectedFinalizers: []string{clusterv1.MachineFinalizer},
@@ -94,10 +91,7 @@ func TestMachineFinalizer(t *testing.T) {
 		{
 			name: "should append the machine finalizer to the machine if it already has a finalizer",
 			request: reconcile.Request{
-				NamespacedName: types.NamespacedName{
-					Name:      machineWithFinalizer.Name,
-					Namespace: machineWithFinalizer.Namespace,
-				},
+				NamespacedName: util.ObjectKey(machineWithFinalizer),
 			},
 			m:                  machineWithFinalizer,
 			expectedFinalizers: []string{"some-other-finalizer", clusterv1.MachineFinalizer},
@@ -195,10 +189,7 @@ func TestMachineOwnerReference(t *testing.T) {
 		{
 			name: "should add owner reference to machine referencing a cluster with correct type meta",
 			request: reconcile.Request{
-				NamespacedName: types.NamespacedName{
-					Name:      machineValidCluster.Name,
-					Namespace: machineValidCluster.Namespace,
-				},
+				NamespacedName: util.ObjectKey(machineValidCluster),
 			},
 			m: machineValidCluster,
 			expectedOR: []metav1.OwnerReference{
@@ -213,10 +204,7 @@ func TestMachineOwnerReference(t *testing.T) {
 		{
 			name: "should not add cluster owner reference if machine is owned by a machine set",
 			request: reconcile.Request{
-				NamespacedName: types.NamespacedName{
-					Name:      machineValidMachine.Name,
-					Namespace: machineValidMachine.Namespace,
-				},
+				NamespacedName: util.ObjectKey(machineValidMachine),
 			},
 			m: machineValidMachine,
 			expectedOR: []metav1.OwnerReference{
@@ -386,7 +374,7 @@ func TestReconcileRequest(t *testing.T) {
 		t.Run("machine should be "+tc.machine.Name, func(t *testing.T) {
 			g := NewWithT(t)
 
-			client := fake.NewFakeClientWithScheme(
+			clientFake := fake.NewFakeClientWithScheme(
 				scheme.Scheme,
 				&testCluster,
 				&tc.machine,
@@ -395,12 +383,12 @@ func TestReconcileRequest(t *testing.T) {
 			)
 
 			r := &MachineReconciler{
-				Client: client,
+				Client: clientFake,
 				Log:    log.Log,
 				scheme: scheme.Scheme,
 			}
 
-			result, err := r.Reconcile(reconcile.Request{NamespacedName: types.NamespacedName{Namespace: tc.machine.Namespace, Name: tc.machine.Name}})
+			result, err := r.Reconcile(reconcile.Request{NamespacedName: util.ObjectKey(&tc.machine)})
 			if tc.expected.err {
 				g.Expect(err).To(HaveOccurred())
 			} else {
@@ -684,13 +672,13 @@ func Test_clusterToActiveMachines(t *testing.T) {
 			},
 			want: []reconcile.Request{
 				{
-					NamespacedName: types.NamespacedName{
+					NamespacedName: client.ObjectKey{
 						Name:      "m1",
 						Namespace: "default",
 					},
 				},
 				{
-					NamespacedName: types.NamespacedName{
+					NamespacedName: client.ObjectKey{
 						Name:      "m2",
 						Namespace: "default",
 					},

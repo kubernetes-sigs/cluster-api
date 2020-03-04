@@ -17,6 +17,7 @@ limitations under the License.
 package controllers
 
 import (
+	"sigs.k8s.io/cluster-api/util"
 	"testing"
 
 	. "github.com/onsi/gomega"
@@ -24,7 +25,6 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
-	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/kubernetes/scheme"
 	"k8s.io/utils/pointer"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -90,10 +90,7 @@ func TestMachinePoolFinalizer(t *testing.T) {
 		{
 			name: "should add a machinePool finalizer to the machinePool if it doesn't have one",
 			request: reconcile.Request{
-				NamespacedName: types.NamespacedName{
-					Name:      machinePoolValidCluster.Name,
-					Namespace: machinePoolValidCluster.Namespace,
-				},
+				NamespacedName: util.ObjectKey(machinePoolValidCluster),
 			},
 			m:                  machinePoolValidCluster,
 			expectedFinalizers: []string{clusterv1.MachinePoolFinalizer},
@@ -101,10 +98,7 @@ func TestMachinePoolFinalizer(t *testing.T) {
 		{
 			name: "should append the machinePool finalizer to the machinePool if it already has a finalizer",
 			request: reconcile.Request{
-				NamespacedName: types.NamespacedName{
-					Name:      machinePoolWithFinalizer.Name,
-					Namespace: machinePoolWithFinalizer.Namespace,
-				},
+				NamespacedName: util.ObjectKey(machinePoolWithFinalizer),
 			},
 			m:                  machinePoolWithFinalizer,
 			expectedFinalizers: []string{"some-other-finalizer", clusterv1.MachinePoolFinalizer},
@@ -206,10 +200,7 @@ func TestMachinePoolOwnerReference(t *testing.T) {
 		{
 			name: "should add owner reference to machinePool referencing a cluster with correct type meta",
 			request: reconcile.Request{
-				NamespacedName: types.NamespacedName{
-					Name:      machinePoolValidCluster.Name,
-					Namespace: machinePoolValidCluster.Namespace,
-				},
+				NamespacedName: util.ObjectKey(machinePoolValidCluster),
 			},
 			m: machinePoolValidCluster,
 			expectedOR: []metav1.OwnerReference{
@@ -417,7 +408,7 @@ func TestReconcileMachinePoolRequest(t *testing.T) {
 
 			g.Expect(clusterv1.AddToScheme(scheme.Scheme)).To(Succeed())
 
-			client := fake.NewFakeClientWithScheme(
+			clientFake := fake.NewFakeClientWithScheme(
 				scheme.Scheme,
 				&testCluster,
 				&tc.machinePool,
@@ -426,12 +417,12 @@ func TestReconcileMachinePoolRequest(t *testing.T) {
 			)
 
 			r := &MachinePoolReconciler{
-				Client: client,
+				Client: clientFake,
 				Log:    log.Log,
 				scheme: scheme.Scheme,
 			}
 
-			result, err := r.Reconcile(reconcile.Request{NamespacedName: types.NamespacedName{Namespace: tc.machinePool.Namespace, Name: tc.machinePool.Name}})
+			result, err := r.Reconcile(reconcile.Request{NamespacedName: util.ObjectKey(&tc.machinePool)})
 			if tc.expected.err {
 				g.Expect(err).To(HaveOccurred())
 			} else {

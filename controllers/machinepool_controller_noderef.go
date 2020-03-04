@@ -24,7 +24,6 @@ import (
 	"github.com/pkg/errors"
 	apicorev1 "k8s.io/api/core/v1"
 	corev1 "k8s.io/api/core/v1"
-	"k8s.io/apimachinery/pkg/types"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha3"
 	"sigs.k8s.io/cluster-api/controllers/noderefutil"
 	"sigs.k8s.io/cluster-api/controllers/remote"
@@ -112,7 +111,7 @@ func (r *MachinePoolReconciler) deleteRetiredNodes(ctx context.Context, c client
 	nodeRefsMap := make(map[string]*apicorev1.Node, len(nodeRefs))
 	for _, nodeRef := range nodeRefs {
 		node := &corev1.Node{}
-		if err := c.Get(ctx, types.NamespacedName{Name: nodeRef.Name}, node); err != nil {
+		if err := c.Get(ctx, client.ObjectKey{Name: nodeRef.Name}, node); err != nil {
 			logger.V(2).Info("Failed to get Node, skipping", "err", err, "nodeRef.Name", nodeRef.Name)
 			continue
 		}

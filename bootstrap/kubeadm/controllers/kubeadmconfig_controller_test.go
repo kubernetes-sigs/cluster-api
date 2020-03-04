@@ -36,6 +36,7 @@ import (
 	bootstrapv1 "sigs.k8s.io/cluster-api/bootstrap/kubeadm/api/v1alpha3"
 	kubeadmv1beta1 "sigs.k8s.io/cluster-api/bootstrap/kubeadm/types/v1beta1"
 	fakeremote "sigs.k8s.io/cluster-api/controllers/remote/fake"
+	"sigs.k8s.io/cluster-api/util"
 	"sigs.k8s.io/cluster-api/util/secret"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -115,9 +116,9 @@ func TestKubeadmConfigReconciler_Reconcile_ReturnEarlyIfKubeadmConfigIsReady(t *
 	}
 
 	request := ctrl.Request{
-		NamespacedName: types.NamespacedName{
-			Namespace: "default",
-			Name:      "cfg",
+		NamespacedName: client.ObjectKey{
+			Name:      "default",
+			Namespace: "cfg",
 		},
 	}
 	result, err := k.Reconcile(request)
@@ -149,7 +150,7 @@ func TestKubeadmConfigReconciler_Reconcile_ReturnErrorIfReferencedMachineIsNotFo
 	}
 
 	request := ctrl.Request{
-		NamespacedName: types.NamespacedName{
+		NamespacedName: client.ObjectKey{
 			Namespace: "default",
 			Name:      "cfg",
 		},
@@ -178,7 +179,7 @@ func TestKubeadmConfigReconciler_Reconcile_ReturnEarlyIfMachineHasDataSecretName
 	}
 
 	request := ctrl.Request{
-		NamespacedName: types.NamespacedName{
+		NamespacedName: client.ObjectKey{
 			Namespace: "default",
 			Name:      "cfg",
 		},
@@ -216,7 +217,7 @@ func TestKubeadmConfigReconciler_Reconcile_MigrateToSecret(t *testing.T) {
 	}
 
 	request := ctrl.Request{
-		NamespacedName: types.NamespacedName{
+		NamespacedName: client.ObjectKey{
 			Namespace: "default",
 			Name:      "cfg",
 		},
@@ -233,7 +234,7 @@ func TestKubeadmConfigReconciler_Reconcile_MigrateToSecret(t *testing.T) {
 		t.Fatal("did not expect to requeue after")
 	}
 
-	if err := k.Client.Get(context.Background(), types.NamespacedName{Name: config.Name, Namespace: config.Namespace}, config); err != nil {
+	if err := k.Client.Get(context.Background(), client.ObjectKey{Name: config.Name, Namespace: config.Namespace}, config); err != nil {
 		t.Fatalf("failed to get KubeadmConfig: %v", err)
 	}
 
@@ -242,7 +243,7 @@ func TestKubeadmConfigReconciler_Reconcile_MigrateToSecret(t *testing.T) {
 	}
 
 	secret := &corev1.Secret{}
-	if err := k.Client.Get(context.Background(), types.NamespacedName{Namespace: config.Namespace, Name: *config.Status.DataSecretName}, secret); err != nil {
+	if err := k.Client.Get(context.Background(), client.ObjectKey{Namespace: config.Namespace, Name: *config.Status.DataSecretName}, secret); err != nil {
 		t.Fatalf("failed to get Secret bootstrap data for KubeadmConfig: %v", err)
 	}
 
@@ -282,7 +283,7 @@ func TestKubeadmConfigReconciler_ReturnEarlyIfClusterInfraNotReady(t *testing.T)
 	}
 
 	request := ctrl.Request{
-		NamespacedName: types.NamespacedName{
+		NamespacedName: client.ObjectKey{
 			Namespace: "default",
 			Name:      "cfg",
 		},
@@ -317,7 +318,7 @@ func TestKubeadmConfigReconciler_Reconcile_ReturnEarlyIfMachineHasNoCluster(t *t
 	}
 
 	request := ctrl.Request{
-		NamespacedName: types.NamespacedName{
+		NamespacedName: client.ObjectKey{
 			Namespace: "default",
 			Name:      "cfg",
 		},
@@ -345,7 +346,7 @@ func TestKubeadmConfigReconciler_Reconcile_ReturnNilIfMachineDoesNotHaveAssociat
 	}
 
 	request := ctrl.Request{
-		NamespacedName: types.NamespacedName{
+		NamespacedName: client.ObjectKey{
 			Namespace: "default",
 			Name:      "cfg",
 		},
@@ -375,7 +376,7 @@ func TestKubeadmConfigReconciler_Reconcile_ReturnNilIfAssociatedClusterIsNotFoun
 	}
 
 	request := ctrl.Request{
-		NamespacedName: types.NamespacedName{
+		NamespacedName: client.ObjectKey{
 			Namespace: "default",
 			Name:      "cfg",
 		},
@@ -405,7 +406,7 @@ func TestKubeadmConfigReconciler_Reconcile_RequeueJoiningNodesIfControlPlaneNotI
 		{
 			name: "requeue worker when control plane is not yet initialiezd",
 			request: ctrl.Request{
-				NamespacedName: types.NamespacedName{
+				NamespacedName: client.ObjectKey{
 					Namespace: workerJoinConfig.Namespace,
 					Name:      workerJoinConfig.Name,
 				},
@@ -419,7 +420,7 @@ func TestKubeadmConfigReconciler_Reconcile_RequeueJoiningNodesIfControlPlaneNotI
 		{
 			name: "requeue a secondary control plane when the control plane is not yet initialized",
 			request: ctrl.Request{
-				NamespacedName: types.NamespacedName{
+				NamespacedName: client.ObjectKey{
 					Namespace: controlPlaneJoinConfig.Namespace,
 					Name:      controlPlaneJoinConfig.Name,
 				},
@@ -479,7 +480,7 @@ func TestKubeadmConfigReconciler_Reconcile_GenerateCloudConfigData(t *testing.T)
 	}
 
 	request := ctrl.Request{
-		NamespacedName: types.NamespacedName{
+		NamespacedName: client.ObjectKey{
 			Namespace: "default",
 			Name:      "control-plane-init-cfg",
 		},
@@ -543,7 +544,7 @@ func TestKubeadmConfigReconciler_Reconcile_ErrorIfJoiningControlPlaneHasInvalidC
 	}
 
 	request := ctrl.Request{
-		NamespacedName: types.NamespacedName{
+		NamespacedName: client.ObjectKey{
 			Namespace: "default",
 			Name:      "control-plane-join-cfg",
 		},
@@ -581,7 +582,7 @@ func TestKubeadmConfigReconciler_Reconcile_RequeueIfControlPlaneIsMissingAPIEndp
 	}
 
 	request := ctrl.Request{
-		NamespacedName: types.NamespacedName{
+		NamespacedName: client.ObjectKey{
 			Namespace: "default",
 			Name:      "worker-join-cfg",
 		},
@@ -658,7 +659,7 @@ func TestReconcileIfJoinNodesAndControlPlaneIsReady(t *testing.T) {
 			}
 
 			request := ctrl.Request{
-				NamespacedName: types.NamespacedName{
+				NamespacedName: client.ObjectKey{
 					Namespace: config.GetNamespace(),
 					Name:      rt.configName,
 				},
@@ -748,7 +749,7 @@ func TestReconcileIfJoinNodePoolsAndControlPlaneIsReady(t *testing.T) {
 			}
 
 			request := ctrl.Request{
-				NamespacedName: types.NamespacedName{
+				NamespacedName: client.ObjectKey{
 					Namespace: config.GetNamespace(),
 					Name:      rt.configName,
 				},
@@ -819,7 +820,7 @@ func TestBootstrapTokenTTLExtension(t *testing.T) {
 		remoteClientGetter: fakeremote.NewClusterClient,
 	}
 	request := ctrl.Request{
-		NamespacedName: types.NamespacedName{
+		NamespacedName: client.ObjectKey{
 			Namespace: "default",
 			Name:      "worker-join-cfg",
 		},
@@ -845,7 +846,7 @@ func TestBootstrapTokenTTLExtension(t *testing.T) {
 		t.Fatal("Expected bootstrap data secret")
 	}
 	request = ctrl.Request{
-		NamespacedName: types.NamespacedName{
+		NamespacedName: client.ObjectKey{
 			Namespace: "default",
 			Name:      "control-plane-join-cfg",
 		},
@@ -891,13 +892,13 @@ func TestBootstrapTokenTTLExtension(t *testing.T) {
 
 	for _, req := range []ctrl.Request{
 		{
-			NamespacedName: types.NamespacedName{
+			NamespacedName: client.ObjectKey{
 				Namespace: "default",
 				Name:      "worker-join-cfg",
 			},
 		},
 		{
-			NamespacedName: types.NamespacedName{
+			NamespacedName: client.ObjectKey{
 				Namespace: "default",
 				Name:      "control-plane-join-cfg",
 			},
@@ -946,13 +947,13 @@ func TestBootstrapTokenTTLExtension(t *testing.T) {
 
 	for _, req := range []ctrl.Request{
 		{
-			NamespacedName: types.NamespacedName{
+			NamespacedName: client.ObjectKey{
 				Namespace: "default",
 				Name:      "worker-join-cfg",
 			},
 		},
 		{
-			NamespacedName: types.NamespacedName{
+			NamespacedName: client.ObjectKey{
 				Namespace: "default",
 				Name:      "control-plane-join-cfg",
 			},
@@ -1355,7 +1356,7 @@ func TestKubeadmConfigReconciler_Reconcile_AlwaysCheckCAVerificationUnlessReques
 
 			wc := newWorkerJoinKubeadmConfig(workerMachine)
 			wc.Spec.JoinConfiguration.Discovery.BootstrapToken = tc.discovery
-			key := types.NamespacedName{Namespace: wc.Namespace, Name: wc.Name}
+			key := client.ObjectKey{Namespace: wc.Namespace, Name: wc.Name}
 			if err := myclient.Create(context.Background(), wc); err != nil {
 				t.Fatal(err)
 			}
@@ -1438,7 +1439,7 @@ func TestKubeadmConfigReconciler_Reconcile_DoesNotFailIfCASecretsAlreadyExist(t 
 		KubeadmInitLock: &myInitLocker{},
 	}
 	req := ctrl.Request{
-		NamespacedName: types.NamespacedName{Namespace: "default", Name: configName},
+		NamespacedName: client.ObjectKey{Namespace: "default", Name: configName},
 	}
 	if _, err := reconciler.Reconcile(req); err != nil {
 		t.Fatal(err)
@@ -1471,7 +1472,7 @@ func TestKubeadmConfigReconciler_Reconcile_ExactlyOneControlPlaneMachineInitiali
 	}
 
 	request := ctrl.Request{
-		NamespacedName: types.NamespacedName{
+		NamespacedName: client.ObjectKey{
 			Namespace: "default",
 			Name:      "control-plane-init-cfg-first",
 		},
@@ -1488,7 +1489,7 @@ func TestKubeadmConfigReconciler_Reconcile_ExactlyOneControlPlaneMachineInitiali
 	}
 
 	request = ctrl.Request{
-		NamespacedName: types.NamespacedName{
+		NamespacedName: client.ObjectKey{
 			Namespace: "default",
 			Name:      "control-plane-init-cfg-second",
 		},
@@ -1537,7 +1538,7 @@ func TestKubeadmConfigReconciler_Reconcile_DoNotPatchWhenErrorOccurred(t *testin
 	}
 
 	request := ctrl.Request{
-		NamespacedName: types.NamespacedName{
+		NamespacedName: client.ObjectKey{
 			Namespace: "default",
 			Name:      "control-plane-init-cfg",
 		},
@@ -1753,7 +1754,7 @@ func createSecrets(t *testing.T, cluster *clusterv1.Cluster, config *bootstrapv1
 		t.Fatal(err)
 	}
 	for _, certificate := range certificates {
-		out = append(out, certificate.AsSecret(types.NamespacedName{Name: cluster.Name, Namespace: cluster.Namespace}, *metav1.NewControllerRef(config, bootstrapv1.GroupVersion.WithKind("KubeadmConfig"))))
+		out = append(out, certificate.AsSecret(util.ObjectKey(cluster), *metav1.NewControllerRef(config, bootstrapv1.GroupVersion.WithKind("KubeadmConfig"))))
 	}
 	return out
 }

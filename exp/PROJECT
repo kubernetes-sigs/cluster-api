@@ -1,0 +1,7 @@
+domain: cluster.x-k8s.io
+repo: sigs.k8s.io/cluster-api/exp
+version: "2"
+resources:
+- group: exp
+  kind: MachinePool
+  version: v1alpha3

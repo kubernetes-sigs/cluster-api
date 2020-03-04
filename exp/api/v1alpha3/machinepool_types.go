@@ -19,12 +19,13 @@ package v1alpha3
 import (
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha3"
 	capierrors "sigs.k8s.io/cluster-api/errors"
 )
 
 const (
 	// MachinePoolFinalizer is used to ensure deletion of dependencies (nodes, infra).
-	MachinePoolFinalizer = "machinepool.cluster.x-k8s.io"
+	MachinePoolFinalizer = "machinepool.exp.cluster.x-k8s.io"
 )
 
 // ANCHOR: MachinePoolSpec
@@ -40,12 +41,12 @@ type MachinePoolSpec struct {
 	Replicas *int32 `json:"replicas,omitempty"`
 
 	// Template describes the machines that will be created.
-	Template MachineTemplateSpec `json:"template"`
+	Template clusterv1.MachineTemplateSpec `json:"template"`
 
 	// The deployment strategy to use to replace existing machine instances with
 	// new ones.
 	// +optional
-	Strategy *MachineDeploymentStrategy `json:"strategy,omitempty"`
+	Strategy *clusterv1.MachineDeploymentStrategy `json:"strategy,omitempty"`
 
 	// Minimum number of seconds for which a newly created machine instances should
 	// be ready.

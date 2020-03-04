@@ -31,6 +31,7 @@ import (
 	fakebootstrap "sigs.k8s.io/cluster-api/cmd/clusterctl/internal/test/providers/bootstrap"
 	fakecontrolplane "sigs.k8s.io/cluster-api/cmd/clusterctl/internal/test/providers/controlplane"
 	fakeinfrastructure "sigs.k8s.io/cluster-api/cmd/clusterctl/internal/test/providers/infrastructure"
+	expv1 "sigs.k8s.io/cluster-api/exp/api/v1alpha3"
 )
 
 type FakeCluster struct {
@@ -390,10 +391,10 @@ func (f *FakeMachinePool) Objs(cluster *clusterv1.Cluster) []runtime.Object {
 		},
 	}
 
-	machinePool := &clusterv1.MachinePool{
+	machinePool := &expv1.MachinePool{
 		TypeMeta: metav1.TypeMeta{
 			Kind:       "MachinePool",
-			APIVersion: clusterv1.GroupVersion.String(),
+			APIVersion: expv1.GroupVersion.String(),
 		},
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      f.name,
@@ -410,7 +411,7 @@ func (f *FakeMachinePool) Objs(cluster *clusterv1.Cluster) []runtime.Object {
 				clusterv1.ClusterLabelName: cluster.Name, // Added by the machinePool controller (mirrors machinePoolt.spec.ClusterName) -- RECONCILED
 			},
 		},
-		Spec: clusterv1.MachinePoolSpec{
+		Spec: expv1.MachinePoolSpec{
 			Template: clusterv1.MachineTemplateSpec{
 				Spec: clusterv1.MachineSpec{
 					InfrastructureRef: corev1.ObjectReference{
@@ -955,7 +956,7 @@ func FakeCRDList() []*apiextensionslv1.CustomResourceDefinition {
 		FakeCustomResourceDefinition(clusterv1.GroupVersion.Group, "Machine", version),
 		FakeCustomResourceDefinition(clusterv1.GroupVersion.Group, "MachineDeployment", version),
 		FakeCustomResourceDefinition(clusterv1.GroupVersion.Group, "MachineSet", version),
-		FakeCustomResourceDefinition(clusterv1.GroupVersion.Group, "MachinePool", version),
+		FakeCustomResourceDefinition(expv1.GroupVersion.Group, "MachinePool", version),
 		FakeCustomResourceDefinition(fakecontrolplane.GroupVersion.Group, "DummyControlPlane", version),
 		FakeCustomResourceDefinition(fakeinfrastructure.GroupVersion.Group, "DummyInfrastructureCluster", version),
 		FakeCustomResourceDefinition(fakeinfrastructure.GroupVersion.Group, "DummyInfrastructureMachine", version),

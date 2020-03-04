@@ -21,6 +21,7 @@ import (
 	"fmt"
 	"reflect"
 	"strings"
+	"time"
 
 	"github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
@@ -30,6 +31,7 @@ import (
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha3"
 	"sigs.k8s.io/cluster-api/controllers/external"
 	capierrors "sigs.k8s.io/cluster-api/errors"
+	expv1 "sigs.k8s.io/cluster-api/exp/api/v1alpha3"
 	"sigs.k8s.io/cluster-api/util"
 	"sigs.k8s.io/cluster-api/util/patch"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
@@ -37,40 +39,44 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/source"
 )
 
-func (r *MachinePoolReconciler) reconcilePhase(mp *clusterv1.MachinePool) {
+var (
+	externalReadyWait = 30 * time.Second
+)
+
+func (r *MachinePoolReconciler) reconcilePhase(mp *expv1.MachinePool) {
 	// Set the phase to "pending" if nil.
 	if mp.Status.Phase == "" {
-		mp.Status.SetTypedPhase(clusterv1.MachinePoolPhasePending)
+		mp.Status.SetTypedPhase(expv1.MachinePoolPhasePending)
 	}
 
 	// Set the phase to "provisioning" if bootstrap is ready and the infrastructure isn't.
 	if mp.Status.BootstrapReady && !mp.Status.InfrastructureReady {
-		mp.Status.SetTypedPhase(clusterv1.MachinePoolPhaseProvisioning)
+		mp.Status.SetTypedPhase(expv1.MachinePoolPhaseProvisioning)
 	}
 
 	// Set the phase to "provisioned" if the infrastructure is ready.
 	if len(mp.Status.NodeRefs) != 0 {
-		mp.Status.SetTypedPhase(clusterv1.MachinePoolPhaseProvisioned)
+		mp.Status.SetTypedPhase(expv1.MachinePoolPhaseProvisioned)
 	}
 
 	// Set the phase to "running" if there is a NodeRef field.
 	if mp.Status.InfrastructureReady && len(mp.Status.NodeRefs) == int(mp.Status.ReadyReplicas) {
-		mp.Status.SetTypedPhase(clusterv1.MachinePoolPhaseRunning)
+		mp.Status.SetTypedPhase(expv1.MachinePoolPhaseRunning)
 	}
 
 	// Set the phase to "failed" if any of Status.FailureReason or Status.FailureMessage is not-nil.
 	if mp.Status.FailureReason != nil || mp.Status.FailureMessage != nil {
-		mp.Status.SetTypedPhase(clusterv1.MachinePoolPhaseFailed)
+		mp.Status.SetTypedPhase(expv1.MachinePoolPhaseFailed)
 	}
 
 	// Set the phase to "deleting" if the deletion timestamp is set.
 	if !mp.DeletionTimestamp.IsZero() {
-		mp.Status.SetTypedPhase(clusterv1.MachinePoolPhaseDeleting)
+		mp.Status.SetTypedPhase(expv1.MachinePoolPhaseDeleting)
 	}
 }
 
 // reconcileExternal handles generic unstructured objects referenced by a MachinePool.
-func (r *MachinePoolReconciler) reconcileExternal(ctx context.Context, cluster *clusterv1.Cluster, m *clusterv1.MachinePool, ref *corev1.ObjectReference) (external.ReconcileOutput, error) {
+func (r *MachinePoolReconciler) reconcileExternal(ctx context.Context, cluster *clusterv1.Cluster, m *expv1.MachinePool, ref *corev1.ObjectReference) (external.ReconcileOutput, error) {
 	logger := r.Log.WithValues("machinepool", m.Name, "namespace", m.Namespace)
 
 	obj, err := external.Get(ctx, r.Client, ref, m.Namespace)
@@ -119,7 +125,7 @@ func (r *MachinePoolReconciler) reconcileExternal(ctx context.Context, cluster *
 		logger.Info("Adding watcher on external object", "gvk", obj.GroupVersionKind())
 		err := r.controller.Watch(
 			&source.Kind{Type: obj},
-			&handler.EnqueueRequestForOwner{OwnerType: &clusterv1.MachinePool{}},
+			&handler.EnqueueRequestForOwner{OwnerType: &expv1.MachinePool{}},
 		)
 		if err != nil {
 			r.externalWatchers.Delete(obj.GroupVersionKind().String())
@@ -147,7 +153,7 @@ func (r *MachinePoolReconciler) reconcileExternal(ctx context.Context, cluster *
 }
 
 // reconcileBootstrap reconciles the Spec.Bootstrap.ConfigRef object on a MachinePool.
-func (r *MachinePoolReconciler) reconcileBootstrap(ctx context.Context, cluster *clusterv1.Cluster, m *clusterv1.MachinePool) error {
+func (r *MachinePoolReconciler) reconcileBootstrap(ctx context.Context, cluster *clusterv1.Cluster, m *expv1.MachinePool) error {
 	// Call generic external reconciler if we have an external reference.
 	var bootstrapConfig *unstructured.Unstructured
 	if m.Spec.Template.Spec.Bootstrap.ConfigRef != nil {
@@ -196,7 +202,7 @@ func (r *MachinePoolReconciler) reconcileBootstrap(ctx context.Context, cluster 
 }
 
 // reconcileInfrastructure reconciles the Spec.InfrastructureRef object on a MachinePool.
-func (r *MachinePoolReconciler) reconcileInfrastructure(ctx context.Context, cluster *clusterv1.Cluster, mp *clusterv1.MachinePool) error {
+func (r *MachinePoolReconciler) reconcileInfrastructure(ctx context.Context, cluster *clusterv1.Cluster, mp *expv1.MachinePool) error {
 	// Call generic external reconciler.
 	infraReconcileResult, err := r.reconcileExternal(ctx, cluster, mp, &mp.Spec.Template.Spec.InfrastructureRef)
 	if err != nil {

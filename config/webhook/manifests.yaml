@@ -83,24 +83,6 @@ webhooks:
     service:
       name: webhook-service
       namespace: system
-      path: /mutate-cluster-x-k8s-io-v1alpha3-machinepool
-  failurePolicy: Fail
-  name: default.machinepool.cluster.x-k8s.io
-  rules:
-  - apiGroups:
-    - cluster.x-k8s.io
-    apiVersions:
-    - v1alpha3
-    operations:
-    - CREATE
-    - UPDATE
-    resources:
-    - machinepools
-- clientConfig:
-    caBundle: Cg==
-    service:
-      name: webhook-service
-      namespace: system
       path: /mutate-cluster-x-k8s-io-v1alpha3-machineset
   failurePolicy: Fail
   name: default.machineset.cluster.x-k8s.io
@@ -114,6 +96,24 @@ webhooks:
     - UPDATE
     resources:
     - machinesets
+- clientConfig:
+    caBundle: Cg==
+    service:
+      name: webhook-service
+      namespace: system
+      path: /mutate-exp-cluster-x-k8s-io-v1alpha3-machinepool
+  failurePolicy: Fail
+  name: default.exp.machinepool.cluster.x-k8s.io
+  rules:
+  - apiGroups:
+    - exp.cluster.x-k8s.io
+    apiVersions:
+    - v1alpha3
+    operations:
+    - CREATE
+    - UPDATE
+    resources:
+    - machinepools
 
 ---
 apiVersion: admissionregistration.k8s.io/v1beta1
@@ -199,24 +199,6 @@ webhooks:
     service:
       name: webhook-service
       namespace: system
-      path: /validate-cluster-x-k8s-io-v1alpha3-machinepool
-  failurePolicy: Fail
-  name: validation.machinepool.cluster.x-k8s.io
-  rules:
-  - apiGroups:
-    - cluster.x-k8s.io
-    apiVersions:
-    - v1alpha3
-    operations:
-    - CREATE
-    - UPDATE
-    resources:
-    - machinepools
-- clientConfig:
-    caBundle: Cg==
-    service:
-      name: webhook-service
-      namespace: system
       path: /validate-cluster-x-k8s-io-v1alpha3-machineset
   failurePolicy: Fail
   name: validation.machineset.cluster.x-k8s.io
@@ -230,3 +212,21 @@ webhooks:
     - UPDATE
     resources:
     - machinesets
+- clientConfig:
+    caBundle: Cg==
+    service:
+      name: webhook-service
+      namespace: system
+      path: /validate-exp-cluster-x-k8s-io-v1alpha3-machinepool
+  failurePolicy: Fail
+  name: validation.exp.machinepool.cluster.x-k8s.io
+  rules:
+  - apiGroups:
+    - exp.cluster.x-k8s.io
+    apiVersions:
+    - v1alpha3
+    operations:
+    - CREATE
+    - UPDATE
+    resources:
+    - machinepools

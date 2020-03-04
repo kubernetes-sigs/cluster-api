@@ -29,16 +29,16 @@ import (
 	"k8s.io/client-go/rest"
 	"k8s.io/klog"
 	"k8s.io/klog/klogr"
-	_ "sigs.k8s.io/cluster-api/features"
-	"sigs.k8s.io/cluster-api/util/featuregate"
+	clusterv1alpha2 "sigs.k8s.io/cluster-api/api/v1alpha2"
+	clusterv1alpha3 "sigs.k8s.io/cluster-api/api/v1alpha3"
+	"sigs.k8s.io/cluster-api/controllers"
+	expv1alpha3 "sigs.k8s.io/cluster-api/exp/api/v1alpha3"
+	expcontrollers "sigs.k8s.io/cluster-api/exp/controllers"
+	"sigs.k8s.io/cluster-api/feature"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/cache"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
-
-	clusterv1alpha2 "sigs.k8s.io/cluster-api/api/v1alpha2"
-	clusterv1alpha3 "sigs.k8s.io/cluster-api/api/v1alpha3"
-	"sigs.k8s.io/cluster-api/controllers"
 	"sigs.k8s.io/controller-runtime/pkg/healthz"
 	// +kubebuilder:scaffold:imports
 )
@@ -68,6 +68,7 @@ func init() {
 	_ = clientgoscheme.AddToScheme(scheme)
 	_ = clusterv1alpha2.AddToScheme(scheme)
 	_ = clusterv1alpha3.AddToScheme(scheme)
+	_ = expv1alpha3.AddToScheme(scheme)
 	_ = apiextensionsv1.AddToScheme(scheme)
 	// +kubebuilder:scaffold:scheme
 }
@@ -110,8 +111,7 @@ func InitFlags(fs *pflag.FlagSet) {
 	fs.StringVar(&healthAddr, "health-addr", ":9440",
 		"The address the health endpoint binds to.")
 
-	// Add --feature-gates flag
-	featuregate.DefaultMutableFeatureGate.AddFlag(fs)
+	feature.MutableGates.AddFlag(fs)
 }
 
 func main() {
@@ -200,12 +200,15 @@ func setupReconcilers(mgr ctrl.Manager) {
 		setupLog.Error(err, "unable to create controller", "controller", "MachineDeployment")
 		os.Exit(1)
 	}
-	if err := (&controllers.MachinePoolReconciler{
-		Client: mgr.GetClient(),
-		Log:    ctrl.Log.WithName("controllers").WithName("MachinePool"),
-	}).SetupWithManager(mgr, concurrency(machinePoolConcurrency)); err != nil {
-		setupLog.Error(err, "unable to create controller", "controller", "MachinePool")
-		os.Exit(1)
+
+	if feature.Gates.Enabled(feature.MachinePool) {
+		if err := (&expcontrollers.MachinePoolReconciler{
+			Client: mgr.GetClient(),
+			Log:    ctrl.Log.WithName("controllers").WithName("MachinePool"),
+		}).SetupWithManager(mgr, concurrency(machinePoolConcurrency)); err != nil {
+			setupLog.Error(err, "unable to create controller", "controller", "MachinePool")
+			os.Exit(1)
+		}
 	}
 }
 
@@ -270,9 +273,11 @@ func setupWebhooks(mgr ctrl.Manager) {
 		os.Exit(1)
 	}
 
-	if err := (&clusterv1alpha3.MachinePool{}).SetupWebhookWithManager(mgr); err != nil {
-		setupLog.Error(err, "unable to create webhook", "webhook", "MachinePool")
-		os.Exit(1)
+	if feature.Gates.Enabled(feature.MachinePool) {
+		if err := (&expv1alpha3.MachinePool{}).SetupWebhookWithManager(mgr); err != nil {
+			setupLog.Error(err, "unable to create webhook", "webhook", "MachinePool")
+			os.Exit(1)
+		}
 	}
 }
 

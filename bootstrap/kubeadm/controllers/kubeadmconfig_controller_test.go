@@ -36,6 +36,8 @@ import (
 	bootstrapv1 "sigs.k8s.io/cluster-api/bootstrap/kubeadm/api/v1alpha3"
 	kubeadmv1beta1 "sigs.k8s.io/cluster-api/bootstrap/kubeadm/types/v1beta1"
 	fakeremote "sigs.k8s.io/cluster-api/controllers/remote/fake"
+	expv1 "sigs.k8s.io/cluster-api/exp/api/v1alpha3"
+	"sigs.k8s.io/cluster-api/feature"
 	"sigs.k8s.io/cluster-api/util"
 	"sigs.k8s.io/cluster-api/util/secret"
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -49,6 +51,9 @@ import (
 func setupScheme() *runtime.Scheme {
 	scheme := runtime.NewScheme()
 	if err := clusterv1.AddToScheme(scheme); err != nil {
+		panic(err)
+	}
+	if err := expv1.AddToScheme(scheme); err != nil {
 		panic(err)
 	}
 	if err := bootstrapv1.AddToScheme(scheme); err != nil {
@@ -702,6 +707,8 @@ func TestReconcileIfJoinNodesAndControlPlaneIsReady(t *testing.T) {
 }
 
 func TestReconcileIfJoinNodePoolsAndControlPlaneIsReady(t *testing.T) {
+	_ = feature.MutableGates.Set("MachinePool=true")
+
 	cluster := newCluster("cluster")
 	cluster.Status.InfrastructureReady = true
 	cluster.Status.ControlPlaneInitialized = true
@@ -709,15 +716,15 @@ func TestReconcileIfJoinNodePoolsAndControlPlaneIsReady(t *testing.T) {
 
 	var useCases = []struct {
 		name          string
-		machinePool   *clusterv1.MachinePool
+		machinePool   *expv1.MachinePool
 		configName    string
-		configBuilder func(*clusterv1.MachinePool, string) *bootstrapv1.KubeadmConfig
+		configBuilder func(*expv1.MachinePool, string) *bootstrapv1.KubeadmConfig
 	}{
 		{
 			name:        "Join a worker node with a fully compiled kubeadm config object",
 			machinePool: newWorkerMachinePool(cluster),
 			configName:  "workerpool-join-cfg",
-			configBuilder: func(machinePool *clusterv1.MachinePool, name string) *bootstrapv1.KubeadmConfig {
+			configBuilder: func(machinePool *expv1.MachinePool, name string) *bootstrapv1.KubeadmConfig {
 				return newWorkerPoolJoinKubeadmConfig(machinePool)
 			},
 		},
@@ -1622,17 +1629,17 @@ func newControlPlaneMachine(cluster *clusterv1.Cluster, name string) *clusterv1.
 }
 
 // newMachinePool return a CAPI machine pool object; if cluster is not nil, the machine pool is linked to the cluster as well
-func newMachinePool(cluster *clusterv1.Cluster, name string) *clusterv1.MachinePool {
-	machine := &clusterv1.MachinePool{
+func newMachinePool(cluster *clusterv1.Cluster, name string) *expv1.MachinePool {
+	machine := &expv1.MachinePool{
 		TypeMeta: metav1.TypeMeta{
 			Kind:       "MachinePool",
-			APIVersion: clusterv1.GroupVersion.String(),
+			APIVersion: expv1.GroupVersion.String(),
 		},
 		ObjectMeta: metav1.ObjectMeta{
 			Namespace: "default",
 			Name:      name,
 		},
-		Spec: clusterv1.MachinePoolSpec{
+		Spec: expv1.MachinePoolSpec{
 			Template: clusterv1.MachineTemplateSpec{
 				Spec: clusterv1.MachineSpec{
 					Bootstrap: clusterv1.Bootstrap{
@@ -1654,7 +1661,7 @@ func newMachinePool(cluster *clusterv1.Cluster, name string) *clusterv1.MachineP
 	return machine
 }
 
-func newWorkerMachinePool(cluster *clusterv1.Cluster) *clusterv1.MachinePool {
+func newWorkerMachinePool(cluster *clusterv1.Cluster) *expv1.MachinePool {
 	return newMachinePool(cluster, "worker-machinepool")
 }
 
@@ -1710,7 +1717,7 @@ func newControlPlaneInitKubeadmConfig(machine *clusterv1.Machine, name string) *
 
 // newMachinePoolKubeadmConfig return a CABPK KubeadmConfig object; if machine pool is not nil,
 // the KubeadmConfig is linked to the machine pool as well
-func newMachinePoolKubeadmConfig(machinePool *clusterv1.MachinePool, name string) *bootstrapv1.KubeadmConfig {
+func newMachinePoolKubeadmConfig(machinePool *expv1.MachinePool, name string) *bootstrapv1.KubeadmConfig {
 	config := &bootstrapv1.KubeadmConfig{
 		TypeMeta: metav1.TypeMeta{
 			Kind:       "KubeadmConfig",
@@ -1725,7 +1732,7 @@ func newMachinePoolKubeadmConfig(machinePool *clusterv1.MachinePool, name string
 		config.ObjectMeta.OwnerReferences = []metav1.OwnerReference{
 			{
 				Kind:       "MachinePool",
-				APIVersion: clusterv1.GroupVersion.String(),
+				APIVersion: expv1.GroupVersion.String(),
 				Name:       machinePool.Name,
 				UID:        types.UID(fmt.Sprintf("%s uid", machinePool.Name)),
 			},
@@ -1736,7 +1743,7 @@ func newMachinePoolKubeadmConfig(machinePool *clusterv1.MachinePool, name string
 	return config
 }
 
-func newWorkerPoolJoinKubeadmConfig(machinePool *clusterv1.MachinePool) *bootstrapv1.KubeadmConfig {
+func newWorkerPoolJoinKubeadmConfig(machinePool *expv1.MachinePool) *bootstrapv1.KubeadmConfig {
 	c := newMachinePoolKubeadmConfig(machinePool, "workerpool-join-cfg")
 	c.Spec.JoinConfiguration = &kubeadmv1beta1.JoinConfiguration{
 		ControlPlane: nil,

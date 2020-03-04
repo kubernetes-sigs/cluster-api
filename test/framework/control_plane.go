@@ -31,6 +31,7 @@ import (
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha3"
 	cabpkv1 "sigs.k8s.io/cluster-api/bootstrap/kubeadm/api/v1alpha3"
 	controlplanev1 "sigs.k8s.io/cluster-api/controlplane/kubeadm/api/v1alpha3"
+	expv1 "sigs.k8s.io/cluster-api/exp/api/v1alpha3"
 	"sigs.k8s.io/cluster-api/test/framework/options"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
@@ -335,7 +336,7 @@ func AssertAllClusterAPIResourcesAreGone(ctx context.Context, input AssertAllClu
 	Expect(input.Lister.List(ctx, mdl, opt)).To(Succeed())
 	Expect(mdl.Items).To(HaveLen(0))
 
-	mpl := &clusterv1.MachinePoolList{}
+	mpl := &expv1.MachinePoolList{}
 	Expect(input.Lister.List(ctx, mpl, opt)).To(Succeed())
 	Expect(mpl.Items).To(HaveLen(0))
 

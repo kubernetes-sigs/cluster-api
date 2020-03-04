@@ -155,7 +155,7 @@ outside of the existing module.
 - A new field `Cluster.Spec.Paused` provides the ability to pause reconciliation on a Cluster and all associated objects.
 - A helper function `util.IsPaused` can be used on any Kubernetes object associated with a Cluster.
 
-## Optional support for failure domains.
+## [OPTIONAL] Support failure domains.
 
 An infrastructure provider may or may not implement the failure domains feature. Failure domains gives Cluster API
 just enough information to spread machines out reducing the risk of a target cluster failing due to a domain outage.
@@ -370,3 +370,15 @@ commonLabels:
   cluster.x-k8s.io/v1alpha3: v1alpha2
   cluster.x-k8s.io/v1beta1: v1alphaX,v1beta1
 ```
+
+# [OPTIONAL] Implement `--feature-gates` flag in main.go
+
+- Cluster API now ships with a new experimental package that lives under `exp/` containing both API types and controllers.
+- Controller and types should always live behind a gate defined under the `feature/` package.
+- If you're planning to support experimental features or API types in your provider or codebase, you can add
+  `feature.MutableGates.AddFlag(fs)` to your main.go when initializing command line flags.
+  For a full example, you can refer to the `main.go` in Cluster API or under `bootstrap/kubeadm/`.
+
+> NOTE: To enable experimental features users are required to set the same `--feature-gates` flag across providers.
+> For example, if you want to enable MachinePool, you'll have to enable in both Cluster API deployment and the Kubeadm Bootstrap Provider.
+> In the future, we'll revisit this user experience and provide a centralized way to configure gates across all Cluster API (inc. providers) controllers.

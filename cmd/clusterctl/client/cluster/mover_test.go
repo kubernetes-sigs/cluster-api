@@ -255,7 +255,7 @@ var moveTests = []struct {
 				"/v1, Kind=Secret, ns1/cluster1-ca",
 				"/v1, Kind=Secret, ns1/cluster1-kubeconfig",
 				"bootstrap.cluster.x-k8s.io/v1alpha3, Kind=DummyBootstrapConfigTemplate, ns1/mp1",
-				"cluster.x-k8s.io/v1alpha3, Kind=MachinePool, ns1/mp1",
+				"exp.cluster.x-k8s.io/v1alpha3, Kind=MachinePool, ns1/mp1",
 				"infrastructure.cluster.x-k8s.io/v1alpha3, Kind=DummyInfrastructureCluster, ns1/cluster1",
 				"infrastructure.cluster.x-k8s.io/v1alpha3, Kind=DummyInfrastructureMachineTemplate, ns1/mp1",
 			},

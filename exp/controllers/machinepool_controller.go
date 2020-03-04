@@ -1,5 +1,5 @@
 /*
-Copyright 2019 The Kubernetes Authors.
+Copyright 2020 The Kubernetes Authors.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -34,6 +34,7 @@ import (
 	"sigs.k8s.io/cluster-api/controllers/external"
 	"sigs.k8s.io/cluster-api/controllers/remote"
 	capierrors "sigs.k8s.io/cluster-api/errors"
+	expv1 "sigs.k8s.io/cluster-api/exp/api/v1alpha3"
 	"sigs.k8s.io/cluster-api/util"
 	"sigs.k8s.io/cluster-api/util/patch"
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -46,7 +47,7 @@ import (
 // +kubebuilder:rbac:groups=core,resources=secrets,verbs=get;list;watch
 // +kubebuilder:rbac:groups=core,resources=nodes,verbs=get;list;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups=infrastructure.cluster.x-k8s.io;bootstrap.cluster.x-k8s.io,resources=*,verbs=get;list;watch;create;update;patch;delete
-// +kubebuilder:rbac:groups=cluster.x-k8s.io,resources=machinepools;machinepools/status,verbs=get;list;watch;create;update;patch;delete
+// +kubebuilder:rbac:groups=exp.cluster.x-k8s.io,resources=machinepools;machinepools/status,verbs=get;list;watch;create;update;patch;delete
 
 // MachinePoolReconciler reconciles a MachinePool object
 type MachinePoolReconciler struct {
@@ -62,7 +63,7 @@ type MachinePoolReconciler struct {
 
 func (r *MachinePoolReconciler) SetupWithManager(mgr ctrl.Manager, options controller.Options) error {
 	c, err := ctrl.NewControllerManagedBy(mgr).
-		For(&clusterv1.MachinePool{}).
+		For(&expv1.MachinePool{}).
 		WithOptions(options).
 		Build(r)
 	if err != nil {
@@ -80,7 +81,7 @@ func (r *MachinePoolReconciler) Reconcile(req ctrl.Request) (_ ctrl.Result, rete
 	ctx := context.Background()
 	logger := r.Log.WithValues("machinepool", req.NamespacedName)
 
-	mp := &clusterv1.MachinePool{}
+	mp := &expv1.MachinePool{}
 	if err := r.Client.Get(ctx, req.NamespacedName, mp); err != nil {
 		if apierrors.IsNotFound(err) {
 			// Object not found, return. Created objects are automatically garbage collected.
@@ -135,7 +136,7 @@ func (r *MachinePoolReconciler) Reconcile(req ctrl.Request) (_ ctrl.Result, rete
 	return r.reconcile(ctx, cluster, mp)
 }
 
-func (r *MachinePoolReconciler) reconcile(ctx context.Context, cluster *clusterv1.Cluster, mp *clusterv1.MachinePool) (ctrl.Result, error) {
+func (r *MachinePoolReconciler) reconcile(ctx context.Context, cluster *clusterv1.Cluster, mp *expv1.MachinePool) (ctrl.Result, error) {
 	logger := r.Log.WithValues("machinepool", mp.Name, "namespace", mp.Namespace)
 	logger = logger.WithValues("cluster", cluster.Name)
 
@@ -148,7 +149,7 @@ func (r *MachinePoolReconciler) reconcile(ctx context.Context, cluster *clusterv
 	})
 
 	// If the MachinePool doesn't have a finalizer, add one.
-	controllerutil.AddFinalizer(mp, clusterv1.MachinePoolFinalizer)
+	controllerutil.AddFinalizer(mp, expv1.MachinePoolFinalizer)
 
 	// Call the inner reconciliation methods.
 	reconciliationErrors := []error{
@@ -176,7 +177,7 @@ func (r *MachinePoolReconciler) reconcile(ctx context.Context, cluster *clusterv
 	return res, kerrors.NewAggregate(errs)
 }
 
-func (r *MachinePoolReconciler) reconcileDelete(ctx context.Context, cluster *clusterv1.Cluster, mp *clusterv1.MachinePool) (ctrl.Result, error) {
+func (r *MachinePoolReconciler) reconcileDelete(ctx context.Context, cluster *clusterv1.Cluster, mp *expv1.MachinePool) (ctrl.Result, error) {
 	if ok, err := r.reconcileDeleteExternal(ctx, mp); !ok || err != nil {
 		// Return early and don't remove the finalizer if we got an error or
 		// the external reconciliation deletion isn't ready.
@@ -188,11 +189,11 @@ func (r *MachinePoolReconciler) reconcileDelete(ctx context.Context, cluster *cl
 		return ctrl.Result{}, err
 	}
 
-	controllerutil.RemoveFinalizer(mp, clusterv1.MachinePoolFinalizer)
+	controllerutil.RemoveFinalizer(mp, expv1.MachinePoolFinalizer)
 	return ctrl.Result{}, nil
 }
 
-func (r *MachinePoolReconciler) reconcileDeleteNodes(ctx context.Context, cluster *clusterv1.Cluster, machinepool *clusterv1.MachinePool) error {
+func (r *MachinePoolReconciler) reconcileDeleteNodes(ctx context.Context, cluster *clusterv1.Cluster, machinepool *expv1.MachinePool) error {
 	if len(machinepool.Status.NodeRefs) == 0 {
 		return nil
 	}
@@ -209,7 +210,7 @@ func (r *MachinePoolReconciler) reconcileDeleteNodes(ctx context.Context, cluste
 }
 
 // reconcileDeleteExternal tries to delete external references, returning true if it cannot find any.
-func (r *MachinePoolReconciler) reconcileDeleteExternal(ctx context.Context, m *clusterv1.MachinePool) (bool, error) {
+func (r *MachinePoolReconciler) reconcileDeleteExternal(ctx context.Context, m *expv1.MachinePool) (bool, error) {
 	objects := []*unstructured.Unstructured{}
 	references := []*corev1.ObjectReference{
 		m.Spec.Template.Spec.Bootstrap.ConfigRef,

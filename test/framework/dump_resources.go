@@ -32,6 +32,7 @@ import (
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha3"
 	bootstrapv1 "sigs.k8s.io/cluster-api/bootstrap/kubeadm/api/v1alpha3"
 	controlplanev1 "sigs.k8s.io/cluster-api/controlplane/kubeadm/api/v1alpha3"
+	expv1 "sigs.k8s.io/cluster-api/exp/api/v1alpha3"
 	"sigs.k8s.io/yaml"
 )
 
@@ -41,7 +42,7 @@ func DumpResources(mgmt ManagementCluster, resourcePath string, writer io.Writer
 		"Cluster":             &clusterv1.ClusterList{},
 		"MachineDeployment":   &clusterv1.MachineDeploymentList{},
 		"MachineSet":          &clusterv1.MachineSetList{},
-		"MachinePool":         &clusterv1.MachinePoolList{},
+		"MachinePool":         &expv1.MachinePoolList{},
 		"Machine":             &clusterv1.MachineList{},
 		"KubeadmControlPlane": &controlplanev1.KubeadmControlPlaneList{},
 		"KubeadmConfig":       &bootstrapv1.KubeadmConfigList{},

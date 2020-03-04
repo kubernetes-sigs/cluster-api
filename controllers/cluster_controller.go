@@ -206,22 +206,6 @@ func (r *ClusterReconciler) reconcileMetrics(_ context.Context, cluster *cluster
 func (r *ClusterReconciler) reconcileDelete(ctx context.Context, cluster *clusterv1.Cluster) (reconcile.Result, error) {
 	logger := r.Log.WithValues("cluster", cluster.Name, "namespace", cluster.Namespace)
 
-	// First handle the control plane
-	if cluster.Spec.ControlPlaneRef != nil {
-		obj, err := external.Get(ctx, r.Client, cluster.Spec.ControlPlaneRef, cluster.Namespace)
-		switch {
-		case apierrors.IsNotFound(errors.Cause(err)):
-		case err != nil:
-			return reconcile.Result{}, err
-		case obj.GetDeletionTimestamp().IsZero():
-			if err := r.Client.Delete(ctx, obj); err != nil {
-				return ctrl.Result{}, errors.Wrapf(err,
-					"failed to delete %v %q for Cluster %q in namespace %q",
-					obj.GroupVersionKind(), obj.GetName(), cluster.Name, cluster.Namespace)
-			}
-		}
-	}
-
 	descendants, err := r.listDescendants(ctx, cluster)
 	if err != nil {
 		logger.Error(err, "Failed to list descendants")
@@ -273,6 +257,30 @@ func (r *ClusterReconciler) reconcileDelete(ctx context.Context, cluster *cluste
 		return ctrl.Result{RequeueAfter: deleteRequeueAfter}, nil
 	}
 
+	if cluster.Spec.ControlPlaneRef != nil {
+		obj, err := external.Get(ctx, r.Client, cluster.Spec.ControlPlaneRef, cluster.Namespace)
+		switch {
+		case apierrors.IsNotFound(errors.Cause(err)):
+			// All good - the control plane resource has been deleted
+		case err != nil:
+			return reconcile.Result{}, errors.Wrapf(err, "failed to get %s %q for Cluster %s/%s",
+				path.Join(cluster.Spec.ControlPlaneRef.APIVersion, cluster.Spec.ControlPlaneRef.Kind),
+				cluster.Spec.ControlPlaneRef.Name, cluster.Namespace, cluster.Name)
+		default:
+			// Issue a deletion request for the control plane object.
+			// Once it's been deleted, the cluster will get processed again.
+			if err := r.Client.Delete(ctx, obj); err != nil {
+				return ctrl.Result{}, errors.Wrapf(err,
+					"failed to delete %v %q for Cluster %q in namespace %q",
+					obj.GroupVersionKind(), obj.GetName(), cluster.Name, cluster.Namespace)
+			}
+
+			// Return here so we don't remove the finalizer yet.
+			logger.Info("Cluster still has descendants - need to requeue", "controlPlaneRef", cluster.Spec.ControlPlaneRef.Name)
+			return ctrl.Result{}, nil
+		}
+	}
+
 	if cluster.Spec.InfrastructureRef != nil {
 		obj, err := external.Get(ctx, r.Client, cluster.Spec.InfrastructureRef, cluster.Namespace)
 		switch {
@@ -292,6 +300,7 @@ func (r *ClusterReconciler) reconcileDelete(ctx context.Context, cluster *cluste
 			}
 
 			// Return here so we don't remove the finalizer yet.
+			logger.Info("Cluster still has descendants - need to requeue", "infrastructureRef", cluster.Spec.InfrastructureRef.Name)
 			return ctrl.Result{}, nil
 		}
 	}
@@ -372,8 +381,12 @@ func (r *ClusterReconciler) listDescendants(ctx context.Context, cluster *cluste
 
 	// Split machines into control plane and worker machines so we make sure we delete control plane machines last
 	controlPlaneMachines, workerMachines := splitMachineList(&machines)
-	descendants.controlPlaneMachines = *controlPlaneMachines
 	descendants.workerMachines = *workerMachines
+	// Only count control plane machines as descendants if there is no control plane provider.
+	if cluster.Spec.ControlPlaneRef == nil {
+		descendants.controlPlaneMachines = *controlPlaneMachines
+
+	}
 
 	return descendants, nil
 }

@@ -169,6 +169,32 @@ func TestMachineOwnerReference(t *testing.T) {
 					APIVersion: clusterv1.GroupVersion.String(),
 					Kind:       "MachineSet",
 					Name:       "valid-machineset",
+					Controller: pointer.BoolPtr(true),
+				},
+			},
+		},
+		Spec: clusterv1.MachineSpec{
+			Bootstrap: clusterv1.Bootstrap{
+				Data: &bootstrapData,
+			},
+			ClusterName: "test-cluster",
+		},
+	}
+
+	machineValidControlled := &clusterv1.Machine{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "machine4",
+			Namespace: "default",
+			Labels: map[string]string{
+				clusterv1.ClusterLabelName:             "valid-cluster",
+				clusterv1.MachineControlPlaneLabelName: "",
+			},
+			OwnerReferences: []metav1.OwnerReference{
+				{
+					APIVersion: "test.group",
+					Kind:       "KubeadmControlPlane",
+					Name:       "valid-controlplane",
+					Controller: pointer.BoolPtr(true),
 				},
 			},
 		},
@@ -212,6 +238,22 @@ func TestMachineOwnerReference(t *testing.T) {
 					APIVersion: clusterv1.GroupVersion.String(),
 					Kind:       "MachineSet",
 					Name:       "valid-machineset",
+					Controller: pointer.BoolPtr(true),
+				},
+			},
+		},
+		{
+			name: "should not add cluster owner reference if machine has a controller owner",
+			request: reconcile.Request{
+				NamespacedName: util.ObjectKey(machineValidControlled),
+			},
+			m: machineValidControlled,
+			expectedOR: []metav1.OwnerReference{
+				{
+					APIVersion: "test.group",
+					Kind:       "KubeadmControlPlane",
+					Name:       "valid-controlplane",
+					Controller: pointer.BoolPtr(true),
 				},
 			},
 		},
@@ -228,6 +270,7 @@ func TestMachineOwnerReference(t *testing.T) {
 					machineInvalidCluster,
 					machineValidCluster,
 					machineValidMachine,
+					machineValidControlled,
 				),
 				Log:    log.Log,
 				scheme: scheme.Scheme,

@@ -181,7 +181,7 @@ capi-controller-manager-bf9c6468c-d6msj   1/1     Running   0          2m9s
 Cluster API has a number of test suites available for you to run. Please visit the [testing][testing] page for more
 information on each suite.
 
-[testing]: ./tests.md
+[testing]: ./testing.md
 
 ## That's it!
 

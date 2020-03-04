@@ -46,6 +46,8 @@ E2E_FRAMEWORK_DIR := test/framework
 CAPD_DIR := test/infrastructure/docker
 RELEASE_NOTES_BIN := bin/release-notes
 RELEASE_NOTES := $(TOOLS_DIR)/$(RELEASE_NOTES_BIN)
+LINK_CHECKER_BIN := bin/liche
+LINK_CHECKER := $(TOOLS_DIR)/$(LINK_CHECKER_BIN)
 
 # Binaries.
 # Need to use abspath so we can invoke these from subdirectories
@@ -169,6 +171,9 @@ $(GOBINDATA): $(TOOLS_DIR)/go.mod # Build go-bindata from tools folder.
 
 $(RELEASE_NOTES): $(TOOLS_DIR)/go.mod
 	cd $(TOOLS_DIR) && go build -tags=tools -o $(RELEASE_NOTES_BIN) ./release
+
+$(LINK_CHECKER): $(TOOLS_DIR)/go.mod
+	cd $(TOOLS_DIR) && go build -tags=tools -o $(LINK_CHECKER_BIN) github.com/raviqqe/liche
 
 .PHONY: e2e-framework
 e2e-framework: ## Builds the CAPI e2e framework
@@ -521,6 +526,7 @@ verify:
 	./hack/verify-doctoc.sh
 	./hack/verify-shellcheck.sh
 	./hack/verify-starlark.sh
+	$(MAKE) verify-book-links
 	$(MAKE) verify-modules
 	$(MAKE) verify-gen
 	$(MAKE) verify-docker-provider
@@ -544,6 +550,10 @@ verify-docker-provider:
 	@echo "Verifying CAPD"
 	cd $(CAPD_DIR); $(MAKE) verify
 
+.PHONY: verify-book-links
+verify-book-links: $(LINK_CHECKER)
+	 # Ignore localhost links and set concurrency to a reasonable number
+	$(LINK_CHECKER) -r docs/book -x "^https?://localhost($|[:/].*)" -c 10
 ## --------------------------------------
 ## Others / Utilities
 ## --------------------------------------

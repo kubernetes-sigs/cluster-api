@@ -1,6 +1,6 @@
 # MachineDeployment
 
-A MachineDeployment orchestrates deployments over a fleet of [MachineSets](./machine-set.yaml).
+A MachineDeployment orchestrates deployments over a fleet of [MachineSets](./machine-set.md).
 
 Its main responsibilities are:
 * Adopting matching MachineSets not assigned to a MachineDeployment

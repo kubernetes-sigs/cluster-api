@@ -8,4 +8,4 @@ Its main responsibilities are:
 * Booting a group of N machines
   * Monitor the status of those booted machines
 
-![](../../images/cluster-admission-machineset-controller.png)
+![](../../../images/cluster-admission-machineset-controller.png)

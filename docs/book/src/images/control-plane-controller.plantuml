@@ -19,7 +19,7 @@ else (no)
           :Reconcile control plane;
           if (Control plane is initialized) then (yes)
             #LightBlue:Set status.Initialized to true;
-            if (Control plane is contactable) then (no)
+            if (Control plane is contactable) then (yes)
               #LightBlue:Set status.Ready to true;
             else (no)
               #Pink:Set status.Ready to false;

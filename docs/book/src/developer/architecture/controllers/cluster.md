@@ -1,6 +1,6 @@
 # Cluster Controller
 
-![](../../images/cluster-admission-cluster-controller.svg)
+![](../../../images/cluster-admission-cluster-controller.png)
 
 The Cluster controller's main responsibilities are:
 

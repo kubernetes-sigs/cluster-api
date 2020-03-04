@@ -1,6 +1,6 @@
 # Control Plane Controller
 
-![](../../../images/control-plane-controller.svg)
+![](../../../images/control-plane-controller.png)
 
 The Control Plane controller's main responsibilities are:
 

@@ -672,8 +672,8 @@ mvdan.cc/lint v0.0.0-20170908181259-adc824a0674b h1:DxJ5nJdkhDlLok9K6qO+5290kphD
 mvdan.cc/lint v0.0.0-20170908181259-adc824a0674b/go.mod h1:2odslEg/xrtNQqCYg2/jCoyKnw3vv5biOc3JnIcYfL4=
 mvdan.cc/unparam v0.0.0-20190720180237-d51796306d8f h1:Cq7MalBHYACRd6EesksG1Q8EoIAKOsiZviGKbOLIej4=
 mvdan.cc/unparam v0.0.0-20190720180237-d51796306d8f/go.mod h1:4G1h5nDURzA3bwVMZIVpwbkw+04kSxk3rAtzlimaUJw=
-sigs.k8s.io/controller-tools v0.2.5 h1:kH7HKWed9XO42OTxyhUtqyImiefdZV2Q9Jbrytvhf18=
-sigs.k8s.io/controller-tools v0.2.5/go.mod h1:+t0Hz6tOhJQCdd7IYO0mNzimmiM9sqMU0021u6UCF2o=
+sigs.k8s.io/controller-tools v0.2.6-0.20200226180227-d6efdcdd90e2 h1:emZ+AFmD8mTciBRbEj2Qfk/RDI8uApvizRrFpmHf7IQ=
+sigs.k8s.io/controller-tools v0.2.6-0.20200226180227-d6efdcdd90e2/go.mod h1:9VKHPszmf2DHz/QmHkcfZoewO6BL7pPs9uAiBVsaJSE=
 sigs.k8s.io/kubebuilder/docs/book/utils v0.0.0-20190903174343-de03361a00cb/go.mod h1:zSW4yXo5uN/rRueruOtX8TWM8wBPJippG9OAOygomc8=
 sigs.k8s.io/kustomize/api v0.2.0/go.mod h1:zVtMg179jW1gr74jo9fc2Ac9dLYLTZZThc3DDb9lDW4=
 sigs.k8s.io/kustomize/kustomize/v3 v3.4.0/go.mod h1:i7bGnbXAlZKomwwc0uOLETK3bIXnoWXrsxhHTF6UJNU=

@@ -13,6 +13,7 @@ webhooks:
       namespace: system
       path: /mutate-controlplane-cluster-x-k8s-io-v1alpha3-kubeadmcontrolplane
   failurePolicy: Fail
+  matchPolicy: Equivalent
   name: default.kubeadmcontrolplane.controlplane.cluster.x-k8s.io
   rules:
   - apiGroups:
@@ -39,6 +40,7 @@ webhooks:
       namespace: system
       path: /validate-controlplane-cluster-x-k8s-io-v1alpha3-kubeadmcontrolplane
   failurePolicy: Fail
+  matchPolicy: Equivalent
   name: validation.kubeadmcontrolplane.controlplane.cluster.x-k8s.io
   rules:
   - apiGroups:

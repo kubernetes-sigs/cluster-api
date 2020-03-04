@@ -18,6 +18,7 @@ package cluster
 
 import (
 	"fmt"
+	"strings"
 
 	"github.com/pkg/errors"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
@@ -66,12 +67,12 @@ func (k *proxy) CurrentNamespace() (string, error) {
 func (k *proxy) NewClient() (client.Client, error) {
 	config, err := k.getConfig()
 	if err != nil {
-		return nil, errors.Wrap(err, "failed to create controller-runtime client")
+		return nil, err
 	}
 
 	c, err := client.New(config, client.Options{Scheme: Scheme})
 	if err != nil {
-		return nil, errors.Wrap(err, "failed to create controller-runtime client")
+		return nil, errors.Wrap(err, "failed to connect to the management cluster")
 	}
 
 	return c, nil
@@ -158,7 +159,10 @@ func (k *proxy) getConfig() (*rest.Config, error) {
 
 	restConfig, err := clientcmd.NewDefaultClientConfig(*config, &clientcmd.ConfigOverrides{}).ClientConfig()
 	if err != nil {
-		return nil, errors.Wrap(err, "failed to rest client")
+		if strings.HasPrefix(err.Error(), "invalid configuration:") {
+			return nil, errors.New(strings.Replace(err.Error(), "invalid configuration:", "invalid kubeconfig file; clusterctl requires a valid kubeconfig file to connect to the management cluster:", 1))
+		}
+		return nil, err
 	}
 	restConfig.UserAgent = fmt.Sprintf("clusterctl/%s (%s)", version.Get().GitVersion, version.Get().Platform)
 
@@ -172,7 +176,7 @@ func (k *proxy) getConfig() (*rest.Config, error) {
 func (k *proxy) newClientSet() (*kubernetes.Clientset, error) {
 	config, err := k.getConfig()
 	if err != nil {
-		return nil, errors.Wrap(err, "failed to create the client-go client")
+		return nil, err
 	}
 
 	cs, err := kubernetes.NewForConfig(config)

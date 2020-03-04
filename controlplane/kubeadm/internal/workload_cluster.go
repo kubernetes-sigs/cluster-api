@@ -36,6 +36,7 @@ import (
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha3"
 	"sigs.k8s.io/cluster-api/controlplane/kubeadm/internal/etcd"
 	etcdutil "sigs.k8s.io/cluster-api/controlplane/kubeadm/internal/etcd/util"
+	"sigs.k8s.io/cluster-api/util"
 	"sigs.k8s.io/cluster-api/util/certs"
 	ctrlclient "sigs.k8s.io/controller-runtime/pkg/client"
 )
@@ -392,6 +393,46 @@ func (c *Cluster) ReconcileKubeletRBACRole(ctx context.Context, version semver.V
 	}
 
 	return nil
+}
+
+// ClusterStatus holds stats information about the cluster.
+type ClusterStatus struct {
+	// Nodes are a total count of nodes
+	Nodes int32
+	// ReadyNodes are the count of nodes that are reporting ready
+	ReadyNodes int32
+	// HasKubeadmConfig will be true if the kubeadm config map has been uploaded, false otherwise.
+	HasKubeadmConfig bool
+}
+
+// ClusterStatus returns the status of the cluster.
+func (c *Cluster) ClusterStatus(ctx context.Context) (ClusterStatus, error) {
+	status := ClusterStatus{}
+
+	// count the control plane nodes
+	nodes, err := c.getControlPlaneNodes(ctx)
+	if err != nil {
+		return status, err
+	}
+
+	for _, node := range nodes.Items {
+		nodeCopy := node
+		status.Nodes++
+		if util.IsNodeReady(&nodeCopy) {
+			status.ReadyNodes++
+		}
+	}
+
+	// find the kubeadm conifg
+	kubeadmConfigKey := ctrlclient.ObjectKey{
+		Name:      "kubeadm-config",
+		Namespace: metav1.NamespaceSystem,
+	}
+	err = c.Client.Get(ctx, kubeadmConfigKey, &corev1.ConfigMap{})
+	// TODO: Consider if this should only return false if the error is IsNotFound.
+	// TODO: Consider adding a third state of 'unknown' when there is an error retrieving the config map.
+	status.HasKubeadmConfig = err == nil
+	return status, nil
 }
 
 func generateClientCert(caCertEncoded, caKeyEncoded []byte) (tls.Certificate, error) {

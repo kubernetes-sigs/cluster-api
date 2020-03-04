@@ -129,22 +129,13 @@ var _ = Describe("Docker", func() {
 				}
 				framework.WaitForClusterToProvision(ctx, assertClusterProvisionsInput)
 
-				// Create the workload nodes
-				createMachineDeploymentinput := framework.CreateMachineDeploymentInput{
-					Creator:                 client,
-					MachineDeployment:       md,
-					BootstrapConfigTemplate: bootstrapTemplate,
-					InfraMachineTemplate:    infraTemplate,
-				}
-				framework.CreateMachineDeployment(ctx, createMachineDeploymentinput)
-
-				// Wait for the controlplane nodes to exist
-				assertKubeadmControlPlaneNodesExistInput := framework.WaitForKubeadmControlPlaneMachinesToExistInput{
+				// Wait for at least one control plane node to be ready
+				waitForOneKubeadmControlPlaneMachineToExistInput := framework.WaitForOneKubeadmControlPlaneMachineToExistInput{
 					Lister:       client,
 					Cluster:      cluster,
 					ControlPlane: controlPlane,
 				}
-				framework.WaitForKubeadmControlPlaneMachinesToExist(ctx, assertKubeadmControlPlaneNodesExistInput, "10m", "10s")
+				framework.WaitForOneKubeadmControlPlaneMachineToExist(ctx, waitForOneKubeadmControlPlaneMachineToExistInput)
 
 				// Insatll a networking solution on the workload cluster
 				workloadClient, err := mgmt.GetWorkloadClient(ctx, cluster.Namespace, cluster.Name)
@@ -156,6 +147,23 @@ var _ = Describe("Docker", func() {
 					Scheme:        mgmt.Scheme,
 				}
 				framework.ApplyYAMLURL(ctx, applyYAMLURLInput)
+
+				// Wait for the controlplane nodes to exist
+				assertKubeadmControlPlaneNodesExistInput := framework.WaitForKubeadmControlPlaneMachinesToExistInput{
+					Lister:       client,
+					Cluster:      cluster,
+					ControlPlane: controlPlane,
+				}
+				framework.WaitForKubeadmControlPlaneMachinesToExist(ctx, assertKubeadmControlPlaneNodesExistInput, "10m", "10s")
+
+				// Create the workload nodes
+				createMachineDeploymentinput := framework.CreateMachineDeploymentInput{
+					Creator:                 client,
+					MachineDeployment:       md,
+					BootstrapConfigTemplate: bootstrapTemplate,
+					InfraMachineTemplate:    infraTemplate,
+				}
+				framework.CreateMachineDeployment(ctx, createMachineDeploymentinput)
 
 				// Wait for the workload nodes to exist
 				waitForMachineDeploymentNodesToExistInput := framework.WaitForMachineDeploymentNodesToExistInput{

@@ -22,6 +22,7 @@ This roadmap is a constant work in progress, subject to frequent revision. Dates
 - [Extensible machine pre-delete hooks](https://github.com/kubernetes-sigs/cluster-api/issues/1514)
 - Define clusterctl inventory specification & have providers implement it
 - Figure out how to change configurations through rolling updates (e.g. apiserver flags, DNS/addons, etc.)
+- [Spot instances support](https://github.com/kubernetes-sigs/cluster-api/issues/1876)
 
 ## v0.5 (v1alpha5? v1beta1?) ~ November 2020
 

@@ -32,7 +32,7 @@ const (
 	KubeadmControlPlaneProviderName = "kubeadm"
 	AWSProviderName                 = "aws"
 	AzureProviderName               = "azure"
-	BareMetalProviderName           = "baremetal"
+	Metal3ProviderName              = "metal3"
 	OpenStackProviderName           = "openstack"
 	VSphereProviderName             = "vsphere"
 	ProvidersConfigKey              = "providers"
@@ -90,7 +90,7 @@ func (p *providersClient) defaults() []Provider {
 			providerType: clusterctlv1.InfrastructureProviderType,
 		},
 		&provider{
-			name:         BareMetalProviderName,
+			name:         Metal3ProviderName,
 			url:          "https://github.com/metal3-io/cluster-api-provider-baremetal/releases/latest/infrastructure-components.yaml",
 			providerType: clusterctlv1.InfrastructureProviderType,
 		},

@@ -74,7 +74,7 @@ export KUBECONFIG=<...>
 * If the provider of your choice expects some environment variables, e.g. `AWS_CREDENTIALS` for the `aws`
 infrastructure provider, user should ensure those variables are set in advance.
 
-{{#tabs name:"tab-installation-infrastructure" tabs:"AWS,Azure,Docker,GCP,vSphere,OpenStack,BareMetal"}}
+{{#tabs name:"tab-installation-infrastructure" tabs:"AWS,Azure,Docker,GCP,vSphere,OpenStack,Metal3"}}
 {{#tab AWS}}
 
 Download the latest binary of `clusterawsadm` from the [AWS provider releases] and make sure to place it in your path.
@@ -152,7 +152,7 @@ For more information about prerequisites, credentials management, or permissions
 Please visit the [getting started guide](https://github.com/kubernetes-sigs/cluster-api-provider-openstack/blob/master/docs/getting-started.md).
 
 {{#/tab }}
-{{#tab BareMetal}}
+{{#tab Metal3}}
 
 Please visit the [getting started guide](https://github.com/metal3-io/cluster-api-provider-baremetal/blob/master/docs/getting-started.md).
 

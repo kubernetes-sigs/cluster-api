@@ -172,7 +172,7 @@ providers.
 |CAPA          | cluster.x-k8s.io/provider=infrastructure-aws       |
 |CAPV          | cluster.x-k8s.io/provider=infrastructure-vsphere   |
 |CAPD          | cluster.x-k8s.io/provider=infrastructure-docker    |
-|CAPBM         | cluster.x-k8s.io/provider=infrastructure-baremetal |
+|CAPM3         | cluster.x-k8s.io/provider=infrastructure-metal3    |
 |CAPZ          | cluster.x-k8s.io/provider=infrastructure-azure     |
 
 ### Workload cluster templates

@@ -1,6 +1,6 @@
 # Machine  Controller
 
-![](../../images/cluster-admission-machine-controller.svg)
+![](../../../images/cluster-admission-machine-controller.png)
 
 The Machine controller's main responsibilities are:
 

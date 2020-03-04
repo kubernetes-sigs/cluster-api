@@ -7,7 +7,7 @@ Bootstrapping is the process in which:
 
 [CAPBK](https://github.com/kubernetes-sigs/cluster-api-bootstrap-provider-kubeadm) is the reference bootstrap provider and is based on `kubeadm`. CAPBK codifies the steps for [creating a cluster](https://kubernetes.io/docs/setup/production-environment/tools/kubeadm/create-cluster-kubeadm/) in multiple configurations.
 
-![](../../images/bootstrap-controller.png)
+![](../../../images/bootstrap-controller.png)
 
 See [proposal](https://github.com/kubernetes-sigs/cluster-api/blob/master/docs/proposals/20190610-machine-states-preboot-bootstrapping.md) for the full details on how the bootstrap process works.
 

@@ -371,6 +371,15 @@ commonLabels:
   cluster.x-k8s.io/v1beta1: v1alphaX,v1beta1
 ```
 
+# Add `matchPolicy=Equivalent` kubebuilder marker in webhooks
+- All providers should set "matchPolicy=Equivalent" kubebuilder marker for webhooks on all Custom Resource Definitions related to Cluster API starting with v1alpha3.
+- Specifying `Equivalent` ensures that webhooks continue to intercept the resources they expect when upgrades enable new versions of the resource in the API server.
+- E.g., `matchPolicy` is added to `AWSMachine` (/api/v1alpha3/awsmachine_webhook.go)
+    ```
+    // +kubebuilder:webhook:verbs=create;update,path=/validate-infrastructure-cluster-x-k8s-io-v1alpha3-awsmachine,mutating=false,failurePolicy=fail,matchPolicy=Equivalent,groups=infrastructure.cluster.x-k8s.io,resources=awsmachines,versions=v1alpha3,name=validation.awsmachine.infrastructure.cluster.x-k8s.io
+   ```
+- Support for `matchPolicy` marker has been added in [kubernetes-sigs/controller-tools](https://github.com/kubernetes-sigs/controller-tools/commit/d6efdcdd90e2a95ae7aea0dbec3252b705a9314d). Providers needs to update controller-tools dependency to make use of it, usually in `hack/tools/go.mod`.
+
 # [OPTIONAL] Implement `--feature-gates` flag in main.go
 
 - Cluster API now ships with a new experimental package that lives under `exp/` containing both API types and controllers.

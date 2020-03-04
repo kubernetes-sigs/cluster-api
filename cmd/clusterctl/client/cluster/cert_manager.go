@@ -33,7 +33,10 @@ const (
 	embeddedCertManagerManifestPath = "cmd/clusterctl/config/manifest/cert-manager.yaml"
 
 	waitCertManagerInterval = 1 * time.Second
-	waitCertManagerTimeout  = 10 * time.Minute
+	waitCertManagerTimeout  = 5 * time.Minute
+
+	retryCreateCertManagerObject         = 3
+	retryIntervalCreateCertManagerObject = 1 * time.Second
 )
 
 // CertManagerClient has methods to work with cert-manager components in the cluster.
@@ -121,35 +124,24 @@ func (cm *certManagerClient) EnsureWebhook() error {
 	}
 
 	// installs the web-hook
-	c, err := cm.proxy.NewClient()
-	if err != nil {
-		return err
-	}
-
 	objs = sortResourcesForCreate(objs)
 	for i := range objs {
 		o := objs[i]
 		log.V(5).Info("Creating", logf.UnstructuredToValues(o)...)
 
-		labels := o.GetLabels()
-		if labels == nil {
-			labels = map[string]string{}
-		}
-		labels[clusterctlv1.ClusterctlCoreLabelName] = "cert-manager"
-		o.SetLabels(labels)
-
-		if err = c.Create(ctx, &o); err != nil {
-			if apierrors.IsAlreadyExists(err) {
-				continue
-			}
-			return errors.Wrapf(err, "failed to create cert-manager component: %s, %s/%s", o.GroupVersionKind(), o.GetNamespace(), o.GetName())
+		// Create the Kubernetes object.
+		// Nb. The operation is wrapped in a retry loop to make ensureCerts more resilient to unexpected conditions.
+		if err := retry(retryCreateCertManagerObject, retryIntervalCreateCertManagerObject, func() error {
+			return cm.createObj(o)
+		}); err != nil {
+			return err
 		}
 	}
 
 	// Waits for for the cert-manager web-hook to be available.
 	log.Info("Waiting for cert-manager to be available...")
 	if err := cm.pollImmediateWaiter(waitCertManagerInterval, waitCertManagerTimeout, func() (bool, error) {
-		webhook, err := cm.getWebhook(c)
+		webhook, err := cm.getWebhook()
 		if err != nil {
 			return false, errors.Wrap(err, "failed to get cert-manager web-hook")
 		}
@@ -170,8 +162,35 @@ func (cm *certManagerClient) EnsureWebhook() error {
 	return nil
 }
 
+func (cm *certManagerClient) createObj(o unstructured.Unstructured) error {
+	c, err := cm.proxy.NewClient()
+	if err != nil {
+		return err
+	}
+
+	labels := o.GetLabels()
+	if labels == nil {
+		labels = map[string]string{}
+	}
+	labels[clusterctlv1.ClusterctlCoreLabelName] = "cert-manager"
+	o.SetLabels(labels)
+
+	if err = c.Create(ctx, &o); err != nil {
+		if apierrors.IsAlreadyExists(err) {
+			return nil
+		}
+		return errors.Wrapf(err, "failed to create cert-manager component: %s, %s/%s", o.GroupVersionKind(), o.GetNamespace(), o.GetName())
+	}
+	return nil
+}
+
 // getWebhook returns the cert-manager Webhook or nil if it does not exists.
-func (cm *certManagerClient) getWebhook(c client.Client) (*unstructured.Unstructured, error) {
+func (cm *certManagerClient) getWebhook() (*unstructured.Unstructured, error) {
+	c, err := cm.proxy.NewClient()
+	if err != nil {
+		return nil, err
+	}
+
 	webhook := &unstructured.Unstructured{}
 	webhook.SetAPIVersion("apiregistration.k8s.io/v1beta1")
 	webhook.SetKind("APIService")
@@ -195,13 +214,8 @@ func (cm *certManagerClient) getWebhook(c client.Client) (*unstructured.Unstruct
 
 // hasWebhook returns true if there is already a web-hook in the cluster
 func (cm *certManagerClient) hasWebhook() (bool, error) {
-	c, err := cm.proxy.NewClient()
-	if err != nil {
-		return false, err
-	}
-
 	// Checks if the cert-manager web-hook already exists, if yes, no additional images are required
-	webhook, err := cm.getWebhook(c)
+	webhook, err := cm.getWebhook()
 	if err != nil {
 		return false, errors.Wrap(err, "failed to check if the cert-manager web-hook exists")
 	}

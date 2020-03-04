@@ -583,7 +583,7 @@ func (o *objectMover) deleteSourceObject(nodeToDelete *node) error {
 	return nil
 }
 
-func retry(attempts int, interval time.Duration, action func() error) error {
+func retry(attempts int, interval time.Duration, action func() error) error { //nolint:unparam
 	log := logf.Log
 
 	var errorToReturn error
@@ -591,7 +591,7 @@ func retry(attempts int, interval time.Duration, action func() error) error {
 		if err := action(); err != nil {
 			errorToReturn = err
 
-			log.V(5).Info("Operation failed, retry")
+			log.V(5).Info("Operation failed, retry", "Error", err)
 			pause := wait.Jitter(interval, 1)
 			time.Sleep(pause)
 			continue

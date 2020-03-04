@@ -19,6 +19,7 @@ package cluster
 import (
 	"fmt"
 	"strings"
+	"time"
 
 	"github.com/pkg/errors"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
@@ -31,6 +32,11 @@ import (
 	"sigs.k8s.io/cluster-api/cmd/clusterctl/internal/util"
 	logf "sigs.k8s.io/cluster-api/cmd/clusterctl/log"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+)
+
+const (
+	retryCreateComponentObject   = 3
+	retryIntervalComponentObject = 1 * time.Second
 )
 
 type DeleteOptions struct {
@@ -57,45 +63,56 @@ type providerComponents struct {
 }
 
 func (p *providerComponents) Create(objs []unstructured.Unstructured) error {
+	for i := range objs {
+		obj := objs[i]
+
+		// Create the Kubernetes object.
+		// Nb. The operation is wrapped in a retry loop to make Create more resilient to unexpected conditions.
+		if err := retry(retryCreateComponentObject, retryIntervalComponentObject, func() error {
+			return p.createObj(obj)
+		}); err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+func (p *providerComponents) createObj(obj unstructured.Unstructured) error {
 	log := logf.Log
 	c, err := p.proxy.NewClient()
 	if err != nil {
 		return err
 	}
 
-	for i := range objs {
-		obj := objs[i]
+	// check if the component already exists, and eventually update it
+	currentR := &unstructured.Unstructured{}
+	currentR.SetGroupVersionKind(obj.GroupVersionKind())
 
-		// check if the component already exists, and eventually update it
-		currentR := &unstructured.Unstructured{}
-		currentR.SetGroupVersionKind(obj.GroupVersionKind())
-
-		key := client.ObjectKey{
-			Namespace: obj.GetNamespace(),
-			Name:      obj.GetName(),
-		}
-		if err := c.Get(ctx, key, currentR); err != nil {
-			if !apierrors.IsNotFound(err) {
-				return errors.Wrapf(err, "failed to get current provider object")
-			}
-
-			//if it does not exists, create the component
-			log.V(5).Info("Creating", logf.UnstructuredToValues(obj)...)
-			if err := c.Create(ctx, &obj); err != nil {
-				return errors.Wrapf(err, "failed to create provider object %s, %s/%s", obj.GroupVersionKind(), obj.GetNamespace(), obj.GetName())
-			}
-			continue
+	key := client.ObjectKey{
+		Namespace: obj.GetNamespace(),
+		Name:      obj.GetName(),
+	}
+	if err := c.Get(ctx, key, currentR); err != nil {
+		if !apierrors.IsNotFound(err) {
+			return errors.Wrapf(err, "failed to get current provider object")
 		}
 
-		// otherwise update the component
-		// NB. we are using client.Merge PatchOption so the new objects gets compared with the current one server side
-		log.V(5).Info("Patching", logf.UnstructuredToValues(obj)...)
-		obj.SetResourceVersion(currentR.GetResourceVersion())
-		if err := c.Patch(ctx, &obj, client.Merge); err != nil {
-			return errors.Wrapf(err, "failed to patch provider object")
+		//if it does not exists, create the component
+		log.V(5).Info("Creating", logf.UnstructuredToValues(obj)...)
+		if err := c.Create(ctx, &obj); err != nil {
+			return errors.Wrapf(err, "failed to create provider object %s, %s/%s", obj.GroupVersionKind(), obj.GetNamespace(), obj.GetName())
 		}
+		return nil
 	}
 
+	// otherwise update the component
+	// NB. we are using client.Merge PatchOption so the new objects gets compared with the current one server side
+	log.V(5).Info("Patching", logf.UnstructuredToValues(obj)...)
+	obj.SetResourceVersion(currentR.GetResourceVersion())
+	if err := c.Patch(ctx, &obj, client.Merge); err != nil {
+		return errors.Wrapf(err, "failed to patch provider object")
+	}
 	return nil
 }
 

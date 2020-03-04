@@ -36,8 +36,8 @@ func (m *MachineDeployment) SetupWebhookWithManager(mgr ctrl.Manager) error {
 		Complete()
 }
 
-// +kubebuilder:webhook:verbs=create;update,path=/validate-cluster-x-k8s-io-v1alpha3-machinedeployment,mutating=false,failurePolicy=fail,groups=cluster.x-k8s.io,resources=machinedeployments,versions=v1alpha3,name=validation.machinedeployment.cluster.x-k8s.io
-// +kubebuilder:webhook:verbs=create;update,path=/mutate-cluster-x-k8s-io-v1alpha3-machinedeployment,mutating=true,failurePolicy=fail,groups=cluster.x-k8s.io,resources=machinedeployments,versions=v1alpha3,name=default.machinedeployment.cluster.x-k8s.io
+// +kubebuilder:webhook:verbs=create;update,path=/validate-cluster-x-k8s-io-v1alpha3-machinedeployment,mutating=false,failurePolicy=fail,matchPolicy=Equivalent,groups=cluster.x-k8s.io,resources=machinedeployments,versions=v1alpha3,name=validation.machinedeployment.cluster.x-k8s.io
+// +kubebuilder:webhook:verbs=create;update,path=/mutate-cluster-x-k8s-io-v1alpha3-machinedeployment,mutating=true,failurePolicy=fail,matchPolicy=Equivalent,groups=cluster.x-k8s.io,resources=machinedeployments,versions=v1alpha3,name=default.machinedeployment.cluster.x-k8s.io
 
 var _ webhook.Defaulter = &MachineDeployment{}
 var _ webhook.Validator = &MachineDeployment{}

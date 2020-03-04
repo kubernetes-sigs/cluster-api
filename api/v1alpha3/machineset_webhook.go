@@ -35,8 +35,8 @@ func (m *MachineSet) SetupWebhookWithManager(mgr ctrl.Manager) error {
 		Complete()
 }
 
-// +kubebuilder:webhook:verbs=create;update,path=/validate-cluster-x-k8s-io-v1alpha3-machineset,mutating=false,failurePolicy=fail,groups=cluster.x-k8s.io,resources=machinesets,versions=v1alpha3,name=validation.machineset.cluster.x-k8s.io
-// +kubebuilder:webhook:verbs=create;update,path=/mutate-cluster-x-k8s-io-v1alpha3-machineset,mutating=true,failurePolicy=fail,groups=cluster.x-k8s.io,resources=machinesets,versions=v1alpha3,name=default.machineset.cluster.x-k8s.io
+// +kubebuilder:webhook:verbs=create;update,path=/validate-cluster-x-k8s-io-v1alpha3-machineset,mutating=false,failurePolicy=fail,matchPolicy=Equivalent,groups=cluster.x-k8s.io,resources=machinesets,versions=v1alpha3,name=validation.machineset.cluster.x-k8s.io
+// +kubebuilder:webhook:verbs=create;update,path=/mutate-cluster-x-k8s-io-v1alpha3-machineset,mutating=true,failurePolicy=fail,matchPolicy=Equivalent,groups=cluster.x-k8s.io,resources=machinesets,versions=v1alpha3,name=default.machineset.cluster.x-k8s.io
 
 var _ webhook.Defaulter = &MachineSet{}
 var _ webhook.Validator = &MachineSet{}

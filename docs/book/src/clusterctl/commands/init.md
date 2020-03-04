@@ -27,7 +27,7 @@ The `clusterctl init` command automatically adds the `cluster-api` core provider
 the `kubeadm` control-plane provider to the list of providers to install. This allows users to use a concise command syntax for initializing a management cluster. e.g.
 use the command:
 
-`clusterctl init --infrastracture aws`
+`clusterctl init --infrastructure aws`
 
 To get a fully operative management cluster with the `aws` infrastructure provider, the `cluster-api` core provider, the `kubeadm` bootstrap and the `kubeadm` control-plane provider
 

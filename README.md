@@ -36,7 +36,7 @@ API design. Because of this, all of the codebase is rapidly changing.
     - Weekly on Wednesdays @ 10:00 PT on [Zoom][zoomMeeting]
     - Previous meetings: \[ [notes][notes] | [recordings][recordings] \]
 - Provider implementers office hours where you can ask questions related to developing providers for Cluster API
-    - Weekly on Tuesdays @ 12:00 PT ([Zoom](providerZoomMeetingTues)) and Wednesdays @ 15:00 CET ([Zoom](providerZoomMeetingWed))
+    - Weekly on Tuesdays @ 12:00 PT ([Zoom][providerZoomMeetingTues]) and Wednesdays @ 15:00 CET ([Zoom][providerZoomMeetingWed])
     - Previous meetings: \[ [notes][implementerNotes] \]
 
 Pull Requests and feedback on issues are very welcome!

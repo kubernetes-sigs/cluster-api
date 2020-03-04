@@ -1346,5 +1346,5 @@ spec:
 {{#/tabs }}
 
 <!-- links -->
-[control-plane-controller]: ../architecture/controllers/control-plane.md
+[control-plane-controller]: ../developer/architecture/controllers/control-plane.md
 [workload cluster]: ../reference/glossary.md#workload-cluster

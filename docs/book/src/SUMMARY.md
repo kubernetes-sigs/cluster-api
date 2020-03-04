@@ -23,6 +23,7 @@
 - [Developer Guide](./developer/guide.md)
     - [Repository Layout](./developer/repository-layout.md)
     - [Rapid iterative development with Tilt](./developer/tilt.md)
+    - [Testing](./developer/testing.md)
     - [Controllers](./developer/architecture/controllers.md)
         - [Bootstrap](./developer/architecture/controllers/bootstrap.md)
         - [Cluster](./developer/architecture/controllers/cluster.md)

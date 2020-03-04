@@ -1,6 +1,6 @@
 # MachineSet
 
-A MachineSet is an immutable abstraction over [Machines](./machine.html).
+A MachineSet is an immutable abstraction over [Machines](./machine.md).
 
 Its main responsibilities are:
 * Adopting unowned Machines that aren't assigned to a MachineSet

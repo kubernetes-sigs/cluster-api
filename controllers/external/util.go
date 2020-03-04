@@ -26,8 +26,38 @@ import (
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apiserver/pkg/storage/names"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/handler"
+	"sigs.k8s.io/controller-runtime/pkg/source"
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha3"
+	"sigs.k8s.io/controller-runtime/pkg/controller"
+	"sigs.k8s.io/controller-runtime/pkg/event"
+	"sigs.k8s.io/controller-runtime/pkg/predicate"
+)
+
+var (
+	FilterPausedAnnotations = predicate.Funcs{
+		UpdateFunc: func(e event.UpdateEvent) bool {
+			return !IsPaused(nil, e.MetaNew)
+		},
+		CreateFunc: func(e event.CreateEvent) bool {
+			return !IsPaused(nil, e.Meta)
+		},
+		DeleteFunc: func(e event.DeleteEvent) bool {
+			return !IsPaused(nil, e.Meta)
+		},
+	}
+	FilterPausedClusters = predicate.Funcs{
+		UpdateFunc: func(e event.UpdateEvent) bool {
+			return !IsPaused(e.ObjectNew.(*clusterv1.Cluster), e.MetaNew)
+		},
+		CreateFunc: func(e event.CreateEvent) bool {
+			return !IsPaused(e.Object.(*clusterv1.Cluster), e.Meta)
+		},
+		DeleteFunc: func(e event.DeleteEvent) bool {
+			return !IsPaused(e.Object.(*clusterv1.Cluster), e.Meta)
+		},
+	}
 )
 
 const (
@@ -170,4 +200,40 @@ func IsInitialized(obj *unstructured.Unstructured) (bool, error) {
 			obj.GroupVersionKind(), obj.GetName())
 	}
 	return initialized && found, nil
+}
+
+// IsPaused returns true if the Cluster is paused or the object has the `paused` annotation.
+func IsPaused(cluster *clusterv1.Cluster, v metav1.Object) bool {
+	if cluster != nil && cluster.Spec.Paused {
+		return true
+	}
+
+	annotations := v.GetAnnotations()
+	if annotations == nil {
+		return false
+	}
+	_, ok := annotations[clusterv1.PausedAnnotation]
+	return ok
+}
+
+func SetupWatchForUnpausedCluster(controller controller.Controller, requestFunc handler.ToRequestsFunc) error {
+	return controller.Watch(
+		&source.Kind{Type: &clusterv1.Cluster{}},
+		&handler.EnqueueRequestsFromMapFunc{
+			ToRequests: handler.ToRequestsFunc(requestFunc),
+		},
+		predicate.Funcs{
+			UpdateFunc: func(e event.UpdateEvent) bool {
+				oldCluster := e.ObjectOld.(*clusterv1.Cluster)
+				newCluster := e.ObjectNew.(*clusterv1.Cluster)
+				return oldCluster.Spec.Paused && !newCluster.Spec.Paused
+			},
+			CreateFunc: func(e event.CreateEvent) bool {
+				if _, ok := e.Meta.GetAnnotations()[clusterv1.PausedAnnotation]; !ok {
+					return false
+				}
+				return true
+			},
+		},
+	)
 }

@@ -29,6 +29,7 @@ import (
 	kerrors "k8s.io/apimachinery/pkg/util/errors"
 	"k8s.io/client-go/tools/record"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha3"
+	"sigs.k8s.io/cluster-api/controllers/external"
 	"sigs.k8s.io/cluster-api/util"
 	"sigs.k8s.io/cluster-api/util/patch"
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -66,6 +67,7 @@ func (r *MachineDeploymentReconciler) SetupWithManager(mgr ctrl.Manager, options
 			&handler.EnqueueRequestsFromMapFunc{ToRequests: handler.ToRequestsFunc(r.MachineSetToDeployments)},
 		).
 		WithOptions(options).
+		WithEventFilter(external.FilterPausedAnnotations).
 		Complete(r)
 
 	if err != nil {

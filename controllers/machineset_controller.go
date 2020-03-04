@@ -82,6 +82,7 @@ func (r *MachineSetReconciler) SetupWithManager(mgr ctrl.Manager, options contro
 			&source.Kind{Type: &clusterv1.Machine{}},
 			&handler.EnqueueRequestsFromMapFunc{ToRequests: handler.ToRequestsFunc(r.MachineToMachineSets)},
 		).
+		WithEventFilter(external.FilterPausedAnnotations).
 		WithOptions(options).
 		Complete(r)
 

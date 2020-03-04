@@ -106,6 +106,7 @@ func (r *KubeadmControlPlaneReconciler) SetupWithManager(mgr ctrl.Manager, optio
 			&source.Kind{Type: &clusterv1.Cluster{}},
 			&handler.EnqueueRequestsFromMapFunc{ToRequests: handler.ToRequestsFunc(r.ClusterToKubeadmControlPlane)},
 		).
+		WithEventFilter(external.FilterPausedAnnotations).
 		WithOptions(options).
 		Build(r)
 

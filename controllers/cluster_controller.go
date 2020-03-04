@@ -72,10 +72,12 @@ type ClusterReconciler struct {
 func (r *ClusterReconciler) SetupWithManager(mgr ctrl.Manager, options controller.Options) error {
 	controller, err := ctrl.NewControllerManagedBy(mgr).
 		For(&clusterv1.Cluster{}).
+		WithEventFilter(external.FilterPausedClusters).
 		Watches(
 			&source.Kind{Type: &clusterv1.Machine{}},
 			&handler.EnqueueRequestsFromMapFunc{ToRequests: handler.ToRequestsFunc(r.controlPlaneMachineToCluster)},
 		).
+		WithEventFilter(external.FilterPausedAnnotations).
 		WithOptions(options).
 		Build(r)
 

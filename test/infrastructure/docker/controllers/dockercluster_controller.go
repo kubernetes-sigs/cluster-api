@@ -158,5 +158,6 @@ func (r *DockerClusterReconciler) SetupWithManager(mgr ctrl.Manager) error {
 				ToRequests: util.ClusterToInfrastructureMapFunc(infrav1.GroupVersion.WithKind("DockerCluster")),
 			},
 		).
+		WithEventFilter(util.external.FilterPausedAnnotations).
 		Complete(r)
 }

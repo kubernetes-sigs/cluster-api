@@ -64,6 +64,7 @@ func (r *MachinePoolReconciler) SetupWithManager(mgr ctrl.Manager, options contr
 	c, err := ctrl.NewControllerManagedBy(mgr).
 		For(&clusterv1.MachinePool{}).
 		WithOptions(options).
+		WithEventFilter(external.FilterPausedAnnotations).
 		Build(r)
 	if err != nil {
 		return errors.Wrap(err, "failed setting up with a controller manager")

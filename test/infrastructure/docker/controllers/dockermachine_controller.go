@@ -261,6 +261,7 @@ func (r *DockerMachineReconciler) SetupWithManager(mgr ctrl.Manager, options con
 			},
 		).
 		WithOptions(options).
+		WithEventFilter(util.external.FilterPausedAnnotations).
 		Complete(r)
 }
 

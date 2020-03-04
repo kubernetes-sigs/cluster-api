@@ -107,6 +107,7 @@ func (r *KubeadmConfigReconciler) SetupWithManager(mgr ctrl.Manager, option cont
 				ToRequests: handler.ToRequestsFunc(r.ClusterToKubeadmConfigs),
 			},
 		).
+		WithEventFilter(util.external.FilterPausedAnnotations).
 		WithOptions(option).
 		Complete(r)
 

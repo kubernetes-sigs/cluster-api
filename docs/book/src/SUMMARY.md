@@ -9,6 +9,7 @@
     - [Certificate Management](./tasks/certs/index.md)
         - [Using Custom Certificates](./tasks/certs/using-custom-certificates.md)
         - [Generating a Kubeconfig](./tasks/certs/generate-kubeconfig.md)
+    - [Upgrade](./tasks/upgrade.md)
 - [clusterctl CLI](./clusterctl/overview.md)
     - [clusterctl Commands](clusterctl/commands/commands.md)
         - [init](clusterctl/commands/init.md)

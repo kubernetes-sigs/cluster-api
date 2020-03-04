@@ -465,7 +465,7 @@ func (r *MachineReconciler) reconcileDeleteExternal(ctx context.Context, m *clus
 }
 
 func (r *MachineReconciler) shouldAdopt(m *clusterv1.Machine) bool {
-	return !util.HasOwner(m.OwnerReferences, clusterv1.GroupVersion.String(), []string{"MachineSet", "Cluster"})
+	return metav1.GetControllerOf(m) == nil && !util.HasOwner(m.OwnerReferences, clusterv1.GroupVersion.String(), []string{"Cluster"})
 }
 
 // writer implements io.Writer interface as a pass-through for klog.

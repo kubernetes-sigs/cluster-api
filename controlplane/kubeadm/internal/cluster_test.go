@@ -103,7 +103,7 @@ func TestControlPlaneIsHealthy(t *testing.T) {
 			},
 		},
 	}
-	workloadCluster := &Cluster{
+	workloadCluster := &Workload{
 		Client: &fakeClient{
 			list: nodeListForTestControlPlaneIsHealthy(),
 			get: map[string]interface{}{
@@ -117,7 +117,7 @@ func TestControlPlaneIsHealthy(t *testing.T) {
 		},
 	}
 
-	health, err := workloadCluster.controlPlaneIsHealthy(context.Background())
+	health, err := workloadCluster.ControlPlaneIsHealthy(context.Background())
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -148,7 +148,7 @@ func nodeListForTestControlPlaneIsHealthy() *corev1.NodeList {
 }
 
 func TestGetMachinesForCluster(t *testing.T) {
-	m := ManagementCluster{Client: &fakeClient{
+	m := Management{Client: &fakeClient{
 		list: machineListForTestGetMachinesForCluster(),
 	}}
 	clusterKey := client.ObjectKey{
@@ -283,8 +283,8 @@ func TestManagementCluster_healthCheck_NoError(t *testing.T) {
 					controlPlaneMachine("three"),
 				},
 			},
-			check: func(ctx context.Context) (healthCheckResult, error) {
-				return healthCheckResult{
+			check: func(ctx context.Context) (HealthCheckResult, error) {
+				return HealthCheckResult{
 					"one":   nil,
 					"two":   nil,
 					"three": nil,
@@ -297,7 +297,7 @@ func TestManagementCluster_healthCheck_NoError(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			ctx := context.Background()
-			m := &ManagementCluster{
+			m := &Management{
 				Client: &fakeClient{list: tt.machineList},
 			}
 			if err := m.healthCheck(ctx, tt.check, tt.clusterKey, tt.controlPlaneName); err != nil {
@@ -327,8 +327,8 @@ func TestManagementCluster_healthCheck_Errors(t *testing.T) {
 					controlPlaneMachine("three"),
 				},
 			},
-			check: func(ctx context.Context) (healthCheckResult, error) {
-				return healthCheckResult{
+			check: func(ctx context.Context) (HealthCheckResult, error) {
+				return HealthCheckResult{
 					"one": nil,
 				}, nil
 			},
@@ -342,8 +342,8 @@ func TestManagementCluster_healthCheck_Errors(t *testing.T) {
 					controlPlaneMachine("three"),
 				},
 			},
-			check: func(ctx context.Context) (healthCheckResult, error) {
-				return healthCheckResult{
+			check: func(ctx context.Context) (HealthCheckResult, error) {
+				return HealthCheckResult{
 					"one":   nil,
 					"two":   errors.New("two"),
 					"three": errors.New("three"),
@@ -360,8 +360,8 @@ func TestManagementCluster_healthCheck_Errors(t *testing.T) {
 					controlPlaneMachine("three"),
 				},
 			},
-			check: func(ctx context.Context) (healthCheckResult, error) {
-				return healthCheckResult{
+			check: func(ctx context.Context) (HealthCheckResult, error) {
+				return HealthCheckResult{
 					"one":   nil,
 					"two":   errors.New("two"),
 					"three": errors.New("three"),
@@ -376,8 +376,8 @@ func TestManagementCluster_healthCheck_Errors(t *testing.T) {
 					controlPlaneMachine("one"),
 				},
 			},
-			check: func(ctx context.Context) (healthCheckResult, error) {
-				return healthCheckResult{
+			check: func(ctx context.Context) (HealthCheckResult, error) {
+				return HealthCheckResult{
 					"one":   nil,
 					"two":   nil,
 					"three": nil,
@@ -393,8 +393,8 @@ func TestManagementCluster_healthCheck_Errors(t *testing.T) {
 					nilNodeRef(controlPlaneMachine("three")),
 				},
 			},
-			check: func(ctx context.Context) (healthCheckResult, error) {
-				return healthCheckResult{
+			check: func(ctx context.Context) (HealthCheckResult, error) {
+				return HealthCheckResult{
 					"one":   nil,
 					"two":   nil,
 					"three": nil,
@@ -408,7 +408,7 @@ func TestManagementCluster_healthCheck_Errors(t *testing.T) {
 			clusterKey := client.ObjectKey{Namespace: "default", Name: "cluster-name"}
 			controlPlaneName := "control-plane-name"
 
-			m := &ManagementCluster{
+			m := &Management{
 				Client: &fakeClient{list: tt.machineList},
 			}
 			err := m.healthCheck(ctx, tt.check, clusterKey, controlPlaneName)
@@ -456,7 +456,7 @@ func TestRemoveMemberForNode_ErrControlPlaneMinNodes(t *testing.T) {
 	t.Run("do not remove the etcd member if the cluster has fewer than 2 control plane nodes", func(t *testing.T) {
 		expectedErr := ErrControlPlaneMinNodes
 
-		workloadCluster := &Cluster{
+		workloadCluster := &Workload{
 			Client: &fakeClient{
 				list: &corev1.NodeList{
 					Items: []corev1.Node{

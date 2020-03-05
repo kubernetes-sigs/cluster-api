@@ -57,7 +57,7 @@ func TestCluster_ReconcileKubeletRBACBinding_NoError(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			c := &Cluster{
+			c := &Workload{
 				Client: tt.client,
 			}
 			if err := c.ReconcileKubeletRBACBinding(ctx, semver.MustParse("1.12.3")); err != nil {
@@ -92,7 +92,7 @@ func TestCluster_ReconcileKubeletRBACBinding_Error(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			c := &Cluster{
+			c := &Workload{
 				Client: tt.client,
 			}
 			if err := c.ReconcileKubeletRBACBinding(ctx, semver.MustParse("1.12.3")); err == nil {

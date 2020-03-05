@@ -68,13 +68,6 @@ const (
 	DependentCertRequeueAfter = 30 * time.Second
 )
 
-type managementCluster interface {
-	GetMachinesForCluster(ctx context.Context, cluster client.ObjectKey, filters ...internal.MachineFilter) (internal.FilterableMachineCollection, error)
-	GetWorkloadCluster(ctx context.Context, cluster client.ObjectKey) (*internal.Cluster, error)
-	TargetClusterEtcdIsHealthy(ctx context.Context, clusterKey client.ObjectKey, controlPlaneName string) error
-	TargetClusterControlPlaneIsHealthy(ctx context.Context, clusterKey client.ObjectKey, controlPlaneName string) error
-}
-
 // +kubebuilder:rbac:groups=core,resources=events,verbs=get;list;watch;create;patch
 // +kubebuilder:rbac:groups=core,resources=secrets,verbs=get;list;watch;create;patch
 // +kubebuilder:rbac:groups=core,resources=configmaps,namespace=kube-system,verbs=get;list;watch;create
@@ -92,7 +85,7 @@ type KubeadmControlPlaneReconciler struct {
 	controller controller.Controller
 	recorder   record.EventRecorder
 
-	managementCluster managementCluster
+	managementCluster internal.ManagementCluster
 }
 
 func (r *KubeadmControlPlaneReconciler) SetupWithManager(mgr ctrl.Manager, options controller.Options) error {
@@ -115,7 +108,7 @@ func (r *KubeadmControlPlaneReconciler) SetupWithManager(mgr ctrl.Manager, optio
 	r.recorder = mgr.GetEventRecorderFor("kubeadm-control-plane-controller")
 
 	if r.managementCluster == nil {
-		r.managementCluster = &internal.ManagementCluster{Client: r.Client}
+		r.managementCluster = &internal.Management{Client: r.Client}
 	}
 
 	return nil
@@ -342,10 +335,25 @@ func (r *KubeadmControlPlaneReconciler) upgradeControlPlane(ctx context.Context,
 		return ctrl.Result{}, err
 	}
 
-	// Reconcile the remote cluster's configuration necessary for upgrade
-	if err := r.reconcileConfiguration(ctx, kcp.Spec.Version, workloadCluster); err != nil {
-		logger.Error(err, "failed reconcile remote cluster configuration for upgrade")
-		return ctrl.Result{}, err
+	parsedVersion, err := semver.ParseTolerant(kcp.Spec.Version)
+	if err != nil {
+		return ctrl.Result{}, errors.Wrapf(err, "failed to parse kubernetes version %q", kcp.Spec.Version)
+	}
+
+	if err := workloadCluster.ReconcileKubeletRBACRole(ctx, parsedVersion); err != nil {
+		return ctrl.Result{}, errors.Wrap(err, "failed to reconcile the remote kubelet RBAC role")
+	}
+
+	if err := workloadCluster.ReconcileKubeletRBACBinding(ctx, parsedVersion); err != nil {
+		return ctrl.Result{}, errors.Wrap(err, "failed to reconcile the remote kubelet RBAC binding")
+	}
+
+	if err := workloadCluster.UpdateKubernetesVersionInKubeadmConfigMap(ctx, kcp.Spec.Version); err != nil {
+		return ctrl.Result{}, errors.Wrap(err, "failed to update the kubernetes version in the kubeadm config map")
+	}
+
+	if err := workloadCluster.UpdateKubeletConfigMap(ctx, parsedVersion); err != nil {
+		return ctrl.Result{}, errors.Wrap(err, "failed to upgrade kubelet config map")
 	}
 
 	// If there is not already a Machine that is marked for upgrade, find one and mark it
@@ -375,32 +383,6 @@ func (r *KubeadmControlPlaneReconciler) upgradeControlPlane(ctx context.Context,
 	}
 
 	return r.scaleDownControlPlane(ctx, cluster, kcp, replacementCreated)
-}
-
-// reconcileConfiguration will update the remote cluster's system configurations in preparation for an upgrade.
-func (r *KubeadmControlPlaneReconciler) reconcileConfiguration(ctx context.Context, version string, workloadCluster *internal.Cluster) error {
-	parsedVersion, err := semver.ParseTolerant(version)
-	if err != nil {
-		return errors.Wrapf(err, "failed to parse kubernetes version %q", version)
-	}
-
-	if err := workloadCluster.ReconcileKubeletRBACRole(ctx, parsedVersion); err != nil {
-		return errors.Wrap(err, "failed to reconcile the remote kubelet RBAC role")
-	}
-
-	if err := workloadCluster.ReconcileKubeletRBACBinding(ctx, parsedVersion); err != nil {
-		return errors.Wrap(err, "failed to reconcile the remote kubelet RBAC binding")
-	}
-
-	if err := workloadCluster.UpdateKubernetesVersionInKubeadmConfigMap(ctx, version); err != nil {
-		return errors.Wrap(err, "failed to update the kubernetes version in the kubeadm config map")
-	}
-
-	if err := workloadCluster.UpdateKubeletConfigMap(ctx, parsedVersion); err != nil {
-		return errors.Wrap(err, "failed to upgrade kubelet config map")
-	}
-
-	return nil
 }
 
 func (r *KubeadmControlPlaneReconciler) markWithAnnotationKey(ctx context.Context, machine *clusterv1.Machine, annotationKey string) error {

@@ -34,14 +34,22 @@ import (
 	"sigs.k8s.io/cluster-api/util/secret"
 )
 
-// ManagementCluster holds operations on the ManagementCluster.
-type ManagementCluster struct {
+// ManagementCluster defines all behaviors necessary for something to function as a management cluster.
+type ManagementCluster interface {
+	GetMachinesForCluster(ctx context.Context, cluster client.ObjectKey, filters ...MachineFilter) (FilterableMachineCollection, error)
+	TargetClusterEtcdIsHealthy(ctx context.Context, clusterKey client.ObjectKey, controlPlaneName string) error
+	TargetClusterControlPlaneIsHealthy(ctx context.Context, clusterKey client.ObjectKey, controlPlaneName string) error
+	GetWorkloadCluster(ctx context.Context, clusterKey client.ObjectKey) (WorkloadCluster, error)
+}
+
+// Management holds operations on the management cluster.
+type Management struct {
 	Client ctrlclient.Client
 }
 
 // GetMachinesForCluster returns a list of machines that can be filtered or not.
 // If no filter is supplied then all machines associated with the target cluster are returned.
-func (m *ManagementCluster) GetMachinesForCluster(ctx context.Context, cluster client.ObjectKey, filters ...MachineFilter) (FilterableMachineCollection, error) {
+func (m *Management) GetMachinesForCluster(ctx context.Context, cluster client.ObjectKey, filters ...MachineFilter) (FilterableMachineCollection, error) {
 	selector := map[string]string{
 		clusterv1.ClusterLabelName: cluster.Name,
 	}
@@ -55,10 +63,11 @@ func (m *ManagementCluster) GetMachinesForCluster(ctx context.Context, cluster c
 }
 
 // GetWorkloadCluster builds a cluster object.
-// The cluster comes with an etcd Client generator to connect to any etcd pod living on a managed machine.
-func (m *ManagementCluster) GetWorkloadCluster(ctx context.Context, clusterKey client.ObjectKey) (*Cluster, error) {
+// The cluster comes with an etcd client generator to connect to any etcd pod living on a managed machine.
+func (m *Management) GetWorkloadCluster(ctx context.Context, clusterKey client.ObjectKey) (WorkloadCluster, error) {
 	// TODO(chuckha): Unroll remote.NewClusterClient if we are unhappy with getting a restConfig twice.
 	// TODO(chuckha): Inject this dependency.
+	// TODO(chuckha): memoize this function. The workload client only exists as long as a reconciliation loop.
 	restConfig, err := remote.RESTConfig(ctx, m.Client, clusterKey)
 	if err != nil {
 		return nil, err
@@ -68,56 +77,48 @@ func (m *ManagementCluster) GetWorkloadCluster(ctx context.Context, clusterKey c
 	if err != nil {
 		return nil, err
 	}
-	etcdCACert, etcdCAKey, err := m.GetEtcdCerts(ctx, clusterKey)
-	if err != nil {
-		return nil, err
+	etcdCASecret := &corev1.Secret{}
+	etcdCAObjectKey := ctrlclient.ObjectKey{
+		Namespace: clusterKey.Namespace,
+		Name:      fmt.Sprintf("%s-etcd", clusterKey.Name),
 	}
-	clientCert, err := generateClientCert(etcdCACert, etcdCAKey)
+	if err := m.Client.Get(ctx, etcdCAObjectKey, etcdCASecret); err != nil {
+		return nil, errors.Wrapf(err, "failed to get secret; etcd CA bundle %s/%s", etcdCAObjectKey.Namespace, etcdCAObjectKey.Name)
+	}
+	crtData, ok := etcdCASecret.Data[secret.TLSCrtDataName]
+	if !ok {
+		return nil, errors.Errorf("etcd tls crt does not exist for cluster %s/%s", clusterKey.Namespace, clusterKey.Name)
+	}
+	keyData, ok := etcdCASecret.Data[secret.TLSKeyDataName]
+	if !ok {
+		return nil, errors.Errorf("etcd tls key does not exist for cluster %s/%s", clusterKey.Namespace, clusterKey.Name)
+	}
+
+	clientCert, err := generateClientCert(crtData, keyData)
 	if err != nil {
 		return nil, err
 	}
 	caPool := x509.NewCertPool()
-	caPool.AppendCertsFromPEM(etcdCACert)
+	caPool.AppendCertsFromPEM(crtData)
 	cfg := &tls.Config{
 		RootCAs:      caPool,
 		Certificates: []tls.Certificate{clientCert},
 	}
 
-	return &Cluster{
+	return &Workload{
 		Client: c,
-		EtcdClientGenerator: &etcdClientGenerator{
+		etcdClientGenerator: &etcdClientGenerator{
 			restConfig: restConfig,
 			tlsConfig:  cfg,
 		},
 	}, nil
 }
 
-// GetEtcdCerts returns the EtcdCA Cert and Key for a given cluster.
-func (m *ManagementCluster) GetEtcdCerts(ctx context.Context, cluster client.ObjectKey) ([]byte, []byte, error) {
-	etcdCASecret := &corev1.Secret{}
-	etcdCAObjectKey := client.ObjectKey{
-		Namespace: cluster.Namespace,
-		Name:      fmt.Sprintf("%s-etcd", cluster.Name),
-	}
-	if err := m.Client.Get(ctx, etcdCAObjectKey, etcdCASecret); err != nil {
-		return nil, nil, errors.Wrapf(err, "failed to get secret; etcd CA bundle %s/%s", etcdCAObjectKey.Namespace, etcdCAObjectKey.Name)
-	}
-	crtData, ok := etcdCASecret.Data[secret.TLSCrtDataName]
-	if !ok {
-		return nil, nil, errors.Errorf("etcd tls crt does not exist for cluster %s/%s", cluster.Namespace, cluster.Name)
-	}
-	keyData, ok := etcdCASecret.Data[secret.TLSKeyDataName]
-	if !ok {
-		return nil, nil, errors.Errorf("etcd tls key does not exist for cluster %s/%s", cluster.Namespace, cluster.Name)
-	}
-	return crtData, keyData, nil
-}
+type healthCheck func(context.Context) (HealthCheckResult, error)
 
-type healthCheck func(context.Context) (healthCheckResult, error)
-
-// healthCheck will run a generic health check function and report any errors discovered.
-// It does some additional validation to make sure there is a 1;1 match between nodes and machines.
-func (m *ManagementCluster) healthCheck(ctx context.Context, check healthCheck, clusterKey client.ObjectKey, controlPlaneName string) error {
+// HealthCheck will run a generic health check function and report any errors discovered.
+// In addition to the health check, it also ensures there is a 1;1 match between nodes and machines.
+func (m *Management) healthCheck(ctx context.Context, check healthCheck, clusterKey client.ObjectKey, controlPlaneName string) error {
 	var errorList []error
 	nodeChecks, err := check(ctx)
 	if err != nil {
@@ -155,21 +156,21 @@ func (m *ManagementCluster) healthCheck(ctx context.Context, check healthCheck, 
 }
 
 // TargetClusterControlPlaneIsHealthy checks every node for control plane health.
-func (m *ManagementCluster) TargetClusterControlPlaneIsHealthy(ctx context.Context, clusterKey client.ObjectKey, controlPlaneName string) error {
+func (m *Management) TargetClusterControlPlaneIsHealthy(ctx context.Context, clusterKey client.ObjectKey, controlPlaneName string) error {
 	// TODO: add checks for expected taints/labels
 	cluster, err := m.GetWorkloadCluster(ctx, clusterKey)
 	if err != nil {
 		return err
 	}
-	return m.healthCheck(ctx, cluster.controlPlaneIsHealthy, clusterKey, controlPlaneName)
+	return m.healthCheck(ctx, cluster.ControlPlaneIsHealthy, clusterKey, controlPlaneName)
 }
 
 // TargetClusterEtcdIsHealthy runs a series of checks over a target cluster's etcd cluster.
 // In addition, it verifies that there are the same number of etcd members as control plane Machines.
-func (m *ManagementCluster) TargetClusterEtcdIsHealthy(ctx context.Context, clusterKey client.ObjectKey, controlPlaneName string) error {
+func (m *Management) TargetClusterEtcdIsHealthy(ctx context.Context, clusterKey client.ObjectKey, controlPlaneName string) error {
 	cluster, err := m.GetWorkloadCluster(ctx, clusterKey)
 	if err != nil {
 		return err
 	}
-	return m.healthCheck(ctx, cluster.etcdIsHealthy, clusterKey, controlPlaneName)
+	return m.healthCheck(ctx, cluster.EtcdIsHealthy, clusterKey, controlPlaneName)
 }

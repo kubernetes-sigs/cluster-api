@@ -48,6 +48,7 @@ RELEASE_NOTES_BIN := bin/release-notes
 RELEASE_NOTES := $(TOOLS_DIR)/$(RELEASE_NOTES_BIN)
 LINK_CHECKER_BIN := bin/liche
 LINK_CHECKER := $(TOOLS_DIR)/$(LINK_CHECKER_BIN)
+CLUSTERCTL_E2E_DIR := cmd/clusterctl/test/e2e
 
 # Binaries.
 # Need to use abspath so we can invoke these from subdirectories
@@ -203,6 +204,7 @@ generate: ## Generate code
 	$(MAKE) generate-manifests
 	$(MAKE) generate-go
 	$(MAKE) generate-bindata
+	$(MAKE) -C test/infrastructure/docker generate
 
 .PHONY: generate-go
 generate-go: ## Runs Go related generate targets
@@ -246,7 +248,7 @@ generate-bindata: $(KUSTOMIZE) $(GOBINDATA) clean-bindata ## Generate code for e
 	# Fetch the cert-manager manifest
 	curl -sL https://github.com/jetstack/cert-manager/releases/download/v0.11.0/cert-manager.yaml > "$(GOBINDATA_CLUSTERCTL_DIR)/manifest/${CERTMANAGER_COMPONENTS_GENERATED_FILE}"
 	# Generate go-bindata, add boilerplate, then cleanup.
-	$(GOBINDATA) -modtime=1 -pkg=config -o=$(GOBINDATA_CLUSTERCTL_DIR)/zz_generated.bindata.go $(GOBINDATA_CLUSTERCTL_DIR)/manifest/
+	$(GOBINDATA) -mode=420 -modtime=1 -pkg=config -o=$(GOBINDATA_CLUSTERCTL_DIR)/zz_generated.bindata.go $(GOBINDATA_CLUSTERCTL_DIR)/manifest/
 	cat ./hack/boilerplate/boilerplate.generatego.txt $(GOBINDATA_CLUSTERCTL_DIR)/zz_generated.bindata.go > $(GOBINDATA_CLUSTERCTL_DIR)/manifest/manifests.go
 	cp $(GOBINDATA_CLUSTERCTL_DIR)/manifest/manifests.go $(GOBINDATA_CLUSTERCTL_DIR)/zz_generated.bindata.go
 	# Cleanup the manifest folder.
@@ -306,7 +308,8 @@ generate-kubeadm-control-plane-manifests: $(CONTROLLER_GEN) ## Generate manifest
 modules: ## Runs go mod to ensure modules are up to date.
 	go mod tidy
 	cd $(TOOLS_DIR); go mod tidy
-	cd $(CAPD_DIR); $(MAKE) modules
+	$(MAKE) -C $(CAPD_DIR) modules
+	$(MAKE) -C $(CLUSTERCTL_E2E_DIR) modules
 
 ## --------------------------------------
 ## Docker
@@ -537,7 +540,7 @@ verify-modules: modules
 		git diff; \
 		echo "go module files are out of date"; exit 1; \
 	fi
-	@if (find . -name 'go.mod' -print0 | xargs -n1 grep -q -i 'k8s.io/client-go.*+incompatible'); then \
+	@if (find . -name 'go.mod' | xargs -n1 grep -q -i 'k8s.io/client-go.*+incompatible'); then \
 		find . -name "go.mod" -exec grep -i 'k8s.io/client-go.*+incompatible' {} \; -print; \
 		echo "go module contains an incompatible client-go version"; exit 1; \
 	fi

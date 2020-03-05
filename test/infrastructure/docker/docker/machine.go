@@ -226,7 +226,15 @@ func (m *Machine) getKubectlNode() (*types.Node, error) {
 	if len(kubectlNodes) == 0 {
 		return nil, nil
 	}
-
+	// Return the first node that is not the current machine.
+	// The assumption being made is that the existing control planes will already be ready.
+	// This is true when we are using kubeadm control plane.
+	for _, node := range kubectlNodes {
+		if node.Name != m.container.Name {
+			return node, nil
+		}
+	}
+	// This will happen when the current machine is the only machine.
 	return kubectlNodes[0], nil
 }
 

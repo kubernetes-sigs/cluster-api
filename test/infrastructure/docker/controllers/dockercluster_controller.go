@@ -103,14 +103,14 @@ func (r *DockerClusterReconciler) Reconcile(req ctrl.Request) (_ ctrl.Result, re
 
 	// Handle deleted clusters
 	if !dockerCluster.DeletionTimestamp.IsZero() {
-		return reconcileDelete(dockerCluster, externalLoadBalancer)
+		return reconcileDelete(ctx, dockerCluster, externalLoadBalancer)
 	}
 
 	// Handle non-deleted clusters
-	return reconcileNormal(dockerCluster, externalLoadBalancer)
+	return reconcileNormal(ctx, dockerCluster, externalLoadBalancer)
 }
 
-func reconcileNormal(dockerCluster *infrav1.DockerCluster, externalLoadBalancer *docker.LoadBalancer) (ctrl.Result, error) {
+func reconcileNormal(ctx context.Context, dockerCluster *infrav1.DockerCluster, externalLoadBalancer *docker.LoadBalancer) (ctrl.Result, error) {
 	// If the DockerCluster doesn't have finalizer, add it.
 	controllerutil.AddFinalizer(dockerCluster, infrav1.ClusterFinalizer)
 
@@ -120,7 +120,7 @@ func reconcileNormal(dockerCluster *infrav1.DockerCluster, externalLoadBalancer 
 	}
 
 	// Set APIEndpoints with the load balancer IP so the Cluster API Cluster Controller can pull it
-	lbip4, err := externalLoadBalancer.IP()
+	lbip4, err := externalLoadBalancer.IP(ctx)
 	if err != nil {
 		return ctrl.Result{}, errors.Wrap(err, "failed to get ip for the load balancer")
 	}
@@ -136,9 +136,9 @@ func reconcileNormal(dockerCluster *infrav1.DockerCluster, externalLoadBalancer 
 	return ctrl.Result{}, nil
 }
 
-func reconcileDelete(dockerCluster *infrav1.DockerCluster, externalLoadBalancer *docker.LoadBalancer) (ctrl.Result, error) {
+func reconcileDelete(ctx context.Context, dockerCluster *infrav1.DockerCluster, externalLoadBalancer *docker.LoadBalancer) (ctrl.Result, error) {
 	// Delete the docker container hosting the load balancer
-	if err := externalLoadBalancer.Delete(); err != nil {
+	if err := externalLoadBalancer.Delete(ctx); err != nil {
 		return ctrl.Result{}, errors.Wrap(err, "failed to delete load balancer")
 	}
 

@@ -17,6 +17,7 @@ limitations under the License.
 package docker
 
 import (
+	"context"
 	"fmt"
 
 	"github.com/go-logr/logr"
@@ -91,7 +92,7 @@ func (s *LoadBalancer) Create() error {
 }
 
 // UpdateConfiguration updates the external load balancer configuration with new control plane nodes.
-func (s *LoadBalancer) UpdateConfiguration() error {
+func (s *LoadBalancer) UpdateConfiguration(ctx context.Context) error {
 	if s.container == nil {
 		return errors.New("unable to configure load balancer: load balancer container does not exists")
 	}
@@ -107,7 +108,7 @@ func (s *LoadBalancer) UpdateConfiguration() error {
 
 	var backendServers = map[string]string{}
 	for _, n := range controlPlaneNodes {
-		controlPlaneIPv4, _, err := n.IP()
+		controlPlaneIPv4, _, err := n.IP(ctx)
 		if err != nil {
 			return errors.Wrapf(err, "failed to get IP for container %s", n.String())
 		}
@@ -124,16 +125,16 @@ func (s *LoadBalancer) UpdateConfiguration() error {
 	}
 
 	s.log.Info("Updating load balancer configuration")
-	if err := s.container.WriteFile(loadbalancer.ConfigPath, loadBalancerConfig); err != nil {
+	if err := s.container.WriteFile(ctx, loadbalancer.ConfigPath, loadBalancerConfig); err != nil {
 		return errors.WithStack(err)
 	}
 
-	return errors.WithStack(s.container.Kill("SIGHUP"))
+	return errors.WithStack(s.container.Kill(ctx, "SIGHUP"))
 }
 
 // IP returns the load balancer IP address
-func (s *LoadBalancer) IP() (string, error) {
-	lbip4, _, err := s.container.IP()
+func (s *LoadBalancer) IP(ctx context.Context) (string, error) {
+	lbip4, _, err := s.container.IP(ctx)
 	if err != nil {
 		return "", errors.WithStack(err)
 	}
@@ -141,10 +142,10 @@ func (s *LoadBalancer) IP() (string, error) {
 }
 
 // Delete the docker container hosting the cluster load balancer.
-func (s *LoadBalancer) Delete() error {
+func (s *LoadBalancer) Delete(ctx context.Context) error {
 	if s.container != nil {
 		s.log.Info("Deleting load balancer container")
-		if err := s.container.Delete(); err != nil {
+		if err := s.container.Delete(ctx); err != nil {
 			return err
 		}
 		s.container = nil

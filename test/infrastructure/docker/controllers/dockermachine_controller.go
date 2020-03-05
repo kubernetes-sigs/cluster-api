@@ -20,6 +20,7 @@ import (
 	"context"
 	"encoding/base64"
 	"fmt"
+	"time"
 
 	"github.com/go-logr/logr"
 	"github.com/pkg/errors"
@@ -144,7 +145,7 @@ func (r *DockerMachineReconciler) Reconcile(req ctrl.Request) (_ ctrl.Result, re
 
 	// Handle deleted machines
 	if !dockerMachine.ObjectMeta.DeletionTimestamp.IsZero() {
-		return r.reconcileDelete(machine, dockerMachine, externalMachine, externalLoadBalancer)
+		return r.reconcileDelete(ctx, machine, dockerMachine, externalMachine, externalLoadBalancer)
 	}
 
 	// Handle non-deleted machines
@@ -175,13 +176,13 @@ func (r *DockerMachineReconciler) reconcileNormal(ctx context.Context, machine *
 		role = constants.ControlPlaneNodeRoleValue
 	}
 
-	if err := externalMachine.Create(role, machine.Spec.Version); err != nil {
+	if err := externalMachine.Create(ctx, role, machine.Spec.Version); err != nil {
 		return ctrl.Result{}, errors.Wrap(err, "failed to create worker DockerMachine")
 	}
 
 	// if the machine is a control plane added, update the load balancer configuration
 	if util.IsControlPlaneMachine(machine) {
-		if err := externalLoadBalancer.UpdateConfiguration(); err != nil {
+		if err := externalLoadBalancer.UpdateConfiguration(ctx); err != nil {
 			return ctrl.Result{}, errors.Wrap(err, "failed to update DockerCluster.loadbalancer configuration")
 		}
 	}
@@ -192,13 +193,15 @@ func (r *DockerMachineReconciler) reconcileNormal(ctx context.Context, machine *
 		return ctrl.Result{}, nil
 	}
 
+	timeoutctx, cancel := context.WithTimeout(ctx, 3*time.Minute)
+	defer cancel()
 	// Run the bootstrap script. Simulates cloud-init.
-	if err := externalMachine.ExecBootstrap(bootstrapData); err != nil {
+	if err := externalMachine.ExecBootstrap(timeoutctx, bootstrapData); err != nil {
 		return ctrl.Result{}, errors.Wrap(err, "failed to exec DockerMachine bootstrap")
 	}
 
 	// Usually a cloud provider will do this, but there is no docker-cloud provider.
-	if err := externalMachine.SetNodeProviderID(); err != nil {
+	if err := externalMachine.SetNodeProviderID(ctx); err != nil {
 		return ctrl.Result{}, errors.Wrap(err, "failed to patch the Kubernetes node with the machine providerID")
 	}
 
@@ -210,23 +213,25 @@ func (r *DockerMachineReconciler) reconcileNormal(ctx context.Context, machine *
 	return ctrl.Result{}, nil
 }
 
-func (r *DockerMachineReconciler) reconcileDelete(machine *clusterv1.Machine, dockerMachine *infrav1.DockerMachine, externalMachine *docker.Machine, externalLoadBalancer *docker.LoadBalancer) (ctrl.Result, error) {
+func (r *DockerMachineReconciler) reconcileDelete(ctx context.Context, machine *clusterv1.Machine, dockerMachine *infrav1.DockerMachine, externalMachine *docker.Machine, externalLoadBalancer *docker.LoadBalancer) (ctrl.Result, error) {
 	// if the deleted machine is a control-plane node, exec kubeadm reset so the etcd member hosted
 	// on the machine gets removed in a controlled way
 	if util.IsControlPlaneMachine(machine) {
-		if err := externalMachine.KubeadmReset(); err != nil {
+		timeoutctx, cancel := context.WithTimeout(ctx, 1*time.Minute)
+		defer cancel()
+		if err := externalMachine.KubeadmReset(timeoutctx); err != nil {
 			return ctrl.Result{}, errors.Wrap(err, "failed to execute kubeadm reset")
 		}
 	}
 
 	// delete the machine
-	if err := externalMachine.Delete(); err != nil {
+	if err := externalMachine.Delete(ctx); err != nil {
 		return ctrl.Result{}, errors.Wrap(err, "failed to delete DockerMachine")
 	}
 
 	// if the deleted machine is a control-plane node, remove it from the load balancer configuration;
 	if util.IsControlPlaneMachine(machine) {
-		if err := externalLoadBalancer.UpdateConfiguration(); err != nil {
+		if err := externalLoadBalancer.UpdateConfiguration(ctx); err != nil {
 			return ctrl.Result{}, errors.Wrap(err, "failed to update DockerCluster.loadbalancer configuration")
 		}
 	}

@@ -19,7 +19,7 @@ package types
 import (
 	"bufio"
 	"bytes"
-	"fmt"
+	"context"
 	"io"
 	"path/filepath"
 	"strings"
@@ -57,9 +57,9 @@ func (n *Node) Role() (string, error) {
 }
 
 // IP gets the docker ipv4 and ipv6 of the node.
-func (n *Node) IP() (ipv4 string, ipv6 string, err error) {
+func (n *Node) IP(ctx context.Context) (ipv4 string, ipv6 string, err error) {
 	// retrieve the IP address of the node using docker inspect
-	cmd := exec.Command("docker", "inspect",
+	cmd := exec.CommandContext(ctx, "docker", "inspect",
 		"-f", "{{range .NetworkSettings.Networks}}{{.IPAddress}},{{.GlobalIPv6Address}}{{end}}",
 		n.Name, // ... against the "node" container
 	)
@@ -78,8 +78,8 @@ func (n *Node) IP() (ipv4 string, ipv6 string, err error) {
 }
 
 // Delete removes the container.
-func (n *Node) Delete() error {
-	cmd := exec.Command(
+func (n *Node) Delete(ctx context.Context) error {
+	cmd := exec.CommandContext(ctx,
 		"docker",
 		append(
 			[]string{
@@ -94,37 +94,22 @@ func (n *Node) Delete() error {
 }
 
 // WriteFile puts a file inside a running container.
-func (n *Node) WriteFile(dest, content string) error {
+func (n *Node) WriteFile(ctx context.Context, dest, content string) error {
 	// create destination directory
 	cmd := n.Commander.Command("mkdir", "-p", filepath.Dir(dest))
-	err := RunLoggingOutputOnFail(cmd)
-	if err != nil {
+	if err := cmd.Run(ctx); err != nil {
 		return errors.Wrapf(err, "failed to create directory %s", dest)
 	}
 
-	return n.Commander.Command("cp", "/dev/stdin", dest).SetStdin(strings.NewReader(content)).Run()
+	command := n.Commander.Command("cp", "/dev/stdin", dest)
+	command.SetStdin(strings.NewReader(content))
+	return command.Run(ctx)
 
-}
-
-// RunLoggingOutputOnFail runs the cmd, logging error output if Run returns an error.
-func RunLoggingOutputOnFail(cmd exec.Cmd) error {
-	var buff bytes.Buffer
-	cmd.SetStdout(&buff)
-	cmd.SetStderr(&buff)
-	err := cmd.Run()
-	if err != nil {
-		fmt.Println("failed with:")
-		scanner := bufio.NewScanner(&buff)
-		for scanner.Scan() {
-			fmt.Println(scanner.Text())
-		}
-	}
-	return errors.WithStack(err)
 }
 
 // Kill sends the named signal to the container.
-func (n *Node) Kill(signal string) error {
-	cmd := exec.Command(
+func (n *Node) Kill(ctx context.Context, signal string) error {
+	cmd := exec.CommandContext(ctx,
 		"docker", "kill",
 		"-s", signal,
 		n.Name,
@@ -142,7 +127,7 @@ func ContainerCmder(containerNameOrID string) *containerCmder {
 	}
 }
 
-func (c *containerCmder) Command(command string, args ...string) exec.Cmd {
+func (c *containerCmder) Command(command string, args ...string) *containerCmd {
 	return &containerCmd{
 		nameOrID: c.nameOrID,
 		command:  command,
@@ -161,7 +146,23 @@ type containerCmd struct {
 	stderr   io.Writer
 }
 
-func (c *containerCmd) Run() error {
+// RunLoggingOutputOnFail runs the cmd, logging error output if Run returns an error.
+func (c *containerCmd) RunLoggingOutputOnFail(ctx context.Context) ([]string, error) {
+	var buff bytes.Buffer
+	c.SetStdout(&buff)
+	c.SetStderr(&buff)
+	err := c.Run(ctx)
+	out := make([]string, 0)
+	if err != nil {
+		scanner := bufio.NewScanner(&buff)
+		for scanner.Scan() {
+			out = append(out, scanner.Text())
+		}
+	}
+	return out, errors.WithStack(err)
+}
+
+func (c *containerCmd) Run(ctx context.Context) error {
 	args := []string{
 		"exec",
 		// run with privileges so we can remount etc..
@@ -190,7 +191,7 @@ func (c *containerCmd) Run() error {
 		// finally, with the caller args
 		c.args...,
 	)
-	cmd := exec.Command("docker", args...)
+	cmd := exec.CommandContext(ctx, "docker", args...)
 	if c.stdin != nil {
 		cmd.SetStdin(c.stdin)
 	}
@@ -203,22 +204,18 @@ func (c *containerCmd) Run() error {
 	return errors.WithStack(cmd.Run())
 }
 
-func (c *containerCmd) SetEnv(env ...string) exec.Cmd {
+func (c *containerCmd) SetEnv(env ...string) {
 	c.env = env
-	return c
 }
 
-func (c *containerCmd) SetStdin(r io.Reader) exec.Cmd {
+func (c *containerCmd) SetStdin(r io.Reader) {
 	c.stdin = r
-	return c
 }
 
-func (c *containerCmd) SetStdout(w io.Writer) exec.Cmd {
+func (c *containerCmd) SetStdout(w io.Writer) {
 	c.stdout = w
-	return c
 }
 
-func (c *containerCmd) SetStderr(w io.Writer) exec.Cmd {
+func (c *containerCmd) SetStderr(w io.Writer) {
 	c.stderr = w
-	return c
 }

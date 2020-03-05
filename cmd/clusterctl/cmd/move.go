@@ -60,7 +60,7 @@ func init() {
 
 func runMove() error {
 	if mo.toKubeconfig == "" {
-		return errors.New("please specify a target cluster using the --to flag")
+		return errors.New("please specify a target cluster using the --to-kubeconfig flag")
 	}
 
 	c, err := client.New(cfgFile)

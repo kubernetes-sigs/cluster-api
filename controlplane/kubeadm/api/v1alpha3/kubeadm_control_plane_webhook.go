@@ -17,8 +17,9 @@ limitations under the License.
 package v1alpha3
 
 import (
-	"reflect"
+	"encoding/json"
 
+	jsonpatch "github.com/evanphx/json-patch"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/validation/field"
@@ -60,28 +61,112 @@ func (in *KubeadmControlPlane) ValidateCreate() error {
 	return nil
 }
 
+const (
+	spec                 = "spec"
+	kubeadmConfigSpec    = "kubeadmConfigSpec"
+	clusterConfiguration = "clusterConfiguration"
+)
+
 // ValidateUpdate implements webhook.Validator so a webhook will be registered for the type
 func (in *KubeadmControlPlane) ValidateUpdate(old runtime.Object) error {
+	// add a * to indicate everything beneath is ok.
+	// For example, {"spec", "*"} will allow any path under "spec" to change, such as spec.infrastructureTemplate.name
+	allowedPaths := [][]string{
+		{"metadata", "*"},
+		{spec, kubeadmConfigSpec, clusterConfiguration, "etcd", "local", "imageRepository"},
+		{spec, kubeadmConfigSpec, clusterConfiguration, "etcd", "local", "imageTag"},
+		{spec, "infrastructureTemplate", "name"},
+		{spec, "replicas"},
+	}
+
 	allErrs := in.validateCommon()
 
 	prev := old.(*KubeadmControlPlane)
-	if !reflect.DeepEqual(in.Spec.KubeadmConfigSpec, prev.Spec.KubeadmConfigSpec) {
-		allErrs = append(
-			allErrs,
-			field.Forbidden(
-				field.NewPath("spec", "kubeadmConfigSpec"),
-				"cannot be modified",
-			),
-		)
+	originalJSON, err := json.Marshal(prev)
+	if err != nil {
+		return apierrors.NewInternalError(err)
+	}
+	modifiedJSON, err := json.Marshal(in)
+	if err != nil {
+		return apierrors.NewInternalError(err)
 	}
 
-	// In order to make the kubeadm config spec mutable, please see https://github.com/kubernetes-sigs/cluster-api/pull/2388/files
+	diff, err := jsonpatch.CreateMergePatch(originalJSON, modifiedJSON)
+	if err != nil {
+		return apierrors.NewInternalError(err)
+	}
+	jsonPatch := map[string]interface{}{}
+	if err := json.Unmarshal(diff, &jsonPatch); err != nil {
+		return apierrors.NewInternalError(err)
+	}
+	// Build a list of all paths that are trying to change
+	diffpaths := paths([]string{}, jsonPatch)
+	// Every path in the diff must be valid for the update function to work.
+	for _, path := range diffpaths {
+		// Ignore paths that are empty
+		if len(path) == 0 {
+			continue
+		}
+		if !allowed(allowedPaths, path) {
+			if len(path) == 1 {
+				allErrs = append(allErrs, field.Forbidden(field.NewPath(path[0]), "cannot be modified"))
+				continue
+			}
+			allErrs = append(allErrs, field.Forbidden(field.NewPath(path[0], path[1:]...), "cannot be modified"))
+		}
+	}
 
 	if len(allErrs) > 0 {
 		return apierrors.NewInvalid(GroupVersion.WithKind("KubeadmControlPlane").GroupKind(), in.Name, allErrs)
 	}
 
 	return nil
+}
+
+func allowed(allowList [][]string, path []string) bool {
+	for _, allowed := range allowList {
+		if pathsMatch(allowed, path) {
+			return true
+		}
+	}
+	return false
+}
+
+func pathsMatch(allowed, path []string) bool {
+	// if either are empty then no match can be made
+	if len(allowed) == 0 || len(path) == 0 {
+		return false
+	}
+	i := 0
+	for i = range path {
+		// reached the end of the allowed path and no match was found
+		if i > len(allowed)-1 {
+			return false
+		}
+		if allowed[i] == "*" {
+			return true
+		}
+		if path[i] != allowed[i] {
+			return false
+		}
+	}
+	// path has been completely iterated and has not matched the end of the path.
+	// e.g. allowed: []string{"a","b","c"}, path: []string{"a"}
+	return i >= len(allowed)-1
+}
+
+// paths builds a slice of paths that are being modified
+func paths(path []string, diff map[string]interface{}) [][]string {
+	allPaths := [][]string{}
+	for key, m := range diff {
+		nested, ok := m.(map[string]interface{})
+		if !ok {
+			allPaths = append(allPaths, append(path, key))
+			continue
+		}
+		allPaths = append(allPaths, paths(append(path, key), nested)...)
+	}
+	return allPaths
 }
 
 func (in *KubeadmControlPlane) validateCommon() (allErrs field.ErrorList) {

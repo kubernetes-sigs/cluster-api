@@ -371,6 +371,83 @@ commonLabels:
   cluster.x-k8s.io/v1beta1: v1alphaX,v1beta1
 ```
 
+# Upgrade to CRD v1
+
+- Providers should upgrade their CRDs to v1
+- Minimum Kubernetes version supporting CRDv1 is `v1.16`
+- In `Makefile` target `generate-manifests:`, add the following property to the crd `crdVersions=v1`
+
+```yaml
+generate-manifests: $(CONTROLLER_GEN) ## Generate manifests e.g. CRD, RBAC etc.
+  $(CONTROLLER_GEN) \
+    paths=./api/... \
+    crd:crdVersions=v1 \
+    output:crd:dir=$(CRD_ROOT) \
+    output:webhook:dir=$(WEBHOOK_ROOT) \
+    webhook
+  $(CONTROLLER_GEN) \
+    paths=./controllers/... \
+    output:rbac:dir=$(RBAC_ROOT) \
+    rbac:roleName=manager-role
+```
+
+- For all the CRDs in the `config/crd/bases` change the version of `CustomResourceDefinition` to `v1`
+
+```yaml
+apiVersion: apiextensions.k8s.io/v1beta1
+kind: CustomResourceDefinition
+```
+
+to
+
+```yaml
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+```
+
+- In the `config/crd/kustomizeconfig.yaml` file, change the path of the webhook
+
+```yaml
+path: spec/conversion/webhookClientConfig/service/name
+```
+
+to
+
+```yaml
+spec/conversion/webhook/clientConfig/service/name
+```
+
+- Make the same change of changing `v1beta` to `v1` verison in the `config/crd/patches`
+- In the `config/crd/patches/webhook_in_******.yaml` file, add the `conversionReviewVersions` property to the CRD
+
+```yaml
+apiVersion: apiextensions.k8s.io/v1beta1
+kind: CustomResourceDefinition
+metadata:
+  ...
+spec:
+  conversion:
+    strategy: Webhook
+    webhookClientConfig:
+    ...
+```
+
+to
+
+```yaml
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  ...
+spec:
+  strategy: Webhook
+  webhook:
+  conversionReviewVersions: ["v1", "v1beta1"]
+  clientConfig:
+  ...
+```
+
+
 # Add `matchPolicy=Equivalent` kubebuilder marker in webhooks
 - All providers should set "matchPolicy=Equivalent" kubebuilder marker for webhooks on all Custom Resource Definitions related to Cluster API starting with v1alpha3.
 - Specifying `Equivalent` ensures that webhooks continue to intercept the resources they expect when upgrades enable new versions of the resource in the API server.

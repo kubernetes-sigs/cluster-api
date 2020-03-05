@@ -91,7 +91,7 @@ func (p *providersClient) defaults() []Provider {
 		},
 		&provider{
 			name:         Metal3ProviderName,
-			url:          "https://github.com/metal3-io/cluster-api-provider-baremetal/releases/latest/infrastructure-components.yaml",
+			url:          "https://github.com/metal3-io/cluster-api-provider-metal3/releases/latest/infrastructure-components.yaml",
 			providerType: clusterctlv1.InfrastructureProviderType,
 		},
 		&provider{

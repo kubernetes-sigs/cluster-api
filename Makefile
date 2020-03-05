@@ -537,6 +537,10 @@ verify-modules: modules
 		git diff; \
 		echo "go module files are out of date"; exit 1; \
 	fi
+	@if (find . -name 'go.mod' -print0 | xargs -n1 grep -q -i 'k8s.io/client-go.*+incompatible'); then \
+		find . -name "go.mod" -exec grep -i 'k8s.io/client-go.*+incompatible' {} \; -print; \
+		echo "go module contains an incompatible client-go version"; exit 1; \
+	fi
 
 .PHONY: verify-gen
 verify-gen: generate

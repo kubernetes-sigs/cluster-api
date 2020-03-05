@@ -30,6 +30,7 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	kerrors "k8s.io/apimachinery/pkg/util/errors"
+	"k8s.io/apimachinery/pkg/util/intstr"
 	"k8s.io/client-go/informers"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/tools/record"
@@ -49,6 +50,12 @@ import (
 const (
 	mhcClusterNameIndex  = "spec.clusterName"
 	machineNodeNameIndex = "status.nodeRef.name"
+
+	// Event types
+
+	// EventRemediationRestricted is emitted in case when machine remediation
+	// is restricted by remediation circuit shorting logic
+	EventRemediationRestricted string = "RemediationRestricted"
 )
 
 // MachineHealthCheckReconciler reconciles a MachineHealthCheck object
@@ -206,10 +213,47 @@ func (r *MachineHealthCheckReconciler) reconcile(ctx context.Context, cluster *c
 	currentHealthy, needRemediationTargets, nextCheckTimes := r.healthCheckTargets(targets, logger, m.Spec.NodeStartupTimeout.Duration)
 	m.Status.CurrentHealthy = int32(currentHealthy)
 
+	// check MHC current health against MaxUnhealthy
+	if !isAllowedRemediation(m) {
+		logger.V(3).Info(
+			"Short-circuiting remediation",
+			"total target", totalTargets,
+			"max unhealthy", m.Spec.MaxUnhealthy,
+			"unhealthy targets", totalTargets-currentHealthy,
+		)
+
+		r.recorder.Eventf(
+			m,
+			corev1.EventTypeWarning,
+			EventRemediationRestricted,
+			"Remediation restricted due to exceeded number of unhealthy machines (total: %v, unhealthy: %v, maxUnhealthy: %v)",
+			totalTargets,
+			totalTargets-currentHealthy,
+			m.Spec.MaxUnhealthy,
+		)
+		return reconcile.Result{Requeue: true}, nil
+	}
+	logger.V(3).Info(
+		"Remediations are allowed",
+		"total target", totalTargets,
+		"max unhealthy", m.Spec.MaxUnhealthy,
+		"unhealthy targets", totalTargets-currentHealthy,
+	)
+
 	// remediate
+	errList := []error{}
 	for _, t := range needRemediationTargets {
 		logger.V(3).Info("Target meets unhealthy criteria, triggers remediation", "target", t.string())
-		// TODO(JoelSpeed): Implement remediation logic
+		if err := t.remediate(ctx, logger, r.Client, r.recorder); err != nil {
+			logger.Error(err, "Error remediating target", "target", t.string())
+			errList = append(errList, err)
+		}
+	}
+
+	// handle remediation errors
+	if len(errList) > 0 {
+		logger.V(3).Info("Error(s) remediating request, requeueing")
+		return reconcile.Result{}, kerrors.NewAggregate(errList)
 	}
 
 	if minNextCheck := minDuration(nextCheckTimes); minNextCheck > 0 {
@@ -390,4 +434,20 @@ func (r *MachineHealthCheckReconciler) indexMachineByNodeName(object runtime.Obj
 	}
 
 	return nil
+}
+
+// isAllowedRemediation checks the value of the MaxUnhealthy field to determine
+// whether remediation should be allowed or not
+func isAllowedRemediation(mhc *clusterv1.MachineHealthCheck) bool {
+	if mhc.Spec.MaxUnhealthy == nil {
+		return true
+	}
+	maxUnhealthy, err := intstr.GetValueFromIntOrPercent(mhc.Spec.MaxUnhealthy, int(mhc.Status.ExpectedMachines), false)
+	if err != nil {
+		return false
+	}
+
+	// If unhealthy is above maxUnhealthy, short circuit any further remediation
+	unhealthy := mhc.Status.ExpectedMachines - mhc.Status.CurrentHealthy
+	return int(unhealthy) <= maxUnhealthy
 }

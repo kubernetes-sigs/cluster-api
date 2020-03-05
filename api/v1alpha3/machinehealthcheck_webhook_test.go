@@ -22,6 +22,7 @@ import (
 
 	. "github.com/onsi/gomega"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/util/intstr"
 )
 
 func TestMachineHealthCheckDefault(t *testing.T) {
@@ -169,6 +170,49 @@ func TestMachineHealthCheckNodeStartupTimeout(t *testing.T) {
 		mhc := &MachineHealthCheck{
 			Spec: MachineHealthCheckSpec{
 				NodeStartupTimeout: tt.timeout,
+			},
+		}
+
+		if tt.expectErr {
+			g.Expect(mhc.ValidateCreate()).NotTo(Succeed())
+			g.Expect(mhc.ValidateUpdate(mhc)).NotTo(Succeed())
+		} else {
+			g.Expect(mhc.ValidateCreate()).To(Succeed())
+			g.Expect(mhc.ValidateUpdate(mhc)).To(Succeed())
+		}
+	}
+}
+
+func TestMachineHealthCheckMaxUnhealthy(t *testing.T) {
+	tests := []struct {
+		name      string
+		value     intstr.IntOrString
+		expectErr bool
+	}{
+		{
+			name:      "when the value is an integer",
+			value:     intstr.Parse("10"),
+			expectErr: false,
+		},
+		{
+			name:      "when the value is a percentage",
+			value:     intstr.Parse("10%"),
+			expectErr: false,
+		},
+		{
+			name:      "when the value is a random string",
+			value:     intstr.Parse("abcdef"),
+			expectErr: true,
+		},
+	}
+
+	for _, tt := range tests {
+		g := NewWithT(t)
+
+		maxUnhealthy := tt.value
+		mhc := &MachineHealthCheck{
+			Spec: MachineHealthCheckSpec{
+				MaxUnhealthy: &maxUnhealthy,
 			},
 		}
 

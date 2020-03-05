@@ -26,12 +26,29 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/labels"
+	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/client-go/tools/record"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha3"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
 const (
+	ownerControllerKind   = "MachineSet"
+	nodeControlPlaneLabel = "node-role.kubernetes.io/master"
+
+	// Event types
+
+	// EventSkippedControlPlane is emitted in case an unhealthy node (or a machine
+	// associated with the node) has the `master` role
+	EventSkippedControlPlane string = "SkippedControlPlane"
+	// EventMachineDeletionFailed is emitted in case remediation of a machine
+	// is required but deletion of its Machine object failed
+	EventMachineDeletionFailed string = "MachineDeletionFailed"
+	// EventMachineDeleted is emitted when machine was successfully remediated
+	// by deleting its Machine object
+	EventMachineDeleted string = "MachineDeleted"
 	// EventDetectedUnhealthy is emitted in case a node associated with a
 	// machine was detected unhealthy
 	EventDetectedUnhealthy string = "DetectedUnhealthy"
@@ -255,4 +272,88 @@ func minDuration(durations []time.Duration) time.Duration {
 		}
 	}
 	return minDuration
+}
+
+// remediate deletes the Machine if it is owned by a MachineSet and is not part of the cluster's control plane
+func (t *healthCheckTarget) remediate(ctx context.Context, logger logr.Logger, c client.Client, r record.EventRecorder) error {
+	logger = logger.WithValues("target", t.string())
+	logger.Info("Starting remediation for target")
+
+	// If the machine is not owned by a MachineSet, it should be skipped
+	hasOwner, err := t.hasMachineSetOwner()
+	if err != nil {
+		return fmt.Errorf("%s: unable to determine Machine owners: %v", t.string(), err)
+	}
+	if !hasOwner {
+		logger.Info("Target has no machineset owner, skipping remediation")
+		return nil
+	}
+
+	// If the machine is a control plane node, it should be skipped
+	if t.isControlPlane() {
+		r.Eventf(
+			t.Machine,
+			corev1.EventTypeNormal,
+			EventSkippedControlPlane,
+			"Machine %v is a control plane node, skipping remediation",
+			t.string(),
+		)
+		logger.Info("Target is a control plane node, skipping remediation")
+		return nil
+	}
+
+	logger.Info("Deleting target machine")
+	if err := c.Delete(ctx, t.Machine); err != nil {
+		r.Eventf(
+			t.Machine,
+			corev1.EventTypeWarning,
+			EventMachineDeletionFailed,
+			"Machine %v remediation failed: unable to delete Machine object: %v",
+			t.string(),
+			err,
+		)
+		return fmt.Errorf("%s: failed to delete machine: %v", t.string(), err)
+	}
+	r.Eventf(
+		t.Machine,
+		corev1.EventTypeNormal,
+		EventMachineDeleted,
+		"Machine %v has been remediated by requesting to delete Machine object",
+		t.string(),
+	)
+
+	return nil
+}
+
+// hasMachineSetOwner checks whether the target's Machine is owned by a MachineSet
+func (t *healthCheckTarget) hasMachineSetOwner() (bool, error) {
+	ownerRefs := t.Machine.ObjectMeta.GetOwnerReferences()
+	for _, or := range ownerRefs {
+		if or.Kind == ownerControllerKind {
+			// The Kind matches so check the Group matches as well
+			gv, err := schema.ParseGroupVersion(or.APIVersion)
+			if err != nil {
+				return false, err
+			}
+			if gv.Group == clusterv1.GroupVersion.Group {
+				return true, nil
+			}
+		}
+	}
+	return false, nil
+}
+
+// isControlPlane checks whether the target refers to a machine that is part of the
+// cluster's control plane
+func (t *healthCheckTarget) isControlPlane() bool {
+	if t.Node != nil && labels.Set(t.Node.Labels).Has(nodeControlPlaneLabel) {
+		return true
+	}
+
+	// if the node is not found, fallback to checking the machine
+	if t.Machine != nil && labels.Set(t.Machine.Labels).Has(clusterv1.MachineControlPlaneLabelName) {
+		return true
+	}
+
+	return false
 }

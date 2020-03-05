@@ -154,7 +154,7 @@ Please visit the [getting started guide](https://github.com/kubernetes-sigs/clus
 {{#/tab }}
 {{#tab Metal3}}
 
-Please visit the [getting started guide](https://github.com/metal3-io/cluster-api-provider-baremetal/blob/master/docs/getting-started.md).
+Please visit the [getting started guide](https://github.com/metal3-io/cluster-api-provider-metal3/blob/master/docs/getting-started.md).
 
 {{#/tab }}
 {{#/tabs }}

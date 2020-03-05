@@ -109,10 +109,17 @@ func (w *Workload) ControlPlaneIsHealthy(ctx context.Context) (HealthCheckResult
 	for _, node := range controlPlaneNodes.Items {
 		name := node.Name
 		response[name] = nil
+
+		if err := checkNodeNoExecuteCondition(node); err != nil {
+			response[name] = err
+			continue
+		}
+
 		apiServerPodKey := ctrlclient.ObjectKey{
 			Namespace: metav1.NamespaceSystem,
 			Name:      staticPodName("kube-apiserver", name),
 		}
+
 		apiServerPod := &corev1.Pod{}
 		if err := w.Client.Get(ctx, apiServerPodKey, apiServerPod); err != nil {
 			response[name] = err
@@ -517,6 +524,15 @@ func checkStaticPodReadyCondition(pod *corev1.Pod) error {
 	}
 	if !found {
 		return errors.Errorf("pod does not have ready condition: %v", pod.Name)
+	}
+	return nil
+}
+
+func checkNodeNoExecuteCondition(node corev1.Node) error {
+	for _, taint := range node.Spec.Taints {
+		if taint.Key == corev1.TaintNodeUnreachable && taint.Effect == corev1.TaintEffectNoExecute {
+			return errors.Errorf("node has NoExecute taint: %v", node.Name)
+		}
 	}
 	return nil
 }

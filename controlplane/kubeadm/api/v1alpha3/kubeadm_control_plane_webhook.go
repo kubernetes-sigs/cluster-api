@@ -77,6 +77,7 @@ func (in *KubeadmControlPlane) ValidateUpdate(old runtime.Object) error {
 		{spec, kubeadmConfigSpec, clusterConfiguration, "etcd", "local", "imageTag"},
 		{spec, "infrastructureTemplate", "name"},
 		{spec, "replicas"},
+		{spec, "version"},
 	}
 
 	allErrs := in.validateCommon()

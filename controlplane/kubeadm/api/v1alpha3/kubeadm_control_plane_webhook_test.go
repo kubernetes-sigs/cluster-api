@@ -174,6 +174,7 @@ func TestKubeadmControlPlaneValidateUpdate(t *testing.T) {
 
 	validUpdate := before.DeepCopy()
 	validUpdate.Labels = map[string]string{"blue": "green"}
+	validUpdate.Spec.Version = "v1.16.6"
 	validUpdate.Spec.InfrastructureTemplate.Name = "orange"
 	validUpdate.Spec.Replicas = pointer.Int32Ptr(5)
 

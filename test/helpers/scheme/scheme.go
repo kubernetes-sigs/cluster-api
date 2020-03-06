@@ -18,6 +18,7 @@ package scheme
 
 import (
 	. "github.com/onsi/gomega"
+
 	"k8s.io/apimachinery/pkg/runtime"
 	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha3"

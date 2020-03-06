@@ -21,8 +21,9 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/onsi/ginkgo"
+	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
+
 	appsv1 "k8s.io/api/apps/v1"
 	"sigs.k8s.io/cluster-api/test/helpers/flag"
 	"sigs.k8s.io/cluster-api/test/helpers/kind"
@@ -39,13 +40,13 @@ var (
 
 func DeployCAPIComponents(kindCluster kind.Cluster) {
 	Expect(capiComponents).ToNot(BeNil())
-	fmt.Fprintf(ginkgo.GinkgoWriter, "Applying cluster-api components\n")
+	fmt.Fprintf(GinkgoWriter, "Applying cluster-api components\n")
 	Expect(*capiComponents).ToNot(BeEmpty())
 	kindCluster.ApplyYAML(*capiComponents)
 }
 
 func WaitDeployment(c client.Client, namespace, name string) {
-	fmt.Fprintf(ginkgo.GinkgoWriter, "Ensuring %s/%s is deployed\n", namespace, name)
+	fmt.Fprintf(GinkgoWriter, "Ensuring %s/%s is deployed\n", namespace, name)
 	Eventually(
 		func() (int32, error) {
 			deployment := &appsv1.Deployment{}

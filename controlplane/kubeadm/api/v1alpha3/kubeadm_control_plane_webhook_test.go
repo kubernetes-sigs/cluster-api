@@ -18,6 +18,7 @@ package v1alpha3
 
 import (
 	"testing"
+	"time"
 
 	. "github.com/onsi/gomega"
 	corev1 "k8s.io/api/core/v1"
@@ -188,6 +189,85 @@ func TestKubeadmControlPlaneValidateUpdate(t *testing.T) {
 	missingReplicas := before.DeepCopy()
 	missingReplicas.Spec.Replicas = nil
 
+	etcdLocalImageTag := before.DeepCopy()
+	etcdLocalImageTag.Spec.KubeadmConfigSpec.ClusterConfiguration.Etcd.Local = &kubeadmv1beta1.LocalEtcd{
+		ImageMeta: kubeadmv1beta1.ImageMeta{
+			ImageTag: "v9.1.1",
+		},
+	}
+	unsetEtcd := etcdLocalImageTag.DeepCopy()
+	unsetEtcd.Spec.KubeadmConfigSpec.ClusterConfiguration.Etcd.Local = nil
+
+	networking := before.DeepCopy()
+	networking.Spec.KubeadmConfigSpec.ClusterConfiguration.Networking.DNSDomain = "some dns domain"
+
+	kubernetesVersion := before.DeepCopy()
+	kubernetesVersion.Spec.KubeadmConfigSpec.ClusterConfiguration.KubernetesVersion = "some kubernetes version"
+
+	controlPlaneEndpoint := before.DeepCopy()
+	controlPlaneEndpoint.Spec.KubeadmConfigSpec.ClusterConfiguration.ControlPlaneEndpoint = "some control plane endpoint"
+
+	apiServer := before.DeepCopy()
+	apiServer.Spec.KubeadmConfigSpec.ClusterConfiguration.APIServer = kubeadmv1beta1.APIServer{
+		TimeoutForControlPlane: &metav1.Duration{Duration: 5 * time.Minute},
+	}
+
+	controllerManager := before.DeepCopy()
+	controllerManager.Spec.KubeadmConfigSpec.ClusterConfiguration.ControllerManager = kubeadmv1beta1.ControlPlaneComponent{
+		ExtraArgs: map[string]string{"controller manager field": "controller manager value"},
+	}
+
+	scheduler := before.DeepCopy()
+	scheduler.Spec.KubeadmConfigSpec.ClusterConfiguration.Scheduler = kubeadmv1beta1.ControlPlaneComponent{
+		ExtraArgs: map[string]string{"scheduler field": "scheduler value"},
+	}
+
+	dns := before.DeepCopy()
+	dns.Spec.KubeadmConfigSpec.ClusterConfiguration.DNS = kubeadmv1beta1.DNS{
+		ImageMeta: kubeadmv1beta1.ImageMeta{
+			ImageTag: "my dns tag",
+		},
+	}
+
+	certificatesDir := before.DeepCopy()
+	certificatesDir.Spec.KubeadmConfigSpec.ClusterConfiguration.CertificatesDir = "a new certificates directory"
+
+	imageRepository := before.DeepCopy()
+	imageRepository.Spec.KubeadmConfigSpec.ClusterConfiguration.ImageRepository = "a new image repository"
+
+	useHyperKubeImage := before.DeepCopy()
+	useHyperKubeImage.Spec.KubeadmConfigSpec.ClusterConfiguration.UseHyperKubeImage = true
+
+	featureGates := before.DeepCopy()
+	featureGates.Spec.KubeadmConfigSpec.ClusterConfiguration.FeatureGates = map[string]bool{"a feature gate": true}
+
+	externalEtcd := before.DeepCopy()
+	externalEtcd.Spec.KubeadmConfigSpec.ClusterConfiguration.Etcd.External = &kubeadmv1beta1.ExternalEtcd{
+		KeyFile: "some key file",
+	}
+
+	localDataDir := before.DeepCopy()
+	localDataDir.Spec.KubeadmConfigSpec.ClusterConfiguration.Etcd.Local = &kubeadmv1beta1.LocalEtcd{
+		DataDir: "some local data dir",
+	}
+	modifyLocalDataDir := localDataDir.DeepCopy()
+	modifyLocalDataDir.Spec.KubeadmConfigSpec.ClusterConfiguration.Etcd.Local.DataDir = "a different local data dir"
+
+	localPeerCertSANs := before.DeepCopy()
+	localPeerCertSANs.Spec.KubeadmConfigSpec.ClusterConfiguration.Etcd.Local = &kubeadmv1beta1.LocalEtcd{
+		PeerCertSANs: []string{"a cert"},
+	}
+
+	localServerCertSANs := before.DeepCopy()
+	localServerCertSANs.Spec.KubeadmConfigSpec.ClusterConfiguration.Etcd.Local = &kubeadmv1beta1.LocalEtcd{
+		ServerCertSANs: []string{"a cert"},
+	}
+
+	localExtraArgs := before.DeepCopy()
+	localExtraArgs.Spec.KubeadmConfigSpec.ClusterConfiguration.Etcd.Local = &kubeadmv1beta1.LocalEtcd{
+		ExtraArgs: map[string]string{"an arg": "a value"},
+	}
+
 	beforeExternalEtcdInit := before.DeepCopy()
 	beforeExternalEtcdInit.Spec.KubeadmConfigSpec.InitConfiguration = &kubeadmv1beta1.InitConfiguration{
 		ClusterConfiguration: kubeadmv1beta1.ClusterConfiguration{
@@ -278,6 +358,120 @@ func TestKubeadmControlPlaneValidateUpdate(t *testing.T) {
 			before:    beforeExternalEtcdCluster,
 			kcp:       scaleToEvenExternalEtcdCluster,
 		},
+		{
+			name:      "should succeed when making a change to the local etcd image tag",
+			expectErr: false,
+			before:    before,
+			kcp:       etcdLocalImageTag,
+		},
+		{
+			name:      "should fail when making a change to the cluster config's networking struct",
+			expectErr: true,
+			before:    before,
+			kcp:       networking,
+		},
+		{
+			name:      "should fail when making a change to the cluster config's kubernetes version",
+			expectErr: true,
+			before:    before,
+			kcp:       kubernetesVersion,
+		},
+		{
+			name:      "should fail when making a change to the cluster config's controlPlaneEndpoint",
+			expectErr: true,
+			before:    before,
+			kcp:       controlPlaneEndpoint,
+		},
+		{
+			name:      "should fail when making a change to the cluster config's apiServer",
+			expectErr: true,
+			before:    before,
+			kcp:       apiServer,
+		},
+		{
+			name:      "should fail when making a change to the cluster config's controllerManager",
+			expectErr: true,
+			before:    before,
+			kcp:       controllerManager,
+		},
+		{
+			name:      "should fail when making a change to the cluster config's scheduler",
+			expectErr: true,
+			before:    before,
+			kcp:       scheduler,
+		},
+		{
+			name:      "should fail when making a change to the cluster config's dns",
+			expectErr: true,
+			before:    before,
+			kcp:       dns,
+		},
+		{
+			name:      "should fail when making a change to the cluster config's certificatesDir",
+			expectErr: true,
+			before:    before,
+			kcp:       certificatesDir,
+		},
+		{
+			name:      "should fail when making a change to the cluster config's imageRepository",
+			expectErr: true,
+			before:    before,
+			kcp:       imageRepository,
+		},
+		{
+			name:      "should fail when making a change to the cluster config's useHyperKubeImage field",
+			expectErr: true,
+			before:    before,
+			kcp:       useHyperKubeImage,
+		},
+		{
+			name:      "should fail when making a change to the cluster config's featureGates",
+			expectErr: true,
+			before:    before,
+			kcp:       featureGates,
+		},
+		{
+			name:      "should fail when making a change to the cluster config's local etcd's configuration localDataDir field",
+			expectErr: true,
+			before:    before,
+			kcp:       localDataDir,
+		},
+		{
+			name:      "should fail when making a change to the cluster config's local etcd's configuration localPeerCertSANs field",
+			expectErr: true,
+			before:    before,
+			kcp:       localPeerCertSANs,
+		},
+		{
+			name:      "should fail when making a change to the cluster config's local etcd's configuration localServerCertSANs field",
+			expectErr: true,
+			before:    before,
+			kcp:       localServerCertSANs,
+		},
+		{
+			name:      "should fail when making a change to the cluster config's local etcd's configuration localExtraArgs field",
+			expectErr: true,
+			before:    before,
+			kcp:       localExtraArgs,
+		},
+		{
+			name:      "should fail when making a change to the cluster config's external etcd's configuration",
+			expectErr: true,
+			before:    before,
+			kcp:       externalEtcd,
+		},
+		{
+			name:      "should fail when attempting to unset the etcd local object",
+			expectErr: true,
+			before:    etcdLocalImageTag,
+			kcp:       unsetEtcd,
+		},
+		{
+			name:      "should fail when modifying a field that is not the local etcd image metadata",
+			expectErr: true,
+			before:    localDataDir,
+			kcp:       modifyLocalDataDir,
+		},
 	}
 
 	for _, tt := range tests {
@@ -290,6 +484,162 @@ func TestKubeadmControlPlaneValidateUpdate(t *testing.T) {
 			} else {
 				g.Expect(err).To(Succeed())
 			}
+		})
+	}
+}
+
+func TestPathsMatch(t *testing.T) {
+	tests := []struct {
+		name          string
+		allowed, path []string
+		match         bool
+	}{
+		{
+			name:    "a simple match case",
+			allowed: []string{"a", "b", "c"},
+			path:    []string{"a", "b", "c"},
+			match:   true,
+		},
+		{
+			name:    "a case can't match",
+			allowed: []string{"a", "b", "c"},
+			path:    []string{"a"},
+			match:   false,
+		},
+		{
+			name:    "an empty path for whatever reason",
+			allowed: []string{"a"},
+			path:    []string{""},
+			match:   false,
+		},
+		{
+			name:    "empty allowed matches nothing",
+			allowed: []string{},
+			path:    []string{"a"},
+			match:   false,
+		},
+		{
+			name:    "wildcard match",
+			allowed: []string{"a", "b", "c", "d", "*"},
+			path:    []string{"a", "b", "c", "d", "e", "f", "g"},
+			match:   true,
+		},
+		{
+			name:    "long path",
+			allowed: []string{"a"},
+			path:    []string{"a", "b", "c", "d", "e", "f", "g"},
+			match:   false,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			g := NewWithT(t)
+			g.Expect(pathsMatch(tt.allowed, tt.path)).To(Equal(tt.match))
+		})
+	}
+}
+
+func TestAllowed(t *testing.T) {
+	tests := []struct {
+		name      string
+		allowList [][]string
+		path      []string
+		match     bool
+	}{
+		{
+			name: "matches the first and none of the others",
+			allowList: [][]string{
+				{"a", "b", "c"},
+				{"b", "d", "x"},
+			},
+			path:  []string{"a", "b", "c"},
+			match: true,
+		},
+		{
+			name: "matches none in the allow list",
+			allowList: [][]string{
+				{"a", "b", "c"},
+				{"b", "c", "d"},
+				{"e", "*"},
+			},
+			path:  []string{"a"},
+			match: false,
+		},
+		{
+			name: "an empty path matches nothing",
+			allowList: [][]string{
+				{"a", "b", "c"},
+				{"*"},
+				{"b", "c"},
+			},
+			path:  []string{},
+			match: false,
+		},
+		{
+			name:      "empty allowList matches nothing",
+			allowList: [][]string{},
+			path:      []string{"a"},
+			match:     false,
+		},
+		{
+			name: "length test check",
+			allowList: [][]string{
+				{"a", "b", "c", "d", "e", "f"},
+				{"a", "b", "c", "d", "e", "f", "g", "h"},
+			},
+			path:  []string{"a", "b", "c", "d", "e", "f", "g"},
+			match: false,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			g := NewWithT(t)
+			g.Expect(allowed(tt.allowList, tt.path)).To(Equal(tt.match))
+		})
+	}
+}
+
+func TestPaths(t *testing.T) {
+	tests := []struct {
+		name     string
+		path     []string
+		diff     map[string]interface{}
+		expected [][]string
+	}{
+		{
+			name: "basic check",
+			diff: map[string]interface{}{
+				"spec": map[string]interface{}{
+					"replicas": 4,
+					"kubeadmConfigSpec": map[string]interface{}{
+						"clusterConfiguration": map[string]interface{}{
+							"version": "v2.0.1",
+						},
+						"initConfiguration": map[string]interface{}{
+							"bootstrapToken": []string{"abcd", "defg"},
+						},
+						"joinConfiguration": nil,
+					},
+				},
+			},
+			expected: [][]string{
+				{"spec", "replicas"},
+				{"spec", "kubeadmConfigSpec", "joinConfiguration"},
+				{"spec", "kubeadmConfigSpec", "clusterConfiguration", "version"},
+				{"spec", "kubeadmConfigSpec", "initConfiguration", "bootstrapToken"},
+			},
+		},
+		{
+			name:     "empty input makes for empty output",
+			path:     []string{"a"},
+			diff:     map[string]interface{}{},
+			expected: [][]string{},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			g := NewWithT(t)
+			g.Expect(paths(tt.path, tt.diff)).To(Equal(tt.expected))
 		})
 	}
 }

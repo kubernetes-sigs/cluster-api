@@ -39,6 +39,7 @@ func TestMachineDefault(t *testing.T) {
 
 	m.Default()
 
+	g.Expect(m.Labels[ClusterLabelName]).To(Equal(m.Spec.ClusterName))
 	g.Expect(m.Spec.Bootstrap.ConfigRef.Namespace).To(Equal(m.Namespace))
 	g.Expect(m.Spec.InfrastructureRef.Namespace).To(Equal(m.Namespace))
 }

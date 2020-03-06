@@ -46,7 +46,9 @@ type DockerMachineSpec struct {
 // DockerMachineStatus defines the observed state of DockerMachine
 type DockerMachineStatus struct {
 	// Ready denotes that the machine (docker container) is ready
+	// +optional
 	Ready bool `json:"ready"`
+
 	// LoadBalancerConfigured denotes that the machine has been
 	// added to the load balancer
 	// +optional

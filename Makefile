@@ -304,9 +304,7 @@ generate-kubeadm-control-plane-manifests: $(CONTROLLER_GEN) ## Generate manifest
 
 .PHONY: modules
 modules: ## Runs go mod to ensure modules are up to date.
-	go mod tidy
-	cd $(TOOLS_DIR); go mod tidy
-	cd $(CAPD_DIR); $(MAKE) modules
+	@find $$(pwd) -name go.mod | xargs -L 1 bash -c 'cd $$(dirname "$$0") && echo "ensure modules: $$(pwd)" && go mod tidy'
 
 ## --------------------------------------
 ## Docker

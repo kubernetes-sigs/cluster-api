@@ -21,6 +21,7 @@ import (
 
 	"github.com/go-logr/logr"
 	"github.com/pkg/errors"
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
 	"sigs.k8s.io/controller-runtime/pkg/handler"
@@ -41,20 +42,23 @@ func (o *ObjectTracker) Watch(log logr.Logger, obj runtime.Object, handler handl
 		return nil
 	}
 
-	gk := obj.GetObjectKind().GroupVersionKind().GroupKind()
-	_, loaded := o.m.LoadOrStore(gk.String(), struct{}{})
+	gvk := obj.GetObjectKind().GroupVersionKind()
+	_, loaded := o.m.LoadOrStore(gvk.GroupKind().String(), struct{}{})
 	if loaded {
 		return nil
 	}
 
-	log.Info("Adding watcher on external object", "GroupKind", gk.String())
+	u := &unstructured.Unstructured{}
+	u.SetGroupVersionKind(gvk)
+
+	log.Info("Adding watcher on external object", "GroupVersionKind", gvk.String())
 	err := o.Controller.Watch(
-		&source.Kind{Type: obj},
+		&source.Kind{Type: u},
 		handler,
 	)
 	if err != nil {
 		o.m.Delete(obj)
-		return errors.Wrapf(err, "failed to add watcher on external object %q", gk.String())
+		return errors.Wrapf(err, "failed to add watcher on external object %q", gvk.String())
 	}
 	return nil
 }

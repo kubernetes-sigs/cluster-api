@@ -23,7 +23,8 @@ import (
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	clusterctlv1 "sigs.k8s.io/cluster-api/cmd/clusterctl/api/v1alpha3"
-	"sigs.k8s.io/cluster-api/cmd/clusterctl/config"
+	"sigs.k8s.io/cluster-api/cmd/clusterctl/client/config"
+	manifests "sigs.k8s.io/cluster-api/cmd/clusterctl/config"
 	"sigs.k8s.io/cluster-api/cmd/clusterctl/internal/util"
 	logf "sigs.k8s.io/cluster-api/cmd/clusterctl/log"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -37,6 +38,8 @@ const (
 
 	retryCreateCertManagerObject         = 3
 	retryIntervalCreateCertManagerObject = 1 * time.Second
+
+	certManagerImageComponent = "cert-manager"
 )
 
 // CertManagerClient has methods to work with cert-manager components in the cluster.
@@ -51,6 +54,7 @@ type CertManagerClient interface {
 
 // certManagerClient implements CertManagerClient .
 type certManagerClient struct {
+	configClient        config.Client
 	proxy               Proxy
 	pollImmediateWaiter PollImmediateWaiter
 }
@@ -59,8 +63,9 @@ type certManagerClient struct {
 var _ CertManagerClient = &certManagerClient{}
 
 // newCertMangerClient returns a certManagerClient.
-func newCertMangerClient(proxy Proxy, pollImmediateWaiter PollImmediateWaiter) *certManagerClient {
+func newCertMangerClient(configClient config.Client, proxy Proxy, pollImmediateWaiter PollImmediateWaiter) *certManagerClient {
 	return &certManagerClient{
+		configClient:        configClient,
 		proxy:               proxy,
 		pollImmediateWaiter: pollImmediateWaiter,
 	}
@@ -76,14 +81,10 @@ func (cm *certManagerClient) Images() ([]string, error) {
 		return []string{}, nil
 	}
 
-	yaml, err := config.Asset(embeddedCertManagerManifestPath)
+	// Gets the cert-manager objects from the embedded assets.
+	objs, err := cm.getManifestObjs()
 	if err != nil {
-		return nil, err
-	}
-
-	objs, err := util.ToUnstructured(yaml)
-	if err != nil {
-		return nil, errors.Wrap(err, "failed to parse yaml for cert-manager manifest")
+		return []string{}, nil
 	}
 
 	images, err := util.InspectImages(objs)
@@ -112,15 +113,10 @@ func (cm *certManagerClient) EnsureWebhook() error {
 	// Otherwise install cert-manager
 	log.Info("Installing cert-manager")
 
-	// Gets the cert-manager manifest from the embedded assets and apply it.
-	yaml, err := config.Asset(embeddedCertManagerManifestPath)
+	// Gets the cert-manager objects from the embedded assets.
+	objs, err := cm.getManifestObjs()
 	if err != nil {
-		return err
-	}
-
-	objs, err := util.ToUnstructured(yaml)
-	if err != nil {
-		return errors.Wrap(err, "failed to parse yaml for cert-manager manifest")
+		return nil
 	}
 
 	// installs the web-hook
@@ -161,6 +157,28 @@ func (cm *certManagerClient) EnsureWebhook() error {
 	}
 
 	return nil
+}
+
+// getManifestObjs gets the cert-manager manifest, convert to unstructured objects, and fix images
+func (cm *certManagerClient) getManifestObjs() ([]unstructured.Unstructured, error) {
+	yaml, err := manifests.Asset(embeddedCertManagerManifestPath)
+	if err != nil {
+		return nil, err
+	}
+
+	objs, err := util.ToUnstructured(yaml)
+	if err != nil {
+		return nil, errors.Wrap(err, "failed to parse yaml for cert-manager manifest")
+	}
+
+	objs, err = util.FixImages(objs, func(image string) (string, error) {
+		return cm.configClient.ImageMeta().AlterImage(certManagerImageComponent, image)
+	})
+	if err != nil {
+		return nil, errors.Wrap(err, "failed to apply image override to the cert-manager manifest")
+	}
+
+	return objs, nil
 }
 
 func (cm *certManagerClient) createObj(o unstructured.Unstructured) error {

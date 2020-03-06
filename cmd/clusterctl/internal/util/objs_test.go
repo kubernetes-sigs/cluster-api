@@ -17,6 +17,7 @@ limitations under the License.
 package util
 
 import (
+	"fmt"
 	"reflect"
 	"testing"
 
@@ -136,6 +137,74 @@ func Test_inspectImages(t *testing.T) {
 			}
 
 			if !reflect.DeepEqual(got, tt.want) {
+				t.Errorf("got = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
+
+func TestFixImages(t *testing.T) {
+	type args struct {
+		objs           []unstructured.Unstructured
+		alterImageFunc func(image string) (string, error)
+	}
+	tests := []struct {
+		name    string
+		args    args
+		want    []string
+		wantErr bool
+	}{
+		{
+			name: "fix deployment containers images",
+			args: args{
+				objs: []unstructured.Unstructured{
+					{
+						Object: map[string]interface{}{
+							"apiVersion": "apps/v1",
+							"kind":       deploymentKind,
+							"spec": map[string]interface{}{
+								"template": map[string]interface{}{
+									"spec": map[string]interface{}{
+										"containers": []map[string]interface{}{
+											{
+												"image": "container-image",
+											},
+										},
+										"initContainers": []map[string]interface{}{
+											{
+												"image": "init-container-image",
+											},
+										},
+									},
+								},
+							},
+						},
+					},
+				},
+				alterImageFunc: func(image string) (string, error) {
+					return fmt.Sprintf("foo-%s", image), nil
+				},
+			},
+			want:    []string{"foo-container-image", "foo-init-container-image"},
+			wantErr: false,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got, err := FixImages(tt.args.objs, tt.args.alterImageFunc)
+			if (err != nil) != tt.wantErr {
+				t.Fatalf("error = %v, wantErr %v", err, tt.wantErr)
+			}
+			if tt.wantErr {
+				return
+			}
+
+			gotImages, err := InspectImages(got)
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			if !reflect.DeepEqual(gotImages, tt.want) {
 				t.Errorf("got = %v, want %v", got, tt.want)
 			}
 		})

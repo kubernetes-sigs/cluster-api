@@ -17,6 +17,7 @@ limitations under the License.
 package util
 
 import (
+	"github.com/pkg/errors"
 	appsv1 "k8s.io/api/apps/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	clusterctlv1 "sigs.k8s.io/cluster-api/cmd/clusterctl/api/v1alpha3"
@@ -95,4 +96,51 @@ func IsSharedResource(o unstructured.Unstructured) bool {
 		return true
 	}
 	return false
+}
+
+// FixImages alters images using the give alter func
+// NB. The implemented approach is specific for the provider components YAML & for the cert-manager manifest; it is not
+// intended to cover all the possible objects used to deploy containers existing in Kubernetes.
+func FixImages(objs []unstructured.Unstructured, alterImageFunc func(image string) (string, error)) ([]unstructured.Unstructured, error) {
+	// look for resources of kind Deployment and alter the image
+	for i := range objs {
+		o := &objs[i]
+		if o.GetKind() != deploymentKind {
+			continue
+		}
+
+		// Convert Unstructured into a typed object
+		d := &appsv1.Deployment{}
+		if err := scheme.Scheme.Convert(o, d, nil); err != nil {
+			return nil, err
+		}
+
+		// Alter the image
+		for j := range d.Spec.Template.Spec.Containers {
+			container := d.Spec.Template.Spec.Containers[j]
+			image, err := alterImageFunc(container.Image)
+			if err != nil {
+				return nil, errors.Wrapf(err, "failed to fix image for container %s in deployment %s", container.Name, d.Name)
+			}
+			container.Image = image
+			d.Spec.Template.Spec.Containers[j] = container
+		}
+
+		for j := range d.Spec.Template.Spec.InitContainers {
+			container := d.Spec.Template.Spec.InitContainers[j]
+			image, err := alterImageFunc(container.Image)
+			if err != nil {
+				return nil, errors.Wrapf(err, "failed to fix image for init container %s in deployment %s", container.Name, d.Name)
+			}
+			container.Image = image
+			d.Spec.Template.Spec.InitContainers[j] = container
+		}
+
+		// Convert typed object back to Unstructured
+		if err := scheme.Scheme.Convert(d, o, nil); err != nil {
+			return nil, err
+		}
+		objs[i] = *o
+	}
+	return objs, nil
 }

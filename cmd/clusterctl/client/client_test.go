@@ -283,6 +283,10 @@ func (f fakeConfigClient) Variables() config.VariablesClient {
 	return f.internalclient.Variables()
 }
 
+func (f fakeConfigClient) ImageMeta() config.ImageMetaClient {
+	return f.internalclient.ImageMeta()
+}
+
 func (f *fakeConfigClient) WithVar(key, value string) *fakeConfigClient {
 	f.fakeReader.WithVar(key, value)
 	return f

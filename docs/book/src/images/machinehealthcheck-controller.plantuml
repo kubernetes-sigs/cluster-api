@@ -1,0 +1,35 @@
+
+@startuml machinehealthcheck-controller
+
+start;
+:Machine Health Check controller;
+repeat
+  repeat
+    :MachineHealthCheck controller enqueues a Reconcile call;
+    if (Nodes being watched in remote cluster) then (no)
+      :Watch nodes in remote cluster;
+    else (yes)
+    endif
+    :Find targets: Machines matched by selector plus respective Nodes;
+    :Health check targets: Determine which Machines require remediation;
+  repeat while (Remediations are allowed (current unhealthy <= max unhealthy)) is (no)
+  -> yes;
+  repeat
+    if (Target requires remediation) then (yes)
+      if (Machine is owned by a MachineSet) then (yes)
+        if (Machine is a Control Plane Machine) then (no)
+          #LightBlue:Delete Machine;
+        else (yes)
+        endif
+      else (no)
+      endif
+      else (no)
+    endif
+  repeat while (more Targets) is (yes)
+  -> no;
+repeat while (Targets likely to go unhealthy) is (yes: requeue with minimum
+  time before timeout as delay)
+-> no;
+stop;
+
+@enduml

@@ -36,12 +36,21 @@ type DockerMachineSpec struct {
 	// running the machine
 	// +optional
 	CustomImage string `json:"customImage,omitempty"`
+
+	// Bootstrapped is true when the kubeadm bootstrapping has been run
+	// against this machine
+	// +optional
+	Bootstrapped bool `json:"bootstrapped,omitempty"`
 }
 
 // DockerMachineStatus defines the observed state of DockerMachine
 type DockerMachineStatus struct {
 	// Ready denotes that the machine (docker container) is ready
 	Ready bool `json:"ready"`
+	// LoadBalancerConfigured denotes that the machine has been
+	// added to the load balancer
+	// +optional
+	LoadBalancerConfigured bool `json:"loadBalancerConfigured,omitempty"`
 }
 
 // +kubebuilder:resource:path=dockermachines,scope=Namespaced,categories=cluster-api

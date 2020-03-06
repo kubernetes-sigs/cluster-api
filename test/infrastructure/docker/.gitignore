@@ -13,3 +13,6 @@ bin
 manager_image_patch.yaml-e
 cover.out
 manager
+
+# test results
+*.xml

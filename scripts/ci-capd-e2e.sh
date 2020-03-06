@@ -58,4 +58,4 @@ export E2E_CONF_FILE=e2e/ci-e2e.conf
 
 echo "*** Testing Cluster API Provider Docker e2es ***"
 CONTROLLER_IMG=${REGISTRY}/${DOCKER_MANAGER_IMAGE} make docker-build
-ARTIFACTS="${ARTIFACTS}" make run-e2e
+ARTIFACTS="${ARTIFACTS}" make run-e2e "$@"

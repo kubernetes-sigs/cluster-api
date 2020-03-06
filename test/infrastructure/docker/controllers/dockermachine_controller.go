@@ -180,31 +180,40 @@ func (r *DockerMachineReconciler) reconcileNormal(ctx context.Context, machine *
 		return ctrl.Result{}, errors.Wrap(err, "failed to create worker DockerMachine")
 	}
 
-	// if the machine is a control plane added, update the load balancer configuration
-	if util.IsControlPlaneMachine(machine) {
+	// if the machine is a control plane update the load balancer configuration
+	// we should only do this once, as reconfiguration more or less ensures
+	// node ref setting fails
+	if util.IsControlPlaneMachine(machine) && !dockerMachine.Status.LoadBalancerConfigured {
 		if err := externalLoadBalancer.UpdateConfiguration(ctx); err != nil {
 			return ctrl.Result{}, errors.Wrap(err, "failed to update DockerCluster.loadbalancer configuration")
 		}
+		dockerMachine.Status.LoadBalancerConfigured = true
 	}
 
-	bootstrapData, err := r.getBootstrapData(ctx, machine)
-	if err != nil {
-		r.Log.Error(err, "failed to get bootstrap data")
-		return ctrl.Result{}, nil
-	}
+	// if the machine isn't bootstrapped, only then run bootstrap scripts
+	if !dockerMachine.Spec.Bootstrapped {
+		bootstrapData, err := r.getBootstrapData(ctx, machine)
+		if err != nil {
+			r.Log.Error(err, "failed to get bootstrap data")
+			return ctrl.Result{}, nil
+		}
 
-	timeoutctx, cancel := context.WithTimeout(ctx, 3*time.Minute)
-	defer cancel()
-	// Run the bootstrap script. Simulates cloud-init.
-	if err := externalMachine.ExecBootstrap(timeoutctx, bootstrapData); err != nil {
-		return ctrl.Result{}, errors.Wrap(err, "failed to exec DockerMachine bootstrap")
+		timeoutctx, cancel := context.WithTimeout(ctx, 3*time.Minute)
+		defer cancel()
+		// Run the bootstrap script. Simulates cloud-init.
+		if err := externalMachine.ExecBootstrap(timeoutctx, bootstrapData); err != nil {
+			return ctrl.Result{}, errors.Wrap(err, "failed to exec DockerMachine bootstrap")
+		}
+		dockerMachine.Spec.Bootstrapped = true
 	}
 
 	// Usually a cloud provider will do this, but there is no docker-cloud provider.
+	// Requeue after 1s if there is an error, as this is likely momentary load balancer
+	// state changes during control plane provisioning.
 	if err := externalMachine.SetNodeProviderID(ctx); err != nil {
-		return ctrl.Result{}, errors.Wrap(err, "failed to patch the Kubernetes node with the machine providerID")
+		r.Log.Error(err, "failed to patch the Kubernetes node with the machine providerID")
+		return ctrl.Result{RequeueAfter: time.Second}, nil
 	}
-
 	// Set ProviderID so the Cluster API Machine Controller can pull it
 	providerID := externalMachine.ProviderID()
 	dockerMachine.Spec.ProviderID = &providerID

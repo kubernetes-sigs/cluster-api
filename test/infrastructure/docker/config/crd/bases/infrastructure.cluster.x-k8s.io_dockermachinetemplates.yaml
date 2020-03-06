@@ -47,6 +47,10 @@ spec:
                     description: Spec is the specification of the desired behavior
                       of the machine.
                     properties:
+                      bootstrapped:
+                        description: Bootstrapped is true when the kubeadm bootstrapping
+                          has been run against this machine
+                        type: boolean
                       customImage:
                         description: CustomImage allows customizing the container
                           image that is used for running the machine

@@ -60,3 +60,6 @@ tilt-settings.json
 
 # User-supplied clusterctl hacks settings
 clusterctl-settings.json
+
+# test results
+_artifacts

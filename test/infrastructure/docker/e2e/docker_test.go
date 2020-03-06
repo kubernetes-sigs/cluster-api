@@ -152,7 +152,7 @@ var _ = Describe("Docker", func() {
 				applyYAMLURLInput := framework.ApplyYAMLURLInput{
 					Client:        workloadClient,
 					HTTPGetter:    http.DefaultClient,
-					NetworkingURL: "https://docs.projectcalico.org/v3.12/manifests/calico.yaml",
+					NetworkingURL: "https://docs.projectcalico.org/manifests/calico.yaml",
 					Scheme:        mgmt.Scheme,
 				}
 				framework.ApplyYAMLURL(ctx, applyYAMLURLInput)

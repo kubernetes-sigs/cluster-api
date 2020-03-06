@@ -83,31 +83,55 @@ func (k *kubeadmConfig) UpdateKubernetesVersion(version string) error {
 }
 
 // UpdateEtcdMeta sets the local etcd's configuration's image repository and image tag
-func (k *kubeadmConfig) UpdateEtcdMeta(imageRepository, imageTag string) error {
+func (k *kubeadmConfig) UpdateEtcdMeta(imageRepository, imageTag string) (bool, error) {
 	data, ok := k.ConfigMap.Data[clusterConfigurationKey]
 	if !ok {
-		return errors.Errorf("could not find key %q in kubeadm config", clusterConfigurationKey)
+		return false, errors.Errorf("could not find key %q in kubeadm config", clusterConfigurationKey)
 	}
 	configuration, err := yamlToUnstructured([]byte(data))
 	if err != nil {
-		return errors.Wrap(err, "unable to convert YAML to unstructured")
+		return false, errors.Wrap(err, "unable to convert YAML to unstructured")
 	}
-	if imageRepository != "" {
-		if err := unstructured.SetNestedField(configuration.UnstructuredContent(), imageRepository, "etcd", "local", "imageRepository"); err != nil {
-			return errors.Wrap(err, "unable to update image repository on kubeadm configmap")
+
+	var changed bool
+
+	// Handle etcd.local.imageRepository.
+	imageRepositoryPath := []string{"etcd", "local", "imageRepository"}
+	currentImageRepository, _, err := unstructured.NestedString(configuration.UnstructuredContent(), imageRepositoryPath...)
+	if err != nil {
+		return false, errors.Wrap(err, "unable to retrieve current image repository from kubeadm configmap")
+	}
+	if currentImageRepository != imageRepository {
+		if err := unstructured.SetNestedField(configuration.UnstructuredContent(), imageRepository, imageRepositoryPath...); err != nil {
+			return false, errors.Wrap(err, "unable to update etcd.local.imageRepository on kubeadm configmap")
 		}
+		changed = true
 	}
-	if imageTag != "" {
-		if err := unstructured.SetNestedField(configuration.UnstructuredContent(), imageTag, "etcd", "local", "imageTag"); err != nil {
-			return errors.Wrap(err, "unable to update image repository on kubeadm configmap")
+
+	// Handle etcd.local.imageTag.
+	imageTagPath := []string{"etcd", "local", "imageTag"}
+	currentImageTag, _, err := unstructured.NestedString(configuration.UnstructuredContent(), imageTagPath...)
+	if err != nil {
+		return false, errors.Wrap(err, "unable to retrieve current image repository from kubeadm configmap")
+	}
+	if currentImageTag != imageTag {
+		if err := unstructured.SetNestedField(configuration.UnstructuredContent(), imageTag, imageTagPath...); err != nil {
+			return false, errors.Wrap(err, "unable to update etcd.local.imageTag on kubeadm configmap")
 		}
+		changed = true
 	}
+
+	// Return early if no changes have been performed.
+	if !changed {
+		return changed, nil
+	}
+
 	updated, err := yaml.Marshal(configuration)
 	if err != nil {
-		return errors.Wrap(err, "error encoding kubeadm cluster configuration object")
+		return false, errors.Wrap(err, "error encoding kubeadm cluster configuration object")
 	}
 	k.ConfigMap.Data[clusterConfigurationKey] = string(updated)
-	return nil
+	return changed, nil
 }
 
 // yamlToUnstructured looks inside a config map for a specific key and extracts the embedded YAML into an

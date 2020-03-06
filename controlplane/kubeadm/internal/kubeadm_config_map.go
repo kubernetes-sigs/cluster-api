@@ -82,6 +82,34 @@ func (k *kubeadmConfig) UpdateKubernetesVersion(version string) error {
 	return nil
 }
 
+// UpdateEtcdMeta sets the local etcd's configuration's image repository and image tag
+func (k *kubeadmConfig) UpdateEtcdMeta(imageRepository, imageTag string) error {
+	data, ok := k.ConfigMap.Data[clusterConfigurationKey]
+	if !ok {
+		return errors.Errorf("could not find key %q in kubeadm config", clusterConfigurationKey)
+	}
+	configuration, err := yamlToUnstructured([]byte(data))
+	if err != nil {
+		return errors.Wrap(err, "unable to convert YAML to unstructured")
+	}
+	if imageRepository != "" {
+		if err := unstructured.SetNestedField(configuration.UnstructuredContent(), imageRepository, "etcd", "local", "imageRepository"); err != nil {
+			return errors.Wrap(err, "unable to update image repository on kubeadm configmap")
+		}
+	}
+	if imageTag != "" {
+		if err := unstructured.SetNestedField(configuration.UnstructuredContent(), imageTag, "etcd", "local", "imageTag"); err != nil {
+			return errors.Wrap(err, "unable to update image repository on kubeadm configmap")
+		}
+	}
+	updated, err := yaml.Marshal(configuration)
+	if err != nil {
+		return errors.Wrap(err, "error encoding kubeadm cluster configuration object")
+	}
+	k.ConfigMap.Data[clusterConfigurationKey] = string(updated)
+	return nil
+}
+
 // yamlToUnstructured looks inside a config map for a specific key and extracts the embedded YAML into an
 // *unstructured.Unstructured.
 func yamlToUnstructured(rawYAML []byte) (*unstructured.Unstructured, error) {

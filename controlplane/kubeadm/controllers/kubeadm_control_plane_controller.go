@@ -352,6 +352,13 @@ func (r *KubeadmControlPlaneReconciler) upgradeControlPlane(ctx context.Context,
 		return ctrl.Result{}, errors.Wrap(err, "failed to update the kubernetes version in the kubeadm config map")
 	}
 
+	if kcp.Spec.KubeadmConfigSpec.ClusterConfiguration.Etcd.Local != nil {
+		meta := kcp.Spec.KubeadmConfigSpec.ClusterConfiguration.Etcd.Local.ImageMeta
+		if err := workloadCluster.UpdateEtcdVersionInKubeadmConfigMap(ctx, meta.ImageRepository, meta.ImageTag); err != nil {
+			return ctrl.Result{}, errors.Wrap(err, "failed to update the etcd version in the kubeadm config map")
+		}
+	}
+
 	if err := workloadCluster.UpdateKubeletConfigMap(ctx, parsedVersion); err != nil {
 		return ctrl.Result{}, errors.Wrap(err, "failed to upgrade kubelet config map")
 	}

@@ -58,7 +58,7 @@ func (v *viperReader) Init(path string) error {
 	// the SetEnvKeyReplacer forces matching to name use the _ delimiter instead (- is not allowed in linux env variable names).
 	replacer := strings.NewReplacer("-", "_")
 	viper.SetEnvKeyReplacer(replacer)
-
+	viper.AllowEmptyEnv(true)
 	viper.AutomaticEnv()
 
 	// If a path file is found, read it in.

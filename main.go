@@ -48,18 +48,19 @@ var (
 	setupLog = ctrl.Log.WithName("setup")
 
 	// flags
-	metricsAddr                  string
-	enableLeaderElection         bool
-	watchNamespace               string
-	profilerAddress              string
-	clusterConcurrency           int
-	machineConcurrency           int
-	machineSetConcurrency        int
-	machineDeploymentConcurrency int
-	machinePoolConcurrency       int
-	syncPeriod                   time.Duration
-	webhookPort                  int
-	healthAddr                   string
+	metricsAddr                   string
+	enableLeaderElection          bool
+	watchNamespace                string
+	profilerAddress               string
+	clusterConcurrency            int
+	machineConcurrency            int
+	machineSetConcurrency         int
+	machineDeploymentConcurrency  int
+	machinePoolConcurrency        int
+	machineHealthCheckConcurrency int
+	syncPeriod                    time.Duration
+	webhookPort                   int
+	healthAddr                    string
 )
 
 func init() {
@@ -101,6 +102,9 @@ func InitFlags(fs *pflag.FlagSet) {
 
 	fs.IntVar(&machinePoolConcurrency, "machinepool-concurrency", 10,
 		"Number of machine pools to process simultaneously")
+
+	fs.IntVar(&machineHealthCheckConcurrency, "machinehealthcheck-concurrency", 10,
+		"Number of machine health checks to process simultaneously")
 
 	fs.DurationVar(&syncPeriod, "sync-period", 10*time.Minute,
 		"The minimum interval at which watched resources are reconciled (e.g. 15m)")
@@ -210,6 +214,13 @@ func setupReconcilers(mgr ctrl.Manager) {
 			os.Exit(1)
 		}
 	}
+	if err := (&controllers.MachineHealthCheckReconciler{
+		Client: mgr.GetClient(),
+		Log:    ctrl.Log.WithName("controllers").WithName("MachineHealthCheck"),
+	}).SetupWithManager(mgr, concurrency(machineHealthCheckConcurrency)); err != nil {
+		setupLog.Error(err, "unable to create controller", "controller", "MachineHealthCheck")
+		os.Exit(1)
+	}
 }
 
 func setupWebhooks(mgr ctrl.Manager) {
@@ -278,6 +289,11 @@ func setupWebhooks(mgr ctrl.Manager) {
 			setupLog.Error(err, "unable to create webhook", "webhook", "MachinePool")
 			os.Exit(1)
 		}
+	}
+
+	if err := (&clusterv1alpha3.MachineHealthCheck{}).SetupWebhookWithManager(mgr); err != nil {
+		setupLog.Error(err, "unable to create webhook", "webhook", "MachineHealthCheck")
+		os.Exit(1)
 	}
 }
 

@@ -222,14 +222,19 @@ func machineListForTestGetMachinesForCluster() *clusterv1.MachineList {
 
 type fakeClient struct {
 	client.Client
-	list      interface{}
-	get       map[string]interface{}
-	getErr    error
-	createErr error
-	patchErr  error
+	list interface{}
+
+	createErr    error
+	get          map[string]interface{}
+	getCalled    bool
+	updateCalled bool
+	getErr       error
+	patchErr     error
+	updateErr    error
 }
 
 func (f *fakeClient) Get(_ context.Context, key client.ObjectKey, obj runtime.Object) error {
+	f.getCalled = true
 	if f.getErr != nil {
 		return f.getErr
 	}
@@ -243,6 +248,8 @@ func (f *fakeClient) Get(_ context.Context, key client.ObjectKey, obj runtime.Ob
 		l.DeepCopyInto(obj.(*rbacv1.Role))
 	case *appsv1.DaemonSet:
 		l.DeepCopyInto(obj.(*appsv1.DaemonSet))
+	case *corev1.ConfigMap:
+		l.DeepCopyInto(obj.(*corev1.ConfigMap))
 	case nil:
 		return apierrors.NewNotFound(schema.GroupResource{}, key.Name)
 	default:
@@ -273,6 +280,14 @@ func (f *fakeClient) Create(_ context.Context, _ runtime.Object, _ ...client.Cre
 func (f *fakeClient) Patch(_ context.Context, _ runtime.Object, _ client.Patch, _ ...client.PatchOption) error {
 	if f.patchErr != nil {
 		return f.patchErr
+	}
+	return nil
+}
+
+func (f *fakeClient) Update(_ context.Context, _ runtime.Object, _ ...client.UpdateOption) error {
+	f.updateCalled = true
+	if f.updateErr != nil {
+		return f.updateErr
 	}
 	return nil
 }

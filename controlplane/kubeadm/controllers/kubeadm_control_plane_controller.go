@@ -242,7 +242,9 @@ func (r *KubeadmControlPlaneReconciler) reconcile(ctx context.Context, cluster *
 			internal.OlderThan(kcp.Spec.UpgradeAfter),
 		)
 	} else {
-		requireUpgrade = ownedMachines.Filter(internal.Not(internal.MatchesConfigurationHash(hash.Compute(&kcp.Spec))))
+		requireUpgrade = ownedMachines.Filter(
+			internal.Not(internal.MatchesConfigurationHash(hash.Compute(&kcp.Spec))),
+		)
 	}
 
 	// Upgrade takes precedence over other operations
@@ -252,7 +254,6 @@ func (r *KubeadmControlPlaneReconciler) reconcile(ctx context.Context, cluster *
 	}
 
 	// If we've made it this far, we can assume that all ownedMachines are up to date
-
 	numMachines := len(ownedMachines)
 	desiredReplicas := int(*kcp.Spec.Replicas)
 
@@ -273,14 +274,22 @@ func (r *KubeadmControlPlaneReconciler) reconcile(ctx context.Context, cluster *
 		return r.scaleDownControlPlane(ctx, cluster, kcp, ownedMachines)
 	}
 
-	// Update kube-proxy image name
+	// Get the workload cluster client.
 	workloadCluster, err := r.managementCluster.GetWorkloadCluster(ctx, util.ObjectKey(cluster))
 	if err != nil {
-		// Just log and continue, control-plane cluster may be uninitialized
-		logger.Error(err, "failed to get remote client for workload cluster")
-	} else if err := workloadCluster.UpdateKubeProxyImageInfo(ctx, kcp); err != nil {
-		logger.Error(err, "failed to update kube-proxy image name in kube-proxy daemonset")
+		logger.V(2).Info("cannot get remote client to workload cluster, will requeue", "cause", err)
+		return ctrl.Result{Requeue: true}, nil
+	}
+
+	// Update kube-proxy daemonset.
+	if err := workloadCluster.UpdateKubeProxyImageInfo(ctx, kcp); err != nil {
+		logger.Error(err, "failed to update kube-proxy daemonset")
 		return ctrl.Result{}, err
+	}
+
+	// Update CoreDNS deployment.
+	if err := workloadCluster.UpdateCoreDNS(ctx, kcp); err != nil {
+		return ctrl.Result{}, errors.Wrap(err, "failed to update CoreDNS deployment")
 	}
 
 	return ctrl.Result{}, nil
@@ -335,7 +344,8 @@ func (r *KubeadmControlPlaneReconciler) updateStatus(ctx context.Context, kcp *c
 	return nil
 }
 
-func (r *KubeadmControlPlaneReconciler) upgradeControlPlane(ctx context.Context, cluster *clusterv1.Cluster, kcp *controlplanev1.KubeadmControlPlane, ownedMachines internal.FilterableMachineCollection, requireUpgrade internal.FilterableMachineCollection) (ctrl.Result, error) {
+func (r *KubeadmControlPlaneReconciler) upgradeControlPlane(ctx context.Context, cluster *clusterv1.Cluster, kcp *controlplanev1.KubeadmControlPlane, ownedMachines internal.FilterableMachineCollection, requireUpgrade internal.FilterableMachineCollection,
+) (ctrl.Result, error) {
 	logger := r.Log.WithValues("namespace", kcp.Namespace, "kubeadmControlPlane", kcp.Name, "cluster", cluster.Name)
 
 	// TODO: handle reconciliation of etcd members and kubeadm config in case they get out of sync with cluster

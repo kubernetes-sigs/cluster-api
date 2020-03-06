@@ -20,6 +20,7 @@ import (
 	"github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
+	kubeadmv1 "sigs.k8s.io/cluster-api/bootstrap/kubeadm/types/v1beta1"
 	"sigs.k8s.io/yaml"
 )
 
@@ -28,6 +29,10 @@ const (
 	clusterConfigurationKey = "ClusterConfiguration"
 	statusAPIEndpointsKey   = "apiEndpoints"
 	configVersionKey        = "kubernetesVersion"
+	dnsKey                  = "dns"
+	dnsTypeKey              = "type"
+	dnsImageRepositoryKey   = "imageRepository"
+	dnsImageTagKey          = "imageTag"
 )
 
 // kubeadmConfig wraps up interactions necessary for modifying the kubeadm config during an upgrade.
@@ -132,6 +137,33 @@ func (k *kubeadmConfig) UpdateEtcdMeta(imageRepository, imageTag string) (bool, 
 	}
 	k.ConfigMap.Data[clusterConfigurationKey] = string(updated)
 	return changed, nil
+}
+
+// UpdateCoreDNSImageInfo changes the dns.ImageTag and dns.ImageRepository
+// found in the kubeadm config map
+func (k *kubeadmConfig) UpdateCoreDNSImageInfo(repository, tag string) error {
+	data, ok := k.ConfigMap.Data[clusterConfigurationKey]
+	if !ok {
+		return errors.Errorf("could not find key %q in kubeadm config", clusterConfigurationKey)
+	}
+	configuration, err := yamlToUnstructured([]byte(data))
+	if err != nil {
+		return errors.Wrap(err, "unable to convert YAML to unstructured")
+	}
+	dnsMap := map[string]string{
+		dnsTypeKey:            string(kubeadmv1.CoreDNS),
+		dnsImageRepositoryKey: repository,
+		dnsImageTagKey:        tag,
+	}
+	if err := unstructured.SetNestedStringMap(configuration.UnstructuredContent(), dnsMap, dnsKey); err != nil {
+		return errors.Wrap(err, "unable to update dns on kubeadm config map")
+	}
+	updated, err := yaml.Marshal(configuration)
+	if err != nil {
+		return errors.Wrap(err, "error encoding kubeadm cluster configuration object")
+	}
+	k.ConfigMap.Data[clusterConfigurationKey] = string(updated)
+	return nil
 }
 
 // yamlToUnstructured looks inside a config map for a specific key and extracts the embedded YAML into an

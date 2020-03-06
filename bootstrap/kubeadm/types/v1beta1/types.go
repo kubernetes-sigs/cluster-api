@@ -150,7 +150,8 @@ const (
 // DNS defines the DNS addon that should be used in the cluster
 type DNS struct {
 	// Type defines the DNS add-on to be used
-	Type DNSAddOnType `json:"type"`
+	// +optional
+	Type DNSAddOnType `json:"type,omitempty"`
 
 	// ImageMeta allows to customize the image used for the DNS component
 	ImageMeta `json:",inline"`

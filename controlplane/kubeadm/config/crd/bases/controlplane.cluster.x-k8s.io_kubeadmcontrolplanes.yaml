@@ -259,8 +259,6 @@ spec:
                           type:
                             description: Type defines the DNS add-on to be used
                             type: string
-                        required:
-                        - type
                         type: object
                       etcd:
                         description: Etcd holds configuration for etcd.

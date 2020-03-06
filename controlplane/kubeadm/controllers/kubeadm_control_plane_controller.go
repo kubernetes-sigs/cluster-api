@@ -505,7 +505,7 @@ func (r *KubeadmControlPlaneReconciler) scaleDownControlPlane(ctx context.Contex
 	if !internal.HasAnnotationKey(controlplanev1.ScaleDownEtcdMemberRemovedAnnotation)(machineToDelete) {
 		// Ensure etcd is healthy prior to attempting to remove the member
 		if err := r.managementCluster.TargetClusterEtcdIsHealthy(ctx, util.ObjectKey(cluster), kcp.Name); err != nil {
-			logger.Error(err, "waiting for control plane to pass etcd health check before adding removing a control plane machine")
+			logger.Error(err, "waiting for control plane to pass etcd health check before removing a control plane machine")
 			r.recorder.Eventf(kcp, corev1.EventTypeWarning, "ControlPlaneUnhealthy", "Waiting for control plane to pass etcd health check before removing a control plane machine: %v", err)
 			return ctrl.Result{}, &capierrors.RequeueAfterError{RequeueAfter: HealthCheckFailedRequeueAfter}
 		}

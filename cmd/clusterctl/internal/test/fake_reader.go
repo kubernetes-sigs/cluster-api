@@ -27,6 +27,7 @@ type FakeReader struct {
 	initialized bool
 	variables   map[string]string
 	providers   []configProvider
+	imageMetas  map[string]imageMeta
 }
 
 // configProvider is a mirror of config.Provider, re-implemented here in order to
@@ -35,6 +36,13 @@ type configProvider struct {
 	Name string                    `json:"name,omitempty"`
 	URL  string                    `json:"url,omitempty"`
 	Type clusterctlv1.ProviderType `json:"type,omitempty"`
+}
+
+// imageMeta is a mirror of config.imageMeta, re-implemented here in order to
+// avoid circular dependencies between pkg/client/config and pkg/internal/test
+type imageMeta struct {
+	Repository string `json:"repository,omitempty"`
+	Tag        string `json:"tag,omitempty"`
 }
 
 func (f *FakeReader) Init(config string) error {
@@ -63,7 +71,8 @@ func (f *FakeReader) UnmarshalKey(key string, rawval interface{}) error {
 
 func NewFakeReader() *FakeReader {
 	return &FakeReader{
-		variables: map[string]string{},
+		variables:  map[string]string{},
+		imageMetas: map[string]imageMeta{},
 	}
 }
 
@@ -81,6 +90,18 @@ func (f *FakeReader) WithProvider(name string, ttype clusterctlv1.ProviderType, 
 
 	yaml, _ := yaml.Marshal(f.providers)
 	f.variables["providers"] = string(yaml)
+
+	return f
+}
+
+func (f *FakeReader) WithImageMeta(component, repository, tag string) *FakeReader {
+	f.imageMetas[component] = imageMeta{
+		Repository: repository,
+		Tag:        tag,
+	}
+
+	yaml, _ := yaml.Marshal(f.imageMetas)
+	f.variables["images"] = string(yaml)
 
 	return f
 }

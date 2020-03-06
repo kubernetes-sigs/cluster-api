@@ -22,15 +22,19 @@ import (
 )
 
 // Client is used to interact with the clusterctl configurations.
-// Clusterctl v2 handles two types of configs:
+// Clusterctl v2 handles the following configurations:
 // 1. The configuration of the providers (name, type and URL of the provider repository)
 // 2. Variables used when installing providers/creating clusters. Variables can be read from the environment or from the config file
+// 3. The configuration about image overrides
 type Client interface {
 	// Providers provide access to provider configurations.
 	Providers() ProvidersClient
 
 	// Variables provide access to environment variables and/or variables defined in the clusterctl configuration file.
 	Variables() VariablesClient
+
+	// ImageMeta provide access to to image meta configurations.
+	ImageMeta() ImageMetaClient
 }
 
 // configClient implements Client.
@@ -47,6 +51,10 @@ func (c *configClient) Providers() ProvidersClient {
 
 func (c *configClient) Variables() VariablesClient {
 	return newVariablesClient(c.reader)
+}
+
+func (c *configClient) ImageMeta() ImageMetaClient {
+	return newImageMetaClient(c.reader)
 }
 
 // Option is a configuration option supplied to New

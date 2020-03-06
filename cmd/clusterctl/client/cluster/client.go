@@ -97,7 +97,7 @@ func (c *clusterClient) Proxy() Proxy {
 }
 
 func (c *clusterClient) CertManager() CertManagerClient {
-	return newCertMangerClient(c.proxy, c.pollImmediateWaiter)
+	return newCertMangerClient(c.configClient, c.proxy, c.pollImmediateWaiter)
 }
 
 func (c *clusterClient) ProviderComponents() ComponentsClient {

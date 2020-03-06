@@ -143,7 +143,8 @@ func (cm *certManagerClient) EnsureWebhook() error {
 	if err := cm.pollImmediateWaiter(waitCertManagerInterval, waitCertManagerTimeout, func() (bool, error) {
 		webhook, err := cm.getWebhook()
 		if err != nil {
-			return false, errors.Wrap(err, "failed to get cert-manager web-hook")
+			//Nb. we are ignoring the error so the pollImmediateWaiter will execute another retry
+			return false, nil
 		}
 		if webhook == nil {
 			return false, nil

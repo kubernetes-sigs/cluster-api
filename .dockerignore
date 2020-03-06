@@ -11,3 +11,4 @@ scripts/
 tilt-settings.json
 tilt.d/
 Tiltfile
+_artifacts

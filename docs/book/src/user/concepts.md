@@ -60,6 +60,15 @@ MachineSets work similar to regular POD [ReplicaSets](https://kubernetes.io/docs
 
 <!--TODO-->
 
+### MachineHealthCheck
+
+A "MachineHealthCheck" defines a set of conditions for Nodes which allow the user to specify when a Node should be considered unhealthy.
+If the Node matches the unhealthy conditions for a given user configured time, the MachineHealthCheck initiates remediation of the Node.
+
+Remediation of Nodes is performed by deleting the Machine that created the Node.
+MachineHealthChecks will only remediate Nodes if they are owned by a MachineSet,
+this ensures that the Kubernetes cluster does not lose capacity, as the MachineSet will create a new Machine to replace the failed Machine.
+
 ### BootstrapData
 
 BootstrapData contains the machine or node role specific initialization data (usually cloud-init) used by the infrastructure provider to bootstrap a machine into a node.

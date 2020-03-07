@@ -199,6 +199,14 @@ func NewComponents(provider config.Provider, version string, rawyaml []byte, con
 		return nil, errors.Wrap(err, "failed to parse yaml")
 	}
 
+	// apply image overrides, if defined
+	objs, err = util.FixImages(objs, func(image string) (string, error) {
+		return configClient.ImageMeta().AlterImage(provider.ManifestLabel(), image)
+	})
+	if err != nil {
+		return nil, errors.Wrap(err, "failed to apply image overrides")
+	}
+
 	// inspect the list of objects for the images required by the provider component
 	images, err := util.InspectImages(objs)
 	if err != nil {

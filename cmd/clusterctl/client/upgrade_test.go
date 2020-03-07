@@ -206,7 +206,7 @@ func fakeClientFoUpgrade() *fakeClient {
 		WithProvider(core).
 		WithProvider(infra)
 
-	repository1 := newFakeRepository(core, config1.Variables()).
+	repository1 := newFakeRepository(core, config1).
 		WithPaths("root", "components.yaml").
 		WithDefaultVersion("v1.0.1").
 		WithFile("v1.0.1", "components.yaml", componentsYAML("ns2")).
@@ -216,7 +216,7 @@ func fakeClientFoUpgrade() *fakeClient {
 				{Major: 1, Minor: 0, Contract: "v1alpha3"},
 			},
 		})
-	repository2 := newFakeRepository(infra, config1.Variables()).
+	repository2 := newFakeRepository(infra, config1).
 		WithPaths("root", "components.yaml").
 		WithDefaultVersion("v2.0.0").
 		WithFile("v2.0.1", "components.yaml", componentsYAML("ns2")).

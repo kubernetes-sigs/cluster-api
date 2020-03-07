@@ -30,20 +30,20 @@ type ComponentsClient interface {
 
 // componentsClient implements ComponentsClient.
 type componentsClient struct {
-	provider              config.Provider
-	repository            Repository
-	configVariablesClient config.VariablesClient
+	provider     config.Provider
+	repository   Repository
+	configClient config.Client
 }
 
 // ensure componentsClient implements ComponentsClient.
 var _ ComponentsClient = &componentsClient{}
 
 // newComponentsClient returns a componentsClient.
-func newComponentsClient(provider config.Provider, repository Repository, configVariablesClient config.VariablesClient) *componentsClient {
+func newComponentsClient(provider config.Provider, repository Repository, configClient config.Client) *componentsClient {
 	return &componentsClient{
-		provider:              provider,
-		repository:            repository,
-		configVariablesClient: configVariablesClient,
+		provider:     provider,
+		repository:   repository,
+		configClient: configClient,
 	}
 }
 
@@ -74,5 +74,5 @@ func (f *componentsClient) Get(version, targetNamespace, watchingNamespace strin
 		log.V(1).Info("Using", "Override", path, "Provider", f.provider.ManifestLabel(), "Version", version)
 	}
 
-	return NewComponents(f.provider, version, file, f.configVariablesClient, targetNamespace, watchingNamespace)
+	return NewComponents(f.provider, version, file, f.configClient, targetNamespace, watchingNamespace)
 }

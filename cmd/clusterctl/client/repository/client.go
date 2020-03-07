@@ -52,8 +52,8 @@ type Client interface {
 // repositoryClient implements Client.
 type repositoryClient struct {
 	config.Provider
-	configVariablesClient config.VariablesClient
-	repository            Repository
+	configClient config.Client
+	repository   Repository
 }
 
 // ensure repositoryClient implements Client.
@@ -64,11 +64,11 @@ func (c *repositoryClient) GetVersions() ([]string, error) {
 }
 
 func (c *repositoryClient) Components() ComponentsClient {
-	return newComponentsClient(c.Provider, c.repository, c.configVariablesClient)
+	return newComponentsClient(c.Provider, c.repository, c.configClient)
 }
 
 func (c *repositoryClient) Templates(version string) TemplateClient {
-	return newTemplateClient(c.Provider, version, c.repository, c.configVariablesClient)
+	return newTemplateClient(c.Provider, version, c.repository, c.configClient.Variables())
 }
 
 func (c *repositoryClient) Metadata(version string) MetadataClient {
@@ -88,14 +88,14 @@ func InjectRepository(repository Repository) Option {
 }
 
 // New returns a Client.
-func New(provider config.Provider, configVariablesClient config.VariablesClient, options ...Option) (Client, error) {
-	return newRepositoryClient(provider, configVariablesClient, options...)
+func New(provider config.Provider, configClient config.Client, options ...Option) (Client, error) {
+	return newRepositoryClient(provider, configClient, options...)
 }
 
-func newRepositoryClient(provider config.Provider, configVariablesClient config.VariablesClient, options ...Option) (*repositoryClient, error) {
+func newRepositoryClient(provider config.Provider, configClient config.Client, options ...Option) (*repositoryClient, error) {
 	client := &repositoryClient{
-		Provider:              provider,
-		configVariablesClient: configVariablesClient,
+		Provider:     provider,
+		configClient: configClient,
 	}
 	for _, o := range options {
 		o(client)
@@ -103,7 +103,7 @@ func newRepositoryClient(provider config.Provider, configVariablesClient config.
 
 	// if there is an injected repository, use it, otherwise use a default one
 	if client.repository == nil {
-		r, err := repositoryFactory(provider, configVariablesClient)
+		r, err := repositoryFactory(provider, configClient.Variables())
 		if err != nil {
 			return nil, errors.Wrapf(err, "failed to get repository client for the %s with name %s", provider.Type(), provider.Name())
 		}

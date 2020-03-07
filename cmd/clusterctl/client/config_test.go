@@ -108,7 +108,7 @@ func Test_clusterctlClient_GetProviderComponents(t *testing.T) {
 	config1 := newFakeConfig().
 		WithProvider(capiProviderConfig)
 
-	repository1 := newFakeRepository(capiProviderConfig, config1.Variables()).
+	repository1 := newFakeRepository(capiProviderConfig, config1).
 		WithPaths("root", "components.yaml").
 		WithDefaultVersion("v1.0.0").
 		WithFile("v1.0.0", "components.yaml", componentsYAML("ns1"))
@@ -343,7 +343,7 @@ func Test_clusterctlClient_GetClusterTemplate(t *testing.T) {
 	config1 := newFakeConfig().
 		WithProvider(infraProviderConfig)
 
-	repository1 := newFakeRepository(infraProviderConfig, config1.Variables()).
+	repository1 := newFakeRepository(infraProviderConfig, config1).
 		WithPaths("root", "components").
 		WithDefaultVersion("v3.0.0").
 		WithFile("v3.0.0", "cluster-template.yaml", rawTemplate)

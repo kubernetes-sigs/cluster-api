@@ -223,7 +223,7 @@ func (i *providerInstaller) getProviderContract(providerInstanceContracts map[st
 		return "", err
 	}
 
-	providerRepository, err := i.repositoryClientFactory(configRepository, i.configClient.Variables())
+	providerRepository, err := i.repositoryClientFactory(configRepository, i.configClient)
 	if err != nil {
 		return "", err
 	}

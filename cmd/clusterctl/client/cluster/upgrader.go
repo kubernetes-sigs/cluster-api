@@ -320,7 +320,7 @@ func (u *providerUpgrader) getUpgradeComponents(provider UpgradeItem) (repositor
 		return nil, err
 	}
 
-	providerRepository, err := u.repositoryClientFactory(configRepository, u.configClient.Variables())
+	providerRepository, err := u.repositoryClientFactory(configRepository, u.configClient)
 	if err != nil {
 		return nil, err
 	}

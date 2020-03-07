@@ -393,7 +393,7 @@ func fakeEmptyCluster() *fakeClient {
 		WithProvider(controlPlaneProviderConfig).
 		WithProvider(infraProviderConfig)
 
-	repository1 := newFakeRepository(capiProviderConfig, config1.Variables()).
+	repository1 := newFakeRepository(capiProviderConfig, config1).
 		WithPaths("root", "components.yaml").
 		WithDefaultVersion("v1.0.0").
 		WithFile("v1.0.0", "components.yaml", componentsYAML("ns1")).
@@ -408,7 +408,7 @@ func fakeEmptyCluster() *fakeClient {
 				{Major: 1, Minor: 1, Contract: "v1alpha3"},
 			},
 		})
-	repository2 := newFakeRepository(bootstrapProviderConfig, config1.Variables()).
+	repository2 := newFakeRepository(bootstrapProviderConfig, config1).
 		WithPaths("root", "components.yaml").
 		WithDefaultVersion("v2.0.0").
 		WithFile("v2.0.0", "components.yaml", componentsYAML("ns2")).
@@ -423,7 +423,7 @@ func fakeEmptyCluster() *fakeClient {
 				{Major: 2, Minor: 1, Contract: "v1alpha3"},
 			},
 		})
-	repository3 := newFakeRepository(controlPlaneProviderConfig, config1.Variables()).
+	repository3 := newFakeRepository(controlPlaneProviderConfig, config1).
 		WithPaths("root", "components.yaml").
 		WithDefaultVersion("v2.0.0").
 		WithFile("v2.0.0", "components.yaml", componentsYAML("ns3")).
@@ -438,7 +438,7 @@ func fakeEmptyCluster() *fakeClient {
 				{Major: 2, Minor: 1, Contract: "v1alpha3"},
 			},
 		})
-	repository4 := newFakeRepository(infraProviderConfig, config1.Variables()).
+	repository4 := newFakeRepository(infraProviderConfig, config1).
 		WithPaths("root", "components.yaml").
 		WithDefaultVersion("v3.0.0").
 		WithFile("v3.0.0", "components.yaml", componentsYAML("ns4")).

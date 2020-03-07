@@ -83,7 +83,7 @@ type clusterClient struct {
 	pollImmediateWaiter     PollImmediateWaiter
 }
 
-type RepositoryClientFactory func(provider config.Provider, configVariablesClient config.VariablesClient, options ...repository.Option) (repository.Client, error)
+type RepositoryClientFactory func(provider config.Provider, configClient config.Client, options ...repository.Option) (repository.Client, error)
 
 // ensure clusterClient implements Client.
 var _ Client = &clusterClient{}

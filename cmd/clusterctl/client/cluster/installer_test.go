@@ -198,8 +198,8 @@ func Test_providerInstaller_Validate(t *testing.T) {
 				configClient:      configClient,
 				proxy:             tt.fields.proxy,
 				providerInventory: newInventoryClient(tt.fields.proxy, nil),
-				repositoryClientFactory: func(provider config.Provider, configVariablesClient config.VariablesClient, options ...repository.Option) (repository.Client, error) {
-					return repository.New(provider, configVariablesClient, repository.InjectRepository(repositoryMap[provider.ManifestLabel()]))
+				repositoryClientFactory: func(provider config.Provider, configClient config.Client, options ...repository.Option) (repository.Client, error) {
+					return repository.New(provider, configClient, repository.InjectRepository(repositoryMap[provider.ManifestLabel()]))
 				},
 				installQueue: tt.fields.installQueue,
 			}

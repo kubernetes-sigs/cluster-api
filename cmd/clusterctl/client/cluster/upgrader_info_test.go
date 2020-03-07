@@ -152,8 +152,8 @@ func Test_providerUpgrader_getUpgradeInfo(t *testing.T) {
 
 			u := &providerUpgrader{
 				configClient: configClient,
-				repositoryClientFactory: func(provider config.Provider, configVariablesClient config.VariablesClient, options ...repository.Option) (repository.Client, error) {
-					return repository.New(provider, configVariablesClient, repository.InjectRepository(tt.fields.repository))
+				repositoryClientFactory: func(provider config.Provider, configClient config.Client, options ...repository.Option) (repository.Client, error) {
+					return repository.New(provider, configClient, repository.InjectRepository(tt.fields.repository))
 				},
 			}
 			got, err := u.getUpgradeInfo(tt.args.provider)

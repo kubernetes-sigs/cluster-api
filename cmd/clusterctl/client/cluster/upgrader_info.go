@@ -51,7 +51,7 @@ func (u *providerUpgrader) getUpgradeInfo(provider clusterctlv1.Provider) (*upgr
 		return nil, err
 	}
 
-	providerRepository, err := u.repositoryClientFactory(configRepository, u.configClient.Variables())
+	providerRepository, err := u.repositoryClientFactory(configRepository, u.configClient)
 	if err != nil {
 		return nil, err
 	}

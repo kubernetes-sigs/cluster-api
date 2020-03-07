@@ -186,6 +186,6 @@ func defaultClusterFactory(configClient config.Client) func(kubeconfig string) (
 // defaultRepositoryFactory is a RepositoryClientFactory func the uses the default client provided by the repository low level library.
 func defaultRepositoryFactory(configClient config.Client) func(providerConfig config.Provider) (repository.Client, error) {
 	return func(providerConfig config.Provider) (repository.Client, error) {
-		return repository.New(providerConfig, configClient.Variables())
+		return repository.New(providerConfig, configClient)
 	}
 }

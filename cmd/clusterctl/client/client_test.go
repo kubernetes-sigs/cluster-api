@@ -43,7 +43,7 @@ func TestNewFakeClient(t *testing.T) {
 		WithProvider(repository1Config)
 
 	// create a fake repository with some YAML files in it (usually matching the list of providers defined in the config)
-	repository1 := newFakeRepository(repository1Config, config1.Variables()).
+	repository1 := newFakeRepository(repository1Config, config1).
 		WithPaths("root", "components").
 		WithDefaultVersion("v1.0").
 		WithFile("v1.0", "components.yaml", []byte("content"))
@@ -168,7 +168,7 @@ func newFakeCluster(kubeconfig string, configClient config.Client) *fakeClusterC
 	fake.internalclient = cluster.New("", configClient,
 		cluster.InjectProxy(fake.fakeProxy),
 		cluster.InjectPollImmediateWaiter(pollImmediateWaiter),
-		cluster.InjectRepositoryFactory(func(provider config.Provider, configVariablesClient config.VariablesClient, options ...repository.Option) (repository.Client, error) {
+		cluster.InjectRepositoryFactory(func(provider config.Provider, configClient config.Client, options ...repository.Option) (repository.Client, error) {
 			if _, ok := fake.repositories[provider.Name()]; !ok {
 				return nil, errors.Errorf("Repository for kubeconfig %q does not exists.", provider.Name())
 			}
@@ -300,24 +300,24 @@ func (f *fakeConfigClient) WithProvider(provider config.Provider) *fakeConfigCli
 // newFakeRepository return a fake implementation of the client for low-level repository library.
 // The implementation stores configuration settings in a map; you can use
 // the WithPaths or WithDefaultVersion methods to configure the repository and WithFile to set the map values.
-func newFakeRepository(provider config.Provider, configVariablesClient config.VariablesClient) *fakeRepositoryClient {
+func newFakeRepository(provider config.Provider, configClient config.Client) *fakeRepositoryClient {
 	fakeRepository := test.NewFakeRepository()
 
-	if configVariablesClient == nil {
-		configVariablesClient = newFakeConfig().Variables()
+	if configClient == nil {
+		configClient = newFakeConfig()
 	}
 
 	return &fakeRepositoryClient{
-		Provider:              provider,
-		configVariablesClient: configVariablesClient,
-		fakeRepository:        fakeRepository,
+		Provider:       provider,
+		configClient:   configClient,
+		fakeRepository: fakeRepository,
 	}
 }
 
 type fakeRepositoryClient struct {
 	config.Provider
-	configVariablesClient config.VariablesClient
-	fakeRepository        *test.FakeRepository
+	configClient   config.Client
+	fakeRepository *test.FakeRepository
 }
 
 var _ repository.Client = &fakeRepositoryClient{}
@@ -333,9 +333,9 @@ func (f fakeRepositoryClient) GetVersions() ([]string, error) {
 func (f fakeRepositoryClient) Components() repository.ComponentsClient {
 	// use a fakeComponentClient (instead of the internal client used in other fake objects) we can de deterministic on what is returned (e.g. avoid interferences from overrides)
 	return &fakeComponentClient{
-		provider:              f.Provider,
-		fakeRepository:        f.fakeRepository,
-		configVariablesClient: f.configVariablesClient,
+		provider:       f.Provider,
+		fakeRepository: f.fakeRepository,
+		configClient:   f.configClient,
 	}
 }
 
@@ -344,7 +344,7 @@ func (f fakeRepositoryClient) Templates(version string) repository.TemplateClien
 	return &fakeTemplateClient{
 		version:               version,
 		fakeRepository:        f.fakeRepository,
-		configVariablesClient: f.configVariablesClient,
+		configVariablesClient: f.configClient.Variables(),
 	}
 }
 
@@ -425,9 +425,9 @@ func (f *fakeMetadataClient) Get() (*clusterctlv1.Metadata, error) {
 
 // fakeComponentClient provides a super simple ComponentClient (e.g. without support for local overrides)
 type fakeComponentClient struct {
-	provider              config.Provider
-	fakeRepository        *test.FakeRepository
-	configVariablesClient config.VariablesClient
+	provider       config.Provider
+	fakeRepository *test.FakeRepository
+	configClient   config.Client
 }
 
 func (f *fakeComponentClient) Get(version, targetNamespace, watchingNamespace string) (repository.Components, error) {
@@ -441,5 +441,5 @@ func (f *fakeComponentClient) Get(version, targetNamespace, watchingNamespace st
 		return nil, err
 	}
 
-	return repository.NewComponents(f.provider, version, content, f.configVariablesClient, targetNamespace, watchingNamespace)
+	return repository.NewComponents(f.provider, version, content, f.configClient, targetNamespace, watchingNamespace)
 }

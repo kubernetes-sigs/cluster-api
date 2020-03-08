@@ -19,17 +19,17 @@ package framework_test
 import (
 	"testing"
 
-	"github.com/onsi/gomega"
+	. "github.com/onsi/gomega"
 
 	"sigs.k8s.io/cluster-api/test/framework"
 )
 
 func TestMustDefaultConfig(t *testing.T) {
-	g := gomega.NewWithT(t)
+	g := NewWithT(t)
 	config := framework.MustDefaultConfig()
 	config.Defaults()
-	g.Expect(config.Validate()).To(gomega.Succeed())
-	g.Expect(config.Components).To(gomega.HaveLen(4))
-	g.Expect(config.Components[0].Waiters).To(gomega.HaveLen(2))
-	g.Expect(config.Components[0].Waiters[1].Type).To(gomega.Equal(framework.PodsWaiter))
+	g.Expect(config.Validate()).To(Succeed())
+	g.Expect(config.Components).To(HaveLen(4))
+	g.Expect(config.Components[0].Waiters).To(HaveLen(2))
+	g.Expect(config.Components[0].Waiters[1].Type).To(Equal(framework.PodsWaiter))
 }

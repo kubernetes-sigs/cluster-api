@@ -29,7 +29,7 @@ import (
 	"testing"
 
 	. "github.com/onsi/ginkgo"
-	ginkgoConfig "github.com/onsi/ginkgo/config"
+	. "github.com/onsi/ginkgo/config"
 	"github.com/onsi/ginkgo/reporters"
 	. "github.com/onsi/gomega"
 
@@ -47,7 +47,7 @@ import (
 
 func TestDocker(t *testing.T) {
 	RegisterFailHandler(Fail)
-	junitPath := fmt.Sprintf("junit.e2e_suite.%d.xml", ginkgoConfig.GinkgoConfig.ParallelNode)
+	junitPath := fmt.Sprintf("junit.e2e_suite.%d.xml", GinkgoConfig.ParallelNode)
 	artifactPath, exists := os.LookupEnv("ARTIFACTS")
 	if exists {
 		junitPath = path.Join(artifactPath, junitPath)

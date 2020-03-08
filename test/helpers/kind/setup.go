@@ -28,8 +28,9 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/onsi/ginkgo"
+	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
+
 	"k8s.io/client-go/kubernetes"
 	restclient "k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/clientcmd"
@@ -58,12 +59,12 @@ func (c *Cluster) Setup() {
 	var err error
 	c.tmpDir, err = ioutil.TempDir("", "kind-home")
 	ExpectWithOffset(1, err).NotTo(HaveOccurred())
-	fmt.Fprintf(ginkgo.GinkgoWriter, "creating Kind cluster named %q\n", c.Name)
+	fmt.Fprintf(GinkgoWriter, "creating Kind cluster named %q\n", c.Name)
 	c.run(exec.Command(*kindBinary, "create", "cluster", "--image", kindestImage, "--name", c.Name))
 	path := c.runWithOutput(exec.Command(*kindBinary, "get", "kubeconfig-path", "--name", c.Name))
 	c.kubepath = strings.TrimSpace(string(path))
-	fmt.Fprintf(ginkgo.GinkgoWriter, "kubeconfig path: %q. Can use the following to access the cluster:\n", c.kubepath)
-	fmt.Fprintf(ginkgo.GinkgoWriter, "export KUBECONFIG=%s\n", c.kubepath)
+	fmt.Fprintf(GinkgoWriter, "kubeconfig path: %q. Can use the following to access the cluster:\n", c.kubepath)
+	fmt.Fprintf(GinkgoWriter, "export KUBECONFIG=%s\n", c.kubepath)
 }
 
 // Teardown attempts to delete the KIND cluster
@@ -75,7 +76,7 @@ func (c *Cluster) Teardown() {
 // LoadImage loads the specified image archive into the kind cluster
 func (c *Cluster) LoadImage(image string) {
 	fmt.Fprintf(
-		ginkgo.GinkgoWriter,
+		GinkgoWriter,
 		"loading image %q into Kind node\n",
 		image)
 	c.run(exec.Command(*kindBinary, "load", "docker-image", "--name", c.Name, image)) //nolint:gosec
@@ -149,7 +150,7 @@ func captureOutput(wg *sync.WaitGroup, r io.Reader, label string) {
 
 	for {
 		line, err := reader.ReadString('\n')
-		fmt.Fprintf(ginkgo.GinkgoWriter, "[%s] %s", label, line)
+		fmt.Fprintf(GinkgoWriter, "[%s] %s", label, line)
 		if err != nil {
 			return
 		}

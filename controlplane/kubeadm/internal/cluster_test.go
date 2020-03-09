@@ -23,6 +23,7 @@ import (
 	"strings"
 	"testing"
 
+	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	rbacv1 "k8s.io/api/rbac/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
@@ -225,6 +226,7 @@ type fakeClient struct {
 	get       map[string]interface{}
 	getErr    error
 	createErr error
+	patchErr  error
 }
 
 func (f *fakeClient) Get(_ context.Context, key client.ObjectKey, obj runtime.Object) error {
@@ -239,6 +241,8 @@ func (f *fakeClient) Get(_ context.Context, key client.ObjectKey, obj runtime.Ob
 		l.DeepCopyInto(obj.(*rbacv1.RoleBinding))
 	case *rbacv1.Role:
 		l.DeepCopyInto(obj.(*rbacv1.Role))
+	case *appsv1.DaemonSet:
+		l.DeepCopyInto(obj.(*appsv1.DaemonSet))
 	case nil:
 		return apierrors.NewNotFound(schema.GroupResource{}, key.Name)
 	default:
@@ -262,6 +266,13 @@ func (f *fakeClient) List(_ context.Context, list runtime.Object, _ ...client.Li
 func (f *fakeClient) Create(_ context.Context, _ runtime.Object, _ ...client.CreateOption) error {
 	if f.createErr != nil {
 		return f.createErr
+	}
+	return nil
+}
+
+func (f *fakeClient) Patch(_ context.Context, _ runtime.Object, _ client.Patch, _ ...client.PatchOption) error {
+	if f.patchErr != nil {
+		return f.patchErr
 	}
 	return nil
 }

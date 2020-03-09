@@ -540,7 +540,7 @@ func TestReconcileInitializeControlPlane(t *testing.T) {
 		recorder: record.NewFakeRecorder(32),
 		managementCluster: &fakeManagementCluster{
 			Management: &internal.Management{Client: fakeClient},
-			Workload:   fakeWorkloadCluster{},
+			Workload:   fakeWorkloadCluster{Workload: &internal.Workload{Client: fakeClient}, Status: internal.ClusterStatus{}},
 		},
 	}
 

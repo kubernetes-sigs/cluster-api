@@ -615,6 +615,7 @@ func TestPaths(t *testing.T) {
 			diff: map[string]interface{}{
 				"spec": map[string]interface{}{
 					"replicas": 4,
+					"version":  "1.17.3",
 					"kubeadmConfigSpec": map[string]interface{}{
 						"clusterConfiguration": map[string]interface{}{
 							"version": "v2.0.1",
@@ -628,6 +629,7 @@ func TestPaths(t *testing.T) {
 			},
 			expected: [][]string{
 				{"spec", "replicas"},
+				{"spec", "version"},
 				{"spec", "kubeadmConfigSpec", "joinConfiguration"},
 				{"spec", "kubeadmConfigSpec", "clusterConfiguration", "version"},
 				{"spec", "kubeadmConfigSpec", "initConfiguration", "bootstrapToken"},

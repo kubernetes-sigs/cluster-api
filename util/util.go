@@ -24,6 +24,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/docker/distribution/reference"
 	"github.com/pkg/errors"
 	v1 "k8s.io/api/core/v1"
 	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
@@ -59,6 +60,27 @@ func RandomString(n int) string {
 		result[i] = CharSet[rnd.Intn(len(CharSet))]
 	}
 	return string(result)
+}
+
+// ModifyImageTag takes an imageName (e.g., registry/repo:tag), and returns an image name with updated tag
+func ModifyImageTag(imageName, tagName string) (string, error) {
+	namedRef, err := reference.ParseNormalizedNamed(imageName)
+	if err != nil {
+		return "", errors.Wrap(err, "failed to parse image name")
+
+	}
+	// return error if images use digest as version instead of tag
+	if _, isCanonical := namedRef.(reference.Canonical); isCanonical {
+		return "", errors.New("image uses digest as version, cannot update tag ")
+	}
+
+	// update the image tag with tagName
+	namedTagged, err := reference.WithTag(namedRef, tagName)
+	if err != nil {
+		return "", errors.Wrap(err, "failed to update image tag")
+	}
+
+	return reference.FamiliarString(reference.TagNameOnly(namedTagged)), nil
 }
 
 // GetMachinesForCluster returns a list of machines associated with the cluster.

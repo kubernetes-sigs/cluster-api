@@ -29,16 +29,23 @@ import (
 
 	"github.com/blang/semver"
 	"github.com/pkg/errors"
+	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	rbacv1 "k8s.io/api/rbac/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha3"
+	controlplanev1 "sigs.k8s.io/cluster-api/controlplane/kubeadm/api/v1alpha3"
 	"sigs.k8s.io/cluster-api/controlplane/kubeadm/internal/etcd"
 	etcdutil "sigs.k8s.io/cluster-api/controlplane/kubeadm/internal/etcd/util"
 	"sigs.k8s.io/cluster-api/util"
 	"sigs.k8s.io/cluster-api/util/certs"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 	ctrlclient "sigs.k8s.io/controller-runtime/pkg/client"
+)
+
+const (
+	kubeProxyDaemonSetName = "kube-proxy"
 )
 
 var (
@@ -64,6 +71,7 @@ type WorkloadCluster interface {
 	UpdateKubernetesVersionInKubeadmConfigMap(ctx context.Context, version string) error
 	UpdateEtcdVersionInKubeadmConfigMap(ctx context.Context, imageRepository, imageTag string) error
 	UpdateKubeletConfigMap(ctx context.Context, version semver.Version) error
+	UpdateKubeProxyImageInfo(ctx context.Context, kcp *controlplanev1.KubeadmControlPlane) error
 	RemoveEtcdMemberForMachine(ctx context.Context, machine *clusterv1.Machine) error
 	RemoveMachineFromKubeadmConfigMap(ctx context.Context, machine *clusterv1.Machine) error
 }
@@ -560,6 +568,36 @@ func firstNodeNotMatchingName(name string, nodes []corev1.Node) *corev1.Node {
 	for _, n := range nodes {
 		if n.Name != name {
 			return &n
+		}
+	}
+	return nil
+}
+
+// UpdateKubeProxyImageInfo updates kube-proxy image in the kube-proxy DaemonSet.
+func (w *Workload) UpdateKubeProxyImageInfo(ctx context.Context, kcp *controlplanev1.KubeadmControlPlane) error {
+	ds := &appsv1.DaemonSet{}
+
+	if err := w.Client.Get(ctx, ctrlclient.ObjectKey{Name: kubeProxyDaemonSetName, Namespace: metav1.NamespaceSystem}, ds); err != nil {
+		if apierrors.IsNotFound(err) {
+			// if kube-proxy is missing, return without errors
+			return nil
+		}
+		return errors.Wrapf(err, "failed to determine if %s daemonset already exists", kubeProxyDaemonSetName)
+	}
+
+	if len(ds.Spec.Template.Spec.Containers) == 0 {
+		return nil
+	}
+	newImageName, err := util.ModifyImageTag(ds.Spec.Template.Spec.Containers[0].Image, kcp.Spec.Version)
+	if err != nil {
+		return err
+	}
+
+	if ds.Spec.Template.Spec.Containers[0].Image != newImageName {
+		patch := client.MergeFrom(ds.DeepCopy())
+		ds.Spec.Template.Spec.Containers[0].Image = newImageName
+		if err := w.Client.Patch(ctx, ds, patch); err != nil {
+			return errors.Wrap(err, "error patching kube-proxy DaemonSet")
 		}
 	}
 	return nil

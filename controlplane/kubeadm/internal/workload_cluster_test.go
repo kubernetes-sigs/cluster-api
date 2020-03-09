@@ -22,9 +22,12 @@ import (
 	"testing"
 
 	"github.com/blang/semver"
+	appsv1 "k8s.io/api/apps/v1"
+	corev1 "k8s.io/api/core/v1"
 	rbacv1 "k8s.io/api/rbac/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime/schema"
+	"sigs.k8s.io/cluster-api/controlplane/kubeadm/api/v1alpha3"
 	ctrlclient "sigs.k8s.io/controller-runtime/pkg/client"
 )
 
@@ -101,6 +104,79 @@ func TestCluster_ReconcileKubeletRBACBinding_Error(t *testing.T) {
 			if err := c.ReconcileKubeletRBACRole(ctx, semver.MustParse("1.13.3")); err == nil {
 				t.Fatalf("expected an error but did not get one")
 			}
+		})
+	}
+}
+
+func TestUpdateKubeProxyImageInfo(t *testing.T) {
+	ds := &appsv1.DaemonSet{
+		Spec: appsv1.DaemonSetSpec{
+			Template: corev1.PodTemplateSpec{
+				Spec: corev1.PodSpec{
+					Containers: []corev1.Container{{Image: "k8s.gcr.io/kube-proxy:v1.16.2"}},
+				},
+			},
+		},
+	}
+
+	dsImageInDigestFormat := ds.DeepCopy()
+	dsImageInDigestFormat.Spec.Template.Spec.Containers[0].Image = "k8s.gcr.io/kube-proxy@sha256:47bfd"
+
+	dsImageEmpty := ds.DeepCopy()
+	dsImageEmpty.Spec.Template.Spec.Containers[0].Image = ""
+
+	tests := []struct {
+		name      string
+		ds        *appsv1.DaemonSet
+		expectErr bool
+		clientGet map[string]interface{}
+		patchErr  error
+	}{
+		{
+			name:      "succeeds if patch correctly",
+			ds:        ds,
+			expectErr: false,
+			clientGet: map[string]interface{}{
+				"kube-system/" + kubeProxyDaemonSetName: ds,
+			},
+		},
+		{
+			name:      "returns error if image in kube-proxy ds was in digest format",
+			ds:        dsImageInDigestFormat,
+			expectErr: true,
+			clientGet: map[string]interface{}{
+				"kube-system/" + kubeProxyDaemonSetName: dsImageInDigestFormat,
+			},
+		},
+		{
+			name:      "returns error if image in kube-proxy ds was in wrong format",
+			ds:        ds,
+			expectErr: true,
+			clientGet: map[string]interface{}{
+				"kube-system/" + kubeProxyDaemonSetName: dsImageEmpty,
+			},
+		},
+	}
+
+	ctx := context.Background()
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+
+			fakeClient := &fakeClient{
+				get: tt.clientGet,
+			}
+			c := &Workload{
+				Client: fakeClient,
+			}
+			err := c.UpdateKubeProxyImageInfo(ctx, &v1alpha3.KubeadmControlPlane{Spec: v1alpha3.KubeadmControlPlaneSpec{Version: "1.16.3"}})
+			if err != nil && !tt.expectErr {
+				t.Fatalf("expected no error, got %s", err)
+			}
+			if err == nil && tt.expectErr {
+				t.Fatal("expected error but got none")
+			}
+
 		})
 	}
 }

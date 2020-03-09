@@ -640,7 +640,7 @@ func TestPaths(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			g := NewWithT(t)
-			g.Expect(paths(tt.path, tt.diff)).To(Equal(tt.expected))
+			g.Expect(paths(tt.path, tt.diff)).To(ConsistOf(tt.expected))
 		})
 	}
 }

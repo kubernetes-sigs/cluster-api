@@ -143,12 +143,12 @@ func fakeClusterForDelete() *fakeClient {
 		WithProvider(capiProviderConfig).
 		WithProvider(bootstrapProviderConfig)
 
-	repository1 := newFakeRepository(capiProviderConfig, config1.Variables()).
+	repository1 := newFakeRepository(capiProviderConfig, config1).
 		WithPaths("root", "components.yaml").
 		WithDefaultVersion("v1.0.0").
 		WithFile("v1.0.0", "components.yaml", componentsYAML("ns1")).
 		WithFile("v1.1.0", "components.yaml", componentsYAML("ns1"))
-	repository2 := newFakeRepository(bootstrapProviderConfig, config1.Variables()).
+	repository2 := newFakeRepository(bootstrapProviderConfig, config1).
 		WithPaths("root", "components.yaml").
 		WithDefaultVersion("v2.0.0").
 		WithFile("v2.0.0", "components.yaml", componentsYAML("ns2")).

@@ -61,10 +61,14 @@ var configMapYaml = []byte("apiVersion: v1\n" +
 func Test_componentsClient_Get(t *testing.T) {
 	p1 := config.NewProvider("p1", "", clusterctlv1.BootstrapProviderType)
 
+	configClient, err := config.New("", config.InjectReader(test.NewFakeReader().WithVar(variableName, variableValue)))
+	if err != nil {
+		t.Fatal(err)
+	}
+
 	type fields struct {
-		provider              config.Provider
-		repository            Repository
-		configVariablesClient config.VariablesClient
+		provider   config.Provider
+		repository Repository
 	}
 	type args struct {
 		version           string
@@ -93,7 +97,6 @@ func Test_componentsClient_Get(t *testing.T) {
 					WithPaths("root", "components.yaml").
 					WithDefaultVersion("v1.0.0").
 					WithFile("v1.0.0", "components.yaml", util.JoinYaml(namespaceYaml, controllerYaml, configMapYaml)),
-				configVariablesClient: test.NewFakeVariableClient().WithVar(variableName, variableValue),
 			},
 			args: args{
 				version:           "v1.0.0",
@@ -117,7 +120,6 @@ func Test_componentsClient_Get(t *testing.T) {
 					WithPaths("root", "components.yaml").
 					WithDefaultVersion("v1.0.0").
 					WithFile("v1.0.0", "components.yaml", util.JoinYaml(namespaceYaml, controllerYaml, configMapYaml)),
-				configVariablesClient: test.NewFakeVariableClient().WithVar(variableName, variableValue),
 			},
 			args: args{
 				version:           "v1.0.0",
@@ -141,7 +143,6 @@ func Test_componentsClient_Get(t *testing.T) {
 					WithPaths("root", "components.yaml").
 					WithDefaultVersion("v1.0.0").
 					WithFile("v1.0.0", "components.yaml", util.JoinYaml(namespaceYaml, controllerYaml, configMapYaml)),
-				configVariablesClient: test.NewFakeVariableClient().WithVar(variableName, variableValue),
 			},
 			args: args{
 				version:           "v1.0.0",
@@ -164,7 +165,6 @@ func Test_componentsClient_Get(t *testing.T) {
 				repository: test.NewFakeRepository().
 					WithPaths("root", "components.yaml").
 					WithDefaultVersion("v1.0.0"),
-				configVariablesClient: test.NewFakeVariableClient().WithVar(variableName, variableValue),
 			},
 			args: args{
 				version:           "v1.0.0",
@@ -181,7 +181,6 @@ func Test_componentsClient_Get(t *testing.T) {
 					WithPaths("root", "components.yaml").
 					WithDefaultVersion("v1.0.0").
 					WithFile("v1.0.0", "components.yaml", util.JoinYaml(controllerYaml, configMapYaml)),
-				configVariablesClient: test.NewFakeVariableClient().WithVar(variableName, variableValue),
 			},
 			args: args{
 				version:           "v1.0.0",
@@ -198,7 +197,6 @@ func Test_componentsClient_Get(t *testing.T) {
 					WithPaths("root", "components.yaml").
 					WithDefaultVersion("v1.0.0").
 					WithFile("v1.0.0", "components.yaml", util.JoinYaml(controllerYaml, configMapYaml)),
-				configVariablesClient: test.NewFakeVariableClient().WithVar(variableName, variableValue),
 			},
 			args: args{
 				version:           "v1.0.0",
@@ -222,7 +220,6 @@ func Test_componentsClient_Get(t *testing.T) {
 					WithPaths("root", "components.yaml").
 					WithDefaultVersion("v1.0.0").
 					WithFile("v1.0.0", "components.yaml", util.JoinYaml(controllerYaml, configMapYaml)),
-				configVariablesClient: test.NewFakeVariableClient().WithVar(variableName, variableValue),
 			},
 			args: args{
 				version:           "v2.0.0",
@@ -234,7 +231,7 @@ func Test_componentsClient_Get(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			f := newComponentsClient(tt.fields.provider, tt.fields.repository, tt.fields.configVariablesClient)
+			f := newComponentsClient(tt.fields.provider, tt.fields.repository, configClient)
 			got, err := f.Get(tt.args.version, tt.args.targetNamespace, tt.args.watchingNamespace)
 			if (err != nil) != tt.wantErr {
 				t.Fatalf("error = %v, wantErr %v", err, tt.wantErr)

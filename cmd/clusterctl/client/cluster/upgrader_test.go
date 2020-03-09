@@ -484,8 +484,8 @@ func Test_providerUpgrader_Plan(t *testing.T) {
 
 			u := &providerUpgrader{
 				configClient: configClient,
-				repositoryClientFactory: func(provider config.Provider, configVariablesClient config.VariablesClient, options ...repository.Option) (repository.Client, error) {
-					return repository.New(provider, configVariablesClient, repository.InjectRepository(tt.fields.repository[provider.ManifestLabel()]))
+				repositoryClientFactory: func(provider config.Provider, configClient config.Client, options ...repository.Option) (repository.Client, error) {
+					return repository.New(provider, configClient, repository.InjectRepository(tt.fields.repository[provider.ManifestLabel()]))
 				},
 				providerInventory: newInventoryClient(tt.fields.proxy, nil),
 			}
@@ -774,8 +774,8 @@ func Test_providerUpgrader_createCustomPlan(t *testing.T) {
 
 			u := &providerUpgrader{
 				configClient: configClient,
-				repositoryClientFactory: func(provider config.Provider, configVariablesClient config.VariablesClient, options ...repository.Option) (repository.Client, error) {
-					return repository.New(provider, configVariablesClient, repository.InjectRepository(tt.fields.repository[provider.Name()]))
+				repositoryClientFactory: func(provider config.Provider, configClient config.Client, options ...repository.Option) (repository.Client, error) {
+					return repository.New(provider, configClient, repository.InjectRepository(tt.fields.repository[provider.Name()]))
 				},
 				providerInventory: newInventoryClient(tt.fields.proxy, nil),
 			}

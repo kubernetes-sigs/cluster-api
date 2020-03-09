@@ -32,6 +32,11 @@ func Test_newRepositoryClient_LocalFileSystemRepository(t *testing.T) {
 	dst1 := createLocalTestProviderFile(t, tmpDir, "bootstrap-foo/v1.0.0/bootstrap-components.yaml", "")
 	dst2 := createLocalTestProviderFile(t, tmpDir, "bootstrap-bar/v2.0.0/bootstrap-components.yaml", "")
 
+	configClient, err := config.New("", config.InjectReader(test.NewFakeReader()))
+	if err != nil {
+		t.Fatal(err)
+	}
+
 	type fields struct {
 		provider config.Provider
 	}
@@ -54,7 +59,7 @@ func Test_newRepositoryClient_LocalFileSystemRepository(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			repoClient, err := newRepositoryClient(tt.fields.provider, test.NewFakeVariableClient())
+			repoClient, err := newRepositoryClient(tt.fields.provider, configClient)
 			if err != nil {
 				t.Fatalf("got error %v when none was expected", err)
 			}

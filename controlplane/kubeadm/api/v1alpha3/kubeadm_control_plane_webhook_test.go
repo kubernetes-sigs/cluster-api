@@ -72,11 +72,9 @@ func TestKubeadmControlPlaneValidateCreate(t *testing.T) {
 
 	evenReplicasExternalEtcd := evenReplicas.DeepCopy()
 	evenReplicasExternalEtcd.Spec.KubeadmConfigSpec = bootstrapv1.KubeadmConfigSpec{
-		InitConfiguration: &kubeadmv1beta1.InitConfiguration{
-			ClusterConfiguration: kubeadmv1beta1.ClusterConfiguration{
-				Etcd: kubeadmv1beta1.Etcd{
-					External: &kubeadmv1beta1.ExternalEtcd{},
-				},
+		ClusterConfiguration: &kubeadmv1beta1.ClusterConfiguration{
+			Etcd: kubeadmv1beta1.Etcd{
+				External: &kubeadmv1beta1.ExternalEtcd{},
 			},
 		},
 	}
@@ -270,19 +268,6 @@ func TestKubeadmControlPlaneValidateUpdate(t *testing.T) {
 		ExtraArgs: map[string]string{"an arg": "a value"},
 	}
 
-	beforeExternalEtcdInit := before.DeepCopy()
-	beforeExternalEtcdInit.Spec.KubeadmConfigSpec.InitConfiguration = &kubeadmv1beta1.InitConfiguration{
-		ClusterConfiguration: kubeadmv1beta1.ClusterConfiguration{
-			Etcd: kubeadmv1beta1.Etcd{
-				External: &kubeadmv1beta1.ExternalEtcd{
-					Endpoints: []string{"127.0.0.1"},
-				},
-			},
-		},
-	}
-	scaleToEvenExternalEtcdInit := beforeExternalEtcdInit.DeepCopy()
-	scaleToEvenExternalEtcdInit.Spec.Replicas = pointer.Int32Ptr(2)
-
 	beforeExternalEtcdCluster := before.DeepCopy()
 	beforeExternalEtcdCluster.Spec.KubeadmConfigSpec.ClusterConfiguration = &kubeadmv1beta1.ClusterConfiguration{
 		Etcd: kubeadmv1beta1.Etcd{
@@ -295,7 +280,7 @@ func TestKubeadmControlPlaneValidateUpdate(t *testing.T) {
 	scaleToEvenExternalEtcdCluster.Spec.Replicas = pointer.Int32Ptr(2)
 
 	beforeInvalidEtcdCluster := before.DeepCopy()
-	beforeInvalidEtcdCluster.Spec.KubeadmConfigSpec.InitConfiguration.ClusterConfiguration.Etcd = kubeadmv1beta1.Etcd{
+	beforeInvalidEtcdCluster.Spec.KubeadmConfigSpec.ClusterConfiguration.Etcd = kubeadmv1beta1.Etcd{
 		Local: &kubeadmv1beta1.LocalEtcd{
 			ImageMeta: kubeadmv1beta1.ImageMeta{
 				ImageRepository: "image-repository",
@@ -305,7 +290,7 @@ func TestKubeadmControlPlaneValidateUpdate(t *testing.T) {
 	}
 
 	afterInvalidEtcdCluster := beforeInvalidEtcdCluster.DeepCopy()
-	afterInvalidEtcdCluster.Spec.KubeadmConfigSpec.InitConfiguration.ClusterConfiguration.Etcd = kubeadmv1beta1.Etcd{
+	afterInvalidEtcdCluster.Spec.KubeadmConfigSpec.ClusterConfiguration.Etcd = kubeadmv1beta1.Etcd{
 		External: &kubeadmv1beta1.ExternalEtcd{
 			Endpoints: []string{"127.0.0.1"},
 		},
@@ -364,12 +349,6 @@ func TestKubeadmControlPlaneValidateUpdate(t *testing.T) {
 			expectErr: true,
 			before:    before,
 			kcp:       missingReplicas,
-		},
-		{
-			name:      "should succeed when trying to scale to an even number with external etcd defined in InitConfiguration",
-			expectErr: false,
-			before:    beforeExternalEtcdInit,
-			kcp:       scaleToEvenExternalEtcdInit,
 		},
 		{
 			name:      "should succeed when trying to scale to an even number with external etcd defined in ClusterConfiguration",

@@ -251,7 +251,8 @@ func (r *KubeadmControlPlaneReconciler) reconcile(ctx context.Context, cluster *
 		return r.upgradeControlPlane(ctx, cluster, kcp, ownedMachines, requireUpgrade)
 	}
 
-	// If we've made it this far, we we can assume that all ownedMachines are up to date
+	// If we've made it this far, we can assume that all ownedMachines are up to date
+
 	numMachines := len(ownedMachines)
 	desiredReplicas := int(*kcp.Spec.Replicas)
 
@@ -270,6 +271,16 @@ func (r *KubeadmControlPlaneReconciler) reconcile(ctx context.Context, cluster *
 	case numMachines > desiredReplicas:
 		logger.Info("Scaling down control plane", "Desired", desiredReplicas, "Existing", numMachines)
 		return r.scaleDownControlPlane(ctx, cluster, kcp, ownedMachines)
+	}
+
+	// Update kube-proxy image name
+	workloadCluster, err := r.managementCluster.GetWorkloadCluster(ctx, util.ObjectKey(cluster))
+	if err != nil {
+		// Just log and continue, control-plane cluster may be uninitialized
+		logger.Error(err, "failed to get remote client for workload cluster")
+	} else if err := workloadCluster.UpdateKubeProxyImageInfo(ctx, kcp); err != nil {
+		logger.Error(err, "failed to update kube-proxy image name in kube-proxy daemonset")
+		return ctrl.Result{}, err
 	}
 
 	return ctrl.Result{}, nil

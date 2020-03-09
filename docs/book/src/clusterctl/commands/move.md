@@ -61,3 +61,6 @@ This can now be achieved with the following procedure:
 6. Use `clusterctl init` with the new cluster's kubeconfig to install the provider components 
 7. Use `clusterctl move` to move the Cluster API resources from the bootstrap cluster to the target management cluster
 8. Delete the bootstrap cluster
+
+> Note: It's required to have at least one worker node to schedule Cluster API workloads (i.e. controllers).
+> A cluster with a single control plane node won't be sufficient due to the `NoSchedule` taint. If a worker node isn't available, `clusterctl init` will timeout.

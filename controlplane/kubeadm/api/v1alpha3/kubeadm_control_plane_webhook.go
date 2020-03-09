@@ -82,6 +82,9 @@ func (in *KubeadmControlPlane) ValidateUpdate(old runtime.Object) error {
 	allErrs := in.validateCommon()
 
 	prev := old.(*KubeadmControlPlane)
+
+	allErrs = append(allErrs, in.validateEtcd(prev)...)
+
 	originalJSON, err := json.Marshal(prev)
 	if err != nil {
 		return apierrors.NewInternalError(err)
@@ -222,6 +225,30 @@ func (in *KubeadmControlPlane) validateCommon() (allErrs field.ErrorList) {
 				field.NewPath("spec", "infrastructureTemplate", "namespace"),
 				in.Spec.InfrastructureTemplate.Namespace,
 				"must match metadata.namespace",
+			),
+		)
+	}
+
+	return allErrs
+}
+
+func (in *KubeadmControlPlane) validateEtcd(prev *KubeadmControlPlane) (allErrs field.ErrorList) {
+	if in.Spec.KubeadmConfigSpec.InitConfiguration.Etcd.External != nil && prev.Spec.KubeadmConfigSpec.InitConfiguration.Etcd.Local != nil {
+		allErrs = append(
+			allErrs,
+			field.Forbidden(
+				field.NewPath("spec", "kubeadmConfigSpec", "initConfiguration", "etcd", "external"),
+				"cannot have both local and external etcd at the same time",
+			),
+		)
+	}
+
+	if in.Spec.KubeadmConfigSpec.InitConfiguration.Etcd.Local != nil && prev.Spec.KubeadmConfigSpec.InitConfiguration.Etcd.External != nil {
+		allErrs = append(
+			allErrs,
+			field.Forbidden(
+				field.NewPath("spec", "kubeadmConfigSpec", "initConfiguration", "etcd", "local"),
+				"cannot have both local and external etcd at the same time",
 			),
 		)
 	}

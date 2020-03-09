@@ -11,6 +11,7 @@
         - [Generating a Kubeconfig](./tasks/certs/generate-kubeconfig.md)
     - [Upgrade](./tasks/upgrade.md)
     - [Configure a MachineHealthCheck](./tasks/healthcheck.md)
+    - [Kubeadm based control plane management](./tasks/kubeadm-control-plane.md)
 - [clusterctl CLI](./clusterctl/overview.md)
     - [clusterctl Commands](clusterctl/commands/commands.md)
         - [init](clusterctl/commands/init.md)

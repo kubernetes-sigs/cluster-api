@@ -78,6 +78,7 @@ func (in *KubeadmControlPlane) ValidateUpdate(old runtime.Object) error {
 		{spec, "infrastructureTemplate", "name"},
 		{spec, "replicas"},
 		{spec, "version"},
+		{spec, "upgradeAfter"},
 	}
 
 	allErrs := in.validateCommon()

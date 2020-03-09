@@ -21,11 +21,9 @@ import (
 	"time"
 
 	. "github.com/onsi/gomega"
-
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/utils/pointer"
-
 	bootstrapv1 "sigs.k8s.io/cluster-api/bootstrap/kubeadm/api/v1alpha3"
 	kubeadmv1beta1 "sigs.k8s.io/cluster-api/bootstrap/kubeadm/types/v1beta1"
 )
@@ -296,6 +294,23 @@ func TestKubeadmControlPlaneValidateUpdate(t *testing.T) {
 	scaleToEvenExternalEtcdCluster := beforeExternalEtcdCluster.DeepCopy()
 	scaleToEvenExternalEtcdCluster.Spec.Replicas = pointer.Int32Ptr(2)
 
+	beforeInvalidEtcdCluster := before.DeepCopy()
+	beforeInvalidEtcdCluster.Spec.KubeadmConfigSpec.InitConfiguration.ClusterConfiguration.Etcd = kubeadmv1beta1.Etcd{
+		Local: &kubeadmv1beta1.LocalEtcd{
+			ImageMeta: kubeadmv1beta1.ImageMeta{
+				ImageRepository: "image-repository",
+				ImageTag:        "latest",
+			},
+		},
+	}
+
+	afterInvalidEtcdCluster := beforeInvalidEtcdCluster.DeepCopy()
+	afterInvalidEtcdCluster.Spec.KubeadmConfigSpec.InitConfiguration.ClusterConfiguration.Etcd = kubeadmv1beta1.Etcd{
+		External: &kubeadmv1beta1.ExternalEtcd{
+			Endpoints: []string{"127.0.0.1"},
+		},
+	}
+
 	tests := []struct {
 		name      string
 		expectErr bool
@@ -475,6 +490,12 @@ func TestKubeadmControlPlaneValidateUpdate(t *testing.T) {
 			expectErr: true,
 			before:    localDataDir,
 			kcp:       modifyLocalDataDir,
+		},
+		{
+			name:      "should fail if both local and external etcd are set",
+			expectErr: true,
+			before:    beforeInvalidEtcdCluster,
+			kcp:       afterInvalidEtcdCluster,
 		},
 	}
 

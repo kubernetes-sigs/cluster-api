@@ -261,7 +261,9 @@ func (r *MachineReconciler) reconcileDelete(ctx context.Context, cluster *cluste
 	logger := r.Log.WithValues("machine", m.Name, "namespace", m.Namespace)
 	logger = logger.WithValues("cluster", cluster.Name)
 
-	if err := r.isDeleteNodeAllowed(ctx, m); err != nil {
+	err := r.isDeleteNodeAllowed(ctx, m)
+	isDeleteNodeAllowed := err == nil
+	if err != nil {
 		switch err {
 		case errNilNodeRef:
 			logger.Error(err, "Deleting node is not allowed")
@@ -271,7 +273,9 @@ func (r *MachineReconciler) reconcileDelete(ctx context.Context, cluster *cluste
 			logger.Error(err, "IsDeleteNodeAllowed check failed")
 			return ctrl.Result{}, err
 		}
-	} else {
+	}
+
+	if isDeleteNodeAllowed {
 		// Drain node before deletion
 		if _, exists := m.ObjectMeta.Annotations[clusterv1.ExcludeNodeDrainingAnnotation]; !exists {
 			logger.Info("Draining node", "node", m.Status.NodeRef.Name)
@@ -281,6 +285,17 @@ func (r *MachineReconciler) reconcileDelete(ctx context.Context, cluster *cluste
 			}
 			r.recorder.Eventf(m, corev1.EventTypeNormal, "SuccessfulDrainNode", "success draining Machine's node %q", m.Status.NodeRef.Name)
 		}
+	}
+
+	if ok, err := r.reconcileDeleteExternal(ctx, m); !ok || err != nil {
+		// Return early and don't remove the finalizer if we got an error or
+		// the external reconciliation deletion isn't ready.
+		return ctrl.Result{}, err
+	}
+
+	// We only delete the node after the underlying infrastructure is gone.
+	// https://github.com/kubernetes-sigs/cluster-api/issues/2565
+	if isDeleteNodeAllowed {
 		logger.Info("Deleting node", "node", m.Status.NodeRef.Name)
 
 		var deleteNodeErr error
@@ -294,12 +309,6 @@ func (r *MachineReconciler) reconcileDelete(ctx context.Context, cluster *cluste
 			logger.Error(deleteNodeErr, "Timed out deleting node, moving on", "node", m.Status.NodeRef.Name)
 			r.recorder.Eventf(m, corev1.EventTypeWarning, "FailedDeleteNode", "error deleting Machine's node: %v", deleteNodeErr)
 		}
-	}
-
-	if ok, err := r.reconcileDeleteExternal(ctx, m); !ok || err != nil {
-		// Return early and don't remove the finalizer if we got an error or
-		// the external reconciliation deletion isn't ready.
-		return ctrl.Result{}, err
 	}
 
 	controllerutil.RemoveFinalizer(m, clusterv1.MachineFinalizer)

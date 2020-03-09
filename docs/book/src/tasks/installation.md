@@ -1,172 +1,73 @@
 # Installation
 
-## Prerequisites
+## Common Prerequisites
 
 - Install and setup [kubectl] in your local environment
-- Install and/or configure a [management cluster]
-    - Deploy the [cert-manager] components on your [management cluster]
 
-## Setup Management Cluster
+## Install and/or configure a kubernetes cluster
 
-Cluster API requires an existing kubernetes cluster accessible via kubectl, choose one of the options below:
+Cluster API requires an existing Kubernetes cluster accessible via kubectl; during the installation process the 
+Kubernetes cluster will be transformed into a [management cluster] by installing the Cluster API [provider components], so it 
+is recommended to keep it separated from any application workload.
 
-1. **Kind**
+Please note that it is a common practice the creation of a temporary [bootstrap cluster] to be used to provision 
+a target [management cluster] on the selected [infrastructure provider].
 
-{{#tabs name:"kind-cluster" tabs:"AWS/Azure/GCP/vSphere/OpenStack,Docker"}}
-{{#tab AWS/Azure/GCP/vSphere/OpenStack}}
+Choose one of the options below:
 
-<aside class="note warning">
+1. **Existing Management Cluster**
 
-<h1>Warning</h1>
-
-**Minimum [kind] supported version**: v0.6.x
-
-[kind] is not designed for production use, and is intended for development environments only.
-
-</aside>
-
-  ```bash
-  kind create cluster --name=clusterapi
-  kubectl cluster-info --context kind-clusterapi
-  ```
-{{#/tab }}
-{{#tab Docker}}
-
-<aside class="note warning">
-
-<h1>Warning</h1>
-
-**Minimum [kind] supported version**: v0.6.x
-
-[kind] is not designed for production use, and is intended for development environments only.
-</aside>
-
-<aside class="note warning">
-
-<h1>Warning</h1>
-
-The Docker provider is not designed for production use and is intended for development environments only.
-
-</aside>
-
-  Because the Docker provider needs to access Docker on the host, a custom kind cluster configuration is required:
-
-  ```bash
-  cat > kind-cluster-with-extramounts.yaml <<EOF
-kind: Cluster
-apiVersion: kind.sigs.k8s.io/v1alpha3
-nodes:
-  - role: control-plane
-    extraMounts:
-      - hostPath: /var/run/docker.sock
-        containerPath: /var/run/docker.sock
-EOF
-  kind create cluster --config ./kind-cluster-with-extramounts.yaml --name clusterapi
-  kubectl cluster-info --context kind-clusterapi
-  ```
-{{#/tab }}
-{{#/tabs }}
-
-
-2. **Existing Management Cluster**
-
-For production use-cases a "real" kubernetes cluster should be used with appropriate backup and DR policies and procedures in place.
+For production use-cases a "real" Kubernetes cluster should be used with appropriate backup and DR policies and procedures in place.
 
 ```bash
 export KUBECONFIG=<...>
 ```
 
-3. **Pivoting**
-
-Pivoting is the process of taking an initial kind cluster to create a new workload cluster, and then converting the workload cluster into a management cluster by migrating the Cluster API CRD's.
-
-### Deploy cert-manager on your management cluster
-
-Install the [cert-manager] components on the [management cluster], using [kubectl]:
-```bash
-kubectl apply -f https://github.com/jetstack/cert-manager/releases/download/v0.11.0/cert-manager.yaml
-```
-
-Ensure the cert-manager webhook service is ready before creating the Cluster API components. 
-
-This can be done by running: 
-
-```bash
-kubectl wait --for=condition=Available --timeout=300s apiservice v1beta1.webhook.cert-manager.io
-```
-
-## Installation
-
-Using [kubectl], create the components on the [management cluster]:
-
-#### Install Cluster API
-
-```bash
-kubectl create -f {{#releaselink gomodule:"sigs.k8s.io/cluster-api" asset:"cluster-api-components.yaml" version:"0.2.x"}}
-```
-
-#### Install the Bootstrap Provider
-
-{{#tabs name:"tab-installation-bootstrap" tabs:"Kubeadm"}}
-{{#tab Kubeadm}}
-
-Check the [Kubeadm provider releases](https://github.com/kubernetes-sigs/cluster-api-bootstrap-provider-kubeadm/releases) for an up-to-date components file.
-
-```bash
-kubectl create -f {{#releaselink gomodule:"sigs.k8s.io/cluster-api-bootstrap-provider-kubeadm" asset:"bootstrap-components.yaml" version:"0.1.x"}}
-```
-
-{{#/tab }}
-{{#/tabs }}
-
-
-#### Install Infrastructure Provider
-
-{{#tabs name:"tab-installation-infrastructure" tabs:"AWS,Azure,Docker,GCP,vSphere,OpenStack"}}
-{{#tab AWS}}
+2. **Kind**
 
 <aside class="note warning">
 
-<h1>Action Required</h1>
+<h1>Warning</h1>
 
-For more information about credentials management, IAM, or requirements for AWS, visit the [AWS Provider Prerequisites](https://github.com/kubernetes-sigs/cluster-api-provider-aws/blob/master/docs/prerequisites.md) document.
+[kind] is not designed for production use.
+
+**Minimum [kind] supported version**: v0.6.x
 
 </aside>
 
-#### Install clusterawsadm
+[kind] can be used for creating a local Kubernetes cluster for development environments or for 
+the creation of a temporary [bootstrap cluster] used to provision a target [management cluster] on the selected infrastructure provider.
+
+  ```bash
+  kind create cluster
+  ```
+Test to ensure the local kind cluster is ready:
+```
+kubectl cluster-info
+```
+
+## Provider Specific Prerequisites
+Depending on the infrastructure provider you are planning to use, some additional prerequisites should be satisfied
+before getting started with Cluster API.
+
+{{#tabs name:"tab-installation-infrastructure" tabs:"AWS,Azure,Docker,GCP,vSphere,OpenStack,Metal3"}}
+{{#tab AWS}}
 
 Download the latest binary of `clusterawsadm` from the [AWS provider releases] and make sure to place it in your path.
-
-##### Create the components
-
-Check the [AWS provider releases] for an up-to-date components file.
 
 ```bash
 # Create the base64 encoded credentials using clusterawsadm.
 # This command uses your environment variables and encodes
 # them in a value to be stored in a Kubernetes Secret.
 export AWS_B64ENCODED_CREDENTIALS=$(clusterawsadm alpha bootstrap encode-aws-credentials)
-
-The `envsubst` application is provided by the `gettext` package on Linux and via Brew on MacOS.
-
-# Create the components.
-curl -L {{#releaselink gomodule:"sigs.k8s.io/cluster-api-provider-aws" asset:"infrastructure-components.yaml" version:"0.4.x"}} \
-  | envsubst \
-  | kubectl create -f -
 ```
+
+See the [AWS Provider Prerequisites](https://github.com/kubernetes-sigs/cluster-api-provider-aws/blob/master/docs/prerequisites.md) document for more details.
 
 {{#/tab }}
 {{#tab Azure}}
 
-<aside class="note warning">
-
-<h1>Action Required</h1>
-
 For more information about authorization, AAD, or requirements for Azure, visit the [Azure Provider Prerequisites](https://github.com/kubernetes-sigs/cluster-api-provider-azure/blob/master/docs/getting-started.md#prerequisites) document.
-
-</aside>
-
-Check the [Azure provider releases](https://github.com/kubernetes-sigs/cluster-api-provider-azure/releases) for an up-to-date components file.
 
 ```bash
 # Create the base64 encoded credentials
@@ -176,46 +77,20 @@ export AZURE_CLIENT_ID_B64="$(echo -n "$AZURE_CLIENT_ID" | base64 | tr -d '\n')"
 export AZURE_CLIENT_SECRET_B64="$(echo -n "$AZURE_CLIENT_SECRET" | base64 | tr -d '\n')"
 ```
 
-```bash
-curl -L {{#releaselink gomodule:"sigs.k8s.io/cluster-api-provider-azure" asset:"infrastructure-components.yaml" version:"0.3.x"}} \
-  | envsubst \
-  | kubectl create -f -
-```
-
 {{#/tab }}
 {{#tab Docker}}
 
-Check the [Docker provider releases](https://github.com/kubernetes-sigs/cluster-api-provider-docker/releases) for an up-to-date components file.
-
-```bash
-kubectl create -f {{#releaselink gomodule:"sigs.k8s.io/cluster-api-provider-docker" asset:"provider-components.yaml" version:"0.2.x"}}
-```
+If you are planning to use to test locally Cluster API using the Docker infrastructure provider, please follow additional
+steps described in the [developer instruction](../clusterctl/developers.md#additional-steps-in-order-to-use-the-docker-provider) page.
 
 {{#/tab }}
 {{#tab GCP}}
-
-<aside class="note warning">
-
-<h1>Action Required</h1>
-
-Update the path to your GCP credentials file below.
-
-</aside>
-
-##### Create the components
-
-Check the [GCP provider releases](https://github.com/kubernetes-sigs/cluster-api-provider-gcp/releases) for an up-to-date components file.
 
 ```bash
 # Create the base64 encoded credentials by catting your credentials json.
 # This command uses your environment variables and encodes
 # them in a value to be stored in a Kubernetes Secret.
 export GCP_B64ENCODED_CREDENTIALS=$( cat /path/to/gcp-credentials.json | base64 | tr -d '\n' )
-
-# Create the components.
-curl -L {{#releaselink gomodule:"sigs.k8s.io/cluster-api-provider-gcp" asset:"infrastructure-components.yaml" version:"0.3.x"}} \
-  | envsubst \
-  | kubectl create -f -
 ```
 
 {{#/tab }}
@@ -223,8 +98,9 @@ curl -L {{#releaselink gomodule:"sigs.k8s.io/cluster-api-provider-gcp" asset:"in
 
 It is required to use an official CAPV machine image for your vSphere VM templates. See [Uploading CAPV Machine Images](https://github.com/kubernetes-sigs/cluster-api-provider-vsphere/blob/master/docs/getting_started.md#uploading-the-capv-machine-image) for instructions on how to do this.
 
+Then, it is required Upload vCenter credentials as a Kubernetes secret:
+
 ```bash
-# Upload vCenter credentials as a Kubernetes secret
 $ cat <<EOF | kubectl apply -f -
 apiVersion: v1
 kind: Namespace
@@ -243,38 +119,75 @@ stringData:
   username: "<my vCenter username>"
   password: "<my vCenter password>"
 EOF
-
-$ kubectl create -f {{#releaselink gomodule:"sigs.k8s.io/cluster-api-provider-vsphere" asset:"infrastructure-components.yaml" version:"0.5.x"}}
 ```
-
-Check the [vSphere provider releases](https://github.com/kubernetes-sigs/cluster-api-provider-vsphere/releases) for an up-to-date components file.
 
 For more information about prerequisites, credentials management, or permissions for vSphere, visit the [getting started guide](https://github.com/kubernetes-sigs/cluster-api-provider-vsphere/blob/master/docs/getting_started.md).
 
 {{#/tab }}
 {{#tab OpenStack}}
 
-Check the [OpenStack provider releases](https://github.com/kubernetes-sigs/cluster-api-provider-openstack/releases) for an up-to-date components file.
+Please visit the [OpenStack getting started guide](https://github.com/kubernetes-sigs/cluster-api-provider-openstack/blob/master/docs/getting-started.md).
 
-For more detailed information, e.g. about prerequisites visit the [getting started guide](https://github.com/kubernetes-sigs/cluster-api-provider-openstack/blob/master/docs/getting-started.md).
+{{#/tab }}
+{{#tab Metal3}}
 
-```bash
-kubectl create -f {{#releaselink gomodule:"sigs.k8s.io/cluster-api-provider-openstack" asset:"infrastructure-components.yaml" version:"0.2.x"}}
-```
+Please visit the [Metal3 getting started guide](https://github.com/metal3-io/cluster-api-provider-metal3/blob/master/docs/getting-started.md).
 
 {{#/tab }}
 {{#/tabs }}
 
-## Custom images
+## Install clusterctl
+The clusterctl CLI tool handles the lifecycle of a Cluster API management cluster.
 
-Cluster API relies on pre-built images with Kubernetes components preinstalled. The [image builder](https://image-builder.sigs.k8s.io/) project has requirements and examples on how to create and publish images.
+{{#tabs name:"install-clusterctl" tabs:"linux,macOS"}}
+{{#tab linux}}
 
+#### Install clusterctl binary with curl on linux
+Download the latest release; for example, to download version v0.3.0 on linux, type:
+```
+curl -L {{#releaselink gomodule:"sigs.k8s.io/cluster-api" asset:"clusterctl-linux-amd64" version:"0.3.x"}} -o clusterctl
+```
+Make the kubectl binary executable.
+```
+chmod +x ./clusterctl
+```
+Move the binary in to your PATH.
+```
+sudo mv ./clusterctl /usr/local/bin/clusterctl
+```
+Test to ensure the version you installed is up-to-date:
+```
+clusterctl version
+```
+
+{{#/tab }}
+{{#tab macOS}}
+
+#### Install clusterctl binary with curl on macOS
+Download the latest release; for example, to download version v0.3.0 on macOS, type:
+```
+curl -L {{#releaselink gomodule:"sigs.k8s.io/cluster-api" asset:"clusterctl-darwin-amd64" version:"0.3.x"}} -o clusterctl
+```
+Make the kubectl binary executable.
+```
+chmod +x ./clusterctl
+```
+Move the binary in to your PATH.
+```
+sudo mv ./clusterctl /usr/local/bin/clusterctl
+```
+Test to ensure the version you installed is up-to-date:
+```
+clusterctl version
+```
+{{#/tab }}
+{{#/tabs }}
 
 <!-- links -->
-[kubectl]: https://kubernetes.io/docs/tasks/tools/install-kubectl/
-[components]: ../reference/glossary.md#provider-components
-[kind]: https://sigs.k8s.io/kind
-[management cluster]: ../reference/glossary.md#management-cluster
-[target cluster]: ../reference/glossary.md#target-cluster
 [AWS provider releases]: https://github.com/kubernetes-sigs/cluster-api-provider-aws/releases
-[cert-manager]: https://github.com/jetstack/cert-manager
+[bootstrap cluster]: ../reference/glossary.md#bootstrap-cluster
+[infrastructure provider]: ../reference/glossary.md#infrastructure-provider
+[kubectl]: https://kubernetes.io/docs/tasks/tools/install-kubectl/
+[kind]: https://kind.sigs.k8s.io/
+[management cluster]: ../reference/glossary.md#management-cluster
+[provider components]: ../reference/glossary.md#provider-components

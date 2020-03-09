@@ -133,3 +133,44 @@ EOF
   for the kubelet in the management cluster.  
 
 Run `clusterctl init` command provided as output of the local-overrides hack.
+
+### Connecting to a workload cluster on docker
+
+The command for getting the kubeconfig file for connecting to a workload cluster is the following:
+
+```bash
+kubectl --namespace=default get secret/capi-quickstart-kubeconfig -o jsonpath={.data.value} \
+  | base64 --decode \
+  > ./capi-quickstart.kubeconfig
+```
+
+When using docker-for-mac MacOS, you will need to do a couple of additional
+steps to get the correct kubeconfig for a workload cluster created with the docker provider:
+
+```bash
+# Point the kubeconfig to the exposed port of the load balancer, rather than the inaccessible container IP.
+sed -i -e "s/server:.*/server: https:\/\/$(docker port capi-quickstart-lb 6443/tcp | sed "s/0.0.0.0/127.0.0.1/")/g" ./capi-quickstart.kubeconfig
+
+# Ignore the CA, because it is not signed for 127.0.0.1
+sed -i -e "s/certificate-authority-data:.*/insecure-skip-tls-verify: true/g" ./capi-quickstart.kubeconfig
+```
+
+### Known issues
+
+A [known issue](https://github.com/kubernetes-sigs/kind/issues/891) affects Calico with the Docker provider v0.2.0. 
+After you deploy Calico, apply this patch to work around the issue:
+
+```bash
+kubectl --kubeconfig=./capi-quickstart.kubeconfig \
+  -n kube-system patch daemonset calico-node \
+  --type=strategic --patch='
+spec:
+  template:
+    spec:
+      containers:
+      - name: calico-node
+        env:
+        - name: FELIX_IGNORELOOSERPF
+          value: "true"
+'
+```

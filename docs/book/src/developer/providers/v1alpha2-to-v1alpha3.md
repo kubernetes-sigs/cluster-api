@@ -468,3 +468,11 @@ spec:
 > NOTE: To enable experimental features users are required to set the same `--feature-gates` flag across providers.
 > For example, if you want to enable MachinePool, you'll have to enable in both Cluster API deployment and the Kubeadm Bootstrap Provider.
 > In the future, we'll revisit this user experience and provide a centralized way to configure gates across all Cluster API (inc. providers) controllers.
+
+## clusterctl
+
+`clusterctl` is now bundled with Cluster API, provider-agnostic and can be reused across providers. 
+It is the recommended way to setup a management cluster and it implements best practices to avoid common mis-configurations
+and for managing the life-cycle of deployed providers, e.g. upgrades.
+
+see [clusterctl provider contract](../../clusterctl/provider-contract.md) for more details.

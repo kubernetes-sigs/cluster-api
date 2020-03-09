@@ -26,10 +26,10 @@ You'll need the [docker daemon][docker] available.
 
 ### A Cluster
 
-Unless you're testing [clusterctl] or the [pivot] workflow, you'll likely want an existing cluster as your [management cluster][mcluster].
+You'll likely want an existing cluster as your [management cluster][mcluster].
 The easiest way to do this is with [kind], as explained in the [installation instructions][install].
 
-Make sure your cluster is set as the default for `kubectl apply`.
+Make sure your cluster is set as the default for `kubectl`.
 If it's not, you will need to modify subsequent `kubectl` commands below.
 
 [clusterctl]: https://github.com/kubernetes-sigs/cluster-api/tree/master/cmd/clusterctl

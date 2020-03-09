@@ -196,15 +196,6 @@ is running as a static pod.
 
 The infrastructure that backs a [Machine Resource](#user-content-machine), typically either a cloud instance, virtual machine, or physical host.
 
-# T
----
-
-### Target cluster
-
-The declared cluster we intend to create and manage using cluster-api when running `clusterctl create cluster`.
-
-When running `clusterctl alpha phases pivot` this refers to the cluster that will be the new management cluster.
-
 # W
 ---
 

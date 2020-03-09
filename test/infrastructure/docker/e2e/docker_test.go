@@ -66,7 +66,7 @@ var _ = Describe("Docker", func() {
 				Getter:  client,
 				Cluster: cluster,
 			}
-			framework.WaitForClusterDeleted(ctx, waitForClusterDeletedInput)
+			framework.WaitForClusterDeleted(ctx, waitForClusterDeletedInput, "4m")
 
 			assertAllClusterAPIResourcesAreGoneInput := framework.AssertAllClusterAPIResourcesAreGoneInput{
 				Lister:  client,

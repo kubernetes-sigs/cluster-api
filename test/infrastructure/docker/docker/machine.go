@@ -169,6 +169,7 @@ func (m *Machine) ExecBootstrap(ctx context.Context, data string) error {
 	m.log.Info("Running machine bootstrap scripts")
 	var out bytes.Buffer
 	for _, command := range commands {
+		now := time.Now()
 		cmd := m.container.Commander.Command(command.Cmd, command.Args...)
 		cmd.SetStderr(&out)
 		if command.Stdin != "" {
@@ -179,6 +180,8 @@ func (m *Machine) ExecBootstrap(ctx context.Context, data string) error {
 			m.log.Info("Failed running command", "command", command, "stderr", out.String())
 			return errors.Wrap(err, "failed to run cloud conifg")
 		}
+		m.log.Info("Ran command", "command", command, "output", out.String(), "duration", time.Since(now).Seconds())
+		out.Reset()
 	}
 
 	return nil

@@ -52,24 +52,32 @@ In case a variable is defined both in the config file and as an OS environment v
 
 ## Image overrides
 
-When working on air-gapped environments it is necessary to alter the manifest to be installed in order to pull
-images from a local image repository instead of pulling from public image repositories like gcr.io or quay.io.
+<aside class="note warning">
 
-The `clusterctl` config file can be used to instruct `clusterctl` to execute automatic image repository override, instead of
-changing YAML files manually.
+<h1> Warning! </h1>
+
+Image override is an advanced feature and wrong configuration can easily lead to non-functional clusters.
+It's strongly recommended to test configurations on dev/test environments before using this functionality in production.
+
+</aside>
+
+When working in air-gapped environments, it's necessary to alter the manifests to be installed in order to pull
+images from a local/custom image repository instead of public ones (e.g. `gcr.io`, or `quay.io`).
+
+The `clusterctl` configuration file can be used to instruct `clusterctl` to override images automatically.
 
 This can be achieved by adding an `images` configuration entry as shown in the example:
 
-```
+```yaml
 images:
   all:
     repository: myorg.io/local-repo
 ```
 
 Please note that the image override feature allows for more fine-grained configuration, allowing to set image
-ovverrides for specific components e.g.
+overrides for specific components, for example:
 
-```
+```yaml
 images:
   all:
     repository: myorg.io/local-repo
@@ -79,16 +87,3 @@ images:
 
 In this example we are overriding the image repository for all the components and the image tag for
 all the images in the cert-manager component.
-
-
-<aside class="note warning">
-
-<h1> Warning! </h1>
-
-Image override is an advanced feature and wrong configuration can easily lead to not working management clusters,
-so it is strongly recommended to test configurations on dev/test environments before applying on production.
-
-E.g. if you set the image tag for a provider components, e.g. the `infrastrcutrue-aws` provider, this most probably will lead to a not working management cluster because `kube-rbac-proxy` and
-`cluster-api-aws-controller` usually are expected to have two different image tags.
-
-</aside>

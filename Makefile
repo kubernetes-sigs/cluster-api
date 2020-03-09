@@ -228,7 +228,8 @@ generate-go-core: $(CONTROLLER_GEN) $(CONVERSION_GEN)
 generate-go-kubeadm-bootstrap: $(CONTROLLER_GEN) $(CONVERSION_GEN) ## Runs Go related generate targets for the kubeadm bootstrapper
 	$(CONTROLLER_GEN) \
 		object:headerFile=./hack/boilerplate/boilerplate.generatego.txt \
-		paths=./bootstrap/kubeadm/api/...
+		paths=./bootstrap/kubeadm/api/... \
+		paths=./bootstrap/kubeadm/types/...
 	$(CONVERSION_GEN) \
 		--input-dirs=./bootstrap/kubeadm/api/v1alpha2 \
 		--output-file-base=zz_generated.conversion \

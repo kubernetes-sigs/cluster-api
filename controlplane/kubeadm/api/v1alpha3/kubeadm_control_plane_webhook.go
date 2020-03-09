@@ -197,11 +197,6 @@ func (in *KubeadmControlPlane) validateCommon() (allErrs field.ErrorList) {
 	}
 
 	externalEtcd := false
-	if in.Spec.KubeadmConfigSpec.InitConfiguration != nil {
-		if in.Spec.KubeadmConfigSpec.InitConfiguration.Etcd.External != nil {
-			externalEtcd = true
-		}
-	}
 	if in.Spec.KubeadmConfigSpec.ClusterConfiguration != nil {
 		if in.Spec.KubeadmConfigSpec.ClusterConfiguration.Etcd.External != nil {
 			externalEtcd = true
@@ -235,7 +230,7 @@ func (in *KubeadmControlPlane) validateCommon() (allErrs field.ErrorList) {
 }
 
 func (in *KubeadmControlPlane) validateEtcd(prev *KubeadmControlPlane) (allErrs field.ErrorList) {
-	if in.Spec.KubeadmConfigSpec.InitConfiguration.Etcd.External != nil && prev.Spec.KubeadmConfigSpec.InitConfiguration.Etcd.Local != nil {
+	if in.Spec.KubeadmConfigSpec.ClusterConfiguration.Etcd.External != nil && prev.Spec.KubeadmConfigSpec.ClusterConfiguration.Etcd.Local != nil {
 		allErrs = append(
 			allErrs,
 			field.Forbidden(
@@ -245,7 +240,7 @@ func (in *KubeadmControlPlane) validateEtcd(prev *KubeadmControlPlane) (allErrs 
 		)
 	}
 
-	if in.Spec.KubeadmConfigSpec.InitConfiguration.Etcd.Local != nil && prev.Spec.KubeadmConfigSpec.InitConfiguration.Etcd.External != nil {
+	if in.Spec.KubeadmConfigSpec.ClusterConfiguration.Etcd.Local != nil && prev.Spec.KubeadmConfigSpec.ClusterConfiguration.Etcd.External != nil {
 		allErrs = append(
 			allErrs,
 			field.Forbidden(

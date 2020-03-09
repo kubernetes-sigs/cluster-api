@@ -19,91 +19,119 @@ package kind
 import (
 	"bufio"
 	"bytes"
-	"flag"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"os"
 	"os/exec"
-	"strings"
 	"sync"
 
-	. "github.com/onsi/ginkgo"
-	. "github.com/onsi/gomega"
-
+	"github.com/onsi/ginkgo"
+	"github.com/onsi/gomega"
 	"k8s.io/client-go/kubernetes"
 	restclient "k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/clientcmd"
+	"sigs.k8s.io/cluster-api/util"
 )
 
-const (
-	kindestImage = "kindest/node:v1.16.4"
-)
+const defaultImage = "kindest/node:v1.17.2"
 
-var (
-	kindBinary    = flag.String("kindBinary", "kind", "path to the kind binary")
-	kubectlBinary = flag.String("kubectlBinary", "kubectl", "path to the kubectl binary")
-)
-
-// Cluster represents the running state of a KIND cluster.
+// Cluster represents the running state of a Kind cluster.
 // An empty struct is enough to call Setup() on.
 type Cluster struct {
-	Name     string
-	tmpDir   string
-	kubepath string
+	Name           string
+	KubeconfigPath string
+	Image          string
+	Retain         bool
+	Wait           string
+	kindBinary     string
+	kubectlBinary  string
 }
 
-// Setup creates a kind cluster and returns a path to the kubeconfig
-// nolint:gosec
+// Setup creates a Kind cluster
 func (c *Cluster) Setup() {
+	c.init()
+	fmt.Fprintf(ginkgo.GinkgoWriter, "creating Kind cluster named %q\n", c.Name)
+
+	cmd := exec.Command(
+		c.kindBinary,
+		"create", "cluster",
+		"--name", c.Name,
+		"--image", c.Image,
+		"--kubeconfig", c.KubeconfigPath,
+		"--wait", c.Wait,
+	)
+	if c.Retain {
+		cmd.Args = append(cmd.Args, "--retain")
+	}
+	c.run(cmd)
+}
+
+func (c *Cluster) init() {
+	if c.Name == "" {
+		c.Name = "kind-test-" + util.RandomString(6)
+	}
+	if c.KubeconfigPath == "" {
+		c.KubeconfigPath = fmt.Sprintf("kubeconfig-%s", c.Name)
+	}
+	if c.Image == "" {
+		c.Image = defaultImage
+	}
+	if c.Wait == "" {
+		c.Wait = "0"
+	}
 	var err error
-	c.tmpDir, err = ioutil.TempDir("", "kind-home")
-	ExpectWithOffset(1, err).NotTo(HaveOccurred())
-	fmt.Fprintf(GinkgoWriter, "creating Kind cluster named %q\n", c.Name)
-	c.run(exec.Command(*kindBinary, "create", "cluster", "--image", kindestImage, "--name", c.Name))
-	path := c.runWithOutput(exec.Command(*kindBinary, "get", "kubeconfig-path", "--name", c.Name))
-	c.kubepath = strings.TrimSpace(string(path))
-	fmt.Fprintf(GinkgoWriter, "kubeconfig path: %q. Can use the following to access the cluster:\n", c.kubepath)
-	fmt.Fprintf(GinkgoWriter, "export KUBECONFIG=%s\n", c.kubepath)
+	c.kindBinary, err = exec.LookPath("kind")
+	gomega.Expect(err).NotTo(gomega.HaveOccurred())
+	c.kubectlBinary, err = exec.LookPath("kubectl")
+	gomega.Expect(err).NotTo(gomega.HaveOccurred())
 }
 
-// Teardown attempts to delete the KIND cluster
+// Teardown attempts to delete the Kind cluster
 func (c *Cluster) Teardown() {
-	c.run(exec.Command(*kindBinary, "delete", "cluster", "--name", c.Name)) //nolint:gosec
-	os.RemoveAll(c.tmpDir)
+	c.run(exec.Command(
+		c.kindBinary,
+		"delete", "cluster",
+		"--name", c.Name,
+	))
+	os.Remove(c.KubeconfigPath)
 }
 
-// LoadImage loads the specified image archive into the kind cluster
+// LoadImage loads the specified image archive into the Kind cluster
 func (c *Cluster) LoadImage(image string) {
 	fmt.Fprintf(
-		GinkgoWriter,
+		ginkgo.GinkgoWriter,
 		"loading image %q into Kind node\n",
 		image)
-	c.run(exec.Command(*kindBinary, "load", "docker-image", "--name", c.Name, image)) //nolint:gosec
+	c.run(exec.Command(
+		c.kindBinary,
+		"load", "docker-image",
+		"--name", c.Name,
+		image,
+	))
 }
 
-// ApplyYAML applies the provided manifest to the kind cluster
+// ApplyYAML applies the provided manifest to the Kind cluster
 func (c *Cluster) ApplyYAML(manifestPath string) {
-	c.run(exec.Command( //nolint:gosec
-		*kubectlBinary,
-		"create",
-		"--kubeconfig="+c.kubepath,
+	c.run(exec.Command(
+		c.kubectlBinary,
+		"apply",
+		"--kubeconfig", c.KubeconfigPath,
 		"-f", manifestPath,
 	))
 }
 
-// RestConfig returns a rest configuration pointed at the provisioned cluster
+// RestConfig returns a REST configuration pointed at the provisioned cluster
 func (c *Cluster) RestConfig() *restclient.Config {
-	cfg, err := clientcmd.BuildConfigFromFlags("", c.kubepath)
-	ExpectWithOffset(1, err).NotTo(HaveOccurred())
+	cfg, err := clientcmd.BuildConfigFromFlags("", c.KubeconfigPath)
+	gomega.ExpectWithOffset(1, err).NotTo(gomega.HaveOccurred())
 	return cfg
 }
 
-// KubeClient returns a Kubernetes client pointing at the provisioned cluster
+// KubeClient returns a Kubernetes client pointed at the provisioned cluster
 func (c *Cluster) KubeClient() kubernetes.Interface {
 	cfg := c.RestConfig()
 	client, err := kubernetes.NewForConfig(cfg)
-	ExpectWithOffset(1, err).NotTo(HaveOccurred())
+	gomega.ExpectWithOffset(1, err).NotTo(gomega.HaveOccurred())
 	return client
 }
 
@@ -117,14 +145,14 @@ func (c *Cluster) runWithOutput(cmd *exec.Cmd) []byte {
 func (c *Cluster) run(cmd *exec.Cmd) {
 	var wg sync.WaitGroup
 	errPipe, err := cmd.StderrPipe()
-	ExpectWithOffset(1, err).NotTo(HaveOccurred())
+	gomega.ExpectWithOffset(1, err).NotTo(gomega.HaveOccurred())
 
 	cmd.Env = append(
 		cmd.Env,
 		// KIND positions the configuration file relative to HOME.
 		// To prevent clobbering an existing KIND installation, override this
 		// n.b. HOME isn't always set inside BAZEL
-		fmt.Sprintf("HOME=%s", c.tmpDir),
+		fmt.Sprintf("HOME=%s", os.Getenv("PWD")),
 		//needed for Docker. TODO(EKF) Should be properly hermetic
 		fmt.Sprintf("PATH=%s", os.Getenv("PATH")),
 	)
@@ -134,14 +162,14 @@ func (c *Cluster) run(cmd *exec.Cmd) {
 	go captureOutput(&wg, errPipe, "stderr")
 	if cmd.Stdout == nil {
 		outPipe, err := cmd.StdoutPipe()
-		ExpectWithOffset(1, err).NotTo(HaveOccurred())
+		gomega.ExpectWithOffset(1, err).NotTo(gomega.HaveOccurred())
 		wg.Add(1)
 		go captureOutput(&wg, outPipe, "stdout")
 	}
 
-	Expect(cmd.Start()).To(Succeed())
+	gomega.Expect(cmd.Start()).To(gomega.Succeed())
 	wg.Wait()
-	Expect(cmd.Wait()).To(Succeed())
+	gomega.Expect(cmd.Wait()).To(gomega.Succeed())
 }
 
 func captureOutput(wg *sync.WaitGroup, r io.Reader, label string) {
@@ -150,7 +178,7 @@ func captureOutput(wg *sync.WaitGroup, r io.Reader, label string) {
 
 	for {
 		line, err := reader.ReadString('\n')
-		fmt.Fprintf(GinkgoWriter, "[%s] %s", label, line)
+		fmt.Fprintf(ginkgo.GinkgoWriter, "[%s] %s", label, line)
 		if err != nil {
 			return
 		}

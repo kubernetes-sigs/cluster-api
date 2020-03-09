@@ -34,7 +34,7 @@ const (
 	embeddedCertManagerManifestPath = "cmd/clusterctl/config/manifest/cert-manager.yaml"
 
 	waitCertManagerInterval = 1 * time.Second
-	waitCertManagerTimeout  = 5 * time.Minute
+	waitCertManagerTimeout  = 10 * time.Minute
 
 	retryCreateCertManagerObject         = 3
 	retryIntervalCreateCertManagerObject = 1 * time.Second

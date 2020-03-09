@@ -266,7 +266,8 @@ func (w *Workload) UpdateEtcdVersionInKubeadmConfigMap(ctx context.Context, imag
 		return err
 	}
 	config := &kubeadmConfig{ConfigMap: kubeadmConfigMap}
-	if err := config.UpdateEtcdMeta(imageRepository, imageTag); err != nil {
+	changed, err := config.UpdateEtcdMeta(imageRepository, imageTag)
+	if err != nil || !changed {
 		return err
 	}
 	if err := w.Client.Update(ctx, config.ConfigMap); err != nil {

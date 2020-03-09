@@ -17,6 +17,7 @@ limitations under the License.
 package internal
 
 import (
+	"errors"
 	"testing"
 
 	"github.com/onsi/gomega"
@@ -86,4 +87,140 @@ kind: ClusterStatus`,
 			HaveKey("someFieldThatIsAddedInTheFuture"),
 		)),
 	))
+}
+
+func TestUpdateEtcdMeta(t *testing.T) {
+
+	tests := []struct {
+		name                      string
+		clusterConfigurationValue string
+		imageRepository           string
+		imageTag                  string
+		expectChanged             bool
+		expectErr                 error
+	}{
+		{
+			name: "it should set the values, if they were empty",
+			clusterConfigurationValue: `
+apiVersion: kubeadm.k8s.io/v1beta2
+kind: ClusterConfiguration
+etcd:
+  local:
+    dataDir: /var/lib/etcd
+`,
+			imageRepository: "gcr.io/k8s/etcd",
+			imageTag:        "0.10.9",
+			expectChanged:   true,
+		},
+		{
+			name: "it should return false with no error, if there are no changes",
+			clusterConfigurationValue: `
+apiVersion: kubeadm.k8s.io/v1beta2
+kind: ClusterConfiguration
+etcd:
+  local:
+    dataDir: /var/lib/etcd
+    imageRepository: "gcr.io/k8s/etcd"
+    imageTag: "0.10.9"
+`,
+			imageRepository: "gcr.io/k8s/etcd",
+			imageTag:        "0.10.9",
+			expectChanged:   false,
+		},
+		{
+			name: "it shouldn't write empty strings",
+			clusterConfigurationValue: `
+apiVersion: kubeadm.k8s.io/v1beta2
+kind: ClusterConfiguration
+etcd:
+  local:
+    dataDir: /var/lib/etcd
+`,
+			imageRepository: "",
+			imageTag:        "",
+			expectChanged:   false,
+		},
+		{
+			name: "it should overwrite imageTag",
+			clusterConfigurationValue: `
+apiVersion: kubeadm.k8s.io/v1beta2
+kind: ClusterConfiguration
+etcd:
+  local:
+    imageTag: 0.10.8
+    dataDir: /var/lib/etcd
+`,
+			imageTag:      "0.10.9",
+			expectChanged: true,
+		},
+		{
+			name: "it should overwrite imageRepository",
+			clusterConfigurationValue: `
+apiVersion: kubeadm.k8s.io/v1beta2
+kind: ClusterConfiguration
+etcd:
+  local:
+    imageRepository: another-custom-repo
+    dataDir: /var/lib/etcd
+`,
+			imageRepository: "gcr.io/k8s/etcd",
+			expectChanged:   true,
+		},
+		{
+			name: "it should error if it's not a valid k8s object",
+			clusterConfigurationValue: `
+etcd:
+  local:
+    imageRepository: another-custom-repo
+    dataDir: /var/lib/etcd
+`,
+			expectErr: errors.New("Object 'Kind' is missing"),
+		},
+		{
+			name: "it should error if the current value is a type we don't expect",
+			clusterConfigurationValue: `
+apiVersion: kubeadm.k8s.io/v1beta2
+kind: ClusterConfiguration
+etcd:
+  local:
+    imageRepository: true
+    dataDir: /var/lib/etcd
+`,
+			expectErr: errors.New(".etcd.local.imageRepository accessor error"),
+		},
+	}
+
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			g := gomega.NewWithT(t)
+
+			kconfig := &kubeadmConfig{
+				ConfigMap: &corev1.ConfigMap{
+					Data: map[string]string{
+						clusterConfigurationKey: test.clusterConfigurationValue,
+					},
+				},
+			}
+
+			changed, err := kconfig.UpdateEtcdMeta(test.imageRepository, test.imageTag)
+			if test.expectErr == nil {
+				g.Expect(err).ToNot(HaveOccurred())
+			} else {
+				g.Expect(err).To(HaveOccurred())
+				g.Expect(err.Error()).To(gomega.ContainSubstring(test.expectErr.Error()))
+			}
+
+			g.Expect(changed).To(gomega.Equal(test.expectChanged))
+			if changed {
+				if test.imageRepository != "" {
+					g.Expect(kconfig.ConfigMap.Data[clusterConfigurationKey]).To(gomega.ContainSubstring(test.imageRepository))
+				}
+				if test.imageTag != "" {
+					g.Expect(kconfig.ConfigMap.Data[clusterConfigurationKey]).To(gomega.ContainSubstring(test.imageTag))
+				}
+			}
+
+		})
+	}
+
 }

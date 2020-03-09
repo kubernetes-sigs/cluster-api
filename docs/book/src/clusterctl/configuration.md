@@ -4,6 +4,7 @@ The `clusterctl` config file is located at `$HOME/.cluster-api/clusterctl.yaml` 
 
 - Customize the list of providers and provider repositories.
 - Provide configuration values to be used for variable substitution when installing providers or creating clusters.
+- Define image overrides for air-gapped environments.
 
 ## Provider repositories
 
@@ -48,3 +49,46 @@ AWS_B64ENCODED_CREDENTIALS: XXXXXXXX
 ```
 
 In case a variable is defined both in the config file and as an OS environment variable, the latter takes precedence.
+
+## Image overrides
+
+When working on air-gapped environments it is necessary to alter the manifest to be installed in order to pull
+images from a local image repository instead of pulling from public image repositories like gcr.io or quay.io.
+
+The `clusterctl` config file can be used to instruct `clusterctl` to execute automatic image repository override, instead of
+changing YAML files manually.
+
+This can be achieved by adding an `images` configuration entry as shown in the example:
+
+```
+images:
+  all:
+    repository: myorg.io/local-repo
+```
+
+Please note that the image override feature allows for more fine-grained configuration, allowing to set image
+ovverrides for specific components e.g.
+
+```
+images:
+  all:
+    repository: myorg.io/local-repo
+  cert-manager:
+    tag: v0.11.1 
+```
+
+In this example we are overriding the image repository for all the components and the image tag for
+all the images in the cert-manager component.
+
+
+<aside class="note warning">
+
+<h1> Warning! </h1>
+
+Image override is an advanced feature and wrong configuration can easily lead to not working management clusters,
+so it is strongly recommended to test configurations on dev/test environments before applying on production.
+
+E.g. if you set the image tag for a provider components, e.g. the `infrastrcutrue-aws` provider, this most probably will lead to a not working management cluster because `kube-rbac-proxy` and
+`cluster-api-aws-controller` usually are expected to have two different image tags.
+
+</aside>

@@ -137,8 +137,8 @@ func createTestWorkloadCluster(ctx context.Context, mgmtInfo testMgmtClusterInfo
 		ClusterName:              workloadInfo.workloadClusterName,
 		Flavor:                   "",
 		KubernetesVersion:        workloadInfo.kubernetesVersion,
-		ControlPlaneMachineCount: workloadInfo.controlPlaneMachineCount,
-		WorkerMachineCount:       workloadInfo.workerMachineCount,
+		ControlPlaneMachineCount: &workloadInfo.controlPlaneMachineCount,
+		WorkerMachineCount:       &workloadInfo.workerMachineCount,
 	}
 	template, err := c.GetClusterTemplate(options)
 	Expect(err).ToNot(HaveOccurred())

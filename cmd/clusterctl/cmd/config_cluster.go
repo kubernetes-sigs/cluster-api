@@ -32,8 +32,8 @@ type configClusterOptions struct {
 
 	targetNamespace          string
 	kubernetesVersion        string
-	controlPlaneMachineCount int
-	workerMachineCount       int
+	controlPlaneMachineCount int64
+	workerMachineCount       int64
 
 	url                string
 	configMapNamespace string
@@ -87,7 +87,7 @@ var configClusterClusterCmd = &cobra.Command{
 
 	Args: cobra.ExactArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
-		return runGetClusterTemplate(args[0])
+		return runGetClusterTemplate(cmd, args[0])
 	},
 }
 
@@ -100,9 +100,9 @@ func init() {
 		"The namespace to use for the workload cluster. If unspecified, the current namespace will be used.")
 	configClusterClusterCmd.Flags().StringVar(&cc.kubernetesVersion, "kubernetes-version", "",
 		"The Kubernetes version to use for the workload cluster. If unspecified, the value from OS environment variables or the .cluster-api/clusterctl.yaml config file will be used.")
-	configClusterClusterCmd.Flags().IntVar(&cc.controlPlaneMachineCount, "control-plane-machine-count", 1,
+	configClusterClusterCmd.Flags().Int64Var(&cc.controlPlaneMachineCount, "control-plane-machine-count", 1,
 		"The number of control plane machines for the workload cluster.")
-	configClusterClusterCmd.Flags().IntVar(&cc.workerMachineCount, "worker-machine-count", 0,
+	configClusterClusterCmd.Flags().Int64Var(&cc.workerMachineCount, "worker-machine-count", 0,
 		"The number of worker machines for the workload cluster.")
 
 	// flags for the repository source
@@ -130,20 +130,25 @@ func init() {
 	configCmd.AddCommand(configClusterClusterCmd)
 }
 
-func runGetClusterTemplate(name string) error {
+func runGetClusterTemplate(cmd *cobra.Command, name string) error {
 	c, err := client.New(cfgFile)
 	if err != nil {
 		return err
 	}
 
 	templateOptions := client.GetClusterTemplateOptions{
-		Kubeconfig:               cc.kubeconfig,
-		ClusterName:              name,
-		TargetNamespace:          cc.targetNamespace,
-		KubernetesVersion:        cc.kubernetesVersion,
-		ControlPlaneMachineCount: cc.controlPlaneMachineCount,
-		WorkerMachineCount:       cc.workerMachineCount,
-		ListVariablesOnly:        cc.listVariables,
+		Kubeconfig:        cc.kubeconfig,
+		ClusterName:       name,
+		TargetNamespace:   cc.targetNamespace,
+		KubernetesVersion: cc.kubernetesVersion,
+		ListVariablesOnly: cc.listVariables,
+	}
+
+	if cmd.Flags().Changed("control-plane-machine-count") {
+		templateOptions.ControlPlaneMachineCount = &cc.controlPlaneMachineCount
+	}
+	if cmd.Flags().Changed("worker-machine-count") {
+		templateOptions.WorkerMachineCount = &cc.workerMachineCount
 	}
 
 	if cc.url != "" {

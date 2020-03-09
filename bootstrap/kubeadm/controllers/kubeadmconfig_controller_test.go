@@ -24,7 +24,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/pkg/errors"
+	. "github.com/onsi/gomega"
+
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -67,6 +68,8 @@ func setupScheme() *runtime.Scheme {
 
 // MachineToBootstrapMapFunc return kubeadm bootstrap configref name when configref exists
 func TestKubeadmConfigReconciler_MachineToBootstrapMapFuncReturn(t *testing.T) {
+	g := NewWithT(t)
+
 	cluster := newCluster("my-cluster")
 	objs := []runtime.Object{cluster}
 	machineObjs := []runtime.Object{}
@@ -94,19 +97,17 @@ func TestKubeadmConfigReconciler_MachineToBootstrapMapFuncReturn(t *testing.T) {
 		}
 		configs := reconciler.MachineToBootstrapMapFunc(o)
 		if i == 1 {
-			if configs[0].Name != expectedConfigName {
-				t.Fatalf("unexpected config name: %s", configs[0].Name)
-			}
+			g.Expect(configs[0].Name).To(Equal(expectedConfigName))
 		} else {
-			if configs[0].Name != "" {
-				t.Fatalf("unexpected config name: %s", configs[0].Name)
-			}
+			g.Expect(configs[0].Name).To(Equal(""))
 		}
 	}
 }
 
 // Reconcile returns early if the kubeadm config is ready because it should never re-generate bootstrap data.
 func TestKubeadmConfigReconciler_Reconcile_ReturnEarlyIfKubeadmConfigIsReady(t *testing.T) {
+	g := NewWithT(t)
+
 	config := newKubeadmConfig(nil, "cfg")
 	config.Status.Ready = true
 
@@ -127,19 +128,15 @@ func TestKubeadmConfigReconciler_Reconcile_ReturnEarlyIfKubeadmConfigIsReady(t *
 		},
 	}
 	result, err := k.Reconcile(request)
-	if err != nil {
-		t.Fatalf("Failed to reconcile:\n %+v", err)
-	}
-	if result.Requeue == true {
-		t.Fatal("did not expect to requeue")
-	}
-	if result.RequeueAfter != time.Duration(0) {
-		t.Fatal("did not expect to requeue after")
-	}
+	g.Expect(err).NotTo(HaveOccurred())
+	g.Expect(result.Requeue).To(BeFalse())
+	g.Expect(result.RequeueAfter).To(Equal(time.Duration(0)))
 }
 
 // Reconcile returns an error in this case because the owning machine should not go away before the things it owns.
 func TestKubeadmConfigReconciler_Reconcile_ReturnErrorIfReferencedMachineIsNotFound(t *testing.T) {
+	g := NewWithT(t)
+
 	machine := newMachine(nil, "machine")
 	config := newKubeadmConfig(machine, "cfg")
 
@@ -161,13 +158,13 @@ func TestKubeadmConfigReconciler_Reconcile_ReturnErrorIfReferencedMachineIsNotFo
 		},
 	}
 	_, err := k.Reconcile(request)
-	if err == nil {
-		t.Fatal("Expected error, got nil")
-	}
+	g.Expect(err).To(HaveOccurred())
 }
 
 // If the machine has bootstrap data secret reference, there is no need to generate more bootstrap data.
 func TestKubeadmConfigReconciler_Reconcile_ReturnEarlyIfMachineHasDataSecretName(t *testing.T) {
+	g := NewWithT(t)
+
 	machine := newMachine(nil, "machine")
 	machine.Spec.Bootstrap.DataSecretName = pointer.StringPtr("something")
 
@@ -190,19 +187,15 @@ func TestKubeadmConfigReconciler_Reconcile_ReturnEarlyIfMachineHasDataSecretName
 		},
 	}
 	result, err := k.Reconcile(request)
-	if err != nil {
-		t.Fatalf("Failed to reconcile:\n %+v", err)
-	}
-	if result.Requeue == true {
-		t.Fatal("did not expect to requeue")
-	}
-	if result.RequeueAfter != time.Duration(0) {
-		t.Fatal("did not expect to requeue after")
-	}
+	g.Expect(err).NotTo(HaveOccurred())
+	g.Expect(result.Requeue).To(BeFalse())
+	g.Expect(result.RequeueAfter).To(Equal(time.Duration(0)))
 }
 
 // Test the logic to migrate plaintext bootstrap data to a field.
 func TestKubeadmConfigReconciler_Reconcile_MigrateToSecret(t *testing.T) {
+	g := NewWithT(t)
+
 	cluster := newCluster("cluster")
 	cluster.Status.InfrastructureReady = true
 	machine := newMachine(cluster, "machine")
@@ -229,43 +222,24 @@ func TestKubeadmConfigReconciler_Reconcile_MigrateToSecret(t *testing.T) {
 	}
 
 	result, err := k.Reconcile(request)
-	if err != nil {
-		t.Fatalf("failed to reconcile: %v", err)
-	}
-	if result.Requeue == true {
-		t.Fatal("did not expect to requeue")
-	}
-	if result.RequeueAfter != time.Duration(0) {
-		t.Fatal("did not expect to requeue after")
-	}
+	g.Expect(err).NotTo(HaveOccurred())
+	g.Expect(result.Requeue).To(BeFalse())
+	g.Expect(result.RequeueAfter).To(Equal(time.Duration(0)))
 
-	if err := k.Client.Get(context.Background(), client.ObjectKey{Name: config.Name, Namespace: config.Namespace}, config); err != nil {
-		t.Fatalf("failed to get KubeadmConfig: %v", err)
-	}
-
-	if config.Status.DataSecretName == nil {
-		t.Fatal("expected bootstrap data secret to be populated")
-	}
+	g.Expect(k.Client.Get(context.Background(), client.ObjectKey{Name: config.Name, Namespace: config.Namespace}, config)).To(Succeed())
+	g.Expect(config.Status.DataSecretName).NotTo(BeNil())
 
 	secret := &corev1.Secret{}
-	if err := k.Client.Get(context.Background(), client.ObjectKey{Namespace: config.Namespace, Name: *config.Status.DataSecretName}, secret); err != nil {
-		t.Fatalf("failed to get Secret bootstrap data for KubeadmConfig: %v", err)
-	}
-
-	if string(secret.Data["value"]) != "test" {
-		t.Fatal("expected bootstrap data secret value to match")
-	}
-
-	if secret.Type != clusterv1.ClusterSecretType {
-		t.Fatalf("expected bootstrap data secret to have type %q", clusterv1.ClusterSecretType)
-	}
-
-	if clusterName := secret.Labels[clusterv1.ClusterLabelName]; clusterName != "cluster" {
-		t.Fatalf("expected bootstrap data secret to have a cluster name label set to `cluster`, got %s", clusterName)
-	}
+	g.Expect(k.Client.Get(context.Background(), client.ObjectKey{Namespace: config.Namespace, Name: *config.Status.DataSecretName}, secret)).To(Succeed())
+	g.Expect(secret.Data["value"]).NotTo(Equal("test"))
+	g.Expect(secret.Type).To(Equal(clusterv1.ClusterSecretType))
+	clusterName := secret.Labels[clusterv1.ClusterLabelName]
+	g.Expect(clusterName).To(Equal("cluster"))
 }
 
 func TestKubeadmConfigReconciler_ReturnEarlyIfClusterInfraNotReady(t *testing.T) {
+	g := NewWithT(t)
+
 	cluster := newCluster("cluster")
 	machine := newMachine(cluster, "machine")
 	config := newKubeadmConfig(machine, "cfg")
@@ -296,18 +270,14 @@ func TestKubeadmConfigReconciler_ReturnEarlyIfClusterInfraNotReady(t *testing.T)
 
 	expectedResult := reconcile.Result{}
 	actualResult, actualError := k.Reconcile(request)
-
-	if actualResult != expectedResult {
-		t.Errorf("reconcile result doesn't match, Want %v, Got %v", expectedResult, actualResult)
-	}
-
-	if actualError != nil {
-		t.Errorf("error doesn't match expected value, Want nil, Got %v", actualError)
-	}
+	g.Expect(actualResult).To(Equal(expectedResult))
+	g.Expect(actualError).NotTo(HaveOccurred())
 }
 
 // Return early If the owning machine does not have an associated cluster
 func TestKubeadmConfigReconciler_Reconcile_ReturnEarlyIfMachineHasNoCluster(t *testing.T) {
+	g := NewWithT(t)
+
 	machine := newMachine(nil, "machine") // Machine without a cluster
 	config := newKubeadmConfig(machine, "cfg")
 
@@ -329,13 +299,13 @@ func TestKubeadmConfigReconciler_Reconcile_ReturnEarlyIfMachineHasNoCluster(t *t
 		},
 	}
 	_, err := k.Reconcile(request)
-	if err != nil {
-		t.Fatalf("Not Expecting error, got an error: %+v", err)
-	}
+	g.Expect(err).NotTo(HaveOccurred())
 }
 
 // This does not expect an error, hoping the machine gets updated with a cluster
 func TestKubeadmConfigReconciler_Reconcile_ReturnNilIfMachineDoesNotHaveAssociatedCluster(t *testing.T) {
+	g := NewWithT(t)
+
 	machine := newMachine(nil, "machine") // intentionally omitting cluster
 	config := newKubeadmConfig(machine, "cfg")
 
@@ -357,13 +327,13 @@ func TestKubeadmConfigReconciler_Reconcile_ReturnNilIfMachineDoesNotHaveAssociat
 		},
 	}
 	_, err := k.Reconcile(request)
-	if err != nil {
-		t.Fatal("Not Expecting error, got an error")
-	}
+	g.Expect(err).NotTo(HaveOccurred())
 }
 
 // This does not expect an error, hoping that the associated cluster will be created
 func TestKubeadmConfigReconciler_Reconcile_ReturnNilIfAssociatedClusterIsNotFound(t *testing.T) {
+	g := NewWithT(t)
+
 	cluster := newCluster("cluster")
 	machine := newMachine(cluster, "machine")
 	config := newKubeadmConfig(machine, "cfg")
@@ -387,13 +357,13 @@ func TestKubeadmConfigReconciler_Reconcile_ReturnNilIfAssociatedClusterIsNotFoun
 		},
 	}
 	_, err := k.Reconcile(request)
-	if err != nil {
-		t.Fatal("Not Expecting error, got an error")
-	}
+	g.Expect(err).NotTo(HaveOccurred())
 }
 
 // If the control plane isn't initialized then there is no cluster for either a worker or control plane node to join.
 func TestKubeadmConfigReconciler_Reconcile_RequeueJoiningNodesIfControlPlaneNotInitialized(t *testing.T) {
+	g := NewWithT(t)
+
 	cluster := newCluster("cluster")
 	cluster.Status.InfrastructureReady = true
 
@@ -448,21 +418,17 @@ func TestKubeadmConfigReconciler_Reconcile_RequeueJoiningNodesIfControlPlaneNotI
 			}
 
 			result, err := k.Reconcile(tc.request)
-			if err != nil {
-				t.Fatalf("Failed to reconcile:\n %+v", err)
-			}
-			if result.Requeue == true {
-				t.Fatal("did not expect to requeue")
-			}
-			if result.RequeueAfter != 30*time.Second {
-				t.Fatal("expected to requeue after 30s")
-			}
+			g.Expect(err).NotTo(HaveOccurred())
+			g.Expect(result.Requeue).To(BeFalse())
+			g.Expect(result.RequeueAfter).To(Equal(30 * time.Second))
 		})
 	}
 }
 
 // This generates cloud-config data but does not test the validity of it.
 func TestKubeadmConfigReconciler_Reconcile_GenerateCloudConfigData(t *testing.T) {
+	g := NewWithT(t)
+
 	cluster := newCluster("cluster")
 	cluster.Status.InfrastructureReady = true
 
@@ -491,36 +457,23 @@ func TestKubeadmConfigReconciler_Reconcile_GenerateCloudConfigData(t *testing.T)
 		},
 	}
 	result, err := k.Reconcile(request)
-	if err != nil {
-		t.Fatalf("Failed to reconcile:\n %+v", err)
-	}
-	if result.Requeue != false {
-		t.Fatal("did not expect to requeue")
-	}
-	if result.RequeueAfter != time.Duration(0) {
-		t.Fatal("did not expect to requeue after")
-	}
+	g.Expect(err).NotTo(HaveOccurred())
+	g.Expect(result.Requeue).To(BeFalse())
+	g.Expect(result.RequeueAfter).To(Equal(time.Duration(0)))
 
 	cfg, err := getKubeadmConfig(myclient, "control-plane-init-cfg")
-	if err != nil {
-		t.Fatalf("Failed to reconcile:\n %+v", err)
-	}
-	if cfg.Status.Ready != true {
-		t.Fatal("Expected status ready")
-	}
-	if cfg.Status.DataSecretName == nil {
-		t.Fatal("Expected generated bootstrap data secret name")
-	}
+	g.Expect(err).NotTo(HaveOccurred())
+	g.Expect(cfg.Status.Ready).To(BeTrue())
+	g.Expect(cfg.Status.DataSecretName).NotTo(BeNil())
 
 	// Ensure that we don't fail trying to refresh any bootstrap tokens
 	_, err = k.Reconcile(request)
-	if err != nil {
-		t.Fatalf("Failed to reconcile:\n %+v", err)
-	}
+	g.Expect(err).NotTo(HaveOccurred())
 }
 
 // If a control plane has no JoinConfiguration, then we will create a default and no error will occur
 func TestKubeadmConfigReconciler_Reconcile_ErrorIfJoiningControlPlaneHasInvalidConfiguration(t *testing.T) {
+	g := NewWithT(t)
 	// TODO: extract this kind of code into a setup function that puts the state of objects into an initialized controlplane (implies secrets exist)
 	cluster := newCluster("cluster")
 	cluster.Status.InfrastructureReady = true
@@ -555,13 +508,13 @@ func TestKubeadmConfigReconciler_Reconcile_ErrorIfJoiningControlPlaneHasInvalidC
 		},
 	}
 	_, err := k.Reconcile(request)
-	if err != nil {
-		t.Fatalf("Expected no error but got %v", err)
-	}
+	g.Expect(err).NotTo(HaveOccurred())
 }
 
 // If there is no APIEndpoint but everything is ready then requeue in hopes of a new APIEndpoint showing up eventually.
 func TestKubeadmConfigReconciler_Reconcile_RequeueIfControlPlaneIsMissingAPIEndpoints(t *testing.T) {
+	g := NewWithT(t)
+
 	cluster := newCluster("cluster")
 	cluster.Status.InfrastructureReady = true
 	cluster.Status.ControlPlaneInitialized = true
@@ -593,18 +546,14 @@ func TestKubeadmConfigReconciler_Reconcile_RequeueIfControlPlaneIsMissingAPIEndp
 		},
 	}
 	result, err := k.Reconcile(request)
-	if err != nil {
-		t.Fatalf("Failed to reconcile:\n %+v", err)
-	}
-	if result.Requeue == true {
-		t.Fatal("did not expect to requeue")
-	}
-	if result.RequeueAfter != 10*time.Second {
-		t.Fatal("expected to requeue after 10s")
-	}
+	g.Expect(err).NotTo(HaveOccurred())
+	g.Expect(result.Requeue).To(BeFalse())
+	g.Expect(result.RequeueAfter).To(Equal(10 * time.Second))
 }
 
 func TestReconcileIfJoinNodesAndControlPlaneIsReady(t *testing.T) {
+	g := NewWithT(t)
+
 	cluster := newCluster("cluster")
 	cluster.Status.InfrastructureReady = true
 	cluster.Status.ControlPlaneInitialized = true
@@ -670,43 +619,27 @@ func TestReconcileIfJoinNodesAndControlPlaneIsReady(t *testing.T) {
 				},
 			}
 			result, err := k.Reconcile(request)
-			if err != nil {
-				t.Fatal(fmt.Sprintf("Failed to reconcile:\n %+v", err))
-			}
-			if result.Requeue == true {
-				t.Fatal("did not expected to requeue")
-			}
-			if result.RequeueAfter != time.Duration(0) {
-				t.Fatal("did not expected to requeue after")
-			}
+			g.Expect(err).NotTo(HaveOccurred())
+			g.Expect(result.Requeue).To(BeFalse())
+			g.Expect(result.RequeueAfter).To(Equal(time.Duration(0)))
 
 			cfg, err := getKubeadmConfig(myclient, rt.configName)
-			if err != nil {
-				t.Fatal(fmt.Sprintf("Failed to reconcile:\n %+v", err))
-			}
-
-			if cfg.Status.Ready != true {
-				t.Fatal("Expected status ready")
-			}
-
-			if cfg.Status.DataSecretName == nil {
-				t.Fatal("Expected bootstrap data secret")
-			}
+			g.Expect(err).NotTo(HaveOccurred())
+			g.Expect(cfg.Status.Ready).To(BeTrue())
+			g.Expect(cfg.Status.DataSecretName).NotTo(BeNil())
 
 			l := &corev1.SecretList{}
-			if err := myclient.List(context.Background(), l, client.ListOption(client.InNamespace(metav1.NamespaceSystem))); err != nil {
-				t.Fatal(errors.Wrap(err, "failed to get l after reconcile"))
-			}
-
-			if len(l.Items) != 1 {
-				t.Fatal("Failed to get bootstrap token secret")
-			}
+			err = myclient.List(context.Background(), l, client.ListOption(client.InNamespace(metav1.NamespaceSystem)))
+			g.Expect(err).NotTo(HaveOccurred())
+			g.Expect(len(l.Items)).To(Equal(1))
 		})
 
 	}
 }
 
 func TestReconcileIfJoinNodePoolsAndControlPlaneIsReady(t *testing.T) {
+	g := NewWithT(t)
+
 	_ = feature.MutableGates.Set("MachinePool=true")
 
 	cluster := newCluster("cluster")
@@ -762,43 +695,27 @@ func TestReconcileIfJoinNodePoolsAndControlPlaneIsReady(t *testing.T) {
 				},
 			}
 			result, err := k.Reconcile(request)
-			if err != nil {
-				t.Fatal(fmt.Sprintf("Failed to reconcile:\n %+v", err))
-			}
-			if result.Requeue == true {
-				t.Fatal("did not expected to requeue")
-			}
-			if result.RequeueAfter != time.Duration(0) {
-				t.Fatal("did not expected to requeue after")
-			}
+			g.Expect(err).NotTo(HaveOccurred())
+			g.Expect(result.Requeue).To(BeFalse())
+			g.Expect(result.RequeueAfter).To(Equal(time.Duration(0)))
 
 			cfg, err := getKubeadmConfig(myclient, rt.configName)
-			if err != nil {
-				t.Fatal(fmt.Sprintf("Failed to reconcile:\n %+v", err))
-			}
-
-			if cfg.Status.Ready != true {
-				t.Fatal("Expected status ready")
-			}
-
-			if cfg.Status.DataSecretName == nil {
-				t.Fatal("Expected bootstrap data secret")
-			}
+			g.Expect(err).NotTo(HaveOccurred())
+			g.Expect(cfg.Status.Ready).To(BeTrue())
+			g.Expect(cfg.Status.DataSecretName).NotTo(BeNil())
 
 			l := &corev1.SecretList{}
-			if err := myclient.List(context.Background(), l, client.ListOption(client.InNamespace(metav1.NamespaceSystem))); err != nil {
-				t.Fatal(errors.Wrap(err, "failed to get l after reconcile"))
-			}
-
-			if len(l.Items) != 1 {
-				t.Fatal("Failed to get bootstrap token secret")
-			}
+			err = myclient.List(context.Background(), l, client.ListOption(client.InNamespace(metav1.NamespaceSystem)))
+			g.Expect(err).NotTo(HaveOccurred())
+			g.Expect(len(l.Items)).To(Equal(1))
 		})
 
 	}
 }
 
 func TestBootstrapTokenTTLExtension(t *testing.T) {
+	g := NewWithT(t)
+
 	cluster := newCluster("cluster")
 	cluster.Status.InfrastructureReady = true
 	cluster.Status.ControlPlaneInitialized = true
@@ -833,25 +750,15 @@ func TestBootstrapTokenTTLExtension(t *testing.T) {
 		},
 	}
 	result, err := k.Reconcile(request)
-	if err != nil {
-		t.Fatalf("Failed to reconcile:\n %+v", err)
-	}
-	if result.Requeue == true {
-		t.Fatal("did not expect to requeue")
-	}
-	if result.RequeueAfter != time.Duration(0) {
-		t.Fatal("did not expect to requeue after")
-	}
+	g.Expect(err).NotTo(HaveOccurred())
+	g.Expect(result.Requeue).To(BeFalse())
+	g.Expect(result.RequeueAfter).To(Equal(time.Duration(0)))
+
 	cfg, err := getKubeadmConfig(myclient, "worker-join-cfg")
-	if err != nil {
-		t.Fatalf("Failed to reconcile:\n %+v", err)
-	}
-	if cfg.Status.Ready != true {
-		t.Fatal("Expected status ready")
-	}
-	if cfg.Status.DataSecretName == nil {
-		t.Fatal("Expected bootstrap data secret")
-	}
+	g.Expect(err).NotTo(HaveOccurred())
+	g.Expect(cfg.Status.Ready).To(BeTrue())
+	g.Expect(cfg.Status.DataSecretName).NotTo(BeNil())
+
 	request = ctrl.Request{
 		NamespacedName: client.ObjectKey{
 			Namespace: "default",
@@ -859,34 +766,19 @@ func TestBootstrapTokenTTLExtension(t *testing.T) {
 		},
 	}
 	result, err = k.Reconcile(request)
-	if err != nil {
-		t.Fatalf("Failed to reconcile:\n %+v", err)
-	}
-	if result.Requeue == true {
-		t.Fatal("did not expect to requeue")
-	}
-	if result.RequeueAfter != time.Duration(0) {
-		t.Fatal("did not expect to requeue after")
-	}
+	g.Expect(err).NotTo(HaveOccurred())
+	g.Expect(result.Requeue).To(BeFalse())
+	g.Expect(result.RequeueAfter).To(Equal(time.Duration(0)))
+
 	cfg, err = getKubeadmConfig(myclient, "control-plane-join-cfg")
-	if err != nil {
-		t.Fatalf("Failed to reconcile:\n %+v", err)
-	}
-	if cfg.Status.Ready != true {
-		t.Fatal("Expected status ready")
-	}
-	if cfg.Status.DataSecretName == nil {
-		t.Fatal("Expected bootstrap data secret")
-	}
+	g.Expect(err).NotTo(HaveOccurred())
+	g.Expect(cfg.Status.Ready).To(BeTrue())
+	g.Expect(cfg.Status.DataSecretName).NotTo(BeNil())
 
 	l := &corev1.SecretList{}
-	if err := myclient.List(context.Background(), l, client.ListOption(client.InNamespace(metav1.NamespaceSystem))); err != nil {
-		t.Fatal(errors.Wrap(err, "failed to get l after reconcile"))
-	}
-
-	if len(l.Items) != 2 {
-		t.Fatalf("Expected two bootstrap tokens, saw:\n %+d", len(l.Items))
-	}
+	err = myclient.List(context.Background(), l, client.ListOption(client.InNamespace(metav1.NamespaceSystem)))
+	g.Expect(err).NotTo(HaveOccurred())
+	g.Expect(len(l.Items)).To(Equal(2))
 
 	// ensure that the token is refreshed...
 	tokenExpires := make([][]byte, len(l.Items))
@@ -913,42 +805,28 @@ func TestBootstrapTokenTTLExtension(t *testing.T) {
 	} {
 
 		result, err := k.Reconcile(req)
-		if err != nil {
-			t.Fatalf("Failed to reconcile:\n %+v", err)
-		}
-		if result.RequeueAfter >= DefaultTokenTTL {
-			t.Fatal("expected a requeue duration less than the token TTL")
-		}
+		g.Expect(err).NotTo(HaveOccurred())
+		g.Expect(result.RequeueAfter).NotTo(BeNumerically(">=", DefaultTokenTTL))
 	}
 
 	l = &corev1.SecretList{}
-	if err := myclient.List(context.Background(), l, client.ListOption(client.InNamespace(metav1.NamespaceSystem))); err != nil {
-		t.Fatal(errors.Wrap(err, "failed to get l after reconcile"))
-	}
-
-	if len(l.Items) != 2 {
-		t.Fatalf("Expected two bootstrap tokens, saw:\n %+d", len(l.Items))
-	}
+	err = myclient.List(context.Background(), l, client.ListOption(client.InNamespace(metav1.NamespaceSystem)))
+	g.Expect(err).NotTo(HaveOccurred())
+	g.Expect(len(l.Items)).To(Equal(2))
 
 	for i, item := range l.Items {
-		if bytes.Equal(tokenExpires[i], item.Data[bootstrapapi.BootstrapTokenExpirationKey]) {
-			t.Fatal("Reconcile should have refreshed bootstrap token's expiration until the infrastructure was ready")
-		}
+		g.Expect(bytes.Equal(tokenExpires[i], item.Data[bootstrapapi.BootstrapTokenExpirationKey])).To(BeFalse())
 		tokenExpires[i] = item.Data[bootstrapapi.BootstrapTokenExpirationKey]
 	}
 
 	// ...until the infrastructure is marked "ready"
 	workerMachine.Status.InfrastructureReady = true
 	err = myclient.Update(context.Background(), workerMachine)
-	if err != nil {
-		t.Fatalf("unable to set machine infrastructure ready: %v", err)
-	}
+	g.Expect(err).NotTo(HaveOccurred())
 
 	controlPlaneJoinMachine.Status.InfrastructureReady = true
 	err = myclient.Update(context.Background(), controlPlaneJoinMachine)
-	if err != nil {
-		t.Fatalf("unable to set machine infrastructure ready: %v", err)
-	}
+	g.Expect(err).NotTo(HaveOccurred())
 
 	<-time.After(1 * time.Second)
 
@@ -968,35 +846,25 @@ func TestBootstrapTokenTTLExtension(t *testing.T) {
 	} {
 
 		result, err := k.Reconcile(req)
-		if err != nil {
-			t.Fatalf("Failed to reconcile:\n %+v", err)
-		}
-		if result.Requeue == true {
-			t.Fatal("did not expect to requeue")
-		}
-		if result.RequeueAfter != time.Duration(0) {
-			t.Fatal("did not expect to requeue after")
-		}
+		g.Expect(err).NotTo(HaveOccurred())
+		g.Expect(result.Requeue).To(BeFalse())
+		g.Expect(result.RequeueAfter).To(Equal(time.Duration(0)))
 	}
 
 	l = &corev1.SecretList{}
-	if err := myclient.List(context.Background(), l, client.ListOption(client.InNamespace(metav1.NamespaceSystem))); err != nil {
-		t.Fatal(errors.Wrap(err, "failed to get l after reconcile"))
-	}
-
-	if len(l.Items) != 2 {
-		t.Fatalf("Expected two bootstrap tokens, saw:\n %+d", len(l.Items))
-	}
+	err = myclient.List(context.Background(), l, client.ListOption(client.InNamespace(metav1.NamespaceSystem)))
+	g.Expect(err).NotTo(HaveOccurred())
+	g.Expect(len(l.Items)).To(Equal(2))
 
 	for i, item := range l.Items {
-		if !bytes.Equal(tokenExpires[i], item.Data[bootstrapapi.BootstrapTokenExpirationKey]) {
-			t.Fatal("Reconcile should have let the bootstrap token expire after the infrastructure was ready")
-		}
+		g.Expect(bytes.Equal(tokenExpires[i], item.Data[bootstrapapi.BootstrapTokenExpirationKey])).To(BeTrue())
 	}
 }
 
 // Ensure the discovery portion of the JoinConfiguration gets generated correctly.
 func TestKubeadmConfigReconciler_Reconcile_DisocveryReconcileBehaviors(t *testing.T) {
+	g := NewWithT(t)
+
 	k := &KubeadmConfigReconciler{
 		Log:                log.Log,
 		Client:             fake.NewFakeClientWithScheme(setupScheme()),
@@ -1036,18 +904,10 @@ func TestKubeadmConfigReconciler_Reconcile_DisocveryReconcileBehaviors(t *testin
 			},
 			validateDiscovery: func(c *bootstrapv1.KubeadmConfig) error {
 				d := c.Spec.JoinConfiguration.Discovery
-				if d.BootstrapToken == nil {
-					return errors.Errorf("BootstrapToken expected, got nil")
-				}
-				if d.BootstrapToken.Token == "" {
-					return errors.Errorf(("BootstrapToken.Token expected, got empty string"))
-				}
-				if d.BootstrapToken.APIServerEndpoint != "example.com:6443" {
-					return errors.Errorf("BootstrapToken.APIServerEndpoint=example.com:6443 expected, got %q", d.BootstrapToken.APIServerEndpoint)
-				}
-				if d.BootstrapToken.UnsafeSkipCAVerification == true {
-					return errors.Errorf("BootstrapToken.UnsafeSkipCAVerification=false expected, got true")
-				}
+				g.Expect(d.BootstrapToken).NotTo(BeNil())
+				g.Expect(d.BootstrapToken.Token).NotTo(Equal(""))
+				g.Expect(d.BootstrapToken.APIServerEndpoint).To(Equal("example.com:6443"))
+				g.Expect(d.BootstrapToken.UnsafeSkipCAVerification).To(BeFalse())
 				return nil
 			},
 		},
@@ -1065,9 +925,7 @@ func TestKubeadmConfigReconciler_Reconcile_DisocveryReconcileBehaviors(t *testin
 			},
 			validateDiscovery: func(c *bootstrapv1.KubeadmConfig) error {
 				d := c.Spec.JoinConfiguration.Discovery
-				if d.BootstrapToken != nil {
-					return errors.Errorf("BootstrapToken should not be created when DiscoveryFile is defined")
-				}
+				g.Expect(d.BootstrapToken).To(BeNil())
 				return nil
 			},
 		},
@@ -1088,9 +946,7 @@ func TestKubeadmConfigReconciler_Reconcile_DisocveryReconcileBehaviors(t *testin
 			},
 			validateDiscovery: func(c *bootstrapv1.KubeadmConfig) error {
 				d := c.Spec.JoinConfiguration.Discovery
-				if d.BootstrapToken.APIServerEndpoint != "bar.com:6443" {
-					return errors.Errorf("BootstrapToken.APIServerEndpoint=https://bar.com:6443 expected, got %s", d.BootstrapToken.APIServerEndpoint)
-				}
+				g.Expect(d.BootstrapToken.APIServerEndpoint).To(Equal("bar.com:6443"))
 				return nil
 			},
 		},
@@ -1111,9 +967,7 @@ func TestKubeadmConfigReconciler_Reconcile_DisocveryReconcileBehaviors(t *testin
 			},
 			validateDiscovery: func(c *bootstrapv1.KubeadmConfig) error {
 				d := c.Spec.JoinConfiguration.Discovery
-				if d.BootstrapToken.Token != "abcdef.0123456789abcdef" {
-					return errors.Errorf("BootstrapToken.Token=abcdef.0123456789abcdef expected, got %s", d.BootstrapToken.Token)
-				}
+				g.Expect(d.BootstrapToken.Token).To(Equal("abcdef.0123456789abcdef"))
 				return nil
 			},
 		},
@@ -1133,9 +987,7 @@ func TestKubeadmConfigReconciler_Reconcile_DisocveryReconcileBehaviors(t *testin
 			},
 			validateDiscovery: func(c *bootstrapv1.KubeadmConfig) error {
 				d := c.Spec.JoinConfiguration.Discovery
-				if !reflect.DeepEqual(d.BootstrapToken.CACertHashes, dummyCAHash) {
-					return errors.Errorf("BootstrapToken.CACertHashes=%s expected, got %s", dummyCAHash, d.BootstrapToken.Token)
-				}
+				g.Expect(reflect.DeepEqual(d.BootstrapToken.CACertHashes, dummyCAHash)).To(BeTrue())
 				return nil
 			},
 		},
@@ -1144,19 +996,18 @@ func TestKubeadmConfigReconciler_Reconcile_DisocveryReconcileBehaviors(t *testin
 	for _, tc := range testcases {
 		t.Run(tc.name, func(t *testing.T) {
 			err := k.reconcileDiscovery(context.Background(), tc.cluster, tc.config, secret.Certificates{})
-			if err != nil {
-				t.Errorf("expected nil, got error %v", err)
-			}
+			g.Expect(err).NotTo(HaveOccurred())
 
-			if err := tc.validateDiscovery(tc.config); err != nil {
-				t.Fatal(err)
-			}
+			err = tc.validateDiscovery(tc.config)
+			g.Expect(err).NotTo(HaveOccurred())
 		})
 	}
 }
 
 // Test failure cases for the discovery reconcile function.
 func TestKubeadmConfigReconciler_Reconcile_DisocveryReconcileFailureBehaviors(t *testing.T) {
+	g := NewWithT(t)
+
 	k := &KubeadmConfigReconciler{
 		Log:    log.Log,
 		Client: nil,
@@ -1187,15 +1038,15 @@ func TestKubeadmConfigReconciler_Reconcile_DisocveryReconcileFailureBehaviors(t 
 	for _, tc := range testcases {
 		t.Run(tc.name, func(t *testing.T) {
 			err := k.reconcileDiscovery(context.Background(), tc.cluster, tc.config, secret.Certificates{})
-			if err == nil {
-				t.Error("expected error, got nil")
-			}
+			g.Expect(err).To(HaveOccurred())
 		})
 	}
 }
 
 // Set cluster configuration defaults based on dynamic values from the cluster object.
 func TestKubeadmConfigReconciler_Reconcile_DynamicDefaultsForClusterConfiguration(t *testing.T) {
+	g := NewWithT(t)
+
 	k := &KubeadmConfigReconciler{
 		Log:    log.Log,
 		Client: nil,
@@ -1274,30 +1125,20 @@ func TestKubeadmConfigReconciler_Reconcile_DynamicDefaultsForClusterConfiguratio
 		t.Run(tc.name, func(t *testing.T) {
 			k.reconcileTopLevelObjectSettings(tc.cluster, tc.machine, tc.config)
 
-			if tc.config.Spec.ClusterConfiguration.ControlPlaneEndpoint != "myControlPlaneEndpoint:6443" {
-				t.Errorf("expected ClusterConfiguration.ControlPlaneEndpoint %q, got %q", "myControlPlaneEndpoint:6443", tc.config.Spec.ClusterConfiguration.ControlPlaneEndpoint)
-			}
-			if tc.config.Spec.ClusterConfiguration.ClusterName != "mycluster" {
-				t.Errorf("expected ClusterConfiguration.ClusterName %q, got %q", "mycluster", tc.config.Spec.ClusterConfiguration.ClusterName)
-			}
-			if tc.config.Spec.ClusterConfiguration.Networking.PodSubnet != "myPodSubnet" {
-				t.Errorf("expected ClusterConfiguration.Networking.PodSubnet  %q, got %q", "myPodSubnet", tc.config.Spec.ClusterConfiguration.Networking.PodSubnet)
-			}
-			if tc.config.Spec.ClusterConfiguration.Networking.ServiceSubnet != "myServiceSubnet" {
-				t.Errorf("expected ClusterConfiguration.Networking.ServiceSubnet  %q, got %q", "myServiceSubnet", tc.config.Spec.ClusterConfiguration.Networking.ServiceSubnet)
-			}
-			if tc.config.Spec.ClusterConfiguration.Networking.DNSDomain != "myDNSDomain" {
-				t.Errorf("expected ClusterConfiguration.Networking.DNSDomain  %q, got %q", "myDNSDomain", tc.config.Spec.ClusterConfiguration.Networking.DNSDomain)
-			}
-			if tc.config.Spec.ClusterConfiguration.KubernetesVersion != "myversion" {
-				t.Errorf("expected ClusterConfiguration.KubernetesVersion %q, got %q", "myversion", tc.config.Spec.ClusterConfiguration.KubernetesVersion)
-			}
+			g.Expect(tc.config.Spec.ClusterConfiguration.ControlPlaneEndpoint).To(Equal("myControlPlaneEndpoint:6443"))
+			g.Expect(tc.config.Spec.ClusterConfiguration.ClusterName).To(Equal("mycluster"))
+			g.Expect(tc.config.Spec.ClusterConfiguration.Networking.PodSubnet).To(Equal("myPodSubnet"))
+			g.Expect(tc.config.Spec.ClusterConfiguration.Networking.ServiceSubnet).To(Equal("myServiceSubnet"))
+			g.Expect(tc.config.Spec.ClusterConfiguration.Networking.DNSDomain).To(Equal("myDNSDomain"))
+			g.Expect(tc.config.Spec.ClusterConfiguration.KubernetesVersion).To(Equal("myversion"))
 		})
 	}
 }
 
 // Allow users to skip CA Verification if they *really* want to.
 func TestKubeadmConfigReconciler_Reconcile_AlwaysCheckCAVerificationUnlessRequestedToSkip(t *testing.T) {
+	g := NewWithT(t)
+
 	// Setup work for an initialized cluster
 	clusterName := "my-cluster"
 	cluster := newCluster(clusterName)
@@ -1364,20 +1205,17 @@ func TestKubeadmConfigReconciler_Reconcile_AlwaysCheckCAVerificationUnlessReques
 			wc := newWorkerJoinKubeadmConfig(workerMachine)
 			wc.Spec.JoinConfiguration.Discovery.BootstrapToken = tc.discovery
 			key := client.ObjectKey{Namespace: wc.Namespace, Name: wc.Name}
-			if err := myclient.Create(context.Background(), wc); err != nil {
-				t.Fatal(err)
-			}
+			err := myclient.Create(context.Background(), wc)
+			g.Expect(err).NotTo(HaveOccurred())
+
 			req := ctrl.Request{NamespacedName: key}
-			if _, err := reconciler.Reconcile(req); err != nil {
-				t.Fatalf("reconciled an error: %v", err)
-			}
+			_, err = reconciler.Reconcile(req)
+			g.Expect(err).NotTo(HaveOccurred())
+
 			cfg := &bootstrapv1.KubeadmConfig{}
-			if err := myclient.Get(context.Background(), key, cfg); err != nil {
-				t.Fatal(err)
-			}
-			if cfg.Spec.JoinConfiguration.Discovery.BootstrapToken.UnsafeSkipCAVerification != tc.skipCAVerification {
-				t.Fatalf("Expected skip CA verification: %v but was %v", tc.skipCAVerification, !tc.skipCAVerification)
-			}
+			err = myclient.Get(context.Background(), key, cfg)
+			g.Expect(err).NotTo(HaveOccurred())
+			g.Expect(cfg.Spec.JoinConfiguration.Discovery.BootstrapToken.UnsafeSkipCAVerification).To(Equal(tc.skipCAVerification))
 		})
 	}
 }
@@ -1385,6 +1223,8 @@ func TestKubeadmConfigReconciler_Reconcile_AlwaysCheckCAVerificationUnlessReques
 // If a cluster object changes then all associated KubeadmConfigs should be re-reconciled.
 // This allows us to not requeue a kubeadm config while we wait for InfrastructureReady.
 func TestKubeadmConfigReconciler_ClusterToKubeadmConfigs(t *testing.T) {
+	g := NewWithT(t)
+
 	cluster := newCluster("my-cluster")
 	objs := []runtime.Object{cluster}
 	expectedNames := []string{}
@@ -1415,14 +1255,14 @@ func TestKubeadmConfigReconciler_ClusterToKubeadmConfigs(t *testing.T) {
 				found = true
 			}
 		}
-		if !found {
-			t.Fatalf("did not find %s in %v", name, names)
-		}
+		g.Expect(found).To(BeTrue())
 	}
 }
 
 // Reconcile should not fail if the Etcd CA Secret already exists
 func TestKubeadmConfigReconciler_Reconcile_DoesNotFailIfCASecretsAlreadyExist(t *testing.T) {
+	g := NewWithT(t)
+
 	cluster := newCluster("my-cluster")
 	cluster.Status.InfrastructureReady = true
 	cluster.Status.ControlPlaneInitialized = false
@@ -1448,13 +1288,14 @@ func TestKubeadmConfigReconciler_Reconcile_DoesNotFailIfCASecretsAlreadyExist(t 
 	req := ctrl.Request{
 		NamespacedName: client.ObjectKey{Namespace: "default", Name: configName},
 	}
-	if _, err := reconciler.Reconcile(req); err != nil {
-		t.Fatal(err)
-	}
+	_, err := reconciler.Reconcile(req)
+	g.Expect(err).NotTo(HaveOccurred())
 }
 
 // Exactly one control plane machine initializes if there are multiple control plane machines defined
 func TestKubeadmConfigReconciler_Reconcile_ExactlyOneControlPlaneMachineInitializes(t *testing.T) {
+	g := NewWithT(t)
+
 	cluster := newCluster("cluster")
 	cluster.Status.InfrastructureReady = true
 
@@ -1485,15 +1326,9 @@ func TestKubeadmConfigReconciler_Reconcile_ExactlyOneControlPlaneMachineInitiali
 		},
 	}
 	result, err := k.Reconcile(request)
-	if err != nil {
-		t.Fatalf("Failed to reconcile:\n %+v", err)
-	}
-	if result.Requeue == true {
-		t.Fatal("did not expect to requeue")
-	}
-	if result.RequeueAfter != time.Duration(0) {
-		t.Fatal("did not expect to requeue after")
-	}
+	g.Expect(err).NotTo(HaveOccurred())
+	g.Expect(result.Requeue).To(BeFalse())
+	g.Expect(result.RequeueAfter).To(Equal(time.Duration(0)))
 
 	request = ctrl.Request{
 		NamespacedName: client.ObjectKey{
@@ -1502,19 +1337,15 @@ func TestKubeadmConfigReconciler_Reconcile_ExactlyOneControlPlaneMachineInitiali
 		},
 	}
 	result, err = k.Reconcile(request)
-	if err != nil {
-		t.Fatalf("Failed to reconcile:\n %+v", err)
-	}
-	if result.Requeue == true {
-		t.Fatal("did not expect to requeue")
-	}
-	if result.RequeueAfter != 30*time.Second {
-		t.Fatal("expected to requeue after 30s")
-	}
+	g.Expect(err).NotTo(HaveOccurred())
+	g.Expect(result.Requeue).To(BeFalse())
+	g.Expect(result.RequeueAfter).To(Equal(30 * time.Second))
 }
 
 // No patch should be applied if there is an error in reconcile
 func TestKubeadmConfigReconciler_Reconcile_DoNotPatchWhenErrorOccurred(t *testing.T) {
+	g := NewWithT(t)
+
 	cluster := newCluster("cluster")
 	cluster.Status.InfrastructureReady = true
 
@@ -1552,25 +1383,14 @@ func TestKubeadmConfigReconciler_Reconcile_DoNotPatchWhenErrorOccurred(t *testin
 	}
 
 	result, err := k.Reconcile(request)
-	if err == nil {
-		t.Fatal("Expected error, got nil")
-	}
-	if result.Requeue != false {
-		t.Fatal("did not expect to requeue")
-	}
-	if result.RequeueAfter != time.Duration(0) {
-		t.Fatal("did not expect to requeue after")
-	}
+	g.Expect(err).To(HaveOccurred())
+	g.Expect(result.Requeue).To(BeFalse())
+	g.Expect(result.RequeueAfter).To(Equal(time.Duration(0)))
 
 	cfg, err := getKubeadmConfig(myclient, "control-plane-init-cfg")
-	if err != nil {
-		t.Fatalf("Failed to reconcile:\n %+v", err)
-	}
-
+	g.Expect(err).NotTo(HaveOccurred())
 	// check if the kubeadm config has been patched
-	if cfg.Spec.InitConfiguration != nil {
-		t.Fatal("did not expect to patch the kubeadm config if there was an error in Reconcile")
-	}
+	g.Expect(cfg.Spec.InitConfiguration).To(BeNil())
 }
 
 // test utils

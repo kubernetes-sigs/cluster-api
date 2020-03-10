@@ -18,9 +18,10 @@ package cluster
 
 import (
 	"fmt"
-	"reflect"
 	"sort"
 	"testing"
+
+	. "github.com/onsi/gomega"
 
 	"github.com/pkg/errors"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -32,6 +33,8 @@ import (
 )
 
 func TestObjectGraph_getDiscoveryTypeMetaList(t *testing.T) {
+	g := NewWithT(t)
+
 	type fields struct {
 		proxy Proxy
 	}
@@ -63,20 +66,13 @@ func TestObjectGraph_getDiscoveryTypeMetaList(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			graph := newObjectGraph(tt.fields.proxy)
 			got, err := graph.getDiscoveryTypes()
-			if (err != nil) != tt.wantErr {
-				t.Fatalf("error = %v, wantErr %v", err, tt.wantErr)
-			}
 			if tt.wantErr {
+				g.Expect(err).To(HaveOccurred())
 				return
 			}
 
-			// sort lists in a predictable way
-			sort.Slice(got, sortTypeMetaList(got))
-			sort.Slice(tt.want, sortTypeMetaList(tt.want))
-
-			if !reflect.DeepEqual(got, tt.want) {
-				t.Errorf("got = %v, wantGraph %v", got, tt.want)
-			}
+			g.Expect(err).NotTo(HaveOccurred())
+			g.Expect(got).To(ConsistOf(tt.want))
 		})
 	}
 }
@@ -98,23 +94,15 @@ type wantGraph struct {
 }
 
 func assertGraph(t *testing.T, got *objectGraph, want wantGraph) {
-	if len(got.uidToNode) != len(want.nodes) {
-		t.Fatalf("got = %d nodes, want %d nodes", len(got.uidToNode), len(want.nodes))
-	}
+	g := NewWithT(t)
+
+	g.Expect(len(got.uidToNode)).To(Equal(len(want.nodes)))
 
 	for uid, wantNode := range want.nodes {
 		gotNode, ok := got.uidToNode[types.UID(uid)]
-		if !ok {
-			t.Fatalf("failed to get node with uid = %s", uid)
-		}
-
-		if gotNode.virtual != wantNode.virtual {
-			t.Errorf("node with uid = %s, got virtual = %t, want %t", uid, gotNode.virtual, wantNode.virtual)
-		}
-
-		if len(gotNode.owners) != len(wantNode.owners) {
-			t.Fatalf("node with uid = %s, got owners = %d, want %d", uid, len(gotNode.owners), len(wantNode.owners))
-		}
+		g.Expect(ok).To(BeTrue())
+		g.Expect(gotNode.virtual).To(Equal(wantNode.virtual))
+		g.Expect(gotNode.owners).To(HaveLen(len(wantNode.owners)))
 
 		for _, wantOwner := range wantNode.owners {
 			found := false
@@ -124,14 +112,10 @@ func assertGraph(t *testing.T, got *objectGraph, want wantGraph) {
 					break
 				}
 			}
-			if !found {
-				t.Errorf("node with uid = %s, failed to get owner %s", uid, wantOwner)
-			}
+			g.Expect(found).To(BeTrue())
 		}
 
-		if len(gotNode.softOwners) != len(wantNode.softOwners) {
-			t.Fatalf("node with uid = %s, got softOwners = %d, want %d", uid, len(gotNode.softOwners), len(wantNode.softOwners))
-		}
+		g.Expect(gotNode.softOwners).To(HaveLen(len(wantNode.softOwners)))
 
 		for _, wantOwner := range wantNode.softOwners {
 			found := false
@@ -141,9 +125,7 @@ func assertGraph(t *testing.T, got *objectGraph, want wantGraph) {
 					break
 				}
 			}
-			if !found {
-				t.Errorf("node with uid = %s, failed to get owner %s", uid, wantOwner)
-			}
+			g.Expect(found).To(BeTrue())
 		}
 	}
 }
@@ -885,13 +867,12 @@ func getDetachedObjectGraphWihObjs(objs []runtime.Object) (*objectGraph, error) 
 }
 
 func TestObjectGraph_addObj_WithFakeObjects(t *testing.T) {
+	g := NewWithT(t)
 	// NB. we are testing the graph is properly built starting from objects (this test) or from the same objects read from the cluster (TestGraphBuilder_Discovery)
 	for _, tt := range objectGraphsTests {
 		t.Run(tt.name, func(t *testing.T) {
 			graph, err := getDetachedObjectGraphWihObjs(tt.args.objs)
-			if err != nil {
-				t.Fatal(err)
-			}
+			g.Expect(err).NotTo(HaveOccurred())
 
 			// call setSoftOwnership so there is functional parity with discovery
 			graph.setSoftOwnership()
@@ -933,6 +914,7 @@ func getFakeDiscoveryTypes(graph *objectGraph) ([]metav1.TypeMeta, error) {
 }
 
 func TestObjectGraph_Discovery(t *testing.T) {
+	g := NewWithT(t)
 	// NB. we are testing the graph is properly built starting from objects (TestGraphBuilder_addObj_WithFakeObjects) or from the same objects read from the cluster (this test).
 	for _, tt := range objectGraphsTests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -941,25 +923,24 @@ func TestObjectGraph_Discovery(t *testing.T) {
 
 			// Get all the types to be considered for discovery
 			discoveryTypes, err := getFakeDiscoveryTypes(graph)
-			if err != nil {
-				t.Fatal(err)
-			}
+			g.Expect(err).NotTo(HaveOccurred())
 
 			// finally test discovery
 			err = graph.Discovery("ns1", discoveryTypes)
-			if (err != nil) != tt.wantErr {
-				t.Fatalf("error = %v, wantErr %v", err, tt.wantErr)
-			}
 			if tt.wantErr {
+				g.Expect(err).To(HaveOccurred())
 				return
 			}
 
+			g.Expect(err).NotTo(HaveOccurred())
 			assertGraph(t, graph, tt.want)
 		})
 	}
 }
 
 func TestObjectGraph_DiscoveryByNamespace(t *testing.T) {
+	g := NewWithT(t)
+
 	type args struct {
 		namespace string
 		objs      []runtime.Object
@@ -1059,25 +1040,24 @@ func TestObjectGraph_DiscoveryByNamespace(t *testing.T) {
 
 			// Get all the types to be considered for discovery
 			discoveryTypes, err := getFakeDiscoveryTypes(graph)
-			if err != nil {
-				t.Fatal(err)
-			}
+			g.Expect(err).NotTo(HaveOccurred())
 
 			// finally test discovery
 			err = graph.Discovery(tt.args.namespace, discoveryTypes)
-			if (err != nil) != tt.wantErr {
-				t.Fatalf("error = %v, wantErr %v", err, tt.wantErr)
-			}
 			if tt.wantErr {
+				g.Expect(err).To(HaveOccurred())
 				return
 			}
 
+			g.Expect(err).NotTo(HaveOccurred())
 			assertGraph(t, graph, tt.want)
 		})
 	}
 }
 
 func Test_objectGraph_setSoftOwnership(t *testing.T) {
+	g := NewWithT(t)
+
 	type fields struct {
 		objs []runtime.Object
 	}
@@ -1102,40 +1082,31 @@ func Test_objectGraph_setSoftOwnership(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			graph, err := getDetachedObjectGraphWihObjs(tt.fields.objs)
-			if err != nil {
-				t.Fatal(err)
-			}
+			g.Expect(err).NotTo(HaveOccurred())
 
 			graph.setSoftOwnership()
 
 			gotSecrets := graph.getSecrets()
-			if len(gotSecrets) != len(tt.wantSecrets) {
-				t.Fatalf("got = %d secrets, want %d", len(gotSecrets), len(tt.wantSecrets))
-			}
+			g.Expect(gotSecrets).To(HaveLen(len(tt.wantSecrets)))
 
 			for _, secret := range gotSecrets {
 				wantObjects, ok := tt.wantSecrets[string(secret.identity.UID)]
-				if !ok {
-					t.Fatalf("got = %s, not included in the expected secrect list", secret.identity.UID)
-				}
+				g.Expect(ok).To(BeTrue())
 
 				gotObjects := []string{}
 				for softOwners := range secret.softOwners {
 					gotObjects = append(gotObjects, string(softOwners.identity.UID))
 				}
 
-				sort.Strings(wantObjects)
-				sort.Strings(gotObjects)
-
-				if !reflect.DeepEqual(gotObjects, wantObjects) {
-					t.Fatalf("secret %s, got = %s, expected = %s", secret.identity.UID, gotObjects, wantObjects)
-				}
+				g.Expect(gotObjects).To(ConsistOf(wantObjects))
 			}
 		})
 	}
 }
 
 func Test_objectGraph_setClusterTenants(t *testing.T) {
+	g := NewWithT(t)
+
 	type fields struct {
 		objs []runtime.Object
 	}
@@ -1266,9 +1237,7 @@ func Test_objectGraph_setClusterTenants(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			gb, err := getDetachedObjectGraphWihObjs(tt.fields.objs)
-			if err != nil {
-				t.Fatal(err)
-			}
+			g.Expect(err).NotTo(HaveOccurred())
 
 			// we want to check that soft dependent nodes are considered part of the cluster, so we make sure to call SetSoftDependants before SetClusterTenants
 			gb.setSoftOwnership()
@@ -1281,15 +1250,11 @@ func Test_objectGraph_setClusterTenants(t *testing.T) {
 				return gotClusters[i].identity.UID < gotClusters[j].identity.UID
 			})
 
-			if len(gotClusters) != len(tt.wantClusters) {
-				t.Fatalf("got = %d clusters, want %d", len(gotClusters), len(tt.wantClusters))
-			}
+			g.Expect(gotClusters).To(HaveLen(len(tt.wantClusters)))
 
 			for _, cluster := range gotClusters {
 				wantTenants, ok := tt.wantClusters[string(cluster.identity.UID)]
-				if !ok {
-					t.Fatalf("got = %s, not included in the expected cluster list", cluster.identity.UID)
-				}
+				g.Expect(ok).To(BeTrue())
 
 				gotTenants := []string{}
 				for _, node := range gb.uidToNode {
@@ -1300,12 +1265,7 @@ func Test_objectGraph_setClusterTenants(t *testing.T) {
 					}
 				}
 
-				sort.Strings(wantTenants)
-				sort.Strings(gotTenants)
-
-				if !reflect.DeepEqual(gotTenants, wantTenants) {
-					t.Fatalf("cluster %s, got = %s, expected = %s", cluster.identity.UID, gotTenants, wantTenants)
-				}
+				g.Expect(gotTenants).To(ConsistOf(wantTenants))
 			}
 		})
 	}

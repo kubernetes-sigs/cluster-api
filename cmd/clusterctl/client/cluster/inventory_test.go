@@ -17,9 +17,10 @@ limitations under the License.
 package cluster
 
 import (
-	"reflect"
 	"testing"
 	"time"
+
+	. "github.com/onsi/gomega"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -33,6 +34,8 @@ func fakePollImmediateWaiter(interval, timeout time.Duration, condition wait.Con
 }
 
 func Test_inventoryClient_EnsureCustomResourceDefinitions(t *testing.T) {
+	g := NewWithT(t)
+
 	type fields struct {
 		alreadyHasCRD bool
 	}
@@ -61,14 +64,14 @@ func Test_inventoryClient_EnsureCustomResourceDefinitions(t *testing.T) {
 			p := newInventoryClient(test.NewFakeProxy(), fakePollImmediateWaiter)
 			if tt.fields.alreadyHasCRD {
 				//forcing creation of metadata before test
-				if err := p.EnsureCustomResourceDefinitions(); err != nil {
-					t.Fatal(err)
-				}
+				g.Expect(p.EnsureCustomResourceDefinitions()).To(Succeed())
 			}
 
 			err := p.EnsureCustomResourceDefinitions()
-			if (err != nil) != tt.wantErr {
-				t.Fatalf("error = %v, wantErr %v", err, tt.wantErr)
+			if tt.wantErr {
+				g.Expect(err).To(HaveOccurred())
+			} else {
+				g.Expect(err).NotTo(HaveOccurred())
 			}
 		})
 	}
@@ -77,6 +80,8 @@ func Test_inventoryClient_EnsureCustomResourceDefinitions(t *testing.T) {
 var fooProvider = clusterctlv1.Provider{ObjectMeta: metav1.ObjectMeta{Name: "foo", Namespace: "ns1"}}
 
 func Test_inventoryClient_List(t *testing.T) {
+	g := NewWithT(t)
+
 	type fields struct {
 		initObjs []runtime.Object
 	}
@@ -103,21 +108,20 @@ func Test_inventoryClient_List(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			p := newInventoryClient(test.NewFakeProxy().WithObjs(tt.fields.initObjs...), fakePollImmediateWaiter)
 			got, err := p.List()
-			if (err != nil) != tt.wantErr {
-				t.Fatalf("error = %v, wantErr %v", err, tt.wantErr)
-			}
 			if tt.wantErr {
+				g.Expect(err).To(HaveOccurred())
 				return
 			}
 
-			if !reflect.DeepEqual(got.Items, tt.want) {
-				t.Errorf("got = %v, want %v", got.Items, tt.want)
-			}
+			g.Expect(err).NotTo(HaveOccurred())
+			g.Expect(got.Items).To(ConsistOf(tt.want))
 		})
 	}
 }
 
 func Test_inventoryClient_Create(t *testing.T) {
+	g := NewWithT(t)
+
 	type fields struct {
 		proxy Proxy
 	}
@@ -167,28 +171,26 @@ func Test_inventoryClient_Create(t *testing.T) {
 				proxy: tt.fields.proxy,
 			}
 			err := p.Create(tt.args.m)
-			if (err != nil) != tt.wantErr {
-				t.Errorf("error = %v, wantErr %v", err, tt.wantErr)
-			}
 			if tt.wantErr {
+				g.Expect(err).To(HaveOccurred())
 				return
 			}
 
+			g.Expect(err).NotTo(HaveOccurred())
+
 			got, err := p.List()
-			if (err != nil) != tt.wantErr {
-				t.Fatalf("error = %v, wantErr %v", err, tt.wantErr)
-			}
 			if tt.wantErr {
+				g.Expect(err).To(HaveOccurred())
 				return
 			}
+
+			g.Expect(err).NotTo(HaveOccurred())
 
 			for i := range got.Items {
 				tt.wantProviders[i].ResourceVersion = got.Items[i].ResourceVersion
 			}
 
-			if !reflect.DeepEqual(got.Items, tt.wantProviders) {
-				t.Errorf("got = %v, want %v", got.Items, tt.wantProviders)
-			}
+			g.Expect(got.Items).To(ConsistOf(tt.wantProviders))
 		})
 	}
 }

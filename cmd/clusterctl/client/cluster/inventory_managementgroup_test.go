@@ -17,8 +17,9 @@ limitations under the License.
 package cluster
 
 import (
-	"reflect"
 	"testing"
+
+	. "github.com/onsi/gomega"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha3"
@@ -27,6 +28,8 @@ import (
 )
 
 func Test_inventoryClient_GetManagementGroups(t *testing.T) {
+	g := NewWithT(t)
+
 	type fields struct {
 		proxy Proxy
 	}
@@ -147,17 +150,12 @@ func Test_inventoryClient_GetManagementGroups(t *testing.T) {
 				proxy: tt.fields.proxy,
 			}
 			got, err := p.GetManagementGroups()
-			if (err != nil) != tt.wantErr {
-				t.Errorf("error = %v, wantErr %v", err, tt.wantErr)
-				return
-			}
 			if tt.wantErr {
+				g.Expect(err).To(HaveOccurred())
 				return
 			}
-
-			if !reflect.DeepEqual(got, tt.want) {
-				t.Errorf("got = %v, want %v", got, tt.want)
-			}
+			g.Expect(err).NotTo(HaveOccurred())
+			g.Expect(got).To(Equal(tt.want))
 		})
 	}
 }

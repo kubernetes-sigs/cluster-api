@@ -24,8 +24,9 @@ import (
 	"net/url"
 	"os"
 	"path/filepath"
-	"reflect"
 	"testing"
+
+	. "github.com/onsi/gomega"
 
 	"github.com/google/go-github/github"
 	corev1 "k8s.io/api/core/v1"
@@ -42,10 +43,10 @@ var template = "apiVersion: cluster.x-k8s.io/v1alpha3\n" +
 	"kind: Machine"
 
 func Test_templateClient_GetFromConfigMap(t *testing.T) {
+	g := NewWithT(t)
+
 	configClient, err := config.New("", config.InjectReader(test.NewFakeReader()))
-	if err != nil {
-		t.Fatal(err)
-	}
+	g.Expect(err).NotTo(HaveOccurred())
 
 	configMap := &corev1.ConfigMap{
 		TypeMeta: metav1.TypeMeta{
@@ -135,32 +136,28 @@ func Test_templateClient_GetFromConfigMap(t *testing.T) {
 				configClient: tt.fields.configClient,
 			}
 			got, err := tc.GetFromConfigMap(tt.args.configMapNamespace, tt.args.configMapName, tt.args.configMapDataKey, tt.args.targetNamespace, tt.args.listVariablesOnly)
-			if (err != nil) != tt.wantErr {
-				t.Fatalf("error = %v, wantErr %v", err, tt.wantErr)
-			}
 			if tt.wantErr {
+				g.Expect(err).To(HaveOccurred())
 				return
 			}
 
+			g.Expect(err).NotTo(HaveOccurred())
+
 			wantTemplate, err := repository.NewTemplate([]byte(tt.want), configClient.Variables(), tt.args.targetNamespace, tt.args.listVariablesOnly)
-			if err != nil {
-				t.Fatal(err)
-			}
-			if !reflect.DeepEqual(got, wantTemplate) {
-				t.Errorf("got = %v, want %v", got, wantTemplate)
-			}
+			g.Expect(err).NotTo(HaveOccurred())
+			g.Expect(got).To(Equal(wantTemplate))
 		})
 	}
 }
 
 func Test_templateClient_getGitHubFileContent(t *testing.T) {
+	g := NewWithT(t)
+
 	client, mux, teardown := test.NewFakeGitHub()
 	defer teardown()
 
 	configClient, err := config.New("", config.InjectReader(test.NewFakeReader()))
-	if err != nil {
-		t.Fatal(err)
-	}
+	g.Expect(err).NotTo(HaveOccurred())
 
 	mux.HandleFunc("/repos/kubernetes-sigs/cluster-api/contents/config/default/cluster-template.yaml", func(w http.ResponseWriter, r *http.Request) {
 		fmt.Fprint(w, `{
@@ -209,31 +206,27 @@ func Test_templateClient_getGitHubFileContent(t *testing.T) {
 				},
 			}
 			got, err := c.getGitHubFileContent(tt.args.rURL)
-			if (err != nil) != tt.wantErr {
-				t.Fatalf("error = %v, wantErr %v", err, tt.wantErr)
-			}
 			if tt.wantErr {
+				g.Expect(err).To(HaveOccurred())
 				return
 			}
 
-			if !reflect.DeepEqual(got, tt.want) {
-				t.Errorf("got = %v, want %v", got, tt.want)
-			}
+			g.Expect(err).NotTo(HaveOccurred())
+
+			g.Expect(got).To(Equal(tt.want))
 		})
 	}
 }
 
 func Test_templateClient_getLocalFileContent(t *testing.T) {
+	g := NewWithT(t)
+
 	tmpDir, err := ioutil.TempDir("", "cc")
-	if err != nil {
-		t.Fatal(err)
-	}
+	g.Expect(err).NotTo(HaveOccurred())
 	defer os.RemoveAll(tmpDir)
 
 	path := filepath.Join(tmpDir, "cluster-template.yaml")
-	if err := ioutil.WriteFile(path, []byte(template), 0644); err != nil {
-		t.Fatalf("err: %s", err)
-	}
+	g.Expect(ioutil.WriteFile(path, []byte(template), 0644)).To(Succeed())
 
 	type args struct {
 		rURL *url.URL
@@ -265,31 +258,27 @@ func Test_templateClient_getLocalFileContent(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			c := &templateClient{}
 			got, err := c.getLocalFileContent(tt.args.rURL)
-			if (err != nil) != tt.wantErr {
-				t.Fatalf("error = %v, wantErr %v", err, tt.wantErr)
-			}
 			if tt.wantErr {
+				g.Expect(err).To(HaveOccurred())
 				return
 			}
 
-			if !reflect.DeepEqual(got, tt.want) {
-				t.Errorf("got = %v, want %v", got, tt.want)
-			}
+			g.Expect(err).NotTo(HaveOccurred())
+
+			g.Expect(got).To(Equal(tt.want))
 		})
 	}
 }
 
 func Test_templateClient_GetFromURL(t *testing.T) {
+	g := NewWithT(t)
+
 	tmpDir, err := ioutil.TempDir("", "cc")
-	if err != nil {
-		t.Fatal(err)
-	}
+	g.Expect(err).NotTo(HaveOccurred())
 	defer os.RemoveAll(tmpDir)
 
 	configClient, err := config.New("", config.InjectReader(test.NewFakeReader()))
-	if err != nil {
-		t.Fatal(err)
-	}
+	g.Expect(err).NotTo(HaveOccurred())
 
 	client, mux, teardown := test.NewFakeGitHub()
 	defer teardown()
@@ -307,9 +296,7 @@ func Test_templateClient_GetFromURL(t *testing.T) {
 	})
 
 	path := filepath.Join(tmpDir, "cluster-template.yaml")
-	if err := ioutil.WriteFile(path, []byte(template), 0644); err != nil {
-		t.Fatalf("err: %s", err)
-	}
+	g.Expect(ioutil.WriteFile(path, []byte(template), 0644)).To(Succeed())
 
 	type args struct {
 		templateURL       string
@@ -352,20 +339,16 @@ func Test_templateClient_GetFromURL(t *testing.T) {
 				},
 			}
 			got, err := c.GetFromURL(tt.args.templateURL, tt.args.targetNamespace, tt.args.listVariablesOnly)
-			if (err != nil) != tt.wantErr {
-				t.Fatalf("error = %v, wantErr %v", err, tt.wantErr)
-			}
 			if tt.wantErr {
+				g.Expect(err).To(HaveOccurred())
 				return
 			}
 
+			g.Expect(err).NotTo(HaveOccurred())
+
 			wantTemplate, err := repository.NewTemplate([]byte(tt.want), configClient.Variables(), tt.args.targetNamespace, tt.args.listVariablesOnly)
-			if err != nil {
-				t.Fatal(err)
-			}
-			if !reflect.DeepEqual(got, wantTemplate) {
-				t.Errorf("got = %v, want %v", got, wantTemplate)
-			}
+			g.Expect(err).NotTo(HaveOccurred())
+			g.Expect(got).To(Equal(wantTemplate))
 		})
 	}
 }

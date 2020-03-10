@@ -17,8 +17,9 @@ limitations under the License.
 package cluster
 
 import (
-	"reflect"
 	"testing"
+
+	. "github.com/onsi/gomega"
 
 	clusterctlv1 "sigs.k8s.io/cluster-api/cmd/clusterctl/api/v1alpha3"
 	"sigs.k8s.io/cluster-api/cmd/clusterctl/client/config"
@@ -27,6 +28,8 @@ import (
 )
 
 func Test_providerUpgrader_Plan(t *testing.T) {
+	g := NewWithT(t)
+
 	type fields struct {
 		reader     config.Reader
 		repository map[string]repository.Repository
@@ -490,21 +493,20 @@ func Test_providerUpgrader_Plan(t *testing.T) {
 				providerInventory: newInventoryClient(tt.fields.proxy, nil),
 			}
 			got, err := u.Plan()
-			if (err != nil) != tt.wantErr {
-				t.Fatalf("error = %v, wantErr %v", err, tt.wantErr)
-			}
 			if tt.wantErr {
+				g.Expect(err).To(HaveOccurred())
 				return
 			}
 
-			if !reflect.DeepEqual(got, tt.want) {
-				t.Errorf("got = %v, want %v", got, tt.want)
-			}
+			g.Expect(err).NotTo(HaveOccurred())
+			g.Expect(got).To(Equal(tt.want))
 		})
 	}
 }
 
 func Test_providerUpgrader_createCustomPlan(t *testing.T) {
+	g := NewWithT(t)
+
 	type fields struct {
 		reader     config.Reader
 		repository map[string]repository.Repository
@@ -780,16 +782,13 @@ func Test_providerUpgrader_createCustomPlan(t *testing.T) {
 				providerInventory: newInventoryClient(tt.fields.proxy, nil),
 			}
 			got, err := u.createCustomPlan(tt.args.coreProvider, tt.args.providersToUpgrade)
-			if (err != nil) != tt.wantErr {
-				t.Fatalf("error = %v, wantErr %v", err, tt.wantErr)
-			}
 			if tt.wantErr {
+				g.Expect(err).To(HaveOccurred())
 				return
 			}
 
-			if !reflect.DeepEqual(got, tt.want) {
-				t.Errorf("got = %v, want %v", got, tt.want)
-			}
+			g.Expect(err).NotTo(HaveOccurred())
+			g.Expect(got).To(Equal(tt.want))
 		})
 	}
 }

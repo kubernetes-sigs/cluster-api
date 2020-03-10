@@ -124,7 +124,7 @@ func (c *Cluster) ApplyYAML(manifestPath string) {
 // RestConfig returns a REST configuration pointed at the provisioned cluster
 func (c *Cluster) RestConfig() *restclient.Config {
 	cfg, err := clientcmd.BuildConfigFromFlags("", c.KubeconfigPath)
-	ExpectWithOffset(1, err).NotTo(==.HaveOccurred())
+	ExpectWithOffset(1, err).NotTo(HaveOccurred())
 	return cfg
 }
 

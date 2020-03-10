@@ -18,9 +18,13 @@ package v1alpha3
 
 import (
 	"testing"
+
+	. "github.com/onsi/gomega"
 )
 
 func Test_Provider_ManifestLabel(t *testing.T) {
+	g := NewWithT(t)
+
 	type fields struct {
 		provider     string
 		providerType ProviderType
@@ -85,9 +89,7 @@ func Test_Provider_ManifestLabel(t *testing.T) {
 				ProviderName: tt.fields.provider,
 				Type:         string(tt.fields.providerType),
 			}
-			if got := p.ManifestLabel(); got != tt.want {
-				t.Errorf("got %v, want %v", got, tt.want)
-			}
+			g.Expect(p.ManifestLabel()).To(Equal(tt.want))
 		})
 	}
 }

@@ -17,7 +17,14 @@ A machine infrastructure provider must define an API type for "infrastructure ma
     1. Required fields:
         1. `providerID` (string): the identifier for the provider's machine instance
     2. Optional fields:
-        1. `failureDomain` (string): the string identifier of the failure domain the instance is running in
+        1. `failureDomain` (string): the string identifier of the failure domain the instance is running in for the
+           purposes of backwards compatibility and migrating to the v1alpha3 FailureDomain support (where FailureDomain
+           is specified in Machine.Spec.FailureDomain). This field is meant to be temporary to aid in migration of data
+           that was previously defined on the provider type and providers will be expected to remove the field in the
+           next version that provides breaking API changes, favoring the value defined on Machine.Spec.FailureDomain
+           instead. If supporting conversions from previous types, the provider will need to support a conversion from
+           the provider-specific field that was previously used to the `failureDomain` field to support the automated
+           migration path.
 6. Must have a `status` field with the following:
     1. Required fields:
         1. `ready` (boolean): indicates the provider-specific infrastructure has been provisioned and is ready

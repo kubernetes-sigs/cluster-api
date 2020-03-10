@@ -166,6 +166,10 @@ An infrastructure provider can implement this by setting the `InfraCluster.Statu
 unique keys to `failureDomainSpec`s as well as respecting a set `Machine.Spec.FailureDomain` field when creating
 instances.
 
+To support migration from failure domains that were previously specified through provider-specific resources, the
+Machine controller will support updating `Machine.Spec.FailureDomain` field if `Spec.FailureDomain` is present and
+defined on the provider-defined infrastructure resource.
+
 Please see the cluster and machine infrastructure provider specifications for more detail.
 
 ## Refactor kustomize `config/` folder to support multi-tenancy when using webhooks.

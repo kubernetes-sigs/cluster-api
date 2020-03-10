@@ -223,15 +223,9 @@ func (r *DockerMachineReconciler) reconcileNormal(ctx context.Context, machine *
 }
 
 func (r *DockerMachineReconciler) reconcileDelete(ctx context.Context, machine *clusterv1.Machine, dockerMachine *infrav1.DockerMachine, externalMachine *docker.Machine, externalLoadBalancer *docker.LoadBalancer) (ctrl.Result, error) {
-	// if the deleted machine is a control-plane node, exec kubeadm reset so the etcd member hosted
-	// on the machine gets removed in a controlled way
-	if util.IsControlPlaneMachine(machine) {
-		timeoutctx, cancel := context.WithTimeout(ctx, 1*time.Minute)
-		defer cancel()
-		if err := externalMachine.KubeadmReset(timeoutctx); err != nil {
-			return ctrl.Result{}, errors.Wrap(err, "failed to execute kubeadm reset")
-		}
-	}
+	// Long lived CAPD clusters (unadvised) that are using Machine resources for the control plane machines
+	// will have to manually keep the kubeadm config-map on the workload cluster up to date.
+	// This is automated when using the KubeadmControlPlane.
 
 	// delete the machine
 	if err := externalMachine.Delete(ctx); err != nil {

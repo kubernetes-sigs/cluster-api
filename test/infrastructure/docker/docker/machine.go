@@ -238,23 +238,6 @@ func (m *Machine) getKubectlNode() (*types.Node, error) {
 	return kubectlNodes[0], nil
 }
 
-// KubeadmReset will run `kubeadm reset` on the machine.
-func (m *Machine) KubeadmReset(ctx context.Context) error {
-	if m.container != nil {
-		m.log.Info("Running kubeadm reset on the machine")
-		cmd := m.container.Commander.Command("kubeadm", "reset", "--force")
-		lines, err := cmd.RunLoggingOutputOnFail(ctx)
-		if err != nil {
-			for _, line := range lines {
-				m.log.Info(line)
-			}
-			return errors.Wrap(err, "failed to reset node")
-		}
-	}
-
-	return nil
-}
-
 // Delete deletes a docker container hosting a Kubernetes node.
 func (m *Machine) Delete(ctx context.Context) error {
 	// Delete if exists.

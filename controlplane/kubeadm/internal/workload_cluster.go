@@ -67,7 +67,7 @@ type WorkloadCluster interface {
 	// Behaviors necessary for upgrade
 	ReconcileKubeletRBACBinding(ctx context.Context, version semver.Version) error
 	ReconcileKubeletRBACRole(ctx context.Context, version semver.Version) error
-	UpdateKubernetesVersionInKubeadmConfigMap(ctx context.Context, version string) error
+	UpdateKubernetesVersionInKubeadmConfigMap(ctx context.Context, version semver.Version) error
 	UpdateEtcdVersionInKubeadmConfigMap(ctx context.Context, imageRepository, imageTag string) error
 	UpdateKubeletConfigMap(ctx context.Context, version semver.Version) error
 	UpdateKubeProxyImageInfo(ctx context.Context, kcp *controlplanev1.KubeadmControlPlane) error
@@ -286,14 +286,14 @@ func (w *Workload) UpdateEtcdVersionInKubeadmConfigMap(ctx context.Context, imag
 }
 
 // UpdateKubernetesVersionInKubeadmConfigMap updates the kubernetes version in the kubeadm config map.
-func (w *Workload) UpdateKubernetesVersionInKubeadmConfigMap(ctx context.Context, version string) error {
+func (w *Workload) UpdateKubernetesVersionInKubeadmConfigMap(ctx context.Context, version semver.Version) error {
 	configMapKey := ctrlclient.ObjectKey{Name: "kubeadm-config", Namespace: metav1.NamespaceSystem}
 	kubeadmConfigMap, err := w.getConfigMap(ctx, configMapKey)
 	if err != nil {
 		return err
 	}
 	config := &kubeadmConfig{ConfigMap: kubeadmConfigMap}
-	if err := config.UpdateKubernetesVersion(version); err != nil {
+	if err := config.UpdateKubernetesVersion(fmt.Sprintf("v%s", version)); err != nil {
 		return err
 	}
 	if err := w.Client.Update(ctx, config.ConfigMap); err != nil {

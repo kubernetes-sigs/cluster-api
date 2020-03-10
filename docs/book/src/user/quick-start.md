@@ -94,7 +94,7 @@ variables required by a cluster templates.
 For the purpose of this tutorial, we’ll name our cluster capi-quickstart.
 
 ```
-clusterctl config cluster capi-quickstart --kubernetes-version v1.17.0 > capi-quickstart.yaml
+clusterctl config cluster capi-quickstart --kubernetes-version v1.17.0 --control-plane-machine-count=3 --worker-machine-count=3 > capi-quickstart.yaml
 ```
 
 Creates a YAML file named `capi-quickstart.yaml` with a predefined list of Cluster API objects; Cluster, Machines,
